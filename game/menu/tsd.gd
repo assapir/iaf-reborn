@@ -456,7 +456,8 @@ func _briefing() -> Dictionary:
 			)
 			if not titles.is_empty():
 				plain[lang] += "\n\n%s %s" % ["מודיעין:" if lang == "he" else "Intel:", ", ".join(titles)]
-		return {"text": plain, "entries": links}
+		# An edited mission with no text and no links has no briefing: no empty window opens.
+		return {"text": plain, "entries": links} if not plain.is_empty() else {}
 	return fe.briefings.get("missions", {}).get(str(mission_id), {})
 
 

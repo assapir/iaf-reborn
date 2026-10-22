@@ -35,10 +35,11 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
   (`content_scale_factor`), and the window grows to hold 1600 × 1000 of those units as far as the work area allows,
   as the setup wizard's does.
 - **Side panel**, four tabs:
-  - **Units:** every entity of the main file, a target or a must-survive unit tagged and coloured; the selected
-    unit's name, side, role, heading and altitude; Delete; mark the selected units Target / Must survive / Neutral;
-    Copy and Paste (§17); Add a unit; Give a route (§13); Random: the chance to appear and the start spread, the roll
-    preview (§15).
+  - **Units**, in the order of use: every entity of the main file, a target or a must-survive unit tagged and
+    coloured; **Add a unit** right under the list (kind; object, shown by its game name then its own, e.g. "SA 6
+    (sa6launcher)"; side, role and Place on one line); the selected unit's name, side, role, heading and altitude;
+    Delete; mark the selected units Target / Must survive / Neutral; Give a route (§13); Copy and Paste (§17);
+    Random: the chance to appear and the start spread, the roll preview (§15).
   - **Flights:** the what-if switch (§12.4) above the jet lists it widens; Alpha … Delta (type: the blue jets in
     service in the mission's year, number of jets; on its second line where it starts: "as placed" (a new flight: in
     the air at the map's centre) or a base blue holds that year, on its runway with a route that takes off; Add / Set,
@@ -54,7 +55,7 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
     briefing's links (§14).
   - **Scenario:** "when X then Y" rules built from blocks (§18).
 - **Bottom:** what passes and fails the mission (§13), red when it can never pass; under it the errors and warnings,
-  errors first, in red and yellow (the list shows only when it has any). A click on one selects its unit and centres
+  errors first, in red and yellow (the list shows only when it has any, as tall as its lines up to four). A click on one selects its unit and centres
   the map on it.
 
 ## 2. Opening and saving

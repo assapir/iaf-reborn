@@ -769,8 +769,9 @@ func _refresh_ui() -> void:
 				list.add_item("%s: %s" % [level.capitalize(), it.text])
 				list.set_item_metadata(list.item_count - 1, int(it.id))
 				list.set_item_custom_fg_color(list.item_count - 1, Color.RED if level == "error" else Color.YELLOW)
-	# The list shows only when there is something in it.
+	# The list shows only when there is something in it, as tall as its lines up to four (then it scrolls).
 	list.visible = not issues.is_empty()
+	list.custom_minimum_size.y = mini(list.item_count, 4) * 30 + 6
 	_ui.issues_head.text = (
 		"No errors or warnings"
 		if issues.is_empty()
@@ -834,7 +835,7 @@ func _build_ui() -> void:
 	_ui.issues_head = _label("")
 	root.add_child(_ui.issues_head)
 	_ui.issues = ItemList.new()
-	_ui.issues.custom_minimum_size.y = 120
+	_ui.issues.custom_minimum_size.y = 36
 	_ui.issues.size_flags_vertical = Control.SIZE_SHRINK_END
 	_ui.issues.item_clicked.connect(func(i, _at, _button): _on_issue_pressed(i))
 	root.add_child(_ui.issues)
@@ -943,9 +944,26 @@ func _options(items: Array, cb: Callable) -> OptionButton:
 func _build_units_tab(box: VBoxContainer) -> void:
 	_ui.units = ItemList.new()
 	_ui.units.select_mode = ItemList.SELECT_MULTI
-	_ui.units.custom_minimum_size.y = 260
+	_ui.units.custom_minimum_size.y = 170
 	_ui.units.multi_selected.connect(func(_i, _s): _on_unit_listed())
 	box.add_child(_ui.units)
+	# Adding comes first, right under the list: the most used action stays in view without scrolling.
+	box.add_child(_label("Add a unit"))
+	_ui.add_class = _row(box, "Kind", _options(ADD_CLASSES.map(func(c): return c[0]), func(_i): _fill_object_picker()))
+	_ui.add_obj = _row(box, "Object", _options([], func(_i): add_object = _ui.add_obj.get_selected_metadata()))
+	# Side, role and Place on one line, so the whole section fits in a short window.
+	var line := HBoxContainer.new()
+	box.add_child(line)
+	_ui.add_side = _options(SIDES, func(_i): pass)
+	_ui.add_side.select(1)
+	line.add_child(_ui.add_side)
+	_ui.add_role = _options(ROLES, func(_i): pass)
+	_ui.add_role.select(1)
+	line.add_child(_ui.add_role)
+	_ui.add_mode = _button(line, "Place (click the map)", func(): _set_mode("add"))
+	_ui.add_mode.toggle_mode = true
+	_ui.add_mode.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_child(HSeparator.new())
 	box.add_child(_label("Selected unit"))
 	_ui.p_name = _row(box, "Name", LineEdit.new())
 	_ui.p_name.text_submitted.connect(func(t): set_field("0x2bc", t))
@@ -956,27 +974,17 @@ func _build_units_tab(box: VBoxContainer) -> void:
 	_ui.p_where = _row(box, "Position", _label(""))
 	_button(box, "Delete unit", delete_selected)
 	_build_roles(box)
-	_build_clipboard(box)
-	box.add_child(HSeparator.new())
-	box.add_child(_label("Add a unit"))
-	_ui.add_class = _row(box, "Kind", _options(ADD_CLASSES.map(func(c): return c[0]), func(_i): _fill_object_picker()))
-	_ui.add_obj = _row(box, "Object", _options([], func(_i): add_object = _ui.add_obj.get_selected_metadata()))
-	_ui.add_side = _row(box, "Side", _options(SIDES, func(_i): pass))
-	_ui.add_side.select(1)
-	_ui.add_role = _row(box, "Role", _options(ROLES, func(_i): pass))
-	_ui.add_role.select(1)
-	_ui.add_mode = _button(box, "Place on the map (click)", func(): _set_mode("add"))
-	_ui.add_mode.toggle_mode = true
 	box.add_child(HSeparator.new())
 	box.add_child(_label("Give a route to the units selected in the list"))
 	_ui.route_speed = _row(box, "Speed km/h", _spin(1, 2000, 1, func(_v): pass))
 	_ui.route_speed.value = 40
 	_ui.route_hover = _row(box, "At the end", CheckBox.new())
-	_ui.route_hover.text = "Hover"
+	_ui.route_hover.text = "Stop and hold at the last point"
 	_ui.route_mode = _button(box, "Draw the route (click points)", func(): _set_mode("route"))
 	_ui.route_mode.toggle_mode = true
 	_button(box, "Give the route", apply_route)
 	_button(box, "Clear the selected unit's route", clear_route)
+	_build_clipboard(box)
 	_build_random(box)
 
 
@@ -1101,10 +1109,11 @@ func _build_dialogs() -> void:
 	v.add_child(_label("Name (English letters, digits, spaces, _ or -)"))
 	_ui.name_edit = LineEdit.new()
 	_ui.name_edit.custom_minimum_size.x = 360
-	_ui.name_edit.text_changed.connect(func(t): _ui.name_why.text = name_error(t))
+	_ui.name_edit.text_changed.connect(func(t): _set_why(name_error(t)))
 	v.add_child(_ui.name_edit)
 	_ui.name_why = _label("")
 	_ui.name_why.modulate = Color.RED
+	_ui.name_why.visible = false
 	v.add_child(_ui.name_why)
 	v.add_child(_ui.era_row)
 	_ui.name_dlg.add_child(v)
@@ -1168,7 +1177,7 @@ func _ask_name(purpose: String, suggestion: String) -> void:
 	if purpose == "new":
 		_fill_new_choices()
 	_ui.name_edit.text = suggestion
-	_ui.name_why.text = name_error(suggestion)
+	_set_why(name_error(suggestion))
 	_ui.name_dlg.popup_centered()
 
 
@@ -1200,11 +1209,17 @@ func _fill_new_choices() -> void:
 	_fill_jets(_ui.new_jet, api.year_jets(y, 1, _ui.new_what_if.button_pressed))
 
 
+## The name's problem under the name box; the line shows only when there is one.
+func _set_why(t: String) -> void:
+	_ui.name_why.text = t
+	_ui.name_why.visible = t != ""
+
+
 func _name_confirmed() -> void:
 	var n: String = _ui.name_edit.text.strip_edges()
 	var why := name_error(n)
 	if why != "":
-		_ui.name_why.text = why
+		_set_why(why)
 		_ui.name_dlg.popup_centered.call_deferred()
 		return
 	if own_clash(n):
@@ -1334,13 +1349,19 @@ func _fill_object_picker() -> void:
 	var o: OptionButton = _ui.add_obj
 	o.clear()
 	var classes: Array = ADD_CLASSES[maxi(_ui.add_class.selected, 0)][1]
-	var ids := objects.keys()
-	ids.sort()
-	for id in ids:
+	# The game's display name first ("SA 6"), the object's own name after it ("sa6launcher") to tell a battery's parts
+	# apart; objects without a display name (antennas, domes) last, by their own name. Sorted by what shows.
+	var rows := []
+	for id in objects:
 		var obj: Dictionary = objects[id]
 		if int(obj.get("0x5aa", -1)) in classes:
-			o.add_item("%s (%s)" % [obj.get("0x514", id), obj.get("0x528", obj.get("0x51e", ""))])
-			o.set_item_metadata(o.item_count - 1, int(id))
+			var shown := String(obj.get("0x528", "")).strip_edges()
+			var own := String(obj.get("0x514", str(id)))
+			rows.append([shown == "", ("%s  (%s)" % [shown, own]) if shown != "" else own, int(id)])
+	rows.sort()
+	for r in rows:
+		o.add_item(r[1])
+		o.set_item_metadata(o.item_count - 1, r[2])
 	add_object = o.get_item_metadata(0) if o.item_count > 0 else -1
 
 
