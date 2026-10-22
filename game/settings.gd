@@ -674,6 +674,36 @@ func quit() -> void:
 	get_tree().quit()
 
 
+## A stall in the game log (docs/logs.md): a frame longer than STALL_MS gets a line with its length, the scene (the
+## front end's screen) and the last mouse click, so a freeze reported from play shows what led to it.
+const STALL_MS := 250
+var _frame_at := 0
+var _last_click := "none"
+var _click_at := 0
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed:
+		_click_at = Time.get_ticks_msec()
+		_last_click = (
+			"button %d%s at %s"
+			% [event.button_index, " (double)" if event.double_click else "", Vector2i(event.position)]
+		)
+
+
+func _process(_delta: float) -> void:
+	var now := Time.get_ticks_msec()
+	if _frame_at > 0 and now - _frame_at > STALL_MS:
+		var sc := get_tree().current_scene
+		var where := String(sc.name) if sc != null else "?"
+		if sc != null and sc.get("screen") != null:
+			where += " / " + String(sc.screen)
+		print(
+			"stall: %d ms in %s; last click %s, %d ms before" % [now - _frame_at, where, _last_click, now - _click_at]
+		)
+	_frame_at = now
+
+
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_READY:
 		get_tree().auto_accept_quit = false
