@@ -224,6 +224,13 @@ impl IafScenery {
         SCENERY.write().unwrap().set_damaged(&id.to_string(), damaged);
     }
 
+    /// A bomb's, missile's or rocket's blast of radius `r` at a world point (docs/scenery.md §4): damages the building
+    /// it meets and returns its id, "" for none.
+    #[func]
+    fn blast(w: Vector3, r: f64) -> GString {
+        GString::from(SCENERY.write().unwrap().blast(vec3(w), r, &ground).unwrap_or_default().as_str())
+    }
+
     #[func]
     fn is_damaged(id: GString) -> bool {
         SCENERY.read().unwrap().is_damaged(&id.to_string())

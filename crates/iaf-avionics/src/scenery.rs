@@ -164,6 +164,10 @@ const BUCKET: f64 = 16.0;
 pub const CROWN: f32 = 0.3;
 /// A damaged building's height as a share of its own.
 pub const DAMAGED: f32 = 0.25;
+/// A blast damages a building whose centroid is at most this far (m) when the point is outside every footprint.
+pub const BLAST_REACH: f64 = 15.0;
+/// A blast higher than this (m) above the roof leaves the building whole (an air burst).
+pub const BLAST_ABOVE: f64 = 10.0;
 
 type Key = (i32, i32);
 
@@ -450,6 +454,19 @@ impl Scenery {
             height: f64::from(b.height),
             area: area(&b.points),
         })
+    }
+
+    /// A bomb's, missile's or rocket's blast of radius `r` at a world point (X east, Y north, Z up; docs/scenery.md
+    /// §4): the building whose footprint holds the point, else the one with the nearest centroid within `r` (at most
+    /// `BLAST_REACH`), is marked damaged when the point is at most `BLAST_ABOVE` over its roof. Returns its id.
+    pub fn blast(&mut self, p: Vec3, r: f64, ground: &dyn Fn(Vec3) -> Option<f64>) -> Option<String> {
+        let f = self.nearest(p.x, p.y, r.min(BLAST_REACH))?;
+        let roof = base(self.building(&f.id)?, ground)? + f.height;
+        if p.z > roof + BLAST_ABOVE {
+            return None;
+        }
+        self.set_damaged(&f.id, true);
+        Some(f.id)
     }
 
     /// The buildings whose centroid is within `r` m of a world point.
@@ -947,6 +964,18 @@ mod tests {
         assert_eq!(s.count_within(30.0, 5.0, 15.0), 0);
         assert_eq!(s.building("3_4:1").map(|b| b.height), Some(6.0));
         assert_eq!(s.building("9_9:0"), None);
+    }
+
+    #[test]
+    fn blast_damages_the_building_under_it() {
+        let mut s = town();
+        assert_eq!(s.blast(Vec3::new(10.0, 5.0, 17.0), 50.0, FLAT).as_deref(), Some("3_4:0"), "on the roof");
+        assert!(s.is_damaged("3_4:0"));
+        assert_eq!(s.blast(Vec3::new(50.0, 5.0, 25.0), 50.0, FLAT), None, "air burst 14 m over the 11 m roof");
+        assert_eq!(s.blast(Vec3::new(50.0, 20.0, 5.0), 50.0, FLAT).as_deref(), Some("3_4:1"), "street, 15 m off");
+        assert_eq!(s.blast(Vec3::new(50.0, 21.0, 5.0), 50.0, FLAT), None, "beyond the reach");
+        assert_eq!(s.blast(Vec3::new(50.0, 18.0, 5.0), 2.0, FLAT), None, "a small blast reaches no centroid");
+        assert_eq!(s.top(10.0, 5.0, FLAT), 3.0, "the building stays, lower");
     }
 
     /// Every triangle faces its stored normal (Godot's clockwise front), and walls face away from the footprint.
