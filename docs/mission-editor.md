@@ -55,7 +55,8 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
     briefing's links (§14).
   - **Scenario:** "when X then Y" rules built from blocks (§18).
 - **Bottom:** what passes and fails the mission (§13), red when it can never pass; under it the errors and warnings,
-  errors first, in red and yellow (the list shows only when it has any, as tall as its lines up to four). A click on one selects its unit and centres
+  errors first, in red and yellow (the list shows only when it has any, as tall as its lines up to four). A
+  line names its unit; the same finding on several units is one line with their count. A click on one selects its unit and centres
   the map on it.
 
 ## 2. Opening and saving
@@ -64,6 +65,8 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
   template) and 777 (multiplayer All-Out War), listed by their title (misc `0x44c`). They open
   read-only. The only action on them is **Fork**.
 - **My missions** are the files in `user://missions/`. Only these can be edited.
+- **Open** lists your missions, then the originals, under a search box (number or title); the dialog fits the
+  window.
 - **New** builds a mission from scratch. It asks for a name, a year (§12), a home base, a jet, whether Alpha has a
   wingman, and whether what-if aircraft are offered:
   - The year picks the original the mission is built on, so its TSD map and airbases (§12.1).

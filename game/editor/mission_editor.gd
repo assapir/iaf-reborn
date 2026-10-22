@@ -762,13 +762,26 @@ func _refresh_ui() -> void:
 	fa.select(keep)
 	var list: ItemList = _ui.issues
 	list.clear()
-	# Errors first, then warnings.
+	# Errors first, then warnings; the same finding on several units is one line with their count (a click selects
+	# the first of them).
 	for level in ["error", "warning"]:
+		var seen := {}
 		for it in issues:
-			if it.level == level:
-				list.add_item("%s: %s" % [level.capitalize(), it.text])
-				list.set_item_metadata(list.item_count - 1, int(it.id))
-				list.set_item_custom_fg_color(list.item_count - 1, Color.RED if level == "error" else Color.YELLOW)
+			if it.level != level:
+				continue
+			if seen.has(it.text):
+				seen[it.text][1] += 1
+				continue
+			seen[it.text] = [list.item_count, 1]
+			# The unit's name in front when the text does not already name it ("Boat_1: route point 1: …").
+			var who := String(entity(int(it.id)).get("0x2bc", "")) if int(it.id) >= 0 else ""
+			var line: String = it.text if who == "" or String(it.text).begins_with(who) else "%s: %s" % [who, it.text]
+			list.add_item("%s: %s" % [level.capitalize(), line])
+			list.set_item_metadata(list.item_count - 1, int(it.id))
+			list.set_item_custom_fg_color(list.item_count - 1, Color.RED if level == "error" else Color.YELLOW)
+		for t in seen:
+			if seen[t][1] > 1:
+				list.set_item_text(seen[t][0], "%s: %s (%d units)" % [level.capitalize(), t, seen[t][1]])
 	# The list shows only when there is something in it, as tall as its lines up to four (then it scrolls).
 	list.visible = not issues.is_empty()
 	list.custom_minimum_size.y = mini(list.item_count, 4) * 30 + 6
@@ -1080,11 +1093,18 @@ func _build_dialogs() -> void:
 	_ui.open_dlg = ConfirmationDialog.new()
 	_ui.open_dlg.title = "Open a mission"
 	_ui.open_dlg.ok_button_text = "Open"
+	# A search box over the list (66 originals): typing narrows it by number or title.
+	var ov := VBoxContainer.new()
+	_ui.open_filter = LineEdit.new()
+	_ui.open_filter.placeholder_text = "Search by number or title"
+	_ui.open_filter.text_changed.connect(func(_t): _fill_open())
+	ov.add_child(_ui.open_filter)
 	_ui.open_list = ItemList.new()
-	_ui.open_list.custom_minimum_size = Vector2(520, 520)
+	_ui.open_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_ui.open_list.item_activated.connect(func(_i): _ui.open_dlg.hide.call_deferred())
 	_ui.open_list.item_activated.connect(func(_i): _open_picked())
-	_ui.open_dlg.add_child(_ui.open_list)
+	ov.add_child(_ui.open_list)
+	_ui.open_dlg.add_child(ov)
 	_ui.open_dlg.confirmed.connect(_open_picked)
 	add_child(_ui.open_dlg)
 	_ui.name_dlg = ConfirmationDialog.new()
@@ -1138,22 +1158,36 @@ func _build_dialogs() -> void:
 
 
 func _show_open() -> void:
+	_ui.open_filter.text = ""
+	_fill_open()
+	# Sized to the window, so its buttons stay on screen in a small one.
+	var vp := get_viewport_rect().size
+	_ui.open_list.custom_minimum_size = Vector2(minf(520, vp.x * 0.8), minf(520, vp.y * 0.55))
+	_ui.open_dlg.popup_centered_clamped(Vector2.ZERO, 0.9)
+	_ui.open_filter.grab_focus()
+
+
+## The Open list: your missions, then the originals, those matching the search box.
+func _fill_open() -> void:
 	var l: ItemList = _ui.open_list
+	var q: String = _ui.open_filter.text.strip_edges().to_lower()
 	l.clear()
 	for section in ["My missions", "Original missions (read-only)"]:
 		l.add_item(section)
 		l.set_item_disabled(l.item_count - 1, true)
 		if section == "My missions":
 			for m in own_missions():
-				l.add_item("    " + m.name)
-				l.set_item_metadata(l.item_count - 1, m.path)
+				if q == "" or String(m.name).to_lower().contains(q):
+					l.add_item("    " + m.name)
+					l.set_item_metadata(l.item_count - 1, m.path)
 		else:
 			var ids := originals.keys()
 			ids.sort()
 			for id in ids:
-				l.add_item("    %d  %s" % [id, originals[id].title])
-				l.set_item_metadata(l.item_count - 1, id)
-	_ui.open_dlg.popup_centered()
+				var row := "%d  %s" % [id, originals[id].title]
+				if q == "" or row.to_lower().contains(q):
+					l.add_item("    " + row)
+					l.set_item_metadata(l.item_count - 1, id)
 
 
 func _open_picked() -> void:
