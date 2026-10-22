@@ -50,6 +50,7 @@ Set these on the Preferences screen before the flight. Every row starts at the 1
 | Extras | RWR | Real | The SAM / AAA radars searching you show too, until terrain hides you (section 5) |
 | Graphics → MORE | Sky, Terrain close up, Imagery Israel / outside Israel | Atmospheric, Detailed, Survey 2 m / Sentinel-2 | A physical sky, ground detail and photo imagery, if setup converted it |
 | Graphics → MORE | Airbases | Detailed | Runways, taxiways and aprons with real markings near the ground |
+| Graphics → MORE | Night vision (Shift+N) | Goggles | Night-vision goggles in flight: a green, brightened outside view on night missions |
 | Physics | every row | on | Section 4 lists the ones that change how the MiG-23 flies |
 | Physics | Nose dips under braking, Unbalanced stores roll the jet, Wind and turbulence, Engine spool-up per real engine | on | The brakes' pitch, the stores' roll, the tower's wind and the engine's real spool (section 4) |
 | Gameplay | Easy landing, Easy aiming, No blackouts / spins / stalls, No wind | off | Real landing limits, real launch rules, g-effects, spins, stalls and the mission's wind |
@@ -317,6 +318,7 @@ speed a small descent. The panel has no airspeed dial and no tachometer: hold th
 | T / D | TSD / damage page |
 | Insert / Delete | Chaff / flare |
 | Shift+arrows, Numpad 1–9, F3 | Look around, snap views, padlock |
+| Shift+N | Night-vision goggles on / off (Graphics → MORE "Night vision") |
 | F1 / Ctrl+F2 | Cockpit ↔ sight only / cockpit ↔ external |
 | SysRQ | Screen capture: a PNG in the `screenshots` folder of the game's user folder |
 | X | Fire extinguisher (one charge) |

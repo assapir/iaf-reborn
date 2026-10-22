@@ -54,6 +54,7 @@ Set these on the Preferences screen before the flight. Every row starts at the 1
 | Extras | RWR | Real | The SAM / AAA radars searching you show too, until terrain hides you (section 5) |
 | Graphics → MORE | Sky, Terrain close up, Imagery Israel / outside Israel | Atmospheric, Detailed, Survey 2 m / Sentinel-2 | A physical sky, ground detail and photo imagery, if setup converted it |
 | Graphics → MORE | Airbases | Detailed | Runways, taxiways and aprons with real markings near the ground |
+| Graphics → MORE | Night vision (Shift+N) | Goggles | Night-vision goggles in flight: a green, brightened outside view on night missions |
 | Physics | every row | on | Section 4 lists the ones that change how the Lavi flies |
 | Physics | Nose dips under braking, Unbalanced stores roll the jet, Wind and turbulence, Engine spool-up per real engine | on | The brakes' pitch, the stores' roll, the tower's wind and the engine's real spool (section 4) |
 | Gameplay | Easy landing, Easy aiming, No blackouts / spins / stalls, No wind | off | Real landing limits, real launch rules, g-effects, stalls and the mission's wind |
@@ -396,6 +397,7 @@ game draws them. The needles follow their values with a 0.3 s instrument lag.
 | Insert / Delete / J | Chaff / flare / ECM |
 | H | HUD colour |
 | Shift+arrows, F3 | Free look, padlock |
+| Shift+N | Night-vision goggles on / off (Graphics → MORE "Night vision") |
 | SysRQ | Screen capture: a PNG in the `screenshots` folder of the game's user folder |
 | X | Fire extinguisher (one charge) |
 | E | Eject |
