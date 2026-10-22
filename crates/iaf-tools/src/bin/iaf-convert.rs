@@ -27,6 +27,9 @@
 //! (docs/adding-a-plane.md). `iaf-convert plane-checklist <type> [repo-dir]` — every code table a
 //! new aircraft type goes into, with file:line and whether the type is already there.
 //!
+//! `iaf-convert model-detail <dir>` — downloads and packs the ambientCG materials of Model detail into `<dir>`
+//! (assets/thirdparty/ambientcg; docs/rendering.md "Model detail").
+//!
 //! `--upscale` resamples textures 4× (Lanczos).
 //! `--smooth` rounds the low-poly geometry (smooth normals + Phong tessellation).
 
@@ -68,11 +71,12 @@ fn main() -> Result<()> {
         [_, "icon", install, out] => convert::icon(p(install), p(out), pr, cancel),
         [_, "cockpit", install, name, out] => convert::cockpit(p(install), name, p(out), &opts, pr, cancel),
         [_, "arm-extra", menu_img, arm_dir, out] => convert::arm_extra(p(menu_img), p(arm_dir), p(out), pr, cancel),
+        [_, "model-detail", dir] => iaf_tools::model_detail::run(p(dir), pr, cancel),
         [_, "plane-describe", model, out] => plane_describe(Path::new(model), Path::new(out), &plane),
         [_, "plane-checklist", code] => plane_checklist(code, Path::new(".")),
         [_, "plane-checklist", code, repo] => plane_checklist(code, Path::new(repo)),
         _ => bail!(
-            "usage: iaf-convert [--upscale] [--smooth] model <file.x|file.xfr> <out-dir>\n       iaf-convert [--upscale] [--smooth] aircraft <install-dir> <missions-dir> <out-dir>\n       iaf-convert [--upscale] cockpit <install-dir> <cockpit> <out-dir>\n       iaf-convert [--upscale] menu <install-dir> <out-dir> [--pack <pack-dir>]\n       iaf-convert [--upscale] briefings <install-dir> <packs-dir> <out-dir>\n       iaf-convert keys <install-dir> <packs-dir> <out.json>\n       iaf-convert plane-describe <model.gltf> <out-dir> [--type N] [--section NAME] [--label L]\n       iaf-convert plane-checklist <type> [repo-dir]"
+            "usage: iaf-convert [--upscale] [--smooth] model <file.x|file.xfr> <out-dir>\n       iaf-convert [--upscale] [--smooth] aircraft <install-dir> <missions-dir> <out-dir>\n       iaf-convert [--upscale] cockpit <install-dir> <cockpit> <out-dir>\n       iaf-convert [--upscale] menu <install-dir> <out-dir> [--pack <pack-dir>]\n       iaf-convert [--upscale] briefings <install-dir> <packs-dir> <out-dir>\n       iaf-convert keys <install-dir> <packs-dir> <out.json>\n       iaf-convert plane-describe <model.gltf> <out-dir> [--type N] [--section NAME] [--label L]\n       iaf-convert plane-checklist <type> [repo-dir]\n       iaf-convert model-detail <dir>"
         ),
     }
 }

@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 
+use crate::steps::AMBIENTCG;
 use crate::{Ctx, Hebrew, Step};
 
 pub(crate) struct Stamp {
@@ -100,6 +101,10 @@ pub(crate) fn of(step: &Step, ctx: &Ctx) -> Result<Option<Stamp>> {
         }
         "aircraft" => (Some(conv("planes")), conv("planes.stamp"), vec![]),
         "objects" => (Some(conv("objects")), conv("objects.stamp"), vec![]),
+        "model-detail" => {
+            let d = a.join(AMBIENTCG);
+            (Some(d.join(iaf_tools::model_detail::MANIFEST)), d.join("model_detail.stamp"), vec![])
+        }
         _ => return Ok(None),
     };
     let mut text = format!("iaf-setup {}\nstep {}\n", env!("SETUP_CODE"), step.id);

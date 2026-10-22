@@ -111,6 +111,7 @@ const PREFS := {
 		"f35i_slot",
 		"harm_targets",
 		"models",
+		"model_detail",
 		"rolling_wheels",
 		"particle_effects",
 		"airbases",
@@ -223,6 +224,10 @@ var water := false
 ## Models (ours, Extras page; docs/aircraft-models.md): "original" (the 1998 models) or "detailed" (our detailed
 ## models where there is one, util/gltf.gd DETAILED: the F-16D; visual only).
 var models := "original"
+## Model detail (ours, Graphics → MORE; docs/rendering.md "Model detail", util/model_detail.gd): "original" or
+## "ambientcg" (the original models with fine CC0 surface detail up close: painted metal, rubber, concrete). Read when a
+## model loads.
+var model_detail := "original"
 ## Rolling wheels (ours, Graphics → MORE; docs/part-animation.md §2.2): false = the wheels stand still, as on the
 ## original; true = the wheels of a model with separate wheel frames (the F-35I) roll with the ground speed.
 var rolling_wheels := false

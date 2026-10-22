@@ -49,6 +49,18 @@ for each.
 
 The F-35I's skin, roundels, numbers, cockpit panel and displays are our own, as is the F-16D's dorsal spine.
 
+## Texture credits
+
+Setup downloads these CC0 materials from ambientCG into `assets/thirdparty/ambientcg/` (licence:
+https://docs.ambientcg.com/license/, CC0 1.0 Universal; no credit is required, we give it anyway). None are in the repo.
+
+| Material | Used for | Source |
+|---|---|---|
+| Painted Metal 002 | Model detail: stores and jets (rendering.md §8) | https://ambientcg.com/a/PaintedMetal002 |
+| Metal 016 | Model detail: vehicles, ships, hangar shells, metal structures | https://ambientcg.com/a/Metal016 |
+| Concrete 029 | Model detail: shelters and buildings | https://ambientcg.com/a/Concrete029 |
+| Rubber 004 | Model detail: tyres | https://ambientcg.com/a/Rubber004 |
+
 ## Imagery credits (automatic)
 
 The `imagery` entry expands to "Terrain Imagery", followed by the `attribution` of every converted imagery layer

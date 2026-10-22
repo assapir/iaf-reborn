@@ -1,6 +1,8 @@
 # Runtime loading of the converted glTF models (objects, aircraft, weapons, the viewer).
 extends RefCounted
 
+const ModelDetail := preload("res://util/model_detail.gd")
+
 ## The renderer's OBJECT DETAIL level 1..3 (1 − ftol(−2·slider), FUN_004d8ce0 → 0x7d1924), set by the flight
 ## scene before it loads models. Besides the LOD switch (terrain_view.gd) it sets the render states of every
 ## object (FUN_0040bd90): level 1 point-sampled textures (D3D TEXTUREMAG / MIN = NEAREST), level 3 specular.
@@ -22,10 +24,13 @@ static func open(path: String) -> Variant:
 	if doc.append_from_file(path, state) != OK:
 		return null
 	var done := {}
-	for m in state.get_materials():
-		var bm := m as BaseMaterial3D
+	var mats := state.get_materials()
+	for i in mats.size():
+		var bm := mats[i] as BaseMaterial3D
 		if bm == null:
 			continue
+		# The same material in every parse of the file (Model detail shares its materials by it).
+		bm.set_meta("model_key", "%d:%s#%d" % [object_level, path, i])
 		bm.texture_filter = (
 			BaseMaterial3D.TEXTURE_FILTER_NEAREST
 			if object_level == 1
@@ -44,6 +49,7 @@ static func open(path: String) -> Variant:
 			else:
 				done[t] = t
 		bm.albedo_texture = done[t]
+	state.set_meta("path", path)
 	return [doc, state]
 
 
@@ -94,10 +100,12 @@ static func open_detailed(path: String) -> Variant:
 	return _detailed[key]
 
 
-## A new scene of a model opened with open(). A detailed model's closed gear doors (LdgDrUp) start hidden: a
-## static model stands on its gear (AircraftModel shows them once the gear is up).
+## A new scene of a model opened with open(), with Model detail when it is on (util/model_detail.gd). A detailed
+## model's closed gear doors (LdgDrUp) start hidden: a static model stands on its gear (AircraftModel shows them once
+## the gear is up).
 static func instance(model: Array) -> Node3D:
 	var n := model[0].generate_scene(model[1]) as Node3D
+	ModelDetail.apply(n, String(model[1].get_meta("path", "")))
 	var up := n.find_child("LdgDrUp", true, false)
 	if up != null:
 		up.visible = false

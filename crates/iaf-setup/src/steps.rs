@@ -9,7 +9,7 @@ use anyhow::{Context, Result, bail};
 use iaf_tools::convert::{self, Options};
 use iaf_tools::imagery_run::{self, MAPI2015, Run, SENTINEL2};
 use iaf_tools::progress::{Progress, check, par_map, threads};
-use iaf_tools::{extract, pack, patch, terrain};
+use iaf_tools::{extract, model_detail, pack, patch, terrain};
 
 use crate::{Ctx, Hebrew, Imagery, Outcome, Step};
 
@@ -46,8 +46,11 @@ pub const OUTPUTS: &[&str] = &[
 ];
 
 /// What the setup keeps on an uninstall unless asked: the imported packs (the pack zips may be gone) and the
-/// imagery downloads (hours and tens of GB to fetch again).
-pub const KEPT: &[&str] = &["packs", "source/imagery"];
+/// imagery downloads (hours and tens of GB to fetch again), the ambientCG materials.
+pub const KEPT: &[&str] = &["packs", "source/imagery", AMBIENTCG];
+
+/// The ambientCG downloads (CC0; docs/credits.md), one folder per material id.
+pub const AMBIENTCG: &str = "thirdparty/ambientcg";
 
 /// Removes the setup's outputs ([`OUTPUTS`]) from `assets`, and with `everything` the [`KEPT`] ones too; a
 /// missing one is fine.
@@ -226,6 +229,15 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
                 cmd.arg("--bases");
             }
             child(cmd, pr, cancel)?;
+        }
+        "model-detail" => {
+            if !crate::tools().curl {
+                return Ok(Outcome::Skipped("curl is needed".into()));
+            }
+            if let Err(e) = model_detail::run(&a.join(AMBIENTCG), pr, cancel) {
+                check(cancel)?;
+                return Ok(Outcome::Skipped(format!("{e:#} (offline? Model detail stays Original)")));
+            }
         }
         "guides" => {
             let Some(g) = ctx.guides else { return Ok(Outcome::Skipped("no guide renderer".into())) };

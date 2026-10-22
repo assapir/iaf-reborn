@@ -74,6 +74,8 @@ var _imode_tick := -1
 ## Hold the simulation until the terrain under the aircraft has loaded (terrain.ground_ready()),
 ## showing the loading screen.
 var waiting_for_ground := true
+## Model detail's warm-up draws (util/model_detail.gd warm_up), freed with the loading screen.
+var _warm_up: Array = []
 var _loading: CanvasLayer
 ## The menu mission flown (--mission, else the one picked in the menus); -1 = free flight.
 var mission_id := -1
@@ -289,6 +291,13 @@ func _ready() -> void:
 	_choose_player()
 	# The ground the front end preloaded around the start (briefing / TSD time).
 	preload("res://terrain/terrain_preload.gd").hand_over(terrain)
+	# Model detail (docs/rendering.md §8): its textures (preloaded by the front end) and shaders drawn once behind the
+	# loading screen.
+	Gltf.ModelDetail.preload_packs()
+	for cam in [camera, chase]:
+		var w = Gltf.ModelDetail.warm_up(cam)
+		if w != null:
+			_warm_up.append(w)
 	if args.has("--external"):
 		_start_external = true
 	# Test poses: --orbit yaw pitch dist (degrees, metres), --gear.
@@ -3011,6 +3020,9 @@ func _process(delta: float) -> void:
 			if _loading != null:
 				_loading.queue_free()
 				_loading = null
+			for w in _warm_up:
+				w.queue_free()
+			_warm_up.clear()
 			_spawn_mission_objects()
 		# A fatally hit jet leaves the flight model (frozen by FUN_005a6510) for the destruction
 		# motion, which the mission runtime drives (mission_player_fall).

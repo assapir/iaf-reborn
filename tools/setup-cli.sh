@@ -327,6 +327,11 @@ wait_jobs
 imagery_refresh
 [[ -n $imagery ]] && imagery_steps
 
+# Model detail (docs/rendering.md "Model detail"): CC0 materials from ambientCG; offline, the switch stays Original.
+step "model detail: ambientCG CC0 materials (download)"
+./target/release/iaf-convert model-detail assets/thirdparty/ambientcg ||
+	echo "model detail: download failed (offline?); Graphics > MORE > Model detail stays Original"
+
 # The pilot guides' pictures and PDFs (docs/guides; the Reference screen's Pilot guide view): real renders, so only
 # with a display; they hold the original art and stay under assets/. After the imagery so the pictures show it.
 step "pilot guides: pictures (tools/guide_shots.sh) and PDFs (tools/guide_pdf.py)"

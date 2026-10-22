@@ -103,6 +103,7 @@ const GRAPHICS_KEYS := [
 	"night_lights",
 	"water",
 	"models",
+	"model_detail",
 	"rolling_wheels",
 	"particle_effects",
 	"airbases"
@@ -144,6 +145,7 @@ const Img := preload("res://util/img.gd")
 const Tsd := preload("res://menu/tsd.gd")
 const Pilots := preload("res://menu/pilots.gd")
 const ImageryLayers := preload("res://terrain/imagery_layers.gd")
+const ModelDetail := preload("res://util/model_detail.gd")
 
 ## Our own "Extras" tab (not in the original): directly below Gameplay at the panel's spacing
 ## (44 px). Drawn from the pPref art: the band holding the Gameplay button (panel coordinates, inside
@@ -183,6 +185,8 @@ const EXTRAS := [
 	["night_lights", "Night lights", [["Original", "original"], ["Detailed", "detailed"]]],
 	["water", "Water", [["Original", false], ["Detailed", true]]],
 	["models", "Models", [["Original", "original"], ["Detailed", "detailed"]]],
+	# Ours: CC0 surface detail on the original models (util/model_detail.gd); greyed until setup downloaded it.
+	["model_detail", "Model detail", [["Original", "original"], ["ambientCG", "ambientcg"]]],
 	["rolling_wheels", "Rolling wheels", [["Original", false], ["Rolling", true]]],
 	["particle_effects", "Particle effects", [["Original", false], ["Detailed", true]]],
 	["airbases", "Airbases", [["Original", "original"], ["Detailed", "detailed"]]],
@@ -848,6 +852,7 @@ func _preload_ground() -> void:
 			var w = preload("res://mission/mission_runtime.gd").player_start(Settings.mission_id, n)
 			if w != null:
 				TerrainPreload.target(get_tree(), w)
+			ModelDetail.preload_packs()  # Model detail's textures, off the main thread
 	elif _preload_flight != -1:
 		_preload_flight = -1
 		TerrainPreload.stop()
@@ -1596,9 +1601,13 @@ func _extras_items() -> Array:
 			var available: bool = not (
 				typeof(value) == TYPE_STRING and value == "he" and not Settings.hebrew_available()
 			)
+			var label: String = choices[j][0]
 			if String(opt[0]).begins_with("imagery_"):
 				available = ImageryLayers.available(String(value))
-			items.append({"rect": r, "key": opt[0], "value": value, "label": choices[j][0], "available": available})
+			if opt[0] == "model_detail" and value == "ambientcg" and not ModelDetail.available():
+				available = false
+				label = "Not downloaded"
+			items.append({"rect": r, "key": opt[0], "value": value, "label": label, "available": available})
 	return items
 
 
