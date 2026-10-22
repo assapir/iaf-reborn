@@ -105,7 +105,8 @@ const GRAPHICS_KEYS := [
 	"models",
 	"rolling_wheels",
 	"particle_effects",
-	"airbases"
+	"airbases",
+	"ground_textures"
 ]
 ## Ours on the debrief screen: EXPORT FLIGHT DATA at the content's top right, above the tab strip (content
 ## coordinates; the original's pages fill the rest).
@@ -144,6 +145,7 @@ const Img := preload("res://util/img.gd")
 const Tsd := preload("res://menu/tsd.gd")
 const Pilots := preload("res://menu/pilots.gd")
 const ImageryLayers := preload("res://terrain/imagery_layers.gd")
+const GroundTextures := preload("res://terrain/ground_textures.gd")
 
 ## Our own "Extras" tab (not in the original): directly below Gameplay at the panel's spacing
 ## (44 px). Drawn from the pPref art: the band holding the Gameplay button (panel coordinates, inside
@@ -186,6 +188,9 @@ const EXTRAS := [
 	["rolling_wheels", "Rolling wheels", [["Original", false], ["Rolling", true]]],
 	["particle_effects", "Particle effects", [["Original", false], ["Detailed", true]]],
 	["airbases", "Airbases", [["Original", "original"], ["Detailed", "detailed"]]],
+	# Ours: CC0 textures from ambientCG near the ground (terrain/ground_textures.gd, docs/rendering.md §1.4); greyed out
+	# until setup has downloaded them.
+	["ground_textures", "Ground textures", [["Original", "original"], ["ambientCG", "ambientcg"]]],
 	# Ours: the F-35I (docs/f35i.md) flies from the Jet list button it replaces; more than three choices cycle.
 	[
 		"f35i_slot",
@@ -1596,9 +1601,14 @@ func _extras_items() -> Array:
 			var available: bool = not (
 				typeof(value) == TYPE_STRING and value == "he" and not Settings.hebrew_available()
 			)
+			var label: String = choices[j][0]
 			if String(opt[0]).begins_with("imagery_"):
 				available = ImageryLayers.available(String(value))
-			items.append({"rect": r, "key": opt[0], "value": value, "label": choices[j][0], "available": available})
+			elif opt[0] == "ground_textures" and value == "ambientcg":
+				available = GroundTextures.available()
+				if not available:
+					label = "Not downloaded"
+			items.append({"rect": r, "key": opt[0], "value": value, "label": label, "available": available})
 	return items
 
 
