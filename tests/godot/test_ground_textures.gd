@@ -1,32 +1,42 @@
 # Graphics → MORE "Ground textures" (docs/rendering.md §1.4): Original by default; without setup's download the switch
 # falls back to the original look (ground_tex 0, the row's ambientCG choice greyed out); a damaged file is refused;
 # with the download the textures load as two compressed texture arrays (one layer per material) and the shader's
-# switch is on. Skips the loading part when setup has not fetched the textures here.
+# switch is on. Skips the loading part when setup has not fetched the textures here. The Model detail row (same
+# download, docs/rendering.md §9) is checked alongside: greyed out, unclickable and a saved value Original without it.
 extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
 	var GT: GDScript = load("res://terrain/ground_textures.gd")
+	var MD: GDScript = load("res://util/model_detail.gd")
 	var RO: GDScript = load("res://terrain/render_options.gd")
 	check(settings().ground_textures == "original", "defaults to Original")
 	var present: bool = GT.available()
+	var md_present: bool = MD.available()
 
 	# Missing: an empty assets folder.
 	var tmp := OS.get_user_data_dir().path_join("test_ground_textures")
 	DirAccess.make_dir_recursive_absolute(tmp.path_join(GT.DIR))
 	GT.base_dir = tmp
+	MD._manifest = null
 	check(not GT.available() and GT.materials().is_empty(), "missing: not available")
-	var row := await _row()
-	check(
-		row.size() == 2 and not row[1].available and row[1].label == "Not downloaded" and row[0].available,
-		'missing: the row\'s ambientCG choice greyed out, "Not downloaded"'
-	)
-	_click(row[1])
-	check(_fe.pref_work.get("ground_textures", "original") == "original", "missing: a click on it picks nothing")
+	check(not MD.available(), "missing: Model detail not available")
 	var cfg := ConfigFile.new()
-	cfg.set_value("gameplay", "ground_textures", "ambientcg")
+	for key in ["ground_textures", "model_detail"]:
+		var row := await _row(key)
+		check(
+			row.size() == 2 and not row[1].available and row[1].label == "Not downloaded" and row[0].available,
+			'missing: the %s row\'s ambientCG choice greyed out, "Not downloaded"' % key
+		)
+		_click(row[1])
+		check(_fe.pref_work.get(key, "original") == "original", "missing: a click on %s picks nothing" % key)
+		cfg.set_value("gameplay", key, "ambientcg")
 	settings().read_config(cfg)
 	check(settings().ground_textures == "original", "missing: a saved ambientCG loads as Original")
+	check(settings().model_detail == "original", "missing: a saved Model detail ambientCG loads as Original")
+	settings().model_detail = "ambientcg"
+	check(not MD.enabled(), "missing: Model detail forced on stays off")
+	settings().model_detail = "original"
 	# Forced on (as a stale setting would be): the flight still falls back.
 	settings().ground_textures = "ambientcg"
 	var tv = await start_mission(311)
@@ -47,13 +57,15 @@ func run() -> void:
 	tv.apply_render_options()
 	check(RO.ground_tex == 0.0, "damaged: ground_tex stays 0")
 	GT.base_dir = ""
+	MD._manifest = null
 	OS.move_to_trash(ProjectSettings.globalize_path(tmp))
 
-	if present:
-		row = await _row()
-		check(row[1].available and row[1].label == "ambientCG", "present: the ambientCG choice can be picked")
-		_click(row[1])
-		check(_fe.pref_work.get("ground_textures") == "ambientcg", "present: a click picks it")
+	for key in ["ground_textures", "model_detail"]:
+		if present if key == "ground_textures" else md_present:
+			var row := await _row(key)
+			check(row[1].available and row[1].label == "ambientCG", "present: %s's ambientCG can be picked" % key)
+			_click(row[1])
+			check(_fe.pref_work.get(key) == "ambientcg", "present: a click picks %s" % key)
 	_fe.queue_free()
 	if not present:
 		print("skipped the loading part: no ground textures under assets/thirdparty/ambientcg (setup's textures step)")
@@ -80,8 +92,8 @@ func run() -> void:
 var _fe: Node
 
 
-## The Ground textures row's items on Graphics → MORE (the front end made once).
-func _row() -> Array:
+## The items of row `key` on Graphics → MORE (the front end made once).
+func _row(key: String) -> Array:
 	if _fe == null:
 		_fe = load("res://menu/front_end.tscn").instantiate()
 		root.add_child(_fe)
@@ -92,9 +104,9 @@ func _row() -> Array:
 	settings().pref_page = _fe.GFX_MORE
 	await frames(2)
 	var keys: Array = _fe._extras_rows().map(func(r): return r[0])
-	_fe._extras_scroll(mini(keys.find("ground_textures"), _fe._extras_max_top()))
+	_fe._extras_scroll(mini(keys.find(key), _fe._extras_max_top()))
 	await frames(2)
-	return _fe._extras_items().filter(func(i): return i.key == "ground_textures")
+	return _fe._extras_items().filter(func(i): return i.key == key)
 
 
 func _click(item: Dictionary) -> void:

@@ -91,8 +91,8 @@ static func _decode() -> Array:
 	sc.fill(1.0)
 	for k in mats.size():
 		var d := dir().path_join(String(mats[k].id))
-		var a := _mips(d.path_join("albedo.bc1"), Image.FORMAT_DXT1, 8)
-		var n := _mips(d.path_join("nr.bc3"), Image.FORMAT_DXT5, 16)
+		var a := mips(d.path_join("albedo.bc1"), Image.FORMAT_DXT1, 8)
+		var n := mips(d.path_join("nr.bc3"), Image.FORMAT_DXT5, 16)
 		if a == null or n == null:
 			return []
 		albedo.append(a)
@@ -102,7 +102,7 @@ static func _decode() -> Array:
 
 
 ## A packed map: SIDE² in `format` (`block` bytes per 4×4 block) with every mip level (iaf_tools::thirdparty::compress).
-static func _mips(path: String, format: Image.Format, block: int) -> Image:
+static func mips(path: String, format: Image.Format, block: int) -> Image:
 	var b := FileAccess.get_file_as_bytes(path)
 	var want := 0
 	var s := SIDE

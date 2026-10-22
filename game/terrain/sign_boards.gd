@@ -5,6 +5,8 @@
 # Condensed, the install's resource/menu/fnt/cr1.ttf). The arrows stay.
 extends RefCounted
 
+const ModelDetail := preload("res://util/model_detail.gd")
+
 ## The boards in parts.png (1024 × 1024): the sign's number → [the board's top and bottom row, the digits' top and
 ## bottom row].
 const BOARDS := {27: [0, 133, 14, 111], 9: [132, 268, 149, 247], 23: [530, 665, 550, 647]}
@@ -27,7 +29,7 @@ static func reletter(node: Node3D, n: int, label: String) -> bool:
 	var done := false
 	for mi: MeshInstance3D in node.find_children("*", "MeshInstance3D", true, false):
 		for i in mi.mesh.get_surface_count():
-			var m := mi.get_active_material(i) as BaseMaterial3D
+			var m := ModelDetail.base_material(mi.get_active_material(i)) as BaseMaterial3D
 			var tex := texture(m.albedo_texture if m != null else null, n, label)
 			if tex == null:
 				return false

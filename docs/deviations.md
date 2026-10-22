@@ -368,6 +368,13 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - Bases the art shows only in the coarse imagery (Inshas, Ryak, Aman) get the AI's runway: 3000 × 45 m from 150 m
     behind the lineup point on RunwayNumber.
 
+- **Model detail** (ours, Graphics → MORE, docs/rendering.md §9). Rendering only; the default is Original (the 1998
+  textures alone).
+  - ambientCG: up close (fading out from 40 to 120 m), the original models get CC0 surface detail over their own
+    textures: painted metal on the stores and jets, worn steel on the vehicles, ships and hangar shells, concrete on the
+    buildings, rubber on the tyres. Glass, the pilots and the airbases' flat pieces keep their
+    look. Needs setup's download; without it the switch has no effect.
+
 **Preferences → Devices**
 - **Detent = MIL** (ours, under THROTTLE, off by default). Original: the throttle lever maps linearly. Ours, with the
   switch: "Set at lever" stores the lever position in its detent; the lever then maps piecewise so the detent is MIL

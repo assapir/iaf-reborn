@@ -52,17 +52,21 @@ for each.
 Setup downloads these materials from ambientCG into `assets/thirdparty/ambientcg/<id>/` (the repo holds none). They
 are CC0 1.0 (public domain): "All ambientCG assets are provided under the Creative Commons CC0 1.0 Universal
 License"[^acg-licence]. CC0 asks for no credit; we give it anyway. The list lives in one place:
-`crates/iaf-tools/src/thirdparty.rs` (`GROUND_TEXTURES`, with each zip's pinned SHA-256).
+`crates/iaf-tools/src/thirdparty.rs` (`GROUND_TEXTURES` and `MODEL_DETAIL`, with each zip's pinned SHA-256).
 
-| Material | Used for (docs/rendering.md §1.4) | Source |
+| Material | Used for (docs/rendering.md) | Source |
 |---|---|---|
-| Asphalt027C | runways and taxiways | https://ambientcg.com/a/Asphalt027C |
-| Concrete040 | aprons | https://ambientcg.com/a/Concrete040 |
-| Ground054 | sand | https://ambientcg.com/a/Ground054 |
-| Ground062L | gravel desert | https://ambientcg.com/a/Ground062L |
-| Ground037 | grass and fields | https://ambientcg.com/a/Ground037 |
-| Ground109 | dry soil and scrub | https://ambientcg.com/a/Ground109 |
-| Rock045 | steep slopes | https://ambientcg.com/a/Rock045 |
+| Asphalt027C | Ground textures (§1.4): runways and taxiways | https://ambientcg.com/a/Asphalt027C |
+| Concrete040 | Ground textures: aprons | https://ambientcg.com/a/Concrete040 |
+| Ground054 | Ground textures: sand | https://ambientcg.com/a/Ground054 |
+| Ground062L | Ground textures: gravel desert | https://ambientcg.com/a/Ground062L |
+| Ground037 | Ground textures: grass and fields | https://ambientcg.com/a/Ground037 |
+| Ground109 | Ground textures: dry soil and scrub | https://ambientcg.com/a/Ground109 |
+| Rock045 | Ground textures: steep slopes | https://ambientcg.com/a/Rock045 |
+| PaintedMetal002 | Model detail (§9): stores and jets | https://ambientcg.com/a/PaintedMetal002 |
+| Metal016 | Model detail: vehicles, ships, hangar shells, metal structures | https://ambientcg.com/a/Metal016 |
+| Concrete029 | Model detail: shelters and buildings | https://ambientcg.com/a/Concrete029 |
+| Rubber004 | Model detail: tyres | https://ambientcg.com/a/Rubber004 |
 
 The F-35I's skin, roundels, numbers, cockpit panel and displays are our own, as is the F-16D's dorsal spine.
 

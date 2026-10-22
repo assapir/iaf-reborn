@@ -7,6 +7,7 @@
 extends Node3D
 
 const GpuFx := preload("res://mission/gpu_fx.gd")
+const ModelDetail := preload("res://util/model_detail.gd")
 
 ## Explosion flag bits (FUN_00416880 / FUN_00416a70, docs/damage.md §6.1).
 const F_SHATTER := 0x2
@@ -470,7 +471,7 @@ func _shatter_model(model: Node3D, pos: Vector3, flags: int, scale: float, durat
 			var ix = a[Mesh.ARRAY_INDEX]
 			if ix == null:
 				ix = PackedInt32Array(range(vs.size()))
-			var mat: Material = mi.get_active_material(si)
+			var mat: Material = ModelDetail.base_material(mi.get_active_material(si))
 			if not groups.has(mat):
 				groups[mat] = {
 					"v": PackedVector3Array(),

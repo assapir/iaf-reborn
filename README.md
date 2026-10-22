@@ -159,7 +159,7 @@ the wrong control moves, edit `[devices] joy_axes` in the settings file. Details
 The code in this repository is licensed under the GNU General Public License v3.0 or later — see [LICENSE](LICENSE).
 It contains no data from the original game; you must supply your own copy. Third-party models, pictures and sounds
 in `game/extra/` keep their own licences; each has its credits beside it (`SOURCES.md`, `CREDITS.md`, `README.md`).
-The CC0 ground textures from ambientCG are downloaded by setup into the git-ignored `assets/thirdparty/`
+The CC0 textures from ambientCG (Ground textures, Model detail) are downloaded by setup into the git-ignored `assets/thirdparty/`
 ([docs/credits.md](docs/credits.md)).
 
 "Jane's" and "Jane's IAF" are trademarks of their respective owners. This project is an independent, non-commercial

@@ -308,7 +308,7 @@ fn textures(dir: &Path, base: &str, pr: &dyn Progress, cancel: &AtomicBool) -> R
         .is_ok_and(|s| s.success());
     if !reachable {
         return Ok(Outcome::Skipped(
-            "ambientcg.com cannot be reached (offline?): Ground textures stay Original; run setup again online".into(),
+            "ambientcg.com cannot be reached (offline?): Ground textures and Model detail stay Original; run setup again online".into(),
         ));
     }
     for (name, list) in thirdparty::LISTS {

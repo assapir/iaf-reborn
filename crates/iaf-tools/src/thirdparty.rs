@@ -1,13 +1,14 @@
 //! Third-party CC0 textures from ambientCG (<https://ambientcg.com/>, licence: <https://docs.ambientcg.com/license/>),
-//! downloaded by setup into `assets/thirdparty/ambientcg/<id>/` (docs/rendering.md §1.4, docs/credits.md). Each list
-//! below is one use; `fetch` takes any list, so more uses add a list and a call.
+//! downloaded by setup into `assets/thirdparty/ambientcg/<id>/` (docs/rendering.md §1.4, §9, docs/credits.md). Each
+//! list below is one use (Ground textures, Model detail); `fetch` takes any list, so more uses add a list.
 //!
 //! Per material `fetch` downloads `<id>_2K-JPG.zip`, checks its SHA-256 against the pinned one, keeps the colour,
 //! normal (OpenGL) and roughness maps, and packs them at 1024² with every mip level, compressed as the GPU reads them
 //! (the game only uploads them):
 //! - `albedo.bc1`: BC1 (DXT1), RGB = the colour (linear) over the material's mean colour, halved (1.0 = the mean is
 //!   128): the game multiplies the imagery by it, so the photo keeps its own hue and brightness;
-//! - `nr.bc3`: BC3 (DXT5), R = roughness, G = normal Y, B = 0, A = normal X (the DXT5 normal layout).
+//! - `nr.bc3`: BC3 (DXT5), R = roughness, G = normal Y, B = the colour's brightness about its mean (0.5 = the mean,
+//!   ±2 σ to 0 / 1: stains, chips, scratches; Model detail's tint), A = normal X (the DXT5 normal layout).
 //!
 //! Then `material.json` (id, size, checksum) marks the material done, and `<list>.json` lists the list's materials.
 
@@ -17,7 +18,7 @@ use std::process::Command;
 use std::sync::atomic::AtomicBool;
 
 use anyhow::{Context, Result, bail};
-use image::{RgbaImage, imageops::FilterType};
+use image::{GrayImage, RgbaImage, imageops::FilterType};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use texpresso::{Algorithm, Format, Params};
@@ -79,15 +80,44 @@ pub const GROUND_TEXTURES: &[Material] = &[
     },
 ];
 
+/// The "Model detail" materials (Graphics → MORE, game/util/model_detail.gd), in that file's MATERIALS order: painted,
+/// worn, concrete, rubber. The game sets each use's own repeat; `size_m` is the material's real size.
+pub const MODEL_DETAIL: &[Material] = &[
+    Material {
+        id: "PaintedMetal002",
+        sha256: "c95fc5a065582deded194e7bc4d9592706b58aa0259110989931ec8f8ad1a9a0",
+        size_m: 1.0,
+        used_for: "stores and jets: painted metal",
+    },
+    Material {
+        id: "Metal016",
+        sha256: "0fbb57ee6787731f538f711223109eb5539287f8c0eda7ccba690858c3ece213",
+        size_m: 1.5,
+        used_for: "vehicles, ships, metal structures: worn steel",
+    },
+    Material {
+        id: "Concrete029",
+        sha256: "7685a6a63cfd21cf737c3eae61c226dee2d9259a57aa93164bdd1b2e748afd94",
+        size_m: 3.0,
+        used_for: "buildings and shelters: cast concrete",
+    },
+    Material {
+        id: "Rubber004",
+        sha256: "dc1566f645f6ef7853bb3a3e7a15ef450edbb90cbd471c6097d44cd04521bea0",
+        size_m: 0.5,
+        used_for: "tyres: rubber",
+    },
+];
+
 /// Every list setup fetches: (name, materials). A new use adds its list here; `<dir>/<name>.json` lists it for the game.
-pub const LISTS: &[(&str, &[Material])] = &[("ground", GROUND_TEXTURES)];
+pub const LISTS: &[(&str, &[Material])] = &[("ground", GROUND_TEXTURES), ("model", MODEL_DETAIL)];
 
 /// Where ambientCG serves the zips.
 pub const AMBIENTCG: &str = "https://ambientcg.com/get?file=";
 /// The packed maps' side (texels).
 pub const SIDE: u32 = 1024;
 /// The packing's version: `material.json` records it, and a material packed by another version is fetched again.
-pub const PACK: u32 = 3;
+pub const PACK: u32 = 4;
 
 /// The lowercase hex SHA-256 of a file.
 pub fn sha256_file(p: &Path) -> Result<String> {
@@ -176,15 +206,16 @@ fn unpack(m: &Material, zip_path: &Path, out: &Path) -> Result<()> {
     let (_, colour) = map("Color")?;
     let (_, normal) = map("NormalGL")?;
     let (_, rough) = map("Roughness")?;
+    let bright = brightness_detail(&image::DynamicImage::ImageRgba8(colour.clone()).to_luma8());
     let albedo = detail_ratio(&colour);
     let mut nr = RgbaImage::new(SIDE, SIDE);
     for (x, y, p) in nr.enumerate_pixels_mut() {
         let n = normal.get_pixel(x, y).0;
-        p.0 = [rough.get_pixel(x, y).0[0], n[1], 0, n[0]];
+        p.0 = [rough.get_pixel(x, y).0[0], n[1], bright.get_pixel(x, y).0[0], n[0]];
     }
     std::fs::write(out.join("albedo.bc1"), compress(&mip_chain(albedo), Format::Bc1, [1.0, 1.0, 1.0]))?;
-    // The normal's Y in G weighs most; B is unused.
-    std::fs::write(out.join("nr.bc3"), compress(&mip_chain(nr), Format::Bc3, [0.3, 1.0, 0.0]))?;
+    // The normal's Y in G weighs most.
+    std::fs::write(out.join("nr.bc3"), compress(&mip_chain(nr), Format::Bc3, [0.3, 1.0, 0.5]))?;
     let meta = json!({ "id": m.id, "size_m": m.size_m, "sha256": m.sha256, "side": SIDE, "pack": PACK, "licence": "CC0 1.0",
         "source": format!("https://ambientcg.com/a/{}", m.id) });
     std::fs::write(out.join("material.json"), serde_json::to_string_pretty(&meta)?)?;
@@ -210,6 +241,18 @@ pub fn detail_ratio(colour: &RgbaImage) -> RgbaImage {
         q.0 = [r(0), r(1), r(2), 255];
     }
     out
+}
+
+/// The brightness about its mean: 0.5 + (v − mean) / (4 σ), clamped (±2 σ spans 0..1).
+pub fn brightness_detail(g: &GrayImage) -> GrayImage {
+    let n = (g.width() * g.height()).max(1) as f64;
+    let mean = g.pixels().map(|p| p[0] as f64).sum::<f64>() / n;
+    let var = g.pixels().map(|p| (p[0] as f64 - mean).powi(2)).sum::<f64>() / n;
+    let k = 1.0 / (4.0 * var.sqrt().max(1.0));
+    GrayImage::from_fn(g.width(), g.height(), |x, y| {
+        let v = 0.5 + (g.get_pixel(x, y)[0] as f64 - mean) * k;
+        image::Luma([(v.clamp(0.0, 1.0) * 255.0).round() as u8])
+    })
 }
 
 /// Every level of `levels` compressed as `format` (block weights `w` for R, G, B), concatenated (Godot's
@@ -313,10 +356,22 @@ mod tests {
     }
 
     #[test]
-    fn ground_textures_are_pinned() {
-        for m in GROUND_TEXTURES {
+    fn brightness_detail_centres_on_the_mean() {
+        let g = GrayImage::from_fn(4, 1, |x, _| image::Luma([[100, 100, 140, 60][x as usize]]));
+        let d = brightness_detail(&g);
+        // mean 100, σ = √800 ≈ 28.3: ±40 is ±1.41 σ → 0.5 ± 0.354
+        assert_eq!([0, 2, 3].map(|x| d.get_pixel(x, 0)[0]), [128, 218, 37]);
+    }
+
+    #[test]
+    fn every_list_is_pinned() {
+        let mut ids: Vec<_> = LISTS.iter().flat_map(|(_, l)| l.iter().map(|m| m.id)).collect();
+        ids.sort();
+        ids.dedup();
+        assert_eq!(ids.len(), LISTS.iter().map(|(_, l)| l.len()).sum::<usize>(), "a material in two lists");
+        for m in LISTS.iter().flat_map(|(_, l)| l.iter()) {
             assert!(m.sha256.len() == 64 && m.sha256.bytes().all(|b| b.is_ascii_hexdigit()), "{}", m.id);
-            assert!(m.size_m > 0.5 && m.size_m < 10.0, "{}", m.id);
+            assert!(m.size_m >= 0.25 && m.size_m < 10.0, "{}", m.id);
         }
     }
 }
