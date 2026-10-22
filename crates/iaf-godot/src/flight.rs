@@ -135,6 +135,14 @@ impl IafFlight {
         }
     }
 
+    /// The ground height passed in is scenery (a roof or a tree top, docs/scenery.md §4): meeting it is a crash.
+    #[func]
+    fn set_ground_obstacle(&mut self, on: bool) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.ground_obstacle = on;
+        }
+    }
+
     /// Height of the aircraft origin above its wheels (the model's `height` helper).
     #[func]
     fn set_gear_clearance(&mut self, metres: f64) {

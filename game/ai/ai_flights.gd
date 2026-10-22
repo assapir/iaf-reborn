@@ -292,7 +292,7 @@ func _start(p: Pilot, install: String, plane: String) -> bool:
 	flight.ap_setup(install, host.terrain.world_origin.x, host.terrain.world_origin.y)
 	flight.ap_set_ground(
 		func(pos: Vector3):
-			var g = host.terrain.height_at(pos)
+			var g = host.scene_ground(pos)
 			return float(g) if g != null else -1.0e9
 	)
 	var pts := PackedFloat64Array()
@@ -316,8 +316,7 @@ func _process(delta: float) -> void:
 		if ent.control != 1 or int(ent.state) >= 3:
 			continue  # fatally hit: the destruction motion drives it (mission_runtime.gd)
 		var scene_pos: Vector3 = p._state.position
-		var g = host.terrain.height_at(scene_pos)
-		p.flight.set_ground_height(g if g != null else -1.0e9)
+		host.feed_ground(p.flight, scene_pos)
 		p.flight.set_ai_damage(float(ent.damage) <= 0.1)
 		_feed_leader(p)
 		_feed_target(p)

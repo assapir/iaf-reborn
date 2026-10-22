@@ -515,8 +515,8 @@ static func _base(o: Dictionary) -> Vector2:
 
 ## The EO camera this frame and its centre point (FUN_00450480): with the cockpit drawn (views 1, 0x12, 0x16,
 ## the snaps) the first terrain point, unit or building under the line of sight (the original's centre-pixel depth
-## pick; ours: the terrain ray-marched, the shown units' model bounds ray-tested; nothing → 1e8 m along it), else
-## 1e7 m along it.
+## pick; ours: the terrain ray-marched, the shown units' model bounds and the scenery ray-tested; nothing → 1e8 m
+## along it), else 1e7 m along it.
 func _eo_update() -> void:
 	if not eo.camera:
 		return
@@ -549,6 +549,10 @@ func _eo_update() -> void:
 			centres.append((c0 + c1) * 0.5)
 			halves.append((c0 - c1).abs() * 0.5)
 	var d: float = ClassDB.class_call_static("IafEo", "unit_pick", eye, eo_dir, centres, halves, far)
+	# The scenery's walls, roofs and crowns (docs/scenery.md §4): the ray march above can step past a thin building.
+	var sd: float = IafScenery.ray(eye, eo_dir, far if d < 0.0 else d)
+	if sd >= 0.0:
+		d = sd
 	if d >= 0.0:
 		hit = eye + eo_dir * d
 	eo_centre = hit if hit != null else eye + eo_dir * 1.0e8
@@ -933,7 +937,7 @@ func _gun_detonate(_r: Dictionary, pos: Vector3, cands, hit: Dictionary) -> void
 func gun_hit_effect(at: Vector3) -> void:
 	var sp := to_scene(at)
 	var water: bool = (host.terrain.surface_at(sp) & host.terrain.SURFACE_WATER) != 0
-	var g = host.terrain.height_at(sp)
+	var g = host.scene_ground(sp)
 	if water and (g == null or sp.y < g + 10.5):
 		# FUN_0059df20, class 0x17 on water: 0x60000 splash + ring, scale 1 (docs/damage.md §6.1).
 		host.effects.explosion(sp, DamageEffects.F_SPLASH | DamageEffects.F_RING, 1.0, 95.0, g if g != null else sp.y)
@@ -1270,7 +1274,7 @@ func _missile_detonate(mis: RefCounted) -> void:
 	if flag == 2 and host.runtime != null:
 		host.runtime.scripted_kill(host.runtime.entities.get(String(mis.target_key), {}), owner)
 	var sp := to_scene(p)
-	var g = host.terrain.height_at(sp)
+	var g = host.scene_ground(sp)
 	var water: bool = (host.terrain.surface_at(sp) & host.terrain.SURFACE_WATER) != 0
 	if water and (g == null or sp.y < g + 10.5):
 		# FUN_0059df20, class 0x18 low on water: 0x60000 splash + ring, scale 3.
@@ -1684,7 +1688,7 @@ func _bomb_detonate(bm: Dictionary, p: Vector3) -> void:
 ## The weapon explosion of FUN_0059df20 by type; `p` world.
 func _explosion_effect(p: Vector3, type: int) -> void:
 	var sp := to_scene(p)
-	var g = host.terrain.height_at(sp)
+	var g = host.scene_ground(sp)
 	var gy: float = g if g != null else sp.y
 	var low := sp.y < gy + 10.5
 	if low and sp.y < gy:
