@@ -377,6 +377,11 @@ screen gets a **PILOT GUIDE** button and view, with an Open PDF link when the gu
 **Mission editor** (ours, a separate tool: `./mission-editor`; no Extras row): forks an original mission into
 `user://missions/`, edits its units, routes, flights, wind, time and briefing, and flies it from the editor; the
 debrief returns to the editor — mission-editor.md. The original has only the Mission Creator (front-end.md §19).
+- **A flight that takes off on a rule** (ours, missions flown from the editor only): the Scenario tab's "Flight takes
+  off" writes trigger op 40, which the exe does not have, on the flight's leader. The game runs op 40 only while
+  `Settings.mission_files_override` is set (the editor's Fly); then the flight's take-off, held by its take-off
+  waypoint's planned time of 1e7 s, starts at once (`Autopilot::release_takeoff`). No original holds op 40 or such a
+  time (Rust test `originals_round_trip`), so the originals fly as before — mission-editor.md §18.6.
 
 ## 3. Original quirks we keep on purpose (decided)
 Original and ours behave the same in each of these.

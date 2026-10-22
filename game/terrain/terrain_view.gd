@@ -1108,6 +1108,12 @@ func mission_combat(ent: Dictionary, on: bool) -> void:
 		ai.set_combat(ent, on)
 
 
+## The mission editor's "takes off" rule (mission_runtime.gd OP_TAKEOFF).
+func mission_takeoff(ent: Dictionary) -> void:
+	if ai != null:
+		ai.take_off(ent)
+
+
 ## Terrain height (m) under a world position (X, Y, alt); null where not loaded.
 func mission_ground(w: Vector3) -> Variant:
 	return terrain.height_at(world_to_scene(Vector3(w.x, w.y, 0)))

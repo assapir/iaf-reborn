@@ -41,8 +41,9 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
   - **Flights:** the what-if switch (§12.4) above the jet lists it widens; Alpha … Delta (type: the blue jets in
     service in the mission's year, number of jets, Set, Remove); the route of any flight, blue or red: its waypoints
     with altitude (m) and planned arrival time (seconds after the start: the file's "speed" field, docs/ai.md §7.2),
-    Insert a waypoint after, Delete the waypoint; **Remove this enemy flight** for a flight other than Alpha … Delta
-    (§12.5). **Add an enemy flight:** a red base, a red jet and 1 or 2 jets (§12.5).
+    Insert a waypoint after, Delete the waypoint; **Waits parked at its base until a rule makes it take off** for a
+    flight whose first waypoint is a take-off (§18.6); **Remove this enemy flight** for a flight other than Alpha …
+    Delta (§12.5). **Add an enemy flight:** a red base, a red jet and 1 or 2 jets (§12.5).
   - **Mission:** the win and lose summary and the debrief headlines (§13), the year (§12), the start time, the wind
     and the briefing in English and Hebrew. A new year runs the checks again and refills the jet lists; a year on
     another TSD map moves the mission to that map (§12.1).
@@ -340,6 +341,8 @@ Each flight record also carries `formation`, the index of its formation in the m
 - `cargo test -p iaf-tools --lib mission_`: names, edits and references, routes, red flights, flipped bases, the
   check and its calibration; the year tables (`mission_year`); the scenario rules (`mission_events`, §18.5).
 - `tests/godot/test_mission_edit_scenario.gd`: the Scenario tab (§18.5).
+- `tests/godot/test_mission_edit_takeoff.gd`: a flight that takes off on a rule, and the originals' take-off times
+  (§18.6).
 - `tests/godot/_scenario_shot.gd`: real-render screenshots of the Scenario tab (usage in its header).
 
 ## 12. Mission year
@@ -705,6 +708,7 @@ but may not play as meant. Each names its unit, so the unit gets a yellow ring o
 | a target that the SAM rings cover from every side | "SA 6 battery covers this target from every side" |
 | an enemy flight without waypoints | "enemy flight MiG-29 has no waypoints" |
 | a unit on a route (Path, §5.2) whose path is missing or has fewer than two points | "its route has no points: it stays where it is" |
+| a flight that waits for a rule (§18.6) that no rule makes take off | "MiG-29 waits for a rule, but no rule makes it take off" |
 | a target that no blue flight's loadout can destroy | "no blue flight carries an air-to-ground weapon for this SA 6" |
 
 ### 16.1 Fuel
@@ -822,6 +826,7 @@ The distance is 3-D: a jet at 5 km altitude is 8.7 km from a ground unit it pass
 |---|---|
 | Radio message | the event's audio `0x3ac`: PlayMessage, the wav and its subtitle (`FUN_004bb10b`); a second message in the same moment is trigger op 7 in the holder's list |
 | Wait | trigger op 15 Wait for that many seconds in the holder's list, then op 6 fires the event of the blocks after it (§18.4) |
+| Flight takes off | ours: trigger op 40 on the flight's leader; the flight waits parked until then (§18.6) |
 | Start its route | an action jumping the unit's motion list to its Path (the route from the Units tab); the route waits on a Hover at entry 1 until then, the originals' pattern ("Wait" / "hov", Path at 2) |
 | Appear / Disappear | trigger op 13 / 14 (`FUN_00463f10` / `FUN_00463ec0`) in the unit's trigger list |
 | Cannot be hurt / Can be hurt | op 11 / 12 (the damage object's shield flag) |
@@ -866,13 +871,49 @@ same blocks; written back unchanged, every file stays byte-identical (Rust test 
 editable are, for example, events no slot fires (205 in the data), events fired by several kinds of slots, and
 motion jumps other than to a Path (Hover, Yaw to target).
 
-**Not possible without a runtime change:** a flight that takes off when a rule fires. Disable combat stops a brain
-only when it is engaged (docs/ai.md §6), so a parked jet cannot be held on the ground and released by an event; the
-original holds no such rule either. Take-off times stay the route's planned arrival times (§12.5).
-
 **Tests:** `cargo test -p iaf-tools --lib mission_events` (the round trip; New with three rules written, read back,
 kept by a new route, all removed giving the mission back; references after `remove_entity`; a slot used twice);
 `tests/godot/test_mission_edit_scenario.gd` builds on the tab, on a New mission, "when the SA-6 is destroyed → the
 convoy starts its route" and "when Alpha comes within 10 km of the tank → play MiG's! MiG's! MiG's!", flies it
 through the runtime, and checks that the message plays and that the convoy waits until the SA-6 is destroyed and
-then drives.
+then drives. `cargo test -p iaf-tools --lib mission_events::tests::takeoff_rule_holds_and_releases` and
+`tests/godot/test_mission_edit_takeoff.gd` test the take-off rule (§18.6).
+
+### 18.6 A flight that takes off on a rule
+**Flight takes off** (THEN) makes an AI flight wait parked at its base until the rule fires; then it takes off and
+flies its route. Any flight whose first waypoint is a take-off (action 2) can wait: an enemy flight, or a blue flight
+the player does not fly. A unit picked on the map stands for its flight.
+
+**The original's own hold.** An AI flight's take-off already waits: TaxiCL keeps the brakes on until the take-off
+waypoint's planned arrival time (wp0's "speed" field; `FUN_005d5cb0`, docs/ai.md §8.2). The leader rolls at that time,
+the wingman follows it. The originals' enemy flights wait from 10 s to 1260 s this way.
+
+**What the editor writes:**
+- **The wait:** wp0's planned time becomes 1e7 s (116 days), so the original's own TaxiCL holds the jets parked. This
+  is the Flights tab's **Waits parked at its base until a rule makes it take off**; the block sets it too. The
+  waypoint list shows "waits for a rule" for that waypoint.
+- **The release:** trigger op 40 "Take off" in the leader's trigger list, jumped by the rule's event as any other
+  block. Op 40 is ours: the exe's trigger opcodes end at 28.
+- A rule taken out, when no other rule makes the flight take off, gives wp0 back the time 30 s (the enemy flights'
+  take-off time, §12.5). The sanity check warns of a flight that waits with no rule (§16).
+
+**The runtime part** (ours, editor missions only): `mission_runtime.gd` runs op 40 only while
+`Settings.mission_files_override` is set, which only the editor's Fly sets (§8). Then every jet of the flight gets
+`ap_release_takeoff` (`Autopilot::release_takeoff`): wp0's time becomes now, and a TaxiCL already waiting is timed as
+its FirstRun would time it then (the leader at once, a wingman away from the lineup 10 s later). Later waypoints keep
+their times; a flight past them flies its legs at 275 m/s, as the original flies any late leg (docs/ai.md §7.2).
+
+**Why this design** (inferred: the least runtime code that keeps the originals unchanged):
+- The hold is the original's own data and code: no new state in the flight model or the brain.
+- No original event can release it: Disable combat stops a brain only when it is engaged (docs/ai.md §6), and op 20
+  (back to brain control) would need a mission-controlled jet that has no flight model in the port. So the release
+  is one new opcode and one small function.
+- The originals stay byte for byte as they were: none holds op 40 or a planned time of 1e7 s (Rust test
+  `originals_round_trip`), and their take-offs follow wp0's time as before (`test_mission_edit_takeoff.gd`: 132's and
+  114's AI leaders roll 2 s after their planned 20 s and 10 s, the brain's first tick).
+
+**Tests:** `takeoff_rule_holds_and_releases` (a wingman picked becomes the leader, wp0 at 1e7 s, the rule read back,
+taken out giving the mission back, the errors for a unit in no flight and a flight with no take-off);
+`test_mission_edit_takeoff.gd` (a New mission with two MiG-29s at Damascus and "when Alpha comes within 30 km of the
+tank → the MiG-29 flight takes off": the MiGs stay parked past their usual 30 s until the rule fires at 61 s, then
+take off; then the originals above).

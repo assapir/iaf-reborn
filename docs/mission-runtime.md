@@ -341,6 +341,7 @@ execute that entry and schedule its end timer.
 | 20 | — | `0x5c4470` | `FUN_004bb409(arg)` + `FUN_004a8e70(1)` (back to brain control) — UNCERTAIN |
 | 21 / 22 | Enable / Disable combat | `0x5c44b0` / `0x5c44c0` | `FUN_00440830` / `FUN_004407e0` on the unit's brain (docs/ai.md §6). Enable: +0x6c = 0, then (v1.1) the brain is reset (`FUN_0043eef0`: flags cleared, the tick scheduled again). Disable: +0x6c = 1; if engaged (+0x68): clear it, weapons safe (`FUN_004aa900(1)` is the weapon handler's SAFE flag), tell the target selector, and (v1.1) `MBrain::transferControl` (`FUN_004401d0`: the brain stops ticking, the autopilot off). Port: `game/ai/brain.gd` `enable_combat` / `disable_combat` |
 | 24, 25, 27, 28 | — | `0x5c44d0`… | status+0x1c = 0, 1, 2, 3 — UNCERTAIN |
+| 40 | (ours) | — | not in the exe: the mission editor's "Flight takes off", run only for a mission flown from the editor (mission-editor.md §18.6) |
 
 ### Motion list (scripts0)
 

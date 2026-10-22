@@ -540,6 +540,15 @@ func set_combat(ent: Dictionary, on: bool) -> void:
 		p.brain.disable_combat()
 
 
+## Ours (the mission editor's "takes off" rule, docs/mission-editor.md §18.3): every jet of `ent`'s flight that waits
+## on wp0's late planned time takes off now.
+func take_off(ent: Dictionary) -> void:
+	var f := _formation_of(ent)
+	for m in f.get("members", [ent]):
+		if m.get("pilot") != null:
+			m.pilot.flight.ap_release_takeoff(runtime.now)
+
+
 ## Every AI aircraft for radar / RWR: entity, world position (X east, Y north, alt m), world velocity, side.
 func contacts() -> Array:
 	var out := []

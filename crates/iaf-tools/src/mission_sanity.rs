@@ -194,6 +194,9 @@ pub fn sanity_issues(mission: &Value, bdb: &Value, install: &Path) -> Vec<Issue>
         if int(&leader["0x2d0"]) == 2 && f["points"].as_array().is_none_or(Vec::is_empty) {
             out.push(warning(int(&leader["0x1e"]), format!("enemy flight {name} has no waypoints")));
         }
+        if crate::mission_events::waits(f) && !crate::mission_events::has_takeoff(leader) {
+            out.push(warning(int(&leader["0x1e"]), format!("{name} waits for a rule, but no rule makes it take off")));
+        }
         if !(1..=4).contains(&n) || int(&leader["0x2d0"]) != 1 {
             continue;
         }

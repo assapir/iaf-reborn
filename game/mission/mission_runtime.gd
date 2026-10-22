@@ -18,6 +18,9 @@ const ROLE_SURVIVE := 0
 const ROLE_TARGET := 1
 const DamageModel := preload("res://mission/damage_model.gd")
 
+## Trigger op 40 (ours; no exe opcode): the mission editor's "takes off" rule (docs/mission-editor.md §18.3).
+const OP_TAKEOFF := 40
+
 var host: Node
 var now := 0.0
 var _timers: Array = []  # [time, seq, Callable] kept sorted
@@ -483,6 +486,10 @@ func _trigger(ent: Dictionary, sc: Dictionary) -> void:
 			ent["combat"] = false
 			if host.has_method("mission_combat"):
 				host.mission_combat(ent, false)
+		OP_TAKEOFF:
+			# Ours, for missions flown from the mission editor only (docs/deviations.md): the unit's flight takes off now.
+			if not Settings.mission_files_override.is_empty() and host.has_method("mission_takeoff"):
+				host.mission_takeoff(ent)
 		_:
 			pass  # 3, 4, 15 (Wait), 18, 19 (Destroy entity: no-op in this build), 23, 26 …
 

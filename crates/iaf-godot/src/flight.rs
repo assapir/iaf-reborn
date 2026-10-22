@@ -372,6 +372,14 @@ impl IafFlight {
         }
     }
 
+    /// The mission editor's "takes off" rule: a take-off held by wp0's late planned time starts now (ours).
+    #[func]
+    fn ap_release_takeoff(&mut self, now: f64) {
+        if let Some(ap) = &mut self.ap {
+            ap.release_takeoff(now);
+        }
+    }
+
     /// `setMode` (docs/ai.md §5, §8.1); an identical mode is ignored.
     #[func]
     fn ap_set_mode(&mut self, mode: i64, _now: f64) {

@@ -1686,6 +1686,21 @@ impl Autopilot {
         self.nose_on = false;
     }
 
+    /// Ours, for the mission editor's "takes off" rule (docs/mission-editor.md §18.3; editor missions only): a
+    /// take-off held by a late planned time at wp0 starts now. wp0's time becomes `now`, and a TaxiCL already waiting
+    /// is timed as its FirstRun would time it then: the leader now, a wingman away from the lineup 10 s later.
+    pub fn release_takeoff(&mut self, now: f64) {
+        let Some(w) = self.route.first_mut().filter(|w| w.t > now) else { return };
+        w.t = now;
+        let lead = self.leader.is_none();
+        if let Loop::TakeOff { taxi, .. } = &mut self.lp
+            && taxi.waiting
+            && !taxi.park
+        {
+            taxi.start = if lead || taxi.at_lineup { now } else { now + 10.0 };
+        }
+    }
+
     /// GoHomeCL Init `5cd390`: Fly2WayPt to the route's last waypoint (no route: here), then LandingCL.
     fn go_home(&self, v: &ApView, now: f64) -> Loop {
         let (t, cap) = match self.route.last() {

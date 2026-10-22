@@ -16,6 +16,7 @@ const THENS := [
 	["wait", "Wait", "wait some seconds before the next blocks"],
 	["message", "Radio message", "play a radio message with its subtitle"],
 	["route", "Start its route", "a unit starts the route given on the Units tab"],
+	["takeoff", "Flight takes off", "an AI flight waits parked at its base until the rule, then takes off"],
 	["show", "Appear", "a unit becomes visible"],
 	["hide", "Disappear", "a unit becomes invisible"],
 	["shield_on", "Cannot be hurt", "a unit takes no damage"],
@@ -350,6 +351,9 @@ func _then_row(box: VBoxContainer, i: int, j: int, b: Dictionary, edit: bool) ->
 		"route":
 			_unit_picker(row, p + ["unit"], b.unit, edit)
 			row.add_child(_text("starts its route"))
+		"takeoff":
+			_unit_picker(row, p + ["unit"], b.unit, edit, true)
+			row.add_child(_text("takes off (parked at its base until then)"))
 		"fire_at":
 			_unit_picker(row, p + ["unit"], b.unit, edit)
 			row.add_child(_text("fires at"))
@@ -415,8 +419,9 @@ func _number(row: Control, path: Array, v: float, unit: String, scale: float, ed
 	row.add_child(_text(unit))
 
 
-## The mission's units by readable name: "SA6 (SA 6, red)"; a flight leader as its flight.
-func _units() -> Array:
+## The mission's units by readable name: "SA6 (SA 6, red)"; a flight leader as its flight. `flights`: the flight
+## leaders only.
+func _units(flights := false) -> Array:
 	var out := []
 	for e in editor.data.get("entities", {}).get("items", []):
 		if int(e.get("0x14", 0)) != 0 or String(e.get("0x316", "")) in TAGS:
@@ -429,23 +434,26 @@ func _units() -> Array:
 		)
 		var side: String = ["blue", "red", "neutral"][clampi(int(e.get("0x2d0", 1)), 1, 3) - 1]
 		var label := "%s (%s, %s)" % [e.get("0x2bc", ""), kind, side]
+		var lead := false
 		for f in editor.data.get("formations", {}).get("items", []):
 			if int(f.get("0x14", 0)) == 0 and int(f.members[0].get("0x41a", -1)) == int(e["0x1e"]):
 				label = "%s: %s" % [f.get("0x3e8", ""), label]
-		out.append([int(e["0x1e"]), label])
+				lead = true
+		if lead or not flights:
+			out.append([int(e["0x1e"]), label])
 	out.sort_custom(func(a, b): return a[1].naturalnocasecmp_to(b[1]) < 0)
 	return out
 
 
-func _unit_picker(row: Control, path: Array, id, edit: bool) -> void:
+func _unit_picker(row: Control, path: Array, id, edit: bool, flights := false) -> void:
 	var o := OptionButton.new()
-	o.add_item("pick a unit")
+	o.add_item("pick a flight" if flights else "pick a unit")
 	o.set_item_metadata(0, -1)
 	o.custom_minimum_size.x = 230
 	o.clip_text = true
 	o.fit_to_longest_item = false
 	var want := -1 if id == null else int(id)
-	for u in _units():
+	for u in _units(flights):
 		o.add_item(u[1])
 		o.set_item_metadata(o.item_count - 1, u[0])
 		if u[0] == want:

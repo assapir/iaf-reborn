@@ -7,7 +7,9 @@
 //!   whose chain fires the later parts through trigger op 6 (fire event, `FUN_005c4340`: the same field +0x28 as
 //!   op 7's audio, so 0x8ac);
 //! - sensors (bdb object 130) as the originals use them: a holder, an area (a reached / left check around a point),
-//!   a goal (role 1) or a lose token (role 0) that an Explode (op 5) destroys.
+//!   a goal (role 1) or a lose token (role 0) that an Explode (op 5) destroys;
+//! - ours, editor missions only: a flight that waits on the ground has its take-off waypoint's planned time at
+//!   `WAIT_T` (TaxiCL holds it until then), and trigger op `OP_TAKEOFF` on its leader starts it now.
 //!
 //! `rules` reads every event back into rules; one that fits the blocks is editable, the others are listed as the
 //! original's and kept. `set_rules` rewrites only the rules that changed, so the originals' data stays as it was.
@@ -25,6 +27,16 @@ const TAG_AREA: &str = "scenario area";
 const TAG_TOKEN: &str = "scenario goal";
 /// The name of the Hover a route waits on (motion entry 1) until a rule starts it.
 const HOLD_NAME: &str = "WAIT FOR RULE";
+/// The planned arrival time (s) at the take-off waypoint of a flight that waits for a rule: TaxiCL keeps the jets
+/// parked until wp0's time (docs/ai.md §8.2), and 1e7 s (116 days) is never reached in a flight.
+pub const WAIT_T: f64 = 1e7;
+/// A take-off waypoint's time when no rule holds the flight any more (the editor's enemy flights take off at 30 s).
+const NO_WAIT_T: f64 = 30.0;
+/// Ours (no original or exe opcode; the exe's trigger opcodes end at 28): the unit's flight takes off now. The game
+/// runs it only for a mission flown from the editor (mission_runtime.gd).
+pub const OP_TAKEOFF: i64 = 40;
+/// Waypoint action 2: take off (docs/ai.md §7.2).
+const TAKEOFF_ACTION: i64 = 2;
 const LISTS: [&str; 2] = ["scripts0", "scripts1"];
 const COUNTERS: [&str; 2] = ["0xec", "0xf0"];
 
@@ -76,6 +88,36 @@ fn name_of(m: &Value, id: i64) -> String {
 
 fn member_of_flight(m: &Value, id: i64) -> bool {
     in_flights(m, id, 0..=i64::MAX)
+}
+
+/// The formation unit `id` is a member of.
+fn flight_of(m: &Value, id: i64) -> Option<&Value> {
+    let fs = m["formations"]["items"].as_array()?.iter();
+    fs.filter(|f| real(f)).find(|f| f["members"].as_array().into_iter().flatten().any(|mm| int(&mm["0x41a"]) == id))
+}
+
+fn flight_of_mut(m: &mut Value, id: i64) -> Option<&mut Value> {
+    items(m, "formations")
+        .iter_mut()
+        .filter(|f| real(f))
+        .find(|f| f["members"].as_array().into_iter().flatten().any(|mm| int(&mm["0x41a"]) == id))
+}
+
+/// A flight's take-off waypoint waits for a rule (its planned time is `WAIT_T`).
+pub fn waits(f: &Value) -> bool {
+    f["points"][0][4].as_f64().is_some_and(|t| t >= WAIT_T)
+}
+
+/// Unit `id` has a take-off rule's entry (op `OP_TAKEOFF`) in its trigger list.
+pub fn has_takeoff(e: &Value) -> bool {
+    entries(e, 1).iter().any(|s| int(&s["0x83e"]) == OP_TAKEOFF)
+}
+
+/// The take-off waypoint of unit `id`'s flight waits (`on`) or takes off at `NO_WAIT_T`.
+fn set_wait(m: &mut Value, id: i64, on: bool) {
+    if let Some(p) = flight_of_mut(m, id).and_then(|f| f["points"][0].as_array_mut()).filter(|p| p.len() > 4) {
+        p[4] = json!(if on { WAIT_T } else { NO_WAIT_T });
+    }
 }
 
 /// The player may fly any of flights 1..4 (Alpha..Delta); the runtime never arms a player's radius check.
@@ -165,6 +207,7 @@ fn walk_chain(m: &Value, u: i64, mut idx: i64, mut t: f64, w: &mut Walk) {
             12 => block(json!({"kind": "shield_off", "unit": u})),
             21 => block(json!({"kind": "combat_on", "unit": u})),
             22 => block(json!({"kind": "combat_off", "unit": u})),
+            OP_TAKEOFF => block(json!({"kind": "takeoff", "unit": u})),
             5 if is_sensor(e) && int(&e["0x32a"]) == 1 => block(json!({"kind": "goal", "unit": u})),
             5 if is_sensor(e) && int(&e["0x32a"]) == 0 => block(json!({"kind": "fail", "unit": u})),
             5 => block(json!({"kind": "explode", "unit": u})),
@@ -183,9 +226,10 @@ fn walk_chain(m: &Value, u: i64, mut idx: i64, mut t: f64, w: &mut Walk) {
     }
 }
 
-const KINDS: [&str; 13] = [
+const KINDS: [&str; 14] = [
     "message",
     "route",
+    "takeoff",
     "show",
     "hide",
     "shield_on",
@@ -406,6 +450,7 @@ pub fn summary(m: &Value, bdb: &Value, r: &Value) -> String {
                 "wait" => format!("after {} s", num(&b["seconds"])),
                 "message" => format!("play \"{}\"", audio(int(&b["audio"]))),
                 "route" => format!("{u} starts its route"),
+                "takeoff" => format!("{u} flight takes off"),
                 "show" => format!("{u} appears"),
                 "hide" => format!("{u} disappears"),
                 "shield_on" => format!("{u} cannot be hurt"),
@@ -525,6 +570,7 @@ fn op(code: i64, seconds: i64, arg: i64) -> Value {
         14 => "Visible off",
         15 => "Wait",
         21 => "Enable combat",
+        OP_TAKEOFF => "Take off",
         _ => "Disable combat",
     };
     json!({
@@ -663,6 +709,13 @@ fn remove_rule(m: &mut Value, r: &Read) {
     for b in r.rule["then"].as_array().into_iter().flatten().filter(|b| b["kind"] == "route") {
         release_hold(m, int(&b["unit"]));
     }
+    // A flight no rule takes off any more takes off at its own time again.
+    for b in r.rule["then"].as_array().into_iter().flatten().filter(|b| b["kind"] == "takeoff") {
+        let u = int(&b["unit"]);
+        if entity(m, u).is_some_and(|e| !has_takeoff(e)) {
+            set_wait(m, u, false);
+        }
+    }
     // A sensor left with nothing to do goes.
     for u in touched {
         let Some(e) = entity(m, u) else { continue };
@@ -774,6 +827,7 @@ fn check_rule(m: &Value, r: &Value) -> Result<(), String> {
         if !["wait", "message", "goal", "fail"].contains(&k) {
             let label = match k {
                 "route" => "Start its route",
+                "takeoff" => "Takes off",
                 "show" => "Appear",
                 "hide" => "Disappear",
                 "shield_on" => "Cannot be hurt",
@@ -787,6 +841,15 @@ fn check_rule(m: &Value, r: &Value) -> Result<(), String> {
             let u = entity(m, int(&b["unit"])).ok_or_else(|| format!("{label}: pick the unit"))?;
             if k == "route" && !entries(u, 0).iter().any(|s| int(&s["0x83e"]) == 16) {
                 return Err(format!("{} has no route: give it one on the Units tab", name_of(m, int(&b["unit"]))));
+            }
+            if k == "takeoff" {
+                let f = flight_of(m, int(&b["unit"])).ok_or("Takes off: pick a flight")?;
+                if int(&f["points"][0][5]) != TAKEOFF_ACTION {
+                    return Err(format!(
+                        "{}: its first waypoint is not a take-off",
+                        f["0x3e8"].as_str().unwrap_or("?")
+                    ));
+                }
             }
         }
         if k == "fire_at" && entity(m, int(&b["target"])).is_none() {
@@ -850,6 +913,14 @@ fn write_rule(m: &mut Value, r: &Value, n: usize) -> i64 {
                     );
                     let k = unit(&mut per, t);
                     per[k].2.push(op(5, 0, -1));
+                    continue;
+                }
+                "takeoff" => {
+                    // On the flight's leader; its take-off waits for the rule.
+                    let lead = flight_of(m, u).map_or(u, |f| int(&f["members"][0]["0x41a"]));
+                    set_wait(m, lead, true);
+                    let k = unit(&mut per, lead);
+                    per[k].2.push(op(OP_TAKEOFF, 0, -1));
                     continue;
                 }
                 "show" => 13,
@@ -1067,6 +1138,11 @@ mod tests {
             if m["events"].is_null() {
                 continue;
             }
+            // No original holds the editor's own take-off rule or a flight waiting for one.
+            let ents = m["entities"]["items"].as_array().into_iter().flatten();
+            assert!(!ents.filter(|e| real(e)).any(has_takeoff), "{}", p.display());
+            let fs = m["formations"]["items"].as_array().into_iter().flatten();
+            assert!(!fs.filter(|f| real(f)).any(waits), "{}", p.display());
             let rs = rules(&m, &bdb);
             // Unchanged rules leave the file as it was.
             let back = set_rules(m.clone(), &rs);
@@ -1220,5 +1296,48 @@ mod tests {
             json!([rs[0], {"when": {"kind": "destroyed", "units": [sam]}, "then": [{"kind": "route", "unit": sam}]}]);
         let e = set_rules(m.clone(), &bad);
         assert_eq!(e["errors"].as_array().unwrap().len(), 1, "{}", e["errors"]);
+    }
+
+    #[test]
+    fn takeoff_rule_holds_and_releases() {
+        let Some(a) = assets() else { return eprintln!("skip: no converted missions") };
+        let bdb = read(&a, "default6_1.bdb");
+        let m = new_mission(&a);
+        let m = crate::mission_edit::set_red_flight(m, &json!({"type": 2, "count": 2, "base": "bmisdmsk"}));
+        let fs = m["formations"]["items"].as_array().unwrap();
+        let f = fs.iter().find(|f| real(f) && int(&f["0x3f2"]) == 8).unwrap();
+        let (lead, wing) = (int(&f["members"][0]["0x41a"]), int(&f["members"][1]["0x41a"]));
+        let alpha = int(&fs.iter().find(|f| real(f) && int(&f["0x3f2"]) == 1).unwrap()["members"][0]["0x41a"]);
+        let ents = m["entities"]["items"].as_array().unwrap();
+        let sam = int(&ents.iter().find(|e| real(e) && e["0x2bc"] == "SA6").unwrap()["0x1e"]);
+        // The wingman picked: the rule goes to the flight's leader.
+        let rs = json!([{"when": {"kind": "enters", "who": alpha, "center": sam, "radius": 30000.0},
+                         "then": [{"kind": "takeoff", "unit": wing}]}]);
+        let w = set_rules(m.clone(), &rs);
+        assert!(w["errors"].as_array().unwrap().is_empty(), "{}", w["errors"]);
+        let wm = &w["mission"];
+        assert!(waits(flight_of(wm, lead).unwrap()));
+        assert!(has_takeoff(entity(wm, lead).unwrap()) && !has_takeoff(entity(wm, wing).unwrap()));
+        let back = rules(wm, &bdb);
+        assert_eq!(back[0]["editable"], json!(true), "{}", back[0]);
+        assert_eq!(back[0]["then"], json!([{"kind": "takeoff", "unit": lead}]));
+        assert!(
+            back[0]["summary"].as_str().unwrap().ends_with("→ Damascus flight takes off"),
+            "{}",
+            back[0]["summary"]
+        );
+        assert_eq!(set_rules(wm.clone(), &back)["mission"], *wm);
+        // Removed, the flight takes off at its 30 s again: the mission as it was.
+        let gone = set_rules(wm.clone(), &json!([]));
+        assert_eq!(real_rows(&gone["mission"]), real_rows(&m));
+        // A unit in no flight; a flight whose first waypoint is no take-off.
+        let bad = json!([{"when": {"kind": "start"}, "then": [{"kind": "takeoff", "unit": sam}]}]);
+        let e = set_rules(m.clone(), &bad);
+        assert!(e["errors"][0]["text"].as_str().unwrap().contains("pick a flight"), "{}", e["errors"]);
+        let mut air = m.clone();
+        flight_of_mut(&mut air, lead).unwrap()["points"][0][5] = json!(3);
+        let bad = json!([{"when": {"kind": "start"}, "then": [{"kind": "takeoff", "unit": lead}]}]);
+        let e = set_rules(air, &bad);
+        assert!(e["errors"][0]["text"].as_str().unwrap().contains("not a take-off"), "{}", e["errors"]);
     }
 }

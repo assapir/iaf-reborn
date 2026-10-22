@@ -10,6 +10,10 @@ const Img := preload("res://util/img.gd")
 const ScenarioEditor := preload("res://editor/scenario_editor.gd")
 
 const UNDO_MAX := 50
+## A take-off waypoint's planned time while its flight waits for a rule (mission_events.rs WAIT_T,
+## docs/mission-editor.md §18.3), and the time it gets back (the enemy flights' 30 s).
+const WAIT_T := 1.0e7
+const NO_WAIT_T := 30.0
 ## The Add picker's classes: label → bdb object classes (0x5aa).
 const ADD_CLASSES := [
 	["Aircraft", [2, 3, 0x1c]],
@@ -554,6 +558,16 @@ func insert_waypoint() -> void:
 	_edit(d)
 
 
+## The selected flight's take-off waits for a rule (wp0's planned time WAIT_T) or takes off at NO_WAIT_T.
+func set_waits(on: bool) -> void:
+	var fo := _formation_of(tsd.sel_flight)
+	if fo < 0 or data.formations.items[fo].points.is_empty():
+		return
+	var d := data.duplicate(true)
+	d.formations.items[fo].points[0][4] = WAIT_T if on else NO_WAIT_T
+	_edit(d)
+
+
 func delete_waypoint() -> void:
 	var fo := _formation_of(tsd.sel_flight)
 	if fo < 0 or sel_wp < 0 or data.formations.items[fo].points.size() <= 1:
@@ -974,6 +988,11 @@ func _build_flights_tab(box: VBoxContainer) -> void:
 	_ui.route_of = _row(box, "Flight", _options([], _on_route_flight))
 	# Shown only for an enemy (non Alpha … Delta) flight picked above.
 	_ui.red_remove = _button(box, "Remove this enemy flight and its jets", remove_enemy_flight)
+	_ui.wait_rule = CheckBox.new()
+	_ui.wait_rule.text = "Waits parked at its base until a rule makes it take off"
+	_ui.wait_rule.tooltip_text = 'Scenario tab: add a rule with the THEN block "Flight takes off"'
+	_ui.wait_rule.toggled.connect(set_waits)
+	box.add_child(_ui.wait_rule)
 	_ui.wps = ItemList.new()
 	_ui.wps.custom_minimum_size.y = 200
 	_ui.wps.item_selected.connect(_on_waypoint_listed)
@@ -1340,7 +1359,11 @@ func _fill_flights() -> void:
 	var fo := _formation_of(tsd.sel_flight)
 	var pts: Array = data.formations.items[fo].points if fo >= 0 else []
 	for i in pts.size():
-		_ui.wps.add_item("%d: alt %d m, arrive at %d s" % [i + 1, int(pts[i][3]), int(pts[i][4])])
+		var at := "waits for a rule" if float(pts[i][4]) >= WAIT_T else "arrive at %d s" % int(pts[i][4])
+		_ui.wps.add_item("%d: alt %d m, %s" % [i + 1, int(pts[i][3]), at])
+	# Only a flight that takes off from a base (wp0 action 2) can wait on the ground.
+	_ui.wait_rule.set_pressed_no_signal(not pts.is_empty() and float(pts[0][4]) >= WAIT_T)
+	_ui.wait_rule.disabled = read_only or pts.is_empty() or pts[0].size() < 6 or int(pts[0][5]) != 2
 	if sel_wp >= 0 and sel_wp < pts.size():
 		_ui.wps.select(sel_wp)
 		_ui.wp_alt.set_value_no_signal(float(pts[sel_wp][3]))
