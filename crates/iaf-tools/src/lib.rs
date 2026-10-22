@@ -26,6 +26,7 @@ pub mod rtpatch;
 pub mod runway_fix;
 pub mod smooth;
 pub mod terrain;
+pub mod thirdparty;
 pub use iaf_formats::terrain_types;
 pub mod upscale;
 

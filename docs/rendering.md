@@ -12,8 +12,8 @@ This doc lists the rendering options of the flight scene, what each one sets, an
 
 Code: `game/terrain/render_options.gd` (applied by `terrain_view.gd apply_render_options()` at the start of a flight
 and when the in-flight Preferences close), `terrain/terrain.gdshader`, `terrain/atmosphere.gdshader`,
-`terrain/cloud_layer.gd`, `terrain/night_lights.gd`, `terrain/night_vision.gdshader`, `terrain/airbases.gd`. Tests: `tests/godot/test_graphics_prefs.gd` (switches → render
-settings, save / load), `test_ui_smoke.gd` (Graphics → MORE and Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5, §8 the goggles key), `test_water.gd` (§1.3), `test_particle_effects.gd` (§6), `test_airbases.gd` (§7).
+`terrain/cloud_layer.gd`, `terrain/night_lights.gd`, `terrain/night_vision.gdshader`, `terrain/airbases.gd`, `terrain/ground_textures.gd`. Tests: `tests/godot/test_graphics_prefs.gd` (switches → render
+settings, save / load), `test_ui_smoke.gd` (Graphics → MORE and Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5, §8 the goggles key), `test_water.gd` (§1.3), `test_ground_textures.gd` (§1.4), `test_particle_effects.gd` (§6), `test_airbases.gd` (§7).
 
 ## 1. Options
 
@@ -33,6 +33,7 @@ TAA = temporal anti-aliasing.
 | Particle effects | Original / Detailed | Detailed: explosions, smoke and missile trails as GPU particles, contrails above 9000 m and a heat haze behind each engine (§6). Takes effect at the next flight |
 | Rolling wheels | Original / Rolling | the wheels of a model with wheel frames turn as the jet rolls (today the F-35I; docs/part-animation.md §2.2) |
 | Airbases | Original / Detailed | in `terrain.gdshader`: near the ground, a procedural runway, taxiway and apron surface with ICAO markings over the nearest base's paved surface (§7); always on in World scale Real |
+| Ground textures | Original / ambientCG | in `terrain.gdshader`: near the camera, where they resolve, CC0 photo textures of asphalt, concrete, sand, gravel, grass, soil and rock, chosen per pixel from the imagery's colour (§1.4). Greyed out and not clickable ("Not downloaded") until setup has downloaded them; a saved ambientCG without them loads as Original |
 
 ### 1.1 Terrain close up
 
@@ -141,6 +142,83 @@ the whole view. The surface raster costs 0.7 ms of CPU (Rust, 65 536 lookups) on
 **Shots** (local, `assets/converted/research/water/`, Original then Detailed): `ta150_*` and `ta1500_*` (the Tel Aviv
 coast at 150 m and 1500 m), `glint150_*` and `glint1500_*` (towards the sun over the sea), `kin150_*` (the Kinneret at
 150 m), `cmp_*.png` (the pairs stacked).
+
+### 1.4 Ground textures
+
+The ambientCG choice puts real ground textures under the jet. They are CC0 (public domain) photo-scanned materials from
+ambientCG[^ambientcg]. The repo holds none of them: setup's optional `textures` step downloads them (docs/setup.md).
+Without them the row's ambientCG choice is greyed out, cannot be picked and reads "Not downloaded" (run `./setup`
+again online); a saved ambientCG then loads as Original, so the switch is never half on.
+
+| layer | material | real size of one repeat | used for |
+|---|---|---|---|
+| 0 | Asphalt027C | 2.5 m (inferred: ambientCG gives none; the sibling Asphalt033 is 2.5 m) | grey ground in an airbase: runways and taxiways |
+| 1 | Concrete040 | 1.4 m | the blue / purple tinted aprons in an airbase; the Detailed airbases' apron slabs |
+| 2 | Ground054 | 3.5 m | pale ground: sand |
+| 3 | Ground062L | 3.0 m | grey-brown ground: gravel desert, and grey ground outside airbases (towns, roads) at 60 % strength |
+| 4 | Ground037 | 2.1 m | green ground: grass and fields |
+| 5 | Ground109 | 2.8 m | saturated brown ground: dry soil and scrub |
+| 6 | Rock045 | 2.4 m | slopes steeper than ≈ 30° |
+
+How the shader uses them:
+
+- **Where**: where a texture resolves; none on water. The shader takes the pixel's ground footprint gm (the geometric
+  mean of its two axes, as the anisotropic filter sees it): full strength up to 0.1 m, none past 0.25 m (a repeat of
+  2–3 m under ≈ 10 pixels). At 2560 × 1440 that is ≈ 200–500 m looking down, less at a grazing angle. Farther and
+  grazing pixels skip the samples.
+- **Colour**: the texture's colour divided by its own mean colour multiplies the imagery's colour. Setup stores that
+  ratio, halved, in the colour map. The photo keeps its own hue and brightness; the texture adds cracks, stones and
+  grass blades.
+- **No grid of repeats**: the strength varies over ≈ 9 m clumps (pavement: ≈ 4 m) with the close up's noise.
+- **Normal and roughness**: the material's normal map tilts the surface normal, and its roughness map sets the
+  roughness (0.8–1.0 on natural ground, 0.75–1.0 on pavement).
+- **Choice per pixel**: the imagery's colour picks the layer weights, compared in ≈ sRGB. In an airbase
+  (terraintype.dat 0x10) grey is asphalt and the blue / purple tint is concrete. Elsewhere green is grass, bright
+  (≥ 0.55) is sand, saturated brown is soil, and the rest is gravel. The slope of the terrain grid picks rock. The
+  strongest layer is sampled, and the second one too where it weighs a fifth or more: two or four texture samples
+  per pixel (colour, roughness + normal).
+- **With Terrain close up**: the textures take the place of the close up's fine grain (the 16 m noise and its normal
+  detail) up to a 0.05 m footprint, and share it up to 0.15 m. Past that a texture of a few metres no longer reads,
+  and the grain reads better. The close up's patches stay at every distance.
+- **With Detailed airbases** (§7): the procedural pavement takes asphalt in place of its 2.3 m aggregate grain and
+  its micro relief, and its apron slabs take concrete. The markings, tyre rubber, seams and repairs are drawn as
+  before, over the texture. The close up's own airbase layers are skipped there, so a pixel never samples both.
+- **Scale**: the textures repeat at their real size in world metres. The imagery's colour changes every few metres
+  and breaks up the repeat.
+
+Files and loading:
+
+- Setup (`iaf_tools::thirdparty`, `iaf-textures`) downloads `<id>_2K-JPG.zip` for each material, checks it against a
+  pinned SHA-256, and keeps the colour, normal (OpenGL) and roughness maps in `assets/thirdparty/ambientcg/<id>/`.
+  It packs them at 1024² with every mip level, compressed as the GPU reads them (texpresso, cluster fit): `albedo.bc1`
+  (BC1 / DXT1, RGB: the linear colour over its mean, halved) and `nr.bc3` (BC3 / DXT5: R roughness, G normal Y,
+  A normal X). `ground.json` lists the layers in order with their sizes. The step takes ≈ 1 minute after the
+  download.
+- 1024² is ≈ 2.4 mm per texel on a 2.5 m repeat, finer than a pixel of the ground at 2560 × 1440 from the cockpit.
+- The game (`terrain/ground_textures.gd`) reads the packed maps (≈ 15 MB, ≈ 5 ms) on a worker thread while the
+  mission screens are open (`terrain_preload.gd`); the flight's start uploads them as two texture arrays. Nothing is
+  decoded or compressed in the game. The switch itself is a shader uniform (`ground_tex`), so the terrain shader is
+  the same with it on or off: no new shader compiles in flight.
+- Video memory: 7 layers × (0.7 MB + 1.4 MB) ≈ 15 MB.
+
+Cost on an Intel Iris Xe (TigerLake GT2) laptop at 2560 × 1440, 2026-10-22, X11 window, vsync off. The GPU column
+is the median of 12 pairs switching `ground_tex` 0 / 1 in place (`tests/godot/_airbase_shot.gd`, `SHOT_BENCH=ground_tex`):
+
+| pose | other options | frame, switch off | GPU cost of the switch |
+|---|---|---|---|
+| lineup on Ramat David's runway 27, cockpit | defaults | 13.5 ms (74 fps) | +1.05 ms (−7 % fps) |
+| the same | Terrain close up + Detailed airbases | 20.0 ms (50 fps) | +0.92 ms (−4.5 %) |
+| 300 m above the Halutza sands, looking 35° down | defaults | 17.8 ms (56 fps) | +1.61 ms (−9 %) |
+| the same | Terrain close up + Detailed airbases | 20.1 ms (50 fps) | +1.18 ms (−6 %) |
+
+Hitches (`tests/godot/_ground_tex_bench.gd`, mission 311, three runs each, the switch off / on):
+
+- Upload at the flight's start, after the mission screens' preload: 0 / 5.5–6.4 ms.
+- Mission start (scene change to the first flying frame, without the terrain preload): 37–46 s / 44–48 s, within the
+  run-to-run spread.
+- Worst frame in the first 30 s on the ground: 61–86 / 62–65 ms; average 52–59 / 55 fps.
+- Worst frame in a low pass over the base (60 m, 150 m/s): 29–31 / 30–31 ms; average 55 / 53–54 fps.
+- Video memory: +15.9 MB (Godot's texture memory monitor).
 
 ## 2. Cloud layer (Graphics TEXTURED SKY, docs/front-end.md §12.4)
 
@@ -606,3 +684,4 @@ Iris Xe laptop, measured while another render ran (to measure again on an idle m
     https://flightglobal.com/nvg-modifications-begin-on-f-16s/11115.article
 [^bekaa]: Air & Space Forces Magazine, the Bekaa Valley 1982 (seen as a search summary):
     https://www.airandspaceforces.com/article/0602bekaa/
+[^ambientcg]: ambientCG, https://ambientcg.com/. Licence: "All ambientCG assets are provided under the Creative Commons CC0 1.0 Universal License", https://docs.ambientcg.com/license/ (read 2026-10-22).

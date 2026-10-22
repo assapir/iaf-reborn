@@ -56,6 +56,21 @@ global uniform vec4 airbase_mask_rect;
 global uniform vec4 airbase_mask_xf;
 global uniform sampler2D airbase_data : filter_nearest, repeat_disable;
 global uniform vec4 airbase_info;
+// Preferences "Ground textures" (terrain/ground_textures.gd, docs/rendering.md §1.4): 0 = off; 1 = where they resolve, CC0
+// ambientCG textures in place of the close up's fine grain: their colour over its own mean modulates the photo's colour,
+// with their normal and roughness. Layers (ground_scale_a / _b: 1 / metres per repeat): GT_* below.
+global uniform float ground_tex;
+global uniform sampler2DArray ground_albedo : filter_linear_mipmap_anisotropic, repeat_enable;
+global uniform sampler2DArray ground_nr : filter_linear_mipmap, repeat_enable;
+global uniform vec4 ground_scale_a;
+global uniform vec4 ground_scale_b;
+const int GT_ASPHALT = 0;
+const int GT_CONCRETE = 1;
+const int GT_SAND = 2;
+const int GT_GRAVEL = 3;
+const int GT_GRASS = 4;
+const int GT_SOIL = 5;
+const int GT_ROCK = 6;
 varying vec2 world_xz;
 varying float sea;
 
@@ -164,6 +179,26 @@ vec2 water_slope(vec2 p, vec2 dx, vec2 dy, float t, out float lost) {
 	return slope * patch;
 }
 
+
+// --- Ground textures -------------------------------------------------------------------------------------------------
+
+// Layer l at world p (m), (dx, dy) its screen derivatives: the colour over the layer's mean colour (stored halved,
+// iaf_tools::thirdparty), and (tangent normal x, y, roughness). Sampled with explicit gradients, so it may sit in a branch.
+void gt_sample(int l, vec2 p, vec2 dx, vec2 dy, out vec3 detail, out vec3 nr) {
+	float s = l < 4 ? ground_scale_a[l] : ground_scale_b[l - 4];
+	vec3 uv = vec3(p * s, float(l));
+	detail = clamp(2.0 * textureGrad(ground_albedo, uv, dx * s, dy * s).rgb, vec3(0.3), vec3(2.0));
+	vec4 t = textureGrad(ground_nr, uv, dx * s, dy * s);
+	nr = vec3(t.a * 2.0 - 1.0, t.g * 2.0 - 1.0, t.r);
+}
+
+// A tangent normal (x along world X, y toward north) in view space about the surface normal n.
+vec3 gt_normal(vec3 n, vec2 nxy, mat4 view) {
+	vec3 t = normalize((view * vec4(1.0, 0.0, 0.0, 0.0)).xyz);
+	t = normalize(t - n * dot(n, t));
+	vec3 b = cross(n, t);
+	return normalize(t * nxy.x + b * nxy.y + n * sqrt(max(1.0 - dot(nxy, nxy), 0.01)));
+}
 
 // --- Airbases (Detailed) ---------------------------------------------------------------------------------------------
 // The markings' sizes follow ICAO Annex 14 for a 60 m runway, scaled by the runway's width (the 1998 art's runways are
@@ -326,9 +361,19 @@ void fragment() {
 		float bluish = smoothstep(0.02, 0.07, max(c.g, c.b) - c.r) * (1.0 - smoothstep(0.55, 0.7, dot(c, vec3(0.2126, 0.7152, 0.0722))));
 		wm = max(open, tw * bluish);
 	}
-	if (terrain_detail > 0.0) {
-		float k = terrain_detail * (1.0 - smoothstep(300.0, 1500.0, length(VERTEX))) * (1.0 - sea);
-		if (k > 0.0) {
+	ROUGHNESS = 0.95;
+	float dist = length(VERTEX);
+	// Ground textures where they resolve: gm = the pixel's ground footprint (m, the geometric mean of its two axes, as
+	// the anisotropic filter sees it); full up to 0.1 m, none past 0.25 m (a repeat of 2–3 m under ≈ 10 pixels), so
+	// far and grazing pixels skip the samples. tg = their share of the close up's fine grain: all of it up to 0.05 m,
+	// none past 0.15 m, where the grain reads better.
+	float gm = sqrt(length(wdx) * length(wdy));
+	float tf = ground_tex * (1.0 - smoothstep(0.1, 0.25, gm));
+	float tg = ground_tex * (1.0 - smoothstep(0.05, 0.15, gm));
+	if (terrain_detail > 0.0 || tf > 0.0) {
+		float k = terrain_detail * (1.0 - smoothstep(300.0, 1500.0, dist)) * (1.0 - sea);
+		float kt = tf * (1.0 - sea);
+		if (k > 0.0 || kt > 0.0) {
 			vec3 c = ALBEDO;
 			vec2 st = texture(terrain_surface, (world_xz - terrain_surface_rect.xy) * terrain_surface_rect.z).rg;
 			float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
@@ -336,35 +381,81 @@ void fragment() {
 			// Coloured ground vs grey (in airbases the aprons' blue / purple tint is still pavement).
 			float land = smoothstep(0.015, 0.05, chroma - 0.05 * st.g) * (1.0 - smoothstep(0.0, 0.03, c.b - max(c.r, c.g) - 0.1 * st.g));
 			k *= 1.0 - st.r;
+			kt *= 1.0 - st.r;
 			// Three scales in world space (tiles of 420 / 90 / 16 m: patches of ≈ 40 m, clumps of ≈ 9 m, grain of
 			// ≈ 1.6 m), rotated against each other so the tiling does not line up; the noise is centred (mean 0.5),
-			// so its mipmaps fade to no change.
+			// so its mipmaps fade to no change. The ground textures take the grain's place near the camera.
 			mat2 rot1 = mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8));
 			mat2 rot2 = mat2(vec2(0.28, -0.96), vec2(0.96, 0.28));
 			vec2 p = world_xz;
-			float n1 = texture(terrain_detail_tex, rot1 * p / 420.0).r - 0.5;
-			float n2 = texture(terrain_detail_tex, rot2 * p / 90.0).r - 0.5;
-			float n3 = texture(terrain_detail_tex, p / 16.0).r - 0.5;
-			// Coloured ground: the patches go toward a deeper, more saturated version of the photo's colour (growth)
-			// or a paler, drier one; then the grain.
-			float patch = clamp(3.0 * n1 + 3.0 * n2, -1.0, 1.0);
-			vec3 deep = c * c / max(lum, 0.01);
-			vec3 dry = mix(vec3(lum), c, 0.55) * 1.3;
-			vec3 lc = patch < 0.0 ? mix(c, deep, -0.8 * patch) : mix(c, dry, 0.5 * patch);
-			lc *= 1.0 + 1.3 * n3 + 0.5 * n2;
-			// Grey ground: a faint grain.
-			vec3 gc = c * (1.0 + 0.35 * n3 + 0.15 * n2);
-			ALBEDO = mix(c, mix(gc, lc, land), k);
-			// Normal detail (tangent space: x along the world X, y along Z), built here as the terrain mesh has no
-			// tangents.
-			vec3 nd = texture(terrain_detail_normal, p / 16.0).rgb * 2.0 - 1.0;
-			vec3 t = normalize((VIEW_MATRIX * vec4(1.0, 0.0, 0.0, 0.0)).xyz);
-			t = normalize(t - NORMAL * dot(NORMAL, t));
-			vec3 b = cross(NORMAL, t);
-			NORMAL = normalize(mix(NORMAL, normalize(t * nd.x + b * nd.y + NORMAL * max(nd.z, 0.1)), k * mix(0.2, 1.0, land)));
+			float n2 = textureGrad(terrain_detail_tex, rot2 * p / 90.0, rot2 * wdx / 90.0, rot2 * wdy / 90.0).r - 0.5;
+			if (k > 0.0) {
+				float n1 = texture(terrain_detail_tex, rot1 * p / 420.0).r - 0.5;
+				float n3 = (texture(terrain_detail_tex, p / 16.0).r - 0.5) * (1.0 - tg);
+				// Coloured ground: the patches go toward a deeper, more saturated version of the photo's colour (growth)
+				// or a paler, drier one; then the grain.
+				float patch = clamp(3.0 * n1 + 3.0 * n2, -1.0, 1.0);
+				vec3 deep = c * c / max(lum, 0.01);
+				vec3 dry = mix(vec3(lum), c, 0.55) * 1.3;
+				vec3 lc = patch < 0.0 ? mix(c, deep, -0.8 * patch) : mix(c, dry, 0.5 * patch);
+				lc *= 1.0 + 1.3 * n3 + 0.5 * n2;
+				// Grey ground: a faint grain.
+				vec3 gc = c * (1.0 + 0.35 * n3 + 0.15 * n2);
+				ALBEDO = mix(c, mix(gc, lc, land), k);
+				// Normal detail (tangent space: x along the world X, y along Z), built here as the terrain mesh has no
+				// tangents.
+				vec3 nd = texture(terrain_detail_normal, p / 16.0).rgb * 2.0 - 1.0;
+				vec3 t = normalize((VIEW_MATRIX * vec4(1.0, 0.0, 0.0, 0.0)).xyz);
+				t = normalize(t - NORMAL * dot(NORMAL, t));
+				vec3 b = cross(NORMAL, t);
+				NORMAL = normalize(mix(NORMAL, normalize(t * nd.x + b * nd.y + NORMAL * max(nd.z, 0.1)), k * mix(0.2, 1.0, land) * (1.0 - tg)));
+			}
+			// Under Detailed airbases the nearest base's pavement is drawn below (with its own textures).
+			if (kt > 0.0 && !(terrain_airbases > 0.0 && st.g * (1.0 - land) > 0.5)) {
+				// The layer weights from the photo's colour (compared in ≈ sRGB): in an airbase its grey is asphalt and
+				// its blue / purple tint concrete; elsewhere green is grass, pale sand, saturated brown soil, the rest
+				// gravel; slopes over ≈ 30° rock.
+				vec3 cs = sqrt(c);
+				float ls = dot(cs, vec3(0.2126, 0.7152, 0.0722));
+				float cc = max(cs.r, max(cs.g, cs.b)) - min(cs.r, min(cs.g, cs.b));
+				float ab = st.g * (1.0 - land);
+				float tint = smoothstep(0.0, 0.03, c.b - max(c.r, c.g));
+				float slope = 1.0 - (INV_VIEW_MATRIX * vec4(n_geo, 0.0)).y;
+				float rock = smoothstep(0.1, 0.2, slope) * (1.0 - ab);
+				float wgr = smoothstep(0.0, 0.04, cs.g - cs.r);
+				float wsa = smoothstep(0.55, 0.7, ls) * (1.0 - wgr);
+				float rest = (1.0 - wgr) * (1.0 - wsa);
+				float wso = rest * smoothstep(0.1, 0.18, cc);
+				float nat = (1.0 - ab) * (1.0 - rock);
+				float w[7] = float[7](ab * (1.0 - tint), ab * tint, wsa * nat, (rest - wso) * nat, wgr * nat, wso * nat, rock);
+				// The two strongest layers, blended by their weights.
+				int l1 = 0;
+				for (int i = 1; i < 7; i++) {
+					if (w[i] > w[l1]) l1 = i;
+				}
+				int l2 = l1 == 0 ? 1 : 0;
+				for (int i = 0; i < 7; i++) {
+					if (i != l1 && w[i] > w[l2]) l2 = i;
+				}
+				float b2 = w[l2] / max(w[l1] + w[l2], 1e-4);
+				vec3 d1, r1, d2, r2;
+				gt_sample(l1, p, wdx, wdy, d1, r1);
+				// A second layer only where it weighs a fifth or more (most pixels sample one).
+				if (b2 > 0.2) {
+					gt_sample(l2, p, wdx, wdy, d2, r2);
+					float bl = (b2 - 0.2) / 0.6;
+					d1 = mix(d1, d2, bl);
+					r1 = mix(r1, r2, bl);
+				}
+				// Full strength on pavement and natural ground, less on grey ground outside an airbase (towns, roads);
+				// varied over ≈ 9 m clumps (the 90 m noise), so the repeat does not line up into a grid.
+				float ks = kt * mix(0.6, 1.0, max(land, ab)) * clamp(0.6 + 2.5 * n2, 0.25, 1.0);
+				ALBEDO *= mix(vec3(1.0), d1, ks);
+				NORMAL = normalize(mix(NORMAL, gt_normal(NORMAL, r1.xy, VIEW_MATRIX), ks));
+				ROUGHNESS = mix(ROUGHNESS, mix(0.8, 1.0, r1.z), ks);
+			}
 		}
 	}
-	ROUGHNESS = 0.95;
 	SPECULAR = 0.1;
 	// Airbases (Preferences "Airbases"): within 6 km, on the nearest base's paved surface.
 	float kab = terrain_airbases * (1.0 - smoothstep(2500.0, 6000.0, length(VERTEX))) * (1.0 - sea);
@@ -463,8 +554,18 @@ void fragment() {
 			mat2 rot1 = mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8));
 			float n1 = texture(terrain_detail_tex, rot1 * p / 260.0).r - 0.5;
 			float n2 = texture(terrain_detail_tex, p / 37.0).r - 0.5;
-			float n3 = texture(terrain_detail_tex, rot1 * p / 2.3).r - 0.5;
+			// Ground textures: asphalt (and concrete on the aprons) in place of the aggregate grain where they resolve.
+			float kt = tf;
+			float n3 = (texture(terrain_detail_tex, rot1 * p / 2.3).r - 0.5) * (1.0 - tg);
 			vec3 c = asph * (1.0 + 0.45 * n1 + 0.25 * n2 + 0.12 * n3) * (1.0 - 0.18 * seam) * (1.0 - 0.1 * patchy);
+			vec3 ta = vec3(1.0);
+			vec3 tr = vec3(0.0, 0.0, 0.5);
+			if (kt > 0.0) {
+				gt_sample(GT_ASPHALT, p, wdx, wdy, ta, tr);
+				// Varied over ≈ 4 m (the 37 m noise): worn and fresh patches, and no grid of repeats.
+				kt *= clamp(0.55 + 2.5 * n2, 0.2, 0.9);
+				c *= mix(vec3(1.0), ta, kt);
+			}
 			// Concrete slabs on the aprons: 5 m squares, each its own shade, dark joints.
 			if (concrete > 0.0) {
 				// The grid along the base's first runway.
@@ -474,6 +575,12 @@ void fragment() {
 				vec2 fq = abs(fract(g / 5.0) - 0.5) * 5.0;
 				float joint = max(ab_band(2.5 - fq.x, 0.06, fpx), ab_band(2.5 - fq.y, 0.06, fpx));
 				vec3 slab = mix(vec3(lum), base, 0.4) * (1.08 + 0.12 * (ab_hash(cell) - 0.5) + 0.3 * n3);
+				if (kt > 0.0) {
+					vec3 cd, cr;
+					gt_sample(GT_CONCRETE, p, wdx, wdy, cd, cr);
+					slab *= mix(vec3(1.0), cd, kt);
+					tr = mix(tr, cr, concrete);
+				}
 				c = mix(c, slab * (1.0 - 0.45 * joint), concrete);
 			}
 			c *= 1.0 - 0.5 * rubber;
@@ -482,7 +589,7 @@ void fragment() {
 			c = mix(c, vec3(0.62), paint * wear);
 			c = mix(c, vec3(0.55, 0.36, 0.03), max(taxi, yellow) * 0.9 * wear);
 			ALBEDO = mix(ALBEDO, c, surf);
-			ROUGHNESS = mix(ROUGHNESS, mix(0.88, 0.7, paint), surf);
+			ROUGHNESS = mix(ROUGHNESS, mix(mix(0.88, mix(0.75, 1.0, tr.z), kt), 0.7, paint), surf);
 			SPECULAR = mix(SPECULAR, 0.3, surf);
 			// Micro relief: the aggregate (≈ 1.6 m tiles of the detail normal map), faded with the surface.
 			vec3 nd = texture(terrain_detail_normal, p / 1.6).rgb * 2.0 - 1.0;
@@ -492,7 +599,10 @@ void fragment() {
 			// The terrain close up's relief is the ground's, not the pavement's.
 			vec3 nb = normalize(mix(NORMAL, n_geo, surf));
 			NORMAL = normalize(mix(nb, normalize(tt * nd.x + bb * nd.y + nb * max(nd.z, 0.1)),
-					0.12 * surf * (1.0 - paint) * (1.0 - smoothstep(30.0, 300.0, length(VERTEX)))));
+					0.12 * surf * (1.0 - paint) * (1.0 - smoothstep(30.0, 300.0, length(VERTEX))) * (1.0 - tg)));
+			if (kt > 0.0) {
+				NORMAL = normalize(mix(NORMAL, gt_normal(NORMAL, tr.xy, VIEW_MATRIX), kt * surf * (1.0 - 0.5 * paint)));
+			}
 		}
 	}
 	if (wm > 0.0) {

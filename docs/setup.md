@@ -47,12 +47,19 @@ and each step uses every core inside.
 | `aircraft`, `objects` | missions | `assets/converted/planes`, `objects` |
 | `airbases` | theatre | `assets/converted/terrain/airbases.json`, `airbases/` |
 | `launcher` | icon | the desktop launcher (`tools/install-launcher.sh`) |
+| `textures` | | `assets/thirdparty/ambientcg`: the CC0 ground textures (≈ 200 MB download; docs/rendering.md §1.4) |
 | `sentinel2`, `mapi2015-fetch`, `mapi2015` | airbases | `assets/converted/imagery` |
 | `guides` | the conversions and imagery | the pilot guides |
 
 "The install" is `patch` when a patch is given, else `extract`. A failed required step stops the setup; the steps
-that wait for it do not run. `launcher`, the imagery and the guides are optional: their failure stops only what waits
-for them.
+that wait for it do not run. `launcher`, `textures`, the imagery and the guides are optional: their failure stops only
+what waits for them.
+
+`textures` (`iaf_tools::thirdparty`, CLI `iaf-textures`) fetches each material of `thirdparty::LISTS` with curl,
+checks its zip against the pinned SHA-256 and packs its maps. A material done before is kept, so the step is up to
+date without the network. When ambientcg.com cannot be reached the step is skipped with a note, and Graphics → MORE →
+Ground textures stays Original. A checksum mismatch (the file on ambientCG changed) fails the step and leaves nothing
+behind.
 
 ## Running only what changed
 
@@ -78,7 +85,7 @@ were made under older rules, and is up to date when there are none. The guides d
 The CD launcher's UNINSTALL button (Extras → CD launcher, docs/front-end.md §18.1) asks first, then removes what the
 setup wrote under `assets/` (`iaf_setup::OUTPUTS`): `install`, `v1.0`, `v1.1`, `patch`, `converted`,
 `packs-none`, `hebrew-cd`, `hebrew-cd-pick`, the stamps and `setup.json`. The imported packs (`packs`) and the imagery
-downloads (`source/imagery`, `iaf_setup::KEPT`) stay unless the box "Also remove the imported Hebrew packs and the
+downloads (`source/imagery`, `thirdparty`, `iaf_setup::KEPT`) stay unless the box "Also remove the imported Hebrew packs and the
 downloaded imagery" is ticked: getting them back needs the pack zips and hours of downloads. Everything else under
 `assets/` stays, and so do the pilots, settings and logs in the user folder, the repo and the built extension. The
 game then quits; `./setup` installs again. The launcher's INSTALL button opens the setup wizard.

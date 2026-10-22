@@ -47,6 +47,23 @@ for each.
 | F-35I 116 Squadron badge | "IAF Squadron 116 Adir.png" by the IDF Spokesperson's Unit, https://commons.wikimedia.org/wiki/File:IAF_Squadron_116_Adir.png | CC BY-SA 3.0, https://creativecommons.org/licenses/by-sa/3.0/ | `game/extra/planes/f35i/CREDITS.md` |
 | The setup wizard's icon (docs/setup.md) | "Roundel of Israel.svg" by Zscout370, https://commons.wikimedia.org/wiki/File:Roundel_of_Israel.svg, with our "REBORN" banner | CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/ | `game/setup/icon.svg` |
 
+## Texture credits
+
+Setup downloads these materials from ambientCG into `assets/thirdparty/ambientcg/<id>/` (the repo holds none). They
+are CC0 1.0 (public domain): "All ambientCG assets are provided under the Creative Commons CC0 1.0 Universal
+License"[^acg-licence]. CC0 asks for no credit; we give it anyway. The list lives in one place:
+`crates/iaf-tools/src/thirdparty.rs` (`GROUND_TEXTURES`, with each zip's pinned SHA-256).
+
+| Material | Used for (docs/rendering.md §1.4) | Source |
+|---|---|---|
+| Asphalt027C | runways and taxiways | https://ambientcg.com/a/Asphalt027C |
+| Concrete040 | aprons | https://ambientcg.com/a/Concrete040 |
+| Ground054 | sand | https://ambientcg.com/a/Ground054 |
+| Ground062L | gravel desert | https://ambientcg.com/a/Ground062L |
+| Ground037 | grass and fields | https://ambientcg.com/a/Ground037 |
+| Ground109 | dry soil and scrub | https://ambientcg.com/a/Ground109 |
+| Rock045 | steep slopes | https://ambientcg.com/a/Rock045 |
+
 The F-35I's skin, roundels, numbers, cockpit panel and displays are our own, as is the F-16D's dorsal spine.
 
 ## Imagery credits (automatic)
@@ -80,3 +97,5 @@ This section gives the CC BY (Creative Commons Attribution) credit (docs/imagery
   ```
   `CREDITS_LANG=he` takes the Hebrew roll.
 * In the game: run `./iafjets`, then QUIT and Yes.
+
+[^acg-licence]: ambientCG licence, https://docs.ambientcg.com/license/ (read 2026-10-22).

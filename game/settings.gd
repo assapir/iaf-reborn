@@ -114,6 +114,7 @@ const PREFS := {
 		"rolling_wheels",
 		"particle_effects",
 		"airbases",
+		"ground_textures",
 		"cd_launcher",
 		"wheel_scroll",
 		"better_cockpit",
@@ -236,6 +237,10 @@ var particle_effects := false
 ## Airbases (ours, Graphics → MORE; docs/rendering.md §7, terrain/airbases.gd): "original" (the 1998 imagery) or
 ## "detailed" (near the ground, a procedural runway, taxiway and apron surface with markings; visual only).
 var airbases := "original"
+## Ground textures (ours, Graphics → MORE; docs/rendering.md §1.4, terrain/ground_textures.gd): "original" (the close
+## up's noise, the procedural pavement) or "ambientcg" (CC0 asphalt, concrete, sand, gravel, grass, soil and rock
+## textures near the camera; downloaded by setup, else the row's choice is greyed out and the look stays Original).
+var ground_textures := "original"
 ## CD launcher (ours, Extras page; docs/front-end.md §18.1): the CD's autorun poster (Jauto.exe) before the main menu.
 var cd_launcher := false
 ## Mouse wheel (ours, Extras page; docs/front-end.md §12.9): "regular" (wheel down scrolls down) or "natural"
@@ -491,6 +496,9 @@ func read_config(cfg: ConfigFile) -> void:
 			var v = cfg.get_value("keys", k)
 			if k.begins_with("r") and k.substr(1).is_valid_int() and v is Array and v.size() == 2:
 				key_bindings[int(k.substr(1))] = [int(v[0]), int(v[1])]
+	# Ground textures only with setup's download (docs/rendering.md §1.4): a saved "ambientcg" without it is Original.
+	if ground_textures == "ambientcg" and not load("res://terrain/ground_textures.gd").available():
+		ground_textures = "original"
 
 
 ## The original default of a stored preference (the DEFAULT button, §12.2).

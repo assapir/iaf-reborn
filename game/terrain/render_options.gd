@@ -4,6 +4,8 @@
 # only: nothing here touches the simulation.
 extends RefCounted
 
+const GroundTextures := preload("res://terrain/ground_textures.gd")
+
 ## Anti-aliasing: Settings.antialiasing -> [MSAA 3D, screen-space AA, TAA].
 const AA := {
 	"msaa4": [Viewport.MSAA_4X, Viewport.SCREEN_SPACE_AA_DISABLED, false],
@@ -26,6 +28,9 @@ static var terrain_detail := 0.0
 ## Water: 1 = waves, sun glint and sky reflection on the water (global `terrain_water`, terrain.gdshader), 0 = the
 ## original flat-shaded water.
 static var terrain_water := 0.0
+## Ground textures: 1 = the ambientCG textures near the camera (global `ground_tex`, terrain/ground_textures.gd),
+## 0 = the original look (also when setup has not downloaded them).
+static var ground_tex := 0.0
 
 ## terraintype.dat around the camera for the close up and the water (global `terrain_surface`: R = water, G = airbase):
 ## SURF_N² texels of SURF_CELL m (24.6 km across), rasterised in Rust (IafSurface) once the camera is SURF_MOVE m from
@@ -60,8 +65,10 @@ static func apply(vp: Viewport, env: Environment) -> void:
 	RenderingServer.global_shader_parameter_set("terrain_detail", terrain_detail)
 	terrain_water = 1.0 if Settings.water else 0.0
 	RenderingServer.global_shader_parameter_set("terrain_water", terrain_water)
+	ground_tex = 1.0 if Settings.ground_textures == "ambientcg" and GroundTextures.load_globals() else 0.0
+	RenderingServer.global_shader_parameter_set("ground_tex", ground_tex)
 	_surf_origin = Vector2(INF, INF)  # rebuilt around the camera (a new flight has its own world origin)
-	if not close and not Settings.water and _surf_tex != null:
+	if not close and not Settings.water and ground_tex == 0.0 and _surf_tex != null:
 		RenderingServer.global_shader_parameter_set("terrain_surface", null)
 		_surf_tex = null
 		_surf_img = null
@@ -109,7 +116,7 @@ static func update_view(env: Environment, cam: Vector3, terrain: Node) -> void:
 		var alt := snappedf(maxf(cam.y, 0.0), SKY_ALT_STEP)
 		if mat.get_shader_parameter("altitude") != alt:
 			mat.set_shader_parameter("altitude", alt)
-	if (terrain_detail > 0.0 or terrain_water > 0.0) and terrain != null:
+	if (terrain_detail > 0.0 or terrain_water > 0.0 or ground_tex > 0.0) and terrain != null:
 		_update_surface(Vector2(cam.x, cam.z), terrain)
 
 
