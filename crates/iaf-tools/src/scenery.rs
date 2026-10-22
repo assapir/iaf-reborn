@@ -475,7 +475,7 @@ impl KindGrid {
                     })
                     .collect();
                 xs.sort_by(f64::total_cmp);
-                for pair in xs.chunks_exact(2) {
+                for pair in xs.as_chunks::<2>().0 {
                     let c = |x: f64| ((x - g.x0) / KIND_CELL_M - 0.5).ceil() as i64;
                     for i in c(pair[0]).max(0)..c(pair[1]).min(w as i64) {
                         let k = j as usize * w + i as usize;

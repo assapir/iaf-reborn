@@ -31,7 +31,7 @@ Setup downloads every source into `assets/source/scenery/` and checks it against
 | Source | What it gives | Files (download) | Licence |
 |---|---|---|---|
 | OpenStreetMap, Geofabrik's `israel-and-palestine` extract of 2026-01-01[^geofabrik] | buildings with their tags; forests, orchards, fields and settlements; single trees; tree rows | 1 PBF file (119 MB) | ODbL 1.0[^osm] |
-| Microsoft Global ML Building Footprints, release 2026-02-03[^ms] | building outlines where OSM has none (Israel, the West Bank, Gaza) | 24 quadkey files (about 300 MB) | CDLA Permissive 2.0[^ms] |
+| Microsoft Global ML Building Footprints, release 2026-02-03[^ms] | building outlines where OSM has none (Israel, the West Bank, Gaza) | 24 quadkey files (238 MB) | CDLA Permissive 2.0[^ms] |
 | JRC GHS-BUILT-H R2023A, average net building height (ANBH), 100 m[^ghsl] | the height of a building without a height tag | 2 tiles, R5_C22 and R6_C22 (16 MB) | free re-use with the source acknowledged[^ghsl-terms] |
 | Meta and WRI High Resolution Canopy Height Maps, v1, 1 m[^chm] | where trees stand and how tall they are | 17 quadkey tiles (1.2 GB) | CC BY 4.0[^chm] |
 
@@ -65,7 +65,7 @@ Microsoft list every Israel, West Bank and Gaza file of its `dataset-links.csv`.
    - Roof colour: the median of the photo's pixels inside the footprint, once from `mapi2015` (the 1998 look) and
      once from `mapi2015_modern`.
    - Trees: OSM's single trees (`natural=tree`, height tag or 8 m), its tree rows (`natural=tree_row`, one tree every
-     6 m, height tag or 10 m), then one tree per canopy cell (0.0001°, about 10 m) of 3 m or more, placed at the cell
+     6 m, height tag or 10 m), then one tree per canopy cell (0.0001°, about 10 m) of 4 m or more (lower is mostly scrub; inferred), placed at the cell
      centre moved by up to a third of a cell. A canopy tree within 6 m of an OSM tree is left out.
    - Tree kind: the OSM tags first (genus, species, taxon, leaf type: palm, cypress, pine). Else the land use under
      it on a 10 m grid: pine in a forest or wood; broadleaf (olive-like) in an orchard, vineyard or field; in a
@@ -105,7 +105,7 @@ A route is the unit's `Path` scripts' paths and its formation's waypoints, from 
 | `assets/source/scenery/` | the downloads; `<file>.ok` holds the checked SHA-256 and the download day |
 | `assets/converted/scenery/L1/s_<i>_<j>.bin` | one cell per node with any building or tree (format: `iaf_avionics::scenery`) |
 | `assets/converted/scenery/manifest.json` | `name`, `release`, `generator`, `made_from`, `attribution`, `licence`, `cells`, `buildings`, `trees`, `downloaded` |
-| `assets/converted/scenery/.work/` | kept between runs: the OSM extract (about 1 GB), the reduced canopy tiles, a VRT |
+| `assets/converted/scenery/.work/` | kept between runs: the OSM extract and the reduced canopy tiles (about 350 MB) |
 
 ### 1.5 Release and ids
 
@@ -129,7 +129,16 @@ cargo build --release -p iaf-tools
 ./target/release/iaf-scenery build assets                           # everything
 ```
 
-Measured on this machine (12 threads): MEASURE.
+Measured on this machine (Intel laptop, 2026-10-22), the whole layer (4664 nodes):
+
+| | |
+|---|---|
+| Downloads | 1.55 GB in 44 files (OSM 119 MB, Microsoft 238 MB, GHSL 16 MB, canopy 1.17 GB) |
+| First build | about 6 min (the canopy reduction, once, about 3 min); then 3 min, peak memory 1.6 GB |
+| Output | 4117 cells, 2 161 711 buildings (674 416 from OSM), 9 720 795 trees, 283 MB |
+| 20 km around Tel Nof and Rishon LeZion (`--near 313000,512000,15`) | 107 cells, 97 020 buildings, 230 413 trees, 9.5 MB, 5 s |
+
+Two runs give the same bytes (the SHA-256 of every cell file compared).
 
 ## 2. Runtime
 
