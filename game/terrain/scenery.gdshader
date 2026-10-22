@@ -14,6 +14,12 @@ uniform sampler2DArray walls : filter_linear_mipmap_anisotropic, repeat_enable;
 uniform bool has_walls = false;
 // The repeat of each material's texture (m).
 uniform vec4 wall_size = vec4(2.0, 2.0, 1.1, 2.0);
+// The model by each building's own distance (CUSTOM0.xyz: its centre at its base, mesh frame): the near mesh to
+// `near_m`, the far mesh beyond, rising from the ground over the last `grow_m` before `far_m` (scenery.gd sets these).
+instance uniform bool far_model = false;
+uniform float near_m = 2500.0;
+uniform float far_m = 4500.0;
+uniform float grow_m = 400.0;
 // A byte per building, 256 per row: 0 = intact.
 uniform sampler2D damage : filter_nearest;
 // Detailed night lights at night: some windows lit.
@@ -38,6 +44,11 @@ vec3 srgb_to_linear(vec3 c) {
 }
 
 void vertex() {
+	vec3 c = CUSTOM0.xyz;
+	float d = distance((MODEL_MATRIX * vec4(c, 1.0)).xyz, INV_VIEW_MATRIX[3].xyz);
+	float g = far_model ? step(near_m, d) * (1.0 - smoothstep(far_m - grow_m, far_m, d)) : 1.0 - step(near_m, d);
+	// Shown: raised to g of its height; not shown: collapsed to its centre (no triangles to draw).
+	VERTEX = g > 0.001 ? vec3(VERTEX.x, c.y + (VERTEX.y - c.y) * g, VERTEX.z) : c;
 	v_building = UV2.x;
 	v_roof = UV2.y;
 	v_wall = floor(COLOR.a * 255.0 + 0.5);

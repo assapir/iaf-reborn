@@ -27,8 +27,9 @@ enum Piece {
 }
 type Built = Option<VecDeque<Piece>>;
 
-/// A tree tile's side (m): its MultiMeshes appear and swap models by their own distance, not the whole cell's.
-const TREE_TILE_M: f32 = 500.0;
+/// The side (m) of the tiles a cell's buildings and trees are drawn in: Godot culls each tile by its own distance, not
+/// the whole cell's; the shaders then cut each building or tree by its own (scenery.gd).
+const TILE_M: f64 = 500.0;
 
 /// Vertices per uploaded mesh: a dense cell reaches the GPU over several frames.
 const CHUNK_VERTICES: usize = 60_000;
@@ -38,9 +39,9 @@ fn build(i: i64, j: i64, modern: bool) -> Built {
     // A copy: holding the store's read lock through the build would stall the main thread's drop_cell (a write).
     let c = SCENERY.read().unwrap().cell(i, j)?.clone();
     let (c, o) = (&c, origin(i, j));
-    let near = scenery::mesh_chunks(c, o, true, modern, &ground, CHUNK_VERTICES)?;
-    let far = scenery::mesh_chunks(c, o, false, modern, &ground, CHUNK_VERTICES)?;
-    let trees = scenery::tree_tiles(c, o, TREE_TILE_M, &ground)?;
+    let near = scenery::mesh_chunks(c, o, true, modern, &ground, TILE_M, CHUNK_VERTICES)?;
+    let far = scenery::mesh_chunks(c, o, false, modern, &ground, TILE_M, CHUNK_VERTICES)?;
+    let trees = scenery::tree_tiles(c, o, TILE_M as f32, &ground)?;
     let mut q: VecDeque<Piece> = near.into_iter().map(Piece::Near).chain(far.into_iter().map(Piece::Far)).collect();
     q.push_back(Piece::Trees(trees));
     Some(q)
@@ -57,6 +58,8 @@ fn arrays(m: &Mesh) -> VarArray {
     a[ArrayType::TEX_UV2.ord() as usize] = v2(&m.uv2).to_variant();
     let colors: PackedColorArray = m.color.iter().map(|c| Color::from_rgba(c[0], c[1], c[2], c[3])).collect();
     a[ArrayType::COLOR.ord() as usize] = colors.to_variant();
+    let custom: PackedFloat32Array = m.custom0.iter().flatten().copied().collect();
+    a[ArrayType::CUSTOM0.ord() as usize] = custom.to_variant();
     a[ArrayType::INDEX.ord() as usize] = PackedInt32Array::from(m.index.as_slice()).to_variant();
     a.into_iter().collect()
 }
@@ -145,8 +148,9 @@ impl IafScenery {
 
     /// The prepared cell's next piece, {} when none is left: {near: true, arrays} or {near: false, arrays} (a chunk of
     /// the near / far buildings for `ArrayMesh.add_surface_from_arrays`, Mesh.ARRAY_MAX arrays: VERTEX, NORMAL, COLOR,
-    /// TEX_UV, TEX_UV2, INDEX, at most `CHUNK_VERTICES`), or {trees: [[kind (TreeKind as int), PackedFloat32Array of
-    /// TRANSFORM_3D rows, 12 floats each, for a 10 m model] per `TREE_TILE_M` tile and kind]}. Near = parapets, gabled
+    /// TEX_UV, TEX_UV2, CUSTOM0 (RGBA float: the building's centre at its base), INDEX; one `TILE_M` tile, at most
+    /// `CHUNK_VERTICES`), or {trees: [[kind (TreeKind as int), PackedFloat32Array of
+    /// TRANSFORM_3D rows, 12 floats each, for a 10 m model] per `TILE_M` tile and kind]}. Near = parapets, gabled
     /// and dome roofs; far = bare prisms.
     #[func]
     fn take_next(i: i64, j: i64) -> VarDictionary {

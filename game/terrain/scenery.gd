@@ -15,13 +15,13 @@ const KEEP := 1000.0
 const NEAR := 2500.0
 const TREES := 2000.0
 ## Trees draw their full model to this distance (m), the far one beyond; they grow in over the last TREES_GROW m
-## before TREES. Each tree by its own distance (scenery_tree.gdshader); a tile's MultiMesh is drawn while any of its
-## trees may be (TREE_TILE_REACH: half a 500 m tile's diagonal).
+## before TREES. Buildings: the near model to NEAR, the far one to RANGE, rising from the ground over the last GROW m.
+## Each tree and building by its own distance (scenery_tree.gdshader, scenery.gdshader); a 500 m tile's mesh is drawn
+## while any of its trees or buildings may be (TILE_REACH: half a tile's diagonal).
 const TREES_NEAR := 700.0
 const TREES_GROW := 300.0
-const TREE_TILE_REACH := 360.0
-## The visibility ranges' fade margins (m).
-const FADE := 300.0
+const TILE_REACH := 360.0
+const GROW := 400.0
 ## The cells re-chosen when the focus moved this far (m) or after this long (ms).
 const RESELECT_M := 200.0
 const RESELECT_MS := 1000
@@ -233,6 +233,9 @@ static func _building_material(damage: PackedByteArray) -> ShaderMaterial:
 	m.set_shader_parameter("walls", w)
 	m.set_shader_parameter("has_walls", w != null)
 	m.set_shader_parameter("night", night)
+	m.set_shader_parameter("near_m", NEAR)
+	m.set_shader_parameter("far_m", RANGE)
+	m.set_shader_parameter("grow_m", GROW)
 	_set_damage(m, damage)
 	return m
 
@@ -515,17 +518,20 @@ func _upload(k: Vector2i) -> void:
 	elif piece.has("arrays"):
 		var near: bool = piece.near
 		var mesh := ArrayMesh.new()
-		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, piece.arrays)
+		mesh.add_surface_from_arrays(
+			Mesh.PRIMITIVE_TRIANGLES,
+			piece.arrays,
+			[],
+			{},
+			Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT
+		)
 		var mi := MeshInstance3D.new()
 		mi.mesh = mesh
 		mi.material_override = c.mat
-		mi.visibility_range_begin = 0.0 if near else NEAR
-		mi.visibility_range_begin_margin = 0.0 if near else FADE
-		mi.visibility_range_end = NEAR if near else RANGE
-		mi.visibility_range_end_margin = FADE
-		# Fading draws the whole mesh as transparent while in the margin; the far end pops instead (a few pixels).
-		if near:
-			mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		# The ranges only cull whole tiles; the shader swaps and raises each building by its own distance.
+		mi.set_instance_shader_parameter("far_model", not near)
+		mi.visibility_range_begin = 0.0 if near else NEAR - TILE_REACH
+		mi.visibility_range_end = (NEAR if near else RANGE) + TILE_REACH
 		# The photo under it already holds the buildings' shadows.
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		c.node.add_child(mi)
@@ -541,8 +547,8 @@ func _upload(k: Vector2i) -> void:
 				var mmi := MultiMeshInstance3D.new()
 				mmi.multimesh = mm
 				# The ranges only cull whole tiles; the shader cuts each tree at its own distance.
-				mmi.visibility_range_begin = maxf(0.0, TREES_NEAR - TREE_TILE_REACH) if far else 0.0
-				mmi.visibility_range_end = (TREES if far else TREES_NEAR) + TREE_TILE_REACH
+				mmi.visibility_range_begin = maxf(0.0, TREES_NEAR - TILE_REACH) if far else 0.0
+				mmi.visibility_range_end = (TREES if far else TREES_NEAR) + TILE_REACH
 				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				c.node.add_child(mmi)
 

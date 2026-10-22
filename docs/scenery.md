@@ -213,9 +213,11 @@ Two runs give the same bytes (the SHA-256 of every cell file compared).
 
   The front end's preload (briefing, TSD, arming) already has the near cells made.
 - **Per cell:**
-  - a near mesh to 2.5 km: walls with windows, and roofs. It fades out over 300 m;
-  - a far mesh from 2.5 to 4.5 km: bare prisms of every building. Its far end has no fade: fading draws a whole mesh
-    as transparent while in the margin, and a building that far covers a few pixels;
+  - the buildings in 500 m tiles (and at most 60 000 vertices per mesh), a near mesh (walls with windows, roofs) and a
+    far one (bare prisms). Godot tests a visibility range against a mesh's centre, so a cell-wide mesh would swap
+    models and appear in whole strips; each vertex instead carries its building's centre at its base (CUSTOM0), and
+    `scenery.gdshader` swaps each building at 2.5 km by its own distance and raises it from the ground over the last
+    400 m before 4.5 km;
   - our own low-poly trees to 2 km, in 500 m tiles, one MultiMesh per tile and kind. Godot tests a visibility range
     against an object's centre, so a whole cell's trees would appear at once; `scenery_tree.gdshader` instead cuts
     each tree at its own distance: the full model (about 80 triangles) to 700 m, a canopy-only model (6–24 triangles)

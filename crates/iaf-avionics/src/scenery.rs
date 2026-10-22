@@ -619,6 +619,9 @@ pub struct Mesh {
     pub uv2: Vec<[f32; 2]>,
     /// rgb = the roof colour of the chosen look (walls lightened toward plaster), a = the wall material / 255.
     pub color: Vec<[f32; 4]>,
+    /// The building's centre at its base (mesh frame) and 0: the shader picks the model and raises the building by
+    /// the building's own distance, not the mesh's.
+    pub custom0: Vec<[f32; 4]>,
     pub index: Vec<i32>,
 }
 
@@ -661,6 +664,7 @@ struct Builder {
     building: f32,
     roof: [f32; 4],
     wall: [f32; 4],
+    centre: [f32; 4],
 }
 
 impl Builder {
@@ -680,6 +684,7 @@ impl Builder {
             self.m.uv.push(*t);
             self.m.uv2.push([self.building, f32::from(u8::from(roof))]);
             self.m.color.push(if roof { self.roof } else { self.wall });
+            self.m.custom0.push(self.centre);
         }
         let tris: &[[i32; 3]] = if v.len() == 4 { &[[0, 1, 2], [0, 2, 3]] } else { &[[0, 1, 2]] };
         for t in tris {
@@ -813,29 +818,45 @@ pub fn mesh(
     modern: bool,
     ground: &dyn Fn(Vec3) -> Option<f64>,
 ) -> Option<Mesh> {
-    Some(mesh_chunks(cell, origin, near, modern, ground, usize::MAX)?.pop().unwrap_or_default())
+    Some(mesh_chunks(cell, origin, near, modern, ground, f64::INFINITY, usize::MAX)?.pop().unwrap_or_default())
 }
 
-/// `mesh` split into meshes of at most about `max_vertices` each (whole buildings; the (y, x) order keeps each a strip
-/// of the cell), so the main thread can upload a dense cell over several frames.
+/// `mesh` split by square tiles of `tile` metres (by each building's centroid), and within a tile into meshes of at
+/// most about `max_vertices` (whole buildings): Godot tests a visibility range against a mesh's centre, so a cell-wide
+/// mesh would swap models and appear all at once; and the main thread uploads a dense cell over several frames.
 pub fn mesh_chunks(
     cell: &Cell,
     origin: [f64; 2],
     near: bool,
     modern: bool,
     ground: &dyn Fn(Vec3) -> Option<f64>,
+    tile: f64,
     max_vertices: usize,
 ) -> Option<Vec<Mesh>> {
+    let tile_of = |b: &Building| {
+        let c = b.centroid();
+        (((origin[1] - f64::from(c[1])) / tile).floor() as i64, ((f64::from(c[0]) - origin[0]) / tile).floor() as i64)
+    };
+    let mut order: Vec<usize> = (0..cell.buildings.len()).collect();
+    order.sort_by_key(|&k| tile_of(&cell.buildings[k]));
     let mut chunks = Vec::new();
-    let mut bld = Builder { m: Mesh::default(), origin, building: 0.0, roof: [0.0; 4], wall: [0.0; 4] };
-    for (k, b) in cell.buildings.iter().enumerate() {
+    let mut bld =
+        Builder { m: Mesh::default(), origin, building: 0.0, roof: [0.0; 4], wall: [0.0; 4], centre: [0.0; 4] };
+    let mut last_tile = None;
+    for k in order {
+        let b = &cell.buildings[k];
         if b.points.len() < 3 {
             continue;
         }
-        if bld.m.vertex.len() >= max_vertices {
+        let t = tile_of(b);
+        if !bld.m.index.is_empty() && (bld.m.vertex.len() >= max_vertices || last_tile != Some(t)) {
             chunks.push(std::mem::take(&mut bld.m));
         }
+        last_tile = Some(t);
         let base = base(b, ground)?;
+        let c = b.centroid();
+        let at = bld.at(c[0].into(), c[1].into(), base);
+        bld.centre = [at[0], at[1], at[2], 0.0];
         let top = base + f64::from(b.height);
         let mut pts: Vec<[f64; 2]> = b.points.iter().map(|p| p.map(f64::from)).collect();
         if signed_area(&b.points) < 0.0 {
@@ -1124,6 +1145,19 @@ mod tests {
             )
             .is_none()
         );
+    }
+
+    #[test]
+    fn buildings_chunk_by_tile_with_their_centres() {
+        let cell = Cell {
+            buildings: vec![house(0.0, 0.0, 20.0, 12.0, Roof::Flat), house(800.0, 0.0, 20.0, 6.0, Roof::Flat)],
+            trees: vec![],
+        };
+        let chunks = mesh_chunks(&cell, [0.0, 0.0], false, false, FLAT, 500.0, usize::MAX).unwrap();
+        assert_eq!(chunks.len(), 2, "one per tile");
+        let c = chunks[1].custom0[0];
+        assert_eq!([c[0], c[1], c[2]], [810.0, 5.0, -5.0], "the centroid at the base, mesh frame");
+        assert!(chunks.iter().all(|m| m.custom0.len() == m.vertex.len()));
     }
 
     #[test]
