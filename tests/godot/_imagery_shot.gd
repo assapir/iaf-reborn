@@ -3,7 +3,8 @@
 # frames (vsync off). Pose with terrain_view's user args (engine metres; `iaf-terrain game <points> lat lon`):
 #   IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/shots SHOT_NAME=rishon godot --path game --resolution 1920x1080 \
 #       -s ../tests/godot/_imagery_shot.gd -- --at X Y ALT HDG PITCH --freeze
-# SHOT_ORBIT="yaw,pitch,dist" draws from the external view instead of the cockpit.
+# SHOT_ORBIT="yaw,pitch,dist" draws from the external view instead of the cockpit. SHOT_SCENERY=on: with Scenery
+# (docs/scenery.md).
 extends "res://../tests/godot/base.gd"
 
 
@@ -15,6 +16,8 @@ func run() -> void:
 	if layers.is_empty():
 		layers = PackedStringArray(["original", "mapi2015", "mapi2015_modern"])
 	var orbit := OS.get_environment("SHOT_ORBIT").split(",", false)
+	if OS.get_environment("SHOT_SCENERY") != "":
+		settings().scenery = OS.get_environment("SHOT_SCENERY")
 	for layer in layers:
 		settings().imagery_israel = layer
 		change_scene_to_file("res://terrain/terrain_view.tscn")
