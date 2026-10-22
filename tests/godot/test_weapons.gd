@@ -155,6 +155,17 @@ func run() -> void:
 	check(rst.displayed(9) == 511, "Weapon data Real: F-16 gun 511 rounds")
 	rst.consume(9)
 	check(rst.displayed(9) == 491, "Real: one 0.2 s shot tick of the M61A1 = 20 rounds")
+	# The MiG-29 fires the F-16's 20 MM record; Real gives it its own GSh-30-1 (860 m/s, 1650 rpm, 150 rounds).
+	var mig29 = Stores.new()
+	mig29.setup(Stores.loadout({}, f16), real, desc, Callable(), 180)
+	var mw: Dictionary = mig29.station(9).get("w", {})
+	check(
+		mig29.displayed(9) == 150 and is_equal_approx(float(mw.motion._velocityJump), 860.0),
+		"Real MiG-29: the GSh-30-1, 150 rounds at 860 m/s (%d, %s)" % [mig29.displayed(9), mw.get("motion")]
+	)
+	mig29.consume(9)
+	check(mig29.displayed(9) == 145, "Real: one 0.2 s tick of the GSh-30-1 = 5.5 rounds (%d)" % mig29.displayed(9))
+	check(is_equal_approx(float(rst.station(9).w.motion._velocityJump), 1030.0), "the F-16 keeps the M61A1's 1030 m/s")
 
 	# --- gun rounds (pure) ----------------------------------------------------------------------
 	var G = load("res://weapons/gun_rounds.gd")

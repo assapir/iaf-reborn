@@ -107,7 +107,9 @@ func setup(load: Array, db: RefCounted, descriptor: Dictionary, pilon_of: Callab
 		var p = frames.get(FRAMES[i])
 		var attach := Vector3(p[0], p[1], p[2]) if p is Array else Vector3.ZERO
 		if int(w.type) == GUN and w.has("rounds_per_tick"):
-			var real_n: int = preload("res://weapons/real_weapons.gd").gun_rounds(jet_type)
+			var RealWeapons := preload("res://weapons/real_weapons.gd")
+			w = RealWeapons.jet_gun(w, jet_type)
+			var real_n: int = RealWeapons.gun_rounds(jet_type)
 			if real_n > 0:
 				n = real_n
 		var st := {

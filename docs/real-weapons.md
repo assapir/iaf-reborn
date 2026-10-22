@@ -139,6 +139,12 @@ This rule is ours (inferred). Only the weapons with a published lethal radius ch
 | "20 MM" (M61A1) | 6000 rpm | 1030 m/s (M56 HEI) | F-16 511, F-15 940, F-4E / Kurnass 2000 639 | [^5], [^6], [^7], [^8] |
 | "DEFA" (552 / 553, 2 guns) | 2 × 1300 rpm | 815 m/s | Kfir C7 2 × 140, Mirage IIICJ 2 × 125 | [^9], [^10] |
 | "20 MM" standing in for the GAU-22/A 25 mm | the 20 MM record | the 20 MM record | F-35I 180 (ours) | docs/f35i.md |
+| GSh-30-1 (the MiG-29 fires the "20 MM" record) | 1650 rpm (1500–1800; the middle, inferred) | 860 m/s | MiG-29 150 | [^gsh30], [^mig29] |
+| GSh-23L (the MiG-23 fires the "20 MM" record) | 3400 rpm (3400–3600) | 715 m/s | MiG-23 200 | [^gsh23], [^mig23] |
+
+The MiGs fly the F-16's "20 MM" record. With Weapon data Real they fire their own gun's rate and speed instead
+(`real_weapons.gd` `JET_GUNS`, per jet type code), so the MiG-29's Real HUD funnel (860 m/s, real-hud.md) lies on its
+rounds' path. The record's damage stays: no per-round value is published.
 
 The Lavi's real gun was a 30 mm DEFA[^11]; the game gives it the "20 MM". Its round count is unpublished, so the Lavi
 keeps the original gun and count.
@@ -235,3 +241,10 @@ Each real value lands in one field or rule of the original model:
 [^s75]: Wikipedia, "S-75 Dvina": https://en.wikipedia.org/wiki/S-75_Dvina
 [^armsnet]: Armsnet, S-125 data (kill radius 12.5 m): https://armsnet.duckdns.org/equipment/f689b32c-5770-4c4c-e5d6-08de6e3c1543
 [^osa]: Wikipedia, "9K33 Osa": https://en.wikipedia.org/wiki/9K33_Osa
+[^gsh30]: Wikipedia, "Gryazev-Shipunov GSh-30-1" (1500–1800 rpm, muzzle velocity 860 m/s),
+    https://en.wikipedia.org/wiki/Gryazev-Shipunov_GSh-30-1
+[^mig29]: Wikipedia, "Mikoyan MiG-29" (1 × GSh-30-1 with 150 rounds), https://en.wikipedia.org/wiki/Mikoyan_MiG-29
+[^gsh23]: Wikipedia, "Gryazev-Shipunov GSh-23" (GSh-23L 3400–3600 rpm, muzzle velocity 715 m/s),
+    https://en.wikipedia.org/wiki/Gryazev-Shipunov_GSh-23
+[^mig23]: Wikipedia, "Mikoyan-Gurevich MiG-23" (1 × GSh-23L with 200 rounds),
+    https://en.wikipedia.org/wiki/Mikoyan-Gurevich_MiG-23

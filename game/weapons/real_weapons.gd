@@ -75,6 +75,13 @@ const GUNS := {
 	"20 MM": {"rpm": 6000.0, "muzzle": 1030.0, "guns": 1},  # M61A1, M56 round
 	"DEFA": {"rpm": 1300.0, "muzzle": 815.0, "guns": 2},  # DEFA 552 / 553, two per jet
 }
+## Jets whose real gun is not the bdb record they fire (the MiGs carry the "20 MM"): their own gun by type code, with
+## rpm, muzzle m/s and rounds (docs/real-weapons.md §1.5). The 20 MM record's blast and damage stay (no published
+## per-round values).
+const JET_GUNS := {
+	180: {"rpm": 1650.0, "muzzle": 860.0, "guns": 1, "rounds": 150},  # MiG-29: GSh-30-1, 1500-1800 rpm, 150 rounds
+	160: {"rpm": 3400.0, "muzzle": 715.0, "guns": 1, "rounds": 200},  # MiG-23: GSh-23L, 3400-3600 rpm, 200 rounds
+}
 ## Gun rounds per jet by bdb object type code (0x5b4) and gun name; jets not listed keep the
 ## original count (the Lavi's real gun was a 30 mm DEFA, rounds not published: UNCERTAIN).
 const GUN_ROUNDS := {
@@ -144,7 +151,18 @@ static func apply(db: RefCounted) -> void:
 
 ## The real gun rounds of a jet (bdb object type code), or -1 = keep the original count.
 static func gun_rounds(type_code: int) -> int:
-	return int(GUN_ROUNDS.get(type_code, -1))
+	return int(JET_GUNS[type_code].rounds) if JET_GUNS.has(type_code) else int(GUN_ROUNDS.get(type_code, -1))
+
+
+## The gun record `w` (already real, apply) as jet `type_code` fires it: a MiG's own gun (JET_GUNS), else `w`.
+static func jet_gun(w: Dictionary, type_code: int) -> Dictionary:
+	if not JET_GUNS.has(type_code):
+		return w
+	var g: Dictionary = JET_GUNS[type_code]
+	var out := w.duplicate()
+	out["motion"] = {"_velocityJump": g.muzzle, "_limitVel": g.muzzle}
+	out["rounds_per_tick"] = g.rpm / 60.0 * 0.2 * g.guns
+	return out
 
 
 ## The real radar detection range (NM of the radar, LRS / STT) of a jet, or 0 = keep the original.

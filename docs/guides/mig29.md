@@ -259,7 +259,8 @@ record fires 6,000 rounds/min at 1,030 m/s: the 140 rounds last about 1.4 s.
 
 **Example**: the MiG-21 is 600 m ahead and closing at 486 kt: the range bar covers half the ring. Put the cross on
 the MiG and fire a short burst: 0.5 s is 50 rounds. Without a lock the HUD draws a funnel for the real gun, the
-GSh-30-1, whose rounds leave at 860 m/s[^gsh30]; the game's rounds are the 20 MM record's.
+GSh-30-1, whose rounds leave at 860 m/s[^gsh30]. With Weapon data Real the game fires the GSh-30-1's rounds (860 m/s,
+150 of them), so the funnel lies on their path; with Original data the rounds are the 20 MM record's.
 
 ---
 
