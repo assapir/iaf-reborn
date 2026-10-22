@@ -79,6 +79,7 @@ var packs_box: VBoxContainer
 # Extras
 var mapi_check: CheckBox
 var mapi_scope: OptionButton
+var scenery_check: CheckBox
 var sentinel_check: CheckBox
 var refresh_check: CheckBox
 var refresh_note: Label
@@ -821,6 +822,17 @@ func _page_extras() -> Control:
 	mapi_scope.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	mapi_scope.disabled = mapi_check.disabled
 	mapi_check.get_parent().add_child(mapi_scope)
+	# Scenery (docs/scenery.md): only over the Survey 2 m photo, so only with it ticked or on disk (_update).
+	scenery_check = _extra(
+		v,
+		"Scenery (buildings and trees)",
+		(
+			"Downloads OpenStreetMap, Microsoft building footprints, building heights and tree canopy data (over 1 GB, "
+			+ "kept), then builds the buildings and trees over the Survey of Israel 2 m photo. Needs the Survey imagery. "
+			+ "Turn it on in the game under Graphics → MORE."
+		),
+		"" if gdal and tools.get("curl", false) else "Needs GDAL and curl (see Requirements)."
+	)
 	sentinel_check = _extra(
 		v,
 		"Sentinel-2 imagery (10 m, outside Israel)",
@@ -848,7 +860,7 @@ func _page_extras() -> Control:
 			else "Needs python3 and Firefox (see Requirements)."
 		)
 	)
-	for c in [mapi_check, sentinel_check, refresh_check, guides_check]:
+	for c in [mapi_check, scenery_check, sentinel_check, refresh_check, guides_check]:
 		c.toggled.connect(func(_on): _update())
 	return v
 
@@ -865,6 +877,13 @@ func _extra(parent: Control, label: String, warning: String, missing: String) ->
 	var w := _text(box, warning if missing == "" else "%s %s" % [missing, warning], true)
 	w.custom_minimum_size.x = 600
 	return c
+
+
+## Scenery can be made: its tools are here and the Survey 2 m imagery is ticked or on disk.
+func _scenery_ok() -> bool:
+	var tools_ok: bool = tools.get("gdal", false) and tools.get("curl", false)
+	var mapi := (mapi_check.button_pressed and not mapi_check.disabled) or "mapi2015" in _layers()
+	return tools_ok and mapi
 
 
 ## The imagery layers on disk.
@@ -1020,6 +1039,7 @@ func _update() -> void:
 			next_button.text = "Next"
 	if pg == "Extras" and mapi_scope != null:
 		mapi_scope.disabled = mapi_check.disabled or not mapi_check.button_pressed
+		scenery_check.disabled = not _scenery_ok()
 
 
 func _on_back() -> void:
@@ -1067,6 +1087,7 @@ func inputs() -> Dictionary:
 		"imagery": imagery,
 		"refresh": refresh_check.button_pressed and not refresh_check.disabled and refresh_check.get_parent().visible,
 		"guides": guides_check.button_pressed and not guides_check.disabled,
+		"scenery": scenery_check.button_pressed and _scenery_ok(),
 	}
 
 
@@ -1093,6 +1114,7 @@ func _prefill() -> void:
 	sentinel_check.button_pressed = "sentinel2" in imagery
 	refresh_check.button_pressed = i.get("refresh", false)
 	guides_check.button_pressed = i.get("guides", false)
+	scenery_check.button_pressed = i.get("scenery", false)
 
 
 func _fill_summary() -> void:
@@ -1119,6 +1141,8 @@ func _fill_summary() -> void:
 		extras.append("bring the imagery up to date")
 	if i.guides:
 		extras.append("pilot guides")
+	if i.scenery:
+		extras.append("scenery (buildings and trees)")
 	t += "[b]Extras[/b]\n    %s\n\n" % (", ".join(extras) if extras else "none")
 	var steps: Array = IafSetup.plan(JSON.stringify(i))
 	t += "[b]%d steps[/b] write into %s. Steps already done with the same inputs are skipped." % [steps.size(), assets]

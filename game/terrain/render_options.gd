@@ -5,6 +5,8 @@
 extends RefCounted
 
 const GroundTextures := preload("res://terrain/ground_textures.gd")
+const Scenery := preload("res://terrain/scenery.gd")
+const ImageryLayers := preload("res://terrain/imagery_layers.gd")
 
 ## Anti-aliasing: Settings.antialiasing -> [MSAA 3D, screen-space AA, TAA].
 const AA := {
@@ -67,6 +69,10 @@ static func apply(vp: Viewport, env: Environment) -> void:
 	RenderingServer.global_shader_parameter_set("terrain_water", terrain_water)
 	ground_tex = 1.0 if Settings.ground_textures == "ambientcg" and GroundTextures.load_globals() else 0.0
 	RenderingServer.global_shader_parameter_set("ground_tex", ground_tex)
+	# Scenery (docs/scenery.md §3): drawn only when Scenery.wanted (terrain.gd makes the node); its wall textures are
+	# read here, at the flight's start, not at the first town.
+	if Scenery.wanted(ImageryLayers.selected()):
+		Scenery.walls()
 	_surf_origin = Vector2(INF, INF)  # rebuilt around the camera (a new flight has its own world origin)
 	if not close and not Settings.water and ground_tex == 0.0 and _surf_tex != null:
 		RenderingServer.global_shader_parameter_set("terrain_surface", null)

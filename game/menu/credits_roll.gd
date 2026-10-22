@@ -9,6 +9,7 @@ signal finished
 
 const Img := preload("res://util/img.gd")
 const Layers := preload("res://terrain/imagery_layers.gd")
+const Scenery := preload("res://terrain/scenery.gd")
 const W := 640.0
 const H := 480.0
 ## Every line starts at x = 0x46; runs on one line follow each other.
@@ -212,6 +213,11 @@ func our_runs() -> Array:
 		var text := String(l.get("he", l.get("text", ""))) if he else String(l.get("text", ""))
 		if style == "imagery":
 			var credits := Layers.attributions()
+			# The scenery's sources (its manifest's attribution: a line or a list of lines, docs/scenery.md).
+			var sa = Scenery.manifest().get("attribution", [])
+			for a in [sa] if sa is String else sa:
+				if String(a) != "" and not String(a) in credits:
+					credits.append(String(a))
 			if credits.is_empty():
 				continue
 			out.append_array(_lines("role", text))

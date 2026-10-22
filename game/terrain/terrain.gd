@@ -106,6 +106,9 @@ var _bsp_mask := PackedInt32Array()
 ## new sites drawn and flattened) and the surface lookups go through the base moves.
 var _bases_moved := false
 var _bake_bounds := PackedFloat64Array()  # IafBases.bounds()
+## Scenery (Graphics → MORE; terrain/scenery.gd): the buildings and trees over the Survey 2 m photo, or null.
+var scenery: Node3D = null
+const Scenery := preload("res://terrain/scenery.gd")
 
 
 func _ready() -> void:
@@ -155,6 +158,12 @@ func _ready() -> void:
 	_bake_bounds = IafBases.bounds() if _bases_moved else PackedFloat64Array()
 	if _bases_moved:
 		_fill_sources()
+	if Scenery.wanted(layers):
+		scenery = Scenery.new()
+		scenery.name = "Scenery"
+		scenery.terrain = self
+		scenery.draw = draw_nodes
+		add_child(scenery)
 
 
 ## World scale Real: the new sites' fine art (the old site's inset warped through the move), where no imagery layer
@@ -709,14 +718,22 @@ func adopt(other: Node) -> void:
 			_feed_heights(k, other._res[k].img)
 			_res[k] = other._res[k]
 			_res[k].used = now
+	if scenery != null and other.scenery != null:
+		scenery.adopt(other.scenery)
 	_last_select = 0
 	_last_focus = Vector3(INF, INF, INF)
 
 
-## True once the ground around the focus is at full detail (nodes within `near_range`) and its
-## heights are loaded: the flight can start.
+## True once the ground around the focus is at full detail (nodes within `near_range`), its
+## heights are loaded and the near scenery is drawn: the flight can start.
 func ground_ready() -> bool:
-	return not meta.is_empty() and focus != null and _blocked_near == 0 and height_at(focus.global_position) != null
+	return (
+		not meta.is_empty()
+		and focus != null
+		and _blocked_near == 0
+		and height_at(focus.global_position) != null
+		and (scenery == null or scenery.ground_ready())
+	)
 
 
 # --- heights and surface types -------------------------------------------------------------------
