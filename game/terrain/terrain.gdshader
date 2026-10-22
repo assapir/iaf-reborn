@@ -364,12 +364,13 @@ void fragment() {
 	ROUGHNESS = 0.95;
 	float dist = length(VERTEX);
 	// Ground textures where they resolve: gm = the pixel's ground footprint (m, the geometric mean of its two axes, as
-	// the anisotropic filter sees it); full up to 0.1 m, none past 0.25 m (a repeat of 2–3 m under ≈ 10 pixels), so
-	// far and grazing pixels skip the samples. tg = their share of the close up's fine grain: all of it up to 0.05 m,
-	// none past 0.15 m, where the grain reads better.
+	// the anisotropic filter sees it); full up to 0.05 m, none past 0.12 m (a repeat of 2–3 m under ≈ 20 pixels, where
+	// its tiling would show as a lattice on mottled layers such as the grass), so far and grazing pixels skip the
+	// samples. tg = their share of the close up's fine grain: all of it up to 0.03 m, none past 0.1 m, where the grain
+	// reads better.
 	float gm = sqrt(length(wdx) * length(wdy));
-	float tf = ground_tex * (1.0 - smoothstep(0.1, 0.25, gm));
-	float tg = ground_tex * (1.0 - smoothstep(0.05, 0.15, gm));
+	float tf = ground_tex * (1.0 - smoothstep(0.05, 0.12, gm));
+	float tg = ground_tex * (1.0 - smoothstep(0.03, 0.1, gm));
 	if (terrain_detail > 0.0 || tf > 0.0) {
 		float k = terrain_detail * (1.0 - smoothstep(300.0, 1500.0, dist)) * (1.0 - sea);
 		float kt = tf * (1.0 - sea);

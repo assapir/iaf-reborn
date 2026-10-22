@@ -1,5 +1,5 @@
-# Model detail (ours, Graphics → MORE → Model detail: ambientCG; docs/rendering.md "Model detail"): fine CC0 surface
-# detail (normal, roughness, a little brightness variation) on the original models up close, over each model's own
+# Model detail (ours, Graphics → MORE → Model detail: ambientCG; docs/rendering.md §9): fine CC0 surface detail
+# (normal, roughness, brightness: paint chips, scratches, grime) on the original models up close, over each model's own
 # texture, so its colours and markings stay. The materials come from setup's textures step (iaf_tools::thirdparty
 # MODEL_DETAIL, packed as DXT5 with every mip level) into assets/thirdparty/ambientcg; without them the switch has no
 # effect and its row says "Not downloaded".
@@ -18,10 +18,10 @@ const MATERIALS := ["painted", "worn", "concrete", "rubber"]
 ## repeat, normal strength, mean roughness and how much of the pack's roughness variation shows, metallic, brightness
 ## modulation.
 const LOOKS := {
-	"store": {"mat": "painted", "tile": 0.8, "normal": 0.7, "rough": 0.42, "var": 1.0, "metal": 0.0, "tint": 0.12},
-	"aircraft": {"mat": "painted", "tile": 2.0, "normal": 0.55, "rough": 0.48, "var": 1.0, "metal": 0.0, "tint": 0.1},
-	"vehicle": {"mat": "worn", "tile": 1.5, "normal": 0.8, "rough": 0.62, "var": 1.0, "metal": 0.0, "tint": 0.18},
-	"concrete": {"mat": "concrete", "tile": 3.0, "normal": 1.0, "rough": 0.9, "var": 0.6, "metal": 0.0, "tint": 0.2},
+	"store": {"mat": "painted", "tile": 0.8, "normal": 1.6, "rough": 0.42, "var": 1.0, "metal": 0.0, "tint": 0.45},
+	"aircraft": {"mat": "painted", "tile": 1.2, "normal": 1.3, "rough": 0.48, "var": 1.0, "metal": 0.0, "tint": 0.35},
+	"vehicle": {"mat": "worn", "tile": 1.5, "normal": 1.6, "rough": 0.62, "var": 1.0, "metal": 0.0, "tint": 0.45},
+	"concrete": {"mat": "concrete", "tile": 3.0, "normal": 1.5, "rough": 0.9, "var": 0.8, "metal": 0.0, "tint": 0.4},
 }
 ## Tyres (`gear` on): the rubber pack on the gear's dark texels.
 const RUBBER := {"mat": "rubber", "tile": 0.25, "rough": 0.92, "dark": 0.16}
@@ -61,6 +61,7 @@ static var _packs := {}  # material class -> [Texture2D, mean roughness]; null =
 static var _manifest = null  # material class -> its nr.bc3 path
 static var _tasks := {}  # material class -> WorkerThreadPool task id (loading)
 static var _images := {}  # material class -> [Image, mean roughness] loaded by a task, null = unreadable
+static var _images_lock := Mutex.new()  # the tasks write _images at once
 static var _shaders := {}  # cull mode -> Shader
 static var _mats := {}  # [base material's file and index, class, gear] -> ShaderMaterial (shared by every instance)
 
@@ -112,20 +113,26 @@ static func preload_packs() -> void:
 		return
 	for mat in MATERIALS:
 		if not _packs.has(mat) and not _tasks.has(mat):
-			_tasks[mat] = WorkerThreadPool.add_task(_load_pack.bind(mat), false, "model detail pack")
+			_tasks[mat] = WorkerThreadPool.add_task(
+				_load_pack.bind(mat, String(manifest().get(mat, ""))), false, "model detail pack"
+			)
 
 
-## Worker: the pack of `mat` (setup's DXT5 with its mips: R roughness, G / A normal, B brightness) and its mean
-## roughness (the 1×1 mip's).
-static func _load_pack(mat: String) -> void:
-	var img: Image = _ground().mips(String(manifest().get(mat, "")), Image.FORMAT_DXT5, 16)
-	if img == null:
-		_images[mat] = null
-		return
-	var last := img.get_mipmap_count()
-	var one := Image.create_from_data(1, 1, false, Image.FORMAT_DXT5, img.get_data().slice(img.get_mipmap_offset(last)))
-	one.decompress()
-	_images[mat] = [img, one.get_pixel(0, 0).r]
+## Worker: the pack of `mat` at `path` (setup's DXT5 with its mips: R roughness, G / A normal, B brightness) and its
+## mean roughness (the 1×1 mip's).
+static func _load_pack(mat: String, path: String) -> void:
+	var img: Image = _ground().mips(path, Image.FORMAT_DXT5, 16)
+	var r = null
+	if img != null:
+		var last := img.get_mipmap_count()
+		var one := Image.create_from_data(
+			1, 1, false, Image.FORMAT_DXT5, img.get_data().slice(img.get_mipmap_offset(last))
+		)
+		one.decompress()
+		r = [img, one.get_pixel(0, 0).r]
+	_images_lock.lock()
+	_images[mat] = r
+	_images_lock.unlock()
 
 
 ## The pack of material class `mat` ([texture, mean roughness], [] when missing): waits for its load if still
@@ -133,12 +140,14 @@ static func _load_pack(mat: String) -> void:
 static func pack(mat: String) -> Array:
 	if not _packs.has(mat):
 		if not _tasks.has(mat):
-			_tasks[mat] = WorkerThreadPool.add_task(_load_pack.bind(mat))
+			_tasks[mat] = WorkerThreadPool.add_task(_load_pack.bind(mat, String(manifest().get(mat, ""))))
 		WorkerThreadPool.wait_for_task_completion(_tasks[mat])
 		_tasks.erase(mat)
+		_images_lock.lock()
 		var r = _images.get(mat)
-		_packs[mat] = [ImageTexture.create_from_image(r[0]), r[1]] if r != null else null
 		_images.erase(mat)
+		_images_lock.unlock()
+		_packs[mat] = [ImageTexture.create_from_image(r[0]), r[1]] if r != null else null
 	return _packs[mat] if _packs[mat] != null else []
 
 

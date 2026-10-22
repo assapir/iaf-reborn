@@ -1,4 +1,4 @@
-// Model detail (ours, Graphics → MORE → Model detail; docs/rendering.md "Model detail", util/model_detail.gd).
+// Model detail (ours, Graphics → MORE → Model detail; docs/rendering.md §9, util/model_detail.gd).
 // The original model's own look (its texture × colour, roughness, specular, alpha scissor: what its StandardMaterial3D
 // drew) plus a CC0 detail pack mapped triplanar in the model's frame, in metres. Up close only: the detail fades out
 // from fade_near to fade_far (view distance) and is not sampled beyond, so far models draw as before.
@@ -77,11 +77,11 @@ void fragment() {
 		float rub = gear ? 1.0 - smoothstep(dark_below * 0.7, dark_below, dot(c.rgb, vec3(0.299, 0.587, 0.114))) : 0.0;
 		if (rub > 0.0) {
 			vec3 dn2;
-			vec4 d2 = tri(pack2, obj_pos / tile2_m, w, n, 0.8, dn2);
+			vec4 d2 = tri(pack2, obj_pos / tile2_m, w, n, 1.5, dn2);
 			dn = normalize(mix(dn, dn2, rub));
 			r = mix(r, clamp(rough2_mid + (d2.r - rough2_mean), 0.05, 1.0), rub);
 			m *= 1.0 - rub;
-			tint = mix(tint, 1.0 + (d2.b - 0.5) * 0.3, rub);
+			tint = mix(tint, 1.0 + (d2.b - 0.5) * 1.2, rub);
 		}
 		ALBEDO *= mix(1.0, tint, f);
 		ROUGHNESS = mix(roughness, r, f);

@@ -1,4 +1,4 @@
-# Model detail (Graphics → MORE → Model detail, docs/rendering.md "Model detail", util/model_detail.gd): off (the
+# Model detail (Graphics → MORE → Model detail, docs/rendering.md §9, util/model_detail.gd): off (the
 # default) every model keeps its original materials; on, the stores, the jets, the vehicles and the airbase buildings
 # get the shared detail material of their class over their own texture, the tyres the gear variant, while glass
 # (blended materials), the pilots and the airbase's flat surface pieces keep theirs; without the downloaded materials

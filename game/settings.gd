@@ -229,7 +229,7 @@ var water := false
 ## Models (ours, Extras page; docs/aircraft-models.md): "original" (the 1998 models) or "detailed" (our detailed
 ## models where there is one, util/gltf.gd DETAILED: the F-16D; visual only).
 var models := "original"
-## Model detail (ours, Graphics → MORE; docs/rendering.md "Model detail", util/model_detail.gd): "original" or
+## Model detail (ours, Graphics → MORE; docs/rendering.md §9, util/model_detail.gd): "original" or
 ## "ambientcg" (the original models with fine CC0 surface detail up close: painted metal, rubber, concrete). Read when a
 ## model loads.
 var model_detail := "original"

@@ -1,9 +1,11 @@
-# Dev helper (not run by tools/test.sh): Model detail (docs/rendering.md "Model detail") before / after in the same
+# Dev helper (not run by tools/test.sh): Model detail (docs/rendering.md §9) before / after in the same
 # view, and its GPU cost. Mission 311 on Ramat David's runway in the Kfir (Mk-82s and a drop tank on its pylons), with
 # an F-4, more Kfirs, a tank and truck column, a hardened shelter and a hangar placed beside it. Each shot is saved
 # twice, SHOT_DIR/<shot>_original.png and <shot>_ambientcg.png, the detail switched in place between them.
 # SHOT_BENCH=1: no pictures; from the busy external view, the GPU time with the detail off / on alternated every 120
 # frames, 12 pairs (the median difference, robust to other work on the machine), at the window's resolution.
+# SHOT_ONLY=pylons,wheels: only those shots. SHOT_SET="key=value,…" sets Settings keys first (str_to_var values; e.g.
+# SHOT_SET='ground_textures="ambientcg"' for Ground textures under both shots).
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 MESA_VK_WSI_PRESENT_MODE=immediate SHOT_DIR=/tmp/md -- \
 #     --log-file /tmp/g.log --path game --resolution 1920x1080 -s ../tests/godot/_model_detail_shot.gd
 extends "res://../tests/godot/base.gd"
@@ -52,6 +54,9 @@ func run() -> void:
 	settings().model_detail = OS.get_environment("SHOT_DETAIL") if hitch else "ambientcg"
 	settings().jet_id = 5  # the Kfir
 	settings().show_info = false
+	for kv in OS.get_environment("SHOT_SET").split(",", false):
+		var p := kv.split("=")
+		settings().set(p[0], str_to_var(p[1]))
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	check(hitch or ModelDetail.enabled(), "the materials are there")
 	if hitch:
@@ -80,7 +85,10 @@ func run() -> void:
 		return
 	var dir := OS.get_environment("SHOT_DIR")
 	DirAccess.make_dir_recursive_absolute(dir)
+	var only := OS.get_environment("SHOT_ONLY").split(",", false)  # e.g. SHOT_ONLY=pylons,wheels
 	for s in SHOTS:
+		if not only.is_empty() and not s[0] in only:
+			continue
 		_aim(s[1], s[2], s[3])
 		await _settle()
 		for on in [false, true]:
