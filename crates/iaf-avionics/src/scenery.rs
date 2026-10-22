@@ -247,6 +247,8 @@ pub struct Found {
     pub centroid: [f64; 2],
     pub height: f64,
     pub area: f64,
+    /// The footprint (world X, Y), counter-clockwise.
+    pub points: Vec<[f32; 2]>,
 }
 
 /// The loaded scenery cells and the buildings' damage, for the whole process (docs/scenery.md §2).
@@ -449,6 +451,45 @@ impl Scenery {
             centroid: c.centroids[k],
             height: f64::from(b.height),
             area: area(&b.points),
+            points: b.points.clone(),
+        })
+    }
+
+    /// The outlines of the buildings whose centroid is in the box [x0, x1] × [y0, y1], as segment pairs (a, b, a, b…).
+    pub fn outlines(&self, x0: f64, y0: f64, x1: f64, y1: f64) -> Vec<[f32; 2]> {
+        let mut out = vec![];
+        for c in self.cells.values() {
+            let b = c.bounds;
+            if b[2] < x0 || b[0] > x1 || b[3] < y0 || b[1] > y1 {
+                continue;
+            }
+            for (k, bl) in c.cell.buildings.iter().enumerate() {
+                let [cx, cy] = c.centroids[k];
+                if cx < x0 || cx > x1 || cy < y0 || cy > y1 {
+                    continue;
+                }
+                let p = &bl.points;
+                for i in 0..p.len() {
+                    out.extend([p[i], p[(i + 1) % p.len()]]);
+                }
+            }
+        }
+        out
+    }
+
+    /// Whether no building's footprint lies within `r` m of a world point (inside one, or an edge that close).
+    // ponytail: every building of the cells near the point, not the bucket index; fine for the editor's checks.
+    pub fn clear(&self, x: f64, y: f64, r: f64) -> bool {
+        let (xf, yf) = (x as f32, y as f32);
+        self.cells.values().filter(|c| c.near(x, y, r)).all(|c| {
+            c.cell.buildings.iter().all(|b| {
+                let bx = footprint_box(b);
+                x < bx[0] - r
+                    || x > bx[2] + r
+                    || y < bx[1] - r
+                    || y > bx[3] + r
+                    || (!b.contains(xf, yf) && edge_distance(&b.points, x, y) > r)
+            })
         })
     }
 
@@ -460,6 +501,19 @@ impl Scenery {
             .map(|c| c.centroids.iter().filter(|p| (p[0] - x).hypot(p[1] - y) <= r).count())
             .sum()
     }
+}
+
+/// The distance (m) from a point to a polygon's nearest edge.
+fn edge_distance(p: &[[f32; 2]], x: f64, y: f64) -> f64 {
+    (0..p.len())
+        .map(|i| {
+            let (a, b) = (p[i].map(f64::from), p[(i + 1) % p.len()].map(f64::from));
+            let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
+            let l2 = dx * dx + dy * dy;
+            let t = if l2 > 0.0 { (((x - a[0]) * dx + (y - a[1]) * dy) / l2).clamp(0.0, 1.0) } else { 0.0 };
+            (a[0] + t * dx - x).hypot(a[1] + t * dy - y)
+        })
+        .fold(f64::MAX, f64::min)
 }
 
 /// The lowest terrain under a footprint's corners: the building's base as drawn.
@@ -947,6 +1001,12 @@ mod tests {
         assert_eq!(s.count_within(30.0, 5.0, 15.0), 0);
         assert_eq!(s.building("3_4:1").map(|b| b.height), Some(6.0));
         assert_eq!(s.building("9_9:0"), None);
+        assert_eq!(f.points.len(), 4);
+        // The 20 x 10 house at (40, 0): its four edges; the centroid box leaves it out.
+        assert_eq!(s.outlines(45.0, 0.0, 55.0, 10.0).len(), 8);
+        assert!(s.outlines(200.0, 200.0, 300.0, 300.0).is_empty());
+        assert!(!s.clear(45.0, 5.0, 0.0), "inside");
+        assert!(!s.clear(65.0, 5.0, 6.0) && s.clear(65.0, 5.0, 4.0), "5 m east of its wall");
     }
 
     /// Every triangle faces its stored normal (Godot's clockwise front), and walls face away from the footprint.

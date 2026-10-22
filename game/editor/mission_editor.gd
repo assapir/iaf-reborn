@@ -1620,7 +1620,7 @@ class MapHost:
 				var c: Vector2 = _to_menu(event.position) - tsd.area.position
 				var at: Vector2 = tsd.scroll + c / tsd.zoom
 				var f: float = tsd.ZOOM_STEP if b == MOUSE_BUTTON_WHEEL_UP else 1.0 / tsd.ZOOM_STEP
-				tsd.zoom = clampf(tsd.zoom * f, tsd.min_zoom(), tsd.ZOOM_MAX)
+				tsd.zoom = clampf(tsd.zoom * f, tsd.min_zoom(), tsd.zoom_max)
 				tsd.scroll = at - c / tsd.zoom
 				tsd._clamp_scroll()
 				tsd.map_canvas.queue_redraw()

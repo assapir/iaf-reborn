@@ -98,6 +98,8 @@ const CLASS_NAMES := {
 const FLIGHT_LABELS := ["", "Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
 ## The selected-unit label colour (SetTextColor 0x00FFFF).
 const LABEL_COLOR := Color8(255, 255, 0)
+## Ours: a scenery target's building outline (docs/scenery.md §5).
+const OUTLINE_COLOR := Color8(255, 64, 64)
 ## The ruler (paint 501300): metres → NM (0x6081f4); text red (SetTextColor 0xff), line WHITE_PEN; the arrow's
 ## strokes 10 px (0x607fb4) at ±0.628 rad (0x607fb8).
 const RULER_NM := 0.00053996
@@ -108,6 +110,7 @@ const RULER_ARROW_ANGLE := 0.6283185
 const Img := preload("res://util/img.gd")
 const MissionRuntime := preload("res://mission/mission_runtime.gd")
 const ModelView := preload("res://menu/model_view.gd")
+const Scenery := preload("res://terrain/scenery.gd")
 
 static var _map_cache := {}
 
@@ -153,6 +156,12 @@ var files_override: Array = []
 var edit := false
 var issues := {}
 var drag_unit := -1
+## The nearest zoom (the editor goes nearer to show the scenery's buildings), and a draw call under the unit icons
+## (overlay: Control, scale: float).
+var zoom_max := ZOOM_MAX
+var draw_under := Callable()
+## Ours: the scenery targets' building outlines (docs/scenery.md §5), map points, drawn under the units.
+var outlines: Array = []
 
 
 func setup(front_end: Control, mission: int) -> void:
@@ -266,6 +275,11 @@ func _load_units() -> void:
 			elif int(e.get("0x35c", 0)) == 0 and not edit:
 				continue
 			var type := int(obj.get("0x5b4", -1))
+			if e.has("scenery_outline"):
+				var o := PackedVector2Array()
+				for p in e.scenery_outline + [e.scenery_outline[0]]:
+					o.append(world_to_map(float(p[0]), float(p[1])))
+				outlines.append(o)
 			(
 				units
 				. append(
@@ -336,6 +350,7 @@ func reload(files: Array) -> void:
 	var keep := [zoom, scroll, sel_flight]
 	units.clear()
 	flights.clear()
+	outlines.clear()
 	selected = -1
 	_load_units()
 	zoom = keep[0]
@@ -405,7 +420,7 @@ func _clamp_scroll() -> void:
 ## Zoom, then centre the selected unit, or keep the view centre (5032d0).
 func zoom_by(factor: float) -> void:
 	var centre: Vector2 = units[selected].pos if selected >= 0 else scroll + _view_size() / 2
-	var new_zoom := clampf(zoom * factor, min_zoom(), ZOOM_MAX)
+	var new_zoom := clampf(zoom * factor, min_zoom(), zoom_max)
 	if is_equal_approx(new_zoom, zoom):
 		return
 	zoom = new_zoom
@@ -414,7 +429,7 @@ func zoom_by(factor: float) -> void:
 
 
 func can_zoom_in() -> bool:
-	return zoom < ZOOM_MAX - 0.001
+	return zoom < zoom_max - 0.001
 
 
 func can_zoom_out() -> bool:
@@ -445,11 +460,17 @@ func _briefing() -> Dictionary:
 	if not o.is_empty():  # the mission editor's Fly (Settings.fly_edited): plain text and its intel links
 		var plain := {}
 		var links: Array = o.get("entries", [])
+		var files := files_override if not files_override.is_empty() else MissionRuntime.mission_files(mission_id)
+		var main: Dictionary = files[0].data if not files.is_empty() else {}
 		for lang in ["en", "he"]:
 			var text := String(o.get(lang, ""))
-			if text == "" and links.is_empty():
+			# The scenery targets' lines (docs/scenery.md §5): the buildings around each, its stand-in.
+			var lines := Scenery.target_lines(main, lang)
+			if text == "" and links.is_empty() and lines.is_empty():
 				continue
 			plain[lang] = (text if text != "" else String(o.get("en", ""))).replace("[", "[lb]")
+			if not lines.is_empty():
+				plain[lang] = ("%s\n\n%s" % [plain[lang], "\n".join(lines).replace("[", "[lb]")]).strip_edges()
 			# The links as the originals mark them ([u]title[/u], frame_window.gd _linkify), listed at the end.
 			var titles := links.map(
 				func(e): return "[u]%s[/u]" % (e.title.get(lang) if e.title.get(lang) else e.title.en)
@@ -764,6 +785,13 @@ func _draw_overlay() -> void:
 				_draw_route(n, s)
 		if flights.has(default_flight()):
 			_draw_route(default_flight(), s)
+	if draw_under.is_valid():
+		draw_under.call(overlay, s)
+	for o in outlines:
+		var pts := PackedVector2Array()
+		for p in o:
+			pts.append(_to_client(p) * s)
+		overlay.draw_polyline(pts, OUTLINE_COLOR, maxf(1.0, s))
 	_draw_units(s)
 	_draw_ruler(s)
 

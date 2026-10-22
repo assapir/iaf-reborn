@@ -54,7 +54,7 @@ fn real(v: &Value) -> bool {
 }
 
 fn warning(id: i64, text: String) -> Issue {
-    Issue { id, level: "warning", text }
+    crate::mission_edit::warning(id, text)
 }
 
 /// The flight model's parameters of a bdb type code (0x5b4), the original data set; None for a type without them.
