@@ -10,6 +10,8 @@ use super::*;
 const ROW: f64 = 9.0;
 /// The range scale's steps (km; inferred from [EA]'s 54 / 27 / 13.5 / 5.4 nm).
 const SCALES_KM: [f64; 4] = [10.0, 25.0, 50.0, 100.0];
+/// The GSh-30-1's muzzle speed (m/s).
+const GSH30_MUZZLE: f64 = 860.0;
 /// The gun ring's range bar: a full turn at this range (m; inferred).
 const GUN_FULL_M: f64 = 1200.0;
 /// The right-hand pitch scale: px per degree and its half height (px).
@@ -135,9 +137,7 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
                 let sweep = (t.range_m / GUN_FULL_M).clamp(0.0, 1.0) * std::f64::consts::TAU;
                 p.push(Prim::Arc { c, r: ro - 1.5, from: 0.0, sweep: sweep.max(0.02) });
             }
-            // The funnel for the rounds the game fires (the 20 MM record's, MUZZLE), not the real GSh-30-1's 860 m/s:
-            // a funnel that misses its own rounds would mislead.
-            _ => funnel_v(p, i, 3000.0, MUZZLE),
+            _ => funnel_v(p, i, 3000.0, GSH30_MUZZLE),
         },
         4..=6 => {
             if let Some(c) = w.pipper {
@@ -302,14 +302,14 @@ mod tests {
     }
 
     #[test]
-    fn gun_funnel_for_the_games_rounds_and_ring_with_a_lock() {
+    fn gun_funnel_with_the_gsh30_and_ring_with_a_lock() {
         let i = Input { g: 4.0, ..with(3) };
         let fr = frame(FIELD, &i);
         let mut m61 = Vec::new();
         funnel(&mut m61, &i, 3000.0);
         let lines = |ps: &[Prim]| ps.iter().filter(|p| matches!(p, Prim::Line { .. })).cloned().collect::<Vec<_>>();
         let ours = lines(&fr.field);
-        assert!(m61.iter().all(|l| ours.contains(l)), "the funnel for the rounds the game fires (as the F-16's)");
+        assert!(ours.len() >= m61.len() && !m61.iter().all(|l| ours.contains(l)), "the slower GSh-30-1's funnel");
         let mut j = i.clone();
         j.weapons.lcos = Some((0.0, 25.0));
         j.target = Some(Target { range_m: 600.0, closure: 0.0, at: Some((0.0, 25.0)), aspect: None });
