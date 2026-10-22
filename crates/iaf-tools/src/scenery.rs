@@ -32,7 +32,7 @@ use crate::thirdparty::{self, Download, SCENERY};
 use crate::{airbases, log};
 
 /// The generator's version: part of the release, so a change to the rules below makes new ids.
-pub const GENERATOR: u32 = 5;
+pub const GENERATOR: u32 = 6;
 /// A level-1 node's side in terrain units (1024 pixels of 2 units).
 const NODE_UNITS: f64 = 2048.0;
 const PIXEL_UNITS: f64 = 2.0;
@@ -50,8 +50,8 @@ pub const LEVEL_M: f32 = 3.0;
 /// Trees: the canopy height that counts as a tree (m), the canopy grid (degrees, ≈ 10 m), the spacing of a tree row
 /// (m), the default heights (m).
 const CANOPY_MIN_M: u8 = 4;
-/// In mapped orchards and fields (`AREA_ORCHARD`) a lower canopy counts: citrus, avocado and olive groves are 2–4 m,
-/// field crops under 2 m.
+/// In mapped orchards (`AREA_ORCHARD`) a lower canopy counts: citrus, avocado and olive groves are 2–4 m. Fields keep
+/// `CANOPY_MIN_M`: the canopy map reads about 2 m over crops.
 const ORCHARD_CANOPY_MIN_M: u8 = 2;
 const CANOPY_STEP: f64 = 0.0001;
 const ROW_STEP_M: f64 = 6.0;
@@ -244,8 +244,9 @@ pub struct Area {
     pub pts: Vec<[f64; 2]>,
 }
 pub const AREA_SETTLEMENT: u8 = 1;
-pub const AREA_ORCHARD: u8 = 2;
-pub const AREA_FOREST: u8 = 3;
+pub const AREA_FIELD: u8 = 2;
+pub const AREA_ORCHARD: u8 = 3;
+pub const AREA_FOREST: u8 = 4;
 
 /// A mapped tree (OpenStreetMap `natural=tree`, or a point of a `natural=tree_row`).
 #[derive(Clone, Debug, PartialEq)]
@@ -998,7 +999,8 @@ fn read_osm(files: &[PathBuf; 3], g: &mut Gather, cancel: &AtomicBool) -> Result
         let building = s("building");
         let area_kind = match (s("landuse"), s("natural")) {
             ("forest", _) | (_, "wood") => Some(AREA_FOREST),
-            ("orchard" | "farmland" | "vineyard" | "plant_nursery", _) => Some(AREA_ORCHARD),
+            ("orchard" | "plant_nursery", _) => Some(AREA_ORCHARD),
+            ("farmland" | "vineyard", _) => Some(AREA_FIELD),
             ("residential", _) => Some(AREA_SETTLEMENT),
             _ => None,
         };

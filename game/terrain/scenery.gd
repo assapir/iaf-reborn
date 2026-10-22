@@ -14,6 +14,8 @@ const RANGE := 4500.0
 const KEEP := 1000.0
 const NEAR := 2500.0
 const TREES := 2000.0
+## Trees draw their full model to this distance (m), the far one beyond.
+const TREES_NEAR := 700.0
 ## The visibility ranges' fade margins (m).
 const FADE := 300.0
 ## The cells re-chosen when the focus moved this far (m) or after this long (ms).
@@ -241,11 +243,44 @@ static func _set_damage(m: ShaderMaterial, damage: PackedByteArray) -> void:
 
 
 ## A 10 m tree of `kind` (KINDS): a six-sided trunk and a low-poly canopy, our own mesh; scaled per tree.
-static func tree_mesh(kind: int) -> ArrayMesh:
+## A tree kind's model: the full one, or `far` the canopy alone with few faces (6–24 triangles, one surface, the full
+## model's canopy material) for TREES_NEAR..TREES.
+static func tree_mesh(kind: int, far := false) -> ArrayMesh:
 	if _tree_meshes.is_empty():
 		for k in KINDS.size():
 			_tree_meshes.append(_make_tree(k))
-	return _tree_meshes[clampi(kind, 0, KINDS.size() - 1)]
+		for k in KINDS.size():
+			_tree_meshes.append(_make_far_tree(k, _tree_meshes[k].surface_get_material(1)))
+	return _tree_meshes[clampi(kind, 0, KINDS.size() - 1) + (KINDS.size() if far else 0)]
+
+
+static func _make_far_tree(kind: int, mat: Material) -> ArrayMesh:
+	var c: Array = KINDS[kind][1]
+	var h: float = c[2] - c[1]
+	var canopy: PrimitiveMesh
+	if c[0] == "cone":
+		var cone := CylinderMesh.new()
+		cone.top_radius = 0.0
+		cone.bottom_radius = c[3]
+		cone.height = h
+		cone.radial_segments = 6
+		cone.rings = 0
+		cone.cap_top = false
+		cone.cap_bottom = false
+		canopy = cone
+	else:
+		var ball := SphereMesh.new()
+		ball.radius = c[3]
+		ball.height = h
+		ball.radial_segments = 6
+		ball.rings = 2
+		canopy = ball
+	var st := SurfaceTool.new()
+	# The canopy reaches down to the ground: no trunk to draw at this distance.
+	st.append_from(canopy, 0, Transform3D(Basis(), Vector3(0, c[1] + h / 2.0, 0)))
+	var mesh := st.commit()
+	mesh.surface_set_material(0, mat)
+	return mesh
 
 
 static func _make_tree(kind: int) -> ArrayMesh:
@@ -484,18 +519,19 @@ func _upload(k: Vector2i) -> void:
 		var trees: Dictionary = piece.trees
 		for kind in trees:
 			var rows: PackedFloat32Array = trees[kind]
-			var mm := MultiMesh.new()
-			mm.transform_format = MultiMesh.TRANSFORM_3D
-			mm.mesh = tree_mesh(int(kind))
-			mm.instance_count = rows.size() / 12
-			mm.buffer = rows
-			var mmi := MultiMeshInstance3D.new()
-			mmi.multimesh = mm
-			mmi.visibility_range_end = TREES
-			mmi.visibility_range_end_margin = FADE
-			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			c.node.add_child(mmi)
+			for far in [false, true]:
+				var mm := MultiMesh.new()
+				mm.transform_format = MultiMesh.TRANSFORM_3D
+				mm.mesh = tree_mesh(int(kind), far)
+				mm.instance_count = rows.size() / 12
+				mm.buffer = rows
+				var mmi := MultiMeshInstance3D.new()
+				mmi.multimesh = mm
+				mmi.visibility_range_begin = TREES_NEAR if far else 0.0
+				mmi.visibility_range_end = TREES if far else TREES_NEAR
+				# The swap is a few pixels: no fade (a fading MultiMesh draws as transparent).
+				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				c.node.add_child(mmi)
 
 
 ## The damage states of the drawn cells, when they changed (a destroyed scenery target).
