@@ -57,6 +57,8 @@ pub struct Inputs {
     pub refresh: bool,
     /// Render the pilot guides (needs a display; the renderer is `Ctx::guides`).
     pub guides: bool,
+    /// Scenery: buildings and trees over the Survey 2 m layer (docs/scenery.md; downloads about 1.6 GB).
+    pub scenery: bool,
 }
 
 /// One step of the plan.
@@ -124,6 +126,20 @@ pub fn plan(inputs: &Inputs) -> Vec<Step> {
                 last.push("mapi2015");
             }
         }
+    }
+    if inputs.scenery {
+        add(
+            "scenery-fetch",
+            "scenery: sources (OpenStreetMap, Microsoft footprints, GHSL heights, Meta canopy; about 1.6 GB)",
+            false,
+            &[],
+        );
+        add(
+            "scenery",
+            "scenery: buildings and trees over the Survey 2 m layer",
+            false,
+            &["mapi2015", "scenery-fetch", "missions", "objects", "airbases"],
+        );
     }
     if inputs.refresh {
         add("imagery-refresh", "imagery: convert again what older rules made", false, &["airbases"]);
@@ -395,6 +411,7 @@ mod tests {
             imagery: vec![],
             refresh: false,
             guides: false,
+            scenery: false,
         }
     }
 
@@ -433,6 +450,7 @@ mod tests {
             hebrew: Hebrew::Cd("he.iso".into()),
             imagery: vec![Imagery::Sentinel2, Imagery::Mapi2015 { bases: true }],
             guides: true,
+            scenery: true,
             ..inputs()
         });
         let get = |id: &str| full.iter().find(|s| s.id == id).unwrap_or_else(|| panic!("{id}"));
@@ -443,6 +461,8 @@ mod tests {
         assert_eq!(get("aircraft").after, ["missions"]);
         assert_eq!(get("airbases").after, ["theatre"]);
         assert!(get("guides").after.contains(&"sentinel2") && get("guides").after.contains(&"mapi2015"));
+        assert_eq!(get("scenery").after, ["mapi2015", "scenery-fetch", "missions", "objects", "airbases"]);
+        assert!(get("scenery-fetch").after.is_empty());
         // Every step waits only for steps planned before it.
         for (k, s) in full.iter().enumerate() {
             for a in &s.after {
@@ -465,6 +485,8 @@ mod tests {
             ("imagery: Sentinel-2", &["sentinel2"]),
             ("imagery: Survey of Israel 2015 2 m sheets", &["mapi2015-fetch"]),
             ("imagery: Survey of Israel 2015 2 m layer", &["mapi2015"]),
+            ("scenery: sources", &["scenery-fetch"]),
+            ("scenery: buildings and trees", &["scenery"]),
             ("building tools", &["cli"]),
             ("extracting the original install", &["extract"]),
             ("v1.1 patch", &["patch"]),
@@ -504,6 +526,7 @@ mod tests {
             imagery: vec![Imagery::Sentinel2, Imagery::Mapi2015 { bases: false }],
             refresh: true,
             guides: true,
+            scenery: true,
             ..inputs()
         });
         for s in &all {
@@ -608,6 +631,8 @@ mod tests {
         assert!(go(&first).is_empty());
         let more = Inputs { imagery: vec![Imagery::Sentinel2], ..first.clone() };
         assert_eq!(go(&more), ["sentinel2"]);
+        let scenery = Inputs { scenery: true, ..more.clone() };
+        assert_eq!(go(&scenery), ["scenery", "scenery-fetch"]);
         let he = Inputs {
             hebrew: Hebrew::Packs { brief: Some("b.zip".into()), menu: Some("m.zip".into()) },
             ..more.clone()

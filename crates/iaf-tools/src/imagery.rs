@@ -236,6 +236,13 @@ impl Rules {
         }
     }
 
+    /// True where the layer replaces the original at terrain units (tx, ty): in its region, off the kept insets and
+    /// the airbases, on land (where scenery may stand, docs/scenery.md §1.3).
+    pub fn open(&self, tx: f64, ty: f64) -> bool {
+        let a = self.at(tx, ty);
+        a.region && a.base && a.land
+    }
+
     /// The rules tag of the terrain rect `r` (units: x0, y0, x1, y1): "v<RULES_VERSION> <hash>" over everything the rules
     /// decide there (the region, the kept insets and the airbase footprints that reach into it). A work unit whose
     /// mark holds another tag is converted again. terraintype.dat is left out: it comes with the install.

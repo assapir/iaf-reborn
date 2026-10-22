@@ -17,15 +17,19 @@
 # token, else through your browser (tools/imagery/fetch-mapi2015-curl.sh), then converted into the
 # Israel layers (needs GDAL; re-run after adding sheets: only the 20 km units they touch are redone). Without the ISO argument only the imagery steps run
 # (on an install set up before).
+# --scenery (off by default) adds buildings and trees over the Survey 2 m layer (docs/scenery.md): its sources (about
+# 1.6 GB, pinned) are downloaded into assets/source/scenery, then the cells are made (needs GDAL and the mapi2015
+# layer). Without the ISO argument it runs on an install set up before.
 # IAF_IMAGERY_MIRROR=user@host:/path/to/repo restores a missing assets/converted/imagery (and the sheets) with rsync;
 # the parts of it that older rules wrote (e.g. the airbases' old rectangles) are then converted again.
 # Safe to re-run: each step overwrites its own output under assets/.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-usage='usage: tools/setup-cli.sh [--patch <v1.1 patch>] [--hebrew-iso <Hebrew CD>] [--imagery sentinel2,mapi2015,mapi2015-bases] ["/path/to/Jane'"'"'s IAF.iso" [Brief.zip] [Menu.zip]]'
+usage='usage: tools/setup-cli.sh [--patch <v1.1 patch>] [--hebrew-iso <Hebrew CD>] [--imagery sentinel2,mapi2015,mapi2015-bases] [--scenery] ["/path/to/Jane'"'"'s IAF.iso" [Brief.zip] [Menu.zip]]'
 patch=${IAF_PATCH:-}
 imagery=
+scenery=
 hebrew_iso=${IAF_HEBREW_ISO:-}
 args=()
 while (($#)); do
@@ -36,11 +40,12 @@ while (($#)); do
 		--hebrew-iso=*) hebrew_iso=${1#--hebrew-iso=}; shift ;;
 		--imagery) imagery=${2:?$usage}; shift 2 ;;
 		--imagery=*) imagery=${1#--imagery=}; shift ;;
+		--scenery) scenery=1; shift ;;
 		-h|--help) echo "$usage"; exit 0 ;;
 		*) args+=("$1"); shift ;;
 	esac
 done
-[[ ${#args[@]} -gt 0 || -n $imagery ]] || { echo "$usage"; exit 1; }
+[[ ${#args[@]} -gt 0 || -n $imagery || -n $scenery ]] || { echo "$usage"; exit 1; }
 iso=${args[0]:-}
 hebrew_zip=${args[1]:-}
 hebrew_menu_zip=${args[2]:-}
@@ -127,9 +132,22 @@ imagery_steps() {
 	done
 }
 
+# Scenery (--scenery): after the imagery, or alone on an install set up before.
+scenery_steps() {
+	step "scenery: sources (OpenStreetMap, Microsoft footprints, GHSL heights, Meta canopy; about 1.6 GB, pinned)"
+	cargo build --release -p iaf-tools
+	./target/release/iaf-scenery fetch assets ||
+		{ echo "WARNING: the scenery's sources could not be fetched (offline?): Scenery stays off; run setup again online"; return 0; }
+	step "scenery: buildings and trees over the Survey 2 m layer"
+	command -v gdalwarp >/dev/null || { echo "GDAL is needed (README: prerequisites)"; return 0; }
+	[[ -d assets/converted/imagery/mapi2015/L1 ]] || { echo "Scenery needs the Survey 2 m layer: run with --imagery mapi2015 first"; return 0; }
+	./target/release/iaf-scenery build assets
+}
+
 if [[ -z $iso ]]; then
 	imagery_refresh
-	imagery_steps
+	[[ -n $imagery ]] && imagery_steps
+	[[ -n $scenery ]] && scenery_steps
 	step "done"
 	exit 0
 fi
@@ -331,6 +349,7 @@ wait_jobs
 
 imagery_refresh
 [[ -n $imagery ]] && imagery_steps
+[[ -n $scenery ]] && scenery_steps
 
 # The pilot guides' pictures and PDFs (docs/guides; the Reference screen's Pilot guide view): real renders, so only
 # with a display; they hold the original art and stay under assets/. After the imagery so the pictures show it.

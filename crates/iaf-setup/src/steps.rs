@@ -46,8 +46,8 @@ pub const OUTPUTS: &[&str] = &[
 ];
 
 /// What the setup keeps on an uninstall unless asked: the imported packs (the pack zips may be gone) and the
-/// downloads (imagery: hours and tens of GB to fetch again; the third-party textures).
-pub const KEPT: &[&str] = &["packs", "source/imagery", "thirdparty"];
+/// downloads (imagery: hours and tens of GB to fetch again; the scenery's sources; the third-party textures).
+pub const KEPT: &[&str] = &["packs", "source/imagery", "source/scenery", "thirdparty"];
 
 /// Removes the setup's outputs ([`OUTPUTS`]) from `assets`, and with `everything` the [`KEPT`] ones too; a
 /// missing one is fine.
@@ -193,6 +193,8 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
         }
         "sentinel2" | "mapi2015" => return imagery(step, ctx, pr, cancel),
         "textures" => return textures(&a.join("thirdparty/ambientcg"), thirdparty::AMBIENTCG, pr, cancel),
+        "scenery-fetch" => return scenery_fetch(&a.join("source/scenery"), SCENERY_PROBE, pr, cancel),
+        "scenery" => return scenery(a, pr, cancel),
         "imagery-refresh" => {
             let mut any = false;
             for spec in [&SENTINEL2, &MAPI2015] {
@@ -317,6 +319,44 @@ fn textures(dir: &Path, base: &str, pr: &dyn Progress, cancel: &AtomicBool) -> R
     Ok(Outcome::Done)
 }
 
+/// Answers when the scenery's sources can be downloaded (Geofabrik, the largest).
+const SCENERY_PROBE: &str = "https://download.geofabrik.de/";
+
+/// The scenery's sources (iaf_tools::thirdparty::SCENERY) into `dir`: up to date when every file is there; skipped
+/// (Scenery then stays off in the game) when `probe` cannot be reached.
+fn scenery_fetch(dir: &Path, probe: &str, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
+    if thirdparty::SCENERY.iter().all(|d| thirdparty::file_done(dir, d)) {
+        return Ok(Outcome::UpToDate);
+    }
+    let reachable = Command::new("curl")
+        .args(["-sI", "--max-time", "15", probe])
+        .stdout(Stdio::null())
+        .status()
+        .is_ok_and(|s| s.success());
+    if !reachable {
+        return Ok(Outcome::Skipped(
+            "the scenery's sources cannot be reached (offline?): Scenery stays off; run setup again online".into(),
+        ));
+    }
+    thirdparty::fetch_files(thirdparty::SCENERY, dir, pr, cancel)?;
+    Ok(Outcome::Done)
+}
+
+/// The scenery cells (iaf_tools::scenery): skipped without GDAL, the sources or the Survey 2 m layer.
+fn scenery(a: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
+    if !crate::tools().gdal {
+        return Ok(Outcome::Skipped("GDAL is needed (gdalwarp, ogr2ogr)".into()));
+    }
+    if !thirdparty::SCENERY.iter().all(|d| thirdparty::file_done(&a.join("source/scenery"), d)) {
+        return Ok(Outcome::Skipped("the scenery's sources are not downloaded (step scenery-fetch)".into()));
+    }
+    if !a.join("converted/imagery/mapi2015/L1").is_dir() {
+        return Ok(Outcome::Skipped("Scenery needs the Survey of Israel 2 m layer (imagery mapi2015)".into()));
+    }
+    let r = iaf_tools::scenery::Run { assets: a.to_path_buf(), near: None };
+    Ok(if iaf_tools::scenery::build(&r, pr, cancel)?.up_to_date { Outcome::UpToDate } else { Outcome::Done })
+}
+
 /// A modern imagery layer: the estimate first; nothing to convert (every unit's mark holds) is up to date.
 fn imagery(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
     if !crate::tools().gdal {
@@ -423,6 +463,9 @@ mod textures_tests {
         let dir = std::env::temp_dir().join(format!("iaf-setup-textures-{}", std::process::id()));
         let r = textures(&dir, "http://127.0.0.1:9/", &Quiet, &AtomicBool::new(false)).unwrap();
         assert!(matches!(r, Outcome::Skipped(ref w) if w.contains("Original")));
+        assert!(!dir.exists(), "nothing written");
+        let r = scenery_fetch(&dir, "http://127.0.0.1:9/", &Quiet, &AtomicBool::new(false)).unwrap();
+        assert!(matches!(r, Outcome::Skipped(ref w) if w.contains("offline")));
         assert!(!dir.exists(), "nothing written");
     }
 }

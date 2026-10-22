@@ -69,7 +69,8 @@ pub(crate) fn describe(p: &Path) -> Result<String> {
 }
 
 /// The stamp of `step`, without the lines of the steps it waits for (`run_one` adds them); `None`: the step keeps none
-/// (imagery keeps its own per-unit marks; the guides decide per picture).
+/// (imagery keeps its own per-unit marks; the scenery's sources their `.ok` marks and its cells `manifest.json`'s
+/// `made_from`; the guides decide per picture).
 pub(crate) fn of(step: &Step, ctx: &Ctx) -> Result<Option<Stamp>> {
     let a = &ctx.assets;
     let i = &ctx.inputs;

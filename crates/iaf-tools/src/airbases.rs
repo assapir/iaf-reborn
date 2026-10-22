@@ -454,9 +454,22 @@ pub fn on_ground(lineups: &[[f64; 3]], u: &[f64; 3]) -> bool {
     near.is_none_or(|l| u[2] < l[2] + GROUND_M)
 }
 
-/// The playable missions' unit positions (engine metres; x, y, altitude) from the converted missions (`iaf-convert
-/// missions`): the files missionlist.json names.
-pub fn mission_units(dir: &Path) -> Vec<[f64; 3]> {
+/// One unit of a playable mission (`mission_units`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Unit {
+    /// Engine metres: x, y, altitude.
+    pub pos: [f64; 3],
+    /// The bdb *Objects* item id (docs/formats/mis.md `0x2c6`) and the mission's object database (`default6_1.bdb`).
+    pub kind: i64,
+    pub bdb: String,
+    /// The routes it can drive or fly (engine metres, from its own position): each `Path` script's path
+    /// (docs/formats/mis.md CDMEScriptObj opcode 16) and its formation's waypoints.
+    pub routes: Vec<Vec<[f64; 2]>>,
+}
+
+/// The playable missions' units from the converted missions (`iaf-convert missions`): the files missionlist.json
+/// names (the missions and their base missions).
+pub fn mission_units(dir: &Path) -> Vec<Unit> {
     let mut out = Vec::new();
     let Ok(list) = std::fs::read(dir.join("missionlist.json")) else { return out };
     let Ok(list) = serde_json::from_slice::<serde_json::Value>(&list) else { return out };
@@ -469,15 +482,45 @@ pub fn mission_units(dir: &Path) -> Vec<[f64; 3]> {
         .collect();
     names.sort();
     names.dedup();
+    let items = |v: &serde_json::Value| v["items"].as_array().cloned().unwrap_or_default();
+    let xy = |p: &serde_json::Value| Some([p[1].as_f64()?, p[2].as_f64()?]);
     for name in names {
         let Ok(text) = std::fs::read(dir.join(format!("{name}.json"))) else { continue };
         let Ok(v) = serde_json::from_slice::<serde_json::Value>(&text) else { continue };
-        for it in v["entities"]["items"].as_array().into_iter().flatten() {
-            if let (Some(x), Some(y)) = (it["0x2e4"].as_f64(), it["0x2ee"].as_f64())
-                && (x >= 0.0 || y >= 0.0)
-            {
-                out.push([x, y, it["0x2f8"].as_f64().unwrap_or(0.0)]);
+        let paths = items(&v["paths"]);
+        let formations = items(&v["formations"]);
+        for it in items(&v["entities"]) {
+            let (Some(x), Some(y)) = (it["0x2e4"].as_f64(), it["0x2ee"].as_f64()) else { continue };
+            if x < 0.0 && y < 0.0 {
+                continue;
             }
+            let route = |pts: &serde_json::Value| -> Vec<[f64; 2]> {
+                std::iter::once([x, y]).chain(pts.as_array().into_iter().flatten().filter_map(xy)).collect()
+            };
+            let mut routes = Vec::new();
+            for s in items(&it["scripts0"]).iter().filter(|s| s["0x83e"] == 16) {
+                let name = s["0x848"].as_str().unwrap_or("").trim().to_lowercase();
+                let path = paths
+                    .iter()
+                    .find(|p| p["0x1e"] == s["0x8ac"])
+                    .or_else(|| paths.iter().find(|p| p["0x5dc"].as_str().unwrap_or("").trim().to_lowercase() == name));
+                if let Some(p) = path {
+                    routes.push(route(&p["points"]));
+                }
+            }
+            let id = &it["0x1e"];
+            for f in
+                formations.iter().filter(|f| f["members"].as_array().into_iter().flatten().any(|m| m["0x41a"] == *id))
+            {
+                routes.push(route(&f["points"]));
+            }
+            routes.retain(|r| r.len() > 1);
+            out.push(Unit {
+                pos: [x, y, it["0x2f8"].as_f64().unwrap_or(0.0)],
+                kind: it["0x2c6"].as_i64().unwrap_or(-1),
+                bdb: v["bdb"].as_str().unwrap_or("").to_lowercase(),
+                routes,
+            });
         }
     }
     out
@@ -570,8 +613,11 @@ pub fn sites(install: &Path, theatre: &Theatre, missions: &Path) -> Result<Vec<S
         .collect();
     // Units on the ground: below the nearest base's lineup altitude + GROUND_M (flights in the air stand on nothing).
     let lineups = ibx_lineups(&std::fs::read(install.join("iaf.ibx")).unwrap_or_default());
-    let units_t: Vec<[f64; 2]> =
-        mission_units(missions).iter().filter(|u| on_ground(&lineups, u)).map(|p| units(p[0], p[1])).collect();
+    let units_t: Vec<[f64; 2]> = mission_units(missions)
+        .iter()
+        .filter(|u| on_ground(&lineups, &u.pos))
+        .map(|u| units(u.pos[0], u.pos[1]))
+        .collect();
     let mut out = Vec::new();
     for rect in inset_sites(&ptt) {
         let art = |x0: i64, y0: i64, w: usize, h: usize| {
