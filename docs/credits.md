@@ -82,6 +82,22 @@ The `imagery` entry expands to "Terrain Imagery", followed by the `attribution` 
 
 This section gives the CC BY (Creative Commons Attribution) credit (docs/imagery.md §6).
 
+## Scenery credits
+
+Setup makes the scenery (docs/scenery.md) from open data it downloads into `assets/source/scenery/` (the repo holds
+none). The scenery manifest (`assets/converted/scenery/manifest.json`, written by `iaf-scenery build`) holds the
+lines to roll in its `attribution`, and the licences in `licence`:
+
+| Source | Credit line | Licence |
+|---|---|---|
+| OpenStreetMap (Geofabrik extract) | © OpenStreetMap contributors | ODbL 1.0[^osm] |
+| Microsoft Global ML Building Footprints | Microsoft Global ML Building Footprints | CDLA Permissive 2.0[^ms] |
+| GHS-BUILT-H R2023A | European Commission, Joint Research Centre (JRC) | free re-use with the source acknowledged[^ghsl] |
+| High Resolution Canopy Height Maps | Meta and World Resources Institute (WRI) | CC BY 4.0[^chm] |
+
+ODbL and CC BY ask for the credit. The files and their checksums are `SCENERY` in
+`crates/iaf-tools/src/thirdparty.rs`.
+
 ## Testing
 
 * `tests/godot/test_credits.gd` checks:
@@ -103,3 +119,8 @@ This section gives the CC BY (Creative Commons Attribution) credit (docs/imagery
 * In the game: run `./iafjets`, then QUIT and Yes.
 
 [^acg-licence]: ambientCG licence, https://docs.ambientcg.com/license/ (read 2026-10-22).
+[^osm]: OpenStreetMap, "Copyright and License": https://www.openstreetmap.org/copyright
+[^ms]: Microsoft, Global ML Building Footprints, "License": https://github.com/microsoft/GlobalMLBuildingFootprints
+[^ghsl]: European Commission, GHSL Data Package 2023, "Terms of Use" (in each GHS-BUILT-H tile's zip).
+[^chm]: Registry of Open Data on AWS, "High Resolution Canopy Height Maps by WRI and Meta":
+    https://registry.opendata.aws/dataforgood-fb-forests/

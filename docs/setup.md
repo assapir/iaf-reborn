@@ -49,10 +49,12 @@ and each step uses every core inside.
 | `launcher` | icon | the desktop launcher (`tools/install-launcher.sh`) |
 | `textures` | | `assets/thirdparty/ambientcg`: the CC0 textures of Ground textures and Model detail (≈ 250 MB download; docs/rendering.md §1.4, §9) |
 | `sentinel2`, `mapi2015-fetch`, `mapi2015` | airbases | `assets/converted/imagery` |
+| `scenery-fetch` | | `assets/source/scenery`: the scenery's sources (about 1.6 GB download; docs/scenery.md §1.1) |
+| `scenery` | mapi2015, scenery-fetch, missions, objects, airbases | `assets/converted/scenery`: buildings and trees (docs/scenery.md) |
 | `guides` | the conversions and imagery | the pilot guides |
 
 "The install" is `patch` when a patch is given, else `extract`. A failed required step stops the setup; the steps
-that wait for it do not run. `launcher`, `textures`, the imagery and the guides are optional: their failure stops only
+that wait for it do not run. `launcher`, `textures`, the imagery, the scenery and the guides are optional: their failure stops only
 what waits for them.
 
 `textures` (`iaf_tools::thirdparty`, CLI `iaf-textures`) fetches each material of `thirdparty::LISTS` with curl,
@@ -78,22 +80,27 @@ fills its pages from them; the CLI uses them when no ISO is given, plus the opti
 `--imagery sentinel2`, and only its steps and the steps that wait for them run.
 
 The imagery steps keep their own marks per work unit instead: a run converts only the units that are missing or
-were made under older rules, and is up to date when there are none. The guides decide per picture.
+were made under older rules, and is up to date when there are none. `scenery-fetch` is up to date when every file has
+its `.ok` mark, `scenery` when its manifest's `made_from` matches (docs/scenery.md §1.5). The guides decide per
+picture.
 
 ## Uninstall
 
 The CD launcher's UNINSTALL button (Extras → CD launcher, docs/front-end.md §18.1) asks first, then removes what the
 setup wrote under `assets/` (`iaf_setup::OUTPUTS`): `install`, `v1.0`, `v1.1`, `patch`, `converted`,
-`packs-none`, `hebrew-cd`, `hebrew-cd-pick`, the stamps and `setup.json`. The imported packs (`packs`) and the imagery
-downloads (`source/imagery`, `iaf_setup::KEPT`) and the ambientCG textures (`thirdparty`) stay unless the box "Also remove the imported Hebrew packs and the
+`packs-none`, `hebrew-cd`, `hebrew-cd-pick`, the stamps and `setup.json`. The imported packs (`packs`), the imagery
+downloads (`source/imagery`), the scenery's sources (`source/scenery`; `iaf_setup::KEPT`) and the ambientCG textures
+(`thirdparty`) stay unless the box "Also remove the imported Hebrew packs and the
 downloaded imagery" is ticked: getting them back needs the pack zips and hours of downloads. Everything else under
 `assets/` stays, and so do the pilots, settings and logs in the user folder, the repo and the built extension. The
 game then quits; `./setup` installs again. The launcher's INSTALL button opens the setup wizard.
 
 ## Outside programs
 
-- curl: `textures` (ambientCG) and the Survey sheets.
-- GDAL (`gdal_translate`, `gdalbuildvrt`): the imagery steps. Without it they are skipped.
+- curl: `textures` (ambientCG), the Survey sheets and `scenery-fetch`.
+- GDAL (`gdal_translate`, `gdalbuildvrt`, `gdalwarp`, `ogr2ogr` with its OSM driver): the imagery and `scenery` steps.
+  Without it they are skipped.
+- gzip: `scenery` (the Microsoft footprints).
 - `tools/imagery/fetch-mapi2015-curl.sh` (curl, python3, Firefox's data.gov.il token): the Survey sheets.
 - `tools/install-launcher.sh`: the desktop launcher (its `XDG_DATA_HOME` can be set).
 - The guides: `tools/guide_shots.sh` and `tools/guide_pdf.py` (both front ends).

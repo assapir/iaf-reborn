@@ -29,7 +29,7 @@ pub fn to_json(i: &Inputs) -> Value {
             Imagery::Mapi2015 { bases: true } => "mapi2015-bases",
         })
         .collect();
-    json!({ "cd": i.cd.to_string_lossy(), "patch": p(&i.patch), "hebrew": hebrew, "imagery": imagery, "refresh": i.refresh, "guides": i.guides })
+    json!({ "cd": i.cd.to_string_lossy(), "patch": p(&i.patch), "hebrew": hebrew, "imagery": imagery, "refresh": i.refresh, "guides": i.guides, "scenery": i.scenery })
 }
 
 pub fn save_inputs(assets: &Path, i: &Inputs) -> Result<()> {
@@ -67,6 +67,7 @@ pub fn from_json(v: &Value) -> Result<Inputs> {
         imagery,
         refresh: v["refresh"].as_bool().unwrap_or(false),
         guides: v["guides"].as_bool().unwrap_or(false),
+        scenery: v["scenery"].as_bool().unwrap_or(false),
     })
 }
 
@@ -88,6 +89,7 @@ mod tests {
                 imagery: vec![Imagery::Sentinel2, Imagery::Mapi2015 { bases: true }],
                 refresh: true,
                 guides: true,
+                scenery: true,
             };
             save_inputs(&dir, &i).unwrap();
             assert_eq!(load_inputs(&dir).unwrap(), Some(i));

@@ -11,6 +11,9 @@
 //!   ±2 σ to 0 / 1: stains, chips, scratches; Model detail's tint), A = normal X (the DXT5 normal layout).
 //!
 //! Then `material.json` (id, size, checksum) marks the material done, and `<list>.json` lists the list's materials.
+//!
+//! The scenery's sources (`SCENERY`, docs/scenery.md §1.1) are kept as they come: `fetch_files` downloads each into
+//! `assets/source/scenery/` and checks its pinned SHA-256.
 
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -111,6 +114,86 @@ pub const MODEL_DETAIL: &[Material] = &[
 
 /// Every list setup fetches: (name, materials). A new use adds its list here; `<dir>/<name>.json` lists it for the game.
 pub const LISTS: &[(&str, &[Material])] = &[("ground", GROUND_TEXTURES), ("model", MODEL_DETAIL)];
+
+/// One downloaded file kept as it comes (the scenery's sources, docs/scenery.md §1.1): its name under the download
+/// folder, where it comes from and its pinned SHA-256.
+pub struct Download {
+    pub file: &'static str,
+    pub url: &'static str,
+    pub sha256: &'static str,
+}
+
+/// The scenery's sources (`crate::scenery`), each file pinned: every install makes the same scenery.
+pub const SCENERY: &[Download] = &[
+    // LIST
+];
+
+/// True when `<dir>/<file>.ok` records the pinned checksum (downloaded and checked before) and the file is there.
+pub fn file_done(dir: &Path, d: &Download) -> bool {
+    std::fs::read_to_string(dir.join(format!("{}.ok", d.file))).is_ok_and(|t| t.lines().next() == Some(d.sha256))
+        && dir.join(d.file).is_file()
+}
+
+/// The day (YYYY-MM-DD, UTC) `fetch_files` checked the file, from its `.ok` mark.
+pub fn file_date(dir: &Path, d: &Download) -> Option<String> {
+    let t = std::fs::read_to_string(dir.join(format!("{}.ok", d.file))).ok()?;
+    t.lines().nth(1).map(str::to_string)
+}
+
+/// Today (UTC) as YYYY-MM-DD.
+fn today() -> String {
+    let days = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs() / 86400);
+    // Howard Hinnant's civil_from_days.
+    let z = days as i64 + 719468;
+    let era = z.div_euclid(146097);
+    let doe = z - era * 146097;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    format!("{:04}-{m:02}-{d:02}", yoe + era * 400 + (m <= 2) as i64)
+}
+
+/// Every file of `list` into `dir` (curl, so `file://` works too), checked against its pinned SHA-256. Files done before are kept. Returns how many it fetched.
+pub fn fetch_files(list: &[Download], dir: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<usize> {
+    std::fs::create_dir_all(dir)?;
+    let mut n = 0;
+    for (k, d) in list.iter().enumerate() {
+        check(cancel)?;
+        if !file_done(dir, d) {
+            let (p, part) = (dir.join(d.file), dir.join(format!("{}.part", d.file)));
+            // A file already there (copied in by hand) only needs its check.
+            if !(p.is_file() && sha256_file(&p)? == d.sha256) {
+                pr.log(&format!("downloading {}", d.file));
+                let status = Command::new("curl")
+                    .args(["-fsSL", "--retry", "3", "--connect-timeout", "30", "-o"])
+                    .arg(&part)
+                    .arg(d.url)
+                    .status()
+                    .context("running curl")?;
+                let sum = if status.success() { sha256_file(&part)? } else { String::new() };
+                if sum != d.sha256 {
+                    let _ = std::fs::remove_file(&part);
+                    if status.success() {
+                        bail!(
+                            "{}: checksum mismatch (got {sum}, pinned {}): the file at {} changed",
+                            d.file,
+                            d.sha256,
+                            d.url
+                        );
+                    }
+                    bail!("{}: download failed (curl {status})", d.file);
+                }
+                std::fs::rename(&part, &p)?;
+                n += 1;
+            }
+            std::fs::write(dir.join(format!("{}.ok", d.file)), format!("{}\n{}\n", d.sha256, today()))?;
+        }
+        pr.fraction((k + 1) as f32 / list.len() as f32);
+    }
+    Ok(n)
+}
 
 /// Where ambientCG serves the zips.
 pub const AMBIENTCG: &str = "https://ambientcg.com/get?file=";
@@ -352,6 +435,23 @@ mod tests {
         // Done before: kept, nothing fetched (the source may be gone).
         std::fs::remove_file(&zp).unwrap();
         assert_eq!(fetch("test", &good, &base, &out, &Stdout, &AtomicBool::new(false)).unwrap(), 0);
+        std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    #[test]
+    fn fetch_files_checks_and_keeps() {
+        let (d, zp) = fake_zip("files");
+        let url: &'static str = Box::leak(format!("file://{}", zp.display()).into_boxed_str());
+        let sum: &'static str = Box::leak(sha256_file(&zp).unwrap().into_boxed_str());
+        let out = d.join("out");
+        let no = AtomicBool::new(false);
+        let bad = [Download { file: "a.zip", url, sha256: "00" }];
+        assert!(format!("{:#}", fetch_files(&bad, &out, &Stdout, &no).unwrap_err()).contains("checksum mismatch"));
+        assert!(!out.join("a.zip").exists() && !out.join("a.zip.part").exists());
+        let good = [Download { file: "a.zip", url, sha256: sum }];
+        assert_eq!(fetch_files(&good, &out, &Stdout, &no).unwrap(), 1);
+        assert!(file_done(&out, &good[0]) && file_date(&out, &good[0]).is_some_and(|d| d.len() == 10));
+        assert_eq!(fetch_files(&good, &out, &Stdout, &no).unwrap(), 0, "kept");
         std::fs::remove_dir_all(&d).unwrap();
     }
 

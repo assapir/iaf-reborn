@@ -81,6 +81,7 @@ fn main() -> Result<()> {
             let lineups = iaf_tools::airbases::ibx_lineups(&std::fs::read(Path::new(install).join("iaf.ibx"))?);
             let units: Vec<_> = iaf_tools::airbases::mission_units(&missions)
                 .into_iter()
+                .map(|u| u.pos)
                 .filter(|u| iaf_tools::airbases::on_ground(&lineups, u))
                 .collect();
             let inside: Vec<_> = units
