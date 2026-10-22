@@ -18,6 +18,7 @@ pub mod radar;
 pub mod real_hud;
 pub mod release;
 pub mod rwr;
+pub mod scenery;
 pub mod sight;
 pub mod stores;
 
