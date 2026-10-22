@@ -42,8 +42,16 @@ ranked order: [graphics-research.md](graphics-research.md).
 - **A modern TSD map** (wishlist, user 2026-10-20; "just for fun"): an Extras overlay on the static maps (TSD /
   briefing EMF maps, map texts) with today's borders, names and places, drawn by us; the 1998 maps stay the default.
 - **Realistic night vision** (built, user 2026-10-21): Graphics → MORE "Night vision", Shift+N puts the goggles on
-  (rendering.md §8), the tube by the mission's year (§8.1). Open: a gain knob, the goggles' round view, the P20
-  afterglow, white phosphor; when IAF fighter pilots began to fly with goggles (§8.2).
+  (rendering.md §8): the tube by the mission's year (§8.1), cockpit glare and bright-light protection (§8.3), the HUD
+  in its brightest green. Future work (later):
+  - A gain knob (keys): more gain brightens the picture and grows the halos, as in DCS.
+  - The goggles' round view (about 40°) as an option beside full screen, as in Falcon BMS and MSFS.
+  - A hold time for the bright-light protection: the picture comes back a moment after the light goes.
+  - The P20 phosphor's afterglow (55 ms) on the Gen II and early Gen III tubes: streaks behind moving lights.
+  - The cockpit blurred when seen through the goggles (they focus at infinity, as in DCS), for a look-through view.
+  - The F-35I's helmet camera with its own look (latency, the visor's green glow).
+  - Research: when IAF fighter pilots began to fly with goggles, and which jets had goggle-compatible lighting (§8.2,
+    §8.3).
 - **Rain** (wishlist, user 2026-10-21): rain as a weather choice (Extras), with falling rain, wet surfaces and
   lower visibility.
 - **Four-ship flights** (wishlist, user 2026-10-22): a real flight of four (Extras). The original's flight is a pair:
