@@ -32,7 +32,7 @@ use crate::thirdparty::{self, Download, SCENERY};
 use crate::{airbases, log};
 
 /// The generator's version: part of the release, so a change to the rules below makes new ids.
-pub const GENERATOR: u32 = 1;
+pub const GENERATOR: u32 = 3;
 /// A level-1 node's side in terrain units (1024 pixels of 2 units).
 const NODE_UNITS: f64 = 2048.0;
 const PIXEL_UNITS: f64 = 2.0;
@@ -656,21 +656,40 @@ pub fn tagged_kind(tags: &BTreeMap<String, String>) -> Option<TreeKind> {
 pub struct Models {
     dir: PathBuf,
     map: Value,
+    /// Per bdb (lower-case): entity type (object `0x1e`) → its Present record (`0x53c`), the key of `map`.
+    presents: BTreeMap<String, BTreeMap<i64, i64>>,
 }
 
 impl Models {
-    pub fn load(objects: &Path) -> Self {
-        let map = std::fs::read(objects.join("objects.json"))
-            .ok()
-            .and_then(|b| serde_json::from_slice(&b).ok())
-            .unwrap_or(Value::Null);
-        Models { dir: objects.to_path_buf(), map }
+    /// `objects`: `converted/objects`; `missions`: `converted/missions` (the `.bdb.json` object lists).
+    pub fn load(objects: &Path, missions: &Path) -> Self {
+        let read = |p: PathBuf| -> Value {
+            std::fs::read(p).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or(Value::Null)
+        };
+        let map = read(objects.join("objects.json"));
+        let presents = map
+            .as_object()
+            .into_iter()
+            .flat_map(|m| m.keys())
+            .map(|bdb| {
+                let v = read(missions.join(format!("{bdb}.json")));
+                let ids = v["objects"]["items"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|o| Some((o["0x1e"].as_i64()?, o["0x53c"].as_i64()?)))
+                    .collect();
+                (bdb.to_lowercase(), ids)
+            })
+            .collect();
+        Models { dir: objects.to_path_buf(), map, presents }
     }
 
     /// The model path of type `kind` in `bdb` ("stationary/ofice/ofice1_h.gltf"), lower-case.
     pub fn path(&self, bdb: &str, kind: i64) -> Option<String> {
         let db = self.map.as_object()?.iter().find(|(k, _)| k.eq_ignore_ascii_case(bdb))?.1;
-        Some(db[kind.to_string()].as_str()?.to_lowercase())
+        let present = self.presents.get(&bdb.to_lowercase())?.get(&kind)?;
+        Some(db[present.to_string()].as_str()?.to_lowercase())
     }
 
     /// The model's horizontal radius (m) from its glTF bounds; 10 m when unknown.
@@ -701,15 +720,22 @@ pub fn is_static(path: &str) -> bool {
     }
 }
 
-/// The clearances of the missions' units on the ground (`airbases::on_ground`): a static unit clears its radius +
+/// The clearances of the missions' units on the ground (ground forces and stationary models anywhere, the rest by
+/// `airbases::on_ground`): a static unit clears its radius +
 /// STATIC_CLEAR_M for everything; a vehicle clears VEHICLE_BUILDING_M around itself and its routes for buildings, its
 /// radius for trees, and ROUTE_TREE_M along its routes for trees.
 pub fn clears(units: &[airbases::Unit], lineups: &[[f64; 3]], models: &Models) -> Vec<Clear> {
     let mut radius: BTreeMap<String, f64> = BTreeMap::new();
     let mut out = Vec::new();
-    for u in units.iter().filter(|u| airbases::on_ground(lineups, &u.pos)) {
+    for u in units {
         let p = [u.pos[0], u.pos[1]];
         let path = models.path(&u.bdb, u.kind).unwrap_or_default();
+        // Ground forces and stationary models stand on the ground wherever they are (a radar on a hill is far above
+        // the nearest base); the rest (planes, markers) only when at a base's height (parked).
+        let ground_model = path.starts_with("groundforces/") || path.starts_with("stationary/");
+        if !ground_model && !airbases::on_ground(lineups, &u.pos) {
+            continue;
+        }
         let r = *radius.entry(path.clone()).or_insert_with(|| models.radius(&path));
         if is_static(&path) {
             out.push(Clear { a: p, b: p, building: r + STATIC_CLEAR_M, tree: r + STATIC_CLEAR_M });
@@ -1237,7 +1263,8 @@ pub fn build(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary>
     let rules = Rules::load(&install, false, &theatre)?;
     let units = airbases::mission_units(&a.join("converted/missions"));
     let lineups = airbases::ibx_lineups(&std::fs::read(install.join("iaf.ibx")).unwrap_or_default());
-    let all_clears = clears(&units, &lineups, &Models::load(&a.join("converted/objects")));
+    let all_clears =
+        clears(&units, &lineups, &Models::load(&a.join("converted/objects"), &a.join("converted/missions")));
     let moves = base_moves(&install, &a.join("converted/terrain"));
     let ring = iaf_flight::base_move::RING;
     log!(

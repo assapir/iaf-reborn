@@ -1387,8 +1387,7 @@ mod tests {
         assert_eq!(clear_ground(&s, 1010.0, 1010.0, 10.0).map(|[x, y]| s.clear(x, y, 10.0)), Some(true));
     }
 
-    /// Setup keeps the scenery clear of the original units (docs/scenery.md §1.3); three units stand on or at the edge
-    /// of a footprint whose corners and centre lie outside setup's exclusion (docs/scenery.md §5.4).
+    /// Setup keeps the scenery clear of the original units (docs/scenery.md §1.3, §5.5): none stands on a building.
     #[test]
     fn scenery_check_originals_clean() {
         let Some(a) = assets() else { return eprintln!("skip: no converted missions") };
@@ -1413,6 +1412,6 @@ mod tests {
                 found.push(format!("{name} {}", i.id));
             }
         }
-        assert_eq!(found, ["cest_lavi 25", "closesupport 4", "landing 3"], "originals on a building");
+        assert!(found.is_empty(), "originals on a building: {found:?}");
     }
 }

@@ -89,7 +89,9 @@ A building is dropped when any corner or its centre is closed ground; a tree whe
 - **World scale Real's base sites** (docs/world-scale.md §3.3, `base_move.rs`): each base's old zone and its new zone
   with the flattening ring (1200 m).
 - **The missions' units on the ground** (every mission and base mission of missionlist.json, `airbases::mission_units`),
-  by the unit's model (`objects/objects.json`, the model's horizontal radius from its glTF bounds):
+  by the unit's model: its type → the bdb object's Present record (`0x53c`) → `objects/objects.json`, and the model's
+  horizontal radius from its glTF bounds. Ground forces and stationary models count wherever they stand (a radar on a
+  hill is far above the nearest base); planes and markers only at a base's height (parked):
 
 | Unit | Buildings | Trees |
 |---|---|---|
@@ -294,10 +296,7 @@ does not stand (§5.2) the line adds "Shown as an original office block (Scenery
 ### 5.5 Calibration on the original missions
 
 The Rust test `scenery_check_originals_clean` runs the check over the missions and base missions of
-missionlist.json with the installed scenery. Three original units stand on or within the limit of a building: a T-55
-in 115 (closesupport, a 22-corner OSM footprint that wraps it), a waypoint marker in 311's landing training (landing),
-and a P-40 radar in cest_lavi. Setup tests only a footprint's corners and centre against a unit's clear zone (§1.3),
-so a large or concave footprint can still reach a unit (open).
+missionlist.json with the installed scenery: no original unit stands on a building.
 
 ### 5.6 Tests
 

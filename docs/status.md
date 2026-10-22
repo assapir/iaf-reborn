@@ -127,7 +127,6 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
 - **World scale Real 1:1**: the real blast radii of the missiles / SAMs without a published lethal radius.
 - **Setup wizard**: the pages wait for the user's review (roadmap.md).
 - **Imagery**: SPOT 5 outside Israel not started.
-- **Scenery** ([scenery.md](scenery.md) §5.5): setup's clear zones test only a footprint's corners and centre; three original units stand on a building's edge.
 - **Multiplayer**: not started (missions 511–516, 777), with its RWR network messages. Research and discussion:
   [multiplayer.md](multiplayer.md).
 
