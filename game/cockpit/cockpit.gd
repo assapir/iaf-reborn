@@ -41,8 +41,10 @@ static func hud_colour() -> Color:
 	return HUD_COLOURS[hud_colour_index]
 
 
+## The cockpit the scene loads at once (terrain_preload.gd decodes its art ahead).
+const DEFAULT_DIR := "converted/cockpits/f16"
 ## Under assets/.
-@export var cockpit_dir := "converted/cockpits/f16"
+@export var cockpit_dir := DEFAULT_DIR
 
 ## Flight state shown by the instruments. Angles in degrees, speed in knots,
 ## altitude in feet, vertical speed in ft/min, fuel in lbs, rpm/throttle 0..1.
@@ -185,27 +187,49 @@ func load_cockpit(rel: String) -> void:
 	if layout.is_empty():
 		push_error("cockpit: %s/cockpit.json not found — run iaf-convert cockpit" % dir)
 		return
-	for key in ["PANEL", "HUD", "LENHORIZON", "PANELVARIO", "PANELAOA"]:
-		var file: String = layout.get(key, {}).get("FileName", "")
-		if file != "":
-			_add_tex(key, file, true)
-	var lights_file: String = layout.get("LIGHTSON", {}).get("FileName", "")
-	if lights_file != "":
-		_add_tex("LIGHTS", lights_file)
-	# Ours (the F-35I): a panel and lamps rendered for the night, shown instead of the darkened day art.
-	for pair in [["PANEL", "PANEL_NIGHT"], ["LIGHTSON", "LIGHTS_NIGHT"]]:
-		var night_file: String = layout.get(pair[0], {}).get("NightFileName", "")
-		if night_file != "":
-			_add_tex(pair[1], night_file, pair[0] == "PANEL")
-	_add_tex("MFDS", "mfds.bmp")
-	_add_tex("RWRSYMB", "rwrsymb.bmp")
+	for a in _art(dir, layout):
+		var t := Img.load_texture(a[1], a[2])
+		if t != null:
+			tex[a[0]] = t
 	_load_panel_mask()
 	_load_tsd_map()
 	_create_mfds()
 	hud.cockpit = self
 
 
-## The converted art of an original cockpit image file (lower-case .png; ours may be .webp), when present.
+## The cockpit's art: [tex key, file, mipmaps] — the converted art of the original image files (lower-case .png; ours
+## may be .webp).
+static func _art(d: String, lay: Dictionary) -> Array:
+	var out := []
+	var add := func(key: String, file: String, mipmaps: bool) -> void:
+		var ext := ".webp" if file.get_extension().to_lower() == "webp" else ".png"
+		out.append([key, _file_in(d, lay, file.get_basename().to_lower() + ext), mipmaps])
+	for key in ["PANEL", "HUD", "LENHORIZON", "PANELVARIO", "PANELAOA"]:
+		var file: String = lay.get(key, {}).get("FileName", "")
+		if file != "":
+			add.call(key, file, true)
+	var lights_file: String = lay.get("LIGHTSON", {}).get("FileName", "")
+	if lights_file != "":
+		add.call("LIGHTS", lights_file, false)
+	# Ours (the F-35I): a panel and lamps rendered for the night, shown instead of the darkened day art.
+	for pair in [["PANEL", "PANEL_NIGHT"], ["LIGHTSON", "LIGHTS_NIGHT"]]:
+		var night_file: String = lay.get(pair[0], {}).get("NightFileName", "")
+		if night_file != "":
+			add.call(pair[1], night_file, pair[0] == "PANEL")
+	add.call("MFDS", "mfds.bmp", false)
+	add.call("RWRSYMB", "rwrsymb.bmp", false)
+	return out
+
+
+## Decodes the art of cockpit `rel` (as load_cockpit takes it) on worker threads ahead of the flight
+## (terrain_preload.gd): ~230 ms of the flight scene's first frame otherwise.
+static func prefetch_art(rel: String) -> void:
+	var d := rel if rel.begins_with("res://") else Settings.assets_dir().path_join(rel)
+	for a in _art(d, Settings.load_json(d.path_join("cockpit.json"))):
+		Img.prefetch(a[1], a[2])
+
+
+## The converted art of an original cockpit image file (as _art() names it) as tex[key], when present.
 func _add_tex(key: String, file: String, mipmaps := false) -> void:
 	var ext := ".webp" if file.get_extension().to_lower() == "webp" else ".png"
 	var t := Img.load_texture(_file(file.get_basename().to_lower() + ext), mipmaps)
@@ -216,10 +240,14 @@ func _add_tex(key: String, file: String, mipmaps := false) -> void:
 ## A cockpit file: the cockpit's own, else (an extra plane's cockpit, `"Shared": "<converted cockpit>"`) the
 ## converted cockpit's it borrows the original art from (the MFD atlas, RWR symbols, TSD map, ADI ball).
 func _file(name: String) -> String:
-	var own := dir.path_join(name)
-	if FileAccess.file_exists(own) or not layout.has("Shared"):
+	return _file_in(dir, layout, name)
+
+
+static func _file_in(d: String, lay: Dictionary, name: String) -> String:
+	var own := d.path_join(name)
+	if FileAccess.file_exists(own) or not lay.has("Shared"):
 		return own
-	return Settings.assets_dir().path_join("converted/cockpits").path_join(String(layout.Shared)).path_join(name)
+	return Settings.assets_dir().path_join("converted/cockpits").path_join(String(lay.Shared)).path_join(name)
 
 
 ## map.emf points (normalised to its 12601 x 16383 frame) -> world (FUN_00531a50 inverse), in the

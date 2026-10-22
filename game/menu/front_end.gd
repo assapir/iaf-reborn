@@ -144,6 +144,7 @@ const CTRL_ARROW := Vector2(15, 18)
 const CTRL_THUMB := Vector2(10, 23)
 const KeyTable := preload("res://controls/key_table.gd")
 const Img := preload("res://util/img.gd")
+const TerrainPreload := preload("res://terrain/terrain_preload.gd")
 const Tsd := preload("res://menu/tsd.gd")
 const Pilots := preload("res://menu/pilots.gd")
 const ImageryLayers := preload("res://terrain/imagery_layers.gd")
@@ -849,7 +850,6 @@ var _preload_flight := -1
 
 
 func _preload_ground() -> void:
-	const TerrainPreload := preload("res://terrain/terrain_preload.gd")
 	if flight != null:
 		return
 	if tsd != null:
@@ -858,8 +858,9 @@ func _preload_ground() -> void:
 			_preload_flight = n
 			var w = preload("res://mission/mission_runtime.gd").player_start(Settings.mission_id, n)
 			if w != null:
-				TerrainPreload.target(get_tree(), w)
+				TerrainPreload.target(get_tree(), w, n)
 			ModelDetail.preload_packs()  # Model detail's textures, off the main thread
+		TerrainPreload.poll()  # the flight's first-frame art and models, once its scene has loaded
 	elif _preload_flight != -1:
 		_preload_flight = -1
 		TerrainPreload.stop()
@@ -2496,7 +2497,7 @@ func _fly() -> void:
 	else:
 		Settings.route_override = []
 	busy = true
-	get_tree().change_scene_to_file("res://terrain/terrain_view.tscn")
+	get_tree().change_scene_to_packed(TerrainPreload.scene())
 
 
 func _row_for(label: String) -> Dictionary:

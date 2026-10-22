@@ -6,13 +6,16 @@
 # the average fps over the first 30 s, then 15 s in the external view where the jet stands (its stores, the wingmen,
 # the base: Model detail's busy view), then a low pass (frozen flight model, cockpit: down to GT_ALT m above the
 # ground, default 60, in 5 s, then 25 s at 150 m/s along the heading) with its worst frame and fps. Vsync off.
-# GT_PRELOAD also starts Model detail's preload (util/model_detail.gd preload_packs), as the front end does.
+# GT_PRELOAD also starts Model detail's preload (util/model_detail.gd preload_packs) and the flight scene's threaded
+# load and the first frame's art and models (terrain/terrain_preload.gd preload_scene, prefetch_flight), as the
+# front end does.
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 GT_SET='ground_textures="ambientcg"' GT_PRELOAD=1 -- \
 #     --log-file /tmp/g.log --path game --resolution 2560x1440 -s ../tests/godot/_ground_tex_bench.gd -- --mission 311
 extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
+	var tp: GDScript = load("res://terrain/terrain_preload.gd")
 	settings().vsync = false
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	for kv in OS.get_environment("GT_SET").split(",", false):
@@ -22,13 +25,21 @@ func run() -> void:
 		var gt: GDScript = load("res://terrain/ground_textures.gd")
 		gt.preload_async()
 		load("res://util/model_detail.gd").preload_packs()
+		tp.preload_scene()
+		while ResourceLoader.load_threaded_get_status(tp.SCENE) == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+			await process_frame
+		var m := OS.get_cmdline_user_args().find("--mission")
+		tp.prefetch_flight(int(OS.get_cmdline_user_args()[m + 1]) if m >= 0 else -1)
 		await create_timer(3.0).timeout
 		var u0 := Time.get_ticks_usec()
 		if settings().ground_textures == "ambientcg":
 			gt.load_globals()
 		print("GT upload %.1f ms (after the preload)" % ((Time.get_ticks_usec() - u0) / 1000.0))
 	var t0 := Time.get_ticks_usec()
-	change_scene_to_file("res://terrain/terrain_view.tscn")
+	if OS.get_environment("GT_PRELOAD") == "1":
+		change_scene_to_packed(tp.scene())
+	else:
+		change_scene_to_file("res://terrain/terrain_view.tscn")
 	await frames(2)
 	var tv: Node = null
 	while tv == null or tv.get("flight") == null or tv.waiting_for_ground:

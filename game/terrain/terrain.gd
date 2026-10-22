@@ -24,8 +24,10 @@ extends Node3D
 ## Nothing farther than this is loaded or drawn (metres; the camera's far plane).
 @export var view_range := 200000.0
 ## Decode workers running at once. Each takes the next wanted key itself when it finishes one, so
-## loading does not wait for frames (a hidden / throttled window runs at ~1 fps).
-@export var max_jobs := 6
+## loading does not wait for frames (a hidden / throttled window runs at ~1 fps). High-priority pool tasks: low-priority
+## ones get 30 % of the pool's threads (threading/worker_pool/low_priority_thread_ratio, 2 of 8). More than 4 starve
+## the main and render threads while the flight scene builds (docs/rendering.md §1.5).
+@export var max_jobs := 4
 ## "Near" for `ground_ready()`: nodes within this distance (m) must be at their full detail.
 @export var near_range := 8000.0
 ## Geometry splits down to this level everywhere; finer only where finer imagery exists.
@@ -494,7 +496,7 @@ func _start_jobs() -> void:
 		WorkerThreadPool.wait_for_task_completion(id)
 		_jobs.erase(id)
 	while _jobs.size() < mini(max_jobs, keys.size()):
-		_jobs.append(WorkerThreadPool.add_task(_work))
+		_jobs.append(WorkerThreadPool.add_task(_work, true, "terrain decode"))
 
 
 func _path(key: Vector4i) -> String:
