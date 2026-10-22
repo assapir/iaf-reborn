@@ -359,7 +359,8 @@ itself (5–10 June 1967), fought from the pre-war lines. The year decides:
 - the original that New builds on, and so its TSD map (§12.1);
 - the bases each side holds (§12.2);
 - the aircraft and SAM / AAA each side has in service (§12.3);
-- the year's warnings (§12.7).
+- the year's warnings (§12.7);
+- the night-vision goggles' tube when it flies (rendering.md §8.1).
 
 Code: `crates/iaf-tools/src/mission_year.rs`, through `IafMissionEdit` (§5).
 

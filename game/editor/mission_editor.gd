@@ -705,7 +705,7 @@ func fly(anyway := false) -> void:
 		_ui.fly_anyway.popup_centered()
 		return
 	save()
-	Settings.fly_edited(source, _fly_files(), briefing.duplicate(true), fly_flight(), file)
+	Settings.fly_edited(source, _fly_files(), briefing.duplicate(true), fly_flight(), file, year)
 
 
 # --- UI -------------------------------------------------------------------------------------------------------------

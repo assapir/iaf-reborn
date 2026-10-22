@@ -281,6 +281,20 @@ var briefing_override := {}
 var return_to_editor := false
 var editor_flight := 0
 var editor_file := ""
+## The edited mission's year while it flies (0 = none; mission-editor.md §12).
+var editor_year := 0.0
+
+
+## The year the flight is set in: the edited mission's own, else the original's by its id (mission_year.rs
+## default_year: 1967, 1973, 1982 or 1998).
+func mission_year() -> float:
+	if return_to_editor and editor_year > 0.0:
+		return editor_year
+	if not ClassDB.class_exists("IafMissionEdit"):
+		return 1998.0
+	return float(ClassDB.class_call_static("IafMissionEdit", "default_year", mission_id))
+
+
 ## Flight picked on the TSD (1..4 = Alpha..Delta; Fly / double-click makes its leader the player);
 ## 0 = the mission's default flight (mission_runtime.gd player_flight()).
 var player_flight := 0
@@ -724,7 +738,8 @@ func _free_sounds() -> void:
 
 ## The mission editor's Fly: mission `id` (the source mission: its bdb, bases and rules) with the edited `files` and
 ## `briefing`, opened on its TSD with `flight` selected; the debrief and the TSD's BACK come back to the editor.
-func fly_edited(id: int, files: Array, briefing: Dictionary, flight: int, file: String) -> void:
+func fly_edited(id: int, files: Array, briefing: Dictionary, flight: int, file: String, year := 0.0) -> void:
+	editor_year = year
 	mission_files_override = files.duplicate(true)
 	briefing_override = briefing.duplicate()
 	return_to_editor = true

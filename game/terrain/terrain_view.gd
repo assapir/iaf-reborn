@@ -2977,15 +2977,20 @@ func _own_key(event: InputEventKey) -> void:
 			cockpit.toggle_panel()
 		KEY_N:
 			if event.shift_pressed and Settings.night_vision:
-				_toggle_goggles()
+				if goggles_tube().is_empty():
+					_on_subtitle("no night-vision goggles in %d" % int(Settings.mission_year()))
+				else:
+					_toggle_goggles()
 
 
 ## Ours (Graphics → MORE "Night vision", docs/rendering.md §8): the goggles on / off, a screen shader over the 3D
-## view and under the cockpit (canvas layer -1, after the cloud layer's).
+## view and under the cockpit (canvas layer -1, after the cloud layer's); the HUD in its brightest green.
 func _toggle_goggles() -> void:
 	if _goggles == null:
 		var mat := ShaderMaterial.new()
 		mat.shader = preload("res://terrain/night_vision.gdshader")
+		for k in goggles_tube():
+			mat.set_shader_parameter(k, goggles_tube()[k])
 		var rect := ColorRect.new()
 		rect.material = mat
 		rect.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -2996,9 +3001,39 @@ func _toggle_goggles() -> void:
 		_goggles.add_child(rect)
 		add_child(_goggles)
 	_goggles.visible = not _goggles.visible
+	# The HUD's light is far stronger than the night outside: through the tubes it shows as the brightest green (index 7
+	# of the H key's levels; inferred), the player's level back when the goggles come off.
+	if _goggles.visible:
+		_hud_level = cockpit.hud_colour_index
+		cockpit.hud_colour_index = 7
+	else:
+		cockpit.hud_colour_index = _hud_level
 
 
 var _goggles: CanvasLayer
+var _hud_level := 0
+
+## The image tubes by generation (rendering.md §8.1): the photocathode's colour weights, the grain at ×2 gain, the
+## blur (screen mip level), the halo's strength and the top gain. Gen II: AN/PVS-5 (1972); Gen III: ANVIS-6, Omnibus
+## I–III (1982); late Gen III: ANVIS-9, Omnibus IV on (1996).
+const TUBES := {
+	"gen2": {"cathode": Vector3(0.45, 0.4, 0.15), "grain": 0.29, "blur": 1.2, "halo": 0.25, "max_gain": 5.0},
+	"gen3": {"cathode": Vector3(0.6, 0.4, 0.0), "grain": 0.07, "blur": 0.7, "halo": 0.6, "max_gain": 8.0},
+	"gen3_late": {"cathode": Vector3(0.6, 0.4, 0.0), "grain": 0.047, "blur": 0.0, "halo": 0.4, "max_gain": 8.0},
+}
+
+
+## The goggles of the flight's year and jet ({} = none): the best tube of the mission's year; the MiGs a Gen II at
+## most (the Soviet ONV-1), the F-35I its helmet camera, drawn as the late Gen III.
+func goggles_tube() -> Dictionary:
+	var year := Settings.mission_year()
+	if player.get("type", 0) == PlayerAircraft.F35I:
+		return TUBES.gen3_late
+	if year < 1972.0:
+		return {}
+	if player.get("type", 0) in [160, 180] or year < 1982.0:
+		return TUBES.gen2
+	return TUBES.gen3 if year < 1996.0 else TUBES.gen3_late
 
 
 func _process(delta: float) -> void:

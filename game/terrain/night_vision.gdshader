@@ -1,14 +1,19 @@
-// Ours (Graphics → MORE "Night vision", docs/rendering.md §8): the 3D view through Gen III image-intensifier
-// goggles. Drawn on a canvas layer under the cockpit, so the panel stays as seen under the goggles.
+// Ours (Graphics → MORE "Night vision", docs/rendering.md §8): the 3D view through image-intensifier goggles of the
+// mission's year (terrain_view.gd TUBES). Drawn on a canvas layer under the cockpit, so the panel stays as seen under
+// the goggles.
 shader_type canvas_item;
 
 uniform sampler2D screen : hint_screen_texture, filter_linear_mipmap;
-// The tube's automatic brightness control aims the mean image at this level, at most max_gain times brighter.
+// The tube's automatic gain control aims the mean image at this level, at most max_gain times brighter.
 uniform float target = 0.55;
 uniform float max_gain = 8.0;
+// The tube (terrain_view.gd TUBES): the photocathode's weights for R, G, B, the grain at ×2 gain, the blur (screen
+// mip level) and the halo's strength.
+uniform vec3 cathode = vec3(0.6, 0.4, 0.0);
+uniform float grain_k = 0.047;
+uniform float blur = 0.0;
+uniform float halo_k = 0.4;
 
-// The photocathode sees 500–900 nm, green into the near infrared: red counts most, blue not at all.
-const vec3 CATHODE = vec3(0.6, 0.4, 0.0);
 // P43 phosphor green.
 const vec3 PHOSPHOR = vec3(0.42, 1.0, 0.36);
 
@@ -20,18 +25,18 @@ float hash(vec2 p) {
 
 void fragment() {
 	// On the square root of the brightness: the dim ground keeps its detail beside the sky (inferred).
-	float mean = sqrt(dot(textureLod(screen, vec2(0.5), 12.0).rgb, CATHODE));
+	float mean = sqrt(dot(textureLod(screen, vec2(0.5), 12.0).rgb, cathode));
 	float gain = clamp(target / max(mean, 1e-3), 1.0, max_gain);
-	float l = sqrt(dot(textureLod(screen, SCREEN_UV, 0.0).rgb, CATHODE)) * gain;
+	float l = sqrt(dot(textureLod(screen, SCREEN_UV, blur).rgb, cathode)) * gain;
 	// Halos: a light far brighter than the scene blooms into a disc around itself.
 	float halo = 0.0;
 	for (float lod = 2.0; lod <= 5.0; lod += 1.0) {
-		halo += max(sqrt(dot(textureLod(screen, SCREEN_UV, lod).rgb, CATHODE)) * gain - 0.9, 0.0);
+		halo += max(sqrt(dot(textureLod(screen, SCREEN_UV, lod).rgb, cathode)) * gain - 0.9, 0.0);
 	}
-	l += 0.5 * halo;
+	l += halo_k * halo;
 	// Scintillation: the more gain, the more grain (photon noise), changing every frame.
 	float grain = hash(floor(FRAGCOORD.xy) + fract(TIME * 61.0) * 917.0) - 0.5;
-	l += grain * 0.07 * sqrt(gain / 2.0);
+	l += grain * grain_k * sqrt(gain / 2.0);
 	// The bright end saturates softly; the tube's edge darkens.
 	l = 1.0 - exp(-1.6 * max(l, 0.0));
 	vec2 d = SCREEN_UV - 0.5;

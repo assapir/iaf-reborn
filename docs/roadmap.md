@@ -42,7 +42,8 @@ ranked order: [graphics-research.md](graphics-research.md).
 - **A modern TSD map** (wishlist, user 2026-10-20; "just for fun"): an Extras overlay on the static maps (TSD /
   briefing EMF maps, map texts) with today's borders, names and places, drawn by us; the 1998 maps stay the default.
 - **Realistic night vision** (built, user 2026-10-21): Graphics → MORE "Night vision", Shift+N puts the goggles on
-  (rendering.md §8). Open: a gain knob, NVG-compatible cockpit lighting, the goggles' round view.
+  (rendering.md §8), the tube by the mission's year (§8.1). Open: a gain knob, the goggles' round view, the P20
+  afterglow, white phosphor; when IAF fighter pilots began to fly with goggles (§8.2).
 - **Rain** (wishlist, user 2026-10-21): rain as a weather choice (Extras), with falling rain, wet surfaces and
   lower visibility.
 - **Four-ship flights** (wishlist, user 2026-10-22): a real flight of four (Extras). The original's flight is a pair:

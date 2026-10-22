@@ -69,8 +69,17 @@ func run() -> void:
 	settings().night_vision = true
 	tv._own_key(shift_n)
 	check(tv._goggles != null and tv._goggles.visible and tv._goggles.layer == -1, "Shift+N: the goggles go on")
+	check(tv.cockpit.hud_colour_index == 7, "goggles on: the HUD in its brightest green")
 	tv._own_key(shift_n)
-	check(not tv._goggles.visible, "Shift+N again: the goggles come off")
+	check(not tv._goggles.visible and tv.cockpit.hud_colour_index == 0, "Shift+N again: off, the HUD's level back")
+	# The tube by the mission's year (§8.1): 214 is 1998, a late Gen III; 111 (1967) none; 121 (1973) a Gen II;
+	# 131 (1982) an early Gen III.
+	check(tv.goggles_tube() == tv.TUBES.gen3_late, "1998: a late Gen III tube")
+	var keep_id: int = settings().mission_id
+	for c in [[111, {}], [121, tv.TUBES.gen2], [131, tv.TUBES.gen3]]:
+		settings().mission_id = c[0]
+		check(tv.goggles_tube() == c[1], "mission %d (%d): its year's tube" % [c[0], settings().mission_year()])
+	settings().mission_id = keep_id
 	settings().night_vision = false
 
 	# Original by day, 125 (lt_ossa boats): light points at every hour.

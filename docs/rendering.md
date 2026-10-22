@@ -504,29 +504,105 @@ the goggles on and takes them off (`terrain_view.gd _toggle_goggles`). The origi
 
 The goggles are a full-screen shader on canvas layer −1: over the 3D view and the cloud layer, under the cockpit,
 HUD and MFDs. The pilot sees the outside through the goggles and the panel below them, so the panel keeps its own
-night lighting. The shader models a Gen III image tube:
+night lighting. The tube depends on the mission's year (§8.1). The shader:
 
-1. **Spectrum.** The image is one brightness, weighted (0.6, 0.4, 0) for R, G, B: no blue. A Gen III tube sees
-   500–900 nm, from blue-green into the near infrared[^nvd]; the weights are inferred. Without blue the navy night
-   sky stays a mid tone and the ground shows.
-2. **Automatic brightness control.** The shader works on the square root of the brightness, so the moonlit ground
-   keeps its detail beside the brighter sky (inferred). The gain is set so the screen's mean (the screen texture's
-   last mip) reaches 0.55, between ×1 and ×8. A real tube's control lowers its plate voltage in bright light[^nvd].
+1. **Spectrum.** The image is one brightness, weighted by the tube's photocathode. A Gen III tube sees 500–900 nm,
+   from blue-green into the near infrared[^nvd]: (0.6, 0.4, 0) for R, G, B, no blue. A Gen II tube sees more of the
+   visible light: (0.45, 0.4, 0.15). The weights are inferred. Without blue the navy night sky stays a mid tone and
+   the ground shows.
+2. **Automatic gain control.** The shader works on the square root of the brightness, so the moonlit ground keeps
+   its detail beside the brighter sky (inferred). The gain is set so the screen's mean (the screen texture's last
+   mip) reaches 0.55, from ×1 up to the tube's top gain. A real tube raises its gain as the light falls[^rash].
    By day the gain stays at ×1.
-3. **Halos.** Where a light is much brighter than the scene, mips 2–5 brighter than 0.9 after the gain add a disc around it. Gen III tubes
-   show halos around bright lights[^nvd].
-4. **Grain.** Noise per pixel, new every frame, grows with the square root of the gain: a dark scene is grainy
-   (inferred: photon noise).
-5. **Phosphor.** The brightness saturates softly (1 − e^(−1.6 l)), tinted P43 green (0.42, 1.0, 0.36). Night-vision
-   images are green because green is easiest to watch in the dark for long[^nvd]. The edge of the view darkens (by
-   up to 70 %).
+3. **Sharpness.** The image is read from a blurred screen mip: none for the late Gen III, 0.7 for the early Gen III,
+   1.2 for the Gen II. These follow the tubes' resolution against the late Gen III's 64 lp/mm: 36–51 lp/mm
+   (×1.6 blur) and 28 lp/mm (×2.3)[^omni][^gen2].
+4. **Halos.** Where a light is much brighter than the scene, mips 2–5 brighter than 0.9 after the gain add a disc
+   around it, scaled by the tube's halo strength. Gen III tubes, with their ion-barrier film, show larger halos than
+   Gen II ones[^nvd], and the halo shrank over the 1990s contracts (1.47 mm → 0.70 mm on the tube)[^omni].
+5. **Grain.** Noise per pixel, new every frame, grows with the square root of the gain: the darker the scene, the
+   more sparkle[^rash]. Its strength follows the tube's signal-to-noise ratio (§8.1): about 4:1 for a Gen II, 16 to
+   21 for a Gen III[^gen2][^omni].
+6. **Phosphor.** The brightness saturates softly (1 − e^(−1.6 l)), tinted P43 green (0.42, 1.0, 0.36). Night-vision
+   images are green because green is easiest to watch in the dark for long[^nvd]; the US military made P43 its
+   standard[^phosphor]. The edge of the view darkens (by up to 70 %), as the goggles' 40° round view[^rash].
+7. **The HUD.** The HUD's light is far stronger than the night outside, so with the goggles on the HUD draws in the
+   brightest of the H key's greens (index 7, 0x00fc00); the player's level comes back when the goggles come off
+   (inferred).
 
 The goggles show in every view, also the external ones. No sensor or AI reads them (gameplay unchanged).
 
-**Shots**: `tests/godot/_night_shot.gd` with `NIGHT_VISION=1`; the pilot guides' `night` / `night_nvg` pictures
-(their "Night vision" section). In mission 214 (01:00, Detailed night lights) the
-goggles show the hills, the ground's texture and the AI jet ahead, which are black without them. Cost: 68.5 against
-71.4 fps at 1920×1080 on this Iris Xe laptop, measured while another render ran (to measure again on an idle machine).
+### 8.1 The tube by year and jet
 
-[^nvd]: Wikipedia, "Night-vision device" (Generation III, automatic brightness control, the ion barrier's halo
-    effect, green images): https://en.wikipedia.org/wiki/Night-vision_device
+The year is the mission's (`Settings.mission_year()`): an edited mission's own (mission-editor.md §12), else the
+original's by its id (`mission_year.rs default_year`: 111–117 1967, 121–127 1973, 131–137 1982, the rest 1998).
+
+| Year / jet | Tube | Grain | Blur (mip) | Halo | Top gain |
+|---|---|---|---|---|---|
+| before 1972 | none: Shift+N shows "no night-vision goggles in <year>" | — | — | — | — |
+| 1972–1981, and the MiG-23 / MiG-29 from 1972 | Gen II (AN/PVS-5, US Army from 1972[^pvs5]) | 0.29 | 1.2 | 0.25 | ×5 |
+| 1982–1995 | early Gen III (ANVIS-6, Omnibus I–III, 1982–1990[^omni]) | 0.07 | 0.7 | 0.6 | ×8 |
+| 1996 on, and the F-35I in any year | late Gen III (ANVIS-9, Omnibus IV, 1996[^omni]) | 0.047 | 0 | 0.4 | ×8 |
+
+- Grain: the noise's strength at ×2 gain, from the tube's signal-to-noise ratio (inferred: σ ≈ 1 / SNR, scaled so the
+  early Gen III's 16 gives 0.07). Top gain: the Gen II's lower, as its system gain was about 800 against about 2,000
+  for ANVIS[^gain] (×8 × √(800 / 2000) ≈ ×5, inferred).
+- The table gives the best tube that existed in the year. When IAF fighter pilots began to fly with goggles is open
+  (§8.2), so the year picks the tube, not whether the squadron had one.
+- The MiGs: the Soviet standard aviation goggle was the ONV-1[^onv1]; a forum post calls it a Gen II, with trials on
+  the MiG-29 in the late 1980s and operational use only in the 1990s[^dcs]. No source shows MiG-23 goggles. Here the
+  MiGs get a Gen II at most (inferred).
+- The F-35I: the F-35 has no goggles. Its helmet shows a night camera's picture (ISIE-10, then ISIE-11, whose
+  acuity comes close to the 20/20 of goggles), and the alternative goggle helmet was dropped in 2013[^f35][^f35alt].
+  Here it is drawn as the late Gen III (inferred); its camera's own look (latency, colour) is open.
+- Not modelled: the P20 phosphor's long afterglow (55 ms) on the Gen II and early Gen III tubes[^phosphor], and the
+  autogating of late-1990s tubes[^autogate].
+
+### 8.2 Goggles in the IAF (research, open)
+
+- **Helicopters first.** The IAF's goggle, the "Zhurnal", sits in front of the helmet's visor with its battery on the
+  helmet's back; it has served in the helicopter squadrons since the early 1980s[^zhurnal]. Its model and maker are
+  open.
+- **Fighters.** No source dates the first IAF fighter flights with goggles or names their goggle. The first IAF jet
+  with a sourced goggle-compatible cockpit is the F-15I (delivered from 1998)[^f15i]. For comparison, the USAF began
+  making its Block 40 F-16s goggle-compatible in 1996[^f16nvg]. Open: the Netz / Barak, Kurnass 2000 and Kfir.
+- **Night attack in 1982** used laser-guided bombs; no source mentions goggles[^bekaa].
+
+**Shots**: `tests/godot/_night_shot.gd` with `NIGHT_VISION=1`; the pilot guides' `night` / `night_nvg` pictures
+(their "Night vision" section). In mission 214 (01:00, Detailed night lights) the goggles show the hills, the
+ground's texture and the AI jet ahead, which are black without them. Cost: 68.5 against 71.4 fps at 1920×1080 on this
+Iris Xe laptop, measured while another render ran (to measure again on an idle machine).
+
+[^nvd]: Wikipedia, "Night-vision device" (Gen III 500–900 nm, the ion barrier's halo effect, green images):
+    https://en.wikipedia.org/wiki/Night-vision_device
+[^rash]: C. E. Rash, "A 25-year retrospective on NVGs", Flight Safety Foundation AeroSafety World, Aug 2010 (40°
+    circular view, gain control, sparkles at low light, halos): https://flightsafety.org/wp-content/uploads/2016/11/asw_aug10_p14-18.pdf
+[^omni]: Night Vision International wiki, "Omnibus" (per-contract minimums, a rough guide: Omni I 1982 36 lp/mm,
+    SNR 16.2, halo 1.47 mm, P20; Omni IV 1996 64 lp/mm, SNR 21, halo 1.25 mm, P43; Omni VII 0.70 mm):
+    https://www.nv-intl.com/wiki/index.php/Omnibus
+[^gen2]: US patent 6,288,839 (Gen II about 4:1 SNR and 28 lp/mm; Gen III about 16:1 and 36–40 lp/mm):
+    https://patents.google.com/patent/US6288839B1/en
+[^pvs5]: Night Vision International wiki, "AN/PVS-5" (adopted by the US Army in 1972, 40° view):
+    https://nv-intl.com/index.php/AN/PVS-5
+[^phosphor]: Night Vision International wiki, "Phosphor Screen" (P43 the US military standard; P20's 55 ms tail):
+    https://nv-intl.com/index.php/Phosphor_Screen
+[^gain]: an NVG training report seen as a search snippet only ("about 2,000 for ANVIS … 800 for AN/PVS-5"):
+    https://fsu.i8.dgicloud.com/_flysystem/repo-bin/2022-02/bitstream_10703.pdf
+[^autogate]: L3Harris, "Guide to Gen III image intensifier tube technology" (autogating from the 1990s):
+    https://l3harris.com/sites/default/files/2025-01/l3harris-guide-gen-iii-image-intensifier-tube-technology-cs-ivs.pdf
+[^onv1]: Janes, "Russian helicopters receive new NVG system" (ONV-1 Skosok the standard; GEO-ONV1 Gen 3+ after 2016):
+    https://janes.com/osint-insights/defence-news/russian-helicopters-receive-new-nvg-system
+[^dcs]: ED Forums (an enthusiast's post, not authoritative), "Night vision mode for cockpit and external view":
+    https://forum.dcs.world/topic/369099-night-vision-mode-for-cockpit-and-external-view
+[^f35]: AIN, "F-35 pilots will begin flying improved Gen 3 helmet", 21 Jan 2014 (ISIE-10 / ISIE-11, acuity, tested
+    against ANVIS-9): https://backend.ainonline.com/aviation-news/2014-01-21/f-35-pilots-will-begin-flying-improved-gen-3-helmet
+[^f35alt]: Military.com, "Pentagon scraps alternative F-35 helmet", 10 Oct 2013:
+    https://www.military.com/defensetech/2013/10/10/pentagon-scraps-alternative-f-35-helmet?amp
+[^zhurnal]: IAF magazine (בטאון חיל האוויר) 125, 1 Feb 1999, the Zhurnal in the helicopter squadrons since the early
+    1980s: https://www.iaf.org.il/244-18482-he/IAF.aspx
+[^f15i]: GlobalSecurity, "F-15I Ra'am" (night-vision-goggle compatible cockpits; seen as a search snippet):
+    https://www.globalsecurity.org/military/world/israel/f-15i.htm
+[^f16nvg]: Flight International, 24 Jan 1996, "NVG modifications begin on F-16s":
+    https://flightglobal.com/nvg-modifications-begin-on-f-16s/11115.article
+[^bekaa]: Air & Space Forces Magazine, the Bekaa Valley 1982 (seen as a search summary):
+    https://www.airandspaceforces.com/article/0602bekaa/
