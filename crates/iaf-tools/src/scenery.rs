@@ -10,8 +10,9 @@
 //! Everything is warped from WGS84 into the game frame with the georeference (`georef`), as the imagery is, so the
 //! roofs stand on the photo's buildings. Nothing stands where the original has something: the sea, the airbases and
 //! the kept target insets (`imagery::Rules`), the missions' units and routes (`airbases::mission_units`), and
-//! World scale Real's old and new base sites (`iaf_flight::base_move`). The same pinned inputs give the same bytes on
-//! every install (`manifest.json` `release`).
+//! World scale Real's old and new base sites (`iaf_flight::base_move`); no tree and no Microsoft footprint stands on
+//! OpenStreetMap's roads, railways, runways, taxiways and aprons (`road_half_width`). The same pinned inputs give the
+//! same bytes on every install (`manifest.json` `release`).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::{BufRead, BufReader};
@@ -32,7 +33,7 @@ use crate::thirdparty::{self, Download, SCENERY};
 use crate::{airbases, log};
 
 /// The generator's version: part of the release, so a change to the rules below makes new ids.
-pub const GENERATOR: u32 = 6;
+pub const GENERATOR: u32 = 7;
 /// A level-1 node's side in terrain units (1024 pixels of 2 units).
 const NODE_UNITS: f64 = 2048.0;
 const PIXEL_UNITS: f64 = 2.0;
@@ -63,6 +64,12 @@ const SETTLEMENT_CELLS: i64 = 3;
 /// Jerusalem's centre (lon, lat) and the radius (km) inside which walls are stone (docs/scenery.md §1.3).
 const JERUSALEM: [f64; 2] = [35.2137, 31.7683];
 const JERUSALEM_KM: f64 = 10.0;
+/// Trees keep this far (m) beyond a road's half-width; a Microsoft footprint within this of a road or railway's centre
+/// line is taken to cross it.
+const ROAD_TREE_MARGIN_M: f64 = 1.0;
+const ROAD_CROSS_M: f64 = 0.5;
+/// How far (m) a road or apron reaches past a node's edge into its list: a footprint may reach into the next node.
+const ROAD_NODE_PAD_M: f64 = 50.0;
 
 /// Terrain units → engine metres (X east, Y north).
 fn engine(tx: f64, ty: f64) -> [f64; 2] {
@@ -315,6 +322,11 @@ pub struct NodeIn {
     pub areas: Vec<Area>,
     pub trees: Vec<MappedTree>,
     pub canopy: Option<Canopy>,
+    /// Road, railway, runway and taxiway segments (`road_half_width`): `tree` the half-width + ROAD_TREE_MARGIN_M,
+    /// `building` the reach that drops a Microsoft footprint.
+    pub roads: Vec<Clear>,
+    /// Aprons, runway and taxiway areas: no tree, no Microsoft footprint on them.
+    pub paved: Vec<Vec<[f64; 2]>>,
 }
 
 /// A footprint's roof colours: (1998 look, modern look).
@@ -362,8 +374,28 @@ pub fn build_cell(n: &NodeIn, env: &Env) -> Cell {
         osm_b.insert(bbox(&f.pts), k as u32);
     }
     let in_osm = |p: [f64; 2]| osm_b.near(p, 0.0).any(|k| contains(&n.osm[k as usize].pts, p));
-    let chosen: Vec<&Footprint> =
-        n.osm.iter().chain(n.ms.iter().filter(|f| !in_osm(centroid(&f.pts)))).filter(|f| building_ok(f, env)).collect();
+    let mut roads = Buckets::new(rect, 32.0);
+    for (k, c) in n.roads.iter().enumerate() {
+        roads.insert(c.bbox(), k as u32);
+    }
+    let mut paved = Buckets::new(rect, 64.0);
+    for (k, a) in n.paved.iter().enumerate() {
+        paved.insert(bbox(a), k as u32);
+    }
+    let on_paved = |p: [f64; 2]| paved.near(p, 0.0).any(|k| contains(&n.paved[k as usize], p));
+    // A Microsoft footprint is machine-traced: one across a road, a railway or a runway is a misreading.
+    let ms_ok = |f: &Footprint| {
+        let b = bbox(&f.pts);
+        let c = [(b[0] + b[2]) * 0.5, (b[1] + b[3]) * 0.5];
+        !roads.near(c, (b[2] - b[0]).max(b[3] - b[1]) * 0.5).any(|k| n.roads[k as usize].hits_building(&f.pts))
+            && !f.pts.iter().chain([&centroid(&f.pts)]).any(|&p| on_paved(p))
+    };
+    let chosen: Vec<&Footprint> = n
+        .osm
+        .iter()
+        .chain(n.ms.iter().filter(|f| !in_osm(centroid(&f.pts)) && ms_ok(f)))
+        .filter(|f| building_ok(f, env))
+        .collect();
     let mut cell = Cell::default();
     let mut kept = Buckets::new(rect, 32.0);
     for f in &chosen {
@@ -401,6 +433,8 @@ pub fn build_cell(n: &NodeIn, env: &Env) -> Cell {
             && (env.open)(p)
             && !on_building(p)
             && !env.clears.iter().any(|c| c.hits_tree(p))
+            && !roads.near(p, 0.0).any(|k| n.roads[k as usize].hits_tree(p))
+            && !on_paved(p)
     };
     let mut mapped = Buckets::new(rect, 16.0);
     for (k, t) in n.trees.iter().enumerate() {
@@ -554,6 +588,35 @@ fn tag_number(v: Option<&String>) -> Option<f32> {
         return None;
     }
     v[..end].parse::<f32>().ok().filter(|x| x.is_finite() && *x > 0.0)
+}
+
+/// A road's, railway's, runway's or taxiway's half-width (m) and the reach (m) that drops a Microsoft footprint
+/// (crossing the centre line for roads and rails, anywhere on a runway or taxiway); None for other lines and for
+/// tunnels (nothing stands on them).
+pub fn road_half_width(highway: &str, railway: &str, tags: &BTreeMap<String, String>) -> Option<(f64, f64)> {
+    if tags.get("tunnel").or(tags.get("covered")).is_some_and(|v| v != "no") {
+        return None;
+    }
+    let half = match (highway.trim_end_matches("_link"), railway) {
+        ("motorway", _) => 12.0,
+        ("trunk", _) => 10.0,
+        ("primary", _) => 8.0,
+        ("secondary", _) => 6.0,
+        ("tertiary" | "unclassified", _) => 5.0,
+        ("residential", _) => 4.0,
+        ("service", _) => 3.0,
+        (_, "rail" | "light_rail" | "subway" | "tram") => 3.0,
+        _ => {
+            let default = match tags.get("aeroway").map(String::as_str) {
+                Some("runway") => 30.0,
+                Some("taxiway") => 12.0,
+                _ => return None,
+            };
+            let half = tag_number(tags.get("width")).map_or(default, |w| (w as f64 * 0.5).clamp(5.0, 60.0));
+            return Some((half, half));
+        }
+    };
+    Some((half, ROAD_CROSS_M))
 }
 
 fn in_jerusalem(geo: [f64; 2]) -> bool {
@@ -936,6 +999,26 @@ impl Gather<'_> {
         }
     }
 
+    /// The nodes whose rect, grown by ROAD_NODE_PAD_M, meets the box.
+    fn nodes_in(&mut self, b: [f64; 4]) -> impl Iterator<Item = &mut NodeIn> {
+        let pad = ROAD_NODE_PAD_M;
+        let (i0, j1) = node_of([b[0] - pad, b[1] - pad]);
+        let (i1, j0) = node_of([b[2] + pad, b[3] + pad]);
+        self.nodes.range_mut((i0, j0)..=(i1, j1)).filter(move |(k, _)| k.1 >= j0 && k.1 <= j1).map(|(_, n)| n)
+    }
+
+    fn road(&mut self, c: Clear) {
+        for n in self.nodes_in(c.bbox()) {
+            n.roads.push(c);
+        }
+    }
+
+    fn paved(&mut self, pts: Vec<[f64; 2]>) {
+        for n in self.nodes_in(bbox(&pts)) {
+            n.paved.push(pts.clone());
+        }
+    }
+
     fn tree(&mut self, t: MappedTree) {
         if let Some(n) = self.nodes.get_mut(&node_of(t.p)) {
             n.trees.push(t);
@@ -955,16 +1038,31 @@ fn osm_extract(pbf: &Path, geo: [f64; 4], work: &Path, pr: &dyn Progress) -> Res
     let jobs = [
         (
             "multipolygons",
-            "building IS NOT NULL OR landuse IN ('forest','orchard','farmland','vineyard','plant_nursery','residential') OR natural = 'wood'",
-            "building,landuse,natural,other_tags",
+            "building IS NOT NULL OR landuse IN ('forest','orchard','farmland','vineyard','plant_nursery','residential') OR natural = 'wood' OR aeroway IN ('apron','runway','taxiway')",
+            "building,landuse,natural,aeroway,other_tags",
         ),
         ("points", &*tag("natural", "tree"), "other_tags"),
-        ("lines", &*tag("natural", "tree_row"), "other_tags"),
+        (
+            "lines",
+            &*format!(
+                "{} OR {} OR {} OR highway IN ({}) OR railway IN ('rail','light_rail','subway','tram')",
+                tag("natural", "tree_row"),
+                tag("aeroway", "runway"),
+                tag("aeroway", "taxiway"),
+                ["motorway", "trunk", "primary", "secondary", "tertiary", "unclassified", "residential", "service"]
+                    .iter()
+                    .flat_map(|h| [format!("'{h}'"), format!("'{h}_link'")])
+                    .collect::<Vec<_>>()
+                    .join(",")
+            ),
+            "highway,railway,other_tags",
+        ),
     ];
-    // The extract is kept for the next run with the same box (named by it).
-    let tag = hash(&geo.map(f64::to_bits)) as u32;
+    // The extract is kept for the next run with the same box and filter (named by them).
     let mut out = Vec::new();
     for (layer, filter, fields) in jobs {
+        let key: Vec<u64> = geo.map(f64::to_bits).into_iter().chain(filter.bytes().map(u64::from)).collect();
+        let tag = hash(&key) as u32;
         let p = work.join(format!("osm-{layer}-{tag:08x}.geojsonl"));
         if !p.is_file() {
             for e in std::fs::read_dir(work)?.flatten() {
@@ -1014,6 +1112,8 @@ fn read_osm(files: &[PathBuf; 3], g: &mut Gather, cancel: &AtomicBool) -> Result
                 g.building(Footprint { pts, geo, height, levels, roof, wall, source: SOURCE_OSM });
             } else if let Some(kind) = area_kind {
                 g.area(Area { kind, pts });
+            } else if matches!(s("aeroway"), "apron" | "runway" | "taxiway") {
+                g.paved(pts);
             }
         }
     }
@@ -1027,7 +1127,26 @@ fn read_osm(files: &[PathBuf; 3], g: &mut Gather, cancel: &AtomicBool) -> Result
         }
     }
     for v in geojsonl(&files[2])? {
-        let tags = other_tags(v["properties"]["other_tags"].as_str().unwrap_or(""));
+        let pr = &v["properties"];
+        let tags = other_tags(pr["other_tags"].as_str().unwrap_or(""));
+        let s = |k: &str| pr[k].as_str().unwrap_or("");
+        if let Some((half, building)) = road_half_width(s("highway"), s("railway"), &tags) {
+            let line: Vec<[f64; 2]> = v["geometry"]["coordinates"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(|p| Some([p[0].as_f64()?, p[1].as_f64()?]))
+                .filter(|p| g.in_geo(*p))
+                .map(|p| g.warp.at(p[0], p[1]))
+                .collect();
+            for w in line.windows(2) {
+                g.road(Clear { a: w[0], b: w[1], building, tree: half + ROAD_TREE_MARGIN_M });
+            }
+            continue;
+        }
+        if tags.get("natural").map(String::as_str) != Some("tree_row") {
+            continue;
+        }
         let kind = tagged_kind(&tags).unwrap_or(TreeKind::Cypress);
         let height = tag_number(tags.get("height")).unwrap_or(ROW_DEFAULT_M).min(40.0);
         let line: Vec<[f64; 2]> = v["geometry"]["coordinates"]
@@ -1571,6 +1690,46 @@ mod tests {
                 .filter(|t| t.x < at(500.0, 0.0)[0] as f32 && t.y < at(0.0, 500.0)[1] as f32)
                 .all(|t| t.kind == TreeKind::Pine)
         );
+    }
+
+    #[test]
+    fn roads_and_runways_keep_scenery_off() {
+        let none = BTreeMap::new();
+        let (half, cross) = road_half_width("motorway", "", &none).unwrap();
+        let road = Clear { a: at(0.0, 500.0), b: at(2000.0, 500.0), building: cross, tree: half + ROAD_TREE_MARGIN_M };
+        let (rh, rb) = road_half_width("", "", &other_tags(r#""aeroway"=>"runway","width"=>"45""#)).unwrap();
+        assert_eq!((rh, rb), (22.5, 22.5));
+        let runway = Clear { a: at(0.0, 1500.0), b: at(2000.0, 1500.0), building: rb, tree: rh + ROAD_TREE_MARGIN_M };
+        assert!(road_half_width("motorway", "", &other_tags(r#""tunnel"=>"yes""#)).is_none());
+        let n = NodeIn {
+            key: KEY,
+            // An OSM building across the road (mapped: kept); Microsoft's across the road, on the runway's edge, on
+            // the apron (dropped) and beside the road (kept).
+            osm: vec![square(at(300.0, 500.0), 8.0, SOURCE_OSM)],
+            ms: vec![
+                square(at(600.0, 505.0), 8.0, SOURCE_MS),
+                square(at(600.0, 1520.0), 6.0, SOURCE_MS),
+                square(at(1100.0, 1100.0), 6.0, SOURCE_MS),
+                square(at(600.0, 540.0), 8.0, SOURCE_MS),
+            ],
+            trees: vec![
+                MappedTree { p: at(900.0, 510.0), kind: None, height: 8.0 }, // on the road (12 + 1 m)
+                MappedTree { p: at(900.0, 515.0), kind: None, height: 8.0 }, // beside it
+                MappedTree { p: at(900.0, 1520.0), kind: None, height: 8.0 }, // on the runway
+                MappedTree { p: at(1050.0, 1050.0), kind: None, height: 8.0 }, // on the apron
+            ],
+            roads: vec![road, runway],
+            paved: vec![vec![at(1000.0, 1000.0), at(1200.0, 1000.0), at(1200.0, 1200.0), at(1000.0, 1200.0)]],
+            ..NodeIn::default()
+        };
+        let open = |_: [f64; 2]| true;
+        let c = cell(&n, &[], &open);
+        assert_eq!(c, cell(&n, &[], &open));
+        let mut kept: Vec<(u8, f32)> = c.buildings.iter().map(|b| (b.source, b.points[0][1])).collect();
+        kept.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        assert_eq!(kept, [(SOURCE_OSM, at(0.0, 492.0)[1] as f32), (SOURCE_MS, at(0.0, 532.0)[1] as f32)]);
+        let ys: Vec<f32> = c.trees.iter().map(|t| t.y).collect();
+        assert_eq!(ys, [at(0.0, 515.0)[1] as f32]);
     }
 
     #[test]
