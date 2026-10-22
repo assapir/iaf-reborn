@@ -1,8 +1,8 @@
 # Real-render screenshots of every setup wizard page, with a real run on a scratch assets folder (the review gate):
 #   tools/godot_window.sh IAF_ASSETS_DIR=<scratch> IAF_DEFAULT_SETTINGS=1 XDG_DATA_HOME=<scratch>/xdg \
 #     SHOT_OUT=<dir> -- --log-file <log> --path game -s ../tests/godot/_wizard_shot.gd
-# SHOT_PAGES=1: the pages only, no install run. Uses the English ISO, the v1.1 patch and Brief.zip / Menu.zip from
-# ~/Downloads.
+# SHOT_PAGES=1: the pages only (a second Extras shot with the Survey and Scenery picked), no install run. Uses the
+# English ISO, the v1.1 patch and Brief.zip / Menu.zip from ~/Downloads.
 extends "res://../tests/godot/base.gd"
 
 const DL := "Downloads"
@@ -42,6 +42,13 @@ func run() -> void:
 	await shot("4_optional")
 	w._on_next()
 	await shot("5_extras")
+	if OS.get_environment("SHOT_PAGES") != "":
+		# The pages only: the Survey and Scenery (trees only) picked, for the size line and the kinds choice.
+		w.mapi_check.button_pressed = true
+		w.scenery_check.button_pressed = true
+		w.scenery_kinds.select(2)
+		w._update()
+		await shot("5b_extras_picked")
 	w._on_next()
 	await shot("6_summary")
 	w._on_next()

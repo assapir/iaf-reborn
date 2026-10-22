@@ -127,12 +127,13 @@ A route is the unit's `Path` scripts' paths and its formation's waypoints, from 
 |---|---|
 | `assets/source/scenery/` | the downloads; `<file>.ok` holds the checked SHA-256 and the download day |
 | `assets/converted/scenery/L1/s_<i>_<j>.bin` | one cell per node with any building or tree (format: `iaf_avionics::scenery`) |
-| `assets/converted/scenery/manifest.json` | `name`, `release`, `generator`, `made_from`, `attribution`, `licence`, `cells`, `buildings`, `trees`, `downloaded` |
+| `assets/converted/scenery/manifest.json` | `name`, `release`, `generator`, `kinds` (`both`, `buildings`, `trees`), `made_from`, `attribution` (the used sources), `licence`, `cells`, `buildings`, `trees`, `downloaded` |
 | `assets/converted/scenery/.work/` | kept between runs: the OSM extract and the reduced canopy tiles (about 350 MB) |
 
 ### 1.5 Release and ids
 
-`release` is the SHA-256 of the pinned inputs' checksums and the generator's version (`scenery::GENERATOR`). A
+`release` is the SHA-256 of the checksums of the pinned inputs the kinds need, the generator's version
+(`scenery::GENERATOR`) and the kinds when not both (`scenery::release`; both keeps the release of before the kinds). A
 building's id is `<i>_<j>:<index>`, its place in the sorted cell; it is valid for one release. `made_from` adds the
 coverage, the converted missions, airbases, theatre and objects stamps: when it matches, the step is up to date.
 
@@ -140,16 +141,31 @@ coverage, the converted missions, airbases, theatre and objects stamps: when it 
 
 | Step | Waits for | Does |
 |---|---|---|
-| `scenery-fetch` | | downloads the sources (`iaf-scenery fetch`); skipped when download.geofabrik.de cannot be reached |
-| `scenery` | mapi2015, scenery-fetch, missions, objects, airbases | makes the cells (`iaf-scenery build`); skipped without GDAL, the sources or the `mapi2015` layer |
+| `scenery-fetch` | | downloads the sources the kinds need (`iaf-scenery fetch`); skipped when download.geofabrik.de cannot be reached |
+| `scenery` | mapi2015, scenery-fetch, missions, objects, airbases | makes the cells of the kinds (`iaf-scenery build`); skipped without GDAL, the sources or the `mapi2015` layer |
 
-Both are optional (setup's `--scenery`, `tools/setup-cli.sh --scenery`). By hand:
+Both are optional (setup's `--scenery`, `tools/setup-cli.sh --scenery`). Setup makes one of three kinds:
+
+| Kinds | Wizard choice, setup.json `scenery_kinds`, CLI | Downloads |
+|---|---|---|
+| buildings and trees (the default) | "buildings and trees", `both`, `--scenery` | all 30 files, 520 MB |
+| buildings only | "buildings only", `buildings`, `--scenery=buildings` | OpenStreetMap, Microsoft, GHS-BUILT-H: 27 files, 373 MB |
+| trees only | "trees only", `trees`, `--scenery=trees` | OpenStreetMap, ETH canopy: 4 files, 267 MB |
+
+A setup.json without `scenery_kinds` means both. The build makes only the chosen kind; the roads, runways and
+clearances (§1.3) apply as with both. With trees only, OpenStreetMap's buildings still keep the trees off and set
+their kind (§1.2), so the trees are those of both, plus the few that the Microsoft footprints would have dropped.
+The manifest's `kinds` names the kinds; the `release` and `made_from` hold them, so a switch of kinds builds again.
+Files already downloaded are kept on a switch, and only the missing ones are downloaded. A cell file holds no
+buildings or no trees then: the game draws what it has, and the editor's "Set as target" finds no building.
+
+By hand:
 
 ```sh
 cargo build --release -p iaf-tools
-./target/release/iaf-scenery fetch assets
-./target/release/iaf-scenery build assets --near 182000,633000,10   # the nodes within 10 km of an engine point
-./target/release/iaf-scenery build assets                           # everything
+./target/release/iaf-scenery fetch assets [--kinds buildings|trees]
+./target/release/iaf-scenery build assets --near 340250,612940,10   # the nodes within 10 km of an engine point
+./target/release/iaf-scenery build assets [--kinds buildings|trees] # everything
 ```
 
 Measured on this machine (Intel laptop, 2026-10-22), the whole layer (4664 nodes):
@@ -159,6 +175,7 @@ Measured on this machine (Intel laptop, 2026-10-22), the whole layer (4664 nodes
 | Downloads | 520 MB in 30 files (OSM 119 MB, Microsoft 238 MB, GHSL 16 MB, canopy 148 MB); 40 s on this line |
 | Build | 3 min 30 s, peak memory 1.6 GB |
 | Output | 4008 cells, 2 076 357 buildings (668 605 from OSM), 28 565 866 trees, 578 MB |
+| One kind | the cells of one kind computed from the cell format (a tree is 16 bytes): trees 457 MB, buildings 121 MB. With the work files (the OSM extract 446 MB, the reduced canopy 40 MB for trees): buildings 0.57 GB, trees 0.94 GB, both 1.06 GB |
 
 Two runs give the same bytes (the SHA-256 of every cell file compared).
 

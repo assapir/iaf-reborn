@@ -20,7 +20,7 @@ mod steps;
 
 pub use checks::{CdKind, PackInfo, Tools, check_cd, check_pack, check_patch, scan, tools};
 pub use saved::{from_json, inputs_file, load_inputs, save_inputs, to_json};
-pub use steps::{COCKPITS, KEPT, OUTPUTS, imagery_stale, script_guides, uninstall};
+pub use steps::{COCKPITS, KEPT, OUTPUTS, disk_bytes, imagery_stale, script_guides, uninstall};
 
 /// The Hebrew content: the Hebrew retail CD (everything translated), or the preflight.us packs.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -59,6 +59,8 @@ pub struct Inputs {
     pub guides: bool,
     /// Scenery: buildings and trees over the Survey 2 m layer (docs/scenery.md; downloads about 520 MB).
     pub scenery: bool,
+    /// Which of the scenery's kinds to download and make (both, buildings only, trees only).
+    pub scenery_kinds: iaf_tools::scenery::Kinds,
 }
 
 /// One step of the plan.
@@ -128,18 +130,23 @@ pub fn plan(inputs: &Inputs) -> Vec<Step> {
         }
     }
     if inputs.scenery {
-        add(
-            "scenery-fetch",
-            "scenery: sources (OpenStreetMap, Microsoft footprints, GHSL heights, ETH canopy; about 520 MB)",
-            false,
-            &[],
-        );
-        add(
-            "scenery",
-            "scenery: buildings and trees over the Survey 2 m layer",
-            false,
-            &["mapi2015", "scenery-fetch", "missions", "objects", "airbases"],
-        );
+        let k = inputs.scenery_kinds;
+        let (fetch, make) = match (k.buildings, k.trees) {
+            (true, false) => (
+                "scenery: sources (OpenStreetMap, Microsoft footprints, GHSL heights; about 373 MB)",
+                "scenery: buildings over the Survey 2 m layer",
+            ),
+            (false, true) => (
+                "scenery: sources (OpenStreetMap, ETH canopy; about 267 MB)",
+                "scenery: trees over the Survey 2 m layer",
+            ),
+            _ => (
+                "scenery: sources (OpenStreetMap, Microsoft footprints, GHSL heights, ETH canopy; about 520 MB)",
+                "scenery: buildings and trees over the Survey 2 m layer",
+            ),
+        };
+        add("scenery-fetch", fetch, false, &[]);
+        add("scenery", make, false, &["mapi2015", "scenery-fetch", "missions", "objects", "airbases"]);
     }
     if inputs.refresh {
         add("imagery-refresh", "imagery: convert again what older rules made", false, &["airbases"]);
@@ -412,6 +419,7 @@ mod tests {
             refresh: false,
             guides: false,
             scenery: false,
+            scenery_kinds: Default::default(),
         }
     }
 
@@ -445,14 +453,15 @@ mod tests {
         );
         assert!(base.iter().filter(|s| s.id != "extract" && s.after.contains(&"extract")).count() >= 8);
 
-        let full = plan(&Inputs {
+        let full_inputs = Inputs {
             patch: Some("p.exe".into()),
             hebrew: Hebrew::Cd("he.iso".into()),
             imagery: vec![Imagery::Sentinel2, Imagery::Mapi2015 { bases: true }],
             guides: true,
             scenery: true,
             ..inputs()
-        });
+        };
+        let full = plan(&full_inputs);
         let get = |id: &str| full.iter().find(|s| s.id == id).unwrap_or_else(|| panic!("{id}"));
         assert_eq!(get("fonts").after, ["patch"]);
         assert_eq!(get("briefings").after, ["patch", "hebrew"]);
@@ -463,6 +472,11 @@ mod tests {
         assert!(get("guides").after.contains(&"sentinel2") && get("guides").after.contains(&"mapi2015"));
         assert_eq!(get("scenery").after, ["mapi2015", "scenery-fetch", "missions", "objects", "airbases"]);
         assert!(get("scenery-fetch").after.is_empty());
+        assert!(get("scenery").title.starts_with("scenery: buildings and trees"), "both by default");
+        let trees =
+            plan(&Inputs { scenery_kinds: iaf_tools::scenery::Kinds::parse("trees").unwrap(), ..full_inputs.clone() });
+        let t = |id: &str| trees.iter().find(|s| s.id == id).unwrap().title;
+        assert!(t("scenery").starts_with("scenery: trees") && t("scenery-fetch").contains("267 MB"));
         // Every step waits only for steps planned before it.
         for (k, s) in full.iter().enumerate() {
             for a in &s.after {
@@ -486,7 +500,7 @@ mod tests {
             ("imagery: Survey of Israel 2015 2 m sheets", &["mapi2015-fetch"]),
             ("imagery: Survey of Israel 2015 2 m layer", &["mapi2015"]),
             ("scenery: sources", &["scenery-fetch"]),
-            ("scenery: buildings and trees", &["scenery"]),
+            ("scenery: cells", &["scenery"]),
             ("building tools", &["cli"]),
             ("extracting the original install", &["extract"]),
             ("v1.1 patch", &["patch"]),

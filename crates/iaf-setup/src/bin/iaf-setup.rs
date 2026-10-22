@@ -1,7 +1,7 @@
 //! The setup pipeline from a terminal (for testing; tools/setup-cli.sh is the scripted way, the wizard the graphical one):
 //!
 //!   iaf-setup [--assets DIR] [--patch <v1.1 patch>] [--hebrew-iso <Hebrew CD>] [--imagery sentinel2,mapi2015,mapi2015-bases]
-//!             [--guides] [--scenery] [--refresh-imagery] [--redo-all] [--xdg-data-home DIR] ["<Jane's IAF.iso>" [Brief.zip] [Menu.zip]]
+//!             [--guides] [--scenery] [--scenery-kinds both|buildings|trees] [--refresh-imagery] [--redo-all] [--xdg-data-home DIR] ["<Jane's IAF.iso>" [Brief.zip] [Menu.zip]]
 //!   iaf-setup check <file>      what a CD image, patch or pack is
 //!
 //! `--assets` defaults to the repo's `assets/`. Without the ISO the last run's inputs (`assets/setup.json`) are used, with
@@ -14,7 +14,7 @@ use anyhow::{Context, Result, bail};
 use iaf_setup::{Ctx, Events, Hebrew, Imagery, Inputs, State, Step};
 use iaf_tools::progress::Progress;
 
-const USAGE: &str = "usage: iaf-setup [--assets DIR] [--patch P] [--hebrew-iso ISO] [--imagery sentinel2,mapi2015,mapi2015-bases] [--guides] [--scenery] [--refresh-imagery] [--redo-all] [--xdg-data-home DIR] [<Jane's IAF.iso> [Brief.zip] [Menu.zip]]\n       iaf-setup check <file>";
+const USAGE: &str = "usage: iaf-setup [--assets DIR] [--patch P] [--hebrew-iso ISO] [--imagery sentinel2,mapi2015,mapi2015-bases] [--guides] [--scenery] [--scenery-kinds both|buildings|trees] [--refresh-imagery] [--redo-all] [--xdg-data-home DIR] [<Jane's IAF.iso> [Brief.zip] [Menu.zip]]\n       iaf-setup check <file>";
 
 struct Print;
 
@@ -46,7 +46,7 @@ fn main() -> Result<()> {
     }
     let (mut assets, mut patch, mut hebrew_iso, mut imagery, mut guides, mut redo_all, mut xdg) =
         (repo.join("assets"), None, None, Vec::new(), false, false, None);
-    let (mut refresh, mut scenery) = (false, false);
+    let (mut refresh, mut scenery, mut kinds) = (false, false, None);
     let mut pos = Vec::new();
     let mut it = args.into_iter();
     while let Some(a) = it.next() {
@@ -67,6 +67,10 @@ fn main() -> Result<()> {
             }
             "--guides" => guides = true,
             "--scenery" => scenery = true,
+            "--scenery-kinds" => {
+                let v = val()?;
+                kinds = Some(iaf_tools::scenery::Kinds::parse(&v).context(USAGE)?);
+            }
             "--refresh-imagery" => refresh = true,
             "--redo-all" => redo_all = true,
             "--xdg-data-home" => xdg = Some(PathBuf::from(val()?)),
@@ -82,7 +86,16 @@ fn main() -> Result<()> {
         (None, brief, menu) => Some(Hebrew::Packs { brief, menu }),
     };
     let inputs = match cd {
-        Some(cd) => Inputs { cd, patch, hebrew: given.unwrap_or(Hebrew::None), imagery, refresh, guides, scenery },
+        Some(cd) => Inputs {
+            cd,
+            patch,
+            hebrew: given.unwrap_or(Hebrew::None),
+            imagery,
+            refresh,
+            guides,
+            scenery,
+            scenery_kinds: kinds.unwrap_or_default(),
+        },
         // Setup again: the last inputs, plus what is given now.
         None => {
             let mut i = iaf_setup::load_inputs(&assets)?.context(USAGE)?;
@@ -96,6 +109,7 @@ fn main() -> Result<()> {
             i.guides |= guides;
             i.refresh |= refresh;
             i.scenery |= scenery;
+            i.scenery_kinds = kinds.unwrap_or(i.scenery_kinds);
             i
         }
     };

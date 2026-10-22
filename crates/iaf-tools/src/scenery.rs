@@ -1214,12 +1214,66 @@ fn read_ms(file: &Path, g: &Gather) -> Result<Vec<Footprint>> {
 // ---------------------------------------------------------------------------------------------------------------------
 // The run
 
+/// The kinds `build` makes (setup's choice, docs/scenery.md §1.6): buildings, trees or both.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Kinds {
+    pub buildings: bool,
+    pub trees: bool,
+}
+
+impl Default for Kinds {
+    fn default() -> Self {
+        Self::BOTH
+    }
+}
+
+impl Kinds {
+    pub const BOTH: Kinds = Kinds { buildings: true, trees: true };
+
+    /// "both", "buildings" or "trees".
+    pub fn parse(s: &str) -> Option<Kinds> {
+        match s {
+            "both" => Some(Self::BOTH),
+            "buildings" => Some(Kinds { buildings: true, trees: false }),
+            "trees" => Some(Kinds { buildings: false, trees: true }),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match (self.buildings, self.trees) {
+            (true, false) => "buildings",
+            (false, true) => "trees",
+            _ => "both",
+        }
+    }
+
+    /// Whether the kinds need the download `file` of `SCENERY`: OpenStreetMap always; the Microsoft footprints and
+    /// GHS-BUILT-H for buildings; ETH's canopy for trees.
+    pub fn needs(self, file: &str) -> bool {
+        if file.starts_with("ms-") || file.starts_with("GHS_") {
+            self.buildings
+        } else if file.starts_with("eth-") {
+            self.trees
+        } else {
+            true
+        }
+    }
+
+    /// The downloads of `SCENERY` the kinds need.
+    pub fn downloads(self) -> Vec<Download> {
+        SCENERY.iter().filter(|d| self.needs(d.file)).copied().collect()
+    }
+}
+
 /// What `build` is asked to do.
 pub struct Run {
     /// The assets folder.
     pub assets: PathBuf,
     /// Only the nodes whose centre is within `km` of the engine point (x, y): a quick look at one place.
     pub near: Option<([f64; 2], f64)>,
+    /// What to make.
+    pub kinds: Kinds,
 }
 
 /// What `build` made.
@@ -1283,14 +1337,18 @@ pub fn quadkeys(assets: &Path) -> Result<BTreeSet<String>> {
     Ok(out)
 }
 
-/// The release: the pinned inputs' checksums and the generator's version, hashed (hex SHA-256).
-pub fn release() -> String {
+/// The release: the checksums of the pinned inputs the kinds need, the generator's version and the kinds (when not
+/// both), hashed (hex SHA-256).
+pub fn release(kinds: Kinds) -> String {
     let mut h = Sha256::new();
-    for d in SCENERY {
+    for d in kinds.downloads() {
         h.update(d.sha256.as_bytes());
         h.update(b"\n");
     }
     h.update(format!("generator {GENERATOR}\n").as_bytes());
+    if kinds != Kinds::BOTH {
+        h.update(format!("kinds {}\n", kinds.name()).as_bytes());
+    }
     h.finalize().iter().map(|b| format!("{b:02x}")).collect()
 }
 
@@ -1298,7 +1356,7 @@ pub fn release() -> String {
 fn made_from(r: &Run, keys: &[(u32, u32)]) -> String {
     let a = &r.assets;
     let mut h = Sha256::new();
-    h.update(release().as_bytes());
+    h.update(release(r.kinds).as_bytes());
     for k in keys {
         for l in ["mapi2015", "mapi2015_modern"] {
             let p = a.join(format!("converted/imagery/{l}/L1/c_{}_{}.jpg", k.0, k.1));
@@ -1336,6 +1394,9 @@ pub fn build(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary>
             ((n[0] + n[2]) * 0.5 - c[0]).hypot((n[1] + n[3]) * 0.5 - c[1]) <= km * 1000.0
         });
     }
+    if keys.is_empty() {
+        bail!("no node of the Survey 2 m layer within the given distance");
+    }
     let made = made_from(r, &keys);
     let manifest_p = out.join("manifest.json");
     if let Ok(m) = std::fs::read(&manifest_p).map(|b| serde_json::from_slice::<Value>(&b).unwrap_or(Value::Null))
@@ -1343,12 +1404,13 @@ pub fn build(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary>
     {
         return Ok(Summary { up_to_date: true, ..Summary::default() });
     }
-    let files: Vec<PathBuf> = SCENERY.iter().map(|d| input(&src, d)).collect::<Result<_>>()?;
+    let kinds = r.kinds;
+    let files: Vec<PathBuf> = kinds.downloads().iter().map(|d| input(&src, d)).collect::<Result<_>>()?;
     let pick = |pre: &str| -> Vec<PathBuf> {
         files.iter().filter(|p| p.file_name().is_some_and(|n| n.to_string_lossy().starts_with(pre))).cloned().collect()
     };
     std::fs::create_dir_all(&work)?;
-    log!(pr, "scenery: {} nodes of the Survey 2 m layer", keys.len());
+    log!(pr, "scenery ({}): {} nodes of the Survey 2 m layer", kinds.name(), keys.len());
 
     // The warp over the coverage.
     let node_geos: Vec<[f64; 4]> = par_map_all(&keys, |&k| node_geo(&geo_f, k, 0.0005));
@@ -1372,20 +1434,24 @@ pub fn build(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary>
         g.building(f);
     }
     pr.fraction(0.25);
-    let ghs: Vec<String> = pick("GHS_BUILT_H")
-        .iter()
-        .map(|z| {
-            let name = z.file_name().unwrap_or_default().to_string_lossy().replace(".zip", ".tif");
-            Ok(format!("/vsizip/{}/{name}", utf8(z)?))
-        })
-        .collect::<Result<_>>()?;
-    let (hw, hh) =
-        (((geo[2] - geo[0]) / Heights::STEP).ceil() as usize, ((geo[3] - geo[1]) / Heights::STEP).ceil() as usize);
-    let hgeo = [geo[0], geo[3] - hh as f64 * Heights::STEP, geo[0] + hw as f64 * Heights::STEP, geo[3]];
-    let raw = gdal_warp(&ghs, hgeo, hw, hh, "near", &work.join("ghs.bin"))?;
-    let heights =
-        Heights { geo: hgeo, w: hw, h: hh, v: raw.as_chunks::<4>().0.iter().map(|b| f32::from_le_bytes(*b)).collect() };
-    let chm = canopy_vrt(&pick("eth-"), &work)?;
+    let heights = if kinds.buildings {
+        let ghs: Vec<String> = pick("GHS_BUILT_H")
+            .iter()
+            .map(|z| {
+                let name = z.file_name().unwrap_or_default().to_string_lossy().replace(".zip", ".tif");
+                Ok(format!("/vsizip/{}/{name}", utf8(z)?))
+            })
+            .collect::<Result<_>>()?;
+        let (hw, hh) =
+            (((geo[2] - geo[0]) / Heights::STEP).ceil() as usize, ((geo[3] - geo[1]) / Heights::STEP).ceil() as usize);
+        let hgeo = [geo[0], geo[3] - hh as f64 * Heights::STEP, geo[0] + hw as f64 * Heights::STEP, geo[3]];
+        let raw = gdal_warp(&ghs, hgeo, hw, hh, "near", &work.join("ghs.bin"))?;
+        Heights { geo: hgeo, w: hw, h: hh, v: raw.as_chunks::<4>().0.iter().map(|b| f32::from_le_bytes(*b)).collect() }
+    } else {
+        Heights { geo, w: 0, h: 0, v: Vec::new() }
+    };
+    // Trees only: OpenStreetMap's buildings still keep the trees off (as with both), but none is written.
+    let chm = if kinds.trees { Some(canopy_vrt(&pick("eth-"), &work)?) } else { None };
     pr.fraction(0.35);
 
     // The places nothing may stand.
@@ -1451,6 +1517,9 @@ pub fn build(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary>
                     && !moves.bases.iter().any(|b| b.in_old(p, 0.0) || b.to_game(p, ring).is_some())
             };
             let roof = |pts: &[[f64; 2]]| {
+                if !kinds.buildings {
+                    return Default::default();
+                }
                 let q: Vec<[f64; 2]> = pts.iter().map(|&p| px(p)).collect();
                 (median_inside(&old, &q), median_inside(&modern, &q))
             };
@@ -1459,13 +1528,21 @@ pub fn build(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary>
             let (cw, ch) =
                 (((ng[2] - ng[0]) / CANOPY_STEP).ceil() as usize, ((ng[3] - ng[1]) / CANOPY_STEP).ceil() as usize);
             let cgeo = [ng[0], ng[3] - ch as f64 * CANOPY_STEP, ng[0] + cw as f64 * CANOPY_STEP, ng[3]];
-            let tmp = work.join(format!("chm_{i}_{j}.bin"));
-            let cv = gdal_warp(std::slice::from_ref(&chm), cgeo, cw, ch, "max", &tmp)?;
-            node.canopy = Some(Canopy { lon0: cgeo[0], lat1: cgeo[3], step: CANOPY_STEP, w: cw, h: ch, v: cv });
+            if let Some(chm) = &chm {
+                let tmp = work.join(format!("chm_{i}_{j}.bin"));
+                let cv = gdal_warp(std::slice::from_ref(chm), cgeo, cw, ch, "max", &tmp)?;
+                node.canopy = Some(Canopy { lon0: cgeo[0], lat1: cgeo[3], step: CANOPY_STEP, w: cw, h: ch, v: cv });
+            }
             let built = |g: [f64; 2]| heights.at(g);
             let w = |lon: f64, lat: f64| warp.at(lon, lat);
             let env = Env { open: &open, clears: &near, built_height: &built, roof: &roof, warp: &w };
-            let cell = build_cell(&node, &env);
+            let mut cell = build_cell(&node, &env);
+            if !kinds.buildings {
+                cell.buildings.clear();
+            }
+            if !kinds.trees {
+                cell.trees.clear();
+            }
             let (nb, nosm, nt) = (
                 cell.buildings.len(),
                 cell.buildings.iter().filter(|b| b.source == SOURCE_OSM).count(),
@@ -1491,23 +1568,30 @@ pub fn build(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary>
         s.trees += nt;
         s.bytes += bytes;
     }
-    let downloaded: BTreeSet<String> = SCENERY.iter().filter_map(|d| thirdparty::file_date(&src, d)).collect();
+    let downloaded: BTreeSet<String> =
+        kinds.downloads().iter().filter_map(|d| thirdparty::file_date(&src, d)).collect();
     let downloaded = match (downloaded.first(), downloaded.last()) {
         (Some(a), Some(b)) if a != b => format!("{a}..{b}"),
         (Some(a), _) => a.clone(),
         _ => String::new(),
     };
+    let attribution: Vec<&str> = [
+        ("israel", "© OpenStreetMap contributors (openstreetmap.org/copyright), Geofabrik extract of 2026-01-01"),
+        ("ms-", "Microsoft Global ML Building Footprints"),
+        ("GHS_", "GHS-BUILT-H R2023A, European Commission, Joint Research Centre (JRC)"),
+        ("eth-", "Global Canopy Height 2020, Lang et al., ETH Zürich (EcoVision Lab)"),
+    ]
+    .iter()
+    .filter(|(f, _)| kinds.needs(f))
+    .map(|(_, a)| *a)
+    .collect();
     let manifest = json!({
         "name": "scenery",
-        "release": release(),
+        "release": release(kinds),
         "generator": GENERATOR,
+        "kinds": kinds.name(),
         "made_from": made,
-        "attribution": [
-            "© OpenStreetMap contributors (openstreetmap.org/copyright), Geofabrik extract of 2026-01-01",
-            "Microsoft Global ML Building Footprints",
-            "GHS-BUILT-H R2023A, European Commission, Joint Research Centre (JRC)",
-            "Global Canopy Height 2020, Lang et al., ETH Zürich (EcoVision Lab)",
-        ],
+        "attribution": attribution,
         "licence": "OpenStreetMap: ODbL 1.0; Microsoft footprints: CDLA-Permissive-2.0; GHSL: free re-use with credit (CC BY 4.0); canopy height: CC BY 4.0",
         "cells": s.cells,
         "buildings": s.buildings,
@@ -1661,6 +1745,29 @@ mod tests {
         assert!(lane.hits_building(&long));
         assert!(!lane.hits_building(&square(at(700.0, 560.0), 10.0, 0).pts));
         assert!(lane.hits_building(&square(at(700.0, 530.0), 10.0, 0).pts));
+    }
+
+    #[test]
+    fn kinds_pick_their_downloads_and_release() {
+        let [b, t] = ["buildings", "trees"].map(|k| Kinds::parse(k).unwrap());
+        let names = |k: Kinds| k.downloads().iter().map(|d| d.file).collect::<Vec<_>>();
+        assert_eq!(names(Kinds::BOTH).len(), SCENERY.len());
+        let osm = |f: &&str| f.ends_with(".osm.pbf");
+        assert!(names(b).iter().all(|f| osm(f) || f.starts_with("ms-") || f.starts_with("GHS_")));
+        assert!(names(t).iter().all(|f| osm(f) || f.starts_with("eth-")));
+        assert!(names(b).iter().any(osm) && names(t).iter().any(osm), "OpenStreetMap for both");
+        assert_eq!(names(b).len() + names(t).len(), SCENERY.len() + 1);
+        assert_eq!(Kinds::parse(Kinds::BOTH.name()), Some(Kinds::BOTH));
+        // Each kind its own release; both keeps the release made before the kinds.
+        let mut h = Sha256::new();
+        for d in SCENERY {
+            h.update(d.sha256.as_bytes());
+            h.update(b"\n");
+        }
+        h.update(format!("generator {GENERATOR}\n").as_bytes());
+        let old: String = h.finalize().iter().map(|b| format!("{b:02x}")).collect();
+        assert_eq!(release(Kinds::BOTH), old);
+        assert!(release(b) != old && release(t) != old && release(b) != release(t));
     }
 
     #[test]
