@@ -18,7 +18,8 @@
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::atomic::AtomicBool;
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 
 use anyhow::{Context, Result, bail};
 use image::{GrayImage, RgbaImage, imageops::FilterType};
@@ -151,6 +152,8 @@ pub struct Download {
     pub file: &'static str,
     pub url: &'static str,
     pub sha256: &'static str,
+    /// Its size, for the download's progress.
+    pub bytes: u64,
 }
 
 /// The scenery's sources (`crate::scenery`), each file pinned: every install makes the same scenery.
@@ -159,221 +162,181 @@ pub const SCENERY: &[Download] = &[
         file: "israel-and-palestine-260101.osm.pbf",
         url: "https://download.geofabrik.de/asia/israel-and-palestine-260101.osm.pbf",
         sha256: "55e33e3cdc59e65e64caf853aec0f2c9b24bc617957c942c63004520f930118d",
+        bytes: 119_334_282,
     },
     Download {
         file: "ms-GazaStrip-122130000.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=GazaStrip/quadkey=122130000/part-00196-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "e6e036f8f8f410aefb86189570e83892711b671bd029dba2f3d385c4afb31200",
+        bytes: 7_935_192,
     },
     Download {
         file: "ms-GazaStrip-122130001.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=GazaStrip/quadkey=122130001/part-00038-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "62e1129db23fd69db92778b3739aeb3339f594f8805b0f920540eb2bcd867ebb",
+        bytes: 7_171_055,
     },
     Download {
         file: "ms-GazaStrip-122130002.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=GazaStrip/quadkey=122130002/part-00008-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "129abb01b925ec614292ab6a9e9b553a4cbb7818f51b5aa61f4063c443c2487d",
+        bytes: 8_405_423,
     },
     Download {
         file: "ms-Israel-122112212.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=Israel/quadkey=122112212/part-00113-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "d82eea3612e5d0ff06b4f553c8066b0b08084b543d7e5ad4c09bbc9b91fc392e",
+        bytes: 1_344_931,
     },
     Download {
         file: "ms-Israel-122112221.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=Israel/quadkey=122112221/part-00083-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "4e24c3d2cff0210da1fdd04d9915aa2bb7f9a817e55d435de36288c24a9a14e1",
+        bytes: 13_886_910,
     },
     Download {
         file: "ms-Israel-122112223.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=Israel/quadkey=122112223/part-00050-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "9b3f3193d80baa215092844ca216f310bb19cbf130fd3b3fcdebf2d1c6cb0744",
+        bytes: 42_306_174,
     },
     Download {
         file: "ms-Israel-122112230.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=Israel/quadkey=122112230/part-00047-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "9fd87a803dfd5c691ac5a8b20203c5a2b482798a0247469c9647c63eb6201b57",
+        bytes: 30_289_908,
     },
     Download {
         file: "ms-Israel-122112232.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=Israel/quadkey=122112232/part-00088-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "bf62440a07662752ab52821d91fa0d99a6c8f4d8cdad85f8ac87fad1b45a4dab",
+        bytes: 2_475_957,
     },
     Download {
         file: "ms-Israel-122130000.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=Israel/quadkey=122130000/part-00143-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "49022dc2906bd2b80e36ad65418566cfad05838f202bbf961434c0d90123a338",
+        bytes: 70_177,
     },
     Download {
         file: "ms-Israel-122130001.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=Israel/quadkey=122130001/part-00163-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "83a94942c90fc9ba6af257d5478b511fead0174179a9371028fa61432f34f5a0",
+        bytes: 28_984_586,
     },
     Download {
         file: "ms-Israel-122130002.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=Israel/quadkey=122130002/part-00155-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "274646d283afeef02c85f23cd918838b2fc754129e8b4fae21258b7604785f36",
+        bytes: 1_767_683,
     },
     Download {
         file: "ms-Israel-122130003.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=Israel/quadkey=122130003/part-00087-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "8299f65213412d1ed5849cf149b821a803798a45ff5db6f22e9aada1b100f212",
+        bytes: 18_165_663,
     },
     Download {
         file: "ms-Israel-122130010.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=Israel/quadkey=122130010/part-00000-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "befad82cd925a5817d14b3c2c953a06df471b9f7fb4ca4f2908f8b1a857ed0cf",
+        bytes: 2_512_486,
     },
     Download {
         file: "ms-Israel-122130012.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=Israel/quadkey=122130012/part-00145-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "7e67b76ec1338117858eed083ac60f145f4607fddb7152eece30a1e7c71767c9",
+        bytes: 1_905_349,
     },
     Download {
         file: "ms-Israel-122130021.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=Israel/quadkey=122130021/part-00189-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "6041a86f0ff8ffd950772dc8b9552a429fd70f3a04cb020153d5c3928d1c6a24",
+        bytes: 486_633,
     },
     Download {
         file: "ms-Israel-122130023.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=Israel/quadkey=122130023/part-00004-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "f5891fb55551c3b17bb3acb90558af8ace487a61e0b152de548f3ec418d4bf4f",
+        bytes: 1_461_292,
     },
     Download {
         file: "ms-Israel-122130030.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=Israel/quadkey=122130030/part-00049-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "702103b3fa98baa99defc4cb562447e8e3c8d96c56f95fcfbca0bd257cf6d533",
+        bytes: 690_468,
     },
     Download {
         file: "ms-Israel-122130201.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=Israel/quadkey=122130201/part-00036-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "cb09ff6fe4b25b49384c658651514dd5c870b261765f217ae970c6eea32908aa",
+        bytes: 58_081,
     },
     Download {
         file: "ms-WestBank-122112223.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=WestBank/quadkey=122112223/part-00062-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "8e126014c70a1446f8363cfae80e6293996e7ff2a036b7d43b5fbf07989dc47e",
+        bytes: 13_285_218,
     },
     Download {
         file: "ms-WestBank-122112230.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=WestBank/quadkey=122112230/part-00192-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "04e3964bc559b0a52e3737b8a2c373cb0de088645c57a74109c7e5812ddf8dce",
+        bytes: 776,
     },
     Download {
         file: "ms-WestBank-122112232.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=WestBank/quadkey=122112232/part-00113-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "4377638988009bae8a589b02503806267647a8fa1b89e028c3c3274c965e5007",
+        bytes: 20_452_296,
     },
     Download {
         file: "ms-WestBank-122130001.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=WestBank/quadkey=122130001/part-00018-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "0d52b7a28bc3605c93f0f5bc9476700fa7628ba1bb3acafe49de6d5b621afceb",
+        bytes: 18_649_529,
     },
     Download {
         file: "ms-WestBank-122130003.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=WestBank/quadkey=122130003/part-00169-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "6d9e2869ca2e5fc50320c2c0dc77ec1ba567a56da73c93b9643450b8526e9507",
+        bytes: 9_445,
     },
     Download {
         file: "ms-WestBank-122130010.csv.gz",
         url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/2026-02-03/global-buildings.geojsonl/RegionName=WestBank/quadkey=122130010/part-00172-4feead82-d499-422b-94cb-c036c212127a.c000.csv.gz",
         sha256: "3d5cbf64f029d91ff35113c95b241172b6cec2d9a848507e55e925caf7a4504e",
+        bytes: 15_722_428,
     },
     Download {
         file: "GHS_BUILT_H_ANBH_E2018_GLOBE_R2023A_54009_100_V1_0_R5_C22.zip",
         url: "https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/GHSL/GHS_BUILT_H_GLOBE_R2023A/GHS_BUILT_H_ANBH_E2018_GLOBE_R2023A_54009_100/V1-0/tiles/GHS_BUILT_H_ANBH_E2018_GLOBE_R2023A_54009_100_V1_0_R5_C22.zip",
         sha256: "3c89e8690b0c93eead634bfd2f8283dbbe8b05fb64430e701b11c7f3d8fb248b",
+        bytes: 10_033_800,
     },
     Download {
         file: "GHS_BUILT_H_ANBH_E2018_GLOBE_R2023A_54009_100_V1_0_R6_C22.zip",
         url: "https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/GHSL/GHS_BUILT_H_GLOBE_R2023A/GHS_BUILT_H_ANBH_E2018_GLOBE_R2023A_54009_100/V1-0/tiles/GHS_BUILT_H_ANBH_E2018_GLOBE_R2023A_54009_100_V1_0_R6_C22.zip",
         sha256: "c5086df9585000da29dda16e13ffbe48d108a9fa0bc419429709f7a8ca37b85c",
+        bytes: 5_628_921,
     },
     Download {
-        file: "chm-122112212.tif",
-        url: "https://dataforgood-fb-data.s3.amazonaws.com/forests/v1/alsgedi_global_v6_float/chm/122112212.tif",
-        sha256: "983fa447765586a8a532625ff53c1214b388e052b06f38a1e91d31046ebbbc0d",
+        file: "eth-N27E033.tif",
+        url: "https://libdrive.ethz.ch/index.php/s/cO8or7iOe5dT2Rt/download?path=%2F3deg_cogs&files=ETH_GlobalCanopyHeight_10m_2020_N27E033_Map.tif",
+        sha256: "a04beddf060b9ae81eeb018af83118aa1fe27efd129370e2a6f8bad917493061",
+        bytes: 23_739_396,
     },
     Download {
-        file: "chm-122112221.tif",
-        url: "https://dataforgood-fb-data.s3.amazonaws.com/forests/v1/alsgedi_global_v6_float/chm/122112221.tif",
-        sha256: "39b42ba0b90078e55c1406f92c6a12825ddd5533862e153a889a818a6db6d2a9",
+        file: "eth-N30E033.tif",
+        url: "https://libdrive.ethz.ch/index.php/s/cO8or7iOe5dT2Rt/download?path=%2F3deg_cogs&files=ETH_GlobalCanopyHeight_10m_2020_N30E033_Map.tif",
+        sha256: "70257c317658ee5a50eb2311b9e12d88701b8b5949b90c66a8ef3e71a8a0ab0d",
+        bytes: 59_449_031,
     },
     Download {
-        file: "chm-122112223.tif",
-        url: "https://dataforgood-fb-data.s3.amazonaws.com/forests/v1/alsgedi_global_v6_float/chm/122112223.tif",
-        sha256: "0c9b44ae413ae758760f5902be62691d4624a2711301588a5e273128baff1c56",
-    },
-    Download {
-        file: "chm-122112230.tif",
-        url: "https://dataforgood-fb-data.s3.amazonaws.com/forests/v1/alsgedi_global_v6_float/chm/122112230.tif",
-        sha256: "5f7835ac6f9bf9d304399febef58b1e0a0069208745ab5ff7a156875d68b8c35",
-    },
-    Download {
-        file: "chm-122112232.tif",
-        url: "https://dataforgood-fb-data.s3.amazonaws.com/forests/v1/alsgedi_global_v6_float/chm/122112232.tif",
-        sha256: "d139edc08d6370bdf3ea68985d03cdb15e1c5de9fbcf39aaf850a4f9507a8d9d",
-    },
-    Download {
-        file: "chm-122130000.tif",
-        url: "https://dataforgood-fb-data.s3.amazonaws.com/forests/v1/alsgedi_global_v6_float/chm/122130000.tif",
-        sha256: "f6a5651e43e0a158d160bb637c90e3874210a2b5c87e6b428c688e3147be0ee6",
-    },
-    Download {
-        file: "chm-122130001.tif",
-        url: "https://dataforgood-fb-data.s3.amazonaws.com/forests/v1/alsgedi_global_v6_float/chm/122130001.tif",
-        sha256: "b5dcd06734701de99b92b7f380da5109b90872d3acb2d382218bec76095cd317",
-    },
-    Download {
-        file: "chm-122130002.tif",
-        url: "https://dataforgood-fb-data.s3.amazonaws.com/forests/v1/alsgedi_global_v6_float/chm/122130002.tif",
-        sha256: "360a8ad53c0e9573f4144d504c28ae310af1d1a6eec001ab8f8a58acd478415d",
-    },
-    Download {
-        file: "chm-122130003.tif",
-        url: "https://dataforgood-fb-data.s3.amazonaws.com/forests/v1/alsgedi_global_v6_float/chm/122130003.tif",
-        sha256: "e8b8bce2750a55476e7000d1a1417ae416cd7ec4980f82c11aeac99f98a27698",
-    },
-    Download {
-        file: "chm-122130010.tif",
-        url: "https://dataforgood-fb-data.s3.amazonaws.com/forests/v1/alsgedi_global_v6_float/chm/122130010.tif",
-        sha256: "f0616826d3129261ae36897d681d9508c20cb37bb9e848d7a38b219a619d17d8",
-    },
-    Download {
-        file: "chm-122130012.tif",
-        url: "https://dataforgood-fb-data.s3.amazonaws.com/forests/v1/alsgedi_global_v6_float/chm/122130012.tif",
-        sha256: "034bcf4e0b5f5dcba347cfd9f627a0aff83705c439b60e2286ab5eef70237acb",
-    },
-    Download {
-        file: "chm-122130020.tif",
-        url: "https://dataforgood-fb-data.s3.amazonaws.com/forests/v1/alsgedi_global_v6_float/chm/122130020.tif",
-        sha256: "45d7ccaf32363c2b9c2ae655da15c73db8f0d406321badaa40bfdf3a5391218f",
-    },
-    Download {
-        file: "chm-122130021.tif",
-        url: "https://dataforgood-fb-data.s3.amazonaws.com/forests/v1/alsgedi_global_v6_float/chm/122130021.tif",
-        sha256: "076943ddb28ced04f68a332c57bf3b688f604c6cb65b59c3ad63ccb9619d771c",
-    },
-    Download {
-        file: "chm-122130023.tif",
-        url: "https://dataforgood-fb-data.s3.amazonaws.com/forests/v1/alsgedi_global_v6_float/chm/122130023.tif",
-        sha256: "c7a46d54abc59b7320f9bdf3cdaf3ee120203e67a070e186135f66e0803dfdce",
-    },
-    Download {
-        file: "chm-122130030.tif",
-        url: "https://dataforgood-fb-data.s3.amazonaws.com/forests/v1/alsgedi_global_v6_float/chm/122130030.tif",
-        sha256: "b7138dc53dd5a73257cf4a2eceeb71f0f962333b351e259ffcaeca310853195e",
-    },
-    Download {
-        file: "chm-122130032.tif",
-        url: "https://dataforgood-fb-data.s3.amazonaws.com/forests/v1/alsgedi_global_v6_float/chm/122130032.tif",
-        sha256: "bc2288fe8edfa268f85550fbfc2a2e53105bd5adeb77ee0db7210650a77b27dc",
-    },
-    Download {
-        file: "chm-122130201.tif",
-        url: "https://dataforgood-fb-data.s3.amazonaws.com/forests/v1/alsgedi_global_v6_float/chm/122130201.tif",
-        sha256: "98ffa5f570fe9bfa58fae5ffaa9d54a5aae45cc814d1b2f27219545cf0a67abe",
+        file: "eth-N33E033.tif",
+        url: "https://libdrive.ethz.ch/index.php/s/cO8or7iOe5dT2Rt/download?path=%2F3deg_cogs&files=ETH_GlobalCanopyHeight_10m_2020_N33E033_Map.tif",
+        sha256: "a83031c078015a1d7bc2a146a55ece8186440a0a6db56071ff958c2c75e0c3e6",
+        bytes: 64_675_563,
     },
 ];
 
@@ -404,44 +367,102 @@ fn today() -> String {
     format!("{:04}-{m:02}-{d:02}", yoe + era * 400 + (m <= 2) as i64)
 }
 
-/// Every file of `list` into `dir` (curl, so `file://` works too), checked against its pinned SHA-256. Files done before are kept. Returns how many it fetched.
+/// Every file of `list` into `dir` (curl, so `file://` works too), checked against its pinned SHA-256; files done
+/// before are kept. `FETCH_JOBS` files download at once; the progress follows the bytes on disk, with a log line every
+/// `FETCH_LOG_S` seconds. Returns how many it fetched.
 pub fn fetch_files(list: &[Download], dir: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<usize> {
     std::fs::create_dir_all(dir)?;
-    let mut n = 0;
-    for (k, d) in list.iter().enumerate() {
-        check(cancel)?;
-        if !file_done(dir, d) {
-            let (p, part) = (dir.join(d.file), dir.join(format!("{}.part", d.file)));
-            // A file already there (copied in by hand) only needs its check.
-            if !(p.is_file() && sha256_file(&p)? == d.sha256) {
-                pr.log(&format!("downloading {}", d.file));
-                let status = Command::new("curl")
-                    .args(["-fsSL", "--retry", "3", "--connect-timeout", "30", "-o"])
-                    .arg(&part)
-                    .arg(d.url)
-                    .status()
-                    .context("running curl")?;
-                let sum = if status.success() { sha256_file(&part)? } else { String::new() };
-                if sum != d.sha256 {
-                    let _ = std::fs::remove_file(&part);
-                    if status.success() {
-                        bail!(
-                            "{}: checksum mismatch (got {sum}, pinned {}): the file at {} changed",
-                            d.file,
-                            d.sha256,
-                            d.url
-                        );
-                    }
-                    bail!("{}: download failed (curl {status})", d.file);
-                }
-                std::fs::rename(&part, &p)?;
-                n += 1;
+    let total: u64 = list.iter().map(|d| d.bytes).sum::<u64>().max(1);
+    let next = AtomicUsize::new(0);
+    let done_bytes = AtomicU64::new(0);
+    let fetched = AtomicUsize::new(0);
+    let slots: Vec<AtomicU64> = (0..FETCH_JOBS).map(|_| AtomicU64::new(0)).collect();
+    let failed: Mutex<Option<anyhow::Error>> = Mutex::new(None);
+    let stop = || cancel.load(Ordering::Relaxed) || failed.lock().unwrap().is_some();
+    let worker = |slot: &AtomicU64| {
+        while let Some(d) = list.get(next.fetch_add(1, Ordering::Relaxed)) {
+            if stop() {
+                return;
             }
-            std::fs::write(dir.join(format!("{}.ok", d.file)), format!("{}\n{}\n", d.sha256, today()))?;
+            match fetch_file(d, dir, slot, &stop) {
+                Ok(got) => {
+                    fetched.fetch_add(usize::from(got), Ordering::Relaxed);
+                    done_bytes.fetch_add(d.bytes, Ordering::Relaxed);
+                }
+                Err(e) => {
+                    failed.lock().unwrap().get_or_insert(e);
+                    return;
+                }
+            }
+            slot.store(0, Ordering::Relaxed);
         }
-        pr.fraction((k + 1) as f32 / list.len() as f32);
+    };
+    std::thread::scope(|sc| {
+        let workers: Vec<_> = slots.iter().map(|slot| sc.spawn(|| worker(slot))).collect();
+        let (t0, mut last_log) = (std::time::Instant::now(), 0u64);
+        while !workers.iter().all(|w| w.is_finished()) {
+            std::thread::sleep(std::time::Duration::from_millis(500));
+            let now = done_bytes.load(Ordering::Relaxed) + slots.iter().map(|s| s.load(Ordering::Relaxed)).sum::<u64>();
+            pr.fraction(now as f32 / total as f32);
+            let secs = t0.elapsed().as_secs();
+            if secs >= last_log + FETCH_LOG_S {
+                last_log = secs;
+                pr.log(&format!("downloaded {} of {} MB", now / 1_000_000, total / 1_000_000));
+            }
+        }
+    });
+    if let Some(e) = failed.into_inner().unwrap() {
+        return Err(e);
     }
-    Ok(n)
+    check(cancel)?;
+    Ok(fetched.into_inner())
+}
+
+/// Files downloading at once, and the seconds between `fetch_files`' progress lines.
+const FETCH_JOBS: usize = 4;
+const FETCH_LOG_S: u64 = 15;
+
+/// One file of `fetch_files`: true when it was downloaded, false when it was there already. `slot` follows the bytes
+/// on disk; `stop` kills curl.
+fn fetch_file(d: &Download, dir: &Path, slot: &AtomicU64, stop: &dyn Fn() -> bool) -> Result<bool> {
+    if file_done(dir, d) {
+        return Ok(false);
+    }
+    let (p, part) = (dir.join(d.file), dir.join(format!("{}.part", d.file)));
+    // A file already there (copied in by hand) only needs its check.
+    let got = !(p.is_file() && sha256_file(&p)? == d.sha256);
+    if got {
+        let mut child = Command::new("curl")
+            .args(["-fsSL", "--retry", "3", "--connect-timeout", "30", "-o"])
+            .arg(&part)
+            .arg(d.url)
+            .spawn()
+            .context("running curl")?;
+        let status = loop {
+            if let Some(s) = child.try_wait()? {
+                break s;
+            }
+            if stop() {
+                let _ = child.kill();
+                let _ = child.wait();
+                let _ = std::fs::remove_file(&part);
+                bail!("cancelled");
+            }
+            slot.store(std::fs::metadata(&part).map_or(0, |m| m.len()), Ordering::Relaxed);
+            std::thread::sleep(std::time::Duration::from_millis(250));
+        };
+        let sum = if status.success() { sha256_file(&part)? } else { String::new() };
+        if sum != d.sha256 {
+            let _ = std::fs::remove_file(&part);
+            if status.success() {
+                bail!("{}: checksum mismatch (got {sum}, pinned {}): the file at {} changed", d.file, d.sha256, d.url);
+            }
+            bail!("{}: download failed (curl {status})", d.file);
+        }
+        std::fs::rename(&part, &p)?;
+    }
+    std::fs::write(dir.join(format!("{}.ok", d.file)), format!("{}\n{}\n", d.sha256, today()))?;
+    Ok(got)
 }
 
 /// Where ambientCG serves the zips.
@@ -694,10 +715,10 @@ mod tests {
         let sum: &'static str = Box::leak(sha256_file(&zp).unwrap().into_boxed_str());
         let out = d.join("out");
         let no = AtomicBool::new(false);
-        let bad = [Download { file: "a.zip", url, sha256: "00" }];
+        let bad = [Download { file: "a.zip", url, sha256: "00", bytes: 1 }];
         assert!(format!("{:#}", fetch_files(&bad, &out, &Stdout, &no).unwrap_err()).contains("checksum mismatch"));
         assert!(!out.join("a.zip").exists() && !out.join("a.zip.part").exists());
-        let good = [Download { file: "a.zip", url, sha256: sum }];
+        let good = [Download { file: "a.zip", url, sha256: sum, bytes: 1 }];
         assert_eq!(fetch_files(&good, &out, &Stdout, &no).unwrap(), 1);
         assert!(file_done(&out, &good[0]) && file_date(&out, &good[0]).is_some_and(|d| d.len() == 10));
         assert_eq!(fetch_files(&good, &out, &Stdout, &no).unwrap(), 0, "kept");

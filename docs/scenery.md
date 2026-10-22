@@ -33,11 +33,12 @@ Setup downloads every source into `assets/source/scenery/` and checks it against
 | OpenStreetMap, Geofabrik's `israel-and-palestine` extract of 2026-01-01[^geofabrik] | buildings with their tags; forests, orchards, fields and settlements; single trees; tree rows | 1 PBF file (119 MB) | ODbL 1.0[^osm] |
 | Microsoft Global ML Building Footprints, release 2026-02-03[^ms] | building outlines where OSM has none (Israel, the West Bank, Gaza) | 24 quadkey files (238 MB) | CDLA Permissive 2.0[^ms] |
 | JRC GHS-BUILT-H R2023A, average net building height (ANBH), 100 m[^ghsl] | the height of a building without a height tag | 2 tiles, R5_C22 and R6_C22 (16 MB) | free re-use with the source acknowledged[^ghsl-terms] |
-| Meta and WRI High Resolution Canopy Height Maps, v1, 1 m[^chm] | where trees stand and how tall they are | 17 quadkey tiles (1.2 GB) | CC BY 4.0[^chm] |
+| ETH Zürich Global Canopy Height 2020, 10 m[^chm] | where trees stand and how tall they are | 3 tiles of 3° × 3°, N27E033, N30E033, N33E033 (148 MB) | CC BY 4.0[^chm] |
 
 Geofabrik keeps the extract of 1 January of each year for good, so the pinned file stays downloadable[^geofabrik].
-`iaf-scenery tiles assets` lists the quadkeys the Survey 2 m layer touches: the canopy list holds all of them, the
-Microsoft list every Israel, West Bank and Gaza file of its `dataset-links.csv`.
+`iaf-scenery tiles assets` lists the quadkeys the Survey 2 m layer touches; the Microsoft list holds every Israel,
+West Bank and Gaza file of its `dataset-links.csv`. Setup downloads four files at once and logs the megabytes
+downloaded every 15 s.
 
 ### 1.2 How a cell is made
 
@@ -65,7 +66,8 @@ Microsoft list every Israel, West Bank and Gaza file of its `dataset-links.csv`.
    - Roof colour: the median of the photo's pixels inside the footprint, once from `mapi2015` (the 1998 look) and
      once from `mapi2015_modern`.
    - Trees: OSM's single trees (`natural=tree`, height tag or 8 m), its tree rows (`natural=tree_row`, one tree every
-     6 m, height tag or 10 m), then one tree per canopy cell (0.0001°, about 10 m) of 4 m or more (lower is mostly scrub; inferred), placed at the cell
+     6 m, height tag or 10 m), then one tree per canopy cell (0.0001°, about 10 m) of 4 m or more (lower is mostly scrub; inferred), or of 2 m
+     or more in a mapped orchard, vineyard or field (citrus, avocado and olive groves are 2–4 m), placed at the cell
      centre moved by up to a third of a cell. A canopy tree within 6 m of an OSM tree is left out.
    - Tree kind: the OSM tags first (genus, species, taxon, leaf type: palm, cypress, pine). Else the land use under
      it on a 10 m grid: pine in a forest or wood; broadleaf (olive-like) in an orchard, vineyard or field; in a
@@ -135,10 +137,9 @@ Measured on this machine (Intel laptop, 2026-10-22), the whole layer (4664 nodes
 
 | | |
 |---|---|
-| Downloads | 1.55 GB in 44 files (OSM 119 MB, Microsoft 238 MB, GHSL 16 MB, canopy 1.17 GB) |
-| First build | about 6 min (the canopy reduction, once, about 3 min); then 3 min, peak memory 1.6 GB |
-| Output | 4117 cells, 2 161 711 buildings (674 416 from OSM), 9 720 795 trees, 283 MB |
-| 20 km around Tel Nof and Rishon LeZion (`--near 313000,512000,15`) | 107 cells, 97 020 buildings, 230 413 trees, 9.5 MB, 5 s |
+| Downloads | 520 MB in 30 files (OSM 119 MB, Microsoft 238 MB, GHSL 16 MB, canopy 148 MB); 40 s on this line |
+| Build | 3 min, peak memory 1.6 GB |
+| Output | 4013 cells, 2 143 073 buildings (668 605 from OSM), 32 288 531 trees, 643 MB |
 
 Two runs give the same bytes (the SHA-256 of every cell file compared).
 
@@ -322,7 +323,8 @@ missionlist.json with the installed scenery: no original unit stands on a buildi
     Sentinel2 composite (2018). European Commission, Joint Research Centre (JRC), doi:10.2905/85005901-3A49-48DD-9D19-6261354F56FE
 [^ghsl-terms]: European Commission, GHSL Data Package 2023 (in each tile's zip), "Terms of Use": "Reuse is authorised,
     provided the source is acknowledged" (Decision 2011/833/EU).
-[^chm]: Meta and World Resources Institute (WRI), High Resolution Canopy Height Maps, Registry of Open Data on AWS:
-    https://registry.opendata.aws/dataforgood-fb-forests/
+[^chm]: Lang, N., Jetz, W., Schindler, K., Wegner, J. D. (2023): A high-resolution canopy height model of the Earth,
+    Nature Ecology & Evolution; data: Global Canopy Height 2020, ETH Zürich, CC BY 4.0:
+    https://langnico.github.io/globalcanopyheight/
 [^stone]: Wikipedia, "Jerusalem stone" (municipal laws require stone facing; Ronald Storrs' 1918 ordinance):
     https://en.wikipedia.org/wiki/Jerusalem_stone

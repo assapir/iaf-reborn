@@ -49,7 +49,7 @@ and each step uses every core inside.
 | `launcher` | icon | the desktop launcher (`tools/install-launcher.sh`) |
 | `textures` | | `assets/thirdparty/ambientcg`: the CC0 textures of Ground textures and Model detail (≈ 250 MB download; docs/rendering.md §1.4, §9) |
 | `sentinel2`, `mapi2015-fetch`, `mapi2015` | airbases | `assets/converted/imagery` |
-| `scenery-fetch` | | `assets/source/scenery`: the scenery's sources (about 1.6 GB download; docs/scenery.md §1.1) |
+| `scenery-fetch` | | `assets/source/scenery`: the scenery's sources (about 520 MB download; docs/scenery.md §1.1) |
 | `scenery` | mapi2015, scenery-fetch, missions, objects, airbases | `assets/converted/scenery`: buildings and trees (docs/scenery.md) |
 | `guides` | the conversions and imagery | the pilot guides |
 

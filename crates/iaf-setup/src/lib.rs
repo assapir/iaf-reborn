@@ -57,7 +57,7 @@ pub struct Inputs {
     pub refresh: bool,
     /// Render the pilot guides (needs a display; the renderer is `Ctx::guides`).
     pub guides: bool,
-    /// Scenery: buildings and trees over the Survey 2 m layer (docs/scenery.md; downloads about 1.6 GB).
+    /// Scenery: buildings and trees over the Survey 2 m layer (docs/scenery.md; downloads about 520 MB).
     pub scenery: bool,
 }
 
@@ -130,7 +130,7 @@ pub fn plan(inputs: &Inputs) -> Vec<Step> {
     if inputs.scenery {
         add(
             "scenery-fetch",
-            "scenery: sources (OpenStreetMap, Microsoft footprints, GHSL heights, Meta canopy; about 1.6 GB)",
+            "scenery: sources (OpenStreetMap, Microsoft footprints, GHSL heights, ETH canopy; about 520 MB)",
             false,
             &[],
         );

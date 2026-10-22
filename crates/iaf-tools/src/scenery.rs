@@ -5,7 +5,7 @@
 //!   orchards and settlements, single trees and tree rows;
 //! - Microsoft's Global ML Building Footprints where OpenStreetMap has no building;
 //! - JRC GHS-BUILT-H R2023A (average net building height, 100 m) for buildings without a height tag;
-//! - Meta / WRI's global 1 m canopy height for the trees.
+//! - ETH Zürich's global 10 m canopy height (2020) for the trees.
 //!
 //! Everything is warped from WGS84 into the game frame with the georeference (`georef`), as the imagery is, so the
 //! roofs stand on the photo's buildings. Nothing stands where the original has something: the sea, the airbases and
@@ -32,7 +32,7 @@ use crate::thirdparty::{self, Download, SCENERY};
 use crate::{airbases, log};
 
 /// The generator's version: part of the release, so a change to the rules below makes new ids.
-pub const GENERATOR: u32 = 3;
+pub const GENERATOR: u32 = 5;
 /// A level-1 node's side in terrain units (1024 pixels of 2 units).
 const NODE_UNITS: f64 = 2048.0;
 const PIXEL_UNITS: f64 = 2.0;
@@ -50,6 +50,9 @@ pub const LEVEL_M: f32 = 3.0;
 /// Trees: the canopy height that counts as a tree (m), the canopy grid (degrees, ≈ 10 m), the spacing of a tree row
 /// (m), the default heights (m).
 const CANOPY_MIN_M: u8 = 4;
+/// In mapped orchards and fields (`AREA_ORCHARD`) a lower canopy counts: citrus, avocado and olive groves are 2–4 m,
+/// field crops under 2 m.
+const ORCHARD_CANOPY_MIN_M: u8 = 2;
 const CANOPY_STEP: f64 = 0.0001;
 const ROW_STEP_M: f64 = 6.0;
 const TREE_DEFAULT_M: f32 = 8.0;
@@ -410,7 +413,7 @@ pub fn build_cell(n: &NodeIn, env: &Env) -> Cell {
         for r in 0..c.h {
             for col in 0..c.w {
                 let v = c.v[r * c.w + col];
-                if v < CANOPY_MIN_M {
+                if v < ORCHARD_CANOPY_MIN_M {
                     continue;
                 }
                 let s = [seed[0], seed[1], r as u64, col as u64];
@@ -418,7 +421,8 @@ pub fn build_cell(n: &NodeIn, env: &Env) -> Cell {
                 let lon = c.lon0 + (col as f64 + 0.5 + 0.7 * jx) * c.step;
                 let lat = c.lat1 - (r as f64 + 0.5 + 0.7 * jy) * c.step;
                 let p = (env.warp)(lon, lat);
-                if !tree_ok(p)
+                if v < CANOPY_MIN_M && kinds.area(p) != AREA_ORCHARD
+                    || !tree_ok(p)
                     || mapped.near(p, ROW_STEP_M).any(|k| {
                         let q = n.trees[k as usize].p;
                         (q[0] - p[0]).hypot(q[1] - p[1]) < ROW_STEP_M
@@ -489,16 +493,19 @@ impl KindGrid {
     fn cell(&self, p: [f64; 2]) -> (i64, i64) {
         (((p[0] - self.x0) / KIND_CELL_M).floor() as i64, ((p[1] - self.y0) / KIND_CELL_M).floor() as i64)
     }
-    /// The kind of a tree at `p`: pine in a forest, broadleaf (olive-like) in an orchard or field, in a settlement a
-    /// palm one time in four, else broadleaf.
-    fn kind(&self, p: [f64; 2], seed: &[u64]) -> TreeKind {
+    /// The area (`AREA_*`) at `p`, 0 for none.
+    fn area(&self, p: [f64; 2]) -> u8 {
         let (i, j) = self.cell(p);
-        let a = if i >= 0 && j >= 0 && (i as usize) < self.w && (j as usize) < self.h {
+        if i >= 0 && j >= 0 && (i as usize) < self.w && (j as usize) < self.h {
             self.v[j as usize * self.w + i as usize]
         } else {
             0
-        };
-        match a {
+        }
+    }
+    /// The kind of a tree at `p`: pine in a forest, broadleaf (olive-like) in an orchard or field, in a settlement a
+    /// palm one time in four, else broadleaf.
+    fn kind(&self, p: [f64; 2], seed: &[u64]) -> TreeKind {
+        match self.area(p) {
             AREA_FOREST => TreeKind::Pine,
             AREA_SETTLEMENT if hash(seed).is_multiple_of(4) => TreeKind::Palm,
             _ => TreeKind::Broadleaf,
@@ -1254,7 +1261,7 @@ pub fn build(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary>
     let raw = gdal_warp(&ghs, hgeo, hw, hh, "near", &work.join("ghs.bin"))?;
     let heights =
         Heights { geo: hgeo, w: hw, h: hh, v: raw.as_chunks::<4>().0.iter().map(|b| f32::from_le_bytes(*b)).collect() };
-    let chm = chm_vrt(&pick("chm-"), &work, pr, cancel)?;
+    let chm = canopy_vrt(&pick("eth-"), &work)?;
     pr.fraction(0.35);
 
     // The places nothing may stand.
@@ -1375,7 +1382,7 @@ pub fn build(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary>
             "© OpenStreetMap contributors (openstreetmap.org/copyright), Geofabrik extract of 2026-01-01",
             "Microsoft Global ML Building Footprints",
             "GHS-BUILT-H R2023A, European Commission, Joint Research Centre (JRC)",
-            "Meta and World Resources Institute (WRI), High Resolution Canopy Height Maps",
+            "Global Canopy Height 2020, Lang et al., ETH Zürich (EcoVision Lab)",
         ],
         "licence": "OpenStreetMap: ODbL 1.0; Microsoft footprints: CDLA-Permissive-2.0; GHSL: free re-use with credit (CC BY 4.0); canopy height: CC BY 4.0",
         "cells": s.cells,
@@ -1397,28 +1404,11 @@ pub fn build(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary>
     Ok(s)
 }
 
-/// The canopy tiles reduced to ≈ 10 m (the highest metre of each 8 × 8 block; gdalwarp, kept in `work`) under one VRT.
-fn chm_vrt(tiles: &[PathBuf], work: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<String> {
-    let dir = work.join("chm");
-    std::fs::create_dir_all(&dir)?;
-    let small: Vec<PathBuf> = par_map(tiles, cancel, |t| {
-        let p = dir.join(t.file_name().context("canopy tile name")?);
-        if !p.is_file() {
-            log!(pr, "canopy: reducing {}", t.display());
-            let part = p.with_extension("part.tif");
-            let mut cmd = Command::new("gdalwarp");
-            cmd.args(["-q", "-overwrite", "-r", "max", "-tr", "9.554628535647", "9.554628535647"])
-                .args(["-co", "TILED=YES", "-co", "COMPRESS=DEFLATE", "--config", "GDAL_CACHEMAX", "512"])
-                .arg(t)
-                .arg(&part);
-            run(cmd)?;
-            std::fs::rename(&part, &p)?;
-        }
-        Ok(p)
-    })?;
-    let vrt = work.join("chm.vrt");
+/// The canopy tiles (ETH's 10 m, already the cell grid's size) under one VRT; 255 is ETH's no-data.
+fn canopy_vrt(tiles: &[PathBuf], work: &Path) -> Result<String> {
+    let vrt = work.join("canopy.vrt");
     let mut cmd = Command::new("gdalbuildvrt");
-    cmd.arg("-q").arg("-overwrite").arg(&vrt).args(&small);
+    cmd.args(["-q", "-overwrite", "-srcnodata", "255", "-vrtnodata", "0"]).arg(&vrt).args(tiles);
     run(cmd)?;
     Ok(utf8(&vrt)?.to_string())
 }
