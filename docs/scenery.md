@@ -199,7 +199,10 @@ Two runs give the same bytes (the SHA-256 of every cell file compared).
   - a near mesh to 2.5 km: walls with windows, and roofs. It fades out over 300 m;
   - a far mesh from 2.5 to 4.5 km: bare prisms of every building. Its far end has no fade: fading draws a whole mesh
     as transparent while in the margin, and a building that far covers a few pixels;
-  - our own low-poly trees to 2 km.
+  - our own low-poly trees to 2 km, in 500 m tiles, one MultiMesh per tile and kind. Godot tests a visibility range
+    against an object's centre, so a whole cell's trees would appear at once; `scenery_tree.gdshader` instead cuts
+    each tree at its own distance: the full model (about 80 triangles) to 700 m, a canopy-only model (6–24 triangles)
+    beyond, and the tree grows in from nothing over the last 300 m before 2 km.
 
   None of them casts a shadow: the photo under them already holds the buildings' shadows.
 - **Shading:** `scenery.gdshader` colours roofs from the photo. The photo's colour already holds the sun's light and

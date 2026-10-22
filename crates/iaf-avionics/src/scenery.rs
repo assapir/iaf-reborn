@@ -885,6 +885,26 @@ pub fn tree_rows(cell: &Cell, origin: [f64; 2], ground: &dyn Fn(Vec3) -> Option<
     Some(rows)
 }
 
+/// `tree_rows` split into square tiles of `tile` metres (per tile and kind, tiles in (row, column) order): Godot
+/// tests a MultiMesh's visibility range against its bounds' centre, so a whole cell's trees would appear at once.
+pub fn tree_tiles(
+    cell: &Cell,
+    origin: [f64; 2],
+    tile: f32,
+    ground: &dyn Fn(Vec3) -> Option<f64>,
+) -> Option<Vec<(TreeKind, Vec<f32>)>> {
+    let rows = tree_rows(cell, origin, ground)?;
+    let mut tiles: std::collections::BTreeMap<(i32, i32, u8), Vec<f32>> = Default::default();
+    for (k, r) in rows.iter().enumerate() {
+        for t in r.as_chunks::<12>().0 {
+            let key = ((t[11] / tile).floor() as i32, (t[3] / tile).floor() as i32, k as u8);
+            tiles.entry(key).or_default().extend_from_slice(t);
+        }
+    }
+    let kind = |k: u8| [TreeKind::Pine, TreeKind::Broadleaf, TreeKind::Palm, TreeKind::Cypress][usize::from(k)];
+    Some(tiles.into_iter().map(|((_, _, k), r)| (kind(k), r)).collect())
+}
+
 struct Reader<'a> {
     data: &'a [u8],
     at: usize,
@@ -1104,6 +1124,20 @@ mod tests {
             )
             .is_none()
         );
+    }
+
+    #[test]
+    fn trees_tile_by_position() {
+        let mut s = Scenery::default();
+        let t = |x: f32, kind| Tree { x, y: -1.0, height: 10.0, kind };
+        let cell = Cell {
+            buildings: vec![],
+            trees: vec![t(1.0, TreeKind::Pine), t(600.0, TreeKind::Pine), t(2.0, TreeKind::Palm)],
+        };
+        s.insert(0, 0, cell);
+        let tiles = tree_tiles(s.cell(0, 0).unwrap(), [0.0, 0.0], 500.0, FLAT).unwrap();
+        let counts: Vec<(TreeKind, usize)> = tiles.iter().map(|(k, r)| (*k, r.len() / 12)).collect();
+        assert_eq!(counts, [(TreeKind::Pine, 1), (TreeKind::Palm, 1), (TreeKind::Pine, 1)]);
     }
 
     #[test]

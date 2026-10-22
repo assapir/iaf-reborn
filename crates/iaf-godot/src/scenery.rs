@@ -23,9 +23,12 @@ pub static SCENERY: LazyLock<RwLock<Scenery>> = LazyLock::new(Default::default);
 enum Piece {
     Near(Mesh),
     Far(Mesh),
-    Trees([Vec<f32>; 4]),
+    Trees(Vec<(scenery::TreeKind, Vec<f32>)>),
 }
 type Built = Option<VecDeque<Piece>>;
+
+/// A tree tile's side (m): its MultiMeshes appear and swap models by their own distance, not the whole cell's.
+const TREE_TILE_M: f32 = 500.0;
 
 /// Vertices per uploaded mesh: a dense cell reaches the GPU over several frames.
 const CHUNK_VERTICES: usize = 60_000;
@@ -37,7 +40,7 @@ fn build(i: i64, j: i64, modern: bool) -> Built {
     let (c, o) = (&c, origin(i, j));
     let near = scenery::mesh_chunks(c, o, true, modern, &ground, CHUNK_VERTICES)?;
     let far = scenery::mesh_chunks(c, o, false, modern, &ground, CHUNK_VERTICES)?;
-    let trees = scenery::tree_rows(c, o, &ground)?;
+    let trees = scenery::tree_tiles(c, o, TREE_TILE_M, &ground)?;
     let mut q: VecDeque<Piece> = near.into_iter().map(Piece::Near).chain(far.into_iter().map(Piece::Far)).collect();
     q.push_back(Piece::Trees(trees));
     Some(q)
@@ -142,8 +145,9 @@ impl IafScenery {
 
     /// The prepared cell's next piece, {} when none is left: {near: true, arrays} or {near: false, arrays} (a chunk of
     /// the near / far buildings for `ArrayMesh.add_surface_from_arrays`, Mesh.ARRAY_MAX arrays: VERTEX, NORMAL, COLOR,
-    /// TEX_UV, TEX_UV2, INDEX, at most `CHUNK_VERTICES`), or {trees} (kind (TreeKind as int) → PackedFloat32Array of
-    /// TRANSFORM_3D rows, 12 floats each, for a 10 m model). Near = parapets, gabled and dome roofs; far = bare prisms.
+    /// TEX_UV, TEX_UV2, INDEX, at most `CHUNK_VERTICES`), or {trees: [[kind (TreeKind as int), PackedFloat32Array of
+    /// TRANSFORM_3D rows, 12 floats each, for a 10 m model] per `TREE_TILE_M` tile and kind]}. Near = parapets, gabled
+    /// and dome roofs; far = bare prisms.
     #[func]
     fn take_next(i: i64, j: i64) -> VarDictionary {
         let mut built = BUILT.lock().unwrap();
@@ -164,7 +168,13 @@ impl IafScenery {
                     d.set("near", false);
                     d.set("arrays", &arrays(&m));
                 }
-                Some(Piece::Trees(t)) => d.set("trees", &tree_dict(&t)),
+                Some(Piece::Trees(t)) => {
+                    let tiles: VarArray = t
+                        .iter()
+                        .map(|(k, r)| varray![*k as i64, &PackedFloat32Array::from(r.as_slice())].to_variant())
+                        .collect();
+                    d.set("trees", &tiles);
+                }
             }
             return d;
         }

@@ -14,8 +14,12 @@ const RANGE := 4500.0
 const KEEP := 1000.0
 const NEAR := 2500.0
 const TREES := 2000.0
-## Trees draw their full model to this distance (m), the far one beyond.
+## Trees draw their full model to this distance (m), the far one beyond; they grow in over the last TREES_GROW m
+## before TREES. Each tree by its own distance (scenery_tree.gdshader); a tile's MultiMesh is drawn while any of its
+## trees may be (TREE_TILE_REACH: half a 500 m tile's diagonal).
 const TREES_NEAR := 700.0
+const TREES_GROW := 300.0
+const TREE_TILE_REACH := 360.0
 ## The visibility ranges' fade margins (m).
 const FADE := 300.0
 ## The cells re-chosen when the focus moved this far (m) or after this long (ms).
@@ -43,6 +47,7 @@ const TRUNK := Color(0.16, 0.11, 0.07)
 const ImageryLayers := preload("res://terrain/imagery_layers.gd")
 const GroundTextures := preload("res://terrain/ground_textures.gd")
 const SHADER := preload("res://terrain/scenery.gdshader")
+const TREE_SHADER := preload("res://terrain/scenery_tree.gdshader")
 
 ## The folder holding DIR ("" = Settings.assets_dir(); tests point it elsewhere).
 static var base_dir := ""
@@ -243,15 +248,27 @@ static func _set_damage(m: ShaderMaterial, damage: PackedByteArray) -> void:
 
 
 ## A 10 m tree of `kind` (KINDS): a six-sided trunk and a low-poly canopy, our own mesh; scaled per tree.
-## A tree kind's model: the full one, or `far` the canopy alone with few faces (6–24 triangles, one surface, the full
-## model's canopy material) for TREES_NEAR..TREES.
+## A tree kind's model: the full one, or `far` the canopy alone with few faces (6–24 triangles, one surface) for
+## TREES_NEAR..TREES.
 static func tree_mesh(kind: int, far := false) -> ArrayMesh:
 	if _tree_meshes.is_empty():
 		for k in KINDS.size():
 			_tree_meshes.append(_make_tree(k))
 		for k in KINDS.size():
-			_tree_meshes.append(_make_far_tree(k, _tree_meshes[k].surface_get_material(1)))
+			_tree_meshes.append(_make_far_tree(k, _tree_material(KINDS[k][2], true)))
 	return _tree_meshes[clampi(kind, 0, KINDS.size() - 1) + (KINDS.size() if far else 0)]
+
+
+## A tree surface's material: its colour, the model it belongs to (scenery_tree.gdshader picks per tree by distance).
+static func _tree_material(colour: Color, far: bool) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = TREE_SHADER
+	m.set_shader_parameter("albedo", colour)
+	m.set_shader_parameter("far_model", far)
+	m.set_shader_parameter("near_m", TREES_NEAR)
+	m.set_shader_parameter("far_m", TREES)
+	m.set_shader_parameter("grow_m", TREES_GROW)
+	return m
 
 
 static func _make_far_tree(kind: int, mat: Material) -> ArrayMesh:
@@ -322,10 +339,7 @@ static func _make_tree(kind: int) -> ArrayMesh:
 		var st := SurfaceTool.new()
 		st.append_from(p[0], 0, p[1])
 		st.commit(mesh)
-		var m := StandardMaterial3D.new()
-		m.albedo_color = p[2]
-		m.roughness = 1.0
-		mesh.surface_set_material(mesh.get_surface_count() - 1, m)
+		mesh.surface_set_material(mesh.get_surface_count() - 1, _tree_material(p[2], false))
 	return mesh
 
 
@@ -516,20 +530,19 @@ func _upload(k: Vector2i) -> void:
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		c.node.add_child(mi)
 	else:
-		var trees: Dictionary = piece.trees
-		for kind in trees:
-			var rows: PackedFloat32Array = trees[kind]
+		for tile in piece.trees:
+			var rows: PackedFloat32Array = tile[1]
 			for far in [false, true]:
 				var mm := MultiMesh.new()
 				mm.transform_format = MultiMesh.TRANSFORM_3D
-				mm.mesh = tree_mesh(int(kind), far)
+				mm.mesh = tree_mesh(int(tile[0]), far)
 				mm.instance_count = rows.size() / 12
 				mm.buffer = rows
 				var mmi := MultiMeshInstance3D.new()
 				mmi.multimesh = mm
-				mmi.visibility_range_begin = TREES_NEAR if far else 0.0
-				mmi.visibility_range_end = TREES if far else TREES_NEAR
-				# The swap is a few pixels: no fade (a fading MultiMesh draws as transparent).
+				# The ranges only cull whole tiles; the shader cuts each tree at its own distance.
+				mmi.visibility_range_begin = maxf(0.0, TREES_NEAR - TREE_TILE_REACH) if far else 0.0
+				mmi.visibility_range_end = (TREES if far else TREES_NEAR) + TREE_TILE_REACH
 				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				c.node.add_child(mmi)
 
