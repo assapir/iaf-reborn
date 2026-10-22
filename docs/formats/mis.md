@@ -157,6 +157,10 @@ low byte of count is used (`FUN_005951f0`).
 - Stations 0–8 come from the entity when any of its stations is set (`FUN_005951c0`), else from the type.
 - Example, takeoff.mis Player1: pylons empty, `25 × 200` (20 mm), `33 × 60` (chaff), `34 × 60` (flare).
 
+**Ours, in the converted JSON only** (the mission editor's scenery targets, docs/scenery.md §5.1): an entity may hold
+`scenery`, `scenery_area`, `scenery_height`, `scenery_count` and `scenery_outline`, and the main file
+`scenery_release`. The original files have none of them.
+
 ### CDMEScriptObj (`FUN_00596610`) — per-entity behaviour scripts (linked list by index)
 | fid | t | meaning |
 |---|---|---|

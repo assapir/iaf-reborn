@@ -232,6 +232,83 @@ as in the original.
 
   The building stays. A damaged building is drawn sooted and counts at 25 % of its height (§2).
 
+## 5. Targets, editor and briefing
+
+A mission can set a building of the scenery as a target. It can never remove scenery: the building stays, and only
+its damage shows. Only the mission editor makes scenery targets.
+
+### 5.1 The target in the mission
+
+A scenery target is an ordinary mission entity of bdb object 51 `civilhouse` (class 12, building) at the building's
+centroid, red, role 1 (Target), shown on the pilot's TSD (`0x35c` = 1). The win and lose rules count it as any unit
+(mission-editor.md §13). Its own fields (formats/mis.md §3):
+
+| Field | What |
+|---|---|
+| `scenery` | the building's id `<i>_<j>:<index>` (§1.5) |
+| `scenery_area` | the footprint's area (m²) |
+| `scenery_height` | the building's height (m) |
+| `scenery_count` | the other buildings whose centroid is within 1 km, counted when it was set |
+| `scenery_outline` | the footprint, world X / Y |
+
+The main mission file holds `scenery_release`, the `release` of the scenery it was made with (§1.5).
+
+### 5.2 In flight
+
+`mission_runtime.gd` and `terrain_view.gd`:
+
+- **The building stands** when Scenery is on over a Survey 2 m layer, the mission's `scenery_release` is the
+  installed one, and the building's index is in its cell file (`scenery.gd target_reason`). The marker then draws
+  nothing: the building is the scenery's.
+- **Otherwise** the marker draws an original model in its place, so the mission stays playable: `ofice1` (an office
+  block) under 1500 m² of footprint, else `fctry1` (a factory; inferred). The reason is "Scenery is off", "the mission
+  was made with another scenery" or "the building is not in this scenery".
+- **Hit box:** the blast test's box (docs/damage.md) gets the larger of half the footprint's side (√area / 2) and half
+  the height, centred half the height above the ground.
+- **Destroyed:** `IafScenery.set_damaged(id, true)`: the building stays, sooted and lowered (§2). At the mission's
+  start the building is set whole again, since the damage store lasts for the whole game session.
+
+### 5.3 Mission editor
+
+Only with the scenery made by setup (its manifest). The editor reads the cells itself, through `IafMissionEdit`, as
+the view or a check needs them.
+
+- **Buildings on the map:** from zoom 240 on, every building in view is drawn as a grey outline under the unit icons;
+  the editor then zooms in to 1024 (the original TSD stops at 32).
+- **Set as target:** a click on a building (within 6 pixels) outlines it in yellow and opens a menu: its height and
+  area, then **Set as target** (`mission_edit::scenery_target`). It adds the marker (§5.1), named "Building N", and
+  selects it. A building already set selects its marker. The marker cannot be dragged off its building. Deleting the
+  marker removes the target, never the building; there is no action that removes scenery.
+- **Check:** a site (SAM, AAA, radar, building: bdb classes 8–13) with a building footprint within 10 m, or a
+  vehicle (classes 5, 6) within 2 m, gets the warning "on a building: move to clear ground" (inferred limits;
+  vehicles may stand among trees and between houses). Its fix is the nearest clear point within 500 m (rings 5 m
+  apart, a point every 5 m); the selected unit then shows **Move to clear ground**.
+- **Intel preview** and the pilot's TSD outline each scenery target's building in red (`tsd.gd outlines`).
+
+### 5.4 Briefing
+
+The briefing of an edited mission (tsd.gd `_briefing`, through `Settings.briefing_override`) ends with one line per
+scenery target, in English or Hebrew: "Building 1: a building 17 m high; 61 buildings within 1 km." When its building
+does not stand (§5.2) the line adds "Shown as an original office block (Scenery is off)."
+
+### 5.5 Calibration on the original missions
+
+The Rust test `scenery_check_originals_clean` runs the check over the missions and base missions of
+missionlist.json with the installed scenery. Three original units stand on or within the limit of a building: a T-55
+in 115 (closesupport, a 22-corner OSM footprint that wraps it), a waypoint marker in 311's landing training (landing),
+and a P-40 radar in cest_lavi. Setup tests only a footprint's corners and centre against a unit's clear zone (§1.3),
+so a large or concave footprint can still reach a unit (open).
+
+### 5.6 Tests
+
+- `cargo test -p iaf-tools --lib mission_edit::tests::scenery`: Set as target (the fields, the same building twice, no
+  building), the check and its clear point, the originals.
+- `cargo test -p iaf-avionics --lib scenery`: `outlines`, `clear`.
+- `tests/godot/test_scenery_targets.gd`: on a test cell, the editor's pick, Set as target, Move to clear ground, the
+  intel preview's outline; flown with Scenery off the stand-in and the briefing line; with Scenery on no model, and
+  the building damaged but still there when the target is destroyed.
+- `tests/godot/_mission_editor_shot.gd` with `ED_SCENERY=menu` / `target`: real-render screenshots.
+
 [^geofabrik]: Geofabrik, "Israel and Palestine" downloads (dated extracts):
     https://download.geofabrik.de/asia/israel-and-palestine.html
 [^osm]: OpenStreetMap, "Copyright and License": https://www.openstreetmap.org/copyright

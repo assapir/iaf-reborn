@@ -113,6 +113,7 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
 - `year`: the mission year (§12). Without it, the source's year (§12.6).
 - `what_if`: true when never-served aircraft are allowed (§12.4). Without it, true for sources 200 and up.
 - `briefing`: the English and the Hebrew text (plain text), both optional; `entries`, the briefing's links (§14.3).
+- `files[0].data.scenery_release` and the scenery targets' entity fields: §19.
 - `random`: the chance and start spread per entity id, `{"12": {"chance": 50, "spread_km": 2}}` (§15). The mission
   data never holds them.
 
@@ -170,6 +171,9 @@ Missions go in and come back as JSON strings. Positions are engine world metres:
 | `sanity(mission)` | the sanity check's warnings (§16) |
 | `paste_group(mission, entities, dx, dy)` | copies of units moved by (dx, dy); returns `{"mission", "ids"}` (§17) |
 | `remove_formation(mission, index)` | removes the formation at `index` of `formations.items` and its jets (§12.5) |
+| `set_scenery(dir)`, `has_scenery()` | the scenery folder the editor reads; whether setup made the scenery (§19) |
+| `scenery_at(x, y, r)`, `scenery_outlines(x0, y0, x1, y1, xf)` | the building at a point; the buildings' outlines in a box (§19) |
+| `scenery_target(mission, template, x, y, r)` | Set as target on the building there; returns `{"mission", "id"}` (§19) |
 
 ### 5.1 Ids and references
 - A new row takes the placeholder row's id, and the placeholder moves one up. Ids are never reused, so an old
@@ -351,6 +355,8 @@ Each flight record also carries `formation`, the index of its formation in the m
 - `tests/godot/test_mission_edit_takeoff.gd`: a flight that takes off on a rule, and the originals' take-off times
   (§18.6).
 - `tests/godot/_scenario_shot.gd`: real-render screenshots of the Scenario tab (usage in its header).
+- `tests/godot/test_scenery_targets.gd` and `cargo test -p iaf-tools --lib mission_edit::tests::scenery`: scenery
+  targets (§19).
 
 ## 12. Mission year
 
@@ -925,3 +931,9 @@ taken out giving the mission back, the errors for a unit in no flight and a flig
 `test_mission_edit_takeoff.gd` (a New mission with two MiG-29s at Damascus and "when Alpha comes within 30 km of the
 tank → the MiG-29 flight takes off": the MiGs stay parked past their usual 30 s until the rule fires at 61 s, then
 take off; then the originals above).
+
+## 19. Scenery targets
+
+With the scenery made by setup, buildings show on the map when zoomed in; a click on one offers **Set as target**,
+and a unit placed on a building gets the warning "on a building: move to clear ground" with **Move to clear ground**.
+A mission can set a building as a target but never remove one. Details: docs/scenery.md §5.

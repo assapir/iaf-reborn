@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 
 use iaf_avionics::Vec3;
 use iaf_avionics::heights::{HeightField, Meta};
+use iaf_avionics::scenery::{Cell, Scenery};
 use iaf_formats::terrain_types::{RUNWAY, SEA, TerrainTypes};
 use serde_json::{Map, Value, json};
 
@@ -658,6 +659,11 @@ pub struct Heights {
     theatre: [f64; 4],
     field: HeightField,
     tried: HashSet<(i64, i64)>,
+    /// The scenery (docs/scenery.md §5): its folder (`assets/converted/scenery`), the cells read so far, its release.
+    scenery_dir: Option<PathBuf>,
+    scenery_tried: HashSet<(i64, i64)>,
+    pub scenery: Scenery,
+    pub scenery_release: String,
 }
 
 impl Heights {
@@ -685,7 +691,45 @@ impl Heights {
             theatre: [num(&t[0]), num(&t[1]), num(&t[2]), num(&t[3])],
             field,
             tried: HashSet::new(),
+            scenery_dir: None,
+            scenery_tried: HashSet::new(),
+            scenery: Scenery::default(),
+            scenery_release: String::new(),
         })
+    }
+
+    /// Reads the scenery from `dir` (`assets/converted/scenery`) when setup made it (its manifest.json).
+    pub fn with_scenery(mut self, dir: &Path) -> Self {
+        let manifest: Option<Value> =
+            std::fs::read_to_string(dir.join("manifest.json")).ok().and_then(|t| serde_json::from_str(&t).ok());
+        if let Some(m) = manifest {
+            self.scenery_release = m["release"].as_str().unwrap_or_default().to_string();
+            self.scenery_dir = Some(dir.to_path_buf());
+        }
+        self
+    }
+
+    pub fn has_scenery(&self) -> bool {
+        self.scenery_dir.is_some()
+    }
+
+    /// Loads the scenery cells (level-1 nodes, `L1/s_<i>_<j>.bin`) within `r` m of world point (x, y).
+    pub fn load_scenery(&mut self, x: f64, y: f64, r: f64) {
+        let Some(dir) = &self.scenery_dir else { return };
+        let s = 2.0 * self.meta.node_pixels as f64 * self.meta.m_per_unit;
+        let m = &self.meta;
+        let (i0, i1) = (((x - r - m.x_shift) / s).floor() as i64, ((x + r - m.x_shift) / s).floor() as i64);
+        let (j0, j1) = (((m.y_shift - y - r) / s).floor() as i64, ((m.y_shift - y + r) / s).floor() as i64);
+        for i in i0..=i1 {
+            for j in j0..=j1 {
+                if self.scenery_tried.insert((i, j)) {
+                    let data = std::fs::read(dir.join(format!("L1/s_{i}_{j}.bin"))).ok();
+                    if let Some(c) = data.as_deref().and_then(Cell::decode) {
+                        self.scenery.insert(i, j, c);
+                    }
+                }
+            }
+        }
     }
 
     fn units(&self, x: f64, y: f64) -> (f64, f64) {
@@ -739,20 +783,128 @@ pub struct Issue {
     /// "error" (Fly is blocked) or "warning".
     pub level: &'static str,
     pub text: String,
+    /// A place (world X, Y) that fixes it: "Move to clear ground".
+    pub move_to: Option<[f64; 2]>,
 }
 
 impl Issue {
     pub fn to_json(&self) -> Value {
-        json!({"id": self.id, "level": self.level, "text": self.text})
+        let mut v = json!({"id": self.id, "level": self.level, "text": self.text});
+        if let Some(p) = self.move_to {
+            v["move_to"] = json!(p);
+        }
+        v
     }
 }
 
 fn error(id: i64, text: String) -> Issue {
-    Issue { id, level: "error", text }
+    Issue { id, level: "error", text, move_to: None }
 }
 
 pub(crate) fn warning(id: i64, text: String) -> Issue {
-    Issue { id, level: "warning", text }
+    Issue { id, level: "warning", text, move_to: None }
+}
+
+/// bdb object 51 `civilhouse`: the marker a scenery target is (docs/scenery.md §5).
+pub const SCENERY_MARKER: i64 = 51;
+/// The neighbourhood a scenery target's briefing counts the buildings in (m).
+pub const SCENERY_AROUND: f64 = 1000.0;
+/// How far "Move to clear ground" looks (m).
+const CLEAR_SEARCH: f64 = 500.0;
+pub const ON_BUILDING: &str = "on a building: move to clear ground";
+
+/// The clear ground a unit of bdb class `class` needs around it (m), None when it may stand anywhere: no building
+/// footprint within 10 m of a site (SAM, AAA, radar, building), within 2 m of a vehicle (inferred: a vehicle may stand
+/// among trees and between houses). Ships stand on water.
+fn clearance(class: i64) -> Option<f64> {
+    if SITES.contains(&class) {
+        Some(10.0)
+    } else if VEHICLES.contains(&class) {
+        Some(2.0)
+    } else {
+        None
+    }
+}
+
+/// The nearest point to (x, y) with no building within `r` m: rings 5 m apart out to CLEAR_SEARCH, a point every
+/// 5 m along each; None when none is clear.
+pub fn clear_ground(s: &Scenery, x: f64, y: f64, r: f64) -> Option<[f64; 2]> {
+    (1..=(CLEAR_SEARCH / 5.0) as usize).find_map(|k| {
+        let d = 5.0 * k as f64;
+        let n = ((std::f64::consts::TAU * d / 5.0) as usize).max(8);
+        (0..n).find_map(|b| {
+            let a = std::f64::consts::TAU * b as f64 / n as f64;
+            let (px, py) = ((x + d * a.sin()).round(), (y + d * a.cos()).round());
+            s.clear(px, py, r).then_some([px, py])
+        })
+    })
+}
+
+/// A unit standing on a building of the scenery (a warning, with the nearest clear ground): the sites and vehicles
+/// of the main file, not the scenery targets themselves.
+pub fn scenery_issues(mission: &Value, bdb: &Value, s: &Scenery) -> Vec<Issue> {
+    let class_of = |t: i64| {
+        bdb["objects"]["items"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .find(|o| int(&o["0x1e"]) == t)
+            .map(|o| int(&o["0x5aa"]))
+    };
+    let mut out = vec![];
+    for e in spawned(mission).filter(|e| e.get("scenery").is_none()) {
+        let Some(r) = class_of(int(&e["0x2c6"])).and_then(clearance) else { continue };
+        let (x, y) = (num(&e["0x2e4"]), num(&e["0x2ee"]));
+        if !s.clear(x, y, r) {
+            out.push(Issue { move_to: clear_ground(s, x, y, r), ..warning(int(&e["0x1e"]), ON_BUILDING.into()) });
+        }
+    }
+    out
+}
+
+/// "Set as target" (docs/scenery.md §5): a marker (`SCENERY_MARKER`, copied from `template`) at the centroid of the
+/// building nearest (x, y) within `r` m, red, a Target, shown on the pilot's TSD, with the building's id, footprint,
+/// height and the count of the other buildings within SCENERY_AROUND; the mission takes the scenery's `release`. A
+/// building already set returns its marker unchanged. None when no building is that close. `ground` gives the
+/// terrain height.
+pub fn scenery_target(
+    mut mission: Value,
+    template: &Value,
+    s: &Scenery,
+    at: [f64; 3],
+    release: &str,
+    ground: &mut dyn FnMut(f64, f64) -> Option<f64>,
+) -> Option<(Value, i64)> {
+    let f = s.nearest(at[0], at[1], at[2])?;
+    let set: Vec<&Value> = spawned(&mission).filter(|e| e.get("scenery").is_some()).collect();
+    if let Some(e) = set.iter().find(|e| e["scenery"].as_str() == Some(&f.id)) {
+        let id = int(&e["0x1e"]);
+        return Some((mission, id));
+    }
+    let [cx, cy] = f.centroid.map(f64::round);
+    let round = |v: f32| (f64::from(v) * 10.0).round() / 10.0;
+    let outline: Vec<Value> = f.points.iter().map(|p| json!([round(p[0]), round(p[1])])).collect();
+    let mut fields = Map::new();
+    for (k, v) in [
+        ("0x2bc", json!(format!("Building {}", set.len() + 1))),
+        ("0x2c6", json!(SCENERY_MARKER)),
+        ("0x2d0", json!(2)),
+        ("0x2e4", json!(cx)),
+        ("0x2ee", json!(cy)),
+        ("0x2f8", json!(ground(cx, cy).unwrap_or(0.0).round())),
+        ("0x302", json!(0)),
+        ("0x32a", json!(TARGET)),
+        ("0x35c", json!(1)),
+        ("scenery", json!(f.id)),
+        ("scenery_area", json!(f.area.round())),
+        ("scenery_height", json!((f.height * 10.0).round() / 10.0)),
+        ("scenery_count", json!(s.count_within(f.centroid[0], f.centroid[1], SCENERY_AROUND).saturating_sub(1))),
+        ("scenery_outline", json!(outline)),
+    ] {
+        fields.insert(k.into(), v);
+    }
+    mission["scenery_release"] = json!(release);
+    Some(add_entity(mission, template, &fields))
 }
 
 /// The ground check of one place for a unit of bdb class `class`: off the terrain, a land unit on water, a ship on
@@ -865,6 +1017,14 @@ pub fn check(mission: &Value, bdb: &Value, heights: &mut Heights, surface: Optio
                 out.extend(ground_issues(id, class, num(&p[1]), num(&p[2]), &at, heights, surface));
             }
         }
+    }
+    if heights.has_scenery() {
+        for e in &ents {
+            if let Some(r) = obj(e).map(|o| int(&o["0x5aa"])).and_then(clearance) {
+                heights.load_scenery(num(&e["0x2e4"]), num(&e["0x2ee"]), r + CLEAR_SEARCH);
+            }
+        }
+        out.extend(scenery_issues(mission, bdb, &heights.scenery));
     }
     out.extend(condition_issues(mission));
     out
@@ -1152,5 +1312,107 @@ mod tests {
         assert_eq!(never, Some(2), "missions that can never pass");
         let errors: usize = counts.iter().filter(|(k, _)| k.starts_with("error")).map(|(_, n)| n).sum();
         assert_eq!(errors, 10, "the originals' errors in docs/mission-editor.md");
+    }
+
+    /// A cell with two 20 x 20 m houses at (1000, 1000) and (1100, 1000), the first 12 m high.
+    fn scenery() -> Scenery {
+        use iaf_avionics::scenery::{Building, Roof};
+        let house = |x: f32, h: f32| Building {
+            points: vec![[x, 1000.0], [x + 20.0, 1000.0], [x + 20.0, 1020.0], [x, 1020.0]],
+            roof: Roof::Flat,
+            wall: 0,
+            height: h,
+            roof_1998: [0; 3],
+            roof_modern: [0; 3],
+            source: 0,
+            levels: 0,
+        };
+        let mut s = Scenery::default();
+        s.insert(5, 7, Cell { buildings: vec![house(1000.0, 12.0), house(1100.0, 6.0)], trees: vec![] });
+        s
+    }
+
+    fn scenery_bdb() -> Value {
+        json!({"objects": {"items": [{"0x1e": 6, "0x5aa": 8}, {"0x1e": 20, "0x5aa": 5}, {"0x1e": 51, "0x5aa": 12}]}})
+    }
+
+    #[test]
+    fn scenery_target_sets_a_building() {
+        let s = scenery();
+        let m = json!({"entities": {"items": [{"0x14": 1, "0x1e": 1}]}});
+        let tpl = json!({"0x2c6": 51, "0x2bc": "civilhouse4", "0x32a": 2, "scripts0": {}, "scripts1": {}});
+        let ground = &mut |_: f64, _: f64| Some(42.4);
+        assert!(scenery_target(m.clone(), &tpl, &s, [1500.0, 1500.0, 20.0], "r1", ground).is_none(), "no building");
+        let (m, id) = scenery_target(m, &tpl, &s, [1004.0, 1003.0, 20.0], "r1", ground).unwrap();
+        let e = m["entities"]["items"].as_array().unwrap().iter().find(|e| int(&e["0x1e"]) == id).unwrap();
+        assert_eq!(m["scenery_release"], "r1");
+        assert_eq!(e["scenery"], "5_7:0");
+        assert_eq!(
+            (e["0x2e4"].as_f64(), e["0x2ee"].as_f64(), e["0x2f8"].as_f64()),
+            (Some(1010.0), Some(1010.0), Some(42.0))
+        );
+        assert_eq!((int(&e["0x2c6"]), int(&e["0x32a"]), int(&e["0x2d0"]), int(&e["0x35c"])), (51, TARGET, 2, 1));
+        assert_eq!((e["scenery_area"].as_f64(), e["scenery_height"].as_f64()), (Some(400.0), Some(12.0)));
+        assert_eq!(e["scenery_count"], 1, "the other house within 1 km");
+        assert_eq!(e["scenery_outline"].as_array().map(Vec::len), Some(4));
+        assert_eq!(e["0x2bc"], "Building 1");
+        // The same building again: the marker it has.
+        let (m2, id2) = scenery_target(m.clone(), &tpl, &s, [1010.0, 1010.0, 20.0], "r1", ground).unwrap();
+        assert_eq!((id2, m2), (id, m));
+    }
+
+    #[test]
+    fn scenery_check_moves_units_off_buildings() {
+        let s = scenery();
+        let bdb = scenery_bdb();
+        let unit = |id: i64, t: i64, x: f64| json!({"0x14": 0, "0x1e": id, "0x2c6": t, "0x2e4": x, "0x2ee": 1010.0});
+        let mut marker = unit(4, 51, 1010.0);
+        marker["scenery"] = json!("5_7:0");
+        let m = json!({"entities": {"items": [
+            unit(1, 6, 1010.0),     // a SAM inside the first house
+            unit(2, 20, 1095.0),    // a vehicle 5 m west of the second
+            unit(3, 20, 1110.0),    // a vehicle inside it
+            marker,                 // the scenery target itself
+            unit(5, 6, 1070.0),     // a SAM 30 m from both
+        ]}});
+        let issues = scenery_issues(&m, &bdb, &s);
+        assert_eq!(issues.iter().map(|i| i.id).collect::<Vec<_>>(), [1, 3], "{issues:?}");
+        for i in &issues {
+            assert_eq!((i.level, i.text.as_str()), ("warning", ON_BUILDING));
+            let [x, y] = i.move_to.unwrap();
+            let (r, ux) = if i.id == 1 { (10.0, 1010.0) } else { (2.0, 1110.0) };
+            assert!(s.clear(x, y, r) && (x - ux).hypot(y - 1010.0) < 30.0, "{i:?}");
+            assert!(i.to_json()["move_to"].is_array());
+        }
+        assert_eq!(clear_ground(&s, 1010.0, 1010.0, 10.0).map(|[x, y]| s.clear(x, y, 10.0)), Some(true));
+    }
+
+    /// Setup keeps the scenery clear of the original units (docs/scenery.md §1.3); three units stand on or at the edge
+    /// of a footprint whose corners and centre lie outside setup's exclusion (docs/scenery.md §5.4).
+    #[test]
+    fn scenery_check_originals_clean() {
+        let Some(a) = assets() else { return eprintln!("skip: no converted missions") };
+        let Some(h) = Heights::open(&a.join("converted/terrain/theatre")) else { return eprintln!("skip: no terrain") };
+        let mut h = h.with_scenery(&a.join("converted/scenery"));
+        if !h.has_scenery() {
+            return eprintln!("skip: no scenery (setup --scenery)");
+        }
+        let bdb = read(&a, "default6_1.bdb");
+        // The files setup reads: missionlist.json's missions and base missions.
+        let list: Value =
+            serde_json::from_str(&std::fs::read_to_string(a.join("converted/missions/missionlist.json")).unwrap())
+                .unwrap();
+        let names: HashSet<&str> =
+            list.as_object().unwrap().values().flat_map(|v| v.as_array().unwrap()).filter_map(Value::as_str).collect();
+        let mut found = vec![];
+        let mut names: Vec<&str> = names.into_iter().collect();
+        names.sort_unstable();
+        for name in names {
+            let v = read(&a, name);
+            for i in check(&v, &bdb, &mut h, None).into_iter().filter(|i| i.text == ON_BUILDING) {
+                found.push(format!("{name} {}", i.id));
+            }
+        }
+        assert_eq!(found, ["cest_lavi 25", "closesupport 4", "landing 3"], "originals on a building");
     }
 }

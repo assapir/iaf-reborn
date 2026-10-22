@@ -7,7 +7,7 @@
 
 use serde_json::Value;
 
-use crate::mission_edit::Issue;
+use crate::mission_edit::{Issue, warning};
 
 /// The first and the last year the editor offers. 1998 is the game's present.
 pub const FIRST: i64 = 1966;
@@ -240,7 +240,7 @@ pub fn year_issues(mission: &Value, year: f64, what_if: bool) -> Vec<Issue> {
         } else {
             format!("{} in {y}: not in {} service then", sv.name, if side == 1 { "blue" } else { "red" })
         };
-        out.push(Issue { id, level: "warning", text });
+        out.push(warning(id, text));
     }
     let by_id = |id: i64| ents.iter().find(|e| int(&e["0x1e"]) == id);
     for f in mission["formations"]["items"].as_array().into_iter().flatten().filter(|f| int(&f["0x14"]) == 0) {
@@ -254,11 +254,10 @@ pub fn year_issues(mission: &Value, year: f64, what_if: bool) -> Vec<Issue> {
                 0 => "no fighter base".to_string(),
                 o => format!("{} then", if o == 1 { "blue" } else { "red" }),
             };
-            out.push(Issue {
-                id: int(&l["0x1e"]),
-                level: "warning",
-                text: format!("flight {} starts at {} in {y}: {who}", f["0x3e8"].as_str().unwrap_or("?"), b.name),
-            });
+            out.push(warning(
+                int(&l["0x1e"]),
+                format!("flight {} starts at {} in {y}: {who}", f["0x3e8"].as_str().unwrap_or("?"), b.name),
+            ));
         }
     }
     out
@@ -289,10 +288,11 @@ pub fn base_issues(bases: &[(String, i64)], year: f64) -> Vec<Issue> {
         .filter_map(|(name, s)| {
             let b = base(name.strip_suffix("_flipped").unwrap_or(name))?;
             let o = owner(b, year);
-            (o != 0 && (*s == 1 || *s == 2) && o != *s).then(|| Issue {
-                id: -1,
-                level: "warning",
-                text: format!("{}: {} holds it in {}, but its base is {}", b.name, side(o), label(year), side(*s)),
+            (o != 0 && (*s == 1 || *s == 2) && o != *s).then(|| {
+                warning(
+                    -1,
+                    format!("{}: {} holds it in {}, but its base is {}", b.name, side(o), label(year), side(*s)),
+                )
             })
         })
         .collect()

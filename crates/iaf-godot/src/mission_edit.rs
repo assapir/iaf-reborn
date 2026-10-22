@@ -20,6 +20,8 @@ pub(crate) struct Data {
     pub(crate) heights: Option<me::Heights>,
     pub(crate) bdb: Option<Value>,
     pub(crate) types: Option<TerrainTypes>,
+    /// The scenery folder (default `<assets>/converted/scenery`; a test points it elsewhere).
+    scenery: Option<PathBuf>,
     loaded: bool,
 }
 
@@ -32,7 +34,8 @@ impl Data {
         }
         self.loaded = true;
         let a = &self.assets;
-        self.heights = me::Heights::open(&a.join("converted/terrain/theatre"));
+        let scenery = self.scenery.clone().unwrap_or_else(|| a.join("converted/scenery"));
+        self.heights = me::Heights::open(&a.join("converted/terrain/theatre")).map(|h| h.with_scenery(&scenery));
         self.bdb = std::fs::read_to_string(a.join("converted/missions/default6_1.bdb.json"))
             .ok()
             .and_then(|t| serde_json::from_str(&t).ok());
@@ -58,6 +61,66 @@ impl IafMissionEdit {
     #[func]
     fn set_assets(path: GString) {
         *DATA.lock().unwrap() = Data { assets: PathBuf::from(path.to_string()), ..Default::default() };
+    }
+
+    /// The scenery folder the editor reads (scenery.gd `dir()`, docs/scenery.md §5).
+    #[func]
+    fn set_scenery(path: GString) {
+        let mut d = DATA.lock().unwrap();
+        d.scenery = Some(PathBuf::from(path.to_string()));
+        (d.loaded, d.heights) = (false, None);
+    }
+
+    /// Setup made the scenery (its manifest).
+    #[func]
+    fn has_scenery() -> bool {
+        let mut d = DATA.lock().unwrap();
+        d.load();
+        d.heights.as_ref().is_some_and(me::Heights::has_scenery)
+    }
+
+    /// The building nearest world (x, y) within `r` m: {id, height, area, points (PackedVector2Array, world)}, {} for
+    /// none.
+    #[func]
+    fn scenery_at(x: f64, y: f64, r: f64) -> VarDictionary {
+        let mut d = DATA.lock().unwrap();
+        d.load();
+        let Some(h) = d.heights.as_mut() else { return VarDictionary::new() };
+        h.load_scenery(x, y, r);
+        h.scenery.nearest(x, y, r).map_or_else(VarDictionary::new, |f| {
+            let points: PackedVector2Array = f.points.iter().map(|p| Vector2::new(p[0], p[1])).collect();
+            vdict! {"id" => f.id.as_str(), "height" => f.height, "area" => f.area, "points" => &points}
+        })
+    }
+
+    /// The outlines of the buildings in the world box [x0, x1] × [y0, y1], as segment pairs through `xf` (world X,
+    /// Y → the caller's pixels) for `draw_multiline`.
+    #[func]
+    fn scenery_outlines(x0: f64, y0: f64, x1: f64, y1: f64, xf: Transform2D) -> PackedVector2Array {
+        let mut d = DATA.lock().unwrap();
+        d.load();
+        let Some(h) = d.heights.as_mut() else { return PackedVector2Array::new() };
+        // ponytail: cells stay loaded for the session (about 70 kB each); drop far ones if memory matters.
+        h.load_scenery((x0 + x1) / 2.0, (y0 + y1) / 2.0, (x1 - x0).hypot(y1 - y0) / 2.0);
+        h.scenery.outlines(x0, y0, x1, y1).iter().map(|p| xf * Vector2::new(p[0], p[1])).collect()
+    }
+
+    /// "Set as target" on the building nearest world (x, y) within `r` m (mission_edit::scenery_target): {"mission",
+    /// "id"}, id -1 when no building is that close. `template` an entity of bdb object 51 (civilhouse).
+    #[func]
+    fn scenery_target(mission: GString, template: GString, x: f64, y: f64, r: f64) -> GString {
+        let mut d = DATA.lock().unwrap();
+        d.load();
+        let m = parse(&mission);
+        let Some(h) = d.heights.as_mut() else { return text(&json!({"mission": m, "id": -1})) };
+        h.load_scenery(x, y, r + me::SCENERY_AROUND);
+        let (s, release) = (std::mem::take(&mut h.scenery), h.scenery_release.clone());
+        let r = me::scenery_target(m.clone(), &parse(&template), &s, [x, y, r], &release, &mut |x, y| {
+            h.ground_height(x, y)
+        });
+        h.scenery = s;
+        let (m, id) = r.unwrap_or((m, -1));
+        text(&json!({"mission": m, "id": id}))
     }
 
     /// "" when `name` can be a mission name, else the reason.

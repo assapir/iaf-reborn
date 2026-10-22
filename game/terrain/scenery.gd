@@ -128,6 +128,72 @@ static func walls() -> Texture2DArray:
 	return _walls
 
 
+# --- scenery targets (docs/scenery.md §5) ---------------------------------------------------------------------------
+
+## The original models a scenery target's marker draws when its building is not in the flight: an office block, or a
+## factory from STAND_IN_AREA m² of footprint (inferred).
+const STAND_INS := ["stationary/ofice/ofice1_h.gltf", "stationary/fctry/fctry1_h.gltf"]
+const STAND_IN_AREA := 1500.0
+const STAND_IN_NAMES := [["office block", "בניין משרדים"], ["factory", "מפעל"]]
+const REASONS := {
+	"off": ["Scenery is off", "התפאורה כבויה"],
+	"release": ["the mission was made with another scenery", "המשימה נבנתה עם תפאורה אחרת"],
+	"missing": ["the building is not in this scenery", "הבניין אינו בתפאורה הזו"],
+}
+
+
+## Why a scenery target's building (entity field `scenery` = "<i>_<j>:<index>") is not in this flight: "off" (Scenery
+## off or not over the Survey 2 m layer), "release" (the mission's `scenery_release` is another setup's), "missing"
+## (no such building); "" when it stands.
+static func target_reason(e: Dictionary, release: String) -> String:
+	if not wanted([Settings.imagery_israel]):
+		return "off"
+	if String(manifest().get("release", "")) != release:
+		return "release"
+	var id := String(e.get("scenery", "")).split(":")
+	if id.size() != 2:
+		return "missing"
+	# The cell file's header: "IAFS", version, building count (crates/iaf-avionics/src/scenery.rs).
+	var f := FileAccess.open(dir().path_join("L1/s_%s.bin" % id[0]), FileAccess.READ)
+	if f == null or f.get_length() < 16:
+		return "missing"
+	f.seek(8)
+	return "" if int(id[1]) < f.get_32() else "missing"
+
+
+## The original model a scenery target stands in with (by its footprint, `scenery_area`).
+static func stand_in(e: Dictionary) -> int:
+	return 1 if float(e.get("scenery_area", 0.0)) >= STAND_IN_AREA else 0
+
+
+## The briefing's lines on the mission's scenery targets (`lang` "en" / "he"): the building, the buildings around
+## it, and the original model it is drawn as when its building is not in the flight.
+static func target_lines(main: Dictionary, lang: String) -> Array:
+	var he := 1 if lang == "he" else 0
+	var out := []
+	for e in main.get("entities", {}).get("items", []):
+		if not (e is Dictionary and e.has("scenery") and int(e.get("0x14", 0)) == 0):
+			continue
+		var h := roundi(float(e.get("scenery_height", 0.0)))
+		var n := int(e.get("scenery_count", 0))
+		var line := (
+			(
+				"%s: בניין בגובה %d מ'; %d בניינים בטווח ק״מ."
+				if he
+				else "%s: a building %d m high; %d building%s within 1 km."
+			)
+			% ([String(e.get("0x2bc", "")), h, n] + ([] if he else ["" if n == 1 else "s"]))
+		)
+		var why := target_reason(e, String(main.get("scenery_release", "")))
+		if why != "":
+			line += (
+				(" מוצג כ%s מקורי (%s)." if he else " Shown as an original %s (%s).")
+				% [STAND_IN_NAMES[stand_in(e)][he], REASONS[why][he]]
+			)
+		out.append(line)
+	return out
+
+
 ## Draws the building and tree materials once behind the loading screen (their shaders compile there, not at the
 ## first town), as Gltf.ModelDetail.warm_up; null when Scenery is off.
 static func warm_up(camera: Camera3D, layers: Array) -> Node3D:

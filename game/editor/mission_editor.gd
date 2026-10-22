@@ -31,6 +31,13 @@ const ROLE_COLORS := [Color(0.5, 0.9, 0.5), Color(1.0, 0.55, 0.45)]
 ## random one of 0 / 10 / 15 / 20 kt (Settings.pick_wind).
 const WIND_KT := [["Calm", 0], ["10 kt", 10], ["15 kt", 15], ["20 kt", 20], ["Random", 1]]
 const WIND_FROM := ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+## The scenery's buildings (docs/scenery.md §5): drawn from this zoom on (a 20 m house is a few pixels), the editor
+## zooming in to SCENERY_ZOOM_MAX; a click picks a building within PICK_PX pixels.
+const BUILDINGS_ZOOM := 240.0
+const SCENERY_ZOOM_MAX := 1024.0
+const PICK_PX := 6.0
+const BUILDING_COLOR := Color(0.85, 0.85, 0.8, 0.7)
+const SCENERY_MARKER := 51  # bdb object civilhouse, a scenery target's marker
 
 ## Where your missions are saved (a test points it elsewhere).
 var missions_dir := "user://missions"
@@ -66,12 +73,18 @@ var add_object := -1  # the bdb object id the Add places
 var tsd: Control
 var host: Control
 var _ui := {}
+var has_scenery := false
+## The building a click picked: {id, height, area, points}, {} for none.
+var sel_building := {}
+var _outlines_key := []
+var _outlines := PackedVector2Array()
 var _name_purpose := ""
 
 
 func _ready() -> void:
 	mission_dir = Settings.assets_dir().path_join("converted/missions")
 	_load_originals()
+	has_scenery = api.has_scenery()
 	_build_ui()
 	_hidpi()
 	var reopen: String = Settings.editor_file
@@ -206,6 +219,9 @@ func _new_map(id: int) -> void:
 	host.tsd = tsd
 	tsd.setup(host, id)
 	tsd.edit = true
+	if has_scenery:
+		tsd.zoom_max = SCENERY_ZOOM_MAX
+		tsd.draw_under = _draw_buildings
 	host.fit()
 	tsd.unit_dragged.connect(_on_unit_dragged)
 	tsd.waypoint_dragged.connect(_on_waypoint_dragged)
@@ -450,7 +466,8 @@ func _class_of(e: Dictionary) -> int:
 func move_entity(id: int, x: float, y: float) -> void:
 	var d := data.duplicate(true)
 	var e := _entity_in(d, id)
-	if e.is_empty():
+	if e.is_empty() or e.has("scenery"):  # a scenery target stays on its building
+		_refresh()
 		return
 	e["0x2e4"] = roundf(x)
 	e["0x2ee"] = roundf(y)
@@ -682,8 +699,101 @@ func _on_map_clicked(at: Vector2) -> void:
 		_:
 			sel_id = -1
 			sel_wp = -1
+			sel_building = pick_building(w.x, w.y)
 			_refresh()
-			host.panning = true  # a drag from empty map pans it
+			if sel_building.is_empty():
+				host.panning = true  # a drag from empty map pans it
+			else:
+				_offer_building()
+
+
+# --- the scenery's buildings (docs/scenery.md §5) ------------------------------------------------------------------
+
+
+## The building under world (x, y) when the buildings show, {} for none.
+func pick_building(x: float, y: float) -> Dictionary:
+	if not has_scenery or tsd == null or tsd.zoom < BUILDINGS_ZOOM:
+		return {}
+	var r: float = PICK_PX / (_map_per_metre() * tsd.zoom)
+	var b := api.scenery_at(x, y, r)
+	if not b.is_empty():
+		b.at = Vector2(x, y)
+		b.r = r
+	return b
+
+
+static func _map_per_metre() -> float:
+	return Tsd.MAP_SIZE.x * Tsd.MAP_X_FACTOR / Tsd.WORLD_W
+
+
+## The picked building's menu at the mouse: what it is, and Set as target (a building is never removed).
+func _offer_building() -> void:
+	var m: PopupMenu = _ui.building_menu
+	m.set_item_text(0, "Building, %d m high, %d m²" % [roundi(sel_building.height), roundi(sel_building.area)])
+	m.set_item_disabled(1, read_only)
+	m.reset_size()
+	m.popup(Rect2i(Vector2i(get_global_mouse_position()), Vector2i.ZERO))
+
+
+func _on_building_menu(i: int) -> void:
+	if i == 1 and not sel_building.is_empty():
+		set_scenery_target(sel_building.at.x, sel_building.at.y, sel_building.r)
+
+
+## Makes the building nearest world (x, y) a target: a marker entity on it (IafMissionEdit.scenery_target); returns
+## its id, -1 when no building is there or the mission is read-only.
+func set_scenery_target(x: float, y: float, r := 5.0) -> int:
+	if read_only:
+		return -1
+	var template: Dictionary = templates.get(SCENERY_MARKER, {})
+	var out := api.scenery_target(data, template, x, y, r)
+	if int(out.id) < 0:
+		return -1
+	sel_building = {}
+	sel_id = int(out.id)
+	if out.mission == data:
+		_refresh()  # already a target: its marker selected
+	else:
+		_edit(out.mission)
+	return sel_id
+
+
+## The selected unit's "Move to clear ground" place (its check issue's move_to), [] for none.
+func clear_ground_of(id: int) -> Array:
+	for it in issues:
+		if int(it.id) == id and it.has("move_to"):
+			return it.move_to
+	return []
+
+
+func move_to_clear() -> void:
+	var p := clear_ground_of(sel_id)
+	if not p.is_empty():
+		move_entity(sel_id, float(p[0]), float(p[1]))
+
+
+## The TSD's hook under the unit icons: every building in view as an outline, the picked one yellow.
+func _draw_buildings(canvas: Control, s: float) -> void:
+	if not has_scenery or tsd.zoom < BUILDINGS_ZOOM:
+		return
+	# World (X east, Y north) → overlay pixels: tsd.world_to_map, then (map - scroll) · zoom · s.
+	var a := _map_per_metre()
+	var b := Tsd.MAP_SIZE.y / Tsd.WORLD_H
+	var k: float = tsd.zoom * s
+	var o: Vector2 = Vector2(Tsd.WORLD_X_SHIFT * a, Tsd.MAP_SIZE.y - Tsd.WORLD_Y_SHIFT * b) - tsd.scroll
+	var xf := Transform2D(Vector2(a * k, 0.0), Vector2(0.0, -b * k), o * k)
+	var key := [tsd.zoom, tsd.scroll, s, tsd.area.size]
+	if key != _outlines_key:
+		_outlines_key = key
+		var p0: Vector2 = Tsd.map_to_world(tsd.scroll)
+		var p1: Vector2 = Tsd.map_to_world(tsd.scroll + tsd._view_size())
+		_outlines = api.scenery_outlines(p0.x - 100.0, p1.y - 100.0, p1.x + 100.0, p0.y + 100.0, xf)
+	if _outlines.size() > 1:
+		canvas.draw_multiline(_outlines, BUILDING_COLOR, 1.0)
+	if not sel_building.is_empty():
+		var pts: PackedVector2Array = xf * sel_building.points
+		pts.append(pts[0])
+		canvas.draw_polyline(pts, Tsd.LABEL_COLOR, 2.0)
 
 
 # --- checks and Fly -------------------------------------------------------------------------------------------------
@@ -985,6 +1095,7 @@ func _build_units_tab(box: VBoxContainer) -> void:
 	_ui.p_heading = _row(box, "Heading °", _spin(0, 359, 1, func(v): set_field("0x302", v)))
 	_ui.p_alt = _row(box, "Altitude m", _spin(-1000, 20000, 1, func(v): set_field("0x2f8", v)))
 	_ui.p_where = _row(box, "Position", _label(""))
+	_ui.p_clear = _button(box, "Move to clear ground", move_to_clear)
 	_button(box, "Delete unit", delete_selected)
 	_build_roles(box)
 	box.add_child(HSeparator.new())
@@ -1090,6 +1201,12 @@ func _build_mission_tab(box: VBoxContainer) -> void:
 
 
 func _build_dialogs() -> void:
+	_ui.building_menu = PopupMenu.new()
+	_ui.building_menu.add_item("Building", 0)
+	_ui.building_menu.set_item_disabled(0, true)
+	_ui.building_menu.add_item("Set as target", 1)
+	_ui.building_menu.id_pressed.connect(_on_building_menu)
+	add_child(_ui.building_menu)
 	_ui.open_dlg = ConfirmationDialog.new()
 	_ui.open_dlg.title = "Open a mission"
 	_ui.open_dlg.ok_button_text = "Open"
@@ -1364,6 +1481,7 @@ func _fill_props() -> void:
 		_ui[k].editable = can
 	for k in ["p_side", "p_role"]:
 		_ui[k].disabled = not can
+	_ui.p_clear.visible = can and not clear_ground_of(sel_id).is_empty()
 	if e.is_empty():
 		_ui.p_name.text = ""
 		_ui.p_where.text = ""
@@ -1374,6 +1492,14 @@ func _fill_props() -> void:
 	_ui.p_heading.set_value_no_signal(fposmod(float(e.get("0x302", 0)), 360.0))
 	_ui.p_alt.set_value_no_signal(float(e.get("0x2f8", 0)))
 	var why := issues.filter(func(it): return int(it.id) == sel_id).map(func(it): return it.text)
+	if e.has("scenery"):  # short lines: the row's label does not wrap
+		why = (
+			[
+				"Scenery building, %d m high" % roundi(float(e.get("scenery_height", 0))),
+				"%d m², %d buildings within 1 km" % [int(e.get("scenery_area", 0)), int(e.get("scenery_count", 0))],
+			]
+			+ why
+		)
 	_ui.p_where.text = (
 		"X %d, Y %d m%s" % [int(e["0x2e4"]), int(e["0x2ee"]), "\n" + "\n".join(why) if not why.is_empty() else ""]
 	)
@@ -1620,7 +1746,7 @@ class MapHost:
 				var c: Vector2 = _to_menu(event.position) - tsd.area.position
 				var at: Vector2 = tsd.scroll + c / tsd.zoom
 				var f: float = tsd.ZOOM_STEP if b == MOUSE_BUTTON_WHEEL_UP else 1.0 / tsd.ZOOM_STEP
-				tsd.zoom = clampf(tsd.zoom * f, tsd.min_zoom(), tsd.ZOOM_MAX)
+				tsd.zoom = clampf(tsd.zoom * f, tsd.min_zoom(), tsd.zoom_max)
 				tsd.scroll = at - c / tsd.zoom
 				tsd._clamp_scroll()
 				tsd.map_canvas.queue_redraw()

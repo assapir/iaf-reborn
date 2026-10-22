@@ -334,6 +334,8 @@ func setup(host_node: Node, mission_files: Array, bdb: Dictionary, player_id := 
 				"base_scale": float(e.get("base_scale", 1.0)),
 			}
 			_init_damage(ent, objects.get(ent.type, {}))
+			if e.has("scenery"):
+				_scenery_target(ent, e)
 			entities[ent.key] = ent
 			if ent.role == ROLE_TARGET:
 				targets_left += 1
@@ -360,6 +362,17 @@ static func _init_damage(ent: Dictionary, obj: Dictionary) -> void:
 	ent.shield = false
 	ent.smoke = false
 	ent.smoke_timer = false
+
+
+## A scenery target (docs/scenery.md §5): the marker takes its building's box, the footprint's half side or half the
+## height, whichever is larger, centred half the height up; the building stands whole at the start.
+static func _scenery_target(ent: Dictionary, e: Dictionary) -> void:
+	var h := float(e.get("scenery_height", 0.0))
+	ent.scenery = String(e.scenery)
+	ent.scenery_area = float(e.get("scenery_area", 0.0))
+	ent.size = maxf(ent.size, maxf(sqrt(float(e.get("scenery_area", 0.0))) / 2.0, h / 2.0))
+	ent.lift = h / 2.0
+	IafScenery.set_damaged(ent.scenery, false)
 
 
 ## A script list by list index ("raw10").
@@ -661,7 +674,7 @@ func _world_of(ent: Dictionary) -> Vector3:
 	if ent.player:
 		return host.player_world()
 	var w: Vector3 = ent.world
-	return Vector3(w.x, w.y, ent.get("alt", w.z))
+	return Vector3(w.x, w.y, ent.get("alt", w.z) + ent.get("lift", 0.0))
 
 
 ## Freed with the flight: entity records point at each other (killer, formation members) and so outlive the flight;
@@ -1044,6 +1057,8 @@ func _destroyed(ent: Dictionary) -> void:
 	if ent.sensor and ent.alive_scenario:
 		fire_event(ent.file, int(_slot(ent, 1).get("0x33e", 0)))
 	ent.alive_scenario = false
+	if ent.has("scenery"):
+		IafScenery.set_damaged(ent.scenery, true)  # the building stays, sooted and lowered
 	ent.path = null
 	ent.fall = null
 	ent.control = 0

@@ -932,11 +932,19 @@ func _spawn_mission_objects() -> void:
 	_voice.bus = "IafSpeech"  # speech volume (docs/sound.md §2)
 	add_child(_voice)
 	var underlays := []
+	var release := String(files[0].get("scenery_release", ""))
 	for ent in runtime.entities.values():
 		if ent.player or ent.has("pilot"):
 			continue
 		var obj: Dictionary = objs.get(ent.type, {})
 		var path: String = paths.get(str(int(obj.get("0x53c", -1))), "")
+		# A scenery target (docs/scenery.md §5): its building stands in the scenery; without it an original model.
+		if ent.has("scenery"):
+			var why := Scenery.target_reason(ent, release)
+			if why == "":
+				continue
+			path = Scenery.STAND_INS[Scenery.stand_in(ent)]
+			ent["stand_in"] = why
 		# Classes 0x11, 0x12 (fire sensors), 0x1b are never drawn (FUN_004b7c4d).
 		if path == "" or ent.klass in [0x11, 0x12, 0x1b]:
 			continue
