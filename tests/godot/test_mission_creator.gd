@@ -153,6 +153,12 @@ func run() -> void:
 	pick(20, 3)
 	pick(21, 3)
 	check(int(settings().mc.wind_kt) == 20 and int(settings().mc.wind_from) == 135, "picked 20 kt from SE")
+	pick(20, 0)
+	check(
+		mcv.combo_off(21) and not mcv.press(mcv.combos[21][3].get_center()) and mcv.open < 0,
+		"Calm: FROM greyed, it does not open"
+	)
+	pick(20, 3)
 	misc0 = mc_build()[0].data.misc.items[0]
 	check(int(misc0["0x46a"]) == 20 and int(misc0["0x474"]) == 135, "FLY writes misc 0x46a = 20, 0x474 = 135")
 	var wpath := folder.path_join("Wind")

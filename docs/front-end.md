@@ -2754,8 +2754,8 @@ also when the stores come from the type's default load. Guns Only also disables 
   * Two more combos in the Blue Force panel's free rows under Bravo, in the BASE / TIME columns: **WIND** (6,170)
     w52 Calm, 10 kt, 15 kt, 20 kt (the tower's spoken speeds, radio.md) and **FROM** (91,170) w52 N, NE, E, SE, S,
     SW, W, NW (the wind's "from", true). Their boxes are copies of TIME's art, their labels Arial bold −11; they
-    open, list and commit as the other combos. The state starts at the template's wind (10 kt, W), so the switch
-    alone changes nothing in the mission.
+    open, list and commit as the other combos. With WIND on Calm, FROM is greyed (dark green text) and does not
+    open. The state starts at the template's wind (10 kt, W), so the switch alone changes nothing in the mission.
   * FLY writes the knots into misc 0x46a and the degrees into 0x474. The tower says that wind, and Better physics
     "Wind and turbulence" flies it and turns the runways into it (flight-model.md §10, autopilot.md §2.4).
   * SAVE appends the wind to the 0x5ac bytes as a 12-byte trailer (formats/mcr.md); LOAD reads it, and a file

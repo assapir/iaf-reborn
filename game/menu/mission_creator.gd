@@ -22,6 +22,8 @@ const CHARS := " .0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
 const TEXT_PX := 10.0  # Arial −10 (FUN_004eee10(9, …, 400, "Arial"))
 const GREEN := Color8(0, 255, 0)  # SetTextColor(0xff00)
 const ROW_TEXT := Color8(0, 200, 0)
+## Ours: a combo that does not apply (Better's FROM with a calm wind).
+const OFF_TEXT := Color8(0, 90, 0)
 const SEPARATOR := Color8(0, 210, 0)
 ## The combo lists (FUN_004fa450, .data 0x652648..0x6528d0). The exe's English in both languages.
 const TYPES := [
@@ -396,6 +398,8 @@ func press(q: Vector2) -> bool:
 			_close_list()
 		return true
 	for c in combos.size():
+		if combo_off(c):
+			continue
 		if arrow_rect(c).has_point(q):
 			held_arrow = c
 			fe._play("buttonin")
@@ -577,8 +581,14 @@ func _draw() -> void:
 
 func _draw_combo(c: int) -> void:
 	var r: Rect2 = combos[c][3]
-	_text(CONTENT + Vector2(r.position.x + 2, r.position.y + 17), shown_text(c), GREEN, font)
+	var col := OFF_TEXT if combo_off(c) else GREEN
+	_text(CONTENT + Vector2(r.position.x + 2, r.position.y + 17), shown_text(c), col, font)
 	fe._blit("mc/but_%d.png" % (2 if held_arrow == c else 0), CONTENT + arrow_rect(c).position, self)
+
+
+## Ours (Better): FROM means nothing with a calm wind, so it is greyed and does not open.
+func combo_off(c: int) -> bool:
+	return combos[c][0] == "wind_from" and int(mc().get("wind_kt", 0)) == 0
 
 
 ## The open combo window: combBack under all of it (the 1 px frame), the box and arrow, the list's rows from
