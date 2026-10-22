@@ -282,7 +282,25 @@ it points at about 12 o'clock.
 
 ---
 
-## 10. Key card
+## 10. Night vision
+
+**When**: night missions (the game's night is 20:00–05:30; mission 214 starts at 01:00), with Graphics → MORE →
+Night vision = Goggles. **Keys**: **Shift+N** puts the goggles on and takes them off.
+
+The goggles are ours: the 1998 game has none. They turn the outside view into a brightened green picture; the
+cockpit and the HUD stay as you see them under the goggles. Set Graphics → MORE → Night lights = Detailed too, for
+the moon, the stars and the lights on the ground.
+
+![01:00 without goggles](shots/mirage/night.png)
+
+![The same moment through the goggles](shots/mirage/night_nvg.png)
+
+- The ground's relief and texture show, and the horizon is clear: fly by the outside view.
+- The goggles set their own gain: the darker the scene, the more they brighten it, and the grainier it gets.
+- A bright light (a fire, a flare, a runway light) gets a halo around it.
+- The picture darkens toward its edges.
+
+## 11. Key card
 
 | Key | Action |
 | --- | --- |
@@ -319,7 +337,7 @@ it points at about 12 o'clock.
 
 ---
 
-## 11. Abbreviations
+## 12. Abbreviations
 
 | Term | Meaning |
 | --- | --- |

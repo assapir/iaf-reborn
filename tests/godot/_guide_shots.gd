@@ -18,24 +18,24 @@
 # on the placed unit, "on_impact" the placed unit onto the bomb's predicted impact, "station:N" the A-A store / gun on
 # station N, "ag:N" the A-G store on station N, "flir" / "tv" the camera on the placed unit (FLIR with the laser),
 # "emitter" the placed unit's radar locks the jet, "fire" Space held, "look:Y,P" the head turned Y° right / P° up (free
-# look), "key:X" a game key, "wait:S", "pcd:F1,F2,F3,F4" the F-35I portals' formats), panel (0 the forward view … 1
-# the whole panel), "dive" (an airborne start in a
-# `dive_deg` dive `dive_agl` m above the ground), view ("cockpit" / "hud", the HUD-only view / "external"), crop
-# ("full", "hud", "dash", "mfd_left", "mfd_right"; "hud" takes `crop_w`, the box's width as a fraction of the frame,
-# default 0.38: smaller zooms in; and `crop_dy`, the box moved down by that fraction of the frame's height, negative
-# moves it up, default 0: a gunsight's reticle that sits high; "compass": a 16:10 box around the panel's compass / HSI
-# dial, game/cockpit/compass.gd, with the same crop_w / crop_dy; "panel": the same box around `crop_at`, [x, y] panel px
-# of the 1920-px strip). Callouts ("annotations": [{n, anchor, label_at | off}]) are drawn on the picture: a numbered
-# yellow marker at `label_at` (a fraction of the crop) or at the anchor + `off` (× the crop's shorter side; [0, 0] puts
-# the marker on the anchor, no arrow) with an arrow to the anchor. The anchor is the Real HUD's own output (hud.gd
-# real_hud(), resolved every frame): "sym": "text:REGEX" (the first HUD text it matches: the box the HUD draws it in,
-# hud.gd prim_text_box; "nth": 2 the second match), "circle:N" (the N-th largest circle, at its edge `edge`° clockwise
-# from 12 o'clock, default 270) or a named point of the HUD's input ("fpm", "gun_cross", "boresight", "horizon",
-# "target", "steerpoint", "seeker", "pipper", "lcos", "steering", "delay_at": the delayed CCIP's target), moved by "d":
-# [x, y] HUD pixels; or "px": [x, y], a fraction of the crop (the MFD pages, the original HUD). The guide lists the
-# legend as a numbered list right under the picture (tools/guide_pdf.py checks the counts match). An anchor that
-# resolves to nothing or outside the crop fails the shot (GUIDE_DEBUG=1 outlines each anchor in red). Each shot prints a
-# GUIDE_INFO line with the HUD's texts and the radar lock / DLZ (for the guide's examples).
+# look), "key:X" a game key, "wait:S", "pcd:F1,F2,F3,F4" the F-35I portals' formats, "goggles" the night-vision goggles
+# on), hour (the mission's start hour, e.g. 1 for 01:00), panel (0 the forward view … 1 the whole panel), "dive" (an
+# airborne start in a `dive_deg` dive `dive_agl` m above the ground), view ("cockpit" / "hud", the HUD-only view /
+# "external"), crop ("full", "hud", "dash", "mfd_left", "mfd_right"; "hud" takes `crop_w`, the box's width as a fraction
+# of the frame, default 0.38: smaller zooms in; and `crop_dy`, the box moved down by that fraction of the frame's
+# height, negative moves it up, default 0: a gunsight's reticle that sits high; "compass": a 16:10 box around the
+# panel's compass / HSI dial, game/cockpit/compass.gd, with the same crop_w / crop_dy; "panel": the same box around
+# `crop_at`, [x, y] panel px of the 1920-px strip). Callouts ("annotations": [{n, anchor, label_at | off}]) are drawn on
+# the picture: a numbered yellow marker at `label_at` (a fraction of the crop) or at the anchor + `off` (× the crop's
+# shorter side; [0, 0] puts the marker on the anchor, no arrow) with an arrow to the anchor. The anchor is the Real
+# HUD's own output (hud.gd real_hud(), resolved every frame): "sym": "text:REGEX" (the first HUD text it matches: the
+# box the HUD draws it in, hud.gd prim_text_box; "nth": 2 the second match), "circle:N" (the N-th largest circle, at its
+# edge `edge`° clockwise from 12 o'clock, default 270) or a named point of the HUD's input ("fpm", "gun_cross",
+# "boresight", "horizon", "target", "steerpoint", "seeker", "pipper", "lcos", "steering", "delay_at": the delayed CCIP's
+# target), moved by "d": [x, y] HUD pixels; or "px": [x, y], a fraction of the crop (the MFD pages, the original HUD).
+# The guide lists the legend as a numbered list right under the picture (tools/guide_pdf.py checks the counts match). An
+# anchor that resolves to nothing or outside the crop fails the shot (GUIDE_DEBUG=1 outlines each anchor in red). Each
+# shot prints a GUIDE_INFO line with the HUD's texts and the radar lock / DLZ (for the guide's examples).
 extends "res://../tests/godot/base.gd"
 
 const EoSensor := preload("res://weapons/eo_sensor.gd")
@@ -90,6 +90,11 @@ func _shot(name: String, e: Dictionary) -> void:
 	if e.has("mc"):
 		_mission_creator(e.mc)
 	tv = await start_mission(int(e.mission))
+	if e.has("hour"):
+		# "hour": the mission starts at that hour (terrain_view's --hour), the cockpit's night and the sky redone.
+		tv.runtime.misc["0x460"] = float(e.hour) * 3600.0
+		tv._tod_cockpit_set = false
+		tv._tod_t = -INF
 	await frames(3)
 	var start: String = e.get("start", "mission")
 	var hp := []
@@ -319,6 +324,8 @@ func _action(a: String) -> void:
 				target.world = at
 				target.alt = at.z
 				tv.mission_entity_moved(target)
+		"goggles":  # Shift+N: the night-vision goggles on (Graphics → MORE "Night vision")
+			tv._toggle_goggles()
 		"fire":  # Space held (the release; bombs: the delayed CCIP's designation)
 			w.fire_selected()
 		"pcd":  # the F-35I's portals' formats, left to right ("pcd:TSD-1,SRCH,SMS,TWD"; pcd.gd)

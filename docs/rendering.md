@@ -506,8 +506,9 @@ The goggles are a full-screen shader on canvas layer −1: over the 3D view and 
 HUD and MFDs. The pilot sees the outside through the goggles and the panel below them, so the panel keeps its own
 night lighting. The shader models a Gen III image tube:
 
-1. **Spectrum.** The image is one brightness, weighted toward red: (0.5, 0.35, 0.15) for R, G, B. A Gen III tube
-   sees 500–900 nm, from blue-green into the near infrared[^nvd]; the weights are inferred.
+1. **Spectrum.** The image is one brightness, weighted (0.6, 0.4, 0) for R, G, B: no blue. A Gen III tube sees
+   500–900 nm, from blue-green into the near infrared[^nvd]; the weights are inferred. Without blue the navy night
+   sky stays a mid tone and the ground shows.
 2. **Automatic brightness control.** The shader works on the square root of the brightness, so the moonlit ground
    keeps its detail beside the brighter sky (inferred). The gain is set so the screen's mean (the screen texture's
    last mip) reaches 0.55, between ×1 and ×8. A real tube's control lowers its plate voltage in bright light[^nvd].
@@ -517,11 +518,13 @@ night lighting. The shader models a Gen III image tube:
 4. **Grain.** Noise per pixel, new every frame, grows with the square root of the gain: a dark scene is grainy
    (inferred: photon noise).
 5. **Phosphor.** The brightness saturates softly (1 − e^(−1.6 l)), tinted P43 green (0.42, 1.0, 0.36). Night-vision
-   images are green because green is easiest to watch in the dark for long[^nvd]. The edge of the view darkens.
+   images are green because green is easiest to watch in the dark for long[^nvd]. The edge of the view darkens (by
+   up to 70 %).
 
 The goggles show in every view, also the external ones. No sensor or AI reads them (gameplay unchanged).
 
-**Shots**: `tests/godot/_night_shot.gd` with `NIGHT_VISION=1`. In mission 214 (01:00, Detailed night lights) the
+**Shots**: `tests/godot/_night_shot.gd` with `NIGHT_VISION=1`; the pilot guides' `night` / `night_nvg` pictures
+(their "Night vision" section). In mission 214 (01:00, Detailed night lights) the
 goggles show the hills, the ground's texture and the AI jet ahead, which are black without them. Cost: 68.5 against
 71.4 fps at 1920×1080 on this Iris Xe laptop, measured while another render ran (to measure again on an idle machine).
 

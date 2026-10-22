@@ -21,7 +21,8 @@ Every guide follows the same order, for the sections its jet has:
    Shrike.
 8. Landing: the gear-down HUD (the HUD jets).
 9. Better cockpit: everything Extras → Better cockpit changes in that jet.
-10. Key card and abbreviations.
+10. Night vision: the goggles (Shift+N) at night, without and with.
+11. Key card and abbreviations.
 
 Each mode section gives when to use it, the keys, an annotated picture with its legend, and a worked example from
 the shot's own values.
