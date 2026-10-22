@@ -846,6 +846,9 @@ fn gdal_warp(srcs: &[String], geo: [f64; 4], w: usize, h: usize, resampling: &st
 /// Runs a GDAL / gzip command: an error with its stderr (without GDAL's plugin load noise) when it fails.
 fn run(mut cmd: Command) -> Result<()> {
     let name = format!("{:?}", cmd.get_program());
+    // No .aux.xml statistics beside or inside the sources: GDAL wrote one into a pinned zip, which then failed its
+    // checksum on every other install.
+    cmd.env("GDAL_PAM_ENABLED", "NO");
     let o = cmd.stdin(Stdio::null()).output().with_context(|| format!("running {name}"))?;
     if !o.status.success() {
         let err: String = String::from_utf8_lossy(&o.stderr)

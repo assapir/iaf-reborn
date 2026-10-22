@@ -311,8 +311,8 @@ pub const SCENERY: &[Download] = &[
     Download {
         file: "GHS_BUILT_H_ANBH_E2018_GLOBE_R2023A_54009_100_V1_0_R5_C22.zip",
         url: "https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/GHSL/GHS_BUILT_H_GLOBE_R2023A/GHS_BUILT_H_ANBH_E2018_GLOBE_R2023A_54009_100/V1-0/tiles/GHS_BUILT_H_ANBH_E2018_GLOBE_R2023A_54009_100_V1_0_R5_C22.zip",
-        sha256: "3c89e8690b0c93eead634bfd2f8283dbbe8b05fb64430e701b11c7f3d8fb248b",
-        bytes: 10_033_800,
+        sha256: "7d0fd7fba104af2d7421bb4f4f463c98ea0d5e05933d55a1a446dec4f2f65939",
+        bytes: 10_033_383,
     },
     Download {
         file: "GHS_BUILT_H_ANBH_E2018_GLOBE_R2023A_54009_100_V1_0_R6_C22.zip",
