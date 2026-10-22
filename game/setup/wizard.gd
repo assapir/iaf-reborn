@@ -615,6 +615,10 @@ func _page_welcome() -> Control:
 				+ 'Israel.svg"[/url] by Zscout370 (Wikimedia Commons, [url=https://creativecommons.org/licenses/by-sa/4.0/]CC '
 				+ "BY-SA 4.0[/url])\n"
 			)
+			+ (
+				"Ground textures and Model detail: materials from [url=https://ambientcg.com]ambientCG[/url] "
+				+ "([url=https://creativecommons.org/publicdomain/zero/1.0/]CC0 1.0[/url]), downloaded by setup\n"
+			)
 			+ "Survey of Israel imagery: © Survey of Israel 2015, via [url=https://data.gov.il]data.gov.il[/url]\n"
 			+ (
 				"Sentinel-2 imagery: contains modified Copernicus Sentinel data (2021) processed by "
