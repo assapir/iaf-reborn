@@ -404,7 +404,8 @@ real jet[^ea29][^fc3]. Ours (`real_hud/mig29.rs`):
 - **Close combat:** the radar's ACM draws the vertical scan (two lines from 10° below to 50° above the boresight)
   with «РЛ»; the radar's BORE draws the 2.5° circle round the BORE cross (Ф0).
 - **Gun:** with a lock, the ring and cross on the game's lead point with the range bar (a full turn = 1,200 m,
-  inferred); without one, the funnel for the GSh-30-1's 860 m/s muzzle speed[^gsh30].
+  inferred); without one, the funnel for the rounds the game fires (the 20 MM record's 1,036 m/s, as the F-16's
+  funnel), not the real GSh-30-1's 860 m/s[^gsh30], so the funnel lies on the rounds' path.
 - **A-G:** the impact pipper and its fall line from the aircraft cross.
 - **Looking aside:** the Щель-3УМ helmet sight: the DASH's aiming cross on the line of sight, «ШЛЕМ», a flashing
   «ПР» with the shoot cue, an X outside the seeker's limits (±60° in azimuth, +60 / −14°), the IR seeker's diamond.

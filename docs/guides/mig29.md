@@ -258,8 +258,8 @@ record fires 6,000 rounds/min at 1,030 m/s: the 140 rounds last about 1.4 s.
 3. **Target diamond** on the locked MiG-21.
 
 **Example**: the MiG-21 is 600 m ahead and closing at 486 kt: the range bar covers half the ring. Put the cross on
-the MiG and fire a short burst: 0.5 s is 50 rounds. Without a lock the HUD draws a funnel for the real gun, the
-GSh-30-1, whose rounds leave at 860 m/s[^gsh30]; the game's rounds are the 20 MM record's.
+the MiG and fire a short burst: 0.5 s is 50 rounds. Without a lock the HUD draws a funnel for the rounds the game
+fires (the 20 MM record's), so it lies on their path; the real gun, the GSh-30-1, fires at 860 m/s[^gsh30].
 
 ---
 
