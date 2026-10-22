@@ -129,9 +129,32 @@ pub fn duration(d: std::time::Duration) -> String {
     }
 }
 
+/// A download's progress line: "downloaded 170 of 520 MB, 4.2 MB/s, about 1 min 23 s left". `got` bytes came in
+/// `secs` seconds of this run; `done` of `total` bytes are on disk (files kept from before count as done).
+pub fn download_line(done: u64, total: u64, got: u64, secs: f64) -> String {
+    let mb = |b: u64| b as f64 / 1e6;
+    let rate = got as f64 / secs.max(0.001);
+    let mut line = format!("downloaded {:.0} of {:.0} MB", mb(done), mb(total));
+    if got > 0 {
+        line += &format!(", {:.1} MB/s", rate / 1e6);
+        let left = total.saturating_sub(done) as f64 / rate.max(1.0);
+        line += &format!(", about {} left", duration(std::time::Duration::from_secs_f64(left)));
+    }
+    line
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn download_lines() {
+        assert_eq!(download_line(170_000_000, 520_000_000, 0, 1.0), "downloaded 170 of 520 MB");
+        assert_eq!(
+            download_line(170_000_000, 520_000_000, 100_000_000, 20.0),
+            "downloaded 170 of 520 MB, 5.0 MB/s, about 1 min 10 s left"
+        );
+    }
 
     #[test]
     fn durations() {

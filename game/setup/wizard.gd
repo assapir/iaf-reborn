@@ -829,7 +829,7 @@ func _page_extras() -> Control:
 	var need_gdal := "" if gdal else "Needs GDAL (see Requirements)."
 	mapi_check = _extra(
 		v,
-		"Survey of Israel 2015 imagery (2 m, over Israel)",
+		"Survey of Israel 2015 imagery (2 m, over Israel; up to 17 GB download)",
 		(
 			"Downloads the Survey's sheets from data.gov.il with curl and your Firefox's data.gov.il token (without one it "
 			+ "opens them in your browser's tabs), then converts them. All of Israel: 79 sheets, about 17 GB of downloads "
@@ -851,17 +851,17 @@ func _page_extras() -> Control:
 	# Scenery (docs/scenery.md): only over the Survey 2 m photo, so only with it ticked or on disk (_update).
 	scenery_check = _extra(
 		v,
-		"Scenery (buildings and trees)",
+		"Scenery (buildings and trees; 520 MB download)",
 		(
-			"Downloads OpenStreetMap, Microsoft building footprints, building heights and tree canopy data (over 1 GB, "
-			+ "kept), then builds the buildings and trees over the Survey of Israel 2 m photo. Needs the Survey imagery. "
-			+ "Turn it on in the game under Graphics → MORE."
+			"Downloads OpenStreetMap, Microsoft building footprints, building heights and tree canopy data (30 files, "
+			+ "520 MB, kept), then builds the buildings and trees over the Survey of Israel 2 m photo (about 600 MB, "
+			+ "a few minutes). Needs the Survey imagery. Turn it on in the game under Graphics → MORE."
 		),
 		"" if gdal and tools.get("curl", false) else "Needs GDAL and curl (see Requirements)."
 	)
 	sentinel_check = _extra(
 		v,
-		"Sentinel-2 imagery (10 m, outside Israel)",
+		"Sentinel-2 imagery (10 m, outside Israel; 28 GB read)",
 		"About 28 GB read over the network, about 2.5 GB on disk. Units already converted are not read again.",
 		need_gdal
 	)

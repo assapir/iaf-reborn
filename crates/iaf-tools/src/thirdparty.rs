@@ -27,7 +27,7 @@ use serde_json::json;
 use sha2::{Digest, Sha256};
 use texpresso::{Algorithm, Format, Params};
 
-use crate::progress::{Progress, check};
+use crate::progress::{Progress, check, download_line};
 
 /// One ambientCG material: its asset id, the SHA-256 of its `<id>_2K-JPG.zip`, the real size one texture repeat
 /// covers (metres; ambientCG's dimension where it gives one, else inferred) and what the game uses it for.
@@ -397,6 +397,13 @@ pub fn fetch_files(list: &[Download], dir: &Path, pr: &dyn Progress, cancel: &At
             slot.store(0, Ordering::Relaxed);
         }
     };
+    // The files kept from before count as done, not as speed.
+    let kept: u64 = list.iter().filter(|d| file_done(dir, d)).map(|d| d.bytes).sum();
+    pr.log(&format!(
+        "{} MB to download ({} MB kept from before)",
+        (total - kept.min(total)) / 1_000_000,
+        kept / 1_000_000
+    ));
     std::thread::scope(|sc| {
         let workers: Vec<_> = slots.iter().map(|slot| sc.spawn(|| worker(slot))).collect();
         let (t0, mut last_log) = (std::time::Instant::now(), 0u64);
@@ -407,7 +414,7 @@ pub fn fetch_files(list: &[Download], dir: &Path, pr: &dyn Progress, cancel: &At
             let secs = t0.elapsed().as_secs();
             if secs >= last_log + FETCH_LOG_S {
                 last_log = secs;
-                pr.log(&format!("downloaded {} of {} MB", now / 1_000_000, total / 1_000_000));
+                pr.log(&download_line(now, total, now.saturating_sub(kept), t0.elapsed().as_secs_f64()));
             }
         }
     });
@@ -506,11 +513,22 @@ pub fn fetch(
 ) -> Result<usize> {
     std::fs::create_dir_all(dir)?;
     let mut n = 0;
+    let todo = list.iter().filter(|m| !is_done(dir, m)).count();
+    let (t0, mut got) = (std::time::Instant::now(), 0u64);
     for (k, m) in list.iter().enumerate() {
         check(cancel)?;
         if !is_done(dir, m) {
-            fetch_one(m, base, dir, pr)?;
+            got += fetch_one(m, base, dir, pr)?;
             n += 1;
+            // The sizes are not pinned: the rate, and the time left by the materials still to come.
+            let secs = t0.elapsed().as_secs_f64();
+            let left = std::time::Duration::from_secs_f64(secs / n as f64 * (todo - n) as f64);
+            pr.log(&format!(
+                "{n} of {todo} downloaded, {:.0} MB, {:.1} MB/s, about {} left",
+                got as f64 / 1e6,
+                got as f64 / 1e6 / secs.max(0.001),
+                crate::progress::duration(left)
+            ));
         }
         pr.fraction((k + 1) as f32 / list.len() as f32);
     }
@@ -519,7 +537,8 @@ pub fn fetch(
     Ok(n)
 }
 
-fn fetch_one(m: &Material, base: &str, dir: &Path, pr: &dyn Progress) -> Result<()> {
+/// One material: its zip's size (bytes).
+fn fetch_one(m: &Material, base: &str, dir: &Path, pr: &dyn Progress) -> Result<u64> {
     let zip_name = format!("{}_2K-JPG.zip", m.id);
     let part = dir.join(format!("{zip_name}.part"));
     pr.log(&format!("{}: downloading {zip_name}", m.id));
@@ -539,8 +558,9 @@ fn fetch_one(m: &Material, base: &str, dir: &Path, pr: &dyn Progress) -> Result<
         }
         unpack(m, &part, &dir.join(m.id))
     })();
+    let bytes = std::fs::metadata(&part).map_or(0, |f| f.len());
     let _ = std::fs::remove_file(&part);
-    r
+    r.map(|()| bytes)
 }
 
 /// The zip's colour, normal and roughness maps into `out`, packed (module doc).

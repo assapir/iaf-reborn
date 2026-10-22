@@ -37,8 +37,8 @@ Setup downloads every source into `assets/source/scenery/` and checks it against
 
 Geofabrik keeps the extract of 1 January of each year for good, so the pinned file stays downloadable[^geofabrik].
 `iaf-scenery tiles assets` lists the quadkeys the Survey 2 m layer touches; the Microsoft list holds every Israel,
-West Bank and Gaza file of its `dataset-links.csv`. Setup downloads four files at once and logs the megabytes
-downloaded every 15 s.
+West Bank and Gaza file of its `dataset-links.csv`. Setup downloads four files at once and logs every 15 s how
+much is down, the speed and the time left ("downloaded 170 of 520 MB, 4.2 MB/s, about 1 min 23 s left").
 
 ### 1.2 How a cell is made
 

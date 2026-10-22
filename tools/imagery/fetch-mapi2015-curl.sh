@@ -31,14 +31,30 @@ fi
 UA="Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0"
 mkdir -p "$dest"
 ok=0; bad=0
+# The sheets still to fetch, for "sheet k of n" and the time left.
+todo=0
+while IFS=$'\t' read -r _ url; do
+	f=${url##*/}
+	[[ -s "$dest/$f" ]] && continue
+	[[ $bases == 1 && " $BASES " != *" ${f%.zip} "* ]] && continue
+	todo=$((todo + 1))
+done < "$list"
+k=0; got=0; t0=$SECONDS
 while IFS=$'\t' read -r name url; do
 	f=${url##*/}
 	[[ -s "$dest/$f" ]] && continue
 	[[ $bases == 1 && " $BASES " != *" ${f%.zip} "* ]] && continue
-	echo "== $f $name"
-	code=$(curl -sS -L -A "$UA" -b "aws-waf-token=$token" -o "$dest/$f.part" -w "%{http_code}" "$url")
+	k=$((k + 1))
+	echo "== sheet $k of $todo: $f $name"
+	out=$(curl -sS -L -A "$UA" -b "aws-waf-token=$token" -o "$dest/$f.part" -w "%{http_code} %{size_download} %{speed_download}" "$url")
+	read -r code size speed <<< "$out"
 	if [[ $code == 200 ]] && unzip -tq "$dest/$f.part" >/dev/null 2>&1; then
 		mv "$dest/$f.part" "$dest/$f"; ok=$((ok + 1))
+		got=$((got + ${size%.*}))
+		el=$((SECONDS - t0)); left=$(( el * (todo - k) / k ))
+		awk -v s="$size" -v r="$speed" -v g="$got" -v e="$el" -v l="$left" 'BEGIN {
+			printf "   %.0f MB at %.1f MB/s; %.0f MB so far, %.1f MB/s overall, about %d min left\n",
+				s / 1e6, r / 1e6, g / 1e6, (e > 0 ? g / e / 1e6 : 0), (l + 59) / 60 }'
 	else
 		rm -f "$dest/$f.part"; bad=$((bad + 1))
 		echo "   failed (HTTP $code) — token expired? open this link in Firefox, cancel the download, re-run:"
