@@ -8,7 +8,7 @@ This doc describes the optional scenery: 3D buildings and trees that stand on th
 - One cell file per level-1 node of the `mapi2015` layer, the layer's own keys. Scenery stands only where the photo
   shows.
 - Nothing stands at an original place: the sea, the airbases, the kept target insets, the missions' units and their
-  routes, World scale Real's base sites.
+  routes, World scale Real's base sites. No tree stands on a road, a railway, a runway, a taxiway or an apron.
 - Related docs: the photo layer in docs/imagery.md §8; the warp into the game frame in docs/georef.md; the cell
   format in `crates/iaf-avionics/src/scenery.rs`.
 
@@ -46,8 +46,8 @@ much is down, the speed and the time left ("downloaded 170 of 520 MB, 4.2 MB/s, 
 
 1. **Coverage**: the level-1 nodes of the `mapi2015` layer (`assets/converted/imagery/mapi2015/L1/c_<i>_<j>.jpg`)
    and their box in longitude and latitude.
-2. **Sources**: OSM cut to the box with ogr2ogr (three GeoJSON-sequence layers: areas, tree points, tree rows); the
-   Microsoft files read through gzip; GHS-BUILT-H warped to a 0.001° grid with gdalwarp; each canopy tile reduced to
+2. **Sources**: OSM cut to the box with ogr2ogr (three GeoJSON-sequence layers: areas and aprons; tree points; tree
+   rows, roads, railways, runways and taxiways); the Microsoft files read through gzip; GHS-BUILT-H warped to a 0.001° grid with gdalwarp; each canopy tile reduced to
    about 10 m (the tallest metre of each 8 × 8 block). Every point goes through the georeference (`Georef`, evaluated
    on a 0.005° grid and interpolated), so roofs stand on the photo's buildings. Each footprint goes to the node that
    holds its centre.
@@ -88,6 +88,25 @@ A building is dropped when any corner or its centre is closed ground; a tree whe
 - **The imagery rules** (`imagery::Rules::open`, docs/imagery.md §3): outside the Israel region, the kept target
   insets, the airbase footprints and terraintype.dat's runways, the sea (terraintype.dat water).
 - **Inside a building**, for trees.
+- **Roads, railways, runways, taxiways and aprons** from OSM. A tunnel or a covered way does not count. A tree is
+  dropped within the half-width + 1 m of the centre line, and on an apron or a runway or taxiway area. A Microsoft
+  footprint is dropped when it crosses a road's or a railway's centre line, or reaches onto a runway, a taxiway or an
+  apron (the outlines are machine-traced; one across a road is a misreading). OSM buildings stay: they are mapped.
+
+| Line (OSM tag) | Half-width (m) |
+|---|---|
+| `highway=motorway` | 12 |
+| `highway=trunk` | 10 |
+| `highway=primary` | 8 |
+| `highway=secondary` | 6 |
+| `highway=tertiary`, `unclassified` | 5 |
+| `highway=residential` | 4 |
+| `highway=service` | 3 |
+| `railway=rail`, `light_rail`, `subway`, `tram` | 3 |
+| `aeroway=runway` | half its `width` tag (5–60), else 30 |
+| `aeroway=taxiway` | half its `width` tag (5–60), else 12 |
+
+Each `_link` road counts as its class.
 - **World scale Real's base sites** (docs/world-scale.md §3.3, `base_move.rs`): each base's old zone and its new zone
   with the flattening ring (1200 m).
 - **The missions' units on the ground** (every mission and base mission of missionlist.json, `airbases::mission_units`),
@@ -138,8 +157,8 @@ Measured on this machine (Intel laptop, 2026-10-22), the whole layer (4664 nodes
 | | |
 |---|---|
 | Downloads | 520 MB in 30 files (OSM 119 MB, Microsoft 238 MB, GHSL 16 MB, canopy 148 MB); 40 s on this line |
-| Build | 3 min, peak memory 1.6 GB |
-| Output | 4013 cells, 2 143 073 buildings (668 605 from OSM), 32 288 531 trees, 643 MB |
+| Build | 3 min 30 s, peak memory 1.6 GB |
+| Output | 4008 cells, 2 076 357 buildings (668 605 from OSM), 28 565 866 trees, 578 MB |
 
 Two runs give the same bytes (the SHA-256 of every cell file compared).
 
