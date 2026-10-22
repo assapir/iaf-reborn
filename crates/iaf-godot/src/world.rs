@@ -34,7 +34,11 @@ pub fn terrain(f: Option<Callable>) -> impl Fn(Vec3) -> Option<f64> {
             // The scenery's roofs and trees on top (0 where none, or with Scenery off: no cell loaded).
             let h = crate::heights::FIELD.read().unwrap().height(p)?;
             let s = crate::scenery::SCENERY.read().unwrap();
-            return Some(if s.is_empty() { h } else { h + s.top(p.x, p.y) });
+            return Some(if s.is_empty() {
+                h
+            } else {
+                h + s.top(p.x, p.y, &|q| crate::heights::FIELD.read().unwrap().height(q))
+            });
         }
         f.as_ref()?.call(&[vector3(p).to_variant()]).try_to().ok()
     }

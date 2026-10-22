@@ -102,7 +102,7 @@ impl IafScenery {
     /// The scenery's height above ground (m) at a world point; 0 where none stands.
     #[func]
     fn top(w: Vector3) -> f64 {
-        SCENERY.read().unwrap().top(w.x.into(), w.y.into())
+        SCENERY.read().unwrap().top(w.x.into(), w.y.into(), &ground)
     }
 
     /// The distance along a world-frame ray to the first building or tree within `max`, −1 for none.

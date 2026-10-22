@@ -344,8 +344,9 @@ impl Scenery {
     }
 
     /// The height above ground (m) of the scenery at a world point (X east, Y north): the roof of the building whose
-    /// footprint holds it, the top of a tree whose crown covers it, else 0.
-    pub fn top(&self, x: f64, y: f64) -> f64 {
+    /// footprint holds it (standing on the lowest terrain under its corners, as drawn, so on a slope the roof stays
+    /// level), the top of a tree whose crown covers it, else 0.
+    pub fn top(&self, x: f64, y: f64, ground: &dyn Fn(Vec3) -> Option<f64>) -> f64 {
         let key = bucket(x, y);
         let (xf, yf) = (x as f32, y as f32);
         let mut top = 0.0f32;
@@ -356,7 +357,9 @@ impl Scenery {
             for &k in c.buildings.get(&key).into_iter().flatten() {
                 let b = &c.cell.buildings[k as usize];
                 if b.contains(xf, yf) {
-                    top = top.max(self.height(i, j, k, b));
+                    let here = ground(Vec3::new(x, y, 0.0));
+                    let lift = base(b, ground).zip(here).map_or(0.0, |(b, h)| (b - h) as f32);
+                    top = top.max(self.height(i, j, k, b) + lift);
                 }
             }
             for &k in c.trees.get(&key).into_iter().flatten() {
@@ -870,18 +873,28 @@ mod tests {
     const FLAT: &dyn Fn(Vec3) -> Option<f64> = &|_| Some(5.0);
 
     #[test]
+    fn roof_level_on_a_slope() {
+        // Ground rising 0.2 m per m east: the 12 m house (x 0..20) stands on its lowest corner (x = 0, 0 m), so its
+        // roof is at 12 m everywhere, 8 m above the ground at x = 20.
+        let slope: &dyn Fn(Vec3) -> Option<f64> = &|p| Some(0.2 * p.x);
+        let s = town();
+        assert!((s.top(1.0, 5.0, slope) - 11.8).abs() < 1e-4);
+        assert!((s.top(19.0, 5.0, slope) - 8.2).abs() < 1e-4);
+    }
+
+    #[test]
     fn top_reads_roofs_crowns_and_damage() {
         let mut s = town();
-        assert_eq!(s.top(10.0, 5.0), 12.0);
-        assert_eq!(s.top(30.0, 5.0), 0.0);
-        assert_eq!(s.top(102.5, 100.0), 10.0, "inside the 3 m crown");
-        assert_eq!(s.top(104.0, 100.0), 0.0);
+        assert_eq!(s.top(10.0, 5.0, FLAT), 12.0);
+        assert_eq!(s.top(30.0, 5.0, FLAT), 0.0);
+        assert_eq!(s.top(102.5, 100.0, FLAT), 10.0, "inside the 3 m crown");
+        assert_eq!(s.top(104.0, 100.0, FLAT), 0.0);
         s.set_damaged("3_4:0", true);
         assert!(s.is_damaged("3_4:0") && !s.is_damaged("3_4:1"));
-        assert_eq!(s.top(10.0, 5.0), 3.0);
+        assert_eq!(s.top(10.0, 5.0, FLAT), 3.0);
         assert_eq!(s.damage_index(3, 4), vec![1, 0]);
         s.remove(3, 4);
-        assert_eq!(s.top(102.5, 100.0), 0.0);
+        assert_eq!(s.top(102.5, 100.0, FLAT), 0.0);
         s.insert(3, 4, town().cell(3, 4).unwrap().clone());
         assert!(s.is_damaged("3_4:0"), "damage outlives the cell's unload");
     }
