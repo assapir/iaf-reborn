@@ -1351,7 +1351,7 @@ func _fill_flights() -> void:
 	keys.sort()
 	for n in keys:
 		var fo: int = tsd.flights[n].formation
-		ro.add_item("%s (%s)" % [data.formations.items[fo].get("0x3e8", ""), "blue" if n <= 4 else "other"])
+		ro.add_item("%s (%s)" % [data.formations.items[fo].get("0x3e8", ""), "blue" if n <= 4 else "enemy"])
 		ro.set_item_metadata(ro.item_count - 1, n)
 		if n == tsd.sel_flight:
 			ro.select(ro.item_count - 1)
