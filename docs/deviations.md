@@ -311,6 +311,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     stars and a moon.
   - Detailed moonlight: colour (0.20, 0.23, 0.33) from azimuth 140°, elevation 38°, ambient 0.3. The original's
     night light is (20, 20, 60) / 255 straight down with ambient 0.2.
+- **Night vision** (ours, docs/rendering.md §8). Rendering only; the default is Off.
+  - Off: the original has no night vision.
+  - Goggles: Shift+N in flight puts the goggles on and off: the 3D view turns green and image-intensified (automatic
+    gain, halos around lights, grain), the cockpit stays as it is.
 - **Models** (ours, [aircraft-models.md](aircraft-models.md)). Visual only; the default is Original.
   - Original: the 1998 aircraft models.
   - Detailed: our F-16D (built from the FlightGear F-16, GPL) for every F-16: the player's, the AI's, parked ones and

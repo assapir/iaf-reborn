@@ -101,6 +101,7 @@ Terms used on this page:
   | F1 | cockpit | Cockpit / HUD view (28,1) — the same, runs through the table |
   | V | the whole panel, or from there none; held (≥ 0.3 s), its release returns the panel (a glance down) | — |
   | PgUp / PgDn | slide the panel | — |
+  | Shift+N | night-vision goggles on / off, with Graphics → MORE "Night vision" = Goggles (rendering.md §8) | — |
   | = / − / Numpad + / − | cockpit art zoom (cockpit views) | Zoom in / out (20 / 21): the orbit distance in the external views (views.md §4) |
 
   If the player binds one of these keys to a command we implement, the command wins. No table record uses

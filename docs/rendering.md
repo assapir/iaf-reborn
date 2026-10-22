@@ -12,8 +12,8 @@ This doc lists the rendering options of the flight scene, what each one sets, an
 
 Code: `game/terrain/render_options.gd` (applied by `terrain_view.gd apply_render_options()` at the start of a flight
 and when the in-flight Preferences close), `terrain/terrain.gdshader`, `terrain/atmosphere.gdshader`,
-`terrain/cloud_layer.gd`, `terrain/night_lights.gd`, `terrain/airbases.gd`. Tests: `tests/godot/test_graphics_prefs.gd` (switches → render
-settings, save / load), `test_ui_smoke.gd` (Graphics → MORE and Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5), `test_water.gd` (§1.3), `test_particle_effects.gd` (§6), `test_airbases.gd` (§7).
+`terrain/cloud_layer.gd`, `terrain/night_lights.gd`, `terrain/night_vision.gdshader`, `terrain/airbases.gd`. Tests: `tests/godot/test_graphics_prefs.gd` (switches → render
+settings, save / load), `test_ui_smoke.gd` (Graphics → MORE and Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5, §8 the goggles key), `test_water.gd` (§1.3), `test_particle_effects.gd` (§6), `test_airbases.gd` (§7).
 
 ## 1. Options
 
@@ -27,6 +27,7 @@ TAA = temporal anti-aliasing.
 | Sky | Original / Atmospheric | Original: our gradient sky (ProceduralSkyMaterial) with the fixed fog colour. Atmospheric: `atmosphere.gdshader`, a clear-day sky computed from the sun's direction and the camera's altitude. The fog takes its colour from the sky (`fog_aerial_perspective` 1, `fog_sun_scatter` 0.1) and keeps its density (the original's fog distances). The cloud layer shows separate clouds (§1.2). Glow / bloom is off (it cost 3 ms) |
 | Upscaling | Native / Quality / Balanced | the 3D scene's render scale: Native 1.0; Quality 0.77; Balanced 0.67 of the window. A spatial upscaler scales it up: MetalFX spatial on Metal, FSR 1 on other drivers (`render_options.gd upscale_mode()`). The Anti-aliasing row still applies. The 2D cockpit, HUD and MFDs are canvas items, drawn after the upscale at the window's resolution. Godot lowers the texture mip bias by log2(scale). Saves 0.6 ms (Quality) / 1.4 ms (Balanced) at 4K today, 4.6 / 6.3 ms with SSAO + SSIL; Balanced breaks one-pixel 3D lines into dots (docs/graphics-research.md §3.10) |
 | Night lights | Original / Detailed | Original: the original's light points (§4). Detailed: glowing lights, the home airbases lit at night, the jets' navigation lights and strobe, stars, a moon and moonlight (§5) |
+| Night vision (Shift+N) | Off / Goggles | Goggles: Shift+N in flight puts the night-vision goggles on and off: the 3D view turns into a green image-intensified picture, the cockpit stays as it is (§8) |
 | Water | Original / Detailed | in `terrain.gdshader`: waves, sun glint and the sky's reflection on the sea and on lakes (§1.3) |
 | Models | Original / Detailed | Detailed: our detailed aircraft models where one exists (today the F-16D), parsed once and shared, with runtime LODs ([aircraft-models.md](aircraft-models.md)) |
 | Particle effects | Original / Detailed | Detailed: explosions, smoke and missile trails as GPU particles, contrails above 9000 m and a heat haze behind each engine (§6). Takes effect at the next flight |
@@ -496,3 +497,33 @@ noise (the surface fades out by 6 km and only the mask's rectangle runs the code
 Ramat David, Tel Nof, Ramon and Damascus; take-off, roll (800 m), 300 m on final, 1500 m overhead, an external low pass;
 noon and 22:00 (with Night lights = Detailed: the base's light set lines up with the runway edges).
 
+## 8. Night vision (built: game/terrain/night_vision.gdshader)
+
+Preferences → Graphics → MORE → **Night vision = Goggles** (ours, docs/deviations.md §2). In flight, **Shift+N** puts
+the goggles on and takes them off (`terrain_view.gd _toggle_goggles`). The original has no night vision.
+
+The goggles are a full-screen shader on canvas layer −1: over the 3D view and the cloud layer, under the cockpit,
+HUD and MFDs. The pilot sees the outside through the goggles and the panel below them, so the panel keeps its own
+night lighting. The shader models a Gen III image tube:
+
+1. **Spectrum.** The image is one brightness, weighted toward red: (0.5, 0.35, 0.15) for R, G, B. A Gen III tube
+   sees 500–900 nm, from blue-green into the near infrared[^nvd]; the weights are inferred.
+2. **Automatic brightness control.** The shader works on the square root of the brightness, so the moonlit ground
+   keeps its detail beside the brighter sky (inferred). The gain is set so the screen's mean (the screen texture's
+   last mip) reaches 0.55, between ×1 and ×8. A real tube's control lowers its plate voltage in bright light[^nvd].
+   By day the gain stays at ×1.
+3. **Halos.** Where a light is much brighter than the scene, mips 2–5 brighter than 0.9 after the gain add a disc around it. Gen III tubes
+   show halos around bright lights[^nvd].
+4. **Grain.** Noise per pixel, new every frame, grows with the square root of the gain: a dark scene is grainy
+   (inferred: photon noise).
+5. **Phosphor.** The brightness saturates softly (1 − e^(−1.6 l)), tinted P43 green (0.42, 1.0, 0.36). Night-vision
+   images are green because green is easiest to watch in the dark for long[^nvd]. The edge of the view darkens.
+
+The goggles show in every view, also the external ones. No sensor or AI reads them (gameplay unchanged).
+
+**Shots**: `tests/godot/_night_shot.gd` with `NIGHT_VISION=1`. In mission 214 (01:00, Detailed night lights) the
+goggles show the hills, the ground's texture and the AI jet ahead, which are black without them. Cost: 68.5 against
+71.4 fps at 1920×1080 on this Iris Xe laptop, measured while another render ran (to measure again on an idle machine).
+
+[^nvd]: Wikipedia, "Night-vision device" (Generation III, automatic brightness control, the ion barrier's halo
+    effect, green images): https://en.wikipedia.org/wiki/Night-vision_device

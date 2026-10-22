@@ -119,6 +119,7 @@ const PREFS := {
 		"better_cockpit",
 		"better_mc",
 		"rwr_search",
+		"night_vision",
 		"world_scale"
 	],
 }
@@ -217,6 +218,9 @@ var upscaling := "off"
 ## "detailed" (glowing lights, the home airbases lit, the jets' navigation lights and strobes, stars, a moon,
 ## moonlight).
 var night_lights := "original"
+## Night vision (ours, Graphics → MORE; docs/rendering.md §8): Shift+N puts on / takes off the goggles (a green
+## image-intensified 3D view under the cockpit).
+var night_vision := false
 ## Water (ours, Graphics → MORE; docs/rendering.md §1.3): false = the original flat-shaded water, true = waves, sun
 ## glint and sky reflection.
 var water := false

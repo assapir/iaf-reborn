@@ -1,7 +1,7 @@
 # Night lights (docs/rendering.md §4 "Light points", §5): the original's LT_ light sets are point lists at every hour
 # (FUN_0041ee60 flag 0x4, FUN_0041ac40), Damascus's lights in 214 go out by script (Vanish); Extras > Night lights =
 # Detailed adds the glows, the home airbase's light set at night, the jets' navigation lights and strobe, the night sky
-# and the moonlight, and none of it by day.
+# and the moonlight, and none of it by day. Night vision (§8): Shift+N toggles the goggles.
 extends "res://../tests/godot/base.gd"
 
 const NightLights := preload("res://terrain/night_lights.gd")
@@ -59,6 +59,19 @@ func run() -> void:
 		tv.get_node_or_null("NightSky") == null and tv.aircraft.find_child("NavLights", true, false) == null,
 		"original: no night sky, no navigation lights"
 	)
+	# Night vision (§8): Shift+N puts the goggles on and off, only with the switch on.
+	var shift_n := InputEventKey.new()
+	shift_n.keycode = KEY_N
+	shift_n.shift_pressed = true
+	settings().night_vision = false
+	tv._own_key(shift_n)
+	check(tv._goggles == null, "night vision off: Shift+N does nothing")
+	settings().night_vision = true
+	tv._own_key(shift_n)
+	check(tv._goggles != null and tv._goggles.visible and tv._goggles.layer == -1, "Shift+N: the goggles go on")
+	tv._own_key(shift_n)
+	check(not tv._goggles.visible, "Shift+N again: the goggles come off")
+	settings().night_vision = false
 
 	# Original by day, 125 (lt_ossa boats): light points at every hour.
 	tv = await start_mission(125)

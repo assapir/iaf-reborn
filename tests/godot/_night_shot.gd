@@ -4,6 +4,7 @@
 # 150,12,40), saved to SHOT_DIR/night_<mission>_<value>_{cockpit,external}.png with the frame rate
 # over 120 frames (vsync off).
 #   SHOT_DIR=/tmp/shots IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 1920x1080 -s ../tests/godot/_night_shot.gd
+# NIGHT_VISION=1 puts the goggles on (Graphics → MORE "Night vision", §8) and adds "_nvg" to the file names.
 # terrain_view's user args pose it, e.g. `-- --hour 22 --at X Y ALT HDG PITCH --freeze` (--hour: the start time).
 extends "res://../tests/godot/base.gd"
 
@@ -23,6 +24,10 @@ func run() -> void:
 		settings().night_lights = value
 		var tv = await start_mission(mission)
 		tv.frozen = true
+		var nvg := _env("NIGHT_VISION", "") == "1"
+		if nvg:
+			settings().night_vision = true
+			tv._toggle_goggles()
 		var t0 := Time.get_ticks_msec()
 		await frames(20)
 		while tv.terrain.missing_after_frame() and Time.get_ticks_msec() - t0 < 30000:
@@ -40,9 +45,10 @@ func run() -> void:
 			await frames(120)
 			var fps := 1e6 * (Engine.get_frames_drawn() - f0) / (Time.get_ticks_usec() - m0)
 			await RenderingServer.frame_post_draw
-			var path := dir.path_join("night_%d_%s_%s.png" % [mission, value, view])
+			var path := dir.path_join("night_%d_%s_%s%s.png" % [mission, value, view, "_nvg" if nvg else ""])
 			root.get_viewport().get_texture().get_image().save_png(path)
 			print("SHOT %-9s %-8s %6.1f fps  %s" % [value, view, fps, path])
 	settings().night_lights = "original"
+	settings().night_vision = false
 	print("RESULT PASS")
 	quit()

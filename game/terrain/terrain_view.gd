@@ -2975,6 +2975,30 @@ func _own_key(event: InputEventKey) -> void:
 			_zoom_cockpit(-0.05)
 		KEY_V:
 			cockpit.toggle_panel()
+		KEY_N:
+			if event.shift_pressed and Settings.night_vision:
+				_toggle_goggles()
+
+
+## Ours (Graphics → MORE "Night vision", docs/rendering.md §8): the goggles on / off, a screen shader over the 3D
+## view and under the cockpit (canvas layer -1, after the cloud layer's).
+func _toggle_goggles() -> void:
+	if _goggles == null:
+		var mat := ShaderMaterial.new()
+		mat.shader = preload("res://terrain/night_vision.gdshader")
+		var rect := ColorRect.new()
+		rect.material = mat
+		rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_goggles = CanvasLayer.new()
+		_goggles.layer = -1
+		_goggles.visible = false
+		_goggles.add_child(rect)
+		add_child(_goggles)
+	_goggles.visible = not _goggles.visible
+
+
+var _goggles: CanvasLayer
 
 
 func _process(delta: float) -> void:
