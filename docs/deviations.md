@@ -394,6 +394,12 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 - **Stick response** (ours, under FLIGHT CONTROLS, Linear by default). Original: the stick has a 25 % dead zone, then
   maps linearly to ±100. Ours, with "Soft centre": a 5 % dead zone on stick x / y and the rudder, then an expo curve
   0.4·in + 0.6·in³ on stick x / y; full deflection unchanged — joystick.gd `stick_curve`, docs/controls.md §5.
+- **Throttle rocker** (ours, under RUDDER, Off by default). Original: four axes and no trim. Ours, with "Roll trim":
+  a spring-centred 5th axis (Godot axis 4) moves a roll trim while held, 0.2 stick per second at full rocker; the
+  flight model adds it to the stick in the roll command — joystick.gd `rocker`, `Aircraft::trim_roll`,
+  docs/controls.md §5.2.
+- **Alt + Left / Right** (ours, always on): the same roll trim from the keyboard. Both keys are free in the original
+  table.
 
 **Preferences → Graphics**
 - **VSYNC** (ours): a check in the empty strip left of DEFAULT, default on.

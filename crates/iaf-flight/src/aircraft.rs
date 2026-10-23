@@ -98,6 +98,9 @@ const SQUAT_UP: f32 = 1.0 * PI / 180.0;
 // Better physics: FLCS (fly-by-wire) departure = deep stall (types 100 F-16, 140 Lavi; not in the
 // original, which never lets them depart). Estimates from public F-16 high-AoA data (NASA TP-1538 wind-tunnel
 // data, the F-16 deep-stall reports and the -1 recovery procedure); docs/flight-model.md §10.1.
+/// Ours: the roll trim's speed at full rocker, stick per second (inferred: end to end in 5 s, fine enough for the
+/// ≈ 0.2 stick a 2000 lb bomb on one wing needs at cruise).
+const ROLL_TRIM_RATE: f32 = 0.2;
 /// Deep-stall trim AoA (the F-16's second pitch trim point, ~60°, beyond the horizontal tail's nose-down power).
 const DS_ALPHA: f32 = 60.0 * PI / 180.0;
 /// Normal-force coefficient at the trim AoA (flat-plate-like, NASA TP-1538 CN(60°) ≈ 1.5): lift = N·cos α,
@@ -649,6 +652,9 @@ pub struct Aircraft {
     /// Better physics "Asymmetric stores": an autopilot loop flies the jet and holds the heavy wing up (its stick
     /// on top of the stick that cancels the stores' moment). Set by `Autopilot::step` / `player_mode`.
     pub stores_trim: bool,
+    /// Ours (Devices "Throttle rocker" = Roll trim): the roll trim −1..1 in stick units, added to the stick in the
+    /// airborne roll command. The original has no trim.
+    roll_trim: f32,
     // Load-time derived constants.
     cl0: f32,
     cl_alpha: f32,
@@ -853,6 +859,7 @@ impl Aircraft {
             stores_di_right: 0.0,
             stores_moment: 0.0,
             stores_trim: false,
+            roll_trim: 0.0,
             cl0,
             cl_alpha,
             stick_centre_v,
@@ -1032,6 +1039,31 @@ impl Aircraft {
         (self.stick[0], self.stick[1])
     }
 
+    /// Motion 1 (`59f3d0`): hydraulics damage (18) leaves a quarter of the stick, total flight control (24) none.
+    fn stick_k(&self) -> f32 {
+        if self.damage & (1 << 24) != 0 {
+            0.0
+        } else if self.damage & (1 << 18) != 0 {
+            0.25
+        } else {
+            1.0
+        }
+    }
+
+    pub fn roll_trim(&self) -> f32 {
+        self.roll_trim
+    }
+
+    /// Moves the roll trim (ours) by a spring-centred rocker −1..1 held for `dt` s: full rocker trims
+    /// `ROLL_TRIM_RATE` stick per second. A change is a control event (an aero update), like a stick move.
+    pub fn trim_roll(&mut self, rocker: f32, dt: f32) {
+        let trim = (self.roll_trim + rocker.clamp(-1.0, 1.0) * ROLL_TRIM_RATE * dt).clamp(-1.0, 1.0);
+        if trim != self.roll_trim && self.crashed.is_none() {
+            self.roll_trim = trim;
+            self.aero_update();
+        }
+    }
+
     fn flaps_on_target(&self) -> f32 {
         FLAPS_MAX * if self.params.type_code == 100 { 0.33 } else { 1.0 }
     }
@@ -1042,15 +1074,8 @@ impl Aircraft {
         if self.crashed.is_some() {
             return;
         }
-        // Motion 1 (`59f3d0`): hydraulics damage (18) leaves a quarter of the stick, total flight control
-        // (24) none; the rudder is not affected.
-        let stick_k = if self.damage & (1 << 24) != 0 {
-            0.0
-        } else if self.damage & (1 << 18) != 0 {
-            0.25
-        } else {
-            1.0
-        };
+        // The rudder is not affected by the stick damage.
+        let stick_k = self.stick_k();
         let c = Controls {
             stick_x: c.stick_x.clamp(-1.0, 1.0) * stick_k,
             stick_y: c.stick_y.clamp(-1.0, 1.0) * stick_k,
@@ -1719,10 +1744,11 @@ impl Aircraft {
         }
         // 5b4910: β_cmd = (ru + 10·asym)·MaxBeta, asym = S+0x428 − S+0x42c (the spin tick passes 0).
         let beta_cmd = (self.rudder + 10.0 * self.stores_asym()) * p.max_beta;
-        let mut p_cmd = if ground { 0.0 } else { p.max_roll_rate * self.stick[0] };
+        let roll = (self.stick[0] + self.roll_trim * self.stick_k()).clamp(-1.0, 1.0);
+        let mut p_cmd = if ground { 0.0 } else { p.max_roll_rate * roll };
         if self.better.asymmetric_stores && !ground {
             let s = self.stores_roll(lift, mass, qs);
-            let stick = if self.stores_trim { (self.stick[0] - s).clamp(-1.0, 1.0) } else { self.stick[0] };
+            let stick = if self.stores_trim { (roll - s).clamp(-1.0, 1.0) } else { roll };
             p_cmd = p.max_roll_rate * (stick + s).clamp(-1.0, 1.0);
         }
 
@@ -2723,6 +2749,38 @@ mod tests {
         assert!(free > 0.1, "rolls toward the heavy right wing: {free}");
         let held = roll_after(true, true);
         assert!(held.abs() < 0.2 * free, "held {held} vs free {free}");
+    }
+
+    #[test]
+    fn roll_trim_holds_the_heavy_wing() {
+        // Full rocker for 1 s trims 0.2 stick; the trim stops at full stick.
+        let mut a = airborne(100, 3000.0, 150.0);
+        a.trim_roll(1.0, 1.0);
+        assert!((a.roll_trim() - ROLL_TRIM_RATE).abs() < 1e-6);
+        a.trim_roll(1.0, 100.0);
+        assert_eq!(a.roll_trim(), 1.0);
+        // Stores 3 m out on the right wing: trimmed left by the moment's stick, the jet holds its wings level.
+        let roll_after = |trimmed: bool| {
+            let mut a = airborne(100, 3000.0, 150.0);
+            a.better.asymmetric_stores = true;
+            a.set_stores_moment(907.0 * 3.0);
+            if trimmed {
+                let (m, qs) = (a.mass, q_s(3000.0, 150.0, a.params.wing_area));
+                let need = a.stores_roll(m * G, m, qs);
+                a.trim_roll(-1.0, need / ROLL_TRIM_RATE);
+            }
+            run(&mut a, 3.0);
+            a.state().roll
+        };
+        let free = roll_after(false);
+        let held = roll_after(true);
+        assert!(held.abs() < 0.2 * free, "trimmed {held} vs free {free}");
+        // Total flight-control damage leaves the trim without effect, like the stick.
+        let mut a = airborne(100, 3000.0, 150.0);
+        a.damage = 1 << 24;
+        a.trim_roll(1.0, 5.0);
+        run(&mut a, 3.0);
+        assert!(a.state().roll.abs() < 1e-3);
     }
 
     #[test]

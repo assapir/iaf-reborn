@@ -63,9 +63,10 @@ ranked order: [graphics-research.md](graphics-research.md).
 - **Separate joystick / throttle / pedal devices** (e.g. a stick, a throttle quadrant and pedals as three USB
   devices). The original and the port read one device: the first connected joypad (controls.md §5). Later: an Extras
   option to take each role (stick, throttle, rudder, buttons) from its own device.
-- **Extra joystick axes** (e.g. the Hotas X's throttle rocker = raw axis 4 in its 5-axis mode). The original reads
-  four (x, y, throttle, rudder). Later: an Extras option to give a spare axis a role (e.g. zoom, panel slide, head
-  pan, rudder on the rocker), and an axis-mapping row so nobody edits `[devices] joy_axes` by hand.
+- **Extra joystick axes**. The original reads four (x, y, throttle, rudder). Built: Devices "Throttle rocker" = Roll
+  trim gives the Hotas X's rocker (axis 4 in its 5-axis mode) the roll trim (controls.md §5.2). Later: more roles for
+  a spare axis (e.g. zoom, panel slide, head pan), and an axis-mapping row so nobody edits `[devices] joy_axes` by
+  hand.
 - **Better aircraft graphics** (wishlist; Extras → Models, the 1998 meshes by default): high-detail PBR models in
   place of the 1998 meshes (~800 triangles). The F-16D is built (aircraft-models.md); next the other flyable jets,
   then the AI types. Keep the original dimensions, hinge points (`<part>1/2` helpers), weapon stations, camera eye

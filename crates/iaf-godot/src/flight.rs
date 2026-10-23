@@ -98,6 +98,20 @@ impl IafFlight {
         Aircraft::start_is_airborne(altitude as f32, near_base)
     }
 
+    /// Ours (Devices "Throttle rocker" = Roll trim): the rocker −1..1 held for `dt` s moves the roll trim.
+    #[func]
+    fn trim_roll(&mut self, rocker: f64, dt: f64) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.trim_roll(rocker as f32, dt as f32);
+        }
+    }
+
+    /// The roll trim −1..1 (stick units; 0 without a jet).
+    #[func]
+    fn roll_trim(&self) -> f64 {
+        self.aircraft.as_ref().map_or(0.0, |ac| ac.roll_trim() as f64)
+    }
+
     /// Stick x/y −1..1 (y: pull positive), rudder −1..1, throttle 0..1 (0.74 military, ≥0.75 AB).
     #[func]
     fn set_controls(&mut self, stick: Vector2, rudder: f64, throttle: f64, flaps: f64, gear_down: bool, brakes: bool) {

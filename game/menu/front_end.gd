@@ -125,6 +125,11 @@ const PREF_DETENT := {
 ## Ours on the Devices page, under FLIGHT CONTROLS on the same grid: the stick response (joystick.gd `stick_curve`):
 ## LINEAR = the original's stick, SOFT CENTRE = a 5 % dead zone and an expo curve.
 const PREF_STICK := {"title": Rect2(25, 143, 160, 20), "off": Rect2(25, 178, 150, 20), "set": Rect2(25, 213, 150, 20)}
+## Ours on the Devices page, under RUDDER on the same grid: the throttle rocker (joystick.gd `rocker`): OFF = the
+## original's four axes, ROLL TRIM = a 5th axis trims roll.
+const PREF_ROCKER := {
+	"title": Rect2(187, 143, 125, 20), "off": Rect2(187, 178, 120, 20), "set": Rect2(187, 213, 120, 20)
+}
 ## Gameplay scoring strip: pref/score.bmp, 25 frames of 151x34.
 const PREF_SCORE := Rect2(290, 184, 151, 34)
 ## Live preview sounds while dragging (wav/pref, FUN_00544560).
@@ -1091,6 +1096,8 @@ func _draw_prefs() -> void:
 		)
 		var soft := str(pref_work.get("stick_response", "linear")) == "soft"
 		_draw_pref_pair(at, PREF_STICK, "Stick response", ["Linear", "Soft centre"], 1 if soft else 0, true)
+		var trim := bool(pref_work.get("rocker_trim", false))
+		_draw_pref_pair(at, PREF_ROCKER, "Throttle rocker", ["Off", "Roll trim"], 1 if trim else 0, true)
 		_text_block(
 			Rect2(at + PREF_DETENT.note.position, PREF_DETENT.note.size),
 			_t("Put the lever in its MIL click, then choose Set at lever."),
@@ -1922,6 +1929,9 @@ func _pref_press(q: Vector2) -> bool:
 			return true
 		if PREF_STICK.off.has_point(q) or PREF_STICK.set.has_point(q):
 			pref_work["stick_response"] = "soft" if PREF_STICK.set.has_point(q) else "linear"
+			return true
+		if PREF_ROCKER.off.has_point(q) or PREF_ROCKER.set.has_point(q):
+			pref_work["rocker_trim"] = PREF_ROCKER.set.has_point(q)
 			return true
 	if page == "Graphics" and PREF_VSYNC.has_point(q):
 		pref_work["vsync"] = not bool(pref_work.get("vsync", true))

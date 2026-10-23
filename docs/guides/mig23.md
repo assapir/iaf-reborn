@@ -53,6 +53,7 @@ Set these on the Preferences screen before the flight. Every row starts at the 1
 | Graphics → MORE | Night vision (Shift+N) | Goggles | Night-vision goggles in flight: a green, brightened outside view on night missions |
 | Physics | every row | on | Section 4 lists the ones that change how the MiG-23 flies |
 | Physics | Nose dips under braking, Unbalanced stores roll the jet, Wind and turbulence, Engine spool-up per real engine | on | The brakes' pitch, the stores' roll, the tower's wind and the engine's real spool (section 4) |
+| Devices | Throttle rocker | Roll trim | A stick's spring-centred 5th axis (the throttle rocker in 5-axis mode) trims roll, to hold a heavy wing up (section 4) |
 | Gameplay | Easy landing, Easy aiming, No blackouts / spins / stalls, No wind | off | Real landing limits, real launch rules, g-effects, spins, stalls and the mission's wind |
 
 A greyed-out imagery choice needs its data: convert it with `tools/setup-cli.sh --imagery`.
@@ -118,7 +119,8 @@ What changes in the cockpit:
 - **Nose dips under braking** (Physics): the nose dips up to 2° under the wheel brakes and squats up to 1° at full
   thrust on the brakes; it levels within about a second once the jet stops.
 - **Unbalanced stores roll the jet** (Physics): stores left on one wing roll the jet toward it: hold that wing up with
-  the stick (the game has no roll trim), or let the autopilot (**A**) hold it while it flies. Its pylons sit close to
+  the stick, trim it out (**Alt+Left / Right**, or the throttle rocker with Devices → Throttle rocker = Roll trim),
+  or let the autopilot (**A**) hold it while it flies. Its pylons sit close to
   the fuselage: one MK-84 (2,020 lb) left on station 3, 1.4 m out, takes about 4 % stick at 290 kt and 1 g. It grows
   with the g in a pull, and at half the speed it takes four times as much.
 - **The map edge**: 12 km (6.5 NM) before it the EndWorld warning sounds: turn back. Past it the game pushes the jet
@@ -325,6 +327,7 @@ the moon, the stars and the lights on the ground.
 | 9 / 0 | Throttle − / + 5 % |
 | V / PgUp / PgDn | Whole panel ↔ none (hold V: a glance down) / slide the panel up / down |
 | Arrows | Stick |
+| Alt+Left / Right | Roll trim left / right (hold) |
 | Numpad 0 / Decimal | Rudder left / right |
 | G / F / B | Gear / flaps / wheel brakes |
 | Shift+B | Drag chute |

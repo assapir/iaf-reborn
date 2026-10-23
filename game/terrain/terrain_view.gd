@@ -2,7 +2,8 @@
 #   Keys: the original key table with the player's rebinds (docs/controls.md): arrows stick (sprung),
 #   Numpad 0/. rudder, 1..8 throttle presets (1 also starts the engine), 0/9 throttle +/- 5 %, G gear,
 #   F flaps, B brakes, E x3 eject, F1 cockpit, F10 chase, Ctrl+P pause, Ctrl+O menu, Esc FlyTSD, C time
-#   compression; ours: Ctrl+F1 quit box, Ctrl+F2 views, V / PgUp / PgDn panel, Ctrl+F12 info, +/- or wheel zoom.
+#   compression; ours: Ctrl+F1 quit box, Ctrl+F2 views, V / PgUp / PgDn panel, Ctrl+F12 info, +/- or wheel zoom,
+#   Alt+Left / Right roll trim.
 #   External: RMB-drag orbits the camera, wheel zooms.
 #   `godot --path game res://terrain/terrain_view.tscn -- [--mission 311] [--real] [--screenshot out.png]
 #        [--at X Y alt heading pitch [roll]] [--external] [--shots N [--orbit-step deg]]`
@@ -3404,7 +3405,7 @@ var _key_was_held := {}
 var _eo_pan := Vector2i.ZERO
 
 
-func _read_controls(_delta: float) -> void:
+func _read_controls(delta: float) -> void:
 	if ejected:
 		stick = EJECT_STICK
 		rudder = 0.0
@@ -3430,6 +3431,12 @@ func _read_controls(_delta: float) -> void:
 			_apply_held(i, cmd)
 	for e in Joystick.poll():
 		_joy_event(e)
+	# Ours: the roll trim, from the throttle rocker (Devices page) and Alt + Left / Right (docs/controls.md).
+	var trim := Joystick.rocker()
+	if Input.is_key_pressed(KEY_ALT) and not Input.is_key_pressed(KEY_CTRL) and not Input.is_key_pressed(KEY_SHIFT):
+		trim += float(Input.is_key_pressed(KEY_RIGHT)) - float(Input.is_key_pressed(KEY_LEFT))
+	if trim != 0.0 and flight != null:
+		flight.trim_roll(trim, delta)
 
 
 ## One event of the joystick poller (FUN_004df560): GEV 1 stick (x, y ±100), 9 throttle (0..100), 10 rudder,

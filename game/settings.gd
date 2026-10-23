@@ -76,7 +76,8 @@ const PREFS := {
 		"external_stores",
 		"vsync"
 	],
-	"devices": ["flight_controls", "rudder", "throttle", "joy_axes", "throttle_detent", "stick_response"],
+	"devices":
+	["flight_controls", "rudder", "throttle", "joy_axes", "throttle_detent", "stick_response", "rocker_trim"],
 	"gameplay":
 	[
 		"no_wind",
@@ -207,6 +208,9 @@ var throttle_detent := -1
 ## Ours (Devices page "Stick response"): "linear" = the original's stick, "soft" = a 5 % dead zone and an expo curve
 ## (joystick.gd `stick_curve`).
 var stick_response := "linear"
+## Ours (Devices page "Throttle rocker"): false = the original's four axes, true = the rocker on a 5th axis trims roll
+## (joystick.gd `rocker`).
+var rocker_trim := false
 ## Render options for high resolutions (ours, Extras page; docs/rendering.md, terrain/render_options.gd):
 ## anti-aliasing "msaa4" (as before) / "msaa4_fxaa" / "taa" (TAA instead of MSAA); the terrain close up (detail texture,
 ## normal detail, 16× anisotropic filtering); the sky "original" (gradient) or "atmospheric" (physical scattering, sun

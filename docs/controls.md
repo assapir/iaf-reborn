@@ -106,6 +106,7 @@ Terms used on this page:
   | V | the whole panel, or from there none; held (≥ 0.3 s), its release returns the panel (a glance down) | — |
   | PgUp / PgDn | slide the panel | — |
   | Shift+N | night-vision goggles on / off, with Graphics → MORE "Night vision" = Goggles (rendering.md §8) | — |
+  | Alt + Left / Right | roll trim left / right while held (§5.2 "Throttle rocker") | — |
   | = / − / Numpad + / − | cockpit art zoom (cockpit views) | Zoom in / out (20 / 21): the orbit distance in the external views (views.md §4) |
 
   If the player binds one of these keys to a command we implement, the command wins. No table record uses
@@ -473,6 +474,18 @@ the same code).
     3. Full deflection still gives ±100, the sign is kept and the curve is monotonic.
   * Effect: near the centre one point of stick travel moves the command by about a third of what Linear moves it past
     its dead zone. Stick x = 0.45 gives 21 instead of 27; full deflection is unchanged.
+* **Ours: Devices page "Throttle rocker"** (under RUDDER; settings.cfg `[devices] rocker_trim`). It gives a spring-
+  centred 5th axis the roll trim (`Joystick.rocker`, `Aircraft::trim_roll`).
+  * **Off** (the default) is the original: four axes. The original has no trim.
+  * **Roll trim**: while the rocker is held, the trim moves at up to 0.2 stick per second (full rocker; 5 s from
+    centre to full). Released, the trim stays. A 10 % dead zone holds a wobbling rest.
+  * The axis: Godot axis 4, or `joy_axes[4]` when settings.cfg gives a 5th number. On the T.Flight Hotas X, the mode
+    button selects it: in 4-axis mode the stick twist and the rocker are both the rudder (axis 3); in 5-axis mode
+    the twist stays the rudder and the rocker is axis 4.
+  * The keys **Alt + Left / Right** trim the same way at the full rate, with or without a stick (§2 "Own keys").
+  * The flight model adds the trim to the stick in the airborne roll command, `p_cmd = MaxRollRate · clamp(stick +
+    trim, −1, 1)`, scaled by the stick's damage factor (flight-model.md §8). It holds a heavy wing with Better physics
+    "Asymmetric stores". The trim starts at 0 each flight.
   * The smaller dead zone is part of Soft centre, not a separate choice: the curve's flat start does the dead zone's
     job (inferred). A worn stick that does not centre within 5 % drifts slightly; use Linear then.
   * Why: the flight model turns stick y into commanded g and stick x into a share of the maximum roll rate

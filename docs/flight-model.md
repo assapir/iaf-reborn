@@ -592,6 +592,9 @@ Where our port differs from the original. Everything else follows §15 (status i
       `asymmetric_stores_roll`).
     * The autopilot trims it: while a loop flies the jet, the stick that cancels the moment is added (within full
       stick; [autopilot.md](autopilot.md) §2.5).
+    * The pilot trims it with our roll trim (Devices "Throttle rocker" = Roll trim, Alt + Left / Right; controls.md
+      §5.2): `Aircraft::trim_roll` adds the trim to the stick in the roll command, `clamp(stick + trim, −1, 1)`, before
+      the stores' stick. The trim works with or without this switch.
     * A model without stations (A-4, transports: no attach points) gets no moment. Refreshed with the roll command
       by the 1 Hz / event update.
   * **Wind and turbulence** [`wind`] (new; the original flies in still air).

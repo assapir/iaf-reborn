@@ -1295,9 +1295,9 @@ Three two-way choices. The top option has value 1.
 * The page matches the original (Settings `flight_controls`, `rudder`, `throttle`, `[devices]` in settings.cfg).
   The choices act through the `Joystick` autoload, only while a joypad is connected (docs/controls.md §5.2).
 * The Godot axis numbers (`joy_axes`) are set in settings.cfg only; no page shows them.
-* Two rows of ours (deviations.md "Preferences → Devices"): "Stick response" under FLIGHT CONTROLS (Linear / Soft
-  centre, `stick_response`) and "Detent = MIL" under THROTTLE (Off / Set at lever, `throttle_detent`), both in
-  `[devices]`. They are drawn in the page art's style: the install's Gill Sans Bold Condensed (`menu/fnt/cr4.ttf`)
+* Three rows of ours (deviations.md "Preferences → Devices"): "Stick response" under FLIGHT CONTROLS (Linear / Soft
+  centre, `stick_response`), "Throttle rocker" under RUDDER (Off / Roll trim, `rocker_trim`) and "Detent = MIL"
+  under THROTTLE (Off / Set at lever, `throttle_detent`), all in `[devices]`. They are drawn in the page art's style: the install's Gill Sans Bold Condensed (`menu/fnt/cr4.ttf`)
   slanted as the art, its title and item greens, a dark shadow, at the art's text positions one block lower; only the
   box shows the choice (`front_end.gd` `_draw_pref_pair`).
 

@@ -15,6 +15,11 @@ const DEAD_ZONE := 0.25
 ## turns small deflections into a lot of g and roll rate). Full deflection and the sign are kept.
 const SOFT_DEAD_ZONE := 0.05
 const SOFT_EXPO := 0.6
+## Ours (Devices page "Throttle rocker" = Roll trim, Settings.rocker_trim): the spring-centred rocker on a 5th axis
+## (the T.Flight Hotas X's in its 5-axis mode: Godot axis 4; Settings.joy_axes[4] when given) trims roll while
+## held. Its rest wobbles, so a 10 % dead zone.
+const ROCKER_AXIS := 4
+const ROCKER_DEAD_ZONE := 0.1
 ## The hat as Godot reports it: the D-pad buttons.
 const HAT := [JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_RIGHT, JOY_BUTTON_DPAD_DOWN, JOY_BUTTON_DPAD_LEFT]
 ## POV (hundredths of a degree) → GEV 22 (p1 angle, p2 numpad digit) (@4dfa2c..4dfbae): the snap-view keys'
@@ -104,6 +109,15 @@ func throttle_axis() -> int:
 	return last_throttle if throttle_used() else -1
 
 
+## The rocker −1..1 (right +) while Settings.rocker_trim is on, else 0.
+func rocker() -> float:
+	var d := device()
+	if d < 0 or not Settings.rocker_trim:
+		return 0.0
+	var i: int = Settings.joy_axes[4] if Settings.joy_axes.size() > 4 else ROCKER_AXIS
+	return _dead(axis(d, i), ROCKER_DEAD_ZONE)
+
+
 ## A key-table key event dropped while an axis is used (FUN_004e0b80): roll / pitch (2, 3) with the stick,
 ## RPM ± 5 and the throttle presets (5, 6, 9) with the throttle, the rudder keys (10) with the rudder.
 func drops_key(id: int) -> bool:
@@ -162,7 +176,7 @@ func raw_throttle() -> int:
 	var d := device()
 	if d < 0:
 		return -1
-	var ax: Array = Settings.joy_axes if Settings.joy_axes.size() == 4 else [0, 1, 2, 3]
+	var ax: Array = Settings.joy_axes if Settings.joy_axes.size() >= 4 else [0, 1, 2, 3]
 	return 100 - _lin(axis(d, ax[2]), 100)
 
 
@@ -187,7 +201,7 @@ func poll() -> Array:
 	var d := device()
 	if d < 0:
 		return []
-	var ax: Array = Settings.joy_axes if Settings.joy_axes.size() == 4 else [0, 1, 2, 3]
+	var ax: Array = Settings.joy_axes if Settings.joy_axes.size() >= 4 else [0, 1, 2, 3]
 	var out := []
 	var soft: bool = Settings.stick_response == "soft"
 	if Settings.flight_controls == 1:

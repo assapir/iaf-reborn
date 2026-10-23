@@ -139,6 +139,33 @@ func run() -> void:
 	prefs.stick_response = "linear"
 	prefs.rudder = 0
 
+	# Ours: the throttle rocker (axis 4, Devices "Throttle rocker") trims roll while held: off by default (the
+	# original's four axes); on, full rocker for 1 s = 0.2 stick, the rest inside the 10 % dead zone does nothing.
+	check(not prefs.rocker_trim, "Throttle rocker defaults to Off (the original's four axes)")
+	axis(JOY_AXIS_TRIGGER_LEFT, 1.0)
+	check(js.rocker() == 0.0, "rocker off: no trim")
+	prefs.rocker_trim = true
+	var trim0: float = tv.flight.roll_trim()
+	for i in 60:
+		tv._read_controls(DT)
+	var trim1: float = tv.flight.roll_trim()
+	check(absf(trim1 - trim0 - 0.2) < 0.01, "rocker right 1 s: trim +0.2 (%.3f → %.3f)" % [trim0, trim1])
+	axis(JOY_AXIS_TRIGGER_LEFT, 0.08)
+	tv._read_controls(DT)
+	check(tv.flight.roll_trim() == trim1, "rocker at rest (8 %): the trim stays")
+	axis(JOY_AXIS_TRIGGER_LEFT, 0.0)
+	prefs.rocker_trim = false
+	# Alt + Left / Right trim with or without a stick; Left alone stays the roll key.
+	set_key(KEY_ALT, true)
+	set_key(KEY_LEFT, true)
+	for i in 30:
+		tv._read_controls(DT)
+	check(absf(tv.flight.roll_trim() - (trim1 - 0.1)) < 0.01, "Alt + Left 0.5 s: trim −0.1")
+	check(tv.stick.x == 0.0, "Alt + Left does not roll the stick (%.2f)" % tv.stick.x)
+	set_key(KEY_LEFT, false)
+	set_key(KEY_ALT, false)
+	tv._read_controls(DT)
+
 	# Throttle (lZ): lever forward (−1) = 100 %, no dead zone; the throttle keys are dropped.
 	prefs.throttle = 1
 	axis(JOY_AXIS_RIGHT_X, -1.0)
