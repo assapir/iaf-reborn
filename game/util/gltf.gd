@@ -43,7 +43,7 @@ static func open(path: String) -> Variant:
 		if t == null:
 			continue
 		if not done.has(t):
-			var img := t.get_image()
+			var img: Image = null if t.has_meta("mipmapped") else t.get_image()
 			if img != null and not img.has_mipmaps() and not img.is_compressed():
 				img.generate_mipmaps()
 				done[t] = ImageTexture.create_from_image(img)
@@ -55,26 +55,68 @@ static func open(path: String) -> Variant:
 
 
 ## The file's glTF parsed ([doc, state], [] when missing / unreadable): its images decoded and its textures created.
+## The albedo images (files next to it, all the converted models') are decoded here with their mipmaps
+## (_own_textures): on a worker thread for parse_ahead, and open() then reads no texture back from the GPU (≈ 30 ms a
+## model on the main thread otherwise). A model with an embedded image is parsed as Godot's import does.
 static func _parse(path: String) -> Array:
 	if not FileAccess.file_exists(path):
 		return []
 	var doc := GLTFDocument.new()
 	var state := GLTFState.new()
+	state.handle_binary_image_mode = GLTFState.HANDLE_BINARY_IMAGE_MODE_DISCARD_TEXTURES
+	if doc.append_from_file(path, state) != OK:
+		return []
+	if _own_textures(state, path.get_base_dir()):
+		return [doc, state]
+	doc = GLTFDocument.new()
+	state = GLTFState.new()
 	return [doc, state] if doc.append_from_file(path, state) == OK else []
+
+
+## Gives each material its base colour texture from the image file, mipmapped (marked "mipmapped" for open());
+## false when an image has no file (embedded).
+static func _own_textures(state: GLTFState, dir: String) -> bool:
+	var images: Array = state.json.get("images", [])
+	var textures: Array = state.json.get("textures", [])
+	var json_mats: Array = state.json.get("materials", [])
+	if images.any(func(im): return not im.has("uri")):
+		return false
+	var made := {}
+	var mats := state.get_materials()
+	for i in mini(mats.size(), json_mats.size()):
+		var bm := mats[i] as BaseMaterial3D
+		var ti = json_mats[i].get("pbrMetallicRoughness", {}).get("baseColorTexture", {}).get("index")
+		if bm == null or ti == null or int(ti) >= textures.size():
+			continue
+		var src := int(textures[int(ti)].get("source", -1))
+		if not made.has(src):
+			made[src] = null
+			if src >= 0 and src < images.size():
+				var img := Image.load_from_file(dir.path_join(String(images[src].uri).uri_decode()))
+				if img != null:
+					if not img.has_mipmaps() and not img.is_compressed():
+						img.generate_mipmaps()
+					made[src] = ImageTexture.create_from_image(img)
+					made[src].set_meta("mipmapped", true)
+		bm.albedo_texture = made[src]
+	return true
 
 
 ## Models parsed ahead on worker threads (parse_ahead): full path -> task id, then -> _parse()'s result.
 static var _ahead_tasks := {}
 static var _ahead := {}
 static var _ahead_lock := Mutex.new()
+## Dropped parses still running (drop_ahead): full path -> task id; their results are discarded once done.
+static var _stale := {}
 
 
-## Starts parsing the converted object models at `paths` (under converted/objects) on worker threads, so object()
-## only finishes them (the flight's loading screen: the mission's models, ~20–240 ms each).
+## Starts parsing the models at the full `paths` on worker threads (low priority), so model() / object() only finish
+## them (the mission screens and the flight's loading screen: the mission's models, ≈ 20–240 ms each). A model already
+## opened, or with a detailed stand-in, is skipped.
 static func parse_ahead(paths: Array) -> void:
 	for p in paths:
 		if not _objects.has("%d:%s" % [object_level, p]) and detailed(p) == "":
-			parse_file_ahead(_settings().assets_dir().path_join("converted/objects").path_join(p))
+			parse_file_ahead(p)
 
 
 ## parse_ahead() of a file for open(path).
@@ -83,10 +125,41 @@ static func parse_file_ahead(path: String) -> void:
 		_ahead_tasks[path] = WorkerThreadPool.add_task(_parse_task.bind(path), false, "glTF parse")
 
 
-## True when parse_ahead's work for `p` (a path under converted/objects) is done or was never asked for.
+## True when parse_ahead's work for the full path `p` is done or was never asked for.
 static func parsed_ahead(p: String) -> bool:
-	var full: String = _settings().assets_dir().path_join("converted/objects").path_join(p)
-	return not _ahead_tasks.has(full) or WorkerThreadPool.is_task_completed(_ahead_tasks[full])
+	return not _ahead_tasks.has(p) or WorkerThreadPool.is_task_completed(_ahead_tasks[p])
+
+
+## Drops the parses ahead that nobody took, but for the full paths in `keep` (a new mission or jet chosen, the flight
+## started): finished ones at once, running ones once they finish (later calls). The memory stays one mission's.
+static func drop_ahead(keep: Array = []) -> void:
+	var kept := {}
+	for p in keep:
+		kept[p] = true
+	for p in _ahead_tasks.keys():
+		if not kept.has(p):
+			_stale[p] = _ahead_tasks[p]
+			_ahead_tasks.erase(p)
+	for p in _stale.keys():
+		if WorkerThreadPool.is_task_completed(_stale[p]):
+			WorkerThreadPool.wait_for_task_completion(_stale[p])
+			_stale.erase(p)
+			if not _ahead_tasks.has(p):  # asked for again meanwhile: that task's result stays
+				_ahead_lock.lock()
+				_ahead.erase(p)
+				_ahead_lock.unlock()
+
+
+## Waits for every parse ahead still running and drops the results nobody took. At exit (Settings): Godot's exit hung
+## for good in WorkerThreadPool::exit_languages_threads with the mission screens' parse tasks never waited for.
+static func finish_ahead() -> void:
+	for t in _ahead_tasks.values() + _stale.values():
+		WorkerThreadPool.wait_for_task_completion(t)
+	_ahead_tasks.clear()
+	_stale.clear()
+	_ahead_lock.lock()
+	_ahead.clear()
+	_ahead_lock.unlock()
 
 
 static func _parse_task(full: String) -> void:
@@ -96,9 +169,13 @@ static func _parse_task(full: String) -> void:
 	_ahead_lock.unlock()
 
 
-## parse_ahead's result for `path` (waiting for it if still running), null when it was not asked for.
+## parse_ahead's result for `path`, null when it was not asked for or is not done yet: then the caller parses it
+## itself and the task's result is dropped (a queued task may wait behind the whole mission's models).
 static func _take_parsed(path: String) -> Variant:
 	if not _ahead_tasks.has(path):
+		return null
+	if not WorkerThreadPool.is_task_completed(_ahead_tasks[path]):
+		drop_ahead(_ahead_tasks.keys().filter(func(p): return p != path))
 		return null
 	WorkerThreadPool.wait_for_task_completion(_ahead_tasks[path])
 	_ahead_tasks.erase(path)
@@ -118,9 +195,19 @@ static func object(path: String) -> Variant:
 	var hd := detailed(path)
 	if hd != "":
 		return open_detailed(hd)
+	return model(objects_path(path))
+
+
+## The full path of a converted object model (path under converted/objects).
+static func objects_path(path: String) -> String:
+	return _settings().assets_dir().path_join("converted/objects").path_join(path)
+
+
+## open() of the model at the full `path`, cached per OBJECT DETAIL level: every unit and jet of a type shares it.
+static func model(path: String) -> Variant:
 	var key := "%d:%s" % [object_level, path]
 	if not _objects.has(key):
-		_objects[key] = open(_settings().assets_dir().path_join("converted/objects").path_join(path))
+		_objects[key] = open(path)
 	return _objects[key]
 
 

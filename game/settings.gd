@@ -753,6 +753,10 @@ func _notification(what: int) -> void:
 		quit()
 
 
+func _exit_tree() -> void:
+	load("res://util/gltf.gd").finish_ahead()  # no pool task left behind at exit
+
+
 func _free_sounds() -> void:
 	for p in get_tree().root.find_children("*", "", true, false):
 		if p is AudioStreamPlayer or p is AudioStreamPlayer2D or p is AudioStreamPlayer3D:

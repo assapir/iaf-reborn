@@ -235,8 +235,8 @@ detail and the mission's models are parsed. What runs where:
 | the first frame's art: the loading screen's menu art, the cockpit art (the scene's default F-16 cockpit and the player's jet's), the player's jet model and its cockpit-view model | worker threads, once the scene has loaded (`prefetch_flight`: `Img.prefetch`, `Gltf.parse_file_ahead`) | ≈ 0.17 + 0.23 + 0.15 s |
 | the scene's build (`_ready`) | the main thread, over six frames behind the loading screen; between them only the terrain and the loading screen run | ≤ 0.2 s a frame |
 | the terrain's nodes: about 300 colour nodes (setup's BC1 `.dds`, else JPEG, mipmaps, BC1) and 50 height nodes | 4 worker threads (`terrain.gd` `max_jobs`); the texture uploads on the main thread, ≤ 4 ms a frame (`UPLOAD_MS`) | ≈ 1–3 s |
-| the mission's models (every placed unit's model and its LOD copies) | worker threads parse the files (`Gltf.parse_ahead`), the main thread finishes them for ≤ 12 ms a frame (one model up to ≈ 50 ms) | ≈ 1.5 s, inside the terrain's time |
-| the spawn of the mission's units | the main thread, the first flying frame | ≈ 40 ms |
+| the mission's models (every placed unit's model and its LOD copies, the AI's jets) | worker threads parse the files and make their mipmapped textures, from the mission screens on (`TerrainPreload.mission_models`, `Gltf.parse_ahead`); the main thread finishes them for ≤ 12 ms a frame (no GPU readback) | ≈ 1.5 s of worker time, done before Fly after a few seconds on the TSD |
+| the spawn of the mission's units and the AI's jets | the main thread, the first flying frame (one parse per jet type, `Gltf.model`) | ≈ 0.25 s (mission 224) |
 
 Three things made the start slow, measured 2026-10-22:
 
@@ -277,7 +277,13 @@ to `Image.load_dds_from_buffer` (≈ 0.3 ms a node, no decode, no compression). 
 step, or `Terrain.precompressed` off) the worker decodes the JPEG, makes the mipmaps and compresses them as before.
 That fallback runs on the CPU encoder: `rendering/textures/vram_compression/compress_with_gpu` is off in
 `project.godot` (Godot reads it at each `Image.compress`; the project imports no VRAM-compressed textures), so the
-workers no longer wait for the GPU (Betsy here, Metal's on a Mac) behind the frames. The few nodes that World scale
+workers no longer wait for the GPU (Betsy here, Metal's on a Mac) behind the frames. Keep it off: with it on, the
+flight's start could hang for good (seen 2026-10-22 under CPU load, 2 starts in ≈ 11). Godot 4.7's Betsy encoder runs
+as a worker-pool task that, while idle, yields its thread to other pool tasks (`WorkerThreadPool::yield`). The pool
+gave that thread a terrain decode task, which called `Image.compress` and waited for Betsy, the loop beneath it on
+the same thread's stack. The other decode tasks waited for Betsy too, and the ground never finished (a gdb backtrace
+with Godot's debug symbols: `BetsyCompressor::_thread_loop` → `yield` → `_wait_collaboratively` → the decode →
+`_betsy_compress_s3tc` → `push_and_ret`). The few nodes that World scale
 Real patches or overlays (`_bake`, `_inset_image`) still take the JPEG path.
 
 The `.dds` is the same picture within BC1's error: over four `mapi2015_modern` tiles the mean absolute difference to
@@ -326,6 +332,48 @@ Flight start and a low fast pass (600 kt at 300 m for 60 s, heading west, frozen
 The mission start with these settings still shows one or two stalls of 0.5–2.8 s in the flight scene's first frames,
 before and after alike (not the terrain: its nodes were loaded by then). The pass's worst frames are the 3D view's
 own (≈ 45 fps average); the waiting nodes drop by a factor of 6.
+
+#### The mission's models on the mission screens
+
+The TSD's preload also parses the models the flight's spawn will draw, once the flight scene has loaded
+(`terrain_preload.gd` `prefetch_flight`): the player's jet and cockpit-view model first, then every placed unit's
+model with its LOD copies and the AI's jets (`mission_models`, the same list the flight's loading screen waits for).
+They parse on low-priority pool tasks, which leave the decode tasks and the menu's threads free.
+
+- **Textures off the main thread.** A parse decodes each model's base colour image (the file beside the `.gltf`)
+  and makes its mipmaps on the worker (`Gltf._own_textures`). Finishing a model on the main thread used to read its
+  texture back from the GPU to add the mipmaps: ≈ 30 ms a model, one model a frame behind the loading screen (80
+  models in mission 224: ≈ 3 s). Now mission 224's 80 models finish inside its 0.8 s start. A model with an embedded image is parsed as Godot's import does.
+- **One parse per jet type.** The AI's jets parsed their model once per jet in the first flying frame (1.3–3.3 s in
+  mission 224); `Gltf.model` keeps one per file and OBJECT DETAIL level, shared like the units' models.
+- **One set held.** The parses are keyed by the mission, the flight and the jet. Another flight or jet drops the
+  parses the new choice does not use (`Gltf.drop_ahead`); leaving the mission screens drops them all; the flight
+  drops what it did not take after its spawn. A parse not finished when the flight needs it is parsed there, not
+  waited for behind the queue. At exit the game waits for the parses still running (`Gltf.finish_ahead`): with
+  them never waited for, Godot's exit hung in `WorkerThreadPool::exit_languages_threads`.
+- **The menus.** The preload's terrain runs 2 decode tasks (the flight's 4). A Fly while the flight scene or its
+  first frame's art is still loading waits over menu frames (`ready_to_fly`), not in one frame.
+
+Measured 2026-10-23 on the Iris Xe laptop (2560 × 1440, X11 window, vsync off, `.dds` tiles, default settings;
+`tests/godot/_preload_bench.gd`: the TSD opened, `PB_WAIT` seconds there, then Fly). Three runs each, before / after:
+
+| | before | after |
+|---|---|---|
+| mission 311, Fly after 6 s on the TSD | 0.95–1.04 s | 0.52–0.68 s |
+| mission 224 (F-4, 7 AI jets, 80 unit models), after 6 s | 1.87–2.26 s | 0.74–0.82 s |
+| mission 311, Fly in the TSD's first frame | 2.12–2.58 s | 2.04–2.60 s |
+| mission 224, Fly in the TSD's first frame | 3.31–4.09 s | 2.93–3.57 s |
+| mission 311, Fly after 0.5 s (one run) | 1.58 s | 1.15 s |
+| stalls over 250 ms after Fly, 6 s on the TSD | 311: none; 224: the spawn 0.49–0.67 s | 311: none; 224: 0.26 s in one run of three |
+| stalls over 250 ms after Fly at once | the flight's first frame 0.5–0.86 s; 224: the spawn 0.51–0.64 s | the flight's first frame 0.5–0.78 s |
+| stalls after Fly at 0.5 s | 0.29 s and 0.49 s | none |
+| TSD worst frame while the preload runs, 311 | 32–37 ms | 32–36 ms |
+| TSD worst frame, 224 | 37–44 ms | 34–49 ms |
+
+A Fly in the TSD's first frame is the bench's limit: the TSD's own set-up frame (0.35–0.55 s, before and after
+alike, `stall … in FrontEnd / tsd`) shows as a stall `in ?`, and the flight builds everything itself. The TSD of
+missions 224 and 115 runs at ≈ 30 fps with the preload off too (its map); the preload's share is a few frames over
+16.7 ms.
 
 ## 2. Cloud layer (Graphics TEXTURED SKY, docs/front-end.md §12.4)
 

@@ -24,6 +24,11 @@ static func prefetch(path: String, mipmaps := false) -> void:
 		_tasks[key] = WorkerThreadPool.add_task(_prefetch_task.bind(path, mipmaps, key), false, "image prefetch")
 
 
+## True while a prefetch() still decodes.
+static func prefetching() -> bool:
+	return _tasks.values().any(func(t): return not WorkerThreadPool.is_task_completed(t))
+
+
 static func _prefetch_task(path: String, mipmaps: bool, key: String) -> void:
 	var img := _decode(path, mipmaps)
 	_lock.lock()

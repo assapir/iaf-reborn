@@ -851,25 +851,26 @@ func _process(_delta: float) -> void:
 
 
 ## While the mission's screens are open (TSD / briefing / Arming), the ground around the chosen
-## flight leader's start loads in the background (terrain/terrain_preload.gd) so Fly starts at once;
-## a flight change on the TSD re-aims it, leaving the mission screens stops it.
-var _preload_flight := -1
+## flight leader's start and the mission's models load in the background (terrain/terrain_preload.gd)
+## so Fly starts at once; a flight change on the TSD re-aims it, a jet change re-chooses the models,
+## leaving the mission screens stops it and drops what it loaded.
+var _preload_flight := Vector2i(-1, -1)  # (mission, flight)
 
 
 func _preload_ground() -> void:
 	if flight != null:
 		return
 	if tsd != null:
-		var n: int = tsd.default_flight()
+		var n := Vector2i(Settings.mission_id, tsd.default_flight())
 		if n != _preload_flight:
 			_preload_flight = n
-			var w = preload("res://mission/mission_runtime.gd").player_start(Settings.mission_id, n)
+			var w = preload("res://mission/mission_runtime.gd").player_start(n.x, n.y)
 			if w != null:
-				TerrainPreload.target(get_tree(), w, n)
+				TerrainPreload.target(get_tree(), w, n.y)
 			ModelDetail.preload_packs()  # Model detail's textures, off the main thread
 		TerrainPreload.poll()  # the flight's first-frame art and models, once its scene has loaded
-	elif _preload_flight != -1:
-		_preload_flight = -1
+	elif _preload_flight.x != -1:
+		_preload_flight = Vector2i(-1, -1)
 		TerrainPreload.stop()
 
 
@@ -2514,6 +2515,10 @@ func _fly() -> void:
 	else:
 		Settings.route_override = []
 	busy = true
+	# A Fly right after the TSD opened: the flight scene's load and its first frame's art finish on their threads while
+	# the menu frames run (one frame of ≈ 0.7 s otherwise, docs/rendering.md §1.5).
+	while not TerrainPreload.ready_to_fly():
+		await get_tree().process_frame
 	get_tree().change_scene_to_packed(TerrainPreload.scene())
 
 
