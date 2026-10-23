@@ -234,23 +234,25 @@ Two runs give the same bytes (the SHA-256 of every cell file compared).
 
 ### 3.1 Cost
 
-Intel Iris Xe (TigerLake GT2) laptop, 2560 × 1440, 2026-10-22: `tests/godot/_flight_bench.gd` with `BENCH_BEST=1`
-(mission 311, Ramat David), the Survey 2 m layer on, two runs each, Scenery Off then On:
+Intel Iris Xe (TigerLake GT2) laptop, 2560 × 1440, 2026-10-23, the machine idle: `tests/godot/_flight_bench.gd`
+with `BENCH_BEST=1` (mission 311, Ramat David), the Survey 2 m layer on, two runs each, Scenery Off then On; the
+scenery as built by generator 7 (2.08 M buildings, 28.6 M trees over the layer), in 500 m tiles:
 
-| leg | Off | On | lost |
-|---|---|---|---|
-| 150 m, 250 m/s | 77 fps | 70 fps | 9 % |
-| 1500 m, 250 m/s | 56 fps | 52 fps | 6 % |
-| 6000 m, 300 m/s | 51 fps | 51 fps | 0 % |
+| leg | Off | On | lost | draw calls Off / On | triangles Off / On |
+|---|---|---|---|---|---|
+| 150 m, 250 m/s | 63 fps | 67 fps | none (within the noise) | 195 / 255 | 359 k / 552 k |
+| 1500 m, 250 m/s | 60 fps | 56 fps | 7 % | 185 / 262 | 352 k / 498 k |
+| 6000 m, 300 m/s | 56 fps | 55 fps | 2 % | 178 / 178 | 335 k / 335 k |
 
-Frames over 50 ms: one per run either way (the take-off).
+Frames over 50 ms: at most one per run either way (the take-off).
 
 What got it there, from 20 % lost and a 246 ms stall:
 
 - the meshes made on Rust threads instead of the main thread, then uploaded in chunks;
 - the far ring cut from 8 km to 4.5 km, its fade removed, and no scenery shadows;
 - a re-selection that looks at ≈ 80 nearby cells instead of all ≈ 4 000 (8–19 ms each 0.8 s);
-- the mesh threads working on a copy of the cell, so the main thread's drop of a cell does not wait for them.
+- the mesh threads working on a copy of the cell, so the main thread's drop of a cell does not wait for them;
+- trees beyond 700 m drawn with a canopy-only model (1.8 M → 0.5 M triangles at 150 m).
 
 ## 4. Solid ground and hits
 
