@@ -39,6 +39,7 @@ Godot renders with Metal on macOS, so terrain shaders may look slightly differen
 | launcher | setup installs `~/Applications/Jane's IAF (reborn).app` | setup installs a `.desktop` file |
 | fonts | Arial is installed and used directly | Liberation Sans is the fallback for Arial |
 | joystick | `./iafjets` sets `SDL_JOYSTICK_MFI=0` (controls.md §5.2) | — |
+| keys | Cmd stands for Ctrl (macOS takes Ctrl + arrows for its desktops); the key names say Cmd (controls.md §2) | Ctrl |
 | user data | `~/Library/Application Support/Godot/app_userdata/iaf-reborn/` | `~/.local/share/godot/app_userdata/iaf-reborn/` |
 
 With Liberation Sans the in-flight menu and boxes keep the exe's font sizes but use Godot's widths and heights:

@@ -3092,7 +3092,7 @@ func _set_time_factor(f: int) -> void:
 ## keys moved to Ctrl + F-keys when those commands were built (user decision): Ctrl+F1 the quit box
 ## (was Esc), Ctrl+F2 cockpit / external (was C and F2), Ctrl+F12 the flight-info line (was F12).
 func _own_key(event: InputEventKey) -> void:
-	if event.ctrl_pressed:
+	if KeyTable.ctrl(event):
 		match event.keycode:
 			KEY_F1:
 				_quit_key()

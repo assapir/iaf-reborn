@@ -11,6 +11,9 @@ const CTRL := 0x11
 const SHIFT := 0x22
 const ALT := 0x44
 const WIN := 0x88
+## macOS: Cmd stands for Ctrl (the system takes Ctrl + arrows and Ctrl + F-keys for its desktops), and the key names
+## say "Cmd"; Ctrl still works. docs/controls.md §2.
+static var cmd_is_ctrl := OS.get_name() == "macOS"
 
 ## DirectInput scancode -> Godot key (US positions, like the scancodes themselves).
 const DIK_TO_KEY := {
@@ -193,6 +196,8 @@ func key_name(key: int) -> String:
 		if mods & int(m.bits):
 			prefix = m.prefix
 			break
+	if cmd_is_ctrl and mods & CTRL:
+		prefix = prefix.replace("Ctrl", "Cmd")
 	return prefix + String(key_names.get(str(key & 0xffff), ""))
 
 
@@ -219,9 +224,10 @@ func godot_key(dik: int) -> Key:
 	return DIK_TO_KEY.get(dik, KEY_NONE)
 
 
-## The one modifier of an event: Ctrl, then Shift, Alt, Win (the capture's order).
+## The one modifier of an event: Ctrl, then Shift, Alt, Win (the capture's order). On macOS Cmd is Ctrl
+## (cmd_is_ctrl).
 static func modifiers_of(event: InputEventWithModifiers) -> int:
-	if event.ctrl_pressed:
+	if ctrl(event):
 		return CTRL
 	if event.shift_pressed:
 		return SHIFT
@@ -230,6 +236,11 @@ static func modifiers_of(event: InputEventWithModifiers) -> int:
 	if event.meta_pressed:
 		return WIN
 	return 0
+
+
+## Ctrl held in an event; on macOS Cmd too, which the system leaves to apps (Ctrl + arrows switch desktops there).
+static func ctrl(event: InputEventWithModifiers) -> bool:
+	return event.ctrl_pressed or (cmd_is_ctrl and event.meta_pressed)
 
 
 ## The key of an event as the table stores it (0 for a lone modifier or an unknown key).
@@ -270,7 +281,7 @@ func held(i: int, overrides: Dictionary) -> bool:
 
 
 static func _held_modifiers() -> int:
-	if Input.is_key_pressed(KEY_CTRL):
+	if Input.is_key_pressed(KEY_CTRL) or (cmd_is_ctrl and Input.is_key_pressed(KEY_META)):
 		return CTRL
 	if Input.is_key_pressed(KEY_SHIFT):
 		return SHIFT

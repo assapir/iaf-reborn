@@ -483,12 +483,14 @@ var missing_he := {}
 
 
 func _t(english: String) -> String:
-	if not _he():
-		return english
-	var labels: Dictionary = hebrew.get("labels", {})
-	if not labels.has(english):
-		missing_he[english] = true
-	return labels.get(english, english)
+	var out := english
+	if _he():
+		var labels: Dictionary = hebrew.get("labels", {})
+		if not labels.has(english):
+			missing_he[english] = true
+		out = labels.get(english, english)
+	# macOS: Cmd stands for Ctrl (KeyTable.cmd_is_ctrl), so the labels name it.
+	return out.replace("Ctrl+", "Cmd+") if KeyTable.cmd_is_ctrl else out
 
 
 func _string(key: String) -> String:

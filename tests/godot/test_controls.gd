@@ -6,7 +6,8 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	var kt = load("res://controls/key_table.gd").load_table()
+	var KT: GDScript = load("res://controls/key_table.gd")
+	var kt = KT.load_table()
 	check(kt.size() == 117, "117 records (%d)" % kt.size())
 	check(
 		kt.label(0) == "TSD and cockpit toggle" and kt.key_name(kt.default_key(0)) == "Esc",
@@ -21,6 +22,22 @@ func run() -> void:
 		"modifier names"
 	)
 	check(kt.button_name(kt.default_joystick(58)) == "Button 3", "joystick button names")
+	# macOS: Cmd stands for Ctrl (the system takes Ctrl + arrows); Ctrl still works, and the names say Cmd.
+	var was: bool = KT.cmd_is_ctrl
+	KT.cmd_is_ctrl = true
+	var cmd_left := InputEventKey.new()
+	cmd_left.physical_keycode = KEY_LEFT
+	cmd_left.meta_pressed = true
+	var ctrl_left := cmd_left.duplicate()
+	ctrl_left.meta_pressed = false
+	ctrl_left.ctrl_pressed = true
+	check(
+		kt.key_of_event(cmd_left) == kt.key_of_event(ctrl_left) and (kt.key_of_event(cmd_left) >> 16) == KT.CTRL,
+		"Mac: Cmd + Left is Ctrl + Left"
+	)
+	check(kt.key_name(kt.default_key(1)) == "Cmd + Q", "Mac: Ctrl + Q named Cmd + Q")
+	KT.cmd_is_ctrl = was
+	check(kt.key_name(kt.default_key(1)) == "Ctrl + Q", "elsewhere: Ctrl + Q")
 	check(kt.shown_records().size() == 92, "92 listed records (%d)" % kt.shown_records().size())
 
 	var front_end: PackedScene = load("res://menu/front_end.tscn")

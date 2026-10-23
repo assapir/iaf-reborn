@@ -80,6 +80,10 @@ Terms used on this page:
 * **Scancode**: the port turns the Godot key into the scancode by its **physical** position (`physical_keycode`,
   the US layout, like DirectInput). The tests send plain keycodes; the port uses them when there is no physical
   code. It adds one modifier, checked in this order: Ctrl, Shift, Alt, Meta (= Win).
+* **macOS: Cmd is Ctrl.** macOS keeps Ctrl + arrows and Ctrl + F-keys for its desktops (Mission Control), so on a
+  Mac Cmd counts as Ctrl: for the table's keys, the held keys and our own Ctrl + F1 / F2 / F12. Ctrl still works.
+  The Controls page and the Preferences labels say "Cmd" there (`key_table.gd` `cmd_is_ctrl`). The Win modifier
+  has no Mac key.
 * **One-shot commands** run on the key press.
 * **Held commands** (ids 2, 3, 10): the port polls them every frame for press / release edges (the record's key and
   exactly its modifier down).
