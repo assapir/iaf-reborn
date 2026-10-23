@@ -79,6 +79,9 @@ var _pov_release := [-1, -5]
 ## (records not listed: none); null = no file matched, the table's own column.
 var default_buttons = null
 var _device := -1
+## The device's input axes from its USB HID report descriptor (IafHid, docs/controls.md §5.2); −1 = unknown
+## (Windows, tests).
+var axis_count := -1
 ## The device in use got our mapping (see REMAP_BUTTONS).
 var remapped := false
 
@@ -112,10 +115,16 @@ func throttle_axis() -> int:
 ## The rocker −1..1 (right +) while Settings.rocker_trim is on, else 0.
 func rocker() -> float:
 	var d := device()
-	if d < 0 or not Settings.rocker_trim:
+	if not has_fifth_axis() or not Settings.rocker_trim:
 		return 0.0
 	var i: int = Settings.joy_axes[4] if Settings.joy_axes.size() > 4 else ROCKER_AXIS
 	return _dead(axis(d, i), ROCKER_DEAD_ZONE)
+
+
+## A joystick with a 5th axis is connected (or one whose axis count is unknown): the Devices page shows "Throttle
+## rocker" only then.
+func has_fifth_axis() -> bool:
+	return device() >= 0 and (axis_count >= 5 or axis_count < 0)
 
 
 ## A key-table key event dropped while an axis is used (FUN_004e0b80): roll / pitch (2, 3) with the stick,
@@ -294,6 +303,7 @@ func _pov(d: int) -> int:
 func _connected(d: int) -> void:
 	default_buttons = null
 	remapped = false
+	axis_count = -1
 	if d < 0:
 		print("joystick: none")
 		return
@@ -307,10 +317,12 @@ func _connected(d: int) -> void:
 		Input.add_joy_mapping(m, true)
 		remapped = true
 		print("joystick: unknown device, buttons 12+ moved off the hat's D-pad indices")
+	if not Settings.isolated():
+		axis_count = IafHid.axis_count(Input.get_joy_guid(d))
 	print(
 		(
-			"joystick: %s (device %d, %s); axes x / y / throttle / rudder = %s"
-			% [name, d, Input.get_joy_guid(d), str(Settings.joy_axes)]
+			"joystick: %s (device %d, %s); %s axes on the device; x / y / throttle / rudder read from Godot axes %s"
+			% [name, d, Input.get_joy_guid(d), "?" if axis_count < 0 else str(axis_count), str(Settings.joy_axes)]
 		)
 	)
 	_load_joy_map(name)

@@ -261,7 +261,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   The tower then says the real runway number (`b.rwy`); the numbers the install has no clip for (all but 03, 05,
   09, 15, 18, 21, 23, 27, 33) come from our TTS clips in `game/extra/tower_numbers/` (radio.md §1). Original:
   the missing `NumNNN` is silent. The original bases' runways all have install clips, so Original never plays ours.
-- **Additions the original does not have:** flight info line (ORIGINAL, or a short tag per switch not at its original setting — FLT, WPN, HUD:<style>, 1:1, CKPT+, PHYS+ — then the position, speed, G, throttle, fps), blackbox, language, Window (framed / full screen),
+- **Additions the original does not have:** flight info line (ORIGINAL, or a short tag per switch not at its original setting — FLT, WPN, HUD:<style>, 1:1, CKPT+, PHYS+ — then the position, speed, G, throttle, the roll trim when set, fps), blackbox, language, Window (framed / full screen),
   "F-35I replaces" (the F-35I flies from a Jet list button, docs/f35i.md), Settings file (export / import the
   preferences, front_end.gd `_settings_file`). Later: extra sounds (roadmap.md).
   - The F-35I's stations are the real F-35A's (docs/f35i.md §3.1). Its outboard wing pylons (stations 1 / 11, the
@@ -398,8 +398,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   a spring-centred 5th axis (Godot axis 4) moves a roll trim while held, 0.2 stick per second at full rocker; the
   flight model adds it to the stick in the roll command — joystick.gd `rocker`, `Aircraft::trim_roll`,
   docs/controls.md §5.2.
-- **Alt + Left / Right** (ours, always on): the same roll trim from the keyboard. Both keys are free in the original
-  table.
+  The row shows only when the joystick's HID descriptor lists a 5th axis (unknown on Windows: shown).
+- **Alt + Left / Right** (ours, always on): the same roll trim from the keyboard. Both keys
+  are free in the original table. The flight-info line shows the trim ("TRIM L 20%") and the external model's
+  ailerons show it.
 
 **Preferences → Graphics**
 - **VSYNC** (ours): a check in the empty strip left of DEFAULT, default on.

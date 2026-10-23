@@ -10,6 +10,7 @@ mod fctrl;
 mod flight;
 mod gun;
 mod heights;
+mod hid;
 mod imode;
 mod mcr;
 mod missile;

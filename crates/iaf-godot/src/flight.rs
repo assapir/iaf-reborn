@@ -704,6 +704,9 @@ impl IafFlight {
         let (sx, sy) = ac.stick();
         d.set("stick_x", sx);
         d.set("stick_y", sy);
+        // Ours: the roll trim, and the stick the roll command takes in the air (stick + trim; the ailerons show it).
+        d.set("roll_trim", ac.roll_trim());
+        d.set("roll_stick", if s.on_ground { sx } else { ac.roll_stick() });
         d.set("rudder", c.rudder);
         d.set("flaps", c.flaps);
         d.set("gear_down", c.gear_down);

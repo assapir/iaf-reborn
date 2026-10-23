@@ -474,20 +474,30 @@ the same code).
     3. Full deflection still gives ±100, the sign is kept and the curve is monotonic.
   * Effect: near the centre one point of stick travel moves the command by about a third of what Linear moves it past
     its dead zone. Stick x = 0.45 gives 21 instead of 27; full deflection is unchanged.
+  * The smaller dead zone is part of Soft centre, not a separate choice: the curve's flat start does the dead zone's
+    job (inferred). A worn stick that does not centre within 5 % drifts slightly; use Linear then.
+  * Why: the flight model turns stick y into commanded g and stick x into a share of the maximum roll rate
+    (docs/flight-model.md), so a small linear deflection already commands a lot (inferred).
 * **Ours: Devices page "Throttle rocker"** (under RUDDER; settings.cfg `[devices] rocker_trim`). It gives a spring-
   centred 5th axis the roll trim (`Joystick.rocker`, `Aircraft::trim_roll`).
   * **Off** (the default) is the original: four axes. The original has no trim.
   * **Roll trim**: while the rocker is held, the trim moves at up to 0.2 stick per second (full rocker; 5 s from
     centre to full). Released, the trim stays. A 10 % dead zone holds a wobbling rest.
+  * The row shows only with a joystick that has a 5th axis. The count comes from the device's USB HID report
+    descriptor (`IafHid.axis_count`, `iaf_formats::hid::input_axes`: the Generic Desktop X, Y, Z, Rx, Ry, Rz,
+    Slider, Dial, Wheel and the Simulation rudder / throttle / accelerator / brake inputs). macOS lists the
+    descriptor in the I/O Registry (`ioreg`), Linux in sysfs (`/sys/class/hidraw/*/device/report_descriptor`), so the
+    device is never opened. Elsewhere the count is unknown and the row shows. The log prints the count when a
+    joystick connects. The T.Flight Hotas X reports 5 (X, Y, Z, Rz, Slider).
   * The axis: Godot axis 4, or `joy_axes[4]` when settings.cfg gives a 5th number. On the T.Flight Hotas X, the mode
     button selects it: in 4-axis mode the stick twist and the rocker are both the rudder (axis 3); in 5-axis mode
-    the twist stays the rudder and the rocker is axis 4.
+    the twist stays the rudder and the rocker is axis 4. Its descriptor lists 5 axes in both modes.
   * The keys **Alt + Left / Right** trim the same way at the full rate, with or without a stick (§2 "Own keys").
+    There is no reset, as in the real jets: trim until the jet flies hands-off.
+  * The trim shows on the flight-info line (Ctrl + F12) while it is off centre, e.g. "TRIM L 20%" (20 % of full
+    stick, left wing down), and on the external model: the ailerons follow the roll command (stick + trim; flight
+    state `roll_stick`).
   * The flight model adds the trim to the stick in the airborne roll command, `p_cmd = MaxRollRate · clamp(stick +
     trim, −1, 1)`, scaled by the stick's damage factor (flight-model.md §8). It holds a heavy wing with Better physics
     "Asymmetric stores". The trim starts at 0 each flight.
-  * The smaller dead zone is part of Soft centre, not a separate choice: the curve's flat start does the dead zone's
-    job (inferred). A worn stick that does not centre within 5 % drifts slightly; use Linear then.
-  * Why: the flight model turns stick y into commanded g and stick x into a share of the maximum roll rate
-    (docs/flight-model.md), so a small linear deflection already commands a lot (inferred).
   * Events are still sent only when the integer value changes.

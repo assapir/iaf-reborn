@@ -3,6 +3,7 @@
 pub mod bytes;
 pub mod emf;
 pub mod esa;
+pub mod hid;
 pub mod ini;
 pub mod iso9660;
 pub mod lzo;

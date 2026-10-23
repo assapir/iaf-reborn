@@ -1096,8 +1096,9 @@ func _draw_prefs() -> void:
 		)
 		var soft := str(pref_work.get("stick_response", "linear")) == "soft"
 		_draw_pref_pair(at, PREF_STICK, "Stick response", ["Linear", "Soft centre"], 1 if soft else 0, true)
-		var trim := bool(pref_work.get("rocker_trim", false))
-		_draw_pref_pair(at, PREF_ROCKER, "Throttle rocker", ["Off", "Roll trim"], 1 if trim else 0, true)
+		if Joystick.has_fifth_axis():
+			var trim := bool(pref_work.get("rocker_trim", false))
+			_draw_pref_pair(at, PREF_ROCKER, "Throttle rocker", ["Off", "Roll trim"], 1 if trim else 0, true)
 		_text_block(
 			Rect2(at + PREF_DETENT.note.position, PREF_DETENT.note.size),
 			_t("Put the lever in its MIL click, then choose Set at lever."),
@@ -1930,7 +1931,7 @@ func _pref_press(q: Vector2) -> bool:
 		if PREF_STICK.off.has_point(q) or PREF_STICK.set.has_point(q):
 			pref_work["stick_response"] = "soft" if PREF_STICK.set.has_point(q) else "linear"
 			return true
-		if PREF_ROCKER.off.has_point(q) or PREF_ROCKER.set.has_point(q):
+		if Joystick.has_fifth_axis() and (PREF_ROCKER.off.has_point(q) or PREF_ROCKER.set.has_point(q)):
 			pref_work["rocker_trim"] = PREF_ROCKER.set.has_point(q)
 			return true
 	if page == "Graphics" and PREF_VSYNC.has_point(q):

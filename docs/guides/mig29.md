@@ -56,7 +56,7 @@ Set these on the Preferences screen before the flight. Every row starts at the 1
 | Graphics → MORE | Night vision (Shift+N) | Goggles | Night-vision goggles in flight: a green, brightened outside view on night missions |
 | Physics | every row | on | Section 4 lists the ones that change how the MiG-29 flies |
 | Physics | Nose dips under braking, Unbalanced stores roll the jet, Wind and turbulence, Engine spool-up per real engine | on | The brakes' pitch, the stores' roll, the tower's wind and the engine's real spool (section 4) |
-| Devices | Throttle rocker | Roll trim | A stick's spring-centred 5th axis (the throttle rocker in 5-axis mode) trims roll, to hold a heavy wing up (section 4) |
+| Devices | Throttle rocker | Roll trim | A stick's spring-centred 5th axis (the throttle rocker in 5-axis mode) trims roll, to hold a heavy wing up (section 4). The row shows only for a stick with a 5th axis |
 | Gameplay | Easy landing, Easy aiming, No blackouts / spins / stalls, No wind | off | Real landing limits, real launch rules, g-effects, spins, stalls and the mission's wind |
 
 A greyed-out imagery choice needs its data: convert it with `tools/setup-cli.sh --imagery`.
@@ -362,7 +362,7 @@ the moon, the stars and the lights on the ground.
 | 9 / 0 | Throttle − / + 5 % |
 | V / PgUp / PgDn | Whole panel ↔ none (hold V: a glance down) / slide the panel up / down |
 | Arrows | Stick |
-| Alt+Left / Right | Roll trim left / right (hold) |
+| Alt+Left / Right | Roll trim left / right (hold). Ctrl+F12 shows it (TRIM L / R %) |
 | Numpad 0 / Decimal | Rudder left / right |
 | G / F / B | Gear / flaps / wheel brakes |
 | Shift+B | Drag chute |

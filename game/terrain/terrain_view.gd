@@ -3323,6 +3323,7 @@ func _process(delta: float) -> void:
 			# The stick as the flight model took it (hydraulics / flight control damage scale it, 59f3d0).
 			for k in ["gear", "on_ground", "afterburner", "rpm", "stick_x", "stick_y"]:
 				parts_in[k] = fs[k]
+			parts_in["stick_x"] = fs.roll_stick  # ours: the ailerons show the roll trim too
 			parts_in["ground_speed"] = Vector2(fs.velocity.x, fs.velocity.z).length()  # the rolling wheels (ours)
 		aircraft.update(parts_in, delta)
 		# Wingtip vortices (FUN_004da090): while the flight model's S+0x420 is set, one trail per EndWing helper.
@@ -3348,7 +3349,7 @@ func _process(delta: float) -> void:
 	var st2: Dictionary = cockpit.state
 	hud_label.visible = Settings.show_info
 	hud_label.text = (
-		"%s%s   x %.1f km  y %.1f km  alt %.0f m%s   %d kt  %.1f g  thr %d%%%s%s%s   %d fps"
+		"%s%s   x %.1f km  y %.1f km  alt %.0f m%s   %d kt  %.1f g  thr %d%%%s%s%s%s   %d fps"
 		% [
 			_modes_text(),
 			("   mission: " + mission_name) if mission_name != "" else "",
@@ -3362,6 +3363,7 @@ func _process(delta: float) -> void:
 			"  GEAR" if gear_down else "",
 			"  FLAPS" if flaps > 0 else "",
 			"  BRAKE" if brakes else "",
+			_trim_text(),
 			Engine.get_frames_per_second()
 		]
 	)
@@ -3384,6 +3386,14 @@ func _modes_text() -> String:
 	if Settings.better.values().has(true) or _all_better:
 		t.append("PHYS+")
 	return "ORIGINAL" if t.is_empty() else " ".join(t)
+
+
+## Ours: the roll trim on the info line while it is off centre, e.g. "  TRIM L 20%".
+func _trim_text() -> String:
+	var t: float = flight.roll_trim() if flight != null else 0.0
+	if absf(t) < 0.005:
+		return ""
+	return "  TRIM %s %d%%" % ["R" if t > 0.0 else "L", roundi(absf(t) * 100.0)]
 
 
 ## Scripted stick / rudder for tests (held until changed).

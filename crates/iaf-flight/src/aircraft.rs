@@ -1054,6 +1054,11 @@ impl Aircraft {
         self.roll_trim
     }
 
+    /// The stick the airborne roll command takes: the stick plus the roll trim (scaled like the stick), within ±1.
+    pub fn roll_stick(&self) -> f32 {
+        (self.stick[0] + self.roll_trim * self.stick_k()).clamp(-1.0, 1.0)
+    }
+
     /// Moves the roll trim (ours) by a spring-centred rocker −1..1 held for `dt` s: full rocker trims
     /// `ROLL_TRIM_RATE` stick per second. A change is a control event (an aero update), like a stick move.
     pub fn trim_roll(&mut self, rocker: f32, dt: f32) {
@@ -1744,7 +1749,7 @@ impl Aircraft {
         }
         // 5b4910: β_cmd = (ru + 10·asym)·MaxBeta, asym = S+0x428 − S+0x42c (the spin tick passes 0).
         let beta_cmd = (self.rudder + 10.0 * self.stores_asym()) * p.max_beta;
-        let roll = (self.stick[0] + self.roll_trim * self.stick_k()).clamp(-1.0, 1.0);
+        let roll = self.roll_stick();
         let mut p_cmd = if ground { 0.0 } else { p.max_roll_rate * roll };
         if self.better.asymmetric_stores && !ground {
             let s = self.stores_roll(lift, mass, qs);

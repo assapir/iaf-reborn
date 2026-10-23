@@ -142,6 +142,13 @@ func run() -> void:
 	# Ours: the throttle rocker (axis 4, Devices "Throttle rocker") trims roll while held: off by default (the
 	# original's four axes); on, full rocker for 1 s = 0.2 stick, the rest inside the 10 % dead zone does nothing.
 	check(not prefs.rocker_trim, "Throttle rocker defaults to Off (the original's four axes)")
+	js.axis_count = 4
+	prefs.rocker_trim = true
+	axis(JOY_AXIS_TRIGGER_LEFT, 1.0)
+	check(not js.has_fifth_axis() and js.rocker() == 0.0, "a 4-axis stick: no Throttle rocker, no trim")
+	js.axis_count = 5
+	check(js.has_fifth_axis(), "a 5-axis stick: Throttle rocker shown")
+	prefs.rocker_trim = false
 	axis(JOY_AXIS_TRIGGER_LEFT, 1.0)
 	check(js.rocker() == 0.0, "rocker off: no trim")
 	prefs.rocker_trim = true
@@ -162,6 +169,12 @@ func run() -> void:
 		tv._read_controls(DT)
 	check(absf(tv.flight.roll_trim() - (trim1 - 0.1)) < 0.01, "Alt + Left 0.5 s: trim −0.1")
 	check(tv.stick.x == 0.0, "Alt + Left does not roll the stick (%.2f)" % tv.stick.x)
+	var fs: Dictionary = tv.flight.state()
+	check(
+		absf(fs.roll_stick - fs.roll_trim) < 1e-4 and absf(fs.roll_trim) > 0.05,
+		"airborne, stick centred: the roll command (the ailerons) is the trim (%.3f)" % fs.roll_stick
+	)
+	check(tv._trim_text() == "  TRIM R 10%", "info line: %s" % tv._trim_text())
 	set_key(KEY_LEFT, false)
 	set_key(KEY_ALT, false)
 	tv._read_controls(DT)
