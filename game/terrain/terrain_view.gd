@@ -16,6 +16,7 @@ extends Node3D
 ## Screenshot runs give up waiting for terrain after this long.
 const Bombs := preload("res://weapons/bombs.gd")
 const GpuFx := preload("res://mission/gpu_fx.gd")
+const TerrainPreload := preload("res://terrain/terrain_preload.gd")
 const SCREENSHOT_TIMEOUT_MS := 20000
 
 @onready var terrain: Node3D = $Terrain
@@ -303,7 +304,8 @@ func _ready() -> void:
 	_choose_start(args)
 	_choose_player()
 	# The ground the front end preloaded around the start (briefing / TSD time).
-	preload("res://terrain/terrain_preload.gd").hand_over(terrain)
+	TerrainPreload.hand_over(terrain)
+	_parse_ahead()  # the mission's models: those the mission screens did not parse start now, during the build
 	# The rest of the flight is built over the next five frames, so the loading screen shows first and no frame is long
 	# (~0.85 s in one otherwise). Meanwhile only the terrain and the loading screen run (_hold).
 	_hold(true)
@@ -843,53 +845,23 @@ var _box_froze := false
 ## The mission's files as _mission_player read them (read only: the model list of _parse_ahead).
 var _start_files := []
 
-## Parses the mission's models while the ground loads (Gltf.parse_ahead on worker threads; Gltf.object here once a
-## file is parsed, for up to PARSE_FINISH_MS a frame): every model _spawn_mission_objects draws and its LOD copies.
-## The flight waits for them too (a big model is ~240 ms: a hitch at the start otherwise).
+## Parses the mission's models while the ground loads (Gltf.parse_ahead on worker threads, already started on the
+## mission screens by terrain_preload.gd; Gltf.model here once a file is parsed, for up to PARSE_FINISH_MS a frame):
+## every model _spawn_mission_objects and the AI's jets draw (TerrainPreload.mission_models). The flight waits for
+## them too (a hitch at the start otherwise).
 const PARSE_FINISH_MS := 12
 
 
 func _parse_ahead() -> void:
 	if _parse_queue == null:
-		_parse_queue = _mission_model_paths()
+		_parse_queue = TerrainPreload.mission_models(_start_files, mission_bdb)
 		Gltf.parse_ahead(_parse_queue)
 	var t0 := Time.get_ticks_msec()
 	for p in _parse_queue.filter(func(q): return Gltf.parsed_ahead(q)):
 		if Time.get_ticks_msec() - t0 >= PARSE_FINISH_MS:
 			break
-		Gltf.object(p)
+		Gltf.model(p)
 		_parse_queue.erase(p)
-
-
-func _mission_model_paths() -> Array:
-	var out := {}
-	if _start_files.is_empty() or mission_bdb.is_empty():
-		return []
-	var objs := MissionRuntime.bdb_objects(mission_bdb)
-	var paths: Dictionary = Settings.load_json(Settings.assets_dir().path_join("converted/objects/objects.json")).get(
-		String(_start_files[0].data.get("bdb", "")).to_lower(), {}
-	)
-	for f in _start_files:
-		for e in f.data.get("entities", {}).get("items", []):
-			var obj: Dictionary = objs.get(int(e.get("0x2c6", -1)), {})
-			var path: String = paths.get(str(int(obj.get("0x53c", -1))), "")
-			var klass := int(obj.get("0x5aa", -1))
-			var unplaced := float(e.get("0x2e4", -1)) < 0 and float(e.get("0x2ee", -1)) < 0
-			# Not drawn by the spawn: the unused player slots, the never-drawn classes, the jets the AI flies (their
-			# own models, ai_flights.gd), the player's; a detailed model (its LODs are made on the main thread).
-			if (
-				path == ""
-				or (unplaced and String(e.get("0x2bc", "")).to_lower().begins_with("player"))
-				or klass in [0x11, 0x12, 0x1b]
-				or (klass in [0x1c, 3] and int(e.get("0x320", 0)) & 1 == 0)
-				or Gltf.detailed(path) != ""
-			):
-				continue
-			out[path] = true
-			if path.ends_with("_h.gltf"):
-				out[path.trim_suffix("_h.gltf") + "_m.gltf"] = true
-				out[path.trim_suffix("_h.gltf") + "_l.gltf"] = true
-	return out.keys()
 
 
 func _spawn_mission_objects() -> void:
@@ -996,6 +968,7 @@ func _spawn_mission_objects() -> void:
 			underlays.append([node, path, ent])
 	for u in underlays:
 		_add_base_lights(u[0], u[1], u[2])
+	Gltf.drop_ahead()  # parsed ahead and not drawn (a choice changed after the mission screens' prefetch)
 	runtime.start()
 
 

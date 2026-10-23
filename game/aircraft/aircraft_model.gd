@@ -89,7 +89,7 @@ static func create(plane: String, type := -1, on_ground := false) -> Node3D:
 	if d.is_empty():
 		return null
 	var hd: String = Gltf.detailed(String(d.model))
-	var model = Gltf.open_detailed(hd) if hd != "" else Gltf.open(dir.path_join(d.model))
+	var model = Gltf.open_detailed(hd) if hd != "" else Gltf.model(dir.path_join(d.model))
 	if model == null:
 		return null
 	var node: Node3D = Gltf.instance(model)

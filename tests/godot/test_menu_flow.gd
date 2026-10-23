@@ -45,6 +45,11 @@ func run() -> void:
 	tsd.select_flight(1)
 	var leader: Vector2 = fe._to_screen(tsd.CLIENT.position + tsd._to_client(tsd.units[tsd.flights[1].leader].pos))
 	tsd._gui_input(mouse_button(leader, true, true))
+	# Fly waits for the flight scene's threaded load and its first frame's art (terrain_preload.gd ready_to_fly).
+	for i in 3000:
+		if current_scene != null and current_scene.name == "TerrainView":
+			break
+		await process_frame
 	await frames(30)
 	check(current_scene != null and current_scene.name == "TerrainView", "double-click on the leader flies")
 	check(settings().route_override.size() == 1, "dragged route handed to the flight")
