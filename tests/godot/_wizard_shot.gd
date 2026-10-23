@@ -28,6 +28,11 @@ func run() -> void:
 	await frames(10)
 	var w: Control = current_scene
 	await shot("1_welcome")
+	# The Attributions dialog (the credits of everything setup downloads).
+	for d in w.find_children("*", "AcceptDialog", true, false):
+		d.popup_centered()
+		await shot("1b_attributions")
+		d.hide()
 	w._on_next()
 	await shot("2_requirements")
 	w._on_next()

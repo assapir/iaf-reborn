@@ -661,6 +661,14 @@ func _page_welcome() -> Control:
 			)
 			+ "Survey of Israel imagery: © Survey of Israel 2015, via [url=https://data.gov.il]data.gov.il[/url]\n"
 			+ (
+				"Scenery: © [url=https://www.openstreetmap.org/copyright]OpenStreetMap[/url] contributors (ODbL 1.0), "
+				+ "Geofabrik extract; [url=https://github.com/microsoft/GlobalMLBuildingFootprints]Microsoft Global ML "
+				+ "Building Footprints[/url] (CDLA-Permissive-2.0); GHS-BUILT-H R2023A, European Commission JRC; "
+				+ "[url=https://langnico.github.io/globalcanopyheight/]Global Canopy Height 2020[/url], Lang et al., ETH "
+				+ "Zürich ([url=https://creativecommons.org/licenses/by/4.0/]CC BY 4.0[/url]); wall materials from "
+				+ "ambientCG (CC0 1.0); downloaded by setup\n"
+			)
+			+ (
 				"Sentinel-2 imagery: contains modified Copernicus Sentinel data (2021) processed by "
 				+ "[url=https://esa-worldcover.org]ESA WorldCover[/url] consortium "
 				+ "([url=https://creativecommons.org/licenses/by/4.0/]CC BY 4.0[/url])[/ul]"
