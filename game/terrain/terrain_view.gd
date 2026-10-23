@@ -75,8 +75,10 @@ var _imode_tick := -1
 ## Hold the simulation until the terrain under the aircraft has loaded (terrain.ground_ready()),
 ## showing the loading screen.
 var waiting_for_ground := true
-## Model detail's warm-up draws (util/model_detail.gd warm_up), freed with the loading screen.
+## The warm-up draws (model detail, scenery, debris: their warm_up), freed with the loading screen.
 var _warm_up: Array = []
+## The external view's warm-up behind the loading screen (_warm_views): 0 not yet, 1 drawn this frame, 2 done.
+var _views_warmed := 0
 var _loading: CanvasLayer
 ## The frame rate while the loading screen is up (docs/rendering.md §1.5): the 3D view renders unseen behind it, and
 ## its frames hold up the GPU that compresses the terrain's colour nodes (Image.compress uses Godot's GPU BC1 encoder
@@ -356,6 +358,7 @@ func _ready() -> void:
 	effects = preload("res://mission/damage_effects.gd").new()
 	effects.ground_at = scene_ground
 	add_child(effects)
+	_warm_up.append(effects.warm_up(camera))
 	if trails != null:
 		trails.gpu = effects.gpu
 	player_damage = PlayerDamage.new()
@@ -3157,6 +3160,18 @@ static func goggles_lit(type: int, year: float) -> bool:
 	return type == PlayerAircraft.F35I or (type in [100, 110] and year >= 1996.0)
 
 
+## A cockpit start draws one frame of the external view behind the loading screen, then returns to the cockpit:
+## the jet's exterior and the chase view compile their shaders and pipelines there, not at the first F2 (≈ 4.9 s
+## on a cold shader cache; docs/rendering.md §1.6).
+func _warm_views() -> void:
+	if _views_warmed == 0 and in_cockpit:
+		in_cockpit = false
+		_views_warmed = 1
+	elif _views_warmed == 1:
+		in_cockpit = true
+		_views_warmed = 2
+
+
 func _process(delta: float) -> void:
 	views.update(delta)
 	# The units' Radar dishes and rotors (FUN_005c5460 cases 0x19, 0x1d–0x20: stepped while drawn).
@@ -3187,7 +3202,14 @@ func _process(delta: float) -> void:
 			_loading.get_child(0).progress = terrain.ground_progress()
 		if waiting_for_ground:
 			_parse_ahead()
-		if waiting_for_ground and terrain.ground_ready() and _parse_queue != null and _parse_queue.is_empty():
+			_warm_views()
+		if (
+			waiting_for_ground
+			and terrain.ground_ready()
+			and _parse_queue != null
+			and _parse_queue.is_empty()
+			and _views_warmed != 1
+		):
 			waiting_for_ground = false
 			Engine.max_fps = _fps_before
 			if _loading != null:

@@ -96,6 +96,12 @@ var _pieces: Array = []  # {node, vel, spin, age, life, rest, ground_y, large, d
 ## Model shatters: {node, materials, age, end, large: [{c, vel, delay, stop, end, burn_t, smoke_t}], smoke, burn}
 var _shards: Array = []
 var _shard_shader: Shader
+## A model shatter's vertex format: CUSTOM0..2 carry each piece's offset, velocity and spin (SHATTER_SHADER).
+const SHARD_FORMAT := (
+	Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT
+	| Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM1_SHIFT
+	| Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM2_SHIFT
+)
 var _streamers: Array = []
 var _columns: Array = []  # {pos, age, n, end}
 var _clusters: Array = []  # {age, end, subs: [{pos, delay, column, done}]}
@@ -380,6 +386,53 @@ func _flash(pos: Vector3) -> void:
 	t.tween_callback(l.queue_free)
 
 
+## The pieces' material of a shatter without the unit's model.
+static func _debris_material() -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.16, 0.15, 0.14)
+	return mat
+
+
+## The shader of a model shatter's pieces, made once.
+func _shard() -> Shader:
+	if _shard_shader == null:
+		_shard_shader = Shader.new()
+		_shard_shader.code = SHATTER_SHADER
+	return _shard_shader
+
+
+## Draws both debris materials once, too small to see, in front of `camera` until the node is freed: the flight
+## scene calls it behind its loading screen (as Gltf.ModelDetail.warm_up), so the first debris in flight compiles no
+## shader (≈ 1.3 s on a cold shader cache, docs/rendering.md §1.6). Shadows stay on: the shadow pass compiles too.
+func warm_up(camera: Camera3D) -> Node3D:
+	var n := Node3D.new()
+	n.name = "DebrisWarmUp"
+	var box := BoxMesh.new()
+	box.size = Vector3.ONE * 0.001
+	box.material = _debris_material()
+	var arr := []
+	arr.resize(Mesh.ARRAY_MAX)
+	arr[Mesh.ARRAY_VERTEX] = PackedVector3Array([Vector3.ZERO, Vector3(0.001, 0, 0), Vector3(0, 0.001, 0)])
+	arr[Mesh.ARRAY_NORMAL] = PackedVector3Array([Vector3.BACK, Vector3.BACK, Vector3.BACK])
+	arr[Mesh.ARRAY_TEX_UV] = PackedVector2Array([Vector2.ZERO, Vector2.ZERO, Vector2.ZERO])
+	var zeros := PackedFloat32Array()
+	zeros.resize(12)
+	for k in [Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_CUSTOM1, Mesh.ARRAY_CUSTOM2]:
+		arr[k] = zeros
+	var shard := ArrayMesh.new()
+	shard.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr, [], {}, SHARD_FORMAT)
+	var sm := ShaderMaterial.new()
+	sm.shader = _shard()
+	shard.surface_set_material(0, sm)
+	for m in [box, shard]:
+		var mi := MeshInstance3D.new()
+		mi.mesh = m
+		mi.position = Vector3(0.0, 0.0, -0.5)
+		n.add_child(mi)
+	camera.add_child(n)
+	return n
+
+
 ## 0x2: the model shatters (FUN_004172b0 / FUN_00417610): each piece flies at
 ## (offset + base) · k · scale, k in {0.5, 1, 1.5}, base = 5 up with 0x80; spin up to ±0.96 rad/s;
 ## g = 30; life (1 + rand%100·0.01) · duration · 0.5; start delay 0..0.3 s unless 0x40. With 0x1000
@@ -389,8 +442,7 @@ func _flash(pos: Vector3) -> void:
 ## With 0x8 large flying pieces trail smoke; with 0x20 they may flare into a small fire (1/32 per
 ## frame) and vanish.
 func _shatter(pos: Vector3, flags: int, scale: float, duration: float, ground_y: float, radius: float) -> void:
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.16, 0.15, 0.14)
+	var mat := _debris_material()
 	for i in PIECES:
 		# A polygon's position in the model: a random point within the unit's size (ours).
 		var off := Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-0.25, 0.4), _rng.randf_range(-1, 1)) * radius
@@ -454,9 +506,6 @@ func _shatter_model(model: Node3D, pos: Vector3, flags: int, scale: float, durat
 	if tris == 0:
 		return false
 	var per := ceili(float(tris) / MAX_MODEL_PIECES)
-	if _shard_shader == null:
-		_shard_shader = Shader.new()
-		_shard_shader.code = SHATTER_SHADER
 	for mi in meshes:
 		if mi.mesh == null or not _shown_in(mi, model):
 			continue
@@ -515,11 +564,6 @@ func _shatter_model(model: Node3D, pos: Vector3, flags: int, scale: float, durat
 				t += n_t
 	var node := MeshInstance3D.new()
 	var mesh := ArrayMesh.new()
-	var fmt: int = (
-		Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT
-		| Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM1_SHIFT
-		| Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM2_SHIFT
-	)
 	var mats: Array = []
 	for mat in groups:
 		var g: Dictionary = groups[mat]
@@ -531,9 +575,9 @@ func _shatter_model(model: Node3D, pos: Vector3, flags: int, scale: float, durat
 		arr[Mesh.ARRAY_CUSTOM0] = g.c0
 		arr[Mesh.ARRAY_CUSTOM1] = g.c1
 		arr[Mesh.ARRAY_CUSTOM2] = g.c2
-		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr, [], {}, fmt)
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr, [], {}, SHARD_FORMAT)
 		var sm := ShaderMaterial.new()
-		sm.shader = _shard_shader
+		sm.shader = _shard()
 		if mat is BaseMaterial3D:
 			sm.set_shader_parameter("albedo", mat.albedo_color)
 			if mat.albedo_texture != null:

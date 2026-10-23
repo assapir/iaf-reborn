@@ -330,7 +330,8 @@ Flight start and a low fast pass (600 kt at 300 m for 60 s, heading west, frozen
 | pass: worst frame | 59–124 ms | 41–92 ms | 74–90 ms |
 
 The mission start with these settings still shows one or two stalls of 0.5–2.8 s in the flight scene's first frames,
-before and after alike (not the terrain: its nodes were loaded by then). The pass's worst frames are the 3D view's
+before and after alike (not the terrain: its nodes were loaded by then). §1.6 found them: the detailed F-16D's parse
+(≈ 1.1 s) and the first frame's pipelines with TAA (0.6–0.75 s), and 5–11 s more on a cold shader cache. The pass's worst frames are the 3D view's
 own (≈ 45 fps average); the waiting nodes drop by a factor of 6.
 
 #### The mission's models on the mission screens
@@ -374,6 +375,72 @@ A Fly in the TSD's first frame is the bench's limit: the TSD's own set-up frame 
 alike, `stall … in FrontEnd / tsd`) shows as a stall `in ?`, and the flight builds everything itself. The TSD of
 missions 224 and 115 runs at ≈ 30 fps with the preload off too (its map); the preload's share is a few frames over
 16.7 ms.
+
+### 1.6 Shader compiling
+
+Godot turns each shader into GPU code in two steps: the shader source to SPIR-V (per variant group), then a pipeline
+(the shader with its draw state) by the driver. Both are cached in the game's user folder, and the driver keeps its own
+cache too:
+
+| cache | where (Linux) | holds |
+|---|---|---|
+| Godot's shader cache | `~/.local/share/godot/app_userdata/iaf-reborn/shader_cache` (`user://`; tests with `IAF_DEFAULT_SETTINGS` use the same folder) | the SPIR-V of every shader, one file per source + defines hash and variant group |
+| Godot's pipeline cache | `…/iaf-reborn/vulkan/pipelines.forward_plus.<GPU>.cache` | Vulkan's pipeline cache, saved at exit and every few MB |
+| Mesa's cache | `~/.cache/mesa_shader_cache_db` | the Intel driver's compiled shaders |
+
+Both of Godot's caches are kept between runs: a second run has no shader cache miss (`--verbose` prints each miss).
+On the Mac, Godot keeps the same `shader_cache` folder (in `~/Library/Application Support/Godot/app_userdata/`), and
+macOS keeps the compiled Metal pipelines in its own per-app cache (inferred; not measured on the Mac).
+
+Our shaders hit the cache every run. The code the game builds at run time is fixed text: the night lights' glow
+(`night_lights.gd`), model detail's three cull modes (`model_detail.gd`), the particles (`gpu_fx.gd`), the cloud
+layer and the debris (`damage_effects.gd`). The options that switch shader paths are global uniforms
+(`terrain_detail`, `terrain_water`, `ground_tex`, `terrain_airbases`), so switching them compiles nothing.
+
+What compiles when, measured 2026-10-23 on the Iris Xe laptop (2560 × 1440, X11 window, vsync off; mission 311, Fly
+in the TSD's first frame; `tests/godot/_preload_bench.gd`, which also counts Godot's pipeline compiles per frame).
+Cold: Godot's two caches deleted and Mesa's off (`MESA_SHADER_CACHE_DISABLE=true`), as on a first run or after a
+Godot or driver update. Warm: the next run. "Yours": the Mac list (TAA, upscaling Quality, Atmospheric sky, Detailed
+night lights / water / particles / airbases / models, Terrain close up, Better cockpit, Real HUD, both ambientCG
+options, Night vision).
+
+| | defaults, cold | defaults, warm | yours, cold | yours, warm |
+|---|---|---|---|---|
+| launch to the main menu | 2.8 s | 1.4 s | 2.7–2.8 s | 1.4–1.5 s |
+| Fly to the first flying frame | 5.4 s | 2.0–2.1 s | 14.5–15.0 s | 3.9–4.3 s |
+| longest frames behind the loading screen | 2.9–3.3 s | 0.96 s | 6.4 s, 4.6–5.0 s | 1.2 s |
+| pipelines compiled while drawing (these stall) | 0 | 0 | 9 | 9 |
+
+- **At launch** Godot's Forward+ renderer compiles every built-in effect, used or not: SDFGI, VoxelGI, screen-space
+  reflections, SSAO, SSIL, volumetric fog, depth of field, subsurface scattering, SMAA, besides the ones we use. Cold
+  this is ≈ 1.4 s of the launch; warm they load from the cache. Godot 4.7 has no project setting that skips them, and
+  none of them is switched on in our environments, so `project.godot` has nothing to turn off.
+- **At the flight's start** each material's shader compiles (16 with the defaults; with TAA each also in a second group
+  for the motion vectors: 124 misses in all). With the defaults Godot compiles every pipeline when the mesh enters the
+  scene, in the background. With TAA it compiles 9 of them while drawing the first frames: 6.4 s and 4.6 s frames
+  cold, ≈ 0.4 s warm (inferred from the same frame without TAA: 0.19 s against 0.6–0.75 s).
+- **In flight**, things drawn for the first time compiled there. Two are now drawn behind the loading screen:
+  - the external view: a cockpit start draws one frame from the chase camera, then returns (`terrain_view.gd`
+    `_warm_views`), so the jet's exterior and the chase view's pipelines compile there;
+  - the debris: both debris materials drawn once, too small to see, in front of the camera (`damage_effects.gd`
+    `warm_up`, as model detail's).
+
+The first time each shows in flight, yours (worst frame within 2 s; `PB_EVENTS=1`):
+
+| | cold, before | cold, after | warm, before | warm, after |
+|---|---|---|---|---|
+| the first external view (F2) | 4.9 s | 8 ms | 18–25 ms | 8 ms |
+| the first debris | 1.27 s (defaults 0.88 s) | 70 ms (defaults 26 ms) | 79 ms (with the fireball) | 69 ms |
+| the first fireball and flash | 108–117 ms | 108 ms | 11 ms | 11 ms |
+| the goggles on | 26 ms | 27 ms | 12–25 ms | 12 ms |
+
+The cold start with your settings takes the moved compiles behind the loading screen: 22.9 s (one run) against
+14.5–15.0 s; the warm start stays at 4.2 s, and the defaults' at 5.4 s cold and 2.1 s warm.
+
+Left warm with your settings, Fly after 6 s on the TSD: the first flying frames' 0.75 s (the TAA pipelines above) and
+1.05–1.17 s for the detailed F-16D. That one is no shader: `Gltf.open_detailed` parses the model and makes its LODs
+on the main thread, and the mission screens' preload leaves detailed models out (`terrain_preload.gd`). Without
+Models Detailed the frame is gone (bench runs with each option off in turn).
 
 ## 2. Cloud layer (Graphics TEXTURED SKY, docs/front-end.md §12.4)
 
