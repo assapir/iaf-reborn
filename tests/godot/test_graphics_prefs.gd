@@ -230,6 +230,15 @@ func run() -> void:
 	check(
 		tv.clouds._mat.get_shader_parameter("alpha_range") == Vector2(0.3, 0.9), "atmospheric sky: the clouds separated"
 	)
+	var attrs: CameraAttributesPractical = vp.find_world_3d().camera_attributes
+	check(
+		(
+			env.ambient_light_sky_contribution == 1.0
+			and attrs.auto_exposure_enabled
+			and is_equal_approx(attrs.auto_exposure_max_sensitivity / attrs.auto_exposure_min_sensitivity, 1.5625)
+		),
+		"atmospheric sky: the ambient from the sky alone, auto-exposure within 1.25x either way"
+	)
 	await frames(3)
 	var cam: Vector3 = vp.get_camera_3d().global_position
 	check(
@@ -295,6 +304,8 @@ func run() -> void:
 			and RO.terrain_detail == 0.0
 			and env.sky == sky0
 			and is_equal_approx(env.fog_aerial_perspective, 0.6)
+			and is_equal_approx(env.ambient_light_sky_contribution, 0.6)
+			and not attrs.auto_exposure_enabled
 			and tv.clouds._mat.get_shader_parameter("alpha_range") == Vector2(0.0, 1.0)
 		),
 		"render options off again: everything as before"

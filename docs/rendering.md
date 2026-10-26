@@ -24,7 +24,7 @@ TAA = temporal anti-aliasing.
 |---|---|---|
 | Anti-aliasing | MSAA 4x / + FXAA / TAA | MSAA 4x: viewport `msaa_3d` 4× (the project's setting since the start). + FXAA: also `screen_space_aa` FXAA, which softens the shader / texture edges that MSAA misses. TAA: `use_taa` in place of MSAA; it resolves sub-pixel shimmer over time (thin runway lines, distant wires), is a little softer and may ghost in fast rolls |
 | Terrain close up | Original / Detailed | 16× anisotropic filtering (default 4×) for the grazing view of the ground, and in `terrain.gdshader` detail that follows the imagery, with a weight k fading from 1 at 300 m to 0 at 1.5 km (§1.1) |
-| Sky | Original / Atmospheric | Original: our gradient sky (ProceduralSkyMaterial) with the fixed fog colour. Atmospheric: `atmosphere.gdshader`, a clear-day sky computed from the sun's direction and the camera's altitude. The fog takes its colour from the sky (`fog_aerial_perspective` 1, `fog_sun_scatter` 0.1) and keeps its density (the original's fog distances). The cloud layer shows separate clouds (§1.2). Glow / bloom is off (it cost 3 ms) |
+| Sky | Original / Atmospheric | Original: our gradient sky (ProceduralSkyMaterial) with the fixed fog colour. Atmospheric (by day; at night the Original sky): `atmosphere.gdshader`, a clear-day sky computed from the sun's direction and the camera's altitude. The fog takes its colour from the sky (`fog_aerial_perspective` 1, `fog_sun_scatter` 0.1) and keeps its density (the original's fog distances). The ambient light is that sky's, and a bounded auto-exposure adapts the 3D view by at most 1.25× either way (§1.2). The cloud layer shows separate clouds (§1.2). Glow / bloom is off (it cost 3 ms) |
 | Upscaling | Native / Quality / Balanced | the 3D scene's render scale: Native 1.0; Quality 0.77; Balanced 0.67 of the window. A spatial upscaler scales it up: MetalFX spatial on Metal, FSR 1 on other drivers (`render_options.gd upscale_mode()`). The Anti-aliasing row still applies. The 2D cockpit, HUD and MFDs are canvas items, drawn after the upscale at the window's resolution. Godot lowers the texture mip bias by log2(scale). Saves 0.6 ms (Quality) / 1.4 ms (Balanced) at 4K today, 4.6 / 6.3 ms with SSAO + SSIL; Balanced breaks one-pixel 3D lines into dots (docs/graphics-research.md §3.10) |
 | Night lights | Original / Detailed | Original: the original's light points (§4). Detailed: glowing lights, the home airbases lit at night, the jets' navigation lights and strobe, stars, a moon and moonlight (§5) |
 | Night vision (Shift+N) | Off / Goggles | Goggles: Shift+N in flight puts the night-vision goggles on and off: the 3D view turns into a green image-intensified picture, the cockpit stays as it is (§8) |
@@ -68,7 +68,8 @@ Design points:
 
 ### 1.2 Atmospheric sky
 
-The Atmospheric sky computes the radiance L of each view direction with single scattering:
+The Atmospheric sky computes the radiance L of each view direction with single scattering, plus a multiple-scattering
+term (below):
 
 `L = E · sun · [P_R(μ)·(1 − e^(−τ_R·m)) + P_M(μ)·(1 − e^(−τ_M·m))]`
 
@@ -77,7 +78,35 @@ The Atmospheric sky computes the radiance L of each view direction with single s
 - τ_R / τ_M are the optical depths of the air (per channel) and of the haze. They thin with altitude (scale heights
   8 km / 1.5 km). The shader receives the altitude in 250 m steps, so Godot re-filters the sky's radiance only when the
   step changes, not every frame.
-- The sunlight is slightly reddened by its air mass.
+- Multiple scattering adds an isotropic term (after Hillaire 2020's[^hillaire] isotropic multiple scattering,
+  fitted, no look-up table): `E · sun · (1 − e^(−(τ_R+τ_M)·2)) · (1 − e^(−τ_R·m)) · clamp(0.25 + sin h, 0, 1)`,
+  h the sun's elevation. It fills the band 90° from the sun that the Rayleigh phase leaves dark, and with a low
+  sun it takes the reddened sun's colour.
+- The sunlight is reddened by its air mass beyond the zenith's, with its own optical depths (0.08, 0.22, 0.4),
+  closer to λ⁻⁴ than τ_R: through τ_R's strong blue a low sun turned the sky olive. Light scattered high up
+  (looking up) crossed less air: the path is scaled by 1 − 0.6·√(view elevation's sine), and by
+  0.2 + 0.4·(1 + μ), so the sky away from a low sun stays blue-grey (fitted for ozone's absorption of the orange
+  light), capped at 6 air masses (beyond, the haze toward the sun turned a flat salmon). The sky keeps the
+  reddening's hue but only part of its dimming (the red channel's transmittance to the power 0.3), so the horizon
+  toward a low sun stays bright: white at noon, golden to peach at 19:30 toward the sun, blue-grey away from it.
+
+The sky also lights the scene:
+
+- **Ambient light**: the environment's ambient comes from the sky alone (`ambient_light_sky_contribution` 1,
+  energy `SKY_AMBIENT` 0.6 in `render_options.gd`) in place of the time of day's ambient factor (§4). Models and
+  terrain take the sky's colour: a blue fill by day, warm with a low sun. The noon value equals the Original
+  sky's (factor 0.6 × sky). At night the Original sky and its rules come back (§4, §5), so night is as before.
+- **Auto-exposure**: Godot's auto-exposure on the WorldEnvironment's CameraAttributesPractical. Godot measures the
+  3D scene's mean luminance (the mean of each pixel's brightest channel, ≈ 1 by day, the sky's blue) and scales
+  the exposure by `EXPOSURE_REF / luminance` (1.0), the luminance clamped so the factor stays within 1/1.25 …
+  1.25 (min / max sensitivity 640 / 1000 ISO). It adapts at Godot's default speed (≈ 2 s), so a glance from the
+  sky to the ground or a dark panel eases in. A low sun's dimmer scene gets +25 % at most: dusk stays dusk. It is
+  off with the Original sky and at night. The 2D cockpit art, the HUD and the MFDs are canvas items drawn after the
+  3D view's tonemapping: their brightness never changes. Night vision (§8) has its own gain on the tonemapped
+  picture.
+
+**Shots**: `tests/godot/_sky_shot.gd` (usage in its header) captures the same views at chosen hours and altitudes,
+from the cockpit and outside, with a fixed cloud texture, to compare the sky before and after a change.
 
 Tuning:
 
@@ -85,8 +114,15 @@ Tuning:
   cyan zenith and a white horizon 7× brighter, which the AgX tonemapper turns grey.
 - The tuned values give a deep blue zenith (≈ the gradient sky's top), a pale horizon 2–3× brighter, and a darker
   zenith at 9000 m.
-- Below the horizon the colour is the horizon's, and the fog over the ground takes it (a dark "ground" colour there
-  makes a brown-grey haze).
+- Below the horizon the shader keeps the horizon's air path in the same azimuth, and the fog over the ground takes
+  that colour. Three things change there:
+  - the scattering angle is the true view's, so the haze glows warm only toward the sun (the phase functions'
+    forward lobe) and stays blue-grey elsewhere;
+  - the optical depths fade to sea level's by 6° down: looking down from altitude, the view goes into the lower
+    air and its haze (else the haze vanishes at 5000 m, whose own horizon has little of it);
+  - the colour darkens to 0.55 by 30° down (the ground's shade, not lit air), except in the forward glow. This is
+    the light from below for the ambient, and the fog of near ground, which Godot takes from a blurred radiance
+    level. A uniform horizon colour there gave a brown filter over the whole view at sunset.
 - The sun's disc (0.53°) has a crisp edge: the shader takes its angle from the chord, because `cos` near 1 loses the
   disc in float precision. Around it is a narrow glare (e-folding 1.5°).
 
@@ -504,7 +540,12 @@ back to back:
 - Terrain close up ≈ +0.5–1.5 ms near the ground (16× anisotropic filtering included; one sample over 1.5 ms), and
   ≤ 0.6 ms at altitude.
 - Atmospheric sky ≈ +0.1–0.4 ms. The sky shader runs per background pixel, and Godot re-filters its radiance only
-  when the altitude step changes.
+  when the altitude step changes. These numbers predate multiple scattering, the sky's ambient and the
+  auto-exposure (2026-10-26, not yet benched): the multiple-scattering term is a few ALU per sky pixel and per
+  radiance texel (≈ 0); the ambient from the sky reads the same radiance as before (0); the auto-exposure adds
+  Godot's luminance reduction, a few compute passes over the 3D buffer each frame (expected ≈ 0.1–0.3 ms at
+  2560 × 1440 on the Iris Xe). Bench it with `_flight_bench.gd BENCH_BEST=1` against a run with Sky = Original
+  (its luminance pass off).
 - The bench writes screenshots of each pose. `BENCH_SEED=3` selects the broken-cloud texture Cloud256_0 in place of
   the overcast Cloud256_5.
 
@@ -536,7 +577,7 @@ starts at night; missions 112, 237 and 515 start at 05:xx, which is dawn.
 
 - Once a sim second the port sets:
   - the sun node's direction and colour;
-  - the ambient factor (Godot ambient energy = factor / 0.6);
+  - the ambient factor (Godot ambient energy = factor / 0.6; with the Atmospheric sky the sky's own light, §1.2);
   - the gradient sky's top colour;
   - SHADOWS, only 08:00–17:00;
   - the cloud layer's tint: (20, 20, 60) at night, white by day (its day value is not traced);
@@ -1029,3 +1070,4 @@ Wayland window covered by other windows is drawn once a second.
 [^acg-m016]: ambientCG, Metal 016, https://ambientcg.com/a/Metal016
 [^acg-c029]: ambientCG, Concrete 029, https://ambientcg.com/a/Concrete029
 [^acg-r004]: ambientCG, Rubber 004, https://ambientcg.com/a/Rubber004
+[^hillaire]: Sébastien Hillaire, "A Scalable and Production Ready Sky and Atmosphere Rendering Technique", Computer Graphics Forum 39 (4), EGSR 2020, https://sebh.github.io/publications/egsr2020.pdf

@@ -46,6 +46,14 @@ static var _surf_origin := Vector2(INF, INF)  # x0, z0 of the texture shown
 
 ## Atmospheric sky: the camera altitude given to the sky shader, in steps of SKY_ALT_STEP m.
 const SKY_ALT_STEP := 250.0
+## Atmospheric sky: the ambient light's energy over the sky's radiance (the time of day's ambient factor is not
+## used: the sky itself dims and reddens as the sun goes down).
+const SKY_AMBIENT := 0.6
+## Atmospheric sky's auto-exposure: the 3D scene's mean luminance (Godot's: the mean of each pixel's brightest
+## channel; ≈ 1 by day, the blue sky's) that keeps the exposure at 1, and the factor either way it may adapt by (to
+## 1 / RANGE … RANGE). Godot's default speed (0.5: about 2 s) eases a glance from the sky to the ground in.
+const EXPOSURE_REF := 1.0
+const EXPOSURE_RANGE := 1.25
 
 
 ## Applies the options to the flight's viewport and its WorldEnvironment.
@@ -78,7 +86,7 @@ static func apply(vp: Viewport, env: Environment) -> void:
 		RenderingServer.global_shader_parameter_set("terrain_surface", null)
 		_surf_tex = null
 		_surf_img = null
-	_apply_sky(env, Settings.sky == "atmospheric")
+	_apply_sky(env, Settings.sky == "atmospheric", vp.find_world_3d().camera_attributes)
 
 
 ## The spatial upscaler of the running driver: MetalFX on Metal, FSR 1 on the others.
@@ -88,17 +96,24 @@ static func upscale_mode() -> Viewport.Scaling3DMode:
 	return Viewport.SCALING_3D_MODE_FSR
 
 
-## "Atmospheric": a physically based sky (terrain/atmosphere.gdshader: Rayleigh / Mie scattering with the sun's
-## disc and glare) and the distance haze taken from it (aerial perspective, sun scatter); the fog density, i.e.
+## "Atmospheric": a physically based sky (terrain/atmosphere.gdshader: Rayleigh / Mie scattering with multiple
+## scattering, the sun's disc and glare), the ambient light from that sky alone (SKY_AMBIENT), the distance haze
+## taken from it (aerial perspective, sun scatter) and a bounded auto-exposure (EXPOSURE_*); the fog density, i.e.
 ## the fog distances, stays. No glow (bloom): 3 ms on an Iris Xe for little. Off: the gradient sky as before.
-static func _apply_sky(env: Environment, on: bool) -> void:
-	var keys := ["sky", "fog_aerial_perspective", "fog_sun_scatter"]
+static func _apply_sky(env: Environment, on: bool, attrs: CameraAttributes) -> void:
+	var keys := ["sky", "fog_aerial_perspective", "fog_sun_scatter", "ambient_light_sky_contribution"]
 	if not env.has_meta("original_sky"):
 		var o := {}
 		for k in keys:
 			o[k] = env.get(k)
 		env.set_meta("original_sky", o)
 	var orig: Dictionary = env.get_meta("original_sky")
+	if attrs != null:
+		attrs.auto_exposure_enabled = on
+		attrs.auto_exposure_scale = EXPOSURE_REF
+		# Sensitivity (ISO) = luminance / 0.00125 (Godot's conversion at its ISO 100 exposure).
+		attrs.set("auto_exposure_min_sensitivity", EXPOSURE_REF / EXPOSURE_RANGE / 0.00125)
+		attrs.set("auto_exposure_max_sensitivity", EXPOSURE_REF * EXPOSURE_RANGE / 0.00125)
 	if not on:
 		for k in keys:
 			env.set(k, orig[k])
@@ -112,6 +127,7 @@ static func _apply_sky(env: Environment, on: bool) -> void:
 	env.sky = sky
 	env.fog_aerial_perspective = 1.0
 	env.fog_sun_scatter = 0.1
+	env.ambient_light_sky_contribution = 1.0
 
 
 ## Per frame with the camera's position: the atmospheric sky's altitude and the surface types for the close up

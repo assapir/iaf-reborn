@@ -477,15 +477,16 @@ func _update_time_of_day(cam: Camera3D) -> void:
 			DirectionalLight3D.SKY_MODE_LIGHT_ONLY if _tod_sun.night else DirectionalLight3D.SKY_MODE_LIGHT_AND_SKY
 		)
 		sun.shadow_enabled = Settings.shadows and _tod_sun.shadows
-		env.ambient_light_energy = float(_tod_sun.ambient) / 0.6
+		var atmo: bool = Settings.sky == "atmospheric" and not _tod_sun.night
+		# Atmospheric: the ambient from that sky alone (render_options.gd); else the original's factor.
+		env.ambient_light_energy = RenderOptions.SKY_AMBIENT if atmo else float(_tod_sun.ambient) / 0.6
 		if NightLights.detailed():
 			_night_detailed(sun, env, _tod_sun.night)
 		if clouds != null:
 			clouds.set_tint(TimeOfDay.NIGHT_LIGHT if _tod_sun.night else Color.WHITE)
-		var atmo: bool = Settings.sky == "atmospheric" and not _tod_sun.night
 		if atmo != _tod_atmo:
 			_tod_atmo = atmo
-			RenderOptions._apply_sky(env, atmo)
+			RenderOptions._apply_sky(env, atmo, get_world_3d().camera_attributes)
 		var mat = env.sky.sky_material if env.sky != null else null
 		if mat is ProceduralSkyMaterial and not _tod_colors.is_empty():
 			mat.sky_top_color = _tod_colors.sky
