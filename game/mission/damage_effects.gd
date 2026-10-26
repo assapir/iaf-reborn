@@ -430,6 +430,8 @@ func warm_up(camera: Camera3D) -> Node3D:
 		mi.position = Vector3(0.0, 0.0, -0.5)
 		n.add_child(mi)
 	camera.add_child(n)
+	if gpu != null:
+		gpu.warm_up(n)
 	return n
 
 

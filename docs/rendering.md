@@ -655,10 +655,55 @@ compression). The noise texture is generated at run time with FastNoiseLite.
 |---|---|
 | Smoke puff (0x100, damage smoke, columns, streamers, smoking pieces, the flare's smoke) | one smoke particle with the puff's position, velocity, life, widths, grey and delay |
 | Fireball (0x10, 1.2 s, 256 m sprite) and small fire (0x10000000, burning pieces, cluster bomblets) | a burst inside the same spot and life, every particle ending by the fire's end: 22 rolling fire balls that expand fast and slow down (drag), 28 sparks, 10 dark smoke balls that rise from 0.4 of the fire's life. Small fires get half the particles. The lingering smoke comes from the original's own puffs and columns |
-| Missile / rocket trail (trails.gd, 3.5 s) | white smoke every 1.5 m along the path (at most 16 per frame), 2.4 m wide at the head growing to 12–18 m, with the trail's life, and a 0.08 s motor flame at the head. The motor glow sprite (missFLR) stays. The trail bookkeeping (owners, 99 trails, 256 points) stays the original's |
+| Missile / rocket trail (trails.gd, 3.5 s) and its motor glow (missFLR) | a continuous smoke trail and a motor flame while the motor burns (below, `missile_fx.gd`); the trail bookkeeping (owners, 99 trails, 256 points) stays the original's |
 | Wingtip vortices | the original ribbons |
 | Afterburner flame | the original cones, plus the heat haze below |
 | Debris, shatter pieces, the flash light, chaff | the original's |
+
+**Missile smoke and flame** (`missile_fx.gd`, fed by `trails.gd` with the head of each missile or rocket trail):
+
+- **Smoke**: one ribbon per trail through the head's positions, a point every 1/30 s (the newest follows the head).
+  The vertex shader turns it to face the camera around its length and moves each point by its age: 0.6 m wide at the
+  nozzle, ≈ 10 m after 2 s, ≈ 14 m after 5 s, ≈ 18 m at 10 s and ≈ 23 m at 20 s (as wide as the original ribbon,
+  for spotting), swelling and narrowing every ≈ 60 m;
+  it meanders slowly, rises a little and drifts with the wind. The fragment shader shades it as a tube: white smoke
+  scatters light many times, so its shadow side keeps at least 55 % of the sunlit side's light, plus the gradient
+  sky's colours (set by the time of day, §4); the sun's colour warms the sun side, its rim, and the smoke seen
+  toward the sun. While the sun is up its colour lights the smoke at full strength (its brightest channel at least
+  0.9): the time of day dims the light colour toward dusk for the ground, but sunlit smoke still glows. Its
+  brightness never drops below 0.95 (the hue kept), as bright as the original's flat white trail, so a launch is as
+  easy to spot at dusk. The scene's
+  fog covers it by distance. Two noise octaves, in metres, eat its edges and vary its density, more as it ages; the
+  core stays dense. It fades out from 10 s to 20 s and stays after its missile hits or is gone. It is at least 3 px
+  wide on screen (thinner smoke gets a lower alpha instead), so a far trail stays a clear band, and a trail only a
+  few pixels wide keeps a plain soft profile. Seen along its length it is a plain soft cone (no swelling or noise,
+  which would stack into rings), and its first 10 m fade in.
+- **Flame**: at the nozzle (MissileFlareDistance, 1 m, ahead of the trail head) a 3.2 m plume along the flight path,
+  white-hot (HDR, so AgX turns it white) to orange at the tip, flickering; a round glow at least 12 px wide, strongest
+  seen from behind; and an orange light (25 m, no shadows) on the first 4 flames. The flame replaces the missFLR
+  sprite.
+- **Burnout**: the smoke and flame stop when the motor burns out and the weapon coasts on clean; its flight is the
+  original's either way. The burn is the real motor's, by weapon (`missile_fx.gd MOTOR_BURN`, table below); a
+  weapon without a sourced figure uses its motion's burn (`time_left`, docs/weapons.md §5.3). Rockets (560) burn
+  1.07 s, the Hydra 70's Mk 66 motor of the LAU-61 pod[^hydra].
+- **Caps**: 24 ribbons (the oldest goes first), 640 points each (≈ 30 000 vertices in all), 8 flames.
+- **No stutter**: both materials are drawn once behind the loading screen (`damage_effects.gd warm_up`), so the first
+  missile compiles nothing.
+
+Motor burn by weapon (boost + sustain). Where two figures or a range are given, the value used is their sum or middle
+(inferred).
+
+| Weapon (bdb name) | Burn used | Source |
+|---|---|---|
+| R-60 (AA-8) | 4 s | "3–5 s" of motor time[^r60] |
+| S-75 (SA2) | 26.5 s | booster about 4–5 s, main engine about 22 s[^s75fx] |
+| S-125 (SA3) | 23 s | booster 2–4 s, sustainer up to 20 s[^s125] |
+| 9K33 Osa (SA8) | 17 s | booster 2 s, sustainer 15 s[^osa] |
+| Hydra 70 rockets (560) | 1.07 s | Mk 66 motor[^hydra] |
+
+Open: no citable burn time was found for the AIM-9D / L / M, Python 3 / 4, Shafrir 2, AA-2, AA-6, AA-11, AIM-7B / F / M,
+AMRAAM, HARM, Shrike and Maverick (only game wikis, forums or simulators give figures). These burn their motion's
+burn, which is longer than the real motor's (AIM-9L 16 s, docs/weapons.md §1.2; AMRAAM 35 s, §11.2).
 
 **Contrails** (new content): an aircraft above 9000 m (the Schmidt–Appleman limit of an atmosphere 10 °C warmer than
 the standard one) leaves white condensation from each engine nozzle: a particle every 3 m, 1.2 m growing to 9 m,
@@ -679,12 +724,19 @@ top. The screen copy holds the opaque scene, so the haze blends in only as far a
 | The same in mission 221 | −0.04 ms | +2.84 ms (quartiles +2.42 / +3.12) |
 
 That is ≈ 0.13–0.15 ms per Mpx under this heavy burst: ≈ 0.3 ms at 1920 × 1080 and ≈ 1.2 ms at 3840 × 2160. The
-smoke's overdraw sets the cost; the trail spacing (1.5 m) and widths are the knobs.
+smoke's overdraw sets the cost; the trail spacing (1.5 m) and widths are the knobs. These measurements predate the
+missile smoke ribbons (not measured yet).
+
+The missile smoke's cost (inferred, not measured): CPU, one `ArrayMesh` rebuild per burning missile per frame (up to
+640 points); GPU, the ribbons' alpha-blended overdraw, which is far smaller than the old puffs' (one layer, a few
+metres wide), and up to 4 small omni lights. To measure it: `tests/godot/_fx_bench.gd` (its two missile trails) on
+the Iris Xe at 2560 × 1440, Particle effects Original against Detailed.
 
 **Shots** (local, `assets/converted/research/fx/`, `tests/godot/_fx_shot.gd`, Original then Detailed side by side in
 `cmp_*.png`): `bomb_*` (a bomb's hit), `vehicle_*` (a ground vehicle destroyed), `hit_*` (a missile's hit), `air_*`
 (an aircraft destroyed in the air), `trail_2.5` (a missile trail), `haze` (the engines in afterburner, close up, seen
-from behind through the haze).
+from behind through the haze). The missile smoke and flame: `tests/godot/_missile_fx_shot.gd` (a launch from
+beside, from behind, mid-flight, and the trail 4 s after the hit; any time of day; before / after).
 
 ## 7. Airbases, Detailed (built: game/terrain/airbases.gd, terrain.gdshader)
 
@@ -1029,3 +1081,8 @@ Wayland window covered by other windows is drawn once a second.
 [^acg-m016]: ambientCG, Metal 016, https://ambientcg.com/a/Metal016
 [^acg-c029]: ambientCG, Concrete 029, https://ambientcg.com/a/Concrete029
 [^acg-r004]: ambientCG, Rubber 004, https://ambientcg.com/a/Rubber004
+[^hydra]: General Dynamics OTS, "Hydra-70 Rocket System" data sheet (Mk 66 motor, time of burning 1.07 s at 77 °F), https://www.gd-ots.com/wp-content/uploads/2021/02/HYDRA-70_202010.pdf
+[^r60]: Wikipedia (Russian), "Р-60" ("Время работы двигателя — 3-5 секунд"), https://ru.wikipedia.org/wiki/Р-60
+[^s75fx]: Wikipedia, "S-75 Dvina" ("The booster fires for about 4–5 seconds and the main engine for about 22 seconds"), https://en.wikipedia.org/wiki/S-75_Dvina
+[^s125]: Military Russia (rbase), "ЗРК С-125" (starting booster 2–4 s, sustainer up to 20 s), http://rbase.new-factoria.ru/missile/wobb/c125/c125.shtml
+[^osa]: Wikipedia, "9K33 Osa" (booster 2 s, sustainer 15 s), https://en.wikipedia.org/wiki/9K33_Osa

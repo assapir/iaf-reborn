@@ -363,8 +363,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 - **Particle effects** (ours, docs/rendering.md §6). Rendering only; the default is Original (the soft billboards and the
   trail ribbons).
   - Detailed: explosions, smoke and missile trails are GPU particles. Each original spawn keeps its time, place,
-    speed, width and life; a fireball becomes rolling fire, sparks and dark smoke within the same spot and life, and a
-    missile trail becomes a continuous white smoke trail.
+    speed, width and life; a fireball becomes rolling fire, sparks and dark smoke within the same spot and life.
+  - Detailed: a missile or rocket trail becomes one continuous smoke trail that widens, drifts and fades over 20 s
+    (the original's lasts 3.5 s), with a white-hot motor flame and a small light in place of the glow sprite. Both
+    stop at the real motor's burnout (the original draws them for the whole flight); the flight itself is unchanged.
   - New content with Detailed: contrails above 9000 m and a heat haze behind each engine.
 - **Airbases** (ours, docs/rendering.md §7). Rendering only; the default is Original (the 1998 imagery's painted
   runways).

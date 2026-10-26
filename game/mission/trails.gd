@@ -29,7 +29,8 @@ var _mesh: ImmediateMesh
 var _glows: MultiMeshInstance3D
 var _glow_list: Array = []
 var _rng := RandomNumberGenerator.new()
-## Detailed effects (gpu_fx.gd, set by the host): missile trails as GPU smoke; null = the original ribbons.
+## Detailed effects (gpu_fx.gd, set by the host): missile trails as smoke ribbons with a motor flame (missile_fx.gd);
+## null = the original ribbons and glow.
 var gpu: Node3D
 
 
@@ -90,7 +91,7 @@ func emit(key, pos: Vector3, kind: Dictionary) -> void:
 		tr = {"kind": kind, "pts": [], "added": false, "idle": 0.0}
 		_trails.append(tr)
 	if gpu != null and kind.glow:  # _gpu_drawn
-		gpu.trail(pos, tr.pts[-1][0] if not tr.pts.is_empty() else null, kind.life, kind.size)
+		gpu.trail(key, pos)
 	tr.pts.append([pos, 0.0])
 	tr.added = true
 	tr.idle = 0.0
@@ -141,8 +142,9 @@ func _draw() -> void:
 			_draw_trail(tr)
 		_mesh.surface_end()
 	var mm := _glows.multimesh
-	mm.instance_count = _glow_list.size()
-	for i in _glow_list.size():
+	# Detailed effects draw their own motor flame (missile_fx.gd).
+	mm.instance_count = _glow_list.size() if gpu == null else 0
+	for i in mm.instance_count:
 		var s: float = (0.85 + (_rng.randi() % 31) * 0.01) * 1.35 * MISSILE.size
 		var w: float = 0.2 * s * GLOW_TEX_W
 		mm.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3(w, w, w)), _glow_list[i]))
