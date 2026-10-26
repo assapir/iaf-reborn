@@ -330,7 +330,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 - **Models** (ours, [aircraft-models.md](aircraft-models.md)). Visual only; the default is Original.
   - Original: the 1998 aircraft models.
   - Detailed: our F-16D (built from the FlightGear F-16, GPL) for every F-16: the player's, the AI's, parked ones and
-    the Reference viewer.
+    the Reference viewer; and the FlightGear F-16's stores in place of 16 original stores on every jet, on the pylons
+    and in flight (aircraft-models.md §5). The laser bombs are 41–47 % longer than the original's (the real
+    proportions); the other stores have the original's length and axis.
   - Stores, gun, wingtips, eye and wheel height come from the original's helpers. The detailed model brings its own
     hinge lines, its afterburner position at its nozzle's exit, and closed gear doors shown while the gear is up.
 - **Rolling wheels** (ours, Graphics → MORE; [part-animation.md](part-animation.md) §2.2). Visual only; the default

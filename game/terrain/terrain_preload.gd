@@ -130,7 +130,8 @@ static func prefetch_flight(id: int, flight := 0) -> void:
 ## The full paths of the models the flight's spawn draws (terrain_view.gd _spawn_mission_objects, ai_flights.gd):
 ## every placed unit's model with its LOD copies, and the AI's jets. Only those: the flight takes each one, nothing is
 ## left over (a wider list once held ≈ 340 MB more). Skipped: the unused player slots, the never-drawn classes. A model
-## with a detailed stand-in (Models: Detailed) is listed as the stand-in, which parses with its LODs.
+## with a detailed stand-in (Models: Detailed) is listed as the stand-in, which parses with its LODs; with the switch on
+## every detailed store is listed too.
 static func mission_models(files: Array, bdb: Dictionary) -> Array:
 	var mission_runtime := _script("mission/mission_runtime")
 	var aircraft_model := _script("aircraft/aircraft_model")
@@ -175,6 +176,8 @@ static func mission_models(files: Array, bdb: Dictionary) -> Array:
 			if path.ends_with("_h.gltf"):
 				out[gltf.objects_path(path.trim_suffix("_h.gltf") + "_m.gltf")] = true
 				out[gltf.objects_path(path.trim_suffix("_h.gltf") + "_l.gltf")] = true
+	for p in gltf.detailed_stores() if Settings.models == "detailed" else []:
+		out[p] = true  # any loadout's, the AI's too (all 16 ≈ 2.4 MB of files)
 	return out.keys()
 
 

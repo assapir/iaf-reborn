@@ -37,7 +37,7 @@ static func _parse(path: String) -> Array:
 	var state: GLTFState = r[1]
 	state.set_meta("path", path)
 	_set_materials(state, path)
-	if DETAILED.values().has(path):
+	if is_detailed(path):
 		for gm: GLTFMesh in state.get_meshes():
 			gm.mesh.generate_lods(25.0, 60.0, [])
 			gm.mesh.get_mesh()  # kept by the ImporterMesh: generate_scene() takes it
@@ -123,6 +123,8 @@ static func _own_textures(state: GLTFState, dir: String) -> void:
 			if img != null:
 				if not img.has_mipmaps() and not img.is_compressed():
 					img.generate_mipmaps()
+				if dir + "/" == STORES_DIR and RenderingServer.has_os_feature("s3tc"):
+					img.compress(Image.COMPRESS_S3TC)  # the CPU encoder (rendering.md §1.5), ≈ 3 ms a 512² image
 				made[src] = ImageTexture.create_from_image(img)
 				made[src].set_meta("mipmapped", true)
 		bm.albedo_texture = made[src]
@@ -232,12 +234,12 @@ static func _take_parsed(path: String) -> Variant:
 
 
 ## open() of a converted object model (path under converted/objects), cached per OBJECT DETAIL level; with
-## Models: Detailed its detailed model when there is one (detailed()).
+## Models: Detailed its detailed model when there is one (detailed()) and `allow_detailed`.
 static var _objects := {}
 
 
-static func object(path: String) -> Variant:
-	var hd := detailed(path)
+static func object(path: String, allow_detailed := true) -> Variant:
+	var hd := detailed(path) if allow_detailed else ""
 	if hd != "":
 		return model(hd)
 	return model(objects_path(path))
@@ -264,14 +266,50 @@ static func _settings() -> Node:
 ## Detailed models (ours, Graphics → MORE → Models: Detailed; docs/aircraft-models.md): the original model's
 ## file -> our model in the repo (GPL, tools/f16d/rig.py). Each model falls back on the original on its own.
 const DETAILED := {"f16_h.gltf": "res://extra/models/f16/f16d.glb"}
+## The detailed stores (GPL, tools/stores/build.gd; docs/aircraft-models.md §5), as DETAILED. Their textures are
+## compressed (BC1) at the parse.
+const STORES_DIR := "res://extra/models/stores/"
+const STORES := {
+	"aim9_m.gltf": "aim9",
+	"aim7_m.gltf": "aim7",
+	"aim120_m.gltf": "aim120",
+	"agm65_m.gltf": "agm65",
+	"agm88_m.gltf": "agm88",
+	"mk82_m.gltf": "mk82",
+	"mk83_m.gltf": "mk83",
+	"mk84_m.gltf": "mk84",
+	"mk82lb_m.gltf": "mk82lb",
+	"mk83lb_m.gltf": "mk83lb",
+	"mk84lb_m.gltf": "mk84lb",
+	"cbu87_m.gltf": "cbu87",
+	"cbu93_m.gltf": "cbu87",
+	"f16ftk_m.gltf": "f16ftk",
+	"f16ftkm.gltf": "f16ftkm",
+	"ecmpod_m.gltf": "ecmpod",
+	"flrpod_m.gltf": "flrpod",
+}
 
 
 ## The detailed model standing in for the original at `path` with the switch on, else "".
 static func detailed(path: String) -> String:
 	if String(_settings().get("models")) != "detailed":
 		return ""
-	var hd: String = DETAILED.get(path.get_file(), "")
+	var f := path.get_file()
+	var hd: String = DETAILED.get(f, STORES_DIR + STORES[f] + ".glb" if STORES.has(f) else "")
 	return hd if hd != "" and FileAccess.file_exists(hd) else ""
+
+
+## Every detailed store's file (parse_ahead before the flight: a loadout can carry any).
+static func detailed_stores() -> Array:
+	var out := {}
+	for n in STORES.values():
+		out[STORES_DIR + n + ".glb"] = true
+	return out.keys()
+
+
+## True for our detailed models (DETAILED, STORES): parsed with LODs.
+static func is_detailed(path: String) -> bool:
+	return DETAILED.values().has(path) or path.begins_with(STORES_DIR)
 
 
 ## A new scene of a model opened with open(), with Model detail when it is on (util/model_detail.gd). A detailed

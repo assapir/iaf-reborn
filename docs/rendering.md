@@ -271,7 +271,7 @@ detail and the mission's models are parsed. What runs where:
 | the first frame's art: the loading screen's menu art, the cockpit art (the scene's default F-16 cockpit and the player's jet's), the player's jet model and its cockpit-view model | worker threads, once the scene has loaded (`prefetch_flight`: `Img.prefetch`, `Gltf.parse_file_ahead`) | ≈ 0.17 + 0.23 + 0.15 s |
 | the scene's build (`_ready`) | the main thread, over six frames behind the loading screen; between them only the terrain and the loading screen run | ≤ 0.2 s a frame |
 | the terrain's nodes: about 300 colour nodes (setup's BC1 `.dds`, else JPEG, mipmaps, BC1) and 50 height nodes | 4 worker threads (`terrain.gd` `max_jobs`); the texture uploads on the main thread, ≤ 4 ms a frame (`UPLOAD_MS`) | ≈ 1–3 s |
-| the mission's models (every placed unit's model and its LOD copies, the AI's jets; with Models Detailed the detailed F-16D) | worker threads parse the files, make their mipmapped textures, set their materials and, for a detailed model, its LODs and meshes, from the mission screens on (`TerrainPreload.mission_models`, `Gltf.parse_ahead`); the main thread takes them for ≤ 12 ms a frame (no GPU readback) | ≈ 1.5 s of worker time (the F-16D ≈ 0.4 s), done before Fly after a few seconds on the TSD |
+| the mission's models (every placed unit's model and its LOD copies, the AI's jets; with Models Detailed the detailed F-16D and stores) | worker threads parse the files, make their mipmapped textures, set their materials and, for a detailed model, its LODs and meshes, from the mission screens on (`TerrainPreload.mission_models`, `Gltf.parse_ahead`); the main thread takes them for ≤ 12 ms a frame (no GPU readback) | ≈ 1.5 s of worker time (the F-16D ≈ 0.4 s), done before Fly after a few seconds on the TSD |
 | the spawn of the mission's units and the AI's jets | the main thread, the first flying frame (one parse per jet type, `Gltf.model`) | ≈ 0.25 s (mission 224) |
 
 Three things made the start slow, measured 2026-10-22:
@@ -1116,7 +1116,7 @@ effect. The uninstall keeps the downloads unless asked (docs/setup.md).
 | a blended material (glass: canopies, cockpit windows, building windows; rotor and propeller discs; clouds) | none |
 | the pilots (meshes under the pilot / pilotB frames) | none |
 | an unshaded or glowing material, or any model at OBJECT DETAIL 1 (point-sampled textures) | none |
-| our own models (the detailed F-16D, the F-35I) | none: they carry their own maps |
+| our own models (the detailed F-16D and stores, the F-35I) | none: they carry their own maps |
 
 **The shader** maps the pack triplanar in the model's frame, scaled to world metres by the model's own scale, so the
 detail sticks to the model as it moves and keeps its real size at either World scale. The detail normal is blended

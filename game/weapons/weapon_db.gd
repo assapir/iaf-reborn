@@ -51,6 +51,8 @@ static func _record(w: Dictionary, paths: Dictionary) -> Dictionary:
 		"drag": float(w.get("0x73a", 0)),
 		"model": model,
 		"model_path": String(paths.get(str(model), "")),
+		# Models: Detailed (Gltf.STORES): the Hawk SAM shares the AGM-88's model and keeps the original.
+		"detailed": String(w.get("0x708", "")).strip_edges() != "Hawk",
 	}
 
 
