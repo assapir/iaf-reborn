@@ -640,8 +640,10 @@ Extras → "Real HUD view": Original (1998) / Real field of view. It acts with H
 | F-15A/C, Kfir, MiG-23ML, F-4E, Mirage IIICJ | 17.8° × 12° | open: inferred from a typical single-combiner refractive HUD[^avhandbook-hud] |
 | F-35I | — (the helmet's 40° × 30°: the original view stays) | Collins datasheet[^collins-hmds] |
 
-With Real view the view is wider (the F-16's about 78° across, the Lavi's about 88°), so the GPU draws more terrain
-than with the original view.
+With Real view the view is wider (the F-16's about 78° across, the Lavi's about 88°), so the GPU draws more of the
+world. Measured on the Intel Iris Xe (2026-10-26, `_flight_bench.gd`, mission 311's F-16 at 1485×1041, default
+graphics, warm runs): +0.06 ms a frame at 150 m, +0.67 ms (5 %) at 1,500 m, +1.37 ms (8 %) at 6,000 m; about 20 % more
+primitives and 12 % more draw calls.
 
 ## What ours draws (status)
 
