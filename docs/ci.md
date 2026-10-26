@@ -12,26 +12,35 @@ that need data skip themselves with a message.
 |---|---|---|---|
 | lint | Linux | 15 min | `cargo fmt --all --check`, clippy with warnings as errors, gdformat (`--line-length 120`) and gdlint on every tracked `.gd` file, `tools/doclint.py`, `tests/test_flight_timeline.py` |
 | rust | Linux, macOS (arm64), Windows | 15 min | `cargo test --workspace` |
-| godot | Linux, macOS (arm64), Windows | 15 min | builds the extension (`cargo build --release -p iaf-godot`), installs the official Godot 4.7.2 build (`tools/ci_install_godot.sh`), imports the project and parse-checks every script (`tools/gdparse.gd`) |
-| godot-tests | Linux, macOS (arm64), Windows | 20 min | after godot: runs the Godot tests without data (below); informational |
+| godot | Linux, macOS (arm64), Windows | 15 min | builds the extension (`cargo build --release -p iaf-godot`), installs the official Godot 4.7.2 build (`tools/ci_install_godot.sh`), imports the project, parse-checks every script (`tools/gdparse.gd`) and runs the 6 Godot tests that pass without data |
+| godot-sweep | Linux, macOS (arm64), Windows | 20 min | on `main`, by hand (Run workflow), nightly at 03:17 UTC, and for a push whose commit message holds `[sweep]`: every Godot test without data (below); informational |
 
 Lint runs once, on Linux. The other systems run only what differs per system: the build, the tests, the Godot import
-and parse check.
+and parse check. A push to a branch takes about 5 minutes.
 
 The godot job keeps the built extension (`libiaf_godot.so`, `libiaf_godot.dylib`, `iaf_godot.dll`) as a workflow
-artifact for 7 days. The godot-tests job uses that artifact instead of building again.
+artifact for 7 days. The godot-sweep job uses that artifact instead of building again.
 
 ## Godot tests without data
 
-The godot-tests job runs every `tests/godot/test_*.gd` headless with `tools/ci_godot_tests.sh`: six at a time, 60
-seconds each, with `IAF_DEFAULT_SETTINGS=1` and the log in the runner's temp folder. The job log shows each result as
-it comes. The run's summary page shows the counts and a table: pass, fail, needs-data or timeout per test.
-"needs-data" means the test printed `NEEDS DATA` or its errors name `assets/`; the boot splash's missing image does not
-count. `start_mission` in `tests/godot/base.gd` prints `NEEDS DATA` and quits at once when `assets/converted` is
-missing, instead of waiting for a flight scene that never loads. The job is informational: its failures do not fail
-the workflow.
+`tools/ci_godot_tests.sh [tests…]` runs the given tests (default: every `tests/godot/test_*.gd`) headless: six at a
+time, 60 seconds each, with `IAF_DEFAULT_SETTINGS=1` and the log in the runner's temp folder. The job log shows each
+result as it comes. The run's summary page shows the counts and a table: pass, fail, needs-data or timeout per test.
+It exits 1 unless every test passes.
 
-On macOS the script runs under the system's bash 3.2 and uses coreutils' `gtimeout`, which the job installs with
+- The godot job runs the tests that pass without data: `test_console`, `test_f35i_model`, `test_g_effects`,
+  `test_mission_events`, `test_scenery`, `test_setup_wizard`. They are required. A test that passes without data
+  can join this list in `.github/workflows/ci.yml`.
+- The godot-sweep job runs them all. It keeps each test's output as a 7-day artifact. Its failures do not fail the
+  workflow.
+
+"needs-data" means the test printed `NEEDS DATA`, or its errors name `assets/` (the boot splash's missing image does
+not count). `require_data()` in `tests/godot/base.gd` prints `NEEDS DATA` and quits at once when
+`assets/converted/keys.json` or `assets/install` is missing; with the data it returns at once. `start_mission` calls
+it, and so do the tests that read data directly, just before their first read. A new test that reads data calls
+`await require_data()` there too.
+
+On macOS the script runs under the system's bash 3.2 and uses coreutils' `gtimeout`, which the jobs install with
 Homebrew when missing.
 
 On 2026-10-26 the sweep gave the same result on all three systems, in about 2 minutes:
@@ -39,9 +48,9 @@ On 2026-10-26 the sweep gave the same result on all three systems, in about 2 mi
 | Result | Tests |
 |---|---|
 | pass (6) | `test_console`, `test_f35i_model`, `test_g_effects`, `test_mission_events`, `test_scenery`, `test_setup_wizard` |
-| needs-data (84) | every test that calls `start_mission`, and those whose errors name `assets/` |
-| fail (21) | tests that read converted data without naming it: their errors are empty lists or `Nil` values (for example `test_aircraft_parts`, `test_bombs`, the `test_mission_edit_*` tests) |
-| timeout (1) | `test_terrain`: it loads the flight scene itself and waits for terrain that never comes |
+| needs-data (106) | 89 print `NEEDS DATA`; 17 fail with errors that name `assets/` (menus, front end, credits, imagery) |
+| fail (0) | |
+| timeout (0) | |
 
 ## Actions and their versions
 
@@ -70,3 +79,5 @@ The Godot version is `GODOT_VERSION` at the top of the workflow.
   time ran out. `start_mission` now quits at once without the data.
 - 2026-10-26: that check first looked for `assets/converted`. A test running alongside creates that folder, so many
   tests went on to wait anyway. It now looks for `assets/converted/keys.json` and `assets/install`.
+- 2026-10-26: 21 tests failed without data on empty lists or `Nil` values, and `test_terrain` waited for terrain
+  until the time ran out. They now call `require_data()` before their first data read.
