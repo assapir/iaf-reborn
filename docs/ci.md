@@ -34,9 +34,14 @@ the workflow.
 On macOS the script runs under the system's bash 3.2 and uses coreutils' `gtimeout`, which the job installs with
 Homebrew when missing.
 
-The first full sweep (2026-10-26) gave the same result on Linux and Windows: 6 pass (`test_console`,
-`test_f35i_model`, `test_g_effects`, `test_mission_events`, `test_scenery`, `test_setup_wizard`), 21 fail, 17
-needs-data and 68 timeouts, most of them tests that call `start_mission`.
+On 2026-10-26 the sweep gave the same result on all three systems, in about 2 minutes:
+
+| Result | Tests |
+|---|---|
+| pass (6) | `test_console`, `test_f35i_model`, `test_g_effects`, `test_mission_events`, `test_scenery`, `test_setup_wizard` |
+| needs-data (84) | every test that calls `start_mission`, and those whose errors name `assets/` |
+| fail (21) | tests that read converted data without naming it: their errors are empty lists or `Nil` values (for example `test_aircraft_parts`, `test_bombs`, the `test_mission_edit_*` tests) |
+| timeout (1) | `test_terrain`: it loads the flight scene itself and waits for terrain that never comes |
 
 ## Actions and their versions
 
@@ -61,3 +66,7 @@ The Godot version is `GODOT_VERSION` at the top of the workflow.
 - 2026-10-26: the Godot tests as a step of the godot job, four at a time with 300 seconds each. On Linux and Windows
   the step still ran after 56 minutes, holding back the build and parse results. They now run in their own job,
   six at a time with 60 seconds each.
+- 2026-10-26: the same sweep with 60 seconds each still took 8 minutes: 68 tests waited in `start_mission` until the
+  time ran out. `start_mission` now quits at once without the data.
+- 2026-10-26: that check first looked for `assets/converted`. A test running alongside creates that folder, so many
+  tests went on to wait anyway. It now looks for `assets/converted/keys.json` and `assets/install`.
