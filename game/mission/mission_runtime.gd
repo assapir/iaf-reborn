@@ -76,13 +76,15 @@ static func mission_files(id: int) -> Array:
 	return out
 
 
-## Better physics "Wind and turbulence" (docs/autopilot.md §2.4): the main file picks the flight's wind and the bases
-## the tower turns into it (Settings.runway_wind); every file's aircraft placed at a turned base's lineup move to the
-## other end's lineup (IafBases.lineup_into_wind, the game frame, before World scale Real's move).
+## The main file picks the flight's weather (Settings.mission_weather). Better physics "Wind and turbulence"
+## (docs/autopilot.md §2.4): the main file picks the flight's wind and the bases the tower turns into it
+## (Settings.runway_wind); every file's aircraft placed at a turned base's lineup move to the other end's lineup
+## (IafBases.lineup_into_wind, the game frame, before World scale Real's move).
 static func _into_wind(id: int, m: Dictionary, main: bool) -> void:
 	if main:
 		var misc: Array = m.get("misc", {}).get("items", [])
 		Settings.runway_wind(id, misc[0] if not misc.is_empty() else {})
+		Settings.mission_weather(id, misc[0] if not misc.is_empty() else {})
 	if Settings.flight_wind.is_empty():
 		return
 	for e in m.get("entities", {}).get("items", []):

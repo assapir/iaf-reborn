@@ -254,8 +254,9 @@ var rolling_wheels := false
 ## billboards and ribbons; true = GPU particle explosions, smoke, missile trails, contrails, engine heat haze and
 ## condensation on the jets (mission/vapour_fx.gd).
 var particle_effects := false
-## Rain (ours, Graphics → MORE; docs/rendering.md §10, terrain/weather.gd): "off" (the original: no weather), "light" or
-## "heavy" (falling rain, drops on the canopy, wet ground, a shorter visibility).
+## Rain (ours, Graphics → MORE; docs/rendering.md §10, terrain/weather.gd): "off" (the original: no weather, whatever
+## the mission says), "light" or "heavy" (falling rain, drops on the canopy, wet ground, a shorter visibility). A
+## mission with a weather of its own (flight_weather) rains at that instead; the others at this level.
 var rain := "off"
 ## Airbases (ours, Graphics → MORE; docs/rendering.md §7, terrain/airbases.gd): "original" (the 1998 imagery) or
 ## "detailed" (near the ground, a procedural runway, taxiway and apron surface with markings; visual only).
@@ -616,10 +617,30 @@ func runway_wind(id: int, misc: Dictionary) -> Array:
 	return flight_wind
 
 
-## The flight ended: the next one picks its wind again, and no base stays turned.
+## The flight's weather (ours, docs/rendering.md §10): "clear", "light" or "heavy" from the main file's misc `weather`
+## (docs/formats/mis.md; the mission editor's and the Mission Creator's), "" for a mission without one (the originals:
+## the Rain switch's level). "random" picks one of the three once per flight. terrain_view clears it at the end.
+var flight_weather := ""
+var _flight_weather_for := ""
+
+
+## Mission `id`'s weather into `flight_weather` (MissionRuntime.mission_files, for the main file).
+func mission_weather(id: int, misc: Dictionary) -> void:
+	var w := String(misc.get("weather", ""))
+	if w == "random":
+		if _flight_weather_for != "%d random" % id:
+			flight_weather = ["clear", "light", "heavy"][randi() % 3]
+	else:
+		flight_weather = w if w in ["clear", "light", "heavy"] else ""
+	_flight_weather_for = "%d %s" % [id, w]
+
+
+## The flight ended: the next one picks its wind and weather again, and no base stays turned.
 func clear_runway_wind() -> void:
 	flight_wind = []
 	_flight_wind_id = -1
+	flight_weather = ""
+	_flight_weather_for = ""
 	if ClassDB.class_exists("IafBases"):
 		IafBases.set_wind(0.0, 0.0, assets_dir())
 

@@ -1,6 +1,8 @@
 # Preferences > Graphics → MORE "Rain" (docs/rendering.md §10, terrain/weather.gd): Off makes nothing and changes
 # nothing (no drops, the scene's fog, the sun's energy, dry ground); Light / Heavy make the drops (their count), the
 # canopy drops, the fog, the dimmer sun and the wetness; back to Off restores all of it; the choice is saved.
+# A mission's own weather (misc `weather`: the mission editor's, the Mission Creator's) wins over Light / Heavy, never
+# over Off; an original mission (none of its own) rains at the switch's level; Random resolves once per flight.
 extends "res://../tests/godot/base.gd"
 
 
@@ -62,3 +64,49 @@ func run() -> void:
 		"back to Off: fog, sky, sun and wetness restored"
 	)
 	check(weather.humidity(2500.0) < 1.0, "Off: vapour_fx's own humidity")
+	check(s.flight_weather == "", "an original mission has no weather of its own")
+	# The rules (docs/rendering.md §10): [switch, mission weather, level drawn].
+	var rules := [
+		["off", "heavy", ""],
+		["light", "heavy", "heavy"],
+		["heavy", "clear", ""],
+		["light", "", "light"],
+		["heavy", "light", "light"],
+	]
+	for r in rules:
+		s.rain = r[0]
+		s.flight_weather = r[1]
+		tv.apply_render_options()
+		await frames(2)
+		var want: Dictionary = weather.LEVELS.get(r[2], {})
+		check(
+			weather.level() == want and (tv.weather == null) == want.is_empty() and weather.wet == want.get("wet", 0.0),
+			"switch %s, mission %s: %s" % [r[0], "none" if r[1] == "" else r[1], "dry" if r[2] == "" else r[2]]
+		)
+	s.rain = "off"
+	s.flight_weather = ""
+	tv.apply_render_options()
+	# The mission's misc picks the flight's weather (MissionRuntime.mission_files → Settings.mission_weather).
+	var rt: GDScript = load("res://mission/mission_runtime.gd")
+	var mc_files: Array = s.mc_files
+	s.mc_files = [{"name": "t", "data": {"misc": {"items": [{"weather": "heavy"}]}}}]
+	rt.mission_files(0x29a)
+	check(s.flight_weather == "heavy", "the main file's misc weather is the flight's")
+	s.mc_files = mc_files
+	s.clear_runway_wind()
+	s.mission_weather(311, {})
+	check(s.flight_weather == "", "no misc weather: none of its own")
+	var seen := {}
+	for i in 60:
+		s.clear_runway_wind()
+		s.mission_weather(0x29a, {"weather": "random"})
+		seen[s.flight_weather] = true
+		var again: String = s.flight_weather
+		s.mission_weather(0x29a, {"weather": "random"})
+		if s.flight_weather != again:
+			seen["changed"] = true
+	check(
+		seen.keys().all(func(k): return k in ["clear", "light", "heavy"]) and seen.size() == 3,
+		"Random picks Clear, Light or Heavy rain, once per flight (%s)" % [seen.keys()]
+	)
+	s.clear_runway_wind()

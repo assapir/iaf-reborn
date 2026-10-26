@@ -61,17 +61,22 @@ const LISTS := {
 	"victory": ["By Kills", "By Target"],
 	"wind_kt": ["Calm", "10 kt", "15 kt", "20 kt"],
 	"wind_from": ["N", "NE", "E", "SE", "S", "SW", "W", "NW"],
+	"weather": ["Default", "Clear", "Light rain", "Heavy rain", "Random"],
 }
-## Ours, Extras "Mission Creator: Better" (docs/front-end.md §19.4): WIND and FROM in the Blue Force panel's free rows
-## under Bravo, in the BASE / TIME columns. The state keeps the values (knots, degrees from), not the item index.
+## Ours, Extras "Mission Creator: Better" (docs/front-end.md §19.4): WIND, FROM and WEATHER in the Blue Force panel's
+## free row under Bravo, in the BASE / TIME / ALT columns. The state keeps the values (knots, degrees from, the weather
+## 0 Default (the Graphics Rain level), 1 Clear .. 4 Random), not the item index.
 const WIND_COMBOS := [
 	["wind_kt", -1, "wind_kt", Rect2(6, 170, 52, 19)],
 	["wind_from", -1, "wind_from", Rect2(91, 170, 52, 19)],
+	["weather", -1, "weather", Rect2(158, 170, 52, 19)],
 ]
-const WIND_LABELS := ["WIND", "FROM"]
-const WIND_VALUES := {"wind_kt": [0, 10, 15, 20], "wind_from": [0, 45, 90, 135, 180, 225, 270, 315]}
-## The template's wind (mission.mis misc 0x46a / 0x474), what the original's mission 0x29a flies.
-const WIND_DEFAULT := {"wind_kt": 10, "wind_from": 270}
+const WIND_LABELS := ["WIND", "FROM", "WEATHER"]
+const WIND_VALUES := {
+	"wind_kt": [0, 10, 15, 20], "wind_from": [0, 45, 90, 135, 180, 225, 270, 315], "weather": [0, 1, 2, 3, 4]
+}
+## The template's wind (mission.mis misc 0x46a / 0x474), what the original's mission 0x29a flies; no weather.
+const WIND_DEFAULT := {"wind_kt": 10, "wind_from": 270, "weather": 0}
 ## The art the wind combos' boxes are copied from: TIME's box with its frame and arrow column.
 const WIND_BOX_ART := Rect2(90, 223, 64, 21)
 const LABEL_PX := 11.0

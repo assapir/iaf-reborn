@@ -204,6 +204,11 @@ func run() -> void:
 	ed.undo_last()
 	check(not ed._ui.fly.disabled and not tsd.issues.values().has("error"), "Undo clears the error")
 
+	# Weather (ours, misc `weather`): a fork of an original has none (Default, the Graphics Rain level); Heavy rain.
+	check(ed._ui.m_weather.selected == 0 and not ed.data.misc.items[0].has("weather"), "a fork: Weather Default")
+	ed._ui.m_weather.select(3)
+	ed._ui.m_weather.item_selected.emit(3)
+	check(ed.data.misc.items[0].get("weather") == "heavy", "Weather Heavy rain: misc weather heavy")
 	# Save, reopen: the same mission.
 	ed.briefing.en = "Edited briefing."
 	ed.save()
@@ -213,6 +218,7 @@ func run() -> void:
 	ed.open_file(path)
 	check(JSON.stringify(ed.data, "", true, true) == saved, "Save then Open gives the same mission")
 	check(ed.briefing.en == "Edited briefing." and ed.source == 512, "and its briefing and source")
+	check(ed._ui.m_weather.selected == 3, "and its weather (Heavy rain)")
 	check(FileAccess.get_md5(orig) == md5, "the original wild_west.json is unchanged")
 	# Delete: your own mission's file goes, the editor closes it; an original cannot be deleted.
 	ed.delete_mission()

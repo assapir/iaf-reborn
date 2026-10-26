@@ -13,7 +13,7 @@ This doc lists the rendering options of the flight scene, what each one sets, an
 Code: `game/terrain/render_options.gd` (applied by `terrain_view.gd apply_render_options()` at the start of a flight
 and when the in-flight Preferences close), `terrain/terrain.gdshader`, `terrain/atmosphere.gdshader`,
 `terrain/cloud_layer.gd`, `terrain/night_lights.gd`, `terrain/night_vision.gdshader`, `terrain/airbases.gd`, `terrain/ground_textures.gd`, `util/model_detail.gd`, `terrain/weather.gd`. Tests: `tests/godot/test_graphics_prefs.gd` (switches → render
-settings, save / load), `test_ui_smoke.gd` (Graphics → MORE and Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5, §8 the goggles key), `test_water.gd` (§1.3), `test_ground_textures.gd` (§1.4), `test_particle_effects.gd` (§6), `test_airbases.gd` (§7), `test_model_detail.gd` (§9), `test_rain.gd` (§10).
+settings, save / load), `test_ui_smoke.gd` (Graphics → MORE and Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5, §8 the goggles key), `test_water.gd` (§1.3), `test_ground_textures.gd` (§1.4), `test_particle_effects.gd` (§6), `test_airbases.gd` (§7), `test_model_detail.gd` (§9), `test_rain.gd` (§10: the levels, and the switch × mission weather rules).
 
 ## 1. Options
 
@@ -1239,10 +1239,26 @@ Wayland window covered by other windows is drawn once a second.
 
 ## 10. Rain (built: game/terrain/weather.gd)
 
-Preferences → Graphics → MORE → **Rain = Light / Heavy** (ours, docs/deviations.md §2) makes it rain in every
-flight. The original has no weather, so the default is Off, which makes no node and changes nothing. The choice is
-saved (`Settings.rain`, settings.cfg); it takes effect at once, also from the in-flight Preferences. A mission does not
-set it (the mission editor could later).
+Preferences → Graphics → MORE → **Rain = Off / Light / Heavy** (ours, docs/deviations.md §2). The original has no
+weather, so the default is Off, which makes no node and changes nothing. The choice is saved (`Settings.rain`,
+settings.cfg); it takes effect at once, also from the in-flight Preferences.
+
+A mission can carry a weather of its own: **Clear / Light rain / Heavy rain / Random**, set in the mission editor's
+Mission tab (mission-editor.md §3) or in Mission Creator Better (front-end.md §19.4), stored as misc `weather`
+(formats/mis.md). The level drawn (`Weather.level()`):
+
+| Rain switch | mission without weather (every original) | mission with Clear | Light rain | Heavy rain |
+|---|---|---|---|---|
+| Off | dry | dry | dry | dry |
+| Light | light | dry | light | heavy |
+| Heavy | heavy | dry | light | heavy |
+
+- **Off** never rains, whatever the mission says: it is the performance escape.
+- **Light / Heavy** is the level for the missions without a weather of their own; a mission's own weather wins.
+- **Random** picks Clear, Light or Heavy rain once per flight, when the mission's files are read
+  (`MissionRuntime.mission_files` → `Settings.mission_weather`, into `Settings.flight_weather`); the flight's end
+  clears it (`Settings.clear_runway_wind`), so the next flight picks again.
+- The weather changes only what is drawn: the flight model, the AI's sight and the braking stay the same.
 
 `terrain_view.gd apply_render_options()` calls `Weather.apply_env` and, while it rains, makes the `Weather` node; its
 `update` runs each frame with the camera.

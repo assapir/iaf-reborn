@@ -48,8 +48,8 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
     Insert a waypoint after, Delete the waypoint; **Waits parked at its base until a rule makes it take off** for a
     flight whose first waypoint is a take-off (§18.6); **Remove this enemy flight** for a flight other than Alpha …
     Delta (§12.5). **Add an enemy flight:** a red base, a red jet and 1 or 2 jets (§12.5).
-  - **Mission:** the win and lose summary and the debrief headlines (§13), the year (§12), the start time, the wind
-    and the briefing in English and Hebrew. A new year runs the checks again and refills the jet lists; a year on
+  - **Mission:** the win and lose summary and the debrief headlines (§13), the year (§12), the start time, the wind,
+    the weather (§3) and the briefing in English and Hebrew. A new year runs the checks again and refills the jet lists; a year on
     another TSD map moves the mission to that map (§12.1).
   - **Intel:** what the pilot sees before the flight: the units shown on the pilot's TSD, the intel preview and the
     briefing's links (§14).
@@ -116,6 +116,12 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
 - `files[0].data.scenery_release` and the scenery targets' entity fields: §19.
 - `random`: the chance and start spread per entity id, `{"12": {"chance": 50, "spread_km": 2}}` (§15). The mission
   data never holds them.
+- `files[0].data.misc.items[0].weather` (ours, formats/mis.md): the Mission tab's **Weather**, under Wind / From:
+  - **Default (Graphics Rain)**: no field, as every original. The flight rains at the Graphics Rain level.
+  - **Clear** `"clear"`, **Light rain** `"light"`, **Heavy rain** `"heavy"`: the mission's own weather. It wins over
+    the Graphics Rain level, but Rain Off keeps every flight dry.
+  - **Random** `"random"`: Clear, Light or Heavy rain, picked once per flight at the start, as wind's Random.
+  - The full rules: rendering.md §10. The weather is drawn only: no effect on the flight, the AI or the brakes.
 
 **Names** (`mission_edit::valid_name`, `stem`, `free_name`):
 - Allowed: `^[A-Za-z0-9][A-Za-z0-9 _-]{0,39}$`, English letters only, because the name is also the file name.
@@ -329,8 +335,8 @@ Each flight record also carries `formation`, the index of its formation in the m
 - `tests/godot/test_mission_editor.gd`: New by year (1967 offers Tel Nof and Ramat David and the
   Mirage; 1973 adds Refidim; no Lavi without what-if), an enemy flight from Damascus, a flipped Refidim in 1967
   1967, the year and the bases kept by Save and Open, the Refidim warning in 1990; then Fork's name, the name rules, a drag moving an Alpha jet, an added SA-6 at the
-  ground's height, Undo, an SA-6 in the sea as an error (red ring, Fly off), Save and Open giving the same mission,
-  and the original file unchanged.
+  ground's height, Undo, an SA-6 in the sea as an error (red ring, Fly off), the Weather (a fork's Default, Heavy rain
+  written to misc `weather`), Save and Open giving the same mission and weather, and the original file unchanged.
 - `tests/godot/_mission_editor_shot.gd`: a real-render screenshot (usage in its header).
 - `tests/godot/test_mission_edit_fly.gd`: Fly from an edited mission 115 (§8).
 - `tests/godot/test_mission_edit_win.gd`: New can never pass; an SA-6 marked Target and a Merkava marked Must survive;

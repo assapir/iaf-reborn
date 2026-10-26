@@ -4,7 +4,8 @@
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 ED_SHOT=/tmp/ed.png -- --log-file /tmp/ed.log --path game \
 #     --resolution 1600x1000 -s ../tests/godot/_mission_editor_shot.gd
 # ED_SCENERY=menu: zoomed in on a town of the scenery (docs/scenery.md §5) with a building picked and its Set as target
-# menu open; ED_SCENERY=target: that building set as a target (its marker selected).
+# menu open; ED_SCENERY=target: that building set as a target (its marker selected). ED_TAB=<title>: that side tab
+# shown (e.g. Mission: the wind and weather rows).
 extends "res://../tests/godot/base.gd"
 
 const DIR := "user://missions_shot"
@@ -39,6 +40,12 @@ func run() -> void:
 			ed._ui.building_menu.position = Vector2i(
 				ed.host.global_position + ed.host._to_screen(ed.tsd.area.position + c)
 			)
+	var tab := OS.get_environment("ED_TAB")
+	if tab != "":
+		var tabs: TabContainer = ed.find_children("*", "TabContainer", true, false)[0]
+		for i in tabs.get_tab_count():
+			if tabs.get_tab_title(i) == tab:
+				tabs.current_tab = i
 	await frames(20)
 	await RenderingServer.frame_post_draw
 	root.get_viewport().get_texture().get_image().save_png(OS.get_environment("ED_SHOT"))

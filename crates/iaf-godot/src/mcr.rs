@@ -4,7 +4,7 @@
 //! The Dictionary: `name`, `notes` (String); `count`, `type`, `ai`, `fbase` (Array of 8 ints, the formation
 //! records: Alpha, Bravo, Charlie, Delta, then the multiplayer's four); `base`, `time`, `alt`, `target`, `sams`, `aaa`,
 //! `weapons`, `victory`, `revive`, `wait`, `reload` (ints, the combo indexes); ours, only with a wind (`Mission::wind`):
-//! `wind_kt`, `wind_from` (knots, degrees).
+//! `wind_kt`, `wind_from` (knots, degrees) and `weather` (0 Default, 1 Clear, 2 Light rain, 3 Heavy rain, 4 Random).
 
 use crate::world::num;
 use godot::prelude::*;
@@ -36,6 +36,7 @@ fn mission(d: &VarDictionary) -> Mission {
         std::array::from_fn(|i| v[i]);
     if let (Some(knots), Some(from)) = (num(d, "wind_kt"), num(d, "wind_from")) {
         m.wind = Some(Wind { knots: knots as i32, from: from as i32 });
+        m.weather = num(d, "weather").unwrap_or(0.0) as i32;
     }
     m
 }
@@ -57,6 +58,7 @@ fn dict(m: &Mission) -> VarDictionary {
     if let Some(w) = m.wind {
         d.set("wind_kt", w.knots as i64);
         d.set("wind_from", w.from as i64);
+        d.set("weather", m.weather as i64);
     }
     d
 }

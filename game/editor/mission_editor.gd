@@ -31,6 +31,15 @@ const ROLE_COLORS := [Color(0.5, 0.9, 0.5), Color(1.0, 0.55, 0.45)]
 ## random one of 0 / 10 / 15 / 20 kt (Settings.pick_wind).
 const WIND_KT := [["Calm", 0], ["10 kt", 10], ["15 kt", 15], ["20 kt", 20], ["Random", 1]]
 const WIND_FROM := ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+## The weather (ours, misc `weather`, docs/formats/mis.md): [label, value]; Random picks one at the start
+## (Settings.mission_weather). Default (no weather of its own, as the originals) rains at the Graphics Rain level.
+const WEATHER := [
+	["Default (Graphics Rain)", ""],
+	["Clear", "clear"],
+	["Light rain", "light"],
+	["Heavy rain", "heavy"],
+	["Random", "random"],
+]
 ## The scenery's buildings (docs/scenery.md §5): drawn from this zoom on (a 20 m house is a few pixels), the editor
 ## zooming in to SCENERY_ZOOM_MAX; a click picks a building within PICK_PX pixels.
 const BUILDINGS_ZOOM := 240.0
@@ -1185,6 +1194,9 @@ func _build_mission_tab(box: VBoxContainer) -> void:
 		box, "Wind", _options(WIND_KT.map(func(w): return w[0]), func(i): set_misc("0x46a", WIND_KT[i][1]))
 	)
 	_ui.m_from = _row(box, "From", _options(WIND_FROM, func(i): set_misc("0x474", i * 45)))
+	_ui.m_weather = _row(
+		box, "Weather", _options(WEATHER.map(func(w): return w[0]), func(i): set_misc("weather", WEATHER[i][1]))
+	)
 	box.add_child(_label("Briefing (English)"))
 	_ui.brief_en = TextEdit.new()
 	_ui.brief_en.custom_minimum_size.y = 220
@@ -1638,13 +1650,14 @@ func _fill_mission() -> void:
 	var i := [0, 10, 15, 20].find(kt)
 	_ui.m_wind.select(i if i >= 0 else 4)
 	_ui.m_from.select(int(posmod(int(misc.get("0x474", 0)) + 22, 360) / 45))
+	_ui.m_weather.select(maxi(0, WEATHER.map(func(w): return w[1]).find(misc.get("weather", ""))))
 	if _ui.brief_en.text != briefing.en:
 		_ui.brief_en.text = briefing.en
 	if _ui.brief_he.text != briefing.he:
 		_ui.brief_he.text = briefing.he
 	for c in [_ui.m_hour, _ui.m_min]:
 		c.editable = not read_only
-	for c in [_ui.m_wind, _ui.m_from]:
+	for c in [_ui.m_wind, _ui.m_from, _ui.m_weather]:
 		c.disabled = read_only
 	_ui.brief_en.editable = not read_only
 	_ui.brief_he.editable = not read_only

@@ -4,7 +4,7 @@
 //! and after (`FUN_004c286f`: the attack targets).
 
 use iaf_formats::ini::{Ini, Section};
-use iaf_formats::mcr::Mission;
+use iaf_formats::mcr::{Mission, WEATHER};
 use serde_json::{Value, json};
 
 /// Base index → the base mission, the target files' stem, the IAF.ibx key prefix, the exe's start-point defaults
@@ -312,6 +312,10 @@ pub fn build(m: &Mission, read: &dyn Fn(&str) -> Option<Value>, ibx: &Ini, bdb: 
         // Ours, Extras "Mission Creator: Better": the wind chosen (the exe keeps the template's 10 kt from 270).
         if let Some(w) = m.wind {
             (misc["0x46a"], misc["0x474"]) = (json!(w.knots), json!(w.from));
+            // And its weather (ours, docs/formats/mis.md misc `weather`); Default writes none, as the originals.
+            if let Some(w) = WEATHER.get(m.weather as usize).filter(|w| !w.is_empty()) {
+                misc["weather"] = json!(w);
+            }
         }
     }
     if let Some(t) = &cx.allowed {
@@ -462,11 +466,11 @@ mod tests {
         let wind = |m: &Mission| {
             let f = build(m, &read, &ibx, &bdb);
             let misc = &f[0].1["misc"]["items"][0];
-            [misc["0x46a"].clone(), misc["0x474"].clone()]
+            [misc["0x46a"].clone(), misc["0x474"].clone(), misc["weather"].clone()]
         };
-        assert_eq!(wind(&m), [10, 270], "the template's wind");
-        let gusty = Mission { wind: Some(Wind { knots: 20, from: 135 }), ..m.clone() };
-        assert_eq!(wind(&gusty), [20, 135], "Mission Creator: Better writes its wind");
+        assert_eq!(wind(&m), [json!(10), json!(270), Value::Null], "the template's wind, no weather");
+        let gusty = Mission { wind: Some(Wind { knots: 20, from: 135 }), weather: 4, ..m.clone() };
+        assert_eq!(wind(&gusty), [json!(20), json!(135), json!("random")], "Better writes its wind and weather");
         let fs = main["formations"]["items"].as_array().unwrap();
         let alpha = fs.iter().find(|f| f["0x3f2"] == 1).unwrap();
         assert_eq!(alpha["points"].as_array().unwrap().len(), 4);
