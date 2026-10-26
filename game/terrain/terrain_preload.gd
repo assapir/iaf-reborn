@@ -94,6 +94,8 @@ static func prefetch_flight(id: int, flight := 0) -> void:
 	var PlayerAircraft: GDScript = load("res://aircraft/player_aircraft.gd")
 	var aircraft_model := _script("aircraft/aircraft_model")
 	var gltf := _script("util/gltf")
+	# The flight's OBJECT DETAIL level (terrain_view.gd), so the parses set their materials for it.
+	gltf.object_level = gltf.detail_level(float(Settings.object_detail))
 	var Cockpit: GDScript = load("res://cockpit/cockpit.gd")
 	load("res://terrain/loading_screen.gd").prefetch()
 	var default_cockpit: String = Cockpit.DEFAULT_DIR
@@ -115,17 +117,20 @@ static func prefetch_flight(id: int, flight := 0) -> void:
 		Cockpit.prefetch_art(p.cockpit_dir)
 	# The player's jet first: the flight's build opens it (the pool runs the tasks in order).
 	var d: Dictionary = aircraft_model.load_descriptor(p.plane)
-	if not d.is_empty() and gltf.detailed(String(d.model)) == "":
-		models.push_front(aircraft_model._planes_dir(p.plane).path_join(p.plane).path_join(d.model))
-	models.push_front(gltf.objects_path("controllableplanes/%s/%s_bc.gltf" % [p.plane, p.plane]))
+	if not d.is_empty():
+		models.push_front(_jet_model(p.plane, d))
+	# The cockpit-view model: the install's, else an extra plane's (terrain_view.gd _build).
+	var bc: String = gltf.objects_path("controllableplanes/%s/%s_bc.gltf" % [p.plane, p.plane])
+	var extra_bc: String = aircraft_model.EXTRA_DIR.path_join(p.plane).path_join(p.plane + "_bc.gltf")
+	models.push_front(bc if FileAccess.file_exists(bc) or not FileAccess.file_exists(extra_bc) else extra_bc)
 	gltf.drop_ahead(models)  # the last choice's
 	gltf.parse_ahead(models)
 
 
 ## The full paths of the models the flight's spawn draws (terrain_view.gd _spawn_mission_objects, ai_flights.gd):
 ## every placed unit's model with its LOD copies, and the AI's jets. Only those: the flight takes each one, nothing is
-## left over (a wider list once held ≈ 340 MB more). Skipped: the unused player slots, the never-drawn classes, a
-## model with a detailed stand-in (its LODs are made on the main thread).
+## left over (a wider list once held ≈ 340 MB more). Skipped: the unused player slots, the never-drawn classes. A model
+## with a detailed stand-in (Models: Detailed) is listed as the stand-in, which parses with its LODs.
 static func mission_models(files: Array, bdb: Dictionary) -> Array:
 	var mission_runtime := _script("mission/mission_runtime")
 	var aircraft_model := _script("aircraft/aircraft_model")
@@ -158,10 +163,13 @@ static func mission_models(files: Array, bdb: Dictionary) -> Array:
 			if plane != "":
 				# A jet the AI flies: its own model (ai_flights.gd setup).
 				var d: Dictionary = aircraft_model.load_descriptor(plane)
-				if not d.is_empty() and gltf.detailed(String(d.model)) == "":
-					out[aircraft_model._planes_dir(plane).path_join(plane).path_join(d.model)] = true
+				if not d.is_empty():
+					out[_jet_model(plane, d)] = true
 				continue
-			if klass in [0x11, 0x12, 0x1b] or gltf.detailed(path) != "":
+			if klass in [0x11, 0x12, 0x1b]:
+				continue
+			if gltf.detailed(path) != "":
+				out[gltf.detailed(path)] = true  # Gltf.object's stand-in
 				continue
 			out[gltf.objects_path(path)] = true
 			if path.ends_with("_h.gltf"):
@@ -177,6 +185,13 @@ static func ready_to_fly() -> bool:
 		return false
 	poll()
 	return not _script("util/img").prefetching()
+
+
+## The full path of the model AircraftModel.create opens for `plane` (descriptor `d`): its detailed model with Models
+## Detailed, else its own.
+static func _jet_model(plane: String, d: Dictionary) -> String:
+	var hd: String = _script("util/gltf").detailed(String(d.model))
+	return hd if hd != "" else _script("aircraft/aircraft_model")._planes_dir(plane).path_join(plane).path_join(d.model)
 
 
 ## The flight scene: preload_scene()'s (waiting for it if still loading), else loaded here.

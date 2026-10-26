@@ -76,3 +76,22 @@ func run() -> void:
 	var w: Vector3 = tv.player_world()
 	check(Vector2(w.x, w.y).distance_to(Vector2(s2.x, s2.y)) < 2000.0, "the jet starts at the chosen flight's start")
 	check(gltf._ahead_tasks.is_empty() and gltf._ahead.is_empty(), "no model parsed ahead is left over")
+
+	# Models Detailed: the player's detailed F-16D parses ahead too, with its LODs and meshes made on the worker, and
+	# open() takes that parse.
+	settings().models = "detailed"
+	var hd: String = gltf.DETAILED["f16_h.gltf"]
+	tp._prefetched = Vector3i(-1, -1, -1)
+	tp.prefetch_flight(231, 0)
+	check(gltf._ahead_tasks.has(hd), "Models Detailed: the player's F-16D parses ahead")
+	check(await until(func(): return gltf.parsed_ahead(hd), 60.0), "the F-16D's parse ends")
+	var st: GLTFState = gltf._ahead.get(hd, [null, null])[1]
+	check(
+		st != null and st.get_meshes().any(func(m): return m.mesh.get_surface_lod_count(0) > 0),
+		"the parse made the F-16D's LODs"
+	)
+	gltf._objects.erase("%d:%s" % [gltf.object_level, hd])
+	var m = gltf.model(hd)
+	check(m != null and m[1] == st and not gltf._ahead.has(hd), "the flight's open takes the parse ahead")
+	gltf.drop_ahead()
+	settings().models = "original"

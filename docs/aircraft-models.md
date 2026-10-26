@@ -52,8 +52,9 @@ The game reads positions from the aircraft model. The detailed model keeps them 
 ### 1.2 Loading
 
 `util/gltf.gd` maps the original file `f16_h.gltf` to the detailed glb (`DETAILED`) while the switch is on.
-`open_detailed()` parses the glb once and shares it between all jets, so the textures are in video memory once.
-It also builds LODs for every mesh (`ImporterMesh.generate_lods`).
+`Gltf.model()` parses the glb once and shares it between all jets, so the textures are in video memory once.
+The parse also builds LODs for every mesh (`ImporterMesh.generate_lods`) and the meshes themselves. The mission
+screens parse it ahead on a worker thread, as the mission's other models (rendering.md §1.5).
 
 KTX2: Godot 4.7.2's runtime glTF loader reads `KHR_texture_basisu` and decodes it to RGBA8 with the mipmaps stored
 in the file. KTX2 keeps the glb small; in video memory the textures are uncompressed (§1).

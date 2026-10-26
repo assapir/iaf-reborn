@@ -4,10 +4,11 @@
 # (front_end._fly) and prints the time from Fly to the first flying frame, with the terrain's and the models' progress
 # on the way (a start over 60 s prints the terrain's queue and quits with 1). PB_JPEG=1: the terrain's JPEG fallback
 # (Terrain.precompressed off). PB_PREFS="sky=atmospheric,water=true,…": settings fields set before the TSD (true /
-# false as booleans, else strings). PB_FLY seconds (default 10) of flying frames are timed after the
-# start (worst, frames over 50 ms). The time since launch is printed at the main menu, the TSD and the first flying
-# frame (docs/rendering.md §1.6, the shader compiles). PB_EVENTS=1 then times what first shows mid-flight (_events);
-# PB_SHOTS=<dir> saves the view after the start and after each event. Vsync off; the menus run at Max FPS.
+# false as booleans, integers as ints, else strings; the F-35I: f35i_slot=0,jet_id=0). PB_FLY seconds (default 10)
+# of flying frames are timed after the start (worst, frames over 50 ms). The time since launch is printed at the main
+# menu, the TSD and the first flying frame (docs/rendering.md §1.6, the shader compiles). PB_EVENTS=1 then times what
+# first shows mid-flight (_events); PB_SHOTS=<dir> saves the view after the start and after each event. Vsync off; the
+# menus run at Max FPS.
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 PB_MISSION=311 PB_WAIT=6 -- --log-file /tmp/p.log --path game \
 #     --resolution 2560x1440 -s ../tests/godot/_preload_bench.gd
 extends "res://../tests/godot/base.gd"
@@ -83,7 +84,9 @@ func run() -> void:
 		load("res://terrain/terrain.gd").precompressed = false  # the JPEGs, compressed at run time
 	for kv in OS.get_environment("PB_PREFS").split(",", false):
 		var p := kv.split("=")
-		settings().set(p[0], p[1] == "true" if p[1] in ["true", "false"] else p[1])
+		settings().set(
+			p[0], p[1] == "true" if p[1] in ["true", "false"] else int(p[1]) if p[1].is_valid_int() else p[1]
+		)
 	change_scene_to_file("res://menu/front_end.tscn")
 	await frames(1)
 	print("PB main menu shown %d ms after launch" % Time.get_ticks_msec())
