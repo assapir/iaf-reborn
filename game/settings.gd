@@ -723,10 +723,19 @@ const QUIT_AUDIO_S := 0.15
 
 
 func quit() -> void:
+	await wait_for_loads()
 	_free_sounds()
 	get_tree().paused = true
 	await get_tree().create_timer(QUIT_AUDIO_S, true, false, true).timeout
 	get_tree().quit()
+
+
+## Waits while the flight scene still loads on its thread (terrain_preload.gd preload_scene): quitting under it
+## aborts the load with parse errors.
+func wait_for_loads() -> void:
+	var scene: String = load("res://terrain/terrain_preload.gd").SCENE
+	while ResourceLoader.load_threaded_get_status(scene) == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+		await get_tree().process_frame
 
 
 ## A stall in the game log (docs/logs.md): a frame longer than STALL_MS gets a line with its length, the scene (the

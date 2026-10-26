@@ -11,6 +11,7 @@ func _initialize() -> void:
 	await process_frame
 	await run()
 	print("RESULT %s" % ("FAIL" if failures > 0 else "PASS"))
+	await settings().wait_for_loads()  # as the game's quit: the flight scene's background load finishes first
 	settings()._free_sounds()  # as the game's quit (Settings.quit): no playback reported leaked at exit
 	paused = true
 	await create_timer(settings().QUIT_AUDIO_S, true, false, true).timeout
