@@ -1,5 +1,7 @@
 # Rain (ours, Preferences > Graphics → MORE "Rain": Off / Light / Heavy; docs/rendering.md §10). The original has no
-# weather: Off (the default) makes nothing and changes nothing. Light / Heavy: falling drops around the camera
+# weather: Off (the default) makes nothing and changes nothing, whatever the mission says. Light / Heavy: a mission's
+# own weather (Settings.flight_weather: the mission editor's and the Mission Creator's Weather; Clear stays dry) or,
+# for a mission without one (the originals), the switch's level. Light / Heavy rain: falling drops around the camera
 # (rain.gdshader), drops on the canopy in the cockpit views (canopy_drops.gdshader), wet ground (the global `rain_wet`:
 # terrain.gdshader, model_detail.gdshaderinc), a shorter visibility and a dimmer sun (apply_env). Rendering only:
 # nothing here touches the simulation. terrain_view.gd makes the node when the rain is on and feeds it each frame.
@@ -44,9 +46,11 @@ var _cam_last := Vector3.INF
 var _cam_vel := Vector3.ZERO
 
 
-## The chosen level's row; {} = Off.
+## The flight's rain level's row; {} = dry (the switch Off, or a Clear mission).
 static func level() -> Dictionary:
-	return LEVELS.get(Settings.rain, {})
+	if Settings.rain == "off":
+		return {}
+	return LEVELS.get(Settings.rain if Settings.flight_weather.is_empty() else Settings.flight_weather, {})
 
 
 ## The air's relative humidity 0..1 at `alt_m` (a hook for the condensation of vapour_fx.gd, which assumes its own:

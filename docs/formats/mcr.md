@@ -60,17 +60,20 @@ lists hold the first four, the Red lists the first two. Index 4 can only come fr
   and the record keeps the bytes read so far. The screen then shows the record (`FUN_004fafb0`).
 * The port refuses a file shorter than 0x5ac bytes and keeps the screen as it was.
 
-## Ours: the wind trailer
+## Ours: the wind and weather trailer
 
-With Extras "Mission Creator: Better" on (front-end.md §19.4) the port's SAVE writes 12 more bytes after the record:
+With Extras "Mission Creator: Better" on (front-end.md §19.4) the port's SAVE writes 16 more bytes after the record:
 
 | offset | size | field | values |
 |---|---|---|---|
 | 0x5ac | 4 | tag | `IAFW` |
 | 0x5b0 | 4 | WIND | knots: 0, 10, 15, 20 |
 | 0x5b4 | 4 | FROM | degrees true: 0, 45 … 315 |
+| 0x5b8 | 4 | WEATHER | 0 Default (no weather of its own), 1 Clear, 2 Light rain, 3 Heavy rain, 4 Random |
 
-The record itself has no free bytes (the text buffers' tails hold whatever the exe's buffer held), so the wind goes
+A trailer saved before the weather ends at 0x5b8 and loads as Default.
+
+The record itself has no free bytes (the text buffers' tails hold whatever the exe's buffer held), so the trailer goes
 after it. The original's LOAD reads exactly 0x5ac bytes (`ReadFile`) and ignores the rest, so it loads these files;
 its SAVE creates the file anew (`CREATE_ALWAYS`) and drops the trailer. With the switch off the port writes the
 original's 0x5ac bytes and its LOAD ignores a trailer.

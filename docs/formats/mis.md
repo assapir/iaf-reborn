@@ -73,6 +73,7 @@ Each class below lists its tagged fields in read order: field id (fid), type (t)
 | 0x460 | F | start time of day, seconds after midnight (28800 = 08:00); the time-of-day option overrides it (mission-runtime.md §5.3) |
 | 0x46a | I | wind speed in kt (0, 10, 15, 20 …; a few missions store the pair swapped); the tower's wind (`FUN_00551320`, radio.md) |
 | 0x474 | I | wind direction in degrees (0, 270, 180 …; inferred, no reader found) |
+| `weather` | — | **ours**, only in the converted JSON, never in a .mis: `"clear"`, `"light"`, `"heavy"` or `"random"`, the mission's weather (the mission editor, Mission Creator Better; rendering.md §10). No field: no weather of its own (every original) |
 | 0x47e | S | debrief headline when passed |
 | 0x488 | S | (always empty) |
 | 0x492 | S | debrief headline when not passed |

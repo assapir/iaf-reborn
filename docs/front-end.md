@@ -2758,9 +2758,13 @@ also when the stores come from the type's default load. Guns Only also disables 
     SW, W, NW (the wind's "from", true). Their boxes are copies of TIME's art, their labels Arial bold −11; they
     open, list and commit as the other combos. With WIND on Calm, FROM is greyed (dark green text) and does not
     open. The state starts at the template's wind (10 kt, W), so the switch alone changes nothing in the mission.
+  * **WEATHER** (158,170) w52, in the ALT column, same art and label: Default, Clear, Light rain, Heavy rain, Random
+    (rendering.md §10). Default writes no weather, so the mission rains at the Graphics Rain level, as without the
+    switch; the others are the mission's own weather, and FLY writes them into misc `weather` (formats/mis.md).
   * FLY writes the knots into misc 0x46a and the degrees into 0x474. The tower says that wind, and Better physics
     "Wind and turbulence" flies it and turns the runways into it (flight-model.md §10, autopilot.md §2.4).
-  * SAVE appends the wind to the 0x5ac bytes as a 12-byte trailer (formats/mcr.md); LOAD reads it, and a file
-    without one gets the template's wind.
-  * RANDOM draws the wind after the exe's draws (speed 0..3, direction 0..7 × 45°), so the rest is the original's.
+  * SAVE appends the wind and weather to the 0x5ac bytes as a 16-byte trailer (formats/mcr.md); LOAD reads it, and
+    a file without one gets the template's wind and Default.
+  * RANDOM draws the wind after the exe's draws (speed 0..3, direction 0..7 × 45°), then the weather (Clear, Light or
+    Heavy rain), so the rest is the original's.
   * Switch off: the screen, RANDOM, SAVE (0x5ac bytes) and FLY are the original's; LOAD ignores a trailer.

@@ -146,8 +146,10 @@ func run() -> void:
 	# On: WIND / FROM after the 20, the template's wind to start, picked like any combo.
 	settings().better_mc = true
 	mcv.setup(fe)
-	check(mcv.combos.size() == 22 and mcv.shown_text(20) == "10 kt" and mcv.shown_text(21) == "W", "on: WIND 10 kt W")
+	check(mcv.combos.size() == 23 and mcv.shown_text(20) == "10 kt" and mcv.shown_text(21) == "W", "on: WIND 10 kt W")
 	check(mcv.items(20).size() == 4 and mcv.items(21).size() == 8, "WIND: Calm / 10 / 15 / 20 kt; FROM: 8 points")
+	check(mcv.shown_text(22) == "Default" and mcv.items(22).size() == 5, "WEATHER: Default to start, 5 choices")
+	check(not mc_build()[0].data.misc.items[0].has("weather"), "WEATHER Default: no misc weather (the Rain level)")
 	settings().mc = saved.duplicate(true)
 	mcv._set_state(settings().mc)
 	pick(20, 3)
@@ -159,10 +161,15 @@ func run() -> void:
 		"Calm: FROM greyed, it does not open"
 	)
 	pick(20, 3)
+	pick(22, 3)
 	misc0 = mc_build()[0].data.misc.items[0]
 	check(int(misc0["0x46a"]) == 20 and int(misc0["0x474"]) == 135, "FLY writes misc 0x46a = 20, 0x474 = 135")
+	check(misc0.get("weather") == "heavy", "FLY writes the weather Heavy rain into misc weather")
 	var wpath := folder.path_join("Wind")
-	check(mcv.write(wpath) and FileAccess.get_file_as_bytes(wpath).size() == 0x5ac + 12, "SAVE adds the wind trailer")
+	check(
+		mcv.write(wpath) and FileAccess.get_file_as_bytes(wpath).size() == 0x5ac + 16,
+		"SAVE adds the wind and weather trailer"
+	)
 	check(
 		FileAccess.get_file_as_bytes(wpath).slice(0, 0x5ac) == FileAccess.get_file_as_bytes(folder.path_join("Test 1")),
 		"the first 0x5ac bytes are the original record"
@@ -171,7 +178,7 @@ func run() -> void:
 	check(
 		mcv.read(folder.path_join("Test 1")) and int(settings().mc.wind_kt) == 10, "an original file: the default wind"
 	)
-	check(mcv.read(wpath) and settings().mc == windy, "LOAD restores the wind")
+	check(mcv.read(wpath) and settings().mc == windy, "LOAD restores the wind and the weather")
 	mcv.button("random")
 	check(
 		int(settings().mc.wind_kt) in [0, 10, 15, 20] and int(settings().mc.wind_from) % 45 == 0,
@@ -180,9 +187,13 @@ func run() -> void:
 	# Off again: the wind file loads without its wind, FLY keeps the template's.
 	settings().better_mc = false
 	mcv.setup(fe)
-	check(mcv.read(wpath) and not settings().mc.has("wind_kt"), "switch off: LOAD drops the trailer's wind")
+	check(
+		mcv.read(wpath) and not settings().mc.has("wind_kt") and not settings().mc.has("weather"),
+		"switch off: LOAD drops the trailer's wind and weather"
+	)
 	misc0 = mc_build()[0].data.misc.items[0]
 	check(int(misc0["0x46a"]) == 10 and int(misc0["0x474"]) == 270, "switch off: FLY keeps the template's wind")
+	check(not misc0.has("weather"), "switch off: no misc weather")
 
 	# FLY: Alpha 2 MiG-29 Aggressors from Ramon at 10000ft, Charlie 1 MiG-21 Bombers, Radar Station, By Target.
 	settings().mc = saved

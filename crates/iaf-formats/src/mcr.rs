@@ -52,7 +52,14 @@ pub struct Mission {
     /// Ours, Extras "Mission Creator: Better" (docs/front-end.md §19.4): the wind FLY writes into mission 0x29a's misc
     /// 0x46a / 0x474; None = the original (the template's own wind). Saved in the file's `WIND_TAG` trailer.
     pub wind: Option<Wind>,
+    /// Ours, with a wind (Better): the weather FLY writes into misc `weather` (docs/formats/mis.md): `WEATHER`'s
+    /// index: 0 Default (none of its own: the Graphics Rain level), 1 Clear, 2 Light rain, 3 Heavy rain, 4 Random.
+    /// Saved after the wind in the trailer.
+    pub weather: i32,
 }
+
+/// The weather's values in the mission's misc `weather`, by `Mission::weather`.
+pub const WEATHER: [&str; 5] = ["", "clear", "light", "heavy", "random"];
 
 /// The Mission Creator's wind (ours): `knots` 0 / 10 / 15 / 20 (what the tower can say), `from` degrees true.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -61,7 +68,8 @@ pub struct Wind {
     pub from: i32,
 }
 
-/// Ours: the trailer after the 0x5ac bytes that holds `Mission::wind`: this tag, then knots and from (i32 each). The
+/// Ours: the trailer after the 0x5ac bytes that holds `Mission::wind` and `weather`: this tag, then knots, from and
+/// the weather (i32 each; a file saved before the weather ends after from: Default). The
 /// exe's LOAD reads only the first 0x5ac bytes and its SAVE truncates the file (CREATE_ALWAYS), so the original
 /// ignores the trailer and drops it on a save.
 pub const WIND_TAG: &[u8; 4] = b"IAFW";
@@ -99,6 +107,7 @@ impl Mission {
             std::array::from_fn(|k| i(0x580 + 4 * k).unwrap_or(0));
         if d.len() >= SIZE + 12 && &d[SIZE..SIZE + 4] == WIND_TAG {
             m.wind = Some(Wind { knots: i(SIZE + 4)?, from: i(SIZE + 8)? });
+            m.weather = i(SIZE + 12).unwrap_or(0);
         }
         Ok(m)
     }
@@ -134,6 +143,7 @@ impl Mission {
             d.extend_from_slice(WIND_TAG);
             d.extend_from_slice(&w.knots.to_le_bytes());
             d.extend_from_slice(&w.from.to_le_bytes());
+            d.extend_from_slice(&self.weather.to_le_bytes());
         }
         d
     }
@@ -141,7 +151,8 @@ impl Mission {
     /// RANDOM (`FUN_004f64b0`): the name "Random", empty notes, then the draws in the exe's order from the C runtime's
     /// rand seeded with `seed` (timeGetTime). Some draws reach one past a combo's list (AI 4, SAMs / AAA 4): the
     /// combo then shows nothing and the state keeps the index. Multiplayer fields stay as they are (single player).
-    /// Ours: a state with a wind then draws it too (0 / 10 / 15 / 20 kt, from a multiple of 45°).
+    /// Ours: a state with a wind then draws it too (0 / 10 / 15 / 20 kt, from a multiple of 45°), then the weather
+    /// (Clear, Light or Heavy rain).
     pub fn random(&mut self, seed: u32) {
         let mut r = Rand(seed);
         self.name = b"Random".to_vec();
@@ -165,6 +176,7 @@ impl Mission {
         }
         if self.wind.is_some() {
             self.wind = Some(Wind { knots: [0, 10, 15, 20][r.range(0, 3) as usize], from: 45 * r.range(0, 7) });
+            self.weather = r.range(1, 3);
         }
     }
 
@@ -223,9 +235,12 @@ mod tests {
         assert!(Mission::parse(&b[..SIZE - 1]).is_err());
         // The wind trailer: after the original's bytes, which stay the same.
         m.wind = Some(Wind { knots: 15, from: 225 });
+        m.weather = 3;
         let w = m.to_bytes();
-        assert_eq!((w.len(), &w[..SIZE], &w[SIZE..SIZE + 4]), (SIZE + 12, &b[..], &WIND_TAG[..]));
+        assert_eq!((w.len(), &w[..SIZE], &w[SIZE..SIZE + 4]), (SIZE + 16, &b[..], &WIND_TAG[..]));
         assert_eq!(Mission::parse(&w).unwrap(), m);
+        let old = Mission::parse(&w[..SIZE + 12]).unwrap();
+        assert_eq!((old.wind, old.weather), (m.wind, 0), "a trailer from before the weather: Default");
         assert_eq!(Mission::parse(&w[..SIZE]).unwrap().wind, None, "the original's file: no wind");
     }
 
@@ -246,7 +261,8 @@ mod tests {
             w.random(seed);
             let Some(Wind { knots, from }) = w.wind else { unreachable!() };
             assert!([0, 10, 15, 20].contains(&knots) && from % 45 == 0 && (0..360).contains(&from));
-            assert_eq!(Mission { wind: None, ..w }, m, "the exe's draws come first, unchanged");
+            assert!((1..=3).contains(&w.weather), "RANDOM draws Clear, Light or Heavy rain");
+            assert_eq!(Mission { wind: None, weather: 0, ..w }, m, "the exe's draws come first, unchanged");
         }
         // The CRT's first draws from seed 1: 41, 18467, 6334.
         let mut r = Rand(1);
