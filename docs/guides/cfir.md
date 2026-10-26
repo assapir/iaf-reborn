@@ -302,15 +302,15 @@ calls the tower near an Israeli base. The approach speeds and touchdown limits a
 With the gear down the AoA (angle of attack) takes the row under the g. The ILS (instrument landing system) lines
 guide you to the nearest airbase's runway.
 
-![Final approach, 3.6 NM out at about 900 ft, 141 kt](shots/cfir/landing_final.png)
+![Final approach, 2.2 NM out at about 900 ft, 141 kt](shots/cfir/landing_final.png)
 
 1. **Flight path marker**: on the runway here.
 2. **AoA**: 3° here.
 3. **ILS glide-slope line**: it crosses the localizer line at the HUD's centre when you are on the runway's centre
    line and on a 5° glide path. It drops when you are high.
-4. **ILS localizer line**, held at the HUD's left edge here.
-5. **Steering bug** held at the scale's right end, its arrow pointing right: the waypoint is more than 15° right.
-6. **Waypoint marker** with its X, held at the edge.
+4. **ILS localizer line**: through the HUD's centre here: you are on the runway's centre line.
+5. **Steering bug** under the heading: the waypoint lies ahead.
+6. **Waypoint marker**: waypoint 1, ahead on the runway.
 7. **Airspeed**: 141 kt.
 8. **Altitude**: about 900 ft.
 

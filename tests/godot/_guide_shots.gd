@@ -31,8 +31,9 @@
 # HUD's own output (hud.gd real_hud(), resolved every frame): "sym": "text:REGEX" (the first HUD text it matches: the
 # box the HUD draws it in, hud.gd prim_text_box; "nth": 2 the second match), "circle:N" (the N-th largest circle, at its
 # edge `edge`° clockwise from 12 o'clock, default 270) or a named point of the HUD's input ("fpm", "gun_cross",
-# "boresight", "horizon", "target", "steerpoint", "seeker", "pipper", "lcos", "steering", "delay_at": the delayed CCIP's
-# target), moved by "d": [x, y] HUD pixels; or "px": [x, y], a fraction of the crop (the MFD pages, the original HUD).
+# "boresight", "horizon", "ils": where the ILS lines cross, "target", "steerpoint", "seeker", "pipper", "lcos",
+# "steering", "delay_at": the delayed CCIP's target), moved by "d": [x, y] HUD pixels; or "px": [x, y], a fraction of
+# the crop (the MFD pages, the original HUD).
 # The guide lists the legend as a numbered list right under the picture (tools/guide_pdf.py checks the counts match). An
 # anchor that resolves to nothing or outside the crop fails the shot (GUIDE_DEBUG=1 outlines each anchor in red). Each
 # shot prints a GUIDE_INFO line with the HUD's texts and the radar lock / DLZ (for the guide's examples).
@@ -206,18 +207,31 @@ func _tick() -> void:
 	await process_frame
 
 
-## Frozen on final approach: `dist` m short of the mission's start point along its heading, `alt` m up, on a 3° glide
-## path at 75 m/s (≈145 kt), the nose `aoa`° above it, gear down.
+## Frozen on final approach to the ILS runway of the base nearest the mission's start (its lineup point and runway
+## heading, radio.gd's bases: the game's ILS, iaf_flight::airbase::ils): `dist` m short of the lineup point, `alt` m
+## above it, on a 3° glide path at 75 m/s (≈145 kt), the nose `aoa`° above it, gear down.
 func _final(dist: float, alt: float, aoa: float) -> Node:
 	tv.frozen = true
 	tv.fm_stopped = true
 	tv.gear_down = true
 	tv.gear_legs = [2, 2, 2]
-	var st0: Dictionary = tv.flight.state()
-	var fwd: Vector3 = st0.forward
-	var flat := Vector3(fwd.x, 0, fwd.z).normalized()
-	tv.rig.position -= flat * dist
-	tv.rig.position.y += alt
+	var at: Vector3 = tv.scene_to_world(tv.rig.position)
+	var base: Dictionary = {}
+	for b in tv.radio.bases:
+		if (
+			base.is_empty()
+			or (
+				Vector2(b.lineup.x - at.x, b.lineup.y - at.y).length()
+				< Vector2(base.lineup.x - at.x, base.lineup.y - at.y).length()
+			)
+		):
+			base = b
+	var hdg := float(base.get("hdg", base.rwy))
+	var h := deg_to_rad(hdg)
+	tv.rig.position = tv.world_to_scene(base.lineup - Vector3(sin(h), cos(h), 0.0) * dist + Vector3(0, 0, alt))
+	tv.rig.basis = Basis.from_euler(Vector3(0.0, -h, 0.0), EULER_ORDER_YXZ)
+	var flat := Vector3(sin(h), 0.0, -cos(h))
+	var st0 := {"heading": hdg}
 	tv.rig.rotate_object_local(Vector3.RIGHT, deg_to_rad(aoa - 3.0))
 	if aoa != 0.0:
 		# The stopped flight model reports 0° AoA: the instruments get `aoa` after the view's update, every frame.
@@ -480,7 +494,7 @@ func _anchor(a: Dictionary, rect: Rect2i) -> Variant:
 			ci = hud if cs[k].layer == "field" else hud.outer
 	else:
 		match sym:
-			"fpm", "gun_cross", "boresight", "horizon":
+			"fpm", "gun_cross", "boresight", "horizon", "ils":
 				p = inp.get(sym)
 			"target", "steerpoint":
 				p = inp.get(sym, {}).get("at")

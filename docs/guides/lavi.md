@@ -335,18 +335,17 @@ calls the tower near an Israeli base. The approach speeds and touchdown limits a
 With the gear down the left column adds the AoA (angle of attack), and the radar altitude `R` shows below 5,000 ft.
 The ILS (instrument landing system) needles ride the flight path marker: fly the marker to where they cross.
 
-![Final approach, 3.6 NM out at about 700 ft, 141 kt, 5° AoA](shots/lavi/landing_final.png)
+![Final approach, 2.2 NM out at about 700 ft, 141 kt, 5° AoA](shots/lavi/landing_final.png)
 
 1. **Flight path marker**: on the runway threshold here.
 2. **ILS glide-slope needle**: it crosses the localizer needle at the marker when you are on the runway's centre line
    and on a 5° glide path. It drops when you are high.
-3. **ILS localizer needle**: left of the marker here: the runway's extended centre line lies to the left.
-4. **Steering arrow**: steerpoint 1 lies at 254°, outside the scale: turn right.
-5. **AoA** in degrees: `AOA 5.0`.
-6. **Radar altitude**: about 700 ft above the ground.
-7. **Steerpoint diamond** held at the edge, with its X.
-8. **Airspeed**: 141 kt.
-9. **Heading**: 150°.
+3. **ILS localizer needle**: through the marker here: you are on the runway's centre line.
+4. **AoA** in degrees: `AOA 5.0`.
+5. **Radar altitude**: about 700 ft above the ground.
+6. **Steerpoint diamond**: steerpoint 1, ahead on the runway.
+7. **Airspeed**: 141 kt.
+8. **Heading**: 270°.
 
 **Example**: on a 3° path the glide-slope needle sits above the marker: you are under the 5° path the lines
 measure. Read the AoA directly: fly the final at the game's landing-lesson 165 kt and watch `AOA` rise as you slow.

@@ -567,7 +567,7 @@
  },
  {
   "name": "landing_final",
-  "caption": "Final approach at 6° AoA, 3.6 NM out",
+  "caption": "Final approach at 6° AoA, 2.2 NM out",
   "mission": 311,
   "jet": 4,
   "settings": {
@@ -637,24 +637,26 @@
    },
    {
     "n": 3,
-    "px": [
-     0.359,
-     0.393
-    ],
     "label_at": [
      0.291,
      0.307
+    ],
+    "sym": "ils",
+    "d": [
+     0,
+     20
     ]
    },
    {
     "n": 4,
-    "px": [
-     0.533,
-     0.364
-    ],
     "label_at": [
      0.613,
      0.307
+    ],
+    "sym": "ils",
+    "d": [
+     20,
+     0
     ]
    },
    {
