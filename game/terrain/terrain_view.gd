@@ -3465,9 +3465,9 @@ func _modes_text() -> String:
 ## Ours: the roll trim on the info line while it is off centre, e.g. "  TRIM L 20%".
 func _trim_text() -> String:
 	var t: float = flight.roll_trim() if flight != null else 0.0
-	if absf(t) < 0.005:
+	if absf(t) < 0.0005:
 		return ""
-	return "  TRIM %s %d%%" % ["R" if t > 0.0 else "L", roundi(absf(t) * 100.0)]
+	return "  TRIM %s %.1f%%" % ["R" if t > 0.0 else "L", absf(t) * 100.0]
 
 
 ## Scripted stick / rudder for tests (held until changed).

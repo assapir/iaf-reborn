@@ -112,13 +112,15 @@ func throttle_axis() -> int:
 	return last_throttle if throttle_used() else -1
 
 
-## The rocker −1..1 (right +) while Settings.rocker_trim is on, else 0.
+## The rocker −1..1 (right +) while Settings.rocker_trim is on, else 0; squared, so a light push trims slowly
+## (half rocker = a quarter of the rate) and full rocker at the full rate.
 func rocker() -> float:
 	var d := device()
 	if not has_fifth_axis() or not Settings.rocker_trim:
 		return 0.0
 	var i: int = Settings.joy_axes[4] if Settings.joy_axes.size() > 4 else ROCKER_AXIS
-	return _dead(axis(d, i), ROCKER_DEAD_ZONE)
+	var r := _dead(axis(d, i), ROCKER_DEAD_ZONE)
+	return r * absf(r)
 
 
 ## A joystick with a 5th axis is connected (or one whose axis count is unknown): the Devices page shows "Throttle

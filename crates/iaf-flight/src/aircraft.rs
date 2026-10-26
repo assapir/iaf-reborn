@@ -98,9 +98,10 @@ const SQUAT_UP: f32 = 1.0 * PI / 180.0;
 // Better physics: FLCS (fly-by-wire) departure = deep stall (types 100 F-16, 140 Lavi; not in the
 // original, which never lets them depart). Estimates from public F-16 high-AoA data (NASA TP-1538 wind-tunnel
 // data, the F-16 deep-stall reports and the -1 recovery procedure); docs/flight-model.md §10.1.
-/// Ours: the roll trim's speed at full rocker, stick per second (inferred: end to end in 5 s, fine enough for the
-/// ≈ 0.2 stick a 2000 lb bomb on one wing needs at cruise).
-const ROLL_TRIM_RATE: f32 = 0.2;
+/// Ours: the roll trim's speed at full rocker, stick per second (inferred: the ≈ 0.2 stick a 2000 lb bomb on one
+/// wing needs at cruise in 5 s, a 0.1 s tap 0.004 stick ≈ 0.6°/s of roll in the F-16; 0.2 / s was too coarse to
+/// balance the jet, user 2026-10-26).
+const ROLL_TRIM_RATE: f32 = 0.04;
 /// Deep-stall trim AoA (the F-16's second pitch trim point, ~60°, beyond the horizontal tail's nose-down power).
 const DS_ALPHA: f32 = 60.0 * PI / 180.0;
 /// Normal-force coefficient at the trim AoA (flat-plate-like, NASA TP-1538 CN(60°) ≈ 1.5): lift = N·cos α,
@@ -2758,7 +2759,7 @@ mod tests {
 
     #[test]
     fn roll_trim_holds_the_heavy_wing() {
-        // Full rocker for 1 s trims 0.2 stick; the trim stops at full stick.
+        // Full rocker for 1 s trims ROLL_TRIM_RATE stick; the trim stops at full stick.
         let mut a = airborne(100, 3000.0, 150.0);
         a.trim_roll(1.0, 1.0);
         assert!((a.roll_trim() - ROLL_TRIM_RATE).abs() < 1e-6);

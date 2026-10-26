@@ -481,8 +481,10 @@ the same code).
 * **Ours: Devices page "Throttle rocker"** (under RUDDER; settings.cfg `[devices] rocker_trim`). It gives a spring-
   centred 5th axis the roll trim (`Joystick.rocker`, `Aircraft::trim_roll`).
   * **Off** (the default) is the original: four axes. The original has no trim.
-  * **Roll trim**: while the rocker is held, the trim moves at up to 0.2 stick per second (full rocker; 5 s from
-    centre to full). Released, the trim stays. A 10 % dead zone holds a wobbling rest.
+  * **Roll trim**: while the rocker is held, the trim moves at up to 0.04 stick per second at full rocker (5 s for
+    the 0.2 stick a 2000 lb bomb on one wing needs; a short tap is a fraction of a degree per second of roll). The
+    rocker's response is squared: half rocker trims at a quarter of the rate, for fine balancing. 0.2 stick per
+    second, linear, was too coarse to balance the jet (tried and dropped 2026-10-26). Released, the trim stays. A 10 % dead zone holds a wobbling rest.
   * The row shows only with a joystick that has a 5th axis. The count comes from the device's USB HID report
     descriptor (`IafHid.axis_count`, `iaf_formats::hid::input_axes`: the Generic Desktop X, Y, Z, Rx, Ry, Rz,
     Slider, Dial, Wheel and the Simulation rudder / throttle / accelerator / brake inputs). macOS lists the
@@ -498,7 +500,7 @@ the same code).
     while the trim is off centre.
   * The keys **Alt + Left / Right** trim the same way at the full rate, with or without a stick (§2 "Own keys").
     There is no reset, as in the real jets: trim until the jet flies hands-off.
-  * The trim shows on the flight-info line (Ctrl + F12) while it is off centre, e.g. "TRIM L 20%" (20 % of full
+  * The trim shows on the flight-info line (Ctrl + F12) while it is off centre, e.g. "TRIM L 2.4%" (2.4 % of full
     stick, left wing down), and on the external model: the ailerons follow the roll command (stick + trim; flight
     state `roll_stick`).
   * The flight model adds the trim to the stick in the airborne roll command, `p_cmd = MaxRollRate · clamp(stick +
