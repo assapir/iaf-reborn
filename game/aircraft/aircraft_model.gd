@@ -172,7 +172,7 @@ func _borrow_parts() -> void:
 		var sd := load_descriptor(String(src.plane))
 		if mine == null or sd.is_empty():
 			continue
-		var model = Gltf.open(_planes_dir(String(src.plane)).path_join(String(src.plane)).path_join(sd.model))
+		var model = Gltf.open(_borrowed_model(src))
 		if model == null:
 			continue
 		var other: Node3D = Gltf.instance(model)
@@ -195,6 +195,24 @@ func _borrow_parts() -> void:
 		mine.add_child(copy)
 		copy.transform = Transform3D(theirs.transform.basis, pos - mine.transform.origin)
 		other.free()
+
+
+## The full paths of the models descriptor `d` borrows parts from (parsed ahead on the mission screens).
+static func borrowed_models(d: Dictionary) -> Array:
+	var out := []
+	for part in d.get("borrow", {}):
+		var path := _borrowed_model(d.borrow[part])
+		if path != "" and not path in out:
+			out.append(path)
+	return out
+
+
+## The model file of a borrowed part's source plane, "" when it has no descriptor.
+static func _borrowed_model(src: Dictionary) -> String:
+	var sd := load_descriptor(String(src.plane))
+	if sd.is_empty():
+		return ""
+	return _planes_dir(String(src.plane)).path_join(String(src.plane)).path_join(sd.model)
 
 
 static func _planes_dir(plane := "") -> String:

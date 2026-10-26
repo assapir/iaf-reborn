@@ -13,6 +13,7 @@ var scale_factor := 5.0
 ## Render level 0..100 (FUN_005abc90: 75 + 12.5·afterburner stage, else RPM·0.74 ≤ 74).
 var level := 0
 
+const Img := preload("res://util/img.gd")
 const SEGMENTS := 12
 ## Hardware path: cones i = 2 (radius 0.7 r) and i = 3 (radius r); the software path draws only i = 3.
 const CONES := [[2, 0.7], [3, 1.0]]
@@ -51,6 +52,19 @@ void fragment() {
 }
 """
 
+## afterburn.tga, read once for every flame (decoded ahead by prefetch()).
+static var _tex: Texture2D
+
+
+static func _path() -> String:
+	return Settings.assets_dir().path_join("converted/planes/afterburn.png")
+
+
+## The flame's art decoded on a worker thread ahead of the flight (terrain_preload.gd).
+static func prefetch() -> void:
+	if _tex == null:
+		Img.prefetch(_path())
+
 
 func _init() -> void:
 	mesh = _mesh
@@ -63,11 +77,10 @@ func _init() -> void:
 	_material.no_depth_test = false
 	_material.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
 	_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	var tex := preload("res://util/img.gd").load_texture(
-		Settings.assets_dir().path_join("converted/planes/afterburn.png")
-	)
-	if tex != null:
-		_material.albedo_texture = tex
+	if _tex == null:
+		_tex = Img.load_texture(_path())
+	if _tex != null:
+		_material.albedo_texture = _tex
 	else:
 		_material.albedo_color = Color(1.0, 0.75, 0.45, 0.6)
 

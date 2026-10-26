@@ -11,6 +11,7 @@ extends Node3D
 ## additive; the chaff pieces are one shader-driven MultiMesh (a ring of CAP pieces).
 
 const Stores := preload("res://weapons/stores.gd")
+const Img := preload("res://util/img.gd")
 const GpuFx := preload("res://mission/gpu_fx.gd")
 const RATE := 30.0
 ## missFLR.tga is 64 px; sprite width = 0.2 · size · texture width (docs/damage.md §6.1).
@@ -105,11 +106,13 @@ static func _texture(png: String, original: String) -> Texture2D:
 	var path := Settings.assets_dir().path_join("converted/objects").path_join(png)
 	if not FileAccess.file_exists(path):
 		path = Settings.assets_dir().path_join("install/resource/3dobjects").path_join(original)
-	var img := Image.load_from_file(path) if FileAccess.file_exists(path) else null
-	if img == null:
-		return null
-	img.generate_mipmaps()
-	return ImageTexture.create_from_image(img)
+	return Img.load_texture(path, true)
+
+
+## The flare and chaff art decoded on worker threads ahead of the flight (terrain_preload.gd).
+static func prefetch() -> void:
+	for f in ["missflr.png", "chaff.png"]:
+		Img.prefetch(Settings.assets_dir().path_join("converted/objects").path_join(f), true)
 
 
 ## Advances to sim time `now`: `decoys` = the decoys released ({type, end, r: {t0, ...}}; those ended since

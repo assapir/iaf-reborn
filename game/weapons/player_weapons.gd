@@ -242,12 +242,39 @@ var _given_load: Array = []
 ## the jet picked on the Jet list (which the Arming screen shows, mission_weapons.gd); free flight keeps the default.
 func _arm(load: Array, entity: Dictionary) -> Array:
 	var n = host.get("player_flight_number") if host != null else null
-	if (entity.is_empty() and Settings.jet_id < 0) or n == null or not Settings.arm_loadouts.has(int(n)):
+	return _armed(load, entity, -1 if n == null else int(n))
+
+
+## `load` with the Arming screen's choices for flight number `n` (-1: none), when it has them.
+static func _armed(load: Array, entity: Dictionary, n: int) -> Array:
+	if (entity.is_empty() and Settings.jet_id < 0) or not Settings.arm_loadouts.has(n):
 		return load
-	var arm: Array = Settings.arm_loadouts[int(n)]
+	var arm: Array = Settings.arm_loadouts[n]
 	for i in mini(9, arm.size()):
 		load[i] = [int(arm[i][0]), int(arm[i][1])]
 	return load
+
+
+## The full paths of the store models setup() loads for the jet `object` (its pylons' stores and the gun's rounds,
+## as attach_stores and _build_visuals open them), for flight number `n`: parsed ahead on the mission screens
+## (terrain_preload.gd prefetch_flight).
+static func store_models(entity: Dictionary, object: Dictionary, bdb: Dictionary, n: int) -> Array:
+	var objects: Dictionary = Settings.load_json(Settings.assets_dir().path_join("converted/objects/objects.json"))
+	var paths: Dictionary = objects.get(
+		String(bdb.get("_file", "default6_1.bdb")).to_lower(), objects.get("default6_1.bdb", {})
+	)
+	var models := {}
+	for w in bdb.get("weapons", {}).get("items", []):
+		models[int(w.get("0x1e", -1))] = String(paths.get(str(int(w.get("0x730", 0))), ""))
+	var out := []
+	for l in _armed(Stores.loadout(entity, object), entity, n):
+		var p: String = models.get(int(l[0]), "")
+		if p != "" and int(l[1]) != 0:
+			var full := Gltf.detailed(p)
+			full = full if full != "" else Gltf.objects_path(p)
+			if not full in out:
+				out.append(full)
+	return out
 
 
 ## The flight model carries the stores (S+0x424, S+0x42c, S+0x428) and their lateral moment (Better physics).

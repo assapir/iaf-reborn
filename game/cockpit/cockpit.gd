@@ -221,12 +221,17 @@ static func _art(d: String, lay: Dictionary) -> Array:
 	return out
 
 
-## Decodes the art of cockpit `rel` (as load_cockpit takes it) on worker threads ahead of the flight
-## (terrain_preload.gd): ~230 ms of the flight scene's first frame otherwise.
-static func prefetch_art(rel: String) -> void:
-	var d := rel if rel.begins_with("res://") else Settings.assets_dir().path_join(rel)
-	for a in _art(d, Settings.load_json(d.path_join("cockpit.json"))):
-		Img.prefetch(a[1], a[2])
+## Decodes the art of the cockpits `rels` (as load_cockpit takes them; the flight loads each in turn) on worker
+## threads ahead of the flight (terrain_preload.gd): ~230 ms of the flight scene's first frame otherwise. A file two
+## of them load (an extra plane's cockpit borrows the MFD and RWR art) serves both.
+static func prefetch_art(rels: Array) -> void:
+	var uses := {}
+	for rel in rels:
+		var d: String = rel if rel.begins_with("res://") else Settings.assets_dir().path_join(rel)
+		for a in _art(d, Settings.load_json(d.path_join("cockpit.json"))):
+			uses[[a[1], a[2]]] = int(uses.get([a[1], a[2]], 0)) + 1
+	for k in uses:
+		Img.prefetch(k[0], k[1], uses[k])
 
 
 ## The converted art of an original cockpit image file (as _art() names it) as tex[key], when present.

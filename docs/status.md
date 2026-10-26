@@ -128,8 +128,8 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
   (guides/f15.md §11, guides/lavi.md §3 / §11).
 - **World scale Real 1:1**: the real blast radii of the missiles / SAMs without a published lethal radius.
 - **Setup wizard**: the pages wait for the user's review (roadmap.md).
-- **Flight start**: with TAA the first 3D frame compiles the motion-vector shaders and 9 pipelines while drawing
-  (≈ 1 s warm with the Mac settings); the F-35I's start decodes PNG art on the main thread. rendering.md §1.6.
+- **Flight start**: with TAA the loading screen stops for ≈ 1.2 s (warm) while Godot loads the motion-vector shaders
+  of every scene shader in one frame; drawn earlier it stalls the TSD instead. rendering.md §1.6.
 - **Exit**: a real-render bench run with the Mac settings hung after its last line in 4 of ≈ 25 runs on 2026-10-23.
   Not seen since: 0 hangs in 125 runs on 2026-10-26 (`_preload_bench.gd`, warm, cold caches, Fly at once with the
   mid-flight events, under CPU load, before and after the detailed-model preload); cause open.

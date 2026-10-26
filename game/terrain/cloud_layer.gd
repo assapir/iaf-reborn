@@ -47,8 +47,12 @@ void fragment() {
 }
 """
 
+const Img := preload("res://util/img.gd")
+
 var fog_color := Color(0.72, 0.78, 0.86)
 var texture_index := 0
+## The next layer's texture, chosen and decoded ahead by prefetch() (-1: chosen in _ready).
+static var _next := -1
 var _dome: MeshInstance3D
 var _flat: MeshInstance3D
 var _mat: ShaderMaterial
@@ -58,8 +62,20 @@ var _walk := 0
 var whiteout_alpha := 0.0
 
 
+## Picks the next layer's texture and decodes it on a worker thread (the mission screens, terrain_preload.gd).
+static func prefetch() -> void:
+	if _next < 0:
+		_next = randi() % 6
+	Img.prefetch(_path(_next), true)
+
+
+static func _path(i: int) -> String:
+	return Settings.assets_dir().path_join("converted/objects/cloud256_%d.png" % i)
+
+
 func _ready() -> void:
-	texture_index = randi() % 6
+	texture_index = _next if _next >= 0 else randi() % 6
+	_next = -1
 	_mat = ShaderMaterial.new()
 	var sh := Shader.new()
 	sh.code = SHADER
@@ -67,11 +83,9 @@ func _ready() -> void:
 	# The layer is the farthest transparent thing (sky): drawn before the other transparent objects, whose
 	# depth-sorted order would otherwise put the camera-centred dome last, over the explosions and smoke.
 	_mat.render_priority = Material.RENDER_PRIORITY_MIN
-	var path: String = Settings.assets_dir().path_join("converted/objects/cloud256_%d.png" % texture_index)
-	var img := Image.load_from_file(path) if FileAccess.file_exists(path) else null
-	if img != null:
-		img.generate_mipmaps()
-		_mat.set_shader_parameter("tex", ImageTexture.create_from_image(img))
+	var tex := Img.load_texture(_path(texture_index), true)
+	if tex != null:
+		_mat.set_shader_parameter("tex", tex)
 	_mat.set_shader_parameter("scale", 1.0 / (1.2 * FAR))
 	var edges := ring_edges()
 	_dome = _ring_mesh(edges, false)
