@@ -1,0 +1,7 @@
+# Keeps the CI workflow's actions at their latest release (docs/ci.md).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
