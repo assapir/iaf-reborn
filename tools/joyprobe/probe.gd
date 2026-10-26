@@ -4,6 +4,7 @@
 # (Joystick.REMAP_BUTTONS: buttons 12+ off the hat's D-pad indices 11..14).
 #   godot --path tools/joyprobe -s probe.gd              (a small window: keep it focused)
 #   REMAP=1 SECONDS=10 godot --path tools/joyprobe -s probe.gd
+#   TRACE=4 godot --path tools/joyprobe -s probe.gd     (axis 4 every time it changes: its rest and each side)
 extends SceneTree
 
 const REMAP_BUTTONS := [
@@ -74,6 +75,10 @@ func _init() -> void:
 			var v := Input.get_joy_axis(d, i)
 			lo[i] = minf(lo[i], v)
 			hi[i] = maxf(hi[i], v)
+			# TRACE=<axis>: that axis' every change of 0.05 or more, with the time, to see its rest and each side.
+			if OS.get_environment("TRACE") == str(i) and absf(v - float(held.get("a%d" % i, 99.0))) >= 0.05:
+				held["a%d" % i] = v
+				print("  %5.2f s  axis %d = %.2f" % [(Time.get_ticks_msec() - t0) / 1000.0, i, v])
 	for i in 8:
 		if hi[i] > lo[i]:
 			print("  axis %d: %.2f .. %.2f, now %.2f" % [i, lo[i], hi[i], Input.get_joy_axis(d, i)])
