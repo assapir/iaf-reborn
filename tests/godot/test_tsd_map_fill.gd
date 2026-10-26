@@ -31,6 +31,7 @@ func colour_at(batches: Array, p: Vector2) -> Color:
 
 
 func run() -> void:
+	await require_data()
 	var dir: String = settings().assets_dir().path_join("converted/menu/emf")
 	for name in ["82", "67", "73"]:
 		var stub := Stub.new()

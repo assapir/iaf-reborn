@@ -9,6 +9,7 @@ var aircraft_model: GDScript
 
 
 func run() -> void:
+	await require_data()
 	aircraft_model = load("res://aircraft/aircraft_model.gd")
 	var idx: Dictionary = aircraft_model.index()
 	check(idx.size() >= 8, "aircraft index lists every plane (%d)" % idx.size())

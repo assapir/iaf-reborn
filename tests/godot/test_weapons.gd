@@ -6,6 +6,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
+	await require_data()
 	var MR = load("res://mission/mission_runtime.gd")
 	var bdb: Dictionary = MR.load_bdb(MR.mission_files(231)[0].data)
 	var objs: Dictionary = MR.bdb_objects(bdb)

@@ -43,6 +43,7 @@ var aircraft_model: GDScript
 
 
 func run() -> void:
+	await require_data()
 	aircraft_model = load("res://aircraft/aircraft_model.gd")
 	var orig_desc: Dictionary = aircraft_model.load_descriptor("f16")
 	var orig_path: String = settings().assets_dir().path_join("converted/planes/f16").path_join(orig_desc.model)

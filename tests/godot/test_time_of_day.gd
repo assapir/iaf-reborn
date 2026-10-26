@@ -21,6 +21,7 @@ func run() -> void:
 		night.night and night.dir == Vector3(0, 0, -1) and night.color == T.NIGHT_LIGHT and night.ambient == 0.2,
 		"01:00: night, the light straight down (20, 20, 60), ambient 0.2"
 	)
+	await require_data()
 	var c: Dictionary = T.colors(12 * 60.0)
 	check(c.sky == Color8(117, 167, 251) and c.b == Color8(206, 224, 255), "12:00 row of defcolorset.tcs")
 	check(T.colors(3 * 60.0).sky == Color8(0, 15, 38), "before 05:00: the night row (clamped)")

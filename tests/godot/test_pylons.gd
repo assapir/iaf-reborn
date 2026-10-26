@@ -9,6 +9,7 @@ const WING := ["StationB", "StationC", "StationD", "StationF", "StationG", "Stat
 
 
 func run() -> void:
+	await require_data()
 	var base: String = settings().assets_dir().path_join("converted/planes")
 	for jet in JETS:
 		var desc: Dictionary = settings().load_json(base.path_join(jet).path_join("aircraft.json"))

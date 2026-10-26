@@ -26,6 +26,7 @@ func taxi_call(i: int) -> Dictionary:
 
 
 func run() -> void:
+	await require_data()
 	var s := settings()
 	var mr: GDScript = load("res://mission/mission_runtime.gd")
 	var tv: GDScript = load("res://terrain/terrain_view.gd")

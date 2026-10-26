@@ -42,6 +42,7 @@ func run() -> void:
 	check(is_equal_approx(bar_y.call(Hud.dash_symbol(60.0, 0.0, true)), 60.0), "DASH bar held at 40°")
 	check(Hud.dash_symbol(60.0, 0.0, false).size() == 3, "blink phase: the aircraft symbol only")
 
+	await require_data()
 	# The helmet display needs `[HUD] Dash` 1: the F-16 has it, the Mirage not (docs/cockpit.md table).
 	var dash_of = func(dir: String) -> int:
 		return int(
