@@ -268,7 +268,7 @@ detail and the mission's models are parsed. What runs where:
 | step | where | cost on the Iris Xe laptop (mission 311, 2560 × 1440) |
 |---|---|---|
 | the flight scene's scripts and resources | a loader thread, while the mission screens are open (`terrain_preload.gd` `preload_scene`) | ≈ 0.85 s |
-| the first frame's art: the loading screen's menu art, the cockpit art (the scene's default F-16 cockpit and the player's jet's), the player's jet model and its cockpit-view model | worker threads, once the scene has loaded (`prefetch_flight`: `Img.prefetch`, `Gltf.parse_file_ahead`) | ≈ 0.17 + 0.23 + 0.15 s |
+| the first frame's art: the loading screen's menu art, the cockpit art (the scene's default F-16 cockpit and the player's jet's; a file both load, as the F-35I's borrowed MFD and RWR art, serves both), the player's jet model, its cockpit-view model, the models it borrows parts from (the F-35I's F-16 pilot) and its stores' models; the effects' art (the cloud layer, the trails, the flares and chaff, the afterburner flame) | worker threads, once the scene has loaded (`prefetch_flight`: `Img.prefetch`, `Gltf.parse_file_ahead`) | ≈ 0.17 + 0.23 + 0.15 s |
 | the scene's build (`_ready`) | the main thread, over six frames behind the loading screen; between them only the terrain and the loading screen run | ≤ 0.2 s a frame |
 | the terrain's nodes: about 300 colour nodes (setup's BC1 `.dds`, else JPEG, mipmaps, BC1) and 50 height nodes | 4 worker threads (`terrain.gd` `max_jobs`); the texture uploads on the main thread, ≤ 4 ms a frame (`UPLOAD_MS`) | ≈ 1–3 s |
 | the mission's models (every placed unit's model and its LOD copies, the AI's jets; with Models Detailed the detailed F-16D and stores) | worker threads parse the files, make their mipmapped textures, set their materials and, for a detailed model, its LODs and meshes, from the mission screens on (`TerrainPreload.mission_models`, `Gltf.parse_ahead`); the main thread takes them for ≤ 12 ms a frame (no GPU readback) | ≈ 1.5 s of worker time (the F-16D ≈ 0.4 s), done before Fly after a few seconds on the TSD |
@@ -490,10 +490,37 @@ without Night vision; other agents' Godot runs on the machine for the F-35I's se
 | F-35I (`f35i_slot=0,jet_id=0`), Fly to the first flying frame | 2.70–2.81 s | 2.29 s (one idle run) |
 | F-35I, stalls over 250 ms | 0.27 s, 0.66–0.69 s, 1.26–1.28 s | 0.27 s, 1.07 s, 0.49 s |
 
-The main thread's share of the detailed model is now its scene (≈ 1 ms). What stays is shader work (stack samples of
-the main thread): the TAA's motion-vector group compiled for every scene shader in the first 3D frame
-(`ShaderRD::enable_group`, ≈ 1 s), then the jet's pipelines in its first drawn frame. The F-35I's start also decodes
-PNG images on the main thread (cockpit or effects art, not traced).
+The main thread's share of the detailed model is now its scene (≈ 1 ms). The long frames after Fly are all behind
+the loading screen (the bench marks each frame "loading" or "first flying"); what was found there, measured
+2026-10-26 (same settings, 3 runs each, idle GPU but for other agents' screenshots in the F-35I's "before"):
+
+- **Pipelines for the wrong sample count.** Godot compiles a mesh's pipelines in the background when it enters the
+  scene, for the sample count of the project setting `rendering/anti_aliasing/quality/msaa_3d` (4×), not the
+  viewport's. With TAA or the temporal upscaler the 3D view has no MSAA, so none fitted and each pipeline compiled
+  while drawing (`draw` in the counters). The setting now follows the anti-aliasing choice at run time
+  (`RenderOptions.sync_pipeline_samples`, from the mission screens' prefetch and `apply`; Godot reads it every frame).
+- **The motion-vector shaders.** The first frame drawn with TAA (the build's fourth, once `apply_render_options` sets
+  it) switches on Godot's motion-vector shader group, and `ShaderRD::enable_group` then loads that group for every
+  scene shader on the calling thread, from the shader cache (≈ 1.2 s warm). It stays behind the loading screen. Drawn
+  earlier (an 8-pixel TAA viewport on the mission screens) it moved there as two ≈ 150–200 ms TSD frames: each new
+  scene shader then loads both groups when it is made. Not kept.
+- **The jet's pipelines** compile in the external-view frame of `_warm_views` (≈ 0.2 s), behind the loading screen.
+- **PNG decodes on the main thread** (gdb on `png_to_image`, main thread only): the F-35I's start read the F-16's MFD
+  and RWR art (the default cockpit had taken the prefetched copy), parsed the F-16 model for the borrowed pilot (its
+  file has the F-16D as detailed stand-in, so the list skipped it) and its two store models, and every start read the
+  cloud, trail, flare, chaff and afterburner art (the afterburner once per flame and AI jet). All now decode on worker
+  threads on the mission screens (§1.5 table); the afterburner art is read once. Left: the airbase mask (Airbases
+  Detailed, the nearest base, also chosen in flight) and two small menu images.
+
+| | F-16D before | F-16D after | F-35I before | F-35I after |
+|---|---|---|---|---|
+| Fly to the first flying frame | 2.21–2.39 s | 1.96–2.12 s | 2.38–3.55 s | 2.12–2.21 s |
+| pipelines compiled while drawing | 28 | 2 | 23 | 2 |
+| the TAA frame (loading) | 1.30–1.46 s | 1.23–1.33 s | 1.25–1.83 s | 1.18–1.26 s |
+| the jet's build frame (loading) | 0.27–0.32 s | 0.22–0.24 s | 0.48–0.65 s | 0.37–0.38 s |
+| the first flying frame | 75–109 ms | 66–87 ms | 66–119 ms | 58–61 ms |
+| worst flying frame, 5 s | 19–51 ms | 14–27 ms | 24–46 ms | 15–17 ms |
+| TSD worst frame | 31–57 ms | 33–65 ms | 39–66 ms | 46–68 ms |
 
 ### 1.7 Temporal upscaler (Anti-aliasing FSR 2)
 

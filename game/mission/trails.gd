@@ -6,6 +6,7 @@
 extends Node3D
 
 const GpuFx := preload("res://mission/gpu_fx.gd")
+const Img := preload("res://util/img.gd")
 
 ## Trail kinds (the sprite slots of FUN_0058a420): lifetime s, half-width at the head, growth (create arg).
 const MISSILE := {"life": 3.5, "size": 0.6, "growth": 0.15, "glow": true, "refill": true}
@@ -66,11 +67,17 @@ func _ready() -> void:
 
 
 static func _texture(name: String) -> Texture2D:
-	var path: String = (
-		Engine.get_main_loop().root.get_node("Settings").assets_dir().path_join("converted/objects").path_join(name)
-	)
-	var img := Image.load_from_file(path) if FileAccess.file_exists(path) else null
-	return ImageTexture.create_from_image(img) if img != null else null
+	return Img.load_texture(_path(name))
+
+
+static func _path(name: String) -> String:
+	return Engine.get_main_loop().root.get_node("Settings").assets_dir().path_join("converted/objects").path_join(name)
+
+
+## The trails' art decoded on worker threads ahead of the flight (terrain_preload.gd).
+static func prefetch() -> void:
+	for f in ["trail.png", "missflr.png"]:
+		Img.prefetch(_path(f))
 
 
 ## The owner `key` (a missile, a wingtip) is drawn this frame with its trail head at `pos`.

@@ -256,22 +256,27 @@ func run() -> void:
 	# --- Fly: Bravo's current leader, the wingman (FUN_005045b0 → FUN_004d3250) ---
 	tv.views.set_orbit(tv.rig, tv.CHASE_OFFS, 1.0, tv.Views.FLYBY, false)
 	var old_world: Vector3 = tv.player_world()
+	var old_speed: float = tv.flight.state().speed
+	var t_fly := Time.get_ticks_usec()
 	fe._on_button(fe._key_for_label("Bravo"))
 	fe._on_button(fe._key_for_label("Fly"))
 	await frames(3)
+	# Where it was, plus the way it flew since Fly: the three frames' sim time is at most their real time, which a
+	# loaded machine stretches (at ~250 m/s, 3 frames of 70 ms are ~50 m).
+	var flown := 2.0 * old_speed * (Time.get_ticks_usec() - t_fly) / 1e6
 	check(tv.fe_overlay == null and not paused, "Fly returns to the flight")
 	check(rt.player_entity() == b1 and b1.control == 3 and not b1.has("pilot"), "Bravo's wingman is the player's jet")
 	check(
 		not me.player and me.control == 1 and me.get("pilot") != null and tv.ai.pilots.has(me.pilot),
 		"the old jet goes to the AI"
 	)
+	var off: float = me.node.global_position.distance_to(tv.world_to_scene(old_world)) if me.node is Node3D else INF
 	check(
+		me.pilot.flight != tv.flight and off < 50.0 + flown,
 		(
-			me.pilot.flight != tv.flight
-			and me.node is Node3D
-			and me.node.global_position.distance_to(tv.world_to_scene(old_world)) < 50.0
-		),
-		"the old jet flies on where it was, with its own flight model"
+			"the old jet flies on where it was, with its own flight model (%.0f m from there, %.0f m allowed)"
+			% [off, 50.0 + flown]
+		)
 	)
 	check(
 		(

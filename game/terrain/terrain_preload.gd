@@ -90,6 +90,7 @@ static func prefetch_flight(id: int, flight := 0) -> void:
 	if _prefetched == key:
 		return
 	_prefetched = key
+	_script("terrain/render_options").sync_pipeline_samples()  # the flight's pipelines for its anti-aliasing
 	var MissionRuntime: GDScript = load("res://mission/mission_runtime.gd")
 	var PlayerAircraft: GDScript = load("res://aircraft/player_aircraft.gd")
 	var aircraft_model := _script("aircraft/aircraft_model")
@@ -99,22 +100,37 @@ static func prefetch_flight(id: int, flight := 0) -> void:
 	var Cockpit: GDScript = load("res://cockpit/cockpit.gd")
 	load("res://terrain/loading_screen.gd").prefetch()
 	var default_cockpit: String = Cockpit.DEFAULT_DIR
-	Cockpit.prefetch_art(default_cockpit)
 	var files: Array = MissionRuntime.mission_files(id) if id >= 0 else []
 	var obj := {}
 	var models := []
+	var pf := {}
+	var bdb := {}
 	if not files.is_empty() and not files[0].data.is_empty():
-		var e: Dictionary = MissionRuntime.player_flight(files[0].data, flight).get("entity", {})
-		var bdb: Dictionary = MissionRuntime.load_bdb(files[0].data)
-		obj = MissionRuntime.bdb_objects(bdb).get(int(e.get("0x2c6", -1)), {})
+		pf = MissionRuntime.player_flight(files[0].data, flight)
+		bdb = MissionRuntime.load_bdb(files[0].data)
+		obj = MissionRuntime.bdb_objects(bdb).get(int(pf.get("entity", {}).get("0x2c6", -1)), {})
 		models = mission_models(files, bdb)
 	# As terrain_view.gd _choose_player.
 	var jet := int(obj.get("0x5b4", PlayerAircraft.FALLBACK))
 	if Settings.jet_id >= 0 and PlayerAircraft.jet_type(Settings.jet_id) >= 0:
 		jet = PlayerAircraft.jet_type(Settings.jet_id)
+	# The stores on the jet (terrain_view.gd _setup_weapons): another jet than the mission's carries its own load.
+	if not bdb.is_empty():
+		var ent: Dictionary = pf.get("entity", {})
+		var own := obj
+		if obj.is_empty() or int(obj.get("0x5b4", -1)) != jet:
+			own = PlayerAircraft.object_for(jet, bdb)
+			ent = {}
+		models.append_array(_script("weapons/player_weapons").store_models(ent, own, bdb, int(pf.get("flight", 0))))
 	var p: Dictionary = PlayerAircraft.profile(jet)
-	if p.cockpit_dir != default_cockpit:
-		Cockpit.prefetch_art(p.cockpit_dir)
+	Cockpit.prefetch_art([default_cockpit] if p.cockpit_dir == default_cockpit else [default_cockpit, p.cockpit_dir])
+	# The effects' art the build reads: the cloud layer, the trails, the flares and chaff, the afterburner flame.
+	if Settings.textured_sky:
+		_script("terrain/cloud_layer").prefetch()
+	if Settings.smoke_trails:
+		_script("mission/trails").prefetch()
+	_script("weapons/decoy_fx").prefetch()
+	_script("aircraft/afterburner").prefetch()
 	# The player's jet first: the flight's build opens it (the pool runs the tasks in order).
 	var d: Dictionary = aircraft_model.load_descriptor(p.plane)
 	if not d.is_empty():
@@ -123,8 +139,12 @@ static func prefetch_flight(id: int, flight := 0) -> void:
 	var bc: String = gltf.objects_path("controllableplanes/%s/%s_bc.gltf" % [p.plane, p.plane])
 	var extra_bc: String = aircraft_model.EXTRA_DIR.path_join(p.plane).path_join(p.plane + "_bc.gltf")
 	models.push_front(bc if FileAccess.file_exists(bc) or not FileAccess.file_exists(extra_bc) else extra_bc)
-	gltf.drop_ahead(models)  # the last choice's
+	# An extra plane's borrowed parts (the F-35I's pilot): the original's file itself, also with a detailed stand-in.
+	var borrowed: Array = aircraft_model.borrowed_models(d) if not d.is_empty() else []
+	gltf.drop_ahead(models + borrowed)  # the last choice's
 	gltf.parse_ahead(models)
+	for b in borrowed:
+		gltf.parse_file_ahead(b)
 
 
 ## The full paths of the models the flight's spawn draws (terrain_view.gd _spawn_mission_objects, ai_flights.gd):

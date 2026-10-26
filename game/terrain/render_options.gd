@@ -58,10 +58,23 @@ const SKY_AMBIENT := 0.6
 const EXPOSURE_REF := 1.0
 const EXPOSURE_RANGE := 1.25
 
+## Godot compiles each mesh's pipelines in the background when it enters the scene, for the sample count of this
+## project setting (read every frame), not the viewport's. With TAA or the temporal upscaler (no MSAA) the 4× ones did
+## not fit, so 23–28 pipelines compiled while drawing the flight's first frames. Kept at the 3D view's sample count
+## (docs/rendering.md §1.6).
+const PIPELINE_MSAA := "rendering/anti_aliasing/quality/msaa_3d"
+
+
+## Sets PIPELINE_MSAA for the anti-aliasing setting: by the mission screens (terrain_preload.gd), before the flight's
+## meshes enter the scene, and by apply().
+static func sync_pipeline_samples() -> void:
+	ProjectSettings.set_setting(PIPELINE_MSAA, AA.get(Settings.antialiasing, AA["msaa4"])[0])
+
 
 ## Applies the options to the flight's viewport and its WorldEnvironment.
 static func apply(vp: Viewport, env: Environment) -> void:
 	var aa: Array = AA.get(Settings.antialiasing, AA["msaa4"])
+	sync_pipeline_samples()
 	vp.msaa_3d = aa[0]
 	vp.screen_space_aa = aa[1]
 	vp.use_taa = aa[2]

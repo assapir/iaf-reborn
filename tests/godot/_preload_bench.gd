@@ -6,7 +6,9 @@
 # (Terrain.precompressed off). PB_PREFS="sky=atmospheric,water=true,…": settings fields set before the TSD (true /
 # false as booleans, integers as ints, else strings; the F-35I: f35i_slot=0,jet_id=0). PB_FLY seconds (default 10)
 # of flying frames are timed after the start (worst, frames over 50 ms). The time since launch is printed at the main
-# menu, the TSD and the first flying frame (docs/rendering.md §1.6, the shader compiles). PB_EVENTS=1 then times what
+# menu, the TSD and the first flying frame (docs/rendering.md §1.6, the shader compiles); from Fly on each frame over
+# 100 ms or with pipelines compiled while drawing ("loading" behind the loading screen) and the first flying frame,
+# with its pipeline compiles; on the TSD each frame over 100 ms. PB_EVENTS=1 then times what
 # first shows mid-flight (_events); PB_SHOTS=<dir> saves the view after the start and after each event. Vsync off; the
 # menus run at Max FPS.
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 PB_MISSION=311 PB_WAIT=6 -- --log-file /tmp/p.log --path game \
@@ -68,7 +70,7 @@ func _pipe_frame(phase: String) -> float:
 	for i in 5:
 		d.append(c[i] - _pipes[i])
 	_pipes = c
-	if dt > 100.0 or d[3] > 0:
+	if dt > 100.0 or d[3] > 0 or phase == "first flying":
 		print(
 			"PB %s frame %.0f ms: pipelines canvas %d mesh %d surface %d draw %d specialization %d" % ([phase, dt] + d)
 		)
@@ -106,6 +108,8 @@ func run() -> void:
 		await process_frame
 		var now := Time.get_ticks_usec()
 		dts.append((now - last) / 1000.0)
+		if dts[-1] > 100.0:
+			print("PB menus frame %.0f ms at %.2f s on the TSD" % [dts[-1], (now - start) / 1e6])
 		last = now
 	if not dts.is_empty():
 		dts.remove_at(0)  # the TSD's own first frame
@@ -140,8 +144,9 @@ func run() -> void:
 	var state := ""
 	while tv == null or tv.get("flight") == null or tv.waiting_for_ground:
 		await process_frame
-		_pipe_frame("start")
 		tv = current_scene
+		var loading: bool = tv == null or tv.get("flight") == null or tv.waiting_for_ground
+		_pipe_frame("loading" if loading else "first flying")
 		if tv != null and tv.get("terrain") != null and tv.terrain.is_inside_tree():
 			var q = tv.get("_parse_queue")
 			var st := (

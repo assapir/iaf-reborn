@@ -11,22 +11,26 @@ static func load_texture(path: String, mipmaps := false) -> ImageTexture:
 
 
 ## Images decoded ahead on worker threads (prefetch): "path|mipmaps" -> task id, then -> the Image. load_texture()
-## takes each once (the flight's loading screen and cockpit art, decoded while the mission screens are open).
+## takes each as often as it was asked for (the flight's loading screen and cockpit art, decoded while the mission
+## screens are open; the F-35I's cockpit and the scene's default F-16 cockpit share the MFD and RWR art).
 static var _tasks := {}
 static var _ready := {}
+static var _wants := {}
 static var _lock := Mutex.new()
 
 
-## Starts decoding `path` (with its mipmaps) on a worker thread for a later load_texture().
-static func prefetch(path: String, mipmaps := false) -> void:
+## Starts decoding `path` (with its mipmaps) on a worker thread for `uses` later load_texture() calls (once per file;
+## asking again keeps the larger count).
+static func prefetch(path: String, mipmaps := false, uses := 1) -> void:
 	var key := "%s|%s" % [path, mipmaps]
+	_wants[key] = maxi(int(_wants.get(key, 0)), uses)
 	if not _tasks.has(key):
 		_tasks[key] = WorkerThreadPool.add_task(_prefetch_task.bind(path, mipmaps, key), false, "image prefetch")
 
 
 ## True while a prefetch() still decodes.
 static func prefetching() -> bool:
-	return _tasks.values().any(func(t): return not WorkerThreadPool.is_task_completed(t))
+	return _tasks.values().any(func(t): return t >= 0 and not WorkerThreadPool.is_task_completed(t))
 
 
 static func _prefetch_task(path: String, mipmaps: bool, key: String) -> void:
@@ -48,11 +52,16 @@ static func _take(path: String, mipmaps: bool) -> Image:
 	var key := "%s|%s" % [path, mipmaps]
 	if not _tasks.has(key):
 		return null
-	WorkerThreadPool.wait_for_task_completion(_tasks[key])
-	_tasks.erase(key)
+	if _tasks[key] >= 0:
+		WorkerThreadPool.wait_for_task_completion(_tasks[key])
+		_tasks[key] = -1  # waited for: a task is waited for once
 	_lock.lock()
 	var img: Image = _ready.get(key)
-	_ready.erase(key)
+	_wants[key] -= 1
+	if _wants[key] <= 0:
+		_tasks.erase(key)
+		_ready.erase(key)
+		_wants.erase(key)
 	_lock.unlock()
 	return img
 
