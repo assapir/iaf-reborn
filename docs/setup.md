@@ -65,13 +65,18 @@ Ground textures and Model detail stay Original. A checksum mismatch (the file on
 behind.
 
 `bc1` (`iaf_tools::bc1`, CLI `iaf-terrain bc1 <tile-dir>…`) pre-compresses the terrain's colour tiles: for each
-`L*/c_*.jpg` of the theatre and of every imagery layer on disk it writes `c_*.dds` beside it, BC1 with every mipmap
+`L*/c_*.jpg` of the theatre and of the imagery layers the game is set to show (Graphics → imagery: the
+`imagery_israel` and `imagery_outside` values in the game's `settings.cfg`; every converted layer when there is no
+settings file) it writes `c_*.dds` beside it, BC1 with every mipmap
 down to 1 × 1 (a 128-byte DDS header, FourCC DXT1; a 2 × 2 box filter per mip, texpresso's range fit). The game then
 loads a tile without decoding or compressing it. A tile whose `.dds` is missing or older than its JPEG is written
 again, so a run after new imagery picks up only the new tiles; the step is up to date when there are none. Measured on
 the 8-thread i7-1185G7: 9007 tiles (the theatre and `mapi2015_modern`) in 351 s, ≈ 39 ms a tile.
 
-Each 1024-pixel tile takes 699 KB (the JPEGs ≈ 200–400 KB), so the step adds about 1.8–3.4 times the tiles' size:
+A layer chosen later in the game loads through the run-time fallback (the JPEG compressed on the CPU) until the
+next setup run writes its `.dds`. Each 1024-pixel tile takes 699 KB (the JPEGs ≈ 200–400 KB), so the step adds about
+1.8–3.4 times the tiles' size, and only for the chosen layers: Survey of Israel and Sentinel-2, one variant each,
+come to about 10.7 GB with the theatre, against about 20 GB for every variant.
 
 | tiles | count | JPEG | `.dds` |
 |---|---|---|---|

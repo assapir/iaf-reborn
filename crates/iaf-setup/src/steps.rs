@@ -206,12 +206,14 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
         "scenery" => return scenery(a, ctx.inputs.scenery_kinds, pr, cancel),
         "bc1" => {
             let mut dirs = vec![conv.join("terrain/theatre")];
+            // Only the imagery layers the game is set to show (each layer's .dds is ~4.5 GB); without the game's
+            // settings every converted layer. A layer chosen later loads through the CPU fallback until the next run.
+            let chosen = game_imagery_layers();
             if let Ok(rd) = std::fs::read_dir(conv.join("imagery")) {
-                dirs.extend(
-                    rd.flatten()
-                        .map(|e| e.path())
-                        .filter(|p| p.is_dir() && !p.file_name().is_some_and(|n| n.to_string_lossy().starts_with('.'))),
-                );
+                dirs.extend(rd.flatten().map(|e| e.path()).filter(|p| {
+                    let name = p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+                    p.is_dir() && !name.starts_with('.') && chosen.as_ref().is_none_or(|c| c.contains(&name))
+                }));
             }
             dirs.sort();
             if iaf_tools::bc1::trees(&dirs, pr, cancel)? == 0 {
@@ -320,6 +322,37 @@ impl Progress for Quiet {
 
 /// The third-party textures (iaf_tools::thirdparty::LISTS) into `dir` from `base`: up to date when every material is
 /// there; skipped (the game's switch then stays Original) when `base` cannot be reached.
+/// The imagery layers the game's settings.cfg chooses (`imagery_israel`, `imagery_outside`; "original" is no layer),
+/// None when the file is missing or names neither (then every layer is compressed).
+fn game_imagery_layers() -> Option<Vec<String>> {
+    let home = PathBuf::from(std::env::var_os("HOME")?);
+    let data = std::env::var_os("XDG_DATA_HOME").map(PathBuf::from).unwrap_or_else(|| home.join(".local/share"));
+    let cfg = [
+        data.join("godot/app_userdata/iaf-reborn/settings.cfg"),
+        home.join("Library/Application Support/Godot/app_userdata/iaf-reborn/settings.cfg"),
+    ]
+    .iter()
+    .find_map(|p| std::fs::read_to_string(p).ok())?;
+    imagery_layers_in(&cfg)
+}
+
+/// `imagery_israel` / `imagery_outside` values of a Godot ConfigFile text other than "original".
+fn imagery_layers_in(cfg: &str) -> Option<Vec<String>> {
+    let mut seen = false;
+    let mut out = Vec::new();
+    for line in cfg.lines() {
+        let Some((k, v)) = line.split_once('=') else { continue };
+        if matches!(k.trim(), "imagery_israel" | "imagery_outside") {
+            seen = true;
+            let v = v.trim().trim_matches('"').to_string();
+            if v != "original" && !v.is_empty() {
+                out.push(v);
+            }
+        }
+    }
+    seen.then_some(out)
+}
+
 fn textures(dir: &Path, base: &str, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
     let all = || thirdparty::LISTS.iter().flat_map(|(_, l)| l.iter());
     if all().all(|m| thirdparty::is_done(dir, m)) {
@@ -524,5 +557,17 @@ mod uninstall_tests {
         uninstall(&dir, true).unwrap();
         assert!(!dir.join("packs").exists() && !dir.join("source/imagery").exists() && dir.join("manual_en").exists());
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod bc1_layer_tests {
+    #[test]
+    fn imagery_layers_from_settings() {
+        let cfg = "[game]\nimagery_israel=\"mapi2015_modern\"\nimagery_outside=\"sentinel2_modern\"\n";
+        assert_eq!(super::imagery_layers_in(cfg).unwrap(), ["mapi2015_modern", "sentinel2_modern"]);
+        let off = "imagery_israel=\"original\"\nimagery_outside=\"original\"\n";
+        assert_eq!(super::imagery_layers_in(off).unwrap(), Vec::<String>::new());
+        assert!(super::imagery_layers_in("[game]\nlanguage=\"he\"\n").is_none());
     }
 }
