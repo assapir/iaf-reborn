@@ -500,6 +500,8 @@ the same code).
     while the trim is off centre.
   * The keys **Alt + Left / Right** trim the same way at the full rate, with or without a stick (§2 "Own keys").
     There is no reset, as in the real jets: trim until the jet flies hands-off.
+  * While the autopilot flies, it ignores the trim (it holds the heavy wing itself, autopilot.md §2.5); the trim
+    works again when it lets go.
   * The trim shows on the flight-info line (Ctrl + F12) while it is off centre, e.g. "TRIM L 2.4%" (2.4 % of full
     stick, left wing down), and on the external model: the ailerons follow the roll command (stick + trim; flight
     state `roll_stick`).

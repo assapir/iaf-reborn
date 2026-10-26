@@ -178,6 +178,9 @@ approach and the float before touchdown steer to the centreline with a damped la
 - So while a loop runs (`Aircraft::stores_trim`, set by `Autopilot::step` and `player_mode`), the flight model
   adds the stick that cancels the moment, within full stick: `p_cmd = MaxRollRate · clamp(clamp(stick − s, −1, 1) +
   s, −1, 1)`, s the stores' stick. The autopilot's own stick on the levers is unchanged.
+- While a loop runs it also ignores the player's roll trim (controls.md §5.2): a pilot who trimmed the heavy wing
+  by hand would otherwise cancel the moment twice, and the jet would hold a bank the other way. The trim is kept and
+  works again when the autopilot lets go (test `roll_trim_holds_the_heavy_wing`, `test_roll_trim.gd`).
 - Example: 312's F-16 carries a balanced load, but the model's pylons sit 9 mm further out on the left
   (MK-84 at −1.735 / +1.726 m, MK-83 at −2.986 / +2.977 m), a 22 kg·m moment. Without the trim the demonstration
   touched down 10–33 m left of the centreline with every switch on; with it, within 2 m, as with the switch off.
