@@ -53,6 +53,8 @@ func run() -> void:
 			s.imagery_outside = im[1]
 	seed(1)
 	tv = await start_mission(311)
+	# The flight model sets the jet on its wheels over the first frames (it starts 4 m low); freeze it after.
+	await frames(60)
 	tv.frozen = true
 	tv.fm_stopped = true
 	process_frame.connect(_move)
