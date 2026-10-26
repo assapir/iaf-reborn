@@ -10,11 +10,16 @@ extends Node3D
 ## overcast), the sun's share, the ground's wetness 0..1 and the share of canopy cells holding a drop.
 const LEVELS := {
 	"light": {"drops": 6000, "fog": 0.0002, "sky": 0.6, "sun": 0.5, "wet": 0.6, "canopy": 0.35},
-	"heavy": {"drops": 12000, "fog": 0.0005, "sky": 0.9, "sun": 0.25, "wet": 1.0, "canopy": 0.7},
+	"heavy": {"drops": 9000, "fog": 0.0005, "sky": 0.9, "sun": 0.25, "wet": 1.0, "canopy": 0.7},
 }
 ## The drops' cube (m), their fall speed (m/s: about a 2 mm drop's terminal speed) and the drop's streak time (s).
 const BOX := 40.0
 const FALL := 7.0
+## The overcast's ambient light (its colour; the time of day keeps the energy) and the wet ground's specular (Godot's
+## 0..1; also its grazing reflection), under the Original and the Atmospheric sky.
+const OVERCAST := Color(0.72, 0.74, 0.77)
+const WET_SPEC := 0.3
+const WET_SPEC_ATMO := 0.12
 ## Grey of the fog in the rain (its colour's luminance, kept) and how far toward it.
 const FOG_GREY := 0.8
 ## The canopy airflow: no run below RUN_FROM m/s, then RUN_PER screen heights per s per m/s; at rest the drops slide
@@ -54,10 +59,11 @@ static func humidity(alt_m: float) -> float:
 
 
 ## The one place the rain changes the environment: the fog's density and its share of the sky (the overcast), the
-## distance haze from the fog colour rather than the sky's (Atmospheric sky), the sun's energy and the ground's wetness.
-## Off restores the scene's own values. Called after RenderOptions.apply and after each change of the sky.
+## distance haze from the fog colour rather than the sky's (Atmospheric sky), the ambient light from the overcast's
+## grey (OVERCAST) instead of the sky, the sun's energy, the ground's wetness and its specular. Off restores the
+## scene's own values. Called after RenderOptions.apply and after each change of the sky.
 static func apply_env(env: Environment, sun: DirectionalLight3D) -> void:
-	var keys := ["fog_density", "fog_sky_affect"]
+	var keys := ["fog_density", "fog_sky_affect", "ambient_light_source", "ambient_light_color"]
 	if not env.has_meta("dry"):
 		var o := {}
 		for k in keys:
@@ -71,6 +77,12 @@ static func apply_env(env: Environment, sun: DirectionalLight3D) -> void:
 	var dry: Dictionary = env.get_meta("dry")
 	env.fog_density = l.get("fog", dry.fog_density)
 	env.fog_sky_affect = l.get("sky", dry.fog_sky_affect)
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR if not l.is_empty() else dry.ambient_light_source
+	env.ambient_light_color = OVERCAST if not l.is_empty() else dry.ambient_light_color
+	# The Atmospheric sky's reflections stay blue (its radiance is a clear sky's): wet ground reflects little of it.
+	RenderingServer.global_shader_parameter_set(
+		"rain_spec", WET_SPEC_ATMO if Settings.sky == "atmospheric" else WET_SPEC
+	)
 	# Off: the aerial perspective is RenderOptions._apply_sky's, set just before.
 	if not l.is_empty():
 		env.fog_aerial_perspective = 0.0
@@ -140,7 +152,7 @@ func update(cam: Camera3D, cockpit_view: bool, wind: Vector3, fog: Color, delta:
 	_mat.set_shader_parameter("fall", fall)
 	_mat.set_shader_parameter("drift", _drift)
 	_mat.set_shader_parameter("cam_vel", _cam_vel)
-	_mat.set_shader_parameter("tint", fog.darkened(0.4))
+	_mat.set_shader_parameter("tint", fog.darkened(0.5))
 	canopy.visible = cockpit_view
 	if cockpit_view:
 		var airspeed := (_cam_vel - wind).length()

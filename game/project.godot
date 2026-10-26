@@ -95,6 +95,10 @@ rain_wet={
 "type": "float",
 "value": 0.0
 }
+rain_spec={
+"type": "float",
+"value": 0.3
+}
 ground_tex={
 "type": "float",
 "value": 0.0

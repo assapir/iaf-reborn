@@ -1182,7 +1182,7 @@ set it (the mission editor could later).
 
 | part | Light | Heavy | how |
 |---|---|---|---|
-| Falling rain | 6,000 drops | 12,000 drops | `rain.gdshader`: one MultiMesh quad per drop, placed in the vertex shader (below) |
+| Falling rain | 6,000 drops | 9,000 drops | `rain.gdshader`: one MultiMesh quad per drop, placed in the vertex shader (below) |
 | Drops on the canopy | 35 % of the cells | 70 % of the cells | `canopy_drops.gdshader`, cockpit views only (below) |
 | Visibility (fog density) | 0.0002: about 15 km | 0.0005: about 6 km | `apply_env`; the scene's own is 0.00003 (about 100 km) |
 | Overcast (`fog_sky_affect`) | 0.6 | 0.9 | the fog covers that share of the sky, so the sky turns the fog's grey |
@@ -1196,19 +1196,24 @@ HUD, radar and TSD work as before.
 **The environment** changes in one function, `Weather.apply_env(env, sun)`, called after `RenderOptions.apply` and
 after each change of the sky: the fog's density and its share of the sky; the distance haze from the fog's colour
 instead of the sky's (`fog_aerial_perspective` 0, as the Atmospheric sky's blue haze looks wrong under an overcast);
-the sun's energy; `rain_wet`. Off puts the scene's own values back. The fog colour of the time of day (§4) is greyed
-toward its own brightness (`Weather.fog_tint`), by the overcast's share, and so is the Original sky's zenith colour, so
-the ambient light and the reflections are the overcast's grey. `atmosphere.gdshader` itself is unchanged.
+the ambient light from the overcast's grey (`Weather.OVERCAST`, a colour source in place of the sky; the time of day
+keeps its energy); the sun's energy; `rain_wet`; the wet ground's specular `rain_spec` (0.3 under the Original sky,
+0.12 under the Atmospheric sky, whose reflections stay a clear sky's blue). Off puts the scene's own values back. The
+fog colour of the time of day (§4) is greyed toward its own brightness (`Weather.fog_tint`), by the overcast's share,
+and so is the Original sky's zenith colour, so its reflections are the overcast's grey. `atmosphere.gdshader` itself
+is unchanged.
 
 **Falling rain.** Each drop has a fixed seed spot in a 40 m cube. The cube wraps around a point 14 m ahead of the
 camera, so a drop stays at its place in the world while the camera flies through it, and the drops never run out. The
 drops fall at 7 m/s (about a 2 mm drop's terminal speed[^gunn]) plus the wind (Better physics `wind`). Each is drawn as
-the streak it sweeps in 25 ms at its speed seen from the camera, at most 1.5 m long: short and falling on the ground,
-rushing out from the flight path's point across the view at 300+ kt, seen through the canopy in the cockpit views. A
-streak is 6 mm wide (the drop's blur), at least one pixel, fainter when thinner or longer; drops closer than 3–6 m
-(the canopy, the nose) and near the cube's edge fade out, and a drop not drawn is moved out of the view so it costs no
-fill. The streaks take the fog's colour, darkened: lighter than the wet ground, darker than the sky. The CPU sets five
-uniforms a frame.
+the streak it sweeps in 40 ms (what the eye blurs) at its speed seen from the camera, at most 1 m long: short and
+falling on the ground, rushing out from the flight path's point across the view at 300+ kt, seen through the canopy in
+the cockpit views. A streak is 6 mm wide (the drop's blur) and at least two pixels, fainter when it would be thinner;
+drops closer than 4–8 m (the canopy, the nose) and near the cube's edge fade out, and a drop not drawn collapses to a
+point so it costs no fill. The streaks take the fog's colour at half its brightness: lighter than the wet ground,
+darker than the sky. With TAA or FSR 2 (§1.7) the fast streaks at speed are much fainter: the temporal
+resolve averages them out (open). The seed spots come from an integer (PCG) hash of the drop's index. The CPU sets five uniforms a
+frame.
 
 **Drops on the canopy** (cockpit views: cockpit, HUD only, free look, padlock). A canvas layer under the cockpit
 (layer −1, as the cloud layer's whiteout) draws them, so they show through the cockpit's window only and the HUD stays
@@ -1220,8 +1225,9 @@ at 400 kt only short runs show. At rest they slide down slowly.
 
 **Wet ground** (`terrain.gdshader wet_ground`, a block at the end of the fragment shader): water in the pores darkens
 the ground (to 75 %, grey ground such as pavement and rock to 60 %[^lekner]); its film lowers the roughness (to 0.8,
-grey ground 0.65) and raises the specular a little. On the Detailed airbases' flat pavement (§7) within 800 m, the low
-spots of the detail noise hold puddles a few metres across: flat, roughness 0.2, blurred mirrors of the sky. Without Detailed airbases the
+grey ground 0.65) and sets the specular to `rain_spec`. On the Detailed airbases' flat pavement (§7) within 800 m, the
+low spots of the detail noise hold puddles a few metres across: flat, roughness 0.3, darker than the pavement around
+them (by up to 30 %), with a dim reflection of the grey sky. Without Detailed airbases the
 shader does not know the pavement, so there are no puddles. Water surfaces stay as they are. Models with Model detail
 (§9) get a wet film up close (darker by 15 %, roughness × 0.45).
 
@@ -1241,13 +1247,28 @@ their defaults; `_rain_shot.gd RAIN_BENCH=15`, mission 311 in the F-16, the flig
 
 | pose | Off | Light | Heavy |
 |---|---|---|---|
-| lineup on Ramat David's runway, cockpit | 8.5–9.0 ms (111–118 fps) | 9.1 ms (110 fps, −3 %) | 9.0 ms (111 fps, −3 %) |
-| 300 m over the Halutza sands at 200 m/s, cockpit | 11.0 ms (91 fps) | 11.9 ms (84 fps, −8 %) | 12.3–12.4 ms (81 fps, −11 %) |
+| lineup on Ramat David's runway, cockpit | 8.0–8.5 ms (118–126 fps) | 8.9 ms (112 fps, −8 %) | 8.9 ms (112 fps, −8 %) |
+| 300 m over the Halutza sands at 200 m/s, cockpit | 10.9 ms (92 fps) | 11.6 ms (87 fps, −6 %) | 11.7–11.8 ms (85 fps, −8 %) |
 | the same, chase view | 6.9 ms (145 fps) | 6.9 ms | 6.9 ms |
 
-The chase view stays at a 145 fps ceiling in all three (open: likely the display's 144 Hz), so it shows no cost. Of Heavy's 1.35 ms at speed, the canopy drops take about
-0.5 ms (a copy of the screen and the drop shader); the rest is the streaks' fill. Before the 1.5 m cap and the near cut
-the streaks cost 4 ms at speed. No new frame spikes: the worst frames are the same with and without rain.
+The chase view stays at a 145 fps ceiling in all three (open: likely the display's 144 Hz), so it shows no cost. The
+canopy drops take about 0.5 ms of the cockpit's cost (a copy of the screen and the drop shader), the same at both
+levels; the rest is the streaks' fill. No new frame spikes: the worst frames are the same with and without rain.
+
+**Tried and dropped** (2026-10-26):
+
+- Streaks up to the full 25–40 ms of travel at speed (5–8 m) cost 4 ms at 200 m/s; the 1 m cap and the near cut
+  (4–8 m) brought Heavy to 0.9 ms.
+- 12,000 and 16,000 drops for Heavy: 11–14 % at speed with two-pixel streaks; 9,000 keeps it under 10 % and still
+  reads as heavy rain.
+- One-pixel streaks, lightened: they vanished against the grey overcast; two pixels at half the fog's brightness show
+  against both the sky and the ground.
+- A `sin()` hash of the drop's index: past a few thousand drops it put drops on the same spot, drawn as one long line
+  from the top of the view to the horizon.
+- Drops not drawn moved out of the view (a clip position past the corner) instead of collapsed: where one vertex
+  stayed, a thin triangle reached to the corner.
+- Wet ground reflecting the sky (specular 0.3, roughness 0.55) and mirror puddles (roughness 0.05–0.2): under the
+  Atmospheric sky the runway turned deep blue with white puddles.
 
 **Shots**: `tests/godot/_rain_shot.gd` saves, per level, the cockpit on the runway, the chase view and the runway
 close from 2 m there, the cockpit and the chase view at 400 kt 150 m over the Halutza sands; `RAIN_BEST=1` with every
