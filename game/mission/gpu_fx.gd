@@ -1,6 +1,7 @@
 # Detailed effects (Preferences > Graphics > MORE "Particle effects: Detailed", docs/rendering.md §6): GPU particles for
-# the puffs of damage_effects.gd, the missile trails of trails.gd and the contrails. The callers decide what spawns,
-# when and for how long, by the original's rules; this node only draws each spawn as GPU particles.
+# the puffs of damage_effects.gd and the contrails; the missile trails of trails.gd go to missile_fx.gd (smoke ribbons,
+# motor flames). The callers decide what spawns, when and for how long, by the original's rules; this node only draws
+# each spawn as GPU particles.
 # Three pools (GPUParticles3D, emitted one particle at a time with emit_particle):
 #   smoke  alpha-blended, lit by the sun, soft against the ground;
 #   fire   additive, a temperature ramp that cools with age;
@@ -23,6 +24,8 @@ var _now := 0.0
 var _mats: Array = []
 ## Wingtip / LEX streamers and vapour (vapour_fx.gd), fed by `contrail`.
 var vapour: Node3D
+## The missile / rocket smoke ribbons and motor flames (missile_fx.gd).
+var missiles: Node3D
 
 const FLAGS := (
 	GPUParticles3D.EMIT_FLAG_POSITION
@@ -216,6 +219,8 @@ func _ready() -> void:
 	_sun = get_viewport().find_child("Sun", true, false) as DirectionalLight3D
 	vapour = preload("res://mission/vapour_fx.gd").new()
 	add_child(vapour)
+	missiles = preload("res://mission/missile_fx.gd").new()
+	add_child(missiles)
 
 
 func _pool(amount: int, draw: String, gravity: float, sorted: bool) -> GPUParticles3D:
@@ -372,27 +377,15 @@ func puff(pos: Vector3, vel: Vector3, life: float, w0: float, w1: float, grey: i
 		)
 
 
-## A missile / rocket trail point (trails.gd MISSILE kind) at `pos`, the last one at `prev`: white smoke along the
-## segment, every 1.5 m (at most 16 per frame), with the trail's lifetime, and a short motor flame at the head.
-func trail(pos: Vector3, prev, life: float, size: float) -> void:
-	var from: Vector3 = prev if prev != null else pos
-	var n := clampi(ceili(from.distance_to(pos) / 1.5), 1, 16)
-	for i in n:
-		var p := from.lerp(pos, float(i + 1) / n)
-		_emit(
-			_smoke,
-			"smoke",
-			p,
-			_rand_dir() * 1.2,
-			life * _rng.randf_range(0.7, 1.0),
-			size * 4.0,
-			size * _rng.randf_range(20.0, 30.0),
-			0.95,
-			0.0,
-			0.0,
-			0.4
-		)
-	_emit(_fire, "fire", pos, Vector3.ZERO, 0.08, size * 3.0, size * 1.5, 1.2, 0.0, 0.0, 0.8)
+## A missile / rocket trail point (trails.gd MISSILE kind) of owner `key` at `pos`, while its motor burns: the
+## continuous smoke ribbon and the motor flame of missile_fx.gd.
+func trail(key, pos: Vector3) -> void:
+	missiles.point(key, pos)
+
+
+## The missile smoke and flame shaders drawn once under `parent`, a node in front of the camera (missile_fx.gd).
+func warm_up(parent: Node3D) -> void:
+	missiles.warm_up(parent)
 
 
 ## Contrails (ours): an aircraft model (aircraft_model.gd) above CONTRAIL_ALT leaves white condensation from each

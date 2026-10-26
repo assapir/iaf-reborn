@@ -1,7 +1,8 @@
 # Preferences > Graphics > MORE "Particle effects" (docs/rendering.md §6): with Original the damage effects, trails and
 # afterburners build the original billboards / ribbons and no GPU particles; with Detailed the same events (same seed,
-# same steps) spawn exactly as many puffs, drawn by the GPU particle pools (mission/gpu_fx.gd), missile trails as GPU
-# smoke while wingtip trails stay ribbons, and each afterburner gets its heat haze.
+# same steps) spawn exactly as many puffs, drawn by the GPU particle pools (mission/gpu_fx.gd), missile trails as smoke
+# ribbons with a motor flame (mission/missile_fx.gd) while wingtip trails stay the original ribbons, and each
+# afterburner gets its heat haze.
 extends "res://../tests/godot/base.gd"
 
 const STEP := 1.0 / 30.0
@@ -82,16 +83,37 @@ func run() -> void:
 	ta.set_process(false)
 	tb.set_process(false)
 	tb.gpu = b.gpu
-	var smoke0: int = em.smoke
+	var mfx: Node3D = b.gpu.missiles
+	mfx.set_process(false)
 	for i in 60:
 		for t in [ta, tb]:
 			t.emit("missile", Vector3(i * 10.0, 500, 0), t.MISSILE)
 			t._process(STEP)
+		mfx._process(STEP)
 	check(ta.counts() == tb.counts(), "trails: the same points and glows (%s)" % [tb.counts()])
 	check(
-		ta._mesh.get_surface_count() == 1 and tb._mesh.get_surface_count() == 0, "missile trail: a ribbon / GPU smoke"
+		ta._mesh.get_surface_count() == 1 and tb._mesh.get_surface_count() == 0,
+		"missile trail: the original ribbon / none with Detailed"
 	)
-	check(b.gpu.emitted.smoke > smoke0, "missile trail: GPU smoke emitted")
+	check(
+		ta._glows.multimesh.instance_count == 1 and tb._glows.multimesh.instance_count == 0,
+		"motor glow: missFLR / Detailed's own flame"
+	)
+	var mc: Dictionary = mfx.counts()
+	check(mc.ribbons == 1 and mc.points == 60 and mc.flames == 1, "Detailed: one smoke ribbon, a flame (%s)" % [mc])
+	var head: Node3D = mfx._flames[0].root
+	check(
+		head.global_position.distance_to(Vector3(590 + mfx.NOZZLE, 500, 0)) < 1e-3,
+		"the flame sits at the nozzle, 1 m ahead of the trail head (%s)" % [head.global_position]
+	)
+	# Burnout or the missile gone: no more points; the flame goes out, the smoke stays until it fades.
+	for i in 3:
+		tb._process(STEP)
+		mfx._process(STEP)
+	mc = mfx.counts()
+	check(mc.ribbons == 1 and mc.flames == 0, "after burnout: the smoke stays, no flame (%s)" % [mc])
+	mfx._process(mfx.LIFE)
+	check(mfx.counts().ribbons == 0, "the smoke is gone after %d s" % mfx.LIFE)
 	for t in [ta, tb]:
 		for i in 3:
 			t.emit("tip", Vector3(i, 300, 0), t.WINGTIP)

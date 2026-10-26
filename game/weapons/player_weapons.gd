@@ -26,6 +26,7 @@ const Hud := preload("res://cockpit/hud.gd")
 const Terrain := preload("res://terrain/terrain.gd")
 const FlightSounds := preload("res://audio/flight_sounds.gd")
 const Gltf := preload("res://util/gltf.gd")
+const MissileFx := preload("res://mission/missile_fx.gd")
 
 ## The gun's shot timer period (DAT_0082f4e8 = 0.2 s, sim time).
 const GUN_PERIOD := 0.2
@@ -1252,7 +1253,7 @@ func _update_missiles() -> void:
 				)
 		_place_sound(mis.get_meta("sound"), p)
 		if not gone:
-			_trail(mis, node)
+			_trail(mis, node, MissileFx.burning(String(mis.weapon.get("name", "")), now - mis.t0, mis.time_left(now)))
 		if gone:
 			_missile_detonate(mis)
 
@@ -1622,7 +1623,7 @@ func _update_bombs() -> void:
 			if e.node != null and r.flying:
 				e.node.position = to_scene(rockets.position(r, now))
 				_orient(e.node, r.u)
-				_trail(["rocket", k], e.node)
+				_trail(["rocket", k], e.node, now - float(r.t0) < MissileFx.ROCKET_BURN)
 
 
 func _place_bomb(bm: Dictionary) -> void:
@@ -1635,9 +1636,10 @@ func _place_bomb(bm: Dictionary) -> void:
 
 
 ## The trail of a flying missile / rocket (types 560, 570..635, FUN_004da090): its head is
-## MissileFlareDistance (1.0) + half the model length behind the model's centre, along its axis.
-func _trail(key, node: Node3D) -> void:
-	if host.trails == null or node == null:
+## MissileFlareDistance (1.0) + half the model length behind the model's centre, along its axis. With Detailed effects
+## (trails.gd `gpu`) the trail stops at the motor's burnout (`burning` false): the weapon coasts without smoke.
+func _trail(key, node: Node3D, burning := true) -> void:
+	if host.trails == null or node == null or (not burning and host.trails.gpu != null):
 		return
 	if not node.has_meta("half_length"):
 		node.set_meta("half_length", 0.5 * Gltf.model_aabb(node).size.z * node.scale.z)
