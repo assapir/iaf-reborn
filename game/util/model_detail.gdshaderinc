@@ -31,6 +31,9 @@ uniform float rough2_mean = 0.5;
 uniform float rough2_mid = 0.9;
 uniform float dark_below = 0.16;  // texel brightness below which the gear is rubber
 
+// Rain (terrain/weather.gd, docs/rendering.md §10): a wet film, darker and smoother up close; 0 = dry.
+global uniform float rain_wet;
+
 varying vec3 obj_pos;
 varying vec3 obj_n;
 
@@ -89,5 +92,7 @@ void fragment() {
 		vec3 vn = normalize(mat3(VIEW_MATRIX) * normalize(MODEL_NORMAL_MATRIX * dn));
 		vn = FRONT_FACING ? vn : -vn;
 		NORMAL = normalize(mix(NORMAL, vn, f));
+		ALBEDO *= 1.0 - 0.15 * rain_wet * f;
+		ROUGHNESS = mix(ROUGHNESS, ROUGHNESS * 0.45, rain_wet * f);
 	}
 }

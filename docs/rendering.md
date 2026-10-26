@@ -12,8 +12,8 @@ This doc lists the rendering options of the flight scene, what each one sets, an
 
 Code: `game/terrain/render_options.gd` (applied by `terrain_view.gd apply_render_options()` at the start of a flight
 and when the in-flight Preferences close), `terrain/terrain.gdshader`, `terrain/atmosphere.gdshader`,
-`terrain/cloud_layer.gd`, `terrain/night_lights.gd`, `terrain/night_vision.gdshader`, `terrain/airbases.gd`, `terrain/ground_textures.gd`, `util/model_detail.gd`. Tests: `tests/godot/test_graphics_prefs.gd` (switches → render
-settings, save / load), `test_ui_smoke.gd` (Graphics → MORE and Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5, §8 the goggles key), `test_water.gd` (§1.3), `test_ground_textures.gd` (§1.4), `test_particle_effects.gd` (§6), `test_airbases.gd` (§7), `test_model_detail.gd` (§9).
+`terrain/cloud_layer.gd`, `terrain/night_lights.gd`, `terrain/night_vision.gdshader`, `terrain/airbases.gd`, `terrain/ground_textures.gd`, `util/model_detail.gd`, `terrain/weather.gd`. Tests: `tests/godot/test_graphics_prefs.gd` (switches → render
+settings, save / load), `test_ui_smoke.gd` (Graphics → MORE and Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5, §8 the goggles key), `test_water.gd` (§1.3), `test_ground_textures.gd` (§1.4), `test_particle_effects.gd` (§6), `test_airbases.gd` (§7), `test_model_detail.gd` (§9), `test_rain.gd` (§10).
 
 ## 1. Options
 
@@ -32,6 +32,7 @@ TAA = temporal anti-aliasing, FSR = AMD FidelityFX Super Resolution.
 | Models | Original / Detailed | Detailed: our detailed aircraft models where one exists (today the F-16D), parsed once and shared, with runtime LODs ([aircraft-models.md](aircraft-models.md)) |
 | Model detail | Original / ambientCG | ambientCG: fine CC0 surface detail (normal, roughness and brightness: paint chips, scratches, grime, rubber grain) on the original models up close, over their own textures (§9). Greyed out ("Not downloaded") until setup has downloaded the materials. Takes effect when a model loads (the next flight) |
 | Particle effects | Original / Detailed | Detailed: explosions, smoke and missile trails as GPU particles, contrails above 9000 m and a heat haze behind each engine (§6). Takes effect at the next flight |
+| Rain | Off / Light / Heavy | Light / Heavy: rain as the weather: falling rain around the camera, drops on the canopy in the cockpit views, wet ground, a shorter visibility under an overcast, a dimmer sun (§10). The original has no weather |
 | Rolling wheels | Original / Rolling | the wheels of a model with wheel frames turn as the jet rolls (today the F-35I; docs/part-animation.md §2.2) |
 | Airbases | Original / Detailed | in `terrain.gdshader`: near the ground, a procedural runway, taxiway and apron surface with ICAO markings over the nearest base's paved surface (§7); always on in World scale Real |
 | Ground textures | Original / ambientCG | in `terrain.gdshader`: near the camera, where they resolve, CC0 photo textures of asphalt, concrete, sand, gravel, grass, soil and rock, chosen per pixel from the imagery's colour (§1.4). Greyed out and not clickable ("Not downloaded") until setup has downloaded them; a saved ambientCG without them loads as Original |
@@ -1168,6 +1169,90 @@ an F-4 on the ramp, the Kfir's pylons (Mk-82s, a drop tank), its wheels, a tank 
 hangar. On Linux, run it on X11 with `MESA_VK_WSI_PRESENT_MODE=immediate` (`DISPLAY=:0 … --display-driver x11`): a
 Wayland window covered by other windows is drawn once a second.
 
+
+## 10. Rain (built: game/terrain/weather.gd)
+
+Preferences → Graphics → MORE → **Rain = Light / Heavy** (ours, docs/deviations.md §2) makes it rain in every
+flight. The original has no weather, so the default is Off, which makes no node and changes nothing. The choice is
+saved (`Settings.rain`, settings.cfg); it takes effect at once, also from the in-flight Preferences. A mission does not
+set it (the mission editor could later).
+
+`terrain_view.gd apply_render_options()` calls `Weather.apply_env` and, while it rains, makes the `Weather` node; its
+`update` runs each frame with the camera.
+
+| part | Light | Heavy | how |
+|---|---|---|---|
+| Falling rain | 6,000 drops | 12,000 drops | `rain.gdshader`: one MultiMesh quad per drop, placed in the vertex shader (below) |
+| Drops on the canopy | 35 % of the cells | 70 % of the cells | `canopy_drops.gdshader`, cockpit views only (below) |
+| Visibility (fog density) | 0.0002: about 15 km | 0.0005: about 6 km | `apply_env`; the scene's own is 0.00003 (about 100 km) |
+| Overcast (`fog_sky_affect`) | 0.6 | 0.9 | the fog covers that share of the sky, so the sky turns the fog's grey |
+| Sun | 50 % | 25 % | the sun's energy, under the overcast |
+| Wet ground (`rain_wet`) | 0.6 | 1.0 | the global shader parameter read by `terrain.gdshader` and `model_detail.gdshaderinc` |
+
+Visibility is given as the distance where the fog leaves 5 % contrast, 3 / density (Godot's exponential fog). The
+levels are our choice (inferred): light rain keeps the far hills, heavy rain hides the ground beyond a few km while the
+HUD, radar and TSD work as before.
+
+**The environment** changes in one function, `Weather.apply_env(env, sun)`, called after `RenderOptions.apply` and
+after each change of the sky: the fog's density and its share of the sky; the distance haze from the fog's colour
+instead of the sky's (`fog_aerial_perspective` 0, as the Atmospheric sky's blue haze looks wrong under an overcast);
+the sun's energy; `rain_wet`. Off puts the scene's own values back. The fog colour of the time of day (§4) is greyed
+toward its own brightness (`Weather.fog_tint`), by the overcast's share, and so is the Original sky's zenith colour, so
+the ambient light and the reflections are the overcast's grey. `atmosphere.gdshader` itself is unchanged.
+
+**Falling rain.** Each drop has a fixed seed spot in a 40 m cube. The cube wraps around a point 14 m ahead of the
+camera, so a drop stays at its place in the world while the camera flies through it, and the drops never run out. The
+drops fall at 7 m/s (about a 2 mm drop's terminal speed[^gunn]) plus the wind (Better physics `wind`). Each is drawn as
+the streak it sweeps in 25 ms at its speed seen from the camera, at most 1.5 m long: short and falling on the ground,
+rushing out from the flight path's point across the view at 300+ kt, seen through the canopy in the cockpit views. A
+streak is 6 mm wide (the drop's blur), at least one pixel, fainter when thinner or longer; drops closer than 3–6 m
+(the canopy, the nose) and near the cube's edge fade out, and a drop not drawn is moved out of the view so it costs no
+fill. The streaks take the fog's colour, darkened: lighter than the wet ground, darker than the sky. The CPU sets five
+uniforms a frame.
+
+**Drops on the canopy** (cockpit views: cockpit, HUD only, free look, padlock). A canvas layer under the cockpit
+(layer −1, as the cloud layer's whiteout) draws them, so they show through the cockpit's window only and the HUD stays
+on top. Each drop is a small lens: it shows the scene within three radii around it, upside down, with a darker rim
+(most at its lower side) and a small highlight. Two sizes of drops in grid cells, one at most per cell, land, stay a
+few seconds and dry. The airflow (the camera's speed through the air) drives them up the glass, each column of cells
+at its own pace, from 12 m/s on; they stretch into thin streaks and dry fast as the speed grows (fully at 80 m/s), so
+at 400 kt only short runs show. At rest they slide down slowly.
+
+**Wet ground** (`terrain.gdshader wet_ground`, a block at the end of the fragment shader): water in the pores darkens
+the ground (to 75 %, grey ground such as pavement and rock to 60 %[^lekner]); its film lowers the roughness (to 0.8,
+grey ground 0.65) and raises the specular a little. On the Detailed airbases' flat pavement (§7) within 800 m, the low
+spots of the detail noise hold puddles a few metres across: flat, roughness 0.2, blurred mirrors of the sky. Without Detailed airbases the
+shader does not know the pavement, so there are no puddles. Water surfaces stay as they are. Models with Model detail
+(§9) get a wet film up close (darker by 15 %, roughness × 0.45).
+
+**Sound**: none. The install holds no rain or airflow sample (`wind1`–`wind5` are radio messages, docs/sound.md §1).
+
+**Humidity hook**: `Weather.humidity(alt_m)` gives the air's relative humidity for the condensation of `vapour_fx.gd`
+(§6): without rain, that file's own assumption (humid below 1.5 km, dry above 6 km); in the rain, saturated up to 3 km
+(inferred: the cloud base), dry above 6 km. `vapour_fx.gd` does not read it yet.
+
+**Loading**: the node and its shaders are made in `apply_render_options`, behind the loading screen, and draw there
+once, so the pipelines are built before the flight shows. The canopy layer reads the screen (a copy of the 3D view
+each frame while it shows).
+
+**Cost** (Iris Xe, TigerLake GT2, 2560 × 1440, Linux, X11 with immediate present, vsync off, the other settings at
+their defaults; `_rain_shot.gd RAIN_BENCH=15`, mission 311 in the F-16, the flight model stopped and the jet moved;
+2026-10-26; average frame time of two runs each):
+
+| pose | Off | Light | Heavy |
+|---|---|---|---|
+| lineup on Ramat David's runway, cockpit | 8.5–9.0 ms (111–118 fps) | 9.1 ms (110 fps, −3 %) | 9.0 ms (111 fps, −3 %) |
+| 300 m over the Halutza sands at 200 m/s, cockpit | 11.0 ms (91 fps) | 11.9 ms (84 fps, −8 %) | 12.3–12.4 ms (81 fps, −11 %) |
+| the same, chase view | 6.9 ms (145 fps) | 6.9 ms | 6.9 ms |
+
+The chase view stays at a 145 fps ceiling in all three (open: likely the display's 144 Hz), so it shows no cost. Of Heavy's 1.35 ms at speed, the canopy drops take about
+0.5 ms (a copy of the screen and the drop shader); the rest is the streaks' fill. Before the 1.5 m cap and the near cut
+the streaks cost 4 ms at speed. No new frame spikes: the worst frames are the same with and without rain.
+
+**Shots**: `tests/godot/_rain_shot.gd` saves, per level, the cockpit on the runway, the chase view and the runway
+close from 2 m there, the cockpit and the chase view at 400 kt 150 m over the Halutza sands; `RAIN_BEST=1` with every
+graphics option at its best. `RAIN_BENCH=secs` measures the frame rate instead.
+
 [^wtp]: Godot docs, ProjectSettings `threading/worker_pool/low_priority_thread_ratio` (default 0.3):
     https://docs.godotengine.org/en/stable/classes/class_projectsettings.html#class-projectsettings-property-threading-worker-pool-low-priority-thread-ratio
 [^nvd]: Wikipedia, "Night-vision device" (Gen III 500–900 nm, the ion barrier's halo effect, green images):
@@ -1223,3 +1308,8 @@ Wayland window covered by other windows is drawn once a second.
 [^s125]: Military Russia (rbase), "ЗРК С-125" (starting booster 2–4 s, sustainer up to 20 s), http://rbase.new-factoria.ru/missile/wobb/c125/c125.shtml
 [^osa]: Wikipedia, "9K33 Osa" (booster 2 s, sustainer 15 s), https://en.wikipedia.org/wiki/9K33_Osa
 [^hillaire]: Sébastien Hillaire, "A Scalable and Production Ready Sky and Atmosphere Rendering Technique", Computer Graphics Forum 39 (4), EGSR 2020, https://sebh.github.io/publications/egsr2020.pdf
+[^gunn]: R. Gunn, G. D. Kinzer, "The terminal velocity of fall for water droplets in stagnant air", Journal of
+    Meteorology 6 (4), 1949, pp. 243–248 (a 2 mm drop falls at about 6.5 m/s):
+    https://doi.org/10.1175/1520-0469(1949)006%3C0243:TTVOFF%3E2.0.CO;2
+[^lekner]: J. Lekner, M. C. Dorf, "Why some things are darker when wet", Applied Optics 27 (7), 1988, pp. 1278–1280:
+    https://doi.org/10.1364/AO.27.001278

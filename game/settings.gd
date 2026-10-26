@@ -117,6 +117,7 @@ const PREFS := {
 		"model_detail",
 		"rolling_wheels",
 		"particle_effects",
+		"rain",
 		"airbases",
 		"ground_textures",
 		"scenery",
@@ -253,6 +254,9 @@ var rolling_wheels := false
 ## billboards and ribbons; true = GPU particle explosions, smoke, missile trails, contrails, engine heat haze and
 ## condensation on the jets (mission/vapour_fx.gd).
 var particle_effects := false
+## Rain (ours, Graphics → MORE; docs/rendering.md §10, terrain/weather.gd): "off" (the original: no weather), "light" or
+## "heavy" (falling rain, drops on the canopy, wet ground, a shorter visibility).
+var rain := "off"
 ## Airbases (ours, Graphics → MORE; docs/rendering.md §7, terrain/airbases.gd): "original" (the 1998 imagery) or
 ## "detailed" (near the ground, a procedural runway, taxiway and apron surface with markings; visual only).
 var airbases := "original"

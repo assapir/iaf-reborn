@@ -50,6 +50,7 @@ const Views := preload("res://terrain/views.gd")
 const RenderOptions := preload("res://terrain/render_options.gd")
 const Airbases := preload("res://terrain/airbases.gd")
 const TimeOfDay := preload("res://terrain/time_of_day.gd")
+const Weather := preload("res://terrain/weather.gd")
 const VehicleParts := preload("res://mission/vehicle_parts.gd")
 var views: RefCounted = Views.new()
 var in_cockpit: bool:
@@ -438,6 +439,16 @@ func apply_render_options() -> void:
 		clouds.free()
 		clouds = null
 	RenderOptions.apply(get_viewport(), ($WorldEnvironment as WorldEnvironment).environment)
+	# Rain (ours, docs/rendering.md §10): the fog, sun and wetness; the drops while it rains.
+	Weather.apply_env(($WorldEnvironment as WorldEnvironment).environment, $Sun)
+	if Weather.level().is_empty() and weather != null:
+		weather.free()
+		weather = null
+	elif not Weather.level().is_empty():
+		if weather == null:
+			weather = Weather.new()
+			add_child(weather)
+		weather.set_level()
 	Airbases.apply()
 	if clouds != null:
 		clouds.set_atmospheric(Settings.sky == "atmospheric")
@@ -487,13 +498,14 @@ func _update_time_of_day(cam: Camera3D) -> void:
 		if atmo != _tod_atmo:
 			_tod_atmo = atmo
 			RenderOptions._apply_sky(env, atmo, get_world_3d().camera_attributes)
+			Weather.apply_env(env, sun)
 		var mat = env.sky.sky_material if env.sky != null else null
 		if mat is ProceduralSkyMaterial and not _tod_colors.is_empty():
-			mat.sky_top_color = _tod_colors.sky
+			mat.sky_top_color = Weather.fog_tint(_tod_colors.sky)  # the overcast in the rain
 	if cam == null or _tod_sun.is_empty():
 		return
 	var f: Vector3 = -cam.global_basis.z
-	var fog := TimeOfDay.fog(_tod_colors, rad_to_deg(atan2(f.x, -f.z)), float(_tod_sun.sun_az))
+	var fog := Weather.fog_tint(TimeOfDay.fog(_tod_colors, rad_to_deg(atan2(f.x, -f.z)), float(_tod_sun.sun_az)))
 	env.fog_light_color = fog
 	# Writing the sky material re-renders the sky's radiance (the ambient light) that frame: ≈ 1–4 ms on an Iris Xe,
 	# so only when the colour changed by more than an 8-bit step (turning), not every frame.
@@ -528,6 +540,8 @@ func _night_detailed(sun: DirectionalLight3D, env: Environment, night: bool) -> 
 
 
 var _night_sky: Node3D
+## Rain (ours, terrain/weather.gd): the drops while Settings.rain is not "off", else null.
+var weather: Node3D
 
 
 ## The cameras start in the cockpit (`--external`: chase; `--orbit yaw pitch dist`: the chase camera's orbit
@@ -3384,6 +3398,14 @@ func _process(delta: float) -> void:
 	if clouds != null and get_viewport().get_camera_3d() != null:
 		clouds.update_view(get_viewport().get_camera_3d().global_position, delta)
 	_update_time_of_day(get_viewport().get_camera_3d())
+	if weather != null:
+		weather.update(
+			get_viewport().get_camera_3d(),
+			in_cockpit,
+			GpuFx.wind,
+			($WorldEnvironment as WorldEnvironment).environment.fog_light_color,
+			delta
+		)
 	if get_viewport().get_camera_3d() != null:
 		RenderOptions.update_view(
 			($WorldEnvironment as WorldEnvironment).environment, get_viewport().get_camera_3d().global_position, terrain
