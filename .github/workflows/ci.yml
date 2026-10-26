@@ -1,0 +1,97 @@
+# CI (docs/ci.md). Runs only what works without game data: nothing here reads or downloads the ISO or assets/.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  GODOT_VERSION: 4.7.2-stable
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: rustup component add rustfmt clippy
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: gdformat / gdlint
+        run: |
+          python3 -m venv "$RUNNER_TEMP/gdt"
+          "$RUNNER_TEMP/gdt/bin/pip" install -q 'gdtoolkit==4.*'
+          git ls-files -z '*.gd' | xargs -0 "$RUNNER_TEMP/gdt/bin/gdformat" --line-length 120 --check
+          git ls-files -z '*.gd' | xargs -0 "$RUNNER_TEMP/gdt/bin/gdlint"
+      - run: python3 -I tools/doclint.py
+      - run: python3 -I tests/test_flight_timeline.py
+
+  rust:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: rustup component add clippy
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - if: runner.os != 'Linux' # the lint job covers Linux
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo test --workspace
+
+  godot:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 180
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - run: cargo build --release -p iaf-godot
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: iaf-godot-${{ runner.os }}
+          path: |
+            target/release/libiaf_godot.so
+            target/release/libiaf_godot.dylib
+            target/release/iaf_godot.dll
+          retention-days: 7
+          if-no-files-found: error
+      - name: Install Godot ${{ env.GODOT_VERSION }}
+        run: |
+          case "$RUNNER_OS" in
+            Linux) zip=linux.x86_64.zip; exe=Godot_v${GODOT_VERSION}_linux.x86_64 ;;
+            macOS) zip=macos.universal.zip; exe=Godot.app/Contents/MacOS/Godot ;;
+            Windows) zip=win64.exe.zip; exe=Godot_v${GODOT_VERSION}_win64_console.exe ;;
+          esac
+          dir="$RUNNER_TEMP/godot"
+          mkdir -p "$dir/bin"
+          curl -fsSL -o "$dir/godot.zip" \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_${zip}"
+          unzip -q "$dir/godot.zip" -d "$dir"
+          if [[ $RUNNER_OS == Windows ]]; then
+            cp "$dir/$exe" "$dir/bin/godot.exe"
+          else
+            ln -s "$dir/$exe" "$dir/bin/godot"
+          fi
+          echo "$dir/bin" >> "$GITHUB_PATH"
+      - run: godot --version
+      - run: godot --headless --path game --import
+      - name: Parse-check every script
+        run: godot --headless --path game -s ../tools/gdparse.gd --log-file "$RUNNER_TEMP/gdparse.log"
+      # Informational: which Godot tests run without game data.
+      - name: Godot tests (without data)
+        if: runner.os != 'macOS'
+        continue-on-error: true
+        run: tools/ci_godot_tests.sh
