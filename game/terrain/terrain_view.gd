@@ -289,7 +289,8 @@ func _ready() -> void:
 	Scenery.night = false  # _night_detailed sets it at night
 	GpuFx.wind = Vector3.ZERO
 	Joystick.consumer = self
-	Joystick.rocker_rest = NAN  # the rocker's rest: its first reading this flight
+	Joystick.rocker_first = NAN  # the rocker counts once it moves (its axis reads −1 until its first event)
+	Joystick.rocker_moved = false
 	# Graphics page SHADOWS (our renderer's sun shadows; the original's shadow method is not used).
 	($Sun as DirectionalLight3D).shadow_enabled = Settings.shadows
 	for i in keys.size():
@@ -3521,8 +3522,31 @@ func _read_controls(delta: float) -> void:
 	var trim := Joystick.rocker()
 	if Input.is_key_pressed(KEY_ALT) and not Input.is_key_pressed(KEY_CTRL) and not Input.is_key_pressed(KEY_SHIFT):
 		trim += float(Input.is_key_pressed(KEY_RIGHT)) - float(Input.is_key_pressed(KEY_LEFT))
-	if trim != 0.0 and flight != null and (autopilot == null or autopilot.mode == 0):
+	var ap_on: bool = autopilot != null and autopilot.mode != 0
+	if trim != 0.0 and flight != null and not ap_on:
 		flight.trim_roll(trim, delta)
+	_log_trim(trim, ap_on)
+
+
+## The log: one line when the trim input stops (the trim it left, what moved it), and one when the autopilot holds
+## the trim still against an input (docs/controls.md §5.2).
+var _trim_input := ""
+
+
+func _log_trim(input: float, ap_on: bool) -> void:
+	if flight == null:
+		return
+	var src := ""
+	if input != 0.0:
+		src = "keys" if Input.is_key_pressed(KEY_ALT) else "rocker"
+		src += " (autopilot on: held still)" if ap_on else ""
+	if src == _trim_input:
+		return
+	if _trim_input != "" and src == "":
+		print("trim: %+.1f %% stick after the %s" % [flight.roll_trim() * 100.0, _trim_input])
+	elif src != "":
+		print("trim: %s moving it from %+.1f %%, input %+.2f" % [src, flight.roll_trim() * 100.0, input])
+	_trim_input = src
 
 
 ## One event of the joystick poller (FUN_004df560): GEV 1 stick (x, y ±100), 9 throttle (0..100), 10 rudder,

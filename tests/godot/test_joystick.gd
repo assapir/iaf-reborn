@@ -140,7 +140,7 @@ func run() -> void:
 	prefs.rudder = 0
 
 	# Ours: the throttle rocker (axis 4, Devices "Throttle rocker") trims roll while held: off by default (the
-	# original's four axes); on, full rocker for 1 s = 0.04 stick, the rest inside the 10 % dead zone does nothing.
+	# original's four axes); on, full rocker for 1 s = 0.1 stick, the rest inside the 10 % dead zone does nothing.
 	check(not prefs.rocker_trim, "Throttle rocker defaults to Off (the original's four axes)")
 	js.axis_count = 4
 	prefs.rocker_trim = true
@@ -152,19 +152,19 @@ func run() -> void:
 	axis(JOY_AXIS_TRIGGER_LEFT, 1.0)
 	check(js.rocker() == 0.0, "rocker off: no trim")
 	prefs.rocker_trim = true
-	# The rest is the first reading of the flight: a driver reporting the rocker's rest at −1 (a trigger at 0)
-	# trims nothing there, and the far end is full rocker.
-	js.rocker_rest = NAN
+	# Before its first event the axis reads −1 (our trigger mapping of Godot's 0): no trim until it moves.
+	js.rocker_first = NAN
+	js.rocker_moved = false
 	axis(JOY_AXIS_TRIGGER_LEFT, -1.0)
-	check(js.rocker() == 0.0 and js.rocker_rest == -1.0, "rocker resting at −1: taken as its rest, no trim")
+	check(js.rocker() == 0.0 and js.rocker() == 0.0, "rocker not moved yet (reads −1): no trim")
+	axis(JOY_AXIS_TRIGGER_LEFT, 0.0)
+	check(js.rocker() == 0.0 and js.rocker_moved, "rocker moved to its centre: counts now, no trim at rest")
 	axis(JOY_AXIS_TRIGGER_LEFT, 1.0)
-	check(is_equal_approx(js.rocker(), 1.0), "from a −1 rest, the far end is full rocker (%.2f)" % js.rocker())
-	js.rocker_rest = 0.0
 	var trim0: float = tv.flight.roll_trim()
 	for i in 60:
 		tv._read_controls(DT)
 	var trim1: float = tv.flight.roll_trim()
-	check(absf(trim1 - trim0 - 0.04) < 0.002, "rocker right 1 s: trim +0.04 (%.3f → %.3f)" % [trim0, trim1])
+	check(absf(trim1 - trim0 - 0.1) < 0.005, "rocker right 1 s: trim +0.1 (%.3f → %.3f)" % [trim0, trim1])
 	axis(JOY_AXIS_TRIGGER_LEFT, 0.5)
 	check(js.rocker() > 0.0 and js.rocker() < 0.5, "half rocker: under half the rate (squared, %.3f)" % js.rocker())
 	axis(JOY_AXIS_TRIGGER_LEFT, 1.0)
@@ -178,14 +178,14 @@ func run() -> void:
 	set_key(KEY_LEFT, true)
 	for i in 30:
 		tv._read_controls(DT)
-	check(absf(tv.flight.roll_trim() - (trim1 - 0.02)) < 0.002, "Alt + Left 0.5 s: trim −0.02")
+	check(absf(tv.flight.roll_trim() - (trim1 - 0.05)) < 0.005, "Alt + Left 0.5 s: trim −0.05")
 	check(tv.stick.x == 0.0, "Alt + Left does not roll the stick (%.2f)" % tv.stick.x)
 	var fs: Dictionary = tv.flight.state()
 	check(
 		absf(fs.roll_stick - fs.roll_trim) < 1e-4 and absf(fs.roll_trim) > 0.01,
 		"airborne, stick centred: the roll command (the ailerons) is the trim (%.3f)" % fs.roll_stick
 	)
-	check(tv._trim_text() == "  TRIM R 2.0%", "info line: %s" % tv._trim_text())
+	check(tv._trim_text() == "  TRIM R 5.0%", "info line: %s" % tv._trim_text())
 	set_key(KEY_LEFT, false)
 	set_key(KEY_ALT, false)
 	tv._read_controls(DT)

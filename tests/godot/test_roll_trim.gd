@@ -1,5 +1,5 @@
 # Roll trim from the keys (ours, docs/controls.md §2 / §5.2), end to end in the running flight scene: Alt + Right
-# does nothing under the air start's AP LVL (the wings stay level); with the autopilot off, held 5 s it trims 0.2
+# does nothing under the air start's AP LVL (the wings stay level); with the autopilot off, held 2 s it trims 0.2
 # stick right and the jet banks right with the stick centred; Alt + Left trims back. The rocker: test_joystick.gd.
 extends "res://../tests/godot/base.gd"
 
@@ -42,10 +42,10 @@ func run() -> void:
 	await fly(tv, 1.0)
 	var b1 := bank(tv)
 	check(absf(b1 - b0) < 2.0, "AP off, untrimmed: no roll (%.1f° → %.1f°)" % [b0, b1])
-	await trim(tv, KEY_RIGHT, 5.0)
+	await trim(tv, KEY_RIGHT, 2.0)
 	var t: float = tv.flight.roll_trim()
-	check(absf(t - 0.2) < 0.01, "Alt + Right 5 s → trim %.3f (≈ 0.2)" % t)
+	check(absf(t - 0.2) < 0.01, "Alt + Right 2 s → trim %.3f (≈ 0.2)" % t)
 	await fly(tv, 1.0)
 	check(bank(tv) - b1 > 10.0, "trimmed, the jet banks right (%.0f° → %.0f°)" % [b1, bank(tv)])
-	await trim(tv, KEY_LEFT, 5.0)
-	check(absf(tv.flight.roll_trim()) < 0.02, "Alt + Left 5 s → back to centre")
+	await trim(tv, KEY_LEFT, 2.0)
+	check(absf(tv.flight.roll_trim()) < 0.02, "Alt + Left 2 s → back to centre")

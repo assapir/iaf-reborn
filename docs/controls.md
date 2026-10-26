@@ -481,10 +481,10 @@ the same code).
 * **Ours: Devices page "Throttle rocker"** (under RUDDER; settings.cfg `[devices] rocker_trim`). It gives a spring-
   centred 5th axis the roll trim (`Joystick.rocker`, `Aircraft::trim_roll`).
   * **Off** (the default) is the original: four axes. The original has no trim.
-  * **Roll trim**: while the rocker is held, the trim moves at up to 0.04 stick per second at full rocker (5 s for
-    the 0.2 stick a 2000 lb bomb on one wing needs; a short tap is a fraction of a degree per second of roll). The
-    rocker's response is squared: half rocker trims at a quarter of the rate, for fine balancing. 0.2 stick per
-    second, linear, was too coarse to balance the jet (tried and dropped 2026-10-26). Released, the trim stays. A 10 % dead zone holds a wobbling rest.
+  * **Roll trim**: while the rocker is held, the trim moves at up to 0.1 stick per second at full rocker (2 s for
+    the 0.2 stick a 2000 lb bomb on one wing needs). The rocker's response is squared: half rocker trims at a
+    quarter of the rate, for fine balancing. Tried and dropped (2026-10-26): 0.2 stick per second, linear, too
+    coarse to balance the jet; 0.04, steps too small. Released, the trim stays. A 10 % dead zone holds a wobbling rest.
   * The row shows only with a joystick that has a 5th axis. The count comes from the device's USB HID report
     descriptor (`IafHid.axis_count`, `iaf_formats::hid::input_axes`: the Generic Desktop X, Y, Z, Rx, Ry, Rz,
     Slider, Dial, Wheel and the Simulation rudder / throttle / accelerator / brake inputs). macOS lists the
@@ -502,9 +502,14 @@ the same code).
     There is no reset, as in the real jets: trim until the jet flies hands-off.
   * While the autopilot flies, it ignores the trim (it holds the heavy wing itself, autopilot.md §2.5), and the
     rocker and keys don't move it, so nothing builds up unseen; the trim works again when it lets go.
-  * The rocker's centre is its reading at the flight's first use (the log line `joystick: rocker rest …`), each side
-    scaled to its own travel: a driver that reports the spring-centred rocker off its middle (on the Mac a trigger
-    resting at 0, read as −1) would otherwise trim all the time. The trim itself starts at 0 each flight.
+  * Godot reads an axis as 0 until the device's first event for it, which our trigger mapping turns into −1, full
+    left (seen on the Mac: the jet rolled from the start). So the rocker counts only once its reading has changed
+    from the flight's first one (log lines `joystick: rocker first reading …` / `rocker moved …`). The trim itself
+    starts at 0 each flight.
+  * The log shows the rocker at each change of 0.1 or more (`joystick: rocker axis 4 = … at … s (raw …, trim
+    on|off)`, also with the trim switch off) and each trim change (`trim: rocker moving it from …`, `trim: … %
+    stick after the rocker`, `… (autopilot on: held still)`), so one flight's log shows where a stick's trim goes
+    wrong.
   * The trim shows on the flight-info line (Ctrl + F12) while it is off centre, e.g. "TRIM L 2.4%" (2.4 % of full
     stick, left wing down), and on the external model: the ailerons follow the roll command (stick + trim; flight
     state `roll_stick`).

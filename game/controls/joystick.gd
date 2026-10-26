@@ -17,13 +17,15 @@ const SOFT_DEAD_ZONE := 0.05
 const SOFT_EXPO := 0.6
 ## Ours (Devices page "Throttle rocker" = Roll trim, Settings.rocker_trim): the spring-centred rocker on a 5th axis
 ## (the T.Flight Hotas X's in its 5-axis mode: Godot axis 4; Settings.joy_axes[4] when given) trims roll while
-## held. Its rest wobbles, so a 10 % dead zone around the rest, which is the reading at the flight's first use
-## (rocker_rest): a driver that reports the spring-centred rocker off its middle (a trigger at 0 on the Mac) would
-## otherwise trim all the time.
+## held. Its rest wobbles, so a 10 % dead zone. Godot reads an axis as 0 until the device's first event for it,
+## which our trigger mapping turns into −1 (full left; seen on the Mac): the rocker counts only once its reading
+## has changed from the flight's first one (rocker_first).
 const ROCKER_AXIS := 4
 const ROCKER_DEAD_ZONE := 0.1
-## The rocker's rest, −1..1; NAN = take the next reading (set at each flight's start).
-var rocker_rest := NAN
+## The rocker's first reading this flight (NAN = not read yet) and whether it has moved since.
+var rocker_first := NAN
+var rocker_moved := false
+var _rocker_logged := 99.0
 ## The hat as Godot reports it: the D-pad buttons.
 const HAT := [JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_RIGHT, JOY_BUTTON_DPAD_DOWN, JOY_BUTTON_DPAD_LEFT]
 ## POV (hundredths of a degree) → GEV 22 (p1 angle, p2 numpad digit) (@4dfa2c..4dfbae): the snap-view keys'
@@ -120,16 +122,36 @@ func throttle_axis() -> int:
 ## (half rocker = a quarter of the rate) and full rocker at the full rate.
 func rocker() -> float:
 	var d := device()
-	if not has_fifth_axis() or not Settings.rocker_trim:
+	if not has_fifth_axis():
 		return 0.0
 	var i: int = Settings.joy_axes[4] if Settings.joy_axes.size() > 4 else ROCKER_AXIS
 	var v := axis(d, i)
-	if is_nan(rocker_rest):
-		rocker_rest = v
-		print("joystick: rocker rest %.2f (axis %d)" % [v, i])
-	# Relative to the rest, each side scaled to its own travel.
-	var span := (1.0 - rocker_rest) if v >= rocker_rest else (1.0 + rocker_rest)
-	var r := _dead((v - rocker_rest) / maxf(span, 0.05), ROCKER_DEAD_ZONE)
+	# The log: the rocker's reading at each change of 0.1 or more (its rest, each side; docs/controls.md §5.2).
+	if absf(v - _rocker_logged) >= 0.1:
+		_rocker_logged = v
+		print(
+			(
+				"joystick: rocker axis %d = %.2f at %.1f s (raw %.2f, trim %s)"
+				% [
+					i,
+					v,
+					Time.get_ticks_msec() / 1000.0,
+					Input.get_joy_axis(d, i),
+					"on" if Settings.rocker_trim else "off"
+				]
+			)
+		)
+	if not Settings.rocker_trim:
+		return 0.0
+	if not rocker_moved:
+		if is_nan(rocker_first):
+			rocker_first = v
+			print("joystick: rocker first reading %.2f (axis %d)" % [v, i])
+		if v == rocker_first:
+			return 0.0
+		rocker_moved = true
+		print("joystick: rocker moved, now %.2f" % v)
+	var r := _dead(v, ROCKER_DEAD_ZONE)
 	return r * absf(r)
 
 

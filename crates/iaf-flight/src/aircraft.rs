@@ -99,9 +99,9 @@ const SQUAT_UP: f32 = 1.0 * PI / 180.0;
 // original, which never lets them depart). Estimates from public F-16 high-AoA data (NASA TP-1538 wind-tunnel
 // data, the F-16 deep-stall reports and the -1 recovery procedure); docs/flight-model.md §10.1.
 /// Ours: the roll trim's speed at full rocker, stick per second (inferred: the ≈ 0.2 stick a 2000 lb bomb on one
-/// wing needs at cruise in 5 s, a 0.1 s tap 0.004 stick ≈ 0.6°/s of roll in the F-16; 0.2 / s was too coarse to
-/// balance the jet, user 2026-10-26).
-const ROLL_TRIM_RATE: f32 = 0.04;
+/// wing needs at cruise in 2 s, a 0.1 s tap 0.01 stick ≈ 1.6°/s of roll in the F-16; user 2026-10-26: 0.2 / s
+/// too coarse to balance the jet, 0.04 / s steps too small).
+const ROLL_TRIM_RATE: f32 = 0.1;
 /// Deep-stall trim AoA (the F-16's second pitch trim point, ~60°, beyond the horizontal tail's nose-down power).
 const DS_ALPHA: f32 = 60.0 * PI / 180.0;
 /// Normal-force coefficient at the trim AoA (flat-plate-like, NASA TP-1538 CN(60°) ≈ 1.5): lift = N·cos α,

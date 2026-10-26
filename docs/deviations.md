@@ -425,7 +425,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   maps linearly to ±100. Ours, with "Soft centre": a 5 % dead zone on stick x / y and the rudder, then an expo curve
   0.4·in + 0.6·in³ on stick x / y; full deflection unchanged — joystick.gd `stick_curve`, docs/controls.md §5.
 - **Throttle rocker** (ours, under RUDDER, Off by default). Original: four axes and no trim. Ours, with "Roll trim":
-  a spring-centred 5th axis (Godot axis 4) moves a roll trim while held, 0.04 stick per second at full rocker (squared response); the
+  a spring-centred 5th axis (Godot axis 4) moves a roll trim while held, 0.1 stick per second at full rocker (squared response); the
   flight model adds it to the stick in the roll command — joystick.gd `rocker`, `Aircraft::trim_roll`,
   docs/controls.md §5.2.
   The row shows only when the joystick's HID descriptor lists a 5th axis (unknown on Windows: shown).
