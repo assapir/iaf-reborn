@@ -172,6 +172,11 @@ terrain units (`FUN_004053f0`): `X = tx·1.2411389 − 166850`, `Y = 1043780 −
     detail 1..5.
   - Geometry splits down to level 2 everywhere, and finer only where finer imagery exists.
   - Distance = the horizontal distance to the node square combined with the height above the ground.
+  - **Zoomed views** (ours): a camera whose pixel covers a smaller angle than a 60° view's on the window (zoomed
+    outside or cockpit views, the TV / EO picture on the MFD or full screen) makes the nodes inside its view cone
+    count that many times nearer (`terrain.gd` `looks`, `terrain_view.gd` `_update_looks`). Without it a target
+    35–80 km away (training mission 323) stood on its exact heights over a level-3 node, whose 32 quads drift from
+    them on hills, and looked detached when zoomed in. `tests/godot/test_terrain_looks.gd`.
   - Ground reaches up to 200 km (the camera's far plane; fog): ground to the horizon everywhere in the theatre.
   - A node without its own imagery shows its nearest ancestor's texture (a sub-rectangle).
 - **Heights**:

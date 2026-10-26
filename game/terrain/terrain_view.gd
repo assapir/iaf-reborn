@@ -641,6 +641,12 @@ func _update_full_screen() -> void:
 				)
 
 
+## A view narrower than this (degrees, vertical) at this window's height is zoomed (_update_looks); one under
+## LOOK_MIN_ZOOM times finer is not.
+const LOOK_FOV_DEG := 60.0
+const LOOK_MIN_ZOOM := 1.3
+
+
 func _update_eo_view() -> void:
 	var full: bool = weapons != null and weapons.full_screen
 	var show: bool = (
@@ -673,6 +679,29 @@ func _update_eo_view() -> void:
 	var ahead: Vector3 = world_to_scene(w + weapons.eo_dir * 1000.0)
 	eo_camera.current = true
 	eo_camera.look_at_from_position(eye, ahead, Vector3.UP)
+
+
+## The zoomed views the terrain refines for (terrain.gd `looks`): the active camera when its field of view is
+## narrower than LOOK_FOV_DEG, and the TV / EO picture while shown. A view's zoom compares its pixel's angle with a
+## LOOK_FOV_DEG view's on this window, so the 112 px MFD picture counts less than the full-screen one.
+func _update_looks() -> void:
+	var looks := []
+	var h := maxf(1.0, get_viewport().get_visible_rect().size.y)
+	var ref := deg_to_rad(LOOK_FOV_DEG) / h
+	for cam in [get_viewport().get_camera_3d(), eo_camera]:
+		if cam == null or not is_instance_valid(cam):
+			continue
+		if (
+			cam == eo_camera
+			and (eo_viewport == null or eo_viewport.render_target_update_mode == SubViewport.UPDATE_DISABLED)
+		):
+			continue
+		var px := float(eo_viewport.size.y) if cam == eo_camera else h
+		var zoom := ref / (deg_to_rad(cam.fov) / px)
+		if zoom > LOOK_MIN_ZOOM:
+			var half := deg_to_rad(cam.fov) * 0.5 * maxf(1.0, cam.get_viewport().get_visible_rect().size.aspect())
+			looks.append([cam.global_position, -cam.global_transform.basis.z, cos(half), zoom])
+	terrain.looks = looks
 
 
 ## Waits for the terrain in range (bounded), measures fps, saves a PNG and quits. `--shots N` saves N
@@ -3295,6 +3324,7 @@ func _process(delta: float) -> void:
 			if weapons != null:
 				weapons.update(_sim_time)
 		_update_eo_view()
+		_update_looks()
 		_update_full_screen()
 		g_effects.g = st.g
 		g_effects.over_g = st.over_g

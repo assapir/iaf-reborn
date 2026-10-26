@@ -98,6 +98,10 @@ var _near := {}
 ## false: load only, draw nothing (the front end's preload, terrain_preload.gd).
 var draw_nodes := true
 var _eye := Vector3.ZERO  # focus in terrain units (x, y) and height above the ground (z, metres)
+## Zoomed views (terrain_view.gd `_update_looks`): [from (scene), direction (unit), cos of the half angle, zoom] each.
+## A node inside one's view cone counts as `zoom` times nearer, so a telephoto or the TV / EO picture sees the ground
+## at the detail its pixels need: the units stand on the full-detail heights and float over coarse ground otherwise.
+var looks: Array = []
 var _last_focus := Vector3(INF, INF, INF)
 var _last_select := 0
 
@@ -290,7 +294,21 @@ func _dist(n: Vector3i) -> float:
 	var s := _span(n.z)
 	var dx := maxf(0.0, maxf(n.x * s - _eye.x, _eye.x - (n.x + 1) * s))
 	var dy := maxf(0.0, maxf(n.y * s - _eye.y, _eye.y - (n.y + 1) * s))
-	return Vector3(dx * m_per_unit, dy * m_per_unit, _eye.z).length()
+	var d := Vector3(dx * m_per_unit, dy * m_per_unit, _eye.z).length()
+	if looks.is_empty():
+		return d
+	var r := 0.71 * s * m_per_unit  # the node's half diagonal (m)
+	var centre := terrain_to_godot((n.x + 0.5) * s, (n.y + 0.5) * s)
+	for l in looks:
+		var from: Vector3 = l[0]
+		var v := Vector3(centre.x - from.x, -_eye.z, centre.z - from.z)
+		var far := v.length()
+		if far <= r:
+			continue  # under the camera: the focus' distance holds
+		# Inside the cone grown by the node's angular radius.
+		if v.dot(l[1]) / far >= cos(acos(clampf(l[2], -1.0, 1.0)) + atan(r / far)):
+			d = minf(d, (far - r) / float(l[3]))
+	return d
 
 
 ## The original's LOD distances per terrain detail 1..5 relative to detail 4 (FUN_00408ea0 tables,
