@@ -80,11 +80,9 @@ jobs:
           curl -fsSL -o "$dir/godot.zip" \
             "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_${zip}"
           unzip -q "$dir/godot.zip" -d "$dir"
-          if [[ $RUNNER_OS == Windows ]]; then
-            cp "$dir/$exe" "$dir/bin/godot.exe"
-          else
-            ln -s "$dir/$exe" "$dir/bin/godot"
-          fi
+          # A script, not a copy: the Windows console wrapper finds the main exe by its own name.
+          printf '#!/usr/bin/env bash\nexec "%s" "$@"\n' "$(cygpath -u "$dir/$exe" 2>/dev/null || echo "$dir/$exe")" > "$dir/bin/godot"
+          chmod +x "$dir/bin/godot"
           echo "$dir/bin" >> "$GITHUB_PATH"
       - run: godot --version
       - run: godot --headless --path game --import

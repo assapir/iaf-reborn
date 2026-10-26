@@ -476,7 +476,10 @@ mod tests {
         std::fs::create_dir_all(dir.join("L6")).unwrap();
         assert!(check_removable(&dir).is_ok(), "a theatre");
         assert!(check_removable(Path::new("/")).is_err());
-        assert!(check_removable(Path::new("/tmp")).is_err());
+        // A top-level folder (on macOS /tmp is /private/tmp, and a fresh runner's may be empty).
+        let abs = std::fs::canonicalize(&tmp).unwrap();
+        let top = abs.ancestors().find(|p| p.parent().is_some_and(|q| q.parent().is_none())).unwrap();
+        assert!(check_removable(top).is_err(), "{}", top.display());
         std::fs::remove_dir_all(&tmp).unwrap();
     }
 }
