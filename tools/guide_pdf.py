@@ -254,7 +254,7 @@ def firefox_pdf(exe: str, src: Path, pdf: Path, tmp: str) -> None:
     """Prints `src` to `pdf` with a headless Firefox through Marionette (WebDriver:Print: A4, the page's backgrounds,
     the CSS @page margins). Its own profile, on a free port (written to the profile's MarionetteActivePort)."""
     prof = Path(tmp) / "profile"
-    prof.mkdir()
+    prof.mkdir(parents=True)
     (prof / "user.js").write_text('user_pref("marionette.port", 0);\n')
     ff = subprocess.Popen([exe, "--headless", "--marionette", "--no-remote", "--profile", str(prof)],
                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -322,20 +322,39 @@ def main() -> int:
         return 0
     OUT.mkdir(parents=True, exist_ok=True)
 
+    def chrome_pdf(src: Path, pdf: Path, tmp: str) -> None:
+        subprocess.run([exe, "--headless", "--disable-gpu", "--no-pdf-header-footer", f"--user-data-dir={tmp}/chrome",
+                        f"--print-to-pdf={pdf}", src.as_uri()], check=True, capture_output=True, timeout=180)
+
     def one(jet: str) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             src = Path(tmp) / f"{jet}.html"
             src.write_text(page(jet), encoding="utf-8")
             pdf = OUT / f"{jet}.pdf"
-            if ff is not None:
-                firefox_pdf(ff, src, pdf, tmp)
+            if ff is None:
+                chrome_pdf(src, pdf, tmp)
             else:
-                subprocess.run([exe, "--headless", "--disable-gpu", "--no-pdf-header-footer", f"--user-data-dir={tmp}/profile",
-                                f"--print-to-pdf={pdf}", src.as_uri()], check=True, capture_output=True, timeout=180)
+                # Firefox's WebDriver:Print sometimes fails with NS_ERROR_UNEXPECTED (seen on macOS with several
+                # Firefoxes printing at once): try again with a fresh Firefox, then Chrome / Chromium if there is one.
+                for attempt in range(3):
+                    try:
+                        firefox_pdf(ff, src, pdf, str(Path(tmp) / f"ff{attempt}"))
+                        break
+                    except RuntimeError as e:
+                        print(f"guide PDF: {jet}: {e} (try {attempt + 1} of 3)", flush=True)
+                        time.sleep(2)
+                else:
+                    if exe is None:
+                        raise RuntimeError(f"Firefox could not print {jet} three times, and no Chrome / Chromium found")
+                    chrome_pdf(src, pdf, tmp)
         print(f"guide PDF: {pdf}", flush=True)
 
-    # One browser per guide, a few at once (each guide is its own page, profile and PDF).
-    with ThreadPoolExecutor(max(1, (os.cpu_count() or 2) // 2)) as pool:
+    # One browser per guide, a few at once (each guide is its own page, profile and PDF); two at most on macOS,
+    # where several headless Firefoxes printing together fail more often.
+    workers = max(1, (os.cpu_count() or 2) // 2)
+    if sys.platform == "darwin":
+        workers = min(workers, 2)
+    with ThreadPoolExecutor(workers) as pool:
         list(pool.map(one, jets))
     return 0
 

@@ -22,7 +22,7 @@ Setup turns your own copy of Jane's IAF into everything the game reads under `as
 | The Hebrew CD image | no | every translated briefing and menu file, the Hebrew startup splash and Graphics page |
 | `Brief.zip`, `Menu.zip` | no, only without the Hebrew CD | the Hebrew briefings and menus (docs/packs.md) |
 | Imagery sources | no | modern terrain imagery (docs/imagery.md) |
-| Pilot guides | no | the guides' pictures and PDFs (python3 and Firefox; the renders open game windows briefly) |
+| Pilot guides | no | the guides' pictures and PDFs (python3 and Firefox, or Chrome / Chromium; the renders open game windows briefly; a Firefox print that fails is tried again, then printed with Chrome / Chromium when there is one) |
 
 The English CD is always the base: the Hebrew CD's `iafjets.exe` is the copy-protected build, and the English v1.1
 patch does not apply to it (packs.md). The Hebrew CD adds the translations.
