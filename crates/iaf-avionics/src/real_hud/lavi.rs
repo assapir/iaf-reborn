@@ -88,13 +88,14 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
         ladder(p, i, fpm, f, style);
         marker(p, fpm, i.mr(7.0), i.mr(9.0), i.mr(6.0));
         // ILS (NAV, gear down): the localizer and glide-slope needles referenced to the marker, as the F/A-18's
-        // (inferred): the game's ILS bars' offsets, 12 px per degree, 2 × 12 px long with end ticks.
+        // (inferred): the game's ILS bars' offsets, 12 px per degree, 2 × 12 px long with end ticks, held at full
+        // scale two bar lengths (4°) from the marker.
         if mode == 0
             && i.gear_down
             && let Some((x, y)) = i.ils
         {
-            let (cx, cy) = (fpm.0 + x, fpm.1 + y);
             let h = 12.0;
+            let (cx, cy) = (fpm.0 + x.clamp(-4.0 * h, 4.0 * h), fpm.1 + y.clamp(-4.0 * h, 4.0 * h));
             p.push(line((cx, fpm.1 - h), (cx, fpm.1 + h)));
             p.push(line((cx - 1.5, fpm.1 - h), (cx + 1.5, fpm.1 - h)));
             p.push(line((cx - 1.5, fpm.1 + h), (cx + 1.5, fpm.1 + h)));
@@ -299,6 +300,10 @@ mod tests {
         };
         let fr = frame(FIELD, &i);
         assert!(has(&fr, (5.0, -2.0), (5.0, 22.0)) && has(&fr, (-12.0, 7.0), (12.0, 7.0)), "localizer and glide slope");
+        // Far off the localizer: the needle held at full scale, 48 px from the marker.
+        i.ils = Some((-90.0, -3.0));
+        assert!(has(&frame(FIELD, &i), (-48.0, -2.0), (-48.0, 22.0)), "full scale");
+        i.ils = Some((5.0, -3.0));
         i.gear_down = false;
         assert!(!has(&frame(FIELD, &i), (5.0, -2.0), (5.0, 22.0)));
     }

@@ -177,7 +177,7 @@ for general diffractive-HUD optics, Rochester Avionic Archives[^rochester].
     the pointer at the bank angle (held at ±60°);
   - ILS (NAV, gear down): localizer and glide-slope needles referenced to the flight path marker, as on the F/A-18:
     fly the marker to where they cross. They move with the game's ILS deviations (12 px per degree, the original HUD's
-    scale) and replace the original's ILS lines.
+    scale), stop at full scale 4° from the marker (inferred), and replace the original's ILS lines.
 
 ## F-15A/C
 
