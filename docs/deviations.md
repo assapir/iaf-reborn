@@ -277,9 +277,16 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     and the MiG-29's ИЛС-31 HUD with its Щель-3УМ helmet sight (from simulator manuals), Cyrillic legends, metric
     units.
 
-  Ours where the sources stop: the EEGS wingspan (35 ft), the bingo (1500 lb), the sights' bombing depression set
-  automatically, the F-35's gun / A-G graphics (the F-16's), the MiGs' range-scale steps, gun range bars and bank-scale
-  spacing.
+  "Real HUD view" (ours, with HUD Real): Original keeps the 50° view; Real field of view widens the cockpit view so
+  that the jet's real HUD field fits its glass (real-hud.md "Real view").
+
+  Ours where the sources stop: the EEGS wingspan (35 ft), the sights' bombing depression set automatically, the
+  F-35's gun / A-G graphics (the F-16's), the F-16's pull-up anticipation cue's scale and size, the MiGs' range-scale
+  steps, gun range bars and bank-scale spacing, the F-15's ILS bar scale and glide-slope capture (real-hud.md "What
+  ours draws"), the Lavi's bank scale and ILS needles.
+
+  The bingo (the F-16's and the Kurnass 2000's FUEL cue) is the player's, as in the real jet: Extras "Real HUD bingo",
+  500–5,000 lb in 500 lb steps, 1,500 lb by default (`Settings.bingo_lbs`).
 
   With Real the dive and height warnings follow the real jet too: the F-16's break X and its "PULL UP" / "ALTITUDE"
   voice (GAAF and CARA ALOW), the F-35I's "PULL UP", no voice for these on the F-15C; the Kurnass 2000 and the Lavi

@@ -66,9 +66,9 @@ test-pilot accounts[^f16net].
   except strafe. Ticks every 5°; labels every 10°, in tens (`06 [070] 08`, the current heading boxed).
 - Vertical velocity (VV/VAH switch): a fixed scale inboard of the altitude scale with a moving triangle; ticks every
   500 fpm.
-- Roll indicator: tics on a 70 mr arc centred 50 mr below the FOV centre, every 10° to ±45°. Ours raises the arc so
-  its lowest tic stays inside the cockpit art's glass. That glass is shorter than the real field of view, and the HUD
-  is cut at the panel's top edge.
+- Roll indicator: tics on a 70 mr arc centred 50 mr below the FOV centre, every 10° to ±45°. With "Real HUD view"
+  (see "Real view") it sits at that place. With the original view the glass is shorter than the real field, so ours
+  raises the arc until its lowest tic stays inside the glass.
 
 **Ladder / markers**[^dash34]
 - Pitch ladder ("attitude bars"): a bar every 5° to ±60°, compressed beyond.
@@ -172,7 +172,12 @@ for general diffractive-HUD optics, Rochester Avionic Archives[^rochester].
     path marker, the steerpoint diamond on the ground (an X when held at the field's edge);
   - A-A: the SRM circle + seeker diamond; the MRM circle + steering dot + the launch-zone scale; the gun's LCOS
     reticle (no EEGS); the TD box on the target;
-  - A-G: the strafe pipper with the gun cross, the CCIP pipper and fall line.
+  - A-G: the strafe pipper with the gun cross, the CCIP pipper and fall line;
+  - NAV: the bank scale at the bottom, MIL-STD-1787 style: ticks at 0, ±10, ±20, ±30, ±45 and ±60° on a 60 mr arc,
+    the pointer at the bank angle (held at ±60°);
+  - ILS (NAV, gear down): localizer and glide-slope needles referenced to the flight path marker, as on the F/A-18:
+    fly the marker to where they cross. They move with the game's ILS deviations (12 px per degree, the original HUD's
+    scale) and replace the original's ILS lines.
 
 ## F-15A/C
 
@@ -197,7 +202,12 @@ Symbology:
 - Mach: under the airspeed scale, in the A-A modes only.
 - NAV window: lower right, three lines `B   NAV` / `N 20.1` / `4 MIN` (destination + mode, range with a source letter,
   minutes to go).
-- Steering: a bank steering bar. ILS: a flight-director cross.
+- Steering: a bank steering bar.
+- ILS (ILS/NAV or ILS/TCN steering mode, fig. 1-15 and p. 1-70)[^f15-1]: the steering mode reads `ILS-N` / `ILS-T` in
+  the NAV window and `CSET` flashes 10 s. The integrated flight director: the bank steering bar (to the localizer) and
+  the pitch steering bar, which joins it as a cross once the glide slope's centre is captured. Before that, within
+  about 0.6° of the glide slope, `GSUP` or `GSDN` shows (the jet below / above it). `MKR` flashes over a marker
+  beacon. The manual's figure shows the cross near the aircraft symbol; it gives no bar scale.
 - A-A[^f15-1][^twz-f15]: the TD box; the ASE (allowable steering error) circle with a steering dot; a range scale
   inboard of the altitude scale (top = the radar range, a `320>` closure caret, two MAX ticks and one MIN tick, `IN
   RNG`); the breakaway X. SHOOT is a light on the canopy bow, outside the HUD[^f15-1].
@@ -576,7 +586,7 @@ game's rule (docs/cockpit.md "break X", docs/sound.md §4).
 
 | Jet | HUD mark | Dive / height voice |
 | --- | --- | --- |
-| F-16 | the break X: flashing at the GAAF advisory in every master mode; steady in the A-A missile modes inside Rmin[^dash34brk] | "PULL UP – PULL UP" at the GAAF advisory[^dash34gaaf]; "ALTITUDE – ALTITUDE" below the ALOW height[^dash34alow], 300 ft by default[^betty] |
+| F-16 | the break X: flashing at the GAAF advisory in every master mode; steady in the A-A missile modes inside Rmin[^dash34brk]; the pull-up anticipation U rising to the flight path marker in the A-G modes[^dash34brk]; `AL` flashing below ALOW[^dash34alow] | "PULL UP – PULL UP" at the GAAF advisory[^dash34gaaf]; "ALTITUDE – ALTITUDE" below the ALOW height[^dash34alow], 300 ft by default[^betty] |
 | F-15 | the breakaway X inside Rmin (section F-15A/C above) | none: the sources list no pull-up or height call[^betty] |
 | F-35I | open (none drawn) | "PULL UP" at the F-16's GAAF rule (inferred: Auto-GCAS lineage[^betty]); no height call |
 | Lavi, Kurnass 2000 | open (none drawn) | the game's Betty rule (the jets' voice systems are open[^betty]) |
@@ -596,11 +606,42 @@ F-16 ground avoidance advisory (GAAF, `crates/iaf-avionics/src/gaaf.rs`)[^dash34
     510 ft.
 - The voice message plays to its end once per advisory; the cues reset when the dive is corrected[^dash34gaaf].
 - The break X: ours is 0.6 of the field across, on the field's centre, flashing at 2 Hz (inferred from fig. 1-212).
-- Not built: the pull-up anticipation cue (the U that rises to the flight path marker in the A-G modes) and the LOW
-  mnemonic[^dash34brk]; the MFD break X.
+- The pull-up anticipation cue[^dash34brk] (`f16.rs` `pullup_cue`): a U under the flight path marker in the A-G
+  modes. It rises toward the marker as the jet dives and cups it at the GAAF advisory, with the break X (fig. 1-212).
+  The real cue also rises for the weapon release's minimum (fuze arming) height, with `LOW` beside the marker; the
+  game has no fuze arming height, so ours follows the GAAF advisory only. Inferred (the manual gives no scale): 10 mr
+  below the marker's circle per second to the advisory, shown over the last 10 s (the delayed CCIP solution cue's
+  scale); 24 mr wide with 3 mr ends, about the marker's span in fig. 1-212; level on the HUD.
+- Not built: the LOW mnemonic; the MFD break X.
 
 CARA ALOW (`gaaf::alow`)[^dash34alow]: below the ALOW height; it stops above it, climbing faster than 1,200 fpm, with
 the gear handle down, or below 15 ft. Ours repeats the call every 4 s (the game's Betty period; inferred).
+On the HUD (`gaaf::alow_hud`)[^dash34alow]: the `AL` mnemonic and its readout (`AL 300`, one row under the radar
+altitude, fig. 1-115) flash below the ALOW height; they stop above it, climbing faster than 1,200 fpm or below 70 kt
+(the gear does not stop them). Ours flashes at 2 Hz, as the break X; the ALOW height stays 300 ft (no DED to set it).
+
+## Real view (the real field of view)
+Extras → "Real HUD view": Original (1998) / Real field of view. It acts with HUD Real only.
+- **Original view:** 50° across the 640 px screen (about 12 px per degree; cockpit.md "3D view"). At that scale each
+  cockpit's HUD glass spans about 11° × 11°, less than the real HUDs' fields.
+- **Real field of view:** the cockpit view widens so that the jet's real instantaneous field of view (IFOV, what the
+  pilot sees through the glass from the design eye) fits the glass, centred on the HUD centre (inferred: no source
+  gives each FOV centre's place against the glass). The symbols stay on the world, and the F-16's bank scale sits at
+  its real place. The panel art keeps its size; only the 3D view and the symbols' scale change.
+  - Code: `Jet::fov_deg` / `Jet::real_view_px_per_deg` (`real_hud/mod.rs`) → `IafRealHud.real_view_px_per_deg` →
+    `cockpit.gd` `focal_length()`. The HUD layout's boresight and gun cross move with it (`cockpit.gd` `view_y`), so
+    they keep pointing where they did.
+
+| Jet | IFOV across × up | Basis |
+|---|---|---|
+| F-16C/D | 20° × 13.5° (25° total, cut 10.5° below its centre) | the wide-angle conventional HUD of the Block 25 / 30 F-16C/D[^roch-f16cd]; dash-34[^dash34fov] |
+| Lavi, Kurnass 2000 | 30° × 18° | inferred: a wide-angle diffractive HUD of the time (the F-16 LANTIRN HUD's 30° × 18°[^roch-lantirn][^fisher85]) |
+| MiG-29 9.12 | 13° × 18° | ИЛС-31 at 600 mm from the eye, a simulator manual[^ea29] |
+| F-15A/C, Kfir, MiG-23ML, F-4E, Mirage IIICJ | 17.8° × 12° | open: inferred from a typical single-combiner refractive HUD[^avhandbook-hud] |
+| F-35I | — (the helmet's 40° × 30°: the original view stays) | Collins datasheet[^collins-hmds] |
+
+With Real view the view is wider (the F-16's about 78° across, the Lavi's about 88°), so the GPU draws more terrain
+than with the original view.
 
 ## What ours draws (status)
 
@@ -612,10 +653,12 @@ A-A one with the altitude scale moved out for the DLZ, stays on the glass. Every
 its scale. The original HUD keeps the original layout.
 
 - F-16: the NAV / A-A / A-G layout of figs. 1-110 / 1-111 / 1-115.
-  - Drawn: the scales, boxes, the "C"; windows 3 / 4 / 5 / 7 / 8 / 10 / 13 / 14 / 25 / 26 without ALOW; the heading
+  - Drawn: the scales, boxes, the "C"; windows 3 / 4 / 5 / 7 / 8 / 10 / 13 / 14 / 25 / 26; `AL 300` (ALOW, below)
+    under the radar altitude; the heading
     box low / high; the roll indicator; the bending ladder with the zenith star / nadir earth; FPM, AoA bracket,
     steerpoint diamond; TD box / locator line; AIM-9 reticle + seeker diamond; AIM-120 ASEC + ASC; DLZ with closure;
-    CCIP / strafe pipper with the fall line; FUEL; SHOOT in its window (MLU; the AIM-9 / AIM-120 shoot cue).
+    CCIP / strafe pipper with the fall line; FUEL below the player's bingo (Extras "Real HUD bingo", 1,500 lb by
+    default); SHOOT in its window (MLU; the AIM-9 / AIM-120 shoot cue).
   - The delayed CCIP (fig. 1-283), driven by the game's delayed release (docs/weapons.md §9.2 step 5, §9.4):
     - before designation: the pipper on the target under the original's HUD-edge pipper, kept on the glass (the real
       one is held ~14° below the cross; ours sits ~9° below it, where the game's release logic aims), the fall line to
@@ -632,16 +675,27 @@ its scale. The original HUD keeps the original layout.
   - EEGS levels 2 and 5 per fig. 1-257: funnel, MRGS lines, T-symbol, 1 g / 9 g pippers, 4 mr pipper, TD circle with
     the range arc and the maximum-range dot.
   - The target-aspect triangle rides the AIM-9 reticle / ASEC.
-  - The break X (GAAF and A-A inside Rmin; "Pull-up and break marks" above).
+  - The break X (GAAF and A-A inside Rmin), the pull-up anticipation cue and the ALOW readout ("Pull-up and break
+    marks" above).
   - Not drawn: the VVI (vertical velocity indicator) scale (ours: the VAH switch position), DTOS / CCRP (the game has
-    no such modes), BATR / FEDS, ALOW, the pull-up anticipation cue.
+    no such modes), BATR / FEDS, the AUTO altitude scale below 1,200 ft, the LOW mnemonic (the game has no fuze
+    arming height).
 - F-15: tapes, heading, ladder with the zenith ⊖ "90" / nadir ⊗, velocity vector, -W-, gun cross when armed, G, Mach
   in A-A, NAV window, TD box, ASE circle + dot, range scale + IN RNG, breakaway X inside Rmin, LCOS reticle with the
   range arc, bomb fall line to the target square, AoA scale gear down (ours: degrees as units), NAV bank steering bar
-  (ours: 2 px per degree of bearing error). Not drawn: the ILS flight-director cross, Mach outside A-A.
+  (ours: 2 px per degree of bearing error), the ILS flight director (below). Not drawn: Mach outside A-A, `CSET`,
+  `MKR` (the game has no marker beacons).
+  - ILS, NAV with the gear down (the game's ILS is always on there): `ILS-N` in the NAV window; the bank steering bar
+    follows the localizer; `GSUP` / `GSDN` under the window within 0.6° of the glide slope; at its centre (within
+    1 px, 1/12°; inferred) the glide slope is captured and the pitch steering bar joins the cross until the jet leaves
+    the 0.6° band or the ILS display (inferred: the manual gives no release). The bars sit off the aircraft symbol by
+    the game's ILS deviations, 12 px per degree (inferred: the manual gives no scale). The original's ILS lines are
+    not drawn on this HUD.
 - Kfir (`kfir.rs`), Kurnass 2000 (`k2000.rs`), MiG-23 (`mig23.rs`), MiG-29 (`mig29.rs`): everything in "Ours" of
   their sections above; what those sections mark "not drawn" stays out.
-- Lavi (`lavi.rs`): everything in its section above. Not drawn: the bank scale, an ILS flight director, a VVI.
+- Lavi (`lavi.rs`): everything in its section above, with the bank scale and the ILS needles (the original's ILS
+  lines are not drawn on this HUD). Not drawn: a VVI.
+- The other Real HUDs (F-16, Kfir, Kurnass 2000, MiGs, F-35) keep the original's ILS lines over them.
 - F-4E / Mirage (`sights.rs`): the reticles as specified (ours: the reticle rides the LCOS / CCIP pipper).
 - F-35 (`f35.rs`): the forward virtual HUD and the off-boresight head set; the gun / A-G graphics are the F-16's
   (reconstruction).
@@ -741,6 +795,21 @@ its scale. The original HUD keeps the original layout.
 [^wiki-lavi]: Wikipedia, "IAI Lavi".
 [^dokumen-lavi]: dokumen.pub, *Lavi*.
 [^rochester]: Rochester Avionic Archives, "Wide Angle Raster HUD".
+[^roch-f16cd]: Rochester Avionic Archives, "F-16C/D HUD Pilot's Display Unit" ("a 25 degree Total Field of View and a
+    20 degree by 13.5 degree Instantaneous Field of View"; the wide-angle conventional optic, an interim design while
+    the LANTIRN HUD was late): https://rochesteravionicarchives.co.uk/items/f-16-c-d-hud-pilot-s-display-unit-1
+[^dash34fov]: T.O. GR1F-16CJ-34-1-1 (1997), p. 1-156: "a total field of view of 25 degrees in diameter and is limited
+    at the bottom along a line of 10.5 degrees below the center of the total field of view":
+    https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf
+[^roch-lantirn]: Rochester Avionic Archives, "F-16 LANTIRN Diffractive HUD Pilot's Display Unit" (18° vertically,
+    30° horizontally): https://rochesteravionicarchives.co.uk/items/f-16-lantirn-diffractive-hud-pilot-s-display-unit
+[^fisher85]: J. F. Fisher, "Wide Angle Raster Head Up Display", GEC Avionics, 1985 (refractive limit about 20° × 15°;
+    diffractive 30° × 18°): https://rochesteravionicarchives.co.uk/items/wide-angle-raster-head-up-display
+[^avhandbook-hud]: R. B. Wood, P. J. Howells, The Avionics Handbook, ch. 4 "Head-Up Displays", table 4.1 (CRC 2001):
+    typical single-combiner refractive HUD 17.8° × 12° IFOV, 20–25° total:
+    http://helitavia.com/avionics/TheAvionicsHandbook_Cap_4.pdf
+[^collins-hmds]: Collins Aerospace, F-35 Gen III HMDS datasheet ("Field of view: 40H x 30V degree"):
+    https://prd-sc102-cdn.rtx.com/-/media/ca/f/f35/jsf-f35-datasheet.pdf
 [^ausairpower-hmd]: Air Power Australia, "Helmet Mounted Sights and Displays" (DASH GEN I–III fielding, 20° FoV, green
     calligraphic symbology, boxed target / seeker diamond): https://www.ausairpower.net/hmd-technology.html
 [^ausairpower-python4]: Air Power Australia, Rafael Python 4: https://www.ausairpower.net/TE-Gen-4-AAM-97.html

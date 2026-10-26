@@ -1,6 +1,6 @@
 # Every jet's Real HUD (not a test): per row one jet (Jet list id; the F-35I in place of the F-16), three cells: the
 # original HUD in NAV, the Real HUD in NAV, the Real HUD in the A-A gun mode with a MiG locked 800 m ahead. Mission
-# 231, 3000 m up. Writes real_hud_jets.png. Usage:
+# 231, 3000 m up. HUD_VIEW=real: the Real HUD cells with the real field of view. Writes real_hud_jets.png. Usage:
 #   SHOT_DIR=/tmp/shots IAF_DEFAULT_SETTINGS=1 godot --audio-driver Dummy --path game -s \
 #     ../tests/godot/_real_hud_jets_shot.gd
 extends "res://../tests/godot/base.gd"
@@ -27,6 +27,7 @@ func run() -> void:
 		w.update(t)
 		var row := [await _cell(tv)]
 		settings().hud_style = "real"
+		settings().hud_view = "real" if OS.get_environment("HUD_VIEW") == "real" else "original"
 		row.append(await _cell(tv))
 		var o: Dictionary = w.own()
 		var mig: Dictionary = tv.runtime.entities.values().filter(func(e): return String(e.name).begins_with("mig23"))[0]
@@ -64,6 +65,7 @@ func run() -> void:
 	settings().jet_id = -1
 	settings().f35i_slot = -1
 	settings().hud_style = "original"
+	settings().hud_view = "original"
 	print("RESULT PASS")
 
 

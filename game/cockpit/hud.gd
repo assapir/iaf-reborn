@@ -153,14 +153,15 @@ func _draw() -> void:
 	var dash: bool = cockpit.dash()
 
 	# The Real HUD (docs/real-hud.md): the jet's own symbology instead of the original's; a jet without a HUD (the
-	# F-4E's and the Mirage's gunsights) shows its reticle only. The ILS, the BORE cross and the TV / HARM diamonds stay.
+	# F-4E's and the Mirage's gunsights) shows its reticle only. The ILS (but on the F-15 / Lavi, which draw their own),
+	# the BORE cross and the TV / HARM diamonds stay.
 	var real := real_hud()
 	if not real.is_empty():
 		# A gunsight's reticle (the F-4E's, the Mirage's) is not cut to the original HUD's field: the outer layer draws it.
 		if real.sight:
 			return
 		_draw_prims(self, real.field, w, real.colour)
-		if _mode() == 0 and cockpit.gear_handle_down and not dash:
+		if _mode() == 0 and cockpit.gear_handle_down and not dash and not real_ils(String(cockpit.cockpit_dir)):
 			_draw_ils(st, w)
 		if _mode() in [7, 8]:
 			_draw_weapons(s, w, gun, dash)
@@ -609,6 +610,7 @@ func real_hud() -> Dictionary:
 		"aoa": st.get("aoa", 0.0),
 		"gear_down": cockpit.gear_handle_down,
 		"fuel_lbs": st.get("fuel_lbs", 0.0),
+		"bingo_lbs": float(Settings.bingo_lbs),
 		"fpm": (fpm - _c) / _s if fpm != null else null,
 		"boresight": (cockpit.boresight() - position - _c) / _s,
 		"gun_cross": gun,
@@ -643,6 +645,12 @@ func real_hud() -> Dictionary:
 ## The cockpits with a Real helmet sight: the IAF F-16C/D's and F-15C/D's Elbit DASH, the MiG-29's Щель-3УМ.
 static func real_dash(dir: String) -> bool:
 	return dir.get_file() in ["f16", "f15", "mig29"]
+
+
+## The Real HUDs that draw their own ILS (the F-15's flight director, the Lavi's needles; docs/real-hud.md): the
+## original's ILS lines are not drawn over them.
+static func real_ils(dir: String) -> bool:
+	return dir.get_file() in ["f15", "lavi"]
 
 
 ## A world point (X east, Y north, Z up) in HUD pixels from the HUD centre; behind the eye: null, or with `far` a
@@ -979,7 +987,7 @@ func gun_cross() -> Vector2:
 	var y: float = h.get("GunRetPositionY", h.get("BorePositionY", 135))
 	if GUN_RET_V10.get(cockpit.cockpit_dir.get_file(), -1.0) == y:
 		y += GUN_RET_V11_SHIFT
-	return Vector2(cockpit.size.x / 2, cockpit.panel_top() - y * cockpit.ui_scale())
+	return Vector2(cockpit.size.x / 2, cockpit.view_y(cockpit.panel_top() - y * cockpit.ui_scale()))
 
 
 ## Flight path marker (HUD coordinates): the velocity vector projected through the camera (v1.1:

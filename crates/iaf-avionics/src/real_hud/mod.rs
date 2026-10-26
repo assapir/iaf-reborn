@@ -37,8 +37,6 @@ const FT: f64 = 0.3048;
 const MS_TO_KT: f64 = 1.943844;
 /// kt → km/h.
 const KT_KMH: f64 = 1.852;
-/// Ours: the bingo fuel (lb) below which the bingo cue shows (the real one is set by the pilot).
-pub const BINGO_LBS: f64 = 1500.0;
 
 /// The jet whose display is drawn.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -88,6 +86,27 @@ impl Jet {
         } else {
             Jet::F16
         }
+    }
+
+    /// The real display's instantaneous field of view across × up (°; docs/real-hud.md "Real view"): the F-16's
+    /// wide-angle HUD and the MiG-29's ИЛС-31 from sources; the wide-angle diffractive HUDs (Lavi, Kurnass 2000) at
+    /// their class's 30° × 18°, the rest at a refractive HUD's typical 17.8° × 12° (inferred). None: no glass to fit
+    /// (the F-35's helmet).
+    pub fn fov_deg(self) -> Option<(f64, f64)> {
+        match self {
+            Jet::F16 => Some((20.0, 13.5)),
+            Jet::MiG29 => Some((13.0, 18.0)),
+            Jet::Lavi | Jet::Kurnass2000 => Some((30.0, 18.0)),
+            Jet::F15 | Jet::Kfir | Jet::MiG23 | Jet::Phantom | Jet::Mirage => Some((17.8, 12.0)),
+            Jet::F35 => None,
+        }
+    }
+
+    /// Real view: the HUD pixels per degree that fit the real field of view, centred on the HUD centre, in the
+    /// cockpit art's glass `f`. None: keep the original projection.
+    pub fn real_view_px_per_deg(self, f: Field) -> Option<f64> {
+        let (across, up) = self.fov_deg()?;
+        Some((2.0 * (-f.left).min(f.right) / across).min(2.0 * (-f.top).min(f.bottom) / up))
     }
 }
 
@@ -272,6 +291,9 @@ pub struct Input {
     pub aoa_deg: f64,
     pub gear_down: bool,
     pub fuel_lbs: f64,
+    /// The bingo fuel (lb) below which the bingo cue shows: the player's setting (Settings.bingo_lbs), as the real
+    /// pilot sets it.
+    pub bingo_lbs: f64,
     /// The flight path marker (None: off the view), the boresight / waterline and the gun cross in HUD pixels.
     pub fpm: Option<P>,
     pub boresight: P,
@@ -313,10 +335,11 @@ pub struct Frame {
     pub sight: bool,
 }
 
-/// The Real HUD's own state: the max g latch.
+/// The Real HUD's own state: the max g latch, the F-15's glide-slope capture.
 #[derive(Clone, Debug, Default)]
 pub struct RealHud {
     max_g: f64,
+    gs_captured: bool,
 }
 
 impl RealHud {
@@ -335,7 +358,10 @@ impl RealHud {
             Jet::F16 | Jet::F15 if i.off_boresight => dash::frame(i),
             Jet::MiG29 if i.off_boresight => mig29::helmet(i),
             Jet::F16 => f16::frame(f, i, self.max_g),
-            Jet::F15 => f15::frame(f, i),
+            Jet::F15 => {
+                self.gs_captured = f15::gs_capture(i, self.gs_captured);
+                f15::frame(f, i, self.gs_captured)
+            }
             Jet::F35 => f35::frame(f, i, self.max_g),
             Jet::Phantom => sights::lcoss(i),
             Jet::Mirage => sights::csf(i),
@@ -636,6 +662,17 @@ mod tests {
 
     pub(super) const FIELD: Field = Field { left: -80.0, top: -70.0, right: 80.0, bottom: 70.0 };
 
+    #[test]
+    fn real_view_fits_the_real_field_in_the_glass() {
+        // The F-16's glass (cockpit.json HUD borders).
+        let f = Field { left: -69.0, top: -75.0, right: 70.0, bottom: 60.0 };
+        let k = Jet::F16.real_view_px_per_deg(f).unwrap();
+        let (across, up) = Jet::F16.fov_deg().unwrap();
+        assert!(k * across / 2.0 <= 69.0 && k * up / 2.0 <= 60.0, "the field overflows the glass");
+        assert!(k * across / 2.0 > 68.9 || k * up / 2.0 > 59.9, "the field does not touch the glass");
+        assert_eq!(Jet::F35.real_view_px_per_deg(f), None);
+    }
+
     pub(super) fn texts(ps: &[Prim]) -> Vec<&str> {
         ps.iter()
             .filter_map(|p| match p {
@@ -656,6 +693,7 @@ mod tests {
             mach: 0.85,
             g: 2.3,
             fuel_lbs: 5000.0,
+            bingo_lbs: 1500.0,
             fpm: Some((0.0, 10.0)),
             horizon: (0.0, 10.0),
             px_per_deg: 12.0,

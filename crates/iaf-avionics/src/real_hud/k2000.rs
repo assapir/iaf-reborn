@@ -56,7 +56,7 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
     }
     if w.shoot {
         o.push(text((0.0, f.bottom - 8.0), "SHOOT", Align::Centre));
-    } else if i.fuel_lbs < BINGO_LBS {
+    } else if i.fuel_lbs < i.bingo_lbs {
         o.push(text((0.0, f.bottom - 8.0), "FUEL", Align::Centre));
     }
 

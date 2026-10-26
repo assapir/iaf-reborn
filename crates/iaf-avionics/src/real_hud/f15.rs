@@ -17,10 +17,26 @@ const INSET: f64 = 10.0;
 const RANGE_HALF: f64 = 26.0;
 const RANGE_IN: f64 = 12.0;
 
-pub(super) fn frame(f: Field, i: &Input) -> Frame {
+/// ILS: the GSUP / GSDN cue within 0.6° of the glide slope (TO 1F-15A-1 p. 1-70), the capture at its centre (ours:
+/// within 1 px, 1/12°; inferred). The game's ILS bars move 12 px per degree (`Input::ils`).
+const GS_CUE_PX: f64 = 0.6 * 12.0;
+const GS_CAPTURE_PX: f64 = 1.0;
+
+/// The ILS glide-slope capture latch: set at the glide slope's centre, kept while the jet stays within 0.6° of it and
+/// the ILS display is on (NAV, gear down; inferred: the manual gives no release).
+pub(super) fn gs_capture(i: &Input, was: bool) -> bool {
+    match i.ils.filter(|_| i.weapons.hud_mode == 0 && i.gear_down) {
+        Some((_, y)) => y.abs() <= if was { GS_CUE_PX } else { GS_CAPTURE_PX },
+        None => false,
+    }
+}
+
+pub(super) fn frame(f: Field, i: &Input, gs_captured: bool) -> Frame {
     let mut fr = Frame::default();
     let w = &i.weapons;
     let mode = w.hud_mode;
+    // ILS (NAV, gear down; the game's ILS is always on, the real one is a steering-mode position).
+    let ils = i.ils.filter(|_| mode == 0 && i.gear_down);
     let aa = matches!(mode, 1..=3);
     let o = &mut fr.outer;
     let sc = f.inset(INSET);
@@ -60,11 +76,17 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
     }
     if let Some(s) = i.steerpoint {
         let rx = sc.right;
-        o.push(text((rx, ly), format!("{}   NAV", s.number), Align::Left));
+        let steer = if ils.is_some() { "ILS-N" } else { "NAV" };
+        o.push(text((rx, ly), format!("{}   {steer}", s.number), Align::Left));
         o.push(text((rx, ly + ROW), format!("N {:.1}", s.dist_m / NM), Align::Left));
         if let Some(t) = s.eta_s {
             o.push(text((rx, ly + 2.0 * ROW), format!("{} MIN", ((t / 60.0).round() as i64).min(99)), Align::Left));
         }
+    }
+    // GSUP / GSDN under the window within 0.6° of the glide slope until it is captured (the bar's y is + below it,
+    // the jet above the glide slope).
+    if let Some((_, y)) = ils.filter(|(_, y)| !gs_captured && y.abs() <= GS_CUE_PX) {
+        o.push(text((sc.right, ly + 3.0 * ROW), if y > 0.0 { "GSDN" } else { "GSUP" }, Align::Left));
     }
     if aa && let (Some(t), Some(z)) = (i.target, i.dlz) {
         dlz_scale(o, sc.right - RANGE_IN, tape_y, RANGE_HALF, t, z);
@@ -84,8 +106,16 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
     // The field.
     let p = &mut fr.field;
     // NAV: the bank steering bar, a vertical line displaced toward the steerpoint (ours: 2 px per degree of bearing
-    // error, held at ±20°).
-    if mode == 0
+    // error, held at ±20°). ILS: the integrated flight director (fig. 1-15), the bank steering bar to the localizer
+    // and, once the glide slope is captured, the pitch steering bar across it (ours: the game's ILS deviation bars'
+    // offsets from the aircraft symbol, 12 px per degree; inferred).
+    let (bx, by) = i.boresight;
+    if let Some((x, y)) = ils {
+        p.push(line((bx + x, by - 12.0), (bx + x, by + 12.0)));
+        if gs_captured {
+            p.push(line((bx - 12.0, by + y), (bx + 12.0, by + y)));
+        }
+    } else if mode == 0
         && let Some(s) = i.steerpoint
     {
         let err = ((s.bearing_deg - i.heading_deg + 180.0).rem_euclid(360.0) - 180.0).clamp(-20.0, 20.0);
@@ -164,7 +194,8 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
 }
 
 /// The AoA scale (gear down): left, inboard of the airspeed scale, 0-45 units with ticks every 5 and labels every 10,
-/// the caret on its right at the current AoA (ours: degrees for units).
+/// the caret on its right at the current AoA (ours: degrees for units; the labels inboard past the caret, clear of the
+/// airspeed scale).
 fn aoa_scale(p: &mut Vec<Prim>, x: f64, y0: f64, aoa: f64) {
     let k = 2.0 * TAPE_HALF / 45.0;
     let y = |u: f64| y0 + TAPE_HALF - u * k;
@@ -173,7 +204,7 @@ fn aoa_scale(p: &mut Vec<Prim>, x: f64, y0: f64, aoa: f64) {
         let u = u as f64;
         p.push(line((x, y(u)), (x - 2.0, y(u))));
         if (u as i64) % 10 == 0 {
-            p.push(text((x - 3.0, y(u) + 3.0), format!("{}", u as i64), Align::Right));
+            p.push(text((x + 6.0, y(u) + 3.0), format!("{}", u as i64), Align::Left));
         }
     }
     let c = y(aoa.clamp(0.0, 45.0));
@@ -236,7 +267,7 @@ mod tests {
             let mut i = input(Jet::F15);
             i.fpm = Some((0.0, 0.0));
             i.horizon = (0.0, pitch * i.px_per_deg);
-            frame(FIELD, &i)
+            frame(FIELD, &i, false)
         };
         let up = at(90.0);
         assert!(texts(&up.field).contains(&"90"), "the zenith ⊖ is labelled 90");
@@ -249,7 +280,7 @@ mod tests {
 
     #[test]
     fn nav_as_the_flight_manual() {
-        let fr = frame(FIELD, &input(Jet::F15));
+        let fr = frame(FIELD, &input(Jet::F15), false);
         let t = texts(&fr.outer);
         for want in ["350", "300", "10000", "10500", "2.3G", "3   NAV", "N 12.0", "5 MIN", "33", "34"] {
             assert!(t.contains(&want), "{want} in {t:?}");
@@ -267,18 +298,55 @@ mod tests {
     #[test]
     fn gear_down_aoa_and_breakaway() {
         let mut i = Input { gear_down: true, aoa_deg: 21.0, ..input(Jet::F15) };
-        let t = texts(&frame(FIELD, &i).outer).into_iter().map(String::from).collect::<Vec<_>>();
+        let t = texts(&frame(FIELD, &i, false).outer).into_iter().map(String::from).collect::<Vec<_>>();
         assert!(t.contains(&"20".to_string()) && t.contains(&"40".to_string()), "the AoA scale: {t:?}");
         i.gear_down = false;
         i.weapons.hud_mode = 2;
         i.target = Some(Target { range_m: 500.0, closure: 0.0, at: None, aspect: None });
         i.dlz = Some(Dlz { max: 20_000.0, min: 1_000.0 });
-        let fr = frame(FIELD, &i);
+        let fr = frame(FIELD, &i, false);
         let long = fr
             .outer
             .iter()
             .filter(|p| matches!(p, Prim::Line { a, b } if (b.0 - a.0).abs() > 100.0 && (b.1 - a.1).abs() > 100.0))
             .count();
         assert_eq!(long, 2, "the breakaway X inside Rmin");
+    }
+
+    #[test]
+    fn ils_flight_director_as_fig_1_15() {
+        let vert = |ps: &[Prim], x: f64| {
+            ps.iter().any(|p| matches!(p, Prim::Line { a, b } if a.0 == x && b.0 == x && (b.1 - a.1) == 24.0))
+        };
+        let horiz = |ps: &[Prim], y: f64| {
+            ps.iter().any(|p| matches!(p, Prim::Line { a, b } if a.1 == y && b.1 == y && (b.0 - a.0) == 24.0))
+        };
+        let mut hud = RealHud::default();
+        let mut i = Input { gear_down: true, ils: Some((-6.0, -5.0)), ..input(Jet::F15) };
+        // Below the glide slope, within 0.6°: GSUP, the bank bar on the localizer, no pitch bar yet.
+        let fr = hud.frame(FIELD, &i);
+        let t = texts(&fr.outer);
+        assert!(t.contains(&"3   ILS-N") && t.contains(&"GSUP"), "{t:?}");
+        assert!(vert(&fr.field, -6.0) && !horiz(&fr.field, -5.0));
+        // At the centre: captured, the pitch bar joins and stays when the jet drifts above.
+        i.ils = Some((-6.0, 0.0));
+        hud.frame(FIELD, &i);
+        i.ils = Some((-6.0, 4.0));
+        let fr = hud.frame(FIELD, &i);
+        assert!(horiz(&fr.field, 4.0) && !texts(&fr.outer).contains(&"GSDN"));
+        // Gear up: NAV, the capture released, the steerpoint's bank bar back (10° right of 333° held at +20°: 40 px).
+        i.gear_down = false;
+        let fr = hud.frame(FIELD, &i);
+        assert!(texts(&fr.outer).contains(&"3   NAV") && vert(&fr.field, 40.0) && !horiz(&fr.field, 4.0));
+        i.gear_down = true;
+        i.ils = Some((-6.0, 6.0));
+        assert!(texts(&hud.frame(FIELD, &i).outer).contains(&"GSDN"), "above the glide slope, not captured");
+        // Captured, then more than 0.6° off: released.
+        i.ils = Some((-6.0, 0.0));
+        hud.frame(FIELD, &i);
+        i.ils = Some((-6.0, 9.0));
+        assert!(!horiz(&hud.frame(FIELD, &i).field, 9.0));
+        i.ils = Some((-6.0, 6.0));
+        assert!(texts(&hud.frame(FIELD, &i).outer).contains(&"GSDN"), "a new capture needs the centre");
     }
 }
