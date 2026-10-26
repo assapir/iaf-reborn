@@ -8,13 +8,16 @@ cd "$(dirname "$0")/.."
 out=$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/godot-tests.XXXXXX")
 command -v cygpath >/dev/null && out=$(cygpath -m "$out") # Godot on Windows wants D:/a/..., not /d/a/...
 export out
+# macOS: coreutils' timeout is gtimeout (brew install coreutils); its bash is 3.2.
+to=$(command -v timeout || command -v gtimeout)
+export to
 
 one() {
 	local t=$1 n r s=$SECONDS
 	n=$(basename "$t" .gd)
 	local env=()
 	[[ $n == test_setup_wizard ]] && env=(IAF_ASSETS_DIR="$out/$n-assets") && mkdir -p "$out/$n-assets"
-	env "${env[@]}" IAF_DEFAULT_SETTINGS=1 timeout -k 5 60 godot --log-file "$out/$n.log" --headless \
+	env ${env[@]+"${env[@]}"} IAF_DEFAULT_SETTINGS=1 "$to" -k 5 60 godot --log-file "$out/$n.log" --headless \
 		--audio-driver Dummy --path game -s "../$t" >"$out/$n.out" 2>&1
 	local rc=$? f="$out/$n.out"
 	if [[ $rc == 124 || $rc == 137 ]]; then
@@ -32,12 +35,10 @@ one() {
 export -f one
 ls tests/godot/test_*.gd | xargs -P "${JOBS:-6}" -I{} bash -c 'one {}'
 
-declare -A count
 table="| test | result | first error |"$'\n'"|---|---|---|"$'\n'
 for t in tests/godot/test_*.gd; do
 	n=$(basename "$t" .gd)
 	r=$(cat "$out/$n.r")
-	count[$r]=$((${count[$r]:-0} + 1))
 	why=""
 	[[ $r != pass ]] && why=$(grep -E "^FAIL|SCRIPT ERROR|ERROR" "$out/$n.out" | grep -v "boot splash\|back0.png" |
 		head -1 | cut -c1-140 | tr '|' '/')
@@ -46,11 +47,11 @@ done
 {
 	echo "### Godot tests without game data ($RUNNER_OS)"
 	echo
-	for r in pass fail needs-data timeout; do echo "- $r: ${count[$r]:-0}"; done
+	for r in pass fail needs-data timeout; do echo "- $r: $(cat "$out"/*.r | grep -cx "$r")"; done
 	echo
 	echo "<details><summary>per test</summary>"
 	echo
 	echo "$table"
 	echo "</details>"
 } >>"${GITHUB_STEP_SUMMARY:-/dev/stdout}"
-[[ -z ${count[fail]:-}${count[needs-data]:-}${count[timeout]:-} ]]
+! cat "$out"/*.r | grep -qvx pass

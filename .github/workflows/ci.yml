@@ -94,4 +94,6 @@ jobs:
           path: target/release
       - run: tools/ci_install_godot.sh
       - run: godot --headless --path game --import
+      - if: runner.os == 'macOS' # for timeout (gtimeout)
+        run: command -v gtimeout || brew install coreutils
       - run: tools/ci_godot_tests.sh
