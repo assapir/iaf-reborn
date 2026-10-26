@@ -41,6 +41,7 @@ var guide_head := ""
 var _guide_scale := 0.0
 
 var rich: RichTextLabel
+var link_names: Array  # set_text's links; a link's meta is its index (a name can hold a `"`, which ends a [url=…])
 ## The 3D-model window's view (model_view.gd, §11): the left two-thirds, the text in the right third.
 var view: Control
 var body_clip: Control
@@ -67,7 +68,7 @@ func set_text(bbcode: String, links: Array) -> void:
 		rich.scroll_active = false
 		rich.mouse_filter = Control.MOUSE_FILTER_PASS
 		rich.meta_underlined = false
-		rich.meta_clicked.connect(func(meta): link_clicked.emit(str(meta)))
+		rich.meta_clicked.connect(func(meta): link_clicked.emit(link_names[int(meta)]))
 		for pair in [
 			["normal_font", 400, false],
 			["bold_font", 700, false],
@@ -81,6 +82,7 @@ func set_text(bbcode: String, links: Array) -> void:
 		add_child(body_clip)
 		body_clip.add_child(rich)
 	# Hebrew briefings are right-to-left paragraphs; one without a Hebrew version (English text) stays left-aligned.
+	link_names = links
 	var text := _linkify(bbcode, links)
 	var hebrew: bool = fe._he() and RegEx.create_from_string("[\\x{05D0}-\\x{05EA}]").search(text) != null
 	rich.text = "[right]%s[/right]" % text if hebrew else text
@@ -156,7 +158,7 @@ static func _linkify(bbcode: String, links: Array) -> String:
 		var name := m.get_string(1)
 		var plain := RegEx.create_from_string("\\[[^\\]]*\\]").sub(name, "", true).strip_edges().to_lower()
 		if plain in links:
-			out += "[url=%s]%s[/url]" % [plain, m.get_string(0)]
+			out += "[url=%d]%s[/url]" % [links.find(plain), m.get_string(0)]
 		else:
 			out += m.get_string(0)
 		at = m.get_end()

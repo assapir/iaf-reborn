@@ -173,3 +173,14 @@ func run() -> void:
 				missing.append("%s:%s" % [id, nm])
 	print("target links: %d, no object: %s" % [count, missing])
 	check(count > 100, "the briefings' target links (%d) checked" % count)
+	# A link name holding a `"` (Hebrew בנ"צ 2) stays a link: its meta is the index, not the name.
+	var fw = load("res://menu/frame_window.gd")
+	var linked: String = fw._linkify('a [u]בנ"צ 2[/u] b', ["x", 'בנ"צ 2'])
+	var probe := RichTextLabel.new()
+	probe.bbcode_enabled = true
+	probe.text = linked
+	check(
+		linked.contains("[url=1]") and probe.get_parsed_text() == 'a בנ"צ 2 b',
+		"a link name with a quote stays a link (%s)" % linked
+	)
+	probe.free()
