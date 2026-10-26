@@ -28,6 +28,8 @@ const SCENERY_BUILT_GB := {"both": 1.06, "buildings": 0.57, "trees": 0.94}
 const SCENERY_KINDS := ["both", "buildings", "trees"]
 ## The pilot guides' pictures and PDFs (GB, estimated).
 const GUIDES_GB := 0.3
+## A part with this share of its estimated size on disk counts as there (the estimates run a little high).
+const DONE_SHARE := 0.85
 const REPO_URL := "https://github.com/assapir/iaf-reborn"
 const PATCH_URL := "https://community.pcgamingwiki.com/files/file/69-janes-israeli-air-force-patch"
 const BRIEF_URL := "https://www.preflight.us/HE/downloadview-details-104.html"
@@ -973,7 +975,8 @@ func _expected() -> Dictionary:
 	var new := 0.0
 	var downloads := 0.0
 	for p in parts:
-		new += maxf(0.0, p[0] - p[2])
+		# The sizes are estimates: a part with most of it on disk is done, not a sliver short.
+		new += 0.0 if p[2] >= DONE_SHARE * p[0] else p[0] - p[2]
 		downloads += p[1]
 	return {"total": _here("") + new, "downloads": downloads, "new": new, "free": _free_gb()}
 
@@ -991,7 +994,11 @@ func _size_text() -> Array:
 		% [
 			_gb(e.total),
 			_gb(e.downloads).trim_prefix("about "),
-			"all of it is new" if e.new >= e.total - 0.05 else _gb(e.new).trim_prefix("about ") + " of it is new"
+			(
+				"all of it is new"
+				if e.new >= e.total - 0.05
+				else ("nothing of it is new" if e.new < 0.05 else _gb(e.new).trim_prefix("about ") + " of it is new")
+			)
 		]
 	)
 	var fits: bool = e.free < 0 or e.new <= e.free
