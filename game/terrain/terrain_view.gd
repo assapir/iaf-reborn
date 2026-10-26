@@ -1862,6 +1862,12 @@ func _spawn_player() -> void:
 		aircraft.attach_nav_lights(own_bc)
 
 
+## The player's flight state for vapour_fx.gd: in the cockpit views with "frame", the drawn cockpit model (own_bc,
+## larger than the jet model and placed by the eye), so the condensation leaves the wingtips seen.
+func vapour_state(st: Dictionary) -> Dictionary:
+	return st.merged({"frame": own_bc}) if own_bc != null and own_bc.visible else st
+
+
 ## Present scale (0x65e) of the player's type's bdb object in the mission's database (default6_1 otherwise).
 func _player_model_scale() -> float:
 	var files: Array = (
@@ -3378,7 +3384,7 @@ func _process(delta: float) -> void:
 			for i in tips.size():
 				trails.emit(["wingtip", i], tips[i], trails.WINGTIP)
 		if effects.gpu != null and not fm_stopped:
-			effects.gpu.contrail(aircraft, flight.state() if flight != null else {})
+			effects.gpu.contrail(aircraft, vapour_state(flight.state() if flight != null else {}))
 	_apply_view()
 	_imode_update()
 	if clouds != null and get_viewport().get_camera_3d() != null:
