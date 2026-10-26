@@ -5,8 +5,9 @@
 # "needs-data" is a guess: a failing run whose errors name assets/ (the boot splash's missing image aside).
 set -uo pipefail
 cd "$(dirname "$0")/.."
-out=$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/godot-tests.XXXXXX")
+out=${GODOT_TESTS_OUT:-$(mktemp -d "${TMPDIR:-/tmp}/godot-tests.XXXXXX")}
 command -v cygpath >/dev/null && out=$(cygpath -m "$out") # Godot on Windows wants D:/a/..., not /d/a/...
+mkdir -p "$out"
 export out
 # macOS: coreutils' timeout is gtimeout (brew install coreutils); its bash is 3.2.
 to=$(command -v timeout || command -v gtimeout)

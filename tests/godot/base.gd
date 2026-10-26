@@ -11,10 +11,14 @@ func _initialize() -> void:
 	await process_frame
 	await run()
 	print("RESULT %s" % ("FAIL" if failures > 0 else "PASS"))
+	await _quit(1 if failures > 0 else 0)
+
+
+func _quit(code: int) -> void:
 	settings()._free_sounds()  # as the game's quit (Settings.quit): no playback reported leaked at exit
 	paused = true
 	await create_timer(settings().QUIT_AUDIO_S, true, false, true).timeout
-	quit(1 if failures > 0 else 0)
+	quit(code)
 
 
 func run() -> void:
@@ -63,8 +67,8 @@ func start_mission(id: int) -> Node:
 	if not DirAccess.dir_exists_absolute(settings().assets_dir().path_join("converted")):
 		# Without the game data the flight scene never loads: say so and quit at once (docs/ci.md).
 		print("NEEDS DATA: start_mission needs assets/converted (tools/setup-cli.sh)")
-		quit(2)
-		await create_timer(3600).timeout
+		await _quit(2)
+		await create_timer(3600, true, false, true).timeout
 	settings().mission_id = id
 	change_scene_to_file("res://terrain/terrain_view.tscn")
 	var tv: Node = null
