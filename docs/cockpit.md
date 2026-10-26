@@ -307,8 +307,12 @@ the cockpit:
   the HUD's pixels; `hud.gd` draws them (`real_hud()`, `_draw_prims`). Symbol sizes are the real ones, in
   milliradians at the view's scale.
 * **Looking aside** (the original's dash condition), the `f16` and `f15` cockpits show the Real DASH
-  (`real_hud/dash.rs`) and the MiG-29 its Щель-3УМ helmet sight in place of the original DASH symbol; the other
-  cockpits keep the original's.
+  (`real_hud/dash.rs`) and the MiG-29 its Щель-3УМ helmet sight in place of the original DASH symbol, and the F-35I
+  its helmet's head set. These are helmet displays: they show wherever the pilot looks, over the cockpit, as in the
+  real jets (the original's dash repeater does the same). The MiG-23ML has no helmet sight, so it draws nothing while
+  looking aside (`hud.gd` `real_hud()`); the Lavi and Kurnass 2000 keep the original's.
+* **Reticle-only sights** (the F-4E, the Mirage, the MiG-23: `hud.gd` `real_reticle`) draw with a pen 1.8 times the
+  HUD's (`RETICLE_PEN`), about 1 mr at the Real view's scale, so their few thin lines show against a bright sky.
 * **Clip at the panel**: the HUDs (the F-35I's helmet excepted) are cut at the panel's top edge (`panel_top()`, which
   follows the panel slide), so the glareshield hides what falls below the glass. The original HUD draws over the
   panel. While the DASH draws there is no cut.

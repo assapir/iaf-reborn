@@ -49,6 +49,17 @@ func run() -> void:
 	# The original 3D projection (docs/cockpit.md "3D view"): 50° across 640 px, centred on the
 	# viewport above the panel (F-16: rows 0..296, centre 42 px above the panel top), 5.5° below the nose.
 	check(absf(cp.focal_length() - 686.2414 * s) < 0.01 * s, "focal length 320 / tan 25° = 686.2 px (×s)")
+	# Real HUD view: the F-16's glass widens the view; the F-35I's helmet keeps the original (its dir ends in
+	# ".../f35i/cockpit", which once read as the F-16's).
+	settings().hud_style = "real"
+	settings().hud_view = "real"
+	check(cp.focal_length() < 686.0 * s, "Real view: the F-16's view widens")
+	var dir: String = cp.cockpit_dir
+	cp.cockpit_dir = "res://extra/planes/f35i/cockpit"
+	check(absf(cp.focal_length() - 686.2414 * s) < 0.01 * s, "Real view: the F-35I keeps the original focal length")
+	cp.cockpit_dir = dir
+	settings().hud_style = "original"
+	settings().hud_view = "original"
 	check(
 		cp.view_bottom() == 296.0,
 		"F-16 viewport bottom 296 (D 104 + MainOffsetY 190 + 7, & ~7) (%.0f)" % cp.view_bottom()

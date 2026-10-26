@@ -62,6 +62,20 @@ func run() -> void:
 		d.colour != null and hud._hc() == d.colour and hud._hc() != tv.cockpit.hud_colour(),
 		"the helmet's own symbols in its green (%s, HUD %s)" % [hud._hc(), tv.cockpit.hud_colour()]
 	)
+	# The MiG-23ML has no helmet sight: looking aside nothing is drawn (the Lavi keeps the original's helmet display).
+	var dir: String = tv.cockpit.cockpit_dir
+	tv.cockpit.cockpit_dir = "converted/cockpits/mig23"
+	hud._real_frame = -1
+	var m: Dictionary = hud.real_hud()
+	tv.cockpit.cockpit_dir = "converted/cockpits/lavi"
+	hud._real_frame = -1
+	var lv: Dictionary = hud.real_hud()
+	tv.cockpit.cockpit_dir = dir
+	hud._real_frame = -1
+	check(
+		m.get("sight", false) and m.field.is_empty() and lv.is_empty(),
+		"looking aside: the MiG-23 draws nothing, the Lavi the original's helmet display"
+	)
 	check(
 		hud.real_dash("converted/cockpits/f15") and not hud.real_dash("converted/cockpits/lavi"),
 		"the DASH: F-16 and F-15 only"

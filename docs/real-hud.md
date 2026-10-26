@@ -324,7 +324,9 @@ horizon / heading[^aloni].
   unreliable[^aloni].
 - Missiles: lock / in-zone lights in a column right of the glass (blue = lock)[^aloni]. The reticle has no missile
   symbols.
-- Colour: drawn as a lamp reflector sight, orange-red (inferred from period practice).
+- Colour: drawn as a lamp reflector sight, a deep orange (inferred from period practice). 2026-10-26: the first
+  build's light orange (RGB 1.0 / 0.62 / 0.2) all but vanished against a pale sky; now 1.0 / 0.45 / 0.05, drawn with
+  the thicker reticle pen ("What ours draws").
 
 ## F-35I Adir: Gen III helmet display (no HUD)
 
@@ -392,8 +394,9 @@ it (inferred), and the reticle's drawing is not public. Ours (`real_hud/mig23.rs
 - **A-A gun:** a ring and pipper on the game's lead point; with a lock the range bar on the ring (a full turn =
   2,000 m, inferred).
 - **A-G:** the CCIP / strafe pipper, the fall line from the fixed cross.
-- **Colour:** the HUD's (the real one is open). The game's helmet display stays the original's (the ML has no helmet
-  sight: inferred).
+- **Colour:** the HUD's (the real one is open), with the thicker reticle pen ("What ours draws").
+- **Looking aside:** nothing (the ML has no helmet sight: inferred). Until 2026-10-26 the original's helmet display
+  showed there, floating in the side view.
 - **Not drawn:** the radar / IRST mode names (БСВ, Т-I…), the «Лазурь» datalink commands, a close-combat scan.
 
 ## MiG-29 9.12: ИЛС-31 HUD and Щель-3УМ helmet sight
@@ -640,6 +643,11 @@ Extras → "Real HUD view": Original (1998) / Real field of view. It acts with H
 | F-15A/C, Kfir, MiG-23ML, F-4E, Mirage IIICJ | 17.8° × 12° | open: inferred from a typical single-combiner refractive HUD[^avhandbook-hud] |
 | F-35I | — (the helmet's 40° × 30°: the original view stays) | Collins datasheet[^collins-hmds] |
 
+Until 2026-10-26 the F-35I took the F-16's Real view by mistake: `cockpit.gd` `focal_length()` passed only the cockpit
+folder's last part, and the F-35I's (`res://extra/planes/f35i/cockpit`) ends in `cockpit`, which `Jet::of_cockpit`
+reads as the F-16. The view widened and the eye seemed to move between Real view off and on. It now passes the whole
+path (`test_hud.gd` checks it).
+
 With Real view the view is wider (the F-16's about 78° across, the Lavi's about 88°), so the GPU draws more of the
 world. Measured on the Intel Iris Xe (2026-10-26, `_flight_bench.gd`, mission 311's F-16 at 1485×1041, default
 graphics, warm runs): +0.06 ms a frame at 150 m, +0.67 ms (5 %) at 1,500 m, +1.37 ms (8 %) at 6,000 m; about 20 % more
@@ -699,10 +707,16 @@ its scale. The original HUD keeps the original layout.
   lines are not drawn on this HUD). Not drawn: a VVI.
 - The other Real HUDs (F-16, Kfir, Kurnass 2000, MiGs, F-35) keep the original's ILS lines over them.
 - F-4E / Mirage (`sights.rs`): the reticles as specified (ours: the reticle rides the LCOS / CCIP pipper).
+- Reticle pen (F-4E, Mirage, MiG-23; `hud.gd` `real_reticle`, 2026-10-26): these sights are a few thin lines at their
+  real angular size (the F-4E's outer ring 50 mr, about 2.9°), drawn at the HUD's 0.6 px pen they all but vanished
+  against a bright sky. They draw at 1.8 times that pen (about 2.4 px at 1080 rows), near a reflector reticle's 1 mr
+  line (inferred). Considered and dropped: a dark outline (a combiner only adds light, it cannot darken the sky) and
+  larger reticles (the sizes are the real ones).
 - F-35 (`f35.rs`): the forward virtual HUD and the off-boresight head set; the gun / A-G graphics are the F-16's
   (reconstruction).
-- DASH (`dash.rs`): in the F-16 / F-15 cockpits only (the MiG-29 has its Щель-3УМ); the Lavi, Kurnass 2000 and
-  Kfir keep the original's helmet display.
+- DASH (`dash.rs`): in the F-16 / F-15 cockpits only (the MiG-29 has its Щель-3УМ); the Lavi and Kurnass 2000 keep
+  the original's helmet display, the MiG-23 draws none (no helmet sight); the Kfir, F-4E and Mirage cockpits have no
+  helmet display (`[HUD] Dash` 0), so their sight pans away with the glass.
   - When: looking aside with the Real HUD on (the original's dash condition: the panel panned ≥ 250 px aside or
     ≥ 200 px down).
   - Drawn in green, around the helmet's line of sight: the aiming cross, the line-of-sight circle with its gap, G /

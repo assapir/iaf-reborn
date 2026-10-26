@@ -520,6 +520,9 @@ func real_hud() -> Dictionary:
 	# jets' helmet display stays the original's.
 	var helmet := f35 or real_dash(String(cockpit.cockpit_dir))
 	if cockpit.dash() and not helmet:
+		# The MiG-23ML has no helmet sight: looking aside its sight (on the glass) pans away and nothing is drawn.
+		if String(cockpit.cockpit_dir).get_file() == "mig23":
+			return {"field": [], "outer": [], "colour": null, "sight": true}
 		return {}
 	var fr := Engine.get_process_frames()
 	if fr == _real_frame:
@@ -648,6 +651,16 @@ static func real_dash(dir: String) -> bool:
 	return dir.get_file() in ["f16", "f15", "mig29"]
 
 
+## The jets whose Real HUD is a reticle-only gunsight (the F-4E's LCOSS, the Mirage's CSF, the MiG-23's АСП-17МЛ): a
+## few thin lines at their real angular size, drawn with a pen RETICLE_PEN times the HUD's so they stand out against a
+## bright sky (about 1 mr wide at the Real view's scale, a reflector reticle's line; inferred).
+static func real_reticle(dir: String) -> bool:
+	return dir.get_file() in ["phantom", "mirage", "mig23"]
+
+
+const RETICLE_PEN := 1.8
+
+
 ## The Real HUDs that draw their own ILS (the F-15's flight director, the Lavi's needles; docs/real-hud.md): the
 ## original's ILS lines are not drawn over them.
 static func real_ils(dir: String) -> bool:
@@ -671,6 +684,8 @@ func _hud_point(world: Vector3, far: bool) -> Variant:
 ## Draws Real HUD primitives (HUD pixels from the HUD centre) on `ci`, in `colour` (null: the HUD's).
 func _draw_prims(ci: CanvasItem, prims: Array, w: float, colour = null) -> void:
 	var col: Color = colour if colour != null else _hc()
+	if real_reticle(String(cockpit.cockpit_dir)):
+		w *= RETICLE_PEN
 	for p in prims:
 		match p.k:
 			"line":

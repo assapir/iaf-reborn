@@ -278,6 +278,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     and the MiG-29's ИЛС-31 HUD with its Щель-3УМ helmet sight (from simulator manuals), Cyrillic legends, metric
     units.
 
+  Looking aside, the helmet sights show where the pilot looks, as the original's helmet display (dash repeater) does:
+  the DASH (F-16, F-15), the Щель-3УМ (MiG-29), the F-35I's helmet. The MiG-23ML has no helmet sight and shows nothing
+  there (the original draws its helmet display).
+
   "Real HUD view" (ours, with HUD Real): Original keeps the 50° view; Real field of view widens the cockpit view so
   that the jet's real HUD field fits its glass (real-hud.md "Real view").
 

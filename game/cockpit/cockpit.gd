@@ -398,8 +398,9 @@ func focal_length() -> float:
 		var h: Dictionary = layout.get("HUD", {})
 		var l: float = h.get("LeftBorder", 98)
 		var t: float = h.get("TopBorder", 70)
+		# The whole dir: the F-35I's ends in ".../f35i/cockpit", which alone would read as the F-16's.
 		var glass := Rect2(-l, -t, l + float(h.get("RightBorder", 98)), t + float(h.get("BottomBorder", 70)))
-		var k: float = ClassDB.class_call_static("IafRealHud", "real_view_px_per_deg", cockpit_dir.get_file(), glass)
+		var k: float = ClassDB.class_call_static("IafRealHud", "real_view_px_per_deg", cockpit_dir, glass)
 		if k > 0.0:
 			return k / tan(deg_to_rad(1.0)) * ui_scale()
 	return VIEW_WIDTH / 2.0 / tan(deg_to_rad(VIEW_FOV_DEG) / 2.0) * ui_scale()
