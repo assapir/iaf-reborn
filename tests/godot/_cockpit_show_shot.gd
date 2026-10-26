@@ -106,6 +106,8 @@ func _cockpit_scene(name: String, s: Array) -> void:
 			fwd * 230.0,
 			{"airborne": true, "engine_on": true, "real_data": false}
 		)
+	else:
+		await frames(60)  # on the ground the flight first lifts the jet onto its wheels (it starts ≈ 4 m low)
 	tv.frozen = true
 	tv.fm_stopped = false
 	tv.weapons.radar_event(0x2b)  # R: the radar on, A-A; its sweeps run while the flight is held
