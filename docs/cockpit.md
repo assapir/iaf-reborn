@@ -316,7 +316,8 @@ the cockpit:
   roll, at the view centre's scale (linear in degrees), so it holds past the vertical (the camera looks 5.5° below
   the nose and passes the vertical first).
 * **Hidden**: the original's ladder, marker, scales, text block, gun cross, waypoint marker, target box and weapon
-  symbols. The ILS, the BORE (boresight) cross and the TV / HARM seeker diamonds stay.
+  symbols. The ILS (except on the F-15 and Lavi, which draw their own: `hud.gd` `real_ils`), the BORE (boresight)
+  cross and the TV / HARM seeker diamonds stay.
 * Tests: `tests/godot/test_real_hud.gd` and unit tests in each module. Screenshots:
   `tests/godot/_real_hud_jets_shot.gd` (every jet), `_hud_compare_shot.gd` (original vs real).
 

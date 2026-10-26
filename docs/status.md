@@ -123,7 +123,9 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
   `tools/guide_shots.sh` renders all of them once. That render brings in 2026-10-19's changes: the F-16 / F-15 / Lavi
   Real HUD scales moved in (real-hud.md "What ours draws") and the Real AIM-9L's 10 NM range scale (real-weapons.md;
   the guides' text already says 16.1 km). New pictures since: the F-16's delayed CCIP, `hud_ccip_delay` /
-  `hud_ccip_designated` (guides/f16.md §11).
+  `hud_ccip_designated` (guides/f16.md §11). Changed since: the F-15's and Lavi's Real HUD ILS (the flight director /
+  the needles in place of the original's lines) and the Lavi's NAV bank scale: their `landing_final` and NAV pictures
+  (guides/f15.md §11, guides/lavi.md §3 / §11).
 - **World scale Real 1:1**: the real blast radii of the missiles / SAMs without a published lethal radius.
 - **Setup wizard**: the pages wait for the user's review (roadmap.md).
 - **Flight start**: with Models Detailed the F-16D parses on the main thread behind the loading screen (≈ 1.1 s

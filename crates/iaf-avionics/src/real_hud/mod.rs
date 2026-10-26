@@ -335,10 +335,11 @@ pub struct Frame {
     pub sight: bool,
 }
 
-/// The Real HUD's own state: the max g latch.
+/// The Real HUD's own state: the max g latch, the F-15's glide-slope capture.
 #[derive(Clone, Debug, Default)]
 pub struct RealHud {
     max_g: f64,
+    gs_captured: bool,
 }
 
 impl RealHud {
@@ -357,7 +358,10 @@ impl RealHud {
             Jet::F16 | Jet::F15 if i.off_boresight => dash::frame(i),
             Jet::MiG29 if i.off_boresight => mig29::helmet(i),
             Jet::F16 => f16::frame(f, i, self.max_g),
-            Jet::F15 => f15::frame(f, i),
+            Jet::F15 => {
+                self.gs_captured = f15::gs_capture(i, self.gs_captured);
+                f15::frame(f, i, self.gs_captured)
+            }
             Jet::F35 => f35::frame(f, i, self.max_g),
             Jet::Phantom => sights::lcoss(i),
             Jet::Mirage => sights::csf(i),
