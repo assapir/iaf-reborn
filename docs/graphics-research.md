@@ -191,6 +191,22 @@ the F-16D has the cleanest licence.
 **Licence rules:** CC BY is usable with attribution; NC and ND are not usable. Our repo is GPL-3.0-or-later, so
 GPL-2.0-only files cannot ship in it.
 
+**F-15, checked 2026-10-26.** The Zaretto F-15C/D is still the only open candidate with every moving part split and
+hinged (gear, doors, flaps, ailerons, stabilators, rudders, canopy, air brake, hook, nozzles) and a full cockpit:
+3D model by Enrique Laso, rig by Richard Harrison, cockpit photo textures by GeneB. Its licence is not stated
+anywhere: GitHub reports none, the repo has no COPYING and no file headers, zaretto.com says "All rights reserved",
+and the FGAddon copy was first committed on 2015-07-04, before FGAddon required GPLv2+. It can only ship after a
+written GPL-2.0-or-later grant from its authors. Rejected:
+- the Sketchfab F-15Es by bohmerang (CC BY-NC-SA) and andertan (CC BY-ND), and ARAZ BASIC's "free rig", which is
+  built on bohmerang's;
+- low-poly CC BY F-15s (2.7–13.6k triangles), no better than the original;
+- "[War Thunder]" F-15 uploads (game rips);
+- CGTrader, TurboSquid and 3dcadbrowser models, which can't be redistributed.
+
+The FGUK F-15E has no stated licence and is an alpha. NASA 3D Resources and Smithsonian 3D have no F-15. Fallback:
+RaduCarstean's "F-15 Eagle No Textures" (Sketchfab, CC BY 4.0, 72k triangles), a bare mesh needing UVs, paint,
+split surfaces and LODs. No open F-15I Ra'am exists (inferred: our own conversion of an F-15D).
+
 **Fitting one** (a pipeline like `tools/f35i/`):
 1. Convert AC3D → glTF (Blender) and scale to the original's dimensions.
 2. Name the moving parts with our `<part>1/2` hinge helpers (gear legs, flaps, ailerons, elevons, canopy, air brake,
