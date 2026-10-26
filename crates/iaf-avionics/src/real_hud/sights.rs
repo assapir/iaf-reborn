@@ -4,7 +4,8 @@
 //!   a dashed 25 mr inner ring, a solid 50 mr outer ring, three roll tabs, and with a radar lock the range bar inside
 //!   the outer ring from 6 o'clock counter-clockwise.
 //! - The Mirage IIICJ's CSF gyro gunsight (the CSF 97K drawings of the RAAF Mirage IIIO manual): a 2.5 mr pipper in a
-//!   fixed 50 mr ring of 14 diamonds moving over a fixed cross and an inverted V; lamp-lit orange.
+//!   fixed 50 mr ring of 14 diamonds moving over a fixed cross and an inverted V; lamp-lit orange (a deep orange, so
+//!   the thin reticle stands out against a pale sky: the light orange of the first build all but vanished there).
 //!
 //! The reticle sits on the gun's lead-computing pipper in the A-A gun mode, on the gun cross (the radar boresight)
 //! otherwise; in the bombing modes ours sets the depression automatically to the CCIP point (the real sights are set by
@@ -14,7 +15,7 @@ use super::*;
 use std::f64::consts::{FRAC_PI_6, PI, TAU};
 
 const RED: [f32; 3] = [1.0, 0.28, 0.2];
-const ORANGE: [f32; 3] = [1.0, 0.62, 0.2];
+const ORANGE: [f32; 3] = [1.0, 0.45, 0.05];
 
 /// The reticle's centre in the current mode.
 fn reticle_at(i: &Input) -> P {
