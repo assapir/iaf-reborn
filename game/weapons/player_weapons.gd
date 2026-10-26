@@ -128,6 +128,9 @@ var _bay_retry := false  # a missile release waiting for the bay doors
 var _pod_nodes: Array = []  # rocket boxes
 ## The rocket box model and its scale ([Weapons] RocketBoxScale, default 4.0).
 const ROCKET_BOX := "weapons/lau61/lau61_m.gltf"
+## Ours (Models: Detailed): beyond this distance (m) a detailed store draws as its original model (_instance); past
+## the F11 weapon view's 700 m fly-by, so the swap never shows there.
+const STORE_LOD_M := 800.0
 const ROCKET_BOX_SCALE := 4.0
 ## The Present scale of the store models (bdb weapons: 2.0), the scale the stores on the jet get.
 const STORE_PRESENT_SCALE := 2.0
@@ -1037,7 +1040,7 @@ func launch_guided(w: Dictionary, pos: Vector3, vel: Vector3, point: Vector3, ow
 	var g := Guided.new()
 	g.launch(w, _motion(w), now, pos, vel, point, db.debug_param)
 	g.set_meta("owner", owner)
-	var node := _instance(String(w.get("model_path", "")))
+	var node := _instance(String(w.get("model_path", "")), w.get("detailed", true))
 	if node != null:
 		host.add_child(node)
 		node.scale = Vector3.ONE * float(w.get("scale", 1.0))
@@ -1204,7 +1207,7 @@ func _rwr_missile(mis: RefCounted) -> Dictionary:
 
 
 func _missile_visual(mis: RefCounted) -> void:
-	var node := _instance(String(mis.weapon.get("model_path", "")))
+	var node := _instance(String(mis.weapon.get("model_path", "")), mis.weapon.get("detailed", true))
 	if node != null:
 		host.add_child(node)
 		node.position = to_scene(mis.p0)
@@ -1501,7 +1504,7 @@ func release_store(w: Dictionary, p0: Vector3, vel: Vector3, aim: Vector3, owner
 	if type == 560:
 		# ponytail: the AI jets' rockets share the player's pool (enough rounds in the air for the missions' few).
 		var k: int = _rockets().fire(now, p0, p0, vel, aim, "", String(owner.get("key", "")), false)
-		var node := _instance(String(w.model_path))
+		var node := _instance(String(w.model_path), w.get("detailed", true))
 		if node != null:
 			host.add_child(node)
 			node.scale = Vector3.ONE * float(w.get("scale", 1.0))
@@ -1519,7 +1522,7 @@ func drop_bomb(w: Dictionary, p0: Vector3, vel: Vector3, aim: Vector3, owner: Di
 	if is_equal_approx(clamp_acc, 1.0):
 		clamp_acc = 15.0
 	var b := Bombs.launch(now, p0, vel, aim, clamp_acc)
-	var node := _instance(String(w.model_path))
+	var node := _instance(String(w.model_path), w.get("detailed", true))
 	if node != null:
 		host.add_child(node)
 	var snd = host.sounds.play("SFX_OBJECT_SPECIFIC", OST.get(int(w.type), "OST_BOMB"))
@@ -2281,13 +2284,23 @@ func _sam_sites() -> Array:
 # --- visuals ----------------------------------------------------------------------------------------
 
 
-static func _instance(path: String) -> Node3D:
+## A store's model (`path` a weapon record's model_path, `allow_detailed` its `detailed`). With Models: Detailed a
+## detailed store (Gltf.STORES) is drawn to STORE_LOD_M, its original model beyond.
+static func _instance(path: String, allow_detailed := true) -> Node3D:
 	if path == "":
 		return null
-	var model = Gltf.object(path)
+	var model = Gltf.object(path, allow_detailed)
 	if model == null:
 		return null
 	var n: Node3D = Gltf.instance(model)
+	var orig = Gltf.object(path, false) if allow_detailed and Gltf.detailed(path) != "" else null
+	if orig != null:
+		for g: GeometryInstance3D in n.find_children("*", "GeometryInstance3D", true, false):
+			g.visibility_range_end = STORE_LOD_M
+		var far: Node3D = Gltf.instance(orig)
+		for g: GeometryInstance3D in far.find_children("*", "GeometryInstance3D", true, false):
+			g.visibility_range_begin = STORE_LOD_M
+		n.add_child(far)
 	# The store's `pilon` attach helper (id 0x35) is a flat marker mesh: helpers are never drawn (FUN_0041c270).
 	for h in n.find_children("*", "Node3D", true, false):
 		if String(h.name).to_lower() == "pilon":
@@ -2307,7 +2320,7 @@ static func attach_stores(stores: RefCounted, model: Node3D) -> Dictionary:
 		if st.drawn:
 			var list := []
 			for s in st.slots:
-				var n := _instance(String(st.w.model_path))
+				var n := _instance(String(st.w.model_path), st.w.get("detailed", true))
 				if n == null:
 					break
 				model.add_child(n)

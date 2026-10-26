@@ -644,6 +644,11 @@ func _page_welcome() -> Control:
 				+ "2.0[/url] or later)\n"
 			)
 			+ (
+				"Detailed stores: the [url=https://github.com/NikolaiVChr/f16]FlightGear F-16[/url]'s weapons and pods by J "
+				+ "Maverick 16 and the other authors ([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL "
+				+ "2.0[/url] or later)\n"
+			)
+			+ (
 				"F-35I Adir: "
 				+ "[url=https://sketchfab.com/3d-models/"
 				+ 'lockheed-martin-f35-lightning-ii-db911de503c74285a8d506951df786d6]"Lockheed '

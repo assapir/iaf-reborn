@@ -320,6 +320,11 @@ under `objects/weapons/` (bombs, missiles, tanks, pods, the ZUNI box), plus the 
 `groundforces/` (`sa2lcr` … `sa6lcr`, `scdlcr`) and the MiG-29 tank (`controllableplanes/mig29/mig29ftk_m`). Players
 see them close in the external views, on the pylons and in flight.
 
+**Phase 1 built** (2026-10-26, [aircraft-models.md](aircraft-models.md) §5): the FlightGear F-16's stores as they
+are (no upgrade pass yet) in place of 16 originals: AIM-9 / 7 / 120, AGM-65 / 88, MK-82 / 83 / 84 and their laser
+versions, CBU-87 / 97, the F-16's tanks, the ECM and FLIR pods; fitted at build time (`tools/stores/build.gd`), not at
+load time; runtime LODs and the original as the far LOD; BC1 textures.
+
 **Switch.** Preferences → Graphics → MORE → **Models: Original / Detailed** (built with the F-16D, §3.7; default
 Original; visual only). The stores join this one switch, with no second toggle (the user's call).
 

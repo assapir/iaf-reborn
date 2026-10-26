@@ -6,14 +6,14 @@ aircraft:
 | choice | what you see |
 |---|---|
 | **Original** (default) | the 1998 models from your install |
-| **Detailed** | our detailed model where one exists; every other aircraft keeps its original model |
+| **Detailed** | our detailed model where one exists, on the jets and on their stores; everything else keeps its original model |
 
 The switch changes the look only (docs/deviations.md §2 "Models"). Stores, the gun, the flight model, damage and the
 cockpit view work as with the original models.
 
-Today one detailed model exists: the **F-16D** (`game/extra/models/f16/f16d.glb`). It is used for the player's F-16,
-the AI's F-16s, parked F-16s and the Reference viewer. Plans for more jets and for detailed stores:
-[graphics-research.md](graphics-research.md) §3.7 and §3.13.
+Today the detailed models are the **F-16D** (`game/extra/models/f16/f16d.glb`), used for the player's F-16, the AI's
+F-16s, parked F-16s and the Reference viewer, and 16 **stores** (§5) on every jet that carries them. Plans for more
+jets and stores: [graphics-research.md](graphics-research.md) §3.7 and §3.13.
 
 ## 1. The F-16D model
 
@@ -121,4 +121,85 @@ The script:
   are not modelled.
 - Where the livery's old roundel was, near the left wing tip, the paint is a smooth blend of the colours round it:
   its panel lines and rivets are gone over 0.5 m.
-- The canopy glass is plain tinted glass; the stores are the 1998 models (graphics-research.md §3.13).
+- The canopy glass is plain tinted glass.
+
+## 5. Detailed stores
+
+With Models Detailed the stores below are FlightGear F-16 models (`game/extra/models/stores/<name>.glb`; sources,
+authors and changes in `SOURCES.md` there). They show on every jet that carries them, on the pylons and in flight
+(a missile flying, a bomb falling), and in the Reference viewer. The other stores keep their original models.
+
+| game store (bdb name) | detailed model | triangles (original) |
+|---|---|---|
+| AIM-9D, AIM-9L, AIM-9M; the SA-13's missile | AIM-9M | 3 158 (≈ 300) |
+| AIM-7B, AIM-7F, AIM-7M; Shrike | AIM-7F | 951 |
+| AMRAAM | AIM-120B | 1 344 |
+| AGM-65 | AGM-65D | 2 767 |
+| AGM88 | AGM-88 | 1 631 |
+| MK-82, MK-83, MK-84 | MK-82, MK-83, MK-84 | 4 319, 4 377, 4 409 |
+| MK-82L | GBU-12 | 5 699 |
+| MK-83L, MK-84L | MK-83 / MK-84 with the GBU-12's Paveway II kits (a GBU-16 / GBU-10 look; inferred) | 6 002, 6 050 |
+| CBU-87, CBU-97 | CBU-87 (simplified from 23 500) | 4 890 |
+| 2700LB, 2100LB (the F-16's tanks) | 370 gal, 300 gal tanks in the IAF livery's paint | 2 102, 2 014 |
+| ECM | AN/ALQ-131 | 1 284 |
+| FLIR | AN/AAQ-13 (LANTIRN) | 938 |
+
+Kept original: the Hawk SAM's missile (it shares the AGM-88's model; `weapon_db.gd` marks it `detailed: false`),
+the rocket pod (FlightGear's LAU-68 has 7 tubes, the game's box 19), the SA-8's Shafrir and every store FlightGear has
+no model of (Python, Shafrir, Popeye, Walleye, GBU-15, M117, RBK-500, the Soviet missiles, the other jets' tanks).
+The SA-13 and the Shrike show the detailed AIM-9 / AIM-7, as they showed the original AIM-9 / AIM-7.
+
+### 5.1 How they fit the game
+
+The game reads no geometry from a store's model: its rack slots come from the original's `pilon` helper
+(`player_weapons.gd` `_pilon_of` reads the original file), its station from the jet, its trail from its length. The
+detailed model is built onto the original's frame (`tools/stores/build.gd`):
+
+- scaled uniformly to the original's length, its middle on the original's middle;
+- its axis (the mean of its nose's and its tail's centroids) on the original's axis; the tanks and pods (whose
+  FlightGear mounts stand above the body) with their top on the original's top, where the pylon meets them;
+- the laser bombs at their plain bomb's scale, so they keep its girth and are 41–47 % longer than the original's
+  (which has the plain bomb's length), as the real ones.
+
+So loadouts, release points, arming screens (2D icons) and CCIP stay as they are. Across the axis the detailed
+models keep FlightGear's proportions: their fins differ in span from the original's by up to ± 13 cm.
+
+### 5.2 Loading and drawing
+
+- `Gltf.STORES` maps the original's file to the detailed one; `Gltf.object(path, allow_detailed)` opens it with the
+  switch on. With the switch on, every detailed store is in the mission's model list
+  (`TerrainPreload.mission_models`): worker threads parse them with their LODs on the mission screens, and the
+  flight waits for them as for the mission's other models. Their materials draw both sides of each face (one more
+  shader variant than the original stores'); the jets and their stores enter the scene at the spawn behind the
+  loading screen, where Godot compiles the pipelines (rendering.md §1.6).
+- LODs: Godot's runtime LODs (`ImporterMesh.generate_lods`, 2–7 levels down to a few percent); beyond
+  `PlayerWeapons.STORE_LOD_M` (800 m, past the F11 weapon view's 700 m fly-by) the original model draws instead
+  (`visibility_range`).
+- Textures: one 512 px JPEG per store in the glb, compressed to BC1 at the parse (`Image.compress`, the CPU encoder,
+  ≈ 3 ms each): ≈ 3 MB of video memory for all 16, against ≈ 23 MB uncompressed.
+- Cost (estimated, not measured): an F-16 with nine detailed stores draws ≈ 20–35 k more triangles close up, a few
+  thousand at a distance (the LODs) and the original's few hundred beyond 800 m; one draw per store and texture as
+  before. Files: 2.4 MB in the repo.
+
+### 5.3 Rebuilding the stores
+
+```sh
+git clone https://github.com/NikolaiVChr/f16.git /tmp/f16 && git -C /tmp/f16 checkout ef4f192
+IAF_DEFAULT_SETTINGS=1 godot --headless --path game -s ../tools/stores/build.gd -- /tmp/f16 "$PWD/assets" [name …]
+```
+
+`STORES_STATS=1` prints each model's and each original's measurements and writes nothing.
+
+### 5.4 Checks
+
+- `tests/godot/test_detailed_models.gd`: every detailed store has its original's length (± 3 %; the laser bombs
+  longer), its axis within 6 cm of the original's or its top within 2 cm, LODs, BC1 textures and the original as its
+  far LOD; the Hawk keeps the original.
+- `tests/godot/_stores_shot.gd` (needs a window): Original / Detailed pictures of loadouts on the F-16, F-15 and F-4
+  on the ground, a Mk-84 falling and an AMRAAM in flight.
+
+### 5.5 Open
+
+- The weapon's roll is not tracked: a near-vertical bomb turns 90° in roll (`_orient`'s up vector), as the original.
+- The stores keep FlightGear's single 512 px colour texture (no normal or roughness maps); the AIM-9D and AIM-9L show
+  as the AIM-9M.

@@ -32,6 +32,12 @@ const SPINE_FIN := 8.25
 const SPINE_M := 0.05
 const SPINE_SIDE_M := 0.08
 const SPINE_OFFSET_M := 0.15
+## A detailed store's length over its original's (± this; the laser bombs are longer) and its bounds' centre off the
+## original's across the axis (m; lugs and fins are not symmetric).
+const STORE_LEN := 0.03
+const STORE_AXIS_M := 0.06
+## Or its top within this of the original's (m; the tanks and pods hang from their top, tools/stores/build.gd `top`).
+const STORE_TOP_M := 0.02
 
 var aircraft_model: GDScript
 
@@ -285,6 +291,8 @@ func run() -> void:
 	again.free()
 	orig_scene.free()
 
+	_check_stores()
+
 	# In a mission: the player's and the AI's F-16s.
 	var tv := await start_mission(231)
 	await frames(5)
@@ -298,6 +306,86 @@ func run() -> void:
 			ai += 1
 	check(ai > 0, "mission 231: the AI's F-16s are detailed (%d)" % ai)
 	settings().models = "original"
+
+
+## The detailed stores (Gltf.STORES, docs/aircraft-models.md §5): each on its original's axis (STORE_AXIS_M) or top and
+## length (STORE_LEN, the laser bombs longer: the Paveway kit on the plain bomb), with LODs and BC1 textures, the
+## original drawn beyond PlayerWeapons.STORE_LOD_M; the Hawk SAM keeps the original AGM-88.
+func _check_stores() -> void:
+	var pw: GDScript = load("res://weapons/player_weapons.gd")
+	var paths: Array = (
+		settings()
+		. load_json(settings().assets_dir().path_join("converted/objects/objects.json"))
+		. get("default6_1.bdb", {})
+		. values()
+	)
+	var bad := []
+	for f in Gltf.STORES:
+		var path := ""
+		for p in paths:
+			if String(p).get_file() == f and String(p).begins_with("weapons/"):
+				path = p
+		var orig := _store_box(pw._instance(path, false))
+		var node: Node3D = pw._instance(path)
+		var hd := _store_box(node)
+		var lods := 0
+		var compressed := true
+		var far := 0
+		for mi: MeshInstance3D in node.find_children("*", "MeshInstance3D", true, false):
+			if mi.visibility_range_begin > 0.0:
+				far += 1
+				continue
+			lods += (RenderingServer.mesh_get_surface(mi.mesh.get_rid(), 0).get("lods", []) as Array).size()
+			for si in mi.mesh.get_surface_count():
+				var t := (mi.mesh.surface_get_material(si) as BaseMaterial3D).albedo_texture
+				compressed = compressed and t.get_image().is_compressed()
+		var len_k := hd.size.z / orig.size.z
+		var axis := Vector2(hd.get_center().x - orig.get_center().x, hd.get_center().y - orig.get_center().y)
+		print(
+			(
+				"  store %s: length x%.3f, axis off %.3f m, top %+.3f m, %d LODs"
+				% [f, len_k, axis.length(), hd.end.y - orig.end.y, lods]
+			)
+		)
+		if (
+			(absf(len_k - 1.0) > STORE_LEN and not "lb" in f)
+			or (axis.length() > STORE_AXIS_M and absf(hd.end.y - orig.end.y) > STORE_TOP_M)
+			or lods == 0
+			or not compressed
+			or far == 0
+		):
+			bad.append(f)
+		node.free()
+	check(
+		bad.is_empty(),
+		"on: detailed stores on their originals' axis and length, LODs, BC1, far original (bad: %s)" % [bad]
+	)
+	var db: RefCounted = load("res://weapons/weapon_db.gd").create(
+		settings().load_json(settings().assets_dir().path_join("converted/missions/default6_1.bdb.json"))
+	)
+	var hawk := {}
+	var harm := {}
+	for w in db.weapons.values():
+		if w.name == "Hawk":
+			hawk = w
+		elif w.name == "AGM88":
+			harm = w
+	check(
+		not hawk.get("detailed", true) and harm.get("detailed", false), "on: the Hawk keeps the original AGM-88 model"
+	)
+
+
+## The merged bounds of a store's meshes (its `pilon` helper and far LOD left out).
+func _store_box(n: Node3D) -> AABB:
+	var box := AABB()
+	var first := true
+	for mi: MeshInstance3D in n.find_children("*", "MeshInstance3D", true, false):
+		if mi.mesh == null or String(mi.name).to_lower() == "pilon" or mi.visibility_range_begin > 0.0:
+			continue
+		var b := _xf(mi, n) * mi.get_aabb()
+		box = b if first else box.merge(b)
+		first = false
+	return box
 
 
 ## The highest point of `tris` (frame of the root) straight under (x, `aft` m behind the eye), above the eye's height.
