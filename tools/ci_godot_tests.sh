@@ -24,13 +24,13 @@ one() {
 		r=timeout
 	elif grep -q "RESULT PASS" "$f" && ! grep -q "SCRIPT ERROR" "$f"; then
 		r=pass
-	elif grep -E "ERROR|FAIL" "$f" | grep -v "boot splash\|back0.png" | grep -q "assets/"; then
+	elif grep -q "^NEEDS DATA" "$f" || grep -E "ERROR|FAIL" "$f" | grep -v "boot splash\|back0.png" | grep -q "assets/"; then
 		r=needs-data
 	else
 		r=fail
 	fi
 	echo "$r" >"$out/$n.r"
-	echo "$r $n ($((SECONDS - s)) s)"
+	echo "$r $n ($((SECONDS - s)) s) $(grep -E "^NEEDS DATA|^FAIL|SCRIPT ERROR|ERROR" "$f" | grep -v "boot splash\|back0.png" | head -1 | cut -c1-160)"
 }
 export -f one
 ls tests/godot/test_*.gd | xargs -P "${JOBS:-6}" -I{} bash -c 'one {}'
@@ -40,7 +40,7 @@ for t in tests/godot/test_*.gd; do
 	n=$(basename "$t" .gd)
 	r=$(cat "$out/$n.r")
 	why=""
-	[[ $r != pass ]] && why=$(grep -E "^FAIL|SCRIPT ERROR|ERROR" "$out/$n.out" | grep -v "boot splash\|back0.png" |
+	[[ $r != pass ]] && why=$(grep -E "^NEEDS DATA|^FAIL|SCRIPT ERROR|ERROR" "$out/$n.out" | grep -v "boot splash\|back0.png" |
 		head -1 | cut -c1-140 | tr '|' '/')
 	table+="| $n | $r | $why |"$'\n'
 done

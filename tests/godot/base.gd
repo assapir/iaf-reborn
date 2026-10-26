@@ -60,6 +60,11 @@ var continue_boxes := true
 
 
 func start_mission(id: int) -> Node:
+	if not DirAccess.dir_exists_absolute(settings().assets_dir().path_join("converted")):
+		# Without the game data the flight scene never loads: say so and quit at once (docs/ci.md).
+		print("NEEDS DATA: start_mission needs assets/converted (tools/setup-cli.sh)")
+		quit(2)
+		await create_timer(3600).timeout
 	settings().mission_id = id
 	change_scene_to_file("res://terrain/terrain_view.tscn")
 	var tv: Node = null

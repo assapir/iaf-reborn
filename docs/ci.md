@@ -26,8 +26,17 @@ artifact for 7 days. The godot-tests job uses that artifact instead of building 
 The godot-tests job runs every `tests/godot/test_*.gd` headless with `tools/ci_godot_tests.sh`: six at a time, 60
 seconds each, with `IAF_DEFAULT_SETTINGS=1` and the log in the runner's temp folder. The job log shows each result as
 it comes. The run's summary page shows the counts and a table: pass, fail, needs-data or timeout per test.
-"needs-data" means the failing test's errors name `assets/`; the boot splash's missing image does not count. The job
-is informational: its failures do not fail the workflow.
+"needs-data" means the test printed `NEEDS DATA` or its errors name `assets/`; the boot splash's missing image does not
+count. `start_mission` in `tests/godot/base.gd` prints `NEEDS DATA` and quits at once when `assets/converted` is
+missing, instead of waiting for a flight scene that never loads. The job is informational: its failures do not fail
+the workflow.
+
+On macOS the script runs under the system's bash 3.2 and uses coreutils' `gtimeout`, which the job installs with
+Homebrew when missing.
+
+The first full sweep (2026-10-26) gave the same result on Linux and Windows: 6 pass (`test_console`,
+`test_f35i_model`, `test_g_effects`, `test_mission_events`, `test_scenery`, `test_setup_wizard`), 21 fail, 17
+needs-data and 68 timeouts, most of them tests that call `start_mission`.
 
 ## Actions and their versions
 
