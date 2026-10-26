@@ -186,6 +186,7 @@ const EXTRAS := [
 	["blackbox", "Blackbox", [["On", true], ["Off", false]]],
 	["hud_ladder", "HUD pitch ladder", [["Original", "original"], ["Conformal", "conformal"]]],
 	["hud_style", "HUD", [["Original (1998)", "original"], ["Real", "real"]]],
+	["hud_view", "Real HUD view", [["Original (1998)", "original"], ["Real field of view", "real"]]],
 	["show_all_keys", "All keys on the Keyboard page", [["Original", false], ["All", true]]],
 	["fullscreen", "Window", [["Framed", false], ["Full screen", true]]],
 	# Render options for high resolutions (terrain/render_options.gd, docs/rendering.md); first = as before.

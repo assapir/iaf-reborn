@@ -369,12 +369,10 @@ fn heading(p: &mut Vec<Prim>, y: f64, hdg: f64, bearing: Option<f64>) {
 
 /// The roll indicator: tics on a 70 mr arc centred 50 mr below the HUD centre, every 10° to ±30° and at ±45°, and the
 /// pointer at the bank angle (limited to ±45°).
-/// Its centre 50 mr below the FOV centre, raised so its lowest tic stays above `bottom` (ours: the cockpit art's glass
-/// is shorter than the real HUD's field of view, and the glareshield hides what falls below it).
+/// Its centre 50 mr below the FOV centre. With the original view the cockpit art's glass is shorter than the real
+/// field of view, so ours raises it until its lowest tic stays above `bottom`; Real HUD view fits it (`Jet::fov_deg`).
 fn roll_indicator(p: &mut Vec<Prim>, i: &Input, bottom: f64) {
     let r = i.mr(70.0);
-    // TODO(real FOV): back to (0, mr(50)) once the view fits the real field of view in the glass (docs/roadmap.md
-    // "Real HUD" option).
     let c = (0.0, i.mr(50.0).min(bottom - r - 4.0));
     let at = |deg: f64, rr: f64| {
         let a = deg.to_radians();

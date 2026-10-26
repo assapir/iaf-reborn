@@ -153,10 +153,6 @@ Built: every jet's real HUD / sight and the F-16 / F-15 DASH helmet set (real-hu
 helmet"). Left:
 - a settable bingo;
 - what real-hud.md marks "not drawn";
-- **the real field of view.** The cockpit art's HUD glass is shorter than the real HUD's (the F-16's ≈ 25° total),
-  so the F-16 bank scale sits raised into the glass, away from its real place 50 mr below the FOV centre
-  (`real_hud/f16.rs` `roll_indicator`). Fix the view so the whole real field fits the glass (eye position / zoom, or
-  a taller glass in the art), then put the bank scale back at its real place;
 - the DASH's own horizon symbol, shoot cue and Python-specific cues if a source appears; the RWR symbols and
   declutter levels. The Lavi / Kurnass 2000 / Kfir keep the original helmet display (their helmets are not
   documented).

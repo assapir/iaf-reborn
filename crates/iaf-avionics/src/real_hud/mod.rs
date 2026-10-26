@@ -89,6 +89,27 @@ impl Jet {
             Jet::F16
         }
     }
+
+    /// The real display's instantaneous field of view across × up (°; docs/real-hud.md "Real view"): the F-16's
+    /// wide-angle HUD and the MiG-29's ИЛС-31 from sources; the wide-angle diffractive HUDs (Lavi, Kurnass 2000) at
+    /// their class's 30° × 18°, the rest at a refractive HUD's typical 17.8° × 12° (inferred). None: no glass to fit
+    /// (the F-35's helmet).
+    pub fn fov_deg(self) -> Option<(f64, f64)> {
+        match self {
+            Jet::F16 => Some((20.0, 13.5)),
+            Jet::MiG29 => Some((13.0, 18.0)),
+            Jet::Lavi | Jet::Kurnass2000 => Some((30.0, 18.0)),
+            Jet::F15 | Jet::Kfir | Jet::MiG23 | Jet::Phantom | Jet::Mirage => Some((17.8, 12.0)),
+            Jet::F35 => None,
+        }
+    }
+
+    /// Real view: the HUD pixels per degree that fit the real field of view, centred on the HUD centre, in the
+    /// cockpit art's glass `f`. None: keep the original projection.
+    pub fn real_view_px_per_deg(self, f: Field) -> Option<f64> {
+        let (across, up) = self.fov_deg()?;
+        Some((2.0 * (-f.left).min(f.right) / across).min(2.0 * (-f.top).min(f.bottom) / up))
+    }
 }
 
 /// Text alignment at its anchor (the baseline's left, centre or right end).
@@ -635,6 +656,17 @@ mod tests {
     use super::*;
 
     pub(super) const FIELD: Field = Field { left: -80.0, top: -70.0, right: 80.0, bottom: 70.0 };
+
+    #[test]
+    fn real_view_fits_the_real_field_in_the_glass() {
+        // The F-16's glass (cockpit.json HUD borders).
+        let f = Field { left: -69.0, top: -75.0, right: 70.0, bottom: 60.0 };
+        let k = Jet::F16.real_view_px_per_deg(f).unwrap();
+        let (across, up) = Jet::F16.fov_deg().unwrap();
+        assert!(k * across / 2.0 <= 69.0 && k * up / 2.0 <= 60.0, "the field overflows the glass");
+        assert!(k * across / 2.0 > 68.9 || k * up / 2.0 > 59.9, "the field does not touch the glass");
+        assert_eq!(Jet::F35.real_view_px_per_deg(f), None);
+    }
 
     pub(super) fn texts(ps: &[Prim]) -> Vec<&str> {
         ps.iter()

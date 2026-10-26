@@ -386,8 +386,17 @@ const VIEW_LOOK_DOWN_DEG := 5.5
 
 
 ## Focal length of the 3D view in screen pixels: the original's, scaled like the 2D art. A wider or
-## taller window keeps it and shows more of the world around the original frame.
+## taller window keeps it and shows more of the world around the original frame. Real HUD view (ours): the focal
+## length whose pixels per degree fit the jet's real HUD field of view in the HUD glass (IafRealHud).
 func focal_length() -> float:
+	if Settings.hud_style == "real" and Settings.hud_view == "real":
+		var h: Dictionary = layout.get("HUD", {})
+		var l: float = h.get("LeftBorder", 98)
+		var t: float = h.get("TopBorder", 70)
+		var glass := Rect2(-l, -t, l + float(h.get("RightBorder", 98)), t + float(h.get("BottomBorder", 70)))
+		var k: float = ClassDB.class_call_static("IafRealHud", "real_view_px_per_deg", cockpit_dir.get_file(), glass)
+		if k > 0.0:
+			return k / tan(deg_to_rad(1.0)) * ui_scale()
 	return VIEW_WIDTH / 2.0 / tan(deg_to_rad(VIEW_FOV_DEG) / 2.0) * ui_scale()
 
 
@@ -488,7 +497,15 @@ func panel_to_screen(x: float, y: float) -> Vector2:
 ## Screen position of the HUD boresight (where the aircraft nose points).
 func boresight() -> Vector2:
 	var h: Dictionary = layout.get("HUD", {})
-	return Vector2(size.x / 2, panel_top() - h.get("BorePositionY", 135) * ui_scale())
+	return Vector2(size.x / 2, view_y(panel_top() - h.get("BorePositionY", 135) * ui_scale()))
+
+
+## A screen row placed for the original projection (the HUD layout's boresight, gun cross) → the row of the same
+## direction under the current focal length (Real HUD view; unchanged with the original's).
+func view_y(y: float) -> float:
+	var c := projection_centre().y
+	var f0 := VIEW_WIDTH / 2.0 / tan(deg_to_rad(VIEW_FOV_DEG) / 2.0) * ui_scale()
+	return c + (y - c) * focal_length() / f0
 
 
 ## One PgUp/PgDn step: a tenth of the panel's travel (positive = show more panel).

@@ -277,6 +277,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     and the MiG-29's ИЛС-31 HUD with its Щель-3УМ helmet sight (from simulator manuals), Cyrillic legends, metric
     units.
 
+  "Real HUD view" (ours, with HUD Real): Original keeps the 50° view; Real field of view widens the cockpit view so
+  that the jet's real HUD field fits its glass (real-hud.md "Real view").
+
   Ours where the sources stop: the EEGS wingspan (35 ft), the bingo (1500 lb), the sights' bombing depression set
   automatically, the F-35's gun / A-G graphics (the F-16's), the MiGs' range-scale steps, gun range bars and bank-scale
   spacing.

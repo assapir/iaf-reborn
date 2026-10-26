@@ -61,6 +61,19 @@ impl IafRealHud {
         iaf_avionics::gaaf::alow(agl_ft, vs_fpm, gear_down)
     }
 
+    /// Real view (`Jet::real_view_px_per_deg`): the HUD px per degree that fit the cockpit `dir`'s real HUD field in
+    /// its glass `field` (HUD px from the HUD centre); 0: keep the original projection.
+    #[func]
+    fn real_view_px_per_deg(dir: GString, field: Rect2) -> f64 {
+        let f = Field {
+            left: field.position.x.into(),
+            top: field.position.y.into(),
+            right: field.end().x.into(),
+            bottom: field.end().y.into(),
+        };
+        Jet::of_cockpit(&dir.to_string()).real_view_px_per_deg(f).unwrap_or(0.0)
+    }
+
     #[func]
     fn reset_max_g(&mut self) {
         self.hud.reset_max_g();

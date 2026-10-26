@@ -979,7 +979,7 @@ func gun_cross() -> Vector2:
 	var y: float = h.get("GunRetPositionY", h.get("BorePositionY", 135))
 	if GUN_RET_V10.get(cockpit.cockpit_dir.get_file(), -1.0) == y:
 		y += GUN_RET_V11_SHIFT
-	return Vector2(cockpit.size.x / 2, cockpit.panel_top() - y * cockpit.ui_scale())
+	return Vector2(cockpit.size.x / 2, cockpit.view_y(cockpit.panel_top() - y * cockpit.ui_scale()))
 
 
 ## Flight path marker (HUD coordinates): the velocity vector projected through the camera (v1.1:

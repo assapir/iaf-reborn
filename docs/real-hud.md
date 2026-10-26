@@ -66,9 +66,9 @@ test-pilot accounts[^f16net].
   except strafe. Ticks every 5°; labels every 10°, in tens (`06 [070] 08`, the current heading boxed).
 - Vertical velocity (VV/VAH switch): a fixed scale inboard of the altitude scale with a moving triangle; ticks every
   500 fpm.
-- Roll indicator: tics on a 70 mr arc centred 50 mr below the FOV centre, every 10° to ±45°. Ours raises the arc so
-  its lowest tic stays inside the cockpit art's glass. That glass is shorter than the real field of view, and the HUD
-  is cut at the panel's top edge.
+- Roll indicator: tics on a 70 mr arc centred 50 mr below the FOV centre, every 10° to ±45°. With "Real HUD view"
+  (see "Real view") it sits at that place. With the original view the glass is shorter than the real field, so ours
+  raises the arc until its lowest tic stays inside the glass.
 
 **Ladder / markers**[^dash34]
 - Pitch ladder ("attitude bars"): a bar every 5° to ±60°, compressed beyond.
@@ -602,6 +602,29 @@ F-16 ground avoidance advisory (GAAF, `crates/iaf-avionics/src/gaaf.rs`)[^dash34
 CARA ALOW (`gaaf::alow`)[^dash34alow]: below the ALOW height; it stops above it, climbing faster than 1,200 fpm, with
 the gear handle down, or below 15 ft. Ours repeats the call every 4 s (the game's Betty period; inferred).
 
+## Real view (the real field of view)
+Extras → "Real HUD view": Original (1998) / Real field of view. It acts with HUD Real only.
+- **Original view:** 50° across the 640 px screen (about 12 px per degree; cockpit.md "3D view"). At that scale each
+  cockpit's HUD glass spans about 11° × 11°, less than the real HUDs' fields.
+- **Real field of view:** the cockpit view widens so that the jet's real instantaneous field of view (IFOV, what the
+  pilot sees through the glass from the design eye) fits the glass, centred on the HUD centre (inferred: no source
+  gives each FOV centre's place against the glass). The symbols stay on the world, and the F-16's bank scale sits at
+  its real place. The panel art keeps its size; only the 3D view and the symbols' scale change.
+  - Code: `Jet::fov_deg` / `Jet::real_view_px_per_deg` (`real_hud/mod.rs`) → `IafRealHud.real_view_px_per_deg` →
+    `cockpit.gd` `focal_length()`. The HUD layout's boresight and gun cross move with it (`cockpit.gd` `view_y`), so
+    they keep pointing where they did.
+
+| Jet | IFOV across × up | Basis |
+|---|---|---|
+| F-16C/D | 20° × 13.5° (25° total, cut 10.5° below its centre) | the wide-angle conventional HUD of the Block 25 / 30 F-16C/D[^roch-f16cd]; dash-34[^dash34fov] |
+| Lavi, Kurnass 2000 | 30° × 18° | inferred: a wide-angle diffractive HUD of the time (the F-16 LANTIRN HUD's 30° × 18°[^roch-lantirn][^fisher85]) |
+| MiG-29 9.12 | 13° × 18° | ИЛС-31 at 600 mm from the eye, a simulator manual[^ea29] |
+| F-15A/C, Kfir, MiG-23ML, F-4E, Mirage IIICJ | 17.8° × 12° | open: inferred from a typical single-combiner refractive HUD[^avhandbook-hud] |
+| F-35I | — (the helmet's 40° × 30°: the original view stays) | Collins datasheet[^collins-hmds] |
+
+With Real view the view is wider (the F-16's about 78° across, the Lavi's about 88°), so the GPU draws more terrain
+than with the original view.
+
 ## What ours draws (status)
 
 This section lists, per jet, what the code draws and what it leaves out.
@@ -741,6 +764,21 @@ its scale. The original HUD keeps the original layout.
 [^wiki-lavi]: Wikipedia, "IAI Lavi".
 [^dokumen-lavi]: dokumen.pub, *Lavi*.
 [^rochester]: Rochester Avionic Archives, "Wide Angle Raster HUD".
+[^roch-f16cd]: Rochester Avionic Archives, "F-16C/D HUD Pilot's Display Unit" ("a 25 degree Total Field of View and a
+    20 degree by 13.5 degree Instantaneous Field of View"; the wide-angle conventional optic, an interim design while
+    the LANTIRN HUD was late): https://rochesteravionicarchives.co.uk/items/f-16-c-d-hud-pilot-s-display-unit-1
+[^dash34fov]: T.O. GR1F-16CJ-34-1-1 (1997), p. 1-156: "a total field of view of 25 degrees in diameter and is limited
+    at the bottom along a line of 10.5 degrees below the center of the total field of view":
+    https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf
+[^roch-lantirn]: Rochester Avionic Archives, "F-16 LANTIRN Diffractive HUD Pilot's Display Unit" (18° vertically,
+    30° horizontally): https://rochesteravionicarchives.co.uk/items/f-16-lantirn-diffractive-hud-pilot-s-display-unit
+[^fisher85]: J. F. Fisher, "Wide Angle Raster Head Up Display", GEC Avionics, 1985 (refractive limit about 20° × 15°;
+    diffractive 30° × 18°): https://rochesteravionicarchives.co.uk/items/wide-angle-raster-head-up-display
+[^avhandbook-hud]: R. B. Wood, P. J. Howells, The Avionics Handbook, ch. 4 "Head-Up Displays", table 4.1 (CRC 2001):
+    typical single-combiner refractive HUD 17.8° × 12° IFOV, 20–25° total:
+    http://helitavia.com/avionics/TheAvionicsHandbook_Cap_4.pdf
+[^collins-hmds]: Collins Aerospace, F-35 Gen III HMDS datasheet ("Field of view: 40H x 30V degree"):
+    https://prd-sc102-cdn.rtx.com/-/media/ca/f/f35/jsf-f35-datasheet.pdf
 [^ausairpower-hmd]: Air Power Australia, "Helmet Mounted Sights and Displays" (DASH GEN I–III fielding, 20° FoV, green
     calligraphic symbology, boxed target / seeker diamond): https://www.ausairpower.net/hmd-technology.html
 [^ausairpower-python4]: Air Power Australia, Rafael Python 4: https://www.ausairpower.net/TE-Gen-4-AAM-97.html
