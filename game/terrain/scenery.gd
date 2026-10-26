@@ -42,7 +42,7 @@ const WALL_COUNT := 4
 const KINDS := [
 	[3.0, ["cone", 2.5, 10.0, 2.6], Color(0.05, 0.10, 0.04)],  # pine
 	[3.0, ["ball", 2.5, 9.0, 3.6], Color(0.12, 0.15, 0.07)],  # broadleaf (olive, carob, oak)
-	[8.5, ["ball", 7.6, 10.0, 2.6], Color(0.10, 0.16, 0.05)],  # palm
+	[8.5, ["fan", 8.8, 10.0, 3.8], Color(0.12, 0.17, 0.06)],  # palm: fronds arching from the trunk top
 	[1.5, ["cone", 1.0, 10.0, 1.1], Color(0.04, 0.08, 0.03)],  # cypress
 ]
 const TRUNK := Color(0.16, 0.11, 0.07)
@@ -276,11 +276,33 @@ static func _tree_material(colour: Color, far: bool) -> ShaderMaterial:
 	return m
 
 
+## A palm's crown: `n` fronds from the trunk top (y 0), each rising to `h` at 40 % of its length and drooping to the
+## tip at `radius`, 1.5 h below the top; both faces drawn (each triangle twice, wound both ways).
+static func _fronds(n: int, radius: float, h: float) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var w := 0.3
+	for i in n:
+		var a := TAU * (i + 0.5 * (i % 2)) / n
+		var d := Vector3(cos(a), 0, sin(a))
+		var side := Vector3(-d.z, 0, d.x) * w
+		var mid := d * radius * 0.4 + Vector3(0, h, 0)
+		var tip := d * radius + Vector3(0, -1.5 * h, 0)
+		for t in [[Vector3.ZERO, mid + side, mid - side], [mid + side, tip, mid - side]]:
+			for tri in [t, [t[0], t[2], t[1]]]:
+				for v in tri:
+					st.set_normal(Vector3.UP)
+					st.add_vertex(v)
+	return st.commit()
+
+
 static func _make_far_tree(kind: int, mat: Material) -> ArrayMesh:
 	var c: Array = KINDS[kind][1]
 	var h: float = c[2] - c[1]
-	var canopy: PrimitiveMesh
-	if c[0] == "cone":
+	var canopy: Mesh
+	if c[0] == "fan":
+		canopy = _fronds(5, c[3], h)
+	elif c[0] == "cone":
 		var cone := CylinderMesh.new()
 		cone.top_radius = 0.0
 		cone.bottom_radius = c[3]
@@ -299,7 +321,7 @@ static func _make_far_tree(kind: int, mat: Material) -> ArrayMesh:
 		canopy = ball
 	var st := SurfaceTool.new()
 	# The canopy reaches down to the ground: no trunk to draw at this distance.
-	st.append_from(canopy, 0, Transform3D(Basis(), Vector3(0, c[1] + h / 2.0, 0)))
+	st.append_from(canopy, 0, Transform3D(Basis(), Vector3(0, c[1] if c[0] == "fan" else c[1] + h / 2.0, 0)))
 	var mesh := st.commit()
 	mesh.surface_set_material(0, mat)
 	return mesh
@@ -318,9 +340,11 @@ static func _make_tree(kind: int) -> ArrayMesh:
 	trunk.rings = 1
 	trunk.cap_top = false
 	trunk.cap_bottom = false
-	var canopy: PrimitiveMesh
+	var canopy: Mesh
 	var h: float = c[2] - c[1]
-	if c[0] == "cone":
+	if c[0] == "fan":
+		canopy = _fronds(8, c[3], h)
+	elif c[0] == "cone":
 		var cone := CylinderMesh.new()
 		cone.top_radius = 0.0
 		cone.bottom_radius = c[3]
@@ -338,7 +362,7 @@ static func _make_tree(kind: int) -> ArrayMesh:
 		canopy = ball
 	var parts := [
 		[trunk, Transform3D(Basis(), Vector3(0, trunk.height / 2.0, 0)), TRUNK],
-		[canopy, Transform3D(Basis(), Vector3(0, c[1] + h / 2.0, 0)), spec[2]],
+		[canopy, Transform3D(Basis(), Vector3(0, c[1] if c[0] == "fan" else c[1] + h / 2.0, 0)), spec[2]],
 	]
 	for p in parts:
 		var st := SurfaceTool.new()
