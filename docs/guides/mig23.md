@@ -321,6 +321,9 @@ the moon, the stars and the lights on the ground.
 
 ## 12. Key card
 
+On a Mac, **Cmd** takes the place of **Ctrl** in every key below and in this guide (macOS keeps Ctrl + arrows and
+Ctrl + F-keys for its desktops). The game shows Cmd there.
+
 | Key | Action |
 | --- | --- |
 | 1 … 8 | Throttle: idle, 65, 70, 80, 90 %, military, AB 1, AB 2 |

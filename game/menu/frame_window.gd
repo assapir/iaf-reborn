@@ -103,7 +103,9 @@ func _build_guide(s: float) -> void:
 	rich.clear()
 	rich.append_text(guide_head)
 	var width := (_body().size.x - SCROLL_W - 8) * s
-	for part in preload("res://menu/guide_md.gd").parse(guide_md, guide_base, int(round(text_px * s))):
+	# macOS: Cmd stands for Ctrl (key_table.gd cmd_is_ctrl), so the keys say Cmd+ there.
+	var md := guide_md.replace("Ctrl+", "Cmd+") if preload("res://controls/key_table.gd").cmd_is_ctrl else guide_md
+	for part in preload("res://menu/guide_md.gd").parse(md, guide_base, int(round(text_px * s))):
 		if part is String:
 			rich.append_text(part)
 			continue
