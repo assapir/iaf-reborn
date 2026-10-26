@@ -645,6 +645,8 @@ func _update_full_screen() -> void:
 ## LOOK_MIN_ZOOM times finer is not.
 const LOOK_FOV_DEG := 60.0
 const LOOK_MIN_ZOOM := 1.3
+## A camera this far from the jet (m) gets the ground around it at full detail too.
+const LOOK_AWAY_M := 1000.0
 
 
 func _update_eo_view() -> void:
@@ -681,8 +683,9 @@ func _update_eo_view() -> void:
 	eo_camera.look_at_from_position(eye, ahead, Vector3.UP)
 
 
-## The zoomed views the terrain refines for (terrain.gd `looks`): the active camera when its field of view is
-## narrower than LOOK_FOV_DEG, and the TV / EO picture while shown. A view's zoom compares its pixel's angle with a
+## The views the terrain refines for besides the jet (terrain.gd `looks`): the active camera when its field of view is
+## narrower than LOOK_FOV_DEG or it is over LOOK_AWAY_M from the jet (an F-key view on a far unit: the ground all
+## around it at the jet's detail), and the TV / EO picture while shown. A view's zoom compares its pixel's angle with a
 ## LOOK_FOV_DEG view's on this window, so the 112 px MFD picture counts less than the full-screen one.
 func _update_looks() -> void:
 	var looks := []
@@ -696,11 +699,16 @@ func _update_looks() -> void:
 			and (eo_viewport == null or eo_viewport.render_target_update_mode == SubViewport.UPDATE_DISABLED)
 		):
 			continue
+		var at: Vector3 = cam.global_position
+		var g = terrain.height_at(at)
+		var above := maxf(0.0, at.y - (g if g != null else 0.0))
+		if cam != eo_camera and at.distance_to(rig.global_position) > LOOK_AWAY_M:
+			looks.append([at, Vector3.FORWARD, -1.0, 1.0, above])
 		var px := float(eo_viewport.size.y) if cam == eo_camera else h
 		var zoom := ref / (deg_to_rad(cam.fov) / px)
 		if zoom > LOOK_MIN_ZOOM:
 			var half := deg_to_rad(cam.fov) * 0.5 * maxf(1.0, cam.get_viewport().get_visible_rect().size.aspect())
-			looks.append([cam.global_position, -cam.global_transform.basis.z, cos(half), zoom])
+			looks.append([at, -cam.global_transform.basis.z, cos(half), zoom, above])
 	terrain.looks = looks
 
 

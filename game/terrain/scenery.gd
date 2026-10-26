@@ -70,6 +70,8 @@ var _span := 0.0  # a cell's side (m)
 ## "none" (no file)}.
 var _cells := {}
 var _live: Array = []  # the cells within RANGE + KEEP of the focus at the last reselect (the per-frame work's list)
+var _view := Vector3.ZERO  # the camera away from the focus (terrain.away_view), else the focus
+var _last_view := Vector3(INF, INF, INF)
 var _queue: Array = []  # cells to load, nearest first (under the mutex)
 var _busy := {}  # cells a worker has (under the mutex)
 var _results := {}  # Vector2i -> worker result (under the mutex)
@@ -401,8 +403,15 @@ func _process(_delta: float) -> void:
 		return
 	_finish_jobs()
 	var fp: Vector3 = terrain.focus.global_position
+	# An F-key view on a far unit: the cells around that camera too (the jet's stay: its roofs and trees are solid).
+	var away = terrain.away_view()
+	_view = away if away != null else fp
 	var now := Time.get_ticks_msec()
-	if fp.distance_to(_last_focus) > RESELECT_M or now - _last_select > RESELECT_MS:
+	if (
+		fp.distance_to(_last_focus) > RESELECT_M
+		or _view.distance_to(_last_view) > RESELECT_M
+		or now - _last_select > RESELECT_MS
+	):
 		_reselect(fp)
 	_build_some(fp)
 	if draw:
@@ -417,6 +426,7 @@ func _process(_delta: float) -> void:
 
 func _reselect(fp: Vector3) -> void:
 	_last_focus = fp
+	_last_view = _view
 	_last_select = Time.get_ticks_msec()
 	var want := []
 	_mutex.lock()
@@ -425,17 +435,18 @@ func _reselect(fp: Vector3) -> void:
 	# Only the cells around the focus (the grid is linear in Godot x / z) and the ones held before: a pass over every
 	# cell of the layer (≈ 4 000) took 8–19 ms.
 	var o := _corner(Vector2i.ZERO)
-	var c := Vector2i(floori((fp.x - o.x) / _span), floori((fp.z - o.y) / _span))
 	var r := ceili((RANGE + KEEP) / _span)
 	var around: Array = _live.duplicate()
-	for i in range(c.x - r, c.x + r + 1):
-		for j in range(c.y - r, c.y + r + 1):
-			var k := Vector2i(i, j)
-			if _cells.has(k) and not k in around:
-				around.append(k)
+	for at in [fp, _view]:
+		var c := Vector2i(floori((at.x - o.x) / _span), floori((at.z - o.y) / _span))
+		for i in range(c.x - r, c.x + r + 1):
+			for j in range(c.y - r, c.y + r + 1):
+				var k := Vector2i(i, j)
+				if _cells.has(k) and not k in around:
+					around.append(k)
 	_live = []
 	for k in around:
-		var d := _dist(k, fp)
+		var d := minf(_dist(k, fp), _dist(k, _view))
 		if d <= RANGE + KEEP:
 			_live.append(k)
 		if d > RANGE + KEEP and _cells[k].state in ["loaded", "preparing", "prepared", "uploading", "built"]:
@@ -503,9 +514,9 @@ func _build_some(fp: Vector3) -> void:
 		if c.state == "prepared" and draw:
 			_start_cell(k)
 		if c.state == "uploading":
-			ready.append([_dist(k, fp), k])
+			ready.append([minf(_dist(k, fp), _dist(k, _view)), k])
 		elif c.state == "loaded":
-			waiting.append([_dist(k, fp), k])
+			waiting.append([minf(_dist(k, fp), _dist(k, _view)), k])
 	ready.sort()
 	var pieces := 0
 	for t in ready:

@@ -1,6 +1,6 @@
-# A zoomed view refines the terrain it looks at (terrain.gd `looks`, rendering.md): in mission 323 the Maverick
-# target stands 45 km from the jet, where the ground is drawn coarse; a 4° view aimed at it draws the ground under
-# it finer, so the tank stands on ground drawn from the heights it stands on.
+# Views besides the jet refine the terrain they see (terrain.gd `looks`, formats/ptt.md): in mission 323 the
+# Maverick target stands 45 km from the jet, where the ground is drawn coarse; a 4° view aimed at it, and a camera
+# beside it (an F-key view), each draw the ground under it finer, so the tank stands on ground drawn from its heights.
 extends "res://../tests/godot/base.gd"
 
 
@@ -18,7 +18,7 @@ func run() -> void:
 	var before := _level_at(t, p)
 	var cam: Vector3 = tv.rig.global_position
 	# What _update_looks would give the full-screen EO picture at 4° (zoom ≈ 15 over a 60° view).
-	t.looks = [[cam, (p - cam).normalized(), cos(deg_to_rad(2.0)), 15.0]]
+	t.looks = [[cam, (p - cam).normalized(), cos(deg_to_rad(2.0)), 15.0, cam.y - p.y]]
 	tv.set_process(false)  # keep _update_looks from replacing them
 	var t0 := Time.get_ticks_msec()
 	while _level_at(t, p) >= before and Time.get_ticks_msec() - t0 < 30000:
@@ -26,8 +26,21 @@ func run() -> void:
 		await frames(5)
 	var after := _level_at(t, p)
 	check(after < before, "the ground under the target refined: level %d -> %d" % [before, after])
+	# An F-key view on the target: the camera 60 m from it, all around (cos −1, zoom 1).
 	t.looks = []
-	check(t._dist(Vector3i(0, 0, 0)) >= 0.0, "no looks: plain distances")
+	t._last_select = 0
+	await frames(30)
+	var plain := _level_at(t, p)
+	t.looks = [[p + Vector3(40, 30, 40), Vector3.FORWARD, -1.0, 1.0, 30.0]]
+	t0 = Time.get_ticks_msec()
+	while _level_at(t, p) >= plain and Time.get_ticks_msec() - t0 < 30000:
+		t._last_select = 0
+		await frames(5)
+	check(
+		_level_at(t, p) < plain,
+		"a camera at the target refines the ground there: level %d -> %d" % [plain, _level_at(t, p)]
+	)
+	t.looks = []
 
 
 ## The level of the drawn node over scene point p (99 when none).

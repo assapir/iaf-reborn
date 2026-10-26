@@ -176,7 +176,9 @@ terrain units (`FUN_004053f0`): `X = tx·1.2411389 − 166850`, `Y = 1043780 −
     outside or cockpit views, the TV / EO picture on the MFD or full screen) makes the nodes inside its view cone
     count that many times nearer (`terrain.gd` `looks`, `terrain_view.gd` `_update_looks`). Without it a target
     35–80 km away (training mission 323) stood on its exact heights over a level-3 node, whose 32 quads drift from
-    them on hills, and looked detached when zoomed in. `tests/godot/test_terrain_looks.gd`.
+    them on hills, and looked detached when zoomed in. A camera over 1 km from the jet (an F-key view on a far unit)
+    also gets the ground all around it at the jet's detail, and the scenery loads around it as well as around the
+    jet (whose roofs and trees stay solid). `tests/godot/test_terrain_looks.gd`.
   - Ground reaches up to 200 km (the camera's far plane; fog): ground to the horizon everywhere in the theatre.
   - A node without its own imagery shows its nearest ancestor's texture (a sub-rectangle).
 - **Heights**:

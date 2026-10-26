@@ -98,10 +98,21 @@ var _near := {}
 ## false: load only, draw nothing (the front end's preload, terrain_preload.gd).
 var draw_nodes := true
 var _eye := Vector3.ZERO  # focus in terrain units (x, y) and height above the ground (z, metres)
-## Zoomed views (terrain_view.gd `_update_looks`): [from (scene), direction (unit), cos of the half angle, zoom] each.
-## A node inside one's view cone counts as `zoom` times nearer, so a telephoto or the TV / EO picture sees the ground
+## Other views (terrain_view.gd `_update_looks`): [from (scene), direction (unit), cos of the half angle, zoom,
+## height above the ground (m)] each. A node inside one's view cone counts as `zoom` times nearer, so a telephoto, the
+## TV / EO picture or a camera away from the focus (an F-key view on a far unit; cos −1: all around it) sees the ground
 ## at the detail its pixels need: the units stand on the full-detail heights and float over coarse ground otherwise.
 var looks: Array = []
+
+
+## The camera away from the focus (an F-key view on a far unit: the all-around entry of `looks`), or null.
+func away_view() -> Variant:
+	for l in looks:
+		if float(l[2]) <= -1.0:
+			return l[0]
+	return null
+
+
 var _last_focus := Vector3(INF, INF, INF)
 var _last_select := 0
 
@@ -301,10 +312,11 @@ func _dist(n: Vector3i) -> float:
 	var centre := terrain_to_godot((n.x + 0.5) * s, (n.y + 0.5) * s)
 	for l in looks:
 		var from: Vector3 = l[0]
-		var v := Vector3(centre.x - from.x, -_eye.z, centre.z - from.z)
+		var v := Vector3(centre.x - from.x, -float(l[4]), centre.z - from.z)
 		var far := v.length()
 		if far <= r:
-			continue  # under the camera: the focus' distance holds
+			d = minf(d, float(l[4]) / float(l[3]))  # the camera is over this node: its height above it
+			continue
 		# Inside the cone grown by the node's angular radius.
 		if v.dot(l[1]) / far >= cos(acos(clampf(l[2], -1.0, 1.0)) + atan(r / far)):
 			d = minf(d, (far - r) / float(l[3]))
