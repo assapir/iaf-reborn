@@ -126,11 +126,11 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
   `hud_ccip_designated` (guides/f16.md §11).
 - **World scale Real 1:1**: the real blast radii of the missiles / SAMs without a published lethal radius.
 - **Setup wizard**: the pages wait for the user's review (roadmap.md).
-- **Flight start**: with Models Detailed the F-16D parses on the main thread behind the loading screen (≈ 1.1 s
-  frame; the mission screens' preload leaves detailed models out). With TAA the first frame compiles 9 pipelines while
-  drawing (0.6–0.75 s warm). rendering.md §1.6.
-- **Exit**: a real-render bench run with the Mac settings sometimes hangs after its last line (4 of ≈ 25 runs on
-  2026-10-23, `_preload_bench.gd`); not traced yet.
+- **Flight start**: with TAA the first 3D frame compiles the motion-vector shaders and 9 pipelines while drawing
+  (≈ 1 s warm with the Mac settings); the F-35I's start decodes PNG art on the main thread. rendering.md §1.6.
+- **Exit**: a real-render bench run with the Mac settings hung after its last line in 4 of ≈ 25 runs on 2026-10-23.
+  Not seen since: 0 hangs in 125 runs on 2026-10-26 (`_preload_bench.gd`, warm, cold caches, Fly at once with the
+  mid-flight events, under CPU load, before and after the detailed-model preload); cause open.
 - **Imagery**: SPOT 5 outside Israel not started.
 - **Multiplayer**: not started (missions 511–516, 777), with its RWR network messages. Research and discussion:
   [multiplayer.md](multiplayer.md).

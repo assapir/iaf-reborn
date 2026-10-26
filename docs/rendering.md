@@ -235,7 +235,7 @@ detail and the mission's models are parsed. What runs where:
 | the first frame's art: the loading screen's menu art, the cockpit art (the scene's default F-16 cockpit and the player's jet's), the player's jet model and its cockpit-view model | worker threads, once the scene has loaded (`prefetch_flight`: `Img.prefetch`, `Gltf.parse_file_ahead`) | ≈ 0.17 + 0.23 + 0.15 s |
 | the scene's build (`_ready`) | the main thread, over six frames behind the loading screen; between them only the terrain and the loading screen run | ≤ 0.2 s a frame |
 | the terrain's nodes: about 300 colour nodes (setup's BC1 `.dds`, else JPEG, mipmaps, BC1) and 50 height nodes | 4 worker threads (`terrain.gd` `max_jobs`); the texture uploads on the main thread, ≤ 4 ms a frame (`UPLOAD_MS`) | ≈ 1–3 s |
-| the mission's models (every placed unit's model and its LOD copies, the AI's jets) | worker threads parse the files and make their mipmapped textures, from the mission screens on (`TerrainPreload.mission_models`, `Gltf.parse_ahead`); the main thread finishes them for ≤ 12 ms a frame (no GPU readback) | ≈ 1.5 s of worker time, done before Fly after a few seconds on the TSD |
+| the mission's models (every placed unit's model and its LOD copies, the AI's jets; with Models Detailed the detailed F-16D) | worker threads parse the files, make their mipmapped textures, set their materials and, for a detailed model, its LODs and meshes, from the mission screens on (`TerrainPreload.mission_models`, `Gltf.parse_ahead`); the main thread takes them for ≤ 12 ms a frame (no GPU readback) | ≈ 1.5 s of worker time (the F-16D ≈ 0.4 s), done before Fly after a few seconds on the TSD |
 | the spawn of the mission's units and the AI's jets | the main thread, the first flying frame (one parse per jet type, `Gltf.model`) | ≈ 0.25 s (mission 224) |
 
 Three things made the start slow, measured 2026-10-22:
@@ -331,7 +331,7 @@ Flight start and a low fast pass (600 kt at 300 m for 60 s, heading west, frozen
 
 The mission start with these settings still shows one or two stalls of 0.5–2.8 s in the flight scene's first frames,
 before and after alike (not the terrain: its nodes were loaded by then). §1.6 found them: the detailed F-16D's parse
-(≈ 1.1 s) and the first frame's pipelines with TAA (0.6–0.75 s), and 5–11 s more on a cold shader cache. The pass's worst frames are the 3D view's
+(≈ 1.1 s; now on the mission screens, below) and the first frame's pipelines with TAA (0.6–0.75 s), and 5–11 s more on a cold shader cache. The pass's worst frames are the 3D view's
 own (≈ 45 fps average); the waiting nodes drop by a factor of 6.
 
 #### The mission's models on the mission screens
@@ -345,6 +345,13 @@ They parse on low-priority pool tasks, which leave the decode tasks and the menu
   and makes its mipmaps on the worker (`Gltf._own_textures`). Finishing a model on the main thread used to read its
   texture back from the GPU to add the mipmaps: ≈ 30 ms a model, one model a frame behind the loading screen (80
   models in mission 224: ≈ 3 s). Now mission 224's 80 models finish inside its 0.8 s start. A model with an embedded image is parsed as Godot's import does.
+- **Detailed models.** With Models Detailed the list holds the detailed model in place of the original it stands
+  in for: the player's jet, the AI's jets and the parked ones (`Gltf.object`). Its parse makes the LODs and the meshes
+  on the worker too, and reads its embedded KTX2 base colour images itself (`Gltf._image`), so no texture is read
+  back from the GPU. The prefetch sets the flight's OBJECT DETAIL level first (`Gltf.object_level`), so the materials
+  are set for it on the worker; at another level `open()` sets them again on the main thread. The F-35I (an extra
+  plane, no detailed stand-in) parses ahead as before, and now its cockpit-view model too (`f35i_bc.gltf` in
+  `extra/planes`, which the prefetch looked for among the install's models).
 - **One parse per jet type.** The AI's jets parsed their model once per jet in the first flying frame (1.3–3.3 s in
   mission 224); `Gltf.model` keeps one per file and OBJECT DETAIL level, shared like the units' models.
 - **One set held.** The parses are keyed by the mission, the flight and the jet. Another flight or jet drops the
@@ -437,10 +444,20 @@ The first time each shows in flight, yours (worst frame within 2 s; `PB_EVENTS=1
 The cold start with your settings takes the moved compiles behind the loading screen: 22.9 s (one run) against
 14.5–15.0 s; the warm start stays at 4.2 s, and the defaults' at 5.4 s cold and 2.1 s warm.
 
-Left warm with your settings, Fly after 6 s on the TSD: the first flying frames' 0.75 s (the TAA pipelines above) and
-1.05–1.17 s for the detailed F-16D. That one is no shader: `Gltf.open_detailed` parses the model and makes its LODs
-on the main thread, and the mission screens' preload leaves detailed models out (`terrain_preload.gd`). Without
-Models Detailed the frame is gone (bench runs with each option off in turn).
+Left warm with your settings, Fly after 6 s on the TSD, measured 2026-10-26 (`_preload_bench.gd`, the settings above
+without Night vision; other agents' Godot runs on the machine for the F-35I's second run and the spread):
+
+| | before | after |
+|---|---|---|
+| F-16D, Fly to the first flying frame | 2.30–2.40 s | 1.87–1.93 s |
+| F-16D, stalls over 250 ms after Fly | 0.64–0.68 s (TAA pipelines), 1.07–1.13 s (the F-16D's parse 0.37 s, its meshes 0.41 s, its shaders) | 0.97–1.02 s (TAA pipelines and the motion-vector shaders, the F-16D's among them), 0.26–0.30 s (the F-16D's pipelines) |
+| F-35I (`f35i_slot=0,jet_id=0`), Fly to the first flying frame | 2.70–2.81 s | 2.29 s (one idle run) |
+| F-35I, stalls over 250 ms | 0.27 s, 0.66–0.69 s, 1.26–1.28 s | 0.27 s, 1.07 s, 0.49 s |
+
+The main thread's share of the detailed model is now its scene (≈ 1 ms). What stays is shader work (stack samples of
+the main thread): the TAA's motion-vector group compiled for every scene shader in the first 3D frame
+(`ShaderRD::enable_group`, ≈ 1 s), then the jet's pipelines in its first drawn frame. The F-35I's start also decodes
+PNG images on the main thread (cockpit or effects art, not traced).
 
 ## 2. Cloud layer (Graphics TEXTURED SKY, docs/front-end.md §12.4)
 

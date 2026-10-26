@@ -22,8 +22,54 @@ static func open(path: String) -> Variant:
 		parsed = _parse(path)
 	if parsed.is_empty():
 		return null
-	var doc: GLTFDocument = parsed[0]
-	var state: GLTFState = parsed[1]
+	if parsed[1].get_meta("level") != object_level:
+		_set_materials(parsed[1], path)  # parsed ahead at another OBJECT DETAIL level, or a texture left to read back
+	return parsed
+
+
+## The file's glTF parsed ([doc, state], [] when missing / unreadable), ready for open(): its images decoded, its
+## textures created, its materials set for the OBJECT DETAIL level (_set_materials); a detailed model's LODs and meshes
+## made. On a worker thread for parse_ahead, so the main thread only takes the result.
+static func _parse(path: String) -> Array:
+	var r := _parse_file(path)
+	if r.is_empty():
+		return r
+	var state: GLTFState = r[1]
+	state.set_meta("path", path)
+	_set_materials(state, path)
+	if DETAILED.values().has(path):
+		for gm: GLTFMesh in state.get_meshes():
+			gm.mesh.generate_lods(25.0, 60.0, [])
+			gm.mesh.get_mesh()  # kept by the ImporterMesh: generate_scene() takes it
+	return r
+
+
+## The file read: its base colour images decoded by _own_textures, the other textures (a detailed model's normal and
+## ORM maps, embedded) as Godot's import makes them.
+static func _parse_file(path: String) -> Array:
+	if not FileAccess.file_exists(path):
+		return []
+	var doc := GLTFDocument.new()
+	var state := GLTFState.new()
+	if path.get_extension() != "glb":  # a .glb embeds its images
+		state.handle_binary_image_mode = GLTFState.HANDLE_BINARY_IMAGE_MODE_DISCARD_TEXTURES
+		if doc.append_from_file(path, state) != OK:
+			return []
+	if state.json.is_empty() or state.json.get("images", []).any(func(im): return not im.has("uri")):
+		doc = GLTFDocument.new()
+		state = GLTFState.new()
+		if doc.append_from_file(path, state) != OK:
+			return []
+	_own_textures(state, path.get_base_dir())
+	return [doc, state]
+
+
+## Each material's settings for the OBJECT DETAIL level (object_level, recorded as the state's "level"): its texture
+## filter, its specular, its key for Model detail, and its base colour texture mipmapped. A texture _own_textures did
+## not make is read back from the GPU for that, on the main thread only (a worker would wait for its frame).
+static func _set_materials(state: GLTFState, path: String) -> void:
+	var main := OS.get_thread_caller_id() == OS.get_main_thread_id()
+	var level := object_level
 	var done := {}
 	var mats := state.get_materials()
 	for i in mats.size():
@@ -40,47 +86,28 @@ static func open(path: String) -> Variant:
 		if object_level < 3:
 			bm.metallic_specular = 0.0  # SPECULARENABLE off
 		var t := bm.albedo_texture
-		if t == null:
+		if t == null or t.has_meta("mipmapped"):
+			continue
+		if not main:
+			level = -1  # open() finishes it
 			continue
 		if not done.has(t):
-			var img: Image = null if t.has_meta("mipmapped") else t.get_image()
+			var img := t.get_image()
 			if img != null and not img.has_mipmaps() and not img.is_compressed():
 				img.generate_mipmaps()
 				done[t] = ImageTexture.create_from_image(img)
 			else:
 				done[t] = t
 		bm.albedo_texture = done[t]
-	state.set_meta("path", path)
-	return [doc, state]
+	state.set_meta("level", level)
 
 
-## The file's glTF parsed ([doc, state], [] when missing / unreadable): its images decoded and its textures created.
-## The albedo images (files next to it, all the converted models') are decoded here with their mipmaps
-## (_own_textures): on a worker thread for parse_ahead, and open() then reads no texture back from the GPU (≈ 30 ms a
-## model on the main thread otherwise). A model with an embedded image is parsed as Godot's import does.
-static func _parse(path: String) -> Array:
-	if not FileAccess.file_exists(path):
-		return []
-	var doc := GLTFDocument.new()
-	var state := GLTFState.new()
-	state.handle_binary_image_mode = GLTFState.HANDLE_BINARY_IMAGE_MODE_DISCARD_TEXTURES
-	if doc.append_from_file(path, state) != OK:
-		return []
-	if _own_textures(state, path.get_base_dir()):
-		return [doc, state]
-	doc = GLTFDocument.new()
-	state = GLTFState.new()
-	return [doc, state] if doc.append_from_file(path, state) == OK else []
-
-
-## Gives each material its base colour texture from the image file, mipmapped (marked "mipmapped" for open());
-## false when an image has no file (embedded).
-static func _own_textures(state: GLTFState, dir: String) -> bool:
+## Gives each material its base colour texture from its image (a file beside the model, or embedded in the .glb),
+## mipmapped (marked "mipmapped" for _set_materials).
+static func _own_textures(state: GLTFState, dir: String) -> void:
 	var images: Array = state.json.get("images", [])
 	var textures: Array = state.json.get("textures", [])
 	var json_mats: Array = state.json.get("materials", [])
-	if images.any(func(im): return not im.has("uri")):
-		return false
 	var made := {}
 	var mats := state.get_materials()
 	for i in mini(mats.size(), json_mats.size()):
@@ -88,18 +115,36 @@ static func _own_textures(state: GLTFState, dir: String) -> bool:
 		var ti = json_mats[i].get("pbrMetallicRoughness", {}).get("baseColorTexture", {}).get("index")
 		if bm == null or ti == null or int(ti) >= textures.size():
 			continue
-		var src := int(textures[int(ti)].get("source", -1))
+		var tex: Dictionary = textures[int(ti)]
+		var src := int(tex.get("extensions", {}).get("KHR_texture_basisu", tex).get("source", -1))
 		if not made.has(src):
-			made[src] = null
-			if src >= 0 and src < images.size():
-				var img := Image.load_from_file(dir.path_join(String(images[src].uri).uri_decode()))
-				if img != null:
-					if not img.has_mipmaps() and not img.is_compressed():
-						img.generate_mipmaps()
-					made[src] = ImageTexture.create_from_image(img)
-					made[src].set_meta("mipmapped", true)
+			made[src] = bm.albedo_texture  # as parsed (null with the textures discarded) unless decoded here
+			var img := _image(state, images[src], dir) if src >= 0 and src < images.size() else null
+			if img != null:
+				if not img.has_mipmaps() and not img.is_compressed():
+					img.generate_mipmaps()
+				made[src] = ImageTexture.create_from_image(img)
+				made[src].set_meta("mipmapped", true)
 		bm.albedo_texture = made[src]
-	return true
+
+
+## A glTF image: its file in `dir`, or its buffer view (PNG, JPEG, KTX2); null when unreadable.
+static func _image(state: GLTFState, im: Dictionary, dir: String) -> Image:
+	if im.has("uri"):
+		return Image.load_from_file(dir.path_join(String(im.uri).uri_decode()))
+	if not im.has("bufferView") or int(im.bufferView) >= state.get_buffer_views().size():
+		return null
+	var bytes: PackedByteArray = state.get_buffer_views()[int(im.bufferView)].load_buffer_view_data(state)
+	var img := Image.new()
+	var err := ERR_FILE_UNRECOGNIZED
+	match String(im.get("mimeType", "")):
+		"image/ktx2":
+			err = img.load_ktx_from_buffer(bytes)
+		"image/png":
+			err = img.load_png_from_buffer(bytes)
+		"image/jpeg":
+			err = img.load_jpg_from_buffer(bytes)
+	return img if err == OK else null
 
 
 ## Models parsed ahead on worker threads (parse_ahead): full path -> task id, then -> _parse()'s result.
@@ -111,8 +156,8 @@ static var _stale := {}
 
 
 ## Starts parsing the models at the full `paths` on worker threads (low priority), so model() / object() only finish
-## them (the mission screens and the flight's loading screen: the mission's models, ≈ 20–240 ms each). A model already
-## opened, or with a detailed stand-in, is skipped.
+## them (the mission screens and the flight's loading screen: the mission's models, ≈ 20–240 ms each; a detailed model
+## ≈ 0.4 s with its LODs). A model already opened, or with a detailed stand-in (pass the stand-in), is skipped.
 static func parse_ahead(paths: Array) -> void:
 	for p in paths:
 		if not _objects.has("%d:%s" % [object_level, p]) and detailed(p) == "":
@@ -194,7 +239,7 @@ static var _objects := {}
 static func object(path: String) -> Variant:
 	var hd := detailed(path)
 	if hd != "":
-		return open_detailed(hd)
+		return model(hd)
 	return model(objects_path(path))
 
 
@@ -219,7 +264,6 @@ static func _settings() -> Node:
 ## Detailed models (ours, Graphics → MORE → Models: Detailed; docs/aircraft-models.md): the original model's
 ## file -> our model in the repo (GPL, tools/f16d/rig.py). Each model falls back on the original on its own.
 const DETAILED := {"f16_h.gltf": "res://extra/models/f16/f16d.glb"}
-static var _detailed := {}
 
 
 ## The detailed model standing in for the original at `path` with the switch on, else "".
@@ -228,19 +272,6 @@ static func detailed(path: String) -> String:
 		return ""
 	var hd: String = DETAILED.get(path.get_file(), "")
 	return hd if hd != "" and FileAccess.file_exists(hd) else ""
-
-
-## open() of a detailed model, parsed once per OBJECT DETAIL level and shared by every jet (its textures are
-## large); its meshes get LODs so far jets draw a fraction of the triangles.
-static func open_detailed(path: String) -> Variant:
-	var key := "%d:%s" % [object_level, path]
-	if not _detailed.has(key):
-		var model = open(path)
-		if model != null:
-			for gm: GLTFMesh in (model[1] as GLTFState).get_meshes():
-				gm.mesh.generate_lods(25.0, 60.0, [])
-		_detailed[key] = model
-	return _detailed[key]
 
 
 ## A new scene of a model opened with open(), with Model detail when it is on (util/model_detail.gd). A detailed
