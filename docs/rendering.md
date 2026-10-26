@@ -765,16 +765,27 @@ of the camera (the player's and AI jets). With Detailed they replace the origina
 `ai_flights.gd`); Original keeps the ribbons and has none of these.
 
 - **Wingtip streamers**: vortex cores condense most at high angle of attack, as in a fighter's high-G
-  turn[^wtv]. Each tip leaves a short, thin camera-facing ribbon of points in the air behind the jet. A point lives
-  0.28 s (≈ 55 m at 200 m/s), widens from 0.12 m to 0.7 m and fades as (1 − age)², so the wisp is densest at the tip.
-  Each point drifts at 2.5 m/s in a spiral around the trail (the two tips turning opposite ways) and sinks at
-  0.6 m/s with the downwash, so the wisp twists and wavers (inferred). Strength: from 3.5 G (full at 6.5 G) or from
-  12° AoA (full at 22°); it fades out within ≈ 0.12 s once the pull ends. The tips are the model's outermost vertices
-  (the night lights' wingtip spots, `night_lights.gd`).
+  turn[^wtv]. Each tip leaves a thin camera-facing ribbon of points in the air behind the jet. A point lives 0.55 s
+  (≈ 110 m at 200 m/s), widens from 0.22 m to 1.1 m and fades as (1 − age)^1.6. The ribbon is solid for its first ≈ 0.1 s
+  and then breaks up into noise. It fades in over the first 0.5 m behind the tip (per pixel: one frame's segment is
+  several metres long), so it has no cut end. Each point
+  drifts at 2.5 m/s in a spiral around the trail (the two tips turning opposite ways) and sinks at 0.6 m/s with the
+  downwash, so the wisp twists and wavers (inferred). The tips are the model's outermost vertices (the night lights'
+  wingtip spots, `night_lights.gd`): on the F-16 the aft fin of the wingtip missile, the tip's trailing edge.
+  Strength follows the physics under one fixed humidity. The lift per span is ρ·V·Γ[^kj], so the tip vortex's
+  circulation Γ grows with the lift; the core's pressure (and so temperature) drop grows with Γ², which for a given wing
+  is ∝ n·CL·(W/S) (inferred). CL = n·(W/S) / q from the load factor n and the dynamic pressure q (ISA density at the
+  jet's altitude), capped at 1.8, with one wing loading W/S = 3 500 Pa for every jet (the F-16's: 9 207 kg on
+  27.87 m²[^f16] is 3 240 Pa, more with stores). The streamers start at n·CL = 2 and are full at 5 (inferred): from
+  ≈ 2.2 G (full 3.5 G) at 120 m/s, from ≈ 3.7 G (full 5.8 G) at 200 m/s, hardly at all at 250 m/s below 5 G. So a hard
+  pull at low speed (where the original draws its wingtip ribbons, 75–150 m/s) condenses as much as a harder one fast.
+  They fade out within ≈ 0.12 s once the pull ends.
 - **LEX plume** (F-16, F-35I, MiG-29): the leading-edge extension vortices[^wtv] as a translucent plume hugging the
   upper surface. It is two flattened half tubes from the LEX (a per-plane spot, inferred from drawings) back over the
-  wing roots to 0.75 of the length. They widen from 3 % to 12 % of their run and carry noise that flows aft and
-  breaks into wisps over the wing. Strength: from 10° AoA (full at 20°).
+  wing roots to 0.95 of the length, spreading out to 0.55 of the half span. They widen from 3 % to 18 % of their run (most of it behind the wing root, where
+  the vortex bursts) and carry noise that flows aft and breaks into wisps over the wing. Seen along the tubes (from
+  the cockpit looking back) they keep their full strength: the eye looks down the length of the cloud, and its noise is stretched along the flow (streaks rather than puffs).
+  Strength: from 10° AoA (full at 20°).
 - **Vapour bell**: a flickering shell around the fuselage from the canopy (0.28 of the length) to the wings' trailing
   edge (0.7), flaring out to 0.9 of the half span. Its front is soft and its aft edge ragged and soft: the cloud ends
   at the shock, where pressure and temperature rise again[^vcone]. Seen along the jet's axis (from behind or ahead)
@@ -784,11 +795,38 @@ of the camera (the player's and AI jets). With Detailed they replace the origina
   upper side (wing vapour).
 
 All three need humid air: they fade out between 1500 and 6000 m (inferred: the air near the ground carries the most
-water). Each strength eases in over ≈ 0.15 s. They draw unshaded white, tinted by the sun's colour (dim at dusk and
-night), and fade within a few metres of the eye, so the cockpit view is not covered.
+water). Each strength eases in over ≈ 0.15 s. They draw unshaded white: the sun's colour × its energy (to 1.5) plus
+0.25 sky light, up to 1.6, so the tone mapping keeps sunlit vapour white (dim at dusk and night). They fade out
+within 0.5–4 m of the eye: no hard edge at the near plane.
+
+**From the cockpit**: the cockpit views draw the cockpit model (`*_bc`, terrain_view.gd `own_bc`), not the jet
+model; it is larger than the jet model (the F-16's wingtips 10 m from the axis against 7 m) and placed by the eye.
+So the player's condensation in the cockpit views leaves the cockpit model's own wingtips and LEX
+(`terrain_view.gd vapour_state` hands vapour_fx.gd that frame). The cockpit model is cut at the eye: its nose and
+length come from where the eye sits along the jet model (descriptor `eye`). The eye is inside the vapour bell there,
+so the bell shows all round, with no axis fade; its silhouette fades over a wider angle and its noise is coarser and
+denser, so the close fog has no hard glassy arc and no dark speckles. Looking straight back in a hard level turn (banked acos(1/n), the
+horizon tilted), both streamers run from the wingtip missiles' aft fins up towards the inside of the turn, where the
+jet's flight path lies behind it, and the LEX vapour pours back beside the spine behind the seat; the Mach 0.95 pass wraps the canopy in mist from the canopy back. The original's snap views cannot look down
+(pitch ≥ 0.1 · (|yaw| − 90°)), so looking left or right (90°) the wing and its streamer are below the view; back-left
+and back-right (135°) look along the wing to its tip. On the F-35I the cockpit model's wide aft fuselage (ours,
+`tools/f35i/bc.py`) is higher than the eye's line to the trails: it hides the LEX plume and all but the streamers' far ends in
+every snap view.
+
+Tried and dropped from the cockpit (2026-10-26):
+- Wings-level pull-ups as the cockpit test flight: the horizon stayed level, and the trails lay below the wings, out
+  of the back view. The shots fly the banked level turn instead.
+- A fade-in along the streamer's first 0.8 m carried per vertex: at 30 fps a frame's segment is ≈ 7 m long at
+  200 m/s, so the streamer started a wing's width behind the tip. The fade is per pixel now.
+- The streamer solid for 40 % of its life with a flatter edge profile: from the cockpit it read as a white rod laid
+  over the ground.
+- The LEX plume's noise 5× finer across and 3× coarser along from inside: a regular feather fan. The plain noise
+  read as a cauliflower puff; 1.5× across and 0.6× along is between.
+- The left / right snap views (90°): they cannot look down, so in the banked turn they show only sky or ground.
 
 Cost (not measured yet):
-- CPU: one `ImmediateMesh` rebuilt in GDScript each frame, ≈ 100 triangles per jet in a hard turn.
+- CPU: one `ImmediateMesh` rebuilt in GDScript each frame, ≈ 130 triangles per jet in a hard turn at 60 fps
+  (2 tips × 33 points × 2).
 - GPU: per jet a bell (363 vertices) and a plume (198 vertices), alpha-blended. The overdraw of a bell filling the
   screen in a close chase view is the main cost.
 - Shader compiling: all three materials are in the scene from its start (a degenerate triangle, an invisible bell and
@@ -797,8 +835,10 @@ Cost (not measured yet):
   the camera close behind it.
 
 Shots: `tests/godot/_vapour_shot.gd` (F-16 Original and Detailed, F-35I: the turn from behind and from above, the low
-pass from behind and from the side, wing vapour, the cockpit looking at the left wingtip; `VAPOUR_BEFORE=1` takes
-the same shots with Original).
+pass from behind and from the side, wing vapour; from the cockpit straight back and back-left / -right in a level
+turn banked acos(1/n) at 7 G and 200 m/s and at 4.5 G and 120 m/s (the original's ribbon regime, so the pairs show
+both rules), and in the Mach 0.95 pass; `VAPOUR_FLIGHTS` / `VAPOUR_LOOKS` pick some of them; `VAPOUR_BEFORE=1` takes the same shots
+with Original).
 
 **Cost** (M4 Pro). Mpx = million pixels; overdraw = the same pixel shaded again by each overlapping particle.
 
@@ -1169,6 +1209,10 @@ Wayland window covered by other windows is drawn once a second.
 [^wtv]: Wikipedia, "Wingtip vortices" (the cores condense when they cool below the dew point; most common at high angles
     of attack, e.g. fighters in high-G manoeuvres; the F/A-18's leading-edge extension vortices):
     https://en.wikipedia.org/wiki/Wingtip_vortices
+[^kj]: Wikipedia, "Kutta–Joukowski theorem" (lift per unit span L′ = ρ∞·V∞·Γ):
+    https://en.wikipedia.org/wiki/Kutta%E2%80%93Joukowski_theorem
+[^f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", specifications (wing area 300 sq ft (27.87 m²), gross
+    weight 20 300 lb (9 207 kg)): https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon
 [^vcone]: Wikipedia, "Vapor cone" (transonic flight, not necessarily at Mach 1; the cloud ends at the stern shock):
     https://en.wikipedia.org/wiki/Vapor_cone
 [^hydra]: General Dynamics OTS, "Hydra-70 Rocket System" data sheet (Mk 66 motor, time of burning 1.07 s at 77 °F), https://www.gd-ots.com/wp-content/uploads/2021/02/HYDRA-70_202010.pdf

@@ -220,7 +220,7 @@ func run() -> void:
 	var vf: Node3D = b.gpu.vapour
 	var calm := {"g": 1.0, "aoa": 3.0, "mach": 0.5, "speed": 170.0, "alt_ft": 1000.0}
 	await _feed(vf, jet16, calm)
-	var j = vf._jets[jet16]
+	var j = vf._jets[jet16.root_frame]
 	var lit := func() -> int: return j.trails.reduce(func(n, t): return n + t.size(), 0)
 	check(j.tips.size() == 2 and lit.call() == 0, "vapour: no streamers at 1 G (%d points)" % lit.call())
 	var turn := {"g": 7.5, "aoa": 22.0, "mach": 0.6, "speed": 200.0, "alt_ft": 1000.0}
@@ -228,6 +228,27 @@ func run() -> void:
 	check(j.k_tip > 0.9 and lit.call() >= 20, "vapour: wingtip streamers in a 7.5 G turn (%d)" % lit.call())
 	check(j.plume.visible and j.k_lex > 0.5, "vapour: the LEX plume at 22° AoA (%.2f)" % j.k_lex)
 	check(not j.shell.visible or j.k_cone < 0.01, "vapour: no cone at Mach 0.6")
+	# The vortex strength n·CL: a 4.5 G pull at 120 m/s condenses as much; 4 G at 250 m/s hardly.
+	await _feed(vf, jet16, {"g": 4.5, "aoa": 18.0, "mach": 0.36, "speed": 120.0, "alt_ft": 1000.0})
+	check(j.k_tip > 0.9, "vapour: wingtip streamers in a 4.5 G pull at 120 m/s (%.2f)" % j.k_tip)
+	await _feed(vf, jet16, {"g": 4.0, "aoa": 6.0, "mach": 0.75, "speed": 250.0, "alt_ft": 1000.0})
+	check(j.k_tip < 0.05, "vapour: none at 4 G and 250 m/s (%.2f)" % j.k_tip)
+	# The cockpit views: the streamers leave the drawn frame's own wingtips (terrain_view.gd vapour_state).
+	var bc: Node3D = AM.create("f16", -1, false)
+	root.add_child(bc)
+	bc.position = jet16.position + Vector3(0, 1, 5)
+	bc.scale = Vector3.ONE * 1.5
+	await _feed(vf, jet16, turn.merged({"frame": bc.root_frame}))
+	var jb = vf._jets.get(bc.root_frame)
+	check(
+		(
+			jb != null
+			and jb.trails[0].size() > 0
+			and jb.trails[0][-1][0].distance_to(bc.root_frame.global_transform * jb.tips[0]) < 0.01
+		),
+		"vapour: the cockpit frame's own wingtips"
+	)
+	bc.free()
 	await _feed(vf, jet16, {"g": 1.0, "aoa": 2.0, "mach": 0.95, "speed": 320.0, "alt_ft": 300.0})
 	check(j.shell.visible and j.k_cone > 0.9, "vapour: the shell at Mach 0.95 low down (%.2f)" % j.k_cone)
 	jet16.free()
