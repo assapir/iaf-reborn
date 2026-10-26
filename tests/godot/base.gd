@@ -64,9 +64,14 @@ var continue_boxes := true
 
 
 func start_mission(id: int) -> Node:
-	if not DirAccess.dir_exists_absolute(settings().assets_dir().path_join("converted")):
-		# Without the game data the flight scene never loads: say so and quit at once (docs/ci.md).
-		print("NEEDS DATA: start_mission needs assets/converted (tools/setup-cli.sh)")
+	var a: String = settings().assets_dir()
+	# Without the game data the flight scene never loads: say so and quit at once (docs/ci.md). A test that runs
+	# alongside can create assets/converted: the key table and the install tell.
+	if (
+		not FileAccess.file_exists(a.path_join("converted/keys.json"))
+		or not DirAccess.dir_exists_absolute(a.path_join("install"))
+	):
+		print("NEEDS DATA: start_mission needs assets/ (tools/setup-cli.sh)")
 		await _quit(2)
 		await create_timer(3600, true, false, true).timeout
 	settings().mission_id = id
