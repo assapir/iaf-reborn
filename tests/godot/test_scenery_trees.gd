@@ -1,6 +1,7 @@
 # Scenery trees (docs/scenery.md §3.2): with the foliage textures setup composes, each tree kind is one textured
-# surface (scenery_foliage.gdshader: leaf cards, a solid core, the trunk) and its far model is lighter; without them
-# (an empty textures folder) the trees fall back to the plain models (scenery_tree.gdshader: trunk and canopy).
+# surface (scenery_foliage.gdshader: leaf cards, a solid core, the trunk) and its far model the solid plain canopy
+# (scenery_foliage_far.gdshader); without them (an empty textures folder) the trees fall back to the plain models
+# (scenery_tree.gdshader: trunk and canopy).
 extends "res://../tests/godot/base.gd"
 
 const TMP := "user://test_scenery_trees"
@@ -46,7 +47,7 @@ func run() -> void:
 			check(tn <= 140 and tf < tn, "kind %d: %d triangles near, %d far" % [kind, tn, tf])
 			var cols: PackedColorArray = near.surface_get_arrays(0)[Mesh.ARRAY_COLOR]
 			check(cols.size() == near.surface_get_array_len(0), "kind %d: vertex colours (occlusion, sway)" % kind)
-			check(far.surface_get_material(0).get_shader_parameter("far_model") == true, "kind %d: far model" % kind)
+			check(far.surface_get_material(0).shader == Scenery.FOLIAGE_FAR_SHADER, "kind %d: solid far model" % kind)
 	Scenery.reset_trees()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TMP.path_join("thirdparty/ambientcg")))
 
@@ -54,5 +55,6 @@ func run() -> void:
 func _triangles(mesh: ArrayMesh) -> int:
 	var n := 0
 	for s in mesh.get_surface_count():
-		n += mesh.surface_get_array_len(s) / 3
+		var idx := mesh.surface_get_array_index_len(s)
+		n += (idx if idx > 0 else mesh.surface_get_array_len(s)) / 3
 	return n

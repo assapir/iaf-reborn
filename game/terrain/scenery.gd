@@ -51,6 +51,7 @@ const GroundTextures := preload("res://terrain/ground_textures.gd")
 const SHADER := preload("res://terrain/scenery.gdshader")
 const TREE_SHADER := preload("res://terrain/scenery_tree.gdshader")
 const FOLIAGE_SHADER := preload("res://terrain/scenery_foliage.gdshader")
+const FOLIAGE_FAR_SHADER := preload("res://terrain/scenery_foliage_far.gdshader")
 ## The foliage textures setup composes (iaf_tools::foliage, under GroundTextures.dir()), the texture array's layers.
 const FOLIAGE_LAYERS := ["broadleaf", "conifer", "palm", "bark"]
 ## Per tree kind with the foliage textures: its layer, leaf colour and trunk colour (linear albedo), crown sway (m).
@@ -62,7 +63,7 @@ const FOLIAGE := [
 ]
 ## With the foliage textures: the full model to FOLIAGE_NEAR m (its leaf cards cost more to fill than the plain
 ## canopy), cross-faded to the light one over TREES_BAND m each side.
-const FOLIAGE_NEAR := 450.0
+const FOLIAGE_NEAR := 250.0
 const TREES_BAND := 50.0
 
 ## The folder holding DIR ("" = Settings.assets_dir(); tests point it elsewhere).
@@ -278,8 +279,10 @@ static func tree_mesh(kind: int, far := false) -> ArrayMesh:
 		var tex := foliage()
 		for f in [false, true]:
 			for k in KINDS.size():
-				if tex != null:
-					_tree_meshes.append(_foliage_tree(k, f, tex))
+				if tex != null and f:
+					_tree_meshes.append(_make_far_tree(k, _far_foliage_material(k)))
+				elif tex != null:
+					_tree_meshes.append(_foliage_tree(k, tex))
 				elif f:
 					_tree_meshes.append(_make_far_tree(k, _tree_material(KINDS[k][2], true)))
 				else:
@@ -314,9 +317,9 @@ static func reset_trees() -> void:
 
 
 ## A textured tree of `kind` in one surface (scenery_foliage.gdshader: its vertex colour holds the occlusion, the sway,
-## the solid core and the trunk). The full model: 16–30 leaf cards round a core, the trunk; `far` the light one: one
-## card facing the camera (a palm: 5 fronds and a three-sided trunk). A seeded generator: the same model every time.
-static func _foliage_tree(kind: int, far: bool, tex: Texture2DArray) -> ArrayMesh:
+## the solid core and the trunk): 16–30 leaf cards round a core, the trunk. The far model is the plain canopy
+## (_make_far_tree, _far_foliage_material). A seeded generator: the same model every time.
+static func _foliage_tree(kind: int, tex: Texture2DArray) -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var rng := RandomNumberGenerator.new()
@@ -324,20 +327,15 @@ static func _foliage_tree(kind: int, far: bool, tex: Texture2DArray) -> ArrayMes
 	var spec: Array = KINDS[kind]
 	var c: Array = spec[1]
 	match kind:
-		_ when far and kind != 2:
-			_billboard(st, c[1], c[2], c[3])
 		0:
 			_conifer(st, rng, c[1], c[2], c[3], 6, 5, -0.35)
 		1:
 			_broadleaf(st, rng, c[1], c[2], c[3], 16)
 		2:
-			_palm(st, rng, c[1], c[3], 5 if far else 10, far)
+			_palm(st, rng, c[1], c[3], 10)
 		3:
 			_conifer(st, rng, c[1], c[2], c[3], 7, 3, 2.2)
-	if not far:
-		_trunk(st, 0.12 if kind == 2 else 0.18, 0.22 if kind == 2 else 0.3, spec[0] + 0.5, 6)
-	elif kind == 2:
-		_trunk(st, 0.14, 0.24, spec[0] + 0.3, 3)
+	_trunk(st, 0.12 if kind == 2 else 0.18, 0.22 if kind == 2 else 0.3, spec[0] + 0.5, 6)
 	var mesh := st.commit()
 	var m := ShaderMaterial.new()
 	m.shader = FOLIAGE_SHADER
@@ -345,14 +343,23 @@ static func _foliage_tree(kind: int, far: bool, tex: Texture2DArray) -> ArrayMes
 	m.set_shader_parameter("layer", float(FOLIAGE[kind][0]))
 	m.set_shader_parameter("albedo", FOLIAGE[kind][1])
 	m.set_shader_parameter("trunk", FOLIAGE[kind][2])
-	m.set_shader_parameter("far_model", far)
-	m.set_shader_parameter("billboard", far and kind != 2)
+	m.set_shader_parameter("near_m", FOLIAGE_NEAR)
+	m.set_shader_parameter("band_m", TREES_BAND)
+	mesh.surface_set_material(0, m)
+	return mesh
+
+
+## The far model's material with the foliage textures (scenery_foliage_far.gdshader): the plain canopy shapes, solid
+## (cut-out cards cost too much to fill over a forest), in the near model's colour, each tree its own shade.
+static func _far_foliage_material(kind: int) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = FOLIAGE_FAR_SHADER
+	m.set_shader_parameter("albedo", FOLIAGE[kind][1])
 	m.set_shader_parameter("near_m", FOLIAGE_NEAR)
 	m.set_shader_parameter("band_m", TREES_BAND)
 	m.set_shader_parameter("far_m", TREES)
 	m.set_shader_parameter("grow_m", TREES_GROW)
-	mesh.surface_set_material(0, m)
-	return mesh
+	return m
 
 
 ## One vertex: colour r = occlusion, g = sway, b = solid core, a = trunk (scenery_foliage.gdshader).
@@ -401,28 +408,22 @@ static func _core(st: SurfaceTool, c: Vector3, r: Vector3, seg: int, cone := fal
 				_vert(st, e[0], e[1], e[2], Color(ao, 0.3, 1.0, 0.0))
 
 
-## The far model of a crown from `bottom` to `top`, radius `r`: one card of the clump texture, turned about the
-## tree's axis to face the camera (scenery_foliage.gdshader `billboard`; 2 triangles).
-static func _billboard(st: SurfaceTool, bottom: float, top: float, r: float) -> void:
-	var c := Vector3(0, (bottom + top) / 2.0, 0)
-	var radii := Vector3(r, (top - bottom) / 2.0, r)
-	_card(st, c, Vector3.RIGHT * r * 2.1, Vector3.UP * (top - bottom) * 1.05, c, radii)
-
-
 ## A round crown (broadleaf): `n` cards spread over an ellipsoid from `bottom` to `top`, radius `r`, each facing out.
 static func _broadleaf(
 	st: SurfaceTool, rng: RandomNumberGenerator, bottom: float, top: float, r: float, n: int
 ) -> void:
 	var c := Vector3(0, (bottom + top) / 2.0, 0)
 	var radii := Vector3(r, (top - bottom) / 2.0, r)
-	_core(st, c, radii * 0.72, 6)
+	_core(st, c, radii * 0.78, 6)
 	var size := 3.8
 	for i in n:
 		# A Fibonacci spiral over the sphere, nudged.
 		var y := 1.0 - 2.0 * (i + 0.5) / n
 		var a := i * 2.39996 + rng.randf_range(-0.3, 0.3)
 		var d := Vector3(sqrt(1.0 - y * y) * cos(a), y, sqrt(1.0 - y * y) * sin(a)).normalized()
-		var at := c + d * radii * rng.randf_range(0.55, 0.7)
+		# Out to the old canopy's size: the cards' leaves reach its surface (a smaller crown left gaps where a tree
+		# had stood).
+		var at := c + d * radii * rng.randf_range(0.68, 0.82)
 		var t := d.cross(Vector3.UP if absf(d.y) < 0.9 else Vector3.RIGHT).normalized()
 		t = t.rotated(d, rng.randf_range(0.0, TAU))
 		var s := size * rng.randf_range(0.85, 1.15)
@@ -457,9 +458,9 @@ static func _conifer(
 
 
 ## A palm's crown at `top` (the trunk's top): `n` fronds, each a strip arching out to `reach` and drooping, the frond
-## texture along it (its base at v = 1); the young ones upright, the old ones hanging. `far`: two segments a frond.
-static func _palm(st: SurfaceTool, rng: RandomNumberGenerator, top: float, reach: float, n: int, far: bool) -> void:
-	var segs := 2 if far else 3
+## texture along it (its base at v = 1); the young ones upright, the old ones hanging.
+static func _palm(st: SurfaceTool, rng: RandomNumberGenerator, top: float, reach: float, n: int) -> void:
+	var segs := 3
 	for i in n:
 		var a := TAU * (i + rng.randf_range(-0.25, 0.25)) / n
 		var d := Vector3(cos(a), 0, sin(a))

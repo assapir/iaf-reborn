@@ -253,25 +253,32 @@ What got it there, from 20 % lost and a 246 ms stall:
 - the mesh threads working on a copy of the cell, so the main thread's drop of a cell does not wait for them;
 - trees beyond 700 m drawn with a canopy-only model (1.8 M → 0.5 M triangles at 150 m).
 
-Trees with the foliage textures (§3.2), 2026-10-26: the same machine and settings, a dense town instead of the
-take-off (`BENCH_AT=332520,586500 BENCH_LEGS=150:120:15`: 150 m, 120 m/s for 15 s over a cell of 3 800 palms and 17 000
-broadleaf trees), 2560 × 1440, two runs each under the shared GPU lock:
+Trees with the foliage textures (§3.2), 2026-10-26: the same machine and settings, three tree-heavy views instead of
+the take-off (`BENCH_AT=<x>,<y> BENCH_LEGS=150:120:15`: 150 m, 120 m/s for 15 s), 2560 × 1440, two runs each under the
+shared GPU lock, the plain trees and the textured ones benched back to back:
 
-| Trees | fps | GPU ms | draw calls | triangles | lost against the plain trees |
-|---|---|---|---|---|---|
-| Scenery Off | 47.0 | 20.7 | 198 | 323 k | |
-| plain (no textures) | 36.6 | 26.6 | 315 | 1 400 k | |
-| textured | 33.8 | 28.9 | 348 | 751 k | 8 % |
+| View (`BENCH_AT`) | Scenery Off | plain trees | textured trees | lost |
+|---|---|---|---|---|
+| dense town, 3 800 palms and 17 000 broadleaf trees in its cell (332520,586500) | 46.3 fps | 36.4 fps | 36.3 fps | none |
+| orchard, 52 000 trees in its cell (388541,591900) | | 32.5 fps | 30.7 fps | 6 % |
+| Carmel pine forest, 59 000 trees in its cell (335161,617200) | | 35.2 fps | 34.6 fps | 2 % |
 
-The textured trees draw fewer triangles than the plain ones but cost more to fill: their cards are cut out per
-pixel, so the GPU cannot skip hidden pixels as early as on a solid canopy.
+In the town: GPU 26.8 ms against 26.7 ms, 300 against 313 draw calls, 1 180 k against 1 390 k triangles.
 
-Tried and dropped (2026-10-26), each in this town view:
+Tried and dropped (2026-10-26):
 
-- full model to 700 m, far model three crossed upright cards and a flat one (8 triangles): 28.5 fps, 22 % lost. The
-  crossed cards overlap two or three deep, and each layer is cut per pixel;
-- far model six large cards round a core (48 triangles): darker than the near model (the core), and slower still;
-- anisotropic filtering on the foliage textures: dropped with the above; the cards mostly face the camera.
+- full model to 700 m, far model three crossed upright cards and a flat one (8 triangles): town 28.5 fps (22 %
+  lost). The crossed cards overlap two or three deep, and each layer is cut per pixel;
+- far model six large cards round a core (48 triangles): darker than the full model (the core), and slower still;
+- full model to 450 m, far model one card turned to the camera (2 triangles): town 33.8 fps (8 % lost), but orchard
+  26.7 fps (23 %) and Carmel 27.6 fps (24 %). A forest towards the horizon stacks the cut-out cards many deep;
+- full model to 450 m, far model the solid plain canopy: town fine, orchard 26.9 fps, Carmel 29.8 fps;
+- the far model with the back-light term (sunlight through the leaves): 2.6 fps of the orchard's (33.2 against
+  30.6 without it, one run each). The full model keeps it: dropping it there gained nothing;
+- 10 larger cards a broadleaf crown and 20 a pine's instead of 16 and 30: 31.8 fps in the orchard (1 fps more),
+  but the larger cards showed their straight edges up close;
+- the full model to 300 m: orchard 31.0 fps; to 250 m it fits;
+- anisotropic filtering on the foliage textures: the cards mostly face the camera.
 
 ### 3.2 Trees
 
@@ -297,23 +304,24 @@ give where and how tall; `tree_rows` (crates/iaf-avionics/src/scenery.rs) adds a
   as many texels past the 0.5 cut as the full level, so a distant crown keeps its density instead of thinning out.
 - **Models** (`scenery.gd _foliage_tree`), one surface each:
 
-  | Kind | Full model (to 450 m) | Far model (450 m–2 km) |
+  | Kind | Full model (to 250 m) | Far model (250 m–2 km) |
   |---|---|---|
-  | broadleaf | 16 leaf cards round an ellipsoid, a solid core, the trunk: 80 triangles | one card facing the camera: 2 |
-  | pine | 6 tiers of 5 drooping cards, a leader, a solid cone core, the trunk: 88 | the same: 2 |
-  | cypress | 7 tiers of 3 upright cards, the same: 70 | the same: 2 |
-  | palm | 10 fronds (3 segments each, folded in a V), the trunk: 132 | 5 fronds of 2 segments, a 3-sided trunk: 46 |
+  | broadleaf | 16 leaf cards round an ellipsoid out to the plain canopy's size, a solid core, the trunk: 80 triangles | the plain ball: 36 |
+  | pine | 6 tiers of 5 drooping cards, a leader, a solid cone core, the trunk: 88 | the plain cone: 12 |
+  | cypress | 7 tiers of 3 upright cards, the same: 70 | the plain cone: 12 |
+  | palm | 10 fronds (3 segments each, folded in a V), the trunk: 132 | the plain fronds: 20 |
 
-  The far card turns about the tree's own axis toward the camera, so a far crown keeps the near one's hue and
-  brightness from every side.
+  The far model is the plain canopy, solid, drawn by `scenery_foliage_far.gdshader` in the full model's leaf colour
+  (times 0.9, its mean brightness), with each tree's own shade and hue and the underside darker, so a far crown keeps
+  the near one's hue and brightness.
 
 - **Shading** (`scenery_foliage.gdshader`): the cards are cut at the texture's 0.5 coverage (alpha-to-coverage with
   MSAA). The cards carry the crown's round normal, so a crown is lit as one volume. The vertex colour holds the
   occlusion: darker toward the crown's heart and underside, the trunk darker under the crown. Sunlight passes
   through the leaves (Godot's back-light). Each tree gets its own brightness (±18 %) and a little yellower or bluer
   hue. The crowns sway gently (6 cm at the tips). The leaves are matte (specular 0.1, the core 0).
-- **Distance:** the full and far models cross-fade over 400–500 m (a screen dither), and the trees dissolve tree by
-  tree over the last 300 m before 2 km, instead of popping.
+- **Distance:** the full model fades out over 200–300 m (a screen dither) over the far model, which starts at
+  200 m; the far model grows in from nothing over the last 300 m before 2 km, as the plain trees do.
 
 **Without the textures** (setup could not reach ambientCG): the plain models as before, a six-sided trunk and a
 low-poly canopy in one colour (`scenery_tree.gdshader`): about 80 triangles to 700 m, a canopy-only model (6–24
