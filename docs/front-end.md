@@ -1393,7 +1393,7 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
     background's grid lines look like the rest.
   * **Extras rows** (`front_end.gd` `EXTRAS` and `_extras_rows`, less the Graphics → MORE rows; each switch is in
     deviations.md §2): Flight data, Weapon data, Language (English / Hebrew; Hebrew only when the pack is installed),
-    Flight info (Ctrl+F12), Blackbox, HUD pitch ladder, HUD (Original (1998) / Real), All keys on the Keyboard page,
+    Flight info (Ctrl+F12), Blackbox, HUD pitch ladder, HUD (Original (1998) / Real), Real HUD bingo (500-5,000 lb, 1,500 by default), All keys on the Keyboard page,
     F-35I replaces (Off / one of the seven jets, docs/f35i.md), HARM targets, CD launcher (§18.1), Mouse wheel
     (below), Better cockpit (`Settings.BETTER_COCKPIT`, docs/cockpit.md "Better cockpit"), Mission Creator
     (Original / Better, §19.4), RWR (Original / Real, docs/rwr.md §7), World scale (docs/world-scale.md), Settings file. 8 rows show, with the Keyboard

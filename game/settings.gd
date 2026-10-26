@@ -100,6 +100,7 @@ const PREFS := {
 		"hud_ladder",
 		"hud_style",
 		"hud_view",
+		"bingo_lbs",
 		"show_all_keys",
 		"fullscreen",
 		"imagery_israel",
@@ -195,6 +196,8 @@ var hud_style := "original"
 ## Real HUD view: "original" (the 50° cockpit view) or "real" (ours: with the Real HUD, the cockpit view widens so
 ## the HUD glass spans the jet's real HUD field of view; cockpit.gd focal_length, docs/real-hud.md "Real view").
 var hud_view := "original"
+## Bingo fuel (lb, ours): the Real HUD's FUEL cue below it (the F-16, the Kurnass 2000); the real pilot sets it.
+var bingo_lbs := 1500
 ## Keyboard page: false = the original list (92 records); true (ours) also lists the hidden records
 ## (stick, rudder, RPM ± 5, pans, cheats, screen capture) so they can be rebound, e.g. on keyboards without a numpad.
 var show_all_keys := false

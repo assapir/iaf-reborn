@@ -50,11 +50,13 @@ func run() -> void:
 				await frames(3)
 			# Extras "All keys on the Keyboard page": the longer list draws and scrolls to its end.
 			fe._on_button("extras")
+			fe._extras_scroll(fe._extras_rows().map(func(o): return o[0]).find("show_all_keys"))
 			await frames(2)
 			for it in fe._extras_items():
 				if it.key == "show_all_keys" and it.value == true:
 					fe._gui_input(mouse_button(fe._to_screen(fe.CONTENT.position + it.rect.get_center()), true))
 					fe._gui_input(mouse_button(fe._to_screen(fe.CONTENT.position + it.rect.get_center()), false))
+			fe._extras_scroll(0)
 			await frames(2)
 			# Extras "Weapon data: Real", "HARM targets: RWR" and Physics "Stores weight fix" (their rows fit the page).
 			for it in fe._extras_items():

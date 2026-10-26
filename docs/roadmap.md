@@ -151,7 +151,6 @@ original's pages by default, mfd.md); the per-jet reference, the user's decision
 ## "Real HUD" and "Real DASH": what is left
 Built: every jet's real HUD / sight and the F-16 / F-15 DASH helmet set (real-hud.md "What ours draws", "DASH
 helmet"). Left:
-- a settable bingo;
 - what real-hud.md marks "not drawn";
 - the DASH's own horizon symbol, shoot cue and Python-specific cues if a source appears; the RWR symbols and
   declutter levels. The Lavi / Kurnass 2000 / Kfir keep the original helmet display (their helmets are not
