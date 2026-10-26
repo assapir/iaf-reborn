@@ -76,6 +76,25 @@ func run() -> void:
 	)
 	tv.cockpit.head = Vector2.ZERO
 	hud._process(0.0)
+	# No ILS reading yet (a flight's first frame): the Real HUD gets none, not a made-up zero that reads as on the
+	# glide slope (the F-15's capture latched on it).
+	var gear: bool = tv.cockpit.gear_handle_down
+	var ils = tv.cockpit.state.get("ils")
+	tv.cockpit.gear_handle_down = true
+	tv.cockpit.state.erase("ils")
+	hud._real_frame = -1
+	hud.real_hud()
+	var none_first: bool = hud._real_in.get("ils", 0) == null
+	tv.cockpit.state["ils"] = Vector2(0.5, -1.0)
+	hud._real_frame = -1
+	hud.real_hud()
+	check(
+		none_first and hud._real_in.ils != null,
+		"no ILS reading: none for the Real HUD, then the bars (mode %d, %s)" % [hud._mode(), str(hud._real_in.ils)]
+	)
+	tv.cockpit.gear_handle_down = gear
+	if ils != null:
+		tv.cockpit.state["ils"] = ils
 	hud._real_frame = -1
 	await _save("real_hud.png")
 	settings().hud_style = "original"

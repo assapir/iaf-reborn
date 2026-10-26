@@ -617,7 +617,8 @@ func real_hud() -> Dictionary:
 		"horizon": (horizon - _c) / _s,
 		"px_per_deg": px_deg / _s,
 		"radar_mode": int(rd.get("mode", 0)),
-		"ils": ils_lines(st.get("ils", Vector2.ZERO), _field()) if mode == 0 and cockpit.gear_handle_down else null,
+		# null until the flight state has an ILS reading (a made-up zero would read as on the glide slope).
+		"ils": ils_lines(st.ils, _field()) if mode == 0 and cockpit.gear_handle_down and st.has("ils") else null,
 		"steerpoint": steer,
 		"target": target,
 		"dlz": rd.get("dlz", []) if not target.is_empty() else [],
