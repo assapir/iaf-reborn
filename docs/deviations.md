@@ -287,7 +287,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   real-betty.md).
 - **Anti-aliasing / Terrain close up / Sky** (ours, docs/rendering.md). Rendering only; the first choice of each is
   the look before.
-  - Anti-aliasing: MSAA 4× (as before) / + FXAA / TAA (replaces MSAA).
+  - Anti-aliasing: MSAA 4× (as before) / + FXAA / TAA (replaces MSAA) / FSR 2 (the temporal upscaler anti-aliases:
+    FSR 2.2, MetalFX temporal on Metal; replaces MSAA and TAA).
   - Terrain close up: detail that follows the imagery within 1.5 km (coloured ground: patches toward a deeper /
     drier version of the photo's colour, grain and normal detail; grey pavement: a faint grain; water from
     terraintype.dat: none; centred noise, so colours from afar are the imagery's) and 16× anisotropic filtering.
@@ -300,7 +301,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 - **Upscaling** (ours, docs/rendering.md). Rendering only; the default is Native (the 3D scene at the window's
   resolution).
   - Quality renders the 3D scene at 0.77 of the window, Balanced at 0.67. MetalFX spatial scales it up (FSR 1 on
-    other drivers).
+    other drivers); with Anti-aliasing FSR 2 the temporal upscaler does, and at Native it only anti-aliases.
   - The cockpit, HUD and MFDs stay at the window's resolution.
   - It frees GPU time for heavier effects. Balanced turns one-pixel 3D lines into dots.
 - **Night lights** (ours, docs/rendering.md §5). Rendering only; the default is Original.

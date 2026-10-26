@@ -272,6 +272,8 @@ process cycles every mode 12 times, so load from other processes hits every mode
   the detailed models.
 - **Temporal costs more than it saves.** MetalFX temporal and FSR 2 need motion vectors, like TAA. That pass costs
   about 4 ms at 4K here (native TAA 8.30 ms against 4.38 ms with AA off).
+  Built later as an opt-in Anti-aliasing choice (FSR 2; MetalFX on Metal), for players who use TAA anyway: it
+  replaces TAA and runs at the Upscaling row's scale (docs/rendering.md §1.7).
 - **At 1920×1080** every mode measures 3.3–3.9 ms frozen: the GPU has room to spare at that size. Separate live runs
   (one process each) vary by ±2 ms, more than the gaps between the modes.
 - The 60 Hz main screen holds every frame at 16.67 ms; measure on the 120 Hz screen (`--screen 1`).

@@ -156,6 +156,7 @@ const Pilots := preload("res://menu/pilots.gd")
 const ImageryLayers := preload("res://terrain/imagery_layers.gd")
 const GroundTextures := preload("res://terrain/ground_textures.gd")
 const ModelDetail := preload("res://util/model_detail.gd")
+const RenderOptions := preload("res://terrain/render_options.gd")
 const Scenery := preload("res://terrain/scenery.gd")
 
 ## Our own "Extras" tab (not in the original): directly below Gameplay at the panel's spacing
@@ -189,10 +190,15 @@ const EXTRAS := [
 	["show_all_keys", "All keys on the Keyboard page", [["Original", false], ["All", true]]],
 	["fullscreen", "Window", [["Framed", false], ["Full screen", true]]],
 	# Render options for high resolutions (terrain/render_options.gd, docs/rendering.md); first = as before.
-	["antialiasing", "Anti-aliasing", [["MSAA 4x", "msaa4"], ["+ FXAA", "msaa4_fxaa"], ["TAA", "taa"]]],
+	# "FSR 2" (MetalFX on Metal): the temporal upscaler anti-aliases; the Upscaling row sets its scale.
+	[
+		"antialiasing",
+		"Anti-aliasing",
+		[["MSAA 4x", "msaa4"], ["+ FXAA", "msaa4_fxaa"], ["TAA", "taa"], ["FSR 2", "temporal"]]
+	],
+	["upscaling", "Upscaling", [["Native", "off"], ["Quality", "quality"], ["Balanced", "balanced"]]],
 	["terrain_closeup", "Terrain close up", [["Original", false], ["Detailed", true]]],
 	["sky", "Sky", [["Original", "original"], ["Atmospheric", "atmospheric"]]],
-	["upscaling", "Upscaling", [["Native", "off"], ["Quality", "quality"], ["Balanced", "balanced"]]],
 	["night_lights", "Night lights", [["Original", "original"], ["Detailed", "detailed"]]],
 	["night_vision", "Night vision (Shift+N)", [["Off", false], ["Goggles", true]]],
 	["water", "Water", [["Original", false], ["Detailed", true]]],
@@ -1591,7 +1597,7 @@ func _extras_items() -> Array:
 		var opt: Array = rows[i]
 		var y := 45.0 + EXTRAS_ROW * (i - extras_top)
 		var choices: Array = opt[2]
-		if choices.size() > 3:
+		if choices.size() > 4:
 			# Too many for the columns: one cell shows the current choice and a click picks the next.
 			var cur = pref_work.get(opt[0], choices[0][1])
 			var k := 0
@@ -1613,12 +1619,12 @@ func _extras_items() -> Array:
 			)
 			continue
 		for j in choices.size():
-			# Two choices in the Gameplay page's columns (x 164 / 285); three narrower; all left of the scrollbar.
-			var r := (
-				Rect2(164.0 + 121.0 * j, y, 111.0 if j == 0 else 129.0, EXTRAS_ROW)
-				if choices.size() < 3
-				else Rect2([164.0, 240.0, 314.0][j], y, [74.0, 72.0, 100.0][j], EXTRAS_ROW)
-			)
+			# Two choices in the Gameplay page's columns (x 164 / 285); three or four narrower; all left of the scrollbar.
+			var r := Rect2(164.0 + 121.0 * j, y, 111.0 if j == 0 else 129.0, EXTRAS_ROW)
+			if choices.size() == 3:
+				r = Rect2([164.0, 240.0, 314.0][j], y, [74.0, 72.0, 100.0][j], EXTRAS_ROW)
+			elif choices.size() == 4:
+				r = Rect2([164.0, 238.0, 304.0, 350.0][j], y, [74.0, 66.0, 46.0, 64.0][j], EXTRAS_ROW)
 			if _he():
 				r.position.x = CONTENT.size.x - r.end.x
 			var value = choices[j][1]
@@ -1628,6 +1634,8 @@ func _extras_items() -> Array:
 			var label: String = choices[j][0]
 			if String(opt[0]).begins_with("imagery_"):
 				available = ImageryLayers.available(String(value))
+			elif opt[0] == "antialiasing" and value == "temporal":
+				label = RenderOptions.temporal_name()
 			elif opt[0] in ["ground_textures", "model_detail"] and value == "ambientcg":
 				available = GroundTextures.available() if opt[0] == "ground_textures" else ModelDetail.available()
 				if not available:
