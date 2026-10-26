@@ -774,9 +774,8 @@ func tflir(r: Rect2) -> void:
 		text(Vector2(v.position.x, v.get_center().y), "NO VIDEO", 6.0, GREY, HORIZONTAL_ALIGNMENT_CENTER, v.size.x)
 	box(v, GREY, THIN)
 	var f: Dictionary = eo.get("flir", {})
+	# The cross is the line of sight (the laser spot, FUN_00450480's centre pixel): fixed at the picture's centre.
 	var cc := v.get_center()
-	if not f.is_empty():
-		cc = v.get_center() + Vector2(-float(f.u), float(f.v)) * side * 0.42
 	for d in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
 		line(cc + d * 2.5, cc + d * 8.0, WHITE, LINE)
 	if f.is_empty():
