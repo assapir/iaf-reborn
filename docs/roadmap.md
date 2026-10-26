@@ -151,7 +151,6 @@ original's pages by default, mfd.md); the per-jet reference, the user's decision
 ## "Real HUD" and "Real DASH": what is left
 Built: every jet's real HUD / sight and the F-16 / F-15 DASH helmet set (real-hud.md "What ours draws", "DASH
 helmet"). Left:
-- a settable bingo;
 - what real-hud.md marks "not drawn";
 - **the real field of view.** The cockpit art's HUD glass is shorter than the real HUD's (the F-16's ≈ 25° total),
   so the F-16 bank scale sits raised into the glass, away from its real place 50 mr below the FOV centre

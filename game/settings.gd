@@ -99,6 +99,7 @@ const PREFS := {
 		"blackbox",
 		"hud_ladder",
 		"hud_style",
+		"bingo_lbs",
 		"show_all_keys",
 		"fullscreen",
 		"imagery_israel",
@@ -191,6 +192,8 @@ var hud_ladder := "original"
 ## HUD symbology: "original" (the 1998 HUD) or "real" (ours: an F-16 Block 30/40 style HUD from public references,
 ## iaf_avionics::real_hud; docs/cockpit.md "Real HUD").
 var hud_style := "original"
+## Bingo fuel (lb, ours): the Real HUD's FUEL cue below it (the F-16, the Kurnass 2000); the real pilot sets it.
+var bingo_lbs := 1500
 ## Keyboard page: false = the original list (92 records); true (ours) also lists the hidden records
 ## (stick, rudder, RPM ± 5, pans, cheats, screen capture) so they can be rebound, e.g. on keyboards without a numpad.
 var show_all_keys := false

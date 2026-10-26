@@ -609,6 +609,7 @@ func real_hud() -> Dictionary:
 		"aoa": st.get("aoa", 0.0),
 		"gear_down": cockpit.gear_handle_down,
 		"fuel_lbs": st.get("fuel_lbs", 0.0),
+		"bingo_lbs": float(Settings.bingo_lbs),
 		"fpm": (fpm - _c) / _s if fpm != null else null,
 		"boresight": (cockpit.boresight() - position - _c) / _s,
 		"gun_cross": gun,

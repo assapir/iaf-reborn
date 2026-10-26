@@ -87,6 +87,7 @@ func run() -> void:
 		"mach": 0.74,
 		"g": 1.8,
 		"fuel_lbs": 1000.0,
+		"bingo_lbs": 1500.0,
 		"fpm": Vector2(0, 10),
 		"horizon": Vector2(0, 10),
 		"boresight": Vector2(0, -20),

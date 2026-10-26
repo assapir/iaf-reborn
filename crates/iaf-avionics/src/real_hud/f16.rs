@@ -59,6 +59,9 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
     let mut rows = Vec::new();
     if let Some(a) = i.agl_ft.filter(|a| *a < 50_000.0) {
         rows.push(format!("R {}", thousands(a)));
+        // The ALOW setting under it (fig. 1-115 `AL 200`), flashing below it (p. 1-316; blank in the dark half).
+        let lit = !crate::gaaf::alow_hud(a, i.vs_fpm, i.kcas) || flash_on(i.time_s);
+        rows.push(if lit { format!("AL {}", crate::gaaf::ALOW_FT) } else { String::new() });
     }
     match (i.target, i.steerpoint) {
         (Some(t), _) => rows.push(slant('F', t.range_m)),
@@ -80,11 +83,11 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
     if let Some(s) = i.steerpoint {
         rows.push(format!("{:03}>{:02}", ((s.dist_m / NM).round() as i64).min(999), s.number));
     }
-    for (n, r) in rows.into_iter().enumerate() {
+    for (n, r) in rows.into_iter().enumerate().filter(|(_, r)| !r.is_empty()) {
         o.push(text((rx, ry + n as f64 * ROW), r, Align::Left));
     }
     // The centre window: SHOOT (MLU) before FUEL.
-    if w.shoot || i.fuel_lbs < BINGO_LBS {
+    if w.shoot || i.fuel_lbs < i.bingo_lbs {
         let cue = if w.shoot { "SHOOT" } else { "FUEL" };
         o.push(text((0.0, i.gun_cross.1 + i.mr(70.0)), cue, Align::Centre));
     }
@@ -175,10 +178,40 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
         crate::gaaf::advisory(h, i.kcas, i.tas_ms, i.vs_fpm, i.roll_deg, i.gear_down, matches!(mode, 4..=7))
     });
     let rmin = dlz.is_some_and(|(t, z)| t.range_m < z.min);
-    if rmin || (gaaf && (i.time_s * 4.0).floor() as i64 % 2 == 0) {
+    if rmin || (gaaf && flash_on(i.time_s)) {
         x_over(p, (0.5 * (f.left + f.right), f.centre_y()), 0.3 * (f.right - f.left).min(f.bottom - f.top));
     }
+    if matches!(mode, 4..=7)
+        && let Some(fpm) = i.fpm
+        && let Some(s) = pullup_cue_s(i)
+    {
+        pullup_cue(p, i, fpm, s);
+    }
     fr
+}
+
+/// The pull-up anticipation cue's time to the GAAF advisory (s; p. 1-173): None when GAAF is off or the advisory is
+/// further than the cue's travel (ours: CUE_MAX_S, the solution cue's).
+fn pullup_cue_s(i: &Input) -> Option<f64> {
+    let agl = i.agl_ft.filter(|h| *h > 50.0)?;
+    let h = crate::gaaf::advisory_height(i.kcas, i.tas_ms, i.vs_fpm, i.roll_deg, i.gear_down, true)?;
+    let s = (agl - h).max(0.0) / (-i.vs_fpm / 60.0);
+    (s <= CUE_MAX_S).then_some(s)
+}
+
+/// The pull-up anticipation cue (p. 1-173, fig. 1-212): a U under the flight path marker in the A-G modes, rising as
+/// the jet dives until it cups the marker at the GAAF advisory, with the break X. Ours (inferred; the manual gives no
+/// scale): CUE_MR_PER_S below the marker per second to the advisory (the solution cue's scale), 24 mr wide with 3 mr
+/// ends (the figure: about the marker's span), level on the HUD.
+fn pullup_cue(p: &mut Vec<Prim>, i: &Input, (x, y): P, s: f64) {
+    let (w, h) = (i.mr(12.0), i.mr(3.0));
+    let b = y + i.mr(5.0) + i.mr(CUE_MR_PER_S) * s;
+    p.extend([line((x - w, b - h), (x - w, b)), line((x - w, b), (x + w, b)), line((x + w, b), (x + w, b - h))]);
+}
+
+/// The flashing cues' lit half (ours: 2 Hz).
+fn flash_on(t: f64) -> bool {
+    (t * 4.0).floor() as i64 % 2 == 0
 }
 
 /// The game releases the first bomb of a delayed CCIP at this time to go (s; docs/weapons.md §9.2 step 5).
@@ -487,12 +520,75 @@ mod tests {
         let fr = frame(FIELD, &i, 4.1);
         let t = texts(&fr.outer);
         for want in [
-            "352", "C", "10,450", "2.3", "0.85", "4.1", "NAV", "R 19,500", "B12.0", "05:23", "012>03", "333", "32",
-            "34",
+            "352", "C", "10,450", "2.3", "0.85", "4.1", "NAV", "R 19,500", "AL 300", "B12.0", "05:23", "012>03", "333",
+            "32", "34",
         ] {
             assert!(t.contains(&want), "{want} in {t:?}");
         }
         assert!(!t.contains(&"ARM"), "NAV: no ARM");
+    }
+
+    #[test]
+    fn alow_flashes_below_its_height() {
+        let mut i = input(Jet::F16);
+        i.agl_ft = Some(250.0);
+        let at = |fr: &Frame, s: &str| {
+            fr.outer.iter().find_map(|p| match p {
+                Prim::Text { at, text, .. } if text == s => Some(*at),
+                _ => None,
+            })
+        };
+        let lit = frame(FIELD, &i, 1.0);
+        let (r, al) = (at(&lit, "R 250").unwrap(), at(&lit, "AL 300").unwrap());
+        assert_eq!((al.0, al.1 - r.1), (r.0, ROW), "under the radar altitude");
+        i.time_s = 0.3;
+        let dark = frame(FIELD, &i, 1.0);
+        assert!(at(&dark, "AL 300").is_none(), "flashing");
+        assert_eq!(at(&dark, "B12.0").unwrap().1, at(&lit, "B12.0").unwrap().1, "the rows below stay");
+        i.agl_ft = Some(400.0);
+        assert!(at(&frame(FIELD, &i, 1.0), "AL 300").is_some(), "steady above ALOW");
+    }
+
+    #[test]
+    fn bingo_is_the_players() {
+        let mut i = input(Jet::F16);
+        i.fuel_lbs = 2500.0;
+        assert!(!texts(&frame(FIELD, &i, 1.0).outer).contains(&"FUEL"));
+        i.bingo_lbs = 3000.0;
+        assert!(texts(&frame(FIELD, &i, 1.0).outer).contains(&"FUEL"));
+    }
+
+    #[test]
+    fn pullup_cue_rises_to_the_marker() {
+        // A 45° dive at 413 kt (the advisory at about 2,270 ft) in CCIP.
+        let v = 413.0 * 0.514444;
+        let mut i = Input {
+            kcas: 413.0,
+            tas_ms: v,
+            vs_fpm: -v * std::f64::consts::FRAC_1_SQRT_2 * 196.85,
+            fpm: Some((0.0, 0.0)),
+            ..input(Jet::F16)
+        };
+        i.weapons.hud_mode = 5;
+        let u = |i: &Input, agl: f64| {
+            let i = Input { agl_ft: Some(agl), ..i.clone() };
+            frame(FIELD, &i, 1.0).field.into_iter().find_map(|p| match p {
+                Prim::Line { a, b }
+                    if a.1 == b.1 && (b.0 + a.0).abs() < 1e-9 && (b.0 - a.0 - i.mr(24.0)).abs() < 1e-9 =>
+                {
+                    Some(a.1)
+                }
+                _ => None,
+            })
+        };
+        let h = crate::gaaf::advisory_height(i.kcas, i.tas_ms, i.vs_fpm, 0.0, false, true).unwrap();
+        let sink = -i.vs_fpm / 60.0;
+        assert_eq!(u(&i, h + 12.0 * sink), None, "12 s out: not yet");
+        let far = u(&i, h + 5.0 * sink).unwrap();
+        assert!((far - i.mr(5.0 + 50.0)).abs() < 1e-6, "5 s out: 50 mr below the marker's circle");
+        assert!((u(&i, h - 10.0).unwrap() - i.mr(5.0)).abs() < 1e-9, "at the advisory: cupping the marker");
+        i.weapons.hud_mode = 0;
+        assert_eq!(u(&i, h + 5.0 * sink), None, "A-G modes only");
     }
 
     #[test]

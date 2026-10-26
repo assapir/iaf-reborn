@@ -37,8 +37,6 @@ const FT: f64 = 0.3048;
 const MS_TO_KT: f64 = 1.943844;
 /// kt → km/h.
 const KT_KMH: f64 = 1.852;
-/// Ours: the bingo fuel (lb) below which the bingo cue shows (the real one is set by the pilot).
-pub const BINGO_LBS: f64 = 1500.0;
 
 /// The jet whose display is drawn.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -272,6 +270,9 @@ pub struct Input {
     pub aoa_deg: f64,
     pub gear_down: bool,
     pub fuel_lbs: f64,
+    /// The bingo fuel (lb) below which the bingo cue shows: the player's setting (Settings.bingo_lbs), as the real
+    /// pilot sets it.
+    pub bingo_lbs: f64,
     /// The flight path marker (None: off the view), the boresight / waterline and the gun cross in HUD pixels.
     pub fpm: Option<P>,
     pub boresight: P,
@@ -656,6 +657,7 @@ mod tests {
             mach: 0.85,
             g: 2.3,
             fuel_lbs: 5000.0,
+            bingo_lbs: 1500.0,
             fpm: Some((0.0, 10.0)),
             horizon: (0.0, 10.0),
             px_per_deg: 12.0,

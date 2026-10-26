@@ -576,7 +576,7 @@ game's rule (docs/cockpit.md "break X", docs/sound.md §4).
 
 | Jet | HUD mark | Dive / height voice |
 | --- | --- | --- |
-| F-16 | the break X: flashing at the GAAF advisory in every master mode; steady in the A-A missile modes inside Rmin[^dash34brk] | "PULL UP – PULL UP" at the GAAF advisory[^dash34gaaf]; "ALTITUDE – ALTITUDE" below the ALOW height[^dash34alow], 300 ft by default[^betty] |
+| F-16 | the break X: flashing at the GAAF advisory in every master mode; steady in the A-A missile modes inside Rmin[^dash34brk]; the pull-up anticipation U rising to the flight path marker in the A-G modes[^dash34brk]; `AL` flashing below ALOW[^dash34alow] | "PULL UP – PULL UP" at the GAAF advisory[^dash34gaaf]; "ALTITUDE – ALTITUDE" below the ALOW height[^dash34alow], 300 ft by default[^betty] |
 | F-15 | the breakaway X inside Rmin (section F-15A/C above) | none: the sources list no pull-up or height call[^betty] |
 | F-35I | open (none drawn) | "PULL UP" at the F-16's GAAF rule (inferred: Auto-GCAS lineage[^betty]); no height call |
 | Lavi, Kurnass 2000 | open (none drawn) | the game's Betty rule (the jets' voice systems are open[^betty]) |
@@ -596,11 +596,19 @@ F-16 ground avoidance advisory (GAAF, `crates/iaf-avionics/src/gaaf.rs`)[^dash34
     510 ft.
 - The voice message plays to its end once per advisory; the cues reset when the dive is corrected[^dash34gaaf].
 - The break X: ours is 0.6 of the field across, on the field's centre, flashing at 2 Hz (inferred from fig. 1-212).
-- Not built: the pull-up anticipation cue (the U that rises to the flight path marker in the A-G modes) and the LOW
-  mnemonic[^dash34brk]; the MFD break X.
+- The pull-up anticipation cue[^dash34brk] (`f16.rs` `pullup_cue`): a U under the flight path marker in the A-G
+  modes. It rises toward the marker as the jet dives and cups it at the GAAF advisory, with the break X (fig. 1-212).
+  The real cue also rises for the weapon release's minimum (fuze arming) height, with `LOW` beside the marker; the
+  game has no fuze arming height, so ours follows the GAAF advisory only. Inferred (the manual gives no scale): 10 mr
+  below the marker's circle per second to the advisory, shown over the last 10 s (the delayed CCIP solution cue's
+  scale); 24 mr wide with 3 mr ends, about the marker's span in fig. 1-212; level on the HUD.
+- Not built: the LOW mnemonic; the MFD break X.
 
 CARA ALOW (`gaaf::alow`)[^dash34alow]: below the ALOW height; it stops above it, climbing faster than 1,200 fpm, with
 the gear handle down, or below 15 ft. Ours repeats the call every 4 s (the game's Betty period; inferred).
+On the HUD (`gaaf::alow_hud`)[^dash34alow]: the `AL` mnemonic and its readout (`AL 300`, one row under the radar
+altitude, fig. 1-115) flash below the ALOW height; they stop above it, climbing faster than 1,200 fpm or below 70 kt
+(the gear does not stop them). Ours flashes at 2 Hz, as the break X; the ALOW height stays 300 ft (no DED to set it).
 
 ## What ours draws (status)
 
@@ -612,10 +620,12 @@ A-A one with the altitude scale moved out for the DLZ, stays on the glass. Every
 its scale. The original HUD keeps the original layout.
 
 - F-16: the NAV / A-A / A-G layout of figs. 1-110 / 1-111 / 1-115.
-  - Drawn: the scales, boxes, the "C"; windows 3 / 4 / 5 / 7 / 8 / 10 / 13 / 14 / 25 / 26 without ALOW; the heading
+  - Drawn: the scales, boxes, the "C"; windows 3 / 4 / 5 / 7 / 8 / 10 / 13 / 14 / 25 / 26; `AL 300` (ALOW, below)
+    under the radar altitude; the heading
     box low / high; the roll indicator; the bending ladder with the zenith star / nadir earth; FPM, AoA bracket,
     steerpoint diamond; TD box / locator line; AIM-9 reticle + seeker diamond; AIM-120 ASEC + ASC; DLZ with closure;
-    CCIP / strafe pipper with the fall line; FUEL; SHOOT in its window (MLU; the AIM-9 / AIM-120 shoot cue).
+    CCIP / strafe pipper with the fall line; FUEL below the player's bingo (Extras "Real HUD bingo", 1,500 lb by
+    default); SHOOT in its window (MLU; the AIM-9 / AIM-120 shoot cue).
   - The delayed CCIP (fig. 1-283), driven by the game's delayed release (docs/weapons.md §9.2 step 5, §9.4):
     - before designation: the pipper on the target under the original's HUD-edge pipper, kept on the glass (the real
       one is held ~14° below the cross; ours sits ~9° below it, where the game's release logic aims), the fall line to
@@ -632,9 +642,11 @@ its scale. The original HUD keeps the original layout.
   - EEGS levels 2 and 5 per fig. 1-257: funnel, MRGS lines, T-symbol, 1 g / 9 g pippers, 4 mr pipper, TD circle with
     the range arc and the maximum-range dot.
   - The target-aspect triangle rides the AIM-9 reticle / ASEC.
-  - The break X (GAAF and A-A inside Rmin; "Pull-up and break marks" above).
+  - The break X (GAAF and A-A inside Rmin), the pull-up anticipation cue and the ALOW readout ("Pull-up and break
+    marks" above).
   - Not drawn: the VVI (vertical velocity indicator) scale (ours: the VAH switch position), DTOS / CCRP (the game has
-    no such modes), BATR / FEDS, ALOW, the pull-up anticipation cue.
+    no such modes), BATR / FEDS, the AUTO altitude scale below 1,200 ft, the LOW mnemonic (the game has no fuze
+    arming height).
 - F-15: tapes, heading, ladder with the zenith ⊖ "90" / nadir ⊗, velocity vector, -W-, gun cross when armed, G, Mach
   in A-A, NAV window, TD box, ASE circle + dot, range scale + IN RNG, breakaway X inside Rmin, LCOS reticle with the
   range arc, bomb fall line to the target square, AoA scale gear down (ours: degrees as units), NAV bank steering bar

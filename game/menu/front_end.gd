@@ -177,6 +177,19 @@ const PHYSICS_BAR := Rect2(422, 45, 11, 300)
 const EXTRAS_ROW := 35.0
 const EXTRAS_ROWS := 8
 const EXTRAS_BAR := Rect2(422, 45, 11, 280)
+## The bingo choices: 500 to 5,000 lb in 500 lb steps.
+const BINGO_CHOICES := [
+	["500 lb", 500],
+	["1,000 lb", 1000],
+	["1,500 lb", 1500],
+	["2,000 lb", 2000],
+	["2,500 lb", 2500],
+	["3,000 lb", 3000],
+	["3,500 lb", 3500],
+	["4,000 lb", 4000],
+	["4,500 lb", 4500],
+	["5,000 lb", 5000],
+]
 ## Our options on the Extras page: [setting, label, [[choice label, value], ...]].
 const EXTRAS := [
 	["flight_data", "Flight data", [["Original (1998)", "original"], ["Real aircraft", "real"]]],
@@ -186,6 +199,8 @@ const EXTRAS := [
 	["blackbox", "Blackbox", [["On", true], ["Off", false]]],
 	["hud_ladder", "HUD pitch ladder", [["Original", "original"], ["Conformal", "conformal"]]],
 	["hud_style", "HUD", [["Original (1998)", "original"], ["Real", "real"]]],
+	# Ours: the Real HUD's bingo fuel (Settings.bingo_lbs); more than three choices cycle.
+	["bingo_lbs", "Real HUD bingo", BINGO_CHOICES],
 	["show_all_keys", "All keys on the Keyboard page", [["Original", false], ["All", true]]],
 	["fullscreen", "Window", [["Framed", false], ["Full screen", true]]],
 	# Render options for high resolutions (terrain/render_options.gd, docs/rendering.md); first = as before.

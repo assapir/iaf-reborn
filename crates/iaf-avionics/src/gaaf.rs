@@ -24,8 +24,14 @@ pub const ALOW_FT: f64 = 300.0;
 /// lost in the recovery (reaction, the roll to wings level, the 4 g pull-up) plus the clearance buffer: above 375 KCAS
 /// 12.5 % of it + 50 ft, below 325 KCAS 25 % + 150 ft, linear between (p. 1-314). `ag`: an A-G HUD mode.
 pub fn advisory(agl_ft: f64, kcas: f64, tas_ms: f64, vs_fpm: f64, roll_deg: f64, gear_down: bool, ag: bool) -> bool {
-    if gear_down || agl_ft <= 50.0 || vs_fpm > -960.0 || tas_ms <= 0.0 {
-        return false;
+    agl_ft > 50.0 && advisory_height(kcas, tas_ms, vs_fpm, roll_deg, gear_down, ag).is_some_and(|h| agl_ft <= h)
+}
+
+/// The height above the ground (ft) at which the GAAF advisory comes (`advisory`); None when GAAF is off (gear down,
+/// not descending at 960 fpm).
+pub fn advisory_height(kcas: f64, tas_ms: f64, vs_fpm: f64, roll_deg: f64, gear_down: bool, ag: bool) -> Option<f64> {
+    if gear_down || vs_fpm > -960.0 || tas_ms <= 0.0 {
+        return None;
     }
     let sink = -vs_fpm / 60.0 / FT; // m/s
     let dive = (sink / tas_ms).clamp(0.0, 1.0).asin();
@@ -36,14 +42,19 @@ pub fn advisory(agl_ft: f64, kcas: f64, tas_ms: f64, vs_fpm: f64, roll_deg: f64,
     let radius = tas_ms * tas_ms / (G * (PULL_G - 1.0));
     let loss_ft = (sink * (react + roll_s) + radius * (1.0 - dive.cos())) * FT;
     let k = ((kcas - 325.0) / 50.0).clamp(0.0, 1.0);
-    let buffer = loss_ft * (0.25 - 0.125 * k) + 150.0 - 100.0 * k;
-    agl_ft <= loss_ft + buffer
+    Some(loss_ft + loss_ft * (0.25 - 0.125 * k) + 150.0 - 100.0 * k)
 }
 
 /// CARA ALOW's voice (p. 1-316): below the ALOW height; it stops above it, climbing faster than 1,200 fpm, with the
 /// gear handle down or below 15 ft.
 pub fn alow(agl_ft: f64, vs_fpm: f64, gear_down: bool) -> bool {
     (15.0..ALOW_FT).contains(&agl_ft) && vs_fpm <= 1200.0 && !gear_down
+}
+
+/// CARA ALOW on the HUD (p. 1-316): the `AL` mnemonic and its readout flash below the ALOW height; they stop above
+/// it, climbing faster than 1,200 fpm or below 70 kt.
+pub fn alow_hud(agl_ft: f64, vs_fpm: f64, kcas: f64) -> bool {
+    agl_ft < ALOW_FT && vs_fpm <= 1200.0 && kcas >= 70.0
 }
 
 #[cfg(test)]
@@ -81,5 +92,8 @@ mod tests {
         assert!(alow(250.0, -500.0, false));
         assert!(!alow(350.0, -500.0, false) && !alow(150.0, 1500.0, false) && !alow(150.0, 0.0, true));
         assert!(!alow(10.0, 0.0, false));
+        // The HUD's flash: gear down and on the ground too, but not below 70 kt.
+        assert!(alow_hud(250.0, -500.0, 300.0) && alow_hud(10.0, 0.0, 150.0));
+        assert!(!alow_hud(350.0, 0.0, 300.0) && !alow_hud(150.0, 1500.0, 300.0) && !alow_hud(0.0, 0.0, 60.0));
     }
 }
