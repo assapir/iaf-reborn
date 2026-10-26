@@ -650,8 +650,9 @@ pub struct Aircraft {
     pub stores_di_right: f32,
     /// Better physics "Asymmetric stores": the stores' lateral moment Σ mass · arm (kg·m, + right wing heavier).
     pub stores_moment: f32,
-    /// Better physics "Asymmetric stores": an autopilot loop flies the jet and holds the heavy wing up (its stick
-    /// on top of the stick that cancels the stores' moment). Set by `Autopilot::step` / `player_mode`.
+    /// An autopilot loop flies the jet: with Better physics "Asymmetric stores" it holds the heavy wing up (its stick
+    /// on top of the stick that cancels the stores' moment), and it ignores the player's roll trim, which would
+    /// otherwise cancel the moment a second time. Set by `Autopilot::step` / `player_mode`.
     pub stores_trim: bool,
     /// Ours (Devices "Throttle rocker" = Roll trim): the roll trim −1..1 in stick units, added to the stick in the
     /// airborne roll command. The original has no trim.
@@ -1056,8 +1057,11 @@ impl Aircraft {
     }
 
     /// The stick the airborne roll command takes: the stick plus the roll trim (scaled like the stick), within ±1.
+    /// While an autopilot loop flies (`stores_trim`) the trim is left out: the loop owns the roll, and the trim is
+    /// back when it lets go.
     pub fn roll_stick(&self) -> f32 {
-        (self.stick[0] + self.roll_trim * self.stick_k()).clamp(-1.0, 1.0)
+        let trim = if self.stores_trim { 0.0 } else { self.roll_trim };
+        (self.stick[0] + trim * self.stick_k()).clamp(-1.0, 1.0)
     }
 
     /// Moves the roll trim (ours) by a spring-centred rocker −1..1 held for `dt` s: full rocker trims
@@ -2787,6 +2791,20 @@ mod tests {
         a.trim_roll(1.0, 5.0);
         run(&mut a, 3.0);
         assert!(a.state().roll.abs() < 1e-3);
+        // The pilot trims the heavy wing, then an autopilot loop takes over: it ignores the trim and cancels the
+        // moment once (not twice); the trim is kept for when the loop lets go.
+        let mut a = airborne(100, 3000.0, 150.0);
+        a.better.asymmetric_stores = true;
+        a.set_stores_moment(907.0 * 3.0);
+        let (m, qs) = (a.mass, q_s(3000.0, 150.0, a.params.wing_area));
+        let need = a.stores_roll(m * G, m, qs);
+        a.trim_roll(-1.0, need / ROLL_TRIM_RATE);
+        a.stores_trim = true;
+        assert_eq!(a.roll_stick(), 0.0);
+        run(&mut a, 3.0);
+        assert!(a.state().roll.abs() < 0.02, "AP over a trimmed heavy wing: roll {}", a.state().roll);
+        a.stores_trim = false;
+        assert!((a.roll_stick() + need).abs() < 1e-3);
     }
 
     #[test]
