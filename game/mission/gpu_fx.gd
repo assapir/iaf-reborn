@@ -21,6 +21,8 @@ var _contrail_last := {}
 ## The particle clock (s): advances with the game's frame time, so it stops with the pause and follows time compression.
 var _now := 0.0
 var _mats: Array = []
+## Wingtip / LEX streamers and vapour (vapour_fx.gd), fed by `contrail`.
+var vapour: Node3D
 
 const FLAGS := (
 	GPUParticles3D.EMIT_FLAG_POSITION
@@ -212,6 +214,8 @@ func _ready() -> void:
 	_fire = _pool(4096, FIRE_SHADER, -3.0, false)
 	_sparks = _pool(4096, SPARK_SHADER, 15.0, false)
 	_sun = get_viewport().find_child("Sun", true, false) as DirectionalLight3D
+	vapour = preload("res://mission/vapour_fx.gd").new()
+	add_child(vapour)
 
 
 func _pool(amount: int, draw: String, gravity: float, sorted: bool) -> GPUParticles3D:
@@ -392,8 +396,9 @@ func trail(pos: Vector3, prev, life: float, size: float) -> void:
 
 
 ## Contrails (ours): an aircraft model (aircraft_model.gd) above CONTRAIL_ALT leaves white condensation from each
-## engine nozzle.
-func contrail(model: Node3D) -> void:
+## engine nozzle. With its flight `state` (IafFlight.state()) also the condensation of vapour_fx.gd.
+func contrail(model: Node3D, state := {}) -> void:
+	vapour.update(model, state)
 	var flames: Array = model.get("flames") if model.get("flames") != null else []
 	for i in flames.size():
 		var pos: Vector3 = flames[i].global_transform * flames[i].nozzle

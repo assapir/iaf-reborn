@@ -363,14 +363,16 @@ func _place(p: Pilot) -> void:
 		if st.has(k):
 			parts[k] = st[k]
 	p.node.update(parts, get_process_delta_time())
-	# Wingtip vortices of an AI jet (FUN_004da090 runs for every drawn aircraft with EndWing helpers).
-	if host != null and host.get("trails") != null and bool(st.get("vortex", false)):
+	# Wingtip vortices of an AI jet (FUN_004da090 runs for every drawn aircraft with EndWing helpers); Detailed effects
+	# draw their own condensation instead (vapour_fx.gd).
+	var detailed: bool = host != null and host.get("effects") != null and host.effects.gpu != null
+	if host != null and host.get("trails") != null and not detailed and bool(st.get("vortex", false)):
 		var tips: Array = p.node.wingtips()
 		for i in tips.size():
 			host.trails.emit([p, i], tips[i], host.trails.WINGTIP)
 	# Contrails (ours, Detailed effects).
 	if host != null and host.get("effects") != null and host.effects.gpu != null:
-		host.effects.gpu.contrail(p.node)
+		host.effects.gpu.contrail(p.node, st)
 
 
 ## The formation leader (route member 0, FUN_00587450) for the formation / taxi / take-off loops.

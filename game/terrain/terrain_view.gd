@@ -3364,13 +3364,20 @@ func _process(delta: float) -> void:
 			parts_in["stick_x"] = fs.roll_stick  # ours: the ailerons show the roll trim too
 			parts_in["ground_speed"] = Vector2(fs.velocity.x, fs.velocity.z).length()  # the rolling wheels (ours)
 		aircraft.update(parts_in, delta)
-		# Wingtip vortices (FUN_004da090): while the flight model's S+0x420 is set, one trail per EndWing helper.
-		if trails != null and flight != null and bool(flight.state().get("vortex", false)) and not fm_stopped:
+		# Wingtip vortices (FUN_004da090): while the flight model's S+0x420 is set, one trail per EndWing helper
+		# (Detailed effects draw their own condensation instead, vapour_fx.gd).
+		if (
+			trails != null
+			and effects.gpu == null
+			and flight != null
+			and bool(flight.state().get("vortex", false))
+			and not fm_stopped
+		):
 			var tips: Array = aircraft.wingtips()
 			for i in tips.size():
 				trails.emit(["wingtip", i], tips[i], trails.WINGTIP)
 		if effects.gpu != null and not fm_stopped:
-			effects.gpu.contrail(aircraft)
+			effects.gpu.contrail(aircraft, flight.state() if flight != null else {})
 	_apply_view()
 	_imode_update()
 	if clouds != null and get_viewport().get_camera_3d() != null:
