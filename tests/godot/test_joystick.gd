@@ -152,6 +152,14 @@ func run() -> void:
 	axis(JOY_AXIS_TRIGGER_LEFT, 1.0)
 	check(js.rocker() == 0.0, "rocker off: no trim")
 	prefs.rocker_trim = true
+	# The rest is the first reading of the flight: a driver reporting the rocker's rest at −1 (a trigger at 0)
+	# trims nothing there, and the far end is full rocker.
+	js.rocker_rest = NAN
+	axis(JOY_AXIS_TRIGGER_LEFT, -1.0)
+	check(js.rocker() == 0.0 and js.rocker_rest == -1.0, "rocker resting at −1: taken as its rest, no trim")
+	axis(JOY_AXIS_TRIGGER_LEFT, 1.0)
+	check(is_equal_approx(js.rocker(), 1.0), "from a −1 rest, the far end is full rocker (%.2f)" % js.rocker())
+	js.rocker_rest = 0.0
 	var trim0: float = tv.flight.roll_trim()
 	for i in 60:
 		tv._read_controls(DT)

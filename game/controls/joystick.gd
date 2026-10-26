@@ -17,9 +17,13 @@ const SOFT_DEAD_ZONE := 0.05
 const SOFT_EXPO := 0.6
 ## Ours (Devices page "Throttle rocker" = Roll trim, Settings.rocker_trim): the spring-centred rocker on a 5th axis
 ## (the T.Flight Hotas X's in its 5-axis mode: Godot axis 4; Settings.joy_axes[4] when given) trims roll while
-## held. Its rest wobbles, so a 10 % dead zone.
+## held. Its rest wobbles, so a 10 % dead zone around the rest, which is the reading at the flight's first use
+## (rocker_rest): a driver that reports the spring-centred rocker off its middle (a trigger at 0 on the Mac) would
+## otherwise trim all the time.
 const ROCKER_AXIS := 4
 const ROCKER_DEAD_ZONE := 0.1
+## The rocker's rest, −1..1; NAN = take the next reading (set at each flight's start).
+var rocker_rest := NAN
 ## The hat as Godot reports it: the D-pad buttons.
 const HAT := [JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_RIGHT, JOY_BUTTON_DPAD_DOWN, JOY_BUTTON_DPAD_LEFT]
 ## POV (hundredths of a degree) → GEV 22 (p1 angle, p2 numpad digit) (@4dfa2c..4dfbae): the snap-view keys'
@@ -119,7 +123,13 @@ func rocker() -> float:
 	if not has_fifth_axis() or not Settings.rocker_trim:
 		return 0.0
 	var i: int = Settings.joy_axes[4] if Settings.joy_axes.size() > 4 else ROCKER_AXIS
-	var r := _dead(axis(d, i), ROCKER_DEAD_ZONE)
+	var v := axis(d, i)
+	if is_nan(rocker_rest):
+		rocker_rest = v
+		print("joystick: rocker rest %.2f (axis %d)" % [v, i])
+	# Relative to the rest, each side scaled to its own travel.
+	var span := (1.0 - rocker_rest) if v >= rocker_rest else (1.0 + rocker_rest)
+	var r := _dead((v - rocker_rest) / maxf(span, 0.05), ROCKER_DEAD_ZONE)
 	return r * absf(r)
 
 

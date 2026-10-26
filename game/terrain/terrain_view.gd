@@ -289,6 +289,7 @@ func _ready() -> void:
 	Scenery.night = false  # _night_detailed sets it at night
 	GpuFx.wind = Vector3.ZERO
 	Joystick.consumer = self
+	Joystick.rocker_rest = NAN  # the rocker's rest: its first reading this flight
 	# Graphics page SHADOWS (our renderer's sun shadows; the original's shadow method is not used).
 	($Sun as DirectionalLight3D).shadow_enabled = Settings.shadows
 	for i in keys.size():
@@ -3515,11 +3516,12 @@ func _read_controls(delta: float) -> void:
 			_apply_held(i, cmd)
 	for e in Joystick.poll():
 		_joy_event(e)
-	# Ours: the roll trim, from the throttle rocker (Devices page) and Alt + Left / Right (docs/controls.md).
+	# Ours: the roll trim, from the throttle rocker (Devices page) and Alt + Left / Right (docs/controls.md); held
+	# still while the autopilot flies (it ignores the trim, so a change would land all at once when it lets go).
 	var trim := Joystick.rocker()
 	if Input.is_key_pressed(KEY_ALT) and not Input.is_key_pressed(KEY_CTRL) and not Input.is_key_pressed(KEY_SHIFT):
 		trim += float(Input.is_key_pressed(KEY_RIGHT)) - float(Input.is_key_pressed(KEY_LEFT))
-	if trim != 0.0 and flight != null:
+	if trim != 0.0 and flight != null and (autopilot == null or autopilot.mode == 0):
 		flight.trim_roll(trim, delta)
 
 
