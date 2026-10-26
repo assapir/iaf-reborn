@@ -207,6 +207,26 @@ The FGUK F-15E has no stated licence and is an alpha. NASA 3D Resources and Smit
 RaduCarstean's "F-15 Eagle No Textures" (Sketchfab, CC BY 4.0, 72k triangles), a bare mesh needing UVs, paint,
 split surfaces and LODs. No open F-15I Ra'am exists (inferred: our own conversion of an F-15D).
 
+A second, wider search (2026-10-26) found nothing better. Checked:
+- **The old FlightGear `f15c`** (Fabrice Kauffmann, FGMEMBERS/f15c): fgdata's GPL v2 text with no "or later", and
+  only a little better than the original.
+- **Two maybes on Sketchfab:**
+  - mgg8's "F-15A Eagle — USAF 76-0020, Duxford" (CC0, 131k triangles, 17 textures, no split surfaces): an
+    AI-assisted procedural model whose author says details are approximate; it needs checking against photos.
+  - Spark_Customs' F-15E (CC BY, 205k triangles, no textures, origin unverified).
+- **One maybe on OpenGameArt:** MNDV.ecb's "f 15" (OGA-BY 3.0, no real textures).
+- **Too low-poly:** YSFlight's stock F-15 (BSD-3).
+- **Rejected:**
+  - non-commercial licences: YSFlight community F-15s (YS BY-NC-SA), BlendSwap 17592 (CC BY-NC), the skyfall
+    repo's model (non-commercial assets);
+  - restricted or paid: Free3D 1387 (editorial only), the itch.io F-15A (paid, no licence);
+  - rips: 42manako's F-15I ("not my model"), Jeyhun1985's F-15I / E / C (same triangle counts as the War Thunder
+    uploads), kositsuwan's and MattDoesBlender's F-15Es (origin unknown);
+  - low-poly CC BY F-15s (14–45k triangles).
+- **Nothing on** Poly Pizza, Wikimedia Commons, Printables, Cults or GitHub file search. The forks FGMEMBERS/F-15
+  and Megaf/F-15 are Zaretto copies without a licence.
+- **Not verified:** Thingiverse models (pages blocked).
+
 **Fitting one** (a pipeline like `tools/f35i/`):
 1. Convert AC3D → glTF (Blender) and scale to the original's dimensions.
 2. Name the moving parts with our `<part>1/2` hinge helpers (gear legs, flaps, ailerons, elevons, canopy, air brake,
