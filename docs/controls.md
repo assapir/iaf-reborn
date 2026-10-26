@@ -492,6 +492,10 @@ the same code).
   * The axis: Godot axis 4, or `joy_axes[4]` when settings.cfg gives a 5th number. On the T.Flight Hotas X, the mode
     button selects it: in 4-axis mode the stick twist and the rocker are both the rudder (axis 3); in 5-axis mode
     the twist stays the rudder and the rocker is axis 4. Its descriptor lists 5 axes in both modes.
+  * When the rocker does not trim, check in this order: the log's `joystick:` line says 5 axes; the Devices row
+    "Throttle rocker" is Roll trim (Off by default); the stick is in 5-axis mode; `REMAP=1 godot --path
+    tools/joyprobe -s probe.gd` shows the rocker moving axis 4. The flight-info line (Ctrl + F12) shows "TRIM"
+    while the trim is off centre.
   * The keys **Alt + Left / Right** trim the same way at the full rate, with or without a stick (§2 "Own keys").
     There is no reset, as in the real jets: trim until the jet flies hands-off.
   * The trim shows on the flight-info line (Ctrl + F12) while it is off centre, e.g. "TRIM L 20%" (20 % of full
