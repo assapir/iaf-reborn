@@ -194,7 +194,8 @@ pub(super) fn frame(f: Field, i: &Input, gs_captured: bool) -> Frame {
 }
 
 /// The AoA scale (gear down): left, inboard of the airspeed scale, 0-45 units with ticks every 5 and labels every 10,
-/// the caret on its right at the current AoA (ours: degrees for units).
+/// the caret on its right at the current AoA (ours: degrees for units; the labels inboard past the caret, clear of the
+/// airspeed scale).
 fn aoa_scale(p: &mut Vec<Prim>, x: f64, y0: f64, aoa: f64) {
     let k = 2.0 * TAPE_HALF / 45.0;
     let y = |u: f64| y0 + TAPE_HALF - u * k;
@@ -203,7 +204,7 @@ fn aoa_scale(p: &mut Vec<Prim>, x: f64, y0: f64, aoa: f64) {
         let u = u as f64;
         p.push(line((x, y(u)), (x - 2.0, y(u))));
         if (u as i64) % 10 == 0 {
-            p.push(text((x - 3.0, y(u) + 3.0), format!("{}", u as i64), Align::Right));
+            p.push(text((x + 6.0, y(u) + 3.0), format!("{}", u as i64), Align::Left));
         }
     }
     let c = y(aoa.clamp(0.0, 45.0));
