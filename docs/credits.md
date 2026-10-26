@@ -54,7 +54,9 @@ Setup downloads these materials from ambientCG into `assets/thirdparty/ambientcg
 are CC0 1.0 (public domain): "All ambientCG assets are provided under the Creative Commons CC0 1.0 Universal
 License"[^acg-licence]. CC0 asks for no credit; we give it anyway. One line names ambientCG in the setup wizard's Attributions and in the
 roll (`credits_ours.json`, "Ground Textures and Model Detail"). The list lives in one place:
-`crates/iaf-tools/src/thirdparty.rs` (`GROUND_TEXTURES` and `MODEL_DETAIL`, with each zip's pinned SHA-256).
+`crates/iaf-tools/src/thirdparty.rs` (`GROUND_TEXTURES`, `MODEL_DETAIL`, `SCENERY_WALLS` and `TREE_TEXTURES`, with each
+zip's pinned SHA-256). Setup composes the scenery trees' foliage from the leaf sets' colour and opacity maps
+(`crates/iaf-tools/src/foliage.rs`).
 
 | Material | Used for (docs/rendering.md) | Source |
 |---|---|---|
@@ -69,6 +71,14 @@ roll (`credits_ours.json`, "Ground Textures and Model Detail"). The list lives i
 | Metal016 | Model detail: vehicles, ships, hangar shells, metal structures | https://ambientcg.com/a/Metal016 |
 | Concrete029 | Model detail: shelters and buildings | https://ambientcg.com/a/Concrete029 |
 | Rubber004 | Model detail: tyres | https://ambientcg.com/a/Rubber004 |
+| Plaster003 | Scenery (docs/scenery.md §3): plaster walls | https://ambientcg.com/a/Plaster003 |
+| Bricks084 | Scenery: stone-clad walls | https://ambientcg.com/a/Bricks084 |
+| Concrete034 | Scenery: concrete walls | https://ambientcg.com/a/Concrete034 |
+| CorrugatedSteel005 | Scenery: sheds | https://ambientcg.com/a/CorrugatedSteel005 |
+| LeafSet001 | Scenery trees (docs/scenery.md §3.2): broadleaf crowns | https://ambientcg.com/a/LeafSet001 |
+| LeafSet019 | Scenery trees: pine and cypress crowns | https://ambientcg.com/a/LeafSet019 |
+| Foliage001 | Scenery trees: palm fronds' leaflets | https://ambientcg.com/a/Foliage001 |
+| Bark012 | Scenery trees: trunks | https://ambientcg.com/a/Bark012 |
 
 The F-35I's skin, roundels, numbers, cockpit panel and displays are our own, as is the F-16D's dorsal spine.
 

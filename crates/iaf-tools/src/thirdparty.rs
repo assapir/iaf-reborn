@@ -10,6 +10,8 @@
 //! - `nr.bc3`: BC3 (DXT5), R = roughness, G = normal Y, B = the colour's brightness about its mean (0.5 = the mean,
 //!   ±2 σ to 0 / 1: stains, chips, scratches; Model detail's tint), A = normal X (the DXT5 normal layout).
 //!
+//! A leaf set's opacity map is kept too (the trees list: `foliage.rs` composes the scenery's foliage from it).
+//!
 //! Then `material.json` (id, size, checksum) marks the material done, and `<list>.json` lists the list's materials.
 //!
 //! The scenery's sources (`SCENERY`, docs/scenery.md §1.1) are kept as they come: `fetch_files` downloads each into
@@ -142,9 +144,39 @@ pub const SCENERY_WALLS: &[Material] = &[
     },
 ];
 
+/// The scenery trees' sources (game/terrain/scenery.gd, docs/scenery.md §3.2), in `foliage::LAYERS` order: setup
+/// composes the foliage textures from their kept colour and opacity maps (`foliage::build`). `size_m`: one leaf,
+/// sprig or blade, the bark's repeat.
+pub const TREE_TEXTURES: &[Material] = &[
+    Material {
+        id: "LeafSet001",
+        sha256: "26b43318e64ae442241f396309e78ee772dac53577bd92edc450d294b46ae9ba",
+        size_m: 0.25,
+        used_for: "broadleaf trees: small grey-green leaves (olive, carob, oak)",
+    },
+    Material {
+        id: "LeafSet019",
+        sha256: "3b2b26b9120fa29b495714f6f496ac6c51066cf0bd4bd453dd2bf587987480b5",
+        size_m: 0.3,
+        used_for: "pines and cypresses: needle sprigs",
+    },
+    Material {
+        id: "Foliage001",
+        sha256: "3a617bfe6abd5bcb4add69fad928e48371d02b9717802ddffbd95a9c44001c7d",
+        size_m: 0.5,
+        used_for: "palm fronds: long narrow blades as leaflets",
+    },
+    Material {
+        id: "Bark012",
+        sha256: "8514e883c1171f64e3190e075dd32ac60599426e5e7d4aa0271c1615ce7549c2",
+        size_m: 1.0,
+        used_for: "tree trunks: furrowed bark",
+    },
+];
+
 /// Every list setup fetches: (name, materials). A new use adds its list here; `<dir>/<name>.json` lists it for the game.
 pub const LISTS: &[(&str, &[Material])] =
-    &[("ground", GROUND_TEXTURES), ("model", MODEL_DETAIL), ("scenery", SCENERY_WALLS)];
+    &[("ground", GROUND_TEXTURES), ("model", MODEL_DETAIL), ("scenery", SCENERY_WALLS), ("trees", TREE_TEXTURES)];
 
 /// One downloaded file kept as it comes (the scenery's sources, docs/scenery.md §1.1): its name under the download
 /// folder, where it comes from and its pinned SHA-256.
@@ -580,6 +612,13 @@ fn unpack(m: &Material, zip_path: &Path, out: &Path) -> Result<()> {
     let (_, colour) = map("Color")?;
     let (_, normal) = map("NormalGL")?;
     let (_, rough) = map("Roughness")?;
+    // A leaf set's cut-out, kept as it comes (foliage.rs composes the trees from it).
+    let opacity = format!("{}_2K-JPG_Opacity.jpg", m.id);
+    if let Ok(mut f) = zip.by_name(&opacity) {
+        let mut data = Vec::new();
+        f.read_to_end(&mut data)?;
+        std::fs::write(out.join(&opacity), data)?;
+    }
     let bright = brightness_detail(&image::DynamicImage::ImageRgba8(colour.clone()).to_luma8());
     let albedo = detail_ratio(&colour);
     let mut nr = RgbaImage::new(SIDE, SIDE);

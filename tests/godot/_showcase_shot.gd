@@ -61,6 +61,13 @@ const SCENES := {
 	"vapour": [231, 10.5, [337929.1, 614642.4], 400.0, 0.0, Vector3(-6, 3, 22), Vector3.ZERO],
 	"sunset": [231, 19.5, [313685.0, 541903.0], 600.0, -1.0, Vector3(4, 3, 30), Vector3(0, 0, -200)],
 	"night": [311, 22.0, [], 300.0, 0.0, Vector3(4, 6, 34), Vector3(0, -40, -400)],
+	# The scenery's trees (docs/scenery.md §3; Scenery On): a town of palms and broadleaf from the cockpit at 150 m
+	# and 50 m, an orchard, the Carmel's pines, and close by.
+	"trees_town150": [231, 10.5, [332520.0, 586300.0], 150.0, 0.0, null, null],
+	"trees_town50": [231, 10.5, [332520.0, 586900.0], 50.0, 0.0, null, null],
+	"trees_orchard": [231, 10.5, [388541.0, 591900.0], 120.0, 0.0, Vector3(0, 4, 30), Vector3(0, -70, -260)],
+	"trees_carmel": [231, 10.5, [335161.0, 617200.0], 180.0, 0.0, Vector3(0, 4, 30), Vector3(0, -110, -400)],
+	"trees_close": [231, 10.5, [388541.0, 592300.0], 22.0, 0.0, Vector3(0, -12, 0), Vector3(0, -18, -60)],
 }
 
 var tv: Node
@@ -138,7 +145,7 @@ func _scene(name: String, s: Array) -> void:
 	var g = tv.terrain.height_at(tv.rig.position)
 	if not at.is_empty() or s[3] > 0.0:
 		tv.rig.position.y = (float(g) if g != null else 0.0) + s[3]
-	if name == "cockpit":
+	if name == "cockpit" or name.begins_with("trees_town"):
 		tv.views.set_cockpit(tv.views.COCKPIT)
 		tv.in_cockpit = true
 		tv._apply_view()

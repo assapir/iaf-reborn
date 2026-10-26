@@ -890,20 +890,48 @@ pub fn mesh_chunks(
 }
 
 /// The trees of a cell as MultiMesh `TRANSFORM_3D` rows (12 floats each, Godot frame from `origin`), one list per
-/// `TreeKind`: the model is 10 m tall, scaled to the tree's height, turned by a yaw seeded by its position, standing
-/// on the terrain. None while the terrain there is not loaded.
+/// `TreeKind`: the model is 10 m tall, scaled to the tree's height, its crown 0.85–1.15 times as wide, turned by a yaw
+/// and leaning up to 3° (a palm 7°) by a seed from its position, standing on the terrain. None while the terrain
+/// there is not loaded.
 pub fn tree_rows(cell: &Cell, origin: [f64; 2], ground: &dyn Fn(Vec3) -> Option<f64>) -> Option<[Vec<f32>; 4]> {
     let mut rows: [Vec<f32>; 4] = Default::default();
     for t in &cell.trees {
         let z = ground(Vec3::new(t.x.into(), t.y.into(), 0.0))? as f32;
         let s = t.height / 10.0;
-        let seed = t.x.to_bits() ^ t.y.to_bits().rotate_left(16);
-        let yaw = (seed.wrapping_mul(2_654_435_761) as f32 / u32::MAX as f32) * std::f32::consts::TAU;
+        let mut seed = t.x.to_bits() ^ t.y.to_bits().rotate_left(16);
+        let mut u = || {
+            seed = seed.wrapping_mul(2_654_435_761).wrapping_add(0x9e37_79b9);
+            (seed >> 8) as f32 / (1u32 << 24) as f32
+        };
+        let yaw = u() * std::f32::consts::TAU;
+        let w = s * (0.85 + 0.3 * u());
+        let lean = u() * if t.kind == TreeKind::Palm { 0.12 } else { 0.05 };
+        let dir = u() * std::f32::consts::TAU;
+        // Columns of the basis: the yaw turns x and z about y; the lean tips y toward (cos dir, sin dir) on the ground
+        // and x, z with it (a rotation about the horizontal axis across that direction, small-angle exact).
         let (sn, cs) = yaw.sin_cos();
+        let lean_m = rot_about([-dir.sin(), 0.0, dir.cos()], lean);
+        let col = |v: [f32; 3], k: f32| mul(&lean_m, v).map(|c| c * k);
+        let (bx, by, bz) = (col([cs, 0.0, -sn], w), col([0.0, 1.0, 0.0], s), col([sn, 0.0, cs], w));
         let (ox, oz) = ((f64::from(t.x) - origin[0]) as f32, -(f64::from(t.y) - origin[1]) as f32);
-        rows[t.kind as usize].extend([s * cs, 0.0, s * sn, ox, 0.0, s, 0.0, z, -s * sn, 0.0, s * cs, oz]);
+        rows[t.kind as usize].extend([bx[0], by[0], bz[0], ox, bx[1], by[1], bz[1], z, bx[2], by[2], bz[2], oz]);
     }
     Some(rows)
+}
+
+/// The rotation by `a` radians about the unit axis `k` (Rodrigues), rows.
+fn rot_about(k: [f32; 3], a: f32) -> [[f32; 3]; 3] {
+    let (s, c) = a.sin_cos();
+    let t = 1.0 - c;
+    [
+        [t * k[0] * k[0] + c, t * k[0] * k[1] - s * k[2], t * k[0] * k[2] + s * k[1]],
+        [t * k[0] * k[1] + s * k[2], t * k[1] * k[1] + c, t * k[1] * k[2] - s * k[0]],
+        [t * k[0] * k[2] - s * k[1], t * k[1] * k[2] + s * k[0], t * k[2] * k[2] + c],
+    ]
+}
+
+fn mul(m: &[[f32; 3]; 3], v: [f32; 3]) -> [f32; 3] {
+    m.map(|r| r[0] * v[0] + r[1] * v[1] + r[2] * v[2])
 }
 
 /// `tree_rows` split into square tiles of `tile` metres (per tile and kind, tiles in (row, column) order): Godot
@@ -1180,7 +1208,12 @@ mod tests {
         let rows = tree_rows(s.cell(3, 4).unwrap(), [90.0, 110.0], FLAT).unwrap();
         let r = &rows[TreeKind::Pine as usize];
         assert_eq!(r.len(), 12);
-        assert_eq!((r[3], r[5], r[7], r[11]), (10.0, 1.0, 5.0, 10.0));
-        assert!((r[0] * r[0] + r[2] * r[2] - 1.0).abs() < 1e-5, "a pure yaw at scale 1");
+        assert_eq!((r[3], r[7], r[11]), (10.0, 5.0, 10.0));
+        // The basis' columns: y (the height) at scale 1, leaning at most 3°; x and z the crown's width, 0.85–1.15.
+        let col = |k: usize| [r[k], r[4 + k], r[8 + k]];
+        let len = |v: [f32; 3]| v.iter().map(|c| c * c).sum::<f32>().sqrt();
+        assert!((len(col(1)) - 1.0).abs() < 1e-5 && col(1)[1] > 0.05f32.cos() - 1e-5, "{:?}", col(1));
+        assert!((0.85..=1.15).contains(&len(col(0))) && (len(col(0)) - len(col(2))).abs() < 1e-5);
+        assert!(col(0).iter().zip(col(1)).map(|(a, b)| a * b).sum::<f32>().abs() < 1e-5, "orthogonal");
     }
 }

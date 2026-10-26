@@ -1,6 +1,7 @@
 # Dev helper (not run by tools/test.sh): real-render captures of Scenery (docs/scenery.md §3) into SHOT_DIR:
 # Graphics → MORE with the Scenery row not downloaded, needing Survey 2 m, and picked; then three test houses (one per
-# wall material but corrugated, one damaged) and trees with scenery.gdshader, by day and at night.
+# wall material but corrugated, one damaged) and trees with scenery.gdshader, by day and at night; the trees up close,
+# lit from behind the camera and against the sun.
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/shots -- --log-file /tmp/s.log --path game \
 #     --resolution 1280x960 -s ../tests/godot/_scenery_shot.gd
 extends "res://../tests/godot/base.gd"
@@ -101,6 +102,18 @@ func _houses(sc: GDScript, out: String) -> void:
 		await RenderingServer.frame_post_draw
 		root.get_viewport().get_texture().get_image().save_png(
 			out.path_join("houses_%s.png" % ("night" if night else "day"))
+		)
+	# The trees up close (scenery.md §3.2), by day, the sun behind the camera and then against it.
+	sun.light_energy = 1.0
+	env.environment.ambient_light_energy = 1.0
+	env.environment.background_color = Color(0.55, 0.7, 0.9)
+	cam.look_at_from_position(Vector3(0, 6, 50), Vector3(0, 5, 22))
+	for back in [false, true]:
+		sun.rotation_degrees = Vector3(-35, 180 if back else 20, 0)
+		await frames(6)
+		await RenderingServer.frame_post_draw
+		root.get_viewport().get_texture().get_image().save_png(
+			out.path_join("trees_%s.png" % ("backlit" if back else "day"))
 		)
 	w.queue_free()
 
