@@ -242,7 +242,8 @@ var model_detail := "original"
 ## original; true = the wheels of a model with separate wheel frames (the F-35I) roll with the ground speed.
 var rolling_wheels := false
 ## Effects (ours, Graphics → MORE; docs/rendering.md §6, mission/gpu_fx.gd): false = the original
-## billboards and ribbons; true = GPU particle explosions, smoke, missile trails, contrails and engine heat haze.
+## billboards and ribbons; true = GPU particle explosions, smoke, missile trails, contrails, engine heat haze and
+## condensation on the jets (mission/vapour_fx.gd).
 var particle_effects := false
 ## Airbases (ours, Graphics → MORE; docs/rendering.md §7, terrain/airbases.gd): "original" (the 1998 imagery) or
 ## "detailed" (near the ground, a procedural runway, taxiway and apron surface with markings; visual only).

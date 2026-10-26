@@ -185,5 +185,55 @@ func run() -> void:
 			)
 		)
 		m.free()
+	# Condensation (vapour_fx.gd): wingtip and LEX streamers in a hard turn low down, none in 1 G flight; the vapour
+	# shell near Mach 1.
+	settings().models = "original"
+	var jet16: Node3D = AM.create("f16", -1, false)
+	root.add_child(jet16)
+	jet16.position = Vector3(0, 300, 0)
+	var eye := Camera3D.new()
+	root.add_child(eye)
+	eye.position = Vector3(0, 310, 40)
+	eye.make_current()
+	var vf: Node3D = b.gpu.vapour
+	var calm := {"g": 1.0, "aoa": 3.0, "mach": 0.5, "speed": 170.0, "alt_ft": 1000.0}
+	await _feed(vf, jet16, calm)
+	var j = vf._jets[jet16]
+	var lit := func() -> int: return j.trails.reduce(func(n, t): return n + t.size(), 0)
+	check(j.tips.size() == 2 and lit.call() == 0, "vapour: no streamers at 1 G (%d points)" % lit.call())
+	var turn := {"g": 7.5, "aoa": 22.0, "mach": 0.6, "speed": 200.0, "alt_ft": 1000.0}
+	await _feed(vf, jet16, turn)
+	check(j.k_tip > 0.9 and lit.call() >= 20, "vapour: wingtip streamers in a 7.5 G turn (%d)" % lit.call())
+	check(j.plume.visible and j.k_lex > 0.5, "vapour: the LEX plume at 22° AoA (%.2f)" % j.k_lex)
+	check(not j.shell.visible or j.k_cone < 0.01, "vapour: no cone at Mach 0.6")
+	await _feed(vf, jet16, {"g": 1.0, "aoa": 2.0, "mach": 0.95, "speed": 320.0, "alt_ft": 300.0})
+	check(j.shell.visible and j.k_cone > 0.9, "vapour: the shell at Mach 0.95 low down (%.2f)" % j.k_cone)
+	jet16.free()
+	# The emitters on each model: the tips at the model's span (the game's F-16 spans ≈ 7 m), and a LEX plume.
+	for case in [["f16", "original"], ["f16", "detailed"], ["f35i", "original"]]:
+		settings().models = case[1]
+		var mj: Node3D = AM.create(case[0], -1, false)
+		root.add_child(mj)
+		await frames(1)
+		var geo: Array = vf._geometry(mj.root_frame, case[0])
+		var pts: Array = geo[0]
+		var span := 0.0
+		if pts.size() >= 2:
+			span = mj.root_frame.to_global(pts[0]).distance_to(mj.root_frame.to_global(pts[1]))
+		check(
+			pts.size() == 2 and span > 6.0 and span < 12.0 and geo[2] != null,
+			"vapour: %s (%s model) wingtips %.2f m apart" % [case[0], case[1], span]
+		)
+		mj.free()
+	eye.free()
 	settings().particle_effects = false
 	settings().models = "original"
+
+
+## Feeds vapour_fx.gd one jet's flight `state` every frame for 0.8 s of frame time (the fades are timed, not counted).
+func _feed(vf: Node3D, jet: Node3D, state: Dictionary) -> void:
+	var t := 0.0
+	while t < 0.8:
+		vf.update(jet, state)
+		await frames(1)
+		t += vf.get_process_delta_time()

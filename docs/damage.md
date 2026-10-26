@@ -482,7 +482,8 @@ Our choices:
   (0, −(MissileFlareDistance [SFX] 1.0 + 0.5 · model length), 0), i.e. 1 m behind the tail.
 - **Wingtip vortices:** aircraft whose model has EndWingL / R (obj+0x50), while the flight model's S+0x420 is set
   (75 < V < 150 m/s and stick pull > 0.7, flight-model.md §15.1 step 16). Two type-6 trails (slot 6: trail.tga,
-  1.0 s, [Animations] wingtip = 0.1, args (0, 0, 0.01)) at obj+0x38 / +0x44.
+  1.0 s, [Animations] wingtip = 0.1, args (0, 0, 0.01)) at obj+0x38 / +0x44. With Particle effects = Detailed
+  (ours) the condensation of rendering.md §6 draws instead of these ribbons.
 
 Details:
 - **Trail record** (Trails.cpp, create `4156a0`): a ring of 256 points (position, age). addPoint `415890` adds one

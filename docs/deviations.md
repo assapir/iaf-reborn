@@ -365,7 +365,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - Detailed: explosions, smoke and missile trails are GPU particles. Each original spawn keeps its time, place,
     speed, width and life; a fireball becomes rolling fire, sparks and dark smoke within the same spot and life, and a
     missile trail becomes a continuous white smoke trail.
-  - New content with Detailed: contrails above 9000 m and a heat haze behind each engine.
+  - New content with Detailed: contrails above 9000 m, a heat haze behind each engine, and condensation on the jets
+    (wingtip streamers and the LEX plume in high-G turns, the vapour cone near Mach 1 low down, wing vapour;
+    docs/rendering.md §6). These replace the original wingtip vortex ribbons.
 - **Airbases** (ours, docs/rendering.md §7). Rendering only; the default is Original (the 1998 imagery's painted
   runways).
   - Detailed: within 6 km of the camera, the nearest base's runways, taxiways and aprons get a procedural asphalt /

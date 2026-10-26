@@ -656,7 +656,7 @@ compression). The noise texture is generated at run time with FastNoiseLite.
 | Smoke puff (0x100, damage smoke, columns, streamers, smoking pieces, the flare's smoke) | one smoke particle with the puff's position, velocity, life, widths, grey and delay |
 | Fireball (0x10, 1.2 s, 256 m sprite) and small fire (0x10000000, burning pieces, cluster bomblets) | a burst inside the same spot and life, every particle ending by the fire's end: 22 rolling fire balls that expand fast and slow down (drag), 28 sparks, 10 dark smoke balls that rise from 0.4 of the fire's life. Small fires get half the particles. The lingering smoke comes from the original's own puffs and columns |
 | Missile / rocket trail (trails.gd, 3.5 s) | white smoke every 1.5 m along the path (at most 16 per frame), 2.4 m wide at the head growing to 12–18 m, with the trail's life, and a 0.08 s motor flame at the head. The motor glow sprite (missFLR) stays. The trail bookkeeping (owners, 99 trails, 256 points) stays the original's |
-| Wingtip vortices | the original ribbons |
+| Wingtip vortices | the condensation streamers below, instead of the original ribbons |
 | Afterburner flame | the original cones, plus the heat haze below |
 | Debris, shatter pieces, the flash light, chaff | the original's |
 
@@ -669,6 +669,47 @@ lasting 6 s (`gpu_fx.gd contrail`, called for the player in `terrain_view.gd` an
 shifts the screen copy by scrolling noise, strongest across the middle of the cone and fading along it. Strength:
 the engine level / 100, × 1.6 in afterburner; hidden below level 31. It draws before the flame, so the flame glows on
 top. The screen copy holds the opaque scene, so the haze blends in only as far as the shimmer needs.
+
+**Condensation** (new content, `vapour_fx.gd`, fed by `gpu_fx.gd contrail` with each jet's flight state): water vapour
+condenses where the air around a jet cools below its dew point[^wtv][^vcone]. Three effects, on every jet within 3 km
+of the camera (the player's and AI jets). With Detailed they replace the original wingtip ribbons (`terrain_view.gd`,
+`ai_flights.gd`); Original keeps the ribbons and has none of these.
+
+- **Wingtip streamers**: vortex cores condense most at high angle of attack, as in a fighter's high-G
+  turn[^wtv]. Each tip leaves a short, thin camera-facing ribbon of points in the air behind the jet. A point lives
+  0.28 s (≈ 55 m at 200 m/s), widens from 0.12 m to 0.7 m and fades as (1 − age)², so the wisp is densest at the tip.
+  Each point drifts at 2.5 m/s in a spiral around the trail (the two tips turning opposite ways) and sinks at
+  0.6 m/s with the downwash, so the wisp twists and wavers (inferred). Strength: from 3.5 G (full at 6.5 G) or from
+  12° AoA (full at 22°); it fades out within ≈ 0.12 s once the pull ends. The tips are the model's outermost vertices
+  (the night lights' wingtip spots, `night_lights.gd`).
+- **LEX plume** (F-16, F-35I, MiG-29): the leading-edge extension vortices[^wtv] as a translucent plume hugging the
+  upper surface. It is two flattened half tubes from the LEX (a per-plane spot, inferred from drawings) back over the
+  wing roots to 0.75 of the length. They widen from 3 % to 12 % of their run and carry noise that flows aft and
+  breaks into wisps over the wing. Strength: from 10° AoA (full at 20°).
+- **Vapour bell**: a flickering shell around the fuselage from the canopy (0.28 of the length) to the wings' trailing
+  edge (0.7), flaring out to 0.9 of the half span. Its front is soft and its aft edge ragged and soft: the cloud ends
+  at the shock, where pressure and temperature rise again[^vcone]. Seen along the jet's axis (from behind or ahead)
+  it fades out, so it never shows as a ring or disc. Near Mach 1 low down (from Mach 0.86, full 0.95–1.03, gone by
+  1.2; below 300 m full, gone by 2500 m) it is the vapour cone: it forms in transonic flight, not exactly at
+  Mach 1[^vcone]. Under high G at speed (5 G, full at 8 G; from Mach 0.55, full at 0.8) it flattens onto the wings'
+  upper side (wing vapour).
+
+All three need humid air: they fade out between 1500 and 6000 m (inferred: the air near the ground carries the most
+water). Each strength eases in over ≈ 0.15 s. They draw unshaded white, tinted by the sun's colour (dim at dusk and
+night), and fade within a few metres of the eye, so the cockpit view is not covered.
+
+Cost (not measured yet):
+- CPU: one `ImmediateMesh` rebuilt in GDScript each frame, ≈ 100 triangles per jet in a hard turn.
+- GPU: per jet a bell (363 vertices) and a plume (198 vertices), alpha-blended. The overdraw of a bell filling the
+  screen in a close chase view is the main cost.
+- Shader compiling: all three materials are in the scene from its start (a degenerate triangle, an invisible bell and
+  plume), so their pipelines compile behind the loading screen.
+- To bench: `tests/godot/_fx_bench.gd`'s on / off switching, with the jet held in a 7 G turn or a Mach 0.95 pass and
+  the camera close behind it.
+
+Shots: `tests/godot/_vapour_shot.gd` (F-16 Original and Detailed, F-35I: the turn from behind and from above, the low
+pass from behind and from the side, wing vapour, the cockpit looking at the left wingtip; `VAPOUR_BEFORE=1` takes
+the same shots with Original).
 
 **Cost** (M4 Pro). Mpx = million pixels; overdraw = the same pixel shaded again by each overlapping particle.
 
@@ -1029,3 +1070,8 @@ Wayland window covered by other windows is drawn once a second.
 [^acg-m016]: ambientCG, Metal 016, https://ambientcg.com/a/Metal016
 [^acg-c029]: ambientCG, Concrete 029, https://ambientcg.com/a/Concrete029
 [^acg-r004]: ambientCG, Rubber 004, https://ambientcg.com/a/Rubber004
+[^wtv]: Wikipedia, "Wingtip vortices" (the cores condense when they cool below the dew point; most common at high angles
+    of attack, e.g. fighters in high-G manoeuvres; the F/A-18's leading-edge extension vortices):
+    https://en.wikipedia.org/wiki/Wingtip_vortices
+[^vcone]: Wikipedia, "Vapor cone" (transonic flight, not necessarily at Mach 1; the cloud ends at the stern shock):
+    https://en.wikipedia.org/wiki/Vapor_cone
