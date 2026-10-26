@@ -1,5 +1,6 @@
 # Dev helper (not run by tools/test.sh): a mission's ground units against the ground under them. Prints each unit
-# standing on the ground: its drawn height and the terrain height there (terrain.height_at). PROBE_MISSION=id (default 323), PROBE_SET=key=value,... settings first (e.g. world_scale=real).
+# standing on the ground: its drawn height and the terrain height there (terrain.height_at). PROBE_MISSION=id
+# (default 323); PROBE_SET=key=value,... sets settings first (e.g. world_scale=real).
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 PROBE_SET=world_scale=real -- --log-file /tmp/p.log --path game \
 #     -s ../tests/godot/_ground_units_probe.gd
 extends "res://../tests/godot/base.gd"
