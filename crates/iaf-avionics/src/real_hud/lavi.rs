@@ -87,6 +87,21 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
         };
         ladder(p, i, fpm, f, style);
         marker(p, fpm, i.mr(7.0), i.mr(9.0), i.mr(6.0));
+        // ILS (NAV, gear down): the localizer and glide-slope needles referenced to the marker, as the F/A-18's
+        // (inferred): the game's ILS bars' offsets, 12 px per degree, 2 × 12 px long with end ticks.
+        if mode == 0
+            && i.gear_down
+            && let Some((x, y)) = i.ils
+        {
+            let (cx, cy) = (fpm.0 + x, fpm.1 + y);
+            let h = 12.0;
+            p.push(line((cx, fpm.1 - h), (cx, fpm.1 + h)));
+            p.push(line((cx - 1.5, fpm.1 - h), (cx + 1.5, fpm.1 - h)));
+            p.push(line((cx - 1.5, fpm.1 + h), (cx + 1.5, fpm.1 + h)));
+            p.push(line((fpm.0 - h, cy), (fpm.0 + h, cy)));
+            p.push(line((fpm.0 - h, cy - 1.5), (fpm.0 - h, cy + 1.5)));
+            p.push(line((fpm.0 + h, cy - 1.5), (fpm.0 + h, cy + 1.5)));
+        }
         if matches!(mode, 5 | 6)
             && let Some(c) = w.pipper
         {
@@ -110,6 +125,9 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
     {
         let h = i.mr(12.0);
         p.extend(box_poly(at.0 - h, at.1 - h, at.0 + h, at.1 + h));
+    }
+    if mode == 0 {
+        bank_scale(p, i, f.bottom);
     }
     match mode {
         1 => {
@@ -138,6 +156,25 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
         _ => {}
     }
     fr
+}
+
+/// The bank scale in NAV (MIL-STD-1787 convention; inferred): ticks on the lower arc of a 60 mr circle at 0, ±10,
+/// ±20, ±30, ±45 and ±60°, the 0 tick longer, the pointer at the bank angle (held at ±60°); its lowest tick 4 px
+/// above the field's bottom.
+fn bank_scale(p: &mut Vec<Prim>, i: &Input, bottom: f64) {
+    let r = i.mr(60.0);
+    let c = (0.0, bottom - r - 8.0);
+    let at = |deg: f64, rr: f64| {
+        let a = deg.to_radians();
+        (c.0 - rr * a.sin(), c.1 + rr * a.cos())
+    };
+    for d in [-60.0, -45.0, -30.0, -20.0, -10.0, 0.0, 10.0, 20.0, 30.0, 45.0, 60.0] {
+        p.push(line(at(d, r), at(d, r + if d == 0.0 { 4.0 } else { 2.5 })));
+    }
+    let b = i.roll_deg.clamp(-60.0, 60.0);
+    let (tip, l, rr) = (at(b, r - 1.0), at(b - 3.0, r - 5.0), at(b + 3.0, r - 5.0));
+    p.push(line(tip, l));
+    p.push(line(rr, tip));
 }
 
 fn mode_text(mode: i64, w: &Weapons) -> String {
@@ -241,5 +278,28 @@ mod tests {
         g.agl_ft = Some(420.0);
         let t = texts(&frame(FIELD, &g).outer).into_iter().map(String::from).collect::<Vec<_>>();
         assert!(t.contains(&"AOA 13.0".to_string()) && t.contains(&"R 420".to_string()), "{t:?}");
+    }
+
+    #[test]
+    fn bank_scale_and_ils_needles() {
+        let mut i = Input { roll_deg: 90.0, ..input(Jet::Lavi) };
+        let fr = frame(FIELD, &i);
+        // 11 ticks, the pointer held at 60° (right bank: left of the centre, as the F-16's).
+        let r = i.mr(60.0);
+        let c = (0.0, FIELD.bottom - r - 8.0);
+        let tip = (c.0 - (r - 1.0) * 60f64.to_radians().sin(), c.1 + (r - 1.0) * 60f64.to_radians().cos());
+        let near = |p: P, q: P| (p.0 - q.0).abs() < 1e-9 && (p.1 - q.1).abs() < 1e-9;
+        assert!(fr.field.iter().any(|p| matches!(p, Prim::Line { a, .. } if near(*a, tip))), "the pointer at 60°");
+        i.weapons.hud_mode = 1;
+        assert!(!frame(FIELD, &i).field.iter().any(|p| matches!(p, Prim::Line { a, .. } if near(*a, tip))), "NAV only");
+        // ILS with the gear down: the needles on the marker (0, 10), offset by the bars.
+        let mut i = Input { gear_down: true, ils: Some((5.0, -3.0)), ..input(Jet::Lavi) };
+        let has = |fr: &Frame, a: P, b: P| {
+            fr.field.iter().any(|p| matches!(p, Prim::Line { a: x, b: y } if near(*x, a) && near(*y, b)))
+        };
+        let fr = frame(FIELD, &i);
+        assert!(has(&fr, (5.0, -2.0), (5.0, 22.0)) && has(&fr, (-12.0, 7.0), (12.0, 7.0)), "localizer and glide slope");
+        i.gear_down = false;
+        assert!(!has(&frame(FIELD, &i), (5.0, -2.0), (5.0, 22.0)));
     }
 }

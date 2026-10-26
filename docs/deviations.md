@@ -279,7 +279,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 
   Ours where the sources stop: the EEGS wingspan (35 ft), the bingo (1500 lb), the sights' bombing depression set
   automatically, the F-35's gun / A-G graphics (the F-16's), the MiGs' range-scale steps, gun range bars and bank-scale
-  spacing.
+  spacing, the F-15's ILS bar scale and glide-slope capture (real-hud.md "What ours draws"), the Lavi's bank scale and
+  ILS needles.
 
   With Real the dive and height warnings follow the real jet too: the F-16's break X and its "PULL UP" / "ALTITUDE"
   voice (GAAF and CARA ALOW), the F-35I's "PULL UP", no voice for these on the F-15C; the Kurnass 2000 and the Lavi

@@ -66,6 +66,14 @@ func run() -> void:
 		hud.real_dash("converted/cockpits/f15") and not hud.real_dash("converted/cockpits/lavi"),
 		"the DASH: F-16 and F-15 only"
 	)
+	check(
+		(
+			hud.real_ils("converted/cockpits/f15")
+			and hud.real_ils("converted/cockpits/lavi")
+			and not hud.real_ils("converted/cockpits/f16")
+		),
+		"own ILS on the F-15 / Lavi Real HUD; the original's lines elsewhere"
+	)
 	tv.cockpit.head = Vector2.ZERO
 	hud._process(0.0)
 	hud._real_frame = -1

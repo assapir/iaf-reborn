@@ -88,6 +88,8 @@ mode. **W** / **Shift+W** pick the next / previous steerpoint. **H** changes the
 13. **Dive bar** label: `-5` = 5° nose-down.
 14. **Steerpoint diamond** on the ground, here held at the HUD's edge with an X: it lies ahead and below.
 
+The **bank scale** at the bottom (NAV only) shows the bank angle: ticks at 0, 10, 20, 30, 45 and 60°.
+
 **Example**: the start of mission 231. `WP 1`, `4.7 NM`, `00:35`: steerpoint 1 is 35 s ahead. The bug sits over the
 centre of the heading scale, so the steerpoint is straight ahead; its diamond waits at the bottom edge. Lower the
 nose until the diamond leaves the edge and fly the marker onto it.
@@ -331,15 +333,14 @@ when the spot is on the ground within 60° of its path; with the laser off it fa
 calls the tower near an Israeli base. The approach speeds and touchdown limits are in section 4.
 
 With the gear down the left column adds the AoA (angle of attack), and the radar altitude `R` shows below 5,000 ft.
-The ILS (instrument landing system) lines are the original game's, for every jet.
+The ILS (instrument landing system) needles ride the flight path marker: fly the marker to where they cross.
 
 ![Final approach, 3.6 NM out at about 700 ft, 141 kt, 5° AoA](shots/lavi/landing_final.png)
 
 1. **Flight path marker**: on the runway threshold here.
-2. **ILS glide-slope line**: it crosses the localizer line at the HUD's centre when you are on the runway's centre
-   line and on a 5° glide path. It drops when you are high.
-3. **ILS localizer line**: held at the HUD's left edge here: the runway's extended centre line lies well to the
-   left.
+2. **ILS glide-slope needle**: it crosses the localizer needle at the marker when you are on the runway's centre line
+   and on a 5° glide path. It drops when you are high.
+3. **ILS localizer needle**: left of the marker here: the runway's extended centre line lies to the left.
 4. **Steering arrow**: steerpoint 1 lies at 254°, outside the scale: turn right.
 5. **AoA** in degrees: `AOA 5.0`.
 6. **Radar altitude**: about 700 ft above the ground.
@@ -347,7 +348,7 @@ The ILS (instrument landing system) lines are the original game's, for every jet
 8. **Airspeed**: 141 kt.
 9. **Heading**: 150°.
 
-**Example**: on a 3° path the glide-slope line sits above the HUD's centre: you are under the 5° path the lines
+**Example**: on a 3° path the glide-slope needle sits above the marker: you are under the 5° path the lines
 measure. Read the AoA directly: fly the final at the game's landing-lesson 165 kt and watch `AOA` rise as you slow.
 
 ---

@@ -172,7 +172,12 @@ for general diffractive-HUD optics, Rochester Avionic Archives[^rochester].
     path marker, the steerpoint diamond on the ground (an X when held at the field's edge);
   - A-A: the SRM circle + seeker diamond; the MRM circle + steering dot + the launch-zone scale; the gun's LCOS
     reticle (no EEGS); the TD box on the target;
-  - A-G: the strafe pipper with the gun cross, the CCIP pipper and fall line.
+  - A-G: the strafe pipper with the gun cross, the CCIP pipper and fall line;
+  - NAV: the bank scale at the bottom, MIL-STD-1787 style: ticks at 0, ±10, ±20, ±30, ±45 and ±60° on a 60 mr arc,
+    the pointer at the bank angle (held at ±60°);
+  - ILS (NAV, gear down): localizer and glide-slope needles referenced to the flight path marker, as on the F/A-18:
+    fly the marker to where they cross. They move with the game's ILS deviations (12 px per degree, the original HUD's
+    scale) and replace the original's ILS lines.
 
 ## F-15A/C
 
@@ -197,7 +202,12 @@ Symbology:
 - Mach: under the airspeed scale, in the A-A modes only.
 - NAV window: lower right, three lines `B   NAV` / `N 20.1` / `4 MIN` (destination + mode, range with a source letter,
   minutes to go).
-- Steering: a bank steering bar. ILS: a flight-director cross.
+- Steering: a bank steering bar.
+- ILS (ILS/NAV or ILS/TCN steering mode, fig. 1-15 and p. 1-70)[^f15-1]: the steering mode reads `ILS-N` / `ILS-T` in
+  the NAV window and `CSET` flashes 10 s. The integrated flight director: the bank steering bar (to the localizer) and
+  the pitch steering bar, which joins it as a cross once the glide slope's centre is captured. Before that, within
+  about 0.6° of the glide slope, `GSUP` or `GSDN` shows (the jet below / above it). `MKR` flashes over a marker
+  beacon. The manual's figure shows the cross near the aircraft symbol; it gives no bar scale.
 - A-A[^f15-1][^twz-f15]: the TD box; the ASE (allowable steering error) circle with a steering dot; a range scale
   inboard of the altitude scale (top = the radar range, a `320>` closure caret, two MAX ticks and one MIN tick, `IN
   RNG`); the breakaway X. SHOOT is a light on the canopy bow, outside the HUD[^f15-1].
@@ -638,10 +648,19 @@ its scale. The original HUD keeps the original layout.
 - F-15: tapes, heading, ladder with the zenith ⊖ "90" / nadir ⊗, velocity vector, -W-, gun cross when armed, G, Mach
   in A-A, NAV window, TD box, ASE circle + dot, range scale + IN RNG, breakaway X inside Rmin, LCOS reticle with the
   range arc, bomb fall line to the target square, AoA scale gear down (ours: degrees as units), NAV bank steering bar
-  (ours: 2 px per degree of bearing error). Not drawn: the ILS flight-director cross, Mach outside A-A.
+  (ours: 2 px per degree of bearing error), the ILS flight director (below). Not drawn: Mach outside A-A, `CSET`,
+  `MKR` (the game has no marker beacons).
+  - ILS, NAV with the gear down (the game's ILS is always on there): `ILS-N` in the NAV window; the bank steering bar
+    follows the localizer; `GSUP` / `GSDN` under the window within 0.6° of the glide slope; at its centre (within
+    1 px, 1/12°; inferred) the glide slope is captured and the pitch steering bar joins the cross until the jet leaves
+    the 0.6° band or the ILS display (inferred: the manual gives no release). The bars sit off the aircraft symbol by
+    the game's ILS deviations, 12 px per degree (inferred: the manual gives no scale). The original's ILS lines are
+    not drawn on this HUD.
 - Kfir (`kfir.rs`), Kurnass 2000 (`k2000.rs`), MiG-23 (`mig23.rs`), MiG-29 (`mig29.rs`): everything in "Ours" of
   their sections above; what those sections mark "not drawn" stays out.
-- Lavi (`lavi.rs`): everything in its section above. Not drawn: the bank scale, an ILS flight director, a VVI.
+- Lavi (`lavi.rs`): everything in its section above, with the bank scale and the ILS needles (the original's ILS
+  lines are not drawn on this HUD). Not drawn: a VVI.
+- The other Real HUDs (F-16, Kfir, Kurnass 2000, MiGs, F-35) keep the original's ILS lines over them.
 - F-4E / Mirage (`sights.rs`): the reticles as specified (ours: the reticle rides the LCOS / CCIP pipper).
 - F-35 (`f35.rs`): the forward virtual HUD and the off-boresight head set; the gun / A-G graphics are the F-16's
   (reconstruction).
