@@ -59,6 +59,7 @@ func run() -> void:
 		"ripple line: 4 points 10 m apart along the heading, index 2 on the aim"
 	)
 
+	await require_data()
 	# --- in flight: mission 231 ---------------------------------------------------------------
 	var MR = load("res://mission/mission_runtime.gd")
 	var bdb: Dictionary = MR.load_bdb(MR.mission_files(231)[0].data)

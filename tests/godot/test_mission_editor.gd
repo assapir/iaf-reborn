@@ -30,6 +30,7 @@ func run() -> void:
 	root.add_child(ed)
 	await frames(3)
 	check(ed._ui.start.visible and ed.tsd == null, "nothing open: the start choices, no map")
+	await require_data()
 	# New: from scratch on 1998's original (231), only Alpha left; the map zoomed in on it.
 	ed.new_mission("Scratch 1", 1998.0, "Ramat David", 1, true)
 	var real: Array = ed.data.entities.items.filter(func(e): return int(e["0x14"]) == 0)

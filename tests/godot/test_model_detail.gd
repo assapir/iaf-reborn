@@ -16,6 +16,7 @@ var aircraft_model: GDScript
 func run() -> void:
 	aircraft_model = load("res://aircraft/aircraft_model.gd")
 	check(settings().model_detail == "original", "Model detail defaults to Original")
+	await require_data()
 	var off: Node3D = aircraft_model.create("cfir", 130, true)
 	check(_detail_surfaces(off).is_empty(), "off: the Kfir keeps its original materials")
 	off.free()

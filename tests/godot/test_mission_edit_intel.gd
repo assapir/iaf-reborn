@@ -21,6 +21,7 @@ func _keys(tsd) -> Array:
 
 
 func run() -> void:
+	await require_data()
 	_clean()
 	var ed = load("res://editor/mission_editor.tscn").instantiate()
 	ed.missions_dir = DIR

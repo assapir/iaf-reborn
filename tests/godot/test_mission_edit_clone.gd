@@ -32,6 +32,7 @@ func run() -> void:
 	await frames(3)
 	ed.open_original(512)
 	check(ed._ui.duplicate.disabled, "an original has no Duplicate (Fork)")
+	await require_data()
 	ed.new_mission("Clone A", 1998.0, "Ramat David", 1, true)
 	check(not ed._ui.duplicate.disabled, "your own mission has Duplicate")
 	# Duplicate: a copy on disk, you stay on yours.

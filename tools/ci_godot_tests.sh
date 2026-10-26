@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
-# CI only (docs/ci.md): runs every tests/godot/test_*.gd headless without game data, several at once, 60 s each,
+# CI only (docs/ci.md): runs the given Godot tests (default: every tests/godot/test_*.gd) headless without game
+# data, several at once, 60 s each,
 # prints each result as it comes, and writes a pass / fail / needs-data / timeout table to $GITHUB_STEP_SUMMARY
 # (or stdout). Exit 1 unless all pass.
 # "needs-data" is a guess: a failing run whose errors name assets/ (the boot splash's missing image aside).
 set -uo pipefail
 cd "$(dirname "$0")/.."
+tests=("$@")
+[[ $# == 0 ]] && tests=(tests/godot/test_*.gd)
 out=${GODOT_TESTS_OUT:-$(mktemp -d "${TMPDIR:-/tmp}/godot-tests.XXXXXX")}
 command -v cygpath >/dev/null && out=$(cygpath -m "$out") # Godot on Windows wants D:/a/..., not /d/a/...
 mkdir -p "$out"
@@ -34,10 +37,10 @@ one() {
 	echo "$r $n ($((SECONDS - s)) s) $(grep -E "^NEEDS DATA|^FAIL|SCRIPT ERROR|ERROR" "$f" | grep -v "boot splash\|back0.png" | head -1 | cut -c1-160)"
 }
 export -f one
-ls tests/godot/test_*.gd | xargs -P "${JOBS:-6}" -I{} bash -c 'one {}'
+printf '%s\n' "${tests[@]}" | xargs -P "${JOBS:-6}" -I{} bash -c 'one {}'
 
 table="| test | result | first error |"$'\n'"|---|---|---|"$'\n'
-for t in tests/godot/test_*.gd; do
+for t in "${tests[@]}"; do
 	n=$(basename "$t" .gd)
 	r=$(cat "$out/$n.r")
 	why=""

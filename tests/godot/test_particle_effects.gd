@@ -182,6 +182,7 @@ func run() -> void:
 			check(near.distance_to(nz) < 0.03, "the heat haze starts at the nozzle (%.3f m off)" % near.distance_to(nz))
 		else:
 			check(f.haze == null and holder.get_child_count() == 1, "Original: no heat haze")
+	await require_data()
 	# On real jets the haze starts at the model's EngineL / EngineR helper, also with the jet moved and turned.
 	settings().particle_effects = true
 	var AM = load("res://aircraft/aircraft_model.gd")

@@ -76,6 +76,7 @@ func console_has(tv: Node, line: String) -> bool:
 
 
 func run() -> void:
+	await require_data()
 	# --- the phrase engine ----------------------------------------------------------------------
 	var radio_script: GDScript = load("res://audio/radio.gd")
 	var r = radio_script.new()

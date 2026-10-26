@@ -6,6 +6,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
+	await require_data()
 	var MW = load("res://weapons/mission_weapons.gd")
 	var mw = MW.create(231)
 	check(mw.flights.has(1) and mw.flights.has(2) and not mw.flights.has(3), "mission 231: flights Alpha and Bravo")

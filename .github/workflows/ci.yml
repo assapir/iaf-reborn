@@ -4,6 +4,9 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *" # nightly: the full Godot test sweep
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -72,10 +75,22 @@ jobs:
       - run: godot --headless --path game --import
       - name: Parse-check every script
         run: godot --headless --path game -s ../tools/gdparse.gd --log-file "$RUNNER_TEMP/gdparse.log"
+      - if: runner.os == 'macOS' # for timeout (gtimeout)
+        run: command -v gtimeout || brew install coreutils
+      # The Godot tests that pass without game data (docs/ci.md); required.
+      - name: Godot tests without data
+        run: >-
+          tools/ci_godot_tests.sh tests/godot/test_console.gd tests/godot/test_f35i_model.gd
+          tests/godot/test_g_effects.gd tests/godot/test_mission_events.gd tests/godot/test_scenery.gd
+          tests/godot/test_setup_wizard.gd
 
-  # Informational: which Godot tests run without game data. Its failures never fail the workflow.
-  godot-tests:
+  # Informational, on main, by hand, nightly and for a push whose message holds [sweep]: every Godot test without
+  # game data. Its failures never fail the workflow.
+  godot-sweep:
     needs: godot
+    if: >-
+      github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+      || contains(github.event.head_commit.message, '[sweep]')
     strategy:
       fail-fast: false
       matrix:
@@ -102,6 +117,6 @@ jobs:
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: godot-tests-${{ runner.os }}
+          name: godot-sweep-${{ runner.os }}
           path: ${{ runner.temp }}/godot-tests
           retention-days: 7

@@ -7,6 +7,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
+	await require_data()
 	var rt = load("res://mission/mission_runtime.gd")
 	IafMissionEdit.set_assets(settings().assets_dir())
 	var files: Array = rt.mission_files(115)

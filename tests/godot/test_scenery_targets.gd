@@ -14,6 +14,7 @@ const RELEASE := "test-release"
 
 
 func run() -> void:
+	await require_data()
 	var Scenery: GDScript = load("res://terrain/scenery.gd")
 	Scenery.base_dir = ProjectSettings.globalize_path(TMP)
 	var meta: Dictionary = settings().load_json(
