@@ -8,7 +8,8 @@
 # FXAA, terrain close up, atmospheric sky, the modern imagery layers where converted: mapi2015 in Israel, sentinel2
 # outside). BENCH_OFF=a,b: switch parts off to see their cost: terrain (streaming), terrain_draw (the nodes hidden),
 # cockpit, runtime, ai, weapons, effects, trails, overlay, sounds, scene (the whole flight scene's _process), mfd, hud.
-# BENCH_SPIKES=1 prints every frame over 12 ms.
+# BENCH_SPIKES=1 prints every frame over 12 ms. BENCH_AT=x,y starts the legs over that engine point (metres; e.g. a
+# dense town with Scenery on: 332520,586500).
 extends "res://../tests/godot/base.gd"
 
 
@@ -88,6 +89,9 @@ func run() -> void:
 			4: DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
 		}[int(sh[1])]
 		RenderingServer.directional_soft_shadow_filter_set_quality(int(sh[2]))
+	var at := OS.get_environment("BENCH_AT").split(",", false)
+	if at.size() == 2:
+		tv.rig.position = tv.world_to_scene(Vector3(float(at[0]), float(at[1]), 0))
 	var vp := root.get_viewport().get_viewport_rid()
 	RenderingServer.viewport_set_measure_render_time(vp, true)
 	for leg in legs:

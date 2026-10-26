@@ -24,6 +24,7 @@
 		{"style": "gap"},
 		{"style": "role", "text": "Ground Textures and Model Detail", "he": "טקסטורות קרקע ופירוט דגמים"},
 		{"style": "small", "text": "Materials from ambientCG (ambientcg.com), CC0 1.0", "he": "חומרים מ-ambientCG (ambientcg.com), CC0 1.0"},
+		{"style": "small", "text": "Scenery trees: leaves and bark from ambientCG, CC0 1.0", "he": "עצי התפאורה: עלים וקליפה מ-ambientCG, CC0 1.0"},
 		{"style": "gap"},
 		{"style": "imagery", "text": "Terrain Imagery", "he": "צילומי השטח"},
 		{"style": "blank"}

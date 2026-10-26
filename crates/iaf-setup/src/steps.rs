@@ -9,7 +9,7 @@ use anyhow::{Context, Result, bail};
 use iaf_tools::convert::{self, Options};
 use iaf_tools::imagery_run::{self, MAPI2015, Run, SENTINEL2};
 use iaf_tools::progress::{Progress, check, par_map, threads};
-use iaf_tools::{extract, pack, patch, terrain, thirdparty};
+use iaf_tools::{extract, foliage, pack, patch, terrain, thirdparty};
 
 use crate::{Ctx, Hebrew, Imagery, Outcome, Step};
 
@@ -355,7 +355,7 @@ fn imagery_layers_in(cfg: &str) -> Option<Vec<String>> {
 
 fn textures(dir: &Path, base: &str, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
     let all = || thirdparty::LISTS.iter().flat_map(|(_, l)| l.iter());
-    if all().all(|m| thirdparty::is_done(dir, m)) {
+    if all().all(|m| thirdparty::is_done(dir, m)) && foliage::is_done(dir) {
         return Ok(Outcome::UpToDate);
     }
     // Any answer from the server will do (no -f); no connection is offline.
@@ -366,11 +366,15 @@ fn textures(dir: &Path, base: &str, pr: &dyn Progress, cancel: &AtomicBool) -> R
         .is_ok_and(|s| s.success());
     if !reachable {
         return Ok(Outcome::Skipped(
-            "ambientcg.com cannot be reached (offline?): Ground textures and Model detail stay Original; run setup again online".into(),
+            "ambientcg.com cannot be reached (offline?): Ground textures and Model detail stay Original, scenery trees plain; run setup again online".into(),
         ));
     }
     for (name, list) in thirdparty::LISTS {
         thirdparty::fetch(name, list, base, dir, pr, cancel)?;
+    }
+    if !foliage::is_done(dir) {
+        pr.log("composing the scenery trees' foliage");
+        foliage::build(dir)?;
     }
     Ok(Outcome::Done)
 }

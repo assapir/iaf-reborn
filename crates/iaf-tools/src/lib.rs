@@ -6,6 +6,7 @@ pub mod bc1;
 pub mod convert;
 pub mod exe;
 pub mod extract;
+pub mod foliage;
 pub mod georef;
 pub mod georef_measure;
 pub mod gltf;

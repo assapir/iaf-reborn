@@ -50,6 +50,21 @@ const ImageryLayers := preload("res://terrain/imagery_layers.gd")
 const GroundTextures := preload("res://terrain/ground_textures.gd")
 const SHADER := preload("res://terrain/scenery.gdshader")
 const TREE_SHADER := preload("res://terrain/scenery_tree.gdshader")
+const FOLIAGE_SHADER := preload("res://terrain/scenery_foliage.gdshader")
+const FOLIAGE_FAR_SHADER := preload("res://terrain/scenery_foliage_far.gdshader")
+## The foliage textures setup composes (iaf_tools::foliage, under GroundTextures.dir()), the texture array's layers.
+const FOLIAGE_LAYERS := ["broadleaf", "conifer", "palm", "bark"]
+## Per tree kind with the foliage textures: its layer, leaf colour and trunk colour (linear albedo), crown sway (m).
+const FOLIAGE := [
+	[1, Color(0.12, 0.15, 0.085), Color(0.12, 0.09, 0.07)],  # pine (Aleppo pine: dark, grey-green)
+	[0, Color(0.15, 0.18, 0.1), Color(0.11, 0.1, 0.09)],  # broadleaf (olive, carob: grey-green)
+	[2, Color(0.15, 0.18, 0.08), Color(0.15, 0.13, 0.1)],  # palm
+	[1, Color(0.09, 0.12, 0.07), Color(0.11, 0.085, 0.065)],  # cypress (dark green)
+]
+## With the foliage textures: the full model to FOLIAGE_NEAR m (its leaf cards cost more to fill than the plain
+## canopy), cross-faded to the light one over TREES_BAND m each side.
+const FOLIAGE_NEAR := 250.0
+const TREES_BAND := 50.0
 
 ## The folder holding DIR ("" = Settings.assets_dir(); tests point it elsewhere).
 static var base_dir := ""
@@ -58,6 +73,8 @@ static var night := false
 static var _walls: Texture2DArray
 static var _walls_read := false
 static var _tree_meshes: Array = []
+static var _foliage: Texture2DArray
+static var _foliage_read := false
 
 var terrain: Node3D
 ## The Survey 2 m layer shown in Israel (mapi2015 = 1998 colours, mapi2015_modern = the photo's): the roofs' colours.
@@ -254,16 +271,242 @@ static func _set_damage(m: ShaderMaterial, damage: PackedByteArray) -> void:
 	m.set_meta("damage", damage)
 
 
-## A 10 m tree of `kind` (KINDS): a six-sided trunk and a low-poly canopy, our own mesh; scaled per tree.
-## A tree kind's model: the full one, or `far` the canopy alone with few faces (6–24 triangles, one surface) for
-## TREES_NEAR..TREES.
+## A 10 m tree of `kind` (KINDS), our own mesh, scaled per tree: with the foliage textures (foliage()) leaf cards
+## round a solid core on a barked trunk (_foliage_tree); without them a six-sided trunk and a low-poly canopy in one
+## colour. A tree kind's model: the full one, or `far` the light one for TREES_NEAR..TREES.
 static func tree_mesh(kind: int, far := false) -> ArrayMesh:
 	if _tree_meshes.is_empty():
-		for k in KINDS.size():
-			_tree_meshes.append(_make_tree(k))
-		for k in KINDS.size():
-			_tree_meshes.append(_make_far_tree(k, _tree_material(KINDS[k][2], true)))
+		var tex := foliage()
+		for f in [false, true]:
+			for k in KINDS.size():
+				if tex != null and f:
+					_tree_meshes.append(_make_far_tree(k, _far_foliage_material(k)))
+				elif tex != null:
+					_tree_meshes.append(_foliage_tree(k, tex))
+				elif f:
+					_tree_meshes.append(_make_far_tree(k, _tree_material(KINDS[k][2], true)))
+				else:
+					_tree_meshes.append(_make_tree(k))
 	return _tree_meshes[clampi(kind, 0, KINDS.size() - 1) + (KINDS.size() if far else 0)]
+
+
+## The foliage textures (FOLIAGE_LAYERS, every mip level), read once; null when setup has not made them (the trees
+## are then plain).
+static func foliage() -> Texture2DArray:
+	if _foliage_read:
+		return _foliage
+	_foliage_read = true
+	var imgs: Array[Image] = []
+	for l in FOLIAGE_LAYERS:
+		var path := GroundTextures.dir().path_join("trees/%s.bc3" % l)
+		var img := GroundTextures.mips(path, Image.FORMAT_DXT5, 16) if FileAccess.file_exists(path) else null
+		if img == null:
+			return null
+		imgs.append(img)
+	var t := Texture2DArray.new()
+	if t.create_from_images(imgs) == OK:
+		_foliage = t
+	return _foliage
+
+
+## Forgets the read textures and the made models (tests switch the folders).
+static func reset_trees() -> void:
+	_tree_meshes = []
+	_foliage = null
+	_foliage_read = false
+
+
+## A textured tree of `kind` in one surface (scenery_foliage.gdshader: its vertex colour holds the occlusion, the sway,
+## the solid core and the trunk): 16–30 leaf cards round a core, the trunk. The far model is the plain canopy
+## (_make_far_tree, _far_foliage_material). A seeded generator: the same model every time.
+static func _foliage_tree(kind: int, tex: Texture2DArray) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11 + kind
+	var spec: Array = KINDS[kind]
+	var c: Array = spec[1]
+	match kind:
+		0:
+			_conifer(st, rng, c[1], c[2], c[3], 6, 5, -0.35)
+		1:
+			_broadleaf(st, rng, c[1], c[2], c[3], 16)
+		2:
+			_palm(st, rng, c[1], c[3], 10)
+		3:
+			_conifer(st, rng, c[1], c[2], c[3], 7, 3, 2.2)
+	_trunk(st, 0.12 if kind == 2 else 0.18, 0.22 if kind == 2 else 0.3, spec[0] + 0.5, 6)
+	var mesh := st.commit()
+	var m := ShaderMaterial.new()
+	m.shader = FOLIAGE_SHADER
+	m.set_shader_parameter("foliage", tex)
+	m.set_shader_parameter("layer", float(FOLIAGE[kind][0]))
+	m.set_shader_parameter("albedo", FOLIAGE[kind][1])
+	m.set_shader_parameter("trunk", FOLIAGE[kind][2])
+	m.set_shader_parameter("near_m", FOLIAGE_NEAR)
+	m.set_shader_parameter("band_m", TREES_BAND)
+	mesh.surface_set_material(0, m)
+	return mesh
+
+
+## The far model's material with the foliage textures (scenery_foliage_far.gdshader): the plain canopy shapes, solid
+## (cut-out cards cost too much to fill over a forest), in the near model's colour, each tree its own shade.
+static func _far_foliage_material(kind: int) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = FOLIAGE_FAR_SHADER
+	m.set_shader_parameter("albedo", FOLIAGE[kind][1])
+	m.set_shader_parameter("near_m", FOLIAGE_NEAR)
+	m.set_shader_parameter("band_m", TREES_BAND)
+	m.set_shader_parameter("far_m", TREES)
+	m.set_shader_parameter("grow_m", TREES_GROW)
+	return m
+
+
+## One vertex: colour r = occlusion, g = sway, b = solid core, a = trunk (scenery_foliage.gdshader).
+static func _vert(st: SurfaceTool, p: Vector3, n: Vector3, uv: Vector2, col: Color) -> void:
+	st.set_normal(n)
+	st.set_uv(uv)
+	st.set_color(col)
+	st.add_vertex(p)
+
+
+## A leaf card: the texture's square centred at `at`, spanning `right` and `up` (the texture's u and −v); its corners
+## take the crown's round normal about `centre` (radii `r`), dark toward the heart and the underside.
+static func _card(st: SurfaceTool, at: Vector3, right: Vector3, up: Vector3, centre: Vector3, r: Vector3) -> void:
+	var corners := [[-1, 1, Vector2(0, 0)], [1, 1, Vector2(1, 0)], [1, -1, Vector2(1, 1)], [-1, -1, Vector2(0, 1)]]
+	var v := []
+	for k in corners:
+		var p: Vector3 = at + right * 0.5 * k[0] + up * 0.5 * k[1]
+		var q := (p - centre) / r
+		var n := q.normalized() if q.length() > 0.01 else Vector3.UP
+		var ao := lerpf(0.4, 1.0, smoothstep(-1.0, 1.0, n.y)) * lerpf(0.65, 1.0, clampf(q.length(), 0.0, 1.0))
+		v.append([p, n, k[2], Color(ao, clampf(q.length(), 0.0, 1.0), 0.0, 0.0)])
+	for i in [0, 1, 2, 0, 2, 3]:
+		_vert(st, v[i][0], v[i][1], v[i][2], v[i][3])
+
+
+## A solid core: an ellipsoid (`c`, radii `r`) of `seg` × 3 faces, the clump texture tiled on it, dark (inside).
+static func _core(st: SurfaceTool, c: Vector3, r: Vector3, seg: int, cone := false) -> void:
+	var rings := 1 if cone else 3
+	var pts := []
+	for i in rings + 1:
+		var lat := PI * i / rings
+		var row := []
+		for j in seg + 1:
+			var lon := TAU * j / seg
+			var y := cos(lat) if not cone else 1.0 - 2.0 * i
+			var rad := sin(lat) if not cone else float(i)
+			var d := Vector3(rad * cos(lon), y, rad * sin(lon))
+			row.append([c + d * r, d.normalized(), Vector2(2.0 * j / seg, 1.5 * i / rings)])
+		pts.append(row)
+	for i in rings:
+		for j in seg:
+			var quad := [pts[i][j], pts[i][j + 1], pts[i + 1][j + 1], pts[i + 1][j]]
+			for k in [0, 1, 2, 0, 2, 3]:
+				var e: Array = quad[k]
+				var ao := lerpf(0.3, 0.55, smoothstep(-1.0, 1.0, e[1].y))
+				_vert(st, e[0], e[1], e[2], Color(ao, 0.3, 1.0, 0.0))
+
+
+## A round crown (broadleaf): `n` cards spread over an ellipsoid from `bottom` to `top`, radius `r`, each facing out.
+static func _broadleaf(
+	st: SurfaceTool, rng: RandomNumberGenerator, bottom: float, top: float, r: float, n: int
+) -> void:
+	var c := Vector3(0, (bottom + top) / 2.0, 0)
+	var radii := Vector3(r, (top - bottom) / 2.0, r)
+	_core(st, c, radii * 0.78, 6)
+	var size := 3.8
+	for i in n:
+		# A Fibonacci spiral over the sphere, nudged.
+		var y := 1.0 - 2.0 * (i + 0.5) / n
+		var a := i * 2.39996 + rng.randf_range(-0.3, 0.3)
+		var d := Vector3(sqrt(1.0 - y * y) * cos(a), y, sqrt(1.0 - y * y) * sin(a)).normalized()
+		# Out to the old canopy's size: the cards' leaves reach its surface (a smaller crown left gaps where a tree
+		# had stood).
+		var at := c + d * radii * rng.randf_range(0.68, 0.82)
+		var t := d.cross(Vector3.UP if absf(d.y) < 0.9 else Vector3.RIGHT).normalized()
+		t = t.rotated(d, rng.randf_range(0.0, TAU))
+		var s := size * rng.randf_range(0.85, 1.15)
+		_card(st, at, t * s, d.cross(t) * s, c, radii)
+
+
+## A cone crown (pine, cypress): `tiers` rings of `per` cards from `bottom` to `top`, radius `r` at the bottom; each
+## card reaches out from the axis, `rise` its slope (negative: drooping like a pine's branches, large: upright as a
+## cypress's).
+static func _conifer(
+	st: SurfaceTool, rng: RandomNumberGenerator, bottom: float, top: float, r: float, tiers: int, per: int, rise: float
+) -> void:
+	var h := top - bottom
+	var c := Vector3(0, bottom + h * 0.4, 0)
+	var radii := Vector3(r, h * 0.6, r)
+	_core(st, Vector3(0, bottom + h * 0.45, 0), Vector3(r * 0.6, h * 0.55, r * 0.6), 6, true)
+	for i in tiers:
+		var y := bottom + h * (i + 0.5) / tiers * 0.92
+		var rad := r * (1.0 - (y - bottom) / h) + 0.25
+		for j in per:
+			var a := TAU * (j + rng.randf_range(-0.2, 0.2)) / per + i * 0.9
+			var out := Vector3(cos(a), rise, sin(a)).normalized()
+			var t := Vector3(-sin(a), 0, cos(a))
+			var s := (rad * 1.5 + 0.6) * rng.randf_range(0.85, 1.15)
+			var at := Vector3(cos(a) * rad * 0.45, y, sin(a) * rad * 0.45) + out * s * 0.3
+			_card(st, at, t * s, out * s, c, radii)
+	# The leader at the top: two crossed upright cards.
+	var tip := Vector3(0, top - 0.9, 0)
+	for k in 2:
+		var t := Vector3(cos(k * PI / 2.0), 0, sin(k * PI / 2.0))
+		_card(st, tip, t * 1.4, Vector3.UP * 1.8, c, radii)
+
+
+## A palm's crown at `top` (the trunk's top): `n` fronds, each a strip arching out to `reach` and drooping, the frond
+## texture along it (its base at v = 1); the young ones upright, the old ones hanging.
+static func _palm(st: SurfaceTool, rng: RandomNumberGenerator, top: float, reach: float, n: int) -> void:
+	var segs := 3
+	for i in n:
+		var a := TAU * (i + rng.randf_range(-0.25, 0.25)) / n
+		var d := Vector3(cos(a), 0, sin(a))
+		var side := Vector3(-d.z, 0, d.x)
+		var lift := rng.randf_range(-0.6, 1.0)  # >0 upright, <0 hanging
+		var length := reach * rng.randf_range(0.95, 1.25)
+		var rows := []
+		for k in segs + 1:
+			var t := float(k) / segs
+			# Out along d, up then down: a parabola, its peak by the lift.
+			var y := length * (0.55 + 0.35 * lift) * t - length * (0.75 - 0.2 * lift) * t * t
+			var p := Vector3(0, top, 0) + d * length * t * (0.95 - 0.15 * maxf(lift, 0.0)) + Vector3(0, y, 0)
+			var w := 2.5 * sin(PI * (0.08 + 0.84 * t)) if k > 0 else 0.3
+			var ao := lerpf(0.55, 1.0, (lift + 0.6) / 1.6)
+			var nrm := (Vector3.UP + d * 0.4).normalized()
+			# A shallow V across: the leaflets fold up from the rib.
+			var v := 0.97 - 0.94 * t
+			(
+				rows
+				. append(
+					[
+						[p - side * w * 0.5 + Vector3(0, 0.12 * w, 0), nrm, Vector2(0, v), Color(ao, t, 0, 0)],
+						[p, nrm, Vector2(0.5, v), Color(ao * 0.9, t, 0, 0)],
+						[p + side * w * 0.5 + Vector3(0, 0.12 * w, 0), nrm, Vector2(1, v), Color(ao, t, 0, 0)],
+					]
+				)
+			)
+		for k in segs:
+			for half in 2:
+				var q := [rows[k][half], rows[k][half + 1], rows[k + 1][half + 1], rows[k + 1][half]]
+				for m in [0, 1, 2, 0, 2, 3]:
+					_vert(st, q[m][0], q[m][1], q[m][2], q[m][3])
+
+
+## The trunk: `seg` sides, radius `r_top` / `r_foot`, `h` m high, the bark tiled about every 1.5 m.
+static func _trunk(st: SurfaceTool, r_top: float, r_foot: float, h: float, seg: int) -> void:
+	for j in seg:
+		var q := []
+		for e in [[j, 0.0], [j + 1, 0.0], [j + 1, h], [j, h]]:
+			var a: float = TAU * e[0] / seg
+			var rad := lerpf(r_foot, r_top, e[1] / h)
+			var d := Vector3(cos(a), 0, sin(a))
+			var ao := lerpf(0.55, 0.85, e[1] / h)
+			q.append([d * rad + Vector3(0, e[1], 0), d, Vector2(float(e[0]) / seg, e[1] / 1.5), Color(ao, 0, 0, 1)])
+		for m in [0, 2, 1, 0, 3, 2]:
+			_vert(st, q[m][0], q[m][1], q[m][2], q[m][3])
 
 
 ## A tree surface's material: its colour, the model it belongs to (scenery_tree.gdshader picks per tree by distance).
@@ -584,8 +827,9 @@ func _upload(k: Vector2i) -> void:
 				var mmi := MultiMeshInstance3D.new()
 				mmi.multimesh = mm
 				# The ranges only cull whole tiles; the shader cuts each tree at its own distance.
-				mmi.visibility_range_begin = maxf(0.0, TREES_NEAR - TILE_REACH) if far else 0.0
-				mmi.visibility_range_end = (TREES if far else TREES_NEAR) + TILE_REACH
+				var near_m := FOLIAGE_NEAR if foliage() != null else TREES_NEAR
+				mmi.visibility_range_begin = maxf(0.0, near_m - TILE_REACH) if far else 0.0
+				mmi.visibility_range_end = (TREES if far else near_m) + TILE_REACH
 				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				c.node.add_child(mmi)
 

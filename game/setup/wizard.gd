@@ -586,7 +586,7 @@ func _page_welcome() -> Control:
 				(
 					"[color=%s][b]Optional[/b][/color]\n[ul]the official v1.1 patch (free download)\nthe Hebrew CD, or the Hebrew "
 					+ "packs: the briefings and menus in Hebrew\nmodern terrain imagery: Survey of Israel 2015, Sentinel-2\nthe "
-					+ "pilot guides: pictures and PDFs\nground and model textures (ambientCG)[/ul]\n"
+					+ "pilot guides: pictures and PDFs\nground, model and tree textures (ambientCG)[/ul]\n"
 				)
 				% g
 			)
@@ -672,8 +672,8 @@ func _page_welcome() -> Control:
 				+ "Geofabrik extract; [url=https://github.com/microsoft/GlobalMLBuildingFootprints]Microsoft Global ML "
 				+ "Building Footprints[/url] (CDLA-Permissive-2.0); GHS-BUILT-H R2023A, European Commission JRC; "
 				+ "[url=https://langnico.github.io/globalcanopyheight/]Global Canopy Height 2020[/url], Lang et al., ETH "
-				+ "Zürich ([url=https://creativecommons.org/licenses/by/4.0/]CC BY 4.0[/url]); wall materials from "
-				+ "ambientCG (CC0 1.0); downloaded by setup\n"
+				+ "Zürich ([url=https://creativecommons.org/licenses/by/4.0/]CC BY 4.0[/url]); wall materials, leaves "
+				+ "and bark from ambientCG (CC0 1.0); downloaded by setup\n"
 			)
 			+ (
 				"Sentinel-2 imagery: contains modified Copernicus Sentinel data (2021) processed by "
