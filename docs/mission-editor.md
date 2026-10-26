@@ -35,9 +35,10 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
   (`content_scale_factor`), and the window grows to hold 1600 × 1000 of those units as far as the work area allows,
   as the setup wizard's does.
 - **Side panel**, four tabs:
-  - **Units**, in the order of use: every entity of the main file, a target or a must-survive unit tagged and
-    coloured; **Add a unit** right under the list (kind; object, shown by its game name then its own, e.g. "SA 6
-    (sa6launcher)"; side, role and Place on one line); the selected unit's name, side, role, heading and altitude;
+  - **Units**, in the order of use: every entity of the main file in its side's colour (§20), a target or a
+    must-survive unit tagged; **Add a unit** right under the list (kind; object, shown by its game name then its own,
+    e.g. "SA 6 (sa6launcher)"; side and role on one line, Place under them); the selection's line ("Selected:
+    sa6launcher_11 (SA 6) · Red · Target", or how to select); the selected unit's name, side, role, heading and altitude;
     Delete; mark the selected units Target / Must survive / Neutral; Give a route (§13); Copy and Paste (§17);
     Random: the chance to appear and the start spread, the roll preview (§15).
   - **Flights:** the what-if switch (§12.4) above the jet lists it widens; Alpha … Delta (type: the blue jets in
@@ -131,14 +132,16 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
 
 ## 4. Editing on the map
 
-- **Units:** a click selects a unit (and its flight); a drag moves it. Every placed unit shows, also the ones the
+- **Units:** a click selects a unit (and its flight) and makes it the Units list's only pick (Shift adds it to the
+  picks); a drag moves it. Esc clears the selection. What is selected, hovered and placed shows as in §20. Every placed unit shows, also the ones the
   pre-flight TSD hides until they are known. Only the main file's units are edited; a base mission's unit returns to
   its place.
 - **Ground height:** a ground unit that is placed or moved takes the terrain's height as its altitude (`0x2f8`).
 - **Waypoints:** a drag moves a waypoint of the selected flight. Click a flight's unit, or pick the flight on the
   Flights tab, to select it.
 - **Add a unit:** pick a kind (aircraft, SAM / AAA, vehicles, buildings, ships), the bdb object, its side and role,
-  then press "Place on the map" and click. The new entity copies the fields of a placed entity of the same object (in
+  then press "Place on the map" and click; each click places one until Esc (or the button again) stops. Before the
+  click the object's icon follows the mouse with the ground check of that point (§20). The new entity copies the fields of a placed entity of the same object (in
   this mission, else in an original mission).
 - **Give a route:** select ground units or flyers in the Units list, press "Draw the route", click the points, then
   "Give the route" with a speed (km/h) and, when asked, a hover at the end.
@@ -327,6 +330,7 @@ Before the tuning:
 | `unit_dragged(index)` | a unit was pressed (and maybe dragged) and released |
 | `waypoint_dragged(flight, index)` | a waypoint of the selected flight was released |
 | `map_clicked(map_pos)` | a press on the map away from units and waypoints |
+| `icon_cell(klass, side, leader, heading)` | a unit icon's cell in its art (the editor's placement ghost draws the same icon) |
 
 Each flight record also carries `formation`, the index of its formation in the main file.
 
@@ -335,8 +339,10 @@ Each flight record also carries `formation`, the index of its formation in the m
 - `tests/godot/test_mission_editor.gd`: New by year (1967 offers Tel Nof and Ramat David and the
   Mirage; 1973 adds Refidim; no Lavi without what-if), an enemy flight from Damascus, a flipped Refidim in 1967
   1967, the year and the bases kept by Save and Open, the Refidim warning in 1990; then Fork's name, the name rules, a drag moving an Alpha jet, an added SA-6 at the
-  ground's height, Undo, an SA-6 in the sea as an error (red ring, Fly off), the Weather (a fork's Default, Heavy rain
-  written to misc `weather`), Save and Open giving the same mission and weather, and the original file unchanged.
+  ground's height, Undo, an SA-6 in the sea as an error (red ring, Fly off), one selection shared by the list and the
+  map, Esc clearing it, hovering naming a unit, Add's ground check before the click (the sea an error, inland clear),
+  the click placing at that point, Esc stopping Add, the Weather (a fork's Default, Heavy rain written to misc
+  `weather`), Save and Open giving the same mission and weather, and the original file unchanged.
 - `tests/godot/_mission_editor_shot.gd`: a real-render screenshot (usage in its header).
 - `tests/godot/test_mission_edit_fly.gd`: Fly from an edited mission 115 (§8).
 - `tests/godot/test_mission_edit_win.gd`: New can never pass; an SA-6 marked Target and a Merkava marked Must survive;
@@ -943,3 +949,63 @@ take off; then the originals above).
 With the scenery made by setup, buildings show on the map when zoomed in; a click on one offers **Set as target**,
 and a unit placed on a building gets the warning "on a building: move to clear ground" with **Move to clear ground**.
 A mission can set a building as a target but never remove one. Details: docs/scenery.md §5.
+
+## 20. What is where: selection, hover, placement
+
+The editor's own marks draw over the TSD in the map pane (`MapHost`'s preview layer, `draw_marks`); the TSD itself
+keeps the original's look, also its yellow two-line label and its selection sprite.
+
+- **Selection:** one selection, shared by the map and the Units list. A unit picked in the list is selected on the
+  map and the map centres on it; a unit clicked on the map becomes the list's only pick and the list scrolls to it.
+  The selected unit gets a white ring with four ticks (white is neither side's colour nor a check's yellow or red);
+  the list's other picks get a thinner white ring. The side panel names it: "Selected: Boat_1 (Missile ship) · Red ·
+  Target", in its side's colour.
+- **Hover:** the unit under the mouse gets a thin ring and a label (name, type, side, role, flight); a waypoint of
+  the selected flight gets a ring.
+- **Status line** along the map's foot: what a click or drag does where the mouse is, e.g. "Click the map to place
+  SA 6 (Red, Target); each click places one. Esc stops." Over a unit it names the unit and says whether a drag moves
+  it (a base mission's unit, an airbase's, is fixed).
+- **Placement:** in Add the object's TSD icon follows the mouse, half see-through, with a ring and label: green on
+  clear ground, yellow for a warning, red for an error. The check is the Fly check's ground part for that one point
+  (`IafMissionEdit.place_issues`, `mission_edit::place_issues`): off the map, a land unit on water, a ship on land, a
+  unit on a runway, a steep slope, a building of the scenery. The Place button reads "Placing: click the map (Esc
+  stops)" while it is on. Paste shows a ring and the number of units; Draw the route shows a dashed line from the
+  last point to the mouse.
+- **Labels:** each flight's call sign (Alpha … Delta in its TSD colour; an enemy flight by its formation's name)
+  beside its leader; every unit's name under its icon from zoom 8 on.
+- **Side colours:** Blue light blue, Red light red, Neutral grey, the same in the Units list, the selection line,
+  the labels and the legend.
+- **Legend** at the bottom left: the sides, the selected / warning / error rings, the flights' squares.
+- **Esc** stops Add, Draw the route and Paste; with none on, it clears the selection.
+
+### 20.1 Design references
+
+Patterns taken from established mission editors and UI guidance:
+
+- The selection in a colour apart from both sides: the DCS mission editor draws a selected group's route white and
+  its selected waypoint yellow, otherwise in the side's red or blue[^dcs].
+- Routes as numbered waypoints joined by lines, the group's icon at the first[^dcs]; the TSD already draws them so.
+- Placement as a mode: pick the type, then a click on the map places it (DCS Route mode[^dcs], Arma 3 Eden's Asset
+  Browser then a click in the view[^eden-place]).
+- One colour per side everywhere: DCS's blue and red icons[^dcs]; NATO symbology's friend blue and hostile red[^app6].
+- Labels on map icons: DCS's Unit Labels option names each unit's type on the map[^dcs].
+- A status bar for context (the selection, what the mouse does), and what must be seen near the cursor, since people
+  overlook status bars[^ms-status]: the placement label sits at the mouse, the status line repeats it.
+- An object list next to the map, selection in either[^eden-terms]; DCS's Unit List with its filters[^dcs].
+- A properties panel tied to the selection (Eden's attributes[^eden-attr], DCS's group panel[^dcs]).
+- Hover labels short and supplementary, the icons also labelled where it matters[^nng-tooltip].
+- Continuous feedback while dragging or placing, a see-through image of what is dragged[^apple-dnd].
+- Range rings of the enemy drawn apart from the friendly ones (Command: Modern Operations dashes them)[^cmo-rings];
+  the TSD's SAM rings stay the original's.
+- Open: no source was found for a ghost that turns red on bad ground, for Esc cancelling a mode, or for a map legend
+  in these editors; the editor has them as plain good practice (inferred).
+
+[^dcs]: Eagle Dynamics, "DCS User Manual EN 2020" (Mission Editor: Route Mode, Waypoint, Unit List; F10 View Options; The Mission and Map Bar): https://www.digitalcombatsimulator.com/upload/iblock/ed6/87v22jwd1xh51i3rgki944xsf503istq/DCS_User_Manual_EN_2020.pdf
+[^eden-place]: Bohemia Interactive Community wiki, "Eden Editor: Entity Placing": https://community.bistudio.com/wiki/Eden_Editor:_Entity_Placing
+[^eden-terms]: Bohemia Interactive Community wiki, "Eden Editor: Terminology": https://community.bistudio.com/wiki/Eden_Editor:_Terminology
+[^eden-attr]: Bohemia Interactive Community wiki, "Eden Editor: Entity Attributes": https://community.bistudio.com/wiki/Eden_Editor:_Entity_Attributes
+[^app6]: Wikipedia, "NATO Joint Military Symbology": https://en.wikipedia.org/wiki/NATO_Joint_Military_Symbology
+[^ms-status]: Microsoft, "Status Bars (Design basics)": https://learn.microsoft.com/en-us/windows/win32/uxguide/ctrl-status-bars
+[^nng-tooltip]: Nielsen Norman Group, "Tooltip Guidelines": https://www.nngroup.com/articles/tooltip-guidelines/
+[^apple-dnd]: Apple, Human Interface Guidelines, "Drag and drop": https://developer.apple.com/design/human-interface-guidelines/drag-and-drop
+[^cmo-rings]: WarfareSims, developer post on range rings (2013): https://www.warfaresims.com/?p=1763

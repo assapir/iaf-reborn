@@ -956,6 +956,22 @@ pub(crate) fn ground_issues(
     out
 }
 
+/// The ground check of a place before a unit of bdb class `class` is put there (the editor's placement preview,
+/// docs/mission-editor.md §20): `ground_issues`, off the map, and a building of the scenery under a site or vehicle.
+pub fn place_issues(class: i64, x: f64, y: f64, heights: &mut Heights, surface: Option<&TerrainTypes>) -> Vec<Issue> {
+    if !heights.inside(x, y) {
+        return vec![error(-1, "off the map".into())];
+    }
+    let mut out = ground_issues(-1, class, x, y, "", heights, surface);
+    if let Some(r) = clearance(class).filter(|_| heights.has_scenery()) {
+        heights.load_scenery(x, y, r);
+        if !heights.scenery.clear(x, y, r) {
+            out.push(warning(-1, ON_BUILDING.into()));
+        }
+    }
+    out
+}
+
 /// The checks before Fly (errors block it) and the ground check of each ground unit and of each point of a ground
 /// unit's route. `bdb` is the converted default6_1.bdb, `surface` terraintype.dat (None: all land).
 pub fn check(mission: &Value, bdb: &Value, heights: &mut Heights, surface: Option<&TerrainTypes>) -> Vec<Issue> {
@@ -1280,6 +1296,10 @@ mod tests {
         let (wet, id) = add_entity(m.clone(), &sam, &f);
         let issues = check(&wet, &bdb, &mut h, types.as_ref());
         assert!(issues.iter().any(|i| i.id == id && i.text == "on the sea" && i.level == "error"), "{issues:?}");
+        // The same place before placing (the editor's preview); a SAM class off the map.
+        let wet = place_issues(8, 280000.0, 530000.0, &mut h, types.as_ref());
+        assert!(wet.iter().any(|i| i.text == "on the sea" && i.level == "error"), "{wet:?}");
+        assert_eq!(place_issues(8, -1e7, 0.0, &mut h, types.as_ref())[0].text, "off the map");
         // Calibration over every converted mission file (docs/mission-editor.md).
         let list: Value =
             serde_json::from_str(&std::fs::read_to_string(a.join("converted/missions/missionlist.json")).unwrap())

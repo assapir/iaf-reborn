@@ -25,8 +25,15 @@ const ADD_CLASSES := [
 const AIR_CLASSES := [2, 3, 0x1c]
 const SIDES := ["Blue", "Red", "Neutral"]
 const ROLES := ["Must survive", "Target", "Neutral"]
-## The Units list's colour of a must-survive unit and a target.
-const ROLE_COLORS := [Color(0.5, 0.9, 0.5), Color(1.0, 0.55, 0.45)]
+## One colour per side (Blue, Red, Neutral) wherever the editor names a side: the Units list's rows, the map's labels
+## and the legend; the TSD's blue and red icons.
+const SIDE_COLORS := [Color(0.45, 0.75, 1.0), Color(1.0, 0.45, 0.4), Color(0.75, 0.75, 0.75)]
+## The selection's ring on the map: white, apart from both sides' colours and the checks' yellow and red rings.
+const SEL_COLOR := Color.WHITE
+## Every unit's name shows under its icon from this zoom on (the TSD's own label names the selected unit only).
+const NAMES_ZOOM := 8.0
+## The editor's labels and status line (theme font size).
+const MARK_FS := 14
 ## Wind as the Mission Creator's Better combos (mission_creator.gd); Random stores 1, which the game turns into a
 ## random one of 0 / 10 / 15 / 20 kt (Settings.pick_wind).
 const WIND_KT := [["Calm", 0], ["10 kt", 10], ["15 kt", 15], ["20 kt", 20], ["Random", 1]]
@@ -78,6 +85,12 @@ var sel_wp := -1  # the selected waypoint of the TSD's selected flight
 var mode := ""  # "" | "add" | "route"
 var route_pts: Array = []  # world Vector3, while drawing a route
 var add_object := -1  # the bdb object id the Add places
+## Under the mouse on the map: a unit (tsd.units index), a waypoint of the selected flight, the world point (null off
+## the map); and in Add the ground check of that point (IafMissionEdit.place_issues).
+var hover := -1
+var hover_wp := -1
+var mouse_world = null
+var place_check: Array = []
 
 var tsd: Control
 var host: Control
@@ -681,6 +694,8 @@ func _key_id(key: String) -> int:
 func _on_unit_dragged(i: int) -> void:
 	var u: Dictionary = tsd.units[i]
 	sel_id = _key_id(u.key)
+	if not Input.is_key_pressed(KEY_SHIFT):
+		_ui.units.deselect_all()  # a click on the map selects that unit alone; Shift adds it to the list's selection
 	var e := entity(sel_id)
 	var w := Tsd.map_to_world(u.pos)
 	if not e.is_empty() and Vector2(float(e["0x2e4"]), float(e["0x2ee"])).distance_to(w) > 1.0:
@@ -699,6 +714,7 @@ func _on_map_clicked(at: Vector2) -> void:
 	var w := Tsd.map_to_world(at)
 	match mode:
 		"add":
+			_ui.units.deselect_all()
 			add_unit(add_object, w.x, w.y, _ui.add_side.selected + 1, _ui.add_role.selected)
 		"route":
 			route_pts.append(Vector3(roundf(w.x), roundf(w.y), 0.0))  # z 0: on the terrain
@@ -708,6 +724,7 @@ func _on_map_clicked(at: Vector2) -> void:
 		_:
 			sel_id = -1
 			sel_wp = -1
+			_ui.units.deselect_all()
 			sel_building = pick_building(w.x, w.y)
 			_refresh()
 			if sel_building.is_empty():
@@ -919,6 +936,7 @@ func _refresh_ui() -> void:
 	_fill_intel()
 	_fill_clipboard()
 	_ui.scenario.refresh()
+	_show_hint()
 	host.preview.queue_redraw()
 
 
@@ -991,6 +1009,19 @@ func _build_ui() -> void:
 	host.add_child(zoom)
 	_ui.zoom_in = _button(zoom, " + ", func(): _zoom(Tsd.ZOOM_STEP))
 	_ui.zoom_out = _button(zoom, " − ", func(): _zoom(1.0 / Tsd.ZOOM_STEP))
+	# The status line along the map's foot: what the mouse does where it is (hint_text).
+	_ui.hint = Label.new()
+	_ui.hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	_ui.hint.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_ui.hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui.hint.clip_text = true
+	_ui.hint.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	var hint_bg := StyleBoxFlat.new()
+	hint_bg.bg_color = Color(0, 0, 0, 0.75)
+	hint_bg.set_content_margin_all(4)
+	hint_bg.content_margin_left = 8
+	_ui.hint.add_theme_stylebox_override("normal", hint_bg)
+	host.add_child(_ui.hint)
 	var tabs := TabContainer.new()
 	# A fixed side panel: the map keeps its size whichever tab is open.
 	tabs.custom_minimum_size.x = 560
@@ -1083,20 +1114,28 @@ func _build_units_tab(box: VBoxContainer) -> void:
 	box.add_child(_label("Add a unit"))
 	_ui.add_class = _row(box, "Kind", _options(ADD_CLASSES.map(func(c): return c[0]), func(_i): _fill_object_picker()))
 	_ui.add_obj = _row(box, "Object", _options([], func(_i): add_object = _ui.add_obj.get_selected_metadata()))
-	# Side, role and Place on one line, so the whole section fits in a short window.
+	# Side and role on one line, Place under them.
 	var line := HBoxContainer.new()
 	box.add_child(line)
-	_ui.add_side = _options(SIDES, func(_i): pass)
+	var side_l := _label("Side")
+	side_l.custom_minimum_size.x = 110
+	line.add_child(side_l)
+	_ui.add_side = _options(SIDES, func(_i): _show_hint())
 	_ui.add_side.select(1)
+	_ui.add_side.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	line.add_child(_ui.add_side)
-	_ui.add_role = _options(ROLES, func(_i): pass)
+	line.add_child(_label("Role"))
+	_ui.add_role = _options(ROLES, func(_i): _show_hint())
 	_ui.add_role.select(1)
+	_ui.add_role.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	line.add_child(_ui.add_role)
-	_ui.add_mode = _button(line, "Place (click the map)", func(): _set_mode("add"))
+	_ui.add_mode = _button(box, "Place on the map", func(): _set_mode("add"))
+	_ui.add_mode.tooltip_text = "Then click the map where it goes (each click places one); Esc stops"
 	_ui.add_mode.toggle_mode = true
 	_ui.add_mode.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_child(HSeparator.new())
-	box.add_child(_label("Selected unit"))
+	_ui.sel_head = _label("")
+	box.add_child(_ui.sel_head)
 	_ui.p_name = _row(box, "Name", LineEdit.new())
 	_ui.p_name.text_submitted.connect(func(t): set_field("0x2bc", t))
 	_ui.p_side = _row(box, "Side", _options(SIDES, func(i): set_field("0x2d0", i + 1)))
@@ -1426,7 +1465,12 @@ func _on_issue_pressed(i: int) -> void:
 func _set_mode(m: String) -> void:
 	mode = "" if mode == m else m
 	route_pts.clear()
+	place_check = []
+	if mode == "add" and mouse_world != null:
+		_check_place(mouse_world)
+	_show_hint()
 	_ui.add_mode.set_pressed_no_signal(mode == "add")
+	_ui.add_mode.text = "Placing: click the map (Esc stops)" if mode == "add" else "Place on the map"
 	_ui.paste.set_pressed_no_signal(mode == "paste")
 	_ui.route_mode.set_pressed_no_signal(mode == "route")
 	host.preview.queue_redraw()
@@ -1467,6 +1511,7 @@ func _on_route_flight(i: int) -> void:
 func _fill_units() -> void:
 	var l: ItemList = _ui.units
 	var picked := {}
+	var current := -1
 	for i in l.get_selected_items():
 		picked[l.get_item_metadata(i)] = true
 	l.clear()
@@ -1478,12 +1523,15 @@ func _fill_units() -> void:
 		var side: int = clampi(int(e.get("0x2d0", 1)), 1, 3)
 		var role := clampi(int(e.get("0x32a", 2)), 0, 2)
 		var tag: String = "" if role == 2 else "  [%s]" % ROLES[role]
-		l.add_item("%d  %s  (%s, %s)%s" % [id, e.get("0x2bc", ""), obj.get("0x514", "?"), SIDES[side - 1], tag])
+		l.add_item("%d  %s  (%s, %s)%s" % [id, e.get("0x2bc", ""), _object_name(obj), SIDES[side - 1], tag])
 		l.set_item_metadata(l.item_count - 1, id)
-		if role != 2:
-			l.set_item_custom_fg_color(l.item_count - 1, ROLE_COLORS[role])
+		l.set_item_custom_fg_color(l.item_count - 1, SIDE_COLORS[side - 1])
 		if picked.has(id) or id == sel_id:
 			l.select(l.item_count - 1, false)
+		if id == sel_id:
+			current = l.item_count - 1
+	if current >= 0:
+		l.ensure_current_is_visible.call_deferred()
 
 
 func _fill_props() -> void:
@@ -1494,6 +1542,14 @@ func _fill_props() -> void:
 	for k in ["p_side", "p_role"]:
 		_ui[k].disabled = not can
 	_ui.p_clear.visible = can and not clear_ground_of(sel_id).is_empty()
+	_ui.sel_head.text = (
+		"Selected: nothing (click a unit on the map or in the list)"
+		if e.is_empty()
+		else "Selected: %s" % _describe_entity(e)
+	)
+	_ui.sel_head.add_theme_color_override(
+		"font_color", Color.WHITE if e.is_empty() else SIDE_COLORS[clampi(int(e.get("0x2d0", 1)), 1, 3) - 1]
+	)
 	if e.is_empty():
 		_ui.p_name.text = ""
 		_ui.p_where.text = ""
@@ -1709,9 +1765,15 @@ class MapHost:
 		tsd._clamp_scroll()
 		tsd.map_canvas.queue_redraw()
 
+	## The marks follow the map as it pans and zooms (the TSD redraws its overlay every frame too).
+	func _process(_delta: float) -> void:
+		preview.queue_redraw()
+
 	func _notification(what: int) -> void:
 		if what == NOTIFICATION_RESIZED:
 			fit()
+		elif what == NOTIFICATION_MOUSE_EXIT and editor != null:
+			editor.hover_at(null)
 
 	func _to_screen(p: Vector2) -> Vector2:
 		return _origin() + p * _scale()
@@ -1774,6 +1836,12 @@ class MapHost:
 			tsd._clamp_scroll()
 			tsd.map_canvas.queue_redraw()
 			accept_event()
+		elif event is InputEventMouseMotion:
+			editor.hover_at(_to_menu(event.position) - tsd.area.position)
+
+	## A map point (TSD map units) in the pane's pixels.
+	func map_px(m: Vector2) -> Vector2:
+		return _to_screen(tsd.area.position + tsd._to_client(m))
 
 	func _draw() -> void:
 		draw_rect(Rect2(Vector2.ZERO, size), Color.BLACK)
@@ -1789,6 +1857,241 @@ class MapHost:
 			preview.draw_polyline(pts, Color.WHITE, 2.0)
 		for p in pts:
 			preview.draw_circle(p, 5.0, Color.WHITE)
+		editor.draw_marks(preview)
+
+
+# --- what is where: hover, the status line, the editor's marks (docs/mission-editor.md §20) -------------------------
+
+
+## A bdb object's name as the game shows it ("SA 6"), else its own ("sa6launcher").
+static func _object_name(obj: Dictionary) -> String:
+	var shown := String(obj.get("0x528", "")).strip_edges()
+	return shown if shown != "" else String(obj.get("0x514", "?"))
+
+
+## "sa6launcher_11 (SA 6) · Red · Target": a unit of the main file by its name, what it is, its side and role (the
+## Units list's order).
+func _describe_entity(e: Dictionary) -> String:
+	var parts := ["%s (%s)" % [e.get("0x2bc", ""), _object_name(objects.get(int(e.get("0x2c6", -1)), {}))]]
+	parts.append(SIDES[clampi(int(e.get("0x2d0", 1)), 1, 3) - 1])
+	var role := clampi(int(e.get("0x32a", 2)), 0, 2)
+	if role != 2:
+		parts.append(ROLES[role])
+	return " · ".join(parts)
+
+
+## The map's unit `i` (tsd.units) in words, its flight too; a base mission's unit (an airbase's) is fixed.
+func describe(i: int) -> String:
+	var u: Dictionary = tsd.units[i]
+	var e := entity(_key_id(u.key))
+	var t := (
+		_describe_entity(e)
+		if not e.is_empty()
+		else "%s (%s) · %s · airbase (fixed)" % [u.name, Tsd.unit_label(u), SIDES[clampi(int(u.side), 1, 3) - 1]]
+	)
+	var n := int(u.flight)
+	if n > 0 and tsd.flights.has(n):
+		t += " · %s%s" % [flight_name(n), " leader" if u.leader else ""]
+	return t
+
+
+## Flight `n` (tsd.flights' key) by its call sign: Alpha … Delta, an enemy flight by its formation's name.
+func flight_name(n: int) -> String:
+	if n >= 1 and n <= 4:
+		return Tsd.FLIGHT_LABELS[n]
+	var fo := _formation_of(n)
+	return String(data.formations.items[fo].get("0x3e8", "Enemy")) if fo >= 0 else "Enemy"
+
+
+## The mouse at client point `c` of the map (null: off the map): what is under it, and in Add the ground check there.
+func hover_at(c) -> void:
+	if tsd == null:
+		return
+	var h := -1
+	var w := -1
+	var at = null
+	if c != null and Rect2(Vector2.ZERO, tsd.area.size).has_point(c):
+		h = tsd.unit_at(c)
+		w = tsd._waypoint_at(c) if h < 0 else -1
+		at = Tsd.map_to_world(c / tsd.zoom + tsd.scroll)
+	hover = h
+	hover_wp = w
+	mouse_world = at
+	if mode == "add" and at != null:
+		_check_place(at)
+	_show_hint()
+	host.preview.queue_redraw()
+
+
+func _check_place(at: Vector2) -> void:
+	var cls := int(objects.get(add_object, {}).get("0x5aa", -1))
+	place_check = api.place_issues(cls, at.x, at.y)
+	place_check.sort_custom(func(a, b): return a.level == "error" and b.level != "error")
+
+
+## What Add places: "SA 6 (Red, Target)".
+func add_text() -> String:
+	var role: String = "" if _ui.add_role.selected == 2 else ", " + ROLES[_ui.add_role.selected]
+	return "%s (%s%s)" % [_object_name(objects.get(add_object, {})), SIDES[_ui.add_side.selected], role]
+
+
+## The status line: what a click or drag does where the mouse is, in the mode the editor is in.
+func hint_text() -> String:
+	if data.is_empty():
+		return "Start with New mission, or Open one of yours or an original."
+	var ro := "Original, read-only: Fork it to edit. " if read_only else ""
+	match mode:
+		"add":
+			var here := ""
+			if not place_check.is_empty():
+				here = "Here: %s (%s). " % [place_check[0].text, place_check[0].level]
+			return here + "Click the map to place %s; each click places one. Esc stops." % add_text()
+		"route":
+			return (
+				"Click the route's points (%d so far) for the units selected in the list, then Give the route. Esc stops."
+				% route_pts.size()
+			)
+		"paste":
+			return "Click the map to paste the %d copied units there. Esc stops." % clipboard.size()
+	if hover >= 0:
+		var can := not read_only and not entity(_key_id(tsd.units[hover].key)).is_empty()
+		return ro + "%s. Click selects it%s." % [describe(hover), ", drag moves it" if can else ""]
+	if hover_wp >= 0:
+		return ro + "%s waypoint %d. Drag moves it." % [flight_name(tsd.sel_flight), hover_wp + 1]
+	return ro + "Click a unit to select it (Shift adds). Drag the map to pan, wheel zooms, right-drag measures."
+
+
+func _show_hint() -> void:
+	if _ui.has("hint"):
+		_ui.hint.text = hint_text()
+		_ui.hint.visible = tsd != null
+
+
+## The editor's marks over the TSD (MapHost's preview, never in the game's TSD): the flights' call signs, the
+## units' names when zoomed in, the selection's ring (and the list's other picks), the unit under the mouse with its
+## label, Add's ghost icon with its ground check, the route being drawn, the legend.
+func draw_marks(c: Control) -> void:
+	var s: float = host._scale()
+	var font := ThemeDB.fallback_font
+	for n in tsd.flights:
+		var lead: Dictionary = tsd.units[tsd.flights[n].leader]
+		if tsd._unit_visible(lead):
+			var col: Color = Tsd.FLIGHT_COLORS[n - 1] if n <= 4 else SIDE_COLORS[clampi(int(lead.side), 1, 3) - 1]
+			var at: Vector2 = host.map_px(lead.pos) + Vector2(32 * s, -9 * s)  # right of the selection's ticks
+			if Rect2(Vector2.ZERO, host.size - Vector2(0, _ui.hint.size.y + 50)).has_point(at):  # clear of the legend
+				_chip(c, at, flight_name(n), col)
+	if tsd.zoom >= NAMES_ZOOM:
+		for u in tsd.units:
+			if tsd._unit_visible(u) and not u.leader and u.name != "":
+				var p: Vector2 = host.map_px(u.pos) + Vector2(0, 12 * s + font.get_ascent(MARK_FS - 2))
+				var w := font.get_string_size(u.name, HORIZONTAL_ALIGNMENT_LEFT, -1, MARK_FS - 2).x
+				c.draw_string_outline(font, p - Vector2(w / 2, 0), u.name, 0, -1, MARK_FS - 2, 3, Color.BLACK)
+				c.draw_string(font, p - Vector2(w / 2, 0), u.name, 0, -1, MARK_FS - 2, Color(0.9, 0.9, 0.9))
+	var keys := {}
+	for i in _ui.units.get_selected_items():
+		keys["0:%d" % int(_ui.units.get_item_metadata(i))] = true
+	for i in tsd.units.size():
+		if keys.has(tsd.units[i].key) and i != tsd.selected:
+			_ring(c, host.map_px(tsd.units[i].pos), 17 * s, 2.0)
+	if tsd.selected >= 0:
+		var p: Vector2 = host.map_px(tsd.units[tsd.selected].pos)
+		_ring(c, p, 20 * s, 3.0)
+		for k in 4:  # four ticks, as a sight
+			var d := Vector2.from_angle(k * PI / 2)
+			c.draw_line(p + d * 22 * s, p + d * 30 * s, SEL_COLOR, 3.0)
+	if hover >= 0 and mode == "":
+		var p: Vector2 = host.map_px(tsd.units[hover].pos)
+		if hover != tsd.selected:
+			_ring(c, p, 18 * s, 1.5)
+		_chip(c, p + Vector2(-20 * s, 24 * s), describe(hover), Color.WHITE)
+	if hover_wp >= 0 and mode == "" and tsd.flights.has(tsd.sel_flight):
+		_ring(c, host.map_px(tsd.flights[tsd.sel_flight].points[hover_wp]), 13 * s, 2.0)
+	if mouse_world != null and mode in ["add", "paste"]:
+		var p: Vector2 = host.map_px(Tsd.world_to_map(mouse_world.x, mouse_world.y))
+		var col := Color(0.4, 1.0, 0.4)
+		var text := add_text() if mode == "add" else "%d units" % clipboard.size()
+		if not place_check.is_empty():
+			col = Color.RED if place_check[0].level == "error" else Color.YELLOW
+			text += ": " + String(place_check[0].text)
+		if mode == "add":
+			_ghost(c, p, s)
+		_ring(c, p, 20 * s, 2.0, col)
+		_chip(c, p + Vector2(-20 * s, 24 * s), text, col)
+	if mode == "route" and not route_pts.is_empty() and mouse_world != null:
+		var a: Vector3 = route_pts[-1]
+		c.draw_dashed_line(
+			host.map_px(Tsd.world_to_map(a.x, a.y)),
+			host.map_px(Tsd.world_to_map(mouse_world.x, mouse_world.y)),
+			Color.WHITE,
+			2.0,
+			8.0
+		)
+	_draw_legend(c)
+
+
+## A ring with a dark edge, readable on both the sea and the desert.
+func _ring(c: Control, p: Vector2, r: float, width: float, col := SEL_COLOR) -> void:
+	c.draw_arc(p, r, 0, TAU, 48, Color(0, 0, 0, 0.8), width + 2.0, true)
+	c.draw_arc(p, r, 0, TAU, 48, col, width, true)
+
+
+## A white label on a dark box framed in `col` at `p` (its top left), kept inside the map.
+func _chip(c: Control, p: Vector2, text: String, col: Color) -> void:
+	var font := ThemeDB.fallback_font
+	var sz := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, MARK_FS) + Vector2(8, 4)
+	p = p.clamp(Vector2.ZERO, (host.size - sz - Vector2(0, _ui.hint.size.y)).max(Vector2.ZERO))
+	c.draw_rect(Rect2(p, sz), Color(0, 0, 0, 0.75))
+	c.draw_rect(Rect2(p, sz), col, false, 2.0)
+	c.draw_string(font, p + Vector2(4, 2 + font.get_ascent(MARK_FS)), text, 0, -1, MARK_FS, Color.WHITE)
+
+
+## Add's object as its TSD icon at `p`, half see-through.
+func _ghost(c: Control, p: Vector2, s: float) -> void:
+	var klass: int = Tsd.ICON_CLASS.get(int(objects.get(add_object, {}).get("0x5aa", -1)), 0)
+	if klass == 0:
+		return
+	var t: Texture2D = host._tex("tsd/%s.png" % Tsd.ICON_ART[klass])
+	if t == null:
+		return
+	var cell := Tsd.icon_cell(klass, _ui.add_side.selected + 1, false, 0.0)
+	var a: float = host.art_scale
+	c.draw_texture_rect_region(
+		t, Rect2(p - cell.size * s / 2, cell.size * s), Rect2(cell.position * a, cell.size * a), Color(1, 1, 1, 0.6)
+	)
+
+
+## The legend, bottom left over the status line: the sides' colours, the rings, the flights' squares.
+func _draw_legend(c: Control) -> void:
+	var font := ThemeDB.fallback_font
+	var fs := MARK_FS - 2
+	var items := [
+		["Blue", SIDE_COLORS[0], "box"],
+		["Red", SIDE_COLORS[1], "box"],
+		["selected", SEL_COLOR, "ring"],
+		["warning", Color.YELLOW, "ring"],
+		["error", Color.RED, "ring"],
+	]
+	for n in 4:
+		items.append([Tsd.FLIGHT_LABELS[n + 1], Tsd.FLIGHT_COLORS[n], "square"])
+	var w := 8.0
+	for it in items:
+		w += 18 + font.get_string_size(it[0], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x + 10
+	var h := font.get_height(fs) + 6
+	var top: float = host.size.y - _ui.hint.size.y - h
+	c.draw_rect(Rect2(0, top, w, h), Color(0, 0, 0, 0.6))
+	var x := 8.0
+	var mid := top + h / 2
+	for it in items:
+		match it[2]:
+			"box":
+				c.draw_rect(Rect2(x, mid - 6, 13, 12), it[1])
+			"ring":
+				c.draw_arc(Vector2(x + 6, mid), 6, 0, TAU, 24, it[1], 2.0, true)
+			"square":
+				c.draw_rect(Rect2(x, mid - 6, 12, 12), it[1], false, 2.0)
+		x += 18
+		c.draw_string(font, Vector2(x, mid - h / 2 + 3 + font.get_ascent(fs)), it[0], 0, -1, fs, Color.WHITE)
+		x += font.get_string_size(it[0], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x + 10
 
 
 # --- win and lose (docs/mission-editor.md §12) ---------------------------------------------------------------------
@@ -2208,7 +2511,16 @@ func _fill_clipboard() -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	if not (event is InputEventKey and event.pressed and not event.echo):
 		return
-	if event.is_command_or_control_pressed() and event.keycode == KEY_C:
+	if event.keycode == KEY_ESCAPE and (mode != "" or sel_id >= 0):
+		# Esc leaves a placing mode (Add, route, paste), else clears the selection.
+		if mode != "":
+			_set_mode("")
+		else:
+			sel_id = -1
+			sel_wp = -1
+			_ui.units.deselect_all()
+			_refresh()
+	elif event.is_command_or_control_pressed() and event.keycode == KEY_C:
 		copy_selected()
 	elif event.is_command_or_control_pressed() and event.keycode == KEY_V and not clipboard.is_empty():
 		_set_mode("paste")

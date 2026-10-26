@@ -814,13 +814,7 @@ func _draw_units(s: float) -> void:
 			continue
 		var c := _to_client(u.pos)
 		var art: String = "icairport" if u.airport else ICON_ART[u.klass]
-		var cell: Rect2
-		if u.klass == 1:
-			var row := 1 if u.side > 1 else (0 if u.leader else 2)
-			var col := (int(fposmod(u.heading, 360.0)) / 45) % 8
-			cell = Rect2(col * 27, row * 21, 27, 21)
-		else:
-			cell = Rect2(0, (1 if u.side > 1 else 0) * 17, 27, 17)
+		var cell := icon_cell(u.klass, u.side, u.leader, u.heading)
 		var top_left := (c - (cell.size / 2).floor()).floor()
 		var t: Texture2D = fe._tex("tsd/%s.png" % art)
 		if t != null:
@@ -855,6 +849,16 @@ func _draw_units(s: float) -> void:
 			var n := int(u.flight)
 			if n >= 1 and n < FLIGHT_LABELS.size() and flights.has(n):
 				_text_top(FLIGHT_LABELS[n], Vector2(x, y + _line_h(s) + 2), LABEL_COLOR, s)
+
+
+## A unit icon's cell in its art (icair: a row by side / leader, a column per 45° of heading; the others: a row by
+## side).
+static func icon_cell(klass: int, side: int, leader: bool, heading: float) -> Rect2:
+	if klass == 1:
+		var row := 1 if side > 1 else (0 if leader else 2)
+		var col := (int(fposmod(heading, 360.0)) / 45) % 8
+		return Rect2(col * 27, row * 21, 27, 21)
+	return Rect2(0, (1 if side > 1 else 0) * 17, 27, 17)
 
 
 ## Line 1 of the selected-unit label: the type's name (FUN_004f6da0 → FUN_004f7670), a runway's own name.

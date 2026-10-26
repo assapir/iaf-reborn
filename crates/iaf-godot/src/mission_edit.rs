@@ -286,6 +286,18 @@ impl IafMissionEdit {
         text(&json!(issues))
     }
 
+    /// The ground check of a place before a unit of bdb class `class` stands there (mission_edit::place_issues): a
+    /// JSON array of {id -1, level, text}; none without the converted terrain.
+    #[func]
+    fn place_issues(class: i64, x: f64, y: f64) -> GString {
+        let mut d = DATA.lock().unwrap();
+        d.load();
+        let Data { heights: Some(h), types, .. } = &mut *d else { return text(&json!([])) };
+        text(&json!(
+            me::place_issues(class, x, y, h, types.as_ref()).iter().map(me::Issue::to_json).collect::<Vec<_>>()
+        ))
+    }
+
     // --- the sanity check, copy / paste, the year's map (docs/mission-editor.md §16, §17, §12) ---
 
     /// The sanity check (mission_sanity::sanity_issues): a JSON array of {id, level "warning", text}; none without

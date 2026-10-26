@@ -4,7 +4,9 @@
 # then on 512 Wild West: Fork offers a free
 # name, a Hebrew name and an original title are refused; a drag on the map moves Alpha's leader; an added SA-6 stands
 # at the terrain's height and Undo removes it; an SA-6 in the sea is an error (a red ring, Fly off); Save and Open
-# give the same mission back; the original mission file stays byte-identical. Writes only under user://missions_test.
+# give the same mission back; the list and the map share one selection, Esc clears it, hovering names a unit, Add
+# checks the ground under the mouse and places at the click, Esc stops it; the original mission file stays
+# byte-identical. Writes only under user://missions_test.
 extends "res://../tests/godot/base.gd"
 
 const DIR := "user://missions_test"
@@ -203,6 +205,66 @@ func run() -> void:
 	check(ed._ui.fly.disabled, "an error turns Fly off")
 	ed.undo_last()
 	check(not ed._ui.fly.disabled and not tsd.issues.values().has("error"), "Undo clears the error")
+
+	# Selection: a pick in the Units list selects the unit on the map; a click on the map makes it the list's only
+	# pick; Esc clears it.
+	var ul: ItemList = ed._ui.units
+	ul.deselect_all()
+	for k in ul.item_count:
+		if int(ul.get_item_metadata(k)) in [1, 9]:
+			ul.select(k, false)
+	ed._on_unit_listed()
+	check(tsd.selected >= 0 and tsd.units[tsd.selected].key == "0:9", "a list pick selects that unit on the map")
+	var ring_at: Vector2 = host.map_px(tsd.units[tsd.selected].pos)
+	check(Rect2(Vector2.ZERO, host.size).has_point(ring_at), "and the map centres on it")
+	check(
+		ed._ui.sel_head.text.begins_with("Selected: ") and ed._ui.sel_head.text.contains("Boat_1"), "the panel names it"
+	)
+	for k in tsd.units.size():
+		if tsd.units[k].key == "0:1":
+			i = k
+	from = host.map_px(tsd.units[i].pos)
+	tsd._gui_input(mouse_button(from, true))
+	tsd._gui_input(mouse_button(from, false))
+	var picks: Array = Array(ul.get_selected_items()).map(func(k): return int(ul.get_item_metadata(k)))
+	check(ed.sel_id == 1 and picks == [1], "a click on the map makes it the list's only pick (%s)" % [picks])
+	var esc := InputEventKey.new()
+	esc.keycode = KEY_ESCAPE
+	esc.pressed = true
+	ed._unhandled_key_input(esc)
+	check(ed.sel_id == -1 and tsd.selected == -1 and ul.get_selected_items().is_empty(), "Esc clears the selection")
+	# Hover: the unit under the mouse is named on the status line.
+	ed.hover_at(host._to_menu(from) - tsd.area.position)
+	check(ed.hover == i and ed.hint_text().contains("F4_1"), "hovering a unit names it: %s" % ed.hint_text())
+	# Place: Add's ghost checks the ground under the mouse before the click; the click places at that point.
+	ed.add_object = 6
+	ed._set_mode("add")
+	tsd.centre_on(tsd.world_to_map(SEA.x, SEA.y))
+	ed.hover_at(tsd._to_client(tsd.world_to_map(SEA.x, SEA.y)))
+	check(
+		ed.place_check.any(func(it): return it.level == "error") and ed.hint_text().contains("on the sea"),
+		"Add over the sea: the error shows before the click (%s)" % ed.hint_text()
+	)
+	tsd.centre_on(tsd.world_to_map(LAND.x, LAND.y))
+	var land_px: Vector2 = host.map_px(tsd.world_to_map(LAND.x, LAND.y))
+	ed.hover_at(host._to_menu(land_px) - tsd.area.position)
+	check(ed.place_check.is_empty(), "inland the ghost is clear (%s)" % [ed.place_check])
+	count = ed.data.entities.items.size()
+	tsd._gui_input(mouse_button(land_px, true))
+	tsd._gui_input(mouse_button(land_px, false))
+	var placed: Dictionary = ed.entity(ed.sel_id)
+	check(
+		(
+			ed.data.entities.items.size() == count + 1
+			and int(placed.get("0x2c6", -1)) == 6
+			and Vector2(placed["0x2e4"], placed["0x2ee"]).distance_to(LAND) < 2500
+		),
+		"the click places the SA-6 there (%s, %s)" % [placed.get("0x2e4"), placed.get("0x2ee")]
+	)
+	check(ed.mode == "add", "Add stays on for the next one")
+	ed._unhandled_key_input(esc)
+	check(ed.mode == "" and not ed._ui.add_mode.button_pressed, "Esc stops placing")
+	ed.undo_last()
 
 	# Weather (ours, misc `weather`): a fork of an original has none (Default, the Graphics Rain level); Heavy rain.
 	check(ed._ui.m_weather.selected == 0 and not ed.data.misc.items[0].has("weather"), "a fork: Weather Default")

@@ -89,6 +89,12 @@ func ground_height(x: float, y: float):
 	return IafMissionEdit.ground_height(x, y)
 
 
+## The ground check of a place before a unit of bdb class `cls` is put there: [{id -1, level, text}].
+func place_issues(cls: int, x: float, y: float) -> Array:
+	var v = JSON.parse_string(IafMissionEdit.place_issues(cls, x, y))
+	return v if v is Array else []
+
+
 ## The mission's issues: [{id, level "error" | "warning", text}].
 func check(mission: Dictionary) -> Array:
 	var v = JSON.parse_string(IafMissionEdit.check(_js(mission)))
