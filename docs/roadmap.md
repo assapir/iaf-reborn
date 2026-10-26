@@ -52,8 +52,9 @@ ranked order: [graphics-research.md](graphics-research.md).
   - The F-35I's helmet camera with its own look (latency, the visor's green glow).
   - Research: when IAF fighter pilots began to fly with goggles, and which jets had goggle-compatible lighting (§8.2,
     §8.3).
-- **Rain** (wishlist, user 2026-10-21): rain as a weather choice (Extras), with falling rain, wet surfaces and
-  lower visibility.
+- **Rain** (wishlist, user 2026-10-21): built 2026-10-26 as Graphics → MORE "Rain: Off / Light / Heavy"
+  (rendering.md §10). Open: the mission editor's Mission tab setting the weather per mission; a darker overcast
+  in the clouds' look; `vapour_fx.gd` reading `Weather.humidity()`; rain hiss (no sample in the install).
 - **Four-ship flights** (wishlist, user 2026-10-22): a real flight of four (Extras). The original's flight is a pair:
   two member slots in the mission file (formats/mis.md) and a leader / wingman formation in the AI (ai.md §7.2); its
   4-ships are two pairs on one route. Ours would add slots 3 and 4 holding finger-four on the leader, the radio's

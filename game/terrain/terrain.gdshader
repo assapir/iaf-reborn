@@ -59,6 +59,9 @@ global uniform vec4 airbase_info;
 // Preferences "Ground textures" (terrain/ground_textures.gd, docs/rendering.md §1.4): 0 = off; 1 = where they resolve, CC0
 // ambientCG textures in place of the close up's fine grain: their colour over its own mean modulates the photo's colour,
 // with their normal and roughness. Layers (ground_scale_a / _b: 1 / metres per repeat): GT_* below.
+// Rain (ours, Graphics → MORE "Rain", terrain/weather.gd; docs/rendering.md §10): how wet the ground is, 0 = dry.
+global uniform float rain_wet;
+global uniform float rain_spec;
 global uniform float ground_tex;
 global uniform sampler2DArray ground_albedo : filter_linear_mipmap_anisotropic, repeat_enable;
 global uniform sampler2DArray ground_nr : filter_linear_mipmap, repeat_enable;
@@ -342,6 +345,24 @@ vec2 ab_end_marks(float s, float x, float fs, float fx, float sc, float hw, floa
 	return vec2(paint, rub);
 }
 
+// Rain: water in the pores darkens the ground and its film smooths it, more on grey ground (pavement, rock); its
+// specular is `rain_spec` (weather.gd: lower under the Atmospheric sky, whose reflections stay blue). On the Detailed
+// airbases' flat pavement (`paved`) within 800 m the low spots of the detail noise hold puddles: flat, darker than the
+// pavement around them, a dim reflection of the sky. Not on water.
+void wet_ground(inout vec3 alb, inout float rough, inout float spec, inout vec3 nrm, vec3 n_geo, vec2 xz, float dist,
+		float water, float paved, mat4 view) {
+	float k = rain_wet * (1.0 - water);
+	float hi = max(max(alb.r, alb.g), alb.b);
+	float grey = 1.0 - smoothstep(0.15, 0.35, (hi - min(min(alb.r, alb.g), alb.b)) / max(hi, 1e-3));
+	float lvl = smoothstep(0.985, 0.998, dot(n_geo, (view * vec4(0.0, 1.0, 0.0, 0.0)).xyz));
+	float pud = 0.7 * k * paved * lvl * (1.0 - smoothstep(300.0, 800.0, dist))
+			* smoothstep(0.66, 0.8, texture(terrain_detail_tex, xz / 13.0).r);
+	alb *= mix(1.0, mix(0.75, 0.6, grey), k) * (1.0 - 0.45 * pud);
+	rough = mix(mix(rough, mix(0.8, 0.65, grey), k), 0.3, pud);
+	spec = mix(spec, rain_spec, k);
+	nrm = normalize(mix(nrm, n_geo, pud));
+}
+
 void fragment() {
 	ALBEDO = texture(colour_tex, UV).rgb;
 	vec3 n_geo = NORMAL;
@@ -458,6 +479,7 @@ void fragment() {
 		}
 	}
 	SPECULAR = 0.1;
+	float paved_k = 0.0;  // Detailed airbases' paved surface (rain puddles)
 	// Airbases (Preferences "Airbases"): within 6 km, on the nearest base's paved surface.
 	float kab = terrain_airbases * (1.0 - smoothstep(2500.0, 6000.0, length(VERTEX))) * (1.0 - sea);
 	vec2 muv = mat2(airbase_mask_xf.xy, airbase_mask_xf.zw) * world_xz + airbase_mask_rect.xy;
@@ -539,6 +561,7 @@ void fragment() {
 		float taxi = ab_band(textureLod(airbase_mask, muv, 0.0).b * 10.0, airbase_info.y, fpx) * paved * (1.0 - runway)
 				* (1.0 - smoothstep(1500.0, 2000.0, length(VERTEX)));
 		float surf = max(paved, runway) * kab;
+		paved_k = surf;
 		// Concrete slabs on the aprons only.
 		float concrete = concrete_mask * (1.0 - runway);
 		if (surf > 0.0) {
@@ -618,5 +641,8 @@ void fragment() {
 		// blue up to a few degrees below the horizon. The body colour a little darker, as the sky's reflection adds to it.
 		SPECULAR = mix(SPECULAR, 0.28, wm);
 		ALBEDO *= mix(1.0, 0.75, wm);
+	}
+	if (rain_wet > 0.0) {
+		wet_ground(ALBEDO, ROUGHNESS, SPECULAR, NORMAL, n_geo, world_xz, dist, wm, paved_k, VIEW_MATRIX);
 	}
 }

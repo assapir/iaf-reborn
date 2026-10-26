@@ -382,6 +382,12 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - New content with Detailed: contrails above 9000 m, a heat haze behind each engine, and condensation on the jets
     (wingtip streamers and the LEX plume in high-G turns, the vapour cone near Mach 1 low down, wing vapour;
     docs/rendering.md §6). These replace the original wingtip vortex ribbons.
+- **Rain** (ours, Graphics → MORE, docs/rendering.md §10). Rendering only; the default is Off (the original has no
+  weather).
+  - Light / Heavy: falling rain around the camera, drops on the canopy in the cockpit views that the airflow drives up
+    the glass, wet darker ground with puddles on the Detailed airbases' pavement, a shorter visibility (about 15 km /
+    6 km) under a grey overcast and a dimmer sun.
+  - The flight, the sensors and the AI are unchanged: the fog hides the ground, not the radar or HUD targets.
 - **Airbases** (ours, docs/rendering.md §7). Rendering only; the default is Original (the 1998 imagery's painted
   runways).
   - Detailed: within 6 km of the camera, the nearest base's runways, taxiways and aprons get a procedural asphalt /

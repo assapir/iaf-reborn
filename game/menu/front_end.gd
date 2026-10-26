@@ -107,6 +107,7 @@ const GRAPHICS_KEYS := [
 	"model_detail",
 	"rolling_wheels",
 	"particle_effects",
+	"rain",
 	"airbases",
 	"ground_textures",
 	"scenery"
@@ -223,6 +224,8 @@ const EXTRAS := [
 	["model_detail", "Model detail", [["Original", "original"], ["ambientCG", "ambientcg"]]],
 	["rolling_wheels", "Rolling wheels", [["Original", false], ["Rolling", true]]],
 	["particle_effects", "Particle effects", [["Original", false], ["Detailed", true]]],
+	# Ours: rain as the weather (terrain/weather.gd, docs/rendering.md §10); the original has none.
+	["rain", "Rain", [["Off", "off"], ["Light", "light"], ["Heavy", "heavy"]]],
 	["airbases", "Airbases", [["Original", "original"], ["Detailed", "detailed"]]],
 	# Ours: CC0 textures from ambientCG near the ground (terrain/ground_textures.gd, docs/rendering.md §1.4); greyed out
 	# until setup has downloaded them.
