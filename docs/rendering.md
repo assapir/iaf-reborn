@@ -522,6 +522,9 @@ scene at 0.59 of the pixels pays for the passes) and Native FSR 2 above it. To m
 -s ../tests/godot/_flight_bench.gd` against `BENCH_SET=antialiasing=taa` and the default (§3.1), on an idle machine;
 or `tests/godot/_upscale_probe.gd`, which cycles the modes in one process.
 
+Making FSR 2 the only anti-aliasing and upscaling choice was considered and rejected (2026-10-26): it fades the
+distant jets above, which matter most in a flight sim. MSAA 4x stays the default.
+
 ## 2. Cloud layer (Graphics TEXTURED SKY, docs/front-end.md §12.4)
 
 The cloud layer is a dome of cloud texture plus a flat layer, and a whiteout near its altitude. Three findings:
@@ -750,7 +753,9 @@ compression). The noise texture is generated at run time with FastNoiseLite.
 - **Smoke**: one ribbon per trail through the head's positions, a point every 1/30 s (the newest follows the head).
   The vertex shader turns it to face the camera around its length and moves each point by its age: 0.6 m wide at the
   nozzle, ≈ 10 m after 2 s, ≈ 14 m after 5 s, ≈ 18 m at 10 s and ≈ 23 m at 20 s (as wide as the original ribbon,
-  for spotting), swelling and narrowing every ≈ 60 m;
+  for spotting; a first, thinner trail at a real missile's early-seconds width was tried on 2026-10-26 and dropped: at
+  range it thinned to a hairline and at dusk it nearly vanished, so launches were harder to spot than with Original),
+  swelling and narrowing every ≈ 60 m;
   it meanders slowly, rises a little and drifts with the wind. The fragment shader shades it as a tube: white smoke
   scatters light many times, so its shadow side keeps at least 55 % of the sunlit side's light, plus the gradient
   sky's colours (set by the time of day, §4); the sun's colour warms the sun side, its rim, and the smoke seen

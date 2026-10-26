@@ -224,6 +224,26 @@ Three steps, each building on the last. Recommended path: the F-16D 3D cockpit w
 clickables, then the F-15C.
 - **(a) Better 2D** (S–M): today the 1998 panels are upscaled 4× (Lanczos, never AI). Higher resolution needs redrawn
   art (ours): a lot of work for the 2D look, and a low payoff compared with (b).
+
+  **Tested and dropped (2026-10-26): upscaling the panels better.** The panels are 24-bit renders (1920 × 352–374,
+  44k–85k colours), not palette art; the exe shows 640 px of them across the screen, so 1440p is 4× and 4K 6×.
+  Methods tried at ×2 and ×4 on the F-16, F-15, MiG-29 and F-4E panels (a gauge, a labelled switch panel, an MFD
+  bezel, worn metal), Iris Xe:
+
+  | Method | Labels and digits | Lines | Finish and colour | Time, one panel ×4 |
+  |---|---|---|---|---|
+  | Lanczos3 (what setup does) | soft | soft | exact | ms |
+  | Lanczos3 + unsharp | a little crisper | better | exact | ms |
+  | Pixel-art scalers (scale2x / hq2x / xBR) | jaggy | jaggy | as nearest | ms |
+  | Real-ESRGAN x4plus (AI) | wrong letters (MODE → "VODE", 8 → "S") | crisp | wear erased, reds shift orange | 31–38 s |
+  | Real-ESRGAN x4plus-anime (AI) | garbled, posterised | cartoon outlines | flattened | 11–26 s |
+  | Real-ESRGAN animevideov3 (AI) | kept; text under 5 px stays mush | crisp | mostly kept | 2–7 s |
+
+  Pixel-art scalers need flat colours, so they fail on these renders. The AI models also lose the cyan colour key
+  (exact-key pixels drop from 56 % to 0.05 %), so a mask would have to come from the source. Upscayl's popular
+  models (UltraSharp, Remacri) are CC BY-NC-SA, unusable in this GPL project. The best result (animevideov3) was not
+  worth a setup step and an outside binary; the user dropped the idea. Sharp text needs drawing by the game itself
+  (as Better cockpit and the crisp MFD pages do), or a 3D cockpit (b).
 - **(b) 3D virtual cockpit** (L for the F-16D): the FlightGear F-16 cockpit (GPL-2.0-or-later, above) is a complete
   modelled pit: MFDs, DED (data entry display), RWR, CDU (control display unit), ICP (integrated control panel) and
   gauges. It must be live:
@@ -378,6 +398,13 @@ setup.
   The result stays GPL (derived from FlightGear's).
 - **Checked, not usable**: hobby / print packs (CGTrader, Cults3D, 3dcadbrowser: personal use or paid);
   Sketchfab game rips (War Thunder / DCS: rights doubtful); no Smithsonian CC0 scan of these weapons found.
+  Checked 2026-10-26 and rejected: the Zaretto F-15 / F-14 stores (180–750 triangles, no licence file); the
+  `l0k1/oprf_assets` SAM missiles (no licence, low-poly); Sketchfab "(War Thunder)" uploads by KojfDiscord and
+  "(WARNO)" uploads, and Jeyhun1985's Kfir scenes (labelled CC BY but likely rips: the Kfir's face count equals the War
+  Thunder one); bohmerang's "Missile & Bomb Collection" (CC BY-NC-SA) and civorsky's AIM-9M (CC BY-NC): non-commercial
+  licences can't go in a GPL project. Narni_Tchereskov's R-40 / R-3S / R-60 (CC BY, 28k–123k triangles) have
+  unverified provenance. No open model exists for the Python 3 / 4 / 5, Shafrir 2, Popeye or Spice: only paid ones
+  (CGTrader, RenderHub; the RenderHub Popeye is editorial-only).
 - **To check next**: FGAddon `MiG-21bis` / `Mig-29` / `MirageIII` stores (AA-2 / AA-8 / AA-10 / AA-11, Shafrir,
   the Mirage tank) — FGAddon licence per file; the Zaretto F-15 stores once its licence is cleared (§3.7).
 - **Built by us for the rest** (Python 3 / 4, Shafrir 2, Popeye, AGM-62 Walleye, GBU-15, M117, CBU-97, RBK-500,
