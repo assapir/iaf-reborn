@@ -177,7 +177,7 @@ func run() -> void:
 		tv.apply_render_options()
 		check(
 			(
-				vp.scaling_3d_mode == RO.upscale_mode()
+				vp.scaling_3d_mode == RO.upscale_mode(u[1])
 				and is_equal_approx(vp.scaling_3d_scale, u[1])
 				and vp.msaa_3d == Viewport.MSAA_4X
 			),
@@ -185,7 +185,7 @@ func run() -> void:
 		)
 	check(
 		(
-			RO.upscale_mode()
+			RO.upscale_mode(0.77)
 			== (
 				Viewport.SCALING_3D_MODE_METALFX_SPATIAL
 				if RenderingServer.get_current_rendering_driver_name() == "metal"
@@ -210,6 +210,22 @@ func run() -> void:
 		vp.msaa_3d == Viewport.MSAA_4X and vp.screen_space_aa == Viewport.SCREEN_SPACE_AA_FXAA and not vp.use_taa,
 		"anti-aliasing + FXAA"
 	)
+	# Anti-aliasing by the temporal upscaler (FSR 2.2; MetalFX temporal on Metal): at native and at Quality, no MSAA
+	# or TAA.
+	settings().antialiasing = "temporal"
+	for u in [["off", 1.0], ["quality", 0.77]]:
+		settings().upscaling = u[0]
+		tv.apply_render_options()
+		check(
+			(
+				vp.scaling_3d_mode == RO.temporal_mode()
+				and is_equal_approx(vp.scaling_3d_scale, u[1])
+				and vp.msaa_3d == Viewport.MSAA_DISABLED
+				and not vp.use_taa
+			),
+			"anti-aliasing temporal, upscaling %s: temporal upscaler at %.2f, no MSAA / TAA" % u
+		)
+	settings().upscaling = "off"
 	settings().antialiasing = "taa"
 	settings().terrain_closeup = true
 	settings().sky = "atmospheric"

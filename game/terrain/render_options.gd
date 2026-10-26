@@ -13,14 +13,17 @@ const AA := {
 	"msaa4": [Viewport.MSAA_4X, Viewport.SCREEN_SPACE_AA_DISABLED, false],
 	"msaa4_fxaa": [Viewport.MSAA_4X, Viewport.SCREEN_SPACE_AA_FXAA, false],
 	"taa": [Viewport.MSAA_DISABLED, Viewport.SCREEN_SPACE_AA_DISABLED, true],
+	# The temporal upscaler (temporal_mode()) anti-aliases the 3D scene itself, in place of MSAA and TAA.
+	"temporal": [Viewport.MSAA_DISABLED, Viewport.SCREEN_SPACE_AA_DISABLED, false],
 }
 
-## Upscaling: Settings.upscaling -> the 3D render scale; "off" = native (bilinear at 1.0). The 3D scene renders at
-## that fraction of the window, and a spatial upscaler (MetalFX on Metal, FSR 1 on other drivers) scales it up to
-## the window. The anti-aliasing row still applies, at the lower resolution. The 2D cockpit, HUD and MFDs are
-## canvas items: Godot draws them after the upscale, at the window's resolution. Godot lowers the texture mip bias by
-## log2(scale) itself. Spatial, because the temporal upscalers need motion vectors, which cost about 4 ms at 4K
-## (docs/graphics-research.md §3.10).
+## Upscaling: Settings.upscaling -> the 3D render scale; "off" = native (1.0). The 3D scene renders at that fraction
+## of the window and an upscaler scales it up to the window (upscale_mode()). With the other anti-aliasing choices it
+## is spatial (MetalFX spatial on Metal, FSR 1 on other drivers) and the anti-aliasing row still applies, at the lower
+## resolution. With anti-aliasing "temporal" it is the temporal upscaler (FSR 2.2; MetalFX temporal on Metal), which
+## also anti-aliases, at every scale (at native it is anti-aliasing only). Temporal needs motion vectors, the pass TAA
+## pays too (about 4 ms at 4K, docs/graphics-research.md §3.10). The 2D cockpit, HUD and MFDs are canvas items:
+## Godot draws them after the upscale, at the window's resolution. Godot lowers the texture mip bias itself.
 const UPSCALE := {"off": 1.0, "quality": 0.77, "balanced": 0.67}
 
 ## Terrain close up: the detail texture's strength (0 = off; global shader parameter, terrain.gdshader).
@@ -56,7 +59,7 @@ static func apply(vp: Viewport, env: Environment) -> void:
 	vp.use_taa = aa[2]
 	var scale: float = UPSCALE.get(Settings.upscaling, 1.0)
 	vp.scaling_3d_scale = scale
-	vp.scaling_3d_mode = upscale_mode() if scale < 1.0 else Viewport.SCALING_3D_MODE_BILINEAR
+	vp.scaling_3d_mode = upscale_mode(scale)
 	var close: bool = Settings.terrain_closeup
 	vp.anisotropic_filtering_level = (
 		Viewport.ANISOTROPY_16X
@@ -81,11 +84,28 @@ static func apply(vp: Viewport, env: Environment) -> void:
 	_apply_sky(env, Settings.sky == "atmospheric")
 
 
-## The spatial upscaler of the running driver: MetalFX on Metal, FSR 1 on the others.
-static func upscale_mode() -> Viewport.Scaling3DMode:
+## The 3D scaling mode at `scale`: the temporal upscaler with anti-aliasing "temporal"; else bilinear at native and the
+## spatial upscaler below (MetalFX spatial on Metal, FSR 1 on the others).
+static func upscale_mode(scale: float) -> Viewport.Scaling3DMode:
+	if Settings.antialiasing == "temporal":
+		return temporal_mode()
+	if scale >= 1.0:
+		return Viewport.SCALING_3D_MODE_BILINEAR
 	if RenderingServer.get_current_rendering_driver_name() == "metal":
 		return Viewport.SCALING_3D_MODE_METALFX_SPATIAL
 	return Viewport.SCALING_3D_MODE_FSR
+
+
+## The temporal upscaler of the running driver: MetalFX temporal on Metal (cheaper there, §3.10), FSR 2.2 on the others.
+static func temporal_mode() -> Viewport.Scaling3DMode:
+	if RenderingServer.get_current_rendering_driver_name() == "metal":
+		return Viewport.SCALING_3D_MODE_METALFX_TEMPORAL
+	return Viewport.SCALING_3D_MODE_FSR2
+
+
+## The temporal upscaler's name on the Anti-aliasing row.
+static func temporal_name() -> String:
+	return "MetalFX" if temporal_mode() == Viewport.SCALING_3D_MODE_METALFX_TEMPORAL else "FSR 2"
 
 
 ## "Atmospheric": a physically based sky (terrain/atmosphere.gdshader: Rayleigh / Mie scattering with the sun's

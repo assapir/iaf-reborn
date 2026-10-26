@@ -212,14 +212,15 @@ var stick_response := "linear"
 ## (joystick.gd `rocker`).
 var rocker_trim := false
 ## Render options for high resolutions (ours, Extras page; docs/rendering.md, terrain/render_options.gd):
-## anti-aliasing "msaa4" (as before) / "msaa4_fxaa" / "taa" (TAA instead of MSAA); the terrain close up (detail texture,
-## normal detail, 16× anisotropic filtering); the sky "original" (gradient) or "atmospheric" (physical scattering, sun
-## disc).
+## anti-aliasing "msaa4" (as before) / "msaa4_fxaa" / "taa" (TAA instead of MSAA) / "temporal" (the temporal upscaler
+## anti-aliases: FSR 2.2, MetalFX temporal on Metal; at the Upscaling row's scale); the terrain close up (detail
+## texture, normal detail, 16× anisotropic filtering); the sky "original" (gradient) or "atmospheric" (physical
+## scattering, sun disc).
 var antialiasing := "msaa4"
 var terrain_closeup := false
 var sky := "original"
 ## Upscaling: "off" (native), "quality" (3D at 0.77 of the window) or "balanced" (0.67); MetalFX spatial on Metal, FSR 1
-## on other drivers.
+## on other drivers, or the temporal upscaler with anti-aliasing "temporal".
 var upscaling := "off"
 ## Night lights (ours, Extras page; docs/rendering.md §5): "original" (the LT_ light sets as 1-px points) or
 ## "detailed" (glowing lights, the home airbases lit, the jets' navigation lights and strobes, stars, a moon,

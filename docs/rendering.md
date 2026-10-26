@@ -18,14 +18,14 @@ settings, save / load), `test_ui_smoke.gd` (Graphics → MORE and Extras rows in
 ## 1. Options
 
 Preferences → Graphics → MORE has our rendering rows. MSAA = multisample anti-aliasing, FXAA = fast approximate anti-aliasing,
-TAA = temporal anti-aliasing.
+TAA = temporal anti-aliasing, FSR = AMD FidelityFX Super Resolution.
 
 | Graphics → MORE row | choices (first = default) | what it sets |
 |---|---|---|
-| Anti-aliasing | MSAA 4x / + FXAA / TAA | MSAA 4x: viewport `msaa_3d` 4× (the project's setting since the start). + FXAA: also `screen_space_aa` FXAA, which softens the shader / texture edges that MSAA misses. TAA: `use_taa` in place of MSAA; it resolves sub-pixel shimmer over time (thin runway lines, distant wires), is a little softer and may ghost in fast rolls |
+| Anti-aliasing | MSAA 4x / + FXAA / TAA / FSR 2 | MSAA 4x: viewport `msaa_3d` 4× (the project's setting since the start). + FXAA: also `screen_space_aa` FXAA, which softens the shader / texture edges that MSAA misses. TAA: `use_taa` in place of MSAA; it resolves sub-pixel shimmer over time (thin runway lines, distant wires), is a little softer and may ghost in fast rolls. FSR 2 (MetalFX on Metal): the temporal upscaler anti-aliases the 3D scene, in place of MSAA and TAA, at the Upscaling row's scale (§1.7) |
+| Upscaling | Native / Quality / Balanced | the 3D scene's render scale: Native 1.0; Quality 0.77; Balanced 0.67 of the window. With Anti-aliasing MSAA 4x / + FXAA / TAA a spatial upscaler scales it up: MetalFX spatial on Metal, FSR 1 on other drivers (`render_options.gd upscale_mode()`), and the Anti-aliasing row still applies. With Anti-aliasing FSR 2 the temporal upscaler does it (FSR 2.2, MetalFX temporal on Metal), at Native as anti-aliasing only (§1.7). The 2D cockpit, HUD and MFDs are canvas items, drawn after the upscale at the window's resolution. Godot lowers the texture mip bias by log2(scale). Spatial saves 0.6 ms (Quality) / 1.4 ms (Balanced) at 4K today, 4.6 / 6.3 ms with SSAO + SSIL; Balanced breaks one-pixel 3D lines into dots (docs/graphics-research.md §3.10) |
 | Terrain close up | Original / Detailed | 16× anisotropic filtering (default 4×) for the grazing view of the ground, and in `terrain.gdshader` detail that follows the imagery, with a weight k fading from 1 at 300 m to 0 at 1.5 km (§1.1) |
 | Sky | Original / Atmospheric | Original: our gradient sky (ProceduralSkyMaterial) with the fixed fog colour. Atmospheric: `atmosphere.gdshader`, a clear-day sky computed from the sun's direction and the camera's altitude. The fog takes its colour from the sky (`fog_aerial_perspective` 1, `fog_sun_scatter` 0.1) and keeps its density (the original's fog distances). The cloud layer shows separate clouds (§1.2). Glow / bloom is off (it cost 3 ms) |
-| Upscaling | Native / Quality / Balanced | the 3D scene's render scale: Native 1.0; Quality 0.77; Balanced 0.67 of the window. A spatial upscaler scales it up: MetalFX spatial on Metal, FSR 1 on other drivers (`render_options.gd upscale_mode()`). The Anti-aliasing row still applies. The 2D cockpit, HUD and MFDs are canvas items, drawn after the upscale at the window's resolution. Godot lowers the texture mip bias by log2(scale). Saves 0.6 ms (Quality) / 1.4 ms (Balanced) at 4K today, 4.6 / 6.3 ms with SSAO + SSIL; Balanced breaks one-pixel 3D lines into dots (docs/graphics-research.md §3.10) |
 | Night lights | Original / Detailed | Original: the original's light points (§4). Detailed: glowing lights, the home airbases lit at night, the jets' navigation lights and strobe, stars, a moon and moonlight (§5) |
 | Night vision (Shift+N) | Off / Goggles | Goggles: Shift+N in flight puts the night-vision goggles on and off: the 3D view turns into a green image-intensified picture, the cockpit stays as it is (§8) |
 | Water | Original / Detailed | in `terrain.gdshader`: waves, sun glint and the sky's reflection on the sea and on lakes (§1.3) |
@@ -441,6 +441,33 @@ Left warm with your settings, Fly after 6 s on the TSD: the first flying frames'
 1.05–1.17 s for the detailed F-16D. That one is no shader: `Gltf.open_detailed` parses the model and makes its LODs
 on the main thread, and the mission screens' preload leaves detailed models out (`terrain_preload.gd`). Without
 Models Detailed the frame is gone (bench runs with each option off in turn).
+
+### 1.7 Temporal upscaler (Anti-aliasing FSR 2)
+
+Anti-aliasing FSR 2 sets the viewport's `scaling_3d_mode` to `SCALING_3D_MODE_FSR2` (AMD FSR 2.2), or to
+`SCALING_3D_MODE_METALFX_TEMPORAL` on Metal (cheaper there, docs/graphics-research.md §3.10; the row then reads
+MetalFX). MSAA and TAA are off: the upscaler accumulates jittered frames with the motion vectors and anti-aliases
+itself. The Upscaling row sets its input scale; Native (1.0) uses it as anti-aliasing only.
+
+The look, from `tests/godot/_temporal_shot.gd` (mission 231, Iris Xe, 1920×994 window, the jet moved at a fixed step per
+frame), against the default MSAA 4x, TAA and Quality spatial:
+
+- **Distant jets.** A jet crossing at 250 m/s, 5 km away, is a dark shape of a few pixels with MSAA 4x. TAA and
+  Native FSR 2 keep a faint dot; Quality FSR 2 loses it almost fully; Quality spatial keeps a soft blob. At 10 km the
+  jet is under a pixel: one faint pixel with MSAA 4x, nothing with the others. The temporal methods average a
+  sub-pixel object that moves across the jitter pattern away.
+- **Ghosting.** No trails seen behind the jet rolling 90°/s at 60 m and 300 m/s, nor around a fireball. Quality FSR 2
+  draws the ground in motion a little softer than native.
+- **The cockpit, HUD, MFDs and the F-35I's panoramic display** (`cockpit/pcd.gd`, a Control) are canvas items drawn
+  after the upscale: the same in every mode.
+
+Cost (inferred, not measured on the Iris Xe): the motion-vector pass is what TAA pays already. FSR 2's own passes
+cost more than TAA's resolve: on the M4 Pro at 4K, Quality FSR 2 took 11.3 ms against 8.3 ms for native TAA and
+9.4 ms for Quality MetalFX temporal (§3.10 there). On the Iris Xe, expect Quality FSR 2 near native TAA (the 3D
+scene at 0.59 of the pixels pays for the passes) and Native FSR 2 above it. To measure, run
+`BENCH_SET=antialiasing=temporal,upscaling=quality IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 2560x1440
+-s ../tests/godot/_flight_bench.gd` against `BENCH_SET=antialiasing=taa` and the default (§3.1), on an idle machine;
+or `tests/godot/_upscale_probe.gd`, which cycles the modes in one process.
 
 ## 2. Cloud layer (Graphics TEXTURED SKY, docs/front-end.md §12.4)
 
