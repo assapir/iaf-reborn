@@ -2,11 +2,33 @@
 # Hebrew: sldownb (pointing left / up) at the bar's start, slupb (pointing right / down) at its end; a click on the
 # start arrow scrolls left / up, on the end arrow right / down, one step of 5 map units; the pressed arrow shows _1.
 # SHOT_DIR=dir (a real render, tools/godot_window.sh) writes tsd_arrows_en.png / tsd_arrows_he.png.
+# Also the text.emf labels: they scale with the map (501060 inside EnumEnhMetaFile, docs/front-end.md §8), so
+# JERUSALEM's text ends just west of its city dot (x 289.2) at every zoom up to 32, and keeps its zoom-32 size beyond.
 extends "res://../tests/godot/base.gd"
 
 
 func press(tsd: Control, fe: Control, p: Vector2, down: bool) -> void:
 	tsd._gui_input(mouse_button(fe._to_screen(p), down))
+
+
+func check_labels(fe: Control, tsd: Control) -> void:
+	var op: Dictionary = {}
+	for o in tsd.map_canvas.text_ops:
+		if o.text == "JERUSALEM":
+			op = o
+	# The text's length in map units, measured at 100 px per map unit.
+	var end: float = op.pos.x + fe.font.get_string_size(op.text, HORIZONTAL_ALIGNMENT_LEFT, -1, op.px * 100).x / 100
+	check(end > 286.5 and end < 290.0, "JERUSALEM ends at x %.1f, by its dot (289.2)" % end)
+	var s: float = fe._scale()
+	for z in [1.0, 3.375, 32.0]:
+		tsd.zoom = z
+		check(
+			absf(tsd.label_px(op) - op.px * z * s) <= 0.5,
+			"at zoom %s the label's font is %d px, its 4.97 map units at %.2f px each" % [z, tsd.label_px(op), z * s]
+		)
+	var px32: int = tsd.label_px(op)
+	tsd.zoom = 64.0
+	check(tsd.label_px(op) == px32, "beyond zoom 32 a label keeps its zoom-32 size (%d px)" % px32)
 
 
 func run() -> void:
@@ -76,5 +98,7 @@ func run() -> void:
 			var path := OS.get_environment("SHOT_DIR").path_join("tsd_arrows_%s.png" % lang)
 			root.get_viewport().get_texture().get_image().save_png(path)
 			print("saved ", path)
+		if lang == "en":
+			check_labels(fe, tsd)
 		fe.queue_free()
 		await frames(2)

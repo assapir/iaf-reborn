@@ -731,14 +731,21 @@ func _thumb(axis: int) -> float:
 	return r.x if room <= 0.0 else lerpf(r.x, r.y, scroll[axis] / room)
 
 
-## Labels of text.emf: re-issued at their map position without scaling (501060); then units,
-## waypoints and the mission title / clock.
+## A text.emf label's font size in screen px. 501060 re-issues each EXTTEXTOUTW as TextOutA inside EnumEnhMetaFile
+## (5010e0), so the metafile's own font is scaled with the map like the rest of the picture: a label keeps its length
+## in map units at every zoom and ends at its city's dot. Beyond the original's zoom 32 (the editor's scenery zoom)
+## the labels stop growing.
+func label_px(op: Dictionary) -> int:
+	return int(round(op.px * minf(zoom, ZOOM_MAX) * fe._scale()))
+
+
+## Labels of text.emf at their map position (501060); then units, waypoints and the mission title / clock.
 func _draw_overlay() -> void:
 	var s: float = fe._scale()
 	if layers.text:
 		for op in map_canvas.text_ops:
 			var pos: Vector2 = (op.pos - scroll) * zoom * s
-			var px := int(round(op.px * s))
+			var px := label_px(op)
 			if px < 1:
 				continue
 			overlay.draw_string(fe.font, pos, op.text, HORIZONTAL_ALIGNMENT_LEFT, -1, px, op.color)

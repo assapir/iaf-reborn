@@ -413,8 +413,14 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
 * **The map is an EMF vector metafile**: `menu/emf/82.emf`. The TSD uses neither isr.bmp nor the terrain.
   Missions 110–119 use `67.emf` and 120–129 use `73.emf` (the 1967 and 1973 maps).
   * Overlays: `emf/grid.emf` when **Grid** is on; `emf/text.emf` when **Text** is on.
-    * Text records (EMR_EXTTEXTOUTW) are re-issued as `TextOutA` at their EMF position (`501060`), so
-      the labels do not scale.
+    * Text records (EMR_EXTTEXTOUTW) are re-issued as `TextOutA` at their EMF reference point (`501060`, the
+      callback of `EnumEnhMetaFile` in `5010e0`). `TextOutA` drops the record's per-character advances; the font is
+      the metafile's own (its EXTCREATEFONTINDIRECTW / SELECTOBJECT records play normally), and the DC keeps the
+      playback's mapping. So a label scales with the map like the rest of the metafile: its font height is
+      `lfHeight` × zoom (JERUSALEM: 138 of 16383 frame units, 4.97 map units, 5 px at zoom 1, 159 px at zoom 32).
+      A label keeps its length in map units and ends just west of its city's dot (text.emf's 4.5-unit squares;
+      JERUSALEM's text ends at x ≈ 288.8, its dot spans 289.2–293.7). The mission editor zooms past 32 for the
+      scenery; there the labels keep their zoom-32 size. Test: `tests/godot/test_tsd_arrows.gd`.
   * Polygons fill as GDI fills a `PolyPolygon`: all rings of a record are one region under its fill mode, ALTERNATE
     (even-odd) or WINDING (non-zero; 752 of the 1008 polygons in `82.emf`). The rings cross themselves and overlap.
     `menu/tsd_map.gd` gets the triangles from `IafEmf.fill_triangles` (`iaf_formats::emf::fill_triangles`, a sweep

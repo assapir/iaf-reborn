@@ -8,7 +8,7 @@ var tsd: Control
 var map_batches: Array = []
 var grid_batches: Array = []
 var text_shape_batches: Array = []
-## text.emf labels: {pos (map units), text, px (font px at zoom 1), color}.
+## text.emf labels: {pos (map units), text, px (font px at zoom 1, scaled with the zoom), color}.
 var text_ops: Array = []
 
 
