@@ -12,6 +12,8 @@ uniform float far_m = 2000.0;
 uniform float grow_m = 300.0;
 // The full model's mean brightness: its leaf texture's visible leaves and its occlusion.
 const float GAIN = 0.9;
+// The full model's crown normal bent up (scenery_foliage.gdshader).
+const float UP = 0.5;
 
 varying vec3 v_colour;
 
@@ -30,6 +32,7 @@ void vertex() {
 	v_colour = albedo * GAIN * b * vec3(1.0 + 0.25 * h, 1.0, 1.0 - 0.3 * h) * ao;
 	float s = 1.0 - smoothstep(far_m - grow_m, far_m, d);
 	VERTEX *= d < near_m - band_m ? 0.0 : s;
+	NORMAL = normalize(mix(NORMAL, vec3(0.0, 1.0, 0.0), UP));
 }
 
 void fragment() {

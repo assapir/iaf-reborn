@@ -169,6 +169,13 @@ the layer.
     (`_finest`). So a level-2 node splits into the layer's level-1 nodes within ≈ 7.6 km (1.5 × its 5 km side at the
     default terrain detail; a 2.5 m texel is one screen pixel at ≈ 2 km), as for the airbase insets.
 
+- **Warm hills** (Survey 2 m modern only; `render_options.gd` sets the global `terrain_warm`): the photo's auto-levels
+  keep each sheet's colour balance, so the pale limestone, chalk and terra rossa of the Carmel, the Galilee and the
+  Judean hills come out a neutral grey, which reads as snow under the sky's blue light. `terrain.gdshader` multiplies
+  grey (chroma under 0.06–0.12 in ≈ sRGB), pale (luminance 0.3–0.75) land by (1.2, 1.0, 0.76), faded in from 60 m
+  to 200 m above sea level, so the coastal plain's towns and roads keep the photo's own colours; water and white
+  (snow, bright roofs) stay. A few ALU per pixel, no texture sample (inferred: no measurable cost).
+
 ## 6. Attribution and checks
 
 - **Credits**: CC BY (Creative Commons Attribution) sources need a credit. Every converted layer's `attribution`

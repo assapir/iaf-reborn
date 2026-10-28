@@ -317,16 +317,21 @@ give where and how tall; `tree_rows` (crates/iaf-avionics/src/scenery.rs) adds a
   | Kind | Full model (to 250 m) | Far model (250 m–2 km) |
   |---|---|---|
   | broadleaf | 16 leaf cards round an ellipsoid out to the plain canopy's size, a solid core, the trunk: 80 triangles | the plain ball: 36 |
-  | pine | 6 tiers of 5 drooping cards, a leader, a solid cone core, the trunk: 88 | the plain cone: 12 |
-  | cypress | 7 tiers of 3 upright cards, the same: 70 | the plain cone: 12 |
+  | pine | 6 tiers of 5 drooping cards reaching out 1 − f^2.5 of the radius at height fraction f (a round crown, no leader), a solid core, the trunk: 84 | a dome (`_dome`: a ring at the foot, one of 0.6 the radius at 70 % of the height, the apex, with an ellipsoid's normals): 18 |
+  | cypress | 7 tiers of 3 upright cards (a cone), a leader, a solid core, the trunk: 70 | the plain cone: 12 |
   | palm | 10 fronds (3 segments each, folded in a V), the trunk: 132 | the plain fronds: 20 |
 
   The far model is the plain canopy, solid, drawn by `scenery_foliage_far.gdshader` in the full model's leaf colour
   (times 0.9, its mean brightness), with each tree's own shade and hue and the underside darker, so a far crown keeps
   the near one's hue and brightness.
 
+- **Colour:** the leaf and trunk colours (`FOLIAGE` in scenery.gd) are linear albedo, passed to the shaders as a
+  Vector3 (`_linear`): a Color reaches a vec3 uniform converted from sRGB to linear, about ten times darker for
+  these values. Pine (0.057, 0.09, 0.028) is a mid, slightly olive green, as Aleppo pines read from the air; olive
+  and carob a grey-green; cypress darker.
 - **Shading** (`scenery_foliage.gdshader`): the cards are cut at the texture's 0.5 coverage (alpha-to-coverage with
-  MSAA). The cards carry the crown's round normal, so a crown is lit as one volume. The vertex colour holds the
+  MSAA). The cards carry the crown's round normal bent halfway up (both models, `UP`), so a crown is lit as one
+  volume and its side away from the sun reads mid-green, as leaves scatter light, not black. The vertex colour holds the
   occlusion: darker toward the crown's heart and underside, the trunk darker under the crown. Sunlight passes
   through the leaves (Godot's back-light). Each tree gets its own brightness (±18 %) and a little yellower or bluer
   hue. The crowns sway gently (6 cm at the tips). The leaves are matte (specular 0.1, the core 0).
@@ -334,8 +339,25 @@ give where and how tall; `tree_rows` (crates/iaf-avionics/src/scenery.rs) adds a
   200 m; the far model grows in from nothing over the last 300 m before 2 km, as the plain trees do.
 
 **Without the textures** (setup could not reach ambientCG): the plain models as before, a six-sided trunk and a
-low-poly canopy in one colour (`scenery_tree.gdshader`): about 80 triangles to 700 m, a canopy-only model (6–24
-triangles) beyond, growing in from nothing over the last 300 m before 2 km.
+low-poly canopy in one colour (`scenery_tree.gdshader`, the colour linear as above; the pine a dome): about 80
+triangles to 700 m, a canopy-only model (6–24 triangles) beyond, growing in from nothing over the last 300 m before
+2 km.
+
+**The hills' look, 2026-10-28** (the Carmel from 80 m, `_showcase_shot.gd` scene `carmel_low`; A/B one switch at a
+time). Before, the pines were near black (sRGB ≈ 20, 26, 23) and the ground between them white:
+
+- the leaf colours reached the shaders converted from sRGB (above): about ten times too dark. Passed linear;
+- the dark forest filling the view pushed the auto-exposure up (rendering.md §1.2), so the photo's pale ground
+  between the trees went white (sRGB ≈ 157 against 140 with Scenery Off). With the trees mid-green it is back to
+  the photo's own value;
+- the Survey photo's ground there is a neutral grey (≈ 135, 137, 136): warmed in the terrain shader (imagery.md §5);
+- the pines' cones read as a fir plantation: a round crown near and far.
+
+Ground textures and Terrain close up changed nothing of it (the same picture with either off). Tried and dropped:
+the far pine as a two-apex bicone (12 triangles, as the cone): from 250 m it read as rows of diamonds; as a cone
+cut at 45 % of its radius and capped: rows of buckets. Open: the canopy places a pine in every 10 m cell of 4 m or
+more, so a forest is an even stand; the real Carmel is a mosaic of pine, oak maquis and open scrub. That needs the
+cell data rebuilt (§1.2), not the renderer.
 
 ### 3.3 Scenery = Detailed: facades and roofs
 

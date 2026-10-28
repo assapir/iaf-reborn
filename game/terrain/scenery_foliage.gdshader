@@ -18,6 +18,8 @@ uniform float near_m = 450.0;
 uniform float band_m = 50.0;
 
 const float BARK = 3.0;
+// How far a crown's normal is bent up (vertex()).
+const float UP = 0.5;
 
 varying vec3 v_tint;
 varying float v_fade;
@@ -42,6 +44,11 @@ void vertex() {
 		// A gentle sway, the tips most.
 		float t = TIME * 1.3 + seed * 6.283;
 		VERTEX.xz += COLOR.g * 0.06 * vec2(sin(t), cos(t * 0.77));
+	}
+	// A crown's light is scattered by its leaves, not a solid's: the normal bent halfway up, so the side away from
+	// the sun reads mid-green, not black (scenery_foliage_far.gdshader the same).
+	if (COLOR.a < 0.5) {
+		NORMAL = normalize(mix(NORMAL, vec3(0.0, 1.0, 0.0), UP));
 	}
 }
 
