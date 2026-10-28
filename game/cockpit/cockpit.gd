@@ -388,13 +388,20 @@ const VIEW_WIDTH := 640.0
 ## The cockpit camera looks this far below the nose axis (v1.1 FUN_00585270: max(head pitch − 5.5°,
 ## 0.1·(|head yaw| − 90°)) with the head straight ahead; v1.0 8°).
 const VIEW_LOOK_DOWN_DEG := 5.5
+## Real HUD view (ours): head yaw or pitch at which the view is back to the original's. The panel pans 1920 px per 90°
+## of yaw (head_pan), so at 20° the glass (≤ 98 px from the centre) has left the 640 px screen.
+const REAL_VIEW_HEAD_DEG := 20.0
 
 
 ## Focal length of the 3D view in screen pixels: the original's, scaled like the 2D art. A wider or
 ## taller window keeps it and shows more of the world around the original frame. Real HUD view (ours): the focal
-## length whose pixels per degree fit the jet's real HUD field of view in the HUD glass (IafRealHud).
+## length whose pixels per degree fit the jet's real HUD field of view in the HUD glass (IafRealHud), with the head
+## forward; turned past REAL_VIEW_HEAD_DEG (the glass off the screen), the original's, blended in between, so the
+## look-around views keep the original's view of the cockpit model (real-hud.md "Real view").
 func focal_length() -> float:
-	if Settings.hud_style == "real" and Settings.hud_view == "real":
+	var f0 := VIEW_WIDTH / 2.0 / tan(deg_to_rad(VIEW_FOV_DEG) / 2.0) * ui_scale()
+	var away := clampf(maxf(absf(head.x), absf(head.y)) / deg_to_rad(REAL_VIEW_HEAD_DEG), 0.0, 1.0)
+	if Settings.hud_style == "real" and Settings.hud_view == "real" and away < 1.0:
 		var h: Dictionary = layout.get("HUD", {})
 		var l: float = h.get("LeftBorder", 98)
 		var t: float = h.get("TopBorder", 70)
@@ -402,8 +409,8 @@ func focal_length() -> float:
 		var glass := Rect2(-l, -t, l + float(h.get("RightBorder", 98)), t + float(h.get("BottomBorder", 70)))
 		var k: float = ClassDB.class_call_static("IafRealHud", "real_view_px_per_deg", cockpit_dir, glass)
 		if k > 0.0:
-			return k / tan(deg_to_rad(1.0)) * ui_scale()
-	return VIEW_WIDTH / 2.0 / tan(deg_to_rad(VIEW_FOV_DEG) / 2.0) * ui_scale()
+			return lerpf(k / tan(deg_to_rad(1.0)) * ui_scale(), f0, away)
+	return f0
 
 
 ## The panel art for FUN_0052e750 (null: no art, the viewport is 480 rows) and its per-column D cache.

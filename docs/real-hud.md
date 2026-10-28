@@ -634,6 +634,10 @@ Extras → "Real HUD view": Original (1998) / Real field of view. It acts with H
   - Code: `Jet::fov_deg` / `Jet::real_view_px_per_deg` (`real_hud/mod.rs`) → `IafRealHud.real_view_px_per_deg` →
     `cockpit.gd` `focal_length()`. The HUD layout's boresight and gun cross move with it (`cockpit.gd` `view_y`), so
     they keep pointing where they did.
+- **Looking around:** the Real view holds with the head forward only. As the head turns (snap views, free look,
+  padlock), the view blends back to the original 50°, reached at 20° of head yaw or pitch (`cockpit.gd`
+  `REAL_VIEW_HEAD_DEG`), where the HUD glass has left the screen (the panel pans 1920 px per 90°). The look-around
+  views then show the cockpit model (`*_bc`) from the original eye at the original scale.
 
 | Jet | IFOV across × up | Basis |
 |---|---|---|
@@ -647,6 +651,11 @@ Until 2026-10-26 the F-35I took the F-16's Real view by mistake: `cockpit.gd` `f
 folder's last part, and the F-35I's (`res://extra/planes/f35i/cockpit`) ends in `cockpit`, which `Jet::of_cockpit`
 reads as the F-16. The view widened and the eye seemed to move between Real view off and on. It now passes the whole
 path (`test_hud.gd` checks it).
+
+Until 2026-10-28 the Real view held in every cockpit view. Looking back over the canopy of an F-16, the wider view
+drew the seat and canopy frame smaller, as if further back, and showed the dark cut-off floor under the seat, below
+the part of the `f16_bc` model the original view shows. `test_hud.gd` and `test_views.gd` check the back view's
+focal length and eye.
 
 With Real view the view is wider (the F-16's about 78° across, the Lavi's about 88°), so the GPU draws more of the
 world. Measured on the Intel Iris Xe (2026-10-26, `_flight_bench.gd`, mission 311's F-16 at 1485×1041, default
