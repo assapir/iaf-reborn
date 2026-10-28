@@ -213,6 +213,13 @@ live play while recording at 4K. Two ways:
 - **Steps:** 1. research (done: [f16i.md](f16i.md), with its open questions and build outline); 2. build it behind the
   switch, the 1990s Barak unchanged.
 
+## F-15I Ra'am option (Extras switch, wishlist; user 2026-10-28)
+- **Switch:** the F-15 the same way as the F-16I Sufa above: the game's F-15 stays the default, and the switch flies
+  the IAF's F-15I Ra'am (F-15E-derived two-seater) in the same cockpit and model slot.
+- **What it would change** (each with public sources, as for the Sufa): flight data (F100-PW-229 engines, conformal
+  fuel tanks), radar (APG-70I), helmet and HUD, weapons, RWR / self-protection, and how it looks: the Ra'am on the
+  Detailed F-15 (the Zaretto F-15C model, added 2026-10-28) with conformal tanks, the second seat and the IAF livery.
+
 ## Modern aircraft and weapons (post everything)
 - Newer aircraft (e.g. F-16I Sufa, F-15I Ra'am, and modern threats; the F-35I Adir is built, f35i.md) together with
   their weapons (e.g. AIM-120 AMRAAM, AIM-9X, Python 5, Derby, JDAM / SPICE / GBU families, Delilah, modern SAMs).
