@@ -213,6 +213,23 @@ func run() -> void:
 	check(is_equal_approx(h.x, PI) and is_equal_approx(h.y, 0.20944), "F2 held: back view (180°, 12° up)")
 	var ldir: Vector3 = -tv.camera.global_basis.z
 	check(ldir.dot(-tv.rig.global_basis.z) < -0.9, "the camera looks backwards")
+	# With the Real HUD view on (it widens the forward view), the back view keeps the original's eye and view of the
+	# _bc model: the eye at the jet's origin, the model moved by the descriptor's eye, the original 50° focal length.
+	var f0: float = tv.cockpit.focal_length()
+	settings().hud_style = "real"
+	settings().hud_view = "real"
+	tv._apply_view()
+	var eye: Array = load("res://aircraft/aircraft_model.gd").load_descriptor(tv.player.plane).eye
+	check(
+		(
+			tv.camera.position == Vector3.ZERO
+			and tv.own_bc.position.is_equal_approx(-Vector3(eye[0], eye[1], eye[2]) * tv.aircraft.scale)
+			and is_equal_approx(tv.camera.size, tv.camera.near * tv.cockpit.size.y / f0)
+		),
+		"Real HUD view, back view: the original eye and focal length (%s, %s)" % [tv.own_bc.position, tv.camera.size]
+	)
+	settings().hud_style = "original"
+	settings().hud_view = "original"
 	press(tv, KEY_F2, false, false, false)
 	check(tv.views.snap == null, "F2 released")
 	# Cockpit pan right: free look, accelerating; release stops.

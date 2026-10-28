@@ -54,6 +54,13 @@ func run() -> void:
 	settings().hud_style = "real"
 	settings().hud_view = "real"
 	check(cp.focal_length() < 686.0 * s, "Real view: the F-16's view widens")
+	# The head turned away from the glass: the original view (the look-around views see the _bc model as the original).
+	var fr: float = cp.focal_length()
+	cp.head = Vector2(PI, 0.20944)
+	check(absf(cp.focal_length() - 686.2414 * s) < 0.01 * s, "Real view, back view: the original focal length")
+	cp.head = Vector2(deg_to_rad(10.0), 0)
+	check(absf(cp.focal_length() - (fr + 686.2414 * s) / 2.0) < 0.01 * s, "Real view, head 10° right: halfway")
+	cp.head = Vector2.ZERO
 	var dir: String = cp.cockpit_dir
 	cp.cockpit_dir = "res://extra/planes/f35i/cockpit"
 	check(absf(cp.focal_length() - 686.2414 * s) < 0.01 * s, "Real view: the F-35I keeps the original focal length")

@@ -283,7 +283,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   there (the original draws its helmet display).
 
   "Real HUD view" (ours, with HUD Real): Original keeps the 50° view; Real field of view widens the cockpit view so
-  that the jet's real HUD field fits its glass (real-hud.md "Real view").
+  that the jet's real HUD field fits its glass, with the head forward; looking around, the view is the original's
+  (real-hud.md "Real view").
 
   Ours where the sources stop: the EEGS wingspan (35 ft), the sights' bombing depression set automatically, the
   F-35's gun / A-G graphics (the F-16's), the F-16's pull-up anticipation cue's scale and size, the MiGs' range-scale
