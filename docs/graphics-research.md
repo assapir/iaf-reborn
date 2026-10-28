@@ -195,8 +195,11 @@ GPL-2.0-only files cannot ship in it.
 hinged (gear, doors, flaps, ailerons, stabilators, rudders, canopy, air brake, hook, nozzles) and a full cockpit:
 3D model by Enrique Laso, rig by Richard Harrison, cockpit photo textures by GeneB. Its licence is not stated
 anywhere: GitHub reports none, the repo has no COPYING and no file headers, zaretto.com says "All rights reserved",
-and the FGAddon copy was first committed on 2015-07-04, before FGAddon required GPLv2+. It can only ship after a
-written GPL-2.0-or-later grant from its authors. Rejected:
+and the FGAddon copy was first committed on 2015-07-04, before FGAddon required GPLv2+. Answered on 2026-10-27 by
+Richard Harrison (Zaretto/fg-aircraft issue #211[^zaretto211]): the repository is **GPL-2.0-only**, and a change
+would need every copyright holder in its AUTHORS file. GPL-2.0-only files can't ship in our GPL-3.0-or-later repo,
+but anyone may use and modify them, so setup can download the model at a pinned commit and convert it on the
+user's machine, like the game's own data (inferred). Rejected:
 - the Sketchfab F-15Es by bohmerang (CC BY-NC-SA) and andertan (CC BY-ND), and ARAZ BASIC's "free rig", which is
   built on bohmerang's;
 - low-poly CC BY F-15s (2.7–13.6k triangles), no better than the original;
@@ -542,6 +545,8 @@ performance pass: the 2–3 ms streaming spikes, and the AI scans on the WorkerT
 - Zaretto F-15 / F-14 (no licence file): https://github.com/Zaretto/fg-aircraft
 - F-4X (GPLv2+): https://github.com/Zaretto/F-4X
 - FGAddon aircraft list: https://sourceforge.net/p/flightgear/fgaddon/HEAD/tree/trunk/Aircraft/
-- FlightGear policy (FGAddon GPLv2+ since 2015): https://www.flightgear.org/about/policy , https://wiki.flightgear.org/FGAddon
+- FlightGear policy (FGAddon strongly recommends GPLv2+ for original content; not a requirement, per the F-15 author in issue #211): https://www.flightgear.org/about/policy , https://wiki.flightgear.org/FGAddon
 - Kfir C.10 on Sketchfab (CC BY, game rip — not used): https://sketchfab.com/3d-models/kfir-c10-block-60-c6534a1cac1e4a13817ac6f8eb35fe96
 - Godot 4.7 RC notes: https://gamedev.net/news/3813-release-candidate-godot-47-rc-1/
+
+[^zaretto211]: Richard Harrison, reply in "What is the license of the F-15 model (aircraft/F-15)?", Zaretto/fg-aircraft issue #211, 2026-10-27, https://github.com/Zaretto/fg-aircraft/issues/211
