@@ -858,6 +858,22 @@ town but Damascus, by its `LT_` sets (§4). The lights need setup's scenery (sce
 building footprints, whatever the Scenery switch. Without the scenery there are none. No new data: the buildings come
 from OpenStreetMap and the Microsoft footprints, credited with the scenery (docs/credits.md).
 
+**Where the buildings come from:**
+
+- the scenery cells (`assets/converted/scenery/L1`), and
+- setup's light cells (`assets/converted/scenery/lights/L1`, `iaf_tools::scenery::build_lights`, made by the
+  scenery step after the cells; by hand `iaf-scenery lights assets`). The scenery stops where the Survey photo stops:
+  the kept target insets (imagery.md §3: a target site keeps its 1998 art), Tel Aviv's coast among them. The light
+  cells hold, per level-1 node of map.ptt's Israel region, the buildings the scenery cell of that node lacks, by the
+  scenery's rules otherwise (`Rules::lights_open`: on land, off the airbases; the units' clearances; World scale
+  Real's sites), with no photo test and no roof colour. The town in an inset is lit at night; its ground stays the
+  1998 art.
+
+  Measured 2026-10-28: 39 s, 3 004 light cells, 597 870 buildings (41 MB) beyond the scenery's 2.08 M: 275 000 in
+  nodes the Survey layer lacks (Gaza and the West Bank inside the region, about 60 000 in Tel Aviv's inset), the
+  rest at the inset and photo edges inside covered nodes. Tried first: lights only from the scenery cells. Tel Aviv's
+  centre, a kept inset, stayed a dark block in the middle of a lit Gush Dan.
+
 **Placement** (`crates/iaf-avionics/src/city_lights.rs`, seeded per cell, the same lights every run):
 
 | Light | Where | Colour |
@@ -867,46 +883,49 @@ from OpenStreetMap and the Microsoft footprints, credited with the scenery (docs
 | Porch light | one in five low houses, by a wall, 2.5 m up | warm white, dim |
 | Obstruction light | on the roof of buildings 60 m and taller | red, always drawn |
 
-The dense centres (40 % or more of a 100 m square built over) get brighter lamps and more white ones. Over the whole
-layer (2.08 M buildings): 2.9 M lights, 1.9 M of them lamps and 0.77 M windows, placed in 0.6 s on one core.
+The dense centres (40 % or more of a 100 m square built over) get brighter lamps and more white ones. Over the
+scenery's 2.08 M buildings: 2.9 M lights, 1.9 M of them lamps and 0.77 M windows, placed in 0.6 s on one core.
 
-**Streaming** (`crates/iaf-godot/src/city_lights.rs` `IafCityLights`, `city_lights.gd`): blocks of 4 × 4 scenery
-cells (≈ 10 km), made on a thread of the extension's own (a plain thread: no Godot pool task to wait for at the
-quit). It reads only the buildings of each cell file (`Cell::read_buildings`) and stands each light on the terrain
-height field; a block whose terrain is not loaded yet is asked again a second later. Each block has two point
-meshes: its far points (the lights of rank below 0.1, every light has a seeded rank), drawn to 60 km, and its near
-points (the rest), drawn while the block is within 8 km. Made blocks reach the GPU three per frame.
+**Streaming** (`crates/iaf-godot/src/city_lights.rs` `IafCityLights`, `city_lights.gd`): blocks of 4 × 4 cells
+(≈ 10 km), made on a thread of the extension's own (a plain thread: no Godot pool task to wait for at the quit). It
+reads only the buildings of each cell file (`Cell::read_buildings`) and stands each light on the terrain height
+field; a block whose terrain is not loaded yet is asked again a second later. Each block has two point meshes: its
+far points (the lights of rank below 0.1, every light has a seeded rank), drawn to 60 km, and its near points (the
+rest), drawn while the block is within 8 km. Made blocks reach the GPU three per frame.
 
-**Drawing** (`city_lights.gd SHADER`, additive points, no depth write):
+**Drawing** (`city_lights.gd SHADER`, additive points, no depth write). The points carry the look; the ground stays
+night-dark between them:
 
-- Each light is a point with a bright core and a soft halo, 5 m wide in the world, at least 1 pixel (at 1080 rows,
-  the 3D render's rows) and at most 18. A light smaller than its minimum keeps the energy of its glow (its area ×
-  3), so a far town is about as bright on average as a near one, an even carpet instead of a white blaze.
-- Every light shows to 1.5 km; from there to 8 km only those of rank below 0.1 stay, and they take the dropped
-  ones' energy. A far town thins out instead of turning into a solid sheet of points.
+- Each light is a point with a bright core and a soft halo, 5 m wide in the world, at most 18 pixels and at least
+  1.5 pixels within 3 km, falling to 1 pixel by 10 km (at 1080 rows, the 3D render's rows). A point of 1 pixel fades
+  under TAA's blend; the near ones are few enough to draw larger. A light smaller than its minimum keeps the energy of
+  its glow (its area × 3), so a far town is about as bright on average as a near one, an even carpet instead of a
+  white blaze.
+- Every light shows to 1.5 km; from there to 6 km only those of rank below 0.1 stay, and they take the dropped ones'
+  energy. A far town thins out instead of turning into a solid sheet of points.
 - A light is pulled toward the eye by its size and 1 % of its distance, so the coarser far terrain does not hide it.
   Far lights dim with half the fog and fade out over the last 20 % of 60 km.
-- **The towns' glow**: the lamps' light on the ground and the buildings. The lights thread sums every light's
-  brightness per 125 m square over the whole layer (an R8 texture of 1 221 × 3 356 with its mipmaps, 5.5 MB). The
-  terrain shader and the
-  scenery's wall shaders add the surface's own colour × the glow × sodium orange as emission
-  (`terrain/city_glow.gdshaderinc`), so the streets and roofs keep their pattern under the light. It is a global
-  shader parameter: off (k = 0) by day, with Night lights Original and when the flight scene ends.
+- **The haze** over the dense lamp clusters: the lights thread sums every light's brightness per 125 m square (an R8
+  texture of 1 221 × 3 356 with its mipmaps, 5.5 MB). The terrain shader and the scenery's wall shaders read it per
+  vertex (a building at its centre) and add a faint sodium emission, the summed brightness to the power 1.5, mostly
+  flat and a fifth of it the surface's own colour (`terrain/city_glow.gdshaderinc`): a dense centre glows softly, a
+  suburb's sparse lamps hardly. It is a global shader parameter: off (k = 0) by day, with Night lights Original and
+  when the flight scene ends.
 
 **Cost** (Intel Iris Xe, 2560 × 1440, `BENCH_BEST=1`, mission 311 moved over Tel Aviv at 22:00, 3000 m at 250 m/s,
-2026-10-28): `tests/godot/_flight_bench.gd` with `BENCH_TOGGLE=_city_lights` shows and hides the points and the
-glow every 0.5 s in one run, so the cost is free of the run-to-run noise (± 1 ms here):
+2026-10-28): `tests/godot/_flight_bench.gd` with `BENCH_TOGGLE=_city_lights` shows and hides the points and the haze
+every 0.5 s in one run, so the cost is free of the run-to-run noise (± 1.5 ms here). Four runs:
 
 | GPU time per frame | city lights off | on | cost |
 |---|---|---|---|
-| points and glow, run 1 | 15.51 ms | 17.13 ms | +1.62 ms (10 %) |
-| points and glow, run 2 | 16.36 ms | 17.85 ms | +1.49 ms (9 %) |
-| the points only (measured before the glow was added), two runs | 15.47 / 15.51 ms | 16.42 / 16.50 ms | +0.95 / +0.99 ms |
+| run 1 | 15.35 ms | 16.80 ms | +1.45 ms |
+| run 2 | 17.18 ms | 18.98 ms | +1.80 ms |
+| run 3 | 17.92 ms | 18.90 ms | +0.98 ms |
+| run 4 | 16.92 ms | 17.94 ms | +1.02 ms |
 
-So the points cost ≈ 1.0 ms and the glow ≈ 0.6 ms (one texture lookup per pixel of ground and wall). Memory: ≈ 440 000
-points around Gush Dan (16 bytes each, ≈ 7 MB) and the glow texture (5.5 MB). The points' cost is their fill: 1.0 ms
-with the 1-pixel minimum, 2.7 ms with 1.6 pixels and 4 ms with 1.8 pixels and twice the windows (measured the same
-way); their vertices alone cost about 0.9 ms. Measure again with:
+About 1.2 ms (7 %). Memory: ≈ 640 000 points around Gush Dan with Tel Aviv's inset (16 bytes each, ≈ 10 MB) and the
+haze texture (5.5 MB). The points' cost is their fill: with a 1-pixel minimum everywhere 1.0 ms, with 1.6 pixels 2.7
+ms, with 2 pixels near and the haze read per pixel 2.5 ms; their vertices alone cost about 0.9 ms. Measure again with:
 
 ```sh
 flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 BENCH_BEST=1 BENCH_HOUR=22 \
@@ -919,25 +938,27 @@ Tried and dropped (2026-10-28):
 - points of 1.8 pixels at least and a 7 m glow, with 3.5 % of the windows lit: 3.6 ms; the far towns burned white
   where many points overlapped;
 - the far points `1 / kept share` brighter without the energy rule: a white blaze from 10 km on;
-- the lamps as one per 26 m square: 6.1 M lights over the layer, half of them windows, too many points to fill.
+- the lamps as one per 26 m square: 6.1 M lights over the layer, half of them windows, too many points to fill;
+- the glow as the surface's own colour under sodium light (emission = albedo × light, up to 0.35): whole districts
+  read as the daytime photo tinted orange, the roofs' and fields' texture plainly visible (Haifa's hillsides as at
+  dusk). Now a faint, mostly flat haze over the dense centres only;
+- the glow read per pixel: 0.6 ms; per vertex it is smooth enough for a haze.
 
 Open:
 
-- **Where the scenery has no cells there are no lights**: the kept target insets, Tel Aviv's coast among them
-  (imagery.md §3: a target site keeps its 1998 art, so the Survey layer and the scenery stop there), and everything
-  outside Israel. A light layer of its own, made by setup from the building sources over the whole region, would fill
-  them.
+- Outside map.ptt's Israel region (Damascus, Amman, Cairo) there are no city lights: the building sources cover
+  Israel, the West Bank and Gaza only.
 - No road data at run time: the lamps follow the facades, so the main roads do not stand out as bright lines. The
   scenery build reads OpenStreetMap's roads (scenery.md §1.3); lamps along them would need the cell format to carry
   them.
-- With Anti-aliasing TAA the 1-pixel points are softer and dimmer than with MSAA (the temporal blend averages a point
-  that is under a pixel).
-- From 8000 m the towns 20 km and more away fade into the night's fog (the glow is fogged as the ground is): a lit
-  coast reads faintly.
+- With Anti-aliasing TAA the far 1-pixel points are softer and dimmer than with MSAA (the temporal blend averages a
+  point that is under a pixel).
+- From 8000 m the towns 20 km and more away fade into the night's fog: a lit coast reads faintly.
 
 Screenshots: `tests/godot/_showcase_shot.gd` scenes `night_city` (Gush Dan from 3000 m), `night_high` (8000 m over
-the sea), `night_town_low` (300 m over Rishon LeZion) and `night_haifa` (Haifa bay from 3000 m), with `-- --hour 22`.
-The night glows there are sized in the shot's rows (the window under xvfb is smaller). Test: `test_city_lights.gd`.
+the sea), `night_town_low` (300 m over Rishon LeZion) and `night_haifa` (Haifa bay from 3000 m), with `-- --hour 22`;
+`SHOW_NO_CITY=1` hides the city lights for a before picture. The night glows there are sized in the shot's rows (the
+window under xvfb is smaller). Test: `test_city_lights.gd`.
 
 ## 6. Effects, Detailed (built: game/mission/gpu_fx.gd)
 

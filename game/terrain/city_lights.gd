@@ -1,7 +1,7 @@
 # Night lights = Detailed (docs/rendering.md §5.1, docs/deviations.md §2): the towns' lights at night, placed from the
 # scenery's building footprints (setup's scenery, docs/scenery.md; any Scenery switch) by IafCityLights
 # (crates/iaf-avionics/src/city_lights.rs): street lamps along the facades, lit windows, porch lights, red
-# obstruction lights on the towers, and the towns' glow on the ground and walls (terrain/city_glow.gdshaderinc). Ours:
+# obstruction lights on the towers, and a faint haze over the dense centres (terrain/city_glow.gdshaderinc). Ours:
 # the original's only town lights are its LT_ sets (Damascus).
 # Blocks of 4 × 4 scenery cells (≈ 10 km): within FAR_RANGE a block draws its far points (a tenth of its lights);
 # within NEAR_RANGE also its near points (the rest). The shader keeps all lights near the camera and thins them to
@@ -34,15 +34,16 @@ shader_type spatial;
 render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 uniform float size_m = 5.0;
 uniform float min_px = 1.0;
+uniform float min_px_near = 1.5;
 uniform float max_px = 18.0;
 uniform float fog_k = 0.00003;
 uniform float vp_h = 1080.0;
 uniform float keep_near = 1500.0;
-uniform float keep_far = 8000.0;
+uniform float keep_far = 6000.0;
 uniform float far_share = 0.1;
 uniform float range = 60000.0;
 uniform float glare = 3.0;
-uniform float bright = 2.2;
+uniform float bright = 5.0;
 varying vec3 col;
 void vertex() {
 	vec4 v = MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
@@ -52,7 +53,8 @@ void vertex() {
 	float b = max(COLOR.r, max(COLOR.g, COLOR.b));
 	float rows = vp_h / 1080.0;
 	float px = size_m * (0.35 + 0.65 * b) * abs(PROJECTION_MATRIX[1][1]) * 0.5 * vp_h / d;
-	float lo = min_px * rows;
+	// Near lights a little larger (a 1-pixel point fades under TAA's blend); far ones 1 pixel (the fill is the cost).
+	float lo = mix(min_px_near, min_px, smoothstep(3000.0, 10000.0, d)) * rows;
 	// Under its minimum size a light keeps its energy (its glow's area): a far town is as bright on average as a near
 	// one, a carpet instead of a white blaze. The kept far lights carry the dropped ones' energy; a floor keeps a
 	// faint sparkle.
@@ -73,9 +75,8 @@ void fragment() {
 }
 """
 
-## The ground's glow under the lights (terrain.gdshader city_glow): the lamps' light on the ground at a full square
-## (× the ground's albedo).
-const GLOW_K := 0.35
+## The haze over the dense lamp clusters (terrain/city_glow.gdshaderinc): its strength at a full square.
+const GLOW_K := 0.12
 
 var _tv: Node
 var _mat: ShaderMaterial
@@ -97,7 +98,7 @@ static func available() -> bool:
 func setup(tv: Node) -> void:
 	_tv = tv
 	name = "CityLights"
-	IafCityLights.open(Scenery.dir().path_join("L1"))
+	IafCityLights.open(Scenery.dir())
 	var sh := Shader.new()
 	sh.code = SHADER
 	_mat = ShaderMaterial.new()

@@ -131,6 +131,7 @@ void vertex() {
 	VERTEX.y -= UV2.x * skirt;
 	UV = cuv;
 	world_xz = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;
+	v_city_glow = city_glow_at(world_xz);
 	sea = open_sea ? 1.0 : 0.0;
 }
 
@@ -666,7 +667,7 @@ void fragment() {
 		wet_ground(ALBEDO, ROUGHNESS, SPECULAR, NORMAL, n_geo, world_xz, dist, wm, paved_k, VIEW_MATRIX);
 	}
 	if (city_glow_k > 0.0) {
-		// The ground lit by the lamps: its own colour under their light, so the streets and roofs keep their pattern.
-		EMISSION = ALBEDO * city_glow_light(world_xz);
+		// The haze over the dense lamp clusters (city_glow.gdshaderinc).
+		EMISSION = city_glow_emission(ALBEDO);
 	}
 }

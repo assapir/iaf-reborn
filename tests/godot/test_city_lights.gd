@@ -1,12 +1,14 @@
 # City lights (docs/rendering.md §5.1): with Night lights = Detailed, at night over Tel Aviv the towns get their
 # lights from the installed scenery's buildings (city_lights.gd, IafCityLights): far points for every block in range,
-# near points for the near blocks, every light a little above the ground, the colours and ranks in range, the
-# ground's glow on. By day they hide and the glow is off; with Night lights = Original there are none. Needs setup's
-# scenery (skips without it).
+# near points for the near blocks, lights in the kept Tel Aviv inset too, every light a little above the ground, the
+# colours and ranks in range, the haze on. By day they hide and the haze is off; with Night lights = Original there
+# are none. Needs setup's scenery (skips without it).
 extends "res://../tests/godot/base.gd"
 
 ## Tel Aviv (engine metres).
 const TEL_AVIV := Vector3(318500.0, 540500.0, 0.0)
+## Inside the kept Tel Aviv inset (no Survey photo, no scenery cell there).
+const INSET := Vector3(315000.0, 541700.0, 0.0)
 
 
 func run() -> void:
@@ -49,12 +51,19 @@ func run() -> void:
 				if g != null:
 					ok_h = ok_h and p.y - float(g) > 0.5 and p.y - float(g) < 400.0
 	check(n > 100000, "%d lights in the drawn blocks" % n)
+	# Tel Aviv's coast is a kept target inset: no scenery there, its lights from setup's light cells (lights/L1).
+	var inset: Vector3 = tv.world_to_scene(INSET)
+	var lit_inset := 0
+	for mi: MeshInstance3D in far + near:
+		for v: Vector3 in mi.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]:
+			lit_inset += int(Vector2(mi.position.x + v.x - inset.x, mi.position.z + v.z - inset.z).length() < 500.0)
+	check(lit_inset > 50, "lights in the Tel Aviv inset: %d within 500 m" % lit_inset)
 	check(ok_rank, "far points rank below %.2f, near ones above" % CityLights.FAR_SHARE)
 	check(ok_col, "colours in 0..1")
 	check(ok_h, "every sampled light stands a little above the ground")
 	while Time.get_ticks_msec() - t < 40000 and cl._glow == null:
 		await frames(10)
-	check(cl._glow != null and cl.glow_k > 0.0, "the ground's glow under the towns")
+	check(cl._glow != null and cl.glow_k > 0.0, "the haze over the towns")
 	var mat: ShaderMaterial = far[0].material_override
 	check(float(mat.get_shader_parameter("vp_h")) > 0.0, "the shader has the render's rows")
 

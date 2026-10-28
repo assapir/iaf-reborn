@@ -28,14 +28,15 @@ type Points = (PackedVector3Array, PackedColorArray);
 /// the terrain under it was not loaded.
 type Made = Option<(Vec<[f32; 3]>, Vec<[f32; 4]>, usize, bool)>;
 
+/// A cell file: its path and the seed of its lights.
+type CellFile = (PathBuf, u32);
+
 struct State {
-    dir: PathBuf,
-    /// Block → its cells (those with a file).
-    blocks: HashMap<(i64, i64), Vec<(i64, i64)>>,
+    /// Block → its cell files: the scenery's and the city lights' own (where the scenery stops).
+    blocks: HashMap<(i64, i64), Vec<CellFile>>,
 }
 
-static STATE: LazyLock<Mutex<State>> =
-    LazyLock::new(|| Mutex::new(State { dir: PathBuf::new(), blocks: HashMap::new() }));
+static STATE: LazyLock<Mutex<State>> = LazyLock::new(|| Mutex::new(State { blocks: HashMap::new() }));
 static MADE: LazyLock<Mutex<HashMap<(i64, i64), Made>>> = LazyLock::new(Default::default);
 /// The towns' glow when made (`glow`).
 static GLOW: LazyLock<Mutex<Option<Glow>>> = LazyLock::new(Default::default);
@@ -67,39 +68,32 @@ static QUEUE: LazyLock<Mutex<Sender<Job>>> = LazyLock::new(|| {
 
 /// Every cell's lights summed per GLOW_M square.
 fn glow() -> Glow {
-    let (dir, cells): (PathBuf, Vec<(i64, i64)>) = {
+    let (keys, cells): (Vec<(i64, i64)>, Vec<CellFile>) = {
         let s = STATE.lock().unwrap();
-        (s.dir.clone(), s.blocks.values().flatten().copied().collect())
+        (s.blocks.keys().copied().collect(), s.blocks.values().flatten().cloned().collect())
     };
     let mut b = [f64::MAX, f64::MAX, f64::MIN, f64::MIN];
-    for &(i, j) in &cells {
-        let ([x0, y1], [x1, y0]) = (origin(i, j), origin(i + 1, j + 1));
+    for &(bi, bj) in &keys {
+        let ([x0, y1], [x1, y0]) = (origin(bi * BLOCK, bj * BLOCK), origin((bi + 1) * BLOCK, (bj + 1) * BLOCK));
         b = [b[0].min(x0), b[1].min(y0), b[2].max(x1), b[3].max(y1)];
     }
-    let mut g = Glow::new(if cells.is_empty() { [0.0; 4] } else { b }, GLOW_M);
-    for (i, j) in cells {
-        if let Some(bs) = Cell::read_buildings(&dir.join(format!("s_{i}_{j}.bin"))) {
-            city_lights::lights(&bs, seed(i, j)).iter().for_each(|l| g.add(l));
+    let mut g = Glow::new(if keys.is_empty() { [0.0; 4] } else { b }, GLOW_M);
+    for (path, seed) in cells {
+        if let Some(bs) = Cell::read_buildings(&path) {
+            city_lights::lights(&bs, seed).iter().for_each(|l| g.add(l));
         }
     }
     g
 }
 
-fn seed(i: i64, j: i64) -> u32 {
-    (i as u32).wrapping_mul(7919) ^ j as u32
-}
-
 /// Every light of the block, far ones (rank < FAR_SHARE) first; the count of far ones. Near false: the far ones only.
 fn make(b: (i64, i64), near: bool) -> Made {
-    let (dir, cells) = {
-        let s = STATE.lock().unwrap();
-        (s.dir.clone(), s.blocks.get(&b).cloned().unwrap_or_default())
-    };
+    let cells = STATE.lock().unwrap().blocks.get(&b).cloned().unwrap_or_default();
     let o = origin(b.0 * BLOCK, b.1 * BLOCK);
     let (mut far, mut rest) = (Vec::new(), Vec::new());
-    for (i, j) in cells {
-        let Some(bs) = Cell::read_buildings(&dir.join(format!("s_{i}_{j}.bin"))) else { continue };
-        for l in city_lights::lights(&bs, seed(i, j)) {
+    for (path, seed) in cells {
+        let Some(bs) = Cell::read_buildings(&path) else { continue };
+        for l in city_lights::lights(&bs, seed) {
             if !near && l.rank >= FAR_SHARE {
                 continue;
             }
@@ -128,20 +122,24 @@ pub struct IafCityLights {}
 
 #[godot_api]
 impl IafCityLights {
-    /// Indexes the scenery cell files in `dir` (`assets/converted/scenery/L1`) by block; the number of blocks.
+    /// Indexes the cell files under `dir` (`assets/converted/scenery`) by block: the scenery's (`L1`) and the city
+    /// lights' own where the scenery stops (`lights/L1`, `iaf-scenery lights`); the number of blocks.
     #[func]
     fn open(dir: GString) -> i64 {
         let dir = PathBuf::from(dir.to_string());
-        let mut blocks: HashMap<(i64, i64), Vec<(i64, i64)>> = HashMap::new();
-        for e in std::fs::read_dir(&dir).into_iter().flatten().flatten() {
-            let name = e.file_name().to_string_lossy().into_owned();
-            let ij = name.strip_prefix("s_").and_then(|n| n.strip_suffix(".bin")).and_then(|n| n.split_once('_'));
-            if let Some((Ok(i), Ok(j))) = ij.map(|(i, j)| (i.parse::<i64>(), j.parse::<i64>())) {
-                blocks.entry((i.div_euclid(BLOCK), j.div_euclid(BLOCK))).or_default().push((i, j));
+        let mut blocks: HashMap<(i64, i64), Vec<CellFile>> = HashMap::new();
+        for (sub, salt) in [("L1", 0u32), ("lights/L1", 0x5bd1_e995)] {
+            for e in std::fs::read_dir(dir.join(sub)).into_iter().flatten().flatten() {
+                let name = e.file_name().to_string_lossy().into_owned();
+                let ij = name.strip_prefix("s_").and_then(|n| n.strip_suffix(".bin")).and_then(|n| n.split_once('_'));
+                if let Some((Ok(i), Ok(j))) = ij.map(|(i, j)| (i.parse::<i64>(), j.parse::<i64>())) {
+                    let seed = (i as u32).wrapping_mul(7919) ^ j as u32 ^ salt;
+                    blocks.entry((i.div_euclid(BLOCK), j.div_euclid(BLOCK))).or_default().push((e.path(), seed));
+                }
             }
         }
         let n = blocks.len() as i64;
-        *STATE.lock().unwrap() = State { dir, blocks };
+        *STATE.lock().unwrap() = State { blocks };
         MADE.lock().unwrap().clear();
         *GLOW.lock().unwrap() = None;
         n

@@ -127,6 +127,7 @@ A route is the unit's `Path` scripts' paths and its formation's waypoints, from 
 |---|---|
 | `assets/source/scenery/` | the downloads; `<file>.ok` holds the checked SHA-256 and the download day |
 | `assets/converted/scenery/L1/s_<i>_<j>.bin` | one cell per node with any building or tree (format: `iaf_avionics::scenery`) |
+| `assets/converted/scenery/lights/L1/s_<i>_<j>.bin` | the city lights' buildings where the scenery stops (the kept target insets, nodes the Survey layer lacks; same format, buildings only, rendering.md §5.1); `lights/manifest.json` its `made_from` |
 | `assets/converted/scenery/manifest.json` | `name`, `release`, `generator`, `kinds` (`both`, `buildings`, `trees`), `made_from`, `attribution` (the used sources), `licence`, `cells`, `buildings`, `trees`, `downloaded` |
 | `assets/converted/scenery/.work/` | kept between runs: the OSM extract and the reduced canopy tiles (about 350 MB) |
 
@@ -142,7 +143,7 @@ coverage, the converted missions, airbases, theatre and objects stamps: when it 
 | Step | Waits for | Does |
 |---|---|---|
 | `scenery-fetch` | | downloads the sources the kinds need (`iaf-scenery fetch`); skipped when download.geofabrik.de cannot be reached |
-| `scenery` | mapi2015, scenery-fetch, missions, objects, airbases | makes the cells of the kinds (`iaf-scenery build`); skipped without GDAL, the sources or the `mapi2015` layer |
+| `scenery` | mapi2015, scenery-fetch, missions, objects, airbases | makes the cells of the kinds (`iaf-scenery build`), then the city lights' cells where the scenery stops (rendering.md §5.1; with buildings only); skipped without GDAL, the sources or the `mapi2015` layer |
 
 Both are optional (setup's `--scenery`, `tools/setup-cli.sh --scenery`). Setup makes one of three kinds:
 
@@ -199,8 +200,9 @@ Two runs give the same bytes (the SHA-256 of every cell file compared).
   - far: bare prisms;
   - with Scenery = Detailed, the roof clutter (`roof_rows`): MultiMesh rows on the near flat roofs (§3.3).
 - Damage is kept by building id `<i>_<j>:<index>` across cell loads. The data itself never changes.
-- Night lights = Detailed reads the cells' buildings too, whatever the Scenery switch: the towns' street lamps, lit
-  windows and glow at night are placed from them (`Cell::read_buildings`, rendering.md §5.1).
+- Night lights = Detailed reads the cells' buildings too, whatever the Scenery switch, and the light cells where the
+  scenery stops: the towns' street lamps, lit windows and haze at night are placed from them (`Cell::read_buildings`,
+  rendering.md §5.1).
 
 ## 3. Rendering and the switch
 
