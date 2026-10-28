@@ -9,8 +9,9 @@
 #     -- --log-file /tmp/show_$look.log --path game -s ../tests/godot/_showcase_shot.gd; done
 # Prefix the run with `flock ~/.cache/iaf-gpu-bench.lock` while another session may be benchmarking the GPU.
 # SHOW_SCENES="town,night" takes only those scenes (SCENES' names: town airbase takeoff cockpit coast sea missile_launch
-# missile_close bomb vapour sunset night); SHOW_SET="key=value,..." sets more Settings after the look's (e.g. a
-# variant of AFTER); SHOW_TAG names the files <scene>_<look><tag>.png. Needs a window.
+# missile_close bomb vapour sunset night night_apron_pass night_apron; the night ones need `-- --hour 22`);
+# SHOW_SET="key=value,..." sets more Settings after the look's (e.g. a variant of AFTER); SHOW_TAG names the files
+# <scene>_<look><tag>.png. Needs a window.
 extends "res://../tests/godot/base.gd"
 
 const TimeOfDay := preload("res://terrain/time_of_day.gd")
@@ -61,6 +62,10 @@ const SCENES := {
 	"vapour": [231, 10.5, [337929.1, 614642.4], 400.0, 0.0, Vector3(-6, 3, 22), Vector3.ZERO],
 	"sunset": [231, 19.5, [313685.0, 541903.0], 600.0, -1.0, Vector3(4, 3, 30), Vector3(0, 0, -200)],
 	"night": [311, 22.0, [], 300.0, 0.0, Vector3(4, 6, 34), Vector3(0, -40, -400)],
+	# Ramat David at night (Night lights): a low pass over the shelters' apron south of runway 27, and the jet
+	# standing on the apron by the shelters (height 0 at a place: put on its wheels by the flight, then held).
+	"night_apron_pass": [311, 22.0, [353900.0, 601900.0], 60.0, 70.0, Vector3(-25, 8, 50), Vector3(0, -60, -300)],
+	"night_apron": [311, 22.0, [354700.0, 602000.0], 0.0, 0.0, Vector3(-18, 4, 26), Vector3(0, 0, -20)],
 	# The scenery's trees (docs/scenery.md §3; Scenery On): a town of palms and broadleaf from the cockpit at 150 m
 	# and 50 m, an orchard, the Carmel's pines, and close by.
 	"trees_town150": [231, 10.5, [332520.0, 586300.0], 150.0, 0.0, null, null],
@@ -117,8 +122,10 @@ func _scene(name: String, s: Array) -> void:
 	shot_vp = null
 	seed(7)  # the cloud layer's texture (cloud_layer.gd randi() % 6)
 	tv = await start_mission(s[0])
-	# Frozen in the air; on the ground the flight holds the jet on its wheels (brakes on, idle).
-	tv.frozen = s[3] > 0.0 or not s[2].is_empty()
+	# Frozen in the air; on the ground the flight holds the jet on its wheels (brakes on, idle). A ground place: the
+	# flight first sets the jet on its wheels there (60 frames), then holds it.
+	var ground_at: bool = s[3] == 0.0 and not s[2].is_empty()
+	tv.frozen = (s[3] > 0.0 or not s[2].is_empty()) and not ground_at
 	tv.fm_stopped = tv.frozen
 	tv.text_messages = false
 	tv.cockpit.subtitles = [] as Array[String]
@@ -145,6 +152,18 @@ func _scene(name: String, s: Array) -> void:
 	var g = tv.terrain.height_at(tv.rig.position)
 	if not at.is_empty() or s[3] > 0.0:
 		tv.rig.position.y = (float(g) if g != null else 0.0) + s[3]
+	if ground_at:
+		tv.flight.start(
+			settings().assets_dir().path_join("install"),
+			tv.player.fm_section,
+			tv.rig.position,
+			Vector3(0, 0, hdg),
+			Vector3.ZERO,
+			{"airborne": false, "engine_on": true, "real_data": false}
+		)
+		await frames(60)
+		tv.frozen = true
+		tv.fm_stopped = true
 	if name == "cockpit" or name.begins_with("trees_town"):
 		tv.views.set_cockpit(tv.views.COCKPIT)
 		tv.in_cockpit = true

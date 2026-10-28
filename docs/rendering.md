@@ -718,9 +718,10 @@ Preferences → Graphics → MORE → **Night lights = Detailed** (ours, docs/de
 a small cost. The parts:
 
 1. **Glowing light points.** The `LT_` sets draw with a glow shader: a bright core and a soft halo. The glow is 4 m
-   wide in the world, kept between 2.5 and 28 pixels at 1080 rows. The rows are the 3D render's (window rows ×
-   the Upscaling scale), so Quality and Balanced draw the glows at the same size on screen. It fades with the fog, and it stands 1.5 m above
-   its spot, so the ground between the spots leaves it whole. By day the glow is at 35 %.
+   wide in the world, kept between 4.5 and 28 pixels at 1080 rows. The rows are the 3D render's (window rows ×
+   the Upscaling scale), so Quality and Balanced draw the glows at the same size on screen. A lamp outshines the
+   haze: the glow fades with half the scene's fog, and a point smaller than its minimum keeps at least 60 % of its
+   light. It stands 1.5 m above its spot, so the ground between the spots leaves it whole. By day the glow is at 35 %.
 2. **Home airbases lit at night.** At a night start, a runway model on its home spot (`ul_rwramon`, `ul_rwtelnof`,
    `ul_rwdavid`, `night_lights.gd BASE_LIGHTS`) gets its base's light set (`lt_rmn_h`, `lt_tnf_h`, `lt_dvd_h`). The
    set takes the runway model's spot, heading and scale, as in base mission `bmisrdvdn`. The sets are the
@@ -731,15 +732,43 @@ a small cost. The parts:
    F-16's sit a third of the way out); cached per model. The cockpit-view model (`<plane>_bc`) carries its own set
    at its own wingtips, tail and fin top, so you see your wingtip lights when you look aside from the cockpit. The
    lights go out when the jet is hit, falls or is destroyed (damage state 3 and above), and when the player crashes.
-4. **Night sky.** 2600 stars (a fixed random sky, brighter ones rarer) and a moon disc drawn at the far plane. The
+4. **Night sky.** 2600 stars (a fixed random sky, brighter ones rarer, 2.4 px base size) and a moon disc drawn at the far plane. The
    cloud layer draws over them.
-5. **Moonlight.** At night the sun light comes from the moon (azimuth 140°, elevation 38°), colour (0.20, 0.23,
-   0.33), ambient factor 0.3. The original's night light is (20, 20, 60) / 255 straight down, ambient 0.2.
+5. **Moonlight.** At night the sun light comes from the moon (azimuth 140°, elevation 38°), colour (0.24, 0.27,
+   0.34), a faint silver, ambient factor 0.3. The original's night light is (20, 20, 60) / 255 straight down, ambient 0.2.
+6. **Every airbase lit** (`airbase_lights.gd`). At night all ten bases of §7 get lights from that section's data
+   (the runways, iaf.ibx's taxi paths, the paved-surface mask), drawn as glow points with the light sets' material:
+   - runway edge lights every 60 m, white, yellow over the last 600 m of the rollout, red before a displaced
+     threshold;
+   - the threshold bar green toward the approach, the runway's end bar red toward a jet rolling out to it;
+   - at each end an approach light system (5-light barrettes every 30 m over 900 m, a 30 m crossbar at 300 m) and a
+     PAPI: 4 units on the left, 300 m past the threshold, white above 3.5° / 3.17° / 2.83° / 2.5°, red below;
+   - blue taxiway edge lights every 30 m, 12 m each side of the taxi paths;
+   - apron floodlights: masts on the wide paved areas off the runways, at most 24 per base, 90 m apart. Each has a
+     sodium lamp head 25 m up and a pool of light on the ground under it: a SpotLight3D (70°, 100 m, energy 16, no shadows),
+     faded out between 2 and 3 km. Apron cells: the mask's paved coverage averaged over ≈ 40 m cells; a cell whose
+     3 × 3 neighbours are all at least 59 % paved (75 % on average) and that lies 80 m or more off a runway (and
+     200 m past its ends). A runway or taxiway is too narrow to fill such a square. The bases only in the coarse art
+     (Inshas, Ryak, Aman: the AI's stand-in runway) get no floodlights, as their mask is the art's grey blocks.
+   The lights shine one way where real ones do: the vertex colour's alpha holds the way the fixture faces (1 = every
+   way), and a PAPI unit picks its colour from the viewer's angle above it. Where the mission has the base's
+   original light set (item 2), the base keeps it for the runway and taxiway edges and gets the approach lights,
+   PAPIs and floodlights. A base is built when the camera comes within 30 km (its mask read on a worker thread);
+   each light stands on the ground's height there.
+   Tried and dropped (2026-10-26): apron cells as any 40 m cell 85 % paved put masts along the runways and turn pads
+   of the coarse-art bases (their masks are grey blocks); the 3 × 3 rule, the 200 m past the runway ends and no masts
+   at those bases replaced it. The mask's own concrete channel was not used: it is empty at seven of the ten bases.
+   Pools of 62° / 75 m at energy 6 showed as small discs from a low pass; 70° / 100 m at energy 8 with attenuation 1
+   was dimmer still; energy 16 with distance attenuation 0.5 lights the apron and the jets on it.
+   Not yet done: the stars and moon draw under the cloud layer, which at night covers most of the sky in a lit veil
+   (cloud_layer.gd), so with the textured sky on few stars show.
 
 Cost: +3 to +6 draw calls, about 2 per jet in view plus the sky, and ≈ 5 000 points (`tests/godot/_flight_bench.gd`
 with `BENCH_SET=night_lights=detailed`: mission 311 at 22:00 +3, mission 214 +6). The frame time change is below the
-run-to-run noise on the M4 Pro. Screenshots: `tests/godot/_night_shot.gd` (cockpit and
-external, Original and Detailed, with the frame rate).
+run-to-run noise on the M4 Pro. The airbase lights add one draw call per base built (≈ 600–2 500 points) and at most
+24 shadowless spot lights per base, faded out beyond 3 km (not measured). Screenshots: `tests/godot/_night_shot.gd` (cockpit and
+external, Original and Detailed, with the frame rate); `_showcase_shot.gd` scenes `night_apron_pass` and `night_apron`
+(with `-- --hour 22`).
 
 Metal notes (Godot 4.7.2): in a spatial shader's `vertex()`, `VIEWPORT_SIZE` reads 0 and the projection is
 Y-flipped. The shaders get the viewport rows as a uniform and take the focal length as
