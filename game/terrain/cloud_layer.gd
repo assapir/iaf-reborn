@@ -18,6 +18,8 @@ const WIND_SPEED := 6.0
 ## Whiteout within 1000 m of the layer: alpha = clamp(j + 255 − ftol(0.255·|Δ|), 0, 255), j a random walk
 ## (rand % 9 − 4 per frame), reset outside the band.
 const WHITEOUT_BAND := 1000.0
+## The night colour with the atmospheric sky (Extras): lighter than its night sky, neutral.
+const NIGHT_ATMO := Color(0.045, 0.055, 0.095)
 
 const SHADER := """
 shader_type spatial;
@@ -30,6 +32,16 @@ uniform bool at_far;  // the dome (from below)
 // separates the clouds with clear sky between them instead of a grey veil over the whole sky.
 uniform vec2 alpha_range = vec2(0.0, 1.0);
 uniform vec3 tint = vec3(1.0);  // the cloud-layer colour (renderer +0x54): 0xFF14143C at night
+// The texture's finest mip level read: 2 = the original's 256 texels (bilinear, as its D3D renderer drew it), not
+// the 4× upscale's sharp steps between the ARGB4444 source's 16 alpha levels; 3 with the atmospheric sky, whose
+// stretched alpha shows those steps as contours. `detail` adds the texture at 4.37× its scale for the edges.
+uniform float min_lod = 2.0;
+uniform float detail = 0.0;
+// Lit by the sun (the atmospheric sky by day): sun_dir points to the sun (scene axes).
+uniform bool lit = false;
+uniform vec3 sun_dir = vec3(0.0, 1.0, 0.0);
+// The sunlight's reddening by its air mass (atmosphere.gdshader's sun_depth), thinner at the layer's height.
+const vec3 SUN_DEPTH = vec3(0.08, 0.22, 0.4) * 0.8;
 void vertex() {
 	// The dome at the far plane (reverse Z: depth 0): behind every terrain point, as the original cuts it at
 	// the terrain's far horizon (FUN_0041dc30 → +0x1098, v1.1) and fills the gap up to it at the dome's depth.
@@ -39,11 +51,51 @@ void vertex() {
 		POSITION.z = 0.0;
 	}
 }
+float air_mass(float cos_zenith) {
+	float c = max(cos_zenith, 0.0);
+	float z = degrees(acos(c));
+	return 1.0 / (c + 0.50572 * pow(max(96.07995 - z, 0.001), -1.6364));
+}
 void fragment() {
 	vec2 uv = (UV2.x * UV + offset) * scale;
-	vec4 t = texture(tex, uv);
-	ALBEDO = COLOR.rgb * t.rgb * tint;
-	ALPHA = clamp((t.a - alpha_range.x) / (alpha_range.y - alpha_range.x), 0.0, 1.0);
+	vec2 g = max(abs(dFdx(uv)), abs(dFdy(uv))) * float(textureSize(tex, 0).x);
+	// Four bilinear taps half a texel apart (a quadratic B-spline): bilinear alone leaves creases at the texel edges
+	// that the stretched alpha shows as contours.
+	float lod = max(log2(max(g.x, g.y)), min_lod);
+	float h = 0.5 * exp2(lod) / float(textureSize(tex, 0).x);
+	vec4 t = 0.25 * (textureLod(tex, uv + vec2(h, h), lod) + textureLod(tex, uv + vec2(-h, h), lod)
+			+ textureLod(tex, uv + vec2(h, -h), lod) + textureLod(tex, uv + vec2(-h, -h), lod));
+	t.a += detail * (texture(tex, uv * 4.37 + vec2(0.31, 0.77)).a - 0.5);
+	float d = clamp((t.a - alpha_range.x) / (alpha_range.y - alpha_range.x), 0.0, 1.0);
+	// With the smoothing, an S-curve keeps the gaps between the clouds clear (no creases: smooth).
+	if (detail > 0.0) {
+		d = smoothstep(0.0, 1.0, d);
+	}
+	// A dither of ± half an 8-bit step against banding in the smooth gradients.
+	float dither = fract(52.9829189 * fract(dot(FRAGCOORD.xy, vec2(0.06711056, 0.00583715)))) - 0.5;
+	ALPHA = clamp(d + dither / 255.0, 0.0, 1.0);
+	if (!lit) {
+		ALBEDO = COLOR.rgb * t.rgb * tint;
+	} else {
+		// d is the cloud's thickness. The light: the sky's (blue-grey, dimmer with a low sun) on the cloud's base,
+		// thick parts darker; the sun's, reddened by its air mass, through the thin parts (forward scattering
+		// toward the sun) and, with a low sun, on the bases from the side (warm toward the sun, dim away).
+		vec3 s = normalize(sun_dir);
+		vec3 v = normalize((INV_VIEW_MATRIX * vec4(VERTEX, 0.0)).xyz);
+		float mu = dot(v, s);
+		vec3 sun_t = exp(-SUN_DEPTH * min(air_mass(s.y) - 1.0, 12.0));
+		vec3 sun = sun_t / pow(sun_t.r, 0.7) * smoothstep(-0.1, 0.05, s.y);
+		float low = 1.0 - smoothstep(0.05, 0.4, s.y);
+		float fwd = pow(max(mu, 0.0), 6.0);
+		vec3 sky = vec3(0.45, 0.52, 0.7) * mix(1.0, 0.6, low);
+		vec3 c = sky * (1.0 - 0.4 * d);
+		c += sun * (1.0 - low) * (0.85 - 0.3 * d + 1.2 * fwd * (1.0 - d));
+		float side = 0.5 + 0.5 * mu;
+		c += sun * low * (0.1 + 0.9 * side * side + 2.0 * fwd) * (1.0 - 0.85 * d);
+		ALBEDO = c * t.rgb;
+		// Toward the horizon (the lower rings) the clouds thin, so the sky's horizon and a low sun show between them.
+		ALPHA *= 1.0 - 0.6 * smoothstep(0.4, 1.0, (UV2.x * 4.0 - 1.0) / 16.0);
+	}
 }
 """
 
@@ -60,6 +112,10 @@ var _scroll := Vector2.ZERO
 var _white: ColorRect
 var _walk := 0
 var whiteout_alpha := 0.0
+var _atmo := false
+var _night := false
+var _tint := Color.WHITE
+var _sun: Node3D
 
 
 ## Picks the next layer's texture and decodes it on a worker thread (the mission screens, terrain_preload.gd).
@@ -152,12 +208,26 @@ func _ring_mesh(edges: Array, flat: bool) -> MeshInstance3D:
 ## The cloud layer's colour (FUN_00407920 → renderer +0x54): (20, 20, 60) at night; by day white (its day value is
 ## not traced: UNCERTAIN).
 func set_tint(c: Color) -> void:
-	_mat.set_shader_parameter("tint", Vector3(c.r, c.g, c.b))
+	_night = c != Color.WHITE
+	_tint = c
+	_refresh()
 
 
-## Extras Sky: Atmospheric (render_options.gd): the clouds separated, clear sky between them.
+## Extras Sky: Atmospheric (render_options.gd): the clouds separated, clear sky between them, smoothed, and by day lit
+## by the sun.
 func set_atmospheric(on: bool) -> void:
-	_mat.set_shader_parameter("alpha_range", Vector2(0.3, 0.9) if on else Vector2(0.0, 1.0))
+	_atmo = on
+	_refresh()
+
+
+func _refresh() -> void:
+	_mat.set_shader_parameter("alpha_range", Vector2(0.3, 0.9) if _atmo else Vector2(0.0, 1.0))
+	_mat.set_shader_parameter("min_lod", 2.5 if _atmo else 2.0)
+	_mat.set_shader_parameter("detail", 0.2 if _atmo else 0.0)
+	_mat.set_shader_parameter("lit", _atmo and not _night)
+	# At night a dark blue-grey: the original's (20, 20, 60) turns violet under the tonemapper.
+	var c := NIGHT_ATMO if _atmo and _night else _tint
+	_mat.set_shader_parameter("tint", Vector3(c.r, c.g, c.b))
 
 
 ## Per frame with the camera's scene position: follow it horizontally (heights are absolute), the dome from
@@ -170,6 +240,11 @@ func update_view(cam: Vector3, dt: float) -> void:
 	_mat.set_shader_parameter("at_far", below)
 	_scroll += -15.0 * dt * Vector2(sin(WIND_DIR), cos(WIND_DIR)) * WIND_SPEED
 	_mat.set_shader_parameter("offset", _scroll - Vector2(cam.x, -cam.z))
+	if _atmo and not _night:
+		if _sun == null:
+			_sun = get_parent().get_node_or_null("Sun")
+		if _sun != null:
+			_mat.set_shader_parameter("sun_dir", _sun.global_basis.z)
 	var d := absf(H - cam.y)
 	if d < WHITEOUT_BAND:
 		_walk += randi() % 9 - 4
