@@ -1007,6 +1007,15 @@ Explosion class 0x19: the falling store's (flash + streamers, no trail). Code: `
   (views 1 / 0x12 / 0x16) or ctl+0x938, each TV update sets the weapon's aim to the EO centre point (vfunc +0x2c): the
   pilot steers it with the camera. With the slew keys released a flying TV weapon's camera locks on the EO centre
   (docs/mfd.md).
+  The camera sits inside the weapon's model. The original culls back faces, so the inside never shows (inferred);
+  the detailed stores (Models: Detailed) are double-sided, and the Maverick's seeker dome filled the TV picture
+  (fixed 2026-10-28). Ours puts the flying TV weapon's model on render layer `EoSensor.SELF_LAYER` (20), which the
+  EO camera's cull mask leaves out.
+- **Which weapon** (`FUN_00450280` sets mcp+0xc to the store that fires next, `FUN_0053b680`; the launch, store
+  event 5 in `FUN_004d6930`, sets its +0x48 = 1, event 6 at its end back to 0): the camera rides the store it was
+  started on. Only master mode 6 and the radar step (0x26 / 0x27 with a Maverick) restart it, so in the original a
+  second launch without a re-selection leaves the camera on the jet (UNCERTAIN: the station's store ring,
+  `FUN_004d8760`, may hand back the same object). Ours rides every launched TV weapon.
 - **Status** (`FUN_00460940`): 0 unless the TV weapon (the flying one, else the store) is 635 / 640 / 650; 1 RDY before
   launch and for a launched Maverick, else the weapon's 2 TRA / 3 TER; 0 when the selected store has no rounds left and
   (nothing flies or a Maverick flies).
@@ -1032,7 +1041,9 @@ only; the Real HUD has its own DLZ).
 aim; per jet (the seven Jet list jets and the F-35I) in mission 231 with an AGM-62 on station 0 and an AGM-65 on
 station 8: '[' gives master 6, HUD mode 7 and the TV page; the camera on a ground unit 8 km ahead: RDY, the HUD diamond,
 the DLZ; the launch: TRA, the time left, the camera riding the missile; the hit; NO SOURCE with no rounds left; the
-Maverick at the camera's point and its hit.
+Maverick at the camera's point and its hit. `tests/godot/test_maverick_mfd.gd` (Models: Detailed): two Mavericks; the
+camera rides the first in every update until the hit, with the page on RDY, the picture shown and the weapon's model
+on the EO self layer; then the camera is back on the jet; the last one launched gives NO SOURCE.
 
 ## UNCERTAIN
 Open points:

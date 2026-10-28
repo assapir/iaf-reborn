@@ -680,6 +680,7 @@ func _update_eo_view() -> void:
 		eo_viewport.world_3d = get_viewport().world_3d
 		eo_camera = Camera3D.new()
 		eo_camera.keep_aspect = Camera3D.KEEP_WIDTH
+		eo_camera.cull_mask &= ~(1 << (weapons.eo.SELF_LAYER - 1))  # not the flying TV weapon it rides in
 		eo_viewport.add_child(eo_camera)
 		add_child(eo_viewport)
 		cockpit.eo_texture = eo_viewport.get_texture()

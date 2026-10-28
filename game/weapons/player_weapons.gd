@@ -1036,7 +1036,8 @@ func _release_missile() -> void:
 ## the camera not started on a unit: the EO centre point (FUN_00450480), no unit, q 1; started on one (the
 ## Maverick): the radar's target (radar on, a lock or a TWS selection) and the EO centre as the point (UNCERTAIN:
 ## the original leaves the point uninitialised). The Maverick 635 flies the homing motion at the unit or the
-## point; the TV missile 640 the guided motion at the point. The camera then rides it.
+## point; the TV missile 640 the guided motion at the point. The camera then rides it; the weapon's model goes on
+## EoSensor.SELF_LAYER, out of the camera's picture.
 func _release_tv() -> void:
 	var i: int = stores.fire_station()
 	if i < 0 or stores.displayed(i) <= 0:
@@ -1055,6 +1056,10 @@ func _release_tv() -> void:
 		tv_weapon = launch_homing(w, pos, o, unit, 1.0, _me(), eo_centre)
 	else:
 		tv_weapon = launch_guided(w, pos, o.vel, eo_centre, _me())
+	var node = tv_weapon.get_meta("node", null)
+	if node != null:
+		for g: VisualInstance3D in node.find_children("*", "VisualInstance3D", true, false):
+			g.layers = 1 << (EoSensor.SELF_LAYER - 1)
 	_place_sound(host.sounds.play("SFX_AIRCRAFT_FIRED_WEAPON", WEAPON_OST.get(int(w.type), "OST_TVMISSILE")), pos)
 	stores.fired(i)
 	_push_stores()

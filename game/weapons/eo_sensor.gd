@@ -14,6 +14,10 @@ const POD_LIMITS := [PI / 4.0, PI / 6.0, -1.3962634015954636]
 const WEAPON_LIMITS := [PI / 6.0, PI / 12.0, -PI / 4.0]
 ## The picture's field of view is 50° / zoom across its width (FUN_004dc990: 0x605250 = 50).
 const FOV_DEG := 50.0
+## The render layer (1-based) of a flying TV weapon's own model, left out of the EO camera's cull mask: the camera
+## rides inside that model (FUN_004604c0). The original culls back faces, so its picture never shows the inside of the
+## model; the detailed stores are double-sided and would fill the picture.
+const SELF_LAYER := 20
 
 var mode: int:
 	get:
