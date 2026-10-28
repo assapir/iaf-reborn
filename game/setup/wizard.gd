@@ -586,7 +586,8 @@ func _page_welcome() -> Control:
 				(
 					"[color=%s][b]Optional[/b][/color]\n[ul]the official v1.1 patch (free download)\nthe Hebrew CD, or the Hebrew "
 					+ "packs: the briefings and menus in Hebrew\nmodern terrain imagery: Survey of Israel 2015, Sentinel-2\nthe "
-					+ "pilot guides: pictures and PDFs\nground, model and tree textures (ambientCG)[/ul]\n"
+					+ "pilot guides: pictures and PDFs\nground, model and tree textures (ambientCG)\nthe detailed F-15 "
+					+ "(FlightGear, GPL 2.0 only; downloaded and converted here)[/ul]\n"
 				)
 				% g
 			)
@@ -647,6 +648,12 @@ func _page_welcome() -> Control:
 				"Detailed stores: the [url=https://github.com/NikolaiVChr/f16]FlightGear F-16[/url]'s weapons and pods by J "
 				+ "Maverick 16 and the other authors ([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL "
 				+ "2.0[/url] or later)\n"
+			)
+			+ (
+				"Detailed F-15: the [url=https://github.com/Zaretto/fg-aircraft]FlightGear F-15C[/url] by Enrique Laso "
+				+ "(3D model), Richard Harrison (rig) and GeneB (cockpit textures) "
+				+ "([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL 2.0[/url] only), downloaded and "
+				+ "converted by setup, not distributed with the game\n"
 			)
 			+ (
 				"F-35I Adir: "

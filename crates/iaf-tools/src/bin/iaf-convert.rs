@@ -27,6 +27,9 @@
 //! (docs/adding-a-plane.md). `iaf-convert plane-checklist <type> [repo-dir]` — every code table a
 //! new aircraft type goes into, with file:line and whether the type is already there.
 //!
+//! `iaf-convert f15-detailed <assets-dir>` — the detailed F-15: downloads the pinned FlightGear files into
+//! `source/f15` (kept) and converts them into `converted/models/f15/f15c.glb` (docs/aircraft-models.md §6).
+//!
 //! `--upscale` resamples textures 4× (Lanczos).
 //! `--smooth` rounds the low-poly geometry (smooth normals + Phong tessellation).
 
@@ -68,6 +71,7 @@ fn main() -> Result<()> {
         [_, "icon", install, out] => convert::icon(p(install), p(out), pr, cancel),
         [_, "cockpit", install, name, out] => convert::cockpit(p(install), name, p(out), &opts, pr, cancel),
         [_, "arm-extra", menu_img, arm_dir, out] => convert::arm_extra(p(menu_img), p(arm_dir), p(out), pr, cancel),
+        [_, "f15-detailed", assets] => iaf_tools::f15::setup(p(assets), pr, cancel).map(|_| ()),
         [_, "plane-describe", model, out] => plane_describe(Path::new(model), Path::new(out), &plane),
         [_, "plane-checklist", code] => plane_checklist(code, Path::new(".")),
         [_, "plane-checklist", code, repo] => plane_checklist(code, Path::new(repo)),
