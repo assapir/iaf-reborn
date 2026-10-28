@@ -233,6 +233,29 @@ func run() -> void:
 	esc.pressed = true
 	ed._unhandled_key_input(esc)
 	check(ed.sel_id == -1 and tsd.selected == -1 and ul.get_selected_items().is_empty(), "Esc clears the selection")
+	check(
+		not ed._ui.p_name.get_parent().visible and not ed._ui.p_delete.visible,
+		"with nothing selected the panel shows no unit's fields"
+	)
+	# A row of the Units list under the mouse rings its unit on the map.
+	ed.find_children("*", "TabContainer", true, false)[0].current_tab = 0
+	await frames(2)
+	var row_mv := InputEventMouseMotion.new()
+	row_mv.position = ul.get_item_rect(0).get_center()
+	ed._on_units_hover(row_mv)
+	check(ed.list_hover == int(ul.get_item_metadata(0)), "hovering a list row marks its unit (%d)" % ed.list_hover)
+	ed._on_units_hover(null)
+	# A label goes around its icon clear of what is taken, else farther out with a leader line.
+	var at: Vector2 = host.size / 2
+	var sz := Vector2(60, 20)
+	var taken := [Rect2(at + Vector2(10, -10), sz)]
+	var lab: Array = ed._place(at, sz, 10.0, taken)
+	check(
+		not lab[1] and not lab[0].intersects(taken[0]) and lab[0].end.x <= at.x, "a label taken on the right goes left"
+	)
+	var all := [Rect2(at - Vector2(40, 25), Vector2(80, 50))]
+	lab = ed._place(at, sz, 20.0, all)
+	check(lab[1] and not lab[0].intersects(all[0]), "boxed in, it goes farther out with a leader line")
 	# Hover: the unit under the mouse is named on the status line.
 	ed.hover_at(host._to_menu(from) - tsd.area.position)
 	check(ed.hover == i and ed.hint_text().contains("F4_1"), "hovering a unit names it: %s" % ed.hint_text())

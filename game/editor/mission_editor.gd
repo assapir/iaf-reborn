@@ -91,6 +91,8 @@ var hover := -1
 var hover_wp := -1
 var mouse_world = null
 var place_check: Array = []
+## The Units list's row under the mouse (an entity id, -1 for none): its unit gets a ring and label on the map.
+var list_hover := -1
 
 var tsd: Control
 var host: Control
@@ -1109,6 +1111,8 @@ func _build_units_tab(box: VBoxContainer) -> void:
 	_ui.units.select_mode = ItemList.SELECT_MULTI
 	_ui.units.custom_minimum_size.y = 170
 	_ui.units.multi_selected.connect(func(_i, _s): _on_unit_listed())
+	_ui.units.gui_input.connect(_on_units_hover)
+	_ui.units.mouse_exited.connect(func(): _on_units_hover(null))
 	box.add_child(_ui.units)
 	# Adding comes first, right under the list: the most used action stays in view without scrolling.
 	box.add_child(_label("Add a unit"))
@@ -1144,7 +1148,7 @@ func _build_units_tab(box: VBoxContainer) -> void:
 	_ui.p_alt = _row(box, "Altitude m", _spin(-1000, 20000, 1, func(v): set_field("0x2f8", v)))
 	_ui.p_where = _row(box, "Position", _label(""))
 	_ui.p_clear = _button(box, "Move to clear ground", move_to_clear)
-	_button(box, "Delete unit", delete_selected)
+	_ui.p_delete = _button(box, "Delete unit", delete_selected)
 	_build_roles(box)
 	box.add_child(HSeparator.new())
 	box.add_child(_label("Give a route to the units selected in the list"))
@@ -1542,6 +1546,10 @@ func _fill_props() -> void:
 	for k in ["p_side", "p_role"]:
 		_ui[k].disabled = not can
 	_ui.p_clear.visible = can and not clear_ground_of(sel_id).is_empty()
+	# With nothing selected only the "Selected: nothing" line shows: no greyed values that look like a unit's.
+	for k in ["p_name", "p_side", "p_role", "p_heading", "p_alt", "p_where"]:
+		_ui[k].get_parent().visible = not e.is_empty()
+	_ui.p_delete.visible = not e.is_empty()
 	_ui.sel_head.text = (
 		"Selected: nothing (click a unit on the map or in the list)"
 		if e.is_empty()
@@ -1923,6 +1931,18 @@ func hover_at(c) -> void:
 	host.preview.queue_redraw()
 
 
+func _on_units_hover(event) -> void:
+	var id := -1
+	if event is InputEventMouseMotion:
+		var i: int = _ui.units.get_item_at_position(event.position, true)
+		id = int(_ui.units.get_item_metadata(i)) if i >= 0 else -1
+	elif event != null:
+		return
+	if id != list_hover:
+		list_hover = id
+		host.preview.queue_redraw()
+
+
 func _check_place(at: Vector2) -> void:
 	var cls := int(objects.get(add_object, {}).get("0x5aa", -1))
 	place_check = api.place_issues(cls, at.x, at.y)
@@ -1973,13 +1993,6 @@ func _show_hint() -> void:
 func draw_marks(c: Control) -> void:
 	var s: float = host._scale()
 	var font := ThemeDB.fallback_font
-	for n in tsd.flights:
-		var lead: Dictionary = tsd.units[tsd.flights[n].leader]
-		if tsd._unit_visible(lead):
-			var col: Color = Tsd.FLIGHT_COLORS[n - 1] if n <= 4 else SIDE_COLORS[clampi(int(lead.side), 1, 3) - 1]
-			var at: Vector2 = host.map_px(lead.pos) + Vector2(32 * s, -9 * s)  # right of the selection's ticks
-			if Rect2(Vector2.ZERO, host.size - Vector2(0, _ui.hint.size.y + 50)).has_point(at):  # clear of the legend
-				_chip(c, at, flight_name(n), col)
 	if tsd.zoom >= NAMES_ZOOM:
 		for u in tsd.units:
 			if tsd._unit_visible(u) and not u.leader and u.name != "":
@@ -1993,17 +2006,45 @@ func draw_marks(c: Control) -> void:
 	for i in tsd.units.size():
 		if keys.has(tsd.units[i].key) and i != tsd.selected:
 			_ring(c, host.map_px(tsd.units[i].pos), 17 * s, 2.0)
-	if tsd.selected >= 0:
-		var p: Vector2 = host.map_px(tsd.units[tsd.selected].pos)
-		_ring(c, p, 20 * s, 3.0)
-		for k in 4:  # four ticks, as a sight
-			var d := Vector2.from_angle(k * PI / 2)
-			c.draw_line(p + d * 22 * s, p + d * 30 * s, SEL_COLOR, 3.0)
-	if hover >= 0 and mode == "":
-		var p: Vector2 = host.map_px(tsd.units[hover].pos)
-		if hover != tsd.selected:
-			_ring(c, p, 18 * s, 1.5)
-		_chip(c, p + Vector2(-20 * s, 24 * s), describe(hover), Color.WHITE)
+	# The labels, most important first: the selected unit's, the hovered one's (on the map or in the Units list), the
+	# flights' call signs; each placed clear of the icons and of the labels placed before it (_place).
+	var hv := hover if mode == "" else -1
+	if hv < 0 and list_hover >= 0:
+		hv = _unit_index(list_hover)
+	var labels := []
+	if tsd.selected >= 0 and tsd._unit_visible(tsd.units[tsd.selected]):
+		labels.append([tsd.selected, describe(tsd.selected), SEL_COLOR, 31 * s])
+	if hv >= 0 and hv != tsd.selected:
+		labels.append([hv, describe(hv), Color.WHITE, 21 * s])
+	for n in tsd.flights:
+		var lead: int = tsd.flights[n].leader
+		if lead != tsd.selected and lead != hv and tsd._unit_visible(tsd.units[lead]):
+			var col: Color = (
+				Tsd.FLIGHT_COLORS[n - 1] if n <= 4 else SIDE_COLORS[clampi(int(tsd.units[lead].side), 1, 3) - 1]
+			)
+			labels.append([lead, flight_name(n), col, 17 * s])
+	var taken := _icon_rects(s)
+	var placed := []
+	for l in labels:
+		placed.append(_place(host.map_px(tsd.units[l[0]].pos), _chip_size(l[1]), l[3], taken))
+	# Drawn the other way round: the call signs, the hovered unit, the selection last, always on top.
+	for k in range(labels.size() - 1, -1, -1):
+		var l: Array = labels[k]
+		var p: Vector2 = host.map_px(tsd.units[l[0]].pos)
+		if l[0] == tsd.selected:
+			_ring(c, p, 20 * s, 3.0)
+			for t in 4:  # four ticks, as a sight
+				var d := Vector2.from_angle(t * PI / 2)
+				c.draw_line(p + d * 22 * s, p + d * 30 * s, SEL_COLOR, 3.0)
+		elif l[0] == hv:
+			_ring(c, p, 18 * s, 2.0, Color.WHITE)
+		if not placed[k][2] and l[0] != tsd.selected and l[0] != hv:
+			continue  # a call sign with no free place (a leader under the legend): left out
+		var r: Rect2 = placed[k][0]
+		if placed[k][1]:  # placed farther out: a leader line from the icon
+			c.draw_line(p, p.clamp(r.position, r.end), Color.BLACK, 4.0)
+			c.draw_line(p, p.clamp(r.position, r.end), l[2], 2.0)
+		_chip(c, r.position, l[1], l[2])
 	if hover_wp >= 0 and mode == "" and tsd.flights.has(tsd.sel_flight):
 		_ring(c, host.map_px(tsd.flights[tsd.sel_flight].points[hover_wp]), 13 * s, 2.0)
 	if mouse_world != null and mode in ["add", "paste"]:
@@ -2035,10 +2076,77 @@ func _ring(c: Control, p: Vector2, r: float, width: float, col := SEL_COLOR) -> 
 	c.draw_arc(p, r, 0, TAU, 48, col, width, true)
 
 
+## A label's box size.
+func _chip_size(text: String) -> Vector2:
+	return ThemeDB.fallback_font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, MARK_FS) + Vector2(8, 4)
+
+
+## The map's free area for labels: above the legend and the status line.
+func _label_area() -> Rect2:
+	return Rect2(
+		Vector2.ZERO, host.size - Vector2(0, _ui.hint.size.y + ThemeDB.fallback_font.get_height(MARK_FS - 2) + 6)
+	)
+
+
+## The visible units' icons (and the TSD's own label under the selected one) in the pane's pixels, a little grown.
+func _icon_rects(s: float) -> Array:
+	var out := []
+	var view := Rect2(Vector2.ZERO, host.size)
+	for u in tsd.units:
+		var p: Vector2 = host.map_px(u.pos)
+		if tsd._unit_visible(u) and view.has_point(p):
+			var sz := Vector2(27, 21 if u.klass == 1 else 17) * s
+			out.append(Rect2(p - sz / 2, sz).grow(2))
+	if tsd.selected >= 0:
+		var p: Vector2 = host.map_px(tsd.units[tsd.selected].pos)
+		out.append(Rect2(p + Vector2(-45 * s, 10 * s), Vector2(90 * s, 32 * s)))  # tsd.gd's two yellow lines
+	return out
+
+
+## A label of size `sz` for the icon at `p`: the first of eight places around it (right, left, below, above, the
+## corners) at `r` that stays in the free area clear of `taken`, else the same farther out with a leader line, else
+## right of it. Returns [rect, leader, found]; a found rect joins `taken`.
+func _place(p: Vector2, sz: Vector2, r: float, taken: Array) -> Array:
+	var area := _label_area()
+	var out := [Rect2(p + Vector2(r, -sz.y / 2), sz), false, false]
+	var found := false
+	for far in [false, true]:
+		var d: float = r * (2.5 if far else 1.0)
+		var e := d * 0.7
+		for at in [
+			Vector2(d, -sz.y / 2),
+			Vector2(-d - sz.x, -sz.y / 2),
+			Vector2(-sz.x / 2, d),
+			Vector2(-sz.x / 2, -d - sz.y),
+			Vector2(e, -e - sz.y),
+			Vector2(e, e),
+			Vector2(-e - sz.x, -e - sz.y),
+			Vector2(-e - sz.x, e),
+		]:
+			var rect := Rect2(p + at, sz)
+			if area.encloses(rect) and not taken.any(func(t): return t.intersects(rect)):
+				out = [rect, far, true]
+				found = true
+				break
+		if found:
+			break
+	if found:
+		taken.append(out[0])
+	return out
+
+
+## The map's index of the main file's unit `id`, -1 when not on the map.
+func _unit_index(id: int) -> int:
+	for i in tsd.units.size():
+		if tsd.units[i].key == "0:%d" % id:
+			return i
+	return -1
+
+
 ## A white label on a dark box framed in `col` at `p` (its top left), kept inside the map.
 func _chip(c: Control, p: Vector2, text: String, col: Color) -> void:
 	var font := ThemeDB.fallback_font
-	var sz := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, MARK_FS) + Vector2(8, 4)
+	var sz := _chip_size(text)
 	p = p.clamp(Vector2.ZERO, (host.size - sz - Vector2(0, _ui.hint.size.y)).max(Vector2.ZERO))
 	c.draw_rect(Rect2(p, sz), Color(0, 0, 0, 0.75))
 	c.draw_rect(Rect2(p, sz), col, false, 2.0)

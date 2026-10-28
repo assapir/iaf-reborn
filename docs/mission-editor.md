@@ -340,7 +340,8 @@ Each flight record also carries `formation`, the index of its formation in the m
   Mirage; 1973 adds Refidim; no Lavi without what-if), an enemy flight from Damascus, a flipped Refidim in 1967
   1967, the year and the bases kept by Save and Open, the Refidim warning in 1990; then Fork's name, the name rules, a drag moving an Alpha jet, an added SA-6 at the
   ground's height, Undo, an SA-6 in the sea as an error (red ring, Fly off), one selection shared by the list and the
-  map, Esc clearing it, hovering naming a unit, Add's ground check before the click (the sea an error, inland clear),
+  map, Esc clearing it, the empty panel hiding a unit's fields, a list row's hover marking its unit, a label placed
+  clear of what is taken (farther out with a leader line when boxed in), hovering naming a unit, Add's ground check before the click (the sea an error, inland clear),
   the click placing at that point, Esc stopping Add, the Weather (a fork's Default, Heavy rain written to misc
   `weather`), Save and Open giving the same mission and weather, and the original file unchanged.
 - `tests/godot/_mission_editor_shot.gd`: a real-render screenshot (usage in its header).
@@ -957,11 +958,12 @@ keeps the original's look, also its yellow two-line label and its selection spri
 
 - **Selection:** one selection, shared by the map and the Units list. A unit picked in the list is selected on the
   map and the map centres on it; a unit clicked on the map becomes the list's only pick and the list scrolls to it.
-  The selected unit gets a white ring with four ticks (white is neither side's colour nor a check's yellow or red);
-  the list's other picks get a thinner white ring. The side panel names it: "Selected: Boat_1 (Missile ship) · Red ·
-  Target", in its side's colour.
-- **Hover:** the unit under the mouse gets a thin ring and a label (name, type, side, role, flight); a waypoint of
-  the selected flight gets a ring.
+  The selected unit gets a white ring with four ticks (white is neither side's colour nor a check's yellow or red)
+  and a label, drawn last so they are always on top; the list's other picks get a thinner white ring. The side panel
+  names it: "Selected: Boat_1 (Missile ship) · Red · Target", in its side's colour; with nothing selected the panel
+  shows only "Selected: nothing (…)", none of a unit's fields.
+- **Hover:** the unit under the mouse, or the unit of the Units list's row under the mouse, gets a ring and a label
+  (name, type, side, role, flight); a waypoint of the selected flight gets a ring.
 - **Status line** along the map's foot: what a click or drag does where the mouse is, e.g. "Click the map to place
   SA 6 (Red, Target); each click places one. Esc stops." Over a unit it names the unit and says whether a drag moves
   it (a base mission's unit, an airbase's, is fixed).
@@ -972,7 +974,10 @@ keeps the original's look, also its yellow two-line label and its selection spri
   stops)" while it is on. Paste shows a ring and the number of units; Draw the route shows a dashed line from the
   last point to the mouse.
 - **Labels:** each flight's call sign (Alpha … Delta in its TSD colour; an enemy flight by its formation's name)
-  beside its leader; every unit's name under its icon from zoom 8 on.
+  beside its leader; every unit's name under its icon from zoom 8 on. The selection's, the hover's and the call
+  signs' labels are placed in that order of importance (`_place`): the first of eight places around the icon (right,
+  left, below, above, the corners) clear of every icon in view, of the TSD's own yellow label and of the labels
+  placed before; in a cluster the same places farther out, joined to the icon by a leader line.
 - **Side colours:** Blue light blue, Red light red, Neutral grey, the same in the Units list, the selection line,
   the labels and the legend.
 - **Legend** at the bottom left: the sides, the selected / warning / error rings, the flights' squares.
