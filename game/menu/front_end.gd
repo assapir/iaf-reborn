@@ -539,8 +539,24 @@ static func _norm(label: String) -> String:
 
 func _tex(path: String) -> Texture2D:
 	if not textures.has(path):
-		textures[path] = Img.load_texture(dir.path_join("img").path_join(path), true)
+		textures[path] = (
+			_own_tex(path)
+			if path.begins_with("res://")
+			else Img.load_texture(dir.path_join("img").path_join(path), true)
+		)
 	return textures[path]
+
+
+## Our own menu art in the repo (res://, e.g. the Sufa's weapon icons): drawn at 4× the original's pixels, resized to
+## the converted art's scale.
+func _own_tex(path: String) -> Texture2D:
+	var img := Image.load_from_file(path) if FileAccess.file_exists(path) else null
+	if img == null:
+		return null
+	if not is_equal_approx(art_scale, 4.0):
+		img.resize(int(img.get_width() * art_scale / 4.0), int(img.get_height() * art_scale / 4.0))
+	img.generate_mipmaps()
+	return ImageTexture.create_from_image(img)
 
 
 func _sound(name: String) -> AudioStreamWAV:

@@ -34,6 +34,8 @@ fn chase_motion(m: &VarDictionary, launch: bool) -> ChaseMotion {
         release_accel: part("_absReleaseAcceleration"),
         // Only the Real overlay sets "burn" (real_weapons.gd).
         real: num(m, "burn").is_some(),
+        // Ours (the Sufa's AIM-9X / Python 5, sufa_weapons.gd).
+        off_boresight: part("_offBoresight") != 0.0,
     }
 }
 

@@ -993,6 +993,8 @@ const WEAPON_OST := {
 	640: "OST_TVMISSILE",
 	650: "OST_LASERBOMB"
 }
+## The cued point of a lock-on-after-launch missile: this far along the cued line (the original's _fireEndVec distance).
+const LOAL_CUE_M := 10000.0
 ## W+0x274: the semi-active (610) missiles launched at a target and still flying; the radar losing its track
 ## (FUN_00458130) turns their guidance off.
 var semi_active: Array = []
@@ -1022,7 +1024,13 @@ func _release_missile() -> void:
 	var slots: Array = st.slots
 	var n := int(st.count)
 	var at: Vector3 = slots[n - 1] if n >= 1 and n <= slots.size() else st.attach
-	var mis := launch_homing(w, body_to_world(at), o, String(target.get("key", "")), q, _me())
+	# Ours (the Sufa's AIM-9X / Python 5, docs/weapons.md §13.1): without a lock the missile flies toward the cued line,
+	# the helmet's in the free-look / padlock views, else the nose, and locks on after launch (_loal).
+	var cue = null
+	if target.is_empty() and w.get("loal", false):
+		var axis: Vector3 = o.view_fwd if o.get("helmet", false) else o.fwd
+		cue = body_to_world(at) + axis.normalized() * LOAL_CUE_M
+	var mis := launch_homing(w, body_to_world(at), o, String(target.get("key", "")), q, _me(), cue)
 	if int(w.type) == 610 and not target.is_empty():
 		radar.lock_stt()
 		semi_active.append(mis)
@@ -1269,6 +1277,8 @@ func _update_missiles() -> void:
 	for u in _units():
 		units[u.key] = u
 	for mis in missiles.duplicate():
+		if mis.weapon.get("loal", false) and not mis.has_target:
+			_loal(mis, units)
 		var gone := false
 		while not gone and mis.next_update <= now:
 			var t := target_state(mis.target_key, units)
@@ -1291,6 +1301,15 @@ func _update_missiles() -> void:
 			_trail(mis, node, MissileFx.burning(String(mis.weapon.get("name", "")), now - mis.t0, mis.time_left(now)))
 		if gone:
 			_missile_detonate(mis)
+
+
+## Lock-on after launch (ours, docs/weapons.md §13.1): a missile flying at its cued point takes the unit nearest the
+## line to that point that its seeker can lock (sight.rs `Seeker::loal`), then chases it.
+func _loal(mis: RefCounted, units: Dictionary) -> void:
+	var p: Vector3 = mis.position(now)
+	var key: String = ClassDB.class_call_static("IafSeeker", "loal", mis.weapon, p, mis.aim_point - p, units.values())
+	if key != "":
+		mis.retarget(key)
 
 
 ## FUN_004d6130 for a homing weapon: every unit around (the blast decides), explosion and sound
@@ -1416,7 +1435,8 @@ var ag := {
 	"ttg": -1.0,
 	"frozen": false,
 	"blink_until": -INF,
-	"pipper": null
+	"pipper": null,
+	"gps": {}
 }
 ## The host's HUD test (cockpit views only): world point -> {off: bool, origin, dir (scene ray through
 ## the point clipped to the HUD edge toward the flight path marker)}; unset = always on the HUD
@@ -1468,12 +1488,20 @@ func _ripple_tick() -> void:
 	if ripple_left == ripple_qty or _ripple_line.size() != ripple_qty:
 		_ripple_line = Bombs.ripple_line(p, ripple_qty, float(ripple_int), own().yaw, host.mission_ground)
 	var aim: Vector3 = _ripple_line[_ripple.index(ripple_left)]
-	if t == 650:
+	var gps: bool = stores.station(i).w.has("gps")
+	if gps:
+		aim = gps_aim(aim)[0]
+	elif t == 650:
 		aim = _laser_aim(p, aim)
-	# FUN_0045ee10 and the delayed release (the first bomb waits for time-to-go ≤ 0.9 s).
+	# FUN_0045ee10 and the delayed release (the first bomb waits for time-to-go ≤ 0.9 s; a GPS bomb goes at once).
 	if not release_allowed() or _bay_wait(i):
 		return
-	if ClassDB.class_call_static("IafRelease", "first_bomb_waits", ag.off, ripple_left == ripple_qty, float(ag.ttg)):
+	if (
+		not gps
+		and ClassDB.class_call_static(
+			"IafRelease", "first_bomb_waits", ag.off, ripple_left == ripple_qty, float(ag.ttg)
+		)
+	):
 		return
 	ripple_left -= 1
 	if ripple_left <= 0:
@@ -1498,6 +1526,23 @@ func _laser_aim(p: Vector3, ripple: Vector3) -> Vector3:
 			d = u
 	var g = host.mission_ground(d)
 	return ClassDB.class_call_static("IafRelease", "laser_aim", own().pos, p, ripple, d, float(g) if g != null else 0.1)
+
+
+## A GPS bomb's aim (ours, docs/weapons.md §13.2): [point, designated]: the targeting pod's point with the laser on,
+## else the radar's designated point (the TD box), else `ripple` (the bombs' CCIP aim).
+func gps_aim(ripple: Vector3) -> Array:
+	var pod = null
+	var g := 0.0
+	if eo.laser:
+		pod = eo_centre
+		if eo_on_unit and eo.target != "" and eo.unit_pos.is_valid():
+			var u = eo.unit_pos.call(eo.target)
+			if u != null:
+				pod = u
+		var gh = host.mission_ground(pod)
+		g = float(gh) if gh != null else 0.1
+	var td = radar.desig if radar.designated else null
+	return ClassDB.class_call_static("IafRelease", "gps_aim", ripple, pod, g, td)
 
 
 ## The ripple ends (timer killed, FUN_0045d150(0): the symbols blink for 1 s); W+0xac cleared.
@@ -1530,6 +1575,9 @@ func _drop_store(i: int, aim: Vector3) -> void:
 ## ballistic one.
 func release_store(w: Dictionary, p0: Vector3, vel: Vector3, aim: Vector3, owner: Dictionary) -> void:
 	var type := int(w.type)
+	if w.has("gps"):
+		_launch_gps(w, p0, vel, aim, owner)
+		return
 	if type == 650:
 		launch_guided(w, p0, vel, aim, owner)  # the laser bomb always flies the guided motion (§12)
 		return
@@ -1560,6 +1608,32 @@ func drop_bomb(w: Dictionary, p0: Vector3, vel: Vector3, aim: Vector3, owner: Di
 	var snd = host.sounds.play("SFX_OBJECT_SPECIFIC", OST.get(int(w.type), "OST_BOMB"))
 	bombs.append({"b": b, "w": w, "node": node, "sound": snd, "t0": now, "owner": owner})
 	_place_bomb(bombs[-1])
+
+
+## GPS bombs in flight (ours, gps.rs): {g (IafGpsBomb), w, node, sound, owner}.
+var gps_bombs: Array = []
+
+
+## One GPS bomb (the Sufa's JDAMs and GBU-39, docs/weapons.md §13.2) leaves `p0` at `vel` for `aim`, fixed now.
+func _launch_gps(w: Dictionary, p0: Vector3, vel: Vector3, aim: Vector3, owner: Dictionary) -> void:
+	var g = ClassDB.instantiate("IafGpsBomb")
+	g.launch(w.gps, now, p0, vel, aim)
+	var node := _instance(String(w.model_path), w.get("detailed", true))
+	if node != null:
+		host.add_child(node)
+	var snd = host.sounds.play("SFX_OBJECT_SPECIFIC", OST.get(int(w.type), "OST_BOMB"))
+	var bm := {"g": g, "w": w, "node": node, "sound": snd, "owner": owner}
+	gps_bombs.append(bm)
+	_place_gps(bm)
+
+
+func _place_gps(bm: Dictionary) -> void:
+	var p: Vector3 = bm.g.position()
+	if bm.node != null:
+		bm.node.position = to_scene(p)
+		_orient(bm.node, bm.g.velocity())
+		bm.node.scale = Vector3.ONE * float(bm.w.get("scale", 1.0))
+	_place_sound(bm.sound, p)
 
 
 func _rockets() -> RefCounted:
@@ -1613,6 +1687,16 @@ func _update_ag() -> void:
 	else:
 		ag.ttg = -1.0
 		ag.pipper = ag.impact
+	# Ours: a GPS bomb's aim and the launch acceptability region (docs/weapons.md §13.3).
+	ag.gps = {}
+	if w.has("gps"):
+		var a: Array = gps_aim(ag.target if ag.off else ag.impact)
+		ag.gps = {
+			"aim": a[0],
+			"designated": a[1],
+			"in_range": ClassDB.class_call_static("IafGpsBomb", "in_range", w.gps, o.pos, o.vel, a[0]),
+			"dist": _hdist(o.pos, a[0])
+		}
 
 
 static func _hdist(a: Vector3, b: Vector3) -> float:
@@ -1644,6 +1728,12 @@ func _ray_ground(origin: Vector3, dir: Vector3) -> Variant:
 
 
 func _update_bombs() -> void:
+	for bm in gps_bombs.duplicate():
+		var gone: bool = bm.g.advance(now, host.mission_ground)
+		_place_gps(bm)
+		if gone:
+			gps_bombs.erase(bm)
+			_bomb_detonate(bm, bm.g.position())
 	for bm in bombs.duplicate():
 		var hit: Dictionary = Bombs.check(bm.b, now, host.mission_ground, bomb_burst_fix)
 		_place_bomb(bm)
@@ -2290,7 +2380,8 @@ func _publish() -> void:
 			"frozen": ag.frozen,
 			"target": ag.target,
 			"ttg": ClassDB.class_call_static("IafRelease", "ttg_shown", float(ag.ttg)),
-			"blink": now < float(ag.blink_until)
+			"blink": now < float(ag.blink_until),
+			"gps": ag.get("gps", {}) if hud_mode in [5, 6] else {}
 		},
 	}
 
@@ -2375,7 +2466,7 @@ static func attach_stores(stores: RefCounted, model: Node3D) -> Dictionary:
 
 ## The store model's `pilon` helper (glTF, the sum of its and its parents' translations), or null.
 static func _pilon_of(path: String) -> Variant:
-	var d := Settings.load_json(Settings.assets_dir().path_join("converted/objects").path_join(path))
+	var d := Settings.load_json(Gltf.objects_path(path))
 	var nodes: Array = d.get("nodes", [])
 	var parent := {}
 	for i in nodes.size():

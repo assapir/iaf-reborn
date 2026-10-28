@@ -321,6 +321,20 @@ impl Seeker {
         };
     }
 
+    /// Lock-on after launch (ours: AIM-9X Block II, Python 5; docs/weapons.md §13.1). A missile launched without a
+    /// lock at `pos` searches along `axis` (toward its cued point): the unit nearest that axis within the seeker's cone
+    /// that its lock rule (`can_track`) accepts, any side (as the original's search).
+    pub fn loal<'a>(&self, pos: Vec3, axis: Vec3, units: &'a [Heat]) -> Option<&'a Heat> {
+        let eye = Eye { pos, ..Eye::default() };
+        let axis = axis.try_normalize()?;
+        units
+            .iter()
+            .filter_map(|u| Some((axis.dot((u.pos - pos).try_normalize()?), u)))
+            .filter(|&(c, u)| c >= self.cone_cos && self.can_track(&eye, u, false))
+            .max_by(|a, b| a.0.total_cmp(&b.0))
+            .map(|(_, u)| u)
+    }
+
     /// Leaving the IR mode (`FUN_00461bb0`): both tones stop.
     pub fn exit(&mut self) {
         self.tone = Tone::Off;
@@ -454,6 +468,20 @@ mod tests {
         assert!(s.in_view(&e, &u));
         s.set_generation(3);
         assert!(!s.in_view(&e, &u));
+    }
+
+    #[test]
+    fn loal_takes_the_unit_nearest_the_cued_axis() {
+        let mut s = Seeker::default();
+        s.set_weapon(4, Some(100.0), None);
+        let units = [
+            heat("off", Vec3::new(3000.0, 3000.0, 0.0), Vec3::ZERO),
+            heat("cued", Vec3::new(4000.0, 500.0, 0.0), Vec3::ZERO),
+            heat("far", Vec3::new(40_000.0, 0.0, 0.0), Vec3::ZERO),
+        ];
+        let east = Vec3::new(1.0, 0.0, 0.0);
+        assert_eq!(s.loal(Vec3::ZERO, east, &units).map(|u| u.key.as_str()), Some("cued"));
+        assert!(s.loal(Vec3::ZERO, -east, &units[..1]).is_none(), "outside the cone");
     }
 
     #[test]

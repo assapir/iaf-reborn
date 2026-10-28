@@ -149,6 +149,48 @@ rounds' path. The record's damage stays: no per-round value is published.
 The Lavi's real gun was a 30 mm DEFA[^11]; the game gives it the "20 MM". Its round count is unpublished, so the Lavi
 keeps the original gun and count.
 
+### 1.6 The F-16I Sufa's weapons (ours)
+
+New records for the Sufa only (docs/weapons.md §13), with these values under both Weapon data settings: the 1998
+data has none. Israel bought 600 AIM-9X-2 Block II missiles (US notice of July 2014)[^isr9x]; the Sufa's JDAMs and
+Python 5: docs/f16i.md §5; the F-16I has carried the SDB since August 2015 (107 Squadron, the first F-16I unit)[^sdbf16i].
+
+| record | weight | top speed | range | seeker / kit | sources |
+|---|---|---|---|---|---|
+| AIM-9X (Block II) | 85 kg | Mach 2.5 (inferred: the Sidewinder family's "Mach 2.5+") | 17.7 km (inferred: the AIM-9M's; open) | imaging IR, 90° off boresight, thrust-vector control for 60 g, LOAL | [^ds9x], [^2] |
+| PYTH-5 | 105 kg | Mach 4 | 20 km ("> 20 km") | imaging IR and electro-optical, LOAL up to 100° off boresight | [^3] |
+| GBU-31 (Mk 84) | 946 kg | – | 24 km | GPS / INS | [^dsjdam], [^jdam] |
+| GBU-31(V)3 (BLU-109) | 981 kg | – | 24 km | GPS / INS | [^dsjdam] |
+| GBU-32 (Mk 83) | 468 kg | – | 24 km | GPS / INS | [^dsjdam] |
+| GBU-38 (Mk 82) | 253 kg | – | 24 km | GPS / INS | [^dsjdam] |
+| GBU-39 SDB | 129 kg | – | 111 km ("over 60 nmi") | GPS / INS, wings; four on a BRU-61 rack | [^sdb] |
+
+- **Weights** are the records' bdb weight (0x758) in whole pounds.
+- **Missiles**: speed and range set β and the burn as §2 does. Inferred: the motor's acceleration 600 m/s² (so a
+  steady 61 g across the velocity; the AIM-9X is held to its published 60 g) and 0.05 s before it steers, for the
+  thrust-vector control; the lock ranges (§1.2) the Python 4's for the AIM-9X (rear 16 km, front 4.5 / 12.7 km), and
+  1.25 × that for the Python 5 (20 / 6 / 16 km), as no seeker range is published. The blast is the AIM-9M's (the AIM-9X
+  keeps its 9.4 kg WDU-17/B warhead[^ds9x]); the Python 5's is the Python 4's (its warhead 11 kg[^3]; inferred: the
+  same class).
+- **JDAM range**: designation-systems gives 8–24 km "from typical operating altitudes"[^dsjdam]; Wikipedia "up to 15
+  nautical miles (28 km)" and 13 nmi (24 km) in its table[^jdam]. The kit's glide ratio 1.6 makes the 24 km from
+  40,000 ft at Mach 0.9 (inferred conditions; docs/weapons.md §13.2). The 3 g turn, the 150 m/s slowest and 300 m/s
+  fastest speeds: inferred.
+- **GBU-39 range**: "over 60 nmi" air-dropped[^sdb]: glide ratio 7.6 from the same release. Weight: the spec box's
+  129 kg (the lead says 250 lb, 110 kg[^sdb]).
+- **Blast**: the bomb's own record (Mk 84 / 83 / 82). The BLU-109 holds 250 kg of tritonal[^blu109], the GBU-39 16 kg
+  of AFX-757[^sdb], against the Mk 84's 429 kg[^mk84]: their power is the MK-84's × fill / 429, the radius × the cube
+  root of that (inferred).
+- **Accuracy**: a JDAM with GPS has a 5 m CEP[^jdam] (13 m official, about 10 m in use[^dsjdam]), the GBU-39 1 m[^sdb];
+  the game's bomb lands on its aim (not modelled).
+
+Not added (docs/f16i.md §5):
+- **SPICE 1000 / 2000**: the IAF fielded the SPICE 1000 on the F-16C/D first; its F-16I use was planned for the Ramon
+  squadrons in 2017[^spice1000]; no source shows the SPICE 2000 on the F-16I. Its electro-optical scene matching would
+  be a new seeker rule. Open, a follow-up.
+- **GBU-28**: no source puts it on the F-16I (Israel's carrier is the F-15I, inferred).
+- **Laser JDAM (GBU-54)**: Israel co-developed the laser seeker with Elbit[^jdam]; its use on the F-16I: open.
+
 ## 2. Mapping onto the original's model
 Each real value lands in one field or rule of the original model:
 
@@ -194,8 +236,8 @@ Each real value lands in one field or rule of the original model:
 
 ## Sources
 [^1]: designation-systems.net, "Raytheon AIM-9 Sidewinder", https://www.designation-systems.net/dusrm/m-9.html (AIM-9D 88 kg, 18 km, Mach 2.5+, rear-aspect, 12 g; AIM-9L / M 86 kg; AIM-9A / B effective kill radius about 9 m).
-[^2]: Wikipedia, "AIM-9 Sidewinder", https://en.wikipedia.org/wiki/AIM-9_Sidewinder (AIM-9D 88.5 kg; AIM-9L / M 86 kg, Mach 2.5+, range 1.0–35.4 km, "not verified in body").
-[^3]: Wikipedia, "Python (missile)", https://en.wikipedia.org/wiki/Python_(missile) (Shafrir 2 93 kg, Mach 2.1, 5 km; Python 3 120 kg, Mach 3.5, 15 km; Python 4 120 kg, Mach 3.5+, 15 km).
+[^2]: Wikipedia, "AIM-9 Sidewinder", https://en.wikipedia.org/wiki/AIM-9_Sidewinder (AIM-9D 88.5 kg; AIM-9L / M 86 kg, Mach 2.5+, range 1.0–35.4 km, "not verified in body"; AIM-9X: "claimed 90° off-boresight capability", two-axis thrust-vector control for 60 g, an imaging IR seeker, Block II lock-on after launch).
+[^3]: Wikipedia, "Python (missile)", https://en.wikipedia.org/wiki/Python_(missile) (Shafrir 2 93 kg, Mach 2.1, 5 km; Python 3 120 kg, Mach 3.5, 15 km; Python 4 120 kg, Mach 3.5+, 15 km; Python 5 105 kg, Mach 4, > 20 km, lock-on after launch up to 100° off boresight, an electro-optical and imaging IR seeker, 11 kg warhead).
 [^4]: Wikipedia, "Shafrir (missile)", https://en.wikipedia.org/wiki/Shafrir_(missile).
 [^5]: Wikipedia, "M61 Vulcan", https://en.wikipedia.org/wiki/M61_Vulcan (6000 rpm; M56 1030 m/s).
 [^6]: General Dynamics OTS, "F-16 20mm Gatling gun system", https://www.gd-ots.com/wp-content/uploads/2017/11/F-16.pdf (511 rounds).
@@ -248,3 +290,20 @@ Each real value lands in one field or rule of the original model:
     https://en.wikipedia.org/wiki/Gryazev-Shipunov_GSh-23
 [^mig23]: Wikipedia, "Mikoyan-Gurevich MiG-23" (1 × GSh-23L with 200 rounds),
     https://en.wikipedia.org/wiki/Mikoyan-Gurevich_MiG-23
+[^isr9x]: Federal Register, 23 July 2014, arms sales notification 14-21 (Israel, up to 600 AIM-9X-2 Sidewinder Block II
+    all-up-round missiles), https://www.govinfo.gov/content/pkg/FR-2014-07-23/pdf/2014-17308.pdf
+[^sdbf16i]: Army Recognition, "Israeli Air Force F-16I fighter aircraft start using advanced Small Diameter Bombs",
+    August 2015 (the IAF's announcement of 18 August 2015; 107 Squadron),
+    https://www.armyrecognition.com/archives/archives-aerospace-defense/aerospace-defense-2015/israeli-air-force-f-16i-fighter-aircraft-start-using-advanced-small-diameter-bombs
+[^ds9x]: designation-systems.net, "Raytheon AIM-9 Sidewinder" (AIM-9X 85 kg, WDU-17/B 9.4 kg warhead, the jet-vane
+    steering of the WPU-17/B), https://www.designation-systems.net/dusrm/m-9.html
+[^dsjdam]: designation-systems.net, "JDAM" (GBU-31(V)2/B 946 kg, (V)4/B with the BLU-109 981 kg, GBU-32(V)2/B 468 kg,
+    GBU-38(V)1/B 253 kg; 8–24 km; CEP 13 m official, about 10 m), https://www.designation-systems.net/dusrm/app5/jdam.html
+[^jdam]: Wikipedia, "Joint Direct Attack Munition" (up to 15 nmi; 5 m CEP with GPS; Israel an operator; the laser JDAM's
+    seeker co-developed with Elbit), https://en.wikipedia.org/wiki/Joint_Direct_Attack_Munition
+[^sdb]: Wikipedia, "GBU-39 Small Diameter Bomb" (129 kg, 16 kg AFX-757, over 60 nmi, 1 m CEP, four on a BRU-61/A),
+    https://en.wikipedia.org/wiki/GBU-39_Small_Diameter_Bomb
+[^blu109]: Wikipedia, "BLU-109 bomb" (550 lb, 250 kg of tritonal), https://en.wikipedia.org/wiki/BLU-109_bomb
+[^mk84]: Wikipedia, "Mark 84 bomb" (945 lb, 429 kg of tritonal), https://en.wikipedia.org/wiki/Mark_84_bomb
+[^spice1000]: Airforce Technology, "IAF's SPICE 1000 munition attains IOC for use on F-16C/D aircraft" (the Ramon F-16I
+    squadrons next), https://www.airforce-technology.com/news/iafs-spice-1000-munition-attains-ioc-use-f-16c-d-aircraft/

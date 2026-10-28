@@ -182,7 +182,10 @@ func _art() -> String:
 	return "arm/jets/%s.png" % jet.get("art", "")
 
 
+## The weapon's icon: the original's art, or ours (the Sufa's weapons, game/extra/weapons/arm).
 func _icon(w: Dictionary) -> String:
+	if w.get("own_icon", false):
+		return "res://extra/weapons/arm/%s.png" % w.icon
 	return "arm/weapons/%s.png" % w.get("icon", "")
 
 

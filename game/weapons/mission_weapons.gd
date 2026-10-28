@@ -10,6 +10,7 @@ const PlayerAircraft := preload("res://aircraft/player_aircraft.gd")
 const WeaponDb := preload("res://weapons/weapon_db.gd")
 const Stores := preload("res://weapons/stores.gd")
 const MissionRuntime := preload("res://mission/mission_runtime.gd")
+const SufaWeapons := preload("res://weapons/sufa_weapons.gd")
 
 ## Menu tab by bdb Weapons type (FUN_004ef290, record +8): 0 AA, 1 AG, 2 Misc; other types (SAMs
 ## 620 / 630, 0) are not in the list.
@@ -82,8 +83,14 @@ static func from_mission(mission: Dictionary, bdb: Dictionary, real := false) ->
 	var raw: Array = bdb.get("weapons", {}).get("items", [])
 	# The Mission Creator's WEAPONS choice (FUN_0058c9c0): only these weapon types are in the table; absent = all.
 	var kept: Array = mission.get("weapon_types", [])
+	# The bdb's weapons, then the Sufa's (ours, sufa_weapons.gd; listed only where the Sufa's stations allow them).
+	var ids := []
 	for w in raw:
-		var id := int(w.get("0x1e", -1))
+		ids.append(int(w.get("0x1e", -1)))
+	for r in db.weapons.values():
+		if r.get("sufa", false):
+			ids.append(int(r.id))
+	for id in ids:
 		var r: Dictionary = db.by_id(id)
 		if r.is_empty() or not TABS.has(int(r.type)) or (not kept.is_empty() and not float(r.type) in kept):
 			continue
@@ -92,7 +99,9 @@ static func from_mission(mission: Dictionary, bdb: Dictionary, real := false) ->
 			"type": int(r.type),
 			"tab": TABS[int(r.type)],
 			"name": String(r.name),
-			"icon": String(r.model_path).get_base_dir().get_file(),
+			# Ours: their own art (game/extra/weapons/arm), else the model folder's (the original's icon names).
+			"icon": String(r.get("icon", String(r.model_path).get_base_dir().get_file())),
+			"own_icon": r.has("icon"),
 			"weight": float(r.weight_lb),
 			"max": [0, 0, 0, 0, 0, 0, 0, 0, 0]
 		}
@@ -167,15 +176,16 @@ func weapon(id: int) -> Dictionary:
 
 
 ## FUN_004ef8a0(n): every weapon's allowed counts from the leader's CDMEWeaponLoadItems (the mission file's jet,
-## also when another one was picked: "limits"): for each item, station i allows max(previous, item count) when its
-## flag i is set.
+## also when another one was picked: "limits"), plus the Sufa's (ours) for an F-16 with the Sufa switch: for each item,
+## station i allows max(previous, item count) when its flag i is set.
 func reset(n: int) -> void:
 	flight = n
 	for w in weapons:
 		w.max = [0, 0, 0, 0, 0, 0, 0, 0, 0]
 	if not flights.has(n):
 		return
-	for item in flights[n].get("limits", flights[n].object).get("loads", {}).get("items", []):
+	var items: Array = flights[n].get("limits", flights[n].object).get("loads", {}).get("items", [])
+	for item in items + SufaWeapons.loads(int(flights[n].type)):
 		var w := weapon(int(item.get("0x910", -1)))
 		if w.is_empty():
 			continue

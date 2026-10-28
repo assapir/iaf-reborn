@@ -32,13 +32,17 @@ All under `Models/` in the FlightGear F-16.
 | `f16ftkm.glb` | the F-16's 2100 lb (300 gal) centreline tank | `Armament/External-stores/Fueltanks/300G.ac`, `Liveries/Block40/90-0874.png` |
 | `ecmpod.glb` | ECM pod | `Armament/External-stores/AN_ALQ-131/AN_ALQ-131.ac`, `AN_ALQ-131.png` |
 | `flrpod.glb` | FLIR pod | `Armament/External-stores/LANTIRN/AN-AAQ-13.ac`, `AN-AAQ-13.png` |
+| `aim9x.glb` | AIM-9X (ours, the F-16I Sufa's) | `Armament/Weapons/AIM-9X/AIM-9X.ac`, `AIM-9X.png` |
+| `gbu31.glb` | GBU-31, GBU-31(V)3 (the Sufa's) | `Armament/Weapons/GBU-31/GBU-31.ac`, `GBU-31.png` |
+| `gbu38.glb` | GBU-38 (the Sufa's) | `Armament/Weapons/GBU-54/GBU-54.ac`, `GBU-54.png` (the laser JDAM's look) |
 
 ## Changes
 
 Made by `tools/stores/build.gd` (re-runnable; docs/aircraft-models.md §5):
 
 1. Scaled and placed on the original game model of the store it stands in for: its length on the original's
-   length, its axis on the original's axis (the tanks and pods: their top on the original's top, where the pylon
+   length (the Sufa's AIM-9X, GBU-31 and GBU-38: at the scale of the AIM-9M / MK-84 / MK-82 fitted so, their real size),
+   its axis on the original's axis (the tanks and pods: their top on the original's top, where the pylon
    meets it). The laser bombs keep their bomb's girth and so are longer than the original's.
 2. MK-83L and MK-84L made from the plain bomb: its fuze, tail fins and arming wire removed, the GBU-12's Paveway II
    guidance section put on its nose and its tail kit (scaled to the bomb's girth) on its tail (a GBU-16 / GBU-10
@@ -49,6 +53,9 @@ Made by `tools/stores/build.gd` (re-runnable; docs/aircraft-models.md §5):
 5. The seeker glass and lenses (see-through in FlightGear) made opaque dark glass.
 6. Every face drawn from both sides (as FlightGear marks them), smooth normals within each object's crease angle,
    one mesh per store, textures re-encoded as JPEG at 512 px or less.
+
+The Arming screen icons in `game/extra/weapons/arm/` are renders of these models (`tools/stores/icons.gd`) under
+the same licence.
 
 Every mesh and texture comes from the FlightGear F-16. The placement uses only measurements of the original models
 (their lengths, axes and tops); no original game data is in these files.

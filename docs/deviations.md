@@ -273,7 +273,11 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - flight data: the "F-16I" row whatever the Flight data setting says (real-aircraft.md §8.1);
   - radar: the AN/APG-68(V)9 row, LRS 45 → 58 NM and TWS 35 → 45 NM (radar.md §1); with Weapon data Real, LRS 104 km;
     the AI's F-16s see 52 NM instead of the 40 NM every AI jet has;
-  - the TSD calls the selected F-16 "F-16I"; the info line shows SUFA.
+  - the TSD calls the selected F-16 "F-16I"; the info line shows SUFA;
+  - weapons: the Arming screen also lists the AIM-9X, Python 5, GBU-31, GBU-31(V)3, GBU-32, GBU-38 and GBU-39 (our
+    records from public data, with either Weapon data): high off-boresight IR missiles through the helmet with lock-on
+    after launch, and GPS bombs that fly to the designated point, with `IN RNG` on the HUD (weapons.md §13). The
+    Barak's list is the original's.
 - **HUD (Original (1998) / Real)** (references: [real-hud.md](real-hud.md)). Original: the 1998 HUD on every jet.
   Ours, with Real: each jet's real display:
   - the F-16C/D dash-34 HUD;

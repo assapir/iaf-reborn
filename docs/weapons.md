@@ -43,6 +43,11 @@ Terms used in this doc:
 | STT / TWS | the radar's single-target track / track-while-scan (docs/radar.md)                              |
 | tCO       | `_timeConstOrientation`: the time a missile flies straight before it steers                     |
 | TRA / TER | the TV weapon's status codes on the TV page: 2 TRA (guided mode 0), 3 TER (modes 1 / 2) (§12.1) |
+| JDAM      | joint direct attack munition: a GPS / INS tail kit on a plain bomb (ours, the F-16I's, §13.2)   |
+| LAR       | launch acceptability region: where a released GPS bomb reaches its aim (§13.3)                  |
+| LOAL      | lock-on after launch: the missile finds its target after it leaves the rail (§13.1)             |
+| SDB       | small diameter bomb, the GBU-39 (§13.2)                                                         |
+| TD        | target designator: the HUD box on the radar's designated point (docs/radar.md §8)              |
 
 What is built:
 - Chaff and flares (§10).
@@ -60,6 +65,9 @@ What is built:
 - The TV weapons (635 Maverick, 640 TV missile) with the guided motion, the camera riding the weapon and the TV
   page's TRA / TER and time (§12).
 - The laser bombs with the FLIR designation (§9.8).
+- Ours, the F-16I Sufa's weapons (only with Extras "F-16 version" = Sufa): the AIM-9X and Python 5 (high off-boresight
+  shots through the helmet, lock-on after launch), the JDAMs and the GBU-39 (GPS bombs to a designated point, with an
+  in-range cue) (§13).
 
 ## 1. Data
 
@@ -1044,6 +1052,91 @@ the DLZ; the launch: TRA, the time left, the camera riding the missile; the hit;
 Maverick at the camera's point and its hit. `tests/godot/test_maverick_mfd.gd` (Models: Detailed): two Mavericks; the
 camera rides the first in every update until the hit, with the page on RDY, the picture shown and the weapon's model
 on the EO self layer; then the camera is back on the jet; the last one launched gives NO SOURCE.
+
+## 13. The F-16I Sufa's weapons (ours)
+
+With Extras "F-16 version" = Sufa (`Settings.sufa(100)`, docs/f16i.md) the F-16's Arming screen also lists seven
+weapons the 1998 game does not have. They are ours: new records built from public data whatever Weapon data says
+(values and sources: docs/real-weapons.md §1.6). The Barak, the other jets and the AI never get them.
+
+- **Records** (`game/weapons/sufa_weapons.gd`, ids 1001–1007, added to every weapon database by `weapon_db.gd`): each
+  copies an original record for its blast, drag and model and overrides the rest. A record built on a bomb with less
+  explosive (GBU-31(V)3, GBU-39) scales the base's power by its fill over the Mk 84's 429 kg and the radius by the
+  cube root of that (inferred).
+
+  | record | type | built on (blast) | model (Original / Detailed) | stations | count |
+  |---|---|---|---|---|---|
+  | `AIM-9X` | 570, gen. 4 | AIM-9M | AIM-9 / FlightGear AIM-9X | 1–3, 7–9 | 1 |
+  | `PYTH-5` | 570, gen. 4 | PYTH-4 | the Python 4's (both) | 1–3, 7–9 | 1 |
+  | `GBU-31` | 650 + GPS | MK-84 | MK-84L / FlightGear GBU-31 | 3, 4, 6, 7 | 1 |
+  | `GBU-31V3` (BLU-109) | 650 + GPS | MK-84 × 250 / 429 | MK-84L / FlightGear GBU-31 | 3, 4, 6, 7 | 1 |
+  | `GBU-32` | 650 + GPS | MK-83 | MK-83L (both) | 3, 4, 6, 7 | 1 |
+  | `GBU-38` | 650 + GPS | MK-82 | MK-82L / FlightGear GBU-54 (the laser JDAM's look) | 3, 4, 6, 7 | 1 |
+  | `GBU-39` | 650 + GPS | MK-84 × 16 / 429 | MK-82 at 0.8 scale (both) | 3, 4, 6, 7 | 4 (one rack) |
+
+- **Arming**: `mission_weapons.gd` lists them after the bdb's weapons and adds their load items to the F-16's when
+  the switch is on (`SufaWeapons.loads`). Their icons are ours (`game/extra/weapons/arm/`, renders of the
+  detailed stores by `tools/stores/icons.gd`); the Python 5 shows the install's Python 4 icon. A GPS bomb takes the bomb rack layout (§2.2), so four GBU-39s sit on one station.
+
+### 13.1 AIM-9X and Python 5
+
+Both are IR missiles (type 570): the seeker, the tone, the launch and the chase of §5 apply, with these changes:
+- **Seeker cone** 90° (AIM-9X) / 100° (Python 5) instead of the generation's 70°: the helmet (§5.4) and a radar lock
+  slave the seeker that far off the nose. The lock ranges are the Real ones of the record (`real_*`), used with either
+  Weapon data.
+- **Agility** (`_offBoresight`, `missile.rs` `ChaseMotion::off_boresight`): the motor's acceleration is 600 m/s² and
+  the missile steers after 0.05 s (the original's IR missiles: 100–150 m/s², 1–2 s straight). The original ends a
+  flight when the target falls behind the missile's beam (the overshoot, §5.3); these missiles end that way only after
+  the target has been ahead of them once, so a missile fired at a target beside or behind the wing line turns to it.
+  The AIM-9X's turn is held to 60 g.
+- **LOAL** (`sight.rs` `Seeker::loal`): launched without a seeker lock, the missile flies at a point 10 km along the
+  cued line, the helmet's line of sight in the free-look and padlock views, else the nose. Each frame it takes the
+  unit nearest the line to that point within its cone that its lock rule accepts (any side, as the original's
+  search), then chases it.
+
+### 13.2 GPS bombs (JDAM, GBU-39)
+
+A GPS bomb has no seeker: it flies to the point set at its release (`crates/iaf-avionics/src/gps.rs`, `IafGpsBomb`).
+- **Aim** (`release.rs` `gps_aim`), per store:
+  1. the targeting pod's point with the laser on (as the laser bomb's, §9.8, but in any direction: the bomb has no
+     seeker cone), when it lies on the ground;
+  2. else the radar's designated point, the HUD's TD box (MAP / GMT designation, docs/radar.md §8);
+  3. else the bomb's own aim: the CCIP impact or the delayed-CCIP target (§9.3).
+- **Release**: the ripple of §9.2. The first bomb goes at once: a GPS bomb skips the 0.9 s delayed-release wait.
+- **Flight** (an energy model, inferred): the bomb's energy per kg, g·height + ½·speed², drains by g / LD per metre
+  flown over the ground, LD being the kit's glide ratio. Its speed is what that energy leaves at its height, at most
+  the kit's dive speed (300 m/s). It flies straight at the aim while faster than its slowest speed (150 m/s); at the
+  slowest it glides at 1 : LD toward the aim and lands short. Its path turns toward the wanted direction at 3 g
+  (inferred). It bursts where its path crosses the aim's height (or the ground), with the falling store's explosion
+  (§9.5). The real kits' error (5 m CEP for a JDAM with GPS) is not modelled: the bomb lands on its aim.
+- **Reach**: from height h above the aim at speed s, LD · (h + (s² − 150²) / 2g) over the ground, whatever the path.
+  JDAM: LD 1.6, about 24 km from 40,000 ft at Mach 0.9, 8 km from 3,000 m at 250 m/s. GBU-39: LD 7.6, about 110 km
+  from 40,000 ft.
+
+### 13.3 The in-range cue (LAR)
+
+In HUD modes 5 / 6 with a GPS bomb selected:
+- **In range** (`gps.rs` `Kit::in_range`): the ground distance to the aim, plus the arc of the turn toward it at 3 g,
+  is at most 0.9 × the reach (the margin is inferred).
+- **Text**: row 5 `IN RNG` while in range (instead of the bomb time-to-go); row 3 the range to a designated point,
+  `R %2.1f` NM, when no radar lock fills it.
+- **Symbols** (`hud.gd` `_draw_gps`), with a designated aim: a ±7 px diamond on the point (held at the HUD edge along
+  the line from the centre, as the TV / HARM diamond) and a steering line to it from the flight path marker; a dot
+  inside the diamond while in range. The CCIP symbols are not drawn then. Without a designation the CCIP symbols of
+  §9.4 stay and the bomb goes to their aim.
+- Open: the Real HUD (docs/real-hud.md) draws its CCIP for a GPS bomb; the F-16's real JDAM symbols (TD box,
+  steering line, in-range text) are not built there yet.
+
+### 13.4 Validation
+
+- Rust: `gps.rs` (a bomb inside the LAR lands on a point 30° off the track; outside it falls short; the reach from
+  40,000 ft), `missile.rs` `off_boresight_missile_turns_to_a_target_behind_the_beam` (100° off the nose: the original
+  rule ends the flight, the off-boresight one hits), `sight.rs` `loal_takes_the_unit_nearest_the_cued_axis`,
+  `release.rs` `gps_aim_pod_then_td_then_ccip`.
+- `tests/godot/test_sufa_weapons.gd`: the Arming list (Sufa: all seven; Barak: none); mission 231, the F-16 3000 m up:
+  the padlock view turns the head onto a MiG 70° off the nose, the AIM-9X locks it, launches and kills it; a GBU-31
+  at a radar-designated ground unit 6 km ahead is in range (out of range at four times the distance), flies to the
+  point and destroys the unit.
 
 ## UNCERTAIN
 Open points:

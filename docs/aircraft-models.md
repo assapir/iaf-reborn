@@ -144,11 +144,17 @@ authors and changes in `SOURCES.md` there). They show on every jet that carries 
 | 2700LB, 2100LB (the F-16's tanks) | 370 gal, 300 gal tanks in the IAF livery's paint | 2 102, 2 014 |
 | ECM | AN/ALQ-131 | 1 284 |
 | FLIR | AN/AAQ-13 (LANTIRN) | 938 |
+| AIM-9X (the Sufa's, ours) | AIM-9X | 7 766 |
+| GBU-31, GBU-31V3 (the Sufa's) | GBU-31 | 2 944 |
+| GBU-38 (the Sufa's) | GBU-54 (the laser JDAM: a GBU-38 with a laser nose) | 3 208 |
 
 Kept original: the Hawk SAM's missile (it shares the AGM-88's model; `weapon_db.gd` marks it `detailed: false`),
 the rocket pod (FlightGear's LAU-68 has 7 tubes, the game's box 19), the SA-8's Shafrir and every store FlightGear has
 no model of (Python, Shafrir, Popeye, Walleye, GBU-15, M117, RBK-500, the Soviet missiles, the other jets' tanks).
-The SA-13 and the Shrike show the detailed AIM-9 / AIM-7, as they showed the original AIM-9 / AIM-7.
+The SA-13 and the Shrike show the detailed AIM-9 / AIM-7, as they showed the original AIM-9 / AIM-7. The Sufa's
+records without an original model of their own (weapons.md §13) name ours (`weapons/sufa/…`); with Models Original
+`util/gltf.gd` `STAND_INS` draws the original AIM-9, MK-84L and MK-82L in their place. The GBU-32 shows the MK-83L,
+the Python 5 the Python 4 and the GBU-39 the MK-82 at 0.8 scale (no FlightGear model).
 
 ### 5.1 How they fit the game
 
