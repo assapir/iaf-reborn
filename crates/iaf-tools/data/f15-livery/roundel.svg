@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">
+<!-- IAF roundel: white disc, blue Star of David (its points at 0.79 of the radius, measured on F-15C 802). Ours. -->
+<circle cx="500" cy="500" r="500" fill="#f2f2ee"/>
+<polygon points="500.0,105.0 842.1,697.5 157.9,697.5" fill="#1764ae"/><polygon points="500.0,895.0 157.9,302.5 842.1,302.5" fill="#1764ae"/>
+</svg>

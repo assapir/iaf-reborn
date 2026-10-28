@@ -14,8 +14,9 @@
 //!    shut (`LdgDrUp`); the nozzles' petals ringed (nozzle-L/R.xml); the pylons moved onto the original's stations;
 //! 4. copies the original's helpers (stations, eye, gun, wingtips, height) and puts `EngineL/R` and `EngineL1/R1`
 //!    on the nozzles' exits (the afterburner);
-//! 5. paints the livery: FlightGear's grey F-15C (USAF 80-0007) without its US markings, with the IAF roundels of
-//!    FlightGear's IAF F-15I livery (69 Squadron) at their places on the same skin;
+//! 5. paints the livery as the IAF F-15C 802 "Panther" of 133 Squadron: FlightGear's grey F-15C (USAF 80-0007)
+//!    without its US markings, tinted to the Baz's bluish grey, with our own markings ([`MARKS`], drawn in
+//!    `data/f15-livery`) projected onto the skin by their places on the jet;
 //! 6. writes a binary glTF with smooth normals (AC3D crease angles) and its JPEG / PNG textures inside; the game
 //!    compresses them at the parse and makes the LODs (util/gltf.gd).
 
@@ -82,12 +83,6 @@ pub const SOURCE: &[Download] = &[
         url: raw!("Liveries/livery.AF80-0007.jpg"),
         sha256: "72439ce29fb53dd0663011b4e59ca54a6ee9b8959cbda44ddb71de163dd07c2d",
         bytes: 481_364,
-    },
-    Download {
-        file: "livery.IAF.jpg",
-        url: raw!("Liveries/livery.IAF%20235-69%20SQ%20HAMMERS.jpg"),
-        sha256: "1d5b04ebfe380dc75c697b696250acab45659b6d7be040ff983514aebf3596e4",
-        bytes: 555_660,
     },
     Download {
         file: "common.png",
@@ -517,6 +512,8 @@ pub fn build(src: &Path, orig: &Path, out: &Path) -> Result<Stats> {
     };
     let main = read("f15c.ac")?;
     let mut all: Vec<Piece> = pieces(&main, ac).into_iter().filter(|p| !p.is(DROP)).collect();
+    let skin: Vec<Skin> =
+        all.iter().flat_map(|p| &p.tris).filter(|t| t.0.texture == "livery").map(|t| (t.1, t.2, t.3)).collect();
     for (file, c) in NOZZLES {
         for mut p in pieces(&read(file)?, ac) {
             let k: f32 = p.name.rsplit_once('.').and_then(|(_, k)| k.parse().ok()).unwrap_or(0.0);
@@ -661,7 +658,7 @@ pub fn build(src: &Path, orig: &Path, out: &Path) -> Result<Stats> {
 
     let body = Node { name: "f15".into(), at: [0.0; 3], tris: all.into_iter().flat_map(|p| p.tris).collect() };
     let triangles = body.tris.len() + nodes.iter().map(|n| n.tris.len()).sum::<usize>();
-    let livery = livery(src)?;
+    let livery = livery(src, &skin)?;
     let glb = write_glb(body, o.root_translation, nodes, helpers, src, &livery)?;
     if let Some(d) = out.parent() {
         std::fs::create_dir_all(d)?;
@@ -672,10 +669,6 @@ pub fn build(src: &Path, orig: &Path, out: &Path) -> Result<Stats> {
     Ok(Stats { triangles, bytes: glb.len(), scale: s })
 }
 
-/// The IAF roundels on FlightGear's IAF livery (2048² pixels): centre and the radius searched for the roundel's
-/// white and blue (the fuselage ones are stretched by the skin's mapping).
-const ROUNDELS: &[([u32; 2], u32)] =
-    &[([674, 626], 52), ([136, 904], 52), ([136, 1090], 52), ([660, 1344], 52), ([735, 1928], 60), ([1288, 1928], 60)];
 /// The grey livery's US markings painted out (x0, y0, x1, y1): the squadron bands at the fin tips, the tail codes
 /// and the fin flash.
 const ERASE: &[[u32; 4]] = &[
@@ -688,14 +681,11 @@ const ERASE: &[[u32; 4]] = &[
 ];
 /// The USAF crests on the fuselage sides painted out: centre, radius.
 const CRESTS: &[([u32; 2], u32)] = &[([1869, 1545], 40), ([916, 1714], 40)];
-/// Taken from the IAF livery as it is: the radio call plate (Hebrew).
-const FROM_IAF: &[[u32; 4]] = &[[1650, 1000, 1790, 1140]];
 
-/// The grey F-15C livery with IAF markings (see [`build`]).
-fn livery(src: &Path) -> Result<RgbaImage> {
+/// The grey F-15C livery as F-15C 802 (see [`build`]): `skin`, the livery's triangles (our frame, unscaled).
+fn livery(src: &Path, skin: &[Skin]) -> Result<RgbaImage> {
     let mut grey = image::open(src.join("livery.AF80-0007.jpg"))?.to_rgba8();
-    let iaf = image::open(src.join("livery.IAF.jpg"))?.to_rgba8();
-    ensure!(grey.dimensions() == iaf.dimensions() && grey.width() == 2048, "liveries: unexpected sizes");
+    ensure!(grey.dimensions() == (2048, 2048), "livery.AF80-0007.jpg: unexpected size");
     let blank = |p: &Rgba<u8>| p[0] > 235 && p[1] > 235 && p[2] > 235;
     // Paints a region out: each of its pixels (background left out) the mean of its neighbours, repeated until it
     // settles (a membrane over the colours round it: no streaks, no text).
@@ -750,46 +740,199 @@ fn livery(src: &Path) -> Result<RgbaImage> {
         let inside = |x: u32, y: u32| (x as i64 - cx).pow(2) + (y as i64 - cy).pow(2) <= r * r;
         erase(&mut grey, &inside, (cx - r) as u32, (cy - r) as u32, (cx + r) as u32, (cy + r) as u32);
     }
-    for r in FROM_IAF {
-        for y in r[1]..=r[3] {
-            for x in r[0]..=r[2] {
-                grey.put_pixel(x, y, *iaf.get_pixel(x, y));
-            }
-        }
-    }
-    // A roundel: the bounds of the white and blue pixels within its radius, and the ellipse in them laid over the
-    // grey, its rim blended over a pixel.
-    let ink = |p: &Rgba<u8>| {
-        let (r, g, b) = (p[0] as i32, p[1] as i32, p[2] as i32);
-        let white = r.min(g).min(b) > 228 && r.max(g).max(b) - r.min(g).min(b) < 20;
-        white || b > r + 40 && b > g + 15
-    };
-    for (c, rad) in ROUNDELS {
-        let (cx, cy, rad) = (c[0] as i64, c[1] as i64, *rad as i64);
-        let (mut x0, mut x1, mut y0, mut y1) = (i64::MAX, i64::MIN, i64::MAX, i64::MIN);
-        for y in (cy - rad).max(0)..(cy + rad).min(2048) {
-            for x in (cx - rad).max(0)..(cx + rad).min(2048) {
-                if (x - cx).pow(2) + (y - cy).pow(2) <= rad * rad && ink(iaf.get_pixel(x as u32, y as u32)) {
-                    (x0, x1, y0, y1) = (x0.min(x), x1.max(x), y0.min(y), y1.max(y));
-                }
-            }
-        }
-        ensure!(x1 > x0 + 20 && y1 > y0 + 20, "livery.IAF.jpg: no roundel at {c:?}");
-        let (ex, ey, rx, ry) =
-            ((x0 + x1) as f32 / 2.0, (y0 + y1) as f32 / 2.0, (x1 - x0) as f32 / 2.0, (y1 - y0) as f32 / 2.0);
-        for y in y0 - 2..=y1 + 2 {
-            for x in x0 - 2..=x1 + 2 {
-                let d = (((x as f32 - ex) / rx).powi(2) + ((y as f32 - ey) / ry).powi(2)).sqrt();
-                let a = ((1.0 - d) * rx.min(ry) + 0.5).clamp(0.0, 1.0);
-                if a > 0.0 {
-                    let (o, n) = (*grey.get_pixel(x as u32, y as u32), *iaf.get_pixel(x as u32, y as u32));
-                    let m = [0, 1, 2].map(|k| (o[k] as f32 * (1.0 - a) + n[k] as f32 * a).round() as u8);
-                    grey.put_pixel(x as u32, y as u32, Rgba([m[0], m[1], m[2], 255]));
-                }
-            }
-        }
-    }
+    tint(&mut grey);
+    paint(&mut grey, skin)?;
     Ok(grey)
+}
+
+/// A triangle of the livery: its corners (our frame, before the fit), their normals and uvs (0..1, y down).
+type Skin = ([V; 3], [V; 3], [[f32; 2]; 3]);
+
+/// FlightGear's grey is neutral; the Baz's air superiority greys (FS 36375 / 36320) are bluish. Each channel is
+/// scaled to the hue of 802's paint on its photos, white-balanced on its roundel (docs/aircraft-models.md §6.1).
+const TINT: [f32; 3] = [0.90, 0.95, 1.0];
+
+fn tint(img: &mut RgbaImage) {
+    for p in img.pixels_mut() {
+        for k in 0..3 {
+            p[k] = (p[k] as f32 * TINT[k]).round() as u8;
+        }
+    }
+}
+
+/// A marking of F-15C 802 (docs/aircraft-models.md §6.1): our picture (`data/f15-livery`, drawn as seen from the
+/// jet's left), its width (m), its centre on the left half (our frame before the fit: x right, y up, z aft; m) and
+/// the way the surface faces there. The right half takes it mirrored across the centre line: text reads the same
+/// way there, art is mirrored (so it faces forward on both sides).
+struct Mark {
+    png: &'static [u8],
+    width: f32,
+    at: V,
+    facing: V,
+    text: bool,
+}
+
+macro_rules! mark {
+    ($f:literal, $w:expr, $at:expr, $facing:expr, $text:expr) => {
+        Mark {
+            png: include_bytes!(concat!("../data/f15-livery/", $f, ".png")),
+            width: $w,
+            at: $at,
+            facing: $facing,
+            text: $text,
+        }
+    };
+}
+
+const LEFT: V = [-1.0, 0.0, 0.0];
+const RIGHT: V = [1.0, 0.0, 0.0];
+const UP: V = [0.0, 1.0, 0.0];
+const DOWN: V = [0.0, -1.0, 0.0];
+
+/// The markings, measured on photos of 802 and its sister jets (docs/aircraft-models.md §6.1). Later ones lie over
+/// earlier ones.
+const MARKS: &[Mark] = &[
+    // The nose: the roundel under the canopy's rear, the name behind the radome, four kills, the tail number.
+    mark!("roundel", 0.57, [-0.62, 0.66, -5.49], LEFT, true),
+    mark!("name_802", 0.47, [-0.60, 0.60, -7.30], LEFT, true),
+    mark!("kills", 0.82, [-0.62, 0.80, -6.70], LEFT, true),
+    mark!("serial_nose", 0.29, [-0.62, 0.40, -6.52], LEFT, true),
+    // A roundel above and under each wing, on the outer panel.
+    mark!("roundel", 0.60, [-4.9, 0.58, 4.0], UP, true),
+    mark!("roundel", 0.60, [-4.9, 0.46, 4.0], DOWN, true),
+    // The outer faces of the fins: the red emblem, the bird of prey, the tail number.
+    mark!("emblem_802", 0.13, [-1.76, 2.97, 7.82], LEFT, false),
+    mark!("bird", 0.94, [-1.76, 2.16, 7.26], LEFT, false),
+    mark!("serial_fin", 0.68, [-1.76, 1.09, 7.07], LEFT, true),
+    // The inner faces: 133 Squadron's black band with the eagle's head (wider than the fin; the fin takes its part).
+    mark!("band_133", 2.4, [-1.74, 2.615, 7.66], RIGHT, false),
+];
+
+/// How far off its surface a marking reaches (m): the curve of the fuselage under it, not the next surface.
+const MARK_DEPTH: f32 = 0.2;
+
+/// A marking placed on one side: its picture (premultiplied), centre, facing, the picture's right and down (m).
+struct Placed {
+    pic: Vec<[f32; 4]>,
+    size: (usize, usize),
+    at: V,
+    n: V,
+    u: V,
+    v: V,
+    w: f32,
+    h: f32,
+}
+
+impl Placed {
+    /// The premultiplied colour at (s, t) in 0..1, bilinear.
+    fn sample(&self, s: f32, t: f32) -> [f32; 4] {
+        let (w, h) = self.size;
+        let x = (s * w as f32 - 0.5).clamp(0.0, (w - 1) as f32);
+        let y = (t * h as f32 - 0.5).clamp(0.0, (h - 1) as f32);
+        let (x0, y0) = (x as usize, y as usize);
+        let (x1, y1) = ((x0 + 1).min(w - 1), (y0 + 1).min(h - 1));
+        let (fx, fy) = (x - x0 as f32, y - y0 as f32);
+        let p = |x: usize, y: usize| self.pic[y * w + x];
+        [0, 1, 2, 3].map(|k| {
+            let top = p(x0, y0)[k] * (1.0 - fx) + p(x1, y0)[k] * fx;
+            let bottom = p(x0, y1)[k] * (1.0 - fx) + p(x1, y1)[k] * fx;
+            top * (1.0 - fy) + bottom * fy
+        })
+    }
+}
+
+/// The markings both sides, each projected along its facing onto the livery's triangles that face that way within
+/// [`MARK_DEPTH`]: every texel sampled 3 × 3 on its triangles (smooth edges, also across the skin's seams).
+fn paint(img: &mut RgbaImage, skin: &[Skin]) -> Result<()> {
+    let mut placed = Vec::new();
+    for m in MARKS {
+        let pic = image::load_from_memory(m.png)?.to_rgba8();
+        let size = (pic.width() as usize, pic.height() as usize);
+        let pre: Vec<[f32; 4]> = pic
+            .pixels()
+            .map(|p| {
+                let a = p[3] as f32 / 255.0;
+                [p[0] as f32 * a, p[1] as f32 * a, p[2] as f32 * a, a]
+            })
+            .collect();
+        let h = m.width * size.1 as f32 / size.0 as f32;
+        for right in [false, true] {
+            let flip = |v: V| if right { [-v[0], v[1], v[2]] } else { v };
+            let n = flip(m.facing);
+            let (u, v) = if n[1].abs() > 0.5 {
+                ([1.0, 0.0, 0.0], [0.0, 0.0, 1.0])
+            } else if n[0] > 0.0 && m.text {
+                ([0.0, 0.0, -1.0], DOWN)
+            } else {
+                ([0.0, 0.0, 1.0], DOWN)
+            };
+            placed.push(Placed { pic: pre.clone(), size, at: flip(m.at), n, u, v, w: m.width, h });
+        }
+    }
+    const SS: u32 = 3;
+    let (tw, th) = img.dimensions();
+    // Per texel: the markings' premultiplied colour and alpha summed over its samples, and the samples.
+    let mut acc: HashMap<u32, ([f32; 4], u32)> = HashMap::new();
+    for (pos, nrm, uv) in skin {
+        let fnorm = norm(add(add(nrm[0], nrm[1]), nrm[2]));
+        let near: Vec<&Placed> = placed
+            .iter()
+            .filter(|d| {
+                let r = (d.w * d.w + d.h * d.h).sqrt() / 2.0 + MARK_DEPTH;
+                dot(fnorm, d.n) > 0.3
+                    && (0..3).all(|k| pos.iter().any(|p| p[k] > d.at[k] - r) && pos.iter().any(|p| p[k] < d.at[k] + r))
+            })
+            .collect();
+        if near.is_empty() {
+            continue;
+        }
+        let px = uv.map(|t| [t[0] * tw as f32, t[1] * th as f32]);
+        let den = (px[1][1] - px[2][1]) * (px[0][0] - px[2][0]) + (px[2][0] - px[1][0]) * (px[0][1] - px[2][1]);
+        if den.abs() < 1e-9 {
+            continue;
+        }
+        let lo =
+            |k: usize, n: u32| px.iter().map(|p| p[k]).fold(f32::MAX, f32::min).floor().clamp(0.0, n as f32) as u32;
+        let hi = |k: usize, n: u32| px.iter().map(|p| p[k]).fold(f32::MIN, f32::max).ceil().clamp(0.0, n as f32) as u32;
+        for ty in lo(1, th)..hi(1, th) {
+            for tx in lo(0, tw)..hi(0, tw) {
+                for k in 0..SS * SS {
+                    let qx = tx as f32 + ((k % SS) as f32 + 0.5) / SS as f32;
+                    let qy = ty as f32 + ((k / SS) as f32 + 0.5) / SS as f32;
+                    let l0 = ((px[1][1] - px[2][1]) * (qx - px[2][0]) + (px[2][0] - px[1][0]) * (qy - px[2][1])) / den;
+                    let l1 = ((px[2][1] - px[0][1]) * (qx - px[2][0]) + (px[0][0] - px[2][0]) * (qy - px[2][1])) / den;
+                    if l0 < 0.0 || l1 < 0.0 || l0 + l1 > 1.0 {
+                        continue;
+                    }
+                    let p = add(add(scale(pos[0], l0), scale(pos[1], l1)), scale(pos[2], 1.0 - l0 - l1));
+                    let mut c = [0.0f32; 4];
+                    for d in &near {
+                        let r = sub(p, d.at);
+                        let (s, t) = (dot(r, d.u) / d.w + 0.5, dot(r, d.v) / d.h + 0.5);
+                        if dot(r, d.n).abs() > MARK_DEPTH || !(0.0..1.0).contains(&s) || !(0.0..1.0).contains(&t) {
+                            continue;
+                        }
+                        let m = d.sample(s, t);
+                        c = [0, 1, 2, 3].map(|k| m[k] + c[k] * (1.0 - m[3]));
+                    }
+                    let e = acc.entry(ty * tw + tx).or_insert(([0.0; 4], 0));
+                    e.0 = [0, 1, 2, 3].map(|k| e.0[k] + c[k]);
+                    e.1 += 1;
+                }
+            }
+        }
+    }
+    for (i, (c, n)) in acc {
+        if c[3] <= 0.0 {
+            continue;
+        }
+        let p = img.get_pixel_mut(i % tw, i / tw);
+        let a = c[3] / n as f32;
+        for k in 0..3 {
+            p[k] = (p[k] as f32 * (1.0 - a) + c[k] / n as f32).round().clamp(0.0, 255.0) as u8;
+        }
+    }
+    Ok(())
 }
 
 /// The binary glTF: the body as the root mesh `f15` (at `root`, the original's), the parts and helpers under it
@@ -1003,6 +1146,29 @@ mod tests {
         assert_eq!(ac([1.0, 2.0, 3.0]), [-3.0, 2.0, 1.0]);
         let r = rotate([1.0, 0.0, 0.0], [0.0; 3], [0.0, 0.0, 1.0], 90.0);
         assert!((r[0]).abs() < 1e-6 && (r[1] - 1.0).abs() < 1e-6);
+    }
+
+    /// The markings land where MARKS puts them: a 1 m square of skin facing left round the nose roundel's centre
+    /// takes the roundel (blue star in the middle, white ring, grey corners), and its mirror on the right likewise.
+    #[test]
+    fn marks_land_in_place() {
+        for x in [-0.62f32, 0.62] {
+            let c = [x, 0.66, -5.49];
+            let q = |dy: f32, dz: f32| [x, c[1] + dy, c[2] + dz];
+            let n = [[x.signum(), 0.0, 0.0]; 3];
+            // uv: z -> u, y -> v (down), the square on the whole 64² image.
+            let skin = [
+                ([q(0.5, -0.5), q(0.5, 0.5), q(-0.5, 0.5)], n, [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0]]),
+                ([q(0.5, -0.5), q(-0.5, 0.5), q(-0.5, -0.5)], n, [[0.0, 0.0], [1.0, 1.0], [0.0, 1.0]]),
+            ];
+            let mut img = RgbaImage::from_pixel(64, 64, Rgba([128, 128, 128, 255]));
+            paint(&mut img, &skin).unwrap();
+            let at = |dz: f32, dy: f32| *img.get_pixel(((dz + 0.5) * 64.0) as u32, ((0.5 - dy) * 64.0) as u32);
+            let (mid, ring, corner) = (at(0.0, 0.0), at(0.0, 0.26), at(0.45, 0.45));
+            assert!(mid[2] > 150 && mid[0] < 60, "{x}: star {mid:?}");
+            assert!(ring[0] > 220 && ring[2] > 220, "{x}: ring {ring:?}");
+            assert_eq!(corner, Rgba([128, 128, 128, 255]), "{x}: corner");
+        }
     }
 
     /// The whole conversion on the downloaded sources (setup's `models` step), when they are there.

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="100 30 520 780">
+<!-- The Baz's bird of prey on the outer faces of the fins: our own simplified line drawing, facing forward as seen
+     from the jet's left side (drawn facing right, mirrored by the group). 1 unit = 1.8 mm. -->
+<g transform="translate(720,0) scale(-1,1)" fill="none" stroke="#1a1a1a" stroke-linecap="round" stroke-linejoin="round">
+<!-- the raised far wing: its bone and feathered edge -->
+<path d="M388,52 C322,58 272,120 276,210 C280,282 332,322 336,362 C340,404 332,440 326,470" stroke-width="24"/>
+<path d="M336,44 C250,92 190,202 172,332 C158,442 186,522 246,582" stroke-width="16" stroke-dasharray="42 16"/>
+<path d="M300,96 C238,150 212,240 206,330 C202,410 214,470 246,520" stroke-width="10" stroke-dasharray="30 20" stroke-dashoffset="12"/>
+<!-- the near wing -->
+<path d="M588,322 C540,326 496,352 474,392 C458,420 446,448 440,470" stroke-width="18"/>
+<path d="M548,346 C516,372 496,412 490,462 C488,478 488,488 488,496" stroke-width="12"/>
+<!-- head and beak -->
+<path d="M342,492 C392,474 462,478 500,500 C532,520 546,556 540,590 C534,580 524,572 512,572" stroke-width="16"/>
+<path d="M512,576 C494,590 468,592 440,578" stroke-width="12"/>
+<circle cx="468" cy="512" r="9" fill="#1a1a1a" stroke="none"/>
+<!-- breast and back -->
+<path d="M440,578 C410,604 398,630 402,660" stroke-width="14"/>
+<path d="M326,470 C300,520 262,566 236,596" stroke-width="14"/>
+<!-- tail fan -->
+<path d="M246,622 L124,606 M246,636 L130,656 M248,650 L146,706 M256,662 L206,722" stroke-width="16"/>
+<!-- talons -->
+<path d="M300,672 C312,650 336,648 350,660 M346,690 C362,668 388,668 398,686 M382,716 C398,700 420,702 428,722 M424,742 C440,726 462,730 468,748 M462,716 C478,704 494,710 498,726" stroke-width="12"/>
+<path d="M392,770 C404,756 420,758 426,772 M436,780 C446,766 462,768 466,782" stroke-width="10"/>
+</g>
+</svg>

@@ -44,7 +44,7 @@ for each.
 |---|---|---|---|
 | Detailed F-16D (docs/aircraft-models.md) | the FlightGear F-16, https://github.com/NikolaiVChr/f16, by Erik Hofman, Nikolai V. Chr., J Maverick 16, Pensacola and the other authors in its `authors.txt`; its centreline pylon and IAF livery come from the same project | GPL 2.0 or later | `game/extra/models/f16/SOURCES.md` (commit, authors, changes, the photo references) |
 | Detailed stores (docs/aircraft-models.md §5) | the FlightGear F-16's weapons and external stores (`Models/Armament/`), https://github.com/NikolaiVChr/f16, 3D work by J Maverick 16, with Nikolai V. Chr., Erik Hofman and the other authors in its `authors.txt`; the tanks' paint from its IAF livery | GPL 2.0 or later | `game/extra/models/stores/SOURCES.md` (commit, authors, files, changes) |
-| Detailed F-15 (docs/aircraft-models.md §6) | the FlightGear F-15C/D, https://github.com/Zaretto/fg-aircraft (`aircraft/F-15`, commit 062cb58), 3D model by Enrique Laso, rig and systems by Richard Harrison (Zaretto), cockpit textures by GeneB; its grey and IAF 69 Squadron liveries and IAF pilot patch | GPL 2.0 only (the author, fg-aircraft issue #211); setup downloads and converts it on the player's machine, so the repo and the game's distribution hold none of it | `crates/iaf-tools/src/f15.rs` (files, checksums, changes) |
+| Detailed F-15 (docs/aircraft-models.md §6) | the FlightGear F-15C/D, https://github.com/Zaretto/fg-aircraft (`aircraft/F-15`, commit 062cb58), 3D model by Enrique Laso, rig and systems by Richard Harrison (Zaretto), cockpit textures by GeneB; its grey livery and IAF pilot patch | GPL 2.0 only (the author, fg-aircraft issue #211); setup downloads and converts it on the player's machine, so the repo and the game's distribution hold none of it | `crates/iaf-tools/src/f15.rs` (files, checksums, changes) |
 | F-35I Adir (docs/f35i.md) | "Lockheed Martin F35 Lightning II" by andertan, https://sketchfab.com/3d-models/lockheed-martin-f35-lightning-ii-db911de503c74285a8d506951df786d6 | CC BY 4.0, https://creativecommons.org/licenses/by/4.0/ | `game/extra/planes/f35i/CREDITS.md` |
 | F-35I 116 Squadron badge | "IAF Squadron 116 Adir.png" by the IDF Spokesperson's Unit, https://commons.wikimedia.org/wiki/File:IAF_Squadron_116_Adir.png | CC BY-SA 3.0, https://creativecommons.org/licenses/by-sa/3.0/ | `game/extra/planes/f35i/CREDITS.md` |
 | The setup wizard's icon (docs/setup.md) | "Roundel of Israel.svg" by Zscout370, https://commons.wikimedia.org/wiki/File:Roundel_of_Israel.svg, with our "REBORN" banner | CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/ | `game/setup/icon.svg` |
@@ -81,7 +81,9 @@ zip's pinned SHA-256). Setup composes the scenery trees' foliage from the leaf s
 | Foliage001 | Scenery trees: palm fronds' leaflets | https://ambientcg.com/a/Foliage001 |
 | Bark012 | Scenery trees: trunks | https://ambientcg.com/a/Bark012 |
 
-The F-35I's skin, roundels, numbers, cockpit panel and displays are our own, as is the F-16D's dorsal spine.
+The F-35I's skin, roundels, numbers, cockpit panel and displays are our own, as is the F-16D's dorsal spine, and the
+detailed F-15's markings (F-15C 802: roundels, name, kill marks, numbers, the Baz bird, 133 Squadron's band; drawn
+from photos, `crates/iaf-tools/data/f15-livery/`).
 
 ## Imagery credits (automatic)
 
