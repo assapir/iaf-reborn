@@ -197,8 +197,9 @@ static func drop_ahead(keep: Array = []) -> void:
 				_ahead_lock.unlock()
 
 
-## Waits for every parse ahead still running and drops the results nobody took. At exit (Settings): Godot's exit hung
-## for good in WorkerThreadPool::exit_languages_threads with the mission screens' parse tasks never waited for.
+## Waits for every parse ahead still running and drops the results nobody took. At exit (Settings): a low-priority
+## pool task still queued at the quit hangs Godot 4.7.2's exit for good (docs/rendering.md §1.5, "Pool tasks at
+## exit"), so every pool task the game posts is waited for before it.
 static func finish_ahead() -> void:
 	for t in _ahead_tasks.values() + _stale.values():
 		WorkerThreadPool.wait_for_task_completion(t)

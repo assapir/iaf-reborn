@@ -118,6 +118,16 @@ static func preload_packs() -> void:
 			)
 
 
+## Waits for the pack loads nobody took and drops their images. At exit (Settings, see Gltf.finish_ahead).
+static func finish_packs() -> void:
+	for t in _tasks.values():
+		WorkerThreadPool.wait_for_task_completion(t)
+	_tasks.clear()
+	_images_lock.lock()
+	_images.clear()
+	_images_lock.unlock()
+
+
 ## Worker: the pack of `mat` at `path` (setup's DXT5 with its mips: R roughness, G / A normal, B brightness) and its
 ## mean roughness (the 1×1 mip's).
 static func _load_pack(mat: String, path: String) -> void:

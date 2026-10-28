@@ -46,6 +46,14 @@ static func preload_async() -> void:
 	_task = WorkerThreadPool.add_task(_decode_task, false, "ground textures")
 
 
+## Waits for preload_async's work when no flight took it and drops it. At exit (Settings, see Gltf.finish_ahead).
+static func finish_preload() -> void:
+	if _task >= 0:
+		WorkerThreadPool.wait_for_task_completion(_task)
+		_task = -1
+	_decoded = []
+
+
 static func _decode_task() -> void:
 	_decoded = _decode()
 
