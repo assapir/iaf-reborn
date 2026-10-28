@@ -332,7 +332,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - Original: the original's light points, the `LT_` light sets drawn as one-pixel points (rendering.md §4).
   - Detailed: the light points glow. The home airbases (Ramat David, Ramon, Tel Nof) get their original light set at
     a night start. Every airbase has runway edge, threshold and end, approach, PAPI and blue taxiway lights, and sodium
-    floodlights whose pools light its aprons and the jets on them (rendering.md §5 item 6). Every jet carries red / green / white navigation lights and a white strobe (off once it is hit;
+    floodlights whose pools light its aprons and the jets on them (rendering.md §5 item 6). The towns have street
+    lamps, lit windows and red obstruction lights on their towers, placed from setup's scenery buildings (rendering.md
+    §5.1; the original lights only Damascus, by its `LT_` sets). Every jet carries red / green / white navigation lights and a white strobe (off once it is hit;
     on the cockpit-view model too). The night sky has
     stars and a moon.
   - Detailed moonlight: colour (0.24, 0.27, 0.34) from azimuth 140°, elevation 38°, ambient 0.3. The original's

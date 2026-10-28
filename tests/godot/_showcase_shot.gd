@@ -9,12 +9,15 @@
 #     -- --log-file /tmp/show_$look.log --path game -s ../tests/godot/_showcase_shot.gd; done
 # Prefix the run with `flock ~/.cache/iaf-gpu-bench.lock` while another session may be benchmarking the GPU.
 # SHOW_SCENES="town,night" takes only those scenes (SCENES' names: town airbase takeoff cockpit coast sea missile_launch
-# missile_close bomb vapour sunset sunset_away night lookdown night_apron_pass night_apron carmel_low; the night ones
-# need `-- --hour 22`); SHOW_SET="key=value,..." sets more Settings after the look's (e.g. a variant of AFTER); SHOW_TAG
-# names the files <scene>_<look><tag>.png. Needs a window.
+# missile_close bomb vapour sunset sunset_away night lookdown night_apron_pass night_apron carmel_low night_city
+# night_high night_town_low night_haifa; the night ones need `-- --hour 22`); SHOW_SET="key=value,..." sets more
+# Settings after the look's (e.g. a variant of AFTER); SHOW_TAG names the files <scene>_<look><tag>.png. Needs a
+# window. The night glows are sized in the shot's rows (the window's are smaller under xvfb). SHOW_NO_CITY=1 hides the
+# city lights (a before picture with every other setting the same).
 extends "res://../tests/godot/base.gd"
 
 const TimeOfDay := preload("res://terrain/time_of_day.gd")
+const NightLights := preload("res://terrain/night_lights.gd")
 ## Every option at its best (Settings keys). TAA at native resolution: FSR 2 fades distant jets.
 const AFTER := {
 	"terrain_detail": 1.0,
@@ -83,6 +86,13 @@ const SCENES := {
 	# 150 m.
 	"street50": [231, 10.5, [316009.5, 530807.8], 50.0, 20.0, Vector3(0, -22, 0), Vector3(0, -32, -200)],
 	"roof150": [231, 10.5, [316009.5, 530807.8], 150.0, 20.0, Vector3(0, 0, 20), Vector3(0, -150, -130)],
+	# The towns' lights at night (Night lights Detailed, rendering.md §5.1; `-- --hour 22`): Gush Dan from 3000 m over
+	# Bat Yam looking north-east, from 8000 m over the sea looking east, a low pass over Rishon LeZion, Haifa bay from
+	# 3000 m over the sea.
+	"night_city": [231, 22.0, [309000.0, 533000.0], 3000.0, 50.0, Vector3(0, 8, 40), Vector3(0, -1700, -4000)],
+	"night_high": [231, 22.0, [296000.0, 540000.0], 8000.0, 90.0, Vector3(0, 8, 40), Vector3(0, -5000, -14000)],
+	"night_town_low": [231, 22.0, [314000.0, 528000.0], 300.0, 20.0, Vector3(-10, 4, 30), Vector3(0, -120, -700)],
+	"night_haifa": [231, 22.0, [322000.0, 622000.0], 3000.0, 65.0, Vector3(0, 8, 40), Vector3(0, -1500, -4000)],
 }
 
 var tv: Node
@@ -212,8 +222,8 @@ func _scene(name: String, s: Array) -> void:
 func _camera() -> void:
 	var keep := GDScript.new()
 	keep.source_code = (
-		"extends Camera3D\nvar twin: Camera3D\nvar follow: Callable\nfunc _process(_d):\n\tmake_current()\n"
-		+ "\tif follow.is_valid():\n\t\tfollow.call()\n"
+		"extends Camera3D\nvar twin: Camera3D\nvar follow: Callable\nvar rows: Callable\nfunc _process(_d):\n"
+		+ "\tmake_current()\n\trows.call()\n\tif follow.is_valid():\n\t\tfollow.call()\n"
 		+ "\ttwin.global_transform = global_transform\n\ttwin.fov = fov\n"
 	)
 	keep.reload()
@@ -249,6 +259,18 @@ func _camera() -> void:
 	tv.add_child(shot_vp)
 	twin.make_current()
 	cam.twin = twin
+	cam.rows = _shot_rows
+
+
+## The night glows are sized in the rendering view's rows: the twin's, not the (smaller) window's.
+func _shot_rows() -> void:
+	var rows := float(shot_vp.size.y) * shot_vp.scaling_3d_scale
+	for m: ShaderMaterial in [NightLights.glow(), NightLights.nav_glow()]:
+		m.set_shader_parameter("vp_h", rows)
+	if tv.get("_city_lights") != null:
+		tv._city_lights._mat.set_shader_parameter("vp_h", rows)
+		if OS.get_environment("SHOW_NO_CITY") == "1":  # the look without the city lights (rendering.md §5.1)
+			tv._city_lights.visible = false
 
 
 func _aim(off: Vector3, at: Vector3) -> void:

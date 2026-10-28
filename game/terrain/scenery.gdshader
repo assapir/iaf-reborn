@@ -25,6 +25,7 @@ uniform float grow_m = 400.0;
 uniform sampler2D damage : filter_nearest;
 // Detailed night lights at night: some windows lit.
 uniform bool night = false;
+#include "res://terrain/city_glow.gdshaderinc"
 
 const float ROOF_GAIN = 0.6;
 const float WALL_GAIN = 0.5;
@@ -95,4 +96,7 @@ void fragment() {
 	ROUGHNESS = rough;
 	SPECULAR = 0.3;
 	EMISSION = emit * vec3(1.0, 0.75, 0.45) * 0.6;
+	if (city_glow_k > 0.0) {
+		EMISSION += ALBEDO * city_glow_light((INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xz);
+	}
 }

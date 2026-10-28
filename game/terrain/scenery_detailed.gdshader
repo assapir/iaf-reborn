@@ -111,6 +111,8 @@ float band(float x, float a, float b, float aa) {
 	return smoothstep(a - aa, a + aa, x) * (1.0 - smoothstep(b - aa, b + aa, x));
 }
 
+#include "res://terrain/city_glow.gdshaderinc"
+
 void vertex() {
 	vec3 c = CUSTOM0.xyz;
 	float d = distance((MODEL_MATRIX * vec4(c, 1.0)).xyz, INV_VIEW_MATRIX[3].xyz);
@@ -343,4 +345,7 @@ void fragment() {
 	SPECULAR = spec;
 	AO = ao;
 	EMISSION = emit;
+	if (city_glow_k > 0.0) {
+		EMISSION += ALBEDO * city_glow_light((INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xz);
+	}
 }

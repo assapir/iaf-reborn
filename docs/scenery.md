@@ -199,6 +199,8 @@ Two runs give the same bytes (the SHA-256 of every cell file compared).
   - far: bare prisms;
   - with Scenery = Detailed, the roof clutter (`roof_rows`): MultiMesh rows on the near flat roofs (§3.3).
 - Damage is kept by building id `<i>_<j>:<index>` across cell loads. The data itself never changes.
+- Night lights = Detailed reads the cells' buildings too, whatever the Scenery switch: the towns' street lamps, lit
+  windows and glow at night are placed from them (`Cell::read_buildings`, rendering.md §5.1).
 
 ## 3. Rendering and the switch
 
