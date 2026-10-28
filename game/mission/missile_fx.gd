@@ -57,6 +57,8 @@ varying vec3 v_view;
 varying float v_align;
 varying float v_cover;
 varying float v_px;
+varying float v_near;
+varying vec3 v_pos;
 uniform float min_px = 3.0;
 void vertex() {
 	float age = max(now - CUSTOM0.w, 0.0);
@@ -70,7 +72,12 @@ void vertex() {
 	// Seen along its length the ribbon is a stack of cross-sections: there no swelling (it shows as rings), and the
 	// smoke is softer and fainter.
 	v_align = smoothstep(0.55, 0.95, abs(dot(CUSTOM0.xyz, to_cam0)));
-	float w = (0.6 + 12.0 * (1.0 - exp(-age / 1.5)) + 0.5 * age)
+	float w_far = 0.6 + 12.0 * (1.0 - exp(-age / 1.5)) + 0.5 * age;
+	// Up close (within ≈ 250 m of the camera) the smoke takes a real motor's width: 0.35 m at the nozzle, ≈ 2 m
+	// after 1 s, ≈ 4 m after 3 s, ≈ 8 m at 20 s; farther off, the wide trail for spotting.
+	float w_real = 0.35 + 3.0 * (1.0 - exp(-age / 0.8)) + 0.22 * age;
+	v_near = 1.0 - smoothstep(40.0, 250.0, length(INV_VIEW_MATRIX[3].xyz - VERTEX));
+	float w = mix(w_far, w_real, v_near)
 		* (1.0 + (puff - 0.5) * 1.2 * smoothstep(0.0, 4.0, age) * (1.0 - v_align));
 	// The old trail meanders: slow, smooth drift along the length, growing with the age; warm smoke rises a little.
 	vec3 drift = vec3(sin(s * 0.011 + 1.3) + 0.5 * sin(s * 0.031 + 4.0),
@@ -91,6 +98,7 @@ void vertex() {
 	v_cover = w / wd;
 	v_px = wd / px;
 	VERTEX = p + side * UV.x * 0.5 * wd;
+	v_pos = VERTEX;
 }
 void fragment() {
 	float x = v_x;
@@ -98,13 +106,16 @@ void fragment() {
 	vec2 m = vec2(v_along, x * 0.5 * v_w);
 	float n1 = texture(noise, m * 0.02 + vec2(0.0, v_f * 0.15)).r;
 	float n2 = texture(noise, m * 0.07 + vec2(v_f * 0.3, 0.0)).g;
-	float n = smoothstep(0.2, 0.8, n1 * 0.6 + n2 * 0.4);
+	// Up close a third, sub-metre octave churns faster: the turbulent edge of a young column.
+	float n3 = texture(noise, m * 0.9 + vec2(0.31 + v_f * 12.0, 0.57 - v_f * 6.0)).r;
+	float n = smoothstep(0.2, 0.8, mix(n1 * 0.6 + n2 * 0.4, n1 * 0.25 + n2 * 0.3 + n3 * 0.45, v_near));
 	// Billowing edges: the noise eats the sides, more as the smoke ages.
 	// A trail only a few pixels wide keeps a plain soft profile: eroding it would break the line.
 	// Seen along its length the noise would stack into rings: there the smoke is a plain soft cone.
-	float erode = (0.7 + 1.6 * v_f) * smoothstep(3.0, 12.0, v_px) * (1.0 - v_align);
+	float erode = (0.7 + 1.6 * v_f + 1.4 * v_near) * smoothstep(3.0, 12.0, v_px) * (1.0 - v_align);
 	n = mix(n, 0.6, v_align);
-	float shape = smoothstep(1.0, mix(0.35, -0.3, v_align), abs(x) + (0.5 - n) * erode);
+	// Up close the edge is wider and softer: no hard line where the card ends.
+	float shape = smoothstep(1.0, mix(mix(0.35, -0.1, v_near), -0.3, v_align), abs(x) + (0.5 - n) * erode);
 	if (shape <= 0.0) { discard; }
 	float depth = sqrt(max(1.0 - x * x, 0.0));
 	// A tube's normal across the ribbon, bumped by the noise.
@@ -119,14 +130,23 @@ void fragment() {
 	vec3 col = (sun_col * (0.55 + 0.45 * lit) + ambient * 0.45) * (0.88 + 0.24 * n)
 		+ sun_col * (fwd * 0.9 + rim * 0.5);
 	// At least as bright as the original's flat white trail (for spotting a launch at dusk), keeping the hue.
-	col *= max(1.0, 0.95 / max(dot(col, vec3(0.3, 0.59, 0.11)), 1e-3));
+	// Up close the floor drops to 0.7: the tube's shading and the noise show instead of a flat white.
+	col *= max(1.0, mix(0.95, 0.7, v_near) / max(dot(col, vec3(0.3, 0.59, 0.11)), 1e-3));
 	// Spreading smoke thins out, but stays a dense band.
 	float thin = clamp(pow(2.0 / v_w, 0.3), 0.55, 1.0);
 	// The trail's first metres fade in: seen end-on its square start would show as a flat disc.
-	float fade = smoothstep(0.0, 0.004, v_f) * (1.0 - smoothstep(0.5, 1.0, v_f)) * smoothstep(0.0, 10.0, v_along);
+	// The newest smoke (the nozzle's first ≈ 2 ms, inside the flame) fades in.
+	float fade = smoothstep(0.0, 0.0001, v_f) * (1.0 - smoothstep(0.5, 1.0, v_f)) * smoothstep(0.0, 10.0, v_along);
+	// Up close the smoke is translucent by the path through it (its chord, from the width): thin wisps at the
+	// nozzle, denser as it grows; within a few metres of the camera it fades out, so the eye never sits in a white
+	// card, and seen along its length from near it thins too.
+	float chord = v_w * depth;
+	float dens = mix(1.0, (1.0 - exp(-chord * 1.2)) * (1.0 - 0.5 * v_align), v_near);
+	float cam_d = length(v_pos - CAMERA_POSITION_WORLD);
+	float near_fade = smoothstep(0.5, 1.5 + v_w, cam_d);
 	ALBEDO = col;
 	ALPHA = clamp(shape * mix(0.75, 1.0, depth) * (0.65 + 0.7 * n) * thin * fade * v_cover
-		* (1.0 - 0.15 * v_align), 0.0, 1.0);
+		* (1.0 - 0.15 * v_align) * dens * near_fade, 0.0, 1.0);
 }
 """
 
@@ -157,8 +177,10 @@ void vertex() {
 	if (halo) {
 		// At least min_px wide on screen: a far motor is still a bright point.
 		float px = 2.0 * d / (PROJECTION_MATRIX[1][1] * VIEWPORT_SIZE.y);
-		float size = max(wid, min_px * px);
-		v_gain = flick * clamp(wid / size, 0.35, 1.0);
+		// Up close (within ≈ 15 m) a quarter of its size: a chase camera sees a bright nozzle, not a white blob.
+		float w = wid * mix(0.25, 1.0, smoothstep(15.0, 150.0, d));
+		float size = max(w, min_px * px);
+		v_gain = flick * clamp(w / size, 0.35, 1.0);
 		p = c + (INV_VIEW_MATRIX[0].xyz * (UV.x - 0.5) + INV_VIEW_MATRIX[1].xyz * (0.5 - UV.y)) * size;
 	} else {
 		vec3 side = cross(a, to_cam);

@@ -796,9 +796,18 @@ compression). The noise texture is generated at run time with FastNoiseLite.
   wide on screen (thinner smoke gets a lower alpha instead), so a far trail stays a clear band, and a trail only a
   few pixels wide keeps a plain soft profile. Seen along its length it is a plain soft cone (no swelling or noise,
   which would stack into rings), and its first 10 m fade in.
+  Up close (2026-10-28) it reads as a soft translucent column, the way launch photos show it: within ≈ 40 m of the
+  camera it takes a real motor's width (0.35 m at the nozzle, ≈ 2 m after 1 s, ≈ 4 m after 3 s, ≈ 8 m at 20 s),
+  blending to the wide spotting trail by 250 m, so the look at range and at dusk is unchanged. There its opacity
+  follows the path through it (1 − e^(−1.2 · chord), the chord from the width: thin at the nozzle, denser as it
+  grows), a third, sub-metre noise octave churns and eats its edges, the edge band is wider, its brightness floor
+  drops from 0.95 to 0.7 (the tube's shading shows), and within 1.5 m + one width of the camera it fades out: a chase
+  or cockpit camera never sits in a flat white card. The smoke starts right behind the flame (its newest 2 ms fade
+  in; a fade over the first 0.08 s left a gap of tens of metres behind a fast missile).
 - **Flame**: at the nozzle (MissileFlareDistance, 1 m, ahead of the trail head) a 3.2 m plume along the flight path,
   white-hot (HDR, so AgX turns it white) to orange at the tip, flickering; a round glow at least 12 px wide, strongest
-  seen from behind; and an orange light (25 m, no shadows) on the first 4 flames. The flame replaces the missFLR
+  seen from behind (5 m across from 150 m off, a quarter of that within 15 m, so a chase camera sees a bright nozzle,
+  not a white blob); and an orange light (25 m, no shadows) on the first 4 flames. The flame replaces the missFLR
   sprite.
 - **Burnout**: the smoke and flame stop when the motor burns out and the weapon coasts on clean; its flight is the
   original's either way. The burn is the real motor's, by weapon (`missile_fx.gd MOTOR_BURN`, table below); a
