@@ -7,6 +7,7 @@ extends RefCounted
 const GroundTextures := preload("res://terrain/ground_textures.gd")
 const Scenery := preload("res://terrain/scenery.gd")
 const ImageryLayers := preload("res://terrain/imagery_layers.gd")
+const Weather := preload("res://terrain/weather.gd")
 
 ## Anti-aliasing: Settings.antialiasing -> [MSAA 3D, screen-space AA, TAA].
 const AA := {
@@ -49,9 +50,18 @@ static var _surf_origin := Vector2(INF, INF)  # x0, z0 of the texture shown
 
 ## Atmospheric sky: the camera altitude given to the sky shader, in steps of SKY_ALT_STEP m.
 const SKY_ALT_STEP := 250.0
-## Atmospheric sky: the ambient light's energy over the sky's radiance (the time of day's ambient factor is not
-## used: the sky itself dims and reddens as the sun goes down).
-const SKY_AMBIENT := 0.6
+## Atmospheric sky: the ambient light. Godot takes the sky's share (SKY_SHARE, ambient_light_sky_contribution) at the
+## sky's full radiance, and the rest from ambient_light_color × ambient_light_energy (SKY_AMBIENT): bounce(), the
+## sunlit ground's and the haze's light, warm (BOUNCE per unit of the sun's light on level ground; tuned: the shade
+## about 1/5 of the sunlit ground and a little cooler, as in photographs). The sky's radiance alone lit a shade with
+## 1.8× the sun's light, deep blue: every shadow navy, the sunlit ground blue (docs/rendering.md §1.2).
+const SKY_AMBIENT := 1.0
+const SKY_SHARE := 0.1
+const BOUNCE := Color(0.64, 0.62, 0.48)
+const BOUNCE_SIN := 0.64
+## Atmospheric sky: the haze's scale height (m; the shader's Mie scale height). The fog's density is the sea level's
+## times the mean over the air below the camera, so from altitude the ground stays clear (haze_factor()).
+const HAZE_HEIGHT := 1500.0
 ## Atmospheric sky's auto-exposure: the 3D scene's mean luminance (Godot's: the mean of each pixel's brightest
 ## channel; ≈ 1 by day, the blue sky's) that keeps the exposure at 1, and the factor either way it may adapt by (to
 ## 1 / RANGE … RANGE). Godot's default speed (0.5: about 2 s) eases a glance from the sky to the ground in.
@@ -130,11 +140,12 @@ static func temporal_name() -> String:
 
 
 ## "Atmospheric": a physically based sky (terrain/atmosphere.gdshader: Rayleigh / Mie scattering with multiple
-## scattering, the sun's disc and glare), the ambient light from that sky alone (SKY_AMBIENT), the distance haze
-## taken from it (aerial perspective, sun scatter) and a bounded auto-exposure (EXPOSURE_*); the fog density, i.e.
-## the fog distances, stays. No glow (bloom): 3 ms on an Iris Xe for little. Off: the gradient sky as before.
+## scattering, the sun's disc and glare), the ambient light from that sky and the ground's bounce (SKY_*), the
+## distance haze taken from it (aerial perspective, sun scatter), thinning with the camera's altitude (update_view),
+## and a bounded auto-exposure (EXPOSURE_*). No glow (bloom): 3 ms on an Iris Xe for little. Off: the gradient sky as
+## before.
 static func _apply_sky(env: Environment, on: bool, attrs: CameraAttributes) -> void:
-	var keys := ["sky", "fog_aerial_perspective", "fog_sun_scatter", "ambient_light_sky_contribution"]
+	var keys := ["sky", "fog_aerial_perspective", "fog_sun_scatter", "ambient_light_sky_contribution", "fog_density"]
 	if not env.has_meta("original_sky"):
 		var o := {}
 		for k in keys:
@@ -160,17 +171,39 @@ static func _apply_sky(env: Environment, on: bool, attrs: CameraAttributes) -> v
 	env.sky = sky
 	env.fog_aerial_perspective = 1.0
 	env.fog_sun_scatter = 0.1
-	env.ambient_light_sky_contribution = 1.0
+	env.ambient_light_sky_contribution = SKY_SHARE
 
 
-## Per frame with the camera's position: the atmospheric sky's altitude and the surface types for the close up
-## and the water.
+## Atmospheric sky: the ambient light's own colour, BOUNCE times the sun's light (`color`, `energy`) on level ground,
+## `sin_elev` the sine of its elevation; terrain_view.gd sets it with the time of day, when dry. The diffuse light
+## falls slower than the direct light as the sun goes down (inferred): by √sin, equal to sin at BOUNCE_SIN (the sun
+## 40° up). By sin alone the scene at 19:30 (the sun 6° up) was black in the shade.
+static func bounce(color: Color, energy: float, sin_elev: float) -> Color:
+	var c := BOUNCE * color * (energy * sqrt(BOUNCE_SIN * maxf(sin_elev, 0.0)))
+	c.a = 1.0
+	return c
+
+
+## The mean of the haze's density (exp(−h / HAZE_HEIGHT)) over the air from sea level up to `alt` m, over its sea
+## level's: 1 on the ground, 0.3 at 5000 m.
+static func haze_factor(alt: float) -> float:
+	var x := maxf(alt, 1.0) / HAZE_HEIGHT
+	return (1.0 - exp(-x)) / x
+
+
+## Per frame with the camera's position: the atmospheric sky's altitude, its overcast in the rain (Weather), the
+## haze's density by altitude when dry, and the surface types for the close up and the water.
 static func update_view(env: Environment, cam: Vector3, terrain: Node) -> void:
 	if env.sky != null and env.sky.sky_material is ShaderMaterial:
 		var mat: ShaderMaterial = env.sky.sky_material
 		var alt := snappedf(maxf(cam.y, 0.0), SKY_ALT_STEP)
 		if mat.get_shader_parameter("altitude") != alt:
 			mat.set_shader_parameter("altitude", alt)
+		var overcast: float = Weather.level().get("sky", 0.0) if Weather.wet > 0.0 else 0.0
+		if mat.get_shader_parameter("overcast") != overcast:
+			mat.set_shader_parameter("overcast", overcast)
+		if Weather.level().is_empty():
+			env.fog_density = float(env.get_meta("original_sky").fog_density) * haze_factor(cam.y)
 	if (terrain_detail > 0.0 or terrain_water > 0.0 or ground_tex > 0.0) and terrain != null:
 		_update_surface(Vector2(cam.x, cam.z), terrain)
 

@@ -93,10 +93,21 @@ term (below):
 
 The sky also lights the scene:
 
-- **Ambient light**: the environment's ambient comes from the sky alone (`ambient_light_sky_contribution` 1,
-  energy `SKY_AMBIENT` 0.6 in `render_options.gd`) in place of the time of day's ambient factor (§4). Models and
-  terrain take the sky's colour: a blue fill by day, warm with a low sun. The noon value equals the Original
-  sky's (factor 0.6 × sky). At night the Original sky and its rules come back (§4, §5), so night is as before.
+- **Ambient light** (`render_options.gd`), in place of the time of day's ambient factor (§4), in two parts:
+  - the sky's radiance, a share `SKY_SHARE` 0.1 (`ambient_light_sky_contribution`). Godot takes this share at the
+    sky's full radiance; `ambient_light_energy` does not scale it.
+  - the rest, `ambient_light_color` × `SKY_AMBIENT` 1.0: `RenderOptions.bounce()`, the light of the sunlit ground
+    and the haze, `BOUNCE` (0.64, 0.62, 0.48) × the sun's colour × its energy × √(0.64 × the sine of its
+    elevation) (`BOUNCE_SIN`: equal to the sine with the sun 40° up). The diffuse light falls slower than the direct
+    light as the sun goes down (inferred); by the sine alone the shade at 19:30 was black. `terrain_view.gd` sets it
+    with the time of day, when it is dry. It dims and reddens with the sun.
+
+  The shade then is about a fifth of the sunlit ground and a little cooler than it, as in photographs of daylight.
+  At night the Original sky and its rules come back (§4, §5), so night is as before.
+- **Haze by altitude**: the fog's density is the sea level's (0.00003, about 100 km) times the mean of the haze's
+  density over the air below the camera (`haze_factor`: scale height `HAZE_HEIGHT` 1500 m, the shader's): 1 on
+  the ground, 0.85 at 500 m, 0.3 at 5000 m. From altitude the ground stays clear to tens of km. `update_view`
+  sets it each frame, only when it is dry (the rain's fog is a low cloud's, §10).
 - **Auto-exposure**: Godot's auto-exposure on the WorldEnvironment's CameraAttributesPractical. Godot measures the
   3D scene's mean luminance (the mean of each pixel's brightest channel, ≈ 1 by day, the sky's blue) and scales
   the exposure by `EXPOSURE_REF / luminance` (1.0), the luminance clamped so the factor stays within 1/1.25 …
@@ -105,6 +116,29 @@ The sky also lights the scene:
   off with the Original sky and at night. The 2D cockpit art, the HUD and the MFDs are canvas items drawn after the
   3D view's tonemapping: their brightness never changes. Night vision (§8) has its own gain on the tonemapped
   picture.
+
+**Daylight colour, tried and dropped (2026-10-27).** Everything on, the whole picture had a cold blue cast: navy
+shadows, pale sand and limestone read as snow, fields grey-blue. A / B renders, one switch at a time (`_showcase_shot.gd`
+airbase, shade under the wing):
+
+| switch | shade (sRGB) |
+|---|---|
+| before (sky alone at full radiance) | 0.20, 0.31, 0.47 |
+| Original gradient sky, rest as before | 0.15, 0.21, 0.29 |
+| ambient energy 0 | 0.10, 0.16, 0.25 |
+| reflections off | 0.11, 0.13, 0.18 |
+| sky share 0 (bounce alone) | 0.09, 0.08, 0.07 |
+| linear tonemap in place of AgX | 0.17, 0.21, 0.31 |
+| after (this section's ambient and ground) | 0.23, 0.26, 0.31 |
+
+The cause is the ambient: the sky's irradiance (≈ π × its mean radiance, tuned to look right as a background) was
+1.8× the sun's light on level ground, and blue. `ambient_light_energy` 0.6 did not scale it, so the first try
+(energy 0.6, sky share 0.15) left it blue. The tonemapper, auto-exposure and the imagery's colours are not the
+cause. Scaling the sky's radiance down for the light alone does not work: the fog's aerial perspective samples the
+same radiance map. The reflections of the sky on the pavement (specular 0.1, rough 0.95) still add a little blue
+at grazing angles (open: terrain.gdshader's own).
+
+The fog at altitude (5000 m, the ground a solid haze) came from the sea level's density along the whole path.
 
 **Shots**: `tests/godot/_sky_shot.gd` (usage in its header) captures the same views at chosen hours and altitudes,
 from the cockpit and outside, with a fixed cloud texture, to compare the sky before and after a change.
@@ -121,9 +155,14 @@ Tuning:
     forward lobe) and stays blue-grey elsewhere;
   - the optical depths fade to sea level's by 6° down: looking down from altitude, the view goes into the lower
     air and its haze (else the haze vanishes at 5000 m, whose own horizon has little of it);
-  - the colour darkens to 0.55 by 30° down (the ground's shade, not lit air), except in the forward glow. This is
-    the light from below for the ambient, and the fog of near ground, which Godot takes from a blurred radiance
-    level. A uniform horizon colour there gave a brown filter over the whole view at sunset.
+  - from 6° to 30° down the colour turns to the sunlit ground's own light (`ground_albedo` (0.36, 0.33, 0.27) ×
+    the sun's colour × its energy × the sine of its elevation), except in the forward glow (μ⁴). This is the light
+    from below for the ambient and the reflections. Down to 6° (the far ground and sea) it stays the haze's own,
+    and with the sun below about 17° all the way down: gold toward the sun, blue-grey away from it. Godot's fog
+    takes a blurred level of this map, so a dim ground in it turned the sea and the land a flat mauve-brown at
+    sunset (the horizon's colour darkened to 0.55, before 2026-10-27, did the same and lit the undersides blue).
+- In the rain (§10) the uniform `overcast` (Weather's sky share, while `Weather.wet` > 0) turns the sky toward
+  its own grey (its luminance kept) and hides the sun's disc and glare, so the reflections are an overcast's.
 - The sun's disc (0.53°) has a crisp edge: the shader takes its angle from the chord, because `cos` near 1 loses the
   disc in float precision. Around it is a narrow glare (e-folding 1.5°).
 
@@ -1338,8 +1377,8 @@ the ambient light from the overcast's grey (`Weather.OVERCAST`, a colour source 
 keeps its energy); the sun's energy; `rain_wet`; the wet ground's specular `rain_spec` (0.3 under the Original sky,
 0.12 under the Atmospheric sky, whose reflections stay a clear sky's blue). Off puts the scene's own values back. The
 fog colour of the time of day (§4) is greyed toward its own brightness (`Weather.fog_tint`), by the overcast's share,
-and so is the Original sky's zenith colour, so its reflections are the overcast's grey. `atmosphere.gdshader` itself
-is unchanged.
+and so is the Original sky's zenith colour, so its reflections are the overcast's grey. The Atmospheric sky turns
+grey by the same share (its `overcast` uniform, set by `RenderOptions.update_view`, §1.2).
 
 **Falling rain.** Each drop has a fixed seed spot in a 40 m cube. The cube wraps around a point 14 m ahead of the
 camera, so a drop stays at its place in the world while the camera flies through it, and the drops never run out. The
