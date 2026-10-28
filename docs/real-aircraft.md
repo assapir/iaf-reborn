@@ -8,10 +8,8 @@ The flight model has two data sets (docs/flight-model.md §11, `crates/iaf-fligh
 * **Original**: the numbers Jane's IAF shipped. The reference version is **v1.1**: its flight data files are used
   when present (§1), else v1.0's.
 * **Real**: one table row per aircraft type, with public real-world values: the seven flyable jets in six rows (the
-  F-4E and the Kurnass 2000 share one), the F-35I (its data in [f35i.md](f35i.md) §2) and every AI type (§9).
-  Anything a row leaves out keeps the original value.
-
-The research for the planned F-16I Sufa option (not built) is in [f16i.md](f16i.md).
+  F-4E and the Kurnass 2000 share one), the F-35I (its data in [f35i.md](f35i.md) §2), the F-16I Sufa (§8.1) and
+  every AI type (§9). Anything a row leaves out keeps the original value.
 
 **Terms**
 - **AI**: computer-flown aircraft. **AB**: afterburner. **mil**: military (full dry) power. **SL**: sea level.
@@ -301,6 +299,26 @@ Sources for these: the comments in `data_set.rs` and docs/flight-model.md §11. 
   the original 7,000 lb).
 * **Empty weight** 19,100 lb: the one figure published for the D[^aeroweb] (18,900[^airfighters]; the two-seat B
   was +675 lb over the A[^aerospaceweb-b]), from secondary sources only (no Dash-1 figure is public).
+
+### 8.1 F-16I Sufa (F100-PW-229, conformal fuel tanks)
+
+With Extras "F-16 version" on Sufa, every F-16 (type 100) flies the row "F-16I". The 1998 game has no Sufa, so this
+row applies whatever the Flight data setting says. It starts from the original's F-16 section, like the F-35I. The
+values and their sources are in [f16i.md](f16i.md) §1:
+
+| field | F-16I row |
+|---|---|
+| thrust | 29,160 lbf full AB, military ratio 17,800 / 29,160 |
+| empty weight | 20,500 lb (with the empty CFTs) |
+| internal fuel | 8,850 lb (5,800 + the CFTs' 3,050), one pool |
+| max weight | 52,000 lb |
+| CD0 | 0.0555 (the original's 0.055 + 1 % for the CFTs) |
+| fuel flow | 56,600 lb/h full AB, 13,500 lb/h military |
+| stall floor | 128 kt |
+| as the F-16D row | wave drag 0.02, roll 280 deg/s at 900 deg/s², NWS ±32° / 13.2 ft, ceiling 50,000 ft |
+
+The validation run (`IAF_JET=F-16I`) gives Mach 1.18 at sea level and Mach 1.87 at 40,000 ft, as the F-16D row.
+Heavier by about 4,400 lb at full fuel, it climbs at 36,000 ft/min at sea level (the F-16D row 43,000).
 
 ## 9. AI types
 

@@ -68,6 +68,8 @@ const RADAR_KM := {
 	190: 27.0,  # Mirage IIICJ: Cyrano I bis, ~27 km air-to-air lock (U, one game wiki)
 	1000: 148.0,  # F-35I: AN/APG-81, multiple-target track beyond 80 NM (U, docs/f35i.md)
 }
+## The F-16I's APG-68(V)9 against the F-16's APG-68: 30 % more air-to-air range (Lockheed Martin, docs/f16i.md §2).
+const SUFA_RADAR := 1.3
 ## The radar's NM (0x603390).
 const RADAR_NM_M := 1854.0
 ## bdb gun name -> {rpm (all barrels / guns of one jet), muzzle m/s}.
@@ -165,6 +167,8 @@ static func jet_gun(w: Dictionary, type_code: int) -> Dictionary:
 	return out
 
 
-## The real radar detection range (NM of the radar, LRS / STT) of a jet, or 0 = keep the original.
+## The real radar detection range (NM of the radar, LRS / STT) of a jet, or 0 = keep the original. The F-16I Sufa's
+## APG-68(V)9 sees 30 % further than the F-16's (docs/f16i.md §2): 104 km.
 static func radar_nm(type_code: int) -> float:
-	return float(RADAR_KM.get(type_code, 0.0)) * 1000.0 / RADAR_NM_M
+	var km := float(RADAR_KM.get(type_code, 0.0)) * (SUFA_RADAR if Settings.sufa(type_code) else 1.0)
+	return km * 1000.0 / RADAR_NM_M

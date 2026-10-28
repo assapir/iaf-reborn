@@ -868,10 +868,13 @@ static func icon_cell(klass: int, side: int, leader: bool, heading: float) -> Re
 	return Rect2(0, (1 if side > 1 else 0) * 17, 27, 17)
 
 
-## Line 1 of the selected-unit label: the type's name (FUN_004f6da0 → FUN_004f7670), a runway's own name.
+## Line 1 of the selected-unit label: the type's name (FUN_004f6da0 → FUN_004f7670), a runway's own name; ours:
+## "F-16I" for an F-16 with the Sufa switch (Settings.sufa).
 static func unit_label(u: Dictionary) -> String:
 	if int(u.type) == 450:
 		return String(u.name).left(20)
+	if Settings.sufa(int(u.type)):
+		return "F-16I"
 	return TYPE_NAMES.get(int(u.type), CLASS_NAMES.get(int(u.cls), ""))
 
 

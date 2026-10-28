@@ -683,6 +683,11 @@ func real_weapons() -> bool:
 	return weapon_data == "real"
 
 
+## True when an aircraft of bdb type `type_code` is an F-16I Sufa (Extras "F-16" on Sufa, docs/f16i.md).
+func sufa(type_code: int) -> bool:
+	return type_code == 100 and f16_variant == "sufa"
+
+
 ## Scroll steps for a wheel or trackpad pan event (ours, the original has no wheel): +1 = one step down, -1 = up,
 ## 0 = none; "natural" reverses them. A pan adds up its delta.y (+ = down, as Godot's ScrollContainer reads it) and
 ## steps once per whole unit.

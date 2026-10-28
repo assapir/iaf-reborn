@@ -1398,7 +1398,7 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
     `gamep_0/_1`. Mirrored in Hebrew. Row rules are opaque and one page pixel thick, so the ones that fall on the
     background's grid lines look like the rest.
   * **Extras rows** (`front_end.gd` `EXTRAS` and `_extras_rows`, less the Graphics → MORE rows; each switch is in
-    deviations.md §2): Flight data, Weapon data, Language (English / Hebrew; Hebrew only when the pack is installed),
+    deviations.md §2): Flight data, Weapon data, F-16 version (Barak (F-16D) / Sufa (F-16I), docs/f16i.md), Language (English / Hebrew; Hebrew only when the pack is installed),
     Flight info (Ctrl+F12), Blackbox, HUD pitch ladder, HUD (Original (1998) / Real), Real HUD bingo (500-5,000 lb, 1,500 by default), All keys on the Keyboard page,
     F-35I replaces (Off / one of the seven jets, docs/f35i.md), HARM targets, CD launcher (§18.1), Mouse wheel
     (below), Better cockpit (`Settings.BETTER_COCKPIT`, docs/cockpit.md "Better cockpit"), Mission Creator

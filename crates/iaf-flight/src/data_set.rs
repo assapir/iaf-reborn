@@ -66,6 +66,9 @@ pub const TYPES: &[Type] = &[
     // Not in the original: no section of its own, so it always flies its Real row (on the F-16's block;
     // docs/adding-a-plane.md §3, docs/f35i.md).
     ty("F-35I", "f35i", "F-16", 1000),
+    // Ours: the F-16I Sufa, type 100 with the Extras switch "F-16" on Sufa (docs/f16i.md). No 1998 data: it always
+    // flies its Real row, on the F-16's section.
+    ty("F-16I", "f16i", "F-16", 100),
     ty("MIRAGE", "mirage", "MIRAGE", 190),
     ty("MIG21", "mig21", "MIG21", 150),
     ty("MIG23", "mig23", "MIG23", 160),
@@ -82,13 +85,22 @@ pub const TYPES: &[Type] = &[
 ];
 
 /// Types the original never had: no Original data, so they always fly their Real row.
-const NO_ORIGINAL: &[&str] = &["F-35I"];
+const NO_ORIGINAL: &[&str] = &["F-35I", "F-16I"];
 
 /// The data set a type flies with: `set`, except that a type without original data always takes Real.
 pub fn effective(set: DataSet, name: &str) -> DataSet {
     match find_type(name) {
         Some(t) if NO_ORIGINAL.contains(&t.name) => DataSet::Real,
         _ => set,
+    }
+}
+
+/// The type a mission's `name` flies as: the F-16I for an F-16 (type 100) when `sufa` (the Extras switch "F-16" on
+/// Sufa, docs/f16i.md), else `name` itself.
+pub fn variant(name: &str, sufa: bool) -> &str {
+    match find_type(name) {
+        Some(t) if sufa && t.type_code == 100 => "F-16I",
+        _ => name,
     }
 }
 
@@ -389,6 +401,36 @@ const REAL: &[Real] = &[
         ceiling_ft: Some(50_000.0),
         nose_wheel: Some(Nws { angle_deg: 32.0, wheelbase_ft: 17.6, grip_g: 0.3 }),
         afterburner: Some(true),
+        ..NONE
+    },
+    // F-16I Sufa (F-16D Block 52+, F100-PW-229, conformal fuel tanks), docs/f16i.md §1. Starts from the original's
+    // F-16 section like the F-35I, so it repeats the F-16D row's FLCS, nose wheel, wave drag and ceiling.
+    Real {
+        aircraft: "F-16I",
+        base: Some("F-16"),
+        // 19,600 lb (between the secondary 19,420 and 19,840) + 900 lb for the empty CFT pair (inferred).
+        empty_lb: 20_500.0,
+        // The F-16D's 5,800 lb + the CFTs' 450 US gal ≈ 3,050 lb (Lockheed Martin 2002), one pool.
+        fuel_lb: Some(8_850.0),
+        // 23,582 kg with the heavyweight landing gear (Airforce Technology).
+        max_lb: Some(52_000.0),
+        // F100-PW-229: 29,160 lbf with afterburner, 17,800 lbf military (Pratt & Whitney).
+        thrust: Thrust::StaticAb(29_160.0),
+        mil_ratio: Some(17_800.0 / 29_160.0),
+        // The original's PlaneDragIndex 550 (cd0 0.055) + 1 % for the CFTs ("less than one percent" more drag at
+        // cruise, Lockheed Martin 2001; inferred).
+        cd0: Some(0.0555),
+        // As the F-16D row (no CFT figure above Mach 0.9: open).
+        wave_drag: 0.02,
+        roll_deg_s: Some(280.0),
+        roll_accel: Some((900.0, 900.0)),
+        // TSFC 1.94 with AB, 0.76 military → ~56,600 lb/h and ~13,500 lb/h (inferred).
+        ff_ab_lb_s: Some(56_600.0 / 3600.0),
+        ff_mil_lb_h: Some(13_500.0),
+        // The F-16D's 118 kt at its full fuel (24,900 lb) scaled to 29,350 lb: 118 · √(29,350 / 24,900) (inferred).
+        stall_kt: Some(128.0),
+        nose_wheel: Some(Nws { angle_deg: 32.0, wheelbase_ft: 13.2, grip_g: 0.3 }),
+        ceiling_ft: Some(50_000.0),
         ..NONE
     },
     // --- AI types (docs/real-aircraft.md §9). No public roll rate was found for any of them: the
@@ -784,6 +826,21 @@ mod tests {
         assert_eq!(effective(DataSet::Original, "F-16"), DataSet::Original);
         assert_eq!(section(effective(DataSet::Original, "F-35I"), "F-35I"), "F-16");
         assert_eq!(find_type("f35i").map(|t| t.type_code), Some(1000));
+    }
+
+    #[test]
+    fn sufa_is_the_f16_with_the_switch() {
+        assert_eq!(variant("F-16", true), "F-16I");
+        assert_eq!(variant("f16", true), "F-16I");
+        assert_eq!(variant("F-16", false), "F-16");
+        // Other types on the F-16's section stay.
+        assert_eq!(variant("C-130", true), "C-130");
+        assert_eq!(variant("F-35I", true), "F-35I");
+        assert_eq!(effective(DataSet::Original, "F-16I"), DataSet::Real);
+        assert_eq!(section(DataSet::Real, "F-16I"), "F-16");
+        assert_eq!(find_type("F-16I").map(|t| t.type_code), Some(100));
+        // The type code finds the Barak first (mission_sanity).
+        assert_eq!(TYPES.iter().find(|t| t.type_code == 100).map(|t| t.name), Some("F-16"));
     }
 
     #[test]

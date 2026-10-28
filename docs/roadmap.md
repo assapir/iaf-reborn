@@ -198,20 +198,22 @@ live play while recording at 4K. Two ways:
 - **Voice, licences and open questions:** real-betty.md §2–§6.
 
 ## F-16I Sufa option (Extras switch, wishlist; decided 2026-10-17, F-16I chosen 2026-10-19)
-- **Switch:** "F-16: Barak (1990s) / Sufa (F-16I)". The default is the game's early-1990s F-16D Barak.
+- **Switch:** "F-16: Barak (F-16D) / Sufa (F-16I)". The default is the game's early-1990s F-16D Barak.
 - **Sufa:** the IAF's F-16I (Block 52+ two-seater), in the same cockpit and model slot as the F-16D.
 - **What it changes** (each with public sources, as real-aircraft.md and real-hud.md):
   - flight data (F100-PW-229 engine, weights, the conformal fuel tanks);
   - radar (APG-68(V)9) and its modes;
   - AIFF (APX-113 class interrogator; real-hud.md "IFF");
   - helmet (Elbit DASH) and the HUD symbology of its software;
-  - weapons (AIM-120C, Python 5, Derby, JDAM / SPICE as in "Modern aircraft and weapons");
+  - weapons (AIM-120C, Python 5, JDAM / SPICE as in "Modern aircraft and weapons");
   - RWR / self-protection suite;
   - how it looks: the Sufa model on the Detailed F-16D (tools/f16d/rig.py: conformal fuel tanks, the large dorsal
     spine, the IAF Sufa livery and markings), and its cockpit (colour MFDs);
   - its voice warnings ("Real Betty" option above).
 - **Steps:** 1. research (done: [f16i.md](f16i.md), with its open questions and build outline); 2. build it behind the
-  switch, the 1990s Barak unchanged.
+  switch, the 1990s Barak unchanged: in progress. Built (2026-10-28): the Extras row "F-16 version", the flight data
+  row, the APG-68(V)9 radar for the player and the AI, the TSD name (f16i.md §11). Next: the model, the arming art,
+  the new weapons, then AIFF, helmet, HUD, RWR and voice.
 
 ## F-15I Ra'am option (Extras switch, wishlist; user 2026-10-28)
 - **Switch:** the F-15 the same way as the F-16I Sufa above: the game's F-15 stays the default, and the switch flies
@@ -222,7 +224,7 @@ live play while recording at 4K. Two ways:
 
 ## Modern aircraft and weapons (post everything)
 - Newer aircraft (e.g. F-16I Sufa, F-15I Ra'am, and modern threats; the F-35I Adir is built, f35i.md) together with
-  their weapons (e.g. AIM-120 AMRAAM, AIM-9X, Python 5, Derby, JDAM / SPICE / GBU families, Delilah, modern SAMs).
+  their weapons (e.g. AIM-120 AMRAAM, AIM-9X, Python 5, JDAM / SPICE / GBU families, Delilah, modern SAMs).
 - Follow adding-a-plane.md and the weapon data format from weapons.md; real public data with sources.
 - Needs new models and cockpits (the original data has none).
 

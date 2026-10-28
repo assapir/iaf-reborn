@@ -262,11 +262,18 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   The tower then says the real runway number (`b.rwy`); the numbers the install has no clip for (all but 03, 05,
   09, 15, 18, 21, 23, 27, 33) come from our TTS clips in `game/extra/tower_numbers/` (radio.md §1). Original:
   the missing `NumNNN` is silent. The original bases' runways all have install clips, so Original never plays ours.
-- **Additions the original does not have:** flight info line (ORIGINAL, or a short tag per switch not at its original setting — FLT, WPN, HUD:<style>, 1:1, CKPT+, PHYS+ — then the position, speed, G, throttle, the roll trim when set, fps), blackbox, language, Window (framed / full screen),
-  "F-35I replaces" (the F-35I flies from a Jet list button, docs/f35i.md), Settings file (export / import the
+- **Additions the original does not have:** flight info line (ORIGINAL, or a short tag per switch not at its original setting — FLT, WPN, HUD:<style>, 1:1, CKPT+, PHYS+ — SUFA — then the position, speed, G, throttle, the roll trim when set, fps), blackbox, language, Window (framed / full screen),
+  "F-35I replaces" (the F-35I flies from a Jet list button, docs/f35i.md), "F-16 version" (below), Settings file (export / import the
   preferences, front_end.gd `_settings_file`). Later: extra sounds (roadmap.md).
   - The F-35I's stations are the real F-35A's (docs/f35i.md §3.1). Its outboard wing pylons (stations 1 / 11, the
     AIM-9X's) take the newest AIM-9 the game has, the AIM-9M, and the Python 4.
+- **"F-16 version" (Barak (F-16D) / Sufa (F-16I))** (ours, Extras; [f16i.md](f16i.md)). Original: the game's F-16D
+  Barak. Ours, with Sufa: every F-16 (type 100: the player's, the AI's and the parked ones) is the IAF's F-16I Block
+  52+ with conformal fuel tanks:
+  - flight data: the "F-16I" row whatever the Flight data setting says (real-aircraft.md §8.1);
+  - radar: the AN/APG-68(V)9 row, LRS 45 → 58 NM and TWS 35 → 45 NM (radar.md §1); with Weapon data Real, LRS 104 km;
+    the AI's F-16s see 52 NM instead of the 40 NM every AI jet has;
+  - the TSD calls the selected F-16 "F-16I"; the info line shows SUFA.
 - **HUD (Original (1998) / Real)** (references: [real-hud.md](real-hud.md)). Original: the 1998 HUD on every jet.
   Ours, with Real: each jet's real display:
   - the F-16C/D dash-34 HUD;
