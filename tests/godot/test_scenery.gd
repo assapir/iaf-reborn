@@ -36,8 +36,14 @@ func run() -> void:
 	check(settings().scenery == "off", "read_config: no files -> off")
 	var it: Array = await _row("scenery")
 	check(
-		it.size() == 2 and not it[1].available and it[1].label == "Not downloaded",
-		"no files: On greyed, Not downloaded"
+		(
+			it.size() == 3
+			and not it[1].available
+			and it[1].label == "On"
+			and not it[2].available
+			and it[2].label == "Not downloaded"
+		),
+		"no files: On and Detailed greyed, Detailed says Not downloaded"
 	)
 
 	var cells := []
@@ -52,14 +58,26 @@ func run() -> void:
 	check(settings().scenery == "off", "read_config: Original imagery -> off")
 	_read({"imagery_israel": "mapi2015_modern", "scenery": "on"})
 	check(settings().scenery == "on", "read_config: Survey 2 m modern -> stays on")
+	_read({"imagery_israel": "mapi2015", "scenery": "detailed"})
+	check(settings().scenery == "detailed", "read_config: Detailed stays Detailed")
+	_read({"imagery_israel": "original", "scenery": "detailed"})
+	check(settings().scenery == "off", "read_config: Detailed over Original imagery -> off")
+	_read({"imagery_israel": "mapi2015", "scenery": "bogus"})
+	check(settings().scenery == "off", "read_config: an unknown value -> off")
 	_fe.pref_work["imagery_israel"] = "original"
 	it = await _row("scenery")
-	check(not it[1].available and it[1].label == "Needs Survey 2 m", "Original imagery (unsaved): Needs Survey 2 m")
+	check(
+		not it[1].available and it[1].label == "On" and not it[2].available and it[2].label == "Needs Survey 2 m",
+		"Original imagery (unsaved): On and Detailed greyed, Detailed says Needs Survey 2 m"
+	)
 	_fe.pref_work["imagery_israel"] = "mapi2015"
 	it = await _row("scenery")
 	check(it[1].available and it[1].label == "On", "Survey 2 m picked (unsaved): On available")
 	_click(it[1])
 	check(_fe.pref_work.scenery == "on", "a click turns Scenery on")
+	check(it[2].available and it[2].label == "Detailed", "Detailed available")
+	_click(it[2])
+	check(_fe.pref_work.scenery == "detailed", "a click picks Detailed")
 	var im: Array = await _row("imagery_israel")
 	_click(im[0])
 	check(
@@ -67,8 +85,17 @@ func run() -> void:
 	)
 	_fe.queue_free()
 
-	# --- the cells around the focus ---
-	settings().scenery = "on"
+	# --- the cells around the focus, On and Detailed ---
+	for mode in ["on", "detailed"]:
+		await _stream(Scenery, meta, c, mode)
+	Scenery.base_dir = ""
+	settings().scenery = "off"
+	settings().imagery_israel = "original"
+
+
+## The cells around a focus over cell `c` streamed with Scenery = `mode`, then freed 30 km away.
+func _stream(sc: GDScript, meta: Dictionary, c: Vector2i, mode: String) -> void:
+	settings().scenery = mode
 	var T: GDScript = load("res://terrain/terrain.gd")
 	var t: Node3D = T.new()
 	var ids: Array[String] = ["mapi2015"]
@@ -83,13 +110,20 @@ func run() -> void:
 	var t0 := Time.get_ticks_msec()
 	while not (t.ground_ready() and t.scenery.drawn().has(c)) and Time.get_ticks_msec() - t0 < 60000:
 		await process_frame
-	check(t.scenery.drawn().has(c), "the focus' cell is drawn")
+	check(t.scenery.drawn().has(c), "%s: the focus' cell is drawn" % mode)
 	check(t.ground_ready(), "ground_ready with the near scenery")
-	var reach: float = Scenery.RANGE + Scenery.AHEAD
+	var reach: float = sc.RANGE + sc.AHEAD
 	var far: Array = t.scenery.loaded().filter(func(k): return t.scenery._dist(k, focus.position) > reach)
 	check(far.is_empty(), "nothing loaded beyond %d m (%s)" % [reach, far])
 	var node: Node3D = t.scenery._cells[c].node
 	check(node.get_child_count() >= 2, "near + far meshes and trees (%d nodes)" % node.get_child_count())
+	var mat: ShaderMaterial = t.scenery._cells[c].mat
+	var shader: Shader = sc.DETAILED_SHADER if mode == "detailed" else sc.SHADER
+	check(mat.shader == shader, "%s: its building shader" % mode)
+	var roofs := node.get_children().filter(
+		func(n): return n is MultiMeshInstance3D and n.multimesh.mesh in sc._roof_meshes
+	)
+	check(roofs.is_empty() == (mode == "on"), "%s: roof clutter %d tiles" % [mode, roofs.size()])
 	var house := _house(meta, c)
 	check(IafScenery.top(house) > 10.0, "IafScenery has the house (top %.1f m)" % IafScenery.top(house))
 	var n0: int = t.scenery.loaded().size()
@@ -102,9 +136,6 @@ func run() -> void:
 	t.queue_free()
 	focus.queue_free()
 	await frames(2)
-	Scenery.base_dir = ""
-	settings().scenery = "off"
-	settings().imagery_israel = "original"
 
 
 ## The north-west corner of cell `k` (world X east, Y north; IafScenery.cell_origin).

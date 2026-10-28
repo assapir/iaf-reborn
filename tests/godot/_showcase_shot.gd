@@ -68,6 +68,10 @@ const SCENES := {
 	"trees_orchard": [231, 10.5, [388541.0, 591900.0], 120.0, 0.0, Vector3(0, 4, 30), Vector3(0, -70, -260)],
 	"trees_carmel": [231, 10.5, [335161.0, 617200.0], 180.0, 0.0, Vector3(0, 4, 30), Vector3(0, -110, -400)],
 	"trees_close": [231, 10.5, [388541.0, 592300.0], 22.0, 0.0, Vector3(0, -12, 0), Vector3(0, -18, -60)],
+	# The scenery's buildings (docs/scenery.md §3.3): a low pass over a Rishon LeZion street, 30 m up; its roofs from
+	# 150 m.
+	"street50": [231, 10.5, [316009.5, 530807.8], 50.0, 20.0, Vector3(0, -22, 0), Vector3(0, -32, -200)],
+	"roof150": [231, 10.5, [316009.5, 530807.8], 150.0, 20.0, Vector3(0, 0, 20), Vector3(0, -150, -130)],
 }
 
 var tv: Node

@@ -1,7 +1,8 @@
-// Scenery buildings (terrain/scenery.gd, docs/scenery.md §3). The mesh arrays come from IafScenery:
+// Scenery buildings, Scenery = On (terrain/scenery.gd, docs/scenery.md §3; Detailed: scenery_detailed.gdshader). The
+// mesh arrays come from IafScenery:
 //   UV   = wall coordinates in metres (x along the wall, y above the building's base);
-//   UV2  = (building index in the cell, 0 = wall / 1 = roof);
-//   COLOR.rgb = the roof colour on the active Survey 2 m look on roofs, lightened toward plaster on walls (sRGB);
+//   UV2  = (building index in the cell, the building's height on walls / −1 on roofs);
+//   COLOR.rgb = the roof colour on the active Survey 2 m look (sRGB), lightened here toward plaster on walls;
 //   COLOR.a = the wall material / 255 (iaf_tools::thirdparty::SCENERY_WALLS: plaster, stone, concrete, corrugated).
 // The photo's colour already holds the sun's light, and the scene lights it again: roofs take ROOF_GAIN of it, walls
 // WALL_GAIN, both at most MAX_ALBEDO (linear), so a town reads as bright as the photo under it, not white.
@@ -29,6 +30,9 @@ const float ROOF_GAIN = 0.6;
 const float WALL_GAIN = 0.5;
 const float MAX_ALBEDO = 0.45;
 const float LEVEL_M = 3.0;
+// The plaster the walls' colour lightens toward (sRGB), and how far.
+const vec3 PLASTER = vec3(0.86, 0.83, 0.76);
+const float PLASTER_MIX = 0.6;
 const float BAY_M = 3.2;
 
 varying flat float v_building;
@@ -50,14 +54,14 @@ void vertex() {
 	// Shown: raised to g of its height; not shown: collapsed to its centre (no triangles to draw).
 	VERTEX = g > 0.001 ? vec3(VERTEX.x, c.y + (VERTEX.y - c.y) * g, VERTEX.z) : c;
 	v_building = UV2.x;
-	v_roof = UV2.y;
+	v_roof = UV2.y < -0.5 ? 1.0 : 0.0;
 	v_wall = floor(COLOR.a * 255.0 + 0.5);
 }
 
 void fragment() {
 	int b = int(v_building + 0.5);
 	float damaged = step(0.5 / 255.0, texelFetch(damage, ivec2(b % 256, b / 256), 0).r);
-	vec3 colour = srgb_to_linear(COLOR.rgb);
+	vec3 colour = srgb_to_linear(v_roof > 0.5 ? COLOR.rgb : mix(COLOR.rgb, PLASTER, PLASTER_MIX));
 	vec3 albedo;
 	float rough = 0.9;
 	float emit = 0.0;

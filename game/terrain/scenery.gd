@@ -3,8 +3,9 @@
 # (assets/converted/scenery/L1/s_<i>_<j>.bin, the layer's own keys); the cells within RANGE of the focus are loaded on
 # worker threads (IafScenery parses the file), their meshes made on IafScenery's own threads (on the heights
 # IafHeights has) and uploaded a chunk per frame, drawn as a near mesh (walls with windows, roofs; to NEAR m), a far
-# mesh (bare prisms; NEAR to RANGE m) and one MultiMesh per tree kind (to TREES m). Owned by terrain.gd (its focus,
-# its world origin, its layers). Rendering only: the queries (roof heights, the EO ray) are IafScenery's.
+# mesh (bare prisms; NEAR to RANGE m), one MultiMesh per tree kind (to TREES m) and per roof item (to ROOF_ITEMS m).
+# Owned by terrain.gd (its focus, its world origin, its layers). Rendering only: the queries (roof heights, the EO
+# ray) are IafScenery's.
 extends Node3D
 
 const DIR := "converted/scenery"
@@ -24,6 +25,10 @@ const TREES_NEAR := 700.0
 const TREES_GROW := 300.0
 const TILE_REACH := 360.0
 const GROW := 400.0
+## The roof clutter (heaters, tanks, stair heads) is drawn to ROOF_ITEMS m, shrinking onto the roof over the last
+## ROOF_GROW m (scenery_roof.gdshader, each item by its own distance).
+const ROOF_ITEMS := 700.0
+const ROOF_GROW := 150.0
 ## The cells re-chosen when the focus moved this far (m) or after this long (ms).
 const RESELECT_M := 200.0
 const RESELECT_MS := 1000
@@ -49,7 +54,9 @@ const TRUNK := Color(0.16, 0.11, 0.07)
 const ImageryLayers := preload("res://terrain/imagery_layers.gd")
 const GroundTextures := preload("res://terrain/ground_textures.gd")
 const SHADER := preload("res://terrain/scenery.gdshader")
+const DETAILED_SHADER := preload("res://terrain/scenery_detailed.gdshader")
 const TREE_SHADER := preload("res://terrain/scenery_tree.gdshader")
+const ROOF_SHADER := preload("res://terrain/scenery_roof.gdshader")
 const FOLIAGE_SHADER := preload("res://terrain/scenery_foliage.gdshader")
 const FOLIAGE_FAR_SHADER := preload("res://terrain/scenery_foliage_far.gdshader")
 ## The foliage textures setup composes (iaf_tools::foliage, under GroundTextures.dir()), the texture array's layers.
@@ -73,6 +80,7 @@ static var night := false
 static var _walls: Texture2DArray
 static var _walls_read := false
 static var _tree_meshes: Array = []
+static var _roof_meshes: Array = []
 static var _foliage: Texture2DArray
 static var _foliage_read := false
 
@@ -121,7 +129,12 @@ static func survey(id: String) -> bool:
 
 ## The render guard: Scenery on, the files there and a Survey 2 m layer among the terrain's `layers`.
 static func wanted(layers: Array) -> bool:
-	return Settings.scenery == "on" and available() and layers.any(func(l): return survey(String(l)))
+	return Settings.scenery != "off" and available() and layers.any(func(l): return survey(String(l)))
+
+
+## Scenery = Detailed: the facades, the streets' occlusion and the roof clutter (docs/scenery.md §3.3).
+static func detailed() -> bool:
+	return Settings.scenery == "detailed"
 
 
 ## The cells (Vector2i -> true): the level-1 nodes of the Survey layer `id` (scenery stands only over its photo).
@@ -236,6 +249,8 @@ static func warm_up(camera: Camera3D, layers: Array) -> Node3D:
 		var tm: ArrayMesh = tree_mesh(kind)
 		for s in tm.get_surface_count():
 			mats.append(tm.surface_get_material(s))
+	if detailed():
+		mats.append(roof_mesh(0).surface_get_material(0))
 	for k in mats.size():
 		var mi := MeshInstance3D.new()
 		mi.mesh = quad
@@ -249,7 +264,7 @@ static func warm_up(camera: Camera3D, layers: Array) -> Node3D:
 
 static func _building_material(damage: PackedByteArray) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
-	m.shader = SHADER
+	m.shader = DETAILED_SHADER if detailed() else SHADER
 	var w := walls()
 	m.set_shader_parameter("walls", w)
 	m.set_shader_parameter("has_walls", w != null)
@@ -617,6 +632,86 @@ static func _make_tree(kind: int) -> ArrayMesh:
 	return mesh
 
 
+## The roof clutter's models (iaf_avionics::scenery::RoofItem order: heater, tank, box), our own, each standing on its
+## origin; scenery_roof.gdshader tints them by the instance colour. Vertex alpha 0 marks the collectors' glass.
+static func roof_mesh(item: int) -> ArrayMesh:
+	if _roof_meshes.is_empty():
+		var m := ShaderMaterial.new()
+		m.shader = ROOF_SHADER
+		m.set_shader_parameter("far_m", ROOF_ITEMS)
+		m.set_shader_parameter("grow_m", ROOF_GROW)
+		for k in 3:
+			var st := SurfaceTool.new()
+			st.begin(Mesh.PRIMITIVE_TRIANGLES)
+			match k:
+				0:  # a 2 × 1 m collector tilted 40° to the south (+z), its frame, a 1.6 m tank behind its top
+					var glass := Color(0.05, 0.06, 0.08, 0.0)
+					_quad(
+						st,
+						[
+							Vector3(-1, 0.3, 0.5),
+							Vector3(1, 0.3, 0.5),
+							Vector3(1, 0.95, -0.27),
+							Vector3(-1, 0.95, -0.27)
+						],
+						glass
+					)
+					_quad(
+						st,
+						[Vector3(1, 0.3, 0.5), Vector3(-1, 0.3, 0.5), Vector3(-1, 0.0, 0.5), Vector3(1, 0.0, 0.5)],
+						Color(0.35, 0.35, 0.35)
+					)
+					_quad(
+						st,
+						[
+							Vector3(-1, 0.95, -0.27),
+							Vector3(1, 0.95, -0.27),
+							Vector3(1, 0.0, -0.27),
+							Vector3(-1, 0.0, -0.27)
+						],
+						Color(0.35, 0.35, 0.35)
+					)
+					_prism(st, Vector3(-0.8, 1.2, -0.55), Vector3(1.6, 0, 0), 0.3, 6, Color(0.8, 0.8, 0.78))
+				1:  # a tank 1.1 m across, 1.2 m tall
+					_prism(st, Vector3.ZERO, Vector3(0, 1.2, 0), 0.55, 8, Color.WHITE)
+				2:  # a unit box (the instance scales it)
+					_prism(st, Vector3.ZERO, Vector3(0, 1, 0), 0.7071, 4, Color.WHITE)
+			st.generate_normals()
+			var mesh := st.commit()
+			mesh.surface_set_material(0, m)
+			_roof_meshes.append(mesh)
+	return _roof_meshes[item]
+
+
+## A quad, front faces clockwise seen from its front.
+static func _quad(st: SurfaceTool, p: Array, col: Color) -> void:
+	for k in [0, 1, 2, 0, 2, 3]:
+		st.set_color(col)
+		st.add_vertex(p[k])
+
+
+## A closed prism of `seg` sides, radius `r`, from `a` along `axis` (upright or along x), its sides turned so a
+## four-sided one is a box; flat-shaded (generate_normals on unshared vertices).
+static func _prism(st: SurfaceTool, a: Vector3, axis: Vector3, r: float, seg: int, col: Color) -> void:
+	var up := axis.normalized()
+	var u := Vector3.RIGHT if absf(up.x) < 0.5 else Vector3.UP
+	var v := up.cross(u)
+	u = v.cross(up)
+	var ring := []
+	for s in seg:
+		var th := TAU * (s + 0.5) / seg
+		ring.append((u * cos(th) + v * sin(th)) * r)
+	var b := a + axis
+	for s in seg:
+		var p: Vector3 = ring[s]
+		var q: Vector3 = ring[(s + 1) % seg]
+		_quad(st, [a + q, a + p, b + p, b + q], col)
+		for t in [[b, b + p, b + q], [a, a + q, a + p]]:
+			for x in t:
+				st.set_color(col)
+				st.add_vertex(x)
+
+
 func _ready() -> void:
 	var id := ""
 	for l in terrain.layers:
@@ -769,7 +864,7 @@ func _build_some(fp: Vector3) -> void:
 	waiting.sort()
 	for t in waiting.slice(0, maxi(0, MAX_JOBS - preparing)):
 		_cells[t[1]].state = "preparing"
-		IafScenery.prepare(t[1].x, t[1].y, modern)
+		IafScenery.prepare(t[1].x, t[1].y, modern, detailed())
 
 
 ## A made cell's node and material; its pieces follow (_upload).
@@ -815,6 +910,20 @@ func _upload(k: Vector2i) -> void:
 		# The photo under it already holds the buildings' shadows.
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		c.node.add_child(mi)
+	elif piece.has("roofs"):
+		for tile in piece.roofs:
+			var mm := MultiMesh.new()
+			mm.transform_format = MultiMesh.TRANSFORM_3D
+			mm.use_colors = true
+			mm.mesh = roof_mesh(int(tile[0]))
+			var rows: PackedFloat32Array = tile[1]
+			mm.instance_count = rows.size() / 16
+			mm.buffer = rows
+			var mmi := MultiMeshInstance3D.new()
+			mmi.multimesh = mm
+			mmi.visibility_range_end = ROOF_ITEMS + TILE_REACH
+			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			c.node.add_child(mmi)
 	else:
 		for tile in piece.trees:
 			var rows: PackedFloat32Array = tile[1]

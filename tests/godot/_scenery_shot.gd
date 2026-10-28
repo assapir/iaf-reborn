@@ -118,15 +118,15 @@ func _houses(sc: GDScript, out: String) -> void:
 	w.queue_free()
 
 
-## A box as IafScenery makes one: walls with UV in metres (along, up), a flat roof; UV2 = (building, roof); COLOR =
-## the roof colour (a = wall material / 255), the walls lightened toward plaster.
+## A box as IafScenery makes one: walls with UV in metres (along, up), a flat roof; UV2 = (building, its height on
+## walls / −1 on roofs); COLOR = the roof colour (a = wall material / 255), on the walls too; open streets (no CUSTOM0).
 func _box(st: SurfaceTool, at: Vector3, size: Vector3, b: int, wall: int, roof: Color) -> void:
 	var h := size.y
 	var x0 := at.x - size.x / 2
 	var x1 := at.x + size.x / 2
 	var z0 := at.z - size.z / 2
 	var z1 := at.z + size.z / 2
-	var wc := roof.lerp(Color(0.86, 0.83, 0.76), 0.6)
+	var wc := roof
 	wc.a = wall / 255.0
 	var rc := roof
 	rc.a = wall / 255.0
@@ -149,7 +149,7 @@ func _box(st: SurfaceTool, at: Vector3, size: Vector3, b: int, wall: int, roof: 
 			st.set_normal(n)
 			st.set_color(wc)
 			st.set_uv(e[1])
-			st.set_uv2(Vector2(b, 0))
+			st.set_uv2(Vector2(b, h))
 			st.add_vertex(e[0])
 	var r := [
 		Vector3(x0, h, z0),
@@ -163,5 +163,5 @@ func _box(st: SurfaceTool, at: Vector3, size: Vector3, b: int, wall: int, roof: 
 		st.set_normal(Vector3.UP)
 		st.set_color(rc)
 		st.set_uv(Vector2(p.x, p.z) / 32.0)
-		st.set_uv2(Vector2(b, 1))
+		st.set_uv2(Vector2(b, -1))
 		st.add_vertex(p)
