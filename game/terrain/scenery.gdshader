@@ -25,6 +25,7 @@ uniform float grow_m = 400.0;
 uniform sampler2D damage : filter_nearest;
 // Detailed night lights at night: some windows lit.
 uniform bool night = false;
+#include "res://terrain/city_glow.gdshaderinc"
 
 const float ROOF_GAIN = 0.6;
 const float WALL_GAIN = 0.5;
@@ -53,6 +54,7 @@ void vertex() {
 	float g = far_model ? step(near_m, d) * (1.0 - smoothstep(far_m - grow_m, far_m, d)) : 1.0 - step(near_m, d);
 	// Shown: raised to g of its height; not shown: collapsed to its centre (no triangles to draw).
 	VERTEX = g > 0.001 ? vec3(VERTEX.x, c.y + (VERTEX.y - c.y) * g, VERTEX.z) : c;
+	v_city_glow = city_glow_at((MODEL_MATRIX * vec4(c, 1.0)).xz);  // at the building's centre
 	v_building = UV2.x;
 	v_roof = UV2.y < -0.5 ? 1.0 : 0.0;
 	v_wall = floor(COLOR.a * 255.0 + 0.5);
@@ -95,4 +97,7 @@ void fragment() {
 	ROUGHNESS = rough;
 	SPECULAR = 0.3;
 	EMISSION = emit * vec3(1.0, 0.75, 0.45) * 0.6;
+	if (city_glow_k > 0.0) {
+		EMISSION += city_glow_emission(ALBEDO);
+	}
 }

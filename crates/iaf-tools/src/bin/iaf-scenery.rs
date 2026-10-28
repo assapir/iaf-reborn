@@ -2,6 +2,8 @@
 //! need into `<assets>/source/scenery`; `iaf-scenery build <assets> [--kinds K] [--near X,Y,KM]` makes the cells under
 //! `<assets>/converted/scenery` (only the nodes within KM of the engine point X, Y with `--near`); K is both (the
 //! default), buildings or trees;
+//! `iaf-scenery lights <assets> [--near X,Y,KM]` makes the city lights' extra buildings where the scenery stops
+//! (`<assets>/converted/scenery/lights`, docs/rendering.md §5.1; `build` makes them too);
 //! `iaf-scenery tiles <assets>` lists the zoom-9 quadkeys the Survey 2 m layer touches (the tiles the list needs).
 
 use std::path::{Path, PathBuf};
@@ -11,7 +13,8 @@ use anyhow::{Context, Result, bail};
 use iaf_tools::progress::Stdout;
 use iaf_tools::{scenery, thirdparty};
 
-const USAGE: &str = "usage: iaf-scenery fetch|build|tiles <assets> [--kinds both|buildings|trees] [--near X,Y,KM]";
+const USAGE: &str =
+    "usage: iaf-scenery fetch|build|lights|tiles <assets> [--kinds both|buildings|trees] [--near X,Y,KM]";
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -24,7 +27,7 @@ fn main() -> Result<()> {
         let v = rest.next().context(USAGE)?;
         match flag.as_str() {
             "--kinds" => kinds = scenery::Kinds::parse(v).context(USAGE)?,
-            "--near" if cmd == "build" => {
+            "--near" if cmd == "build" || cmd == "lights" => {
                 let n: Vec<f64> = v.split(',').map(str::parse).collect::<Result<_, _>>().context(USAGE)?;
                 let [x, y, km] = n[..] else { bail!(USAGE) };
                 near = Some(([x, y], km));
@@ -38,10 +41,13 @@ fn main() -> Result<()> {
             let n = thirdparty::fetch_files(&list, &assets.join("source/scenery"), &Stdout, &cancel)?;
             println!("{n} fetched, {} kept", list.len() - n);
         }
-        "build" => {
-            let s = scenery::build(&scenery::Run { assets, near, kinds }, &Stdout, &cancel)?;
-            if s.up_to_date {
+        "build" | "lights" => {
+            let r = scenery::Run { assets, near, kinds };
+            if cmd == "build" && scenery::build(&r, &Stdout, &cancel)?.up_to_date {
                 println!("scenery: up to date");
+            }
+            if scenery::build_lights(&r, &Stdout, &cancel)?.up_to_date {
+                println!("city lights: up to date");
             }
         }
         "tiles" if args.len() == 2 => {

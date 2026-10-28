@@ -80,6 +80,7 @@ varying float elev;
 // The Survey 2 m modern photo (docs/imagery.md §5): its pale rock and soil in the hills are a neutral grey (its
 // auto-levels keep a sheet's colour balance), where the real limestone, chalk and terra rossa are tan. 1 = warm the
 // grey, pale land above 60–200 m toward tan (WARM); 0 for every other layer.
+#include "res://terrain/city_glow.gdshaderinc"
 global uniform float terrain_warm;
 const vec3 WARM = vec3(1.2, 1.0, 0.76);
 
@@ -130,6 +131,7 @@ void vertex() {
 	VERTEX.y -= UV2.x * skirt;
 	UV = cuv;
 	world_xz = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;
+	v_city_glow = city_glow_at(world_xz);
 	sea = open_sea ? 1.0 : 0.0;
 }
 
@@ -663,5 +665,9 @@ void fragment() {
 	}
 	if (rain_wet > 0.0) {
 		wet_ground(ALBEDO, ROUGHNESS, SPECULAR, NORMAL, n_geo, world_xz, dist, wm, paved_k, VIEW_MATRIX);
+	}
+	if (city_glow_k > 0.0) {
+		// The haze over the dense lamp clusters (city_glow.gdshaderinc).
+		EMISSION = city_glow_emission(ALBEDO);
 	}
 }

@@ -1386,7 +1386,6 @@ pub fn build(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary>
     let src = a.join("source/scenery");
     let out = a.join("converted/scenery");
     let work = out.join(".work");
-    let geo_f = Georef::load()?;
     let mut keys = coverage(&a.join("converted/imagery"))?;
     if let Some((c, km)) = r.near {
         keys.retain(|k| {
@@ -1406,53 +1405,9 @@ pub fn build(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary>
     }
     let kinds = r.kinds;
     let files: Vec<PathBuf> = kinds.downloads().iter().map(|d| input(&src, d)).collect::<Result<_>>()?;
-    let pick = |pre: &str| -> Vec<PathBuf> {
-        files.iter().filter(|p| p.file_name().is_some_and(|n| n.to_string_lossy().starts_with(pre))).cloned().collect()
-    };
     std::fs::create_dir_all(&work)?;
     log!(pr, "scenery ({}): {} nodes of the Survey 2 m layer", kinds.name(), keys.len());
-
-    // The warp over the coverage.
-    let node_geos: Vec<[f64; 4]> = par_map_all(&keys, |&k| node_geo(&geo_f, k, 0.0005));
-    let geo = node_geos.iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, g| {
-        [b[0].min(g[0]), b[1].min(g[1]), b[2].max(g[2]), b[3].max(g[3])]
-    });
-    let geo = [geo[0] - 0.01, geo[1] - 0.01, geo[2] + 0.01, geo[3] + 0.01];
-    let warp = Warp::new(&geo_f, geo, 0.005);
-    pr.fraction(0.02);
-
-    // The sources, gathered per node.
-    let mut g =
-        Gather { warp: &warp, nodes: keys.iter().map(|&k| (k, NodeIn { key: k, ..NodeIn::default() })).collect(), geo };
-    let osm = osm_extract(&pick("israel-and-palestine")[0], geo, &work, pr)?;
-    check(cancel)?;
-    read_osm(&osm, &mut g, cancel)?;
-    pr.fraction(0.15);
-    log!(pr, "Microsoft footprints: {} files", pick("ms-").len());
-    let ms = par_map(&pick("ms-"), cancel, |f| read_ms(f, &g))?;
-    for f in ms.into_iter().flatten() {
-        g.building(f);
-    }
-    pr.fraction(0.25);
-    let heights = if kinds.buildings {
-        let ghs: Vec<String> = pick("GHS_BUILT_H")
-            .iter()
-            .map(|z| {
-                let name = z.file_name().unwrap_or_default().to_string_lossy().replace(".zip", ".tif");
-                Ok(format!("/vsizip/{}/{name}", utf8(z)?))
-            })
-            .collect::<Result<_>>()?;
-        let (hw, hh) =
-            (((geo[2] - geo[0]) / Heights::STEP).ceil() as usize, ((geo[3] - geo[1]) / Heights::STEP).ceil() as usize);
-        let hgeo = [geo[0], geo[3] - hh as f64 * Heights::STEP, geo[0] + hw as f64 * Heights::STEP, geo[3]];
-        let raw = gdal_warp(&ghs, hgeo, hw, hh, "near", &work.join("ghs.bin"))?;
-        Heights { geo: hgeo, w: hw, h: hh, v: raw.as_chunks::<4>().0.iter().map(|b| f32::from_le_bytes(*b)).collect() }
-    } else {
-        Heights { geo, w: 0, h: 0, v: Vec::new() }
-    };
-    // Trees only: OpenStreetMap's buildings still keep the trees off (as with both), but none is written.
-    let chm = if kinds.trees { Some(canopy_vrt(&pick("eth-"), &work)?) } else { None };
-    pr.fraction(0.35);
+    let Sources { warp, nodes, node_geos, heights, chm } = sources(&keys, kinds, &files, &work, pr, cancel)?;
 
     // The places nothing may stand.
     let install = a.join("install");
@@ -1478,7 +1433,7 @@ pub fn build(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary>
     }
     std::fs::create_dir_all(&l1)?;
     let done = std::sync::atomic::AtomicUsize::new(0);
-    let items: Vec<(usize, &NodeIn)> = g.nodes.values().enumerate().collect();
+    let items: Vec<(usize, &NodeIn)> = nodes.values().enumerate().collect();
     // Runs of neighbouring nodes per worker: they share the 1998 rendition's ancestors (`Cache`).
     let chunks: Vec<&[(usize, &NodeIn)]> =
         items.chunks(items.len().div_ceil(crate::progress::threads() * 4).max(1)).collect();
@@ -1607,6 +1562,194 @@ pub fn build(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary>
         s.osm,
         s.trees,
         s.bytes as f64 / 1e6,
+        crate::progress::duration(started.elapsed())
+    );
+    Ok(s)
+}
+
+/// The sources gathered per node (`sources`).
+struct Sources {
+    warp: Warp,
+    nodes: BTreeMap<(u32, u32), NodeIn>,
+    node_geos: Vec<[f64; 4]>,
+    heights: Heights,
+    chm: Option<String>,
+}
+
+/// The warp over the nodes `keys`, every source the kinds need cut to them and gathered per node, the building
+/// heights and the canopy (trees).
+fn sources(
+    keys: &[(u32, u32)],
+    kinds: Kinds,
+    files: &[PathBuf],
+    work: &Path,
+    pr: &dyn Progress,
+    cancel: &AtomicBool,
+) -> Result<Sources> {
+    let geo_f = Georef::load()?;
+    let pick = |pre: &str| -> Vec<PathBuf> {
+        files.iter().filter(|p| p.file_name().is_some_and(|n| n.to_string_lossy().starts_with(pre))).cloned().collect()
+    };
+
+    // The warp over the coverage.
+    let node_geos: Vec<[f64; 4]> = par_map_all(keys, |&k| node_geo(&geo_f, k, 0.0005));
+    let geo = node_geos.iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, g| {
+        [b[0].min(g[0]), b[1].min(g[1]), b[2].max(g[2]), b[3].max(g[3])]
+    });
+    let geo = [geo[0] - 0.01, geo[1] - 0.01, geo[2] + 0.01, geo[3] + 0.01];
+    let warp = Warp::new(&geo_f, geo, 0.005);
+    pr.fraction(0.02);
+
+    // The sources, gathered per node.
+    let nodes = {
+        let mut g = Gather {
+            warp: &warp,
+            nodes: keys.iter().map(|&k| (k, NodeIn { key: k, ..NodeIn::default() })).collect(),
+            geo,
+        };
+        let osm = osm_extract(&pick("israel-and-palestine")[0], geo, work, pr)?;
+        check(cancel)?;
+        read_osm(&osm, &mut g, cancel)?;
+        pr.fraction(0.15);
+        log!(pr, "Microsoft footprints: {} files", pick("ms-").len());
+        let ms = par_map(&pick("ms-"), cancel, |f| read_ms(f, &g))?;
+        for f in ms.into_iter().flatten() {
+            g.building(f);
+        }
+        g.nodes
+    };
+    pr.fraction(0.25);
+    let heights = if kinds.buildings {
+        let ghs: Vec<String> = pick("GHS_BUILT_H")
+            .iter()
+            .map(|z| {
+                let name = z.file_name().unwrap_or_default().to_string_lossy().replace(".zip", ".tif");
+                Ok(format!("/vsizip/{}/{name}", utf8(z)?))
+            })
+            .collect::<Result<_>>()?;
+        let (hw, hh) =
+            (((geo[2] - geo[0]) / Heights::STEP).ceil() as usize, ((geo[3] - geo[1]) / Heights::STEP).ceil() as usize);
+        let hgeo = [geo[0], geo[3] - hh as f64 * Heights::STEP, geo[0] + hw as f64 * Heights::STEP, geo[3]];
+        let raw = gdal_warp(&ghs, hgeo, hw, hh, "near", &work.join("ghs.bin"))?;
+        Heights { geo: hgeo, w: hw, h: hh, v: raw.as_chunks::<4>().0.iter().map(|b| f32::from_le_bytes(*b)).collect() }
+    } else {
+        Heights { geo, w: 0, h: 0, v: Vec::new() }
+    };
+    // Trees only: OpenStreetMap's buildings still keep the trees off (as with both), but none is written.
+    let chm = if kinds.trees { Some(canopy_vrt(&pick("eth-"), work)?) } else { None };
+    pr.fraction(0.35);
+    Ok(Sources { warp, nodes, node_geos, heights, chm })
+}
+
+/// The version of the light cells' rules (`build_lights`): part of their `made_from`.
+const LIGHTS_VERSION: u32 = 1;
+
+/// The city lights' extra buildings (docs/rendering.md §5.1) into `assets/converted/scenery/lights`: per level-1 node
+/// of the Israel region, the buildings the scenery cell of that node does not hold because the Survey photo or the
+/// scenery stops there (the kept target insets, Tel Aviv's coast among them; nodes the layer lacks), by the same
+/// rules as the scenery's otherwise (`Rules::lights_open`: off the airbases, on land; the units' clearances; World
+/// scale Real's sites). Buildings only, no roof colour; the game draws only their lights. Up to date when its
+/// manifest says it was made from the same scenery and inputs.
+pub fn build_lights(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary> {
+    let started = std::time::Instant::now();
+    let a = &r.assets;
+    if !r.kinds.buildings {
+        return Ok(Summary { up_to_date: true, ..Summary::default() });
+    }
+    let scenery_made = std::fs::read(a.join("converted/scenery/manifest.json"))
+        .ok()
+        .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
+        .and_then(|m| m["made_from"].as_str().map(str::to_string))
+        .context("the scenery is not made (iaf-scenery build)")?;
+    let made = format!("{scenery_made} lights {LIGHTS_VERSION} {:?}", r.near);
+    let out = a.join("converted/scenery/lights");
+    let manifest_p = out.join("manifest.json");
+    if let Ok(m) = std::fs::read(&manifest_p).map(|b| serde_json::from_slice::<Value>(&b).unwrap_or(Value::Null))
+        && m["made_from"] == made.as_str()
+    {
+        return Ok(Summary { up_to_date: true, ..Summary::default() });
+    }
+    let install = a.join("install");
+    let theatre = Theatre::load(&a.join("converted/terrain/theatre"))?;
+    let rules = Rules::load(&install, false, &theatre)?;
+    let isr = rules.israel.map(|v| v as f64 / NODE_UNITS);
+    let mut keys: Vec<(u32, u32)> = (isr[1].floor() as u32..isr[3].ceil() as u32)
+        .flat_map(|j| (isr[0].floor() as u32..isr[2].ceil() as u32).map(move |i| (i, j)))
+        .collect();
+    if let Some((c, km)) = r.near {
+        keys.retain(|k| {
+            let n = node_rect(k.0, k.1);
+            ((n[0] + n[2]) * 0.5 - c[0]).hypot((n[1] + n[3]) * 0.5 - c[1]) <= km * 1000.0
+        });
+    }
+    let kinds = Kinds { buildings: true, trees: false };
+    let src = a.join("source/scenery");
+    let files: Vec<PathBuf> = kinds.downloads().iter().map(|d| input(&src, d)).collect::<Result<_>>()?;
+    let work = a.join("converted/scenery/.work");
+    std::fs::create_dir_all(&work)?;
+    log!(pr, "city lights: {} nodes of the Israel region", keys.len());
+    let Sources { warp, nodes, heights, .. } = sources(&keys, kinds, &files, &work, pr, cancel)?;
+    let units = airbases::mission_units(&a.join("converted/missions"));
+    let lineups = airbases::ibx_lineups(&std::fs::read(install.join("iaf.ibx")).unwrap_or_default());
+    let all_clears =
+        clears(&units, &lineups, &Models::load(&a.join("converted/objects"), &a.join("converted/missions")));
+    let moves = base_moves(&install, &a.join("converted/terrain"));
+    let ring = iaf_flight::base_move::RING;
+    let l1 = out.join("L1");
+    if l1.is_dir() {
+        std::fs::remove_dir_all(&l1)?;
+    }
+    std::fs::create_dir_all(&l1)?;
+    let open = |p: [f64; 2]| {
+        let t = airbases::units(p[0], p[1]);
+        rules.lights_open(t[0], t[1]) && !moves.bases.iter().any(|b| b.in_old(p, 0.0) || b.to_game(p, ring).is_some())
+    };
+    let built = |g: [f64; 2]| heights.at(g);
+    let w = |lon: f64, lat: f64| warp.at(lon, lat);
+    let roof = |_: &[[f64; 2]]| ([0; 3], [0; 3]);
+    let items: Vec<&NodeIn> = nodes.values().filter(|n| !n.osm.is_empty() || !n.ms.is_empty()).collect();
+    let counts = par_map(&items, cancel, |n| {
+        let (i, j) = n.key;
+        let rect = node_rect(i, j);
+        let near: Vec<Clear> = all_clears
+            .iter()
+            .filter(|c| {
+                let b = c.bbox();
+                b[0] < rect[2] + 50.0 && b[2] > rect[0] - 50.0 && b[1] < rect[3] + 50.0 && b[3] > rect[1] - 50.0
+            })
+            .copied()
+            .collect();
+        let env = Env { open: &open, clears: &near, built_height: &built, roof: &roof, warp: &w };
+        let mut cell = build_cell(n, &env);
+        cell.trees.clear();
+        // The scenery cell's own buildings stay there: the same footprint (its first corner and corner count).
+        let key = |b: &Building| (b.points[0][0].to_bits(), b.points[0][1].to_bits(), b.points.len());
+        if let Some(have) = Cell::read_buildings(&a.join(format!("converted/scenery/L1/s_{i}_{j}.bin"))) {
+            let have: BTreeSet<_> = have.iter().map(key).collect();
+            cell.buildings.retain(|b| !have.contains(&key(b)));
+        }
+        if !cell.buildings.is_empty() {
+            std::fs::write(l1.join(format!("s_{i}_{j}.bin")), cell.encode())?;
+        }
+        Ok(cell.buildings.len())
+    })?;
+    let s = Summary {
+        cells: counts.iter().filter(|&&n| n > 0).count(),
+        buildings: counts.iter().sum(),
+        ..Summary::default()
+    };
+    let manifest = json!({
+        "name": "scenery lights",
+        "made_from": made,
+        "cells": s.cells,
+        "buildings": s.buildings,
+    });
+    std::fs::write(&manifest_p, serde_json::to_string_pretty(&manifest)? + "\n")?;
+    log!(
+        pr,
+        "city lights: {} cells, {} buildings beyond the scenery, in {}",
+        s.cells,
+        s.buildings,
         crate::progress::duration(started.elapsed())
     );
     Ok(s)

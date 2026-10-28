@@ -425,7 +425,8 @@ fn scenery_fetch(
     Ok(Outcome::Done)
 }
 
-/// The scenery cells (iaf_tools::scenery): skipped without GDAL, the sources or the Survey 2 m layer.
+/// The scenery cells and the city lights' buildings (iaf_tools::scenery): skipped without GDAL, the sources or the
+/// Survey 2 m layer.
 fn scenery(a: &Path, kinds: iaf_tools::scenery::Kinds, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
     if !crate::tools().gdal {
         return Ok(Outcome::Skipped("GDAL is needed (gdalwarp, ogr2ogr)".into()));
@@ -437,7 +438,10 @@ fn scenery(a: &Path, kinds: iaf_tools::scenery::Kinds, pr: &dyn Progress, cancel
         return Ok(Outcome::Skipped("Scenery needs the Survey of Israel 2 m layer (imagery mapi2015)".into()));
     }
     let r = iaf_tools::scenery::Run { assets: a.to_path_buf(), near: None, kinds };
-    Ok(if iaf_tools::scenery::build(&r, pr, cancel)?.up_to_date { Outcome::UpToDate } else { Outcome::Done })
+    let cells = iaf_tools::scenery::build(&r, pr, cancel)?.up_to_date;
+    // The city lights' buildings where the scenery stops (docs/rendering.md §5.1).
+    let lights = iaf_tools::scenery::build_lights(&r, pr, cancel)?.up_to_date;
+    Ok(if cells && lights { Outcome::UpToDate } else { Outcome::Done })
 }
 
 /// A modern imagery layer: the estimate first; nothing to convert (every unit's mark holds) is up to date.

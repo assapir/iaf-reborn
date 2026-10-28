@@ -111,12 +111,15 @@ float band(float x, float a, float b, float aa) {
 	return smoothstep(a - aa, a + aa, x) * (1.0 - smoothstep(b - aa, b + aa, x));
 }
 
+#include "res://terrain/city_glow.gdshaderinc"
+
 void vertex() {
 	vec3 c = CUSTOM0.xyz;
 	float d = distance((MODEL_MATRIX * vec4(c, 1.0)).xyz, INV_VIEW_MATRIX[3].xyz);
 	float g = far_model ? step(near_m, d) * (1.0 - smoothstep(far_m - grow_m, far_m, d)) : 1.0 - step(near_m, d);
 	// Shown: raised to g of its height; not shown: collapsed to its centre (no triangles to draw).
 	VERTEX = g > 0.001 ? vec3(VERTEX.x, c.y + (VERTEX.y - c.y) * g, VERTEX.z) : c;
+	v_city_glow = city_glow_at((MODEL_MATRIX * vec4(c, 1.0)).xz);  // at the building's centre
 	v_building = UV2.x;
 	v_height = UV2.y;
 	v_wall = floor(COLOR.a * 255.0 + 0.5);
@@ -343,4 +346,7 @@ void fragment() {
 	SPECULAR = spec;
 	AO = ao;
 	EMISSION = emit;
+	if (city_glow_k > 0.0) {
+		EMISSION += city_glow_emission(ALBEDO);
+	}
 }

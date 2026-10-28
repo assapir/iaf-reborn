@@ -3,6 +3,7 @@
 
 pub mod air;
 pub mod bombs;
+pub mod city_lights;
 pub mod eo;
 pub mod fctrl;
 pub mod gaaf;

@@ -129,19 +129,7 @@ impl Cell {
         let (nb, nt) = (r.u32()? as usize, r.u32()? as usize);
         let mut cell = Cell::default();
         for _ in 0..nb {
-            let n = r.u16()? as usize;
-            let roof = match r.u8()? {
-                1 => Roof::Gabled,
-                2 => Roof::Dome,
-                _ => Roof::Flat,
-            };
-            let wall = r.u8()?;
-            let height = r.f32()?;
-            let roof_1998 = [r.u8()?, r.u8()?, r.u8()?];
-            let roof_modern = [r.u8()?, r.u8()?, r.u8()?];
-            let (source, levels) = (r.u8()?, r.u8()?);
-            let points = (0..n).map(|_| Some([r.f32()?, r.f32()?])).collect::<Option<_>>()?;
-            cell.buildings.push(Building { points, roof, wall, height, roof_1998, roof_modern, source, levels });
+            cell.buildings.push(r.building()?);
         }
         for _ in 0..nt {
             let (x, y, height) = (r.f32()?, r.f32()?, r.f32()?);
@@ -155,6 +143,51 @@ impl Cell {
             cell.trees.push(Tree { x, y, height, kind });
         }
         Some(cell)
+    }
+
+    /// A cell file's buildings only: reads the file up to its trees (the city lights need no trees).
+    pub fn read_buildings(path: &std::path::Path) -> Option<Vec<Building>> {
+        use std::io::Read;
+        let mut f = std::io::BufReader::new(std::fs::File::open(path).ok()?);
+        let mut head = [0u8; 16];
+        f.read_exact(&mut head).ok()?;
+        let mut r = Reader { data: &head, at: 0 };
+        if r.take(4)? != b"IAFS" || r.u32()? != VERSION {
+            return None;
+        }
+        let nb = r.u32()? as usize;
+        let mut out = Vec::with_capacity(nb);
+        let mut buf = Vec::new();
+        for _ in 0..nb {
+            let mut fixed = [0u8; 16];
+            f.read_exact(&mut fixed).ok()?;
+            let n = u16::from_le_bytes([fixed[0], fixed[1]]) as usize;
+            buf.clear();
+            buf.extend_from_slice(&fixed);
+            buf.resize(16 + n * 8, 0);
+            f.read_exact(&mut buf[16..]).ok()?;
+            out.push(Reader { data: &buf, at: 0 }.building()?);
+        }
+        Some(out)
+    }
+}
+
+impl Reader<'_> {
+    fn building(&mut self) -> Option<Building> {
+        let r = self;
+        let n = r.u16()? as usize;
+        let roof = match r.u8()? {
+            1 => Roof::Gabled,
+            2 => Roof::Dome,
+            _ => Roof::Flat,
+        };
+        let wall = r.u8()?;
+        let height = r.f32()?;
+        let roof_1998 = [r.u8()?, r.u8()?, r.u8()?];
+        let roof_modern = [r.u8()?, r.u8()?, r.u8()?];
+        let (source, levels) = (r.u8()?, r.u8()?);
+        let points = (0..n).map(|_| Some([r.f32()?, r.f32()?])).collect::<Option<_>>()?;
+        Some(Building { points, roof, wall, height, roof_1998, roof_modern, source, levels })
     }
 }
 
@@ -1079,10 +1112,10 @@ const ROOF_ITEMS_AREA: f64 = 30.0;
 const ROOF_ITEMS_MAX: usize = 14;
 
 /// A seeded generator (per building): uniform in [0, 1).
-struct Seed(u32);
+pub(crate) struct Seed(pub(crate) u32);
 
 impl Seed {
-    fn next(&mut self) -> f32 {
+    pub(crate) fn next(&mut self) -> f32 {
         self.0 = self.0.wrapping_mul(2_654_435_761).wrapping_add(0x9e37_79b9);
         (self.0 >> 8) as f32 / (1u32 << 24) as f32
     }
@@ -1255,6 +1288,10 @@ mod tests {
         cell.sort();
         assert_eq!(cell.buildings[0].centroid(), [5.0, 5.0]);
         assert_eq!(Cell::decode(&cell.encode()), Some(cell.clone()));
+        let f = std::env::temp_dir().join(format!("iaf_scenery_cell_{}.bin", std::process::id()));
+        std::fs::write(&f, cell.encode()).unwrap();
+        assert_eq!(Cell::read_buildings(&f), Some(cell.buildings.clone()));
+        std::fs::remove_file(&f).unwrap();
         assert!(cell.buildings[0].contains(5.0, 5.0) && !cell.buildings[0].contains(11.0, 5.0));
         assert_eq!(Cell::decode(b"IAFS\x09\0\0\0"), None);
     }

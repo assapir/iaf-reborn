@@ -243,6 +243,13 @@ impl Rules {
         a.region && a.base && a.land
     }
 
+    /// True where the city lights' buildings may stand (docs/rendering.md §5.1): in Israel, the kept target insets
+    /// included (a town there is lit at night though its 1998 art stays), off the airbases, on land.
+    pub fn lights_open(&self, tx: f64, ty: f64) -> bool {
+        let a = self.at(tx, ty);
+        Self::in_rect(&self.israel, tx, ty) && a.base && a.land
+    }
+
     /// The rules tag of the terrain rect `r` (units: x0, y0, x1, y1): "v<RULES_VERSION> <hash>" over everything the rules
     /// decide there (the region, the kept insets and the airbase footprints that reach into it). A work unit whose
     /// mark holds another tag is converted again. terraintype.dat is left out: it comes with the install.

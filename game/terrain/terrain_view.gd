@@ -219,6 +219,7 @@ const MissionRuntime := preload("res://mission/mission_runtime.gd")
 const Gltf := preload("res://util/gltf.gd")
 const NightLights := preload("res://terrain/night_lights.gd")
 const AirbaseLights := preload("res://terrain/airbase_lights.gd")
+const CityLights := preload("res://terrain/city_lights.gd")
 const Scenery := preload("res://terrain/scenery.gd")
 const Terrain := preload("res://terrain/terrain.gd")
 ## Models flatter than this (m) are ground underlays (not drawn, _spawn_mission_objects).
@@ -526,7 +527,7 @@ func _update_time_of_day(cam: Camera3D) -> void:
 
 
 ## Detailed night lights at night: the moon lights the ground from its spot in the sky, the stars and the moon show,
-## the light points glow at full strength, every airbase has its lights.
+## the light points glow at full strength, every airbase and town has its lights.
 func _night_detailed(sun: DirectionalLight3D, env: Environment, night: bool) -> void:
 	# The 3D scene renders at the upscaling's scale (Quality / Balanced): the glows' pixel sizes are its rows.
 	var rows := get_viewport().get_visible_rect().size.y * get_viewport().scaling_3d_scale
@@ -542,6 +543,13 @@ func _night_detailed(sun: DirectionalLight3D, env: Environment, night: bool) -> 
 		add_child(_airbase_lights)
 	if _airbase_lights != null:
 		_airbase_lights.visible = night
+	if night and _city_lights == null and CityLights.available():
+		_city_lights = CityLights.new()
+		_city_lights.setup(self)
+		add_child(_city_lights)
+	if _city_lights != null:
+		_city_lights.visible = night
+		_city_lights.set_view(env.fog_density, rows)
 	for m: MeshInstance3D in _night_sky.get_children():
 		m.material_override.set_shader_parameter("vp_h", rows)
 	if night:
@@ -553,6 +561,8 @@ func _night_detailed(sun: DirectionalLight3D, env: Environment, night: bool) -> 
 var _night_sky: Node3D
 ## Detailed night lights: every airbase's runway, approach, taxiway and apron lights (airbase_lights.gd).
 var _airbase_lights: Node3D
+## Detailed night lights: the towns' lights from the scenery's buildings (city_lights.gd).
+var _city_lights: Node3D
 ## Rain (ours, terrain/weather.gd): the drops while Settings.rain is not "off", else null.
 var weather: Node3D
 

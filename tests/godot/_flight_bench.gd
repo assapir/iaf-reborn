@@ -9,7 +9,8 @@
 # outside). BENCH_OFF=a,b: switch parts off to see their cost: terrain (streaming), terrain_draw (the nodes hidden),
 # cockpit, runtime, ai, weapons, effects, trails, overlay, sounds, scene (the whole flight scene's _process), mfd, hud.
 # BENCH_SPIKES=1 prints every frame over 12 ms. BENCH_AT=x,y starts the legs over that engine point (metres; e.g. a
-# dense town with Scenery on: 332520,586500).
+# dense town with Scenery on: 332520,586500). BENCH_HOUR=h sets the clock (e.g. 22 for night). Each leg also prints the
+# video memory in use at its end. BENCH_SETTLE=s waits that long more before each leg.
 extends "res://../tests/godot/base.gd"
 
 
@@ -47,6 +48,9 @@ func run() -> void:
 		int(OS.get_environment("BENCH_MISSION")) if OS.get_environment("BENCH_MISSION") != "" else 311
 	)
 	tv.apply_render_options()
+	if OS.get_environment("BENCH_HOUR") != "":
+		tv.runtime.misc["0x460"] = float(OS.get_environment("BENCH_HOUR")) * 3600.0 - tv.runtime.now
+		tv._tod_t = -INF
 	print("layers: ", tv.terrain.layers)
 	tv.frozen = true
 	tv.fm_stopped = true
@@ -107,12 +111,19 @@ func run() -> void:
 		while tv.terrain.missing_after_frame() and Time.get_ticks_msec() - t0 < 20000:
 			await process_frame
 		await frames(30)
+		await seconds(float(OS.get_environment("BENCH_SETTLE")))  # streamed extras (e.g. the city lights)
 		var times: Array[float] = []
 		var proc := 0.0
 		var gpu := 0.0
 		var calls := 0.0
 		var prims := 0.0
 		var nodes := 0.0
+		# BENCH_TOGGLE=<member of the flight scene>: its children (and the city lights' glow) are shown and hidden every
+		# 0.5 s within the leg, and the GPU time is split by state (one run, no run-to-run noise).
+		var toggle = tv.get(OS.get_environment("BENCH_TOGGLE")) if OS.get_environment("BENCH_TOGGLE") != "" else null
+		var split := [0.0, 0.0]
+		var split_n := [0, 0]
+		var frames_in_state := 0
 		var fwd: Vector3 = -tv.rig.basis.z
 		fwd.y = 0.0
 		fwd = fwd.normalized()
@@ -128,7 +139,24 @@ func run() -> void:
 				print("  spike %.1f ms at %.2f s" % [dt * 1000.0, (now - start) / 1e6])
 			tv.rig.position += fwd * speed * dt
 			proc += Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
-			gpu += RenderingServer.viewport_get_measured_render_time_gpu(vp)
+			var g_ms := RenderingServer.viewport_get_measured_render_time_gpu(vp)
+			gpu += g_ms
+			if toggle != null:
+				# The GPU time of the frame before the switch is the old state's (measured a frame late).
+				var shown: bool = toggle.get_meta("bench_shown", true)
+				if frames_in_state >= 3:
+					split[int(shown)] += g_ms
+					split_n[int(shown)] += 1
+				frames_in_state += 1
+				var want: bool = int((now - start) / 500000) % 2 == 0
+				if want != shown:
+					shown = want
+					toggle.set_meta("bench_shown", shown)
+					for c in toggle.get_children():
+						c.visible = shown
+					if "glow_k" in toggle:  # the city lights' ground glow, a global shader parameter
+						RenderingServer.global_shader_parameter_set("city_glow_k", toggle.GLOW_K if shown else 0.0)
+					frames_in_state = 0
 			calls += Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
 			prims += Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)
 			nodes += tv.terrain._drawn.size()
@@ -143,7 +171,7 @@ func run() -> void:
 			(
 				(
 					"FLIGHT %5.0f m %3.0f m/s: %5.1f fps  frame %5.2f ms (p95 %5.2f, max %6.2f)  process %5.2f ms  gpu %5.2f ms  "
-					+ "calls %5.0f  prims %7.0fk  nodes %4.0f"
+					+ "calls %5.0f  prims %7.0fk  nodes %4.0f  vmem %4.0f MB"
 				)
 				% [
 					alt,
@@ -156,8 +184,22 @@ func run() -> void:
 					gpu / n,
 					calls / n,
 					prims / n / 1000.0,
-					nodes / n
+					nodes / n,
+					Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0
 				]
 			)
 		)
+		if toggle != null:
+			print(
+				(
+					"TOGGLE %s: gpu hidden %5.2f ms (%d frames), shown %5.2f ms (%d frames)"
+					% [
+						OS.get_environment("BENCH_TOGGLE"),
+						split[0] / maxf(1, split_n[0]),
+						split_n[0],
+						split[1] / maxf(1, split_n[1]),
+						split_n[1]
+					]
+				)
+			)
 	print("RESULT PASS")

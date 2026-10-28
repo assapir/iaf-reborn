@@ -78,12 +78,12 @@ fn tree_dict(rows: &[Vec<f32>; 4]) -> VarDictionary {
     d
 }
 
-fn ground(p: Vec3) -> Option<f64> {
+pub(crate) fn ground(p: Vec3) -> Option<f64> {
     FIELD.read().unwrap().height(p)
 }
 
 /// The world (X, Y) of a level-1 node's north-west corner (terrain meta: level 0 spans node_pixels units).
-fn origin(i: i64, j: i64) -> [f64; 2] {
+pub(crate) fn origin(i: i64, j: i64) -> [f64; 2] {
     let m = FIELD.read().unwrap().meta();
     let span = 2.0 * m.node_pixels as f64;
     [i as f64 * span * m.m_per_unit + m.x_shift, m.y_shift - j as f64 * span * m.m_per_unit]
