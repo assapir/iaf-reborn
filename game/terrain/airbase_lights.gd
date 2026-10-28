@@ -104,7 +104,15 @@ func _process(delta: float) -> void:
 		var path := Settings.assets_dir().path_join("converted/terrain").path_join(
 			String(b.get("mask", {}).get("file", ""))
 		)
-		WorkerThreadPool.add_task(func(): _built.call_deferred(i, masts(b, path)))
+		e.task = WorkerThreadPool.add_task(func(): _built.call_deferred(i, masts(b, path)))
+
+
+## The masts still being found are waited for (Gltf.finish_ahead: a pool task left at exit can hang Godot's quit).
+func _exit_tree() -> void:
+	for e: Dictionary in _bases:
+		if e.has("task"):
+			WorkerThreadPool.wait_for_task_completion(e.task)
+			e.erase("task")
 
 
 ## Engine metres → the scene (y 0).
@@ -181,6 +189,9 @@ static func masts(b: Dictionary, path: String) -> Array:
 ## Base `i`'s lights on the main thread once its masts are known: every point on the ground, the mesh, the pools.
 func _built(i: int, mast_spots: Array) -> void:
 	var e: Dictionary = _bases[i]
+	if e.has("task"):  # done but for its return; a task is waited for once
+		WorkerThreadPool.wait_for_task_completion(e.task)
+		e.erase("task")
 	e.state = 2
 	var b: Dictionary = e.b
 	var o: Vector2 = _tv.terrain.world_origin

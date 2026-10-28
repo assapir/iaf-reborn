@@ -130,9 +130,11 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
 - **Setup wizard**: the pages wait for the user's review (roadmap.md).
 - **Flight start**: with TAA the loading screen stops for ≈ 1.2 s (warm) while Godot loads the motion-vector shaders
   of every scene shader in one frame; drawn earlier it stalls the TSD instead. rendering.md §1.6.
-- **Exit**: a real-render bench run with the Mac settings hung after its last line in 4 of ≈ 25 runs on 2026-10-23.
-  Not seen since: 0 hangs in 125 runs on 2026-10-26 (`_preload_bench.gd`, warm, cold caches, Fly at once with the
-  mid-flight events, under CPU load, before and after the detailed-model preload); cause open.
+- **Exit**: Godot hung for good after a run's last line when a low-priority pool task was still queued at the quit
+  (a Godot 4.7.2 bug; rendering.md §1.5 "Pool tasks at exit"). Fixed 2026-10-28: every pool task is waited for
+  before the quit. A second kind, seen once on 2026-10-28 in a native-Wayland real-render run
+  (`_cockpit_show_shot.gd` through `tools/godot_window.sh`): the main thread sat in `poll`, its workers idle, no
+  stack taken (another session's process); not reproduced in 35 Wayland runs; open.
 - **Imagery**: SPOT 5 outside Israel not started.
 - **Multiplayer**: not started (missions 511–516, 777), with its RWR network messages. Research and discussion:
   [multiplayer.md](multiplayer.md).

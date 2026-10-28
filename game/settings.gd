@@ -804,7 +804,14 @@ func _notification(what: int) -> void:
 
 
 func _exit_tree() -> void:
-	load("res://util/gltf.gd").finish_ahead()  # no pool task left behind at exit
+	# No pool task left behind at exit (Gltf.finish_ahead says why).
+	for f in [
+		["util/gltf.gd", "finish_ahead"],
+		["util/img.gd", "finish_prefetch"],
+		["util/model_detail.gd", "finish_packs"],
+		["terrain/ground_textures.gd", "finish_preload"],
+	]:
+		load("res://" + f[0]).call(f[1])
 
 
 func _free_sounds() -> void:

@@ -438,8 +438,19 @@ They parse on low-priority pool tasks, which leave the decode tasks and the menu
 - **One set held.** The parses are keyed by the mission, the flight and the jet. Another flight or jet drops the
   parses the new choice does not use (`Gltf.drop_ahead`); leaving the mission screens drops them all; the flight
   drops what it did not take after its spawn. A parse not finished when the flight needs it is parsed there, not
-  waited for behind the queue. At exit the game waits for the parses still running (`Gltf.finish_ahead`): with
-  them never waited for, Godot's exit hung in `WorkerThreadPool::exit_languages_threads`.
+  waited for behind the queue. At exit the game waits for the parses still running (`Gltf.finish_ahead`).
+- **Pool tasks at exit.** Every `WorkerThreadPool` task the game posts is waited for before the quit: the parses
+  ahead, the image prefetches (`Img.finish_prefetch`), the model detail packs (`ModelDetail.finish_packs`) and the
+  ground textures (`GroundTextures.finish_preload`) from `Settings._exit_tree`, the airbase lights' mast searches
+  from `AirbaseLights._exit_tree`; the terrain and scenery wait for theirs in their own `_exit_tree`. Reason: a
+  low-priority task still queued at the quit hangs Godot 4.7.2's exit for good. Godot runs 2 low-priority tasks at a
+  time (8 threads) and queues the rest. `WorkerThreadPool::exit_languages_threads` (core/object/worker_thread_pool.cpp)
+  waits until every worker reports idle; a worker that wakes while the low-priority queue is not empty goes back to
+  sleep, and nothing wakes it again once the queue drains. The process then sits with the main thread in
+  `exit_languages_threads` and every worker in `_thread_function`'s wait, after `RESULT PASS` in a test, headless or
+  windowed. Measured 2026-10-28: a script that queues 6 low-priority tasks and quits hung 10 of 10 runs, 0 of 10 when
+  it waited for them; a test that starts `Img.prefetch` on the F-16, F-15 and F-4 cockpit art and quits hung 16 of 16
+  runs before this change, 0 of 36 after.
 - **The menus.** The preload's terrain runs 2 decode tasks (the flight's 4). A Fly while the flight scene or its
   first frame's art is still loading waits over menu frames (`ready_to_fly`), not in one frame.
 

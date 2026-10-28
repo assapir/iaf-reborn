@@ -33,6 +33,18 @@ static func prefetching() -> bool:
 	return _tasks.values().any(func(t): return t >= 0 and not WorkerThreadPool.is_task_completed(t))
 
 
+## Waits for the prefetches nobody took and drops their images. At exit (Settings, see Gltf.finish_ahead).
+static func finish_prefetch() -> void:
+	for t in _tasks.values():
+		if t >= 0:
+			WorkerThreadPool.wait_for_task_completion(t)
+	_tasks.clear()
+	_wants.clear()
+	_lock.lock()
+	_ready.clear()
+	_lock.unlock()
+
+
 static func _prefetch_task(path: String, mipmaps: bool, key: String) -> void:
 	var img := _decode(path, mipmaps)
 	_lock.lock()
