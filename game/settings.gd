@@ -265,8 +265,9 @@ var airbases := "original"
 ## up's noise, the procedural pavement) or "ambientcg" (CC0 asphalt, concrete, sand, gravel, grass, soil and rock
 ## textures near the camera; downloaded by setup, else the row's choice is greyed out and the look stays Original).
 var ground_textures := "original"
-## Scenery (ours, Graphics → MORE; docs/scenery.md §3, terrain/scenery.gd): "off" or "on" (buildings and trees over the
-## Survey 2 m photo; only with setup's scenery and a Survey 2 m layer as the Israel imagery, else it stays off).
+## Scenery (ours, Graphics → MORE; docs/scenery.md §3, terrain/scenery.gd): "off", "on" (buildings and trees over the
+## Survey 2 m photo) or "detailed" (the same with the facades, the streets' occlusion and the roof clutter, §3.3);
+## only with setup's scenery and a Survey 2 m layer as the Israel imagery, else it stays off.
 var scenery := "off"
 ## CD launcher (ours, Extras page; docs/front-end.md §18.1): the CD's autorun poster (Jauto.exe) before the main menu.
 var cd_launcher := false
@@ -531,7 +532,9 @@ func read_config(cfg: ConfigFile) -> void:
 		model_detail = "original"
 	# Scenery only with setup's files over a Survey 2 m layer (docs/scenery.md §3).
 	var survey := imagery_israel in ["mapi2015", "mapi2015_modern"]
-	if scenery == "on" and not (survey and load("res://terrain/scenery.gd").available()):
+	if scenery not in ["off", "on", "detailed"]:
+		scenery = "off"
+	if scenery != "off" and not (survey and load("res://terrain/scenery.gd").available()):
 		scenery = "off"
 
 

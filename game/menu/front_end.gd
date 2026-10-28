@@ -275,7 +275,7 @@ func _extras_rows() -> Array:
 		)
 		# Ours (docs/scenery.md §3): buildings and trees over the Survey 2 m photo, under the Israel imagery it needs.
 		if key == "imagery_israel":
-			rows.append(["scenery", "Scenery", [["Off", "off"], ["On", "on"]]])
+			rows.append(["scenery", "Scenery", [["Off", "off"], ["On", "on"], ["Detailed", "detailed"]]])
 	# Ours: the preferences to / from a .cfg file (not a setting: a press opens the file dialog, _settings_file).
 	rows.append(["settings_file", "Settings file", [["Export", "export"], ["Import", "import"]]])
 	# Our graphics options show on the Graphics page's MORE view, the rest on Extras.
@@ -1659,12 +1659,13 @@ func _extras_items() -> Array:
 				available = GroundTextures.available() if opt[0] == "ground_textures" else ModelDetail.available()
 				if not available:
 					label = "Not downloaded"
-			elif opt[0] == "scenery" and value == "on":
+			elif opt[0] == "scenery" and value != "off":
 				# Only over the Survey 2 m photo: the Israel imagery picked on this page (not saved yet).
+				# The reason shows once, on Detailed (the widest column); On stays "On", greyed.
 				available = Scenery.available() and Scenery.survey(String(pref_work.get("imagery_israel", "")))
-				if not Scenery.available():
+				if value == "detailed" and not Scenery.available():
 					label = "Not downloaded"
-				elif not available:
+				elif value == "detailed" and not available:
 					label = "Needs Survey 2 m"
 			items.append({"rect": r, "key": opt[0], "value": value, "label": label, "available": available})
 	return items

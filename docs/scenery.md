@@ -193,16 +193,23 @@ Two runs give the same bytes (the SHA-256 of every cell file compared).
 - `ray` returns the distance to the first building prism or tree cylinder along a line.
 - Meshes are built in Rust:
   - near: walls, a flat roof 0.8 m below the top behind a parapet, gabled roofs (four-cornered footprints, 30°
-    pitch) or domes where tagged;
-  - far: bare prisms.
+    pitch) or domes where tagged. With Scenery = Detailed (`Model::Detailed`) each outer wall carries the street in
+    front of it (`street`): the first other footprint straight out from the wall's middle within 40 m, its height
+    and distance;
+  - far: bare prisms;
+  - with Scenery = Detailed, the roof clutter (`roof_rows`): MultiMesh rows on the near flat roofs (§3.3).
 - Damage is kept by building id `<i>_<j>:<index>` across cell loads. The data itself never changes.
 
 ## 3. Rendering and the switch
 
-- **The switch:** Graphics → MORE → Scenery (Off / On, default Off), under Imagery Israel.
-  - On is greyed with "Not downloaded" until setup has made the scenery.
-  - On is greyed with "Needs Survey 2 m" while the Israel imagery picked on the page is not a Survey 2 m layer.
-  - Picking another Israel imagery turns Scenery off. A saved On without both loads as Off.
+- **The switch:** Graphics → MORE → Scenery (Off / On / Detailed, default Off), under Imagery Israel.
+  - On: the buildings and trees as below. Detailed: the same, with the facades, occlusion, roof clutter and distance
+    fade of §3.3, at a higher cost.
+  - On and Detailed are greyed until setup has made the scenery; Detailed's place reads "Not downloaded".
+  - They are greyed while the Israel imagery picked on the page is not a Survey 2 m layer; Detailed's place reads
+    "Needs Survey 2 m".
+  - Picking another Israel imagery turns Scenery off. A saved On or Detailed without both loads as Off; an unknown
+    saved value loads as Off.
 - **Streaming:** `game/terrain/scenery.gd` keeps the cells within 6 km of the camera's focus (4.5 km drawn plus 1.5 km
   made ahead, so a cell is uploaded before it comes into view), and only the Survey
   layer's level-1 nodes; each re-selection looks only at the cells around the focus.
@@ -223,12 +230,15 @@ Two runs give the same bytes (the SHA-256 of every cell file compared).
     range against an object's centre, so a whole cell's trees would appear at once; the tree shaders instead pick the
     model by each tree's own distance.
 
+  - with Scenery = Detailed, the roof clutter to 700 m, in 500 m tiles, one MultiMesh per tile and item (§3.3).
+
   None of them casts a shadow: the photo under them already holds the buildings' shadows.
 - **Shading:** `scenery.gdshader` colours roofs from the photo. The photo's colour already holds the sun's light and
-  the scene lights it again, so roofs take 0.6 of it and walls 0.5, both at most 0.45 (linear albedo): a town is as
-  bright as the photo under it. Walls get the ambientCG plaster, stone, concrete or
-  corrugated-steel detail, a window grid (3 m levels, 3.2 m bays) and darker feet. Damaged buildings are sooted. With
-  Night lights = Detailed, some windows are lit at night.
+  the scene lights it again, so roofs take 0.6 of it, at most 0.45 (linear albedo): a town is as bright as the photo
+  under it. On: walls take 0.5 of the photo's colour lightened toward plaster, at most 0.45, with the ambientCG
+  plaster, stone, concrete or corrugated-steel detail, a window grid (3 m levels, 3.2 m bays) and darker feet.
+  Detailed: the facades of §3.3 (`scenery_detailed.gdshader`). Damaged buildings are sooted. With Night lights =
+  Detailed, some windows are lit at night.
 - The flight starts once the near cells are drawn.
 
 ### 3.1 Cost
@@ -326,6 +336,78 @@ give where and how tall; `tree_rows` (crates/iaf-avionics/src/scenery.rs) adds a
 **Without the textures** (setup could not reach ambientCG): the plain models as before, a six-sided trunk and a
 low-poly canopy in one colour (`scenery_tree.gdshader`): about 80 triangles to 700 m, a canopy-only model (6–24
 triangles) beyond, growing in from nothing over the last 300 m before 2 km.
+
+### 3.3 Scenery = Detailed: facades and roofs
+
+With Scenery = Detailed the walls and roofs are drawn to read as an Israeli town (`scenery_detailed.gdshader`,
+`scenery_roof.gdshader`). On keeps the plain walls and the cost of §3.1: its shader and meshes are those of On alone
+(no streets, no roof clutter). All of it is our own, made in the shader or by Rust from the footprints; no new
+texture.
+
+- **Wall colour:** each building picks a colour from its material's palette by a seed from its index: stone =
+  Jerusalem-stone creams and golds; plaster = white, off-white, beige, pale pink, light grey; concrete = greys and a
+  beige-grey (blocks of flats); corrugated sheds keep the photo's colour. The colour takes 20 % of the photo's, then
+  the ambientCG detail of its material.
+- **Windows** (not on sheds): each building has its own grid (bays 2.9–4.1 m, levels 2.9–3.3 m) and window size
+  (40–62 % of a bay wide, sills at 0.9 m). Each window is recessed 0.22 m by parallax: the eye sees its glass move
+  behind the opening and the reveal at the sides, the sill and the soffit. Inside the opening:
+  - a 6 cm frame (light aluminium or dark, per building) and a sliding window's meeting rail in the middle;
+  - a roller shutter (tris, per window: up, a third, two thirds or all the way down), slats every 6 cm;
+  - glass that reflects the sky: smooth (roughness 0.04–0.29) and tilted a little, both by a seed per window, so
+    the panes do not mirror the sky as one sheet. A few rooms show a lit-up curtain instead of a dark room.
+- **Loggias:** blocks of flats (8.5 m and taller, plaster or concrete) have, on most buildings, recessed balconies
+  in every other bay above the ground floor: a 1.4 m deep recess by parallax, a balustrade to 1.1 m with a lighter
+  top, the door at the back, the recess darker under the slab.
+- **Weathering and AC units:** streaks of dust run down from each sill. About 40 % of the windows above the ground
+  floor have an AC unit (0.84 × 0.54 m, its fan grille, a shadow under it) below the sill.
+- **Occlusion:** the walls' ambient light (Godot's `AO`, the sun is not touched) is darkened by the street in front:
+  the facing building hides the sky up to its top, so the lower floors of a narrow street are darker than the upper
+  ones; and by the ground, the lowest 3 m. The lowest 1.2 m is also darker in colour (dirt). The sunlit walls keep
+  the full sun, so a shaded wall stands further from a sunlit one than before.
+- **Distance:** a window under about two pixels fades to the wall's average (no shimmer); from 700 m to 2.2 km the
+  walls fade to the photo's colour at the building, so the far town keeps the photo's hues instead of turning into
+  uniform pale blocks.
+- **Roof clutter** (`roof_rows` in crates/iaf-avionics/src/scenery.rs, the models in `scenery.gd roof_mesh`, drawn
+  by `scenery_roof.gdshader`): on the near flat roofs of 30 m² and more, on a 2.4 × 2.8 m grid along the roof's
+  longest edge, at least 1.4 m inside the parapet, seeded per building:
+  - a stair head (2.6 × 3.0 × 2.5 m, in a wall colour) on buildings 6 m and taller;
+  - solar water heaters (dud shemesh: a 2 × 1 m collector tilted to the south and its tank, 26 triangles) on 85 %
+    of the roofs, about 60 % of the free spots, facing south within ±9°;
+  - water tanks (white or black) and AC units on some of the rest;
+  - at most 14 items per roof. They shrink onto the roof over 550–700 m, each by its own distance.
+
+**Cost** (measured below; measure again with `tests/godot/_flight_bench.gd`, `BENCH_BEST=1` and a town view,
+e.g. `BENCH_AT=316009,530807 BENCH_LEGS=150:120:15`, `BENCH_SET=scenery=on` against `=detailed`, as §3.1):
+
+- the wall shader does about three times the work per wall pixel (the parallax, the shutters, the AC units): walls
+  fill a large part of the screen only low over a town;
+- the roof clutter: within 700 m over a dense town about 3 000 roofs, up to 14 items each (26 triangles for a
+  heater): about 0.28 M primitives more at 150 m over Rishon (measured);
+- the street per wall adds to the mesh making on the Rust threads (one short ray per wall), not to the main thread.
+
+**Measured** 2026-10-28, Intel Iris Xe, 2560 × 1440, `_flight_bench.gd` with `BENCH_BEST=1
+BENCH_AT=316009,530807 BENCH_LEGS=150:120:15` (Rishon LeZion, 150 m, 120 m/s for 15 s), `BENCH_SET=scenery=on` and
+`=detailed` interleaved On, Detailed three times under one hold of the GPU lock. Other jobs (builds) still ran on the
+CPU: two On runs had 94–128 ms of main-thread process time and are left out of the frame rates; the GPU time holds
+across all six.
+
+| | On | Detailed | change |
+|---|---|---|---|
+| GPU time per frame (all runs) | 17.46 / 17.32 / 19.06 ms | 20.28 / 21.41 / 20.69 ms | +18 % (medians 17.46 → 20.69) |
+| frame rate (the clean On run, Detailed's three) | 49.9 fps | 44.6 / 41.9 / 43.4 fps | −11 to −16 % |
+| draw calls | 308 | 319–320 | +11 (the roof clutter's tiles) |
+| primitives | 697 k | 968–987 k | +40 % (the roof clutter) |
+
+This is over the ≤ 10 % budget for a default look, so Detailed is a choice of its own and On keeps its cost.
+
+Tried and dropped (2026-10-28):
+
+- the collectors' glass smooth (roughness 0.15, specular 0.6): from above they mirrored the bright sky and read as
+  white blobs; now rough 0.7, specular 0.12. Tanks and frames darker for the same reason;
+- glass at roughness 0.04 and specular 0.6 on the windows: at a glancing angle every pane went white.
+
+Open: the roof items still read pale under the blue-grey sky light; the loggias read as flat grey panels from
+150 m and more; the roofs are the photo's flat colour.
 
 ## 4. Solid ground and hits
 

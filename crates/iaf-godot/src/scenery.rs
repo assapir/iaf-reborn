@@ -11,7 +11,7 @@ use std::sync::{LazyLock, Mutex, RwLock};
 use godot::classes::mesh::ArrayType;
 use godot::prelude::*;
 use iaf_avionics::Vec3;
-use iaf_avionics::scenery::{self, Cell, Mesh, Scenery};
+use iaf_avionics::scenery::{self, Cell, Mesh, Model, Scenery};
 
 use crate::heights::FIELD;
 use crate::world::vec3;
@@ -24,6 +24,7 @@ enum Piece {
     Near(Mesh),
     Far(Mesh),
     Trees(Vec<(scenery::TreeKind, Vec<f32>)>),
+    Roofs(Vec<(scenery::RoofItem, Vec<f32>)>),
 }
 type Built = Option<VecDeque<Piece>>;
 
@@ -35,15 +36,20 @@ const TILE_M: f64 = 500.0;
 const CHUNK_VERTICES: usize = 60_000;
 static BUILT: LazyLock<Mutex<HashMap<(i64, i64), Built>>> = LazyLock::new(Default::default);
 
-fn build(i: i64, j: i64, modern: bool) -> Built {
+/// `detailed`: Scenery = Detailed (the walls' streets and the roof clutter, docs/scenery.md §3.3).
+fn build(i: i64, j: i64, modern: bool, detailed: bool) -> Built {
     // A copy: holding the store's read lock through the build would stall the main thread's drop_cell (a write).
     let c = SCENERY.read().unwrap().cell(i, j)?.clone();
     let (c, o) = (&c, origin(i, j));
-    let near = scenery::mesh_chunks(c, o, true, modern, &ground, TILE_M, CHUNK_VERTICES)?;
-    let far = scenery::mesh_chunks(c, o, false, modern, &ground, TILE_M, CHUNK_VERTICES)?;
+    let model = if detailed { Model::Detailed } else { Model::Near };
+    let near = scenery::mesh_chunks(c, o, model, modern, &ground, TILE_M, CHUNK_VERTICES)?;
+    let far = scenery::mesh_chunks(c, o, Model::Far, modern, &ground, TILE_M, CHUNK_VERTICES)?;
     let trees = scenery::tree_tiles(c, o, TILE_M as f32, &ground)?;
     let mut q: VecDeque<Piece> = near.into_iter().map(Piece::Near).chain(far.into_iter().map(Piece::Far)).collect();
     q.push_back(Piece::Trees(trees));
+    if detailed {
+        q.push_back(Piece::Roofs(scenery::roof_tiles(c, o, TILE_M as f32, &ground)?));
+    }
     Some(q)
 }
 
@@ -119,11 +125,11 @@ impl IafScenery {
     }
 
     /// Starts making the cell's meshes and trees on a thread of its own (the main thread only copies them out);
-    /// `prepared` tells when they are done.
+    /// `prepared` tells when they are done. `detailed`: Scenery = Detailed (the facades' streets, the roof clutter).
     #[func]
-    fn prepare(i: i64, j: i64, modern: bool) {
+    fn prepare(i: i64, j: i64, modern: bool, detailed: bool) {
         std::thread::spawn(move || {
-            let b = build(i, j, modern);
+            let b = build(i, j, modern, detailed);
             // A cell dropped meanwhile keeps nothing.
             if SCENERY.read().unwrap().cell(i, j).is_some() {
                 BUILT.lock().unwrap().insert((i, j), b);
@@ -150,8 +156,9 @@ impl IafScenery {
     /// the near / far buildings for `ArrayMesh.add_surface_from_arrays`, Mesh.ARRAY_MAX arrays: VERTEX, NORMAL, COLOR,
     /// TEX_UV, TEX_UV2, CUSTOM0 (RGBA float: the building's centre at its base), INDEX; one `TILE_M` tile, at most
     /// `CHUNK_VERTICES`), or {trees: [[kind (TreeKind as int), PackedFloat32Array of
-    /// TRANSFORM_3D rows, 12 floats each, for a 10 m model] per `TILE_M` tile and kind]}. Near = parapets, gabled
-    /// and dome roofs; far = bare prisms.
+    /// TRANSFORM_3D rows, 12 floats each, for a 10 m model] per `TILE_M` tile and kind]}, or (Detailed only) {roofs: [[item
+    /// (RoofItem as int), PackedFloat32Array of TRANSFORM_3D rows and a colour, 16 floats each] per tile and item]}.
+    /// Near = parapets, gabled and dome roofs; far = bare prisms.
     #[func]
     fn take_next(i: i64, j: i64) -> VarDictionary {
         let mut built = BUILT.lock().unwrap();
@@ -179,6 +186,13 @@ impl IafScenery {
                         .collect();
                     d.set("trees", &tiles);
                 }
+                Some(Piece::Roofs(t)) => {
+                    let tiles: VarArray = t
+                        .iter()
+                        .map(|(k, r)| varray![*k as i64, &PackedFloat32Array::from(r.as_slice())].to_variant())
+                        .collect();
+                    d.set("roofs", &tiles);
+                }
             }
             return d;
         }
@@ -189,7 +203,10 @@ impl IafScenery {
     fn mesh_arrays(i: i64, j: i64, near: bool, modern: bool) -> VarArray {
         let s = SCENERY.read().unwrap();
         s.cell(i, j)
-            .and_then(|c| scenery::mesh(c, origin(i, j), near, modern, &ground))
+            .and_then(|c| {
+                let model = if near { Model::Near } else { Model::Far };
+                scenery::mesh(c, origin(i, j), model, modern, &ground)
+            })
             .map_or_else(VarArray::new, |m| arrays(&m))
     }
 

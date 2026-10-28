@@ -615,22 +615,23 @@ pub struct Mesh {
     pub normal: Vec<[f32; 3]>,
     /// Walls: metres along the wall, metres up; roofs: world X and Godot Z over 32 m.
     pub uv: Vec<[f32; 2]>,
-    /// x = the building's index in the cell, y = 0 wall / 1 roof.
+    /// x = the building's index in the cell, y = the building's height (m) on walls, −1 on roofs.
     pub uv2: Vec<[f32; 2]>,
-    /// rgb = the roof colour of the chosen look (walls lightened toward plaster), a = the wall material / 255.
+    /// rgb = the roof colour of the chosen look (on walls too: the shader fades the walls to it far away), a = the
+    /// wall material / 255.
     pub color: Vec<[f32; 4]>,
-    /// The building's centre at its base (mesh frame) and 0: the shader picks the model and raises the building by
-    /// the building's own distance, not the mesh's.
+    /// The building's centre at its base (mesh frame): the shader picks the model and raises the building by the
+    /// building's own distance, not the mesh's. w on a near wall: the street in front of it (`street`), else 0.
     pub custom0: Vec<[f32; 4]>,
     pub index: Vec<i32>,
 }
 
 /// A near building's parapet above a flat roof (m).
 pub const PARAPET: f32 = 0.8;
-/// The plaster the walls' colour lightens toward.
-const PLASTER: [f32; 3] = [0.86, 0.83, 0.76];
-/// How far the walls' colour goes from the roof's toward the plaster.
-const PLASTER_MIX: f32 = 0.6;
+/// A wall looks this far out (m) for the building facing it across the street (its occlusion, scenery.gdshader).
+const STREET_M: f64 = 40.0;
+/// `street`'s value for an open wall: nothing within `STREET_M`.
+const OPEN_STREET: f32 = 1000.0;
 /// The roof UVs' tile (m).
 const ROOF_TILE: f64 = 32.0;
 const DOME_RINGS: usize = 4;
@@ -658,16 +659,72 @@ pub fn front(v: [[f32; 3]; 3]) -> [f32; 3] {
     cross(sub(v[2], v[0]), sub(v[1], v[0]))
 }
 
-struct Builder {
+/// A cell's footprints in buckets, for the street in front of each wall.
+struct Streets<'a> {
+    cell: &'a Cell,
+    map: HashMap<Key, Vec<u32>>,
+}
+
+impl<'a> Streets<'a> {
+    fn new(cell: &'a Cell) -> Streets<'a> {
+        let mut map = HashMap::new();
+        for (k, b) in cell.buildings.iter().enumerate() {
+            index(&mut map, footprint_box(b), k as u32);
+        }
+        Streets { cell, map }
+    }
+
+    /// The street in front of building `me`'s wall a→b (world X/Y, counter-clockwise footprint): the first other
+    /// footprint straight out from the wall's middle within `STREET_M`, as its height (m, whole, at most 255) × 1024 +
+    /// its distance (dm); `OPEN_STREET` when there is none. The facing building's height is its own, over our base.
+    fn street(&self, me: usize, a: [f64; 2], b: [f64; 2]) -> f32 {
+        let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
+        let l = dx.hypot(dy).max(1e-9);
+        let (nx, ny) = (dy / l, -dx / l);
+        let (mx, my) = ((a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0);
+        let mut seen = HashSet::new();
+        let mut best: Option<(f64, f32)> = None;
+        let mut t = 0.0;
+        while t <= STREET_M + BUCKET {
+            for &k in self.map.get(&bucket(mx + nx * t, my + ny * t)).into_iter().flatten() {
+                if k as usize == me || !seen.insert(k) {
+                    continue;
+                }
+                let o = &self.cell.buildings[k as usize];
+                let p = &o.points;
+                for i in 0..p.len() {
+                    let (c, d) = (p[i].map(f64::from), p[(i + 1) % p.len()].map(f64::from));
+                    let (ex, ey) = (d[0] - c[0], d[1] - c[1]);
+                    let den = nx * ey - ny * ex;
+                    if den.abs() < 1e-9 {
+                        continue;
+                    }
+                    let (wx, wy) = (c[0] - mx, c[1] - my);
+                    let (s, u) = ((wx * ey - wy * ex) / den, (wx * ny - wy * nx) / den);
+                    if s > 0.01 && s <= STREET_M && (0.0..=1.0).contains(&u) && best.is_none_or(|(b, _)| s < b) {
+                        best = Some((s, o.height));
+                    }
+                }
+            }
+            t += BUCKET / 2.0;
+        }
+        best.map_or(OPEN_STREET, |(s, h)| h.round().min(255.0) * 1024.0 + (s * 10.0).round() as f32)
+    }
+}
+
+struct Builder<'a> {
     m: Mesh,
     origin: [f64; 2],
     building: f32,
+    height: f32,
     roof: [f32; 4],
     wall: [f32; 4],
     centre: [f32; 4],
+    /// The Detailed near mesh's streets (their occlusion); None otherwise.
+    streets: Option<Streets<'a>>,
 }
 
-impl Builder {
+impl Builder<'_> {
     /// World (X, Y) at height z → the mesh frame.
     fn at(&self, x: f64, y: f64, z: f64) -> [f32; 3] {
         [(x - self.origin[0]) as f32, z as f32, -(y - self.origin[1]) as f32]
@@ -676,15 +733,20 @@ impl Builder {
     /// A planar polygon of 3 or 4 vertices facing `n` (the winding is set to face it); `roof` picks the colour and
     /// UV2.y.
     fn face(&mut self, v: &[[f32; 3]], uv: &[[f32; 2]], n: [f32; 3], roof: bool) {
+        self.face_street(v, uv, n, roof, 0.0);
+    }
+
+    /// `face` with the street in front of a wall in CUSTOM0.w.
+    fn face_street(&mut self, v: &[[f32; 3]], uv: &[[f32; 2]], n: [f32; 3], roof: bool, street: f32) {
         let base = self.m.vertex.len() as i32;
         let n = unit(n);
         for (p, t) in v.iter().zip(uv) {
             self.m.vertex.push(*p);
             self.m.normal.push(n);
             self.m.uv.push(*t);
-            self.m.uv2.push([self.building, f32::from(u8::from(roof))]);
+            self.m.uv2.push([self.building, if roof { -1.0 } else { self.height }]);
             self.m.color.push(if roof { self.roof } else { self.wall });
-            self.m.custom0.push(self.centre);
+            self.m.custom0.push([self.centre[0], self.centre[1], self.centre[2], street]);
         }
         let tris: &[[i32; 3]] = if v.len() == 4 { &[[0, 1, 2], [0, 2, 3]] } else { &[[0, 1, 2]] };
         for t in tris {
@@ -716,7 +778,11 @@ impl Builder {
             let (u0, u1, v0, v1) = (run, run + len, (z0 - base) as f32, (z1 - base) as f32);
             let v =
                 [self.at(a[0], a[1], z0), self.at(b[0], b[1], z0), self.at(b[0], b[1], z1), self.at(a[0], a[1], z1)];
-            self.face(&v, &[[u0, v0], [u1, v0], [u1, v1], [u0, v1]], n, false);
+            let street = match &self.streets {
+                Some(s) if out > 0.0 => s.street(self.building as usize, a, b),
+                _ => 0.0,
+            };
+            self.face_street(&v, &[[u0, v0], [u1, v0], [u1, v1], [u0, v1]], n, false, street);
             run += len;
         }
     }
@@ -809,16 +875,25 @@ impl Builder {
     }
 }
 
+/// Which buildings a mesh holds: Scenery On's near model, Detailed's near model (the same, plus the street in front
+/// of each wall for the facades' occlusion), or the far model.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Model {
+    Far,
+    Near,
+    Detailed,
+}
+
 /// A cell's buildings as one mesh: near = walls, a flat roof with a parapet (gabled / dome roofs as tagged), far = bare
 /// prisms. Each stands on the lowest terrain under its corners; None while the terrain there is not loaded.
 pub fn mesh(
     cell: &Cell,
     origin: [f64; 2],
-    near: bool,
+    model: Model,
     modern: bool,
     ground: &dyn Fn(Vec3) -> Option<f64>,
 ) -> Option<Mesh> {
-    Some(mesh_chunks(cell, origin, near, modern, ground, f64::INFINITY, usize::MAX)?.pop().unwrap_or_default())
+    Some(mesh_chunks(cell, origin, model, modern, ground, f64::INFINITY, usize::MAX)?.pop().unwrap_or_default())
 }
 
 /// `mesh` split by square tiles of `tile` metres (by each building's centroid), and within a tile into meshes of at
@@ -827,12 +902,13 @@ pub fn mesh(
 pub fn mesh_chunks(
     cell: &Cell,
     origin: [f64; 2],
-    near: bool,
+    model: Model,
     modern: bool,
     ground: &dyn Fn(Vec3) -> Option<f64>,
     tile: f64,
     max_vertices: usize,
 ) -> Option<Vec<Mesh>> {
+    let near = model != Model::Far;
     let tile_of = |b: &Building| {
         let c = b.centroid();
         (((origin[1] - f64::from(c[1])) / tile).floor() as i64, ((f64::from(c[0]) - origin[0]) / tile).floor() as i64)
@@ -840,8 +916,16 @@ pub fn mesh_chunks(
     let mut order: Vec<usize> = (0..cell.buildings.len()).collect();
     order.sort_by_key(|&k| tile_of(&cell.buildings[k]));
     let mut chunks = Vec::new();
-    let mut bld =
-        Builder { m: Mesh::default(), origin, building: 0.0, roof: [0.0; 4], wall: [0.0; 4], centre: [0.0; 4] };
+    let mut bld = Builder {
+        m: Mesh::default(),
+        origin,
+        building: 0.0,
+        height: 0.0,
+        roof: [0.0; 4],
+        wall: [0.0; 4],
+        centre: [0.0; 4],
+        streets: (model == Model::Detailed).then(|| Streets::new(cell)),
+    };
     let mut last_tile = None;
     for k in order {
         let b = &cell.buildings[k];
@@ -864,10 +948,10 @@ pub fn mesh_chunks(
         }
         let rgb = if modern { b.roof_modern } else { b.roof_1998 }.map(|c| f32::from(c) / 255.0);
         bld.building = k as f32;
-        let wall = [0, 1, 2].map(|c| rgb[c] + (PLASTER[c] - rgb[c]) * PLASTER_MIX);
+        bld.height = b.height;
         let material = f32::from(b.wall) / 255.0;
         bld.roof = [rgb[0], rgb[1], rgb[2], material];
-        bld.wall = [wall[0], wall[1], wall[2], material];
+        bld.wall = bld.roof;
         match (near, b.roof) {
             (true, Roof::Gabled) if pts.len() == 4 => bld.gabled(&pts, base, top),
             (true, Roof::Dome) => bld.dome(&pts, b.centroid().map(f64::from), base, top),
@@ -952,6 +1036,146 @@ pub fn tree_tiles(
     }
     let kind = |k: u8| [TreeKind::Pine, TreeKind::Broadleaf, TreeKind::Palm, TreeKind::Cypress][usize::from(k)];
     Some(tiles.into_iter().map(|((_, _, k), r)| (kind(k), r)).collect())
+}
+
+/// The kinds of roof clutter `roof_tiles` places (scenery.gd's models, in this order).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum RoofItem {
+    /// A solar water heater (dud shemesh): a collector facing south and its tank.
+    Heater = 0,
+    /// A water tank, upright.
+    Tank = 1,
+    /// A box (a unit cube scaled): the stair head, an AC unit.
+    Box = 2,
+}
+
+/// Roof clutter stands on flat roofs of at least this area (m²).
+const ROOF_ITEMS_AREA: f64 = 30.0;
+/// At most this many items on one roof.
+const ROOF_ITEMS_MAX: usize = 14;
+
+/// A seeded generator (per building): uniform in [0, 1).
+struct Seed(u32);
+
+impl Seed {
+    fn next(&mut self) -> f32 {
+        self.0 = self.0.wrapping_mul(2_654_435_761).wrapping_add(0x9e37_79b9);
+        (self.0 >> 8) as f32 / (1u32 << 24) as f32
+    }
+}
+
+/// The clutter on a cell's flat roofs as MultiMesh rows (`TRANSFORM_3D` and a colour: 16 floats each, Godot frame from
+/// `origin`), one list per `RoofItem`: solar water heaters facing south in rows, water tanks, a stair head on buildings
+/// of two levels and more, AC units; seeded per building, inside the parapet. None while the terrain there is not
+/// loaded.
+pub fn roof_rows(cell: &Cell, origin: [f64; 2], ground: &dyn Fn(Vec3) -> Option<f64>) -> Option<[Vec<f32>; 3]> {
+    let mut rows: [Vec<f32>; 3] = Default::default();
+    for (k, b) in cell.buildings.iter().enumerate() {
+        let a = area(&b.points);
+        if b.roof != Roof::Flat || b.points.len() < 3 || b.height < 3.0 * PARAPET || a < ROOF_ITEMS_AREA {
+            continue;
+        }
+        let z = (base(b, ground)? + f64::from(b.height - PARAPET)) as f32;
+        let c = b.centroid();
+        let mut s = Seed((k as u32).wrapping_mul(0x85eb_ca6b) ^ c[0].to_bits() ^ c[1].to_bits().rotate_left(13));
+        // The roof's axes: along its longest edge and across.
+        let p = &b.points;
+        let e = (0..p.len())
+            .map(|i| {
+                let (a, b) = (p[i], p[(i + 1) % p.len()]);
+                [b[0] - a[0], b[1] - a[1]]
+            })
+            .max_by(|a, b| a[0].hypot(a[1]).total_cmp(&b[0].hypot(b[1])))?;
+        let l = e[0].hypot(e[1]).max(1e-3);
+        let (ux, uy) = (e[0] / l, e[1] / l);
+        let yaw = uy.atan2(ux);
+        // Free spots on a 2.4 × 2.8 m grid along the axes, at least 1.4 m inside the parapet.
+        let (mut lo, mut hi) = ([f32::MAX; 2], [f32::MIN; 2]);
+        for q in p {
+            let (dx, dy) = (q[0] - c[0], q[1] - c[1]);
+            let (a, n) = (dx * ux + dy * uy, -dx * uy + dy * ux);
+            lo = [lo[0].min(a), lo[1].min(n)];
+            hi = [hi[0].max(a), hi[1].max(n)];
+        }
+        let mut spots = Vec::new();
+        let mut n = lo[1] + 1.4;
+        while n <= hi[1] - 1.4 {
+            let mut a = lo[0] + 1.4;
+            while a <= hi[0] - 1.4 {
+                let (x, y) = (c[0] + a * ux - n * uy, c[1] + a * uy + n * ux);
+                if b.contains(x, y) && edge_distance(p, x.into(), y.into()) >= 1.4 {
+                    spots.push([x, y]);
+                }
+                a += 2.4;
+            }
+            n += 2.8;
+        }
+        if spots.is_empty() {
+            continue;
+        }
+        let mut push = |item: RoofItem, at: [f32; 2], yaw: f32, scale: [f32; 3], colour: [f32; 3]| {
+            let (sn, cs) = yaw.sin_cos();
+            let (ox, oz) = ((f64::from(at[0]) - origin[0]) as f32, -(f64::from(at[1]) - origin[1]) as f32);
+            // Godot: yaw about y turns x (east) toward −z (north).
+            let (bx, bz) = ([cs * scale[0], 0.0, -sn * scale[0]], [sn * scale[2], 0.0, cs * scale[2]]);
+            rows[item as usize].extend([
+                bx[0], 0.0, bz[0], ox, bx[1], scale[1], bz[1], z, bx[2], 0.0, bz[2], oz, colour[0], colour[1],
+                colour[2], 1.0,
+            ]);
+        };
+        // The stair head (two levels and more): a box in the wall colours, at a spot near the middle.
+        let mut used = 0;
+        if b.height >= 6.0 {
+            let mid = spots.len() / 2;
+            let at = spots.swap_remove(mid);
+            let g = 0.5 + 0.12 * s.next();
+            push(RoofItem::Box, at, yaw, [2.6, 2.5, 3.0], [g, g * 0.97, g * 0.9]);
+            used += 1;
+        }
+        // Heaters: most roofs, in rows facing south; tanks and AC units on a few spots.
+        let heaters = s.next() < 0.85;
+        for at in spots {
+            if used >= ROOF_ITEMS_MAX {
+                break;
+            }
+            let r = s.next();
+            let turn = (s.next() - 0.5) * 0.3;
+            if heaters && r < 0.6 {
+                let g = 0.6 + 0.15 * s.next();
+                push(RoofItem::Heater, at, turn, [1.0; 3], [g, g, g * 0.97]);
+            } else if r < 0.75 {
+                let g = if s.next() < 0.5 { 0.6 } else { 0.08 };
+                push(RoofItem::Tank, at, turn, [1.0; 3], [g, g, g]);
+            } else if r < 0.88 {
+                push(RoofItem::Box, at, yaw + turn, [0.9, 0.65, 0.4], [0.7, 0.7, 0.68]);
+            } else {
+                continue;
+            }
+            used += 1;
+        }
+    }
+    Some(rows)
+}
+
+/// `roof_rows` split into square tiles of `tile` metres (per tile and item, tiles in (row, column) order), as
+/// `tree_tiles`.
+pub fn roof_tiles(
+    cell: &Cell,
+    origin: [f64; 2],
+    tile: f32,
+    ground: &dyn Fn(Vec3) -> Option<f64>,
+) -> Option<Vec<(RoofItem, Vec<f32>)>> {
+    let rows = roof_rows(cell, origin, ground)?;
+    let mut tiles: std::collections::BTreeMap<(i32, i32, u8), Vec<f32>> = Default::default();
+    for (k, r) in rows.iter().enumerate() {
+        for t in r.as_chunks::<16>().0 {
+            let key = ((t[11] / tile).floor() as i32, (t[3] / tile).floor() as i32, k as u8);
+            tiles.entry(key).or_default().extend_from_slice(t);
+        }
+    }
+    let item = |k: u8| [RoofItem::Heater, RoofItem::Tank, RoofItem::Box][usize::from(k)];
+    Some(tiles.into_iter().map(|((_, _, k), r)| (item(k), r)).collect())
 }
 
 struct Reader<'a> {
@@ -1129,7 +1353,7 @@ mod tests {
     fn mesh_extrudes_walls_roofs_and_parapets() {
         let one = |roof, near| {
             let cell = Cell { buildings: vec![house(0.0, 0.0, 20.0, 12.0, roof)], trees: vec![] };
-            mesh(&cell, [0.0, 0.0], near, false, FLAT).unwrap()
+            mesh(&cell, [0.0, 0.0], if near { Model::Detailed } else { Model::Far }, false, FLAT).unwrap()
         };
         let centre = [10.0, 0.0, -5.0];
         // Far: 4 walls (8 triangles) + a 2-triangle roof.
@@ -1145,7 +1369,7 @@ mod tests {
         let roof_y: Vec<f32> = near
             .index
             .iter()
-            .filter(|&&k| near.uv2[k as usize][1] == 1.0)
+            .filter(|&&k| near.uv2[k as usize][1] == -1.0)
             .map(|&k| near.vertex[k as usize][1])
             .collect();
         assert!(roof_y.iter().all(|&y| (y - (17.0 - PARAPET)).abs() < 1e-5));
@@ -1158,16 +1382,20 @@ mod tests {
         let dome = one(Roof::Dome, true);
         assert_eq!(dome.index.len() / 3, 8 + 2 + DOME_SEGMENTS * (2 * DOME_RINGS - 1));
         check_faces(&dome, centre);
-        // Colours: rgb the look's roof, a the wall material; walls lighter toward plaster.
+        // Colours: rgb the look's roof on roofs and walls, a the wall material; UV2.y the height on walls.
         assert_eq!(far.color[0][3], 1.0 / 255.0);
         let (wall, roof) = (far.color[0], *far.color.last().unwrap());
         assert_eq!(roof[..3], [200.0 / 255.0, 100.0 / 255.0, 50.0 / 255.0]);
-        assert!(wall[2] > roof[2]);
+        assert_eq!(wall, roof);
+        assert_eq!(far.uv2[0][1], 12.0);
+        // An open wall: CUSTOM0.w = OPEN_STREET on the near mesh, 0 on the far one.
+        assert_eq!(near.custom0[0][3], OPEN_STREET);
+        assert_eq!(far.custom0[0][3], 0.0);
         assert!(
             mesh(
                 &Cell { buildings: vec![house(0.0, 0.0, 20.0, 12.0, Roof::Flat)], trees: vec![] },
                 [0.0, 0.0],
-                false,
+                Model::Far,
                 false,
                 &|_| None
             )
@@ -1176,12 +1404,56 @@ mod tests {
     }
 
     #[test]
+    fn walls_know_the_street_in_front() {
+        // Two blocks 8 m apart across a street running east: (0..20, 0..10) and (0..20, 18..28), 15 m tall.
+        let cell = Cell {
+            buildings: vec![house(0.0, 0.0, 20.0, 12.0, Roof::Flat), house(0.0, 18.0, 20.0, 15.0, Roof::Flat)],
+            trees: vec![],
+        };
+        let m = mesh(&cell, [0.0, 0.0], Model::Detailed, false, FLAT).unwrap();
+        let on = mesh(&cell, [0.0, 0.0], Model::Near, false, FLAT).unwrap();
+        assert!(on.custom0.iter().all(|c| c[3] == 0.0), "Scenery On: no streets");
+        assert_eq!(on.vertex, m.vertex);
+        // The first building's north wall (its normal +y world = −z Godot) faces the 15 m one 8 m away.
+        let north = (0..m.vertex.len()).find(|&k| m.uv2[k][0] == 0.0 && m.normal[k][2] < -0.9).unwrap();
+        assert_eq!(m.custom0[north][3], 15.0 * 1024.0 + 80.0);
+        let south = (0..m.vertex.len()).find(|&k| m.uv2[k][0] == 0.0 && m.normal[k][2] > 0.9).unwrap();
+        assert_eq!(m.custom0[south][3], OPEN_STREET);
+    }
+
+    #[test]
+    fn roofs_carry_heaters_tanks_and_a_stair_head() {
+        let cell = Cell {
+            buildings: vec![
+                house(0.0, 0.0, 30.0, 15.0, Roof::Flat),
+                house(100.0, 0.0, 30.0, 15.0, Roof::Gabled),
+                house(200.0, 0.0, 4.0, 15.0, Roof::Flat),
+            ],
+            trees: vec![],
+        };
+        let rows = roof_rows(&cell, [0.0, 0.0], FLAT).unwrap();
+        let all: Vec<&[f32; 16]> = rows.iter().flat_map(|r| r.as_chunks::<16>().0).collect();
+        assert!(all.len() >= 3 && all.len() <= ROOF_ITEMS_MAX, "{}", all.len());
+        // Only on the flat 30 × 15 m roof, inside its parapet, standing on the roof 0.8 m under its top.
+        for r in &all {
+            let (x, y) = (r[3], -r[11]);
+            assert!((1.0..29.0).contains(&x) && (1.0..14.0).contains(&y), "{x} {y}");
+            assert_eq!(r[7], 5.0 + 15.0 - PARAPET);
+        }
+        // The stair head: a box 2.5 m tall.
+        assert!(rows[RoofItem::Box as usize].as_chunks::<16>().0.iter().any(|r| r[5] == 2.5));
+        assert_eq!(roof_rows(&cell, [0.0, 0.0], FLAT).unwrap(), rows, "seeded");
+        let tiles = roof_tiles(&cell, [0.0, 0.0], 500.0, FLAT).unwrap();
+        assert_eq!(tiles.iter().map(|t| t.1.len()).sum::<usize>(), all.len() * 16);
+    }
+
+    #[test]
     fn buildings_chunk_by_tile_with_their_centres() {
         let cell = Cell {
             buildings: vec![house(0.0, 0.0, 20.0, 12.0, Roof::Flat), house(800.0, 0.0, 20.0, 6.0, Roof::Flat)],
             trees: vec![],
         };
-        let chunks = mesh_chunks(&cell, [0.0, 0.0], false, false, FLAT, 500.0, usize::MAX).unwrap();
+        let chunks = mesh_chunks(&cell, [0.0, 0.0], Model::Far, false, FLAT, 500.0, usize::MAX).unwrap();
         assert_eq!(chunks.len(), 2, "one per tile");
         let c = chunks[1].custom0[0];
         assert_eq!([c[0], c[1], c[2]], [810.0, 5.0, -5.0], "the centroid at the base, mesh frame");
