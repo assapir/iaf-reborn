@@ -148,6 +148,35 @@ func run() -> void:
 			% [lx, tips[0].x if not tips.is_empty() else 0.0]
 		)
 	)
+	# Every airbase's lights (airbase_lights.gd), each base built when the camera comes within 30 km: Ramat David
+	# (95 km off 214's start, built here as on the way) has apron floodlight pools (a capped count of shadowless spot
+	# lights) and, beside 214's own lt_dvd_h, the approach lights and PAPIs only (no second row of edge lights).
+	var al: Node3D = tv.get_node_or_null("AirbaseLights")
+	check(al != null and al.visible, "detailed, night: the airbase lights")
+	var david: Array = al._bases.filter(func(e): return String(e.b.name) == "David") if al != null else []
+	if not david.is_empty():
+		var mask: String = settings().assets_dir().path_join("converted/terrain").path_join(david[0].b.mask.file)
+		al._built(al._bases.find(david[0]), al.masts(david[0].b, mask))
+	var pools: Array = al.find_children("*", "SpotLight3D", false, false) if al != null else []
+	check(
+		(
+			not david.is_empty()
+			and david[0].state == 2
+			and not david[0].full
+			and david[0].mesh.visible
+			and pools.size() > 0
+			and pools.size() <= al.MAX_MASTS * al._bases.size()
+			and pools.all(func(l): return not l.shadow_enabled and l.distance_fade_enabled)
+		),
+		"Ramat David lit: %d floodlight pools, no shadows" % pools.size()
+	)
+	var cols: PackedColorArray = (
+		david[0].mesh.mesh.surface_get_arrays(0)[Mesh.ARRAY_COLOR]
+		if not david.is_empty() and david[0].mesh.mesh
+		else []
+	)
+	var papi := Array(cols).filter(func(c): return c.r + c.g < 0.01 and c.a < 0.995)
+	check(papi.size() == 4 * 2 * 3, "a PAPI at both ends of Ramat David's three runways (%d units)" % papi.size())
 	# Upscaling: the glows are sized in the 3D render's rows, not the window's.
 	tv.get_viewport().scaling_3d_scale = 0.5
 	tv._tod_t = -INF

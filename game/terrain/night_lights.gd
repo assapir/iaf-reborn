@@ -16,24 +16,42 @@ const ORIGINAL_ROWS := 480.0
 
 ## The glow of a light point (Detailed). size_m: the glow's diameter in metres; the point keeps at least min_px and at
 ## most max_px pixels (at 1080 rows); gain: 1 at night; lift: metres above its spot (ground lights stand on the ground
-## and the terrain between the spots would cut them). Far points dim with the fog.
+## and the terrain between the spots would cut them). Far points dim with half the fog. A vertex colour's alpha below 1
+## marks a one-way fixture (airbase_lights.gd): it shines one way only, and a PAPI unit turns white or red by the
+## viewer's angle above it.
 const GLOW_SHADER := """
 shader_type spatial;
 render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 uniform float size_m = 4.0;
-uniform float min_px = 2.5;
+uniform float min_px = 4.5;
 uniform float max_px = 28.0;
 uniform float gain = 1.0;
 uniform float fog_k = 0.00003;
 uniform float vp_h = 1080.0;
 uniform float lift = 1.5;
 varying float fade;
+varying vec3 col;
 void vertex() {
 	vec4 v = MODELVIEW_MATRIX * vec4(VERTEX, 1.0) + VIEW_MATRIX * vec4(0.0, lift, 0.0, 0.0);
 	float d = max(-v.z, 1.0);
 	float rows = vp_h / 1080.0;
 	float px = size_m * abs(PROJECTION_MATRIX[1][1]) * 0.5 * vp_h / d;
-	fade = clamp(px / (min_px * rows), 0.25, 1.0) * exp(-fog_k * d) * gain;
+	// A lamp outshines the haze: half the scene's fog, and a far point keeps 60 % of its light.
+	fade = clamp(px / (min_px * rows), 0.6, 1.0) * exp(-0.5 * fog_k * d) * gain;
+	col = COLOR.rgb;
+	if (COLOR.a < 0.995) {
+		// A one-way fixture (airbase_lights.gd): COLOR.a = the way it shines (angle from Godot +X toward +Z / 360°).
+		float h = COLOR.a * TAU;
+		vec3 f = normalize((MODELVIEW_MATRIX * vec4(cos(h), 0.0, sin(h), 0.0)).xyz);
+		vec3 to_cam = normalize(-v.xyz);
+		fade *= smoothstep(-0.05, 0.25, dot(to_cam, f));
+		if (COLOR.r + COLOR.g < 0.01) {
+			// A PAPI unit: white seen from above its angle (COLOR.b · 10°), red below.
+			vec3 up = normalize((VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
+			float el = degrees(asin(clamp(dot(to_cam, up), -1.0, 1.0)));
+			col = el > COLOR.b * 10.0 ? vec3(1.0, 0.95, 0.85) : vec3(1.0, 0.1, 0.06);
+		}
+	}
 	POINT_SIZE = clamp(px, min_px * rows, max_px * rows);
 	// The sprite is flat at the light's depth: drawn size_m nearer, the ground or skin around the light hides none of it.
 	POSITION = PROJECTION_MATRIX * vec4(v.xyz * max(d - size_m, 0.5) / d, 1.0);
@@ -41,9 +59,9 @@ void vertex() {
 void fragment() {
 	vec2 c = POINT_COORD * 2.0 - 1.0;
 	float r = length(c);
-	float core = smoothstep(0.3, 0.0, r);
-	float halo = pow(1.0 - smoothstep(0.0, 1.0, r), 2.0) * 0.7;
-	ALBEDO = (COLOR.rgb * (core * 1.5 + halo) + vec3(core * 0.7)) * fade;
+	float core = smoothstep(0.6, 0.0, r);
+	float halo = pow(1.0 - smoothstep(0.0, 1.0, r), 2.0) * 1.5;
+	ALBEDO = (col * (core * 3.0 + halo) + vec3(core * 1.2)) * fade;
 }
 """
 
@@ -51,7 +69,7 @@ void fragment() {
 const SKY_SHADER := """
 shader_type spatial;
 render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled, skip_vertex_transform;
-uniform float size_px = 2.0;
+uniform float size_px = 2.4;
 uniform bool moon = false;
 uniform float gain = 1.0;
 uniform float vp_h = 1080.0;
@@ -84,7 +102,7 @@ const BASE_LIGHTS := {
 ## Detailed: the moon (azimuth, elevation in degrees) and its light.
 const MOON_AZ := 140.0
 const MOON_EL := 38.0
-const MOON_LIGHT := Color(0.20, 0.23, 0.33)
+const MOON_LIGHT := Color(0.24, 0.27, 0.34)
 const MOON_AMBIENT := 0.3
 const STARS := 2600
 
@@ -167,6 +185,7 @@ static func to_points(node: Node3D, material: Material) -> void:
 		for s in mi.mesh.get_surface_count():
 			var mat := mi.mesh.surface_get_material(s) as BaseMaterial3D
 			var col := mat.albedo_color if mat != null else Color.WHITE
+			col.a = 1.0  # every way (an alpha below 1 marks a one-way fixture in the glow)
 			var v: PackedVector3Array = mi.mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]
 			verts.append_array(v)
 			for i in v.size():
@@ -205,7 +224,7 @@ static func sky() -> Node3D:
 		var r := sqrt(1.0 - z * z)
 		verts.append(Vector3(r * cos(a), z, r * sin(a)))
 		var t := rng.randf()
-		cols.append(Color(0.85 + 0.15 * t, 0.88, 1.0 - 0.15 * t, pow(rng.randf(), 4.0)))
+		cols.append(Color(0.85 + 0.15 * t, 0.88, 1.0 - 0.15 * t, pow(rng.randf(), 2.5)))
 	var stars := MeshInstance3D.new()
 	stars.name = "Stars"
 	stars.mesh = point_mesh(verts, cols)
