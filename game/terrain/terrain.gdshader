@@ -135,15 +135,16 @@ vec2 rot(vec2 v, float a) {
 }
 
 // One wave of wavelength len (m), wave vector kd (k · its direction), angular speed w = sqrt(g · k), steepness s
-// (amplitude · k): its slope, faded between 16 and 5 pixels per wavelength; the faded part's variance adds to lost.
+// (amplitude · k): its slope, faded between 28 and 10 pixels per wavelength (closer to the pixel size the glint's
+// sharp highlight on it aliases into stripes on the far water); the faded part's variance adds to lost.
 vec2 wave(vec2 p, float t, float px, vec2 kd, float w, float phase, float s, float len, inout float lost) {
-	float aa = 1.0 - smoothstep(0.06, 0.2, px / len);
+	float aa = 1.0 - smoothstep(0.035, 0.1, px / len);
 	lost += 0.5 * s * s * (1.0 - aa);
 	return kd * (len / 6.2832) * (s * aa * cos(dot(kd, p) - w * t + phase));
 }
 
 // The water's slope (d height / dx, dz) at world p (m), time t (s), with p's screen derivatives dx, dy: six waves,
-// three swells and three wind waves (deep-water speed sqrt(g / k)), each fading out between 16 and 5 pixels per wavelength,
+// three swells and three wind waves (deep-water speed sqrt(g / k)), each fading out between 28 and 10 pixels per wavelength,
 // then two scrolling ripple layers from the noise normal map, all scaled by wind patches (noise of ≈ 1.7 km tiles).
 // `lost` returns the slope variance the faded waves no longer draw: it goes into the roughness, so the sun's glint
 // spreads into a glitter path far away.
@@ -153,7 +154,7 @@ vec2 water_slope(vec2 p, vec2 dx, vec2 dy, float t, out float lost) {
 	patch = clamp(patch * patch - 0.2, 0.25, 1.8);
 	vec2 slope = vec2(0.0);
 	lost = 0.0;
-	if (px < 0.2 * 97.0) {
+	if (px < 0.3 * 41.3) {
 		// The crests bent by a domain warp of up to ± 9 m (noise of 260 / 330 m tiles), so they do not line up into a lattice.
 		vec2 wp = p + 18.0 * vec2(textureGrad(terrain_water_warp, p / 260.0, dx / 260.0, dy / 260.0).r,
 				textureGrad(terrain_water_warp, rot(p, 1.3) / 330.0, rot(dx, 1.3) / 330.0, rot(dy, 1.3) / 330.0).r) - 9.0;

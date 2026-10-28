@@ -128,7 +128,8 @@ Tuning:
   disc in float precision. Around it is a narrow glare (e-folding 1.5°).
 
 The cloud layer (Graphics TEXTURED SKY, the original's) maps its texture's alpha 0.3–0.9 to 0–1 with this sky. The
-result is separate clouds with clear sky between them, in place of a grey veil over the whole sky. With the nearly
+result is separate clouds with clear sky between them, in place of a grey veil over the whole sky. It is also
+smoothed and lit by the sun (§2). With the nearly
 opaque Cloud256_5 (one mission in six) the sky stays overcast. The sun is the original's by the time of day (§4); the
 sky follows `LIGHT0_DIRECTION`.
 
@@ -160,7 +161,7 @@ matches, and the sea bed leaves faint streaks of up to 5 / 255 on the water off 
 | Crest warp | the wave positions shifted by up to ± 9 m (noise tiles of 260 m and 330 m), so the crests bend |
 | Ripples | 2 scrolling layers of the detail normal map, tiles of 41.3 m and 8.9 m, slope × 0.18 |
 | Wind patches | noise of 1.7 km tiles scales all slopes by 0.25–1.8 (calm and rough areas) |
-| Anti-aliasing | each wave fades out between 16 and 5 pixels per wavelength; the slope variance it loses goes into the roughness (GGX α = √(0.0016 + 2 · lost variance)), so far away the glint spreads into a glitter path |
+| Anti-aliasing | each wave fades out between 28 and 10 pixels per wavelength (2026-10-26; between 16 and 5 its glint aliased into diagonal stripes on the water 5 km off at 3000 m; tried: 33 to 12.5, which smoothed the near sea at 120 m, 22 to 8, which left part of the stripes, and fading the ripple tiles earlier, which left the stripes); the slope variance it loses goes into the roughness (GGX α = √(0.0016 + 2 · lost variance)), so far away the glint spreads into a glitter path |
 | Material | specular 0.28 (F0 ≈ 0.0125; Godot also scales the grazing reflection by 50 · F0, so the sea stays blue until near the horizon), albedo 0.75 × the photo's colour |
 
 Every derivative is taken at the top of `fragment()`, outside the per-pixel water branch. The noise samples use
@@ -177,6 +178,10 @@ sun, `terrain_water` switched 0 / 1 every 120 frames in one window, median of 12
 
 That is ≈ 0.11 ms per million water pixels: ≈ 0.23 ms at 1920 × 1080 and ≈ 0.9 ms at 3840 × 2160 with water over
 the whole view. The surface raster costs 0.7 ms of CPU (Rust, 65 536 lookups) once every 4 km of flight.
+
+**At sunset** the far sea turns mauve-brown: with the specular set to 0 it stays so, so the colour is the fog's
+(the Atmospheric sky's colour below the horizon, aerial perspective), not the water's reflection (checked
+2026-10-26); the near sea keeps its dark blue and the glint path its warm sun.
 
 **Shots** (local, `assets/converted/research/water/`, Original then Detailed): `ta150_*` and `ta1500_*` (the Tel Aviv
 coast at 150 m and 1500 m), `glint150_*` and `glint1500_*` (towards the sun over the sea), `kin150_*` (the Kinneret at
@@ -570,6 +575,27 @@ The cloud layer is a dome of cloud texture plus a flat layer, and a whiteout nea
   - The full-screen whiteout rect is hidden while its alpha is 0.
 - **Cost.** 0.15–0.5 ms GPU below the layer, 1.4 ms above it (the flat layer covers half the screen); §3 (a bench
   must skip its first frames after load).
+- **Smoothing.** The texture is ARGB4444: its alpha has 16 levels, and the 4× Lanczos upscale keeps the steps
+  between them sharp. The layer reads the texture no finer than mip level 2 (the original's 256 texels, drawn
+  bilinear as its D3D renderer did). With the Atmospheric sky (§1.2) the alpha is stretched 1.67×, so the steps
+  showed as contours (posterised blotches; purple terraces at night). There the layer reads level 2.5 through four
+  bilinear taps half a texel apart (a quadratic B-spline, no creases at the texel edges), adds the texture at
+  4.37× its scale (± 0.1 alpha) for the cloud edges, puts the stretched alpha through a smoothstep (an S-curve: the gaps
+  between the clouds stay clear after the blur), and dithers the alpha by ± half an 8-bit step.
+- **Light with the Atmospheric sky** (by day; ours, deviations.md §2). The original's layer is unlit (white, the
+  rings fading toward the fog colour). With the Atmospheric sky the layer is shaded per pixel from the sun node's
+  direction, the stretched alpha d standing for the cloud's thickness:
+  - the sky's light, blue-grey (0.45, 0.52, 0.7), 0.6× with a low sun, on the base: × (1 − 0.4·d);
+  - the sun's, reddened by its air mass like the sky's sun (`atmosphere.gdshader` sun_depth × 0.8: less air above
+    the layer): by day 0.85 − 0.3·d plus a forward lobe 1.2·μ⁶·(1 − d) through thin cloud (μ the
+    cosine between the view and the sun); with the sun below ≈ 20° (blended between sin h 0.4 and 0.05) on the bases from the side,
+    0.1 + 0.9·((1 + μ)/2)² + 2·μ⁶, × (1 − 0.85·d): golden toward the sun, mauve-grey on thick cloud away from it;
+  - the lower rings (from ring ≈ 7 out) thin to 0.4× the alpha, so the horizon's sky and a low sun show between the
+    clouds.
+  At night (the gradient sky) the colour is a neutral (0.045, 0.055, 0.095) in place of the original's (20, 20, 60),
+  which the AgX tonemapper turns violet. Original sky: unchanged apart from the mip level 2 floor.
+  Tried and dropped (2026-10-26): plain bilinear at mip 3 (contours at the texel edges); 0.45·d darkening with the
+  sky's full sun (a flat peach veil with no cloud shapes at 19:30).
 
 ## 3. Measurements
 

@@ -304,7 +304,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     glare), the ambient light from that sky in place of the original's ambient factor, an auto-exposure bounded to
     1.25× either way (rendering.md §1.2), the haze over the ground in the horizon's colour (aerial
     perspective, same fog density), and the cloud layer's alpha stretched (0.3–0.9 → 0–1) so its clouds stand apart
-    with clear sky between them (without the stretch: a grey veil). The original's cloud texture choice (one of six per
+    with clear sky between them (without the stretch: a grey veil), smoothed, and lit by the sun by day (warm toward
+    a low sun, darker where thick; rendering.md §2), dark blue-grey at night. The original's cloud texture choice (one of six per
     mission, Cloud256_5 nearly overcast) is kept. The sky follows the time of day's sun (rendering.md §4); at night
     the gradient sky is drawn.
 - **Upscaling** (ours, docs/rendering.md). Rendering only; the default is Native (the 3D scene at the window's
