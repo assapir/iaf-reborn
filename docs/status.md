@@ -136,6 +136,12 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
   before the quit. A second kind, seen once on 2026-10-28 in a native-Wayland real-render run
   (`_cockpit_show_shot.gd` through `tools/godot_window.sh`): the main thread sat in `poll`, its workers idle, no
   stack taken (another session's process); not reproduced in 35 Wayland runs; open.
+- **Scenery trees**: a forest is an even stand, a pine in every 10 m canopy cell of 4 m or more; the real Carmel and
+  Galilee are a mosaic of pine, oak maquis and open scrub (needs the cell data rebuilt, scenery.md §3.2 "The hills'
+  look"). The near pine model still reads as a fir up close.
+- **Exit, under xvfb**: on 2026-10-28 `_showcase_shot.gd` hung after `RESULT PASS` in 4 of about 12 runs of the hills
+  scenes (Carmel forest), killed by a timeout; its Xvfb then stayed behind holding the GPU lock's file. No stack
+  taken (the run watched with gdb exited cleanly); open.
 - **Imagery**: SPOT 5 outside Israel not started.
 - **Multiplayer**: not started (missions 511–516, 777), with its RWR network messages. Research and discussion:
   [multiplayer.md](multiplayer.md).

@@ -76,6 +76,12 @@ const int GT_SOIL = 5;
 const int GT_ROCK = 6;
 varying vec2 world_xz;
 varying float sea;
+varying float elev;
+// The Survey 2 m modern photo (docs/imagery.md §5): its pale rock and soil in the hills are a neutral grey (its
+// auto-levels keep a sheet's colour balance), where the real limestone, chalk and terra rossa are tan. 1 = warm the
+// grey, pale land above 60–200 m toward tan (WARM); 0 for every other layer.
+global uniform float terrain_warm;
+const vec3 WARM = vec3(1.2, 1.0, 0.76);
 
 float raw_at(ivec2 p) {
 	p = clamp(p, ivec2(0), textureSize(height_tex, 0) - 1);
@@ -112,6 +118,7 @@ void vertex() {
 	// bathymetry off Israel, the flat -557 m plane over Egypt west of Suez); open sea is only
 	// shaded flat so the sea-bed relief does not show through the water colour.
 	VERTEX.y = height_at(t);
+	elev = VERTEX.y;
 	bool open_sea = is_open_sea(cuv);
 	if (open_sea) {
 		NORMAL = vec3(0.0, 1.0, 0.0);
@@ -383,6 +390,15 @@ void fragment() {
 		float bluish = smoothstep(0.02, 0.07, max(c.g, c.b) - c.r) * (1.0 - smoothstep(0.55, 0.7, dot(c, vec3(0.2126, 0.7152, 0.0722))));
 		wm = max(open, tw * bluish);
 	}
+	if (terrain_warm > 0.0) {
+		// Grey (chroma under ≈ 0.05 in ≈ sRGB) and pale (not asphalt, not snow), in the hills, not water.
+		vec3 cs = sqrt(ALBEDO);
+		float ls = dot(cs, vec3(0.2126, 0.7152, 0.0722));
+		float cc = max(cs.r, max(cs.g, cs.b)) - min(cs.r, min(cs.g, cs.b));
+		float kw = (1.0 - smoothstep(0.06, 0.12, cc)) * smoothstep(0.3, 0.42, ls) * (1.0 - smoothstep(0.75, 0.9, ls));
+		kw *= smoothstep(60.0, 200.0, elev) * (1.0 - wm) * (1.0 - sea);
+		ALBEDO *= mix(vec3(1.0), WARM, kw);
+	}
 	ROUGHNESS = 0.95;
 	float dist = length(VERTEX);
 	// Ground textures where they resolve: gm = the pixel's ground footprint (m, the geometric mean of its two axes, as
@@ -419,7 +435,9 @@ void fragment() {
 				// or a paler, drier one; then the grain.
 				float patch = clamp(3.0 * n1 + 3.0 * n2, -1.0, 1.0);
 				vec3 deep = c * c / max(lum, 0.01);
-				vec3 dry = mix(vec3(lum), c, 0.55) * 1.3;
+				// Drier: paler and a little less saturated, keeping its hue (halving the chroma turned pale rock
+				// and soil white).
+				vec3 dry = mix(vec3(lum), c, 0.8) * 1.2;
 				vec3 lc = patch < 0.0 ? mix(c, deep, -0.8 * patch) : mix(c, dry, 0.5 * patch);
 				lc *= 1.0 + 1.3 * n3 + 0.5 * n2;
 				// Grey ground: a faint grain.

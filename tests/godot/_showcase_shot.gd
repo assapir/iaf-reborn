@@ -9,8 +9,8 @@
 #     -- --log-file /tmp/show_$look.log --path game -s ../tests/godot/_showcase_shot.gd; done
 # Prefix the run with `flock ~/.cache/iaf-gpu-bench.lock` while another session may be benchmarking the GPU.
 # SHOW_SCENES="town,night" takes only those scenes (SCENES' names: town airbase takeoff cockpit coast sea missile_launch
-# missile_close bomb vapour sunset sunset_away night lookdown night_apron_pass night_apron; the night ones need
-# `-- --hour 22`); SHOW_SET="key=value,..." sets more Settings after the look's (e.g. a variant of AFTER); SHOW_TAG
+# missile_close bomb vapour sunset sunset_away night lookdown night_apron_pass night_apron carmel_low; the night ones
+# need `-- --hour 22`); SHOW_SET="key=value,..." sets more Settings after the look's (e.g. a variant of AFTER); SHOW_TAG
 # names the files <scene>_<look><tag>.png. Needs a window.
 extends "res://../tests/godot/base.gd"
 
@@ -76,6 +76,8 @@ const SCENES := {
 	"trees_town50": [231, 10.5, [332520.0, 586900.0], 50.0, 0.0, null, null],
 	"trees_orchard": [231, 10.5, [388541.0, 591900.0], 120.0, 0.0, Vector3(0, 4, 30), Vector3(0, -70, -260)],
 	"trees_carmel": [231, 10.5, [335161.0, 617200.0], 180.0, 0.0, Vector3(0, 4, 30), Vector3(0, -110, -400)],
+	# A low pass over the Carmel's forest, 80 m up, looking along the ridge (the hills' pines and the ground between).
+	"carmel_low": [231, 10.5, [334200.0, 616000.0], 80.0, 140.0, Vector3(-12, 5, 34), Vector3(0, -40, -260)],
 	"trees_close": [231, 10.5, [388541.0, 592300.0], 22.0, 0.0, Vector3(0, -12, 0), Vector3(0, -18, -60)],
 	# The scenery's buildings (docs/scenery.md §3.3): a low pass over a Rishon LeZion street, 30 m up; its roofs from
 	# 150 m.

@@ -103,6 +103,10 @@ ground_tex={
 "type": "float",
 "value": 0.0
 }
+terrain_warm={
+"type": "float",
+"value": 0.0
+}
 ground_albedo={
 "type": "sampler2DArray",
 "value": ""

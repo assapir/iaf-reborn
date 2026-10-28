@@ -4,7 +4,7 @@
 shader_type spatial;
 render_mode cull_back;
 
-uniform vec3 albedo : source_color;
+uniform vec3 albedo;  // linear (scenery.gd _linear)
 uniform bool far_model = false;
 uniform float near_m = 700.0;
 uniform float far_m = 2000.0;

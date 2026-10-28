@@ -43,9 +43,10 @@ const DAMAGE_MS := 1000
 const WALL_LIST := "scenery.json"
 const WALL_COUNT := 4
 ## Tree kinds (the cell file's TreeKind): trunk height, canopy [shape, bottom, top, radius] in metres for a 10 m tree,
-## canopy colour (linear).
+## canopy colour (linear). Shapes: cone; dome (_dome: a mature Aleppo pine's crown is round and blunt, a cone read as
+## a fir plantation); ball; fan (palm fronds).
 const KINDS := [
-	[3.0, ["cone", 2.5, 10.0, 2.6], Color(0.05, 0.10, 0.04)],  # pine
+	[3.0, ["dome", 2.5, 10.0, 2.6], Color(0.05, 0.10, 0.04)],  # pine: a rounded crown, a blunt top
 	[3.0, ["ball", 2.5, 9.0, 3.6], Color(0.12, 0.15, 0.07)],  # broadleaf (olive, carob, oak)
 	[8.5, ["fan", 8.8, 10.0, 3.8], Color(0.12, 0.17, 0.06)],  # palm: fronds arching from the trunk top
 	[1.5, ["cone", 1.0, 10.0, 1.1], Color(0.04, 0.08, 0.03)],  # cypress
@@ -63,10 +64,10 @@ const FOLIAGE_FAR_SHADER := preload("res://terrain/scenery_foliage_far.gdshader"
 const FOLIAGE_LAYERS := ["broadleaf", "conifer", "palm", "bark"]
 ## Per tree kind with the foliage textures: its layer, leaf colour and trunk colour (linear albedo), crown sway (m).
 const FOLIAGE := [
-	[1, Color(0.12, 0.15, 0.085), Color(0.12, 0.09, 0.07)],  # pine (Aleppo pine: dark, grey-green)
-	[0, Color(0.15, 0.18, 0.1), Color(0.11, 0.1, 0.09)],  # broadleaf (olive, carob: grey-green)
-	[2, Color(0.15, 0.18, 0.08), Color(0.15, 0.13, 0.1)],  # palm
-	[1, Color(0.09, 0.12, 0.07), Color(0.11, 0.085, 0.065)],  # cypress (dark green)
+	[1, Color(0.057, 0.09, 0.028), Color(0.12, 0.09, 0.07)],  # pine (Aleppo pine: mid green, a little olive)
+	[0, Color(0.1, 0.12, 0.055), Color(0.11, 0.1, 0.09)],  # broadleaf (olive, carob, oak: grey-green)
+	[2, Color(0.1, 0.13, 0.045), Color(0.15, 0.13, 0.1)],  # palm
+	[1, Color(0.045, 0.07, 0.03), Color(0.11, 0.085, 0.065)],  # cypress (dark green)
 ]
 ## With the foliage textures: the full model to FOLIAGE_NEAR m (its leaf cards cost more to fill than the plain
 ## canopy), cross-faded to the light one over TREES_BAND m each side.
@@ -343,21 +344,21 @@ static func _foliage_tree(kind: int, tex: Texture2DArray) -> ArrayMesh:
 	var c: Array = spec[1]
 	match kind:
 		0:
-			_conifer(st, rng, c[1], c[2], c[3], 6, 5, -0.35)
+			_conifer(st, rng, c[1], c[2], c[3], 6, 5, -0.35, 2.5)
 		1:
 			_broadleaf(st, rng, c[1], c[2], c[3], 16)
 		2:
 			_palm(st, rng, c[1], c[3], 10)
 		3:
-			_conifer(st, rng, c[1], c[2], c[3], 7, 3, 2.2)
+			_conifer(st, rng, c[1], c[2], c[3], 7, 3, 2.2, 1.0)
 	_trunk(st, 0.12 if kind == 2 else 0.18, 0.22 if kind == 2 else 0.3, spec[0] + 0.5, 6)
 	var mesh := st.commit()
 	var m := ShaderMaterial.new()
 	m.shader = FOLIAGE_SHADER
 	m.set_shader_parameter("foliage", tex)
 	m.set_shader_parameter("layer", float(FOLIAGE[kind][0]))
-	m.set_shader_parameter("albedo", FOLIAGE[kind][1])
-	m.set_shader_parameter("trunk", FOLIAGE[kind][2])
+	m.set_shader_parameter("albedo", _linear(FOLIAGE[kind][1]))
+	m.set_shader_parameter("trunk", _linear(FOLIAGE[kind][2]))
 	m.set_shader_parameter("near_m", FOLIAGE_NEAR)
 	m.set_shader_parameter("band_m", TREES_BAND)
 	mesh.surface_set_material(0, m)
@@ -369,7 +370,7 @@ static func _foliage_tree(kind: int, tex: Texture2DArray) -> ArrayMesh:
 static func _far_foliage_material(kind: int) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
 	m.shader = FOLIAGE_FAR_SHADER
-	m.set_shader_parameter("albedo", FOLIAGE[kind][1])
+	m.set_shader_parameter("albedo", _linear(FOLIAGE[kind][1]))
 	m.set_shader_parameter("near_m", FOLIAGE_NEAR)
 	m.set_shader_parameter("band_m", TREES_BAND)
 	m.set_shader_parameter("far_m", TREES)
@@ -449,7 +450,15 @@ static func _broadleaf(
 ## card reaches out from the axis, `rise` its slope (negative: drooping like a pine's branches, large: upright as a
 ## cypress's).
 static func _conifer(
-	st: SurfaceTool, rng: RandomNumberGenerator, bottom: float, top: float, r: float, tiers: int, per: int, rise: float
+	st: SurfaceTool,
+	rng: RandomNumberGenerator,
+	bottom: float,
+	top: float,
+	r: float,
+	tiers: int,
+	per: int,
+	rise: float,
+	taper: float
 ) -> void:
 	var h := top - bottom
 	var c := Vector3(0, bottom + h * 0.4, 0)
@@ -457,7 +466,8 @@ static func _conifer(
 	_core(st, Vector3(0, bottom + h * 0.45, 0), Vector3(r * 0.6, h * 0.55, r * 0.6), 6, true)
 	for i in tiers:
 		var y := bottom + h * (i + 0.5) / tiers * 0.92
-		var rad := r * (1.0 - (y - bottom) / h) + 0.25
+		# The tiers' reach by height: 1 - f^taper (1 a cone; more, a rounder crown wide up to near its top).
+		var rad := r * (1.0 - pow((y - bottom) / h, taper)) + 0.25
 		for j in per:
 			var a := TAU * (j + rng.randf_range(-0.2, 0.2)) / per + i * 0.9
 			var out := Vector3(cos(a), rise, sin(a)).normalized()
@@ -465,9 +475,9 @@ static func _conifer(
 			var s := (rad * 1.5 + 0.6) * rng.randf_range(0.85, 1.15)
 			var at := Vector3(cos(a) * rad * 0.45, y, sin(a) * rad * 0.45) + out * s * 0.3
 			_card(st, at, t * s, out * s, c, radii)
-	# The leader at the top: two crossed upright cards.
+	# The leader at the top: two crossed upright cards (a cone's only; a round crown has none).
 	var tip := Vector3(0, top - 0.9, 0)
-	for k in 2:
+	for k in 2 if taper <= 1.0 else 0:
 		var t := Vector3(cos(k * PI / 2.0), 0, sin(k * PI / 2.0))
 		_card(st, tip, t * 1.4, Vector3.UP * 1.8, c, radii)
 
@@ -528,12 +538,49 @@ static func _trunk(st: SurfaceTool, r_top: float, r_foot: float, h: float, seg: 
 static func _tree_material(colour: Color, far: bool) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
 	m.shader = TREE_SHADER
-	m.set_shader_parameter("albedo", colour)
+	m.set_shader_parameter("albedo", _linear(colour))
 	m.set_shader_parameter("far_model", far)
 	m.set_shader_parameter("near_m", TREES_NEAR)
 	m.set_shader_parameter("far_m", TREES)
 	m.set_shader_parameter("grow_m", TREES_GROW)
 	return m
+
+
+## A linear colour as a shader's vec3. A Color passed to a vec3 uniform reached the shader converted from sRGB to
+## linear (measured on the foliage shaders, which have no source_color hint): every tree was about ten times too
+## dark (docs/scenery.md §3.2).
+static func _linear(c: Color) -> Vector3:
+	return Vector3(c.r, c.g, c.b)
+
+
+## A rounded crown in 3 `n` triangles, centred like the CylinderMesh it stands in for: a ring of `radius` at the
+## foot, one of 0.6 `radius` at 70 % of the height `h`, the apex; an ellipsoid's normals (straight up at the top), so
+## it is lit as a round, blunt crown, not a cone.
+static func _dome(n: int, radius: float, h: float) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var top := Vector3(0, h / 2.0, 0)
+	var y0 := -h / 2.0
+	var y1 := -h / 2.0 + 0.7 * h
+	for i in n:
+		var a0 := TAU * i / n
+		var a1 := TAU * (i + 1) / n
+		var d0 := Vector3(cos(a0), 0, sin(a0))
+		var d1 := Vector3(cos(a1), 0, sin(a1))
+		var b0 := d0 * radius + Vector3(0, y0, 0)
+		var b1 := d1 * radius + Vector3(0, y0, 0)
+		var u0 := d0 * radius * 0.6 + Vector3(0, y1, 0)
+		var u1 := d1 * radius * 0.6 + Vector3(0, y1, 0)
+		var nb0 := (d0 + Vector3(0, 0.3, 0)).normalized()
+		var nb1 := (d1 + Vector3(0, 0.3, 0)).normalized()
+		var nu0 := (d0 + Vector3(0, 1.5, 0)).normalized()
+		var nu1 := (d1 + Vector3(0, 1.5, 0)).normalized()
+		for v in [
+			[b0, nb0], [u1, nu1], [b1, nb1], [b0, nb0], [u0, nu0], [u1, nu1], [u0, nu0], [top, Vector3.UP], [u1, nu1]
+		]:
+			st.set_normal(v[1])
+			st.add_vertex(v[0])
+	return st.commit()
 
 
 ## A palm's crown: `n` fronds from the trunk top (y 0), each rising to `h` at 40 % of its length and drooping to the
@@ -562,6 +609,8 @@ static func _make_far_tree(kind: int, mat: Material) -> ArrayMesh:
 	var canopy: Mesh
 	if c[0] == "fan":
 		canopy = _fronds(5, c[3], h)
+	elif c[0] == "dome":
+		canopy = _dome(6, c[3], h)
 	elif c[0] == "cone":
 		var cone := CylinderMesh.new()
 		cone.top_radius = 0.0
@@ -604,6 +653,8 @@ static func _make_tree(kind: int) -> ArrayMesh:
 	var h: float = c[2] - c[1]
 	if c[0] == "fan":
 		canopy = _fronds(8, c[3], h)
+	elif c[0] == "dome":
+		canopy = _dome(7, c[3], h)
 	elif c[0] == "cone":
 		var cone := CylinderMesh.new()
 		cone.top_radius = 0.0
