@@ -613,7 +613,8 @@ fn inside_spans(b: &Building, p: Vec3, d: Vec3) -> Vec<(f64, f64)> {
 pub struct Mesh {
     pub vertex: Vec<[f32; 3]>,
     pub normal: Vec<[f32; 3]>,
-    /// Walls: metres along the wall, metres up; roofs: world X and Godot Z over 32 m.
+    /// Walls: metres along the wall, metres up; roofs: world X and Godot Z over 32 m (Detailed flat roofs: metres
+    /// along and across the footprint's longest edge from its centroid).
     pub uv: Vec<[f32; 2]>,
     /// x = the building's index in the cell, y = the building's height (m) on walls, −1 on roofs.
     pub uv2: Vec<[f32; 2]>,
@@ -632,6 +633,8 @@ pub const PARAPET: f32 = 0.8;
 const STREET_M: f64 = 40.0;
 /// `street`'s value for an open wall: nothing within `STREET_M`.
 const OPEN_STREET: f32 = 1000.0;
+/// CUSTOM0.w on the inner face of a Detailed parapet (scenery_detailed.gdshader draws it plain, a coping on top).
+const PARAPET_INSIDE: f32 = -1.0;
 /// The roof UVs' tile (m).
 const ROOF_TILE: f64 = 32.0;
 const DOME_RINGS: usize = 4;
@@ -722,6 +725,8 @@ struct Builder<'a> {
     centre: [f32; 4],
     /// The Detailed near mesh's streets (their occlusion); None otherwise.
     streets: Option<Streets<'a>>,
+    /// Detailed: the building's centroid and long axis (world X/Y): its flat roof's UVs are metres along and across.
+    roof_frame: Option<([f64; 2], [f64; 2])>,
 }
 
 impl Builder<'_> {
@@ -780,7 +785,8 @@ impl Builder<'_> {
                 [self.at(a[0], a[1], z0), self.at(b[0], b[1], z0), self.at(b[0], b[1], z1), self.at(a[0], a[1], z1)];
             let street = match &self.streets {
                 Some(s) if out > 0.0 => s.street(self.building as usize, a, b),
-                _ => 0.0,
+                Some(_) => PARAPET_INSIDE,
+                None => 0.0,
             };
             self.face_street(&v, &[[u0, v0], [u1, v0], [u1, v1], [u0, v1]], n, false, street);
             run += len;
@@ -792,7 +798,16 @@ impl Builder<'_> {
         let tris = iaf_formats::emf::fill_triangles(&[ring], true);
         for t in tris.as_chunks::<3>().0 {
             let v: Vec<[f32; 3]> = t.iter().map(|p| self.at(p[0].into(), p[1].into(), z)).collect();
-            let uv: Vec<[f32; 2]> = v.iter().map(|p| self.roof_uv(*p)).collect();
+            let uv: Vec<[f32; 2]> = match self.roof_frame {
+                Some((c, u)) => t
+                    .iter()
+                    .map(|p| {
+                        let (dx, dy) = (f64::from(p[0]) - c[0], f64::from(p[1]) - c[1]);
+                        [(dx * u[0] + dy * u[1]) as f32, (dy * u[0] - dx * u[1]) as f32]
+                    })
+                    .collect(),
+                None => v.iter().map(|p| self.roof_uv(*p)).collect(),
+            };
             self.face(&v, &uv, [0.0, 1.0, 0.0], true);
         }
     }
@@ -925,6 +940,7 @@ pub fn mesh_chunks(
         wall: [0.0; 4],
         centre: [0.0; 4],
         streets: (model == Model::Detailed).then(|| Streets::new(cell)),
+        roof_frame: None,
     };
     let mut last_tile = None;
     for k in order {
@@ -950,8 +966,15 @@ pub fn mesh_chunks(
         bld.building = k as f32;
         bld.height = b.height;
         let material = f32::from(b.wall) / 255.0;
-        bld.roof = [rgb[0], rgb[1], rgb[2], material];
-        bld.wall = bld.roof;
+        bld.wall = [rgb[0], rgb[1], rgb[2], material];
+        // Detailed: a dome's alpha 1 keeps it in the photo's colour (scenery_detailed.gdshader), not clay tiles.
+        let dome = b.roof == Roof::Dome && bld.streets.is_some();
+        bld.roof = [rgb[0], rgb[1], rgb[2], if dome { 1.0 } else { material }];
+        bld.roof_frame = if bld.streets.is_some() {
+            long_axis(&b.points).map(|u| (b.centroid().map(f64::from), u.map(f64::from)))
+        } else {
+            None
+        };
         match (near, b.roof) {
             (true, Roof::Gabled) if pts.len() == 4 => bld.gabled(&pts, base, top),
             (true, Roof::Dome) => bld.dome(&pts, b.centroid().map(f64::from), base, top),
@@ -1065,6 +1088,19 @@ impl Seed {
     }
 }
 
+/// A footprint's longest edge as a unit vector (world X/Y): the axes of its roof's clutter and of a Detailed flat
+/// roof's UVs.
+fn long_axis(p: &[[f32; 2]]) -> Option<[f32; 2]> {
+    let e = (0..p.len())
+        .map(|i| {
+            let (a, b) = (p[i], p[(i + 1) % p.len()]);
+            [b[0] - a[0], b[1] - a[1]]
+        })
+        .max_by(|a, b| a[0].hypot(a[1]).total_cmp(&b[0].hypot(b[1])))?;
+    let l = e[0].hypot(e[1]).max(1e-3);
+    Some([e[0] / l, e[1] / l])
+}
+
 /// The clutter on a cell's flat roofs as MultiMesh rows (`TRANSFORM_3D` and a colour: 16 floats each, Godot frame from
 /// `origin`), one list per `RoofItem`: solar water heaters facing south in rows, water tanks, a stair head on buildings
 /// of two levels and more, AC units; seeded per building, inside the parapet. None while the terrain there is not
@@ -1081,14 +1117,7 @@ pub fn roof_rows(cell: &Cell, origin: [f64; 2], ground: &dyn Fn(Vec3) -> Option<
         let mut s = Seed((k as u32).wrapping_mul(0x85eb_ca6b) ^ c[0].to_bits() ^ c[1].to_bits().rotate_left(13));
         // The roof's axes: along its longest edge and across.
         let p = &b.points;
-        let e = (0..p.len())
-            .map(|i| {
-                let (a, b) = (p[i], p[(i + 1) % p.len()]);
-                [b[0] - a[0], b[1] - a[1]]
-            })
-            .max_by(|a, b| a[0].hypot(a[1]).total_cmp(&b[0].hypot(b[1])))?;
-        let l = e[0].hypot(e[1]).max(1e-3);
-        let (ux, uy) = (e[0] / l, e[1] / l);
+        let [ux, uy] = long_axis(p)?;
         let yaw = uy.atan2(ux);
         // Free spots on a 2.4 × 2.8 m grid along the axes, at least 1.4 m inside the parapet.
         let (mut lo, mut hi) = ([f32::MAX; 2], [f32::MIN; 2]);
@@ -1130,7 +1159,7 @@ pub fn roof_rows(cell: &Cell, origin: [f64; 2], ground: &dyn Fn(Vec3) -> Option<
             let mid = spots.len() / 2;
             let at = spots.swap_remove(mid);
             let g = 0.5 + 0.12 * s.next();
-            push(RoofItem::Box, at, yaw, [2.6, 2.5, 3.0], [g, g * 0.97, g * 0.9]);
+            push(RoofItem::Box, at, yaw, [2.6, 2.5, 3.0], [g, g * 0.98, g * 0.95]);
             used += 1;
         }
         // Heaters: most roofs, in rows facing south; tanks and AC units on a few spots.
@@ -1142,13 +1171,13 @@ pub fn roof_rows(cell: &Cell, origin: [f64; 2], ground: &dyn Fn(Vec3) -> Option<
             let r = s.next();
             let turn = (s.next() - 0.5) * 0.3;
             if heaters && r < 0.6 {
-                let g = 0.6 + 0.15 * s.next();
+                let g = 0.72 + 0.08 * s.next();
                 push(RoofItem::Heater, at, turn, [1.0; 3], [g, g, g * 0.97]);
             } else if r < 0.75 {
-                let g = if s.next() < 0.5 { 0.6 } else { 0.08 };
+                let g = if s.next() < 0.5 { 0.72 } else { 0.08 };
                 push(RoofItem::Tank, at, turn, [1.0; 3], [g, g, g]);
             } else if r < 0.88 {
-                push(RoofItem::Box, at, yaw + turn, [0.9, 0.65, 0.4], [0.7, 0.7, 0.68]);
+                push(RoofItem::Box, at, yaw + turn, [0.9, 0.65, 0.4], [0.68, 0.68, 0.66]);
             } else {
                 continue;
             }
@@ -1419,6 +1448,14 @@ mod tests {
         assert_eq!(m.custom0[north][3], 15.0 * 1024.0 + 80.0);
         let south = (0..m.vertex.len()).find(|&k| m.uv2[k][0] == 0.0 && m.normal[k][2] > 0.9).unwrap();
         assert_eq!(m.custom0[south][3], OPEN_STREET);
+        // The parapet's inner faces: marked, from the roof up.
+        let inside: Vec<usize> = (0..m.vertex.len()).filter(|&k| m.custom0[k][3] == PARAPET_INSIDE).collect();
+        assert_eq!(inside.len(), 2 * 4 * 4);
+        assert!(inside.iter().all(|&k| m.vertex[k][1] >= 12.0 - PARAPET - 1e-3));
+        // The first flat roof (20 × 10 m about (10, 5)): metres from its centre along its long side.
+        let roof: Vec<[f32; 2]> = (0..m.vertex.len()).filter(|&k| m.uv2[k] == [0.0, -1.0]).map(|k| m.uv[k]).collect();
+        assert!(!roof.is_empty());
+        assert!(roof.iter().all(|u| (u[0].abs() - 10.0).abs() < 1e-3 && (u[1].abs() - 5.0).abs() < 1e-3), "{roof:?}");
     }
 
     #[test]

@@ -633,7 +633,8 @@ static func _make_tree(kind: int) -> ArrayMesh:
 
 
 ## The roof clutter's models (iaf_avionics::scenery::RoofItem order: heater, tank, box), our own, each standing on its
-## origin; scenery_roof.gdshader tints them by the instance colour. Vertex alpha 0 marks the collectors' glass.
+## origin over its shade on the roof; scenery_roof.gdshader tints them by the instance colour. Vertex alpha picks the
+## material: 0 the collectors' glass, 0.25 galvanised steel, 0.5 the shade, 1 paint.
 static func roof_mesh(item: int) -> ArrayMesh:
 	if _roof_meshes.is_empty():
 		var m := ShaderMaterial.new()
@@ -643,6 +644,9 @@ static func roof_mesh(item: int) -> ArrayMesh:
 		for k in 3:
 			var st := SurfaceTool.new()
 			st.begin(Mesh.PRIMITIVE_TRIANGLES)
+			# Flat normals: smooth ones (group 0) bend a box's sides up to the sky and light it pale.
+			st.set_smooth_group(-1)
+			var shade := Color(0, 0, 0, 0.5)
 			match k:
 				0:  # a 2 × 1 m collector tilted 40° to the south (+z), its frame, a 1.6 m tank behind its top
 					var glass := Color(0.05, 0.06, 0.08, 0.0)
@@ -659,7 +663,7 @@ static func roof_mesh(item: int) -> ArrayMesh:
 					_quad(
 						st,
 						[Vector3(1, 0.3, 0.5), Vector3(-1, 0.3, 0.5), Vector3(-1, 0.0, 0.5), Vector3(1, 0.0, 0.5)],
-						Color(0.35, 0.35, 0.35)
+						Color(0.75, 0.76, 0.78, 0.25)
 					)
 					_quad(
 						st,
@@ -669,18 +673,26 @@ static func roof_mesh(item: int) -> ArrayMesh:
 							Vector3(1, 0.0, -0.27),
 							Vector3(-1, 0.0, -0.27)
 						],
-						Color(0.35, 0.35, 0.35)
+						Color(0.75, 0.76, 0.78, 0.25)
 					)
-					_prism(st, Vector3(-0.8, 1.2, -0.55), Vector3(1.6, 0, 0), 0.3, 6, Color(0.8, 0.8, 0.78))
+					_prism(st, Vector3(-0.8, 1.2, -0.55), Vector3(1.6, 0, 0), 0.3, 6, Color(0.95, 0.95, 0.93))
+					_flat(st, Vector2(1.05, 0.55), Vector2(-1.05, -0.9), shade)
 				1:  # a tank 1.1 m across, 1.2 m tall
 					_prism(st, Vector3.ZERO, Vector3(0, 1.2, 0), 0.55, 8, Color.WHITE)
+					_flat(st, Vector2(0.68, 0.68), Vector2(-0.68, -0.68), shade)
 				2:  # a unit box (the instance scales it)
 					_prism(st, Vector3.ZERO, Vector3(0, 1, 0), 0.7071, 4, Color.WHITE)
+					_flat(st, Vector2(0.6, 0.6), Vector2(-0.6, -0.6), shade)
 			st.generate_normals()
 			var mesh := st.commit()
 			mesh.surface_set_material(0, m)
 			_roof_meshes.append(mesh)
 	return _roof_meshes[item]
+
+
+## A flat quad 4 cm over the roof from corner `a` (x, z) to `b`.
+static func _flat(st: SurfaceTool, a: Vector2, b: Vector2, col: Color) -> void:
+	_quad(st, [Vector3(b.x, 0.04, b.y), Vector3(a.x, 0.04, b.y), Vector3(a.x, 0.04, a.y), Vector3(b.x, 0.04, a.y)], col)
 
 
 ## A quad, front faces clockwise seen from its front.
