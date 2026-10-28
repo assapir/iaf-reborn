@@ -56,7 +56,7 @@ const SCENES := {
 	"cockpit": [231, 10.5, [337929.1, 614642.4], 250.0, 160.0, null, null],
 	"coast": [231, 10.5, [333500.0, 637500.0], 3000.0, 200.0, Vector3(-22, 7, 45), Vector3(0, -6, -60)],
 	"sea": [231, 10.5, [306000.0, 546500.0], 120.0, 100.0, Vector3(-10, 4, 30), Vector3(0, -6, -60)],
-	"missile_launch": [231, 10.5, [], 0.0, 0.0, Vector3(6.5, -2.2, 7), Vector3(3.9, -1.2, -20)],
+	"missile_launch": [231, 10.5, [], 0.0, 0.0, Vector3(6.0, -1.9, 0.5), Vector3(3.9, -1.0, -12)],
 	"missile_close": [231, 10.5, [], 0.0, 0.0, Vector3(7, 1.5, 14), Vector3(0, -1, -6)],
 	"bomb": [231, 10.5, [337929.1, 614642.4], 400.0, 90.0, null, null],
 	"vapour": [231, 10.5, [337929.1, 614642.4], 400.0, 0.0, Vector3(-6, 3, 22), Vector3.ZERO],
@@ -187,7 +187,7 @@ func _scene(name: String, s: Array) -> void:
 		await seconds(1.5)
 	match name:
 		"missile_launch":
-			await _launch(7, 0.03, Callable())
+			await _launch(7, 0.12, Callable(), true)
 		"missile_close":
 			await _launch(1, 2.5, _chase_missile)
 		"bomb":
@@ -266,18 +266,32 @@ func _settle() -> float:
 
 ## The missile on `station` launched for real (player_weapons.gd launch_homing: its model, Models Original or
 ## Detailed, its trail and flame), the clock run `t` s with the jet held still, then stopped. `follow` (the missile's
-## node) places the camera each frame, else it stays where the scene put it.
-func _launch(station: int, t: float, follow: Callable) -> void:
+## node) places the camera each frame, else it stays where the scene put it. `carry`: the jet (and the camera with
+## it) flies on at its launch speed, as in flight, so a short `t` shows the missile just off its pylon (the motion
+## puts it ≈ 8 m ahead of the rail at once, then it drops), its flame lit and its trail starting.
+func _launch(station: int, t: float, follow: Callable, carry := false) -> void:
 	var st: Dictionary = weapons.stores.station(station)
 	var mis = weapons.launch_homing(st.w, weapons.body_to_world(st.attach), weapons.own(), "", 1.0, weapons._me())
 	var node: Node3D = mis.get_meta("node")
 	if follow.is_valid():  # after the flight has moved the missile this frame (cam's process_priority)
 		cam.follow = follow.bind(node)
+	elif carry:
+		var t_jet: Transform3D = tv.rig.global_transform
+		var v: Vector3 = -t_jet.basis.z * (weapons.own().vel as Vector3).length()
+		var t_cam: Transform3D = t_jet.affine_inverse() * cam.global_transform
+		var t_start: float = tv._sim_time
+		cam.follow = func():
+			tv.rig.global_position = t_jet.origin + v * (tv._sim_time - t_start)
+			cam.global_transform = tv.rig.global_transform * t_cam
 	tv.frozen = false
 	var t0: float = tv._sim_time
 	while tv._sim_time - t0 < t:
 		await process_frame
 	tv.frozen = true
+	# The smoke's clock held too, until the scene's mission is reloaded: missile_fx.gd puts out a flame that gets no
+	# point for 2 frames.
+	if tv.effects.gpu != null:
+		tv.effects.gpu.missiles.process_mode = Node.PROCESS_MODE_DISABLED
 	await frames(20)  # TAA's history at the last pose
 	var rel: Vector3 = tv.rig.global_transform.affine_inverse() * node.global_position
 	print("missile at %s in the jet's frame, visible %s" % [rel, node.is_visible_in_tree()])
