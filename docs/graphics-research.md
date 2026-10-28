@@ -179,7 +179,7 @@ the F-16D has the cleanest licence.
 | Jet (variant needed) | Candidate | Licence (checked) | Notes |
 |---|---|---|---|
 | F-16D (two-seat) | FlightGear F-16 `github.com/NikolaiVChr/f16` | **GPL-2.0-or-later** (`copyright.txt`: "version 2 of the License, or (at your option) any later version", all files) — compatible | **Built** from `Models/f16.ac` (the textured single-seat F-16C with separate moving parts, 2048² UVs, three IAF desert liveries) made two-seat by `tools/f16d/rig.py` ([aircraft-models.md](aircraft-models.md)). `Models/F-16D.ac` is a shared untextured AI model: one mesh with its stores baked in |
-| F-15C (single) | Zaretto F-15 `github.com/Zaretto/fg-aircraft` (`aircraft/F-15`, also FGAddon `F-15`) | **unverified**: no COPYING / licence in the repo; FGAddon's copy is under the FGAddon policy (GPLv2+ since Aug 2015, older files possibly GPLv2-only) — ask the author (Richard Harrison) or take the FGAddon copy's files after checking each | external model by Enrique Laso; C and D variants; cockpit with photo textures |
+| F-15C (single) | Zaretto F-15 `github.com/Zaretto/fg-aircraft` (`aircraft/F-15`, also FGAddon `F-15`) | **GPL-2.0-only** (author, issue #211): can't ship in our GPL-3.0-or-later repo; setup can download and convert it locally | external model by Enrique Laso; C and D variants; cockpit with photo textures |
 | F-4E / Kurnass 2000 | FGAddon `McDonnell-F-4-Phantom`; `github.com/Zaretto/F-4X` (GPLv2+, early alpha, an F-4S) | GPLv2+ (F-4X README); FGAddon per file | F-4E differs (gun nose); Kurnass 2000 adds its own avionics bumps |
 | Mirage IIICJ | FGAddon `MirageIII`, `MirageIIIE` | FGAddon policy (check files) | the IIICJ is close to the IIIC |
 | Kfir C2/C7 | none open; Sketchfab "Kfir C.10 Block 60" (CC BY, but taken from War Thunder — **rights doubtful**, don't use) | — | would be our own build from the Mirage III / 5 base |
@@ -195,7 +195,7 @@ GPL-2.0-only files cannot ship in it.
 hinged (gear, doors, flaps, ailerons, stabilators, rudders, canopy, air brake, hook, nozzles) and a full cockpit:
 3D model by Enrique Laso, rig by Richard Harrison, cockpit photo textures by GeneB. Its licence is not stated
 anywhere: GitHub reports none, the repo has no COPYING and no file headers, zaretto.com says "All rights reserved",
-and the FGAddon copy was first committed on 2015-07-04, before FGAddon required GPLv2+. Answered on 2026-10-27 by
+and the FGAddon copy was first committed on 2015-07-04, before FGAddon recommended GPLv2+. Answered on 2026-10-27 by
 Richard Harrison (Zaretto/fg-aircraft issue #211[^zaretto211]): the repository is **GPL-2.0-only**, and a change
 would need every copyright holder in its AUTHORS file. GPL-2.0-only files can't ship in our GPL-3.0-or-later repo,
 but anyone may use and modify them, so setup can download the model at a pinned commit and convert it on the
