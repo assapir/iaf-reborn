@@ -216,11 +216,11 @@ and converted on the player's machine, never committed or distributed (graphics-
 | item | value |
 |---|---|
 | source | Richard Harrison's (Zaretto) F-15C, `github.com/Zaretto/fg-aircraft` `aircraft/F-15` at commit 062cb58 (2020-01-03): 3D model by Enrique Laso, rig by Richard Harrison, cockpit textures by GeneB; GPL-2.0-only (docs/credits.md) |
-| download | 10 files, about 18 MB, into `assets/source/f15/` (kept; each checked against its pinned SHA-256): `f15c.ac`, the nozzles, the pilot, the front cockpit, the grey and IAF liveries, `common.png`, the seat and the IAF patch |
+| download | 9 files, about 17 MB, into `assets/source/f15/` (kept; each checked against its pinned SHA-256): `f15c.ac`, the nozzles, the pilot, the front cockpit, the grey livery, `common.png`, the seat and the IAF patch |
 | triangles | 42 400 (original: 7 100); runtime LODs as the F-16D |
 | textures | the livery 2048² (JPEG), the gear / nozzle / intake atlas 1024², seat 512², pilot patch 512 × 256; compressed to BC1 / BC3 at the parse, about 5 MB of video memory (24 MB as RGBA8) |
 | file size | 3.3 MB |
-| livery | FlightGear's grey F-15C (USAF 80-0007) with its US markings painted out (tail codes, fin-tip bands, fin flash, the USAF crests) and the IAF roundels of FlightGear's IAF F-15I livery (69 Squadron) at their places: above and under each wing and on each intake side; the Hebrew radio call plate of the same livery |
+| livery | the IAF F-15C **802 "Panther"** (פנתר) of 133 Squadron (§6.2): FlightGear's grey F-15C (USAF 80-0007) with its US markings painted out (tail codes, fin-tip bands, fin flash, the USAF crests), tinted to the Baz's bluish grey, and our own markings: roundels on the nose and wings, the name, four kill marks, the tail number on the nose and fins, the Baz bird on the outer fins and 133 Squadron's black band with an eagle's head on the inner fins |
 | crew | one pilot (FlightGear's, with the IAF patch) on an ACES II seat in the front cockpit tub |
 
 ### 6.1 The conversion
@@ -245,13 +245,57 @@ pipeline and in tools/setup-cli.sh alike. It:
    in the body. FlightGear's other moving extras (wing bend, intake ramps, engine fans, refuelling door) stay still;
 5. copies the original's helpers (stations, gun, eye, wingtips, height) and puts EngineL/R at each nozzle's exit,
    EngineL1/R1 above it by the exit's radius;
-6. paints the livery (above; `ROUNDELS`, `ERASE`, `CRESTS` hold the places in the 2048² skin): a painted-out
-   marking is filled with the mean of its neighbours until it settles, so the grey runs on smoothly; a roundel is the
-   IAF livery's, cut as the ellipse round its white and blue pixels with a one-pixel blended rim;
+6. paints the livery (above, §6.2; `ERASE`, `CRESTS` hold the places in the 2048² skin): a painted-out marking is
+   filled with the mean of its neighbours until it settles, so the grey runs on smoothly; the skin is tinted
+   (`TINT`); each marking (`MARKS`: our PNG, its centre and width in metres on the jet's left, the way the surface
+   faces) is projected onto every livery triangle that faces that way within 0.2 m, both sides, each texel sampled
+   3 × 3 on its triangles, so it lands by its place on the jet whatever the skin's layout;
 7. writes the glb: smooth normals from AC3D's crease angles, one material per texture or colour (canopy glass tinted
    and blended), the textures as JPEG / PNG inside.
 
-### 6.2 How it fits the game
+### 6.2 The livery: F-15C 802
+
+The detailed F-15 wears the markings of one real jet: **F-15C 802** (USAF serial 80-0122), the first F-15C of the
+Israeli Air Force, at Tel Nof since August 1981, named **"Panther"** (פנתר) and in 133 Squadron's markings, with
+four Syrian kill marks from June 1982[^airhistory802][^twz]. It is chosen because:
+
+- the original's own F-15 (`f15.png`) has a black fin-tip band with a white emblem over a grey Baz, tail number 808:
+  133 Squadron's band, as 802 wears it[^commons802];
+- 802 is the best documented Baz with free photos: four CC BY 4.0 photos from 2017 show its nose, name, kills,
+  roundel and both fins[^commons802];
+- it flew in 1998, the game's year, with the same unit and its 1982 kills.
+
+The photos are from 2017. Whether 802 wore the name, the bird and the band in 1998 is open.
+
+| marking | where (from photos) | size (m) | drawn as |
+|---|---|---|---|
+| roundel, fuselage | each side under the canopy, centre 4.30 m behind the nose tip and 0.34 m under the canopy sill (its top just under the sill) | 0.57 | white disc, blue Star of David to 0.79 of the radius[^commons802][^commons818] |
+| roundel, wings | above and under each wing on the outer panel, 4.9 m from the centre line, mid-chord | 0.60 | the same roundel[^underside][^above] |
+| name "פנתר" | each side behind the radome joint, centre 2.49 m behind the nose tip | 0.47 × 0.20 | blue Hebrew script, our strokes traced over the photo[^commons802] |
+| kill marks | above the name, centre 3.09 m behind the nose tip | 4 × 0.19 | Syrian roundels: red, white, black, three green stars[^commons802] |
+| tail number, nose | below the kill marks, centre 3.27 m behind the nose tip | 0.29 × 0.15 | blue square-cut digits[^commons802] |
+| red emblem | outer face of each fin, at the top | 0.13 × 0.24 | a red crowned drop (its meaning open)[^commons802] |
+| bird of prey | outer face of each fin, middle | 0.94 × 1.41 | black line drawing, facing forward, our own simplified one[^commons818][^twz] |
+| tail number, fins | outer face of each fin, low | 0.68 × 0.35 | black digits[^commons818] |
+| squadron band | inner face of each fin, 2.14–3.09 m above the datum, under a grey tip | 0.95 high | black, a white eagle's head facing forward, our own drawing[^commons802][^underside] |
+
+The sizes and places are measured on the photos, scaled by the roundel (0.57 m) and the radome (2.2 m), within
+about 10 % (inferred: the camera angles). The nose roundels are about 15 % smaller than the IAF F-15I livery's of FlightGear
+(0.66 m) and 0.2 m higher; the wing roundels are 0.6 m instead of 0.8 m, 0.5–0.75 m further inboard and
+0.25–0.4 m further forward. The
+upper wing roundels are seen on one IAF Baz from above[^above]; that both wings carry them is inferred. That the
+name, kills and tail number are on both sides is inferred (the photos show the left side).
+
+The paint: the IAF's air superiority scheme is FS 36320 Dark Ghost Grey and FS 36375 Light Ghost Grey, from the
+F-15A/B in 1976[^ak]. FlightGear's grey is neutral; the photos of 802, white-balanced on its roundel's white, show a
+bluish grey (red : green : blue about 0.89 : 0.95 : 1). The converter scales the skin's channels by 0.90, 0.95, 1.0
+(inferred). 802's radome is the body's grey with a dark tip, as FlightGear's.
+
+The markings are our own drawings, SVG in `crates/iaf-tools/data/f15-livery/` with the PNGs the converter reads
+(`render.sh` makes them with rsvg-convert on a developer's machine; setup reads only the PNGs). The photos are
+references only and are not in the repo.
+
+### 6.3 How it fits the game
 
 As the F-16D (§1.1): the descriptor stays the original's; `detailed_descriptor` takes the hinge axes, both
 afterburners (EngineL / EngineR) and LdgDrUp from the model. Its speed brake and hook are modelled shut in place, so
@@ -260,7 +304,7 @@ rudders' sweep); the gear legs swing about FlightGear's first retraction axis on
 wheels flat), so a leg in transit takes a simpler path. `util/gltf.gd` maps `f15_h.gltf` to the file under
 `assets/` (DETAILED's paths without `res://`), parses it with LODs and compresses its textures (`_made_by_setup`).
 
-### 6.3 Checks
+### 6.4 Checks
 
 - `tests/godot/test_detailed_models.gd` `_check_f15` (skipped when setup has not made the file): with the switch off
   the original; on, the setup's model with 30–60 k triangles, every node of the original, the helpers within 1 cm,
@@ -270,21 +314,54 @@ wheels flat), so a leg in transit takes a simpler path. `util/gltf.gd` maps `f15
 - `cargo test -p iaf-tools f15`: the sources pinned, the frames, and the whole conversion on `assets/source/f15`
   when it is there; `cargo test -p iaf-formats ac3d`; `cargo test -p iaf-setup` (the step skips offline).
 - `tests/godot/_model_shot.gd` with `SHOT_JET=0`: the before / after pictures (on the ground from the front-left and
-  rear, in flight from the side and above, the gear and surfaces moving mid-roll, a loadout on the pylons).
+  rear, in flight from the side, above and below, the gear and surfaces moving mid-roll, a loadout on the pylons; the
+  livery's nose, left and right sides and both fins' faces).
+- `cargo test -p iaf-tools f15` `marks_land_in_place`: a square of skin round the nose roundel's place takes the
+  roundel on both sides.
 
-### 6.4 Tried and dropped
+### 6.5 Tried and dropped
 
 - 2026-10-28: painting the US markings out column by column (from the colour above to the colour below) left vertical
   streaks on the fins, whose paint is lighter at the leading edge; replaced by the settled mean of the neighbours.
 - 2026-10-28: FlightGear's IAF F-15I livery (69 Squadron) as it is: real IAF markings, but the F-15I's desert
-  camouflage on an F-15C, where the original's F-15 is a grey Baz. Only its roundels and radio call plate are used.
+  camouflage on an F-15C, where the original's F-15 is a grey Baz.
+- 2026-10-28: FlightGear's F-15I roundels cut out and laid on the grey skin: too large on the nose (0.66 m) and
+  wings (0.8 m), the wing ones too far out; replaced by our own roundels at 802's places (§6.2). Its radio call plate
+  (tail number 269, an F-15I) is no longer copied: the plate's object is left out of the model anyway.
+- 2026-10-28: the nose markings placed by the side photo of 818 on landing: 0.24 m too low, as the jet flew nose up;
+  placed again by the canopy sill on 802's photos. The wing roundels at 4.7 m from the centre line sat just
+  outboard of the pylons, inboard of the photos' place; moved to 4.9 m.
 
-### 6.5 Open
+### 6.6 Open
 
-- The livery is the grey of a USAF F-15C with IAF roundels: no IAF tail number, squadron badge or Baz fin art, and
-  where a US marking was the panel lines are gone. FlightGear's IAF livery is the desert camouflage of the F-15I.
+- Where a US marking was painted out, the panel lines are gone. FlightGear's small USAF stencils stay.
+- The markings are as sharp as the 2048² skin allows: about 7.5 mm per texel on the nose, 13 mm on the fins.
+- The meaning of 802's red fin emblem, and which markings it wore in 1998, are open (§6.2).
 - The cockpit view's own-jet model (`own_bc`, the original's `f15_bc`) stays the original's, as for the F-16D. The
   front cockpit shows its tub, glare shields and seat, without the instrument panel (its textures are SGI `.rgb`
   files, which the converter does not read).
 - No original model as the far LOD (as the F-16D; the stores have it).
 - The gear legs retract about one axis (above); the nozzles keep their modelled opening.
+
+## Sources
+
+[^airhistory802]: AirHistory.net, photo 600613 of F-15C 802 (caption: 80-0122, the IAF's first F-15C, at Tel Nof
+    in August 1981, "Panther", 133 Squadron markings, four Syrian kill marks of June 1982),
+    https://www.airhistory.net/photo/600613/802
+[^twz]: The War Zone, "These Are The Best Photos Of Israeli F-15 Baz Eagles We've Ever Seen" (kill roundels on the
+    forward fuselage, 802 with four; 106 Squadron's red stripes and badge on the inner faces of the fins; the bird of
+    prey across the Baz fleet), https://www.twz.com/these-are-the-best-photos-of-israeli-f-15-baz-eagles-weve-ever-seen
+[^commons802]: MathKnight, "IAF-F-15C-Baz--Independence-Day-2017-Tel-Nof-IZE-082 / 084 / 086 / 086-kill-marks.jpg",
+    Wikimedia Commons, CC BY 4.0, 2 May 2017, https://commons.wikimedia.org/wiki/Category:F-15C_Baz
+[^commons818]: "McDonnell Douglas F-15C-28-MC Eagle (Baz) '818' (48644505872).jpg", Wikimedia Commons, CC BY-SA
+    2.0, 28 August 2019 (106 Squadron, right side),
+    https://commons.wikimedia.org/wiki/File:McDonnell_Douglas_F-15C-28-MC_Eagle_(Baz)_%E2%80%98818%E2%80%99_(48644505872).jpg
+[^underside]: IDF Spokesperson's Unit, "Israel 75th Independence Day - Israeli Air Force Fly By LXVII.jpeg",
+    Wikimedia Commons, CC BY-SA 3.0, 26 April 2023 (a 133 Squadron Baz from below: the wing roundels, the band),
+    https://commons.wikimedia.org/wiki/File:Israel_75th_Independence_Day_-_Israeli_Air_Force_Fly_By_LXVII.jpeg
+[^above]: דוידי ורדי, "95675 air combat falcons PikiWiki Israel.jpg", Wikimedia Commons, CC BY 2.5, 2019 (a Baz
+    from above: a roundel on the upper wing),
+    https://commons.wikimedia.org/wiki/File:95675_air_combat_falcons_PikiWiki_Israel.jpg
+[^ak]: AK Interactive, Israeli Air Force colours (AK11752), product text: the air superiority grey scheme of FS 36320
+    Dark Ghost Grey and FS 36375 Light Ghost Grey came with the F-15A/B at the end of 1976,
+    https://ak-interactive.com/?p=256303

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 180">
+<!-- The red emblem at the top of 802's outer fins: a crowned drop (its meaning open). Ours. -->
+<path d="M50,38 C78,66 94,96 90,126 C86,156 68,172 50,172 C32,172 14,156 10,126 C6,96 22,66 50,38 Z" fill="#b3262b" stroke="#7a1418" stroke-width="5"/>
+<path d="M33,52 L36,12 L50,34 L64,12 L67,52 Z" fill="#b3262b" stroke="#7a1418" stroke-width="5" stroke-linejoin="round"/>
+</svg>

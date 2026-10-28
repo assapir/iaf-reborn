@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2400 950">
+<!-- 133 Squadron's fin-tip band on the inner face of each fin: black, with a white eagle's head facing forward (as
+     seen from the jet's left side). Our own simplified drawing; 1 unit = 1 mm. The band is wider than the fin: only
+     the fin's own surface takes it. -->
+<rect width="2400" height="950" fill="#1a1a1a"/>
+<g transform="translate(960,125)">
+<path d="M140,40 C200,0 300,10 350,90 C400,170 420,260 430,350 C440,450 460,560 480,660 L430,620 L400,690 L360,630
+ L320,700 L280,640 L240,700 L210,630 L170,690 L150,600 C160,520 170,450 150,400 C120,380 80,390 60,420
+ C50,400 30,360 20,330 C10,290 20,250 50,230 C60,170 90,90 140,40 Z" fill="#f0f0ec"/>
+<path d="M58,322 C110,318 160,306 200,290" fill="none" stroke="#1a1a1a" stroke-width="14" stroke-linecap="round"/>
+<path d="M150,150 C190,128 240,130 270,150" fill="none" stroke="#1a1a1a" stroke-width="16" stroke-linecap="round"/>
+<circle cx="215" cy="175" r="24" fill="#1a1a1a"/>
+</g>
+</svg>

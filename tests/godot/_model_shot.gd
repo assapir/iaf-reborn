@@ -50,6 +50,7 @@ const F15_LOADOUT := [
 const JET_AIR_SHOTS := [
 	["air_side", 24.0, 270.0, 2.0, {}],
 	["air_top", 26.0, 10.0, 70.0, {}],
+	["air_below", 24.0, 0.0, -80.0, {}],
 	["air_front_quarter", 22.0, 35.0, 12.0, {}],
 	["air_rear_quarter", 22.0, 145.0, 15.0, {}],
 	[
@@ -68,6 +69,12 @@ const JET_GROUND_SHOTS := [
 	["ground_rear", 20.0, 165.0, 10.0, {}],
 	["ground_gear", 9.0, 250.0, -4.0, {}, Vector3(0, -0.8, 0)],
 	["ground_cockpit", 7.0, 300.0, 20.0, {}, Vector3(0, 0.8, -5.5)],
+	["ground_left", 22.0, 270.0, 4.0, {}],
+	["ground_right", 22.0, 90.0, 4.0, {}],
+	["ground_nose", 6.5, 280.0, 6.0, {}, Vector3(0, 0.3, -6.0)],
+	["ground_nose_right", 6.5, 80.0, 6.0, {}, Vector3(0, 0.3, -6.0)],
+	["ground_tail", 8.5, 245.0, 12.0, {}, Vector3(0, 2.2, 7.0)],
+	["ground_tail_inner", 10.0, 300.0, 22.0, {}, Vector3(0, 2.2, 7.0)],
 ]
 const GROUND_SHOTS := [
 	["ground_front", 18.0, 30.0, 8.0, {}],
