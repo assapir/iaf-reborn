@@ -918,6 +918,7 @@ static func nav_cues(st: Dictionary, route: Array, index: int) -> Dictionary:
 ## 5: in NAV "%3.1f MIN" below 60 minutes, in mode 5 the bomb time-to-go "%2d SEC" / "XX SEC" (≥ 90), in modes
 ## 1, 2, 8 "%2d SEC" and in mode 4 "%2d" of the last launched weapon's time left (S+0x380). Mode 1 without a lock
 ## shows "AUD" in row 4 while the cockpit has a target (S+0x3a4, `wp.target`: the seeker's; FUN_0052ef20 @52f437).
+## Ours, a GPS bomb in modes 5 / 6: row 5 "IN RNG", row 3 the designated point's range.
 static func text_block(
 	st: Dictionary, mode: int, nav: Dictionary, wp: Dictionary, radar: Dictionary, twin: bool, flags: Array
 ) -> Array:
@@ -965,6 +966,13 @@ static func text_block(
 			if ag.get("off", false):
 				var sec := int(float(ag.get("ttg", 0.0)))
 				rows[5] = "XX SEC" if sec >= 90 else "%2d SEC" % sec
+	# Ours: a GPS bomb (HUD modes 5 / 6): "IN RNG" inside its launch acceptability region, else the range to its
+	# designated point "R %2.1f" (NM) when no radar lock fills row 3 (docs/weapons.md §13.3).
+	var gps: Dictionary = wp.get("ag", {}).get("gps", {}) if mode in [5, 6] else {}
+	if not gps.is_empty():
+		rows[5] = "IN RNG" if gps.get("in_range", false) else ""
+		if gps.get("designated", false) and lk.is_empty():
+			rows[3] = "R %2.1f" % (float(gps.get("dist", 0.0)) * M_TO_NM)
 	# Modes 1, 2, 8: "%2d SEC", mode 4: "%2d" of S+0x380, the last launched weapon's time left (FUN_00456520).
 	if mode in [1, 2, 8]:
 		rows[5] = "%2d SEC" % int(float(wp.get("sec", 0.0)))
@@ -1208,7 +1216,39 @@ func _draw_weapons(s: float, w: float, gun: Vector2, dash := false) -> void:
 					"arc": range_arc(float(lk.dist)) if not lk.is_empty() else 0.0
 				}
 		5, 6:
-			_draw_ag(wp.get("ag", {}), s, w, col)
+			var gps: Dictionary = wp.get("ag", {}).get("gps", {})
+			if gps.get("designated", false):
+				_draw_gps(gps, s, w, col)
+			else:
+				_draw_ag(wp.get("ag", {}), s, w, col)
+
+
+## Ours (a GPS bomb at a designated point, docs/weapons.md §13.3): the aim's diamond (±7 px, as the TV / HARM one),
+## held inside the HUD along the line from the HUD centre, and a line from the flight path marker to it: the steering
+## to the point. In the launch acceptability region the diamond carries a centre dot.
+func _draw_gps(gps: Dictionary, s: float, w: float, col: Color) -> void:
+	if camera == null or not host_world_to_scene.is_valid():
+		return
+	var sp: Vector3 = host_world_to_scene.call(gps.aim)
+	var d: Vector2
+	if camera.is_position_behind(sp):
+		var b := camera.global_basis.inverse() * (sp - camera.global_position)
+		d = clip_toward(_c, _c + Vector2(b.x, -b.y).normalized() * size.length())
+	else:
+		d = clip_toward(_c, camera.unproject_position(sp) - global_position)
+	var k := 7.0 * s
+	draw_polyline(
+		PackedVector2Array(
+			[d + Vector2(0, -k), d + Vector2(k, 0), d + Vector2(0, k), d + Vector2(-k, 0), d + Vector2(0, -k)]
+		),
+		col,
+		w
+	)
+	var a := _ag_anchor()
+	if a.distance_to(d) > k:
+		draw_line(a, d + (a - d).normalized() * k, col, w)
+	if gps.get("in_range", false):
+		draw_circle(d, maxf(1.5 * s, w), col)
 
 
 ## The gun pipper (FUN_00530040, HUD modes 3 / 4) on `outer`: the 32×32 sprite and, with a radar lock, the range arc

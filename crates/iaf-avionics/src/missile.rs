@@ -75,6 +75,10 @@ pub struct ChaseMotion {
     /// Weapon data Real (ours, docs/real-weapons.md §2): the DLZ max is the distance the motion really flies
     /// (`travelled`) instead of the original's `flown`, which is tuned for the 1998 records.
     pub real: bool,
+    /// The high off-boresight missiles (ours: AIM-9X, Python 5; docs/weapons.md §13.1): the overshoot ends the flight
+    /// only once the target has been ahead of the missile at an update, so a missile launched at a target beside or
+    /// behind the beam turns toward it instead of ending at once.
+    pub off_boresight: bool,
 }
 
 impl ChaseMotion {
@@ -234,6 +238,8 @@ pub struct Missile {
     /// +0x118.
     ended: bool,
     next_update: f64,
+    /// The target was ahead at an update (cos > 0; `ChaseMotion::off_boresight`).
+    seen_ahead: bool,
 }
 
 impl Missile {
@@ -278,6 +284,7 @@ impl Missile {
             cos_prev: 0.0,
             ended: false,
             next_update: now,
+            seen_ahead: false,
         }
     }
 
@@ -361,12 +368,14 @@ impl Missile {
         let cos_old = self.cos_prev;
         let cos_new = uv.dot(u);
         self.cos_prev = cos_new;
+        self.seen_ahead |= cos_new > 0.0;
         if age < 0.001 {
             self.next_update = now + PERIOD;
             return false;
         }
         let timeout = age > t_end;
-        let overshoot = cos_new < OVERSHOOT_COS && dist <= self.tuning.overshoot_dist;
+        let overshoot =
+            cos_new < OVERSHOOT_COS && dist <= self.tuning.overshoot_dist && (!m.off_boresight || self.seen_ahead);
         let end = !self.tuning.no_end && (hit || timeout || overshoot) && (!has_target || age >= m.t_co);
         if !end {
             self.next_update = now + PERIOD;
@@ -443,6 +452,7 @@ mod tests {
             release_time: 0.0,
             release_accel: 0.0,
             real: false,
+            off_boresight: false,
         }
     }
 
@@ -460,6 +470,26 @@ mod tests {
         let behind = Kinematics { pos: Vec3::new(0.0, -5000.0, 0.0), vel: Vec3::ZERO };
         assert_eq!(m.dlz(&JET, Some(&behind)), Dlz::NONE);
         assert_eq!(m.dlz(&JET, None).min, m.flown(250.0, 1.0));
+    }
+
+    #[test]
+    fn off_boresight_missile_turns_to_a_target_behind_the_beam() {
+        // A target 100° off the nose (Python 5): the original's overshoot ends the flight at the first steering
+        // update; the off-boresight missile turns and reaches it.
+        let at = Vec3::new(3000f64 * 100f64.to_radians().sin(), 3000.0 * 100f64.to_radians().cos(), 3000.0);
+        let still = Kinematics { pos: at, vel: Vec3::ZERO };
+        let fly = |off_boresight: bool| {
+            let m = ChaseMotion { accel: 600.0, beta: 0.44, t_co: 0.05, burn: 20.0, off_boresight, ..amraam() };
+            let mut mis =
+                Missile::launch(m, Tuning::default(), 0.0, Vec3::UP * 3000.0, &JET, Aim::Unit("t".into()), 1.0);
+            let mut t = 0.0;
+            while !mis.update(t, still, &|_| None) {
+                t += PERIOD;
+            }
+            mis.last_pos().distance(at)
+        };
+        assert!(fly(false) > 2000.0, "the original ends near the launch");
+        assert!(fly(true) < 50.0, "off-boresight: {}", fly(true));
     }
 
     #[test]

@@ -23,8 +23,8 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (radar.md).
 - **Flyable jets:** the Jet list's seven — F-15, F-16, F-4E, F-4 Kurnass 2000, Lavi, Kfir, Mirage (the Jet list or a
   mission's jet; aircraft.md §5); the MiG-23 / MiG-29 with their own cockpits wherever a mission puts the player in
   one (the Mission Creator does; no campaign mission does); our F-35I in one jet's slot (Extras, f35i.md); every F-16
-  as the F-16I Sufa (Extras "F-16 version", f16i.md: flight data, radar and the TSD name built; its model, arming art
-  and new weapons in progress). A mission whose player jet is any other type flies it as the F-16.
+  as the F-16I Sufa (Extras "F-16 version", f16i.md: flight data, radar, the TSD name and the new weapons built: AIM-9X, Python 5, JDAMs, GBU-39,
+  weapons.md §13; its model and arming art in progress). A mission whose player jet is any other type flies it as the F-16.
 - **Game version: v1.1 logic**, with v1.1 data when setup is given the patch; v1.0 data still plays. Doc addresses
   are v1.1 (v1.1.md maps them to v1.0).
 - Everything comes from the player's own ISO; the repo (github.com/assapir/iaf-reborn, GPL-3.0) holds no game data.

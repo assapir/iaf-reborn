@@ -6,6 +6,7 @@ pub mod bombs;
 pub mod eo;
 pub mod fctrl;
 pub mod gaaf;
+pub mod gps;
 pub mod guided;
 pub mod gun;
 pub mod harm;

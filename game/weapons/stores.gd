@@ -23,7 +23,8 @@ const FRAMES := [
 	"StationCha",
 	"StationFla"
 ]
-## Types that get a store model (FUN_0053ceb0 / FUN_0053ced0; 560 rockets get the rocket box).
+## Types that get a store model (FUN_0053ceb0 / FUN_0053ced0; 560 rockets get the rocket box). BOMBS: the bomb rack
+## layout, which the GPS bombs (ours, sufa_weapons.gd) take too: four GBU-39s sit on one rack.
 const BOMBS := [500, 510]
 const DRAWN := [500, 510, 640, 635, 570, 650, 580, 590, 600, 610, 660]
 
@@ -124,7 +125,9 @@ func setup(load: Array, db: RefCounted, descriptor: Dictionary, pilon_of: Callab
 		}  # no Station helper: nowhere to hang it
 		if st.drawn:
 			var pilon = pilon_of.call(w.model_path) if pilon_of.is_valid() else null
-			st.slots = ClassDB.class_call_static("IafStores", "slots", i, attach, n, w.type in BOMBS, pilon)
+			st.slots = ClassDB.class_call_static(
+				"IafStores", "slots", i, attach, n, w.type in BOMBS or w.has("gps"), pilon
+			)
 		stations[i] = st
 		var r := {
 			"type": w.type,

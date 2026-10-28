@@ -117,6 +117,17 @@ pub fn laser_aim(own: Vec3, p: Vec3, ripple: Vec3, designation: Option<Vec3>, gr
     d
 }
 
+/// A GPS bomb's aim (ours, docs/weapons.md §13.2), fixed at its release: the targeting pod's designation (`pod`, with
+/// the laser on, at most 2 m above the terrain `ground`; no seeker cone: the bomb has none), else the radar's
+/// designated point (`td`, the HUD's TD box), else the bombs' aim (`ripple`: the CCIP / delayed CCIP). Returns the aim
+/// and whether it is a designation.
+pub fn gps_aim(ripple: Vec3, pod: Option<Vec3>, ground: f64, td: Option<Vec3>) -> (Vec3, bool) {
+    match (pod.filter(|d| d.z <= ground + LASER_ABOVE), td) {
+        (Some(d), _) | (None, Some(d)) => (d, true),
+        _ => (ripple, false),
+    }
+}
+
 /// The TV status (`FUN_00460940`): 0 NO SOURCE unless the TV weapon (the flying one, else the selected store) is a 635 /
 /// 640 / 650; 1 RDY before launch and for a launched Maverick, else the guided weapon's 2 TRA / 3 TER
 /// (`guided_status`); 0 when the selected store has no rounds left and (nothing flies or a Maverick flies).
@@ -201,5 +212,13 @@ mod tests {
         assert_eq!(laser_aim(own, p, p, Some(Vec3::new(100.0, 5000.0, 0.0)), 0.0), Vec3::new(100.0, 5000.0, 0.0));
         assert_eq!(laser_aim(own, p, p, Some(Vec3::new(0.0, -5000.0, 0.0)), 0.0), p, "behind: refused");
         assert_eq!(shown_time(400.0), 60.0);
+    }
+
+    #[test]
+    fn gps_aim_pod_then_td_then_ccip() {
+        let (ccip, pod, td) = (Vec3::new(0.0, 1.0, 0.0), Vec3::new(0.0, -9000.0, 0.0), Vec3::new(5.0, 5.0, 0.0));
+        assert_eq!(gps_aim(ccip, Some(pod), 0.0, Some(td)), (pod, true), "behind the jet too: no seeker cone");
+        assert_eq!(gps_aim(ccip, Some(pod + Vec3::UP * 50.0), 0.0, Some(td)), (td, true), "a pod point in the air");
+        assert_eq!(gps_aim(ccip, None, 0.0, None), (ccip, false));
     }
 }

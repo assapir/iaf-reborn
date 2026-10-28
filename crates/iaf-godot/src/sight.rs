@@ -46,6 +46,19 @@ fn key(k: Option<&str>) -> GString {
     k.map(GString::from).unwrap_or_default()
 }
 
+/// A missile record's seeker: its generation, then the Real overrides (real_cone_deg, real_rear_km, real_front_km,
+/// real_front_ab_km; a missing front range = no front lock).
+fn configure(s: &mut Seeker, w: &VarDictionary) {
+    let generation = num(w, "generation").unwrap_or_default() as i64;
+    let km = |k| num(w, k).unwrap_or_default() * 1000.0;
+    let lock = num(w, "real_rear_km").map(|_| RealLock {
+        rear: km("real_rear_km"),
+        front_mil: km("real_front_km"),
+        front_ab: km("real_front_ab_km"),
+    });
+    s.set_weapon(generation, num(w, "real_cone_deg"), lock);
+}
+
 #[derive(GodotClass)]
 #[class(init, base = RefCounted)]
 pub struct IafSeeker {
@@ -63,14 +76,17 @@ impl IafSeeker {
     /// real_front_km, real_front_ab_km; a missing front range = no front lock).
     #[func]
     fn set_weapon(&mut self, w: VarDictionary) {
-        let generation = num(&w, "generation").unwrap_or_default() as i64;
-        let km = |k| num(&w, k).unwrap_or_default() * 1000.0;
-        let lock = num(&w, "real_rear_km").map(|_| RealLock {
-            rear: km("real_rear_km"),
-            front_mil: km("real_front_km"),
-            front_ab: km("real_front_ab_km"),
-        });
-        self.seeker.set_weapon(generation, num(&w, "real_cone_deg"), lock);
+        configure(&mut self.seeker, &w);
+    }
+
+    /// Lock-on after launch (ours, docs/weapons.md §13.1): the key of the unit the missile of record `w` at `pos`
+    /// takes along `axis` ("" none); `units` [{key, pos, vel, afterburner}].
+    #[func]
+    fn loal(w: VarDictionary, pos: Vector3, axis: Vector3, units: VarArray) -> GString {
+        let mut s = Seeker::default();
+        configure(&mut s, &w);
+        let units = heats(&units);
+        key(s.loal(vec3(pos), vec3(axis), &units).map(|u| u.key.as_str()))
     }
 
     #[func]

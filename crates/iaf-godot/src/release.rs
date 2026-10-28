@@ -54,6 +54,14 @@ impl IafRelease {
         vector3(release::laser_aim(vec3(own), vec3(p), vec3(ripple), d, ground))
     }
 
+    /// A GPS bomb's aim: [aim, designated]; `pod` / `td` world points or null.
+    #[func]
+    fn gps_aim(ripple: Vector3, pod: Variant, ground: f64, td: Variant) -> VarArray {
+        let v = |d: &Variant| d.try_to::<Vector3>().ok().map(vec3);
+        let (a, designated) = release::gps_aim(vec3(ripple), v(&pod), ground, v(&td));
+        varray![vector3(a), designated]
+    }
+
     /// `flying` the flying TV weapon's type (−1 none).
     #[func]
     fn tv_status(flying: i64, guided_status: i64, selected: i64, selected_left: i64) -> i64 {

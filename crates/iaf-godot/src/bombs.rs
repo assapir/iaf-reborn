@@ -4,6 +4,7 @@
 use crate::world::{get, num, terrain, vec3, vector3};
 use godot::prelude::*;
 use iaf_avionics::bombs::{self, Bomb};
+use iaf_avionics::gps::{GpsBomb, Kit};
 use iaf_avionics::master::{Hud, Master, MasterKey, Modes};
 
 /// The falling store's state as a dictionary {t0, p0, v0, aim, acc, end, next_check, opened, done} (bombs.gd keeps
@@ -201,5 +202,65 @@ impl IafModes {
     #[func]
     fn m_key_radar(cycle: i64, n: i64, aa: bool, mode: i64) -> i64 {
         i64::from(iaf_avionics::master::m_key_radar(cycle as u8, n.max(0) as usize, aa, mode as u8))
+    }
+}
+
+/// A GPS kit from a weapon record's "gps" {glide, min_speed, max_speed, max_g} (sufa_weapons.gd).
+fn kit(d: &VarDictionary) -> Kit {
+    let f = |k: &str, def: f64| num(d, k).unwrap_or(def);
+    Kit {
+        glide: f("glide", 1.0),
+        min_speed: f("min_speed", 150.0),
+        max_speed: f("max_speed", 300.0),
+        max_g: f("max_g", 3.0),
+    }
+}
+
+/// `IafGpsBomb`: one GPS-guided bomb in flight (`iaf_avionics::gps`, ours; docs/weapons.md §13.2).
+#[derive(GodotClass)]
+#[class(init, base = RefCounted)]
+pub struct IafGpsBomb {
+    bomb: Option<GpsBomb>,
+}
+
+#[godot_api]
+impl IafGpsBomb {
+    #[func]
+    fn launch(&mut self, gps: VarDictionary, now: f64, pos: Vector3, vel: Vector3, aim: Vector3) {
+        self.bomb = Some(GpsBomb::launch(kit(&gps), now, vec3(pos), vec3(vel), vec3(aim)));
+    }
+
+    /// Flies to `now`; true when it bursts (at `position()`).
+    #[func]
+    fn advance(&mut self, now: f64, ground: Callable) -> bool {
+        let t = terrain(Some(ground));
+        self.bomb.as_mut().is_none_or(|b| b.advance(now, &t))
+    }
+
+    #[func]
+    fn position(&self) -> Vector3 {
+        self.bomb.as_ref().map(|b| vector3(b.pos)).unwrap_or_default()
+    }
+
+    #[func]
+    fn velocity(&self) -> Vector3 {
+        self.bomb.as_ref().map(|b| vector3(b.vel)).unwrap_or_default()
+    }
+
+    #[func]
+    fn aim(&self) -> Vector3 {
+        self.bomb.as_ref().map(|b| vector3(b.aim)).unwrap_or_default()
+    }
+
+    /// The LAR: a release from `pos` at `vel` reaches `aim`.
+    #[func]
+    fn in_range(gps: VarDictionary, pos: Vector3, vel: Vector3, aim: Vector3) -> bool {
+        kit(&gps).in_range(vec3(pos), vec3(vel), vec3(aim))
+    }
+
+    /// The ground distance a release `h` metres above the aim at speed `s` reaches.
+    #[func]
+    fn reach(gps: VarDictionary, h: f64, s: f64) -> f64 {
+        kit(&gps).reach(h, s)
     }
 }

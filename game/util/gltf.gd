@@ -246,9 +246,19 @@ static func object(path: String, allow_detailed := true) -> Variant:
 	return model(objects_path(path))
 
 
-## The full path of a converted object model (path under converted/objects).
+## The full path of a converted object model (path under converted/objects); a model of ours the install lacks
+## (STAND_INS) gives the original model standing in for it.
 static func objects_path(path: String) -> String:
-	return _settings().assets_dir().path_join("converted/objects").path_join(path)
+	return _settings().assets_dir().path_join("converted/objects").path_join(STAND_INS.get(path, path))
+
+
+## The F-16I Sufa's stores (ours, game/weapons/sufa_weapons.gd): model paths no install has, drawn as the original
+## store they stand in for with Models: Original, as their own detailed model (STORES) with Models: Detailed.
+const STAND_INS := {
+	"weapons/sufa/aim9x_m.gltf": "weapons/aim9/aim9_m.gltf",
+	"weapons/sufa/gbu31_m.gltf": "weapons/mk84lb/mk84lb_m.gltf",
+	"weapons/sufa/gbu38_m.gltf": "weapons/mk82lb/mk82lb_m.gltf",
+}
 
 
 ## open() of the model at the full `path`, cached per OBJECT DETAIL level: every unit and jet of a type shares it.
@@ -289,6 +299,9 @@ const STORES := {
 	"f16ftkm.gltf": "f16ftkm",
 	"ecmpod_m.gltf": "ecmpod",
 	"flrpod_m.gltf": "flrpod",
+	"aim9x_m.gltf": "aim9x",
+	"gbu31_m.gltf": "gbu31",
+	"gbu38_m.gltf": "gbu38",
 }
 
 
