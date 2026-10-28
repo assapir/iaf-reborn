@@ -63,6 +63,13 @@ table `0x640bbc` [MAP, GMT]. Each entry is (max range index, detection NM); (0, 
 
 STT takes LRS's (max index, NM). A jet without LRS uses ACM's.
 
+Ours: with Extras "F-16 version" on Sufa, an F-16 takes a tenth row, index 9, for the F-16I's AN/APG-68(V)9 (30 %
+more air-to-air range; docs/f16i.md §2):
+
+| jet | LRS | TWS | ACM | BORE | MAP | GMT |
+|---|---|---|---|---|---|---|
+| F-16I | 5, 58 | 4, 45 | 2, 10 | 2, 10 | 4, 40 | 4, 30 |
+
 ## 2. Keys (`FUN_0044a240`)
 | key | event | rule |
 |---|---|---|
@@ -167,7 +174,8 @@ Damage cases 0xf / 0x13 / 0x15 (`FUN_004adb20`) turn the radar OFF, and every la
   (crates/iaf-avionics/src/heights.rs: the full-detail nodes terrain.gd streams, the same interpolation as
   `height_at`), with no GDScript call per sample (tests/godot/test_heights.gd).
 - **Weapon data Real:** the LRS / STT detection range of each Jet list jet is its real radar's (F-16 APG-68 80 km,
-  F-15 APG-63 135 km, …; docs/real-weapons.md §1.3). The MiGs keep the table.
+  F-15 APG-63 135 km, …; docs/real-weapons.md §1.3). The MiGs keep the table. The F-16I's is the F-16's × 1.3,
+  104 km.
 
 ## 9. Validation
 `tests/godot/test_radar.gd` checks:

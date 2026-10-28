@@ -1747,7 +1747,12 @@ func _start_flight() -> void:
 		rig.position,
 		Vector3(start_pitch, start_roll, heading),
 		velocity,
-		{"airborne": start_airborne, "engine_on": start_engine_on, "real_data": real_data}
+		{
+			"airborne": start_airborne,
+			"engine_on": start_engine_on,
+			"real_data": real_data,
+			"sufa": Settings.f16_variant == "sufa"
+		}
 	)
 	if err != "":
 		push_error("flight model: " + err)
@@ -3458,7 +3463,7 @@ func _process(delta: float) -> void:
 
 
 ## The info line's first field: ORIGINAL, or a short tag per switch not at its original setting (FLT real flight
-## data, WPN real weapons, HUD:<style>, 1:1 world scale, CKPT+ better cockpit, PHYS+ better physics).
+## data, WPN real weapons, HUD:<style>, 1:1 world scale, CKPT+ better cockpit, PHYS+ better physics, SUFA the F-16I).
 func _modes_text() -> String:
 	var t := []
 	if real_data:
@@ -3473,6 +3478,8 @@ func _modes_text() -> String:
 		t.append("CKPT+")
 	if Settings.better.values().has(true) or _all_better:
 		t.append("PHYS+")
+	if Settings.f16_variant == "sufa":
+		t.append("SUFA")
 	return "ORIGINAL" if t.is_empty() else " ".join(t)
 
 

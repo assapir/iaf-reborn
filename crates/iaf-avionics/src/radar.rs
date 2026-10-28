@@ -105,9 +105,12 @@ impl Range {
 /// (max range index, detection NM) per mode, in the tables' order LRS, TWS, ACM, BORE, MAP, GMT; (0, 0) = no such mode.
 type Row = [(u8, f64); 6];
 
+/// Ours: the row of the F-16I Sufa's AN/APG-68(V)9 (docs/f16i.md §2), after the original's nine.
+pub const F16I: usize = 9;
+
 /// Per cockpit index (`FUN_00447e70`: 0 F-15, 1 F-16, 2 F-4-2000, 3 Lavi, 4 Kfir, 5 F-4E, 6 Mirage, 7 MiG-29,
-/// 8 MiG-23): A-A table `0x640a74` and A-G table `0x640bbc`.
-const TABLES: [Row; 9] = [
+/// 8 MiG-23): A-A table `0x640a74` and A-G table `0x640bbc`; then ours, [`F16I`].
+const TABLES: [Row; 10] = [
     [(6, 90.0), (4, 40.0), (2, 10.0), (2, 10.0), (4, 40.0), (4, 20.0)],
     [(5, 45.0), (4, 35.0), (2, 10.0), (2, 10.0), (4, 40.0), (4, 30.0)],
     [(5, 55.0), (4, 40.0), (2, 10.0), (2, 10.0), (5, 60.0), (5, 40.0)],
@@ -117,6 +120,9 @@ const TABLES: [Row; 9] = [
     [(2, 8.0), (0, 0.0), (1, 5.0), (1, 5.0), (2, 10.0), (2, 10.0)],
     [(5, 45.0), (4, 35.0), (2, 10.0), (2, 10.0), (2, 10.0), (2, 10.0)],
     [(4, 25.0), (0, 0.0), (2, 10.0), (2, 10.0), (4, 40.0), (4, 25.0)],
+    // The F-16's row with the (V)9's 30 % more air-to-air range (Lockheed Martin): LRS 45 → 58 NM, TWS 35 → 45 NM
+    // (inferred); the scales and the other modes as the F-16's.
+    [(5, 58.0), (4, 45.0), (2, 10.0), (2, 10.0), (4, 40.0), (4, 30.0)],
 ];
 
 /// The modes a jet's radar has, with their ranges.
@@ -1003,6 +1009,15 @@ mod tests {
         r.scan(2.0, &scene(&[jet("t", 30000.0 * a.sin(), 30000.0 * a.cos())]));
         assert!(r.contacts().is_empty(), "65° off the nose: outside the 60° cone");
         assert!((r.scope_width() - 2.0 * PI / 3.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn f16i_row() {
+        let r = Radar::new(F16I, None);
+        assert_eq!(r.ranges().get(Mode::Lrs), Some(&Range { max: 5, nm: 58.0, index: 4 }));
+        assert_eq!(r.ranges().get(Mode::Tws).map(|t| t.nm), Some(45.0));
+        assert_eq!(r.ranges().get(Mode::Stt).map(|t| t.nm), Some(58.0));
+        assert_eq!(r.ranges().get(Mode::Map), Radar::new(1, None).ranges().get(Mode::Map));
     }
 
     #[test]

@@ -281,7 +281,12 @@ func _start(p: Pilot, install: String, plane: String) -> bool:
 		pos,
 		Vector3(0.0, 0.0, float(p.ent.heading)),
 		vel if airborne else Vector3.ZERO,
-		{"airborne": airborne, "engine_on": engine_on, "real_data": host.real_data}
+		{
+			"airborne": airborne,
+			"engine_on": engine_on,
+			"real_data": host.real_data,
+			"sufa": Settings.f16_variant == "sufa"
+		}
 	)
 	if err != "":
 		push_warning("AI %s: %s" % [p.ent.name, err])

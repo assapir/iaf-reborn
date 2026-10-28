@@ -196,6 +196,8 @@ const BINGO_CHOICES := [
 const EXTRAS := [
 	["flight_data", "Flight data", [["Original (1998)", "original"], ["Real aircraft", "real"]]],
 	["weapon_data", "Weapon data", [["Original (1998)", "original"], ["Real weapons", "real"]]],
+	# Ours: every F-16 as the F-16I Sufa (docs/f16i.md): its flight data, radar and look.
+	["f16_variant", "F-16 version", [["Barak (F-16D)", "barak"], ["Sufa (F-16I)", "sufa"]]],
 	["language", "Language", [["English", "en"], ["Hebrew", "he"]]],
 	["show_info", "Flight info (Ctrl+F12)", [["Show", true], ["Hide", false]]],
 	["blackbox", "Blackbox", [["On", true], ["Off", false]]],

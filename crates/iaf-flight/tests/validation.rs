@@ -96,6 +96,23 @@ const REFS: &[Ref] = &[
         ..JET
     },
     Ref {
+        aircraft: "F-16I",
+        name: "F-16I Sufa (F-16D Block 52+, F100-PW-229, CFTs)",
+        empty: Some((19900.0, 21000.0, "19,420-19,840 lb + 900 lb CFTs (docs/f16i.md)")),
+        fuel: Some((8700.0, 9000.0, "5,800 lb internal + 3,050 lb CFTs (Lockheed Martin)")),
+        thrust_mil: Some((17000.0, 18000.0, "17,800 lbf (F100-PW-229)")),
+        thrust_ab: Some((28500.0, 29500.0, "29,160 lbf (F100-PW-229)")),
+        stall: Some((120.0, 135.0, "~128 kt (inferred from the F-16D at the heavier weight)")),
+        ceiling: Some((48500.0, 51500.0, "above 50,000 ft (USAF F-16)")),
+        roll_rate: Some((240.0, 308.0, "~240-308 deg/s (FLCS limit 308)")),
+        vmax_sl: Some((760.0, 800.0, "~Mach 1.2 (as the F-16D, inferred)")),
+        vmax_hi: Some((1050.0, 1180.0, "~Mach 1.9-2.0 (\"Mach 2 at altitude\")")),
+        roll90: Some((0.35, 0.6, "~0.5 s (240-300 deg/s)")),
+        ff_mil: Some((12500.0, 14500.0, "~13,500 lb/h (TSFC 0.76, inferred)")),
+        ff_ab: Some((52000.0, 61000.0, "~56,600 lb/h (TSFC 1.94, inferred)")),
+        ..JET
+    },
+    Ref {
         aircraft: "F-35I",
         name: "F-35I Adir (F-35A, F135-PW-100)",
         empty: Some((29000.0, 29600.0, "29,300 lb (Wikipedia)")),

@@ -16,6 +16,7 @@ const Terrain := preload("res://terrain/terrain.gd")
 const Bombs := preload("res://weapons/bombs.gd")
 const PlayerWeapons := preload("res://weapons/player_weapons.gd")
 const AircraftModel := preload("res://aircraft/aircraft_model.gd")
+const RealWeapons := preload("res://weapons/real_weapons.gd")
 
 const NM := 1854.0
 ## Sensor classes (FUN_004ac5f0): units of other classes (6, 11 ground radar, 15 boat) never target or fire.
@@ -340,8 +341,11 @@ static func _weapon(ent: Dictionary, obj: Dictionary, db) -> Dictionary:
 	return {}
 
 
-## Sensor range in nm by type code (FUN_004acae0, × 1854 m).
+## Sensor range in nm by type code (FUN_004acae0, × 1854 m). Ours: an F-16I Sufa's APG-68(V)9 sees 30 % further
+## (Settings.sufa, docs/f16i.md §2): 52 NM.
 static func sensor_nm(type: int) -> float:
+	if Settings.sufa(type):
+		return 40.0 * RealWeapons.SUFA_RADAR
 	if type >= 250 and type <= 280:
 		return 3.0
 	if type in [290, 310, 330, 340]:
