@@ -18,10 +18,9 @@ const LEVELS := {
 const BOX := 40.0
 const FALL := 7.0
 ## The overcast's ambient light (its colour; the time of day keeps the energy) and the wet ground's specular (Godot's
-## 0..1; also its grazing reflection), under the Original and the Atmospheric sky.
+## 0..1; also its grazing reflection), under either sky (the Atmospheric one turns grey in the rain, rendering.md §10).
 const OVERCAST := Color(0.72, 0.74, 0.77)
 const WET_SPEC := 0.3
-const WET_SPEC_ATMO := 0.12
 ## Grey of the fog in the rain (its colour's luminance, kept) and how far toward it.
 const FOG_GREY := 0.8
 ## The canopy airflow: no run below RUN_FROM m/s, then RUN_PER screen heights per s per m/s; at rest the drops slide
@@ -84,9 +83,7 @@ static func apply_env(env: Environment, sun: DirectionalLight3D) -> void:
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR if not l.is_empty() else dry.ambient_light_source
 	env.ambient_light_color = OVERCAST if not l.is_empty() else dry.ambient_light_color
 	# The Atmospheric sky's reflections stay blue (its radiance is a clear sky's): wet ground reflects little of it.
-	RenderingServer.global_shader_parameter_set(
-		"rain_spec", WET_SPEC_ATMO if Settings.sky == "atmospheric" else WET_SPEC
-	)
+	RenderingServer.global_shader_parameter_set("rain_spec", WET_SPEC)
 	# Off: the aerial perspective is RenderOptions._apply_sky's, set just before.
 	if not l.is_empty():
 		env.fog_aerial_perspective = 0.0

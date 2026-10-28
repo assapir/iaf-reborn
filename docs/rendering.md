@@ -1383,8 +1383,8 @@ HUD, radar and TSD work as before.
 after each change of the sky: the fog's density and its share of the sky; the distance haze from the fog's colour
 instead of the sky's (`fog_aerial_perspective` 0, as the Atmospheric sky's blue haze looks wrong under an overcast);
 the ambient light from the overcast's grey (`Weather.OVERCAST`, a colour source in place of the sky; the time of day
-keeps its energy); the sun's energy; `rain_wet`; the wet ground's specular `rain_spec` (0.3 under the Original sky,
-0.12 under the Atmospheric sky, whose reflections stay a clear sky's blue). Off puts the scene's own values back. The
+keeps its energy); the sun's energy; `rain_wet`; the wet ground's specular `rain_spec` (0.3 under either sky: the
+Atmospheric sky turns grey in the rain, so its reflections do too; 0.12 under it until that sky greyed, 2026-10-28). Off puts the scene's own values back. The
 fog colour of the time of day (§4) is greyed toward its own brightness (`Weather.fog_tint`), by the overcast's share,
 and so is the Original sky's zenith colour, so its reflections are the overcast's grey. The Atmospheric sky turns
 grey by the same share (its `overcast` uniform, set by `RenderOptions.update_view`, §1.2).
