@@ -104,8 +104,8 @@ static func create(plane: String, type := -1, on_ground := false) -> Node3D:
 ## The descriptor for a detailed model (Models: Detailed, util/gltf.gd DETAILED): the original's, so everything the
 ## game reads (stations, gun, wingtips, eye, height) stays the original's. From the detailed model's own helpers come
 ## what only shows: the parts' hinge axes (`<part>1/2`, nearer -> farther from the origin, as the original's loader
-## takes them), the afterburner at its nozzle's exit (EngineL, the radius up to EngineL1) and its closed gear doors
-## (LdgDrUp, ours: shown only with the gear up).
+## takes them), the afterburners at the nozzles' exits (EngineL / EngineR, the radius up to EngineL1 / EngineR1), its
+## closed gear doors (LdgDrUp, ours: shown only with the gear up), and its speed brake and hook shown also shut.
 static func detailed_descriptor(d: Dictionary, scene: Node3D) -> Dictionary:
 	var out := d.duplicate(true)
 	var root := scene.find_child(str(d.get("root", "")), true, false) as Node3D
@@ -122,11 +122,17 @@ static func detailed_descriptor(d: Dictionary, scene: Node3D) -> Dictionary:
 		out.parts[name].axis = [ax.x, ax.y, ax.z]
 	if root.get_node_or_null("LdgDrUp") != null:
 		out.parts["LdgDrUp"] = {"id": LDG_DOORS_UP, "axis": null}
-	var e0 := root.get_node_or_null("EngineL") as Node3D
-	var e1 := root.get_node_or_null("EngineL1") as Node3D
-	if e0 != null and e1 != null and out.get("engines") is Dictionary:
-		out.engines.left = [e0.position.x, e0.position.y, e0.position.z]
-		out.engines.radius = e1.position.y - e0.position.y
+	for side in ["L", "R"]:
+		var e0 := root.get_node_or_null("Engine" + side) as Node3D
+		var e1 := root.get_node_or_null("Engine%s1" % side) as Node3D
+		if e0 != null and e1 != null and out.get("engines") is Dictionary and (side == "L" or out.engines.has("right")):
+			out.engines["left" if side == "L" else "right"] = [e0.position.x, e0.position.y, e0.position.z]
+			out.engines.radius = e1.position.y - e0.position.y
+	# The speed brake and hook are modelled shut in place (the originals that hide them closed have them in the body).
+	for name in ["SpdbrU", "Hook"]:
+		if root.get_node_or_null(name) is MeshInstance3D and out.parts.has(name):
+			out["part_rules"] = out.get("part_rules", {})
+			out.part_rules[name] = {"visible": true}
 	return out
 
 

@@ -353,8 +353,15 @@ j_textures() {  # optional: a failure (offline) only leaves Graphics → MORE �
 		echo "WARNING: the ambientCG textures could not be fetched (offline?): Ground textures and Model detail stay Original; run setup again online"
 }
 
+j_models() {  # optional: a failure (offline) only leaves the F-15 Original with Models Detailed
+	needs aircraft
+	step "detailed F-15: FlightGear F-15C by Enrique Laso, Richard Harrison, GeneB (GPL-2.0-only; download about 18 MB; docs/aircraft-models.md §6)"
+	./target/release/iaf-convert f15-detailed assets ||
+		echo "WARNING: the F-15's sources could not be fetched or converted (offline?): the F-15 stays Original with Models Detailed; run setup again online"
+}
+
 for j in fonts cockpits hebrew briefings reference menu menu_he arm keys missions aircraft objects theatre airbases \
-	godot icon textures; do
+	godot icon textures models; do
 	job "$j" "j_$j"
 done
 wait_jobs

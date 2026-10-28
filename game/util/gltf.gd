@@ -123,7 +123,7 @@ static func _own_textures(state: GLTFState, dir: String) -> void:
 			if img != null:
 				if not img.has_mipmaps() and not img.is_compressed():
 					img.generate_mipmaps()
-				if dir + "/" == STORES_DIR and RenderingServer.has_os_feature("s3tc"):
+				if (dir + "/" == STORES_DIR or _made_by_setup(dir + "/")) and RenderingServer.has_os_feature("s3tc"):
 					img.compress(Image.COMPRESS_S3TC)  # the CPU encoder (rendering.md §1.5), ≈ 3 ms a 512² image
 				made[src] = ImageTexture.create_from_image(img)
 				made[src].set_meta("mipmapped", true)
@@ -264,8 +264,9 @@ static func _settings() -> Node:
 
 
 ## Detailed models (ours, Graphics → MORE → Models: Detailed; docs/aircraft-models.md): the original model's
-## file -> our model in the repo (GPL, tools/f16d/rig.py). Each model falls back on the original on its own.
-const DETAILED := {"f16_h.gltf": "res://extra/models/f16/f16d.glb"}
+## file -> our model: in the repo (res://, GPL, tools/f16d/rig.py) or made by setup under assets/ (the F-15, §6).
+## Each model falls back on the original on its own (the F-15 also when setup could not download its sources).
+const DETAILED := {"f16_h.gltf": "res://extra/models/f16/f16d.glb", "f15_h.gltf": "converted/models/f15/f15c.glb"}
 ## The detailed stores (GPL, tools/stores/build.gd; docs/aircraft-models.md §5), as DETAILED. Their textures are
 ## compressed (BC1) at the parse.
 const STORES_DIR := "res://extra/models/stores/"
@@ -296,6 +297,8 @@ static func detailed(path: String) -> String:
 		return ""
 	var f := path.get_file()
 	var hd: String = DETAILED.get(f, STORES_DIR + STORES[f] + ".glb" if STORES.has(f) else "")
+	if hd != "" and not hd.begins_with("res://"):
+		hd = _settings().assets_dir().path_join(hd)
 	return hd if hd != "" and FileAccess.file_exists(hd) else ""
 
 
@@ -307,9 +310,15 @@ static func detailed_stores() -> Array:
 	return out.keys()
 
 
-## True for our detailed models (DETAILED, STORES): parsed with LODs.
+## True for our detailed models (DETAILED, STORES): parsed with LODs. By the path alone (the parse runs on workers).
 static func is_detailed(path: String) -> bool:
-	return DETAILED.values().has(path) or path.begins_with(STORES_DIR)
+	return DETAILED.values().has(path) or path.begins_with(STORES_DIR) or _made_by_setup(path)
+
+
+## A detailed model setup made under assets/ (DETAILED's paths without res://): its textures are compressed at the
+## parse, as the stores'.
+static func _made_by_setup(path: String) -> bool:
+	return path.contains("/converted/models/")
 
 
 ## A new scene of a model opened with open(), with Model detail when it is on (util/model_detail.gd). A detailed

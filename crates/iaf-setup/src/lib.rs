@@ -115,6 +115,12 @@ pub fn plan(inputs: &Inputs) -> Vec<Step> {
         false,
         &[],
     );
+    add(
+        "models",
+        "detailed F-15: FlightGear F-15C by Enrique Laso, Richard Harrison, GeneB (GPL-2.0-only; download about 18 MB)",
+        false,
+        &["aircraft"],
+    );
     let mut last: Vec<&'static str> = Vec::new();
     for im in &inputs.imagery {
         match im {
@@ -453,6 +459,7 @@ mod tests {
                 "icon",
                 "launcher",
                 "textures",
+                "models",
                 "bc1"
             ]
         );
@@ -529,6 +536,7 @@ mod tests {
             ("Godot extension", &["cli"]),
             ("icon and desktop launcher", &["icon", "launcher"]),
             ("textures: ambientCG", &["textures"]),
+            ("detailed F-15", &["models"]),
             ("pilot guides", &["guides"]),
             ("done", &["cli"]),
         ];

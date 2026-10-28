@@ -9,7 +9,7 @@ use anyhow::{Context, Result, bail};
 use iaf_tools::convert::{self, Options};
 use iaf_tools::imagery_run::{self, MAPI2015, Run, SENTINEL2};
 use iaf_tools::progress::{Progress, check, par_map, threads};
-use iaf_tools::{extract, foliage, pack, patch, terrain, thirdparty};
+use iaf_tools::{extract, f15, foliage, pack, patch, terrain, thirdparty};
 
 use crate::{Ctx, Hebrew, Imagery, Outcome, Step};
 
@@ -46,8 +46,9 @@ pub const OUTPUTS: &[&str] = &[
 ];
 
 /// What the setup keeps on an uninstall unless asked: the imported packs (the pack zips may be gone) and the
-/// downloads (imagery: hours and tens of GB to fetch again; the scenery's sources; the third-party textures).
-pub const KEPT: &[&str] = &["packs", "source/imagery", "source/scenery", "thirdparty"];
+/// downloads (imagery: hours and tens of GB to fetch again; the scenery's and the F-15's sources; the third-party
+/// textures).
+pub const KEPT: &[&str] = &["packs", "source/imagery", "source/scenery", "source/f15", "thirdparty"];
 
 /// Removes the setup's outputs ([`OUTPUTS`]) from `assets`, and with `everything` the [`KEPT`] ones too; a
 /// missing one is fine.
@@ -204,6 +205,7 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
             return scenery_fetch(&list, &a.join("source/scenery"), SCENERY_PROBE, pr, cancel);
         }
         "scenery" => return scenery(a, ctx.inputs.scenery_kinds, pr, cancel),
+        "models" => return f15(a, F15_PROBE, pr, cancel),
         "bc1" => {
             let mut dirs = vec![conv.join("terrain/theatre")];
             // Only the imagery layers the game is set to show (each layer's .dds is ~4.5 GB); without the game's
@@ -358,13 +360,7 @@ fn textures(dir: &Path, base: &str, pr: &dyn Progress, cancel: &AtomicBool) -> R
     if all().all(|m| thirdparty::is_done(dir, m)) && foliage::is_done(dir) {
         return Ok(Outcome::UpToDate);
     }
-    // Any answer from the server will do (no -f); no connection is offline.
-    let reachable = Command::new("curl")
-        .args(["-sI", "--max-time", "15", base])
-        .stdout(Stdio::null())
-        .status()
-        .is_ok_and(|s| s.success());
-    if !reachable {
+    if !reachable(base) {
         return Ok(Outcome::Skipped(
             "ambientcg.com cannot be reached (offline?): Ground textures and Model detail stay Original, scenery trees plain; run setup again online".into(),
         ));
@@ -378,6 +374,32 @@ fn textures(dir: &Path, base: &str, pr: &dyn Progress, cancel: &AtomicBool) -> R
     }
     Ok(Outcome::Done)
 }
+
+/// True when `url`'s server answers: any answer will do (no -f); no connection is offline.
+fn reachable(url: &str) -> bool {
+    Command::new("curl")
+        .args(["-sI", "--max-time", "15", url])
+        .stdout(Stdio::null())
+        .status()
+        .is_ok_and(|s| s.success())
+}
+
+/// The detailed F-15 (iaf_tools::f15, docs/aircraft-models.md §6): its FlightGear sources into `assets/source/f15`
+/// (kept), then the model; skipped (the F-15 stays Original with Models Detailed) when GitHub cannot be reached.
+fn f15(a: &Path, probe: &str, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
+    let src = a.join("source/f15");
+    if !f15::SOURCE.iter().all(|d| thirdparty::file_done(&src, d)) && !reachable(probe) {
+        return Ok(Outcome::Skipped(
+            "GitHub cannot be reached (offline?): the F-15 stays Original with Models Detailed; run setup again online"
+                .into(),
+        ));
+    }
+    f15::setup(a, pr, cancel)?;
+    Ok(Outcome::Done)
+}
+
+/// Answers when the F-15's sources can be downloaded.
+const F15_PROBE: &str = "https://raw.githubusercontent.com/";
 
 /// Answers when the scenery's sources can be downloaded (Geofabrik, the largest).
 const SCENERY_PROBE: &str = "https://download.geofabrik.de/";
@@ -394,12 +416,7 @@ fn scenery_fetch(
     if list.iter().all(|d| thirdparty::file_done(dir, d)) {
         return Ok(Outcome::UpToDate);
     }
-    let reachable = Command::new("curl")
-        .args(["-sI", "--max-time", "15", probe])
-        .stdout(Stdio::null())
-        .status()
-        .is_ok_and(|s| s.success());
-    if !reachable {
+    if !reachable(probe) {
         return Ok(Outcome::Skipped(
             "the scenery's sources cannot be reached (offline?): Scenery stays off; run setup again online".into(),
         ));
@@ -535,6 +552,9 @@ mod textures_tests {
         let list = thirdparty::SCENERY;
         let r = scenery_fetch(list, &dir, "http://127.0.0.1:9/", &Quiet, &AtomicBool::new(false)).unwrap();
         assert!(matches!(r, Outcome::Skipped(ref w) if w.contains("offline")));
+        assert!(!dir.exists(), "nothing written");
+        let r = f15(&dir, "http://127.0.0.1:9/", &Quiet, &AtomicBool::new(false)).unwrap();
+        assert!(matches!(r, Outcome::Skipped(ref w) if w.contains("F-15 stays Original")));
         assert!(!dir.exists(), "nothing written");
     }
 }

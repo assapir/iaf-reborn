@@ -208,7 +208,8 @@ user's machine, like the game's own data (inferred). Rejected:
 
 The FGUK F-15E has no stated licence and is an alpha. NASA 3D Resources and Smithsonian 3D have no F-15. Fallback:
 RaduCarstean's "F-15 Eagle No Textures" (Sketchfab, CC BY 4.0, 72k triangles), a bare mesh needing UVs, paint,
-split surfaces and LODs. No open F-15I Ra'am exists (inferred: our own conversion of an F-15D).
+split surfaces and LODs. No open F-15I Ra'am exists (inferred: our own conversion of an F-15D). Done 2026-10-28: setup downloads the
+Zaretto F-15C at a pinned commit and converts it in Rust (aircraft-models.md §6).
 
 A second, wider search (2026-10-26) found nothing better. Checked:
 - **The old FlightGear `f15c`** (Fabrice Kauffmann, FGMEMBERS/f15c): fgdata's GPL v2 text with no "or later", and

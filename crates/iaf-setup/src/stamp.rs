@@ -101,6 +101,7 @@ pub(crate) fn of(step: &Step, ctx: &Ctx) -> Result<Option<Stamp>> {
         }
         "aircraft" => (Some(conv("planes")), conv("planes.stamp"), vec![]),
         "objects" => (Some(conv("objects")), conv("objects.stamp"), vec![]),
+        "models" => (Some(a.join(iaf_tools::f15::OUTPUT)), conv("models/f15.stamp"), vec![]),
         _ => return Ok(None),
     };
     let mut text = format!("iaf-setup {}\nstep {}\n", env!("SETUP_CODE"), step.id);

@@ -13,6 +13,9 @@ const HELPER_M := 0.01
 ## How far a part's pivot may lie outside its own mesh bounds.
 const HINGE_M := 0.05
 const AXIS_DEG := 12.0
+## The F-15's: FlightGear's hinges against the original's (its main gear retracts about a lateral axis; FlightGear's
+## ailerons and flaps are swept with the wing's trailing edge).
+const F15_AXIS_DEG := 20.0
 ## How far a detailed mesh may reach outside the original's bounds (the FlightGear F-16 is 0.6 m shorter, 0.2 m
 ## taller on its gear).
 const LOOSE_M := 1.0
@@ -293,6 +296,7 @@ func run() -> void:
 	orig_scene.free()
 
 	_check_stores()
+	await _check_f15()
 
 	# In a mission: the player's and the AI's F-16s.
 	var tv := await start_mission(231)
@@ -307,6 +311,101 @@ func run() -> void:
 			ai += 1
 	check(ai > 0, "mission 231: the AI's F-16s are detailed (%d)" % ai)
 	settings().models = "original"
+
+
+## The detailed F-15 (docs/aircraft-models.md §6), made by setup under assets/ (skipped when setup has not made it):
+## the original without it or with the switch off; on, the setup's model with every node of the original, the helpers
+## at the original's, the hinges on their parts with axes near the original's, both afterburners on their nozzles,
+## LODs and compressed textures, and the player's F-15 in mission 311.
+func _check_f15() -> void:
+	var path: String = settings().assets_dir().path_join(Gltf.DETAILED["f15_h.gltf"])
+	settings().models = "original"
+	check(Gltf.detailed("controllableplanes/f15/f15_h.gltf") == "", "F-15 off: the original")
+	settings().models = "detailed"
+	if not FileAccess.file_exists(path):
+		check(Gltf.detailed("controllableplanes/f15/f15_h.gltf") == "", "F-15: not made by setup, the original")
+		return
+	var od: Dictionary = aircraft_model.load_descriptor("f15")
+	var orig_scene: Node3D = Gltf.instance(
+		Gltf.open(settings().assets_dir().path_join("converted/planes/f15").path_join(od.model))
+	)
+	var orig_root := orig_scene.find_child("f15", true, false) as Node3D
+	var on: Node3D = aircraft_model.create("f15", 110, false)
+	var down: Node3D = aircraft_model.create("f15", 110, true)
+	check(on != null and on.find_child("LdgDrUp", true, false) != null, "F-15 on: the setup's model loads")
+	var tris := _tris(on)
+	check(tris > 30000 and tris < 60000, "F-15 on: %d triangles (original %d)" % [tris, _tris(orig_scene)])
+	var fr: Node3D = on.root_frame
+	var missing := []
+	var far := []
+	var report := []
+	for n in orig_root.get_children():
+		var name := String(n.name)
+		var mine := fr.get_node_or_null(NodePath(name)) as Node3D
+		if mine == null:
+			missing.append(name)
+		elif not od.parts.has(name) and not od.parts.has(name.left(-1)):
+			if mine.position.distance_to((n as Node3D).position) > HELPER_M:
+				far.append(name)
+	check(missing.is_empty(), "F-15 on: every node of the original (missing %s)" % [missing])
+	check(far.is_empty(), "F-15 on: helpers within %.2f m of the original's (off: %s)" % [HELPER_M, far])
+	var bad := []
+	for name in od.parts:
+		var p: Dictionary = od.parts[name]
+		var mine := fr.get_node_or_null(NodePath(name)) as Node3D
+		if mine == null or p.axis == null:
+			continue
+		var oa := Vector3(p.axis[0], p.axis[1], p.axis[2]).normalized()
+		var ma := Vector3(on.desc.parts[name].axis[0], on.desc.parts[name].axis[1], on.desc.parts[name].axis[2])
+		var deg := rad_to_deg(oa.angle_to(ma))
+		report.append("%s %.1f°" % [name, deg])
+		var box := _box(mine, mine).grow(HINGE_M)
+		if deg > F15_AXIS_DEG or box.size == Vector3.ZERO or not box.has_point(Vector3.ZERO):
+			bad.append(name)
+	print("F-15 hinges (axis angle to the original's): ", ", ".join(report))
+	check(bad.is_empty(), "F-15 on: pivots on their parts, axes within %.0f° (outside: %s)" % [F15_AXIS_DEG, bad])
+	var body_tris: PackedVector3Array = (fr as MeshInstance3D).mesh.get_faces()
+	var gaps := []
+	var floating := []
+	for s in ["StationB", "StationE", "StationH"]:
+		var gap := _near(body_tris, (fr.get_node(s) as Node3D).position)
+		gaps.append("%s %.3f" % [s, gap])
+		if gap > ATTACH_M:
+			floating.append(s)
+	print("F-15 pylons (station, gap m): ", ", ".join(gaps))
+	check(floating.is_empty(), "F-15 on: the pylons under their stations (none: %s)" % [floating])
+	check(
+		on.flames.size() == 2 and on.desc.engines.right != od.engines.right,
+		"F-15 on: two afterburners at the detailed nozzles (%s, %s)" % [on.desc.engines.left, on.desc.engines.right]
+	)
+	var tex := _albedo(on)
+	check(
+		tex != null and tex.get_width() == 2048 and tex.get_image().is_compressed(),
+		"F-15 on: the 2048 px livery compressed (%s)" % (tex.get_image().get_format() if tex != null else -1)
+	)
+	check(
+		not on.part_node("LdgL").visible and on.part_node("LdgDrUp").visible and on.part_node("SpdbrU").visible,
+		"F-15 airborne: gear hidden, doors shut, the speed brake shown shut"
+	)
+	check(
+		down.part_node("LdgL").visible and down.part_node("LdgDr").visible and not down.part_node("LdgDrUp").visible,
+		"F-15 ground: gear and open doors shown"
+	)
+	on.free()
+	down.free()
+	orig_scene.free()
+	settings().jet_id = 0
+	var tv := await start_mission(311)
+	await frames(5)
+	check(
+		(
+			tv.aircraft != null
+			and String(tv.aircraft.name) == "f15"
+			and tv.aircraft.find_child("LdgDrUp", true, false) != null
+		),
+		"mission 311: the player's F-15 is detailed"
+	)
+	settings().jet_id = -1
 
 
 ## The detailed stores (Gltf.STORES, docs/aircraft-models.md §5): each on its original's axis (STORE_AXIS_M) or top and

@@ -48,6 +48,7 @@ and each step uses every core inside.
 | `airbases` | theatre | `assets/converted/terrain/airbases.json`, `airbases/` |
 | `launcher` | icon | the desktop launcher (`tools/install-launcher.sh`) |
 | `textures` | | `assets/thirdparty/ambientcg`: the CC0 textures of Ground textures and Model detail (≈ 250 MB download; docs/rendering.md §1.4, §9) |
+| `models` | aircraft | `assets/source/f15` (the FlightGear F-15's files, ≈ 18 MB download, GPL-2.0-only) and `assets/converted/models/f15/f15c.glb`, the detailed F-15 (docs/aircraft-models.md §6) |
 | `sentinel2`, `mapi2015-fetch`, `mapi2015` | airbases | `assets/converted/imagery` |
 | `scenery-fetch` | | `assets/source/scenery`: the sources the chosen kinds need (both 520 MB, buildings 373 MB, trees 267 MB; docs/scenery.md §1.1) |
 | `scenery` | mapi2015, scenery-fetch, missions, objects, airbases | `assets/converted/scenery`: the chosen kinds, buildings and trees, buildings only or trees only (docs/scenery.md §1.6) |
@@ -55,7 +56,7 @@ and each step uses every core inside.
 | `guides` | the conversions and imagery | the pilot guides |
 
 "The install" is `patch` when a patch is given, else `extract`. A failed required step stops the setup; the steps
-that wait for it do not run. `launcher`, `textures`, the imagery, `bc1`, the scenery and the guides are optional: their failure stops only
+that wait for it do not run. `launcher`, `textures`, `models`, the imagery, `bc1`, the scenery and the guides are optional: their failure stops only
 what waits for them.
 
 `textures` (`iaf_tools::thirdparty`, CLI `iaf-textures`) fetches each material of `thirdparty::LISTS` with curl,
@@ -63,6 +64,12 @@ checks its zip against the pinned SHA-256 and packs its maps. A material done be
 date without the network. When ambientcg.com cannot be reached the step is skipped with a note, and Graphics → MORE →
 Ground textures and Model detail stay Original. A checksum mismatch (the file on ambientCG changed) fails the step and leaves nothing
 behind.
+
+`models` (`iaf_tools::f15`, CLI `iaf-convert f15-detailed <assets>`) downloads the files of `f15::SOURCE` from
+raw.githubusercontent.com at a pinned fg-aircraft commit, checks each against its SHA-256 (files done before are
+kept), then converts them with the original F-15 into the detailed model. When GitHub cannot be reached the step is
+skipped with a note, and the F-15 stays Original with Models Detailed. The wizard's step line names the model's authors
+and licence.
 
 `bc1` (`iaf_tools::bc1`, CLI `iaf-terrain bc1 <tile-dir>…`) pre-compresses the terrain's colour tiles: for each
 `L*/c_*.jpg` of the theatre and of the imagery layers the game is set to show (Graphics → imagery: the
@@ -111,7 +118,7 @@ picture.
 The CD launcher's UNINSTALL button (Extras → CD launcher, docs/front-end.md §18.1) asks first, then removes what the
 setup wrote under `assets/` (`iaf_setup::OUTPUTS`): `install`, `v1.0`, `v1.1`, `patch`, `converted`,
 `packs-none`, `hebrew-cd`, `hebrew-cd-pick`, the stamps and `setup.json`. The imported packs (`packs`), the imagery
-downloads (`source/imagery`), the scenery's sources (`source/scenery`; `iaf_setup::KEPT`) and the ambientCG textures
+downloads (`source/imagery`), the scenery's and the F-15's sources (`source/scenery`, `source/f15`; `iaf_setup::KEPT`) and the ambientCG textures
 (`thirdparty`) stay unless the box "Also remove the imported Hebrew packs and the
 downloaded imagery" is ticked: getting them back needs the pack zips and hours of downloads. Everything else under
 `assets/` stays, and so do the pilots, settings and logs in the user folder, the repo and the built extension. The
@@ -119,7 +126,7 @@ game then quits; `./setup` installs again. The launcher's INSTALL button opens t
 
 ## Outside programs
 
-- curl: `textures` (ambientCG), the Survey sheets and `scenery-fetch`.
+- curl: `textures` (ambientCG), `models` (GitHub), the Survey sheets and `scenery-fetch`.
 - GDAL (`gdal_translate`, `gdalbuildvrt`, `gdalwarp`, `ogr2ogr` with its OSM driver): the imagery and `scenery` steps.
   Without it they are skipped.
 - gzip: `scenery` (the Microsoft footprints).

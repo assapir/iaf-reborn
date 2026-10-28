@@ -9,6 +9,8 @@
 # SHOT_OUT/<models>_<name>.png and prints the frame time of a settled view. SHOT_BENCH=1: no pictures; the frame time
 # (vsync off) and GPU time over 600 frames with the camera 50 m behind the jet (mission 231: the player's jet and the
 # AI's F-16s drawn).
+# SHOT_JET=0 (the F-15; any jet_id): mission 311 with that jet, also for "airborne" (lifted 3000 m, F15_LOADOUT), and
+# the JET_SHOTS (docs/aircraft-models.md §6), named for the before / after pairs.
 extends "res://../tests/godot/base.gd"
 
 ## AIM-9 on the tips, AIM-120 outboard, Mk-84 at C / G, tanks at D / F, an ECM pod at E (weapon ids by name below).
@@ -33,6 +35,40 @@ const AIR_SHOTS := [
 	["far_1000", 1000.0, 120.0, 5.0, {}],
 	["far_2000", 2000.0, 120.0, 5.0, {}],
 ]
+## The F-15's pylons: AIM-9 / AIM-7 / Mk-84 / AMRAAM / three Mk-82 on the centre line (as _stores_shot.gd's).
+const F15_LOADOUT := [
+	["AIM-9M", 1],
+	["AIM-7M", 1],
+	["MK-84", 1],
+	["AMRAAM", 1],
+	["MK-82", 3],
+	["AMRAAM", 1],
+	["MK-84", 1],
+	["AIM-7M", 1],
+	["AIM-9M", 1]
+]
+const JET_AIR_SHOTS := [
+	["air_side", 24.0, 270.0, 2.0, {}],
+	["air_top", 26.0, 10.0, 70.0, {}],
+	["air_front_quarter", 22.0, 35.0, 12.0, {}],
+	["air_rear_quarter", 22.0, 145.0, 15.0, {}],
+	[
+		"air_roll_gear",
+		18.0,
+		205.0,
+		12.0,
+		{"gear_down": true, "gear": 0.8, "stick_x": 1.0, "stick_y": -0.6, "rudder": 1.0}
+	],
+	["air_gear_below", 14.0, 120.0, -30.0, {"gear_down": true, "gear": 0.8}],
+	["air_brake_flaps", 16.0, 150.0, 25.0, {"brakes": true, "flaps": 1.0}],
+	["air_afterburner", 18.0, 160.0, 8.0, {"afterburner": 2, "rpm": 1.1}],
+]
+const JET_GROUND_SHOTS := [
+	["ground_front_left", 18.0, 325.0, 8.0, {}],
+	["ground_rear", 20.0, 165.0, 10.0, {}],
+	["ground_gear", 9.0, 250.0, -4.0, {}, Vector3(0, -0.8, 0)],
+	["ground_cockpit", 7.0, 300.0, 20.0, {}, Vector3(0, 0.8, -5.5)],
+]
 const GROUND_SHOTS := [
 	["ground_front", 18.0, 30.0, 8.0, {}],
 	["ground_side", 20.0, 90.0, 3.0, {}],
@@ -55,10 +91,17 @@ func run() -> void:
 	var ground := OS.get_environment("SHOT_START") == "ground"
 	settings().models = models if models != "" else "original"
 	settings().show_info = false
-	tv = await start_mission(311 if ground else 231)
-	await frames(3)
+	var jet := OS.get_environment("SHOT_JET")
+	if jet != "":
+		settings().jet_id = int(jet)
+	tv = await start_mission(311 if ground or jet != "" else 231)
+	await frames(60 if ground else 3)
+	if jet != "":
+		for c in tv.get_children():
+			if c is CanvasLayer:
+				c.visible = false  # the mission's messages
 	if not ground:
-		airborne_case(tv, _hardpoints())
+		airborne_case(tv, _hardpoints() if jet == "" else _loadout(311, F15_LOADOUT))
 		var st: Dictionary = tv.flight.state()
 		tv.flight.start(
 			settings().assets_dir().path_join("install"),
@@ -84,11 +127,31 @@ func run() -> void:
 		await _bench()
 		return
 	var only := OS.get_environment("SHOT_ONLY")
-	for s in GROUND_SHOTS if ground else AIR_SHOTS:
+	var shots: Array = GROUND_SHOTS if ground else AIR_SHOTS
+	if jet != "":
+		shots = JET_GROUND_SHOTS if ground else JET_AIR_SHOTS
+	for s in shots:
 		if only != "" and not String(s[0]) in only.split(","):
 			continue
 		await _shot(s, out, settings().models)
+	settings().jet_id = -1
 	check(true, "shots done")
+
+
+## The hardpoints for `loads` ([weapon name, count] per station), the ids from mission `mission`'s weapons.
+func _loadout(mission: int, loads: Array) -> Array:
+	var ids := {}
+	for w in _weapons(mission).weapons:
+		ids[String(w.name)] = int(w.id)
+	var hp := []
+	for l in loads:
+		hp.append_array([int(ids.get(l[0], 0)), int(l[1]) if ids.has(l[0]) else 0])
+	return hp
+
+
+## Mission `mission`'s weapon database (loaded at run time: it needs the autoloads).
+func _weapons(mission: int) -> RefCounted:
+	return load("res://weapons/mission_weapons.gd").create(mission)
 
 
 func _bench() -> void:
@@ -122,7 +185,7 @@ func _bench() -> void:
 
 func _hardpoints() -> Array:
 	var hp := []
-	var db: RefCounted = load("res://weapons/mission_weapons.gd").create(231)
+	var db: RefCounted = _weapons(231)
 	for i in 9:
 		var want: String = LOADOUT.get(i, "")
 		var id := 0
@@ -170,7 +233,10 @@ func _shot(s: Array, out: String, models: String) -> void:
 	if out == "":
 		return
 	DirAccess.make_dir_recursive_absolute(out)
-	img.save_png(out.path_join("%s_%s.png" % [models, s[0]]))
+	var file := "%s_%s.png" % [models, s[0]]
+	if OS.get_environment("SHOT_JET") != "":
+		file = "%s_%s.png" % [s[0], "after" if models == "detailed" else "before"]
+	img.save_png(out.path_join(file))
 	print("shot %s %s %.2f ms/frame" % [models, s[0], ms])
 
 

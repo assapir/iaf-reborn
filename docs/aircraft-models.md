@@ -12,8 +12,9 @@ The switch changes the look only (docs/deviations.md §2 "Models"). Stores, the 
 cockpit view work as with the original models.
 
 Today the detailed models are the **F-16D** (`game/extra/models/f16/f16d.glb`), used for the player's F-16, the AI's
-F-16s, parked F-16s and the Reference viewer, and 16 **stores** (§5) on every jet that carries them. Plans for more
-jets and stores: [graphics-research.md](graphics-research.md) §3.7 and §3.13.
+F-16s, parked F-16s and the Reference viewer; the **F-15C** (§6), which setup makes on your machine from the
+FlightGear F-15 and which stands in for every F-15 the same way; and 16 **stores** (§5) on every jet that carries
+them. Plans for more jets and stores: [graphics-research.md](graphics-research.md) §3.7 and §3.13.
 
 ## 1. The F-16D model
 
@@ -203,3 +204,87 @@ IAF_DEFAULT_SETTINGS=1 godot --headless --path game -s ../tools/stores/build.gd 
 - The weapon's roll is not tracked: a near-vertical bomb turns 90° in roll (`_orient`'s up vector), as the original.
 - The stores keep FlightGear's single 512 px colour texture (no normal or roughness maps); the AIM-9D and AIM-9L show
   as the AIM-9M.
+
+## 6. The detailed F-15C
+
+The F-15 has a detailed model only on machines where setup made it: the step `models` (docs/setup.md) downloads the
+FlightGear F-15 and converts it into `assets/converted/models/f15/f15c.glb`. Its licence (GPL-2.0-only) keeps it out
+of our GPL-3.0-or-later repo, but anyone may use and change it, so it is handled like the game's own data: fetched
+and converted on the player's machine, never committed or distributed (graphics-research.md §3.7). Without the file
+(setup offline, or not run since) every F-15 keeps the original model with Models Detailed.
+
+| item | value |
+|---|---|
+| source | Richard Harrison's (Zaretto) F-15C, `github.com/Zaretto/fg-aircraft` `aircraft/F-15` at commit 062cb58 (2020-01-03): 3D model by Enrique Laso, rig by Richard Harrison, cockpit textures by GeneB; GPL-2.0-only (docs/credits.md) |
+| download | 10 files, about 18 MB, into `assets/source/f15/` (kept; each checked against its pinned SHA-256): `f15c.ac`, the nozzles, the pilot, the front cockpit, the grey and IAF liveries, `common.png`, the seat and the IAF patch |
+| triangles | 42 400 (original: 7 100); runtime LODs as the F-16D |
+| textures | the livery 2048² (JPEG), the gear / nozzle / intake atlas 1024², seat 512², pilot patch 512 × 256; compressed to BC1 / BC3 at the parse, about 5 MB of video memory (24 MB as RGBA8) |
+| file size | 3.3 MB |
+| livery | FlightGear's grey F-15C (USAF 80-0007) with its US markings painted out (tail codes, fin-tip bands, fin flash, the USAF crests) and the IAF roundels of FlightGear's IAF F-15I livery (69 Squadron) at their places: above and under each wing and on each intake side; the Hebrew radio call plate of the same livery |
+| crew | one pilot (FlightGear's, with the IAF patch) on an ACES II seat in the front cockpit tub |
+
+### 6.1 The conversion
+
+The converter is Rust, in setup itself (`crates/iaf-tools/src/f15.rs`, `iaf_formats::ac3d`; CLI `iaf-convert
+f15-detailed <assets>`): it needs no Blender or other outside program, and takes about 2 s. A Godot-side script
+(as tools/stores/build.gd) would need a Godot run inside setup; the Rust step runs in the setup wizard's own
+pipeline and in tools/setup-cli.sh alike. It:
+
+1. reads `f15c.ac` and keeps the single-seat F-15C: the stores and their rails, the two-seat canopy, the conformal
+   tanks, the ladder, the collision hull and the canopy's rivet heads, inner glass, mirrors and lamps are left out
+   (the rivet heads alone are 60 000 triangles); the nozzles' 16 petals are ringed as `nozzle-L/R.xml` turns them;
+   the cockpit tub, glare shields and ACES II seat come from `f15c-interior-front.ac`, the pilot from `pilot.ac`;
+2. turns it into the game's frame (FlightGear: x aft, y right, z up; AC3D files: x aft, y up, z left) and scales it
+   by 0.982 to the original's length, its middle on the original's, its main wheels on the original's `height`;
+3. moves FlightGear's wing and centreline pylons (SUU-59) so each foot meets StationB / StationH / StationE;
+4. splits the moving parts under the original's names — AilerL/R, FlapL/R, ElevaL/R (the stabilators), RuddeL /
+   Rudde, SpdbrU (the speed brake), Hook, LdgF/L/R (each leg with its wheel and lights), canopy (frame and glass),
+   pilot — each with its origin and `<part>1/2` helpers on f15c.xml's hinge line, the axis turned the original's way.
+   The doors that stand open with the gear down (the nose door on the strut, the outer main doors) go to LdgDr opened
+   by f15c.xml's angles (110°, 90°) and to LdgDrUp shut; the other doors shut with the gear both up and down and stay
+   in the body. FlightGear's other moving extras (wing bend, intake ramps, engine fans, refuelling door) stay still;
+5. copies the original's helpers (stations, gun, eye, wingtips, height) and puts EngineL/R at each nozzle's exit,
+   EngineL1/R1 above it by the exit's radius;
+6. paints the livery (above; `ROUNDELS`, `ERASE`, `CRESTS` hold the places in the 2048² skin): a painted-out
+   marking is filled with the mean of its neighbours until it settles, so the grey runs on smoothly; a roundel is the
+   IAF livery's, cut as the ellipse round its white and blue pixels with a one-pixel blended rim;
+7. writes the glb: smooth normals from AC3D's crease angles, one material per texture or colour (canopy glass tinted
+   and blended), the textures as JPEG / PNG inside.
+
+### 6.2 How it fits the game
+
+As the F-16D (§1.1): the descriptor stays the original's; `detailed_descriptor` takes the hinge axes, both
+afterburners (EngineL / EngineR) and LdgDrUp from the model. Its speed brake and hook are modelled shut in place, so
+they show also shut (the original F-15's hide when shut). The hinge axes lie within 8° of the original's (the
+rudders' sweep); the gear legs swing about FlightGear's first retraction axis only (FlightGear also turns the main
+wheels flat), so a leg in transit takes a simpler path. `util/gltf.gd` maps `f15_h.gltf` to the file under
+`assets/` (DETAILED's paths without `res://`), parses it with LODs and compresses its textures (`_made_by_setup`).
+
+### 6.3 Checks
+
+- `tests/godot/test_detailed_models.gd` `_check_f15` (skipped when setup has not made the file): with the switch off
+  the original; on, the setup's model with 30–60 k triangles, every node of the original, the helpers within 1 cm,
+  pivots on their parts with axes within 20° of the original's, the pylons under StationB / E / H (5 cm), two
+  afterburners on the detailed nozzles, the livery compressed, the gear and doors' visibility, and the player's F-15
+  in mission 311.
+- `cargo test -p iaf-tools f15`: the sources pinned, the frames, and the whole conversion on `assets/source/f15`
+  when it is there; `cargo test -p iaf-formats ac3d`; `cargo test -p iaf-setup` (the step skips offline).
+- `tests/godot/_model_shot.gd` with `SHOT_JET=0`: the before / after pictures (on the ground from the front-left and
+  rear, in flight from the side and above, the gear and surfaces moving mid-roll, a loadout on the pylons).
+
+### 6.4 Tried and dropped
+
+- 2026-10-28: painting the US markings out column by column (from the colour above to the colour below) left vertical
+  streaks on the fins, whose paint is lighter at the leading edge; replaced by the settled mean of the neighbours.
+- 2026-10-28: FlightGear's IAF F-15I livery (69 Squadron) as it is: real IAF markings, but the F-15I's desert
+  camouflage on an F-15C, where the original's F-15 is a grey Baz. Only its roundels and radio call plate are used.
+
+### 6.5 Open
+
+- The livery is the grey of a USAF F-15C with IAF roundels: no IAF tail number, squadron badge or Baz fin art, and
+  where a US marking was the panel lines are gone. FlightGear's IAF livery is the desert camouflage of the F-15I.
+- The cockpit view's own-jet model (`own_bc`, the original's `f15_bc`) stays the original's, as for the F-16D. The
+  front cockpit shows its tub, glare shields and seat, without the instrument panel (its textures are SGI `.rgb`
+  files, which the converter does not read).
+- No original model as the far LOD (as the F-16D; the stores have it).
+- The gear legs retract about one axis (above); the nozzles keep their modelled opening.
