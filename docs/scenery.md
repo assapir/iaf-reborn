@@ -356,17 +356,36 @@ texture.
   - glass that reflects the sky: smooth (roughness 0.04–0.29) and tilted a little, both by a seed per window, so
     the panes do not mirror the sky as one sheet. A few rooms show a lit-up curtain instead of a dark room.
 - **Loggias:** blocks of flats (8.5 m and taller, plaster or concrete) have, on most buildings, recessed balconies
-  in every other bay above the ground floor: a 1.4 m deep recess by parallax, a balustrade to 1.1 m with a lighter
-  top, the door at the back, the recess darker under the slab.
+  in every other bay above the ground floor:
+  - open (70 %): a 1.4 m deep recess by parallax, the door at the back, the floor's light tiles where the eye looks
+    down into it. The recess is out of the sun and most of the sky: its colour and ambient light are halved, darker
+    still under the slab above;
+  - closed in (sgirat mirpeset, 30 %, per loggia): sliding glass with frames and roller shutters 0.12 m behind the
+    facade, above the balustrade;
+  - the balustrade to 1.1 m, per building: solid in the wall colour with a lit coping (55 %), glass (the loggia seen
+    through, tinted, a dark handrail; 25 %) or bars every 12 cm (20 %);
+  - where a level is under about two pixels high, an open loggia keeps a darker cell (60 % of the wall against 80 %)
+    until the cell itself is under a pixel, so a block's loggia columns still read from 150 m and beyond.
 - **Weathering and AC units:** streaks of dust run down from each sill. About 40 % of the windows above the ground
   floor have an AC unit (0.84 × 0.54 m, its fan grille, a shadow under it) below the sill.
 - **Occlusion:** the walls' ambient light (Godot's `AO`, the sun is not touched) is darkened by the street in front:
   the facing building hides the sky up to its top, so the lower floors of a narrow street are darker than the upper
   ones; and by the ground, the lowest 3 m. The lowest 1.2 m is also darker in colour (dirt). The sunlit walls keep
   the full sun, so a shaded wall stands further from a sunlit one than before.
+- **Parapets:** the outer wall's top 10 cm is a lit coping; the parapet's inner face (marked by the mesh, CUSTOM0.w
+  = −1) is plain wall colour with the coping on top, its foot darker and occluded where it meets the roof.
+- **Roofs:** the photo's colour is a hint, not the roof:
+  - a flat roof's material follows the photo's brightness (a seed per building moves the line): bitumen (some
+    painted silver in patches), grey concrete with joints every 6 m or gravel, or the white reflective coating common
+    on Israeli roofs, worn through to concrete in patches. Over that: 1 m membrane strips along the building, sheets
+    of 4 × 2 m each its own shade, stains of 1 m and 4 m, darker patches where water stands. The mesh gives a Detailed
+    flat roof UVs in metres along and across the building's longest edge, so the strips and sheets follow it;
+  - a pitched roof: clay tiles, courses of 0.33 m down the slope, each course's lower lip shaded;
+  - the colour takes the photo's hue (half strength) and comes halfway to its brightness, so the near roof keeps the
+    far one's tone; a dome keeps the photo's colour. Details under about two pixels fade out.
 - **Distance:** a window under about two pixels fades to the wall's average (no shimmer); from 700 m to 2.2 km the
-  walls fade to the photo's colour at the building, so the far town keeps the photo's hues instead of turning into
-  uniform pale blocks.
+  walls and roofs fade to the photo's colour at the building, so the far town keeps the photo's hues instead of
+  turning into uniform pale blocks.
 - **Roof clutter** (`roof_rows` in crates/iaf-avionics/src/scenery.rs, the models in `scenery.gd roof_mesh`, drawn
   by `scenery_roof.gdshader`): on the near flat roofs of 30 m² and more, on a 2.4 × 2.8 m grid along the roof's
   longest edge, at least 1.4 m inside the parapet, seeded per building:
@@ -375,6 +394,12 @@ texture.
     of the roofs, about 60 % of the free spots, facing south within ±9°;
   - water tanks (white or black) and AC units on some of the rest;
   - at most 14 items per roof. They shrink onto the roof over 550–700 m, each by its own distance.
+
+  Their materials (the vertex alpha picks one): the collectors' glass dark blue-black (roughness 0.45, specular
+  0.12: a glint at a low angle), the frames galvanised steel, the tanks and stair heads paint with the walls' light
+  (roughness 0.9, specular 0.3). The colours are sRGB, so a white tank is as bright as a white wall. Each item has
+  flat normals, is darker and occluded over its lowest 0.5 m, and stands on a dark shade 4 cm over the roof, a
+  little larger than its footprint (a heater's reaches north, behind its collector).
 
 **Cost** (measured below; measure again with `tests/godot/_flight_bench.gd`, `BENCH_BEST=1` and a town view,
 e.g. `BENCH_AT=316009,530807 BENCH_LEGS=150:120:15`, `BENCH_SET=scenery=on` against `=detailed`, as §3.1):
@@ -400,14 +425,40 @@ across all six.
 
 This is over the ≤ 10 % budget for a default look, so Detailed is a choice of its own and On keeps its cost.
 
+The second pass (roof materials, item materials and shade, loggias), 2026-10-28, the same machine, view and
+settings, three runs each interleaved On, Detailed before, Detailed after under one hold of the GPU lock:
+
+| | On | Detailed before | Detailed after |
+|---|---|---|---|
+| GPU time per frame | 14.27 / 16.60 / 14.40 ms | 16.91 / 18.63 / 16.83 ms | 17.42 / 17.06 / 17.25 ms |
+| median | 14.40 ms | 16.91 ms (+17 %) | 17.25 ms (+20 %; +2 % on the first pass) |
+| primitives | 722–736 k | 1 034–1 042 k | 1 059–1 064 k (the shade quads) |
+
+Measure again the same way after a change to `scenery_detailed.gdshader` (the roof's noise runs on every roof pixel
+within 2.2 km: the cost grows with the roofs' share of the screen, most from 1–2 km up over a town).
+
 Tried and dropped (2026-10-28):
 
 - the collectors' glass smooth (roughness 0.15, specular 0.6): from above they mirrored the bright sky and read as
   white blobs; now rough 0.7, specular 0.12. Tanks and frames darker for the same reason;
 - glass at roughness 0.04 and specular 0.6 on the windows: at a glancing angle every pane went white.
 
-Open: the roof items still read pale under the blue-grey sky light; the loggias read as flat grey panels from
-150 m and more; the roofs are the photo's flat colour.
+Tried and dropped (2026-10-28, the second pass):
+
+- the roof's material picked by the photo's brightness with fixed albedos (bitumen 0.07, concrete 0.22, white
+  0.45): most Rishon roofs are dark on the photo and turned black; now each material comes halfway to the photo's
+  brightness;
+- the worn patches as smooth noise blobs only: the roofs looked like camouflage; now with ragged edges and the
+  4 × 2 m sheets;
+- the roof's noise in world metres: the sin hash loses its precision at the world's coordinates (300 km); the flat
+  roofs now use building-local metres, the tiles a sin-free hash over world metres repeating every 4 km;
+- the collectors at roughness 0.32, specular 0.35: they mirrored the sky as bright blue panes.
+
+The root of the pale items: SurfaceTool's normals were smoothed (smooth group 0), so a box's sides leaned up to the
+sky; and the colours were taken as linear, half again brighter than the walls.
+
+Open: the roof has no darker band along its parapet (the fragment does not know its distance to the edge); the
+heaters' shade does not follow the sun; the clay tiles show only on the few roofs the data tags as gabled.
 
 ## 4. Solid ground and hits
 
