@@ -127,7 +127,8 @@ const PREFS := {
 		"better_mc",
 		"rwr_search",
 		"night_vision",
-		"world_scale"
+		"world_scale",
+		"f16_variant"
 	],
 }
 
@@ -243,6 +244,10 @@ var water := false
 ## Models (ours, Extras page; docs/aircraft-models.md): "original" (the 1998 models) or "detailed" (our detailed
 ## models where there is one, util/gltf.gd DETAILED: the F-16D; visual only).
 var models := "original"
+## F-16 (ours, Extras page; docs/f16i.md): "barak" (the game's early-1990s F-16D) or "sufa" (the IAF's F-16I
+## Block 52+ with conformal fuel tanks: flight data, radar, model, arming art and weapons). Every F-16 in a mission,
+## the player's and the AI's, follows it.
+var f16_variant := "barak"
 ## Model detail (ours, Graphics → MORE; docs/rendering.md §9, util/model_detail.gd): "original" or
 ## "ambientcg" (the original models with fine CC0 surface detail up close: painted metal, rubber, concrete). Read when a
 ## model loads.
