@@ -41,6 +41,9 @@ ranked order: [graphics-research.md](graphics-research.md).
   lose, intel, randomness, the sanity check, copy / paste, the Scenario tab, with an AI flight that waits parked until a rule makes it take off).
 - **A modern TSD map** (wishlist, user 2026-10-20; "just for fun"): an Extras overlay on the static maps (TSD /
   briefing EMF maps, map texts) with today's borders, names and places, drawn by us; the 1998 maps stay the default.
+  User 2026-10-28: modern maps for 2026 for the mission editor and the briefing, including Iran (so they reach the
+  Iran theatre's area too). The original map's city dots are off by up to ≈ 37 km (Tel Aviv, Amman, Damascus, Cairo;
+  measured against the georeference 2026-10-28); a modern map would place them right.
 - **Realistic night vision** (built, user 2026-10-21): Graphics → MORE "Night vision", Shift+N puts the goggles on
   (rendering.md §8): the tube by the mission's year (§8.1), cockpit glare and bright-light protection (§8.3), the HUD
   in its brightest green. Future work (later):
