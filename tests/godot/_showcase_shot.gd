@@ -9,7 +9,7 @@
 #     -- --log-file /tmp/show_$look.log --path game -s ../tests/godot/_showcase_shot.gd; done
 # Prefix the run with `flock ~/.cache/iaf-gpu-bench.lock` while another session may be benchmarking the GPU.
 # SHOW_SCENES="town,night" takes only those scenes (SCENES' names: town airbase takeoff cockpit coast sea missile_launch
-# missile_close bomb vapour sunset night); SHOW_SET="key=value,..." sets more Settings after the look's (e.g. a
+# missile_close bomb vapour sunset sunset_away night lookdown); SHOW_SET="key=value,..." sets more Settings after the look's (e.g. a
 # variant of AFTER); SHOW_TAG names the files <scene>_<look><tag>.png. Needs a window.
 extends "res://../tests/godot/base.gd"
 
@@ -61,6 +61,10 @@ const SCENES := {
 	"vapour": [231, 10.5, [337929.1, 614642.4], 400.0, 0.0, Vector3(-6, 3, 22), Vector3.ZERO],
 	"sunset": [231, 19.5, [313685.0, 541903.0], 600.0, -1.0, Vector3(4, 3, 30), Vector3(0, 0, -200)],
 	"night": [311, 22.0, [], 300.0, 0.0, Vector3(4, 6, 34), Vector3(0, -40, -400)],
+	# The sunset's haze away from the sun (east, over the land).
+	"sunset_away": [231, 19.5, [313685.0, 541903.0], 600.0, 90.0, Vector3(4, 3, 30), Vector3(0, 0, -200)],
+	# The ground from 5000 m, 30° down ahead (the haze at altitude).
+	"lookdown": [231, 10.5, [360000.0, 590000.0], 5000.0, 0.0, Vector3(0, 6, 30), Vector3(0, -5000, -8700)],
 	# The scenery's trees (docs/scenery.md §3; Scenery On): a town of palms and broadleaf from the cockpit at 150 m
 	# and 50 m, an orchard, the Carmel's pines, and close by.
 	"trees_town150": [231, 10.5, [332520.0, 586300.0], 150.0, 0.0, null, null],

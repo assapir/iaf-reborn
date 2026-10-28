@@ -240,8 +240,8 @@ func run() -> void:
 	)
 	var fog_density := env.fog_density
 	check(
-		env.sky.sky_material is ShaderMaterial and env.fog_aerial_perspective == 1.0 and env.fog_density == fog_density,
-		"atmospheric sky: scattering sky shader, haze from the sky, the same fog distances"
+		env.sky.sky_material is ShaderMaterial and env.fog_aerial_perspective == 1.0,
+		"atmospheric sky: scattering sky shader, haze from the sky"
 	)
 	check(
 		tv.clouds._mat.get_shader_parameter("alpha_range") == Vector2(0.3, 0.9), "atmospheric sky: the clouds separated"
@@ -249,14 +249,23 @@ func run() -> void:
 	var attrs: CameraAttributesPractical = vp.find_world_3d().camera_attributes
 	check(
 		(
-			env.ambient_light_sky_contribution == 1.0
+			is_equal_approx(env.ambient_light_sky_contribution, RO.SKY_SHARE)
 			and attrs.auto_exposure_enabled
 			and is_equal_approx(attrs.auto_exposure_max_sensitivity / attrs.auto_exposure_min_sensitivity, 1.5625)
 		),
-		"atmospheric sky: the ambient from the sky alone, auto-exposure within 1.25x either way"
+		"atmospheric sky: the ambient partly from the sky, auto-exposure within 1.25x either way"
 	)
+	tv._tod_t = -INF
 	await frames(3)
 	var cam: Vector3 = vp.get_camera_3d().global_position
+	check(
+		is_equal_approx(env.fog_density, fog_density * RO.haze_factor(cam.y)) and RO.haze_factor(5000.0) < 0.35,
+		"atmospheric sky: the haze thins with the camera's altitude (%.0f m)" % cam.y
+	)
+	var amb := env.ambient_light_color
+	check(
+		amb.r > amb.b and amb.b > 0.0, "atmospheric sky: the rest of the ambient is the ground's warm bounce %s" % amb
+	)
 	check(
 		env.sky.sky_material.get_shader_parameter("altitude") == snappedf(maxf(cam.y, 0.0), RO.SKY_ALT_STEP),
 		"atmospheric sky: the camera's altitude"

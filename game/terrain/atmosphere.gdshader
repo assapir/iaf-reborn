@@ -29,6 +29,10 @@ uniform float ms_gain = 1.0;
 uniform float altitude = 0.0;
 uniform float sun_disc_deg = 0.53;
 uniform float sun_disc_energy = 30.0;
+// In the rain (render_options.gd, weather.gd's sky share): the sky turns toward its own grey, the sun's disc hidden.
+uniform float overcast = 0.0;
+// The ground's albedo seen from above (dry sand, limestone, fields; inferred).
+uniform vec3 ground_albedo = vec3(0.36, 0.33, 0.27);
 
 float air_mass(float cos_zenith) {
 	float c = max(cos_zenith, 0.0);
@@ -71,9 +75,15 @@ void sky() {
 	float ang = length(EYEDIR - s);
 	float r = radians(sun_disc_deg * 0.5);
 	float disc = (1.0 - smoothstep(r * 0.85, r * 1.15, ang)) * step(0.0, EYEDIR.y);
-	col += (disc * sun_disc_energy + 0.6 * exp(-ang / radians(1.5))) * sun * exp(-(tau_air + tau_haze) * m);
-	// Looking down, the haze over near ground and the ambient light from below: darker than the horizon (the
-	// ground's shade, not lit air), except in the haze's forward glow toward the sun.
-	float glow = pow(max(mu, 0.0), 8.0);
-	COLOR = col * mix(1.0, 0.55, smoothstep(0.0, -0.5, EYEDIR.y) * (1.0 - glow));
+	col += (disc * sun_disc_energy + 0.6 * exp(-ang / radians(1.5))) * sun * exp(-(tau_air + tau_haze) * m) * (1.0 - overcast);
+	// Looking down, the light from below (ambient, reflections): from 6° to 30° down toward the sunlit ground's own
+	// light (ground_albedo, the sun's colour and energy on level ground), except in the haze's forward glow toward
+	// the sun. The horizon's blue-grey there lit the undersides blue. Down to 6° (the far ground and sea, whose fog
+	// takes this colour) the haze's own. With a low sun (below 17°) the haze's own all the way down: gold toward the
+	// sun, blue-grey away from it; Godot's fog takes a blurred level of this map, and the dim ground in it turned the
+	// sea and the land a flat mauve-brown at sunset.
+	float glow = pow(max(mu, 0.0), 4.0);
+	vec3 ground = ground_albedo * LIGHT0_COLOR * LIGHT0_ENERGY * max(s.y, 0.0);
+	col = mix(col, ground, smoothstep(-0.1, -0.5, EYEDIR.y) * (1.0 - glow) * smoothstep(0.05, 0.3, s.y));
+	COLOR = mix(col, vec3(dot(col, vec3(0.2126, 0.7152, 0.0722))), overcast);
 }

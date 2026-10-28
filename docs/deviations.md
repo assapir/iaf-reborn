@@ -301,9 +301,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     terraintype.dat: none; centred noise, so colours from afar are the imagery's) and 16× anisotropic filtering.
   - Sky: Atmospheric = a clear-day sky (tuned single scattering plus a fitted multiple-scattering term: deep blue
     zenith, pale horizon, darker with altitude, golden to orange with a low sun, crisp sun disc with a narrow
-    glare), the ambient light from that sky in place of the original's ambient factor, an auto-exposure bounded to
-    1.25× either way (rendering.md §1.2), the haze over the ground in the horizon's colour (aerial
-    perspective, same fog density), and the cloud layer's alpha stretched (0.3–0.9 → 0–1) so its clouds stand apart
+    glare), the ambient light from a share of that sky and the sunlit ground's warm bounce in place of the
+    original's ambient factor, an auto-exposure bounded to 1.25× either way (rendering.md §1.2), the haze over the
+    ground in the horizon's colour (aerial perspective), thinner with the camera's altitude (0.3× the fog density
+    at 5000 m), the sky grey in the rain, and the cloud layer's alpha stretched (0.3–0.9 → 0–1) so its clouds stand apart
     with clear sky between them (without the stretch: a grey veil). The original's cloud texture choice (one of six per
     mission, Cloud256_5 nearly overcast) is kept. The sky follows the time of day's sun (rendering.md §4); at night
     the gradient sky is drawn.

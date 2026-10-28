@@ -489,7 +489,7 @@ func _update_time_of_day(cam: Camera3D) -> void:
 		)
 		sun.shadow_enabled = Settings.shadows and _tod_sun.shadows
 		var atmo: bool = Settings.sky == "atmospheric" and not _tod_sun.night
-		# Atmospheric: the ambient from that sky alone (render_options.gd); else the original's factor.
+		# Atmospheric: the ambient from that sky and the ground's bounce (render_options.gd); else the original's factor.
 		env.ambient_light_energy = RenderOptions.SKY_AMBIENT if atmo else float(_tod_sun.ambient) / 0.6
 		if NightLights.detailed():
 			_night_detailed(sun, env, _tod_sun.night)
@@ -499,6 +499,8 @@ func _update_time_of_day(cam: Camera3D) -> void:
 			_tod_atmo = atmo
 			RenderOptions._apply_sky(env, atmo, get_world_3d().camera_attributes)
 			Weather.apply_env(env, sun)
+		if atmo and Weather.level().is_empty():
+			env.ambient_light_color = RenderOptions.bounce(sun.light_color, sun.light_energy, -d.z)
 		var mat = env.sky.sky_material if env.sky != null else null
 		if mat is ProceduralSkyMaterial and not _tod_colors.is_empty():
 			mat.sky_top_color = Weather.fog_tint(_tod_colors.sky)  # the overcast in the rain
