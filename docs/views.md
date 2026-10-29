@@ -225,7 +225,9 @@ Numpad snap keys turn the orbit: 8 / 2 pitch, 6 / 4 heading. F2 and 1 / 3 / 7 / 
   * The same draw (`FUN_004da090`) then draws the stores on their slots (`FUN_0053e430`, EXTERNAL STORES on), so
     looking aside or back shows the loads on the wings.
   * The HUD-only view (5) draws no own jet.
-  * Ours: the F-35I's is `f35i_bc.gltf` (`tools/f35i/bc.py`, docs/f35i.md §4.4).
+  * Ours: the F-35I's is `f35i_bc.gltf` (`tools/f35i/bc.py`, docs/f35i.md §4.4). With the detailed F-16D or the
+    Sufa it is the detailed F-16 cut at its front seat's eye, with its own seat, canopy frame and rear cockpit
+    (docs/aircraft-models.md §1.4).
 * **Free look** (0x12, `FUN_00582370`):
   * Press: angle = start + rate · 2·t·(1 − 0.9^t). The rate is 45°/s, so the pan speeds up toward 90°/s.
   * Limits: pitch −12°…+85°, yaw unlimited.
