@@ -145,6 +145,12 @@ What changes in the cockpit:
   takes the other wing. When the load is even again the roll stops at once, but the trim stays where you set it: take it
   back off (**Alt** + the other arrow, or the rocker) until the `TRIM L / R` reading on the **Ctrl+F12** info line is
   gone.
+- **Bomb release: Real** (Extras): bombs leave the way the real stores management releases them. Stores page OSB 7
+  (bottom row, second from left) switches PAIR / SGL; the page shows it as `1 PAIR` or `1 SGL`. The number is the
+  release pulses per press and starts at 1. In PAIR each pulse drops one bomb off each wing at the same instant,
+  outboard pair first, so the jet stays balanced: six bombs on six stations go in three presses, or set 3 to drop
+  them all in one. In SGL each pulse drops one bomb, alternating wings, left first. Rockets work as before.
+  This jet has no published release-system source, so it follows the F-16's rules.
 - **The map edge**: 12 km (6.5 NM) before it the EndWorld warning sounds: turn back. Past it the game pushes the jet
   back for about 8 s (the nose rises and the jet turns).
 
