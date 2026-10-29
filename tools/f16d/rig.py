@@ -6,8 +6,9 @@
 #     Station helpers, the oleos compressed so the wheels touch at the original's `height` helper;
 #   - the moving parts named and hinged as the original's (`<part>1/2` helpers on FlightGear's own hinge lines,
 #     taken from its F-16.xml animations), the helpers the game reads copied from the original model;
-#   - the IAF dorsal spine (the avionics hump of the Block 30 / 40 "Brakeet") lofted over the slim US spine, from
-#     the canopy's rear end to a box under the fin that ends over the nozzle;
+#   - the fin and rudder lowered FIN_DROP onto the IAF dorsal spine (the avionics hump of the Block 30 / 40
+#     "Brakeet"), lofted over the slim US spine level from the canopy's rear end to a box under the fin that ends
+#     over the nozzle, with its three vents;
 #   - closed gear doors (LdgDrUp, shown only with the gear up), the GE nozzle, an IAF desert livery (FlightGear's,
 #     its wing roundels moved to the IAF positions) with our PBR maps (baked occlusion, panel-line normal map, roughness / metallic);
 #   - written as one glb with KTX2 textures (tools/plane/glb_ktx2.py, needs `basisu`).
@@ -56,13 +57,20 @@ SHIFT = Vector((0.0, -1.05, 0.0))
 Y_FRONT, Y_CANOPY_REAR, Y_FIN, EXT = 3.45, 2.48, -2.8, 0.95
 Z_SILL0, Z_SILL1, X_SPINE = 0.28, 0.42, 0.95
 SEAT_GAP = 0.98
+# FlightGear's fin and rudder stand FIN_DROP m too high: their root is level with the canopy's top, where on IAF
+# F-16s (F-16D 027 side on, parked; F-16C 557) the canopy stands 0.25 m above the fin's root and the dorsal spine
+# (SOURCES.md). The fin's parts are lowered by it and its root fairing (USAF_Tailroot, from the fuselage at
+# TAILROOT_Z0 up to the fin) squashed to meet them.
+FIN_DROP, TAILROOT_Z0 = 0.27, 0.49
+FIN = ["Tail", "Rudder.001", "Rudder.002", "Rudder.003", "Rudder.004", "Rudder.005", "Rudder.006",
+       "FlashLightProtector", "AntiCollisionStrobe", "AftPosLight2"]
 
 DROP = {"ExternalFlame", "InternalFlame", "Chute", "RNLAF_Tailroot", "Link16Antennas", "Fan", "FanSpinning",
         "FanR.001", "FanRHighSpeed", "FanRHighSpeed.001", "CanopyBackInside", "CanopyForwardInside",
         "FuselageLogoLeft", "FuselageLogoRight", "LogoPilotRight", "Rect", "VstabBandLeftAft", "VstabBandLeftFront",
         "VstabBandRightAft", "VstabBandRightFront", "VstabLogoLeftBottom", "VstabLogoLeftTop", "VstabLogoRightBottom",
         "VstabLogoRightTop", "WinglogoLeftTop", "WinglogoRightBottom", "WinglogoRightTop", "GreenPosLight2",
-        "RedPosLight2", "USAF_Tailroot", "AftPosLight1"}  # the last two: inside the IAF dorsal spine
+        "RedPosLight2", "AftPosLight1"}  # the last: inside the IAF dorsal spine
 # The game's parts (docs/part-animation.md) from FlightGear's objects, with FlightGear's hinge (F-16.xml: centre and
 # axis, FlightGear frame x aft, y right, z up). Axis None: a part that never turns (its own centre is the origin).
 PARTS = {
@@ -70,7 +78,7 @@ PARTS = {
     "AilerR": (["RightUpperFlap", "RightLowerFlap"], (1.54, 2.35, 0.12), (0.150157, 0.987872, -0.039515)),
     "ElevaL": (["LeftUpperHorizonTail", "LeftLowerHorizonTail"], (4.36, -1.965, -0.1), (0, -0.981645, -0.19072)),
     "ElevaR": (["RightUpperHorizonTail", "RightLowerHorizonTail"], (4.36, 1.965, -0.1), (0, 0.981645, -0.19072)),
-    "RuddeL": (["Rudder.001", "Rudder.002", "Rudder.003", "Rudder.004", "Rudder.005"], (4.915, 0, 2.095),
+    "RuddeL": (["Rudder.001", "Rudder.002", "Rudder.003", "Rudder.004", "Rudder.005"], (4.915, 0, 2.095 - FIN_DROP),
                (0.547371, 0, 0.83689)),
     "SpdbrU": (["LeftUpperSpeedbrake", "RightUpperSpeedbrake"], (4.55, 0, 0.15), (0, 1, 0)),
     "SpdbrD": (["LeftLowerSpeedbrake", "RightLowerSpeedbrake"], (4.55, 0, 0.08), (0, 1, 0)),
@@ -153,6 +161,17 @@ def two_seat(objs):
             if w > 0:
                 c.y += (remap_y(c.y) - c.y) * w
         o.data.update()
+
+
+def lower_fin(body):
+    transform([body[n] for n in FIN], Matrix.Translation((0, 0, -FIN_DROP)))
+    tr = body["USAF_Tailroot"]
+    top = max(v.co.z for v in tr.data.vertices)
+    k = (top - FIN_DROP - TAILROOT_Z0) / (top - TAILROOT_Z0)
+    for v in tr.data.vertices:
+        if v.co.z > TAILROOT_Z0:
+            v.co.z = TAILROOT_Z0 + (v.co.z - TAILROOT_Z0) * k
+    tr.data.update()
 
 
 def rotate_about(objs, centre, axis, angle):
@@ -242,20 +261,24 @@ def fit_pylons(body, helpers, root):
         print("pylon", pylon, "->", station, "moved", tuple(round(x, 3) for x in d))
 
 
-# The IAF dorsal spine (our frame, after SHIFT; y forward, z up). Its top runs straight from the canopy's rear end
-# (SP_Y0, SP_Z0) to the fin's root (SP_Y_FIN, SP_Z_FIN: the bottom of FlightGear's fin and rudder) and stays there
-# along a box under the fin to SP_Y_END, over the nozzle's exit. Half-widths (y, w) between which it is
-# interpolated: the canopy's rear width, as wide as the original's spine (0.34 m) to the wing's trailing edge, the
-# fin root's width under the fin. Aft of SP_Y_FLOOR the fuselage falls away to the nozzle and the box gets a flat
-# floor at SP_FLOOR. Photographs: IAF F-16D 046 / 022 / 050 / 063 (Wikimedia Commons, Aldo Bidini) and 601
-# (Itayba): the top line is straight from the canopy to the tail, the fin stands on it, the box ends square just
-# aft of the nozzle; the original game model has the same shape (tests/godot/test_detailed_models.gd).
-SP_Y0, SP_Z0 = 0.47, 0.93
-SP_Y_FIN, SP_Z_FIN = -3.86, 1.148
-SP_Y_END, SP_Y_FLOOR, SP_FLOOR = -6.42, -5.3, 0.62
-SP_WIDTH = [(0.47, 0.21), (0.0, 0.32), (-0.3, 0.34), (-2.4, 0.34), (-3.86, 0.2), (-6.3, 0.2), (SP_Y_END, 0.17)]
-SP_BLEND = 0.22  # the front SP_BLEND m grow out of FlightGear's fairing behind the canopy
+# The IAF dorsal spine (our frame, after SHIFT; y forward, z up). Its front (SP_Y0) is the glass's rear edge, an arch
+# 0.34 m wide whose top is SP_Z0, so the canopy runs on into it; it widens to 0.34 m (half-width) by y = -0.5, eases
+# down to SP_Z_TOP by SP_Y_LEVEL and runs level to its end over the nozzle (SP_Y_END), the lowered fin standing on
+# it. Half-widths (y, w) between which it is interpolated: the glass's rear arch, 0.34 m to the wing's trailing
+# edge, the fin root's width under the fin; its front sections are round as the arch (SP_ROUND m), its shoulders
+# 0.12 m from there. Aft of SP_Y_FLOOR the fuselage falls away to the nozzle and the box gets a flat floor at SP_FLOOR; its last
+# SP_END_R m round off into a cap. Three vents on each side (SP_VENTS: centre y, width; SP_VENT_Z below the top,
+# SP_VENT_H tall) ahead of the fin. Photographs (SOURCES.md): IAF F-16D 027 side on (Oren Rozen): the canopy stands
+# 0.25 m above the spine, whose top is level from the canopy's rear frame to the fin, the three vents 0.6 m ahead of
+# the fin, the tail box as tall as the spine with a round end (F-16C 333's tail); IAF F-16I from above: the canopy
+# ends square at nearly its full width and the spine goes on at that width; F-16D 601, 022 / 046 / 050 / 063.
+SP_Y0, SP_Z0, SP_Y_LEVEL, SP_ROUND = 0.47, 0.945, -0.6, 0.7
+SP_Z_TOP = 1.148 - FIN_DROP
+SP_Y_FIN = -3.86
+SP_Y_END, SP_Y_FLOOR, SP_FLOOR, SP_END_R = -6.42, -5.3, 0.62, 0.22
+SP_WIDTH = [(SP_Y0, 0.19), (-0.5, 0.34), (-2.4, 0.34), (-3.86, 0.2), (-6.3, 0.2), (SP_Y_END, 0.17)]
 SP_FILLET = 0.05  # the concave flare where the sides meet the fuselage
+SP_VENTS, SP_VENT_Z, SP_VENT_H = [(-2.80, 0.12), (-3.03, 0.12), (-3.26, 0.12)], 0.18, 0.14
 
 
 def interp(table, y):
@@ -266,9 +289,7 @@ def interp(table, y):
 
 
 def spine_top(y):
-    if y <= SP_Y_FIN:
-        return SP_Z_FIN
-    return SP_Z0 + (SP_Z_FIN - SP_Z0) * (SP_Y0 - y) / (SP_Y0 - SP_Y_FIN)
+    return SP_Z_TOP + (SP_Z0 - SP_Z_TOP) * smooth01((y - SP_Y_LEVEL) / (SP_Y0 - SP_Y_LEVEL))
 
 
 def dorsal_spine(body):
@@ -299,16 +320,20 @@ def dorsal_spine(body):
 
     n_top, n_bot = 9, 4  # points on each upper quarter / across the floor
     rings, uvs, mat_idx = [], [], None
-    ys = [SP_Y0 - i * 0.1 for i in range(int((SP_Y0 - SP_Y_END) / 0.1) + 1)] + [SP_Y_END + 0.03, SP_Y_END]
+    ys = [SP_Y0 - i * 0.1 for i in range(int((SP_Y0 - SP_Y_END - SP_END_R) / 0.1) + 1)]
+    ys += [SP_Y_END + SP_END_R * math.cos(math.pi / 2 * k / 6) for k in range(7)]  # the round end, finer
     for y in ys:
         w, top = interp(SP_WIDTH, y), spine_top(y)
-        if y < SP_Y_END + 0.06:  # a slightly rounded square end
-            top -= 0.03 * smooth01((SP_Y_END + 0.06 - y) / 0.06)
+        e = (SP_Y_END + SP_END_R - y) / SP_END_R
+        if e > 0:  # the round end: an ellipse quarter in plan and in profile, down to a small last ring
+            r = max(0.25, math.sqrt(max(0.0, 1 - e * e)))
+            w *= r
+            top = SP_FLOOR + (top - SP_FLOOR) * r
         side = []  # the right half from the top centre round to the foot (x >= 0)
         foot_s = surface(w + SP_FILLET, y)
         foot = max(foot_s[0] if foot_s else SP_FLOOR, SP_FLOOR if y < SP_Y_FLOOR else -9.0)
         flare = SP_FILLET * smooth01((foot - SP_FLOOR) / 0.05) if y < SP_Y_FLOOR else SP_FILLET
-        rv = min(0.16, max(0.02, (top - foot) * 0.6))
+        rv = min(0.12 + 0.3 * smooth01((y - SP_Y0 + SP_ROUND) / SP_ROUND), max(0.02, (top - foot) * 0.9))
         for k in range(n_top + 1):  # super-ellipse quarter: flat top, rounded shoulder
             t = math.pi / 2 * (1 - k / n_top)
             side.append((w * math.cos(t) ** (2 / 3.5), top - rv + rv * math.sin(t) ** (2 / 3.5)))
@@ -317,13 +342,6 @@ def dorsal_spine(body):
             t = math.pi / 2 * k / 4
             side.append((w + flare * (1 - math.cos(t)), foot + flare * (1 - math.sin(t)) - 0.02 * k / 4))
         pts = [(-x, z) for x, z in reversed(side[1:])] + side
-        # The front grows out of FlightGear's fairing: each point starts on the fuselage under it.
-        g = smooth01((SP_Y0 - y) / SP_BLEND)
-        if g < 1:
-            def on_skin(x, z):
-                su = surface(x, y)
-                return su[0] + 0.002 if su else z
-            pts = [(x, on_skin(x, z) + (z - on_skin(x, z)) * g) for x, z in pts]
         # Livery: the fuselage's UVs under the foot-to-foot span, spread over the section by its arc length.
         arc = [0.0]
         for (x0, z0), (x1, z1) in zip(pts, pts[1:]):
@@ -355,10 +373,19 @@ def dorsal_spine(body):
             for lp, (ii, jj) in zip(f.loops, ((i, j), (i, j1), (i + 1, j1), (i + 1, j))):
                 lp[uv_out].uv = uvs[ii][jj] if livery else uvs[ii][0]
             f.smooth = True
-    for r, rev in ((vs[-1], False), (vs[0], True)):  # end caps (the front one is flat on the fairing)
+    for r, rev in ((vs[-1], False), (vs[0], True)):  # end caps (the front one dark, as the canopy's rear frame)
         f = out.faces.new(list(reversed(r)) if rev else r)
         f.material_index = 1
     bmesh.ops.recalc_face_normals(out, faces=out.faces[:])
+    for yc, half in ((yc, w / 2) for yc, w in SP_VENTS):  # the vents: dark panels just off each side
+        z0 = spine_top(yc) - SP_VENT_Z - SP_VENT_H / 2
+        for sx in (1, -1):
+            c = [(yc - half, z0), (yc + half, z0), (yc + half, z0 + SP_VENT_H), (yc - half, z0 + SP_VENT_H)]
+            q = [out.verts.new((sx * (interp(SP_WIDTH, y) + 0.003), y, z)) for y, z in c]
+            f = out.faces.new(q if sx > 0 else q[::-1])  # facing out
+            f.material_index = 1
+            for lp in f.loops:
+                lp[uv_out].uv = uvs[0][0]
     me = bpy.data.meshes.new("DorsalSpine")
     out.to_mesh(me)
     out.free()
@@ -429,6 +456,7 @@ def main():
         fg((0, 0.02, 0))), prefix="cl_").values()), "CLStation")
     body["CLStation"].data.materials.clear()
     body["CLStation"].data.materials.append(kit.material("pylon_grey", (0.42, 0.44, 0.45), roughness=0.55))
+    lower_fin(body)
     tub_f, crew_f = cockpit("front_", 0.0)
     two_seat(list(body.values()) + [tub_f])
     tub_r, crew_r = cockpit("rear_", -SEAT_GAP)
@@ -713,7 +741,7 @@ def is_fin(t):
     """A triangle of the fin or rudder: facing sideways, on the centre line, above the spine aft of the blade
     antenna."""
     n, c = (t[1] - t[0]).cross(t[2] - t[0]), (t[0] + t[1] + t[2]) / 3
-    return n.length > 1e-12 and abs(n.x) > 0.8 * n.length and c.z > 1.2 and abs(c.x) < 0.1 and c.y < -3.7
+    return n.length > 1e-12 and abs(n.x) > 0.8 * n.length and c.z > 1.2 - FIN_DROP and abs(c.x) < 0.1 and c.y < -3.7
 
 
 def sufa_livery(albedo, skin):

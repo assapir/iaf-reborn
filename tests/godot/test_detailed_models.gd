@@ -3,9 +3,9 @@
 # the original at the original's position (stations, gun, eye, engine, wingtips, height: 1 cm), every moving part
 # hinged on its own surface (FlightGear's hinge lines; the offsets from the original's are printed) with an axis
 # within AXIS_DEG of the original's (the stabilators' 10° anhedral is the largest), keeps
-# the original's descriptor for everything the game reads, has the IAF dorsal spine of the original (its top profile
-# from the canopy to the fin, SPINE_*), animates (gear, closed doors, speed brakes, flaperons), and flies as the
-# player's and the AI's jets.
+# the original's descriptor for everything the game reads, has the IAF dorsal spine of the real jet (level from the
+# canopy to the fin, under the canopy's top, SPINE_*), animates (gear, closed doors, speed brakes, flaperons), and
+# flies as the player's and the AI's jets.
 extends "res://../tests/godot/base.gd"
 
 const Gltf := preload("res://util/gltf.gd")
@@ -19,22 +19,19 @@ const F15_AXIS_DEG := 20.0
 ## How far a detailed mesh may reach outside the original's bounds (the FlightGear F-16 is 0.6 m shorter, 0.2 m
 ## taller on its gear).
 const LOOSE_M := 1.0
-## The IAF dorsal spine: stations (m aft of the eye, along the jet) between the canopy's rear end and the fin's leading
-## edge where the detailed body's top must follow the original's within SPINE_M at 0.1 m off the centre line and
-## within SPINE_SIDE_M at 0.3 m (its shoulders are rounder than the original's box). The original's whole spine sits
-## SPINE_OFFSET_M higher (its canopy is 0.16 m taller than FlightGear's; the detailed spine meets FlightGear's
-## canopy and the foot of its fin and rudder), measured at the fin's root and taken out first. FlightGear's slim
-## US spine is 0.3 to 0.4 m below.
+## The IAF dorsal spine, as on IAF F-16D 027 photographed side on (game/extra/models/f16/SOURCES.md): at stations
+## (m aft of the eye, along the jet) from behind the canopy to just ahead of the fin's leading edge, the body's top
+## 0.1 m off the centre line is level within SPINE_M, SPINE_BELOW_M under the canopy's top, and 0.3 m off the centre
+## line within SPINE_SIDE_M of it (a flat-topped box). FlightGear's slim US spine is 0.2 to 0.3 m below.
 ## How far from a store's Station helper its pylon's surface may be; TIP_M for the wingtip rails (StationA / I: the
 ## original has no rail there, its missiles bring their own launcher, which meets FlightGear's tip rail 0.10 m off).
 const ATTACH_M := 0.05
 const TIP_M := 0.12
-const SPINE_STATIONS := [4.5, 5.0, 6.0, 7.0, 8.0]
+const SPINE_STATIONS := [5.0, 6.0, 7.0, 8.0]
 const SPINE_SIDE_STATIONS := [5.0, 6.0, 7.0]
-const SPINE_FIN := 8.25
-const SPINE_M := 0.05
-const SPINE_SIDE_M := 0.08
-const SPINE_OFFSET_M := 0.15
+const SPINE_M := 0.04
+const SPINE_SIDE_M := 0.06
+const SPINE_BELOW_M := [0.2, 0.32]
 ## A detailed store's length over its original's (± this; the laser bombs are longer) and its bounds' centre off the
 ## original's across the axis (m; lugs and fins are not symmetric).
 const STORE_LEN := 0.03
@@ -193,23 +190,29 @@ func run() -> void:
 			if pb.size != Vector3.ZERO and not pb.intersects(body.grow(0.05)):
 				loose.append(name)
 	check(loose.is_empty(), "on: every part touches the body (loose: %s)" % [loose])
-	# The IAF dorsal spine: the body's top profile against the original's (the same frame: the helpers match).
+	# The IAF dorsal spine: level, under the canopy's top, flat across.
 	var eye: Vector3 = (fr.get_node("Camera") as Node3D).position
 	var det_tris: PackedVector3Array = (fr as MeshInstance3D).mesh.get_faces()
 	var orig_tris: PackedVector3Array = (orig_root as MeshInstance3D).mesh.get_faces()
-	var off_m := _top(orig_tris, eye, 0.1, SPINE_FIN) - _top(det_tris, eye, 0.1, SPINE_FIN)
+	var canopy := fr.get_node("Canopy") as MeshInstance3D
+	var canopy_tris: PackedVector3Array = _xf(canopy, fr) * canopy.mesh.get_faces()
+	var apex := -INF
+	for st in range(-10, 30):
+		apex = maxf(apex, _top(canopy_tris, eye, 0.0, st * 0.1))
+	var tops := []
 	var spine := []
-	var spine_bad := false
-	for st in SPINE_STATIONS + SPINE_SIDE_STATIONS.map(func(v): return -v):  # negative: the 0.3 m line
-		var x := 0.1 if st > 0 else 0.3
-		var o := _top(orig_tris, eye, x, absf(st)) - off_m
-		var d := _top(det_tris, eye, x, absf(st))
-		spine.append("%.1f m aft x %.1f: %.3f / %.3f" % [absf(st), x, d, o])
-		spine_bad = spine_bad or absf(d - o) > (SPINE_M if st > 0 else SPINE_SIDE_M)
-	print("dorsal spine top (detailed / original - %.3f m), m above the eye: " % off_m, ", ".join(spine))
+	var flat := true
+	for st: float in SPINE_STATIONS:
+		var t := _top(det_tris, eye, 0.1, st)
+		tops.append(t)
+		spine.append("%.1f m aft: %.3f" % [st, t])
+		if st in SPINE_SIDE_STATIONS:
+			flat = flat and absf(_top(det_tris, eye, 0.3, st) - t) < SPINE_SIDE_M
+	var below: float = apex - tops.max()
+	print("dorsal spine top, m above the eye: ", ", ".join(spine), "; the canopy's top %.3f" % apex)
 	check(
-		not spine_bad and absf(off_m) < SPINE_OFFSET_M,
-		"on: the IAF dorsal spine follows the original's top from the canopy to the fin (offset %.2f m)" % off_m
+		tops.max() - tops.min() < SPINE_M and below > SPINE_BELOW_M[0] and below < SPINE_BELOW_M[1] and flat,
+		"on: the IAF dorsal spine runs level from the canopy to the fin, %.2f m under the canopy's top" % below
 	)
 	# The afterburner's ring (the engine point, its radius) lies on the body's nozzle: body vertices within 10 cm of
 	# the exit plane at about that radius all round.
