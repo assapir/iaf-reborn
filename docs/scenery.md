@@ -286,6 +286,11 @@ shared GPU lock, the plain trees and the textured ones benched back to back:
 
 In the town: GPU 26.8 ms against 26.7 ms, 300 against 313 draw calls, 1 180 k against 1 390 k triangles.
 
+After the round pine crowns (the far pine 12 → 18 triangles) and the linear tree colours, 2026-10-29, the same views
+and settings, one run on a quiet machine (load 0.2): orchard 48.4 fps (GPU 20.5 ms, 1 951 k triangles), Carmel
+45.8 fps (GPU 21.6 ms, 1 791 k triangles). A second run once the machine got busy again is left out: with the CPU
+loaded the main thread, not the GPU, set the frame (orchard 23–33 fps at the same GPU time).
+
 Tried and dropped (2026-10-26):
 
 - full model to 700 m, far model three crossed upright cards and a flat one (8 triangles): town 28.5 fps (22 %
