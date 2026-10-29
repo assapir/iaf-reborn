@@ -283,7 +283,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     Barak's list is the original's;
   - its look: every F-16 is drawn with our F-16I model (`f16i.glb`: conformal fuel tanks, P&W nozzle, the Sufa's
     colours, 107 Squadron's orange fin band; aircraft-models.md §1.3), also with Models on Original;
-  - the Arming screen shows our F-16I front-view art with the Sufa's weights (base 32,050 lb, max 52,000 lb).
+  - the Arming screen shows our F-16I front-view art with the Sufa's weights (base 32,050 lb, max 52,000 lb);
+  - the Jet list's F16 button reads F-16I (Hebrew סופה) and its row describes the F-16I, as the F-35I's slot (f35i.md); the
+    F-35I wins when it replaces the F-16.
 - **HUD (Original (1998) / Real)** (references: [real-hud.md](real-hud.md)). Original: the 1998 HUD on every jet.
   Ours, with Real: each jet's real display:
   - the F-16C/D dash-34 HUD;
