@@ -19,7 +19,8 @@
 # (on an install set up before).
 # --scenery (off by default) adds buildings and trees over the Survey 2 m layer (docs/scenery.md); --scenery=buildings
 # or --scenery=trees makes only that kind. The sources the kinds need (pinned; both 520 MB, buildings 373 MB, trees
-# 267 MB) are downloaded into assets/source/scenery, then the cells are made (needs GDAL and the mapi2015 layer).
+# 267 MB) are downloaded into assets/source/scenery, the other countries' road extracts (366 MB) into assets/source/roads,
+# then the theatre's road layer and the cells are made (needs GDAL; the cells need the mapi2015 layer; docs/scenery.md §6).
 # Without the ISO argument it runs on an install set up before.
 # IAF_IMAGERY_MIRROR=user@host:/path/to/repo restores a missing assets/converted/imagery (and the sheets) with rsync;
 # the parts of it that older rules wrote (e.g. the airbases' old rectangles) are then converted again.
@@ -142,6 +143,7 @@ scenery_steps() {
 		{ echo "WARNING: the scenery's sources could not be fetched (offline?): Scenery stays off; run setup again online"; return 0; }
 	step "scenery: cells ($scenery) over the Survey 2 m layer"
 	command -v gdalwarp >/dev/null || { echo "GDAL is needed (README: prerequisites)"; return 0; }
+	./target/release/iaf-scenery roads assets
 	[[ -d assets/converted/imagery/mapi2015/L1 ]] || { echo "Scenery needs the Survey 2 m layer: run with --imagery mapi2015 first"; return 0; }
 	./target/release/iaf-scenery build assets --kinds "$scenery"
 }

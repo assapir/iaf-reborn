@@ -26,6 +26,7 @@ pub mod pack;
 pub mod patch;
 pub mod plane;
 pub mod progress;
+pub mod roads;
 pub mod rtpatch;
 pub mod runway_fix;
 pub mod scenery;

@@ -20,6 +20,7 @@ mod mission_intel;
 mod radar;
 mod real_hud;
 mod release;
+mod roads;
 mod rwr;
 mod scenery;
 mod sensors;

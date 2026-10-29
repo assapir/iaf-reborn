@@ -105,13 +105,14 @@ lines to roll in its `attribution`, and the licences in `licence`:
 
 | Source | Credit line | Licence |
 |---|---|---|
-| OpenStreetMap (Geofabrik extract) | © OpenStreetMap contributors | ODbL 1.0[^osm] |
+| OpenStreetMap (Geofabrik extracts: Israel and Palestine; for the roads also Lebanon, Syria, Jordan, Egypt, Cyprus) | © OpenStreetMap contributors | ODbL 1.0[^osm] |
 | Microsoft Global ML Building Footprints | Microsoft Global ML Building Footprints | CDLA Permissive 2.0[^ms] |
 | GHS-BUILT-H R2023A | European Commission, Joint Research Centre (JRC) | free re-use with the source acknowledged[^ghsl] |
 | Global Canopy Height 2020 (10 m) | Lang, Jetz, Schindler, Wegner; ETH Zürich EcoVision Lab | CC BY 4.0[^chm] |
 
-ODbL and CC BY ask for the credit. The files and their checksums are `SCENERY` in
-`crates/iaf-tools/src/thirdparty.rs`.
+The road layer (docs/scenery.md §6) has its own manifest (`assets/converted/roads/manifest.json`); the credits roll
+shows its `attribution` too: OpenStreetMap with the extracts used. ODbL and CC BY ask for the credit. The files and
+their checksums are `SCENERY` and `ROADS` in `crates/iaf-tools/src/thirdparty.rs`.
 
 ## Testing
 

@@ -427,7 +427,12 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
       (`iaf_tools::modern_map::CITIES`, longitude / latitude through the georeference, docs/georef.md), its outline
       and label by the same step; Jerusalem, Gaza, Haifa and Beirut move about a map unit. The TSD, the briefing, the
       in-flight TSD and the mission editor share it. The base for a later modern map (roadmap "A modern TSD map").
-      Test: `tests/godot/test_modern_map.gd`.
+      Modern also draws today's main roads from setup's road layer (docs/scenery.md §6; none without it):
+      `tsd_map.gd` `road_meshes` turns `main.bin` into three one-pixel line meshes once, at load, in map units
+      (`world_to_map` as a transform), drawn over the map's fills and under the grid, the city dots, the labels,
+      units and routes: motorways and trunk roads always (dark red), primary roads from zoom 3 (red-brown),
+      secondary roads from zoom 8 (brown, fainter). Test: `tests/godot/test_modern_map.gd` (with the road layer: the
+      map's segments, a motorway / trunk route Tel Aviv – Jerusalem of 59 km, the streets around Tel Aviv).
   * Polygons fill as GDI fills a `PolyPolygon`: all rings of a record are one region under its fill mode, ALTERNATE
     (even-odd) or WINDING (non-zero; 752 of the 1008 polygons in `82.emf`). The rings cross themselves and overlap.
     `menu/tsd_map.gd` gets the triangles from `IafEmf.fill_triangles` (`iaf_formats::emf::fill_triangles`, a sweep

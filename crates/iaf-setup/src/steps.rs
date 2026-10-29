@@ -48,7 +48,7 @@ pub const OUTPUTS: &[&str] = &[
 /// What the setup keeps on an uninstall unless asked: the imported packs (the pack zips may be gone) and the
 /// downloads (imagery: hours and tens of GB to fetch again; the scenery's and the F-15's sources; the third-party
 /// textures).
-pub const KEPT: &[&str] = &["packs", "source/imagery", "source/scenery", "source/f15", "thirdparty"];
+pub const KEPT: &[&str] = &["packs", "source/imagery", "source/scenery", "source/roads", "source/f15", "thirdparty"];
 
 /// Removes the setup's outputs ([`OUTPUTS`]) from `assets`, and with `everything` the [`KEPT`] ones too; a
 /// missing one is fine.
@@ -202,7 +202,15 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
         "textures" => return textures(&a.join("thirdparty/ambientcg"), thirdparty::AMBIENTCG, pr, cancel),
         "scenery-fetch" => {
             let list = ctx.inputs.scenery_kinds.downloads();
-            return scenery_fetch(&list, &a.join("source/scenery"), SCENERY_PROBE, pr, cancel);
+            let scenery = scenery_fetch(&list, &a.join("source/scenery"), SCENERY_PROBE, pr, cancel)?;
+            // The road layer's other countries (docs/scenery.md §1.1), each optional.
+            if matches!(scenery, Outcome::Skipped(_))
+                || thirdparty::ROADS.iter().all(|d| thirdparty::file_done(&a.join("source/roads"), d))
+            {
+                return Ok(scenery);
+            }
+            iaf_tools::roads::fetch(a, pr, cancel)?;
+            return Ok(Outcome::Done);
         }
         "scenery" => return scenery(a, ctx.inputs.scenery_kinds, pr, cancel),
         "models" => return f15(a, F15_PROBE, pr, cancel),
@@ -425,8 +433,8 @@ fn scenery_fetch(
     Ok(Outcome::Done)
 }
 
-/// The scenery cells and the city lights' buildings (iaf_tools::scenery): skipped without GDAL, the sources or the
-/// Survey 2 m layer.
+/// The road layer (iaf_tools::roads), the scenery cells and the city lights' buildings (iaf_tools::scenery): skipped
+/// without GDAL or the sources; the cells and lights also without the Survey 2 m layer.
 fn scenery(a: &Path, kinds: iaf_tools::scenery::Kinds, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
     if !crate::tools().gdal {
         return Ok(Outcome::Skipped("GDAL is needed (gdalwarp, ogr2ogr)".into()));
@@ -434,6 +442,8 @@ fn scenery(a: &Path, kinds: iaf_tools::scenery::Kinds, pr: &dyn Progress, cancel
     if !kinds.downloads().iter().all(|d| thirdparty::file_done(&a.join("source/scenery"), d)) {
         return Ok(Outcome::Skipped("the scenery's sources are not downloaded (step scenery-fetch)".into()));
     }
+    // The road layer (docs/scenery.md §6) needs only the OpenStreetMap extract.
+    let roads = iaf_tools::roads::build(a, pr, cancel)?.up_to_date;
     if !a.join("converted/imagery/mapi2015/L1").is_dir() {
         return Ok(Outcome::Skipped("Scenery needs the Survey of Israel 2 m layer (imagery mapi2015)".into()));
     }
@@ -441,7 +451,7 @@ fn scenery(a: &Path, kinds: iaf_tools::scenery::Kinds, pr: &dyn Progress, cancel
     let cells = iaf_tools::scenery::build(&r, pr, cancel)?.up_to_date;
     // The city lights' buildings where the scenery stops (docs/rendering.md §5.1).
     let lights = iaf_tools::scenery::build_lights(&r, pr, cancel)?.up_to_date;
-    Ok(if cells && lights { Outcome::UpToDate } else { Outcome::Done })
+    Ok(if cells && lights && roads { Outcome::UpToDate } else { Outcome::Done })
 }
 
 /// A modern imagery layer: the estimate first; nothing to convert (every unit's mark holds) is up to date.
