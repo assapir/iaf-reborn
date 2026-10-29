@@ -583,13 +583,72 @@ Where our port differs from the original. Everything else follows §15 (status i
     * BP: the stores' lateral moment `Mₛ = Σ count · weight · arm` (kg·m) comes from the pylons: each store at its bdb
       weight in kg (a tank at its full fuel, a gun pod as one store), the arm the station attach point's lateral
       position in the model (glTF x, F-16 wingtip 4.78 m). The host sends it with `set_stores_moment` after every
-      release. The rolling moment is `Mₛ · g · n` (n = L / W, the load factor). Against it stands the full roll
-      control's moment `Cl · q·S · b` with Cl = 0.04 (inferred, one value for every jet), so the stores are worth a
-      stick deflection `Mₛ·g·n / (Cl·q·S·b)`, added to the stick in the roll command: `p_cmd = MaxRollRate ·
-      clamp(stick + that, −1, 1)` (airborne only).
-    * Effect: the pilot holds the heavy wing up with stick. F-16, one 2000 lb bomb 3 m out: ≈ 18 % stick at 150 m/s
-      and 1 g, ×n in a pull, about four times as much at landing speed; beyond full stick the jet rolls off (test
-      `asymmetric_stores_roll`).
+      release. The rolling moment is `Mₛ · g · n` (n = L / W, the load factor), as a coefficient `Clₛ = Mₛ·g·n /
+      (q·S·b)`.
+    * Hands off, the jet rolls at the steady rate where the moment meets what resists the roll: the roll damping
+      `|Clp|·p·b/2V` and, on a jet whose flight controls feed the roll rate back to the ailerons with the stick
+      centred, `Cl_δa·K·p` (K the aileron per roll rate). So `pₛ = Clₛ / (|Clp|·b/2V + Cl_δa·K)`. As a stick share of
+      the jet's roll rate at this speed (`k·MaxRollRate`, §4) this is `s = pₛ / (k·MaxRollRate)`, added to the stick
+      in the roll command: `p_cmd = MaxRollRate · clamp(stick + s, −1, 1)` (airborne only). The stick (or trim) `−s`
+      holds the wing level.
+    * Per type (`roll_resistance`):
+
+      | type | \|Clp\| | Cl_δa·K (per rad/s) | source |
+      |---|---|---|---|
+      | F-16 | 0.40 | 0.0172 | Clp at α 5–10°; full roll control (20° aileron with 5° differential tail) ΔCl 0.050, so 0.0025/°; the FLCS's roll loop is proportional, 0.12° of aileron per °/s of roll-rate error[^tp1538] |
+      | F-16I Sufa | 0.40 | 0.0172 | the F-16's: same wing, same stations (inferred: the Block 52's digital FLCS keeps the analog one's roll gains; open) |
+      | Lavi, F-35I | 0.40 | 0.0172 | the F-16's (inferred: fly-by-wire roll-rate command; whether the F-35's control laws integrate the rate error away is open) |
+      | F-4E, Kurnass 2000 | 0.19 | 0.0106 | F-4C at Mach 0.4–0.6: Clp −0.19, Cl_δa 0.04/rad (spoilers included), roll SAS 0.265 rad of aileron per rad/s, active with the stick centred[^cr2144] |
+      | F-15 | 0.25 | 0.0106 | roll CAS through the differential stabilator[^tm72861], gain open: the F-4's feedback; Clp inferred |
+      | Kfir, Mirage | 0.20 | 0.0106 | low-aspect-ratio deltas, Clp inferred; the Mirage III's stick has a "roll stab" button beside its pitch and yaw dampers[^saaf-m3]: a roll damper with the F-4's feedback (inferred; the gain is open) |
+      | AI types | 0.25 | 0 | inferred: no roll damper |
+
+    * Effect, before (one Cl 0.04 for every jet) → now. Real data set, 1 g; stick to hold, the hands-off steady roll
+      rate it commands, the bank after 5 s hands-off in the flight model, and the trim time at full rocker
+      (0.1 stick/s). The arm is the station's lateral position (MK-82 680 kg·m = 227 kg at 3.0 m; GBU-31 946 kg at
+      station 3, 2.98 m).
+
+      | jet, load | speed | stick to hold | roll rate | bank after 5 s | trim time |
+      |---|---|---|---|---|---|
+      | F-16, 2000 lb bomb 3 m out | 150 m/s, 3000 m | 23 → 10 % | 41 → 18°/s | 143 → 62° | 2.3 → 1.0 s |
+      | F-16, 2000 lb bomb 3 m out | 72 m/s, 100 m | 76 → 49 % | 60 → 39°/s | 149 → 97° | 7.6 → 4.9 s |
+      | F-16, one MK-82 | 150 m/s, 3000 m | 5.8 → 2.5 % | 10 → 4.4°/s | 36 → 16° | 0.6 → 0.2 s |
+      | F-16, one MK-82 | 72 m/s, 100 m | 19 → 12 % | 15 → 9.7°/s | 40 → 26° | 1.9 → 1.2 s |
+      | F-16I, 2000 lb bomb 3 m out | 150 m/s, 3000 m | 23 → 10 % | 41 → 18°/s | 145 → 63° | 2.3 → 1.0 s |
+      | F-16I, one GBU-31 at station 3 | 150 m/s, 3000 m | 24 → 10 % | 43 → 18°/s | 151 → 66° | 2.4 → 1.0 s |
+      | F-16I, one GBU-31 at station 3 | 75 m/s, 100 m | 73 → 46 % | 60 → 38°/s | 145 → 92° | 7.3 → 4.6 s |
+      | F-16I, one MK-82 | 75 m/s, 100 m | 18 → 11 % | 15 → 9.2°/s | 37 → 24° | 1.8 → 1.1 s |
+      | F-15, 2000 lb bomb 3 m out | 150 m/s, 3000 m | 8.8 → 8.4 % | 10 → 9.4°/s | 36 → 34° | 0.9 → 0.8 s |
+      | F-15, 2000 lb bomb 3 m out | 70 m/s, 100 m | 30 → 42 % | 15 → 21°/s | 24 → 33° | 3.0 → 4.2 s |
+      | F-4E, 2000 lb bomb 3 m out | 150 m/s, 3000 m | 11 → 15 % | 11 → 14°/s | 35 → 47° | 1.1 → 1.5 s |
+      | F-4E, 2000 lb bomb 3 m out | 80 m/s, 100 m | 30 → 58 % | 14 → 28°/s | 23 → 44° | 3.0 → 5.8 s |
+      | F-4E, one MK-82 | 150 m/s, 3000 m | 2.8 → 3.8 % | 2.7 → 3.6°/s | 9 → 12° | 0.3 → 0.4 s |
+      | Kfir, 2000 lb bomb 3 m out | 150 m/s, 3000 m | 20 → 29 % | 19 → 27°/s | 68 → 97° | 2.0 → 2.9 s |
+      | Kfir, 2000 lb bomb 3 m out | 85 m/s, 100 m | 47 → 97 % | 24 → 50°/s | 48 → 97° | 4.7 → 9.7 s |
+      | Kfir, one MK-82 | 150 m/s, 3000 m | 5.0 → 7.3 % | 4.7 → 6.8°/s | 17 → 25° | 0.5 → 0.7 s |
+      | Mirage, 2000 lb bomb 3 m out | 150 m/s, 3000 m | 20 → 29 % | 19 → 27°/s | 64 → 92° | 2.0 → 2.9 s |
+      | Mirage, 2000 lb bomb 3 m out | 90 m/s, 100 m | 42 → 83 % | 23 → 46°/s | 45 → 87° | 4.2 → 8.3 s |
+      | Lavi, 2000 lb bomb 3 m out | 150 m/s, 3000 m | 20 → 12 % | 28 → 16°/s | 96 → 56° | 2.0 → 1.1 s |
+      | Lavi, 2000 lb bomb 3 m out | 70 m/s, 100 m | 69 → 62 % | 41 → 37°/s | 106 → 96° | 6.9 → 6.2 s |
+      | F-35I, 2000 lb bomb 3 m out | 150 m/s, 3000 m | 15 → 6.5 % | 27 → 12°/s | 96 → 42° | 1.5 → 0.7 s |
+      | F-35I, 2000 lb bomb 3 m out | 75 m/s, 100 m | 46 → 29 % | 38 → 24°/s | 97 → 63° | 4.6 → 2.9 s |
+
+      The fly-by-wire jets roll off at about half the old rate; the jets with a roll damper alone (F-4E, Kfir,
+      Mirage) roll off faster than before, most at landing speed, where little damping meets a large moment. The
+      stick grows ×n in a pull and as the speed falls; beyond full stick the jet rolls off (test
+      `asymmetric_stores_roll`). The bank after 5 s stays under rate × 5 s because the hands-off jet's speed and
+      load factor drift as it banks. An F-16 pilot's account after one 2000 lb store came off: "the right wing
+      dropped about 10-15 degrees below level until I caught it with the stick"; the F-16's roll loop has no
+      integrator, so the pilot trims the rest[^f16net-trim].
+    * Tested and dropped (2026-10-29): the first version turned the moment into stick against one full-roll-control
+      coefficient, Cl 0.04 for every jet, and let the jet roll at that stick's rate. It ignored the damping and the
+      flight controls' rate feedback, so it rolled the fly-by-wire jets off about twice too fast (F-16, 2000 lb bomb at
+      150 m/s: 41°/s for 18°/s). The F-16's real full roll control is ΔCl ≈ 0.054 (21.5° aileron with 5.4°
+      differential tail)[^tp1538]; the new model needs no full-control value.
+    * Open: the lateral asymmetry limits (an F/A-18 flight test found flying qualities acceptable up to
+      28,000 ft-lb[^ada301149]: 3,870 kg·m, 1.4 × the 2000 lb bomb 3 m out); the F-16's roll trim adds at most
+      ±67°/s to the roll command (±40 × 1.67 in the TP-1538 block diagram, about 8° of aileron; inferred reading),
+      while our trim reaches full stick.
     * The autopilot trims it: while a loop flies the jet, the stick that cancels the moment is added (within full
       stick; [autopilot.md](autopilot.md) §2.5).
     * The pilot trims it with our roll trim (Devices "Throttle rocker" = Roll trim, Alt + Left / Right; controls.md
@@ -1994,3 +2053,18 @@ and spin β apply underneath in both modes (§10).
     level to 5 s, timed to 95 % of the final thrust, <https://bigenc.ru/c/priiomistost-aviatsionnogo-dvigatelia-481568>.
 [^far3373]: 14 CFR 33.73(b): 15 % → 95 % of the rated take-off thrust "in not over 5 seconds",
     <https://www.ecfr.gov/current/title-14/part-33/section-33.73>.
+[^tp1538]: L. T. Nguyen et al., *Simulator Study of Stall/Post-Stall Characteristics of a Fighter Airplane With
+    Relaxed Longitudinal Static Stability*, NASA TP-1538, 1979 (the F-16 data behind Stevens & Lewis's model): fig. 13
+    (ΔCl of δa = −20°, δd = −5°), fig. 64 (roll axis), appendix A (surface limits ±21.5° / ±5.38°), the Clp table,
+    <https://ntrs.nasa.gov/citations/19800005879>.
+[^cr2144]: R. K. Heffley, W. F. Jewell, *Aircraft Handling Qualities Data*, NASA CR-2144, 1972, section IV (F-4C):
+    figure IV-7 (roll SAS, "faded out with lateral control out of neutral"), the Clp and Cl_δa plots,
+    <https://ntrs.nasa.gov/citations/19730003312>.
+[^f16net-trim]: F-16.net forum, "Viper trim question" (2023; a pilot's account and the manual's "roll retrimming may
+    be required as flight conditions change"), <https://www.f-16.net/forum/viewtopic.php?p=485001>.
+[^ada301149]: *Lateral Asymmetry Envelope Expansion Testing on a Highly Augmented Fighter
+    Aircraft*, Naval Air Warfare Center, 1995, <https://apps.dtic.mil/sti/pdfs/ADA301149.pdf>.
+[^tm72861]: NASA TM-72861, *Precision Controllability of the F-15 Airplane*, 1979, appendix (roll command
+    augmentation through the stabilator CAS series servos), <https://ntrs.nasa.gov/citations/19790015808>.
+[^saaf-m3]: SA Air Force Association, "Mirage III in SAAF Service", part 6 (cockpit detail photos),
+    <https://www.saairforce.co.za/pdf/Mirage%20III%20in%20SAAF%20Service%20-%20Part%206.pdf>.
