@@ -144,6 +144,10 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	host = host_node
 	descriptor = desc
 	jet_type = int(object.get("0x5b4", 100))
+	# Bomb release Real (docs/weapons.md §9.10): the quantity starts at RP 1 (one pair per press in PAIRS); the
+	# original's FUN_004585f0 default 2 stays with the switch off.
+	if Settings.bomb_release == "real":
+		_ripple.set_qty(1)
 	db = WeaponDb.create(bdb, Settings.real_weapons())
 	stores = Stores.new()
 	stores.player = true

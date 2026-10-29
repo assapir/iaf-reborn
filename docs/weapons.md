@@ -782,9 +782,10 @@ releases stay original.
 **What ours does with Real** (`crates/iaf-avionics/src/stores.rs` `Stores::real_pulse`, `release.rs`
 `Ripple::pulses`, wired in `game/weapons/player_weapons.gd` `_ripple_tick`):
 - **PAIRS / SGL.** Stores page OSB 7 (bottom, second from the left) toggles PAIRS and SGL, PAIRS at the start. The
-  page then shows "2 PAIR" / "2 SGL" in the quantity's place ("%dQnt"); the art is unchanged.
+  page then shows "1 PAIR" / "1 SGL" (the quantity and the mode) in the quantity's place ("%dQnt"); the art is unchanged.
 - **The quantity counts release pulses** (F-16 rule, used for every jet but the F-4s, inferred). Each pulse is one
-  store (SGL) or one pair (PAIRS), so 6 MK-82s go with quantity 3 in PAIRS. The F-4E and the Kurnass 2000 (inferred
+  store (SGL) or one pair (PAIRS). It starts at RP 1, so one press in PAIRS drops one pair; 6 MK-82s go in one
+  press with quantity 3. With the switch off the original's default 2 stays. The F-4E and the Kurnass 2000 (inferred
   from the F-4E) keep the AWRU rule: PAIRS drops one pair per press, the quantity counting stores in SGL.
 - **One pulse in PAIRS:** the outboard-most symmetric pair (stations i and 8 − i) that both hold the selected
   weapon, one store from each at the same instant. Both counts drop before one push to the flight model, so Better
@@ -794,13 +795,13 @@ releases stay original.
   the lateral moment nearest 0 (an odd store left, the centreline last). Inferred from the sources above.
 - **Interval:** the original's period and ripple line (§9.1, §9.3) with one line point per pulse; both stores of a
   pair share the point.
-- The probe load (6 MK-82 singles, quantity 2): Real PAIRS releases (1, 7) and (2, 6) on the first press and (3, 5)
-  on the next, each pair in one step, the moment about 0 after each (the model's attach points are mirrored to
-  about 1 cm). Real SGL releases 1, 7, 2, 6, 3, 5.
+- The probe load (6 MK-82 singles) at RP 1: Real PAIRS releases (1, 7), (2, 6), (3, 5), one pair per press, each
+  pair in one step, the moment about 0 after each (the model's attach points are mirrored to about 1 cm). Real SGL
+  releases 1, 7, 2, 6, 3, 5, one per press.
 
 Tests: `stores.rs` / `release.rs` unit tests (pairs, alternating singles, a TER pair and an odd store, AWRU
-pulses); `test_bomb_release.gd` (mission 231: Original 1 7 2 6 3 5 one per tick; Real PAIRS (1, 7) (2, 6) (3, 5);
-Real SGL alternating).
+pulses); `test_bomb_release.gd` (mission 231: Original 1 7 2 6 3 5 one per tick, two per press; Real PAIRS (1, 7)
+(2, 6) (3, 5), one pair per press; Real SGL alternating, one per press).
 
 ## 10. Chaff and flares
 Each press drops one decoy. At the release the game rolls once per missile launched at the jet: a success sends that

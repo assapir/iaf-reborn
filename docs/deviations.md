@@ -161,9 +161,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 - **Bomb release (Original / Real).** Original: one bomb per ripple tick from `FUN_0053b680`'s station (the farthest
   same weapon from the last), the ripple quantity counting stores, so a symmetric pair leaves 0.1–0.3 s apart with
   the jet lopsided in between. Ours, with Real (`bomb_release`): the real stores management: stores page OSB 7
-  toggles PAIRS / SGL ("2 PAIR" / "2 SGL" in the quantity's place); PAIRS releases both stores of a symmetric pair
-  at the same instant; the quantity counts release pulses (the F-4E / Kurnass 2000: one pair per press); SGL
-  alternates wings, left first (weapons.md §9.10). Rockets and the AI keep the original.
+  toggles PAIRS / SGL ("1 PAIR" / "1 SGL" in the quantity's place); PAIRS releases both stores of a symmetric pair
+  at the same instant; the quantity counts release pulses, starting at RP 1 (the F-4E / Kurnass 2000: one pair per
+  press); SGL alternates wings, left first (weapons.md §9.10). Rockets and the AI keep the original.
 - **Briefing map (Original (1998) / Modern).** Original: text.emf's city dots where the 1998 map put them, up to
   ≈ 37 km from the real cities. Ours, with Modern (`briefing_map`): the eight labelled cities' dots and labels at
   their real places on the TSD / briefing / mission editor map, and today's motorways, trunk, primary and secondary
