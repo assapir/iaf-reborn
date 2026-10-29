@@ -420,8 +420,10 @@ const REAL: &[Real] = &[
         // The original's PlaneDragIndex 550 (cd0 0.055) + 1 % for the CFTs ("less than one percent" more drag at
         // cruise, Lockheed Martin 2001; inferred).
         cd0: Some(0.0555),
-        // As the F-16D row (no CFT figure above Mach 0.9: open).
+        // As the F-16D row: Mach 1.87 at 40k ft against the Block 50/52's clean "Mach 1.89 sustained" (f-16.net), so
+        // no refit; the CFTs' drag above Mach 0.9 is open (docs/real-aircraft.md §8.1).
         wave_drag: 0.02,
+        // Block 50/52 FLCS as the Block 40's (digital): the F-16D row's (no Block 52 figure: open).
         roll_deg_s: Some(280.0),
         roll_accel: Some((900.0, 900.0)),
         // TSFC 1.94 with AB, 0.76 military → ~56,600 lb/h and ~13,500 lb/h (inferred).
@@ -430,6 +432,7 @@ const REAL: &[Real] = &[
         // The F-16D's 118 kt at its full fuel (24,900 lb) scaled to 29,350 lb: 118 · √(29,350 / 24,900) (inferred).
         stall_kt: Some(128.0),
         nose_wheel: Some(Nws { angle_deg: 32.0, wheelbase_ft: 13.2, grip_g: 0.3 }),
+        // Block 50/52 "above 50,000 ft" as every F-16 (USAF fact sheet); 52,490 ft for the F-16I is secondary.
         ceiling_ft: Some(50_000.0),
         ..NONE
     },

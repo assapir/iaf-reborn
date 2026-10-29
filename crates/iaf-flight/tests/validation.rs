@@ -106,8 +106,9 @@ const REFS: &[Ref] = &[
         ceiling: Some((48500.0, 51500.0, "above 50,000 ft (USAF F-16)")),
         roll_rate: Some((240.0, 308.0, "~240-308 deg/s (FLCS limit 308)")),
         vmax_sl: Some((760.0, 800.0, "~Mach 1.2 (as the F-16D, inferred)")),
-        vmax_hi: Some((1050.0, 1180.0, "~Mach 1.9-2.0 (\"Mach 2 at altitude\")")),
+        vmax_hi: Some((1084.0, 1176.0, "Mach 1.89 sustained .. 2.05 (Block 50/52 clean)")),
         roll90: Some((0.35, 0.6, "~0.5 s (240-300 deg/s)")),
+        turn: Some((19.0, 23.0, "~20.9 deg/s at 7.8 g (Block 50, 22,000 lb; uncertain)")),
         ff_mil: Some((12500.0, 14500.0, "~13,500 lb/h (TSFC 0.76, inferred)")),
         ff_ab: Some((52000.0, 61000.0, "~56,600 lb/h (TSFC 1.94, inferred)")),
         ..JET
