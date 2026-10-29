@@ -293,7 +293,7 @@ static func _ease(k: float, target: float, dt: float, out: float) -> float:
 func _track(model: Node3D, frame: Node3D) -> Jet:
 	# Per plane and model (Original / Detailed share the descriptor; the cockpit model is its own).
 	var plane := str(model.desc.get("name", model.name))
-	var key := plane + ("_hd" if Gltf.detailed(str(model.desc.get("model", ""))) != "" else "")
+	var key := plane + Gltf.detailed(str(model.desc.get("model", "")))
 	var e = model.desc.get("eye")
 	var ez: float = float(e[2]) if e is Array else 0.0
 	if not _geo.has(key):

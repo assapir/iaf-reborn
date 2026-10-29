@@ -9,6 +9,8 @@
 # SHOT_OUT/<models>_<name>.png and prints the frame time of a settled view. SHOT_BENCH=1: no pictures; the frame time
 # (vsync off) and GPU time over 600 frames with the camera 50 m behind the jet (mission 231: the player's jet and the
 # AI's F-16s drawn).
+# SHOT_F16=sufa: every F-16 as the F-16I Sufa (docs/f16i.md §8.1). SHOT_AI=1: the shots of the first AI F-16 instead
+# of the player's jet (the camera rides with it; no pose).
 # SHOT_JET=0 (the F-15; any jet_id): mission 311 with that jet, also for "airborne" (lifted 3000 m, F15_LOADOUT), and
 # the JET_SHOTS (docs/aircraft-models.md §6), named for the before / after pairs.
 extends "res://../tests/godot/base.gd"
@@ -87,6 +89,9 @@ var tv: Node
 var _cam_xf := Transform3D()
 var _fov := 40.0
 var _pose := {}
+## SHOT_AI: the AI jet the camera rides with, and the camera in its frame.
+var _follow: Node3D
+var _cam_local := Transform3D()
 
 
 func run() -> void:
@@ -98,6 +103,8 @@ func run() -> void:
 	var ground := OS.get_environment("SHOT_START") == "ground"
 	settings().models = models if models != "" else "original"
 	settings().show_info = false
+	if OS.get_environment("SHOT_F16") != "":
+		settings().f16_variant = OS.get_environment("SHOT_F16")
 	var jet := OS.get_environment("SHOT_JET")
 	if jet != "":
 		settings().jet_id = int(jet)
@@ -208,12 +215,20 @@ func _hardpoints() -> Array:
 func _shot(s: Array, out: String, models: String) -> void:
 	var pose: Dictionary = s[4]
 	var ac: Node3D = tv.aircraft
-	var input := {"gear_down": tv.gear_down, "on_ground": not tv.start_airborne}
-	ac.update(input, 0.0)
-	input.merge(pose, true)
-	ac.update(input, 0.0)
-	ac.settle()
-	_pose = input
+	_follow = null
+	if OS.get_environment("SHOT_AI") == "1":
+		for p in tv.ai.pilots:
+			if int(p.ent.type_code) == 100 and p.node != null:
+				ac = p.node
+				_follow = ac
+				break
+	else:
+		var input := {"gear_down": tv.gear_down, "on_ground": not tv.start_airborne}
+		ac.update(input, 0.0)
+		input.merge(pose, true)
+		ac.update(input, 0.0)
+		ac.settle()
+		_pose = input
 	var d := float(s[1])
 	var yaw := deg_to_rad(float(s[2]))
 	var pitch := deg_to_rad(float(s[3]))
@@ -223,6 +238,7 @@ func _shot(s: Array, out: String, models: String) -> void:
 	var c: Vector3 = ac.to_global(aim + off)
 	var target: Vector3 = ac.to_global(aim)
 	_cam_xf = Transform3D(Basis.looking_at(target - c, ac.global_basis.y.normalized()), c)
+	_cam_local = ac.global_transform.affine_inverse() * _cam_xf
 	_fov = 40.0 if d < 500.0 else 4.0
 	var t0 := Time.get_ticks_msec()
 	await frames(10)
@@ -255,7 +271,7 @@ func _place_camera() -> void:
 		for f in tv.aircraft.flames:
 			f.rebuild()  # (the flames drew the flight model's level earlier this frame)
 	if tv != null and tv.chase != null:
-		tv.chase.global_transform = _cam_xf
+		tv.chase.global_transform = _follow.global_transform * _cam_local if is_instance_valid(_follow) else _cam_xf
 		tv.chase.fov = _fov
 
 

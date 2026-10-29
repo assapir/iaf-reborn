@@ -277,7 +277,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - weapons: the Arming screen also lists the AIM-9X, Python 5, GBU-31, GBU-31(V)3, GBU-32, GBU-38 and GBU-39 (our
     records from public data, with either Weapon data): high off-boresight IR missiles through the helmet with lock-on
     after launch, and GPS bombs that fly to the designated point, with `IN RNG` on the HUD (weapons.md §13). The
-    Barak's list is the original's.
+    Barak's list is the original's;
+  - its look: every F-16 is drawn with our F-16I model (`f16i.glb`: conformal fuel tanks, P&W nozzle, the Sufa's
+    colours, 107 Squadron's orange fin band; aircraft-models.md §1.3), also with Models on Original;
+  - the Arming screen shows our F-16I front-view art with the Sufa's weights (base 32,050 lb, max 52,000 lb).
 - **HUD (Original (1998) / Real)** (references: [real-hud.md](real-hud.md)). Original: the 1998 HUD on every jet.
   Ours, with Real: each jet's real display:
   - the F-16C/D dash-34 HUD;
