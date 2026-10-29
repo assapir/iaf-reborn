@@ -388,6 +388,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     (aircraft-models.md §6): grey with IAF roundels, its speed brake and hook shown also shut.
   - Stores, gun, wingtips, eye and wheel height come from the original's helpers. The detailed model brings its own
     hinge lines, its afterburner position at its nozzle's exit, and closed gear doors shown while the gear is up.
+  - The detailed F-16s sit 3.0° nose up on their wheels, as the real jet does (its nose oleo at its static
+    compression); the flight model holds the jet level on the ground, so only the drawn model turns, about the main
+    wheels, easing back to level in 0.6 s after lift-off (aircraft-models.md §1.1).
 - **Rolling wheels** (ours, Graphics → MORE; [part-animation.md](part-animation.md) §2.2). Visual only; the default
   is Original.
   - Original: the wheels of a flown aircraft never turn. The flight model's part callback hides the wheel frames

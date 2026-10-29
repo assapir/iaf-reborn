@@ -50,6 +50,13 @@ The game reads positions from the aircraft model. The detailed model keeps them 
   `tests/godot/test_detailed_models.gd` prints the offsets.
 - **Wheels** are part of the gear legs' meshes, so they stay fixed, as on the original, also with Rolling wheels on
   (docs/part-animation.md §2.2).
+- **Sitting nose up** (ours): the nose oleo is built at its static compression (`NOSE_STATIC`, 0.041 m from
+  FlightGear's JSBSim gear spring), so its wheel reaches 0.186 m under the main wheels' line, as on the real jet,
+  whose strut shows between the intake and the wheel (F-16D 027). The helpers `Sit1` (where the main wheels touch)
+  and `Sit2` (the nose wheel) give the angle, 3.0°. The game holds the jet level on the ground (flight-model.md
+  §14.5a) with the wheels at `height`, so `AircraftModel` turns only the drawn model nose up about `Sit1` while the
+  jet is on its wheels with the gear down (`sit`), easing in and out over `SIT_TIME` (0.6 s). The cockpit view has
+  its own model and the flight model's attitude, so it stays level.
 
 ### 1.2 Loading
 
@@ -273,10 +280,6 @@ The script:
 - The Sufa's other antenna changes and 107 Squadron's real badge (docs/f16i.md §10).
 - The livery's fuselage sides are stretched (FlightGear's UVs project from above and below). The spine's aft sensor
   is not modelled.
-- The nose oleo is compressed 0.23 m, where FlightGear's flight model (its JSBSim gear springs)
-  settles it 0.04 m at a parked weight: the game holds the jet level on the ground (flight-model.md §14.5a), so both
-  wheels touch the original's `height`. JSBSim's contacts would sit the jet 2.7° nose up. The main wheels are where
-  JSBSim settles them, within 2 cm.
 - Where the livery's old roundel was, near the left wing tip, the paint is a smooth blend of the colours round it:
   its panel lines and rivets are gone over 0.5 m.
 - The canopy glass is plain tinted glass.

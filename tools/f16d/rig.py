@@ -57,6 +57,10 @@ SHIFT = Vector((0.0, -1.05, 0.0))
 Y_FRONT, Y_CANOPY_REAR, Y_FIN, EXT = 3.45, 2.48, -2.8, 0.95
 Z_SILL0, Z_SILL1, X_SPINE = 0.28, 0.42, 0.95
 SEAT_GAP = 0.98
+# The nose oleo's static compression (m): FlightGear's JSBSim gear (Systems/jsb-ground-reactions.xml), its nose
+# spring 17,250 lb/ft under the nose's share of a 24,000 lb jet (9.6 %: the CG 0.22 m aft of the origin, the wheels
+# 3.02 m ahead and 0.56 m aft of it). The main oleos go to the original's `height` (within 2 cm of JSBSim's static).
+NOSE_STATIC = 0.041
 # FlightGear's fin and rudder end FIN_DROP m too high: their root (FIN_ROOT) is level with the canopy's top, where on
 # IAF F-16s (F-16D 027 side on, parked; F-16C 557) the canopy stands 0.25 m above the fin's root and the dorsal spine
 # (SOURCES.md). Their tip (FIN_TIP) is right: 4.90 m above the static ground, the F-16's published 4.88 m. So the
@@ -195,11 +199,14 @@ def rotate_about(objs, centre, axis, angle):
 
 
 def compress_gear(body, target_z):
-    """Oleos compressed (as loaded on the ground) until each wheel's lowest point is at target_z."""
+    """Oleos compressed as loaded on the ground: the main wheels' lowest points at target_z, the nose oleo by its
+    static NOSE_STATIC. Returns where the main wheels and the nose wheel touch (world, on the centre line): the
+    game's Sit1 / Sit2 helpers (the nose up on the ground, aircraft_model.gd)."""
     nose = [body["FrontTire"], body["FrontLowerStrut"]]
-    dz = target_z - bounds([body["FrontTire"]])[0].z
-    transform(nose, Matrix.Translation((0, 0, dz)))
-    print("gear nose compression", round(dz, 3), "m")
+    transform(nose, Matrix.Translation((0, 0, NOSE_STATIC)))
+    lo, hi = bounds([body["FrontTire"]])
+    nose_touch = Vector((0, (lo.y + hi.y) / 2, lo.z))
+    print("gear nose compression", NOSE_STATIC, "m; nose wheel", round(target_z - lo.z, 3), "m under the mains'")
     for side, name in (("L", "Left"), ("R", "Right")):
         c, ax = MAIN_COMPRESSION[side]
         c, ax = fg(c) + SHIFT, fg(ax).normalized()
@@ -213,6 +220,8 @@ def compress_gear(body, target_z):
             lo, hi = (mid, hi) if low(s * mid) < target_z else (lo, mid)
         rotate_about([body[n] for n in PARTS["Ldg" + side][0]], c, ax, s * lo)
         print("gear", side, "compression", round(math.degrees(s * lo), 2), "deg")
+    lo, hi = bounds([body["LeftMainTire"], body["RightMainTire"]])
+    return Vector((0, (lo.y + hi.y) / 2, target_z)), nose_touch
 
 
 def turned_copy(src, centre, axis, deg):
@@ -516,7 +525,7 @@ def main():
     helpers["EngineL1"] = helpers["EngineL"] + Vector((0, 0, exit_r))
     print("nozzle exit", tuple(round(x, 3) for x in helpers["EngineL"]), "radius", round(exit_r, 3))
     target = helpers["height"].z + root_at.z
-    compress_gear(body, target)
+    sit = compress_gear(body, target)
     doors_down, doors_up = gear_doors(body)
     dorsal_spine(body)
     if SUFA:
@@ -562,6 +571,8 @@ def main():
         if name in parts or name in hinge_names or name in PARTS:
             continue
         rig.empty(name, p + root_at)
+    rig.empty("Sit1", sit[0])
+    rig.empty("Sit2", sit[1])
     materials(rig)
     tmp = OUT + ".png.glb"
     rig.root.location = root_at

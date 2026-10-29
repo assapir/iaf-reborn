@@ -74,6 +74,13 @@ func run() -> void:
 	var second_ms := Time.get_ticks_msec() - t0
 	check(on != null and on.find_child("LdgDrUp", true, false) != null, "on: the detailed model loads")
 	check(second_ms < 100, "on: parsed once, later jets share it (first %d ms, second %d ms)" % [first_ms, second_ms])
+	# On its wheels the jet sits nose up about the main wheels (helpers Sit1 / Sit2; the nose oleo at its static
+	# compression), in the air it is level.
+	var sit_deg := rad_to_deg(again._sit_angle)
+	check(
+		again.sit == 1.0 and on.sit == 0.0 and sit_deg > 2.0 and sit_deg < 4.0,
+		"on: on its wheels the jet sits %.1f° nose up, level in the air" % sit_deg
+	)
 	var tris := _tris(on)
 	check(tris > 30000, "on: detailed triangles %d (original %d)" % [tris, _tris(orig_scene)])
 	var tex := _albedo(on)

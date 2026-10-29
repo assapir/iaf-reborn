@@ -33,6 +33,8 @@ const EPS := 1e-5
 ## Drag chute jitter: a new ±5° angle every 0.1 s while deployed (state 2).
 const CHUTE_JITTER := PI / 36.0
 const CHUTE_PERIOD := 0.1
+## Ours (the detailed F-16s): seconds for the jet to settle onto its nose wheel or lift off it (`sit`).
+const SIT_TIME := 0.6
 
 ## The descriptor (aircraft.json) and the type code whose rules apply.
 var desc: Dictionary = {}
@@ -78,6 +80,13 @@ var _rotor := 0.0  # the rotors' angle, degrees (crew object +0x10)
 var wheels: Array = []
 var wheel_roll := 0.0
 var _chute_t := 0.0
+## Ours (the detailed F-16s, docs/aircraft-models.md §1.1): on its wheels the jet sits nose up, turned about the
+## main wheels' touch (helper Sit1) until the nose wheel's (Sit2) touches too. The game holds the jet level on the
+## ground (flight-model.md §14.5a), so only the drawn model turns. `sit`: 0 in the air .. 1 on the wheels.
+var sit := 0.0
+var _sit_angle := 0.0
+var _sit_pivot := Vector3.ZERO
+var _sit_base := Transform3D.IDENTITY
 var _time := 0.0
 
 
@@ -332,6 +341,14 @@ func setup(gltf_scene: Node3D, descriptor: Dictionary, type := -1, on_ground := 
 			f.scale_factor = float(desc.get("scale", 5.0))
 			root_frame.add_child(f)
 			flames.append(f)
+	var s1 := root_frame.get_node_or_null("Sit1") as Node3D
+	var s2 := root_frame.get_node_or_null("Sit2") as Node3D
+	if s1 != null and s2 != null:
+		_sit_pivot = s1.position
+		_sit_angle = atan2(s1.position.y - s2.position.y, s1.position.z - s2.position.z)
+		_sit_base = root_frame.transform
+	sit = 1.0 if on_ground else 0.0
+	_apply_sit()
 	# Start ramps (FUN_005a5820): airborne gear up, flaps 0, speed brake 0; ground start gear 0,
 	# flaps 0.29275 (the full value, also on the F-16), speed brake 0.855.
 	ramps.gear = 0.0 if on_ground else GEAR_MAX
@@ -430,6 +447,8 @@ func update(input: Dictionary, delta: float) -> void:
 		ramps[k] = move_toward(ramps[k], _targets[k], rate * delta)
 	if input.has("gear"):
 		ramps.gear = float(input.gear)  # the flight model's own gear ramp (exact timing)
+	sit = move_toward(sit, 1.0 if on_ground and ramps.gear < EPS else 0.0, delta / SIT_TIME)
+	_apply_sit()
 	# Rolling wheels (ours): on the ground each wheel turns at ground speed / its radius; in the air it holds.
 	if on_ground and Settings.rolling_wheels:
 		wheel_roll -= float(input.get("ground_speed", 0.0)) * delta
@@ -570,6 +589,14 @@ func part_pose(id: int) -> Array:
 			return [deg_to_rad(_rotor), t < 0]
 	# Canards, turret, radar, wheels, engines…: not drawn on a flown aircraft.
 	return [0.0, false]
+
+
+## The drawn jet turned nose up about the main wheels by `sit` of its sitting angle (none without Sit1 / Sit2).
+func _apply_sit() -> void:
+	if _sit_angle == 0.0:
+		return
+	var r := Basis(Vector3.RIGHT, _sit_angle * sit)
+	root_frame.transform = _sit_base * Transform3D(r, _sit_pivot - r * _sit_pivot)
 
 
 func _apply() -> void:
