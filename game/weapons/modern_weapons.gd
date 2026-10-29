@@ -140,6 +140,9 @@ const LOADS := {
 }
 ## The jets that have their modern weapons whatever the switch: the Sufa and the F-35I.
 const ALWAYS := ["sufa", 1000]
+## The AIM-9X and Python 5 only with Weapon data on Real (the user, 2026-10-29): high off-boresight missiles are a real-
+## world addition, so the original weapon set keeps the original's IR missiles.
+const REAL_ONLY := [1001, 1002]
 
 
 ## The new records added to a weapon database `db` (weapon_db.gd) whose bdb has their base records.
@@ -197,7 +200,8 @@ static func _missile(db: RefCounted, w: Dictionary, spec: Dictionary) -> void:
 
 
 ## The modern load items (CDMEWeaponLoadItem: 0x910 id, 0x906 count, raw = 9 int32 station flags) for a jet of bdb
-## type `type` (LOADS); none for a jet that carried none or, but on the Sufa and the F-35I, with Weapons on Original.
+## type `type` (LOADS); none for a jet that carried none or, but on the Sufa and the F-35I, with Weapons on Original;
+## the AIM-9X and Python 5 only with Weapon data on Real (REAL_ONLY).
 static func loads(type: int) -> Array:
 	var settings: Node = Engine.get_main_loop().root.get_node("Settings")
 	var jet: Variant = "sufa" if settings.sufa(type) else type
@@ -206,7 +210,7 @@ static func loads(type: int) -> Array:
 		return out
 	for id in LOADS:
 		var l = LOADS[id].get(jet)
-		if l == null:
+		if l == null or (id in REAL_ONLY and not settings.real_weapons()):
 			continue
 		var raw := PackedByteArray()
 		raw.resize(36)

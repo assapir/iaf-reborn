@@ -1505,7 +1505,7 @@ func _jet_swap(id: int) -> Dictionary:
 	if id == int(Settings.f35i_slot):
 		return {"title": "אדיר" if _he() else "F-35I", "row": "אף 35I / אדיר" if _he() else "F-35I", "desc": F35I_DESC}
 	if id == JET_IDS.f16 and Settings.sufa(100):
-		return {"title": "סופה" if _he() else "F-16I", "row": "אף 16I / סופה" if _he() else "F-16I", "desc": SUFA_DESC}
+		return {"title": "F-16I", "row": "אף 16I / סופה" if _he() else "F-16I", "desc": SUFA_DESC}
 	return {}
 
 

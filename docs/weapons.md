@@ -1149,7 +1149,8 @@ ours: new records built from public data whatever Weapon data says (values and s
 
 ### 13.1 AIM-9X and Python 5
 
-Both are IR missiles (type 570): the seeker, the tone, the launch and the chase of §5 apply, with these changes:
+Listed only with Weapon data on Real (`modern_weapons.gd` `REAL_ONLY`, decided 2026-10-29): with Original the
+Arming lists keep the 1998 IR missiles, also on the Sufa and the F-35I. Both are IR missiles (type 570): the seeker, the tone, the launch and the chase of §5 apply, with these changes:
 - **Seeker cone** 90° (AIM-9X) / 100° (Python 5) instead of the generation's 70°: the helmet (§5.4) and a radar lock
   slave the seeker that far off the nose. The lock ranges are the Real ones of the record (`real_*`), used with either
   Weapon data.
