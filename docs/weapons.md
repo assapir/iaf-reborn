@@ -1158,6 +1158,10 @@ Both are IR missiles (type 570): the seeker, the tone, the launch and the chase 
   flight when the target falls behind the missile's beam (the overshoot, §5.3); these missiles end that way only after
   the target has been ahead of them once, so a missile fired at a target beside or behind the wing line turns to it.
   The AIM-9X's turn is held to 60 g.
+- **Launch zone** (`missile.rs` `ChaseMotion::dlz`): both ends from the distance the missile really flies
+  (`travelled`, as Weapon data Real), with either Weapon data. The original's `flown`, s·t + ½·a·(1 − 4β)·t², goes
+  negative for β > ¼: with these missiles' agility it gave a minimum range of −1.78 km and, with Weapon data Original,
+  no zone at all (fixed 2026-10-29). The min stays the original's rule, the distance flown in tCO + 2 s.
 - **LOAL** (`sight.rs` `Seeker::loal`): launched without a seeker lock, the missile flies at a point 10 km along the
   cued line, the helmet's line of sight in the free-look and padlock views, else the nose. Each frame it takes the
   unit nearest the line to that point within its cone that its lock rule accepts (any side, as the original's

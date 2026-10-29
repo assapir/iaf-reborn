@@ -116,8 +116,8 @@ impl ChaseMotion {
     pub fn dlz(&self, launcher: &Launcher, target: Option<&Kinematics>) -> Dlz {
         let s = launcher.vel.length();
         let Some(target) = target else {
-            let max = if self.real { self.travelled(s, self.real_dlz_time()) } else { self.flown(s, self.burn) };
-            return Dlz { max, min: self.flown(s, 1.0) };
+            let max = if self.ours() { self.travelled(s, self.real_dlz_time()) } else { self.flown(s, self.burn) };
+            return Dlz { max, min: self.min_flown(s, 1.0) };
         };
         let d = target.pos - launcher.pos;
         let r = d.length();
@@ -125,14 +125,27 @@ impl ChaseMotion {
             return Dlz::NONE;
         }
         let away = d.dot(target.vel) / r;
-        let max = if self.real {
+        let max = if self.ours() {
             let t = self.real_dlz_time();
             self.travelled(s, t) - away * t
         } else {
             self.flown(s - away, self.burn - DLZ_BURN_CUT)
         };
-        let min = self.flown(s, self.t_co + DLZ_MIN_EXTRA);
+        let min = self.min_flown(s, self.t_co + DLZ_MIN_EXTRA);
         if min > max { Dlz::NONE } else { Dlz { max, min } }
+    }
+
+    /// The DLZ min's distance: the original's `flown` for the 1998 records, else the distance really flown (as the
+    /// max, `ours`).
+    fn min_flown(&self, s: f64, t: f64) -> f64 {
+        if self.ours() { self.travelled(s, t) } else { self.flown(s, t) }
+    }
+
+    /// The DLZ from the distance really flown (`travelled`): Weapon data Real and our off-boresight missiles, whose
+    /// agility the original's `flown` can't carry (its ½·a·(1 − 4β)·t² goes negative for β > ¼: the AIM-9X's 0.44 gave
+    /// a −1.78 km min and, with Weapon data Original, no zone at all).
+    fn ours(&self) -> bool {
+        self.real || self.off_boresight
     }
 
     /// Weapon data Real: the DLZ max looks at the whole flight (burn + 6 s) less the original's 2 s margin.
@@ -470,6 +483,18 @@ mod tests {
         let behind = Kinematics { pos: Vec3::new(0.0, -5000.0, 0.0), vel: Vec3::ZERO };
         assert_eq!(m.dlz(&JET, Some(&behind)), Dlz::NONE);
         assert_eq!(m.dlz(&JET, None).min, m.flown(250.0, 1.0));
+    }
+
+    #[test]
+    fn off_boresight_dlz_min_is_never_negative() {
+        let m = ChaseMotion { accel: 600.0, beta: 0.44, t_co: 0.05, burn: 20.0, off_boresight: true, ..amraam() };
+        assert!(m.flown(250.0, 2.05) < 0.0, "the original's formula fails for these numbers");
+        let l =
+            Launcher { pos: Vec3::ZERO, vel: Vec3::new(0.0, 250.0, 0.0), fwd: Vec3::new(0.0, 1.0, 0.0), up: Vec3::UP };
+        let t = Kinematics { pos: Vec3::new(0.0, 3000.0, 0.0), vel: Vec3::new(0.0, 200.0, 0.0) };
+        for z in [m.dlz(&l, Some(&t)), m.dlz(&l, None)] {
+            assert!(z.min > 0.0 && z.min < z.max, "{z:?}");
+        }
     }
 
     #[test]
