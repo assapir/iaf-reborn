@@ -24,7 +24,7 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (radar.md).
   mission's jet; aircraft.md §5); the MiG-23 / MiG-29 with their own cockpits wherever a mission puts the player in
   one (the Mission Creator does; no campaign mission does); our F-35I in one jet's slot (Extras, f35i.md); every F-16
   as the F-16I Sufa (Extras "F-16 version", f16i.md: flight data, radar, the TSD name, its model and arming art, and
-  the new weapons AIM-9X, Python 5, JDAMs and GBU-39, weapons.md §13). Extras "Weapons" on Modern gives those
+  the new weapons AIM-9X, Python 5, JDAMs and GBU-39, weapons.md §13; its pilot guide guides/f16i.md). Extras "Weapons" on Modern gives those
   weapons to the jets that really carried them too: the Barak and the F-15 (real-weapons.md §1.7). A mission whose player jet is any other type
   flies it as the F-16.
 - **Game version: v1.1 logic**, with v1.1 data when setup is given the patch; v1.0 data still plays. Doc addresses

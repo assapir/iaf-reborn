@@ -7,7 +7,7 @@ own, `![caption](shots/<jet>/<name>.png)` under assets/converted/guides (tools/g
 under a picture is its legend (the picture's numbered callouts, `annotations` in <jet>.shots.json: the counts must
 match, else a warning), kept on the picture's page with badges like the callouts. The HTML is
 self-contained (pictures inlined), A4, a title page with the Reference screen's picture of the jet
-(assets/converted/reference/img/<dir>.png) and a table of contents; headless Firefox prints it (Chrome / Chromium when
+(assets/converted/reference/img/<dir>.png, else the guide's `external` shot) and a table of contents; headless Firefox prints it (Chrome / Chromium when
 Firefox is missing). The PDF
 holds the original art, so it stays under assets/ (never committed).
 
@@ -221,7 +221,7 @@ def page(jet: str) -> str:
     shots = GUIDES / f"{jet}.shots.json"
     callouts = {s["name"]: len(s.get("annotations", [])) for s in json.loads(shots.read_text())} if shots.is_file() else {}
     html_body, title, toc = body(md, OUT, callouts)
-    cover_img = ROOT / f"assets/converted/reference/img/{jet}.png"
+    cover_img = cover(jet)
     img = f'<img src="{data_uri(cover_img)}" alt="">' if cover_img.is_file() else ""
     toc_html = "".join(f'<li class="l{lv}"><a href="#{hid}">{inline(t)}</a></li>' for lv, t, hid in toc)
     name = title or jet.upper()
@@ -300,9 +300,16 @@ def firefox_pdf(exe: str, src: Path, pdf: Path, tmp: str) -> None:
         ff.wait(timeout=30)
 
 
+def cover(jet: str) -> Path:
+    """The title page's picture: the Reference screen's, else the guide's own `external` shot (a jet outside the
+    Reference records: the F-16I)."""
+    ref = ROOT / f"assets/converted/reference/img/{jet}.png"
+    return ref if ref.is_file() else OUT / "shots" / jet / "external.jpg"
+
+
 def inputs(jet: str) -> list[Path]:
     """What a guide's PDF is made from: its Markdown, shots list, pictures, the cover picture and this script."""
-    return [p for p in [GUIDES / f"{jet}.md", GUIDES / f"{jet}.shots.json", ROOT / f"assets/converted/reference/img/{jet}.png",
+    return [p for p in [GUIDES / f"{jet}.md", GUIDES / f"{jet}.shots.json", cover(jet),
                         Path(__file__).resolve(), *(OUT / "shots" / jet).glob("*")] if p.is_file()]
 
 

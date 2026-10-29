@@ -2051,7 +2051,8 @@ of the frame.
 
 **Ours: Pilot guide** (docs/deviations.md §2).
 * **Button.** A record with a guide (`docs/guides/<dir>.md`, the record's directory lower-cased: `f16.md`) gets a
-  **PILOT GUIDE** button.
+  **PILOT GUIDE** button. With Extras "F-16 version" on Sufa the F-16 record's guide is `f16i.md` (and its PDF
+  `f16i.pdf`; `reference.gd` `guide_name`).
   * Place: the view column's next row under Pictures, at (15,362) 108×18 (the column's 18 px pitch).
   * Art: cut from the Pictures button's art, with its label blended out.
   * Label: in the place of the column's labels (button x 26–78; the Hebrew label at 30–100, clear of the light).
