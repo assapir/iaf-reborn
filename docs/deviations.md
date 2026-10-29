@@ -374,7 +374,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - Original: the 1998 aircraft models.
   - Detailed: our F-16D (built from the FlightGear F-16, GPL) for every F-16: the player's, the AI's, parked ones and
     the Reference viewer; and the FlightGear F-16's stores in place of 16 original stores on every jet, on the pylons
-    and in flight (aircraft-models.md §5). The laser bombs are 41–47 % longer than the original's (the real
+    and in flight, and the FlightGear MiG-21bis's and MiG-29 9-12's AA-2, AA-8, AA-10, AA-11 and MiG-29 tank
+    (aircraft-models.md §5). The laser bombs are 41–47 % longer than the original's (the real
     proportions); the other stores have the original's length and axis.
     The F-15 becomes the FlightGear F-15C (GPL-2.0-only) where setup could download and convert it
     (aircraft-models.md §6): grey with IAF roundels, its speed brake and hook shown also shut.

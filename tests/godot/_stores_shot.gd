@@ -1,12 +1,14 @@
 # Dev helper (not run by tools/test.sh): real-render pictures of the stores, Models Original against Detailed
 # (docs/aircraft-models.md §5): loadouts on the ground (the Arming screen's loads, mission 311), a bomb falling and a
-# missile in flight (mission 231, airborne). Needs a window; run it once per look:
+# missile in flight (mission 231, airborne); the MiG-29 / MiG-23 (Mission Creator mission 666) with the Soviet stores
+# and an AA-10 in flight. Needs a window; run it once per look:
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_MODELS=detailed SHOT_OUT=/tmp/shots -- --log-file /tmp/s.log \
 #       --path game --resolution 1600x900 -s ../tests/godot/_stores_shot.gd
 # Writes SHOT_OUT/<shot>_before.png (Original) or <shot>_after.png (Detailed). SHOT_ONLY=a,b picks cases.
 extends "res://../tests/godot/base.gd"
 
-## [case, Jet list id, loads by pylon A..I ([weapon name, count]), shots [name, dist, yaw, pitch, aim (jet frame)]].
+## [case, Jet list id (or the Mission Creator's jet type: mission 666), loads by pylon A..I ([weapon name, count]),
+## shots [name, dist, yaw, pitch, aim (jet frame)]].
 const CASES := [
 	[
 		"f16_a",
@@ -80,7 +82,38 @@ const CASES := [
 		],
 		[["f4_front", 18.0, 35.0, 6.0, Vector3(0, -0.5, 0)], ["f4_left", 9.0, 300.0, -4.0, Vector3(-2.8, -0.7, 0.5)]]
 	],
+	[
+		"mig29",
+		{"type": MC_MIG29},
+		[
+			["AA-2", 1],
+			["AA-11", 1],
+			["AA-10", 1],
+			["AA-10", 1],
+			["3500LB", 1],
+			["AA-10", 1],
+			["AA-10", 1],
+			["AA-11", 1],
+			["AA-8", 1]
+		],
+		[
+			["mig29_front", 16.0, 35.0, 6.0, Vector3(0, -0.5, 0)],
+			["mig29_left", 8.0, 300.0, -4.0, Vector3(-2.6, -0.7, 0.5)]
+		]
+	],
+	[
+		"mig23",
+		{"type": MC_MIG23},
+		[["", 0], ["", 0], ["AA-2", 1], ["AA-8", 1], ["2800LB", 1], ["AA-8", 1], ["AA-2", 1], ["", 0], ["", 0]],
+		[
+			["mig23_front", 16.0, 35.0, 6.0, Vector3(0, -0.5, 0)],
+			["mig23_left", 8.0, 300.0, -4.0, Vector3(-2.2, -0.9, 0.5)]
+		]
+	],
 ]
+## The Mission Creator's jet types (its TYPE combo: docs/guides/mig29.shots.json).
+const MC_MIG23 := 7
+const MC_MIG29 := 8
 
 var tv: Node
 var _cam := func() -> Transform3D: return Transform3D()
@@ -105,6 +138,8 @@ func run() -> void:
 			await _loadout_case(c)
 	if only.is_empty() or "flight" in only:
 		await _flight_case()
+	if only.is_empty() or "flight29" in only:
+		await _aa10_case()
 	settings().jet_id = -1
 	settings().arm_loadouts = {}
 	check(true, "shots done")
@@ -121,20 +156,24 @@ func _loadout(mission: int, loads: Array) -> Array:
 	var ids := _ids(mission)
 	var arm := []
 	for l in loads:
-		if not ids.has(l[0]):
+		if l[0] != "" and not ids.has(l[0]):
 			print("no weapon ", l[0], " in ", ids.keys())
 		arm.append([int(ids.get(l[0], 0)), int(l[1]) if ids.has(l[0]) else 0])
 	return arm
 
 
 func _loadout_case(c: Array) -> void:
-	settings().jet_id = int(c[1])
-	var arm := _loadout(311, c[2])
+	var mission := 311
+	if c[1] is Dictionary:
+		mission = _mc(int(c[1].type))
+	else:
+		settings().jet_id = int(c[1])
+	var arm := _loadout(mission, c[2])
 	var al := {}
 	for n in 64:
 		al[n] = arm
 	settings().arm_loadouts = al
-	tv = await start_mission(311)
+	tv = await start_mission(mission)
 	await frames(3)
 	_pin()
 	await seconds(8)  # the ground at full detail
@@ -182,6 +221,47 @@ func _flight_case() -> void:
 			var c0: Vector3 = node.global_position + b.x * side + b.z * side * 0.6 + Vector3.UP * 1.5
 			return Transform3D(Basis.looking_at(node.global_position - c0, Vector3.UP), c0)
 		await _shot("%s_flight" % k)
+
+
+## An AA-10 launched from a Mission Creator MiG-29 at 3000 m, seen from beside 0.6 s later, the clock stopped.
+func _aa10_case() -> void:
+	settings().arm_loadouts = {}
+	tv = await start_mission(_mc(MC_MIG29))
+	await frames(3)
+	var hp := []
+	var ids := _ids(666)
+	for n in ["AA-11", "AA-11", "AA-10", "AA-10", "", "AA-10", "AA-10", "AA-11", "AA-11"]:
+		hp.append_array([int(ids.get(n, 0)), 1 if ids.has(n) else 0])
+	var w = airborne_case(tv, hp)
+	tv.fm_stopped = true
+	_pin()
+	tv.frozen = false
+	var st: Dictionary = w.stores.station(2)
+	var mis = w.launch_homing(st.w, w.body_to_world(st.attach), w.own(), "", 1.0, w._me())
+	var node: Node3D = mis.get_meta("node")
+	await fly(tv, 0.6)
+	tv.frozen = true
+	_cam = func() -> Transform3D:
+		var b := node.global_basis.orthonormalized()
+		var c0: Vector3 = node.global_position + b.x * 6.0 + b.z * 3.6 + Vector3.UP * 1.5
+		return Transform3D(Basis.looking_at(node.global_position - c0, Vector3.UP), c0)
+	await _shot("aa10_flight")
+
+
+## Mission 666 from a blank Mission Creator record: one flight of `type` against one of MiG-21s, weapons on
+## (as docs/guides/mig29.shots.json); returns 666.
+func _mc(type: int) -> int:
+	settings().jet_id = -1
+	var m: Dictionary = ClassDB.class_call_static("IafMcr", "blank")
+	m.count[0] = 1
+	m.count[2] = 1
+	m.type[0] = type
+	m.type[2] = 11
+	m.weapons = 1
+	m.target = 2
+	settings().mc = m
+	settings().mc_files = load("res://menu/mission_creator.gd").build(m)
+	return 666
 
 
 func _pin() -> void:

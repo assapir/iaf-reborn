@@ -1,8 +1,11 @@
 # Detailed stores: sources and licence
 
-The `.glb` files in this folder are derived works of the FlightGear F-16 and are licensed under the **GNU GPL,
-version 2 or (at your option) any later version**, as their source is. This repository distributes them under
-GPL-3.0-or-later.
+The `.glb` files in this folder are derived works of FlightGear aircraft and keep their source's licence:
+
+- the F-16's stores (most files): the **GNU GPL, version 2 or (at your option) any later version**; this repository
+  distributes them under GPL-3.0-or-later;
+- the Soviet stores (`aa2`, `aa8`, `aa10`, `aa11`, `mig29ftk`): the **GNU GPL, version 3**, as the MiG-21bis and the
+  MiG-29 9-12 are (their `License.txt` / `LICENSE`: the GPL 3.0 text).
 
 ## Source
 
@@ -13,9 +16,18 @@ GPL-3.0-or-later.
   Nikolai V. Chr. "Leto" (pylons and missile code), Erik Hofman (main author), Pensacola (liveries) and the other
   contributors listed there.
 
+- FlightGear MiG-21bis (OPRF), https://github.com/l0k1/MiG-21bis, commit `9ca6f5b739aecb8d662ab89f7c73ff2203584c05`.
+  Licence: its `License.txt`, GPL 3.0. Authors (its `MiG-21bis-set.xml`): Petar Jedvaj, David Culp, Raptor, Stuart
+  Cassie, Gary Brown, Brendan Black, bugman, Tomaskom, Steve Brown, JMav-16, NikolaiVChr, Kokos, Rudolf339, alaxeijd,
+  Colin Geniet, AxelPaccalin, Josh (Octal450) and pinto.
+- FlightGear MiG-29 9-12, https://github.com/Mercenary-Mercury/MiG-29_9-12, commit
+  `d4a299bf88412f579b2067874989a8088b2f6d66`. Licence: its `LICENSE`, GPL 3.0. Authors (its `MiG-29_9-12-set.xml`):
+  Sergey "Mercenary_Mercury" Salov (FDM, cockpit, submodels, systems; the stores are its submodels), Enrique Laso Leon
+  (external model).
+
 ## Files used
 
-All under `Models/` in the FlightGear F-16.
+Under `Models/` in the FlightGear F-16, unless the row names another aircraft.
 
 | our file | stands in for (the game's store) | FlightGear files |
 |---|---|---|
@@ -35,6 +47,11 @@ All under `Models/` in the FlightGear F-16.
 | `aim9x.glb` | AIM-9X (ours, the F-16I Sufa's) | `Armament/Weapons/AIM-9X/AIM-9X.ac`, `AIM-9X.png` |
 | `gbu31.glb` | GBU-31, GBU-31(V)3 (the Sufa's) | `Armament/Weapons/GBU-31/GBU-31.ac`, `GBU-31.png` |
 | `gbu38.glb` | GBU-38 (the Sufa's) | `Armament/Weapons/GBU-54/GBU-54.ac`, `GBU-54.png` (the laser JDAM's look) |
+| `aa2.glb` | AA-2 (and the "Rockets" record, which shares its model) | MiG-21bis: `Models/Stores/R-3S/r-3s.ac`, `r-3s.png` |
+| `aa8.glb` | AA-8 | MiG-29 9-12: `Models/Submodels/R-60M/R-60M.ac`, `R-60M.png` |
+| `aa10.glb` | AA-10 | MiG-29 9-12: `Models/Submodels/R-27R/R-27R.ac`, `R-27R.png` |
+| `aa11.glb` | AA-11 | MiG-29 9-12: `Models/Submodels/R-73/R-73.ac`, `R-73.png` |
+| `mig29ftk.glb` | the MiG-29's 3500 lb centreline tank | MiG-29 9-12: `Models/Submodels/PTB-1500/PTB-1500.ac`, `PTB-1500.png` |
 
 ## Changes
 
@@ -52,10 +69,12 @@ Made by `tools/stores/build.gd` (re-runnable; docs/aircraft-models.md §5):
    F-16D uses) to the part the tank's faces use.
 5. The seeker glass and lenses (see-through in FlightGear) made opaque dark glass.
 6. Every face drawn from both sides (as FlightGear marks them), smooth normals within each object's crease angle,
-   one mesh per store, textures re-encoded as JPEG at 512 px or less.
+   one mesh per store, textures re-encoded as JPEG (512 px or less; the Soviet missiles keep their 1024 × 512).
+7. The AA-2, AA-8, AA-10 and AA-11 textures (white, with no baked shading) given a light grey paint factor
+   (ours, set by eye).
 
 The Arming screen icons in `game/extra/weapons/arm/` are renders of these models (`tools/stores/icons.gd`) under
 the same licence.
 
-Every mesh and texture comes from the FlightGear F-16. The placement uses only measurements of the original models
+Every mesh and texture comes from the FlightGear aircraft above. The placement uses only measurements of the original models
 (their lengths, axes and tops); no original game data is in these files.

@@ -651,6 +651,12 @@ func _page_welcome() -> Control:
 				+ "2.0[/url] or later)\n"
 			)
 			+ (
+				"Detailed Soviet stores: the AA-2 from the [url=https://github.com/l0k1/MiG-21bis]FlightGear "
+				+ "MiG-21bis[/url] by the OPRF MiG-21bis team; the AA-8, AA-10, AA-11 and the MiG-29's tank from the "
+				+ "[url=https://github.com/Mercenary-Mercury/MiG-29_9-12]FlightGear MiG-29 9-12[/url] by Sergey Salov "
+				+ "([url=https://www.gnu.org/licenses/gpl-3.0.html]GPL 3.0[/url])\n"
+			)
+			+ (
 				"Detailed F-15: the [url=https://github.com/Zaretto/fg-aircraft]FlightGear F-15C[/url] by Enrique Laso "
 				+ "(3D model), Richard Harrison (rig) and GeneB (cockpit textures) "
 				+ "([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL 2.0[/url] only), downloaded and "

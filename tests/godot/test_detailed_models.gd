@@ -422,11 +422,12 @@ func _check_stores() -> void:
 		. get("default6_1.bdb", {})
 		. values()
 	)
+	paths.append_array(Gltf.STAND_INS.keys())  # the Sufa's (their own size: the length check skips them)
 	var bad := []
 	for f in Gltf.STORES:
 		var path := ""
 		for p in paths:
-			if String(p).get_file() == f and String(p).begins_with("weapons/"):
+			if String(p).get_file() == f and not String(p).begins_with("groundforces/"):
 				path = p
 		if path == "":  # ours (the modern weapons' stores, weapons/sufa/): no original bdb model to compare with
 			continue
@@ -453,7 +454,7 @@ func _check_stores() -> void:
 			)
 		)
 		if (
-			(absf(len_k - 1.0) > STORE_LEN and not "lb" in f)
+			(absf(len_k - 1.0) > STORE_LEN and not "lb" in f and not Gltf.STAND_INS.has("weapons/sufa/" + f))
 			or (axis.length() > STORE_AXIS_M and absf(hd.end.y - orig.end.y) > STORE_TOP_M)
 			or lods == 0
 			or not compressed
