@@ -1555,9 +1555,13 @@ func _draw_baked_label(on: CanvasItem, box: Rect2, text: String, f: int, px: flo
 		for dx in [0.0, b]:
 			on.draw_string(lf, Vector2(dx, 0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 	else:
-		# Letter by letter (right to left for Hebrew), each a fixed gap apart.
-		var x := w
+		# Letter by letter, each a fixed gap apart: right to left for Hebrew, left to right for a Latin label (F-16I).
+		var rtl := false
 		for ch in text:
+			rtl = rtl or (ch.unicode_at(0) >= 0x590 and ch.unicode_at(0) <= 0x5ff)
+		var x := w
+		for i in text.length():
+			var ch := text[i] if rtl else text[text.length() - 1 - i]
 			var cw := lf.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 			x -= cw
 			for dx in [0.0, b]:
