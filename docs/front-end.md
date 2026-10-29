@@ -431,7 +431,9 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
       `tsd_map.gd` `road_meshes` turns `main.bin` into three one-pixel line meshes once, at load, in map units
       (`world_to_map` as a transform), drawn over the map's fills and under the grid, the city dots, the labels,
       units and routes: motorways and trunk roads always (dark red), primary roads from zoom 3 (red-brown),
-      secondary roads from zoom 8 (brown, fainter). Test: `tests/godot/test_modern_map.gd` (with the road layer: the
+      secondary roads from zoom 8 (brown, fainter). Cost on the Iris Xe (mission editor, 1600 × 1000,
+      2026-10-29): reading `main.bin` and making the meshes about 70 ms once (3.1 M points); a frame 3.0 / 5.8 ms
+      with the roads, 3.2 / 6.2 ms without, at zoom 1 / 12: within the noise. Test: `tests/godot/test_modern_map.gd` (with the road layer: the
       map's segments, a motorway / trunk route Tel Aviv – Jerusalem of 59 km, the streets around Tel Aviv).
   * Polygons fill as GDI fills a `PolyPolygon`: all rings of a record are one region under its fill mode, ALTERNATE
     (even-odd) or WINDING (non-zero; 752 of the 1008 polygons in `82.emf`). The rings cross themselves and overlap.
