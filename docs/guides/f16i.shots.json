@@ -90,6 +90,157 @@
   ]
  },
  {
+  "name": "tsd_gps",
+  "caption": "The briefing TSD: the GPS targets panel and the stations' targets on the map",
+  "mission": 231,
+  "jet": -1,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f16_variant": "sufa"
+  },
+  "start": "tsd",
+  "loadout": [
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1003,
+    1
+   ],
+   [
+    1007,
+    4
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1007,
+    4
+   ],
+   [
+    1003,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "gps": {
+   "3": "unit",
+   "7": [
+    40,
+    30
+   ]
+  },
+  "gps_armed": 6,
+  "crop": "box",
+  "crop_box": [
+   0.4,
+   0.39,
+   0.84,
+   0.835
+  ],
+  "annotations": [
+   {
+    "n": 1,
+    "px": [
+     0.565,
+     0.699
+    ],
+    "label_at": [
+     0.47,
+     0.61
+    ]
+   },
+   {
+    "n": 2,
+    "px": [
+     0.558,
+     0.882
+    ],
+    "label_at": [
+     0.46,
+     0.885
+    ]
+   },
+   {
+    "n": 3,
+    "px": [
+     0.94,
+     0.822
+    ],
+    "label_at": [
+     0.98,
+     0.72
+    ]
+   },
+   {
+    "n": 4,
+    "px": [
+     0.374,
+     0.312
+    ],
+    "label_at": [
+     0.22,
+     0.226
+    ]
+   },
+   {
+    "n": 5,
+    "px": [
+     0.5,
+     0.294
+    ],
+    "label_at": [
+     0.6,
+     0.44
+    ]
+   }
+  ]
+ },
+ {
   "name": "mfd_radar",
   "caption": "The radar locked on a MiG-23 51 NM ahead, beyond the F-16D's reach",
   "mission": 231,
@@ -361,7 +512,7 @@
  },
  {
   "name": "hud_jdam",
-  "caption": "A GBU-31 at the radar's designated point, in range",
+  "caption": "A GBU-31 in PRE 18 km from its target: the LAR staple and the time to max range",
   "mission": 231,
   "jet": -1,
   "settings": {
@@ -399,8 +550,8 @@
    "f16_variant": "sufa"
   },
   "start": "dive",
-  "dive_deg": 20,
-  "dive_agl": 2000,
+  "dive_deg": 8.5,
+  "dive_agl": 3000,
   "speed": 250,
   "loadout": [
    [
@@ -440,54 +591,93 @@
     0
    ]
   ],
+  "crop": "hud",
   "place": {
    "ground_unit": true,
-   "ahead_m": 4500
+   "ahead_m": 18000,
+   "bearing_deg": 4
   },
   "actions": [
    "ag:2",
-   "designate",
-   "wait:0.5"
+   "pre",
+   "wait:1"
   ],
-  "crop": "hud",
-  "crop_w": 0.28,
+  "crop_w": 0.34,
   "annotations": [
    {
     "n": 1,
-    "px": [
-     0.4995,
-     0.481
-    ],
+    "sym": "gps_at",
     "label_at": [
-     0.62,
-     0.56
+     0.55,
+     0.28
     ]
    },
    {
     "n": 2,
-    "px": [
-     0.4995,
-     0.4
+    "sym": "gps_at",
+    "d": [
+     0,
+     50
     ],
     "label_at": [
-     0.62,
-     0.4
+     0.64,
+     0.7
     ]
    },
    {
     "n": 3,
     "sym": "fpm",
     "label_at": [
-     0.38,
-     0.24
+     0.45,
+     0.22
     ]
    },
    {
     "n": 4,
-    "sym": "text:^CCIP$",
+    "sym": "text:^TMR",
+    "d": [
+     18,
+     -19
+    ],
     "label_at": [
-     0.22,
-     0.66
+     0.7,
+     0.4
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:^10$",
+    "d": [
+     -2,
+     6
+    ],
+    "label_at": [
+     0.7,
+     0.2
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^10$",
+    "label_at": [
+     0.57,
+     0.1
+    ]
+   },
+   {
+    "n": 7,
+    "sym": "text:^TMR",
+    "label_at": [
+     0.45,
+     0.4
+    ]
+   },
+   {
+    "n": 8,
+    "sym": "text:^PRE$",
+    "label_at": [
+     0.3,
+     0.62
     ]
    }
   ]

@@ -69,8 +69,9 @@ Setup's last step makes both (it needs a display). They show the original game's
    the header of `tests/godot/_guide_shots.gd`) into `shots/<jet>/<name>.png`, in a 3840×2160 frame whatever the
    screen's size.
    - An entry sets the settings, the mission (`mc` builds a Mission Creator mission, 666: the MiGs fly only there),
-     the start (mission, airborne, dive, final approach), a placed target, actions (a
-     radar lock, a store, a camera on the target, a radar-designated point), an outside camera pinned beside the jet
+     the start (mission, airborne, dive, final approach, or the briefing TSD with its GPS targets panel), a placed
+     target, actions (a radar lock, a store, a camera on the target, a radar-designated point, the GPS bombs' PRE
+     target on it), an outside camera pinned beside the jet
      (`camera`) and the crop: the whole frame, `hud`, an MFD, `compass` (the panel
      compass dial) or `panel` (a box around `crop_at`, [x, y] panel px of the 1920-px strip). `hud` and `compass`
      take `crop_w` (the box's width as a fraction of the frame; smaller zooms in) and `crop_dy` (the box moved down
