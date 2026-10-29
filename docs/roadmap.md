@@ -206,6 +206,11 @@ live play while recording at 4K. Two ways:
 - **Per jet:** which jets speak which warnings, with sources: [real-betty.md](real-betty.md) §1.
 - **Voice, licences and open questions:** real-betty.md §2–§6.
 
+## Tail numbers per jet (wishlist; user 2026-10-29)
+- Each jet in a flight, the wingmen and the other flights, shows its own tail number, not the one painted on the
+  model (today every detailed F-16 / F-16I carries the same number). Real numbers of the squadron the jet
+  represents, picked per flight so a mission keeps them.
+
 ## F-16I Sufa option (Extras switch, wishlist; decided 2026-10-17, F-16I chosen 2026-10-19)
 - **Switch:** "F-16: Barak (F-16D) / Sufa (F-16I)". The default is the game's early-1990s F-16D Barak.
 - **Sufa:** the IAF's F-16I (Block 52+ two-seater), in the same cockpit and model slot as the F-16D.
