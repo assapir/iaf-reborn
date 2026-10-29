@@ -62,6 +62,8 @@ ranked order: [graphics-research.md](graphics-research.md).
   two member slots in the mission file (formats/mis.md) and a leader / wingman formation in the AI (ai.md §7.2); its
   4-ships are two pairs on one route. Ours would add slots 3 and 4 holding finger-four on the leader, the radio's
   commands to the whole flight, #4 taking over a lost #3, and the mission editor's flights of up to 4 jets.
+- **Multiple screens** (wishlist, user 2026-10-29: "support multiple screens"). Not yet defined: e.g. the view spread
+  over several monitors, or the MFDs / TSD on a second screen. The game now draws one window on one screen.
 - **Multiplayer** (not approved; if it goes ahead, after the single-player game): how the original does it, a plan
   and the discussion so far: [multiplayer.md](multiplayer.md) (§3.5 is discussion, not decisions).
 - **Separate joystick / throttle / pedal devices** (e.g. a stick, a throttle quadrant and pedals as three USB
