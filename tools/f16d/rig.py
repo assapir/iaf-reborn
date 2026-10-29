@@ -294,6 +294,18 @@ SP_Y_END, SP_Y_FLOOR, SP_FLOOR, SP_END_R = -6.42, -5.3, 0.62, 0.22
 SP_WIDTH = [(SP_Y0, 0.19), (-0.5, 0.34), (-2.4, 0.34), (-3.86, 0.2), (-6.3, 0.2), (SP_Y_END, 0.17)]
 SP_FILLET = 0.05  # the concave flare where the sides meet the fuselage
 SP_VENTS, SP_VENT_Z, SP_VENT_H = [(-2.80, 0.12), (-3.03, 0.12), (-3.26, 0.12)], 0.18, 0.14
+# The F-16I's spine (photos of 890 and 827, SOURCES.md) has the F-16D's outline but two taller grilled vents 0.4 to
+# 0.55 m ahead of the fin's root (SP_Y_FIN), and on each side of the tail box under the fin a round blister and an
+# oblong fairing (SUFA_TAIL_FAIRINGS: y, below the top, size across / along / up, in m).
+if SUFA:
+    SP_VENTS, SP_VENT_Z, SP_VENT_H = [(-3.30, 0.12), (-3.46, 0.12)], 0.25, 0.20
+SUFA_TAIL_FAIRINGS = [(-4.48, 0.19, (0.06, 0.20, 0.22)), (-4.18, 0.33, (0.05, 0.24, 0.15))]
+# The spine's own UV island (its paint: a free, plain grey rectangle of the livery, pixels from the top left; FlightGear
+# maps the inner canopy frame below it, from row 1901), at SP_ISLAND_K px per m. It is filled from the livery of the
+# fuselage round it, unfolded at its true size (spine_island): the section's arc is laid on the fuselage top from foot
+# to foot with a mirror fold on each side, so the panel lines keep their size and the paint runs on at the foot.
+SP_ISLAND, SP_ISLAND_K = (1350, 1555, 1910, 1890), 78.0
+SPINE_FILL = []  # per ring: (y, island rows [px from the top], livery uvs [n, 2]), for spine_island
 
 
 def interp(table, y):
@@ -309,9 +321,9 @@ def spine_top(y):
 
 def dorsal_spine(body):
     """The IAF F-16D's dorsal spine: a loft of rounded-box sections over FlightGear's fuselage (`RadarDomeTop`),
-    flared into it at the sides; its livery UVs are those of the fuselage under it, spread over the section (the
-    camouflage runs on unbroken at its foot). The fuselage faces it covers are removed (they would bake black in the
-    occlusion map, which they share with the spine), the blade antenna and the formation light are raised onto it."""
+    flared into it at the sides; its livery UVs are its own island (SP_ISLAND), painted by spine_island from the
+    fuselage's livery round it, unfolded at true size (the camouflage runs on unbroken at its foot). The fuselage
+    faces it covers are removed, the blade antenna and the formation light are raised onto it."""
     from mathutils.bvhtree import BVHTree
     from mathutils.geometry import barycentric_transform
     skin = body["RadarDomeTop"]
@@ -357,19 +369,30 @@ def dorsal_spine(body):
             t = math.pi / 2 * k / 4
             side.append((w + flare * (1 - math.cos(t)), foot + flare * (1 - math.sin(t)) - 0.02 * k / 4))
         pts = [(-x, z) for x, z in reversed(side[1:])] + side
-        # Livery: the fuselage's UVs under the foot-to-foot span, spread over the section by its arc length.
+        # Livery: the island's UVs (along the jet, along the arc); the livery to paint them with, from SPINE_FILL.
         arc = [0.0]
         for (x0, z0), (x1, z1) in zip(pts, pts[1:]):
             arc.append(arc[-1] + math.hypot(x1 - x0, z1 - z0))
-        xf = pts[-1][0]
-        row = []
-        for (x, z), s in zip(pts, arc):
-            u = -xf + 2 * xf * s / arc[-1]
+        xf, total = pts[-1][0], arc[-1]
+        fold = max(0.0, (total - 2 * xf) / 4)  # the arc unfolded 1:1: out `fold` from each foot, back over the top
+        row, src = [], []
+        col = SP_ISLAND[0] + (SP_Y0 - y) * SP_ISLAND_K
+        mid = (SP_ISLAND[1] + SP_ISLAND[3]) / 2
+        rows_px = [mid + (s - total / 2) * SP_ISLAND_K for s in arc]
+        for s, r in zip(arc, rows_px):
+            if s < fold:  # out from the left foot
+                u = -xf - s
+            elif s > total - fold:  # back in to the right foot
+                u = xf + fold - (s - total + fold)
+            else:  # over the top
+                u = -xf - fold + (s - fold)
             # The fuselage ends at -5.78 and narrows before: the box's tail takes its last full row.
             su = next(filter(None, (surface(u * k, yy) for yy in (y, min(y + 0.1, SP_Y0), -5.2) for k in (1, 0.8, 0.6, 0.4))), None)
-            row.append(su[1])
+            src.append(tuple(su[1]))
+            row.append(Vector(((col + 0.5) / 2048, 1 - (r + 0.5) / 2048)))
             if mat_idx is None and su:
                 mat_idx = su[2]
+        SPINE_FILL.append((y, np.array(rows_px), np.array(src)))
         bottom_z = min(pts[0][1], pts[-1][1])
         floor = [(xf - 2 * xf * k / (n_bot + 1), bottom_z) for k in range(1, n_bot + 1)]
         rings.append([Vector((x, y, z)) for x, z in pts + floor])
@@ -401,6 +424,13 @@ def dorsal_spine(body):
             f.material_index = 1
             for lp in f.loops:
                 lp[uv_out].uv = uvs[0][0]
+    x0, y0, x1, y1 = SP_ISLAND  # no face of the livery maps into the spine's island
+    for o in body.values():
+        if o.type == 'MESH' and o.data.uv_layers.active:
+            painted = {i for i, m in enumerate(o.data.materials) if m and m.name.startswith("ac_f16.png")}
+            uv = o.data.uv_layers.active.data
+            assert not any(x0 - 4 <= uv[j].uv.x * 2048 <= x1 and y0 <= (1 - uv[j].uv.y) * 2048 <= y1 for p in
+                           o.data.polygons if p.material_index in painted for j in p.loop_indices), o.name
     me = bpy.data.meshes.new("DorsalSpine")
     out.to_mesh(me)
     out.free()
@@ -632,6 +662,10 @@ def nose_fairings(body):
     for side in (-1, 1):
         loc, n, uv = cast((side * 3.0, yb, top - BLISTER_DROP), (-side, 0, 0))
         dome("blister%d" % side, loc, n, uv, BLISTER_SIZE, front_window=True)
+    for k, (y, below, size) in enumerate(SUFA_TAIL_FAIRINGS):  # on the tail box's sides, under the fin
+        for side in (-1, 1):
+            loc, n, uv = cast((side * 3.0, y, spine_top(y) - below), (-side, 0, 0))
+            dome("tail%d%d" % (k, side), loc, n, uv, size)
     print("nose fairings: windscreen foot y %.2f, nose top z %.2f, blisters at %s" % (y0, top, tuple(
         round(c, 2) for c in loc)))
     return kit.join(objs, "SufaAntennas")
@@ -1084,11 +1118,38 @@ def wing_roundels(albedo, skin):
     return albedo
 
 
+def spine_island(albedo):
+    """The spine's UV island (SP_ISLAND) painted from the livery at the unfolded places dorsal_spine recorded
+    (SPINE_FILL), each texel between the two rings round it; 4 px of margin past the island's edges."""
+    h, w = albedo.shape[:2]
+    assert (h, w) == (2048, 2048), (h, w)
+    x0, y0, x1, y1 = SP_ISLAND
+    src = albedo.copy()
+    ys = np.array([y for y, _, _ in SPINE_FILL])
+    rows = np.arange(y0, y1)
+    for col in range(x0 - 4, x1):
+        y = SP_Y0 - (col + 0.5 - x0) / SP_ISLAND_K
+        i = int(np.clip(np.searchsorted(-ys, -y) - 1, 0, len(ys) - 2))
+        t = float(np.clip((ys[i] - y) / (ys[i] - ys[i + 1]), 0, 1))
+        if y < ys[-1] - 4 / SP_ISLAND_K:
+            break
+        uv = 0
+        for k, wk in ((i, 1 - t), (i + 1, t)):
+            _, rp, su = SPINE_FILL[k]
+            uv = uv + wk * np.stack([np.interp(rows + 0.5, rp, su[:, c]) for c in (0, 1)], axis=1)
+        near = (rows + 0.5 >= SPINE_FILL[i][1][0] - 4) & (rows + 0.5 <= SPINE_FILL[i][1][-1] + 4)
+        px = np.clip((uv[:, 0] * w).astype(int), 0, w - 1)
+        py = np.clip((uv[:, 1] * h).astype(int), 0, h - 1)  # rows bottom to top, as pixels() gives them
+        albedo[h - 1 - rows[near], col] = src[py[near], px[near]]
+    print("spine island painted, columns", x0, "to", col)
+    return albedo
+
+
 def materials(rig):
     objs = [o for o in kit.scene().objects if o.type == 'MESH']
     livery = bpy.data.images.load(os.path.join(M, LIVERY))
     skin = [o for o in objs if any(m and m.name.startswith("ac_f16.png") for m in o.data.materials)]
-    albedo = wing_roundels(pixels(livery), skin)
+    albedo = wing_roundels(spine_island(pixels(livery)), skin)
     albedo = sufa_livery(albedo, skin) if SUFA else barak_livery(albedo, skin)
     size = albedo.shape[0]
     ao = np.ones(albedo.shape[:2], dtype=np.float32) if FAST else bake_ao(skin, size)
