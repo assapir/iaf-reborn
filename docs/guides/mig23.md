@@ -119,10 +119,19 @@ What changes in the cockpit:
 - **Nose dips under braking** (Physics): the nose dips up to 2° under the wheel brakes and squats up to 1° at full
   thrust on the brakes; it levels within about a second once the jet stops.
 - **Unbalanced stores roll the jet** (Physics): stores left on one wing roll the jet toward it: hold that wing up with
-  the stick, trim it out (**Alt+Left / Right**, or the throttle rocker with Devices → Throttle rocker = Roll trim),
-  or let the autopilot (**A**) hold it while it flies. Its pylons sit close to
-  the fuselage: one MK-84 (2,020 lb) left on station 3, 1.4 m out, takes about 4 % stick at 290 kt and 1 g. It grows
-  with the g in a pull, and at half the speed it takes four times as much.
+  the stick, trim it out (**Alt+Left / Right**, or the throttle rocker with Devices → Throttle rocker = Roll trim), or
+  let the autopilot (**A**) hold it while it flies. Its pylons sit close to the fuselage: one MK-84 (2,020 lb) left on
+  station 3, 1.4 m out: hands off the jet drifts toward it at about 6°/s; the stick moves the spoilers and differential
+  tail directly, so the stick that holds it is the bomb's share of their power. At 290 kt and 1 g about 6 % stick holds
+  it; full rocker trims that in 0.6 s. It grows with the g in a pull (four times the stick at 4 g) and as the speed
+  falls: on a 190 kt final it takes 10 % stick, the drift is 6°/s and the trim takes 1 s. The release order keeps a
+  symmetric load balanced: after a release the next store of that weapon comes from the station farthest from the last
+  one, and the first press takes the selected station, usually the left wing's outer one. In pairs (the stores page's
+  ripple quantity 2, the default) three bombs per wing go left outer + right outer, left middle + right middle, left
+  inner + right inner, a fraction of a second apart: level after every pair. Single drops leave the jet unbalanced after
+  every odd one, and the next press takes the other wing. When the load is even again the roll stops at once, but the
+  trim stays where you set it: take it back off (**Alt** + the other arrow, or the rocker) until the `TRIM L / R`
+  reading on the **Ctrl+F12** info line is gone.
 - **The map edge**: 12 km (6.5 NM) before it the EndWorld warning sounds: turn back. Past it the game pushes the jet
   back for about 8 s (the nose rises and the jet turns).
 

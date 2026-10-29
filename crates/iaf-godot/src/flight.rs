@@ -288,7 +288,7 @@ impl IafFlight {
     }
 
     /// Better physics "Asymmetric stores": the stores' lateral moment (kg·m, + right wing heavier), after every
-    /// `set_stores`.
+    /// `set_stores`. A change takes effect at once (an aero update) with the switch on and the jet airborne.
     #[func]
     fn set_stores_moment(&mut self, kg_m: f64) {
         if let Some(ac) = &mut self.aircraft {
