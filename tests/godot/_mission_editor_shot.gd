@@ -10,6 +10,7 @@
 # there instead (e.g. ED_ZOOM=12 ED_AT=334000,526900: Tel Aviv to Jerusalem, the roads of docs/front-end.md §8).
 # ED_ROUTE=given: a convoy at Tel Aviv given a route to Jerusalem with Follow roads (selected: its route drawn);
 # ED_ROUTE=draw: the route being drawn, a click at Tel Aviv and one at Latrun, the mouse at Jerusalem.
+# ED_ROUTE_AB=<x0>,<y0>,<x1>,<y1>: that route's ends instead (e.g. 318500,545000,321500,541000: across Tel Aviv).
 extends "res://../tests/godot/base.gd"
 
 const DIR := "user://missions_shot"
@@ -77,6 +78,10 @@ func run() -> void:
 func _route(ed, how: String) -> void:
 	var a := Vector2(317000, 541300)
 	var b := Vector2(352900, 511300)
+	if OS.get_environment("ED_ROUTE_AB") != "":
+		var ab := OS.get_environment("ED_ROUTE_AB").split_floats(",")
+		a = Vector2(ab[0], ab[1])
+		b = Vector2(ab[2], ab[3])
 	var id: int = ed.add_unit(10, a.x, a.y, 2, 2)
 	for i in ed._ui.units.item_count:
 		if int(ed._ui.units.get_item_metadata(i)) == id:

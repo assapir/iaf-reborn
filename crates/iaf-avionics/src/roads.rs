@@ -96,6 +96,14 @@ pub type Line = (Way, Vec<[f32; 2]>);
 /// The road graph: per vertex the start of its edges, then the edges (neighbour, way).
 type Graph = (Vec<u32>, Vec<(u32, u32)>);
 
+/// A route's cost per metre by class (`CLASS_*`), so a convoy keeps to the big roads as a real one would: a motorway
+/// detour up to 1.8× as long beats minor streets (inferred, docs/mission-editor.md §5.2.1).
+const CLASS_COST: [f64; 8] = [1.0, 1.0, 1.1, 1.2, 1.4, 1.8, 2.5, 3.0];
+/// The cheapest of `CLASS_COST`: the A* heuristic's straight line at this cost never overestimates.
+const MIN_COST: f64 = 1.0;
+/// An unpaved road's cost on top of its class's.
+const UNPAVED_COST: f64 = 1.5;
+
 /// The spatial grid's cell (m).
 const GRID_M: f64 = 1000.0;
 
@@ -311,6 +319,13 @@ impl Roads {
         }
     }
 
+    /// Way `w`'s route cost per metre (`CLASS_COST`).
+    fn cost(&self, w: u32) -> f64 {
+        let w = &self.ways[w as usize];
+        let c = CLASS_COST[(w.class as usize).min(CLASS_COST.len() - 1)];
+        if w.flags & FLAG_UNPAVED != 0 { c * UNPAVED_COST } else { c }
+    }
+
     /// The road graph: per vertex its edges (neighbour, way), both ways (vehicles on the map ignore oneway).
     fn graph(&self) -> &Graph {
         self.graph.get_or_init(|| {
@@ -339,9 +354,9 @@ impl Roads {
         })
     }
 
-    /// The shortest route on roads of class `max_class` or more important from the road point nearest `a` to the one
-    /// nearest `b` (A* over the junctions): the snapped start, the vertices between, the snapped end. None when either
-    /// end has no road or the two are not connected.
+    /// The cheapest route on roads of class `max_class` or more important from the road point nearest `a` to the one
+    /// nearest `b` (A* over the junctions, each metre costing its way's `cost`): the snapped start, the vertices
+    /// between, the snapped end. None when either end has no road or the two are not connected.
     pub fn route(&self, a: [f64; 2], b: [f64; 2], max_class: u8) -> Option<Vec<[f64; 2]>> {
         let (sa, sb) = (self.nearest(a, max_class)?, self.nearest(b, max_class)?);
         let ends = |n: &Nearest| {
@@ -363,8 +378,8 @@ impl Roads {
             heap.push(std::cmp::Reverse((f.to_bits(), v)))
         };
         for v in ea {
-            g[v as usize] = dist(sa.point, self.point(v));
-            push(&mut heap, g[v as usize] + dist(self.point(v), sb.point), v);
+            g[v as usize] = dist(sa.point, self.point(v)) * self.cost(sa.way);
+            push(&mut heap, g[v as usize] + dist(self.point(v), sb.point) * MIN_COST, v);
         }
         while let Some(std::cmp::Reverse((_, v))) = heap.pop() {
             if v == goal {
@@ -377,15 +392,15 @@ impl Roads {
                 if gv + cost < g[u as usize] {
                     g[u as usize] = gv + cost;
                     prev[u as usize] = v;
-                    push(heap, g[u as usize] + dist(to, sb.point), u);
+                    push(heap, g[u as usize] + dist(to, sb.point) * MIN_COST, u);
                 }
             };
             if eb.contains(&v) {
-                relax(&mut heap, goal, dist(pv, sb.point));
+                relax(&mut heap, goal, dist(pv, sb.point) * self.cost(sb.way));
             }
             for &(u, w) in &edges[starts[v as usize] as usize..starts[v as usize + 1] as usize] {
                 if self.ways[w as usize].class <= max_class {
-                    relax(&mut heap, u, dist(pv, self.point(u)));
+                    relax(&mut heap, u, dist(pv, self.point(u)) * self.cost(w));
                 }
             }
         }
@@ -538,6 +553,20 @@ mod tests {
             r.route([-800.0, 10.0], [10.0, 800.0], CLASS_PRIMARY).unwrap(),
             [[-800.0, 0.0], [0.0, 0.0], [10.0, 0.0]]
         );
+    }
+
+    #[test]
+    fn prefers_the_bigger_road() {
+        // Minor streets straight from (0, 0) to (1000, 0); a primary road round by (500, 300), 1.17 km.
+        let r = Roads::from_lines([
+            (way(CLASS_MINOR, 0), &[[0.0f32, 0.0], [500.0, 0.0], [1000.0, 0.0]][..]),
+            (way(CLASS_PRIMARY, 0), &[[0.0f32, 0.0], [500.0, 300.0], [1000.0, 0.0]][..]),
+        ]);
+        assert!(r.route([0.0, 0.0], [1000.0, 0.0], CLASS_TRACK).unwrap().contains(&[500.0, 300.0]), "on the primary");
+        // Unpaved, the primary costs more than the streets.
+        let mut r = r;
+        r.ways[1].flags |= FLAG_UNPAVED;
+        assert!(r.route([0.0, 0.0], [1000.0, 0.0], CLASS_TRACK).unwrap().contains(&[500.0, 0.0]), "on the streets");
     }
 
     #[test]
