@@ -158,6 +158,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   Ours, with Real (`rwr_search`): it also shows the hostile SAM / AAA radars searching the jet, within their radar's
   range and in terrain line of sight, as steady symbols with WRN_NEW_GUY when a new one appears; terrain masking
   drops them (rwr.md §7).
+- **Briefing map (Original (1998) / Modern).** Original: text.emf's city dots where the 1998 map put them, up to
+  ≈ 37 km from the real cities. Ours, with Modern (`briefing_map`): the eight labelled cities' dots and labels at
+  their real places on the TSD / briefing / mission editor map (front-end.md §8 "Modern map").
 - **HARM targets (Original / Real).** Original: the HARM page lists its sensor's own scan (the radar classes within
   20 NM in the ±15° cone, emitting or not, friendlies too, best 15). Ours, with Real (saved value "rwr"): the page lists the RWR's active
   emitters inside that cone and the hostile scanned sites without a brain (never on the RWR: they never lock; counted

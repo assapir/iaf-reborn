@@ -5,7 +5,8 @@
 #     --resolution 1600x1000 -s ../tests/godot/_mission_editor_shot.gd
 # ED_SCENERY=menu: zoomed in on a town of the scenery (docs/scenery.md §5) with a building picked and its Set as target
 # menu open; ED_SCENERY=target: that building set as a target (its marker selected). ED_TAB=<title>: that side tab
-# shown (e.g. Mission: the wind and weather rows).
+# shown (e.g. Mission: the wind and weather rows). ED_MAP=original|modern: that Extras "Briefing map", the whole
+# map from Cairo to Damascus shown, no zoom.
 extends "res://../tests/godot/base.gd"
 
 const DIR := "user://missions_shot"
@@ -13,6 +14,9 @@ const TOWN := Vector2(325000, 544300)  # the densest scenery cell's centre
 
 
 func run() -> void:
+	var map := OS.get_environment("ED_MAP")
+	if map != "":
+		settings().briefing_map = map
 	var ed = load("res://editor/mission_editor.tscn").instantiate()
 	ed.missions_dir = DIR
 	root.add_child(ed)
@@ -21,8 +25,13 @@ func run() -> void:
 	ed.fork("Wild West 2")
 	ed.add_unit(6, 376500, 451500, 2, 1)
 	ed.tsd.select_flight(1)
-	ed.tsd.zoom_by(ed.tsd.ZOOM_STEP)
-	ed.tsd.zoom_by(ed.tsd.ZOOM_STEP)
+	if map != "":
+		ed.tsd.selected = -1
+		ed.tsd.zoom_by(0.01)
+		ed.tsd.centre_on(Vector2(240, 300))
+	else:
+		ed.tsd.zoom_by(ed.tsd.ZOOM_STEP)
+		ed.tsd.zoom_by(ed.tsd.ZOOM_STEP)
 	var scenery := OS.get_environment("ED_SCENERY")
 	if scenery != "":
 		ed.tsd.selected = -1
