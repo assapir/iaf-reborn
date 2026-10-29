@@ -30,14 +30,20 @@ const GLOW_D := 5.0
 
 ## The real motor's burn (s, boost + sustain) by bdb weapon name, where a public source gives one (docs/rendering.md
 ## §6): the smoke and flame stop then. Any other homing weapon burns its motion's burn (Missile.time_left).
-const MOTOR_BURN := {"AA-8": 4.0, "SA2": 26.5, "SA3": 23.0, "SA8": 17.0}
+const MOTOR_BURN := {"AA-8": 4.0, "SA2": 26.5, "SA3": 23.0, "SA5": 104.5, "SA8": 17.0, "Hawk": 26.0}
 ## A rocket (560) burns the Hydra 70's Mk 66 time: 1.07 s.
 const ROCKET_BURN := 1.07
 
 const SMOKE_FORMAT := Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT
+## A puff's two triangles (UV2 corners).
+const PUFF_CORNERS: Array[Vector2] = [
+	Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, -1), Vector2(1, 1), Vector2(-1, 1)
+]
 
 ## Per vertex: VERTEX = the point where it was laid, CUSTOM0 = (unit tangent toward the head, birth time on `now`),
 ## UV = (side −1 / +1, metres along the trail). The mesh sits at the origin, so model space is world space.
+## A second surface holds a round puff per point (UV.x = 0, UV2 = its corner −1..1): seen along the trail the flat
+## ribbon would show as a hard-edged wedge, so there the puffs take over and the smoke reads as a round plume.
 const SMOKE_SHADER := """
 shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, shadows_disabled;
@@ -48,19 +54,20 @@ uniform vec3 wind = vec3(0.0);
 uniform vec3 sun_dir = vec3(0.3, 0.8, 0.5);
 uniform vec3 sun_col : source_color = vec3(1.0);
 uniform vec3 ambient : source_color = vec3(0.72, 0.78, 0.86);
-varying float v_f;
-varying float v_w;
-varying float v_x;
-varying float v_along;
+// The scalars, packed four to a varying (the driver's varying limit): set from the vertex function's locals of the
+// same names, read through the defines before fragment().
+varying vec4 v_a;
+varying vec4 v_b;
+varying vec4 v_c;
 varying vec3 v_side;
 varying vec3 v_view;
-varying float v_align;
-varying float v_cover;
-varying float v_px;
-varying float v_near;
 varying vec3 v_pos;
+varying vec3 v_up;
 uniform float min_px = 3.0;
+// One puff's opacity: seen end-on many puffs overlap.
+uniform float puff_alpha = 0.45;
 void vertex() {
+	float v_f, v_w, v_x, v_along, v_align, v_cover, v_px, v_near, v_y, v_disc, v_end;
 	float age = max(now - CUSTOM0.w, 0.0);
 	v_f = clamp(age / life, 0.0, 1.0);
 	// 0.6 m at the nozzle, ≈ 10 m after 2 s, ≈ 14 m after 5 s, then spreading on (≈ 18 m at 10 s, ≈ 23 m at 20 s).
@@ -71,7 +78,11 @@ void vertex() {
 	vec3 to_cam0 = normalize(INV_VIEW_MATRIX[3].xyz - VERTEX);
 	// Seen along its length the ribbon is a stack of cross-sections: there no swelling (it shows as rings), and the
 	// smoke is softer and fainter.
-	v_align = smoothstep(0.55, 0.95, abs(dot(CUSTOM0.xyz, to_cam0)));
+	float cos_view = abs(dot(CUSTOM0.xyz, to_cam0));
+	v_align = smoothstep(0.55, 0.95, cos_view);
+	// Within ≈ 30° of the view axis the round puffs fade in and the ribbon out.
+	v_end = smoothstep(0.82, 0.97, cos_view);
+	v_disc = UV.x == 0.0 ? 1.0 : 0.0;
 	float w_far = 0.6 + 12.0 * (1.0 - exp(-age / 1.5)) + 0.5 * age;
 	// Up close (within ≈ 250 m of the camera) the smoke takes a real motor's width: 0.35 m at the nozzle, ≈ 2 m
 	// after 1 s, ≈ 4 m after 3 s, ≈ 8 m at 20 s; farther off, the wide trail for spotting.
@@ -89,6 +100,8 @@ void vertex() {
 	side = length(side) > 1e-4 ? normalize(side) : INV_VIEW_MATRIX[0].xyz;
 	v_w = w;
 	v_x = UV.x;
+	v_y = 0.0;
+	v_up = vec3(0.0);
 	v_along = s;
 	v_side = side;
 	v_view = normalize(to_cam);
@@ -98,12 +111,36 @@ void vertex() {
 	v_cover = w / wd;
 	v_px = wd / px;
 	VERTEX = p + side * UV.x * 0.5 * wd;
+	if (v_disc > 0.5) {
+		// A puff facing the camera, as wide as the smoke; off the view axis it has no area (nothing to draw).
+		v_side = INV_VIEW_MATRIX[0].xyz;
+		v_up = INV_VIEW_MATRIX[1].xyz;
+		v_x = UV2.x;
+		v_y = UV2.y;
+		VERTEX = p + (v_side * UV2.x + v_up * UV2.y) * 0.5 * wd * step(1e-3, v_end);
+	}
 	v_pos = VERTEX;
+	v_a = vec4(v_f, v_w, v_x, v_along);
+	v_b = vec4(v_align, v_cover, v_px, v_near);
+	v_c = vec4(v_y, v_disc, v_end, 0.0);
 }
+#define v_f v_a.x
+#define v_w v_a.y
+#define v_x v_a.z
+#define v_along v_a.w
+#define v_align v_b.x
+#define v_cover v_b.y
+#define v_px v_b.z
+#define v_near v_b.w
+#define v_y v_c.x
+#define v_disc v_c.y
+#define v_end v_c.z
 void fragment() {
 	float x = v_x;
+	// The distance from the smoke's centre line (a ribbon) or centre (a puff), 0..1.
+	float r = length(vec2(x, v_y));
 	// The noise in metres along and across the smoke, slowly churning with the age.
-	vec2 m = vec2(v_along, x * 0.5 * v_w);
+	vec2 m = vec2(v_along + v_y * 0.5 * v_w, x * 0.5 * v_w);
 	float n1 = texture(noise, m * 0.02 + vec2(0.0, v_f * 0.15)).r;
 	float n2 = texture(noise, m * 0.07 + vec2(v_f * 0.3, 0.0)).g;
 	// Up close a third, sub-metre octave churns faster: the turbulent edge of a young column.
@@ -115,18 +152,21 @@ void fragment() {
 	float erode = (0.7 + 1.6 * v_f + 1.4 * v_near) * smoothstep(3.0, 12.0, v_px) * (1.0 - v_align);
 	n = mix(n, 0.6, v_align);
 	// Up close the edge is wider and softer: no hard line where the card ends.
-	float shape = smoothstep(1.0, mix(mix(0.35, -0.1, v_near), -0.3, v_align), abs(x) + (0.5 - n) * erode);
+	float shape = smoothstep(1.0, mix(mix(0.35, -0.1, v_near), -0.3, v_align), r + (0.5 - n) * erode);
+	// A puff is a soft ball: its edge fades over most of its radius, broken a little by the noise.
+	shape = mix(shape, smoothstep(1.0, 0.0, r + (0.5 - n) * 0.35), v_disc);
 	if (shape <= 0.0) { discard; }
-	float depth = sqrt(max(1.0 - x * x, 0.0));
-	// A tube's normal across the ribbon, bumped by the noise.
-	vec3 nrm = normalize(v_side * x + v_view * (depth + 0.2) + v_side * (n2 - 0.5) * 0.8);
+	float depth = sqrt(max(1.0 - r * r, 0.0));
+	// A tube's normal across the ribbon (a ball's on a puff), bumped by the noise.
+	vec3 out_dir = v_side * x + v_up * v_y;
+	vec3 nrm = normalize(out_dir + v_view * (depth + 0.2) + v_side * (n2 - 0.5) * 0.8);
 	vec3 sun = normalize(sun_dir);
 	float lit = clamp(dot(nrm, sun) * 0.6 + 0.4, 0.0, 1.0);
 	// Thin smoke lights up looking toward the sun (forward scattering).
 	float fwd = pow(max(dot(-v_view, sun), 0.0), 8.0) * (1.0 - depth * 0.6);
 	// White smoke scatters light many times: its shadow side stays bright (at least 55 % of the sunlit side), with
 	// the sky's light on top; the sun's colour warms the sun side and its rim, most looking toward the sun.
-	float rim = pow(1.0 - depth, 2.0) * max(dot(v_side * sign(x), sun), 0.0);
+	float rim = pow(1.0 - depth, 2.0) * max(dot(out_dir / max(r, 1e-3), sun), 0.0);
 	vec3 col = (sun_col * (0.55 + 0.45 * lit) + ambient * 0.45) * (0.88 + 0.24 * n)
 		+ sun_col * (fwd * 0.9 + rim * 0.5);
 	// At least as bright as the original's flat white trail (for spotting a launch at dusk), keeping the hue.
@@ -146,7 +186,8 @@ void fragment() {
 	float near_fade = smoothstep(0.5, 1.5 + v_w, cam_d);
 	ALBEDO = col;
 	ALPHA = clamp(shape * mix(0.75, 1.0, depth) * (0.65 + 0.7 * n) * thin * fade * v_cover
-		* (1.0 - 0.15 * v_align) * dens * near_fade, 0.0, 1.0);
+		* (1.0 - 0.15 * v_align) * dens * near_fade
+		* mix(1.0 - 0.9 * v_end, puff_alpha * v_end, v_disc), 0.0, 1.0);
 }
 """
 
@@ -211,7 +252,8 @@ void fragment() {
 }
 """
 
-## Trails: {mi, mesh, pts: PackedVector3Array (one per point), born: PackedFloat64Array, along, verts, custom, uvs}.
+## Trails: {mi, mesh, pts: PackedVector3Array (one per point), born: PackedFloat64Array, along, verts, custom, uvs;
+## the puffs' pverts, pcustom, puvs, puv2 (6 vertices per point)}.
 var _trails: Array = []
 ## owner key -> {trail, frame}
 var _owners := {}
@@ -320,7 +362,6 @@ func _new_trail() -> Dictionary:
 	var mesh := ArrayMesh.new()
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
-	mi.material_override = _smoke_mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.top_level = true
 	# The shader moves the points (wind, drift, width): up to ≈ 100 m from where they were laid.
@@ -335,6 +376,10 @@ func _new_trail() -> Dictionary:
 		"verts": PackedVector3Array(),
 		"custom": PackedFloat32Array(),
 		"uvs": PackedVector2Array(),
+		"pverts": PackedVector3Array(),
+		"pcustom": PackedFloat32Array(),
+		"puvs": PackedVector2Array(),
+		"puv2": PackedVector2Array(),
 	}
 	_trails.append(tr)
 	return tr
@@ -350,6 +395,10 @@ func _append(tr: Dictionary, pos: Vector3) -> void:
 		tr.verts = tr.verts.slice(2 * drop)
 		tr.uvs = tr.uvs.slice(2 * drop)
 		tr.custom = tr.custom.slice(8 * drop)
+		tr.pverts = tr.pverts.slice(6 * drop)
+		tr.puvs = tr.puvs.slice(6 * drop)
+		tr.puv2 = tr.puv2.slice(6 * drop)
+		tr.pcustom = tr.pcustom.slice(24 * drop)
 		n -= drop
 	var t := Vector3.FORWARD
 	if n > 0:
@@ -362,10 +411,18 @@ func _append(tr: Dictionary, pos: Vector3) -> void:
 		tr.verts.append(pos)
 		tr.uvs.append(Vector2(side, tr.along))
 		tr.custom.append_array([t.x, t.y, t.z, _now])
+	for c in PUFF_CORNERS:
+		tr.pverts.append(pos)
+		tr.puvs.append(Vector2(0.0, tr.along))
+		tr.puv2.append(c)
+		tr.pcustom.append_array([t.x, t.y, t.z, _now])
 	if n == 1:  # the first point takes the first segment's direction
 		for k in 2:
 			for c in 3:
 				tr.custom[k * 4 + c] = t[c]
+		for k in 6:
+			for c in 3:
+				tr.pcustom[k * 4 + c] = t[c]
 
 
 ## The newest point follows the head until the next one is laid.
@@ -381,6 +438,12 @@ func _move_head(tr: Dictionary, pos: Vector3) -> void:
 		tr.uvs[v] = Vector2(tr.uvs[v].x, tr.along)
 		for c in 3:
 			tr.custom[v * 4 + c] = t[c]
+	for k in 6:
+		var v := 6 * (n - 1) + k
+		tr.pverts[v] = pos
+		tr.puvs[v] = Vector2(0.0, tr.along)
+		for c in 3:
+			tr.pcustom[v * 4 + c] = t[c]
 
 
 func _tangent(tr: Dictionary, i: int) -> Vector3:
@@ -458,6 +521,15 @@ func _rebuild(tr: Dictionary) -> void:
 	arr[Mesh.ARRAY_CUSTOM0] = tr.custom
 	tr.mesh.clear_surfaces()
 	tr.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLE_STRIP, arr, [], {}, SMOKE_FORMAT)
+	var puffs := []
+	puffs.resize(Mesh.ARRAY_MAX)
+	puffs[Mesh.ARRAY_VERTEX] = tr.pverts
+	puffs[Mesh.ARRAY_TEX_UV] = tr.puvs
+	puffs[Mesh.ARRAY_TEX_UV2] = tr.puv2
+	puffs[Mesh.ARRAY_CUSTOM0] = tr.pcustom
+	tr.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, puffs, [], {}, SMOKE_FORMAT)
+	tr.mesh.surface_set_material(0, _smoke_mat)
+	tr.mesh.surface_set_material(1, _smoke_mat)
 
 
 ## Draws the smoke and flame materials once, too small to see, under `parent` (damage_effects.gd `warm_up`'s node in
@@ -474,7 +546,10 @@ func warm_up(parent: Node3D) -> void:
 	arr[Mesh.ARRAY_CUSTOM0] = c
 	var m := ArrayMesh.new()
 	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLE_STRIP, arr, [], {}, SMOKE_FORMAT)
+	arr[Mesh.ARRAY_TEX_UV2] = arr[Mesh.ARRAY_TEX_UV]  # the puffs' vertex format
+	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr, [], {}, SMOKE_FORMAT)
 	m.surface_set_material(0, _smoke_mat)
+	m.surface_set_material(1, _smoke_mat)
 	var meshes: Array = [m]
 	for mat in [_flame_mat, _glow_mat]:
 		var q := QuadMesh.new()

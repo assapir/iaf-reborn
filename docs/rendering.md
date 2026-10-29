@@ -1010,7 +1010,11 @@ compression). The noise texture is generated at run time with FastNoiseLite.
   core stays dense. It fades out from 10 s to 20 s and stays after its missile hits or is gone. It is at least 3 px
   wide on screen (thinner smoke gets a lower alpha instead), so a far trail stays a clear band, and a trail only a
   few pixels wide keeps a plain soft profile. Seen along its length it is a plain soft cone (no swelling or noise,
-  which would stack into rings), and its first 10 m fade in.
+  which would stack into rings), and its first 10 m fade in. Seen from straight behind or ahead (2026-10-29), the
+  flat ribbon showed as a hard-edged wedge: there (within ≈ 30° of the view axis) a round puff at each point, facing
+  the camera, as wide as the smoke and soft over most of its radius, fades in while the ribbon fades to 10 %, so the
+  trail reads as a round plume. Off the view axis the puffs have no area and draw nothing, so the side view is
+  unchanged.
   Up close (2026-10-28) it reads as a soft translucent column, the way launch photos show it: within ≈ 40 m of the
   camera it takes a real motor's width (0.35 m at the nozzle, ≈ 2 m after 1 s, ≈ 4 m after 3 s, ≈ 8 m at 20 s),
   blending to the wide spotting trail by 250 m, so the look at range and at dusk is unchanged. There its opacity
@@ -1028,7 +1032,7 @@ compression). The noise texture is generated at run time with FastNoiseLite.
   original's either way. The burn is the real motor's, by weapon (`missile_fx.gd MOTOR_BURN`, table below); a
   weapon without a sourced figure uses its motion's burn (`time_left`, docs/weapons.md §5.3). Rockets (560) burn
   1.07 s, the Hydra 70's Mk 66 motor of the LAU-61 pod[^hydra].
-- **Caps**: 24 ribbons (the oldest goes first), 640 points each (≈ 30 000 vertices in all), 8 flames.
+- **Caps**: 24 ribbons (the oldest goes first), 640 points each (2 ribbon and 6 puff vertices a point: ≈ 123 000 vertices in all), 8 flames.
 - **No stutter**: both materials are drawn once behind the loading screen (`damage_effects.gd warm_up`), so the first
   missile compiles nothing.
 
@@ -1040,12 +1044,19 @@ Motor burn by weapon (boost + sustain). Where two figures or a range are given, 
 | R-60 (AA-8) | 4 s | "3–5 s" of motor time[^r60] |
 | S-75 (SA2) | 26.5 s | booster about 4–5 s, main engine about 22 s[^s75fx] |
 | S-125 (SA3) | 23 s | booster 2–4 s, sustainer up to 20 s[^s125] |
+| S-200 (SA5) | 104.5 s | boosters 3–5 s, sustainer 51 to 150 s[^s200] |
 | 9K33 Osa (SA8) | 17 s | booster 2 s, sustainer 15 s[^osa] |
+| MIM-23 Hawk (Hawk) | 26 s | M112 motor (I-Hawk): boost 5 s, sustain 21 s[^hawk] |
 | Hydra 70 rockets (560) | 1.07 s | Mk 66 motor[^hydra] |
 
-Open: no citable burn time was found for the AIM-9D / L / M, Python 3 / 4, Shafrir 2, AA-2, AA-6, AA-11, AIM-7B / F / M,
-AMRAAM, HARM, Shrike and Maverick (only game wikis, forums or simulators give figures). These burn their motion's
-burn, which is longer than the real motor's (AIM-9L 16 s, docs/weapons.md §1.2; AMRAAM 35 s, §11.2).
+Open: no citable burn time was found for the AIM-9D / L / M / X, Python 3 / 4 / 5, Shafrir 2, AA-2, AA-6, AA-10, AA-11,
+AIM-7B / F / M, AMRAAM, HARM, Shrike, Maverick, SA-6 and SA-13 (searched again on 2026-10-29: Wikipedia
+en / ru, designation-systems.net, FAS, ausairpower.net, missilery.info, airwar.ru). The public pages name the motors
+(Mk 36 for the AIM-9D to X, Mk 38 / 52 / 58 for the AIM-7) but give no times; figures appear only on game and
+simulator forums (e.g. R-73 6.8 s and R-27E 11 s, said to come from the MiG-29 flight manual, which was not found).
+For the SA-6 only the ramjet sustainer is given (at most 20 s[^kub]); its booster's time is open. These weapons
+burn their motion's burn, which is longer than the real motor's (AIM-9L 16 s, docs/weapons.md §1.2; AMRAAM 35 s,
+§11.2).
 
 **Contrails** (new content): an aircraft above 9000 m (the Schmidt–Appleman limit of an atmosphere 10 °C warmer than
 the standard one) leaves white condensation from each engine nozzle: a particle every 3 m, 1.2 m growing to 9 m,
@@ -1170,7 +1181,7 @@ smoke's overdraw sets the cost; the trail spacing (1.5 m) and widths are the kno
 missile smoke ribbons (not measured yet).
 
 The missile smoke's cost (inferred, not measured): CPU, one `ArrayMesh` rebuild per burning missile per frame (up to
-640 points); GPU, the ribbons' alpha-blended overdraw, which is far smaller than the old puffs' (one layer, a few
+640 points); GPU, the ribbons' alpha-blended overdraw (the end-on puffs only near the view axis), which is far smaller than the old puffs' (one layer, a few
 metres wide), and up to 4 small omni lights. To measure it: `tests/godot/_fx_bench.gd` (its two missile trails) on
 the Iris Xe at 2560 × 1440, Particle effects Original against Detailed.
 
@@ -1658,6 +1669,13 @@ graphics option at its best. `RAIN_BENCH=secs` measures the frame rate instead.
 [^s75fx]: Wikipedia, "S-75 Dvina" ("The booster fires for about 4–5 seconds and the main engine for about 22 seconds"), https://en.wikipedia.org/wiki/S-75_Dvina
 [^s125]: Military Russia (rbase), "ЗРК С-125" (starting booster 2–4 s, sustainer up to 20 s), http://rbase.new-factoria.ru/missile/wobb/c125/c125.shtml
 [^osa]: Wikipedia, "9K33 Osa" (booster 2 s, sustainer 15 s), https://en.wikipedia.org/wiki/9K33_Osa
+[^s200]: Carlo Kopp, "S-200VE Vega", Air Power Australia ("After the 3-5 sec burn duration these strap-on solids are
+    jettisoned"; sustainer "burn duration 51 to 150 sec"), https://ausairpower.net/APA-S-200VE-Vega.html
+[^hawk]: Wikipedia, "MIM-23 Hawk" ("The missile's M112 rocket motor has a boost phase of 5 seconds and a sustain phase
+    of 21 seconds"), https://en.wikipedia.org/wiki/MIM-23_Hawk
+[^kub]: Wikipedia (Russian), "3М9" ("Максимальное время работы маршевого двигателя составляет не более 20 с": the
+    sustainer burns at most 20 s; citing Vasilin, Gurinovich, «Зенитные ракетные комплексы», pp. 228–231),
+    https://ru.wikipedia.org/wiki/3М9
 [^hillaire]: Sébastien Hillaire, "A Scalable and Production Ready Sky and Atmosphere Rendering Technique", Computer Graphics Forum 39 (4), EGSR 2020, https://sebh.github.io/publications/egsr2020.pdf
 [^gunn]: R. Gunn, G. D. Kinzer, "The terminal velocity of fall for water droplets in stagnant air", Journal of
     Meteorology 6 (4), 1949, pp. 243–248 (a 2 mm drop falls at about 6.5 m/s):
