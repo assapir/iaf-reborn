@@ -71,7 +71,8 @@ Made by `tools/f16d/rig.py` (re-runnable; docs/aircraft-models.md):
 
 The model contains about 60 helper positions measured from the original game model (where the game hangs stores,
 draws the afterburner and puts the wheels). They are coordinates only. Every mesh and texture comes from the
-FlightGear F-16, except the dorsal spine's mesh, which the script makes (its paint is FlightGear's livery).
+FlightGear F-16, except the dorsal spine's mesh, which the script makes (its paint is FlightGear's livery), and,
+in `f16i.glb`, the nose fairings and the camouflage, which the script makes too.
 
 ## The F-16I Sufa (`f16i.glb`)
 
@@ -83,9 +84,17 @@ Made by `tools/f16d/rig.py ... sufa` (docs/f16i.md §8.1): the F-16D above with 
 | `Models/nozzle-section.ac`, `nozzle-section.png` | the P&W F100 nozzle: 16 sections round the axis, as `nozzle.xml` places them |
 
 1. The GE nozzle replaced by the P&W nozzle (F-16.xml's `PW_nozzle`, 4.617 m aft), its plates at rest.
-2. The CFTs added and stretched with the fuselage for two seats; their paint is the livery of the skin under them.
-3. The livery (the same FlightGear IAF livery) recoloured by the script to the F-16I's FS 595 colours; 101
-   Squadron's fin badge, red disc and stripes painted over; our own 107 Squadron orange band on the fin; the tail
-   number 457 made from the livery's own "547". Reference for the fin marking, not copied: 107 Squadron's F-16I 827
-   at the IAF Museum, Hatzerim, by Oren Rozen (CC BY-SA 4.0,
-   https://commons.wikimedia.org/wiki/File:Hatzerm_131022_Sufa_01.jpg).
+2. The CFTs added and stretched with the fuselage for two seats, with their own UVs (an unpainted part of the
+   livery).
+3. The livery (the same FlightGear IAF livery): its underside grey and radome recoloured by the script to the
+   F-16I's FS 595 colours; the upper surfaces and the CFTs repainted with our own three-tone camouflage (made by the
+   script from noise over the airframe; the livery's panel lines kept); 101 Squadron's fin badge, red disc and
+   stripes painted over; our own 107 Squadron orange crescent and a plain round badge (ours) on the fin; the tail
+   number 457 made from the livery's own "547", smaller. References, not copied: 107 Squadron's F-16I 827 at the
+   IAF Museum, Hatzerim, by Oren Rozen (CC BY-SA 4.0,
+   https://commons.wikimedia.org/wiki/File:Hatzerm_131022_Sufa_01.jpg); for the camouflage, an F-16I (876) in
+   flight, supplied by the user.
+4. Our own nose fairings (meshes made by the script): the AIFF antenna row ahead of the windscreen and a sensor
+   blister on each side of the nose. References, not copied: F-16I noses by the IDF Spokesperson's Unit (CC BY-SA
+   3.0, https://commons.wikimedia.org/wiki/File:Aviad_Dagan,_May_2021._VIII.jpg and
+   https://commons.wikimedia.org/wiki/File:Israeli_attacks_on_Yemen,_January_2025._XIV.jpg).

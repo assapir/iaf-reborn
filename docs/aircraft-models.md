@@ -64,20 +64,42 @@ in the file. KTX2 keeps the glb small; in video memory the textures are uncompre
 ### 1.3 The F-16I Sufa model
 
 `game/extra/models/f16/f16i.glb` is the same build with the `sufa` argument (docs/f16i.md §8.1 lists what it adds:
-FlightGear's conformal fuel tanks and P&W nozzle, the Sufa's FS colours, 107 Squadron's orange fin band, tail 457).
+FlightGear's conformal fuel tanks and P&W nozzle, our nose fairings, our three-tone camouflage in the Sufa's FS
+colours, 107 Squadron's orange fin crescent, a badge and tail 457).
 It keeps every part, hinge, helper and station of the F-16D, so arming, animation and the afterburner work
 unchanged. `util/gltf.gd` `detailed()` returns it for `f16_h.gltf` whenever the F-16 switch is on Sufa
 (`Settings.sufa(100)`), with Models on Original too: the 1998 game has no Sufa.
 
 | item | value |
 |---|---|
-| triangles | the F-16D's plus the CFTs (352 faces) and the nozzle (16 × 13 faces) |
-| textures | as the F-16D's; the livery recoloured by the script |
-| file size | 11 MB with PNG textures (this build); the KTX2 pass brings it to the F-16D's size (§4) |
+| triangles | 52 320: the F-16D's plus the CFTs (352 faces), the nozzle (16 × 13 faces) and the seven nose fairings (700) |
+| textures | as the F-16D's; the livery repainted by the script (`sufa_livery`) |
+| file size | 3.9 MB (KTX2) |
+
+The camouflage (`camo_weights`): three smooth noise fields over the airframe's world frame (blotches about
+`BLOTCH_M` = 1.5 m, 1.3 × longer fore-aft, ragged edges from a warp of the coordinates), each texel the colour of the
+strongest field, soft over about 2 cm at an edge, the fields shifted until each colour covers a third. `texels`
+finds each texel's place on the jet (where faces share texels, the face whose texel size is nearest the livery's
+usual wins, not a sliver mapped over a large area), so the pattern runs
+on across parts and UV seams; on the fuselage sides and the spine's sides it stretches with FlightGear's UVs. It
+covers the texels of the livery's camouflage colours on faces looking up or sideways, the CFTs' own UV island
+(`CFT_UV`) and the fin's old markings; texels between UV islands take the colour round them. The livery's panel lines
+and rivets stay (each texel times its brightness over the local brightest, as `panel_maps` finds the lines).
 
 Checks: `tests/godot/test_sufa_model.gd`: with Barak the F-16 is the original or the F-16D as before; with Sufa
 `f16i.glb` loads under both Models settings, keeps every helper of the original within 1 cm, and the player's and
 the AI's F-16s in mission 221 use it; the Arming screen shows the Sufa's art, weights and the F-16's nine boxes.
+
+#### Tried and dropped (2026-10-29)
+
+- **The CFTs painted from the skin under them** (the 2026-10-28 build: each CFT corner took the livery of the
+  fuselage or wing straight below). Result: the tanks' steep sides took one row of texels each, so they read as one
+  long smooth dark-brown band. Dropped for the CFTs' own UVs, painted with our camouflage.
+- **FlightGear's own camouflage pattern, recoloured.** Result: mostly sand with brown and little green, unlike the
+  photos' equal measure. Dropped for our pattern; the colour mapping (`recolour`) stays for the underside's grey and
+  the radome.
+- **Our pattern without balancing.** The three fields' plain maximum gave 12 % brown, 57 % sand and 31 % green over
+  the airframe (too few blotches to average out). Dropped for the shifted fields (a third each).
 
 #### Tried and dropped (2026-10-28)
 
@@ -154,11 +176,7 @@ The script:
 
 - The cockpit view's own-jet model (`own_bc`, the original's `f16_bc`) stays the original's with the switch on, and
   with the Sufa: from the cockpit, the CFTs do not show.
-- `f16i.glb` holds PNG textures (11 MB): it was built on a machine without `basisu`. Run
-  `python3 tools/plane/glb_ktx2.py game/extra/models/f16/f16i.glb game/extra/models/f16/f16i.glb` where `basisu` is
-  installed to bring it to the F-16D's size.
-- The Sufa's antennas, a squadron badge, and the CFT sides' livery (projected from above, so stretched on the
-  sides).
+- The Sufa's other antenna changes and 107 Squadron's real badge (docs/f16i.md §10).
 - The livery's fuselage sides are stretched (FlightGear's UVs project from above and below); on the dorsal spine's
   sides the panel lines of the fuselage top are stretched too. The spine's three small vents and its aft sensor
   are not modelled.
