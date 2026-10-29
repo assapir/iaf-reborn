@@ -115,7 +115,7 @@ unchanged. `util/gltf.gd` `detailed()` returns it for `f16_h.gltf` whenever the 
 
 | item | value |
 |---|---|
-| triangles | 52 320: the F-16D's plus the CFTs (352 faces), the nozzle (16 × 13 faces) and the seven nose fairings (700) |
+| triangles | 52 950: the F-16D's plus the CFTs (352 faces), the nozzle (16 × 13 faces), the seven nose fairings and the four tail-box fairings |
 | textures | as the F-16D's; the livery repainted by the script (`sufa_livery`) |
 | file size | 3.9 MB (KTX2) |
 
@@ -124,9 +124,9 @@ The camouflage (`camo_weights`): three smooth noise fields over the airframe's w
 strongest field, soft over about 2 cm at an edge, the fields shifted until each colour covers a third. `texels`
 finds each texel's place on the jet (where faces share texels, the face whose texel size is nearest the livery's
 usual wins, not a sliver mapped over a large area), so the pattern runs
-on across parts and UV seams; on the fuselage sides and the spine's sides it stretches with FlightGear's UVs. It
-covers the texels of the livery's camouflage colours on faces looking up or sideways, the CFTs' own UV island
-(`CFT_UV`) and the fin's old markings; texels between UV islands take the colour round them. The livery's panel lines
+on across parts and UV seams; on the fuselage sides it stretches with FlightGear's UVs. It
+covers the texels of the livery's camouflage colours on faces looking up or sideways, the CFTs' and the spine's own UV
+islands (`CFT_UV`, `SP_ISLAND`) and the fin's old markings; texels between UV islands take the colour round them. The livery's panel lines
 and rivets stay (each texel times its brightness over the local brightest, as `panel_maps` finds the lines).
 
 Checks: `tests/godot/test_sufa_model.gd`: with Barak the F-16 is the original or the F-16D as before; with Sufa
@@ -226,13 +226,19 @@ The script:
    the fuselage and flared into it. Its front is the canopy glass's rear edge, an arch 0.38 m wide whose top is
    0.945 m, so the glass runs on into it. It widens to 0.68 m by 1 m aft of the glass, eases down to 0.878 m and runs
    level from there to its end: 0.40 m wide under the fin, ending in a round cap 0.08 m aft of the nozzle's exit,
-   with a dark floor over the nozzle. Three dark vents sit on each side ahead of the fin. Before that (`lower_fin`)
+   with a dark floor over the nozzle. Three dark vents sit on each side ahead of the fin (the F-16I: two taller ones
+   and a blister and a fairing on each side of the tail box, docs/f16i.md §8). Before that (`lower_fin`)
    FlightGear's fin and rudder are stretched down 0.27 m (`FIN_DROP`, `fin_z`; the rudder's hinge with them), their
    tip kept, and its tail root fairing is squashed to meet them: FlightGear's fin root is level with the canopy's
    top, where on the real jet the canopy stands 0.25 m above the fin's root and the spine; its fin tip is right
-   (4.90 m above the static ground; the F-16's published height is 4.88 m). The spine's UVs are the fuselage's under it,
-   spread over the section, so the camouflage runs on at its foot. The fuselage faces it covers are removed (they would
-   bake black into the occlusion map they share with it); FlightGear's aft light inside it is dropped; the blade antenna
+   (4.90 m above the static ground; the F-16's published height is 4.88 m). The spine has its own UV island (`SP_ISLAND`, 78 px per m: a plain grey
+   rectangle of the livery that no other face uses, above the inner canopy frame's UVs). `spine_island` paints it
+   from the livery of the fuselage round it, unfolded at its true size: each section's arc is laid on the fuselage
+   top from foot to foot, going out from each foot and folding back over the top (a mirror fold on each side, at
+   a quarter of the arc's excess over the foot-to-foot width), so the panel lines and rivets keep their size and the
+   paint runs on unbroken at the foot. Until 2026-10-29 the spine took the UVs of the fuselage under it, spread over
+   the section: the section's arc is about twice the width under it, so the panel lines and rivets stood twice as
+   tall on its sides. The fuselage faces it covers are removed; FlightGear's aft light inside it is dropped; the blade antenna
    and the formation light are set onto it;
 7. joins the parts, puts each origin on its hinge, adds the helpers;
 8. sets the wing roundels (`wing_roundels`, constants `ROUNDEL_ART` and `ROUNDELS`): the livery's roundel above the
@@ -265,8 +271,8 @@ The script:
 ## 4. Open
 
 - The Sufa's other antenna changes and 107 Squadron's real badge (docs/f16i.md §10).
-- The livery's fuselage sides are stretched (FlightGear's UVs project from above and below); on the dorsal spine's
-  sides the panel lines of the fuselage top are stretched too. The spine's aft sensor is not modelled.
+- The livery's fuselage sides are stretched (FlightGear's UVs project from above and below). The spine's aft sensor
+  is not modelled.
 - The nose oleo is compressed 0.23 m, where FlightGear's flight model (its JSBSim gear springs)
   settles it 0.04 m at a parked weight: the game holds the jet level on the ground (flight-model.md §14.5a), so both
   wheels touch the original's `height`. JSBSim's contacts would sit the jet 2.7° nose up. The main wheels are where

@@ -37,7 +37,8 @@ Made by `tools/f16d/rig.py` (re-runnable; docs/aircraft-models.md):
    that ends in a round cap just aft of the nozzle. Three vents sit on each side ahead of the fin. FlightGear's fin
    and rudder are stretched 0.27 m down onto it, their tip kept, and their root fairing squashed to meet them:
    FlightGear has the fin's root level with the canopy's top, its tip at the F-16's published height. FlightGear's blade antenna and formation light are set onto it. Its paint is the
-   livery of the fuselage under it, spread over its sides. Shape from:
+   livery of the fuselage round it, unfolded at its true size onto its own UV island (a plain part of the livery), so
+   the panel lines keep their size. Shape from:
    - photographs on Wikimedia Commons, used only as references (no image is in the model): IAF F-16D 027 parked,
      side on, by Oren Rozen (CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:RamatDavid_020517_Barak_02.jpg):
      the spine's top level from the canopy's rear frame to the fin, the canopy's top 0.25 m above it, the vents;
@@ -85,7 +86,7 @@ Made by `tools/f16d/rig.py` (re-runnable; docs/aircraft-models.md):
 The model contains about 60 helper positions measured from the original game model (where the game hangs stores,
 draws the afterburner and puts the wheels). They are coordinates only. Every mesh and texture comes from the
 FlightGear F-16, except the dorsal spine's mesh, which the script makes (its paint is FlightGear's livery), and,
-in `f16i.glb`, the nose fairings and the camouflage, which the script makes too.
+in `f16i.glb`, the nose and spine fairings and the camouflage, which the script makes too.
 
 ## The F-16I Sufa (`f16i.glb`)
 
@@ -111,3 +112,8 @@ Made by `tools/f16d/rig.py ... sufa` (docs/f16i.md §8.1): the F-16D above with 
    blister on each side of the nose. References, not copied: F-16I noses by the IDF Spokesperson's Unit (CC BY-SA
    3.0, https://commons.wikimedia.org/wiki/File:Aviad_Dagan,_May_2021._VIII.jpg and
    https://commons.wikimedia.org/wiki/File:Israeli_attacks_on_Yemen,_January_2025._XIV.jpg).
+5. The F-16I's spine fittings (meshes made by the script): two taller vents a side in place of the F-16D's three,
+   and a round blister and an oblong fairing on each side of the tail box under the fin. The spine's outline is the
+   F-16D's. References, not copied: F-16I 890 by Oren Rozen (CC BY-SA 4.0,
+   https://commons.wikimedia.org/wiki/File:RamatDavid_020517_Sufa_01.jpg), 827 (the 107 Squadron photo above) and
+   432 by the IDF Spokesperson's Unit (CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:F-16I_(IAF).jpg).
