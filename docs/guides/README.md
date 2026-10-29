@@ -31,6 +31,10 @@ the shot's own values.
 
 - [F-16](f16.md): the F-16C HUD (NAV, gear down, EEGS, SRM, MRM with the DLZ, STRF, CCIP), the DASH helmet, laser /
   TV / HARM weapons, the deep stall.
+- [F-16I Sufa](f16i.md): our F-16I (Extras → F-16 version = Sufa): what differs from the F-16 (the CFTs' weight and
+  fuel, the APG-68(V)9), the AIM-9X / Python 5 off boresight and lock-on after launch, the JDAMs and GBU-39. It points
+  to the F-16 guide for the rest; with the switch on, the Reference screen's F-16 record shows it in place of the
+  F-16's.
 - [F-15](f15.md): the F-15C Baz: the TO 1F-15A-1 HUD, the DASH helmet, the APG-63, Sparrows.
 - [Lavi](lavi.md): the two-seat Lavi of the game's model: its wide-angle HUD (a reconstruction), the EL/M-2035 radar.
 - [Mirage](mirage.md): the Mirage IIICJ Shahak: the CSF 95 gyro gunsight, the Cyrano radar, Shafrir 2 / AIM-9D.
@@ -45,7 +49,8 @@ the shot's own values.
 - [MiG-29](mig29.md): flown from the Mission Creator: the ИЛС-31 HUD in km/h and metres, the Щель-3УМ helmet sight, the
   radar altimeter and AoA / g meter.
 
-The file names follow the Reference screen's record folders (`f4`, `f42000`, `cfir`, `mig23`, `mig29`).
+The file names follow the Reference screen's record folders (`f4`, `f42000`, `cfir`, `mig23`, `mig29`); `f16i` and
+`f35i` are ours.
 
 ## Markdown
 
@@ -65,7 +70,8 @@ Setup's last step makes both (it needs a display). They show the original game's
    screen's size.
    - An entry sets the settings, the mission (`mc` builds a Mission Creator mission, 666: the MiGs fly only there),
      the start (mission, airborne, dive, final approach), a placed target, actions (a
-     radar lock, a store, a camera on the target) and the crop: the whole frame, `hud`, an MFD, `compass` (the panel
+     radar lock, a store, a camera on the target, a radar-designated point), an outside camera pinned beside the jet
+     (`camera`) and the crop: the whole frame, `hud`, an MFD, `compass` (the panel
      compass dial) or `panel` (a box around `crop_at`, [x, y] panel px of the 1920-px strip). `hud` and `compass`
      take `crop_w` (the box's width as a fraction of the frame; smaller zooms in) and `crop_dy` (the box moved down
      by that fraction of the frame's height).
@@ -82,6 +88,6 @@ Setup's last step makes both (it needs a display). They show the original game's
    - The Godot logs go to `assets/logs/guide-shots-<date>-<time>-<pid>/`, kept only when something failed. Each
      failure line ends with its process's log file, and the run ends with the list of the failed processes' logs.
 2. `python3 -I tools/guide_pdf.py [jet …] [--force]` prints each guide as an A4 PDF: a title page with the Reference
-   screen's picture of the jet, contents, the pictures with their legends kept on the same page. It warns when a
+   screen's picture of the jet (a guide outside the records: its own `external` shot, if it has one), contents, the pictures with their legends kept on the same page. It warns when a
    legend's length differs from the picture's callouts. Headless Firefox prints it (Chrome / Chromium when Firefox
    is missing). A PDF newer than its Markdown, shots list, pictures and the script is kept unless `--force`.

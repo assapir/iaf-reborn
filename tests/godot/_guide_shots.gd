@@ -18,22 +18,23 @@
 # on the placed unit, "on_impact" the placed unit onto the bomb's predicted impact, "station:N" the A-A store / gun on
 # station N, "ag:N" the A-G store on station N, "flir" / "tv" the camera on the placed unit (FLIR with the laser),
 # "emitter" the placed unit's radar locks the jet, "fire" Space held, "look:Y,P" the head turned Y° right / P° up (free
-# look), "key:X" a game key, "wait:S", "pcd:F1,F2,F3,F4" the F-35I portals' formats, "goggles" the night-vision goggles
-# on), hour (the mission's start hour, e.g. 1 for 01:00), panel (0 the forward view … 1 the whole panel), "dive" (an
-# airborne start in a `dive_deg` dive `dive_agl` m above the ground), view ("cockpit" / "hud", the HUD-only view /
-# "external"), crop ("full", "hud", "dash", "mfd_left", "mfd_right"; "hud" takes `crop_w`, the box's width as a fraction
-# of the frame, default 0.38: smaller zooms in; and `crop_dy`, the box moved down by that fraction of the frame's
-# height, negative moves it up, default 0: a gunsight's reticle that sits high; "compass": a 16:10 box around the
-# panel's compass / HSI dial, game/cockpit/compass.gd, with the same crop_w / crop_dy; "panel": the same box around
-# `crop_at`, [x, y] panel px of the 1920-px strip). Callouts ("annotations": [{n, anchor, label_at | off}]) are drawn on
-# the picture: a numbered yellow marker at `label_at` (a fraction of the crop) or at the anchor + `off` (× the crop's
-# shorter side; [0, 0] puts the marker on the anchor, no arrow) with an arrow to the anchor. The anchor is the Real
-# HUD's own output (hud.gd real_hud(), resolved every frame): "sym": "text:REGEX" (the first HUD text it matches: the
-# box the HUD draws it in, hud.gd prim_text_box; "nth": 2 the second match), "circle:N" (the N-th largest circle, at its
-# edge `edge`° clockwise from 12 o'clock, default 270) or a named point of the HUD's input ("fpm", "gun_cross",
-# "boresight", "horizon", "ils": where the ILS lines cross, "target", "steerpoint", "seeker", "pipper", "lcos",
-# "steering", "delay_at": the delayed CCIP's target), moved by "d": [x, y] HUD pixels; or "px": [x, y], a fraction of
-# the crop (the MFD pages, the original HUD).
+# look), "key:X" a game key, "designate" the radar's designated point on the placed unit, "wait:S", "pcd:F1,F2,F3,F4"
+# the F-35I portals' formats, "goggles" the night-vision goggles on), hour (the mission's start hour, e.g. 1 for 01:00),
+# panel (0 the forward view … 1 the whole panel), "dive" (an airborne start in a `dive_deg` dive `dive_agl` m above the
+# ground), camera ([right, up, back] m in the jet's axes: the external camera pinned there, looking at the jet), view
+# ("cockpit" / "hud", the HUD-only view / "external"), crop ("full", "hud", "dash", "mfd_left", "mfd_right"; "hud" takes
+# `crop_w`, the box's width as a fraction of the frame, default 0.38: smaller zooms in; and `crop_dy`, the box moved
+# down by that fraction of the frame's height, negative moves it up, default 0: a gunsight's reticle that sits high;
+# "compass": a 16:10 box around the panel's compass / HSI dial, game/cockpit/compass.gd, with the same crop_w / crop_dy;
+# "panel": the same box around `crop_at`, [x, y] panel px of the 1920-px strip). Callouts ("annotations": [{n, anchor,
+# label_at | off}]) are drawn on the picture: a numbered yellow marker at `label_at` (a fraction of the crop) or at the
+# anchor + `off` (× the crop's shorter side; [0, 0] puts the marker on the anchor, no arrow) with an arrow to the
+# anchor. The anchor is the Real HUD's own output (hud.gd real_hud(), resolved every frame): "sym": "text:REGEX" (the
+# first HUD text it matches: the box the HUD draws it in, hud.gd prim_text_box; "nth": 2 the second match), "circle:N"
+# (the N-th largest circle, at its edge `edge`° clockwise from 12 o'clock, default 270) or a named point of the HUD's
+# input ("fpm", "gun_cross", "boresight", "horizon", "ils": where the ILS lines cross, "target", "steerpoint", "seeker",
+# "pipper", "lcos", "steering", "delay_at": the delayed CCIP's target), moved by "d": [x, y] HUD pixels; or "px": [x,
+# y], a fraction of the crop (the MFD pages, the original HUD).
 # The guide lists the legend as a numbered list right under the picture (tools/guide_pdf.py checks the counts match). An
 # anchor that resolves to nothing or outside the crop fails the shot (GUIDE_DEBUG=1 outlines each anchor in red). Each
 # shot prints a GUIDE_INFO line with the HUD's texts and the radar lock / DLZ (for the guide's examples).
@@ -139,6 +140,18 @@ func _shot(name: String, e: Dictionary) -> void:
 		for a in e.get("actions", []):
 			if String(a).begins_with("look:"):  # set_cockpit brought the head back ahead
 				await _action(String(a))
+	if e.has("camera"):
+		# "camera": [right, up, back] m in the jet's axes: the chase camera pinned there, looking at the jet.
+		tv.views.set_orbit(tv.rig, tv.CHASE_OFFS, 1.0, tv.views.CHASE, true)
+		var c: Array = e.camera
+		var pin := CamPin.new()
+		pin.place = func():
+			var b: Basis = tv.rig.global_basis.orthonormalized()
+			var at: Vector3 = tv.rig.global_position
+			var eye: Vector3 = at + b.x * float(c[0]) + b.y * float(c[1]) + b.z * float(c[2])
+			tv.chase.global_transform = Transform3D(Basis.looking_at(at - eye, b.y), eye)
+		pin.process_priority = 100000  # after the flight scene's own camera update
+		tv.add_child(pin)
 	if String(e.get("crop", "")).begins_with("mfd"):
 		for m in tv.cockpit.mfds:
 			m.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # the MFD's pixel art scaled crisp, not smoothed
@@ -324,6 +337,9 @@ func _action(a: String) -> void:
 			w.nav_key(0)
 			w.stores.cur = int(arg)
 			w.select_ag()
+		"designate":  # the radar's designated point (a MAP click) on the placed unit
+			if not target.is_empty():
+				w.radar.designate(target.world.x, target.world.y, target.world.z, t)
 		"flir", "tv":
 			if not target.is_empty():
 				w.eo.start(EoSensor.FLIR if a == "flir" else EoSensor.TV, a == "flir", target.world, t)
@@ -573,3 +589,11 @@ func _draw_annotations(ov: Control, anns: Array, rect: Rect2i) -> void:
 			fs,
 			ANN_DARK
 		)
+
+
+class CamPin:
+	extends Node
+	var place: Callable
+
+	func _process(_d: float) -> void:
+		place.call()
