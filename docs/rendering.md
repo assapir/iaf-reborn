@@ -36,6 +36,7 @@ TAA = temporal anti-aliasing, FSR = AMD FidelityFX Super Resolution.
 | Rolling wheels | Original / Rolling | the wheels of a model with wheel frames turn as the jet rolls (today the F-35I; docs/part-animation.md §2.2) |
 | Airbases | Original / Detailed | in `terrain.gdshader`: near the ground, a procedural runway, taxiway and apron surface with ICAO markings over the nearest base's paved surface (§7); always on in World scale Real |
 | Ground textures | Original / ambientCG | in `terrain.gdshader`: near the camera, where they resolve, CC0 photo textures of asphalt, concrete, sand, gravel, grass, soil and rock, chosen per pixel from the imagery's colour (§1.4). Greyed out and not clickable ("Not downloaded") until setup has downloaded them; a saved ambientCG without them loads as Original |
+| Roads | Original / Detailed | in `terrain.gdshader`: within 1.5 km of the camera, OpenStreetMap's roads (setup's road layer, [scenery.md](scenery.md) §6) drawn on the ground where the imagery is too coarse to show them: asphalt or dirt, at the road's width (§1.8). With Night lights Detailed, lamps along the lit roads too (§5.1). Greyed out ("Not downloaded") until setup has made the road layer |
 | Scenery | Off / On / Detailed | On: buildings and trees over the Survey of Israel 2 m photo, streamed with the ground (`terrain/scenery.gd`, `scenery.gdshader`; [scenery.md](scenery.md) §3). Detailed: the same with the facades (recessed windows, shutters, loggias, AC units), the streets' occlusion, the roof clutter and the far walls in the photo's colour (`scenery_detailed.gdshader`, `scenery_roof.gdshader`; scenery.md §3.3); it costs about 18 % more GPU time low over a town (scenery.md §3.3). The row sits under Imagery Israel. "On" and "Detailed" are greyed out until setup has made the scenery (Detailed's place reads "Not downloaded"), and while the Israel imagery picked on the page is not a Survey 2 m layer ("Needs Survey 2 m"); picking another Israel imagery turns it off. A saved On or Detailed without either loads as Off. Takes effect at the next flight |
 
 ### 1.1 Terrain close up
@@ -609,6 +610,70 @@ or `tests/godot/_upscale_probe.gd`, which cycles the modes in one process.
 Making FSR 2 the only anti-aliasing and upscaling choice was considered and rejected (2026-10-26): it fades the
 distant jets above, which matter most in a flight sim. MSAA 4x stays the default.
 
+### 1.8 Roads (Graphics → MORE "Roads" Detailed)
+
+Detailed draws OpenStreetMap's roads on the ground near the camera (ours, docs/deviations.md §2). The data is setup's
+road layer ([scenery.md](scenery.md) §6). Without it the row's Detailed reads "Not downloaded" and nothing is drawn.
+Detailed also adds lamps along the lit roads at night (§5.1).
+
+**The mask** (`iaf_avionics::roads::mask`, made by `IafRoads.request_mask` on a thread of the extension's own; a plain
+thread, so nothing waits at the quit). It covers 2048 × 2048 texels of 2 m (4.1 km square) around the camera, RG8
+(8 MB, no mipmaps):
+
+- R: the signed distance from the texel's centre to the nearest road's edge, 128 + 16 per metre, up to 8 m either way
+  (negative on the road). Read with bilinear filtering, a distance field keeps a sharp, straight edge at any
+  distance, where a coverage mask of the same size blurs over 2 m.
+- G: that road's attributes: bit 7 paved, bits 0–6 its width in half metres.
+- The roads drawn: classes motorway to track, at the layer's width (OSM `width`, else lanes × 3.5 m, else by class).
+  Tunnels and the pieces off the ground (airbases and their 1200 m ring, World scale Real's sites, the 1998 sea) are
+  left out; railways too.
+
+`terrain/ground_roads.gd` asks a new mask when the camera is 500 m from the last one's centre and shows it when made
+(`ImageTexture.update`). Over Tel Aviv a mask is made in 75–135 ms (block files read, every road rasterised).
+
+**The shader** (`terrain.gdshader`, global `ground_roads`): a road pixel gets the road's colour over the imagery,
+before the airbases' surface and below the towns' night glow (so a lit road reads at night).
+
+- Where: within 1.5 km of the camera (fading from 1 km), pixels up to 3–6 m across (beyond that the 2 m mask
+  under-samples), off the sea and the water.
+- Only where the imagery is too coarse to show the road: the strength rises from 0 to 1 as the imagery's texel grows
+  from 0.25 to 0.6 of the road's width. The Survey 2 m photo shows the main roads in its own pixels and gets only the
+  narrow streets and tracks; the 1998 imagery outside its insets gets every road; Sentinel-2 (10 m) every road.
+- The colour: the photo blurred to ≈ 16 m gives the tone. Asphalt goes 85 % toward real asphalt's grey (albedo
+  0.07); a dirt road is a paler, warmer version of the ground. Patches of ≈ 40 m and a grain of ≈ 1 m vary both. With
+  Ground textures ambientCG, the asphalt or gravel texture where it resolves.
+- The edge: the anti-aliasing width is the distance's change to the next pixels' ground (three taps of the mask, only
+  near a road; one tap rejects the rest).
+
+**Alignment.** Over Ramat David and Tel Aviv a drawn road lies on the photo's road: the layer is warped into the
+engine frame by the scenery's georeference (scenery.md §6.1). The test checks every way's segment middles fall on road
+texels.
+
+**Cost** (Intel Iris Xe, 2560 × 1440, mission 231 at 250 m over the Ayalon, `tests/godot/_airbase_shot.gd`
+`SHOT_BENCH=ground_roads`, which switches the global every 120 frames, 12 pairs): GPU +0.14 ms (median; quartiles
++0.06 / +0.46). Memory: the mask texture, 8 MB. The first version sampled the mask for every pixel of the ground
+(the texture without mipmaps at grazing angles): +5 ms.
+
+Flying (`tests/godot/_flight_bench.gd`, `BENCH_BEST=1`, Night lights Detailed, `BENCH_AT=314600,536000`: north along
+the Ayalon at 250 m/s, 20 s per leg; two runs each, 2026-10-29; the runs' own noise is ± 2 ms):
+
+| Frame, ms (fps) | Roads Original | Roads Detailed |
+|---|---|---|
+| day, 150 m | 21.4 / 22.3 (45–47) | 22.0 / 23.7 (42–46) |
+| day, 600 m | 25.2 / 29.4 (34–40) | 25.8 / 27.4 (37–39) |
+| night, 150 m | 21.8 / 22.6 (44–46) | 22.9 / 22.7 (44) |
+| night, 600 m | 25.8 / 26.3 (38–39) | 26.4 / 26.5 (38) |
+
+About +0.5 ms (2–3 %), every run above 34 fps. A new mask costs the main thread 2.4–3 ms when it arrives (every
+2 s at 250 m/s; made in 75–135 ms on its own thread). The worst frames (60–110 ms) come with the terrain's streaming
+in both columns. Video memory: +8 MB.
+
+Tried and dropped (2026-10-29): the road drawn at full strength over the Survey 2 m photo. Its roads already show;
+a uniform grey band hid the photo's lane paint, shoulders and the trees over the streets.
+
+Open: no lane markings; railways are not drawn (only the map shows them); within 1200 m of an airbase the roads are
+cut off the ground by the road layer (scenery.md §6.1), so the base's own access roads stay the imagery's.
+
 ## 2. Cloud layer (Graphics TEXTURED SKY, docs/front-end.md §12.4)
 
 The cloud layer is a dome of cloud texture plus a flat layer, and a whiteout near its altitude. Three findings:
@@ -886,6 +951,31 @@ from OpenStreetMap and the Microsoft footprints, credited with the scenery (docs
 The dense centres (40 % or more of a 100 m square built over) get brighter lamps and more white ones. Over the
 scenery's 2.08 M buildings: 2.9 M lights, 1.9 M of them lamps and 0.77 M windows, placed in 0.6 s on one core.
 
+**Road lamps** (with Roads = Detailed, §1.8; `city_lights::road_lamps`): the block's roads (the road layer's block
+file of the same 4 × 4 cells) get a row of poles, made with the block's other lights:
+
+- on every way tagged `lit=yes`, any class up to track;
+- on the untagged motorway, trunk, primary and secondary roads inside towns: a facade lamp within the 150 m square or
+  its neighbours (inferred: most town main roads are lit, and most are untagged);
+- never on a way tagged `lit=no`, a tunnel, a piece off the ground or a railway; none within 12 m of a facade lamp
+  (the street already has its row).
+
+| Class | Height | Spacing |
+|---|---|---|
+| motorway, trunk | 12 m | 42 m |
+| primary, secondary | 10 m | 36 m |
+| tertiary | 8 m | 32 m |
+| minor, service, track | 6 m | 26 m |
+
+The heights are the usual nominal column heights, 6 m in residential streets[^lamp-height]; the spacing about 3.5–4.5
+× the height (inferred: a road luminaire's usual spacing-to-height ratio). A pole stands 1.5 m off the road's edge, on
+the right of the way's direction (a dual carriageway mapped as two ways gets a row along each). Colour: sodium, or
+white LED on 30 % of the roads (one kind per class within a 3 km square, as OSM cuts a road into many ways); the
+motorways and trunk roads full brightness, primary and secondary 0.9, the rest 0.75. Each lamp has a seeded rank, so
+it thins with distance as the other lights. A Tel Aviv block: 140 490 lights, 151 454 with the road lamps (+8 %). Over
+the Ayalon at night about 30 000 more points are drawn (≈ 0.5 MB); their cost is within the runs' noise (§1.8's
+night rows). The switch takes effect on the blocks made next (the next flight).
+
 **Streaming** (`crates/iaf-godot/src/city_lights.rs` `IafCityLights`, `city_lights.gd`): blocks of 4 × 4 cells
 (≈ 10 km), made on a thread of the extension's own (a plain thread: no Godot pool task to wait for at the quit). It
 reads only the buildings of each cell file (`Cell::read_buildings`) and stands each light on the terrain height
@@ -948,9 +1038,7 @@ Open:
 
 - Outside map.ptt's Israel region (Damascus, Amman, Cairo) there are no city lights: the building sources cover
   Israel, the West Bank and Gaza only.
-- No road data at run time: the lamps follow the facades, so the main roads do not stand out as bright lines. The
-  scenery build reads OpenStreetMap's roads (scenery.md §1.3); lamps along them would need the cell format to carry
-  them.
+- Road lamps only where the city lights have buildings (their blocks): outside them a lit road stays dark.
 - With Anti-aliasing TAA the far 1-pixel points are softer and dimmer than with MSAA (the temporal blend averages a
   point that is under a pixel).
 - From 8000 m the towns 20 km and more away fade into the night's fog: a lit coast reads faintly.
@@ -1682,3 +1770,6 @@ graphics option at its best. `RAIN_BENCH=secs` measures the frame rate instead.
     https://doi.org/10.1175/1520-0469(1949)006%3C0243:TTVOFF%3E2.0.CO;2
 [^lekner]: J. Lekner, M. C. Dorf, "Why some things are darker when wet", Applied Optics 27 (7), 1988, pp. 1278–1280:
     https://doi.org/10.1364/AO.27.001278
+
+[^lamp-height]: Matamata-Piako District Council, Development Manual, Part 3 (street lighting: preferred mounting heights 6 m
+    residential, 7 m industrial): https://www.mpdc.govt.nz/wmmp/120-district-plan/mpdc-development-manual/1887-part-3-3142

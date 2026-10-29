@@ -7,7 +7,8 @@
 
 use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{Sender, channel};
+use std::sync::{Arc, LazyLock, Mutex};
 
 use godot::prelude::*;
 use iaf_avionics::roads::*;
@@ -40,29 +41,60 @@ fn main() -> Option<Arc<Roads>> {
     STORE.lock().unwrap().as_ref()?.main.clone()
 }
 
-/// The blocks meeting the rect, read as needed.
-fn blocks(min: [f64; 2], max: [f64; 2]) -> Vec<Arc<Roads>> {
+/// Block (i, j), read when not kept (None: no file there). The file is read outside the lock: the city lights' and
+/// the road mask's threads read blocks while the game asks its own queries.
+pub(crate) fn block(i: i32, j: i32) -> Option<Arc<Roads>> {
+    let dir = {
+        let g = STORE.lock().unwrap();
+        let s = g.as_ref()?;
+        if let Some(r) = s.blocks.get(&(i, j)) {
+            return r.clone();
+        }
+        s.dir.clone()
+    };
+    let r = Roads::load(&dir.join(format!("L3/r_{i}_{j}.bin"))).map(Arc::new);
     let mut g = STORE.lock().unwrap();
-    let Some(s) = g.as_mut() else { return Vec::new() };
-    // Block j grows southwards: the rect's north edge is the least j.
-    let (a, b) = (block_of([min[0], max[1]]), block_of([max[0], min[1]]));
-    let mut out = Vec::new();
-    for j in a.1..=b.1 {
-        for i in a.0..=b.0 {
-            if !s.blocks.contains_key(&(i, j)) {
-                let r = Roads::load(&s.dir.join(format!("L3/r_{i}_{j}.bin"))).map(Arc::new);
-                s.blocks.insert((i, j), r);
-                s.order.push_back((i, j));
-                while s.order.len() > KEEP_BLOCKS {
-                    let old = s.order.pop_front().unwrap();
-                    s.blocks.remove(&old);
-                }
-            }
-            out.extend(s.blocks[&(i, j)].clone());
+    let s = g.as_mut()?;
+    if s.blocks.insert((i, j), r.clone()).is_none() {
+        s.order.push_back((i, j));
+        while s.order.len() > KEEP_BLOCKS {
+            let old = s.order.pop_front().unwrap();
+            s.blocks.remove(&old);
         }
     }
-    out
+    r
 }
+
+/// The blocks meeting the rect, read as needed.
+fn blocks(min: [f64; 2], max: [f64; 2]) -> Vec<Arc<Roads>> {
+    // Block j grows southwards: the rect's north edge is the least j.
+    let (a, b) = (block_of([min[0], max[1]]), block_of([max[0], min[1]]));
+    (a.1..=b.1).flat_map(|j| (a.0..=b.0).filter_map(move |i| block(i, j))).collect()
+}
+
+/// The ground's road mask (docs/rendering.md §1.8): MASK_N² texels of MASK_M m, made on a thread of its own.
+const MASK_N: usize = 2048;
+const MASK_M: f64 = 2.0;
+/// A made mask: its north-west corner (engine metres) and its bytes (iaf_avionics::roads::mask).
+type MadeMask = ([f64; 2], Vec<u8>);
+static MASK: Mutex<Option<MadeMask>> = Mutex::new(None);
+static MASK_QUEUE: LazyLock<Mutex<Sender<[f64; 2]>>> = LazyLock::new(|| {
+    let (tx, rx) = channel::<[f64; 2]>();
+    std::thread::spawn(move || {
+        while let Ok(mut c) = rx.recv() {
+            // Only the latest centre asked counts.
+            while let Ok(n) = rx.try_recv() {
+                c = n;
+            }
+            let half = MASK_N as f64 * MASK_M * 0.5;
+            let parts = blocks([c[0] - half, c[1] - half], [c[0] + half, c[1] + half]);
+            let bytes =
+                mask(&parts.iter().map(Arc::as_ref).collect::<Vec<_>>(), c[0] - half, c[1] + half, MASK_M, MASK_N);
+            *MASK.lock().unwrap() = Some(([c[0] - half, c[1] + half], bytes));
+        }
+    });
+    Mutex::new(tx)
+});
 
 /// The roads to answer a `max_class` query around the rect: `main.bin`, or the blocks merged.
 fn graph_for(min: [f64; 2], max: [f64; 2], max_class: u8) -> Option<Arc<Roads>> {
@@ -199,5 +231,22 @@ impl IafRoads {
         let (a, b) = (xy(a), xy(b));
         let Some(r) = route_graph(a, b, class(max_class)) else { return PackedVector2Array::new() };
         r.route(a, b, class(max_class)).into_iter().flatten().map(v2).collect()
+    }
+
+    /// Starts making the ground's road mask centred on the engine point `c` (a thread of its own: a std thread living
+    /// as long as the process, nothing for Godot's pool to wait for at quit). A newer request replaces an older one
+    /// not started yet.
+    #[func]
+    fn request_mask(c: Vector2) {
+        let _ = MASK_QUEUE.lock().unwrap().send(xy(c));
+    }
+
+    /// The road mask once made (then handed over once), else {}: {bytes (RG8, row 0 north: R the signed distance to
+    /// the nearest road's edge, 128 + 16 per metre, G bit 7 paved and bits 0–6 its width in half metres), n (texels a
+    /// side), m (metres a texel), x0 (west edge), y1 (north edge)}.
+    #[func]
+    fn take_mask() -> VarDictionary {
+        let Some((o, bytes)) = MASK.lock().unwrap().take() else { return VarDictionary::new() };
+        vdict! {"bytes" => &PackedByteArray::from(bytes.as_slice()), "n" => MASK_N as i64, "m" => MASK_M, "x0" => o[0], "y1" => o[1]}
     }
 }

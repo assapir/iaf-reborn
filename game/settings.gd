@@ -120,6 +120,7 @@ const PREFS := {
 		"rain",
 		"airbases",
 		"ground_textures",
+		"ground_roads",
 		"scenery",
 		"cd_launcher",
 		"wheel_scroll",
@@ -277,6 +278,10 @@ var airbases := "original"
 ## up's noise, the procedural pavement) or "ambientcg" (CC0 asphalt, concrete, sand, gravel, grass, soil and rock
 ## textures near the camera; downloaded by setup, else the row's choice is greyed out and the look stays Original).
 var ground_textures := "original"
+## Roads (ours, Graphics → MORE; docs/rendering.md §1.8, terrain/ground_roads.gd): "original" (the imagery's own) or
+## "detailed" (OpenStreetMap's roads drawn on the ground near the camera where the imagery is too coarse to show them,
+## and with Night lights Detailed lamps along the lit roads). Needs setup's road layer (docs/scenery.md §6).
+var ground_roads := "original"
 ## Scenery (ours, Graphics → MORE; docs/scenery.md §3, terrain/scenery.gd): "off", "on" (buildings and trees over the
 ## Survey 2 m photo) or "detailed" (the same with the facades, the streets' occlusion and the roof clutter, §3.3);
 ## only with setup's scenery and a Survey 2 m layer as the Israel imagery, else it stays off.

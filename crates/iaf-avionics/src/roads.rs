@@ -404,6 +404,64 @@ impl Roads {
     }
 }
 
+/// The ground's road mask (docs/rendering.md §1.8): the signed distance of each texel centre to the nearest road's
+/// edge stored as `MASK_ZERO + d · MASK_STEPS` (d in metres, negative on the road), up to MASK_RANGE m either way.
+pub const MASK_RANGE: f32 = 8.0;
+pub const MASK_ZERO: f32 = 128.0;
+pub const MASK_STEPS: f32 = 16.0;
+
+/// The road mask over `n` × `n` texels of `m` metres, west edge `x0`, north edge `y1` (row 0 north), RG8: R the signed
+/// distance (MASK_*), G the nearest road's attributes: bit 7 paved, bits 0–6 its width in half metres. The roads drawn
+/// on the ground: classes up to track, not tunnels, not pieces off the ground (`FLAG_OFF_GROUND`).
+pub fn mask(parts: &[&Roads], x0: f64, y1: f64, m: f64, n: usize) -> Vec<u8> {
+    let mut d = vec![MASK_RANGE; n * n];
+    let mut g = vec![0u8; n * n];
+    let hi = (n as f32) - 0.5;
+    for r in parts {
+        for (k, w) in r.ways.iter().enumerate() {
+            if w.class > CLASS_TRACK || w.flags & (FLAG_TUNNEL | FLAG_OFF_GROUND) != 0 {
+                continue;
+            }
+            let hw = w.width * 0.5;
+            let attr = (if w.flags & FLAG_UNPAVED == 0 { 0x80 } else { 0 }) | (w.width * 2.0).round().min(127.0) as u8;
+            let pad = (hw + MASK_RANGE) / m as f32;
+            // Texel coordinates (x east, y south from the north-west corner); texel (i, j)'s centre is (i + ½, j + ½).
+            let t = |p: [f64; 2]| [((p[0] - x0) / m) as f32, ((y1 - p[1]) / m) as f32];
+            for s in r.way_index(k as u32).windows(2) {
+                let (a, b) = (t(r.point(s[0])), t(r.point(s[1])));
+                let (lo_x, hi_x) = (a[0].min(b[0]) - pad, a[0].max(b[0]) + pad);
+                let (lo_y, hi_y) = (a[1].min(b[1]) - pad, a[1].max(b[1]) + pad);
+                if hi_x < -0.5 || hi_y < -0.5 || lo_x > hi || lo_y > hi {
+                    continue;
+                }
+                let ab = [b[0] - a[0], b[1] - a[1]];
+                let l2 = (ab[0] * ab[0] + ab[1] * ab[1]).max(1e-12);
+                let (i0, i1) = ((lo_x - 0.5).max(0.0).ceil() as usize, ((hi_x - 0.5).min(hi - 0.5)).floor() as usize);
+                let (j0, j1) = ((lo_y - 0.5).max(0.0).ceil() as usize, ((hi_y - 0.5).min(hi - 0.5)).floor() as usize);
+                for j in j0..=j1 {
+                    let py = j as f32 + 0.5 - a[1];
+                    for i in i0..=i1 {
+                        let px = i as f32 + 0.5 - a[0];
+                        let u = ((px * ab[0] + py * ab[1]) / l2).clamp(0.0, 1.0);
+                        let e = (px - u * ab[0]).hypot(py - u * ab[1]) * m as f32 - hw;
+                        let o = i + j * n;
+                        if e < d[o] {
+                            d[o] = e;
+                            g[o] = attr;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    let mut out = Vec::with_capacity(2 * n * n);
+    for (e, a) in d.iter().zip(&g) {
+        out.push((MASK_ZERO + e * MASK_STEPS).round().clamp(0.0, 255.0) as u8);
+        out.push(*a);
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -480,5 +538,23 @@ mod tests {
             r.route([-800.0, 10.0], [10.0, 800.0], CLASS_PRIMARY).unwrap(),
             [[-800.0, 0.0], [0.0, 0.0], [10.0, 0.0]]
         );
+    }
+
+    #[test]
+    fn mask_marks_the_road_and_skips_tunnels() {
+        // A 7.5 m primary west–east along y = 0 and a tunnel north–south, on a 64 × 64 mask of 2 m from (-64, 64).
+        let mut r = sample();
+        r.ways[1].flags |= FLAG_TUNNEL;
+        let m = mask(&[&r], -64.0, 64.0, 2.0, 64);
+        let at = |x: f64, y: f64| {
+            let o = 2 * (((x + 64.0) / 2.0) as usize + ((64.0 - y) / 2.0) as usize * 64);
+            ((m[o] as f32 - MASK_ZERO) / MASK_STEPS, m[o + 1])
+        };
+        let (d, g) = at(10.0, 1.0);
+        assert!((d - (1.0 - 3.75)).abs() < 0.1, "{d}");
+        assert_eq!(g, 0x80 | 15, "paved, 7.5 m");
+        assert!((at(10.0, 5.0).0 - (5.0 - 3.75)).abs() < 0.1);
+        assert_eq!(at(10.0, 40.0).0, (255.0 - MASK_ZERO) / MASK_STEPS, "out of range: the most");
+        assert_eq!(at(1.0, 40.0).1, 0, "the tunnel is not drawn");
     }
 }

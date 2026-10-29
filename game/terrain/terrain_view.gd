@@ -49,6 +49,7 @@ var brakes := false
 const Views := preload("res://terrain/views.gd")
 const RenderOptions := preload("res://terrain/render_options.gd")
 const Airbases := preload("res://terrain/airbases.gd")
+const GroundRoads := preload("res://terrain/ground_roads.gd")
 const TimeOfDay := preload("res://terrain/time_of_day.gd")
 const Weather := preload("res://terrain/weather.gd")
 const VehicleParts := preload("res://mission/vehicle_parts.gd")
@@ -454,6 +455,7 @@ func apply_render_options() -> void:
 			add_child(weather)
 		weather.set_level()
 	Airbases.apply()
+	GroundRoads.apply()
 	if clouds != null:
 		clouds.set_atmospheric(Settings.sky == "atmospheric")
 	_tod_t = -INF
@@ -3454,6 +3456,7 @@ func _process(delta: float) -> void:
 			($WorldEnvironment as WorldEnvironment).environment, get_viewport().get_camera_3d().global_position, terrain
 		)
 		Airbases.update_view(get_viewport().get_camera_3d().global_position, terrain)
+		GroundRoads.update_view(get_viewport().get_camera_3d().global_position, terrain)
 	var p := rig.position
 	var ground_h = scene_ground(p)  # roofs and tree tops count (docs/scenery.md §4)
 	var agl := "" if ground_h == null else "  (%.0f m above ground)" % (p.y - ground_h)

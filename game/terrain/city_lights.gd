@@ -1,8 +1,8 @@
 # Night lights = Detailed (docs/rendering.md §5.1, docs/deviations.md §2): the towns' lights at night, placed from the
 # scenery's building footprints (setup's scenery, docs/scenery.md; any Scenery switch) by IafCityLights
 # (crates/iaf-avionics/src/city_lights.rs): street lamps along the facades, lit windows, porch lights, red
-# obstruction lights on the towers, and a faint haze over the dense centres (terrain/city_glow.gdshaderinc). Ours:
-# the original's only town lights are its LT_ sets (Damascus).
+# obstruction lights on the towers, with Roads Detailed lamps along the lit roads, and a faint haze over the dense
+# centres (terrain/city_glow.gdshaderinc). Ours: the original's only town lights are its LT_ sets (Damascus).
 # Blocks of 4 × 4 scenery cells (≈ 10 km): within FAR_RANGE a block draws its far points (a tenth of its lights);
 # within NEAR_RANGE also its near points (the rest). The shader keeps all lights near the camera and thins them to
 # the far tenth with distance; a light under its minimum size keeps its energy, so a far town reads as an even
@@ -11,6 +11,7 @@
 extends Node3D
 
 const Scenery := preload("res://terrain/scenery.gd")
+const GroundRoads := preload("res://terrain/ground_roads.gd")
 
 ## A block's far points are drawn within this (its square's distance, m); its near points within NEAR_RANGE; both
 ## are dropped KEEP farther.
@@ -99,6 +100,8 @@ func setup(tv: Node) -> void:
 	_tv = tv
 	name = "CityLights"
 	IafCityLights.open(Scenery.dir())
+	# Roads = Detailed: lamps along the lit roads too (a block made from now on; the next flight after a change).
+	IafCityLights.set_road_lamps(GroundRoads.wanted())
 	var sh := Shader.new()
 	sh.code = SHADER
 	_mat = ShaderMaterial.new()

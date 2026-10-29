@@ -600,8 +600,9 @@ missionlist.json with the installed scenery: no original unit stands on a buildi
 ## 6. Roads
 
 Setup makes a road layer of the whole theatre from OpenStreetMap: the briefing map draws its main roads (Extras
-"Briefing map" = Modern, docs/front-end.md §8), and the mission editor's ground routes follow it (Follow roads,
-docs/mission-editor.md §5.2.1); the ground graphics are to read it. The game does without it (an older setup): no
+"Briefing map" = Modern, docs/front-end.md §8), the mission editor's ground routes follow it (Follow roads,
+docs/mission-editor.md §5.2.1), and Graphics → MORE "Roads" Detailed draws it on the ground near the camera with
+lamps along the lit roads at night (docs/rendering.md §1.8, §5.1). The game does without it (an older setup): no
 road shows, and routes stay straight.
 
 ### 6.1 How it is made
@@ -669,8 +670,13 @@ Y north), no height. `max_class` keeps that class and the more important ones; u
 | `segments(min_class, max_class)` | `main.bin`'s segments as point pairs (the map's line meshes) |
 | `nearest(p, max_class)` | the nearest road point within 10 km (railways left out): `point`, `distance`, `class`, `osm_id` |
 | `route(a, b, max_class)` | the shortest route (A* over the junctions, oneway ignored) between the road points nearest `a` and `b`; finer than secondary within the ends' box grown by 5 km, at most 64 blocks |
+| `request_mask(c)`, `take_mask()` | the ground's road mask around engine point `c` (2048² texels of 2 m, RG8: the signed distance to the nearest road's edge and its paved flag and width), made on a thread of its own; `take_mask` hands it over once made (docs/rendering.md §1.8) |
 
-Tests: `cargo test -p iaf-avionics --lib roads` (the file, the queries, a route through a junction, blocks merged);
+The city lights' thread reads a block file directly (`roads::block`) for the road lamps (docs/rendering.md §5.1). A
+block file is read outside the store's lock, so the threads' reads do not hold up the game's own queries.
+
+Tests: `cargo test -p iaf-avionics --lib roads` (the file, the queries, a route through a junction, blocks merged,
+the mask); `cargo test -p iaf-avionics --lib city_lights` (the road lamps); `tests/godot/test_ground_roads.gd`;
 `cargo test -p iaf-tools --lib roads` (the tags, a shared node one vertex, the off-ground cut, the block edge cut).
 
 [^geofabrik]: Geofabrik, "Israel and Palestine" downloads (dated extracts):

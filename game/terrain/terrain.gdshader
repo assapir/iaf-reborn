@@ -59,6 +59,13 @@ global uniform vec4 airbase_info;
 // Preferences "Ground textures" (terrain/ground_textures.gd, docs/rendering.md §1.4): 0 = off; 1 = where they resolve, CC0
 // ambientCG textures in place of the close up's fine grain: their colour over its own mean modulates the photo's colour,
 // with their normal and roughness. Layers (ground_scale_a / _b: 1 / metres per repeat): GT_* below.
+// Preferences "Roads" (terrain/ground_roads.gd, docs/rendering.md §1.8): 0 = off; 1 = OpenStreetMap's roads within
+// 1.5 km of the camera, where the imagery is too coarse to show them. The mask around the camera (2 m texels, row 0
+// north; rect = (x0, z0 of its north-west corner, 1 / side m)): R = the signed distance to the nearest road's edge
+// (128 + 16 per metre, negative on the road), G = that road's attributes (bit 7 paved, bits 0–6 width in half metres).
+global uniform float ground_roads;
+global uniform sampler2D road_mask : filter_linear, repeat_disable;
+global uniform vec4 road_mask_rect;
 // Rain (ours, Graphics → MORE "Rain", terrain/weather.gd; docs/rendering.md §10): how wet the ground is, 0 = dry.
 global uniform float rain_wet;
 global uniform float rain_spec;
@@ -500,6 +507,47 @@ void fragment() {
 		}
 	}
 	SPECULAR = 0.1;
+	// Roads (Preferences "Roads"): within 1.5 km, fading where the 2 m mask under-samples (pixels over 3–6 m) and where
+	// the imagery resolves the road itself (its texel under ≈ 0.25–0.6 of the width). The mask is read only there (read
+	// everywhere, the 2048² texture without mipmaps cost the far ground's cache): one tap rejects the pixels off the
+	// roads, one more reads the road's width, two more at the next pixels' ground (wdx, wdy) give the edge's
+	// anti-aliasing width.
+	float fpx = max(length(wdx), length(wdy));
+	float kr = ground_roads * (1.0 - smoothstep(1000.0, 1500.0, length(world_xz - INV_VIEW_MATRIX[3].xz)))
+			* (1.0 - smoothstep(3.0, 6.0, fpx)) * (1.0 - sea) * (1.0 - wm);
+	vec2 ruv = (world_xz - road_mask_rect.xy) * road_mask_rect.z;
+	if (kr > 0.0 && min(ruv.x, ruv.y) > 0.0 && max(ruv.x, ruv.y) < 1.0) {
+		float sd = (textureLod(road_mask, ruv, 0.0).r * 255.0 - 128.0) / 16.0;
+		float attr = sd < fpx ? texelFetch(road_mask, ivec2(ruv * vec2(textureSize(road_mask, 0))), 0).g * 255.0 : 0.0;
+		float texel_m = node_m / (float(textureSize(colour_tex, 0).x) * max(uv_scale, 1e-6));
+		kr *= smoothstep(0.25, 0.6, texel_m / max(mod(attr, 128.0) * 0.5, 1.0));
+		if (sd < fpx && kr > 0.0) {
+			float sx = (textureLod(road_mask, ruv + wdx * road_mask_rect.z, 0.0).r * 255.0 - 128.0) / 16.0;
+			float sy = (textureLod(road_mask, ruv + wdy * road_mask_rect.z, 0.0).r * 255.0 - 128.0) / 16.0;
+			float fw = max(abs(sx - sd) + abs(sy - sd), 0.02);
+			float paved = step(127.5, attr);
+			float a = clamp(0.5 - sd / fw, 0.0, 1.0) * kr;
+			if (a > 0.0) {
+				// The photo blurred to ≈ 16 m gives the tone; asphalt toward real asphalt's grey, dirt a paler, warmer
+				// version of the ground; patches of ≈ 40 m and a fine grain vary both.
+				vec3 base = textureLod(colour_tex, UV, log2(max(16.0 / texel_m, 1.0))).rgb;
+				float lum = dot(base, vec3(0.2126, 0.7152, 0.0722));
+				float n1 = textureGrad(terrain_detail_tex, world_xz / 260.0, wdx / 260.0, wdy / 260.0).r - 0.5;
+				float n2 = textureGrad(terrain_detail_tex, world_xz / 9.0, wdx / 9.0, wdy / 9.0).r - 0.5;
+				vec3 asph = vec3(mix(lum, 0.07, 0.85)) * vec3(1.02, 1.0, 0.96);
+				vec3 dirt = mix(vec3(lum), base, 0.6) * vec3(1.3, 1.2, 1.05);
+				vec3 c = mix(dirt, asph, paved) * (1.0 + 0.35 * n1 + 0.2 * n2);
+				if (tf > 0.0) {
+					vec3 td, tr;
+					gt_sample(paved > 0.5 ? GT_ASPHALT : GT_GRAVEL, world_xz, wdx, wdy, td, tr);
+					c *= mix(vec3(1.0), td, tf * 0.8);
+				}
+				ALBEDO = mix(ALBEDO, c, a);
+				NORMAL = normalize(mix(NORMAL, n_geo, a));
+				ROUGHNESS = mix(ROUGHNESS, mix(0.95, 0.85, paved), a);
+			}
+		}
+	}
 	float paved_k = 0.0;  // Detailed airbases' paved surface (rain puddles)
 	// Airbases (Preferences "Airbases"): within 6 km, on the nearest base's paved surface.
 	float kab = terrain_airbases * (1.0 - smoothstep(2500.0, 6000.0, length(VERTEX))) * (1.0 - sea);
