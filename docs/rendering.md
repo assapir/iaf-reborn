@@ -453,6 +453,19 @@ They parse on low-priority pool tasks, which leave the decode tasks and the menu
   windowed. Measured 2026-10-28: a script that queues 6 low-priority tasks and quits hung 10 of 10 runs, 0 of 10 when
   it waited for them; a test that starts `Img.prefetch` on the F-16, F-15 and F-4 cockpit art and quits hung 16 of 16
   runs before this change, 0 of 36 after.
+- **Wayland at exit.** A real-render run on Linux can still hang for good after its last line, in Godot's own
+  Wayland shutdown (Godot 4.7.2, unchanged on master 2026-10-29). `WaylandThread::destroy`
+  (platform/linuxbsd/wayland/wayland_thread.cpp) sets `thread_done`, sends a `wl_display_roundtrip` to wake the
+  "Wayland Events" thread, then joins it. That thread checks `thread_done` only after its `poll(…, -1)` returns. When
+  it is still dispatching events at that moment, the main thread's roundtrip reads the reply itself, and the events
+  thread then polls a socket that gets no more data. Stack taken 2026-10-29 (gdb, Godot's dynamic symbols): the main
+  thread in `memdelete<DisplayServer>` → `~DisplayServerWayland` → `Thread::wait_to_finish`, "Wayland Events" in
+  `poll`, every pool worker idle. Seen in 2 of 11 runs of the F-16I guide batch (`external`, `tsd_gps`, `mfd_radar`,
+  `dash_9x`), 0 of 4 under gdb, never headless; the game's code plays no part in it. `tools/godot_window.sh` does not
+  avoid it: the project's driver is `wayland`, and with `--display-driver x11` under Xvfb the Intel Vulkan driver
+  finds no present queue ("None of the devices supports both graphics and present queues"), so Godot falls back to
+  the desktop's Wayland compositor. `tools/guide_shots.sh` stops a process 30 s after its RESULT and keeps its
+  pictures.
 - **The menus.** The preload's terrain runs 2 decode tasks (the flight's 4). A Fly while the flight scene or its
   first frame's art is still loading waits over menu frames (`ready_to_fly`), not in one frame.
 

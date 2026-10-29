@@ -137,15 +137,17 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
   of every scene shader in one frame; drawn earlier it stalls the TSD instead. rendering.md §1.6.
 - **Exit**: Godot hung for good after a run's last line when a low-priority pool task was still queued at the quit
   (a Godot 4.7.2 bug; rendering.md §1.5 "Pool tasks at exit"). Fixed 2026-10-28: every pool task is waited for
-  before the quit. A second kind, seen once on 2026-10-28 in a native-Wayland real-render run
-  (`_cockpit_show_shot.gd` through `tools/godot_window.sh`): the main thread sat in `poll`, its workers idle, no
-  stack taken (another session's process); not reproduced in 35 Wayland runs; open.
+  before the quit. A second kind, in real-render runs (`_cockpit_show_shot.gd`, `_guide_shots.gd`) on Wayland: a race
+  in Godot's own Wayland shutdown, the main thread joining a "Wayland Events" thread stuck in `poll` (stack taken
+  2026-10-29; rendering.md §1.5 "Wayland at exit"); 2 of 11 runs of the F-16I guide batch. Open: an engine bug,
+  not fixed upstream; the guide shots stop such a process 30 s after its RESULT.
 - **Scenery trees**: a forest is an even stand, a pine in every 10 m canopy cell of 4 m or more; the real Carmel and
   Galilee are a mosaic of pine, oak maquis and open scrub (needs the cell data rebuilt, scenery.md §3.2 "The hills'
   look"). The near pine model still reads as a fir up close.
 - **Exit, under xvfb**: on 2026-10-28 `_showcase_shot.gd` hung after `RESULT PASS` in 4 of about 12 runs of the hills
   scenes (Carmel forest), killed by a timeout; its Xvfb then stayed behind holding the GPU lock's file. No stack
-  taken (the run watched with gdb exited cleanly); open.
+  taken (the run watched with gdb exited cleanly). Likely the Wayland exit race above (inferred): under xvfb-run
+  Godot still opens on Wayland, as Vulkan cannot present on Xvfb (rendering.md §1.5 "Wayland at exit"); open.
 - **City lights** (rendering.md §5.1): none outside map.ptt's Israel region (no building data); from 8000 m the far
   towns fade in the fog. Roads Detailed (rendering.md §1.8) draws the roads on the ground near the camera and lamps
   along the lit ones; no lane markings, no railways.

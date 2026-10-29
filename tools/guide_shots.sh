@@ -15,7 +15,7 @@ if [[ ${1:-} == --job ]]; then  # one process: --job <jet> <name,name,…> (xarg
 		GUIDE_SIZE="${GUIDE_SIZE:-3840x2160}" IAF_DEFAULT_SETTINGS=1 -- --log-file "$log.log" --path game \
 		--resolution 3840x2160 --audio-driver Dummy -s ../tests/godot/_guide_shots.gd >/dev/null 2>&1 &
 	# A process that runs past GUIDE_TIMEOUT s per shot (default 600) is stopped; one that printed its RESULT and is
-	# still there 30 s later (a hang on quit, seen once) is stopped too, its pictures kept.
+	# still there 30 s later (Godot's Wayland exit race, docs/rendering.md §1.5) is stopped too, its pictures kept.
 	limit=$((${GUIDE_TIMEOUT:-600} * ($(tr -cd , <<<"$names" | wc -c) + 1))) s=0 done_at="" note=""
 	while kill -0 $! 2>/dev/null; do
 		sleep 2
