@@ -65,6 +65,10 @@ ranked order: [graphics-research.md](graphics-research.md).
   two member slots in the mission file (formats/mis.md) and a leader / wingman formation in the AI (ai.md §7.2); its
   4-ships are two pairs on one route. Ours would add slots 3 and 4 holding finger-four on the leader, the radio's
   commands to the whole flight, #4 taking over a lost #3, and the mission editor's flights of up to 4 jets.
+- **Real weather and atmosphere by date** (wishlist, user 2026-10-29: "real weather/atmosphere based on date").
+  Not yet defined: e.g. the sky, sun, haze, clouds, rain and wind, and the air's temperature and density, set from
+  the mission's date, either as that season's typical climate or as the recorded weather of that day. Today the
+  weather comes from the mission and the Rain setting (rendering.md §10).
 - **Multiple screens** (wishlist, user 2026-10-29: "support multiple screens"). Not yet defined: e.g. the view spread
   over several monitors, or the MFDs / TSD on a second screen. The game now draws one window on one screen.
 - **Multiplayer** (not approved; if it goes ahead, after the single-player game): how the original does it, a plan
