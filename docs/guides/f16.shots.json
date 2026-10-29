@@ -884,6 +884,141 @@
   ]
  },
  {
+  "name": "dash_9x",
+  "caption": "Looking 90° left at a MiG-23 with the Python 5: the seeker follows the helmet",
+  "mission": 231,
+  "jet": -1,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "modern_weapons": true
+  },
+  "start": "airborne",
+  "loadout": [
+   [
+    1002,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1002,
+    1
+   ]
+  ],
+  "place": {
+   "unit_prefix": "mig23",
+   "ahead_m": 3000,
+   "bearing_deg": -90
+  },
+  "actions": [
+   "station:0",
+   "look:-90,2",
+   "wait:1.5"
+  ],
+  "crop": "dash",
+  "annotations": [
+   {
+    "n": 1,
+    "px": [
+     0.5,
+     0.641
+    ],
+    "label_at": [
+     0.567,
+     0.83
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "seeker",
+    "off": [
+     0.1,
+     -0.1
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "text:^180$",
+    "label_at": [
+     0.44,
+     0.308
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^ARM$",
+    "label_at": [
+     0.272,
+     0.652
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:SRM",
+    "label_at": [
+     0.272,
+     0.724
+    ]
+   }
+  ]
+ },
+ {
   "name": "hud_mrm",
   "caption": "MRM: an AMRAAM locked on a MiG-23 8 NM ahead",
   "mission": 231,
@@ -1849,6 +1984,176 @@
     "label_at": [
      0.82,
      0.47
+    ]
+   }
+  ]
+ },
+ {
+  "name": "hud_jdam",
+  "caption": "A GBU-31 in PRE 6 km from its target, in range",
+  "mission": 231,
+  "jet": -1,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "modern_weapons": true
+  },
+  "start": "dive",
+  "loadout": [
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1003,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1003,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "crop": "hud",
+  "dive_deg": 25.6,
+  "dive_agl": 3000,
+  "speed": 250,
+  "place": {
+   "ground_unit": true,
+   "ahead_m": 6000,
+   "bearing_deg": 4
+  },
+  "actions": [
+   "ag:2",
+   "pre",
+   "wait:1"
+  ],
+  "crop_w": 0.34,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "gps_at",
+    "label_at": [
+     0.5,
+     0.38
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "gps_at",
+    "d": [
+     0,
+     60
+    ],
+    "label_at": [
+     0.66,
+     0.68
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "fpm",
+    "label_at": [
+     0.45,
+     0.22
+    ]
+   },
+   {
+    "n": 4,
+    "px": [
+     0.603,
+     0.35
+    ],
+    "label_at": [
+     0.7,
+     0.42
+    ]
+   },
+   {
+    "n": 5,
+    "px": [
+     0.592,
+     0.325
+    ],
+    "label_at": [
+     0.69,
+     0.21
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^5$",
+    "label_at": [
+     0.57,
+     0.12
+    ]
+   },
+   {
+    "n": 7,
+    "sym": "text:^IN RNG$",
+    "label_at": [
+     0.45,
+     0.48
+    ]
+   },
+   {
+    "n": 8,
+    "sym": "text:^PRE$",
+    "label_at": [
+     0.3,
+     0.62
     ]
    }
   ]
