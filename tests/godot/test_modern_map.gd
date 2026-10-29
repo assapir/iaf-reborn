@@ -38,3 +38,18 @@ func run() -> void:
 	check(moved == 4, "Tel Aviv, Amman, Damascus and Cairo labels moved with their dots")
 	var j := label_at(modern, "JERUSALEM") - label_at(text, "JERUSALEM")
 	check(j.length() < 3.0, "Jerusalem, already close, moves a little (%.1f)" % j.length())
+	# The road layer (docs/scenery.md §6), when setup made it: the map's main roads and a route Tel Aviv – Jerusalem.
+	if not IafRoads.open(settings().assets_dir().path_join("converted/roads")):
+		print("  no road layer (setup's scenery step): roads skipped")
+		return
+	check(IafRoads.segments(0, 1).size() > 1000, "motorway and trunk segments for the map")
+	var ta := Vector2(314164, 543565)  # Tel Aviv, Jerusalem: the georeference of 32.08 N 34.78 E, 31.77 N 35.21 E
+	var jm := Vector2(354769, 509121)
+	var r := IafRoads.route(ta, jm, 1)
+	var km := 0.0
+	for i in range(1, r.size()):
+		km += r[i].distance_to(r[i - 1]) / 1000.0
+	check(km > 55.0 and km < 110.0, "a motorway / trunk route Tel Aviv – Jerusalem (%.0f km)" % km)
+	check(IafRoads.nearest(ta, 7).get("distance", INF) < 300.0, "a street near Tel Aviv's centre")
+	var near: Array = IafRoads.roads_in_rect(ta - Vector2(500, 500), ta + Vector2(500, 500), 7)
+	check(near.size() > 10 and near[0].has("lit"), "the blocks' streets around Tel Aviv (%d)" % near.size())

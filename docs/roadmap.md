@@ -45,7 +45,8 @@ ranked order: [graphics-research.md](graphics-research.md).
   Iran theatre's area too). The original map's city dots are off by up to ≈ 37 km (Tel Aviv, Amman, Damascus, Cairo;
   measured against the georeference 2026-10-28); a modern map would place them right.
   Built 2026-10-29 as its first step: Extras "Briefing map" = Modern moves the eight city dots and labels to the
-  real cities (front-end.md §8 "Modern map"). Later on the same switch: today's borders, names and places, Iran.
+  real cities (front-end.md §8 "Modern map"); 2026-10-29 also today's main roads (setup's road layer of the whole
+  theatre, scenery.md §6). Later on the same switch: today's borders, names and places, Iran.
 - **Realistic night vision** (built, user 2026-10-21): Graphics → MORE "Night vision", Shift+N puts the goggles on
   (rendering.md §8): the tube by the mission's year (§8.1), cockpit glare and bright-light protection (§8.3), the HUD
   in its brightest green. Future work (later):

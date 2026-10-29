@@ -145,7 +145,8 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
   scenes (Carmel forest), killed by a timeout; its Xvfb then stayed behind holding the GPU lock's file. No stack
   taken (the run watched with gdb exited cleanly); open.
 - **City lights** (rendering.md §5.1): none outside map.ptt's Israel region (no building data); the main roads do
-  not stand out (no road data at run time); from 8000 m the far towns fade in the fog.
+  not stand out: the road data exists (setup's road layer, scenery.md §6, the whole theatre) but is not drawn in 3D
+  yet; from 8000 m the far towns fade in the fog.
 - **Imagery**: SPOT 5 outside Israel not started.
 - **Multiplayer**: not started (missions 511–516, 777), with its RWR network messages. Research and discussion:
   [multiplayer.md](multiplayer.md).

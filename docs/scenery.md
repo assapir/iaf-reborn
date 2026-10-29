@@ -1,7 +1,7 @@
-# Scenery: buildings and trees
+# Scenery: buildings, trees and roads
 
 This doc describes the optional scenery: 3D buildings and trees that stand on the terrain over the Survey of Israel
-2 m photo (`mapi2015`, docs/imagery.md §8). Key facts:
+2 m photo (`mapi2015`, docs/imagery.md §8), and the road layer of the whole theatre (§6). Key facts:
 
 - It is opt-in. The original has no generic buildings or trees; its stationary models are mission units only.
 - Setup makes it from open data downloaded at setup time. The repo holds none of it.
@@ -30,12 +30,17 @@ Setup downloads every source into `assets/source/scenery/` and checks it against
 
 | Source | What it gives | Files (download) | Licence |
 |---|---|---|---|
-| OpenStreetMap, Geofabrik's `israel-and-palestine` extract of 2026-01-01[^geofabrik] | buildings with their tags; forests, orchards, fields and settlements; single trees; tree rows | 1 PBF file (119 MB) | ODbL 1.0[^osm] |
+| OpenStreetMap, Geofabrik's `israel-and-palestine` extract of 2026-01-01[^geofabrik] | buildings with their tags; forests, orchards, fields and settlements; single trees; tree rows; Israel's and Palestine's roads (§6) | 1 PBF file (119 MB) | ODbL 1.0[^osm] |
+| OpenStreetMap, Geofabrik's extracts of 2026-01-01 for `lebanon`, `syria`, `jordan`, `egypt` and `cyprus`[^geofabrik-all] | the other countries' roads (§6), each optional | 5 PBF files (366 MB: Lebanon 51, Syria 75, Jordan 31, Egypt 174, Cyprus 35), in `assets/source/roads/` | ODbL 1.0[^osm] |
 | Microsoft Global ML Building Footprints, release 2026-02-03[^ms] | building outlines where OSM has none (Israel, the West Bank, Gaza) | 24 quadkey files (238 MB) | CDLA Permissive 2.0[^ms] |
 | JRC GHS-BUILT-H R2023A, average net building height (ANBH), 100 m[^ghsl] | the height of a building without a height tag | 2 tiles, R5_C22 and R6_C22 (16 MB) | free re-use with the source acknowledged[^ghsl-terms] |
 | ETH Zürich Global Canopy Height 2020, 10 m[^chm] | where trees stand and how tall they are | 3 tiles of 3° × 3°, N27E033, N30E033, N33E033 (148 MB) | CC BY 4.0[^chm] |
 
 Geofabrik keeps the extract of 1 January of each year for good, so the pinned file stays downloadable[^geofabrik].
+The road extracts are `ROADS` in `thirdparty.rs`. The theatre (lon 29.65°–38.29° E, lat 27.04°–36.62° N through the
+georeference) also reaches into Turkey's Hatay strip and Saudi Arabia's north-west corner; their extracts (Turkey
+618 MB, the GCC states 245 MB, 2026-01-01) are left out for a thin strip of sparse roads. Iraq starts east of the
+theatre.
 `iaf-scenery tiles assets` lists the quadkeys the Survey 2 m layer touches; the Microsoft list holds every Israel,
 West Bank and Gaza file of its `dataset-links.csv`. Setup downloads four files at once and logs every 15 s how
 much is down, the speed and the time left ("downloaded 170 of 520 MB, 4.2 MB/s, about 1 min 23 s left").
@@ -130,6 +135,8 @@ A route is the unit's `Path` scripts' paths and its formation's waypoints, from 
 | `assets/converted/scenery/lights/L1/s_<i>_<j>.bin` | the city lights' buildings where the scenery stops (the kept target insets, nodes the Survey layer lacks; same format, buildings only, rendering.md §5.1); `lights/manifest.json` its `made_from` |
 | `assets/converted/scenery/manifest.json` | `name`, `release`, `generator`, `kinds` (`both`, `buildings`, `trees`), `made_from`, `attribution` (the used sources), `licence`, `cells`, `buildings`, `trees`, `downloaded` |
 | `assets/converted/scenery/.work/` | kept between runs: the OSM extract and the reduced canopy tiles (about 350 MB) |
+| `assets/source/roads/` | the other countries' OSM extracts (§1.1) and their `.ok` marks |
+| `assets/converted/roads/` | the road layer (§6): `main.bin`, `L3/r_<i>_<j>.bin`, `manifest.json` |
 
 ### 1.5 Release and ids
 
@@ -142,8 +149,8 @@ coverage, the converted missions, airbases, theatre and objects stamps: when it 
 
 | Step | Waits for | Does |
 |---|---|---|
-| `scenery-fetch` | | downloads the sources the kinds need (`iaf-scenery fetch`); skipped when download.geofabrik.de cannot be reached |
-| `scenery` | mapi2015, scenery-fetch, missions, objects, airbases | makes the cells of the kinds (`iaf-scenery build`), then the city lights' cells where the scenery stops (rendering.md §5.1; with buildings only); skipped without GDAL, the sources or the `mapi2015` layer |
+| `scenery-fetch` | | downloads the sources the kinds need and the other countries' road extracts (`iaf-scenery fetch`; a country that fails is logged and has no roads); skipped when download.geofabrik.de cannot be reached |
+| `scenery` | mapi2015, scenery-fetch, missions, objects, airbases | makes the road layer (§6; needs only the OSM extracts), then the cells of the kinds (`iaf-scenery build`), then the city lights' cells where the scenery stops (rendering.md §5.1; with buildings only); skipped without GDAL or the sources; the cells also without the `mapi2015` layer |
 
 Both are optional (setup's `--scenery`, `tools/setup-cli.sh --scenery`). Setup makes one of three kinds:
 
@@ -590,8 +597,87 @@ missionlist.json with the installed scenery: no original unit stands on a buildi
   the building damaged but still there when the target is destroyed.
 - `tests/godot/_mission_editor_shot.gd` with `ED_SCENERY=menu` / `target`: real-render screenshots.
 
+## 6. Roads
+
+Setup makes a road layer of the whole theatre from OpenStreetMap: the briefing map draws its main roads (Extras
+"Briefing map" = Modern, docs/front-end.md §8); the ground graphics and the mission editor's ground routes are to
+read it. The game does without it (an older setup): no road shows.
+
+### 6.1 How it is made
+
+`iaf_tools::roads::build` (`iaf-scenery roads assets`; `iaf-scenery build` and setup's `scenery` step make it too):
+
+1. **Extracts**: Israel and Palestine (required), then each other country downloaded (§1.1), in that order. ogr2ogr
+   takes each extract's `lines` layer within the theatre's box. A way in two extracts (they overlap at the borders)
+   is kept once, the copy with the most points. Points outside the box are dropped.
+2. **Ways taken**: `highway` = motorway, trunk, primary, secondary, tertiary (each with its `_link`), unclassified,
+   residential, living_street, service, track; and `railway=rail`. Footways, paths, cycleways, steps and trams are
+   left out.
+3. **Attributes**, per way[^osm-highway]:
+
+| Field | From |
+|---|---|
+| class | motorway 0, trunk 1, primary 2, secondary 3, tertiary 4, minor 5 (residential, unclassified, living_street), service 6, track 7, rail 8; a `_link` keeps its road's class with the link flag |
+| width (m) | `width` (up to 60 m); else `lanes` × 3.5; else by class: 11, 9, 8, 7, 6, 5, 3.5, 3, rail 3; a link 5 (inferred: one mapped carriageway, 3.5 m lanes and shoulders) |
+| bridge, tunnel | the tag present and not `no` |
+| layer | `layer`, −5 to 5; 0 untagged |
+| paved | `surface` unpaved, gravel, dirt, ground, sand, compacted and the like → unpaved; untagged: a track is unpaved (but `tracktype=grade1`), the rest paved |
+| oneway | `oneway` yes / true / 1 / −1 / reverse; untagged motorways and roundabouts. `−1` reverses the points, so a oneway runs in its direction of travel |
+| lit | `lit` no or disused → unlit; any other value → lit; untagged → unknown |
+| osm_id | the way's id |
+
+4. **Junctions**: each longitude / latitude is one vertex, so ways that share an OpenStreetMap node share the vertex
+   (across borders too). The georeference warps each vertex into the engine frame (`scenery::Warp`, as the scenery).
+5. **Off the ground**: a way is cut where it passes onto an airbase (its footprint or a runway), World scale Real's
+   old or new base sites (with their 1200 m ring) or the 1998 sea (terraintype.dat water), tested at each vertex and
+   segment middle. That piece is kept with the off-ground flag: the map draws it, the ground does not. The road
+   layer has no region limit: the whole theatre wherever OSM has roads.
+6. **Files**: `main.bin` holds the motorway to secondary ways of the whole theatre, whole. Each block file
+   `L3/r_<i>_<j>.bin` holds every class within block (i, j): a level-3 node of the terrain (8192 units, about
+   10.2 km), the 4 × 4 scenery cells `s_<4i..4i+3>_<4j..4j+3>`, the city lights' blocks (rendering.md §5.1). A way
+   is cut where it crosses a block's edge, at a point on the edge that both pieces hold, so every segment lies in one
+   block. The format is in `crates/iaf-avionics/src/roads.rs`: one table of f32 points (engine metres, X east, Y
+   north), then the ways (OSM id, point count, class, flags, layer, width in decimetres), then the ways' point
+   indices. A junction is one index in a file; across block files the same point has the same coordinates.
+
+The manifest (`converted/roads/manifest.json`) holds `made_from` (the extracts' checksums, the converter's version
+`ROADS_VERSION`, the missions, airbases and theatre stamps; when it matches, the step is up to date), the extracts
+used, the counts and the attribution the credits roll shows.
+
+### 6.2 Counts
+
+Measured on this machine (Intel laptop, 2026-10-29), all six extracts:
+
+| | |
+|---|---|
+| Ways | 2 356 078: motorway 13 303, trunk 26 858, primary 27 575, secondary 48 833, tertiary 98 034, minor 1 616 682, service 299 232, track 218 546, rail 7015 (pieces: a way cut off the ground counts per piece) |
+| Points | 20 441 485 |
+| Files | `main.bin` 21 MB; 3521 block files, the largest 1.9 MB; 327 MB in all |
+| Time | 2 min 13 s; per extract (ogr2ogr and reading): Israel and Palestine 10 s (384 866 ways), Lebanon 5 s (150 628), Syria 6 s (220 135), Jordan 8 s (151 812), Egypt 29–65 s (1 287 406), Cyprus 6 s (156 581); the warp, the cut and writing the rest |
+
+### 6.3 Runtime
+
+`IafRoads` (`crates/iaf-godot/src/roads.rs`) over `iaf_avionics::roads::Roads`. Points are engine metres (X east,
+Y north), no height. `max_class` keeps that class and the more important ones; up to secondary the queries read
+`main.bin`, a finer class the block files (read when needed, the last 96 kept).
+
+| Call | Answer |
+|---|---|
+| `open(dir)` | reads `main.bin`; false without it |
+| `roads_in_rect(min, max, max_class)` | the ways whose box meets the rect, as dictionaries: `points`, `class`, `link`, `width`, `bridge`, `tunnel`, `layer`, `paved`, `oneway`, `lit` (1, 0, −1 unknown), `off_ground`, `osm_id` |
+| `segments(min_class, max_class)` | `main.bin`'s segments as point pairs (the map's line meshes) |
+| `nearest(p, max_class)` | the nearest road point within 10 km (railways left out): `point`, `distance`, `class`, `osm_id` |
+| `route(a, b, max_class)` | the shortest route (A* over the junctions, oneway ignored) between the road points nearest `a` and `b`; finer than secondary within the ends' box grown by 5 km, at most 64 blocks |
+
+Tests: `cargo test -p iaf-avionics --lib roads` (the file, the queries, a route through a junction, blocks merged);
+`cargo test -p iaf-tools --lib roads` (the tags, a shared node one vertex, the off-ground cut, the block edge cut).
+
 [^geofabrik]: Geofabrik, "Israel and Palestine" downloads (dated extracts):
     https://download.geofabrik.de/asia/israel-and-palestine.html
+[^geofabrik-all]: Geofabrik downloads (each country's page lists its dated extracts): https://download.geofabrik.de/
+    (asia/lebanon, asia/syria, asia/jordan, africa/egypt, europe/cyprus; sizes of 2026-01-01 as served 2026-10-29)
+[^osm-highway]: OpenStreetMap Wiki, "Key:highway", "Key:oneway" (motorways and roundabouts imply oneway), "Key:lit",
+    "Key:surface", "Key:lanes", "Key:layer": https://wiki.openstreetmap.org/wiki/Key:highway
 [^osm]: OpenStreetMap, "Copyright and License": https://www.openstreetmap.org/copyright
 [^ms]: Microsoft, Global ML Building Footprints (README, licence; `dataset-links.csv`):
     https://github.com/microsoft/GlobalMLBuildingFootprints

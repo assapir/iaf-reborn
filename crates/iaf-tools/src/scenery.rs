@@ -580,7 +580,7 @@ pub fn other_tags(s: &str) -> BTreeMap<String, String> {
 }
 
 /// A number at the start of a tag value ("12", "12.5 m"); None for anything else (feet, ranges).
-fn tag_number(v: Option<&String>) -> Option<f32> {
+pub(crate) fn tag_number(v: Option<&String>) -> Option<f32> {
     let v = v?.trim();
     let end = v.find(|c: char| !(c.is_ascii_digit() || c == '.')).unwrap_or(v.len());
     let rest = v[end..].trim();
@@ -907,7 +907,7 @@ fn gdal_warp(srcs: &[String], geo: [f64; 4], w: usize, h: usize, resampling: &st
 }
 
 /// Runs a GDAL / gzip command: an error with its stderr (without GDAL's plugin load noise) when it fails.
-fn run(mut cmd: Command) -> Result<()> {
+pub(crate) fn run(mut cmd: Command) -> Result<()> {
     let name = format!("{:?}", cmd.get_program());
     // No .aux.xml statistics beside or inside the sources: GDAL wrote one into a pinned zip, which then failed its
     // checksum on every other install.
@@ -1027,7 +1027,7 @@ impl Gather<'_> {
 }
 
 /// Lines of a GeoJSONSeq file as JSON values.
-fn geojsonl(p: &Path) -> Result<impl Iterator<Item = Value>> {
+pub(crate) fn geojsonl(p: &Path) -> Result<impl Iterator<Item = Value>> {
     let f = std::fs::File::open(p).with_context(|| format!("{}", p.display()))?;
     Ok(BufReader::new(f).lines().map_while(std::result::Result::ok).filter_map(|l| serde_json::from_str(&l).ok()))
 }
