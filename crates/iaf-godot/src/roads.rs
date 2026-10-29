@@ -12,6 +12,9 @@ use std::sync::{Arc, Mutex};
 use godot::prelude::*;
 use iaf_avionics::roads::*;
 
+/// A block range: its first and last block.
+type Blocks = ((i32, i32), (i32, i32));
+
 #[derive(Default)]
 struct Store {
     dir: PathBuf,
@@ -19,6 +22,9 @@ struct Store {
     /// Blocks read (None: no file there), oldest first in `order`.
     blocks: HashMap<(i32, i32), Option<Arc<Roads>>>,
     order: VecDeque<(i32, i32)>,
+    /// The last blocks merged (their first and last block) for a route: the mission editor's routes ask again and
+    /// again around the same place.
+    merged: Option<(Blocks, Arc<Roads>)>,
 }
 
 /// Blocks kept in memory (a dense block is about 2 MB on disk).
@@ -67,8 +73,22 @@ fn graph_for(min: [f64; 2], max: [f64; 2], max_class: u8) -> Option<Arc<Roads>> 
     if ((b.0 - a.0 + 1) * (b.1 - a.1 + 1)) as usize > MAX_ROUTE_BLOCKS {
         return None;
     }
+    if let Some(m) = STORE.lock().unwrap().as_ref()?.merged.as_ref().filter(|m| m.0 == (a, b)) {
+        return Some(m.1.clone());
+    }
     let parts = blocks(min, max);
-    Some(Arc::new(Roads::merge(&parts.iter().map(Arc::as_ref).collect::<Vec<_>>())))
+    let r = Arc::new(Roads::merge(&parts.iter().map(Arc::as_ref).collect::<Vec<_>>()));
+    STORE.lock().unwrap().as_mut()?.merged = Some(((a, b), r.clone()));
+    Some(r)
+}
+
+/// The roads for a route from `a` to `b`: around the box of the ends grown by ROUTE_PAD_M (None: too many blocks
+/// for a class finer than secondary, or no road data).
+pub(crate) fn route_graph(a: [f64; 2], b: [f64; 2], max_class: u8) -> Option<Arc<Roads>> {
+    let pad = ROUTE_PAD_M;
+    let lo = [a[0].min(b[0]) - pad, a[1].min(b[1]) - pad];
+    let hi = [a[0].max(b[0]) + pad, a[1].max(b[1]) + pad];
+    graph_for(lo, hi, max_class)
 }
 
 fn v2(p: [f64; 2]) -> Vector2 {
@@ -176,10 +196,8 @@ impl IafRoads {
     /// class than secondary searches only the box of the ends grown by 5 km, at most 64 blocks, about 80 km square).
     #[func]
     fn route(a: Vector2, b: Vector2, max_class: i64) -> PackedVector2Array {
-        let (a, b, pad) = (xy(a), xy(b), ROUTE_PAD_M);
-        let lo = [a[0].min(b[0]) - pad, a[1].min(b[1]) - pad];
-        let hi = [a[0].max(b[0]) + pad, a[1].max(b[1]) + pad];
-        let Some(r) = graph_for(lo, hi, class(max_class)) else { return PackedVector2Array::new() };
+        let (a, b) = (xy(a), xy(b));
+        let Some(r) = route_graph(a, b, class(max_class)) else { return PackedVector2Array::new() };
         r.route(a, b, class(max_class)).into_iter().flatten().map(v2).collect()
     }
 }

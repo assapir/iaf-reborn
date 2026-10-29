@@ -600,8 +600,9 @@ missionlist.json with the installed scenery: no original unit stands on a buildi
 ## 6. Roads
 
 Setup makes a road layer of the whole theatre from OpenStreetMap: the briefing map draws its main roads (Extras
-"Briefing map" = Modern, docs/front-end.md §8); the ground graphics and the mission editor's ground routes are to
-read it. The game does without it (an older setup): no road shows.
+"Briefing map" = Modern, docs/front-end.md §8), and the mission editor's ground routes follow it (Follow roads,
+docs/mission-editor.md §5.2.1); the ground graphics are to read it. The game does without it (an older setup): no
+road shows, and routes stay straight.
 
 ### 6.1 How it is made
 

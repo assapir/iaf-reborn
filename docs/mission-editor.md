@@ -144,7 +144,9 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
   click the object's icon follows the mouse with the ground check of that point (§20). The new entity copies the fields of a placed entity of the same object (in
   this mission, else in an original mission).
 - **Give a route:** select ground units or flyers in the Units list, press "Draw the route", click the points, then
-  "Give the route" with a speed (km/h) and, when asked, a hover at the end.
+  "Give the route" with a speed (km/h) and, when asked, a hover at the end. With **Follow roads** (§5.2.1) ground
+  vehicles drive along the roads between the points. While you click, the map draws the line as it will be driven,
+  and on to the mouse. The routes of the units selected in the list stay drawn, with a ring at the end.
 
 ## 5. Edits (`IafMissionEdit`)
 
@@ -158,6 +160,7 @@ Missions go in and come back as JSON strings. Positions are engine world metres:
 | `add_entity(mission, template, fields)` | a copy of `template` (an entity of the wanted bdb type, from any mission) with `fields` on top; returns `{"mission", "id"}` |
 | `remove_entity(mission, id)` | removes the entity and the references to it |
 | `set_route(mission, ids, points, speed_kmh, hover_end)` | a ground or flyer route for the units `ids` (§5.2) |
+| `road_route(clicks)` | the clicked points as the line a ground vehicle drives along the roads (§5.2.1) |
 | `clear_route(mission, id)` | takes the unit off its route |
 | `set_flight(mission, number, spec)`, `remove_flight(mission, number)` | blue flight 1..4, Alpha..Delta (§5.3) |
 | `ground_height(x, y)` | the terrain height, or null outside the terrain (§6) |
@@ -209,6 +212,30 @@ A route uses the original's own mechanism: motion op 16 Path (mission-runtime.md
 Several units can share one path. `clear_route` empties the unit's motion list, makes it brain-controlled again,
 removes the scenario rules' jumps into it (§18) and removes a path that no unit follows any more. A new route for a
 unit that a rule starts keeps waiting for the rule: Hover at entry 1, the Path at entry 2, the rule's jump moved to it.
+
+#### 5.2.1 Follow roads
+Follow roads (Units tab, under the route's speed) makes a ground route drive the roads of setup's road layer
+(`assets/converted/roads`, scenery.md §6). It is on when the road layer is there. Without it (an older setup) the box
+is greyed: "no road data (run setup again)". A route for units that include a flyer or a ship stays straight.
+
+`road_route` (`mission_edit.rs`) turns the clicked points into the path's points:
+
+- A click within 1 km of a road moves onto the nearest road point. A leg between two such points is the shortest
+  route on the roads (`Roads::route`, A* over the junctions, oneway ignored).
+- A click farther than 1 km from a road stays where it is. Its legs are straight lines to the points before and
+  after it. A leg whose two ends no road joins is straight too.
+- Roads used: motorway down to minor streets (residential, unclassified). Service roads, tracks and railways are left
+  out. The search covers the box of the leg's ends grown by 5 km, at most 64 blocks (about 80 km square). A longer
+  leg routes on the main roads only (motorway to secondary).
+- The line is simplified with Douglas–Peucker at 5 m: every dropped road point lies within 5 m of the path. When
+  that leaves more than 256 points the tolerance doubles until it fits. The originals' longest path has 47 points;
+  the format and the runtime keep a counted list with no fixed limit (`FUN_00598ea0`, `FUN_0047ef90`).
+- Tel Aviv (Ramat Gan) to Jerusalem's western entrance, two clicks: 231 points, 57.1 km on the roads against 46.8 km
+  straight.
+
+The duration is then the road length over the speed, as for any route. The ground check runs on every point.
+The map draws the line on to the mouse straight at once, and along the roads once the mouse rests for 0.12 s (a road
+route takes 20–150 ms).
 
 ### 5.3 Flights Alpha..Delta
 `set_flight(mission, number, spec)`: `spec` is `{type, count, slot_x, slot_y, alt, heading, points?}`.
@@ -343,12 +370,15 @@ Each flight record also carries `formation`, the index of its formation in the m
   map, Esc clearing it, the empty panel hiding a unit's fields, a list row's hover marking its unit, a label placed
   clear of what is taken (farther out with a leader line when boxed in), hovering naming a unit, Add's ground check before the click (the sea an error, inland clear),
   the click placing at that point, Esc stopping Add, the Weather (a fork's Default, Heavy rain written to misc
-  `weather`), Save and Open giving the same mission and weather, and the original file unchanged.
+  `weather`), Save and Open giving the same mission and weather, and the original file unchanged; with road data, a
+  convoy routed Tel Aviv → Jerusalem with Follow roads (longer than the straight line, every point on a road, at most
+  256 points), and flown, driving on the road at its speed (§5.2.1).
 - `tests/godot/_mission_editor_shot.gd`: a real-render screenshot (usage in its header).
 - `tests/godot/test_mission_edit_fly.gd`: Fly from an edited mission 115 (§8).
 - `tests/godot/test_mission_edit_win.gd`: New can never pass; an SA-6 marked Target and a Merkava marked Must survive;
   flown through the runtime, the SA-6 destroyed passes it, the Merkava lost first fails it (§13).
-- `cargo test -p iaf-tools --lib mission_edit`: names, edits and references, routes, the check and its calibration,
+- `cargo test -p iaf-tools --lib mission_edit`: names, edits and references, routes (along a synthetic road set: the
+  road taken, simplified within 5 m, under 256 points, a far click straight), the check and its calibration,
   the win and lose summary of 231, 311 and a New mission, Paste and removing an enemy flight.
 - `tests/godot/test_mission_edit_intel.gd`: on a fork of 115, the TSD flag per unit and by the quick picks, the
   intel preview, the links, the random settings, Save and Open keeping them; Fly with a fixed seed gives the game

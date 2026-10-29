@@ -71,6 +71,12 @@ func set_route(
 	return _parse(IafMissionEdit.set_route(_js(mission), ids, points, speed_kmh, hover_end))
 
 
+## The clicked points (world X east, Y north) as the line a ground vehicle drives along the roads; the clicks as they
+## are without road data.
+func road_route(clicks: PackedVector2Array) -> PackedVector2Array:
+	return IafMissionEdit.road_route(clicks)
+
+
 func clear_route(mission: Dictionary, id: int) -> Dictionary:
 	return _parse(IafMissionEdit.clear_route(_js(mission), id))
 

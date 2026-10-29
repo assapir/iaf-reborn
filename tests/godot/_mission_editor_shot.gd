@@ -8,6 +8,8 @@
 # shown (e.g. Mission: the wind and weather rows). ED_MAP=original|modern: that Extras "Briefing map", the whole
 # map from Cairo to Damascus shown, no zoom; with ED_ZOOM=<zoom> and ED_AT=<x>,<y> (engine metres) that zoom centred
 # there instead (e.g. ED_ZOOM=12 ED_AT=334000,526900: Tel Aviv to Jerusalem, the roads of docs/front-end.md §8).
+# ED_ROUTE=given: a convoy at Tel Aviv given a route to Jerusalem with Follow roads (selected: its route drawn);
+# ED_ROUTE=draw: the route being drawn, a click at Tel Aviv and one at Latrun, the mouse at Jerusalem.
 extends "res://../tests/godot/base.gd"
 
 const DIR := "user://missions_shot"
@@ -37,6 +39,9 @@ func run() -> void:
 	else:
 		ed.tsd.zoom_by(ed.tsd.ZOOM_STEP)
 		ed.tsd.zoom_by(ed.tsd.ZOOM_STEP)
+	var route := OS.get_environment("ED_ROUTE")
+	if route != "":
+		_route(ed, route)
 	var scenery := OS.get_environment("ED_SCENERY")
 	if scenery != "":
 		ed.tsd.selected = -1
@@ -67,3 +72,21 @@ func run() -> void:
 	for f in DirAccess.get_files_at(DIR):
 		DirAccess.remove_absolute(DIR.path_join(f))
 	DirAccess.remove_absolute(DIR)
+
+
+func _route(ed, how: String) -> void:
+	var a := Vector2(317000, 541300)
+	var b := Vector2(352900, 511300)
+	var id: int = ed.add_unit(10, a.x, a.y, 2, 2)
+	for i in ed._ui.units.item_count:
+		if int(ed._ui.units.get_item_metadata(i)) == id:
+			ed._ui.units.select(i)
+	ed._set_mode("route")
+	ed._on_map_clicked(ed.Tsd.world_to_map(a.x, a.y))
+	if how == "draw":
+		ed._on_map_clicked(ed.Tsd.world_to_map(334500, 525800))
+		ed.hover_at((ed.Tsd.world_to_map(b.x, b.y) - ed.tsd.scroll) * ed.tsd.zoom)
+		ed._road_ghost()
+	else:
+		ed._on_map_clicked(ed.Tsd.world_to_map(b.x, b.y))
+		ed.apply_route()
