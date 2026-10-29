@@ -107,6 +107,8 @@ Terms used on this page:
   | PgUp / PgDn | slide the panel | — |
   | Shift+N | night-vision goggles on / off, with Graphics → MORE "Night vision" = Goggles (rendering.md §8) | — |
   | Alt + Left / Right | roll trim left / right while held (§5.2 "Throttle rocker") | — |
+  | K | the selected GPS bomb's mode PRE ↔ VIS (weapons.md §13.2) | — |
+  | Shift+K | the next PRE target of the selected GPS bomb: the stored targets, then the steerpoints (weapons.md §13.2) | — |
   | = / − / Numpad + / − | cockpit art zoom (cockpit views) | Zoom in / out (20 / 21): the orbit distance in the external views (views.md §4) |
 
   If the player binds one of these keys to a command we implement, the command wins. No table record uses

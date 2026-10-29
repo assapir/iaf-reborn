@@ -287,7 +287,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - the TSD calls the selected F-16 "F-16I"; the info line shows SUFA;
   - weapons: the Arming screen also lists the AIM-9X, Python 5, GBU-31, GBU-31(V)3, GBU-32, GBU-38 and GBU-39 (our
     records from public data, with either Weapon data): high off-boresight IR missiles through the helmet with lock-on
-    after launch, and GPS bombs that fly to the designated point, with `IN RNG` on the HUD (weapons.md §13). The
+    after launch, and GPS bombs that fly to pre-planned or designated coordinates, with their LAR on the HUD (weapons.md §13). The
     Barak's list is the original's;
   - its look: every F-16 is drawn with our F-16I model (`f16i.glb`: conformal fuel tanks, P&W nozzle, the Sufa's
     colours, 107 Squadron's orange fin band; aircraft-models.md §1.3), also with Models on Original;
@@ -299,6 +299,12 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   GBU-32, GBU-38, GBU-39) on every jet a public source shows carrying them (real-weapons.md §1.7): the Barak the AIM-9X,
   Python 5, GBU-31, GBU-38 and GBU-39; the F-15 the AIM-9X and GBU-31; the other jets none. The F-16I Sufa and the
   F-35I have theirs with either setting. The AI's loads stay the original's. The info line shows MODWPN.
+  - GPS bombs (with the Sufa, the F-35I or Weapons on Modern; weapons.md §13.2–§13.3): they fly to coordinates in
+    two modes, PRE (each station's target set on the briefing TSD: a GPS panel in the map's lower-right corner and a box
+    on each target, front-end.md §8.2; by default the route's target waypoint) and VIS (the pod's or the radar's
+    designated point); key K switches the mode, Shift+K steps the PRE target (controls.md "Own keys"). The original's
+    TSD looks as before when the selected flight carries no GPS bomb. With HUD Real the F-16, F-15 and F-35I draw the
+    JDAM cues (TD box, steering line, LAR staple, TMR / IN RNG; real-hud.md "GPS bombs").
 - **HUD (Original (1998) / Real)** (references: [real-hud.md](real-hud.md)). Original: the 1998 HUD on every jet.
   Ours, with Real: each jet's real display:
   - the F-16C/D dash-34 HUD;

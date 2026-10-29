@@ -903,6 +903,21 @@ message `0x55c` to the frame with wParam = the target screen and lParam = the bu
 * In MP, MAIN shows msg 11 ("quit the session?"), whose handler `0x557` → `4ed120` calls
   `FUN_004ee5b0` and then goes to Main. BACK still shows msg 8.
 
+### 8.2 GPS targets (ours, `game/menu/tsd_gps.gd`)
+
+Before the flight, while the selected flight carries GPS bombs (its Arming table, else the mission's load), the TSD
+shows a panel in the map's lower-right corner (clear of the briefing window, which opens on the left): a `GPS TARGETS` header and a row per GPS station, `STA 5 GBU-31` and
+its pre-planned (PRE) target (docs/weapons.md §13.2):
+- a click on a row arms it (boxed in yellow; the header reads `CLICK A TARGET FOR STA 5`); the next left click on the
+  map gives that station the unit under the cursor (its type name), a waypoint of the selected flight (`WP4`) or the
+  point itself (`PT`); a click on the armed row again disarms it;
+- a right click on a row clears the station's target;
+- a station without one shows the route's target waypoint with `(TGT WP)` (the default), else `-`.
+The targets are stored as world coordinates in `Settings.gps_targets` ({flight: {station: [x, y, label]}}), cleared
+with the Arming tables when a mission loads. On the map each target is a yellow box with tick marks above and below
+and the numbers of the stations aimed at it. The panel and boxes are absent in flight (the FlyTSD), in the mission
+editor and for a flight without GPS bombs, where the TSD looks as the original's.
+
 ## 9. Sounds (`menu/wav`)
 * `Menu_M.WAV` is the menu music. It starts when the player enters any screen other than TSD, Arm, FlyTSD and
   in-flight Pref, unless it is already playing (`FUN_004ea2a0`). It fades out over 6000 ms when a mission

@@ -353,6 +353,9 @@ var player_flight := 0
 ## {Arming table slot 1..10 (MissionRuntime.flight_slots): [[weapon id, count] × 9]}; a flight not listed keeps the
 ## mission's own. Cleared when a mission loads.
 var arm_loadouts := {}
+## Ours (docs/weapons.md §13.2): the GPS bombs' pre-planned targets set on the briefing TSD, {flight number: {station
+## 0..8: [world x, world y]}}; a station not listed takes the route's target waypoint. Cleared when a mission loads.
+var gps_targets := {}
 ## Result of the last flight for the debrief screen: {passed, headline, notes} and what the pilot records
 ## keep {result, bonus, kills, losses} (mission_runtime.gd debrief_text()); empty = none.
 var debrief := {}

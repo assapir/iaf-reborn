@@ -2,8 +2,12 @@
 # and the F-15's lists are the original's, the Sufa has all seven, the F-35I its AIM-9X, GBU-31, GBU-32, GBU-39 with a
 # GBU-31 in each bay by default. On Modern: the jets a source shows carrying them list them (modern_weapons.gd LOADS),
 # the others none. Mission 231 flown in the F-15, frozen 3000 m up: an AIM-9X locks a MiG 70° off the nose through the
-# helmet (padlock view), launches and kills it; a GBU-31 released at a radar-designated ground unit 6 km ahead, inside
-# its launch acceptability region, flies to the point and destroys it.
+# helmet (padlock view), launches and kills it; a GBU-31 in VIS released at a radar-designated ground unit 6 km ahead,
+# inside its launch acceptability region, flies to the point and destroys it. PRE (docs/weapons.md §13.2): a target
+# clicked for station 5 on the briefing TSD is stored; in flight the unit stands there, 50° off the nose with the
+# radar designating elsewhere: 20 km out the HUD shows the time to max range, 6 km out IN RNG, and the bomb flies to
+# the briefing's point and destroys the unit. With Bomb release Real a pair leaves at once, each bomb to its own
+# station's target.
 extends "res://../tests/godot/base.gd"
 
 const AIM9X := 1001
@@ -49,6 +53,7 @@ func run() -> void:
 	settings().f35i_slot = -1
 	settings().f16_variant = "barak"
 
+	var n: int = await _briefing_target()
 	settings().jet_id = 0
 	var tv = await start_mission(231)
 	await frames(3)
@@ -56,7 +61,10 @@ func run() -> void:
 	var w = airborne_case(tv, [AIM9X, 1, 0, 0, 0, 0, 0, 0, GBU31, 1, 0, 0, 0, 0, 0, 0, 0, 0, 25, 235, 33, 120, 34, 60])
 	await _aim9x(tv, w)
 	await _jdam(tv, w, 4)
+	await _jdam_pre(tv, n)
+	_pair(tv, n)
 	settings().jet_id = -1
+	settings().bomb_release = "original"
 
 
 ## The player's flight of mission 231 flying jet `type`: {names (AA + AG lists), defaults}; {} when none.
@@ -143,6 +151,7 @@ func _jdam(tv, w, station: int) -> void:
 	w.stores.cur = station
 	w.select_ag()
 	w.radar.designate(p.x, p.y, p.z, t)
+	w.gps_modes["GBU-31"] = true  # VIS: the sensors' point
 	t += 0.05
 	w.update(t)
 	var gps: Dictionary = w.ag.get("gps", {})
@@ -165,3 +174,130 @@ func _jdam(tv, w, station: int) -> void:
 		if w.gps_bombs.is_empty():
 			break
 	check(w.gps_bombs.is_empty() and int(site.state) != 1, "the GBU-31 destroyed the unit (state %d)" % int(site.state))
+
+
+## The briefing TSD of mission 231 (the F-15 with a GBU-31 on stations 2, 5, 8): a click on station 5's row of the GPS
+## panel, then on the map, stores that point as its PRE target. Returns the flight number.
+func _briefing_target() -> int:
+	var fe = load("res://menu/front_end.tscn").instantiate()
+	root.add_child(fe)
+	await frames(3)
+	settings().mission_id = 231
+	fe._reset_tsd_checks()
+	fe.screen = "tsd"
+	fe._enter_screen()
+	await frames(3)
+	var tsd = fe.tsd
+	var n: int = tsd.default_flight()
+	var load := []
+	for i in 9:
+		load.append([GBU31, 1] if i in [1, 4, 7] else [0, 0])
+	settings().arm_loadouts[n] = load
+	var rows: Array = tsd.gps._rows(tsd.gps.stations())
+	check(rows.size() == 4, "the GPS panel lists stations 2, 5, 8 (%d rows)" % rows.size())
+	var row: Rect2 = rows[2][0]
+	var click: Vector2 = tsd.area.size * Vector2(0.6, 0.4)
+	for c in [row.get_center(), click]:
+		tsd._gui_input(mouse_button(fe._to_screen(tsd.area.position + c), true))
+		tsd._gui_input(mouse_button(fe._to_screen(tsd.area.position + c), false))
+	var xy = settings().gps_targets.get(n, {}).get(4)
+	var want: Vector2 = tsd.map_to_world(Vector2(int(click.x), int(click.y)) / tsd.zoom + tsd.scroll)
+	check(
+		xy != null and Vector2(xy[0], xy[1]).distance_to(want) < 3700.0 and tsd.gps.target(4).set,
+		"station 5's PRE target is the clicked point, within two map units (%s, want %s)" % [xy, want]
+	)
+	settings().arm_loadouts = {}  # the flight takes the test's own loads (airborne_case)
+	fe.queue_free()
+	await frames(2)
+	return n
+
+
+## PRE: the briefing's point, out of the radar's and the pod's view, is the aim; the LAR cues as the jet closes.
+func _jdam_pre(tv, n: int) -> void:
+	var w = airborne_case(tv, [0, 0, 0, 0, 0, 0, 0, 0, GBU31, 1, 0, 0, 0, 0, 0, 0, 0, 0, 25, 235, 33, 120, 34, 60])
+	check(tv.player_flight_number == n, "in flight the TSD's flight (%d, %d)" % [tv.player_flight_number, n])
+	var xy = settings().gps_targets.get(n, {}).get(4)
+	var site := _ground_unit(tv)
+	if xy == null or site.is_empty():
+		check(false, "a PRE target and a ground unit")
+		return
+	var p: Vector3 = w._on_ground(Vector2(xy[0], xy[1]))
+	site.world = p
+	site.alt = p.z
+	tv.mission_entity_moved(site)
+	var t := 80.0
+	w.gps_modes.erase("GBU-31")  # PRE, the default
+	var off := Vector3(0, 1, 0).rotated(Vector3(0, 0, 1), deg_to_rad(50.0))  # the track 50° left of the target
+	var lars := []
+	for d in [20000.0, 6000.0]:
+		start_over(
+			tv,
+			w,
+			p - Vector3(0, d, 0),
+			tv.world_to_scene(off * 250.0) - tv.world_to_scene(Vector3.ZERO),
+			tv.player.fm_section,
+			3000.0
+		)
+		t += 0.05
+		w.update(t)
+		w.nav_key(0)
+		w.stores.cur = 4
+		w.select_ag()
+		w.radar.designate(p.x + 3000.0, p.y, p.z, t)  # VIS would go here
+		t += 0.05
+		w.update(t)
+		lars.append(w.ag.get("gps", {}))
+	var far: Dictionary = lars[0]
+	var near: Dictionary = lars[1]
+	check(
+		far.get("pre", false) and far.get("designated", false) and far.aim.distance_to(p) < 1.0,
+		"PRE: the aim is the briefing's point, not the TD point (%s)" % far.get("aim")
+	)
+	check(
+		not far.lar.in_range and far.lar.tmr != null and far.lar.tmr > 0.0,
+		"20 km out: out of range, TMR %s s" % far.lar.get("tmr")
+	)
+	check(near.lar.in_range and near.lar.tmr == null, "6 km out: IN RNG (%s)" % near.lar)
+	var real: Dictionary = tv.cockpit.hud.real_hud()
+	check(
+		real.is_empty() or real.outer.any(func(q): return q.k == "text" and q.text == "IN RNG"), "the Real HUD's IN RNG"
+	)
+	w.fire_selected()
+	w.update(t + 0.01)
+	w.release_selected()
+	check(w.gps_bombs.size() == 1 and w.gps_bombs[0].g.aim().distance_to(p) < 1.0, "the bomb takes the PRE point")
+	for i in 2400:
+		t += 0.05
+		w.update(t)
+		if w.gps_bombs.is_empty():
+			break
+	check(
+		w.gps_bombs.is_empty() and int(site.state) != 1,
+		"PRE: the GBU-31 destroyed the unit (state %d)" % int(site.state)
+	)
+
+
+## Bomb release Real, PAIRS: stations 2 and 8 leave together, each bomb to its own station's PRE target.
+func _pair(tv, n: int) -> void:
+	settings().bomb_release = "real"
+	var w = airborne_case(tv, [0, 0, GBU31, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, GBU31, 1, 0, 0, 25, 235, 33, 120, 34, 60])
+	var o: Dictionary = w.own()
+	var a: Vector3 = w._on_ground(Vector2(o.pos.x + 1500.0, o.pos.y + 5000.0))
+	var b: Vector3 = w._on_ground(Vector2(o.pos.x - 1500.0, o.pos.y + 5000.0))
+	settings().gps_targets[n] = {1: [a.x, a.y, "A"], 7: [b.x, b.y, "B"]}
+	w.release_pairs = true
+	w.stores.cur = 1
+	w.select_ag()
+	w.update(200.0)
+	w.fire_selected()
+	w.update(200.01)
+	w.release_selected()
+	var aims: Array = w.gps_bombs.map(func(bm): return bm.g.aim())
+	check(
+		(
+			aims.size() == 2
+			and aims.any(func(q): return q.distance_to(a) < 1.0)
+			and aims.any(func(q): return q.distance_to(b) < 1.0)
+		),
+		"a pair: each bomb to its own station's target (%s)" % [aims]
+	)

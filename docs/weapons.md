@@ -1165,13 +1165,26 @@ Both are IR missiles (type 570): the seeker, the tone, the launch and the chase 
 
 ### 13.2 GPS bombs (JDAM, GBU-39)
 
-A GPS bomb has no seeker: it flies to the point set at its release (`crates/iaf-avionics/src/gps.rs`, `IafGpsBomb`).
-- **Aim** (`release.rs` `gps_aim`), per store:
-  1. the targeting pod's point with the laser on (as the laser bomb's, §9.8, but in any direction: the bomb has no
-     seeker cone), when it lies on the ground;
-  2. else the radar's designated point, the HUD's TD box (MAP / GMT designation, docs/radar.md §8);
-  3. else the bomb's own aim: the CCIP impact or the delayed-CCIP target (§9.3).
-- **Release**: the ripple of §9.2. The first bomb goes at once: a GPS bomb skips the 0.9 s delayed-release wait.
+A GPS bomb has no seeker and never follows a laser: it flies to the coordinates the jet hands it at its release
+(`crates/iaf-avionics/src/gps.rs`, `IafGpsBomb`). The jet takes those coordinates in one of two modes, as the real F-16
+does[^dcs-jdam][^bms-jdam]; the F-35I's are inferred to work the same.
+- **Mode** per GPS weapon (`player_weapons.gd` `gps_modes`, by weapon name): PRE by default. Key **K** switches the
+  selected GPS bomb between PRE and VIS (docs/controls.md "Own keys"); a subtitle shows the new mode.
+- **PRE (pre-planned)**: each station's target is set before the flight on the briefing TSD (docs/front-end.md §8.2):
+  a unit, a waypoint of the flight or a map point, stored as its coordinates (`Settings.gps_targets`, {flight:
+  {station: [x, y, label]}}, cleared when a mission loads). A station without one takes the route's target waypoint
+  (action 5, `gps.rs` `default_target`), else it has none. Key **Shift+K** steps the target (`gps.rs` `pre_targets`,
+  `pre_pick`): the station's own first, then the other stations' and the route's steerpoints, each point once, round
+  again; a station without its own target starts on none. A subtitle shows "PRE 2/5". The step goes back to the own
+  targets when a release ends. The heights come from the terrain under the points.
+- **VIS (visual / target of opportunity)**: the point designated in flight, its coordinates taken at the release: the
+  targeting pod's point with the laser on (in any direction: there is no seeker cone; the bomb does not follow the
+  laser spot), when it lies on the ground; else the radar's designated point, the HUD's TD box (MAP / GMT
+  designation, docs/radar.md §8).
+- **Aim** (`release.rs` `gps_aim`), per store: the mode's point; without one (PRE with no target, VIS with no
+  designation) the bomb's own aim: the CCIP impact or the delayed-CCIP target (§9.3).
+- **Release**: the ripple of §9.2. The first bomb goes at once: a GPS bomb skips the 0.9 s delayed-release wait. With
+  Bomb release Real (§9.10) the two bombs of a pair leave together, each with its own station's coordinates.
 - **Flight** (an energy model, inferred): the bomb's energy per kg, g·height + ½·speed², drains by g / LD per metre
   flown over the ground, LD being the kit's glide ratio. Its speed is what that energy leaves at its height, at most
   the kit's dive speed (300 m/s). It flies straight at the aim while faster than its slowest speed (150 m/s); at the
@@ -1182,36 +1195,46 @@ A GPS bomb has no seeker: it flies to the point set at its release (`crates/iaf-
   JDAM: LD 1.6, about 24 km from 40,000 ft at Mach 0.9, 8 km from 3,000 m at 250 m/s. GBU-39: LD 7.6, about 110 km
   from 40,000 ft.
 
-### 13.3 The in-range cue (LAR)
+### 13.3 The launch acceptability region (LAR) and the HUD cues
 
-In HUD modes 5 / 6 with a GPS bomb selected:
-- **In range** (`gps.rs` `Kit::in_range`): the ground distance to the aim, plus the arc of the turn toward it at 3 g,
-  is at most 0.9 × the reach (the margin is inferred).
-- **Text**: row 5 `IN RNG` while in range (instead of the bomb time-to-go); row 3 the range to a designated point,
-  `R %2.1f` NM, when no radar lock fills it.
-- **Symbols** (`hud.gd` `_draw_gps`), with a designated aim: a ±7 px diamond on the point (held at the HUD edge along
-  the line from the centre, as the TV / HARM diamond) and a steering line to it from the flight path marker; a dot
-  inside the diamond while in range. The CCIP symbols are not drawn then. Without a designation the CCIP symbols of
-  §9.4 stay and the bomb goes to their aim.
-- **Real HUD** (docs/real-hud.md): with a designated aim the same diamond, dot and steering line, in the Real HUD's
-  colour, over the jet's own symbology; the text rows stay the Real HUD's. A gunsight-only jet (the F-4E, the Mirage)
-  draws none.
+There is no single release point: the bomb may go anywhere inside its LAR[^dcs-jdam]. In HUD modes 5 / 6 with a GPS
+bomb selected (`gps.rs` `Kit::lar`; the rules are ours, inferred from the energy model):
+- **Rmax**: 0.9 × the reach (the margin is inferred), less the arc of the turn toward an aim off the track at 3 g.
+- **Rmin**: the bomb turns down at 3 g on a circle of radius r = s² / 3g below its path; an aim inside it cannot be
+  met. Rmin = √(r² − (h − r)²), 0 from h ≥ 2r up (3,000 m at 250 m/s: about 1.9 km).
+- **In range**: Rmin ≤ the ground distance ≤ Rmax.
+- **TMR**: the time to Rmax at the speed closing on the aim, while outside it and closing.
+- **Original-style HUD** (`hud.gd` `_draw_gps`), with an aim from PRE or VIS: a ±7 px diamond on the point (held at the
+  HUD edge along the line from the centre, as the TV / HARM diamond) and a steering line to it from the flight path
+  marker; a dot inside the diamond while in range. Row 5 `IN RNG` while in range (instead of the bomb time-to-go); row
+  3 the range to the point, `R %2.1f` NM, when no radar lock fills it. The CCIP symbols are not drawn then. Without
+  an aim the CCIP symbols of §9.4 stay and the bomb goes to their aim.
+- **Real HUD** (docs/real-hud.md "GPS bombs"): the F-16's JDAM symbology on the F-16, the F-15 and the F-35I's helmet:
+  the TD box on the aim, the azimuth steering line, the LAR staple with the range caret, `TMR m:ss` counting down, then
+  `IN RNG`; PRE or VIS in the weapon window. The jets that carry no GPS bomb draw none.
+- Open: the impact-angle setting and the shorter in-zone bar it brings, and the GBU-39's attack azimuth with its
+  second LAR (LAR2)[^bms-jdam]: no setting for them is built.
 - Open: the GBU-31(V)3 is drawn with the GBU-31's (Mk 84) model. The real bomb is slimmer, with a narrower ogive nose
   and the BLU-109's yellow band (photo: IDF Spokesperson's Unit, Commons "F-16I (IAF).jpg"); its own shape needs a model
   or a per-axis scale (records take one uniform `scale`).
-- Open: the real JDAM symbols of each jet's HUD (the F-16's TD box, steering line and in-range text) are not built.
 
 ### 13.4 Validation
 
 - Rust: `gps.rs` (a bomb inside the LAR lands on a point 30° off the track; outside it falls short; the reach from
   40,000 ft), `missile.rs` `off_boresight_missile_turns_to_a_target_behind_the_beam` (100° off the nose: the original
   rule ends the flight, the off-boresight one hits), `sight.rs` `loal_takes_the_unit_nearest_the_cued_axis`,
-  `release.rs` `gps_aim_pod_then_td_then_ccip`.
+  `release.rs` `gps_aim_pre_or_pod_then_td_then_ccip`; `gps.rs` `lar_min_range_is_the_turn_circle` (inside Rmin
+  the bomb overflies, just past it hits), `time_to_max_range_counts_down_then_in_range`,
+  `pre_targets_own_first_each_once` (the list, the steps, the default target waypoint); `real_hud`
+  `gps_cues_on_the_gps_jets` (F-16, F-15, F-35: TMR, IN RNG, PRE / VIS, the steering line, no CCIP pipper).
 - `tests/godot/test_modern_weapons.gd`: the Arming list of every Jet list jet, the Sufa and the F-35I with Weapons on
   Original and on Modern (the table above; the F-35I's default GBU-31 in each bay); mission 231, the F-15 3000 m up:
   the padlock view turns the head onto a MiG 70° off the nose, the AIM-9X locks it, launches and kills it; a GBU-31
-  at a radar-designated ground unit 6 km ahead is in range (out of range at four times the distance), flies to the
-  point and destroys the unit.
+  in VIS at a radar-designated ground unit 6 km ahead is in range (out of range at four times the distance), flies to
+  the point and destroys the unit. PRE: on the briefing TSD a click on station 5's row of the GPS panel, then on the
+  map, stores that point; in flight a unit stands there 50° off the nose with the radar designating elsewhere: 20 km
+  out out of range with a TMR, 6 km out IN RNG; the bomb flies to the briefing's point and destroys the unit. With
+  Bomb release Real a pair leaves at once, each bomb to its own station's target.
 
 ## UNCERTAIN
 Open points:
@@ -1238,3 +1261,11 @@ Open points:
     <https://www.f-16.net/forum/viewtopic.php?p=9407>
 [^marvin]: Marvin Engineering, "TER-9/A Triple Ejector Rack": <https://marvineng.com/product/ter-9a-triple-ejector-rack/>
 [^hb-awru]: Heatblur Simulations, *DCS: F-4E Phantom II manual*, "AWRU": <https://f4.manuals.heatblur.se/systems/weapon_systems/awru.html>
+[^dcs-jdam]: DCS forum, "JDAM help" (2022), secondary (a simulator's users): the pre-planned / visual modes, the right
+    side's time to max range then `IN RNG`, release anywhere while the caret sits inside the LAR's long bar:
+    <https://forum.dcs.world/topic/291870-jadam-help/>; the attached F-16 JDAM card:
+    <https://forum.dcs.world/applications/core/interface/file/attachment.php?id=114047>
+[^bms-jdam]: Falcon BMS forum, manual errata (pages 497–500), secondary: LAR2 with an impact or attack azimuth set, its
+    tick the range that still lets the bomb follow the azimuth: <https://forum.falcon-bms.com/post/390232>; the range
+    cue as "that scale / bracket on the right side of the HUD":
+    <https://forum.falcon-bms.com/topic/25722/disappearing-and-appearing-bombing-range-cue>

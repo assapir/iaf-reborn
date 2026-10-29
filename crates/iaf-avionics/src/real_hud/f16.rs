@@ -28,10 +28,12 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
     let sc = f.inset(INSET);
     let tape_y = f.centre_y() - 6.0;
     let dlz = matches!(mode, 1 | 2).then_some(()).and(i.target.zip(i.dlz));
+    // A GPS bomb's coordinates: its cues replace the CCIP's (docs/weapons.md §13.3).
+    let gps = w.gps.is_some() && matches!(mode, 5 | 6);
     // Scales.
     airspeed(o, sc.left, tape_y, i.kcas);
     o.push(text((sc.left + 3.0, tape_y - TAPE_HALF - 4.0), format!("{:.1}", i.g), Align::Left));
-    let alt_x = sc.right + if dlz.is_some() { ALT_OUT } else { 0.0 };
+    let alt_x = sc.right + if dlz.is_some() || gps { ALT_OUT } else { 0.0 };
     altitude(o, alt_x, tape_y, i.alt_ft);
     if let Some((t, z)) = dlz {
         dlz_scale(o, sc.right - DLZ_IN, tape_y, DLZ_HALF, t, z);
@@ -94,7 +96,7 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
 
     // The field: boresight cross, ladder, marker, AoA bracket, steerpoint, target, weapon symbols.
     let p = &mut fr.field;
-    let delayed = w.delay.and_then(|d| d.target.map(|t| (d, t)));
+    let delayed = w.delay.and_then(|d| d.target.map(|t| (d, t))).filter(|_| !gps);
     boresight_cross(p, i);
     if let Some(fpm) = i.fpm {
         let style = LadderStyle {
@@ -118,6 +120,7 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
         }
         if matches!(mode, 5 | 6)
             && delayed.is_none()
+            && !gps
             && let Some(c) = w.pipper
         {
             p.push(line(fpm, c));
@@ -164,6 +167,7 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
             }
         }
         3 => eegs(p, i, f),
+        5 | 6 if gps => gps_cues(p, o, i, f, (sc.right - DLZ_IN, tape_y, DLZ_HALF), i.mr(4.0)),
         5 | 6 if let Some((d, t)) = delayed => delayed_ccip(p, i, f, d, t),
         4..=6 => {
             if let Some(c) = w.pipper {
@@ -314,7 +318,11 @@ fn mode_text(w: &Weapons) -> String {
         2 => format!("{} MRM", w.mrm),
         3 => "EEGS".into(),
         4 => "STRF".into(),
-        5 | 6 => "CCIP".into(),
+        5 | 6 => match w.gps {
+            Some(g) if g.pre => "PRE".into(),
+            Some(_) => "VIS".into(),
+            None => "CCIP".into(),
+        },
         7 => "PRE".into(),
         8 => "HARM".into(),
         _ => "NAV".into(),

@@ -1,5 +1,5 @@
-//! GPS / INS guided bombs (ours, the F-16I Sufa's JDAMs and GBU-39; docs/weapons.md §13): no seeker, the bomb flies
-//! to a point fixed at its release. Not in the original game.
+//! GPS / INS guided bombs (ours, the JDAMs and the GBU-39; docs/weapons.md §13): no seeker, the bomb flies to the
+//! coordinates handed to it at its release. Not in the original game.
 //!
 //! An energy model (inferred, docs/weapons.md §13.2): the bomb's specific energy e = g·z + ½·s² drains by g / LD
 //! per metre flown over the ground (LD = the kit's glide ratio), its speed is what the energy leaves at its height,
@@ -37,18 +37,79 @@ impl Kit {
         (self.glide * (h + (s * s - self.min_speed * self.min_speed) / (2.0 * G))).max(0.0)
     }
 
-    /// The LAR (ours): a release from `pos` at `vel` reaches `aim`. The turn toward an aim off the track costs the
-    /// arc flown at the load-factor limit.
+    /// A release from `pos` at `vel` reaches `aim` (the LAR, `lar`).
     pub fn in_range(&self, pos: Vec3, vel: Vec3, aim: Vec3) -> bool {
+        self.lar(pos, vel, aim).in_range
+    }
+
+    /// The launch acceptability region (ours, docs/weapons.md §13.3) for a release from `pos` at `vel` at `aim`:
+    /// - Rmax: the reach times the margin, less the arc of the turn toward an aim off the track at the load-factor
+    ///   limit;
+    /// - Rmin (inferred): the bomb turns down at the limit on a circle of radius s² / (n·g) below its path; an aim
+    ///   inside that circle cannot be met, so the nearest ground distance is √(r² − (h − r)²), 0 from h ≥ 2r up;
+    /// - the time to Rmax at the speed closing on the aim (none when not closing or already inside).
+    pub fn lar(&self, pos: Vec3, vel: Vec3, aim: Vec3) -> Lar {
         let d = aim - pos;
-        let dh = (d.x * d.x + d.y * d.y).sqrt();
+        let range = (d.x * d.x + d.y * d.y).sqrt();
         let s = vel.length();
         let vh = (vel.x * vel.x + vel.y * vel.y).sqrt();
-        let off =
-            if dh > 0.0 && vh > 0.0 { ((d.x * vel.x + d.y * vel.y) / (dh * vh)).clamp(-1.0, 1.0).acos() } else { 0.0 };
-        let turn = s * s / (self.max_g * G) * off;
-        dh + turn <= LAR_MARGIN * self.reach(-d.z, s)
+        let cos_off =
+            if range > 0.0 && vh > 0.0 { ((d.x * vel.x + d.y * vel.y) / (range * vh)).clamp(-1.0, 1.0) } else { 1.0 };
+        let r = s * s / (self.max_g * G);
+        let rmax = LAR_MARGIN * self.reach(-d.z, s) - r * cos_off.acos();
+        let rmin = (r * r - (-d.z - r).powi(2)).max(0.0).sqrt();
+        let closing = vh * cos_off;
+        let tmr = (range > rmax && closing > 1.0).then(|| (range - rmax) / closing);
+        Lar { range, rmin, rmax, in_range: range >= rmin && range <= rmax, tmr }
     }
+}
+
+/// The launch acceptability region at one moment (metres over the ground, seconds).
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Lar {
+    /// The ground distance to the aim.
+    pub range: f64,
+    pub rmin: f64,
+    pub rmax: f64,
+    pub in_range: bool,
+    /// The time to max range (TMR) while outside it and closing.
+    pub tmr: Option<f64>,
+}
+
+/// How a GPS bomb takes its aim (docs/weapons.md §13.2): PRE, a pre-planned target's coordinates (from the briefing);
+/// VIS, a point designated in flight (the targeting pod, the radar).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Mode {
+    #[default]
+    Pre,
+    Vis,
+}
+
+/// The PRE targets a station steps through (docs/weapons.md §13.2): its own pre-planned target first, then the other
+/// stations' and the route's steerpoints, each point once (the same within 1 m over the ground).
+pub fn pre_targets(own: Option<Vec3>, others: &[Vec3], steerpoints: &[Vec3]) -> Vec<Vec3> {
+    let mut out: Vec<Vec3> = Vec::new();
+    for p in own.iter().chain(others).chain(steerpoints) {
+        if !out.iter().any(|q| (q.x - p.x).hypot(q.y - p.y) < 1.0) {
+            out.push(*p);
+        }
+    }
+    out
+}
+
+/// The PRE target picked by the step key's `index` (0: no step) among a station's `list` (`pre_targets`, its `own`
+/// target first): the steps cycle through the list; a station without its own target starts on none (the bomb then
+/// takes the CCIP aim) and steps through the others.
+pub fn pre_pick(own: Option<Vec3>, list: &[Vec3], index: usize) -> Option<Vec3> {
+    let skip = usize::from(own.is_none());
+    let k = index % (list.len() + skip).max(1);
+    if k < skip { None } else { list.get(k - skip).copied() }
+}
+
+/// The pre-planned target a station gets when the briefing set none: the route's target waypoint (action 5, the
+/// TSD's red triangle), the first one; none without one.
+pub fn default_target(actions: &[i64]) -> Option<usize> {
+    actions.iter().position(|a| *a == 5)
 }
 
 /// One GPS bomb in flight.
@@ -151,5 +212,52 @@ mod tests {
         // 40,000 ft at Mach 0.9 (265 m/s): about the published 24 km (docs/real-weapons.md §1.6).
         let r = JDAM.reach(12_192.0, 265.0);
         assert!((r - 24_000.0).abs() < 1_000.0, "{r}");
+    }
+
+    #[test]
+    fn lar_min_range_is_the_turn_circle() {
+        // 3,000 m up at 250 m/s: r = 250² / 3g ≈ 2,124 m, Rmin = √(r² − (h − r)²) ≈ 1,936 m.
+        let pos = Vec3::new(0.0, 0.0, 3000.0);
+        let vel = Vec3::new(0.0, 250.0, 0.0);
+        let at = |d: f64| Vec3::new(0.0, d, 0.0);
+        let l = JDAM.lar(pos, vel, at(1500.0));
+        assert!((l.rmin - 1936.0).abs() < 2.0 && !l.in_range, "{l:?}");
+        assert!(fly(JDAM, pos, vel, at(1500.0)).distance(at(1500.0)) > 100.0, "inside Rmin it overflies");
+        assert!(JDAM.lar(pos, vel, at(2000.0)).in_range);
+        assert!(fly(JDAM, pos, vel, at(2000.0)).distance(at(2000.0)) < 3.0, "just past Rmin it hits");
+        // From 2r up the bomb can dive onto a point below it.
+        assert_eq!(JDAM.lar(Vec3::new(0.0, 0.0, 5000.0), vel, at(0.0)).rmin, 0.0);
+    }
+
+    #[test]
+    fn time_to_max_range_counts_down_then_in_range() {
+        let vel = Vec3::new(0.0, 250.0, 0.0);
+        let aim = Vec3::new(0.0, 20_000.0, 0.0);
+        let far = JDAM.lar(Vec3::new(0.0, 0.0, 6000.0), vel, aim);
+        let tmr = far.tmr.expect("closing from outside");
+        assert!(!far.in_range && ((far.range - far.rmax) / 250.0 - tmr).abs() < 1e-9, "{far:?}");
+        // Flown on for that time (level, the reach unchanged): at Rmax, in range, no TMR.
+        let near = JDAM.lar(Vec3::new(0.0, 250.0 * tmr + 1.0, 6000.0), vel, aim);
+        assert!(near.in_range && near.tmr.is_none(), "{near:?}");
+        // Flying away: no TMR.
+        assert!(JDAM.lar(Vec3::new(0.0, 0.0, 6000.0), vel * -1.0, aim).tmr.is_none());
+    }
+
+    #[test]
+    fn pre_targets_own_first_each_once() {
+        let a = Vec3::new(1000.0, 0.0, 0.0);
+        let b = Vec3::new(0.0, 5000.0, 0.0);
+        let wp = [Vec3::new(0.0, 0.0, 0.0), b + Vec3::new(0.5, 0.0, 30.0)];
+        assert_eq!(pre_targets(Some(b), &[a, b], &wp), vec![b, a, wp[0]]);
+        assert_eq!(pre_targets(None, &[], &wp[..1]), vec![wp[0]]);
+        // Stepping: own, then the others, round again; without an own target: none first.
+        let l = pre_targets(Some(b), &[a, b], &wp);
+        let picks: Vec<_> = (0..4).map(|k| pre_pick(Some(b), &l, k)).collect();
+        assert_eq!(picks, vec![Some(b), Some(a), Some(wp[0]), Some(b)]);
+        let l = pre_targets(None, &[a], &[]);
+        assert_eq!((0..3).map(|k| pre_pick(None, &l, k)).collect::<Vec<_>>(), vec![None, Some(a), None]);
+        assert_eq!(pre_pick(None, &[], 5), None);
+        assert_eq!(default_target(&[0, 0, 5, 0, 5]), Some(2));
+        assert_eq!(default_target(&[0, 1]), None);
     }
 }

@@ -228,11 +228,11 @@ func _place(tv, w, site: Dictionary, o: Dictionary, dist: float) -> Vector3:
 	return p
 
 
-## A bomb run on a frozen rig: a fresh airborne flight-model start (`section`) 1000 m above `ground_pt` (world)
-## at `vel` (scene); the rig carries the position, the flight model the velocity.
-func start_over(tv, w, ground_pt: Vector3, vel: Vector3, section: String) -> void:
+## A bomb run on a frozen rig: a fresh airborne flight-model start (`section`) `height` m (default 1000) above
+## `ground_pt` (world) at `vel` (scene); the rig carries the position, the flight model the velocity.
+func start_over(tv, w, ground_pt: Vector3, vel: Vector3, section: String, height := 1000.0) -> void:
 	var g = tv.mission_ground(ground_pt)
-	var sp: Vector3 = tv.world_to_scene(Vector3(ground_pt.x, ground_pt.y, float(g if g != null else 0.0) + 1000.0))
+	var sp: Vector3 = tv.world_to_scene(Vector3(ground_pt.x, ground_pt.y, float(g if g != null else 0.0) + height))
 	tv.rig.position = sp
 	tv.rig.basis = Basis()
 	tv.flight.start(
