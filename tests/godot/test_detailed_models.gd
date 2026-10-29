@@ -428,6 +428,8 @@ func _check_stores() -> void:
 		for p in paths:
 			if String(p).get_file() == f and String(p).begins_with("weapons/"):
 				path = p
+		if path == "":  # ours (the modern weapons' stores, weapons/sufa/): no original bdb model to compare with
+			continue
 		var orig := _store_box(pw._instance(path, false))
 		var node: Node3D = pw._instance(path)
 		var hd := _store_box(node)
