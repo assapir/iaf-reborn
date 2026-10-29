@@ -168,7 +168,8 @@ The script:
 
 ## 5. Detailed stores
 
-With Models Detailed the stores below are FlightGear F-16 models (`game/extra/models/stores/<name>.glb`; sources,
+With Models Detailed the stores below are FlightGear models (the F-16's; the Soviet ones the MiG-21bis's and the
+MiG-29 9-12's) (`game/extra/models/stores/<name>.glb`; sources,
 authors and changes in `SOURCES.md` there). They show on every jet that carries them, on the pylons and in flight
 (a missile flying, a bomb falling), and in the Reference viewer. The other stores keep their original models.
 
@@ -189,10 +190,16 @@ authors and changes in `SOURCES.md` there). They show on every jet that carries 
 | AIM-9X (the Sufa's, ours) | AIM-9X | 7 766 |
 | GBU-31, GBU-31V3 (the Sufa's) | GBU-31 | 2 944 |
 | GBU-38 (the Sufa's) | GBU-54 (the laser JDAM: a GBU-38 with a laser nose) | 3 208 |
+| AA-2 (and "Rockets", which shares its model) | R-3S (MiG-21bis) | 3 558 |
+| AA-8 | R-60M (MiG-29 9-12) | 1 601 |
+| AA-10 | R-27R (MiG-29 9-12) | 1 050 |
+| AA-11 | R-73 (MiG-29 9-12) | 1 160 |
+| 3500LB (the MiG-29's tank) | PTB-1500 (MiG-29 9-12) | 640 |
 
 Kept original: the Hawk SAM's missile (it shares the AGM-88's model; `weapon_db.gd` marks it `detailed: false`),
-the rocket pod (FlightGear's LAU-68 has 7 tubes, the game's box 19), the SA-8's Shafrir and every store FlightGear has
-no model of (Python, Shafrir, Popeye, Walleye, GBU-15, M117, RBK-500, the Soviet missiles, the other jets' tanks).
+the rocket pod (FlightGear's LAU-68 has 7 tubes, the game's box 19), the SA-8's Shafrir and every store with no open
+model (Python, Shafrir, Popeye, Walleye, GBU-15, M117, RBK-500, the AA-6, AS-14 and AS-16, the other jets' tanks). The
+MiG-23's 2800LB tank shares the F-4's tank model (`f4ftk`), so it keeps the original, as the F-4's tank does.
 The SA-13 and the Shrike show the detailed AIM-9 / AIM-7, as they showed the original AIM-9 / AIM-7. The Sufa's
 records without an original model of their own (weapons.md §13) name ours (`weapons/sufa/…`); with Models Original
 `util/gltf.gd` `STAND_INS` draws the original AIM-9, MK-84L and MK-82L in their place. The GBU-32 shows the MK-83L,
@@ -225,16 +232,19 @@ models keep FlightGear's proportions: their fins differ in span from the origina
   `PlayerWeapons.STORE_LOD_M` (800 m, past the F11 weapon view's 700 m fly-by) the original model draws instead
   (`visibility_range`).
 - Textures: one 512 px JPEG per store in the glb, compressed to BC1 at the parse (`Image.compress`, the CPU encoder,
-  ≈ 3 ms each): ≈ 3 MB of video memory for all 16, against ≈ 23 MB uncompressed.
+  ≈ 3 ms each): ≈ 3 MB of video memory for the first 16, against ≈ 23 MB uncompressed.
 - Cost (estimated, not measured): an F-16 with nine detailed stores draws ≈ 20–35 k more triangles close up, a few
   thousand at a distance (the LODs) and the original's few hundred beyond 800 m; one draw per store and texture as
-  before. Files: 2.4 MB in the repo.
+  before. Files: 3.8 MB in the repo (25 stores; the five Soviet ones 0.65 MB).
 
 ### 5.3 Rebuilding the stores
 
 ```sh
-git clone https://github.com/NikolaiVChr/f16.git /tmp/f16 && git -C /tmp/f16 checkout ef4f192
-IAF_DEFAULT_SETTINGS=1 godot --headless --path game -s ../tools/stores/build.gd -- /tmp/f16 "$PWD/assets" [name …]
+git clone https://github.com/NikolaiVChr/f16.git /tmp/fg/f16 && git -C /tmp/fg/f16 checkout ef4f192
+git clone https://github.com/l0k1/MiG-21bis.git /tmp/fg/MiG-21bis && git -C /tmp/fg/MiG-21bis checkout 9ca6f5b
+git clone https://github.com/Mercenary-Mercury/MiG-29_9-12.git /tmp/fg/MiG-29_9-12
+git -C /tmp/fg/MiG-29_9-12 checkout d4a299b
+IAF_DEFAULT_SETTINGS=1 godot --headless --path game -s ../tools/stores/build.gd -- /tmp/fg "$PWD/assets" [name …]
 ```
 
 `STORES_STATS=1` prints each model's and each original's measurements and writes nothing.
@@ -245,7 +255,8 @@ IAF_DEFAULT_SETTINGS=1 godot --headless --path game -s ../tools/stores/build.gd 
   longer), its axis within 6 cm of the original's or its top within 2 cm, LODs, BC1 textures and the original as its
   far LOD; the Hawk keeps the original.
 - `tests/godot/_stores_shot.gd` (needs a window): Original / Detailed pictures of loadouts on the F-16, F-15 and F-4
-  on the ground, a Mk-84 falling and an AMRAAM in flight.
+  on the ground, a Mk-84 falling and an AMRAAM in flight; the Mission Creator's MiG-29 and MiG-23 with the Soviet
+  stores and an AA-10 in flight.
 
 ### 5.5 Open
 

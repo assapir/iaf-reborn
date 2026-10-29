@@ -305,6 +305,11 @@ const STORES := {
 	"aim9x_m.gltf": "aim9x",
 	"gbu31_m.gltf": "gbu31",
 	"gbu38_m.gltf": "gbu38",
+	"aa2_m.gltf": "aa2",
+	"aa8_m.gltf": "aa8",
+	"aa10_m.gltf": "aa10",
+	"aa11_m.gltf": "aa11",
+	"mig29ftk_m.gltf": "mig29ftk",
 }
 
 
