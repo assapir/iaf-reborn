@@ -1891,7 +1891,15 @@ func _spawn_player() -> void:
 		bc = Gltf.open(extra)  # ours: an extra plane's (the F-35I's, tools/f35i/bc.py)
 		# Its seat head box and canopy frame sit closer to the eye than the originals' parts: a nearer near plane.
 		camera.near = 0.1
-	if bc != null:
+	# Ours: the detailed F-16 (Models: Detailed, or the Sufa) gives its own seat, tub and canopy, cut at its seat's eye.
+	var hd := Gltf.detailed(str(aircraft.desc.get("model", "")))
+	if hd in [Gltf.DETAILED["f16_h.gltf"], Gltf.SUFA]:
+		var cut: Array = AircraftModel.detailed_cockpit(hd)
+		own_bc = cut[0]
+		own_bc.scale = aircraft.scale
+		own_bc.position = -cut[1] * aircraft.scale
+		camera.near = 0.1  # the seat's sides and headrest are 0.2-0.4 m from the eye (at 1:1)
+	elif bc != null:
 		own_bc = Gltf.instance(bc)
 		own_bc.scale = aircraft.scale
 		# Moved by the eye offset (FUN_00444da0 before the draw), so the eye is at the camera (the jet's origin);
@@ -1899,6 +1907,7 @@ func _spawn_player() -> void:
 		var e = AircraftModel.load_descriptor(player.plane).get("eye")
 		if e is Array:
 			own_bc.position = -Vector3(e[0], e[1], e[2]) * aircraft.scale
+	if own_bc != null:
 		own_bc.visible = false
 		rig.add_child(own_bc)
 		# Ours (Night lights = Detailed): the wingtip / tail lights and the strobe on it too, at its own tips and fin top.

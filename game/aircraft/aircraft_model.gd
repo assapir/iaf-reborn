@@ -139,6 +139,48 @@ static func detailed_descriptor(d: Dictionary, scene: Node3D) -> Dictionary:
 ## Part id of a detailed model's closed gear doors (ours).
 const LDG_DOORS_UP := 0x94
 
+## The front pilot's eye in the detailed F-16's `pilot` frame (FlightGear's pilot: between the eyes, under the visor).
+const F16_EYE_IN_PILOT := Vector3(0.026, 0.47, 0.28)
+## The detailed F-16's crew mesh (`pilot`, rig.py `cockpit`) is the ACES II seat's surfaces, then the pilot's.
+const F16_SEAT_SURFACES := 39
+
+
+## Ours (Models: Detailed, or the Sufa): the cockpit view's own jet from the detailed F-16 at `path` instead of the
+## original's f16_bc (docs/aircraft-models.md §1.4). Returns [model, eye]: the model cut at the front seat's eye as the
+## original's cockpit model is (the triangles wholly ahead of it dropped), without the front pilot's body (the seat
+## stays), the canopy glass, the gear legs and the open gear doors (the closed ones shown); `eye` is the front pilot's
+## eye in its frame.
+static func detailed_cockpit(path: String) -> Array:
+	var node := Gltf.instance(Gltf.model(path))
+	var root := node.get_child(0) as Node3D
+	var eye: Vector3 = root.transform * ((root.get_node("pilot") as Node3D).position + F16_EYE_IN_PILOT)
+	(root.get_node("LdgDrUp") as Node3D).visible = true
+	for n in ["LdgF", "LdgL", "LdgR", "LdgDr"]:
+		root.get_node(n).free()
+	for mi: MeshInstance3D in node.find_children("*", "MeshInstance3D", true, false):
+		var xf: Transform3D = root.transform * mi.transform if mi.get_parent() == root else root.transform
+		var keep := F16_SEAT_SURFACES if mi.name == "pilot" else mi.mesh.get_surface_count()
+		var cut := ArrayMesh.new()
+		for s in keep:
+			if mi.mesh.surface_get_material(s).resource_name == "canopy_glass":
+				continue  # as the original's cockpit flag hides the canopy: from inside, its glass fogs the view
+			var a := mi.mesh.surface_get_arrays(s)
+			var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+			var idx: PackedInt32Array = a[Mesh.ARRAY_INDEX]
+			var out := PackedInt32Array()
+			for t in range(0, idx.size(), 3):
+				if maxf(maxf((xf * v[idx[t]]).z, (xf * v[idx[t + 1]]).z), (xf * v[idx[t + 2]]).z) > eye.z:
+					out.append_array([idx[t], idx[t + 1], idx[t + 2]])
+			if out.is_empty():
+				continue
+			a[Mesh.ARRAY_INDEX] = out
+			cut.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a)
+			cut.surface_set_material(cut.get_surface_count() - 1, mi.get_active_material(s))
+		for s in mi.get_surface_override_material_count():
+			mi.set_surface_override_material(s, null)
+		mi.mesh = cut
+	return [node, eye]
+
 
 static func load_descriptor(plane: String) -> Dictionary:
 	return Settings.load_json(_planes_dir(plane).path_join(plane).path_join("aircraft.json"))
@@ -302,7 +344,8 @@ var _lit := true
 func attach_nav_lights(to: Node3D) -> void:
 	if _strobes.is_empty():
 		return
-	var strobe := NightLights.add_lights_on(to, str(desc.get("model", name)) + "_bc", null)
+	var m := str(desc.get("model", name))
+	var strobe := NightLights.add_lights_on(to, m + "_bc" + Gltf.detailed(m), null)
 	if strobe != null:
 		_strobes.append(strobe)
 		_lights.append_array([to.get_node("NavLights"), strobe])

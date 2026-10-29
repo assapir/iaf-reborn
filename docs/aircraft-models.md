@@ -94,6 +94,32 @@ the AI's F-16s in mission 221 use it; the Arming screen shows the Sufa's art, we
   not valid; the other CC BY F-16s there (Block 50/52, Block 60, F-16D "Brakeet") have no CFTs or are works in
   progress. Dropped for our own build from the FlightGear F-16 (GPL 2.0 or later).
 
+### 1.4 The cockpit view's own jet
+
+Looking aside or back from the cockpit shows the own jet's cockpit model (docs/views.md §4.3). With the F-16D
+(Models: Detailed) or the Sufa, this model is the detailed F-16 itself, so the seat, tub, canopy frame, rear cockpit
+and conformal tanks seen from the seat match the jet seen from outside. With Models on Original and the F-16
+version on Barak it stays the original's `f16_bc`.
+
+`AircraftModel.detailed_cockpit()` builds it once per flight (about 25 ms) from the shared model:
+
+- **The eye** is the front pilot's eye: the `pilot` frame plus `F16_EYE_IN_PILOT` (0.85 m above the jet's axis, on
+  the centre line). It sits 1.47 m aft of the original's eye (`Camera`), because FlightGear's cockpit sits further
+  aft on the airframe than the 1998 model's. The model is shifted by −eye, so this eye is at the camera. The cockpit camera's near plane is 0.1 m
+  (0.5 m otherwise), as the seat's sides and headrest are 0.2–0.4 m from the eye.
+- **The cut**: as the original's cockpit model, it ends at the eye. Every triangle wholly ahead of the eye is left
+  out, so the nose, the instrument panel and the front of the canopy never show over the cockpit art.
+- **Left out**: the front pilot's body (the crew mesh's surfaces after the first `F16_SEAT_SURFACES`, the ACES II
+  seat's; rig.py joins seat then pilot), the canopy glass (from inside it fogs the whole view; the original hides
+  the canopy there too), the gear legs and the open gear doors. The closed doors show.
+- **Kept**: the front seat with its headrest 0.56 m behind the eye, the canopy frame and rails, the rear tub with its
+  seat and pilot, the spine, wings, tail and the stores on their stations.
+
+Checks: `tests/godot/test_detailed_cockpit.gd` (the seat surfaces end where the pilot's begin, the eye on the centre
+line, nothing ahead of the eye, the seat back 0.4–0.7 m behind it, no gear, the rear crew kept; in mission 231
+Original keeps `f16_bc`, Detailed and the Sufa use the cut model). `tests/godot/_cockpit_show_shot.gd` scenes
+`cockpit_f16_back`, `cockpit_f16_rback` and `cockpit_f16_lback` take the look-back pictures.
+
 ## 2. Rebuilding the F-16D
 
 You need Blender 4 or 5, `basisu` (`brew install basis_universal`), a FlightGear F-16 checkout and your converted
@@ -152,8 +178,6 @@ The script:
 
 ## 4. Open
 
-- The cockpit view's own-jet model (`own_bc`, the original's `f16_bc`) stays the original's with the switch on, and
-  with the Sufa: from the cockpit, the CFTs do not show.
 - `f16i.glb` holds PNG textures (11 MB): it was built on a machine without `basisu`. Run
   `python3 tools/plane/glb_ktx2.py game/extra/models/f16/f16i.glb game/extra/models/f16/f16i.glb` where `basisu` is
   installed to bring it to the F-16D's size.
@@ -385,7 +409,8 @@ wheels flat), so a leg in transit takes a simpler path. `util/gltf.gd` maps `f15
 - Where a US marking was painted out, the panel lines are gone. FlightGear's small USAF stencils stay.
 - The markings are as sharp as the 2048² skin allows: about 7.5 mm per texel on the nose, 13 mm on the fins.
 - The meaning of 802's red fin emblem, and which markings it wore in 1998, are open (§6.2).
-- The cockpit view's own-jet model (`own_bc`, the original's `f15_bc`) stays the original's, as for the F-16D. The
+- The cockpit view's own-jet model (`own_bc`, the original's `f15_bc`) stays the original's (the F-16D's is its
+  own detailed model, §1.4). The
   front cockpit shows its tub, glare shields and seat, without the instrument panel (its textures are SGI `.rgb`
   files, which the converter does not read).
 - No original model as the far LOD (as the F-16D; the stores have it).
