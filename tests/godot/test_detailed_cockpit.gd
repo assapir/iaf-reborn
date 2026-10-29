@@ -57,6 +57,23 @@ func run() -> void:
 		for g in ["LdgF", "LdgL", "LdgR", "LdgDr"]:
 			check(root.get_node_or_null(g) == null, "%s: no %s" % [tag, g])
 		check((root.get_node("LdgDrUp") as Node3D).visible, "%s: the closed gear doors shown" % tag)
+		var can := root.get_node("Canopy") as MeshInstance3D
+		var grey := true
+		for s in can.mesh.get_surface_count():
+			var cm := can.mesh.surface_get_material(s) as BaseMaterial3D
+			grey = grey and cm.albedo_color == aircraft_model.F16_FRAME_COLOUR and cm.albedo_texture == null
+		check(grey, "%s: the canopy frame in frame grey, not the livery" % tag)
+		var seat := root.get_node("pilot") as MeshInstance3D
+		var seat_mat := seat.mesh.surface_get_material(0) as BaseMaterial3D
+		var orig_mat := Gltf.instance(Gltf.model(path)).find_child("pilot", true, false) as MeshInstance3D
+		check(
+			seat_mat.roughness > 0.8 and orig_mat.get_active_material(0).roughness == 0.5,
+			(
+				"%s: the seat matte (%s), the outside jets' seat unchanged (%s)"
+				% [tag, seat_mat.roughness, orig_mat.get_active_material(0).roughness]
+			)
+		)
+		orig_mat.get_parent().get_parent().free()
 		m.free()
 
 	# In a mission: Original keeps the original's f16_bc, Detailed and the Sufa the cut model.

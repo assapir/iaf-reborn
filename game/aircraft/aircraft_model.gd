@@ -143,13 +143,17 @@ const LDG_DOORS_UP := 0x94
 const F16_EYE_IN_PILOT := Vector3(0.026, 0.47, 0.28)
 ## The detailed F-16's crew mesh (`pilot`, rig.py `cockpit`) is the ACES II seat's surfaces, then the pilot's.
 const F16_SEAT_SURFACES := 39
+## The canopy frame seen from the seat: FS 36118 gunship grey, matte (ours; FlightGear maps the frame into the livery,
+## so it would take the camouflage).
+const F16_FRAME_COLOUR := Color(0.31, 0.33, 0.32)
 
 
 ## Ours (Models: Detailed, or the Sufa): the cockpit view's own jet from the detailed F-16 at `path` instead of the
 ## original's f16_bc (docs/aircraft-models.md §1.4). Returns [model, eye]: the model cut at the front seat's eye as the
 ## original's cockpit model is (the triangles wholly ahead of it dropped), without the front pilot's body (the seat
 ## stays), the canopy glass, the gear legs and the open gear doors (the closed ones shown); `eye` is the front pilot's
-## eye in its frame.
+## eye in its frame. The seat and tub (FlightGear's `ac_*` materials, glossy at roughness 0.5) are made matte, the
+## canopy frame F16_FRAME_COLOUR; copies, so the jets seen from outside keep theirs.
 static func detailed_cockpit(path: String) -> Array:
 	var node := Gltf.instance(Gltf.model(path))
 	var root := node.get_child(0) as Node3D
@@ -157,6 +161,11 @@ static func detailed_cockpit(path: String) -> Array:
 	(root.get_node("LdgDrUp") as Node3D).visible = true
 	for n in ["LdgF", "LdgL", "LdgR", "LdgDr"]:
 		root.get_node(n).free()
+	var frame := StandardMaterial3D.new()
+	frame.albedo_color = F16_FRAME_COLOUR
+	frame.roughness = 0.85
+	frame.metallic_specular = 0.2
+	var matte := {}
 	for mi: MeshInstance3D in node.find_children("*", "MeshInstance3D", true, false):
 		var xf: Transform3D = root.transform * mi.transform if mi.get_parent() == root else root.transform
 		var keep := F16_SEAT_SURFACES if mi.name == "pilot" else mi.mesh.get_surface_count()
@@ -175,7 +184,16 @@ static func detailed_cockpit(path: String) -> Array:
 				continue
 			a[Mesh.ARRAY_INDEX] = out
 			cut.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a)
-			cut.surface_set_material(cut.get_surface_count() - 1, mi.get_active_material(s))
+			var mat := mi.get_active_material(s)
+			if mi.name == "Canopy":
+				mat = frame
+			elif mat is BaseMaterial3D and mat.resource_name.begins_with("ac_"):
+				if not matte.has(mat):
+					matte[mat] = mat.duplicate()
+					matte[mat].roughness = 0.9
+					matte[mat].metallic_specular = 0.2
+				mat = matte[mat]
+			cut.surface_set_material(cut.get_surface_count() - 1, mat)
 		for s in mi.get_surface_override_material_count():
 			mi.set_surface_override_material(s, null)
 		mi.mesh = cut

@@ -145,8 +145,11 @@ version on Barak it stays the original's `f16_bc`.
 
 - **The eye** is the front pilot's eye: the `pilot` frame plus `F16_EYE_IN_PILOT` (0.85 m above the jet's axis, on
   the centre line). It sits 1.47 m aft of the original's eye (`Camera`), because FlightGear's cockpit sits further
-  aft on the airframe than the 1998 model's. The model is shifted by −eye, so this eye is at the camera. The cockpit camera's near plane is 0.1 m
-  (0.5 m otherwise), as the seat's sides and headrest are 0.2–0.4 m from the eye.
+  aft on the airframe than the 1998 model's. The model is shifted by −eye, so this eye is at the camera. The cockpit
+  camera's near plane is 0.1 m (0.5 m otherwise), as the seat's sides and headrest are 0.2–0.4 m from the eye.
+- **Looking back** the head rises 0.1 m and leans 0.1 m forward (`terrain_view.gd` `LOOK_BACK_LEAN`, blended in
+  from 90° to 150° of head yaw), as a pilot checking six looks over the headrest. From the seated eye the headrest
+  top is 0.05–0.08 m above the eye, so straight back the seat filled the view.
 - **The cut**: as the original's cockpit model, it ends at the eye. Every triangle wholly ahead of the eye is left
   out, so the nose, the instrument panel and the front of the canopy never show over the cockpit art.
 - **Left out**: the front pilot's body (the crew mesh's surfaces after the first `F16_SEAT_SURFACES`, the ACES II
@@ -154,9 +157,17 @@ version on Barak it stays the original's `f16_bc`.
   the canopy there too), the gear legs and the open gear doors. The closed doors show.
 - **Kept**: the front seat with its headrest 0.56 m behind the eye, the canopy frame and rails, the rear tub with its
   seat and pilot, the spine, wings, tail and the stores on their stations.
+- **Materials**: FlightGear gives the seat and tub roughness 0.5, which shone with sky-blue glare; the cockpit
+  model's copies are matte (roughness 0.9, specular 0.2). FlightGear maps the canopy frame into the livery, so on
+  the Sufa it took the camouflage; here it is FS 36118 gunship grey (`F16_FRAME_COLOUR`). The jets seen from
+  outside keep their materials.
+- **The canopy frame's aft hoop** sits between the two seats, 0.5–0.8 m behind the eye, about 0.3 m deep: it is
+  FlightGear's single-seat F-16C frame, which rig.py's two-seat stretch leaves in place (it stretches only the glass
+  and the spine behind it). Its depth is FlightGear's own. Open: whether the IAF F-16D has a frame there.
 
 Checks: `tests/godot/test_detailed_cockpit.gd` (the seat surfaces end where the pilot's begin, the eye on the centre
-line, nothing ahead of the eye, the seat back 0.4–0.7 m behind it, no gear, the rear crew kept; in mission 231
+line, nothing ahead of the eye, the seat back 0.4–0.7 m behind it, no gear, the rear crew kept, the frame grey, the
+seat matte while the outside jets' seat keeps its material; in mission 231
 Original keeps `f16_bc`, Detailed and the Sufa use the cut model). `tests/godot/_cockpit_show_shot.gd` scenes
 `cockpit_f16_back`, `cockpit_f16_rback` and `cockpit_f16_lback` take the look-back pictures.
 
