@@ -163,9 +163,19 @@ Example: `game/extra/planes/f35i/`, built by `tools/f35i/rig.py` (Blender, headl
 ### 2.5 Check it
 - The contact sheet (aircraft.md §3, `<out-dir> <plane>`) renders gear, flaps, speed brakes and the flame.
 - `tests/godot/test_aircraft_parts.gd` loads every descriptor.
+- Against real photos of the exact variant (Wikimedia Commons first; note each file's licence; study only, never
+  copy pixels): render the same views (side, front quarter, head-on, from above, loaded) and compare shape, antennas
+  and sensor fairings, the camouflage pattern and colours on every surface (blisters and conformal tanks included),
+  the markings (tail number size and place, squadron art) and real loadouts. Write what was checked, with the photos,
+  in the jet's doc (example: docs/f16i.md §8.1, 2026-10-29: the nose AIFF array and the CFTs' camouflage were found
+  this way).
 
 ## 3. Flight model
 
+- A variant of an existing type (a newer block, another engine) gets its own sourced row, not the older variant's
+  values: research the variant's own public figures (engine thrust and lapse, weights, top speeds, turn, climb, g
+  limits) and its own validation reference row, and list what stays inherited and why (example: real-aircraft.md
+  §8.1, the F-16I's Block 50/52 research).
 - Parameters come from the install's `resource/md` (docs/flight-model.md §1): a section per aircraft plus its
   envelope `<n>.dat`.
 - **Pitfall:** v1.1 installs carry the XOR-encoded `bdgen.dat`, and `iaf_flight` `read_md()` reads it and skips
