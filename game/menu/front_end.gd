@@ -110,6 +110,7 @@ const GRAPHICS_KEYS := [
 	"rain",
 	"airbases",
 	"ground_textures",
+	"ground_roads",
 	"scenery"
 ]
 ## Ours on the debrief screen: EXPORT FLIGHT DATA at the content's top right, above the tab strip (content
@@ -156,6 +157,7 @@ const Tsd := preload("res://menu/tsd.gd")
 const Pilots := preload("res://menu/pilots.gd")
 const ImageryLayers := preload("res://terrain/imagery_layers.gd")
 const GroundTextures := preload("res://terrain/ground_textures.gd")
+const GroundRoads := preload("res://terrain/ground_roads.gd")
 const ModelDetail := preload("res://util/model_detail.gd")
 const RenderOptions := preload("res://terrain/render_options.gd")
 const Scenery := preload("res://terrain/scenery.gd")
@@ -234,6 +236,9 @@ const EXTRAS := [
 	# Ours: CC0 textures from ambientCG near the ground (terrain/ground_textures.gd, docs/rendering.md §1.4); greyed out
 	# until setup has downloaded them.
 	["ground_textures", "Ground textures", [["Original", "original"], ["ambientCG", "ambientcg"]]],
+	# Ours: OpenStreetMap's roads on the ground and lamps along the lit ones (terrain/ground_roads.gd, docs/rendering.md
+	# §1.8); greyed out until setup has made the road layer.
+	["ground_roads", "Roads", [["Original", "original"], ["Detailed", "detailed"]]],
 	# Ours: the F-35I (docs/f35i.md) flies from the Jet list button it replaces; more than three choices cycle.
 	[
 		"f35i_slot",
@@ -1698,6 +1703,10 @@ func _extras_items() -> Array:
 				label = RenderOptions.temporal_name()
 			elif opt[0] in ["ground_textures", "model_detail"] and value == "ambientcg":
 				available = GroundTextures.available() if opt[0] == "ground_textures" else ModelDetail.available()
+				if not available:
+					label = "Not downloaded"
+			elif opt[0] == "ground_roads" and value == "detailed":
+				available = GroundRoads.available()
 				if not available:
 					label = "Not downloaded"
 			elif opt[0] == "scenery" and value != "off":

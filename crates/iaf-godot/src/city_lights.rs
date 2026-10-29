@@ -7,6 +7,7 @@
 
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Sender, channel};
 use std::sync::{LazyLock, Mutex};
 
@@ -38,6 +39,8 @@ struct State {
 
 static STATE: LazyLock<Mutex<State>> = LazyLock::new(|| Mutex::new(State { blocks: HashMap::new() }));
 static MADE: LazyLock<Mutex<HashMap<(i64, i64), Made>>> = LazyLock::new(Default::default);
+/// Lamps along the roads too (`set_road_lamps`).
+static ROAD_LAMPS: AtomicBool = AtomicBool::new(false);
 /// The towns' glow when made (`glow`).
 static GLOW: LazyLock<Mutex<Option<Glow>>> = LazyLock::new(Default::default);
 /// The glow's square (m).
@@ -90,19 +93,29 @@ fn glow() -> Glow {
 fn make(b: (i64, i64), near: bool) -> Made {
     let cells = STATE.lock().unwrap().blocks.get(&b).cloned().unwrap_or_default();
     let o = origin(b.0 * BLOCK, b.1 * BLOCK);
-    let (mut far, mut rest) = (Vec::new(), Vec::new());
+    let mut all = Vec::new();
     for (path, seed) in cells {
-        let Some(bs) = Cell::read_buildings(&path) else { continue };
-        for l in city_lights::lights(&bs, seed) {
-            if !near && l.rank >= FAR_SHARE {
-                continue;
-            }
-            let (x, y) = (l.at[0] as f64, l.at[1] as f64);
-            let h = ground(Vec3::new(x, y, 0.0))?;
-            let p = [(x - o[0]) as f32, (h + l.up as f64) as f32, -(y - o[1]) as f32];
-            let c = [l.color[0], l.color[1], l.color[2], l.rank];
-            if l.rank < FAR_SHARE { far.push((p, c)) } else { rest.push((p, c)) }
+        if let Some(bs) = Cell::read_buildings(&path) {
+            all.extend(city_lights::lights(&bs, seed));
         }
+    }
+    // The road lamps (Graphics → MORE "Roads" Detailed): the roads' block is the same 4 × 4 cells.
+    if ROAD_LAMPS.load(Ordering::Relaxed)
+        && let Some(r) = crate::roads::block(b.0 as i32, b.1 as i32)
+    {
+        let lamps = city_lights::road_lamps(&r, &all);
+        all.extend(lamps);
+    }
+    let (mut far, mut rest) = (Vec::new(), Vec::new());
+    for l in all {
+        if !near && l.rank >= FAR_SHARE {
+            continue;
+        }
+        let (x, y) = (l.at[0] as f64, l.at[1] as f64);
+        let h = ground(Vec3::new(x, y, 0.0))?;
+        let p = [(x - o[0]) as f32, (h + l.up as f64) as f32, -(y - o[1]) as f32];
+        let c = [l.color[0], l.color[1], l.color[2], l.rank];
+        if l.rank < FAR_SHARE { far.push((p, c)) } else { rest.push((p, c)) }
     }
     let n_far = far.len();
     let (p, c) = far.into_iter().chain(rest).unzip();
@@ -143,6 +156,13 @@ impl IafCityLights {
         MADE.lock().unwrap().clear();
         *GLOW.lock().unwrap() = None;
         n
+    }
+
+    /// Lamps along the lit roads too (iaf_avionics::city_lights::road_lamps; the road layer opened by `IafRoads.open`):
+    /// the blocks made from now on.
+    #[func]
+    fn set_road_lamps(on: bool) {
+        ROAD_LAMPS.store(on, Ordering::Relaxed);
     }
 
     /// The blocks whose square lies within `range` m of the world point (x, y): [bi, bj, distance m] per block.

@@ -8,10 +8,14 @@
 //! - **Porch lights**: about a third of the low houses, one warm light by a wall.
 //! - **Obstruction lights**: red, on the roof of buildings 60 m and taller.
 //!
+//! - **Road lamps** (`road_lamps`, with Graphics → MORE "Roads" Detailed): along the OpenStreetMap roads tagged lit,
+//!   and the untagged motorway to secondary roads inside towns, a row of poles by the road's class.
+//!
 //! Density follows the built-up share of each 100 m square (footprint area / square area): the dense centres get
 //! brighter lamps and more white. Each light has a seeded rank in [0, 1): the renderer keeps the lights of rank below
 //! a share that falls with distance, so a far town thins out instead of turning into a solid carpet of points.
 
+use crate::roads::{self, Roads};
 use crate::scenery::{Building, Seed};
 
 /// A light: world X / Y (m, east / north), its height above the ground (m), colour × brightness (each 0..1) and its
@@ -108,6 +112,91 @@ pub fn lights(buildings: &[Building], seed: u32) -> Vec<Light> {
         }
         if b.height >= TALL {
             out.push(Light { at: c, up: b.height + 1.0, color: RED, rank: 0.0 });
+        }
+    }
+    out
+}
+
+/// Road lamps per class (motorway … track): mounting height (m) and spacing (m). Heights from the nominal 6 m
+/// (residential) to 12 m (motorway) columns; spacing about 3.5–4.5 × the height (inferred: a road luminaire's usual
+/// spacing-to-height ratio).
+const ROAD_POLE: [(f32, f32); 8] =
+    [(12.0, 42.0), (12.0, 42.0), (10.0, 36.0), (10.0, 36.0), (8.0, 32.0), (6.0, 26.0), (6.0, 26.0), (6.0, 26.0)];
+/// A road lamp stands this far out from the road's edge, on the right of the way's direction.
+const ROAD_OUT: f32 = 1.5;
+/// No road lamp within this of a facade lamp (the street already has its row).
+const ROAD_NEAR_FACADE: f32 = 12.0;
+/// Inside a town: a facade lamp within this square's 3 × 3 neighbourhood.
+const TOWN_SQUARE: f32 = 150.0;
+/// A road's lamps are of one kind within squares of this side (m).
+const ROAD_KIND: f32 = 3000.0;
+/// The share of roads with white LED lamps (inferred, as the facades' 12–35 %).
+const ROAD_LED: f32 = 0.3;
+
+/// Lamps along the roads of `r`: the ways tagged lit everywhere, and the untagged motorway to secondary roads inside
+/// towns (a facade lamp of `facade` near). Never on a way tagged unlit, a tunnel, a piece off the ground or a railway.
+/// A lamp near one of the facade lamps is left out. A road class has one kind of lamp (sodium or LED) per 3 km square.
+pub fn road_lamps(r: &Roads, facade: &[Light]) -> Vec<Light> {
+    use std::collections::{HashMap, HashSet};
+    let key = |p: [f32; 2], s: f32| ((p[0] / s).floor() as i32, (p[1] / s).floor() as i32);
+    let mut near: HashMap<(i32, i32), Vec<[f32; 2]>> = HashMap::new();
+    let mut town = HashSet::new();
+    for l in facade.iter().filter(|l| l.up == LAMP_UP) {
+        near.entry(key(l.at, ROAD_NEAR_FACADE)).or_default().push(l.at);
+        town.insert(key(l.at, TOWN_SQUARE));
+    }
+    let around = |k: (i32, i32), f: &mut dyn FnMut((i32, i32)) -> bool| {
+        (-1..=1).any(|dy| (-1..=1).any(|dx| f((k.0 + dx, k.1 + dy))))
+    };
+    let mut out = Vec::new();
+    for (k, w) in r.ways.iter().enumerate() {
+        let f = |b: u8| w.flags & b != 0;
+        if w.class > roads::CLASS_TRACK || f(roads::FLAG_UNLIT | roads::FLAG_TUNNEL | roads::FLAG_OFF_GROUND) {
+            continue;
+        }
+        let pts: Vec<[f32; 2]> = r.way_points(k as u32).map(|p| [p[0] as f32, p[1] as f32]).collect();
+        let tagged = f(roads::FLAG_LIT);
+        if pts.len() < 2 {
+            continue;
+        }
+        if !tagged && (w.class > roads::CLASS_SECONDARY || !pts.iter().any(|&p| town.contains(&key(p, TOWN_SQUARE)))) {
+            continue;
+        }
+        let mut s = Seed((w.osm_id as u32).wrapping_mul(0x85eb_ca6b) ^ (w.osm_id >> 32) as u32);
+        let (up, every) = ROAD_POLE[w.class as usize];
+        // One kind of lamp per class within a ROAD_KIND square (OSM cuts a road into many ways): by the way's start.
+        let k = key(pts[0], ROAD_KIND);
+        let mut kind =
+            Seed((k.0 as u32).wrapping_mul(0x9e37_79b9) ^ (k.1 as u32).wrapping_mul(0x85eb_ca6b) ^ w.class as u32);
+        let col = if kind.next() < ROAD_LED { LED } else { SODIUM };
+        let bright = match w.class {
+            0 | 1 => 1.0,
+            2 | 3 => 0.9,
+            _ => 0.75,
+        };
+        let out_m = w.width * 0.5 + ROAD_OUT;
+        // The first lamp a seeded part of the spacing in, then one every `every` m along the way.
+        let mut next = every * s.next();
+        let mut walked = 0.0;
+        for seg in pts.windows(2) {
+            let d = [seg[1][0] - seg[0][0], seg[1][1] - seg[0][1]];
+            let len = d[0].hypot(d[1]);
+            if len <= 0.0 {
+                continue;
+            }
+            while next <= walked + len {
+                let t = (next - walked) / len;
+                let at = [seg[0][0] + d[0] * t + d[1] / len * out_m, seg[0][1] + d[1] * t - d[0] / len * out_m];
+                next += every;
+                let close = around(key(at, ROAD_NEAR_FACADE), &mut |q| {
+                    near.get(&q)
+                        .is_some_and(|v| v.iter().any(|p| (p[0] - at[0]).hypot(p[1] - at[1]) < ROAD_NEAR_FACADE))
+                });
+                if !close && (tagged || around(key(at, TOWN_SQUARE), &mut |q| town.contains(&q))) {
+                    out.push(Light { at, up, color: col.map(|v| v * bright), rank: rank(&mut s) });
+                }
+            }
+            walked += len;
         }
     }
     out
@@ -248,5 +337,44 @@ mod tests {
         assert!(b[1 + 6 * 6] > 100 && b[3 + 3 * 6] == 0, "{b:?}");
         // Windows only up the walls.
         assert!(l.iter().filter(|l| l.up != LAMP_UP && l.color != RED).all(|l| l.up < 80.0));
+    }
+
+    #[test]
+    fn road_lamps_on_lit_roads_and_town_mains_only() {
+        use crate::roads::*;
+        let way =
+            |id: u64, class: u8, flags: u8| Way { osm_id: id, first: 0, count: 0, class, flags, layer: 0, width: 8.0 };
+        let line = |y: f32| vec![[0.0f32, y], [2000.0, y]];
+        let (a, b, c, d, e, f) = (line(0.0), line(500.0), line(1000.0), line(1500.0), line(2000.0), line(2500.0));
+        let r = Roads::from_lines([
+            (way(1, CLASS_MINOR, FLAG_LIT), &a[..]),
+            (way(2, CLASS_PRIMARY, 0), &b[..]),
+            (way(3, CLASS_PRIMARY, FLAG_UNLIT), &c[..]),
+            (way(4, CLASS_MINOR, 0), &d[..]),
+            (way(5, CLASS_MOTORWAY, FLAG_LIT | FLAG_TUNNEL), &e[..]),
+            (way(6, CLASS_PRIMARY, FLAG_LIT | FLAG_OFF_GROUND), &f[..]),
+        ]);
+        // A town: facade lamps along x 0..400 at y = 520 (by the untagged primary) and y = 1520 (the untagged minor).
+        let facade: Vec<Light> = (0..10)
+            .flat_map(|i| {
+                [520.0, 1520.0].map(|y| Light { at: [i as f32 * 40.0, y], up: LAMP_UP, color: SODIUM, rank: 0.5 })
+            })
+            .collect();
+        let l = road_lamps(&r, &facade);
+        let on = |y: f32| l.iter().filter(|l| (l.at[1] - y).abs() < 10.0).collect::<Vec<_>>();
+        // Lit minor road: the whole 2 km at 26 m, 5.5 m right of the eastward way (south).
+        let lit = on(0.0);
+        assert!((70..=78).contains(&lit.len()), "{}", lit.len());
+        assert!(lit.iter().all(|l| l.at[1] == -5.5 && l.up == 6.0));
+        // Untagged primary: only in the town (x up to ≈ 400 + 2 squares), not next to a facade lamp.
+        let main = on(500.0);
+        assert!(!main.is_empty() && main.iter().all(|l| l.at[0] < 750.0), "{main:?}");
+        assert!(main.iter().all(|m| facade.iter().all(|f| (f.at[0] - m.at[0]).hypot(f.at[1] - m.at[1]) >= 12.0)));
+        // Unlit, an untagged minor road, a tunnel, a piece off the ground: none.
+        for y in [1000.0, 1500.0, 2000.0, 2500.0] {
+            assert!(on(y).is_empty(), "{y}");
+        }
+        // One kind of lamp per class and square.
+        assert!(lit.iter().all(|l| l.color == lit[0].color));
     }
 }

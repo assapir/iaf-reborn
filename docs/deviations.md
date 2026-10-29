@@ -415,6 +415,11 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - ambientCG: within 300 m of the camera, CC0 photo textures (asphalt, concrete, sand, gravel, grass, soil, rock)
     modulate the imagery's colour, with their normal and roughness. The imagery's colour picks the texture per pixel.
   - New content: the textures are third-party (ambientCG, CC0), downloaded by setup, not part of the 1998 game.
+- **Roads** (ours, docs/rendering.md §1.8). Rendering only; the default is Original (the imagery's own roads).
+  - Detailed: within 1.5 km of the camera, OpenStreetMap's roads drawn on the ground (asphalt or dirt, at the road's
+    width) where the imagery is too coarse to show them; over the Survey 2 m photo only the narrow streets and tracks.
+  - Detailed with Night lights Detailed: lamps along the roads tagged lit and the main roads in towns (§5.1 there).
+  - New content: the road layer is third-party (OpenStreetMap, ODbL), made by setup, credited as the map's roads.
 - **Scenery** (ours, docs/scenery.md). The default is Off (the flat photo, as the original: it has no generic
   buildings or trees).
   - On (or Detailed: the same with richer facades and roof clutter, scenery.md §3.3): buildings and trees generated

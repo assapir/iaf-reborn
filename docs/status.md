@@ -146,9 +146,9 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
 - **Exit, under xvfb**: on 2026-10-28 `_showcase_shot.gd` hung after `RESULT PASS` in 4 of about 12 runs of the hills
   scenes (Carmel forest), killed by a timeout; its Xvfb then stayed behind holding the GPU lock's file. No stack
   taken (the run watched with gdb exited cleanly); open.
-- **City lights** (rendering.md §5.1): none outside map.ptt's Israel region (no building data); the main roads do
-  not stand out: the road data exists (setup's road layer, scenery.md §6, the whole theatre) but is not drawn in 3D
-  yet; from 8000 m the far towns fade in the fog.
+- **City lights** (rendering.md §5.1): none outside map.ptt's Israel region (no building data); from 8000 m the far
+  towns fade in the fog. Roads Detailed (rendering.md §1.8) draws the roads on the ground near the camera and lamps
+  along the lit ones; no lane markings, no railways.
 - **Imagery**: SPOT 5 outside Israel not started.
 - **Multiplayer**: not started (missions 511–516, 777), with its RWR network messages. Research and discussion:
   [multiplayer.md](multiplayer.md).
