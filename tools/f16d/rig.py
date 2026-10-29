@@ -6,7 +6,7 @@
 #     Station helpers, the oleos compressed so the wheels touch at the original's `height` helper;
 #   - the moving parts named and hinged as the original's (`<part>1/2` helpers on FlightGear's own hinge lines,
 #     taken from its F-16.xml animations), the helpers the game reads copied from the original model;
-#   - the fin and rudder lowered FIN_DROP onto the IAF dorsal spine (the avionics hump of the Block 30 / 40
+#   - the fin and rudder reaching FIN_DROP lower, onto the IAF dorsal spine (the avionics hump of the Block 30 / 40
 #     "Brakeet"), lofted over the slim US spine level from the canopy's rear end to a box under the fin that ends
 #     over the nozzle, with its three vents;
 #   - closed gear doors (LdgDrUp, shown only with the gear up), the GE nozzle, an IAF desert livery (FlightGear's,
@@ -57,11 +57,23 @@ SHIFT = Vector((0.0, -1.05, 0.0))
 Y_FRONT, Y_CANOPY_REAR, Y_FIN, EXT = 3.45, 2.48, -2.8, 0.95
 Z_SILL0, Z_SILL1, X_SPINE = 0.28, 0.42, 0.95
 SEAT_GAP = 0.98
-# FlightGear's fin and rudder stand FIN_DROP m too high: their root is level with the canopy's top, where on IAF
-# F-16s (F-16D 027 side on, parked; F-16C 557) the canopy stands 0.25 m above the fin's root and the dorsal spine
-# (SOURCES.md). The fin's parts are lowered by it and its root fairing (USAF_Tailroot, from the fuselage at
-# TAILROOT_Z0 up to the fin) squashed to meet them.
-FIN_DROP, TAILROOT_Z0 = 0.27, 0.49
+# FlightGear's fin and rudder end FIN_DROP m too high: their root (FIN_ROOT) is level with the canopy's top, where on
+# IAF F-16s (F-16D 027 side on, parked; F-16C 557) the canopy stands 0.25 m above the fin's root and the dorsal spine
+# (SOURCES.md). Their tip (FIN_TIP) is right: 4.90 m above the static ground, the F-16's published 4.88 m. So the
+# fin's parts are stretched down to the new root, the tip kept (fin_z), and its root fairing (USAF_Tailroot, from
+# the fuselage at TAILROOT_Z0 up to the fin) squashed to meet them.
+FIN_DROP, TAILROOT_Z0, FIN_ROOT, FIN_TIP = 0.27, 0.49, 1.152, 3.191
+FIN_K = (FIN_TIP - FIN_ROOT + FIN_DROP) / (FIN_TIP - FIN_ROOT)
+
+
+def fin_z(z):
+    """A fin point's height after the stretch (FlightGear's frame and ours: z up)."""
+    return FIN_TIP - (FIN_TIP - z) * FIN_K
+
+
+# The rudder's hinge (F-16.xml: 0.547371, 0, 0.83689), its upright part stretched with the fin.
+RUDDER_AXIS = (0.547371 / math.hypot(0.547371, 0.83689 * FIN_K), 0,
+               0.83689 * FIN_K / math.hypot(0.547371, 0.83689 * FIN_K))
 FIN = ["Tail", "Rudder.001", "Rudder.002", "Rudder.003", "Rudder.004", "Rudder.005", "Rudder.006",
        "FlashLightProtector", "AntiCollisionStrobe", "AftPosLight2"]
 
@@ -78,8 +90,8 @@ PARTS = {
     "AilerR": (["RightUpperFlap", "RightLowerFlap"], (1.54, 2.35, 0.12), (0.150157, 0.987872, -0.039515)),
     "ElevaL": (["LeftUpperHorizonTail", "LeftLowerHorizonTail"], (4.36, -1.965, -0.1), (0, -0.981645, -0.19072)),
     "ElevaR": (["RightUpperHorizonTail", "RightLowerHorizonTail"], (4.36, 1.965, -0.1), (0, 0.981645, -0.19072)),
-    "RuddeL": (["Rudder.001", "Rudder.002", "Rudder.003", "Rudder.004", "Rudder.005"], (4.915, 0, 2.095 - FIN_DROP),
-               (0.547371, 0, 0.83689)),
+    "RuddeL": (["Rudder.001", "Rudder.002", "Rudder.003", "Rudder.004", "Rudder.005"], (4.915, 0, fin_z(2.095)),
+               RUDDER_AXIS),
     "SpdbrU": (["LeftUpperSpeedbrake", "RightUpperSpeedbrake"], (4.55, 0, 0.15), (0, 1, 0)),
     "SpdbrD": (["LeftLowerSpeedbrake", "RightLowerSpeedbrake"], (4.55, 0, 0.08), (0, 1, 0)),
     "Hook": (["ArresterHook"], (2.58, 0, -0.73), (0, 1, 0)),
@@ -164,7 +176,10 @@ def two_seat(objs):
 
 
 def lower_fin(body):
-    transform([body[n] for n in FIN], Matrix.Translation((0, 0, -FIN_DROP)))
+    for o in (body[n] for n in FIN):
+        for v in o.data.vertices:
+            v.co.z = fin_z(v.co.z)
+        o.data.update()
     tr = body["USAF_Tailroot"]
     top = max(v.co.z for v in tr.data.vertices)
     k = (top - FIN_DROP - TAILROOT_Z0) / (top - TAILROOT_Z0)

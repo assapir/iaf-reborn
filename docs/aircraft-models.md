@@ -70,7 +70,7 @@ climbed from 0.93 m behind the canopy to 1.148 m at the fin, level with the cano
 the eye). It grew out of FlightGear's single-seat fairing behind the glass, so its narrow, rounded front stood on
 the fairing with a notch between it and the glass. Both came from following the original model's spine and
 FlightGear's fin root, which also stand level with the canopy's top. The spine now starts at the glass's rear edge
-and runs level 0.25 m under the canopy's top, and the fin is 0.27 m lower (§2, step 6).
+and runs level 0.25 m under the canopy's top, and the fin reaches 0.27 m lower, down to it (§2, step 6).
 
 Tried and dropped:
 
@@ -78,6 +78,12 @@ Tried and dropped:
   the spine looks as wide as the canopy's rear. Result: FlightGear's glass narrows to a 0.34 m arch at its rear, so
   the spine's shoulders stood out beside the glass. Dropped for a front that is the glass's arch and widens behind
   it. Making FlightGear's glass wider at the rear was left alone: it is the moving canopy.
+- **The fin moved down 0.27 m as a whole** (2026-10-29, first build). It met the spine, but its tip came to 4.63 m
+  above the ground, under the F-16's published 4.88 m. Measured again on 027: the intake's bottom stands 0.30 of
+  the canopy's top above the ground, FlightGear's geometry 0.29, so the body and gear are right and the fin is too
+  short at its root. Dropped for the stretch down to the spine, the tip kept.
+- **"The jet sits 0.3 m low on its gear"** (an estimate from the strakes' height in a photo). JSBSim's springs settle
+  the main wheels within 2 cm of where they are; the intake / canopy ratio above agrees. Dropped.
 
 #### The colours against photographs (2026-10-29)
 
@@ -221,12 +227,13 @@ The script:
    0.945 m, so the glass runs on into it. It widens to 0.68 m by 1 m aft of the glass, eases down to 0.878 m and runs
    level from there to its end: 0.40 m wide under the fin, ending in a round cap 0.08 m aft of the nozzle's exit,
    with a dark floor over the nozzle. Three dark vents sit on each side ahead of the fin. Before that (`lower_fin`)
-   FlightGear's fin, rudder and their lights go 0.27 m lower (`FIN_DROP`) and its tail root fairing is squashed to
-   meet them: FlightGear's fin root is level with the canopy's top, where on the real jet the canopy stands 0.25 m
-   above the fin's root and the spine. The spine's UVs are the fuselage's under it, spread over the section, so the
-   camouflage runs on at its foot. The fuselage faces it covers are removed (they would bake black into the
-   occlusion map they share with it); FlightGear's aft light inside it is dropped; the blade antenna and the
-   formation light are set onto it;
+   FlightGear's fin and rudder are stretched down 0.27 m (`FIN_DROP`, `fin_z`; the rudder's hinge with them), their
+   tip kept, and its tail root fairing is squashed to meet them: FlightGear's fin root is level with the canopy's
+   top, where on the real jet the canopy stands 0.25 m above the fin's root and the spine; its fin tip is right
+   (4.90 m above the static ground; the F-16's published height is 4.88 m). The spine's UVs are the fuselage's under it,
+   spread over the section, so the camouflage runs on at its foot. The fuselage faces it covers are removed (they would
+   bake black into the occlusion map they share with it); FlightGear's aft light inside it is dropped; the blade antenna
+   and the formation light are set onto it;
 7. joins the parts, puts each origin on its hinge, adds the helpers;
 8. sets the wing roundels (`wing_roundels`, constants `ROUNDEL_ART` and `ROUNDELS`): the livery's roundel above the
    left wing near the tip is painted over with the colours round it, and its art is drawn as a circle at each IAF
@@ -260,8 +267,10 @@ The script:
 - The Sufa's other antenna changes and 107 Squadron's real badge (docs/f16i.md §10).
 - The livery's fuselage sides are stretched (FlightGear's UVs project from above and below); on the dorsal spine's
   sides the panel lines of the fuselage top are stretched too. The spine's aft sensor is not modelled.
-- The jet sits about 0.3 m lower on its gear than a parked IAF F-16 (the oleos are compressed to the original
-  model's `height`), so its fin tip is about 4.6 m above the ground where the real jet's is 4.88 m.
+- The nose oleo is compressed 0.23 m, where FlightGear's flight model (its JSBSim gear springs)
+  settles it 0.04 m at a parked weight: the game holds the jet level on the ground (flight-model.md §14.5a), so both
+  wheels touch the original's `height`. JSBSim's contacts would sit the jet 2.7° nose up. The main wheels are where
+  JSBSim settles them, within 2 cm.
 - Where the livery's old roundel was, near the left wing tip, the paint is a smooth blend of the colours round it:
   its panel lines and rivets are gone over 0.5 m.
 - The canopy glass is plain tinted glass.

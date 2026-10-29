@@ -35,8 +35,8 @@ Made by `tools/f16d/rig.py` (re-runnable; docs/aircraft-models.md):
    mesh made by the script (a loft of rounded-box sections), not taken from FlightGear. It starts at the canopy
    glass's rear edge, at its width and height, and runs level, 0.25 m under the canopy's top, to a box under the fin
    that ends in a round cap just aft of the nozzle. Three vents sit on each side ahead of the fin. FlightGear's fin
-   and rudder are lowered 0.27 m onto it and their root fairing squashed to meet them: FlightGear has the fin's root
-   level with the canopy's top. FlightGear's blade antenna and formation light are set onto it. Its paint is the
+   and rudder are stretched 0.27 m down onto it, their tip kept, and their root fairing squashed to meet them:
+   FlightGear has the fin's root level with the canopy's top, its tip at the F-16's published height. FlightGear's blade antenna and formation light are set onto it. Its paint is the
    livery of the fuselage under it, spread over its sides. Shape from:
    - photographs on Wikimedia Commons, used only as references (no image is in the model): IAF F-16D 027 parked,
      side on, by Oren Rozen (CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:RamatDavid_020517_Barak_02.jpg):
