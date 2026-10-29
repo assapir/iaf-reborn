@@ -262,6 +262,8 @@ const EXTRAS := [
 	["better_mc", "Mission Creator", [["Original", false], ["Better", true]]],
 	# Ours: the RWR also shows the radars searching the jet, lost behind terrain (weapons/rwr.gd, docs/rwr.md §7).
 	["rwr_search", "RWR", [["Original", false], ["Real", true]]],
+	# Ours: the cities at their real places on the TSD / briefing map (menu/tsd_map.gd, docs/front-end.md "Modern map").
+	["briefing_map", "Briefing map", [["Original (1998)", "original"], ["Modern", "modern"]]],
 ]
 
 

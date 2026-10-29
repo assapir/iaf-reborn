@@ -16,6 +16,8 @@ func load_maps(map: Dictionary, grid: Dictionary, text: Dictionary) -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	map_batches = _batches(map)
 	grid_batches = _batches(grid)
+	if Settings.briefing_map == "modern":
+		text = modern_text(text)
 	text_shape_batches = _batches(text)
 	var map_size: Vector2 = tsd.MAP_SIZE
 	for op in text.get("ops", []):
@@ -32,6 +34,69 @@ func load_maps(map: Dictionary, grid: Dictionary, text: Dictionary) -> void:
 				)
 			)
 	queue_redraw()
+
+
+## The modern map (Settings.briefing_map): text.emf with each city's dot (a small filled circle and its outline, the
+## next op) and its label moved by the same step onto the real city (IafEmf.modern_cities, the georeference).
+static func modern_text(text: Dictionary) -> Dictionary:
+	text = text.duplicate(true)
+	var ops: Array = text.get("ops", [])
+	var tsd_script: Script = load("res://menu/tsd.gd")
+	var map_size: Vector2 = tsd_script.MAP_SIZE
+	for city in IafEmf.modern_cities():
+		var real: Vector2 = tsd_script.world_to_map(city.pos.x, city.pos.y) / map_size
+		var dot := -1
+		var best := 30.0 / map_size.x
+		for i in ops.size():
+			var c := _dot_centre(ops[i], map_size)
+			if c.x >= 0.0 and c.distance_to(real) < best:
+				best = c.distance_to(real)
+				dot = i
+		var label := _label_ops(ops, city.label)
+		if dot < 0 or label.is_empty():
+			continue
+		var step := real - _dot_centre(ops[dot], map_size)
+		for ring in ops[dot].rings:
+			_shift(ring, step)
+		if dot + 1 < ops.size() and ops[dot + 1].t == "polyline":
+			_shift(ops[dot + 1].points, step)
+		for i in label:
+			ops[i].pos = [ops[i].pos[0] + step.x, ops[i].pos[1] + step.y]
+	return text
+
+
+## A city dot's centre (map units / MAP_SIZE), or (-1, -1) for any other op.
+static func _dot_centre(op: Dictionary, map_size: Vector2) -> Vector2:
+	if op.t != "polygon" or op.brush == null or op.rings.size() != 1:
+		return Vector2(-1, -1)
+	var r: Array = op.rings[0]
+	var lo := Vector2(INF, INF)
+	var hi := -lo
+	for k in range(0, r.size(), 2):
+		lo = lo.min(Vector2(r[k], r[k + 1]))
+		hi = hi.max(Vector2(r[k], r[k + 1]))
+	return (lo + hi) / 2.0 if (hi.x - lo.x) * map_size.x < 10.0 else Vector2(-1, -1)
+
+
+## The consecutive text ops that spell `label` (spaces ignored: "B E I R U T", "D" + "AMASCUS").
+static func _label_ops(ops: Array, label: String) -> Array:
+	for i in ops.size():
+		var spelt := ""
+		var run := []
+		var j := i
+		while j < ops.size() and ops[j].t == "text" and spelt.length() < label.length():
+			spelt += ops[j].text.replace(" ", "")
+			run.append(j)
+			j += 1
+		if spelt == label:
+			return run
+	return []
+
+
+static func _shift(flat: Array, step: Vector2) -> void:
+	for k in range(0, flat.size(), 2):
+		flat[k] += step.x
+		flat[k + 1] += step.y
 
 
 ## Groups consecutive fills / thin lines into meshes, keeping the metafile's drawing order.

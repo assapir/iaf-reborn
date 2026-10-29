@@ -126,6 +126,7 @@ const PREFS := {
 		"better_cockpit",
 		"better_mc",
 		"rwr_search",
+		"briefing_map",
 		"night_vision",
 		"world_scale",
 		"f16_variant"
@@ -289,6 +290,9 @@ var cockpit_items := {}
 var better_mc := false
 ## RWR: Real (ours, Extras page; docs/rwr.md §7): the RWR also shows the SAM / AAA radars searching the jet.
 var rwr_search := false
+## Briefing map (ours, Extras page; docs/front-end.md "Modern map"): "original" (the 1998 map) or "modern" (the
+## cities at their real places on the TSD / briefing / mission editor map; menu/tsd_map.gd).
+var briefing_map := "original"
 ## World scale (ours, Extras page; docs/world-scale.md): "original" (the models at their Present scale, ×2 for
 ## the jets) or "real" (true size, model_scale). Read at mission load.
 var world_scale := "original"

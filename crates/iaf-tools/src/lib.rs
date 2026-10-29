@@ -21,6 +21,7 @@ pub mod mission_events;
 pub mod mission_intel;
 pub mod mission_sanity;
 pub mod mission_year;
+pub mod modern_map;
 pub mod pack;
 pub mod patch;
 pub mod plane;

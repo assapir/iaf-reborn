@@ -421,6 +421,13 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
       A label keeps its length in map units and ends just west of its city's dot (text.emf's 4.5-unit squares;
       JERUSALEM's text ends at x ≈ 288.8, its dot spans 289.2–293.7). The mission editor zooms past 32 for the
       scenery; there the labels keep their zoom-32 size. Test: `tests/godot/test_tsd_arrows.gd`.
+    * **Modern map** (ours, Extras "Briefing map" = Modern; `menu/tsd_map.gd` `modern_text`): the 1998 dots sit up
+      to ≈ 37 km from the real cities (Tel Aviv ≈ 13 km south, Amman ≈ 26 km, Damascus ≈ 25 km east, Cairo ≈ 37 km
+      east; measured 2026-10-28). With Modern, each of text.emf's eight city dots moves onto its real city
+      (`iaf_tools::modern_map::CITIES`, longitude / latitude through the georeference, docs/georef.md), its outline
+      and label by the same step; Jerusalem, Gaza, Haifa and Beirut move about a map unit. The TSD, the briefing, the
+      in-flight TSD and the mission editor share it. The base for a later modern map (roadmap "A modern TSD map").
+      Test: `tests/godot/test_modern_map.gd`.
   * Polygons fill as GDI fills a `PolyPolygon`: all rings of a record are one region under its fill mode, ALTERNATE
     (even-odd) or WINDING (non-zero; 752 of the 1008 polygons in `82.emf`). The rings cross themselves and overlap.
     `menu/tsd_map.gd` gets the triangles from `IafEmf.fill_triangles` (`iaf_formats::emf::fill_triangles`, a sweep
@@ -1402,7 +1409,7 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
     Flight info (Ctrl+F12), Blackbox, HUD pitch ladder, HUD (Original (1998) / Real), Real HUD bingo (500-5,000 lb, 1,500 by default), All keys on the Keyboard page,
     F-35I replaces (Off / one of the seven jets, docs/f35i.md), HARM targets, CD launcher (§18.1), Mouse wheel
     (below), Better cockpit (`Settings.BETTER_COCKPIT`, docs/cockpit.md "Better cockpit"), Mission Creator
-    (Original / Better, §19.4), RWR (Original / Real, docs/rwr.md §7), World scale (docs/world-scale.md), Settings file. 8 rows show, with the Keyboard
+    (Original / Better, §19.4), RWR (Original / Real, docs/rwr.md §7), Briefing map (Original (1998) / Modern, §8), World scale (docs/world-scale.md), Settings file. 8 rows show, with the Keyboard
     page's scrollbar beyond. DEFAULT resets every row except Language and Settings file.
   * **Settings file:** Export / Import through a native file dialog. Export writes the working copy as a
     settings.cfg; Import stores and saves the file's settings at once.
