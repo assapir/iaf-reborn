@@ -1044,7 +1044,12 @@ func _draw_stores() -> void:
 		_text_right(59, 63, "%d" % int(wp.srm))
 		_text(Vector2(68, 85), "%03d" % int(wp.gun))
 		# The ripple quantity / interval (state +0x374 / +0x378).
-		_text(Vector2(1, 94), "%dQnt" % int(wp.get("quantity", 2)))
+		# Ours, Bomb release Real (docs/weapons.md §9.10): the release pulses and SGL / PAIR in the quantity's place.
+		var rel := String(wp.get("release", ""))
+		if rel != "":
+			_text(Vector2(1, 94), "%d %s" % [int(wp.get("quantity", 2)), rel])
+		else:
+			_text(Vector2(1, 94), "%dQnt" % int(wp.get("quantity", 2)))
 		_text_right(131, 94, "int%d" % int(wp.get("interval", 10)))
 		if int(wp.selected) == 9:
 			_frame(Rect2(48, 82, 36, 10))
@@ -1411,6 +1416,9 @@ func press(osb: int) -> void:
 			var rip := {0xe: [0x4a, true], 0xf: [0x4a, false], 0x13: [0x4b, true], 0x14: [0x4b, false]}
 			if rip.has(osb) and cockpit.on_ripple_event.is_valid():
 				cockpit.on_ripple_event.call(rip[osb][0], rip[osb][1])
+			# Ours, Bomb release Real: bottom OSB 7 toggles PAIRS / SGL (ripple_event −1).
+			if osb == 7 and Settings.bomb_release == "real" and cockpit.on_ripple_event.is_valid():
+				cockpit.on_ripple_event.call(-1, true)
 		TV, FLIR:
 			# FUN_005219e0 cases 5 / 6: 0xb zoom in (0x14), 0xc out (0x15); FLIR: top 5 WIDE / SPOT (0x20),
 			# top 3 laser (0x6a).

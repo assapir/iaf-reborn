@@ -540,6 +540,9 @@ A ripple releases `quantity` stores, `interval` metres apart on the ground, one 
   changed, the period is 0.1 s for any interval up to 100.
 - "int" is both the spacing on the ground (m) and the period (ms).
 - The values can change during a release (no check).
+- The order of the stores: one per tick, from `FUN_0053b680`'s station (§2.4). 6 MK-82 singles on stations 1–3 /
+  5–7 with quantity 2 go (1, 7), (2, 6), (3, 5) per press, the two stores of each press one period apart, the jet
+  lopsided in between. Extras "Bomb release" Real changes this (§9.10).
 
 ### 9.2 Release (Space 0x40 / up 0x41)
 - **Space** (`FUN_00454270(target, ai)`; the player passes (0, 0), the AI `FUN_00452680(T)` → (T, 1)):
@@ -751,6 +754,53 @@ player's release (`player_weapons.release_store`):
 - Rocket hits are credited to the releasing jet. The AI's rockets share the player's rocket pool (ours).
 
 Test: `test_ai_ground_attack.gd` (ZUNNI rockets and an AS-14 from the Su-24's ripple reach the target).
+
+### 9.10 Real release (Extras "Bomb release: Real", ours)
+Preferences > Extras > **Bomb release** = Real (Settings `bomb_release`, default Original) makes the player's bombs
+(500, 510, 650) leave the jet the way a real stores management system releases them. Rockets (560) and the AI's
+releases stay original.
+
+**The real rules found:**
+- **F-16 SMS.** The release option is SGL or PAIR. SGL releases one store per release signal; PAIR releases stores
+  symmetrically in pairs, two at a time[^bms34], from both opposite stations: 4 and 6, or 3 and 7[^dcs-f16].
+- **What the quantity counts (F-16).** RP is the number of release pulses sent when the pilot presses the weapon
+  release button: RP 1 releases one bomb or one pair, RP 4 releases four bombs or four pairs (a "ripple
+  release")[^dcs-f16]. The page shows the count left of SGL / PAIR beside OSB 8[^bms34].
+- **Interval (F-16).** The pilot enters the impact spacing (0–999 ft); the aircraft computes the time between
+  pulses from it[^dcs-f16]. The shortest interval is 60 ms on a MAU-12 pylon or a TER-9/A, 200 ms on a SUU-20[^bms34].
+- **Station sequence (F-16).** A former crew chief writes that with SGL and RP 1 the bombs come off one at a time
+  starting on the left wing, and that SGL / PAIR puts one off each wing per pickle[^f16net]; another poster writes
+  that the SMS drops symmetrically when like stores are on both wings[^f16net]. Outboard or inboard first is open.
+- **TER order.** A TER-9/A fires its centre station, then left, then right[^marvin]. Ours keeps the original slot
+  order on a rack (the bottom store first, §2.2).
+- **F-4E AWRU.** The quantity knob counts munitions, not pulses: Single-Manual drops one per press,
+  Single-Ripple 2–18 drop at the interval while the button is held, Pairs-Manual drops one store from each station
+  per press, Salvo repeats that at the interval. Single releases go left-right-left. The interval is 0.05–1 s
+  (×10 with the INTRVL switch)[^hb-awru].
+- **F-15, Lavi, Kfir, Mirage, F-35I, Kurnass 2000:** no public source found (open).
+
+**What ours does with Real** (`crates/iaf-avionics/src/stores.rs` `Stores::real_pulse`, `release.rs`
+`Ripple::pulses`, wired in `game/weapons/player_weapons.gd` `_ripple_tick`):
+- **PAIRS / SGL.** Stores page OSB 7 (bottom, second from the left) toggles PAIRS and SGL, PAIRS at the start. The
+  page then shows "2 PAIR" / "2 SGL" in the quantity's place ("%dQnt"); the art is unchanged.
+- **The quantity counts release pulses** (F-16 rule, used for every jet but the F-4s, inferred). Each pulse is one
+  store (SGL) or one pair (PAIRS), so 6 MK-82s go with quantity 3 in PAIRS. The F-4E and the Kurnass 2000 (inferred
+  from the F-4E) keep the AWRU rule: PAIRS drops one pair per press, the quantity counting stores in SGL.
+- **One pulse in PAIRS:** the outboard-most symmetric pair (stations i and 8 − i) that both hold the selected
+  weapon, one store from each at the same instant. Both counts drop before one push to the flight model, so Better
+  physics "Asymmetric stores" sees no moment between them.
+- **One pulse in SGL**, or in PAIRS with no full pair left: after a store, its mirror station on the other wing when
+  that holds the weapon; else the left station of the outboard-most full pair; else the station whose store leaves
+  the lateral moment nearest 0 (an odd store left, the centreline last). Inferred from the sources above.
+- **Interval:** the original's period and ripple line (§9.1, §9.3) with one line point per pulse; both stores of a
+  pair share the point.
+- The probe load (6 MK-82 singles, quantity 2): Real PAIRS releases (1, 7) and (2, 6) on the first press and (3, 5)
+  on the next, each pair in one step, the moment about 0 after each (the model's attach points are mirrored to
+  about 1 cm). Real SGL releases 1, 7, 2, 6, 3, 5.
+
+Tests: `stores.rs` / `release.rs` unit tests (pairs, alternating singles, a TER pair and an odd store, AWRU
+pulses); `test_bomb_release.gd` (mission 231: Original 1 7 2 6 3 5 one per tick; Real PAIRS (1, 7) (2, 6) (3, 5);
+Real SGL alternating).
 
 ## 10. Chaff and flares
 Each press drops one decoy. At the release the game rolls once per missile launched at the jet: a success sends that
@@ -1178,3 +1228,12 @@ Open points:
 - the HUD text font;
 - the store-selected box placement;
 - the release drop's direction (§11.1) and the MRM caret's sign (§11.3).
+
+[^bms34]: Falcon BMS, *TO 1F-16CMAM-34-1-1 BMS* (the BMS reproduction of the F-16 -34 weapons manual), Change 4.38,
+    §4.2.7.6.6–§4.2.7.6.9, pp. 513–514: <https://cdn.falcon-bms.com/docs/4.38/TO%201F-16CMAM-34-1-1%20BMS.pdf>
+[^dcs-f16]: Eagle Dynamics, *DCS: F-16C Viper Early Access Guide*, "Unguided bombs", steps 5–7, pp. 621–622:
+    <https://www.digitalcombatsimulator.com/en/downloads/documentation/dcs-viper_early_access_manual_en/>
+[^f16net]: F-16.net forum, "LGBs on TER: Bomb release?", posts of 15 and 24 March 2004:
+    <https://www.f-16.net/forum/viewtopic.php?p=9407>
+[^marvin]: Marvin Engineering, "TER-9/A Triple Ejector Rack": <https://marvineng.com/product/ter-9a-triple-ejector-rack/>
+[^hb-awru]: Heatblur Simulations, *DCS: F-4E Phantom II manual*, "AWRU": <https://f4.manuals.heatblur.se/systems/weapon_systems/awru.html>

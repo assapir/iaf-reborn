@@ -63,6 +63,13 @@ impl Ripple {
         self.period = (self.interval as f64 * 0.001).max(0.1);
     }
 
+    /// Extras "Bomb release" Real (ours, docs/weapons.md §9.10): the release pulses of one Space press. The F-16's
+    /// SMS (and every jet but the F-4s, inferred) counts the quantity in pulses, each one store (SGL) or one pair
+    /// (PAIRS); the F-4E's AWRU (`awru`, also the Kurnass 2000, inferred) counts stores and drops one pair per press.
+    pub fn pulses(&self, pairs: bool, awru: bool) -> i64 {
+        if awru && pairs { 1 } else { self.qty }
+    }
+
     /// The ripple line index of the next bomb (`ripple_left` bombs left).
     pub fn index(&self, left: i64) -> usize {
         (self.qty - left).clamp(0, (self.qty - 1).max(0)) as usize
@@ -179,6 +186,13 @@ mod tests {
         assert_eq!(ai_launch_q(Some(0.4)), 1.0, "a roll up to 0.5 does not count");
         assert!((ai_launch_q(Some(0.7)) - 0.3).abs() < 1e-12);
         assert_eq!(ai_launch_q(Some(0.99)), Q_MIN);
+    }
+
+    #[test]
+    fn real_pulses() {
+        let r = Ripple { qty: 3, ..Ripple::default() };
+        assert_eq!((r.pulses(true, false), r.pulses(false, false)), (3, 3), "SMS: 3 pulses of a pair or a store");
+        assert_eq!((r.pulses(true, true), r.pulses(false, true)), (1, 3), "AWRU: one pair per press");
     }
 
     #[test]

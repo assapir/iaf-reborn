@@ -266,6 +266,9 @@ const EXTRAS := [
 	["rwr_search", "RWR", [["Original", false], ["Real", true]]],
 	# Ours: the cities at their real places on the TSD / briefing map (menu/tsd_map.gd, docs/front-end.md "Modern map").
 	["briefing_map", "Briefing map", [["Original (1998)", "original"], ["Modern", "modern"]]],
+	# Ours: the real stores management's release (SGL / PAIRS, release pulses; weapons/player_weapons.gd,
+	# docs/weapons.md §9.10).
+	["bomb_release", "Bomb release", [["Original", "original"], ["Real", "real"]]],
 ]
 
 

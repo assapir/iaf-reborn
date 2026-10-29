@@ -130,7 +130,8 @@ const PREFS := {
 		"night_vision",
 		"world_scale",
 		"f16_variant",
-		"modern_weapons"
+		"modern_weapons",
+		"bomb_release"
 	],
 }
 
@@ -298,6 +299,9 @@ var rwr_search := false
 ## Briefing map (ours, Extras page; docs/front-end.md "Modern map"): "original" (the 1998 map) or "modern" (the
 ## cities at their real places on the TSD / briefing / mission editor map; menu/tsd_map.gd).
 var briefing_map := "original"
+## Bomb release (ours, Extras page; docs/weapons.md §9.10): "original" (one store per ripple tick, FUN_0053b680's
+## station order) or "real" (the real stores management: SGL / PAIRS, the quantity in release pulses).
+var bomb_release := "original"
 ## World scale (ours, Extras page; docs/world-scale.md): "original" (the models at their Present scale, ×2 for
 ## the jets) or "real" (true size, model_scale). Read at mission load.
 var world_scale := "original"

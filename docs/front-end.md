@@ -1416,7 +1416,7 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
     Flight info (Ctrl+F12), Blackbox, HUD pitch ladder, HUD (Original (1998) / Real), Real HUD bingo (500-5,000 lb, 1,500 by default), All keys on the Keyboard page,
     F-35I replaces (Off / one of the seven jets, docs/f35i.md), HARM targets, CD launcher (§18.1), Mouse wheel
     (below), Better cockpit (`Settings.BETTER_COCKPIT`, docs/cockpit.md "Better cockpit"), Mission Creator
-    (Original / Better, §19.4), RWR (Original / Real, docs/rwr.md §7), Briefing map (Original (1998) / Modern, §8), World scale (docs/world-scale.md), Settings file. 8 rows show, with the Keyboard
+    (Original / Better, §19.4), RWR (Original / Real, docs/rwr.md §7), Briefing map (Original (1998) / Modern, §8), Bomb release (Original / Real, docs/weapons.md §9.10), World scale (docs/world-scale.md), Settings file. 8 rows show, with the Keyboard
     page's scrollbar beyond. DEFAULT resets every row except Language and Settings file.
   * **Settings file:** Export / Import through a native file dialog. Export writes the working copy as a
     settings.cfg; Import stores and saves the file's settings at once.

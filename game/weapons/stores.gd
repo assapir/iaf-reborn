@@ -194,6 +194,12 @@ func fire_station() -> int:
 	return _s.fire_station()
 
 
+## Extras "Bomb release" Real (ours, docs/weapons.md §9.10): the stations of the next release pulse (a symmetric pair
+## in pairs mode, else one), the selection moved to the first; empty without rounds.
+func real_pulse(pairs: bool) -> PackedInt32Array:
+	return _s.real_pulse(pairs)
+
+
 ## After a store left station i (FUN_0053bf10 -> FUN_0053c8b0): count, weight and drag.
 func fired(i: int) -> void:
 	_s.fired(i)
