@@ -77,6 +77,10 @@ Made by `tools/f16d/rig.py` (re-runnable; docs/aircraft-models.md):
      under the left wing, just inboard of the outer pylon. The same place under the right wing is hidden by a
      fuel tank.
 9. All textures re-encoded as KTX2 (Basis Universal).
+10. The livery recoloured to the colours of IAF F-16Ds in service (`barak_livery`; docs/aircraft-models.md): its own
+    pattern kept, its brown, sand and pale green made the faded tan, sand and grey-green, down to the strakes, its
+    grey kept below; the stabilators' tops camouflaged. Colours measured, each tone against the sand in the same
+    light, on F-16D 027 (Oren Rozen) and 601 (Itayba), the photographs of change 2. Used only as references.
 
 The model contains about 60 helper positions measured from the original game model (where the game hangs stores,
 draws the afterburner and puts the wheels). They are coordinates only. Every mesh and texture comes from the

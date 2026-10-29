@@ -25,7 +25,7 @@ them. Plans for more jets and stores: [graphics-research.md](graphics-research.m
 | triangles | 51 400 (original: 7 200); runtime LODs cut far jets to a fraction |
 | textures | livery, occlusion / roughness / metallic and normal maps at 2048²; the nozzle, cockpit, seat and pilot textures at 512 px or less; KTX2 inside the glb (about 110 MB in video memory as RGBA8) |
 | file size | 3.8 MB |
-| livery | IAF desert camouflage, 101 Squadron, tail 547 (FlightGear's own livery); IAF wing roundels: one above each wing, one under each wing |
+| livery | IAF desert camouflage, 101 Squadron, tail 547 (FlightGear's own livery and pattern) in the Barak's colours measured on photographs: faded tan, sand and grey-green down to the strakes, light grey below, camouflaged stabilator tops; IAF wing roundels: one above each wing, one under each wing |
 | crew | two pilots on two ACES II seats under a two-seat canopy |
 | IAF features | the dorsal spine of Israel's F-16D Block 30 / 40 ("Brakeet"): the avionics hump, level from the canopy's rear edge to a box under the fin that ends round just aft of the nozzle, 0.25 m under the canopy's top, with its three vents; the fin and rudder stand on it |
 
@@ -78,6 +78,25 @@ Tried and dropped:
   the spine looks as wide as the canopy's rear. Result: FlightGear's glass narrows to a 0.34 m arch at its rear, so
   the spine's shoulders stood out beside the glass. Dropped for a front that is the glass's arch and widens behind
   it. Making FlightGear's glass wider at the rear was left alone: it is the moving canopy.
+
+#### The colours against photographs (2026-10-29)
+
+FlightGear's livery has an IAF pattern, but its pale green renders light blue (it is nearly its grey) and its
+brown reads dark. The colours were measured on photographs of IAF F-16Ds (SOURCES.md, change 10): each tone over
+the sand in the same light, on 027 in sun and 601 under cloud. Tan over sand: (0.87, 0.70, 0.50) and (0.76, 0.70,
+0.66). Green over sand: (0.93, 1.00, 0.98) and (0.87, 0.94, 0.92). The green is a warm grey-green barely darker than
+the sand. `BARAK` keeps the sand as bright as FlightGear's and sets the tan and green so that on screen they stand to
+the sand as in the photos' mean.
+
+Tried and dropped:
+
+- **The Sufa's FS colours** (`FS`, set against fresh F-16I paint). Result: the Barak dark and green, unlike the
+  faded, warm jets in the photos.
+- **The photos' ratios as albedo.** Result: on screen the tan stood to the sand at 0.61 where the photos show
+  0.82: the tone curve darkens the middle tones. Dropped for values set against our own renders.
+- **The green only on faces looking up.** Result: the sides under the canopy rail stayed blue-grey; on 601 they
+  are camouflaged down to the strakes. Dropped for the height test (`BARAK_Z_CAMO`), which keeps the intakes' sides
+  grey.
 
 ### 1.3 The F-16I Sufa model
 
@@ -177,9 +196,14 @@ The script:
    position. Above each wing it sits on the fixed panel forward of the flaperon, mid-chord, 43 % of the way from the
    fuselage side to the tip rail, 0.53 m across. Under the left wing it mirrors the livery's own roundel under the
    right wing. A ray cast onto the skin finds each position's texels. Photographs: SOURCES.md, change 8;
-9. makes the maps: occlusion baked in Cycles, a normal map from the livery's thin dark lines (panel lines, rivets),
+9. recolours the livery to the Barak's colours (`barak_livery`, constants `BARAK`, `BARAK_Z_CAMO`; the Sufa has
+   its own, `sufa_livery`): FlightGear's brown, sand and pale green become the tan, sand and grey-green measured on
+   photographs of IAF F-16Ds (§1.2, "The colours against photographs"); its pale green is nearly its grey, so above the strakes (0.15 m) and on faces
+   looking up both become the green, and underneath the grey stays FS 36375. The stabilators' tops, grey in the
+   livery, get our camouflage pattern (`camo_weights`) in the same colours;
+10. makes the maps: occlusion baked in Cycles, a normal map from the livery's thin dark lines (panel lines, rivets),
    roughness from the lines and the occlusion;
-10. exports the glb and re-encodes its textures as KTX2.
+11. exports the glb and re-encodes its textures as KTX2.
 
 ## 3. Checks
 
