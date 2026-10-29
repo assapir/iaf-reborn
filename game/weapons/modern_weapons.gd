@@ -1,7 +1,9 @@
-# The F-16I Sufa's modern weapons (ours; docs/weapons.md §13, values and sources docs/real-weapons.md §1.6): records
-# the 1998 data has no counterpart for, built from public real data whatever Weapon data says. Each takes its blast,
-# drag and model from an original record ("base" / "model_of", read from the mission's bdb at run time) and overrides
-# what the sources give. Only the Sufa (`Settings.sufa`) may load them (`loads`).
+# The modern weapons (ours; docs/weapons.md §13, values and sources docs/real-weapons.md §1.6, the jets that carried
+# them §1.7): records the 1998 data has no counterpart for, built from public real data whatever Weapon data says. Each
+# takes its blast, drag and model from an original record ("base" / "model_of", read from the mission's bdb at run
+# time) and overrides what the sources give. The modern jets, the F-16I Sufa (`Settings.sufa`) and the F-35I, always
+# load theirs; another jet loads a weapon only with Extras "Weapons" on Modern (`Settings.modern_weapons`) and when a
+# source shows the jet carrying it (`LOADS`).
 #
 # - AIM-9X Block II and Python 5 (type 570): the helmet-cued, high off-boresight IR missiles. Their seeker cone is the
 #   helmet / radar slaving limit (docs/weapons.md §5.4); "_offBoresight" lets them turn to a target beside or behind
@@ -118,18 +120,26 @@ const RECORDS := [
 		"scale": 0.8
 	},
 ]
-## The Sufa's stations per record: [id, count, stations A..I] (docs/f16i.md §5): the IR missiles on the wingtip rails
-## and the outer pylons (1–3, 7–9, as the F-16's AIM-9L), the JDAMs on the heavy wing stations 3, 4, 6, 7, four
-## GBU-39s on a BRU-61 rack there.
-const LOADS := [
-	[1001, 1, "ABCGHI"],
-	[1002, 1, "ABCGHI"],
-	[1003, 1, "CDFG"],
-	[1004, 1, "CDFG"],
-	[1005, 1, "CDFG"],
-	[1006, 1, "CDFG"],
-	[1007, 4, "CDFG"],
-]
+## The jets that may load each record: id -> {jet: [count, stations A..I]}. A jet is a bdb type code, or "sufa" for the
+## F-16I Sufa (type 100 with Extras "F-16 version" on Sufa). The Sufa and the F-35I (1000) always load theirs; every
+## other jet only with Extras "Weapons" on Modern. Which jet carried what, and the stations: docs/real-weapons.md §1.7.
+## The Sufa (docs/f16i.md §5): the IR missiles on the wingtip rails and the outer pylons (1–3, 7–9, as the F-16's
+## AIM-9L), the JDAMs on the heavy wing stations 3, 4, 6, 7, four GBU-39s on a BRU-61 rack there. The Barak (100): the
+## IR missiles as the AIM-9L, the JDAMs on 3, 4, 6, 7 (the IAF's F-16s), the GBU-39s on 3 / 7. The F-15 (110): the
+## AIM-9X two to a wing pylon as its AIM-9L, the GBU-31 on the wing pylons and the centreline as its MK-84. The F-35I
+## (1000, docs/f35i.md §3.1): the AIM-9X on the outboard pylons A / I, the JDAMs in the bays C / G and on the heavy
+## pylons B / H, four GBU-39s in each bay.
+const LOADS := {
+	1001: {"sufa": [1, "ABCGHI"], 100: [1, "ABCGHI"], 110: [2, "AI"], 1000: [1, "AI"]},
+	1002: {"sufa": [1, "ABCGHI"], 100: [1, "ABCGHI"]},
+	1003: {"sufa": [1, "CDFG"], 100: [1, "CDFG"], 110: [1, "BEH"], 1000: [1, "BCGH"]},
+	1004: {"sufa": [1, "CDFG"]},
+	1005: {"sufa": [1, "CDFG"], 1000: [1, "BCGH"]},
+	1006: {"sufa": [1, "CDFG"], 100: [1, "CDFG"]},
+	1007: {"sufa": [4, "CDFG"], 100: [4, "CG"], 1000: [4, "CG"]},
+}
+## The jets that have their modern weapons whatever the switch: the Sufa and the F-35I.
+const ALWAYS := ["sufa", 1000]
 
 
 ## The new records added to a weapon database `db` (weapon_db.gd) whose bdb has their base records.
@@ -156,7 +166,7 @@ static func add_to(db: RefCounted) -> void:
 		w.weight_lb = roundf(float(spec.kg) * LB_PER_KG)  # whole pounds, as the bdb (0x758)
 		if spec.has("icon"):
 			w.icon = spec.icon  # ours; else the install's icon of the model (mission_weapons.gd)
-		w.sufa = true
+		w.modern = true
 		w.scale = float(w.get("scale", 1.0)) * float(spec.get("scale", 1.0))
 		if spec.has("fill_kg"):
 			var k := float(spec.fill_kg) / MK84_FILL_KG
@@ -186,16 +196,21 @@ static func _missile(db: RefCounted, w: Dictionary, spec: Dictionary) -> void:
 	w.loal = bool(spec.get("loal", false))
 
 
-## The Sufa's load items (CDMEWeaponLoadItem: 0x910 id, 0x906 count, raw = 9 int32 station flags) for a jet of bdb type
-## `type`; none for another jet or with the Barak.
+## The modern load items (CDMEWeaponLoadItem: 0x910 id, 0x906 count, raw = 9 int32 station flags) for a jet of bdb
+## type `type` (LOADS); none for a jet that carried none or, but on the Sufa and the F-35I, with Weapons on Original.
 static func loads(type: int) -> Array:
+	var settings: Node = Engine.get_main_loop().root.get_node("Settings")
+	var jet: Variant = "sufa" if settings.sufa(type) else type
 	var out := []
-	if not Engine.get_main_loop().root.get_node("Settings").sufa(type):
+	if not jet in ALWAYS and not settings.modern_weapons:
 		return out
-	for l in LOADS:
+	for id in LOADS:
+		var l = LOADS[id].get(jet)
+		if l == null:
+			continue
 		var raw := PackedByteArray()
 		raw.resize(36)
 		for k in 9:
-			raw.encode_s32(k * 4, 1 if "ABCDEFGHI"[k] in l[2] else 0)
-		out.append({"0x910": l[0], "0x906": l[1], "raw": raw.hex_encode(), "_class": "CDMEWeaponLoadItem"})
+			raw.encode_s32(k * 4, 1 if "ABCDEFGHI"[k] in l[1] else 0)
+		out.append({"0x910": id, "0x906": l[0], "raw": raw.hex_encode(), "_class": "CDMEWeaponLoadItem"})
 	return out

@@ -1405,7 +1405,7 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
     `gamep_0/_1`. Mirrored in Hebrew. Row rules are opaque and one page pixel thick, so the ones that fall on the
     background's grid lines look like the rest.
   * **Extras rows** (`front_end.gd` `EXTRAS` and `_extras_rows`, less the Graphics → MORE rows; each switch is in
-    deviations.md §2): Flight data, Weapon data, F-16 version (Barak (F-16D) / Sufa (F-16I), docs/f16i.md), Language (English / Hebrew; Hebrew only when the pack is installed),
+    deviations.md §2): Flight data, Weapon data, F-16 version (Barak (F-16D) / Sufa (F-16I), docs/f16i.md), Weapons (Original (1998) / Modern, docs/weapons.md §13), Language (English / Hebrew; Hebrew only when the pack is installed),
     Flight info (Ctrl+F12), Blackbox, HUD pitch ladder, HUD (Original (1998) / Real), Real HUD bingo (500-5,000 lb, 1,500 by default), All keys on the Keyboard page,
     F-35I replaces (Off / one of the seven jets, docs/f35i.md), HARM targets, CD launcher (§18.1), Mouse wheel
     (below), Better cockpit (`Settings.BETTER_COCKPIT`, docs/cockpit.md "Better cockpit"), Mission Creator
@@ -2156,7 +2156,10 @@ record `+0x350` (`0x68e8d8+n·0x370`).
    * the jet art is then re-blitted over (x+1,y+1, 49×40), leaving only a frame.
 7. For each loaded station (count ≠ 0), all in green RGB(0,255,0), key.fnt, centred:
    * the weapon icon at (x+1,y+1), 49×30;
-   * `"%dx%s"` (count, name) in (x+2,y+23)–(x+51,y+32);
+   * `"%dx%s"` (count, name) in (x+2,y+23)–(x+51,y+32): an 8-character text (`1xAIM-9L`, 48 px) fills the 49 px
+     rect up to the box's frame. Ours draws key.fnt at its 8 px size scaled with the page (`arming.gd` `_key_text`),
+     so the text spans 6 px per character at any window size; a font size of round(8 × scale) had run it past the
+     frame;
    * `"%g"` = count×weight in (x+2,y+33)–(x+51,y+42).
 
 **Weapon list** (`FUN_00518ca0`; created on msg 0x549 via `FUN_00518d80`):

@@ -1,4 +1,4 @@
-# Renders the Arming screen icons of the F-16I Sufa's weapons (game/weapons/sufa_weapons.gd) in the originals' style:
+# Renders the Arming screen icons of the modern weapons (game/weapons/modern_weapons.gd) in the originals' style:
 # the store from the side, nose right, lit from above on black, 196 × 120 px (4× the original's 49 × 30), softened
 # like the originals' downscaled renders. Writes game/extra/weapons/arm/<icon>.png from our detailed stores only (GPL,
 # game/extra/models/stores/SOURCES.md), so no original game data goes into the repo; the Python 5 shows the install's

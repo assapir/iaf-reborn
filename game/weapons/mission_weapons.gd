@@ -10,7 +10,7 @@ const PlayerAircraft := preload("res://aircraft/player_aircraft.gd")
 const WeaponDb := preload("res://weapons/weapon_db.gd")
 const Stores := preload("res://weapons/stores.gd")
 const MissionRuntime := preload("res://mission/mission_runtime.gd")
-const SufaWeapons := preload("res://weapons/sufa_weapons.gd")
+const ModernWeapons := preload("res://weapons/modern_weapons.gd")
 
 ## Menu tab by bdb Weapons type (FUN_004ef290, record +8): 0 AA, 1 AG, 2 Misc; other types (SAMs
 ## 620 / 630, 0) are not in the list.
@@ -85,12 +85,12 @@ static func from_mission(mission: Dictionary, bdb: Dictionary, real := false) ->
 	var raw: Array = bdb.get("weapons", {}).get("items", [])
 	# The Mission Creator's WEAPONS choice (FUN_0058c9c0): only these weapon types are in the table; absent = all.
 	var kept: Array = mission.get("weapon_types", [])
-	# The bdb's weapons, then the Sufa's (ours, sufa_weapons.gd; listed only where the Sufa's stations allow them).
+	# The bdb's weapons, then the modern ones (ours, modern_weapons.gd; listed only where the jet's stations allow them).
 	var ids := []
 	for w in raw:
 		ids.append(int(w.get("0x1e", -1)))
 	for r in db.weapons.values():
-		if r.get("sufa", false):
+		if r.get("modern", false):
 			ids.append(int(r.id))
 	for id in ids:
 		var r: Dictionary = db.by_id(id)
@@ -178,7 +178,7 @@ func weapon(id: int) -> Dictionary:
 
 
 ## FUN_004ef8a0(n): every weapon's allowed counts from the leader's CDMEWeaponLoadItems (the mission file's jet,
-## also when another one was picked: "limits"), plus the Sufa's (ours) for an F-16 with the Sufa switch: for each item,
+## also when another one was picked: "limits"), plus the modern weapons' (ours, ModernWeapons.loads): for each item,
 ## station i allows max(previous, item count) when its flag i is set.
 func reset(n: int) -> void:
 	flight = n
@@ -187,7 +187,7 @@ func reset(n: int) -> void:
 	if not flights.has(n):
 		return
 	var items: Array = flights[n].get("limits", flights[n].object).get("loads", {}).get("items", [])
-	for item in items + SufaWeapons.loads(int(flights[n].type)):
+	for item in items + ModernWeapons.loads(int(flights[n].type)):
 		var w := weapon(int(item.get("0x910", -1)))
 		if w.is_empty():
 			continue

@@ -45,7 +45,7 @@ const STORES := {
 		"kit": true,
 		"scale_as": "mk84"
 	},
-	# The F-16I Sufa's weapons (sufa_weapons.gd): on the original store each stands in for, at the real size of the
+	# The modern weapons (modern_weapons.gd): on the original store each stands in for, at the real size of the
 	# bomb it is built on (scale_as), so the JDAMs are longer than the plain bombs.
 	"aim9x": {"orig": "aim9/aim9_m.gltf", "ac": ["Weapons/AIM-9X/AIM-9X.ac"], "scale_as": "aim9"},
 	"gbu31": {"orig": "mk84/mk84_m.gltf", "ac": ["Weapons/GBU-31/GBU-31.ac"], "scale_as": "mk84"},
