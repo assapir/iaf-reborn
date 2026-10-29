@@ -43,7 +43,7 @@ Terms used in this doc:
 | STT / TWS | the radar's single-target track / track-while-scan (docs/radar.md)                              |
 | tCO       | `_timeConstOrientation`: the time a missile flies straight before it steers                     |
 | TRA / TER | the TV weapon's status codes on the TV page: 2 TRA (guided mode 0), 3 TER (modes 1 / 2) (§12.1) |
-| JDAM      | joint direct attack munition: a GPS / INS tail kit on a plain bomb (ours, the F-16I's, §13.2)   |
+| JDAM      | joint direct attack munition: a GPS / INS tail kit on a plain bomb (ours, §13.2)               |
 | LAR       | launch acceptability region: where a released GPS bomb reaches its aim (§13.3)                  |
 | LOAL      | lock-on after launch: the missile finds its target after it leaves the rail (§13.1)             |
 | SDB       | small diameter bomb, the GBU-39 (§13.2)                                                         |
@@ -65,7 +65,8 @@ What is built:
 - The TV weapons (635 Maverick, 640 TV missile) with the guided motion, the camera riding the weapon and the TV
   page's TRA / TER and time (§12).
 - The laser bombs with the FLIR designation (§9.8).
-- Ours, the F-16I Sufa's weapons (only with Extras "F-16 version" = Sufa): the AIM-9X and Python 5 (high off-boresight
+- Ours, the modern weapons (the F-16I Sufa and the F-35I; with Extras "Weapons" on Modern also the Barak and the
+  F-15): the AIM-9X and Python 5 (high off-boresight
   shots through the helmet, lock-on after launch), the JDAMs and the GBU-39 (GPS bombs to a designated point, with an
   in-range cue) (§13).
 
@@ -1053,30 +1054,47 @@ Maverick at the camera's point and its hit. `tests/godot/test_maverick_mfd.gd` (
 camera rides the first in every update until the hit, with the page on RDY, the picture shown and the weapon's model
 on the EO self layer; then the camera is back on the jet; the last one launched gives NO SOURCE.
 
-## 13. The F-16I Sufa's weapons (ours)
+## 13. The modern weapons (ours)
 
-With Extras "F-16 version" = Sufa (`Settings.sufa(100)`, docs/f16i.md) the F-16's Arming screen also lists seven
-weapons the 1998 game does not have. They are ours: new records built from public data whatever Weapon data says
-(values and sources: docs/real-weapons.md §1.6). The Barak, the other jets and the AI never get them.
+Seven weapons the 1998 game does not have: the AIM-9X, Python 5, GBU-31, GBU-31(V)3, GBU-32, GBU-38 and GBU-39. They are
+ours: new records built from public data whatever Weapon data says (values and sources: docs/real-weapons.md §1.6).
+- **The modern jets** always list theirs: the F-16I Sufa (Extras "F-16 version" = Sufa, `Settings.sufa(100)`,
+  docs/f16i.md) all seven, the F-35I (docs/f35i.md §3) the AIM-9X, GBU-31, GBU-32 and GBU-39.
+- **Extras "Weapons"** (`Settings.modern_weapons`): on Original (the default) every other jet's Arming list is the
+  original's. On Modern a jet also lists each weapon a public source shows it carrying (docs/real-weapons.md §1.7):
 
-- **Records** (`game/weapons/sufa_weapons.gd`, ids 1001–1007, added to every weapon database by `weapon_db.gd`): each
+  | jet | weapons with Weapons on Modern |
+  |---|---|
+  | F-16D Barak | AIM-9X, Python 5, GBU-31, GBU-38, GBU-39 |
+  | F-15 Baz | AIM-9X, GBU-31 |
+  | F-4E, Kurnass 2000, Kfir, Lavi, Mirage, MiG-23, MiG-29 | none |
+
+- The AI never gets them.
+
+- **Records** (`game/weapons/modern_weapons.gd`, ids 1001–1007, added to every weapon database by `weapon_db.gd`): each
   copies an original record for its blast, drag and model and overrides the rest. A record built on a bomb with less
   explosive (GBU-31(V)3, GBU-39) scales the base's power by its fill over the Mk 84's 429 kg and the radius by the
-  cube root of that (inferred).
+  cube root of that (inferred). Stations as numbered 1–9 on the Arming screen:
 
-  | record | type | built on (blast) | model (Original / Detailed) | stations | count |
-  |---|---|---|---|---|---|
-  | `AIM-9X` | 570, gen. 4 | AIM-9M | AIM-9 / FlightGear AIM-9X | 1–3, 7–9 | 1 |
-  | `PYTH-5` | 570, gen. 4 | PYTH-4 | the Python 4's (both) | 1–3, 7–9 | 1 |
-  | `GBU-31` | 650 + GPS | MK-84 | MK-84L / FlightGear GBU-31 | 3, 4, 6, 7 | 1 |
-  | `GBU-31V3` (BLU-109) | 650 + GPS | MK-84 × 250 / 429 | MK-84L / FlightGear GBU-31 | 3, 4, 6, 7 | 1 |
-  | `GBU-32` | 650 + GPS | MK-83 | MK-83L (both) | 3, 4, 6, 7 | 1 |
-  | `GBU-38` | 650 + GPS | MK-82 | MK-82L / FlightGear GBU-54 (the laser JDAM's look) | 3, 4, 6, 7 | 1 |
-  | `GBU-39` | 650 + GPS | MK-84 × 16 / 429 | MK-82 at 0.8 scale (both) | 3, 4, 6, 7 | 4 (one rack) |
+  | record | type | built on (blast) | model (Original / Detailed) | Sufa | Barak | F-15 | F-35I | count |
+  |---|---|---|---|---|---|---|---|---|
+  | `AIM-9X` | 570, gen. 4 | AIM-9M | AIM-9 / FlightGear AIM-9X | 1–3, 7–9 | 1–3, 7–9 | 1, 9 (two each) | 1, 9 | 1 |
+  | `PYTH-5` | 570, gen. 4 | PYTH-4 | the Python 4's (both) | 1–3, 7–9 | 1–3, 7–9 | – | – | 1 |
+  | `GBU-31` | 650 + GPS | MK-84 | MK-84L / FlightGear GBU-31 | 3, 4, 6, 7 | 3, 4, 6, 7 | 2, 5, 8 | 2, 3, 7, 8 | 1 |
+  | `GBU-31V3` (BLU-109) | 650 + GPS | MK-84 × 250 / 429 | MK-84L / FlightGear GBU-31 | 3, 4, 6, 7 | – | – | – | 1 |
+  | `GBU-32` | 650 + GPS | MK-83 | MK-83L (both) | 3, 4, 6, 7 | – | – | 2, 3, 7, 8 | 1 |
+  | `GBU-38` | 650 + GPS | MK-82 | MK-82L / FlightGear GBU-54 (the laser JDAM's look) | 3, 4, 6, 7 | 3, 4, 6, 7 | – | – | 1 |
+  | `GBU-39` | 650 + GPS | MK-84 × 16 / 429 | MK-82 at 0.8 scale (both) | 3, 4, 6, 7 | 3, 7 | – | 3, 7 (bays) | 4 (one rack) |
 
-- **Arming**: `mission_weapons.gd` lists them after the bdb's weapons and adds their load items to the F-16's when
-  the switch is on (`SufaWeapons.loads`). Their icons are ours (`game/extra/weapons/arm/`, renders of the
-  detailed stores by `tools/stores/icons.gd`); the Python 5 shows the install's Python 4 icon. A GPS bomb takes the bomb rack layout (§2.2), so four GBU-39s sit on one station.
+- **Arming**: `mission_weapons.gd` lists them after the bdb's weapons and adds their load items (`ModernWeapons.loads`)
+  to the jet's. A jet picked on the Jet list takes the modern items of the jet flown, with the mission jet's original
+  items (docs/front-end.md §15). Their icons are ours (`game/extra/weapons/arm/`, renders of the detailed stores by
+  `tools/stores/icons.gd`); the Python 5 shows the install's Python 4 icon. A GPS bomb takes the bomb rack layout
+  (§2.2), so four GBU-39s sit on one station.
+- **On every jet**: the guidance, the release and the HUD cues below are the same on every jet that
+  lists a weapon. Without a helmet sight (the F-4E, Kfir and Mirage cockpits,
+  §5.4) an AIM-9X would lock within its cone of the nose only through a radar lock, else within 6° of the nose; none
+  of those jets lists one.
 
 ### 13.1 AIM-9X and Python 5
 
@@ -1124,8 +1142,13 @@ In HUD modes 5 / 6 with a GPS bomb selected:
   the line from the centre, as the TV / HARM diamond) and a steering line to it from the flight path marker; a dot
   inside the diamond while in range. The CCIP symbols are not drawn then. Without a designation the CCIP symbols of
   §9.4 stay and the bomb goes to their aim.
-- Open: the Real HUD (docs/real-hud.md) draws its CCIP for a GPS bomb; the F-16's real JDAM symbols (TD box,
-  steering line, in-range text) are not built there yet.
+- **Real HUD** (docs/real-hud.md): with a designated aim the same diamond, dot and steering line, in the Real HUD's
+  colour, over the jet's own symbology; the text rows stay the Real HUD's. A gunsight-only jet (the F-4E, the Mirage)
+  draws none.
+- Open: the GBU-31(V)3 is drawn with the GBU-31's (Mk 84) model. The real bomb is slimmer, with a narrower ogive nose
+  and the BLU-109's yellow band (photo: IDF Spokesperson's Unit, Commons "F-16I (IAF).jpg"); its own shape needs a model
+  or a per-axis scale (records take one uniform `scale`).
+- Open: the real JDAM symbols of each jet's HUD (the F-16's TD box, steering line and in-range text) are not built.
 
 ### 13.4 Validation
 
@@ -1133,7 +1156,8 @@ In HUD modes 5 / 6 with a GPS bomb selected:
   40,000 ft), `missile.rs` `off_boresight_missile_turns_to_a_target_behind_the_beam` (100° off the nose: the original
   rule ends the flight, the off-boresight one hits), `sight.rs` `loal_takes_the_unit_nearest_the_cued_axis`,
   `release.rs` `gps_aim_pod_then_td_then_ccip`.
-- `tests/godot/test_sufa_weapons.gd`: the Arming list (Sufa: all seven; Barak: none); mission 231, the F-16 3000 m up:
+- `tests/godot/test_modern_weapons.gd`: the Arming list of every Jet list jet, the Sufa and the F-35I with Weapons on
+  Original and on Modern (the table above; the F-35I's default GBU-31 in each bay); mission 231, the F-15 3000 m up:
   the padlock view turns the head onto a MiG 70° off the nose, the AIM-9X locks it, launches and kills it; a GBU-31
   at a radar-designated ground unit 6 km ahead is in range (out of range at four times the distance), flies to the
   point and destroys the unit.

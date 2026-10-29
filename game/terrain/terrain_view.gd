@@ -3473,7 +3473,8 @@ func _process(delta: float) -> void:
 
 
 ## The info line's first field: ORIGINAL, or a short tag per switch not at its original setting (FLT real flight
-## data, WPN real weapons, HUD:<style>, 1:1 world scale, CKPT+ better cockpit, PHYS+ better physics, SUFA the F-16I).
+## data, WPN real weapons, HUD:<style>, 1:1 world scale, CKPT+ better cockpit, PHYS+ better physics, SUFA the F-16I,
+## MODWPN the modern weapons).
 func _modes_text() -> String:
 	var t := []
 	if real_data:
@@ -3490,6 +3491,8 @@ func _modes_text() -> String:
 		t.append("PHYS+")
 	if Settings.f16_variant == "sufa":
 		t.append("SUFA")
+	if Settings.modern_weapons:
+		t.append("MODWPN")
 	return "ORIGINAL" if t.is_empty() else " ".join(t)
 
 

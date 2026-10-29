@@ -323,8 +323,11 @@ func _key_text(box: Rect2, text: String, color: Color) -> void:
 	var s: float = fe._scale()
 	var x := box.position.x + floorf((box.size.x - 6.0 * text.length()) / 2.0)
 	var y := box.position.y + floorf((box.size.y - 8.0) / 2.0)
-	var p: Vector2 = fe._to_screen(Vector2(x, y))
-	draw_string(key_font, p + Vector2(0, 7.0 * s), text, HORIZONTAL_ALIGNMENT_LEFT, -1, int(round(8.0 * s)), color)
+	# The 8 px font drawn at its own size and scaled with the page: a font size of round(8 · s) would advance each
+	# character 6 · round(8 · s) / 8 px instead of 6 · s, so an 8-character "%dx%s" ran past its box.
+	draw_set_transform(fe._to_screen(Vector2(x, y)), 0.0, Vector2(s, s))
+	draw_string(key_font, Vector2(0, 7.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, color)
+	draw_set_transform(Vector2.ZERO)
 
 
 ## C's "%g" (6 significant digits, no trailing zeros).

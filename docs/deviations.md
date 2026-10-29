@@ -265,11 +265,12 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   The tower then says the real runway number (`b.rwy`); the numbers the install has no clip for (all but 03, 05,
   09, 15, 18, 21, 23, 27, 33) come from our TTS clips in `game/extra/tower_numbers/` (radio.md §1). Original:
   the missing `NumNNN` is silent. The original bases' runways all have install clips, so Original never plays ours.
-- **Additions the original does not have:** flight info line (ORIGINAL, or a short tag per switch not at its original setting — FLT, WPN, HUD:<style>, 1:1, CKPT+, PHYS+ — SUFA — then the position, speed, G, throttle, the roll trim when set, fps), blackbox, language, Window (framed / full screen),
-  "F-35I replaces" (the F-35I flies from a Jet list button, docs/f35i.md), "F-16 version" (below), Settings file (export / import the
+- **Additions the original does not have:** flight info line (ORIGINAL, or a short tag per switch not at its original setting — FLT, WPN, HUD:<style>, 1:1, CKPT+, PHYS+ — SUFA, MODWPN — then the position, speed, G, throttle, the roll trim when set, fps), blackbox, language, Window (framed / full screen),
+  "F-35I replaces" (the F-35I flies from a Jet list button, docs/f35i.md), "F-16 version" and "Weapons" (below), Settings file (export / import the
   preferences, front_end.gd `_settings_file`). Later: extra sounds (roadmap.md).
-  - The F-35I's stations are the real F-35A's (docs/f35i.md §3.1). Its outboard wing pylons (stations 1 / 11, the
-    AIM-9X's) take the newest AIM-9 the game has, the AIM-9M, and the Python 4.
+  - The F-35I's stations are the real F-35A's (docs/f35i.md §3.1). It carries the modern weapons whatever the
+    "Weapons" switch: the AIM-9X on its outboard wing pylons (stations 1 / 11), the GBU-31, GBU-32 and GBU-39 in its
+    bays (a GBU-31 in each by default) and the GBU-31 / GBU-32 on its heavy pylons (weapons.md §13).
 - **"F-16 version" (Barak (F-16D) / Sufa (F-16I))** (ours, Extras; [f16i.md](f16i.md)). Original: the game's F-16D
   Barak. Ours, with Sufa: every F-16 (type 100: the player's, the AI's and the parked ones) is the IAF's F-16I Block
   52+ with conformal fuel tanks:
@@ -284,6 +285,11 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - its look: every F-16 is drawn with our F-16I model (`f16i.glb`: conformal fuel tanks, P&W nozzle, the Sufa's
     colours, 107 Squadron's orange fin band; aircraft-models.md §1.3), also with Models on Original;
   - the Arming screen shows our F-16I front-view art with the Sufa's weights (base 32,050 lb, max 52,000 lb).
+- **"Weapons" (Original (1998) / Modern)** (ours, Extras; [weapons.md](weapons.md) §13). Original: the 1998 Arming
+  lists. Ours, with Modern: the Arming screen also lists our modern weapons (AIM-9X, Python 5, GBU-31, GBU-31(V)3,
+  GBU-32, GBU-38, GBU-39) on every jet a public source shows carrying them (real-weapons.md §1.7): the Barak the AIM-9X,
+  Python 5, GBU-31, GBU-38 and GBU-39; the F-15 the AIM-9X and GBU-31; the other jets none. The F-16I Sufa and the
+  F-35I have theirs with either setting. The AI's loads stay the original's. The info line shows MODWPN.
 - **HUD (Original (1998) / Real)** (references: [real-hud.md](real-hud.md)). Original: the 1998 HUD on every jet.
   Ours, with Real: each jet's real display:
   - the F-16C/D dash-34 HUD;

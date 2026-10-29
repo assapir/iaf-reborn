@@ -24,7 +24,7 @@ const FRAMES := [
 	"StationFla"
 ]
 ## Types that get a store model (FUN_0053ceb0 / FUN_0053ced0; 560 rockets get the rocket box). BOMBS: the bomb rack
-## layout, which the GPS bombs (ours, sufa_weapons.gd) take too: four GBU-39s sit on one rack.
+## layout, which the GPS bombs (ours, modern_weapons.gd) take too: four GBU-39s sit on one rack.
 const BOMBS := [500, 510]
 const DRAWN := [500, 510, 640, 635, 570, 650, 580, 590, 600, 610, 660]
 

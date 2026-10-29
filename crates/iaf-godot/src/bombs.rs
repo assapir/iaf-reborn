@@ -205,7 +205,7 @@ impl IafModes {
     }
 }
 
-/// A GPS kit from a weapon record's "gps" {glide, min_speed, max_speed, max_g} (sufa_weapons.gd).
+/// A GPS kit from a weapon record's "gps" {glide, min_speed, max_speed, max_g} (modern_weapons.gd).
 fn kit(d: &VarDictionary) -> Kit {
     let f = |k: &str, def: f64| num(d, k).unwrap_or(def);
     Kit {
