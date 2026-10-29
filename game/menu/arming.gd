@@ -179,7 +179,11 @@ func _process(_delta: float) -> void:
 
 
 func _art() -> String:
-	return "arm/jets/%s.png" % jet.get("art", "")
+	var a := "arm/jets/%s.png" % jet.get("art", "")
+	# An extra plane's art is composed by setup (iaf-convert arm-extra); until setup has run again, its base jet's.
+	if jet.has("base_art") and fe._tex(a) == null:
+		return "arm/jets/%s.png" % jet.base_art
+	return a
 
 
 ## The weapon's icon: the original's art, or ours (the Sufa's weapons, game/extra/weapons/arm).

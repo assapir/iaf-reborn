@@ -640,9 +640,9 @@ func _page_welcome() -> Control:
 		holder,
 		(
 			(
-				"[ul]Detailed F-16D: from the [url=https://github.com/NikolaiVChr/f16]FlightGear F-16[/url] by Erik Hofman, "
-				+ "Nikolai V. Chr. and the other authors ([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL "
-				+ "2.0[/url] or later)\n"
+				"[ul]Detailed F-16D and F-16I Sufa: from the [url=https://github.com/NikolaiVChr/f16]FlightGear F-16[/url] by "
+				+ "Erik Hofman, Nikolai V. Chr. and the other authors "
+				+ "([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL 2.0[/url] or later)\n"
 			)
 			+ (
 				"Detailed stores: the [url=https://github.com/NikolaiVChr/f16]FlightGear F-16[/url]'s weapons and pods by J "

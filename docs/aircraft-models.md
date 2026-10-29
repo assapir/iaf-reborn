@@ -12,7 +12,8 @@ The switch changes the look only (docs/deviations.md §2 "Models"). Stores, the 
 cockpit view work as with the original models.
 
 Today the detailed models are the **F-16D** (`game/extra/models/f16/f16d.glb`), used for the player's F-16, the AI's
-F-16s, parked F-16s and the Reference viewer; the **F-15C** (§6), which setup makes on your machine from the
+F-16s, parked F-16s and the Reference viewer; the **F-16I Sufa** (§1.3, `f16i.glb`), which stands in for every F-16
+with the Extras switch "F-16 version" on Sufa, whatever Models says; the **F-15C** (§6), which setup makes on your machine from the
 FlightGear F-15 and which stands in for every F-15 the same way; and 16 **stores** (§5) on every jet that carries
 them. Plans for more jets and stores: [graphics-research.md](graphics-research.md) §3.7 and §3.13.
 
@@ -60,6 +61,39 @@ screens parse it ahead on a worker thread, as the mission's other models (render
 KTX2: Godot 4.7.2's runtime glTF loader reads `KHR_texture_basisu` and decodes it to RGBA8 with the mipmaps stored
 in the file. KTX2 keeps the glb small; in video memory the textures are uncompressed (§1).
 
+### 1.3 The F-16I Sufa model
+
+`game/extra/models/f16/f16i.glb` is the same build with the `sufa` argument (docs/f16i.md §8.1 lists what it adds:
+FlightGear's conformal fuel tanks and P&W nozzle, the Sufa's FS colours, 107 Squadron's orange fin band, tail 457).
+It keeps every part, hinge, helper and station of the F-16D, so arming, animation and the afterburner work
+unchanged. `util/gltf.gd` `detailed()` returns it for `f16_h.gltf` whenever the F-16 switch is on Sufa
+(`Settings.sufa(100)`), with Models on Original too: the 1998 game has no Sufa.
+
+| item | value |
+|---|---|
+| triangles | the F-16D's plus the CFTs (352 faces) and the nozzle (16 × 13 faces) |
+| textures | as the F-16D's; the livery recoloured by the script |
+| file size | 11 MB with PNG textures (this build); the KTX2 pass brings it to the F-16D's size (§4) |
+
+Checks: `tests/godot/test_sufa_model.gd`: with Barak the F-16 is the original or the F-16D as before; with Sufa
+`f16i.glb` loads under both Models settings, keeps every helper of the original within 1 cm, and the player's and
+the AI's F-16s in mission 221 use it; the Arming screen shows the Sufa's art, weights and the F-16's nine boxes.
+
+#### Tried and dropped (2026-10-28)
+
+- **Recolouring by texture regions.** Boxes round the livery's top view and fin, recoloured to the camouflage
+  colours. Result: parts of the underside that share those rows (the right wing's lower skin, the ventral fins)
+  turned green, and the underside's panel lines took a green tint, as FlightGear's pale green and its underside
+  grey are only 0.05 apart. Dropped for the face normals: texels of faces underneath take only the grey.
+- **Painting over the fin badge by relaxing it to the colours round it** (as the F-16D's old roundel). Result: a
+  blurred brown blob with a pink stain from the stripes, plain on the fin. Dropped: each relaxed texel now takes the
+  nearer of the FS tan and sand, which leaves crisp camouflage patches.
+- **A free F-16I model online** (Sketchfab, FlightGear, GitHub). Found: FlightGear's F-16 has the CFTs and the P&W
+  nozzle but no F-16I or IAF Sufa livery; Sketchfab's downloadable "F-16I Sufa" models (by KojfDiscord, 300 000+
+  triangles) are labelled CC BY but are extracted from War Thunder, whose rights are Gaijin's, so their licence is
+  not valid; the other CC BY F-16s there (Block 50/52, Block 60, F-16D "Brakeet") have no CFTs or are works in
+  progress. Dropped for our own build from the FlightGear F-16 (GPL 2.0 or later).
+
 ## 2. Rebuilding the F-16D
 
 You need Blender 4 or 5, `basisu` (`brew install basis_universal`), a FlightGear F-16 checkout and your converted
@@ -69,6 +103,8 @@ install (`tools/setup-cli.sh`):
 git clone --depth 1 https://github.com/NikolaiVChr/f16.git /tmp/f16
 blender -b --python tools/f16d/rig.py -- /tmp/f16 assets/converted/planes/f16/f16_h.gltf game/extra/models/f16/f16d.glb
 ```
+
+The F-16I Sufa (§1.3): the same command with `game/extra/models/f16/f16i.glb sufa` at the end.
 
 `F16D_FAST=1` skips the occlusion bake (about 1 minute) for quick geometry tries. `F16D_DEBUG=1` prints every
 object's bounds. The script uses `tools/plane/kit.py` (`import_ac` reads FlightGear's AC3D files) and
@@ -116,7 +152,13 @@ The script:
 
 ## 4. Open
 
-- The cockpit view's own-jet model (`own_bc`, the original's `f16_bc`) stays the original's with the switch on.
+- The cockpit view's own-jet model (`own_bc`, the original's `f16_bc`) stays the original's with the switch on, and
+  with the Sufa: from the cockpit, the CFTs do not show.
+- `f16i.glb` holds PNG textures (11 MB): it was built on a machine without `basisu`. Run
+  `python3 tools/plane/glb_ktx2.py game/extra/models/f16/f16i.glb game/extra/models/f16/f16i.glb` where `basisu` is
+  installed to bring it to the F-16D's size.
+- The Sufa's antennas, a squadron badge, and the CFT sides' livery (projected from above, so stretched on the
+  sides).
 - The livery's fuselage sides are stretched (FlightGear's UVs project from above and below); on the dorsal spine's
   sides the panel lines of the fuselage top are stretched too. The spine's three small vents and its aft sensor
   are not modelled.

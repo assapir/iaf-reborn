@@ -12,7 +12,13 @@
 #     its wing roundels moved to the IAF positions) with our PBR maps (baked occlusion, panel-line normal map, roughness / metallic);
 #   - written as one glb with KTX2 textures (tools/plane/glb_ktx2.py, needs `basisu`).
 #
-#   blender -b --python tools/f16d/rig.py -- <FlightGear f16 checkout> <assets/converted/planes/f16/f16_h.gltf> <out.glb>
+#   blender -b --python tools/f16d/rig.py -- <FlightGear f16 checkout> <assets/converted/planes/f16/f16_h.gltf> \
+#       <out.glb> [sufa]
+#
+# `sufa` builds the F-16I Sufa (f16i.glb, docs/f16i.md §8): the same jet with FlightGear's conformal fuel tanks and
+# P&W F100 nozzle, the livery recoloured to the Sufa's FS colours, 107 Squadron's orange fin band and tail number 457
+# (sufa_livery). F16D_KEEP_PNG=1 keeps <out>.png.glb, the glb before the KTX2 pass (Blender reads it:
+# tools/f16i/arm_front.py).
 #
 # The original model is read only for its helper positions (where the game hangs stores, sees the wheels, …).
 import json
@@ -29,7 +35,9 @@ import bpy  # noqa: E402
 import numpy as np  # noqa: E402
 from mathutils import Matrix, Vector  # noqa: E402
 
-FG, ORIG, OUT = sys.argv[sys.argv.index("--") + 1:][:3]
+ARGS = sys.argv[sys.argv.index("--") + 1:]
+FG, ORIG, OUT = ARGS[:3]
+SUFA = ARGS[3:4] == ["sufa"]
 M = os.path.join(FG, "Models")
 FAST = os.environ.get("F16D_FAST") == "1"  # skip the occlusion bake (quick geometry iterations)
 LIVERY = "Liveries/Block40/90-0874.png"  # IAF desert camouflage, 101 Sqn (FlightGear's own art, GPL)
@@ -408,8 +416,14 @@ def main():
     # then placed 4.61285 m aft, onto the fuselage's nozzle ring.
     noz_m = Matrix.Translation((0, -4.61285, 0)) @ Matrix.Diagonal((0.82, 1.0, 0.82, 1.0)) @ \
         Matrix.Translation(fg((-7.74, -1.4827, 1.25336)))
-    noz = kit.import_ac(os.path.join(M, "nozzle-GE.ac"), matrix=noz_m, prefix="noz_")
-    bpy.data.objects.remove(noz.pop("InNozzleROpen"))
+    if SUFA:
+        noz = pw_nozzle()
+        # loads_models-inner.xml's CFTTanks, at FlightGear's origin; stretched for two seats with the skin under it.
+        body["CFT"] = kit.join(list(kit.import_ac(os.path.join(M, "Armament/External-stores/Fueltanks/CFT.ac"),
+                                                  prefix="cft_").values()), "CFT")
+    else:
+        noz = kit.import_ac(os.path.join(M, "nozzle-GE.ac"), matrix=noz_m, prefix="noz_")
+        bpy.data.objects.remove(noz.pop("InNozzleROpen"))
     # The centreline pylon (loads_models.xml's Centerpylon: 0.02 m to the right), grey as the original's.
     body["CLStation"] = kit.join(list(kit.import_ac(os.path.join(M, "central-pylon.ac"), matrix=Matrix.Translation(
         fg((0, 0.02, 0))), prefix="cl_").values()), "CLStation")
@@ -432,6 +446,8 @@ def main():
     compress_gear(body, target)
     doors_down, doors_up = gear_doors(body)
     dorsal_spine(body)
+    if SUFA:
+        cft_livery(body)
     if os.environ.get("F16D_DEBUG") == "1":
         for o in kit.scene().objects:
             if o.type == 'MESH':
@@ -482,8 +498,184 @@ def main():
                               export_apply=True, export_image_format='AUTO')
     tris = sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in kit.scene().objects if o.type == 'MESH')
     glb_ktx2.convert(tmp, OUT)
-    os.remove(tmp)
+    if os.environ.get("F16D_KEEP_PNG") != "1":
+        os.remove(tmp)
     print("F16D", OUT, "triangles", tris, "bytes", os.path.getsize(OUT))
+
+
+# --- F-16I Sufa ------------------------------------------------------------------------------------------------
+
+# The P&W nozzle's plates at rest (nozzle-section.xml's rotations at property 0, by the right-hand rule here): the
+# petals converge to the exit.
+PW_REST_DEG = 5.0
+
+
+def pw_nozzle():
+    """F-16.xml's PW_nozzle (nozzle.xml): 16 nozzle-section.ac sections, 22.5° apart round the engine axis, 4.617 m
+    aft, each section's plates at their rest angle. nozzle.xml's far-distance cone (nozzle.ac) is left out."""
+    rest = {"us1": ((0, 0, 0.49), (0, -1, 0)), "ls1": ((0, 0, 0.45), (0, -1, 0)),
+            "ls2": ((0, -0.115, 0.435), (0, -0.948683, -0.316228))}
+    out = {}
+    for k in range(16):
+        sec = kit.import_ac(os.path.join(M, "nozzle-section.ac"), prefix="noz%d_" % k)
+        for name, (c, ax) in rest.items():
+            rotate_about([sec[name]], fg(c), fg(ax), math.radians(PW_REST_DEG))
+        transform(sec.values(), Matrix.Translation(fg((4.617, 0, 0))) @
+                  Matrix.Rotation(math.radians(22.5 * k), 4, fg((1, 0, 0))))
+        out.update({"noz%d_%s" % (k, n): o for n, o in sec.items()})
+    return out
+
+
+def cft_livery(body):
+    """The CFTs' own UVs point at an unpainted part of the livery: each corner takes the livery of the fuselage or
+    wing straight under it (as the dorsal spine does), so the camouflage runs on over the tanks. A face whose corners
+    land on different parts of the livery takes its centre's for all of them."""
+    from mathutils.geometry import barycentric_transform
+    bvh, tris, uvs = skin_bvh([body["RadarDomeTop"]])
+    cft = body["CFT"]
+    me, mw = cft.data, cft.matrix_world
+    uvl = me.uv_layers.active.data
+
+    def uv_under(p):
+        loc, _, i, _ = bvh.ray_cast(Vector((p.x, p.y, 5.0)), Vector((0, 0, -1)))
+        return None if loc is None else barycentric_transform(loc, *tris[i], *uvs[i]).to_2d()
+
+    for f in me.polygons:
+        corners = [uv_under(mw @ me.vertices[me.loops[j].vertex_index].co) for j in f.loop_indices]
+        if any(c is None for c in corners) or max((a - b).length for a in corners for b in corners) > 0.03:
+            corners = [uv_under(mw @ f.center)] * len(corners)
+        for j, c in zip(f.loop_indices, corners):
+            if c is not None:
+                uvl[j].uv = c
+    print("CFT", len(me.vertices), "vertices, painted from the skin under it")
+
+
+# The Sufa's colours (docs/f16i.md §8), sRGB 0..1, approximate sRGB of the FS 595 chips: FS 30219 tan, FS 33531 sand,
+# FS 34424 light grey-green over FS 36375 light ghost grey; radome FS 36270.
+FS = {"30219": (0.588, 0.447, 0.314), "33531": (0.808, 0.714, 0.533), "34424": (0.580, 0.627, 0.478),
+      "36375": (0.745, 0.761, 0.773), "36270": (0.518, 0.541, 0.557)}
+# The livery's colours they replace (measured from 90-0874.png): its brown, sand and pale green camouflage and its
+# light grey underside (bluer than the green: each texel takes the nearest).
+FG_PAINT = [((0.624, 0.553, 0.431), "30219"), ((0.867, 0.820, 0.706), "33531"), ((0.792, 0.827, 0.776), "34424"),
+            ((0.792, 0.824, 0.831), "36375")]
+FG_RADOME = (0.337, 0.337, 0.337)
+# Places in the 2048 px livery (pixels from the top left). The radome's top and bottom halves (x0, y0, x1, y1).
+RADOME = [(1340, 420, 1600, 560), (390, 990, 670, 1130)]
+# On the fin, 101 Squadron's markings to paint over: its badge and the red disc above it (circles x, y, r) and the
+# red and white stripes (boxes), on each side; and the tail number "547" (boxes; the right side's is upside down).
+BADGES = [(1800, 190, 70), (1820, 115, 26), (1800, 570, 70), (1820, 655, 26)]
+STRIPES = [(1850, 30, 1960, 190), (1850, 585, 1960, 745)]
+DIGITS = [((1640, 245, 1757, 312), False), ((1640, 468, 1759, 537), True)]
+OLD_NUMBER, TAIL_NUMBER = "547", "457"  # the new number from the old one's glyphs
+# 107 Squadron ("Knights of the Orange Tail", Hatzerim; docs/f16i.md §8): ours, an orange band down the fin's leading
+# edge above the tail number, turning aft at the number's height. Band width, stripe half height (m).
+ORANGE = (0.86, 0.42, 0.10)
+BAND_M, STRIPE_M = 0.30, 0.045
+
+
+def recolour(albedo, pairs, reach, where):
+    """The texels in `where` near a source colour (within `reach`) shifted by (target - source), blended between the
+    nearest sources, so the shading and panel lines on the paint keep their contrast."""
+    px = albedo[where][:, :3]
+    d = np.stack([np.linalg.norm(px - np.array(src), axis=1) for src, _ in pairs])
+    k = np.exp(-(d / 0.025) ** 2)
+    steps = np.array([np.array(dst) - np.array(src) for src, dst in pairs])
+    shift = (k.T @ steps) / np.maximum(k.sum(axis=0), 1e-6)[:, None]
+    albedo[where, :3] = np.clip(px + shift * np.clip((reach - d.min(axis=0)) / (reach * 0.4), 0, 1)[:, None], 0, 1)
+
+
+def texels(albedo, tris, uvs):
+    """Every texel of the triangles (world, UVs) -> its world position and the z of its face's normal ([h, w, 3] and
+    [h, w], NaN where no triangle is)."""
+    h, w = albedo.shape[:2]
+    pos = np.full((h, w, 3), np.nan, dtype=np.float32)
+    nz = np.full((h, w), np.nan, dtype=np.float32)
+    for t, uv in zip(tris, uvs):
+        n = (t[1] - t[0]).cross(t[2] - t[0])
+        p = np.array([[u.x * w - 0.5, u.y * h - 0.5] for u in uv])
+        lo = np.maximum(np.floor(p.min(axis=0)).astype(int), 0)
+        hi = np.minimum(np.ceil(p.max(axis=0)).astype(int) + 1, (w, h))
+        m = np.array([[p[0, 0] - p[2, 0], p[1, 0] - p[2, 0]], [p[0, 1] - p[2, 1], p[1, 1] - p[2, 1]]])
+        if (hi <= lo).any() or abs(np.linalg.det(m)) < 1e-12 or n.length < 1e-12:
+            continue
+        cols, rows = np.meshgrid(np.arange(lo[0], hi[0]), np.arange(lo[1], hi[1]))
+        l01 = np.einsum("ij,jrc->irc", np.linalg.inv(m), np.stack([cols - p[2, 0], rows - p[2, 1]]))
+        bary = np.stack([l01[0], l01[1], 1 - l01[0] - l01[1]])
+        inside = (bary >= -0.02).all(axis=0)
+        pos[rows[inside], cols[inside]] = np.einsum("krc,kj->rcj", bary, np.array([tuple(v) for v in t]))[inside]
+        nz[rows[inside], cols[inside]] = n.z / n.length
+    return pos, nz
+
+
+def is_fin(t):
+    """A triangle of the fin or rudder: facing sideways, on the centre line, above the spine aft of the blade
+    antenna."""
+    n, c = (t[1] - t[0]).cross(t[2] - t[0]), (t[0] + t[1] + t[2]) / 3
+    return n.length > 1e-12 and abs(n.x) > 0.8 * n.length and c.z > 1.2 and abs(c.x) < 0.1 and c.y < -3.7
+
+
+def sufa_livery(albedo, skin):
+    """FlightGear's IAF livery made the Sufa's: the paint recoloured to the FS colours (the upper surfaces' camouflage,
+    the underside's grey, the radome); on the fin, 101 Squadron's markings painted over with the camouflage colours,
+    107 Squadron's orange band and the tail number."""
+    h, w = albedo.shape[:2]
+    src = albedo.copy()
+    _, tris, uvs = skin_bvh(skin)
+    _, nz = texels(albedo, tris, uvs)
+    camo = [(c, FS[f]) for c, f in FG_PAINT]
+    recolour(albedo, camo, 0.16, nz > -0.35)
+    recolour(albedo, camo[3:], 0.16, nz <= -0.35)  # underneath: grey only
+    yy, xx = np.mgrid[h - 1:-1:-1, 0:w]  # pixel coordinates from the top left, in Blender's row order
+    for x0, y0, x1, y1 in RADOME:
+        recolour(albedo, [(FG_RADOME, FS["36270"])], 0.12, (xx >= x0) & (xx < x1) & (yy >= y0) & (yy < y1))
+    lum = src[..., :3] @ np.array([0.30, 0.59, 0.11], dtype=np.float32)
+    # The fin's markings: relaxed to the colours round them, then each texel set to the nearer of the fin's tan and
+    # sand (crisp patches, as painted).
+    hole = np.zeros((h, w), dtype=bool)
+    for cx, cy, r in BADGES:
+        hole |= np.hypot(xx - cx, yy - cy) <= r
+    for x0, y0, x1, y1 in STRIPES + [b for b, _ in DIGITS]:
+        hole |= (xx >= x0) & (xx < x1) & (yy >= y0) & (yy < y1)
+    for _ in range(500):
+        p = np.pad(albedo, ((1, 1), (1, 1), (0, 0)), mode="edge")
+        albedo[hole] = ((p[:-2, 1:-1] + p[2:, 1:-1] + p[1:-1, :-2] + p[1:-1, 2:]) / 4)[hole]
+    paints = np.array([FS[f] for f in ("30219", "33531")])
+    near = np.linalg.norm(albedo[hole][:, None, :3] - paints[None], axis=2).argmin(axis=1)
+    albedo[hole, :3] = paints[near]
+    # 107 Squadron's orange, in the fin's frame: the leading edge runs straight from the root's foremost vertex to the
+    # tip's.
+    fin = [i for i, t in enumerate(tris) if is_fin(t)]
+    pos, _ = texels(albedo, [tris[i] for i in fin], [uvs[i] for i in fin])
+    on_fin = ~np.isnan(pos[..., 0])
+    fv = np.array([tuple(v) for i in fin for v in tris[i]])
+    le = [fv[np.abs(fv[:, 2] - z) < 0.02][:, 1:].max(axis=0) for z in (fv[:, 2].min(), fv[:, 2].max())]
+    with np.errstate(invalid="ignore"):
+        aft = np.interp(pos[..., 2], [le[0][1], le[1][1]], [le[0][0], le[1][0]]) - pos[..., 1]
+        ink = [(np.nonzero((xx >= x0) & (xx < x1) & (yy >= y0) & (yy < y1) & (lum < 0.3)), flip)
+               for (x0, y0, x1, y1), flip in DIGITS]
+        num_z = float(np.nanmean(np.concatenate([pos[rc][:, 2] for rc, _ in ink])))
+        orange = on_fin & (((pos[..., 2] > num_z) & (aft < BAND_M)) | (np.abs(pos[..., 2] - num_z) < STRIPE_M))
+    albedo[orange, :3] = albedo[orange, :3] * 0.2 + np.array(ORANGE) * 0.8
+    # The tail number: each glyph (its dark texels and their soft rim) moved to its new place along the line, in
+    # reading order (the upside-down copy reads right to left in the texture).
+    for (rows, cols), flip in ink:
+        order = np.argsort(cols)
+        groups = np.split(order, np.nonzero(np.diff(cols[order]) > 2)[0] + 1)
+        assert len(groups) == len(OLD_NUMBER), ("tail number glyphs", len(groups))
+        glyphs = [(int(cols[g].min()), int(cols[g].max()) + 1) for g in groups]
+        if flip:
+            glyphs.reverse()
+        r0, r1 = rows.min() - 2, rows.max() + 3
+        centres = [(a + b) / 2 for a, b in glyphs]
+        for slot, ch in enumerate(TAIL_NUMBER):
+            a, b = glyphs[OLD_NUMBER.index(ch)]
+            dx = int(round(centres[slot] - (a + b) / 2))
+            alpha = np.clip((0.5 - lum[r0:r1, a - 2:b + 2]) / 0.35, 0, 1)[..., None]
+            dst = albedo[r0:r1, a - 2 + dx:b + 2 + dx, :3]
+            dst[:] = dst * (1 - alpha) + src[r0:r1, a - 2:b + 2, :3] * alpha
+    print("Sufa livery: fin texels", int(on_fin.sum()), "painted over", int(hole.sum()), "orange", int(orange.sum()),
+          "number height", round(num_z, 2), "leading edge", [tuple(round(float(x), 2) for x in p) for p in le])
+    return albedo
 
 
 # --- materials -------------------------------------------------------------------------------------------------
@@ -562,14 +754,11 @@ def bake_ao(objs, size):
     return pixels(img)[..., 0]
 
 
-def wing_roundels(albedo, skin):
-    """The livery's roundel moved to the IAF positions (ROUNDELS): drawn as a circle on the wing, its texels found by
-    casting onto the skin; the livery's own roundel above the left wing painted over with the colours round it."""
+def skin_bvh(objs):
+    """A BVH of the livery-painted faces of `objs` (world frame), their triangles and each triangle's UVs."""
     from mathutils.bvhtree import BVHTree
-    from mathutils.geometry import barycentric_transform
-    h, w = albedo.shape[:2]
     tris, uvs = [], []
-    for o in skin:
+    for o in objs:
         me, mw = o.data, o.matrix_world
         uvl = me.uv_layers.active.data
         for p in me.polygons:
@@ -582,7 +771,15 @@ def wing_roundels(albedo, skin):
                 tris.append([mw @ me.vertices[me.loops[j].vertex_index].co for j in t])
                 uvs.append([Vector((uvl[j].uv.x, uvl[j].uv.y, 0)) for j in t])
     verts = [v for t in tris for v in t]
-    bvh = BVHTree.FromPolygons(verts, [(3 * i, 3 * i + 1, 3 * i + 2) for i in range(len(tris))])
+    return BVHTree.FromPolygons(verts, [(3 * i, 3 * i + 1, 3 * i + 2) for i in range(len(tris))]), tris, uvs
+
+
+def wing_roundels(albedo, skin):
+    """The livery's roundel moved to the IAF positions (ROUNDELS): drawn as a circle on the wing, its texels found by
+    casting onto the skin; the livery's own roundel above the left wing painted over with the colours round it."""
+    from mathutils.geometry import barycentric_transform
+    h, w = albedo.shape[:2]
+    bvh, tris, uvs = skin_bvh(skin)
 
     def uv_at(x, y, top):
         # Down from above: the first hit is the wing's upper skin, the next its lower skin (above any pylon).
@@ -637,6 +834,8 @@ def materials(rig):
     livery = bpy.data.images.load(os.path.join(M, LIVERY))
     skin = [o for o in objs if any(m and m.name.startswith("ac_f16.png") for m in o.data.materials)]
     albedo = wing_roundels(pixels(livery), skin)
+    if SUFA:
+        albedo = sufa_livery(albedo, skin)
     size = albedo.shape[0]
     ao = np.ones(albedo.shape[:2], dtype=np.float32) if FAST else bake_ao(skin, size)
     normal, groove = panel_maps(albedo)

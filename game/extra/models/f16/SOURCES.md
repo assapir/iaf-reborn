@@ -1,7 +1,7 @@
-# Detailed F-16D: sources and licence
+# Detailed F-16D and F-16I Sufa: sources and licence
 
-`f16d.glb` is a derived work of the FlightGear F-16 and is licensed under the **GNU GPL, version 2 or (at your
-option) any later version**, as its source is. This repository distributes it under GPL-3.0-or-later.
+`f16d.glb` and `f16i.glb` are derived works of the FlightGear F-16 and are licensed under the **GNU GPL, version 2 or
+(at your option) any later version**, as their source is. This repository distributes them under GPL-3.0-or-later.
 
 ## Source
 
@@ -72,3 +72,20 @@ Made by `tools/f16d/rig.py` (re-runnable; docs/aircraft-models.md):
 The model contains about 60 helper positions measured from the original game model (where the game hangs stores,
 draws the afterburner and puts the wheels). They are coordinates only. Every mesh and texture comes from the
 FlightGear F-16, except the dorsal spine's mesh, which the script makes (its paint is FlightGear's livery).
+
+## The F-16I Sufa (`f16i.glb`)
+
+Made by `tools/f16d/rig.py ... sufa` (docs/f16i.md §8.1): the F-16D above with these changes.
+
+| file in the FlightGear F-16 | used for |
+|---|---|
+| `Models/Armament/External-stores/Fueltanks/CFT.ac` | the conformal fuel tanks, at their place in `loads_models-inner.xml` |
+| `Models/nozzle-section.ac`, `nozzle-section.png` | the P&W F100 nozzle: 16 sections round the axis, as `nozzle.xml` places them |
+
+1. The GE nozzle replaced by the P&W nozzle (F-16.xml's `PW_nozzle`, 4.617 m aft), its plates at rest.
+2. The CFTs added and stretched with the fuselage for two seats; their paint is the livery of the skin under them.
+3. The livery (the same FlightGear IAF livery) recoloured by the script to the F-16I's FS 595 colours; 101
+   Squadron's fin badge, red disc and stripes painted over; our own 107 Squadron orange band on the fin; the tail
+   number 457 made from the livery's own "547". Reference for the fin marking, not copied: 107 Squadron's F-16I 827
+   at the IAF Museum, Hatzerim, by Oren Rozen (CC BY-SA 4.0,
+   https://commons.wikimedia.org/wiki/File:Hatzerm_131022_Sufa_01.jpg).

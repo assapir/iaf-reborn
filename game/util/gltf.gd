@@ -278,6 +278,9 @@ static func _settings() -> Node:
 ## file -> our model: in the repo (res://, GPL, tools/f16d/rig.py) or made by setup under assets/ (the F-15, §6).
 ## Each model falls back on the original on its own (the F-15 also when setup could not download its sources).
 const DETAILED := {"f16_h.gltf": "res://extra/models/f16/f16d.glb", "f15_h.gltf": "converted/models/f15/f15c.glb"}
+## The F-16I Sufa (Extras "F-16 version" on Sufa; docs/f16i.md §8, tools/f16d/rig.py `sufa`): every F-16's model, with
+## Models on Original too (the 1998 game has no Sufa).
+const SUFA := "res://extra/models/f16/f16i.glb"
 ## The detailed stores (GPL, tools/stores/build.gd; docs/aircraft-models.md §5), as DETAILED. Their textures are
 ## compressed (BC1) at the parse.
 const STORES_DIR := "res://extra/models/stores/"
@@ -305,11 +308,14 @@ const STORES := {
 }
 
 
-## The detailed model standing in for the original at `path` with the switch on, else "".
+## The detailed model standing in for the original at `path` with the switch on (an F-16's: the Sufa with the F-16
+## switch on Sufa, whatever Models says), else "".
 static func detailed(path: String) -> String:
+	var f := path.get_file()
+	if f == "f16_h.gltf" and _settings().sufa(100) and FileAccess.file_exists(SUFA):
+		return SUFA
 	if String(_settings().get("models")) != "detailed":
 		return ""
-	var f := path.get_file()
 	var hd: String = DETAILED.get(f, STORES_DIR + STORES[f] + ".glb" if STORES.has(f) else "")
 	if hd != "" and not hd.begins_with("res://"):
 		hd = _settings().assets_dir().path_join(hd)
@@ -326,7 +332,7 @@ static func detailed_stores() -> Array:
 
 ## True for our detailed models (DETAILED, STORES): parsed with LODs. By the path alone (the parse runs on workers).
 static func is_detailed(path: String) -> bool:
-	return DETAILED.values().has(path) or path.begins_with(STORES_DIR) or _made_by_setup(path)
+	return DETAILED.values().has(path) or path == SUFA or path.begins_with(STORES_DIR) or _made_by_setup(path)
 
 
 ## A detailed model setup made under assets/ (DETAILED's paths without res://): its textures are compressed at the
