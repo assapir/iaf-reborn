@@ -213,11 +213,14 @@ func our_runs() -> Array:
 		var text := String(l.get("he", l.get("text", ""))) if he else String(l.get("text", ""))
 		if style == "imagery":
 			var credits := Layers.attributions()
-			# The scenery's sources (its manifest's attribution: a line or a list of lines, docs/scenery.md).
-			var sa = Scenery.manifest().get("attribution", [])
-			for a in [sa] if sa is String else sa:
-				if String(a) != "" and not String(a) in credits:
-					credits.append(String(a))
+			# The scenery's and the roads' sources (their manifests' attribution: a line or a list of lines,
+			# docs/scenery.md).
+			var roads := Settings.load_json(Settings.assets_dir().path_join("converted/roads/manifest.json"))
+			for m in [Scenery.manifest(), roads]:
+				var sa = m.get("attribution", [])
+				for a in [sa] if sa is String else sa:
+					if String(a) != "" and not String(a) in credits:
+						credits.append(String(a))
 			if credits.is_empty():
 				continue
 			out.append_array(_lines("role", text))

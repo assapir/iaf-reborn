@@ -23,8 +23,9 @@ const SURVEY_BASES_GB := [2.0, 1.7]
 const SENTINEL_GB := 11.3
 ## Scenery made, by kind (GB; the downloads come from IafSetup.scenery_download_bytes): both measured (cells 0.58 +
 ## work files 0.49); one kind computed from the cell format (a tree is 16 bytes: 28.6 M trees 0.46 GB, buildings
-## 0.12 GB) and the work files (the OpenStreetMap extract 0.45 GB, the reduced canopy 0.04 GB for trees).
-const SCENERY_BUILT_GB := {"both": 1.06, "buildings": 0.57, "trees": 0.94}
+## 0.12 GB) and the work files (the OpenStreetMap extract 0.45 GB, the reduced canopy 0.04 GB for trees); each with
+## the theatre's roads (0.33 GB, docs/scenery.md §6).
+const SCENERY_BUILT_GB := {"both": 1.39, "buildings": 0.9, "trees": 1.27}
 const SCENERY_KINDS := ["both", "buildings", "trees"]
 ## The pilot guides' pictures and PDFs (GB, estimated).
 const GUIDES_GB := 0.3
@@ -650,6 +651,12 @@ func _page_welcome() -> Control:
 				+ "2.0[/url] or later)\n"
 			)
 			+ (
+				"Detailed Soviet stores: the AA-2 from the [url=https://github.com/l0k1/MiG-21bis]FlightGear "
+				+ "MiG-21bis[/url] by the OPRF MiG-21bis team; the AA-8, AA-10, AA-11 and the MiG-29's tank from the "
+				+ "[url=https://github.com/Mercenary-Mercury/MiG-29_9-12]FlightGear MiG-29 9-12[/url] by Sergey Salov "
+				+ "([url=https://www.gnu.org/licenses/gpl-3.0.html]GPL 3.0[/url])\n"
+			)
+			+ (
 				"Detailed F-15: the [url=https://github.com/Zaretto/fg-aircraft]FlightGear F-15C[/url] by Enrique Laso "
 				+ "(3D model), Richard Harrison (rig) and GeneB (cockpit textures) "
 				+ "([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL 2.0[/url] only), downloaded and "
@@ -675,8 +682,9 @@ func _page_welcome() -> Control:
 			)
 			+ "Survey of Israel imagery: © Survey of Israel 2015, via [url=https://data.gov.il]data.gov.il[/url]\n"
 			+ (
-				"Scenery: © [url=https://www.openstreetmap.org/copyright]OpenStreetMap[/url] contributors (ODbL 1.0), "
-				+ "Geofabrik extract; [url=https://github.com/microsoft/GlobalMLBuildingFootprints]Microsoft Global ML "
+				"Scenery and roads: © [url=https://www.openstreetmap.org/copyright]OpenStreetMap[/url] contributors "
+				+ "(ODbL 1.0), Geofabrik extracts; "
+				+ "[url=https://github.com/microsoft/GlobalMLBuildingFootprints]Microsoft Global ML "
 				+ "Building Footprints[/url] (CDLA-Permissive-2.0); GHS-BUILT-H R2023A, European Commission JRC; "
 				+ "[url=https://langnico.github.io/globalcanopyheight/]Global Canopy Height 2020[/url], Lang et al., ETH "
 				+ "Zürich ([url=https://creativecommons.org/licenses/by/4.0/]CC BY 4.0[/url]); wall materials, leaves "
@@ -892,11 +900,12 @@ func _page_extras() -> Control:
 	var mb := func(k: String) -> String: return "%.0f MB" % (IafSetup.scenery_download_bytes(k) / 1e6)
 	scenery_check = _extra(
 		v,
-		"Scenery (buildings and trees; up to %s download)" % mb.call("both"),
+		"Scenery (buildings, trees and roads; up to %s download)" % mb.call("both"),
 		(
 			"Downloads OpenStreetMap, Microsoft building footprints and building heights for the buildings, tree "
 			+ "canopy data for the trees (kept), then builds them over the Survey of Israel 2 m photo (a few "
-			+ "minutes). Needs the Survey imagery. Turn it on in the game under Graphics → MORE."
+			+ "minutes), and the theatre's roads from OpenStreetMap. Needs the Survey imagery. Turn it on in the "
+			+ "game under Graphics → MORE."
 		),
 		"" if gdal and tools.get("curl", false) else "Needs GDAL and curl (see Requirements)."
 	)
@@ -962,7 +971,7 @@ func _expected() -> Dictionary:
 			TEXTURES_GB,
 			(
 				here.call(["install", "thirdparty", "converted"])
-				- here.call(["converted/imagery", "converted/scenery", "converted/guides"])
+				- here.call(["converted/imagery", "converted/scenery", "converted/roads", "converted/guides"])
 			)
 		]
 	]
@@ -981,7 +990,13 @@ func _expected() -> Dictionary:
 				parts.append([SENTINEL_GB, 0.0, here.call([imagery + "sentinel2", imagery + "sentinel2_modern"])])
 	if i.scenery:
 		var dl: float = IafSetup.scenery_download_bytes(i.scenery_kinds) / 1e9
-		parts.append([dl + SCENERY_BUILT_GB[i.scenery_kinds], dl, here.call(["source/scenery", "converted/scenery"])])
+		parts.append(
+			[
+				dl + SCENERY_BUILT_GB[i.scenery_kinds],
+				dl,
+				here.call(["source/scenery", "source/roads", "converted/scenery", "converted/roads"])
+			]
+		)
 	if i.guides:
 		parts.append([GUIDES_GB, 0.0, _here("converted/guides")])
 	var new := 0.0

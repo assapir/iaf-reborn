@@ -149,9 +149,10 @@ rounds' path. The record's damage stays: no per-round value is published.
 The Lavi's real gun was a 30 mm DEFA[^11]; the game gives it the "20 MM". Its round count is unpublished, so the Lavi
 keeps the original gun and count.
 
-### 1.6 The F-16I Sufa's weapons (ours)
+### 1.6 The modern weapons (ours)
 
-New records for the Sufa only (docs/weapons.md §13), with these values under both Weapon data settings: the 1998
+New records (docs/weapons.md §13) for the F-16I Sufa and the F-35I, and with Extras "Weapons" on Modern for the jets of
+§1.7, with these values under both Weapon data settings: the 1998
 data has none. Israel bought 600 AIM-9X-2 Block II missiles (US notice of July 2014)[^isr9x]; the Sufa's JDAMs and
 Python 5: docs/f16i.md §5; the F-16I has carried the SDB since August 2015 (107 Squadron, the first F-16I unit)[^sdbf16i].
 
@@ -190,6 +191,32 @@ Not added (docs/f16i.md §5):
   be a new seeker rule. Open, a follow-up.
 - **GBU-28**: no source puts it on the F-16I (Israel's carrier is the F-15I, inferred).
 - **Laser JDAM (GBU-54)**: Israel co-developed the laser seeker with Elbit[^jdam]; its use on the F-16I: open.
+
+### 1.7 Which jet carried which modern weapon
+
+With Extras "Weapons" on Modern a jet lists a modern weapon when a public source shows the jet carrying it: the IAF's
+jet, or the same jet type in another air force. No source: not offered. "Open": only weak sources, or the source does
+not name the variant; not offered either. The F-16I Sufa always has all seven (§1.6, docs/f16i.md §5) and the F-35I
+always has its own, whatever the switch. Research of 29 October 2026.
+
+| weapon | F-16D Barak (100) | F-15 Baz (110) | F-4E / Kurnass 2000 (120 / 200) | Kfir (130) | Lavi (140) | Mirage (190) | F-35I (1000) |
+|---|---|---|---|---|---|---|---|
+| AIM-9X | yes: USAF F-16C/D[^afm9x][^kunsan] | yes: USAF F-15C, first operational shot 2004[^afm9x][^acc9x] | no source | no source | no source | no source | yes: IAF F-35I[^janes35]; F-35A outboard pylons[^dt35] |
+| PYTH-5 | yes: IAF F-16 (first combat kill 2006)[^f16py5] | open: Python 4 or 5 unclear[^twzbaz] | open: Turkish F-4E 2020, a forum only | open: Colombian Kfir C10 / C12, weak sources | no source | no source | open: integration not complete[^janes35] |
+| GBU-31 | yes: IAF F-16C/D (Boeing integrated the JDAM on Peace Marble II / III, the Block 30 Barak and Block 40 Brakeet, from 2000, the first export JDAM sale[^boe00]; the IAF fielded it in 2003[^iaf03]; four per jet in 2023[^avi23]); USAF Block 30s in 2003[^aftc03] | yes: IAF Baz[^avi23][^twzbaz] | no source | no source | no source | no source | yes: F-35A internal[^dt35]; IAF F-35I[^avi23] |
+| GBU-31V3 | open | open | no source | no source | no source | no source | open |
+| GBU-32 | open: listed for the F-16C/D by one source[^afmjdam], not by another | no source | no source | no source | no source | no source | yes: F-35A[^afmjdam] |
+| GBU-38 | yes: USAF F-16[^afmjdam] | no source (the F-15E's) | no source | no source | no source | no source | open: a 2011 Lockheed chart only |
+| GBU-39 | yes: USAF F-16 (Block 30/40/50 integration, 8 on BRU-61 racks)[^ar39] | no source (the F-15E's) | no source | no source | no source | no source | yes: F-35A internal, RNLAF and RAAF[^raaf39] |
+
+Stations (`modern_weapons.gd` `LOADS`; letters A–I are the Arming screen's stations 1–9):
+- **Barak**: AIM-9X and Python 5 on A, B, C, G, H, I, where the F-16 carries its AIM-9L (inferred: no official
+  station list). GBU-31 and GBU-38 on C, D, F, G: the IAF's F-16s load JDAMs on the inner wing pylons as well as the
+  standard heavy ones[^avi23]. GBU-39 four to a rack on C / G (inferred from the eight on two racks[^ar39]).
+- **F-15**: AIM-9X two to a wing pylon on A / I, as its AIM-9L; GBU-31 on B, E, H, the wing pylons and the centreline
+  ("three GBU-31(V)1 JDAM bombs, loaded on the centerline and wing stations"[^avi23]).
+- **F-35I** (docs/f35i.md §3.1): AIM-9X on the outboard pylons A / I[^dt35]; GBU-31 and GBU-32 in the bays C / G and on
+  the heavy pylons B / H; GBU-39 four to a bay on C / G[^raaf39].
 
 ## 2. Mapping onto the original's model
 Each real value lands in one field or rule of the original model:
@@ -307,3 +334,36 @@ Each real value lands in one field or rule of the original model:
 [^mk84]: Wikipedia, "Mark 84 bomb" (945 lb, 429 kg of tritonal), https://en.wikipedia.org/wiki/Mark_84_bomb
 [^spice1000]: Airforce Technology, "IAF's SPICE 1000 munition attains IOC for use on F-16C/D aircraft" (the Ramon F-16I
     squadrons next), https://www.airforce-technology.com/news/iafs-spice-1000-munition-attains-ioc-use-f-16c-d-aircraft/
+[^afm9x]: Air & Space Forces Magazine, "AIM-9 Sidewinder" (AIM-9X on the F-15C/D/E, F-16C/D, F-22A),
+    https://www.airandspaceforces.com/weapons-platforms/aim-9/
+[^kunsan]: PACAF, "Kunsan receives great capability with AIM-9X missile" (8th Fighter Wing Block 40 F-16s),
+    https://www.pacaf.af.mil/News/Article-Display/Article/596474/
+[^acc9x]: Air Combat Command, "AIM-9X makes operational debut" (an F-15C at Tyndall AFB, 17 March 2004),
+    https://www.acc.af.mil/News/Article-Display/Article/203198/aim-9x-makes-operational-debut/
+[^janes35]: Janes, "Iran conflict 2026: Israeli F-35 claims type's first combat kill against manned aircraft", 4 March
+    2026 (the F-35I carries the AIM-9X; Python 5 integration not completed),
+    https://www.janes.com/osint-insights/defence-news/defence/iran-conflict-2026-israeli-f-35-claims-types-first-combat-kill-against-manned-aircraft
+[^dt35]: DefenceTalk, "F-35A conducts first external weapons test mission", 21 February 2012 (two GBU-31 internal,
+    AIM-9X on the outboard wing stations), https://defencetalk.com/f-35a-conducts-first-external-weapons-test-mission-40599
+[^f16py5]: F-16.net news, 17 September 2006 (an Israeli F-16's Python 5 kill, 7 August 2006),
+    https://www.f-16.net/f-16-news-article1983.html
+[^twzbaz]: The War Zone, "These are the best photos of Israeli F-15 Baz Eagles we've ever seen" (a Baz with three
+    GBU-31s; Python 4 or 5 not clear), https://www.twz.com/these-are-the-best-photos-of-israeli-f-15-baz-eagles-weve-ever-seen
+[^avi23]: The Aviationist, "IAF aircraft in the war with Hamas", 12 October 2023 (F-16 Barak with four GBU-31(V)1, also
+    on the inner pylons; F-15 Baz with three GBU-31(V)1 on the centreline and wing stations; F-35I with two GBU-31(V)1),
+    https://theaviationist.com/2023/10/12/iaf-aircraft-war-with-hamas/
+[^aftc03]: Air Force Test Center, "March 21, 2003: JDAM Urgent Operational Need Testing" (Block 30 F-16 GBU-31 drops),
+    https://www.aftc.af.mil/News/On-This-Day-in-Test-History/Article-Display-Test-History/Article/2510618/
+[^afmjdam]: Air & Space Forces Magazine, "GBU-31/32/38 JDAM" (carriers by variant),
+    https://www.airandspaceforces.com/weapons-platforms/gbu-31-32-38-jdam/
+[^ar39]: Army Recognition, "U.S. Central Command reveals how eight GBU-39s give one F-16 greater precision strike
+    mass", 2026 (F-16CMs with four or eight GBU-39 on BRU-61/A racks),
+    https://www.armyrecognition.com/news/aerospace-news/2026/u-s-central-command-reveals-how-eight-gbu-39-bs-give-one-f-16-greater-precision-strike-mass
+[^raaf39]: Australian Defence Magazine, "RAAF F-35As receive Small Diameter Bombs",
+    https://australiandefence.com.au/news/raaf-f-35as-receive-small-diameter-bombs
+[^boe00]: Boeing news release, "First International JDAM Sale: Boeing to Integrate Weapon on Israeli Aircraft", 1 June
+    2000 (a USAF FMS contract to integrate the JDAM on Israeli F-16 Peace Marble II and III aircraft; test kits for the
+    Mk 84 warhead), https://boeing.mediaroom.com/2000-06-01-First-International-JDAM-Sale-Boeing-to-Integrate-Weapon-on-Israeli-Aircraft
+[^iaf03]: Israeli Air Force, "חיל-האוויר סיים את קליטתן של פצצות מונחות חדשות מסוג JDAM" (the IAF completes the
+    introduction of the JDAM), 2003, https://www.iaf.org.il/440-21281-he/IAF.aspx (cited from Hebrew Wikipedia "JDAM",
+    which adds that the F-16s were adapted by a software block update; the page refuses automatic fetches)

@@ -1,7 +1,8 @@
 # Dev helper (not run by tools/test.sh): real-render pictures of the jets' condensation (vapour_fx.gd, Detailed
 # effects, docs/rendering.md §6): wingtip / LEX streamers in a 7 G turn, the vapour cone in a Mach 0.95 low pass,
-# wing vapour in a 7.5 G turn at Mach 0.8; and from the player's cockpit (straight back, back-left / -right, left /
-# right) in a 7 G pull at 200 m/s, a 4.5 G pull at 120 m/s (the original's ribbon regime) and the Mach 0.95 pass.
+# wing vapour in a 7.5 G turn at Mach 0.8, the turn from 3 km; and from the player's cockpit (straight back,
+# back-left / -right, left / right) in a 7 G pull at 200 m/s, a 4.5 G pull at 120 m/s (the original's ribbon regime)
+# and the Mach 0.95 pass.
 # Needs a window:
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 VAPOUR_OUT=/tmp/vapour -- --log-file /tmp/v.log --path game \
 #     --resolution 1920x1080 --fixed-fps 30 -s ../tests/godot/_vapour_shot.gd
@@ -68,6 +69,8 @@ func run() -> void:
 			var name := OS.get_environment("VAPOUR_TAG") + c[0] + "_" + c[1]
 			await _turn(m, base, 200.0, 7.0, 0.6, Vector3(-9, 4, 34), name + "_turn_chase")
 			await _turn(m, base, 200.0, 7.0, 0.6, Vector3(-30, -6, 2), name + "_turn_side")
+			# Near the 3 km where the condensation ends (vapour_fx.gd AI_RANGE): the jet a few pixels across.
+			await _turn(m, base, 200.0, 7.0, 0.6, Vector3(-1500, 400, 2500), name + "_turn_far")
 			await _pass(m, base, name)
 			await _turn(m, base, 270.0, 7.5, 0.8, Vector3(-12, 9, 28), name + "_wing")
 			m.queue_free()

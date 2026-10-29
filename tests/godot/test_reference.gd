@@ -89,6 +89,14 @@ func run() -> void:
 		"the Pilot guide view: the guide, the missing picture's caption"
 	)
 	check(text.begins_with("Open PDF"), "the guide's PDF made: an Open PDF link")
+	# With Extras "F-16 version" on Sufa the F-16's guide is the Sufa's (f16i.md).
+	var fi := FileAccess.open(dir.path_join("f16i.md"), FileAccess.WRITE)
+	fi.store_string("# F-16I fixture guide\n")
+	fi.close()
+	settings().f16_variant = "sufa"
+	check(ref.guide_path(ref.shown).ends_with("f16i.md") and ref.guide_pdf(ref.shown) == "", "Sufa: the F-16I guide")
+	settings().f16_variant = "barak"
+	DirAccess.remove_absolute(dir.path_join("f16i.md"))
 	fe._on_button(fe._key_for_label("Next"))
 	check(
 		(

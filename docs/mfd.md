@@ -196,7 +196,8 @@ aligned to 128 at y 22/32, 42/52, 62/72. MRM total (types 600/0x262) right-align
 GDI: "%dQnt" (1,94), "int%d" right-aligned (131,94), gun rounds "%03d" (68,85), "Fuel : %5dLB" (55,124). Selected
 station (+0x4f8) boxed 15x8 (gun: 36x10 at (48,82)). Buttons: station select (0xd,0xc,0xb,1,3,5,0x10,0x11,0x12 →
 stations 0..8, event 0x4c), 0xe quantity +1 / 0xf −1 (0x4a(1) / (0)), 0x13 interval +10 / 0x14 −10 (0x4b(1) / (0));
-quantity 1..14, interval 10..200, defaults 2 / 10 (weapons.md §9).
+quantity 1..14, interval 10..200, defaults 2 / 10 (weapons.md §9). Ours, Extras "Bomb release: Real": OSB 7
+toggles PAIRS / SGL and the quantity reads "%d PAIR" / "%d SGL" (weapons.md §9.10).
 
 **Damage (4)** — "NAME GO"/"NAME NOGO" rows (flags → rows: docs/damage.md §5.2); left x=12: ENG (y10), [ENG R y19
 twin only], FUEL 43, AILN 52, FLTC 61,

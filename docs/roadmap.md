@@ -45,7 +45,8 @@ ranked order: [graphics-research.md](graphics-research.md).
   Iran theatre's area too). The original map's city dots are off by up to ≈ 37 km (Tel Aviv, Amman, Damascus, Cairo;
   measured against the georeference 2026-10-28); a modern map would place them right.
   Built 2026-10-29 as its first step: Extras "Briefing map" = Modern moves the eight city dots and labels to the
-  real cities (front-end.md §8 "Modern map"). Later on the same switch: today's borders, names and places, Iran.
+  real cities (front-end.md §8 "Modern map"); 2026-10-29 also today's main roads (setup's road layer of the whole
+  theatre, scenery.md §6). Later on the same switch: today's borders, names and places, Iran.
 - **Realistic night vision** (built, user 2026-10-21): Graphics → MORE "Night vision", Shift+N puts the goggles on
   (rendering.md §8): the tube by the mission's year (§8.1), cockpit glare and bright-light protection (§8.3), the HUD
   in its brightest green. Future work (later):
@@ -64,6 +65,10 @@ ranked order: [graphics-research.md](graphics-research.md).
   two member slots in the mission file (formats/mis.md) and a leader / wingman formation in the AI (ai.md §7.2); its
   4-ships are two pairs on one route. Ours would add slots 3 and 4 holding finger-four on the leader, the radio's
   commands to the whole flight, #4 taking over a lost #3, and the mission editor's flights of up to 4 jets.
+- **Real weather and atmosphere by date** (wishlist, user 2026-10-29: "real weather/atmosphere based on date").
+  Not yet defined: e.g. the sky, sun, haze, clouds, rain and wind, and the air's temperature and density, set from
+  the mission's date, either as that season's typical climate or as the recorded weather of that day. Today the
+  weather comes from the mission and the Rain setting (rendering.md §10).
 - **Multiple screens** (wishlist, user 2026-10-29: "support multiple screens"). Not yet defined: e.g. the view spread
   over several monitors, or the MFDs / TSD on a second screen. The game now draws one window on one screen.
 - **Multiplayer** (not approved; if it goes ahead, after the single-player game): how the original does it, a plan

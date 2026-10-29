@@ -1010,7 +1010,11 @@ compression). The noise texture is generated at run time with FastNoiseLite.
   core stays dense. It fades out from 10 s to 20 s and stays after its missile hits or is gone. It is at least 3 px
   wide on screen (thinner smoke gets a lower alpha instead), so a far trail stays a clear band, and a trail only a
   few pixels wide keeps a plain soft profile. Seen along its length it is a plain soft cone (no swelling or noise,
-  which would stack into rings), and its first 10 m fade in.
+  which would stack into rings), and its first 10 m fade in. Seen from straight behind or ahead (2026-10-29), the
+  flat ribbon showed as a hard-edged wedge: there (within ≈ 30° of the view axis) a round puff at each point, facing
+  the camera, as wide as the smoke and soft over most of its radius, fades in while the ribbon fades to 10 %, so the
+  trail reads as a round plume. Off the view axis the puffs have no area and draw nothing, so the side view is
+  unchanged.
   Up close (2026-10-28) it reads as a soft translucent column, the way launch photos show it: within ≈ 40 m of the
   camera it takes a real motor's width (0.35 m at the nozzle, ≈ 2 m after 1 s, ≈ 4 m after 3 s, ≈ 8 m at 20 s),
   blending to the wide spotting trail by 250 m, so the look at range and at dusk is unchanged. There its opacity
@@ -1028,7 +1032,7 @@ compression). The noise texture is generated at run time with FastNoiseLite.
   original's either way. The burn is the real motor's, by weapon (`missile_fx.gd MOTOR_BURN`, table below); a
   weapon without a sourced figure uses its motion's burn (`time_left`, docs/weapons.md §5.3). Rockets (560) burn
   1.07 s, the Hydra 70's Mk 66 motor of the LAU-61 pod[^hydra].
-- **Caps**: 24 ribbons (the oldest goes first), 640 points each (≈ 30 000 vertices in all), 8 flames.
+- **Caps**: 24 ribbons (the oldest goes first), 640 points each (2 ribbon and 6 puff vertices a point: ≈ 123 000 vertices in all), 8 flames.
 - **No stutter**: both materials are drawn once behind the loading screen (`damage_effects.gd warm_up`), so the first
   missile compiles nothing.
 
@@ -1040,12 +1044,19 @@ Motor burn by weapon (boost + sustain). Where two figures or a range are given, 
 | R-60 (AA-8) | 4 s | "3–5 s" of motor time[^r60] |
 | S-75 (SA2) | 26.5 s | booster about 4–5 s, main engine about 22 s[^s75fx] |
 | S-125 (SA3) | 23 s | booster 2–4 s, sustainer up to 20 s[^s125] |
+| S-200 (SA5) | 104.5 s | boosters 3–5 s, sustainer 51 to 150 s[^s200] |
 | 9K33 Osa (SA8) | 17 s | booster 2 s, sustainer 15 s[^osa] |
+| MIM-23 Hawk (Hawk) | 26 s | M112 motor (I-Hawk): boost 5 s, sustain 21 s[^hawk] |
 | Hydra 70 rockets (560) | 1.07 s | Mk 66 motor[^hydra] |
 
-Open: no citable burn time was found for the AIM-9D / L / M, Python 3 / 4, Shafrir 2, AA-2, AA-6, AA-11, AIM-7B / F / M,
-AMRAAM, HARM, Shrike and Maverick (only game wikis, forums or simulators give figures). These burn their motion's
-burn, which is longer than the real motor's (AIM-9L 16 s, docs/weapons.md §1.2; AMRAAM 35 s, §11.2).
+Open: no citable burn time was found for the AIM-9D / L / M / X, Python 3 / 4 / 5, Shafrir 2, AA-2, AA-6, AA-10, AA-11,
+AIM-7B / F / M, AMRAAM, HARM, Shrike, Maverick, SA-6 and SA-13 (searched again on 2026-10-29: Wikipedia
+en / ru, designation-systems.net, FAS, ausairpower.net, missilery.info, airwar.ru). The public pages name the motors
+(Mk 36 for the AIM-9D to X, Mk 38 / 52 / 58 for the AIM-7) but give no times; figures appear only on game and
+simulator forums (e.g. R-73 6.8 s and R-27E 11 s, said to come from the MiG-29 flight manual, which was not found).
+For the SA-6 only the ramjet sustainer is given (at most 20 s[^kub]); its booster's time is open. These weapons
+burn their motion's burn, which is longer than the real motor's (AIM-9L 16 s, docs/weapons.md §1.2; AMRAAM 35 s,
+§11.2).
 
 **Contrails** (new content): an aircraft above 9000 m (the Schmidt–Appleman limit of an atmosphere 10 °C warmer than
 the standard one) leaves white condensation from each engine nozzle: a particle every 3 m, 1.2 m growing to 9 m,
@@ -1078,12 +1089,18 @@ of the camera (the player's and AI jets). With Detailed they replace the origina
   ≈ 2.2 G (full 3.5 G) at 120 m/s, from ≈ 3.7 G (full 5.8 G) at 200 m/s, hardly at all at 250 m/s below 5 G. So a hard
   pull at low speed (where the original draws its wingtip ribbons, 75–150 m/s) condenses as much as a harder one fast.
   They fade out within ≈ 0.12 s once the pull ends.
-- **LEX plume** (F-16, F-35I, MiG-29): the leading-edge extension vortices[^wtv] as a translucent plume hugging the
-  upper surface. It is two flattened half tubes from the LEX (a per-plane spot, inferred from drawings) back over the
-  wing roots to 0.95 of the length, spreading out to 0.55 of the half span. They widen from 3 % to 18 % of their run (most of it behind the wing root, where
-  the vortex bursts) and carry noise that flows aft and breaks into wisps over the wing. Seen along the tubes (from
-  the cockpit looking back) they keep their full strength: the eye looks down the length of the cloud, and its noise is stretched along the flow (streaks rather than puffs).
-  Strength: from 10° AoA (full at 20°).
+- **LEX sheet** (F-16, F-16I Sufa, F-35I, F-15, MiG-29, Kfir, Lavi): the vortex off each leading-edge
+  extension[^wtv] as a thin translucent sheet. It starts where the extension's vortex rises and runs along the
+  extension to the wing's leading edge, then streams aft to 0.95 of the length, 15 % farther out, lifting off the wing
+  by 5 % of the length. On the F-35I the extension is the chine beside the intake, on the F-15 the wing glove beside
+  the intake, on the Kfir and Lavi the canard (its vortex runs from the canard's root over the wing). Both spots are
+  measured on each model the game draws (the original, the Detailed and the Sufa models; `vapour_fx.gd LEX`, keyed by
+  the model's file): x the vortex core a little inboard of the edge, y the skin's top there (on the Sufa its
+  conformal tanks). The sheet is a 140° arc flattened to 0.45 of its width, 0.8 % of the length across at its start,
+  4 % at the wing and 10 % at its end, riding 0.4 % of the length above the skin, so it never paints the skin. Its
+  noise runs in streaks along the flow, scrolling aft; it fades in from its start, thins to nothing at its edges and
+  frays out behind the wing. At most 0.4 opaque. Seen along it (from the cockpit looking back) it keeps its full
+  strength: the eye looks down the length of the cloud. Strength: from 10° AoA (full at 20°).
 - **Vapour bell**: a flickering shell around the fuselage from the canopy (0.28 of the length) to the wings' trailing
   edge (0.7), flaring out to 0.9 of the half span. Its front is soft and its aft edge ragged and soft: the cloud ends
   at the shock, where pressure and temperature rise again[^vcone]. Seen along the jet's axis (from behind or ahead)
@@ -1093,7 +1110,13 @@ of the camera (the player's and AI jets). With Detailed they replace the origina
   upper side (wing vapour).
 
 All three need humid air: they fade out between 1500 and 6000 m (inferred: the air near the ground carries the most
-water). Each strength eases in over ≈ 0.15 s. They draw unshaded white: the sun's colour × its energy (to 1.5) plus
+water). Each strength eases in over ≈ 0.15 s.
+
+**Far off** (out to the 3 km where they end): a streamer and the LEX sheet stay at least 2 pixels wide, as the missile
+trails do. A streamer that widens for this loses opacity only as (true width / drawn width)^0.3; the sheet widens
+around its vortex core and its streaks turn into an even haze, denser than their average, below ≈ 12 pixels across
+(they would flicker). The bell's puffs and soft outline give way to an even haze below ≈ 3 pixels a metre. Up close
+nothing changes: the minimum only applies once the true width is under 2 pixels. They draw unshaded white: the sun's colour × its energy (to 1.5) plus
 0.25 sky light, up to 1.6, so the tone mapping keeps sunlit vapour white (dim at dusk and night). They fade out
 within 0.5–4 m of the eye: no hard edge at the near plane.
 
@@ -1108,7 +1131,7 @@ horizon tilted), both streamers run from the wingtip missiles' aft fins up towar
 jet's flight path lies behind it, and the LEX vapour pours back beside the spine behind the seat; the Mach 0.95 pass wraps the canopy in mist from the canopy back. The original's snap views cannot look down
 (pitch ≥ 0.1 · (|yaw| − 90°)), so looking left or right (90°) the wing and its streamer are below the view; back-left
 and back-right (135°) look along the wing to its tip. On the F-35I the cockpit model's wide aft fuselage (ours,
-`tools/f35i/bc.py`) is higher than the eye's line to the trails: it hides the LEX plume and all but the streamers' far ends in
+`tools/f35i/bc.py`) is higher than the eye's line to the trails: it hides the LEX sheet and all but the streamers' far ends in
 every snap view.
 
 Tried and dropped from the cockpit (2026-10-26):
@@ -1118,25 +1141,32 @@ Tried and dropped from the cockpit (2026-10-26):
   200 m/s, so the streamer started a wing's width behind the tip. The fade is per pixel now.
 - The streamer solid for 40 % of its life with a flatter edge profile: from the cockpit it read as a white rod laid
   over the ground.
-- The LEX plume's noise 5× finer across and 3× coarser along from inside: a regular feather fan. The plain noise
+- The LEX plume's (the half tubes', below) noise 5× finer across and 3× coarser along from inside: a regular feather fan. The plain noise
   read as a cauliflower puff; 1.5× across and 0.6× along is between.
 - The left / right snap views (90°): they cannot look down, so in the banked turn they show only sky or ground.
+
+Tried and dropped for the LEX vapour (2026-10-29):
+- Two flattened half tubes widening from 3 % to 18 % of their run, from a per-plane spot estimated from drawings
+  (x 0.17–0.3 of the half span, z 0.33–0.4 of the length) out to 0.55 of the half span: they lay on the wing, and on
+  the F-35I read as a flat white patch. The spots started up to 0.12 of the length behind the real LEX's start and
+  0.1 of the half span inboard of it on the F-16. The thin sheet from the measured spots replaced them.
 
 Cost (not measured yet):
 - CPU: one `ImmediateMesh` rebuilt in GDScript each frame, ≈ 130 triangles per jet in a hard turn at 60 fps
   (2 tips × 33 points × 2).
-- GPU: per jet a bell (363 vertices) and a plume (198 vertices), alpha-blended. The overdraw of a bell filling the
+- GPU: per jet a bell (363 vertices) and a LEX sheet (306 vertices), alpha-blended. The overdraw of a bell filling the
   screen in a close chase view is the main cost.
 - Shader compiling: all three materials are in the scene from its start (a degenerate triangle, an invisible bell and
-  plume), so their pipelines compile behind the loading screen.
+  LEX sheet), so their pipelines compile behind the loading screen.
 - To bench: `tests/godot/_fx_bench.gd`'s on / off switching, with the jet held in a 7 G turn or a Mach 0.95 pass and
   the camera close behind it.
 
-Shots: `tests/godot/_vapour_shot.gd` (F-16 Original and Detailed, F-35I: the turn from behind and from above, the low
-pass from behind and from the side, wing vapour; from the cockpit straight back and back-left / -right in a level
+Shots: `tests/godot/_vapour_shot.gd` (F-16 Original and Detailed, F-35I: the turn from behind, from the side and
+from 3 km, the low pass from behind and from the side, wing vapour; from the cockpit straight back and back-left / -right in a level
 turn banked acos(1/n) at 7 G and 200 m/s and at 4.5 G and 120 m/s (the original's ribbon regime, so the pairs show
 both rules), and in the Mach 0.95 pass; `VAPOUR_FLIGHTS` / `VAPOUR_LOOKS` pick some of them; `VAPOUR_BEFORE=1` takes the same shots
-with Original).
+with Original). The LEX spots: `tests/godot/_lex_dump.gd` dumps each model's triangles, `tools/lex_measure.py` prints
+its planform (half width and skin height per slice) and a top-view height map, and the skin's height at given spots.
 
 **Cost** (M4 Pro). Mpx = million pixels; overdraw = the same pixel shaded again by each overlapping particle.
 
@@ -1151,7 +1181,7 @@ smoke's overdraw sets the cost; the trail spacing (1.5 m) and widths are the kno
 missile smoke ribbons (not measured yet).
 
 The missile smoke's cost (inferred, not measured): CPU, one `ArrayMesh` rebuild per burning missile per frame (up to
-640 points); GPU, the ribbons' alpha-blended overdraw, which is far smaller than the old puffs' (one layer, a few
+640 points); GPU, the ribbons' alpha-blended overdraw (the end-on puffs only near the view axis), which is far smaller than the old puffs' (one layer, a few
 metres wide), and up to 4 small omni lights. To measure it: `tests/godot/_fx_bench.gd` (its two missile trails) on
 the Iris Xe at 2560 × 1440, Particle effects Original against Detailed.
 
@@ -1639,6 +1669,13 @@ graphics option at its best. `RAIN_BENCH=secs` measures the frame rate instead.
 [^s75fx]: Wikipedia, "S-75 Dvina" ("The booster fires for about 4–5 seconds and the main engine for about 22 seconds"), https://en.wikipedia.org/wiki/S-75_Dvina
 [^s125]: Military Russia (rbase), "ЗРК С-125" (starting booster 2–4 s, sustainer up to 20 s), http://rbase.new-factoria.ru/missile/wobb/c125/c125.shtml
 [^osa]: Wikipedia, "9K33 Osa" (booster 2 s, sustainer 15 s), https://en.wikipedia.org/wiki/9K33_Osa
+[^s200]: Carlo Kopp, "S-200VE Vega", Air Power Australia ("After the 3-5 sec burn duration these strap-on solids are
+    jettisoned"; sustainer "burn duration 51 to 150 sec"), https://ausairpower.net/APA-S-200VE-Vega.html
+[^hawk]: Wikipedia, "MIM-23 Hawk" ("The missile's M112 rocket motor has a boost phase of 5 seconds and a sustain phase
+    of 21 seconds"), https://en.wikipedia.org/wiki/MIM-23_Hawk
+[^kub]: Wikipedia (Russian), "3М9" ("Максимальное время работы маршевого двигателя составляет не более 20 с": the
+    sustainer burns at most 20 s; citing Vasilin, Gurinovich, «Зенитные ракетные комплексы», pp. 228–231),
+    https://ru.wikipedia.org/wiki/3М9
 [^hillaire]: Sébastien Hillaire, "A Scalable and Production Ready Sky and Atmosphere Rendering Technique", Computer Graphics Forum 39 (4), EGSR 2020, https://sebh.github.io/publications/egsr2020.pdf
 [^gunn]: R. Gunn, G. D. Kinzer, "The terminal velocity of fall for water droplets in stagnant air", Journal of
     Meteorology 6 (4), 1949, pp. 243–248 (a 2 mm drop falls at about 6.5 m/s):

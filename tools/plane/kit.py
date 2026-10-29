@@ -873,13 +873,21 @@ ARM_DARK, ARM_LIGHT = (0.03, 0.08, 0.02), (0.42, 0.7, 0.36)
 ARM_SIZE = (454, 357)  # the arming art, menu px (the converted art is x4)
 
 
-def arm_front_view(gltf, out_png, px_per_m, centre, art=4, samples=64, mirror=True):
+def arm_front_view(gltf, out_png, px_per_m, centre, art=4, samples=64, mirror=True, stores=()):
     """The plane's glTF (gear down, its rest pose) rendered from the front, orthographic, in the arming art's greens,
     transparent around it: `px_per_m` menu px per metre, the aircraft origin at menu px `centre`. Returns the
     projected points {empty name: (x, y) menu px} (its Station* empties: where the leader lines end). `mirror`: as
-    the original's arming art, which puts station A (the left wing) on the image's left."""
+    the original's arming art, which puts station A (the left wing) on the image's left. `stores`: (glTF, station
+    empty, offset in m) drawn hung on the jet, as the original art shows missiles on the wingtips."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=gltf)
+    for path, station, offset in stores:
+        at = bpy.data.objects[station].matrix_world.translation + Vector(offset)
+        before = set(bpy.data.objects)
+        bpy.ops.import_scene.gltf(filepath=path)
+        for o in set(bpy.data.objects) - before:
+            if o.parent is None:
+                o.location += at
     sc = scene()
     w, h = ARM_SIZE
     sc.render.resolution_x, sc.render.resolution_y = w * art, h * art

@@ -4,9 +4,11 @@
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use iaf_avionics::Vec3;
 use iaf_avionics::heights::{HeightField, Meta};
+use iaf_avionics::roads::{self, Roads};
 use iaf_avionics::scenery::{Cell, Scenery};
 use iaf_formats::terrain_types::{RUNWAY, SEA, TerrainTypes};
 use serde_json::{Map, Value, json};
@@ -249,6 +251,80 @@ pub fn clear_route(mut mission: Value, id: i64) -> Value {
     items(&mut mission, "paths")
         .retain(|p| !real(p) || !dropped.contains(&int(&p["0x1e"])) || used.contains(&int(&p["0x1e"])));
     mission
+}
+
+/// Ground routes along the roads (docs/mission-editor.md §5.2): the classes a convoy drives (motorway down to minor
+/// streets), the farthest a clicked point moves onto a road, the simplification's tolerance and the most points a
+/// path keeps (the originals' longest has 47; the format and the runtime keep a counted list, `FUN_00598ea0`,
+/// `FUN_0047ef90`).
+pub const ROAD_CLASS: u8 = roads::CLASS_MINOR;
+pub const ROAD_SNAP_M: f64 = 1000.0;
+pub const ROAD_TOLERANCE_M: f64 = 5.0;
+pub const MAX_PATH_POINTS: usize = 256;
+
+/// The clicked points (world X east, Y north) as a line along the roads. A click within ROAD_SNAP_M of a road moves
+/// onto it, and the leg between two such points is the shortest road route; a farther click stays where it is and
+/// its legs are straight (as is a leg whose ends no road joins). `roads(a, b)` gives the roads around leg a–b (None:
+/// no road data there). The line is simplified (Douglas–Peucker, ROAD_TOLERANCE_M, doubled until it has at most
+/// MAX_PATH_POINTS points).
+pub fn road_route(clicks: &[[f64; 2]], roads: impl Fn([f64; 2], [f64; 2]) -> Option<Arc<Roads>>) -> Vec<[f64; 2]> {
+    let mut line: Vec<[f64; 2]> = clicks.first().copied().into_iter().collect();
+    for w in clicks.windows(2) {
+        let r = roads(w[0], w[1]);
+        let snap = |p: [f64; 2]| {
+            r.as_ref().and_then(|r| r.nearest(p, ROAD_CLASS)).filter(|n| n.dist <= ROAD_SNAP_M).map(|n| n.point)
+        };
+        let (a, b) = (snap(w[0]), snap(w[1]));
+        let leg = r
+            .as_ref()
+            .filter(|_| a.is_some() && b.is_some())
+            .and_then(|r| r.route(w[0], w[1], ROAD_CLASS))
+            .unwrap_or_else(|| vec![a.unwrap_or(w[0]), b.unwrap_or(w[1])]);
+        // The first click may have moved onto a road; every later leg starts where the one before ended.
+        if line.len() == 1 {
+            line[0] = leg[0];
+        }
+        line.extend(leg.into_iter().skip(1));
+    }
+    line.dedup();
+    let mut tol = ROAD_TOLERANCE_M;
+    loop {
+        let out = simplify(&line, tol);
+        if out.len() <= MAX_PATH_POINTS {
+            return out;
+        }
+        tol *= 2.0;
+    }
+}
+
+/// Douglas–Peucker: the points of `line` kept so that every dropped one lies within `tol` of the kept line (the
+/// distance to the segment, so a line that turns back keeps its turn).
+fn simplify(line: &[[f64; 2]], tol: f64) -> Vec<[f64; 2]> {
+    if line.len() < 3 {
+        return line.to_vec();
+    }
+    let mut keep = vec![false; line.len()];
+    keep[0] = true;
+    keep[line.len() - 1] = true;
+    let mut stack = vec![(0, line.len() - 1)];
+    while let Some((i, j)) = stack.pop() {
+        let far = (i + 1..j)
+            .map(|k| (k, seg_dist(line[k], line[i], line[j])))
+            .max_by(|x, y| x.1.total_cmp(&y.1))
+            .filter(|f| f.1 > tol);
+        if let Some((k, _)) = far {
+            keep[k] = true;
+            stack.extend([(i, k), (k, j)]);
+        }
+    }
+    line.iter().zip(keep).filter(|p| p.1).map(|p| *p.0).collect()
+}
+
+/// The distance from `p` to the segment a–b.
+fn seg_dist(p: [f64; 2], a: [f64; 2], b: [f64; 2]) -> f64 {
+    let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
+    let t = (((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy).max(1e-9)).clamp(0.0, 1.0);
+    (p[0] - a[0] - t * dx).hypot(p[1] - a[1] - t * dy)
 }
 
 fn formation_index(mission: &mut Value, number: i64) -> Option<usize> {
@@ -1135,6 +1211,37 @@ mod tests {
         let m = set_role(m, &[id], MUST_SURVIVE);
         let i = condition_issues(&m);
         assert!(i.iter().any(|i| i.id == id && i.level == "warning") && i.iter().any(|i| i.id == -1), "{i:?}");
+    }
+
+    #[test]
+    fn road_routes_follow_the_roads() {
+        use iaf_avionics::roads::{CLASS_PRIMARY, Way};
+        let way = |class| Way { osm_id: 1, first: 0, count: 0, class, flags: 0, layer: 0, width: 7.0 };
+        // An L-shaped road: east 10 km with a 1 m wiggle every 10 m, then north 10 km; a winding road 2 km south.
+        let mut l: Vec<[f32; 2]> = (0..=1000).map(|i| [i as f32 * 10.0, (i % 2) as f32]).collect();
+        l.push([10000.0, 10000.0]);
+        let zig: Vec<[f32; 2]> =
+            (0..=4000).map(|i| [i as f32 * 10.0, -2000.0 + 100.0 * (i as f32 * 0.157).sin()]).collect();
+        let r = Arc::new(Roads::from_lines([(way(CLASS_PRIMARY), &l[..]), (way(CLASS_PRIMARY), &zig[..])]));
+        let route = |clicks: &[[f64; 2]]| road_route(clicks, |_, _| Some(r.clone()));
+        let len = |p: &[[f64; 2]]| p.windows(2).map(|w| (w[1][0] - w[0][0]).hypot(w[1][1] - w[0][1])).sum::<f64>();
+        // Around the corner: the road's 20 km, not the straight 13 km; simplified to a few points, each on the road
+        // and every road vertex passed within the tolerance.
+        let p = route(&[[0.0, 300.0], [10300.0, 9000.0]]);
+        assert!((len(&p) - 19000.0).abs() < 10.0, "{p:?}");
+        assert!(p.len() <= 4 && p.len() >= 3, "{p:?}");
+        assert!(p.iter().all(|q| r.nearest(*q, ROAD_CLASS).unwrap().dist < 0.01));
+        for v in &l[1..901] {
+            let v = [v[0] as f64, v[1] as f64];
+            assert!(p.windows(2).map(|w| seg_dist(v, w[0], w[1])).fold(f64::INFINITY, f64::min) <= ROAD_TOLERANCE_M);
+        }
+        // 40 km winding 100 m either side every 400 m: at most MAX_PATH_POINTS points.
+        let z = route(&[[0.0, -2000.0], [40000.0, -2000.0]]);
+        assert!(z.len() <= MAX_PATH_POINTS && z.len() > 100, "{}", z.len());
+        // A click 3 km from any road: straight to it from the road point of the click before.
+        assert_eq!(route(&[[0.0, 300.0], [5000.0, 5000.0]]), [[10.0, 1.0], [5000.0, 5000.0]]);
+        // No road data: the clicks as they are.
+        assert_eq!(road_route(&[[0.0, 300.0], [10300.0, 9000.0]], |_, _| None), [[0.0, 300.0], [10300.0, 9000.0]]);
     }
 
     #[test]

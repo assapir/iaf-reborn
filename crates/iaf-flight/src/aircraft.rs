@@ -77,9 +77,6 @@ pub const SURFACE_BORDER: u32 = 0xc0;
 /// Tornado (`5ad450`, §15.5a): the push-back ramps start at −1.5·V (`0x611d40`) along the heading and run to 0
 /// at 10 m/s² (limits ±1e8); the mode ends 8 s after entry (`0x611d38`); the nose pitches to 50° (`0x3f5f66f3`).
 const TORNADO_K: f32 = -1.5;
-/// Better physics "Asymmetric stores": rolling-moment coefficient of full roll control, `Cl = M / (q·S·b)` (inferred:
-/// the F-16's aileron ≈ 0.0013/° × 21.5° plus the differential tail; one value for every jet).
-const ROLL_CONTROL_CL: f32 = 0.04;
 const TORNADO_RAMP_RATE: f32 = 10.0;
 const TORNADO_TIME: f64 = 8.0;
 const TORNADO_PITCH: f32 = 0.872_664_6;
@@ -126,6 +123,32 @@ const DS_ROLL_PERIOD: f64 = 5.3;
 const DS_YAW_AMP: f32 = 5.0 * PI / 180.0;
 const DS_YAW_PERIOD: f64 = 6.7;
 const DS_ATT_RATE: f32 = 20.0 * PI / 180.0;
+
+/// Better physics "Asymmetric stores": how a jet's stick meets a steady rolling moment, per type (docs/flight-model.md
+/// §10).
+enum RollControl {
+    /// Fly-by-wire roll-rate command: the stick commands a roll rate, and the moment is met by the roll damping |Clp|
+    /// (per p·b/2V) and the roll-rate feedback's moment Cl_δa·K (per rad/s), K the surface the flight controls deflect
+    /// per roll rate with the stick centred.
+    RateCommand { clp: f32, fb: f32 },
+    /// The stick moves the surfaces: the stick that holds the wing is the moment over the full roll control
+    /// coefficient.
+    Surface { cl_full: f32 },
+}
+
+fn roll_control(type_code: u32) -> RollControl {
+    match type_code {
+        // F-16 (Nguyen et al., NASA TP-1538): Clp −0.40 at α 5–10°; full roll control (20° aileron + 5° differential
+        // tail) ΔCl 0.050, i.e. 0.0025/°; the FLCS's roll loop K = 0.12°/(°/s), proportional: 0.0025·0.12·57.3.
+        // The F-16I (type 100 with the Sufa's data), the Lavi and the F-35I: the F-16's (inferred).
+        100 | 140 | 1000 => RollControl::RateCommand { clp: 0.40, fb: 0.0172 },
+        // F-4E, Kurnass 2000: the F-4C in power approach (Heffley & Jewell, NASA CR-2144, table IV-1) Cl_δa 0.057/rad
+        // with the spoilers; δa at most 24° (the spoilers' 45° over their 1.87 gearing, inferred).
+        120 | 200 => RollControl::Surface { cl_full: 0.024 },
+        // F-15, Kfir, Mirage, the MiGs and the other AI types: inferred.
+        _ => RollControl::Surface { cl_full: 0.04 },
+    }
+}
 
 /// `rand()·2/32767 − 1` (`566f30`, `0x6124c8`) for the ground jitter: −1..1, from a hash of the sample time.
 // ponytail: a hash of the time in place of the C runtime's shared LCG, so the jitter is deterministic per sample.
@@ -1755,9 +1778,10 @@ impl Aircraft {
         // 5b4910: β_cmd = (ru + 10·asym)·MaxBeta, asym = S+0x428 − S+0x42c (the spin tick passes 0).
         let beta_cmd = (self.rudder + 10.0 * self.stores_asym()) * p.max_beta;
         let roll = self.roll_stick();
+        let kroll = self.roll_k(v, alt);
         let mut p_cmd = if ground { 0.0 } else { p.max_roll_rate * roll };
         if self.better.asymmetric_stores && !ground {
-            let s = self.stores_roll(lift, mass, qs);
+            let s = self.stores_roll(lift, mass, qs, v, kroll);
             let stick = if self.stores_trim { (roll - s).clamp(-1.0, 1.0) } else { roll };
             p_cmd = p.max_roll_rate * (stick + s).clamp(-1.0, 1.0);
         }
@@ -1810,12 +1834,7 @@ impl Aircraft {
             axis.set(t, a as f32);
         }
         self.save_attitude(att);
-        // Roll: re-base on the attitude roll, new target k·p_cmd (no lower clamp on k).
-        let veff = ((-1.305e-5 + 3.1825e-9 * v) * alt + 1.0017) * v - 3.122;
-        let mut kroll = if veff < 220.0 { 0.00475 * veff - 0.045 } else { 1.0 };
-        if self.better.low_speed_roll {
-            kroll = kroll.max(0.0); // BP: no reversed roll below Veff ≈ 9.5 m/s
-        }
+        // Roll: re-base on the attitude roll, new target k·p_cmd.
         self.roll.set(t, att.roll as f64, kroll * io.p_cmd);
         for r in [&mut self.flaps, &mut self.gear, &mut self.brakes] {
             r.rebase(t);
@@ -2435,17 +2454,46 @@ impl Aircraft {
         self.stores_di_right - self.stores_di_left
     }
 
-    /// Better physics "Asymmetric stores" (not in the original: there unbalanced stores only bias β through the drag
-    /// asymmetry): the stick deflection the stores' rolling moment is worth. Moment = Σ mass · arm · g · n (n = lift /
-    /// weight, the load factor), over the full roll control's `ROLL_CONTROL_CL · q·S · b`; + rolls right.
-    fn stores_roll(&self, lift: f32, mass: f32, qs: f32) -> f32 {
-        let moment = self.stores_moment * lift / mass.max(1.0);
-        moment / (ROLL_CONTROL_CL * qs.max(1.0) * self.params.wing_span.max(1.0))
+    /// The roll rate's speed factor k (the roll target is k·p_cmd): Veff = ((−1.305e-5 + 3.1825e-9·V)·h + 1.0017)·V
+    /// − 3.122, k = 0.00475·Veff − 0.045 below Veff 220 m/s, else 1 (no lower clamp; BP `low_speed_roll`: ≥ 0).
+    fn roll_k(&self, v: f32, alt: f32) -> f32 {
+        let veff = ((-1.305e-5 + 3.1825e-9 * v) * alt + 1.0017) * v - 3.122;
+        let k = if veff < 220.0 { 0.00475 * veff - 0.045 } else { 1.0 };
+        if self.better.low_speed_roll {
+            k.max(0.0) // BP: no reversed roll below Veff ≈ 9.5 m/s
+        } else {
+            k
+        }
     }
 
-    /// Better physics: the stores' lateral moment (kg·m, + right wing heavier); read at the next aero update.
+    /// Better physics "Asymmetric stores" (not in the original: there unbalanced stores only bias β through the drag
+    /// asymmetry): the stick deflection worth the stores' rolling moment; + rolls right. Moment Mₛ·g·n (n = lift /
+    /// weight), `Clₛ = Mₛ·g·n / (q·S·b)` ([`roll_control`]). A fly-by-wire jet rolls hands off at
+    /// `pₛ = Clₛ / (|Clp|·b/2V + Cl_δa·K)`, as a share of the stick's rate at this speed, `k·MaxRollRate`; on a jet
+    /// whose stick moves the surfaces it is `Clₛ / Cl_full`.
+    fn stores_roll(&self, lift: f32, mass: f32, qs: f32, v: f32, kroll: f32) -> f32 {
+        let b = self.params.wing_span.max(1.0);
+        let cl = self.stores_moment * lift / mass.max(1.0) / (qs.max(1.0) * b);
+        match roll_control(self.params.type_code) {
+            RollControl::RateCommand { clp, fb } => {
+                let p = cl / (clp * b / (2.0 * v.max(1.0)) + fb);
+                p / (self.params.max_roll_rate.abs() * kroll.max(0.01)).max(1e-3)
+            }
+            RollControl::Surface { cl_full } => cl / cl_full,
+        }
+    }
+
+    /// Better physics: the stores' lateral moment (kg·m, + right wing heavier). With "Asymmetric stores" on and the
+    /// jet airborne a change is an event (an aero update, like a stick move): a release rolls the jet, or stops its
+    /// roll, at once.
     pub fn set_stores_moment(&mut self, kg_m: f32) {
+        if kg_m == self.stores_moment {
+            return;
+        }
         self.stores_moment = kg_m;
+        if self.better.asymmetric_stores && !self.on_ground {
+            self.aero_update();
+        }
     }
 
     /// External stores: extra mass `S+0x424` (kg) and the left (`S+0x42c`) / right (`S+0x428`) stores
@@ -2747,7 +2795,7 @@ mod tests {
             a.set_stores_moment(907.0 * 3.0);
             if hold {
                 let (m, qs) = (a.mass, q_s(3000.0, 150.0, a.params.wing_area));
-                let stick_x = -a.stores_roll(m * G, m, qs);
+                let stick_x = -a.stores_roll(m * G, m, qs, 150.0, a.roll_k(150.0, 3000.0));
                 assert!(stick_x < -0.05 && stick_x > -0.5, "stick {stick_x}");
                 a.set_controls(Controls { stick_x, ..a.controls() });
             }
@@ -2759,6 +2807,67 @@ mod tests {
         assert!(free > 0.1, "rolls toward the heavy right wing: {free}");
         let held = roll_after(true, true);
         assert!(held.abs() < 0.2 * free, "held {held} vs free {free}");
+        // Hands off, a fly-by-wire jet rolls at pₛ = Clₛ / (|Clp|·b/2V + Cl_δa·K); a jet whose stick moves the
+        // surfaces (the Kfir, type 130) needs the stick Clₛ / Cl_full and rolls at that stick's rate, k·MaxRollRate.
+        let rate = |code: u32| {
+            let mut a = airborne(code, 3000.0, 150.0);
+            a.better.asymmetric_stores = true;
+            a.set_stores_moment(907.0 * 3.0);
+            run(&mut a, 1.0);
+            let r0 = a.state().roll;
+            run(&mut a, 0.5);
+            (a.state().roll - r0) / 0.5
+        };
+        let b = params(100).wing_span;
+        let cl = 907.0 * 3.0 * G / (q_s(3000.0, 150.0, params(100).wing_area) * b);
+        let want = cl / (0.40 * b / 300.0 + 0.0172);
+        let mut a = airborne(100, 3000.0, 150.0);
+        let k = a.roll_k(150.0, 3000.0);
+        a.set_stores_moment(907.0 * 3.0);
+        let got = a.stores_roll(a.mass * G, a.mass, q_s(3000.0, 150.0, a.params.wing_area), 150.0, k)
+            * k
+            * a.params.max_roll_rate;
+        assert!((got - want).abs() < 1e-3 * want, "F-16 {got} rad/s, want {want}");
+        let f16 = rate(100);
+        assert!((f16 - want).abs() < 0.2 * want, "F-16 flies {f16} rad/s, want {want}");
+        let mut a = airborne(130, 3000.0, 150.0);
+        a.set_stores_moment(907.0 * 3.0);
+        let s = a.stores_roll(a.mass * G, a.mass, q_s(3000.0, 150.0, a.params.wing_area), 150.0, k);
+        assert!((s - cl / 0.04).abs() < 1e-3 * s, "Kfir stick {s}, want {}", cl / 0.04);
+        let kfir = rate(130);
+        let want = s * k * a.params.max_roll_rate;
+        assert!((kfir - want).abs() < 0.2 * want, "Kfir flies {kfir} rad/s, want {want}");
+    }
+
+    /// Better physics "Asymmetric stores": the load balanced again (the moment back to 0) stops the roll at once, a
+    /// release being an event; the bank then holds with the stick centred and no trim. Under an autopilot loop
+    /// (`stores_trim`) the cancelling stick goes with the moment: the jet does not roll the other way.
+    #[test]
+    fn balanced_stores_stop_the_roll() {
+        for ap in [false, true] {
+            let mut a = airborne(100, 3000.0, 150.0);
+            a.better.asymmetric_stores = true;
+            a.stores_trim = ap;
+            a.set_stores_moment(907.0 * 3.0);
+            run(&mut a, 2.0);
+            let r0 = a.state().roll;
+            run(&mut a, 0.1);
+            let rolling = (a.state().roll - r0) / 0.1;
+            if ap {
+                assert!(rolling.abs() < 0.01, "the loop cancels the moment: {rolling} rad/s");
+            } else {
+                assert!(rolling > 0.1, "rolls toward the heavy wing: {rolling} rad/s");
+            }
+            // The roll stops at the jet's StopAccel (300°/s²: 15°/s in 0.05 s), as when the stick is let go.
+            a.set_stores_moment(0.0);
+            let r1 = a.state().roll;
+            run(&mut a, 0.1);
+            let r2 = a.state().roll;
+            assert!((r2 - r1).abs() < 0.02, "ap {ap}: stops at once: {r1} → {r2}");
+            run(&mut a, 3.0);
+            assert!((a.state().roll - r2).abs() < 0.01, "ap {ap}: the bank holds: {r2} → {}", a.state().roll);
+            assert_eq!(a.roll_trim(), 0.0);
+        }
     }
 
     #[test]
@@ -2776,7 +2885,7 @@ mod tests {
             a.set_stores_moment(907.0 * 3.0);
             if trimmed {
                 let (m, qs) = (a.mass, q_s(3000.0, 150.0, a.params.wing_area));
-                let need = a.stores_roll(m * G, m, qs);
+                let need = a.stores_roll(m * G, m, qs, 150.0, a.roll_k(150.0, 3000.0));
                 a.trim_roll(-1.0, need / ROLL_TRIM_RATE);
             }
             run(&mut a, 3.0);
@@ -2797,7 +2906,7 @@ mod tests {
         a.better.asymmetric_stores = true;
         a.set_stores_moment(907.0 * 3.0);
         let (m, qs) = (a.mass, q_s(3000.0, 150.0, a.params.wing_area));
-        let need = a.stores_roll(m * G, m, qs);
+        let need = a.stores_roll(m * G, m, qs, 150.0, a.roll_k(150.0, 3000.0));
         a.trim_roll(-1.0, need / ROLL_TRIM_RATE);
         a.stores_trim = true;
         assert_eq!(a.roll_stick(), 0.0);

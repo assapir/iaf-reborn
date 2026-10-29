@@ -23,6 +23,7 @@ const ADD_CLASSES := [
 	["Ships", [0xf, 0x10]],
 ]
 const AIR_CLASSES := [2, 3, 0x1c]
+const SHIP_CLASSES := [0xf, 0x10]
 const SIDES := ["Blue", "Red", "Neutral"]
 const ROLES := ["Must survive", "Target", "Neutral"]
 ## One colour per side (Blue, Red, Neutral) wherever the editor names a side: the Units list's rows, the map's labels
@@ -84,6 +85,12 @@ var sel_id := -1  # the selected entity (main file)
 var sel_wp := -1  # the selected waypoint of the TSD's selected flight
 var mode := ""  # "" | "add" | "route"
 var route_pts: Array = []  # world Vector3, while drawing a route
+## While drawing a route: the line the units will drive (world, along the roads when they follow them) through the
+## clicked points, and on to the mouse.
+var route_line := PackedVector2Array()
+var route_ghost := PackedVector2Array()
+var has_roads := false  # the road layer of setup (IafRoads): ground routes can follow the roads
+var _ghost_timer := Timer.new()
 var add_object := -1  # the bdb object id the Add places
 ## Under the mouse on the map: a unit (tsd.units index), a waypoint of the selected flight, the world point (null off
 ## the map); and in Add the ground check of that point (IafMissionEdit.place_issues).
@@ -109,6 +116,11 @@ func _ready() -> void:
 	mission_dir = Settings.assets_dir().path_join("converted/missions")
 	_load_originals()
 	has_scenery = api.has_scenery()
+	has_roads = IafRoads.open(Settings.assets_dir().path_join("converted/roads"))
+	_ghost_timer.one_shot = true
+	_ghost_timer.wait_time = 0.12
+	_ghost_timer.timeout.connect(_road_ghost)
+	add_child(_ghost_timer)
 	_build_ui()
 	_hidpi()
 	var reopen: String = Settings.editor_file
@@ -633,10 +645,56 @@ func apply_route() -> void:
 		ids.append(int(_ui.units.get_item_metadata(i)))
 	if ids.is_empty() or route_pts.size() < 2:
 		return
-	var pts := PackedVector3Array(route_pts)
+	var pts := PackedVector3Array()
+	for p in _routed(route_pts):
+		pts.append(Vector3(p.x, p.y, 0.0))  # z 0: on the terrain
 	mode = ""
 	route_pts.clear()
+	route_line.clear()
+	route_ghost.clear()
 	_edit(api.set_route(data, ids, pts, _ui.route_speed.value, _ui.route_hover.button_pressed))
+
+
+## Whether the route being drawn follows the roads: Follow roads on, road data there, and no flyer or ship among
+## the units selected in the list.
+func on_roads() -> bool:
+	if not has_roads or not _ui.route_roads.button_pressed:
+		return false
+	for i in _ui.units.get_selected_items():
+		var c := _class_of(entity(int(_ui.units.get_item_metadata(i))))
+		if c in AIR_CLASSES or c in SHIP_CLASSES:
+			return false
+	return true
+
+
+## The clicked points (world) as the line the units drive: along the roads (IafMissionEdit.road_route) or straight.
+func _routed(clicks: Array) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for p in clicks:
+		pts.append(Vector2(p.x, p.y))
+	return api.road_route(pts) if on_roads() and pts.size() > 1 else pts
+
+
+## The route line, again after a click or a change of Follow roads.
+func _update_route_line() -> void:
+	route_line = _routed(route_pts)
+	_update_ghost()
+
+
+## The line on to the mouse: straight at once, along the roads once the mouse rests (a road route takes 20–150 ms).
+func _update_ghost() -> void:
+	route_ghost.clear()
+	if mode == "route" and not route_line.is_empty() and mouse_world != null:
+		route_ghost = PackedVector2Array([route_line[-1], Vector2(mouse_world.x, mouse_world.y)])
+		if on_roads():
+			_ghost_timer.start()
+	host.preview.queue_redraw()
+
+
+func _road_ghost() -> void:
+	if mode == "route" and not route_pts.is_empty() and mouse_world != null:
+		route_ghost = _routed([route_pts[-1], mouse_world])
+		host.preview.queue_redraw()
 
 
 func clear_route() -> void:
@@ -720,7 +778,7 @@ func _on_map_clicked(at: Vector2) -> void:
 			add_unit(add_object, w.x, w.y, _ui.add_side.selected + 1, _ui.add_role.selected)
 		"route":
 			route_pts.append(Vector3(roundf(w.x), roundf(w.y), 0.0))  # z 0: on the terrain
-			host.preview.queue_redraw()
+			_update_route_line()
 		"paste":
 			paste_at(w.x, w.y)
 		_:
@@ -1156,6 +1214,15 @@ func _build_units_tab(box: VBoxContainer) -> void:
 	_ui.route_speed.value = 40
 	_ui.route_hover = _row(box, "At the end", CheckBox.new())
 	_ui.route_hover.text = "Stop and hold at the last point"
+	_ui.route_roads = _row(box, "Roads", CheckBox.new())
+	_ui.route_roads.text = "Follow roads" if has_roads else "Follow roads: no road data (run setup again)"
+	_ui.route_roads.tooltip_text = (
+		"Ground vehicles drive along the roads between the points. A point within 1 km of a road moves onto it;"
+		+ " a farther point is joined by straight lines. Flyers and ships go straight."
+	)
+	_ui.route_roads.button_pressed = has_roads
+	_ui.route_roads.disabled = not has_roads
+	_ui.route_roads.toggled.connect(func(_on): _update_route_line())
 	_ui.route_mode = _button(box, "Draw the route (click points)", func(): _set_mode("route"))
 	_ui.route_mode.toggle_mode = true
 	_button(box, "Give the route", apply_route)
@@ -1469,6 +1536,8 @@ func _on_issue_pressed(i: int) -> void:
 func _set_mode(m: String) -> void:
 	mode = "" if mode == m else m
 	route_pts.clear()
+	route_line.clear()
+	route_ghost.clear()
 	place_check = []
 	if mode == "add" and mouse_world != null:
 		_check_place(mouse_world)
@@ -1854,17 +1923,13 @@ class MapHost:
 	func _draw() -> void:
 		draw_rect(Rect2(Vector2.ZERO, size), Color.BLACK)
 
-	## The route being drawn: white points joined by a line.
+	## The route being drawn: its clicked points as white dots on the line the units will drive.
 	func _draw_preview() -> void:
 		if tsd == null:
 			return
-		var pts := PackedVector2Array()
+		editor.draw_line_world(preview, editor.route_line, Color.WHITE)
 		for p in editor.route_pts:
-			pts.append(_to_screen(tsd.area.position + tsd._to_client(tsd.world_to_map(p.x, p.y))))
-		if pts.size() > 1:
-			preview.draw_polyline(pts, Color.WHITE, 2.0)
-		for p in pts:
-			preview.draw_circle(p, 5.0, Color.WHITE)
+			preview.draw_circle(map_px(Tsd.world_to_map(p.x, p.y)), 5.0, Color.WHITE)
 		editor.draw_marks(preview)
 
 
@@ -1927,6 +1992,8 @@ func hover_at(c) -> void:
 	mouse_world = at
 	if mode == "add" and at != null:
 		_check_place(at)
+	if mode == "route":
+		_update_ghost()
 	_show_hint()
 	host.preview.queue_redraw()
 
@@ -1967,10 +2034,8 @@ func hint_text() -> String:
 				here = "Here: %s (%s). " % [place_check[0].text, place_check[0].level]
 			return here + "Click the map to place %s; each click places one. Esc stops." % add_text()
 		"route":
-			return (
-				"Click the route's points (%d so far) for the units selected in the list, then Give the route. Esc stops."
-				% route_pts.size()
-			)
+			var roads := " Points within 1 km snap to a road." if on_roads() else ""
+			return "Click the route's points (%d so far), then Give the route.%s Esc stops." % [route_pts.size(), roads]
 		"paste":
 			return "Click the map to paste the %d copied units there. Esc stops." % clipboard.size()
 	if hover >= 0:
@@ -2000,6 +2065,7 @@ func draw_marks(c: Control) -> void:
 				var w := font.get_string_size(u.name, HORIZONTAL_ALIGNMENT_LEFT, -1, MARK_FS - 2).x
 				c.draw_string_outline(font, p - Vector2(w / 2, 0), u.name, 0, -1, MARK_FS - 2, 3, Color.BLACK)
 				c.draw_string(font, p - Vector2(w / 2, 0), u.name, 0, -1, MARK_FS - 2, Color(0.9, 0.9, 0.9))
+	_draw_unit_routes(c)
 	var keys := {}
 	for i in _ui.units.get_selected_items():
 		keys["0:%d" % int(_ui.units.get_item_metadata(i))] = true
@@ -2058,16 +2124,36 @@ func draw_marks(c: Control) -> void:
 			_ghost(c, p, s)
 		_ring(c, p, 20 * s, 2.0, col)
 		_chip(c, p + Vector2(-20 * s, 24 * s), text, col)
-	if mode == "route" and not route_pts.is_empty() and mouse_world != null:
-		var a: Vector3 = route_pts[-1]
-		c.draw_dashed_line(
-			host.map_px(Tsd.world_to_map(a.x, a.y)),
-			host.map_px(Tsd.world_to_map(mouse_world.x, mouse_world.y)),
-			Color.WHITE,
-			2.0,
-			8.0
-		)
+	if mode == "route":
+		draw_line_world(c, route_ghost, Color(1, 1, 1, 0.6))
 	_draw_legend(c)
+
+
+## A world line (X east, Y north) on the map, with a dark edge.
+func draw_line_world(c: Control, line: PackedVector2Array, col: Color) -> void:
+	if line.size() < 2:
+		return
+	var px := PackedVector2Array()
+	for p in line:
+		px.append(host.map_px(Tsd.world_to_map(p.x, p.y)))
+	c.draw_polyline(px, Color(0, 0, 0, 0.7 * col.a), 4.0, true)
+	c.draw_polyline(px, col, 2.0, true)
+
+
+## The routes (Path, motion op 16) of the units selected in the list, as they will be driven, the end marked.
+func _draw_unit_routes(c: Control) -> void:
+	var paths := {}
+	for i in _ui.units.get_selected_items():
+		for sc in entity(int(_ui.units.get_item_metadata(i))).get("scripts0", {}).get("items", []):
+			if int(sc.get("0x83e", -1)) == 16:
+				paths[int(sc.get("0x8ac", -1))] = true
+	for p in data.get("paths", {}).get("items", []):
+		if paths.has(int(p.get("0x1e", -2))) and p.get("points", []).size() > 1:
+			var line := PackedVector2Array()
+			for q in p.points:
+				line.append(Vector2(float(q[1]), float(q[2])))
+			draw_line_world(c, line, SEL_COLOR)
+			_ring(c, host.map_px(Tsd.world_to_map(line[-1].x, line[-1].y)), 6 * host._scale(), 2.0)
 
 
 ## A ring with a dark edge, readable on both the sea and the desert.

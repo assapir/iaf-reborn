@@ -6,12 +6,16 @@
 # at the terrain's height and Undo removes it; an SA-6 in the sea is an error (a red ring, Fly off); Save and Open
 # give the same mission back; the list and the map share one selection, Esc clears it, hovering names a unit, Add
 # checks the ground under the mouse and places at the click, Esc stops it; the original mission file stays
-# byte-identical. Writes only under user://missions_test.
+# byte-identical; a convoy routed Tel Aviv → Jerusalem with Follow roads keeps to the roads, and flown, drives on
+# them. Writes only under user://missions_test.
 extends "res://../tests/godot/base.gd"
 
 const DIR := "user://missions_test"
 const LAND := Vector2(350000, 600000)  # inland, 212 m
 const SEA := Vector2(330000, 626000)  # off Haifa, west of the satil boats of onyourmarks
+const TEL_AVIV := Vector2(317000, 541300)  # Ramat Gan's edge
+const JERUSALEM := Vector2(352900, 511300)  # its western entrance
+const ROAD_CLASS := 5  # minor streets and up (mission_edit.rs ROAD_CLASS)
 
 
 func _clean() -> void:
@@ -312,9 +316,71 @@ func run() -> void:
 	check(ed._ui.delete.disabled, "an original has no Delete")
 	ed.delete_mission()
 	check(FileAccess.get_md5(orig) == md5, "and Delete leaves the original alone")
+	var drive: Dictionary = _road_route(ed)
 	ed.queue_free()
 	await frames(2)
 	_clean()
+	if drive.is_empty():
+		return
+	# Flown (as Fly does): the convoy drives the road route.
+	settings().mission_files_override = drive.files
+	var tv = await start_mission(drive.id)
+	var ent: Dictionary = tv.runtime.entities.get("0:%d" % drive.convoy, {})
+	check(not ent.is_empty() and ent.get("path") != null, "the convoy drives its road route")
+	if not ent.is_empty() and ent.get("path") != null:
+		var v: float = ent.path.length / ent.path.duration
+		check(absf(v - 60.0 / 3.6) < 0.2, "at 60 km/h along the road's length (%.2f m/s)" % v)
+		var start: Vector3 = ent.world
+		await fly(tv, 20.0)
+		var d := Vector2(ent.world.x, ent.world.y)
+		var off: float = IafRoads.nearest(d, ROAD_CLASS).get("distance", INF)
+		check(
+			ent.world.distance_to(start) > 100.0 and off < 5.0,
+			"it moves along the road (%.0f m in 20 s, %.1f m off the road)" % [ent.world.distance_to(start), off]
+		)
+	settings().mission_files_override = []
+
+
+## A convoy given a 2-point route from Tel Aviv to Jerusalem with Follow roads: the path keeps to the roads (longer
+## than the straight line, every point on a road) and stays compact. The files, the source and the convoy for a
+## flight; {} without road data.
+func _road_route(ed) -> Dictionary:
+	if not ed.has_roads:
+		print("skip: no road data (assets/converted/roads)")
+		return {}
+	ed.new_mission("Roads 1", 1998.0, "Ramat David", 1, true)
+	var convoy: int = ed.add_unit(10, TEL_AVIV.x, TEL_AVIV.y, 2, 2)
+	var ul: ItemList = ed._ui.units
+	for i in ul.item_count:
+		if int(ul.get_item_metadata(i)) == convoy:
+			ul.select(i)
+	check(ed._ui.route_roads.button_pressed and ed.on_roads(), "Follow roads is on for a ground vehicle")
+	ed._set_mode("route")
+	var t0 := Time.get_ticks_msec()
+	ed._on_map_clicked(ed.Tsd.world_to_map(TEL_AVIV.x, TEL_AVIV.y))
+	ed._on_map_clicked(ed.Tsd.world_to_map(JERUSALEM.x, JERUSALEM.y))
+	print("road route drawn in %d ms" % (Time.get_ticks_msec() - t0))
+	check(ed.route_line.size() > 2, "the line drawn while placing follows the roads (%d points)" % ed.route_line.size())
+	ed._ui.route_speed.value = 60
+	ed.apply_route()
+	var path: Array = ed.data.paths.items.filter(func(p): return int(p["0x14"]) == 0)[-1].points
+	var length := 0.0
+	var off := 0.0
+	for k in path.size():
+		var p := Vector2(float(path[k][1]), float(path[k][2]))
+		off = maxf(off, float(IafRoads.nearest(p, ROAD_CLASS).get("distance", INF)))
+		if k > 0:
+			length += p.distance_to(Vector2(float(path[k - 1][1]), float(path[k - 1][2])))
+	var straight := TEL_AVIV.distance_to(JERUSALEM)
+	check(
+		length > straight * 1.05 and off < 3.0 and path.size() <= 256,
+		(
+			"the route follows the roads: %d points, %.1f km (straight %.1f km), at most %.1f m off a road"
+			% [path.size(), length / 1000.0, straight / 1000.0, off]
+		)
+	)
+	ed.save()
+	return {"files": ed.files(), "id": ed.source, "convoy": convoy}
 
 
 func _mouse(ev: InputEvent, pos: Vector2, button := MOUSE_BUTTON_NONE, pressed := false) -> InputEvent:

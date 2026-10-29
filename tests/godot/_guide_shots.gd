@@ -12,28 +12,34 @@
 # property: value}, "better" the Physics switches), start ("mission": the mission's own start; "airborne": frozen 3000 m
 # up at 250 m/s with `loadout` (9 [weapon id, count] pairs) on the pylons, the heading turned `turn_deg`° right;
 # "final": frozen on final approach, `final_m` before the start point at `final_alt` m on a 3° glide path, the nose
-# `final_aoa`° above it, gear down), place ({"unit_prefix": "mig23" | "ground_unit": true, "ahead_m": N} puts that unit
-# N m ahead (`bearing_deg` right of the nose; an air unit flying away at `vel_ms`), in the air at the jet's height / on
-# the ground), actions (in order; the frozen starts advance a scripted sim time, the others real time: "lock" radar lock
-# on the placed unit, "on_impact" the placed unit onto the bomb's predicted impact, "station:N" the A-A store / gun on
-# station N, "ag:N" the A-G store on station N, "flir" / "tv" the camera on the placed unit (FLIR with the laser),
-# "emitter" the placed unit's radar locks the jet, "fire" Space held, "look:Y,P" the head turned Y° right / P° up (free
-# look), "key:X" a game key, "wait:S", "pcd:F1,F2,F3,F4" the F-35I portals' formats, "goggles" the night-vision goggles
-# on), hour (the mission's start hour, e.g. 1 for 01:00), panel (0 the forward view … 1 the whole panel), "dive" (an
-# airborne start in a `dive_deg` dive `dive_agl` m above the ground), view ("cockpit" / "hud", the HUD-only view /
-# "external"), crop ("full", "hud", "dash", "mfd_left", "mfd_right"; "hud" takes `crop_w`, the box's width as a fraction
-# of the frame, default 0.38: smaller zooms in; and `crop_dy`, the box moved down by that fraction of the frame's
-# height, negative moves it up, default 0: a gunsight's reticle that sits high; "compass": a 16:10 box around the
-# panel's compass / HSI dial, game/cockpit/compass.gd, with the same crop_w / crop_dy; "panel": the same box around
-# `crop_at`, [x, y] panel px of the 1920-px strip). Callouts ("annotations": [{n, anchor, label_at | off}]) are drawn on
-# the picture: a numbered yellow marker at `label_at` (a fraction of the crop) or at the anchor + `off` (× the crop's
-# shorter side; [0, 0] puts the marker on the anchor, no arrow) with an arrow to the anchor. The anchor is the Real
-# HUD's own output (hud.gd real_hud(), resolved every frame): "sym": "text:REGEX" (the first HUD text it matches: the
-# box the HUD draws it in, hud.gd prim_text_box; "nth": 2 the second match), "circle:N" (the N-th largest circle, at its
-# edge `edge`° clockwise from 12 o'clock, default 270) or a named point of the HUD's input ("fpm", "gun_cross",
-# "boresight", "horizon", "ils": where the ILS lines cross, "target", "steerpoint", "seeker", "pipper", "lcos",
-# "steering", "delay_at": the delayed CCIP's target), moved by "d": [x, y] HUD pixels; or "px": [x, y], a fraction of
-# the crop (the MFD pages, the original HUD).
+# `final_aoa`° above it, gear down; "tsd": the briefing TSD (front end) of the mission with the GPS targets panel, the
+# player flight's Arming table `loadout`, the map zoomed in `tsd_zoom` steps (default 2) on the route's middle point,
+# `gps` {station 1-9: "unit" (the enemy ground unit nearest the centre) | [dx, dy] (the map point that many client px
+# from the centre)} assigned as by clicks, `gps_armed` the station whose row is armed), place ({"unit_prefix": "mig23" |
+# "ground_unit": true, "ahead_m": N} puts that unit N m ahead (`bearing_deg` right of the nose; an air unit flying away
+# at `vel_ms`), in the air at the jet's height / on the ground), actions (in order; the frozen starts advance a scripted
+# sim time, the others real time: "lock" radar lock on the placed unit, "on_impact" the placed unit onto the bomb's
+# predicted impact, "station:N" the A-A store / gun on station N, "ag:N" the A-G store on station N, "flir" / "tv" the
+# camera on the placed unit (FLIR with the laser), "emitter" the placed unit's radar locks the jet, "fire" Space held,
+# "look:Y,P" the head turned Y° right / P° up (free look), "key:X" a game key, "designate" the radar's designated point
+# on the placed unit, "pre" every GPS station's pre-planned (PRE) target on the placed unit (as set on the briefing
+# TSD), "wait:S", "pcd:F1,F2,F3,F4" the F-35I portals' formats, "goggles" the night-vision goggles on), hour (the
+# mission's start hour, e.g. 1 for 01:00), panel (0 the forward view … 1 the whole panel), "dive" (an airborne start in
+# a `dive_deg` dive `dive_agl` m above the ground), camera ([right, up, back] m in the jet's axes: the external camera
+# pinned there, looking at the jet), view ("cockpit" / "hud", the HUD-only view / "external"), crop ("full", "hud",
+# "dash", "mfd_left", "mfd_right"; "hud" takes `crop_w`, the box's width as a fraction of the frame, default 0.38:
+# smaller zooms in; and `crop_dy`, the box moved down by that fraction of the frame's height, negative moves it up,
+# default 0: a gunsight's reticle that sits high; "compass": a 16:10 box around the panel's compass / HSI dial,
+# game/cockpit/compass.gd, with the same crop_w / crop_dy; "panel": the same box around `crop_at`, [x, y] panel px of
+# the 1920-px strip; "box": `crop_box` [x0, y0, x1, y1], fractions of the frame). Callouts ("annotations": [{n, anchor,
+# label_at | off}]) are drawn on the picture: a numbered yellow marker at `label_at` (a fraction of the crop) or at the
+# anchor + `off` (× the crop's shorter side; [0, 0] puts the marker on the anchor, no arrow) with an arrow to the
+# anchor. The anchor is the Real HUD's own output (hud.gd real_hud(), resolved every frame): "sym": "text:REGEX" (the
+# first HUD text it matches: the box the HUD draws it in, hud.gd prim_text_box; "nth": 2 the second match), "circle:N"
+# (the N-th largest circle, at its edge `edge`° clockwise from 12 o'clock, default 270) or a named point of the HUD's
+# input ("fpm", "gun_cross", "boresight", "horizon", "ils": where the ILS lines cross, "target", "steerpoint", "seeker",
+# "pipper", "lcos", "steering", "delay_at": the delayed CCIP's target, "gps_at": a GPS bomb's aim), moved by "d": [x, y]
+# HUD pixels; or "px": [x, y], a fraction of the crop (the MFD pages, the original HUD).
 # The guide lists the legend as a numbered list right under the picture (tools/guide_pdf.py checks the counts match). An
 # anchor that resolves to nothing or outside the crop fails the shot (GUIDE_DEBUG=1 outlines each anchor in red). Each
 # shot prints a GUIDE_INFO line with the HUD's texts and the radar lock / DLZ (for the guide's examples).
@@ -90,6 +96,9 @@ func _shot(name: String, e: Dictionary) -> void:
 	settings().show_info = false
 	if e.has("mc"):
 		_mission_creator(e.mc)
+	if e.get("start") == "tsd":
+		await _tsd(name, e)
+		return
 	tv = await start_mission(int(e.mission))
 	if e.has("hour"):
 		# "hour": the mission starts at that hour (terrain_view's --hour), the cockpit's night and the sky redone.
@@ -139,6 +148,18 @@ func _shot(name: String, e: Dictionary) -> void:
 		for a in e.get("actions", []):
 			if String(a).begins_with("look:"):  # set_cockpit brought the head back ahead
 				await _action(String(a))
+	if e.has("camera"):
+		# "camera": [right, up, back] m in the jet's axes: the chase camera pinned there, looking at the jet.
+		tv.views.set_orbit(tv.rig, tv.CHASE_OFFS, 1.0, tv.views.CHASE, true)
+		var c: Array = e.camera
+		var pin := CamPin.new()
+		pin.place = func():
+			var b: Basis = tv.rig.global_basis.orthonormalized()
+			var at: Vector3 = tv.rig.global_position
+			var eye: Vector3 = at + b.x * float(c[0]) + b.y * float(c[1]) + b.z * float(c[2])
+			tv.chase.global_transform = Transform3D(Basis.looking_at(at - eye, b.y), eye)
+		pin.process_priority = 100000  # after the flight scene's own camera update
+		tv.add_child(pin)
 	if String(e.get("crop", "")).begins_with("mfd"):
 		for m in tv.cockpit.mfds:
 			m.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # the MFD's pixel art scaled crisp, not smoothed
@@ -154,9 +175,15 @@ func _shot(name: String, e: Dictionary) -> void:
 		root.get_viewport().get_texture().get_size(),
 		float(e.get("crop_w", 0.38)),
 		float(e.get("crop_dy", 0.0)),
-		e.get("crop_at", [0, 0])
+		e.get("crop_at", [0, 0]),
+		e.get("crop_box", [])
 	)
 	_info(name)
+	await _capture(name, e, rect)
+
+
+## The callouts drawn over the frame, then the crop `rect` saved.
+func _capture(name: String, e: Dictionary, rect: Rect2i) -> void:
 	var anns: Array = e.get("annotations", [])
 	if not anns.is_empty():
 		var layer := CanvasLayer.new()
@@ -183,6 +210,55 @@ func _shot(name: String, e: Dictionary) -> void:
 	if not String(e.get("crop", "")).begins_with("mfd"):
 		img.save_jpg(out.path_join("%s.jpg" % name), 0.9)
 	check(true, "shot %s %dx%d" % [name, img.get_width(), img.get_height()])
+
+
+## "start": "tsd": the briefing TSD with the GPS targets panel (docs/front-end.md §8.2), as tests/godot/_gps_shot.gd.
+func _tsd(name: String, e: Dictionary) -> void:
+	settings().mission_id = int(e.mission)
+	unload_current_scene()  # the previous shot's flight scene and its HUD layers
+	await frames(2)
+	var fe = load("res://menu/front_end.tscn").instantiate()
+	root.add_child(fe)
+	_extra.append(fe)
+	await frames(3)
+	fe._reset_tsd_checks()  # also clears the GPS targets
+	fe.screen = "tsd"
+	fe._enter_screen()
+	await frames(5)
+	fe.tsd_checks["briefing"] = false
+	fe.tsd.open_briefing(false)
+	var tsd = fe.tsd
+	var n: int = tsd.default_flight()
+	settings().arm_loadouts[n] = e.get("loadout", [])
+	for i in int(e.get("tsd_zoom", 2)):
+		tsd.zoom_by(tsd.ZOOM_STEP)
+	var route: Array = tsd.flights[n].points
+	var centre: Vector2 = route[route.size() / 2]
+	tsd.centre_on(centre)
+	await frames(2)
+	var gps: Dictionary = e.get("gps", {})
+	for k in gps:
+		var at: Vector2 = tsd._to_client(centre)
+		if gps[k] is Array:
+			at += Vector2(gps[k][0], gps[k][1])
+		else:  # "unit": the enemy ground unit nearest the centre
+			var best := -1
+			for u in tsd.units.size():
+				var un: Dictionary = tsd.units[u]
+				if int(un.klass) != 1 and int(un.side) == 2 and tsd._unit_visible(un):
+					if best < 0 or un.pos.distance_to(centre) < tsd.units[best].pos.distance_to(centre):
+						best = u
+			if best >= 0:
+				at = tsd._to_client(tsd.units[best].pos)
+		tsd.gps._assign(int(k) - 1, at)
+	tsd.gps.armed = int(e.get("gps_armed", 0)) - 1
+	for i in 30:
+		await process_frame
+	var size := root.get_viewport().get_texture().get_size()
+	await _capture(name, e, _crop(String(e.get("crop", "full")), size, 0.38, 0.0, [0, 0], e.get("crop_box", [])))
+	print("GUIDE_INFO %s gps_targets=%s" % [name, settings().gps_targets])
+	settings().arm_loadouts = {}
+	settings().gps_targets = {}
 
 
 ## A Mission Creator mission (mission 666) from a blank record with the entry's fields set: a number, or an array
@@ -299,7 +375,7 @@ func _put(p: Dictionary) -> void:
 	elif p.get("ground_unit", false):
 		target = _ground_unit(tv)
 		if not target.is_empty():
-			_place(tv, w, target, o, d)
+			_place(tv, w, target, {"pos": o.pos, "fwd": fwd}, d)
 
 
 func _action(a: String) -> void:
@@ -324,6 +400,15 @@ func _action(a: String) -> void:
 			w.nav_key(0)
 			w.stores.cur = int(arg)
 			w.select_ag()
+		"designate":  # the radar's designated point (a MAP click) on the placed unit
+			if not target.is_empty():
+				w.radar.designate(target.world.x, target.world.y, target.world.z, t)
+		"pre":  # every GPS station's PRE target on the placed unit, as the briefing TSD sets it
+			if not target.is_empty():
+				var ts := {}
+				for i in 9:
+					ts[i] = [target.world.x, target.world.y, "T"]
+				settings().gps_targets[tv.player_flight_number] = ts
 		"flir", "tv":
 			if not target.is_empty():
 				w.eo.start(EoSensor.FLIR if a == "flir" else EoSensor.TV, a == "flir", target.world, t)
@@ -368,9 +453,12 @@ func _action(a: String) -> void:
 ## The picture's crop: the whole frame, the HUD (a 16:10 box around the HUD centre, 38 % of the frame wide), the helmet
 ## display ("dash", around the head's line of sight) or one
 ## MFD with a margin.
-func _crop(c: String, size: Vector2i, hud_w := 0.38, hud_dy := 0.0, at: Array = [0, 0]) -> Rect2i:
+func _crop(c: String, size: Vector2i, hud_w := 0.38, hud_dy := 0.0, at: Array = [0, 0], box: Array = []) -> Rect2i:
 	var full := Rect2i(Vector2i.ZERO, size)
 	match c:
+		"box":  # [x0, y0, x1, y1], fractions of the frame
+			var a := Vector2(box[0], box[1]) * Vector2(size)
+			return Rect2i(Rect2(a, Vector2(box[2], box[3]) * Vector2(size) - a)).intersection(full)
 		"hud":
 			var centre: Vector2 = tv.cockpit.hud_centre_screen() + tv.cockpit.global_position
 			var wd := int(size.x * hud_w)
@@ -500,6 +588,8 @@ func _anchor(a: Dictionary, rect: Rect2i) -> Variant:
 				p = inp.get(sym, {}).get("at")
 			"seeker", "pipper", "lcos", "steering", "delay_at":
 				p = inp.get("weapons", {}).get(sym)
+			"gps_at":
+				p = inp.get("weapons", {}).get("gps", {}).get("at")
 	if box.has_area():
 		var xf: Transform2D = ci.get_global_transform_with_canvas()
 		if not a.has("d"):
@@ -573,3 +663,11 @@ func _draw_annotations(ov: Control, anns: Array, rect: Rect2i) -> void:
 			fs,
 			ANN_DARK
 		)
+
+
+class CamPin:
+	extends Node
+	var place: Callable
+
+	func _process(_d: float) -> void:
+		place.call()

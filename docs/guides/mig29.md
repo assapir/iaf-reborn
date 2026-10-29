@@ -123,10 +123,25 @@ What changes in the cockpit:
 - **Nose dips under braking** (Physics): the nose dips up to 2° under the wheel brakes and squats up to 1° at full
   thrust on the brakes; it levels within about a second once the jet stops.
 - **Unbalanced stores roll the jet** (Physics): stores left on one wing roll the jet toward it: hold that wing up with
-  the stick, trim it out (**Alt+Left / Right**, or the throttle rocker with Devices → Throttle rocker = Roll trim),
-  or let the autopilot (**A**) hold it while it flies. One MK-84 (2,020 lb) left
-  on station 3, 3.5 m out, takes about 12 % stick at 290 kt and 1 g. It grows with the g in a pull, and at half the
-  speed it takes four times as much.
+  the stick, trim it out (**Alt+Left / Right**, or the throttle rocker with Devices → Throttle rocker = Roll trim), or
+  let the autopilot (**A**) hold it while it flies. One MK-84 (2,020 lb) left on station 3, 3.5 m out: hands off the jet
+  drifts toward it at about 16°/s; the stick moves the ailerons and differential tail directly, so the stick that holds
+  it is the bomb's share of their power. At 290 kt and 1 g about 17 % stick holds it (Original flight data 15 %); full
+  rocker trims that in 1.7 s. It grows with the g in a pull (four times the stick at 4 g) and as the speed falls: on a
+  160 kt final it takes 42 % stick (Original 39 %), the drift is 21°/s and the trim takes 4 s. The release order keeps a
+  symmetric load balanced: after a release the next store of that weapon comes from the station farthest from the last
+  one, and the first press takes the selected station, usually the left wing's outer one. In pairs (the stores page's
+  ripple quantity 2, the default) three bombs per wing go left outer + right outer, left middle + right middle, left
+  inner + right inner, a fraction of a second apart: level after every pair. Single drops leave the jet unbalanced after
+  every odd one, and the next press takes the other wing. When the load is even again the roll stops at once, but the
+  trim stays where you set it: take it back off (**Alt** + the other arrow, or the rocker) until the `TRIM L / R`
+  reading on the **Ctrl+F12** info line is gone.
+- **Bomb release: Real** (Extras): bombs leave the way the real stores management releases them. Stores page OSB 7
+  (bottom row, second from left) switches PAIR / SGL; the page shows it as `1 PAIR` or `1 SGL`. The number is the
+  release pulses per press and starts at 1. In PAIR each pulse drops one bomb off each wing at the same instant,
+  outboard pair first, so the jet stays balanced: six bombs on six stations go in three presses, or set 3 to drop
+  them all in one. In SGL each pulse drops one bomb, alternating wings, left first. Rockets work as before.
+  This jet has no published release-system source, so it follows the F-16's rules.
 - **The map edge**: 12 km (6.5 NM) before it the EndWorld warning sounds: turn back. Past it the game pushes the jet
   back for about 8 s (the nose rises and the jet turns).
 

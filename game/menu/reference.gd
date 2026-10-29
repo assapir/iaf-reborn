@@ -2,9 +2,10 @@
 # refers.ref records (converted/reference/reference.json, `iaf-convert reference`), the side (IDF / Enemy) and
 # group (Aircraft / Vehicles / Weapons) buttons, the sub-category list, Prev / Next, the record's name strip and
 # one view: Description (its <dir>_0.rtf in the briefing's rich edit), 3DView (model_view.gd) or Pictures
-# (<dir>_0.bmp centred on black). Ours: a Pilot guide view (docs/guides/<dir>.md, guide_md.gd) for a record that
-# has a guide, with a button under Pictures and an "Open PDF" link when the guide's PDF was made
-# (tools/guide_pdf.py). Buttons are the front end's (front_end.gd routes them here); geometry in the 640×480 space.
+# (<dir>_0.bmp centred on black). Ours: a Pilot guide view (docs/guides/<dir>.md, guide_md.gd; the F-16's is f16i.md
+# with the Sufa switch on) for a record that has a guide, with a button under Pictures and an "Open PDF" link when
+# the guide's PDF was made (tools/guide_pdf.py). Buttons are the front end's (front_end.gd routes them here);
+# geometry in the 640×480 space.
 extends Control
 
 const FrameWindow := preload("res://menu/frame_window.gd")
@@ -78,18 +79,24 @@ static func guides_dir() -> String:
 	return ProjectSettings.globalize_path("res://").path_join("../docs/guides").simplify_path()
 
 
-## The record's pilot guide (docs/guides/<dir>.md), "" when it has none.
+## The record's guide name: its dir; the F-16's is the Sufa's (f16i) with Extras "F-16 version" on Sufa.
+func guide_name(i: int) -> String:
+	var d := String(records[i].dir)
+	return "f16i" if d == "f16" and Settings.sufa(100) else d
+
+
+## The record's pilot guide (docs/guides/<name>.md), "" when it has none.
 func guide_path(i: int) -> String:
 	if i < 0 or i >= records.size():
 		return ""
-	var p := guides.path_join("%s.md" % records[i].dir)
+	var p := guides.path_join("%s.md" % guide_name(i))
 	return p if FileAccess.file_exists(p) else ""
 
 
 func guide_pdf(i: int) -> String:
 	if i < 0 or i >= records.size():
 		return ""
-	var p := guides_out.path_join("%s.pdf" % records[i].dir)
+	var p := guides_out.path_join("%s.pdf" % guide_name(i))
 	return p if FileAccess.file_exists(p) else ""
 
 

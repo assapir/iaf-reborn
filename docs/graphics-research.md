@@ -247,7 +247,7 @@ and no aircraft model has Wheels frames. Built: Graphics → MORE → Rolling wh
 **Switch:** Preferences → Graphics → MORE → Models: Original / Detailed.
 
 **F-16D: stage 1 done** (2026-10-17, [aircraft-models.md](aircraft-models.md)): 51.4 k triangles, KTX2 textures in a
-3.8 MB glb, runtime LODs; the IAF dorsal spine (the Brakeet's avionics hump, as on the original model) and the
+3.8 MB glb, runtime LODs; the IAF dorsal spine (the Brakeet's avionics hump, level under the canopy as on IAF photographs, 2026-10-29) and the
 centreline pylon added. Next for DCS level: our own UV layout (the FlightGear UVs stretch the fuselage sides), a
 hand-painted 4K livery with stencils, glass reflections, a detailed cockpit-view model.
 
@@ -385,6 +385,12 @@ are (no upgrade pass yet) in place of 16 originals: AIM-9 / 7 / 120, AGM-65 / 88
 versions, CBU-87 / 97, the F-16's tanks, the ECM and FLIR pods; fitted at build time (`tools/stores/build.gd`), not at
 load time; runtime LODs and the original as the far LOD; BC1 textures.
 
+**Phase 2 built** (2026-10-29, aircraft-models.md §5): the Soviet stores the enemy jets carry, from two GPL-3.0
+FlightGear aircraft, the same way: the AA-2 (the MiG-21bis's R-3S), the AA-8, AA-10, AA-11 (the MiG-29 9-12's R-60M,
+R-27R, R-73) and the MiG-29's tank (its PTB-1500). The MiG-21bis's own R-60 (231 faces) and R-27R1 (one texture of
+flat colours) were checked and are plainer than the MiG-29 9-12's. Left on the original: the AA-6, AS-14 and AS-16
+(no open model, below) and the MiG-23's tank (it shares the F-4's tank model).
+
 **Switch.** Preferences → Graphics → MORE → **Models: Original / Detailed** (built with the F-16D, §3.7; default
 Original; visual only). The stores join this one switch, with no second toggle (the user's call).
 
@@ -444,11 +450,13 @@ setup.
   Thunder one); bohmerang's "Missile & Bomb Collection" (CC BY-NC-SA) and civorsky's AIM-9M (CC BY-NC): non-commercial
   licences can't go in a GPL project. Narni_Tchereskov's R-40 / R-3S / R-60 (CC BY, 28k–123k triangles) have
   unverified provenance. No open model exists for the Python 3 / 4 / 5, Shafrir 2, Popeye or Spice: only paid ones
-  (CGTrader, RenderHub; the RenderHub Popeye is editorial-only).
-- **To check next**: FGAddon `MiG-21bis` / `Mig-29` / `MirageIII` stores (AA-2 / AA-8 / AA-10 / AA-11, Shafrir,
-  the Mirage tank) — FGAddon licence per file; the Zaretto F-15 stores once its licence is cleared (§3.7).
+  (CGTrader, RenderHub; the RenderHub Popeye is editorial-only). Checked 2026-10-29 and rejected: the
+  `xcvb85/Su-27` Kh-29T (an AS-14 stand-in; the repo is GPL-3.0, but the mesh is a 3DS import added in 2024 with a
+  shared weapons texture atlas from an unnamed source, so its provenance is unverified); its R-73 is the MiG-29 9-12's.
+  No open AA-6 (R-40) or AS-16 (Kh-15) was found in FlightGear's GitHub aircraft.
+- **To check next**: FGAddon `MirageIII` stores (Shafrir, the Mirage tank) — FGAddon licence per file.
 - **Built by us for the rest** (Python 3 / 4, Shafrir 2, Popeye, AGM-62 Walleye, GBU-15, M117, CBU-97, RBK-500,
-  AS-14 / AS-16, AA-6, SA-2 / 3 / 5 / 6, Scud, the F-15 / F-4 / Kfir / MiG-29 tanks): modelled in Blender from
+  AS-14 / AS-16, AA-6, SA-2 / 3 / 5 / 6, Scud, the F-15 / F-4 / Kfir tanks): modelled in Blender from
   public drawings and photos to the same bar, through the same upgrade pass. A lathe-and-fins script makes only the
   blockout; the shipped model is always the full build.
 - **Repo size**: 2048² PBR sets as PNG are ≈ 10–15 MB per store (≈ 0.5 GB for all) — too much for git history.

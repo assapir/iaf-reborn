@@ -3,6 +3,7 @@
 
 use crate::world::{vec3, vector3};
 use godot::prelude::*;
+use iaf_avionics::gps::Mode;
 use iaf_avionics::hud;
 use iaf_avionics::missile::Dlz;
 use iaf_avionics::release::{self, Ripple, Sight};
@@ -54,11 +55,12 @@ impl IafRelease {
         vector3(release::laser_aim(vec3(own), vec3(p), vec3(ripple), d, ground))
     }
 
-    /// A GPS bomb's aim: [aim, designated]; `pod` / `td` world points or null.
+    /// A GPS bomb's aim: [aim, designated]; `vis` false PRE, true VIS; `pre` / `pod` / `td` world points or null.
     #[func]
-    fn gps_aim(ripple: Vector3, pod: Variant, ground: f64, td: Variant) -> VarArray {
+    fn gps_aim(vis: bool, pre: Variant, ripple: Vector3, pod: Variant, ground: f64, td: Variant) -> VarArray {
         let v = |d: &Variant| d.try_to::<Vector3>().ok().map(vec3);
-        let (a, designated) = release::gps_aim(vec3(ripple), v(&pod), ground, v(&td));
+        let mode = if vis { Mode::Vis } else { Mode::Pre };
+        let (a, designated) = release::gps_aim(mode, v(&pre), vec3(ripple), v(&pod), ground, v(&td));
         varray![vector3(a), designated]
     }
 
@@ -149,6 +151,12 @@ impl IafRipple {
     #[func]
     fn set_qty(&mut self, q: i64) {
         self.ripple.qty = q;
+    }
+
+    /// Extras "Bomb release" Real: the release pulses of one press (`awru`: the F-4E / Kurnass 2000).
+    #[func]
+    fn pulses(&self, pairs: bool, awru: bool) -> i64 {
+        self.ripple.pulses(pairs, awru)
     }
 
     #[func]

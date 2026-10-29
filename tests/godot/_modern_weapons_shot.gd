@@ -3,7 +3,7 @@
 # nose through the helmet (hud_aim9x.png), the GBU-31's in-range cue at a designated point (hud_jdam.png), and with
 # SHOT_DETAILED=1 the loaded jet from outside with Models: Detailed (ext_stores.png).
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=$PWD/.shots -- --log-file /tmp/s.log --path game \
-#     -s ../tests/godot/_sufa_weapons_shot.gd
+#     -s ../tests/godot/_modern_weapons_shot.gd
 extends "res://../tests/godot/base.gd"
 
 const LOAD := [1001, 1, 1002, 1, 1003, 1, 1007, 4, 0, 0, 1007, 4, 1003, 1, 1002, 1, 1001, 1]

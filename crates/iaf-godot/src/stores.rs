@@ -113,6 +113,13 @@ impl IafStores {
         self.stores.fire_station().map_or(-1, |i| i as i64)
     }
 
+    /// Extras "Bomb release" Real: the stations of the next release pulse (pairs mode or single); the selection moves to
+    /// the first.
+    #[func]
+    fn real_pulse(&mut self, pairs: bool) -> PackedInt32Array {
+        self.stores.real_pulse(pairs).into_iter().map(|i| i as i32).collect()
+    }
+
     #[func]
     fn fired(&mut self, i: i64) {
         self.stores.fired(idx(i));

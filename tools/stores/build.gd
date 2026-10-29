@@ -1,23 +1,33 @@
-# Builds the detailed store models (Graphics → MORE → Models: Detailed; docs/aircraft-models.md §5) from the FlightGear
-# F-16's stores (AC3D files and their textures) and fits each onto the original model of the store it replaces:
-# its length, its body's axis and its nose direction, so the game's rack slots, release points and trails stay.
+# Builds the detailed store models (Graphics → MORE → Models: Detailed; docs/aircraft-models.md §5) from FlightGear
+# aircraft's stores (AC3D files and their textures: the F-16, the MiG-21bis, the MiG-29 9-12) and fits each onto the
+# original model of the store it replaces: its length, its body's axis and its nose direction, so the game's rack
+# slots, release points and trails stay.
 # Writes game/extra/models/stores/<name>.glb (JPEG textures; the CBU-97 shows the CBU-87's, util/gltf.gd STORES).
-# Needs the FlightGear F-16 at ef4f192 and the converted install (tools/setup-cli.sh):
+# Needs the FlightGear checkouts in one folder (f16 at ef4f192, MiG-21bis at 9ca6f5b, MiG-29_9-12 at d4a299b;
+# docs/aircraft-models.md §5.3) and the converted install (tools/setup-cli.sh):
 #
-#   IAF_DEFAULT_SETTINGS=1 godot --headless --path game -s ../tools/stores/build.gd -- /tmp/f16 "$PWD/assets" [name …]
+#   IAF_DEFAULT_SETTINGS=1 godot --headless --path game -s ../tools/stores/build.gd -- /tmp/fg "$PWD/assets" [name …]
 #
 # STORES_STATS=1 only prints each model's measurements (no files written).
 extends SceneTree
 
-## Per store: `orig` (the original under converted/objects/weapons), `ac` (FlightGear files under Models/Armament),
+## Per store: `orig` (the original under converted/objects/weapons), `ac` (FlightGear files under `dir`, default the
+## F-16's Models/Armament; `dir` relative to the checkouts' folder),
 ## `drop` (AC object names left out, as prefixes), `livery` (a texture under Models/ in place of the AC's, cropped to
 ## the faces' UVs), `kit` (the GBU-12's Paveway II guidance and tail kits on the bomb, KIT_*), `scale_as` (another
 ## store's scale instead of the original's length: the laser bombs keep their bomb's girth and are longer than the
 ## original, which has the plain bomb's length), `top` (its top on the original's top, where the pylon meets it,
 ## instead of its axis on the original's: the tanks and pods whose FlightGear mounts stand above the body), `dy`
-## (metres up after the fit), `tris` (decimated to about that).
+## (metres up after the fit), `tris` (decimated to about that), `tint` (the texture's colour factor: the MiG-29 9-12's
+## textures are plain white, with no baked shading).
 ## Every model is scaled uniformly to the original's length, its centre on the original's, its axis (FlightGear's
 ## origin line) on the original's (the mean of its nose and tail centroids).
+const F16 := "f16/Models/Armament"
+const MIG21 := "MiG-21bis/Models/Stores"
+const MIG29 := "MiG-29_9-12/Models/Submodels"
+## The Soviet missiles' light grey paint over their white textures (ours, set by eye; sRGB, a material colour).
+const PAINT_29 := Color(0.74, 0.75, 0.76)
+const PAINT_21 := Color(0.86, 0.86, 0.87)
 const STORES := {
 	"aim9": {"orig": "aim9/aim9_m.gltf", "ac": ["Weapons/AIM-9M/AIM-9M.ac"]},
 	"aim7": {"orig": "aim7/aim7_m.gltf", "ac": ["Weapons/AIM-7/AIM-7F.ac"]},
@@ -45,7 +55,7 @@ const STORES := {
 		"kit": true,
 		"scale_as": "mk84"
 	},
-	# The F-16I Sufa's weapons (sufa_weapons.gd): on the original store each stands in for, at the real size of the
+	# The modern weapons (modern_weapons.gd): on the original store each stands in for, at the real size of the
 	# bomb it is built on (scale_as), so the JDAMs are longer than the plain bombs.
 	"aim9x": {"orig": "aim9/aim9_m.gltf", "ac": ["Weapons/AIM-9X/AIM-9X.ac"], "scale_as": "aim9"},
 	"gbu31": {"orig": "mk84/mk84_m.gltf", "ac": ["Weapons/GBU-31/GBU-31.ac"], "scale_as": "mk84"},
@@ -67,6 +77,13 @@ const STORES := {
 	},
 	"ecmpod": {"orig": "ecmpod/ecmpod_m.gltf", "ac": ["External-stores/AN_ALQ-131/AN_ALQ-131.ac"], "top": true},
 	"flrpod": {"orig": "flrpod/flrpod_m.gltf", "ac": ["External-stores/LANTIRN/AN-AAQ-13.ac"], "top": true},
+	# The Soviet stores (phase 2): the MiG-21bis's (OPRF, GPL-3.0) and the MiG-29 9-12's (S. Salov, GPL-3.0).
+	"aa2": {"orig": "aa2/aa2_m.gltf", "dir": MIG21, "ac": ["R-3S/r-3s.ac"], "glass": ["glass"], "tint": PAINT_21},
+	"aa8": {"orig": "aa8/aa8_m.gltf", "dir": MIG29, "ac": ["R-60M/R-60M.ac"], "tint": PAINT_29},
+	"aa10": {"orig": "aa10/aa10_m.gltf", "dir": MIG29, "ac": ["R-27R/R-27R.ac"], "tint": PAINT_29},
+	"aa11": {"orig": "aa11/aa11_m.gltf", "dir": MIG29, "ac": ["R-73/R-73.ac"], "tint": PAINT_29},
+	"mig29ftk":
+	{"orig": "../controllableplanes/mig29/mig29ftk_m.gltf", "dir": MIG29, "ac": ["PTB-1500/PTB-1500.ac"], "top": true},
 }
 
 ## The GBU-12's Paveway II kits for the kitbashed Mk-83L / Mk-84L (GBU-16 / GBU-10 look, inferred). The guidance
@@ -85,6 +102,7 @@ const KIT_BODY_R := 0.139
 ## Seeker glass and lenses (untextured, see-through in FlightGear): opaque dark glass here (one shader for every store).
 const GLASS := Color(0.06, 0.07, 0.08)
 
+var src := ""
 var fg := ""
 var assets := ""
 var out_dir := ""
@@ -94,10 +112,11 @@ var stats := false
 func _init() -> void:
 	var a := OS.get_cmdline_user_args()
 	if a.size() < 2:
-		printerr("usage: -- <FlightGear f16 checkout> <assets dir> [store …]")
+		printerr("usage: -- <folder of the FlightGear checkouts> <assets dir> [store …]")
 		quit(2)
 		return
-	fg = a[0].path_join("Models")
+	src = a[0]
+	fg = src.path_join("f16/Models")
 	assets = a[1]
 	out_dir = ProjectSettings.globalize_path("res://extra/models/stores")
 	stats = OS.get_environment("STORES_STATS") == "1"
@@ -115,7 +134,7 @@ func _init() -> void:
 ## [{name, tex (path or ""), verts: PackedVector3Array, faces: [{idx, uv, mat, smooth, two}], crease}], materials
 ## [{rgb: Color, trans}].
 func read_ac(path: String) -> Dictionary:
-	var lines := FileAccess.get_file_as_string(path).split("\n")
+	var lines := FileAccess.get_file_as_string(path).replace("\r", "").split("\n")  # some are CRLF
 	var mats := []
 	var objs := []
 	var i := 0
@@ -333,7 +352,7 @@ static func _all_verts(objs: Array) -> PackedVector3Array:
 func load_objects(spec: Dictionary) -> Array:
 	var objs := []
 	for f in spec.ac:
-		var ac := read_ac(fg.path_join("Armament").path_join(f))
+		var ac := read_ac(src.path_join(spec.get("dir", F16)).path_join(f))
 		for o in ac.objects:
 			if spec.get("drop", []).any(func(p): return String(o.name).begins_with(p)):
 				continue
@@ -472,7 +491,7 @@ func make_mesh(objs: Array, fit: Transform3D, spec: Dictionary, target: int) -> 
 		if target > 0 and total > target:
 			arr = decimate(arr, arr[Mesh.ARRAY_INDEX].size() / 3 * target / total)
 		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
-		mesh.surface_set_material(mesh.get_surface_count() - 1, material(key, crops))
+		mesh.surface_set_material(mesh.get_surface_count() - 1, material(key, crops, spec.get("tint", Color.WHITE)))
 	var n_tris := 0
 	for i in mesh.get_surface_count():
 		n_tris += mesh.surface_get_array_index_len(i) / 3
@@ -512,8 +531,9 @@ static func decimate(arr: Array, tris: int) -> Array:
 	return out
 
 
-## The surface's material: its texture (a livery cropped to `crops` and at most 512 px), or a white texel in its colour.
-func material(key: String, crops: Dictionary) -> StandardMaterial3D:
+## The surface's material: its texture (a livery cropped to `crops` and at most 512 px) times `tint`, or a white
+## texel in its colour.
+func material(key: String, crops: Dictionary, tint: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.roughness = 0.55
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
@@ -528,6 +548,7 @@ func material(key: String, crops: Dictionary) -> StandardMaterial3D:
 	else:
 		img = Image.load_from_file(key)
 		img.convert(Image.FORMAT_RGB8)
+		m.albedo_color = tint
 		if crops.has(key):
 			var c: Rect2 = crops[key]
 			var sz := Vector2(img.get_size())

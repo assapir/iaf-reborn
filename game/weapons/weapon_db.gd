@@ -35,7 +35,7 @@ static func create(bdb: Dictionary, real_data := false) -> RefCounted:
 	if real_data:  # with the real blast radii (docs/world-scale.md §4.1)
 		preload("res://weapons/real_weapons.gd").apply(db)
 	# The F-16I Sufa's weapons (ours): real data with either Weapon data; only the Sufa's stations take them.
-	preload("res://weapons/sufa_weapons.gd").add_to(db)
+	preload("res://weapons/modern_weapons.gd").add_to(db)
 	return db
 
 

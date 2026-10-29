@@ -3,6 +3,7 @@
 //! `FUN_004562f0`), the delayed first bomb, the launch q (`FUN_00457f70`), the laser designation (`FUN_00454b70` case
 //! 0x28a) and the TV status (`FUN_00460940`).
 
+use crate::gps::Mode;
 use crate::vec3::Vec3;
 
 /// The delayed release: the first bomb off the HUD waits for time-to-go ≤ 0.9 s (_DAT_0082f528).
@@ -63,6 +64,13 @@ impl Ripple {
         self.period = (self.interval as f64 * 0.001).max(0.1);
     }
 
+    /// Extras "Bomb release" Real (ours, docs/weapons.md §9.10): the release pulses of one Space press. The F-16's
+    /// SMS (and every jet but the F-4s, inferred) counts the quantity in pulses, each one store (SGL) or one pair
+    /// (PAIRS); the F-4E's AWRU (`awru`, also the Kurnass 2000, inferred) counts stores and drops one pair per press.
+    pub fn pulses(&self, pairs: bool, awru: bool) -> i64 {
+        if awru && pairs { 1 } else { self.qty }
+    }
+
     /// The ripple line index of the next bomb (`ripple_left` bombs left).
     pub fn index(&self, left: i64) -> usize {
         (self.qty - left).clamp(0, (self.qty - 1).max(0)) as usize
@@ -117,14 +125,22 @@ pub fn laser_aim(own: Vec3, p: Vec3, ripple: Vec3, designation: Option<Vec3>, gr
     d
 }
 
-/// A GPS bomb's aim (ours, docs/weapons.md §13.2), fixed at its release: the targeting pod's designation (`pod`, with
-/// the laser on, at most 2 m above the terrain `ground`; no seeker cone: the bomb has none), else the radar's
-/// designated point (`td`, the HUD's TD box), else the bombs' aim (`ripple`: the CCIP / delayed CCIP). Returns the aim
-/// and whether it is a designation.
-pub fn gps_aim(ripple: Vec3, pod: Option<Vec3>, ground: f64, td: Option<Vec3>) -> (Vec3, bool) {
-    match (pod.filter(|d| d.z <= ground + LASER_ABOVE), td) {
-        (Some(d), _) | (None, Some(d)) => (d, true),
-        _ => (ripple, false),
+/// A GPS bomb's aim (ours, docs/weapons.md §13.2), the coordinates handed to it at its release, and whether it is a
+/// designation. PRE: the pre-planned target `pre`. VIS: the targeting pod's designated point (`pod`, with the laser
+/// on, at most 2 m above the terrain `ground`; in any direction), else the radar's designated point (`td`, the HUD's
+/// TD box). Without one of them the bombs' own aim (`ripple`: the CCIP / delayed CCIP).
+pub fn gps_aim(
+    mode: Mode,
+    pre: Option<Vec3>,
+    ripple: Vec3,
+    pod: Option<Vec3>,
+    ground: f64,
+    td: Option<Vec3>,
+) -> (Vec3, bool) {
+    let vis = || pod.filter(|d| d.z <= ground + LASER_ABOVE).or(td);
+    match if mode == Mode::Pre { pre } else { vis() } {
+        Some(d) => (d, true),
+        None => (ripple, false),
     }
 }
 
@@ -182,6 +198,13 @@ mod tests {
     }
 
     #[test]
+    fn real_pulses() {
+        let r = Ripple { qty: 3, ..Ripple::default() };
+        assert_eq!((r.pulses(true, false), r.pulses(false, false)), (3, 3), "SMS: 3 pulses of a pair or a store");
+        assert_eq!((r.pulses(true, true), r.pulses(false, true)), (1, 3), "AWRU: one pair per press");
+    }
+
+    #[test]
     fn ripple_limits() {
         let mut r = Ripple::default();
         for _ in 0..20 {
@@ -215,10 +238,15 @@ mod tests {
     }
 
     #[test]
-    fn gps_aim_pod_then_td_then_ccip() {
+    fn gps_aim_pre_or_pod_then_td_then_ccip() {
         let (ccip, pod, td) = (Vec3::new(0.0, 1.0, 0.0), Vec3::new(0.0, -9000.0, 0.0), Vec3::new(5.0, 5.0, 0.0));
-        assert_eq!(gps_aim(ccip, Some(pod), 0.0, Some(td)), (pod, true), "behind the jet too: no seeker cone");
-        assert_eq!(gps_aim(ccip, Some(pod + Vec3::UP * 50.0), 0.0, Some(td)), (td, true), "a pod point in the air");
-        assert_eq!(gps_aim(ccip, None, 0.0, None), (ccip, false));
+        let pre = Vec3::new(3000.0, 8000.0, 0.0);
+        let vis = |pod, td| gps_aim(Mode::Vis, Some(pre), ccip, pod, 0.0, td);
+        assert_eq!(vis(Some(pod), Some(td)), (pod, true), "behind the jet too: no seeker cone");
+        assert_eq!(vis(Some(pod + Vec3::UP * 50.0), Some(td)), (td, true), "a pod point in the air");
+        assert_eq!(vis(None, None), (ccip, false));
+        // PRE: the pre-planned coordinates whatever the sensors point at; none set: the CCIP.
+        assert_eq!(gps_aim(Mode::Pre, Some(pre), ccip, Some(pod), 0.0, Some(td)), (pre, true));
+        assert_eq!(gps_aim(Mode::Pre, None, ccip, Some(pod), 0.0, Some(td)), (ccip, false));
     }
 }

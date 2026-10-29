@@ -6,12 +6,15 @@ use std::path::PathBuf;
 use std::sync::{LazyLock, Mutex};
 
 use godot::prelude::*;
+use iaf_avionics::roads::MAIN_CLASS;
 use iaf_formats::terrain_types::TerrainTypes;
 use iaf_tools::mission_edit as me;
 use iaf_tools::mission_events as mev;
 use iaf_tools::mission_sanity as ms;
 use iaf_tools::mission_year as my;
 use serde_json::{Map, Value, json};
+
+use crate::roads::route_graph;
 
 /// The assets directory and what `check` / `ground_height` read from it, loaded when first asked for.
 #[derive(Default)]
@@ -166,6 +169,15 @@ impl IafMissionEdit {
         let pts: Vec<[f64; 3]> =
             points.as_slice().iter().map(|p| [f64::from(p.x), f64::from(p.y), f64::from(p.z)]).collect();
         text(&me::set_route(parse(&mission), ids.as_slice(), &pts, speed_kmh, hover_end))
+    }
+
+    /// The clicked points as the line a ground vehicle drives along the roads (`road_route`, §5.2): the clicks as
+    /// they are without road data (IafRoads not open). A leg longer than the blocks' reach routes on the main roads.
+    #[func]
+    fn road_route(clicks: PackedVector2Array) -> PackedVector2Array {
+        let pts: Vec<[f64; 2]> = clicks.as_slice().iter().map(|p| [f64::from(p.x), f64::from(p.y)]).collect();
+        let roads = |a, b| route_graph(a, b, me::ROAD_CLASS).or_else(|| route_graph(a, b, MAIN_CLASS));
+        me::road_route(&pts, roads).into_iter().map(|p| Vector2::new(p[0] as f32, p[1] as f32)).collect()
     }
 
     #[func]

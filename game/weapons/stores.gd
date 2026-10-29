@@ -24,7 +24,7 @@ const FRAMES := [
 	"StationFla"
 ]
 ## Types that get a store model (FUN_0053ceb0 / FUN_0053ced0; 560 rockets get the rocket box). BOMBS: the bomb rack
-## layout, which the GPS bombs (ours, sufa_weapons.gd) take too: four GBU-39s sit on one rack.
+## layout, which the GPS bombs (ours, modern_weapons.gd) take too: four GBU-39s sit on one rack.
 const BOMBS := [500, 510]
 const DRAWN := [500, 510, 640, 635, 570, 650, 580, 590, 600, 610, 660]
 
@@ -192,6 +192,12 @@ func select_station(i: int) -> bool:
 ## The station that fires next (FUN_0053b680), −1 none.
 func fire_station() -> int:
 	return _s.fire_station()
+
+
+## Extras "Bomb release" Real (ours, docs/weapons.md §9.10): the stations of the next release pulse (a symmetric pair
+## in pairs mode, else one), the selection moved to the first; empty without rounds.
+func real_pulse(pairs: bool) -> PackedInt32Array:
+	return _s.real_pulse(pairs)
 
 
 ## After a store left station i (FUN_0053bf10 -> FUN_0053c8b0): count, weight and drag.

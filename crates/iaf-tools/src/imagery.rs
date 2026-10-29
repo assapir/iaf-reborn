@@ -250,6 +250,12 @@ impl Rules {
         Self::in_rect(&self.israel, tx, ty) && a.base && a.land
     }
 
+    /// True on the theatre's open land anywhere (the road layer, docs/scenery.md §6): off the airbases, on land.
+    pub fn ground_open(&self, tx: f64, ty: f64) -> bool {
+        let a = self.at(tx, ty);
+        a.base && a.land
+    }
+
     /// The rules tag of the terrain rect `r` (units: x0, y0, x1, y1): "v<RULES_VERSION> <hash>" over everything the rules
     /// decide there (the region, the kept insets and the airbase footprints that reach into it). A work unit whose
     /// mark holds another tag is converted again. terraintype.dat is left out: it comes with the install.

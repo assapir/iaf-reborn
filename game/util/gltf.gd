@@ -252,7 +252,7 @@ static func objects_path(path: String) -> String:
 	return _settings().assets_dir().path_join("converted/objects").path_join(STAND_INS.get(path, path))
 
 
-## The F-16I Sufa's stores (ours, game/weapons/sufa_weapons.gd): model paths no install has, drawn as the original
+## The modern weapons' stores (ours, game/weapons/modern_weapons.gd): model paths no install has, drawn as the original
 ## store they stand in for with Models: Original, as their own detailed model (STORES) with Models: Detailed.
 const STAND_INS := {
 	"weapons/sufa/aim9x_m.gltf": "weapons/aim9/aim9_m.gltf",
@@ -305,6 +305,11 @@ const STORES := {
 	"aim9x_m.gltf": "aim9x",
 	"gbu31_m.gltf": "gbu31",
 	"gbu38_m.gltf": "gbu38",
+	"aa2_m.gltf": "aa2",
+	"aa8_m.gltf": "aa8",
+	"aa10_m.gltf": "aa10",
+	"aa11_m.gltf": "aa11",
+	"mig29ftk_m.gltf": "mig29ftk",
 }
 
 

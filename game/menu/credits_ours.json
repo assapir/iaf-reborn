@@ -24,6 +24,7 @@
 		{"style": "gap"},
 		{"style": "role", "text": "Detailed Stores", "he": "חימושים ומכלים מפורטים"},
 		{"style": "small", "text": "Based on the FlightGear F-16's weapons and stores (github.com/NikolaiVChr/f16) by J Maverick 16 and the FlightGear F-16 team, GPL 2.0 or later", "he": "מבוססים על החימושים והמכלים של ה-F-16 של FlightGear (github.com/NikolaiVChr/f16) מאת J Maverick 16 וצוות ה-F-16 של FlightGear, GPL 2.0 ואילך"},
+		{"style": "small", "text": "Soviet missiles and tank from the FlightGear MiG-21bis (github.com/l0k1/MiG-21bis) by the OPRF MiG-21bis team and the FlightGear MiG-29 9-12 (github.com/Mercenary-Mercury/MiG-29_9-12) by Sergey Salov, GPL 3.0", "he": "טילים ומכל סובייטיים מה-MiG-21bis של FlightGear (github.com/l0k1/MiG-21bis) מאת צוות ה-MiG-21bis של OPRF ומה-MiG-29 9-12 של FlightGear (github.com/Mercenary-Mercury/MiG-29_9-12) מאת Sergey Salov, GPL 3.0"},
 		{"style": "gap"},
 		{"style": "role", "text": "Ground Textures and Model Detail", "he": "טקסטורות קרקע ופירוט דגמים"},
 		{"style": "small", "text": "Materials from ambientCG (ambientcg.com), CC0 1.0", "he": "חומרים מ-ambientCG (ambientcg.com), CC0 1.0"},

@@ -306,6 +306,40 @@ impl Stores {
         (0..11).find(|&i| self.station(i).is_some())
     }
 
+    /// Extras "Bomb release" Real (ours, docs/weapons.md §9.10): the stations of the next release pulse of the
+    /// current weapon, and the selection moves to the first of them. PAIRS: the outboard-most symmetric pair (i,
+    /// 8 − i) that both hold rounds, one store from each at the same instant. SGL, or no full pair left: after a store,
+    /// its mirror station on the other wing when that holds rounds; else the outboard-most full pair's left station;
+    /// else the station whose store leaves the lateral moment nearest 0 (ties: the lowest index). Empty without rounds.
+    pub fn real_pulse(&mut self, pairs: bool) -> Vec<usize> {
+        let Some(w) = self.current().map(|s| s.weapon.clone()) else { return Vec::new() };
+        let has = |i: usize| self.station(i).is_some_and(|s| s.same_weapon(&w) && s.displayed() > 0);
+        let mirror = |i: usize| (i < PYLONS && i != 4).then(|| PYLONS - 1 - i);
+        let full = (0..4).find(|&i| has(i) && has(PYLONS - 1 - i));
+        let last_same = self.just_fired && self.station(self.last_fired).is_some_and(|s| s.same_weapon(&w));
+        let out = match (pairs, full) {
+            (true, Some(i)) => vec![i, PYLONS - 1 - i],
+            _ => match mirror(self.last_fired).filter(|&m| last_same && has(m)) {
+                Some(m) => vec![m],
+                None => match full {
+                    Some(i) => vec![i],
+                    None => {
+                        let m = self.roll_moment();
+                        let after = |i: usize| {
+                            let s = self.station(i).map_or(0.0, |s| s.weapon.weight_lb * KG_PER_LB * s.arm);
+                            ((m - s).abs() * 1e6).round() as i64
+                        };
+                        (0..10).filter(|&i| has(i)).min_by_key(|&i| (after(i), i)).into_iter().collect()
+                    }
+                },
+            },
+        };
+        if let Some(&i) = out.first() {
+            self.cur = i;
+        }
+        out
+    }
+
     /// After a store left station `i` (`FUN_0053bf10` → `FUN_0053c8b0`): the count drops by one unless unlimited; the
     /// weight and drag updates follow (`FUN_004583a0` / `FUN_00458510`).
     pub fn fired(&mut self, i: usize) {
@@ -482,6 +516,87 @@ mod tests {
         assert!((s.roll_moment() - 200.0 * KG_PER_LB * 2.0).abs() < 1e-9, "{}", s.roll_moment());
         s.jettisoned(4);
         assert!((s.load().di_left - 10e-4).abs() < 1e-12 && (s.load().di_right - 20e-4).abs() < 1e-12);
+    }
+
+    /// Six MK-82 singles on stations 1–3 / 5–7 (the probe's load), 1 m arms per station.
+    fn six_singles() -> Stores {
+        let mut s = Stores { player: true, ..Stores::default() };
+        let mut stations: [Option<Station>; STATIONS] = Default::default();
+        for i in [1, 2, 3, 5, 6, 7] {
+            stations[i] = st(500, "MK-82", 1.0);
+            stations[i].as_mut().unwrap().arm = i as f64 - 4.0;
+        }
+        s.setup(stations);
+        s.cur = 1;
+        s
+    }
+
+    fn run(s: &mut Stores, pairs: bool) -> Vec<Vec<usize>> {
+        let mut out = Vec::new();
+        loop {
+            let p = s.real_pulse(pairs);
+            if p.is_empty() {
+                return out;
+            }
+            p.iter().for_each(|&i| s.fired(i));
+            out.push(p);
+        }
+    }
+
+    #[test]
+    fn real_pairs_symmetric_outboard_first() {
+        let mut s = six_singles();
+        let mut moments = Vec::new();
+        let mut pulses = Vec::new();
+        for _ in 0..3 {
+            let p = s.real_pulse(true);
+            p.iter().for_each(|&i| s.fired(i));
+            moments.push(s.roll_moment());
+            pulses.push(p);
+        }
+        assert_eq!(pulses, vec![vec![1, 7], vec![2, 6], vec![3, 5]]);
+        assert!(moments.iter().all(|m| m.abs() < 1e-9), "{moments:?}");
+        assert!(s.real_pulse(true).is_empty());
+    }
+
+    #[test]
+    fn real_singles_alternate_wings() {
+        let mut s = six_singles();
+        assert_eq!(run(&mut s, false), [[1], [7], [2], [6], [3], [5]]);
+    }
+
+    #[test]
+    fn real_ter_pairs_and_odd_leftover() {
+        // A TER of 3 on stations 3 and 5, and one store on the centreline (4): three pairs, then the single.
+        let mut s = six_singles();
+        let mut stations: [Option<Station>; STATIONS] = Default::default();
+        stations[3] = st(500, "MK-82", 3.0);
+        stations[4] = st(500, "MK-82", 1.0);
+        stations[5] = st(500, "MK-82", 3.0);
+        for (i, st) in stations.iter_mut().enumerate().take(PYLONS) {
+            if let Some(st) = st {
+                st.arm = i as f64 - 4.0;
+            }
+        }
+        s.setup(stations);
+        s.cur = 3;
+        assert_eq!(run(&mut s, true), [vec![3, 5], vec![3, 5], vec![3, 5], vec![4]]);
+        // SGL on a lopsided load (2 left, 1 right): the heavy side goes first.
+        stations_lopsided(&mut s);
+        assert_eq!(run(&mut s, false), [[2], [6], [2]]);
+    }
+
+    fn stations_lopsided(s: &mut Stores) {
+        let mut stations: [Option<Station>; STATIONS] = Default::default();
+        stations[2] = st(500, "MK-82", 2.0);
+        stations[6] = st(500, "MK-82", 1.0);
+        for (i, st) in stations.iter_mut().enumerate().take(PYLONS) {
+            if let Some(st) = st {
+                st.arm = i as f64 - 4.0;
+            }
+        }
+        s.setup(stations);
+        s.cur = 6;
     }
 
     #[test]

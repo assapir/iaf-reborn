@@ -144,6 +144,10 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	host = host_node
 	descriptor = desc
 	jet_type = int(object.get("0x5b4", 100))
+	# Bomb release Real (docs/weapons.md §9.10): the quantity starts at RP 1 (one pair per press in PAIRS); the
+	# original's FUN_004585f0 default 2 stays with the switch off.
+	if Settings.bomb_release == "real":
+		_ripple.set_qty(1)
 	db = WeaponDb.create(bdb, Settings.real_weapons())
 	stores = Stores.new()
 	stores.player = true
@@ -1425,6 +1429,10 @@ var ripple_left := 0
 var _ripple_next := INF
 ## W+0xf4..: the ripple line frozen at the first bomb.
 var _ripple_line: Array = []
+## Extras "Bomb release" Real (ours, docs/weapons.md §9.10): PAIRS (true) or SGL, toggled by stores page OSB 7.
+var release_pairs := true
+## The F-4E and the Kurnass 2000 release through the AWRU (one pair per press; the quantity counts stores).
+const AWRU_TYPES := [120, 200]
 ## The mode-5 HUD object (FUN_0045d0a0 / update FUN_0045d1d0): +0xc impact, +0x18 target, +0x2c off the
 ## HUD (cockpit views), +0x30 time-to-go, +0x3c frozen (Space held), +0x40 blinking (until), and
 ## the world point the pipper is drawn at.
@@ -1453,8 +1461,22 @@ var _rocket_nodes := {}  # pool index -> {node, w}
 
 ## Events 0x4a / 0x4b (stores MFD OSBs 0xe / 0xf quantity ±1, 0x13 / 0x14 interval ±10) ->
 ## FUN_004562a0 -> FUN_004562f0: quantity 1..14, interval 10..200, period max(0.1, interval / 1000).
+## Ours: ev −1 (stores page OSB 7 with Bomb release Real) toggles PAIRS / SGL.
 func ripple_event(ev: int, up: bool) -> void:
+	if ev == -1:
+		release_pairs = not release_pairs
+		return
 	_ripple.step(ev == 0x4a, up)
+
+
+## Extras "Bomb release" Real for the selected store: bombs, cluster and laser bombs (rockets keep the original).
+func _real_release() -> bool:
+	return Settings.bomb_release == "real" and stores.current_type() in [500, 510, 650]
+
+
+## The release pulses of one press: the ripple quantity, or Real's pulses (iaf_avionics::release::Ripple::pulses).
+func _pulses() -> int:
+	return _ripple.pulses(release_pairs, jet_type in AWRU_TYPES) if _real_release() else ripple_qty
 
 
 ## FUN_00454270, bomb types (player): HUD mode 5 or 6; without a running ripple: W+0xd0 = quantity,
@@ -1465,7 +1487,7 @@ func _bomb_space() -> void:
 		return
 	if _ripple_next != INF:
 		return
-	ripple_left = ripple_qty
+	ripple_left = _pulses()
 	_update_ag()
 	ag.frozen = true
 	_ripple_next = now
@@ -1477,7 +1499,9 @@ func _ripple_tick() -> void:
 	if stores.total(t, stores.current_name()) == 0 or _weapons_down():
 		_ripple_end()
 		return
-	var i: int = stores.fire_station()
+	# Real: one pulse = a symmetric pair at the same instant (PAIRS) or one store (SGL), docs/weapons.md §9.10.
+	var pulse: PackedInt32Array = stores.real_pulse(release_pairs) if _real_release() else [stores.fire_station()]
+	var i: int = pulse[0] if not pulse.is_empty() else -1
 	if i < 0 or stores.displayed(i) <= 0:
 		releasing = false
 		return
@@ -1485,29 +1509,26 @@ func _ripple_tick() -> void:
 		return  # the station's pool object is still flying: wait for the next tick
 	# FUN_00454b70: the aim = the HUD target (off the HUD) or the impact, spread on the ripple line.
 	var p: Vector3 = ag.target if ag.off else ag.impact
-	if ripple_left == ripple_qty or _ripple_line.size() != ripple_qty:
-		_ripple_line = Bombs.ripple_line(p, ripple_qty, float(ripple_int), own().yaw, host.mission_ground)
-	var aim: Vector3 = _ripple_line[_ripple.index(ripple_left)]
+	var n := _pulses()
+	if ripple_left == n or _ripple_line.size() != n:
+		_ripple_line = Bombs.ripple_line(p, n, float(ripple_int), own().yaw, host.mission_ground)
+	var aim: Vector3 = _ripple_line[clampi(n - ripple_left, 0, n - 1)]
 	var gps: bool = stores.station(i).w.has("gps")
-	if gps:
-		aim = gps_aim(aim)[0]
-	elif t == 650:
+	if t == 650 and not gps:
 		aim = _laser_aim(p, aim)
 	# FUN_0045ee10 and the delayed release (the first bomb waits for time-to-go ≤ 0.9 s; a GPS bomb goes at once).
 	if not release_allowed() or _bay_wait(i):
 		return
-	if (
-		not gps
-		and ClassDB.class_call_static(
-			"IafRelease", "first_bomb_waits", ag.off, ripple_left == ripple_qty, float(ag.ttg)
-		)
-	):
+	if not gps and ClassDB.class_call_static("IafRelease", "first_bomb_waits", ag.off, ripple_left == n, float(ag.ttg)):
 		return
 	ripple_left -= 1
 	if ripple_left <= 0:
 		_ripple_end()
-	_drop_store(i, aim)
-	stores.fired(i)
+	# A pair leaves together: both counts drop before the one push, so the flight model sees no lopsided moment.
+	# Each GPS bomb of a pair gets its own coordinates (PRE: its station's target).
+	for k in pulse:
+		_drop_store(k, gps_aim(aim, k)[0] if gps else aim)
+		stores.fired(k)
 	_push_stores()
 	_update_store_nodes()
 
@@ -1528,9 +1549,13 @@ func _laser_aim(p: Vector3, ripple: Vector3) -> Vector3:
 	return ClassDB.class_call_static("IafRelease", "laser_aim", own().pos, p, ripple, d, float(g) if g != null else 0.1)
 
 
-## A GPS bomb's aim (ours, docs/weapons.md §13.2): [point, designated]: the targeting pod's point with the laser on,
-## else the radar's designated point (the TD box), else `ripple` (the bombs' CCIP aim).
-func gps_aim(ripple: Vector3) -> Array:
+## A GPS bomb's aim (ours, docs/weapons.md §13.2): [point, designated], the coordinates handed to the bomb of
+## `station` (-1: the next to fire). PRE: its pre-planned target (`_pre_point`). VIS: the targeting pod's point with
+## the laser on, else the radar's designated point (the TD box). Without one: `ripple` (the bombs' CCIP aim).
+func gps_aim(ripple: Vector3, station := -1) -> Array:
+	var i: int = station if station >= 0 else gps_station()
+	var vis := gps_vis(i)
+	var pre = null if vis else _pre_point(i)
 	var pod = null
 	var g := 0.0
 	if eo.laser:
@@ -1542,12 +1567,106 @@ func gps_aim(ripple: Vector3) -> Array:
 		var gh = host.mission_ground(pod)
 		g = float(gh) if gh != null else 0.1
 	var td = radar.desig if radar.designated else null
-	return ClassDB.class_call_static("IafRelease", "gps_aim", ripple, pod, g, td)
+	return ClassDB.class_call_static("IafRelease", "gps_aim", vis, pre, ripple, pod, g, td)
+
+
+## Ours (docs/weapons.md §13.2): the GPS bombs' mode per weapon name, true VIS (none: PRE, the default), and the PRE
+## step key's index (0: each station's own target; back to 0 when a release ends).
+var gps_modes := {}
+var pre_index := 0
+
+
+## The station whose bomb goes next (the selected store's), -1 none.
+func gps_station() -> int:
+	var i: int = stores.fire_station()
+	return i if i >= 0 else stores.cur
+
+
+func gps_vis(station: int) -> bool:
+	var w: Dictionary = stores.station(station).get("w", {}) if station >= 0 else {}
+	return bool(gps_modes.get(String(w.get("name", "")), false))
+
+
+## The pre-planned targets on the ground: {station: world point} for every station with a GPS bomb. Each takes the one
+## set on the briefing TSD (Settings.gps_targets, {flight: {station: [x, y]}}), else the route's target waypoint
+## (IafGpsBomb.default_target).
+func pre_targets() -> Dictionary:
+	var n = host.get("player_flight_number")
+	var chosen: Dictionary = Settings.gps_targets.get(int(n) if n != null else 0, {})
+	var route: Array = _route()
+	var actions := PackedInt64Array()
+	for wp in route:
+		actions.append(int(wp.get("action", 0)))
+	var d: int = ClassDB.class_call_static("IafGpsBomb", "default_target", actions)
+	var out := {}
+	for i in 9:
+		if not stores.station(i).get("w", {}).has("gps"):
+			continue
+		var xy = chosen.get(i)
+		if xy != null:
+			out[i] = _on_ground(Vector2(xy[0], xy[1]))
+		elif d >= 0:
+			out[i] = _on_ground(route[d].world)
+	return out
+
+
+func _route() -> Array:
+	var r = host.get("route")
+	return r if r != null else []
+
+
+func _on_ground(xy: Vector2) -> Vector3:
+	var g = host.mission_ground(Vector3(xy.x, xy.y, 0.0))
+	return Vector3(xy.x, xy.y, float(g) if g != null else 0.0)
+
+
+## The PRE target of `station`'s bomb: its own, or the step key's pick among the stored targets and the steerpoints
+## (IafGpsBomb.pre_targets / pre_pick); null none.
+func _pre_point(station: int) -> Variant:
+	var l := _pre_list(station)
+	return ClassDB.class_call_static("IafGpsBomb", "pre_pick", l[0], l[1], pre_index)
+
+
+## [own target or null, the list the step key cycles through].
+func _pre_list(station: int) -> Array:
+	var targets := pre_targets()
+	var steer := PackedVector3Array()
+	for wp in _route():
+		steer.append(_on_ground(wp.world))
+	var own = targets.get(station)
+	var list = ClassDB.class_call_static("IafGpsBomb", "pre_targets", own, PackedVector3Array(targets.values()), steer)
+	return [own, list]
+
+
+## Our key K (docs/controls.md "Own keys"): the selected GPS bomb's mode PRE ↔ VIS. False: no GPS bomb selected.
+func gps_mode_key() -> bool:
+	var i := gps_station()
+	if i < 0 or not stores.station(i).get("w", {}).has("gps"):
+		return false
+	gps_modes[String(stores.station(i).w.name)] = not gps_vis(i)
+	_update_ag()
+	return true
+
+
+## Our key Shift+K: the next PRE target (the stored targets, then the steerpoints). Returns its text for the
+## subtitle ("PRE 2/5"), "" without a GPS bomb in PRE.
+func gps_step_key() -> String:
+	var i := gps_station()
+	if i < 0 or not stores.station(i).get("w", {}).has("gps") or gps_vis(i):
+		return ""
+	var l := _pre_list(i)
+	var n: int = l[1].size() + (1 if l[0] == null else 0)
+	if n == 0:
+		return "PRE: no target"
+	pre_index = (pre_index + 1) % n
+	_update_ag()
+	return "PRE %d/%d" % [pre_index + 1, n]
 
 
 ## The ripple ends (timer killed, FUN_0045d150(0): the symbols blink for 1 s); W+0xac cleared.
 func _ripple_end() -> void:
 	_ripple_next = INF
+	pre_index = 0
 	releasing = false
 	ag.blink_until = now + BLINK_TIME
 
@@ -1691,11 +1810,14 @@ func _update_ag() -> void:
 	ag.gps = {}
 	if w.has("gps"):
 		var a: Array = gps_aim(ag.target if ag.off else ag.impact)
+		var lar: Dictionary = ClassDB.class_call_static("IafGpsBomb", "lar", w.gps, o.pos, o.vel, a[0])
 		ag.gps = {
 			"aim": a[0],
 			"designated": a[1],
-			"in_range": ClassDB.class_call_static("IafGpsBomb", "in_range", w.gps, o.pos, o.vel, a[0]),
-			"dist": _hdist(o.pos, a[0])
+			"pre": not gps_vis(gps_station()),
+			"in_range": lar.in_range,
+			"dist": lar.range,
+			"lar": lar
 		}
 
 
@@ -2347,6 +2469,7 @@ func _publish() -> void:
 		"flares": stores.displayed(11),
 		"quantity": ripple_qty,
 		"interval": ripple_int,
+		"release": "" if Settings.bomb_release != "real" else ("PAIR" if release_pairs else "SGL"),
 		"seeker": seeker.symbol,
 		"lock": seeker.lock,
 		"have_missiles": stores.total(t, stores.current_name()) > 0,

@@ -129,7 +129,9 @@ const PREFS := {
 		"briefing_map",
 		"night_vision",
 		"world_scale",
-		"f16_variant"
+		"f16_variant",
+		"modern_weapons",
+		"bomb_release"
 	],
 }
 
@@ -249,6 +251,10 @@ var models := "original"
 ## Block 52+ with conformal fuel tanks: flight data, radar, model, arming art and weapons). Every F-16 in a mission,
 ## the player's and the AI's, follows it.
 var f16_variant := "barak"
+## Weapons (ours, Extras page; docs/weapons.md §13): false = the original 1998 arming lists; true = the modern weapons
+## (game/weapons/modern_weapons.gd) also on every jet a public source shows carrying them. The F-16I Sufa and the
+## F-35I always have theirs.
+var modern_weapons := false
 ## Model detail (ours, Graphics → MORE; docs/rendering.md §9, util/model_detail.gd): "original" or
 ## "ambientcg" (the original models with fine CC0 surface detail up close: painted metal, rubber, concrete). Read when a
 ## model loads.
@@ -293,6 +299,9 @@ var rwr_search := false
 ## Briefing map (ours, Extras page; docs/front-end.md "Modern map"): "original" (the 1998 map) or "modern" (the
 ## cities at their real places on the TSD / briefing / mission editor map; menu/tsd_map.gd).
 var briefing_map := "original"
+## Bomb release (ours, Extras page; docs/weapons.md §9.10): "original" (one store per ripple tick, FUN_0053b680's
+## station order) or "real" (the real stores management: SGL / PAIRS, the quantity in release pulses).
+var bomb_release := "original"
 ## World scale (ours, Extras page; docs/world-scale.md): "original" (the models at their Present scale, ×2 for
 ## the jets) or "real" (true size, model_scale). Read at mission load.
 var world_scale := "original"
@@ -344,6 +353,9 @@ var player_flight := 0
 ## {Arming table slot 1..10 (MissionRuntime.flight_slots): [[weapon id, count] × 9]}; a flight not listed keeps the
 ## mission's own. Cleared when a mission loads.
 var arm_loadouts := {}
+## Ours (docs/weapons.md §13.2): the GPS bombs' pre-planned targets set on the briefing TSD, {flight number: {station
+## 0..8: [world x, world y]}}; a station not listed takes the route's target waypoint. Cleared when a mission loads.
+var gps_targets := {}
 ## Result of the last flight for the debrief screen: {passed, headline, notes} and what the pilot records
 ## keep {result, bonus, kills, losses} (mission_runtime.gd debrief_text()); empty = none.
 var debrief := {}
