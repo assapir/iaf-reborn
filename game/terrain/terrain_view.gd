@@ -66,6 +66,11 @@ var aircraft: Node3D
 ## The jet's exterior as seen from its own cockpit (`<plane>_bc`, bdb Objects 0x546: wings, tail, seat back), drawn
 ## in the cockpit views instead of the jet model; null for a jet without one (docs/views.md §4.3).
 var own_bc: Node3D
+## Ours: the detailed cockpit model's eye (its front seat's, AircraftModel.detailed_cockpit), null with the original's.
+var _own_eye = null
+## Ours, detailed cockpit model: looking back the head rises and leans forward by up to this (m: +y up, −z forward),
+## as a pilot checking six looks over the headrest, not into it; blended in from 90° to 150° of head yaw.
+const LOOK_BACK_LEAN := Vector3(0, 0.1, -0.1)
 ## FUN_0057f2a0 case 6 / 0x13 (F10 chase, F9 fly-by): {300, 700, 300, pitch 10°, ·, heading 2°}, scale 1.
 const CHASE_OFFS := [300.0, 700.0, 300.0, 0.1745329, 0.0, 0.0349066]
 ## The padlock target kept for F3 (ctl+0x804).
@@ -1891,7 +1896,16 @@ func _spawn_player() -> void:
 		bc = Gltf.open(extra)  # ours: an extra plane's (the F-35I's, tools/f35i/bc.py)
 		# Its seat head box and canopy frame sit closer to the eye than the originals' parts: a nearer near plane.
 		camera.near = 0.1
-	if bc != null:
+	# Ours: the detailed F-16 (Models: Detailed, or the Sufa) gives its own seat, tub and canopy, cut at its seat's eye.
+	var hd := Gltf.detailed(str(aircraft.desc.get("model", "")))
+	if hd in [Gltf.DETAILED["f16_h.gltf"], Gltf.SUFA]:
+		var cut: Array = AircraftModel.detailed_cockpit(hd)
+		own_bc = cut[0]
+		own_bc.scale = aircraft.scale
+		_own_eye = cut[1]
+		own_bc.position = -cut[1] * aircraft.scale
+		camera.near = 0.1  # the seat's sides and headrest are 0.2-0.4 m from the eye (at 1:1)
+	elif bc != null:
 		own_bc = Gltf.instance(bc)
 		own_bc.scale = aircraft.scale
 		# Moved by the eye offset (FUN_00444da0 before the draw), so the eye is at the camera (the jet's origin);
@@ -1899,6 +1913,7 @@ func _spawn_player() -> void:
 		var e = AircraftModel.load_descriptor(player.plane).get("eye")
 		if e is Array:
 			own_bc.position = -Vector3(e[0], e[1], e[2]) * aircraft.scale
+	if own_bc != null:
 		own_bc.visible = false
 		rig.add_child(own_bc)
 		# Ours (Night lights = Detailed): the wingtip / tail lights and the strobe on it too, at its own tips and fin top.
@@ -1963,6 +1978,9 @@ func _apply_view() -> void:
 		# FUN_0045e290: the cockpit, free look and padlock views (1, 0x12, 0x16), not HUD only (5). Snap views
 		# taken as the cockpit's (UNCERTAIN: the slot-2 camera's type).
 		own_bc.visible = views.cockpit_drawn() and not jet_gone
+		if _own_eye != null:
+			var lean := smoothstep(PI / 2.0, PI * 5.0 / 6.0, absf(views.head_angles().x))
+			own_bc.position = -(_own_eye + LOOK_BACK_LEAN * lean) * aircraft.scale
 	camera.current = inside
 	chase.current = not inside
 	# The original cockpit projection (docs/cockpit.md "3D view"): its focal length and projection
@@ -2789,6 +2807,7 @@ func _take_over(target: Dictionary, old: Dictionary) -> void:
 			n.queue_free()
 	aircraft = null
 	own_bc = null
+	_own_eye = null
 	_spawn_player()
 	if aircraft != null:
 		var h := aircraft.find_child("height", true, false) as Node3D

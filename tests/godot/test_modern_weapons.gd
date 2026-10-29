@@ -29,6 +29,20 @@ const JETS := [
 
 func run() -> void:
 	await require_data()
+	# The AIM-9X and Python 5 only with Weapon data on Real (modern_weapons.gd REAL_ONLY).
+	settings().weapon_data = "original"
+	settings().f16_variant = "sufa"
+	var orig := _arming(100)
+	check(
+		(
+			not orig.is_empty()
+			and not orig.names.has("AIM-9X")
+			and not orig.names.has("PYTH-5")
+			and orig.names.has("GBU-31")
+		),
+		"Weapon data Original: the Sufa lists no AIM-9X / Python 5, the JDAMs stay"
+	)
+	settings().weapon_data = "real"
 	for c in JETS:
 		settings().jet_id = c[0]
 		settings().f35i_slot = c[1]

@@ -298,7 +298,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   lists. Ours, with Modern: the Arming screen also lists our modern weapons (AIM-9X, Python 5, GBU-31, GBU-31(V)3,
   GBU-32, GBU-38, GBU-39) on every jet a public source shows carrying them (real-weapons.md §1.7): the Barak the AIM-9X,
   Python 5, GBU-31, GBU-38 and GBU-39; the F-15 the AIM-9X and GBU-31; the other jets none. The F-16I Sufa and the
-  F-35I have theirs with either setting. The AI's loads stay the original's. The info line shows MODWPN.
+  F-35I have theirs with either setting. The AI's loads stay the original's. The info line shows MODWPN. The
+  AIM-9X and Python 5 also need Weapon data on Real, on every jet.
   - GPS bombs (with the Sufa, the F-35I or Weapons on Modern; weapons.md §13.2–§13.3): they fly to coordinates in
     two modes, PRE (each station's target set on the briefing TSD: a GPS panel in the map's lower-right corner and a box
     on each target, front-end.md §8.2; by default the route's target waypoint) and VIS (the pod's or the radar's
