@@ -25,9 +25,21 @@ if [[ $(uname) == Darwin ]]; then
 	envargs=()
 	for e in ${envs[@]+"${envs[@]}"}; do envargs+=(--env "$e"); done
 	open -W -g -j -n -a "$app" ${envargs[@]+"${envargs[@]}"} --args "${args[@]}"
-elif command -v xvfb-run >/dev/null; then
-	env ${envs[@]+"${envs[@]}"} xvfb-run -a godot "${args[@]}" >/dev/null 2>&1 || true
 else
-	env ${envs[@]+"${envs[@]}"} godot "${args[@]}" >/dev/null 2>&1 || true
+	# Godot (and xvfb-run's Xvfb) must not outlive this script: a caller's `flock` lock fd is closed for them, so a
+	# Godot hung at quit can't hold ~/.cache/iaf-gpu-bench.lock after a `timeout` killed this script (2026-10-29: an
+	# orphaned Godot, then its Xvfb, stalled every session's renders), and they run in their own process group, which
+	# is killed when this script ends or is told to stop.
+	for fd in /proc/$$/fd/*; do
+		fd=${fd##*/}
+		((fd > 2 && fd != 255)) && eval "exec $fd>&-"
+	done 2>/dev/null || true
+	run=(godot)
+	command -v xvfb-run >/dev/null && run=(xvfb-run -a godot)
+	env ${envs[@]+"${envs[@]}"} setsid "${run[@]}" "${args[@]}" >/dev/null 2>&1 &
+	pid=$!
+	trap 'kill -TERM -- -$pid 2>/dev/null || true' EXIT
+	trap 'exit 143' TERM INT
+	wait $pid || true
 fi
 cat "$log"
