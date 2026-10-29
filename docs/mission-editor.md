@@ -220,8 +220,17 @@ is greyed: "no road data (run setup again)". A route for units that include a fl
 
 `road_route` (`mission_edit.rs`) turns the clicked points into the path's points:
 
-- A click within 1 km of a road moves onto the nearest road point. A leg between two such points is the shortest
-  route on the roads (`Roads::route`, A* over the junctions, oneway ignored).
+- A click within 1 km of a road moves onto the nearest road point. A leg between two such points is the cheapest
+  route on the roads (`Roads::route`, A* over the junctions, oneway ignored). Each metre costs its road's class
+  factor, so a convoy keeps to the big roads as a real one would:
+
+  | class | motorway, trunk | primary | secondary | tertiary | minor | service | track |
+  |---|---|---|---|---|---|---|---|
+  | cost per metre | 1.0 | 1.1 | 1.2 | 1.4 | 1.8 | 2.5 | 3.0 |
+
+  An unpaved road costs 1.5 times its class. A motorway detour up to 1.8 times as long beats minor streets. The
+  factors are inferred (no source gives a convoy's road choice). The A* estimate is the straight line at the
+  cheapest factor, so the route found is the cheapest.
 - A click farther than 1 km from a road stays where it is. Its legs are straight lines to the points before and
   after it. A leg whose two ends no road joins is straight too.
 - Roads used: motorway down to minor streets (residential, unclassified). Service roads, tracks and railways are left
@@ -232,6 +241,8 @@ is greyed: "no road data (run setup again)". A route for units that include a fl
   the format and the runtime keep a counted list with no fixed limit (`FUN_00598ea0`, `FUN_0047ef90`).
 - Tel Aviv (Ramat Gan) to Jerusalem's western entrance, two clicks: 231 points, 57.1 km on the roads against 46.8 km
   straight.
+- Across Tel Aviv, (318500, 545000) to (321500, 541000): 6.3 km on tertiary and minor streets by length alone; with
+  the class factors 7.8 km, 6.9 km of it on trunk, primary and secondary roads, 0.7 km on minor streets.
 
 The duration is then the road length over the speed, as for any route. The ground check runs on every point.
 The map draws the line on to the mouse straight at once, and along the roads once the mouse rests for 0.12 s (a road
