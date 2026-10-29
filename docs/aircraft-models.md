@@ -27,7 +27,7 @@ them. Plans for more jets and stores: [graphics-research.md](graphics-research.m
 | file size | 3.8 MB |
 | livery | IAF desert camouflage, 101 Squadron, tail 547 (FlightGear's own livery); IAF wing roundels: one above each wing, one under each wing |
 | crew | two pilots on two ACES II seats under a two-seat canopy |
-| IAF features | the dorsal spine of Israel's F-16D Block 30 / 40 ("Brakeet"): the avionics hump from the back of the canopy to a box under the fin that ends just aft of the nozzle |
+| IAF features | the dorsal spine of Israel's F-16D Block 30 / 40 ("Brakeet"): the avionics hump, level from the canopy's rear edge to a box under the fin that ends round just aft of the nozzle, 0.25 m under the canopy's top, with its three vents; the fin and rudder stand on it |
 
 ### 1.1 How it fits the game
 
@@ -61,23 +61,63 @@ screens parse it ahead on a worker thread, as the mission's other models (render
 KTX2: Godot 4.7.2's runtime glTF loader reads `KHR_texture_basisu` and decodes it to RGBA8 with the mipmaps stored
 in the file. KTX2 keeps the glb small; in video memory the textures are uncompressed (§1).
 
+#### The dorsal spine against photographs (2026-10-29)
+
+Our renders were set beside IAF photographs (game/extra/models/f16/SOURCES.md, change 2), above all F-16D 027
+parked side on. Measured on 027 with the canopy's length as the scale: the canopy's top stands 0.25 m above the
+spine, the spine's top is level from the canopy's rear frame to the fin, and the fin rises from it. The earlier spine
+climbed from 0.93 m behind the canopy to 1.148 m at the fin, level with the canopy's top (0.303 m and 0.304 m above
+the eye). It grew out of FlightGear's single-seat fairing behind the glass, so its narrow, rounded front stood on
+the fairing with a notch between it and the glass. Both came from following the original model's spine and
+FlightGear's fin root, which also stand level with the canopy's top. The spine now starts at the glass's rear edge
+and runs level 0.25 m under the canopy's top, and the fin is 0.27 m lower (§2, step 6).
+
+Tried and dropped:
+
+- **The spine 0.60 m wide from 0.4 m inside the glass's tail.** It followed the photo of an F-16I from above, where
+  the spine looks as wide as the canopy's rear. Result: FlightGear's glass narrows to a 0.34 m arch at its rear, so
+  the spine's shoulders stood out beside the glass. Dropped for a front that is the glass's arch and widens behind
+  it. Making FlightGear's glass wider at the rear was left alone: it is the moving canopy.
+
 ### 1.3 The F-16I Sufa model
 
 `game/extra/models/f16/f16i.glb` is the same build with the `sufa` argument (docs/f16i.md §8.1 lists what it adds:
-FlightGear's conformal fuel tanks and P&W nozzle, the Sufa's FS colours, 107 Squadron's orange fin band, tail 457).
+FlightGear's conformal fuel tanks and P&W nozzle, our nose fairings, our three-tone camouflage in the Sufa's FS
+colours, 107 Squadron's orange fin crescent, a badge and tail 457).
 It keeps every part, hinge, helper and station of the F-16D, so arming, animation and the afterburner work
 unchanged. `util/gltf.gd` `detailed()` returns it for `f16_h.gltf` whenever the F-16 switch is on Sufa
 (`Settings.sufa(100)`), with Models on Original too: the 1998 game has no Sufa.
 
 | item | value |
 |---|---|
-| triangles | the F-16D's plus the CFTs (352 faces) and the nozzle (16 × 13 faces) |
-| textures | as the F-16D's; the livery recoloured by the script |
-| file size | 11 MB with PNG textures (this build); the KTX2 pass brings it to the F-16D's size (§4) |
+| triangles | 52 320: the F-16D's plus the CFTs (352 faces), the nozzle (16 × 13 faces) and the seven nose fairings (700) |
+| textures | as the F-16D's; the livery repainted by the script (`sufa_livery`) |
+| file size | 3.9 MB (KTX2) |
+
+The camouflage (`camo_weights`): three smooth noise fields over the airframe's world frame (blotches about
+`BLOTCH_M` = 1.5 m, 1.3 × longer fore-aft, ragged edges from a warp of the coordinates), each texel the colour of the
+strongest field, soft over about 2 cm at an edge, the fields shifted until each colour covers a third. `texels`
+finds each texel's place on the jet (where faces share texels, the face whose texel size is nearest the livery's
+usual wins, not a sliver mapped over a large area), so the pattern runs
+on across parts and UV seams; on the fuselage sides and the spine's sides it stretches with FlightGear's UVs. It
+covers the texels of the livery's camouflage colours on faces looking up or sideways, the CFTs' own UV island
+(`CFT_UV`) and the fin's old markings; texels between UV islands take the colour round them. The livery's panel lines
+and rivets stay (each texel times its brightness over the local brightest, as `panel_maps` finds the lines).
 
 Checks: `tests/godot/test_sufa_model.gd`: with Barak the F-16 is the original or the F-16D as before; with Sufa
 `f16i.glb` loads under both Models settings, keeps every helper of the original within 1 cm, and the player's and
 the AI's F-16s in mission 221 use it; the Arming screen shows the Sufa's art, weights and the F-16's nine boxes.
+
+#### Tried and dropped (2026-10-29)
+
+- **The CFTs painted from the skin under them** (the 2026-10-28 build: each CFT corner took the livery of the
+  fuselage or wing straight below). Result: the tanks' steep sides took one row of texels each, so they read as one
+  long smooth dark-brown band. Dropped for the CFTs' own UVs, painted with our camouflage.
+- **FlightGear's own camouflage pattern, recoloured.** Result: mostly sand with brown and little green, unlike the
+  photos' equal measure. Dropped for our pattern; the colour mapping (`recolour`) stays for the underside's grey and
+  the radome.
+- **Our pattern without balancing.** The three fields' plain maximum gave 12 % brown, 57 % sand and 31 % green over
+  the airframe (too few blotches to average out). Dropped for the shifted fields (a third each).
 
 #### Tried and dropped (2026-10-28)
 
@@ -121,12 +161,16 @@ The script:
 4. moves each pylon onto the original's station and compresses the oleos so the wheels touch at `height`;
 5. opens the main gear doors for LdgDr and closes the nose door for LdgDrUp;
 6. builds the IAF dorsal spine (`dorsal_spine`, constants `SP_*`): rounded-box sections every 0.1 m, lofted over
-   the fuselage and flared into it. Its top runs straight from the back of the canopy (0.93 m) to the foot of the
-   fin and rudder (1.148 m) and stays there under the fin; it is 0.68 m wide to the wing's trailing edge, 0.40 m
-   under the fin, and ends square 0.08 m aft of the nozzle's exit with a dark floor over the nozzle. Its UVs are the
-   fuselage's under it, spread over the section, so the camouflage runs on at its foot. The fuselage faces it
-   covers are removed (they would bake black into the occlusion map they share with it); FlightGear's tail root
-   fairing and aft light inside it are dropped; the blade antenna and the formation light are raised onto it;
+   the fuselage and flared into it. Its front is the canopy glass's rear edge, an arch 0.38 m wide whose top is
+   0.945 m, so the glass runs on into it. It widens to 0.68 m by 1 m aft of the glass, eases down to 0.878 m and runs
+   level from there to its end: 0.40 m wide under the fin, ending in a round cap 0.08 m aft of the nozzle's exit,
+   with a dark floor over the nozzle. Three dark vents sit on each side ahead of the fin. Before that (`lower_fin`)
+   FlightGear's fin, rudder and their lights go 0.27 m lower (`FIN_DROP`) and its tail root fairing is squashed to
+   meet them: FlightGear's fin root is level with the canopy's top, where on the real jet the canopy stands 0.25 m
+   above the fin's root and the spine. The spine's UVs are the fuselage's under it, spread over the section, so the
+   camouflage runs on at its foot. The fuselage faces it covers are removed (they would bake black into the
+   occlusion map they share with it); FlightGear's aft light inside it is dropped; the blade antenna and the
+   formation light are set onto it;
 7. joins the parts, puts each origin on its hinge, adds the helpers;
 8. sets the wing roundels (`wing_roundels`, constants `ROUNDEL_ART` and `ROUNDELS`): the livery's roundel above the
    left wing near the tip is painted over with the colours round it, and its art is drawn as a circle at each IAF
@@ -142,8 +186,8 @@ The script:
 - `tests/godot/test_detailed_models.gd` (run by `tools/test.sh`): with the switch off the F-16 is the original
   model; with it on the detailed model loads once, has LODs and its textures, has every node of the original,
   keeps the helpers within 1 cm, has pylon or rail geometry at every store station (5 cm; tip rails 12 cm), has the
-  IAF dorsal spine (its top within 5 cm of the original's from the canopy to the fin, after the original's 0.12 m
-  higher placement is taken out), has every mesh inside the original's bounds + 1 m, has every part touching the body,
+  IAF dorsal spine (its top level within 4 cm from behind the canopy to the fin, 0.20 to 0.32 m under the canopy's
+  top, flat across), has every mesh inside the original's bounds + 1 m, has every part touching the body,
   has the afterburner ring on the nozzle's exit, animates (gear, doors, speed brakes, flaperons), and flies as the
   player's and the AI's jets in mission 231.
 - `tests/godot/_model_shot.gd` (needs a window): real renders from outside, Original and Detailed, airborne with
@@ -154,14 +198,11 @@ The script:
 
 - The cockpit view's own-jet model (`own_bc`, the original's `f16_bc`) stays the original's with the switch on, and
   with the Sufa: from the cockpit, the CFTs do not show.
-- `f16i.glb` holds PNG textures (11 MB): it was built on a machine without `basisu`. Run
-  `python3 tools/plane/glb_ktx2.py game/extra/models/f16/f16i.glb game/extra/models/f16/f16i.glb` where `basisu` is
-  installed to bring it to the F-16D's size.
-- The Sufa's antennas, a squadron badge, and the CFT sides' livery (projected from above, so stretched on the
-  sides).
+- The Sufa's other antenna changes and 107 Squadron's real badge (docs/f16i.md §10).
 - The livery's fuselage sides are stretched (FlightGear's UVs project from above and below); on the dorsal spine's
-  sides the panel lines of the fuselage top are stretched too. The spine's three small vents and its aft sensor
-  are not modelled.
+  sides the panel lines of the fuselage top are stretched too. The spine's aft sensor is not modelled.
+- The jet sits about 0.3 m lower on its gear than a parked IAF F-16 (the oleos are compressed to the original
+  model's `height`), so its fin tip is about 4.6 m above the ground where the real jet's is 4.88 m.
 - Where the livery's old roundel was, near the left wing tip, the paint is a smooth blend of the colours round it:
   its panel lines and rivets are gone over 0.5 m.
 - The canopy glass is plain tinted glass.

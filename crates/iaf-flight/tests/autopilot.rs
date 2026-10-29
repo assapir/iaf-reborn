@@ -266,7 +266,7 @@ fn lands_at_ramat_david_in_ground_effect() {
     }
 }
 
-/// Better physics "Asymmetric stores": one MK-82 left on the right wing (680 kg·m, about a quarter stick at landing
+/// Better physics "Asymmetric stores": one MK-82 left on the right wing (680 kg·m, about a sixth of the stick at landing
 /// speed). The autopilot holds the heavy wing up and lands on the centreline as with balanced stores.
 #[test]
 fn lands_at_ramat_david_with_unbalanced_stores() {

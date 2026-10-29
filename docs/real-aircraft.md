@@ -102,6 +102,11 @@ The original thrust and fuel model limits what a row can match:
   thrust), and the fuel flow at full throttle is the row's `ff_ab`.
 * **Roll acceleration** changes only for the F-16 (FLCS) and the F-35I (which uses the F-16's values). The other
   jets keep the original start / stop values, so their 0 → 90° roll takes ~1 s.
+* **One stall floor** (`stall_kt`) sets both the slow end (landing, 1 g) and the g available below corner speed
+  (g ≤ (V / floor)²). A jet whose FLCS limits AoA lower in a hard turn than near the landing AoA cannot match both;
+  the rows set the floor from the landing side.
+* **Engine spool** (better physics, `spool.rs`) is keyed by type code, so variants on one code share it: the F-16I
+  flies type 100's (F100) times.
 
 ### 2.1 Service ceilings
 
@@ -319,6 +324,35 @@ values and their sources are in [f16i.md](f16i.md) §1:
 
 The validation run (`IAF_JET=F-16I`) gives Mach 1.18 at sea level and Mach 1.87 at 40,000 ft, as the F-16D row.
 Heavier by about 4,400 lb at full fuel, it climbs at 36,000 ft/min at sea level (the F-16D row 43,000).
+
+**Block 52 data (research 2026-10-29).** The search looked for public Block 50/52 figures that would replace what the
+row repeats from the Block 30/40 row. No USAF SAC chart, Dash-1 performance chart or Pratt & Whitney engine deck for
+the Block 50/52 is public, so no row field changed. The validation reference row "F-16I" now uses Block 50/52 figures
+where one exists:
+
+| item | Block 50/52 figure | row / model | verdict |
+|---|---|---|---|
+| top speed, 40,000 ft | Mach 1.89 sustained, Mach 2.05 short endurance (Block 50/52, clean, no CFTs)[^f16net-b50] | Mach 1.87 | close (no refit: the CFTs add drag, inferred) |
+| top speed, sea level | none for the block; every F-16 ~Mach 1.2 | Mach 1.18 | as before |
+| instantaneous turn, 10,000 ft | 20.9 deg/s at 7.8 g, Mach 0.64, Block 50 at 22,000 lb clean (uncertain: an unsourced forum post)[^f16net-turn] | 21.7 deg/s at 7.8 g (420 kt TAS) | ok, but see below |
+| max take-off weight | Block 50/52 42,300 lb[^f16net-b50] | 52,000 lb (the F-16I's heavyweight gear, f16i.md §1) | kept |
+| thrust | F100-PW-229 28,500 lbf[^f16net-b50] | 29,160 lbf (Pratt & Whitney, f16i.md §1) | kept (manufacturer) |
+| ceiling | "above 50,000 ft" (every F-16)[^usaf-f16] | 50,000 ft | as before |
+| 9 g | the full 9 g envelope with the CFTs (Lockheed Martin, f16i.md §1) | original +9 | as before |
+
+Still repeated from the F-16D row or the original, and why:
+* **Thrust over Mach / altitude**: no public F100-PW-229 lapse data, installed or uninstalled (open). The row keeps
+  the original's table shape (§2 "Thrust vs Mach / altitude").
+* **Roll** 280 deg/s at 900 deg/s²: the Block 50/52 keeps the Block 40's digital FLCS; no Block 52 roll rate, clean
+  or with stores, is public (open).
+* **Stall floor** 128 kt (inferred, f16i.md §1). The forum turn figure, if right, puts the 1 g AoA-limited speed of a
+  22,000 lb Block 50 at ~127 kt at sea level, ~147 kt at the Sufa's 29,350 lb (inferred). That does not fit the
+  landing side (the F-16D row's 118 kt): one floor cannot serve both (§2 "One stall floor"). At its weight the real
+  Sufa turns less than the model's 21.7 deg/s (inferred).
+* **Climb**, **g limit by weight**, **approach speed**, **take-off distance**: no Block 50/52 figure found (open).
+* **Spool**: the F100's times (§2 "Engine spool"), right for the F100-PW-229's family. Tried and dropped
+  (2026-10-29): "idle to full afterburner in 2 s"[^flightglobal-229a] is for the F100-PW-229A test engine (37,150 lbf),
+  not the Sufa's -229.
 
 ## 9. AI types
 
@@ -644,6 +678,11 @@ Fit: CD0 0.0834, no wave drag.
 [^aeroweb]: aero-web.org (F-16D empty weight).
 [^airfighters]: airfighters.com (F-4E SAC ceiling, A-4N ceiling, F-16D empty weight).
 [^aerospaceweb-b]: Aerospaceweb (F-16B weight over the A).
+[^f16net-b50]: f-16.net, "F-16C/D Block 50/52" (speeds, weights, engines): https://www.f-16.net/f-16_versions_article9.html
+[^f16net-turn]: f-16.net forum, "F-16 maneuverability data - Roll and Turn rates", post of 15 February 2025 (Block 50
+    turn rates, no source given): https://www.f-16.net/forum/viewtopic.php?p=501046
+[^flightglobal-229a]: Flight International, "P&W completes F100-229A altitude testing", 18 February 1998:
+    https://www.flightglobal.com/pw-completes-f100-229a-altitude-testing/19565.article
 [^flugzeuginfo]: flugzeuginfo.net (Mirage III, 707 ceilings).
 [^airwar]: airwar.ru (Ugolok Neba) type pages, including the Tu-22 flight-manual limits.
 [^victorymuseum]: victorymuseum.ru (MiG-23ML).

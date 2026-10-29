@@ -43,7 +43,7 @@ Terms used in this doc:
 | STT / TWS | the radar's single-target track / track-while-scan (docs/radar.md)                              |
 | tCO       | `_timeConstOrientation`: the time a missile flies straight before it steers                     |
 | TRA / TER | the TV weapon's status codes on the TV page: 2 TRA (guided mode 0), 3 TER (modes 1 / 2) (§12.1) |
-| JDAM      | joint direct attack munition: a GPS / INS tail kit on a plain bomb (ours, the F-16I's, §13.2)   |
+| JDAM      | joint direct attack munition: a GPS / INS tail kit on a plain bomb (ours, §13.2)               |
 | LAR       | launch acceptability region: where a released GPS bomb reaches its aim (§13.3)                  |
 | LOAL      | lock-on after launch: the missile finds its target after it leaves the rail (§13.1)             |
 | SDB       | small diameter bomb, the GBU-39 (§13.2)                                                         |
@@ -65,7 +65,8 @@ What is built:
 - The TV weapons (635 Maverick, 640 TV missile) with the guided motion, the camera riding the weapon and the TV
   page's TRA / TER and time (§12).
 - The laser bombs with the FLIR designation (§9.8).
-- Ours, the F-16I Sufa's weapons (only with Extras "F-16 version" = Sufa): the AIM-9X and Python 5 (high off-boresight
+- Ours, the modern weapons (the F-16I Sufa and the F-35I; with Extras "Weapons" on Modern also the Barak and the
+  F-15): the AIM-9X and Python 5 (high off-boresight
   shots through the helmet, lock-on after launch), the JDAMs and the GBU-39 (GPS bombs to a designated point, with an
   in-range cue) (§13).
 
@@ -539,6 +540,9 @@ A ripple releases `quantity` stores, `interval` metres apart on the ground, one 
   changed, the period is 0.1 s for any interval up to 100.
 - "int" is both the spacing on the ground (m) and the period (ms).
 - The values can change during a release (no check).
+- The order of the stores: one per tick, from `FUN_0053b680`'s station (§2.4). 6 MK-82 singles on stations 1–3 /
+  5–7 with quantity 2 go (1, 7), (2, 6), (3, 5) per press, the two stores of each press one period apart, the jet
+  lopsided in between. Extras "Bomb release" Real changes this (§9.10).
 
 ### 9.2 Release (Space 0x40 / up 0x41)
 - **Space** (`FUN_00454270(target, ai)`; the player passes (0, 0), the AI `FUN_00452680(T)` → (T, 1)):
@@ -750,6 +754,54 @@ player's release (`player_weapons.release_store`):
 - Rocket hits are credited to the releasing jet. The AI's rockets share the player's rocket pool (ours).
 
 Test: `test_ai_ground_attack.gd` (ZUNNI rockets and an AS-14 from the Su-24's ripple reach the target).
+
+### 9.10 Real release (Extras "Bomb release: Real", ours)
+Preferences > Extras > **Bomb release** = Real (Settings `bomb_release`, default Original) makes the player's bombs
+(500, 510, 650) leave the jet the way a real stores management system releases them. Rockets (560) and the AI's
+releases stay original.
+
+**The real rules found:**
+- **F-16 SMS.** The release option is SGL or PAIR. SGL releases one store per release signal; PAIR releases stores
+  symmetrically in pairs, two at a time[^bms34], from both opposite stations: 4 and 6, or 3 and 7[^dcs-f16].
+- **What the quantity counts (F-16).** RP is the number of release pulses sent when the pilot presses the weapon
+  release button: RP 1 releases one bomb or one pair, RP 4 releases four bombs or four pairs (a "ripple
+  release")[^dcs-f16]. The page shows the count left of SGL / PAIR beside OSB 8[^bms34].
+- **Interval (F-16).** The pilot enters the impact spacing (0–999 ft); the aircraft computes the time between
+  pulses from it[^dcs-f16]. The shortest interval is 60 ms on a MAU-12 pylon or a TER-9/A, 200 ms on a SUU-20[^bms34].
+- **Station sequence (F-16).** A former crew chief writes that with SGL and RP 1 the bombs come off one at a time
+  starting on the left wing, and that SGL / PAIR puts one off each wing per pickle[^f16net]; another poster writes
+  that the SMS drops symmetrically when like stores are on both wings[^f16net]. Outboard or inboard first is open.
+- **TER order.** A TER-9/A fires its centre station, then left, then right[^marvin]. Ours keeps the original slot
+  order on a rack (the bottom store first, §2.2).
+- **F-4E AWRU.** The quantity knob counts munitions, not pulses: Single-Manual drops one per press,
+  Single-Ripple 2–18 drop at the interval while the button is held, Pairs-Manual drops one store from each station
+  per press, Salvo repeats that at the interval. Single releases go left-right-left. The interval is 0.05–1 s
+  (×10 with the INTRVL switch)[^hb-awru].
+- **F-15, Lavi, Kfir, Mirage, F-35I, Kurnass 2000:** no public source found (open).
+
+**What ours does with Real** (`crates/iaf-avionics/src/stores.rs` `Stores::real_pulse`, `release.rs`
+`Ripple::pulses`, wired in `game/weapons/player_weapons.gd` `_ripple_tick`):
+- **PAIRS / SGL.** Stores page OSB 7 (bottom, second from the left) toggles PAIRS and SGL, PAIRS at the start. The
+  page then shows "1 PAIR" / "1 SGL" (the quantity and the mode) in the quantity's place ("%dQnt"); the art is unchanged.
+- **The quantity counts release pulses** (F-16 rule, used for every jet but the F-4s, inferred). Each pulse is one
+  store (SGL) or one pair (PAIRS). It starts at RP 1, so one press in PAIRS drops one pair; 6 MK-82s go in one
+  press with quantity 3. With the switch off the original's default 2 stays. The F-4E and the Kurnass 2000 (inferred
+  from the F-4E) keep the AWRU rule: PAIRS drops one pair per press, the quantity counting stores in SGL.
+- **One pulse in PAIRS:** the outboard-most symmetric pair (stations i and 8 − i) that both hold the selected
+  weapon, one store from each at the same instant. Both counts drop before one push to the flight model, so Better
+  physics "Asymmetric stores" sees no moment between them.
+- **One pulse in SGL**, or in PAIRS with no full pair left: after a store, its mirror station on the other wing when
+  that holds the weapon; else the left station of the outboard-most full pair; else the station whose store leaves
+  the lateral moment nearest 0 (an odd store left, the centreline last). Inferred from the sources above.
+- **Interval:** the original's period and ripple line (§9.1, §9.3) with one line point per pulse; both stores of a
+  pair share the point.
+- The probe load (6 MK-82 singles) at RP 1: Real PAIRS releases (1, 7), (2, 6), (3, 5), one pair per press, each
+  pair in one step, the moment about 0 after each (the model's attach points are mirrored to about 1 cm). Real SGL
+  releases 1, 7, 2, 6, 3, 5, one per press.
+
+Tests: `stores.rs` / `release.rs` unit tests (pairs, alternating singles, a TER pair and an odd store, AWRU
+pulses); `test_bomb_release.gd` (mission 231: Original 1 7 2 6 3 5 one per tick, two per press; Real PAIRS (1, 7)
+(2, 6) (3, 5), one pair per press; Real SGL alternating, one per press).
 
 ## 10. Chaff and flares
 Each press drops one decoy. At the release the game rolls once per missile launched at the jet: a success sends that
@@ -1053,30 +1105,47 @@ Maverick at the camera's point and its hit. `tests/godot/test_maverick_mfd.gd` (
 camera rides the first in every update until the hit, with the page on RDY, the picture shown and the weapon's model
 on the EO self layer; then the camera is back on the jet; the last one launched gives NO SOURCE.
 
-## 13. The F-16I Sufa's weapons (ours)
+## 13. The modern weapons (ours)
 
-With Extras "F-16 version" = Sufa (`Settings.sufa(100)`, docs/f16i.md) the F-16's Arming screen also lists seven
-weapons the 1998 game does not have. They are ours: new records built from public data whatever Weapon data says
-(values and sources: docs/real-weapons.md §1.6). The Barak, the other jets and the AI never get them.
+Seven weapons the 1998 game does not have: the AIM-9X, Python 5, GBU-31, GBU-31(V)3, GBU-32, GBU-38 and GBU-39. They are
+ours: new records built from public data whatever Weapon data says (values and sources: docs/real-weapons.md §1.6).
+- **The modern jets** always list theirs: the F-16I Sufa (Extras "F-16 version" = Sufa, `Settings.sufa(100)`,
+  docs/f16i.md) all seven, the F-35I (docs/f35i.md §3) the AIM-9X, GBU-31, GBU-32 and GBU-39.
+- **Extras "Weapons"** (`Settings.modern_weapons`): on Original (the default) every other jet's Arming list is the
+  original's. On Modern a jet also lists each weapon a public source shows it carrying (docs/real-weapons.md §1.7):
 
-- **Records** (`game/weapons/sufa_weapons.gd`, ids 1001–1007, added to every weapon database by `weapon_db.gd`): each
+  | jet | weapons with Weapons on Modern |
+  |---|---|
+  | F-16D Barak | AIM-9X, Python 5, GBU-31, GBU-38, GBU-39 |
+  | F-15 Baz | AIM-9X, GBU-31 |
+  | F-4E, Kurnass 2000, Kfir, Lavi, Mirage, MiG-23, MiG-29 | none |
+
+- The AI never gets them.
+
+- **Records** (`game/weapons/modern_weapons.gd`, ids 1001–1007, added to every weapon database by `weapon_db.gd`): each
   copies an original record for its blast, drag and model and overrides the rest. A record built on a bomb with less
   explosive (GBU-31(V)3, GBU-39) scales the base's power by its fill over the Mk 84's 429 kg and the radius by the
-  cube root of that (inferred).
+  cube root of that (inferred). Stations as numbered 1–9 on the Arming screen:
 
-  | record | type | built on (blast) | model (Original / Detailed) | stations | count |
-  |---|---|---|---|---|---|
-  | `AIM-9X` | 570, gen. 4 | AIM-9M | AIM-9 / FlightGear AIM-9X | 1–3, 7–9 | 1 |
-  | `PYTH-5` | 570, gen. 4 | PYTH-4 | the Python 4's (both) | 1–3, 7–9 | 1 |
-  | `GBU-31` | 650 + GPS | MK-84 | MK-84L / FlightGear GBU-31 | 3, 4, 6, 7 | 1 |
-  | `GBU-31V3` (BLU-109) | 650 + GPS | MK-84 × 250 / 429 | MK-84L / FlightGear GBU-31 | 3, 4, 6, 7 | 1 |
-  | `GBU-32` | 650 + GPS | MK-83 | MK-83L (both) | 3, 4, 6, 7 | 1 |
-  | `GBU-38` | 650 + GPS | MK-82 | MK-82L / FlightGear GBU-54 (the laser JDAM's look) | 3, 4, 6, 7 | 1 |
-  | `GBU-39` | 650 + GPS | MK-84 × 16 / 429 | MK-82 at 0.8 scale (both) | 3, 4, 6, 7 | 4 (one rack) |
+  | record | type | built on (blast) | model (Original / Detailed) | Sufa | Barak | F-15 | F-35I | count |
+  |---|---|---|---|---|---|---|---|---|
+  | `AIM-9X` | 570, gen. 4 | AIM-9M | AIM-9 / FlightGear AIM-9X | 1–3, 7–9 | 1–3, 7–9 | 1, 9 (two each) | 1, 9 | 1 |
+  | `PYTH-5` | 570, gen. 4 | PYTH-4 | the Python 4's (both) | 1–3, 7–9 | 1–3, 7–9 | – | – | 1 |
+  | `GBU-31` | 650 + GPS | MK-84 | MK-84L / FlightGear GBU-31 | 3, 4, 6, 7 | 3, 4, 6, 7 | 2, 5, 8 | 2, 3, 7, 8 | 1 |
+  | `GBU-31V3` (BLU-109) | 650 + GPS | MK-84 × 250 / 429 | MK-84L / FlightGear GBU-31 | 3, 4, 6, 7 | – | – | – | 1 |
+  | `GBU-32` | 650 + GPS | MK-83 | MK-83L (both) | 3, 4, 6, 7 | – | – | 2, 3, 7, 8 | 1 |
+  | `GBU-38` | 650 + GPS | MK-82 | MK-82L / FlightGear GBU-54 (the laser JDAM's look) | 3, 4, 6, 7 | 3, 4, 6, 7 | – | – | 1 |
+  | `GBU-39` | 650 + GPS | MK-84 × 16 / 429 | MK-82 at 0.8 scale (both) | 3, 4, 6, 7 | 3, 7 | – | 3, 7 (bays) | 4 (one rack) |
 
-- **Arming**: `mission_weapons.gd` lists them after the bdb's weapons and adds their load items to the F-16's when
-  the switch is on (`SufaWeapons.loads`). Their icons are ours (`game/extra/weapons/arm/`, renders of the
-  detailed stores by `tools/stores/icons.gd`); the Python 5 shows the install's Python 4 icon. A GPS bomb takes the bomb rack layout (§2.2), so four GBU-39s sit on one station.
+- **Arming**: `mission_weapons.gd` lists them after the bdb's weapons and adds their load items (`ModernWeapons.loads`)
+  to the jet's. A jet picked on the Jet list takes the modern items of the jet flown, with the mission jet's original
+  items (docs/front-end.md §15). Their icons are ours (`game/extra/weapons/arm/`, renders of the detailed stores by
+  `tools/stores/icons.gd`); the Python 5 shows the install's Python 4 icon. A GPS bomb takes the bomb rack layout
+  (§2.2), so four GBU-39s sit on one station.
+- **On every jet**: the guidance, the release and the HUD cues below are the same on every jet that
+  lists a weapon. Without a helmet sight (the F-4E, Kfir and Mirage cockpits,
+  §5.4) an AIM-9X would lock within its cone of the nose only through a radar lock, else within 6° of the nose; none
+  of those jets lists one.
 
 ### 13.1 AIM-9X and Python 5
 
@@ -1124,8 +1193,13 @@ In HUD modes 5 / 6 with a GPS bomb selected:
   the line from the centre, as the TV / HARM diamond) and a steering line to it from the flight path marker; a dot
   inside the diamond while in range. The CCIP symbols are not drawn then. Without a designation the CCIP symbols of
   §9.4 stay and the bomb goes to their aim.
-- Open: the Real HUD (docs/real-hud.md) draws its CCIP for a GPS bomb; the F-16's real JDAM symbols (TD box,
-  steering line, in-range text) are not built there yet.
+- **Real HUD** (docs/real-hud.md): with a designated aim the same diamond, dot and steering line, in the Real HUD's
+  colour, over the jet's own symbology; the text rows stay the Real HUD's. A gunsight-only jet (the F-4E, the Mirage)
+  draws none.
+- Open: the GBU-31(V)3 is drawn with the GBU-31's (Mk 84) model. The real bomb is slimmer, with a narrower ogive nose
+  and the BLU-109's yellow band (photo: IDF Spokesperson's Unit, Commons "F-16I (IAF).jpg"); its own shape needs a model
+  or a per-axis scale (records take one uniform `scale`).
+- Open: the real JDAM symbols of each jet's HUD (the F-16's TD box, steering line and in-range text) are not built.
 
 ### 13.4 Validation
 
@@ -1133,7 +1207,8 @@ In HUD modes 5 / 6 with a GPS bomb selected:
   40,000 ft), `missile.rs` `off_boresight_missile_turns_to_a_target_behind_the_beam` (100° off the nose: the original
   rule ends the flight, the off-boresight one hits), `sight.rs` `loal_takes_the_unit_nearest_the_cued_axis`,
   `release.rs` `gps_aim_pod_then_td_then_ccip`.
-- `tests/godot/test_sufa_weapons.gd`: the Arming list (Sufa: all seven; Barak: none); mission 231, the F-16 3000 m up:
+- `tests/godot/test_modern_weapons.gd`: the Arming list of every Jet list jet, the Sufa and the F-35I with Weapons on
+  Original and on Modern (the table above; the F-35I's default GBU-31 in each bay); mission 231, the F-15 3000 m up:
   the padlock view turns the head onto a MiG 70° off the nose, the AIM-9X locks it, launches and kills it; a GBU-31
   at a radar-designated ground unit 6 km ahead is in range (out of range at four times the distance), flies to the
   point and destroys the unit.
@@ -1154,3 +1229,12 @@ Open points:
 - the HUD text font;
 - the store-selected box placement;
 - the release drop's direction (§11.1) and the MRM caret's sign (§11.3).
+
+[^bms34]: Falcon BMS, *TO 1F-16CMAM-34-1-1 BMS* (the BMS reproduction of the F-16 -34 weapons manual), Change 4.38,
+    §4.2.7.6.6–§4.2.7.6.9, pp. 513–514: <https://cdn.falcon-bms.com/docs/4.38/TO%201F-16CMAM-34-1-1%20BMS.pdf>
+[^dcs-f16]: Eagle Dynamics, *DCS: F-16C Viper Early Access Guide*, "Unguided bombs", steps 5–7, pp. 621–622:
+    <https://www.digitalcombatsimulator.com/en/downloads/documentation/dcs-viper_early_access_manual_en/>
+[^f16net]: F-16.net forum, "LGBs on TER: Bomb release?", posts of 15 and 24 March 2004:
+    <https://www.f-16.net/forum/viewtopic.php?p=9407>
+[^marvin]: Marvin Engineering, "TER-9/A Triple Ejector Rack": <https://marvineng.com/product/ter-9a-triple-ejector-rack/>
+[^hb-awru]: Heatblur Simulations, *DCS: F-4E Phantom II manual*, "AWRU": <https://f4.manuals.heatblur.se/systems/weapon_systems/awru.html>

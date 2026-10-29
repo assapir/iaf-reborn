@@ -158,9 +158,16 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   Ours, with Real (`rwr_search`): it also shows the hostile SAM / AAA radars searching the jet, within their radar's
   range and in terrain line of sight, as steady symbols with WRN_NEW_GUY when a new one appears; terrain masking
   drops them (rwr.md §7).
+- **Bomb release (Original / Real).** Original: one bomb per ripple tick from `FUN_0053b680`'s station (the farthest
+  same weapon from the last), the ripple quantity counting stores, so a symmetric pair leaves 0.1–0.3 s apart with
+  the jet lopsided in between. Ours, with Real (`bomb_release`): the real stores management: stores page OSB 7
+  toggles PAIRS / SGL ("1 PAIR" / "1 SGL" in the quantity's place); PAIRS releases both stores of a symmetric pair
+  at the same instant; the quantity counts release pulses, starting at RP 1 (the F-4E / Kurnass 2000: one pair per
+  press); SGL alternates wings, left first (weapons.md §9.10). Rockets and the AI keep the original.
 - **Briefing map (Original (1998) / Modern).** Original: text.emf's city dots where the 1998 map put them, up to
   ≈ 37 km from the real cities. Ours, with Modern (`briefing_map`): the eight labelled cities' dots and labels at
-  their real places on the TSD / briefing / mission editor map (front-end.md §8 "Modern map").
+  their real places on the TSD / briefing / mission editor map, and today's motorways, trunk, primary and secondary
+  roads from OpenStreetMap by zoom (setup's road layer, scenery.md §6; front-end.md §8 "Modern map").
 - **HARM targets (Original / Real).** Original: the HARM page lists its sensor's own scan (the radar classes within
   20 NM in the ±15° cone, emitting or not, friendlies too, best 15). Ours, with Real (saved value "rwr"): the page lists the RWR's active
   emitters inside that cone and the hostile scanned sites without a brain (never on the RWR: they never lock; counted
@@ -265,11 +272,12 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   The tower then says the real runway number (`b.rwy`); the numbers the install has no clip for (all but 03, 05,
   09, 15, 18, 21, 23, 27, 33) come from our TTS clips in `game/extra/tower_numbers/` (radio.md §1). Original:
   the missing `NumNNN` is silent. The original bases' runways all have install clips, so Original never plays ours.
-- **Additions the original does not have:** flight info line (ORIGINAL, or a short tag per switch not at its original setting — FLT, WPN, HUD:<style>, 1:1, CKPT+, PHYS+ — SUFA — then the position, speed, G, throttle, the roll trim when set, fps), blackbox, language, Window (framed / full screen),
-  "F-35I replaces" (the F-35I flies from a Jet list button, docs/f35i.md), "F-16 version" (below), Settings file (export / import the
+- **Additions the original does not have:** flight info line (ORIGINAL, or a short tag per switch not at its original setting — FLT, WPN, HUD:<style>, 1:1, CKPT+, PHYS+ — SUFA, MODWPN — then the position, speed, G, throttle, the roll trim when set, fps), blackbox, language, Window (framed / full screen),
+  "F-35I replaces" (the F-35I flies from a Jet list button, docs/f35i.md), "F-16 version" and "Weapons" (below), Settings file (export / import the
   preferences, front_end.gd `_settings_file`). Later: extra sounds (roadmap.md).
-  - The F-35I's stations are the real F-35A's (docs/f35i.md §3.1). Its outboard wing pylons (stations 1 / 11, the
-    AIM-9X's) take the newest AIM-9 the game has, the AIM-9M, and the Python 4.
+  - The F-35I's stations are the real F-35A's (docs/f35i.md §3.1). It carries the modern weapons whatever the
+    "Weapons" switch: the AIM-9X on its outboard wing pylons (stations 1 / 11), the GBU-31, GBU-32 and GBU-39 in its
+    bays (a GBU-31 in each by default) and the GBU-31 / GBU-32 on its heavy pylons (weapons.md §13).
 - **"F-16 version" (Barak (F-16D) / Sufa (F-16I))** (ours, Extras; [f16i.md](f16i.md)). Original: the game's F-16D
   Barak. Ours, with Sufa: every F-16 (type 100: the player's, the AI's and the parked ones) is the IAF's F-16I Block
   52+ with conformal fuel tanks:
@@ -283,7 +291,14 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     Barak's list is the original's;
   - its look: every F-16 is drawn with our F-16I model (`f16i.glb`: conformal fuel tanks, P&W nozzle, the Sufa's
     colours, 107 Squadron's orange fin band; aircraft-models.md §1.3), also with Models on Original;
-  - the Arming screen shows our F-16I front-view art with the Sufa's weights (base 32,050 lb, max 52,000 lb).
+  - the Arming screen shows our F-16I front-view art with the Sufa's weights (base 32,050 lb, max 52,000 lb);
+  - the Jet list's F16 button reads F-16I (Hebrew סופה) and its row describes the F-16I, as the F-35I's slot (f35i.md); the
+    F-35I wins when it replaces the F-16.
+- **"Weapons" (Original (1998) / Modern)** (ours, Extras; [weapons.md](weapons.md) §13). Original: the 1998 Arming
+  lists. Ours, with Modern: the Arming screen also lists our modern weapons (AIM-9X, Python 5, GBU-31, GBU-31(V)3,
+  GBU-32, GBU-38, GBU-39) on every jet a public source shows carrying them (real-weapons.md §1.7): the Barak the AIM-9X,
+  Python 5, GBU-31, GBU-38 and GBU-39; the F-15 the AIM-9X and GBU-31; the other jets none. The F-16I Sufa and the
+  F-35I have theirs with either setting. The AI's loads stay the original's. The info line shows MODWPN.
 - **HUD (Original (1998) / Real)** (references: [real-hud.md](real-hud.md)). Original: the 1998 HUD on every jet.
   Ours, with Real: each jet's real display:
   - the F-16C/D dash-34 HUD;
@@ -412,7 +427,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     (the original's lasts 3.5 s; up close a real motor's width and translucency, at range the original's width), with a white-hot motor flame and a small light in place of the glow sprite. Both
     stop at the real motor's burnout (the original draws them for the whole flight); the flight itself is unchanged.
   - New content with Detailed: contrails above 9000 m, a heat haze behind each engine, and condensation on the jets
-    (wingtip streamers and the LEX plume in high-G turns, the vapour cone near Mach 1 low down, wing vapour;
+    (wingtip streamers and the LEX sheet in high-G turns, the vapour cone near Mach 1 low down, wing vapour;
     docs/rendering.md §6). These replace the original wingtip vortex ribbons.
 - **Rain** (ours, Graphics → MORE, docs/rendering.md §10). Rendering only; the default is Off (the original has no
   weather).

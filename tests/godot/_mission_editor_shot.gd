@@ -6,7 +6,8 @@
 # ED_SCENERY=menu: zoomed in on a town of the scenery (docs/scenery.md §5) with a building picked and its Set as target
 # menu open; ED_SCENERY=target: that building set as a target (its marker selected). ED_TAB=<title>: that side tab
 # shown (e.g. Mission: the wind and weather rows). ED_MAP=original|modern: that Extras "Briefing map", the whole
-# map from Cairo to Damascus shown, no zoom.
+# map from Cairo to Damascus shown, no zoom; with ED_ZOOM=<zoom> and ED_AT=<x>,<y> (engine metres) that zoom centred
+# there instead (e.g. ED_ZOOM=12 ED_AT=334000,526900: Tel Aviv to Jerusalem, the roads of docs/front-end.md §8).
 extends "res://../tests/godot/base.gd"
 
 const DIR := "user://missions_shot"
@@ -29,6 +30,10 @@ func run() -> void:
 		ed.tsd.selected = -1
 		ed.tsd.zoom_by(0.01)
 		ed.tsd.centre_on(Vector2(240, 300))
+		if OS.get_environment("ED_ZOOM") != "":
+			var at := OS.get_environment("ED_AT").split_floats(",")
+			ed.tsd.zoom = float(OS.get_environment("ED_ZOOM"))
+			ed.tsd.centre_on(ed.Tsd.world_to_map(at[0], at[1]))
 	else:
 		ed.tsd.zoom_by(ed.tsd.ZOOM_STEP)
 		ed.tsd.zoom_by(ed.tsd.ZOOM_STEP)

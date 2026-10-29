@@ -427,7 +427,14 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
       (`iaf_tools::modern_map::CITIES`, longitude / latitude through the georeference, docs/georef.md), its outline
       and label by the same step; Jerusalem, Gaza, Haifa and Beirut move about a map unit. The TSD, the briefing, the
       in-flight TSD and the mission editor share it. The base for a later modern map (roadmap "A modern TSD map").
-      Test: `tests/godot/test_modern_map.gd`.
+      Modern also draws today's main roads from setup's road layer (docs/scenery.md §6; none without it):
+      `tsd_map.gd` `road_meshes` turns `main.bin` into three one-pixel line meshes once, at load, in map units
+      (`world_to_map` as a transform), drawn over the map's fills and under the grid, the city dots, the labels,
+      units and routes: motorways and trunk roads always (dark red), primary roads from zoom 3 (red-brown),
+      secondary roads from zoom 8 (brown, fainter). Cost on the Iris Xe (mission editor, 1600 × 1000,
+      2026-10-29): reading `main.bin` and making the meshes about 70 ms once (3.1 M points); a frame 3.0 / 5.8 ms
+      with the roads, 3.2 / 6.2 ms without, at zoom 1 / 12: within the noise. Test: `tests/godot/test_modern_map.gd` (with the road layer: the
+      map's segments, a motorway / trunk route Tel Aviv – Jerusalem of 59 km, the streets around Tel Aviv).
   * Polygons fill as GDI fills a `PolyPolygon`: all rings of a record are one region under its fill mode, ALTERNATE
     (even-odd) or WINDING (non-zero; 752 of the 1008 polygons in `82.emf`). The rings cross themselves and overlap.
     `menu/tsd_map.gd` gets the triangles from `IafEmf.fill_triangles` (`iaf_formats::emf::fill_triangles`, a sweep
@@ -1405,11 +1412,11 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
     `gamep_0/_1`. Mirrored in Hebrew. Row rules are opaque and one page pixel thick, so the ones that fall on the
     background's grid lines look like the rest.
   * **Extras rows** (`front_end.gd` `EXTRAS` and `_extras_rows`, less the Graphics → MORE rows; each switch is in
-    deviations.md §2): Flight data, Weapon data, F-16 version (Barak (F-16D) / Sufa (F-16I), docs/f16i.md), Language (English / Hebrew; Hebrew only when the pack is installed),
+    deviations.md §2): Flight data, Weapon data, F-16 version (Barak (F-16D) / Sufa (F-16I), docs/f16i.md), Weapons (Original (1998) / Modern, docs/weapons.md §13), Language (English / Hebrew; Hebrew only when the pack is installed),
     Flight info (Ctrl+F12), Blackbox, HUD pitch ladder, HUD (Original (1998) / Real), Real HUD bingo (500-5,000 lb, 1,500 by default), All keys on the Keyboard page,
     F-35I replaces (Off / one of the seven jets, docs/f35i.md), HARM targets, CD launcher (§18.1), Mouse wheel
     (below), Better cockpit (`Settings.BETTER_COCKPIT`, docs/cockpit.md "Better cockpit"), Mission Creator
-    (Original / Better, §19.4), RWR (Original / Real, docs/rwr.md §7), Briefing map (Original (1998) / Modern, §8), World scale (docs/world-scale.md), Settings file. 8 rows show, with the Keyboard
+    (Original / Better, §19.4), RWR (Original / Real, docs/rwr.md §7), Briefing map (Original (1998) / Modern, §8), Bomb release (Original / Real, docs/weapons.md §9.10), World scale (docs/world-scale.md), Settings file. 8 rows show, with the Keyboard
     page's scrollbar beyond. DEFAULT resets every row except Language and Settings file.
   * **Settings file:** Export / Import through a native file dialog. Export writes the working copy as a
     settings.cfg; Import stores and saves the file's settings at once.
@@ -2156,7 +2163,10 @@ record `+0x350` (`0x68e8d8+n·0x370`).
    * the jet art is then re-blitted over (x+1,y+1, 49×40), leaving only a frame.
 7. For each loaded station (count ≠ 0), all in green RGB(0,255,0), key.fnt, centred:
    * the weapon icon at (x+1,y+1), 49×30;
-   * `"%dx%s"` (count, name) in (x+2,y+23)–(x+51,y+32);
+   * `"%dx%s"` (count, name) in (x+2,y+23)–(x+51,y+32): an 8-character text (`1xAIM-9L`, 48 px) fills the 49 px
+     rect up to the box's frame. Ours draws key.fnt at its 8 px size scaled with the page (`arming.gd` `_key_text`),
+     so the text spans 6 px per character at any window size; a font size of round(8 × scale) had run it past the
+     frame;
    * `"%g"` = count×weight in (x+2,y+33)–(x+51,y+42).
 
 **Weapon list** (`FUN_00518ca0`; created on msg 0x549 via `FUN_00518d80`):

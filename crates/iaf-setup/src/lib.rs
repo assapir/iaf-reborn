@@ -139,16 +139,16 @@ pub fn plan(inputs: &Inputs) -> Vec<Step> {
         let k = inputs.scenery_kinds;
         let (fetch, make) = match (k.buildings, k.trees) {
             (true, false) => (
-                "scenery: sources (OpenStreetMap, Microsoft footprints, GHSL heights; about 373 MB)",
-                "scenery: buildings over the Survey 2 m layer",
+                "scenery: sources (OpenStreetMap, Microsoft footprints, GHSL heights; about 373 MB; the other countries' roads 366 MB)",
+                "scenery: buildings over the Survey 2 m layer; the theatre's roads",
             ),
             (false, true) => (
-                "scenery: sources (OpenStreetMap, ETH canopy; about 267 MB)",
-                "scenery: trees over the Survey 2 m layer",
+                "scenery: sources (OpenStreetMap, ETH canopy; about 267 MB; the other countries' roads 366 MB)",
+                "scenery: trees over the Survey 2 m layer; the theatre's roads",
             ),
             _ => (
-                "scenery: sources (OpenStreetMap, Microsoft footprints, GHSL heights, ETH canopy; about 520 MB)",
-                "scenery: buildings and trees over the Survey 2 m layer",
+                "scenery: sources (OpenStreetMap, Microsoft footprints, GHSL heights, ETH canopy; about 520 MB; the other countries' roads 366 MB)",
+                "scenery: buildings and trees over the Survey 2 m layer; the theatre's roads",
             ),
         };
         add("scenery-fetch", fetch, false, &[]);

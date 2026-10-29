@@ -19,6 +19,7 @@ pub mod missile;
 pub mod radar;
 pub mod real_hud;
 pub mod release;
+pub mod roads;
 pub mod rwr;
 pub mod scenery;
 pub mod sight;

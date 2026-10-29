@@ -247,7 +247,7 @@ and no aircraft model has Wheels frames. Built: Graphics → MORE → Rolling wh
 **Switch:** Preferences → Graphics → MORE → Models: Original / Detailed.
 
 **F-16D: stage 1 done** (2026-10-17, [aircraft-models.md](aircraft-models.md)): 51.4 k triangles, KTX2 textures in a
-3.8 MB glb, runtime LODs; the IAF dorsal spine (the Brakeet's avionics hump, as on the original model) and the
+3.8 MB glb, runtime LODs; the IAF dorsal spine (the Brakeet's avionics hump, level under the canopy as on IAF photographs, 2026-10-29) and the
 centreline pylon added. Next for DCS level: our own UV layout (the FlightGear UVs stretch the fuselage sides), a
 hand-painted 4K livery with stencils, glass reflections, a detailed cockpit-view model.
 

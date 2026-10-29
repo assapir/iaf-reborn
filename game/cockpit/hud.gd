@@ -165,6 +165,10 @@ func _draw() -> void:
 			_draw_ils(st, w)
 		if _mode() in [7, 8]:
 			_draw_weapons(s, w, gun, dash)
+		# Ours: a GPS bomb's aim diamond and steering line on every jet's Real HUD (docs/weapons.md §13.3).
+		var gps: Dictionary = cockpit.weapons.get("ag", {}).get("gps", {})
+		if _mode() in [5, 6] and not dash and gps.get("designated", false):
+			_draw_gps(gps, s, w, _hc())
 		if int(cockpit.radar.get("mode", 0)) == 3:
 			_ln(self, Vector2(-30, 0), Vector2(30, 0), w)
 			_ln(self, Vector2(0, -20), Vector2(0, 20), w)

@@ -4,6 +4,8 @@
 //! default), buildings or trees;
 //! `iaf-scenery lights <assets> [--near X,Y,KM]` makes the city lights' extra buildings where the scenery stops
 //! (`<assets>/converted/scenery/lights`, docs/rendering.md §5.1; `build` makes them too);
+//! `iaf-scenery roads <assets>` makes the road layer (`<assets>/converted/roads/roads.bin`, docs/scenery.md §6; `build`
+//! makes it too);
 //! `iaf-scenery tiles <assets>` lists the zoom-9 quadkeys the Survey 2 m layer touches (the tiles the list needs).
 
 use std::path::{Path, PathBuf};
@@ -11,10 +13,10 @@ use std::sync::atomic::AtomicBool;
 
 use anyhow::{Context, Result, bail};
 use iaf_tools::progress::Stdout;
-use iaf_tools::{scenery, thirdparty};
+use iaf_tools::{roads, scenery, thirdparty};
 
 const USAGE: &str =
-    "usage: iaf-scenery fetch|build|lights|tiles <assets> [--kinds both|buildings|trees] [--near X,Y,KM]";
+    "usage: iaf-scenery fetch|build|lights|roads|tiles <assets> [--kinds both|buildings|trees] [--near X,Y,KM]";
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -40,6 +42,7 @@ fn main() -> Result<()> {
             let list = kinds.downloads();
             let n = thirdparty::fetch_files(&list, &assets.join("source/scenery"), &Stdout, &cancel)?;
             println!("{n} fetched, {} kept", list.len() - n);
+            println!("roads: {} other countries fetched", roads::fetch(&assets, &Stdout, &cancel)?);
         }
         "build" | "lights" => {
             let r = scenery::Run { assets, near, kinds };
@@ -48,6 +51,14 @@ fn main() -> Result<()> {
             }
             if scenery::build_lights(&r, &Stdout, &cancel)?.up_to_date {
                 println!("city lights: up to date");
+            }
+            if cmd == "build" && roads::build(&r.assets, &Stdout, &cancel)?.up_to_date {
+                println!("roads: up to date");
+            }
+        }
+        "roads" if args.len() == 2 => {
+            if roads::build(&assets, &Stdout, &cancel)?.up_to_date {
+                println!("roads: up to date");
             }
         }
         "tiles" if args.len() == 2 => {

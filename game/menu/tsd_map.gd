@@ -10,6 +10,16 @@ var grid_batches: Array = []
 var text_shape_batches: Array = []
 ## text.emf labels: {pos (map units), text, px (font px at zoom 1, scaled with the zoom), color}.
 var text_ops: Array = []
+## The modern map's roads (docs/front-end.md §8): {mesh, zoom, color}, one PRIMITIVE_LINES mesh per tier, drawn from
+## that zoom on.
+var road_batches: Array = []
+## The road tiers: classes (iaf_avionics::roads CLASS_*: 0 motorway, 1 trunk, 2 primary, 3 secondary), the least
+## zoom, the colour (muted on the map's land; the main roads the strongest).
+const ROAD_TIERS := [
+	[0, 1, 0.0, Color(0.55, 0.16, 0.12, 0.9)],
+	[2, 2, 3.0, Color(0.5, 0.26, 0.16, 0.75)],
+	[3, 3, 8.0, Color(0.42, 0.34, 0.24, 0.6)],
+]
 
 
 func load_maps(map: Dictionary, grid: Dictionary, text: Dictionary) -> void:
@@ -18,6 +28,7 @@ func load_maps(map: Dictionary, grid: Dictionary, text: Dictionary) -> void:
 	grid_batches = _batches(grid)
 	if Settings.briefing_map == "modern":
 		text = modern_text(text)
+		road_batches = road_meshes()
 	text_shape_batches = _batches(text)
 	var map_size: Vector2 = tsd.MAP_SIZE
 	for op in text.get("ops", []):
@@ -63,6 +74,27 @@ static func modern_text(text: Dictionary) -> Dictionary:
 		for i in label:
 			ops[i].pos = [ops[i].pos[0] + step.x, ops[i].pos[1] + step.y]
 	return text
+
+
+## The road tiers' meshes in map units (ROAD_TIERS; IafRoads, the road layer of setup): none without the file.
+func road_meshes() -> Array:
+	var out := []
+	if not IafRoads.open(Settings.assets_dir().path_join("converted/roads")):
+		return out
+	# tsd.gd world_to_map (linear) as a transform: the engine metres of every segment in one call.
+	var o: Vector2 = tsd.world_to_map(0, 0)
+	var t := Transform2D((tsd.world_to_map(1e5, 0) - o) / 1e5, (tsd.world_to_map(0, 1e5) - o) / 1e5, o)
+	for tier in ROAD_TIERS:
+		var pts: PackedVector2Array = t * IafRoads.segments(tier[0], tier[1])
+		if pts.is_empty():
+			continue
+		var arrays := []
+		arrays.resize(Mesh.ARRAY_MAX)
+		arrays[Mesh.ARRAY_VERTEX] = pts
+		var mesh := ArrayMesh.new()
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, arrays)
+		out.append({"mesh": mesh, "zoom": tier[2], "color": tier[3]})
+	return out
 
 
 ## A city dot's centre (map units / MAP_SIZE), or (-1, -1) for any other op.
@@ -186,6 +218,9 @@ func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color.BLACK)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2(k, k))
 	_draw_batches(map_batches, k)
+	for b in road_batches:
+		if tsd.zoom >= b.zoom:
+			draw_mesh(b.mesh, null, Transform2D.IDENTITY, b.color)
 	if tsd.layers.grid:
 		_draw_batches(grid_batches, k)
 	if tsd.layers.text:

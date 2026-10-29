@@ -198,6 +198,8 @@ const EXTRAS := [
 	["weapon_data", "Weapon data", [["Original (1998)", "original"], ["Real weapons", "real"]]],
 	# Ours: every F-16 as the F-16I Sufa (docs/f16i.md): its flight data, radar and look.
 	["f16_variant", "F-16 version", [["Barak (F-16D)", "barak"], ["Sufa (F-16I)", "sufa"]]],
+	# Ours: the modern weapons (weapons/modern_weapons.gd) on every jet that really carried them.
+	["modern_weapons", "Weapons", [["Original (1998)", false], ["Modern", true]]],
 	["language", "Language", [["English", "en"], ["Hebrew", "he"]]],
 	["show_info", "Flight info (Ctrl+F12)", [["Show", true], ["Hide", false]]],
 	["blackbox", "Blackbox", [["On", true], ["Off", false]]],
@@ -264,6 +266,9 @@ const EXTRAS := [
 	["rwr_search", "RWR", [["Original", false], ["Real", true]]],
 	# Ours: the cities at their real places on the TSD / briefing map (menu/tsd_map.gd, docs/front-end.md "Modern map").
 	["briefing_map", "Briefing map", [["Original (1998)", "original"], ["Modern", "modern"]]],
+	# Ours: the real stores management's release (SGL / PAIRS, release pulses; weapons/player_weapons.gd,
+	# docs/weapons.md §9.10).
+	["bomb_release", "Bomb release", [["Original", "original"], ["Real", "real"]]],
 ]
 
 
@@ -987,7 +992,7 @@ func _draw_panels() -> void:
 		if screen == "pref" and panel.side == "left":
 			_draw_extras_tab(delta)
 		if screen == "jet":
-			_draw_f35i_slot(p, panel, delta)
+			_draw_jet_swaps(p, panel, delta)
 
 
 func _draw_content(def: Dictionary) -> void:
@@ -1035,14 +1040,11 @@ func _draw_list(list: Dictionary) -> void:
 		if title == "":
 			title = row.name
 		var desc := _string(row.desc_key)
-		# Ours: the Jet list row of the button the F-35I replaces describes the F-35I.
-		if (
-			screen == "jet"
-			and int(Settings.f35i_slot) >= 0
-			and JET_IDS.get(_norm(row.name), -1) == int(Settings.f35i_slot)
-		):
-			title = "אדיר" if _he() else "F-35I"
-			desc = _t(F35I_DESC)
+		# Ours: the Jet list row of a swapped jet (the F-35I's slot, the Sufa's F-16) describes the jet flown.
+		var swap := _jet_swap(JET_IDS.get(_norm(row.name), -1)) if screen == "jet" else {}
+		if not swap.is_empty():
+			title = swap.title
+			desc = _t(swap.desc)
 		_text_line(
 			Rect2(CONTENT.position + Vector2(tb[0], tb[1]), Vector2(tb[2] - tb[0], tb[3] - tb[1])),
 			title,
@@ -1491,15 +1493,26 @@ func _draw_extras_tab(delta: Vector2) -> void:
 		draw_set_transform(Vector2.ZERO)
 
 
-## Ours: the Jet list button the F-35I replaces (Settings.f35i_slot) relabelled "F-35I" in the baked-label style
-## (its own frame's art with the label blended out, as our Extras tab).
-func _draw_f35i_slot(p: int, panel: Dictionary, delta: Vector2) -> void:
-	var slot := int(Settings.f35i_slot)
-	if slot < 0:
-		return
+## Ours: the jet a Jet list id flies instead of the original's: the F-35I in the slot it replaces
+## (Settings.f35i_slot), else the F-16I Sufa for the F-16 (Extras "F-16 version", docs/f16i.md); {} for none.
+## {title, desc (English, through _t)}.
+func _jet_swap(id: int) -> Dictionary:
+	if id < 0:
+		return {}
+	if id == int(Settings.f35i_slot):
+		return {"title": "אדיר" if _he() else "F-35I", "desc": F35I_DESC}
+	if id == JET_IDS.f16 and Settings.sufa(100):
+		return {"title": "סופה" if _he() else "F-16I", "desc": SUFA_DESC}
+	return {}
+
+
+## Ours: the Jet list buttons of swapped jets (_jet_swap) relabelled in the baked-label style (their own frame's art
+## with the label blended out, as our Extras tab).
+func _draw_jet_swaps(p: int, panel: Dictionary, delta: Vector2) -> void:
 	for b in panel.buttons.size():
 		var btn: Dictionary = panel.buttons[b]
-		if JET_IDS.get(_norm(btn.label), -1) != slot:
+		var swap := _jet_swap(JET_IDS.get(_norm(btn.label), -1))
+		if swap.is_empty():
 			continue
 		var f := _frame("%d/%d" % [p, b], btn.label)
 		var r: Array = btn.rect
@@ -1510,7 +1523,7 @@ func _draw_f35i_slot(p: int, panel: Dictionary, delta: Vector2) -> void:
 			return
 		var box := _rect(Rect2(Vector2(r[0], r[1]) + delta, Vector2(r[2], r[3])))
 		draw_texture_rect(t, box, false)
-		_draw_baked_label(self, box, "אדיר" if _he() else "F-35I", f, 15)
+		_draw_baked_label(self, box, swap.title, f, 15)
 
 
 ## Our label on a button whose baked label was blended out (`box` in window pixels), as the baked labels: English
@@ -1566,6 +1579,7 @@ func _label_width(lf: Font, text: String, fs: int, sq: float, gap: float) -> flo
 
 ## The F-35I's Jet list description (Hebrew in strings_he.json).
 const F35I_DESC := "The IAF's fifth-generation stealth fighter: internal weapon bays, sensor fusion, a helmet display."
+const SUFA_DESC := "The IAF's F-16I two-seater: conformal fuel tanks, the APG-68(V)9 radar, the DASH helmet."
 
 ## The baked label's area inside a Jet list button (button-relative, panel px).
 const JET_LABEL := Rect2(14, 9, 81, 21)

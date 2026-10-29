@@ -24,7 +24,13 @@ BASE_LB, MAX_LB = 32050, 52000
 BOXES = [(1, 210), (21, 261), (81, 261), (141, 261), (201, 282), (261, 261), (321, 261), (381, 261), (401, 210)]
 
 os.makedirs(OUT, exist_ok=True)
-pts = kit.arm_front_view(GLB, os.path.join(OUT, "front.png"), PX_PER_M, CENTRE)
+# The wingtips carry the Sufa's AIM-9X, as the original F-16 art shows a missile on each tip: under the rail
+# (offset, m).
+TIP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "game", "extra", "models", "stores",
+                   "aim9x.glb")
+TIP_A, TIP_I = (0.08, 0.0, -0.2), (-0.08, 0.0, -0.2)  # station A is the left wing (-x)
+pts = kit.arm_front_view(GLB, os.path.join(OUT, "front.png"), PX_PER_M, CENTRE,
+                         stores=[(TIP, "StationA", TIP_A), (TIP, "StationI", TIP_I)])
 arm = {"_doc": "F-16I Sufa arming screen (tools/f16i/arm_front.py): front.png over the original's arming background "
                "(iaf-convert arm-extra), weights in lb, boxes = top-left of each station's 51x32 box (menu px, "
                "stations A..I), points = where each leader line ends on the jet.",

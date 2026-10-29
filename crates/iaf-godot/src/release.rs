@@ -151,6 +151,12 @@ impl IafRipple {
         self.ripple.qty = q;
     }
 
+    /// Extras "Bomb release" Real: the release pulses of one press (`awru`: the F-4E / Kurnass 2000).
+    #[func]
+    fn pulses(&self, pairs: bool, awru: bool) -> i64 {
+        self.ripple.pulses(pairs, awru)
+    }
+
     #[func]
     fn index(&self, left: i64) -> i64 {
         self.ripple.index(left) as i64

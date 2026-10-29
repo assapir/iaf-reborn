@@ -3,6 +3,7 @@
 # mfd_<page>_original.png and mfd_<page>_crisp.png (MFD_SCALE=2: drawn twice as large, as on a 4K screen). Usage:
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=~/.cache/shots -- --log-file ~/.cache/g.log --resolution \
 #     1920x1080 --path game -s ../tests/godot/_mfd_shot.gd
+# MFD_ONLY=<name> shoots one case; MFD_RELEASE=PAIR|SGL shows the stores page as with Bomb release Real.
 extends "res://../tests/godot/base.gd"
 
 ## [name, page, radar mode, cockpit].
@@ -41,6 +42,8 @@ func run() -> void:
 	var own := Vector2(200000, 600000)
 	var loaded := "f16"
 	for k in CASES:
+		if OS.get_environment("MFD_ONLY") not in ["", k[0]]:
+			continue
 		if k[3] != loaded:
 			loaded = k[3]
 			c.load_cockpit("converted/cockpits/" + loaded)
@@ -138,6 +141,7 @@ func _fill(c: Control, own: Vector2, mode: int) -> void:
 			}
 		)
 	c.weapons = {"stations": stations, "selected": 3, "mrm": 2, "srm": 4, "gun": 510, "quantity": 2, "interval": 10}
+	c.weapons["release"] = OS.get_environment("MFD_RELEASE")
 	c.eo = {
 		"camera": false,
 		"flir_pod": true,

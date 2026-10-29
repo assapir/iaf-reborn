@@ -32,18 +32,27 @@ Made by `tools/f16d/rig.py` (re-runnable; docs/aircraft-models.md):
 
 1. Made two-seat: the canopy and the spine behind it stretched 0.95 m aft, a second tub, seat and pilot.
 2. Given the IAF dorsal spine: the large avionics hump of Israel's F-16D Block 30 / 40 ("Brakeet"). It is a new
-   mesh made by the script (a loft of rounded-box sections), not taken from FlightGear. It runs straight from the
-   back of the canopy to the foot of the fin, goes on as a box under the fin and ends square just aft of the nozzle.
-   FlightGear's blade antenna and formation light are raised onto it. Its paint is the livery of the fuselage under
-   it, spread over its sides. Shape from:
-   - photographs on Wikimedia Commons: IAF F-16D 022, 046, 050 and 063 by Aldo Bidini (GFDL 1.2,
+   mesh made by the script (a loft of rounded-box sections), not taken from FlightGear. It starts at the canopy
+   glass's rear edge, at its width and height, and runs level, 0.25 m under the canopy's top, to a box under the fin
+   that ends in a round cap just aft of the nozzle. Three vents sit on each side ahead of the fin. FlightGear's fin
+   and rudder are lowered 0.27 m onto it and their root fairing squashed to meet them: FlightGear has the fin's root
+   level with the canopy's top. FlightGear's blade antenna and formation light are set onto it. Its paint is the
+   livery of the fuselage under it, spread over its sides. Shape from:
+   - photographs on Wikimedia Commons, used only as references (no image is in the model): IAF F-16D 027 parked,
+     side on, by Oren Rozen (CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:RamatDavid_020517_Barak_02.jpg):
+     the spine's top level from the canopy's rear frame to the fin, the canopy's top 0.25 m above it, the vents;
+     F-16C 333's tail by Oren Rozen (CC BY-SA 4.0,
+     https://commons.wikimedia.org/wiki/File:RamatDavid_020517_Barak_01.jpg): the tail box's round end; F-16C 557 by
+     MathKnight and Zachi Evenor (CC BY 4.0,
+     https://commons.wikimedia.org/wiki/File:IAF-F-16C-Barak2020--Independence-Day-2017-Tel-Nof-IZE-190.jpg): the
+     canopy standing above the fin's root on the single seater too; IAF F-16D 022, 046, 050 and 063 by Aldo Bidini (GFDL 1.2,
      https://commons.wikimedia.org/wiki/File:Lockheed_Martin_F-16D_Barak,_Israel_-_Air_Force_JP7236319.jpg and
      its neighbours JP7236316 / JP7236325 / JP7236336); F-16D 601 by Itayba (CC BY-SA 3.0,
      https://commons.wikimedia.org/wiki/File:IAF_F-16D.jpg). Used only as references; no image is in the model;
    - the model review at https://modelingmadness.com/review/mod/kolbrakeet.htm (the spine runs from the back of
      the canopy past the exhaust, where it becomes the tail extension);
-   - the original game model's spine (`f16_h`), whose top profile it follows (0.12 m lower, to meet FlightGear's
-     lower canopy and fin root).
+   - the original game model's spine (`f16_h`) set its first shape (until 2026-10-29); its top climbs to the
+     canopy's height at the fin, as FlightGear's fin root does, which the photographs above do not show.
 3. Given FlightGear's centreline pylon, so a store on station E hangs from it.
 4. Placed on the original game model's frame: the wing on the original's wing, the pylons moved onto the
    original's stations (each touching its station), the oleos compressed so the wheels touch where the original's do.
@@ -71,7 +80,8 @@ Made by `tools/f16d/rig.py` (re-runnable; docs/aircraft-models.md):
 
 The model contains about 60 helper positions measured from the original game model (where the game hangs stores,
 draws the afterburner and puts the wheels). They are coordinates only. Every mesh and texture comes from the
-FlightGear F-16, except the dorsal spine's mesh, which the script makes (its paint is FlightGear's livery).
+FlightGear F-16, except the dorsal spine's mesh, which the script makes (its paint is FlightGear's livery), and,
+in `f16i.glb`, the nose fairings and the camouflage, which the script makes too.
 
 ## The F-16I Sufa (`f16i.glb`)
 
@@ -83,9 +93,17 @@ Made by `tools/f16d/rig.py ... sufa` (docs/f16i.md §8.1): the F-16D above with 
 | `Models/nozzle-section.ac`, `nozzle-section.png` | the P&W F100 nozzle: 16 sections round the axis, as `nozzle.xml` places them |
 
 1. The GE nozzle replaced by the P&W nozzle (F-16.xml's `PW_nozzle`, 4.617 m aft), its plates at rest.
-2. The CFTs added and stretched with the fuselage for two seats; their paint is the livery of the skin under them.
-3. The livery (the same FlightGear IAF livery) recoloured by the script to the F-16I's FS 595 colours; 101
-   Squadron's fin badge, red disc and stripes painted over; our own 107 Squadron orange band on the fin; the tail
-   number 457 made from the livery's own "547". Reference for the fin marking, not copied: 107 Squadron's F-16I 827
-   at the IAF Museum, Hatzerim, by Oren Rozen (CC BY-SA 4.0,
-   https://commons.wikimedia.org/wiki/File:Hatzerm_131022_Sufa_01.jpg).
+2. The CFTs added and stretched with the fuselage for two seats, with their own UVs (an unpainted part of the
+   livery).
+3. The livery (the same FlightGear IAF livery): its underside grey and radome recoloured by the script to the
+   F-16I's FS 595 colours; the upper surfaces and the CFTs repainted with our own three-tone camouflage (made by the
+   script from noise over the airframe; the livery's panel lines kept); 101 Squadron's fin badge, red disc and
+   stripes painted over; our own 107 Squadron orange crescent and a plain round badge (ours) on the fin; the tail
+   number 457 made from the livery's own "547", smaller. References, not copied: 107 Squadron's F-16I 827 at the
+   IAF Museum, Hatzerim, by Oren Rozen (CC BY-SA 4.0,
+   https://commons.wikimedia.org/wiki/File:Hatzerm_131022_Sufa_01.jpg); for the camouflage, an F-16I (876) in
+   flight, supplied by the user.
+4. Our own nose fairings (meshes made by the script): the AIFF antenna row ahead of the windscreen and a sensor
+   blister on each side of the nose. References, not copied: F-16I noses by the IDF Spokesperson's Unit (CC BY-SA
+   3.0, https://commons.wikimedia.org/wiki/File:Aviad_Dagan,_May_2021._VIII.jpg and
+   https://commons.wikimedia.org/wiki/File:Israeli_attacks_on_Yemen,_January_2025._XIV.jpg).

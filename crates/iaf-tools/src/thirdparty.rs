@@ -373,6 +373,42 @@ pub const SCENERY: &[Download] = &[
     },
 ];
 
+/// The road layer's other countries of the theatre (`crate::roads`, docs/scenery.md §1.1): Geofabrik's extracts of
+/// 2026-01-01, each optional (a country that fails to download has no roads). Israel and Palestine come from
+/// `SCENERY`.
+pub const ROADS: &[Download] = &[
+    Download {
+        file: "lebanon-260101.osm.pbf",
+        url: "https://download.geofabrik.de/asia/lebanon-260101.osm.pbf",
+        sha256: "15dd91c776462e374a0f269789b2e3c6497f3f1eaca9869cd2ae565c8ee7862f",
+        bytes: 51_171_498,
+    },
+    Download {
+        file: "syria-260101.osm.pbf",
+        url: "https://download.geofabrik.de/asia/syria-260101.osm.pbf",
+        sha256: "095f2173b160357a3524c36af99653caac3b0856edefa7174ae22f902d94934d",
+        bytes: 74_655_427,
+    },
+    Download {
+        file: "jordan-260101.osm.pbf",
+        url: "https://download.geofabrik.de/asia/jordan-260101.osm.pbf",
+        sha256: "3fd948ca30bb663205d2376afea3d00a5242cf8908583c77865795fcaa104c91",
+        bytes: 30_711_576,
+    },
+    Download {
+        file: "egypt-260101.osm.pbf",
+        url: "https://download.geofabrik.de/africa/egypt-260101.osm.pbf",
+        sha256: "f5096d634a69d82d65ac754291bd2f3b6e8a288595e5ac0925340604d921e219",
+        bytes: 173_879_163,
+    },
+    Download {
+        file: "cyprus-260101.osm.pbf",
+        url: "https://download.geofabrik.de/europe/cyprus-260101.osm.pbf",
+        sha256: "29738894799e17e81c6ad39e042e478170bb9b2dd6dfa24a6db0ddbff2a34a26",
+        bytes: 35_342_500,
+    },
+];
+
 /// True when `<dir>/<file>.ok` records the pinned checksum (downloaded and checked before) and the file is there.
 pub fn file_done(dir: &Path, d: &Download) -> bool {
     std::fs::read_to_string(dir.join(format!("{}.ok", d.file))).is_ok_and(|t| t.lines().next() == Some(d.sha256))

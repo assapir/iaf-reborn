@@ -253,13 +253,21 @@ func run() -> void:
 	await _feed(vf, jet16, {"g": 1.0, "aoa": 2.0, "mach": 0.95, "speed": 320.0, "alt_ft": 300.0})
 	check(j.shell.visible and j.k_cone > 0.9, "vapour: the shell at Mach 0.95 low down (%.2f)" % j.k_cone)
 	jet16.free()
-	# The emitters on each model: the tips at the model's span (the game's F-16 spans ≈ 7 m), and a LEX plume.
-	for case in [["f16", "original"], ["f16", "detailed"], ["f35i", "original"]]:
-		settings().models = case[1]
+	# The emitters on each model: the tips at the model's span (the game's F-16 spans ≈ 7 m), and a LEX sheet from the
+	# spots measured on that model (vapour_fx.gd LEX, keyed by the model's file).
+	var cases := [["f16", "original"], ["f16", "detailed"], ["f16", "sufa"], ["f35i", "original"], ["f15", "detailed"]]
+	cases.append_array([["f15", "original"], ["mig29", "original"], ["cfir", "original"], ["lavi", "original"]])
+	for case in cases:
+		settings().models = "original" if case[1] == "sufa" else case[1]
+		settings().f16_variant = "sufa" if case[1] == "sufa" else "barak"
 		var mj: Node3D = AM.create(case[0], -1, false)
 		root.add_child(mj)
 		await frames(1)
-		var geo: Array = vf._geometry(mj.root_frame, case[0])
+		var lex: Array = vf.LEX.get(vf.model_file(mj), [])
+		check(
+			not lex.is_empty(), "vapour: %s (%s model) has its LEX spots (%s)" % [case[0], case[1], vf.model_file(mj)]
+		)
+		var geo: Array = vf._geometry(mj.root_frame, lex)
 		var pts: Array = geo[0]
 		var span := 0.0
 		if pts.size() >= 2:
@@ -272,6 +280,7 @@ func run() -> void:
 	eye.free()
 	settings().particle_effects = false
 	settings().models = "original"
+	settings().f16_variant = "barak"
 
 
 ## Feeds vapour_fx.gd one jet's flight `state` every frame for 0.8 s of frame time (the fades are timed, not counted).
