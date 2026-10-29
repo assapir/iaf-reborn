@@ -38,6 +38,8 @@ pub(super) fn frame(f: Field, i: &Input, gs_captured: bool) -> Frame {
     // ILS (NAV, gear down; the game's ILS is always on, the real one is a steering-mode position).
     let ils = i.ils.filter(|_| mode == 0 && i.gear_down);
     let aa = matches!(mode, 1..=3);
+    // A GPS bomb's coordinates: its cues replace the target square (docs/weapons.md §13.3).
+    let gps = w.gps.filter(|_| matches!(mode, 5 | 6));
     let o = &mut fr.outer;
     let sc = f.inset(INSET);
     let tape_y = f.centre_y() + if i.gear_down { 10.0 } else { 0.0 };
@@ -73,6 +75,9 @@ pub(super) fn frame(f: Field, i: &Input, gs_captured: bool) -> Frame {
     o.push(text((lx, ly), format!("{:.1}G", i.g), Align::Right));
     if aa {
         o.push(text((lx, ly + ROW), format!("{:.2}", i.mach), Align::Right));
+    }
+    if let Some(g) = gps {
+        o.push(text((lx, ly + ROW), if g.pre { "PRE" } else { "VIS" }, Align::Right));
     }
     if let Some(s) = i.steerpoint {
         let rx = sc.right;
@@ -149,6 +154,7 @@ pub(super) fn frame(f: Field, i: &Input, gs_captured: bool) -> Frame {
         ladder(p, i, fpm, f, style);
         marker(p, fpm, i.mr(6.0), i.mr(8.0), i.mr(5.0));
         if matches!(mode, 5 | 6)
+            && gps.is_none()
             && let Some(c) = w.pipper
         {
             // No CCIP on the F-15A/C: the bomb fall line to the target square.
@@ -188,6 +194,7 @@ pub(super) fn frame(f: Field, i: &Input, gs_captured: bool) -> Frame {
                 lcos(p, i, c);
             }
         }
+        5 | 6 if gps.is_some() => gps_cues(p, o, i, f, (sc.right - RANGE_IN, tape_y, RANGE_HALF), i.mr(4.0)),
         _ => {}
     }
     fr

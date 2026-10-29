@@ -165,10 +165,6 @@ func _draw() -> void:
 			_draw_ils(st, w)
 		if _mode() in [7, 8]:
 			_draw_weapons(s, w, gun, dash)
-		# Ours: a GPS bomb's aim diamond and steering line on every jet's Real HUD (docs/weapons.md §13.3).
-		var gps: Dictionary = cockpit.weapons.get("ag", {}).get("gps", {})
-		if _mode() in [5, 6] and not dash and gps.get("designated", false):
-			_draw_gps(gps, s, w, _hc())
 		if int(cockpit.radar.get("mode", 0)) == 3:
 			_ln(self, Vector2(-30, 0), Vector2(30, 0), w)
 			_ln(self, Vector2(0, -20), Vector2(0, 20), w)
@@ -587,6 +583,14 @@ func real_hud() -> Dictionary:
 	# The delayed CCIP (the impact point below the HUD): the time to go, the target under the HUD-edge pipper,
 	# designated while Space holds it (docs/weapons.md §9.4).
 	var ag: Dictionary = wp.get("ag", {})
+	# Ours: a GPS bomb with coordinates (docs/weapons.md §13.3): its TD box, steering line and LAR, drawn by the jet's
+	# Real HUD.
+	var gps: Dictionary = ag.get("gps", {}) if mode in [5, 6] else {}
+	var gps_cue := {}
+	if gps.get("designated", false):
+		gps_cue = gps.lar.duplicate()
+		gps_cue.pre = gps.pre
+		gps_cue.at = _hud_point(gps.aim, true)
 	var delay_on: bool = mode in [5, 6] and ag.get("pipper") != null and ag.get("off", false)
 	var lcos = null
 	if mode == 3 and wp.get("pipper") != null:
@@ -643,7 +647,8 @@ func real_hud() -> Dictionary:
 			"shoot": wp.get("shoot", false),
 			"delay": float(ag.ttg) if delay_on else null,
 			"delay_at": _hud_point(ag.get("target", ag.pipper), false) if delay_on else null,
-			"designated": delay_on and ag.get("frozen", false)
+			"designated": delay_on and ag.get("frozen", false),
+			"gps": gps_cue
 		}
 	}
 	_real = _real_hud.frame(_field(), _real_in)

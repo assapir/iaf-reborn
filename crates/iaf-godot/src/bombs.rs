@@ -4,7 +4,7 @@
 use crate::world::{get, num, terrain, vec3, vector3};
 use godot::prelude::*;
 use iaf_avionics::bombs::{self, Bomb};
-use iaf_avionics::gps::{GpsBomb, Kit};
+use iaf_avionics::gps::{self, GpsBomb, Kit};
 use iaf_avionics::master::{Hud, Master, MasterKey, Modes};
 
 /// The falling store's state as a dictionary {t0, p0, v0, aim, acc, end, next_check, opened, done} (bombs.gd keeps
@@ -256,6 +256,36 @@ impl IafGpsBomb {
     #[func]
     fn in_range(gps: VarDictionary, pos: Vector3, vel: Vector3, aim: Vector3) -> bool {
         kit(&gps).in_range(vec3(pos), vec3(vel), vec3(aim))
+    }
+
+    /// The launch acceptability region (`Kit::lar`): {range, rmin, rmax, in_range, tmr (s, or null)}.
+    #[func]
+    fn lar(gps: VarDictionary, pos: Vector3, vel: Vector3, aim: Vector3) -> VarDictionary {
+        let l = kit(&gps).lar(vec3(pos), vec3(vel), vec3(aim));
+        let tmr = l.tmr.map_or(Variant::nil(), |t| t.to_variant());
+        vdict! { "range" => l.range, "rmin" => l.rmin, "rmax" => l.rmax, "in_range" => l.in_range, "tmr" => &tmr }
+    }
+
+    /// The PRE targets a station steps through (`gps::pre_targets`): `own` a world point or null.
+    #[func]
+    fn pre_targets(own: Variant, others: PackedVector3Array, steerpoints: PackedVector3Array) -> PackedVector3Array {
+        let v = |a: &PackedVector3Array| a.as_slice().iter().map(|p| vec3(*p)).collect::<Vec<_>>();
+        let own = own.try_to::<Vector3>().ok().map(vec3);
+        gps::pre_targets(own, &v(&others), &v(&steerpoints)).into_iter().map(vector3).collect()
+    }
+
+    /// The PRE target step `index` picks (`gps::pre_pick`), or null.
+    #[func]
+    fn pre_pick(own: Variant, list: PackedVector3Array, index: i64) -> Variant {
+        let list: Vec<_> = list.as_slice().iter().map(|p| vec3(*p)).collect();
+        let own = own.try_to::<Vector3>().ok().map(vec3);
+        gps::pre_pick(own, &list, index.max(0) as usize).map_or(Variant::nil(), |p| vector3(p).to_variant())
+    }
+
+    /// The route's waypoint a station takes when the briefing set none (`gps::default_target`), -1 none.
+    #[func]
+    fn default_target(actions: PackedInt64Array) -> i64 {
+        gps::default_target(actions.as_slice()).map_or(-1, |i| i as i64)
     }
 
     /// The ground distance a release `h` metres above the aim at speed `s` reaches.

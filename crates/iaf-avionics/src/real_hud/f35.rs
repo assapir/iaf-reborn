@@ -32,6 +32,9 @@ pub(super) fn frame(_hud: Field, i: &Input, max_g: f64) -> Frame {
     let mut fr = Frame { colour: Some(GREEN), ..Frame::default() };
     let w = &i.weapons;
     let mode = w.hud_mode;
+    // A GPS bomb's coordinates: its cues replace the CCIP's (docs/weapons.md §13.3; the F-35's are not public, the
+    // F-16's stand in).
+    let gps = w.gps.is_some() && matches!(mode, 5 | 6);
     let o = &mut fr.outer;
     heading(o, f.top + 10.0, i.heading_deg, i.steerpoint.map(|s| s.bearing_deg));
     // Airspeed box (left) and its stack; altitude box (right), vertical velocity, radar altitude.
@@ -108,6 +111,7 @@ pub(super) fn frame(_hud: Field, i: &Input, max_g: f64) -> Frame {
         ladder(p, i, fpm, f, style);
         marker(p, fpm, i.mr(5.0), i.mr(9.0), i.mr(5.0));
         if matches!(mode, 5 | 6)
+            && !gps
             && let Some(c) = w.pipper
         {
             p.push(line(fpm, c));
@@ -143,6 +147,7 @@ pub(super) fn frame(_hud: Field, i: &Input, max_g: f64) -> Frame {
             }
         }
         3 => funnel(p, i, 3000.0),
+        5 | 6 if gps => gps_cues(p, o, i, f, (0.5 * f.right, y0, 18.0), i.mr(4.0)),
         4..=6 => {
             if let Some(c) = w.pipper {
                 pipper(p, c, i.mr(0.5).max(0.8), i.mr(6.0));
@@ -158,8 +163,8 @@ pub(super) fn frame(_hud: Field, i: &Input, max_g: f64) -> Frame {
 
 /// Looking off the nose (flight-test video; docs/real-hud.md "F-35I"): the aircraft-stabilised virtual HUD is left
 /// behind and a reduced head-stabilised set shows around the helmet's centre — the head line-of-sight "+", a heading
-/// tape for where the head points with the steering caret (the LM "HMD Looking Behind" frame), the airspeed and altitude as bare numbers, the steerpoint block and the target
-/// designator; no ladder, marker, boxes or data stack.
+/// tape for where the head points with the steering caret (the LM "HMD Looking Behind" frame), the airspeed and altitude as bare numbers, the steerpoint block, the target
+/// designator and a GPS bomb's TD box; no ladder, marker, boxes or data stack.
 fn off_boresight(i: &Input) -> Frame {
     let mut fr = Frame { colour: Some(GREEN), ..Frame::default() };
     let o = &mut fr.outer;
@@ -194,6 +199,17 @@ fn off_boresight(i: &Input) -> Frame {
         o.push(Prim::Circle { c: q, r: s * 0.6 });
         x_over(o, q, s);
     }
+    // A GPS bomb's aim: its TD box, held at the set's edge with an X over it when outside (as on the forward set).
+    if matches!(i.weapons.hud_mode, 5 | 6)
+        && let Some(at) = i.weapons.gps.and_then(|g| g.at)
+    {
+        let (q, limited) = field.clamp_from((0.0, 0.0), at);
+        let h = i.mr(4.0);
+        o.extend(box_poly(q.0 - h, q.1 - h, q.0 + h, q.1 + h));
+        if limited {
+            x_over(o, q, h);
+        }
+    }
     fr
 }
 
@@ -204,6 +220,9 @@ fn mode_block(w: &Weapons) -> (String, Option<String>) {
         2 => ("AA1".into(), Some(format!("{} AIM-A", w.mrm))),
         3 => ("AA1".into(), Some("GUN".into())),
         4 => ("AG1".into(), Some("GUN".into())),
+        5 | 6 if let Some(g) = w.gps => {
+            ("AG1".into(), Some(format!("{} {}", w.selected, if g.pre { "PRE" } else { "VIS" })))
+        }
         5..=8 => ("AG1".into(), Some(format!("{} AG", w.selected))),
         _ => ("NAV".into(), None),
     }

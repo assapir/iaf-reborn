@@ -128,7 +128,8 @@ var mission_id := -1
 ## Units shown on the map: {key (runtime entity key), pos (map units), klass, side, heading, leader, flight, type,
 ## cls, name, airport}.
 var units: Array = []
-## Flights by number: {members: [unit index], points: [map units], leader: unit index}.
+## Flights by number: {members: [unit index], points: [map units], leader: unit index, formation, actions (each
+## waypoint's action; 5 the target waypoint)}.
 var flights := {}
 var mission_title := ""
 var mission_clock := ""
@@ -162,6 +163,8 @@ var zoom_max := ZOOM_MAX
 var draw_under := Callable()
 ## Ours: the scenery targets' building outlines (docs/scenery.md §5), map points, drawn under the units.
 var outlines: Array = []
+## Ours, before the flight: the GPS bombs' pre-planned targets (tsd_gps.gd, docs/front-end.md §8.2).
+var gps: RefCounted
 
 
 func setup(front_end: Control, mission: int) -> void:
@@ -191,6 +194,8 @@ func setup(front_end: Control, mission: int) -> void:
 	add_child(windows)
 	map_canvas.load_maps(_map(map_name), _map("grid"), _map("text"))
 	_load_units()
+	if fe != null and "mission_weapons" in fe:
+		gps = preload("res://menu/tsd_gps.gd").new(self)
 
 
 ## World (mission) coordinates -> TSD map units (FUN_00500ec0).
@@ -313,9 +318,11 @@ func _load_units() -> void:
 					func(mem): return "%d:%d" % [fi, int(mem.get("0x41a", -1))]
 				)
 				var pts: Array = []
+				var actions: Array = []
 				for p in f.get("points", []):
 					pts.append(world_to_map(float(p[1]), float(p[2])))
-				formations.append([n, keys, pts, fo])
+					actions.append(int(p[5]) if p.size() > 5 else 0)
+				formations.append([n, keys, pts, fo, actions])
 		first = false
 	# A flight exists while either member has a record; its leader is member 0, else member 1 (FUN_004d35c0).
 	var index := {}
@@ -325,7 +332,7 @@ func _load_units() -> void:
 		var members: Array = f[1].filter(func(k): return index.has(k)).map(func(k): return index[k])
 		if members.is_empty():
 			continue
-		flights[f[0]] = {"members": members, "points": f[2], "leader": members[0], "formation": f[3]}
+		flights[f[0]] = {"members": members, "points": f[2], "leader": members[0], "formation": f[3], "actions": f[4]}
 		units[members[0]].leader = true
 		for i in members:
 			units[i].flight = f[0]
@@ -800,6 +807,8 @@ func _draw_overlay() -> void:
 			pts.append(_to_client(p) * s)
 		overlay.draw_polyline(pts, OUTLINE_COLOR, maxf(1.0, s))
 	_draw_units(s)
+	if gps != null:
+		gps.draw(overlay, s)
 	_draw_ruler(s)
 
 
@@ -1027,6 +1036,8 @@ func _gui_input(event: InputEvent) -> void:
 ## * right press / move / release (5022d0 / 501cb0 / 502380): the ruler.
 func _map_input(event: InputEvent, c: Vector2) -> bool:
 	var inside := Rect2(Vector2.ZERO, area.size).has_point(c)
+	if inside and gps != null and gps.input(event, c):
+		return true
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT:
 		if event.pressed and inside:
 			ruler_on = true

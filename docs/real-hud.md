@@ -662,6 +662,26 @@ world. Measured on the Intel Iris Xe (2026-10-26, `_flight_bench.gd`, mission 31
 graphics, warm runs): +0.06 ms a frame at 150 m, +0.67 ms (5 %) at 1,500 m, +1.37 ms (8 %) at 6,000 m; about 20 % more
 primitives and 12 % more draw calls.
 
+## GPS bombs (JDAM, GBU-39; ours)
+
+A GPS bomb flies to coordinates, PRE (pre-planned on the briefing TSD) or VIS (designated in flight), and may be
+released anywhere inside its launch acceptability region (LAR; docs/weapons.md §13.2–§13.3). The F-16's JDAM
+symbology comes from the simulators' manuals and their users (secondary sources[^dcs-jdam][^bms-jdam]); the layout
+details are inferred. The F-15 and the F-35I's helmet draw the same set (their own JDAM symbology is not public;
+inferred). Built in `real_hud/mod.rs` `gps_cues`, drawn while a GPS bomb has an aim (HUD modes 5 / 6):
+
+| symbol | what it shows | F-16 | F-15 | F-35I helmet |
+|---|---|---|---|---|
+| TD box (4 mr half) | the aim, held at the field's edge with an X over it when outside | yes | yes | yes, also looking aside |
+| azimuth steering line | through the aim along the rolled vertical; the pilot puts the flight path marker on it | yes | yes | yes |
+| LAR staple | a bracket from Rmin to Rmax opening left, 0 at the bottom, the scale's NM (5 / 10 / 20 / 40 / 80) above it | where the DLZ goes, the altitude scale moved out | where the range scale goes | right of centre, as its DLZ |
+| range caret | the ground distance to the aim, left of the staple | yes | yes | yes |
+| `TMR m:ss` / `IN RNG` | under the staple: the time to Rmax while closing, then in range | yes | yes | yes |
+| PRE / VIS | the mode | the weapon window (instead of CCIP) | under the G | the weapon line (`1 PRE`) |
+
+The CCIP pipper and the fall line are not drawn while the bomb has an aim. Open: the impact-angle in-zone bar and the
+GBU-39's attack-azimuth LAR2 (no setting built).
+
 ## What ours draws (status)
 
 This section lists, per jet, what the code draws and what it leaves out.
@@ -867,3 +887,8 @@ its scale. The original HUD keeps the original layout.
 [^ea29]: Eagle Dynamics, *DCS MiG-29A Early Access Manual* (Sept 2025), pp. 65–104 (HUD): https://www.digitalcombatsimulator.com/upload/iblock/aa2/ulzl67k42kj99ushy9m29hlvmtk0y2tg/DCS%20MiG-29A%20Early%20Access%20Manual%20EN.pdf
 [^fc3]: Eagle Dynamics, *DCS MiG-29 Flight Manual* (Flaming Cliffs 3), pp. 40–59 (HUD): https://www.digitalcombatsimulator.com/upload/iblock/463/DCS%20MIG-29%20Flight%20Manual%20EN.pdf
 [^gsh30]: Wikipedia, "Gryazev-Shipunov GSh-30-1" (muzzle velocity 860 m/s): https://en.wikipedia.org/wiki/Gryazev-Shipunov_GSh-30-1
+[^dcs-jdam]: DCS forum, "JDAM help" (2022), secondary: the time to max range then `IN RNG` on the right, release while
+    the caret is inside the LAR's long bar: <https://forum.dcs.world/topic/291870-jadam-help/>
+[^bms-jdam]: Falcon BMS forum, secondary: the range cue "on the right side of the HUD"
+    (<https://forum.falcon-bms.com/topic/25722/disappearing-and-appearing-bombing-range-cue>); LAR2 with an attack
+    azimuth (<https://forum.falcon-bms.com/post/390232>)

@@ -454,8 +454,10 @@ func _ready() -> void:
 	if flight != null:
 		# The TSD layers as on mission load, the player's flight selected (not the Arming tables).
 		var loads: Dictionary = Settings.arm_loadouts
+		var gps: Dictionary = Settings.gps_targets
 		_reset_tsd_checks()
 		Settings.arm_loadouts = loads
+		Settings.gps_targets = gps
 		_enter_screen()
 		return
 	var args := OS.get_cmdline_user_args()
@@ -764,6 +766,7 @@ func _enter_arm() -> void:
 func _reset_tsd_checks() -> void:
 	mission_weapons = null
 	Settings.arm_loadouts = {}
+	Settings.gps_targets = {}
 	tsd_checks = {"waypoint": true, "text": true, "grid": true, "briefing": true, "player_flight": true}
 	for kind in ["aircrafts", "vehicles", "ships", "samsites", "aaasites", "structures", "airports"]:
 		for side in [1, 2]:

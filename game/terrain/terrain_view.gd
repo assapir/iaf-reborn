@@ -3179,6 +3179,14 @@ func _own_key(event: InputEventKey) -> void:
 			_zoom_cockpit(-0.05)
 		KEY_V:
 			cockpit.toggle_panel()
+		KEY_K:
+			# Ours (docs/weapons.md §13.2): K the GPS bomb's PRE / VIS, Shift+K the next PRE target.
+			if event.shift_pressed:
+				var t: String = weapons.gps_step_key()
+				if t != "":
+					_on_subtitle(t)
+			elif weapons.gps_mode_key():
+				_on_subtitle("VIS" if weapons.gps_vis(weapons.gps_station()) else "PRE")
 		KEY_N:
 			if event.shift_pressed and Settings.night_vision:
 				if goggles_tube().is_empty():

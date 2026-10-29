@@ -252,6 +252,17 @@ pub struct Weapons {
     /// The delayed CCIP (modes 5 / 6 with the impact point below the HUD; docs/weapons.md §9.4): the time to go (s),
     /// the target under the HUD-edge pipper (HUD px; None: behind the view) and whether Space designated it.
     pub delay: Option<Delay>,
+    /// A GPS bomb selected (modes 5 / 6) with coordinates to fly to (docs/weapons.md §13.3).
+    pub gps: Option<GpsCue>,
+}
+
+/// A GPS bomb's cues: its mode (PRE or VIS), the aim's HUD point (far along its direction when outside the view) and
+/// the launch acceptability region (`gps::Lar`).
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct GpsCue {
+    pub pre: bool,
+    pub at: Option<P>,
+    pub lar: crate::gps::Lar,
 }
 
 /// The delayed CCIP's state (the original's mode-5 object off the HUD).
@@ -629,6 +640,64 @@ fn dlz_scale(p: &mut Vec<Prim>, x: f64, y0: f64, half: f64, t: Target, z: Dlz) {
     p.push(text((x - 5.0, r + 3.0), format!("{}>", (t.closure * MS_TO_KT / 10.0).round() as i64 * 10), Align::Right));
 }
 
+/// A GPS bomb's cues (ours after the F-16's JDAM symbology, docs/real-hud.md "GPS bombs"; the layout is inferred from
+/// the simulators' manuals):
+/// - the target marker: a TD box (`box_half` px) on the aim, held inside the field's edge with an X over it when
+///   outside;
+/// - the azimuth steering line: through the aim along the rolled vertical; the pilot puts the marker on it;
+/// - the LAR staple at `x` (centred on `y0`, `half` px high, 0 at the bottom, the scale's NM above): a bracket from
+///   Rmin to Rmax opening left, the range caret on its left; under it, ending at the bracket, `IN RNG` inside the LAR, else the time to Rmax
+///   (`TMR m:ss`) while closing.
+///
+/// Field symbols go to `p`, the scale to `o`.
+fn gps_cues(p: &mut Vec<Prim>, o: &mut Vec<Prim>, i: &Input, f: Field, (x, y0, half): (f64, f64, f64), box_half: f64) {
+    let Some(g) = i.weapons.gps else { return };
+    if let Some(at) = g.at {
+        let roll = i.roll_deg.to_radians();
+        let down = (roll.sin(), roll.cos());
+        let long = 2.0 * (f.right - f.left).hypot(f.bottom - f.top);
+        // Through the aim's point on the field's edge when it is far out (behind the view: 10,000 px away).
+        let inner = Field {
+            left: f.left + box_half,
+            top: f.top + box_half,
+            right: f.right - box_half,
+            bottom: f.bottom - box_half,
+        };
+        let (q, limited) = inner.clamp_from(i.fpm.unwrap_or(i.boresight), at);
+        // Ended at the field's edges (the F-35's helmet draws unclipped).
+        let (top, _) = f.clamp_from(q, (q.0 - down.0 * long, q.1 - down.1 * long));
+        let (bottom, _) = f.clamp_from(q, (q.0 + down.0 * long, q.1 + down.1 * long));
+        p.push(line(top, bottom));
+        p.extend(box_poly(q.0 - box_half, q.1 - box_half, q.0 + box_half, q.1 + box_half));
+        if limited {
+            x_over(p, q, box_half);
+        }
+    }
+    const SCALES_NM: [f64; 5] = [5.0, 10.0, 20.0, 40.0, 80.0];
+    let l = g.lar;
+    let top_nm = SCALES_NM.iter().copied().find(|&n| n * NM > l.rmax.max(l.range)).unwrap_or(80.0);
+    let y = |m: f64| y0 + half - (m / (top_nm * NM)).clamp(0.0, 1.0) * 2.0 * half;
+    o.push(text((x, y0 - half - 2.0), format!("{}", top_nm as i64), Align::Centre));
+    if l.rmax > l.rmin {
+        let (a, b) = (y(l.rmax), y(l.rmin));
+        o.extend([line((x, a), (x + 4.0, a)), line((x + 4.0, a), (x + 4.0, b)), line((x + 4.0, b), (x, b))]);
+    }
+    let r = y(l.range);
+    o.push(line((x, r), (x - 3.0, r - 2.0)));
+    o.push(line((x, r), (x - 3.0, r + 2.0)));
+    let cue = if l.in_range {
+        Some("IN RNG".to_string())
+    } else {
+        l.tmr.map(|t| {
+            let t = t.min(5999.0).ceil() as i64;
+            format!("TMR {}:{:02}", t / 60, t % 60)
+        })
+    };
+    if let Some(c) = cue {
+        o.push(text((x + 4.0, y0 + half + 10.0), c, Align::Right));
+    }
+}
+
 /// A distance in km as the Soviet displays show it: tenths below 10 km, whole km above.
 fn km(m: f64) -> String {
     let k = m / 1000.0;
@@ -705,6 +774,38 @@ mod tests {
                 at: Some((30.0, 20.0)),
             }),
             ..Input::default()
+        }
+    }
+
+    #[test]
+    fn gps_cues_on_the_gps_jets() {
+        use crate::gps::Lar;
+        for jet in [Jet::F16, Jet::F15, Jet::F35] {
+            let mut i = input(jet);
+            i.weapons.hud_mode = 5;
+            i.weapons.pipper = Some((-5.0, 30.0));
+            let outside = Lar { range: 20_000.0, rmin: 2000.0, rmax: 12_000.0, in_range: false, tmr: Some(64.2) };
+            i.weapons.gps = Some(GpsCue { pre: true, at: Some((20.0, 40.0)), lar: outside });
+            let fr = RealHud::default().frame(FIELD, &i);
+            let all: Vec<Prim> = fr.field.iter().chain(&fr.outer).cloned().collect();
+            let t = texts(&all);
+            assert!(t.contains(&"TMR 1:05") && !t.contains(&"IN RNG"), "{jet:?}: {t:?}");
+            assert!(t.iter().any(|s| s.contains("PRE")), "{jet:?}: the mode {t:?}");
+            assert!(!all.iter().any(|p| matches!(p, Prim::Dot { .. })), "{jet:?}: no CCIP pipper");
+            // The steering line through the aim along the vertical (wings level), across the field.
+            let asl = all
+                .iter()
+                .any(|p| matches!(p, Prim::Line { a, b } if a.0 == 20.0 && b.0 == 20.0 && a.1 < 0.0 && b.1 > 60.0));
+            assert!(asl, "{jet:?}: the azimuth steering line");
+            i.weapons.gps = Some(GpsCue {
+                pre: false,
+                at: Some((20.0, 40.0)),
+                lar: Lar { range: 8000.0, in_range: true, tmr: None, ..outside },
+            });
+            let fr = RealHud::default().frame(FIELD, &i);
+            let all: Vec<Prim> = fr.field.iter().chain(&fr.outer).cloned().collect();
+            let t = texts(&all);
+            assert!(t.contains(&"IN RNG") && t.iter().any(|s| s.contains("VIS")), "{jet:?}: {t:?}");
         }
     }
 
