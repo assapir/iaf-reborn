@@ -2034,15 +2034,8 @@ func hint_text() -> String:
 				here = "Here: %s (%s). " % [place_check[0].text, place_check[0].level]
 			return here + "Click the map to place %s; each click places one. Esc stops." % add_text()
 		"route":
-			var roads := " Along the roads: a point within 1 km of a road moves onto it." if on_roads() else ""
-			return (
-				(
-					"Click the route's points (%d so far) for the units selected in the list, then Give the route."
-					+ roads
-					+ " Esc stops."
-				)
-				% route_pts.size()
-			)
+			var roads := " Points within 1 km snap to a road." if on_roads() else ""
+			return "Click the route's points (%d so far), then Give the route.%s Esc stops." % [route_pts.size(), roads]
 		"paste":
 			return "Click the map to paste the %d copied units there. Esc stops." % clipboard.size()
 	if hover >= 0:
