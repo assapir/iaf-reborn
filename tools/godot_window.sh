@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Runs Godot with a real renderer (screenshots, benches) out of the user's way: on macOS as a hidden app that never takes
-# the focus (open -g -j: it renders, no window shows); on Linux under xvfb-run when it is installed, else plainly.
+# the focus (open -g -j: it renders, no window shows); on Linux under xvfb-run when it is installed, else plainly (with
+# Vulkan on Intel, Godot finds no present queue on Xvfb and opens on the desktop's Wayland: docs/rendering.md §1.5).
 # VAR=value words before `--` are passed to Godot's environment; the rest are Godot's arguments. --log-file is required:
 # Godot's output goes there (open has no stdout), and the script prints it when Godot exits.
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 GUIDE_SHOTS=hud_nav -- --log-file /tmp/g.log --path game -s ../tests/godot/_guide_shots.gd
