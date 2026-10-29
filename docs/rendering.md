@@ -1078,12 +1078,18 @@ of the camera (the player's and AI jets). With Detailed they replace the origina
   ≈ 2.2 G (full 3.5 G) at 120 m/s, from ≈ 3.7 G (full 5.8 G) at 200 m/s, hardly at all at 250 m/s below 5 G. So a hard
   pull at low speed (where the original draws its wingtip ribbons, 75–150 m/s) condenses as much as a harder one fast.
   They fade out within ≈ 0.12 s once the pull ends.
-- **LEX plume** (F-16, F-35I, MiG-29): the leading-edge extension vortices[^wtv] as a translucent plume hugging the
-  upper surface. It is two flattened half tubes from the LEX (a per-plane spot, inferred from drawings) back over the
-  wing roots to 0.95 of the length, spreading out to 0.55 of the half span. They widen from 3 % to 18 % of their run (most of it behind the wing root, where
-  the vortex bursts) and carry noise that flows aft and breaks into wisps over the wing. Seen along the tubes (from
-  the cockpit looking back) they keep their full strength: the eye looks down the length of the cloud, and its noise is stretched along the flow (streaks rather than puffs).
-  Strength: from 10° AoA (full at 20°).
+- **LEX sheet** (F-16, F-16I Sufa, F-35I, F-15, MiG-29, Kfir, Lavi): the vortex off each leading-edge
+  extension[^wtv] as a thin translucent sheet. It starts where the extension's vortex rises and runs along the
+  extension to the wing's leading edge, then streams aft to 0.95 of the length, 15 % farther out, lifting off the wing
+  by 5 % of the length. On the F-35I the extension is the chine beside the intake, on the F-15 the wing glove beside
+  the intake, on the Kfir and Lavi the canard (its vortex runs from the canard's root over the wing). Both spots are
+  measured on each model the game draws (the original, the Detailed and the Sufa models; `vapour_fx.gd LEX`, keyed by
+  the model's file): x the vortex core a little inboard of the edge, y the skin's top there (on the Sufa its
+  conformal tanks). The sheet is a 140° arc flattened to 0.45 of its width, 0.8 % of the length across at its start,
+  4 % at the wing and 10 % at its end, riding 0.4 % of the length above the skin, so it never paints the skin. Its
+  noise runs in streaks along the flow, scrolling aft; it fades in from its start, thins to nothing at its edges and
+  frays out behind the wing. At most 0.4 opaque. Seen along it (from the cockpit looking back) it keeps its full
+  strength: the eye looks down the length of the cloud. Strength: from 10° AoA (full at 20°).
 - **Vapour bell**: a flickering shell around the fuselage from the canopy (0.28 of the length) to the wings' trailing
   edge (0.7), flaring out to 0.9 of the half span. Its front is soft and its aft edge ragged and soft: the cloud ends
   at the shock, where pressure and temperature rise again[^vcone]. Seen along the jet's axis (from behind or ahead)
@@ -1093,7 +1099,13 @@ of the camera (the player's and AI jets). With Detailed they replace the origina
   upper side (wing vapour).
 
 All three need humid air: they fade out between 1500 and 6000 m (inferred: the air near the ground carries the most
-water). Each strength eases in over ≈ 0.15 s. They draw unshaded white: the sun's colour × its energy (to 1.5) plus
+water). Each strength eases in over ≈ 0.15 s.
+
+**Far off** (out to the 3 km where they end): a streamer and the LEX sheet stay at least 2 pixels wide, as the missile
+trails do. A streamer that widens for this loses opacity only as (true width / drawn width)^0.3; the sheet widens
+around its vortex core and its streaks turn into an even haze, denser than their average, below ≈ 12 pixels across
+(they would flicker). The bell's puffs and soft outline give way to an even haze below ≈ 3 pixels a metre. Up close
+nothing changes: the minimum only applies once the true width is under 2 pixels. They draw unshaded white: the sun's colour × its energy (to 1.5) plus
 0.25 sky light, up to 1.6, so the tone mapping keeps sunlit vapour white (dim at dusk and night). They fade out
 within 0.5–4 m of the eye: no hard edge at the near plane.
 
@@ -1108,7 +1120,7 @@ horizon tilted), both streamers run from the wingtip missiles' aft fins up towar
 jet's flight path lies behind it, and the LEX vapour pours back beside the spine behind the seat; the Mach 0.95 pass wraps the canopy in mist from the canopy back. The original's snap views cannot look down
 (pitch ≥ 0.1 · (|yaw| − 90°)), so looking left or right (90°) the wing and its streamer are below the view; back-left
 and back-right (135°) look along the wing to its tip. On the F-35I the cockpit model's wide aft fuselage (ours,
-`tools/f35i/bc.py`) is higher than the eye's line to the trails: it hides the LEX plume and all but the streamers' far ends in
+`tools/f35i/bc.py`) is higher than the eye's line to the trails: it hides the LEX sheet and all but the streamers' far ends in
 every snap view.
 
 Tried and dropped from the cockpit (2026-10-26):
@@ -1118,25 +1130,32 @@ Tried and dropped from the cockpit (2026-10-26):
   200 m/s, so the streamer started a wing's width behind the tip. The fade is per pixel now.
 - The streamer solid for 40 % of its life with a flatter edge profile: from the cockpit it read as a white rod laid
   over the ground.
-- The LEX plume's noise 5× finer across and 3× coarser along from inside: a regular feather fan. The plain noise
+- The LEX plume's (the half tubes', below) noise 5× finer across and 3× coarser along from inside: a regular feather fan. The plain noise
   read as a cauliflower puff; 1.5× across and 0.6× along is between.
 - The left / right snap views (90°): they cannot look down, so in the banked turn they show only sky or ground.
+
+Tried and dropped for the LEX vapour (2026-10-29):
+- Two flattened half tubes widening from 3 % to 18 % of their run, from a per-plane spot estimated from drawings
+  (x 0.17–0.3 of the half span, z 0.33–0.4 of the length) out to 0.55 of the half span: they lay on the wing, and on
+  the F-35I read as a flat white patch. The spots started up to 0.12 of the length behind the real LEX's start and
+  0.1 of the half span inboard of it on the F-16. The thin sheet from the measured spots replaced them.
 
 Cost (not measured yet):
 - CPU: one `ImmediateMesh` rebuilt in GDScript each frame, ≈ 130 triangles per jet in a hard turn at 60 fps
   (2 tips × 33 points × 2).
-- GPU: per jet a bell (363 vertices) and a plume (198 vertices), alpha-blended. The overdraw of a bell filling the
+- GPU: per jet a bell (363 vertices) and a LEX sheet (306 vertices), alpha-blended. The overdraw of a bell filling the
   screen in a close chase view is the main cost.
 - Shader compiling: all three materials are in the scene from its start (a degenerate triangle, an invisible bell and
-  plume), so their pipelines compile behind the loading screen.
+  LEX sheet), so their pipelines compile behind the loading screen.
 - To bench: `tests/godot/_fx_bench.gd`'s on / off switching, with the jet held in a 7 G turn or a Mach 0.95 pass and
   the camera close behind it.
 
-Shots: `tests/godot/_vapour_shot.gd` (F-16 Original and Detailed, F-35I: the turn from behind and from above, the low
-pass from behind and from the side, wing vapour; from the cockpit straight back and back-left / -right in a level
+Shots: `tests/godot/_vapour_shot.gd` (F-16 Original and Detailed, F-35I: the turn from behind, from the side and
+from 3 km, the low pass from behind and from the side, wing vapour; from the cockpit straight back and back-left / -right in a level
 turn banked acos(1/n) at 7 G and 200 m/s and at 4.5 G and 120 m/s (the original's ribbon regime, so the pairs show
 both rules), and in the Mach 0.95 pass; `VAPOUR_FLIGHTS` / `VAPOUR_LOOKS` pick some of them; `VAPOUR_BEFORE=1` takes the same shots
-with Original).
+with Original). The LEX spots: `tests/godot/_lex_dump.gd` dumps each model's triangles, `tools/lex_measure.py` prints
+its planform (half width and skin height per slice) and a top-view height map, and the skin's height at given spots.
 
 **Cost** (M4 Pro). Mpx = million pixels; overdraw = the same pixel shaded again by each overlapping particle.
 

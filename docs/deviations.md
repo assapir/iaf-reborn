@@ -412,7 +412,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     (the original's lasts 3.5 s; up close a real motor's width and translucency, at range the original's width), with a white-hot motor flame and a small light in place of the glow sprite. Both
     stop at the real motor's burnout (the original draws them for the whole flight); the flight itself is unchanged.
   - New content with Detailed: contrails above 9000 m, a heat haze behind each engine, and condensation on the jets
-    (wingtip streamers and the LEX plume in high-G turns, the vapour cone near Mach 1 low down, wing vapour;
+    (wingtip streamers and the LEX sheet in high-G turns, the vapour cone near Mach 1 low down, wing vapour;
     docs/rendering.md §6). These replace the original wingtip vortex ribbons.
 - **Rain** (ours, Graphics → MORE, docs/rendering.md §10). Rendering only; the default is Off (the original has no
   weather).
