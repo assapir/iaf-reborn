@@ -501,8 +501,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   0.4·in + 0.6·in³ on stick x / y; full deflection unchanged — joystick.gd `stick_curve`, docs/controls.md §5.
 - **Throttle rocker** (ours, under RUDDER, Off by default). Original: four axes and no trim. Ours, with "Roll trim":
   a spring-centred 5th axis (Godot axis 4) moves a roll trim while held, 0.1 stick per second at full rocker (squared response); the
-  flight model adds it to the stick in the roll command — joystick.gd `rocker`, `Aircraft::trim_roll`,
-  docs/controls.md §5.2.
+  flight model adds it to the stick in the roll command, up to the jet's trim authority (F-16 / F-16I 22 %, F-15 25 %,
+  else full stick) — joystick.gd `rocker`, `Aircraft::trim_roll`, docs/controls.md §5.2.
   The row shows only when the joystick's HID descriptor lists a 5th axis (unknown on Windows: shown).
 - **Alt + Left / Right** (ours, always on): the same roll trim from the keyboard. Both keys
   are free in the original table. The flight-info line shows the trim ("TRIM L 2.4%") and the external model's
