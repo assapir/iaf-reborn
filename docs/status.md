@@ -23,7 +23,7 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (radar.md).
 - **Flyable jets:** the Jet list's seven — F-15, F-16, F-4E, F-4 Kurnass 2000, Lavi, Kfir, Mirage (the Jet list or a
   mission's jet; aircraft.md §5); the MiG-23 / MiG-29 with their own cockpits wherever a mission puts the player in
   one (the Mission Creator does; no campaign mission does); our F-35I in one jet's slot (Extras, f35i.md); every F-16
-  as the F-16I Sufa (Extras "F-16 version", f16i.md: flight data, radar, the TSD name, its model and arming art, and
+  as the F-16I Sufa (Extras "F-16 version", f16i.md: flight data, radar, the TSD name, its model (painted as F-16I 846 of 201 Squadron, its right side copied from 2025 photos; its left side and top open) and arming art, and
   the new weapons AIM-9X, Python 5, JDAMs and GBU-39, weapons.md §13; the GPS bombs' PRE targets set on the briefing
   TSD and VIS designations, keys K / Shift+K, the JDAM cues on the F-16, F-15 and F-35I Real HUDs; open: the impact
   angle and the GBU-39's attack azimuth (LAR2); its pilot guide guides/f16i.md). Extras "Weapons" on Modern gives those

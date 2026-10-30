@@ -114,8 +114,8 @@ Tried and dropped:
 ### 1.3 The F-16I Sufa model
 
 `game/extra/models/f16/f16i.glb` is the same build with the `sufa` argument (docs/f16i.md §8.1 lists what it adds:
-FlightGear's conformal fuel tanks and P&W nozzle, our nose fairings, our three-tone camouflage in the Sufa's FS
-colours, 107 Squadron's orange fin crescent, a badge and tail 457).
+FlightGear's conformal fuel tanks and P&W nozzle, our nose fairings, and the paint and markings of one real jet,
+F-16I 846 of 201 Squadron: its camouflage, colours, fin art and tail number).
 It keeps every part, hinge, helper and station of the F-16D, so arming, animation and the afterburner work
 unchanged. `util/gltf.gd` `detailed()` returns it for `f16_h.gltf` whenever the F-16 switch is on Sufa
 (`Settings.sufa(100)`), with Models on Original too: the 1998 game has no Sufa.
@@ -124,23 +124,44 @@ unchanged. `util/gltf.gd` `detailed()` returns it for `f16_h.gltf` whenever the 
 |---|---|
 | triangles | 52 950: the F-16D's plus the CFTs (352 faces), the nozzle (16 × 13 faces), the seven nose fairings and the four tail-box fairings |
 | textures | as the F-16D's; the livery repainted by the script (`sufa_livery`) |
-| file size | 3.9 MB (KTX2) |
+| file size | 4.0 MB (KTX2) |
 
-The camouflage (`camo_weights`): three smooth noise fields over the airframe's world frame (blotches about
-`BLOTCH_M` = 1.5 m, 1.3 × longer fore-aft, ragged edges from a warp of the coordinates), each texel the colour of the
-strongest field, soft over about 2 cm at an edge, the fields shifted until each colour covers a third. `texels`
-finds each texel's place on the jet (where faces share texels, the face whose texel size is nearest the livery's
-usual wins, not a sliver mapped over a large area), so the pattern runs
-on across parts and UV seams; on the fuselage sides it stretches with FlightGear's UVs. It
-covers the texels of the livery's camouflage colours on faces looking up or sideways, the CFTs' and the spine's own UV
-islands (`CFT_UV`, `SP_ISLAND`) and the fin's old markings; texels between UV islands take the colour round them. The livery's panel lines
-and rivets stay (each texel times its brightness over the local brightest, as `panel_maps` finds the lines).
+The camouflage: on every texel within `SUFA_BODY_X` (1 m) of the centre line (fuselage, CFTs, spine, tail box) the
+colour of the `SUFA_BLOTCHES` polygon its (y, z) lies in, sand outside them (`side_weights`, soft over 2 cm), both
+sides alike; the fin all tan under its art (`fin_art`: polygons, swooshes as centre lines with a width per point,
+the badge's rings and the number's strokes). Elsewhere (wings, stabilators) `camo_weights`: three smooth noise fields
+over the airframe's world frame (blotches about `BLOTCH_M` = 1.5 m, 1.3 × longer fore-aft, ragged edges from a warp
+of the coordinates), each texel the colour of the strongest, soft over about 2 cm at an edge, the fields shifted
+until each colour covers a third. `texels` finds each texel's place on the jet (where faces share texels, the face
+whose texel size is nearest the livery's usual wins, not a sliver mapped over a large area), so the pattern runs on
+across parts and UV seams. Before it, `sufa_livery` updates the scene, so the moving parts (rudder, flaperons,
+stabilators) are where the rig put them. It covers the texels of the livery's camouflage colours on faces looking up
+or sideways, the CFTs' and the spine's own UV islands (`CFT_UV`, `SP_ISLAND`) and the fin's old markings; texels
+between UV islands take the colour round them. The livery's panel lines and rivets stay (each texel times its
+brightness over the local brightest, as `panel_maps` finds the lines). The paint's roughness is `SUFA_MATTE` (0.25)
+above the F-16D's.
 
 Checks: `tests/godot/test_sufa_model.gd`: with Barak the F-16 is the original or the F-16D as before; with Sufa
 `f16i.glb` loads under both Models settings, keeps every helper of the original within 1 cm, and the player's and
 the AI's F-16s in mission 221 use it; the Arming screen shows the Sufa's art, weights and the F-16's nine boxes.
 
 #### Tried and dropped (2026-10-29)
+
+- **The photo laid onto the side view with a plain 2D fit** (three points: the radome's tip and the fin's leading
+  edge). Result: the fin matched, but the bands on the CFTs and the canopy's side landed up to 0.7 m off, as 846's
+  photo looks from ahead and below. Dropped for a camera fitted to nine points in 3D, the photo laid onto the
+  model's surfaces through it.
+- **846's tan at the photos' luminance ratio to the sand** (albedo (0.66, 0.48, 0.33), then (0.70, 0.50, 0.32), with
+  the F-16D's gloss). Result: in the game, in shade, the tan read maroon to brick-red and the sky's reflection
+  tinted it violet; the orange swoosh read red. Dropped for (0.76, 0.56, 0.37), the orange (0.90, 0.58, 0.22) and
+  the paint 0.25 rougher.
+- **The pattern read before the scene was updated** (as the F-16D's build still does). Result: the rudder's texels
+  took their places at the origin, so the rudder kept the livery's sand under the fin's tan. Fixed on the Sufa's path
+  only; the F-16D's stabilator tops still come from those stale places (open: fixing it there changes f16d.glb).
+- **Our noise camouflage in the FS chips' colours, 107 Squadron's markings and tail 457** (the build of
+  2026-10-28/29). Result: beside photos of the jets it read too dark and too green, its blotches random where the
+  jets have bands across the fuselage, and 457 is not a real number. Replaced by one real jet, 846, on the
+  user's decision of 2026-10-29.
 
 - **The CFTs painted from the skin under them** (the 2026-10-28 build: each CFT corner took the livery of the
   fuselage or wing straight below). Result: the tanks' steep sides took one row of texels each, so they read as one
