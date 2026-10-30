@@ -18,16 +18,16 @@ const FAR_CUMULUS := 90000.0
 const FAR_DECK := 200000.0
 ## The new frame's share in the temporal blend.
 const BLEND := 0.12
+## The towns' light on the clouds from below at night (light pollution; as cloud_layer.gd GLOW_GAIN).
+const GLOW_GAIN := 4.0
 
 const Weather := preload("res://terrain/weather.gd")
+const CityLights := preload("res://terrain/city_lights.gd")
 
-var effect: Effect
-var _quad: MeshInstance3D
-var _mat: ShaderMaterial
-var _tex_color := Texture2DRD.new()
-var _tex_dist := Texture2DRD.new()
-var _comp := Compositor.new()
-var _cams: Array[Camera3D] = []
+## One per viewport drawing the clouds: {effect, comp, cams, color, dist (Texture2DRD), mat, quad}. A view's quad
+## draws only in a 3D view of its effect's size: another viewport of the same world (a screenshot's) would show the
+## wrong clouds.
+var views: Array[Dictionary] = []
 var _wind := Vector3.ZERO
 
 
@@ -36,49 +36,52 @@ static func supported() -> bool:
 	return RenderingServer.get_rendering_device() != null
 
 
-func _ready() -> void:
-	effect = Effect.new()
-	_comp.compositor_effects = [effect]
-	_mat = ShaderMaterial.new()
-	_mat.shader = preload("res://terrain/clouds_composite.gdshader")
-	# The first transparent thing drawn: the smoke, the rain and the effects over it.
-	_mat.render_priority = Material.RENDER_PRIORITY_MIN
-	_mat.set_shader_parameter("clouds", _tex_color)
-	_mat.set_shader_parameter("cloud_dist", _tex_dist)
-	var q := QuadMesh.new()
-	_quad = MeshInstance3D.new()
-	_quad.mesh = q
-	_quad.material_override = _mat
-	_quad.layers = LAYER
-	_quad.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_quad.custom_aabb = AABB(Vector3.ONE * -1e7, Vector3.ONE * 2e7)
-	_quad.visible = false
-	add_child(_quad)
-
-
-## The cameras that draw the clouds (the cockpit's and the chase camera).
+## The cameras of one viewport that draw the clouds (the flight's: the cockpit's and the chase camera; a screenshot
+## helper's viewport its own): their own effect, textures and quad.
 func attach(cams: Array[Camera3D]) -> void:
-	_cams = cams
+	var v := {"effect": Effect.new(), "comp": Compositor.new(), "cams": cams}
+	v.comp.compositor_effects = [v.effect]
+	v.color = Texture2DRD.new()
+	v.dist = Texture2DRD.new()
+	v.mat = ShaderMaterial.new()
+	v.mat.shader = preload("res://terrain/clouds_composite.gdshader")
+	# The first transparent thing drawn: the smoke, the rain and the effects over it.
+	v.mat.render_priority = Material.RENDER_PRIORITY_MIN
+	v.mat.set_shader_parameter("clouds", v.color)
+	v.mat.set_shader_parameter("cloud_dist", v.dist)
+	v.quad = MeshInstance3D.new()
+	v.quad.mesh = QuadMesh.new()
+	v.quad.material_override = v.mat
+	v.quad.layers = LAYER
+	v.quad.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	v.quad.custom_aabb = AABB(Vector3.ONE * -1e7, Vector3.ONE * 2e7)
+	v.quad.visible = false
+	add_child(v.quad)
 	for c in cams:
-		c.compositor = _comp
+		c.compositor = v.comp
+	views.append(v)
 
 
 func _exit_tree() -> void:
-	_tex_color.texture_rd_rid = RID()
-	_tex_dist.texture_rd_rid = RID()
-	for c in _cams:
-		if is_instance_valid(c) and c.compositor == _comp:
-			c.compositor = null
+	for v in views:
+		v.color.texture_rd_rid = RID()
+		v.dist.texture_rd_rid = RID()
+		for c in v.cams:
+			if is_instance_valid(c) and c.compositor == v.comp:
+				c.compositor = null
 
 
 ## Each frame: the clouds' layer (the rain's deck or the cumulus), the light (the sun node, the ambient, the sky), the
 ## fog and the wind (scene m/s); and the textures' size when the 3D view's changed.
 func update(env: Environment, sun: DirectionalLight3D, wind: Vector3, delta: float) -> void:
-	if effect.want != effect.size and effect.want != Vector2i.ZERO:
-		RenderingServer.call_on_render_thread(effect.resize.bind(effect.want))
-		_tex_color.texture_rd_rid = effect.a_color
-		_tex_dist.texture_rd_rid = effect.a_dist
-	_quad.visible = effect.size != Vector2i.ZERO
+	for w in views:
+		var ef: Effect = w.effect
+		if ef.want != ef.size and ef.want != Vector2i.ZERO:
+			RenderingServer.call_on_render_thread(ef.resize.bind(ef.want))
+			w.color.texture_rd_rid = ef.a_color
+			w.dist.texture_rd_rid = ef.a_dist
+			w.mat.set_shader_parameter("full", Vector2(ef.full))
+		w.quad.visible = ef.size != Vector2i.ZERO
 	_wind -= wind * delta
 	var l := Weather.level()
 	var row: Dictionary = CUMULUS
@@ -101,8 +104,11 @@ func update(env: Environment, sun: DirectionalLight3D, wind: Vector3, delta: flo
 	var alt = env.sky.sky_material.get_shader_parameter("altitude") if atmo else null
 	overcast = 0.0 if overcast == null else float(overcast)
 	alt = 0.0 if alt == null else float(alt)
-	var p := effect.params
-	p.resize(28)
+	var gr := CityLights.glow_rect
+	var gt := CityLights.glow_texture
+	var glow := RenderingServer.texture_get_rd_texture(gt.get_rid()) if gt != null else RID()
+	var p := PackedFloat32Array()
+	p.resize(36)
 	var v := [
 		[sd.x, sd.y, sd.z, 1.0 if atmo else 0.0],
 		[sun_c.r, sun_c.g, sun_c.b, 0.0],
@@ -111,11 +117,15 @@ func update(env: Environment, sun: DirectionalLight3D, wind: Vector3, delta: flo
 		[fog.r, fog.g, fog.b, env.fog_density],
 		[deck.x, deck.y, float(row.cover), float(row.ext)],
 		[_wind.x, _wind.z, 0.0 if l.is_empty() else 1.0, FAR_CUMULUS if l.is_empty() else FAR_DECK],
+		[gr.x, gr.y, gr.z, gr.w],
+		[CityLights.glow_strength if CityLights.glow_texture != null else 0.0, GLOW_GAIN, 0.0, 0.0],
 	]
 	for i in v.size():
 		for j in 4:
 			p[i * 4 + j] = v[i][j]
-	effect.params = p
+	for w in views:
+		w.effect.glow = glow
+		w.effect.params = p
 
 
 ## The compositor effect: the noises once, then each frame the march into the history textures.
@@ -123,11 +133,15 @@ class Effect:
 	extends CompositorEffect
 
 	var rd: RenderingDevice
-	## Light and layer values from the main thread (update()), 7 vec4s.
+	## Light and layer values from the main thread (update()), 9 vec4s.
+	## The towns' glow map (city_lights.gd) on the RenderingDevice; invalid: none.
 	var params := PackedFloat32Array()
+	var glow := RID()
 	## The cloud textures' size, and the size the 3D view asks for (set while drawing, made on the main thread).
 	var size := Vector2i.ZERO
 	var want := Vector2i.ZERO
+	## The 3D view's (internal) size the clouds were made for.
+	var full := Vector2i.ZERO
 	## The history (shown) and this frame's textures: colour (rgb the clouds' light, a their transmittance) and
 	## distances (the clouds', the scene's).
 	var a_color := RID()
@@ -142,6 +156,7 @@ class Effect:
 	var _lin_rep := RID()
 	var _lin := RID()
 	var _near := RID()
+	var _none := RID()
 	var _frame := 0
 	var _prev_vp := Projection.IDENTITY
 	var _valid := false
@@ -154,7 +169,7 @@ class Effect:
 
 	func _notification(what: int) -> void:
 		if what == NOTIFICATION_PREDELETE and rd != null:
-			for r in [a_color, a_dist, _b_color, _b_dist, _shape, _detail, _march, _ubo, _lin_rep, _lin, _near]:
+			for r in [a_color, a_dist, _b_color, _b_dist, _shape, _detail, _march, _ubo, _lin_rep, _lin, _near, _none]:
 				if r.is_valid():
 					rd.free_rid(r)
 
@@ -214,7 +229,8 @@ class Effect:
 		rd.free_rid(noise)  # its pipeline and sets go with it
 		_march = _shader("res://terrain/clouds_march.glsl")
 		_pipe = rd.compute_pipeline_create(_march)
-		_ubo = rd.uniform_buffer_create(84 * 4)
+		_ubo = rd.uniform_buffer_create(92 * 4)
+		_none = _texture(RenderingDevice.DATA_FORMAT_R8G8B8A8_UNORM, 1, 1, 1)
 		_lin_rep = _sampler(RenderingDevice.SAMPLER_FILTER_LINEAR, true)
 		_lin = _sampler(RenderingDevice.SAMPLER_FILTER_LINEAR, false)
 		_near = _sampler(RenderingDevice.SAMPLER_FILTER_NEAREST, false)
@@ -241,7 +257,7 @@ class Effect:
 		return u
 
 	func _render_callback(_type: int, render_data: RenderData) -> void:
-		if rd == null or not _pipe.is_valid() or params.size() < 28:
+		if rd == null or not _pipe.is_valid() or params.size() < 36:
 			return
 		var sb := render_data.get_render_scene_buffers() as RenderSceneBuffersRD
 		var sd := render_data.get_render_scene_data() as RenderSceneDataRD
@@ -249,6 +265,7 @@ class Effect:
 			return
 		var full := sb.get_internal_size()
 		want = (full + Vector2i.ONE) / 2
+		self.full = full
 		if want != size:
 			return
 		var cam := sd.get_cam_transform()
@@ -262,8 +279,9 @@ class Effect:
 		f.append_array([cam.origin.x, cam.origin.y, cam.origin.z, float(_frame % 1024)])
 		var p := params.duplicate()
 		p[7] = 1.0 if _valid else 0.0  # sun_col.w: the history holds the last frame
-		f.append_array(p)
+		f.append_array(p.slice(0, 28))
 		f.append_array([float(size.x), float(size.y), BLEND, 0.0])
+		f.append_array(p.slice(28))
 		var bytes := f.to_byte_array()
 		rd.buffer_update(_ubo, 0, bytes.size(), bytes)
 		var depth := sb.get_depth_layer(0, false)
@@ -276,6 +294,7 @@ class Effect:
 			_uniform(RenderingDevice.UNIFORM_TYPE_IMAGE, 5, [_b_color]),
 			_uniform(RenderingDevice.UNIFORM_TYPE_IMAGE, 6, [_b_dist]),
 			_uniform(RenderingDevice.UNIFORM_TYPE_UNIFORM_BUFFER, 7, [_ubo]),
+			_uniform(RenderingDevice.UNIFORM_TYPE_SAMPLER_WITH_TEXTURE, 8, [_lin, glow if glow.is_valid() else _none]),
 		]
 		var set_rid := UniformSetCacheRD.get_cache(_march, 0, us)
 		var cl := rd.compute_list_begin()

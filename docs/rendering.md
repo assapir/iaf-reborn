@@ -724,6 +724,14 @@ The cloud layer is a dome of cloud texture plus a flat layer, and a whiteout nea
     clouds.
   At night (the gradient sky) the colour is a neutral (0.045, 0.055, 0.095) in place of the original's (20, 20, 60),
   which the AgX tonemapper turns violet. Original sky: unchanged apart from the mip level 2 floor.
+- **Night with Night lights Detailed** (ours, with the towns' lights of §5.1; deviations.md §2). The towns light the
+  layer from below (light pollution): the glow map of `city_lights.gd` read 2 km wide, g² × its strength × 10
+  (`GLOW_GAIN`), sodium orange, added to the layer's colour. Seen from above, the layer's alpha range is 0.6–1
+  (`NIGHT_GAPS`): even the overcast Cloud256_5 opens into broken cloud, so the lit towns show through the gaps
+  instead of a moonlit grey sheet over them (from 8000 m, showcase scene night_high). Without the towns' lights
+  (Night lights Original) the layer is as before.
+- **Under the rain's overcast** the layer fades by the overcast's share (`set_fade`, §10.1): it does not show
+  through an overcast, and inside the deck not at all.
   Tried and dropped (2026-10-26): plain bilinear at mip 3 (contours at the texel edges); 0.45·d darkening with the
   sky's full sun (a flat peach veil with no cloud shapes at 19:30).
 
@@ -774,6 +782,13 @@ How it is drawn:
   refused off screen or where the scene's depth there changed by more than 5 % (something moved in front).
 - **Flat**: the layer is flat, as the terrain is (no Earth curvature): a curved layer let the flat terrain show
   beyond its horizon.
+- **Light pollution** (with Night lights Detailed at night, §5.1): the towns' glow map (`city_lights.gd`, the
+  terrain's sodium haze) read 2 km wide lights the clouds from below, strongest on their bases, sodium orange: the
+  clouds over a big town glow dimly. Seen from above, the fair-weather cumulus leave gaps the towns' lights show
+  through.
+- **Viewports**: each viewport that draws them has its own effect, textures and quad (`attach()`); a quad draws
+  only in a 3D view of its effect's size, so another viewport of the same world (a screenshot helper's) shows no
+  wrong clouds. `_showcase_shot.gd` attaches its own.
 - **Needs** a RenderingDevice (Forward+ or Mobile); the row is greyed out without one (the Compatibility renderer,
   headless runs). The compute shaders compile at import (Godot's `.glsl` importer).
 
@@ -787,10 +802,36 @@ Tried and dropped (2026-10-30):
 - A fixed geometric step (56 steps covering the whole path): a cloud next to the camera got 500 m steps, smeared
   into horizontal streaks.
 - A 14 km shape tile at coverage 0.42: one grey sheet over half the sky, no separate cumulus.
+- The temporal history kept where the current ray had nothing to march (the scene in front of the layer): a veil
+  of the deck stayed over the jet in front of it. Now such a pixel takes the current frame alone.
+- One effect and quad for every camera of the world: a screenshot helper's own viewport drew the flight view's
+  clouds over its picture.
 
 ### 2.2 Cost of the clouds
 
-COST_TABLE
+Iris Xe (TigerLake GT2), 1920 × 1080, Linux, the other settings at their defaults with Sky Atmospheric, mission 311
+at Ramat David, the flight model stopped; `_clouds_shot.gd CLOUD_BENCH=8`, the GPU's render time of the 3D view
+(`viewport_get_measured_render_time_gpu`; the frame time is held at 16.7 ms by the desktop's 60 Hz), one run each
+on a quiet machine (load < 1), 2026-10-30:
+
+| pose | Clouds Original | Volumetric | Volumetric's cost |
+|---|---|---|---|
+| dry, 600 m, the cumulus above, chase view | 12.1 ms | 22.7 ms | +10.6 ms |
+| dry, 900 m, cockpit | 12.1 ms | 24.1 ms | +12.0 ms |
+| dry, 3450 m, cockpit, the cumulus below | 19.6 ms | 27.9 ms | +8.3 ms |
+| light rain, 400 m (below the base), cockpit | 11.8 ms | 21.8 ms | +10.0 ms |
+| light rain, inside the deck, cockpit | 16.7 ms | 25.9 ms | +9.2 ms |
+| light rain, 400 m above the deck, cockpit | 10.0 ms | 28.1 ms | +18.1 ms |
+
+- Volumetric costs 8–18 ms on the Iris Xe at 1080p: too much there (30–45 fps). It is for strong GPUs; on the M4
+  Pro (the high tier) it is not measured yet (open; inferred from the GPUs' throughput, about a quarter of the
+  Iris Xe's cost: 2–5 ms).
+- The deck seen from above is the dearest: nearly every pixel marches into dense cloud and samples the light toward
+  the sun at each step.
+- The deck's floor (§10.1, Clouds Original) is cheaper than the ground it hides: 400 m above the deck 10.0 ms
+  against 19.6 ms over the clear ground at the same height and view.
+- Inside the deck the march stops where the fog leaves 2 % (4 / density: 200 m); before that limit the same pose
+  cost +22 ms.
 
 ## 3. Measurements
 

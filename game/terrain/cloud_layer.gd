@@ -20,6 +20,11 @@ const WIND_SPEED := 6.0
 const WHITEOUT_BAND := 1000.0
 ## The night colour with the atmospheric sky (Extras): lighter than its night sky, neutral.
 const NIGHT_ATMO := Color(0.045, 0.055, 0.095)
+## Night lights Detailed at night (city_lights.gd's glow): the towns' light on the layer's base (light pollution;
+## tuned so a big town's sky glows a dim orange) and, seen from above, the alpha range that opens it into broken
+## cloud, so the lit towns show through the gaps.
+const GLOW_GAIN := 10.0
+const NIGHT_GAPS := Vector2(0.6, 1.0)
 
 const SHADER := """
 shader_type spatial;
@@ -39,6 +44,12 @@ uniform float min_lod = 2.0;
 uniform float detail = 0.0;
 // Under the rain's overcast (weather.gd grey()) the layer fades out: 1 = as drawn.
 uniform float fade = 1.0;
+// Night lights Detailed at night: the towns' light from below (light pollution, city_glow.gdshaderinc's map read 2 km
+// wide), orange on the cloud's base; 0 = none (the original).
+global uniform float city_glow_k;
+global uniform sampler2D city_glow : filter_linear_mipmap, repeat_disable;
+global uniform vec4 city_glow_rect;
+uniform float glow_gain = 0.0;
 // Lit by the sun (the atmospheric sky by day): sun_dir points to the sun (scene axes).
 uniform bool lit = false;
 uniform vec3 sun_dir = vec3(0.0, 1.0, 0.0);
@@ -98,10 +109,19 @@ void fragment() {
 		// Toward the horizon (the lower rings) the clouds thin, so the sky's horizon and a low sun show between them.
 		ALPHA *= 1.0 - 0.6 * smoothstep(0.4, 1.0, (UV2.x * 4.0 - 1.0) / 16.0);
 	}
+	if (glow_gain > 0.0 && city_glow_k > 0.0) {
+		vec3 wp = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+		vec2 g_uv = (wp.xz - city_glow_rect.xy) * city_glow_rect.zw;
+		if (all(greaterThanEqual(g_uv, vec2(0.0))) && all(lessThanEqual(g_uv, vec2(1.0)))) {
+			float g = textureLod(city_glow, g_uv, 4.0).r;
+			ALBEDO += vec3(1.0, 0.45, 0.14) * g * g * city_glow_k * glow_gain;
+		}
+	}
 }
 """
 
 const Img := preload("res://util/img.gd")
+const CityLights := preload("res://terrain/city_lights.gd")
 
 var fog_color := Color(0.72, 0.78, 0.86)
 var texture_index := 0
@@ -118,6 +138,8 @@ var _atmo := false
 var _night := false
 var _tint := Color.WHITE
 var _sun: Node3D
+var _glow := false
+var _gaps := false
 var _fade := 1.0
 
 
@@ -231,7 +253,9 @@ func set_atmospheric(on: bool) -> void:
 
 
 func _refresh() -> void:
-	_mat.set_shader_parameter("alpha_range", Vector2(0.3, 0.9) if _atmo else Vector2(0.0, 1.0))
+	var r := Vector2(0.3, 0.9) if _atmo else Vector2(0.0, 1.0)
+	_mat.set_shader_parameter("alpha_range", NIGHT_GAPS if _gaps else r)
+	_mat.set_shader_parameter("glow_gain", GLOW_GAIN if _glow else 0.0)
 	_mat.set_shader_parameter("min_lod", 2.5 if _atmo else 2.0)
 	_mat.set_shader_parameter("detail", 0.2 if _atmo else 0.0)
 	_mat.set_shader_parameter("lit", _atmo and not _night)
@@ -245,6 +269,11 @@ func _refresh() -> void:
 func update_view(cam: Vector3, dt: float) -> void:
 	position = Vector3(cam.x, 0.0, cam.z)
 	var below := cam.y < H
+	var glow := _night and CityLights.glow_strength > 0.0
+	if glow != _glow or (glow and not below) != _gaps:
+		_glow = glow
+		_gaps = glow and not below
+		_refresh()
 	_dome.visible = below
 	_flat.visible = not below
 	_mat.set_shader_parameter("at_far", below)

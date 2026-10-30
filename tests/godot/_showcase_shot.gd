@@ -258,6 +258,8 @@ func _camera() -> void:
 	shot_vp.add_child(twin)
 	tv.add_child(shot_vp)
 	twin.make_current()
+	if tv.vclouds != null:  # Clouds Volumetric: this viewport's own (docs/rendering.md §2.1)
+		tv.vclouds.attach([twin] as Array[Camera3D])
 	cam.twin = twin
 	cam.rows = _shot_rows
 

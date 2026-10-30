@@ -19,6 +19,7 @@ layout(set = 0, binding = 3) uniform sampler2D prev_color;
 layout(set = 0, binding = 4) uniform sampler2D prev_dist;
 layout(set = 0, binding = 5, rgba16f) uniform restrict writeonly image2D out_color;
 layout(set = 0, binding = 6, rg32f) uniform restrict writeonly image2D out_dist;
+layout(set = 0, binding = 8) uniform sampler2D glow_tex;
 layout(set = 0, binding = 7, std140) uniform Params {
 	mat4 inv_proj;   // clip -> view
 	mat4 cam;        // view -> world
@@ -32,6 +33,8 @@ layout(set = 0, binding = 7, std140) uniform Params {
 	vec4 layer;      // base, top (m), coverage 0..1, extinction (1/m) at density 1
 	vec4 shape;      // wind offset x, z (m), mode (0 cumulus, 1 deck), the farthest distance marched (m)
 	vec4 sizes;      // this pass's width, height, the history blend (the new frame's share)
+	vec4 glow_rect;  // the towns' glow map (city_lights.gd): x0, z0, 1 / width, 1 / height (scene m)
+	vec4 glow;       // its strength (0: none), its gain on the clouds
 } p;
 
 // The march: at most MAX_STEPS samples; a step is K x its distance, at least MIN m (BIG in clear air, FINE in cloud).
@@ -49,6 +52,20 @@ const float SUN_GAIN = 4.0 * 3.14159265 * 2.5;
 
 float remap(float v, float a, float b, float c, float d) {
 	return c + (v - a) / (b - a) * (d - c);
+}
+
+// The towns' light under a cloud point: the glow map read 2 km wide (mip 4 of its 125 m squares), g² as the terrain's
+// haze (city_glow.gdshaderinc) times the gain, sodium orange.
+vec3 glow_at(vec2 xz) {
+	if (p.glow.x <= 0.0) {
+		return vec3(0.0);
+	}
+	vec2 uv = (xz - p.glow_rect.xy) * p.glow_rect.zw;
+	if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) {
+		return vec3(0.0);
+	}
+	float g = textureLod(glow_tex, uv, 4.0).r;
+	return vec3(1.0, 0.45, 0.14) * g * g * p.glow.x * p.glow.y;
 }
 
 float density(vec3 pos, float hf, bool full) {
@@ -180,7 +197,8 @@ void main() {
 		t0 = tb;
 		t1 = tt;
 	}
-	t1 = min(t1, min(scene, p.shape.w));
+	// Nothing past where the fog leaves 2 % (4 / density: 200 m inside the deck) shows: the march stops there.
+	t1 = min(t1, min(scene, min(p.shape.w, 4.0 / max(p.fog.w, 1e-7))));
 	vec3 scat = vec3(0.0);
 	float tr = 1.0;
 	float dsum = 0.0;
@@ -237,6 +255,8 @@ void main() {
 				powder = mix(powder, 1.0, 0.5 + 0.5 * mu);
 				vec3 sun = p.sun_col.rgb * light * powder * SUN_GAIN;
 				vec3 amb = mix(p.amb_bottom.rgb, amb_top, clamp(hf, 0.0, 1.0)) * mix(0.55, 1.0, sqrt(clamp(hf, 0.0, 1.0)));
+				// The towns' light from below at night (light pollution), strongest on the base.
+				amb += glow_at(x.xz) * (1.0 - 0.7 * clamp(hf, 0.0, 1.0));
 				float step_tr = exp(-sig * st);
 				float w = tr * (1.0 - step_tr);
 				scat += (sun + amb) * w;
@@ -244,7 +264,7 @@ void main() {
 				dsum += t * w;
 				wsum += w;
 				tr *= step_tr;
-				if (tr < 0.01) {
+				if (tr < 0.02) {
 					break;
 				}
 			}
@@ -273,6 +293,8 @@ void main() {
 		if (pc.w > 0.0 && all(greaterThanEqual(puv, vec2(0.0))) && all(lessThanEqual(puv, vec2(1.0)))) {
 			vec2 hd = textureLod(prev_dist, puv, 0.0).rg;
 			bool same = (scene > 5e8 && hd.g > 5e8) || abs(hd.g - scene) < 0.05 * scene;
+			// Nothing to march in front of the scene now: no history either (it smeared the deck over the jet).
+			same = same && t0 >= 0.0 && min(t1, scene) > t0;
 			if (same) {
 				cur = mix(textureLod(prev_color, puv, 0.0), cur, p.sizes.z);
 			}

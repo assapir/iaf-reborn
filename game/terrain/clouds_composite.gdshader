@@ -9,6 +9,8 @@ render_mode unshaded, fog_disabled, depth_test_disabled, depth_draw_never, blend
 uniform sampler2D clouds : filter_nearest;
 uniform sampler2D cloud_dist : filter_nearest;
 uniform sampler2D depth_tex : hint_depth_texture, filter_nearest;
+// The 3D view size the clouds were made for: another viewport of the same world (a screenshot's) draws none.
+uniform vec2 full = vec2(0.0);
 
 void vertex() {
 	// A full-screen triangle pair at the far plane (reverse Z: 0), never culled (extra_cull_margin).
@@ -16,6 +18,9 @@ void vertex() {
 }
 
 void fragment() {
+	if (any(greaterThan(abs(VIEWPORT_SIZE - full), vec2(1.5)))) {
+		discard;
+	}
 	float depth = textureLod(depth_tex, SCREEN_UV, 0.0).r;
 	vec4 v = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, depth, 1.0);
 	float scene = depth <= 0.0 ? 1e9 : length(v.xyz / v.w);

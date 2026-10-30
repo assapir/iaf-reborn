@@ -369,6 +369,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     §5.1; the original lights only Damascus, by its `LT_` sets). Every jet carries red / green / white navigation lights and a white strobe (off once it is hit;
     on the cockpit-view model too). The night sky has
     stars and a moon.
+  - The towns light the clouds from below (light pollution: the 7000 m layer and Clouds Volumetric glow dim orange
+    over them), and seen from above the 7000 m layer opens into broken cloud (alpha range 0.6–1) so the lit towns
+    show through its gaps (rendering.md §2).
   - Detailed moonlight: colour (0.24, 0.27, 0.34) from azimuth 140°, elevation 38°, ambient 0.3. The original's
     night light is (20, 20, 60) / 255 straight down with ambient 0.2.
 - **Night vision** (ours, docs/rendering.md §8). Rendering only; the default is Off.
@@ -462,7 +465,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   cloud layer of Graphics TEXTURED SKY, unchanged).
   - Volumetric: raymarched clouds in place of the flat layer, lit by the sun and the sky by the time of day: scattered
     fair-weather cumulus (base 1200 m, top 2500 m above the ground) when dry, the rain's deck in the rain; the jet can
-    fly through them. For strong GPUs (about 5 ms on an Iris Xe at 1080p; rendering.md §2.1); greyed out without a
+    fly through them; the towns light them from below at night (Night lights Detailed). For strong GPUs (8–18 ms on an
+    Iris Xe at 1080p; rendering.md §2.2); greyed out without a
     RenderingDevice (the Compatibility renderer).
 - **Airbases** (ours, docs/rendering.md §7). Rendering only; the default is Original (the 1998 imagery's painted
   runways).

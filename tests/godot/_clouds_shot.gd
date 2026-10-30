@@ -17,6 +17,7 @@ const SHOTS := [
 	["rain_inside", "light", 1900.0, 12.5, 0.0, 40.0, "cockpit"],
 	["rain_above_down", "light", 3450.0, 12.5, -12.0, 120.0, "external"],
 	["rain_above_sun", "light", 3450.0, 16.5, -2.0, 0.0, "cockpit"],
+	["clear_above_sun", "off", 3450.0, 16.5, -2.0, 0.0, "cockpit"],
 	["heavy_above", "heavy", 6000.0, 12.5, -8.0, 60.0, "external"],
 	["cumulus_noon", "off", 600.0, 12.5, 6.0, 60.0, "external"],
 	["cumulus_noon_cockpit", "off", 900.0, 12.5, 8.0, 150.0, "cockpit"],
