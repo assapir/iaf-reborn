@@ -377,7 +377,7 @@ bc1_step
 # with a display; they hold the original art and stay under assets/. After the imagery so the pictures show it.
 step "pilot guides: pictures (tools/guide_shots.sh) and PDFs (tools/guide_pdf.py)"
 if [[ $(uname) == Darwin && -z ${SSH_CONNECTION:-} ]] || [[ -n ${DISPLAY:-}${WAYLAND_DISPLAY:-} ]]; then
-	[[ -d game/.godot ]] || godot --headless --path game --import >/dev/null 2>&1 || true
+	tools/godot_import.sh godot || true
 	tools/guide_shots.sh || echo "pilot guides: some pictures failed their checks (listed above); the PDFs use what was made"
 	python3 -I tools/guide_pdf.py
 else

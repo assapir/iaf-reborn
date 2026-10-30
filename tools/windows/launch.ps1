@@ -65,9 +65,24 @@ try {
 	if ($mode -eq 'setup') { Write-Host "building the game's extension (the first time takes a few minutes)..." }
 	Native { cargo build --release -p iaf-godot }
 	if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-	# Godot loads iaf.gdextension only once an import has listed it in .godot/extension_list.cfg (a fresh clone has no
-	# game/.godot): without it the mission starts with no flight model and hangs after the briefing.
-	if (-not (Test-Path 'game\.godot\extension_list.cfg')) { Native { & $console --headless --path game --import *> $null } }
+	# Godot's import (as tools/godot_import.sh): on a fresh clone (Godot loads iaf.gdextension only once an import has
+	# listed it in .godot/extension_list.cfg) and after a pull that brought new or changed shaders or textures (an
+	# .import file or its source newer than the last import, game\.godot\.iaf_imported).
+	$stamp = 'game\.godot\.iaf_imported'
+	$need = -not (Test-Path 'game\.godot\extension_list.cfg') -or -not (Test-Path $stamp)
+	if (-not $need) {
+		$since = (Get-Item $stamp).LastWriteTime
+		$need = [bool](Get-ChildItem game -Recurse -Filter *.import -File | Where-Object {
+				$_.FullName -notlike '*\.godot\*' -and ($_.LastWriteTime -gt $since -or
+					((Test-Path ($_.FullName -replace '\.import$', '')) -and
+						(Get-Item ($_.FullName -replace '\.import$', '')).LastWriteTime -gt $since))
+			} | Select-Object -First 1)
+	}
+	if ($need) {
+		Write-Host "importing the game's new or changed files (shaders, textures)..."
+		Native { & $console --headless --path game --import *> $null }
+		New-Item -ItemType File -Force $stamp | Out-Null
+	}
 
 	$godotArgs = @('--path', 'game')
 	switch ($mode) {
