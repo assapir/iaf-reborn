@@ -131,6 +131,9 @@ const ROCKET_BOX := "weapons/lau61/lau61_m.gltf"
 ## Ours (Models: Detailed): beyond this distance (m) a detailed store draws as its original model (_instance); past
 ## the F11 weapon view's 700 m fly-by, so the swap never shows there.
 const STORE_LOD_M := 800.0
+## Ours: the four stores under a rack (_rack): their offsets across (x) and along (y) from its middle, m (inferred from
+## the BRU-61/A photos: 1.80 m bombs in tandem along its 3.63 m, under its 0.41 m wide body's edges).
+const RACK_PAIR := Vector2(0.17, 0.93)
 const ROCKET_BOX_SCALE := 4.0
 ## The Present scale of the store models (bdb weapons: 2.0), the scale the stores on the jet get.
 const STORE_PRESENT_SCALE := 2.0
@@ -2619,8 +2622,10 @@ static func attach_stores(stores: RefCounted, model: Node3D) -> Dictionary:
 
 
 ## Ours, Models: Detailed: the rack over a station of four detailed stores (Gltf.RACKS: the GBU-39s' BRU-61/A), or
-## null. It sits on the four stores' tops, centred on their slots, stretched along its length to them (the station
-## keeps the game's slots, BOMB_STATION_LENGTH apart, wider than the real rack's). It stays when the stores go.
+## null. It sits at its real size centred on the four slots, its bottom on the stores' tops; the four stores are drawn
+## under it as on the real rack (RACK_PAIR: two side by side, fore and aft), not at the game's slots
+## (BOMB_STATION_LENGTH apart, longer than the rack): the drawing only, the releases keep the slots. It stays when the
+## stores go.
 static func _rack(st: Dictionary, nodes: Array) -> Node3D:
 	var f := String(st.w.model_path).get_file()
 	if nodes.size() < 4 or not Gltf.RACKS.has(f) or Gltf.detailed(f) == "":
@@ -2639,8 +2644,12 @@ static func _rack(st: Dictionary, nodes: Array) -> Node3D:
 		hi = hi.max(s)
 	var rack := Gltf.instance(model)
 	var box := Gltf.model_aabb(rack)
-	rack.scale = Vector3(1, 1, (hi.z - lo.z + store.size.z * 0.9) / box.size.z)
-	rack.position = (lo + hi) * 0.5 + Vector3(0, store.end.y - box.position.y - 0.02, 0)
+	var mid := (lo + hi) * 0.5
+	rack.position = mid + Vector3(0, store.end.y - box.position.y - 0.02, 0)
+	for k in nodes.size():
+		var s: Vector3 = st.slots[k]
+		var n: Node3D = nodes[k]
+		n.position = mid + Vector3(signf(s.x - mid.x) * RACK_PAIR.x, 0, signf(s.z - mid.z) * RACK_PAIR.y)
 	rack.set_meta("station", int(st.index))
 	for g: GeometryInstance3D in rack.find_children("*", "GeometryInstance3D", true, false):
 		g.visibility_range_end = STORE_LOD_M  # as the detailed stores: none on the originals beyond

@@ -429,8 +429,8 @@ IAF_DEFAULT_SETTINGS=1 godot --headless --path game -s ../tools/stores/build.gd 
   on the ground, a Mk-84 falling and an AMRAAM in flight; the Mission Creator's MiG-29 and MiG-23 with the Soviet
   stores and an AA-10 in flight; the Sufa and the F-35I with the Python 5, GBU-39 racks and GBU-32, the F-15 with
   a Popeye and our stores with no record beside it, a Python 5 in flight.
-- `test_detailed_models.gd` also checks the GBU-39's rack: centred on the four slots, longer than their spread, its
-  bottom on the bombs' tops, drawn to 800 m only.
+- `test_detailed_models.gd` also checks the GBU-39's rack: its real 3.63 m, centred on the four slots, its bottom on
+  the bombs' tops, the four bombs drawn under it, drawn to 800 m only.
 
 ### 5.5 Open
 
@@ -453,9 +453,9 @@ its original's length (4.69 m, the real one 4.82 m).
 
 | model | what it shows | differs from the real weapon (photos) |
 |---|---|---|
-| `pyth5` | glass dome, two rows of four canards (X), four long-chord rear wings (X) each with a trailing control surface, rail hangers; grey, darker guidance section, bare motor with red bands | 16 surfaces against the 18 Wikipedia counts (open); no markings or rivets; the dome is dark glass (the real one clear, its seeker inside) |
-| `gbu39` | long ogive nose, yellow band, the folded wing pack on top, four tail fins (X) | the body is round (the real one has flat panels along it); no lugs; wings folded only |
-| `bru61` | squared beam with a keel below, on the bombs' tops | drawn only with Models Detailed over a station of four GBU-39s (`Gltf.RACKS`, `PlayerWeapons._rack`); stretched along its length to the game's slots, 4 m apart fore and aft (`BOMB_STATION_LENGTH`): about 5.6 m against the real 3.63 m; the bombs sit beside it, not hung from its lower edges |
+| `pyth5` | shallow glass dome, two rows of four delta canards (X) right behind it, four long-chord rear wings (X) each with a trailing control surface, rail hangers; grey, darker guidance section, bare motor with red bands. Measured on a top-view photo: canard root chords 0.21 / 0.34 m, rear wing root 0.45 m plus 0.23 m of control surface; spans from the published 640 mm (inferred, the photo does not show X or +) | 16 surfaces against the 18 Wikipedia counts (open); no markings or rivets; the dome is dark glass (the real one clear, its seeker inside) |
+| `gbu39` | long ogive nose, squarish (flat-sided) section, dark grey with a yellow band and a darker tail section, the folded wing pack on top, four tail fins (X) | its section is a rounded square (the real one has flat panels and a flat top); no lugs or stencils; wings folded only |
+| `bru61` | squared beam with a keel below, at its real 3.63 m, the four bombs under it in two side-by-side pairs, fore and aft (`PlayerWeapons.RACK_PAIR`, inferred from the photos) | drawn only with Models Detailed over a station of four GBU-39s (`Gltf.RACKS`, `PlayerWeapons._rack`). The bombs are drawn there, not at the game's slots (4 m apart fore and aft, `BOMB_STATION_LENGTH`); each is still released from its slot, about 1 m from where it was drawn. No ejector pistons or sway braces |
 | `popeye` | glass dome (dark, the real one gold-tinted), small fins (X) behind the nose, long-chord swept tail fins (X), yellow band | no datalink pod or fairings; the original's length |
 | `spice1000`, `spice2000`, `spikenlos` | SPICE kits on the Mk 83 / Mk 84 (canards, mid-body strakes on the 2000, folded wings under the 1000, tail fins); Spike NLOS with its dark dome and long pop-out wings | not in the game yet (real-weapons.md §1.8); lengths inferred from photos (open) |
 

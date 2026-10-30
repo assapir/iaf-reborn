@@ -7,7 +7,7 @@
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 -- --log-file /tmp/i.log --path game -s ../tools/stores/icons.gd
 #
 # ICONS_CLOSEUP=<dir> instead renders close-ups for review (not the icons): each store in CLOSEUPS (or ICONS_ONLY=a,b,
-# files under extra/models/stores without .glb) from the side and from the front quarter, 1568 × 960 px, on grey.
+# files under extra/models/stores without .glb) from the side, the front quarter and above, 1568 × 960 px, on grey.
 extends SceneTree
 
 const SIZE := Vector2i(196, 120)
@@ -35,8 +35,13 @@ func _initialize() -> void:
 		var only := OS.get_environment("ICONS_ONLY").split(",", false)
 		for n in only if not only.is_empty() else CLOSEUPS:
 			var m = Gltf.open("res://extra/models/stores/%s.glb" % n)
-			for v in [["side", -90.0, 12.0], ["front", -150.0, 20.0]]:
-				var im: Image = await _render(Gltf.instance(m), 0.9, SIZE * 8, v[1], v[2], Color(0.3, 0.32, 0.35))
+			# side, front quarter, and from above with the X fins rolled flat (as a photo of a + display round)
+			for v in [["side", -90.0, 12.0, 0.0], ["front", -150.0, 20.0, 0.0], ["top", -90.0, 89.0, 45.0]]:
+				var held := Node3D.new()
+				var store: Node3D = Gltf.instance(m)
+				store.rotation_degrees.z = v[3]
+				held.add_child(store)
+				var im: Image = await _render(held, 0.9, SIZE * 8, v[1], v[2], Color(0.3, 0.32, 0.35))
 				im.save_png(closeup.path_join("%s_%s.png" % [n, v[0]]))
 			print("closeup: ", n)
 		quit()

@@ -489,8 +489,9 @@ func _check_stores() -> void:
 	)
 
 
-## Four GBU-39s on a station (Gltf.RACKS): their BRU-61/A over them, centred on the four slots, longer than the slots'
-## spread, its bottom on the bombs' tops (within 5 cm), drawn to STORE_LOD_M only.
+## Four GBU-39s on a station (Gltf.RACKS): their BRU-61/A over them at its real 3.63 m, centred on the four slots, its
+## bottom on the bombs' tops (within 5 cm), drawn to STORE_LOD_M only; the bombs drawn under it (within its length and
+## width), one in each quarter as their slots.
 func _check_rack(pw: GDScript) -> void:
 	var path := "weapons/sufa/gbu39_m.gltf"
 	var slots := [Vector3(-0.3, -1, -2), Vector3(-0.3, -1, 2), Vector3(0.3, -1, -2), Vector3(0.3, -1, 2)]
@@ -507,7 +508,10 @@ func _check_rack(pw: GDScript) -> void:
 		print("  rack: %s, store top %.3f" % [box, top])
 		ok = (
 			absf(box.get_center().z) < 0.01
-			and box.size.z > 4.0
+			and absf(box.size.z - 3.63) < 0.05
+			and nodes.all(func(n): return absf(n.position.z) < 1.0 and absf(n.position.x) < 0.2)
+			and signf(nodes[0].position.x) == signf(slots[0].x)
+			and signf(nodes[1].position.z) == signf(slots[1].z)
 			and absf(box.position.y - top) < 0.05
 			and rack.get_meta("station") == 2
 			and (

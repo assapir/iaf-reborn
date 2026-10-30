@@ -15,40 +15,37 @@ const BLACK := Color(0.08, 0.08, 0.09)
 ## The Popeye's gold-tinted seeker window (as the photo).
 const GOLD := Color(0.52, 0.44, 0.20)
 
-## Python 5: 3.1 m long, 160 mm across, 640 mm span; a glass dome nearly the body's width, two rows of four canards
-## close behind it (small deltas, then larger clipped deltas), long-chord rear wings (X), each with a separate trailing
-## control surface (the forked tips on the photos), two rail hangers on top: 16 surfaces (Wikipedia counts 18; open);
-## grey, its guidance section darker, the motor bare metal with red bands (photos: Commons "Python-5").
+## Python 5: 3.1 m long, 160 mm across, 640 mm span; a shallow glass dome nearly the body's width, two rows of four
+## delta canards (X) right behind it, long-chord rear wings (X), each with a separate trailing control surface (the
+## forked tips on the photos), two rail hangers on top: 16 surfaces (Wikipedia counts 18; open); grey, its guidance
+## section darker, the motor bare metal with red bands (photos: Commons "Python-5"). Measured on "Python5 missile.jpg"
+## (top view): along the body by its 3.1 m; across by the rear wings' span set to the published 640 mm (the photo
+## does not show whether the fins are in X or +).
 const PY5_BODY := [
-	[0.0, 0.0],
-	[0.012, 0.045],
-	[0.03, 0.062],
-	[0.06, 0.074],
-	[0.10, 0.078],
-	[0.11, 0.080],
-	[3.06, 0.080],
-	[3.10, 0.066],
-	[3.10, 0.0]
+	[0.0, 0.0], [0.01, 0.045], [0.025, 0.068], [0.04, 0.077], [0.05, 0.080], [3.06, 0.080], [3.10, 0.066], [3.10, 0.0]
 ]
 const PYTH5 := [
-	{"lathe": PY5_BODY, "to": 0.10, "glass": true},
-	{"lathe": PY5_BODY, "from": 0.10, "to": 0.95, "rgb": DARK},
+	{"lathe": PY5_BODY, "to": 0.045, "glass": true},
+	{"lathe": PY5_BODY, "from": 0.045, "to": 0.95, "rgb": DARK},
 	{"lathe": PY5_BODY, "from": 0.95, "to": 1.50, "rgb": GREY},
 	{"lathe": PY5_BODY, "from": 1.50, "to": 1.53, "rgb": RED},
 	{"lathe": PY5_BODY, "from": 1.53, "to": 2.94, "rgb": METAL},
 	{"lathe": PY5_BODY, "from": 2.94, "to": 2.97, "rgb": RED},
 	{"lathe": PY5_BODY, "from": 2.97, "rgb": DARK},
-	{"fins": {"root": [0.16, 0.40], "tip": [0.36, 0.40], "r": 0.078, "h": 0.19, "roll": 45.0, "t": 0.006}, "rgb": GREY},
-	{"fins": {"root": [0.42, 0.78], "tip": [0.68, 0.76], "r": 0.078, "h": 0.22, "roll": 45.0, "t": 0.007}, "rgb": GREY},
-	{"fins": {"root": [2.46, 2.92], "tip": [2.80, 2.88], "r": 0.078, "h": 0.24, "roll": 45.0, "t": 0.008}, "rgb": GREY},
-	{"fins": {"root": [2.93, 3.05], "tip": [2.96, 3.03], "r": 0.078, "h": 0.23, "roll": 45.0, "t": 0.006}, "rgb": GREY},
+	{"fins": {"root": [0.08, 0.29], "tip": [0.27, 0.29], "r": 0.078, "h": 0.19, "roll": 45.0, "t": 0.006}, "rgb": GREY},
+	{"fins": {"root": [0.31, 0.65], "tip": [0.62, 0.65], "r": 0.078, "h": 0.26, "roll": 45.0, "t": 0.007}, "rgb": GREY},
+	{"fins": {"root": [2.40, 2.85], "tip": [2.92, 3.03], "r": 0.078, "h": 0.24, "roll": 45.0, "t": 0.008}, "rgb": GREY},
+	{"fins": {"root": [2.85, 3.08], "tip": [3.00, 3.06], "r": 0.078, "h": 0.12, "roll": 45.0, "t": 0.006}, "rgb": GREY},
 	{"box": [Vector3(0, 0.088, 1.05), Vector3(0.03, 0.02, 0.07)], "rgb": DARK},
 	{"box": [Vector3(0, 0.088, 2.15), Vector3(0.03, 0.02, 0.07)], "rgb": DARK},
 	{"box": [Vector3(0, 0.082, 1.60), Vector3(0.035, 0.012, 1.6)], "rgb": GREY},
 ]
 
-## GBU-39/B SDB: 1.80 m long, 190 mm across; a long ogive nose, the folded wing pack along the top, four small tail fins
-## (X); grey with a yellow band behind the nose (photos: Commons "GBU-39 Small Diameter Bomb", the Boeing rendering).
+## GBU-39/B SDB: 1.80 m long, 190 mm across; a long ogive nose, flat-sided (a squarish section), the folded wing pack
+## along the top, four small tail fins (X); the warhead grey with a yellow band behind the nose, the aft body, wing pack
+## and tail dark grey (photos: Commons "BRU-61+4xGBU-39.jpg", the Boeing rendering).
+const SDB_GREY := Color(0.56, 0.58, 0.59)
+const SDB_TAIL := Color(0.27, 0.28, 0.29)
 const SDB_BODY := [
 	[0.0, 0.0],
 	[0.015, 0.016],
@@ -62,19 +59,20 @@ const SDB_BODY := [
 	[1.80, 0.0]
 ]
 const GBU39 := [
-	{"lathe": SDB_BODY, "to": 0.38, "rgb": GREY},
-	{"lathe": SDB_BODY, "from": 0.38, "to": 0.43, "rgb": YELLOW},
-	{"lathe": SDB_BODY, "from": 0.43, "rgb": GREY},
-	{"box": [Vector3(0, 0.103, 0.95), Vector3(0.11, 0.03, 1.02)], "taper": 0.85, "rgb": DARK},
-	{"box": [Vector3(0, 0.122, 0.95), Vector3(0.15, 0.010, 1.04)], "rgb": GREY},
+	{"lathe": SDB_BODY, "to": 0.38, "rgb": SDB_GREY, "sq": 2.8},
+	{"lathe": SDB_BODY, "from": 0.38, "to": 0.43, "rgb": YELLOW, "sq": 2.8},
+	{"lathe": SDB_BODY, "from": 0.43, "to": 0.95, "rgb": SDB_GREY, "sq": 2.8},
+	{"lathe": SDB_BODY, "from": 0.95, "rgb": SDB_TAIL, "sq": 2.8},
+	{"box": [Vector3(0, 0.103, 0.95), Vector3(0.11, 0.03, 1.02)], "taper": 0.85, "rgb": SDB_TAIL},
+	{"box": [Vector3(0, 0.122, 0.95), Vector3(0.15, 0.010, 1.04)], "rgb": SDB_TAIL},
 	{
 		"fins": {"root": [1.52, 1.79], "tip": [1.68, 1.79], "r": 0.085, "h": 0.085, "roll": 45.0, "t": 0.006},
-		"rgb": GREY
+		"rgb": SDB_TAIL
 	},
 ]
 
 ## BRU-61/A: 3.63 × 0.41 × 0.41 m (143 × 16 × 16 in); a squared beam with rounded ends, an ejector keel below; grey.
-## Stretched along its length at run time to the station's four slots (util/gltf.gd RACKS).
+## The four bombs drawn under it at run time (PlayerWeapons._rack, util/gltf.gd RACKS).
 const BRU_BODY := [[0.0, 0.0], [0.04, 0.09], [0.18, 0.15], [0.35, 0.16], [3.30, 0.16], [3.55, 0.11], [3.63, 0.0]]
 const BRU61 := [
 	{"lathe": BRU_BODY, "sq": 5.0, "rgb": DARK, "n": 40},
