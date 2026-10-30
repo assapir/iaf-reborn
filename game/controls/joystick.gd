@@ -25,7 +25,6 @@ const ROCKER_DEAD_ZONE := 0.1
 ## The rocker's first reading this flight (NAN = not read yet) and whether it has moved since.
 var rocker_first := NAN
 var rocker_moved := false
-var _rocker_logged := 99.0
 ## The hat as Godot reports it: the D-pad buttons.
 const HAT := [JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_RIGHT, JOY_BUTTON_DPAD_DOWN, JOY_BUTTON_DPAD_LEFT]
 ## POV (hundredths of a degree) → GEV 22 (p1 angle, p2 numpad digit) (@4dfa2c..4dfbae): the snap-view keys'
@@ -126,31 +125,14 @@ func rocker() -> float:
 		return 0.0
 	var i: int = Settings.joy_axes[4] if Settings.joy_axes.size() > 4 else ROCKER_AXIS
 	var v := axis(d, i)
-	# The log: the rocker's reading at each change of 0.1 or more (its rest, each side; docs/controls.md §5.2).
-	if absf(v - _rocker_logged) >= 0.1:
-		_rocker_logged = v
-		print(
-			(
-				"joystick: rocker axis %d = %.2f at %.1f s (raw %.2f, trim %s)"
-				% [
-					i,
-					v,
-					Time.get_ticks_msec() / 1000.0,
-					Input.get_joy_axis(d, i),
-					"on" if Settings.rocker_trim else "off"
-				]
-			)
-		)
 	if not Settings.rocker_trim:
 		return 0.0
 	if not rocker_moved:
 		if is_nan(rocker_first):
 			rocker_first = v
-			print("joystick: rocker first reading %.2f (axis %d)" % [v, i])
 		if v == rocker_first:
 			return 0.0
 		rocker_moved = true
-		print("joystick: rocker moved, now %.2f" % v)
 	var r := _dead(v, ROCKER_DEAD_ZONE)
 	return r * absf(r)
 

@@ -139,6 +139,10 @@ func _case(tv, name: String, shots: bool) -> void:
 		tv._full_screen_key()
 		await frames(2)
 		check(w.full_screen and tv.fs_mfd != null, "%s: Z opens it again" % name)
+		check(
+			tv.fs_mfd.get_parent().layer < tv.overlay.get_parent().layer,
+			"%s: a mission box (the overlay) is drawn over the full-screen MFD" % name
+		)
 	w.fire_selected()
 	w.release_selected()
 	t += 0.05

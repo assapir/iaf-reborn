@@ -656,8 +656,9 @@ func full_screen_impact(world: Vector3) -> void:
 func _update_full_screen() -> void:
 	var on: bool = weapons != null and weapons.full_screen
 	if on and fs_mfd == null:
+		# Below the flight overlay (15): the message boxes, PAUSE and the On-The-Fly menu are drawn over it.
 		var layer := CanvasLayer.new()
-		layer.layer = 15
+		layer.layer = 14
 		add_child(layer)
 		fs_mfd = preload("res://cockpit/fs_mfd.gd").new()
 		fs_mfd.cockpit = cockpit
@@ -3589,28 +3590,6 @@ func _read_controls(delta: float) -> void:
 	var ap_on: bool = autopilot != null and autopilot.mode != 0
 	if trim != 0.0 and flight != null and not ap_on:
 		flight.trim_roll(trim, delta)
-	_log_trim(trim, ap_on)
-
-
-## The log: one line when the trim input stops (the trim it left, what moved it), and one when the autopilot holds
-## the trim still against an input (docs/controls.md §5.2).
-var _trim_input := ""
-
-
-func _log_trim(input: float, ap_on: bool) -> void:
-	if flight == null:
-		return
-	var src := ""
-	if input != 0.0:
-		src = "keys" if Input.is_key_pressed(KEY_ALT) else "rocker"
-		src += " (autopilot on: held still)" if ap_on else ""
-	if src == _trim_input:
-		return
-	if _trim_input != "" and src == "":
-		print("trim: %+.1f %% stick after the %s" % [flight.roll_trim() * 100.0, _trim_input])
-	elif src != "":
-		print("trim: %s moving it from %+.1f %%, input %+.2f" % [src, flight.roll_trim() * 100.0, input])
-	_trim_input = src
 
 
 ## One event of the joystick poller (FUN_004df560): GEV 1 stick (x, y ±100), 9 throttle (0..100), 10 rudder,

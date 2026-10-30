@@ -506,12 +506,7 @@ the same code).
     rocker and keys don't move it, so nothing builds up unseen; the trim works again when it lets go.
   * Godot reads an axis as 0 until the device's first event for it, which our trigger mapping turns into −1, full
     left (seen on the Mac: the jet rolled from the start). So the rocker counts only once its reading has changed
-    from the flight's first one (log lines `joystick: rocker first reading …` / `rocker moved …`). The trim itself
-    starts at 0 each flight.
-  * The log shows the rocker at each change of 0.1 or more (`joystick: rocker axis 4 = … at … s (raw …, trim
-    on|off)`, also with the trim switch off) and each trim change (`trim: rocker moving it from …`, `trim: … %
-    stick after the rocker`, `… (autopilot on: held still)`), so one flight's log shows where a stick's trim goes
-    wrong.
+    from the flight's first one. The trim itself starts at 0 each flight.
   * The trim shows on the flight-info line (Ctrl + F12) while it is off centre, e.g. "TRIM L 2.4%" (2.4 % of full
     stick, left wing down), and on the external model: the ailerons follow the roll command (stick + trim; flight
     state `roll_stick`).

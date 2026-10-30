@@ -495,6 +495,9 @@ FLIR/TV) while the flag is set, else the main view's type. The cockpit keys ever
      redraws or clears it afterwards (viewport 0 is skipped).
    - The 4 RENDERCORNERs **every frame**, white-keyed (flag 0x11 = WAIT|SRCCOLORKEY), so the rounded corners and
      the zoom arrows cover the picture **and the symbology**.
+4. The flight window's own overlays come after it on the same back surface (`FUN_004d9080` @4d9351..4d94da): a
+   message box (mission over, eject…), PAUSE and the On-The-Fly menu show over the full-screen MFD. Ours: the
+   overlay layer sits above it (terrain_view.gd `_update_full_screen`).
 
 **Layer geometry.** x0, y0 = RENDER_RECT left / top + 2 = (130, 51); w, h = size − 4 = 381 × 378; cx, cy = x0 + w/2,
 y0 + h/2 = **(320, 240)**. The MFD's 56 px half-scale becomes w/2 = 190 (x) and h/2 = 189 (y). Lines below end
