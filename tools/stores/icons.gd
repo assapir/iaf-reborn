@@ -64,7 +64,7 @@ func _render(node: Node3D, share: float) -> Image:
 		box = b if first else box.merge(b)
 		first = false
 	# The models' nose is −Z: turn it to the right (+X) and centre it.
-	node.rotation_degrees = Vector3(0, 90, 0)
+	node.rotation_degrees = Vector3(0, -90, 0)
 	node.position = -(Basis.from_euler(node.rotation) * box.get_center())
 	var cam := Camera3D.new()
 	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
