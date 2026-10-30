@@ -153,12 +153,14 @@ static func _shader_material(code: String) -> ShaderMaterial:
 	return m
 
 
-## The glows' brightness: 1 at night, `day` by day (a lit runway light is a small spot in daylight).
+## The glows' brightness: 1 at night; by day 0.35 for the ground lights (a lit runway light is a small spot in
+## daylight) and 0.12 for the jets' lights.
 ## The viewport's rows: a shader's VIEWPORT_SIZE reads 0 in vertex() on Metal, so the glows get it as `vp_h`.
 ## (The projection is Y-flipped there: the shaders take the focal length as abs(PROJECTION_MATRIX[1][1]).)
 static func set_gain(night: bool, fog_density: float, rows: float) -> void:
 	for m in [glow(), nav_glow()]:
-		m.set_shader_parameter("gain", 1.0 if night else 0.35)
+		# By day a jet's position lights are small dim dots next to a runway light (its glow is 2 m, not 4 m).
+		m.set_shader_parameter("gain", 1.0 if night else (0.35 if m == glow() else 0.12))
 		m.set_shader_parameter("fog_k", fog_density)
 		m.set_shader_parameter("vp_h", rows)
 
@@ -272,17 +274,19 @@ static func add_lights_on(frame: Node3D, key: String, ew) -> Node3D:
 	var s: Array = _spots[key].duplicate()
 	if s.is_empty():
 		return null
-	# The EndWing helpers when they sit at the tips (the F-16's are a third of the way out: the mesh's tips then).
+	# The EndWing helpers when they sit at the tips, within the mesh (the F-16's are a third of the way out, the
+	# F-15's 0.1 m past its wingtips: the mesh's tips then).
 	if (
 		ew is Dictionary
 		and ew.get("left") is Array
 		and ew.get("right") is Array
 		and float(ew.right[0]) - float(ew.left[0]) > 0.8 * (s[1].x - s[0].x)
+		and float(ew.right[0]) - float(ew.left[0]) <= s[1].x - s[0].x
 	):
 		s[0] = Vector3(ew.left[0], ew.left[1], ew.left[2])
 		s[1] = Vector3(ew.right[0], ew.right[1], ew.right[2])
-	# Out of the skin: each light sits a little outside the surface it marks (2 % of the span).
-	var out: float = (s[1].x - s[0].x) * 0.02
+	# Out of the skin: each light sits just outside the surface it marks (0.5 % of the span, 5–7 cm).
+	var out: float = (s[1].x - s[0].x) * 0.005
 	s[0] += Vector3(-out, 0, 0)
 	s[1] += Vector3(out, 0, 0)
 	s[2] += Vector3(0, 0, out)
@@ -304,7 +308,13 @@ static func add_lights_on(frame: Node3D, key: String, ew) -> Node3D:
 ## [left tip, right tip, tail, fin top] in `frame`'s space ([] without meshes). +X right, +Y up, +Z aft (the glTF).
 static func _light_spots(frame: Node3D) -> Array:
 	var verts := PackedVector3Array()
-	for mi: MeshInstance3D in frame.find_children("*", "MeshInstance3D", true, false):
+	# The frame itself counts: a model's root is often its main mesh (the F-15's fuselage and wings).
+	var meshes: Array = frame.find_children("*", "MeshInstance3D", true, false)
+	if frame is MeshInstance3D:
+		meshes.push_front(frame)
+	# The tail light: the rearmost of the body, not the hook or a gear leg (they would hang it below the jet).
+	var tail_verts := PackedVector3Array()
+	for mi: MeshInstance3D in meshes:
 		if (
 			mi.mesh == null
 			or not _shown(frame, mi)
@@ -313,9 +323,12 @@ static func _light_spots(frame: Node3D) -> Array:
 		):
 			continue
 		var t := _rel(frame, mi)
+		var body := not (str(mi.name) == "Hook" or str(mi.name).begins_with("Ldg"))
 		for i in mi.mesh.get_surface_count():
 			for v: Vector3 in mi.mesh.surface_get_arrays(i)[Mesh.ARRAY_VERTEX]:
 				verts.append(t * v)
+				if body:
+					tail_verts.append(t * v)
 	if verts.is_empty():
 		return []
 	var l := verts[0]
@@ -330,8 +343,12 @@ static func _light_spots(frame: Node3D) -> Array:
 			top = v
 	var half := (r.x - l.x) * 0.5
 	var tail := Vector3(0, 0, -INF)
-	for v in verts:
-		if absf(v.x) < 0.1 * half and v.z > tail.z:
+	# Twin fins (the top off the centre line, the F-15): the white light on that fin's trailing edge, in its upper
+	# half; one fin: the rearmost of the body on the centre line.
+	var twin := absf(top.x) >= 0.1 * half
+	for v in tail_verts:
+		var on_it := absf(v.x - top.x) < 0.1 * half and v.y > 0.5 * top.y if twin else absf(v.x) < 0.1 * half
+		if on_it and v.z > tail.z:
 			tail = v
 	return [l, r, tail if tail.z > -INF else top, top]
 

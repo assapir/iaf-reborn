@@ -209,6 +209,10 @@ func run() -> void:
 	check(tv.find_child("BaseLights", true, false) == null, "detailed, day: no base lights")
 	check(tv.get_node_or_null("NightSky") == null or not tv.get_node("NightSky").visible, "detailed, day: no night sky")
 	check((tv.get_node("Sun") as DirectionalLight3D).light_color != NightLights.MOON_LIGHT, "detailed, day: the sun")
+	check(
+		is_equal_approx(NightLights.nav_glow().get_shader_parameter("gain"), 0.12),
+		"detailed, day: the jets' lights glow dim (12 %)"
+	)
 	# The same base at 22:00: its runway model gets lt_dvd_h on the same spot.
 	tv.runtime.misc["0x460"] = 22.0 * 3600.0 - tv.runtime.now
 	var hidden_david := func(e): return e.node != null and not e.get("drawn", true) and String(e.name) == "Ramat David"
@@ -216,4 +220,22 @@ func run() -> void:
 	tv._add_base_lights(rw.node, "stationary/rw_ul_1/ul_rwdavid.gltf", rw)
 	var bl: Node3D = tv.find_child("BaseLights", true, false)
 	check(bl != null and bl.transform == rw.node.transform, "detailed, night: Ramat David's light set on its runway")
+	# The F-15 (its root mesh is the fuselage and wings): the wingtip lights on its wingtips, the tail light on a fin.
+	var models: String = settings().models
+	settings().models = "detailed"
+	settings().jet_id = 0
+	tv = await start_mission(311)
+	await frames(10)
+	var f15: Node3D = tv.aircraft.root_frame
+	var span: AABB = (f15 as MeshInstance3D).get_aabb()
+	var spots: Array = NightLights._light_spots(f15)
+	check(
+		absf(spots[0].x - span.position.x) < 0.05 and absf(spots[1].x - span.end.x) < 0.05 and spots[2].y > 1.5,
+		(
+			"detailed: the F-15's lights on its wingtips and fin (%s, span %.2f..%.2f)"
+			% [spots, span.position.x, span.end.x]
+		)
+	)
+	settings().jet_id = -1
+	settings().models = models
 	settings().night_lights = "original"

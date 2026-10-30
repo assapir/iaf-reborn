@@ -1119,8 +1119,12 @@ a small cost. The parts:
    original's art and match the runway edges in the imagery.
 3. **Navigation lights and strobe on every jet** (`aircraft_model.gd`): red on the left wingtip, green on the right,
    white at the tail, and a white strobe on top of the fin. It flashes for 0.08 s every 1.2 s, each jet at its own
-   phase. The spots are the model's outermost vertices, or its EndWing helpers when they sit at the wingtips (the
-   F-16's sit a third of the way out); cached per model. The cockpit-view model (`<plane>_bc`) carries its own set
+   phase. The spots are the outermost vertices of the model's meshes, its root mesh included (the F-15's fuselage and
+   wings), 0.5 % of the span outside the skin; or its EndWing helpers when they sit at the wingtips within the mesh
+   (the F-16's sit a third of the way out, the F-15's 0.1 m past its tips: the mesh's tips then). The tail light is
+   the body's rearmost point on the centre line (not the hook or the gear); with twin fins (F-15) it sits on the
+   strobe's fin, at its trailing edge. Cached per model. By day the jets' lights glow at 12 %, dimmer than the
+   ground lights' 35 %. The cockpit-view model (`<plane>_bc`) carries its own set
    at its own wingtips, tail and fin top, so you see your wingtip lights when you look aside from the cockpit. The
    lights go out when the jet is hit, falls or is destroyed (damage state 3 and above), and when the player crashes.
 4. **Night sky.** 2600 stars (a fixed random sky, brighter ones rarer, 2.4 px base size) and a moon disc drawn at the far plane. The

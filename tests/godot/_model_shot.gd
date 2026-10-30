@@ -9,6 +9,7 @@
 # SHOT_OUT/<models>_<name>.png and prints the frame time of a settled view. SHOT_BENCH=1: no pictures; the frame time
 # (vsync off) and GPU time over 600 frames with the camera 50 m behind the jet (mission 231: the player's jet and the
 # AI's F-16s drawn).
+# SHOT_LIGHTS=1: Night lights Detailed (the jet's navigation lights and strobe).
 # SHOT_F16=sufa: every F-16 as the F-16I Sufa (docs/f16i.md §8.1). SHOT_AI=1: the shots of the first AI F-16 instead
 # of the player's jet (the camera rides with it; no pose).
 # SHOT_JET=0 (the F-15; any jet_id): mission 311 with that jet, also for "airborne" (lifted 3000 m, F15_LOADOUT), and
@@ -113,6 +114,8 @@ func run() -> void:
 	var ground := OS.get_environment("SHOT_START") == "ground"
 	settings().models = models if models != "" else "original"
 	settings().show_info = false
+	if OS.get_environment("SHOT_LIGHTS") != "":
+		settings().night_lights = "detailed"
 	if OS.get_environment("SHOT_F16") != "":
 		settings().f16_variant = OS.get_environment("SHOT_F16")
 	var jet := OS.get_environment("SHOT_JET")
