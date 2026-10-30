@@ -1123,7 +1123,10 @@ a small cost. The parts:
    wings), 0.5 % of the span outside the skin; or its EndWing helpers when they sit at the wingtips within the mesh
    (the F-16's sit a third of the way out, the F-15's 0.1 m past its tips: the mesh's tips then). The tail light is
    the body's rearmost point on the centre line (not the hook or the gear); with twin fins (F-15) it sits on the
-   strobe's fin, at its trailing edge. Cached per model. By day the jets' lights glow at 12 %, dimmer than the
+   strobe's fin, at its trailing edge. A helicopter (CH-53, Mi-8, Mi-24, UH-60) leaves its rotors out (their blade
+   tips turn): its red and green lights are a mirrored pair on the cabin's widest point in its front 60 %, above the
+   gear's lowest quarter (the CH-53's sponsons, the Mi-24's stub wings). Cached per file drawn (the Detailed model and
+   the Sufa have their own). By day the jets' lights glow at 12 %, dimmer than the
    ground lights' 35 %. The cockpit-view model (`<plane>_bc`) carries its own set
    at its own wingtips, tail and fin top, so you see your wingtip lights when you look aside from the cockpit. The
    lights go out when the jet is hit, falls or is destroyed (damage state 3 and above), and when the player crashes.
