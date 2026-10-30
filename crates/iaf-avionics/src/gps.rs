@@ -97,6 +97,13 @@ pub fn pre_targets(own: Option<Vec3>, others: &[Vec3], steerpoints: &[Vec3]) -> 
     out
 }
 
+/// Each bomb's PRE target on a station of `count` bombs (docs/weapons.md §13.2), in the stores' release order: the
+/// bomb's own (`own[k]`, set per bomb on the briefing TSD, e.g. on a GBU-39 rack), else the station's (`station`, for
+/// all its bombs).
+pub fn rack_targets(station: Option<Vec3>, own: &[Option<Vec3>], count: usize) -> Vec<Option<Vec3>> {
+    (0..count).map(|k| own.get(k).copied().flatten().or(station)).collect()
+}
+
 /// The PRE target picked by the step key's `index` (0: no step) among a station's `list` (`pre_targets`, its `own`
 /// target first): the steps cycle through the list; a station without its own target starts on none (the bomb then
 /// takes the CCIP aim) and steps through the others.
@@ -259,5 +266,28 @@ mod tests {
         assert_eq!(pre_pick(None, &[], 5), None);
         assert_eq!(default_target(&[0, 0, 5, 0, 5]), Some(2));
         assert_eq!(default_target(&[0, 1]), None);
+    }
+
+    #[test]
+    fn rack_bombs_own_targets_and_stepping() {
+        let a = Vec3::new(1000.0, 0.0, 0.0);
+        let b = Vec3::new(0.0, 5000.0, 0.0);
+        let wp = [Vec3::new(0.0, 0.0, 0.0)];
+        // Four GBU-39s on one station: bombs 1-2 on the station's A, 3-4 on their own B.
+        let t = rack_targets(Some(a), &[None, None, Some(b), Some(b)], 4);
+        assert_eq!(t, vec![Some(a), Some(a), Some(b), Some(b)]);
+        // A bomb's own without a station target; the rest none; a shorter own list covers the first bombs only.
+        assert_eq!(rack_targets(None, &[Some(b)], 3), vec![Some(b), None, None]);
+        // Stepping from bomb 3: its own B, then A, then the steerpoint, round again; step 0 is each bomb's own.
+        let others: Vec<Vec3> = t.iter().flatten().copied().collect();
+        let l = pre_targets(t[2], &others, &wp);
+        assert_eq!(l, vec![b, a, wp[0]]);
+        assert_eq!(
+            (0..4).map(|k| pre_pick(t[2], &l, k)).collect::<Vec<_>>(),
+            vec![Some(b), Some(a), Some(wp[0]), Some(b)]
+        );
+        let l0 = pre_targets(t[0], &others, &wp);
+        assert_eq!(pre_pick(t[0], &l0, 0), Some(a));
+        assert_eq!(pre_pick(t[0], &l0, 1), Some(b));
     }
 }

@@ -274,6 +274,18 @@ impl IafGpsBomb {
         gps::pre_targets(own, &v(&others), &v(&steerpoints)).into_iter().map(vector3).collect()
     }
 
+    /// Each bomb's PRE target on a station of `count` bombs (`gps::rack_targets`): `station` and each of `own` a world
+    /// point or null; null entries for the bombs without one.
+    #[func]
+    fn rack_targets(station: Variant, own: VarArray, count: i64) -> VarArray {
+        let p = |v: &Variant| v.try_to::<Vector3>().ok().map(vec3);
+        let own: Vec<_> = own.iter_shared().map(|v| p(&v)).collect();
+        gps::rack_targets(p(&station), &own, count.max(0) as usize)
+            .into_iter()
+            .map(|t| t.map_or(Variant::nil(), |q| vector3(q).to_variant()))
+            .collect()
+    }
+
     /// The PRE target step `index` picks (`gps::pre_pick`), or null.
     #[func]
     fn pre_pick(own: Variant, list: PackedVector3Array, index: i64) -> Variant {

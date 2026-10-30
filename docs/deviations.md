@@ -301,7 +301,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   F-35I have theirs with either setting. The AI's loads stay the original's. The info line shows MODWPN. The
   AIM-9X and Python 5 also need Weapon data on Real, on every jet.
   - GPS bombs (with the Sufa, the F-35I or Weapons on Modern; weapons.md §13.2–§13.3): they fly to coordinates in
-    two modes, PRE (each station's target set on the briefing TSD: a GPS panel in the map's lower-right corner and a box
+    two modes, PRE (each station's target, or each bomb's on a GBU-39 rack, set on the briefing TSD: a GPS panel in the map's lower-right corner and a box
     on each target, front-end.md §8.2; by default the route's target waypoint) and VIS (the pod's or the radar's
     designated point); key K switches the mode, Shift+K steps the PRE target (controls.md "Own keys"). The original's
     TSD looks as before when the selected flight carries no GPS bomb. With HUD Real the F-16, F-15 and F-35I draw the

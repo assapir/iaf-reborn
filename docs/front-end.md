@@ -912,10 +912,16 @@ its pre-planned (PRE) target (docs/weapons.md §13.2):
   map gives that station the unit under the cursor (its type name), a waypoint of the selected flight (`WP4`) or the
   point itself (`PT`); a click on the armed row again disarms it;
 - a right click on a row clears the station's target;
-- a station without one shows the route's target waypoint with `(TGT WP)` (the default), else `-`.
-The targets are stored as world coordinates in `Settings.gps_targets` ({flight: {station: [x, y, label]}}), cleared
-with the Arming tables when a mission loads. On the map each target is a yellow box with tick marks above and below
-and the numbers of the stations aimed at it. The panel and boxes are absent in flight (the FlyTSD), in the mission
+- a station without one shows the route's target waypoint with `(TGT WP)` (the default), else `-`;
+- a rack (several GPS bombs on one station, the GBU-39s) is one row; a click on it also opens a row per bomb,
+  `STA 3-1` .. `STA 3-4` (bomb 1 is the first to leave), and a second click on the armed station row closes them. The
+  station's row then the map sets all its bombs (and drops their own targets); a bomb's row then the map sets that
+  bomb only (`CLICK A TARGET FOR STA 3-2`). A bomb row is grey while it takes its station's target, white with its
+  own; a right click on it puts it back on the station's. A rack with a bomb of its own stays open.
+The targets are stored as world coordinates in `Settings.gps_targets` ({flight: {station: [x, y, label],
+Vector2i(station, bomb): [x, y, label]}}), cleared with the Arming tables when a mission loads. On the map each target
+is a yellow box with tick marks above and below and the stations aimed at it (`3,5`); for a rack whose bombs have
+targets of their own, the bombs (`3-1,3-2`). The panel and boxes are absent in flight (the FlyTSD), in the mission
 editor and for a flight without GPS bombs, where the TSD looks as the original's.
 
 ## 9. Sounds (`menu/wav`)
