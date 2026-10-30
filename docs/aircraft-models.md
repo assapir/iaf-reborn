@@ -26,7 +26,7 @@ them. Plans for more jets and stores: [graphics-research.md](graphics-research.m
 | textures | livery, occlusion / roughness / metallic and normal maps at 2048²; the nozzle, cockpit, seat and pilot textures at 512 px or less; KTX2 inside the glb (about 110 MB in video memory as RGBA8) |
 | file size | 3.8 MB |
 | livery | IAF desert camouflage, 101 Squadron, tail 547 (FlightGear's own livery and pattern) in the Barak's colours measured on photographs: faded tan, sand and grey-green down to the strakes, light grey below, camouflaged stabilator tops; IAF wing roundels: one above each wing, one under each wing |
-| crew | two pilots on two ACES II seats under a two-seat canopy |
+| crew | two pilots on two ACES II seats under a two-seat canopy: two transparencies on one narrow near-black bow just behind the front seat's headrest, both cockpits open under the glass |
 | IAF features | the dorsal spine of Israel's F-16D Block 30 / 40 ("Brakeet"): the avionics hump, level from the canopy's rear edge to a box under the fin that ends round just aft of the nozzle, 0.25 m under the canopy's top, with its three vents; the fin and rudder stand on it |
 
 ### 1.1 How it fits the game
@@ -91,6 +91,34 @@ Tried and dropped:
   short at its root. Dropped for the stretch down to the spine, the tip kept.
 - **"The jet sits 0.3 m low on its gear"** (an estimate from the strakes' height in a photo). JSBSim's springs settle
   the main wheels within 2 cm of where they are; the intake / canopy ratio above agrees. Dropped.
+
+#### The canopy between the seats against photographs (2026-10-29)
+
+The F-16B / D canopy is two transparencies, a forward one about the single seater's size and an aft one, held in one
+frame; the strip between them is part of that frame and carries the canopy's actuator yoke[^f16net]. On IAF F-16Is
+side on (Blue Flag 2015[^blueflag], Hatzerim[^hatzerim], tail 432 in its shelter[^bayit432]) that strip is one
+narrow, near-black, upright bow with a row of rivets, just behind the front seat's headrest, halfway along the
+canopy. Measured on the Blue Flag photo with the canopy's length as the scale: about 0.07 m wide, upright within a
+few degrees. Through the glass behind it show the rear seat's instrument coaming and the rear pilot, the rear
+cockpit as open as the front one. Its colour on the photos is the frame's dark (near black, inferred: the paint or
+the sealant over it), never the camouflage.
+
+FlightGear's single-seat F-16C has its aft hoop there instead (0.18 m deep at the top, leaning 24° aft, mapped into
+the livery) and, under it, a bulkhead and a deck from the bulkhead's foot to the canopy's rear end. The two-seat
+stretch left the hoop as a thick camouflaged arch between the pilots, and the deck covered the rear cockpit up to
+the rear pilot's chest. `canopy_bow` (§2, step 2) rebuilds the hoop as the bow (`BOW_*`: 0.07 m, upright, 50 % of
+the way along the canopy, `canopy_bow` material near black), meets the forward glass's rear edge and the aft glass's
+front edge on its two faces, takes the bulkhead out and moves the deck's front edge back behind the rear seat
+(`DECK_Y`). The same code builds both jets.
+
+Tried and dropped (2026-10-29):
+
+- **Only the hoop made thin and dark.** Result: the single-seat bulkhead under it showed as a camouflaged band
+  leaning aft, where the hoop had hidden it. Dropped: the bulkhead goes too.
+- **FlightGear's hoop section as it is.** Result: the bow stood 2 cm proud of the glass, a post over the canopy's
+  top side on. Its section is now scaled 0.985 about the canopy's axis (`BOW_SINK`), nearly flush as on the photos.
+- **The bow colour on the faces wholly in the hoop only.** Result: its foot, the faces down to the sill rail, kept
+  the livery. The faces touching the hoop take the bow's colour.
 
 #### The colours against photographs (2026-10-29)
 
@@ -214,9 +242,9 @@ version on Barak it stays the original's `f16_bc`.
   model's copies are matte (roughness 0.9, specular 0.2). FlightGear maps the canopy frame into the livery, so on
   the Sufa it took the camouflage; here it is FS 36118 gunship grey (`F16_FRAME_COLOUR`). The jets seen from
   outside keep their materials.
-- **The canopy frame's aft hoop** sits between the two seats, 0.5–0.8 m behind the eye, about 0.3 m deep: it is
-  FlightGear's single-seat F-16C frame, which rig.py's two-seat stretch leaves in place (it stretches only the glass
-  and the spine behind it). Its depth is FlightGear's own. Open: whether the IAF F-16D has a frame there.
+- **The canopy's centre bow** stands upright between the two seats, about 0.6 m behind the eye, 0.07 m deep, as on
+  the real two-seater (§1, the canopy between the seats). Seen from the seat it is frame grey as the rest of the
+  frame.
 
 Checks: `tests/godot/test_detailed_cockpit.gd` (the seat surfaces end where the pilot's begin, the eye on the centre
 line, nothing ahead of the eye, the seat back 0.4–0.7 m behind it, no gear, the rear crew kept, the frame grey, the
@@ -245,8 +273,9 @@ The script:
 1. imports `f16.ac` (FlightGear's single-seat F-16C) and the GE nozzle, and drops the parts the game draws itself
    (flames, lights, USAF markings);
 2. makes it two-seat: everything above the canopy sill between the front seat and the fin root is stretched so the
-   canopy ends 0.95 m further aft; a second tub, seat and pilot go 0.98 m behind the first; adds the centreline
-   pylon;
+   canopy ends 0.95 m further aft; a second tub, seat and pilot go 0.98 m behind the first; rebuilds the canopy's
+   centre bow, takes out the single seater's bulkhead and opens the rear cockpit (`canopy_bow`, §1); adds the
+   centreline pylon;
 3. moves it 1.05 m aft so its wing lies on the original's wing;
 4. moves each pylon onto the original's station and compresses the oleos so the wheels touch at `height`;
 5. opens the main gear doors for LdgDr and closes the nose door for LdgDrUp;
@@ -544,6 +573,16 @@ wheels flat), so a leg in transit takes a simpler path. `util/gltf.gd` maps `f15
 
 ## Sources
 
+[^f16net]: F-16.net forum, "F-16 B/D two seater version canopy" (a canopy shop's account: two transparencies in
+    one frame, the centre strip part of the frame, the actuator's support yoke on it),
+    https://www.f-16.net/forum/viewtopic.php?p=27770
+[^blueflag]: U.S. Embassy Tel Aviv, "F-16I at Blue Flag 2015 - pic01.jpg", Wikimedia Commons, CC BY 4.0 (an F-16I
+    taxiing, side on), https://commons.wikimedia.org/wiki/File:F-16I_at_Blue_Flag_2015_-_pic01.jpg
+[^hatzerim]: Oren Rozen (derivative by Poliocretes), "Hatzerim 270416 Sufa-F-16I v01.jpg", Wikimedia Commons, CC
+    BY-SA 4.0 (F-16I 893 parked, the canopy close),
+    https://commons.wikimedia.org/wiki/File:Hatzerim_270416_Sufa-F-16I_v01.jpg
+[^bayit432]: IDF Spokesperson's Unit, "F-16I (IAF).jpg", Wikimedia Commons, CC BY-SA 3.0 (F-16I 432 in its
+    shelter, side on), https://commons.wikimedia.org/wiki/File:F-16I_(IAF).jpg
 [^airhistory802]: AirHistory.net, photo 600613 of F-15C 802 (caption: 80-0122, the IAF's first F-15C, at Tel Nof
     in August 1981, "Panther", 133 Squadron markings, four Syrian kill marks of June 1982),
     https://www.airhistory.net/photo/600613/802

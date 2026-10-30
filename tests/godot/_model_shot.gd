@@ -31,6 +31,8 @@ const AIR_SHOTS := [
 	["brakes_flaps", 16.0, 120.0, 25.0, {"brakes": true, "flaps": 1.0}],
 	["afterburner", 18.0, 160.0, 8.0, {"afterburner": 2, "rpm": 1.1}],
 	["cockpit_close", 7.0, 60.0, 25.0, {}],
+	["canopy_side", 4.5, 90.0, 4.0, {}, Vector3(0, 0.9, -2.6)],
+	["canopy_quarter", 4.5, 55.0, 18.0, {}, Vector3(0, 0.9, -2.6)],
 	["brakes_tail", 8.0, 140.0, 10.0, {"brakes": true}, Vector3(0, 0, 5.5)],
 	["gear_transit", 12.0, 110.0, -25.0, {"gear_down": true, "gear": 0.8}],
 	["belly_centre", 9.0, 100.0, -50.0, {}],

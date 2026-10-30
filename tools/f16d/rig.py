@@ -1,7 +1,7 @@
 # Build the detailed F-16D (Preferences -> Extras -> Models: Detailed; docs/aircraft-models.md) from the FlightGear
 # F-16 (github.com/NikolaiVChr/f16, GPL-2.0-or-later; tools/f16d/SOURCES.md) with tools/plane/kit.py:
 #   - FlightGear's single-seat f16.ac made two-seat: the canopy and the spine behind it stretched aft, a second
-#     cockpit, seat and pilot;
+#     cockpit, seat and pilot, the single seater's aft canopy hoop rebuilt as the two-seater's centre bow;
 #   - placed on the original model's frame: the wing on the original's wing, the pylons moved onto the original's
 #     Station helpers, the oleos compressed so the wheels touch at the original's `height` helper;
 #   - the moving parts named and hinged as the original's (`<part>1/2` helpers on FlightGear's own hinge lines,
@@ -177,6 +177,61 @@ def two_seat(objs):
             if w > 0:
                 c.y += (remap_y(c.y) - c.y) * w
         o.data.update()
+
+
+# The two-seat canopy's centre bow (aircraft-models.md §1): on the F-16B / D / I the forward and aft transparencies
+# meet on one narrow, near-black, upright bow just behind the front seat's headrest, halfway along the canopy
+# (photos in SOURCES.md). FlightGear's single-seat frame has the F-16C's aft hoop there instead: 0.18 m deep at the
+# top, leaning 24° aft and painted from the livery. canopy_bow rebuilds it upright, BOW_D deep, at BOW_Y (its middle;
+# FlightGear's frame after two_seat): the hoop's two rings go to its faces, the forward glass's rear edge onto its
+# front face (the glass eased over BOW_EASE m), the aft glass's front edge onto its back face; the frame below
+# BOW_Z0 (the sill rails) slides with the glass's lower edge. The hoop's front ring (= the forward glass's rear edge)
+# runs from y 3.40 at its top (z 1.129) forward by BOW_SLANT per m down.
+BOW_Y, BOW_D, BOW_Z0, BOW_EASE, BOW_SLANT, BOW_TOP = 3.455, 0.07, 0.625, 0.4, 0.46, (3.40, 1.129)
+BOW_COLOUR = (0.035, 0.036, 0.04)
+BOW_SINK = 0.985  # the hoop's section scaled about the canopy's axis: FlightGear's stood 2 cm proud of the glass
+DECK_Y = 2.45
+
+
+def canopy_bow(body):
+    front = BOW_Y + BOW_D / 2
+
+    def ring(z):  # the hoop's front ring at height z
+        return BOW_TOP[0] + BOW_SLANT * (BOW_TOP[1] - max(z, BOW_Z0))
+
+    # FlightGear's fuselage closes the single-seat cockpit with a bulkhead under the hoop and a deck from its foot to
+    # the canopy's rear end, which two_seat stretched over the rear cockpit: the bulkhead goes, the deck's front edge
+    # moves back to DECK_Y, behind the rear seat, so the rear cockpit is open as the front one.
+    skin = body["RadarDomeTop"].data
+    wall = {v.index for v in skin.vertices if v.co.z > 0.6 and abs(v.co.x) < 0.45 and 2.9 < v.co.y < 3.75}
+    bm = bmesh.new()
+    bm.from_mesh(skin)
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if all(v.index in wall for v in f.verts)], context='FACES')
+    for v in bm.verts:
+        if abs(v.co.x) < 0.35 and 0.6 < v.co.z < 0.7 and 3.4 < v.co.y < 3.5:
+            v.co.y = DECK_Y
+    bm.to_mesh(skin)
+    bm.free()
+    frame = body["CanopyFrame"].data
+    hoop = {v.index for v in frame.vertices if v.co.z > BOW_Z0 and 3.0 < v.co.y < 3.65}
+    for o in (body["CanopyFrame"], body["CanopyFrameInner"], body["CanopyForwardOutside"]):
+        for v in o.data.vertices:
+            c = v.co
+            if o.data is frame and v.index in hoop:
+                c.y = front if c.y > ring(c.z) - 0.04 else BOW_Y - BOW_D / 2
+                c.x, c.z = c.x * BOW_SINK, 0.45 + (c.z - 0.45) * BOW_SINK  # nearly flush with the glass
+            else:
+                c.y += (front - ring(c.z)) * (1 - smooth01((c.y - ring(c.z)) / BOW_EASE))
+        o.data.update()
+    for v in body["CanopyBackOutside"].data.vertices:
+        if v.co.y > 3.0:
+            v.co.y = BOW_Y - BOW_D / 2
+    bow = kit.material("canopy_bow", BOW_COLOUR, roughness=0.45)
+    frame.materials.append(bow)
+    for p in frame.polygons:
+        if any(i in hoop for i in p.vertices):  # its foot too, down to the sill
+            p.material_index = len(frame.materials) - 1
+    frame.update()
 
 
 def lower_fin(body):
@@ -513,6 +568,7 @@ def main():
     lower_fin(body)
     tub_f, crew_f = cockpit("front_", 0.0)
     two_seat(list(body.values()) + [tub_f])
+    canopy_bow(body)
     tub_r, crew_r = cockpit("rear_", -SEAT_GAP)
     everything = [o for o in kit.scene().objects if o.type == 'MESH']
     transform(everything, Matrix.Translation(SHIFT))
