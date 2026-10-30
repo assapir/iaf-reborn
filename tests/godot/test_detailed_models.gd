@@ -473,6 +473,7 @@ func _check_stores() -> void:
 		bad.is_empty(),
 		"on: detailed stores on their originals' axis and length, LODs, BC1, far original (bad: %s)" % [bad]
 	)
+	_check_rack(pw)
 	var db: RefCounted = load("res://weapons/weapon_db.gd").create(
 		settings().load_json(settings().assets_dir().path_join("converted/missions/default6_1.bdb.json"))
 	)
@@ -486,6 +487,45 @@ func _check_stores() -> void:
 	check(
 		not hawk.get("detailed", true) and harm.get("detailed", false), "on: the Hawk keeps the original AGM-88 model"
 	)
+
+
+## Four GBU-39s on a station (Gltf.RACKS): their BRU-61/A over them at its real 3.63 m, centred on the four slots, its
+## bottom on the bombs' tops (within 5 cm), drawn to STORE_LOD_M only; the bombs drawn under it (within its length and
+## width), one in each quarter as their slots.
+func _check_rack(pw: GDScript) -> void:
+	var path := "weapons/sufa/gbu39_m.gltf"
+	var slots := [Vector3(-0.3, -1, -2), Vector3(-0.3, -1, 2), Vector3(0.3, -1, -2), Vector3(0.3, -1, 2)]
+	var nodes := []
+	for s in slots:
+		var n: Node3D = pw._instance(path)
+		n.position = s
+		nodes.append(n)
+	var rack: Node3D = pw._rack({"w": {"model_path": path}, "slots": slots, "index": 2}, nodes)
+	var ok := rack != null
+	if ok:
+		var box: AABB = rack.transform * Gltf.model_aabb(rack)
+		var top := _store_box(nodes[0]).end.y - 1.0
+		print("  rack: %s, store top %.3f" % [box, top])
+		ok = (
+			absf(box.get_center().z) < 0.01
+			and absf(box.size.z - 3.63) < 0.05
+			and nodes.all(func(n): return absf(n.position.z) < 1.0 and absf(n.position.x) < 0.2)
+			and signf(nodes[0].position.x) == signf(slots[0].x)
+			and signf(nodes[1].position.z) == signf(slots[1].z)
+			and absf(box.position.y - top) < 0.05
+			and rack.get_meta("station") == 2
+			and (
+				(
+					(rack.find_children("*", "GeometryInstance3D", true, false)[0] as GeometryInstance3D)
+					. visibility_range_end
+				)
+				== pw.STORE_LOD_M
+			)
+		)
+		rack.free()
+	for n in nodes:
+		n.free()
+	check(ok, "on: four GBU-39s get their BRU-61/A rack over the slots")
 
 
 ## The merged bounds of a store's meshes (its `pilon` helper and far LOD left out).

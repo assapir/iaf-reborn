@@ -1,14 +1,17 @@
 # Dev helper (not run by tools/test.sh): real-render pictures of the stores, Models Original against Detailed
 # (docs/aircraft-models.md §5): loadouts on the ground (the Arming screen's loads, mission 311), a bomb falling and a
 # missile in flight (mission 231, airborne); the MiG-29 / MiG-23 (Mission Creator mission 666) with the Soviet stores
-# and an AA-10 in flight. Needs a window; run it once per look:
+# and an AA-10 in flight; the modern weapons (ours) on the F-16I Sufa and the F-35I, the Popeye on the F-15 with our
+# stores that have no game record yet beside it, a GBU-39 falling. Needs a window; run it once per look:
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_MODELS=detailed SHOT_OUT=/tmp/shots -- --log-file /tmp/s.log \
 #       --path game --resolution 1600x900 -s ../tests/godot/_stores_shot.gd
 # Writes SHOT_OUT/<shot>_before.png (Original) or <shot>_after.png (Detailed). SHOT_ONLY=a,b picks cases.
 extends "res://../tests/godot/base.gd"
 
 ## [case, Jet list id (or the Mission Creator's jet type: mission 666), loads by pylon A..I ([weapon name, count]),
-## shots [name, dist, yaw, pitch, aim (jet frame)]].
+## shots [name, dist, yaw, pitch, aim (jet frame)], optional settings {name: value}, optional models shown beside the
+## jet [[file under extra/models/stores, position (jet frame)]]].
+const Gltf := preload("res://util/gltf.gd")
 const CASES := [
 	[
 		"f16_a",
@@ -110,7 +113,72 @@ const CASES := [
 			["mig23_left", 8.0, 300.0, -4.0, Vector3(-2.2, -0.9, 0.5)]
 		]
 	],
+	[
+		"sufa",
+		1,
+		[
+			["PYTH-5", 1],
+			["PYTH-5", 1],
+			["GBU-39", 4],
+			["GBU-32", 1],
+			["", 0],
+			["GBU-32", 1],
+			["GBU-39", 4],
+			["PYTH-5", 1],
+			["PYTH-5", 1]
+		],
+		[
+			["sufa_front", 15.0, 35.0, 6.0, Vector3(0, -0.5, 0)],
+			["sufa_left", 8.0, 300.0, -4.0, Vector3(-2.6, -0.7, 0.5)],
+			["sufa_python5", 2.6, 290.0, -8.0, Vector3(-4.6, -0.2, 1.4)],
+			["sufa_gbu39", 4.5, 300.0, 6.0, Vector3(-2.4, -0.9, 0.5)],
+			["sufa_gbu39_below", 3.5, 240.0, -15.0, Vector3(-2.4, -0.9, 0.5)],
+			["sufa_gbu32", 3.5, 300.0, -8.0, Vector3(-1.6, -1.0, 0.3)],
+		],
+		SUFA
+	],
+	[
+		"f35i",
+		4,
+		[
+			["AIM-9X", 1],
+			["GBU-32", 1],
+			["GBU-39", 4],
+			["", 0],
+			["", 0],
+			["", 0],
+			["GBU-39", 4],
+			["GBU-32", 1],
+			["AIM-9X", 1]
+		],
+		[
+			["f35i_front", 15.0, 35.0, 6.0, Vector3(0, -0.5, 0)],
+			["f35i_left", 8.0, 300.0, -4.0, Vector3(-2.6, -0.7, 0.5)],
+		],
+		F35I
+	],
+	[
+		"popeye",
+		0,
+		[["", 0], ["", 0], ["", 0], ["", 0], ["POPEYE", 1], ["", 0], ["", 0], ["", 0], ["", 0]],
+		[
+			["f15_popeye", 7.0, 300.0, -6.0, Vector3(0, -1.0, 0.5)],
+			["ours_side", 9.0, 270.0, -2.0, Vector3(5.5, -1.0, 2.0)],
+			["ours_front", 9.0, 30.0, 4.0, Vector3(5.5, -1.0, 2.0)],
+		],
+		{"f16_variant": "barak", "f35i_slot": -1},
+		OURS
+	],
 ]
+## Our stores with no game record yet (docs/real-weapons.md §1.8), on show beside the jet (case "popeye").
+const OURS := [
+	["spice1000.glb", Vector3(5.5, -1.0, -2.0)],
+	["spice2000.glb", Vector3(5.5, -1.0, 2.5)],
+	["spikenlos.glb", Vector3(5.5, -1.0, 6.5)]
+]
+## The modern weapons' settings: the Sufa, Weapon data Real (the Python 5); the F-35I in the F-15I's slot.
+const SUFA := {"f16_variant": "sufa", "weapon_data": "real", "f35i_slot": -1}
+const F35I := {"f16_variant": "barak", "weapon_data": "real", "f35i_slot": 4}
 ## The Mission Creator's jet types (its TYPE combo: docs/guides/mig29.shots.json).
 const MC_MIG23 := 7
 const MC_MIG29 := 8
@@ -137,7 +205,11 @@ func run() -> void:
 		if only.is_empty() or c[0] in only:
 			await _loadout_case(c)
 	if only.is_empty() or "flight" in only:
-		await _flight_case()
+		await _flight_case(
+			"", ["AIM-9M", "AMRAAM", "MK-84", "", "", "", "MK-84", "AMRAAM", "AIM-9M"], ["bomb", "missile"]
+		)
+	if only.is_empty() or "flight5" in only:
+		await _flight_case("python5_", ["PYTH-5", "PYTH-5", "", "", "", "", "", "PYTH-5", "PYTH-5"], ["missile"], SUFA)
 	if only.is_empty() or "flight29" in only:
 		await _aa10_case()
 	settings().jet_id = -1
@@ -164,6 +236,9 @@ func _loadout(mission: int, loads: Array) -> Array:
 
 func _loadout_case(c: Array) -> void:
 	var mission := 311
+	var opts: Dictionary = c[4] if c.size() > 4 else {}
+	for k in opts:
+		settings().set(k, opts[k])
 	if c[1] is Dictionary:
 		mission = _mc(int(c[1].type))
 	else:
@@ -176,6 +251,13 @@ func _loadout_case(c: Array) -> void:
 	tv = await start_mission(mission)
 	await frames(3)
 	_pin()
+	var shown: Array = c[5] if c.size() > 5 else []
+	for m in shown:
+		var model = Gltf.open("res://extra/models/stores/" + String(m[0]))
+		if model != null:
+			var n: Node3D = Gltf.instance(model)
+			tv.aircraft.add_child(n)
+			n.position = m[1]
 	await seconds(8)  # the ground at full detail
 	for s in c[3]:
 		var ac: Node3D = tv.aircraft
@@ -189,21 +271,23 @@ func _loadout_case(c: Array) -> void:
 		await _shot(String(s[0]))
 
 
-## A Mk-84 dropped and an AMRAAM launched from 3000 m (mission 231), each seen from beside 1.2 s later, the clock
-## stopped.
-func _flight_case() -> void:
+## A bomb (station C) dropped and a missile (station B) launched from 3000 m (mission 231) by an F-16 with `loads`, each
+## seen from beside 1.2 / 0.6 s later, the clock stopped; `opts` settings first.
+func _flight_case(pre: String, loads: Array, kinds: Array, opts := {}) -> void:
+	for k in opts:
+		settings().set(k, opts[k])
 	settings().jet_id = 1
 	settings().arm_loadouts = {}
 	tv = await start_mission(231)
 	await frames(3)
 	var hp := []
 	var ids := _ids(231)
-	for n in ["AIM-9M", "AMRAAM", "MK-84", "", "", "", "MK-84", "AMRAAM", "AIM-9M"]:
+	for n in loads:
 		hp.append_array([int(ids.get(n, 0)), 1 if ids.has(n) else 0])
 	var w = airborne_case(tv, hp)
 	tv.fm_stopped = true  # the jet holds still; the clock runs for the stores
 	_pin()
-	for k in ["bomb", "missile"]:
+	for k in kinds:
 		tv.frozen = false
 		var node: Node3D
 		if k == "bomb":
@@ -220,7 +304,7 @@ func _flight_case() -> void:
 			var b := node.global_basis.orthonormalized()
 			var c0: Vector3 = node.global_position + b.x * side + b.z * side * 0.6 + Vector3.UP * 1.5
 			return Transform3D(Basis.looking_at(node.global_position - c0, Vector3.UP), c0)
-		await _shot("%s_flight" % k)
+		await _shot("%s%s_flight" % [pre, k])
 
 
 ## An AA-10 launched from a Mission Creator MiG-29 at 3000 m, seen from beside 0.6 s later, the clock stopped.

@@ -188,7 +188,7 @@ Python 5: docs/f16i.md §5; the F-16I has carried the SDB since August 2015 (107
 Not added (docs/f16i.md §5):
 - **SPICE 1000 / 2000**: the IAF fielded the SPICE 1000 on the F-16C/D first; its F-16I use was planned for the Ramon
   squadrons in 2017[^spice1000]; no source shows the SPICE 2000 on the F-16I. Its electro-optical scene matching would
-  be a new seeker rule. Open, a follow-up.
+  be a new seeker rule. Open, a follow-up (what it needs: §1.8).
 - **GBU-28**: no source puts it on the F-16I (Israel's carrier is the F-15I, inferred).
 - **Laser JDAM (GBU-54)**: Israel co-developed the laser seeker with Elbit[^jdam]; its use on the F-16I: open.
 
@@ -217,6 +217,72 @@ Stations (`modern_weapons.gd` `LOADS`; letters A–I are the Arming screen's sta
   ("three GBU-31(V)1 JDAM bombs, loaded on the centerline and wing stations"[^avi23]).
 - **F-35I** (docs/f35i.md §3.1): AIM-9X on the outboard pylons A / I[^dt35]; GBU-31 and GBU-32 in the bays C / G and on
   the heavy pylons B / H; GBU-39 four to a bay on C / G[^raaf39].
+
+### 1.8 Spike and SPICE: models only (open)
+
+The SPICE 1000, the SPICE 2000 and the Spike NLOS have detailed models (ours, docs/aircraft-models.md §5.6) but no
+weapon record yet. Research of 30 October 2026.
+
+**Which ones the IAF fields:**
+- **SPICE 2000**: on the IAF's F-16s since 2005 (a search snippet citing GlobalSecurity; open). A kit on the Mk 84,
+  BLU-109 and other 2000 lb bodies[^spicebro].
+- **SPICE 1000**: IOC on the F-16C/D in 2017, the F-16I next[^spice1000]. Integration on the F-35I was announced in
+  September 2026[^spice35]. A kit on the Mk 83, BLU-110 and other 1000 lb bodies, with "deployable wings"[^spicebro].
+- **SPICE 250**: four to a Smart Quad Rack, up to 16 on an F-16[^spice250rack]; 113 kg[^spice250]. Its IAF use and
+  carriers: open. No model: its length, span and wing layout are open.
+- **Spike NLOS** (IAF name Tamuz, table §1.9): on the IAF's AH-64 Apaches for years, under the stub wing[^twznlos]; about
+  70 kg, up to 25 km[^avinlos]; 1.7 m long, 71 kg (the sixth generation)[^janesnlos]. Its diameter: open. No source shows
+  it on the F-16I, F-15I or F-35I. The game has no player helicopter, so it has no station to load it.
+
+**What adding them as weapons needs** (open, a follow-up; `modern_weapons.gd` belongs to the weapons work):
+- **SPICE 1000 / 2000**: a type 650 record each on the MK-83 / MK-84 base, as the GBU-32 / GBU-31; a new seeker rule
+  for the electro-optical scene matching (it flies to the stored scene, not a GPS point); range "over 60 km"[^spicebro]
+  (a glide ratio from that, as the JDAM's, inferred); CEP under 3 m[^spicebro]. Jets and stations: the Barak (100) and
+  the Sufa on C, D, F, G (as the JDAMs; the F-16I: planned[^spice1000], open); the F-35I on B / H and in the bays C / G
+  (SPICE 1000 only[^spice35]); the F-15I has no record in the game (the F-15 Baz, 110: no source).
+- **Spike NLOS**: none until the game has a helicopter station; its record would be an electro-optical guided missile
+  (type 600 as the AGM-65, inferred) with 25 km range[^avinlos].
+- Their models: `spice1000.glb`, `spice2000.glb`, `spikenlos.glb` in `game/extra/models/stores/`; a record names them
+  as the Sufa's records do (`model_path` under `weapons/sufa/`, `util/gltf.gd` STAND_INS and STORES).
+
+### 1.9 The IAF's Hebrew names
+
+The Israeli names of the modern weapons and stores. "Code name": the IAF's own name. "Transliteration": the English
+name in Hebrew letters. Most sources are the Hebrew Wikipedia and Hamichlol (which often mirrors it), so the two are
+not independent; no IAF page confirming them was found. "Open": no source found. Research of 30 October 2026.
+
+| English name | Hebrew | transliteration (meaning) | kind | source |
+|---|---|---|---|---|
+| Shafrir 2 | שפריר 2 | Shafrir | Israeli name | [^hepython] |
+| Python 3 | צפריר | Tzafrir (morning breeze) | code name | [^hepython] |
+| Python 4 | פיתון 4 | Piton | Israeli name; code name open | [^hepython] |
+| Python 5 | פיתון 5 | Piton | Israeli name; code name open | [^hepython] |
+| Derby | דרבי | Derbi | transliteration; code name open | [^hederby] |
+| AIM-9L / AIM-9M | לולב / מחט | Lulav (palm frond) / Mahat (needle) | code names | [^he9] |
+| AIM-9X | – | – | open | [^he9] |
+| AIM-120 AMRAAM | אשוח | Ashuah (fir tree) | code name | [^he120] |
+| AIM-7E Sparrow | לביד | Lavid | code name (the 7E; later models open) | [^he7] |
+| JDAM (GBU-31 / 32 / 38) | ברד כבד | Barad Kaved (heavy hail) | code name | [^hejdam] |
+| GBU-39 SDB | ברד חד | Barad Had (sharp hail) | code name | [^hesdb] |
+| SPICE 2000 | ברד פלדה | Barad Plada (steel hail) | code name | [^hespice] |
+| SPICE 1000 | ברד קל | Barad Kal (light hail) | code name | [^hespice] |
+| SPICE 250 | ברד קטן | Barad Katan (small hail) | code name | [^hespice] |
+| Spike NLOS | תמוז | Tamuz (a month) | code name | [^hetamuz] |
+| Spike MR / LR / ER | גיל / גומד / פרח בר | Gil / Gomed / Perah Bar (wildflower) | code names (ground forces; the Apache carries Gil) | [^hetamuz] |
+| Popeye (AGM-142) | פופאי, חנית נאה | Popay; Hanit Na'ah (handsome spear) | code name | [^hepopeye] |
+| Delilah | דלילה, חנית | Delila; Hanit (spear) | code name (clashes with the Popeye's; unverified) | [^hedelilah] |
+| AGM-114 Hellfire | קרדום | Kardom (hatchet) | code name | [^hehellfire] |
+| Rampage, Rocks, Air LORA | רמפייג', רוקס, לורה | Rampeij, Roks, Lora | transliterations; code names open | [^herampage] |
+| GBU-28, Mk 82 / 83 / 84, Paveway, AGM-65, Sniper pod | – | – | open | – |
+| Litening pod | לייטנינג | Laitning | transliteration | [^helitening] |
+| drop tanks | מכלי דלק פריקים | Mekhalei delek prikim (detachable fuel tanks) | plain term | [^hesufa] |
+| F-16I | סופה | Sufa (storm) | IAF name | [^hesufa] |
+| F-16C/D | ברק | Barak (lightning) | IAF name | [^hef16] |
+| F-15I | רעם | Ra'am (thunder) | IAF name | [^hef15] |
+| F-15A–D | בז | Baz (falcon) | IAF name | [^hef15] |
+| F-35I | אדיר | Adir (mighty) | IAF name | [^hef35] |
+
+The satellite-guided bombs share the "Barad" (hail) family: JDAM, SDB and SPICE.
 
 ## 2. Mapping onto the original's model
 Each real value lands in one field or rule of the original model:
@@ -367,3 +433,39 @@ Each real value lands in one field or rule of the original model:
 [^iaf03]: Israeli Air Force, "חיל-האוויר סיים את קליטתן של פצצות מונחות חדשות מסוג JDAM" (the IAF completes the
     introduction of the JDAM), 2003, https://www.iaf.org.il/440-21281-he/IAF.aspx (cited from Hebrew Wikipedia "JDAM",
     which adds that the F-16s were adapted by a software block update; the page refuses automatic fetches)
+[^spicebro]: Rafael, "SPICE" brochure (SPICE 2000 a kit for the Mk 84, BLU-109, APW and RAP-2000; SPICE 1000 for the
+    Mk 83, BLU-110, I-1000 and RAP-1000, with deployable wings; over 60 km, CEP under 3 m),
+    https://omnirole-rafale.com/wp-content/uploads/2019/10/Spice.pdf
+[^spice35]: Defense News, "Israel's SPICE 1000 bombs can soon drop from F-35 fighters", 16 September 2026,
+    https://defensenews.com/global/mideast-africa/2026/09/16/israels-spice-1000-bombs-can-soon-drop-from-f-35-fighters
+[^spice250rack]: AIN Online, "Rafael unveils new SPICE rack", 17 June 2013 (four SPICE 250 per station, up to 16 on
+    an F-16), https://ainonline.com/aviation-news/2013-06-17/rafael-unveils-new-spice-rack
+[^spice250]: Airforce Technology, "SPICE 250 precision-guided munition" (113 kg),
+    https://www.airforce-technology.com/projects/spice-250-precision-guided-munition/
+[^twznlos]: The War Zone, "U.S. Army AH-64 Apaches armed with Israeli Spike missiles now flying in Iraq" (Israeli
+    Apaches have used the Spike NLOS for years), https://twz.com/air/u-s-army-ah-64-apaches-armed-with-israeli-spike-missiles-now-flying-in-iraq
+[^avinlos]: The Aviationist, "Photos of AH-64D Apache armed with Spike missiles", 26 July 2017 (about 70 kg, up to
+    25 km), https://theaviationist.com/2017/07/26/photos-of-ah-64d-apache-armed-with-spike-missiles-proves-that-the-weapon-is-operational-for-the-israeli-attack-helicopters/
+[^janesnlos]: Janes, "Rafael unveils sixth-generation Spike NLOS" (1.7 m, 71 kg),
+    https://www.janes.com/defence-news/rafael-unveils-sixth-generation-spike-nlos
+[^hepython]: Hebrew Wikipedia, "פיתון (טיל)" (the Python 3 "בחיל האוויר הישראלי מכונה הטיל צפריר"; Shafrir 2, Python
+    4 and 5), https://he.wikipedia.org/wiki/פיתון_(טיל)
+[^hederby]: Hebrew Wikipedia, "דרבי (טיל)", https://he.wikipedia.org/wiki/דרבי_(טיל)
+[^he9]: Hebrew Wikipedia, "AIM-9 סיידוויינדר" (the IAF's names per model), https://he.wikipedia.org/wiki/AIM-9_סיידוויינדר
+[^he120]: Hebrew Wikipedia, "AIM-120 AMRAAM" ("מכונה בו "אשוח""), https://he.wikipedia.org/wiki/AIM-120_AMRAAM
+[^he7]: Hebrew Wikipedia, "AIM-7 ספארו" (the AIM-7E "בשם "לביד""), https://he.wikipedia.org/wiki/AIM-7_ספארו
+[^hejdam]: Hebrew Wikipedia, "JDAM" ("המכונה בישראל "ברד כבד""), https://he.wikipedia.org/wiki/JDAM
+[^hesdb]: Hamichlol, "פצצת SDB" ("מדגמי GBU-39/B ("ברד חד")"), https://www.hamichlol.org.il/פצצת_SDB
+[^hespice]: Hamichlol, "ספייס (אמצעי לחימה)" (ברד פלדה, ברד קל, ברד קטן), https://hamichlol.org.il/ספייס_(אמצעי_לחימה)
+[^hetamuz]: Hebrew Wikipedia, "תמוז (טיל)" (the Tamuz, the Spike NLOS; the Spike family's IDF names),
+    https://he.wikipedia.org/wiki/תמוז_(טיל)
+[^hepopeye]: Hebrew Wikipedia, "פופאי (טיל)" ("מכונה בו חנית נאה"), https://he.wikipedia.org/wiki/פופאי_(טיל)
+[^hedelilah]: Hebrew Wikipedia, "דלילה (טיל)" ("המכונים בחיל האוויר "חנית""), https://he.wikipedia.org/wiki/דלילה_(טיל)
+[^hehellfire]: Hebrew Wikipedia, "AGM-114 הלפייר" ("מכונה בחיל האוויר "קרדום""), https://he.wikipedia.org/wiki/AGM-114_הלפייר
+[^herampage]: Hamichlol, "רמפייג'", https://www.hamichlol.org.il/רמפייג'; "רוקס (טיל)",
+    https://www.hamichlol.org.il/רוקס_(טיל); "AIR LORA", https://www.hamichlol.org.il/AIR_LORA
+[^helitening]: Hamichlol, "לייטנינג (פוד)", https://www.hamichlol.org.il/לייטנינג_(פוד)
+[^hesufa]: Hebrew Wikipedia, "F-16I סופה" (the Sufa; its drop tanks), https://he.wikipedia.org/wiki/F-16I_סופה
+[^hef16]: Hebrew Wikipedia, "F-16 פייטינג פלקון" (Barak, Netz), https://he.wikipedia.org/wiki/F-16_פייטינג_פלקון
+[^hef15]: Hebrew Wikipedia, "F-15 איגל" ("שמם שונה ל-F-15I "רעם""; "הכינוי "בז""), https://he.wikipedia.org/wiki/F-15_איגל
+[^hef35]: Hebrew Wikipedia, "F-35 לייטנינג II" ("ושמו העברי "אדיר""), https://he.wikipedia.org/wiki/F-35_לייטנינג_II

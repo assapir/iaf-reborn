@@ -450,7 +450,10 @@ setup.
   Thunder one); bohmerang's "Missile & Bomb Collection" (CC BY-NC-SA) and civorsky's AIM-9M (CC BY-NC): non-commercial
   licences can't go in a GPL project. Narni_Tchereskov's R-40 / R-3S / R-60 (CC BY, 28k–123k triangles) have
   unverified provenance. No open model exists for the Python 3 / 4 / 5, Shafrir 2, Popeye or Spice: only paid ones
-  (CGTrader, RenderHub; the RenderHub Popeye is editorial-only). Checked 2026-10-29 and rejected: the
+  (CGTrader, RenderHub; the RenderHub Popeye is editorial-only); ours since 2026-10-30 for the Python 5, Popeye, GBU-39 and
+  its BRU-61/A, SPICE 1000 / 2000 and Spike NLOS (aircraft-models.md §5.6). Checked 2026-10-30 and rejected: the
+  FlightGear F-22A Raptor's GBU-39 (`racerretrocoder/Flightgear-F-22A-Raptor`, GPL-2.0-only with no "or later"
+  notice, and its weapons folder says "By FGUK's Davinci F-35", a source not named further). Checked 2026-10-29 and rejected: the
   `xcvb85/Su-27` Kh-29T (an AS-14 stand-in; the repo is GPL-3.0, but the mesh is a 3DS import added in 2024 with a
   shared weapons texture atlas from an unnamed source, so its provenance is unverified); its R-73 is the MiG-29 9-12's.
   No open AA-6 (R-40) or AS-16 (Kh-15) was found in FlightGear's GitHub aircraft.
