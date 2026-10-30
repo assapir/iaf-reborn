@@ -492,6 +492,8 @@ the same code).
     the 0.2 stick a 2000 lb bomb on one wing needs). The rocker's response is squared: half rocker trims at a
     quarter of the rate, for fine balancing. Tried and dropped (2026-10-26): 0.2 stick per second, linear, too
     coarse to balance the jet; 0.04, steps too small. Released, the trim stays. A 10 % dead zone holds a wobbling rest.
+    The trim stops at the jet's real trim authority where it is known: the F-16 and the F-16I at 22 % of the stick,
+    the F-15 at 25 %; the other jets at full stick (flight-model.md §10 "Asymmetric stores").
   * The row shows only with a joystick that has a 5th axis. The count comes from the device's USB HID report
     descriptor (`IafHid.axis_count`, `iaf_formats::hid::input_axes`: the Generic Desktop X, Y, Z, Rx, Ry, Rz,
     Slider, Dial, Wheel and the Simulation rudder / throttle / accelerator / brake inputs). macOS lists the

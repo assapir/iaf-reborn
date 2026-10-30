@@ -150,6 +150,18 @@ fn roll_control(type_code: u32) -> RollControl {
     }
 }
 
+/// Better physics "Asymmetric stores": the roll trim's authority, in stick (the roll command's share of full stick).
+/// F-16 (type 100, also the F-16I): the FLCS adds the trim ±40 × 1.67 = ±66.8°/s to the roll-rate error, of the
+/// stick's 308°/s (Nguyen et al., NASA TP-1538, fig. 64). F-15 (110): the lateral trim moves the stick's zero-force
+/// position at most ±0.025 m of its ±0.100 m (NASA TM-72861, fig. 19). The others: open, full stick.
+fn roll_trim_max(type_code: u32) -> f32 {
+    match type_code {
+        100 => 66.8 / 308.0,
+        110 => 0.25,
+        _ => 1.0,
+    }
+}
+
 /// `rand()·2/32767 − 1` (`566f30`, `0x6124c8`) for the ground jitter: −1..1, from a hash of the sample time.
 // ponytail: a hash of the time in place of the C runtime's shared LCG, so the jitter is deterministic per sample.
 fn jitter(t: f64, salt: u64) -> f32 {
@@ -1088,9 +1100,11 @@ impl Aircraft {
     }
 
     /// Moves the roll trim (ours) by a spring-centred rocker −1..1 held for `dt` s: full rocker trims
-    /// `ROLL_TRIM_RATE` stick per second. A change is a control event (an aero update), like a stick move.
+    /// `ROLL_TRIM_RATE` stick per second, within the jet's trim authority ([`roll_trim_max`]). A change is a control
+    /// event (an aero update), like a stick move.
     pub fn trim_roll(&mut self, rocker: f32, dt: f32) {
-        let trim = (self.roll_trim + rocker.clamp(-1.0, 1.0) * ROLL_TRIM_RATE * dt).clamp(-1.0, 1.0);
+        let max = roll_trim_max(self.params.type_code);
+        let trim = (self.roll_trim + rocker.clamp(-1.0, 1.0) * ROLL_TRIM_RATE * dt).clamp(-max, max);
         if trim != self.roll_trim && self.crashed.is_none() {
             self.roll_trim = trim;
             self.aero_update();
@@ -2872,21 +2886,28 @@ mod tests {
 
     #[test]
     fn roll_trim_holds_the_heavy_wing() {
-        // Full rocker for 1 s trims ROLL_TRIM_RATE stick; the trim stops at full stick.
+        // Full rocker for 1 s trims ROLL_TRIM_RATE stick; the trim stops at the jet's authority: the F-16's 66.8°/s of
+        // its 308°/s, the F-15's quarter stick, full stick where it is open (the Kfir).
         let mut a = airborne(100, 3000.0, 150.0);
         a.trim_roll(1.0, 1.0);
         assert!((a.roll_trim() - ROLL_TRIM_RATE).abs() < 1e-6);
-        a.trim_roll(1.0, 100.0);
-        assert_eq!(a.roll_trim(), 1.0);
-        // Stores 3 m out on the right wing: trimmed left by the moment's stick, the jet holds its wings level.
+        for (t, max) in [(100, 66.8 / 308.0), (110, 0.25), (130, 1.0)] {
+            let mut a = airborne(t, 3000.0, 150.0);
+            a.trim_roll(1.0, 100.0);
+            assert_eq!(a.roll_trim(), max, "type {t}");
+            a.trim_roll(-1.0, 100.0);
+            assert_eq!(a.roll_trim(), -max, "type {t}");
+        }
+        // A 1000 lb bomb 3 m out on the right wing (within the F-16's trim at 150 m/s): trimmed left by the moment's stick, the jet holds its wings level.
         let roll_after = |trimmed: bool| {
             let mut a = airborne(100, 3000.0, 150.0);
             a.better.asymmetric_stores = true;
-            a.set_stores_moment(907.0 * 3.0);
+            a.set_stores_moment(454.0 * 3.0);
             if trimmed {
                 let (m, qs) = (a.mass, q_s(3000.0, 150.0, a.params.wing_area));
                 let need = a.stores_roll(m * G, m, qs, 150.0, a.roll_k(150.0, 3000.0));
                 a.trim_roll(-1.0, need / ROLL_TRIM_RATE);
+                assert!(need < roll_trim_max(100), "within the trim: {need}");
             }
             run(&mut a, 3.0);
             a.state().roll
@@ -2904,7 +2925,7 @@ mod tests {
         // moment once (not twice); the trim is kept for when the loop lets go.
         let mut a = airborne(100, 3000.0, 150.0);
         a.better.asymmetric_stores = true;
-        a.set_stores_moment(907.0 * 3.0);
+        a.set_stores_moment(454.0 * 3.0);
         let (m, qs) = (a.mass, q_s(3000.0, 150.0, a.params.wing_area));
         let need = a.stores_roll(m * G, m, qs, 150.0, a.roll_k(150.0, 3000.0));
         a.trim_roll(-1.0, need / ROLL_TRIM_RATE);

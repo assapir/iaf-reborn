@@ -599,28 +599,30 @@ Where our port differs from the original. Everything else follows §15 (status i
       (airborne only). The stick (or trim) `−s` holds the wing level.
     * Per type:
 
-      | type | stick | value | source |
-      |---|---|---|---|
-      | F-16 | rate command | \|Clp\| 0.40, Cl_δa·K 0.0172 per rad/s | Clp at α 5–10°; full roll control (20° aileron with 5° differential tail) ΔCl 0.050, so 0.0025/°; the FLCS's roll loop is proportional, 0.12° of aileron per °/s of roll-rate error[^tp1538] |
-      | F-16I Sufa | rate command | the F-16's | same wing, same stations (inferred: the Block 52's digital FLCS keeps the analog one's roll gains; open) |
-      | Lavi, F-35I | rate command | the F-16's | inferred: fly-by-wire roll-rate command; whether the F-35's control laws integrate the rate error away is open |
-      | F-4E, Kurnass 2000 | surfaces | Cl_full 0.024 | F-4C in power approach (136 kt): Cl_δa 0.057/rad with the spoilers[^cr2144]; δa at most 24°, the spoilers' 45° over their 1.87 gearing (inferred from the control system diagram, fig. IV-3) |
-      | F-15, Kfir, Mirage, MiG-23, MiG-29, AI types | surfaces | Cl_full 0.04 | inferred |
+      | type | stick | value | trim limit | source |
+      |---|---|---|---|---|
+      | F-16 | rate command | \|Clp\| 0.40, Cl_δa·K 0.0172 per rad/s | ±22 % | Clp at α 5–10°; full roll control (20° aileron with 5° differential tail) ΔCl 0.050, so 0.0025/°; the FLCS's roll loop is proportional, 0.12° of aileron per °/s of roll-rate error; the trim adds at most ±66.8°/s to that error, of the stick's 308°/s[^tp1538] |
+      | F-16I Sufa | rate command | the F-16's | the F-16's | same wing, same stations (inferred: the Block 52's digital FLCS keeps the analog one's roll gains and trim; open) |
+      | Lavi, F-35I | rate command | the F-16's | full stick | inferred. The F-35's roll law is a dynamic inversion: the stick commands a roll rate, met with a first-order response[^nixon-f35]; a moment its onboard model does not know leaves a steady roll-rate error, the form used here. Its gains, the Lavi's roll law and both jets' trim authority are open |
+      | F-4E, Kurnass 2000 | surfaces | Cl_full 0.024 | full stick | F-4C in power approach (136 kt): Cl_δa 0.057/rad with the spoilers[^cr2144]; δa at most 24°, the spoilers' 45° over their 1.87 gearing (inferred from the control system diagram, fig. IV-3). The aileron trim's authority is open |
+      | F-15 | surfaces | Cl_full 0.04 | ±25 % | Cl_full inferred (no published F-15 Cl_δa or Clp found: open). The lateral trim moves the stick's zero-force position at most ±0.025 m of the stick's ±0.100 m (fig. 19); the stick sets the ailerons through the roll ratio changer (fig. 20), and the roll CAS adds differential stabilator toward a commanded roll rate of up to about 240°/s, its own trim limit about ±20°/s (fig. 21)[^tm72861] |
+      | Kfir, Mirage, MiG-23, MiG-29, AI types | surfaces | Cl_full 0.04 | full stick | inferred; trim authority open |
 
     * Research kept for the jets whose stick moves the surfaces (not used by the model): the F-4C's Clp −0.19 to
       −0.27 (Mach 0.4–0.6, power approach) and its roll SAS, 0.265 rad of aileron per rad/s, faded out with the
       stick out of neutral[^cr2144]; the F-15's roll CAS through the differential stabilator[^tm72861]; the Mirage
       III's "roll stab" button beside its pitch and yaw dampers[^saaf-m3].
     * Effect: one 2000 lb bomb 3 m out (2,721 kg·m), 1 g: the stick to hold it, the hands-off roll rate, and the trim
-      time at full rocker (0.1 stick/s). Approach is each guide's final speed at 100 m. Original and Real differ only
-      where shown (the F-16I and the F-35I always fly Real).
+      time at full rocker (0.1 stick/s); where the stick passes the trim limit, the time to the limit and the stick the
+      pilot still holds. Approach is each guide's final speed at 100 m. Original and Real differ only where shown (the
+      F-16I and the F-35I always fly Real).
 
       | jet | data | 150 m/s, 3000 m: stick / rate / trim | approach: stick / rate / trim |
       |---|---|---|---|
-      | F-16 | Original | 14 % / 18°/s / 1.4 s | 165 kt: 45 % / 31°/s / 4.5 s |
-      | F-16 | Real | 10 % / 18°/s / 1.0 s | 165 kt: 32 % / 31°/s / 3.2 s |
-      | F-16I | Real | 10 % / 18°/s / 1.0 s | 165 kt: 32 % / 31°/s / 3.2 s |
-      | F-15 | both | 9 % / 10°/s / 0.9 s | 150 kt: 25 % / 14°/s / 2.5 s |
+      | F-16 | Original | 14 % / 18°/s / 1.4 s | 165 kt: 45 % / 31°/s / 2.2 s + 23 % stick |
+      | F-16 | Real | 10 % / 18°/s / 1.0 s | 165 kt: 32 % / 31°/s / 2.2 s + 10 % stick |
+      | F-16I | Real | 10 % / 18°/s / 1.0 s | 165 kt: 32 % / 31°/s / 2.2 s + 10 % stick |
+      | F-15 | both | 9 % / 10°/s / 0.9 s | 150 kt: 25 % / 14°/s / 2.5 s (the trim limit) |
       | F-4E, Kurnass 2000 | Original | 19 % / 9.5°/s / 1.9 s | 165 kt: 44 % / 12°/s / 4.4 s |
       | F-4E, Kurnass 2000 | Real | 19 % / 18°/s / 1.9 s | 165 kt: 44 % / 23°/s / 4.4 s |
       | Kfir | Original | 27 % / 25°/s / 2.7 s | 165 kt: 63 % / 32°/s / 6.3 s |
@@ -634,7 +636,11 @@ Where our port differs from the original. Everything else follows §15 (status i
       | MiG-29 | Real | 14 % / 13°/s / 1.4 s | 160 kt: 36 % / 18°/s / 3.6 s |
 
       Slower than the guides' finals the stick grows with 1/V² (rate command: a little less): at 140 kt the F-16 needs
-      69 % (Original) / 49 % (Real), the F-4E 57 %, the Kfir and the Mirage 81 % (Original) / 60 % (Real). The
+      69 % (Original) / 49 % (Real), of which the trim holds 22 %, the F-4E 57 %, the Kfir and the Mirage 81 %
+      (Original) / 60 % (Real). The F-16's trim is real-sized: at cruise it holds such a bomb, on final the pilot holds
+      the rest with the stick. In aileron terms the trim is 0.12 × 66.8 = 8.0° of the 21.5° aileron, ΔCl 0.020; the
+      bomb on a 165 kt final at sea level needs ΔCl ≈ 0.023 with the wings held level, so the real jet also needs some
+      stick there (inferred from the TP-1538 numbers). The
       Original Kfir and Mirage need most because their data's wing is small (26 m², Real 34.8 m²). The stick grows ×n
       in a pull; beyond full stick the jet rolls off (tests `asymmetric_stores_roll`, `balanced_stores_stop_the_roll`).
       Real jets are designed to hold their asymmetric loads with roll control to spare: MIL-STD-1797A has a
@@ -652,15 +658,42 @@ Where our port differs from the original. Everything else follows §15 (status i
       law, so the stick to hold a 2000 lb bomb 3 m out passed full stick at approach speed (75 m/s, Original data: F-4
       246 %, Kfir 260 %, Mirage 143 %, MiG-29 166 %; at 150 m/s the F-4 and the Kfir needed about 40 %). Real jets hold
       such loads with control to spare, and their stick sets the surfaces, not a rate: the stick is `Clₛ / Cl_full`.
-    * Open: the lateral asymmetry limits (an F/A-18 flight test found flying qualities acceptable up to
-      28,000 ft-lb[^ada301149]: 3,870 kg·m, 1.4 × the 2000 lb bomb 3 m out); the F-16's roll trim adds at most
-      ±67°/s to the roll command (±40 × 1.67 in the TP-1538 block diagram, about 8° of aileron; inferred reading),
-      while our trim reaches full stick.
+    * Lateral asymmetry limits (1 ft-lb = 0.138 kg·m; the 2000 lb bomb 3 m out is 19,700 ft-lb):
+      * F-15E: full maneuvering below 5,000 ft-lb (691 kg·m), LIMITED 5,000–10,000, RESTRICTED 10,000–20,000
+        (2,765 kg·m), NON-MANEUVERING above 20,000; a take-off above 10,000 ft-lb needs the squadron commander's
+        approval[^afman-f15e]. The F-15 counts the weapons' and stores' asymmetry with the fuel's in the
+        total[^afman-f15].
+      * F/A-18: the fleet limit was 26,000 ft-lb; a flight test found flying qualities acceptable up to 28,000 ft-lb
+        (3,870 kg·m)[^ada301149].
+      * F-16, F-4, Kfir, Mirage, Lavi, F-35: open.
+      * What the game's loads can reach: the Arming screen (front-end.md §15) takes the default database's
+        per-station maximum counts (`default6_1.bdb`, the player jets' `CDMEWeaponLoadItem`s) and blocks a take-off
+        whose wings differ by more than 5 % of the load, so a large moment comes in flight, once one wing's stores have
+        gone (single releases, a hung store). One wing full, the other empty (stores at bdb weight, tanks full, arms
+        from the models' attach points):
+
+        | jet | one wing full | heaviest single station |
+        |---|---|---|
+        | F-16 | 8,640 kg·m (62,500 ft-lb) | 3 × MK-83 on station 3: 4,230 kg·m (30,600 ft-lb) |
+        | F-15 | 6,940 kg·m (50,200 ft-lb) | the 4000 lb tank on station 2: 5,350 kg·m (38,700 ft-lb) |
+        | F-4E | 16,240 kg·m (117,400 ft-lb) | 6 × CBU-87 on station 9: 9,990 kg·m (72,200 ft-lb) |
+        | Kurnass 2000 | 18,130 kg·m (131,100 ft-lb) | 6 × CBU-97 on station 9: 11,100 kg·m (80,300 ft-lb) |
+        | Kfir | 6,230 kg·m (45,100 ft-lb) | 6 × CBU-97 on station 3: 5,270 kg·m (38,100 ft-lb) |
+        | Lavi | 8,110 kg·m (58,700 ft-lb) | 3 × MK-83 on station 3: 3,970 kg·m (28,700 ft-lb) |
+        | Mirage | 4,210 kg·m (30,500 ft-lb) | the 2300 lb tank on station 6: 2,600 kg·m (18,800 ft-lb) |
+        | MiG-23 | 2,240 kg·m (16,200 ft-lb) | the 2800 lb tank on station 3: 1,740 kg·m (12,600 ft-lb) |
+        | MiG-29 | 8,180 kg·m (59,100 ft-lb) | 3 × MK-83 on station 6: 3,900 kg·m (28,200 ft-lb) |
+
+        Every jet's single heaviest station passes the F-15E's 10,000 ft-lb, and all but the Mirage's and the MiG-23's
+        pass 20,000; a full wing passes the F/A-18's tested 28,000 ft-lb on every jet but the MiG-23. The model flies
+        them all; beyond full stick the jet rolls off.
     * The autopilot trims it: while a loop flies the jet, the stick that cancels the moment is added (within full
       stick; [autopilot.md](autopilot.md) §2.5).
     * The pilot trims it with our roll trim (Devices "Throttle rocker" = Roll trim, Alt + Left / Right; controls.md
       §5.2): `Aircraft::trim_roll` adds the trim to the stick in the roll command, `clamp(stick + trim, −1, 1)`, before
-      the stores' stick. The trim works with or without this switch.
+      the stores' stick. The trim stops at the jet's trim limit (the table above, `roll_trim_max`: F-16 and F-16I
+      ±66.8 / 308 of the stick, F-15 ±25 %, full stick where the limit is open; test
+      `roll_trim_holds_the_heavy_wing`). The trim works with or without this switch.
     * A model without stations (A-4, transports: no attach points) gets no moment. A change of the moment is an event
       (an aero update, like a stick move; `set_stores_moment`), so a release rolls the jet, or stops its roll, at once:
       the roll stops at the jet's StopAccel, as when the stick is let go, and the bank then holds. Without it the jet
@@ -2078,8 +2111,20 @@ and spin β apply underneath in both modes (§10).
     be required as flight conditions change"), <https://www.f-16.net/forum/viewtopic.php?p=485001>.
 [^ada301149]: *Lateral Asymmetry Envelope Expansion Testing on a Highly Augmented Fighter
     Aircraft*, Naval Air Warfare Center, 1995, <https://apps.dtic.mil/sti/pdfs/ADA301149.pdf>.
+[^nixon-f35]: D. W. Nixon (Lockheed Martin), *Flight Control Law Development for the F-35 Joint Strike Fighter*,
+    MathWorks aerospace conference, 5 October 2004, slides 8–9 (dynamic inversion; the roll regulator maps the
+    roll command and the roll-rate feedback into a desired roll acceleration, `ṗ_des = (Cmd − p)/τ`),
+    <https://de.mathworks.com/content/dam/mathworks/mathworks-dot-com/solutions/aerospace-defense/miadc/presentations/10_F35_Flight_Control_DevelopmentDaveNixon.pdf>.
+[^afman-f15e]: AFMAN 11-2F-15E Volume 3, *F-15E Operations Procedures*: maneuvering categories by lateral
+    asymmetry (< 5,000, 5,000–10,000, 10,000–20,000, > 20,000 ft-lb, as defined by AFI 11-214) and the take-off
+    approval above 10,000 ft-lb (quoted from the search summary; the PDF refuses direct download),
+    <https://static.e-publishing.af.mil/production/1/af_a3/publication/afman11-2f-15ev3/afman11-2f-15ev3.pdf>.
+[^afman-f15]: AFMAN 11-2F-15 Volume 3, *F-15 Operations Procedures*: "Weapon and stores asymmetry must also be
+    included to compute the total asymmetry condition" (quoted from the search summary; the PDF refuses direct
+    download), <https://static.e-publishing.af.mil/production/1/af_a3/publication/afman11-2f-15v3/afman11-2f-15v3.pdf>.
 [^tm72861]: NASA TM-72861, *Precision Controllability of the F-15 Airplane*, 1979, appendix (roll command
-    augmentation through the stabilator CAS series servos), <https://ntrs.nasa.gov/citations/19790015808>.
+    augmentation through the stabilator CAS series servos; fig. 19 lateral stick force with the trim limits, fig. 20
+    roll ratio changer, fig. 21 roll CAS feel), <https://ntrs.nasa.gov/citations/19790015808>.
 [^mil1797-eval]: MIL-STD-1797A, *Flying Qualities of Piloted Aircraft*, §4.5.8.6 "Roll axis control power for
     asymmetric loading", as listed among the paragraphs to evaluate in a DTIC flight test guide (search summary; the
     PDF refuses direct download), <https://apps.dtic.mil/sti/pdfs/ADA320042.pdf>.
