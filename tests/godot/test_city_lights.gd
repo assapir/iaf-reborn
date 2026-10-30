@@ -26,25 +26,34 @@ func run() -> void:
 	var t := Time.get_ticks_msec()
 	while (
 		Time.get_ticks_msec() - t < 30000
-		and (_meshes(cl, "near").is_empty() or cl._blocks.values().any(func(b): return b.asking))
+		and (_meshes(cl, 2).is_empty() or cl._blocks.values().any(func(b): return b.asking))
 	):
 		await frames(10)
-	var far := _meshes(cl, "far")
-	var near := _meshes(cl, "near")
-	check(far.size() >= 4 and near.size() >= 1, "blocks drawn: %d far, %d near" % [far.size(), near.size()])
+	var xfar := _meshes(cl, 0)
+	var far := _meshes(cl, 1)
+	var near := _meshes(cl, 2)
+	check(
+		xfar.size() > far.size() and far.size() >= 4 and near.size() >= 1,
+		"blocks drawn: %d farthest, %d far, %d near" % [xfar.size(), far.size(), near.size()]
+	)
+	# The far towns: Haifa's blocks, about 85 km north, draw their farthest lights.
+	var haifa := 0
+	for mi: MeshInstance3D in xfar:
+		haifa += int(tv.scene_to_world(mi.position).y > 615000.0)
+	check(haifa >= 2, "%d blocks drawn around Haifa, 85 km away" % haifa)
 	var n := 0
 	var ok_rank := true
 	var ok_col := true
 	var ok_h := true
-	for which in [["far", far], ["near", near]]:
-		for mi: MeshInstance3D in which[1]:
+	var shares := [0.0, CityLights.XFAR_SHARE, CityLights.FAR_SHARE, 1.0]
+	for which in 3:
+		for mi: MeshInstance3D in [xfar, far, near][which]:
 			var a: Array = mi.mesh.surface_get_arrays(0)
 			var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
 			var c: PackedColorArray = a[Mesh.ARRAY_COLOR]
 			n += v.size()
 			for k in range(0, v.size(), 997):
-				var is_far: bool = c[k].a < CityLights.FAR_SHARE
-				ok_rank = ok_rank and is_far == (which[0] == "far")
+				ok_rank = ok_rank and c[k].a >= shares[which] and c[k].a < shares[which + 1]
 				ok_col = ok_col and maxf(c[k].r, maxf(c[k].g, c[k].b)) <= 1.0 and c[k].r > 0.0
 				var p: Vector3 = mi.position + v[k]
 				var g = tv.terrain.height_at(Vector3(p.x, 0.0, p.z))
@@ -54,11 +63,13 @@ func run() -> void:
 	# Tel Aviv's coast is a kept target inset: no scenery there, its lights from setup's light cells (lights/L1).
 	var inset: Vector3 = tv.world_to_scene(INSET)
 	var lit_inset := 0
-	for mi: MeshInstance3D in far + near:
+	for mi: MeshInstance3D in xfar + far + near:
 		for v: Vector3 in mi.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]:
 			lit_inset += int(Vector2(mi.position.x + v.x - inset.x, mi.position.z + v.z - inset.z).length() < 500.0)
 	check(lit_inset > 50, "lights in the Tel Aviv inset: %d within 500 m" % lit_inset)
-	check(ok_rank, "far points rank below %.2f, near ones above" % CityLights.FAR_SHARE)
+	check(
+		ok_rank, "each mesh holds the ranks of its share (%.2f, %.2f)" % [CityLights.XFAR_SHARE, CityLights.FAR_SHARE]
+	)
 	check(ok_col, "colours in 0..1")
 	check(ok_h, "every sampled light stands a little above the ground")
 	while Time.get_ticks_msec() - t < 40000 and cl._glow == null:
@@ -94,9 +105,9 @@ func _over_tel_aviv(hour: float) -> Node:
 	return tv
 
 
-static func _meshes(cl: Node3D, which: String) -> Array:
+static func _meshes(cl: Node3D, which: int) -> Array:
 	var out := []
 	for b: Dictionary in cl._blocks.values():
-		if b[which] != null and b[which].mesh != null:
-			out.append(b[which])
+		if b.meshes[which] != null and b.meshes[which].mesh != null:
+			out.append(b.meshes[which])
 	return out

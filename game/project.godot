@@ -135,6 +135,10 @@ city_glow_rect={
 "type": "vec4",
 "value": Vector4(0, 0, 0, 0)
 }
+city_glow_fog={
+"type": "float",
+"value": 0.0
+}
 ground_albedo={
 "type": "sampler2DArray",
 "value": ""

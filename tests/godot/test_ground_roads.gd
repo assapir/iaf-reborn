@@ -99,12 +99,12 @@ func run() -> void:
 		IafCityLights.set_road_lamps(lamps)
 		var r := {"retry": true}
 		var t := Time.get_ticks_msec()
-		while not r.has("near") and Time.get_ticks_msec() - t < 30000:
+		while not r.has("meshes") and Time.get_ticks_msec() - t < 30000:
 			if r.has("retry"):
-				IafCityLights.request(b.x, b.y, true)
+				IafCityLights.request(b.x, b.y, 2)
 			await frames(10)
 			r = IafCityLights.take(b.x, b.y)
-		counts.append(0 if not r.has("near") else r.far[0].size() + r.near[0].size())
+		counts.append(_lights(r))
 	check(counts[0] > 0 and counts[1] > counts[0], "road lamps added to the block: %d → %d lights" % counts)
 
 	# The Ayalon: the railway's ballast in the road mask; the marking mask's rails on it and lanes on the motorway.
@@ -160,12 +160,12 @@ func run() -> void:
 		tv.rig.position.y = 1500.0
 		var r2 := {"retry": true}
 		var t2 := Time.get_ticks_msec()
-		while not r2.has("near") and Time.get_ticks_msec() - t2 < 40000:
+		while not r2.has("meshes") and Time.get_ticks_msec() - t2 < 40000:
 			if r2.has("retry"):
-				IafCityLights.request(lit[0], lit[1], true)
+				IafCityLights.request(lit[0], lit[1], 2)
 			await frames(10)
 			r2 = IafCityLights.take(lit[0], lit[1])
-		var n2: int = 0 if not r2.has("near") else r2.far[0].size() + r2.near[0].size()
+		var n2 := _lights(r2)
 		check(n2 > 500, "Amman's road lamps: %d" % n2)
 
 	# A night flight over Tel Aviv: switching Roads adds or removes the lamps at once; Night lights Original hides them.
@@ -225,9 +225,17 @@ func _settled(cl: Node3D) -> int:
 		await frames(10)
 	var n := 0
 	for b: Dictionary in cl._blocks.values():
-		for m in [b.far, b.near]:
+		for m in b.meshes:
 			if m != null and m.mesh != null:
 				n += m.mesh.surface_get_array_len(0)
+	return n
+
+
+## The lights in a taken block (IafCityLights.take: every mesh asked), 0 when not made.
+static func _lights(r: Dictionary) -> int:
+	var n := 0
+	for m: Array in r.get("meshes", []):
+		n += (m[0] as PackedVector3Array).size()
 	return n
 
 

@@ -1066,9 +1066,18 @@ a flight hide the city lights.
 **Streaming** (`crates/iaf-godot/src/city_lights.rs` `IafCityLights`, `city_lights.gd`): blocks of 4 × 4 cells
 (≈ 10 km), made on a thread of the extension's own (a plain thread: no Godot pool task to wait for at the quit). It
 reads only the buildings of each cell file (`Cell::read_buildings`) and stands each light on the terrain height
-field; a block whose terrain is not loaded yet is asked again a second later. Each block has two point meshes: its
-far points (the lights of rank below 0.1, every light has a seeded rank), drawn to 60 km, and its near points (the
-rest), drawn while the block is within 8 km. Made blocks reach the GPU three per frame.
+field; a block whose terrain is not loaded yet is asked again a second later. Every light has a seeded rank. Each
+block has three point meshes by rank:
+
+| Mesh | Lights | Drawn while the block is within |
+|---|---|---|
+| farthest | rank below 0.02 | 120 km |
+| far | rank 0.02 to 0.1 | 45 km |
+| near | the rest | 8 km |
+
+A mesh is dropped 3 km beyond its range. Made blocks reach the GPU three per frame. Over Tel Aviv at 3000 m: 209
+blocks drawn (52 with their far mesh, 7 with their near one), 634 000 points, about as many as with the far tenth
+drawn to 60 km (640 000): the farthest mesh holds a fiftieth of a block's lights.
 
 **Drawing** (`city_lights.gd SHADER`, additive points, no depth write). The points carry the look; the ground stays
 night-dark between them:
@@ -1078,16 +1087,22 @@ night-dark between them:
   under TAA's blend; the near ones are few enough to draw larger. A light smaller than its minimum keeps the energy of
   its glow (its area × 3), so a far town is about as bright on average as a near one, an even carpet instead of a
   white blaze.
-- Every light shows to 1.5 km; from there to 6 km only those of rank below 0.1 stay, and they take the dropped ones'
-  energy. A far town thins out instead of turning into a solid sheet of points.
+- Every light shows to 1.5 km; from there to 6 km only those of rank below 0.1 stay, and from 25 to 40 km only those
+  below 0.02. The kept lights take the dropped ones' energy. A far town thins out instead of turning into a solid
+  sheet of points.
 - A light is pulled toward the eye by its size and 1 % of its distance, so the coarser far terrain does not hide it.
-  Far lights dim with half the fog and fade out over the last 20 % of 60 km.
+- The lights are emitters seen through clear night air, so they dim far less than the ground fogs: by 0.35 of the
+  scene's fog density, blue twice as fast as red (red × 0.75, blue × 1.5), so a far town turns dimmer and warmer.
+  They fade out over the last 20 % of 120 km. From 8000 m over the coast the towns show as a lit carpet to the
+  horizon. Before (2026-10-28) they dimmed by half the fog and stopped at 60 km: the coast beyond read dark.
 - **The haze** over the dense lamp clusters: the lights thread sums every light's brightness per 125 m square (an R8
   texture of 1 221 × 3 356 with its mipmaps, 5.5 MB). The terrain shader and the scenery's wall shaders read it per
   vertex (a building at its centre) and add a faint sodium emission, the summed brightness to the power 1.5, mostly
   flat and a fifth of it the surface's own colour (`terrain/city_glow.gdshaderinc`): a dense centre glows softly, a
   suburb's sparse lamps hardly. It is a global shader parameter: off (k = 0) by day, with Night lights Original and
-  when the flight scene ends.
+  when the flight scene ends. A far vertex reads a coarser mipmap (a texel about a hundredth of its distance), and
+  the haze is raised by the fog the lights do not have (`city_glow_fog`: 0.65 of the fog density, as exp(fog ×
+  distance)), so after the scene's fog it dims as the points do.
 
 **Cost** (Intel Iris Xe, 2560 × 1440, `BENCH_BEST=1`, mission 311 moved over Tel Aviv at 22:00, 3000 m at 250 m/s,
 2026-10-28): `tests/godot/_flight_bench.gd` with `BENCH_TOGGLE=_city_lights` shows and hides the points and the haze
@@ -1128,7 +1143,8 @@ Open:
 - Outside the buildings' coverage a town has only its road lamps: no windows, no porch lights, no haze.
 - With Anti-aliasing TAA the far 1-pixel points are softer and dimmer than with MSAA (the temporal blend averages a
   point that is under a pixel).
-- From 8000 m the towns 20 km and more away fade into the night's fog: a lit coast reads faintly.
+- From above the cloud layer (`night_high`: 8000 m in mission 231, the layer at 7000 m) the moonlit deck covers the
+  ground and the towns show through it only as faint specks.
 
 Screenshots: `tests/godot/_showcase_shot.gd` scenes `night_city` (Gush Dan from 3000 m), `night_high` (8000 m over
 the sea), `night_town_low` (300 m over Rishon LeZion) and `night_haifa` (Haifa bay from 3000 m), with `-- --hour 22`;

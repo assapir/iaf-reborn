@@ -4,33 +4,41 @@
 # obstruction lights on the towers, with Roads Detailed lamps along the lit roads (also beyond the buildings, outside
 # Israel), and a faint haze over the dense centres (terrain/city_glow.gdshaderinc). Ours: the original's only town
 # lights are its LT_ sets (Damascus).
-# Blocks of 4 × 4 scenery cells (≈ 10 km): within FAR_RANGE a block draws its far points (a tenth of its lights);
-# within NEAR_RANGE also its near points (the rest). The shader keeps all lights near the camera and thins them to
-# the far tenth with distance; a light under its minimum size keeps its energy, so a far town reads as an even
-# carpet of the same brightness instead of a white blaze. The lights thread lives in Rust (a std thread: no Godot pool
-# task to wait for at quit).
+# Blocks of 4 × 4 scenery cells (≈ 10 km), three point meshes each by the lights' rank: within FAR_RANGE a block
+# draws its farthest points (a fiftieth of its lights), within MID_RANGE also its far points (to a tenth), within
+# NEAR_RANGE also its near points (the rest). The shader keeps all lights near the camera and thins them to the tenth
+# by 6 km and to the fiftieth by 40 km; a light under its minimum size keeps its energy, so a far town reads as an even
+# carpet of the same brightness instead of a white blaze. The lights are emitters seen through clear night air: they
+# dim and redden by a thin share of the fog (EXT), and the haze's fog is undone to the same share, so the far coast
+# stays a lit carpet. The lights thread lives in Rust (a std thread: no Godot pool task to wait for at quit).
 extends Node3D
 
 const Scenery := preload("res://terrain/scenery.gd")
 const GroundRoads := preload("res://terrain/ground_roads.gd")
 
-## A block's far points are drawn within this (its square's distance, m); its near points within NEAR_RANGE; both
-## are dropped KEEP farther.
-const FAR_RANGE := 60000.0
+## A block's mesh k (0: its farthest points, 1: its far points, 2: its near points) is drawn within RANGES[k] (its
+## square's distance, m) and dropped KEEP farther.
+const FAR_RANGE := 120000.0
+const MID_RANGE := 45000.0
 const NEAR_RANGE := 8000.0
+const RANGES := [FAR_RANGE, MID_RANGE, NEAR_RANGE]
 const KEEP := 3000.0
-## The share of a block's lights in its far points (IafCityLights FAR_SHARE).
+## The share of a block's lights in its mesh 0, and in its meshes 0 and 1 (IafCityLights SHARES).
+const XFAR_SHARE := 0.02
 const FAR_SHARE := 0.1
+## The lights' extinction: this share of the scene's fog (lights seen through clear night air).
+const EXT := 0.35
 const POLL := 1.0
 ## Made blocks taken per frame.
 const TAKES := 3
 
 ## A city light: a small bright core and a soft halo, size_m wide in the world, at least min_px wide on screen (at
 ## 1080 rows), smaller the dimmer it is. COLOR: colour × brightness in RGB, the light's rank in A. Within keep_near
-## every light shows; by keep_far only those of rank below far_share. Drawn larger than its glow (its minimum size), a
-## light keeps the glow's energy × glare, the kept far ones the dropped ones' too. A light is pulled
-## toward the eye by its size and 1 % of its distance, so the coarser far terrain does not hide it. Far points dim with
-## half the fog and fade out over the last 20 % of `range`.
+## every light shows; by keep_far only those of rank below far_share, by xkeep_far below xfar_share. Drawn larger than
+## its glow (its minimum size), a light keeps the glow's energy × glare, the kept far ones the dropped ones' too. A
+## light is pulled toward the eye by its size and 1 % of its distance, so the coarser far terrain does not hide it.
+## Far points dim and redden by `ext` of the fog (blue twice as fast as red) and fade out over the last 20 % of
+## `range`.
 const SHADER := """
 shader_type spatial;
 render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
@@ -43,7 +51,11 @@ uniform float vp_h = 1080.0;
 uniform float keep_near = 1500.0;
 uniform float keep_far = 6000.0;
 uniform float far_share = 0.1;
-uniform float range = 60000.0;
+uniform float xkeep_near = 25000.0;
+uniform float xkeep_far = 40000.0;
+uniform float xfar_share = 0.02;
+uniform float ext = 0.35;
+uniform float range = 120000.0;
 uniform float glare = 3.0;
 uniform float bright = 5.0;
 varying vec3 col;
@@ -51,6 +63,7 @@ void vertex() {
 	vec4 v = MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
 	float d = max(-v.z, 1.0);
 	float keep = mix(1.0, far_share, smoothstep(keep_near, keep_far, d));
+	keep = mix(keep, xfar_share, smoothstep(xkeep_near, xkeep_far, d));
 	float on = 1.0 - smoothstep(keep * 0.8, keep, COLOR.a);
 	float b = max(COLOR.r, max(COLOR.g, COLOR.b));
 	float rows = vp_h / 1080.0;
@@ -61,7 +74,7 @@ void vertex() {
 	// one, a carpet instead of a white blaze. The kept far lights carry the dropped ones' energy; a floor keeps a
 	// faint sparkle.
 	float e = clamp(glare * px * px / (lo * lo) / keep, 0.1, 3.0);
-	float fade = exp(-0.5 * fog_k * d) * on * e;
+	vec3 fade = exp(-ext * fog_k * d * vec3(0.75, 1.0, 1.5)) * on * e;
 	fade *= 1.0 - smoothstep(range * 0.8, range, d);
 	col = COLOR.rgb * fade * bright;
 	POINT_SIZE = on > 0.0 ? clamp(px, lo, max_px * rows) : 0.0;
@@ -86,8 +99,8 @@ var _glow: ImageTexture
 var _glow_asked := false
 ## The glow's strength now (terrain.gdshader city_glow_k).
 var glow_k := 0.0
-## Vector2i block -> {far: MeshInstance3D or null, near: MeshInstance3D or null, asking: bool, stale: bool (to be
-## made again: the road lamps switched; its points shown until then)}
+## Vector2i block -> {meshes: [MeshInstance3D or null] × 3 (RANGES), asking: bool, stale: bool (to be made again: the
+## road lamps switched; its points shown until then)}
 var _blocks := {}
 ## The blocks are made with the road lamps (IafCityLights.set_road_lamps).
 var _road_lamps := false
@@ -114,12 +127,15 @@ func setup(tv: Node) -> void:
 	_mat.shader = sh
 	_mat.set_shader_parameter("range", FAR_RANGE)
 	_mat.set_shader_parameter("far_share", FAR_SHARE)
+	_mat.set_shader_parameter("xfar_share", XFAR_SHARE)
+	_mat.set_shader_parameter("ext", EXT)
 
 
-## The scene's fog and the 3D render's rows (night_lights.gd set_gain).
+## The scene's fog and the 3D render's rows (night_lights.gd set_gain). The haze's fog is undone to EXT of it.
 func set_view(fog_density: float, rows: float) -> void:
 	_mat.set_shader_parameter("fog_k", fog_density)
 	_mat.set_shader_parameter("vp_h", rows)
+	RenderingServer.global_shader_parameter_set("city_glow_fog", fog_density * (1.0 - EXT))
 
 
 func _process(delta: float) -> void:
@@ -152,22 +168,24 @@ func _process(delta: float) -> void:
 		var d := float(near[k + 2])
 		seen[key] = true
 		if not _blocks.has(key):
-			_blocks[key] = {"far": null, "near": null, "asking": false, "stale": false}
+			_blocks[key] = {"meshes": [null, null, null], "asking": false, "stale": false}
 		var b: Dictionary = _blocks[key]
 		if b.asking:
 			continue
+		var has: int = b.meshes.rfind_custom(func(m): return m != null)
 		if b.stale:
 			b.stale = false
-			if b.far != null:
-				IafCityLights.request(key.x, key.y, b.near != null)
+			if has >= 0:
+				IafCityLights.request(key.x, key.y, has)
 				b.asking = true
 				continue
-		if (b.far == null and d <= FAR_RANGE) or (b.near == null and d <= NEAR_RANGE):
-			IafCityLights.request(key.x, key.y, d <= NEAR_RANGE)
+		var want: int = RANGES.rfind_custom(func(r): return d <= r)
+		if want > has:
+			IafCityLights.request(key.x, key.y, want)
 			b.asking = true
-		elif b.near != null and d > NEAR_RANGE + KEEP:
-			b.near.queue_free()
-			b.near = null
+		elif has > 0 and d > RANGES[has] + KEEP:
+			b.meshes[has].queue_free()
+			b.meshes[has] = null
 	for key in _blocks.keys():
 		if not seen.has(key):
 			_drop(key)
@@ -218,14 +236,11 @@ func _take(key: Vector2i, b: Dictionary) -> bool:
 	b.asking = false
 	if r.has("retry"):
 		return false
-	# A block made again (the near points added, the road lamps switched) replaces its meshes.
-	if b.far != null:
-		b.far.queue_free()
-	b.far = _mesh(r.origin, r.far)
-	if r.has("near"):
-		if b.near != null:
-			b.near.queue_free()
-		b.near = _mesh(r.origin, r.near)
+	# A block made again (a nearer mesh added, the road lamps switched) replaces its meshes.
+	for k in r.meshes.size():
+		if b.meshes[k] != null:
+			b.meshes[k].queue_free()
+		b.meshes[k] = _mesh(r.origin, r.meshes[k])
 	return true
 
 
@@ -252,7 +267,7 @@ func _drop(key: Vector2i) -> void:
 	var b: Dictionary = _blocks[key]
 	if b.asking:
 		IafCityLights.take(key.x, key.y)  # a result made after the drop is taken (or replaced) later
-	for m in [b.far, b.near]:
+	for m in b.meshes:
 		if m != null:
 			m.queue_free()
 	_blocks.erase(key)
