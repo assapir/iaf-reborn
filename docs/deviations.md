@@ -164,6 +164,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   toggles PAIRS / SGL ("1 PAIR" / "1 SGL" in the quantity's place); PAIRS releases both stores of a symmetric pair
   at the same instant; the quantity counts release pulses, starting at RP 1 (the F-4E / Kurnass 2000: one pair per
   press); SGL alternates wings, left first (weapons.md §9.10). Rockets and the AI keep the original.
+- **MFDs (F-16) (Original (1998) / Real).** Original: the F-16D Barak's MFDs draw the 1998 pages. Ours, with Real
+  (`real_mfds`): the real F-16's head-down formats in green (FCR, SMS, HSD, WPN, TGP, TEST and the format menu), the
+  OSBs as on the real jet (SWAP, three formats per MFD, DCLT); NAV, RWR and ADI are not offered and show the HSD. The
+  F-16I Sufa draws them always, in colour. Other jets keep the original pages (mfd.md §9).
 - **Briefing map (Original (1998) / Modern).** Original: text.emf's city dots where the 1998 map put them, up to
   ≈ 37 km from the real cities. Ours, with Modern (`briefing_map`): the eight labelled cities' dots and labels at
   their real places on the TSD / briefing / mission editor map, and today's motorways, trunk, primary and secondary

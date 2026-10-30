@@ -154,9 +154,10 @@ Optional sound additions behind an Extras switch, off by default (sound.md):
 - Rust / godot-rust already build for ARM64 Linux.
 
 ## "Real MFDs" option (wishlist)
-Started: research done, nothing built. Each jet's real head-down formats behind their own Extras switch (the
-original's pages by default, mfd.md); the per-jet reference, the user's decisions (2026-10-21) and the build order
-(F-35I and F-16 first) are in [real-mfd.md](real-mfd.md).
+Started: the F-35I's panoramic display and the F-16's formats are built (mfd.md §9: the Sufa always, in colour; the
+Barak with Extras "MFDs (F-16)" on Real, in green). Left: the other jets' formats behind the same switch (the
+original's pages by default); the per-jet reference, the user's decisions (2026-10-21) and the build order are in
+[real-mfd.md](real-mfd.md). The F-16's open items: real-mfd.md "F-16C/D Barak" (not built) and "Open questions" 4.
 - IFF on the radar formats, as the real jets show it (real-hud.md "IFF"): the F-15C's and F-4E's interrogation
   replies, and the F-35I's track colours and shapes (green circle friend, yellow square unknown, red diamond hostile).
 - Pairs with the realistic 3D cockpit (MFDs drawn live on it).

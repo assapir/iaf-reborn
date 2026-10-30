@@ -133,7 +133,8 @@ const PREFS := {
 		"world_scale",
 		"f16_variant",
 		"modern_weapons",
-		"bomb_release"
+		"bomb_release",
+		"real_mfds"
 	],
 }
 
@@ -311,6 +312,9 @@ var briefing_map := "original"
 ## Bomb release (ours, Extras page; docs/weapons.md §9.10): "original" (one store per ripple tick, FUN_0053b680's
 ## station order) or "real" (the real stores management: SGL / PAIRS, the quantity in release pulses).
 var bomb_release := "original"
+## MFDs (ours, Extras page; docs/mfd.md §9): "original" (the 1998 pages) or "real" (the F-16D Barak's real head-down
+## formats, in green). The F-16I Sufa always draws them, in colour (`real_mfd`).
+var real_mfds := "original"
 ## World scale (ours, Extras page; docs/world-scale.md): "original" (the models at their Present scale, ×2 for
 ## the jets) or "real" (true size, model_scale). Read at mission load.
 var world_scale := "original"
@@ -716,6 +720,16 @@ func real_weapons() -> bool:
 ## True when an aircraft of bdb type `type_code` is an F-16I Sufa (Extras "F-16" on Sufa, docs/f16i.md).
 func sufa(type_code: int) -> bool:
 	return type_code == 100 and f16_variant == "sufa"
+
+
+## The F-16's real MFD formats (docs/mfd.md §9): "colour" on the Sufa (always), "green" on the Barak with MFDs on
+## Real, "" the original pages. `cockpit` is the cockpit's directory name (the F-16's is "f16").
+func real_mfd(cockpit: String) -> String:
+	if cockpit != "f16":
+		return ""
+	if sufa(100):
+		return "colour"
+	return "green" if real_mfds == "real" else ""
 
 
 ## Scroll steps for a wheel or trackpad pan event (ours, the original has no wheel): +1 = one step down, -1 = up,

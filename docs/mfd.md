@@ -75,7 +75,8 @@ Sources and conventions:
   x−16..−1,y21..107; right x132..148,y21..107. Button = coord/20 + base, only if coord%20 < 8, i.e. 8-px buttons at
   20,40,60,80,100. Ids: top 1–5, bottom 6–10, left 11–15 (0xb–0xf), right 16–20 (0x10–0x14). Actions `FUN_005219e0`.
   Clicking inside the display area (+10..+122) makes that MFD own the mouse cursor (`FUN_00521700`).
-- **Button 6 (bottom-left, under "MENU") on every page** posts event 0x5b(value 8, mfd) → MENU page.
+- **Button 6 (bottom-left, under "MENU") on every page** posts event 0x5b(value 8, mfd) → MENU page. (Ours: the
+  F-16's real formats use the buttons as the real jet does, §9.)
 - Full-screen weapon MFD (key Z, v1.1; S+0x1088 = 0xb): replaces the whole cockpit with `fsmfd/FsMfd.bmp` and the TV /
   FLIR picture in (128,49)-(513,431) — §3 "Full-screen weapon MFD".
 
@@ -811,6 +812,99 @@ set (the "Real MFDs" option, docs/roadmap.md) can reuse them.
 - Test: tests/godot/test_mfd.gd (every page records the same primitives with the same MFD-px geometry in both
   modes; crisp draws at `_k` = the screen scale through the shader). Pictures: tests/godot/_mfd_shot.gd (every page,
   Original and crisp).
+
+## 9. Ours: the F-16's real formats (Extras "MFDs (F-16)")
+The F-16's MFDs can draw the real jet's head-down formats in place of the 1998 pages (research and sources:
+[real-mfd.md](real-mfd.md) "F-16C/D Barak"). Which jet draws them:
+
+| Jet | Extras "MFDs (F-16)" Original (default) | Real |
+|---|---|---|
+| F-16D Barak | the original pages (§3), unchanged | the real formats in the monochrome green, RGB(0,255,0) |
+| F-16I Sufa (Extras "F-16 version") | the real formats in colour | the real formats in colour |
+| every other jet | the original pages | the original pages (their real formats come later, real-mfd.md) |
+
+The page an MFD shows stays the game's (§3), so a weapon, the M key and the full-screen MFD set pages as before.
+Each game page with a real counterpart draws that format; the others are not offered:
+
+| Game page | Real format | Notes |
+|---|---|---|
+| 2 radar | FCR | A-A: a B-scope; MAP / GMT: the GM / GMT fan |
+| 1 stores | SMS | INV, or the selected weapon's AAM / A-G / GUN page |
+| 3 TSD | HSD | depressed view, 15 / 30 / 60 / 120 NM |
+| 5 TV, 10 HARM | WPN | the Maverick's video, HAS for the HARM, a GPS bomb's status, else WPN OFF |
+| 6 FLIR | TGP | the pod's picture |
+| 4 damage | TEST | the fault list |
+| 8 MENU | the format menu | |
+| 0 NAV, 7 RWR, 9 ADI | not offered | a page set to one of them shows the HSD instead (the route is on the HSD) |
+
+**The frame** (dash-34 figs. 1-26, 1-43): the mnemonics sit by their OSBs, numbered as on the real jet, clockwise
+from the top left (`IafF16Mfd.real_osb`: the game's top 1–5 stay 1–5, bottom 6–10 are 15–11, left 11–15 are 20–16,
+right 16–20 are 6–10). On every format the bottom row holds:
+- OSB 15 `SWAP`: the left and right MFDs trade formats and pages.
+- OSBs 14, 13, 12: the MFD's three formats, the shown one in an inverse box. Pressing another shows it. Pressing the
+  shown one opens the format menu (game page 8), and again closes it.
+- OSB 11 `DCLT`: hides the side and top mnemonics (their OSBs still work); `S-J` on the SMS, no action.
+
+The formats at the start (inferred): left FCR, TGP, TEST; right HSD, SMS, WPN. A page set elsewhere puts its format
+first: from its slot, else in place of the shown one. The format menu (fig. 1-29) offers FCR (OSB 20), TGP (19, only
+with a targeting pod, as the original's MENU "FLIR"), WPN (18), SMS (6), HSD (7) and TEST (9). The logic is
+`crates/iaf-avionics/src/f16_mfd.rs` (`IafF16Mfd`); the drawing `game/cockpit/f16_mfd.gd`.
+
+**Each format's own OSBs** (real numbers; the game event each sends):
+
+| Format | OSB | Action |
+|---|---|---|
+| FCR | 1 | the next radar mode (0x24) |
+| FCR | 20 / 19 | range up / down (0x21 / 0x22) |
+| FCR | 3 | MAP: NORM / EXP (0x30) |
+| HSD | 20 / 19 | range up / down, stopping at 15 and 120 NM (the original's TSD wraps) |
+| SMS | 4 | INV on / off |
+| SMS INV | 18, 19, 20, 1, 3, 5, 6, 7, 8 | select station 1..9 (the original's station OSBs); 16 the gun |
+| SMS AAM / A-G | 6 | the next station holding another store |
+| SMS A-G | 2 | a GPS bomb's PRE / VIS (key K) |
+| SMS A-G | 8 | SGL / PAIR (Bomb release Real) |
+| SMS A-G | 9 / 10 | the interval +10 / the release pulses +1, wrapping at 200 / 14 (inferred: the real SMS enters them on a keypad page) |
+| WPN, TGP | 20 / 19 | zoom in / out (0x14 / 0x15) |
+| TGP | 2 / 3 | WIDE / NARO (0x20); the laser (0x6a, ours on OSB 3) |
+| WPN (GPS bomb) | 1 | PRE / VIS |
+
+**What the formats draw** (the layout from real-mfd.md; "inferred" there where no source gives it):
+- FCR: the mode row (`IafF16Mfd.fcr_mode`: STBY; CRM LRS for STT / LRS; CRM TWS; ACM BORE; ACM 20; GMT; GM MAN), the
+  range with its triangles, the azimuth scan (`A6` ±60° … `A1` ±10°), range marks at the quarters, azimuth tics,
+  the antenna carets, the horizon line. Targets: a search return as a small filled square; a track (TWS, the lock) as
+  a triangle turned to its heading in 22.5° steps with a speed line, the bug circled, altitude in kft below. The
+  steerpoint as a filled triangle; the acquisition cursor on the mouse; with a lock the STT line (aspect, ground
+  track, speed, closure) and the DLZ bracket on the right edge. The B-scope keeps the original page's geometry
+  (the scan's width across, 112 px = the range), so the clicks and the mouse read-outs are the original's (inferred:
+  the real B-scope is always ±60°). GM / GMT: the fan from (66, 109) at the MAP picture's scale (94 px = the range;
+  the original's GMT is 56 px = the range), its range arcs, the X-Y cursors, a tracked target or the designated point
+  as a solid diamond.
+- HSD: three rings a third of the range apart (the outer one the range), the north tic, the route through the past,
+  current (filled) and next two steerpoints, the radar's scan as a wedge, the SAM sites' rings (inferred), the ownship.
+  The Sufa only: the map (map.emf) under it, dimmed, as its colour moving map.
+- SMS: INV with each station's count and store by its OSB (an empty one dashed), the gun in tens and the chaff /
+  flare counts; AAM: the weapon, RDY / MAL and the stations holding it (`M` row, the selected boxed); A-G: CCIP or
+  the GPS bomb's PRE / VIS, the weapon, SGL / PAIR, the interval, the release pulses, RDY. A GPS bomb adds its
+  target (`STPT n` when it is a steerpoint, else `TGT PRE` / `TGT VIS`), its range and bearing, `TMR m:ss` or
+  `IN RNG`, and `TTI m:ss` while the last released bomb flies (weapons.md §13; inferred layout).
+- WPN: HAS (the boresight lines, each emitter's code where the HARM sensor sees it, the selected boxed, the codes in
+  a box at the top, RDY in range, NO SOURCE without a round); the Maverick (the video, the fixed cross, the track
+  gate's corners at the seeker's point, the status and time); a GPS bomb (inferred: the real JDAM has no WPN page):
+  PRE / VIS, the SMS's target lines and a LAR scale with RMIN / RMAX and a caret at the target's range.
+- TGP: the pod's picture, A-G, WIDE / NARO, LASR (highlighted on), WHOT, the zoom, the cross, `L` or `T` and the
+  range.
+- TEST: the damage flags (docs/damage.md §5.2) as fault lines (`ENG FAIL`, `FCR FAIL` …), NO FAULTS without
+  (inferred: the MFL's layout is open).
+
+**Colours.** The Barak: one green. The Sufa (inferred from the colour F-16s): the symbols in the MLU M1 tape's
+colours (table 1-1, figs. 1-17 / 1-18): scales, carets, the horizon and friends green; search returns, the route and
+the HSD's rings white; tracks, the bug and preplanned threats yellow; the ownship and the scan wedge cyan; a threat
+ring red with the jet inside it (a simulator manual). The text and mnemonics are white, the highlight a white
+inverse box, as on the Block 50 M4 tape (a simulator manual); the MLU M1 keeps them green. Sources: real-mfd.md
+"Colours and font".
+
+The real formats draw their own vectors and text at the screen's resolution, with or without Better cockpit's
+crisp pages. Test: tests/godot/test_f16_mfd.gd. Pictures: tests/godot/_mfd_shot.gd with `MFD_LOOK=sufa|barak`.
 
 ## Open questions
 - Unreferenced tiles (132,132) "Debug", (132,264) LAS, (132,396) TWS, (0,528): leftovers?

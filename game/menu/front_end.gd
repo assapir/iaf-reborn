@@ -278,6 +278,8 @@ const EXTRAS := [
 	# Ours: the real stores management's release (SGL / PAIRS, release pulses; weapons/player_weapons.gd,
 	# docs/weapons.md §9.10).
 	["bomb_release", "Bomb release", [["Original", "original"], ["Real", "real"]]],
+	# Ours: the F-16D Barak's real head-down formats (cockpit/f16_mfd.gd, docs/mfd.md §9); the Sufa always has them.
+	["real_mfds", "MFDs (F-16)", [["Original (1998)", "original"], ["Real", "real"]]],
 ]
 
 

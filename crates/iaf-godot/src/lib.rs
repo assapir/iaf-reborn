@@ -7,6 +7,7 @@ mod bases;
 mod bombs;
 mod city_lights;
 mod emf;
+mod f16_mfd;
 mod fctrl;
 mod flight;
 mod gun;
