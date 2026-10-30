@@ -358,6 +358,9 @@ authors and changes in `SOURCES.md` there). They show on every jet that carries 
 | AIM-9X (the Sufa's, ours) | AIM-9X | 7 766 |
 | GBU-31, GBU-31V3 (the Sufa's) | GBU-31 | 2 944 |
 | GBU-38 (the Sufa's) | GBU-54 (the laser JDAM: a GBU-38 with a laser nose) | 3 208 |
+| GBU-31V3 (the Sufa's) | GBU-31, slimmer to the BLU-109's 370 mm | 2 944 |
+| GBU-32 (the Sufa's, the F-35I's) | GBU-31 at the GBU-32's 3.035 m | 2 944 |
+| PYTH-5, GBU-39 (with its BRU-61/A rack), POPEYE | ours (§5.6) | 1 060, 776 (+ 492), 888 |
 | AA-2 (and "Rockets", which shares its model) | R-3S (MiG-21bis) | 3 558 |
 | AA-8 | R-60M (MiG-29 9-12) | 1 601 |
 | AA-10 | R-27R (MiG-29 9-12) | 1 050 |
@@ -366,12 +369,12 @@ authors and changes in `SOURCES.md` there). They show on every jet that carries 
 
 Kept original: the Hawk SAM's missile (it shares the AGM-88's model; `weapon_db.gd` marks it `detailed: false`),
 the rocket pod (FlightGear's LAU-68 has 7 tubes, the game's box 19), the SA-8's Shafrir and every store with no open
-model (Python, Shafrir, Popeye, Walleye, GBU-15, M117, RBK-500, the AA-6, AS-14 and AS-16, the other jets' tanks). The
+model (Python 3 / 4, Shafrir, Walleye, GBU-15, M117, RBK-500, the AA-6, AS-14 and AS-16, the other jets' tanks). The
 MiG-23's 2800LB tank shares the F-4's tank model (`f4ftk`), so it keeps the original, as the F-4's tank does.
 The SA-13 and the Shrike show the detailed AIM-9 / AIM-7, as they showed the original AIM-9 / AIM-7. The Sufa's
 records without an original model of their own (weapons.md §13) name ours (`weapons/sufa/…`); with Models Original
-`util/gltf.gd` `STAND_INS` draws the original AIM-9, MK-84L and MK-82L in their place. The GBU-32 shows the MK-83L,
-the Python 5 the Python 4 and the GBU-39 the MK-82 at 0.8 scale (no FlightGear model).
+`util/gltf.gd` `STAND_INS` draws the original AIM-9, MK-84L, MK-82L, MK-83L, Python 4 and MK-82 (the GBU-39, at
+0.8 scale) in their place.
 
 ### 5.1 How they fit the game
 
@@ -403,7 +406,7 @@ models keep FlightGear's proportions: their fins differ in span from the origina
   ≈ 3 ms each): ≈ 3 MB of video memory for the first 16, against ≈ 23 MB uncompressed.
 - Cost (estimated, not measured): an F-16 with nine detailed stores draws ≈ 20–35 k more triangles close up, a few
   thousand at a distance (the LODs) and the original's few hundred beyond 800 m; one draw per store and texture as
-  before. Files: 3.8 MB in the repo (25 stores; the five Soviet ones 0.65 MB).
+  before. Files: 4.4 MB in the repo (34 models; the five Soviet ones 0.65 MB, ours of §5.6 0.36 MB).
 
 ### 5.3 Rebuilding the stores
 
@@ -424,13 +427,41 @@ IAF_DEFAULT_SETTINGS=1 godot --headless --path game -s ../tools/stores/build.gd 
   far LOD; the Hawk keeps the original.
 - `tests/godot/_stores_shot.gd` (needs a window): Original / Detailed pictures of loadouts on the F-16, F-15 and F-4
   on the ground, a Mk-84 falling and an AMRAAM in flight; the Mission Creator's MiG-29 and MiG-23 with the Soviet
-  stores and an AA-10 in flight.
+  stores and an AA-10 in flight; the Sufa and the F-35I with the Python 5, GBU-39 racks and GBU-32, the F-15 with
+  a Popeye and our stores with no record beside it, a Python 5 in flight.
+- `test_detailed_models.gd` also checks the GBU-39's rack: centred on the four slots, longer than their spread, its
+  bottom on the bombs' tops, drawn to 800 m only.
 
 ### 5.5 Open
 
 - The weapon's roll is not tracked: a near-vertical bomb turns 90° in roll (`_orient`'s up vector), as the original.
 - The stores keep FlightGear's single 512 px colour texture (no normal or roughness maps); the AIM-9D and AIM-9L show
   as the AIM-9M.
+- A released GBU-39 shrinks to 0.8 of its real size: the record's `scale` (`modern_weapons.gd`, for the MK-82 it
+  borrows with Models Original) applies to the weapon in flight, not on the pylon.
+
+### 5.6 Our own stores
+
+No open model exists for the Python 5, the GBU-39, its BRU-61/A rack, the Popeye, the SPICE kits or the Spike NLOS
+(graphics-research.md §3.13; the FlightGear F-22's GBU-39 is GPL-2.0-only and marked "By FGUK's Davinci F-35", an
+unverified source). `tools/stores/build.gd` builds them from shapes in `tools/stores/ours.gd` (`parts()`): bodies of
+revolution with colour bands, fins and boxes, flat colours (no texture), each surface its own material. The lengths,
+diameters and spans are the published ones (`game/extra/models/stores/SOURCES.md`); the profiles, fin planforms, bands
+and colours are measured by eye on photos (inferred). Fitted as the FlightGear stores (§5.1): the Python 5 at the
+AIM-9's scale on the Python 4 (3.05 m against its 3.06 m), the GBU-39 at the MK-82's scale on the MK-82, the Popeye to
+its original's length (4.69 m, the real one 4.82 m).
+
+| model | what it shows | differs from the real weapon (photos) |
+|---|---|---|
+| `pyth5` | glass dome, two rows of four canards (X), four long-chord rear wings (X) each with a trailing control surface, rail hangers; grey, darker guidance section, bare motor with red bands | 16 surfaces against the 18 Wikipedia counts (open); no markings or rivets; the dome is dark glass (the real one clear, its seeker inside) |
+| `gbu39` | long ogive nose, yellow band, the folded wing pack on top, four tail fins (X) | the body is round (the real one has flat panels along it); no lugs; wings folded only |
+| `bru61` | squared beam with a keel below, on the bombs' tops | drawn only with Models Detailed over a station of four GBU-39s (`Gltf.RACKS`, `PlayerWeapons._rack`); stretched along its length to the game's slots, 4 m apart fore and aft (`BOMB_STATION_LENGTH`): about 5.6 m against the real 3.63 m; the bombs sit beside it, not hung from its lower edges |
+| `popeye` | glass dome (dark, the real one gold-tinted), small fins (X) behind the nose, long-chord swept tail fins (X), yellow band | no datalink pod or fairings; the original's length |
+| `spice1000`, `spice2000`, `spikenlos` | SPICE kits on the Mk 83 / Mk 84 (canards, mid-body strakes on the 2000, folded wings under the 1000, tail fins); Spike NLOS with its dark dome and long pop-out wings | not in the game yet (real-weapons.md §1.8); lengths inferred from photos (open) |
+
+The GBU-32 and GBU-31(V)3 reuse the FlightGear GBU-31 (`build.gd` `k`, `girth`): the GBU-32 scaled to 3.035 m, so
+its Mk 83 nose is the Mk 84's rounder one; the GBU-31(V)3 at 3.774 m and 0.804 of its girth, so its tail kit is
+slimmer too, and it keeps the Mk 84's ogive and band (the real BLU-109 has a narrower nose).
 
 ## 6. The detailed F-15C
 

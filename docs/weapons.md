@@ -1130,12 +1130,12 @@ ours: new records built from public data whatever Weapon data says (values and s
   | record | type | built on (blast) | model (Original / Detailed) | Sufa | Barak | F-15 | F-35I | count |
   |---|---|---|---|---|---|---|---|---|
   | `AIM-9X` | 570, gen. 4 | AIM-9M | AIM-9 / FlightGear AIM-9X | 1–3, 7–9 | 1–3, 7–9 | 1, 9 (two each) | 1, 9 | 1 |
-  | `PYTH-5` | 570, gen. 4 | PYTH-4 | the Python 4's (both) | 1–3, 7–9 | 1–3, 7–9 | – | – | 1 |
+  | `PYTH-5` | 570, gen. 4 | PYTH-4 | Python 4 / ours (aircraft-models.md §5.6) | 1–3, 7–9 | 1–3, 7–9 | – | – | 1 |
   | `GBU-31` | 650 + GPS | MK-84 | MK-84L / FlightGear GBU-31 | 3, 4, 6, 7 | 3, 4, 6, 7 | 2, 5, 8 | 2, 3, 7, 8 | 1 |
-  | `GBU-31V3` (BLU-109) | 650 + GPS | MK-84 × 250 / 429 | MK-84L / FlightGear GBU-31 | 3, 4, 6, 7 | – | – | – | 1 |
-  | `GBU-32` | 650 + GPS | MK-83 | MK-83L (both) | 3, 4, 6, 7 | – | – | 2, 3, 7, 8 | 1 |
+  | `GBU-31V3` (BLU-109) | 650 + GPS | MK-84 × 250 / 429 | MK-84L / FlightGear GBU-31, slimmer (the BLU-109's 370 mm) | 3, 4, 6, 7 | – | – | – | 1 |
+  | `GBU-32` | 650 + GPS | MK-83 | MK-83L / FlightGear GBU-31 at the GBU-32's length | 3, 4, 6, 7 | – | – | 2, 3, 7, 8 | 1 |
   | `GBU-38` | 650 + GPS | MK-82 | MK-82L / FlightGear GBU-54 (the laser JDAM's look) | 3, 4, 6, 7 | 3, 4, 6, 7 | – | – | 1 |
-  | `GBU-39` | 650 + GPS | MK-84 × 16 / 429 | MK-82 at 0.8 scale (both) | 3, 4, 6, 7 | 3, 7 | – | 3, 7 (bays) | 4 (one rack) |
+  | `GBU-39` | 650 + GPS | MK-84 × 16 / 429 | MK-82 at 0.8 scale / ours, on its BRU-61/A rack (aircraft-models.md §5.6) | 3, 4, 6, 7 | 3, 7 | – | 3, 7 (bays) | 4 (one rack) |
 
 - **Arming**: `mission_weapons.gd` lists them after the bdb's weapons and adds their load items (`ModernWeapons.loads`)
   to the jet's. A jet picked on the Jet list takes the modern items of the jet flown, with the mission jet's original
@@ -1226,9 +1226,9 @@ bomb selected (`gps.rs` `Kit::lar`; the rules are ours, inferred from the energy
   `IN RNG`; PRE or VIS in the weapon window. The jets that carry no GPS bomb draw none.
 - Open: the impact-angle setting and the shorter in-zone bar it brings, and the GBU-39's attack azimuth with its
   second LAR (LAR2)[^bms-jdam]: no setting for them is built.
-- Open: the GBU-31(V)3 is drawn with the GBU-31's (Mk 84) model. The real bomb is slimmer, with a narrower ogive nose
-  and the BLU-109's yellow band (photo: IDF Spokesperson's Unit, Commons "F-16I (IAF).jpg"); its own shape needs a model
-  or a per-axis scale (records take one uniform `scale`).
+- Open: with Models Detailed the GBU-31(V)3 is the GBU-31's model made slimmer to the BLU-109's 370 mm
+  (aircraft-models.md §5.6). The real bomb also has a narrower ogive nose and the BLU-109's yellow band (photo: IDF
+  Spokesperson's Unit, Commons "F-16I (IAF).jpg"); with Models Original it shows the MK-84L.
 
 ### 13.4 Validation
 

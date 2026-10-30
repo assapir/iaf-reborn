@@ -22,7 +22,10 @@ extends SceneTree
 ## textures are plain white, with no baked shading).
 ## Every model is scaled uniformly to the original's length, its centre on the original's, its axis (FlightGear's
 ## origin line) on the original's (the mean of its nose and tail centroids).
+## Our own stores' shapes (parts()).
+const Ours := preload("res://../tools/stores/ours.gd")
 const F16 := "f16/Models/Armament"
+const GBU31_AC := "Weapons/GBU-31/GBU-31.ac"
 const MIG21 := "MiG-21bis/Models/Stores"
 const MIG29 := "MiG-29_9-12/Models/Submodels"
 ## The Soviet missiles' light grey paint over their white textures (ours, set by eye; sRGB, a material colour).
@@ -60,6 +63,23 @@ const STORES := {
 	"aim9x": {"orig": "aim9/aim9_m.gltf", "ac": ["Weapons/AIM-9X/AIM-9X.ac"], "scale_as": "aim9"},
 	"gbu31": {"orig": "mk84/mk84_m.gltf", "ac": ["Weapons/GBU-31/GBU-31.ac"], "scale_as": "mk84"},
 	"gbu38": {"orig": "mk82/mk82_m.gltf", "ac": ["Weapons/GBU-54/GBU-54.ac"], "scale_as": "mk82"},
+	# The GBU-32 (1000 lb JDAM): the GBU-31 scaled to its real length, 3.035 m of 3.880 (k; the Mk 83 / Mk 84 bodies
+	# have nearly the same length over diameter); on the MK-83L it stands in for, at the Mk-83's scale.
+	"gbu32": {"orig": "mk83lb/mk83lb_m.gltf", "ac": ["Weapons/GBU-31/GBU-31.ac"], "scale_as": "mk83", "k": 0.7822},
+	# The GBU-31(V)3 / (V)4 (the BLU-109's JDAM): the GBU-31 at its real length, 3.774 m, slimmer by `girth` to the
+	# BLU-109's 370 mm over the Mk 84's 460 mm (tail kit too; inferred).
+	"gbu31v3": {"orig": "mk84/mk84_m.gltf", "ac": [GBU31_AC], "scale_as": "mk84", "k": 0.9727, "girth": 0.804},
+	# Ours (no open model; parts(), shapes and sources in SOURCES.md): the Python 5 on the Python 4 at the AIM-9's
+	# scale; the GBU-39 on the MK-82 (the record's 0.8 scale shrinks it once released) and its BRU-61/A rack, which
+	# util/gltf.gd RACKS draws over a station of four; the Popeye on its original; the SPICE 1000 / 2000 and the
+	# Spike NLOS at their real size (no game record yet: docs/real-weapons.md §1.8).
+	"pyth5": {"orig": "pthon4/pthon4_m.gltf", "parts": Ours.PYTH5, "scale_as": "aim9"},
+	"gbu39": {"orig": "mk82/mk82_m.gltf", "parts": Ours.GBU39, "scale_as": "mk82"},
+	"bru61": {"parts": Ours.BRU61},
+	"popeye": {"orig": "popeye/popeye_m.gltf", "parts": Ours.POPEYE},
+	"spice1000": {"parts": Ours.SPICE1000},
+	"spice2000": {"parts": Ours.SPICE2000},
+	"spikenlos": {"parts": Ours.SPIKE_NLOS},
 	"cbu87": {"orig": "cbu87/cbu87_m.gltf", "ac": ["Weapons/CBU-87/CBU-87.ac"], "drop": ["BLU-97"], "tris": 5000},
 	"f16ftk":
 	{
@@ -283,7 +303,7 @@ func build(name: String, spec: Dictionary) -> void:
 	for o in objs:
 		verts.append_array(o.verts)
 	var m := measure(verts)
-	var om := measure(original_verts(spec.orig))
+	var om := measure(original_verts(spec.orig)) if spec.has("orig") else _centred(m)
 	var tris := 0
 	for o in objs:
 		for fc in o.faces:
@@ -316,8 +336,10 @@ func build(name: String, spec: Dictionary) -> void:
 		var a := measure(_all_verts(load_objects(other)))
 		var b := measure(original_verts(other.orig))
 		s = (b.z1 - b.z0) / (a.z1 - a.z0)
+	s *= float(spec.get("k", 1.0))
+	var g := float(spec.get("girth", 1.0))
 	var fit := Transform3D(
-		Basis.from_scale(Vector3.ONE * s),
+		Basis.from_scale(Vector3(s * g, s * g, s)),
 		Vector3(om.axis.x, om.axis.y + float(spec.get("dy", 0.0)), (om.z0 + om.z1 - s * (m.z0 + m.z1)) * 0.5)
 	)
 	if spec.get("top", false):
@@ -342,6 +364,17 @@ func build(name: String, spec: Dictionary) -> void:
 	root.free()
 
 
+## A store with no original (ours, not a game weapon yet): its own measurements moved onto the origin, so the fit
+## keeps its size and centres it.
+static func _centred(m: Dictionary) -> Dictionary:
+	var c := m.duplicate()
+	var h: float = (m.z1 - m.z0) * 0.5
+	c.z0 = -h
+	c.z1 = h
+	c.axis = Vector2.ZERO
+	return c
+
+
 static func _all_verts(objs: Array) -> PackedVector3Array:
 	var out := PackedVector3Array()
 	for o in objs:
@@ -350,6 +383,8 @@ static func _all_verts(objs: Array) -> PackedVector3Array:
 
 
 func load_objects(spec: Dictionary) -> Array:
+	if spec.has("parts"):
+		return parts(spec.parts)
 	var objs := []
 	for f in spec.ac:
 		var ac := read_ac(src.path_join(spec.get("dir", F16)).path_join(f))
@@ -409,6 +444,121 @@ func kit(objs: Array) -> Array:
 		o.name = "kit_" + o.name
 		out.append(o)
 	return out
+
+
+# --- our own stores --------------------------------------------------------------------------------------------
+
+
+## Our procedural stores (no open model: the Python 5, the GBU-39 and its BRU-61/A, the SPICE kits, the Spike NLOS,
+## the Popeye), in metres, nose at z 0 and aft +z, top +y, as objects like read_ac's. Each part is one of:
+## - `lathe`: a body of revolution, [[z, r], …] (r 0 closes an end); `from` / `to` cut a band of it (its own colour),
+##   `sq` its cross-section's superellipse exponent (2 round, higher squarer), `y` its axis' height;
+## - `fins`: `n` plates around the axis from `roll` degrees (0 straight up), each [root z0, z1] at radius `r`, [tip
+##   z0, z1] at radius `r` + `h`, `t` thick (thinner to the tip); `y` the axis' height;
+## - `box`: [centre, size] (Vector3), `taper` its top's share of its bottom's width (1 a box).
+## `rgb` its colour (sRGB, a material colour), `glass` true for the seeker glass (GLASS).
+func parts(list: Array) -> Array:
+	var out := []
+	for i in list.size():
+		var p: Dictionary = list[i]
+		var o := {"name": "part%d" % i, "tex": "", "crease": 40.0, "faces": [], "verts": PackedVector3Array()}
+		o["mats"] = [{"rgb": p.get("rgb", Color.WHITE), "trans": 1.0 if p.get("glass", false) else 0.0}]
+		if p.has("lathe"):
+			_lathe(o, _band(p.lathe, float(p.get("from", -INF)), float(p.get("to", INF))), p)
+		elif p.has("fins"):
+			for k in int(p.fins.get("n", 4)):
+				_fin(o, p.fins, deg_to_rad(float(p.fins.get("roll", 0.0)) + 360.0 * k / int(p.fins.get("n", 4))))
+		elif p.has("box"):
+			_box(o, p.box[0], p.box[1], float(p.get("taper", 1.0)))
+		out.append(o)
+	return out
+
+
+## The profile between z0 and z1, its ends interpolated.
+static func _band(prof: Array, z0: float, z1: float) -> Array:
+	var out := []
+	for j in prof.size():
+		var z: float = prof[j][0]
+		if j > 0:
+			var a: Array = prof[j - 1]
+			for c in [z0, z1]:
+				if a[0] < c and c < z:
+					out.append([c, lerpf(a[1], prof[j][1], (c - a[0]) / (z - a[0]))])
+		if z >= z0 and z <= z1:
+			out.append(prof[j])
+	return out
+
+
+func _lathe(o: Dictionary, prof: Array, p: Dictionary) -> void:
+	var n := int(p.get("n", 32))
+	var e := 2.0 / float(p.get("sq", 2.0))
+	var y := float(p.get("y", 0.0))
+	for pt in prof:
+		for j in n:
+			var a := TAU * j / n
+			var c := cos(a)
+			var s := sin(a)
+			var r := maxf(float(pt[1]), 0.0005)
+			o.verts.append(Vector3(r * signf(c) * pow(absf(c), e), y + r * signf(s) * pow(absf(s), e), float(pt[0])))
+	for i in prof.size() - 1:
+		for j in n:
+			var a := i * n + j
+			var b := i * n + (j + 1) % n
+			# Counter-clockwise seen from outside (AC's order; make_mesh turns it for Godot).
+			o.faces.append(_face([a, b, b + n, a + n], true))
+
+
+## A plate (fin, wing, canard) at angle `phi` around the axis (0 straight up, then towards +x).
+func _fin(o: Dictionary, f: Dictionary, phi: float) -> void:
+	var d := Vector3(sin(phi), cos(phi), 0)
+	var side := Vector3(cos(phi), -sin(phi), 0)
+	var y := Vector3(0, float(f.get("y", 0.0)), 0)
+	var r := float(f.r)
+	var h := float(f.h)
+	var t := float(f.get("t", 0.008)) * 0.5
+	var q := [[f.root[0], r, t], [f.root[1], r, t], [f.tip[1], r + h, t * 0.5], [f.tip[0], r + h, t * 0.5]]
+	var pts := []
+	for sgn in [1.0, -1.0]:
+		for c in q:
+			pts.append(y + d * float(c[1]) + side * float(c[2]) * sgn + Vector3(0, 0, float(c[0])))
+	_solid(o, pts, [[0, 1, 2, 3], [7, 6, 5, 4], [0, 4, 5, 1], [1, 5, 6, 2], [2, 6, 7, 3], [3, 7, 4, 0]])
+
+
+## A box (centre `c`, size `s`), its top `taper` of its bottom's width.
+func _box(o: Dictionary, c: Vector3, s: Vector3, taper: float) -> void:
+	var pts := []
+	for k in 8:
+		var top := k >= 4
+		var x := s.x * 0.5 * (taper if top else 1.0) * (1 if k % 4 in [1, 2] else -1)
+		pts.append(c + Vector3(x, s.y * (0.5 if top else -0.5), s.z * (0.5 if k % 4 >= 2 else -0.5)))
+	_solid(o, pts, [[0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]])
+
+
+## A convex solid's faces, each turned to face out (from the solid's centre).
+func _solid(o: Dictionary, pts: Array, faces: Array) -> void:
+	var base: int = o.verts.size()
+	var mid := Vector3.ZERO
+	for v in pts:
+		o.verts.append(v)
+		mid += v / pts.size()
+	for f in faces:
+		var n := Vector3.ZERO
+		var fc := Vector3.ZERO
+		for j in f.size():
+			var a: Vector3 = pts[f[j]]
+			var b: Vector3 = pts[f[(j + 1) % f.size()]]
+			n += a.cross(b)
+			fc += a / f.size()
+		var idx: Array = f.map(func(k): return base + k)
+		if n.dot(fc - mid) < 0.0:
+			idx.reverse()
+		o.faces.append(_face(idx, false))
+
+
+static func _face(idx: Array, smooth: bool) -> Dictionary:
+	var uv := PackedVector2Array()
+	uv.resize(idx.size())
+	return {"idx": PackedInt32Array(idx), "uv": uv, "mat": 0, "smooth": smooth}
 
 
 # --- the mesh --------------------------------------------------------------------------------------------------

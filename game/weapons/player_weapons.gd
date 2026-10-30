@@ -2600,6 +2600,10 @@ static func attach_stores(stores: RefCounted, model: Node3D) -> Dictionary:
 				n.position = s
 				list.append(n)
 			nodes[i] = list
+			var rack := _rack(st, list)
+			if rack != null:
+				model.add_child(rack)
+				pods.append(rack)
 			# Ours: a model's own pylon for the station (Pylon<letter>, the F-35I's) shows while the station is loaded.
 			var pylon := model.find_child("Pylon" + "ABCDEFGHI"[i], true, false) as Node3D if i < 9 else null
 			if pylon != null:
@@ -2612,6 +2616,35 @@ static func attach_stores(stores: RefCounted, model: Node3D) -> Dictionary:
 				b.scale = Vector3.ONE * ROCKET_BOX_SCALE / STORE_PRESENT_SCALE  # the stores ride on the jet's scale
 				pods.append(b)
 	return {"nodes": nodes, "pods": pods}
+
+
+## Ours, Models: Detailed: the rack over a station of four detailed stores (Gltf.RACKS: the GBU-39s' BRU-61/A), or
+## null. It sits on the four stores' tops, centred on their slots, stretched along its length to them (the station
+## keeps the game's slots, BOMB_STATION_LENGTH apart, wider than the real rack's). It stays when the stores go.
+static func _rack(st: Dictionary, nodes: Array) -> Node3D:
+	var f := String(st.w.model_path).get_file()
+	if nodes.size() < 4 or not Gltf.RACKS.has(f) or Gltf.detailed(f) == "":
+		return null
+	var model = Gltf.model(Gltf.STORES_DIR + Gltf.RACKS[f] + ".glb")
+	if model == null:
+		return null
+	var store := AABB()
+	for mi: MeshInstance3D in nodes[0].find_children("*", "MeshInstance3D", true, false):
+		if mi.visibility_range_begin == 0.0:  # the detailed store, not its far original
+			store = mi.transform * mi.get_aabb()
+	var lo := Vector3.INF
+	var hi := -Vector3.INF
+	for s: Vector3 in st.slots:
+		lo = lo.min(s)
+		hi = hi.max(s)
+	var rack := Gltf.instance(model)
+	var box := Gltf.model_aabb(rack)
+	rack.scale = Vector3(1, 1, (hi.z - lo.z + store.size.z * 0.9) / box.size.z)
+	rack.position = (lo + hi) * 0.5 + Vector3(0, store.end.y - box.position.y - 0.02, 0)
+	rack.set_meta("station", int(st.index))
+	for g: GeometryInstance3D in rack.find_children("*", "GeometryInstance3D", true, false):
+		g.visibility_range_end = STORE_LOD_M  # as the detailed stores: none on the originals beyond
+	return rack
 
 
 ## The store model's `pilon` helper (glTF, the sum of its and its parents' translations), or null.
@@ -2698,7 +2731,7 @@ func _update_store_nodes() -> void:
 			for k in nodes[i].size():
 				nodes[i][k].visible = Settings.external_stores and near and k < n and (bay_shown or not _internal(i))
 	for b in _pod_nodes:
-		b.visible = Settings.external_stores and near
+		b.visible = Settings.external_stores and near and (bay_shown or not _internal(b.get_meta("station", -1)))
 
 
 ## FUN_00411d90: two crossed quads along the gun line, gunFire.tga, 0.85–1.15 long × 0.6 wide

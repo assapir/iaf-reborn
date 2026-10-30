@@ -257,7 +257,11 @@ static func objects_path(path: String) -> String:
 const STAND_INS := {
 	"weapons/sufa/aim9x_m.gltf": "weapons/aim9/aim9_m.gltf",
 	"weapons/sufa/gbu31_m.gltf": "weapons/mk84lb/mk84lb_m.gltf",
+	"weapons/sufa/gbu31v3_m.gltf": "weapons/mk84lb/mk84lb_m.gltf",
 	"weapons/sufa/gbu38_m.gltf": "weapons/mk82lb/mk82lb_m.gltf",
+	"weapons/sufa/pyth5_m.gltf": "weapons/pthon4/pthon4_m.gltf",
+	"weapons/sufa/gbu32_m.gltf": "weapons/mk83lb/mk83lb_m.gltf",
+	"weapons/sufa/gbu39_m.gltf": "weapons/mk82/mk82_m.gltf",
 }
 
 
@@ -304,13 +308,22 @@ const STORES := {
 	"flrpod_m.gltf": "flrpod",
 	"aim9x_m.gltf": "aim9x",
 	"gbu31_m.gltf": "gbu31",
+	"gbu31v3_m.gltf": "gbu31v3",
 	"gbu38_m.gltf": "gbu38",
+	"pyth5_m.gltf": "pyth5",
+	"gbu32_m.gltf": "gbu32",
+	"gbu39_m.gltf": "gbu39",
+	"popeye_m.gltf": "popeye",
 	"aa2_m.gltf": "aa2",
 	"aa8_m.gltf": "aa8",
 	"aa10_m.gltf": "aa10",
 	"aa11_m.gltf": "aa11",
 	"mig29ftk_m.gltf": "mig29ftk",
 }
+
+## The racks drawn over a station of four detailed stores (Models: Detailed; PlayerWeapons.attach_stores): the store's
+## file -> the rack's detailed model (ours, tools/stores/ours.gd), stretched along its length to the four slots.
+const RACKS := {"gbu39_m.gltf": "bru61"}
 
 
 ## The detailed model standing in for the original at `path` with the switch on (an F-16's: the Sufa with the F-16
