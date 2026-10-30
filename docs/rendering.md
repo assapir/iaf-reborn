@@ -836,7 +836,9 @@ back to back:
   radiance texel (≈ 0); the ambient from the sky reads the same radiance as before (0); the auto-exposure adds
   Godot's luminance reduction, a few compute passes over the 3D buffer each frame (expected ≈ 0.1–0.3 ms at
   2560 × 1440 on the Iris Xe). Bench it with `_flight_bench.gd BENCH_BEST=1` against a run with Sky = Original
-  (its luminance pass off).
+  (its luminance pass off). Benched 2026-10-30 that way, with all of the above, Iris Xe, 2560 × 1440, two runs each
+  under the shared GPU lock from a quiet machine: GPU +0.35 ms at 150 m (3 %), +0.77 ms at 1500 m (5 %), about
+  +1.2 ms at 6000 m (7 %). An earlier set on a busy CPU had shown 12 % at 1500 m.
 - The bench writes screenshots of each pose. `BENCH_SEED=3` selects the broken-cloud texture Cloud256_0 in place of
   the overcast Cloud256_5.
 
