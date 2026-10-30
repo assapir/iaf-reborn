@@ -148,9 +148,10 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
   scenes (Carmel forest), killed by a timeout; its Xvfb then stayed behind holding the GPU lock's file. No stack
   taken (the run watched with gdb exited cleanly). Likely the Wayland exit race above (inferred): under xvfb-run
   Godot still opens on Wayland, as Vulkan cannot present on Xvfb (rendering.md §1.5 "Wayland at exit"); open.
-- **City lights** (rendering.md §5.1): none outside map.ptt's Israel region (no building data); from 8000 m the far
-  towns fade in the fog. Roads Detailed (rendering.md §1.8) draws the roads on the ground near the camera and lamps
-  along the lit ones; no lane markings, no railways.
+- **City lights** (rendering.md §5.1): outside map.ptt's Israel region only the road lamps (Roads Detailed: no
+  building data there); from 8000 m the far towns fade in the fog. Roads Detailed (rendering.md §1.8) draws the
+  roads, their lane markings and the railways near the camera; a double line's inner rails break up close, and no
+  median edge line on dual carriageways.
 - **Imagery**: SPOT 5 outside Israel not started.
 - **Multiplayer**: not started (missions 511–516, 777), with its RWR network messages. Research and discussion:
   [multiplayer.md](multiplayer.md).

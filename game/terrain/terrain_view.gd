@@ -504,6 +504,8 @@ func _update_time_of_day(cam: Camera3D) -> void:
 		env.ambient_light_energy = RenderOptions.SKY_AMBIENT if atmo else float(_tod_sun.ambient) / 0.6
 		if NightLights.detailed():
 			_night_detailed(sun, env, _tod_sun.night)
+		elif _city_lights != null:
+			_city_lights.visible = false  # Night lights switched to Original during the flight
 		if clouds != null:
 			clouds.set_tint(TimeOfDay.NIGHT_LIGHT if _tod_sun.night else Color.WHITE)
 		if atmo != _tod_atmo:

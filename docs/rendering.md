@@ -36,7 +36,7 @@ TAA = temporal anti-aliasing, FSR = AMD FidelityFX Super Resolution.
 | Rolling wheels | Original / Rolling | the wheels of a model with wheel frames turn as the jet rolls (today the F-35I; docs/part-animation.md §2.2) |
 | Airbases | Original / Detailed | in `terrain.gdshader`: near the ground, a procedural runway, taxiway and apron surface with ICAO markings over the nearest base's paved surface (§7); always on in World scale Real |
 | Ground textures | Original / ambientCG | in `terrain.gdshader`: near the camera, where they resolve, CC0 photo textures of asphalt, concrete, sand, gravel, grass, soil and rock, chosen per pixel from the imagery's colour (§1.4). Greyed out and not clickable ("Not downloaded") until setup has downloaded them; a saved ambientCG without them loads as Original |
-| Roads | Original / Detailed | in `terrain.gdshader`: within 1.5 km of the camera, OpenStreetMap's roads (setup's road layer, [scenery.md](scenery.md) §6) drawn on the ground where the imagery is too coarse to show them: asphalt or dirt, at the road's width (§1.8). With Night lights Detailed, lamps along the lit roads too (§5.1). Greyed out ("Not downloaded") until setup has made the road layer |
+| Roads | Original / Detailed | in `terrain.gdshader`: within 1.5 km of the camera, OpenStreetMap's roads (setup's road layer, [scenery.md](scenery.md) §6) drawn on the ground where the imagery is too coarse to show them: asphalt or dirt, at the road's width, with lane markings and railways up close (§1.8). With Night lights Detailed, lamps along the lit roads too (§5.1). Greyed out ("Not downloaded") until setup has made the road layer |
 | Scenery | Off / On / Detailed | On: buildings and trees over the Survey of Israel 2 m photo, streamed with the ground (`terrain/scenery.gd`, `scenery.gdshader`; [scenery.md](scenery.md) §3). Detailed: the same with the facades (recessed windows, shutters, loggias, AC units), the streets' occlusion, the roof clutter and the far walls in the photo's colour (`scenery_detailed.gdshader`, `scenery_roof.gdshader`; scenery.md §3.3); it costs about 18 % more GPU time low over a town (scenery.md §3.3). The row sits under Imagery Israel. "On" and "Detailed" are greyed out until setup has made the scenery (Detailed's place reads "Not downloaded"), and while the Israel imagery picked on the page is not a Survey 2 m layer ("Needs Survey 2 m"); picking another Israel imagery turns it off. A saved On or Detailed without either loads as Off. Takes effect at the next flight |
 
 ### 1.1 Terrain close up
@@ -627,7 +627,7 @@ distant jets above, which matter most in a flight sim. MSAA 4x stays the default
 
 Detailed draws OpenStreetMap's roads on the ground near the camera (ours, docs/deviations.md §2). The data is setup's
 road layer ([scenery.md](scenery.md) §6). Without it the row's Detailed reads "Not downloaded" and nothing is drawn.
-Detailed also adds lamps along the lit roads at night (§5.1).
+Detailed also draws the lane markings and the railways up close, and adds lamps along the lit roads at night (§5.1).
 
 **The mask** (`iaf_avionics::roads::mask`, made by `IafRoads.request_mask` on a thread of the extension's own; a plain
 thread, so nothing waits at the quit). It covers 2048 × 2048 texels of 2 m (4.1 km square) around the camera, RG8
@@ -636,13 +636,31 @@ thread, so nothing waits at the quit). It covers 2048 × 2048 texels of 2 m (4.1
 - R: the signed distance from the texel's centre to the nearest road's edge, 128 + 16 per metre, up to 8 m either way
   (negative on the road). Read with bilinear filtering, a distance field keeps a sharp, straight edge at any
   distance, where a coverage mask of the same size blurs over 2 m.
-- G: that road's attributes: bit 7 paved, bits 0–6 its width in half metres.
-- The roads drawn: classes motorway to track, at the layer's width (OSM `width`, else lanes × 3.5 m, else by class).
-  Tunnels and the pieces off the ground (airbases and their 1200 m ring, World scale Real's sites, the 1998 sea) are
-  left out; railways too.
+- G: that way's attributes: bit 7 paved, bit 6 a railway, bits 0–5 its width drawn in half metres (up to 31.5 m).
+- The ways drawn: classes motorway to track, at the layer's width (OSM `width`, else lanes × 3.5 m, else by class);
+  a motorway or trunk road with a 1 m paved shoulder each side (inferred: the width is mostly lanes × 3.5 m, and these
+  roads have shoulders); railways as a 4.5 m ballast bed (inferred: sleepers 2.6 m, the bed wider at its foot; the
+  two tracks of a double line, their centres 4–4.5 m apart, make one bed). Tunnels and the pieces off the ground
+  (airbases and their 1200 m ring, World scale Real's sites, the 1998 sea) are left out.
 
-`terrain/ground_roads.gd` asks a new mask when the camera is 500 m from the last one's centre and shows it when made
-(`ImageTexture.update`). Over Tel Aviv a mask is made in 75–135 ms (block files read, every road rasterised).
+**The marking mask** (`iaf_avionics::roads::marks`, made with the road mask on its thread, the same centre): 1024 ×
+1024 texels of 2 m (2 km square), RGBA8 (4 MB, no mipmaps), from the marked ways only:
+
+- R: the signed offset from the nearest marked way's centreline, 128 + 16 per metre (positive on the right of its
+  direction). Across a straight way it changes linearly, so bilinear filtering keeps it exact; the road mask's
+  distance to the edge folds at the centreline and cannot place a centre line.
+- G: the metres along the way modulo the dash period (12 m), in 256ths.
+- B: its markings: bits 0–3 the lanes (round(width / 3.5 m); a two-way road an even count), bit 4 one way, bit 6 a
+  railway, bit 7 edge lines.
+- A: its half width in 16ths of a metre.
+- The ways marked: paved motorway and trunk carriageways and ramps (edge lines, a dashed line between their lanes),
+  paved two-way primary to tertiary roads of two lanes or more (a dashed line between their lanes: the centre line on
+  two lanes), railways (two rails). A texel holds the way within its half width + 3 m: the shader's four taps reach
+  2√2 m.
+
+`terrain/ground_roads.gd` asks a new mask when the camera is 500 m from the last one's centre and shows both when made
+(`ImageTexture.update`). Over Tel Aviv a mask is made in 75–135 ms (block files read, every road rasterised). The
+marking mask holds at least 524 m around the camera.
 
 **The shader** (`terrain.gdshader`, global `ground_roads`): a road pixel gets the road's colour over the imagery,
 before the airbases' surface and below the towns' night glow (so a lit road reads at night).
@@ -655,12 +673,28 @@ before the airbases' surface and below the towns' night glow (so a lit road read
 - The colour: the photo blurred to ≈ 16 m gives the tone. Asphalt goes 85 % toward real asphalt's grey (albedo
   0.07); a dirt road is a paler, warmer version of the ground. Patches of ≈ 40 m and a grain of ≈ 1 m vary both. With
   Ground textures ambientCG, the asphalt or gravel texture where it resolves.
+- A railway's bed: grey crushed stone browned by rust (albedo ≈ 0.2), a quarter of it the photo's tone.
 - The edge: the anti-aliasing width is the distance's change to the next pixels' ground (three taps of the mask, only
   near a road; one tap rejects the rest).
 
+**Markings** (`road_paint`, on the drawn roads only): within 380–500 m of the camera and on pixels under 0.6–1.2 m.
+
+| Line | Where | Size, colour |
+|---|---|---|
+| Lane line | between a road's lanes (the centre line of a two-lane road) | 0.12 m, white (albedo 0.6); dashes 3 m in every 12 m[^mutcd] |
+| Edge line | motorways and trunk roads, on the shoulder by the outer lane; a one-way carriageway its right edge only | 0.15 m, yellow: Israel marks a road's edge in yellow[^il-yellow] |
+| Rails | a railway, the two rails of a standard-gauge track | 0.07 m, dark steel (albedo 0.09) |
+
+The dash and gap lengths are the MUTCD's 10 ft and 30 ft; no Israeli figure was found (open), the same paint is used
+outside Israel (inferred). Each line and dash is box-filtered over the pixel's footprint across and along the way
+(the offset's and the distance's change to the next pixels, from the four taps of one `textureGather` per channel),
+the airbases' `ab_band` / `ab_train`: a far line thins into its average instead of shimmering. Four taps of two ways
+(a junction, two carriageways side by side) are not mixed: their offsets or distances differ by more than 3.2 m, or
+change at another rate than a metre per metre.
+
 **Alignment.** Over Ramat David and Tel Aviv a drawn road lies on the photo's road: the layer is warped into the
 engine frame by the scenery's georeference (scenery.md §6.1). The test checks every way's segment middles fall on road
-texels.
+texels, and over the Ayalon the motorway's and the railway's points on their strips and marked.
 
 **Cost** (Intel Iris Xe, 2560 × 1440, mission 231 at 250 m over the Ayalon, `tests/godot/_airbase_shot.gd`
 `SHOT_BENCH=ground_roads`, which switches the global every 120 frames, 12 pairs): GPU +0.14 ms (median; quartiles
@@ -684,8 +718,21 @@ in both columns. Video memory: +8 MB.
 Tried and dropped (2026-10-29): the road drawn at full strength over the Survey 2 m photo. Its roads already show;
 a uniform grey band hid the photo's lane paint, shoulders and the trees over the streets.
 
-Open: no lane markings; railways are not drawn (only the map shows them); within 1200 m of an airbase the roads are
-cut off the ground by the road layer (scenery.md §6.1), so the base's own access roads stay the imagery's.
+Tried and dropped (2026-10-29, the markings):
+
+- The markings drawn over the imagery where it shows the road itself (the Survey photo, Tel Aviv's kept inset): over
+  the Ayalon the white dashes and yellow edges floated over a blurred ground that showed no lanes of its own to match.
+  Now they are drawn only on the roads drawn.
+- The edge lines from the road mask's edge distance: where two carriageways touch, the mask's tiny gaps between them
+  drew yellow diamonds. Then the edge lines from the marking mask on both sides: the two carriageways' median edges,
+  each from its own way's texels, broke into pieces. Now a one-way carriageway has only its right edge line, and the
+  1 m shoulders close the gaps.
+- A 3 m railway strip: a double line's two strips left a gap under a texel wide that wavered along the line.
+
+Open: a double line's inner rails break where the two tracks' texels meet (the marking mask holds one way per 2 m
+texel); no median edge line on a dual carriageway; the dash and gap lengths are not Israel's own (no source found);
+within 1200 m of an airbase the roads are cut off the ground by the road layer (scenery.md §6.1), so the base's own
+access roads stay the imagery's.
 
 ## 2. Cloud layer (Graphics TEXTURED SKY, docs/front-end.md §12.4)
 
@@ -968,8 +1015,12 @@ scenery's 2.08 M buildings: 2.9 M lights, 1.9 M of them lamps and 0.77 M windows
 file of the same 4 × 4 cells) get a row of poles, made with the block's other lights:
 
 - on every way tagged `lit=yes`, any class up to track;
-- on the untagged motorway, trunk, primary and secondary roads inside towns: a facade lamp within the 150 m square or
-  its neighbours (inferred: most town main roads are lit, and most are untagged);
+- on the untagged motorway, trunk, primary and secondary roads inside towns (inferred: most town main roads are lit,
+  and most are untagged). A town: a facade lamp within the 150 m square or its neighbours, or 1500 m of minor roads
+  (residential, unclassified) in the square's 3 × 3 neighbourhood, about 7 km of street per km² (inferred: a town's
+  street grid holds 10–20, the open country a few hundred metres);
+- on the untagged tertiary and minor roads of a town found by its streets with no facade lamp near: outside the
+  buildings' coverage (Lebanon, Syria, Jordan, Egypt, Cyprus) its streets have no other lights;
 - never on a way tagged `lit=no`, a tunnel, a piece off the ground or a railway; none within 12 m of a facade lamp
   (the street already has its row).
 
@@ -985,9 +1036,16 @@ The heights are the usual nominal column heights, 6 m in residential streets[^la
 the right of the way's direction (a dual carriageway mapped as two ways gets a row along each). Colour: sodium, or
 white LED on 30 % of the roads (one kind per class within a 3 km square, as OSM cuts a road into many ways); the
 motorways and trunk roads full brightness, primary and secondary 0.9, the rest 0.75. Each lamp has a seeded rank, so
-it thins with distance as the other lights. A Tel Aviv block: 140 490 lights, 151 454 with the road lamps (+8 %). Over
+it thins with distance as the other lights. A Tel Aviv block: 140 490 lights, 151 597 with the road lamps (+8 %). Over
 the Ayalon at night about 30 000 more points are drawn (≈ 0.5 MB); their cost is within the runs' noise (§1.8's
-night rows). The switch takes effect on the blocks made next (the next flight).
+night rows).
+
+Outside the buildings' coverage the road lamps come from the road layer's own blocks: with the road lamps on,
+`IafCityLights.blocks_near` also lists every road block the buildings lack, made by the same thread from its roads
+only (no second streamer). A block around Amman: 38 068 lamps (a Tel Aviv block: 151 597 lights). Switched during a
+flight (Roads, from the in-flight Graphics page), `city_lights.gd` makes every block again at once and keeps its old
+points until the new ones arrive (1–5 s); the road-only blocks come or go. Night lights switched to Original during
+a flight hide the city lights.
 
 **Streaming** (`crates/iaf-godot/src/city_lights.rs` `IafCityLights`, `city_lights.gd`): blocks of 4 × 4 cells
 (≈ 10 km), made on a thread of the extension's own (a plain thread: no Godot pool task to wait for at the quit). It
@@ -1051,7 +1109,7 @@ Open:
 
 - Outside map.ptt's Israel region (Damascus, Amman, Cairo) there are no city lights: the building sources cover
   Israel, the West Bank and Gaza only.
-- Road lamps only where the city lights have buildings (their blocks): outside them a lit road stays dark.
+- Outside the buildings' coverage a town has only its road lamps: no windows, no porch lights, no haze.
 - With Anti-aliasing TAA the far 1-pixel points are softer and dimmer than with MSAA (the temporal blend averages a
   point that is under a pixel).
 - From 8000 m the towns 20 km and more away fade into the night's fog: a lit coast reads faintly.
@@ -1784,5 +1842,9 @@ graphics option at its best. `RAIN_BENCH=secs` measures the frame rate instead.
 [^lekner]: J. Lekner, M. C. Dorf, "Why some things are darker when wet", Applied Optics 27 (7), 1988, pp. 1278–1280:
     https://doi.org/10.1364/AO.27.001278
 
+[^mutcd]: US FHWA, Manual on Uniform Traffic Control Devices (2009), §3A.06: broken lines of 10 ft segments and 30 ft
+    gaps, a normal line 4–6 in wide: https://mutcd.fhwa.dot.gov/htm/2009/part3/part3a.htm
+[^il-yellow]: Hamichlol, "קו הפרדה" (road markings in Israel: "a yellow line marks the road's edge"):
+    https://www.hamichlol.org.il/%D7%A7%D7%95_%D7%94%D7%A4%D7%A8%D7%93%D7%94
 [^lamp-height]: Matamata-Piako District Council, Development Manual, Part 3 (street lighting: preferred mounting heights 6 m
     residential, 7 m industrial): https://www.mpdc.govt.nz/wmmp/120-district-plan/mpdc-development-manual/1887-part-3-3142

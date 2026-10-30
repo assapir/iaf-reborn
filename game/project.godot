@@ -99,6 +99,10 @@ road_mask={
 "type": "sampler2D",
 "value": ""
 }
+road_marks={
+"type": "sampler2D",
+"value": ""
+}
 road_mask_rect={
 "type": "vec4",
 "value": Vector4(0, 0, 0, 0)

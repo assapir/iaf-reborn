@@ -128,13 +128,19 @@ const ROAD_OUT: f32 = 1.5;
 const ROAD_NEAR_FACADE: f32 = 12.0;
 /// Inside a town: a facade lamp within this square's 3 × 3 neighbourhood.
 const TOWN_SQUARE: f32 = 150.0;
+/// Inside a town too: this many metres of minor roads (residential, unclassified, living streets) within the square's
+/// 3 × 3 neighbourhood, about 7 km of street per km² (inferred: a town's street grid holds 10–20, the open country a
+/// few hundred metres). It finds the towns where the city lights have no buildings (outside Israel).
+const TOWN_STREETS: f32 = 1500.0;
 /// A road's lamps are of one kind within squares of this side (m).
 const ROAD_KIND: f32 = 3000.0;
 /// The share of roads with white LED lamps (inferred, as the facades' 12–35 %).
 const ROAD_LED: f32 = 0.3;
 
-/// Lamps along the roads of `r`: the ways tagged lit everywhere, and the untagged motorway to secondary roads inside
-/// towns (a facade lamp of `facade` near). Never on a way tagged unlit, a tunnel, a piece off the ground or a railway.
+/// Lamps along the roads of `r`: the ways tagged lit everywhere, the untagged motorway to secondary roads inside towns
+/// (a facade lamp of `facade` near, or TOWN_STREETS of minor roads), and the untagged tertiary and minor roads of a
+/// town found by its streets with no facade lamp near (outside Israel: its streets' only lights). Never on a way
+/// tagged unlit, a tunnel, a piece off the ground or a railway.
 /// A lamp near one of the facade lamps is left out. A road class has one kind of lamp (sodium or LED) per 3 km square.
 pub fn road_lamps(r: &Roads, facade: &[Light]) -> Vec<Light> {
     use std::collections::{HashMap, HashSet};
@@ -144,6 +150,31 @@ pub fn road_lamps(r: &Roads, facade: &[Light]) -> Vec<Light> {
     for l in facade.iter().filter(|l| l.up == LAMP_UP) {
         near.entry(key(l.at, ROAD_NEAR_FACADE)).or_default().push(l.at);
         town.insert(key(l.at, TOWN_SQUARE));
+    }
+    let mut streets: HashMap<(i32, i32), f32> = HashMap::new();
+    for (k, _) in r.ways.iter().enumerate().filter(|(_, w)| w.class == roads::CLASS_MINOR) {
+        let pts: Vec<[f64; 2]> = r.way_points(k as u32).collect();
+        for s in pts.windows(2) {
+            // Each 10 m of street counts in its square.
+            let len = (s[1][0] - s[0][0]).hypot(s[1][1] - s[0][1]);
+            let steps = (len / 10.0).ceil().max(1.0);
+            for t in 0..steps as usize {
+                let f = (t as f64 + 0.5) / steps;
+                let p = [(s[0][0] + (s[1][0] - s[0][0]) * f) as f32, (s[0][1] + (s[1][1] - s[0][1]) * f) as f32];
+                *streets.entry(key(p, TOWN_SQUARE)).or_default() += (len / steps) as f32;
+            }
+        }
+    }
+    // The towns found by their streets; where the city lights have no buildings (outside Israel), their streets too.
+    let built = town.clone();
+    let mut street_town = HashSet::new();
+    for &k in streets.keys() {
+        let sum: f32 =
+            (-1..=1).flat_map(|dy| (-1..=1).map(move |dx| (k.0 + dx, k.1 + dy))).filter_map(|q| streets.get(&q)).sum();
+        if sum >= TOWN_STREETS {
+            town.insert(k);
+            street_town.insert(k);
+        }
     }
     let around = |k: (i32, i32), f: &mut dyn FnMut((i32, i32)) -> bool| {
         (-1..=1).any(|dy| (-1..=1).any(|dx| f((k.0 + dx, k.1 + dy))))
@@ -159,7 +190,10 @@ pub fn road_lamps(r: &Roads, facade: &[Light]) -> Vec<Light> {
         if pts.len() < 2 {
             continue;
         }
-        if !tagged && (w.class > roads::CLASS_SECONDARY || !pts.iter().any(|&p| town.contains(&key(p, TOWN_SQUARE)))) {
+        // Untagged: the main roads in any town, the tertiary and minor ones in a town without buildings.
+        let street = matches!(w.class, roads::CLASS_TERTIARY | roads::CLASS_MINOR);
+        let towns = if street { &street_town } else { &town };
+        if !tagged && (w.class > roads::CLASS_MINOR || !pts.iter().any(|&p| towns.contains(&key(p, TOWN_SQUARE)))) {
             continue;
         }
         let mut s = Seed((w.osm_id as u32).wrapping_mul(0x85eb_ca6b) ^ (w.osm_id >> 32) as u32);
@@ -192,7 +226,11 @@ pub fn road_lamps(r: &Roads, facade: &[Light]) -> Vec<Light> {
                     near.get(&q)
                         .is_some_and(|v| v.iter().any(|p| (p[0] - at[0]).hypot(p[1] - at[1]) < ROAD_NEAR_FACADE))
                 });
-                if !close && (tagged || around(key(at, TOWN_SQUARE), &mut |q| town.contains(&q))) {
+                let sq = key(at, TOWN_SQUARE);
+                let lit = tagged
+                    || (around(sq, &mut |q| towns.contains(&q))
+                        && !(street && around(sq, &mut |q| built.contains(&q))));
+                if !close && lit {
                     out.push(Light { at, up, color: col.map(|v| v * bright), rank: rank(&mut s) });
                 }
             }
@@ -376,5 +414,31 @@ mod tests {
         }
         // One kind of lamp per class and square.
         assert!(lit.iter().all(|l| l.color == lit[0].color));
+    }
+
+    #[test]
+    fn road_lamps_without_buildings() {
+        // No facade lamps (outside Israel): a town's street grid (minor roads every 80 m over 0..800 m), an untagged
+        // primary through it and on into the open country, and a lit tertiary far off.
+        use crate::roads::*;
+        let way = |class: u8, flags: u8| Way { osm_id: 9, first: 0, count: 0, class, flags, layer: 0, width: 7.0 };
+        let mut lines: Vec<(Way, Vec<[f32; 2]>)> = (0..=10)
+            .flat_map(|i| {
+                let c = i as f32 * 80.0;
+                [(way(CLASS_MINOR, 0), vec![[c, 0.0], [c, 800.0]]), (way(CLASS_MINOR, 0), vec![[0.0, c], [800.0, c]])]
+            })
+            .collect();
+        lines.push((way(CLASS_PRIMARY, 0), vec![[0.0, 420.0], [4000.0, 420.0]]));
+        lines.push((way(CLASS_TERTIARY, FLAG_LIT), vec![[0.0, 3000.0], [4000.0, 3000.0]]));
+        let r = Roads::from_lines(lines.iter().map(|(w, p)| (*w, &p[..])));
+        let l = road_lamps(&r, &[]);
+        let main: Vec<_> = l.iter().filter(|l| (l.at[1] - 420.0).abs() < 10.0).collect();
+        assert!(!main.is_empty(), "the primary is lit in the town");
+        assert!(main.iter().all(|l| l.at[0] < 1300.0), "and dark in the open country");
+        assert!(l.iter().filter(|l| (l.at[1] - 3000.0).abs() < 10.0).count() > 100, "the lit road everywhere");
+        // The town's own streets too (no buildings to light them), and nothing else.
+        assert!(l.iter().filter(|l| (l.at[0] - 80.0).abs() < 10.0 && l.at[1] < 800.0).count() > 15, "its streets");
+        let in_town = |l: &&Light| l.at[0] < 1300.0 && l.at[1] < 1300.0;
+        assert!(l.iter().all(|l| in_town(&l) || (l.at[1] - 420.0).abs() < 10.0 || (l.at[1] - 3000.0).abs() < 10.0));
     }
 }

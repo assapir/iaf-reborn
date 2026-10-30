@@ -26,6 +26,8 @@ struct Store {
     /// The last blocks merged (their first and last block) for a route: the mission editor's routes ask again and
     /// again around the same place.
     merged: Option<(Blocks, Arc<Roads>)>,
+    /// Every block with a file (`L3/r_<i>_<j>.bin`).
+    keys: Vec<(i32, i32)>,
 }
 
 /// Blocks kept in memory (a dense block is about 2 MB on disk).
@@ -36,6 +38,11 @@ const ROUTE_PAD_M: f64 = 5000.0;
 const MAX_ROUTE_BLOCKS: usize = 64;
 
 static STORE: Mutex<Option<Store>> = Mutex::new(None);
+
+/// The blocks with a file, once the layer is open (the city lights' road lamps beyond their own blocks).
+pub(crate) fn block_keys() -> Vec<(i32, i32)> {
+    STORE.lock().unwrap().as_ref().map(|s| s.keys.clone()).unwrap_or_default()
+}
 
 fn main() -> Option<Arc<Roads>> {
     STORE.lock().unwrap().as_ref()?.main.clone()
@@ -75,8 +82,10 @@ fn blocks(min: [f64; 2], max: [f64; 2]) -> Vec<Arc<Roads>> {
 /// The ground's road mask (docs/rendering.md §1.8): MASK_N² texels of MASK_M m, made on a thread of its own.
 const MASK_N: usize = 2048;
 const MASK_M: f64 = 2.0;
-/// A made mask: its north-west corner (engine metres) and its bytes (iaf_avionics::roads::mask).
-type MadeMask = ([f64; 2], Vec<u8>);
+/// The marking mask (iaf_avionics::roads::marks): MARKS_N² texels of MASK_M m on the same centre.
+const MARKS_N: usize = 1024;
+/// A made mask: its north-west corner (engine metres), its bytes (iaf_avionics::roads::mask) and the marking mask's.
+type MadeMask = ([f64; 2], Vec<u8>, Vec<u8>);
 static MASK: Mutex<Option<MadeMask>> = Mutex::new(None);
 static MASK_QUEUE: LazyLock<Mutex<Sender<[f64; 2]>>> = LazyLock::new(|| {
     let (tx, rx) = channel::<[f64; 2]>();
@@ -88,9 +97,11 @@ static MASK_QUEUE: LazyLock<Mutex<Sender<[f64; 2]>>> = LazyLock::new(|| {
             }
             let half = MASK_N as f64 * MASK_M * 0.5;
             let parts = blocks([c[0] - half, c[1] - half], [c[0] + half, c[1] + half]);
-            let bytes =
-                mask(&parts.iter().map(Arc::as_ref).collect::<Vec<_>>(), c[0] - half, c[1] + half, MASK_M, MASK_N);
-            *MASK.lock().unwrap() = Some(([c[0] - half, c[1] + half], bytes));
+            let parts = parts.iter().map(Arc::as_ref).collect::<Vec<_>>();
+            let bytes = mask(&parts, c[0] - half, c[1] + half, MASK_M, MASK_N);
+            let h2 = MARKS_N as f64 * MASK_M * 0.5;
+            let mk = marks(&parts, c[0] - h2, c[1] + h2, MASK_M, MARKS_N);
+            *MASK.lock().unwrap() = Some(([c[0] - half, c[1] + half], bytes, mk));
         }
     });
     Mutex::new(tx)
@@ -151,7 +162,17 @@ impl IafRoads {
         }
         let dir = PathBuf::from(dir.to_string());
         let Some(main) = Roads::load(&dir.join("main.bin")) else { return false };
-        *g = Some(Store { dir, main: Some(Arc::new(main)), ..Default::default() });
+        let keys = std::fs::read_dir(dir.join("L3"))
+            .into_iter()
+            .flatten()
+            .flatten()
+            .filter_map(|e| {
+                let name = e.file_name().to_string_lossy().into_owned();
+                let (i, j) = name.strip_prefix("r_")?.strip_suffix(".bin")?.split_once('_')?;
+                Some((i.parse().ok()?, j.parse().ok()?))
+            })
+            .collect();
+        *g = Some(Store { dir, main: Some(Arc::new(main)), keys, ..Default::default() });
         true
     }
 
@@ -242,11 +263,15 @@ impl IafRoads {
     }
 
     /// The road mask once made (then handed over once), else {}: {bytes (RG8, row 0 north: R the signed distance to
-    /// the nearest road's edge, 128 + 16 per metre, G bit 7 paved and bits 0–6 its width in half metres), n (texels a
-    /// side), m (metres a texel), x0 (west edge), y1 (north edge)}.
+    /// the nearest way's edge, 128 + 16 per metre, G bit 7 paved, bit 6 a railway, bits 0–5 its width in half metres),
+    /// n (texels a side), m (metres a texel), x0 (west edge), y1 (north edge), marks (the marking mask on the same
+    /// centre, RGBA8, iaf_avionics::roads::marks), marks_n (its texels a side)}.
     #[func]
     fn take_mask() -> VarDictionary {
-        let Some((o, bytes)) = MASK.lock().unwrap().take() else { return VarDictionary::new() };
-        vdict! {"bytes" => &PackedByteArray::from(bytes.as_slice()), "n" => MASK_N as i64, "m" => MASK_M, "x0" => o[0], "y1" => o[1]}
+        let Some((o, bytes, mk)) = MASK.lock().unwrap().take() else { return VarDictionary::new() };
+        vdict! {
+            "bytes" => &PackedByteArray::from(bytes.as_slice()), "n" => MASK_N as i64, "m" => MASK_M,
+            "x0" => o[0], "y1" => o[1], "marks" => &PackedByteArray::from(mk.as_slice()), "marks_n" => MARKS_N as i64,
+        }
     }
 }
