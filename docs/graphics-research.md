@@ -301,6 +301,105 @@ clickables, then the F-15C.
   (docs/controls.md): master arm, gear, flaps, hook, chaff / flare, ECM (electronic countermeasures), MFD OSBs
   (option select buttons; already clickable in 2D: docs/mfd.md), radar mode, autopilot. The keyboard keeps working.
 
+#### Sufa options (research 2026-10-30)
+What a 3D cockpit for the F-16I Sufa can be built from. The real one (docs/f16i.md §4): an F-16D Block 52+ with
+three colour displays in each cockpit (six 484 × 484 colour LCDs in all; the 4 × 4 in MFDs are Astronautics'), an
+Elbit wide-angle HUD, the DASH IV helmet in both seats, and a rear seat for a weapons systems officer (WSO) that one
+switch turns into an instructor's[^cp-du][^cp-at]. Today the Sufa shows the F-16's 1998 2D panel with our live colour
+MFDs (docs/mfd.md §9) and the Real HUD on it.
+
+**What the FlightGear F-16 holds** (`~/.cache/fg-f16`, pinned commit ef4f192, the source of the Detailed F-16D):
+- **Licence:** `copyright.txt` puts every file in the package under GPL-2.0-or-later (© 2023 Erik Hofman, authors
+  in `authors.txt`; cockpit textures and layout by Martin "Pegasus" Schmitt and Prohm "Rama" Snitwong, MFD / HUD /
+  CDU / PFD work by Nikolai V. Chr.)[^cp-fg]. No file carries a different licence of its own.
+- **One cockpit for every block:** `Models/Cockpit/Main/cockpit.xml` is the only interior; the `F-16C-40` /
+  `F-16C-50` cockpits are commented out in `F-16.xml` and absent. The blocks differ by texture and by selected
+  objects: a panel sheet per block in `Textures/Block-panels/` (blck10 … blck60, MLU), MLU and Block 50 console
+  textures, a Block 10 stick, the US or the MLU RWR head (`US_threat_warning_prime` / `MLU_threat_warning_prime`).
+- **Front seat, complete:** tub and glareshield, two MFDs (`Avionics/MFD`, bezel 0.141 m square, 20 OSBs each; the
+  screens are FlightGear canvases), ICP (integrated control panel), DED (data entry display), CDU, a small PFD, EHSI,
+  ADI, standby ADI, airspeed, altimeter, VSI, AoA, fuel flow and fuel quantity gauges, both side consoles and
+  auxiliary consoles (MLU-labelled), throttle, stick, rudder pedals, the eyebrow lamp panels, the ACES II seat,
+  kneeboards, the HUD (`hud.ac`, the dash-34 shape, 0.19 × 0.21 m; `f16_war_hud.ac`, the LANTIRN wide-angle HUD)
+  and the JHMCS helmet (`hmcs.ac`).
+- **No rear seat:** the package has no F-16D interior; `F-16D.ac` is a bare shell (two objects). Our
+  `tools/f16d/rig.py` already makes the two-seater for the exterior: it stretches the canopy and places a second,
+  decimated copy of the front tub, seat and pilot (`cockpit()`).
+- **Canopy frame:** part of the exterior model (`f16.ac`), seen from inside; our rig rebuilds the two-seat centre bow.
+- **Size** (counted from the `.ac` files, `refs − 2` triangles per surface): about 147 k triangles for the whole
+  interior without the kneeboards and the pilot. The consoles are most of it: left console 36 k, left aux 30 k, right
+  console 18 k, ICP 14 k, seat 13 k; the tub itself 6 k, each MFD 1.6 k. Textures: about 9 MB of PNGs, mostly 256²
+  to 1024², with four 1024 × 2048 console sheets.
+
+**Other open or CC models** (Sketchfab API, downloadable, checked 2026-10-30):
+
+| model | licence | triangles | verdict |
+|---|---|---|---|
+| "F16C Block 50/52 + Cockpit", graphXDoses (2014, Blender)[^cp-gxd] | CC BY | 27 k (with the airframe) | own work; single seat, half-textured work in progress, below the FlightGear pit: a cross-check only |
+| "F-16 Fighting Falcon, GameReady", rave.Ar4ik[^cp-rave] | CC BY | 115 k (with the airframe) | a baked cockpit texture set; provenance open; no gain over FlightGear's live parts |
+| "General Dynamics F-16D Block 60", MirzaArrafiERV_45[^cp-b60] | CC BY | 62 k | the Block 60 panel (three large displays) is another layout; provenance open |
+| "F-16C Cockpit Photogrammetry", VTX_car | CC BY-NC-SA, tagged DCS | 989 k | rejected: non-commercial, likely a sim capture |
+| "F-16 Fighting Falcon - Free", bohmerang | CC BY-NC-SA | 30 k | rejected: non-commercial |
+| "F-16I Sufa (War Thunder)", KojfDiscord (two) | labelled CC BY | 305 k | rejected: War Thunder rips (Gaijin's rights) |
+| DCS F-16I mod (forum.dcs.world) | — | — | rejected: built on Eagle Dynamics' cockpit |
+
+CC BY 4.0 work may be combined into our GPL-3.0 work[^cp-fsf]; each would need its credit (docs/credits.md, the
+setup wizard's Attributions, the credits roll).
+
+**Photos for the Sufa's own parts (Wikimedia Commons):** no straight-on photo of a Sufa's front or rear panel was
+found (open; Commons' search was rate-limited partway). Usable: two crews in an F-16I with the canopy open, showing
+the rear coaming and the canopy frame (IDF, CC BY 2.0)[^cp-ph-cos]; a pilot in a Sufa's front seat beside the canopy
+rail (IDF Spokesperson's Unit, CC BY-SA 3.0)[^cp-ph-ad]. For the F-16 panel in general: an F-16C panel (PD)[^cp-ph-16c],
+an F-16 trainer panel (PD)[^cp-ph-aa], an F-16AM MLU cockpit (CC BY-SA 2.0)[^cp-ph-efka]. Where the third display
+sits in each Sufa cockpit: open.
+
+**Options:**
+
+| | option | licence | completeness | effort | Iris Xe cost |
+|---|---|---|---|---|---|
+| A | **Sufa 2D panel rendered from the FlightGear pit**: Cycles from the game's eye into the 1920 px panel strip, as `tools/f35i/cockpit3d.py`; the bezels where `[MFD]` puts our live MFDs, a third display through `MiddleActive` (docs/mfd.md §7) | GPL-2.0+ | front seat, HUD frame, consoles in the pan; no rear seat | S–M (≈ 1 week) | none: a 2D panel as today |
+| B | **Real-time 3D front cockpit from FlightGear**: Blender → one glb with KTX2, as `tools/f16d/rig.py`; Block 50 textures | GPL-2.0+ | front seat complete; the canopy frame from our F-16D | L (2–3 weeks; (b) above) | ≈ 60–80 k triangles with the consoles decimated to 30–50 %, ≈ 20–30 MB of textures in VRAM (inferred, not measured) |
+| C | **B + Sufa panels (hybrid)**: the third display, colour MFD glass, the Elbit HUD's frame, Sufa labels; our own parts in Blender | GPL-2.0+ and ours | the front seat Sufa-like where photos allow | M on top of B | as B |
+| D | **Rear WSO cockpit**: B's tub copied aft (as `rig.py` does outside), no HUD, its displays, the WSO's controllers (open) | GPL-2.0+ and ours | rear seat | M after B | a second eye point; one cockpit drawn at a time |
+| E | **Our own model from photos**, all Blender, as the F-35I | ours | what the photos show; the Sufa panel photos are missing | XL (6+ weeks) | as B |
+| F | **A Sketchfab base** | CC BY | single seat, less detail than FlightGear | M, then C's work anyway | 27–115 k triangles |
+
+**How B–D fit our architecture:**
+- **Switch:** Extras "Cockpit: Original 2D / 3D"; the 2D panel stays the default (a docs/deviations.md entry when
+  built).
+- **MFDs:** `mfd.gd` / `f16_mfd.gd` draw into a SubViewport per display (484 × 484, the Sufa's resolution) whose
+  texture is the bezel's emissive screen: three per cockpit ≈ 0.7 Mpx per frame. The EO camera already renders
+  through a SubViewport (`cockpit.gd`). OSB clicks: a ray onto the bezel's button rectangles, as (c).
+- **HUD:** the Real HUD is collimated: its symbols sit at infinity, so it is not a texture on the glass. It is drawn
+  as today (screen space, at the real IFOV, docs/real-hud.md "Real view"), masked to the combiner's outline as seen
+  from the current eye. The glass is then the real one and the symbols stay on the world as the head moves
+  (inferred). The Sufa's Elbit HUD field: open (the F-16C/D's 20° × 13.5° until a source is found).
+- **DASH:** a helmet display draws in screen space wherever the pilot looks (docs/real-hud.md "DASH helmet"); a 3D
+  cockpit leaves it as it is.
+- **Head:** free look (`views.gd`) turns a camera at the design eye; snap views as today. 6-DoF head tracking
+  (TrackIR / opentrack) adds the head's position; opentrack's UDP output is one way in (open: not tried). Near plane
+  0.1 m, as the F-35I (docs/f35i.md §4.4).
+- **Gauges and lamps:** FlightGear's XML animations name each needle's object and axis; our cockpit state (the values
+  `gauges.gd` / `instruments.gd` draw today) drives them.
+- **Iris Xe:** the cockpit covers the lower screen, so less 3D world is drawn behind it. The sun's shadows over the
+  panel are the main unknown (open: measure with `tests/godot/_flight_bench.gd` under the GPU bench lock). Budget it
+  as the Detailed F-16D (51 k triangles, docs/aircraft-models.md).
+
+**Open questions:** the Sufa's panel layout (the third display's place, the up-front controls, the rear seat's
+controllers); the Elbit HUD's frame and field; the DASH IV's differences from the DASH III; whether FlightGear's MLU
+console labels match a Block 52 (they are the closest set).
+
+**Recommendation** (smallest useful first):
+1. **A:** the Sufa's own 2D panel rendered from the FlightGear pit, with our live colour MFDs and a third display. No
+   runtime cost; it reuses the 2D cockpit, the F-35I's render script and `[MFD]`.
+2. **B:** the real-time 3D front cockpit behind the Extras switch: MFDs in SubViewports, the Real HUD masked to the
+   combiner, the main needles live. Measure on the Iris Xe before going on.
+3. **C:** the Sufa-specific parts, as photos are found.
+4. **D:** the rear WSO seat as a second view.
+5. **(c)** clickables, then 6-DoF head tracking.
+
+E and F add nothing over FlightGear for the F-16: not recommended.
+
 ### 3.9 Atmosphere, clouds, fog — payoff 3, effort M
 - **Built:** the atmospheric sky and the cloud layer (docs/rendering.md).
 - **Volumetric fog:** measured free at our density, and it hides little at flight distances.
@@ -559,3 +658,26 @@ performance pass: the 2–3 ms streaming spikes, and the AI scans on the WorkerT
 - Godot 4.7 RC notes: https://gamedev.net/news/3813-release-candidate-godot-47-rc-1/
 
 [^zaretto211]: Richard Harrison, reply in "What is the license of the F-15 model (aircraft/F-15)?", Zaretto/fg-aircraft issue #211, 2026-10-27, https://github.com/Zaretto/fg-aircraft/issues/211
+[^cp-du]: Defense Update, "Israel Air Force F-16I Soufa" (three displays per cockpit, six 484 × 484 colour LCDs, the
+    rear seat's WSO / instructor switch; from its search-engine excerpt, docs/f16i.md §4): https://defense-update.com/?p=11422
+[^cp-at]: Airforce Technology, "F-16I Soufa Multirole Fighter, Israel" (4 × 4 in colour MFDs by Astronautics, 120 ppi):
+    https://www.airforce-technology.com/projects/f-16i-soufa/
+[^cp-fg]: FlightGear F-16, `copyright.txt` and `authors.txt` at commit ef4f192: https://github.com/NikolaiVChr/f16
+[^cp-gxd]: graphXDoses, "F16C Block 50/52 + Cockpit", Sketchfab, CC BY:
+    https://sketchfab.com/3d-models/83fb3b74c97d46febda2813331de168d
+[^cp-rave]: rave.Ar4ik, "F-16 Fighting Falcon | GameReady", Sketchfab, CC BY:
+    https://sketchfab.com/3d-models/0793379abcf742aa881c319155c61220
+[^cp-b60]: MirzaArrafiERV_45, "General Dynamics F-16D Block 60", Sketchfab, CC BY:
+    https://sketchfab.com/3d-models/ea8edb08d79e4eafa9c794c581f88cf3
+[^cp-fsf]: Free Software Foundation, "Various Licenses and Comments about Them", CC BY 4.0 ("compatible with all versions
+    of the GNU GPL"): https://www.gnu.org/licenses/license-list.html#ccby
+[^cp-ph-cos]: Israel Defense Forces, "Chief of Staff Visits Air Force, Jan 2011 (3)", CC BY 2.0:
+    https://commons.wikimedia.org/wiki/File:Flickr_-_Israel_Defense_Forces_-_Chief_of_Staff_Visits_Air_Force,_Jan_2011_(3).jpg
+[^cp-ph-ad]: IDF Spokesperson's Unit, "Aviad Dagan, May 2021. IX", CC BY-SA 3.0:
+    https://commons.wikimedia.org/wiki/File:Aviad_Dagan,_May_2021._IX.jpg
+[^cp-ph-16c]: US Air Force, "F-16C cockpit m02006112700032", public domain (360 × 342 px):
+    https://commons.wikimedia.org/wiki/File:F-16C_cockpit_m02006112700032.jpg
+[^cp-ph-aa]: Nathaniel, "F16 Cockpit, Asian Aerospace 2006" (a trainer), public domain:
+    https://commons.wikimedia.org/wiki/File:F16_Cockpit,_Asian_Aerospace_2006.JPG
+[^cp-ph-efka]: Edvard Majakari, "F-16D cockpit at EFKA" (an F-16AM), CC BY-SA 2.0:
+    https://commons.wikimedia.org/wiki/File:F-16D_cockpit_at_EFKA.jpg
