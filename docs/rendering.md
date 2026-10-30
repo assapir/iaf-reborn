@@ -1449,8 +1449,11 @@ of the camera (the player's and AI jets). With Detailed they replace the origina
   and then breaks up into noise. It fades in over the first 0.5 m behind the tip (per pixel: one frame's segment is
   several metres long), so it has no cut end. Each point
   drifts at 2.5 m/s in a spiral around the trail (the two tips turning opposite ways) and sinks at 0.6 m/s with the
-  downwash, so the wisp twists and wavers (inferred). The tips are the model's outermost vertices (the night lights'
-  wingtip spots, `night_lights.gd`): on the F-16 the aft fin of the wingtip missile, the tip's trailing edge.
+  downwash, so the wisp twists and wavers (inferred). The tips are the outermost vertices of the model's meshes, its
+  root mesh (the fuselage and wings) included (the night lights' wingtip spots, `night_lights.gd`): on the F-16 the
+  aft fin of the wingtip missile, the tip's trailing edge. Until 2026-10-30 the root mesh was left out, so the tips
+  sat at the ailerons' outer ends (the F-15's 0.9 m inboard) and the jet's length was the moving parts'; the LEX
+  spots below were re-based then to keep their places on each model.
   Strength follows the physics under one fixed humidity. The lift per span is ρ·V·Γ[^kj], so the tip vortex's
   circulation Γ grows with the lift; the core's pressure (and so temperature) drop grows with Γ², which for a given wing
   is ∝ n·CL·(W/S) (inferred). CL = n·(W/S) / q from the load factor n and the dynamic pressure q (ISA density at the

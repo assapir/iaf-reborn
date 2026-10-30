@@ -10,9 +10,9 @@ godot=${GODOT:-godot}
 if ! command -v "$godot" >/dev/null && [[ -x /Applications/Godot.app/Contents/MacOS/Godot ]]; then
 	godot=/Applications/Godot.app/Contents/MacOS/Godot
 fi
-# Godot only loads iaf.gdextension once an import has listed it in .godot/extension_list.cfg (a fresh clone has
-# no .godot): without it the mission starts with no flight model and hangs after the briefing.
-[[ -f game/.godot/extension_list.cfg ]] || "$godot" --headless --path game --import >/dev/null 2>&1
+# Godot's import on a fresh clone (it loads iaf.gdextension only once an import has listed it) and after a pull that
+# brought new or changed shaders or textures (tools/godot_import.sh).
+tools/godot_import.sh "$godot"
 # macOS: SDL's GameController (MFi) backend hides sticks like the T.Flight Hotas X from Godot; plain IOKit HID sees them.
 [[ $(uname) == Darwin ]] && export SDL_JOYSTICK_MFI=${SDL_JOYSTICK_MFI:-0}
 exec "$godot" --path game ${IAF_SCENE:+"$IAF_SCENE"} -- "$@"

@@ -35,17 +35,17 @@ const MIN_PX := 2.0
 ## little inboard of the edge), y the skin's height there above the wingtips' as a fraction of the length (the Sufa's:
 ## its conformal tanks' top), z as a fraction of the length from the nose.
 const LEX := {
-	"f16_h.gltf": [Vector3(0.27, 0.0067, 0.24), Vector3(0.36, 0.003, 0.37)],
-	"f16d.glb": [Vector3(0.27, 0.0112, 0.24), Vector3(0.36, 0.0065, 0.37)],
-	"f16i.glb": [Vector3(0.27, 0.045, 0.25), Vector3(0.34, 0.05, 0.35)],
-	"f15_h.gltf": [Vector3(0.27, 0.0115, 0.25), Vector3(0.33, 0.0109, 0.38)],
-	"f15c.glb": [Vector3(0.28, 0.0275, 0.25), Vector3(0.35, 0.0297, 0.38)],
-	"f15i.glb": [Vector3(0.28, 0.0275, 0.25), Vector3(0.35, 0.0297, 0.38)],
-	"f35i.gltf": [Vector3(0.33, 0.0052, 0.2), Vector3(0.45, 0.0036, 0.44)],
-	"mig29_h.gltf": [Vector3(0.16, 0.0298, 0.12), Vector3(0.3, 0.0244, 0.37)],
-	"mig29.glb": [Vector3(0.16, 0.0298, 0.12), Vector3(0.3, 0.0244, 0.37)],
-	"cfir_h.gltf": [Vector3(0.21, 0.0589, 0.13), Vector3(0.35, 0.056, 0.26)],
-	"lavi_h.gltf": [Vector3(0.21, 0.0447, 0.2), Vector3(0.35, 0.0436, 0.33)],
+	"f16_h.gltf": [Vector3(0.197, 0.0121, 0.3849), Vector3(0.2626, 0.0092, 0.4881)],
+	"f16d.glb": [Vector3(0.2025, 0.0127, 0.3972), Vector3(0.27, 0.009, 0.5003)],
+	"f16i.glb": [Vector3(0.2025, 0.0396, 0.4051), Vector3(0.255, 0.0435, 0.4844)],
+	"f15_h.gltf": [Vector3(0.2327, 0.0108, 0.3684), Vector3(0.2844, 0.0103, 0.4778)],
+	"f15c.glb": [Vector3(0.2405, 0.0254, 0.3907), Vector3(0.3006, 0.0272, 0.4963)],
+	"f15i.glb": [Vector3(0.2405, 0.0254, 0.3907), Vector3(0.3006, 0.0272, 0.4963)],
+	"f35i.gltf": [Vector3(0.2658, 0.0052, 0.285), Vector3(0.3624, 0.0038, 0.4995)],
+	"mig29_h.gltf": [Vector3(0.1414, 0.0259, 0.3112), Vector3(0.2651, 0.0217, 0.5069)],
+	"mig29.glb": [Vector3(0.1414, 0.0259, 0.3112), Vector3(0.2651, 0.0217, 0.5069)],
+	"cfir_h.gltf": [Vector3(0.1947, 0.0383, 0.4128), Vector3(0.3244, 0.0364, 0.4977)],
+	"lavi_h.gltf": [Vector3(0.2027, 0.0396, 0.3789), Vector3(0.3378, 0.0388, 0.4787)],
 }
 
 ## Streamers: camera-facing strips in world space, opacity in COLOR.a, age (0..1) in COLOR.r, UV = (metres along, 0..1
@@ -373,7 +373,11 @@ static func model_file(model: Node3D) -> String:
 static func _geometry(frame: Node3D, lex: Array, eye_frac := -1.0, eye_z := 0.0) -> Array:
 	var s: Array = NightLights._light_spots(frame)
 	var box := AABB()
-	for mi: MeshInstance3D in frame.find_children("*", "MeshInstance3D", true, false):
+	# The frame itself counts: a model's root is often its main mesh (the F-15's fuselage and wings).
+	var meshes: Array = frame.find_children("*", "MeshInstance3D", true, false)
+	if frame is MeshInstance3D:
+		meshes.push_front(frame)
+	for mi: MeshInstance3D in meshes:
 		if mi.mesh != null and NightLights._shown(frame, mi) and not str(mi.name).begins_with("Afterburner"):
 			box = box.merge(NightLights._rel(frame, mi) * mi.get_aabb())
 	if s.is_empty():
@@ -470,6 +474,9 @@ static func _grid(st: SurfaceTool, n: int, m: int, base := 0) -> void:
 
 ## Rebuilds the streamers' strips at the end of the frame (after the jets and the camera moved), facing the camera.
 func _rebuild() -> void:
+	# Deferred: the flight may have ended (and taken this node out of the tree) before it runs.
+	if not is_inside_tree():
+		return
 	_dirty = false
 	_ribbons.clear_surfaces()
 	_ribbons.surface_begin(Mesh.PRIMITIVE_TRIANGLES, _ribbon_mat)

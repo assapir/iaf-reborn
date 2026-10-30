@@ -253,7 +253,8 @@ func run() -> void:
 	await _feed(vf, jet16, {"g": 1.0, "aoa": 2.0, "mach": 0.95, "speed": 320.0, "alt_ft": 300.0})
 	check(j.shell.visible and j.k_cone > 0.9, "vapour: the shell at Mach 0.95 low down (%.2f)" % j.k_cone)
 	jet16.free()
-	# The emitters on each model: the tips at the model's span (the game's F-16 spans ≈ 7 m), and a LEX sheet from the
+	# The emitters on each model: the tips at the model's span (the game's F-16 spans ≈ 7 m, the F-15 and MiG-29 12–13 m),
+	# and a LEX sheet from the
 	# spots measured on that model (vapour_fx.gd LEX, keyed by the model's file).
 	var cases := [["f16", "original"], ["f16", "detailed"], ["f16", "sufa"], ["f35i", "original"], ["f15", "detailed"]]
 	cases.append_array([["f15", "original"], ["mig29", "original"], ["cfir", "original"], ["lavi", "original"]])
@@ -273,7 +274,7 @@ func run() -> void:
 		if pts.size() >= 2:
 			span = mj.root_frame.to_global(pts[0]).distance_to(mj.root_frame.to_global(pts[1]))
 		check(
-			pts.size() == 2 and span > 6.0 and span < 12.0 and geo[2] != null,
+			pts.size() == 2 and span > 6.0 and span < 14.0 and geo[2] != null,
 			"vapour: %s (%s model) wingtips %.2f m apart" % [case[0], case[1], span]
 		)
 		mj.free()
