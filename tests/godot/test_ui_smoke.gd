@@ -58,14 +58,14 @@ func run() -> void:
 					fe._gui_input(mouse_button(fe._to_screen(fe.CONTENT.position + it.rect.get_center()), false))
 			fe._extras_scroll(0)
 			await frames(2)
-			# Extras "Weapon data: Real", "HARM targets: RWR" and Physics "Stores weight fix" (their rows fit the page).
+			# Extras "Weapon data: Real", "HARM targets: RWR" (scrolled to its row) and Physics "Stores weight fix".
 			for it in fe._extras_items():
 				if it.key == "weapon_data" and it.value == "real":
 					fe._gui_input(mouse_button(fe._to_screen(fe.CONTENT.position + it.rect.get_center()), true))
 					fe._gui_input(mouse_button(fe._to_screen(fe.CONTENT.position + it.rect.get_center()), false))
 			await frames(2)
 			check(fe.pref_work.get("weapon_data") == "real", "%s: Extras Weapon data set to Real" % lang)
-			fe._extras_scroll(fe._extras_max_top())  # the last rows
+			fe._extras_scroll(fe._extras_rows().map(func(o): return o[0]).find("harm_targets"))
 			await frames(2)
 			for it in fe._extras_items():
 				if it.key == "harm_targets" and it.value == "rwr":
