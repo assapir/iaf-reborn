@@ -1,8 +1,9 @@
 # Night lights = Detailed (docs/rendering.md §5.1, docs/deviations.md §2): the towns' lights at night, placed from the
 # scenery's building footprints (setup's scenery, docs/scenery.md; any Scenery switch) by IafCityLights
 # (crates/iaf-avionics/src/city_lights.rs): street lamps along the facades, lit windows, porch lights, red
-# obstruction lights on the towers, with Roads Detailed lamps along the lit roads, and a faint haze over the dense
-# centres (terrain/city_glow.gdshaderinc). Ours: the original's only town lights are its LT_ sets (Damascus).
+# obstruction lights on the towers, with Roads Detailed lamps along the lit roads (also beyond the buildings, outside
+# Israel), and a faint haze over the dense centres (terrain/city_glow.gdshaderinc). Ours: the original's only town
+# lights are its LT_ sets (Damascus).
 # Blocks of 4 × 4 scenery cells (≈ 10 km): within FAR_RANGE a block draws its far points (a tenth of its lights);
 # within NEAR_RANGE also its near points (the rest). The shader keeps all lights near the camera and thins them to
 # the far tenth with distance; a light under its minimum size keeps its energy, so a far town reads as an even
@@ -85,8 +86,11 @@ var _glow: ImageTexture
 var _glow_asked := false
 ## The glow's strength now (terrain.gdshader city_glow_k).
 var glow_k := 0.0
-## Vector2i block -> {far: MeshInstance3D or null, near: MeshInstance3D or null, asking: bool}
+## Vector2i block -> {far: MeshInstance3D or null, near: MeshInstance3D or null, asking: bool, stale: bool (to be
+## made again: the road lamps switched; its points shown until then)}
 var _blocks := {}
+## The blocks are made with the road lamps (IafCityLights.set_road_lamps).
+var _road_lamps := false
 var _poll := 0.0
 
 
@@ -100,8 +104,10 @@ func setup(tv: Node) -> void:
 	_tv = tv
 	name = "CityLights"
 	IafCityLights.open(Scenery.dir())
-	# Roads = Detailed: lamps along the lit roads too (a block made from now on; the next flight after a change).
-	IafCityLights.set_road_lamps(GroundRoads.wanted())
+	# Roads = Detailed: lamps along the lit roads too, and the road layer's blocks beyond the buildings' (_process
+	# follows a change during the flight).
+	_road_lamps = GroundRoads.wanted()
+	IafCityLights.set_road_lamps(_road_lamps)
 	var sh := Shader.new()
 	sh.code = SHADER
 	_mat = ShaderMaterial.new()
@@ -121,6 +127,13 @@ func _process(delta: float) -> void:
 	var cam := get_viewport().get_camera_3d()
 	if cam == null or not is_visible_in_tree():
 		return
+	# Roads switched during the flight: every block made again now (the road-only blocks come or go at this poll).
+	if GroundRoads.on() != _road_lamps:
+		_road_lamps = GroundRoads.on()
+		IafCityLights.set_road_lamps(_road_lamps)
+		for b: Dictionary in _blocks.values():
+			b.stale = true
+		_poll = 0.0
 	# Made blocks reach the GPU a few per frame (a dense block is ≈ 130 000 points).
 	var taken := 0
 	for key: Vector2i in _blocks:
@@ -139,10 +152,16 @@ func _process(delta: float) -> void:
 		var d := float(near[k + 2])
 		seen[key] = true
 		if not _blocks.has(key):
-			_blocks[key] = {"far": null, "near": null, "asking": false}
+			_blocks[key] = {"far": null, "near": null, "asking": false, "stale": false}
 		var b: Dictionary = _blocks[key]
 		if b.asking:
 			continue
+		if b.stale:
+			b.stale = false
+			if b.far != null:
+				IafCityLights.request(key.x, key.y, b.near != null)
+				b.asking = true
+				continue
 		if (b.far == null and d <= FAR_RANGE) or (b.near == null and d <= NEAR_RANGE):
 			IafCityLights.request(key.x, key.y, d <= NEAR_RANGE)
 			b.asking = true
@@ -199,9 +218,13 @@ func _take(key: Vector2i, b: Dictionary) -> bool:
 	b.asking = false
 	if r.has("retry"):
 		return false
-	if b.far == null:
-		b.far = _mesh(r.origin, r.far)
-	if r.has("near") and b.near == null:
+	# A block made again (the near points added, the road lamps switched) replaces its meshes.
+	if b.far != null:
+		b.far.queue_free()
+	b.far = _mesh(r.origin, r.far)
+	if r.has("near"):
+		if b.near != null:
+			b.near.queue_free()
 		b.near = _mesh(r.origin, r.near)
 	return true
 

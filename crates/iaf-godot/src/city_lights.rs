@@ -159,18 +159,22 @@ impl IafCityLights {
     }
 
     /// Lamps along the lit roads too (iaf_avionics::city_lights::road_lamps; the road layer opened by `IafRoads.open`):
-    /// the blocks made from now on.
+    /// the blocks made from now on (city_lights.gd makes its blocks again when this changes).
     #[func]
     fn set_road_lamps(on: bool) {
         ROAD_LAMPS.store(on, Ordering::Relaxed);
     }
 
-    /// The blocks whose square lies within `range` m of the world point (x, y): [bi, bj, distance m] per block.
+    /// The blocks whose square lies within `range` m of the world point (x, y): [bi, bj, distance m] per block. With
+    /// the road lamps, the road layer's blocks too (lamps along their roads where there are no buildings: outside
+    /// Israel).
     #[func]
     fn blocks_near(x: f64, y: f64, range: f64) -> PackedInt32Array {
         let s = STATE.lock().unwrap();
         let mut out = PackedInt32Array::new();
-        for &(bi, bj) in s.blocks.keys() {
+        let roads = if ROAD_LAMPS.load(Ordering::Relaxed) { crate::roads::block_keys() } else { Vec::new() };
+        let roads = roads.into_iter().map(|(i, j)| (i as i64, j as i64)).filter(|b| !s.blocks.contains_key(b));
+        for (bi, bj) in s.blocks.keys().copied().chain(roads) {
             let [x0, y1] = origin(bi * BLOCK, bj * BLOCK);
             let [x1, y0] = origin((bi + 1) * BLOCK, (bj + 1) * BLOCK);
             let d = (x - x.clamp(x0, x1)).hypot(y - y.clamp(y0, y1));

@@ -61,11 +61,16 @@ global uniform vec4 airbase_info;
 // with their normal and roughness. Layers (ground_scale_a / _b: 1 / metres per repeat): GT_* below.
 // Preferences "Roads" (terrain/ground_roads.gd, docs/rendering.md §1.8): 0 = off; 1 = OpenStreetMap's roads within
 // 1.5 km of the camera, where the imagery is too coarse to show them. The mask around the camera (2 m texels, row 0
-// north; rect = (x0, z0 of its north-west corner, 1 / side m)): R = the signed distance to the nearest road's edge
-// (128 + 16 per metre, negative on the road), G = that road's attributes (bit 7 paved, bits 0–6 width in half metres).
+// north; rect = (x0, z0 of its north-west corner, 1 / side m)): R = the signed distance to the nearest way's edge
+// (128 + 16 per metre, negative on the road), G = that way's attributes (bit 7 paved, bit 6 a railway, bits 0–5 width
+// in half metres). The marking mask (iaf_avionics::roads::marks): the mask's middle half (1024² of 2 m, the same
+// centre); R = the signed offset from the nearest marked way's centreline (128 + 16 per metre), G = the metres along it
+// modulo ROAD_DASH_PERIOD (256ths), B = its markings (bits 0–3 lanes, bit 4 one way, bit 6 a railway, bit 7 edge
+// lines), A = its half width (16ths of a metre).
 global uniform float ground_roads;
 global uniform sampler2D road_mask : filter_linear, repeat_disable;
 global uniform vec4 road_mask_rect;
+global uniform sampler2D road_marks : filter_linear, repeat_disable;
 // Rain (ours, Graphics → MORE "Rain", terrain/weather.gd; docs/rendering.md §10): how wet the ground is, 0 = dry.
 global uniform float rain_wet;
 global uniform float rain_spec;
@@ -380,6 +385,72 @@ void wet_ground(inout vec3 alb, inout float rough, inout float spec, inout vec3 
 	nrm = normalize(mix(nrm, n_geo, pud));
 }
 
+// Roads (Preferences "Roads"): the lane markings and a railway's rails over the road's colour `c`, from the marking
+// mask at `muv`, `dist` m from the camera (docs/rendering.md §1.8). Lines 0.12 m wide, white, between the lanes; the
+// edge lines 0.15 m, yellow (Israel's road edges), on the shoulder by the outer lanes (a one-way carriageway only its
+// right one); dashes 3 m in every 12 m; rails 0.07 m wide at the standard gauge. Each line and dash is box-filtered over the
+// pixel's footprint across and along the way (the offset's and the distance's change to the next pixels), so it thins
+// into its average with distance instead of shimmering; gone past 1 m pixels and 380–500 m from the camera (the mask
+// holds 524 m around it; the airbases' ab_band / ab_train). Texels of two ways (a junction, two carriageways side by
+// side) mix no offsets: their four taps differ by more than a texel, or their offset and distance change at another
+// rate than a metre per metre.
+const float ROAD_DASH_PERIOD = 12.0;
+const float ROAD_DASH = 3.0;
+vec3 road_paint(vec3 c, vec2 wdx, vec2 wdy, vec2 muv, float fpx, float dist) {
+	float k = (1.0 - smoothstep(0.6, 1.2, fpx)) * (1.0 - smoothstep(380.0, 500.0, dist));
+	if (k <= 0.0 || min(muv.x, muv.y) <= 0.0 || max(muv.x, muv.y) >= 1.0) {
+		return c;
+	}
+	vec2 mn = vec2(textureSize(road_marks, 0));
+	vec4 t = texelFetch(road_marks, ivec2(muv * mn), 0) * 255.0;
+	if (t.b < 0.5) {
+		return c;
+	}
+	// The four texels around (x: (0, 1), y: (1, 1), z: (1, 0), w: (0, 0)); the phase unwrapped against w.
+	vec4 go = (textureGather(road_marks, muv, 0) * 255.0 - 128.0) / 16.0;
+	vec4 gp = textureGather(road_marks, muv, 1) * 255.0;
+	gp -= 256.0 * round((gp - gp.w) / 256.0);
+	gp *= ROAD_DASH_PERIOD / 256.0;
+	float so = max(max(go.x, go.y), max(go.z, go.w)) - min(min(go.x, go.y), min(go.z, go.w));
+	float sp = max(max(gp.x, gp.y), max(gp.z, gp.w)) - min(min(gp.x, gp.y), min(gp.z, gp.w));
+	if (so > 3.2 || sp > 3.2) {
+		return c;
+	}
+	vec2 f = fract(muv * mn - 0.5);
+	float o = mix(mix(go.w, go.z, f.x), mix(go.x, go.y, f.x), f.y);
+	float s = mix(mix(gp.w, gp.z, f.x), mix(gp.x, gp.y, f.x), f.y);
+	// Per metre (texels of 2 m): x east, y (= z) south.
+	vec2 dodx = vec2(mix(go.z - go.w, go.y - go.x, f.y), mix(go.x - go.w, go.y - go.z, f.x)) * 0.5;
+	vec2 dsdx = vec2(mix(gp.z - gp.w, gp.y - gp.x, f.y), mix(gp.x - gp.w, gp.y - gp.z, f.x)) * 0.5;
+	// On one way both change by a metre per metre; texels of two ways (two carriageways side by side) do not.
+	if (abs(length(dodx) - 1.0) > 0.35 || abs(length(dsdx) - 1.0) > 0.35) {
+		return c;
+	}
+	float fo = abs(dot(dodx, wdx)) + abs(dot(dodx, wdy));
+	float fs = abs(dot(dsdx, wdx)) + abs(dot(dsdx, wdy));
+	float hw = t.a / 16.0;
+	if (mod(t.b, 128.0) > 63.5) {
+		// Two rails, their centres 1.435 + 0.07 m apart.
+		float r = ab_band(abs(o) - 0.753, 0.035, fo);
+		return mix(c, vec3(0.09, 0.085, 0.08), r * k);
+	}
+	float lanes = mod(t.b, 16.0);
+	float paint = 0.0;
+	if (lanes >= 2.0) {
+		float lw = 2.0 * hw / lanes;
+		float at = -hw + lw * clamp(round((o + hw) / lw), 1.0, lanes - 1.0);
+		paint = ab_band(o - at, 0.06, fo) * ab_train(s, ROAD_DASH, ROAD_DASH_PERIOD, fs);
+	}
+	vec3 white = vec3(0.6);
+	c = mix(c, white, paint * k);
+	if (t.b > 127.5) {
+		// One way (bit 4): the right edge only (the offset is positive on the right).
+		float e = ab_band(abs(o) - (hw + 0.075), 0.075, fo) * (mod(t.b, 32.0) > 15.5 ? step(0.0, o) : 1.0);
+		c = mix(c, vec3(0.55, 0.4, 0.06), e * k);
+	}
+	return c;
+}
+
 void fragment() {
 	ALBEDO = texture(colour_tex, UV).rgb;
 	vec3 n_geo = NORMAL;
@@ -513,19 +584,21 @@ void fragment() {
 	// roads, one more reads the road's width, two more at the next pixels' ground (wdx, wdy) give the edge's
 	// anti-aliasing width.
 	float fpx = max(length(wdx), length(wdy));
-	float kr = ground_roads * (1.0 - smoothstep(1000.0, 1500.0, length(world_xz - INV_VIEW_MATRIX[3].xz)))
+	float rdist = length(world_xz - INV_VIEW_MATRIX[3].xz);
+	float kr = ground_roads * (1.0 - smoothstep(1000.0, 1500.0, rdist))
 			* (1.0 - smoothstep(3.0, 6.0, fpx)) * (1.0 - sea) * (1.0 - wm);
 	vec2 ruv = (world_xz - road_mask_rect.xy) * road_mask_rect.z;
 	if (kr > 0.0 && min(ruv.x, ruv.y) > 0.0 && max(ruv.x, ruv.y) < 1.0) {
 		float sd = (textureLod(road_mask, ruv, 0.0).r * 255.0 - 128.0) / 16.0;
 		float attr = sd < fpx ? texelFetch(road_mask, ivec2(ruv * vec2(textureSize(road_mask, 0))), 0).g * 255.0 : 0.0;
 		float texel_m = node_m / (float(textureSize(colour_tex, 0).x) * max(uv_scale, 1e-6));
-		kr *= smoothstep(0.25, 0.6, texel_m / max(mod(attr, 128.0) * 0.5, 1.0));
+		kr *= smoothstep(0.25, 0.6, texel_m / max(mod(attr, 64.0) * 0.5, 1.0));
 		if (sd < fpx && kr > 0.0) {
 			float sx = (textureLod(road_mask, ruv + wdx * road_mask_rect.z, 0.0).r * 255.0 - 128.0) / 16.0;
 			float sy = (textureLod(road_mask, ruv + wdy * road_mask_rect.z, 0.0).r * 255.0 - 128.0) / 16.0;
 			float fw = max(abs(sx - sd) + abs(sy - sd), 0.02);
 			float paved = step(127.5, attr);
+			float rail = step(63.5, mod(attr, 128.0));
 			float a = clamp(0.5 - sd / fw, 0.0, 1.0) * kr;
 			if (a > 0.0) {
 				// The photo blurred to ≈ 16 m gives the tone; asphalt toward real asphalt's grey, dirt a paler, warmer
@@ -536,12 +609,15 @@ void fragment() {
 				float n2 = textureGrad(terrain_detail_tex, world_xz / 9.0, wdx / 9.0, wdy / 9.0).r - 0.5;
 				vec3 asph = vec3(mix(lum, 0.07, 0.85)) * vec3(1.02, 1.0, 0.96);
 				vec3 dirt = mix(vec3(lum), base, 0.6) * vec3(1.3, 1.2, 1.05);
-				vec3 c = mix(dirt, asph, paved) * (1.0 + 0.35 * n1 + 0.2 * n2);
+				// A railway's ballast: grey crushed stone, browned by rust and dust.
+				vec3 ballast = mix(vec3(lum), vec3(0.2, 0.18, 0.16), 0.75);
+				vec3 c = mix(mix(dirt, asph, paved), ballast, rail) * (1.0 + 0.35 * n1 + 0.2 * n2);
 				if (tf > 0.0) {
 					vec3 td, tr;
 					gt_sample(paved > 0.5 ? GT_ASPHALT : GT_GRAVEL, world_xz, wdx, wdy, td, tr);
 					c *= mix(vec3(1.0), td, tf * 0.8);
 				}
+				c = road_paint(c, wdx, wdy, ruv * 2.0 - 0.5, fpx, rdist);
 				ALBEDO = mix(ALBEDO, c, a);
 				NORMAL = normalize(mix(NORMAL, n_geo, a));
 				ROUGHNESS = mix(ROUGHNESS, mix(0.95, 0.85, paved), a);

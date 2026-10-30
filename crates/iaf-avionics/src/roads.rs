@@ -424,55 +424,180 @@ impl Roads {
 pub const MASK_RANGE: f32 = 8.0;
 pub const MASK_ZERO: f32 = 128.0;
 pub const MASK_STEPS: f32 = 16.0;
+/// The road mask's G: bit 7 paved, bit 6 a railway, bits 0–5 the width in half metres (up to 31.5 m).
+pub const MASK_PAVED: u8 = 0x80;
+pub const MASK_RAIL: u8 = 0x40;
+/// A railway's strip on the ground (m): the ballast bed of one standard-gauge track with its shoulders and slopes
+/// (inferred: sleepers 2.6 m long, the bed wider at its foot). Wide enough that the two tracks of a double line (their
+/// centres about 4–4.5 m apart) make one bed: a narrower strip left a gap under the 2 m mask's texel that wavered.
+pub const RAIL_WIDTH: f32 = 4.5;
+/// The lane markings' dash period (m): a 3 m line and a 9 m gap (MUTCD §3A.06's 10 ft and 30 ft; docs/rendering.md
+/// §1.8).
+pub const MARK_PERIOD: f32 = 12.0;
+/// The marking mask's B: bits 0–3 the lanes (their boundaries inside get dashed lines), bit 4 one way (with edge
+/// lines: only the right one), bit 6 a railway (two rails), bit 7 edge lines.
+pub const MARK_ONEWAY: u8 = 0x10;
+pub const MARK_RAIL: u8 = 0x40;
+pub const MARK_EDGES: u8 = 0x80;
+/// The marking mask holds a way's texels this far (m) past its edges: a pixel on the road reads the 2 × 2 texels
+/// around it, up to 2√2 m away.
+const MARK_PAD: f32 = 3.0;
+/// A lane's nominal width (m): a road's lane count is its width over this.
+const LANE_M: f32 = 3.5;
+
+/// The ways drawn on the ground: roads up to track and railways, not tunnels, not pieces off the ground.
+fn on_ground(w: &Way) -> bool {
+    w.class <= CLASS_RAIL && w.flags & (FLAG_TUNNEL | FLAG_OFF_GROUND) == 0
+}
+
+fn half_width(w: &Way) -> f32 {
+    if w.class == CLASS_RAIL { RAIL_WIDTH * 0.5 } else { w.width * 0.5 }
+}
+
+/// A motorway's or trunk road's paved shoulder each side of its lanes (m; inferred: the layer's width is mostly
+/// lanes × 3.5 m, and these roads have a paved shoulder). It also closes the gap OSM leaves between two carriageways
+/// a width apart: their touching edges made a chain of photo-coloured specks under the 2 m mask.
+const SHOULDER: f32 = 1.0;
+
+/// The half width drawn on the ground: the lanes and the shoulders.
+fn drawn_half_width(w: &Way) -> f32 {
+    half_width(w) + if w.class <= CLASS_TRUNK { SHOULDER } else { 0.0 }
+}
+
+/// Calls `f(texel, distance to the centreline m, signed offset from it m, metres along the way)` for every texel of
+/// the `n` × `n` mask (texels of `m` m, west edge `x0`, north edge `y1`, row 0 north) whose centre lies within `reach`
+/// m of way `k`'s centreline. The offset is positive on the right of the way's direction; past the way's ends it is
+/// the distance (the cap) with the side's sign.
+fn each_texel(
+    r: &Roads,
+    k: usize,
+    (x0, y1, m, n): (f64, f64, f64, usize),
+    reach: f32,
+    mut f: impl FnMut(usize, f32, f32, f32),
+) {
+    let hi = (n as f32) - 0.5;
+    let pad = reach / m as f32;
+    let mf = m as f32;
+    // Texel coordinates (x east, y south from the north-west corner); texel (i, j)'s centre is (i + ½, j + ½).
+    let t = |p: [f64; 2]| [((p[0] - x0) / m) as f32, ((y1 - p[1]) / m) as f32];
+    let mut walked = 0.0;
+    for s in r.way_index(k as u32).windows(2) {
+        let (a, b) = (t(r.point(s[0])), t(r.point(s[1])));
+        let ab = [b[0] - a[0], b[1] - a[1]];
+        let len = ab[0].hypot(ab[1]);
+        let start = walked;
+        walked += len * mf;
+        let (lo_x, hi_x) = (a[0].min(b[0]) - pad, a[0].max(b[0]) + pad);
+        let (lo_y, hi_y) = (a[1].min(b[1]) - pad, a[1].max(b[1]) + pad);
+        if hi_x < -0.5 || hi_y < -0.5 || lo_x > hi || lo_y > hi {
+            continue;
+        }
+        let l2 = (len * len).max(1e-12);
+        let (i0, i1) = ((lo_x - 0.5).max(0.0).ceil() as usize, ((hi_x - 0.5).min(hi - 0.5)).floor() as usize);
+        let (j0, j1) = ((lo_y - 0.5).max(0.0).ceil() as usize, ((hi_y - 0.5).min(hi - 0.5)).floor() as usize);
+        for j in j0..=j1 {
+            let py = j as f32 + 0.5 - a[1];
+            for i in i0..=i1 {
+                let px = i as f32 + 0.5 - a[0];
+                let u = ((px * ab[0] + py * ab[1]) / l2).clamp(0.0, 1.0);
+                let e = (px - u * ab[0]).hypot(py - u * ab[1]) * mf;
+                if e <= reach {
+                    // y runs south: a positive cross product is on the right of the way's direction.
+                    let side = if ab[0] * py - ab[1] * px >= 0.0 { 1.0 } else { -1.0 };
+                    f(i + j * n, e, side * e, start + u * len * mf);
+                }
+            }
+        }
+    }
+}
 
 /// The road mask over `n` × `n` texels of `m` metres, west edge `x0`, north edge `y1` (row 0 north), RG8: R the signed
-/// distance (MASK_*), G the nearest road's attributes: bit 7 paved, bits 0–6 its width in half metres. The roads drawn
-/// on the ground: classes up to track, not tunnels, not pieces off the ground (`FLAG_OFF_GROUND`).
+/// distance (MASK_*), G the nearest way's attributes (`MASK_PAVED`, `MASK_RAIL`, the width drawn). The ways drawn on
+/// the ground (`on_ground`): a railway as its ballast strip, RAIL_WIDTH wide; a motorway or trunk road with its
+/// shoulders (SHOULDER).
 pub fn mask(parts: &[&Roads], x0: f64, y1: f64, m: f64, n: usize) -> Vec<u8> {
     let mut d = vec![MASK_RANGE; n * n];
     let mut g = vec![0u8; n * n];
-    let hi = (n as f32) - 0.5;
     for r in parts {
         for (k, w) in r.ways.iter().enumerate() {
-            if w.class > CLASS_TRACK || w.flags & (FLAG_TUNNEL | FLAG_OFF_GROUND) != 0 {
+            if !on_ground(w) {
                 continue;
             }
-            let hw = w.width * 0.5;
-            let attr = (if w.flags & FLAG_UNPAVED == 0 { 0x80 } else { 0 }) | (w.width * 2.0).round().min(127.0) as u8;
-            let pad = (hw + MASK_RANGE) / m as f32;
-            // Texel coordinates (x east, y south from the north-west corner); texel (i, j)'s centre is (i + ½, j + ½).
-            let t = |p: [f64; 2]| [((p[0] - x0) / m) as f32, ((y1 - p[1]) / m) as f32];
-            for s in r.way_index(k as u32).windows(2) {
-                let (a, b) = (t(r.point(s[0])), t(r.point(s[1])));
-                let (lo_x, hi_x) = (a[0].min(b[0]) - pad, a[0].max(b[0]) + pad);
-                let (lo_y, hi_y) = (a[1].min(b[1]) - pad, a[1].max(b[1]) + pad);
-                if hi_x < -0.5 || hi_y < -0.5 || lo_x > hi || lo_y > hi {
-                    continue;
+            let hw = drawn_half_width(w);
+            let kind = if w.class == CLASS_RAIL {
+                MASK_RAIL
+            } else if w.flags & FLAG_UNPAVED == 0 {
+                MASK_PAVED
+            } else {
+                0
+            };
+            let attr = kind | (hw * 4.0).round().min(63.0) as u8;
+            each_texel(r, k, (x0, y1, m, n), hw + MASK_RANGE, |o, e, _, _| {
+                if e - hw < d[o] {
+                    d[o] = e - hw;
+                    g[o] = attr;
                 }
-                let ab = [b[0] - a[0], b[1] - a[1]];
-                let l2 = (ab[0] * ab[0] + ab[1] * ab[1]).max(1e-12);
-                let (i0, i1) = ((lo_x - 0.5).max(0.0).ceil() as usize, ((hi_x - 0.5).min(hi - 0.5)).floor() as usize);
-                let (j0, j1) = ((lo_y - 0.5).max(0.0).ceil() as usize, ((hi_y - 0.5).min(hi - 0.5)).floor() as usize);
-                for j in j0..=j1 {
-                    let py = j as f32 + 0.5 - a[1];
-                    for i in i0..=i1 {
-                        let px = i as f32 + 0.5 - a[0];
-                        let u = ((px * ab[0] + py * ab[1]) / l2).clamp(0.0, 1.0);
-                        let e = (px - u * ab[0]).hypot(py - u * ab[1]) * m as f32 - hw;
-                        let o = i + j * n;
-                        if e < d[o] {
-                            d[o] = e;
-                            g[o] = attr;
-                        }
-                    }
-                }
-            }
+            });
         }
     }
     let mut out = Vec::with_capacity(2 * n * n);
     for (e, a) in d.iter().zip(&g) {
         out.push((MASK_ZERO + e * MASK_STEPS).round().clamp(0.0, 255.0) as u8);
         out.push(*a);
+    }
+    out
+}
+
+/// A way's markings (the marking mask's B), 0 for none: motorway and trunk carriageways (and their ramps) edge lines
+/// (a one-way carriageway only its right one: OSM's two carriageways of a road lie a width apart, and their median
+/// edges drawn from two ways' texels broke into pieces) and a dashed line between their lanes; the two-way primary to tertiary roads of two lanes or more a dashed line
+/// between theirs (the centre line on two lanes); a railway its two rails. Paved roads only.
+fn markings(w: &Way) -> u8 {
+    if w.class == CLASS_RAIL {
+        return MARK_RAIL;
+    }
+    if w.class > CLASS_TERTIARY || w.flags & FLAG_UNPAVED != 0 {
+        return 0;
+    }
+    let oneway = w.flags & FLAG_ONEWAY != 0;
+    // A two-way road has as many lanes each way.
+    let lanes = if oneway { (w.width / LANE_M).round() } else { 2.0 * (w.width / (2.0 * LANE_M)).round() };
+    let lanes = lanes.clamp(0.0, 15.0) as u8;
+    match w.class {
+        CLASS_MOTORWAY | CLASS_TRUNK => MARK_EDGES | if oneway { MARK_ONEWAY } else { 0 } | lanes.max(1),
+        _ if lanes >= 2 => lanes,
+        _ => 0,
+    }
+}
+
+/// The marking mask (docs/rendering.md §1.8) over `n` × `n` texels of `m` metres, west edge `x0`, north edge `y1`, RGBA8,
+/// from the marked ways (`markings`) on the ground: R the signed offset from the nearest one's centreline
+/// (`MASK_ZERO + o · MASK_STEPS`, on the right of its direction positive), G the metres along it modulo MARK_PERIOD in
+/// 256ths of the period, B its markings, A its half width in 16ths of a metre. Texels off a marked way (farther than
+/// its half width + MARK_PAD from the centreline) are 0.
+pub fn marks(parts: &[&Roads], x0: f64, y1: f64, m: f64, n: usize) -> Vec<u8> {
+    let mut d = vec![f32::MAX; n * n];
+    let mut out = vec![0u8; 4 * n * n];
+    for r in parts {
+        for (k, w) in r.ways.iter().enumerate() {
+            let b = markings(w);
+            if b == 0 || !on_ground(w) {
+                continue;
+            }
+            let hw = half_width(w);
+            each_texel(r, k, (x0, y1, m, n), hw + MARK_PAD, |o, e, side, s| {
+                if e < d[o] {
+                    d[o] = e;
+                    let phase = (s.rem_euclid(MARK_PERIOD) / MARK_PERIOD * 256.0).round() as u32 % 256;
+                    out[4 * o..4 * o + 4].copy_from_slice(&[
+                        (MASK_ZERO + side * MASK_STEPS).round().clamp(0.0, 255.0) as u8,
+                        phase as u8,
+                        b,
+                        (hw * 16.0).round().min(255.0) as u8,
+                    ]);
+                }
+            });
+        }
     }
     out
 }
@@ -585,5 +710,38 @@ mod tests {
         assert!((at(10.0, 5.0).0 - (5.0 - 3.75)).abs() < 0.1);
         assert_eq!(at(10.0, 40.0).0, (255.0 - MASK_ZERO) / MASK_STEPS, "out of range: the most");
         assert_eq!(at(1.0, 40.0).1, 0, "the tunnel is not drawn");
+    }
+
+    #[test]
+    fn marks_lanes_and_rails() {
+        // On a 128 × 128 mask of 2 m from (-128, 128): a 7 m two-way primary along y = 0 (eastward), a 10.5 m oneway
+        // motorway along y = 60, a railway along y = -60 and a railway tunnel along y = -100.
+        let way =
+            |class: u8, flags: u8, width: f32| Way { osm_id: 1, first: 0, count: 0, class, flags, layer: 0, width };
+        let line = |y: f32| vec![[-128.0f32, y], [128.0, y]];
+        let (a, b, c, d) = (line(0.0), line(60.0), line(-60.0), line(-100.0));
+        let r = Roads::from_lines([
+            (way(CLASS_PRIMARY, 0, 7.0), &a[..]),
+            (way(CLASS_MOTORWAY, FLAG_ONEWAY, 10.5), &b[..]),
+            (way(CLASS_RAIL, 0, 1.4), &c[..]),
+            (way(CLASS_RAIL, FLAG_TUNNEL, 1.4), &d[..]),
+        ]);
+        let (mm, mk) = (mask(&[&r], -128.0, 128.0, 2.0, 128), marks(&[&r], -128.0, 128.0, 2.0, 128));
+        let o = |x: f64, y: f64| ((x + 128.0) / 2.0) as usize + ((128.0 - y) / 2.0) as usize * 128;
+        let off = |x: f64, y: f64| (mk[4 * o(x, y)] as f32 - MASK_ZERO) / MASK_STEPS;
+        // Texel centres at odd metres: (11, 1) is 1 m left (north) of the eastward primary: negative.
+        assert!((off(11.0, 1.0) + 1.0).abs() < 0.07 && (off(11.0, -1.0) - 1.0).abs() < 0.07);
+        assert_eq!(mk[4 * o(11.0, 1.0) + 2], 2, "two lanes: the centre line");
+        assert_eq!(mk[4 * o(11.0, 1.0) + 3], 56, "half width 3.5 m");
+        // Along: 139 m from the way's start, 139 mod 12 = 7 m: 7 / 12 of 256.
+        assert_eq!(mk[4 * o(11.0, 1.0) + 1], 149);
+        assert_eq!(mk[4 * o(11.0, 61.0) + 2], MARK_EDGES | MARK_ONEWAY | 3, "a three-lane carriageway");
+        assert_eq!(mk[4 * o(11.0, 20.0) + 2], 0, "off the roads");
+        // The railway: a 4.5 m ballast strip in the road mask, its rails in the marking mask; the tunnel neither.
+        let at = |x: f64, y: f64| ((mm[2 * o(x, y)] as f32 - MASK_ZERO) / MASK_STEPS, mm[2 * o(x, y) + 1]);
+        assert!((at(11.0, -59.0).0 - (1.0 - 2.25)).abs() < 0.07 && at(11.0, -59.0).1 == MASK_RAIL | 9);
+        assert_eq!(mk[4 * o(11.0, -59.0) + 2], MARK_RAIL);
+        assert!(at(11.0, -99.0).0 > 7.0 && at(11.0, -101.0).1 == 0);
+        assert_eq!(mk[4 * o(11.0, -99.0) + 2], 0);
     }
 }

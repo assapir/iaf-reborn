@@ -15,6 +15,8 @@ static var _on := false
 static var _asked := Vector2(INF, INF)
 static var _pending := false
 static var _tex: ImageTexture
+## The marking mask (the lane markings and the rails, on the mask's centre).
+static var _marks: ImageTexture
 ## The shown mask's north-west corner (engine metres), side (m), and the world origin its rect was set for.
 static var _nw := Vector2(INF, INF)
 static var _side := 0.0
@@ -35,6 +37,11 @@ static func wanted() -> bool:
 	return Settings.ground_roads == "detailed" and available() and IafRoads.open(dir())
 
 
+## Roads = Detailed in this flight (apply): city_lights.gd follows it with the road lamps.
+static func on() -> bool:
+	return _on
+
+
 ## Applies Settings.ground_roads (a flight's start, or the Graphics page during a flight).
 static func apply() -> void:
 	_on = wanted()
@@ -43,7 +50,9 @@ static func apply() -> void:
 	_origin = Vector2(INF, INF)
 	if not _on and _tex != null:
 		RenderingServer.global_shader_parameter_set("road_mask", null)
+		RenderingServer.global_shader_parameter_set("road_marks", null)
 		_tex = null
+		_marks = null
 
 
 ## Per frame with the camera's position (scene frame): asks a mask when the camera moved MOVE m, shows a made one.
@@ -77,6 +86,13 @@ static func _show(m: Dictionary) -> void:
 		RenderingServer.global_shader_parameter_set("road_mask", _tex)
 	else:
 		_tex.update(img)
+	var mn := int(m.marks_n)
+	var mk := Image.create_from_data(mn, mn, false, Image.FORMAT_RGBA8, m.marks)
+	if _marks == null or _marks.get_width() != mn:
+		_marks = ImageTexture.create_from_image(mk)
+		RenderingServer.global_shader_parameter_set("road_marks", _marks)
+	else:
+		_marks.update(mk)
 	_nw = Vector2(float(m.x0), float(m.y1))
 	_side = n * float(m.m)
 	_origin = Vector2(INF, INF)  # the rect is set by update_view

@@ -10,10 +10,12 @@
 # Prefix the run with `flock ~/.cache/iaf-gpu-bench.lock` while another session may be benchmarking the GPU.
 # SHOW_SCENES="town,night" takes only those scenes (SCENES' names: town airbase takeoff cockpit coast sea missile_launch
 # missile_close bomb vapour sunset sunset_away night lookdown night_apron_pass night_apron carmel_low night_city
-# night_high night_town_low night_haifa; the night ones need `-- --hour 22`); SHOW_SET="key=value,..." sets more
-# Settings after the look's (e.g. a variant of AFTER); SHOW_TAG names the files <scene>_<look><tag>.png. Needs a
-# window. The night glows are sized in the shot's rows (the window's are smaller under xvfb). SHOW_NO_CITY=1 hides the
-# city lights (a before picture with every other setting the same).
+# night_high night_town_low night_haifa roads_motorway roads_twolane roads_rail roads_ayalon roads_night_amman
+# night_cockpit roads_night_ayalon; the night ones need `-- --hour 22`); SHOW_SET="key=value,..." sets more Settings
+# after the look's (e.g. a variant of AFTER); SHOW_TAG names the files <scene>_<look><tag>.png. Needs a window. The
+# night glows are sized in the shot's rows (the window's are smaller under xvfb). SHOW_NO_CITY=1 hides the city lights
+# (a before picture with every other setting the same). SHOW_TOGGLE="key=value" switches that Setting in flight after
+# each shot and shoots again (`_toggled`).
 extends "res://../tests/godot/base.gd"
 
 const TimeOfDay := preload("res://terrain/time_of_day.gd")
@@ -39,6 +41,7 @@ const AFTER := {
 	"rolling_wheels": true,
 	"airbases": "detailed",
 	"ground_textures": "ambientcg",
+	"ground_roads": "detailed",
 	"imagery_israel": "mapi2015_modern",
 	"imagery_outside": "sentinel2_modern",
 	"scenery": "on",
@@ -93,6 +96,17 @@ const SCENES := {
 	"night_high": [231, 22.0, [296000.0, 540000.0], 8000.0, 90.0, Vector3(0, 8, 40), Vector3(0, -5000, -14000)],
 	"night_town_low": [231, 22.0, [314000.0, 528000.0], 300.0, 20.0, Vector3(-10, 4, 30), Vector3(0, -120, -700)],
 	"night_haifa": [231, 22.0, [322000.0, 622000.0], 3000.0, 65.0, Vector3(0, 8, 40), Vector3(0, -1500, -4000)],
+	# Roads Detailed (rendering.md §1.8): low over a motorway carriageway by Amman (Sentinel-2 draws every road), over
+	# a two-lane road north-east of it, and over the railway by Hadera (on the Survey photo); the lamps at night over
+	# Amman (no city lights' buildings there: the road lamps only) and over Tel Aviv's Ayalon.
+	"roads_motorway": [231, 10.5, [429862.0, 513700.0], 40.0, 70.0, Vector3(3, -27, 20), Vector3(0, -40, -90)],
+	"roads_twolane": [231, 10.5, [433463.0, 523544.0], 40.0, 45.0, Vector3(3, -28, 20), Vector3(0, -40, -80)],
+	"roads_rail": [231, 10.5, [329499.0, 593140.0], 40.0, 154.0, Vector3(2, -32, 15), Vector3(0, -40, -50)],
+	"roads_ayalon": [231, 10.5, [312420.0, 536300.0], 40.0, 0.0, Vector3(3, -27, 20), Vector3(0, -40, -90)],
+	"roads_night_amman": [231, 22.0, [430218.0, 514500.0], 600.0, 0.0, Vector3(0, 8, 40), Vector3(0, -500, -2000)],
+	# From the cockpit at night over Rishon LeZion (the all-settings set's night cockpit).
+	"night_cockpit": [231, 22.0, [314000.0, 528000.0], 300.0, 20.0, null, null],
+	"roads_night_ayalon": [231, 22.0, [312400.0, 532000.0], 600.0, 0.0, Vector3(0, 8, 40), Vector3(0, -500, -2500)],
 }
 
 var tv: Node
@@ -184,7 +198,7 @@ func _scene(name: String, s: Array) -> void:
 		await frames(60)
 		tv.frozen = true
 		tv.fm_stopped = true
-	if name == "cockpit" or name.begins_with("trees_town"):
+	if name.ends_with("cockpit") or name.begins_with("trees_town"):
 		tv.views.set_cockpit(tv.views.COCKPIT)
 		tv.in_cockpit = true
 		tv._apply_view()
@@ -213,6 +227,25 @@ func _scene(name: String, s: Array) -> void:
 		"takeoff":
 			await _roll(s[5], s[6])
 	await _shot(name, fps)
+	# SHOW_TOGGLE="key=value": that Setting switched in flight (as the in-flight Preferences do), shot again once the
+	# city lights' blocks are made again: <scene>_<look><tag>_toggled.png (e.g. ground_roads="original").
+	var toggle := OS.get_environment("SHOW_TOGGLE").split("=", false)
+	if toggle.size() == 2:
+		var was = settings().get(toggle[0])
+		settings().set(toggle[0], str_to_var(toggle[1]) if str_to_var(toggle[1]) != null else toggle[1])
+		tv.apply_render_options()
+		var t0 := Time.get_ticks_msec()
+		await seconds(1.0)
+		while (
+			tv.get("_city_lights") != null
+			and tv._city_lights._blocks.values().any(func(b): return b.asking or b.stale)
+			and Time.get_ticks_msec() - t0 < 60000
+		):
+			await frames(10)
+		print("toggled %s in %.1f s" % [toggle[0], (Time.get_ticks_msec() - t0) / 1000.0])
+		await seconds(1.0)
+		await _shot(name + "_toggled", fps)
+		settings().set(toggle[0], was)
 
 
 ## A camera of ours, current every frame (the game's views keep taking it back otherwise), and its twin in a
