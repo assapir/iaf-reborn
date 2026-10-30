@@ -10,12 +10,12 @@
 # Prefix the run with `flock ~/.cache/iaf-gpu-bench.lock` while another session may be benchmarking the GPU.
 # SHOW_SCENES="town,night" takes only those scenes (SCENES' names: town airbase takeoff cockpit coast sea missile_launch
 # missile_close bomb vapour sunset sunset_away night lookdown night_apron_pass night_apron carmel_low night_city
-# night_high night_town_low night_haifa roads_motorway roads_twolane roads_rail roads_ayalon roads_night_amman
-# night_cockpit roads_night_ayalon; the night ones need `-- --hour 22`); SHOW_SET="key=value,..." sets more Settings
-# after the look's (e.g. a variant of AFTER); SHOW_TAG names the files <scene>_<look><tag>.png. Needs a window. The
-# night glows are sized in the shot's rows (the window's are smaller under xvfb). SHOW_NO_CITY=1 hides the city lights
-# (a before picture with every other setting the same). SHOW_TOGGLE="key=value" switches that Setting in flight after
-# each shot and shoots again (`_toggled`).
+# night_high night_town_low night_haifa roads_motorway roads_twolane roads_rail roads_ayalon roads_median
+# roads_median_150 roads_rail_ne roads_night_amman night_cockpit roads_night_ayalon; the night ones need
+# `-- --hour 22`); SHOW_SET="key=value,..." sets more Settings after the look's (e.g. a variant of AFTER); SHOW_TAG
+# names the files <scene>_<look><tag>.png. Needs a window. The night glows are sized in the shot's rows (the
+# window's are smaller under xvfb). SHOW_NO_CITY=1 hides the city lights (a before picture with every other setting
+# the same). SHOW_TOGGLE="key=value" switches that Setting in flight after each shot and shoots again (`_toggled`).
 extends "res://../tests/godot/base.gd"
 
 const TimeOfDay := preload("res://terrain/time_of_day.gd")
@@ -103,6 +103,11 @@ const SCENES := {
 	"roads_twolane": [231, 10.5, [433463.0, 523544.0], 40.0, 45.0, Vector3(3, -28, 20), Vector3(0, -40, -80)],
 	"roads_rail": [231, 10.5, [329499.0, 593140.0], 40.0, 154.0, Vector3(2, -32, 15), Vector3(0, -40, -50)],
 	"roads_ayalon": [231, 10.5, [312420.0, 536300.0], 40.0, 0.0, Vector3(3, -27, 20), Vector3(0, -40, -90)],
+	# A dual carriageway north-east of Amman with a 3.5 m median (its double white lines), low and from 150 m.
+	"roads_median": [231, 10.5, [432585.0, 516580.0], 40.0, 40.0, Vector3(0, -27, 20), Vector3(0, -40, -90)],
+	"roads_median_150": [231, 10.5, [432520.0, 516500.0], 150.0, 40.0, Vector3(0, 0, 20), Vector3(0, -150, -250)],
+	# A double-track railway running north-east by Hadera (each track's offset signed by its way's overall direction).
+	"roads_rail_ne": [231, 10.5, [329164.0, 585633.0], 40.0, 39.0, Vector3(2, -32, 15), Vector3(0, -40, -50)],
 	"roads_night_amman": [231, 22.0, [430218.0, 514500.0], 600.0, 0.0, Vector3(0, 8, 40), Vector3(0, -500, -2000)],
 	# From the cockpit at night over Rishon LeZion (the all-settings set's night cockpit).
 	"night_cockpit": [231, 22.0, [314000.0, 528000.0], 300.0, 20.0, null, null],

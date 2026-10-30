@@ -641,7 +641,8 @@ thread, so nothing waits at the quit). It covers 2048 × 2048 texels of 2 m (4.1
 - The ways drawn: classes motorway to track, at the layer's width (OSM `width`, else lanes × 3.5 m, else by class);
   a motorway or trunk road with a 1 m paved shoulder each side (inferred: the width is mostly lanes × 3.5 m, and these
   roads have shoulders); railways as a 4.5 m ballast bed (inferred: sleepers 2.6 m, the bed wider at its foot; the
-  two tracks of a double line, their centres 4–4.5 m apart, make one bed). Tunnels and the pieces off the ground
+  two tracks of a double line, their centres 4–4.5 m apart, make one bed; two tracks under 6 m apart get ballast
+  between them too: at 4.8 m their strips left a seam of specks). Tunnels and the pieces off the ground
   (airbases and their 1200 m ring, World scale Real's sites, the 1998 sea) are left out.
 
 **The marking mask** (`iaf_avionics::roads::marks`, made with the road mask on its thread, the same centre, its own
@@ -650,19 +651,31 @@ rect `road_marks_rect`): 1024 × 1024 texels of 2 m (2 km square), RGBA8 (4 MB, 
 - R: the signed offset from the nearest marked way's centreline, 128 + 16 per metre (positive on the right of its
   direction). Across a straight way it changes linearly, so bilinear filtering keeps it exact; the road mask's
   distance to the edge folds at the centreline and cannot place a centre line.
-- G: the metres along the way modulo the dash period (12 m), in 256ths.
-- B: its markings: bits 0–3 the lanes (round(width / 3.5 m); a two-way road an even count), bit 4 one way, bit 6 a
-  railway, bit 7 edge lines.
+- G: the metres along the way modulo 30 m (both dash periods fit it whole), in 256ths.
+- B: its markings: bits 0–3 the lanes (round(width / 3.5 m); a two-way road an even count), bit 4 one way, bit 5 no
+  median line, bit 6 a railway, bit 7 edge lines.
 - A: its half width in 16ths of a metre.
 - The ways marked: paved motorway and trunk carriageways and ramps (edge lines, a dashed line between their lanes),
   paved two-way primary to tertiary roads of two lanes or more (a dashed line between their lanes: the centre line on
-  two lanes), railways (two rails). A texel holds the way within its half width + 3 m: the shader's four taps reach
-  2√2 m.
+  two lanes), railways (two rails). A texel holds the way within its half width + 3 m (a motorway's or trunk road's
+  3.5 m): the shader's four taps reach 2√2 m.
+- A median texel holds two carriageways. A texel by a one-way carriageway's left lane edge (outside it, or less than
+  0.5 m inside) with another carriageway in reach that has the texel by its left lane edge too: R and G the two's
+  offsets from their left lane edges (negative into the median), the eastward-running one first; B edge lines and one
+  way, no lanes. So each median line interpolates across the seam between the two carriageways' texels, as the
+  railways' rails do. The two lane edges must be at least 2.7 m apart: from there every texel a median line's taps
+  reach holds both. Closer (the two strips merge into one road), or beside another kind of way, the texel keeps its
+  own way's values and gets bit 5: no median line.
 - A railway texel holds up to two tracks, so a double line's seam serves the rails on both sides: R and G their
   offsets, A the metres along the nearer one (modulo 12 m: its sleepers). The offsets are signed toward one side for
   every way whatever its direction (the side right of the track run south-eastward), and the two are written in the
   order of their offsets: along a pair of tracks each slot holds the same track, and a texel with one track fills
-  both. A way's own segments are merged first (past a bend another segment's cap gives another offset).
+  both. A way's own segments are merged first (past a bend another segment's cap gives another offset). B bit 0 says
+  which slot A belongs to. The distance along runs south-eastward too, so the shader knows its direction from the
+  offset's gradient.
+- "South-eastward" is decided once per way, from its segments' summed direction. Decided per segment, it flipped at
+  a vertex wherever a curve turned through north-east: 8325 of the layer's motorway, trunk and railway ways had such
+  a vertex.
 
 `terrain/ground_roads.gd` asks a new mask when the camera is 500 m from the last one's centre and shows it when made
 (`ImageTexture.update`), its marking mask the next frame (`IafRoads.take_mask`, then `take_marks`; each mask sets its
@@ -686,21 +699,34 @@ before the airbases' surface and below the towns' night glow (so a lit road read
   near a road; one tap rejects the rest).
 
 **Markings** (`road_paint`, on the drawn roads only): within 380–500 m of the camera and on pixels under 0.6–1.2 m.
+The sizes are Israel's out-of-town ones[^il-signs] (the mask does not know a town's streets from a road's).
 
 | Line | Where | Size, colour |
 |---|---|---|
-| Lane line | between a road's lanes (the centre line of a two-lane road) | 0.12 m, white (albedo 0.6); dashes 3 m in every 12 m[^mutcd] |
-| Edge line | motorways and trunk roads, on the shoulder by the outer lane; a one-way carriageway its right edge only | 0.15 m, yellow: Israel marks a road's edge in yellow[^il-yellow] |
+| Lane line (sign 801) | between a road's lanes (the centre line of a two-lane road) | 0.15 m, white (albedo 0.6); dashes 3 m with 12 m gaps on a dual carriageway (motorway, trunk), 2 m with 4 m gaps on a single one |
+| Edge line (sign 807) | motorways and trunk roads, on the shoulder by the outer lane (a one-way carriageway its right) | 0.15 m, yellow |
+| Median line (sign 803) | a one-way carriageway's left, on the shoulder by its leftmost lane | two lines of 0.1 m, 0.1 m apart, white |
 | Sleepers | each track: 2.6 m long, 0.25 m wide, one every 0.6 m[^sleeper] | weathered concrete (albedo 0.18) |
 | Rails | each track: its two rails at the standard gauge | 0.07 m, rust-dark steel (albedo 0.05) |
 
-The dash and gap lengths are the MUTCD's 10 ft and 30 ft; no Israeli figure was found (open), the same paint is used
-outside Israel (inferred). Each line and dash is box-filtered over the pixel's footprint across and along the way
-(the offset's and the distance's change to the next pixels, from the four taps of one `textureGather` per channel),
-the airbases' `ab_band` / `ab_train`: a far line thins into its average instead of shimmering. Four taps of two ways
-(a junction, two carriageways side by side) are not mixed: their offsets or distances differ by more than 3.2 m, or
-change at another rate than a metre per metre. Where a track's sleepers have no distance along (its four taps reach the
-other track's), the band takes their average tone.
+The regulations give the dashes as "gap:paint" (רווח:צבע) 300:1200 cm on a dual carriageway, 200:400 on a single one
+and 100:200 in towns. That the first number is the dash is inferred: the dense warning line 805 is 100:50, so its
+paint is the longer part. The regulations put sign 803 on a dual carriageway's left "also where there is a median"
+(p. 369) and on "the left side of the leftmost lane of that carriageway" (p. 370). The same paint is used outside
+Israel (inferred).
+
+A median between two carriageways under 6 m (between their lane edges) is paved in the road mask (inferred: a narrow
+median is paved up to its barrier; the 2 m mask under-sampled the strip of ground left between the two shoulders into
+jagged specks). Its edge is where the median widens past 6 m.
+
+Each line and dash is box-filtered over the pixel's footprint across and along the way (the offset's and the
+distance's change to the next pixels, from the four taps of one `textureGather` per channel), the airbases' `ab_band`
+/ `ab_train`: a far line thins into its average instead of shimmering. Four taps of two ways (a junction, two
+carriageways side by side) are not mixed: their offsets or distances differ by more than 3.2 m, or change at another
+rate than a metre per metre. An edge or median line reads each tap's offset from its way's lane edge (a median texel's
+from the carriageway tried). A track's sleepers: each of the four taps whose distance along is this
+track's (B bit 0) carries it to the pixel along the track's direction, the offset's gradient turned a right angle;
+their bilinear mean places the sleeper. So a sleeper ends cleanly where the taps reach the other track's texels.
 
 **Alignment.** Over Ramat David and Tel Aviv a drawn road lies on the photo's road: the layer is warped into the
 engine frame by the scenery's georeference (scenery.md §6.1). The test checks every way's segment middles fall on road
@@ -742,6 +768,12 @@ day and night with the sleepers): the road mask 2.3 / 2.6 ms on average (2.9 / 5
 next frame 1.0 / 1.1 ms (at most 1.8 ms), as the road mask alone before; GPU 13.3 / 12.9 ms at 150 m, 16.9 / 16.0 ms
 at 600 m.
 
+With the median lines, the paved medians and the sleepers' new ends (2026-10-30, the same route and settings, one run
+each, the window under xvfb): GPU 14.82 / 18.37 ms per frame at 150 / 600 m with Roads Original, 14.71 / 17.98 ms
+with Detailed: no cost above the runs' own noise. The marking mask's edge-lined ways are rasterised a second time
+(their two carriageways per texel), and the road mask reads the median and track pairs too: both masks over the
+Ayalon take ≈ 100 ms on the mask's own thread, were ≈ 75 ms.
+
 Tried and dropped (2026-10-29): the road drawn at full strength over the Survey 2 m photo. Its roads already show;
 a uniform grey band hid the photo's lane paint, shoulders and the trees over the streets.
 
@@ -752,8 +784,8 @@ Tried and dropped (2026-10-29, the markings):
   Now they are drawn only on the roads drawn.
 - The edge lines from the road mask's edge distance: where two carriageways touch, the mask's tiny gaps between them
   drew yellow diamonds. Then the edge lines from the marking mask on both sides: the two carriageways' median edges,
-  each from its own way's texels, broke into pieces. Now a one-way carriageway has only its right edge line, and the
-  1 m shoulders close the gaps.
+  each from its own way's texels, broke into pieces. Then a one-way carriageway had only its right edge line, and the
+  1 m shoulders closed the gaps (the median line came on 2026-10-30, below).
 - A 3 m railway strip: a double line's two strips left a gap under a texel wide that wavered along the line.
 
 Tried and dropped (2026-10-30, the railways):
@@ -766,8 +798,21 @@ Tried and dropped (2026-10-30, the railways):
   texel, and times a few kilometres of position the sleepers wavered into a moiré. Now by the distance along.
 - The bed at the imagery's strength (half over the Survey photo): it read as a pale slab with the photo's patches.
 
-Open: no median edge line on a dual carriageway; the dash and gap lengths are not Israel's own (no source found);
-within 1200 m of an airbase the roads are cut off the ground by the road layer (scenery.md §6.1), so the base's own
+Tried and dropped (2026-10-30, the median line and the sleepers' ends):
+
+- The sleepers' band at its average tone where a track's four taps reached the other track's distance along: light
+  triangles at the sleepers' inner ends between the two tracks.
+- The median line from texels of either carriageway alone, as the right edge line: where two carriageways' strips
+  touch or overlap, the offsets of both folded at the seam and passed the shader's checks in some cells: white glyphs
+  between the carriageways. Then median texels only outside the lanes, with "no line" values: the texels inside the
+  lanes by the seam still mixed. Now bit 5 on every texel of a carriageway by such a seam.
+- A concrete barrier (0.6 m) half way across the paved median, from the median texels: a cell whose taps reach a
+  carriageway's lanes mixes the two carriageways' values, and the barrier grew a saw of spikes. Without a barrier the
+  median reads as a painted one (sign 815).
+
+Open: two parallel ways running within a few degrees of north-east on the whole can still take opposite sides (their
+rails or median lines break where the slots swap); the town sizes (0.1 m lines, 1 m dashes with 2 m gaps) are not
+used; within 1200 m of an airbase the roads are cut off the ground by the road layer (scenery.md §6.1), so the base's own
 access roads stay the imagery's.
 
 ## 2. Cloud layer (Graphics TEXTURED SKY, docs/front-end.md §12.4)
@@ -2056,10 +2101,11 @@ tonemapper, its lumps (9 km and 5 km scales only) not visible from a few hundred
 [^lekner]: J. Lekner, M. C. Dorf, "Why some things are darker when wet", Applied Optics 27 (7), 1988, pp. 1278–1280:
     https://doi.org/10.1364/AO.27.001278
 
-[^mutcd]: US FHWA, Manual on Uniform Traffic Control Devices (2009), §3A.06: broken lines of 10 ft segments and 30 ft
-    gaps, a normal line 4–6 in wide: https://mutcd.fhwa.dot.gov/htm/2009/part3/part3a.htm
-[^il-yellow]: Hamichlol, "קו הפרדה" (road markings in Israel: "a yellow line marks the road's edge"):
-    https://www.hamichlol.org.il/%D7%A7%D7%95_%D7%94%D7%A4%D7%A8%D7%93%D7%94
+[^il-signs]: Israel Ministry of Transport, "תקנות והנחיות להצבת תמרורים" (traffic sign regulations and placement
+    guidelines), 2024 edition: table 4 (pp. 28–31, marking sizes in cm by urban / interurban single / interurban dual
+    carriageway; widths 15 cm out of town, the double line 10-10-10), signs 801, 803, 807 (pp. 365–371; 807 "a solid
+    yellow line: the road's edge line", 803 "a double solid separation line, white"):
+    https://www.gov.il/BlobFolder/policy/2020_tamrur_0/he/%D7%AA%D7%A7%D7%A0%D7%95%D7%AA%20%D7%95%D7%94%D7%A0%D7%97%D7%99%D7%95%D7%AA%20%D7%9C%D7%94%D7%A6%D7%91%D7%AA%20%D7%AA%D7%9E%D7%A8%D7%95%D7%A8%D7%99%D7%9D%202024.pdf
 [^sleeper]: Wikipedia, "Railroad tie" (sleepers 2.59 m long and 0.25 m wide; concrete ties every 61 cm):
     https://en.wikipedia.org/wiki/Railroad_tie
 [^lamp-height]: Matamata-Piako District Council, Development Manual, Part 3 (street lighting: preferred mounting heights 6 m

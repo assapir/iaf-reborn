@@ -65,8 +65,9 @@ global uniform vec4 airbase_info;
 // (128 + 16 per metre, negative on the road), G = that way's attributes (bit 7 paved, bit 6 a railway, bits 0–5 width
 // in half metres). The marking mask (iaf_avionics::roads::marks; 1024² of 2 m, its own rect as the road mask's, shown
 // a frame apart): R = the signed offset from the nearest marked way's centreline (128 + 16 per metre), G = the metres
-// along it modulo ROAD_DASH_PERIOD (256ths), B = its markings (bits 0–3 lanes, bit 4 one way, bit 6 a railway, bit 7
-// edge lines), A = its half width (16ths of a metre). A railway texel: R and G two tracks' offsets.
+// along it modulo ROAD_PERIOD (256ths), B = its markings (bits 0–3 lanes, bit 4 one way, bit 6 a railway, bit 7
+// edge lines), A = its half width (16ths of a metre). A median texel (edge lines, no lanes): R and G two carriageways'
+// offsets from their left lane edges. A railway texel: R and G two tracks' offsets, A the nearer one's distance along.
 global uniform float ground_roads;
 global uniform sampler2D road_mask : filter_linear, repeat_disable;
 global uniform vec4 road_mask_rect;
@@ -388,15 +389,16 @@ void wet_ground(inout vec3 alb, inout float rough, inout float spec, inout vec3 
 }
 
 // Roads (Preferences "Roads"): the lane markings and a railway's sleepers and rails over the road's colour `c` at `xz`,
-// from the marking mask at `muv`, `dist` m from the camera (docs/rendering.md §1.8). Lines 0.12 m wide, white, between
-// the lanes; the edge lines 0.15 m, yellow (Israel's road edges), on the shoulder by the outer lanes (a one-way
-// carriageway only its right one); dashes 3 m in every 12 m. Each line, dash, sleeper and rail is box-filtered over the
-// pixel's footprint across and along the way (the offset's and the distance's change to the next pixels), so it thins
-// into its average with distance instead of shimmering; gone past 1 m pixels and 380–500 m from the camera (the mask
-// holds 524 m around it; the airbases' ab_band / ab_train). Texels of two ways (a junction, two carriageways side by
-// side) mix no offsets (road_field).
-const float ROAD_DASH_PERIOD = 12.0;
-const float ROAD_DASH = 3.0;
+// from the marking mask at `muv`, `dist` m from the camera (docs/rendering.md §1.8), Israel's out-of-town marking:
+// lines 0.15 m wide, white, between the lanes, dashes 3 m in every 15 m on a dual carriageway (motorway, trunk), 2 m in
+// every 6 m on a single one; the edge lines on the shoulder by the outer lanes, 0.15 m yellow on the right, on a
+// one-way carriageway's left the median's double white line (two 0.1 m lines 0.1 m apart). Each line, dash, sleeper and
+// rail is box-filtered over the pixel's footprint across and along the way (the offset's and the distance's change to
+// the next pixels), so it thins into its average with distance instead of shimmering; gone past 1 m pixels and 380–500
+// m from the camera (the mask holds 524 m around it; the airbases' ab_band / ab_train). Texels of two ways (a junction,
+// two carriageways side by side) mix no offsets (road_field).
+const float ROAD_PERIOD = 30.0;  // the marking mask's G: metres along modulo this (iaf_avionics::roads::MARK_PERIOD)
+const float RAIL_PERIOD = 12.0;  // a railway texel's A (RAIL_PERIOD)
 // One way's offset from the four taps `g` (metres; x: (0, 1), y: (1, 1), z: (1, 0), w: (0, 0)) at `f`, its change per
 // metre `grad` (x east, y south) and the pixel's footprint across it `fw`; false when the taps hold two ways: they
 // differ by more than 3.2 m (2√2 m of texels), or change at another rate than a metre per metre.
@@ -420,53 +422,95 @@ vec3 road_paint(vec3 c, vec2 xz, vec2 wdx, vec2 wdy, vec2 muv, float fpx, float 
 	vec2 f = fract(muv * mn - 0.5);
 	vec4 go = (textureGather(road_marks, muv, 0) * 255.0 - 128.0) / 16.0;
 	vec4 g1 = textureGather(road_marks, muv, 1) * 255.0;
+	vec4 gb = textureGather(road_marks, muv, 2) * 255.0;
+	vec4 ga = textureGather(road_marks, muv, 3) * 255.0;
 	float o, fo;
 	vec2 gr;
 	if (mod(t.b, 128.0) > 63.5) {
 		// A railway: up to two tracks (R, G). Each: sleepers 2.6 m long and 0.25 m wide every 0.6 m (concrete, weathered),
 		// then its two rails, their centres 1.435 + 0.07 m apart (steel, rust-dark).
 		vec4 g2 = (g1 - 128.0) / 16.0;
-		// The nearer track's distance along (A), unwrapped against w: the sleepers where its four taps hold one track,
-		// else their average (a quarter-metre sleeper in every 0.6 m) across the band.
-		vec4 ga = textureGather(road_marks, muv, 3) * 255.0;
-		ga = (ga - 256.0 * round((ga - ga.w) / 256.0)) * (ROAD_DASH_PERIOD / 256.0);
-		float a, fa;
-		vec2 gra;
-		bool along = road_field(ga, f, wdx, wdy, a, gra, fa);
+		// A: the nearer track's distance along (B bit 0: G's track, else R's), running along the offset's gradient
+		// turned a right angle. Each tap of this track gives the pixel's distance along from its own, unwrapped against
+		// the heaviest; their bilinear mean places the sleepers, so a track's sleepers end cleanly where the taps reach
+		// the other track's.
+		ga *= RAIL_PERIOD / 256.0;
+		vec4 slot_g = mod(gb, 2.0);
+		vec4 wt = vec4((1.0 - f.x) * f.y, f.x * f.y, f.x * (1.0 - f.y), (1.0 - f.x) * (1.0 - f.y)) + 1e-3;
 		for (int i = 0; i < 2; i++) {
 			if ((i == 1 && g2 == go) || !road_field(i == 0 ? go : g2, f, wdx, wdy, o, gr, fo)) {
 				continue;
 			}
-			float sl = along ? ab_train(a, 0.25, 0.6, fa) : 0.25 / 0.6;
+			vec2 dir = vec2(gr.y, -gr.x) / max(length(gr), 1e-3);
+			vec4 own = (i == 0 ? 1.0 - slot_g : slot_g) + vec4(equal(go, g2));
+			vec4 w4 = wt * min(own, 1.0);
+			// Each tap's distance along carried to the pixel (taps 2 m apart).
+			vec4 est = ga + 2.0 * vec4(dot(f - vec2(0.0, 1.0), dir), dot(f - vec2(1.0), dir),
+					dot(f - vec2(1.0, 0.0), dir), dot(f, dir));
+			float sl = 0.25 / 0.6;
+			float sw = w4.x + w4.y + w4.z + w4.w;
+			if (sw > 1e-2) {
+				vec4 m4 = step(max(max(w4.x, w4.y), max(w4.z, w4.w)), w4);
+				float ref = dot(est, m4) / max(m4.x + m4.y + m4.z + m4.w, 1.0);
+				est -= RAIL_PERIOD * round((est - ref) / RAIL_PERIOD);
+				sl = ab_train(dot(est, w4) / sw, 0.25, 0.6, abs(dot(dir, wdx)) + abs(dot(dir, wdy)));
+			}
 			c = mix(c, vec3(0.19, 0.18, 0.165), ab_band(o, 1.3, fo) * sl * k);
 			c = mix(c, vec3(0.06, 0.05, 0.045), ab_band(abs(o) - 0.753, 0.035, fo) * k);
 		}
 		return c;
 	}
-	// The distance along, unwrapped against w.
+	// Edge lines (bit 7): each tap's offset from its way's lane edge, l (negative outside the lanes; the line on the
+	// shoulder 0 to 0.15 m out, the median's double line 0 to 0.3 m out): o + half width on the left, half width − o on
+	// the right. A median texel (no lanes) holds two carriageways' left l (R, G): tried with either; the right edge
+	// only off them. Taps without edge lines take 100 m (road_field rejects them). No median line where a tap has bit 5
+	// (two carriageways too close for one).
+	vec4 edged = step(127.5, gb);
+	vec4 med = edged * vec4(lessThan(mod(gb, 16.0), vec4(0.5)));
+	vec4 hw4 = ga / 16.0;
+	vec4 g2 = (g1 - 128.0) / 16.0;
+	if (t.b > 127.5) {
+		float yel = 0.0;
+		float wht = 0.0;
+		bool oneway = mod(t.b, 32.0) > 15.5;
+		bool any_med = med != vec4(0.0);
+		bool no_med = oneway && dot(step(31.5, mod(gb, 64.0)), edged) > 0.0;
+		for (int i = no_med ? 2 : 0; i < 3; i++) {
+			if (i == 1 && !any_med) {
+				continue;
+			}
+			vec4 v = i == 2 ? hw4 - go : mix(go + hw4, i == 0 ? go : g2, med);
+			v = mix(vec4(100.0), v, edged);
+			float l, fl;
+			vec2 gl;
+			if (!road_field(v, f, wdx, wdy, l, gl, fl)) {
+				continue;
+			}
+			if (i < 2 && oneway) {
+				// The median's double white line: two 0.1 m lines 0.1 m apart.
+				wht = max(wht, ab_band(l + 0.05, 0.05, fl) + ab_band(l + 0.25, 0.05, fl));
+			} else {
+				yel = max(yel, ab_band(l + 0.075, 0.075, fl));
+			}
+		}
+		c = mix(c, vec3(0.55, 0.4, 0.06), yel * k);
+		c = mix(c, vec3(0.6), wht * k);
+	}
+	// The lanes: off the median texels; the distance along unwrapped against w.
 	vec4 gp = g1 - 256.0 * round((g1 - g1.w) / 256.0);
-	gp *= ROAD_DASH_PERIOD / 256.0;
+	gp *= ROAD_PERIOD / 256.0;
 	float s, fs;
 	vec2 gs;
-	if (!road_field(go, f, wdx, wdy, o, gr, fo) || !road_field(gp, f, wdx, wdy, s, gs, fs)) {
+	float lanes = mod(t.b, 16.0);
+	if (lanes < 2.0 || med != vec4(0.0) || !road_field(go, f, wdx, wdy, o, gr, fo)
+			|| !road_field(gp, f, wdx, wdy, s, gs, fs)) {
 		return c;
 	}
 	float hw = t.a / 16.0;
-	float lanes = mod(t.b, 16.0);
-	float paint = 0.0;
-	if (lanes >= 2.0) {
-		float lw = 2.0 * hw / lanes;
-		float at = -hw + lw * clamp(round((o + hw) / lw), 1.0, lanes - 1.0);
-		paint = ab_band(o - at, 0.06, fo) * ab_train(s, ROAD_DASH, ROAD_DASH_PERIOD, fs);
-	}
-	vec3 white = vec3(0.6);
-	c = mix(c, white, paint * k);
-	if (t.b > 127.5) {
-		// One way (bit 4): the right edge only (the offset is positive on the right).
-		float e = ab_band(abs(o) - (hw + 0.075), 0.075, fo) * (mod(t.b, 32.0) > 15.5 ? step(0.0, o) : 1.0);
-		c = mix(c, vec3(0.55, 0.4, 0.06), e * k);
-	}
-	return c;
+	float lw = 2.0 * hw / lanes;
+	float at = -hw + lw * clamp(round((o + hw) / lw), 1.0, lanes - 1.0);
+	vec2 dash = t.b > 127.5 ? vec2(3.0, 15.0) : vec2(2.0, 6.0);
+	return mix(c, vec3(0.6), ab_band(o - at, 0.075, fo) * ab_train(s, dash.x, dash.y, fs) * k);
 }
 
 void fragment() {

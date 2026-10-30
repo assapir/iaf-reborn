@@ -431,14 +431,36 @@ pub const MASK_RAIL: u8 = 0x40;
 /// (inferred: sleepers 2.6 m long, the bed wider at its foot). Wide enough that the two tracks of a double line (their
 /// centres about 4–4.5 m apart) make one bed: a narrower strip left a gap under the 2 m mask's texel that wavered.
 pub const RAIL_WIDTH: f32 = 4.5;
-/// The lane markings' dash period (m): a 3 m line and a 9 m gap (MUTCD §3A.06's 10 ft and 30 ft; docs/rendering.md
-/// §1.8).
-pub const MARK_PERIOD: f32 = 12.0;
-/// The marking mask's B: bits 0–3 the lanes (their boundaries inside get dashed lines), bit 4 one way (with edge
-/// lines: only the right one), bit 6 a railway (two rails), bit 7 edge lines.
+/// Two tracks closer than this (m between their centres) share one bed: the ground between them is ballast too
+/// (inferred: a double line's tracks lie 4–5 m apart on one bed).
+const RAIL_PAIR: f32 = 6.0;
+/// The marking mask's G holds the metres along a way modulo this (m): a whole number of both dash periods
+/// (`DASH_DUAL`, `DASH_SINGLE`).
+pub const MARK_PERIOD: f32 = 30.0;
+/// The broken lane line, dash and period (m), on a dual carriageway (motorway, trunk: 3 m of paint, 12 m gap) and a
+/// single one (2 m, 4 m): Israel's sign 801 out of town (docs/rendering.md §1.8).
+pub const DASH_DUAL: [f32; 2] = [3.0, 15.0];
+pub const DASH_SINGLE: [f32; 2] = [2.0, 6.0];
+/// A railway texel's A holds the metres along the nearer track modulo this (m): its sleepers, one every 0.6 m.
+pub const RAIL_PERIOD: f32 = 12.0;
+/// The marking mask's B: bits 0–3 the lanes (their boundaries inside get dashed lines), bit 4 one way (its left edge
+/// the median's double white line), bit 5 no median line (`MARK_NO_MEDIAN`), bit 6 a railway (two rails), bit 7 edge
+/// lines. On a railway texel bit 0 says A is
+/// the G track's distance along (else R's). An edge-lined texel with no lanes holds two carriageways' median sides
+/// (`marks`).
 pub const MARK_ONEWAY: u8 = 0x10;
 pub const MARK_RAIL: u8 = 0x40;
 pub const MARK_EDGES: u8 = 0x80;
+/// The narrowest median (m between the two carriageways' lane edges) that gets both median lines. From 2.7 m every
+/// texel either line's four taps reach holds both carriageways (a texel of 2 m, the taps 2√2 m away); narrower, the
+/// two strips read as one road.
+const MEDIAN_MIN: f32 = 2.7;
+/// A median narrower than this (m between the lane edges) is paved (inferred: a narrow median is paved up to its
+/// concrete barrier; the 2 m mask under-sampled the strip of ground left between two carriageways' shoulders into
+/// jagged specks).
+const MEDIAN_PAVED: f32 = 6.0;
+/// The marking mask's B on an edge-lined texel: no median line here (two carriageways closer than MEDIAN_MIN).
+pub const MARK_NO_MEDIAN: u8 = 0x20;
 /// The marking mask holds a way's texels this far (m) past its edges: a pixel on the road reads the 2 × 2 texels
 /// around it, up to 2√2 m away.
 const MARK_PAD: f32 = 3.0;
@@ -467,10 +489,12 @@ fn drawn_half_width(w: &Way) -> f32 {
 /// Calls `f(texel, distance to the centreline m, signed offset from it m, metres along the way, eastward)` for every
 /// texel of the `n` × `n` mask (texels of `m` m, west edge `x0`, north edge `y1`, row 0 north) whose centre lies within
 /// `reach` m of way `k`'s centreline. The offset is positive on the right of the way's direction; past the way's ends
-/// it is the distance (the cap) with the side's sign. `eastward`: the segment runs east-south-east of the north-east
-/// line (its direction · south-east > 0), so the offset's sign means the same side for every way whatever its
-/// direction (the railways' tracks). A line flips this only when it runs within a few degrees of north-east, where
-/// OSM's segments of one track can fall on either side; a north–south or east–west line, the commonest, never does.
+/// it is the distance (the cap) with the side's sign. `eastward`: the way runs east-south-east of the north-east line
+/// on the whole (its segments' directions · south-east summed > 0), so the offset's sign means the same side for every
+/// way whatever its direction (the railways' tracks, the carriageways' order). One flag for the whole way: decided
+/// per segment, a curve through north-east flipped the sign at a vertex (8325 ways of the layer's motorways, trunk
+/// roads and railways). Two parallel ways can still differ when both run within a few degrees of north-east on the
+/// whole.
 fn each_texel(
     r: &Roads,
     k: usize,
@@ -483,8 +507,11 @@ fn each_texel(
     let mf = m as f32;
     // Texel coordinates (x east, y south from the north-west corner); texel (i, j)'s centre is (i + ½, j + ½).
     let t = |p: [f64; 2]| [((p[0] - x0) / m) as f32, ((y1 - p[1]) / m) as f32];
+    let idx = r.way_index(k as u32);
+    let eastward = idx.windows(2).map(|s| (t(r.point(s[1])), t(r.point(s[0])))).map(|(b, a)| b[0] - a[0] + b[1] - a[1]);
+    let eastward = eastward.sum::<f32>() > 0.0;
     let mut walked = 0.0;
-    for s in r.way_index(k as u32).windows(2) {
+    for s in idx.windows(2) {
         let (a, b) = (t(r.point(s[0])), t(r.point(s[1])));
         let ab = [b[0] - a[0], b[1] - a[1]];
         let len = ab[0].hypot(ab[1]);
@@ -507,17 +534,97 @@ fn each_texel(
                 if e <= reach {
                     // y runs south: a positive cross product is on the right of the way's direction.
                     let side = if ab[0] * py - ab[1] * px >= 0.0 { 1.0 } else { -1.0 };
-                    f(i + j * n, e, side * e, start + u * len * mf, ab[0] + ab[1] > 0.0);
+                    f(i + j * n, e, side * e, start + u * len * mf, eastward);
                 }
             }
         }
     }
 }
 
+/// Way `k`'s texels within `reach` m (`each_texel`): its nearest segment's (distance, offset, metres along, eastward);
+/// past a bend another segment's cap is a different offset.
+fn nearest(r: &Roads, k: usize, grid: (f64, f64, f64, usize), reach: f32) -> HashMap<usize, (f32, f32, f32, bool)> {
+    let mut way = HashMap::new();
+    each_texel(r, k, grid, reach, |o, e, side, s, east| {
+        let q = way.entry(o).or_insert((f32::MAX, 0.0, 0.0, false));
+        if e < q.0 {
+            *q = (e, side, s, east);
+        }
+    });
+    way
+}
+
+/// A carriageway at a texel: (distance, offset, half width, eastward, one way).
+type Lane = (f32, f32, f32, bool, bool);
+
+/// How far a marked way's texels reach: its half width + MARK_PAD, an edge-lined way's 0.5 m further (a median line's
+/// taps beside the other carriageway).
+fn edged_reach(w: &Way, b: u8) -> f32 {
+    half_width(w) + MARK_PAD + if b & MARK_EDGES != 0 { 0.5 } else { 0.0 }
+}
+
+/// The edge-lined ways' texels (motorway and trunk carriageways, `markings`): the nearest two carriageways, a
+/// carriageway found again (another way of it: the same side, the same offset) kept once.
+fn carriageways(parts: &[&Roads], grid: (f64, f64, f64, usize)) -> HashMap<usize, [Lane; 2]> {
+    let none: Lane = (f32::MAX, 0.0, 0.0, false, false);
+    let mut edged: HashMap<usize, [Lane; 2]> = HashMap::new();
+    for r in parts {
+        for (k, w) in r.ways.iter().enumerate() {
+            let b = markings(w);
+            if b & MARK_EDGES == 0 || !on_ground(w) {
+                continue;
+            }
+            for (o, (e, side, _, east)) in nearest(r, k, grid, edged_reach(w, b)) {
+                let c = (e, side, half_width(w), east, b & MARK_ONEWAY != 0);
+                let t = edged.entry(o).or_insert([none; 2]);
+                if let Some(same) = t.iter_mut().find(|q| q.0 < f32::MAX && q.3 == c.3 && (q.1 - c.1).abs() < 1.0) {
+                    if c.0 < same.0 {
+                        *same = c;
+                    }
+                } else if c.0 < t[1].0 {
+                    t[1] = c;
+                }
+                if t[1].0 < t[0].0 {
+                    t.swap(0, 1);
+                }
+            }
+        }
+    }
+    edged
+}
+
+/// The railways' texels within RAIL_WIDTH / 2 + MARK_PAD: the nearest two tracks' (distance, eastward offset,
+/// eastward metres along), a track found again (another way of it, cut by OSM) kept once.
+fn tracks(parts: &[&Roads], grid: (f64, f64, f64, usize)) -> HashMap<usize, [(f32, f32, f32); 2]> {
+    let mut rails: HashMap<usize, [(f32, f32, f32); 2]> = HashMap::new();
+    for r in parts {
+        for (k, w) in r.ways.iter().enumerate() {
+            if w.class != CLASS_RAIL || !on_ground(w) {
+                continue;
+            }
+            for (o, (e, side, s, east)) in nearest(r, k, grid, half_width(w) + MARK_PAD) {
+                let c = if east { (e, side, s) } else { (e, -side, -s) };
+                let t = rails.entry(o).or_insert([(f32::MAX, 0.0, 0.0); 2]);
+                if let Some(same) = t.iter_mut().find(|q| q.0 < f32::MAX && (q.1 - c.1).abs() < 1.0) {
+                    if c.0 < same.0 {
+                        *same = c;
+                    }
+                } else if c.0 < t[1].0 {
+                    t[1] = c;
+                }
+                if t[1].0 < t[0].0 {
+                    t.swap(0, 1);
+                }
+            }
+        }
+    }
+    rails
+}
+
 /// The road mask over `n` × `n` texels of `m` metres, west edge `x0`, north edge `y1` (row 0 north), RG8: R the signed
 /// distance (MASK_*), G the nearest way's attributes (`MASK_PAVED`, `MASK_RAIL`, the width drawn). The ways drawn on
 /// the ground (`on_ground`): a railway as its ballast strip, RAIL_WIDTH wide; a motorway or trunk road with its
-/// shoulders (SHOULDER).
+/// shoulders (SHOULDER); a median between two carriageways under MEDIAN_PAVED paved.
 pub fn mask(parts: &[&Roads], x0: f64, y1: f64, m: f64, n: usize) -> Vec<u8> {
     let mut d = vec![MASK_RANGE; n * n];
     let mut g = vec![0u8; n * n];
@@ -543,6 +650,20 @@ pub fn mask(parts: &[&Roads], x0: f64, y1: f64, m: f64, n: usize) -> Vec<u8> {
             });
         }
     }
+    // Between the two tracks of a line under RAIL_PAIR apart, ballast: their strips left a seam of specks where they
+    // were more than RAIL_WIDTH apart.
+    for (o, [a, b]) in tracks(parts, (x0, y1, m, n)) {
+        if b.0 < f32::MAX && a.1 * b.1 < 0.0 {
+            d[o] = d[o].min((((a.1 - b.1).abs() - RAIL_PAIR) * 0.5).max(-1.0));
+        }
+    }
+    // A median under MEDIAN_PAVED is paved: its edge where it widens past that.
+    for (o, [a, b]) in carriageways(parts, (x0, y1, m, n)) {
+        let (la, lb) = (a.1 + a.2, b.1 + b.2);
+        if b.0 < f32::MAX && a.4 && b.4 && la < 0.0 && lb < 0.0 {
+            d[o] = d[o].min(((-(la + lb) - MEDIAN_PAVED) * 0.5).max(-1.0));
+        }
+    }
     let mut out = Vec::with_capacity(2 * n * n);
     for (e, a) in d.iter().zip(&g) {
         out.push((MASK_ZERO + e * MASK_STEPS).round().clamp(0.0, 255.0) as u8);
@@ -552,9 +673,9 @@ pub fn mask(parts: &[&Roads], x0: f64, y1: f64, m: f64, n: usize) -> Vec<u8> {
 }
 
 /// A way's markings (the marking mask's B), 0 for none: motorway and trunk carriageways (and their ramps) edge lines
-/// (a one-way carriageway only its right one: OSM's two carriageways of a road lie a width apart, and their median
-/// edges drawn from two ways' texels broke into pieces) and a dashed line between their lanes; the two-way primary to tertiary roads of two lanes or more a dashed line
-/// between theirs (the centre line on two lanes); a railway its two rails. Paved roads only.
+/// (a one-way carriageway its right edge yellow, its left the median's double white line) and a dashed line between
+/// their lanes; the two-way primary to tertiary roads of two lanes or more a dashed line between theirs (the centre
+/// line on two lanes); a railway its two rails. Paved roads only.
 fn markings(w: &Way) -> u8 {
     if w.class == CLASS_RAIL {
         return MARK_RAIL;
@@ -579,68 +700,68 @@ fn markings(w: &Way) -> u8 {
 /// 256ths of the period, B its markings, A its half width in 16ths of a metre. Texels off a marked way (farther than
 /// its half width + MARK_PAD from the centreline) are 0.
 ///
+/// A one-way carriageway's texel by its left lane edge (less than 0.5 m inside) with another edge-lined way in reach
+/// holds the median: when that one is a carriageway with the texel by its left lane edge too and the two lane edges at
+/// least MEDIAN_MIN apart, R and G the two's offsets from their left lane edges (o + half width, negative into the
+/// median; the eastward-running one first, else the one of the larger offset), so either median line interpolates
+/// across the seam between their texels, and B edge lines and one way, no lanes; else (the strips merge into one, or
+/// the other way is not a carriageway beside it) B gets MARK_NO_MEDIAN.
+///
 /// A railway texel holds up to two tracks (a double line's: a texel by the seam between them serves the rails on both
 /// sides): R and G their offsets (`MASK_ZERO + o · MASK_STEPS`, positive on the right of the track run
 /// south-eastward), the two in the order of their offsets (the same order for every texel along the pair); one track
-/// fills both. A: the metres along the nearer track modulo MARK_PERIOD in 256ths (its sleepers).
+/// fills both. A: the metres along the nearer track, run south-eastward too, modulo RAIL_PERIOD in 256ths (its
+/// sleepers); B bit 0 when that track is G's.
 pub fn marks(parts: &[&Roads], x0: f64, y1: f64, m: f64, n: usize) -> Vec<u8> {
-    use std::collections::HashMap;
     let mut d = vec![f32::MAX; n * n];
     let mut out = vec![0u8; 4 * n * n];
-    // Rail texels: the nearest two tracks' (distance, eastward offset, metres along), a track found again (another
-    // way of it, cut by OSM) kept once.
-    let mut rails: HashMap<usize, [(f32, f32, f32); 2]> = HashMap::new();
+    let grid = (x0, y1, m, n);
     let off = |o: f32| (MASK_ZERO + o * MASK_STEPS).round().clamp(0.0, 255.0) as u8;
-    let phase = |s: f32| ((s.rem_euclid(MARK_PERIOD) / MARK_PERIOD * 256.0).round() as u32 % 256) as u8;
+    let phase = |s: f32, p: f32| ((s.rem_euclid(p) / p * 256.0).round() as u32 % 256) as u8;
     for r in parts {
         for (k, w) in r.ways.iter().enumerate() {
             let b = markings(w);
             if b == 0 || !on_ground(w) {
                 continue;
             }
-            let hw = half_width(w);
             if b == MARK_RAIL {
-                // The way's nearest segment per texel first: past a bend another segment's cap is a different offset.
-                let mut way: HashMap<usize, (f32, f32, f32)> = HashMap::new();
-                each_texel(r, k, (x0, y1, m, n), hw + MARK_PAD, |o, e, side, s, east| {
-                    let side = if east { side } else { -side };
-                    let q = way.entry(o).or_insert((f32::MAX, 0.0, 0.0));
-                    if e < q.0 {
-                        *q = (e, side, s);
-                    }
-                });
-                for (o, c) in way {
-                    let t = rails.entry(o).or_insert([(f32::MAX, 0.0, 0.0); 2]);
-                    if let Some(same) = t.iter_mut().find(|q| q.0 < f32::MAX && (q.1 - c.1).abs() < 1.0) {
-                        if c.0 < same.0 {
-                            *same = c;
-                        }
-                    } else if c.0 < t[1].0 {
-                        t[1] = c;
-                    }
-                    if t[1].0 < t[0].0 {
-                        t.swap(0, 1);
-                    }
-                }
                 continue;
             }
-            each_texel(r, k, (x0, y1, m, n), hw + MARK_PAD, |o, e, side, s, _| {
+            let hw = half_width(w);
+            for (o, (e, side, s, _)) in nearest(r, k, grid, edged_reach(w, b)) {
                 if e < d[o] {
                     d[o] = e;
                     out[4 * o..4 * o + 4].copy_from_slice(&[
                         off(side),
-                        phase(s),
+                        phase(s, MARK_PERIOD),
                         b,
                         (hw * 16.0).round().min(255.0) as u8,
                     ]);
                 }
-            });
+            }
         }
     }
-    for (o, [a, b]) in rails {
+    // The medians: texels by their (one-way) carriageway's left lane edge, with another edge-lined way in reach.
+    for (o, [a, b]) in carriageways(parts, grid) {
+        let left = |c: &Lane| c.4 && c.1 + c.2 < 0.5;
+        if b.0 == f32::MAX || a.0 != d[o] || !left(&a) {
+            continue;
+        }
+        let (la, lb) = (a.1 + a.2, b.1 + b.2);
+        if !left(&b) || -(la + lb) < MEDIAN_MIN {
+            out[4 * o + 2] |= MARK_NO_MEDIAN;
+            continue;
+        }
+        let (p, q) = if (a.3, a.1) > (b.3, b.1) { (la, lb) } else { (lb, la) };
+        out[4 * o] = off(p);
+        out[4 * o + 1] = off(q);
+        out[4 * o + 2] = MARK_EDGES | MARK_ONEWAY;
+    }
+    for (o, [a, b]) in tracks(parts, grid) {
         if a.0 < d[o] {
             let (p, q) = if b.0 == f32::MAX { (a.1, a.1) } else { (a.1.max(b.1), a.1.min(b.1)) };
-            out[4 * o..4 * o + 4].copy_from_slice(&[off(p), off(q), MARK_RAIL, phase(a.2)]);
+            let g = u8::from(p != q && a.1 == q);
+            out[4 * o..4 * o + 4].copy_from_slice(&[off(p), off(q), MARK_RAIL | g, phase(a.2, RAIL_PERIOD)]);
         }
     }
     out
@@ -766,7 +887,11 @@ mod tests {
         let (a, b, c, d) = (line(0.0), line(60.0), line(-60.0), line(-100.0));
         // A double line: tracks along y = -40 (eastward) and y = -44.4 (westward).
         let (e, f) = (line(-40.0), vec![[128.0f32, -44.4], [-128.0, -44.4]]);
+        // Another, its tracks 5.2 m apart (y = 100.4 and 105.6): a 0.7 m seam between their strips.
+        let (g, h) = (line(100.4), line(105.6));
         let r = Roads::from_lines([
+            (way(CLASS_RAIL, 0, 1.4), &g[..]),
+            (way(CLASS_RAIL, 0, 1.4), &h[..]),
             (way(CLASS_PRIMARY, 0, 7.0), &a[..]),
             (way(CLASS_MOTORWAY, FLAG_ONEWAY, 10.5), &b[..]),
             (way(CLASS_RAIL, 0, 1.4), &c[..]),
@@ -781,8 +906,8 @@ mod tests {
         assert!((off(11.0, 1.0) + 1.0).abs() < 0.07 && (off(11.0, -1.0) - 1.0).abs() < 0.07);
         assert_eq!(mk[4 * o(11.0, 1.0) + 2], 2, "two lanes: the centre line");
         assert_eq!(mk[4 * o(11.0, 1.0) + 3], 56, "half width 3.5 m");
-        // Along: 139 m from the way's start, 139 mod 12 = 7 m: 7 / 12 of 256.
-        assert_eq!(mk[4 * o(11.0, 1.0) + 1], 149);
+        // Along: 139 m from the way's start, 139 mod 30 = 19 m: 19 / 30 of 256.
+        assert_eq!(mk[4 * o(11.0, 1.0) + 1], 162);
         assert_eq!(mk[4 * o(11.0, 61.0) + 2], MARK_EDGES | MARK_ONEWAY | 3, "a three-lane carriageway");
         assert_eq!(mk[4 * o(11.0, 20.0) + 2], 0, "off the roads");
         // The railway: a 4.5 m ballast strip in the road mask, its rails in the marking mask; the tunnel neither.
@@ -791,6 +916,8 @@ mod tests {
         assert_eq!(mk[4 * o(11.0, -59.0) + 2], MARK_RAIL);
         assert!(at(11.0, -99.0).0 > 7.0 && at(11.0, -101.0).1 == 0);
         assert_eq!(mk[4 * o(11.0, -99.0) + 2], 0);
+        // The seam between the 5.2 m tracks is ballast: 0.4 m inside the bed (it was 0.35 m outside both strips).
+        assert!((at(11.0, 103.0).0 + 0.4).abs() < 0.07, "{}", at(11.0, 103.0).0);
         // Each texel by the seam holds both tracks, the northern one in R on both sides of the seam (eastward offsets:
         // south positive), so the rails on either side interpolate across it.
         let both = |y: f64| (off(11.0, y), (mk[4 * o(11.0, y) + 1] as f32 - MASK_ZERO) / MASK_STEPS);
@@ -801,5 +928,60 @@ mod tests {
         // A single track fills both.
         let (a, b) = both(-59.0);
         assert!((a - b).abs() < 0.01 && (a + 1.0).abs() < 0.07, "{a} {b}");
+        // A: the nearer track's metres along, run eastward, modulo 12 (B bit 0: it is G's track). At x = 11 the
+        // eastward track is 139 m from its start; the westward one runs from x = 128: 117 m, eastward -117.
+        let along = |y: f64| mk[4 * o(11.0, y) + 3] as f32 * RAIL_PERIOD / 256.0;
+        assert_eq!(mk[4 * o(11.0, -41.0) + 2], MARK_RAIL, "nearer the R track");
+        assert!((along(-41.0) - 139f32.rem_euclid(12.0)).abs() < 0.05, "{}", along(-41.0));
+        assert_eq!(mk[4 * o(11.0, -43.0) + 2], MARK_RAIL | 1, "nearer the G track");
+        assert!((along(-43.0) - (-117f32).rem_euclid(12.0)).abs() < 0.05, "{}", along(-43.0));
+    }
+
+    #[test]
+    fn marks_the_median() {
+        // Dual carriageways of 7 m (one way, 3.5 m half width) on a 128 × 128 mask of 2 m from (-128, 128): eastward
+        // along y = 0 with a westward one 10.7 m north (3.7 m of median between the lane edges), and further south a
+        // pair whose lane edges are 0.8 m apart (their strips merge).
+        let way = |width: f32| Way {
+            osm_id: 1,
+            first: 0,
+            count: 0,
+            class: CLASS_MOTORWAY,
+            flags: FLAG_ONEWAY,
+            layer: 0,
+            width,
+        };
+        let east = |y: f32| vec![[-128.0f32, y], [128.0, y]];
+        let west = |y: f32| vec![[128.0f32, y], [-128.0, y]];
+        let (a, b, c, e) = (east(0.0), west(10.7), east(-60.6), west(-52.8));
+        let r = Roads::from_lines([(way(7.0), &a[..]), (way(7.0), &b[..]), (way(7.0), &c[..]), (way(7.0), &e[..])]);
+        let mk = marks(&[&r], -128.0, 128.0, 2.0, 128);
+        let px = |x: f64, y: f64| {
+            let o = 4 * (((x + 128.0) / 2.0) as usize + ((128.0 - y) / 2.0) as usize * 128);
+            let v = |c: u8| (c as f32 - MASK_ZERO) / MASK_STEPS;
+            (v(mk[o]), v(mk[o + 1]), mk[o + 2])
+        };
+        // In the lanes: their texels (y = 3 is 3 m left of the eastward one, y = 9 1.7 m left of the westward one).
+        assert_eq!(px(11.0, 3.0).2, MARK_EDGES | MARK_ONEWAY | 2);
+        assert_eq!(px(11.0, 9.0).2, MARK_EDGES | MARK_ONEWAY | 2);
+        // By the median (y = 5 and 7, either side of the seam): both carriageways' offsets from their left lane edges,
+        // the eastward one's in R.
+        for (y, la, lb) in [(5.0, -1.5, -2.2), (7.0, -3.5, -0.2)] {
+            let (r, g, b) = px(11.0, y);
+            assert_eq!(b, MARK_EDGES | MARK_ONEWAY, "{y}: a median texel");
+            assert!((r - la).abs() < 0.07 && (g - lb).abs() < 0.07, "{y}: {r} {g}");
+        }
+        // The road mask: the 3.7 m median paved (1 m inside), its edges 0.5 m outside each strip's.
+        let mm = mask(&[&r], -128.0, 128.0, 2.0, 128);
+        let sd = |x: f64, y: f64| {
+            (mm[2 * (((x + 128.0) / 2.0) as usize + ((128.0 - y) / 2.0) as usize * 128)] as f32 - MASK_ZERO)
+                / MASK_STEPS
+        };
+        assert!((sd(11.0, 5.0) + 1.0).abs() < 0.07 && (sd(11.0, 7.0) + 1.0).abs() < 0.07, "{}", sd(11.0, 5.0));
+        // The merged pair: its texels keep their lanes, without the median line.
+        let (r, _, b) = px(11.0, -57.0);
+        assert!(b == MARK_EDGES | MARK_ONEWAY | MARK_NO_MEDIAN | 2 && (r + 3.6).abs() < 0.07, "{r} {b}");
+        // The right side keeps its lanes' texels.
+        assert_eq!(px(11.0, -5.0).2, MARK_EDGES | MARK_ONEWAY | 2);
     }
 }

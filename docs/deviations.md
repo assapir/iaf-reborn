@@ -424,7 +424,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 - **Roads** (ours, docs/rendering.md §1.8). Rendering only; the default is Original (the imagery's own roads).
   - Detailed: within 1.5 km of the camera, OpenStreetMap's roads drawn on the ground (asphalt or dirt, at the road's
     width) where the imagery is too coarse to show them; over the Survey 2 m photo only the narrow streets and tracks.
-    Up close the lane markings (white dashes, yellow edges) and the railways (a ballast bed, sleepers and rails).
+    Up close the lane markings (white dashes, yellow edges, a dual carriageway's white median lines; a narrow median
+    paved) and the railways (a ballast bed, sleepers and rails).
   - Detailed with Night lights Detailed: lamps along the roads tagged lit and the main roads in towns (§5.1 there),
     outside Israel the streets of towns too; switched in flight, they come or go at once.
   - New content: the road layer is third-party (OpenStreetMap, ODbL), made by setup, credited as the map's roads.
