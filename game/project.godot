@@ -107,6 +107,10 @@ road_mask_rect={
 "type": "vec4",
 "value": Vector4(0, 0, 0, 0)
 }
+road_marks_rect={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
 rain_wet={
 "type": "float",
 "value": 0.0

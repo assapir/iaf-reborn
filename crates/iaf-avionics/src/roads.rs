@@ -464,16 +464,19 @@ fn drawn_half_width(w: &Way) -> f32 {
     half_width(w) + if w.class <= CLASS_TRUNK { SHOULDER } else { 0.0 }
 }
 
-/// Calls `f(texel, distance to the centreline m, signed offset from it m, metres along the way)` for every texel of
-/// the `n` × `n` mask (texels of `m` m, west edge `x0`, north edge `y1`, row 0 north) whose centre lies within `reach`
-/// m of way `k`'s centreline. The offset is positive on the right of the way's direction; past the way's ends it is
-/// the distance (the cap) with the side's sign.
+/// Calls `f(texel, distance to the centreline m, signed offset from it m, metres along the way, eastward)` for every
+/// texel of the `n` × `n` mask (texels of `m` m, west edge `x0`, north edge `y1`, row 0 north) whose centre lies within
+/// `reach` m of way `k`'s centreline. The offset is positive on the right of the way's direction; past the way's ends
+/// it is the distance (the cap) with the side's sign. `eastward`: the segment runs east-south-east of the north-east
+/// line (its direction · south-east > 0), so the offset's sign means the same side for every way whatever its
+/// direction (the railways' tracks). A line flips this only when it runs within a few degrees of north-east, where
+/// OSM's segments of one track can fall on either side; a north–south or east–west line, the commonest, never does.
 fn each_texel(
     r: &Roads,
     k: usize,
     (x0, y1, m, n): (f64, f64, f64, usize),
     reach: f32,
-    mut f: impl FnMut(usize, f32, f32, f32),
+    mut f: impl FnMut(usize, f32, f32, f32, bool),
 ) {
     let hi = (n as f32) - 0.5;
     let pad = reach / m as f32;
@@ -504,7 +507,7 @@ fn each_texel(
                 if e <= reach {
                     // y runs south: a positive cross product is on the right of the way's direction.
                     let side = if ab[0] * py - ab[1] * px >= 0.0 { 1.0 } else { -1.0 };
-                    f(i + j * n, e, side * e, start + u * len * mf);
+                    f(i + j * n, e, side * e, start + u * len * mf, ab[0] + ab[1] > 0.0);
                 }
             }
         }
@@ -532,7 +535,7 @@ pub fn mask(parts: &[&Roads], x0: f64, y1: f64, m: f64, n: usize) -> Vec<u8> {
                 0
             };
             let attr = kind | (hw * 4.0).round().min(63.0) as u8;
-            each_texel(r, k, (x0, y1, m, n), hw + MASK_RANGE, |o, e, _, _| {
+            each_texel(r, k, (x0, y1, m, n), hw + MASK_RANGE, |o, e, _, _, _| {
                 if e - hw < d[o] {
                     d[o] = e - hw;
                     g[o] = attr;
@@ -575,9 +578,20 @@ fn markings(w: &Way) -> u8 {
 /// (`MASK_ZERO + o · MASK_STEPS`, on the right of its direction positive), G the metres along it modulo MARK_PERIOD in
 /// 256ths of the period, B its markings, A its half width in 16ths of a metre. Texels off a marked way (farther than
 /// its half width + MARK_PAD from the centreline) are 0.
+///
+/// A railway texel holds up to two tracks (a double line's: a texel by the seam between them serves the rails on both
+/// sides): R and G their offsets (`MASK_ZERO + o · MASK_STEPS`, positive on the right of the track run
+/// south-eastward), the two in the order of their offsets (the same order for every texel along the pair); one track
+/// fills both. A: the metres along the nearer track modulo MARK_PERIOD in 256ths (its sleepers).
 pub fn marks(parts: &[&Roads], x0: f64, y1: f64, m: f64, n: usize) -> Vec<u8> {
+    use std::collections::HashMap;
     let mut d = vec![f32::MAX; n * n];
     let mut out = vec![0u8; 4 * n * n];
+    // Rail texels: the nearest two tracks' (distance, eastward offset, metres along), a track found again (another
+    // way of it, cut by OSM) kept once.
+    let mut rails: HashMap<usize, [(f32, f32, f32); 2]> = HashMap::new();
+    let off = |o: f32| (MASK_ZERO + o * MASK_STEPS).round().clamp(0.0, 255.0) as u8;
+    let phase = |s: f32| ((s.rem_euclid(MARK_PERIOD) / MARK_PERIOD * 256.0).round() as u32 % 256) as u8;
     for r in parts {
         for (k, w) in r.ways.iter().enumerate() {
             let b = markings(w);
@@ -585,18 +599,48 @@ pub fn marks(parts: &[&Roads], x0: f64, y1: f64, m: f64, n: usize) -> Vec<u8> {
                 continue;
             }
             let hw = half_width(w);
-            each_texel(r, k, (x0, y1, m, n), hw + MARK_PAD, |o, e, side, s| {
+            if b == MARK_RAIL {
+                // The way's nearest segment per texel first: past a bend another segment's cap is a different offset.
+                let mut way: HashMap<usize, (f32, f32, f32)> = HashMap::new();
+                each_texel(r, k, (x0, y1, m, n), hw + MARK_PAD, |o, e, side, s, east| {
+                    let side = if east { side } else { -side };
+                    let q = way.entry(o).or_insert((f32::MAX, 0.0, 0.0));
+                    if e < q.0 {
+                        *q = (e, side, s);
+                    }
+                });
+                for (o, c) in way {
+                    let t = rails.entry(o).or_insert([(f32::MAX, 0.0, 0.0); 2]);
+                    if let Some(same) = t.iter_mut().find(|q| q.0 < f32::MAX && (q.1 - c.1).abs() < 1.0) {
+                        if c.0 < same.0 {
+                            *same = c;
+                        }
+                    } else if c.0 < t[1].0 {
+                        t[1] = c;
+                    }
+                    if t[1].0 < t[0].0 {
+                        t.swap(0, 1);
+                    }
+                }
+                continue;
+            }
+            each_texel(r, k, (x0, y1, m, n), hw + MARK_PAD, |o, e, side, s, _| {
                 if e < d[o] {
                     d[o] = e;
-                    let phase = (s.rem_euclid(MARK_PERIOD) / MARK_PERIOD * 256.0).round() as u32 % 256;
                     out[4 * o..4 * o + 4].copy_from_slice(&[
-                        (MASK_ZERO + side * MASK_STEPS).round().clamp(0.0, 255.0) as u8,
-                        phase as u8,
+                        off(side),
+                        phase(s),
                         b,
                         (hw * 16.0).round().min(255.0) as u8,
                     ]);
                 }
             });
+        }
+    }
+    for (o, [a, b]) in rails {
+        if a.0 < d[o] {
+            let (p, q) = if b.0 == f32::MAX { (a.1, a.1) } else { (a.1.max(b.1), a.1.min(b.1)) };
+            out[4 * o..4 * o + 4].copy_from_slice(&[off(p), off(q), MARK_RAIL, phase(a.2)]);
         }
     }
     out
@@ -720,11 +764,15 @@ mod tests {
             |class: u8, flags: u8, width: f32| Way { osm_id: 1, first: 0, count: 0, class, flags, layer: 0, width };
         let line = |y: f32| vec![[-128.0f32, y], [128.0, y]];
         let (a, b, c, d) = (line(0.0), line(60.0), line(-60.0), line(-100.0));
+        // A double line: tracks along y = -40 (eastward) and y = -44.4 (westward).
+        let (e, f) = (line(-40.0), vec![[128.0f32, -44.4], [-128.0, -44.4]]);
         let r = Roads::from_lines([
             (way(CLASS_PRIMARY, 0, 7.0), &a[..]),
             (way(CLASS_MOTORWAY, FLAG_ONEWAY, 10.5), &b[..]),
             (way(CLASS_RAIL, 0, 1.4), &c[..]),
             (way(CLASS_RAIL, FLAG_TUNNEL, 1.4), &d[..]),
+            (way(CLASS_RAIL, 0, 1.4), &e[..]),
+            (way(CLASS_RAIL, 0, 1.4), &f[..]),
         ]);
         let (mm, mk) = (mask(&[&r], -128.0, 128.0, 2.0, 128), marks(&[&r], -128.0, 128.0, 2.0, 128));
         let o = |x: f64, y: f64| ((x + 128.0) / 2.0) as usize + ((128.0 - y) / 2.0) as usize * 128;
@@ -743,5 +791,15 @@ mod tests {
         assert_eq!(mk[4 * o(11.0, -59.0) + 2], MARK_RAIL);
         assert!(at(11.0, -99.0).0 > 7.0 && at(11.0, -101.0).1 == 0);
         assert_eq!(mk[4 * o(11.0, -99.0) + 2], 0);
+        // Each texel by the seam holds both tracks, the northern one in R on both sides of the seam (eastward offsets:
+        // south positive), so the rails on either side interpolate across it.
+        let both = |y: f64| (off(11.0, y), (mk[4 * o(11.0, y) + 1] as f32 - MASK_ZERO) / MASK_STEPS);
+        for (y, r, g) in [(-41.0, 1.0, -3.4), (-43.0, 3.0, -1.4)] {
+            let (a, b) = both(y);
+            assert!((a - r).abs() < 0.07 && (b - g).abs() < 0.07, "{y}: {a} {b}");
+        }
+        // A single track fills both.
+        let (a, b) = both(-59.0);
+        assert!((a - b).abs() < 0.01 && (a + 1.0).abs() < 0.07, "{a} {b}");
     }
 }
