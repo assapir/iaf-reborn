@@ -18,6 +18,11 @@ extends "res://../tests/godot/base.gd"
 ## AIM-9 on the tips, AIM-120 outboard, Mk-84 at C / G, tanks at D / F, an ECM pod at E (weapon ids by name below).
 const LOADOUT := {0: "AIM9", 1: "AIM120", 2: "MK84", 3: "370", 4: "300", 5: "370", 6: "MK84", 7: "AIM120", 8: "AIM9"}
 const AIR_SHOTS := [
+	["fin_right", 7.0, 95.0, 6.0, {}, Vector3(0, 1.9, 5.0)],
+	["photo_right", 24.0, 80.0, -8.0, {}],
+	["photo_left", 24.0, 280.0, -8.0, {}],
+	["photo_top", 20.0, 15.0, 40.0, {}],
+	["fin_left", 7.0, 265.0, 6.0, {}, Vector3(0, 1.9, 5.0)],
 	["front_quarter", 22.0, 35.0, 12.0, {}],
 	["side", 24.0, 90.0, 2.0, {}],
 	["below", 20.0, 150.0, -35.0, {}],
@@ -35,7 +40,6 @@ const AIR_SHOTS := [
 	["spine_side", 11.0, 90.0, 4.0, {}, Vector3(0, 0.9, 2.0)],
 	["centre_pylon", 7.0, 80.0, -6.0, {}, Vector3(0, -0.9, 1.0)],
 	["nose_front", 6.0, 8.0, 14.0, {}, Vector3(0, 0.2, -4.4)],
-	["fin_left", 7.0, 265.0, 6.0, {}, Vector3(0, 1.9, 5.0)],
 	["cft_close", 9.0, 300.0, 28.0, {}, Vector3(0, 0.6, 1.0)],
 	["far_1000", 1000.0, 120.0, 5.0, {}],
 	["far_2000", 2000.0, 120.0, 5.0, {}],
@@ -84,6 +88,7 @@ const JET_GROUND_SHOTS := [
 const GROUND_SHOTS := [
 	["ground_front", 18.0, 30.0, 8.0, {}],
 	["ground_side", 20.0, 90.0, 3.0, {}],
+	["ground_left", 20.0, 270.0, 3.0, {}],
 	["ground_gear", 8.0, 120.0, -2.0, {}],
 	["ground_rear", 20.0, 150.0, 10.0, {}],
 ]

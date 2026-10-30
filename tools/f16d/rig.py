@@ -17,8 +17,8 @@
 #       <out.glb> [sufa]
 #
 # `sufa` builds the F-16I Sufa (f16i.glb, docs/f16i.md §8): the same jet with FlightGear's conformal fuel tanks and
-# P&W F100 nozzle, our nose fairings (nose_fairings), our three-tone camouflage in the Sufa's FS colours, 107
-# Squadron's orange fin crescent, a badge and tail number 457 (sufa_livery). F16D_KEEP_PNG=1 keeps <out>.png.glb,
+# P&W F100 nozzle, our nose fairings (nose_fairings), and the paint and markings of F-16I 846 of 201 Squadron:
+# its camouflage, colours, fin art and number (sufa_livery). F16D_KEEP_PNG=1 keeps <out>.png.glb,
 # the glb before the KTX2 pass (Blender reads it: tools/f16i/arm_front.py).
 #
 # The original model is read only for its helper positions (where the game hangs stores, sees the wheels, …).
@@ -681,11 +681,15 @@ def nose_fairings(body):
         round(c, 2) for c in loc)))
     return kit.join(objs, "SufaAntennas")
 
-# The Sufa's colours (docs/f16i.md §8), sRGB 0..1, approximate sRGB of the FS 595 chips set against photos of
-# F-16Is in sunlight (SOURCES.md): FS 30219 tan (the reddish brown), FS 33531 sand, FS 34424 green over FS 36375
-# light ghost grey; radome FS 36270.
+# The FS 595 colours of the model paint guides (docs/f16i.md §8), sRGB 0..1: FS 30219 tan, 33531 sand, 34424 green
+# over FS 36375 light ghost grey; radome FS 36270. The F-16D's underside and radome use them (barak_livery).
 FS = {"30219": (0.60, 0.47, 0.36), "33531": (0.74, 0.67, 0.52), "34424": (0.53, 0.60, 0.49),
       "36375": (0.745, 0.761, 0.773), "36270": (0.518, 0.541, 0.557)}
+# The Sufa's paint as F-16I 846 wears it (docs/f16i.md §8.1), measured in its photographs (SOURCES.md): lighter and
+# warmer than the chips, the green a pale sage. Albedo, set against our renders beside the photos.
+SUFA_PAINT = {"30219": (0.76, 0.56, 0.37), "33531": (0.88, 0.79, 0.64), "34424": (0.74, 0.78, 0.61),
+              "36375": FS["36375"], "36270": FS["36270"]}
+SUFA_MATTE = 0.25  # added to the paint's roughness
 CAMO = ("30219", "33531", "34424")
 # The livery's colours (measured from 90-0874.png): its brown, sand and pale green camouflage and its light grey
 # underside (bluer than the green: each texel takes the nearest).
@@ -701,23 +705,56 @@ CFT_UV = (0.19, 0.205, 0.535, 0.40)
 # Places in the 2048 px livery (pixels from the top left). The radome's top and bottom halves (x0, y0, x1, y1).
 RADOME = [(1340, 420, 1600, 560), (390, 990, 670, 1130)]
 # On the fin, 101 Squadron's markings to paint over: its badge and the red disc above it (circles x, y, r) and the
-# red and white stripes (boxes), on each side; and the tail number "547" (boxes; the right side's is upside down).
+# red and white stripes (boxes), on each side; and the tail number "547" (boxes).
 BADGES = [(1800, 190, 70), (1820, 115, 26), (1800, 570, 70), (1820, 655, 26)]
 STRIPES = [(1850, 30, 1960, 190), (1850, 585, 1960, 745)]
-DIGITS = [((1640, 245, 1757, 312), False), ((1640, 468, 1759, 537), True)]
-OLD_NUMBER, TAIL_NUMBER = "547", "457"  # the new number from the old one's glyphs
-# 107 Squadron ("Knights of the Orange Tail", Hatzerim; docs/f16i.md §8), as on its F-16I 827: an orange crescent
-# down the fin's leading edge whose lower end runs aft as a thin stripe through the tail number, and a small round
-# badge high on the fin inside the crescent. Ours, in the fin's plane (a: m aft of the leading edge, h: m above
-# the leading edge's root): the crescent lies between two circles round (CRES_A, CRES_H x fin height); the inner one
-# just touches the stripe, the outer one is CRES_W bigger. The number: NUM_H x fin height up, digits NUM_M tall,
-# centred NUM_A of the chord aft. The badge (ours; the squadron's emblem is not drawn): BADGE_R m round at BADGE_H
-# x fin height, BADGE_A m aft of the crescent.
-ORANGE = (0.82, 0.52, 0.20)
-CRES_H, CRES_TOP, CRES_W, STRIPE_M = 0.97, 0.18, 0.36, 0.05
-NUM_H, NUM_M, NUM_A = 0.27, 0.30, 0.56
-BADGE_H, BADGE_R, BADGE_A = 0.66, 0.15, 0.32
-BADGE_RING, BADGE_FILL, BADGE_CORE = (0.20, 0.16, 0.10), (0.93, 0.70, 0.18), (0.86, 0.84, 0.76)
+DIGITS = [(1640, 245, 1757, 312), (1640, 468, 1759, 537)]
+# F-16I 846 of 201 Squadron ("The One", Ramon), as its photographs of January 2025 show its right side (SOURCES.md;
+# docs/f16i.md §8.1). Traced by hand onto our model's side view (y forward, z up, m), the photos fitted to it by the
+# radome's tip and the fin's leading edge (inferred, about 0.1 m). The left side is the mirror image (no photo).
+# Its camouflage on the fuselage, the CFTs, the spine and the tail box, seen from the side: sand, with these tan and
+# green blotches; each point within SUFA_BODY_X of the centre line takes the colour of the blotch it lies in, seen
+# from the side (on the top the side's bands run across). The wings and stabilators: our pattern (camo_weights).
+SUFA_BODY_X = 1.0
+SUFA_BLOTCHES = [
+    ("30219", [(-7.4, 1.4), (-5.2, 1.4), (-5.05, 0.55), (-4.6, 0.38), (-5.0, 0.3), (-4.0, 0.25), (-3.55, 0.18),
+               (-3.5, -0.5), (-7.4, -0.5)]),  # the tail box's end and the fuselage round the nozzle
+    ("34424", [(-3.6, 0.12), (-3.0, 0.35), (-2.6, 0.52), (-2.6, 1.4), (-2.1, 1.4), (-2.1, 0.6), (-1.15, 0.62),
+               (-1.15, -0.5), (-3.5, -0.5)]),  # along the CFTs' rear, a band over the spine
+    ("30219", [(-2.1, 1.4), (-1.0, 1.4), (-1.0, 0.75), (-0.62, 0.7), (-0.55, 0.1), (-0.6, -0.5), (-1.15, -0.5),
+               (-1.15, 0.62), (-2.1, 0.6)]),
+    ("30219", [(0.28, -0.5), (0.8, -0.5), (0.78, 0.72), (1.15, 0.75), (1.2, 1.4), (-0.35, 1.4), (-0.35, 0.75),
+               (0.28, 0.72)]),  # across the CFTs and the spine behind the canopy
+    ("34424", [(1.0, -0.5), (1.0, 0.62), (2.3, 0.6), (2.55, 0.35), (2.3, 0.1), (1.6, -0.5)]),  # the CFTs' noses
+    ("30219", [(2.6, 0.7), (3.95, 0.7), (4.1, 0.1), (3.9, -0.5), (3.1, -0.5), (3.05, 0.05), (2.7, 0.35)]),  # cockpit
+    ("30219", [(4.75, -0.5), (4.75, 0.7), (5.05, 0.7), (5.05, -0.5)]),  # behind the radome
+]
+# Its fin (y, z on the fin, m): tan, with the squadron's art (our drawing of it: a sand band down the fin, a blue and
+# an orange swoosh, a short blue stroke, a dark swift and the round badge) and the number 846. A dark line runs
+# 0.4 m inside the leading edge (a panel edge; inferred).
+SUFA_FIN_BASE = "30219"
+SUFA_FIN_LINE = ([(-6.11, 3.19), (-4.28, 0.86)], 0.026, (0.30, 0.27, 0.25))  # ends, width, colour
+SUFA_FIN_BAND = [(-6.33, 2.69), (-6.29, 2.76), (-6.11, 2.89), (-6.08, 3.16), (-5.92, 3.2), (-5.76, 2.69),
+                 (-5.71, 2.42), (-5.62, 2.03), (-5.58, 1.78), (-5.61, 1.39), (-5.6, 1.11), (-5.58, 0.83),
+                 (-5.53, 0.6), (-6.04, 0.6), (-5.92, 0.83), (-5.94, 1.39), (-6.03, 1.78), (-6.11, 2.08), (-6.15, 2.33),
+                 (-6.1, 2.39), (-6.28, 2.42), (-6.33, 2.5)]
+BLUE, ORANGE, INK = (0.16, 0.42, 0.62), (0.90, 0.58, 0.22), (0.07, 0.07, 0.08)
+# Swooshes: centre lines (y, z) and their widths (m) at each point.
+SUFA_SWOOSHES = [
+    (BLUE, [(-6.39, 2.42), (-6.19, 2.31), (-6.03, 2.19), (-5.86, 2.06), (-5.72, 1.89), (-5.58, 1.69), (-5.47, 1.5),
+            (-5.43, 1.33), (-5.46, 1.22), (-5.53, 1.17), (-5.6, 1.18)],
+     [0.022, 0.05, 0.072, 0.083, 0.092, 0.1, 0.106, 0.106, 0.094, 0.078, 0.05]),
+    (ORANGE, [(-6.12, 2.35), (-5.94, 2.22), (-5.75, 2.08), (-5.58, 1.94), (-5.44, 1.78), (-5.33, 1.61), (-5.29, 1.44),
+              (-5.32, 1.33), (-5.39, 1.26)], [0.022, 0.061, 0.078, 0.083, 0.083, 0.078, 0.067, 0.05, 0.022]),
+    (BLUE, [(-6.25, 1.69), (-6.01, 1.42)], [0.028, 0.044]),
+]
+SUFA_SWIFT = [(-6.52, 2.64), (-6.24, 2.66), (-6.31, 2.61), (-6.35, 2.5), (-6.39, 2.6)]
+SUFA_BADGE = ((-5.97, 2.61), 0.14)  # centre, radius: white rim, an orange sun over dark rings, a dark bird across
+# The number: text, the middle of its foot (y, z), digit height, width, pitch and stroke (m).
+SUFA_NUMBER = ("846", (-5.03, 0.89), 0.37, 0.19, 0.24, 0.05)
+# The number again on each intake's side, dark blue, at (y, z) of its foot (on the sideways faces).
+SUFA_INTAKE_NUMBER = ((1.05, -0.8), 0.2, 0.11, 0.135, 0.028)
+INTAKE_BLUE = (0.17, 0.30, 0.55)
 
 
 def recolour(albedo, pairs, reach, where):
@@ -849,11 +886,13 @@ def barak_livery(albedo, skin):
 
 
 def sufa_livery(albedo, skin):
-    """FlightGear's IAF livery made the Sufa's: the underside's grey and the radome recoloured to the FS colours;
-    the upper surfaces (the CFTs too) repainted with our camouflage over the livery's panel lines; on the fin,
-    101 Squadron's markings painted over, 107 Squadron's orange crescent, a badge and the tail number."""
+    """FlightGear's IAF livery made F-16I 846's: the underside's grey and the radome recoloured to the FS colours;
+    the upper surfaces (the CFTs too) repainted over the livery's panel lines, the fuselage with 846's blotches
+    (SUFA_BLOTCHES), the wings with our pattern; on the fin, 101 Squadron's markings painted over, 846's tan, its
+    squadron's art and its number."""
     h, w = albedo.shape[:2]
     src = albedo.copy()
+    bpy.context.view_layer.update()  # the moving parts (rudder, flaperons, ...) where the rig put them
     _, tris, uvs = skin_bvh(skin)
     pos, nz = texels(albedo, tris, uvs)
     # The fin's texels are the fin's (other faces share some of them).
@@ -861,8 +900,8 @@ def sufa_livery(albedo, skin):
     fpos, _ = texels(albedo, [tris[i] for i in fin], [uvs[i] for i in fin])
     on_fin = ~np.isnan(fpos[..., 0])
     pos[on_fin], nz[on_fin] = fpos[on_fin], 0.0
-    recolour(albedo, [(c, FS[f]) for c, f in FG_PAINT], 0.16, nz > -0.35)
-    recolour(albedo, [(c, FS[f]) for c, f in FG_PAINT[3:]], 0.16, nz <= -0.35)  # underneath: grey only
+    recolour(albedo, [(c, SUFA_PAINT[f]) for c, f in FG_PAINT], 0.16, nz > -0.35)
+    recolour(albedo, [(c, SUFA_PAINT[f]) for c, f in FG_PAINT[3:]], 0.16, nz <= -0.35)  # underneath: grey only
     yy, xx = np.mgrid[h - 1:-1:-1, 0:w]  # pixel coordinates from the top left, in Blender's row order
     for x0, y0, x1, y1 in RADOME:
         recolour(albedo, [(FG_RADOME, FS["36270"])], 0.12, (xx >= x0) & (xx < x1) & (yy >= y0) & (yy < y1))
@@ -878,15 +917,19 @@ def sufa_livery(albedo, skin):
     hole = np.zeros((h, w), dtype=bool)
     for cx, cy, r in BADGES:
         hole |= np.hypot(xx - cx, yy - cy) <= r
-    for x0, y0, x1, y1 in STRIPES + [b for b, _ in DIGITS]:
+    for x0, y0, x1, y1 in STRIPES + DIGITS:
         hole |= (xx >= x0) & (xx < x1) & (yy >= y0) & (yy < y1)
     want = camo_src | cft | hole
     paint = covered & want & (nz > -0.35)
     albedo[covered & cft & (nz <= -0.35), :3] = FS["36375"]
     closed = window(window(lum, 5, np.maximum), 5, np.minimum)
     detail = np.where(cft | hole, 1.0, np.clip(lum / np.maximum(closed, 1e-3), 0.55, 1.0))
-    wts = camo_weights(pos[paint])
-    albedo[paint, :3] = (wts @ np.array([FS[c] for c in CAMO], dtype=np.float32)) * detail[paint][:, None]
+    p = pos[paint]
+    wts = camo_weights(p)
+    body = np.abs(p[:, 0]) < SUFA_BODY_X
+    wts[body] = side_weights(p[body][:, 1:])
+    wts[on_fin[paint]] = np.eye(3, dtype=np.float32)[CAMO.index(SUFA_FIN_BASE)]
+    albedo[paint, :3] = (wts @ np.array([SUFA_PAINT[c] for c in CAMO], dtype=np.float32)) * detail[paint][:, None]
     # The gutters round each UV island (no face of their own, read by mipmaps): the painted colour carried out.
     done = paint.copy()
     for it in range(80):  # the fin's old markings where no face of theirs is: filled in from round them
@@ -898,84 +941,102 @@ def sufa_livery(albedo, skin):
         albedo[grow, :3] = s[grow] / n[grow][:, None]
         done |= grow
     share = wts.sum(axis=0) / len(wts)
-    # The fin, in its own plane (see CRES_H): the leading edge runs straight from the root's foremost vertex to the
-    # tip's; the trailing edge (the rudder's) likewise from the aftmost ones.
-    fv = np.array([tuple(v) for i in fin for v in tris[i]])
-    z_lo, z_hi = fv[:, 2].min(), fv[:, 2].max()
-    le = [fv[np.abs(fv[:, 2] - z) < 0.02][:, 1:].max(axis=0) for z in (z_lo, z_hi)]
-    te = [fv[np.abs(fv[:, 2] - z) < 0.02][:, 1].min() for z in (z_lo, z_hi)]
-    tall = le[1][1] - le[0][1]
-
-    def le_y(z):
-        return np.interp(z, [le[0][1], le[1][1]], [le[0][0], le[1][0]])
-
-    def chord(z):
-        return le_y(z) - np.interp(z, [z_lo, z_hi], te)
-
-    with np.errstate(invalid="ignore"):
-        a = le_y(fpos[..., 2]) - fpos[..., 1]
-        hh = fpos[..., 2] - le[0][1]
-        num_h = NUM_H * tall
-        c_h = CRES_H * tall
-        r_in = c_h - num_h - STRIPE_M
-        c_a = CRES_TOP + np.sqrt(r_in ** 2 - (tall - c_h) ** 2)
-        r = np.hypot(a - c_a, hh - c_h)
-        crescent = (r > r_in) & (r < r_in + CRES_W) & (hh > num_h - STRIPE_M) & (a < c_a)
-        stripe = (np.abs(hh - num_h) < STRIPE_M) & (a > 0)
-        orange = on_fin & (crescent | stripe)
-        albedo[orange, :3] = albedo[orange, :3] * 0.15 + np.array(ORANGE) * 0.85
-        # The badge, inside the crescent.
-        b_h = BADGE_H * tall
-        b_a = c_a - np.sqrt(r_in ** 2 - (b_h - c_h) ** 2) + BADGE_A
-        rb = np.hypot(a - b_a, hh - b_h)
-        for rad, col in ((BADGE_R, BADGE_RING), (BADGE_R * 0.88, BADGE_FILL), (BADGE_R * 0.45, BADGE_CORE)):
-            k = on_fin & (rb < rad + 0.004)
-            edge = np.clip((rad + 0.004 - rb[k]) / 0.008, 0, 1)[:, None]
-            albedo[k, :3] = albedo[k, :3] * (1 - edge) + np.array(col) * edge
-    # The tail number: the livery's own glyphs, rearranged and scaled onto the fin at NUM_H. On each side, an affine
-    # fit from the fin's plane (y, z) to the old number's texels gives where to read each glyph.
-    for (x0, y0, x1, y1), flip in DIGITS:
-        box = (xx >= x0) & (xx < x1) & (yy >= y0) & (yy < y1) & on_fin
-        rows, cols = np.nonzero(box & (lum < 0.3))
-        side = np.sign(np.nanmean(fpos[rows, cols, 0]))
-        fy, fz = fpos[rows, cols, 1], fpos[rows, cols, 2]
-        fit = np.linalg.lstsq(np.column_stack([fy, fz, np.ones_like(fy)]), np.column_stack([cols, rows]), rcond=None)[0]
-        # The glyphs in reading order: front to back on the left side, back to front on the right.
-        order = np.argsort(cols)
-        groups = np.split(order, np.nonzero(np.diff(cols[order]) > 2)[0] + 1)
-        assert len(groups) == len(OLD_NUMBER), ("tail number glyphs", len(groups))
-        glyphs = sorted(((float(fy[g].min()), float(fy[g].max())) for g in groups), reverse=side < 0)
-        g_z0, g_z1 = float(fz.min()), float(fz.max())
-        k = NUM_M / (g_z1 - g_z0)  # new size / old size
-        old_c = [(a0 + a1) / 2 for a0, a1 in glyphs]
-        mid = (old_c[0] + old_c[-1]) / 2
-        n_z = le[0][1] + num_h
-        n_y = le_y(n_z) - NUM_A * chord(n_z)
-        mine = on_fin & (np.sign(fpos[..., 0]) == side)
-        ty, tz = fpos[mine, 1], fpos[mine, 2]
-        ink = np.zeros(len(ty), dtype=np.float32)
-        colour = np.zeros((len(ty), 3), dtype=np.float32)
-        for slot, ch in enumerate(TAIL_NUMBER):
-            ga0, ga1 = glyphs[OLD_NUMBER.index(ch)]
-            gc = (ga0 + ga1) / 2
-            sy = gc + (ty - (n_y + (old_c[slot] - mid) * k)) / k  # the source point in the old number
-            sz = (g_z0 + g_z1) / 2 + (tz - n_z) / k
-            ok = (sy > ga0 - 0.01) & (sy < ga1 + 0.01) & (sz > g_z0 - 0.01) & (sz < g_z1 + 0.01)
-            sc, sr = np.column_stack([sy, sz, np.ones_like(sy)])[ok] @ fit[:, 0], \
-                np.column_stack([sy, sz, np.ones_like(sy)])[ok] @ fit[:, 1]
-            ci, ri = np.clip(np.round(sc).astype(int), 0, w - 1), np.clip(np.round(sr).astype(int), 0, h - 1)
-            al = np.clip((0.5 - lum[ri, ci]) / 0.35, 0, 1)
-            better = al > ink[ok]
-            idx = np.nonzero(ok)[0][better]
-            ink[idx] = al[better]
-            colour[idx] = src[ri, ci, :3][better]
-        dst = albedo[mine, :3]
-        albedo[mine, :3] = dst * (1 - ink[:, None]) + colour * ink[:, None]
+    # The fin's art, seen from either side in the fin's plane (y, z); the number reads front to back on the left side.
+    fyz = fpos[on_fin][:, 1:]
+    col = np.array(SUFA_PAINT[SUFA_FIN_BASE], dtype=np.float32) * detail[on_fin][:, None]
+    sand = np.array(SUFA_PAINT["33531"])
+    for k, (mask, colour) in enumerate(fin_art(fyz, np.sign(fpos[on_fin][:, 0]))):
+        col[mask] = colour if k else col[mask] / np.array(SUFA_PAINT[SUFA_FIN_BASE]) * sand  # the band keeps the lines
+    albedo[on_fin, :3] = col
+    (ny, nz0), *size = SUFA_INTAKE_NUMBER
+    side = covered & (np.abs(nz) < 0.5) & (np.abs(np.nan_to_num(pos[..., 0])) > 0.2) & ~on_fin
+    q = pos[side]
+    ink = text_ink(np.column_stack([(q[:, 1] - ny) * np.sign(q[:, 0]), q[:, 2] - nz0]), SUFA_NUMBER[0], *size)
+    rows, cols = np.nonzero(side)
+    albedo[rows[ink], cols[ink], :3] = INTAKE_BLUE
     print("Sufa livery: camouflage texels", int(paint.sum()), "shares", [round(float(x), 2) for x in share],
-          "fin texels", int(on_fin.sum()), "orange", int(orange.sum()), "fin height", round(float(tall), 2),
-          "number at", round(float(n_z), 2), "glyph scale", round(float(k), 2), "leading edge",
-          [tuple(round(float(x), 2) for x in p) for p in le], "trailing edge", [round(float(x), 2) for x in te])
+          "on the body", int(body.sum()), "fin texels", int(on_fin.sum()))
     return albedo
+
+
+def inside(pts, poly):
+    """Even-odd test of the points [n, 2] against the polygon [(y, z), ...]."""
+    poly = np.array(poly, dtype=np.float32)
+    out = np.zeros(len(pts), dtype=bool)
+    for (y0, z0), (y1, z1) in zip(poly, np.roll(poly, -1, axis=0)):
+        cross = (z0 > pts[:, 1]) != (z1 > pts[:, 1])
+        with np.errstate(divide="ignore", invalid="ignore"):
+            at = y0 + (pts[:, 1] - z0) * (y1 - y0) / (z1 - z0)
+        out ^= cross & (pts[:, 0] < at)
+    return out
+
+
+def near_line(pts, line, widths):
+    """The points [n, 2] within half the local width of the polyline (widths per point, m)."""
+    line, widths = np.array(line, dtype=np.float32), np.array(widths, dtype=np.float32)
+    out = np.zeros(len(pts), dtype=bool)
+    for a, b, wa, wb in zip(line[:-1], line[1:], widths[:-1], widths[1:]):
+        d = b - a
+        t = np.clip(((pts - a) @ d) / max(float(d @ d), 1e-9), 0, 1)
+        out |= np.linalg.norm(pts - (a + t[:, None] * d), axis=1) < (wa + (wb - wa) * t) / 2
+    return out
+
+
+def side_weights(yz):
+    """SUFA_BLOTCHES at the points (y, z) [n, 2]: the weight of each colour of CAMO, sand where no blotch is; soft
+    over about 2 cm (four samples)."""
+    w = np.zeros((len(yz), 3), dtype=np.float32)
+    for dy, dz in ((-0.01, -0.01), (0.01, -0.01), (-0.01, 0.01), (0.01, 0.01)):
+        q = yz + np.array([dy, dz], dtype=np.float32)
+        k = np.full(len(q), CAMO.index("33531"))
+        for c, poly in SUFA_BLOTCHES:
+            k[inside(q, poly)] = CAMO.index(c)
+        w[np.arange(len(q)), k] += 0.25
+    return w
+
+
+def ellipse(cx, cy, rx, ry, a0=0.0, a1=360.0, n=40):
+    t = np.radians(np.linspace(a0, a1, n))
+    return list(zip(cx + rx * np.cos(t), cy + ry * np.sin(t)))
+
+
+# Our digits for the tail number, as 846's (a plain rounded sans): centre lines in a unit box (0..1 across, 0..1 up).
+GLYPHS = {
+    "8": [ellipse(0.5, 0.77, 0.42, 0.23), ellipse(0.5, 0.27, 0.5, 0.27)],
+    "4": [[(0.74, 0.0), (0.74, 1.0), (0.0, 0.3), (1.0, 0.3)]],
+    "6": [ellipse(0.5, 0.3, 0.5, 0.3), [(0.0, 0.3), (0.03, 0.58), (0.14, 0.8), (0.35, 0.96), (0.62, 1.0), (0.9, 0.93)]],
+}
+
+
+def text_ink(uv, text, height, width, pitch, stroke):
+    """The points uv [n, 2] (m, across and up from the middle of the text's foot) on the text's strokes."""
+    out = np.zeros(len(uv), dtype=bool)
+    for k, ch in enumerate(text):
+        x0 = (k - (len(text) - 1) / 2) * pitch - width / 2 + stroke / 2
+        for line in GLYPHS[ch]:
+            pts = [(x0 + u * (width - stroke), stroke / 2 + v * (height - stroke)) for u, v in line]
+            out |= near_line(uv, pts, [stroke] * len(pts))
+    return out
+
+
+def fin_art(yz, side):
+    """The fin's art at the points (y, z) [n, 2] of either side (side: the sign of x): (mask, colour) in paint
+    order; the first is the sand band."""
+    (by, bz), br = SUFA_BADGE
+    r = np.hypot(yz[:, 0] - by, yz[:, 1] - bz)
+    text, (ny, nz), *size = SUFA_NUMBER
+    uv = np.column_stack([(yz[:, 0] - ny) * side, yz[:, 1] - nz])  # across as the viewer reads it
+    art = [(inside(yz, SUFA_FIN_BAND), None),
+           (near_line(yz, SUFA_FIN_LINE[0], [SUFA_FIN_LINE[1]] * 2), SUFA_FIN_LINE[2])]
+    art += [(near_line(yz, line, widths), colour) for colour, line, widths in SUFA_SWOOSHES]
+    art += [(inside(yz, SUFA_SWIFT), INK), (r < br, (0.92, 0.91, 0.88))]
+    for k in range(5):  # the badge's rings, below the sun
+        art.append((r < br * (0.8 - 0.16 * k), INK if k % 2 == 0 else (0.92, 0.91, 0.88)))
+    art.append(((r < br * 0.8) & (yz[:, 1] > bz + 0.1 * br), ORANGE))
+    art.append((near_line(yz, [(by - 0.8 * br, bz + 0.5 * br), (by + 0.1 * br, bz + 0.2 * br),
+                               (by + 0.75 * br, bz + 0.35 * br)], [0.025] * 3), INK))
+    art.append((text_ink(uv, text, *size), INK))
+    return art
 
 
 # --- materials -------------------------------------------------------------------------------------------------
@@ -1166,6 +1227,8 @@ def materials(rig):
     ao = np.ones(albedo.shape[:2], dtype=np.float32) if FAST else bake_ao(skin, size)
     normal, groove = panel_maps(albedo)
     rough = np.clip(0.42 + 0.25 * groove + 0.08 * (1 - ao), 0, 1)
+    if SUFA:  # 846's paint is flat: the base gloss let the sky tint its tan violet in the game
+        rough = np.clip(rough + SUFA_MATTE, 0, 1)
     metal = np.full_like(rough, 0.05)
     orm = np.dstack([0.35 + 0.65 * ao, rough, metal, np.ones_like(rough)])
     col_img = new_image("f16d_albedo", albedo)
