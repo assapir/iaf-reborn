@@ -715,6 +715,20 @@ About +0.5 ms (2–3 %), every run above 34 fps. A new mask costs the main threa
 2 s at 250 m/s; made in 75–135 ms on its own thread). The worst frames (60–110 ms) come with the terrain's streaming
 in both columns. Video memory: +8 MB.
 
+With the markings, the railways and the road lamps outside Israel (the same route and settings, mission 311, day at
+11:00, 2026-10-30; the window under Wayland held the frame at 60 fps, so the GPU time per frame compares the two):
+
+| GPU, ms per frame (fps) | Roads Original | Roads Detailed |
+|---|---|---|
+| day, 150 m | 12.81 / 12.98 (60) | 13.38 / 13.68 (59–60) |
+| day, 600 m | 16.13 / 15.98 (60) | 15.55 / 16.82 (48–58) |
+| night, 150 m | 12.12 / 12.13 (60) | 12.81 / 12.62 (60) |
+| night, 600 m | 15.49 / 15.41 (60) | 16.42 / 16.07 (58–59) |
+
+About +0.6 ms of GPU (4 %). The 48 fps run had 35 ms of process time (the terrain's streaming), the other Detailed
+600 m run 58 fps. The two masks cost the main thread 3.3–4.8 ms on average when they arrive (5–11 ms at most; 2.4–3
+ms with the road mask alone). Video memory: +12 MB (the 8 MB road mask and the 4 MB marking mask).
+
 Tried and dropped (2026-10-29): the road drawn at full strength over the Survey 2 m photo. Its roads already show;
 a uniform grey band hid the photo's lane paint, shoulders and the trees over the streets.
 
