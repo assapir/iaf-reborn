@@ -108,6 +108,7 @@ const GRAPHICS_KEYS := [
 	"rolling_wheels",
 	"particle_effects",
 	"rain",
+	"clouds",
 	"airbases",
 	"ground_textures",
 	"ground_roads",
@@ -161,6 +162,7 @@ const GroundRoads := preload("res://terrain/ground_roads.gd")
 const ModelDetail := preload("res://util/model_detail.gd")
 const RenderOptions := preload("res://terrain/render_options.gd")
 const Scenery := preload("res://terrain/scenery.gd")
+const VolumetricClouds := preload("res://terrain/volumetric_clouds.gd")
 
 ## Our own "Extras" tab (not in the original): directly below Gameplay at the panel's spacing
 ## (44 px). Drawn from the pPref art: the band holding the Gameplay button (panel coordinates, inside
@@ -232,6 +234,8 @@ const EXTRAS := [
 	["particle_effects", "Particle effects", [["Original", false], ["Detailed", true]]],
 	# Ours: rain as the weather (terrain/weather.gd, docs/rendering.md §10); the original has none.
 	["rain", "Rain", [["Off", "off"], ["Light", "light"], ["Heavy", "heavy"]]],
+	# Ours: raymarched clouds (terrain/volumetric_clouds.gd, docs/rendering.md §2.1); greyed without a RenderingDevice.
+	["clouds", "Clouds", [["Original", "original"], ["Volumetric", "volumetric"]]],
 	["airbases", "Airbases", [["Original", "original"], ["Detailed", "detailed"]]],
 	# Ours: CC0 textures from ambientCG near the ground (terrain/ground_textures.gd, docs/rendering.md §1.4); greyed out
 	# until setup has downloaded them.
@@ -1705,6 +1709,8 @@ func _extras_items() -> Array:
 				available = GroundTextures.available() if opt[0] == "ground_textures" else ModelDetail.available()
 				if not available:
 					label = "Not downloaded"
+			elif opt[0] == "clouds" and value == "volumetric":
+				available = VolumetricClouds.supported()
 			elif opt[0] == "ground_roads" and value == "detailed":
 				available = GroundRoads.available()
 				if not available:

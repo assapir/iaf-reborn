@@ -37,6 +37,8 @@ uniform vec3 tint = vec3(1.0);  // the cloud-layer colour (renderer +0x54): 0xFF
 // stretched alpha shows those steps as contours. `detail` adds the texture at 4.37× its scale for the edges.
 uniform float min_lod = 2.0;
 uniform float detail = 0.0;
+// Under the rain's overcast (weather.gd grey()) the layer fades out: 1 = as drawn.
+uniform float fade = 1.0;
 // Lit by the sun (the atmospheric sky by day): sun_dir points to the sun (scene axes).
 uniform bool lit = false;
 uniform vec3 sun_dir = vec3(0.0, 1.0, 0.0);
@@ -73,7 +75,7 @@ void fragment() {
 	}
 	// A dither of ± half an 8-bit step against banding in the smooth gradients.
 	float dither = fract(52.9829189 * fract(dot(FRAGCOORD.xy, vec2(0.06711056, 0.00583715)))) - 0.5;
-	ALPHA = clamp(d + dither / 255.0, 0.0, 1.0);
+	ALPHA = clamp(d + dither / 255.0, 0.0, 1.0) * fade;
 	if (!lit) {
 		ALBEDO = COLOR.rgb * t.rgb * tint;
 	} else {
@@ -116,16 +118,17 @@ var _atmo := false
 var _night := false
 var _tint := Color.WHITE
 var _sun: Node3D
+var _fade := 1.0
 
 
 ## Picks the next layer's texture and decodes it on a worker thread (the mission screens, terrain_preload.gd).
 static func prefetch() -> void:
 	if _next < 0:
 		_next = randi() % 6
-	Img.prefetch(_path(_next), true)
+	Img.prefetch(path(_next), true)
 
 
-static func _path(i: int) -> String:
+static func path(i: int) -> String:
 	return Settings.assets_dir().path_join("converted/objects/cloud256_%d.png" % i)
 
 
@@ -139,7 +142,7 @@ func _ready() -> void:
 	# The layer is the farthest transparent thing (sky): drawn before the other transparent objects, whose
 	# depth-sorted order would otherwise put the camera-centred dome last, over the explosions and smoke.
 	_mat.render_priority = Material.RENDER_PRIORITY_MIN
-	var tex := Img.load_texture(_path(texture_index), true)
+	var tex := Img.load_texture(path(texture_index), true)
 	if tex != null:
 		_mat.set_shader_parameter("tex", tex)
 	_mat.set_shader_parameter("scale", 1.0 / (1.2 * FAR))
@@ -211,6 +214,13 @@ func set_tint(c: Color) -> void:
 	_night = c != Color.WHITE
 	_tint = c
 	_refresh()
+
+
+## The rain's overcast hides the layer: `f` 1 = as drawn, 0 = gone (Weather.grey(), docs/rendering.md §10.1).
+func set_fade(f: float) -> void:
+	if f != _fade:
+		_fade = f
+		_mat.set_shader_parameter("fade", f)
 
 
 ## Extras Sky: Atmospheric (render_options.gd): the clouds separated, clear sky between them, smoothed, and by day lit

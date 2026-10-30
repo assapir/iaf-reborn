@@ -12,8 +12,8 @@ This doc lists the rendering options of the flight scene, what each one sets, an
 
 Code: `game/terrain/render_options.gd` (applied by `terrain_view.gd apply_render_options()` at the start of a flight
 and when the in-flight Preferences close), `terrain/terrain.gdshader`, `terrain/atmosphere.gdshader`,
-`terrain/cloud_layer.gd`, `terrain/night_lights.gd`, `terrain/city_lights.gd`, `terrain/night_vision.gdshader`, `terrain/airbases.gd`, `terrain/ground_textures.gd`, `util/model_detail.gd`, `terrain/weather.gd`. Tests: `tests/godot/test_graphics_prefs.gd` (switches → render
-settings, save / load), `test_ui_smoke.gd` (Graphics → MORE and Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5, §8 the goggles key), `test_city_lights.gd` (§5.1), `test_water.gd` (§1.3), `test_ground_textures.gd` (§1.4), `test_particle_effects.gd` (§6), `test_airbases.gd` (§7), `test_model_detail.gd` (§9), `test_rain.gd` (§10: the levels, and the switch × mission weather rules).
+`terrain/cloud_layer.gd`, `terrain/night_lights.gd`, `terrain/city_lights.gd`, `terrain/night_vision.gdshader`, `terrain/airbases.gd`, `terrain/ground_textures.gd`, `util/model_detail.gd`, `terrain/weather.gd`, `terrain/deck_floor.gdshader`, `terrain/volumetric_clouds.gd`. Tests: `tests/godot/test_graphics_prefs.gd` (switches → render
+settings, save / load), `test_ui_smoke.gd` (Graphics → MORE and Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5, §8 the goggles key), `test_city_lights.gd` (§5.1), `test_water.gd` (§1.3), `test_ground_textures.gd` (§1.4), `test_particle_effects.gd` (§6), `test_airbases.gd` (§7), `test_model_detail.gd` (§9), `test_rain.gd` (§10: the levels, the switch × mission weather rules and the cloud deck), `test_clouds.gd` (§2.1).
 
 ## 1. Options
 
@@ -32,7 +32,8 @@ TAA = temporal anti-aliasing, FSR = AMD FidelityFX Super Resolution.
 | Models | Original / Detailed | Detailed: our detailed aircraft models where one exists (today the F-16D), parsed once and shared, with runtime LODs ([aircraft-models.md](aircraft-models.md)) |
 | Model detail | Original / ambientCG | ambientCG: fine CC0 surface detail (normal, roughness and brightness: paint chips, scratches, grime, rubber grain) on the original models up close, over their own textures (§9). Greyed out ("Not downloaded") until setup has downloaded the materials. Takes effect when a model loads (the next flight) |
 | Particle effects | Original / Detailed | Detailed: explosions, smoke and missile trails as GPU particles, contrails above 9000 m and a heat haze behind each engine (§6). Takes effect at the next flight |
-| Rain | Off / Light / Heavy | Light / Heavy: rain as the weather: falling rain around the camera, drops on the canopy in the cockpit views, wet ground, a shorter visibility under an overcast, a dimmer sun (§10). The original has no weather |
+| Rain | Off / Light / Heavy | Light / Heavy: rain as the weather: falling rain around the camera, drops on the canopy in the cockpit views, wet ground, a shorter visibility under an overcast, a dimmer sun (§10), all under a cloud deck the jet can climb above (§10.1). The original has no weather |
+| Clouds | Original / Volumetric | Original: the 1998 flat cloud layer of Graphics TEXTURED SKY (§2). Volumetric: raymarched clouds in its place, fair-weather cumulus when dry and the rain's deck in the rain (§2.1). For strong GPUs; greyed out without a RenderingDevice (the Compatibility renderer) |
 | Rolling wheels | Original / Rolling | the wheels of a model with wheel frames turn as the jet rolls (today the F-35I; docs/part-animation.md §2.2) |
 | Airbases | Original / Detailed | in `terrain.gdshader`: near the ground, a procedural runway, taxiway and apron surface with ICAO markings over the nearest base's paved surface (§7); always on in World scale Real |
 | Ground textures | Original / ambientCG | in `terrain.gdshader`: near the camera, where they resolve, CC0 photo textures of asphalt, concrete, sand, gravel, grass, soil and rock, chosen per pixel from the imagery's colour (§1.4). Greyed out and not clickable ("Not downloaded") until setup has downloaded them; a saved ambientCG without them loads as Original |
@@ -725,6 +726,71 @@ The cloud layer is a dome of cloud texture plus a flat layer, and a whiteout nea
   which the AgX tonemapper turns violet. Original sky: unchanged apart from the mip level 2 floor.
   Tried and dropped (2026-10-26): plain bilinear at mip 3 (contours at the texel edges); 0.45·d darkening with the
   sky's full sun (a flat peach veil with no cloud shapes at 19:30).
+
+### 2.1 Volumetric clouds (Graphics → MORE "Clouds" Volumetric, built: game/terrain/volumetric_clouds.gd)
+
+Preferences → Graphics → MORE → **Clouds = Original / Volumetric** (ours, docs/deviations.md §2). Original (the
+default) is the 1998 layer above, unchanged. Volumetric replaces it with raymarched clouds that the jet can fly
+through:
+
+- **Dry**: fair-weather cumulus (cumulus humilis / mediocris), base 1200 m, top 2500 m above the ground, coverage
+  0.3 (scattered, with fields and gaps). Fair-weather cumulus bases lie up to 2400 m and the clouds are less than
+  2000 m deep[^cu]; the heights are our choice within that (inferred: the Levant's summer cumulus sit higher than
+  the temperate "below 550 m"). Cumulus fade into the haze by about 90 km.
+- **In the rain**: the rain's deck (§10.1) with its base and top, nearly closed (coverage 0.93 light, 1.0 heavy),
+  its top a field of rounded lumps. Seen from above it reaches the horizon and hides the ground.
+- The TEXTURED SKY check governs only the 1998 layer: with Volumetric the clouds draw whatever it says.
+
+How it is drawn:
+
+- **Where**: a compositor effect (`Effect`, Godot's `CompositorEffect`) on the cockpit and chase cameras runs
+  after the opaque scene and the sky (`EFFECT_CALLBACK_TYPE_PRE_TRANSPARENT`, the depth resolved). It marches the
+  clouds at half the 3D view's width and height (`clouds_march.glsl`, a compute shader) into a texture. A
+  full-screen quad (`clouds_composite.gdshader`) lays that texture over the 3D view as the first transparent thing:
+  the smoke, the rain streaks and the effects draw over it, and the 2D cockpit art, the HUD and the MFDs are canvas
+  layers drawn after the 3D view, so the clouds never cover them. The quad upsamples by the depth: of the four
+  nearest cloud pixels, those whose scene depth matches the pixel's count, so a cloud does not bleed over a hill's
+  edge. The EO sensor's camera leaves the quad out (visual layer 20).
+- **Shape** (after Schneider 2015[^schneider]): two tileable 3D noises, computed once on the GPU when the clouds are
+  made (`clouds_noise.glsl`): 128³ Perlin-Worley plus three Worley octaves (tile 9 km) and 32³ Worley detail (tile
+  800 m). The shape is cut by the coverage (a slow 60 km field for the cumulus) and a height profile (flat bases,
+  rounded tops), then its edges are eroded by the detail: wispy at the base, billowy higher up. The deck is eroded at
+  its top only, so no hole shows the ground through it.
+- **Light**: Beer's law toward the sun (six steps, 60 m doubling); a two-lobe Henyey-Greenstein phase (g 0.8 and
+  −0.3) with three multiple-scattering octaves (Wrenninge 2013[^wrenninge]: each half the light, 0.4× the
+  extinction, half the eccentricity); a powder term that darkens the sunward edges, except looking toward the sun;
+  the sky's light from above (with the Atmospheric sky its own colour at the zenith and horizon, else the fog colour
+  by the time of day's ambient) and the ground's from below (the Atmospheric sky's bounce). The sun is the scene's
+  sun node (its colour and energy), so the clouds follow the time of day: white at noon, gold-rimmed and dark at
+  sunset, dark blue at night.
+- **Haze**: each pixel's clouds fade by Godot's exponential fog over their distance into the haze: the Atmospheric
+  sky's colour along the view (`atmosphere.gdshader`'s scattering, ported), else the fog colour. In the deck the
+  fog's 150 m makes them the fog's colour, as the terrain.
+- **Steps**: at most 96 a pixel; a step is 6 % of its distance (at least 60 m) in clear air and 1.2 % (at least
+  12 m) inside a cloud, from where the cheap density first finds one (half a step back) until eight empty samples.
+  A ray in the deck that runs out of steps ends there, opaque.
+- **Temporal reprojection**: each frame's ray start is jittered (interleaved gradient noise, shifted by the golden
+  ratio each frame) and blended 12 % into the last frames' result where the same cloud point was in the last frame;
+  refused off screen or where the scene's depth there changed by more than 5 % (something moved in front).
+- **Flat**: the layer is flat, as the terrain is (no Earth curvature): a curved layer let the flat terrain show
+  beyond its horizon.
+- **Needs** a RenderingDevice (Forward+ or Mobile); the row is greyed out without one (the Compatibility renderer,
+  headless runs). The compute shaders compile at import (Godot's `.glsl` importer).
+
+Cost: §2.2.
+
+Tried and dropped (2026-10-30):
+
+- A spherical shell around the Earth (radius 6371 km): beyond the deck's horizon the flat terrain showed through a
+  crescent of rays that missed the curved deck.
+- Erosion of the whole deck (0.2–0.5 of the detail): holes through it showed the ground.
+- A fixed geometric step (56 steps covering the whole path): a cloud next to the camera got 500 m steps, smeared
+  into horizontal streaks.
+- A 14 km shape tile at coverage 0.42: one grey sheet over half the sky, no separate cumulus.
+
+### 2.2 Cost of the clouds
+
+COST_TABLE
 
 ## 3. Measurements
 
@@ -1631,10 +1697,10 @@ Visibility is given as the distance where the fog leaves 5 % contrast, 3 / densi
 levels are our choice (inferred): light rain keeps the far hills, heavy rain hides the ground beyond a few km while the
 HUD, radar and TSD work as before.
 
-**The environment** changes in one function, `Weather.apply_env(env, sun)`, called after `RenderOptions.apply` and
-after each change of the sky: the fog's density and its share of the sky; the distance haze from the fog's colour
+**The environment** changes in two functions of `weather.gd`: `apply_env(env, sun)`, called after `RenderOptions.apply` and
+after each change of the sky, and `blend()`, each frame by the camera's place in the deck (§10.1): the fog's density and its share of the sky; the distance haze from the fog's colour
 instead of the sky's (`fog_aerial_perspective` 0, as the Atmospheric sky's blue haze looks wrong under an overcast);
-the ambient light from the overcast's grey (`Weather.OVERCAST`, a colour source in place of the sky; the time of day
+the ambient light from the overcast's grey (`Weather.OVERCAST`, the sky's share of the ambient 0; the time of day
 keeps its energy); the sun's energy; `rain_wet`; the wet ground's specular `rain_spec` (0.3 under either sky: the
 Atmospheric sky turns grey in the rain, so its reflections do too; 0.12 under it until that sky greyed, 2026-10-28). Off puts the scene's own values back. The
 fog colour of the time of day (§4) is greyed toward its own brightness (`Weather.fog_tint`), by the overcast's share,
@@ -1672,8 +1738,8 @@ shader does not know the pavement, so there are no puddles. Water surfaces stay 
 **Sound**: none. The install holds no rain or airflow sample (`wind1`–`wind5` are radio messages, docs/sound.md §1).
 
 **Humidity hook**: `Weather.humidity(alt_m)` gives the air's relative humidity for the condensation of `vapour_fx.gd`
-(§6): without rain, that file's own assumption (humid below 1.5 km, dry above 6 km); in the rain, saturated up to 3 km
-(inferred: the cloud base), dry above 6 km. `vapour_fx.gd` does not read it yet.
+(§6): without rain, that file's own assumption (humid below 1.5 km, dry above 6 km); in the rain, saturated up to the deck's top
+(§10.1), drying over 3 km above it. `vapour_fx.gd` does not read it yet.
 
 **Loading**: the node and its shaders are made in `apply_render_options`, behind the loading screen, and draw there
 once, so the pipelines are built before the flight shows. The canopy layer reads the screen (a copy of the 3D view
@@ -1711,6 +1777,46 @@ levels; the rest is the streaks' fill. No new frame spikes: the worst frames are
 **Shots**: `tests/godot/_rain_shot.gd` saves, per level, the cockpit on the runway, the chase view and the runway
 close from 2 m there, the cockpit and the chase view at 400 kt 150 m over the Halutza sands; `RAIN_BEST=1` with every
 graphics option at its best. `RAIN_BENCH=secs` measures the frame rate instead.
+
+### 10.1 The cloud deck
+
+The rain falls from a cloud deck with a base and a top. Its heights stand on the ground under the camera, eased over
+60 s (`Weather.track_ground`, `GROUND_TAU`), so the deck rises over a plateau and does not jump at each hill:
+
+| level | cloud | base | top | sources |
+|---|---|---|---|---|
+| Light | stratocumulus or a thin nimbostratus | 800 m | 3000 m | stratocumulus 500–2000 m, "generally only light rain"[^sc]; the top above the Hermon (2814 m), inferred |
+| Heavy | a deep nimbostratus | 450 m | 5500 m | nimbostratus 500–5500 m, continuous rain, heavy from its depth[^ns]; "thick enough throughout to blot out the Sun"[^wmo] |
+
+The camera's place in the deck sets the look (`Weather.update` → `blend()`), smooth with altitude:
+
+| where | fog | sky (`fog_sky_affect`) | sun | rain | what shows |
+|---|---|---|---|---|---|
+| below the base | the level's (15 km / 6 km) | the level's (0.6 / 0.9) | the level's | falling, canopy drops | §10's overcast |
+| inside | 0.02 (150 m) | 1 (all fog) | 10 % | none | grey fog, no view |
+| above the top | the dry scene's (§1.2's haze by altitude) | the dry scene's | full | none | a clear sky, the deck below to the horizon |
+
+- The base blends over ± 150 m (`EDGE`), the top over ± 300 m (`EDGE_TOP`; the fog thins 700× there). The fog's
+  density blends on a log scale, so the visibility changes evenly: at most ×1.6 per 25 m of climb (test_rain.gd).
+- The overcast's share (`Weather.grey()`) greys the fog colour, the Original sky's zenith, the Atmospheric sky
+  (`overcast`, in 0.05 steps, as each change re-renders the sky's radiance) and hides the 1998 cloud layer
+  (`CloudLayer.set_fade`): its 7000 m layer does not show through an overcast. Above the deck it is 0.
+- The ambient keeps the sky as its source: its sky share is 0 under the deck (the overcast's grey alone) and the dry
+  share above it. The Atmospheric sky's bounce colour is kept for above the deck while it rains
+  (`Weather.set_dry_ambient`).
+- No rain falls above the base: the drops and the canopy drops thin out over the base's blend.
+- **The floor** (Clouds Original, every tier): a flat opaque square 400 km wide at the deck's top under the camera,
+  seen from above only (`deck_floor.gdshader`). It hides the ground under the deck. Its lumps are the original's
+  overcast cloud texture (Cloud256_5) read as a height field at 9 km, 2.2 km and 600 m, no finer than its mip level
+  2 (§2): their slopes and a darker, bluer albedo in the dips shade it by the scene's sun (wrapped: much of the light
+  scatters back whatever the slope, × 1.5 against a white Lambert surface) and ambient. The time of day lights it and
+  the fog fades it into the horizon. It drifts with the wind. Cost: one opaque quad with six texture reads a pixel,
+  drawn only above the deck.
+- With Clouds Volumetric the raymarched deck (§2.1) replaces the floor, and its base and lumps show from below too.
+
+Tried and dropped (2026-10-30): the top blended over ± 150 m like the base: the fog thinned ×2.25 per 25 m, a
+visible jump when climbing out; a floor lit by plain Lambert (albedo 0.92): a dull grey sheet under the AgX
+tonemapper, its lumps (9 km and 5 km scales only) not visible from a few hundred metres above.
 
 [^wtp]: Godot docs, ProjectSettings `threading/worker_pool/low_priority_thread_ratio` (default 0.3):
     https://docs.godotengine.org/en/stable/classes/class_projectsettings.html#class-projectsettings-property-threading-worker-pool-low-priority-thread-ratio
@@ -1778,6 +1884,18 @@ graphics option at its best. `RAIN_BENCH=secs` measures the frame rate instead.
     sustainer burns at most 20 s; citing Vasilin, Gurinovich, «Зенитные ракетные комплексы», pp. 228–231),
     https://ru.wikipedia.org/wiki/3М9
 [^hillaire]: Sébastien Hillaire, "A Scalable and Production Ready Sky and Atmosphere Rendering Technique", Computer Graphics Forum 39 (4), EGSR 2020, https://sebh.github.io/publications/egsr2020.pdf
+[^ns]: Wikipedia, "Nimbostratus cloud" (altitude 500–5500 m; continuous rain; heavy intensity from its vertical
+    depth): https://en.wikipedia.org/wiki/Nimbostratus_cloud
+[^sc]: Wikipedia, "Stratocumulus cloud" (altitude 500–2000 m; "when they do, it is generally only light rain or
+    snow"): https://en.wikipedia.org/wiki/Stratocumulus_cloud
+[^wmo]: WMO International Cloud Atlas, "Nimbostratus (Ns)": https://cloudatlas.wmo.int/en/nimbostratus-ns.html
+[^cu]: Wikipedia, "Cumulus cloud" (bases usually below 550 m above ground in temperate areas, up to 2400 m;
+    generally less than 2000 m deep unless congestus): https://en.wikipedia.org/wiki/Cumulus_cloud
+[^schneider]: A. Schneider, N. Vos, "The Real-time Volumetric Cloudscapes of Horizon: Zero Dawn", SIGGRAPH 2015
+    Advances in Real-Time Rendering:
+    https://advances.realtimerendering.com/s2015/The%20Real-time%20Volumetric%20Cloudscapes%20of%20Horizon%20-%20Zero%20Dawn%20-%20ARTR.pdf
+[^wrenninge]: M. Wrenninge, C. Kulla, V. Lundqvist, "Oz: The Great and Volumetric", SIGGRAPH 2013 Talks:
+    https://doi.org/10.1145/2504459.2504518
 [^gunn]: R. Gunn, G. D. Kinzer, "The terminal velocity of fall for water droplets in stagnant air", Journal of
     Meteorology 6 (4), 1949, pp. 243–248 (a 2 mm drop falls at about 6.5 m/s):
     https://doi.org/10.1175/1520-0469(1949)006%3C0243:TTVOFF%3E2.0.CO;2

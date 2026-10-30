@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://dmp72lvy3ul77"
+path="res://.godot/imported/clouds_march.glsl-717f1e54ff9b5168ea80fdc794f7ce02.res"
+
+[deps]
+
+source_file="res://terrain/clouds_march.glsl"
+dest_files=["res://.godot/imported/clouds_march.glsl-717f1e54ff9b5168ea80fdc794f7ce02.res"]
+
+[params]
+

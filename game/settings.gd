@@ -118,6 +118,7 @@ const PREFS := {
 		"rolling_wheels",
 		"particle_effects",
 		"rain",
+		"clouds",
 		"airbases",
 		"ground_textures",
 		"ground_roads",
@@ -271,6 +272,9 @@ var particle_effects := false
 ## the mission says), "light" or "heavy" (falling rain, drops on the canopy, wet ground, a shorter visibility). A
 ## mission with a weather of its own (flight_weather) rains at that instead; the others at this level.
 var rain := "off"
+## Clouds (ours, Graphics → MORE; docs/rendering.md §2.1, terrain/volumetric_clouds.gd): "original" (the 1998 flat layer
+## of TEXTURED SKY) or "volumetric" (raymarched cumulus, and the rain's deck in the rain; for strong GPUs).
+var clouds := "original"
 ## Airbases (ours, Graphics → MORE; docs/rendering.md §7, terrain/airbases.gd): "original" (the 1998 imagery) or
 ## "detailed" (near the ground, a procedural runway, taxiway and apron surface with markings; visual only).
 var airbases := "original"

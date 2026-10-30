@@ -450,10 +450,20 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - Light / Heavy: falling rain around the camera, drops on the canopy in the cockpit views that the airflow drives up
     the glass, wet darker ground with puddles on the Detailed airbases' pavement, a shorter visibility (about 15 km /
     6 km) under a grey overcast and a dimmer sun.
+  - The rain falls from a cloud deck with a base and a top (Light 800–3000 m, Heavy 450–5500 m above the ground,
+    rendering.md §10.1): inside it dense fog (150 m) and no falling rain; above it a clear sky, full sun and the deck
+    as a white floor to the horizon that hides the ground (with Clouds Volumetric, the raymarched deck). Under the
+    overcast the original's 7000 m cloud layer is hidden.
   - The flight, the sensors and the AI are unchanged: the fog hides the ground, not the radar or HUD targets.
   - A mission's own weather (ours: misc `weather`, set in the mission editor or Mission Creator Better: Clear / Light
     rain / Heavy rain / Random) wins over Light / Heavy; Off keeps every flight dry. The originals have no weather,
     so they rain at the switch's level (rendering.md §10).
+- **Clouds** (ours, Graphics → MORE, docs/rendering.md §2.1). Rendering only; the default is Original (the 1998 flat
+  cloud layer of Graphics TEXTURED SKY, unchanged).
+  - Volumetric: raymarched clouds in place of the flat layer, lit by the sun and the sky by the time of day: scattered
+    fair-weather cumulus (base 1200 m, top 2500 m above the ground) when dry, the rain's deck in the rain; the jet can
+    fly through them. For strong GPUs (about 5 ms on an Iris Xe at 1080p; rendering.md §2.1); greyed out without a
+    RenderingDevice (the Compatibility renderer).
 - **Airbases** (ours, docs/rendering.md §7). Rendering only; the default is Original (the 1998 imagery's painted
   runways).
   - Detailed: within 6 km of the camera, the nearest base's runways, taxiways and aprons get a procedural asphalt /
