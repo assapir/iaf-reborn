@@ -257,6 +257,18 @@ pub struct Weapons {
     /// The time to impact (s) of the player's last released GPS bomb while it flies (docs/weapons.md §13.3), in any
     /// HUD mode.
     pub tti: Option<f64>,
+    /// A high off-boresight IR missile selected in mode 1 (AIM-9X, Python 5; docs/weapons.md §13.1): the helmet's cues.
+    pub hobs: Option<Hobs>,
+}
+
+/// The high off-boresight missile's state for the helmet (docs/real-hud.md "DASH helmet"): its seeker cone (°), the
+/// seeker's target in HUD px (None: no target; far along its direction when behind the view) and whether a missile of
+/// the player's flies lock-on after launch, still searching.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Hobs {
+    pub cone_deg: f64,
+    pub target: Option<P>,
+    pub loal: bool,
 }
 
 /// A GPS bomb's cues: its mode (PRE or VIS), the aim's HUD point (far along its direction when outside the view) and

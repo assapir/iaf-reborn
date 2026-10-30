@@ -1167,6 +1167,9 @@ Arming lists keep the 1998 IR missiles, also on the Sufa and the F-35I. Both are
   cued line, the helmet's line of sight in the free-look and padlock views, else the nose. Each frame it takes the
   unit nearest the line to that point within its cone that its lock rule accepts (any side, as the original's
   search), then chases it.
+- **Helmet cues** (Real HUD, real-hud.md "DASH helmet"): the DASH (F-16, F-15) and the F-35I's head set draw the
+  seeker diamond on its target or on the aiming cross, the seeker limit beyond the cone, SHOOT, and LOAL while a
+  missile launched without a lock searches (`hobs_cue()` in `player_weapons.gd`).
 
 ### 13.2 GPS bombs (JDAM, GBU-39)
 

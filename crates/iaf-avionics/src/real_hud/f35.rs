@@ -168,8 +168,9 @@ pub(super) fn frame(_hud: Field, i: &Input, max_g: f64) -> Frame {
 
 /// Looking off the nose (flight-test video; docs/real-hud.md "F-35I"): the aircraft-stabilised virtual HUD is left
 /// behind and a reduced head-stabilised set shows around the helmet's centre — the head line-of-sight "+", a heading
-/// tape for where the head points with the steering caret (the LM "HMD Looking Behind" frame), the airspeed and altitude as bare numbers, the steerpoint block, the target
-/// designator and a GPS bomb's TD box; no ladder, marker, boxes or data stack.
+/// tape for where the head points with the steering caret (the LM "HMD Looking Behind" frame), the airspeed and
+/// altitude as bare numbers, the steerpoint block, the target designator, the AIM-9X's cues (`dash::hobs_cues`) and a
+/// GPS bomb's TD box; no ladder, marker, boxes or data stack.
 fn off_boresight(i: &Input) -> Frame {
     let mut fr = Frame { colour: Some(GREEN), ..Frame::default() };
     let o = &mut fr.outer;
@@ -207,6 +208,8 @@ fn off_boresight(i: &Input) -> Frame {
         o.push(Prim::Circle { c: q, r: s * 0.6 });
         x_over(o, q, s);
     }
+    // The AIM-9X's seeker, shoot and LOAL cues (as the DASH's).
+    super::dash::hobs_cues(o, i, (0.0, 0.0), h);
     // A GPS bomb's aim: its TD box, held at the set's edge with an X over it when outside (as on the forward set).
     if matches!(i.weapons.hud_mode, 5 | 6)
         && let Some(at) = i.weapons.gps.and_then(|g| g.at)

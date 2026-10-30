@@ -601,6 +601,10 @@ func real_hud() -> Dictionary:
 	if mode == 3 and wp.get("pipper") != null:
 		lcos = gun + Vector2(wp.pipper.x, wp.pipper.y)
 	var agl = st.get("agl_ft")
+	# Ours: an AIM-9X / Python 5's helmet cues (docs/real-hud.md "DASH helmet"): the seeker's target on the view.
+	var hobs: Dictionary = wp.get("hobs", {}).duplicate()
+	if hobs.get("pos") != null:
+		hobs.at = _hud_point(hobs.pos, true)
 	_real_in = {
 		"cockpit": cockpit.cockpit_dir,
 		"time": st.get("time", 0.0),
@@ -655,7 +659,8 @@ func real_hud() -> Dictionary:
 			"designated": delay_on and ag.get("frozen", false),
 			"gps": gps_cue,
 			# Ours: the player's last released GPS bomb's time to impact (docs/weapons.md §13.3).
-			"tti": wp.get("gps_tti")
+			"tti": wp.get("gps_tti"),
+			"hobs": hobs
 		}
 	}
 	_real = _real_hud.frame(_field(), _real_in)

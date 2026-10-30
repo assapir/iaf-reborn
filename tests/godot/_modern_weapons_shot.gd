@@ -1,7 +1,9 @@
 # Dev helper (not run by tools/test.sh): real-render captures of the F-16I Sufa's weapons (docs/weapons.md §13) into
 # SHOT_DIR: the Arming screen with them listed and loaded (arm_sufa.png), the HUD with an AIM-9X locked 60° off the
 # nose through the helmet (hud_aim9x.png), the GBU-31's in-range cue at a designated point (hud_jdam.png), and with
-# SHOT_DETAILED=1 the loaded jet from outside with Models: Detailed (ext_stores.png).
+# SHOT_DETAILED=1 the loaded jet from outside with Models: Detailed (ext_stores.png). SHOT_HOBS=1 instead: the Real
+# HUD's DASH with the AIM-9X locked on a MiG 70° off the nose (dash_aim9x.png) and a Python 5 launched without a lock
+# at a MiG 40° off and out of its lock range, LOAL on the DASH (dash_python5_loal.png).
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=$PWD/.shots -- --log-file /tmp/s.log --path game \
 #     -s ../tests/godot/_modern_weapons_shot.gd
 extends "res://../tests/godot/base.gd"
@@ -18,6 +20,12 @@ func run() -> void:
 	if all_on:
 		settings().hud_style = "real"
 		settings().particle_effects = true
+	if OS.get_environment("SHOT_HOBS") == "1":
+		settings().hud_style = "real"
+		var tv0 = await start_mission(231)
+		await frames(10)
+		await _hobs(tv0, airborne_case(tv0, LOAD + [25, 235, 33, 90, 34, 60]))
+		return
 	await _arming()
 	print("shot: mission")
 	var tv = await start_mission(231)
@@ -87,6 +95,71 @@ func _aim9x(tv, w) -> void:
 	await _save("hud_aim9x.png")
 	tv.views.set_cockpit(tv.views.COCKPIT)
 	await frames(30)
+
+
+## The MiG `bearing`° right of the nose, `dist` m out, 100 m up; every other unit hidden.
+func _place_mig(tv, w, bearing: float, dist: float) -> Dictionary:
+	var mig := {}
+	for e in tv.runtime.entities.values():
+		if not e.player and e.has("pilot") and e.node != null and mig.is_empty():
+			mig = e
+		elif not e.player:
+			e.visible = false
+	var o: Dictionary = w.own()
+	var flat := Vector3(o.fwd.x, o.fwd.y, 0).normalized()
+	var p: Vector3 = o.pos + flat.rotated(Vector3(0, 0, 1), deg_to_rad(-bearing)) * dist + Vector3(0, 0, 100)
+	mig.world = p
+	mig.alt = p.z
+	mig.vel = Vector3.ZERO
+	mig.visible = true
+	tv.mission_entity_moved(mig)
+	return mig
+
+
+func _hobs(tv, w) -> void:
+	var mig := _place_mig(tv, w, 70.0, 2000.0)
+	var t := 1.0
+	w.nav_key(0)
+	w.stores.cur = 0
+	w.select_aa()
+	tv.views.set_padlock(mig.node)
+	for i in 1200:
+		await process_frame
+		t += 0.05
+		w.update(t)
+		if w.seeker.lock and i > 200:
+			break
+	for i in 20:
+		await process_frame
+		t += 0.05
+		w.update(t)
+	print("shot: aim9x lock=%s real=%s" % [w.seeker.lock, _texts(tv)])
+	await _save("dash_aim9x.png")
+	_place_mig(tv, w, 40.0, 40000.0)
+	w.stores.cur = 1
+	for i in 200:
+		await process_frame
+		t += 0.05
+		w.update(t)
+	w.fire_selected()
+	w.update(t + 0.01)
+	w.release_selected()
+	for i in 200:
+		await process_frame
+		t += 0.05
+		w.update(t)
+		if i > 20 and _texts(tv).has("LOAL"):
+			break
+	print("shot: python5 lock=%s missiles=%d real=%s" % [w.seeker.lock, w.missiles.size(), _texts(tv)])
+	await _save("dash_python5_loal.png")
+
+
+func _texts(tv) -> Array:
+	var out := []
+	for q in tv.cockpit.hud.real_hud().get("outer", []):
+		if q.k == "text":
+			out.append(String(q.text))
+	return out
 
 
 func _jdam(tv, w) -> void:

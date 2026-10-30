@@ -356,7 +356,8 @@ The forward virtual HUD:
   inferred).
 
 Off-boresight: the virtual HUD stays with the airframe. The helmet shows a reduced head-stabilised set: bare airspeed
-/ altitude, heading, steerpoint, targets[^lm-slides].
+/ altitude, heading, steerpoint, targets[^lm-slides]. With the AIM-9X selected ours adds the DASH's seeker diamond,
+seeker limit, SHOOT and LOAL cues ("DASH helmet"; inferred).
 
 Navigation. No public source names the helmet's navigation symbols or says how they behave.
 The F-35 flight manual and the Collins symbology are not public; Collins, Elbit, Code One and the Aviation Today
@@ -462,8 +463,24 @@ Helmet-Mounted Cueing System, its descendant), whose F-16 set is documented in a
   - the radar target's **TD box** where it is in the field; the IR seeker's diamond;
   - HUD and cockpit **blanking**: the symbols blank while the head looks through the HUD or down into the
     cockpit[^chucks].
-- Not public: the DASH's own fonts / positions, its horizon symbol, Python-specific cues and shoot cue, declutter
-  levels. Ours leaves them out.
+- **High off-boresight missiles** (the AIM-9X and Python 5, docs/weapons.md §13.1; `dash.rs` `hobs_cues`). The
+  helmet points the seeker and the missile can lock after launch: the AIM-9X's seeker follows the helmet's line of
+  sight[^raytheon-9x-hobs][^jhmcs-hobs]; the Python 5 locks before or after launch, all round, far off
+  boresight[^gs-python5][^aft-python5]. No figure of these cues on the DASH or the JHMCS is public. Ours draws them in
+  the DASH's style (inferred; the diamond as the seeker's line of sight, after the F-16 HMCS in a simulator
+  guide[^chucks]):
+  - the **seeker diamond** on the seeker's target while it tracks one, held on the field's edge toward it when the
+    target is outside the 20° field;
+  - without a target, the diamond on the **aiming cross**: the seeker is slaved to the helmet while the head looks
+    within the missile's cone of the nose (90° / 100°);
+  - the **seeker limit**: with the head beyond the cone the diamond stops on the field's edge toward the nose, an X
+    over it;
+  - **SHOOT** under the cross with the mode-1 shoot cue (the seeker's lock in range);
+  - **LOAL** flashing under it (1 Hz) while a missile launched without a lock still searches.
+
+  The F-35I's head-stabilised set draws the same cues for its AIM-9X, around its line-of-sight cross.
+- Not public: the DASH's own fonts / positions, its horizon symbol, the Python-specific symbols, declutter levels.
+  Ours leaves them out.
 
 ## IFF (identification friend or foe)
 
@@ -874,6 +891,16 @@ its scale. The original HUD keeps the original layout.
     https://www.twz.com/f-15a-baz-upgraded-cockpit-seen-in-rare-israeli-air-force-photo and Python training rounds and
     the DASH: https://www.twz.com/israeli-python-training-missiles-are-cleverly-disguised-as-u-s-sidewinders
 [^globalsecurity-dash]: GlobalSecurity, on the DASH (no link recorded).
+[^raytheon-9x-hobs]: Flight International, "Raytheon test-fires fourth AIM-9X" (the helmet sight directs the seeker,
+    which acquires the target at high off-boresight angles):
+    https://www.flightglobal.com/raytheon-test-fires-fourth-aim-9x/31692.article
+[^jhmcs-hobs]: Military & Aerospace Electronics, JHMCS production (the JHMCS cues the AIM-9X's high off-boresight
+    shots):
+    https://www.militaryaerospace.com/communications/article/16719516/boeing-scores-another-air-force-production-contract-for-joint-helmet-mounted-cueing-system
+[^gs-python5]: GlobalSecurity, Python 5 (lock-on before and after launch, full sphere, very high off-boresight seeker):
+    https://www.globalsecurity.org/military/world/israel/python5.htm
+[^aft-python5]: Airforce Technology, Python 5 (LOAL: the launcher passes the target data, the seeker then scans and
+    locks): https://www.airforce-technology.com/?p=4169
 [^chucks]: Chuck's Guides, DCS F-16C Viper guide, a simulator guide: §4.3 HMD symbology / setup (the JHMCS F-16 set);
     pp. 643–644 (IFF reply timing): https://assets.chucksguides.com/pdf/DCS%20F-16C%20Viper%20Guide.pdf
 [^dash34brk]: T.O. GR1F-16CJ-34-1-1 (Hellenic AF, 16 Jun 1997), p. 1-173 "Pullup Anticipation and Breakaway Cue (Break
