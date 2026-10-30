@@ -54,7 +54,7 @@ void vertex() {
 	float g = far_model ? step(near_m, d) * (1.0 - smoothstep(far_m - grow_m, far_m, d)) : 1.0 - step(near_m, d);
 	// Shown: raised to g of its height; not shown: collapsed to its centre (no triangles to draw).
 	VERTEX = g > 0.001 ? vec3(VERTEX.x, c.y + (VERTEX.y - c.y) * g, VERTEX.z) : c;
-	v_city_glow = city_glow_at((MODEL_MATRIX * vec4(c, 1.0)).xz);  // at the building's centre
+	v_city_glow = city_glow_at((MODEL_MATRIX * vec4(c, 1.0)).xz, d);  // at the building's centre
 	v_building = UV2.x;
 	v_roof = UV2.y < -0.5 ? 1.0 : 0.0;
 	v_wall = floor(COLOR.a * 255.0 + 0.5);

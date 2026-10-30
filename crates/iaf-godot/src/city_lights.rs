@@ -20,14 +20,15 @@ use crate::scenery::{ground, origin};
 
 /// A block is this many scenery cells on a side.
 const BLOCK: i64 = 4;
-/// The lights of rank below this make a block's far mesh, drawn to the far range; the rest its near mesh.
-const FAR_SHARE: f32 = 0.1;
+/// A block's meshes by the lights' rank: below SHARES[0] (the farthest), below SHARES[1], the rest; city_lights.gd
+/// draws them to its FAR_RANGE, MID_RANGE and NEAR_RANGE.
+const SHARES: [f32; 3] = [0.02, 0.1, 1.0];
 
 type Points = (PackedVector3Array, PackedColorArray);
 
-/// A made block: its points (the far ones first), the far ones' count, whether the near ones were asked; None when
-/// the terrain under it was not loaded.
-type Made = Option<(Vec<[f32; 3]>, Vec<[f32; 4]>, usize, bool)>;
+/// A made block: its points by mesh (SHARES, the farthest first) and where each mesh ends; None when the terrain
+/// under it was not loaded.
+type Made = Option<(Vec<[f32; 3]>, Vec<[f32; 4]>, Vec<usize>)>;
 
 /// A cell file: its path and the seed of its lights.
 type CellFile = (PathBuf, u32);
@@ -48,8 +49,8 @@ const GLOW_M: f64 = 125.0;
 
 /// A job of the lights thread.
 enum Job {
-    /// A block, with its near points.
-    Block((i64, i64), bool),
+    /// A block, its meshes 0 to the given one (SHARES).
+    Block((i64, i64), usize),
     /// The towns' glow over every cell.
     Glow,
 }
@@ -58,8 +59,8 @@ static QUEUE: LazyLock<Mutex<Sender<Job>>> = LazyLock::new(|| {
     std::thread::spawn(move || {
         while let Ok(job) = rx.recv() {
             match job {
-                Job::Block(b, near) => {
-                    let made = make(b, near);
+                Job::Block(b, mesh) => {
+                    let made = make(b, mesh);
                     MADE.lock().unwrap().insert(b, made);
                 }
                 Job::Glow => *GLOW.lock().unwrap() = Some(glow()),
@@ -89,8 +90,8 @@ fn glow() -> Glow {
     g
 }
 
-/// Every light of the block, far ones (rank < FAR_SHARE) first; the count of far ones. Near false: the far ones only.
-fn make(b: (i64, i64), near: bool) -> Made {
+/// The block's lights of rank below SHARES[mesh], sorted into its meshes 0..=mesh, the farthest first.
+fn make(b: (i64, i64), mesh: usize) -> Made {
     let cells = STATE.lock().unwrap().blocks.get(&b).cloned().unwrap_or_default();
     let o = origin(b.0 * BLOCK, b.1 * BLOCK);
     let mut all = Vec::new();
@@ -106,20 +107,21 @@ fn make(b: (i64, i64), near: bool) -> Made {
         let lamps = city_lights::road_lamps(&r, &all);
         all.extend(lamps);
     }
-    let (mut far, mut rest) = (Vec::new(), Vec::new());
+    let mut meshes = vec![Vec::new(); mesh + 1];
     for l in all {
-        if !near && l.rank >= FAR_SHARE {
-            continue;
-        }
+        let Some(k) = SHARES[..=mesh].iter().position(|&s| l.rank < s) else { continue };
         let (x, y) = (l.at[0] as f64, l.at[1] as f64);
         let h = ground(Vec3::new(x, y, 0.0))?;
         let p = [(x - o[0]) as f32, (h + l.up as f64) as f32, -(y - o[1]) as f32];
-        let c = [l.color[0], l.color[1], l.color[2], l.rank];
-        if l.rank < FAR_SHARE { far.push((p, c)) } else { rest.push((p, c)) }
+        meshes[k].push((p, [l.color[0], l.color[1], l.color[2], l.rank]));
     }
-    let n_far = far.len();
-    let (p, c) = far.into_iter().chain(rest).unzip();
-    Some((p, c, n_far, near))
+    let ends = meshes.iter().scan(0, |n, m| {
+        *n += m.len();
+        Some(*n)
+    });
+    let ends = ends.collect();
+    let (p, c) = meshes.into_iter().flatten().unzip();
+    Some((p, c, ends))
 }
 
 fn points(p: &[[f32; 3]], c: &[[f32; 4]]) -> Points {
@@ -185,32 +187,36 @@ impl IafCityLights {
         out
     }
 
-    /// Makes the block's lights on the lights thread (`take` hands them over). `near`: the near points too.
+    /// Makes the block's lights on the lights thread (`take` hands them over): its meshes 0 (the farthest lights) to
+    /// `mesh` (2: every light).
     #[func]
-    fn request(bi: i64, bj: i64, near: bool) {
+    fn request(bi: i64, bj: i64, mesh: i64) {
         // The thread lives as long as the process (a std thread: nothing for Godot's pool to wait for at quit).
-        let _ = QUEUE.lock().unwrap().send(Job::Block((bi, bj), near));
+        let mesh = mesh.clamp(0, SHARES.len() as i64 - 1) as usize;
+        let _ = QUEUE.lock().unwrap().send(Job::Block((bi, bj), mesh));
     }
 
     /// The requested block: {} while it is made; {retry: true} when the terrain under it was not loaded (request
-    /// again later); else {origin: Vector3 (world), far: [PackedVector3Array, PackedColorArray], near: [...] (when
-    /// asked)}: colour × brightness in RGB, the light's rank in A.
+    /// again later); else {origin: Vector3 (world), meshes: [[PackedVector3Array, PackedColorArray], ...] (mesh 0 to
+    /// the one asked)}: colour × brightness in RGB, the light's rank in A.
     #[func]
     fn take(bi: i64, bj: i64) -> VarDictionary {
         let mut d = VarDictionary::new();
         let Some(made) = MADE.lock().unwrap().remove(&(bi, bj)) else { return d };
-        let Some((p, c, n_far, near)) = made else {
+        let Some((p, c, ends)) = made else {
             d.set("retry", true);
             return d;
         };
         let [x, y] = origin(bi * BLOCK, bj * BLOCK);
         d.set("origin", Vector3::new(x as f32, y as f32, 0.0));
-        let (fp, fc) = points(&p[..n_far], &c[..n_far]);
-        d.set("far", &varray![&fp, &fc]);
-        if near {
-            let (np, nc) = points(&p[n_far..], &c[n_far..]);
-            d.set("near", &varray![&np, &nc]);
+        let mut meshes = VarArray::new();
+        let mut a = 0;
+        for e in ends {
+            let (mp, mc) = points(&p[a..e], &c[a..e]);
+            meshes.push(&varray![&mp, &mc].to_variant());
+            a = e;
         }
+        d.set("meshes", &meshes);
         d
     }
 

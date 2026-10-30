@@ -142,8 +142,9 @@ void vertex() {
 	}
 	VERTEX.y -= UV2.x * skirt;
 	UV = cuv;
-	world_xz = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;
-	v_city_glow = city_glow_at(world_xz);
+	vec3 wv = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	world_xz = wv.xz;
+	v_city_glow = city_glow_at(world_xz, distance(wv, INV_VIEW_MATRIX[3].xyz));
 	sea = open_sea ? 1.0 : 0.0;
 }
 
