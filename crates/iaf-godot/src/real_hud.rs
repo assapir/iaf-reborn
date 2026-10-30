@@ -7,7 +7,9 @@ use crate::world::{get, num};
 use godot::prelude::*;
 use iaf_avionics::gps::Lar;
 use iaf_avionics::missile::Dlz;
-use iaf_avionics::real_hud::{Align, Delay, Field, GpsCue, Input, Jet, P, Prim, RealHud, Steerpoint, Target, Weapons};
+use iaf_avionics::real_hud::{
+    Align, Delay, Field, GpsCue, Hobs, Input, Jet, P, Prim, RealHud, Steerpoint, Target, Weapons,
+};
 
 fn v2((x, y): P) -> Vector2 {
     Vector2::new(x as f32, y as f32)
@@ -85,7 +87,7 @@ impl IafRealHud {
     /// (null), boresight, gun_cross, horizon, px_per_deg, radar_mode, ils (the ILS bars' [x, y] or null), steerpoint ({number, bearing, dist_m, eta_s, at} or {}),
     /// target ({range_m, closure, at, aspect} or {}), dlz ([max, min] or []), weapons {hud_mode, selected, srm, mrm, seeker,
     /// lcos, pipper, steering, circle, shoot, delay (the delayed CCIP's time to go, or null), delay_at
-    /// (the target under its pipper), designated, gps ({pre, at, range, rmin, rmax, in_range, tmr} or {})}}. Returns {field, outer, colour (Color or null), sight (no HUD)}.
+    /// (the target under its pipper), designated, gps ({pre, at, range, rmin, rmax, in_range, tmr} or {}), hobs ({cone, at (the seeker's target or null), loal} or {})}}. Returns {field, outer, colour (Color or null), sight (no HUD)}.
     #[func]
     fn frame(&mut self, field: Rect2, i: VarDictionary) -> VarDictionary {
         let f = |k: &str| num(&i, k).unwrap_or_default();
@@ -166,6 +168,11 @@ impl IafRealHud {
                     },
                 }),
                 tti: num(&w, "tti"),
+                hobs: get::<VarDictionary>(&w, "hobs").filter(|h| !h.is_empty()).map(|h| Hobs {
+                    cone_deg: num(&h, "cone").unwrap_or_default(),
+                    target: pt(&h, "at"),
+                    loal: get(&h, "loal").unwrap_or(false),
+                }),
             },
         };
         let r = Field {

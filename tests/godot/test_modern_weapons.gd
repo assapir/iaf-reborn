@@ -2,8 +2,10 @@
 # and the F-15's lists are the original's, the Sufa has all seven, the F-35I its AIM-9X, GBU-31, GBU-32, GBU-39 with a
 # GBU-31 in each bay by default. On Modern: the jets a source shows carrying them list them (modern_weapons.gd LOADS),
 # the others none. Mission 231 flown in the F-15, frozen 3000 m up: an AIM-9X locks a MiG 70° off the nose through the
-# helmet (padlock view), launches and kills it; a GBU-31 in VIS released at a radar-designated ground unit 6 km ahead,
-# inside its launch acceptability region, flies to the point and destroys it. PRE (docs/weapons.md §13.2): a target
+# helmet (padlock view), the DASH draws its seeker diamond on the MiG and SHOOT, launches and kills it, and a second
+# round fired without a lock leaves lock-on after launch with the LOAL cue on; a GBU-31 in VIS released at a
+# radar-designated ground unit 6 km ahead, inside its launch acceptability region, flies to the point and destroys it.
+# PRE (docs/weapons.md §13.2): a target
 # clicked for station 5 on the briefing TSD is stored; in flight the unit stands there, 50° off the nose with the
 # radar designating elsewhere: 20 km out the HUD shows the time to max range, 6 km out IN RNG, and the bomb flies to
 # the briefing's point and destroys the unit. With Bomb release Real a pair leaves at once, each bomb to its own
@@ -76,7 +78,7 @@ func run() -> void:
 	var tv = await start_mission(231)
 	await frames(3)
 	check(tv.player.type == 110, "the F-15 flies mission 231")
-	var w = airborne_case(tv, [AIM9X, 1, 0, 0, 0, 0, 0, 0, GBU31, 1, 0, 0, 0, 0, 0, 0, 0, 0, 25, 235, 33, 120, 34, 60])
+	var w = airborne_case(tv, [AIM9X, 2, 0, 0, 0, 0, 0, 0, GBU31, 1, 0, 0, 0, 0, 0, 0, 0, 0, 25, 235, 33, 120, 34, 60])
 	await _aim9x(tv, w)
 	await _jdam(tv, w, 4)
 	await _jdam_pre(tv, n)
@@ -141,6 +143,7 @@ func _aim9x(tv, w) -> void:
 			% [off, w.own().get("helmet", false), w.seeker.lock, w.seeker.target_key]
 		)
 	)
+	await _dash_hobs(tv, mig)
 	w.fire_selected()
 	w.update(t + 0.01)
 	w.release_selected()
@@ -156,6 +159,49 @@ func _aim9x(tv, w) -> void:
 	check(int(mig.state) != 1, "the AIM-9X turned and killed the MiG (state %d)" % int(mig.state))
 	tv.views.set_cockpit(tv.views.COCKPIT)
 	await frames(2)
+	# The second round without a lock (nothing ahead): it leaves lock-on after launch and the helmet's LOAL cue is on
+	# while it searches.
+	w.fire_selected()
+	w.update(t + 0.1)
+	w.release_selected()
+	w.update(t + 0.2)
+	check(
+		w.missiles.size() == 1 and not w.missiles[0].has_target and w.hobs_cue().get("loal", false),
+		"no lock: the AIM-9X leaves LOAL, the helmet's LOAL cue on (%s)" % [w.hobs_cue()]
+	)
+	w.missiles.clear()
+
+
+## The F-15's DASH (Real HUD) looking at the locked MiG 70° off the nose: the AIM-9X's seeker diamond on the MiG and
+## SHOOT (docs/real-hud.md "DASH helmet").
+func _dash_hobs(tv, mig: Dictionary) -> void:
+	settings().hud_style = "real"
+	await frames(2)
+	var hud = tv.cockpit.hud
+	var real: Dictionary = hud.real_hud()
+	var inp: Dictionary = hud._real_in
+	var at = hud._hud_point(mig.world, false)
+	var hobs: Dictionary = inp.get("weapons", {}).get("hobs", {})
+	var texts := []
+	var diamond = null
+	for q in real.get("outer", []):
+		if q.k == "text":
+			texts.append(String(q.text))
+		# A diamond's first stroke: from its top (x, y − h) to its right (x + h, y).
+		elif q.k == "line" and q.a.x < q.b.x and q.a.y < q.b.y and is_equal_approx(q.b.x - q.a.x, q.b.y - q.a.y):
+			var c := Vector2(q.a.x, q.b.y)
+			if at != null and (diamond == null or c.distance_to(at) < diamond.distance_to(at)):
+				diamond = c
+	check(
+		inp.get("off_boresight", false) and hobs.get("at") != null and float(hobs.get("cone", 0)) == 90.0,
+		"the DASH with the AIM-9X's cues (%s, %s)" % [inp.get("off_boresight"), hobs]
+	)
+	check(
+		at != null and diamond != null and diamond.distance_to(at) < 8.0,
+		"the seeker diamond on the MiG (%s at %s)" % [diamond, at]
+	)
+	check(texts.has("SHOOT"), "locked in range: SHOOT on the DASH (%s)" % [texts])
+	settings().hud_style = "original"
 
 
 func _jdam(tv, w, station: int) -> void:

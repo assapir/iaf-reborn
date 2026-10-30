@@ -56,12 +56,51 @@ pub(super) fn frame(i: &Input) -> Frame {
         o.push(line((p.0 + h, p.1 + h), (p.0 - h, p.1 + h)));
         o.push(line((p.0 - h, p.1 + h), (p.0 - h, p.1 - h)));
     }
-    if w.hud_mode == 1
+    if w.hud_mode == 1 && w.hobs.is_some() {
+        hobs_cues(o, i, c, r);
+    } else if w.hud_mode == 1
         && let Some(p) = w.seeker.filter(|p| inside(*p))
     {
         diamond(o, p, i.mr(8.0));
     }
     fr
+}
+
+/// The high off-boresight missile's cues on a helmet set centred on its line of sight `c`, `r` px to its edge (the
+/// AIM-9X / Python 5, docs/real-hud.md "DASH helmet"; the JHMCS's in a simulator guide, the layout inferred):
+/// - the seeker diamond: on its target while it tracks one (held on the edge when the target is outside the set); else
+///   on the aiming cross, the seeker slaved to the helmet, while the head looks within the missile's cone of the nose;
+/// - beyond the cone the seeker stops at its gimbal limit: the diamond on the edge toward the nose, an X over it;
+/// - SHOOT under the cross with the mode-1 shoot cue (the seeker's lock in range), LOAL flashing under it while a
+///   missile launched without a lock still searches.
+pub(super) fn hobs_cues(o: &mut Vec<Prim>, i: &Input, c: P, r: f64) {
+    let w = &i.weapons;
+    let Some(h) = w.hobs else { return };
+    let size = i.mr(8.0);
+    let on_edge = |d: P| {
+        let n = d.0.hypot(d.1);
+        let k = if n > r - size { (r - size) / n } else { 1.0 };
+        ((c.0 + d.0 * k, c.1 + d.1 * k), k < 1.0)
+    };
+    let (az, el) = i.head_rel_deg;
+    let off = (az.to_radians().cos() * el.to_radians().cos()).clamp(-1.0, 1.0).acos().to_degrees();
+    if let Some(s) = h.target {
+        diamond(o, on_edge((s.0 - c.0, s.1 - c.1)).0, size);
+    } else if off <= h.cone_deg {
+        diamond(o, c, size);
+    } else {
+        // Toward the nose: left and down from a head turned right and up (screen y down).
+        let n = az.hypot(el).max(1e-9);
+        let (q, _) = on_edge((-az / n * r, el / n * r));
+        diamond(o, q, size);
+        x_over(o, q, size);
+    }
+    if w.shoot {
+        o.push(text(add(c, (0.0, 0.4 * r)), "SHOOT", Align::Centre));
+    }
+    if h.loal && i.time_s.rem_euclid(1.0) < 0.5 {
+        o.push(text(add(c, (0.0, 0.4 * r + ROW)), "LOAL", Align::Centre));
+    }
 }
 
 /// The helmet's aiming cross: a plus with a centre gap on its line of sight.
@@ -133,6 +172,74 @@ mod tests {
         i.weapons.seeker = Some((500.0, 0.0));
         assert_eq!(near - lines(&i), 8, "box (4) and diamond (4) inside, none outside");
         assert!(texts(&RealHud::default().frame(FIELD, &i).outer).contains(&"2 SRM"));
+    }
+
+    /// A diamond of half size `h` centred near `c`.
+    fn diamond_at(ps: &[Prim], c: P, h: f64) -> bool {
+        let near = |a: P, b: P| (a.0 - b.0).abs() < 0.01 && (a.1 - b.1).abs() < 0.01;
+        ps.iter().any(|p| matches!(p, Prim::Line { a, b } if near(*a, (c.0, c.1 - h)) && near(*b, (c.0 + h, c.1))))
+    }
+
+    /// The Sufa's DASH with an AIM-9X (cone 90°), the head 70° left of the nose.
+    fn hobs_input(jet: Jet) -> Input {
+        let mut i = Input { off_boresight: true, ..input(jet) };
+        i.head_view = (10.0, -5.0);
+        i.head_rel_deg = (-70.0, 0.0);
+        i.weapons.hud_mode = 1;
+        i.weapons.srm = 2;
+        i.weapons.hobs = Some(Hobs { cone_deg: 90.0, target: None, loal: false });
+        i
+    }
+
+    #[test]
+    fn hobs_seeker_slaved_to_the_helmet_then_on_its_target() {
+        let mut i = hobs_input(Jet::F16);
+        let h = i.mr(8.0);
+        let fr = RealHud::default().frame(FIELD, &i);
+        assert!(diamond_at(&fr.outer, (10.0, -5.0), h), "no target: the seeker on the aiming cross");
+        assert!(!texts(&fr.outer).contains(&"SHOOT"));
+        // The seeker takes the target 4° right of the cross and locks in range: the diamond on it, SHOOT.
+        i.weapons.hobs = Some(Hobs { cone_deg: 90.0, target: Some((58.0, -5.0)), loal: false });
+        i.weapons.shoot = true;
+        let fr = RealHud::default().frame(FIELD, &i);
+        assert!(diamond_at(&fr.outer, (58.0, -5.0), h), "the diamond on the target");
+        assert!(!diamond_at(&fr.outer, (10.0, -5.0), h), "not on the cross any more");
+        assert!(texts(&fr.outer).contains(&"SHOOT"));
+        // A target outside the 20° field: the diamond held on its edge toward it.
+        i.weapons.hobs = Some(Hobs { cone_deg: 90.0, target: Some((1000.0, -5.0)), loal: false });
+        let r = i.deg(10.0);
+        assert!(diamond_at(&RealHud::default().frame(FIELD, &i).outer, (10.0 + r - h, -5.0), h));
+    }
+
+    #[test]
+    fn hobs_seeker_limit_beyond_the_cone() {
+        let mut i = hobs_input(Jet::F16);
+        i.head_rel_deg = (-120.0, 0.0);
+        let (h, r) = (i.mr(8.0), i.deg(10.0));
+        let fr = RealHud::default().frame(FIELD, &i);
+        // The head 120° left, the cone 90°: the diamond stops on the edge toward the nose (right), crossed out.
+        let q = (10.0 + r - h, -5.0);
+        assert!(diamond_at(&fr.outer, q, h), "the diamond at the gimbal limit");
+        assert!(fr.outer.iter().any(|p| matches!(p, Prim::Line { a, .. } if *a == (q.0 - h, q.1 - h))), "X over it");
+        // The Python 5's 100° cone takes 95°.
+        i.head_rel_deg = (-95.0, 0.0);
+        i.weapons.hobs = Some(Hobs { cone_deg: 100.0, target: None, loal: false });
+        assert!(diamond_at(&RealHud::default().frame(FIELD, &i).outer, (10.0, -5.0), h));
+    }
+
+    #[test]
+    fn hobs_loal_flashes_while_the_missile_searches() {
+        let mut i = hobs_input(Jet::F15);
+        i.weapons.hobs = Some(Hobs { cone_deg: 100.0, target: None, loal: true });
+        i.time_s = 10.2;
+        assert!(texts(&RealHud::default().frame(FIELD, &i).outer).contains(&"LOAL"));
+        i.time_s = 10.7;
+        assert!(!texts(&RealHud::default().frame(FIELD, &i).outer).contains(&"LOAL"), "the dark half");
+        // The F-35I's head set draws the same cues around its centre.
+        let mut j = hobs_input(Jet::F35);
+        j.weapons.shoot = true;
+        let fr = RealHud::default().frame(FIELD, &j);
+        assert!(diamond_at(&fr.outer, (0.0, 0.0), j.mr(8.0)) && texts(&fr.outer).contains(&"SHOOT"));
     }
 
     #[test]

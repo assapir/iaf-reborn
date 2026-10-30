@@ -1775,6 +1775,25 @@ func _launch_gps(w: Dictionary, p0: Vector3, vel: Vector3, aim: Vector3, owner: 
 
 ## The time to impact (s) of the player's last released GPS bomb still in flight, or null (ours, the HUD's `TTI`,
 ## docs/weapons.md §13.3). The last released: the bomb the pilot just let go, the countdown he expects.
+## Ours: the helmet's cues of a high off-boresight IR missile selected in mode 1 (AIM-9X, Python 5; docs/weapons.md
+## §13.1, docs/real-hud.md "DASH helmet"): {cone (°), tracking (the seeker has a target), loal (a player's missile
+## launched without a lock still searches), pos (the seeker's target, world; null without one)}; {} otherwise.
+func hobs_cue() -> Dictionary:
+	var fs: int = stores.fire_station()
+	# The station that fires next, else the selected one (its last round gone).
+	var w: Dictionary = stores.station(fs if fs >= 0 else stores.cur).get("w", {})
+	if hud_mode != 1 or not w.get("loal", false):
+		return {}
+	var me := _me()
+	var searching := missiles.any(
+		func(m): return is_same(m.get_meta("owner", {}), me) and m.weapon.get("loal", false) and not m.has_target
+	)
+	var tgt: Dictionary = seeker.current(_units()) if seeker.target_key != "" else {}
+	if not tgt.is_empty() and not seeker.in_view(own(), tgt):
+		tgt = {}  # kept by the search, but outside the seeker's view: the seeker does not look at it
+	return {"cone": float(w.get("cone_deg", 90.0)), "pos": tgt.get("pos"), "loal": searching}
+
+
 func gps_tti() -> Variant:
 	var me := _me()
 	for k in range(gps_bombs.size() - 1, -1, -1):
@@ -2544,6 +2563,7 @@ func _publish() -> void:
 			"gps": ag.get("gps", {}) if hud_mode in [5, 6] else {}
 		},
 		"gps_tti": gps_tti(),
+		"hobs": hobs_cue(),
 	}
 
 

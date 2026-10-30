@@ -165,8 +165,8 @@ original's pages by default, mfd.md); the per-jet reference, the user's decision
 Built: every jet's real HUD / sight and the F-16 / F-15 DASH helmet set (real-hud.md "What ours draws", "DASH
 helmet"). Left:
 - what real-hud.md marks "not drawn";
-- the DASH's own horizon symbol, shoot cue and Python-specific cues if a source appears; the RWR symbols and
-  declutter levels. The Lavi / Kurnass 2000 / Kfir keep the original helmet display (their helmets are not
+- the DASH's own horizon symbol and Python-specific symbols if a source appears (the AIM-9X / Python 5 seeker,
+  limit, SHOOT and LOAL cues are built, inferred: real-hud.md "DASH helmet"); the RWR symbols and declutter levels. The Lavi / Kurnass 2000 / Kfir keep the original helmet display (their helmets are not
   documented).
 
 ## Setup wizard: the user's review
