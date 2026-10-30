@@ -30,6 +30,9 @@ tools/guide_shots.sh [jet] && python3 -I tools/guide_pdf.py   # pilot guides' pi
 python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded flight (blackbox) as a timeline + summary
 ```
 
+- Windows (docs/windows.md): `.\setup.ps1`, `.\iafjets.ps1 [--mission 311]`, `.\mission-editor.ps1`,
+  `tools\windows\setup-cli.ps1` (iaf-setup's options); no bash, so `tools/*.sh` do not run. Keep the clone LF
+  (`git config core.autocrlf false`; gdformat writes CRLF there) and the .ps1 files ASCII.
 - Run every scripted Godot test or capture with `IAF_DEFAULT_SETTINGS=1`. This keeps the user's `settings.cfg`
   untouched (never read, never written).
 - Pass `--log-file <a temp path>` to the same runs. This keeps the user's own game logs from being rotated away.

@@ -243,6 +243,9 @@ renderer, S = the cockpit state (`0x82f544`). The reader stores the `[HUD]` keys
     `HudOuter`. The geometry is the original's, in 640x480 pixels × the ui scale.
   * The marker is the velocity projected through our camera, which uses the original projection (next section). With
     it the 12 px/deg ladder matches the world (focal length 686.2 px = 11.98 px/deg).
+  * The text block's numbers round as the exe's MSVCRT `%.Nf`: a tie away from zero (−1.25 G → "-1.3G"), through
+    `iaf_formats::crt` (`IafCrt.round`), as Godot's `%` rounds through the platform's C library (glibc: a tie to even).
+    The TSD ruler's "%.2f NM" does the same. The Real HUD (`iaf_avionics::real_hud`) formats in Rust on every platform.
   * Deviations: docs/deviations.md (HUD rows).
 
 ### I-mode (F12, v1.1)

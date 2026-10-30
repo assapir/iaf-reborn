@@ -128,11 +128,15 @@ game then quits; `./setup` installs again. The launcher's INSTALL button opens t
 
 - curl: `textures` (ambientCG), `models` (GitHub), the Survey sheets and `scenery-fetch`.
 - GDAL (`gdal_translate`, `gdalbuildvrt`, `gdalwarp`, `ogr2ogr` with its OSM driver): the imagery and `scenery` steps.
-  Without it they are skipped.
+  Without it they are skipped. Windows: the scripts give winget's install (`C:\Program Files\GDAL`) its PATH,
+  `GDAL_DATA` and `PROJ_LIB` (`tools/windows/gdal.ps1`, windows.md).
 - gzip: `scenery` (the Microsoft footprints).
 - `tools/imagery/fetch-mapi2015-curl.sh` (curl, python3, Firefox's data.gov.il token): the Survey sheets.
-- `tools/install-launcher.sh`: the desktop launcher (its `XDG_DATA_HOME` can be set).
-- The guides: `tools/guide_shots.sh` and `tools/guide_pdf.py` (both front ends).
+- `tools/install-launcher.sh`: the desktop launcher (its `XDG_DATA_HOME` can be set). Windows:
+  `tools/windows/install-launcher.ps1`, two Start Menu shortcuts (`-Menu` puts them under another folder; setup gives
+  `<XDG_DATA_HOME>/Start Menu` when it has one).
+- The guides: `tools/guide_shots.sh` and `tools/guide_pdf.py` (both front ends; not on Windows yet: the step fails
+  with a message).
 
 Their output goes to the step's log.
 
@@ -142,6 +146,8 @@ Their output goes to the step's log.
 osascript on macOS, else the terminal) with the install command. Then it builds the game's extension and opens the
 wizard (`game/setup/wizard.tscn`). `./iafjets` starts `./setup` when there is no game data, and so does the game's
 start-up when `assets/converted` is missing. The desktop launcher "Jane's IAF (reborn) — Setup" runs it too.
+Windows: `.\setup.ps1`, `.\iafjets.ps1` and `.\mission-editor.ps1` (`tools/windows/launch.ps1`) do the same; a
+missing tool opens a message box. `tools\windows\setup-cli.ps1` runs the steps from a terminal through `iaf-setup`.
 
 The wizard uses the original menus' colours. Pages:
 

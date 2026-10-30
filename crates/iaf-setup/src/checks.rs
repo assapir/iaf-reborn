@@ -123,7 +123,47 @@ pub struct Tools {
 }
 
 fn on_path(name: &str) -> bool {
-    std::env::var_os("PATH").is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(name).is_file()))
+    std::env::var_os("PATH").is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(program(name)).is_file()))
+}
+
+/// A program's file name.
+#[cfg(not(windows))]
+fn program(name: &str) -> String {
+    name.to_string()
+}
+
+/// A program's file name: name.exe.
+#[cfg(windows)]
+fn program(name: &str) -> String {
+    format!("{name}.exe")
+}
+
+/// Firefox where its installer puts it, off PATH: the app bundle.
+#[cfg(target_os = "macos")]
+fn firefox_installed() -> bool {
+    Path::new("/Applications/Firefox.app/Contents/MacOS/firefox").is_file()
+}
+
+/// Firefox where its installer puts it, off PATH: Program Files.
+#[cfg(windows)]
+fn firefox_installed() -> bool {
+    std::env::var_os("ProgramFiles").is_some_and(|p| Path::new(&p).join("Mozilla Firefox/firefox.exe").is_file())
+}
+
+#[cfg(not(any(target_os = "macos", windows)))]
+fn firefox_installed() -> bool {
+    false
+}
+
+/// A desktop without DISPLAY / WAYLAND_DISPLAY: macOS and Windows have one unless reached over SSH.
+#[cfg(any(target_os = "macos", windows))]
+fn desktop() -> bool {
+    std::env::var_os("SSH_CONNECTION").is_none_or(|v| v.is_empty())
+}
+
+#[cfg(not(any(target_os = "macos", windows)))]
+fn desktop() -> bool {
+    false
 }
 
 pub fn tools() -> Tools {
@@ -132,9 +172,8 @@ pub fn tools() -> Tools {
         gdal: on_path("gdal_translate") && on_path("gdalbuildvrt"),
         curl: on_path("curl"),
         python3: on_path("python3"),
-        // macOS: the app bundle, which puts nothing on PATH (the same place tools/guide_pdf.py looks).
-        firefox: on_path("firefox") || Path::new("/Applications/Firefox.app/Contents/MacOS/firefox").is_file(),
-        display: env("DISPLAY") || env("WAYLAND_DISPLAY") || (cfg!(target_os = "macos") && !env("SSH_CONNECTION")),
+        firefox: on_path("firefox") || firefox_installed(),
+        display: env("DISPLAY") || env("WAYLAND_DISPLAY") || desktop(),
     }
 }
 

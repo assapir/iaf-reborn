@@ -2,6 +2,7 @@
 
 pub mod ac3d;
 pub mod bytes;
+pub mod crt;
 pub mod emf;
 pub mod esa;
 pub mod hid;

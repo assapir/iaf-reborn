@@ -3,7 +3,9 @@
 # styles; then the F-16 with Python 4. A unit dead ahead locks and SFX_IR_LOCK really plays (the FlightSounds player,
 # not just the flag); beyond half the lock range only an afterburning target locks; off the nose (no radar lock, no
 # helmet) nothing locks; ']' from the Python 4 to the Python 3 changes the seeker's range (FUN_00462460 every update);
-# the flight recorder logs the seeker's tone and target ("seeker" events).
+# the flight recorder logs the seeker's tone and target ("seeker" events). Weapon data Real (docs/real-weapons.md
+# §1.2): the seeker's range is the longest of its aspect ranges (Python 4 16 km, Python 3 11 km, rear); the MiG comes
+# from the front, so without its afterburner it locks only within the front range (Python 4 4.5 km, Python 3 3 km).
 # The weapons run on a scripted sim time with the flight model frozen.
 extends "res://../tests/godot/base.gd"
 
@@ -62,17 +64,26 @@ func scenario(jet: int, load: Array, wd: String, hs: String, full: bool) -> void
 			% [tag, w.master, w.hud_mode, w.stores.current_name()]
 		)
 	)
-	check(is_equal_approx(w.seeker.lock_range, 15.0 * NM), "%s: Python 4 lock range 15 NM" % tag)
+	var real := wd == "real"
+	var p4_range := 16000.0 if real else 15.0 * NM
+	check(
+		is_equal_approx(w.seeker.lock_range, p4_range),
+		"%s: Python 4 lock range %.0f m (%.0f m)" % [tag, p4_range, w.seeker.lock_range]
+	)
 	# The friendly instructor 1 km ahead (the seeker takes any side), then the MiG.
 	_put(w, f15, 1000.0, 0.0)
 	_put(w, mig, 30000.0, 0.0)
 	_step(w, 12)
 	_check_lock(w, f15, "%s: the instructor's F-15 1 km ahead" % tag)
 	_put(w, f15, 30000.0, 90.0)
-	for d in [1000.0, 3000.0, 5000.0]:
+	for d in [1000.0, 3000.0, 4000.0] if real else [1000.0, 3000.0, 5000.0]:
 		_put(w, mig, d, 0.0)
 		_step(w, 12)
 		_check_lock(w, mig, "%s: the MiG-21 %.0f km ahead" % [tag, d / 1000.0])
+	if real:
+		_put(w, mig, 5000.0, 0.0)
+		_step(w, 12)
+		check(not w.seeker.lock, "%s: the MiG-21 5 km ahead, beyond the 4.5 km front range: no lock" % tag)
 	if not full:
 		DirAccess.remove_absolute(path)
 		tv.queue_free()
@@ -100,13 +111,15 @@ func scenario(jet: int, load: Array, wd: String, hs: String, full: bool) -> void
 	w.select_aa()
 	_step(w, 2)
 	check(w.stores.current_name() == "PYTH-3" and w.hud_mode == 1, "%s: ']' Python 4 -> Python 3, SRM HUD" % tag)
+	var p3_range := 11000.0 if real else 10.0 * NM
 	check(
-		is_equal_approx(w.seeker.lock_range, 10.0 * NM),
-		"%s: Python 3 lock range 10 NM (%.0f m)" % [tag, w.seeker.lock_range]
+		is_equal_approx(w.seeker.lock_range, p3_range),
+		"%s: Python 3 lock range %.0f m (%.0f m)" % [tag, p3_range, w.seeker.lock_range]
 	)
-	_put(w, mig, 3000.0, 0.0)
+	var p3_d := 2500.0 if real else 3000.0  # Real: inside the 3 km front range, not on its edge
+	_put(w, mig, p3_d, 0.0)
 	_step(w, 12)
-	_check_lock(w, mig, "%s: Python 3, the MiG-21 3 km ahead" % tag)
+	_check_lock(w, mig, "%s: Python 3, the MiG-21 %.1f km ahead" % [tag, p3_d / 1000.0])
 	tv._log.flush()
 	var lock_ev := false
 	var seek_ev := false

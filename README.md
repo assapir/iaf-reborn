@@ -1,6 +1,6 @@
 # iaf-reborn
 
-A native (Linux and macOS) re-implementation of the engine for **Jane's IAF: Israeli Air Force** (1998). It loads the
+A native (Linux, macOS and Windows) re-implementation of the engine for **Jane's IAF: Israeli Air Force** (1998). It loads the
 game data from **your own copy** of the original game and renders it with modern graphics.
 
 **You need your own copy of the original game (the CD / ISO).** This repository holds no original game assets or
@@ -47,12 +47,31 @@ rustup default stable
 
 macOS: [docs/macos.md](docs/macos.md).
 
+### Windows
+
+Windows 10 or 11, from a terminal: Git, Rust, Godot and the C++ build tools Rust links with, then allow your own
+scripts (Windows runs none by default):
+
+```powershell
+winget install Git.Git Rustlang.Rustup GodotEngine.GodotEngine
+winget install Microsoft.VisualStudio.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+Then open a new terminal: it picks up the new PATH. Optional: `winget install GISInternals.GDAL` for the modern
+terrain imagery. The rest (the scripts, the optional extras, tests, contributing): [docs/windows.md](docs/windows.md).
+
 ## Quick start
 
 ```sh
 ./setup        # the setup wizard: pick your CD, it does the rest
 ./iafjets      # builds what changed and starts the game (without game data: the wizard)
 ```
+
+On Windows the same in PowerShell: `.\setup.ps1`, `.\iafjets.ps1` and `.\mission-editor.ps1`; the scripted setup is
+`tools\windows\setup-cli.ps1` with the options of `iaf-setup` (`crates/iaf-setup/src/bin/iaf-setup.rs`), e.g.
+`tools\windows\setup-cli.ps1 --patch v1.1.exe "C:\path\to\Jane's IAF.iso"`. Setup adds the two launchers to the Start
+Menu.
 
 The wizard checks what the computer has, asks for the English CD image and the optional extras, and shows each
 step's progress. Run it again to add an extra or redo a step: only what changed runs. Setup also installs a desktop
@@ -71,7 +90,7 @@ files; [docs/formats/rtpatch.md](docs/formats/rtpatch.md)).
 
 Other entry points:
 
-- `./iafjets -- --mission 311`: straight into a mission.
+- `./iafjets -- --mission 311`: straight into a mission (Windows: `.\iafjets.ps1 --mission 311`).
 - `godot --path game res://terrain/terrain_view.tscn`: straight into the air.
 - `godot --path game res://viewer/viewer.tscn`: the model viewer, with hot reload.
 
@@ -148,7 +167,8 @@ the wrong control moves, edit `[devices] joy_axes` in the settings file. Details
 
 - Commands, architecture and conventions: [CLAUDE.md](CLAUDE.md). Plans: [docs/roadmap.md](docs/roadmap.md).
 - Tests: `cargo test -q --workspace` (tests that need game data or `python3` skip with a message);
-  `tools/test.sh` runs those and every headless Godot test `tests/godot/test_*.gd`. The Godot tests need the
+  `tools/test.sh` (bash) runs those and every headless Godot test `tests/godot/test_*.gd` (Windows:
+  [docs/windows.md](docs/windows.md#tests)). The Godot tests need the
   converted assets, so they run locally. Run scripted tests with `IAF_DEFAULT_SETTINGS=1`: they then never read or
   write your saved preferences.
 - Credits: the roll on Quit shows ours and the imagery credits, then the original's. To add one:

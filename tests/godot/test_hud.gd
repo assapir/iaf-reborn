@@ -185,7 +185,7 @@ func _traced(tv) -> void:
 	check(Hud.text_block(ts, 0, nav, {}, {}, true, [])[0] == "T 075", "twin engines: the larger rpm")
 	ts.afterburner = 2
 	ts.ap_mode = 2
-	ts.g = -1.25
+	ts.g = -1.25  # a tie: the exe's MSVCRT rounds it away from zero on every platform (glibc alone: "-1.2")
 	rows = Hud.text_block(ts, 2, nav, {"total": 2, "name": "AIM-7", "ready": true}, {}, false, [])
 	check(
 		(
@@ -198,7 +198,11 @@ func _traced(tv) -> void:
 		"MRM: AB 2, AP NAV, the store row, the waypoint, the weapon time (%s)" % str(rows)
 	)
 	ts.ap_mode = 0
-	check(Hud.text_block(ts, 2, nav, {}, {}, false, [])[1] == "-1.2G", "negative G: '%4.1fG'")
+	var neg_g: String = Hud.text_block(ts, 2, nav, {}, {}, false, [])[1]
+	check(neg_g == "-1.3G", "negative G: '%%4.1fG', the tie -1.25 away from zero (%s)" % neg_g)
+	ts.g = -0.04
+	neg_g = Hud.text_block(ts, 2, nav, {}, {}, false, [])[1]
+	check(neg_g == "-0.0G", "negative G rounding to zero keeps its sign (%s)" % neg_g)
 	# Mode 1 without a lock: "AUD" while the seeker has a target (S+0x3a4, @52f437), else empty; with one the aspect.
 	rows = Hud.text_block(ts, 1, nav, {"target": true, "sec": 7.0}, {}, false, [])
 	check(rows[4] == "AUD" and rows[5] == " 7 SEC", "SRM, seeker target, no lock: AUD (%s)" % str(rows))
