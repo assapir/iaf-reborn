@@ -22,6 +22,9 @@ Made by `iaf-convert mig29-detailed <src dir> <assets>/converted/planes/mig29 ga
 - the moving parts split and named as the original's, hinged on `MiG-29.xml`'s lines; the gear doors opened by
   its angles (`LdgDr`) and kept shut (`LdgDrUp`);
 - left out: the mirrors inside the canopy and the side numbers;
-- the red stars replaced by the original game's red-white-black roundel (our drawing, in the converter);
-- added, our own: nine pylons from the original's stations up to the skin, and the drag chute (`Parach`, an orange
+- repainted: FlightGear's grey-green camouflage and side-number panels become our two-tone grey (light and dark
+  grey above by our pattern, light grey below); the red stars become the Syrian roundel on the wings and the
+  Syrian flag on the fins (our drawings, in the converter);
+- added, our own: nine pylons from the original's stations up to the skin (shaped as the real jet's three a wing,
+  the outermost a stub), and the drag chute (`Parach`, an orange
   cone at the original chute's place).

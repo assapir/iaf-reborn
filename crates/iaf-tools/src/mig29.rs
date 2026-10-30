@@ -12,8 +12,8 @@
 //!    and shut (`LdgDrUp`); `Parach`, the drag chute (shown only when deployed), is our own cone at the original
 //!    chute's place and size;
 //! 4. copies the original's helpers and puts `EngineL/R` on the nozzles' exits;
-//! 5. keeps FlightGear's default grey and green camouflage; the red stars become the original's red-white-black
-//!    roundel (ours, drawn here).
+//! 5. repaints FlightGear's Soviet grey-green as a Syrian MiG-29's two-tone grey ([`repaint`]); the red stars become the
+//!    Syrian roundel on the wings and the Syrian flag on the fins (ours, drawn here); adds our pylons ([`PYLON_LEN`]).
 //!
 //! `iaf-convert mig29-detailed <src dir> <assets>/converted/planes/mig29 <out.glb>` fetches the pinned files into
 //! `<src dir>` (kept) and writes the glb.
@@ -227,6 +227,15 @@ pub fn build(src: &Path, orig: &Path, out: &Path) -> Result<Stats> {
             insignia(&mut p.tris);
         }
     }
+    // The livery repainted on the skin before the fit (the pattern by FlightGear's metres).
+    let mut atlases = Vec::new();
+    for tex in ["MiG-29_1.png", "MiG-29_2.png"] {
+        let mut img = image::open(src.join(tex))?.to_rgba8();
+        repaint(&mut img, tex, &all);
+        let mut png = Vec::new();
+        img.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)?;
+        atlases.push((tex, png));
+    }
     for mut p in pieces(&read("fighter_pilot_proto.ac")?, |v| add(ac(v), fg(PILOT_AT)), TEXTURES) {
         p.top = "pilot".into();
         all.push(p);
@@ -353,21 +362,25 @@ pub fn build(src: &Path, orig: &Path, out: &Path) -> Result<Stats> {
     let mut body =
         Node { name: "mig29".into(), at: [0.0; 3], tris: all.into_iter().flat_map(|p| p.tris).collect::<Vec<Tri>>() };
     let mut pylons = Vec::new();
-    for st in
-        ["StationA", "StationB", "StationC", "StationD", "StationE", "StationF", "StationG", "StationH", "StationI"]
-    {
+    for (st, len) in PYLON_LEN {
         let at = o.helpers.iter().find(|h| h.0 == st).with_context(|| format!("no {st}"))?.1;
-        pylons.extend(pylon(at, &body.tris).with_context(|| format!("no skin above {st}"))?);
+        pylons.extend(pylon(at, &body.tris, len).with_context(|| format!("no skin above {st}"))?);
     }
     body.tris.extend(pylons);
     let triangles = body.tris.len() + nodes.iter().map(|n| n.tris.len()).sum::<usize>();
     let mut images = Vec::new();
     for (_, ours) in TEXTURES {
-        images.push((*ours, std::fs::read(src.join(ours))?, "image/png"));
+        let bytes = match atlases.iter().find(|a| a.0 == *ours) {
+            Some(a) => a.1.clone(),
+            None => std::fs::read(src.join(ours))?,
+        };
+        images.push((*ours, bytes, "image/png"));
     }
-    let mut png = Vec::new();
-    roundel(128).write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)?;
-    images.push(("insignia_clip", png, "image/png"));
+    for (name, pic) in [("insignia_clip", roundel(128)), ("flag_clip", flag(192))] {
+        let mut png = Vec::new();
+        pic.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)?;
+        images.push((name, png, "image/png"));
+    }
     let glb = write_glb(
         body,
         o.root_translation,
@@ -405,25 +418,39 @@ fn skin_above(x: f32, z: f32, y0: f32, tris: &[Tri]) -> Option<f32> {
     best
 }
 
-/// Our pylon from the original's station `at` (its foot, where the store hangs) up to the skin: a slim fairing
-/// PYLON_LEN long, its top on the first skin aft of the foot's front (the original's inner stations lie ahead of
-/// FlightGear's wing: their pylons reach back to it).
-fn pylon(at: V, skin: &[Tri]) -> Option<Vec<Tri>> {
-    const PYLON_LEN: f32 = 1.2;
-    const HALF_W: f32 = 0.045;
+/// Each station's pylon length (m), as the real MiG-29's three a wing: the original's stations D / F, C / G and
+/// B / H are the real inner, middle and outer pylons (inner and middle long, reaching forward of the leading edge
+/// as the real ones do); A / I, outboard of the real outer pylon, take a short stub; E the centre line tank's pylon.
+const PYLON_LEN: [(&str, f32); 9] = [
+    ("StationA", 0.6),
+    ("StationB", 1.3),
+    ("StationC", 1.9),
+    ("StationD", 2.1),
+    ("StationE", 1.6),
+    ("StationF", 2.1),
+    ("StationG", 1.9),
+    ("StationH", 1.3),
+    ("StationI", 0.6),
+];
+
+/// Our pylon from the original's station `at` (its foot, where the store hangs) up to the skin: a fairing `len`
+/// long at the foot, its top on the skin from the first skin aft of the foot's front, swept back past the foot's
+/// rear (the original's inner stations lie ahead of FlightGear's wing: their pylons reach back to it).
+fn pylon(at: V, skin: &[Tri], len: f32) -> Option<Vec<Tri>> {
+    const HALF_W: f32 = 0.06;
     let (x, y, z) = (at[0], at[1], at[2]);
-    let z0 = z - PYLON_LEN / 2.0;
-    let top0 = (0..80).map(|k| z0 + 0.05 * k as f32).find(|zz| skin_above(x, *zz, y, skin).is_some())?;
-    let top1 = top0 + PYLON_LEN * 0.8;
+    let (z0, z1) = (z - len * 0.45, z + len * 0.55);
+    let top0 = (0..120).map(|k| z0 + 0.05 * k as f32).find(|zz| skin_above(x, *zz, y, skin).is_some())?;
+    let top1 = (z1 + 0.1).max(top0 + 0.4);
     // Each top corner a little inside the skin (no gap where the skin curves).
     let ytop = |zz: f32| skin_above(x, zz, y, skin).or_else(|| skin_above(x, top0, y, skin)).map(|v| v + 0.03);
     let (ya, yb) = (ytop(top0)?, ytop(top1)?);
-    let bottom = [[z0, y], [z0 + PYLON_LEN, y]];
+    let bottom = [[z0, y], [z1, y]];
     let top = [[top1, yb], [top0, ya]];
     // The side outline (z, y): bottom front, bottom back, top back, top front.
     let outline = [bottom[0], bottom[1], top[0], top[1]];
     let p = |k: usize, side: f32| -> V { [x + side * HALF_W, outline[k][1], outline[k][0]] };
-    let mat = crate::f15::Mat { texture: "", rgba: [150, 156, 160, 255], two_sided: false };
+    let mat = crate::f15::Mat { texture: "", rgba: [158, 161, 158, 255], two_sided: false };
     let mut tris = Vec::new();
     let mut quad = |a: V, b: V, c: V, d: V| {
         let n = norm(crate::f15::cross(sub(b, a), sub(c, a)));
@@ -462,8 +489,9 @@ fn bounds(orig: &Path) -> Result<(V, V)> {
     Ok((lo, hi))
 }
 
-/// The Insignia object's two stars (stacked in MiG-29_2.png's corner) drawn with our roundel instead: each
-/// triangle's uvs mapped from its half of the object's uv box onto the roundel's picture.
+/// The Insignia object's two stars (stacked in MiG-29_2.png's corner) drawn with our markings instead: each
+/// triangle's uvs mapped from its half of the object's uv box onto the picture; the ones on the fins (facing
+/// sideways) take the flag, as the original's fins, the wings' the roundel.
 fn insignia(tris: &mut [Tri]) {
     let uvs = || tris.iter().flat_map(|t| t.3);
     let (u0, u1) = uvs().fold((f32::MAX, f32::MIN), |m, uv| (m.0.min(uv[0]), m.1.max(uv[0])));
@@ -473,21 +501,170 @@ fn insignia(tris: &mut [Tri]) {
         let upper = t.3.iter().map(|uv| uv[1]).sum::<f32>() / 3.0 < vm;
         let (a, b) = if upper { (v0, vm) } else { (vm, v1) };
         t.3 = t.3.map(|uv| [(uv[0] - u0) / (u1 - u0), (uv[1] - a) / (b - a)]);
-        t.0.texture = "insignia_clip";
+        let fin = norm(add(add(t.2[0], t.2[1]), t.2[2]))[1].abs() < 0.5;
+        t.0.texture = if fin { "flag_clip" } else { "insignia_clip" };
     }
 }
 
-/// The original MiG-29's roundel (its `mig-29.png`): red outside, a white ring, a black centre; transparent round it.
+/// The Syrian colours (the flag's: red, green; Wikimedia Commons' roundel and flag of Syria 1980–2024).
+const RED: Rgba<u8> = Rgba([206, 17, 38, 255]);
+const GREEN: Rgba<u8> = Rgba([0, 122, 61, 255]);
+const WHITE: Rgba<u8> = Rgba([245, 245, 245, 255]);
+const BLACK: Rgba<u8> = Rgba([20, 20, 20, 255]);
+
+/// True inside a five-pointed star of outer radius `r` round (cx, cy), a point up (picture coordinates, y down).
+fn in_star(x: f32, y: f32, cx: f32, cy: f32, r: f32) -> bool {
+    let corner = |k: usize| {
+        let a = std::f32::consts::PI * (k as f32 / 5.0 - 0.5);
+        let rr = if k.is_multiple_of(2) { r } else { r * 0.382 };
+        (cx + rr * a.cos(), cy + rr * a.sin())
+    };
+    let mut inside = false;
+    for k in 0..10 {
+        let ((xa, ya), (xb, yb)) = (corner(k), corner((k + 1) % 10));
+        if (ya > y) != (yb > y) && x < xa + (y - ya) / (yb - ya) * (xb - xa) {
+            inside = !inside;
+        }
+    }
+    inside
+}
+
+/// The Syrian roundel (1980–2024, as the original MiG-29's): red outside, a white ring with two green stars, a black
+/// centre; transparent round it.
 fn roundel(n: u32) -> RgbaImage {
     RgbaImage::from_fn(n, n, |x, y| {
-        let r = ((x as f32 + 0.5) / n as f32 * 2.0 - 1.0).hypot((y as f32 + 0.5) / n as f32 * 2.0 - 1.0);
-        match r {
+        let (px, py) = ((x as f32 + 0.5) / n as f32 * 2.0 - 1.0, (y as f32 + 0.5) / n as f32 * 2.0 - 1.0);
+        match px.hypot(py) {
             r if r > 0.95 => Rgba([0, 0, 0, 0]),
-            r if r > 0.68 => Rgba([200, 30, 30, 255]),
-            r if r > 0.36 => Rgba([245, 245, 245, 255]),
-            _ => Rgba([20, 20, 20, 255]),
+            r if r > 0.74 => RED,
+            _ if in_star(px, py, -0.53, 0.0, 0.13) || in_star(px, py, 0.53, 0.0, 0.13) => GREEN,
+            r if r > 0.30 => WHITE,
+            _ => BLACK,
         }
     })
+}
+
+/// The Syrian flag (3 : 2, red, white with two green stars, black) across the middle of a square picture, for the
+/// fins' square insignia: transparent above and below.
+fn flag(n: u32) -> RgbaImage {
+    RgbaImage::from_fn(n, n, |x, y| {
+        let (u, v) = ((x as f32 + 0.5) / n as f32, ((y as f32 + 0.5) / n as f32 - 1.0 / 6.0) * 1.5);
+        match v {
+            v if !(0.0..1.0).contains(&v) => Rgba([0, 0, 0, 0]),
+            v if v < 1.0 / 3.0 => RED,
+            v if v >= 2.0 / 3.0 => BLACK,
+            _ if in_star(u * 1.5, v, 0.5, 0.5, 0.13) || in_star(u * 1.5, v, 1.0, 0.5, 0.13) => GREEN,
+            _ => WHITE,
+        }
+    })
+}
+
+/// The Syrian MiG-29s' two-tone grey (The War Zone's close-up photos, docs/aircraft-models.md §7; the original model's `mig-29.png`: light grey
+/// with large dark blotches above, light below), sRGB.
+const CAMO_LIGHT: [f32; 3] = [166.0, 169.0, 165.0];
+const CAMO_DARK: [f32; 3] = [88.0, 93.0, 94.0];
+const UNDERSIDE: [f32; 3] = [192.0, 195.0, 196.0];
+/// FlightGear's paint colours we repaint (its base grey, green blotches, light greys and the white number panels),
+/// each within PAINT_TOL.
+const FG_PAINT: &[[f32; 3]] = &[
+    [149.0, 157.0, 159.0],
+    [119.0, 142.0, 130.0],
+    [134.0, 150.0, 145.0],
+    [211.0, 211.0, 210.0],
+    [225.0, 225.0, 225.0],
+    [231.0, 231.0, 233.0],
+];
+const PAINT_TOL: f32 = 22.0;
+/// Objects not repainted: the gear, nozzles, intake tunnels, the insignia.
+const UNPAINTED: &[&str] = &["Main_", "Nose_", "Gear_", "Fork", "Mud_", "Nozzle", "engtun", "Insignia", "FP-", "FPK"];
+
+/// Smooth value noise in 3D (0..1), our camouflage's pattern.
+fn noise(p: V) -> f32 {
+    let h = |x: i32, y: i32, z: i32| {
+        let mut n = (x as u32).wrapping_mul(0x8da6_b343)
+            ^ (y as u32).wrapping_mul(0xd816_3841)
+            ^ (z as u32).wrapping_mul(0xcb1a_b31f);
+        n = (n ^ (n >> 13)).wrapping_mul(0x5bd1_e995);
+        ((n ^ (n >> 15)) & 0xffff) as f32 / 65535.0
+    };
+    let f = p.map(f32::floor);
+    let t = [0, 1, 2].map(|k| {
+        let t = p[k] - f[k];
+        t * t * (3.0 - 2.0 * t)
+    });
+    let (x, y, z) = (f[0] as i32, f[1] as i32, f[2] as i32);
+    let lerp = |a: f32, b: f32, t: f32| a + (b - a) * t;
+    let mut c = [0.0f32; 4];
+    for (k, cy) in c.iter_mut().enumerate() {
+        let (dy, dz) = ((k & 1) as i32, (k >> 1) as i32);
+        *cy = lerp(h(x, y + dy, z + dz), h(x + 1, y + dy, z + dz), t[0]);
+    }
+    lerp(lerp(c[0], c[1], t[1]), lerp(c[2], c[3], t[1]), t[2])
+}
+
+/// Dark where the pattern's two octaves pass the threshold: large blotches about 3 m across.
+fn camo_dark(p: V) -> bool {
+    let q = scale(p, 0.33);
+    noise(q) * 0.7 + noise(scale(q, 2.3)) * 0.3 > 0.48
+}
+
+/// Repaints FlightGear's grey-green livery (`img`, the atlas `tex`) as the Syrian two-tone grey: every texel of the
+/// skin (`pieces` in our frame) whose colour is one of FG_PAINT takes CAMO_LIGHT / CAMO_DARK by our pattern where the
+/// surface faces up or sideways, UNDERSIDE where it faces down; its shading kept (the texel's lightness over its
+/// paint colour's).
+fn repaint(img: &mut RgbaImage, tex: &str, pieces: &[Piece]) {
+    let (w, h) = img.dimensions();
+    let src = img.clone();
+    // FlightGear's green blotches also reach into the islands' padding (seen in the far mipmaps): light grey first.
+    let near = |p: &Rgba<u8>, f: [f32; 3]| (0..3).map(|k| (p[k] as f32 - f[k]).abs()).fold(0.0, f32::max) < PAINT_TOL;
+    for p in img.pixels_mut() {
+        if near(p, FG_PAINT[1]) || near(p, FG_PAINT[2]) {
+            *p = Rgba([CAMO_LIGHT[0] as u8, CAMO_LIGHT[1] as u8, CAMO_LIGHT[2] as u8, 255]);
+        }
+    }
+    for p in pieces.iter().filter(|p| !UNPAINTED.iter().any(|u| p.name.starts_with(u))) {
+        for (_, pos, nrm, uv) in p.tris.iter().filter(|t| t.0.texture == tex) {
+            let px = uv.map(|t| [t[0] * w as f32, t[1] * h as f32]);
+            let den = (px[1][1] - px[2][1]) * (px[0][0] - px[2][0]) + (px[2][0] - px[1][0]) * (px[0][1] - px[2][1]);
+            if den.abs() < 1e-9 {
+                continue;
+            }
+            let lo =
+                |k: usize, n: u32| px.iter().map(|q| q[k]).fold(f32::MAX, f32::min).floor().clamp(0.0, n as f32) as u32;
+            let hi =
+                |k: usize, n: u32| px.iter().map(|q| q[k]).fold(f32::MIN, f32::max).ceil().clamp(0.0, n as f32) as u32;
+            for ty in lo(1, h)..hi(1, h) {
+                for tx in lo(0, w)..hi(0, w) {
+                    let (qx, qy) = (tx as f32 + 0.5, ty as f32 + 0.5);
+                    let l0 = ((px[1][1] - px[2][1]) * (qx - px[2][0]) + (px[2][0] - px[1][0]) * (qy - px[2][1])) / den;
+                    let l1 = ((px[2][1] - px[0][1]) * (qx - px[2][0]) + (px[0][0] - px[2][0]) * (qy - px[2][1])) / den;
+                    let l2 = 1.0 - l0 - l1;
+                    if l0 < -0.02 || l1 < -0.02 || l2 < -0.02 {
+                        continue;
+                    }
+                    let s = src.get_pixel(tx, ty);
+                    let c = [s[0] as f32, s[1] as f32, s[2] as f32];
+                    let Some(base) =
+                        FG_PAINT.iter().find(|f| (0..3).map(|k| (c[k] - f[k]).abs()).fold(0.0, f32::max) < PAINT_TOL)
+                    else {
+                        continue;
+                    };
+                    let at = add(add(scale(pos[0], l0), scale(pos[1], l1)), scale(pos[2], l2));
+                    let n = norm(add(add(scale(nrm[0], l0), scale(nrm[1], l1)), scale(nrm[2], l2)));
+                    let paint = if n[1] < -0.3 {
+                        UNDERSIDE
+                    } else if camo_dark(at) {
+                        CAMO_DARK
+                    } else {
+                        CAMO_LIGHT
+                    };
+                    let shade = (c.iter().sum::<f32>() / base.iter().sum::<f32>()).clamp(0.85, 1.1);
+                    let v = paint.map(|p| (p * shade).round().clamp(0.0, 255.0) as u8);
+                    img.put_pixel(tx, ty, Rgba([v[0], v[1], v[2], 255]));
+                }
+            }
+        }
+    }
 }
 
 /// The drag chute (`Parach`, shown only deployed): ours, an orange cone with a dome at the original chute's place and
@@ -551,7 +728,10 @@ mod tests {
         let r = roundel(64);
         assert_eq!(r.get_pixel(32, 32)[0], 20);
         assert_eq!(r.get_pixel(32, 15)[1], 245);
-        assert_eq!(r.get_pixel(32, 3)[0], 200);
+        assert_eq!(r.get_pixel(32, 3)[0], 206);
+        assert_eq!(r.get_pixel(15, 31).0, GREEN.0, "a star in the white ring");
+        let f = flag(96);
+        assert_eq!((f.get_pixel(48, 5)[3], f.get_pixel(48, 20).0, f.get_pixel(48, 75).0), (0, RED.0, BLACK.0));
         assert_eq!(r.get_pixel(0, 0)[3], 0);
     }
 
