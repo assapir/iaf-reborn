@@ -948,7 +948,8 @@ func _client_px(w: Vector2) -> Vector2:
 
 
 static func ruler_distance(a: Vector2, b: Vector2) -> String:
-	return "%.2f NM" % (a.distance_to(b) * RULER_NM)
+	# Rounded as the exe's %.2f (a tie away from zero; Godot's % rounds through the platform's C library).
+	return "%.2f NM" % ClassDB.class_call_static("IafCrt", "round", a.distance_to(b) * RULER_NM, 2)
 
 
 static func ruler_bearing(a: Vector2, b: Vector2) -> String:

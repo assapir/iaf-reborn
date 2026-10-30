@@ -928,6 +928,12 @@ static func nav_cues(st: Dictionary, route: Array, index: int) -> Dictionary:
 ## 1, 2, 8 "%2d SEC" and in mode 4 "%2d" of the last launched weapon's time left (S+0x380). Mode 1 without a lock
 ## shows "AUD" in row 4 while the cockpit has a target (S+0x3a4, `wp.target`: the seeker's; FUN_0052ef20 @52f437).
 ## Ours, a GPS bomb in modes 5 / 6: row 5 "IN RNG", row 3 the designated point's range.
+## `v` rounded as the exe's `%.Nf` (MSVCRT: a tie away from zero, iaf_formats::crt); Godot's own `%` rounds through
+## the platform's C library (glibc: a tie to even), so a value is passed through this before its `%.Nf`.
+static func _crt(v: float, decimals: int) -> float:
+	return ClassDB.class_call_static("IafCrt", "round", v, decimals)
+
+
 static func text_block(
 	st: Dictionary, mode: int, nav: Dictionary, wp: Dictionary, radar: Dictionary, twin: bool, flags: Array
 ) -> Array:
@@ -945,7 +951,8 @@ static func text_block(
 	rows[0] = "AB %1d" % ab_l if ab_l > 0 else "T %03d" % thr
 	var ap := int(st.get("ap_mode", 0))
 	var g := float(st.get("g", 1.0))
-	rows[1] = "AP LVL" if ap == 1 else ("AP NAV" if ap == 2 else ("+%3.1fG" % g if g >= 0.0 else "%4.1fG" % g))
+	var g1 := _crt(g, 1)
+	rows[1] = "AP LVL" if ap == 1 else ("AP NAV" if ap == 2 else ("+%3.1fG" % g1 if g >= 0.0 else "%4.1fG" % g1))
 	if mode == 0:
 		rows[2] = "NAV"
 	elif not wp.is_empty():
@@ -954,13 +961,13 @@ static func text_block(
 		)
 	var lk: Dictionary = radar.get("lock", {})
 	if not lk.is_empty():
-		rows[3] = "R %2.1f" % (float(lk.get("dist", 0.0)) * M_TO_NM)
-	var w_row := "W%02d  %02.1f" % [int(nav.index) + 1, float(nav.dist_nm)]
+		rows[3] = "R %2.1f" % _crt(float(lk.get("dist", 0.0)) * M_TO_NM, 1)
+	var w_row := "W%02d  %02.1f" % [int(nav.index) + 1, _crt(float(nav.dist_nm), 1)]
 	match mode:
 		0:
 			rows[4] = w_row
 			if nav.minutes < 60.0:
-				rows[5] = "%3.1f MIN" % nav.minutes
+				rows[5] = "%3.1f MIN" % _crt(nav.minutes, 1)
 		1, 3:
 			if not lk.is_empty():
 				rows[4] = Mfd.aspect_text(float(lk.get("aspect", 0.0)))
@@ -981,7 +988,7 @@ static func text_block(
 	if not gps.is_empty():
 		rows[5] = "IN RNG" if gps.get("in_range", false) else ""
 		if gps.get("designated", false) and lk.is_empty():
-			rows[3] = "R %2.1f" % (float(gps.get("dist", 0.0)) * M_TO_NM)
+			rows[3] = "R %2.1f" % _crt(float(gps.get("dist", 0.0)) * M_TO_NM, 1)
 	# Modes 1, 2, 8: "%2d SEC", mode 4: "%2d" of S+0x380, the last launched weapon's time left (FUN_00456520).
 	if mode in [1, 2, 8]:
 		rows[5] = "%2d SEC" % int(float(wp.get("sec", 0.0)))

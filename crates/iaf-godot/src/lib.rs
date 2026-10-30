@@ -68,3 +68,17 @@ impl IafInfo {
         GString::from(env!("IAF_GIT_COMMIT"))
     }
 }
+
+/// The exe's C runtime where Godot's own formatting differs by platform (`iaf_formats::crt`).
+#[derive(GodotClass)]
+#[class(init, base = RefCounted)]
+struct IafCrt {}
+
+#[godot_api]
+impl IafCrt {
+    /// `v` rounded as the exe's `%.Nf` prints it (a tie away from zero); format the result with the same `%.Nf`.
+    #[func]
+    fn round(v: f64, decimals: i64) -> f64 {
+        iaf_formats::crt::round_half_away(v, decimals.max(0) as usize)
+    }
+}
