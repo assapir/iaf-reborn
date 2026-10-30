@@ -493,9 +493,7 @@ func _fill_requirements() -> void:
 			"converts the terrain imagery",
 			"found",
 			_hint(
-				"sudo pacman -S gdal",
-				"brew install gdal",
-				"winget install GISInternals.GDAL, then add C:\\Program Files\\GDAL to PATH"
+				"sudo pacman -S gdal", "brew install gdal", "winget install GISInternals.GDAL, then start setup again"
 			)
 		],
 		[

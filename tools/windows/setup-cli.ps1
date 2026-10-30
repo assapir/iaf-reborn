@@ -4,6 +4,13 @@
 #
 # Every option of iaf-setup (crates/iaf-setup/src/bin/iaf-setup.rs) works. Re-run it to add an extra or redo a step.
 $ErrorActionPreference = 'Stop'
-Set-Location (Resolve-Path "$PSScriptRoot\..\..")
-cargo run --release -q -p iaf-setup -- @args
-exit $LASTEXITCODE
+. "$PSScriptRoot\gdal.ps1"
+Push-Location (Resolve-Path "$PSScriptRoot\..\..")
+try {
+	$ErrorActionPreference = 'Continue'  # cargo's progress on stderr is no error
+	cargo run --release -q -p iaf-setup -- @args
+	$code = $LASTEXITCODE
+} finally {
+	Pop-Location
+}
+exit $code

@@ -58,17 +58,8 @@ winget install Microsoft.VisualStudio.BuildTools --override "--wait --passive --
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
 
-Then open a new terminal: it picks up the new PATH. winget without admin rights adds no `godot` command; the scripts
-find Godot where winget put it (or in `$env:GODOT`). The GPU driver Windows installs and its Arial font are enough.
-
-Optional extras on Windows:
-
-| tool | install | needed for |
-|---|---|---|
-| GDAL | `winget install GISInternals.GDAL`, then add `C:\Program Files\GDAL` to PATH | modern terrain imagery, scenery (not yet tested on Windows) |
-| curl | ships with Windows | the downloads |
-
-The Survey of Israel sheets' download (`mapi2015`) and the pilot guides run bash scripts: not on Windows yet.
+Then open a new terminal: it picks up the new PATH. Optional: `winget install GISInternals.GDAL` for the modern
+terrain imagery. The rest (the scripts, the optional extras, tests, contributing): [docs/windows.md](docs/windows.md).
 
 ## Quick start
 
@@ -176,8 +167,8 @@ the wrong control moves, edit `[devices] joy_axes` in the settings file. Details
 
 - Commands, architecture and conventions: [CLAUDE.md](CLAUDE.md). Plans: [docs/roadmap.md](docs/roadmap.md).
 - Tests: `cargo test -q --workspace` (tests that need game data or `python3` skip with a message);
-  `tools/test.sh` (bash) runs those and every headless Godot test `tests/godot/test_*.gd` (on Windows run them one
-  by one, with the command in CLAUDE.md and the winget Godot's `_console.exe`). The Godot tests need the
+  `tools/test.sh` (bash) runs those and every headless Godot test `tests/godot/test_*.gd` (Windows:
+  [docs/windows.md](docs/windows.md#tests)). The Godot tests need the
   converted assets, so they run locally. Run scripted tests with `IAF_DEFAULT_SETTINGS=1`: they then never read or
   write your saved preferences.
 - Credits: the roll on Quit shows ours and the imagery credits, then the original's. To add one:

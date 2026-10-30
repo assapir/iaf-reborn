@@ -128,7 +128,8 @@ game then quits; `./setup` installs again. The launcher's INSTALL button opens t
 
 - curl: `textures` (ambientCG), `models` (GitHub), the Survey sheets and `scenery-fetch`.
 - GDAL (`gdal_translate`, `gdalbuildvrt`, `gdalwarp`, `ogr2ogr` with its OSM driver): the imagery and `scenery` steps.
-  Without it they are skipped.
+  Without it they are skipped. Windows: the scripts give winget's install (`C:\Program Files\GDAL`) its PATH,
+  `GDAL_DATA` and `PROJ_LIB` (`tools/windows/gdal.ps1`, windows.md).
 - gzip: `scenery` (the Microsoft footprints).
 - `tools/imagery/fetch-mapi2015-curl.sh` (curl, python3, Firefox's data.gov.il token): the Survey sheets.
 - `tools/install-launcher.sh`: the desktop launcher (its `XDG_DATA_HOME` can be set). Windows:

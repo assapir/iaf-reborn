@@ -42,6 +42,7 @@ try {
 	}
 
 	if ($mode -notin 'setup', 'game', 'editor') { throw "usage: launch.ps1 setup|game|editor [game arguments]" }
+	. "$PSScriptRoot\gdal.ps1"
 	$install = 'winget install Rustlang.Rustup GodotEngine.GodotEngine Microsoft.VisualStudio.BuildTools (the C++ workload), then: rustup default stable'
 	if ($mode -eq 'game' -and -not (Test-Path 'assets\converted')) {
 		Write-Host 'No game data yet: starting the setup wizard.'
