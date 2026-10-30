@@ -1,6 +1,8 @@
 # Scenery (ours, Graphics → MORE, Settings.scenery; docs/scenery.md §3): the buildings and trees setup generates over
 # the Survey of Israel 2 m photo, streamed around the terrain's focus. One cell per level-1 node of the mapi2015 layer
-# (assets/converted/scenery/L1/s_<i>_<j>.bin, the layer's own keys); the cells within RANGE of the focus are loaded on
+# (assets/converted/scenery/L1/s_<i>_<j>.bin, the layer's own keys), and the rest of the theatre's cells
+# (theatre.json, docs/scenery.md §1.7: the Israel region's over the 1998 art; outside it over the Sentinel-2 layer,
+# only while that is shown); the cells within RANGE of the focus are loaded on
 # worker threads (IafScenery parses the file), their meshes made on IafScenery's own threads (on the heights
 # IafHeights has) and uploaded a chunk per frame, drawn as a near mesh (walls with windows, roofs; to NEAR m), a far
 # mesh (bare prisms; NEAR to RANGE m), one MultiMesh per tree kind (to TREES m) and per roof item (to ROOF_ITEMS m).
@@ -88,6 +90,9 @@ static var _foliage_read := false
 var terrain: Node3D
 ## The Survey 2 m layer shown in Israel (mapi2015 = 1998 colours, mapi2015_modern = the photo's): the roofs' colours.
 var modern := false
+## The same outside Israel (sentinel2_modern): the roofs' colours of the theatre's cells in `_outside`.
+var modern_outside := false
+var _outside := {}  # Vector2i -> true: the theatre's cells outside the Israel region (their own roof colours)
 ## false: load only (the front end's preload terrain); the flight's terrain adopts the loaded cells.
 var draw := true
 var _span := 0.0  # a cell's side (m)
@@ -145,6 +150,20 @@ static func cells_for(id: String) -> Dictionary:
 	for ij in ImageryLayers.manifest(id).get("nodes", {}).get("1", []):
 		out[Vector2i(int(ij[0]), int(ij[1]))] = true
 	return out
+
+
+## The rest of the theatre's cells (Vector2i -> true) of `region` in theatre.json: "israel" (over the 1998 art) or
+## "outside" (over the Sentinel-2 layer).
+static func theatre_cells(region: String) -> Dictionary:
+	var out := {}
+	for ij in Settings.load_json(dir().path_join("theatre.json")).get(region, []):
+		out[Vector2i(int(ij[0]), int(ij[1]))] = true
+	return out
+
+
+## The Sentinel-2 layers (the theatre's cells outside the Israel region stand over them only).
+static func sentinel(id: String) -> bool:
+	return id in ["sentinel2", "sentinel2_modern"]
 
 
 ## The wall textures (the SCENERY list's colour over its mean, every mip level), read once; null when setup has
@@ -783,7 +802,13 @@ func _ready() -> void:
 			break
 	modern = id == "mapi2015_modern"
 	_span = terrain._span(1) * terrain.m_per_unit
-	for k in cells_for(id):
+	for k in cells_for(id).merged(theatre_cells("israel")):
+		_cells[k] = {"state": "wait"}
+	for l in terrain.layers:
+		if sentinel(String(l)):
+			modern_outside = String(l) == "sentinel2_modern"
+			_outside = theatre_cells("outside")
+	for k in _outside:
 		_cells[k] = {"state": "wait"}
 
 
@@ -927,7 +952,7 @@ func _build_some(fp: Vector3) -> void:
 	waiting.sort()
 	for t in waiting.slice(0, maxi(0, MAX_JOBS - preparing)):
 		_cells[t[1]].state = "preparing"
-		IafScenery.prepare(t[1].x, t[1].y, modern, detailed())
+		IafScenery.prepare(t[1].x, t[1].y, modern_outside if _outside.has(t[1]) else modern, detailed())
 
 
 ## A made cell's node and material; its pieces follow (_upload).
@@ -1054,7 +1079,7 @@ func drawn() -> Array:
 func adopt(other: Node) -> void:
 	other._stop_jobs()
 	other._finish_jobs()
-	if other.modern != modern:
+	if other.modern != modern or other.modern_outside != modern_outside:
 		return
 	for k in other._cells:
 		var c: Dictionary = other._cells[k]

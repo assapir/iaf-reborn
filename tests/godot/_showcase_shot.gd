@@ -11,7 +11,9 @@
 # SHOW_SCENES="town,night" takes only those scenes (SCENES' names: town airbase takeoff cockpit coast sea missile_launch
 # missile_close bomb vapour sunset sunset_away night lookdown night_apron_pass night_apron carmel_low night_city
 # night_high night_town_low night_haifa roads_motorway roads_twolane roads_rail roads_ayalon roads_median
-# roads_median_150 roads_rail_ne roads_night_amman night_cockpit roads_night_ayalon; the night ones need
+# roads_median_150 roads_rail_ne roads_night_amman night_cockpit roads_night_ayalon beirut_low amman_low
+# night_damascus night_beirut night_coast (night_coast under the missions' cloud deck: SHOW_SET=textured_sky=false
+# shows the ground); the night ones need
 # `-- --hour 22`); SHOW_SET="key=value,..." sets more Settings after the look's (e.g. a variant of AFTER); SHOW_TAG
 # names the files <scene>_<look><tag>.png. Needs a window. The night glows are sized in the shot's rows (the
 # window's are smaller under xvfb). SHOW_NO_CITY=1 hides the city lights (a before picture with every other setting
@@ -109,6 +111,14 @@ const SCENES := {
 	# A double-track railway running north-east by Hadera (each track's offset signed by its way's overall direction).
 	"roads_rail_ne": [231, 10.5, [329164.0, 585633.0], 40.0, 39.0, Vector3(2, -32, 15), Vector3(0, -40, -50)],
 	"roads_night_amman": [231, 22.0, [430218.0, 514500.0], 600.0, 0.0, Vector3(0, 8, 40), Vector3(0, -500, -2000)],
+	# The rest of the theatre (scenery.md §1.7): low over Beirut from the sea looking east and over Amman by day;
+	# Damascus and Beirut from 3000 m at night; the coast from 8000 m at night over the sea off Haifa, looking north
+	# along it to Beirut (`-- --hour 22` for the night ones).
+	"beirut_low": [231, 10.5, [378500.0, 744000.0], 250.0, 95.0, Vector3(-8, 5, 30), Vector3(0, -110, -500)],
+	"amman_low": [231, 10.5, [421000.0, 524500.0], 250.0, 20.0, Vector3(-8, 5, 30), Vector3(0, -110, -500)],
+	"night_damascus": [231, 22.0, [452500.0, 697500.0], 3000.0, 45.0, Vector3(0, 8, 40), Vector3(0, -1700, -4000)],
+	"night_beirut": [231, 22.0, [370000.0, 736000.0], 3000.0, 60.0, Vector3(0, 8, 40), Vector3(0, -1700, -4000)],
+	"night_coast": [311, 22.0, [322000.0, 640000.0], 8000.0, 22.0, Vector3(0, 8, 40), Vector3(0, -5000, -14000)],
 	# From the cockpit at night over Rishon LeZion (the all-settings set's night cockpit).
 	"night_cockpit": [231, 22.0, [314000.0, 528000.0], 300.0, 20.0, null, null],
 	"roads_night_ayalon": [231, 22.0, [312400.0, 532000.0], 600.0, 0.0, Vector3(0, 8, 40), Vector3(0, -500, -2500)],
@@ -325,6 +335,17 @@ func _settle() -> float:
 	await frames(10)
 	while tv.terrain.missing_after_frame() and Time.get_ticks_msec() - t0 < 40000:
 		await process_frame
+	# At night the city lights' blocks in range made (the far towns too).
+	var cl = tv.get("_city_lights")
+	while (
+		cl != null
+		and cl.visible
+		and cl._blocks.values().any(func(b): return b.asking)
+		and Time.get_ticks_msec() - t0 < 60000
+	):
+		await frames(10)
+	if cl != null and cl.visible:
+		print("city lights' blocks made in %.1f s" % ((Time.get_ticks_msec() - t0) / 1000.0))
 	await seconds(2.5)
 	var f0 := Engine.get_frames_drawn()
 	var m0 := Time.get_ticks_usec()
