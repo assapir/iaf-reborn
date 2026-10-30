@@ -165,6 +165,7 @@ impl IafRealHud {
                         tmr: num(&g, "tmr"),
                     },
                 }),
+                tti: num(&w, "tti"),
             },
         };
         let r = Field {

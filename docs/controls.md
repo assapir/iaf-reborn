@@ -84,6 +84,11 @@ Terms used on this page:
   Mac Cmd counts as Ctrl: for the table's keys, the held keys and our own Ctrl + F1 / F2 / F12. Ctrl still works.
   The Controls page and the Preferences labels say "Cmd" there (`key_table.gd` `cmd_is_ctrl`). The Win modifier
   has no Mac key.
+* **macOS: F11 is Show Desktop.** macOS keeps F11 for Show Desktop, so the weapon view (record 84, F11) never reaches
+  the game on a Mac with that shortcut on. Two ways: on Preferences → Controls select the "Weapon view" row and press
+  another key (the page stores it as any rebind); or turn the shortcut off in System Settings → Keyboard → Keyboard
+  Shortcuts → Mission Control → Show Desktop. Fn + F11 does not help: with the top row as media keys, Fn + F11 is the
+  F11 that Show Desktop takes.
 * **One-shot commands** run on the key press.
 * **Held commands** (ids 2, 3, 10): the port polls them every frame for press / release edges (the record's key and
   exactly its modifier down).

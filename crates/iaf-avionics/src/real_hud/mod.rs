@@ -254,6 +254,9 @@ pub struct Weapons {
     pub delay: Option<Delay>,
     /// A GPS bomb selected (modes 5 / 6) with coordinates to fly to (docs/weapons.md §13.3).
     pub gps: Option<GpsCue>,
+    /// The time to impact (s) of the player's last released GPS bomb while it flies (docs/weapons.md §13.3), in any
+    /// HUD mode.
+    pub tti: Option<f64>,
 }
 
 /// A GPS bomb's cues: its mode (PRE or VIS), the aim's HUD point (far along its direction when outside the view) and
@@ -698,6 +701,12 @@ fn gps_cues(p: &mut Vec<Prim>, o: &mut Vec<Prim>, i: &Input, f: Field, (x, y0, h
     }
 }
 
+/// A GPS bomb's time to impact as the HUDs show it (`TTI m:ss`, whole seconds rounded up).
+fn tti_text(t: f64) -> String {
+    let t = t.clamp(0.0, 5999.0).ceil() as i64;
+    format!("TTI {}:{:02}", t / 60, t % 60)
+}
+
 /// A distance in km as the Soviet displays show it: tenths below 10 km, whole km above.
 fn km(m: f64) -> String {
     let k = m / 1000.0;
@@ -806,6 +815,26 @@ mod tests {
             let all: Vec<Prim> = fr.field.iter().chain(&fr.outer).cloned().collect();
             let t = texts(&all);
             assert!(t.contains(&"IN RNG") && t.iter().any(|s| s.contains("VIS")), "{jet:?}: {t:?}");
+        }
+    }
+
+    #[test]
+    fn tti_replaces_the_time_row_on_the_gps_jets() {
+        for jet in [Jet::F16, Jet::F15, Jet::F35] {
+            let mut i = input(jet);
+            i.weapons.hud_mode = 0;
+            i.weapons.tti = Some(41.3);
+            for off in [false, true].into_iter().take(if jet == Jet::F35 { 2 } else { 1 }) {
+                i.off_boresight = off;
+                let fr = RealHud::default().frame(FIELD, &i);
+                let all: Vec<Prim> = fr.field.iter().chain(&fr.outer).cloned().collect();
+                let t = texts(&all);
+                assert!(t.contains(&"TTI 0:42"), "{jet:?} {off}: {t:?}");
+                assert!(
+                    !t.iter().any(|s| s.contains("05:23") || s.contains("MIN")),
+                    "{jet:?}: in the time's row {t:?}"
+                );
+            }
         }
     }
 

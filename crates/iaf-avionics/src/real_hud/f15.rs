@@ -84,9 +84,13 @@ pub(super) fn frame(f: Field, i: &Input, gs_captured: bool) -> Frame {
         let steer = if ils.is_some() { "ILS-N" } else { "NAV" };
         o.push(text((rx, ly), format!("{}   {steer}", s.number), Align::Left));
         o.push(text((rx, ly + ROW), format!("N {:.1}", s.dist_m / NM), Align::Left));
-        if let Some(t) = s.eta_s {
+        if let Some(t) = s.eta_s.filter(|_| w.tti.is_none()) {
             o.push(text((rx, ly + 2.0 * ROW), format!("{} MIN", ((t / 60.0).round() as i64).min(99)), Align::Left));
         }
+    }
+    // A released GPS bomb's time to impact in the time's row (ours, inferred; docs/real-hud.md "GPS bombs").
+    if let Some(t) = w.tti {
+        o.push(text((sc.right, ly + 2.0 * ROW), tti_text(t), Align::Left));
     }
     // GSUP / GSDN under the window within 0.6° of the glide slope until it is captured (the bar's y is + below it,
     // the jet above the glide slope).

@@ -1773,6 +1773,16 @@ func _launch_gps(w: Dictionary, p0: Vector3, vel: Vector3, aim: Vector3, owner: 
 	_place_gps(bm)
 
 
+## The time to impact (s) of the player's last released GPS bomb still in flight, or null (ours, the HUD's `TTI`,
+## docs/weapons.md §13.3). The last released: the bomb the pilot just let go, the countdown he expects.
+func gps_tti() -> Variant:
+	var me := _me()
+	for k in range(gps_bombs.size() - 1, -1, -1):
+		if is_same(gps_bombs[k].owner, me):
+			return gps_bombs[k].g.time_to_impact()
+	return null
+
+
 func _place_gps(bm: Dictionary) -> void:
 	var p: Vector3 = bm.g.position()
 	if bm.node != null:
@@ -2533,6 +2543,7 @@ func _publish() -> void:
 			"blink": now < float(ag.blink_until),
 			"gps": ag.get("gps", {}) if hud_mode in [5, 6] else {}
 		},
+		"gps_tti": gps_tti(),
 	}
 
 

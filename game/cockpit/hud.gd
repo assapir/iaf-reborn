@@ -469,6 +469,11 @@ func _draw_outer() -> void:
 	for i in 3:
 		_sprite(outer, Vector2(-tx0, ty0 + 7 * i), rows[i])
 		_sprite(outer, Vector2(tx0, ty0 + 7 * i), rows[3 + i], true)
+	# Ours: a released GPS bomb's time to impact in a fourth row under the right column (docs/weapons.md §13.3).
+	var tti = cockpit.weapons.get("gps_tti")
+	if tti != null:
+		var t := ceili(clampf(float(tti), 0.0, 5999.0))
+		_sprite(outer, Vector2(tx0, ty0 + 21), "TTI %d:%02d" % [floori(t / 60.0), t % 60], true)
 
 
 ## The range scale (FUN_005397a0, docs/weapons.md §12.4) at the field's right edge − 4, 50 px above the centre, 66 px
@@ -648,7 +653,9 @@ func real_hud() -> Dictionary:
 			"delay": float(ag.ttg) if delay_on else null,
 			"delay_at": _hud_point(ag.get("target", ag.pipper), false) if delay_on else null,
 			"designated": delay_on and ag.get("frozen", false),
-			"gps": gps_cue
+			"gps": gps_cue,
+			# Ours: the player's last released GPS bomb's time to impact (docs/weapons.md §13.3).
+			"tti": wp.get("gps_tti")
 		}
 	}
 	_real = _real_hud.frame(_field(), _real_in)

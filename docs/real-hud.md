@@ -678,6 +678,10 @@ inferred). Built in `real_hud/mod.rs` `gps_cues`, drawn while a GPS bomb has an 
 | range caret | the ground distance to the aim, left of the staple | yes | yes | yes |
 | `TMR m:ss` / `IN RNG` | under the staple: the time to Rmax while closing, then in range | yes | yes | yes |
 | PRE / VIS | the mode | the weapon window (instead of CCIP) | under the G | the weapon line (`1 PRE`) |
+| `TTI m:ss` | after the release, the last released bomb's time to impact until it bursts, in every HUD mode (docs/weapons.md §13.3) | the right column's time row, in place of the steerpoint's time | the time row under the steerpoint (instead of `N MIN`) | the time row under the steerpoint, also looking aside |
+
+The real F-16 shows the released weapon's time to impact in a HUD window (secondary[^dcs-tti]); its row here is
+inferred.
 
 The CCIP pipper and the fall line are not drawn while the bomb has an aim. Open: the impact-angle in-zone bar and the
 GBU-39's attack-azimuth LAR2 (no setting built).
@@ -892,3 +896,6 @@ its scale. The original HUD keeps the original layout.
 [^bms-jdam]: Falcon BMS forum, secondary: the range cue "on the right side of the HUD"
     (<https://forum.falcon-bms.com/topic/25722/disappearing-and-appearing-bombing-range-cue>); LAR2 with an attack
     azimuth (<https://forum.falcon-bms.com/post/390232>)
+[^dcs-tti]: DCS forum, "CBU-105 HUD symbology question" (2022), secondary: the F-16's HUD window for the JDAM, JSOW,
+    WCMD and Paveway III shows the time to impact after the release
+    (<https://forum.dcs.world/topic/304597-cbu-105-hud-symbology-question>)

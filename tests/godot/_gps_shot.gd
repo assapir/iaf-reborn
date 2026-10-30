@@ -4,7 +4,8 @@
 # range (hud_f16_inrng.png); the original-style HUD at the same point (hud_original.png); the F-35I's helmet display in
 # PRE (hud_f35_pre.png). Every look switch on (Models Detailed, particle effects). With GPS_SHOT=rack only the TSD with
 # four GBU-39s on stations 3 and 7, station 3's rack opened: bombs 3-1, 3-2 on a unit, 3-3, 3-4 on a point
-# (tsd_gps_rack.png).
+# (tsd_gps_rack.png). With GPS_SHOT=tti only the F-16I's Real HUD 5 s after a GBU-31's release 6 km out, the time to
+# impact counting down (hud_f16_tti.png).
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=$PWD/.shots -- \
 #     --log-file /tmp/s.log --path game -s ../tests/godot/_gps_shot.gd
 extends "res://../tests/godot/base.gd"
@@ -20,6 +21,10 @@ func run() -> void:
 	settings().particle_effects = true
 	if OS.get_environment("GPS_SHOT") == "rack":
 		await _tsd(true)
+		return
+	if OS.get_environment("GPS_SHOT") == "tti":
+		settings().hud_style = "real"
+		await _flight("hud_f16_tti", [2, 4, 6], false, true)
 		return
 	await _tsd()
 	settings().hud_style = "real"
@@ -104,7 +109,7 @@ func _tsd(rack := false) -> void:
 
 ## Mission 231 3,000 m up with GBU-31s on `stations`; a ground unit 4° right of the track is every station's PRE
 ## target. 18 km out (outside the LAR: TMR) and 6 km out (IN RNG), the nose down at the target.
-func _flight(prefix: String, stations: Array, both := true) -> void:
+func _flight(prefix: String, stations: Array, both := true, release := false) -> void:
 	var tv = await start_mission(231)
 	await frames(10)
 	var w = airborne_case(tv, _load(stations) + [25, 235, 33, 90, 34, 60])
@@ -144,6 +149,18 @@ func _flight(prefix: String, stations: Array, both := true) -> void:
 			await process_frame
 			t += 0.05
 			w.update(t)
+		if release:
+			w.fire_selected()
+			t += 0.01
+			w.update(t)
+			w.release_selected()
+			for i in 100:
+				await process_frame
+				t += 0.05
+				w.update(t)
+			await _save(prefix + ".png")
+			print("shot: %s tti %s" % [prefix, tv.cockpit.weapons.get("gps_tti")])
+			return
 		print("shot: %s %d m %s" % [prefix, d, w.ag.get("gps", {})])
 		var file: String = prefix + ("" if not both else ("_tmr" if d > 10000.0 else "_inrng")) + ".png"
 		if prefix == "hud_f35":
