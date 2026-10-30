@@ -15,7 +15,8 @@ Today the detailed models are the **F-16D** (`game/extra/models/f16/f16d.glb`), 
 F-16s, parked F-16s and the Reference viewer; the **F-16I Sufa** (§1.3, `f16i.glb`), which stands in for every F-16
 with the Extras switch "F-16 version" on Sufa, whatever Models says; the **F-15C** (§6), which setup makes on your machine from the
 FlightGear F-15 and which stands in for every F-15 the same way; the **F-15I Ra'am** (§6.7), made by the same step, for
-every F-15 with the Extras switch "F-15 version" on Ra'am; and 16 **stores** (§5) on every jet that carries
+every F-15 with the Extras switch "F-15 version" on Ra'am; the **MiG-29** (§7), from the FlightGear MiG-29 9-12, for
+every MiG-29; and 16 **stores** (§5) on every jet that carries
 them. Plans for more jets and stores: [graphics-research.md](graphics-research.md) §3.7 and §3.13.
 
 ## 1. The F-16D model
@@ -633,6 +634,73 @@ outer fins. What differs on ours (open):
 - the cockpit view, the HUD and the flight model stay the F-15C's; the F-15I's own (flight data, weapons, the
   rear seat) are open.
 
+## 7. The detailed MiG-29
+
+With Models Detailed every MiG-29 (the AI's and parked ones) is the FlightGear MiG-29 9-12, the jet of the
+original's own MiG-29 (a Fulcrum-A). Its licence (GPL-3.0) lets it ship in the repo:
+`game/extra/models/mig29/mig29.glb` (sources and changes in `game/extra/models/mig29/SOURCES.md`).
+
+| item | value |
+|---|---|
+| source | `github.com/Mercenary-Mercury/MiG-29_9-12` at commit d4a299b: external model by Enrique Laso Leon, FDM, cockpit and submodels by Sergey "Mercenary_Mercury" Salov; GPL-3.0 |
+| triangles | 29 800 (original: 6 400); runtime LODs as the F-16D |
+| textures | FlightGear's default livery, two 2048² PNG atlases, the pilot 1024², the seat 512²; compressed to BC1 / BC3 at the parse |
+| file size | 2.0 MB |
+| livery | FlightGear's grey with grey-green patches, dark radome, green wheel hubs; its red stars replaced by the original's red-white-black roundel (on the fins and wings) |
+| crew | one pilot on a K-36DM seat |
+
+### 7.1 The conversion
+
+A developer runs `iaf-convert mig29-detailed <src dir> <assets>/converted/planes/mig29 <out.glb>`
+(`crates/iaf-tools/src/mig29.rs`). It downloads the pinned files into `<src dir>` and converts them with the F-15's
+machinery (§6.1):
+
+1. reads `MiG-29.ac` (FlightGear's frame) and leaves out the mirrors inside the canopy and the side numbers; adds the
+   pilot and seat at `Cockpit.xml`'s offsets;
+2. scales it by 0.997 to the original's whole length (its body and parts: 17.33 m, as the real jet's 17.32 m), its
+   middle on the original's, its main wheels on the original's `height`. The wings stay FlightGear's: 11.4 m span
+   (the real jet's 11.36 m; the original's 12.7 m);
+3. splits the moving parts under the original's names on `MiG-29.xml`'s hinge lines: AilerL/R, FlapL/R, ElevaL/R
+   (the stabilators), RuddeL / Rudde, SpdbrU (the upper air brake; the lower half stays shut in the body), LdgF/L/R
+   and canopy. The gear doors open by `MiG-29.xml`'s angles in LdgDr and stay shut in LdgDrUp;
+4. copies the original's helpers, puts EngineL/R on the nozzles' exits, and adds two things of our own:
+   - **pylons**: the original's nine stations hang 0.5 m below FlightGear's wing, and C, D, F and G lie ahead of its
+     leading edge (the original's wing is lower, wider and longer in chord). Each station gets a slim grey pylon,
+     1.2 m long, from the station up to the skin; the inner ones reach back to the wing, so stores hang where they
+     hang on the original;
+   - **the drag chute** (`Parach`, shown only when deployed): an orange cone at the original chute's place and size;
+5. writes the glb with FlightGear's default livery; the `Insignia` object's two red stars are drawn as our roundel
+   (`insignia_clip`, cut out by its alpha).
+
+### 7.2 How it fits the game
+
+As the F-15C (§6.3): the descriptor stays the original's; `detailed_descriptor` takes the hinge axes, both
+afterburners and LdgDrUp from the model. The hinge axes lie within 11° of the original's, but the main legs': they
+swing forward and turn as they fold, about FlightGear's slanted axis (58° off the original's lateral one), as the
+real jet's do. `util/gltf.gd` maps `mig29_h.gltf` to the glb (`DETAILED`) and compresses its PNG textures
+(`MIG29_DIR`).
+
+The real MiG-29 9-12[^mig-side][^mig-front]: grey with darker grey-green patches, a grey-white radome, green wheel
+hubs, three pylons under each wing and the centre line tank between the engines. What differs on ours (open):
+
+- the pylons are ours and four a side (the original's stations), the inner ones swept forward to the original's
+  stations ahead of the wing;
+- no fin flag (the original's MiG-29 has a red-white-black flag on the fins);
+- FlightGear's default livery is the Soviet one; the original's MiG-29 is in a two-tone grey with darker blotches;
+- a white panel on each side of the nose where FlightGear puts the side number;
+- the nozzles keep their modelled opening; the intake doors, the LERX flaps and the lower air brake stay still;
+- no original model as the far LOD.
+
+### 7.3 Checks
+
+- `tests/godot/test_detailed_models.gd` `_check_mig29`: with the switch off the original; on, the detailed model with
+  15–40 k triangles, every node of the original, the helpers within 1 cm, the pivots on their parts with axes near
+  the original's (65° for the main legs), a pylon touching every station, two afterburners, compressed textures, the
+  gear, doors and chute shown as the original's.
+- `cargo test -p iaf-tools mig29`: the sources pinned, the mirrored hinges and the roundel, and the whole build on
+  `assets/source/mig29` when it is there.
+- `tests/godot/_model_shot.gd` with `SHOT_TYPE=mig29:180 SHOT_JET=0`: the MiG-29 in the player's jet's place.
+
 ## Sources
 
 [^f16net]: F-16.net forum, "F-16 B/D two seater version canopy" (a canopy shop's account: two transparencies in
@@ -669,6 +737,10 @@ outer fins. What differs on ours (open):
     https://commons.wikimedia.org/wiki/File:IAF-F-15I-Raam--Independence-Day-2017-Tel-Nof-IZE-171.jpg
 [^raam-rear]: "RamatDavid 020517 Thunder 01.jpg", Wikimedia Commons, CC BY-SA 4.0 (rear three-quarter),
     https://commons.wikimedia.org/wiki/File:RamatDavid_020517_Thunder_01.jpg
+[^mig-side]: "MiG-29 4103 Krzesiny RB11.jpg", Wikimedia Commons, CC BY-SA 3.0 (a Polish MiG-29 9.12A, side on),
+    https://commons.wikimedia.org/wiki/File:MiG-29_4103_Krzesiny_RB11.jpg
+[^mig-front]: "Mikoyan-Gurevich MiG-29 (9.12) '14 blue' (38100565051).jpg", Wikimedia Commons, CC BY-SA 2.0
+    (front three-quarter), https://commons.wikimedia.org/wiki/File:Mikoyan-Gurevich_MiG-29_(9.12)_%E2%80%9914_blue%E2%80%99_(38100565051).jpg
 [^ak]: AK Interactive, Israeli Air Force colours (AK11752), product text: the air superiority grey scheme of FS 36320
     Dark Ghost Grey and FS 36375 Light Ghost Grey came with the F-15A/B at the end of 1976,
     https://ak-interactive.com/?p=256303

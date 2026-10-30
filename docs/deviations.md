@@ -393,6 +393,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     proportions); the other stores have the original's length and axis.
     The F-15 becomes the FlightGear F-15C (GPL-2.0-only) where setup could download and convert it
     (aircraft-models.md §6): grey with IAF roundels, its speed brake and hook shown also shut.
+    Every MiG-29 becomes the FlightGear MiG-29 9-12 (GPL-3.0; aircraft-models.md §7): its own grey-green paint
+    with the original's roundels, our pylons on the original's stations.
 - **"F-15 version" (Baz (F-15C) / Ra'am (F-15I))** (ours, Extras; aircraft-models.md §6.7). Visual only; the default
   is Baz. With Ra'am every F-15 (the player's, the AI's, parked ones) is drawn as the F-15I setup made from the
   FlightGear F-15 (two seats, conformal tanks, 69 Squadron's desert camouflage), also with Models on Original; its
