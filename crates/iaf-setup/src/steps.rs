@@ -81,8 +81,31 @@ fn copy_tree(from: &Path, to: &Path) -> Result<()> {
     Ok(())
 }
 
+/// The launcher step's command: tools/install-launcher.sh, its XDG_DATA_HOME from `xdg_data_home`.
+#[cfg(not(windows))]
+fn launcher(ctx: &Ctx) -> Command {
+    let mut c = Command::new(ctx.repo.join("tools/install-launcher.sh"));
+    if let Some(x) = &ctx.xdg_data_home {
+        c.env("XDG_DATA_HOME", x);
+    }
+    c
+}
+
+/// The launcher step's command: Start Menu shortcuts (with `xdg_data_home`: into a folder there instead).
+#[cfg(windows)]
+fn launcher(ctx: &Ctx) -> Command {
+    let script = plain_path(&ctx.repo.join(r"tools\windows\install-launcher.ps1"));
+    let mut c = Command::new("powershell");
+    c.args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", &script]);
+    if let Some(x) = &ctx.xdg_data_home {
+        c.args(["-Menu", &plain_path(&x.join("Start Menu"))]);
+    }
+    c
+}
+
 /// `p` without Windows' verbatim prefix (`\\?\C:\…` → `C:\…`, `\\?\UNC\server\…` → `\\server\…`): PowerShell's
 /// -File leaves a verbatim script's $PSScriptRoot empty.
+#[cfg(windows)]
 fn plain_path(p: &Path) -> String {
     let s = p.to_string_lossy();
     if let Some(unc) = s.strip_prefix(r"\\?\UNC\") {
@@ -202,25 +225,7 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
             terrain::airbases(&install, &conv.join("terrain/theatre"), &conv.join("terrain"), None, pr, cancel)?
         }
         "icon" => convert::icon(&install, &conv.join("icon.png"), pr, cancel)?,
-        "launcher" => {
-            let cmd = if cfg!(windows) {
-                // Start Menu shortcuts (with xdg_data_home: into a folder there instead).
-                let script = plain_path(&ctx.repo.join(r"tools\windows\install-launcher.ps1"));
-                let mut c = Command::new("powershell");
-                c.args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", &script]);
-                if let Some(x) = &ctx.xdg_data_home {
-                    c.args(["-Menu", &plain_path(&x.join("Start Menu"))]);
-                }
-                c
-            } else {
-                let mut c = Command::new(ctx.repo.join("tools/install-launcher.sh"));
-                if let Some(x) = &ctx.xdg_data_home {
-                    c.env("XDG_DATA_HOME", x);
-                }
-                c
-            };
-            child(cmd, pr, cancel)?;
-        }
+        "launcher" => child(launcher(ctx), pr, cancel)?,
         "sentinel2" | "mapi2015" => return imagery(step, ctx, pr, cancel),
         "textures" => return textures(&a.join("thirdparty/ambientcg"), thirdparty::AMBIENTCG, pr, cancel),
         "scenery-fetch" => {
@@ -358,20 +363,26 @@ impl Progress for Quiet {
 /// The imagery layers the game's settings.cfg chooses (`imagery_israel`, `imagery_outside`; "original" is no layer),
 /// None when the file is missing or names neither (then every layer is compressed).
 fn game_imagery_layers() -> Option<Vec<String>> {
-    // Windows: Godot's user data is under %APPDATA% (no HOME there).
-    if let Some(appdata) = std::env::var_os("APPDATA").filter(|_| cfg!(windows)) {
-        let cfg = PathBuf::from(appdata).join("Godot/app_userdata/iaf-reborn/settings.cfg");
-        return imagery_layers_in(&std::fs::read_to_string(cfg).ok()?);
-    }
+    let cfg = game_settings()?.iter().find_map(|p| std::fs::read_to_string(p).ok())?;
+    imagery_layers_in(&cfg)
+}
+
+/// Where Godot keeps the game's settings.cfg: the Linux and the macOS user data.
+#[cfg(not(windows))]
+fn game_settings() -> Option<Vec<PathBuf>> {
     let home = PathBuf::from(std::env::var_os("HOME")?);
     let data = std::env::var_os("XDG_DATA_HOME").map(PathBuf::from).unwrap_or_else(|| home.join(".local/share"));
-    let cfg = [
+    Some(vec![
         data.join("godot/app_userdata/iaf-reborn/settings.cfg"),
         home.join("Library/Application Support/Godot/app_userdata/iaf-reborn/settings.cfg"),
-    ]
-    .iter()
-    .find_map(|p| std::fs::read_to_string(p).ok())?;
-    imagery_layers_in(&cfg)
+    ])
+}
+
+/// Where Godot keeps the game's settings.cfg: %APPDATA% (no HOME there).
+#[cfg(windows)]
+fn game_settings() -> Option<Vec<PathBuf>> {
+    let appdata = PathBuf::from(std::env::var_os("APPDATA")?);
+    Some(vec![appdata.join("Godot/app_userdata/iaf-reborn/settings.cfg")])
 }
 
 /// `imagery_israel` / `imagery_outside` values of a Godot ConfigFile text other than "original".
@@ -547,10 +558,15 @@ pub fn imagery_stale(assets: &Path, id: &str) -> Result<usize> {
 
 /// The scripted pilot guides: tools/guide_shots.sh (real renders, a display needed) then tools/guide_pdf.py, output
 /// into the log.
+#[cfg(windows)]
+pub fn script_guides(_repo: &Path, _pr: &dyn Progress, _cancel: &AtomicBool) -> Result<()> {
+    bail!("the pilot guides' pictures are made by a bash script (tools/guide_shots.sh): not on Windows yet")
+}
+
+/// The scripted pilot guides: tools/guide_shots.sh (real renders, a display needed) then tools/guide_pdf.py, output
+/// into the log.
+#[cfg(not(windows))]
 pub fn script_guides(repo: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
-    if cfg!(windows) {
-        bail!("the pilot guides' pictures are made by a bash script (tools/guide_shots.sh): not on Windows yet");
-    }
     let mut shots = Command::new(repo.join("tools/guide_shots.sh"));
     shots.current_dir(repo);
     child(shots, pr, cancel)?;
