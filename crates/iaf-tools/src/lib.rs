@@ -14,6 +14,7 @@ pub mod gltf;
 pub mod imagery;
 pub mod imagery_run;
 pub mod itm;
+pub mod mig29;
 pub mod mis;
 pub mod mission_creator;
 pub mod mission_edit;
