@@ -643,8 +643,8 @@ thread, so nothing waits at the quit). It covers 2048 × 2048 texels of 2 m (4.1
   two tracks of a double line, their centres 4–4.5 m apart, make one bed). Tunnels and the pieces off the ground
   (airbases and their 1200 m ring, World scale Real's sites, the 1998 sea) are left out.
 
-**The marking mask** (`iaf_avionics::roads::marks`, made with the road mask on its thread, the same centre): 1024 ×
-1024 texels of 2 m (2 km square), RGBA8 (4 MB, no mipmaps), from the marked ways only:
+**The marking mask** (`iaf_avionics::roads::marks`, made with the road mask on its thread, the same centre, its own
+rect `road_marks_rect`): 1024 × 1024 texels of 2 m (2 km square), RGBA8 (4 MB, no mipmaps), from the marked ways only:
 
 - R: the signed offset from the nearest marked way's centreline, 128 + 16 per metre (positive on the right of its
   direction). Across a straight way it changes linearly, so bilinear filtering keeps it exact; the road mask's
@@ -657,9 +657,15 @@ thread, so nothing waits at the quit). It covers 2048 × 2048 texels of 2 m (4.1
   paved two-way primary to tertiary roads of two lanes or more (a dashed line between their lanes: the centre line on
   two lanes), railways (two rails). A texel holds the way within its half width + 3 m: the shader's four taps reach
   2√2 m.
+- A railway texel holds up to two tracks, so a double line's seam serves the rails on both sides: R and G their
+  offsets, A the metres along the nearer one (modulo 12 m: its sleepers). The offsets are signed toward one side for
+  every way whatever its direction (the side right of the track run south-eastward), and the two are written in the
+  order of their offsets: along a pair of tracks each slot holds the same track, and a texel with one track fills
+  both. A way's own segments are merged first (past a bend another segment's cap gives another offset).
 
-`terrain/ground_roads.gd` asks a new mask when the camera is 500 m from the last one's centre and shows both when made
-(`ImageTexture.update`). Over Tel Aviv a mask is made in 75–135 ms (block files read, every road rasterised). The
+`terrain/ground_roads.gd` asks a new mask when the camera is 500 m from the last one's centre and shows it when made
+(`ImageTexture.update`), its marking mask the next frame (`IafRoads.take_mask`, then `take_marks`; each mask sets its
+own rect with its texture, so the frame between draws the old markings where they were). Over Tel Aviv a mask is made in 75–135 ms (block files read, every road rasterised). The
 marking mask holds at least 524 m around the camera.
 
 **The shader** (`terrain.gdshader`, global `ground_roads`): a road pixel gets the road's colour over the imagery,
@@ -673,7 +679,8 @@ before the airbases' surface and below the towns' night glow (so a lit road read
 - The colour: the photo blurred to ≈ 16 m gives the tone. Asphalt goes 85 % toward real asphalt's grey (albedo
   0.07); a dirt road is a paler, warmer version of the ground. Patches of ≈ 40 m and a grain of ≈ 1 m vary both. With
   Ground textures ambientCG, the asphalt or gravel texture where it resolves.
-- A railway's bed: grey crushed stone browned by rust (albedo ≈ 0.2), a quarter of it the photo's tone.
+- A railway's bed: dark grey crushed stone browned by rust and brake dust (albedo ≈ 0.09, inferred), with a speckle
+  of ≈ 5 cm stones; drawn at full strength over any imagery, as no photo here shows its sleepers and rails.
 - The edge: the anti-aliasing width is the distance's change to the next pixels' ground (three taps of the mask, only
   near a road; one tap rejects the rest).
 
@@ -683,14 +690,16 @@ before the airbases' surface and below the towns' night glow (so a lit road read
 |---|---|---|
 | Lane line | between a road's lanes (the centre line of a two-lane road) | 0.12 m, white (albedo 0.6); dashes 3 m in every 12 m[^mutcd] |
 | Edge line | motorways and trunk roads, on the shoulder by the outer lane; a one-way carriageway its right edge only | 0.15 m, yellow: Israel marks a road's edge in yellow[^il-yellow] |
-| Rails | a railway, the two rails of a standard-gauge track | 0.07 m, dark steel (albedo 0.09) |
+| Sleepers | each track: 2.6 m long, 0.25 m wide, one every 0.6 m[^sleeper] | weathered concrete (albedo 0.18) |
+| Rails | each track: its two rails at the standard gauge | 0.07 m, rust-dark steel (albedo 0.05) |
 
 The dash and gap lengths are the MUTCD's 10 ft and 30 ft; no Israeli figure was found (open), the same paint is used
 outside Israel (inferred). Each line and dash is box-filtered over the pixel's footprint across and along the way
 (the offset's and the distance's change to the next pixels, from the four taps of one `textureGather` per channel),
 the airbases' `ab_band` / `ab_train`: a far line thins into its average instead of shimmering. Four taps of two ways
 (a junction, two carriageways side by side) are not mixed: their offsets or distances differ by more than 3.2 m, or
-change at another rate than a metre per metre.
+change at another rate than a metre per metre. Where a track's sleepers have no distance along (its four taps reach the
+other track's), the band takes their average tone.
 
 **Alignment.** Over Ramat David and Tel Aviv a drawn road lies on the photo's road: the layer is warped into the
 engine frame by the scenery's georeference (scenery.md §6.1). The test checks every way's segment middles fall on road
@@ -726,8 +735,11 @@ With the markings, the railways and the road lamps outside Israel (the same rout
 | night, 600 m | 15.49 / 15.41 (60) | 16.42 / 16.07 (58–59) |
 
 About +0.6 ms of GPU (4 %). The 48 fps run had 35 ms of process time (the terrain's streaming), the other Detailed
-600 m run 58 fps. The two masks cost the main thread 3.3–4.8 ms on average when they arrive (5–11 ms at most; 2.4–3
-ms with the road mask alone). Video memory: +12 MB (the 8 MB road mask and the 4 MB marking mask).
+600 m run 58 fps. Video memory: +12 MB (the 8 MB road mask and the 4 MB marking mask). Both masks shown in one frame
+cost the main thread 3.3–4.8 ms on average (5–11 ms at most); shown a frame apart (2026-10-30, the same route, one run
+day and night with the sleepers): the road mask 2.3 / 2.6 ms on average (2.9 / 5.8 ms at most), the marking mask the
+next frame 1.0 / 1.1 ms (at most 1.8 ms), as the road mask alone before; GPU 13.3 / 12.9 ms at 150 m, 16.9 / 16.0 ms
+at 600 m.
 
 Tried and dropped (2026-10-29): the road drawn at full strength over the Survey 2 m photo. Its roads already show;
 a uniform grey band hid the photo's lane paint, shoulders and the trees over the streets.
@@ -743,8 +755,17 @@ Tried and dropped (2026-10-29, the markings):
   1 m shoulders close the gaps.
 - A 3 m railway strip: a double line's two strips left a gap under a texel wide that wavered along the line.
 
-Open: a double line's inner rails break where the two tracks' texels meet (the marking mask holds one way per 2 m
-texel); no median edge line on a dual carriageway; the dash and gap lengths are not Israel's own (no source found);
+Tried and dropped (2026-10-30, the railways):
+
+- One way per marking texel: a double line's inner rails broke into dashes where the two tracks' texels met.
+- The tracks' common side taken from the segment running east: a north–south line's segments fall either side of
+  due north, and the slots swapped from segment to segment (rails in patches). Now south-east: only a line within a
+  few degrees of north-east can swap.
+- The sleepers placed by the world position along the offset's gradient: the gradient changes a little from texel to
+  texel, and times a few kilometres of position the sleepers wavered into a moiré. Now by the distance along.
+- The bed at the imagery's strength (half over the Survey photo): it read as a pale slab with the photo's patches.
+
+Open: no median edge line on a dual carriageway; the dash and gap lengths are not Israel's own (no source found);
 within 1200 m of an airbase the roads are cut off the ground by the road layer (scenery.md §6.1), so the base's own
 access roads stay the imagery's.
 
@@ -1860,5 +1881,7 @@ graphics option at its best. `RAIN_BENCH=secs` measures the frame rate instead.
     gaps, a normal line 4–6 in wide: https://mutcd.fhwa.dot.gov/htm/2009/part3/part3a.htm
 [^il-yellow]: Hamichlol, "קו הפרדה" (road markings in Israel: "a yellow line marks the road's edge"):
     https://www.hamichlol.org.il/%D7%A7%D7%95_%D7%94%D7%A4%D7%A8%D7%93%D7%94
+[^sleeper]: Wikipedia, "Railroad tie" (sleepers 2.59 m long and 0.25 m wide; concrete ties every 61 cm):
+    https://en.wikipedia.org/wiki/Railroad_tie
 [^lamp-height]: Matamata-Piako District Council, Development Manual, Part 3 (street lighting: preferred mounting heights 6 m
     residential, 7 m industrial): https://www.mpdc.govt.nz/wmmp/120-district-plan/mpdc-development-manual/1887-part-3-3142

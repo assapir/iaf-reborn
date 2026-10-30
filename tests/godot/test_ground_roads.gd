@@ -211,6 +211,7 @@ func _mask(at: Vector2) -> Image:
 		and Time.get_ticks_msec() - t < 20000
 	):
 		await frames(5)
+	await frames(2)  # its marking mask, a frame later
 	return roads._tex.get_image() if roads._tex != null else null
 
 

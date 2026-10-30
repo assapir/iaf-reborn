@@ -15,8 +15,11 @@ static var _on := false
 static var _asked := Vector2(INF, INF)
 static var _pending := false
 static var _tex: ImageTexture
-## The marking mask (the lane markings and the rails, on the mask's centre).
+## The marking mask (the lane markings and the rails): taken the frame after its road mask (one upload a frame), with
+## its own rect: [north-west corner, side] (engine metres).
 static var _marks: ImageTexture
+static var _marks_rect := [Vector2(INF, INF), 0.0]
+static var _marks_due := false
 ## The shown mask's north-west corner (engine metres), side (m), and the world origin its rect was set for.
 static var _nw := Vector2(INF, INF)
 static var _side := 0.0
@@ -53,6 +56,7 @@ static func apply() -> void:
 		RenderingServer.global_shader_parameter_set("road_marks", null)
 		_tex = null
 		_marks = null
+		_marks_due = false
 
 
 ## Per frame with the camera's position (scene frame): asks a mask when the camera moved MOVE m, shows a made one.
@@ -61,10 +65,14 @@ static func update_view(cam: Vector3, terrain: Node) -> void:
 		return
 	var o: Vector2 = terrain.world_origin
 	var here := o + Vector2(cam.x, -cam.z)
-	if _pending:
+	if _marks_due:
+		_marks_due = false
+		_show_marks(IafRoads.take_marks())
+	elif _pending:
 		var m: Dictionary = IafRoads.take_mask()
 		if not m.is_empty():
 			_pending = false
+			_marks_due = true
 			_show(m)
 	if not _pending and here.distance_to(_asked) > MOVE:
 		_asked = here
@@ -72,10 +80,14 @@ static func update_view(cam: Vector3, terrain: Node) -> void:
 		IafRoads.request_mask(here)
 	if o != _origin and _tex != null:
 		_origin = o
-		# Godot (x, z) from the world origin: x = X − origin.x, z = origin.y − Y.
-		RenderingServer.global_shader_parameter_set(
-			"road_mask_rect", Vector4(_nw.x - o.x, o.y - _nw.y, 1.0 / _side, 0.0)
-		)
+		_set_rect("road_mask_rect", _nw, _side, o)
+		if _marks != null:
+			_set_rect("road_marks_rect", _marks_rect[0], _marks_rect[1], o)
+
+
+## A mask's rect in the scene frame: Godot (x, z) from the world origin `o`: x = X − o.x, z = o.y − Y.
+static func _set_rect(param: String, nw: Vector2, side: float, o: Vector2) -> void:
+	RenderingServer.global_shader_parameter_set(param, Vector4(nw.x - o.x, o.y - nw.y, 1.0 / side, 0.0))
 
 
 static func _show(m: Dictionary) -> void:
@@ -86,13 +98,20 @@ static func _show(m: Dictionary) -> void:
 		RenderingServer.global_shader_parameter_set("road_mask", _tex)
 	else:
 		_tex.update(img)
-	var mn := int(m.marks_n)
-	var mk := Image.create_from_data(mn, mn, false, Image.FORMAT_RGBA8, m.marks)
-	if _marks == null or _marks.get_width() != mn:
-		_marks = ImageTexture.create_from_image(mk)
-		RenderingServer.global_shader_parameter_set("road_marks", _marks)
-	else:
-		_marks.update(mk)
 	_nw = Vector2(float(m.x0), float(m.y1))
 	_side = n * float(m.m)
 	_origin = Vector2(INF, INF)  # the rect is set by update_view
+
+
+static func _show_marks(m: Dictionary) -> void:
+	if m.is_empty():
+		return
+	var n := int(m.n)
+	var img := Image.create_from_data(n, n, false, Image.FORMAT_RGBA8, m.bytes)
+	if _marks == null or _marks.get_width() != n:
+		_marks = ImageTexture.create_from_image(img)
+		RenderingServer.global_shader_parameter_set("road_marks", _marks)
+	else:
+		_marks.update(img)
+	_marks_rect = [Vector2(float(m.x0), float(m.y1)), n * float(m.m)]
+	_origin = Vector2(INF, INF)  # the rects are set by update_view
