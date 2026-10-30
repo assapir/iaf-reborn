@@ -71,7 +71,7 @@ func uninstall() -> void:
 	var text := Label.new()
 	text.text = (
 		"Remove the game data the setup made (the CD's files and the converted data in assets/)?\n"
-		+ "Your pilots and settings stay. Run ./setup to install again."
+		+ "Your pilots and settings stay. Run %s to install again." % Settings.setup_command()
 	)
 	box.add_child(text)
 	var all := CheckBox.new()
@@ -92,7 +92,9 @@ func _remove_data(everything: bool) -> void:
 	var done := AcceptDialog.new()
 	done.title = "Uninstall"
 	done.dialog_text = (
-		"The game data is removed. Run ./setup to install again." if e == "" else "Uninstall failed: " + e
+		"The game data is removed. Run %s to install again." % Settings.setup_command()
+		if e == ""
+		else "Uninstall failed: " + e
 	)
 	done.confirmed.connect(Settings.quit)
 	done.canceled.connect(Settings.quit)

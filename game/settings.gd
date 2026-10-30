@@ -483,6 +483,11 @@ func _update_splash() -> void:
 		DirAccess.remove_absolute(path)
 
 
+## The command that starts the setup wizard: ./setup, on Windows .\setup.ps1 (tools/windows/launch.ps1).
+static func setup_command() -> String:
+	return ".\\setup.ps1" if OS.get_name() == "Windows" else "./setup"
+
+
 ## Display settings that act at once (VSync, full screen).
 func apply_display() -> void:
 	# Only on a change, so a window made full screen by hand (macOS green button) is left alone. Deferred:

@@ -49,22 +49,26 @@ macOS: [docs/macos.md](docs/macos.md).
 
 ### Windows
 
-Rust, Godot and the C++ build tools Rust links with, from a terminal:
+Windows 10 or 11, from a terminal: Git, Rust, Godot and the C++ build tools Rust links with, then allow your own
+scripts (Windows runs none by default):
 
 ```powershell
 winget install Git.Git Rustlang.Rustup GodotEngine.GodotEngine
 winget install Microsoft.VisualStudio.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
-```
-
-The scripts are PowerShell: `.\setup.ps1`, `.\iafjets.ps1` and `.\mission-editor.ps1` do what `./setup`, `./iafjets` and
-`./mission-editor` do; `tools\windows\setup-cli.ps1` is the scripted setup, with the options of `iaf-setup`
-(`crates/iaf-setup/src/bin/iaf-setup.rs`, e.g. `--patch v1.1.exe "Jane's IAF.iso"`). They find
-Godot on PATH, in `$env:GODOT` or where winget put it. Setup adds the two launchers to the Start Menu. Windows runs no
-scripts by default; allow your own once, then open a new terminal (it also picks up the new PATH):
-
-```powershell
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
+
+Then open a new terminal: it picks up the new PATH. winget without admin rights adds no `godot` command; the scripts
+find Godot where winget put it (or in `$env:GODOT`). The GPU driver Windows installs and its Arial font are enough.
+
+Optional extras on Windows:
+
+| tool | install | needed for |
+|---|---|---|
+| GDAL | `winget install GISInternals.GDAL`, then add `C:\Program Files\GDAL` to PATH | modern terrain imagery, scenery (not yet tested on Windows) |
+| curl | ships with Windows | the downloads |
+
+The Survey of Israel sheets' download (`mapi2015`) and the pilot guides run bash scripts: not on Windows yet.
 
 ## Quick start
 
@@ -72,6 +76,11 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ./setup        # the setup wizard: pick your CD, it does the rest
 ./iafjets      # builds what changed and starts the game (without game data: the wizard)
 ```
+
+On Windows the same in PowerShell: `.\setup.ps1`, `.\iafjets.ps1` and `.\mission-editor.ps1`; the scripted setup is
+`tools\windows\setup-cli.ps1` with the options of `iaf-setup` (`crates/iaf-setup/src/bin/iaf-setup.rs`), e.g.
+`tools\windows\setup-cli.ps1 --patch v1.1.exe "C:\path\to\Jane's IAF.iso"`. Setup adds the two launchers to the Start
+Menu.
 
 The wizard checks what the computer has, asks for the English CD image and the optional extras, and shows each
 step's progress. Run it again to add an extra or redo a step: only what changed runs. Setup also installs a desktop
@@ -90,7 +99,7 @@ files; [docs/formats/rtpatch.md](docs/formats/rtpatch.md)).
 
 Other entry points:
 
-- `./iafjets -- --mission 311`: straight into a mission.
+- `./iafjets -- --mission 311`: straight into a mission (Windows: `.\iafjets.ps1 --mission 311`).
 - `godot --path game res://terrain/terrain_view.tscn`: straight into the air.
 - `godot --path game res://viewer/viewer.tscn`: the model viewer, with hot reload.
 
@@ -167,7 +176,8 @@ the wrong control moves, edit `[devices] joy_axes` in the settings file. Details
 
 - Commands, architecture and conventions: [CLAUDE.md](CLAUDE.md). Plans: [docs/roadmap.md](docs/roadmap.md).
 - Tests: `cargo test -q --workspace` (tests that need game data or `python3` skip with a message);
-  `tools/test.sh` runs those and every headless Godot test `tests/godot/test_*.gd`. The Godot tests need the
+  `tools/test.sh` (bash) runs those and every headless Godot test `tests/godot/test_*.gd` (on Windows run them one
+  by one, with the command in CLAUDE.md and the winget Godot's `_console.exe`). The Godot tests need the
   converted assets, so they run locally. Run scripted tests with `IAF_DEFAULT_SETTINGS=1`: they then never read or
   write your saved preferences.
 - Credits: the roll on Quit shows ours and the imagery credits, then the original's. To add one:

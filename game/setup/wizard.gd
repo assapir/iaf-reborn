@@ -323,14 +323,12 @@ func _browse(row: Dictionary, label: String, filters: PackedStringArray) -> void
 
 
 ## The wizard's window: 1200×820 times the UI scale, centred (asked once it shows; ./setup starts it at 1200×820).
+## Always a framed window, even with the game's Window: Full screen (Settings applies it at start-up): a full-screen
+## wizard has no title bar to close it by. The game it starts at the end applies the setting again.
 func _resize_window() -> void:
 	await get_tree().process_frame
 	var win := get_window()
-	if (
-		DisplayServer.get_name() == "headless"
-		or win.mode == Window.MODE_FULLSCREEN
-		or win.mode == Window.MODE_EXCLUSIVE_FULLSCREEN
-	):
+	if DisplayServer.get_name() == "headless":
 		return
 	# The project's 1920×1080 window is larger than most work areas, so the desktop maximizes it: back to a window.
 	if win.mode != Window.MODE_WINDOWED:
@@ -434,8 +432,14 @@ func _page_requirements() -> Control:
 	return v
 
 
-func _hint(arch: String, mac: String) -> String:
-	return mac if OS.get_name() == "macOS" else arch
+## How to get a missing part on this system: Arch Linux (pacman), macOS (Homebrew) or Windows (winget).
+func _hint(arch: String, mac: String, windows: String) -> String:
+	match OS.get_name():
+		"macOS":
+			return mac
+		"Windows":
+			return windows
+	return arch
 
 
 func _fill_requirements() -> void:
@@ -458,7 +462,7 @@ func _fill_requirements() -> void:
 			"Graphics (%s)" % api,
 			"draws the game",
 			(gpu + " — " + RenderingServer.get_video_adapter_vendor()) if gpu != "" else "",
-			_hint("install your GPU's Vulkan driver", "update macOS")
+			_hint("install your GPU's Vulkan driver", "update macOS", "update your GPU's driver")
 		],
 		[
 			true,
@@ -488,7 +492,11 @@ func _fill_requirements() -> void:
 			"GDAL",
 			"converts the terrain imagery",
 			"found",
-			_hint("sudo pacman -S gdal", "brew install gdal")
+			_hint(
+				"sudo pacman -S gdal",
+				"brew install gdal",
+				"winget install GISInternals.GDAL, then add C:\\Program Files\\GDAL to PATH"
+			)
 		],
 		[
 			false,
@@ -496,7 +504,7 @@ func _fill_requirements() -> void:
 			"curl",
 			"downloads the Survey of Israel sheets",
 			"found",
-			_hint("sudo pacman -S curl", "brew install curl")
+			_hint("sudo pacman -S curl", "brew install curl", "winget install cURL.cURL")
 		],
 		[
 			false,
@@ -504,7 +512,11 @@ func _fill_requirements() -> void:
 			"python3",
 			"reads the Survey's download token; builds the pilot guide PDFs",
 			"found",
-			_hint("sudo pacman -S python", "brew install python")
+			_hint(
+				"sudo pacman -S python",
+				"brew install python",
+				"winget install Python.Python.3.14 (the Survey download and the guides: not on Windows yet)"
+			)
 		],
 		[
 			false,
@@ -512,7 +524,11 @@ func _fill_requirements() -> void:
 			"Firefox",
 			"holds the Survey's download token; prints the pilot guide PDFs",
 			"found",
-			_hint("sudo pacman -S firefox", "brew install --cask firefox")
+			_hint(
+				"sudo pacman -S firefox",
+				"brew install --cask firefox",
+				"winget install Mozilla.Firefox (the Survey download and the guides: not on Windows yet)"
+			)
 		],
 	]
 	var grid := GridContainer.new()
@@ -1142,8 +1158,11 @@ func _page_done() -> Control:
 	_text(
 		v,
 		(
-			'Run setup again at any time (./setup, or the "Jane\'s IAF (reborn) — Setup" launcher) to add an extra or redo '
-			+ "a step."
+			(
+				'Run setup again at any time (%s, or the "Jane\'s IAF (reborn) — Setup" launcher) to add an extra or '
+				+ "redo a step."
+			)
+			% Settings.setup_command()
 		),
 		true
 	)
