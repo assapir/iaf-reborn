@@ -1177,11 +1177,15 @@ does[^dcs-jdam][^bms-jdam]; the F-35I's are inferred to work the same.
   selected GPS bomb between PRE and VIS (docs/controls.md "Own keys"); a subtitle shows the new mode.
 - **PRE (pre-planned)**: each station's target is set before the flight on the briefing TSD (docs/front-end.md §8.2):
   a unit, a waypoint of the flight or a map point, stored as its coordinates (`Settings.gps_targets`, {flight:
-  {station: [x, y, label]}}, cleared when a mission loads). A station without one takes the route's target waypoint
-  (action 5, `gps.rs` `default_target`), else it has none. Key **Shift+K** steps the target (`gps.rs` `pre_targets`,
-  `pre_pick`): the station's own first, then the other stations' and the route's steerpoints, each point once, round
-  again; a station without its own target starts on none. A subtitle shows "PRE 2/5". The step goes back to the own
-  targets when a release ends. The heights come from the terrain under the points.
+  {station: [x, y, label]}}, cleared when a mission loads). The bombs of a rack (the GBU-39's four on one station) can
+  each have their own target, the real SDB being targeted bomb by bomb (inferred): stored under
+  `Vector2i(station, bomb)`, bomb 0 being the first to leave in the stores' release order (the last slot first,
+  `player_weapons.gd` `next_bomb`). A bomb without its own takes its station's (`gps.rs` `rack_targets`); a station
+  without one takes the route's target waypoint (action 5, `gps.rs` `default_target`), else it has none. Key
+  **Shift+K** steps the next bomb's target (`gps.rs` `pre_targets`, `pre_pick`): the bomb's own first, then the other
+  bombs' and stations' and the route's steerpoints, each point once, round again; a bomb without its own target starts
+  on none. A subtitle shows "PRE 2/5". The step goes back to the own targets when a release ends. The heights come
+  from the terrain under the points.
 - **VIS (visual / target of opportunity)**: the point designated in flight, its coordinates taken at the release: the
   targeting pod's point with the laser on (in any direction: there is no seeker cone; the bomb does not follow the
   laser spot), when it lies on the ground; else the radar's designated point, the HUD's TD box (MAP / GMT
@@ -1189,7 +1193,7 @@ does[^dcs-jdam][^bms-jdam]; the F-35I's are inferred to work the same.
 - **Aim** (`release.rs` `gps_aim`), per store: the mode's point; without one (PRE with no target, VIS with no
   designation) the bomb's own aim: the CCIP impact or the delayed-CCIP target (§9.3).
 - **Release**: the ripple of §9.2. The first bomb goes at once: a GPS bomb skips the 0.9 s delayed-release wait. With
-  Bomb release Real (§9.10) the two bombs of a pair leave together, each with its own station's coordinates.
+  Bomb release Real (§9.10) the two bombs of a pair leave together, each with its own coordinates.
 - **Flight** (an energy model, inferred): the bomb's energy per kg, g·height + ½·speed², drains by g / LD per metre
   flown over the ground, LD being the kit's glide ratio. Its speed is what that energy leaves at its height, at most
   the kit's dive speed (300 m/s). It flies straight at the aim while faster than its slowest speed (150 m/s); at the

@@ -2,12 +2,15 @@
 # §13.2–§13.3) into SHOT_DIR: the briefing TSD of mission 231 with the GPS panel and three assigned targets
 # (tsd_gps.png); the F-16I's Real HUD in PRE with the LAR staple and the time to max range (hud_f16_tmr.png), then in
 # range (hud_f16_inrng.png); the original-style HUD at the same point (hud_original.png); the F-35I's helmet display in
-# PRE (hud_f35_pre.png). Every look switch on (Models Detailed, particle effects).
+# PRE (hud_f35_pre.png). Every look switch on (Models Detailed, particle effects). With GPS_SHOT=rack only the TSD with
+# four GBU-39s on stations 3 and 7, station 3's rack opened: bombs 3-1, 3-2 on a unit, 3-3, 3-4 on a point
+# (tsd_gps_rack.png).
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=$PWD/.shots -- \
 #     --log-file /tmp/s.log --path game -s ../tests/godot/_gps_shot.gd
 extends "res://../tests/godot/base.gd"
 
 const GBU31 := 1003
+const GBU39 := 1007
 
 
 func run() -> void:
@@ -15,6 +18,9 @@ func run() -> void:
 	settings().f16_variant = "sufa"
 	settings().models = "detailed"
 	settings().particle_effects = true
+	if OS.get_environment("GPS_SHOT") == "rack":
+		await _tsd(true)
+		return
 	await _tsd()
 	settings().hud_style = "real"
 	await _flight("hud_f16", [2, 4, 6])
@@ -36,8 +42,8 @@ func _load(stations: Array) -> Array:
 
 
 ## The briefing TSD: a GBU-31 on stations 3, 5, 7; station 3 on a unit, station 7 on a map point, station 5 the
-## route's target waypoint (the default).
-func _tsd() -> void:
+## route's target waypoint (the default). `rack`: the GBU-39 racks of tsd_gps_rack.png instead.
+func _tsd(rack := false) -> void:
 	settings().mission_id = 231
 	var fe = load("res://menu/front_end.tscn").instantiate()
 	root.add_child(fe)
@@ -53,6 +59,8 @@ func _tsd() -> void:
 	var load := []
 	for i in 9:
 		load.append([GBU31, 1] if i in [2, 4, 6] else [0, 0])
+		if rack:
+			load[i] = [GBU39, 4] if i in [2, 6] else [0, 0]
 	settings().arm_loadouts[n] = load
 	for i in 2:
 		tsd.zoom_by(tsd.ZOOM_STEP)
@@ -67,6 +75,20 @@ func _tsd() -> void:
 		if int(u.klass) != 1 and int(u.side) == 2 and tsd._unit_visible(u):
 			if best < 0 or u.pos.distance_to(centre) < tsd.units[best].pos.distance_to(centre):
 				best = k
+	if rack:
+		if best >= 0:
+			tsd.gps._assign(2, tsd._to_client(tsd.units[best].pos))
+		for b in [2, 3]:
+			tsd.gps._assign(2, tsd._to_client(centre) + Vector2(40, 30), b)
+		tsd.gps.opened[2] = true
+		for i in 30:
+			await process_frame
+		await _save("tsd_gps_rack.png")
+		print("shot: tsd rack %s" % [settings().gps_targets])
+		settings().arm_loadouts = {}
+		fe.queue_free()
+		await frames(2)
+		return
 	if best >= 0:
 		tsd.gps._assign(2, tsd._to_client(tsd.units[best].pos))
 	tsd.gps._assign(6, tsd._to_client(centre) + Vector2(40, 30))

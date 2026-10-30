@@ -7,11 +7,13 @@
 # clicked for station 5 on the briefing TSD is stored; in flight the unit stands there, 50° off the nose with the
 # radar designating elsewhere: 20 km out the HUD shows the time to max range, 6 km out IN RNG, and the bomb flies to
 # the briefing's point and destroys the unit. With Bomb release Real a pair leaves at once, each bomb to its own
-# station's target.
+# station's target. Four GBU-39s on station 3: the panel's rack row opens into bombs 3-1 .. 3-4; the station takes
+# target A, bombs 3-3 and 3-4 their own B; released one by one in flight, bombs 1-2 burst on A and 3-4 on B.
 extends "res://../tests/godot/base.gd"
 
 const AIM9X := 1001
 const GBU31 := 1003
+const GBU39 := 1007
 const MODERN := ["AIM-9X", "PYTH-5", "GBU-31", "GBU-31V3", "GBU-32", "GBU-38", "GBU-39"]
 ## [Jet list id, F-35I slot, F-16 version, type, the modern weapons listed with Weapons on Modern].
 const JETS := [
@@ -77,6 +79,8 @@ func run() -> void:
 	await _jdam(tv, w, 4)
 	await _jdam_pre(tv, n)
 	_pair(tv, n)
+	settings().bomb_release = "original"
+	await _rack(tv, n)
 	settings().jet_id = -1
 	settings().bomb_release = "original"
 
@@ -220,10 +224,56 @@ func _briefing_target() -> int:
 		xy != null and Vector2(xy[0], xy[1]).distance_to(want) < 3700.0 and tsd.gps.target(4).set,
 		"station 5's PRE target is the clicked point, within two map units (%s, want %s)" % [xy, want]
 	)
+	_rack_targets(tsd, n)
 	settings().arm_loadouts = {}  # the flight takes the test's own loads (airborne_case)
 	fe.queue_free()
 	await frames(2)
 	return n
+
+
+## The GPS panel with four GBU-39s on station 3: a click on the rack's row opens a row per bomb; the station's row then
+## the map at A sets all four, bomb rows 3-3 and 3-4 then the map at B those two.
+var rack := {}
+
+
+func _rack_targets(tsd, n: int) -> void:
+	var load := []
+	for i in 9:
+		load.append([GBU39, 4] if i == 2 else [0, 0])
+	settings().arm_loadouts[n] = load
+	var click := func(c: Vector2):
+		tsd._gui_input(mouse_button(tsd.fe._to_screen(tsd.area.position + c), true))
+		tsd._gui_input(mouse_button(tsd.fe._to_screen(tsd.area.position + c), false))
+	var rows: Array = tsd.gps._rows(tsd.gps.stations())
+	check(rows.size() == 2, "the rack: one station row (%d rows)" % rows.size())
+	click.call(rows[1][0].get_center())
+	rows = tsd.gps._rows(tsd.gps.stations())
+	check(
+		rows.map(func(r): return r[2]) == [-1, -1, 0, 1, 2, 3], "the station's row opens bombs 3-1 .. 3-4 (%s)" % [rows]
+	)
+	var a: Vector2 = tsd.area.size * Vector2(0.45, 0.35)
+	var b: Vector2 = a + Vector2(3, 0)  # about 5 km east at this zoom
+	click.call(a)
+	for k in [4, 5]:
+		click.call(tsd.gps._rows(tsd.gps.stations())[k][0].get_center())
+		click.call(b)
+	var t: Dictionary = settings().gps_targets.get(n, {})
+	var pa: Vector2 = tsd.map_to_world(tsd.gps.target(2, 0).map)
+	var pb: Vector2 = tsd.map_to_world(tsd.gps.target(2, 3).map)
+	check(
+		(
+			t.has(2)
+			and not t.has(Vector2i(2, 0))
+			and not t.has(Vector2i(2, 1))
+			and t.has(Vector2i(2, 2))
+			and t.has(Vector2i(2, 3))
+			and tsd.gps.target(2, 1).map == tsd.gps.target(2, 0).map
+			and tsd.gps.target(2, 2).map == tsd.gps.target(2, 3).map
+			and pa.distance_to(pb) > 2000.0
+		),
+		"bombs 3-1, 3-2 on the station's A, 3-3, 3-4 on their own B (%s)" % [t]
+	)
+	rack = t.duplicate()
 
 
 ## PRE: the briefing's point, out of the radar's and the pod's view, is the aim; the LAR cues as the jet closes.
@@ -314,4 +364,62 @@ func _pair(tv, n: int) -> void:
 			and aims.any(func(q): return q.distance_to(b) < 1.0)
 		),
 		"a pair: each bomb to its own station's target (%s)" % [aims]
+	)
+
+
+## Four GBU-39s on station 3 in PRE with the panel's targets (_rack_targets), released one by one 8 km short of the
+## targets 3000 m up: bombs 1-2 fly to A, 3-4 to B and burst there.
+func _rack(tv, n: int) -> void:
+	var w = airborne_case(tv, [0, 0, 0, 0, GBU39, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 25, 235, 33, 120, 34, 60])
+	var t := rack
+	settings().gps_targets[n] = t
+	if not t.has(2) or not t.has(Vector2i(2, 2)):
+		check(false, "the panel's rack targets")
+		return
+	var a: Vector3 = w._on_ground(Vector2(t[2][0], t[2][1]))
+	var b: Vector3 = w._on_ground(Vector2(t[Vector2i(2, 2)][0], t[Vector2i(2, 2)][1]))
+	var mid := (a + b) / 2.0
+	start_over(
+		tv,
+		w,
+		mid - Vector3(0, 8000, 0),
+		tv.world_to_scene(Vector3(0, 250, 0)) - tv.world_to_scene(Vector3.ZERO),
+		tv.player.fm_section,
+		3000.0
+	)
+	w.gps_modes.erase("GBU-39")
+	w.nav_key(0)
+	w.stores.cur = 2
+	w.select_ag()
+	var time := 300.0
+	var bursts := {}  # bomb -> [aim, last position]
+	for k in 4:
+		time += 0.5
+		w.update(time)
+		w.fire_selected()
+		w.update(time + 0.01)
+		w.release_selected()
+		var bm: Dictionary = w.gps_bombs[-1] if w.gps_bombs.size() == k + 1 else {}
+		bursts[k] = bm
+	var aims: Array = range(4).map(func(k): return bursts[k].g.aim() if not bursts[k].is_empty() else Vector3.INF)
+	check(
+		(
+			aims[0].distance_to(a) < 1.0
+			and aims[1].distance_to(a) < 1.0
+			and aims[2].distance_to(b) < 1.0
+			and aims[3].distance_to(b) < 1.0
+		),
+		"bombs 1-2 take A, 3-4 take B (%s; A %s, B %s)" % [aims, a, b]
+	)
+	for i in 2400:
+		time += 0.05
+		w.update(time)
+		if w.gps_bombs.is_empty():
+			break
+	var hits: Array = range(4).map(
+		func(k): return bursts[k].g.position().distance_to(aims[k]) if not bursts[k].is_empty() else INF
+	)
+	check(
+		w.gps_bombs.is_empty() and hits.all(func(d): return d < 10.0),
+		"each pair burst on its own target (misses %s m)" % [hits]
 	)

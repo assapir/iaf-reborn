@@ -1525,10 +1525,11 @@ func _ripple_tick() -> void:
 	if ripple_left <= 0:
 		_ripple_end()
 	# A pair leaves together: both counts drop before the one push, so the flight model sees no lopsided moment.
-	# Each GPS bomb of a pair gets its own coordinates (PRE: its station's target).
+	# Each GPS bomb of a pair gets its own coordinates (PRE: its own target, else its station's).
 	for k in pulse:
 		_drop_store(k, gps_aim(aim, k)[0] if gps else aim)
 		stores.fired(k)
+		_released[k] = int(_released.get(k, 0)) + 1
 	_push_stores()
 	_update_store_nodes()
 
@@ -1571,7 +1572,7 @@ func gps_aim(ripple: Vector3, station := -1) -> Array:
 
 
 ## Ours (docs/weapons.md §13.2): the GPS bombs' mode per weapon name, true VIS (none: PRE, the default), and the PRE
-## step key's index (0: each station's own target; back to 0 when a release ends).
+## step key's index (0: each bomb's own target; back to 0 when a release ends).
 var gps_modes := {}
 var pre_index := 0
 
@@ -1587,9 +1588,10 @@ func gps_vis(station: int) -> bool:
 	return bool(gps_modes.get(String(w.get("name", "")), false))
 
 
-## The pre-planned targets on the ground: {station: world point} for every station with a GPS bomb. Each takes the one
-## set on the briefing TSD (Settings.gps_targets, {flight: {station: [x, y]}}), else the route's target waypoint
-## (IafGpsBomb.default_target).
+## The pre-planned targets on the ground: {station: [each bomb's world point or null, in the release order]} for every
+## station with a GPS bomb (IafGpsBomb.rack_targets). A bomb takes the one set for it on the briefing TSD
+## (Settings.gps_targets, {flight: {Vector2i(station, bomb): [x, y, label]}}), else its station's ({station: [x, y,
+## label]}), else the route's target waypoint (IafGpsBomb.default_target).
 func pre_targets() -> Dictionary:
 	var n = host.get("player_flight_number")
 	var chosen: Dictionary = Settings.gps_targets.get(int(n) if n != null else 0, {})
@@ -1600,14 +1602,30 @@ func pre_targets() -> Dictionary:
 	var d: int = ClassDB.class_call_static("IafGpsBomb", "default_target", actions)
 	var out := {}
 	for i in 9:
-		if not stores.station(i).get("w", {}).has("gps"):
+		var st: Dictionary = stores.station(i)
+		if not st.get("w", {}).has("gps"):
 			continue
 		var xy = chosen.get(i)
-		if xy != null:
-			out[i] = _on_ground(Vector2(xy[0], xy[1]))
-		elif d >= 0:
-			out[i] = _on_ground(route[d].world)
+		var sta = _on_ground(Vector2(xy[0], xy[1])) if xy != null else (_on_ground(route[d].world) if d >= 0 else null)
+		var own := []
+		for k in int(st.initial):
+			var b = chosen.get(Vector2i(i, k))
+			own.append(_on_ground(Vector2(b[0], b[1])) if b != null else null)
+		out[i] = ClassDB.class_call_static("IafGpsBomb", "rack_targets", sta, own, int(st.initial))
 	return out
+
+
+## The bomb of `station` that leaves next, 0 the first: the stores' order (`_drop_store`: the last slot first).
+## Stores released per station (next_bomb with unlimited stores).
+var _released := {}
+
+
+func next_bomb(station: int) -> int:
+	var st: Dictionary = stores.station(station)
+	var initial := maxi(1, int(st.get("initial", 1)))
+	if stores.unlimited:  # the count never drops: the rack's bombs in turn, by the ones released
+		return int(_released.get(station, 0)) % initial
+	return clampi(initial - int(st.get("count", 1)), 0, initial - 1)
 
 
 func _route() -> Array:
@@ -1620,7 +1638,7 @@ func _on_ground(xy: Vector2) -> Vector3:
 	return Vector3(xy.x, xy.y, float(g) if g != null else 0.0)
 
 
-## The PRE target of `station`'s bomb: its own, or the step key's pick among the stored targets and the steerpoints
+## The PRE target of `station`'s next bomb: its own, or the step key's pick among the stored targets and the steerpoints
 ## (IafGpsBomb.pre_targets / pre_pick); null none.
 func _pre_point(station: int) -> Variant:
 	var l := _pre_list(station)
@@ -1633,8 +1651,15 @@ func _pre_list(station: int) -> Array:
 	var steer := PackedVector3Array()
 	for wp in _route():
 		steer.append(_on_ground(wp.world))
-	var own = targets.get(station)
-	var list = ClassDB.class_call_static("IafGpsBomb", "pre_targets", own, PackedVector3Array(targets.values()), steer)
+	var bombs: Array = targets.get(station, [])
+	var k := next_bomb(station)
+	var own = bombs[k] if k < bombs.size() else null
+	var others := PackedVector3Array()
+	for l in targets.values():
+		for p in l:
+			if p != null:
+				others.append(p)
+	var list = ClassDB.class_call_static("IafGpsBomb", "pre_targets", own, others, steer)
 	return [own, list]
 
 
