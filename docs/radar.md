@@ -69,6 +69,12 @@ more air-to-air range; docs/f16i.md §2):
 | jet | LRS | TWS | ACM | BORE | MAP | GMT |
 |---|---|---|---|---|---|---|
 | F-16I | 5, 58 | 4, 45 | 2, 10 | 2, 10 | 4, 40 | 4, 30 |
+| F-35I | 5, 80 | 5, 60 | 2, 10 | 2, 10 | 5, 60 | 4, 40 |
+
+The F-35I's AN/APG-81 (row 10, `F35I`; docs/f35i.md) is used with either Weapon data, as the Sufa's: the 1998 game
+has no F-35I row to fall back on (its numbers are inferred; public figures give only "beyond 80 NM"). Both our rows
+start every mode at its largest scale, 80 NM, as their search reaches past the original's 40 NM start (the user,
+2026-10-30); the original jets start at min(max, 4).
 
 ## 2. Keys (`FUN_0044a240`)
 | key | event | rule |

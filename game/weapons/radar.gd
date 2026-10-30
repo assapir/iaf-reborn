@@ -7,8 +7,9 @@ enum { OFF, STBY, STT, BORE, LRS, TWS, ACM, GMT, MAP }
 
 ## bdb type code → cockpit index (FUN_00447e70).
 const COCKPIT := preload("res://aircraft/player_aircraft.gd").COCKPIT
-## Ours: the F-16I's radar row (iaf_avionics::radar::F16I, docs/f16i.md §2).
+## Ours: the F-16I's radar row (iaf_avionics::radar::F16I, docs/f16i.md §2) and the F-35I's (radar::F35I).
 const F16I := 9
+const F35I := 10
 
 # Mirrored after every call (IafRadar.state()).
 var modes := {}  ## mode → {max (range index), nm, idx (current range index 1..max)}
@@ -43,9 +44,11 @@ var _by_key := {}
 
 
 ## Create (FUN_004ace60) for the aircraft of bdb type `type_code`; `lrs_nm` overrides the LRS / STT detection
-## range (Weapon data Real). The radar starts OFF. The F-16I Sufa (Settings.sufa) takes our APG-68(V)9 row.
+## range (Weapon data Real). The radar starts OFF. Ours, with either Weapon data: the F-16I Sufa (Settings.sufa) takes
+## the APG-68(V)9 row, the F-35I (1000) the APG-81's; both start at 80 NM.
 func setup(type_code: int, lrs_nm := 0.0) -> void:
-	_r.setup(F16I if Settings.sufa(type_code) else COCKPIT.get(type_code, 1), lrs_nm)
+	var row: int = F16I if Settings.sufa(type_code) else (F35I if type_code == 1000 else COCKPIT.get(type_code, 1))
+	_r.setup(row, lrs_nm)
 	_sync()
 
 

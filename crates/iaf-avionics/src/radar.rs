@@ -107,10 +107,12 @@ type Row = [(u8, f64); 6];
 
 /// Ours: the row of the F-16I Sufa's AN/APG-68(V)9 (docs/f16i.md §2), after the original's nine.
 pub const F16I: usize = 9;
+/// Ours: the row of the F-35I's AN/APG-81 (docs/f35i.md), after the Sufa's.
+pub const F35I: usize = 10;
 
 /// Per cockpit index (`FUN_00447e70`: 0 F-15, 1 F-16, 2 F-4-2000, 3 Lavi, 4 Kfir, 5 F-4E, 6 Mirage, 7 MiG-29,
-/// 8 MiG-23): A-A table `0x640a74` and A-G table `0x640bbc`; then ours, [`F16I`].
-const TABLES: [Row; 10] = [
+/// 8 MiG-23): A-A table `0x640a74` and A-G table `0x640bbc`; then ours, [`F16I`] and [`F35I`].
+const TABLES: [Row; 11] = [
     [(6, 90.0), (4, 40.0), (2, 10.0), (2, 10.0), (4, 40.0), (4, 20.0)],
     [(5, 45.0), (4, 35.0), (2, 10.0), (2, 10.0), (4, 40.0), (4, 30.0)],
     [(5, 55.0), (4, 40.0), (2, 10.0), (2, 10.0), (5, 60.0), (5, 40.0)],
@@ -123,6 +125,9 @@ const TABLES: [Row; 10] = [
     // The F-16's row with the (V)9's 30 % more air-to-air range (Lockheed Martin): LRS 45 → 58 NM, TWS 35 → 45 NM
     // (inferred); the scales and the other modes as the F-16's.
     [(5, 58.0), (4, 45.0), (2, 10.0), (2, 10.0), (4, 40.0), (4, 30.0)],
+    // The F-35I's APG-81: search to 80 NM (148 km, as its Weapon data Real `RADAR_KM`), track-while-scan and the
+    // SAR map to 60 NM, GMT 40 NM, all on scales to 80 NM (inferred; the public figures give only "beyond 80 NM").
+    [(5, 80.0), (5, 60.0), (2, 10.0), (2, 10.0), (5, 60.0), (4, 40.0)],
 ];
 
 /// The modes a jet's radar has, with their ranges.
@@ -142,13 +147,18 @@ impl Ranges {
             }
             let nm = if mode == Mode::Lrs { lrs_nm.unwrap_or(nm) } else { nm };
             let mut range = Range::new(max, nm);
-            if mode == Mode::Bore {
+            // BORE starts at its largest scale; ours (the Sufa, the F-35I: their search reaches past 40 NM) every mode.
+            if mode == Mode::Bore || cockpit >= F16I {
                 range.index = max;
             }
             r[mode as usize] = Some(range);
         }
         let src = r[Mode::Lrs as usize].or(r[Mode::Acm as usize]).unwrap_or(Range::new(2, 10.0));
-        r[Mode::Stt as usize] = Some(Range::new(src.max, src.nm));
+        let mut stt = Range::new(src.max, src.nm);
+        if cockpit >= F16I {
+            stt.index = src.max;
+        }
+        r[Mode::Stt as usize] = Some(stt);
         Ranges(r)
     }
 
@@ -1014,10 +1024,19 @@ mod tests {
     #[test]
     fn f16i_row() {
         let r = Radar::new(F16I, None);
-        assert_eq!(r.ranges().get(Mode::Lrs), Some(&Range { max: 5, nm: 58.0, index: 4 }));
+        assert_eq!(r.ranges().get(Mode::Lrs), Some(&Range { max: 5, nm: 58.0, index: 5 }), "starts at 80 NM");
         assert_eq!(r.ranges().get(Mode::Tws).map(|t| t.nm), Some(45.0));
         assert_eq!(r.ranges().get(Mode::Stt).map(|t| t.nm), Some(58.0));
-        assert_eq!(r.ranges().get(Mode::Map), Radar::new(1, None).ranges().get(Mode::Map));
+        assert_eq!(r.ranges().get(Mode::Map).map(|m| (m.max, m.nm)), Some((4, 40.0)));
+    }
+
+    #[test]
+    fn f35i_row_starts_at_80_nm() {
+        let r = Radar::new(F35I, None);
+        assert_eq!(r.ranges().get(Mode::Lrs), Some(&Range { max: 5, nm: 80.0, index: 5 }));
+        assert_eq!(r.ranges().get(Mode::Tws).map(|t| (t.nm, t.index)), Some((60.0, 5)));
+        assert_eq!(r.ranges().get(Mode::Stt).map(|t| t.index), Some(5));
+        assert_eq!(Radar::new(1, None).ranges().get(Mode::Lrs).map(|t| t.index), Some(4), "the originals at 40 NM");
     }
 
     #[test]
