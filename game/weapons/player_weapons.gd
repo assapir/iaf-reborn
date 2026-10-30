@@ -486,7 +486,7 @@ func flir_on(mfd = null) -> bool:
 
 
 ## The MFD and key events of the EO / HARM / stores pages (FUN_005219e0 → the controller): 0x14 / 0x15 EO zoom,
-## 0x20 WIDE / SPOT, 0x6a laser, 0x37 HARM select.
+## 0x20 WIDE / SPOT, 0x6a laser, 0x37 HARM select; ours −1 the GPS bomb's PRE / VIS.
 func mfd_event(ev: int, arg = null) -> void:
 	match ev:
 		0x14, 0x15:
@@ -495,6 +495,8 @@ func mfd_event(ev: int, arg = null) -> void:
 			eo.wide_spot()
 		0x6a:
 			eo.laser_key(flir_pod)
+		-1:
+			gps_mode_key()  # ours: the F-16 SMS / WPN format's PRE / VIS OSB (key K; cockpit/f16_mfd.gd)
 		0x37:
 			if String(arg) != harm.selected:  # FUN_005358b0: the selected entry sends nothing
 				harm.select(String(arg))

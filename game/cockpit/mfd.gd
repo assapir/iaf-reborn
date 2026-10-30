@@ -66,6 +66,11 @@ var _k := 1.0
 var trace = null
 ## The EO / MAP pictures, under the page's art (show_behind_parent): pictures, drawn as they are in both modes.
 var _under: Control
+## Ours, the F-16's real formats (docs/mfd.md §9): "colour" (the Sufa), "green" (the Barak with MFDs on Real) or ""
+## (the original pages); `real` keeps this MFD's three formats (IafF16Mfd), `real_fmt` draws them (f16_mfd.gd).
+var real_look := ""
+var real = null
+var real_fmt: RefCounted
 static var _crisp_material: ShaderMaterial
 ## The original bitmaps (install resource/cockpits/<file>) and the crisp sprites cut from them, by "file rect".
 static var _art := {}
@@ -110,7 +115,10 @@ func _process(_delta: float) -> void:
 	position = cockpit.panel_to_screen(o.x - b * portal_scale, o.y - b * portal_scale)
 	size = Vector2.ONE * (SIZE + 2 * b) * s
 	_under.size = size
-	var want := Settings.better_cockpit_on("crisp_mfd")
+	real_look = Settings.real_mfd(cockpit.cockpit_dir.get_file()) if _bezel() > 0.0 else ""
+	if real_look != "":
+		_follow_real()
+	var want := Settings.better_cockpit_on("crisp_mfd") and real_look == ""  # the real formats draw their own vectors
 	if want != crisp:
 		_set_crisp(want)
 	# FUN_005296d0 after every page: a new current waypoint (clamped 0..count) scrolls the NAV list to keep it in its
@@ -330,6 +338,11 @@ func _draw() -> void:
 	var s := _s()
 	_k = s if crisp else 1.0
 	draw_set_transform(Vector2.ONE * _bezel() * s, 0.0, Vector2.ONE * s / _k)
+	if real_look != "":
+		_rec(["real", real.state().shown if not real.state().menu else "MENU", real_look])
+		real_fmt.draw_format(s)
+		draw_set_transform(Vector2.ZERO)
+		return
 	# A portal's hovered label: the touch box (ours; the originals' buttons are in their panel art).
 	if _bezel() == 0.0 and hover_osb > 0:
 		_frame(touch_rect(hover_osb), DIM_GREEN)
@@ -794,13 +807,15 @@ func _click_gmt(p: Vector2) -> void:
 	var own: Vector2 = st.get("world", Vector2.ZERO)
 	for c in r.get("contacts", []):
 		var w: Vector3 = c.pos
-		var cp := (
-			(Vector2(66, 109) + _heading_up(Vector2(w.x, w.y) - own, deg_to_rad(st.heading), nm * 1853.0 / 56.0))
-			. floor()
-		)
+		var cp := (Vector2(66, 109) + _heading_up(Vector2(w.x, w.y) - own, deg_to_rad(st.heading), _gmt_k(nm))).floor()
 		if not c.locked and absf(p.x - cp.x) < 4 and absf(p.y - cp.y) < 4:
 			_radar_event(0x2a, c.key)
 			return
+
+
+## GMT's metres per MFD px: the original's R·1853 / 56; the real FCR's GMT at the GM scale (94 px = R).
+func _gmt_k(nm: float) -> float:
+	return nm * (19.7128 if real_look != "" else 1853.0 / 56.0)
 
 
 func _radar_event(ev: int, arg = null) -> void:
@@ -815,6 +830,8 @@ func _draw_pictures() -> void:
 		return
 	var s := _s()
 	_under.draw_set_transform(Vector2.ONE * _bezel() * s, 0.0, Vector2(s, s))
+	if real_look != "":  # the real formats' black screen (the original's tiles bring their own), under the pictures
+		_under.draw_rect(Rect2(2, 2, 128, 128), Color.BLACK)
 	var r: Dictionary = cockpit.radar
 	if page == RADAR and int(r.get("mode", 0)) == 8:
 		_draw_map_picture(r, RADAR_RANGES[clampi(int(r.get("idx", 1)), 1, 6) - 1])
@@ -1213,6 +1230,20 @@ func _ring(c: Vector2, r: float) -> void:
 		_line(c + Vector2.from_angle(TAU * i / n) * r, c + Vector2.from_angle(TAU * (i + 1) / n) * r)
 
 
+# --- ours: the F-16's real formats (f16_mfd.gd) ---------------------------------------------------------------
+
+
+## Keeps the formats with the page: a page with no real format (NAV by the M key) shows the HSD in its place; the
+## page's format becomes the primary one.
+func _follow_real() -> void:
+	if real == null:
+		real = ClassDB.class_call_static("IafF16Mfd", "create", index)
+		real_fmt = preload("res://cockpit/f16_mfd.gd").new(self)
+	if not ClassDB.class_call_static("IafF16Mfd", "offered", page):
+		page = ClassDB.class_call_static("IafF16Mfd", "stand_in")
+	real.follow(page)
+
+
 # --- bezel buttons (FUN_00520db0 hit test, FUN_005219e0 actions) ---------------------------------
 
 
@@ -1361,6 +1392,9 @@ func _click_tws(p: Vector2, double: bool) -> void:
 
 ## OSB actions.
 func press(osb: int) -> void:
+	if real_look != "":
+		real_fmt.press(osb)
+		return
 	if osb == 6:
 		page = MENU
 		return

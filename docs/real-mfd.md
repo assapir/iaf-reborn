@@ -1,10 +1,11 @@
-# Real MFDs: per-aircraft reference (Extras, planned)
+# Real MFDs: per-aircraft reference (Extras, being built)
 
 The "Real MFDs" option is a planned Extras switch. With it on, each jet's MFDs (multi-function displays) draw that
 jet's real head-down formats in place of the original 1998 pages. With it off (the default), the MFDs draw the
-original pages ([mfd.md](mfd.md)). This file is the reference the option will be built from: per jet, which real
-display stands for each game page, its layout, and the game state that drives it. Status: research done, nothing
-built ([roadmap.md](roadmap.md) "Real MFDs").
+original pages ([mfd.md](mfd.md)). This file is the reference the option is built from: per jet, which real
+display stands for each game page, its layout, and the game state that drives it. Status: built for the F-35I (its
+panoramic display) and the F-16 (mfd.md §9: the Sufa always, in colour; the Barak with Extras "MFDs (F-16)" on Real,
+in green); the other jets are research only ([roadmap.md](roadmap.md) "Real MFDs").
 
 Key facts:
 - Researched October 2026 from public sources. The repo keeps no source images.
@@ -184,6 +185,14 @@ called TFLIR on the cockpit displays"[^baseline]. The threat format is TWD. MENU
 
 ## F-16C/D Barak (Block 30/40)
 
+Built (2026-10-30; mfd.md §9, `crates/iaf-avionics/src/f16_mfd.rs`, `game/cockpit/f16_mfd.gd`): the common frame
+(the mnemonics by their real OSB numbers, the bottom row's SWAP, three formats and DCLT, the format menu), FCR, SMS,
+HSD, WPN (the Maverick, HAS, a GPS bomb's status), TGP and TEST. The F-16I Sufa draws them in colour (see "Colours
+and font"), the Barak in green. Built as decided where the sections below leave it open: HAS is offered (the WPN
+format with a HARM selected); the game's 5 NM radar range is kept; the game buttons map onto the real OSB numbers by
+their place (mfd.md §9); TEST lists the damage flags as fault lines. Not built: the CNTL pages, the RESET menu,
+BLANK, the data entry page, the bullseye, AIFF, the TGP's FLIR format.
+
 Main source: the Hellenic AF F-16C/D Block 50 avionics manual (the dash-34, 1997)[^dash34]. It is a scan with no text
 layer, but every MFD figure is a clean black line drawing that can be traced. Page "1-N" is PDF page N + 16 (for
 example 1-62 is PDF page 78), as in real-hud.md. The MLU M1 pilot's guide[^mlu1] adds FCR and HSD figures, with
@@ -244,7 +253,21 @@ fig. 1-77).
 **Colours and font:**
 - Green on black. "Symbols that were not colorized remain green as they appear on typical F-16 monochromatic
   displays" (MLU M1 p. 19, table 1-1)[^mlu1]. The MLU's colour HSD / FCR is a 1998 tape for the European F-16A/B,
-  out of era.
+  out of era for the Barak.
+- **Colour MFDs (the F-16I Sufa's).** No source shows the Sufa's own pages; ours take the colour F-16s' (inferred).
+  The MLU M1 guide gives the symbol colours (table 1-1 p. 20, figs. 1-17 / 1-18 p. 21; inks read off the figures:
+  green 0,204,0, yellow 251,243,5, a sky blue it calls cyan 0,159,255, white)[^mlu1]:
+  - FCR: search returns white, tracks and the bug yellow, IFF friends green, the acquisition cursor white; the range
+    marks, antenna carets, scan limits, horizon line and DLZ green; the bullseye and the ownship "+" cyan.
+  - HSD: the ownship cyan, the range rings, route and steerpoints white, preplanned threat circles yellow, the radar's
+    search volume cyan, the ghost cursors white.
+  - SMS and the video formats are not in the table: they stay green.
+  - Text and OSB mnemonics green; the highlight a green box with black text.
+  The Block 50 M4 tape (a simulator manual) differs: text, mnemonics and the highlight white; tracks yellow, search
+  returns white, the horizon blue, the antenna markers cyan, the HSD's rings magenta; a threat circle red with the
+  jet inside it; the SMS white; the pilot can recolour each element on the DTE COLR page[^dcs-f16] (pp. 322–324,
+  358–369). Ours: the MLU's symbol colours, with the text white and the threat ring red inside it as on the M4 tape
+  (the nearer era for a 2004 jet; inferred).
 - Highlight: an inverse-video box around the mnemonic.
 - Font: a stroke sans-serif in capitals; its size is open. For 132 px, a 5 × 7 capital font gives about 18 characters
   across (inferred).
@@ -911,8 +934,9 @@ instrument), HARM, MENU.
    (the armament control panel's lights, whose layout is open, or the MSIP MPCD ARMT page); the VSD's A-G picture;
    the pre-MSIP ALR-56 symbol set; the primary VSD / TEWS / armament panel layouts (the F-15 dash-34s are not
    public).
-4. **F-16:** whether the HAS (HARM) page is offered (Block 50, out of era); the game-button → OSB mapping; the 5 NM
-   range step; the TEST fault-list and FLIR layouts; the HSD's era; the IAF Block 30/40's RWR.
+4. **F-16:** whether the Barak had the HAS (HARM) page (Block 50; ours offers it); the TEST fault-list and FLIR
+   layouts; the HSD's era; the IAF Block 30/40's RWR; the Sufa's own MFD colours and pages (ours: the MLU M1 /
+   M4 tape colours).
 5. **F-35I:** the TWD, SRCH and WPN-A / WPN-S graphics; the ownship and threat-ring drawing on the TSD; the real
    pixel size. The best unread source is Skaff's SAE paper[^sae].
 6. **Lavi:** every format's details, and which display was monochrome; the photo's origin and date; whether the
@@ -931,6 +955,9 @@ instrument), HARM, MENU.
     AGM-88 pp. 1-456..1-466 (figs. 1-295..1-298). PDF page = 1-N + 16: https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf
 [^mlu1]: Lockheed Martin, F-16 A/B MLU Production Tape M1 pilot's guide (16PR14341, 15 Nov 1998): colour symbology
     p. 19 (table 1-1), HSD figs. 1-18..1-23, EWPI / ALR-69 fig. 7-3 p. 209: https://falcon.blu3wolf.com/Docs/MLU_M1.pdf
+[^dcs-f16]: Eagle Dynamics, *DCS: F-16C Viper Early Access Guide* (EN, 2026), a simulator manual of a Block 50 M4
+    tape: colour symbology (COLR) pp. 322–324, SOI p. 331, HSD pp. 358–360, SMS pp. 366–369, FCR pp. 393–404, TGP
+    p. 495: https://www.digitalcombatsimulator.com/en/downloads/documentation/dcs-viper_early_access_manual_en/
 [^rokaf]: RoKAF AFTTP 3-3 Vol 5, F-16C Basic Employment Manual (2005), tactics text with an MFD TEST page reference:
     https://falcon.blu3wolf.com/Docs/Basic-Employment-Manual-F-16C-RoKAF.pdf
 [^haf1]: T.O. GR1F-16CJ-1, Hellenic AF F-16C/D flight manual (dash-1): the MFD TEST page / MFL, the DED STPT page:

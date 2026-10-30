@@ -5,6 +5,7 @@ pub mod air;
 pub mod bombs;
 pub mod city_lights;
 pub mod eo;
+pub mod f16_mfd;
 pub mod fctrl;
 pub mod gaaf;
 pub mod gps;

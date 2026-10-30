@@ -4,6 +4,9 @@
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=~/.cache/shots -- --log-file ~/.cache/g.log --resolution \
 #     1920x1080 --path game -s ../tests/godot/_mfd_shot.gd
 # MFD_ONLY=<name> shoots one case; MFD_RELEASE=PAIR|SGL shows the stores page as with Bomb release Real.
+# MFD_LOOK=sufa|barak|original: the F-16's real formats' cases (docs/mfd.md §9: the Sufa in colour, the Barak with
+# MFDs on Real; original: the Barak with MFDs on Original, to compare), each the whole cockpit
+# (mfd_real_<look>_<case>.png, both MFDs) and its Left MFD cropped.
 extends "res://../tests/godot/base.gd"
 
 ## [name, page, radar mode, cockpit].
@@ -26,9 +29,19 @@ const CASES := [
 	["adi", 9, 0, "lavi"]
 ]
 
+## The real formats' cases: [name, Left page, Right page, radar mode, a GPS bomb selected].
+const REAL_CASES := [
+	["fcr_sms", 2, 1, 5, false],
+	["hsd_stt", 3, 2, 2, false],
+	["wpn_gps", 5, 1, 4, true],
+	["tgp_has", 6, 10, 8, false],
+	["test_menu", 4, 8, 7, false]
+]
+
 
 func run() -> void:
 	var dir := OS.get_environment("SHOT_DIR")
+	var look := OS.get_environment("MFD_LOOK")
 	if DisplayServer.get_name() == "headless" or dir == "":
 		print("needs a window and SHOT_DIR")
 		return
@@ -40,6 +53,9 @@ func run() -> void:
 	await frames(2)
 	c.remove_child(c.hud)  # the HUD would read a full weapons snapshot; only the MFDs are shown
 	var own := Vector2(200000, 600000)
+	if look != "":
+		await _real_shots(c, own, look, dir)
+		return
 	var loaded := "f16"
 	for k in CASES:
 		if OS.get_environment("MFD_ONLY") not in ["", k[0]]:
@@ -72,7 +88,34 @@ func run() -> void:
 	print("RESULT PASS")
 
 
-func _fill(c: Control, own: Vector2, mode: int) -> void:
+func _real_shots(c: Control, own: Vector2, look: String, dir: String) -> void:
+	settings().f16_variant = "sufa" if look == "sufa" else "barak"
+	settings().real_mfds = "original" if look == "original" else "real"
+	c.zoom = 1.0
+	c.panel_target = 1.0
+	c.panel_shift = 1.0
+	for k in REAL_CASES:
+		if OS.get_environment("MFD_ONLY") not in ["", k[0]]:
+			continue
+		_fill(c, own, int(k[3]), k[4])
+		c.mfds[0].page = int(k[1])
+		c.mfds[1].page = int(k[2])
+		c.mfds[0].mouse = Vector2(80, 60) if int(k[3]) == 8 else null
+		await frames(4)
+		await RenderingServer.frame_post_draw
+		var img: Image = root.get_viewport().get_texture().get_image()
+		img.convert(Image.FORMAT_RGB8)
+		img.save_png(dir.path_join("mfd_real_%s_%s.png" % [look, k[0]]))
+		var r := Rect2i(c.mfds[0].get_global_rect()).intersection(Rect2i(Vector2i.ZERO, img.get_size()))
+		img.get_region(r).save_png(dir.path_join("mfd_real_%s_%s_left.png" % [look, k[0]]))
+		print("real %s %s" % [look, k[0]])
+	settings().real_mfds = "original"
+	settings().f16_variant = "barak"
+	print("RESULT PASS")
+
+
+## The made-up cockpit state; `gps`: a GBU-31 selected, its PRE target the route's TARGET, a bomb flying (TTI).
+func _fill(c: Control, own: Vector2, mode: int, gps := false) -> void:
 	var hdg := 30.0
 	c.state.merge(
 		{
@@ -142,11 +185,25 @@ func _fill(c: Control, own: Vector2, mode: int) -> void:
 		)
 	c.weapons = {"stations": stations, "selected": 3, "mrm": 2, "srm": 4, "gun": 510, "quantity": 2, "interval": 10}
 	c.weapons["release"] = OS.get_environment("MFD_RELEASE")
+	c.weapons.merge({"type": 650, "name": "MK84", "total": 2, "ready": true, "hud_mode": 5, "chaff": 30, "flares": 30})
+	if gps:
+		stations[3].name = "GBU-31"
+		stations[5].name = "GBU-31"
+		var tgt: Vector2 = c.waypoints[2].world
+		var lar := {"range": tgt.distance_to(own), "rmin": 1900.0, "rmax": 24000.0, "in_range": false, "tmr": 75.0}
+		c.weapons.merge(
+			{
+				"name": "GBU-31",
+				"ag": {"gps": {"aim": Vector3(tgt.x, tgt.y, 0.0), "pre": true, "in_range": false, "lar": lar}},
+				"gps_tti": 42.0
+			},
+			true
+		)
 	c.eo = {
 		"camera": false,
 		"flir_pod": true,
 		"flir": {"zoom": 2, "spot": false, "laser": true, "range": "12.3", "u": 0.2, "v": 0.3},
-		"tv": {"status": 1, "zoom": 1, "u": -0.15, "v": 0.1},
+		"tv": {"status": 0 if gps else 1, "zoom": 1, "u": -0.15, "v": 0.1},
 		"tv_time": 42
 	}
 	c.harm = {
