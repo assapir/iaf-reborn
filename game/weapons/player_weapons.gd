@@ -1754,7 +1754,7 @@ func drop_bomb(w: Dictionary, p0: Vector3, vel: Vector3, aim: Vector3, owner: Di
 	_place_bomb(bombs[-1])
 
 
-## GPS bombs in flight (ours, gps.rs): {g (IafGpsBomb), w, node, sound, owner}.
+## GPS bombs in flight (ours, gps.rs): {g (IafGpsBomb), w, node, sound, owner, t0 (launch time, the F11 view)}.
 var gps_bombs: Array = []
 
 
@@ -1766,7 +1766,7 @@ func _launch_gps(w: Dictionary, p0: Vector3, vel: Vector3, aim: Vector3, owner: 
 	if node != null:
 		host.add_child(node)
 	var snd = host.sounds.play("SFX_OBJECT_SPECIFIC", OST.get(int(w.type), "OST_BOMB"))
-	var bm := {"g": g, "w": w, "node": node, "sound": snd, "owner": owner}
+	var bm := {"g": g, "w": w, "node": node, "sound": snd, "owner": owner, "t0": now}
 	gps_bombs.append(bm)
 	_place_gps(bm)
 

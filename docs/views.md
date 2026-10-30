@@ -265,7 +265,7 @@ Numpad snap keys turn the orbit: 8 / 2 pitch, 6 / 4 heading. F2 and 1 / 3 / 7 / 
     while scan).
   * **F6** uses the AI formation (`ai_flights.gd` `_formation_of`).
   * **F11** (`terrain_view.gd` `last_weapon`) follows the homing missiles (IR and radar, any launcher's) and falling
-    bombs / jettisoned tanks. The TV weapons and rockets, like chaff / flares / gun rounds, are never it.
+    bombs / jettisoned tanks, and our GPS bombs (JDAMs, GBU-39; weapons.md §13.2). The TV weapons and rockets, like chaff / flares / gun rounds, are never it.
   * The wreck circle has no attacker field, so it always circles the wreck.
   * The own jet's `_bc` model (`terrain_view.gd` `own_bc`) is a sibling of the jet model on the rig, at the jet's
     Present scale, shifted by −eye; it shows in the views where the cockpit art is drawn. Snap views count as the

@@ -2900,7 +2900,7 @@ func wingman() -> Node3D:
 	return null
 
 
-## FUN_00450a80: the last released weapon still in flight (our IR missiles and falling bombs; chaff /
+## FUN_00450a80: the last released weapon still in flight (our IR missiles, falling bombs and GPS bombs; chaff /
 ## flares / gun rounds / rockets are never it).
 func last_weapon() -> Node3D:
 	if weapons == null:
@@ -2913,6 +2913,10 @@ func last_weapon() -> Node3D:
 			best = n
 			t0 = float(m.t0)
 	for b in weapons.bombs:
+		if b.node is Node3D and is_instance_valid(b.node) and float(b.t0) >= t0:
+			best = b.node
+			t0 = float(b.t0)
+	for b in weapons.gps_bombs:  # ours: the GPS bombs (docs/weapons.md §13.2) as falling bombs
 		if b.node is Node3D and is_instance_valid(b.node) and float(b.t0) >= t0:
 			best = b.node
 			t0 = float(b.t0)
