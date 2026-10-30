@@ -123,7 +123,9 @@ pub struct Tools {
 }
 
 fn on_path(name: &str) -> bool {
-    std::env::var_os("PATH").is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(name).is_file()))
+    // Windows: the programs are name.exe.
+    let file = if cfg!(windows) { format!("{name}.exe") } else { name.to_string() };
+    std::env::var_os("PATH").is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(&file).is_file()))
 }
 
 pub fn tools() -> Tools {
@@ -132,9 +134,15 @@ pub fn tools() -> Tools {
         gdal: on_path("gdal_translate") && on_path("gdalbuildvrt"),
         curl: on_path("curl"),
         python3: on_path("python3"),
-        // macOS: the app bundle, which puts nothing on PATH (the same place tools/guide_pdf.py looks).
-        firefox: on_path("firefox") || Path::new("/Applications/Firefox.app/Contents/MacOS/firefox").is_file(),
-        display: env("DISPLAY") || env("WAYLAND_DISPLAY") || (cfg!(target_os = "macos") && !env("SSH_CONNECTION")),
+        // macOS: the app bundle, Windows: its install folder; neither puts it on PATH.
+        firefox: on_path("firefox")
+            || Path::new("/Applications/Firefox.app/Contents/MacOS/firefox").is_file()
+            || (cfg!(windows)
+                && std::env::var_os("ProgramFiles")
+                    .is_some_and(|p| Path::new(&p).join("Mozilla Firefox/firefox.exe").is_file())),
+        display: env("DISPLAY")
+            || env("WAYLAND_DISPLAY")
+            || (cfg!(any(target_os = "macos", windows)) && !env("SSH_CONNECTION")),
     }
 }
 

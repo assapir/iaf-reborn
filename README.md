@@ -1,6 +1,6 @@
 # iaf-reborn
 
-A native (Linux and macOS) re-implementation of the engine for **Jane's IAF: Israeli Air Force** (1998). It loads the
+A native (Linux, macOS and Windows) re-implementation of the engine for **Jane's IAF: Israeli Air Force** (1998). It loads the
 game data from **your own copy** of the original game and renders it with modern graphics.
 
 **You need your own copy of the original game (the CD / ISO).** This repository holds no original game assets or
@@ -46,6 +46,25 @@ rustup default stable
 ```
 
 macOS: [docs/macos.md](docs/macos.md).
+
+### Windows
+
+Rust, Godot and the C++ build tools Rust links with, from a terminal:
+
+```powershell
+winget install Git.Git Rustlang.Rustup GodotEngine.GodotEngine
+winget install Microsoft.VisualStudio.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+```
+
+The scripts are PowerShell: `.\setup.ps1`, `.\iafjets.ps1` and `.\mission-editor.ps1` do what `./setup`, `./iafjets` and
+`./mission-editor` do; `tools\windows\setup-cli.ps1` is the scripted setup, with the options of `iaf-setup`
+(`crates/iaf-setup/src/bin/iaf-setup.rs`, e.g. `--patch v1.1.exe "Jane's IAF.iso"`). They find
+Godot on PATH, in `$env:GODOT` or where winget put it. Setup adds the two launchers to the Start Menu. Windows runs no
+scripts by default; allow your own once, then open a new terminal (it also picks up the new PATH):
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
 
 ## Quick start
 

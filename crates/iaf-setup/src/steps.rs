@@ -81,6 +81,17 @@ fn copy_tree(from: &Path, to: &Path) -> Result<()> {
     Ok(())
 }
 
+/// `p` without Windows' verbatim prefix (`\\?\C:\…` → `C:\…`, `\\?\UNC\server\…` → `\\server\…`): PowerShell's
+/// -File leaves a verbatim script's $PSScriptRoot empty.
+fn plain_path(p: &Path) -> String {
+    let s = p.to_string_lossy();
+    if let Some(unc) = s.strip_prefix(r"\\?\UNC\") {
+        format!(r"\\{unc}")
+    } else {
+        s.strip_prefix(r"\\?\").unwrap_or(&s).to_string()
+    }
+}
+
 /// Runs `cmd`, its output lines into the step's log.
 fn child(mut cmd: Command, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     let name = format!("{:?}", cmd.get_program());
@@ -192,10 +203,22 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
         }
         "icon" => convert::icon(&install, &conv.join("icon.png"), pr, cancel)?,
         "launcher" => {
-            let mut cmd = Command::new(ctx.repo.join("tools/install-launcher.sh"));
-            if let Some(x) = &ctx.xdg_data_home {
-                cmd.env("XDG_DATA_HOME", x);
-            }
+            let cmd = if cfg!(windows) {
+                // Start Menu shortcuts (with xdg_data_home: into a folder there instead).
+                let script = plain_path(&ctx.repo.join(r"tools\windows\install-launcher.ps1"));
+                let mut c = Command::new("powershell");
+                c.args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", &script]);
+                if let Some(x) = &ctx.xdg_data_home {
+                    c.args(["-Menu", &plain_path(&x.join("Start Menu"))]);
+                }
+                c
+            } else {
+                let mut c = Command::new(ctx.repo.join("tools/install-launcher.sh"));
+                if let Some(x) = &ctx.xdg_data_home {
+                    c.env("XDG_DATA_HOME", x);
+                }
+                c
+            };
             child(cmd, pr, cancel)?;
         }
         "sentinel2" | "mapi2015" => return imagery(step, ctx, pr, cancel),
@@ -335,6 +358,11 @@ impl Progress for Quiet {
 /// The imagery layers the game's settings.cfg chooses (`imagery_israel`, `imagery_outside`; "original" is no layer),
 /// None when the file is missing or names neither (then every layer is compressed).
 fn game_imagery_layers() -> Option<Vec<String>> {
+    // Windows: Godot's user data is under %APPDATA% (no HOME there).
+    if let Some(appdata) = std::env::var_os("APPDATA").filter(|_| cfg!(windows)) {
+        let cfg = PathBuf::from(appdata).join("Godot/app_userdata/iaf-reborn/settings.cfg");
+        return imagery_layers_in(&std::fs::read_to_string(cfg).ok()?);
+    }
     let home = PathBuf::from(std::env::var_os("HOME")?);
     let data = std::env::var_os("XDG_DATA_HOME").map(PathBuf::from).unwrap_or_else(|| home.join(".local/share"));
     let cfg = [
@@ -520,6 +548,9 @@ pub fn imagery_stale(assets: &Path, id: &str) -> Result<usize> {
 /// The scripted pilot guides: tools/guide_shots.sh (real renders, a display needed) then tools/guide_pdf.py, output
 /// into the log.
 pub fn script_guides(repo: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
+    if cfg!(windows) {
+        bail!("the pilot guides' pictures are made by a bash script (tools/guide_shots.sh): not on Windows yet");
+    }
     let mut shots = Command::new(repo.join("tools/guide_shots.sh"));
     shots.current_dir(repo);
     child(shots, pr, cancel)?;

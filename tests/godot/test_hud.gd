@@ -185,7 +185,7 @@ func _traced(tv) -> void:
 	check(Hud.text_block(ts, 0, nav, {}, {}, true, [])[0] == "T 075", "twin engines: the larger rpm")
 	ts.afterburner = 2
 	ts.ap_mode = 2
-	ts.g = -1.25
+	ts.g = -1.24  # no tie: C libraries round -1.25 to "-1.2" (glibc) or "-1.3" (MSVC)
 	rows = Hud.text_block(ts, 2, nav, {"total": 2, "name": "AIM-7", "ready": true}, {}, false, [])
 	check(
 		(
