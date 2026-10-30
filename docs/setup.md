@@ -48,7 +48,7 @@ and each step uses every core inside.
 | `airbases` | theatre | `assets/converted/terrain/airbases.json`, `airbases/` |
 | `launcher` | icon | the desktop launcher (`tools/install-launcher.sh`) |
 | `textures` | | `assets/thirdparty/ambientcg`: the CC0 textures of Ground textures and Model detail (≈ 250 MB download; docs/rendering.md §1.4, §9) |
-| `models` | aircraft | `assets/source/f15` (the FlightGear F-15's files, ≈ 18 MB download, GPL-2.0-only) and `assets/converted/models/f15/f15c.glb`, the detailed F-15 (docs/aircraft-models.md §6) |
+| `models` | aircraft | `assets/source/f15` (the FlightGear F-15's files, ≈ 20 MB download, GPL-2.0-only), `assets/converted/models/f15/f15c.glb`, the detailed F-15, and `f15i.glb`, the F-15I Ra'am (docs/aircraft-models.md §6, §6.7) |
 | `sentinel2`, `mapi2015-fetch`, `mapi2015` | airbases | `assets/converted/imagery` |
 | `scenery-fetch` | | `assets/source/scenery`: the sources the chosen kinds need (both 520 MB, buildings 373 MB, trees 267 MB); `assets/source/roads`: the other countries' road extracts (366 MB, each optional; docs/scenery.md §1.1) |
 | `scenery` | mapi2015, scenery-fetch, missions, objects, airbases | `assets/converted/roads`: the theatre's road layer (docs/scenery.md §6); `assets/converted/scenery`: the chosen kinds, buildings and trees, buildings only or trees only (docs/scenery.md §1.6) |
@@ -67,7 +67,7 @@ behind.
 
 `models` (`iaf_tools::f15`, CLI `iaf-convert f15-detailed <assets>`) downloads the files of `f15::SOURCE` from
 raw.githubusercontent.com at a pinned fg-aircraft commit, checks each against its SHA-256 (files done before are
-kept), then converts them with the original F-15 into the detailed model. When GitHub cannot be reached the step is
+kept), then converts them with the original F-15 into the detailed F-15C and the F-15I. When GitHub cannot be reached the step is
 skipped with a note, and the F-15 stays Original with Models Detailed. The wizard's step line names the model's authors
 and licence.
 

@@ -202,6 +202,8 @@ const EXTRAS := [
 	["weapon_data", "Weapon data", [["Original (1998)", "original"], ["Real weapons", "real"]]],
 	# Ours: every F-16 as the F-16I Sufa (docs/f16i.md): its flight data, radar and look.
 	["f16_variant", "F-16 version", [["Barak (F-16D)", "barak"], ["Sufa (F-16I)", "sufa"]]],
+	# Ours: every F-15 drawn as the F-15I Ra'am (docs/aircraft-models.md §6.7), its look only.
+	["f15_variant", "F-15 version", [["Baz (F-15C)", "baz"], ["Ra'am (F-15I)", "raam"]]],
 	# Ours: the modern weapons (weapons/modern_weapons.gd) on every jet that really carried them.
 	["modern_weapons", "Weapons", [["Original (1998)", false], ["Modern", true]]],
 	["language", "Language", [["English", "en"], ["Hebrew", "he"]]],

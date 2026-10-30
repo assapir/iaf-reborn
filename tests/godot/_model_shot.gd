@@ -12,6 +12,8 @@
 # SHOT_LIGHTS=1: Night lights Detailed (the jet's navigation lights and strobe).
 # SHOT_F16=sufa: every F-16 as the F-16I Sufa (docs/f16i.md §8.1). SHOT_AI=1: the shots of the first AI F-16 instead
 # of the player's jet (the camera rides with it; no pose).
+# SHOT_F15=raam: every F-15 as the F-15I Ra'am (docs/aircraft-models.md §6.7).
+# SHOT_TYPE=mig29:180 (with SHOT_JET): that type's model in the player's jet's place, for the AI-only jets (§7).
 # SHOT_JET=0 (the F-15; any jet_id): mission 311 with that jet, also for "airborne" (lifted 3000 m, F15_LOADOUT), and
 # the JET_SHOTS (docs/aircraft-models.md §6), named for the before / after pairs.
 extends "res://../tests/godot/base.gd"
@@ -118,6 +120,8 @@ func run() -> void:
 		settings().night_lights = "detailed"
 	if OS.get_environment("SHOT_F16") != "":
 		settings().f16_variant = OS.get_environment("SHOT_F16")
+	if OS.get_environment("SHOT_F15") != "":
+		settings().f15_variant = OS.get_environment("SHOT_F15")
 	var jet := OS.get_environment("SHOT_JET")
 	if jet != "":
 		settings().jet_id = int(jet)
@@ -127,6 +131,14 @@ func run() -> void:
 		for c in tv.get_children():
 			if c is CanvasLayer:
 				c.visible = false  # the mission's messages
+	var stand := OS.get_environment("SHOT_TYPE").split(":")
+	if stand.size() == 2:  # another type's model drawn in the player's jet's place (the AI-only jets)
+		var m: Node3D = load("res://aircraft/aircraft_model.gd").create(stand[0], int(stand[1]), ground)
+		tv.aircraft.add_sibling(m)
+		m.transform = tv.aircraft.transform
+		m.position.y += m.basis.y.y * (float(tv.aircraft.desc.height) - float(m.desc.height))
+		tv.aircraft.visible = false
+		tv.aircraft = m
 	if not ground:
 		airborne_case(tv, _hardpoints() if jet == "" else _loadout(311, F15_LOADOUT))
 		var st: Dictionary = tv.flight.state()

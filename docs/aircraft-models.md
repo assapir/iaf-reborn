@@ -14,7 +14,9 @@ cockpit view work as with the original models.
 Today the detailed models are the **F-16D** (`game/extra/models/f16/f16d.glb`), used for the player's F-16, the AI's
 F-16s, parked F-16s and the Reference viewer; the **F-16I Sufa** (§1.3, `f16i.glb`), which stands in for every F-16
 with the Extras switch "F-16 version" on Sufa, whatever Models says; the **F-15C** (§6), which setup makes on your machine from the
-FlightGear F-15 and which stands in for every F-15 the same way; and 16 **stores** (§5) on every jet that carries
+FlightGear F-15 and which stands in for every F-15 the same way; the **F-15I Ra'am** (§6.7), made by the same step, for
+every F-15 with the Extras switch "F-15 version" on Ra'am; the **MiG-29** (§7), from the FlightGear MiG-29 9-12, for
+every MiG-29; and 16 **stores** (§5) on every jet that carries
 them. Plans for more jets and stores: [graphics-research.md](graphics-research.md) §3.7 and §3.13.
 
 ## 1. The F-16D model
@@ -602,6 +604,110 @@ wheels flat), so a leg in transit takes a simpler path. `util/gltf.gd` maps `f15
 - No original model as the far LOD (as the F-16D; the stores have it).
 - The gear legs retract about one axis (above); the nozzles keep their modelled opening.
 
+### 6.7 The F-15I Ra'am
+
+The Extras switch **F-15 version** (Baz (F-15C) / Ra'am (F-15I)) draws every F-15 as the IAF's two-seat strike
+Eagle, whatever Models says, when setup made `assets/converted/models/f15/f15i.glb`. It changes the look only: the
+flight data, weapons, radar and cockpit stay the F-15C's (deviations.md §2). Setup's `models` step makes it from
+the same FlightGear files as the F-15C plus two (`livery.IAF.jpg`, `f15-interior-back.ac`), with
+`f15::build(…, raam = true)`:
+
+| item | value |
+|---|---|
+| source | the Zaretto F-15 above (§6), GPL-2.0-only, the F-15D / F-15E parts of the same `f15c.ac` |
+| triangles | 60 400 (the F-15C's 42 400 with the two-seat canopy, conformal tanks and their pylons, the rear cockpit and a second pilot) |
+| file size | 4.1 MB |
+| livery | FlightGear's "IAF 235-69 SQ HAMMERS" as it comes: 69 Squadron's three-tone desert camouflage over light grey, tail number 269 on the fins and the nose, the eagle's head on the outer fins, IAF roundels on the nose and wings |
+| crew | two pilots on ACES II seats, front and rear cockpit tubs (the rear one at f15c.xml's "Backseater" offset) |
+
+Everything else is the F-15C's conversion (§6.1): the same scale (0.982), helpers, hinges, gear doors, pylons and
+afterburners. The conformal tanks' pylons stay empty: the game hangs the F-15's stores on the original's stations.
+
+The real F-15I[^raam-side][^raam-front][^raam-rear]: two seats under one canopy, conformal fuel tanks with tangential
+pylons, F100-PW-229 engines, a desert camouflage of sand, tan and green over light grey, and an eagle's head on the
+outer fins. What differs on ours (open):
+
+- the F-15E's larger main wheels and bulged gear doors are not modelled (FlightGear's F-15C gear);
+- FlightGear's livery is a fan's painting: its camouflage pattern and the wing roundels' places are not checked
+  against a photo of 269;
+- the rear cockpit's instrument panel is dark grey (its textures are SGI `.rgb` files, as the front's);
+- the cockpit view, the HUD and the flight model stay the F-15C's; the F-15I's own (flight data, weapons, the
+  rear seat) are open.
+
+## 7. The detailed MiG-29
+
+With Models Detailed every MiG-29 (the AI's and parked ones) is the FlightGear MiG-29 9-12, the jet of the
+original's own MiG-29 (a Fulcrum-A). Its licence (GPL-3.0) lets it ship in the repo:
+`game/extra/models/mig29/mig29.glb` (sources and changes in `game/extra/models/mig29/SOURCES.md`).
+
+| item | value |
+|---|---|
+| source | `github.com/Mercenary-Mercury/MiG-29_9-12` at commit d4a299b: external model by Enrique Laso Leon, FDM, cockpit and submodels by Sergey "Mercenary_Mercury" Salov; GPL-3.0 |
+| triangles | 29 800 (original: 6 400); runtime LODs as the F-16D |
+| textures | FlightGear's two 2048² PNG atlases, repainted (below), the pilot 1024², the seat 512²; compressed to BC1 / BC3 at the parse |
+| file size | 2.0 MB |
+| livery | a Syrian MiG-29 (§7.2): two-tone grey above (light grey with large dark grey blotches, our pattern), light grey below, FlightGear's dark radome and green wheel hubs; the Syrian roundel on the wings and the Syrian flag on the fins (ours) |
+| crew | one pilot on a K-36DM seat |
+
+### 7.1 The conversion
+
+A developer runs `iaf-convert mig29-detailed <src dir> <assets>/converted/planes/mig29 <out.glb>`
+(`crates/iaf-tools/src/mig29.rs`). It downloads the pinned files into `<src dir>` and converts them with the F-15's
+machinery (§6.1):
+
+1. reads `MiG-29.ac` (FlightGear's frame) and leaves out the mirrors inside the canopy and the side numbers; adds the
+   pilot and seat at `Cockpit.xml`'s offsets;
+2. scales it by 0.997 to the original's whole length (its body and parts: 17.33 m, as the real jet's 17.32 m), its
+   middle on the original's, its main wheels on the original's `height`. The wings stay FlightGear's: 11.4 m span
+   (the real jet's 11.36 m; the original's 12.7 m);
+3. splits the moving parts under the original's names on `MiG-29.xml`'s hinge lines: AilerL/R, FlapL/R, ElevaL/R
+   (the stabilators), RuddeL / Rudde, SpdbrU (the upper air brake; the lower half stays shut in the body), LdgF/L/R
+   and canopy. The gear doors open by `MiG-29.xml`'s angles in LdgDr and stay shut in LdgDrUp;
+4. copies the original's helpers, puts EngineL/R on the nozzles' exits, and adds two things of our own:
+   - **pylons**: the original's nine stations hang 0.5 m below FlightGear's wing, and C, D, F and G lie ahead of its
+     leading edge (the original's wing is lower, wider and longer in chord). The original draws its pylons always,
+     so ours are always drawn too, from each station up to the skin, shaped as the real jet's three a wing: D / F,
+     C / G and B / H are the real inner, middle and outer pylons (2.1, 1.9 and 1.3 m long; the inner two reach
+     forward of the leading edge, as the real ones do); A / I, outboard of the real outer pylon, are short stubs
+     (0.6 m); E is the centre line tank's pylon (1.6 m);
+   - **the drag chute** (`Parach`, shown only when deployed): an orange cone at the original chute's place and size;
+5. repaints FlightGear's Soviet grey-green livery as a Syrian MiG-29's: each skin texel in one of FlightGear's paint
+   colours takes the light or dark grey of our camouflage pattern (smooth 3D noise, blotches about 3 m across, by
+   the texel's place on the jet) where the skin faces up or sideways, light grey where it faces down, keeping its
+   shading; the white side-number panels go with it. The gear, nozzles and intake tunnels keep FlightGear's colours;
+6. writes the glb; the `Insignia` object's two red stars become our Syrian roundel on the wings (`insignia_clip`) and
+   our Syrian flag on the fins (`flag_clip`), each cut out by its alpha.
+
+### 7.2 How it fits the game
+
+As the F-15C (§6.3): the descriptor stays the original's; `detailed_descriptor` takes the hinge axes, both
+afterburners and LdgDrUp from the model. The hinge axes lie within 11° of the original's, but the main legs': they
+swing forward and turn as they fold, about FlightGear's slanted axis (58° off the original's lateral one), as the
+real jet's do. `util/gltf.gd` maps `mig29_h.gltf` to the glb (`DETAILED`) and compresses its PNG textures
+(`MIG29_DIR`).
+
+The game's MiG-29s are Syrian: the original model wears the Syrian roundel (red, white with two green stars,
+black; 1980–2024[^syr-roundel]) and the flag on its fins, over light grey with large dark blotches. Syria's MiG-29s
+wear a two-tone grey[^twz-syria]; the exact pattern and shades are open, so ours follows the original's (two greys,
+large blotches) with our own pattern. The real MiG-29 9-12[^mig-side][^mig-front]: a dark radome, green wheel hubs,
+three pylons under each wing and the centre line tank between the engines. What differs on ours (open):
+
+- four pylons a side (the original's stations): the outermost a short stub where the real jet has none;
+- the camouflage pattern and its greys are ours, not measured on a Syrian jet; the fin flag's size and place follow
+  FlightGear's star;
+- the nozzles keep their modelled opening; the intake doors, the LERX flaps and the lower air brake stay still;
+- no original model as the far LOD.
+
+### 7.3 Checks
+
+- `tests/godot/test_detailed_models.gd` `_check_mig29`: with the switch off the original; on, the detailed model with
+  15–40 k triangles, every node of the original, the helpers within 1 cm, the pivots on their parts with axes near
+  the original's (65° for the main legs), a pylon touching every station, two afterburners, compressed textures, the
+  gear, doors and chute shown as the original's.
+- `cargo test -p iaf-tools mig29`: the sources pinned, the mirrored hinges, the roundel and the flag, and the whole build on
+  `assets/source/mig29` when it is there.
+- `tests/godot/_model_shot.gd` with `SHOT_TYPE=mig29:180 SHOT_JET=0`: the MiG-29 in the player's jet's place.
+
 ## Sources
 
 [^f16net]: F-16.net forum, "F-16 B/D two seater version canopy" (a canopy shop's account: two transparencies in
@@ -631,6 +737,21 @@ wheels flat), so a leg in transit takes a simpler path. `util/gltf.gd` maps `f15
 [^above]: דוידי ורדי, "95675 air combat falcons PikiWiki Israel.jpg", Wikimedia Commons, CC BY 2.5, 2019 (a Baz
     from above: a roundel on the upper wing),
     https://commons.wikimedia.org/wiki/File:95675_air_combat_falcons_PikiWiki_Israel.jpg
+[^raam-side]: Oren Rozen, "Hatzerim 240613 Raam.jpg", Wikimedia Commons, CC BY-SA 3.0 (an F-15I taxiing, side on),
+    https://commons.wikimedia.org/wiki/File:Hatzerim_240613_Raam.jpg
+[^raam-front]: MathKnight, "IAF-F-15I-Raam--Independence-Day-2017-Tel-Nof-IZE-171.jpg", Wikimedia Commons, CC BY 4.0
+    (front three-quarter, with stores),
+    https://commons.wikimedia.org/wiki/File:IAF-F-15I-Raam--Independence-Day-2017-Tel-Nof-IZE-171.jpg
+[^raam-rear]: "RamatDavid 020517 Thunder 01.jpg", Wikimedia Commons, CC BY-SA 4.0 (rear three-quarter),
+    https://commons.wikimedia.org/wiki/File:RamatDavid_020517_Thunder_01.jpg
+[^mig-side]: "MiG-29 4103 Krzesiny RB11.jpg", Wikimedia Commons, CC BY-SA 3.0 (a Polish MiG-29 9.12A, side on),
+    https://commons.wikimedia.org/wiki/File:MiG-29_4103_Krzesiny_RB11.jpg
+[^mig-front]: "Mikoyan-Gurevich MiG-29 (9.12) '14 blue' (38100565051).jpg", Wikimedia Commons, CC BY-SA 2.0
+    (front three-quarter), https://commons.wikimedia.org/wiki/File:Mikoyan-Gurevich_MiG-29_(9.12)_%E2%80%9914_blue%E2%80%99_(38100565051).jpg
+[^syr-roundel]: "Roundel of the United Arab Republic (1958–1971), Roundel of Syria (1980–2024).svg", Wikimedia
+    Commons, public domain, https://commons.wikimedia.org/wiki/File:Roundel_of_the_United_Arab_Republic_(1958%E2%80%931971),_Roundel_of_Syria_(1980%E2%80%932024).svg
+[^twz-syria]: The War Zone, "We've Got A Close Up Look At Syria's MiG-29s And It Isn't Pretty" (a two-tone grey
+    camouflage, touched up irregularly), https://www.twz.com/33353/weve-gotten-a-close-up-look-at-syrias-mig-29s-and-it-isnt-pretty
 [^ak]: AK Interactive, Israeli Air Force colours (AK11752), product text: the air superiority grey scheme of FS 36320
     Dark Ghost Grey and FS 36375 Light Ghost Grey came with the F-15A/B at the end of 1976,
     https://ak-interactive.com/?p=256303
