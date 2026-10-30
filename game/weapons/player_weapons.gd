@@ -408,7 +408,9 @@ func _set_hud_mode(h: int) -> void:
 ## (FUN_0044e6e0: the pages they replaced come back; modes 1..4, NAV keeps the EO mode). Leaving HUD mode 8 (the
 ## HARM) puts page 10 back to what it replaced (ctl+0x92c; a replaced TV / FLIR page: what that one replaced).
 func _mfd_page() -> void:
-	var page: int = _modes.mfd_page(stores.current_type(), flir_pod)
+	# Ours: a GPS bomb (type 650 by its record) needs no pod: the stores page, as a falling bomb (500).
+	var gps: bool = stores.station(stores.cur).get("w", {}).has("gps")
+	var page: int = _modes.mfd_page(500 if gps else stores.current_type(), flir_pod)
 	var harm_on: bool = master == 4 and stores.current_type() == 590
 	if harm.active:  # HUD mode 8 before this change (also when staying: page 10 is placed again below)
 		var r: int = _replaced[10]
@@ -422,7 +424,7 @@ func _mfd_page() -> void:
 	if page >= 0 and host.cockpit != null:
 		if host.cockpit.place_mfd_page(page) != null and page in [5, 6, 10]:
 			_replaced[page] = host.cockpit.replaced_page
-	if master == 5 and flir_pod:
+	if master == 5 and flir_pod and not gps:
 		_eo_start(EoSensor.FLIR)
 	elif master == 6:
 		# Case 6: a FLIR page still shown goes back to what it replaced (the stores page for the TV page).

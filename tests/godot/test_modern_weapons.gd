@@ -11,6 +11,8 @@
 # target A, bombs 3-3 and 3-4 their own B; released one by one in flight, bombs 1-2 burst on A and 3-4 on B.
 extends "res://../tests/godot/base.gd"
 
+const EoSensor := preload("res://weapons/eo_sensor.gd")
+
 const AIM9X := 1001
 const GBU31 := 1003
 const GBU39 := 1007
@@ -167,7 +169,10 @@ func _jdam(tv, w, station: int) -> void:
 	w.update(t)
 	w.nav_key(0)
 	w.stores.cur = station
+	w.flir_pod = true  # as a jet with the pod: a GPS bomb still opens no FLIR (it needs no pod)
 	w.select_ag()
+	check(w.eo.mode == EoSensor.NONE, "GBU-31 selected with a pod aboard: the FLIR does not start")
+	w.flir_pod = false
 	w.radar.designate(p.x, p.y, p.z, t)
 	w.gps_modes["GBU-31"] = true  # VIS: the sensors' point
 	t += 0.05

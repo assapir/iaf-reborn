@@ -1192,6 +1192,9 @@ does[^dcs-jdam][^bms-jdam]; the F-35I's are inferred to work the same.
   designation, docs/radar.md §8).
 - **Aim** (`release.rs` `gps_aim`), per store: the mode's point; without one (PRE with no target, VIS with no
   designation) the bomb's own aim: the CCIP impact or the delayed-CCIP target (§9.3).
+- **Pages** (ours): selecting a GPS bomb opens the stores page as a falling bomb, never the FLIR (it needs no pod;
+  the original's laser-bomb rule, page 6 and the FLIR on with a pod aboard, would apply by its record's type 650).
+  For VIS with the pod, open the FLIR page yourself.
 - **Release**: the ripple of §9.2. The first bomb goes at once: a GPS bomb skips the 0.9 s delayed-release wait. With
   Bomb release Real (§9.10) the two bombs of a pair leave together, each with its own coordinates.
 - **Flight** (an energy model, inferred): the bomb's energy per kg, g·height + ½·speed², drains by g / LD per metre
