@@ -1136,7 +1136,9 @@ every 0.5 s in one run, so the cost is free of the run-to-run noise (± 1.5 ms h
 | run 3 | 17.92 ms | 18.90 ms | +0.98 ms |
 | run 4 | 16.92 ms | 17.94 ms | +1.02 ms |
 
-About 1.2 ms (7 %). Memory: ≈ 640 000 points around Gush Dan with Tel Aviv's inset (16 bytes each, ≈ 10 MB) and the
+About 1.2 ms (7 %). With the far meshes (lights to 120 km), 2026-10-30, the same command on a quiet machine (load
+0.5–1.5), two runs per leg: +1.46 and +1.49 ms at 3000 m, +1.46 and +1.58 ms at 8000 m (`BENCH_LEGS=8000:300:20`),
+about 1.5 ms (9 %). Memory: ≈ 640 000 points around Gush Dan with Tel Aviv's inset (16 bytes each, ≈ 10 MB) and the
 haze texture (5.5 MB). The points' cost is their fill: with a 1-pixel minimum everywhere 1.0 ms, with 1.6 pixels 2.7
 ms, with 2 pixels near and the haze read per pixel 2.5 ms; their vertices alone cost about 0.9 ms. Measure again with:
 
