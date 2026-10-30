@@ -14,7 +14,8 @@ cockpit view work as with the original models.
 Today the detailed models are the **F-16D** (`game/extra/models/f16/f16d.glb`), used for the player's F-16, the AI's
 F-16s, parked F-16s and the Reference viewer; the **F-16I Sufa** (§1.3, `f16i.glb`), which stands in for every F-16
 with the Extras switch "F-16 version" on Sufa, whatever Models says; the **F-15C** (§6), which setup makes on your machine from the
-FlightGear F-15 and which stands in for every F-15 the same way; and 16 **stores** (§5) on every jet that carries
+FlightGear F-15 and which stands in for every F-15 the same way; the **F-15I Ra'am** (§6.7), made by the same step, for
+every F-15 with the Extras switch "F-15 version" on Ra'am; and 16 **stores** (§5) on every jet that carries
 them. Plans for more jets and stores: [graphics-research.md](graphics-research.md) §3.7 and §3.13.
 
 ## 1. The F-16D model
@@ -602,6 +603,36 @@ wheels flat), so a leg in transit takes a simpler path. `util/gltf.gd` maps `f15
 - No original model as the far LOD (as the F-16D; the stores have it).
 - The gear legs retract about one axis (above); the nozzles keep their modelled opening.
 
+### 6.7 The F-15I Ra'am
+
+The Extras switch **F-15 version** (Baz (F-15C) / Ra'am (F-15I)) draws every F-15 as the IAF's two-seat strike
+Eagle, whatever Models says, when setup made `assets/converted/models/f15/f15i.glb`. It changes the look only: the
+flight data, weapons, radar and cockpit stay the F-15C's (deviations.md §2). Setup's `models` step makes it from
+the same FlightGear files as the F-15C plus two (`livery.IAF.jpg`, `f15-interior-back.ac`), with
+`f15::build(…, raam = true)`:
+
+| item | value |
+|---|---|
+| source | the Zaretto F-15 above (§6), GPL-2.0-only, the F-15D / F-15E parts of the same `f15c.ac` |
+| triangles | 60 400 (the F-15C's 42 400 with the two-seat canopy, conformal tanks and their pylons, the rear cockpit and a second pilot) |
+| file size | 4.1 MB |
+| livery | FlightGear's "IAF 235-69 SQ HAMMERS" as it comes: 69 Squadron's three-tone desert camouflage over light grey, tail number 269 on the fins and the nose, the eagle's head on the outer fins, IAF roundels on the nose and wings |
+| crew | two pilots on ACES II seats, front and rear cockpit tubs (the rear one at f15c.xml's "Backseater" offset) |
+
+Everything else is the F-15C's conversion (§6.1): the same scale (0.982), helpers, hinges, gear doors, pylons and
+afterburners. The conformal tanks' pylons stay empty: the game hangs the F-15's stores on the original's stations.
+
+The real F-15I[^raam-side][^raam-front][^raam-rear]: two seats under one canopy, conformal fuel tanks with tangential
+pylons, F100-PW-229 engines, a desert camouflage of sand, tan and green over light grey, and an eagle's head on the
+outer fins. What differs on ours (open):
+
+- the F-15E's larger main wheels and bulged gear doors are not modelled (FlightGear's F-15C gear);
+- FlightGear's livery is a fan's painting: its camouflage pattern and the wing roundels' places are not checked
+  against a photo of 269;
+- the rear cockpit's instrument panel is dark grey (its textures are SGI `.rgb` files, as the front's);
+- the cockpit view, the HUD and the flight model stay the F-15C's; the F-15I's own (flight data, weapons, the
+  rear seat) are open.
+
 ## Sources
 
 [^f16net]: F-16.net forum, "F-16 B/D two seater version canopy" (a canopy shop's account: two transparencies in
@@ -631,6 +662,13 @@ wheels flat), so a leg in transit takes a simpler path. `util/gltf.gd` maps `f15
 [^above]: דוידי ורדי, "95675 air combat falcons PikiWiki Israel.jpg", Wikimedia Commons, CC BY 2.5, 2019 (a Baz
     from above: a roundel on the upper wing),
     https://commons.wikimedia.org/wiki/File:95675_air_combat_falcons_PikiWiki_Israel.jpg
+[^raam-side]: Oren Rozen, "Hatzerim 240613 Raam.jpg", Wikimedia Commons, CC BY-SA 3.0 (an F-15I taxiing, side on),
+    https://commons.wikimedia.org/wiki/File:Hatzerim_240613_Raam.jpg
+[^raam-front]: MathKnight, "IAF-F-15I-Raam--Independence-Day-2017-Tel-Nof-IZE-171.jpg", Wikimedia Commons, CC BY 4.0
+    (front three-quarter, with stores),
+    https://commons.wikimedia.org/wiki/File:IAF-F-15I-Raam--Independence-Day-2017-Tel-Nof-IZE-171.jpg
+[^raam-rear]: "RamatDavid 020517 Thunder 01.jpg", Wikimedia Commons, CC BY-SA 4.0 (rear three-quarter),
+    https://commons.wikimedia.org/wiki/File:RamatDavid_020517_Thunder_01.jpg
 [^ak]: AK Interactive, Israeli Air Force colours (AK11752), product text: the air superiority grey scheme of FS 36320
     Dark Ghost Grey and FS 36375 Light Ghost Grey came with the F-15A/B at the end of 1976,
     https://ak-interactive.com/?p=256303

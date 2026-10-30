@@ -306,7 +306,8 @@ func run() -> void:
 	orig_scene.free()
 
 	_check_stores()
-	await _check_f15()
+	await _check_f15(false)
+	await _check_f15(true)
 
 	# In a mission: the player's and the AI's F-16s.
 	var tv := await start_mission(231)
@@ -326,15 +327,21 @@ func run() -> void:
 ## The detailed F-15 (docs/aircraft-models.md §6), made by setup under assets/ (skipped when setup has not made it):
 ## the original without it or with the switch off; on, the setup's model with every node of the original, the helpers
 ## at the original's, the hinges on their parts with axes near the original's, both afterburners on their nozzles,
-## LODs and compressed textures, and the player's F-15 in mission 311.
-func _check_f15() -> void:
-	var path: String = settings().assets_dir().path_join(Gltf.DETAILED["f15_h.gltf"])
+## LODs and compressed textures, and the player's F-15 in mission 311. With `raam` the F-15I (Extras "F-15 version" on
+## Ra'am, §6.7): the same checks, its model with Models on Original too.
+func _check_f15(raam: bool) -> void:
+	var f15 := "controllableplanes/f15/f15_h.gltf"
+	var path: String = settings().assets_dir().path_join(Gltf.RAAM if raam else Gltf.DETAILED["f15_h.gltf"])
+	var jet := "F-15I" if raam else "F-15"
+	settings().f15_variant = "raam" if raam else "baz"
 	settings().models = "original"
-	check(Gltf.detailed("controllableplanes/f15/f15_h.gltf") == "", "F-15 off: the original")
-	settings().models = "detailed"
 	if not FileAccess.file_exists(path):
-		check(Gltf.detailed("controllableplanes/f15/f15_h.gltf") == "", "F-15: not made by setup, the original")
+		check(Gltf.detailed(f15) == "", "%s: not made by setup, the original" % jet)
+		settings().f15_variant = "baz"
 		return
+	check(Gltf.detailed(f15) == (path if raam else ""), "%s, Models Original: %s" % [jet, Gltf.detailed(f15)])
+	settings().models = "detailed"
+	check(Gltf.detailed(f15) == path, "%s, Models Detailed: its model" % jet)
 	var od: Dictionary = aircraft_model.load_descriptor("f15")
 	var orig_scene: Node3D = Gltf.instance(
 		Gltf.open(settings().assets_dir().path_join("converted/planes/f15").path_join(od.model))
@@ -342,9 +349,9 @@ func _check_f15() -> void:
 	var orig_root := orig_scene.find_child("f15", true, false) as Node3D
 	var on: Node3D = aircraft_model.create("f15", 110, false)
 	var down: Node3D = aircraft_model.create("f15", 110, true)
-	check(on != null and on.find_child("LdgDrUp", true, false) != null, "F-15 on: the setup's model loads")
+	check(on != null and on.find_child("LdgDrUp", true, false) != null, "%s on: the setup's model loads" % jet)
 	var tris := _tris(on)
-	check(tris > 30000 and tris < 60000, "F-15 on: %d triangles (original %d)" % [tris, _tris(orig_scene)])
+	check(tris > 30000 and tris < 70000, "%s on: %d triangles (original %d)" % [jet, tris, _tris(orig_scene)])
 	var fr: Node3D = on.root_frame
 	var missing := []
 	var far := []
@@ -413,9 +420,10 @@ func _check_f15() -> void:
 			and String(tv.aircraft.name) == "f15"
 			and tv.aircraft.find_child("LdgDrUp", true, false) != null
 		),
-		"mission 311: the player's F-15 is detailed"
+		"mission 311: the player's %s is detailed" % jet
 	)
 	settings().jet_id = -1
+	settings().f15_variant = "baz"
 
 
 ## The detailed stores (Gltf.STORES, docs/aircraft-models.md §5): each on its original's axis (STORE_AXIS_M) or top and

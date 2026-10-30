@@ -671,8 +671,8 @@ func _page_welcome() -> Control:
 				+ "([url=https://www.gnu.org/licenses/gpl-3.0.html]GPL 3.0[/url])\n"
 			)
 			+ (
-				"Detailed F-15: the [url=https://github.com/Zaretto/fg-aircraft]FlightGear F-15C[/url] by Enrique Laso "
-				+ "(3D model), Richard Harrison (rig) and GeneB (cockpit textures) "
+				"Detailed F-15 and F-15I: the [url=https://github.com/Zaretto/fg-aircraft]FlightGear F-15C/D[/url] by "
+				+ "Enrique Laso (3D model), Richard Harrison (rig) and GeneB (cockpit textures), with its IAF livery "
 				+ "([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL 2.0[/url] only), downloaded and "
 				+ "converted by setup, not distributed with the game\n"
 			)

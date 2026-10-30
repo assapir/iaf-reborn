@@ -285,6 +285,9 @@ const DETAILED := {"f16_h.gltf": "res://extra/models/f16/f16d.glb", "f15_h.gltf"
 ## The F-16I Sufa (Extras "F-16 version" on Sufa; docs/f16i.md §8, tools/f16d/rig.py `sufa`): every F-16's model, with
 ## Models on Original too (the 1998 game has no Sufa).
 const SUFA := "res://extra/models/f16/f16i.glb"
+## The F-15I Ra'am (Extras "F-15 version" on Ra'am; docs/aircraft-models.md §6.7): every F-15's model, with Models on
+## Original too, when setup made it (under assets/, as the F-15C).
+const RAAM := "converted/models/f15/f15i.glb"
 ## The detailed stores (GPL, tools/stores/build.gd; docs/aircraft-models.md §5), as DETAILED. Their textures are
 ## compressed (BC1) at the parse.
 const STORES_DIR := "res://extra/models/stores/"
@@ -327,11 +330,15 @@ const RACKS := {"gbu39_m.gltf": "bru61"}
 
 
 ## The detailed model standing in for the original at `path` with the switch on (an F-16's: the Sufa with the F-16
-## switch on Sufa, whatever Models says), else "".
+## switch on Sufa, an F-15's: the F-15I with the F-15 switch on Ra'am, whatever Models says), else "".
 static func detailed(path: String) -> String:
 	var f := path.get_file()
 	if f == "f16_h.gltf" and _settings().sufa(100) and FileAccess.file_exists(SUFA):
 		return SUFA
+	if f == "f15_h.gltf" and _settings().f15_variant == "raam":
+		var raam: String = _settings().assets_dir().path_join(RAAM)
+		if FileAccess.file_exists(raam):
+			return raam
 	if String(_settings().get("models")) != "detailed":
 		return ""
 	var hd: String = DETAILED.get(f, STORES_DIR + STORES[f] + ".glb" if STORES.has(f) else "")

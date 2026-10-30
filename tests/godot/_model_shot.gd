@@ -12,6 +12,7 @@
 # SHOT_LIGHTS=1: Night lights Detailed (the jet's navigation lights and strobe).
 # SHOT_F16=sufa: every F-16 as the F-16I Sufa (docs/f16i.md §8.1). SHOT_AI=1: the shots of the first AI F-16 instead
 # of the player's jet (the camera rides with it; no pose).
+# SHOT_F15=raam: every F-15 as the F-15I Ra'am (docs/aircraft-models.md §6.7).
 # SHOT_JET=0 (the F-15; any jet_id): mission 311 with that jet, also for "airborne" (lifted 3000 m, F15_LOADOUT), and
 # the JET_SHOTS (docs/aircraft-models.md §6), named for the before / after pairs.
 extends "res://../tests/godot/base.gd"
@@ -118,6 +119,8 @@ func run() -> void:
 		settings().night_lights = "detailed"
 	if OS.get_environment("SHOT_F16") != "":
 		settings().f16_variant = OS.get_environment("SHOT_F16")
+	if OS.get_environment("SHOT_F15") != "":
+		settings().f15_variant = OS.get_environment("SHOT_F15")
 	var jet := OS.get_environment("SHOT_JET")
 	if jet != "":
 		settings().jet_id = int(jet)
