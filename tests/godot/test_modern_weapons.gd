@@ -191,12 +191,24 @@ func _jdam(tv, w, station: int) -> void:
 	w.update(t + 0.01)
 	w.release_selected()
 	check(w.gps_bombs.size() == 1 and w.gps_bombs[0].g.aim().distance_to(p) < 1.0, "the GBU-31 flies to the point")
+	# The HUD's TTI (docs/weapons.md §13.3): the bomb's time to impact, counting down with the clock, gone at the burst.
+	var t_rel := t
+	t += 0.02
+	w.update(t)
+	var tti0 = tv.cockpit.weapons.get("gps_tti")
+	var tti2 = null
 	for i in 2400:
 		t += 0.05
 		w.update(t)
+		if tti2 == null and t >= t_rel + 2.0:
+			tti2 = tv.cockpit.weapons.get("gps_tti")
 		if w.gps_bombs.is_empty():
 			break
+	var flown := t - t_rel - 0.02
+	check(tti0 != null and absf(float(tti0) - flown) < 1.0, "TTI at the release %s, flown %.1f s" % [tti0, flown])
+	check(tti2 != null and absf(float(tti0) - float(tti2) - 2.0) < 0.5, "TTI counts down: %s -> %s" % [tti0, tti2])
 	check(w.gps_bombs.is_empty() and int(site.state) != 1, "the GBU-31 destroyed the unit (state %d)" % int(site.state))
+	check(tv.cockpit.weapons.get("gps_tti") == null, "no TTI after the burst")
 
 
 ## The briefing TSD of mission 231 (the F-15 with a GBU-31 on stations 2, 5, 8): a click on station 5's row of the GPS

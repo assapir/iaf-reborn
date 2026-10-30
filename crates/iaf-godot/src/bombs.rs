@@ -247,6 +247,12 @@ impl IafGpsBomb {
         self.bomb.as_ref().map(|b| vector3(b.vel)).unwrap_or_default()
     }
 
+    /// The time to impact (s, `GpsBomb::time_to_impact`), 0 once burst.
+    #[func]
+    fn time_to_impact(&self) -> f64 {
+        self.bomb.as_ref().map_or(0.0, |b| b.time_to_impact())
+    }
+
     #[func]
     fn aim(&self) -> Vector3 {
         self.bomb.as_ref().map(|b| vector3(b.aim)).unwrap_or_default()

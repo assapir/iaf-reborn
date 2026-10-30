@@ -158,6 +158,17 @@ impl GpsBomb {
         self.ended
     }
 
+    /// The time to impact (s, docs/weapons.md §13.3): a copy flown on by the same rules until its path crosses the
+    /// aim's height (the terrain ignored: the aim's height is where the bomb meets the point it flies to).
+    pub fn time_to_impact(&self) -> f64 {
+        if self.ended {
+            return 0.0;
+        }
+        let mut b = self.clone();
+        b.advance(self.t + 600.0, &|_| Some(f64::NEG_INFINITY));
+        b.t - self.t
+    }
+
     fn step(&mut self, dt: f64) {
         let k = self.kit;
         let s = self.vel.length().max(1.0);
@@ -212,6 +223,23 @@ mod tests {
         assert!(!JDAM.in_range(pos, vel, far));
         let short = fly(JDAM, pos, vel, far);
         assert!(short.y < 17_000.0 && short.y > JDAM.reach(6000.0, 250.0) * 0.8, "short, near the reach: {short:?}");
+    }
+
+    #[test]
+    fn time_to_impact_matches_the_flight_and_counts_down() {
+        let pos = Vec3::new(0.0, 0.0, 6000.0);
+        let vel = Vec3::new(0.0, 250.0, 0.0);
+        let aim = Vec3::new(4500.0, 7800.0, 0.0);
+        let mut b = GpsBomb::launch(JDAM, 0.0, pos, vel, aim);
+        let tti = b.time_to_impact();
+        let mut flown = b.clone();
+        assert!(flown.advance(600.0, &|_| Some(0.0)));
+        // advance's last step ends at the step's end; the burst lies within that step.
+        assert!(tti > 20.0 && (tti - flown.t).abs() < 1.0, "{tti} vs {}", flown.t);
+        b.advance(10.0, &|_| Some(0.0));
+        assert!((b.time_to_impact() - (tti - 10.0)).abs() < 1.0, "counts down: {}", b.time_to_impact());
+        b.advance(600.0, &|_| Some(0.0));
+        assert_eq!(b.time_to_impact(), 0.0);
     }
 
     #[test]

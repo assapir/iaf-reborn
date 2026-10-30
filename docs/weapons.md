@@ -1224,6 +1224,18 @@ bomb selected (`gps.rs` `Kit::lar`; the rules are ours, inferred from the energy
 - **Real HUD** (docs/real-hud.md "GPS bombs"): the F-16's JDAM symbology on the F-16, the F-15 and the F-35I's helmet:
   the TD box on the aim, the azimuth steering line, the LAR staple with the range caret, `TMR m:ss` counting down, then
   `IN RNG`; PRE or VIS in the weapon window. The jets that carry no GPS bomb draw none.
+- **Time to impact (TTI)**, after the release: the player's last released GPS bomb still in flight shows `TTI m:ss`,
+  its time to impact rounded up to whole seconds, until it bursts (`gps.rs` `GpsBomb::time_to_impact`: a copy of the
+  bomb flown on by the same energy and turn rules until its path crosses the aim's height; `player_weapons.gd`
+  `gps_tti`). It shows in every HUD mode, so the pilot can follow the bomb from the cockpit. The real F-16 shows the
+  released weapon's time to impact in a HUD window (secondary[^dcs-tti]). With several bombs in flight the countdown
+  is the last released one's: the bomb the pilot just let go, the countdown he expects (with a pair the bombs leave
+  together and land within a second of each other). When it bursts, the countdown passes to the next bomb still in
+  flight. AI jets' bombs show none. Where it shows:
+  - original-style HUD (`hud.gd`): a fourth row under the right text column (TxtOffY + 21 px), the original's three
+    rows unmoved;
+  - Real HUD (docs/real-hud.md "GPS bombs"): the time's row of the F-16's right data column, in place of the time to
+    the steerpoint; the F-15's and the F-35I helmet's time rows the same (inferred).
 - Open: the impact-angle setting and the shorter in-zone bar it brings, and the GBU-39's attack azimuth with its
   second LAR (LAR2)[^bms-jdam]: no setting for them is built.
 - Open: the GBU-31(V)3 is drawn with the GBU-31's (Mk 84) model. The real bomb is slimmer, with a narrower ogive nose
@@ -1236,14 +1248,18 @@ bomb selected (`gps.rs` `Kit::lar`; the rules are ours, inferred from the energy
   40,000 ft), `missile.rs` `off_boresight_missile_turns_to_a_target_behind_the_beam` (100° off the nose: the original
   rule ends the flight, the off-boresight one hits), `sight.rs` `loal_takes_the_unit_nearest_the_cued_axis`,
   `release.rs` `gps_aim_pre_or_pod_then_td_then_ccip`; `gps.rs` `lar_min_range_is_the_turn_circle` (inside Rmin
-  the bomb overflies, just past it hits), `time_to_max_range_counts_down_then_in_range`,
+  the bomb overflies, just past it hits), `time_to_max_range_counts_down_then_in_range`, `time_to_impact_matches_the_flight_and_counts_down` (the TTI at
+  the release within 1 s of the flight, 10 s later 10 s less, 0 after the burst),
   `pre_targets_own_first_each_once` (the list, the steps, the default target waypoint); `real_hud`
-  `gps_cues_on_the_gps_jets` (F-16, F-15, F-35: TMR, IN RNG, PRE / VIS, the steering line, no CCIP pipper).
+  `gps_cues_on_the_gps_jets` (F-16, F-15, F-35: TMR, IN RNG, PRE / VIS, the steering line, no CCIP pipper),
+  `tti_replaces_the_time_row_on_the_gps_jets` (`TTI 0:42` in place of the steerpoint's time; the F-35I also looking
+  aside).
 - `tests/godot/test_modern_weapons.gd`: the Arming list of every Jet list jet, the Sufa and the F-35I with Weapons on
   Original and on Modern (the table above; the F-35I's default GBU-31 in each bay); mission 231, the F-15 3000 m up:
   the padlock view turns the head onto a MiG 70° off the nose, the AIM-9X locks it, launches and kills it; a GBU-31
   in VIS at a radar-designated ground unit 6 km ahead is in range (out of range at four times the distance), flies to
-  the point and destroys the unit. PRE: on the briefing TSD a click on station 5's row of the GPS panel, then on the
+  the point and destroys the unit; the cockpit's `gps_tti` at the release is within 1 s of the flight time, 2 s later
+  2 s less, and gone after the burst. PRE: on the briefing TSD a click on station 5's row of the GPS panel, then on the
   map, stores that point; in flight a unit stands there 50° off the nose with the radar designating elsewhere: 20 km
   out out of range with a TMR, 6 km out IN RNG; the bomb flies to the briefing's point and destroys the unit. With
   Bomb release Real a pair leaves at once, each bomb to its own station's target.
@@ -1277,6 +1293,9 @@ Open points:
     side's time to max range then `IN RNG`, release anywhere while the caret sits inside the LAR's long bar:
     <https://forum.dcs.world/topic/291870-jadam-help/>; the attached F-16 JDAM card:
     <https://forum.dcs.world/applications/core/interface/file/attachment.php?id=114047>
+[^dcs-tti]: DCS forum, "CBU-105 HUD symbology question" (2022), secondary (a simulator's users): the F-16's HUD
+    window for the JDAM, JSOW, WCMD and Paveway III shows the time to impact after the release:
+    <https://forum.dcs.world/topic/304597-cbu-105-hud-symbology-question>
 [^bms-jdam]: Falcon BMS forum, manual errata (pages 497–500), secondary: LAR2 with an impact or attack azimuth set, its
     tick the range that still lets the bomb follow the azimuth: <https://forum.falcon-bms.com/post/390232>; the range
     cue as "that scale / bracket on the right side of the HUD":

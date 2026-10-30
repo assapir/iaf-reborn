@@ -74,6 +74,9 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
         && let Some(t) = i.target
     {
         rows.push(format!("{}", (t.closure * MS_TO_KT).round() as i64));
+    } else if let Some(t) = w.tti {
+        // A released GPS bomb's time to impact (ours, inferred: the timer's row, docs/real-hud.md "GPS bombs").
+        rows.push(tti_text(t));
     } else if let Some(d) = w.delay.filter(|d| d.designated && matches!(mode, 5 | 6)) {
         // Designated delayed CCIP: the time to release (fig. 1-283 "TIME DELAY") in place of the steerpoint's.
         let t = (d.ttg - RELEASE_TTG).clamp(0.0, 5999.0).ceil() as i64;

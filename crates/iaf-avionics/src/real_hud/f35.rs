@@ -76,10 +76,15 @@ pub(super) fn frame(_hud: Field, i: &Input, max_g: f64) -> Frame {
             format!("{:03} {:03}/{:.1}", s.number, (s.bearing_deg.round() as i64).rem_euclid(360), s.dist_m / NM),
             Align::Left,
         ));
-        if let Some(t) = s.eta_s {
+        if let Some(t) = s.eta_s.filter(|_| w.tti.is_none()) {
             let t = t.max(0.0).round() as i64;
             o.push(text((rx, by + ROW), format!("{:02}:{:02}:{:02}", t / 3600, (t / 60) % 60, t % 60), Align::Left));
         }
+    }
+    // A released GPS bomb's time to impact in the time's row (ours, inferred as the F-16's; docs/real-hud.md "GPS
+    // bombs").
+    if let Some(t) = w.tti {
+        o.push(text((rx, by + ROW), tti_text(t), Align::Left));
     }
     bank_scale(o, i, f.bottom - 4.0);
     if matches!(mode, 1 | 2)
@@ -181,7 +186,7 @@ fn off_boresight(i: &Input) -> Frame {
             format!("{:03} {:03}/{:.1}", s.number, (s.bearing_deg.round() as i64).rem_euclid(360), s.dist_m / NM),
             Align::Right,
         ));
-        if let Some(t) = s.eta_s {
+        if let Some(t) = s.eta_s.filter(|_| i.weapons.tti.is_none()) {
             let t = t.max(0.0).round() as i64;
             o.push(text(
                 (w, h * 0.6 + 3.0 * ROW),
@@ -189,6 +194,9 @@ fn off_boresight(i: &Input) -> Frame {
                 Align::Right,
             ));
         }
+    }
+    if let Some(t) = i.weapons.tti {
+        o.push(text((w, h * 0.6 + 3.0 * ROW), tti_text(t), Align::Right));
     }
     let field = Field { left: -w, right: w, top: -h, bottom: h };
     if let Some(t) = i.target
