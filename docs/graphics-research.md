@@ -304,7 +304,7 @@ clickables, then the F-15C.
 ### 3.9 Atmosphere, clouds, fog — payoff 3, effort M
 - **Built:** the atmospheric sky and the cloud layer (docs/rendering.md).
 - **Volumetric fog:** measured free at our density, and it hides little at flight distances.
-- **Real gain: volumetric clouds** (a raymarched cloud layer as a sky shader or Compositor effect). Payoff 4, but a
+- **Built: volumetric clouds** (Graphics → MORE Clouds Volumetric, rendering.md §2.1: a compositor effect at half size; 8–18 ms on the Iris Xe at 1080p, §2.2). Researched before: payoff 4, but a
   cost of ≥ 3–6 ms at 1080p on tile GPUs (bandwidth), so only with upscaling (§3.10).
 
 ### 3.10 Upscaling for headroom: MetalFX — done
@@ -538,7 +538,7 @@ The options of §3, ranked by payoff for effort.
 | 12 | Detailed airbases with the paved mask — **done** (§3.12) | 3 | M | small | take-off and landing look |
 | 13 | Own jet in the cockpit views — **done** (§3.7) | 3 | S | small | wings and canopy frame when looking aside |
 | — | SSAO / SSIL / SDFGI | 1 now | S | +5 / +12 / +18 ms | nothing to shade over draped terrain; revisit with detailed models |
-| — | Volumetric clouds | 4 | L | 3–6 ms | only with MetalFX |
+| — | Volumetric clouds — **done** (rendering.md §2.1) | 4 | L | 8–18 ms on the Iris Xe at 1080p (§2.2) | high tier only |
 
 **Suggested order:** 1 (perf) → 2 + 3 → 4 → 5 → 6 → 7 → 8. Before 7–8, which add geometry near the ground, do a short
 performance pass: the 2–3 ms streaming spikes, and the AI scans on the WorkerThreadPool.

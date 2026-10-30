@@ -92,6 +92,11 @@ void fragment() {
 
 ## The haze over the dense lamp clusters (terrain/city_glow.gdshaderinc): its strength at a full square.
 const GLOW_K := 0.12
+## The glow texture, its rect and strength now, for the clouds' light from below (cloud_layer.gd, volumetric_clouds.gd;
+## the RenderingServer does not read global shader parameters back at run time).
+static var glow_texture: Texture2D
+static var glow_rect := Vector4.ZERO
+static var glow_strength := 0.0
 
 var _tv: Node
 var _mat: ShaderMaterial
@@ -202,17 +207,18 @@ func _take_glow() -> void:
 	var img := Image.create_from_data(int(g.w), int(g.h), false, Image.FORMAT_R8, g.bytes)
 	img.generate_mipmaps()  # far ground reads it minified
 	_glow = ImageTexture.create_from_image(img)
+	glow_texture = _glow
 	var wo: Vector2 = _tv.terrain.world_origin
 	var span := Vector2(float(g.w), float(g.h)) * float(g.m)
 	RenderingServer.global_shader_parameter_set("city_glow", _glow)
-	RenderingServer.global_shader_parameter_set(
-		"city_glow_rect", Vector4(float(g.x0) - wo.x, -(float(g.y1) - wo.y), 1.0 / span.x, 1.0 / span.y)
-	)
+	glow_rect = Vector4(float(g.x0) - wo.x, -(float(g.y1) - wo.y), 1.0 / span.x, 1.0 / span.y)
+	RenderingServer.global_shader_parameter_set("city_glow_rect", glow_rect)
 	_glow_on()
 
 
 func _glow_on() -> void:
 	glow_k = GLOW_K if _glow != null and is_visible_in_tree() else 0.0
+	glow_strength = glow_k
 	RenderingServer.global_shader_parameter_set("city_glow_k", glow_k)
 
 
@@ -224,6 +230,7 @@ func _notification(what: int) -> void:
 ## The glow is a global: off for whatever draws the terrain next (the front end, a day mission).
 func _exit_tree() -> void:
 	glow_k = 0.0
+	glow_strength = 0.0
 	RenderingServer.global_shader_parameter_set("city_glow_k", 0.0)
 
 

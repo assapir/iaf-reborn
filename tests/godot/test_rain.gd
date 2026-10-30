@@ -55,6 +55,7 @@ func run() -> void:
 	tv.in_cockpit = false
 	await frames(3)
 	check(not tv.weather.canopy.visible, "external view: no canopy drops")
+	await _deck(tv, weather, env, sun, sun0, fog0)
 	s.rain = "off"
 	tv.apply_render_options()
 	await frames(2)
@@ -110,3 +111,56 @@ func run() -> void:
 		"Random picks Clear, Light or Heavy rain, once per flight (%s)" % [seen.keys()]
 	)
 	s.clear_runway_wind()
+
+
+## The cloud deck (docs/rendering.md §10.1), heavy rain: below the base the level's look, inside it dense fog and no
+## drops, above the top the dry sky's fog and sun over the deck's floor; the climb through it changes the fog by less
+## than ×1.65 per 25 m (no pop).
+func _deck(tv: Node, weather: GDScript, env: Environment, sun: DirectionalLight3D, sun0: float, fog0: float) -> void:
+	tv.frozen = true
+	tv.fm_stopped = true
+	var row: Dictionary = weather.LEVELS.heavy
+	var d: Vector2 = weather.deck()
+	check(
+		is_equal_approx(d.y - d.x, row.top - row.base) and d.x >= row.base,
+		"deck %.0f..%.0f m on the ground under the camera (%.0f m)" % [d.x, d.y, weather.ground_ref]
+	)
+	var w: Node3D = tv.weather
+	var x: Vector3 = tv.rig.position
+	tv.rig.position = Vector3(x.x, d.x + 600.0, x.z)
+	await frames(3)
+	check(
+		weather.into == 1.0 and is_equal_approx(env.fog_density, weather.DECK_FOG) and env.fog_sky_affect == 1.0,
+		"inside the deck: fog %f (150 m), all of the sky" % env.fog_density
+	)
+	check(
+		w.streaks.multimesh.visible_instance_count == 0 and not w.deck_floor.visible,
+		"inside the deck: no falling rain, no floor"
+	)
+	tv.rig.position.y = d.y + 600.0
+	await frames(3)
+	check(
+		weather.out == 1.0 and is_equal_approx(env.fog_density, fog0) and env.fog_sky_affect == 0.0,
+		"above the deck: the dry fog %f, a clear sky" % env.fog_density
+	)
+	check(
+		is_equal_approx(sun.light_energy, sun0) and weather.grey() == 0.0,
+		"above the deck: the full sun %.2f, no overcast" % sun.light_energy
+	)
+	check(
+		w.deck_floor.visible and is_equal_approx(w.deck_floor.position.y, weather.deck().y),
+		"above the deck: its floor at the top (%.0f m)" % w.deck_floor.position.y
+	)
+	var worst := 1.0
+	var last := 0.0
+	var y := d.x - 300.0
+	while y < d.y + 300.0:
+		tv.rig.position.y = y
+		await frames(1)
+		if last > 0.0:
+			worst = maxf(worst, maxf(env.fog_density / last, last / env.fog_density))
+		last = env.fog_density
+		y += 25.0
+	check(worst < 1.65, "the climb through the deck: the fog changes by ×%.2f at most per 25 m" % worst)
+	tv.rig.position = x
+	await frames(2)

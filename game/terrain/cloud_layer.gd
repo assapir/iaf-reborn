@@ -20,6 +20,11 @@ const WIND_SPEED := 6.0
 const WHITEOUT_BAND := 1000.0
 ## The night colour with the atmospheric sky (Extras): lighter than its night sky, neutral.
 const NIGHT_ATMO := Color(0.045, 0.055, 0.095)
+## Night lights Detailed at night (city_lights.gd's glow): the towns' light on the layer's base (light pollution;
+## tuned so a big town's sky glows a dim orange) and, seen from above, the alpha range that opens it into broken
+## cloud, so the lit towns show through the gaps.
+const GLOW_GAIN := 10.0
+const NIGHT_GAPS := Vector2(0.6, 1.0)
 
 const SHADER := """
 shader_type spatial;
@@ -37,6 +42,14 @@ uniform vec3 tint = vec3(1.0);  // the cloud-layer colour (renderer +0x54): 0xFF
 // stretched alpha shows those steps as contours. `detail` adds the texture at 4.37× its scale for the edges.
 uniform float min_lod = 2.0;
 uniform float detail = 0.0;
+// Under the rain's overcast (weather.gd grey()) the layer fades out: 1 = as drawn.
+uniform float fade = 1.0;
+// Night lights Detailed at night: the towns' light from below (light pollution, city_glow.gdshaderinc's map read 2 km
+// wide), orange on the cloud's base; 0 = none (the original).
+global uniform float city_glow_k;
+global uniform sampler2D city_glow : filter_linear_mipmap, repeat_disable;
+global uniform vec4 city_glow_rect;
+uniform float glow_gain = 0.0;
 // Lit by the sun (the atmospheric sky by day): sun_dir points to the sun (scene axes).
 uniform bool lit = false;
 uniform vec3 sun_dir = vec3(0.0, 1.0, 0.0);
@@ -73,7 +86,7 @@ void fragment() {
 	}
 	// A dither of ± half an 8-bit step against banding in the smooth gradients.
 	float dither = fract(52.9829189 * fract(dot(FRAGCOORD.xy, vec2(0.06711056, 0.00583715)))) - 0.5;
-	ALPHA = clamp(d + dither / 255.0, 0.0, 1.0);
+	ALPHA = clamp(d + dither / 255.0, 0.0, 1.0) * fade;
 	if (!lit) {
 		ALBEDO = COLOR.rgb * t.rgb * tint;
 	} else {
@@ -96,10 +109,19 @@ void fragment() {
 		// Toward the horizon (the lower rings) the clouds thin, so the sky's horizon and a low sun show between them.
 		ALPHA *= 1.0 - 0.6 * smoothstep(0.4, 1.0, (UV2.x * 4.0 - 1.0) / 16.0);
 	}
+	if (glow_gain > 0.0 && city_glow_k > 0.0) {
+		vec3 wp = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+		vec2 g_uv = (wp.xz - city_glow_rect.xy) * city_glow_rect.zw;
+		if (all(greaterThanEqual(g_uv, vec2(0.0))) && all(lessThanEqual(g_uv, vec2(1.0)))) {
+			float g = textureLod(city_glow, g_uv, 4.0).r;
+			ALBEDO += vec3(1.0, 0.45, 0.14) * g * g * city_glow_k * glow_gain;
+		}
+	}
 }
 """
 
 const Img := preload("res://util/img.gd")
+const CityLights := preload("res://terrain/city_lights.gd")
 
 var fog_color := Color(0.72, 0.78, 0.86)
 var texture_index := 0
@@ -116,16 +138,19 @@ var _atmo := false
 var _night := false
 var _tint := Color.WHITE
 var _sun: Node3D
+var _glow := false
+var _gaps := false
+var _fade := 1.0
 
 
 ## Picks the next layer's texture and decodes it on a worker thread (the mission screens, terrain_preload.gd).
 static func prefetch() -> void:
 	if _next < 0:
 		_next = randi() % 6
-	Img.prefetch(_path(_next), true)
+	Img.prefetch(path(_next), true)
 
 
-static func _path(i: int) -> String:
+static func path(i: int) -> String:
 	return Settings.assets_dir().path_join("converted/objects/cloud256_%d.png" % i)
 
 
@@ -139,7 +164,7 @@ func _ready() -> void:
 	# The layer is the farthest transparent thing (sky): drawn before the other transparent objects, whose
 	# depth-sorted order would otherwise put the camera-centred dome last, over the explosions and smoke.
 	_mat.render_priority = Material.RENDER_PRIORITY_MIN
-	var tex := Img.load_texture(_path(texture_index), true)
+	var tex := Img.load_texture(path(texture_index), true)
 	if tex != null:
 		_mat.set_shader_parameter("tex", tex)
 	_mat.set_shader_parameter("scale", 1.0 / (1.2 * FAR))
@@ -213,6 +238,13 @@ func set_tint(c: Color) -> void:
 	_refresh()
 
 
+## The rain's overcast hides the layer: `f` 1 = as drawn, 0 = gone (Weather.grey(), docs/rendering.md §10.1).
+func set_fade(f: float) -> void:
+	if f != _fade:
+		_fade = f
+		_mat.set_shader_parameter("fade", f)
+
+
 ## Extras Sky: Atmospheric (render_options.gd): the clouds separated, clear sky between them, smoothed, and by day lit
 ## by the sun.
 func set_atmospheric(on: bool) -> void:
@@ -221,7 +253,9 @@ func set_atmospheric(on: bool) -> void:
 
 
 func _refresh() -> void:
-	_mat.set_shader_parameter("alpha_range", Vector2(0.3, 0.9) if _atmo else Vector2(0.0, 1.0))
+	var r := Vector2(0.3, 0.9) if _atmo else Vector2(0.0, 1.0)
+	_mat.set_shader_parameter("alpha_range", NIGHT_GAPS if _gaps else r)
+	_mat.set_shader_parameter("glow_gain", GLOW_GAIN if _glow else 0.0)
 	_mat.set_shader_parameter("min_lod", 2.5 if _atmo else 2.0)
 	_mat.set_shader_parameter("detail", 0.2 if _atmo else 0.0)
 	_mat.set_shader_parameter("lit", _atmo and not _night)
@@ -235,6 +269,11 @@ func _refresh() -> void:
 func update_view(cam: Vector3, dt: float) -> void:
 	position = Vector3(cam.x, 0.0, cam.z)
 	var below := cam.y < H
+	var glow := _night and CityLights.glow_strength > 0.0
+	if glow != _glow or (glow and not below) != _gaps:
+		_glow = glow
+		_gaps = glow and not below
+		_refresh()
 	_dome.visible = below
 	_flat.visible = not below
 	_mat.set_shader_parameter("at_far", below)

@@ -194,7 +194,7 @@ static func haze_factor(alt: float) -> float:
 	return (1.0 - exp(-x)) / x
 
 
-## Per frame with the camera's position: the atmospheric sky's altitude, its overcast in the rain (Weather), the
+## Per frame with the camera's position: the atmospheric sky's altitude, its overcast in the rain (Weather.grey()), the
 ## haze's density by altitude when dry, and the surface types for the close up and the water.
 static func update_view(env: Environment, cam: Vector3, terrain: Node) -> void:
 	if env.sky != null and env.sky.sky_material is ShaderMaterial:
@@ -202,7 +202,8 @@ static func update_view(env: Environment, cam: Vector3, terrain: Node) -> void:
 		var alt := snappedf(maxf(cam.y, 0.0), SKY_ALT_STEP)
 		if mat.get_shader_parameter("altitude") != alt:
 			mat.set_shader_parameter("altitude", alt)
-		var overcast: float = Weather.level().get("sky", 0.0) if Weather.wet > 0.0 else 0.0
+		# The overcast at the camera (none above the rain's deck), in steps: each change re-renders the sky's radiance.
+		var overcast := snappedf(Weather.grey(), 0.05) if Weather.wet > 0.0 else 0.0
 		if mat.get_shader_parameter("overcast") != overcast:
 			mat.set_shader_parameter("overcast", overcast)
 		if Weather.level().is_empty():

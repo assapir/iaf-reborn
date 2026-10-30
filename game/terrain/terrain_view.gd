@@ -52,6 +52,7 @@ const Airbases := preload("res://terrain/airbases.gd")
 const GroundRoads := preload("res://terrain/ground_roads.gd")
 const TimeOfDay := preload("res://terrain/time_of_day.gd")
 const Weather := preload("res://terrain/weather.gd")
+const VolumetricClouds := preload("res://terrain/volumetric_clouds.gd")
 const VehicleParts := preload("res://mission/vehicle_parts.gd")
 var views: RefCounted = Views.new()
 var in_cockpit: bool:
@@ -258,6 +259,8 @@ var effects: Node3D
 var player_damage: RefCounted
 ## The cloud layer (game/terrain/cloud_layer.gd); null with Graphics TEXTURED SKY off.
 var clouds: Node3D
+## Clouds Volumetric (ours, terrain/volumetric_clouds.gd): the raymarched clouds, else null.
+var vclouds: Node3D
 ## The time of day's state (docs/rendering.md §4): the last applied sim time, the sun, the table colours.
 var _tod_t := -INF
 var _tod_sun := {}
@@ -441,13 +444,23 @@ func _next_frame(in_ready := false) -> bool:
 ## The render preferences that can change during a flight: Graphics TEXTURED SKY (renderer +4 → 0x7d1944:
 ## the cloud layer at 7000 m and its whiteout) and our render options (docs/rendering.md).
 func apply_render_options() -> void:
-	if Settings.textured_sky and clouds == null:
+	# Clouds Volumetric takes the original layer's place (docs/rendering.md §2.1).
+	var vol := Settings.clouds == "volumetric" and VolumetricClouds.supported()
+	var layer := Settings.textured_sky and not vol
+	if layer and clouds == null:
 		clouds = preload("res://terrain/cloud_layer.gd").new()
 		clouds.fog_color = ($WorldEnvironment as WorldEnvironment).environment.fog_light_color
 		add_child(clouds)
-	elif not Settings.textured_sky and clouds != null:
+	elif not layer and clouds != null:
 		clouds.free()
 		clouds = null
+	if vol and vclouds == null:
+		vclouds = VolumetricClouds.new()
+		add_child(vclouds)
+		vclouds.attach([camera, chase] as Array[Camera3D])
+	elif not vol and vclouds != null:
+		vclouds.free()
+		vclouds = null
 	RenderOptions.apply(get_viewport(), ($WorldEnvironment as WorldEnvironment).environment)
 	# Rain (ours, docs/rendering.md §10): the fog, sun and wetness; the drops while it rains.
 	Weather.apply_env(($WorldEnvironment as WorldEnvironment).environment, $Sun)
@@ -512,8 +525,9 @@ func _update_time_of_day(cam: Camera3D) -> void:
 			_tod_atmo = atmo
 			RenderOptions._apply_sky(env, atmo, get_world_3d().camera_attributes)
 			Weather.apply_env(env, sun)
-		if atmo and Weather.level().is_empty():
-			env.ambient_light_color = RenderOptions.bounce(sun.light_color, sun.light_energy, -d.z)
+		if atmo:
+			var b := RenderOptions.bounce(sun.light_color, float(sun.get_meta("dry_energy", sun.light_energy)), -d.z)
+			Weather.set_dry_ambient(env, b)
 		var mat = env.sky.sky_material if env.sky != null else null
 		if mat is ProceduralSkyMaterial and not _tod_colors.is_empty():
 			mat.sky_top_color = Weather.fog_tint(_tod_colors.sky)  # the overcast in the rain
@@ -712,6 +726,7 @@ func _update_eo_view() -> void:
 		eo_camera = Camera3D.new()
 		eo_camera.keep_aspect = Camera3D.KEEP_WIDTH
 		eo_camera.cull_mask &= ~(1 << (weapons.eo.SELF_LAYER - 1))  # not the flying TV weapon it rides in
+		eo_camera.cull_mask &= ~VolumetricClouds.LAYER  # the clouds' quad shows the main view's clouds
 		eo_viewport.add_child(eo_camera)
 		add_child(eo_viewport)
 		cockpit.eo_texture = eo_viewport.get_texture()
@@ -3464,6 +3479,9 @@ func _process(delta: float) -> void:
 	_imode_update()
 	if clouds != null and get_viewport().get_camera_3d() != null:
 		clouds.update_view(get_viewport().get_camera_3d().global_position, delta)
+	if get_viewport().get_camera_3d() != null:
+		var cp := get_viewport().get_camera_3d().global_position
+		Weather.track_ground(terrain.height_at(cp), delta)
 	_update_time_of_day(get_viewport().get_camera_3d())
 	if weather != null:
 		weather.update(
@@ -3473,6 +3491,10 @@ func _process(delta: float) -> void:
 			($WorldEnvironment as WorldEnvironment).environment.fog_light_color,
 			delta
 		)
+	if clouds != null:
+		clouds.set_fade(1.0 - Weather.grey())  # under the rain's overcast the high layer is hidden
+	if vclouds != null:
+		vclouds.update(($WorldEnvironment as WorldEnvironment).environment, $Sun, GpuFx.wind, delta)
 	if get_viewport().get_camera_3d() != null:
 		RenderOptions.update_view(
 			($WorldEnvironment as WorldEnvironment).environment, get_viewport().get_camera_3d().global_position, terrain
