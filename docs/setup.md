@@ -116,7 +116,10 @@ picture.
 The downloads (`scenery-fetch`, `textures`, the Survey sheets) treat a transfer under 1 kB/s for 60 s as a stall and
 try a failed transfer (a stall, a reset connection) 5 more times (`CURL_PATIENCE` in
 `crates/iaf-tools/src/thirdparty.rs`). `scenery-fetch` and the Survey sheets keep a failed file's `.part`, so the
-next run resumes it; a server that cannot resume starts the file again.
+next run resumes it; a server that cannot resume starts the file again. A file that fails does not stop the others
+downloading beside it: they finish, the failure is logged with the file's name, and the rest of the theatre's
+scenery then tries only the failed files once more. Before 2026-11-01 one failure stopped the others and deleted their
+parts, so they started from zero again (a user's log: 124 MB at 0.1 MB/s).
 
 ## Uninstall
 

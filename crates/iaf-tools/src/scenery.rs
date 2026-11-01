@@ -1361,15 +1361,16 @@ impl Kinds {
 }
 
 /// Downloads the rest of the theatre's sources the kinds need (`thirdparty::SCENERY_THEATRE`) into
-/// `assets/source/scenery`: four at once; when one fails, file by file, and a file that fails is logged and left out
-/// (its area has no buildings or trees). The count downloaded now.
+/// `assets/source/scenery`: four at once; the files that failed then once more each, and a file that fails again is
+/// logged and left out (its area has no buildings or trees). The count downloaded now.
 pub fn fetch_theatre(assets: &Path, kinds: Kinds, pr: &dyn Progress, cancel: &AtomicBool) -> Result<usize> {
     let (dir, list) = (assets.join("source/scenery"), kinds.theatre_downloads());
     if let Ok(n) = thirdparty::fetch_files(&list, &dir, pr, cancel) {
         return Ok(n);
     }
+    // A file failed (logged): the others are done or keep their parts; each is tried once more on its own.
     let mut n = 0;
-    for d in &list {
+    for d in list.iter().filter(|d| !thirdparty::file_done(&dir, d)) {
         match thirdparty::fetch_files(std::slice::from_ref(d), &dir, pr, cancel) {
             Ok(k) => n += k,
             Err(e) => {
