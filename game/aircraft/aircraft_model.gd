@@ -155,6 +155,8 @@ const F16_SEAT_SURFACES := 39
 ## The canopy frame seen from the seat: FS 36118 gunship grey, matte (ours; FlightGear maps the frame into the livery,
 ## so it would take the camouflage).
 const F16_FRAME_COLOUR := Color(0.31, 0.33, 0.32)
+## Half the front tub's width (m, at 1:1; FlightGear's cockpit.ac is 1.24 m across).
+const F16_TUB_HALF_WIDTH := 0.63
 
 
 ## Ours (Models: Detailed, or the Sufa): the cockpit view's own jet from the detailed F-16 at `path` instead of the
@@ -163,7 +165,10 @@ const F16_FRAME_COLOUR := Color(0.31, 0.33, 0.32)
 ## stays), the canopy glass, the gear legs and the open gear doors (the closed ones shown); `eye` is the front pilot's
 ## eye in its frame. The seat and tub (FlightGear's `ac_*` materials, glossy at roughness 0.5) are made matte, the
 ## canopy frame F16_FRAME_COLOUR; copies, so the jets seen from outside keep theirs.
-static func detailed_cockpit(path: String) -> Array:
+## `whole` (ours, the 3D cockpit: cockpit/cockpit3d.gd): the airframe ahead of the eye kept too (the sills and the
+## forward fuselage beside the panel); of FlightGear's interior (`ac_*`) only what lies behind the eye or outside the
+## front tub's width (F16_TUB_HALF_WIDTH): the 3D cockpit draws the front tub ahead of the eye.
+static func detailed_cockpit(path: String, whole := false) -> Array:
 	var node := Gltf.instance(Gltf.model(path))
 	var root := node.get_child(0) as Node3D
 	var eye: Vector3 = root.transform * ((root.get_node("pilot") as Node3D).position + F16_EYE_IN_PILOT)
@@ -186,8 +191,14 @@ static func detailed_cockpit(path: String) -> Array:
 			var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
 			var idx: PackedInt32Array = a[Mesh.ARRAY_INDEX]
 			var out := PackedInt32Array()
+			var interior: bool = mi.mesh.surface_get_material(s).resource_name.begins_with("ac_")
 			for t in range(0, idx.size(), 3):
-				if maxf(maxf((xf * v[idx[t]]).z, (xf * v[idx[t + 1]]).z), (xf * v[idx[t + 2]]).z) > eye.z:
+				var p0 := xf * v[idx[t]]
+				var p1 := xf * v[idx[t + 1]]
+				var p2 := xf * v[idx[t + 2]]
+				var behind := maxf(maxf(p0.z, p1.z), p2.z) > eye.z
+				var beside := maxf(maxf(absf(p0.x), absf(p1.x)), absf(p2.x)) > F16_TUB_HALF_WIDTH
+				if behind or (whole and (not interior or beside)):
 					out.append_array([idx[t], idx[t + 1], idx[t + 2]])
 			if out.is_empty():
 				continue

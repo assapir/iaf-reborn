@@ -93,6 +93,11 @@ ranked order: [graphics-research.md](graphics-research.md).
 - **Realistic 3D cockpit** (wishlist; Extras switch, the original 2D cockpit by default): a modelled cockpit per jet
   (DCS-style: free head look, the real panel layout, clickable switches, the MFDs / HUD / gauges drawn live on it),
   together with the high-detail model of that jet, the F-16 first.
+  - **F-16: built** (2026-10-30, Extras "Cockpit": 3D; cockpit.md "3D cockpit"): the FlightGear F-16's front
+    cockpit for the Barak (Block 40 panels) and the Sufa (Block 50), live MFDs, the HUD masked to the combiner,
+    FlightGear's needles driven, the view at its true size. Next: the lamps and the remaining gauges, the F-35I's
+    cockpit on the same switch, the clickable switches, head tracking (opentrack), the Sufa's own parts as photos
+    turn up, the rear seat.
   - Licence rule: the repo is GPL-3.0-or-later, so a model can ship only under GPL-2.0-**or-later** or a compatible
     licence. Check each file's copyright first.
   - Open references:

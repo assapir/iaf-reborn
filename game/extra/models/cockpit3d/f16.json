@@ -1,0 +1,1324 @@
+{
+ "source": "FlightGear F-16 ef4f192f06243cf4061c2be794511db0576ac2f9",
+ "eye": [
+  -0.001,
+  0.8569,
+  -3.054
+ ],
+ "animations": {
+  "anim000": [
+   {
+    "prop": "controls/flight/elevator",
+    "factor": 5.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -1.0,
+     0.0,
+     -0.0
+    ]
+   },
+   {
+    "prop": "controls/flight/aileron",
+    "factor": 5.0,
+    "offset": 0.0,
+    "centre": [
+     -1e-05,
+     -0.00914,
+     5e-05
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     -1.0
+    ]
+   }
+  ],
+  "anim001": [
+   {
+    "prop": "controls/flight/elevator",
+    "factor": 5.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -1.0,
+     0.0,
+     -0.0
+    ]
+   },
+   {
+    "prop": "controls/flight/aileron",
+    "factor": 5.0,
+    "offset": 0.0,
+    "centre": [
+     -1e-05,
+     -0.00914,
+     5e-05
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     -1.0
+    ]
+   }
+  ],
+  "anim002": [
+   {
+    "prop": "controls/flight/elevator",
+    "factor": 5.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -1.0,
+     0.0,
+     -0.0
+    ]
+   },
+   {
+    "prop": "controls/flight/aileron",
+    "factor": 5.0,
+    "offset": 0.0,
+    "centre": [
+     -1e-05,
+     -0.00914,
+     5e-05
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     -1.0
+    ]
+   }
+  ],
+  "anim003": [
+   {
+    "prop": "controls/flight/elevator",
+    "factor": 5.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -1.0,
+     0.0,
+     -0.0
+    ]
+   },
+   {
+    "prop": "controls/flight/aileron",
+    "factor": 5.0,
+    "offset": 0.0,
+    "centre": [
+     -1e-05,
+     -0.00914,
+     5e-05
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     -1.0
+    ]
+   }
+  ],
+  "anim004": [
+   {
+    "prop": "controls/flight/elevator",
+    "factor": 5.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -1.0,
+     0.0,
+     -0.0
+    ]
+   },
+   {
+    "prop": "controls/flight/aileron",
+    "factor": 5.0,
+    "offset": 0.0,
+    "centre": [
+     -1e-05,
+     -0.00914,
+     5e-05
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     -1.0
+    ]
+   }
+  ],
+  "anim005": [
+   {
+    "prop": "controls/flight/elevator",
+    "factor": 5.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -1.0,
+     0.0,
+     -0.0
+    ]
+   },
+   {
+    "prop": "controls/flight/aileron",
+    "factor": 5.0,
+    "offset": 0.0,
+    "centre": [
+     -1e-05,
+     -0.00914,
+     5e-05
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     -1.0
+    ]
+   }
+  ],
+  "anim006": [
+   {
+    "prop": "controls/flight/elevator",
+    "factor": 5.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -1.0,
+     0.0,
+     -0.0
+    ]
+   },
+   {
+    "prop": "controls/flight/aileron",
+    "factor": 5.0,
+    "offset": 0.0,
+    "centre": [
+     -1e-05,
+     -0.00914,
+     5e-05
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     -1.0
+    ]
+   }
+  ],
+  "anim007": [
+   {
+    "prop": "controls/flight/elevator",
+    "factor": 5.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -1.0,
+     0.0,
+     -0.0
+    ]
+   },
+   {
+    "prop": "controls/flight/aileron",
+    "factor": 5.0,
+    "offset": 0.0,
+    "centre": [
+     -1e-05,
+     -0.00914,
+     5e-05
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     -1.0
+    ]
+   }
+  ],
+  "anim008": [
+   {
+    "prop": "controls/flight/elevator",
+    "factor": 5.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -1.0,
+     0.0,
+     -0.0
+    ]
+   },
+   {
+    "prop": "controls/flight/aileron",
+    "factor": 5.0,
+    "offset": 0.0,
+    "centre": [
+     -1e-05,
+     -0.00914,
+     5e-05
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     -1.0
+    ]
+   }
+  ],
+  "anim009": [
+   {
+    "prop": "controls/flight/elevator",
+    "factor": 5.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -1.0,
+     0.0,
+     -0.0
+    ]
+   },
+   {
+    "prop": "controls/flight/aileron",
+    "factor": 5.0,
+    "offset": 0.0,
+    "centre": [
+     -1e-05,
+     -0.00914,
+     5e-05
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     -1.0
+    ]
+   }
+  ],
+  "anim010": [
+   {
+    "prop": "controls/engines/engine/throttle-movement",
+    "factor": -80.0,
+    "offset": 40.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ]
+   },
+   {
+    "prop": "controls/engines/engine/augmentation",
+    "factor": 7.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
+  "anim011": [
+   {
+    "prop": "controls/engines/engine/throttle-movement",
+    "factor": -80.0,
+    "offset": 40.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ]
+   }
+  ],
+  "anim012": [
+   {
+    "prop": "controls/engines/engine/throttle-movement",
+    "factor": -80.0,
+    "offset": 40.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ]
+   }
+  ],
+  "anim013": [
+   {
+    "prop": "controls/engines/engine/throttle-movement",
+    "factor": -80.0,
+    "offset": 40.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ]
+   }
+  ],
+  "anim014": [
+   {
+    "prop": "controls/engines/engine/throttle-movement",
+    "factor": -80.0,
+    "offset": 40.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ]
+   }
+  ],
+  "anim015": [
+   {
+    "prop": "controls/engines/engine/throttle-movement",
+    "factor": -80.0,
+    "offset": 40.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ]
+   }
+  ],
+  "anim016": [
+   {
+    "prop": "instrumentation/airspeed-indicator/indicated-speed-kt",
+    "table": [
+     [
+      0.0,
+      0.0
+     ],
+     [
+      40.0,
+      16.0
+     ],
+     [
+      75.0,
+      31.0
+     ],
+     [
+      100.0,
+      45.0
+     ],
+     [
+      117.0,
+      61.0
+     ],
+     [
+      135.0,
+      75.0
+     ],
+     [
+      150.0,
+      90.0
+     ],
+     [
+      170.0,
+      104.0
+     ],
+     [
+      185.0,
+      120.0
+     ],
+     [
+      200.0,
+      134.0
+     ],
+     [
+      250.0,
+      156.0
+     ],
+     [
+      300.0,
+      180.0
+     ],
+     [
+      350.0,
+      204.0
+     ],
+     [
+      400.0,
+      224.0
+     ],
+     [
+      500.0,
+      251.0
+     ],
+     [
+      600.0,
+      280.0
+     ],
+     [
+      700.0,
+      305.0
+     ],
+     [
+      800.0,
+      332.0
+     ],
+     [
+      850.0,
+      345.0
+     ]
+    ],
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     -0.34202,
+     -0.93969
+    ]
+   }
+  ],
+  "anim017": [
+   {
+    "prop": "instrumentation/airspeed-indicator/indicated-speed-kt",
+    "table": [
+     [
+      0.0,
+      0.0
+     ],
+     [
+      40.0,
+      16.0
+     ],
+     [
+      75.0,
+      31.0
+     ],
+     [
+      100.0,
+      45.0
+     ],
+     [
+      117.0,
+      61.0
+     ],
+     [
+      135.0,
+      75.0
+     ],
+     [
+      150.0,
+      90.0
+     ],
+     [
+      170.0,
+      104.0
+     ],
+     [
+      185.0,
+      120.0
+     ],
+     [
+      200.0,
+      134.0
+     ],
+     [
+      250.0,
+      156.0
+     ],
+     [
+      300.0,
+      180.0
+     ],
+     [
+      350.0,
+      204.0
+     ],
+     [
+      400.0,
+      224.0
+     ],
+     [
+      500.0,
+      251.0
+     ],
+     [
+      600.0,
+      280.0
+     ],
+     [
+      700.0,
+      305.0
+     ],
+     [
+      800.0,
+      332.0
+     ],
+     [
+      850.0,
+      345.0
+     ]
+    ],
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     -0.34202,
+     -0.93969
+    ]
+   },
+   {
+    "prop": "velocities/mach",
+    "table": [
+     [
+      0.0,
+      0.0
+     ],
+     [
+      0.8,
+      90.0
+     ],
+     [
+      1.4,
+      180.0
+     ],
+     [
+      2.2,
+      270.0
+     ],
+     [
+      2.6,
+      315.0
+     ]
+    ],
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.34202,
+     0.93969
+    ]
+   }
+  ],
+  "anim018": [
+   {
+    "prop": "orientation/roll-deg",
+    "factor": 1.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.34202,
+     0.93969
+    ]
+   }
+  ],
+  "anim019": [
+   {
+    "prop": "orientation/roll-deg",
+    "factor": 1.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.34202,
+     0.93969
+    ]
+   },
+   {
+    "prop": "orientation/pitch-deg",
+    "factor": 1.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ]
+   }
+  ],
+  "anim020": [
+   {
+    "prop": "f16/avionics/vvi-indicated-speed-fps",
+    "table": [
+     [
+      -100.0,
+      -90.0
+     ],
+     [
+      -66.667,
+      -74.0
+     ],
+     [
+      -33.333,
+      -56.4
+     ],
+     [
+      -16.667,
+      -44.0
+     ],
+     [
+      -8.333,
+      -21.8
+     ],
+     [
+      0.0,
+      0.0
+     ],
+     [
+      8.333,
+      21.8
+     ],
+     [
+      16.667,
+      44.0
+     ],
+     [
+      33.333,
+      56.4
+     ],
+     [
+      66.667,
+      74.0
+     ],
+     [
+      100.0,
+      90.0
+     ]
+    ],
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     -0.34202,
+     -0.93969
+    ]
+   }
+  ],
+  "anim021": [
+   {
+    "prop": "instrumentation/clock/indicated-sec",
+    "factor": 0.00833333333333333,
+    "offset": 66.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.21164,
+     -0.69636,
+     -0.68577
+    ]
+   }
+  ],
+  "anim022": [
+   {
+    "prop": "instrumentation/clock/indicated-sec",
+    "factor": 0.1,
+    "offset": 120.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.21164,
+     -0.69636,
+     -0.68577
+    ]
+   }
+  ],
+  "anim023": [
+   {
+    "prop": "instrumentation/clock/indicated-sec",
+    "factor": 6.0,
+    "offset": 144.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.21164,
+     -0.69636,
+     -0.68577
+    ]
+   }
+  ],
+  "anim024": [
+   {
+    "prop": "consumables/fuel/total-fuel-lbs-10000",
+    "factor": 0.0036,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.97683,
+     -0.17365,
+     -0.12513
+    ]
+   }
+  ],
+  "anim025": [
+   {
+    "prop": "consumables/fuel/total-fuel-lbs-1000",
+    "factor": 0.036,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.97683,
+     -0.17365,
+     -0.12513
+    ]
+   }
+  ],
+  "anim026": [
+   {
+    "prop": "consumables/fuel/total-fuel-lbs-100",
+    "factor": 0.36,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.97683,
+     -0.17365,
+     -0.12513
+    ]
+   }
+  ],
+  "anim027": [
+   {
+    "prop": "consumables/fuel/total-fuel-lbs-10",
+    "factor": 3.6,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.97683,
+     -0.17365,
+     -0.12513
+    ]
+   }
+  ],
+  "anim028": [
+   {
+    "prop": "consumables/fuel/total-fuel-lbs-1",
+    "factor": 36.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.97683,
+     -0.17365,
+     -0.12513
+    ]
+   }
+  ],
+  "anim029": [
+   {
+    "prop": "instrumentation/attitude-indicator[2]/indicated-roll-deg",
+    "factor": 1.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.25882,
+     0.96593
+    ]
+   }
+  ],
+  "anim030": [
+   {
+    "prop": "instrumentation/attitude-indicator[2]/indicated-roll-deg",
+    "factor": 1.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.25882,
+     0.96593
+    ]
+   }
+  ],
+  "anim031": [
+   {
+    "prop": "instrumentation/attitude-indicator[2]/indicated-roll-deg",
+    "factor": 1.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.25882,
+     0.96593
+    ]
+   },
+   {
+    "prop": "instrumentation/attitude-indicator[2]/indicated-pitch-deg",
+    "factor": 2.0,
+    "offset": -8.0,
+    "centre": [
+     0.0,
+     -0.0001,
+     -0.00039
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ]
+   }
+  ],
+  "anim032": [
+   {
+    "prop": "engines/engine[0]/ftit-degc",
+    "table": [
+     [
+      0.0,
+      0.0
+     ],
+     [
+      200.0,
+      18.5
+     ],
+     [
+      700.0,
+      117.5
+     ],
+     [
+      800.0,
+      177.5
+     ],
+     [
+      900.0,
+      237.5
+     ],
+     [
+      1000.0,
+      297.5
+     ],
+     [
+      1200.0,
+      337.5
+     ]
+    ],
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     -0.42262,
+     -0.90631
+    ]
+   }
+  ],
+  "anim033": [
+   {
+    "prop": "engines/engine[0]/nozzle-pos-norm-lag",
+    "factor": 250.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     -0.42262,
+     -0.90631
+    ]
+   }
+  ],
+  "anim034": [
+   {
+    "prop": "engines/engine[0]/oil-pressure-psi",
+    "factor": 3.3,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     -0.42262,
+     -0.90631
+    ]
+   }
+  ],
+  "anim035": [
+   {
+    "prop": "engines/engine[0]/n2",
+    "table": [
+     [
+      0.0,
+      0.0
+     ],
+     [
+      60.0,
+      122.0
+     ],
+     [
+      100.0,
+      328.0
+     ]
+    ],
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     -0.42262,
+     -0.90631
+    ]
+   }
+  ],
+  "anim036": [
+   {
+    "prop": "instrumentation/magnetic-compass/indicated-heading-deg",
+    "factor": 1.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     1.0,
+     -0.0
+    ]
+   }
+  ],
+  "anim037": [
+   {
+    "prop": "instrumentation/altimeter/indicated-altitude-ft",
+    "factor": 0.36,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.0,
+     -0.34202,
+     -0.93969
+    ]
+   }
+  ]
+ },
+ "buttons": {
+  "MFD_L_B1": [
+   -0.19072,
+   0.41901,
+   -3.68184
+  ],
+  "MFD_L_B2": [
+   -0.17379,
+   0.41901,
+   -3.68184
+  ],
+  "MFD_L_B3": [
+   -0.15677,
+   0.41901,
+   -3.68184
+  ],
+  "MFD_L_B4": [
+   -0.13966,
+   0.41901,
+   -3.68184
+  ],
+  "MFD_L_B5": [
+   -0.12309,
+   0.41901,
+   -3.68184
+  ],
+  "MFD_L_L1": [
+   -0.22121,
+   0.51154,
+   -3.70457
+  ],
+  "MFD_L_L2": [
+   -0.22121,
+   0.49649,
+   -3.70087
+  ],
+  "MFD_L_L3": [
+   -0.22121,
+   0.48103,
+   -3.69707
+  ],
+  "MFD_L_L4": [
+   -0.22121,
+   0.46661,
+   -3.69353
+  ],
+  "MFD_L_L5": [
+   -0.22121,
+   0.45142,
+   -3.6898
+  ],
+  "MFD_L_R1": [
+   -0.09223,
+   0.51154,
+   -3.70457
+  ],
+  "MFD_L_R2": [
+   -0.09223,
+   0.49649,
+   -3.70087
+  ],
+  "MFD_L_R3": [
+   -0.09223,
+   0.48103,
+   -3.69707
+  ],
+  "MFD_L_R4": [
+   -0.09223,
+   0.46661,
+   -3.69353
+  ],
+  "MFD_L_R5": [
+   -0.09223,
+   0.45142,
+   -3.6898
+  ],
+  "MFD_L_T1": [
+   -0.19081,
+   0.54346,
+   -3.71241
+  ],
+  "MFD_L_T2": [
+   -0.17379,
+   0.54346,
+   -3.71241
+  ],
+  "MFD_L_T3": [
+   -0.15677,
+   0.54346,
+   -3.71241
+  ],
+  "MFD_L_T4": [
+   -0.13966,
+   0.54346,
+   -3.71241
+  ],
+  "MFD_L_T5": [
+   -0.12309,
+   0.54346,
+   -3.71241
+  ],
+  "MFD_R_B1": [
+   0.12328,
+   0.41901,
+   -3.68184
+  ],
+  "MFD_R_B2": [
+   0.14021,
+   0.41901,
+   -3.68184
+  ],
+  "MFD_R_B3": [
+   0.15723,
+   0.41901,
+   -3.68184
+  ],
+  "MFD_R_B4": [
+   0.17434,
+   0.41901,
+   -3.68184
+  ],
+  "MFD_R_B5": [
+   0.19091,
+   0.41901,
+   -3.68184
+  ],
+  "MFD_R_L1": [
+   0.09279,
+   0.51154,
+   -3.70457
+  ],
+  "MFD_R_L2": [
+   0.09279,
+   0.49649,
+   -3.70087
+  ],
+  "MFD_R_L3": [
+   0.09279,
+   0.48103,
+   -3.69707
+  ],
+  "MFD_R_L4": [
+   0.09279,
+   0.46661,
+   -3.69353
+  ],
+  "MFD_R_L5": [
+   0.09279,
+   0.45142,
+   -3.6898
+  ],
+  "MFD_R_R1": [
+   0.22177,
+   0.51154,
+   -3.70457
+  ],
+  "MFD_R_R2": [
+   0.22177,
+   0.49649,
+   -3.70087
+  ],
+  "MFD_R_R3": [
+   0.22177,
+   0.48103,
+   -3.69707
+  ],
+  "MFD_R_R4": [
+   0.22177,
+   0.46661,
+   -3.69353
+  ],
+  "MFD_R_R5": [
+   0.22177,
+   0.45142,
+   -3.6898
+  ],
+  "MFD_R_T1": [
+   0.12319,
+   0.54346,
+   -3.71241
+  ],
+  "MFD_R_T2": [
+   0.14021,
+   0.54346,
+   -3.71241
+  ],
+  "MFD_R_T3": [
+   0.15723,
+   0.54346,
+   -3.71241
+  ],
+  "MFD_R_T4": [
+   0.17434,
+   0.54346,
+   -3.71241
+  ],
+  "MFD_R_T5": [
+   0.19091,
+   0.54346,
+   -3.71241
+  ]
+ }
+}

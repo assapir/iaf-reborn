@@ -135,7 +135,8 @@ const PREFS := {
 		"f15_variant",
 		"modern_weapons",
 		"bomb_release",
-		"real_mfds"
+		"real_mfds",
+		"cockpit_3d"
 	],
 }
 
@@ -319,6 +320,10 @@ var bomb_release := "original"
 ## MFDs (ours, Extras page; docs/mfd.md §9): "original" (the 1998 pages) or "real" (the F-16D Barak's real head-down
 ## formats, in green). The F-16I Sufa always draws them, in colour (`real_mfd`).
 var real_mfds := "original"
+## Cockpit (ours, Extras page; docs/cockpit.md "3D cockpit"): "original" (the 1998 2D panel) or "3d" (the
+## FlightGear F-16's 3D front cockpit with our live MFDs and HUD, cockpit/cockpit3d.gd), the Barak's and the Sufa's.
+## Read at mission load.
+var cockpit_3d := "original"
 ## World scale (ours, Extras page; docs/world-scale.md): "original" (the models at their Present scale, ×2 for
 ## the jets) or "real" (true size, model_scale). Read at mission load.
 var world_scale := "original"

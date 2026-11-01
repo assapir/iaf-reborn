@@ -394,6 +394,80 @@ TgenAPI (`DAT_0069942c`, 16-bit renderer vtable `0x5fd900`) draws the world into
   * A window wider than 4:3 (or the zoomed-out cockpit) shows more world around the original frame at the same focal
     length; nothing is stretched.
 
+### 3D cockpit (ours, Extras > Cockpit)
+Ours, opt-in (`cockpit_3d`: Original 2D / 3D, read at mission load; deviations.md §2): a real-time 3D cockpit in
+place of the 2D panel art. Today the F-16's, for the Barak and the Sufa; other jets keep their panels. The plumbing
+(`game/cockpit/cockpit3d.gd`) takes any jet whose cockpit directory has a model in `MODELS`; the F-35I's comes next
+(docs/f35i.md §4).
+
+**The model** (`game/extra/models/cockpit3d/f16.glb`, 4.2 MB with KTX2 textures; built by
+`tools/f16d/cockpit3d.py` from the FlightGear F-16 at commit ef4f192, GPL-2.0-or-later; credits and changes in
+`game/extra/models/cockpit3d/SOURCES.md`):
+* FlightGear's `Models/Cockpit/Main/cockpit.xml` and the parts it includes, each placed by its `<offsets>`, as its
+  Block 50/52 shows them (`sim/variant-id` 5): the tub and glareshield ahead of the eye, the HUD, both MFDs (20 push
+  buttons each), ICP, DED, the small PFD, the RWR head, the instruments, the eyebrow lamp panels, the four consoles
+  (decimated to about 40 %), throttle, stick and pedals.
+* Two HUDs, one shown per jet: the Barak the Block 50's (`hud.xml`: two posts, a small combiner), the Sufa
+  FlightGear's wide-angle HUD (`f16_war.xml`). An F-16I seen from the side shows one large combiner plate over a deep
+  box (IDF Spokesperson's Unit, CC BY-SA 3.0, `File:Israeli_attacks_on_Yemen,_January_2025._XV.jpg` on Wikimedia
+  Commons; a reference only); the wide-angle HUD is the closer of FlightGear's two (inferred), the Elbit HUD's own
+  shape and field are open. 59.5 k triangles in the file, about 54 k drawn (one HUD); 121 materials (FlightGear's
+  duplicates merged), 152 surfaces.
+* Left out: the seat, canopy frame and rear cockpit (the detailed F-16's cut model draws them, aircraft-models.md
+  §1.4), the kneeboards, helmet and pilot.
+* The altimeter is ours: FlightGear's comes from FGData, outside the package. The ASI's mount and dial plate copied
+  to the altimeter's place, the dial FlightGear's own altimeter face (`Textures/faces1.png`), a white needle at one
+  turn per 1,000 ft (`tools/f16d/cockpit3d.py` `altimeter`).
+* FlightGear's `select` animations are evaluated once for a powered jet (DC buses 28 V, AC buses 115 V) with every
+  lamp, flag and test off.
+* The panel sheets per jet (FlightGear's `Textures/Block-panels`, the labels of the left auxiliary console and the
+  RWR head): the Sufa the Block 50 sheet (`blck50-panels1.png`, in the model: the F-16I is a Block 52+); the Barak
+  the Block 40 one (`blck40-panels1.png`, shipped as `barak_panels.webp` and swapped in at load: the game's Barak is
+  a Block 30/40, real-aircraft.md §8; FlightGear's Block 30 sheet differs from the Block 40 one in 2 % of its
+  pixels). The rest of the cockpit is one geometry and texture set for every block in FlightGear.
+* The DED's and PFD's screens are dark (FlightGear draws them with its canvas system).
+
+**In the flight** (`cockpit3d.gd`, `terrain_view.gd` `_spawn_player`):
+* The model hangs in the cockpit-view model (`own_bc`): with the 3D cockpit the F-16 always uses the detailed
+  F-16's cut model (Models on Original too), kept whole ahead of the eye but for FlightGear's front tub
+  (`aircraft_model.gd` `detailed_cockpit(path, whole)`), so the sills and forward fuselage show beside the panel. The
+  model's tub ends at the eye's plane; the cut model's tub and seat draw the rest. Its frame is the cut model's, so it
+  sits at the eye and scales (Present scale ×2) and leans with it.
+* **The view at its true size**: the 2D cockpit keeps the original's projection (50° across 640 px, above). The 3D
+  cockpit's focal length is the viewing distance in screen pixels (`cockpit.gd` `true_scale_focal`):
+  f = 0.6 m (`VIEW_DISTANCE_M`, inferred: a desk monitor or a laptop at arm's length) × the screen's density
+  (`DisplayServer.screen_get_dpi`, 96 dpi when the system gives none) / 0.0254 m per inch × the viewport's px per
+  window px. On a 15.6 in 1080p laptop (141 dpi) that is 3,330 px: 32° across the screen; at 96 dpi 2,268 px, 46°.
+  The camera keeps the original's 5.5° look-down; its centre is the screen's middle (`panel_top` there: no panel
+  art). The HUD's layout scales with it (`ui_scale` = this focal length / 686.2 px), so the HUD keeps its place on
+  the world; with the head turned the HUD moves with the nose's place on the screen (`view_shift`) instead of the 2D
+  panel's pan. Extras "Real HUD view" has nothing to fit and is ignored.
+* **Free look** reaches 60° down (`views.gd` `pitch_min`, the original's −12° otherwise), and the camera's pitch is
+  the head's less 5.5° without the original's floor (`FUN_00585270`: 0.1·(|yaw| − 90°), so −9° looking ahead), so the
+  pilot can look down at the MFDs and consoles.
+* **MFDs**: each MFD node (`mfd.gd`) is moved into a 512 px SubViewport whose texture lights its 3D screen
+  (`MFD_L` / `MFD_R`, emissive). They draw the same pages as on the 2D panel, the original pages or the real F-16
+  formats (the Sufa's colour, MFDs Real's green). `mfd.gd` `screen_px` sets their scale there.
+* **Push buttons**: a click on one of an MFD's 20 buttons presses it (`mfd.gd` `press`), numbered by place as the 2D
+  bezel's (`osb_at`); their centres are in `f16.json` (the buttons themselves are drawn in the model's body). The ray is the inverse of the cockpit camera's projection: `Camera3D.project_ray_normal` missed
+  the frustum's offset by 8 cm at the MFD (tried 2026-10-30). Not drawn: a highlight. The other switches: later.
+* **HUD mask, tried and dropped (2026-10-30):** a `clip_children` parent drawing the glass's outline. Its canvas
+  group showed a stale copy of the 3D view in a rectangle over the screen while the DASH drew; the shader mask
+  replaced it.
+* **HUD**: drawn as on the 2D cockpit (the original or the Real HUD), masked to the combiner glass's outline as seen
+  from the eye (`cockpit.gd` `hud_clip`, `hud_glass.gdshader`: the glass's corners projected each frame). The Real
+  HUD's symbols sit at infinity, so they stay on the world and the glass frames them (inferred). Looking aside the
+  DASH draws everywhere, as on the 2D cockpit. A model without a glass (a helmet display) draws the HUD everywhere.
+* **Needles** (FlightGear's own value tables, `f16.json`): the altimeter (the 2D panel's altitude), the airspeed card
+  and Mach scale, the ADI ball (roll,
+  pitch) and bank index, the VSI, the standby ADI, RPM, FTIT, nozzle and oil pressure (`instruments` `engine_temp_c`,
+  `nozzle_oil`), the magnetic compass, the fuel totaliser drums, the clock's hands (the time of day), the throttle
+  (afterburner detent) and the stick (the flight model's stick).
+* **Not driven** (open): the AoA tape (a texture scroll), the EHSI, the fuel flow and fuel quantity needles, the
+  hydraulic, cabin, EPU and oxygen gauges, the ADI's glide slope, turn needle and slip ball; the lamps (eyebrow
+  warning lamps, AoA indexer, gear handle and lights, master caution); the RWR head's scope and the DED's text; the
+  panel and flood lights at night.
+
 ## Horizon / RWR / ADI sections
 Per cockpit: the `[HORIZON]` horizon disc (on the panel, or with OnMfd 1 on an MFD page), the `[LENHORIZON]` lens ADI
 and the `[PANELRWR]` panel. Bold marks the

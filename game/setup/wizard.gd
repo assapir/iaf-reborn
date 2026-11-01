@@ -660,6 +660,11 @@ func _page_welcome() -> Control:
 				+ "([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL 2.0[/url] or later)\n"
 			)
 			+ (
+				"3D F-16 cockpit: the [url=https://github.com/NikolaiVChr/f16]FlightGear F-16[/url]'s cockpit by J "
+				+ 'Maverick 16, Martin "Pegasus" Schmitt and Prohm "Rama" Snitwong (textures), Nikolai V. Chr. and the '
+				+ "other authors ([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL 2.0[/url] or later)\n"
+			)
+			+ (
 				"Detailed stores: the [url=https://github.com/NikolaiVChr/f16]FlightGear F-16[/url]'s weapons and pods by J "
 				+ "Maverick 16 and the other authors ([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL "
 				+ "2.0[/url] or later)\n"

@@ -1034,6 +1034,29 @@ sentinel2 imagery, at 1920×1080:
 
   The last two changes are not yet re-measured in a clean A/B on the Iris.
 
+### 3.2 The 3D cockpit (Extras "Cockpit": 3D; cockpit.md "3D cockpit")
+
+`tests/godot/_flight_bench.gd` at 1920×1080 on the Iris Xe (2026-11-01, Settings at their defaults, mission 311's
+F-16, the GPU bench lock held), `BENCH_SET=cockpit_3d=3d` against the 2D panel, and the 2D panel with Models Detailed
+(the detailed F-16 the 3D cockpit hangs in):
+
+| leg | 2D panel | 3D cockpit | 2D, Models Detailed |
+|---|---|---|---|
+| 150 m, 250 m/s | GPU 10.3 ms, 185 calls, 923 MB | GPU 11.1 ms, 562 calls, 1,065 MB | GPU 11.7 ms, 430 calls, 1,087 MB |
+| 1,500 m | GPU 14.1 ms, 170 calls, 890 MB | GPU 14.0 ms, 563 calls, 1,032 MB | GPU 15.1 ms, 414 calls, 1,054 MB |
+| 6,000 m, 300 m/s | GPU 17.1 ms, 168 calls, 844 MB | GPU 16.6 ms, 569 calls, 985 MB | GPU 18.0 ms, 412 calls, 1,008 MB |
+
+- **GPU time:** +0.8 ms low over the ground, none higher up. The true-size view (cockpit.md "3D cockpit") shows less
+  of the world than the 2D panel's 50° projection at the default zoom, which pays for the cockpit higher up.
+- **Video memory:** +140 MB over the 2D panel, nearly all of it the detailed F-16's own (Models Detailed alone: +165
+  MB); the cockpit's textures are compressed at load (BC1 / BC3, `gltf.gd` `COCKPIT3D_DIR`), the two MFD SubViewports
+  are 512 px (2 MB).
+- **Draw calls:** about 380 more (the cockpit's 152 surfaces, drawn again into the sun's shadow). First built with
+  FlightGear's 195 materials and 40 separate push buttons: 254 surfaces, 692 calls and 13.0 ms at 150 m; merging the
+  duplicate materials and joining the buttons into the body (tried and kept, 2026-11-01) took 1.9 ms off. Further:
+  a texture atlas (open).
+- **Triangles:** 54 k drawn (59.5 k in the file with the second HUD), as budgeted (the detailed F-16D's 51 k).
+
 ## 4. Time of day (built: game/terrain/time_of_day.gd)
 
 This section describes the original's day / night rendering and our port of it. By these rules only mission 214
