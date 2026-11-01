@@ -376,10 +376,10 @@ func radar_mfd() -> Node:
 
 
 ## Screen scale factor from the original 640x480 layout. Ours, the 3D cockpit: the scale whose original focal length
-## (686.2 px × it) is the true-size view's (true_scale_focal), so the HUD's layout keeps its place on the world.
+## (686.2 px × it) is the 3D view's (view_3d_focal), so the HUD's layout keeps its place on the world.
 func ui_scale() -> float:
 	if three_d():
-		return true_scale_focal() / (VIEW_WIDTH / 2.0 / tan(deg_to_rad(VIEW_FOV_DEG) / 2.0))
+		return view_3d_focal() / (VIEW_WIDTH / 2.0 / tan(deg_to_rad(VIEW_FOV_DEG) / 2.0))
 	return size.y / ORIGINAL_HEIGHT * zoom
 
 
@@ -402,8 +402,8 @@ const REAL_VIEW_HEAD_DEG := 20.0
 ## forward; turned past REAL_VIEW_HEAD_DEG (the glass off the screen), the original's, blended in between, so the
 ## look-around views keep the original's view of the cockpit model (real-hud.md "Real view").
 func focal_length() -> float:
-	if three_d():  # the true-size view (Real HUD view has nothing to fit)
-		return true_scale_focal()
+	if three_d():  # the 3D cockpit's view (Real HUD view has nothing to fit)
+		return view_3d_focal()
 	var f0 := VIEW_WIDTH / 2.0 / tan(deg_to_rad(VIEW_FOV_DEG) / 2.0) * ui_scale()
 	var away := clampf(maxf(absf(head.x), absf(head.y)) / deg_to_rad(REAL_VIEW_HEAD_DEG), 0.0, 1.0)
 	if Settings.hud_style == "real" and Settings.hud_view == "real" and away < 1.0:
@@ -418,8 +418,21 @@ func focal_length() -> float:
 	return f0
 
 
-## Ours, the 3D cockpit's view (cockpit3d.gd): the eye VIEW_DISTANCE_M from the screen (inferred: a desk monitor or a
-## laptop at arm's length), so the world and the cockpit show at their true angular size.
+## Ours, the 3D cockpit's widest view (zoom at ZOOM_MIN, the default): this many degrees across the viewport, so the
+## HUD and the upper panel show looking ahead (inferred from DCS's F-16C: about 78° by default, docs/cockpit.md).
+const VIEW_3D_WIDE_DEG := 75.0
+
+
+## The 3D cockpit's focal length (px): the zoom keys / wheel (zoom, ZOOM_MIN..ZOOM_MAX) step from the wide view
+## (VIEW_3D_WIDE_DEG) to the true-size one (true_scale_focal), evenly in the focal length's ratio.
+func view_3d_focal() -> float:
+	var wide := get_viewport_rect().size.x / 2.0 / tan(deg_to_rad(VIEW_3D_WIDE_DEG) / 2.0)
+	var t := clampf((zoom - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN), 0.0, 1.0)
+	return wide * pow(true_scale_focal() / wide, t)
+
+
+## Ours, the 3D cockpit's true-size view (cockpit3d.gd, zoomed fully in): the eye VIEW_DISTANCE_M from the screen
+## (inferred: a desk monitor or a laptop at arm's length), so the world and the cockpit show at their true angular size.
 const VIEW_DISTANCE_M := 0.6
 ## A screen whose density the system does not give: a 96 dpi desktop's.
 const FALLBACK_DPI := 96.0

@@ -1,6 +1,6 @@
 # The F-16's 3D cockpit (Extras "Cockpit": 3D; docs/cockpit.md "3D cockpit", cockpit/cockpit3d.gd). Original:
 # the 2D panel as before (no 3D model, the MFD nodes on the panel, the HUD unmasked, the original's projection and
-# free look). 3D, the Barak and the Sufa: the view at its true size and free look down to −60°; the
+# free look). 3D, the Barak and the Sufa: the wide view, zoomed in its true size, and free look down to −60°; the
 # model in the cut cockpit model at the eye (the combiner ahead of the camera, on the nose axis), the MFD nodes drawing
 # the 2D cockpit's pages into SubViewports on the 3D screens, the HUD drawn and masked to the combiner's outline;
 # looking back or an outside view hides the glass's outline; a click on the left MFD's OSB 6 opens its menu; the
@@ -82,13 +82,19 @@ func _three_d(variant: String, pages_2d: Array) -> void:
 	)
 	check(String(c3._glass.name) == hud + "_glass", "%s 3D: its HUD's glass masks the HUD" % variant)
 	check(c.three_d() and (c.hud_clip as PackedVector2Array).size() >= 3, "%s 3D: the combiner's outline" % variant)
-	# The view at its true size: the focal length is the viewing distance in screen px.
+	# The wide view by default (VIEW_3D_WIDE_DEG across); zoomed fully in, the true size: the viewing distance in px.
+	var w: float = c.get_viewport_rect().size.x
+	var fov := rad_to_deg(2.0 * atan(w / 2.0 / c.focal_length()))
+	check(absf(fov - c.VIEW_3D_WIDE_DEG) < 0.1, "%s 3D: the wide view by default (%.1f°)" % [variant, fov])
 	var dpi := float(DisplayServer.screen_get_dpi())
 	var want: float = c.VIEW_DISTANCE_M * (dpi if dpi > 0.0 else c.FALLBACK_DPI) / 0.0254
+	var zoom: float = c.zoom
+	c.zoom = c.ZOOM_MAX
 	check(
-		absf(c.focal_length() - want * c.get_viewport_rect().size.x / c.get_window().size.x) < 0.5,
-		"%s 3D: the true-size view (focal %.0f px at %.0f dpi)" % [variant, c.focal_length(), dpi]
+		absf(c.focal_length() - want * w / c.get_window().size.x) < 0.5,
+		"%s 3D: zoomed in, the true-size view (focal %.0f px at %.0f dpi)" % [variant, c.focal_length(), dpi]
 	)
+	c.zoom = zoom
 	check(tv.views.pitch_min == tv.views.HEAD_PITCH_MIN_3D, "%s 3D: free look down to −60°" % variant)
 	check(c.hud.visible and c.hud.material != null, "%s 3D: the HUD drawn, masked" % variant)
 	check(c.mfds.all(func(m): return m.visible) and c.hud_clip.size() >= 3, "%s 3D: the MFDs drawn" % variant)

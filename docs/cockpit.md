@@ -433,13 +433,18 @@ place of the 2D panel art. Today the F-16's, for the Barak and the Sufa; other j
   (`aircraft_model.gd` `detailed_cockpit(path, whole)`), so the sills and forward fuselage show beside the panel. The
   model's tub ends at the eye's plane; the cut model's tub and seat draw the rest. Its frame is the cut model's, so it
   sits at the eye and scales (Present scale ×2) and leans with it.
-* **The view at its true size**: the 2D cockpit keeps the original's projection (50° across 640 px, above). The 3D
-  cockpit's focal length is the viewing distance in screen pixels (`cockpit.gd` `true_scale_focal`):
-  f = 0.6 m (`VIEW_DISTANCE_M`, inferred: a desk monitor or a laptop at arm's length) × the screen's density
-  (`DisplayServer.screen_get_dpi`, 96 dpi when the system gives none) / 0.0254 m per inch × the viewport's px per
-  window px. On a 15.6 in 1080p laptop (141 dpi) that is 3,330 px: 32° across the screen; at 96 dpi 2,268 px, 46°.
+* **The view**: the 2D cockpit keeps the original's projection (50° across 640 px, above). The 3D cockpit opens
+  wide: 75° across the screen (`cockpit.gd` `VIEW_3D_WIDE_DEG`), so the HUD and the upper panel show looking ahead.
+  DCS's F-16C opens at about 78° and zooms 60–114°[^dcs-fov]; ours is inferred from it. The zoom keys
+  (+ / −) and the mouse wheel narrow it, in 8 steps (`zoom`, `ZOOM_MIN`..`ZOOM_MAX`, evenly in the focal length's
+  ratio, `view_3d_focal`), to the view at its true size, fully zoomed in. Its focal length is the viewing distance in
+  screen pixels (`true_scale_focal`): f = 0.6 m (`VIEW_DISTANCE_M`, inferred: a desk monitor or a laptop at arm's
+  length) × the screen's density (`DisplayServer.screen_get_dpi`, 96 dpi when the system gives none) / 0.0254 m per
+  inch × the viewport's px per window px. On a 15.6 in 1080p laptop (141 dpi) that is 3,330 px: 32° across the screen;
+  at 96 dpi 2,268 px, 46°. The true size alone as the default, tried and dropped (2026-11-01): looking ahead it showed
+  only the HUD's frame, no panel.
   The camera keeps the original's 5.5° look-down; its centre is the screen's middle (`panel_top` there: no panel
-  art). The HUD's layout scales with it (`ui_scale` = this focal length / 686.2 px), so the HUD keeps its place on
+  art). The HUD's layout scales with the focal length (`ui_scale` = it / 686.2 px), so the HUD keeps its place on
   the world; with the head turned the HUD moves with the nose's place on the screen (`view_shift`) instead of the 2D
   panel's pan. Extras "Real HUD view" has nothing to fit and is ignored.
 * **Free look** reaches 60° down (`views.gd` `pitch_min`, the original's −12° otherwise), and the camera's pitch is
@@ -1215,3 +1220,5 @@ The `[PANEL]` Night shifts are listed separately. File names are case-insensitiv
 [^dcs-j79]: Eagle Dynamics forum, "Spoolup time of J79 engines too quick" (a post quoting the F-4C flight manual: idle
     EGT 400–500 °C; in AB the EGT should stabilise after about 2 s at 625 ± 10 °C; a secondary source).
     <https://forum.dcs.world/topic/349516-spoolup-time-of-j79-engines-too-quick>
+[^dcs-fov]: DCS World forum, "Default FOV" (the F-16C's Views.lua: CameraViewAngleLimits 60–114°, default about 78°).
+    <https://forum.dcs.world/topic/212149-default-fov>
