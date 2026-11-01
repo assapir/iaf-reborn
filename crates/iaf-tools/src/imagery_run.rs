@@ -171,7 +171,7 @@ fn gdal(cmd: &str, args: &[&str]) -> Result<()> {
 /// (per ZIP name, size and time; `gdalinfo` on a sheet in a ZIP takes a second or two).
 fn list_sheets(dir: &Path, work: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<(Vec<Sheet>, Vec<PathBuf>)> {
     let mut zips: Vec<PathBuf> = std::fs::read_dir(dir)
-        .with_context(|| format!("{}: no sheets (tools/imagery/fetch-mapi2015.sh)", dir.display()))?
+        .with_context(|| format!("{}: no sheets (iaf-imagery fetch-mapi2015)", dir.display()))?
         .filter_map(|e| e.ok().map(|e| e.path()))
         .filter(|p| p.extension().is_some_and(|e| e.eq_ignore_ascii_case("zip")))
         .collect();
@@ -281,7 +281,7 @@ fn list_sheets(dir: &Path, work: &Path, pr: &dyn Progress, cancel: &AtomicBool) 
     }
     std::fs::write(&cache_file, cache_out)?;
     if sheets.is_empty() {
-        bail!("{}: no sheets (tools/imagery/fetch-mapi2015.sh)", dir.display());
+        bail!("{}: no sheets (iaf-imagery fetch-mapi2015)", dir.display());
     }
     Ok((sheets, ok))
 }

@@ -131,7 +131,8 @@ game then quits; `./setup` installs again. The launcher's INSTALL button opens t
   Without it they are skipped. Windows: the scripts give winget's install (`C:\Program Files\GDAL`) its PATH,
   `GDAL_DATA` and `PROJ_LIB` (`tools/windows/gdal.ps1`, windows.md).
 - gzip: `scenery` (the Microsoft footprints).
-- `tools/imagery/fetch-mapi2015-curl.sh` (curl, python3, Firefox's data.gov.il token): the Survey sheets.
+- Firefox's data.gov.il token (optional; without it the sheets download through the browser's tabs): the Survey
+  sheets (imagery.md §8).
 - `tools/install-launcher.sh`: the desktop launcher (its `XDG_DATA_HOME` can be set). Windows:
   `tools/windows/install-launcher.ps1`, two Start Menu shortcuts (`-Menu` puts them under another folder; setup gives
   `<XDG_DATA_HOME>/Start Menu` when it has one).
@@ -155,7 +156,8 @@ The wizard uses the original menus' colours. Pages:
    repository link and the licence. An **Attributions…** button opens the third-party credits in a window (the
    models, the imagery and the ambientCG textures, as in the credits roll).
 2. **Requirements**: a table of the parts, why each is needed, and whether it is required: the graphics driver and
-   the disk space for the game (required); the disk space for imagery, GDAL, curl, python3 and Firefox (optional).
+   the disk space for the game (required); the disk space for imagery, GDAL, curl, python3 (the pilot guides) and
+   Firefox (the Survey's download token, the pilot guides) (optional).
    A missing part shows its install command. "Check again", next to Next, looks once more.
 3. **Your CD**: the English CD image, picked with Browse and checked at once. Given the Hebrew CD here, the wizard
    says so and keeps it for the next page. "Find in a folder…" looks in a folder and its subfolders (3 levels) for

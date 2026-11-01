@@ -287,11 +287,7 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
         "mapi2015-fetch" => {
             let bases = ctx.inputs.imagery.contains(&Imagery::Mapi2015 { bases: true })
                 && !ctx.inputs.imagery.contains(&Imagery::Mapi2015 { bases: false });
-            let mut cmd = Command::new(ctx.repo.join("tools/imagery/fetch-mapi2015-curl.sh"));
-            if bases {
-                cmd.arg("--bases");
-            }
-            child(cmd, pr, cancel)?;
+            iaf_tools::mapi2015_fetch::fetch(&a.join("source/imagery/mapi2015"), bases, pr, cancel)?;
         }
         "guides" => {
             let Some(g) = ctx.guides else { return Ok(Outcome::Skipped("no guide renderer".into())) };

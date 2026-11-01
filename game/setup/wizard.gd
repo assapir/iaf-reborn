@@ -508,12 +508,12 @@ func _fill_requirements() -> void:
 			false,
 			tools.get("python3", false),
 			"python3",
-			"reads the Survey's download token; builds the pilot guide PDFs",
+			"builds the pilot guide PDFs",
 			"found",
 			_hint(
 				"sudo pacman -S python",
 				"brew install python",
-				"winget install Python.Python.3.14 (the Survey download and the guides: not on Windows yet)"
+				"winget install Python.Python.3.14 (the guides: not on Windows yet)"
 			)
 		],
 		[
@@ -525,7 +525,7 @@ func _fill_requirements() -> void:
 			_hint(
 				"sudo pacman -S firefox",
 				"brew install --cask firefox",
-				"winget install Mozilla.Firefox (the Survey download and the guides: not on Windows yet)"
+				"winget install Mozilla.Firefox (the guides: not on Windows yet)"
 			)
 		],
 	]
@@ -903,11 +903,7 @@ func _page_extras() -> Control:
 			+ "(kept) and 14 GB converted. Around the airbases: 9 sheets, about 2 GB of downloads. Sheets already downloaded "
 			+ "are not downloaded again, and converted units are kept."
 		),
-		(
-			""
-			if gdal and tools.get("curl", false) and tools.get("python3", false)
-			else "Needs GDAL, curl and python3 (see Requirements)."
-		)
+		"" if gdal and tools.get("curl", false) else "Needs GDAL and curl (see Requirements)."
 	)
 	mapi_scope = OptionButton.new()
 	mapi_scope.add_item("all of Israel")

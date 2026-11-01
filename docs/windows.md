@@ -40,14 +40,14 @@ tools\windows\setup-cli.ps1 --patch "C:\path\to\v1.1.exe" "C:\path\to\Jane's IAF
 |---|---|---|
 | GDAL | `winget install GISInternals.GDAL` | modern terrain imagery, scenery (not yet tested on Windows) |
 | curl | ships with Windows (`C:\Windows\System32\curl.exe`) | the downloads |
+| Firefox | `winget install Mozilla.Firefox` | the Survey of Israel sheets' fast download: setup reads the data.gov.il token from its profile (imagery.md §8); without it the sheets download through the default browser's tabs |
 
 The GDAL installer puts it on no PATH and sets no data folders; without `PROJ_LIB` every reprojection fails with
 "Cannot find proj.db". The scripts (`tools/windows/gdal.ps1`) find it in `C:\Program Files\GDAL` and give their run,
 and the setup steps it starts, its folder on PATH, `GDAL_DATA` and `PROJ_LIB`, unless these are set already. GDAL
 installed elsewhere: set the three yourself.
 
-Not on Windows yet (they run bash scripts): the Survey of Israel sheets' download (`mapi2015`,
-`tools/imagery/fetch-mapi2015-curl.sh`) and the pilot guides (`tools/guide_shots.sh`); setup's guides step fails
+Not on Windows yet (it runs a bash script): the pilot guides (`tools/guide_shots.sh`); setup's guides step fails
 with a message saying so.
 
 ## Tests

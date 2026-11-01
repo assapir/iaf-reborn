@@ -114,7 +114,7 @@ pub struct Tools {
     pub gdal: bool,
     /// curl (the Survey sheets).
     pub curl: bool,
-    /// python3 (the Survey sheets' token, the guide PDFs).
+    /// python3 (the guide PDFs).
     pub python3: bool,
     /// firefox (the Survey sheets' token, the guide PDFs).
     pub firefox: bool,
