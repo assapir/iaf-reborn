@@ -21,13 +21,14 @@ const Gauges := preload("res://cockpit/gauges.gd")
 ## Aircraft types whose player controller carries the Betty voice warnings: ctl+0x964, set per type
 ## code in FUN_00447e70 (switch @447e95, byte table 0x448094): F-16 100, F-15 110, Lavi 140,
 ## MiG-29 180, F-4 200 = 1; F-4 120, Kfir 130, MiG-21 150, MiG-23 160, MiG-25 170, Mirage 190,
-## 210 / 220 / 225 = 0.
-const BETTY_TYPES := [100, 110, 140, 180, 200, 1000]
+## 210 / 220 / 225 = 0. Ours: an aircraft definition's voice.betty (has_betty).
+const BETTY_TYPES := [100, 110, 140, 180, 200]
 ## With the Real HUD (Extras > HUD; docs/real-betty.md, docs/deviations.md) the dive and height calls follow the real
 ## jet: "f16" its VMS (GAAF "Pull up" and CARA ALOW "Altitude", iaf_avionics::gaaf), "gaaf" the pull-up call only
 ## (the F-35I, Auto-GCAS lineage [R]), "original" the game's Betty (Kurnass 2000, Lavi: no source either way); any
-## other type has none (F-15C: no pull-up call in the sources; F-4E, Kfir, Mirage: no voice).
-const REAL_VOICE := {100: "f16", 1000: "gaaf", 140: "original", 200: "original"}
+## other type has none (F-15C: no pull-up call in the sources; F-4E, Kfir, Mirage: no voice). Ours: an aircraft
+## definition's voice.real (real_voice).
+const REAL_VOICE := {100: "f16", 140: "original", 200: "original"}
 ## [Sound] registry values read by FUN_004c3ac0 (defaults; the install sets none):
 ## PitchIntrPercent, PitchIntrShift, Ab1PitchPerc, Ab2PitchPerc. (InsideReduceVolume 0.75 is read
 ## too but never used.)
@@ -73,6 +74,7 @@ var _aoa_loop: Node = null  # ctl+0x8c4
 var _alt_timer := -1.0  # ctl+0x904: next Betty "altitude" time, < 0 = off
 var _pull_timer := -1.0  # ctl+0x908: next Betty "pull up" time, < 0 = off
 var _gaaf_on := false  # Real: the GAAF advisory holds (one "Pull up" per advisory)
+var _real_voice := ""  # real_voice(type_code)
 var _fuel_flags := [true, true]  # engine object +0x40 / +0x44
 var _was := {}
 var _crashed := false
@@ -87,6 +89,16 @@ var played: Array[String] = []
 ## A new FlightSounds node (the script loads itself lazily: a preload of its own path is a cycle).
 static func _new() -> Node:
 	return load("res://audio/flight_sounds.gd").new()
+
+
+## True when a jet of bdb type `type` carries the Betty voice warnings (BETTY_TYPES, else its aircraft definition).
+static func has_betty(type: int) -> bool:
+	return type in BETTY_TYPES or bool(Settings.airframe(type).get("voice", {}).get("betty", false))
+
+
+## The Real HUD's voice of a jet of bdb type `type` (REAL_VOICE, else its aircraft definition's voice.real), "" none.
+static func real_voice(type: int) -> String:
+	return REAL_VOICE.get(type, Settings.airframe(type).get("voice", {}).get("real", ""))
 
 
 static func create(host_node: Node, type: int) -> Node:
@@ -110,7 +122,8 @@ static func create_engine(view_host: Node, flight, ent: Dictionary) -> Node:
 
 func _ready() -> void:
 	SoundBuses.apply()
-	betty = type_code in BETTY_TYPES
+	betty = has_betty(type_code)
+	_real_voice = real_voice(type_code)
 	table = SoundTable.load_table()
 	_engine = AudioStreamPlayer3D.new()
 	_engine.bus = SoundBuses.ENGINE
@@ -182,7 +195,7 @@ func update(st: Dictionary, inp: Dictionary) -> void:
 			_stop(_speed_brake_loop)
 			_speed_brake_loop = null
 	var h_ft := float(inp.get("agl_m", 1.0e6)) * FT_PER_M
-	var voice: String = REAL_VOICE.get(type_code, "") if Settings.hud_style == "real" else "original"
+	var voice: String = _real_voice if Settings.hud_style == "real" else "original"
 	# Better radar_alt (the MiG-29): its danger-height warning replaces the 100 ft rule, with either HUD.
 	var radalt = inp.get("radalt_danger")
 	if voice == "original" or radalt != null:

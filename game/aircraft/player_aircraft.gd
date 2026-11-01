@@ -9,12 +9,11 @@ const AircraftModel := preload("res://aircraft/aircraft_model.gd")
 
 ## Types the player can fly: the Jet list's seven (F-15, F-16, F-4E, F-4 Kurnass 2000, Lavi, Kfir, Mirage), the
 ## MiG-23 / MiG-29 (160 / 180: the exe's flyable list FUN_00505730 and their cockpits mig23 / mig29; a Mission Creator
-## mission puts the player in one), and ours, the F-35I (docs/f35i.md), on the Jet list slot the Extras page gives it.
-const FLYABLE := [110, 100, 120, 200, 140, 130, 190, 160, 180, 1000]
+## mission puts the player in one). Ours fly by their aircraft definition's `flyable` (Settings.airframe): the F-35I
+## (docs/f35i.md) on the Jet list slot the Extras page gives it.
+const FLYABLE := [110, 100, 120, 200, 140, 130, 190, 160, 180]
 ## The F-35I Adir: not in the original (docs/adding-a-plane.md).
 const F35I := 1000
-## Cockpits of ours (in the repo) by type; the others are the converted cockpits.ibx ones.
-const EXTRA_COCKPIT := {1000: "res://extra/planes/f35i/cockpit"}
 const FALLBACK := 100
 ## bdb type code -> cockpit index (FUN_00447e70; also the radar tables' index, radar.gd).
 const COCKPIT := {110: 0, 100: 1, 200: 2, 140: 3, 130: 4, 120: 5, 190: 6, 180: 7, 160: 8}
@@ -25,7 +24,7 @@ const JET_TYPES := {0: 110, 1: 100, 2: 120, 3: 200, 4: 140, 5: 130, 6: 190}
 
 
 static func flyable(type: int) -> bool:
-	return type in FLYABLE
+	return type in FLYABLE or bool(Settings.airframe(type).get("flyable", false))
 
 
 ## The type a Jet list id flies: JET_TYPES, except the slot the F-35I replaces (Settings.f35i_slot, -1 = none).
@@ -84,7 +83,8 @@ static func profile(type: int) -> Dictionary:
 		"type": type,
 		"plane": plane,
 		"fm_section": String(d.get("fm_section", "F-16")),
-		"cockpit_dir": EXTRA_COCKPIT.get(type, "converted/cockpits/" + cockpit_folder(type)),
+		# Ours (in the repo): the aircraft definition's; the others the converted cockpits.ibx ones.
+		"cockpit_dir": Settings.airframe(type).get("cockpit", "converted/cockpits/" + cockpit_folder(type)),
 		"twin": type in TWIN
 	}
 

@@ -79,10 +79,11 @@ static func guides_dir() -> String:
 	return ProjectSettings.globalize_path("res://").path_join("../docs/guides").simplify_path()
 
 
-## The record's guide name: its dir; the F-16's is the Sufa's (f16i) with Extras "F-16 version" on Sufa.
+## The record's guide name: its dir; the F-16's its aircraft definition's guide (the Sufa's f16i with Extras "F-16
+## version" on Sufa).
 func guide_name(i: int) -> String:
 	var d := String(records[i].dir)
-	return "f16i" if d == "f16" and Settings.sufa(100) else d
+	return Settings.airframe(100).get("guide", d) if d == "f16" else d
 
 
 ## The record's pilot guide (docs/guides/<name>.md), "" when it has none.

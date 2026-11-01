@@ -1,9 +1,9 @@
 # The modern weapons (ours; docs/weapons.md §13, values and sources docs/real-weapons.md §1.6, the jets that carried
 # them §1.7): records the 1998 data has no counterpart for, built from public real data whatever Weapon data says. Each
 # takes its blast, drag and model from an original record ("base" / "model_of", read from the mission's bdb at run
-# time) and overrides what the sources give. The modern jets, the F-16I Sufa (`Settings.sufa`) and the F-35I, always
-# load theirs; another jet loads a weapon only with Extras "Weapons" on Modern (`Settings.modern_weapons`) and when a
-# source shows the jet carrying it (`LOADS`).
+# time) and overrides what the sources give. The modern jets, the F-16I Sufa and the F-35I (their aircraft
+# definitions), always load theirs; another jet loads a weapon only with Extras "Weapons" on Modern
+# (`Settings.modern_weapons`) and when a source shows the jet carrying it (`LOADS`).
 #
 # - AIM-9X Block II and Python 5 (type 570): the helmet-cued, high off-boresight IR missiles. Their seeker cone is the
 #   helmet / radar slaving limit (docs/weapons.md §5.4); "_offBoresight" lets them turn to a target beside or behind
@@ -124,9 +124,10 @@ const RECORDS := [
 		"scale": 0.8
 	},
 ]
-## The jets that may load each record: id -> {jet: [count, stations A..I]}. A jet is a bdb type code, or "sufa" for the
-## F-16I Sufa (type 100 with Extras "F-16 version" on Sufa). The Sufa and the F-35I (1000) always load theirs; every
-## other jet only with Extras "Weapons" on Modern. Which jet carried what, and the stations: docs/real-weapons.md §1.7.
+## The jets that may load each record: id -> {jet: [count, stations A..I]}, a jet by its bdb type code. A jet with an
+## aircraft definition loads its weapons.loads ({"<record id>": [count, stations]}) instead, always with its
+## weapons.modern "always" (the Sufa, the F-35I); every other jet only with Extras "Weapons" on Modern. Which jet
+## carried what, and the stations: docs/real-weapons.md §1.7.
 ## The Sufa (docs/f16i.md §5): the IR missiles on the wingtip rails and the outer pylons (1–3, 7–9, as the F-16's
 ## AIM-9L), the JDAMs on the heavy wing stations 3, 4, 6, 7, four GBU-39s on a BRU-61 rack there. The Barak (100): the
 ## IR missiles as the AIM-9L, the JDAMs on 3, 4, 6, 7 (the IAF's F-16s), the GBU-39s on 3 / 7. The F-15 (110): the
@@ -134,16 +135,12 @@ const RECORDS := [
 ## (1000, docs/f35i.md §3.1): the AIM-9X on the outboard pylons A / I, the JDAMs in the bays C / G and on the heavy
 ## pylons B / H, four GBU-39s in each bay.
 const LOADS := {
-	1001: {"sufa": [1, "ABCGHI"], 100: [1, "ABCGHI"], 110: [2, "AI"], 1000: [1, "AI"]},
-	1002: {"sufa": [1, "ABCGHI"], 100: [1, "ABCGHI"]},
-	1003: {"sufa": [1, "CDFG"], 100: [1, "CDFG"], 110: [1, "BEH"], 1000: [1, "BCGH"]},
-	1004: {"sufa": [1, "CDFG"]},
-	1005: {"sufa": [1, "CDFG"], 1000: [1, "BCGH"]},
-	1006: {"sufa": [1, "CDFG"], 100: [1, "CDFG"]},
-	1007: {"sufa": [4, "CDFG"], 100: [4, "CG"], 1000: [4, "CG"]},
+	1001: {100: [1, "ABCGHI"], 110: [2, "AI"]},
+	1002: {100: [1, "ABCGHI"]},
+	1003: {100: [1, "CDFG"], 110: [1, "BEH"]},
+	1006: {100: [1, "CDFG"]},
+	1007: {100: [4, "CG"]},
 }
-## The jets that have their modern weapons whatever the switch: the Sufa and the F-35I.
-const ALWAYS := ["sufa", 1000]
 ## The AIM-9X and Python 5 only with Weapon data on Real (the user, 2026-10-29): high off-boresight missiles are a real-
 ## world addition, so the original weapon set keeps the original's IR missiles.
 const REAL_ONLY := [1001, 1002]
@@ -204,16 +201,18 @@ static func _missile(db: RefCounted, w: Dictionary, spec: Dictionary) -> void:
 
 
 ## The modern load items (CDMEWeaponLoadItem: 0x910 id, 0x906 count, raw = 9 int32 station flags) for a jet of bdb
-## type `type` (LOADS); none for a jet that carried none or, but on the Sufa and the F-35I, with Weapons on Original;
+## type `type` (its aircraft definition's weapons.loads, else LOADS); none for a jet that carried none or, but with
+## weapons.modern "always" (the Sufa, the F-35I), with Weapons on Original;
 ## the AIM-9X and Python 5 only with Weapon data on Real (REAL_ONLY).
 static func loads(type: int) -> Array:
 	var settings: Node = Engine.get_main_loop().root.get_node("Settings")
-	var jet: Variant = "sufa" if settings.sufa(type) else type
+	var w: Dictionary = settings.airframe(type).get("weapons", {})
+	var own = w.get("loads")  # {"<record id>": [count, stations]}, else LOADS' column
 	var out := []
-	if not jet in ALWAYS and not settings.modern_weapons:
+	if w.get("modern", "") != "always" and not settings.modern_weapons:
 		return out
-	for id in LOADS:
-		var l = LOADS[id].get(jet)
+	for id in LOADS.keys() if own == null else own.keys().map(func(k): return int(k)):
+		var l = LOADS[id].get(type) if own == null else own[str(id)]
 		if l == null or (id in REAL_ONLY and not settings.real_weapons()):
 			continue
 		var raw := PackedByteArray()

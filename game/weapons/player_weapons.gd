@@ -195,7 +195,7 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	rwr.own = own
 	rwr.now = func(): return now
 	rwr.compact = Settings.real_data()
-	rwr.betty = jet_type in FlightSounds.BETTY_TYPES
+	rwr.betty = FlightSounds.has_betty(jet_type)
 	if host.get("sounds") != null:
 		rwr.play = host.sounds.play
 		rwr.stop = host.sounds.stop
@@ -211,7 +211,7 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 		if "ECM" in stores.name_of(i):
 			ecm_fitted = true
 	ecm_fitted = ecm_fitted or jet_type in [100, 140]
-	flir_pod = flir_pod or jet_type == 1000  # ours: the F-35I's built-in EOTS (docs/f35i.md §3.1)
+	flir_pod = flir_pod or bool(Settings.airframe(jet_type).get("flir", false))  # ours: a built-in one (the F-35I's EOTS)
 	_push_stores()
 	# The tanks' fuel (FUN_005a8980 before the start fills the fuel to FuelWeight + tanks).
 	if host.flight != null and _given_load.is_empty():  # a jet taken over in flight keeps its fuel

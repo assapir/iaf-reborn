@@ -263,15 +263,38 @@ pub const TABLES: &[Table] = &[
     Table { file: "tests/godot/test_jet_list.gd", anchor: "const JETS :=", what: "Jet list test row", list: true },
 ];
 
+/// The aircraft-definition field (docs/adding-a-plane.md "Modern planes") that stands for a table, by its anchor: a
+/// jet with a definition holding it needs no entry there.
+pub const DEFINED_BY: &[(&str, &str)] = &[
+    ("const FLYABLE :=", "flyable"),
+    ("const COCKPIT :=", "cockpit"),
+    ("const BETTY_TYPES :=", "voice"),
+    ("const RADAR_KM :=", "radar"),
+    ("const GUN_ROUNDS :=", "gun_rounds"),
+    ("const JET_ART :=", "weapons"),
+];
+
+/// The aircraft definitions a jet of type `code` flies as, whatever the Extras switches (`iaf_flight::airframe`).
+pub fn definitions(code: i64) -> Vec<&'static str> {
+    use iaf_flight::airframe::{Switches, id_for};
+    let mut ids: Vec<&str> = [("barak", "baz"), ("sufa", "raam")]
+        .into_iter()
+        .filter_map(|(f16, f15)| id_for(code, Switches { f16, f15 }))
+        .collect();
+    ids.dedup();
+    ids
+}
+
 /// Type codes a new type must not take: skipped by the RWR (`rwr.gd` IGNORED_TYPES).
 pub const RESERVED: &[i64] = &[220, 250, 270];
 
-/// One checklist row: the table, its 1-based line (None = anchor not found), and whether the type
-/// appears in its definition.
+/// One checklist row: the table, its 1-based line (None = anchor not found), whether the type
+/// appears in its definition, and whether an aircraft definition of the type holds it instead (DEFINED_BY).
 pub struct Row {
     pub table: &'static Table,
     pub line: Option<usize>,
     pub present: bool,
+    pub defined: bool,
 }
 
 /// The definition text from `start`: up to the line where its brackets close (at most 120 lines).
@@ -306,7 +329,11 @@ pub fn checklist(repo: &Path, code: i64) -> Vec<Row> {
             let lines: Vec<&str> = src.lines().collect();
             let line = lines.iter().position(|l| l.contains(t.anchor));
             let present = line.is_some_and(|i| has_code(&statement(&lines, i), code));
-            Row { table: t, line: line.map(|i| i + 1), present }
+            let field = DEFINED_BY.iter().find(|(a, _)| *a == t.anchor).map(|(_, f)| *f);
+            let defined = field.is_some_and(|f| {
+                definitions(code).iter().any(|id| iaf_flight::airframe::get(id).is_some_and(|a| a.get(f).is_some()))
+            });
+            Row { table: t, line: line.map(|i| i + 1), present, defined }
         })
         .collect()
 }
@@ -380,6 +407,10 @@ mod tests {
         assert!(!row("const COCKPIT :=").present, "1100 is not 100");
         assert!(!row("const TWIN :=").present);
         assert_eq!(row("const BETTY_TYPES :=").line, None);
+        assert!(!row("const FLYABLE :=").defined, "the Barak's definition is the F-16 base: its tables decide");
+        let f35i = checklist(&dir, 1000);
+        assert!(f35i.iter().find(|r| r.table.anchor == "const FLYABLE :=").unwrap().defined);
+        assert_eq!(definitions(100), ["f16", "f16i"]);
         std::fs::remove_dir_all(dir).ok();
     }
 

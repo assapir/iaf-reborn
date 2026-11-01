@@ -32,6 +32,7 @@ const TABS := {
 	660: 2
 }
 ## Jet front views bmp/arm/jets/<name>.bmp / .trx by the leader's type code (FUN_00507750).
+## Ours: an aircraft definition's weapons.arm_art ("x_<plane>": game/extra/planes/<plane>/arm).
 const JET_ART := {
 	100: "f-16",
 	110: "f-15",
@@ -41,11 +42,8 @@ const JET_ART := {
 	160: "mig23",
 	180: "mig29",
 	190: "mirage",
-	200: "phantom",
-	1000: "x_f35i"
+	200: "phantom"
 }
-## The F-16I Sufa's (Extras "F-16 version" on Sufa, docs/f16i.md): its own art and weights (game/extra/planes/f16i/arm).
-const SUFA_ART := "x_f16i"
 const JET_DIR := "install/resource/menu/bmp/arm/jets"
 ## Flight names 1..6 (FUN_005bd3c0; flight table +0x328).
 const FLIGHT_NAMES := ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
@@ -302,7 +300,7 @@ func use_defaults() -> void:
 ## The jet's front view (FUN_00507750): art stem, base weight, max take-off weight (lb) and the
 ## station boxes (index 0..8 -> content-local top-left of the 51×32 box). {} for an unknown type.
 static func jet(type: int) -> Dictionary:
-	var art: String = SUFA_ART if Settings.sufa(type) else JET_ART.get(type, "")
+	var art: String = Settings.airframe(type).get("weapons", {}).get("arm_art", JET_ART.get(type, ""))
 	if art == "":
 		return {}
 	var out := {"art": art, "base": 0.0, "max": 0.0, "stations": {}}

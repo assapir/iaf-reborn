@@ -3,6 +3,7 @@
 
 pub mod airbase;
 pub mod aircraft;
+pub mod airframe;
 pub mod atmosphere;
 pub mod autopilot;
 pub mod base_move;

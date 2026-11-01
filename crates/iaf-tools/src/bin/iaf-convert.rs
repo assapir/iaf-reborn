@@ -132,6 +132,11 @@ fn plane_checklist(code: &str, repo: &Path) -> Result<()> {
     if plane::RESERVED.contains(&code) {
         println!("type {code} is skipped by the RWR (game/weapons/rwr.gd IGNORED_TYPES): pick another");
     }
+    for id in plane::definitions(code) {
+        println!(
+            "def game/extra/planes/{id}/airframe.json  its aircraft definition (docs/adding-a-plane.md \"Modern planes\")"
+        );
+    }
     let mut missing = 0;
     for r in plane::checklist(repo, code) {
         let at = r.line.map_or_else(
@@ -141,6 +146,7 @@ fn plane_checklist(code: &str, repo: &Path) -> Result<()> {
         let mark = match (r.line, r.present, r.table.list) {
             (None, _, _) => "??",
             (_, true, _) => "ok",
+            _ if r.defined => "df",
             (_, false, true) => "--",
             (_, false, false) => "..",
         };
@@ -148,7 +154,7 @@ fn plane_checklist(code: &str, repo: &Path) -> Result<()> {
         println!("{mark} {at}  {}", r.table.what);
     }
     println!(
-        "ok = has {code}, -- = add it, .. = conditions to review, ?? = table moved (update plane.rs TABLES); {missing} to add"
+        "ok = has {code}, df = its aircraft definition holds it, -- = add it, .. = conditions to review, ?? = table moved (update plane.rs TABLES); {missing} to add"
     );
     Ok(())
 }

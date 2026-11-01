@@ -57,7 +57,9 @@ const MISSILES := {
 	"AGM-65": {"kg": 209.0, "range_km": 27.0},
 }
 ## Radar detection range (LRS / STT) of a fighter-size target in km by bdb object type code; jets not listed keep
-## the original table (docs/radar.md). Sources and confidence in docs/real-weapons.md §1.3.
+## the original table (docs/radar.md). Sources and confidence in docs/real-weapons.md §1.3. Ours: an aircraft
+## definition's radar.km (the F-35I's AN/APG-81; the F-16I's APG-68(V)9, 30 % more air-to-air range than the F-16's
+## APG-68: 104 km, Lockheed Martin, docs/f16i.md §2).
 const RADAR_KM := {
 	100: 80.0,  # F-16C (Barak): AN/APG-68
 	110: 135.0,  # F-15: AN/APG-63, 110-160 km tracking a small fighter (U)
@@ -66,10 +68,7 @@ const RADAR_KM := {
 	140: 46.0,  # Lavi: EL/M-2035, tracks several targets at 46 km
 	130: 14.8,  # Kfir C7: EL/M-2001B ranging radar (no search mode), 14.8 km (U, one database)
 	190: 27.0,  # Mirage IIICJ: Cyrano I bis, ~27 km air-to-air lock (U, one game wiki)
-	1000: 148.0,  # F-35I: AN/APG-81, multiple-target track beyond 80 NM (U, docs/f35i.md)
 }
-## The F-16I's APG-68(V)9 against the F-16's APG-68: 30 % more air-to-air range (Lockheed Martin, docs/f16i.md §2).
-const SUFA_RADAR := 1.3
 ## The radar's NM (0x603390).
 const RADAR_NM_M := 1854.0
 ## bdb gun name -> {rpm (all barrels / guns of one jet), muzzle m/s}.
@@ -85,7 +84,8 @@ const JET_GUNS := {
 	160: {"rpm": 3400.0, "muzzle": 715.0, "guns": 1, "rounds": 200},  # MiG-23: GSh-23L, 3400-3600 rpm, 200 rounds
 }
 ## Gun rounds per jet by bdb object type code (0x5b4) and gun name; jets not listed keep the
-## original count (the Lavi's real gun was a 30 mm DEFA, rounds not published: UNCERTAIN).
+## original count (the Lavi's real gun was a 30 mm DEFA, rounds not published: UNCERTAIN). Ours: an aircraft
+## definition's gun_rounds (the F-35I's GAU-22/A).
 const GUN_ROUNDS := {
 	100: 511,  # F-16: M61A1, 511 rounds (GD-OTS F-16 gun system)
 	110: 940,  # F-15: M61A1, 940 rounds (USAF)
@@ -93,7 +93,6 @@ const GUN_ROUNDS := {
 	200: 639,  # Kurnass 2000 (F-4E airframe)
 	130: 280,  # Kfir C7: 2 x DEFA 553, 140 rounds per gun
 	190: 250,  # Mirage IIICJ: 2 x DEFA 552, 125 rounds per gun
-	1000: 180,  # F-35I: GAU-22/A 25 mm, 180 rounds (the 20 MM record stands in)
 }
 
 ## bdb weapon name -> the real lethal radius (m) of the missiles and SAMs with a published one (docs/real-weapons.md
@@ -153,7 +152,9 @@ static func apply(db: RefCounted) -> void:
 
 ## The real gun rounds of a jet (bdb object type code), or -1 = keep the original count.
 static func gun_rounds(type_code: int) -> int:
-	return int(JET_GUNS[type_code].rounds) if JET_GUNS.has(type_code) else int(GUN_ROUNDS.get(type_code, -1))
+	if JET_GUNS.has(type_code):
+		return int(JET_GUNS[type_code].rounds)
+	return int(Settings.airframe(type_code).get("gun_rounds", GUN_ROUNDS.get(type_code, -1)))
 
 
 ## The gun record `w` (already real, apply) as jet `type_code` fires it: a MiG's own gun (JET_GUNS), else `w`.
@@ -167,8 +168,8 @@ static func jet_gun(w: Dictionary, type_code: int) -> Dictionary:
 	return out
 
 
-## The real radar detection range (NM of the radar, LRS / STT) of a jet, or 0 = keep the original. The F-16I Sufa's
-## APG-68(V)9 sees 30 % further than the F-16's (docs/f16i.md §2): 104 km.
+## The real radar detection range (NM of the radar, LRS / STT) of a jet, or 0 = keep the original: its aircraft
+## definition's radar.km, else RADAR_KM.
 static func radar_nm(type_code: int) -> float:
-	var km := float(RADAR_KM.get(type_code, 0.0)) * (SUFA_RADAR if Settings.sufa(type_code) else 1.0)
+	var km := float(Settings.airframe(type_code).get("radar", {}).get("km", RADAR_KM.get(type_code, 0.0)))
 	return km * 1000.0 / RADAR_NM_M

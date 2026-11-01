@@ -21,7 +21,8 @@ redistribution (CC BY / CC BY-SA / public domain; CC BY-NC only for local use). 
 original: an opt-in on the Extras page (§8).
 
 **Steps in order**
-1. Pick a type code and add it to the code tables (§1).
+1. Write its aircraft definition ("Modern planes" below); pick a type code for the missions and the flight model
+   (§1).
 2. Build the 3D model, write its descriptor and place it in the repo (§2).
 3. Add the flight data (§3).
 4. Map or build a cockpit (§4).
@@ -33,9 +34,74 @@ original: an opt-in on the Extras page (§8).
 - `iaf-convert plane-describe <model.gltf> <out-dir> [--type N] [--section NAME] [--label L]` writes the descriptor
   (§2.2) and reports what the game will miss.
 - `iaf-convert plane-checklist <type> [repo-dir]` lists every code table of §1 with file:line and whether the type
-  is already in it.
+  is already in it; for a type with an aircraft definition it names the file and marks `df` the tables the
+  definition stands for.
 
 Both are in `crates/iaf-tools/src/plane.rs`.
+
+## Modern planes: the aircraft definition
+
+A modern plane (ours, not in the 1998 game) keeps its behaviour in one file, its **aircraft definition**
+`game/extra/planes/<id>/airframe.json`, next to its model and cockpit. Adding a modern plane means writing that file;
+the §1 type-code tables stay for the 1998 jets.
+
+**The definitions today**
+
+| id | plane | base | holds |
+|---|---|---|---|
+| `f16` | F-16D Barak, the 1998 F-16 (type 100) | — | the F-16 family's base: `original_model`, `hud_3d` |
+| `f16i` | F-16I Sufa | `f16` | Jet list name, flight-model type, model, radar, stations, Arming art, guide, TSD label, 3D HUD, MFD colours |
+| `f15` | F-15C Baz, the 1998 F-15 (type 110) | — | the F-15 family's base: `original_model` |
+| `f15i` | F-15I Ra'am | `f15` | its model only (it flies on the F-15C's data, radar and weapons) |
+| `f35i` | F-35I Adir | — | Jet list name, cockpit, HUD, voice, radar, gun, built-in FLIR, stations, Arming art, `flyable` |
+
+**How the game reads a definition**
+- `crates/iaf-flight/src/airframe.rs` builds the files into the crate (the `FILES` list) and resolves the bases.
+- A definition with a `base` holds only what differs from it. It is a JSON Merge Patch (RFC 7386) on the base: an
+  object merges key by key, `null` removes a key, any other value replaces the base's.
+- The adapter `airframe::id_for(type code, switches)` gives the definition a 1998 jet flies as:
+  - 100 → `f16`, or `f16i` with Extras "F-16 version" on Sufa;
+  - 110 → `f15`, or `f15i` with Extras "F-15 version" on Ra'am;
+  - 1000 → `f35i` (the Extras "F-35I replaces" slot flies type 1000);
+  - every other type → none: its tables decide.
+- GDScript asks `Settings.airframe(type_code)` (through `IafAirframe`). Each reader takes the definition's value and
+  falls back to its type-code table, so a base without the field gives exactly the 1998 value. With every switch off
+  the bases hold no table value (Rust test `switches_off_give_the_1998_values`).
+
+**The fields** (all optional; `notes` holds each value's source)
+
+| field | read by | what it decides |
+|---|---|---|
+| `base` | `airframe.rs` | the definition this one patches |
+| `name`, `doc` | — | the plane's name and its doc |
+| `jet_list` {`title`, `title_he`, `row_he`, `desc`} | `front_end.gd` `_jet_swap` | the Jet list button, row and description (Hebrew `desc` in `strings_he.json`) |
+| `flyable` | `player_aircraft.gd` `flyable` | flyable without a `FLYABLE` entry |
+| `cockpit` | `player_aircraft.gd` `profile`, `real_hud` `Jet::of_cockpit` | a cockpit dir in the repo instead of `cockpits.ibx`'s |
+| `hud` | `real_hud` `Jet::of_cockpit` | the Real HUD symbology of that cockpit (`f35`: the helmet-only display, `IafRealHud.helmet_only`) |
+| `fm` | `data_set::variant` | the flight-model type (`data_set.rs` `TYPES` / `REAL` row) |
+| `original_model`, `model` | `airframe::model_for`, `gltf.gd` `detailed` | `model` is drawn in place of the family's 1998 model file `original_model`, with Models on Original too |
+| `voice` {`betty`, `real`} | `flight_sounds.gd` `has_betty`, `real_voice` | the voice warnings, the Real HUD's calls |
+| `radar` {`row`, `km`, `ai_nm`} | `radar.gd`, `real_weapons.gd` `radar_nm`, `combat.gd` `sensor_nm` | the radar table row, the Real range, the AI's sensor range |
+| `gun_rounds` | `real_weapons.gd` `gun_rounds` | the Real gun rounds |
+| `flir` | `player_weapons.gd` | a built-in FLIR |
+| `weapons` {`arm_art`, `modern`, `loads`} | `mission_weapons.gd` `jet`, `modern_weapons.gd` `loads` | Arming art (`x_<id>`: `game/extra/planes/<id>/arm`), the modern weapons `"always"`, and their stations (`{"<record id>": [count, "stations"]}`) |
+| `hud_3d` | `cockpit3d.gd` | the 3D cockpit's HUD (`HUD_std` / `HUD_wide`) |
+| `mfd` | `settings.gd` `real_mfd` | the F-16's real MFD formats |
+| `guide` | `reference.gd` `guide_name` | the pilot guide (`docs/guides/<guide>.md`) |
+| `label` | `tsd.gd` `unit_label` | the TSD's selected-unit label |
+| `info_tag` | `terrain_view.gd` | the flight info line's tag |
+
+**To add a modern plane**
+1. Write `game/extra/planes/<id>/airframe.json` (a variant: a `base` and what differs).
+2. Add it to `FILES` in `crates/iaf-flight/src/airframe.rs`, and to `id_for` when a 1998 type code or switch picks it.
+3. Read a new field where the game decides it, with the type-code table as the fallback.
+
+Still keyed by type code for the F-35I (type 1000), and why:
+- the flight model's own tables, `spool.rs` `ENGINES` and the fly-by-wire `matches!` in `aircraft.rs`: the flight
+  model knows only its type code, not the switches (open);
+- `data_set.rs` `TYPES` / `REAL`: the flight-model catalogue the definition's `fm` names;
+- `player_aircraft.gd` `f35i_object()`: the F-16's bdb object, which missions need;
+- the goggles (`terrain_view.gd` `goggles_tube`, `goggles_lit`) by `PlayerAircraft.F35I`.
 
 ## 1. The type code
 
@@ -76,8 +142,8 @@ share this code space:
 | `crates/iaf-tools/src/bin/iaf-mission-report.rs` | `FLYABLE_NOW` | mission coverage report | yes |
 | `tests/godot/test_jet_list.gd` | `JETS` | Jet list test row | yes (§9) |
 
-Until these tables become data (one per-type record read from a file), each new plane is a code change in all of
-them.
+A 1998 jet keeps these tables. A modern plane puts the same values in its aircraft definition ("Modern planes"
+above); `plane-checklist` lists the definitions too.
 
 ## 2. The 3D model
 
@@ -244,7 +310,7 @@ Options:
   top-left in panel px), one MFD node per portal drawn at `scale` (`cockpit.gd` `_create_mfds()`, `mfd.gd` `portal_scale`).
   With a `[PCD]` section (`Rect`, `Bar`, `WindowTop`, `Esis`) `game/cockpit/pcd.gd` draws the display around them:
   the glass, status bar, lower windows and standby display (docs/f35i.md §4.3).
-- **A cockpit in the repo:** a `res://` cockpit dir (`player_aircraft.gd` `EXTRA_COCKPIT`), and `"Shared": "<converted
+- **A cockpit in the repo:** a `res://` cockpit dir (the aircraft definition's `cockpit`), and `"Shared": "<converted
   cockpit>"` for the original art it borrows (MFD atlas, RWR symbols, TSD map, ADI ball, the lamps and gear lever;
   `cockpit.gd` `_file()`), since that art cannot be committed. Reuse the original's pieces first; model and render
   only what it lacks. Example: `game/extra/planes/f35i/cockpit/`, the panel modelled and rendered by
@@ -329,4 +395,4 @@ With the row off, the Jet list and every table behave as in the original.
 | splitting, renaming and pivoting a downloaded model | needs a 3D editor (Blender) |
 | cockpit and Jet list art | art |
 | fitting the flight data | judgement against published numbers; the method is in real-aircraft.md |
-| the bdb object clone and the §1 tables | code tables keyed by type; automatable once they are data |
+| the bdb object clone and the flight model's §1 tables | missions need the bdb object; the flight model reads its type code, not a definition |

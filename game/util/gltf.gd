@@ -292,12 +292,6 @@ const DETAILED := {
 }
 ## The MiG-29's folder: its PNG textures are compressed at the parse, as the stores'.
 const MIG29_DIR := "res://extra/models/mig29/"
-## The F-16I Sufa (Extras "F-16 version" on Sufa; docs/f16i.md §8, tools/f16/sufa.py): every F-16's model, with
-## Models on Original too (the 1998 game has no Sufa).
-const SUFA := "res://extra/models/f16/f16i.glb"
-## The F-15I Ra'am (Extras "F-15 version" on Ra'am; docs/aircraft-models.md §6.7): every F-15's model, with Models on
-## Original too, when setup made it (under assets/, as the F-15C).
-const RAAM := "converted/models/f15/f15i.glb"
 ## The detailed stores (GPL, tools/stores/build.gd; docs/aircraft-models.md §5), as DETAILED. Their textures are
 ## compressed (BC1) at the parse.
 const STORES_DIR := "res://extra/models/stores/"
@@ -345,12 +339,10 @@ const RACKS := {"gbu39_m.gltf": "bru61"}
 ## switch on Sufa, an F-15's: the F-15I with the F-15 switch on Ra'am, whatever Models says), else "".
 static func detailed(path: String) -> String:
 	var f := path.get_file()
-	if f == "f16_h.gltf" and _settings().sufa(100) and FileAccess.file_exists(SUFA):
-		return SUFA
-	if f == "f15_h.gltf" and _settings().f15_variant == "raam":
-		var raam: String = _settings().assets_dir().path_join(RAAM)
-		if FileAccess.file_exists(raam):
-			return raam
+	# Ours: the model of the aircraft definition the Extras switches pick (variant_model), when it exists.
+	var own := variant_model(f)
+	if own != "" and FileAccess.file_exists(own):
+		return own
 	if String(_settings().get("models")) != "detailed":
 		return ""
 	var hd: String = DETAILED.get(f, STORES_DIR + STORES[f] + ".glb" if STORES.has(f) else "")
@@ -367,9 +359,26 @@ static func detailed_stores() -> Array:
 	return out.keys()
 
 
-## True for our detailed models (DETAILED, STORES): parsed with LODs. By the path alone (the parse runs on workers).
+## The model an aircraft definition draws in place of the original model file `file` (IafAirframe.model_for: the
+## F-16I Sufa's f16i.glb for f16_h.gltf on Sufa, docs/f16i.md §8; the F-15I Ra'am's f15i.glb, setup makes it under
+## assets/, for f15_h.gltf on Ra'am, docs/aircraft-models.md §6.7; with Models on Original too, the 1998 game has
+## neither), as a res:// or assets/ path; "" none.
+static func variant_model(file: String) -> String:
+	var s := _settings()
+	var own: String = ClassDB.class_call_static("IafAirframe", "model_for", file, s.f16_variant, s.f15_variant)
+	return own if own == "" or own.begins_with("res://") else s.assets_dir().path_join(own)
+
+
+## The aircraft definitions' models (IafAirframe.models), read when the script loads: is_detailed runs on workers.
+static var _airframe_models: PackedStringArray = ClassDB.class_call_static("IafAirframe", "models")
+
+
+## True for our detailed models (DETAILED, STORES, the aircraft definitions' models in the repo): parsed with LODs. By
+## the path alone (the parse runs on workers).
 static func is_detailed(path: String) -> bool:
-	return DETAILED.values().has(path) or path == SUFA or path.begins_with(STORES_DIR) or _made_by_setup(path)
+	return (
+		DETAILED.values().has(path) or path in _airframe_models or path.begins_with(STORES_DIR) or _made_by_setup(path)
+	)
 
 
 ## A detailed model setup made under assets/ (DETAILED's paths without res://): its textures are compressed at the

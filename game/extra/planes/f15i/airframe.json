@@ -1,0 +1,9 @@
+{
+  "base": "f15",
+  "name": "F-15I Ra'am",
+  "model": "converted/models/f15/f15i.glb",
+  "notes": {
+    "": "Every F-15 (type 110) with Extras \"F-15 version\" on Ra'am: its look only; it flies on the F-15C's data, radar and weapons (docs/aircraft-models.md §6.7).",
+    "model": "every F-15's model, with Models on Original too, when setup made it (under assets/, as the F-15C)"
+  }
+}

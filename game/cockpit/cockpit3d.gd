@@ -69,7 +69,7 @@ func setup(c: Control, cam: Camera3D, path: String) -> bool:
 	if path == MODELS.f16:
 		# The F-16's two HUDs (tools/f16d/cockpit3d.py HUDS): the Block 50's for the Barak, the wide-angle one for
 		# the Sufa (its Elbit wide-angle HUD's shape is open; inferred).
-		var hud := "HUD_wide" if Settings.sufa(100) else "HUD_std"
+		var hud: String = Settings.airframe(100).get("hud_3d", "HUD_std")
 		for h in ["HUD_std", "HUD_wide"]:
 			for node in [n.find_child(h, true, false), n.find_child(h + "_glass", true, false)]:
 				if node != null:
@@ -98,7 +98,7 @@ func setup(c: Control, cam: Camera3D, path: String) -> bool:
 ## of the Sufa's (Block 50, the model's: tools/f16d/cockpit3d.py).
 func _materials(model: Node3D, path: String) -> void:
 	var barak: Texture2D = null
-	if path == MODELS.f16 and not Settings.sufa(100):
+	if path == MODELS.f16 and Settings.airframe_id(100) == "f16":  # the Barak (the F-16 base itself)
 		barak = Img.load_texture(path.get_base_dir().path_join("barak_panels.webp"), true)
 	var done := {}
 	for mi: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):

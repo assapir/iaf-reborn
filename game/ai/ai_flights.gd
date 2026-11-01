@@ -285,7 +285,8 @@ func _start(p: Pilot, install: String, plane: String) -> bool:
 			"airborne": airborne,
 			"engine_on": engine_on,
 			"real_data": host.real_data,
-			"sufa": Settings.f16_variant == "sufa"
+			"f16_variant": Settings.f16_variant,
+			"f15_variant": Settings.f15_variant
 		}
 	)
 	if err != "":

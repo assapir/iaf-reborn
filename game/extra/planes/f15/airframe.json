@@ -1,0 +1,9 @@
+{
+  "name": "F-15C Baz",
+  "doc": "docs/aircraft-models.md",
+  "original_model": "f15_h.gltf",
+  "notes": {
+    "": "The F-15 family's base and the Baz itself (the 1998 type 110): everything else of the Baz is the original's type-code tables.",
+    "original_model": "the 1998 model file a variant's model replaces"
+  }
+}

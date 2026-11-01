@@ -40,8 +40,9 @@ impl IafFlight {
     /// re-aimed along the heading). `flags` = {airborne, engine_on, real_data}: `airborne`: see
     /// `is_airborne_start`; a ground start has gear down, full flaps, brakes on, throttle 0, RPM 0
     /// and the engine running only if `engine_on`. `real_data` picks the corrected real-world data
-    /// set (chosen before the flight); `sufa` flies an F-16 as the F-16I (Extras "F-16", docs/f16i.md), whatever
-    /// the data set. Returns an error string or "" on success.
+    /// set (chosen before the flight); `f16_variant` / `f15_variant` (the Extras switches) pick the aircraft
+    /// definition's flight-model type (`data_set::variant`: an F-16 as the F-16I on Sufa, docs/f16i.md), whatever the
+    /// data set. Returns an error string or "" on success.
     #[func]
     fn start(
         &mut self,
@@ -60,7 +61,9 @@ impl IafFlight {
             std::sync::Mutex::new(iaf_flight::data_set::Blocks::new());
         let mut blocks = BLOCKS.lock().unwrap_or_else(|e| e.into_inner());
         let section = section.to_string();
-        let name = iaf_flight::data_set::variant(&section, flag("sufa"));
+        let text = |k: &str| flags.get(k).and_then(|v| v.try_to::<GString>().ok()).unwrap_or_default().to_string();
+        let (f16, f15) = (text("f16_variant"), text("f15_variant"));
+        let name = iaf_flight::data_set::variant(&section, iaf_flight::airframe::Switches { f16: &f16, f15: &f15 });
         match iaf_flight::load_in(std::path::Path::new(&install.to_string()), name, set, &mut blocks) {
             Ok((params, envelope)) => {
                 let st = Start {

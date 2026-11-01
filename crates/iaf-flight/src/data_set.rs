@@ -95,13 +95,13 @@ pub fn effective(set: DataSet, name: &str) -> DataSet {
     }
 }
 
-/// The type a mission's `name` flies as: the F-16I for an F-16 (type 100) when `sufa` (the Extras switch "F-16" on
-/// Sufa, docs/f16i.md), else `name` itself.
-pub fn variant(name: &str, sufa: bool) -> &str {
-    match find_type(name) {
-        Some(t) if sufa && t.type_code == 100 => "F-16I",
-        _ => name,
-    }
+/// The type a mission's `name` flies as with the Extras switches `s`: its aircraft definition's `fm`
+/// ([`crate::airframe`]; the F-16I for an F-16 on Sufa, docs/f16i.md), else `name` itself.
+pub fn variant<'a>(name: &'a str, s: crate::airframe::Switches) -> &'a str {
+    find_type(name)
+        .and_then(|t| crate::airframe::of_type(t.type_code.into(), s))
+        .and_then(|a| a["fm"].as_str())
+        .unwrap_or(name)
 }
 
 /// The type for a type name, model folder or (first type of) a bd.ibx section, case-insensitive.
@@ -833,12 +833,20 @@ mod tests {
 
     #[test]
     fn sufa_is_the_f16_with_the_switch() {
-        assert_eq!(variant("F-16", true), "F-16I");
-        assert_eq!(variant("f16", true), "F-16I");
-        assert_eq!(variant("F-16", false), "F-16");
+        use crate::airframe::Switches;
+        let (sufa, barak) = (Switches { f16: "sufa", f15: "baz" }, Switches { f16: "barak", f15: "baz" });
+        assert_eq!(variant("F-16", sufa), "F-16I");
+        assert_eq!(variant("f16", sufa), "F-16I");
+        assert_eq!(variant("F-16", barak), "F-16");
         // Other types on the F-16's section stay.
-        assert_eq!(variant("C-130", true), "C-130");
-        assert_eq!(variant("F-35I", true), "F-35I");
+        assert_eq!(variant("C-130", sufa), "C-130");
+        assert_eq!(variant("F-35I", sufa), "F-35I");
+        // Every definition's flight-model type is a row here.
+        for (id, a) in crate::airframe::all() {
+            if let Some(fm) = a["fm"].as_str() {
+                assert!(find_type(fm).is_some(), "{id}: {fm}");
+            }
+        }
         assert_eq!(effective(DataSet::Original, "F-16I"), DataSet::Real);
         assert_eq!(section(DataSet::Real, "F-16I"), "F-16");
         assert_eq!(find_type("F-16I").map(|t| t.type_code), Some(100));
