@@ -89,6 +89,7 @@ func setup(c: Control, cam: Camera3D, path: String) -> bool:
 		if screen != null:
 			_attach(mfd, screen, n)
 	cockpit.hud_clip = PackedVector2Array()
+	_setup_instruments(n)
 	return true
 
 
@@ -207,6 +208,7 @@ func _process(_delta: float) -> void:
 			var b := Basis(_v3(r.axis), deg_to_rad(_angle(r)))
 			xf = Transform3D(b, c - b * c) * xf
 		a[0].transform = xf
+	_update_instruments()
 	cockpit.view_shift = _nose_shift()
 	if cockpit.view_mode == 0:
 		cockpit.position = cockpit.view_shift  # this frame's (cockpit.gd may have run before the camera moved)
@@ -340,4 +342,148 @@ func _prop(p: String) -> float:
 		var k := float(p.get_slice("-", 3))
 		var lbs := fmod(float(s.fuel_lbs), k * 10.0)
 		return lbs if k == 1.0 else floorf(lbs / k) * k
+	return _instrument_prop(p)
+
+
+# The lamps, the AoA tape and the canvas displays (docs/cockpit.md "3D cockpit"): <model>.json `lamps` (node ->
+# {key, hide, colour}), `textures` (node -> FlightGear's texture scrolls) and the display nodes.
+const Display := preload("res://cockpit/cockpit3d_display.gd")
+## The displays' SubViewports (px): the RWR scope's and the EHSI's square faces, the DED's 24 x 5 characters.
+const DISPLAYS := {
+	"RWR_scope": [Display.Kind.RWR, Vector2i(256, 256)],
+	"EHSI_screen": [Display.Kind.EHSI, Vector2i(256, 256)],
+	"DED_screen": [Display.Kind.DED, Vector2i(384, 128)],
+}
+## The launch lamp's blink (ms per phase): the 2D RWR symbols' (cockpit.gd draw_rwr_symbols).
+const BLINK_MS := 300
+## Lamp key -> [[node, hide (shown only when lit), its surfaces' materials]]; what they showed (tests).
+var _lamps := {}
+var lamps_lit := {}
+## [node, records, its surfaces' materials] per scrolled texture.
+var _scrolls := []
+## Display node name -> the Display drawing it.
+var displays := {}
+
+
+func _setup_instruments(model: Node3D) -> void:
+	var lamps: Dictionary = meta.get("lamps", {})
+	for name in lamps:
+		var mi := model.find_child(name, true, false) as MeshInstance3D
+		if mi == null:
+			continue
+		var rec: Dictionary = lamps[name]
+		var c: Array = rec.colour
+		var mats := _own_materials(mi)
+		for m in mats:
+			m.emission_enabled = true
+			m.emission_texture = m.albedo_texture
+			m.emission = Color(c[0], c[1], c[2])
+		_lamps.get_or_add(rec.key, []).append([mi, bool(rec.hide), mats])
+	var textures: Dictionary = meta.get("textures", {})
+	for name in textures:
+		var mi := model.find_child(name, true, false) as MeshInstance3D
+		if mi != null:
+			_scrolls.append([mi, textures[name], _own_materials(mi)])
+	for name in DISPLAYS:
+		var mi := model.find_child(name, true, false) as MeshInstance3D
+		if mi != null:
+			_attach_display(mi, DISPLAYS[name][0], DISPLAYS[name][1])
+
+
+## Each surface's material copied into the node's own (it then changes alone).
+func _own_materials(mi: MeshInstance3D) -> Array:
+	var out := []
+	for s in mi.mesh.get_surface_count():
+		var m := mi.mesh.surface_get_material(s)
+		m = m.duplicate() if m is BaseMaterial3D else StandardMaterial3D.new()
+		mi.set_surface_override_material(s, m)
+		out.append(m)
+	return out
+
+
+## A Display drawn into a SubViewport whose texture lights `screen` (emissive), as the MFDs (_attach).
+func _attach_display(screen: MeshInstance3D, kind: int, px: Vector2i) -> void:
+	var vp := SubViewport.new()
+	vp.size = px
+	vp.disable_3d = true
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	var d := Display.new(cockpit, kind, px)
+	vp.add_child(d)
+	add_child(vp)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color.BLACK
+	mat.roughness = 0.25
+	mat.emission_enabled = true
+	mat.emission_texture = vp.get_texture()
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+	screen.material_override = mat
+	displays[String(screen.name)] = d
+
+
+func _update_instruments() -> void:
+	for key in _lamps:
+		var on := _lamp_on(key)
+		lamps_lit[key] = on
+		for l in _lamps[key]:
+			if l[1]:
+				l[0].visible = on
+			for m in l[2]:
+				m.emission_energy_multiplier = 1.0 if on else 0.0
+	# FlightGear's textranslate: the texture moved by factor · value + offset along its axis (the glTF's v runs
+	# down, FlightGear's up).
+	for s in _scrolls:
+		var off := Vector3.ZERO
+		for r in s[1]:
+			var d := _prop(r.prop) * float(r.factor) + float(r.offset)
+			off += Vector3(float(r.axis[0]) * d, -float(r.axis[1]) * d, 0.0)
+		for m in s[2]:
+			m.uv1_offset = off
+
+
+## A lamp lit by the cockpit state the 2D panel's lamps read (cockpit.gd indicators / gear_legs, instruments.gd's
+## `better`); the ENGINE and HYD/OIL PRESS lamps by the damage flags (docs/damage.md §5; inferred).
+func _lamp_on(key: String) -> bool:
+	var better: Dictionary = cockpit.state.get("better", {})
+	var legs: Array = cockpit.gear_legs
+	var flags: Array = cockpit.damage_flags
+	var flag := func(i: int) -> bool: return i < flags.size() and bool(flags[i])
+	match key:
+		"master_caution":
+			return bool(cockpit.indicators[0])
+		"eng_fire":
+			return bool(cockpit.indicators[1]) or bool(cockpit.indicators[2])
+		"flcs", "to_ldg_config", "ar_nws":
+			return bool(better.get(key, false))
+		"engine":
+			return flag.call(2) or flag.call(22)
+		"hyd_oil_press":
+			return flag.call(18)
+		"aoa_slow", "aoa_on_speed", "aoa_fast":
+			return int(better.get("aoa_index", 0)) == ["", "aoa_slow", "aoa_on_speed", "aoa_fast"].find(key)
+		"gear_nose", "gear_left", "gear_right":
+			return int(legs[["gear_nose", "gear_left", "gear_right"].find(key)]) == 2
+		"gear_transit":
+			return legs.any(func(v): return int(v) != (2 if cockpit.gear_handle_down else 0))
+		"rwr_launch":
+			var launch: bool = cockpit.rwr.any(func(e): return e.active and e.launch)
+			return launch and int(Time.get_ticks_msec() / BLINK_MS) % 2 == 0
+	return false
+
+
+## The props of the instruments _prop leaves out: the gear handle, the AoA, the fuel quantity needles, the fuel flow
+## drums.
+func _instrument_prop(p: String) -> float:
+	var s: Dictionary = cockpit.state
+	match p:
+		"controls/gear/gear-down":
+			return 1.0 if cockpit.gear_handle_down else 0.0
+		"fdm/jsbsim/fcs/fly-by-wire/pitch/alpha-indicated":
+			return float(s.aoa)
+		"f16/fuel/hand-fwd-lag", "f16/fuel/hand-aft-lag":
+			# FWD / AFT (the FQI's NORM: fwd + right wing, aft + left wing): half the internal fuel each (inferred).
+			return minf(float(s.fuel_lbs), float(s.internal_fuel_kg) / 0.45359) / 2.0
+	if p.begins_with("f16/cockpit/fuel-flow-digit-"):
+		# Digit n of the fuel flow (lb/h): 3 the hundreds, 4 the thousands, 5 the ten thousands.
+		var k := pow(10.0, float(p.right(1)) - 1.0)
+		return fmod(floorf(float(s.get("fuel_flow_pph", 0.0)) / k), 10.0)
 	return 0.0

@@ -5,7 +5,9 @@
 # the 2D cockpit's pages into SubViewports on the 3D screens, the HUD drawn and masked to the combiner's outline;
 # looking back or an outside view hides the glass's outline; a click on the left MFD's OSB 6 opens its menu; the
 # Barak's panel sheet is the Block 40 one and its HUD the Block 50's, the Sufa's the model's Block 50 sheet and the
-# wide-angle HUD, and the Sufa's MFDs draw the real formats in colour.
+# wide-angle HUD, and the Sufa's MFDs draw the real formats in colour; the lamps light from the cockpit state (the
+# master caution by its indicator, the gear lamps, the AoA indexer), the AoA tape scrolls, the fuel flow drums turn,
+# and the RWR scope, EHSI and DED draw into SubViewports on their screens.
 extends "res://../tests/godot/base.gd"
 
 
@@ -92,6 +94,7 @@ func _three_d(variant: String, pages_2d: Array) -> void:
 	check(tv.views.pitch_min == tv.views.HEAD_PITCH_MIN_3D, "%s 3D: free look down to −60°" % variant)
 	check(c.hud.visible and c.hud.material != null, "%s 3D: the HUD drawn, masked" % variant)
 	check(c.mfds.all(func(m): return m.visible) and c.hud_clip.size() >= 3, "%s 3D: the MFDs drawn" % variant)
+	await _instruments(tv, c, c3, variant)
 	# Looking back: the glass is out of sight.
 	tv.views.snap = Vector2(PI, 0.2)
 	await frames(3)
@@ -118,3 +121,64 @@ func _three_d(variant: String, pages_2d: Array) -> void:
 	check((c.hud_clip as PackedVector2Array).is_empty(), "%s 3D: an outside view, no outline" % variant)
 	tv.queue_free()
 	await frames(2)
+
+
+## The lamps, the AoA tape, the fuel flow drums and the displays (cockpit3d.gd _setup_instruments): the master
+## caution lights when its indicator is set, the gear lamps and the AoA indexer follow the 2D panel's state, the AoA
+## tape scrolls with the AoA, the RWR scope draws an emitter, the EHSI and the DED draw into their screens.
+func _instruments(tv: Node, c: Control, c3: Node3D, variant: String) -> void:
+	var lamp := c3.find_child("lamp_master_caution_0", true, false) as MeshInstance3D
+	check(lamp != null and c3._lamps.size() >= 15, "%s 3D: the lamps (%d keys)" % [variant, c3._lamps.size()])
+	if lamp == null:
+		return
+	c.indicators[0] = false
+	await frames(2)
+	check(not lamp.visible and not c3.lamps_lit.master_caution, "%s 3D: master caution off" % variant)
+	c.indicators[0] = true
+	await frames(2)
+	var mat := lamp.get_surface_override_material(0) as BaseMaterial3D
+	check(lamp.visible and mat.emission_energy_multiplier > 0.0, "%s 3D: master caution lit by its indicator" % variant)
+	c.indicators[0] = false
+	var legs: Array = c.gear_legs
+	check(
+		c3.lamps_lit.gear_nose == (int(legs[0]) == 2) and c3.lamps_lit.gear_right == (int(legs[2]) == 2),
+		"%s 3D: the gear lamps show the legs %s" % [variant, legs]
+	)
+	var idx := int(c.state.better.get("aoa_index", 0))
+	check(
+		c3.lamps_lit.aoa_on_speed == (idx == 2) and c3.lamps_lit.aoa_fast == (idx == 3),
+		"%s 3D: the AoA indexer (%d)" % [variant, idx]
+	)
+	# The AoA and the fuel flow set here (the flight writes them each frame): the tape and the drums read them at once.
+	check(c.state.has("fuel_flow_pph"), "%s 3D: the state's fuel flow" % variant)
+	c.state.aoa = 10.0
+	c.state.fuel_flow_pph = 4567.0
+	c3._update_instruments()
+	var tape := c3.find_child("AOA_tape", true, false) as MeshInstance3D
+	var tm := tape.get_surface_override_material(0) as BaseMaterial3D if tape != null else null
+	check(
+		tm != null and is_equal_approx(tm.uv1_offset.y, -0.235),
+		"%s 3D: the AoA tape scrolled for 10° (%s)" % [variant, tm.uv1_offset if tm else null]
+	)
+	var digits := [5, 4, 3].map(func(k): return c3._prop("f16/cockpit/fuel-flow-digit-%d" % k))
+	check(digits == [0.0, 4.0, 5.0], "%s 3D: the fuel flow drums at 4,567 lb/h %s" % [variant, digits])
+	for name in ["RWR_scope", "EHSI_screen", "DED_screen"]:
+		var mi := c3.find_child(name, true, false) as MeshInstance3D
+		var d = c3.displays.get(name)
+		check(
+			mi != null and d != null and mi.material_override.emission_texture == d.get_parent().get_texture(),
+			"%s 3D: %s shows its SubViewport" % [variant, name]
+		)
+	# An emitter 10 km ahead (the weapons frozen: they publish the RWR list each frame).
+	tv.frozen = true
+	var own: Vector2 = c.state.world
+	var h := deg_to_rad(float(c.state.heading))
+	c.rwr = [{"type": 300, "pos": own + Vector2(sin(h), cos(h)) * 10000.0, "launch": false, "active": true}]
+	await frames(2)
+	check(c3.displays.RWR_scope.shown.get("symbols", 0) == 1, "%s 3D: the RWR scope draws the emitter" % variant)
+	tv.frozen = false
+	check(c3.displays.EHSI_screen.shown.get("dist_nm", -1.0) >= 0.0, "%s 3D: the EHSI's steerpoint range" % variant)
+	var lines: Array = c3.displays.DED_screen.shown.get("lines", [])
+	check(
+		lines.size() == 5 and "STPT" in lines[0] and ":" in lines[2], "%s 3D: the DED's CNI page %s" % [variant, lines]
+	)

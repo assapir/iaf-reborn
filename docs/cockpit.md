@@ -419,13 +419,21 @@ place of the 2D panel art. Today the F-16's, for the Barak and the Sufa; other j
   to the altimeter's place, the dial FlightGear's own altimeter face (`Textures/faces1.png`), a white needle at one
   turn per 1,000 ft (`tools/f16d/cockpit3d.py` `altimeter`).
 * FlightGear's `select` animations are evaluated once for a powered jet (DC buses 28 V, AC buses 115 V) with every
-  lamp, flag and test off.
+  lamp, flag and test off. The lamps the game lights (`LAMPS`) are kept instead, each its own node `lamp_<key>_<n>`,
+  listed in `f16.json` `lamps` with whether FlightGear shows it only when lit (a `select` lamp) and its emission
+  colour (a `material` lamp: the gear lamps, the red light in the gear handle, the RWR's LAUNCH).
+* FlightGear's `rotate` and `knob` animations on the properties the game drives turn their parts; an animation on an
+  AC group turns every mesh in the group (the fuel quantity needles, the whole throttle). Its `textranslate` on the
+  AoA moves the AoA tape's texture (`f16.json` `textures`).
+* Three of FlightGear's canvas displays are named nodes the game draws into: `RWR_scope` (the RWR azimuth
+  indicator's face), `EHSI_screen` and `DED_screen`. The PFD's screen stays dark.
+* The gear handle and the throttle are decimated with their consoles; the other turning parts are kept whole.
+  59.4 k triangles in the file.
 * The panel sheets per jet (FlightGear's `Textures/Block-panels`, the labels of the left auxiliary console and the
   RWR head): the Sufa the Block 50 sheet (`blck50-panels1.png`, in the model: the F-16I is a Block 52+); the Barak
   the Block 40 one (`blck40-panels1.png`, shipped as `barak_panels.webp` and swapped in at load: the game's Barak is
   a Block 30/40, real-aircraft.md §8; FlightGear's Block 30 sheet differs from the Block 40 one in 2 % of its
   pixels). The rest of the cockpit is one geometry and texture set for every block in FlightGear.
-* The DED's and PFD's screens are dark (FlightGear draws them with its canvas system).
 
 **In the flight** (`cockpit3d.gd`, `terrain_view.gd` `_spawn_player`):
 * The model hangs in the cockpit-view model (`own_bc`): with the 3D cockpit the F-16 always uses the detailed
@@ -462,11 +470,39 @@ place of the 2D panel art. Today the F-16's, for the Barak and the Sufa; other j
   and Mach scale, the ADI ball (roll,
   pitch) and bank index, the VSI, the standby ADI, RPM, FTIT, nozzle and oil pressure (`instruments` `engine_temp_c`,
   `nozzle_oil`), the magnetic compass, the fuel totaliser drums, the clock's hands (the time of day), the throttle
-  (afterburner detent) and the stick (the flight model's stick).
-* **Not driven** (open): the AoA tape (a texture scroll), the EHSI, the fuel flow and fuel quantity needles, the
-  hydraulic, cabin, EPU and oxygen gauges, the ADI's glide slope, turn needle and slip ball; the lamps (eyebrow
-  warning lamps, AoA indexer, gear handle and lights, master caution); the RWR head's scope and the DED's text; the
-  panel and flood lights at night.
+  (afterburner detent) and the stick (the flight model's stick). Also (`cockpit3d.gd` `_instrument_prop`): the gear
+  handle (down with `gear_handle_down`, at once), the AoA tape (the state's AoA, FlightGear's 0.0235 of the texture
+  per degree), the fuel flow drums (hundreds, thousands, ten thousands of lb/h: `instruments` `fuel_flow_pph`, the
+  flight model's fuel flow) and the fuel quantity indicator's FWD and AFT needles (each half the internal fuel:
+  inferred, the indicator's NORM position reads the fwd + right wing and aft + left wing tanks).
+* **Lamps** (`cockpit3d.gd` `_lamp_on`; a lit lamp glows with its own art, a `select` lamp shows only when lit), from
+  the state the 2D panel's lamps read:
+
+  | Lamp | Lit when |
+  |---|---|
+  | MASTER CAUTION (left eyebrow) | the master caution indicator (`indicators[0]`: any damage, "Panel lights") |
+  | ENG FIRE (right eyebrow) | either engine fire indicator (`indicators[1]`, `[2]`) |
+  | FLCS, TO/LDG CONFIG | `better` `flcs`, `to_ldg_config` (as the 2D panel's warning lamps) |
+  | ENGINE | damage flag 2 or 22 (engine cut out, permanent engine damage; inferred) |
+  | HYD/OIL PRESS | damage flag 18 (hydraulics; inferred) |
+  | AoA indexer (left of the HUD) | `better` `aoa_index`: 1 the slow chevron, 2 the donut, 3 the fast chevron |
+  | AR/NWS (right of the HUD) | `better` `ar_nws` (on the ground) |
+  | the three gear lamps | that leg down and locked (`gear_legs[i]` = 2: nose, left, right) |
+  | the gear handle's red light | a leg not where the handle is (in transit, or held by gear damage) |
+  | LAUNCH (RWR threat panel) | an active RWR entry with its launch flag, blinking at 300 ms as the 2D RWR symbols |
+
+  The 3D cockpit lights them whatever the Better cockpit items say (it is an opt-in of its own). CANOPY, DBU ON,
+  TF FAIL and the other lamps stay dark: the game has no state for them.
+* **Displays**, each a SubViewport whose texture lights its screen (emissive, as the MFDs; `cockpit3d_display.gd`):
+  * the RWR azimuth indicator (256 px): the 2D panel's RWR symbols (`cockpit.gd` `draw_rwr_symbols`, the F-16
+    panel dial's scale: 37,060 m at the rim) inside two printed rings; nothing with RWR damage (flag 14);
+  * the EHSI (256 px): the heading rose under the lubber line, the bearing pointer to the steerpoint and its range
+    (NM, top left; `hud.gd` `nav_cues`), "NAV" bottom left. The course arrow, the CDI and the heading bug are left
+    out: the game has no selected course or heading;
+  * the DED (384 x 128 px): the CNI page's steerpoint (line 1) and time of day (line 3), green. Its radio and IFF
+    fields are left out: the game has no radios to tune.
+* **Not driven** (open): the hydraulic, cabin, EPU and oxygen gauges, the ADI's glide slope, turn needle and slip
+  ball (the state has no turn rate or lateral acceleration); the PFD; the panel and flood lights at night.
 
 ## Horizon / RWR / ADI sections
 Per cockpit: the `[HORIZON]` horizon disc (on the panel, or with OnMfd 1 on an MFD page), the `[LENHORIZON]` lens ADI

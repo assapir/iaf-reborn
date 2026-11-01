@@ -50,12 +50,13 @@ def normalise(src, length, nose_minus_y=True):
     return {o.name.removeprefix("Object_"): o for o in meshes}
 
 
-def import_ac(path, matrix=None, prefix=""):
+def import_ac(path, matrix=None, prefix="", groups=None):
     """An AC3D file (FlightGear's model format) as one Blender mesh object per AC `poly` object (named `prefix` +
     its AC name), in Blender's frame: AC x aft, y up, z left -> Blender x right, y forward (nose +Y), z up, then
     `matrix`. Materials per (AC material, texture): the texture as base colour (looked up next to the file),
     two-sided surfaces (flag 0x20) without backface culling, smooth surfaces (0x10) smooth with the object's crease
-    angle. Lines are skipped. Returns {AC name: object} (a later object of the same name replaces the earlier)."""
+    angle. Lines are skipped. Returns {AC name: object} (a later object of the same name replaces the earlier);
+    `groups`, a dict, gets {AC name: [the AC names of the meshes in it and under it]}."""
     to_b = Matrix(((0, 0, -1, 0), (-1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 0, 1)))
     if matrix is not None:
         to_b = Matrix(matrix) @ to_b
@@ -128,9 +129,13 @@ def import_ac(path, matrix=None, prefix=""):
                 mw = parent_mw @ Matrix.Translation(loc) @ rot.to_4x4()
                 if faces:
                     out[name] = _ac_mesh(prefix + name, verts, faces, to_b @ mw, crease)
+                under = [name] if faces else []
                 for _ in range(int(tok[1])):
-                    read_object(mw)
-                return
+                    under += read_object(mw)
+                if groups is not None:
+                    groups[name] = under
+                return under
+        return []
 
     while i < len(lines) and not lines[i].startswith("OBJECT"):
         i += 1
