@@ -223,8 +223,20 @@ The cells follow §1.2 and §1.3 with these differences:
   Lebanon's forests. Up to 36° N: the 3° tiles north of it are 180–320 MB each, mostly Turkey.
 - **City lights**: a building that the cell leaves out but that stands on open land (the kept insets abroad,
   Damascus's among them; the nodes without Sentinel-2) goes into the light cell of its node (`lights/L1`,
-  rendering.md §5.1).
+  rendering.md §5.1), with stand-ins where a town's footprints are sparse (`fill_lights`, rendering.md §5.1).
 - **Work files**: the countries' cut extracts (1.8 GB) are removed after the run; cutting them again takes under a minute.
+
+Cost (Intel Iris Xe, 2560 × 1440, `tests/godot/_flight_bench.gd` with `BENCH_BEST=1 BENCH_SET=scenery=on`, 400 m
+at 150 m/s for 15 s, two runs each with and without `theatre.json`, under the shared GPU lock on a quiet machine,
+2026-10-30):
+
+| Over | GPU without | with | cost | video memory |
+|---|---|---|---|---|
+| Beirut (383500,744000) | 12.86 ms | 16.61 ms | +3.8 ms | 874 → 1447 MB |
+| Damascus (457193,702586) | 12.97 ms | 18.60 ms | +5.6 ms | 898 → 1307 MB |
+
+About a dense Israeli town's (§3.1: 46 → 36 fps, +6 ms, over a dense town at 150 m). The theatre's cells cost nothing
+where none is within 6 km.
 
 `theatre.json` lists the cells by region (`israel`, `outside`, `lights`); the next run removes them before writing
 its own. Its `made_from` holds the city lights' (so a new Survey build makes the theatre again), the version
@@ -235,8 +247,8 @@ Measured on this machine (Intel laptop, 8 threads, 2026-10-30), both kinds:
 | | |
 |---|---|
 | Downloads | 1816 MB in 150 files (Microsoft 1507 MB: Egypt 904, Syria 323, Jordan 111, Lebanon 94, Cyprus 74; GHS-BUILT-H 15 MB; ETH 294 MB); about 1–2 MB/s from Microsoft's server here, about 25 min |
-| Build | 5 min 12 s with the extracts cut again, peak memory 7.3 GB (with the Survey layer's cells and light cells before it: 9 min) |
-| Output | 41 819 cells (6100 in the Israel region, 35 719 outside), 14 830 557 buildings (2 795 426 from OpenStreetMap), 94 591 554 trees, 2.34 GB; light cells: 44 with 60 630 buildings |
+| Build | 5–8 min with the extracts cut again (7 min 34 s with the light stand-ins, the machine busy), peak memory 7.3 GB; with the Survey layer's cells and light cells before it about 9 min |
+| Output | 41 819 cells (6100 in the Israel region, 35 719 outside), 14 830 557 buildings (2 795 426 from OpenStreetMap), 94 591 554 trees, 2.34 GB; light cells: 5529 with 911 289 buildings (60 630 left out of the cells, the rest stand-ins, rendering.md §5.1) |
 
 ## 2. Runtime
 

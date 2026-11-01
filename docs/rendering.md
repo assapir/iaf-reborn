@@ -1201,7 +1201,9 @@ from OpenStreetMap and the Microsoft footprints, credited with the scenery (docs
   and lit as Israel's, as the region looked before (the game is set in the 1990s).
 
   Measured 2026-10-30 (`iaf-scenery theatre`, scenery.md §1.7): 5529 light cells, 911 289 buildings beyond the
-  theatre's cells, most of them stand-ins. The towns' haze (below) spans the whole theatre: 250 m squares, 3254 ×
+  theatre's cells, most of them stand-ins. Cost at night (`BENCH_TOGGLE=_city_lights`, 3000 m at 250 m/s,
+  `BENCH_HOUR=22`, one run each on a quiet machine): over Beirut 15.01 → 16.01 ms GPU (+1.0 ms), over Damascus
+  15.41 → 16.38 ms (+1.0 ms), as over Tel Aviv (below). The towns' haze (below) spans the whole theatre: 250 m squares, 3254 ×
   about 4230 (13.8 MB, with its mipmaps 18 MB).
 
   Measured 2026-10-28: 39 s, 3 004 light cells, 597 870 buildings (41 MB) beyond the scenery's 2.08 M: 275 000 in
