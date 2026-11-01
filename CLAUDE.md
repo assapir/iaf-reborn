@@ -98,8 +98,10 @@ Rule of placement: game logic belongs in the Rust crates. Godot renders and wire
   works / is open.
 - Reuse the install's original art at run time before drawing new art. Anything new that must ship (e.g. the F-35I
   in `tools/f35i/`) has to be tracked in the repo and be our own or redistributable.
-- Per-aircraft behaviour is keyed by type code scattered across many tables; adding a plane means following
-  `docs/adding-a-plane.md` (`iaf-convert plane-checklist <code>` lists every table).
+- Per-aircraft behaviour of the 1998 jets is keyed by type code scattered across many tables (`iaf-convert
+  plane-checklist <code>` lists every table). A modern jet (the Sufa, the Ra'am, the F-35I) is its aircraft definition
+  `game/extra/planes/<id>/airframe.json`, and adding one means writing that file (`docs/adding-a-plane.md` "Modern
+  planes"). A new modern-jet check reads the definition (`Settings.airframe`), never a type code or a switch.
 - Rust is formatted with `cargo fmt --all` (rustfmt.toml: width 120, compact heuristics); run it before committing
   Rust changes.
 - Rust passes `cargo clippy --workspace --all-targets` with no warnings; fix what it finds, also outside the files
