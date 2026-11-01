@@ -576,6 +576,22 @@ the loading screen (the bench marks each frame "loading" or "first flying"); wha
   scene shader on the calling thread, from the shader cache (≈ 1.2 s warm). It stays behind the loading screen. Drawn
   earlier (an 8-pixel TAA viewport on the mission screens) it moved there as two ≈ 150–200 ms TSD frames: each new
   scene shader then loads both groups when it is made. Not kept.
+
+  Tried 2026-11-01 and dropped: the group switched on once at launch, from the main menu's first frame (an 8-pixel
+  TAA SubViewport with a camera, drawn once, then freed). Measured warm with `_preload_bench.gd` (TAA on, mission 311,
+  Fly after 6 s on the TSD, 3 runs each, a second start in the same session):
+
+  | | before | after |
+  |---|---|---|
+  | launch to the main menu | 1.91–1.96 s | 2.01–3.00 s (the warm-up frame 0.58 s) |
+  | worst TSD frame | 40–53 ms | 48–49 ms |
+  | Fly to the first flying frame | 1.27–1.35 s | 1.19–1.51 s |
+  | the long frames behind the loading screen | 57–61, 530–580, 348–375 ms | 183–234, 305–396, 360–485 ms |
+  | second start: Fly to flying (longest frame) | 0.59–0.61 s (248–258 ms) | 0.61–0.69 s (257–296 ms) |
+
+  The flight's start kept its stall: each scene shader made there loads both groups when it is made (`--verbose`:
+  variants 8 and 9 load beside 0–7), so the load spreads over the build's frames in place of one. The 0.36 s frame is the jet's glTF build, not the shaders. A second start in a session
+  already has every shader and pays neither way.
 - **The jet's pipelines** compile in the external-view frame of `_warm_views` (≈ 0.2 s), behind the loading screen.
 - **PNG decodes on the main thread** (gdb on `png_to_image`, main thread only): the F-35I's start read the F-16's MFD
   and RWR art (the default cockpit had taken the prefetched copy), parsed the F-16 model for the borrowed pilot (its
