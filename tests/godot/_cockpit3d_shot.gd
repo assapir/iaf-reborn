@@ -3,6 +3,8 @@
 # (25° down), and the Real HUD over a ground unit 8 km ahead. C3D_LOOK=2d takes the same frames with
 # the 2D panel (side by side). The scene is _cockpit_show_shot.gd's cockpit_f16_day (Settings at their defaults, the
 # switch set here); C3D_HOUR=22 the night (the mission then starts at night: pass `-- --hour 22` too).
+# C3D_ONLY=panel takes only the lamps and displays: the master caution and fire lamps lit, the gear down, an emitter
+# and a launching one on the RWR scope; looking down at the panel, at the RWR scope and at the gear panel.
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOW_OUT=$PWD/.shots/c3d -- \
 #     --log-file /tmp/c3d.log --resolution 1920x1080 --path game -s ../tests/godot/_cockpit3d_shot.gd
 extends "res://../tests/godot/_cockpit_show_shot.gd"
@@ -28,6 +30,9 @@ func run() -> void:
 		var spec: Array = COCKPITS.cockpit_f16_day.duplicate()
 		spec[2] = hour
 		await _cockpit_scene("f16_" + variant, spec)
+		if OS.get_environment("C3D_ONLY") == "panel":
+			await _panel(variant)
+			continue
 		for h in HEADS.slice(1):
 			tv.views.snap = Vector2(deg_to_rad(h[1]), deg_to_rad(h[2]))
 			await _settle()
@@ -50,3 +55,39 @@ func _target(variant: String) -> void:
 	print("target at ", p, " jet alt ", st.position)
 	await _settle()
 	await _shot("f16_%s_target" % variant, 0.0)
+
+
+## The lamps and displays (cockpit3d.gd _setup_instruments) with something to show.
+func _panel(variant: String) -> void:
+	var c: Control = tv.cockpit
+	c.indicators[0] = true
+	c.indicators[1] = true
+	tv.gear_down = true
+	tv.gear_legs = [2, 2, 2]
+	var own: Vector2 = c.state.world
+	var h := deg_to_rad(float(c.state.heading))
+	c.rwr = [
+		{"type": 300, "pos": own + Vector2(sin(h + 0.6), cos(h + 0.6)) * 15000.0, "launch": false, "active": true},
+		{"type": 100, "pos": own + Vector2(sin(h - 1.9), cos(h - 1.9)) * 25000.0, "launch": true, "active": true},
+	]
+	# The displays' SubViewports' GPU time (and an MFD's, to compare).
+	var vps := {"MFD_L": c.mfds[0].get_parent()}
+	for name in tv.cockpit_3d.displays:
+		vps[name] = tv.cockpit_3d.displays[name].get_parent()
+	for name in vps:
+		RenderingServer.viewport_set_measure_render_time(vps[name].get_viewport_rid(), true)
+	for v in [
+		["panel", 0.0, -25.0],
+		["rwr", -11.0, -20.0],
+		["eyebrow", -24.0, -8.0],
+		["gear", -28.0, -42.0],
+		["ehsi", 0.0, -45.0],
+		["ded", 9.0, -17.0]
+	]:
+		tv.views.snap = Vector2(deg_to_rad(v[1]), deg_to_rad(v[2]))
+		await _settle()
+		await _shot("f16_%s_%s" % [variant, v[0]], 0.0)
+	for name in vps:
+		var rid: RID = vps[name].get_viewport_rid()
+		print("GPU %-12s %.3f ms" % [name, RenderingServer.viewport_get_measured_render_time_gpu(rid)])
+	tv.views.snap = null

@@ -173,8 +173,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   front cockpit built from the FlightGear F-16's (cockpit.md "3D cockpit"): a 75° view that the zoom narrows to its true size (the screen's
   size and a 0.6 m viewing distance) from the same eye; free look down to 60° (the original's 12°); the MFDs show the
   same pages on the 3D screens; the HUD draws as before, cut to the combiner glass's outline; the needles FlightGear
-  animates move with the cockpit state; a click on an MFD push button presses it. The detailed F-16's cockpit model
-  stands behind it, with Models on Original too. Other jets keep their 2D panels.
+  animates move with the cockpit state, its lamps light from it, the RWR scope, EHSI and DED draw from it; a click on
+  an MFD push button presses it. The detailed F-16's cockpit model stands behind it, with Models on Original too.
+  Other jets keep their 2D panels.
 - **Briefing map (Original (1998) / Modern).** Original: text.emf's city dots where the 1998 map put them, up to
   ≈ 37 km from the real cities. Ours, with Modern (`briefing_map`): the eight labelled cities' dots and labels at
   their real places on the TSD / briefing / mission editor map, and today's motorways, trunk, primary and secondary

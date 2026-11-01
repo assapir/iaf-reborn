@@ -6,8 +6,10 @@
 #     consoles (decimated), throttle, stick and pedals; not the seat, canopy and rear cockpit (the detailed F-16's own,
 #     docs/aircraft-models.md §1.4), the kneeboards, pilot and helmet;
 #   - each sub-model placed by its <offsets>; its `select` animations evaluated once for a powered jet with every lamp
-#     off (the off flags and lamps hidden); its `rotate` animations on the properties the game drives (NEEDLE_PROPS)
-#     made nodes turning about their hinge, listed in <out>.json with FlightGear's value mapping;
+#     off (the off flags and lamps hidden), but for the lamps the game lights (LAMPS: their own nodes, <out>.json
+#     `lamps`); its `rotate` / `knob` animations on the properties the game drives (NEEDLE_PROPS) made nodes turning
+#     about their hinge, listed in <out>.json with FlightGear's value mapping; its texture scrolls on TEX_PROPS (the
+#     AoA tape) in <out>.json `textures`; the canvas displays the game draws (DISPLAYS) as named nodes;
 #   - in the detailed F-16's frame (tools/f16d/rig.py: FlightGear's model moved SHIFT aft, under a root at the original
 #     model's origin), so the game hangs it in the cut cockpit model (own_bc) as is;
 #   - the MFD screens (MFD_L, MFD_R: FlightGear's canvas quads), the HUD combiner glass (HUD_glass) and the 20 OSBs of
@@ -60,7 +62,24 @@ NEEDLE_PROPS = {
     "consumables/fuel/total-fuel-lbs-100", "consumables/fuel/total-fuel-lbs-1000",
     "consumables/fuel/total-fuel-lbs-10000", "f16/fuel/hand-fwd-lag", "f16/fuel/hand-aft-lag",
     "instrumentation/clock/indicated-sec", "controls/flight/elevator", "controls/flight/aileron",
+    "controls/gear/gear-down", "f16/cockpit/fuel-flow-digit-3", "f16/cockpit/fuel-flow-digit-4",
+    "f16/cockpit/fuel-flow-digit-5",
 }
+# The texture scrolls (`textranslate`) the game drives: the AoA tape.
+TEX_PROPS = {"fdm/jsbsim/fcs/fly-by-wire/pitch/alpha-indicated"}
+# The lamps the game lights (cockpit3d.gd _lamp_on), by (sub-model, object): FlightGear's `select` lamps (shown when
+# lit) and `material` lamps (an emission when lit), each its own node lamp_<key>_<n>, listed in <out>.json `lamps`.
+LAMPS = {
+    ("EYEBROW_LEFT", "master_caution"): "master_caution", ("EYEBROW_RIGHT", "eng_fire"): "eng_fire",
+    ("EYEBROW_RIGHT", "flcs"): "flcs", ("EYEBROW_RIGHT", "to_ldg_config"): "to_ldg_config",
+    ("EYEBROW_RIGHT", "engine"): "engine", ("EYEBROW_RIGHT", "hyd_oil_press"): "hyd_oil_press",
+    ("Tub", "down"): "aoa_slow", ("Tub", "steady"): "aoa_on_speed", ("Tub", "up"): "aoa_fast",
+    ("Tub", "ar_nws"): "ar_nws", ("LeftAuxConsole", "GEAR-nose"): "gear_nose",
+    ("LeftAuxConsole", "GEAR-left"): "gear_left", ("LeftAuxConsole", "GEAR-right"): "gear_right",
+    ("LeftAuxConsole", "gear_lever_light"): "gear_transit", ("THREAT", "launch"): "rwr_launch",
+}
+# FlightGear's canvas displays the game draws into (cockpit3d.gd _attach_display), by (sub-model, object): the node.
+DISPLAYS = {("IFF", "bkg"): "RWR_scope", ("EHSI", "EHSI-Display"): "EHSI_screen", ("DED", "poly.003"): "DED_screen"}
 # Triangles kept of each heavy part (FlightGear's counts; the research's Iris Xe budget, docs/graphics-research.md
 # §3.8): the consoles beside and below the eye.
 DECIMATE = {"LeftConsole": 0.3, "LeftAuxConsole": 0.3, "RightConsole": 0.35, "RightAuxConsole": 0.5, "ICP": 0.45,
@@ -179,30 +198,50 @@ class Build:
         self.parts = {}  # sub-model name -> [objects]
         self.anims = {}  # object -> [animation records, outermost first]
         self.hidden = 0
+        self.texanims = {}  # object -> [textranslate records]
+        self.lamps = {}  # object -> {key, hide (a select lamp: hidden when off), colour (its emission)}
+        self.displays = {}  # object -> node name
 
     def walk(self, xml, m, part, depth=0):
         here = os.path.dirname(xml)
         root = ET.parse(xml).getroot()
         m = m @ offsets(root)
         ac = root.findtext("path")
-        objs = {}
+        objs, groups = {}, {}
         if ac and fg_path(ac, here) and os.path.exists(fg_path(ac, here)):
-            objs = kit.import_ac(fg_path(ac, here), matrix=C @ m @ C.inverted(), prefix=part + "/")
+            objs = kit.import_ac(fg_path(ac, here), matrix=C @ m @ C.inverted(), prefix=part + "/", groups=groups)
         hide = set()
         for a in root.findall("animation"):
             t = (a.findtext("type") or "").strip()
             names = [o.text.strip() for o in a.findall("object-name")]
+            lamps = [n for n in names if (part, n) in LAMPS and n in objs]
+            for n in lamps:
+                rec = self.lamps.setdefault(objs[n], {"key": LAMPS[(part, n)], "hide": False, "colour": [1, 1, 1]})
+                if t == "select":
+                    rec["hide"] = True
+                elif t == "material" and a.find("emission") is not None:
+                    rec["colour"] = [num(a.find("emission"), c) for c in ("red", "green", "blue")]
             if t == "select" and a.find("condition") is not None and not cond(a.find("condition")):
-                hide.update(names)
-            elif t == "rotate" and (a.findtext("property") or "").strip() in NEEDLE_PROPS:
+                hide.update(n for n in names if n not in lamps)
+            elif t == "textranslate" and (a.findtext("property") or "").strip() in TEX_PROPS:
+                ax = a.find("axis")
+                rec = {"prop": a.findtext("property").strip(), "factor": num(a, "factor", 1.0),
+                       "offset": num(a, "offset"), "axis": [num(ax, "x"), num(ax, "y")]}
+                for n in names:
+                    if n in objs:
+                        self.texanims.setdefault(objs[n], []).append(rec)
+            elif t in ("rotate", "knob") and (a.findtext("property") or "").strip() in NEEDLE_PROPS:
                 axis, mid = axis_of(a)
                 c = a.find("center")
                 centre = Vector((num(c, "x-m"), num(c, "y-m"), num(c, "z-m"))) if c is not None else (mid or Vector())
                 rec = {"prop": a.findtext("property").strip(), **mapping(a),
                        "centre": list(C @ m @ centre), "axis": list((C @ m).to_3x3() @ axis)}
-                for n in names:
+                for n in dict.fromkeys(g for n in names for g in groups.get(n, [n])):  # a group: its meshes
                     if n in objs:
                         self.anims.setdefault(objs[n], []).append(rec)
+        for n in objs:
+            if (part, n) in DISPLAYS:
+                self.displays[objs[n]] = DISPLAYS[(part, n)]
         for n in hide & set(objs):
             bpy.data.objects.remove(objs.pop(n))
             self.hidden += 1
@@ -341,8 +380,11 @@ def main():
                                plane_no=(0, 1, 0), clear_inner=True)
         bm.to_mesh(o.data)
         bm.free()
+    # The gear handle (8.6 k triangles) and the throttle turn but are decimated with their consoles; the other turning
+    # parts are kept whole.
+    decimate_turning = {"controls/gear/gear-down", "controls/engines/engine/throttle-movement"}
     for name, ratio in DECIMATE.items():
-        objs = [o for o in b.parts.get(name, []) if o not in b.anims]
+        objs = [o for o in b.parts.get(name, []) if o not in b.anims or b.anims[o][0]["prop"] in decimate_turning]
         before = tris(objs)
         for o in objs:
             if len(o.data.polygons) > 40:
@@ -390,6 +432,16 @@ def main():
         for o in b.parts.get(part, []):
             if o.name.endswith("/HUDImage2"):
                 named[node + "_glass"] = o
+    # The lamps, the displays and the scrolled textures as their own nodes.
+    lamps = {}
+    for o, rec in b.lamps.items():
+        name = "lamp_%s_%d" % (rec["key"], sum(1 for r in lamps.values() if r["key"] == rec["key"]))
+        named[name] = o
+        lamps[name] = rec
+    for o, name in b.displays.items():
+        named[name] = o
+    for o in b.texanims:
+        named[o.name.split("/", 1)[1]] = o
     rest_root = bpy.data.objects.new("f16_cockpit3d", None)
     kit.scene().collection.objects.link(rest_root)
     rest_root.location = root_at
@@ -424,7 +476,9 @@ def main():
         for r in recs:
             r["centre"], r["axis"] = gl(r["centre"]), gl(r["axis"])
     eye = C @ Vector(FG_EYE) + SHIFT - root_at
-    meta = {"source": "FlightGear F-16 " + PIN, "eye": gl(eye), "animations": anims, "buttons": button_at}
+    textures = {k: b.texanims[v] for k, v in named.items() if v in b.texanims}
+    meta = {"source": "FlightGear F-16 " + PIN, "eye": gl(eye), "animations": anims, "buttons": button_at,
+            "lamps": lamps, "textures": textures}
     for o in kit.scene().objects:
         o.select_set(o is rest_root or o.parent is rest_root)
     tmp = OUT + ".png.glb"
