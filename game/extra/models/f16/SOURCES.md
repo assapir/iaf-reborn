@@ -28,7 +28,8 @@
 
 ## Changes
 
-Made by `tools/f16d/rig.py` (re-runnable; docs/aircraft-models.md):
+Made by `tools/f16/rig.py ... barak`: the F-16 base (`tools/f16/base.py`) with the Barak layer
+(`tools/f16/barak.py`; re-runnable; docs/aircraft-models.md §2):
 
 1. Made two-seat: the canopy and the spine behind it stretched 0.95 m aft, a second tub, seat and pilot.
 2. Given the IAF dorsal spine: the large avionics hump of Israel's F-16D Block 30 / 40 ("Brakeet"). It is a new
@@ -78,7 +79,7 @@ Made by `tools/f16d/rig.py` (re-runnable; docs/aircraft-models.md):
      under the left wing, just inboard of the outer pylon. The same place under the right wing is hidden by a
      fuel tank.
 9. All textures re-encoded as KTX2 (Basis Universal).
-10. The livery recoloured to the colours of IAF F-16Ds in service (`barak_livery`; docs/aircraft-models.md): its own
+10. The livery recoloured to the colours of IAF F-16Ds in service (`barak.py` `livery`; docs/aircraft-models.md): its own
     pattern kept, its brown, sand and pale green made the faded tan, sand and grey-green, down to the strakes, its
     grey kept below; the stabilators' tops camouflaged. Colours measured, each tone against the sand in the same
     light, on F-16D 027 (Oren Rozen) and 601 (Itayba), the photographs of change 2. Used only as references.
@@ -90,7 +91,8 @@ in `f16i.glb`, the nose and spine fairings, the camouflage and the markings, whi
 
 ## The F-16I Sufa (`f16i.glb`)
 
-Made by `tools/f16d/rig.py ... sufa` (docs/f16i.md §8.1): the F-16D above with these changes.
+Made by `tools/f16/rig.py ... sufa`, the F-16 base with the Sufa layer (`tools/f16/sufa.py`; docs/f16i.md
+§8.1): the F-16D above with these changes.
 
 | file in the FlightGear F-16 | used for |
 |---|---|

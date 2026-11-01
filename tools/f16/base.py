@@ -1,5 +1,6 @@
-# Build the detailed F-16D (Preferences -> Extras -> Models: Detailed; docs/aircraft-models.md) from the FlightGear
-# F-16 (github.com/NikolaiVChr/f16, GPL-2.0-or-later; tools/f16d/SOURCES.md) with tools/plane/kit.py:
+# The F-16 base of the detailed F-16 models (docs/aircraft-models.md §2; run through tools/f16/rig.py with a variant
+# layer: barak.py, sufa.py). From the FlightGear F-16 (github.com/NikolaiVChr/f16, GPL-2.0-or-later;
+# game/extra/models/f16/SOURCES.md) with tools/plane/kit.py:
 #   - FlightGear's single-seat f16.ac made two-seat: the canopy and the spine behind it stretched aft, a second
 #     cockpit, seat and pilot, the single seater's aft canopy hoop rebuilt as the two-seater's centre bow;
 #   - placed on the original model's frame: the wing on the original's wing, the pylons moved onto the original's
@@ -8,18 +9,16 @@
 #     taken from its F-16.xml animations), the helpers the game reads copied from the original model;
 #   - the fin and rudder reaching FIN_DROP lower, onto the IAF dorsal spine (the avionics hump of the Block 30 / 40
 #     "Brakeet"), lofted over the slim US spine level from the canopy's rear end to a box under the fin that ends
-#     over the nozzle, with its three vents;
-#   - closed gear doors (LdgDrUp, shown only with the gear up), the GE nozzle, an IAF desert livery (FlightGear's,
-#     its wing roundels moved to the IAF positions) with our PBR maps (baked occlusion, panel-line normal map, roughness / metallic);
+#     over the nozzle, with the layer's vents;
+#   - closed gear doors (LdgDrUp, shown only with the gear up), FlightGear's IAF desert livery (its wing roundels
+#     moved to the IAF positions) painted by the layer, with our PBR maps (baked occlusion, panel-line normal map,
+#     roughness / metallic);
 #   - written as one glb with KTX2 textures (tools/plane/glb_ktx2.py, needs `basisu`).
 #
-#   blender -b --python tools/f16d/rig.py -- <FlightGear f16 checkout> <assets/converted/planes/f16/f16_h.gltf> \
-#       <out.glb> [sufa]
-#
-# `sufa` builds the F-16I Sufa (f16i.glb, docs/f16i.md §8): the same jet with FlightGear's conformal fuel tanks and
-# P&W F100 nozzle, our nose fairings (nose_fairings), and the paint and markings of F-16I 846 of 201 Squadron:
-# its camouflage, colours, fin art and number (sufa_livery). F16D_KEEP_PNG=1 keeps <out>.png.glb,
-# the glb before the KTX2 pass (Blender reads it: tools/f16i/arm_front.py).
+# A variant layer is a module with SPINE_VENTS (the spine's vents: [(centre y, width)], below its top, height),
+# MATTE (added to the paint's roughness), nozzle() (its nozzle's objects, FlightGear's frame), fg_parts(body) (its
+# own FlightGear parts, added before the two-seat stretch), own_parts(body) (its parts made on the finished
+# airframe) and livery(albedo, skin) (its paint over FlightGear's livery).
 #
 # The original model is read only for its helper positions (where the game hangs stores, sees the wheels, …).
 import json
@@ -27,18 +26,15 @@ import math
 import os
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "..", "plane"))
-import kit  # noqa: E402
-import glb_ktx2  # noqa: E402
-import bmesh  # noqa: E402
-import bpy  # noqa: E402
-import numpy as np  # noqa: E402
-from mathutils import Matrix, Vector  # noqa: E402
+import bmesh
+import bpy
+import glb_ktx2
+import kit
+import numpy as np
+from mathutils import Matrix, Vector
 
 ARGS = sys.argv[sys.argv.index("--") + 1:]
 FG, ORIG, OUT = ARGS[:3]
-SUFA = ARGS[3:4] == ["sufa"]
 M = os.path.join(FG, "Models")
 FAST = os.environ.get("F16D_FAST") == "1"  # skip the occlusion bake (quick geometry iterations)
 LIVERY = "Liveries/Block40/90-0874.png"  # IAF desert camouflage, 101 Sqn (FlightGear's own art, GPL)
@@ -346,8 +342,7 @@ def fit_pylons(body, helpers, root):
 # it. Half-widths (y, w) between which it is interpolated: the glass's rear arch, 0.34 m to the wing's trailing
 # edge, the fin root's width under the fin; its front sections are round as the arch (SP_ROUND m), its shoulders
 # 0.12 m from there. Aft of SP_Y_FLOOR the fuselage falls away to the nozzle and the box gets a flat floor at SP_FLOOR; its last
-# SP_END_R m round off into a cap. Three vents on each side (SP_VENTS: centre y, width; SP_VENT_Z below the top,
-# SP_VENT_H tall) ahead of the fin. Photographs (SOURCES.md): IAF F-16D 027 side on (Oren Rozen): the canopy stands
+# SP_END_R m round off into a cap. The layer's vents on each side (SPINE_VENTS) ahead of the fin. Photographs (SOURCES.md): IAF F-16D 027 side on (Oren Rozen): the canopy stands
 # 0.25 m above the spine, whose top is level from the canopy's rear frame to the fin, the three vents 0.6 m ahead of
 # the fin, the tail box as tall as the spine with a round end (F-16C 333's tail); IAF F-16I from above: the canopy
 # ends square at nearly its full width and the spine goes on at that width; F-16D 601, 022 / 046 / 050 / 063.
@@ -357,13 +352,6 @@ SP_Y_FIN = -3.86
 SP_Y_END, SP_Y_FLOOR, SP_FLOOR, SP_END_R = -6.42, -5.3, 0.62, 0.22
 SP_WIDTH = [(SP_Y0, 0.19), (-0.5, 0.34), (-2.4, 0.34), (-3.86, 0.2), (-6.3, 0.2), (SP_Y_END, 0.17)]
 SP_FILLET = 0.05  # the concave flare where the sides meet the fuselage
-SP_VENTS, SP_VENT_Z, SP_VENT_H = [(-2.80, 0.12), (-3.03, 0.12), (-3.26, 0.12)], 0.18, 0.14
-# The F-16I's spine (photos of 890 and 827, SOURCES.md) has the F-16D's outline but two taller grilled vents 0.4 to
-# 0.55 m ahead of the fin's root (SP_Y_FIN), and on each side of the tail box under the fin a round blister and an
-# oblong fairing (SUFA_TAIL_FAIRINGS: y, below the top, size across / along / up, in m).
-if SUFA:
-    SP_VENTS, SP_VENT_Z, SP_VENT_H = [(-3.30, 0.12), (-3.46, 0.12)], 0.25, 0.20
-SUFA_TAIL_FAIRINGS = [(-4.48, 0.19, (0.06, 0.20, 0.22)), (-4.18, 0.33, (0.05, 0.24, 0.15))]
 # The spine's own UV island (its paint: a free, plain grey rectangle of the livery, pixels from the top left; FlightGear
 # maps the inner canopy frame below it, from row 1901), at SP_ISLAND_K px per m. It is filled from the livery of the
 # fuselage round it, unfolded at its true size (spine_island): the section's arc is laid on the fuselage top from foot
@@ -383,11 +371,12 @@ def spine_top(y):
     return SP_Z_TOP + (SP_Z0 - SP_Z_TOP) * smooth01((y - SP_Y_LEVEL) / (SP_Y0 - SP_Y_LEVEL))
 
 
-def dorsal_spine(body):
+def dorsal_spine(body, vents):
     """The IAF F-16D's dorsal spine: a loft of rounded-box sections over FlightGear's fuselage (`RadarDomeTop`),
     flared into it at the sides; its livery UVs are its own island (SP_ISLAND), painted by spine_island from the
     fuselage's livery round it, unfolded at true size (the camouflage runs on unbroken at its foot). The fuselage
-    faces it covers are removed, the blade antenna and the formation light are raised onto it."""
+    faces it covers are removed, the blade antenna and the formation light are raised onto it. `vents`: the
+    layer's SPINE_VENTS."""
     from mathutils.bvhtree import BVHTree
     from mathutils.geometry import barycentric_transform
     skin = body["RadarDomeTop"]
@@ -479,10 +468,11 @@ def dorsal_spine(body):
         f = out.faces.new(list(reversed(r)) if rev else r)
         f.material_index = 1
     bmesh.ops.recalc_face_normals(out, faces=out.faces[:])
-    for yc, half in ((yc, w / 2) for yc, w in SP_VENTS):  # the vents: dark panels just off each side
-        z0 = spine_top(yc) - SP_VENT_Z - SP_VENT_H / 2
+    vent_ys, vent_z, vent_h = vents
+    for yc, half in ((yc, w / 2) for yc, w in vent_ys):  # the vents: dark panels just off each side
+        z0 = spine_top(yc) - vent_z - vent_h / 2
         for sx in (1, -1):
-            c = [(yc - half, z0), (yc + half, z0), (yc + half, z0 + SP_VENT_H), (yc - half, z0 + SP_VENT_H)]
+            c = [(yc - half, z0), (yc + half, z0), (yc + half, z0 + vent_h), (yc - half, z0 + vent_h)]
             q = [out.verts.new((sx * (interp(SP_WIDTH, y) + 0.003), y, z)) for y, z in c]
             f = out.faces.new(q if sx > 0 else q[::-1])  # facing out
             f.material_index = 1
@@ -541,25 +531,16 @@ def cockpit(prefix, shift):
     return tub, kit.join([seat, pilot], prefix + "crew")
 
 
-def main():
+def build(variant):
+    """The F-16 base with the variant layer `variant` (a module, see the header) written to OUT."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
     root_at, helpers = original()
     body = kit.import_ac(os.path.join(M, "f16.ac"))
     for n in DROP:
         if n in body:
             bpy.data.objects.remove(body.pop(n))
-    # F-16.xml's GE_nozzle: its file's own offset taken out (translate -7.74, -1.4827, 1.25336), scaled 0.82 across,
-    # then placed 4.61285 m aft, onto the fuselage's nozzle ring.
-    noz_m = Matrix.Translation((0, -4.61285, 0)) @ Matrix.Diagonal((0.82, 1.0, 0.82, 1.0)) @ \
-        Matrix.Translation(fg((-7.74, -1.4827, 1.25336)))
-    if SUFA:
-        noz = pw_nozzle()
-        # loads_models-inner.xml's CFTTanks, at FlightGear's origin; stretched for two seats with the skin under it.
-        body["CFT"] = kit.join(list(kit.import_ac(os.path.join(M, "Armament/External-stores/Fueltanks/CFT.ac"),
-                                                  prefix="cft_").values()), "CFT")
-    else:
-        noz = kit.import_ac(os.path.join(M, "nozzle-GE.ac"), matrix=noz_m, prefix="noz_")
-        bpy.data.objects.remove(noz.pop("InNozzleROpen"))
+    noz = variant.nozzle()
+    variant.fg_parts(body)
     # The centreline pylon (loads_models.xml's Centerpylon: 0.02 m to the right), grey as the original's.
     body["CLStation"] = kit.join(list(kit.import_ac(os.path.join(M, "central-pylon.ac"), matrix=Matrix.Translation(
         fg((0, 0.02, 0))), prefix="cl_").values()), "CLStation")
@@ -583,9 +564,8 @@ def main():
     target = helpers["height"].z + root_at.z
     sit = compress_gear(body, target)
     doors_down, doors_up = gear_doors(body)
-    dorsal_spine(body)
-    if SUFA:
-        body["SufaAntennas"] = nose_fairings(body)
+    dorsal_spine(body, variant.SPINE_VENTS)
+    variant.own_parts(body)
     if os.environ.get("F16D_DEBUG") == "1":
         for o in kit.scene().objects:
             if o.type == 'MESH':
@@ -629,7 +609,7 @@ def main():
         rig.empty(name, p + root_at)
     rig.empty("Sit1", sit[0])
     rig.empty("Sit2", sit[1])
-    materials(rig)
+    materials(variant)
     tmp = OUT + ".png.glb"
     rig.root.location = root_at
     for o in kit.scene().objects:
@@ -643,109 +623,10 @@ def main():
     print("F16D", OUT, "triangles", tris, "bytes", os.path.getsize(OUT))
 
 
-# --- F-16I Sufa ------------------------------------------------------------------------------------------------
-
-# The P&W nozzle's plates at rest (nozzle-section.xml's rotations at property 0, by the right-hand rule here): the
-# petals converge to the exit.
-PW_REST_DEG = 5.0
-
-
-def pw_nozzle():
-    """F-16.xml's PW_nozzle (nozzle.xml): 16 nozzle-section.ac sections, 22.5° apart round the engine axis, 4.617 m
-    aft, each section's plates at their rest angle. nozzle.xml's far-distance cone (nozzle.ac) is left out."""
-    rest = {"us1": ((0, 0, 0.49), (0, -1, 0)), "ls1": ((0, 0, 0.45), (0, -1, 0)),
-            "ls2": ((0, -0.115, 0.435), (0, -0.948683, -0.316228))}
-    out = {}
-    for k in range(16):
-        sec = kit.import_ac(os.path.join(M, "nozzle-section.ac"), prefix="noz%d_" % k)
-        for name, (c, ax) in rest.items():
-            rotate_about([sec[name]], fg(c), fg(ax), math.radians(PW_REST_DEG))
-        transform(sec.values(), Matrix.Translation(fg((4.617, 0, 0))) @
-                  Matrix.Rotation(math.radians(22.5 * k), 4, fg((1, 0, 0))))
-        out.update({"noz%d_%s" % (k, n): o for n, o in sec.items()})
-    return out
-
-
-# The Sufa's nose fairings (docs/f16i.md §8 "Antennas"; photos in SOURCES.md): a row of AIFF interrogator antennas
-# ("bird slicers") across the nose ahead of the windscreen, in an arc that follows the windscreen's foot, and a sensor
-# blister low on each side of the nose with a dark window facing forward. Sizes (across, along, height in m) and
-# places from the photos (inferred).
-AIFF_X = (-0.24, -0.12, 0.0, 0.12, 0.24)  # across the nose
-AIFF_AHEAD, AIFF_ARC, AIFF_SIZE = 0.26, 0.9, (0.034, 0.085, 0.03)  # ahead of the windscreen's foot; aft = ARC * x²
-BLISTER_AHEAD, BLISTER_DROP, BLISTER_SIZE = 0.05, 0.36, (0.07, 0.17, 0.085)  # below the nose's top; out, along, up
-
-
-def nose_fairings(body):
-    """The fairings as one mesh in the airframe's paint: each takes the livery of the skin it sits on."""
-    from mathutils.geometry import barycentric_transform
-    skin = [o for o in body.values() if any(m and m.name.startswith("ac_f16.png") for m in o.data.materials)]
-    paint = next(m for o in skin for m in o.data.materials if m and m.name.startswith("ac_f16.png")
-                 and m.use_backface_culling)
-    window = kit.material("sensor_window", (0.04, 0.05, 0.06), roughness=0.08)
-    bvh, tris, uvs = skin_bvh(skin)
-    y0 = bounds([body["CanopyForwardOutside"]])[1].y  # the windscreen's foot (the nose is +y)
-
-    def cast(origin, direction):
-        loc, n, i, _ = bvh.ray_cast(Vector(origin), Vector(direction))
-        assert loc is not None, origin
-        return loc, n, barycentric_transform(loc, *tris[i], *uvs[i]).to_2d()
-
-    objs = []
-
-    def dome(name, loc, n, uv, size, front_window=False):
-        """A half-buried ellipsoid on the skin: `size` across, along (fore-aft) and out of the skin."""
-        bm = bmesh.new()
-        bmesh.ops.create_uvsphere(bm, u_segments=10, v_segments=6, radius=1.0)
-        me = bpy.data.meshes.new(name)
-        bm.to_mesh(me)
-        bm.free()
-        o = bpy.data.objects.new(name, me)
-        kit.scene().collection.objects.link(o)
-        me.materials.append(paint)
-        me.materials.append(window)
-        uvl = me.uv_layers.new(name="UVMap").data
-        for p in me.polygons:  # local frame: x across, y along, z out
-            front = front_window and p.normal.y > 0.55 and p.center.z > 0.15
-            p.material_index = 1 if front else 0
-            p.use_smooth = True
-            for j in p.loop_indices:
-                c = me.vertices[me.loops[j].vertex_index].co
-                uvl[j].uv = (uv.x + c.x * 0.002, uv.y + c.y * 0.002)
-        n = n.normalized()
-        f = (Vector((0, 1, 0)) - n * n.y).normalized()
-        s = f.cross(n)
-        m = Matrix.Identity(4)
-        for k, (ax, size_k) in enumerate(zip((s, f, n), size)):
-            m.col[k] = (*(ax * size_k), 0)
-        m.col[3] = (*loc, 1)
-        me.transform(m)
-        objs.append(o)
-
-    for i, x in enumerate(AIFF_X):
-        loc, n, uv = cast((x, y0 + AIFF_AHEAD - AIFF_ARC * x * x, 5.0), (0, 0, -1))
-        dome("aiff%d" % i, loc, n, uv, AIFF_SIZE)
-    yb = y0 + BLISTER_AHEAD
-    top = cast((0, yb, 5.0), (0, 0, -1))[0].z
-    for side in (-1, 1):
-        loc, n, uv = cast((side * 3.0, yb, top - BLISTER_DROP), (-side, 0, 0))
-        dome("blister%d" % side, loc, n, uv, BLISTER_SIZE, front_window=True)
-    for k, (y, below, size) in enumerate(SUFA_TAIL_FAIRINGS):  # on the tail box's sides, under the fin
-        for side in (-1, 1):
-            loc, n, uv = cast((side * 3.0, y, spine_top(y) - below), (-side, 0, 0))
-            dome("tail%d%d" % (k, side), loc, n, uv, size)
-    print("nose fairings: windscreen foot y %.2f, nose top z %.2f, blisters at %s" % (y0, top, tuple(
-        round(c, 2) for c in loc)))
-    return kit.join(objs, "SufaAntennas")
-
 # The FS 595 colours of the model paint guides (docs/f16i.md §8), sRGB 0..1: FS 30219 tan, 33531 sand, 34424 green
-# over FS 36375 light ghost grey; radome FS 36270. The F-16D's underside and radome use them (barak_livery).
+# over FS 36375 light ghost grey; radome FS 36270. The layers' undersides and radomes use them.
 FS = {"30219": (0.60, 0.47, 0.36), "33531": (0.74, 0.67, 0.52), "34424": (0.53, 0.60, 0.49),
       "36375": (0.745, 0.761, 0.773), "36270": (0.518, 0.541, 0.557)}
-# The Sufa's paint as F-16I 846 wears it (docs/f16i.md §8.1), measured in its photographs (SOURCES.md): lighter and
-# warmer than the chips, the green a pale sage. Albedo, set against our renders beside the photos.
-SUFA_PAINT = {"30219": (0.76, 0.56, 0.37), "33531": (0.88, 0.79, 0.64), "34424": (0.74, 0.78, 0.61),
-              "36375": FS["36375"], "36270": FS["36270"]}
-SUFA_MATTE = 0.25  # added to the paint's roughness
 CAMO = ("30219", "33531", "34424")
 # The livery's colours (measured from 90-0874.png): its brown, sand and pale green camouflage and its light grey
 # underside (bluer than the green: each texel takes the nearest).
@@ -756,61 +637,8 @@ FG_RADOME = (0.337, 0.337, 0.337)
 # the three colours come in about equal measure as irregular blotches of about BLOTCH_M that run on across parts
 # and UV seams. Seed: the pattern is the same on every build.
 BLOTCH_M, CAMO_SEED = 1.5, 16
-# The CFTs' own UV island in the livery (u0, v0, u1, v1; unpainted in FlightGear's livery): painted with the pattern.
-CFT_UV = (0.19, 0.205, 0.535, 0.40)
 # Places in the 2048 px livery (pixels from the top left). The radome's top and bottom halves (x0, y0, x1, y1).
 RADOME = [(1340, 420, 1600, 560), (390, 990, 670, 1130)]
-# On the fin, 101 Squadron's markings to paint over: its badge and the red disc above it (circles x, y, r) and the
-# red and white stripes (boxes), on each side; and the tail number "547" (boxes).
-BADGES = [(1800, 190, 70), (1820, 115, 26), (1800, 570, 70), (1820, 655, 26)]
-STRIPES = [(1850, 30, 1960, 190), (1850, 585, 1960, 745)]
-DIGITS = [(1640, 245, 1757, 312), (1640, 468, 1759, 537)]
-# F-16I 846 of 201 Squadron ("The One", Ramon), as its photographs of January 2025 show its right side (SOURCES.md;
-# docs/f16i.md §8.1). Traced by hand onto our model's side view (y forward, z up, m), the photos fitted to it by the
-# radome's tip and the fin's leading edge (inferred, about 0.1 m). The left side is the mirror image (no photo).
-# Its camouflage on the fuselage, the CFTs, the spine and the tail box, seen from the side: sand, with these tan and
-# green blotches; each point within SUFA_BODY_X of the centre line takes the colour of the blotch it lies in, seen
-# from the side (on the top the side's bands run across). The wings and stabilators: our pattern (camo_weights).
-SUFA_BODY_X = 1.0
-SUFA_BLOTCHES = [
-    ("30219", [(-7.4, 1.4), (-5.2, 1.4), (-5.05, 0.55), (-4.6, 0.38), (-5.0, 0.3), (-4.0, 0.25), (-3.55, 0.18),
-               (-3.5, -0.5), (-7.4, -0.5)]),  # the tail box's end and the fuselage round the nozzle
-    ("34424", [(-3.6, 0.12), (-3.0, 0.35), (-2.6, 0.52), (-2.6, 1.4), (-2.1, 1.4), (-2.1, 0.6), (-1.15, 0.62),
-               (-1.15, -0.5), (-3.5, -0.5)]),  # along the CFTs' rear, a band over the spine
-    ("30219", [(-2.1, 1.4), (-1.0, 1.4), (-1.0, 0.75), (-0.62, 0.7), (-0.55, 0.1), (-0.6, -0.5), (-1.15, -0.5),
-               (-1.15, 0.62), (-2.1, 0.6)]),
-    ("30219", [(0.28, -0.5), (0.8, -0.5), (0.78, 0.72), (1.15, 0.75), (1.2, 1.4), (-0.35, 1.4), (-0.35, 0.75),
-               (0.28, 0.72)]),  # across the CFTs and the spine behind the canopy
-    ("34424", [(1.0, -0.5), (1.0, 0.62), (2.3, 0.6), (2.55, 0.35), (2.3, 0.1), (1.6, -0.5)]),  # the CFTs' noses
-    ("30219", [(2.6, 0.7), (3.95, 0.7), (4.1, 0.1), (3.9, -0.5), (3.1, -0.5), (3.05, 0.05), (2.7, 0.35)]),  # cockpit
-    ("30219", [(4.75, -0.5), (4.75, 0.7), (5.05, 0.7), (5.05, -0.5)]),  # behind the radome
-]
-# Its fin (y, z on the fin, m): tan, with the squadron's art (our drawing of it: a sand band down the fin, a blue and
-# an orange swoosh, a short blue stroke, a dark swift and the round badge) and the number 846. A dark line runs
-# 0.4 m inside the leading edge (a panel edge; inferred).
-SUFA_FIN_BASE = "30219"
-SUFA_FIN_LINE = ([(-6.11, 3.19), (-4.28, 0.86)], 0.026, (0.30, 0.27, 0.25))  # ends, width, colour
-SUFA_FIN_BAND = [(-6.33, 2.69), (-6.29, 2.76), (-6.11, 2.89), (-6.08, 3.16), (-5.92, 3.2), (-5.76, 2.69),
-                 (-5.71, 2.42), (-5.62, 2.03), (-5.58, 1.78), (-5.61, 1.39), (-5.6, 1.11), (-5.58, 0.83),
-                 (-5.53, 0.6), (-6.04, 0.6), (-5.92, 0.83), (-5.94, 1.39), (-6.03, 1.78), (-6.11, 2.08), (-6.15, 2.33),
-                 (-6.1, 2.39), (-6.28, 2.42), (-6.33, 2.5)]
-BLUE, ORANGE, INK = (0.16, 0.42, 0.62), (0.90, 0.58, 0.22), (0.07, 0.07, 0.08)
-# Swooshes: centre lines (y, z) and their widths (m) at each point.
-SUFA_SWOOSHES = [
-    (BLUE, [(-6.39, 2.42), (-6.19, 2.31), (-6.03, 2.19), (-5.86, 2.06), (-5.72, 1.89), (-5.58, 1.69), (-5.47, 1.5),
-            (-5.43, 1.33), (-5.46, 1.22), (-5.53, 1.17), (-5.6, 1.18)],
-     [0.022, 0.05, 0.072, 0.083, 0.092, 0.1, 0.106, 0.106, 0.094, 0.078, 0.05]),
-    (ORANGE, [(-6.12, 2.35), (-5.94, 2.22), (-5.75, 2.08), (-5.58, 1.94), (-5.44, 1.78), (-5.33, 1.61), (-5.29, 1.44),
-              (-5.32, 1.33), (-5.39, 1.26)], [0.022, 0.061, 0.078, 0.083, 0.083, 0.078, 0.067, 0.05, 0.022]),
-    (BLUE, [(-6.25, 1.69), (-6.01, 1.42)], [0.028, 0.044]),
-]
-SUFA_SWIFT = [(-6.52, 2.64), (-6.24, 2.66), (-6.31, 2.61), (-6.35, 2.5), (-6.39, 2.6)]
-SUFA_BADGE = ((-5.97, 2.61), 0.14)  # centre, radius: white rim, an orange sun over dark rings, a dark bird across
-# The number: text, the middle of its foot (y, z), digit height, width, pitch and stroke (m).
-SUFA_NUMBER = ("846", (-5.03, 0.89), 0.37, 0.19, 0.24, 0.05)
-# The number again on each intake's side, dark blue, at (y, z) of its foot (on the sideways faces).
-SUFA_INTAKE_NUMBER = ((1.05, -0.8), 0.2, 0.11, 0.135, 0.028)
-INTAKE_BLUE = (0.17, 0.30, 0.55)
 
 
 def recolour(albedo, pairs, reach, where):
@@ -889,210 +717,6 @@ def camo_weights(p):
     e = np.exp((f - f.max(axis=1, keepdims=True)) * 1.4 * BLOTCH_M / 0.02)
     return e / e.sum(axis=1, keepdims=True)
 
-
-def is_fin(t):
-    """A triangle of the fin or rudder: facing sideways, on the centre line, above the spine aft of the blade
-    antenna."""
-    n, c = (t[1] - t[0]).cross(t[2] - t[0]), (t[0] + t[1] + t[2]) / 3
-    return n.length > 1e-12 and abs(n.x) > 0.8 * n.length and c.z > 1.2 - FIN_DROP and abs(c.x) < 0.1 and c.y < -3.7
-
-
-# The Barak's camouflage (sRGB 0..1), set against photographs of IAF F-16Ds (SOURCES.md): 027 in sun, 601 under
-# cloud. Each tone over the sand in the same light: tan (0.87, 0.70, 0.50) and (0.76, 0.70, 0.66), green (0.93,
-# 1.00, 0.98) and (0.87, 0.94, 0.92); the sand itself (1, 0.905, 0.795) in both. The sand is as bright as
-# FlightGear's; the tan and green are set so that on screen (the game's tone curve darkens the middle tones: an
-# albedo 0.82 of the sand's showed as 0.61) they stand to the sand as in the photos' mean: tan (0.82, 0.70, 0.58),
-# green (0.90, 0.97, 0.95). The faded, warm FS 30219 tan, 33531 sand and 34424 grey-green of the jets in service.
-BARAK = {"30219": (0.78, 0.64, 0.45), "33531": (0.85, 0.77, 0.675), "34424": (0.80, 0.76, 0.65),
-         "36375": FS["36375"]}
-BARAK_Z_CAMO = 0.15  # m (our frame): the strakes' height, where the camouflage meets the grey on the sides
-
-
-def barak_livery(albedo, skin):
-    """FlightGear's IAF livery in the Barak's colours (BARAK), its own pattern kept: its brown, sand and pale green
-    (which reads light blue) recoloured on the faces looking up or sideways, its grey to FS 36375 below, the radome
-    to FS 36270, the stabilators' tops camouflaged."""
-    _, tris, uvs = skin_bvh(skin)
-    pos, nz = texels(albedo, tris, uvs)
-    # Its pale green is nearly its grey: on the skin above the strakes (BARAK_Z_CAMO; camouflaged on the jets down
-    # to there, 601) and on faces looking up both become the green; lower on the sides each the nearest;
-    # underneath the grey.
-    high = (nz > 0.05) | ((nz > -0.35) & (pos[..., 2] > BARAK_Z_CAMO))
-    up = [(c, BARAK["34424" if f == "36375" else f]) for c, f in FG_PAINT]
-    recolour(albedo, up, 0.16, high)
-    recolour(albedo, [(c, BARAK[f]) for c, f in FG_PAINT], 0.16, (nz > -0.35) & ~high)
-    recolour(albedo, [(c, BARAK[f]) for c, f in FG_PAINT[3:]], 0.16, nz <= -0.35)  # underneath: grey only
-    # The stabilators' tops, grey in the livery, camouflaged as on the jets (027): our pattern (camo_weights) in the
-    # Barak's colours over the livery's panel lines.
-    stab = [o for o in skin if o.name in ("ElevaL", "ElevaR")]
-    _, st, su = skin_bvh(stab)
-    up = [i for i, t in enumerate(st) if (t[1] - t[0]).cross(t[2] - t[0]).normalized().z > 0.3]
-    spos, _ = texels(albedo, [st[i] for i in up], [su[i] for i in up])
-    top = ~np.isnan(spos[..., 0])
-    lum = albedo[..., :3] @ np.array([0.30, 0.59, 0.11], dtype=np.float32)
-    detail = np.clip(lum / np.maximum(window(window(lum, 5, np.maximum), 5, np.minimum), 1e-3), 0.55, 1.0)
-    albedo[top, :3] = (camo_weights(spos[top]) @ np.array([BARAK[c] for c in CAMO], dtype=np.float32)) * \
-        detail[top][:, None]
-    print("barak: stabilator tops painted, texels", int(top.sum()), "objects", [o.name for o in stab])
-    h, w = albedo.shape[:2]
-    yy, xx = np.mgrid[h - 1:-1:-1, 0:w]
-    for x0, y0, x1, y1 in RADOME:
-        recolour(albedo, [(FG_RADOME, FS["36270"])], 0.12, (xx >= x0) & (xx < x1) & (yy >= y0) & (yy < y1))
-    return albedo
-
-
-def sufa_livery(albedo, skin):
-    """FlightGear's IAF livery made F-16I 846's: the underside's grey and the radome recoloured to the FS colours;
-    the upper surfaces (the CFTs too) repainted over the livery's panel lines, the fuselage with 846's blotches
-    (SUFA_BLOTCHES), the wings with our pattern; on the fin, 101 Squadron's markings painted over, 846's tan, its
-    squadron's art and its number."""
-    h, w = albedo.shape[:2]
-    src = albedo.copy()
-    bpy.context.view_layer.update()  # the moving parts (rudder, flaperons, ...) where the rig put them
-    _, tris, uvs = skin_bvh(skin)
-    pos, nz = texels(albedo, tris, uvs)
-    # The fin's texels are the fin's (other faces share some of them).
-    fin = [i for i, t in enumerate(tris) if is_fin(t)]
-    fpos, _ = texels(albedo, [tris[i] for i in fin], [uvs[i] for i in fin])
-    on_fin = ~np.isnan(fpos[..., 0])
-    pos[on_fin], nz[on_fin] = fpos[on_fin], 0.0
-    recolour(albedo, [(c, SUFA_PAINT[f]) for c, f in FG_PAINT], 0.16, nz > -0.35)
-    recolour(albedo, [(c, SUFA_PAINT[f]) for c, f in FG_PAINT[3:]], 0.16, nz <= -0.35)  # underneath: grey only
-    yy, xx = np.mgrid[h - 1:-1:-1, 0:w]  # pixel coordinates from the top left, in Blender's row order
-    for x0, y0, x1, y1 in RADOME:
-        recolour(albedo, [(FG_RADOME, FS["36270"])], 0.12, (xx >= x0) & (xx < x1) & (yy >= y0) & (yy < y1))
-    lum = src[..., :3] @ np.array([0.30, 0.59, 0.11], dtype=np.float32)
-    # Where our camouflage goes: the livery's camouflage colours, the CFTs' island and the fin's old markings; on
-    # faces looking up or sideways. Each texel keeps the livery's panel lines and rivets (its dark thin lines: the
-    # ratio of its brightness to the local brightest, as panel_maps finds them).
-    covered = ~np.isnan(pos[..., 0])
-    d = np.stack([np.linalg.norm(src[..., :3] - np.array(c, dtype=np.float32), axis=2) for c, _ in FG_PAINT])
-    camo_src = (d.argmin(axis=0) < 3) & (d.min(axis=0) < 0.16)
-    u0, v0, u1, v1 = CFT_UV
-    cft = (xx >= u0 * w) & (xx < u1 * w) & (h - 1 - yy >= v0 * h) & (h - 1 - yy < v1 * h)
-    hole = np.zeros((h, w), dtype=bool)
-    for cx, cy, r in BADGES:
-        hole |= np.hypot(xx - cx, yy - cy) <= r
-    for x0, y0, x1, y1 in STRIPES + DIGITS:
-        hole |= (xx >= x0) & (xx < x1) & (yy >= y0) & (yy < y1)
-    want = camo_src | cft | hole
-    paint = covered & want & (nz > -0.35)
-    albedo[covered & cft & (nz <= -0.35), :3] = FS["36375"]
-    closed = window(window(lum, 5, np.maximum), 5, np.minimum)
-    detail = np.where(cft | hole, 1.0, np.clip(lum / np.maximum(closed, 1e-3), 0.55, 1.0))
-    p = pos[paint]
-    wts = camo_weights(p)
-    body = np.abs(p[:, 0]) < SUFA_BODY_X
-    wts[body] = side_weights(p[body][:, 1:])
-    wts[on_fin[paint]] = np.eye(3, dtype=np.float32)[CAMO.index(SUFA_FIN_BASE)]
-    albedo[paint, :3] = (wts @ np.array([SUFA_PAINT[c] for c in CAMO], dtype=np.float32)) * detail[paint][:, None]
-    # The gutters round each UV island (no face of their own, read by mipmaps): the painted colour carried out.
-    done = paint.copy()
-    for it in range(80):  # the fin's old markings where no face of theirs is: filled in from round them
-        p = np.pad(np.where(done[..., None], albedo[..., :3], 0), ((1, 1), (1, 1), (0, 0)))
-        c = np.pad(done.astype(np.float32), 1)
-        n = c[:-2, 1:-1] + c[2:, 1:-1] + c[1:-1, :-2] + c[1:-1, 2:]
-        s = p[:-2, 1:-1] + p[2:, 1:-1] + p[1:-1, :-2] + p[1:-1, 2:]
-        grow = (~covered if it < 6 else hole) & want & ~done & (n > 0)
-        albedo[grow, :3] = s[grow] / n[grow][:, None]
-        done |= grow
-    share = wts.sum(axis=0) / len(wts)
-    # The fin's art, seen from either side in the fin's plane (y, z); the number reads front to back on the left side.
-    fyz = fpos[on_fin][:, 1:]
-    col = np.array(SUFA_PAINT[SUFA_FIN_BASE], dtype=np.float32) * detail[on_fin][:, None]
-    sand = np.array(SUFA_PAINT["33531"])
-    for k, (mask, colour) in enumerate(fin_art(fyz, np.sign(fpos[on_fin][:, 0]))):
-        col[mask] = colour if k else col[mask] / np.array(SUFA_PAINT[SUFA_FIN_BASE]) * sand  # the band keeps the lines
-    albedo[on_fin, :3] = col
-    (ny, nz0), *size = SUFA_INTAKE_NUMBER
-    side = covered & (np.abs(nz) < 0.5) & (np.abs(np.nan_to_num(pos[..., 0])) > 0.2) & ~on_fin
-    q = pos[side]
-    ink = text_ink(np.column_stack([(q[:, 1] - ny) * np.sign(q[:, 0]), q[:, 2] - nz0]), SUFA_NUMBER[0], *size)
-    rows, cols = np.nonzero(side)
-    albedo[rows[ink], cols[ink], :3] = INTAKE_BLUE
-    print("Sufa livery: camouflage texels", int(paint.sum()), "shares", [round(float(x), 2) for x in share],
-          "on the body", int(body.sum()), "fin texels", int(on_fin.sum()))
-    return albedo
-
-
-def inside(pts, poly):
-    """Even-odd test of the points [n, 2] against the polygon [(y, z), ...]."""
-    poly = np.array(poly, dtype=np.float32)
-    out = np.zeros(len(pts), dtype=bool)
-    for (y0, z0), (y1, z1) in zip(poly, np.roll(poly, -1, axis=0)):
-        cross = (z0 > pts[:, 1]) != (z1 > pts[:, 1])
-        with np.errstate(divide="ignore", invalid="ignore"):
-            at = y0 + (pts[:, 1] - z0) * (y1 - y0) / (z1 - z0)
-        out ^= cross & (pts[:, 0] < at)
-    return out
-
-
-def near_line(pts, line, widths):
-    """The points [n, 2] within half the local width of the polyline (widths per point, m)."""
-    line, widths = np.array(line, dtype=np.float32), np.array(widths, dtype=np.float32)
-    out = np.zeros(len(pts), dtype=bool)
-    for a, b, wa, wb in zip(line[:-1], line[1:], widths[:-1], widths[1:]):
-        d = b - a
-        t = np.clip(((pts - a) @ d) / max(float(d @ d), 1e-9), 0, 1)
-        out |= np.linalg.norm(pts - (a + t[:, None] * d), axis=1) < (wa + (wb - wa) * t) / 2
-    return out
-
-
-def side_weights(yz):
-    """SUFA_BLOTCHES at the points (y, z) [n, 2]: the weight of each colour of CAMO, sand where no blotch is; soft
-    over about 2 cm (four samples)."""
-    w = np.zeros((len(yz), 3), dtype=np.float32)
-    for dy, dz in ((-0.01, -0.01), (0.01, -0.01), (-0.01, 0.01), (0.01, 0.01)):
-        q = yz + np.array([dy, dz], dtype=np.float32)
-        k = np.full(len(q), CAMO.index("33531"))
-        for c, poly in SUFA_BLOTCHES:
-            k[inside(q, poly)] = CAMO.index(c)
-        w[np.arange(len(q)), k] += 0.25
-    return w
-
-
-def ellipse(cx, cy, rx, ry, a0=0.0, a1=360.0, n=40):
-    t = np.radians(np.linspace(a0, a1, n))
-    return list(zip(cx + rx * np.cos(t), cy + ry * np.sin(t)))
-
-
-# Our digits for the tail number, as 846's (a plain rounded sans): centre lines in a unit box (0..1 across, 0..1 up).
-GLYPHS = {
-    "8": [ellipse(0.5, 0.77, 0.42, 0.23), ellipse(0.5, 0.27, 0.5, 0.27)],
-    "4": [[(0.74, 0.0), (0.74, 1.0), (0.0, 0.3), (1.0, 0.3)]],
-    "6": [ellipse(0.5, 0.3, 0.5, 0.3), [(0.0, 0.3), (0.03, 0.58), (0.14, 0.8), (0.35, 0.96), (0.62, 1.0), (0.9, 0.93)]],
-}
-
-
-def text_ink(uv, text, height, width, pitch, stroke):
-    """The points uv [n, 2] (m, across and up from the middle of the text's foot) on the text's strokes."""
-    out = np.zeros(len(uv), dtype=bool)
-    for k, ch in enumerate(text):
-        x0 = (k - (len(text) - 1) / 2) * pitch - width / 2 + stroke / 2
-        for line in GLYPHS[ch]:
-            pts = [(x0 + u * (width - stroke), stroke / 2 + v * (height - stroke)) for u, v in line]
-            out |= near_line(uv, pts, [stroke] * len(pts))
-    return out
-
-
-def fin_art(yz, side):
-    """The fin's art at the points (y, z) [n, 2] of either side (side: the sign of x): (mask, colour) in paint
-    order; the first is the sand band."""
-    (by, bz), br = SUFA_BADGE
-    r = np.hypot(yz[:, 0] - by, yz[:, 1] - bz)
-    text, (ny, nz), *size = SUFA_NUMBER
-    uv = np.column_stack([(yz[:, 0] - ny) * side, yz[:, 1] - nz])  # across as the viewer reads it
-    art = [(inside(yz, SUFA_FIN_BAND), None),
-           (near_line(yz, SUFA_FIN_LINE[0], [SUFA_FIN_LINE[1]] * 2), SUFA_FIN_LINE[2])]
-    art += [(near_line(yz, line, widths), colour) for colour, line, widths in SUFA_SWOOSHES]
-    art += [(inside(yz, SUFA_SWIFT), INK), (r < br, (0.92, 0.91, 0.88))]
-    for k in range(5):  # the badge's rings, below the sun
-        art.append((r < br * (0.8 - 0.16 * k), INK if k % 2 == 0 else (0.92, 0.91, 0.88)))
-    art.append(((r < br * 0.8) & (yz[:, 1] > bz + 0.1 * br), ORANGE))
-    art.append((near_line(yz, [(by - 0.8 * br, bz + 0.5 * br), (by + 0.1 * br, bz + 0.2 * br),
-                               (by + 0.75 * br, bz + 0.35 * br)], [0.025] * 3), INK))
-    art.append((text_ink(uv, text, *size), INK))
-    return art
 
 
 # --- materials -------------------------------------------------------------------------------------------------
@@ -1273,18 +897,15 @@ def spine_island(albedo):
     return albedo
 
 
-def materials(rig):
+def materials(variant):
     objs = [o for o in kit.scene().objects if o.type == 'MESH']
     livery = bpy.data.images.load(os.path.join(M, LIVERY))
     skin = [o for o in objs if any(m and m.name.startswith("ac_f16.png") for m in o.data.materials)]
-    albedo = wing_roundels(spine_island(pixels(livery)), skin)
-    albedo = sufa_livery(albedo, skin) if SUFA else barak_livery(albedo, skin)
+    albedo = variant.livery(wing_roundels(spine_island(pixels(livery)), skin), skin)
     size = albedo.shape[0]
     ao = np.ones(albedo.shape[:2], dtype=np.float32) if FAST else bake_ao(skin, size)
     normal, groove = panel_maps(albedo)
-    rough = np.clip(0.42 + 0.25 * groove + 0.08 * (1 - ao), 0, 1)
-    if SUFA:  # 846's paint is flat: the base gloss let the sky tint its tan violet in the game
-        rough = np.clip(rough + SUFA_MATTE, 0, 1)
+    rough = np.clip(0.42 + 0.25 * groove + 0.08 * (1 - ao) + variant.MATTE, 0, 1)
     metal = np.full_like(rough, 0.05)
     orm = np.dstack([0.35 + 0.65 * ao, rough, metal, np.ones_like(rough)])
     col_img = new_image("f16d_albedo", albedo)
@@ -1342,4 +963,3 @@ def pbr(name, col, orm, nor, cull):
     return m
 
 
-main()

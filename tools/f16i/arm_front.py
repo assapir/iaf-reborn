@@ -4,7 +4,7 @@
 # the original arming art on the user's machine (docs/adding-a-plane.md §5); the Arming screen shows it for every
 # F-16 with the Extras switch "F-16 version" on Sufa.
 #
-#   F16D_KEEP_PNG=1 blender -b --python tools/f16d/rig.py -- <FlightGear f16> <f16_h.gltf> /tmp/f16i.glb sufa
+#   F16D_KEEP_PNG=1 blender -b --python tools/f16/rig.py -- <FlightGear f16> <f16_h.gltf> /tmp/f16i.glb sufa
 #   blender -b --python tools/f16i/arm_front.py -- /tmp/f16i.glb.png.glb game/extra/planes/f16i/arm
 #
 # (Blender reads the rig's glb before its KTX2 pass, not f16i.glb.)
