@@ -134,7 +134,8 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
 - **World scale Real 1:1**: the real blast radii of the missiles / SAMs without a published lethal radius.
 - **Setup wizard**: the pages wait for the user's review (roadmap.md).
 - **Flight start**: with TAA the loading screen stops for ≈ 1.2 s (warm) while Godot loads the motion-vector shaders
-  of every scene shader in one frame; drawn earlier it stalls the TSD instead. rendering.md §1.6.
+  of every scene shader in one frame; drawn earlier it stalls the TSD instead, and switched on at launch the load
+  stays, spread over the start's frames (tried 2026-11-01, dropped). rendering.md §1.6.
 - **Exit**: Godot hung for good after a run's last line when a low-priority pool task was still queued at the quit
   (a Godot 4.7.2 bug; rendering.md §1.5 "Pool tasks at exit"). Fixed 2026-10-28: every pool task is waited for
   before the quit. A second kind, in real-render runs (`_cockpit_show_shot.gd`, `_guide_shots.gd`) on Wayland: a race
