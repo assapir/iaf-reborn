@@ -334,7 +334,9 @@ func run() -> void:
 ## Ra'am, §6.7): the same checks, its model with Models on Original too.
 func _check_f15(raam: bool) -> void:
 	var f15 := "controllableplanes/f15/f15_h.gltf"
-	var path: String = settings().assets_dir().path_join(Gltf.RAAM if raam else Gltf.DETAILED["f15_h.gltf"])
+	var path: String = settings().assets_dir().path_join(
+		settings().airframe_def("f15i").model if raam else Gltf.DETAILED["f15_h.gltf"]
+	)
 	var jet := "F-15I" if raam else "F-15"
 	settings().f15_variant = "raam" if raam else "baz"
 	settings().models = "original"

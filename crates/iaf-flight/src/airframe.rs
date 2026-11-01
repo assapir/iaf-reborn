@@ -11,6 +11,8 @@ use serde_json::Value;
 
 /// Every definition: its id (the folder) and the file's text.
 const FILES: &[(&str, &str)] = &[
+    ("f15", include_str!("../../../game/extra/planes/f15/airframe.json")),
+    ("f15i", include_str!("../../../game/extra/planes/f15i/airframe.json")),
     ("f16", include_str!("../../../game/extra/planes/f16/airframe.json")),
     ("f16i", include_str!("../../../game/extra/planes/f16i/airframe.json")),
     ("f35i", include_str!("../../../game/extra/planes/f35i/airframe.json")),
@@ -24,10 +26,12 @@ pub struct Switches<'a> {
 }
 
 /// The adapter: the definition a jet of bdb type `type_code` flies as with the Extras switches `s`, None for a 1998
-/// jet without one (its tables decide). The F-16 (100): its base `f16` (the Barak), the F-16I `f16i` on Sufa.
+/// jet without one (its tables decide). The F-16 (100): its base `f16` (the Barak), the F-16I `f16i` on Sufa; the F-15
+/// (110): its base `f15` (the Baz), the F-15I `f15i` on Ra'am.
 pub fn id_for(type_code: i64, s: Switches) -> Option<&'static str> {
     match type_code {
         100 => Some(if s.f16 == "sufa" { "f16i" } else { "f16" }),
+        110 => Some(if s.f15 == "raam" { "f15i" } else { "f15" }),
         1000 => Some("f35i"),
         _ => None,
     }
@@ -136,6 +140,8 @@ mod tests {
         assert_eq!(id_for(100, off), Some("f16"));
         assert_eq!(id_for(100, Switches { f16: "sufa", f15: "baz" }), Some("f16i"));
         assert_eq!(id_for(100, Switches { f16: "junk", f15: "" }), Some("f16"));
+        assert_eq!(id_for(110, off), Some("f15"));
+        assert_eq!(id_for(110, Switches { f16: "barak", f15: "raam" }), Some("f15i"));
         // Every other 1998 jet has no definition: its tables decide.
         for code in [120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230] {
             assert_eq!(id_for(code, off), None, "{code}");
@@ -171,5 +177,14 @@ mod tests {
         assert_eq!(model_for("f16_h.gltf", sufa), Some("res://extra/models/f16/f16i.glb"));
         assert_eq!(model_for("f16_h.gltf", barak), None);
         assert_eq!(model_for("f15_h.gltf", sufa), None);
+        let raam = Switches { f16: "barak", f15: "raam" };
+        assert_eq!(model_for("f15_h.gltf", raam), Some("converted/models/f15/f15i.glb"));
+        assert_eq!(model_for("f16_h.gltf", raam), None);
+        // The Ra'am differs from the Baz in its model only.
+        let (mut r, b) = (of_type(110, raam).unwrap().clone(), of_type(110, barak).unwrap());
+        r.as_object_mut().unwrap().retain(|k, _| !matches!(k.as_str(), "model" | "name" | "notes"));
+        let mut b = b.clone();
+        b.as_object_mut().unwrap().retain(|k, _| !matches!(k.as_str(), "name" | "notes"));
+        assert_eq!(r, b);
     }
 }
