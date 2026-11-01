@@ -60,6 +60,7 @@ func run() -> void:
 	check(w.packs_box.visible, "without a Hebrew CD the packs are offered")
 	w._on_next()
 	check(w.PAGES[w.page] == "Extras", "then Extras")
+	check(w.pages[w.page] is ScrollContainer, "Extras scrolls inside the body: the footer's Next stays in the window")
 	w._on_next()
 	check(w.PAGES[w.page] == "Summary" and iso in w.summary_label.text, "Summary names the CD")
 	w._on_next()

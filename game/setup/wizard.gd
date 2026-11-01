@@ -230,6 +230,13 @@ func _build() -> void:
 		_page_done
 	]:
 		var p: Control = f.call()
+		if f != _page_install:  # Install scrolls its own step list
+			# A page taller than the window (Extras on a small screen) scrolls, so the footer's Next stays reachable.
+			var scroll := ScrollContainer.new()
+			scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+			p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			scroll.add_child(p)
+			p = scroll
 		p.visible = false
 		body.add_child(p)
 		pages.append(p)
@@ -921,11 +928,7 @@ func _page_extras() -> Control:
 	mapi_check = _extra(
 		v,
 		"Survey of Israel 2015 imagery (2 m, over Israel; up to 17 GB download)",
-		(
-			"Downloads the Survey's sheets from data.gov.il, then converts them. All of Israel: 79 sheets, about 17 GB "
-			+ "of downloads (kept) and 14 GB converted. Around the airbases: 9 sheets, about 2 GB of downloads. Sheets "
-			+ "already downloaded are not downloaded again, and converted units are kept."
-		),
+		"All of Israel: 79 sheets, 17 GB download, 14 GB on disk. Around the airbases: 9 sheets, 2 GB.",
 		"" if gdal and tools.get("curl", false) else "Needs GDAL and curl (see Requirements)."
 	)
 	mapi_scope = OptionButton.new()
@@ -937,10 +940,8 @@ func _page_extras() -> Control:
 	var how := _text(
 		mapi_check.get_parent(),
 		(
-			"data.gov.il lets only web browsers in. For the fast download, before Install: copy a sheet's link, paste "
-			+ "it into Firefox's address bar and cancel the download when it starts; setup then reuses Firefox's pass. "
-			+ "Without it, setup opens the sheets in your web browser, four at a time: let each download finish into "
-			+ "your Downloads folder, and setup moves it into place."
+			"Faster: before Install, paste a sheet's link into Firefox and cancel the download. Otherwise setup "
+			+ "opens the sheets in your browser; let them finish."
 		),
 		true
 	)
@@ -954,13 +955,7 @@ func _page_extras() -> Control:
 	scenery_check = _extra(
 		v,
 		"Scenery (buildings, trees and roads; up to %s download)" % mb.call("both"),
-		(
-			"Downloads OpenStreetMap, Microsoft building footprints and building heights for the buildings, tree "
-			+ "canopy data for the trees (kept), then builds them over the Survey of Israel 2 m photo and the rest "
-			+ "of the theatre (Lebanon, Syria, Jordan, Egypt and Cyprus over the Sentinel-2 imagery; about half an "
-			+ "hour), the towns' night lights, and the theatre's roads from OpenStreetMap. Needs the Survey imagery. "
-			+ "Turn it on in the game under Graphics → MORE."
-		),
+		"Needs the Survey imagery. About half an hour. In the game: Graphics → MORE.",
 		"" if gdal and tools.get("curl", false) else "Needs GDAL and curl (see Requirements)."
 	)
 	scenery_kinds = OptionButton.new()
@@ -970,27 +965,14 @@ func _page_extras() -> Control:
 	scenery_kinds.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	scenery_kinds.disabled = scenery_check.disabled
 	scenery_check.get_parent().add_child(scenery_kinds)
-	sentinel_check = _extra(
-		v,
-		"Sentinel-2 imagery (10 m, outside Israel; 28 GB read)",
-		"About 28 GB read over the network, about 11 GB on disk. Units already converted are not read again.",
-		need_gdal
-	)
-	refresh_check = _extra(
-		v,
-		"Bring the imagery up to date",
-		"Converts again the imagery units that older rules made (after copying imagery from another computer).",
-		need_gdal
-	)
+	sentinel_check = _extra(v, "Sentinel-2 imagery (10 m, outside Israel; 28 GB read)", "11 GB on disk.", need_gdal)
+	refresh_check = _extra(v, "Bring the imagery up to date", "After copying imagery from another computer.", need_gdal)
 	refresh_note = refresh_check.get_parent().get_child(1)
 	refresh_check.get_parent().visible = _layers().size() > 0
 	guides_check = _extra(
 		v,
 		"Pilot guides (pictures and PDFs)",
-		(
-			"Renders each jet's guide pictures with the game, then prints the PDFs with Firefox. Takes a while; the renders "
-			+ "open game windows briefly."
-		),
+		"Takes a while; game windows open briefly.",
 		(
 			""
 			if tools.get("python3", false) and tools.get("firefox", false)
