@@ -117,7 +117,7 @@ pub fn plan(inputs: &Inputs) -> Vec<Step> {
     );
     add(
         "models",
-        "detailed F-15: FlightGear F-15C by Enrique Laso, Richard Harrison, GeneB (GPL-2.0-only; download about 18 MB)",
+        "detailed F-15 and F-15I: FlightGear F-15C/D by Enrique Laso, Richard Harrison, GeneB (GPL-2.0-only; download about 20 MB)",
         false,
         &["aircraft"],
     );

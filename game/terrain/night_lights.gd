@@ -263,7 +263,10 @@ static var _spots := {}
 
 
 static func add_nav_lights(model: Node3D) -> Node3D:
-	return add_lights_on(model.root_frame, str(model.desc.get("model", model.name)), model.desc.get("end_wing"))
+	# Cached per file drawn: the Detailed model or the Sufa replaces the original's under the same descriptor.
+	var f := str(model.desc.get("model", model.name))
+	var hd: String = preload("res://util/gltf.gd").detailed(f)
+	return add_lights_on(model.root_frame, hd if hd != "" else f, model.desc.get("end_wing"))
 
 
 ## The same lights on `frame` (a model's root; cached as `key`), at its own outermost vertices or the EndWing helpers
@@ -308,12 +311,14 @@ static func add_lights_on(frame: Node3D, key: String, ew) -> Node3D:
 ## [left tip, right tip, tail, fin top] in `frame`'s space ([] without meshes). +X right, +Y up, +Z aft (the glTF).
 static func _light_spots(frame: Node3D) -> Array:
 	var verts := PackedVector3Array()
-	# The frame itself counts: a model's root is often its main mesh (the F-15's fuselage and wings).
+	# The frame itself counts: a model's root is often its main mesh (the F-15's fuselage and wings). A helicopter's
+	# rotors (rotora, rotorb) do not: their blade tips turn; the lights sit on the airframe.
 	var meshes: Array = frame.find_children("*", "MeshInstance3D", true, false)
 	if frame is MeshInstance3D:
 		meshes.push_front(frame)
 	# The tail light: the rearmost of the body, not the hook or a gear leg (they would hang it below the jet).
 	var tail_verts := PackedVector3Array()
+	var heli := false
 	for mi: MeshInstance3D in meshes:
 		if (
 			mi.mesh == null
@@ -321,6 +326,9 @@ static func _light_spots(frame: Node3D) -> Array:
 			or str(mi.name).begins_with("Afterburner")
 			or str(mi.name) in ["NavLights", "Strobe"]
 		):
+			continue
+		if str(mi.name).to_lower().begins_with("rotor"):
+			heli = true
 			continue
 		var t := _rel(frame, mi)
 		var body := not (str(mi.name) == "Hook" or str(mi.name).begins_with("Ldg"))
@@ -331,16 +339,30 @@ static func _light_spots(frame: Node3D) -> Array:
 					tail_verts.append(t * v)
 	if verts.is_empty():
 		return []
-	var l := verts[0]
-	var r := verts[0]
+	var lo := verts[0]
+	var hi := verts[0]
+	for v in verts:
+		lo = lo.min(v)
+		hi = hi.max(v)
+	var l := Vector3(INF, 0, 0)
+	var r := Vector3(-INF, 0, 0)
 	var top := verts[0]
 	for v in verts:
+		if v.y > top.y:
+			top = v
+		# A helicopter's red and green lights: the cabin's sides (its front 60 %, above the gear's lowest quarter), not
+		# the gear, the stub tail planes or the stabilizer.
+		if heli and (v.z > lo.z + 0.6 * (hi.z - lo.z) or v.y < lo.y + 0.25 * (hi.y - lo.y)):
+			continue
 		if v.x < l.x:
 			l = v
 		if v.x > r.x:
 			r = v
-		if v.y > top.y:
-			top = v
+	# A helicopter's pair faces across: the side that reaches farther, mirrored (a cabin's sides are not one vertex).
+	if heli and l.x < INF:
+		var w := l if -l.x > r.x else r
+		l = Vector3(-absf(w.x), w.y, w.z)
+		r = Vector3(absf(w.x), w.y, w.z)
 	var half := (r.x - l.x) * 0.5
 	var tail := Vector3(0, 0, -INF)
 	# Twin fins (the top off the centre line, the F-15): the white light on that fin's trailing edge, in its upper

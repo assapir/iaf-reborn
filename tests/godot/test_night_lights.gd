@@ -236,6 +236,28 @@ func run() -> void:
 			% [spots, span.position.x, span.end.x]
 		)
 	)
+	# Each file drawn has its own spots: the Original F-15 after the Detailed one keeps its own wingtips.
+	var am = load("res://aircraft/aircraft_model.gd")
+	settings().models = "original"
+	var f15o: Node3D = am.create("f15", -1, false)
+	root.add_child(f15o)
+	var placed: PackedVector3Array = (
+		(f15o.root_frame.get_node("NavLights") as MeshInstance3D).mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	)
+	check(
+		absf(placed[1].x - NightLights._light_spots(f15o.root_frame)[1].x) < 0.1,
+		"detailed: the Original F-15 gets its own lights after the Detailed one (%s)" % placed
+	)
+	f15o.free()
+	# A helicopter's lights on its cabin, not at its rotor's blade tips (the UH-60's rotor reaches 7.3 m out).
+	var uh60: Node3D = am.create("uh60a", -1, false)
+	root.add_child(uh60)
+	var hs: Array = NightLights._light_spots(uh60.root_frame)
+	check(
+		hs[1].x > 0.5 and hs[1].x < 3.0 and is_equal_approx(hs[0].x, -hs[1].x),
+		"detailed: the UH-60's lights a mirrored pair on its cabin (%s)" % [hs]
+	)
+	uh60.free()
 	settings().jet_id = -1
 	settings().models = models
 	settings().night_lights = "original"

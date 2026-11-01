@@ -1123,7 +1123,10 @@ a small cost. The parts:
    wings), 0.5 % of the span outside the skin; or its EndWing helpers when they sit at the wingtips within the mesh
    (the F-16's sit a third of the way out, the F-15's 0.1 m past its tips: the mesh's tips then). The tail light is
    the body's rearmost point on the centre line (not the hook or the gear); with twin fins (F-15) it sits on the
-   strobe's fin, at its trailing edge. Cached per model. By day the jets' lights glow at 12 %, dimmer than the
+   strobe's fin, at its trailing edge. A helicopter (CH-53, Mi-8, Mi-24, UH-60) leaves its rotors out (their blade
+   tips turn): its red and green lights are a mirrored pair on the cabin's widest point in its front 60 %, above the
+   gear's lowest quarter (the CH-53's sponsons, the Mi-24's stub wings). Cached per file drawn (the Detailed model and
+   the Sufa have their own). By day the jets' lights glow at 12 %, dimmer than the
    ground lights' 35 %. The cockpit-view model (`<plane>_bc`) carries its own set
    at its own wingtips, tail and fin top, so you see your wingtip lights when you look aside from the cockpit. The
    lights go out when the jet is hit, falls or is destroyed (damage state 3 and above), and when the player crashes.
@@ -1468,8 +1471,11 @@ of the camera (the player's and AI jets). With Detailed they replace the origina
   and then breaks up into noise. It fades in over the first 0.5 m behind the tip (per pixel: one frame's segment is
   several metres long), so it has no cut end. Each point
   drifts at 2.5 m/s in a spiral around the trail (the two tips turning opposite ways) and sinks at 0.6 m/s with the
-  downwash, so the wisp twists and wavers (inferred). The tips are the model's outermost vertices (the night lights'
-  wingtip spots, `night_lights.gd`): on the F-16 the aft fin of the wingtip missile, the tip's trailing edge.
+  downwash, so the wisp twists and wavers (inferred). The tips are the outermost vertices of the model's meshes, its
+  root mesh (the fuselage and wings) included (the night lights' wingtip spots, `night_lights.gd`): on the F-16 the
+  aft fin of the wingtip missile, the tip's trailing edge. Until 2026-10-30 the root mesh was left out, so the tips
+  sat at the ailerons' outer ends (the F-15's 0.9 m inboard) and the jet's length was the moving parts'; the LEX
+  spots below were re-based then to keep their places on each model.
   Strength follows the physics under one fixed humidity. The lift per span is ρ·V·Γ[^kj], so the tip vortex's
   circulation Γ grows with the lift; the core's pressure (and so temperature) drop grows with Γ², which for a given wing
   is ∝ n·CL·(W/S) (inferred). CL = n·(W/S) / q from the load factor n and the dynamic pressure q (ISA density at the

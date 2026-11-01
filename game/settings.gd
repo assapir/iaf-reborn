@@ -132,6 +132,7 @@ const PREFS := {
 		"night_vision",
 		"world_scale",
 		"f16_variant",
+		"f15_variant",
 		"modern_weapons",
 		"bomb_release",
 		"real_mfds"
@@ -254,6 +255,9 @@ var models := "original"
 ## Block 52+ with conformal fuel tanks: flight data, radar, model, arming art and weapons). Every F-16 in a mission,
 ## the player's and the AI's, follows it.
 var f16_variant := "barak"
+## F-15 (ours, Extras page; docs/aircraft-models.md §6.7): "baz" (the game's F-15C) or "raam" (the IAF's F-15I
+## Ra'am: its look only, the model setup makes; the F-15C without it). Every F-15 in a mission follows it.
+var f15_variant := "baz"
 ## Weapons (ours, Extras page; docs/weapons.md §13): false = the original 1998 arming lists; true = the modern weapons
 ## (game/weapons/modern_weapons.gd) also on every jet a public source shows carrying them. The F-16I Sufa and the
 ## F-35I always have theirs.

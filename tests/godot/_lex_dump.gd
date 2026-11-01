@@ -35,7 +35,7 @@ func run() -> void:
 		var s: Array = NightLights._light_spots(frame)
 		var v := []
 		var box := AABB()
-		# The frame's own mesh (the body) too; the box as _geometry's: the frame's children only.
+		# The frame's own mesh (the body) too, for the box as for _geometry's.
 		var meshes: Array = frame.find_children("*", "MeshInstance3D", true, false)
 		if frame is MeshInstance3D:
 			meshes.push_front(frame)
@@ -45,8 +45,7 @@ func run() -> void:
 			if str(mi.name) in ["NavLights", "Strobe"]:
 				continue
 			var t: Transform3D = NightLights._rel(frame, mi)
-			if mi != frame:
-				box = box.merge(t * mi.get_aabb())
+			box = box.merge(t * mi.get_aabb())
 			if OS.get_environment("LEX_LIST") != "":
 				print("  ", mi.name, " ", t * mi.get_aabb(), " ", t.basis.get_scale())
 			for i in mi.mesh.get_surface_count():
