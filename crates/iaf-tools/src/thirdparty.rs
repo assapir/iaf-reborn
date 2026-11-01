@@ -1402,6 +1402,29 @@ pub fn fetch_files(list: &[Download], dir: &Path, pr: &dyn Progress, cancel: &At
     Ok(fetched.into_inner())
 }
 
+/// curl's patience with a slow or broken connection: a transfer under 1 kB/s for 60 s is a stall, and any failure
+/// (a reset connection, curl 56, too) is tried again, resuming where it stopped when `-C -` is given.
+pub const CURL_PATIENCE: [&str; 9] =
+    ["--speed-limit", "1000", "--speed-time", "60", "--retry", "5", "--retry-all-errors", "--connect-timeout", "30"];
+
+/// curl's exit status in words, for the ones a download meets.
+pub fn curl_error(status: std::process::ExitStatus) -> String {
+    let what = match status.code() {
+        Some(6 | 7) => "no connection to the server (offline?)",
+        Some(22) => "the server answered with an error",
+        Some(28) => "the connection stalled",
+        Some(33) => "the server cannot resume the download",
+        Some(35 | 60) => "the secure connection failed",
+        Some(56) => "the connection was reset",
+        _ => "",
+    };
+    match status.code() {
+        Some(c) if what.is_empty() => format!("curl exit code {c}"),
+        Some(c) => format!("{what}, curl exit code {c}"),
+        None => format!("curl {status}"),
+    }
+}
+
 /// Files downloading at once, and the seconds between `fetch_files`' progress lines.
 const FETCH_JOBS: usize = 4;
 const FETCH_LOG_S: u64 = 15;
@@ -1417,7 +1440,9 @@ fn fetch_file(d: &Download, dir: &Path, slot: &AtomicU64, stop: &dyn Fn() -> boo
     let got = !(p.is_file() && sha256_file(&p)? == d.sha256);
     if got {
         let mut child = Command::new("curl")
-            .args(["-fsSL", "--retry", "3", "--connect-timeout", "30", "-o"])
+            .args(["-fsSL", "-C", "-"])
+            .args(CURL_PATIENCE)
+            .arg("-o")
             .arg(&part)
             .arg(d.url)
             .spawn()
@@ -1435,13 +1460,17 @@ fn fetch_file(d: &Download, dir: &Path, slot: &AtomicU64, stop: &dyn Fn() -> boo
             slot.store(std::fs::metadata(&part).map_or(0, |m| m.len()), Ordering::Relaxed);
             std::thread::sleep(std::time::Duration::from_millis(250));
         };
-        let sum = if status.success() { sha256_file(&part)? } else { String::new() };
+        if !status.success() {
+            // The part is kept: the next run resumes it. A server that cannot resume (curl 33) starts it again.
+            if status.code() == Some(33) {
+                let _ = std::fs::remove_file(&part);
+            }
+            bail!("{}: download failed ({}); run setup again to resume it", d.file, curl_error(status));
+        }
+        let sum = sha256_file(&part)?;
         if sum != d.sha256 {
             let _ = std::fs::remove_file(&part);
-            if status.success() {
-                bail!("{}: checksum mismatch (got {sum}, pinned {}): the file at {} changed", d.file, d.sha256, d.url);
-            }
-            bail!("{}: download failed (curl {status})", d.file);
+            bail!("{}: checksum mismatch (got {sum}, pinned {}): the file at {} changed", d.file, d.sha256, d.url);
         }
         std::fs::rename(&part, &p)?;
     }
@@ -1520,14 +1549,16 @@ fn fetch_one(m: &Material, base: &str, dir: &Path, pr: &dyn Progress) -> Result<
     let part = dir.join(format!("{zip_name}.part"));
     pr.log(&format!("{}: downloading {zip_name}", m.id));
     let status = Command::new("curl")
-        .args(["-fsSL", "--retry", "2", "--connect-timeout", "20", "-o"])
+        .arg("-fsSL")
+        .args(CURL_PATIENCE)
+        .arg("-o")
         .arg(&part)
         .arg(format!("{base}{zip_name}"))
         .status()
         .context("running curl")?;
     let r = (|| -> Result<()> {
         if !status.success() {
-            bail!("{}: download failed (curl {status})", m.id);
+            bail!("{}: download failed ({}); run setup again", m.id, curl_error(status));
         }
         let sum = sha256_file(&part)?;
         if sum != m.sha256 {

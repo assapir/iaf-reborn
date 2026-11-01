@@ -224,11 +224,16 @@ tools/imagery/mapi2015_sheets.tsv.
 
 **Getting the sheets** (what `tools/setup-cli.sh --imagery mapi2015` runs):
 
-1. `tools/imagery/fetch-mapi2015-curl.sh [--bases]` downloads the sheets into `assets/source/imagery/mapi2015/` with
-   curl and the data.gov.il WAF (web application firewall) token that Firefox earned.
-2. When it stops on an expired token, it prints a link: open it once in Firefox, then re-run.
-3. With no token in Firefox it falls back to `tools/imagery/fetch-mapi2015.sh`, which opens the links in browser tabs
-   and moves the finished ZIPs.
+1. `./target/release/iaf-imagery fetch-mapi2015 assets/source/imagery/mapi2015 [--bases]` (setup's `mapi2015-fetch`
+   step; code in `crates/iaf-tools/src/mapi2015_fetch.rs`) downloads the sheets with curl and the data.gov.il WAF
+   (web application firewall) token that Firefox earned. It reads the token from every Firefox profile's
+   `cookies.sqlite` on Linux (classic, XDG, snap, flatpak), macOS and Windows (`%APPDATA%\Mozilla\Firefox\Profiles`).
+   The wizard's Extras page says how to earn the token before Install and has a "Copy a sheet's link" button.
+2. When the token expired (data.gov.il answers HTTP 202), it stops and names the link: open it once in Firefox,
+   cancel the download, then run setup again. The wizard then shows "Copy the data.gov.il link above".
+   A broken connection keeps the sheet's `.part`, and the next run resumes it (curl's patience: setup.md, "Running only what changed").
+3. With no token in Firefox it opens the links in the default browser's tabs, four at a time, and moves each finished
+   ZIP from the download folder into place.
 4. Setup then converts them. By hand: `./target/release/iaf-imagery mapi2015 assets/install
    assets/converted/terrain/theatre assets/converted/imagery [--sheets DIR] [--area …] [--dry-run] [--threads N]`.
 

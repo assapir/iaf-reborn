@@ -124,7 +124,7 @@ static func _own_textures(state: GLTFState, dir: String) -> void:
 				if not img.has_mipmaps() and not img.is_compressed():
 					img.generate_mipmaps()
 				if (
-					(dir + "/" in [STORES_DIR, MIG29_DIR] or _made_by_setup(dir + "/"))
+					(dir + "/" in [STORES_DIR, MIG29_DIR, COCKPIT3D_DIR] or _made_by_setup(dir + "/"))
 					and RenderingServer.has_os_feature("s3tc")
 				):
 					img.compress(Image.COMPRESS_S3TC)  # the CPU encoder (rendering.md §1.5), ≈ 3 ms a 512² image
@@ -301,6 +301,8 @@ const RAAM := "converted/models/f15/f15i.glb"
 ## The detailed stores (GPL, tools/stores/build.gd; docs/aircraft-models.md §5), as DETAILED. Their textures are
 ## compressed (BC1) at the parse.
 const STORES_DIR := "res://extra/models/stores/"
+## The F-16's 3D cockpit (cockpit/cockpit3d.gd): its textures compressed (BC1 / BC3) at the parse too.
+const COCKPIT3D_DIR := "res://extra/models/cockpit3d/"
 const STORES := {
 	"aim9_m.gltf": "aim9",
 	"aim7_m.gltf": "aim7",

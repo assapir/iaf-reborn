@@ -113,6 +113,11 @@ were made under older rules, and is up to date when there are none. `scenery-fet
 its `.ok` mark, `scenery` when its manifest's `made_from` matches (docs/scenery.md §1.5). The guides decide per
 picture.
 
+The downloads (`scenery-fetch`, `textures`, the Survey sheets) treat a transfer under 1 kB/s for 60 s as a stall and
+try a failed transfer (a stall, a reset connection) 5 more times (`CURL_PATIENCE` in
+`crates/iaf-tools/src/thirdparty.rs`). `scenery-fetch` and the Survey sheets keep a failed file's `.part`, so the
+next run resumes it; a server that cannot resume starts the file again.
+
 ## Uninstall
 
 The CD launcher's UNINSTALL button (Extras → CD launcher, docs/front-end.md §18.1) asks first, then removes what the
@@ -131,7 +136,8 @@ game then quits; `./setup` installs again. The launcher's INSTALL button opens t
   Without it they are skipped. Windows: the scripts give winget's install (`C:\Program Files\GDAL`) its PATH,
   `GDAL_DATA` and `PROJ_LIB` (`tools/windows/gdal.ps1`, windows.md).
 - gzip: `scenery` (the Microsoft footprints).
-- `tools/imagery/fetch-mapi2015-curl.sh` (curl, python3, Firefox's data.gov.il token): the Survey sheets.
+- Firefox's data.gov.il token (optional; without it the sheets download through the browser's tabs): the Survey
+  sheets (imagery.md §8).
 - `tools/install-launcher.sh`: the desktop launcher (its `XDG_DATA_HOME` can be set). Windows:
   `tools/windows/install-launcher.ps1`, two Start Menu shortcuts (`-Menu` puts them under another folder; setup gives
   `<XDG_DATA_HOME>/Start Menu` when it has one).
@@ -155,7 +161,8 @@ The wizard uses the original menus' colours. Pages:
    repository link and the licence. An **Attributions…** button opens the third-party credits in a window (the
    models, the imagery and the ambientCG textures, as in the credits roll).
 2. **Requirements**: a table of the parts, why each is needed, and whether it is required: the graphics driver and
-   the disk space for the game (required); the disk space for imagery, GDAL, curl, python3 and Firefox (optional).
+   the disk space for the game (required); the disk space for imagery, GDAL, curl, python3 (the pilot guides) and
+   Firefox (the Survey's download token, the pilot guides) (optional).
    A missing part shows its install command. "Check again", next to Next, looks once more.
 3. **Your CD**: the English CD image, picked with Browse and checked at once. Given the Hebrew CD here, the wizard
    says so and keeps it for the next page. "Find in a folder…" looks in a folder and its subfolders (3 levels) for
@@ -169,7 +176,9 @@ The wizard uses the original menus' colours. Pages:
    greyed with the reason when a program it needs is missing:
    - Survey of Israel, all of Israel: 79 sheets, about 17 GB of downloads (kept in `assets/source`), about 5 GB
      converted. Around the airbases: 9 sheets, about 2 GB of downloads. Sheets already downloaded are not
-     downloaded again.
+     downloaded again. Under the scope: how to give setup Firefox's data.gov.il pass before Install (paste a sheet's
+     link into Firefox, cancel the download), what happens without it (the sheets open in the web browser, four at
+     a time), and a "Copy a sheet's link" button (imagery.md §8).
    - Scenery: the download of the chosen kinds, from the pinned files' sizes, with the rest of the theatre's and the
      other countries' OpenStreetMap extracts (both 2.7 GB, buildings only 2.3 GB, trees only 0.9 GB; scenery.md §1.6,
      §1.7). Files already downloaded are kept.
@@ -186,7 +195,9 @@ The wizard uses the original menus' colours. Pages:
    (`iaf_setup::preview`, checked in the background: it reads the CD images). Then its state and progress (a long
    step adds the time left at its pace so far, once it has run 30 s), the log, Cancel, "Redo everything", and a
    "redo" tick per step: a ticked step runs again although it is up to date. The steps after it stay up to date; tick them too
-   to redo them.
+   to redo them. When a step fails, the page names the error and the log file, and says to do what the error says,
+   then Back and Install again (the steps that finished are kept). An error naming a data.gov.il link (the Survey's
+   pass expired) adds "Copy the data.gov.il link above".
 8. **Done**: "Start the game".
 
 The pages start from the last run's inputs (`assets/setup.json`). The log names files relative to the assets

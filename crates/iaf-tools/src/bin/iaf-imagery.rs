@@ -2,6 +2,7 @@
 //!
 //! `iaf-imagery sentinel2 <install-dir> <theatre-dir> <out-root> [--area lon0,lat0,lon1,lat1] [--dry-run] [--threads N]`
 //! `iaf-imagery mapi2015  <install-dir> <theatre-dir> <out-root> [--sheets DIR] [--area …] [--dry-run] [--threads N]`
+//! `iaf-imagery fetch-mapi2015 <sheets-dir> [--bases]` (the Survey's sheets: iaf_tools::mapi2015_fetch)
 //!
 //! `sentinel2`: ESA WorldCover 2021 Sentinel-2 RGB (10 m, CC BY 4.0) for the land outside Israel, fetched by
 //! HTTP range reads through GDAL (`gdalbuildvrt` / `gdal_translate` over `/vsicurl/`), written at level 3.
@@ -48,6 +49,16 @@ fn main() -> Result<()> {
         }
         row.save(png)?;
         return Ok(());
+    }
+    if let [cmd, dest, rest @ ..] = &args[..]
+        && cmd == "fetch-mapi2015"
+    {
+        let bases = match rest {
+            [] => false,
+            [b] if b == "--bases" => true,
+            _ => bail!("usage: iaf-imagery fetch-mapi2015 <sheets-dir> [--bases]"),
+        };
+        return iaf_tools::mapi2015_fetch::fetch(Path::new(dest), bases, &Stdout, &AtomicBool::new(false));
     }
     if let [cmd, install, theatre, out] = &args[..]
         && cmd == "footprints"
@@ -102,7 +113,7 @@ fn main() -> Result<()> {
         }
         return Ok(());
     }
-    let usage = "usage: iaf-imagery sentinel2|mapi2015 <install-dir> <theatre-dir> <out-root> [--sheets DIR] [--area lon0,lat0,lon1,lat1] [--dry-run] [--stale] [--threads N]\n       iaf-imagery compare <theatre-dir> <layers-root> <level> <i> <j> <out.png>\n       iaf-imagery footprints <install-dir> <theatre-dir> <out-dir>";
+    let usage = "usage: iaf-imagery sentinel2|mapi2015 <install-dir> <theatre-dir> <out-root> [--sheets DIR] [--area lon0,lat0,lon1,lat1] [--dry-run] [--stale] [--threads N]\n       iaf-imagery compare <theatre-dir> <layers-root> <level> <i> <j> <out.png>\n       iaf-imagery footprints <install-dir> <theatre-dir> <out-dir>\n       iaf-imagery fetch-mapi2015 <sheets-dir> [--bases]";
     let [source, install, theatre, out, rest @ ..] = &args[..] else { bail!(usage) };
     let spec = match source.as_str() {
         "sentinel2" => &SENTINEL2,

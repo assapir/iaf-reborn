@@ -103,16 +103,25 @@ func _bezel() -> float:
 	return 0.0 if cockpit.layout.get("MFD", {}).has("Portals") else BEZEL
 
 
+## Ours, the 3D cockpit (cockpit3d.gd): the page is drawn into its 3D screen's SubViewport at this many viewport px per
+## MFD px, the page filling it (0: on the 2D panel).
+var screen_px := 0.0
+
+
 ## Screen px per MFD px.
 func _s() -> float:
-	return cockpit.ui_scale() * portal_scale
+	return (screen_px if screen_px > 0.0 else cockpit.ui_scale()) * portal_scale
 
 
 func _process(_delta: float) -> void:
 	var s := _s()
 	var o := _panel_offset()
 	var b := _bezel()
-	position = cockpit.panel_to_screen(o.x - b * portal_scale, o.y - b * portal_scale)
+	position = (
+		-Vector2.ONE * b * s
+		if screen_px > 0.0
+		else cockpit.panel_to_screen(o.x - b * portal_scale, o.y - b * portal_scale)
+	)
 	size = Vector2.ONE * (SIZE + 2 * b) * s
 	_under.size = size
 	real_look = Settings.real_mfd(cockpit.cockpit_dir.get_file()) if _bezel() > 0.0 else ""

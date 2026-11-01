@@ -82,9 +82,11 @@ func _process(_delta: float) -> void:
 		outer.queue_redraw()
 		# Ours: the Real HUD (not the F-35I's helmet) is cut at the panel's top edge, so the glareshield hides what
 		# falls below the glass, as on the real jet. The original HUD draws over the panel.
-		# Not while looking aside: the DASH helmet sight draws in this layer and is not on the glass.
+		# Not while looking aside: the DASH helmet sight draws in this layer and is not on the glass. The 3D cockpit
+		# masks the HUD to its combiner glass instead (cockpit.hud_clip).
 		var real: bool = (
 			cockpit != null
+			and not cockpit.three_d()
 			and Settings.hud_style == "real"
 			and not String(cockpit.cockpit_dir).contains("f35")
 			and not cockpit.dash()

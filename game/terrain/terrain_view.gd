@@ -68,6 +68,8 @@ var aircraft: Node3D
 ## The jet's exterior as seen from its own cockpit (`<plane>_bc`, bdb Objects 0x546: wings, tail, seat back), drawn
 ## in the cockpit views instead of the jet model; null for a jet without one (docs/views.md §4.3).
 var own_bc: Node3D
+## Ours, the F-16's 3D cockpit (cockpit3d.gd) in own_bc; null with the 2D panel.
+var cockpit_3d: Node3D
 ## Ours: the detailed cockpit model's eye (its front seat's, AircraftModel.detailed_cockpit), null with the original's.
 var _own_eye = null
 ## Ours, detailed cockpit model: looking back the head rises and leans forward by up to this (m: +y up, −z forward),
@@ -234,6 +236,7 @@ const UNDERLAY_MAX_HEIGHT := 0.05
 const DamageModel := preload("res://mission/damage_model.gd")
 const PlayerAircraft := preload("res://aircraft/player_aircraft.gd")
 const AircraftModel := preload("res://aircraft/aircraft_model.gd")
+const Cockpit3d := preload("res://cockpit/cockpit3d.gd")
 const FlightSounds := preload("res://audio/flight_sounds.gd")
 const SoundBuses := preload("res://audio/sound_buses.gd")
 const PlayerDamage := preload("res://mission/player_damage.gd")
@@ -1918,8 +1921,14 @@ func _spawn_player() -> void:
 		camera.near = 0.1
 	# Ours: the detailed F-16 (Models: Detailed, or the Sufa) gives its own seat, tub and canopy, cut at its seat's eye.
 	var hd := Gltf.detailed(str(aircraft.desc.get("model", "")))
+	# Ours, the F-16's 3D cockpit (Extras "Cockpit": 3D): hung in the detailed F-16's cut model, Models Original
+	# too; that model's own tub ahead of the seat makes way for it.
+	var c3d_model: String = Cockpit3d.model_for(player.cockpit_dir)
+	var three_d: bool = c3d_model != "" and player.cockpit_dir.get_file() == "f16"
+	if three_d and hd == "":
+		hd = Gltf.DETAILED["f16_h.gltf"]
 	if hd in [Gltf.DETAILED["f16_h.gltf"], Gltf.SUFA]:
-		var cut: Array = AircraftModel.detailed_cockpit(hd)
+		var cut: Array = AircraftModel.detailed_cockpit(hd, three_d)
 		own_bc = cut[0]
 		own_bc.scale = aircraft.scale
 		_own_eye = cut[1]
@@ -1936,8 +1945,16 @@ func _spawn_player() -> void:
 	if own_bc != null:
 		own_bc.visible = false
 		rig.add_child(own_bc)
+		if c3d_model != "":
+			cockpit_3d = Cockpit3d.new()
+			own_bc.add_child(cockpit_3d)
+			if not cockpit_3d.setup(cockpit, camera, c3d_model):
+				cockpit_3d.queue_free()
+				cockpit_3d = null
 		# Ours (Night lights = Detailed): the wingtip / tail lights and the strobe on it too, at its own tips and fin top.
 		aircraft.attach_nav_lights(own_bc)
+	# The 3D cockpit's free look reaches down to its panel (views.gd pitch_min).
+	views.pitch_min = Views.HEAD_PITCH_MIN_3D if cockpit_3d != null else Views.HEAD_PITCH_MIN
 
 
 ## The player's flight state for vapour_fx.gd: in the cockpit views with "frame", the drawn cockpit model (own_bc,
@@ -2011,6 +2028,8 @@ func _apply_view() -> void:
 	camera.set_frustum(camera.near * cockpit.size.y / f, Vector2(0, dy * camera.near / f), camera.near, camera.far)
 	var h: Vector2 = views.head_angles()
 	var pitch := maxf(h.y - deg_to_rad(cockpit.VIEW_LOOK_DOWN_DEG), 0.1 * (absf(h.x) - PI / 2.0))
+	if cockpit.three_d():  # ours, the 3D cockpit: the head looks down at its panel (free look's pitch_min)
+		pitch = h.y - deg_to_rad(cockpit.VIEW_LOOK_DOWN_DEG)
 	camera.rotation = Vector3(pitch, -h.x, 0)
 	# Cockpit eye ≥ 1 m above the terrain (0x610e14).
 	var g = scene_ground(rig.global_position)
@@ -2822,6 +2841,9 @@ func _take_over(target: Dictionary, old: Dictionary) -> void:
 	for i in mini(systems.size(), player_damage.flags.size()):
 		player_damage.flags[i] = systems[i]
 	cockpit.damage_flags = player_damage.flags
+	if cockpit_3d != null:
+		cockpit_3d.release()
+		cockpit_3d = null
 	for n in [aircraft, own_bc]:
 		if n != null:
 			n.queue_free()
@@ -3465,6 +3487,8 @@ func _process(delta: float) -> void:
 			parts_in["stick_x"] = fs.roll_stick  # ours: the ailerons show the roll trim too
 			parts_in["ground_speed"] = Vector2(fs.velocity.x, fs.velocity.z).length()  # the rolling wheels (ours)
 		aircraft.update(parts_in, delta)
+		if cockpit_3d != null:
+			cockpit_3d.controls = parts_in
 		# Wingtip vortices (FUN_004da090): while the flight model's S+0x420 is set, one trail per EndWing helper
 		# (Detailed effects draw their own condensation instead, vapour_fx.gd).
 		if (
