@@ -96,7 +96,8 @@ come to about 10.7 GB with the theatre, against about 20 GB for every variant.
 
 Each step writes a stamp next to its output (`<output>.stamp`). The stamp lists:
 
-- the converters' code (a fingerprint of the iaf-tools, iaf-formats and iaf-setup sources and `Cargo.lock`);
+- the step's code: one fingerprint of the source files that decide its output (the first line, `iaf-setup <hash>`;
+  see "A step's sources" below);
 - every outside file the step reads (the CD image, the patch, the packs, the extra planes), with its size and CRC-32;
 - the stamps of the steps it waits for.
 
@@ -107,6 +108,38 @@ step anyway.
 Running setup again is how you add or redo things. The last run's inputs are kept in `assets/setup.json` (the wizard
 fills its pages from them; the CLI uses them when no ISO is given, plus the options given). Add an extra, for example
 `--imagery sentinel2`, and only its steps and the steps that wait for them run.
+
+### A step's sources
+
+New code redoes only the steps whose sources changed, and the steps that wait for them. Each stamped step lists its
+sources in `STEP_SOURCES` (`crates/iaf-setup/src/stamp.rs`). A source is a file, a folder (every file in it) or
+`Cargo.lock:<crate>` (the crate's locked version, for a library that decides the output, such as `image` for the
+pictures). `crates/iaf-setup/build.rs` fingerprints each file. A Rust file's comment lines and `mod x;` lines are
+left out of its fingerprint, because they change no output.
+
+| Steps | Sources (besides iaf-tools' `lib.rs`, iaf-formats' `lib.rs`, `bytes.rs`, `terrain_types.rs`) |
+|---|---|
+| `extract` | `extract.rs`; iso9660, esa, ssf; `explode`; `crates/iaf-setup/src/steps.rs` |
+| `patch` | `patch.rs`, `rtpatch.rs`, `exe.rs`; `steps.rs` |
+| `hebrew` | `pack.rs` and extract's sources (the Hebrew CD); `steps.rs` |
+| `fonts`, `cockpits`, `briefings`, `reference`, `menu`, `menu_he`, `keys`, `missions`, `aircraft`, `objects`, `icon` | `convert.rs` and what it reaches (`aircraft.rs`, `exe.rs`, `gltf.rs`, `mis.rs`, `plane.rs`, `smooth.rs`, `upscale.rs`; emf, ini, menu, model, refs, rtf, winfnt, xfile); `image` |
+| `arm` | as `cockpits`, and `steps.rs` |
+| `theatre`, `airbases` | `terrain.rs`, `airbases.rs`, `georef.rs`, `imagery.rs`, `runway_fix.rs`, their two data files; ini, lzo, ptt; `image` |
+| `models` | `f15.rs`, `thirdparty.rs`, `data/f15-livery`; ac3d; `image` |
+| `launcher` | `tools/install-launcher.sh`, `tools/windows/install-launcher.ps1` |
+
+`progress.rs` (the log, the threads) is in no step's sources. A step whose run function lives in
+`crates/iaf-setup/src/steps.rs` lists that file. The other steps' one-line calls there do not count, so a change to
+such a call needs its step redone by hand (`--redo-all`, or the step's stamp deleted).
+
+To add a stamped step, give it a row in `STEP_SOURCES`: the module its run function calls and every module and data
+file that module reaches. `cargo test -p iaf-setup` checks that every stamped step has a row, that every listed source
+exists, and that a row holds everything its files name (`crate::…`, `iaf_formats::…`, `include_str!` /
+`include_bytes!`).
+
+Before 2026-11-01 every step's stamp held one fingerprint of all of iaf-tools, iaf-formats, iaf-setup and
+`Cargo.lock`, so any code change redid every step. The first run after that change redoes every step once, because
+the old stamps hold the old fingerprint. After that, only the changed steps run.
 
 The imagery steps keep their own marks per work unit instead: a run converts only the units that are missing or
 were made under older rules, and is up to date when there are none. `scenery-fetch` is up to date when every file has
