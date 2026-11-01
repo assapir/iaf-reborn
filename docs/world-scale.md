@@ -409,6 +409,17 @@ true-size models (§4.1), steps 5–8 move the bases (§4.2), step 9 is the docs
   30°. Touchdown at the moved Ramat David and Ramon: 0.0 m off the centreline (was −8 and 78 m). Original keeps the
   exe's law. Tests: `crates/iaf-flight/tests/base_move.rs` (touchdown within 3 m of the centreline),
   `tests/godot/test_world_scale.gd`.
+- **No CH5 on a moved runway** (2026-11-01; `Leg::Ch(4, ..)` with `align`). The players' report: in 312, with the
+  autopilot from the start, "the jet crashes as the brakes come out". On a runway off the axes (Ramat David's 266.6°)
+  CH4's tangent search takes the original's general branch and can end 700 m off the centreline, 15° off its
+  heading. CH5 then chases P5 at 1.5° of bank and flew level over the whole runway for 75 s. FinalApproach began at
+  the lineup, 450 m up, its pitch law (−0.3°/m above the path) dived 36° into the runway. Step 13 also puts the speed
+  brake out, the "brakes" the players saw. Reproduced with the F-16, every Real choice and every Better physics switch
+  on (2026-11-01); it depends on where CH4 ends, so a different load (Real weapons, modern weapons) decides it. In
+  Real, CH5 now ends at once and FinalApproach's centreline law above captures the line. Original keeps CH5. Tests:
+  `player_312_circuit_at_the_moved_ramat_david` (base_move.rs: four engage points at 20, 60 and 120 Hz; with CH5 all
+  12 crash in step 13) and `tests/godot/test_autopilot_312_flow.gd` (the Jet list → TSD → Fly flow, the A key,
+  every setting on; in Godot where CH4 ends varies from run to run, so this flow did not crash every time).
 - **The old site's fill** (`BaseMoves::add_fill_source` / `finish_fill`, `terrain.gd _fill_sources`). The terrain
   hands the level-3 colour nodes (≈ 10 m a pixel) under each old site to `IafBases.fill_source` once at load; the fill
   colour (the surroundings' mean plus the texture of unpaved ground 400 m away) is computed on that one world grid and

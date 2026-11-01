@@ -145,6 +145,12 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 - **Autopilot landing gear.** Original: the NAV landing lowers the gear once, at step 7, and the lever refuses it
   above 300 kt, so a jet still faster there lands on its belly. Ours, with the switch (and always on the F-35I): the
   step before (LW2) holds wings level at idle until 292 kt, so the gear comes down — autopilot.md §2.3.
+- **Autopilot landing flare** (also on with World scale Real or any Better physics switch, and always on the F-35I
+  and the Sufa). Original: the player's StopPlane holds the flight path level at idle from about 12 m up; the jet floats
+  until it stalls and drops onto the runway (9–15 m/s; the F-4 13–25° nose down, a crash every time; the F-15 and the
+  Lavi 5–6° down, a crash with Easy landing off). Ours, with any of these: a flare onto the runway, the sink the
+  wheels' height / 2 s + 1.5 m/s with the path error summed in, "rolling" once the wheels touch. All Original keeps
+  the float; the AI always does — autopilot.md §2.3.
 
 **Preferences → Extras**
 - **Weapon data (Original / Real).** Original: the 1998 weapon data. Ours, with Real: public missile weights, top

@@ -125,6 +125,25 @@ approach and the float before touchdown steer to the centreline with a damped la
   end with StopPlane: TaxiCL and ParkInHangar are added only in mode 8 (`5d43e0`).
 - StopPlane done (`5d4b22`): in mode 0 it posts **GEV 0x10 forced** (the A key), which turns the autopilot off from
   NAV. (Mode 0 lacks a landed handler.)
+- **StopPlane's flare** (ours, the player's autopilot off the original: World scale Real, Flight data Real or any Better
+  physics switch, and always on the F-35I and the Sufa, which fly their Real rows; `Autopilot::player_flare`, set by
+  `IafFlight.ap_set_flare`; [deviations.md](deviations.md) §2). With everything Original the player's StopPlane keeps
+  the original's float below, as the AI's always does. The original's
+  flare holds the flight path level at idle (pitch law A, target 0) from wherever FinalApproach ends, about 12 m above
+  the runway. The jet floats until it stalls and then drops onto the runway, nose falling. In the port every jet did
+  that: touchdown at 70–140 kt and 9–15 m/s sink. The F-4 / Kurnass reached the runway 13–25° nose down, the
+  landing check's crash, in every run. The F-15 and the Lavi arrived 5–6° nose down, a crash with Easy landing off.
+  (The players' report, "the autopilot crashes as the brakes come out", was World scale Real's CH5: see
+  [world-scale.md](world-scale.md) §4.3.)
+  - Ours: the flare asks for the flight path that sinks at the wheels' height / 2 s + 1.5 m/s. At landing speeds the
+    pitch law holds a path a few degrees shallower than its target: its 1 g stick is not the flight model's 1 g
+    there. So the flare adds the summed error (0.5/s, at most 3.4° down, 1.7° up; `Landing::flare`).
+  - For the player, StopPlane counts as "rolling" once the wheels touch, not on the original's test (flight-path
+    pitch within 0.2° and within 5 m of the ground). The flare's path passes that test above the runway.
+  - Result: touchdown 300–650 m past the lineup at 150–185 kt, 0.2–2.4 m/s sink, nose 3–14° up. The jet stops 1–2.8 km
+    down the runway, every flyable jet, both data sets, every Physics option, at 20, 60 and 120 Hz.
+  - Test: `player_landing_312_flares_every_jet` (Easy landing off; with the flare off the F-16 still floats and
+    stalls onto the runway at 11.6 m/s, 2.6° nose down, which the original's limits pass).
 
 ### 2.4 Runway into the wind (ours, Better physics "Wind and turbulence")
 **The original** flies every base one way, whatever the wind:
@@ -228,8 +247,9 @@ vertical lines. ChangeHeading2PtAcu's tangent search then takes its axis-paralle
 circle tangent to the centreline (23° if the base were flown at KA3's 87.5 m/s; the jet arrives at ~110 m/s, so
 30–37°, from the KeepAttitude's end 1852 m before P3). CH4 ends on
 the centreline and CH5 at once; FinalApproach starts about 5.5 km out at about 400 m above the runway, below the 6°
-path. The F-16 crosses the threshold a few metres high, StopPlane's flare (throttle 0, flight-path pitch 0) floats it,
-and it touches down on the centreline (about 1 m off) 1–2 km down the runway and stops.
+path. The F-16 crosses the threshold a few metres high. StopPlane's original flare (throttle 0, flight-path pitch 0)
+floats it until it stalls onto the centreline 1.8 km down the runway; off the original (§2.3) it touches down 300 m
+down and stops about 1.4 km down.
 
 **How the original flies it (checked against the disassembly).** The loops make the circuit fast and steep; the
 port reproduces this:
@@ -255,13 +275,13 @@ port reproduces this:
   |e| ≤ 1° (the roll test ≤ 0.2° is signed, so any left bank passes), still banked: the roll-out overshoots a few
   degrees.
 
-Ground tracks of the port (flat ground at the lineup height; km from the lineup L, x east, y north), from the 312
-start: G (−5.4, 0) at 375 kt → crosswind 80° left turn to heading 165 → CA dive −30° to 700 m → CH2 80° left at
-(−5.6, −4.6) → downwind east at y ≈ −5.6 / −6.6, gear and flaps at x ≈ −1 → CH3 left at ~58° from (5.9, −5.6) → base
-north at x = 7.4 → CH4 left at ~36° from (7.4, −1.8) onto the centreline at (5.8, 0) → final 6° at 172 kt → touchdown
-at x ≈ −1.8 (1.8 km down the runway), 4 m off the centreline. From 5 / 15 km N, E, S, W, toward and away, 500 and 3000 m
-AGL (32 starts) and with Flight data Real + every Physics option (Godot), the same corners within ~1 km, every step
-in order, all landings on the centreline. Test: `player_circuit_312_from_engage_points`.
+Ground tracks of the port (flat ground at the lineup height; km from the lineup L, x east, y north), from the 312 start:
+G (−5.4, 0) at 375 kt → crosswind 80° left turn to heading 165 → CA dive −30° to 700 m → CH2 80° left at (−5.6, −4.6) →
+downwind east at y ≈ −5.6 / −6.6, gear and flaps at x ≈ −1 → CH3 left at ~58° from (5.9, −5.6) → base north at x = 7.4 →
+CH4 left at ~36° from (7.4, −1.8) onto the centreline at (5.8, 0) → final 6° at 172 kt → touchdown at x ≈ −1.8 (1.8 km
+down the runway; with the flare of §2.3, −0.3), 4 m off the centreline. From 5 / 15 km N, E, S, W, toward and away,
+500 and 3000 m AGL (32 starts) and with Flight data Real + every Physics option (Godot), the same corners within ~1 km,
+every step in order, all landings on the centreline. Test: `player_circuit_312_from_engage_points`.
 
 **The cockpit cues.** NAV's HUD steering caret and waypoint marker point at the route's waypoint G ("Approach"), set
 by the NAV object (`FUN_00452e60`). After G the caret points back at G while the jet flies the circuit's corners, as

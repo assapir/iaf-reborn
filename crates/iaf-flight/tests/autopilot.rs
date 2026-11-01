@@ -756,6 +756,63 @@ fn player_circuit_312_from_engage_points() {
     }
 }
 
+#[test]
+fn player_landing_312_flares_every_jet() {
+    // 312's demonstration in each flyable jet, Easy landing off (the original's strictest limits: nose-down 5°).
+    // Off the original (`player_flare`), StopPlane's flare (docs/autopilot.md §2.3) puts the wheels on the runway at a
+    // small sink, nose up, and the jet stops on the runway. The original's level float stalled the jets onto it
+    // instead (F-4: nose 13–25° down, the "landing" crash; F-15 and Lavi 5–6° down); all Original keeps that float.
+    let Some(inst) = install() else { return };
+    for name in ["F-16", "F-15", "F-4", "KFIR", "LAVI", "MIRAGE", "F-16I", "F-35I"] {
+        let (vz, pitch, x, stop) = landing_312(&inst, name, true);
+        println!("{name}: touchdown sink {:.1} m/s, nose {pitch:.1}°, at x {x:.0}; stop {stop:?}", -vz);
+        assert!(vz > -4.0 && pitch > 0.0, "{name}: a flared touchdown (sink {:.1} m/s, nose {pitch:.1}°)", -vz);
+        assert!(x > RD_RUNWAY_X[0] && x < RD_RUNWAY_X[1], "{name}: touchdown on the runway (x {x:.0})");
+        let stop = stop.unwrap_or_else(|| panic!("{name}: no stop"));
+        assert!(stop > RD_RUNWAY_X[0], "{name}: stops on the runway (x {stop:.0})");
+    }
+    // All Original: the original's float, the jet stalling onto the runway well down it.
+    let (vz, pitch, x, _) = landing_312(&inst, "F-16", false);
+    println!("F-16, the original's float: touchdown sink {:.1} m/s, nose {pitch:.1}°, at x {x:.0}", -vz);
+    assert!(vz < -8.0 && x < 356483.0 - 1000.0, "the original's float and stall ({:.1} m/s at x {x:.0})", -vz);
+}
+
+/// 312's circuit for the player's jet `name` (Easy landing off): the touchdown's vz, pitch (°) and x, and where the
+/// autopilot key came (the stop). Panics on a crash.
+fn landing_312(inst: &Path, name: &str, flare: bool) -> (f32, f32, f64, Option<f64>) {
+    let bases = Airbase::load_all(&std::fs::read(inst.join("iaf.ibx")).unwrap());
+    let z = bases.iter().find(|b| b.name == "David").unwrap().lineup[2];
+    let mut ac = jet(inst, name, Vec3::new(366755.0, 602361.0, 2000.0), 270.0, true);
+    ac.easy_landing = false;
+    let mut c = ac.controls();
+    c.throttle = 0.74;
+    ac.set_controls(c);
+    let mut ap = Autopilot::new(Config::load(inst));
+    ap.bases = bases;
+    ap.player_flare = flare;
+    ap.route = vec![Waypoint { x: 351083.0, y: 602383.0, z: 1500.0, t: 60.0, action: 7 }];
+    ap.player_mode(&mut ac, 2, 0);
+    let mut touch = None;
+    for _ in 0..(900.0 / DT) as usize {
+        ac.ground_height = z;
+        ac.ap_landing = ap.stage().starts_with("landing");
+        let o = ap.step(&mut ac, &|_: f64, _: f64| z);
+        let before = ac.state();
+        ac.step(DT);
+        let s = ac.state();
+        assert!(s.crashed.is_none(), "{name}: crashed ({:?}) in {}", s.crashed, ap.stage());
+        if touch.is_none() && s.on_ground {
+            touch = Some((before.velocity[2], before.pitch.to_degrees(), s.position[0]));
+        }
+        if o.ap_key {
+            let (vz, pitch, x) = touch.expect("touchdown");
+            return (vz, pitch, x, Some(s.position[0]));
+        }
+    }
+    let (vz, pitch, x) = touch.unwrap_or_else(|| panic!("{name}: no touchdown"));
+    (vz, pitch, x, None)
+}
+
 fn leader_of(ac: &Aircraft) -> Leader {
     let s = ac.state();
     Leader {
