@@ -892,12 +892,17 @@ How it is drawn:
   clouds at half the 3D view's width and height (`clouds_march.glsl`, a compute shader) into a texture. A
   full-screen quad (`clouds_composite.gdshader`) lays that texture over the 3D view as the first transparent thing:
   the smoke, the rain streaks and the effects draw over it, and the 2D cockpit art, the HUD and the MFDs are canvas
-  layers drawn after the 3D view, so the clouds never cover them. Where a cloud lets less than 40 % of the light
-  through, the quad writes the cloud's depth (its mean distance along the view): the effects behind it (an explosion
-  inside the deck or behind a cumulus, a town's light points under the clouds) then fail the depth test and stay
-  hidden; in front of it they draw over it. A thinner cloud (more than 40 % through) hides nothing. The quad upsamples by the depth: of the four
+  layers drawn after the 3D view, so the clouds never cover them. The quad upsamples by the depth: of the four
   nearest cloud pixels, those whose scene depth matches the pixel's count, so a cloud does not bleed over a hill's
   edge. The EO sensor's camera leaves the quad out (visual layer 20).
+- **Effects behind a cloud**: the detailed effects' smoke and fire (§6, `gpu_fx.gd`'s soft edge) read the cloud
+  image and distance (global shader parameters `clouds_light`, `clouds_dist`, `clouds_on`): a billboard farther than
+  the cloud's mean distance along that pixel's view shows only by the light the cloud lets through, so an explosion
+  behind a cloud is hidden by it, softly at its thin edges; one in front draws over it. The sparks, the Original
+  effects' sprites and the night light points do not read it (open).
+  Tried and dropped (2026-11-01): writing the cloud's depth from the composite quad (`depth_draw_always`, `DEPTH`) or
+  from a depth-only next pass: the effects drew over the cloud even with the depth forced to the near plane (inferred:
+  the transparent pass does not write depth there, as the effects sample the depth buffer for their soft edges).
 - **Shape** (after Schneider 2015[^schneider]): two tileable 3D noises, computed once on the GPU when the clouds are
   made (`clouds_noise.glsl`): 128³ Perlin-Worley plus three Worley octaves (tile 9 km) and 32³ Worley detail (tile
   800 m). The shape is cut by the coverage (a slow 60 km field for the cumulus) and a height profile (flat bases,
@@ -963,25 +968,31 @@ Tried and dropped (2026-10-30):
 
 Iris Xe (TigerLake GT2), 1920 × 1080, Linux, the other settings at their defaults with Sky Atmospheric, mission 311
 at Ramat David, the flight model stopped; `_clouds_shot.gd CLOUD_BENCH=8`, the GPU's render time of the 3D view
-(`viewport_get_measured_render_time_gpu`; the frame time is held at 16.7 ms by the desktop's 60 Hz), one run each
-on a quiet machine (load < 1), 2026-10-30:
+(`viewport_get_measured_render_time_gpu`), one run each, 2026-11-01, load 0.3–2.2 (other sessions' work):
+before (the clouds of 2026-10-30) and after the interleaved march, the floor under the deck and the far-away steps
+(§2.1). The cockpit poses only: in the chase view the measured render time exceeds the frame time, so those numbers
+are not used.
 
-| pose | Clouds Original | Volumetric | Volumetric's cost |
-|---|---|---|---|
-| dry, 600 m, the cumulus above, chase view | 12.1 ms | 22.7 ms | +10.6 ms |
-| dry, 900 m, cockpit | 12.1 ms | 24.1 ms | +12.0 ms |
-| dry, 3450 m, cockpit, the cumulus below | 19.6 ms | 27.9 ms | +8.3 ms |
-| light rain, 400 m (below the base), cockpit | 11.8 ms | 21.8 ms | +10.0 ms |
-| light rain, inside the deck, cockpit | 16.7 ms | 25.9 ms | +9.2 ms |
-| light rain, 400 m above the deck, cockpit | 10.0 ms | 28.1 ms | +18.1 ms |
+| pose | Clouds Original | Volumetric before | after | Volumetric's cost after |
+|---|---|---|---|---|
+| dry, 900 m, cockpit, the cumulus above | 12.1 ms | 23.4 ms | 18.4 ms | +6.3 ms |
+| dry, 3450 m, cockpit, the cumulus below | 23.8 ms | 27.4 ms | 25.8 ms | +2.0 ms |
+| light rain, 400 m (below the base), cockpit | 12.5 ms | 21.3 ms | 21.1 ms | +8.6 ms |
+| light rain, inside the deck, cockpit | 19.1 ms | 25.5 ms | 24.7 ms | +5.6 ms |
+| light rain, 450 m above the deck, cockpit, toward the sun | 8.9 ms | 27.5 ms | 14.3 ms | +5.4 ms |
 
-- Volumetric costs 8–18 ms on the Iris Xe at 1080p: too much there (30–45 fps). It is for strong GPUs; on the M4
-  Pro (the high tier) it is not measured yet (open; inferred from the GPUs' throughput, about a quarter of the
-  Iris Xe's cost: 2–5 ms).
-- The deck seen from above is the dearest: nearly every pixel marches into dense cloud and samples the light toward
-  the sun at each step.
-- The deck's floor (§10.1, Clouds Original) is cheaper than the ground it hides: 400 m above the deck 10.0 ms
-  against 19.6 ms over the clear ground at the same height and view.
+- Volumetric now costs 2–9 ms on the Iris Xe at 1080p (was 4–20 ms on the same day's build): still a high-tier
+  option there.
+- The savings: above the deck the floor under it (§10.1) hides the ground the deck covers, −13 ms; the interleaved
+  march (a quarter of the pixels a frame) −5 ms with the cumulus in view. A 2 × 2 block per invocation matters:
+  with one pixel per invocation and a quarter of them marching, a GPU lane group waits on its one marching pixel and
+  nothing was saved; with a 2 × 2 block per invocation and every pixel marching, the march cost 5–11 ms more than one
+  pixel per invocation.
+- Below the deck and inside it the interleave saves little (≤ 1 ms), though the history holds there (checked by
+  painting the refused pixels red): what the remaining 6–9 ms is spent on is open.
+- The floor's 48 texture reads cost 1 ms over its earlier six (8.9 against 7.9 ms above the deck).
+- The M4 Pro (the high tier) is not measured (open). Inferred: its GPU has several times the Iris Xe's throughput
+  and bandwidth, so about a quarter of the cost, 1–2 ms; the interleave and the floor save the same share there.
 - Inside the deck the march stops where the fog leaves 2 % (4 / density: 200 m); before that limit the same pose
   cost +22 ms.
 
@@ -2070,7 +2081,9 @@ The camera's place in the deck sets the look (`Weather.update` → `blend()`), s
   ambient: from straight above at noon soft grey lumps, toward the sun their sunward sides lit. The time of day lights
   it and the fog fades it into the horizon, with the lumps to the horizon. It drifts with the wind. Cost: one opaque
   quad with 48 texture reads a pixel, drawn only above the deck.
-- With Clouds Volumetric the raymarched deck (§2.1) replaces the floor, and its base and lumps show from below too.
+- With Clouds Volumetric the raymarched deck (§2.1) shows its own top, and its base and lumps show from below too.
+  The floor then lies at the deck's base under it (above the deck only): it hides the ground the deck covers, so the
+  terrain under it costs nothing (−13 ms on the Iris Xe, §2.2).
 
 Tried and dropped (2026-10-30): the top blended over ± 150 m like the base: the fog thinned ×2.25 per 25 m, a
 visible jump when climbing out; a floor lit by plain Lambert (albedo 0.92): a dull grey sheet under the AgX

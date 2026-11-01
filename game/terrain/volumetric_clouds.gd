@@ -2,7 +2,8 @@
 # of the original's flat layer: fair-weather cumulus when dry, the rain's deck (weather.gd) in the rain, which the jet
 # can fly into and climb out of. A compositor effect (Effect, on the cockpit and chase cameras) marches them at half
 # the 3D view's width and height after the opaque scene (clouds_march.glsl), into a texture a full-screen quad lays
-# over the 3D view as its first transparent thing (clouds_composite.gdshader): the 2D cockpit and HUD stay on top.
+# over the 3D view as its first transparent thing (clouds_composite.gdshader): the 2D cockpit and HUD stay on top. The
+# effects behind a cloud fade by the light it lets through (gpu_fx.gd reads the same textures).
 # Needs a RenderingDevice (Forward+ / Mobile); terrain_view.gd makes the node while the choice is Volumetric.
 extends Node3D
 
@@ -57,6 +58,10 @@ func attach(cams: Array[Camera3D]) -> void:
 	v.mat.render_priority = Material.RENDER_PRIORITY_MIN
 	v.mat.set_shader_parameter("clouds", v.color)
 	v.mat.set_shader_parameter("cloud_dist", v.dist)
+	# The effects behind a cloud show by the light it lets through (gpu_fx.gd SOFT): the last viewport attached.
+	RenderingServer.global_shader_parameter_set("clouds_light", v.color)
+	RenderingServer.global_shader_parameter_set("clouds_dist", v.dist)
+	RenderingServer.global_shader_parameter_set("clouds_on", 1.0)
 	v.quad = MeshInstance3D.new()
 	v.quad.mesh = QuadMesh.new()
 	v.quad.material_override = v.mat
@@ -71,6 +76,7 @@ func attach(cams: Array[Camera3D]) -> void:
 
 
 func _exit_tree() -> void:
+	RenderingServer.global_shader_parameter_set("clouds_on", 0.0)
 	for v in views:
 		v.color.texture_rd_rid = RID()
 		v.dist.texture_rd_rid = RID()
@@ -90,6 +96,9 @@ func update(env: Environment, sun: DirectionalLight3D, wind: Vector3, delta: flo
 			w.color.texture_rd_rid = ef.a_color
 			w.dist.texture_rd_rid = ef.a_dist
 			w.mat.set_shader_parameter("full", Vector2(ef.full))
+			if w == views.back():  # the effects' (gpu_fx.gd): the global takes the new textures only when set again
+				RenderingServer.global_shader_parameter_set("clouds_light", w.color)
+				RenderingServer.global_shader_parameter_set("clouds_dist", w.dist)
 		w.quad.visible = ef.size != Vector2i.ZERO
 	_wind -= wind * delta
 	var l := Weather.level()
@@ -307,7 +316,11 @@ class Effect:
 			_uniform(RenderingDevice.UNIFORM_TYPE_IMAGE, 5, [_b_color]),
 			_uniform(RenderingDevice.UNIFORM_TYPE_IMAGE, 6, [_b_dist]),
 			_uniform(RenderingDevice.UNIFORM_TYPE_UNIFORM_BUFFER, 7, [_ubo]),
-			_uniform(RenderingDevice.UNIFORM_TYPE_SAMPLER_WITH_TEXTURE, 8, [_lin, glow if glow.is_valid() else _none]),
+			_uniform(
+				RenderingDevice.UNIFORM_TYPE_SAMPLER_WITH_TEXTURE,
+				8,
+				[_lin, glow if rd.texture_is_valid(glow) else _none]
+			),
 		]
 		var set_rid := UniformSetCacheRD.get_cache(_march, 0, us)
 		var cl := rd.compute_list_begin()

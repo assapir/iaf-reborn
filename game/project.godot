@@ -143,6 +143,18 @@ city_glow_fog={
 "type": "float",
 "value": 0.0
 }
+clouds_on={
+"type": "float",
+"value": 0.0
+}
+clouds_light={
+"type": "sampler2D",
+"value": ""
+}
+clouds_dist={
+"type": "sampler2D",
+"value": ""
+}
 ground_albedo={
 "type": "sampler2DArray",
 "value": ""

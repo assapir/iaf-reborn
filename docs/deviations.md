@@ -479,7 +479,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   cloud layer of Graphics TEXTURED SKY, unchanged).
   - Volumetric: raymarched clouds in place of the flat layer, lit by the sun and the sky by the time of day: scattered
     fair-weather cumulus (base 1200 m, top 2500 m above the ground) when dry, the rain's deck in the rain; the jet can
-    fly through them; the towns light them from below at night (Night lights Detailed). For strong GPUs (8–18 ms on an
+    fly through them; the towns light them from below at night (Night lights Detailed). For strong GPUs (2–9 ms on an
     Iris Xe at 1080p; rendering.md §2.2); greyed out without a
     RenderingDevice (the Compatibility renderer).
 - **Airbases** (ours, docs/rendering.md §7). Rendering only; the default is Original (the 1998 imagery's painted

@@ -98,13 +98,22 @@ void vertex() {
 """
 )
 
-## Soft edge where the billboard meets the scene (linear depth difference over a share of the width).
+## Soft edge where the billboard meets the scene (linear depth difference over a share of the width). Behind a
+## Clouds Volumetric cloud (volumetric_clouds.gd: its half-size image, a the light it lets through, and its distance)
+## the billboard shows only by the light the cloud lets through.
 const SOFT := """
+global uniform float clouds_on;
+global uniform sampler2D clouds_light : filter_linear;
+global uniform sampler2D clouds_dist : filter_nearest;
 float soft(vec2 suv, float vz, float d, mat4 inv_proj, sampler2D dt) {
 	float z = texture(dt, suv).r;
 	vec4 p = inv_proj * vec4(suv * 2.0 - 1.0, z, 1.0);
 	float scene = -p.z / p.w;
-	return clamp((scene + vz) / max(d, 0.5), 0.0, 1.0);
+	float k = clamp((scene + vz) / max(d, 0.5), 0.0, 1.0);
+	if (clouds_on > 0.5 && -vz > textureLod(clouds_dist, suv, 0.0).r) {
+		k *= textureLod(clouds_light, suv, 0.0).a;
+	}
+	return k;
 }
 """
 
