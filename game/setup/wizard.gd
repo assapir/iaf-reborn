@@ -20,6 +20,11 @@ const BASE_GB := INSTALL_GB + CONVERTED_GB + TEXTURES_GB
 ## looks with their pre-compressed tiles (4.37 GB a look; its reads are not kept).
 const SURVEY_GB := [17.3, 14.5]
 const SURVEY_BASES_GB := [2.0, 1.7]
+## One Survey sheet's link (tools/imagery/mapi2015_sheets.tsv): opened once in Firefox, it earns data.gov.il's pass.
+const SURVEY_SHEET := (
+	"https://data.gov.il/dataset/73aae9b9-65ba-4fcf-a51b-feebc3da9f8d"
+	+ "/resource/52287708-9fa5-4f5a-9e4e-cc414270c257/download/hzr.zip"
+)
 const SENTINEL_GB := 11.3
 ## Scenery made, by kind (GB; the downloads come from IafSetup.scenery_download_bytes): both measured (cells 0.58 +
 ## work files 0.49); one kind computed from the cell format (a tree is 16 bytes: 28.6 M trees 0.46 GB, buildings
@@ -115,6 +120,8 @@ var redo_check: CheckBox
 var rows_box: VBoxContainer
 var rows := {}
 var install_note: Label
+## Copies the link a failed step names (the Survey's expired pass).
+var fail_link: LinkButton
 var log_view: TextEdit
 ## This run's log file (assets/logs/setup-<date>-<time>.log).
 var log_file := ""
@@ -295,6 +302,17 @@ func set_row(row: Dictionary, path: String) -> void:
 	row.status.text = r[1]
 	row.status.add_theme_color_override("font_color", GREEN if r[0] else (YELLOW if r.size() > 2 else RED))
 	_update()
+
+
+## Makes `b` copy `url` instead of opening it, then say `done`.
+func _copy_on_press(b: LinkButton, url: String, done: String) -> void:
+	for c in b.pressed.get_connections():
+		b.pressed.disconnect(c.callable)
+	b.pressed.connect(
+		func():
+			DisplayServer.clipboard_set(url)
+			b.text = done
+	)
 
 
 ## A link that opens in the browser.
@@ -899,10 +917,9 @@ func _page_extras() -> Control:
 		v,
 		"Survey of Israel 2015 imagery (2 m, over Israel; up to 17 GB download)",
 		(
-			"Downloads the Survey's sheets from data.gov.il with curl and your Firefox's data.gov.il token (without one it "
-			+ "opens them in your browser's tabs), then converts them. All of Israel: 79 sheets, about 17 GB of downloads "
-			+ "(kept) and 14 GB converted. Around the airbases: 9 sheets, about 2 GB of downloads. Sheets already downloaded "
-			+ "are not downloaded again, and converted units are kept."
+			"Downloads the Survey's sheets from data.gov.il, then converts them. All of Israel: 79 sheets, about 17 GB "
+			+ "of downloads (kept) and 14 GB converted. Around the airbases: 9 sheets, about 2 GB of downloads. Sheets "
+			+ "already downloaded are not downloaded again, and converted units are kept."
 		),
 		"" if gdal and tools.get("curl", false) else "Needs GDAL and curl (see Requirements)."
 	)
@@ -912,6 +929,21 @@ func _page_extras() -> Control:
 	mapi_scope.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	mapi_scope.disabled = mapi_check.disabled
 	mapi_check.get_parent().add_child(mapi_scope)
+	var how := _text(
+		mapi_check.get_parent(),
+		(
+			"data.gov.il lets only web browsers in. For the fast download, before Install: copy a sheet's link, paste "
+			+ "it into Firefox's address bar and cancel the download when it starts; setup then reuses Firefox's pass. "
+			+ "Without it, setup opens the sheets in your web browser, four at a time: let each download finish into "
+			+ "your Downloads folder, and setup moves it into place."
+		),
+		true
+	)
+	how.custom_minimum_size.x = 600
+	var copy := _link("Copy a sheet's link", SURVEY_SHEET)
+	copy.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_copy_on_press(copy, SURVEY_SHEET, "Copied: paste it into Firefox's address bar")
+	mapi_check.get_parent().add_child(copy)
 	# Scenery (docs/scenery.md): only over the Survey 2 m photo, so only with it ticked or on disk (_update).
 	var mb := func(k: String) -> String: return "%.0f MB" % (IafSetup.scenery_download_bytes(k) / 1e6)
 	scenery_check = _extra(
@@ -1122,6 +1154,10 @@ func _page_summary() -> Control:
 func _page_install() -> Control:
 	var v := _vbox()
 	install_note = _text(v, "")
+	fail_link = _link("", "")
+	fail_link.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	fail_link.visible = false
+	v.add_child(fail_link)
 	redo_check = CheckBox.new()
 	redo_check.text = 'Redo everything (also the steps that are up to date). Or tick "redo" on the steps to redo.'
 	redo_check.toggled.connect(
@@ -1422,6 +1458,7 @@ func start_install() -> void:
 	var redo := redo_ids()
 	_fill_rows([], false)
 	failed = ""
+	fail_link.visible = false
 	finished = false
 	# The whole run, with full paths, also goes to assets/logs (kept; named in the log and when a step fails).
 	var stamp := Time.get_datetime_string_from_system().replace(":", "").replace("T", "-")
@@ -1479,13 +1516,21 @@ func _process(_delta: float) -> void:
 		var up: int = p.steps.filter(func(s): return s.state == "up_to_date").size()
 		install_note.text = (
 			(
-				"Setup stopped: %s. The log has the details (%s); fix the input and press Back, then Install again."
+				(
+					"Setup stopped: %s. The log has the details (%s). Do what it says, then press Back and Install "
+					+ "again: the steps that finished are kept."
+				)
 				% [failed, log_file]
 			)
 			if failed != ""
 			else "Done: %d steps ran, %d were up to date." % [p.steps.size() - up, up]
 		)
 		done_label.text = "Jane's IAF is set up." if failed == "" else "Setup did not finish: " + failed
+		var url := RegEx.create_from_string("https://data\\.gov\\.il/\\S+").search(failed)
+		if url:
+			fail_link.text = "Copy the data.gov.il link above"
+			fail_link.visible = true
+			_copy_on_press(fail_link, url.get_string(), "Copied: paste it into Firefox's address bar")
 		if failed != "":
 			log_view.visible = true
 			log_button.text = "Hide the log"

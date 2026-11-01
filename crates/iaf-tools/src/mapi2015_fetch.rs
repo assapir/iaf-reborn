@@ -126,7 +126,9 @@ fn with_token(
         pr.log(&format!("== sheet {} of {}: {f} {name}", k + 1, todo.len()));
         let part = dest.join(format!("{f}.part"));
         let mut c = Command::new("curl")
-            .args(["-sS", "-L", "-A", UA, "-b", &format!("aws-waf-token={token}"), "-w", "%{http_code}", "-o"])
+            .args(["-sS", "-L", "-C", "-", "-A", UA, "-b", &format!("aws-waf-token={token}"), "-w", "%{http_code}"])
+            .args(crate::thirdparty::CURL_PATIENCE)
+            .arg("-o")
             .arg(&part)
             .arg(url)
             .stdout(Stdio::piped())
@@ -145,7 +147,12 @@ fn with_token(
             std::thread::sleep(Duration::from_millis(250));
         };
         let code = std::io::read_to_string(c.stdout.take().context("curl's stdout")?)?;
-        if status.success() && code == "200" && zip_ok(&part) {
+        let whole = code == "200" || code == "206";
+        if !status.success() && whole {
+            // A broken connection: the part is kept, and the next run resumes it.
+            bail!("{f}: download failed ({}); run setup again to resume it", crate::thirdparty::curl_error(status));
+        }
+        if status.success() && whole && zip_ok(&part) {
             let size = std::fs::metadata(&part)?.len();
             std::fs::rename(&part, dest.join(f))?;
             got += size;
@@ -161,10 +168,16 @@ fn with_token(
             pr.fraction((k + 1) as f32 / todo.len() as f32);
         } else {
             let _ = std::fs::remove_file(&part);
-            bail!(
-                "{f} failed (HTTP {code}, curl {status}): the token expired? Open this link in Firefox, cancel the \
-                 download, run setup again: {url}"
-            );
+            if code == "202" {
+                bail!(
+                    "data.gov.il turned {f} away: Firefox's data.gov.il pass expired. Open this link in Firefox, cancel \
+                     the download, then run setup again: {url}"
+                );
+            }
+            if whole {
+                bail!("{f} is not a whole ZIP: removed, run setup again to download it again");
+            }
+            bail!("{f}: data.gov.il answered HTTP {code} ({}); run setup again", crate::thirdparty::curl_error(status));
         }
         std::thread::sleep(Duration::from_secs(2));
     }
@@ -247,7 +260,7 @@ fn with_browser(todo: &[(&str, &str, &str)], dest: &Path, pr: &dyn Progress, can
             };
             if !zip_ok(&p) {
                 let _ = std::fs::remove_file(&p);
-                bail!("{f} is not a valid ZIP (the challenge page?): removed, run setup again to retry");
+                bail!("{f} is not a whole ZIP (the browser saved data.gov.il's check page?): removed, run setup again");
             }
             if p != dest.join(f) {
                 // A rename fails across disks: copy, then remove.
