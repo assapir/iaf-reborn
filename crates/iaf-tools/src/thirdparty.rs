@@ -1354,8 +1354,10 @@ pub fn fetch_files(list: &[Download], dir: &Path, pr: &dyn Progress, cancel: &At
     let done_bytes = AtomicU64::new(0);
     let fetched = AtomicUsize::new(0);
     let slots: Vec<AtomicU64> = (0..FETCH_JOBS).map(|_| AtomicU64::new(0)).collect();
+    // A failed file does not stop the others: they finish (or keep their part for the next run), and the first
+    // error is returned at the end, so a retry fetches only the failed files.
     let failed: Mutex<Option<anyhow::Error>> = Mutex::new(None);
-    let stop = || cancel.load(Ordering::Relaxed) || failed.lock().unwrap().is_some();
+    let stop = || cancel.load(Ordering::Relaxed);
     let worker = |slot: &AtomicU64| {
         while let Some(d) = list.get(next.fetch_add(1, Ordering::Relaxed)) {
             if stop() {
@@ -1367,8 +1369,8 @@ pub fn fetch_files(list: &[Download], dir: &Path, pr: &dyn Progress, cancel: &At
                     done_bytes.fetch_add(d.bytes, Ordering::Relaxed);
                 }
                 Err(e) => {
+                    pr.log(&format!("{e:#}"));
                     failed.lock().unwrap().get_or_insert(e);
-                    return;
                 }
             }
             slot.store(0, Ordering::Relaxed);
@@ -1452,9 +1454,9 @@ fn fetch_file(d: &Download, dir: &Path, slot: &AtomicU64, stop: &dyn Fn() -> boo
                 break s;
             }
             if stop() {
+                // The part is kept: the next run resumes it.
                 let _ = child.kill();
                 let _ = child.wait();
-                let _ = std::fs::remove_file(&part);
                 bail!("cancelled");
             }
             slot.store(std::fs::metadata(&part).map_or(0, |m| m.len()), Ordering::Relaxed);
@@ -1760,6 +1762,14 @@ mod tests {
         assert_eq!(fetch_files(&good, &out, &Stdout, &no).unwrap(), 1);
         assert!(file_done(&out, &good[0]) && file_date(&out, &good[0]).is_some_and(|d| d.len() == 10));
         assert_eq!(fetch_files(&good, &out, &Stdout, &no).unwrap(), 0, "kept");
+        // A failed file leaves the others to finish: the next try fetches only the failed one.
+        let mixed = [
+            Download { file: "x.zip", url, sha256: "00", bytes: 1 },
+            Download { file: "b.zip", url, sha256: sum, bytes: 1 },
+            Download { file: "c.zip", url, sha256: sum, bytes: 1 },
+        ];
+        assert!(fetch_files(&mixed, &out, &Stdout, &no).is_err());
+        assert!(file_done(&out, &mixed[1]) && file_done(&out, &mixed[2]), "the good files done despite x.zip");
         std::fs::remove_dir_all(&d).unwrap();
     }
 

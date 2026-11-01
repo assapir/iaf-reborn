@@ -96,7 +96,8 @@ come to about 10.7 GB with the theatre, against about 20 GB for every variant.
 
 Each step writes a stamp next to its output (`<output>.stamp`). The stamp lists:
 
-- the converters' code (a fingerprint of the iaf-tools, iaf-formats and iaf-setup sources and `Cargo.lock`);
+- the step's code: one fingerprint of the source files that decide its output (the first line, `iaf-setup <hash>`;
+  see "A step's sources" below);
 - every outside file the step reads (the CD image, the patch, the packs, the extra planes), with its size and CRC-32;
 - the stamps of the steps it waits for.
 
@@ -108,6 +109,41 @@ Running setup again is how you add or redo things. The last run's inputs are kep
 fills its pages from them; the CLI uses them when no ISO is given, plus the options given). Add an extra, for example
 `--imagery sentinel2`, and only its steps and the steps that wait for them run.
 
+### A step's sources
+
+New code redoes only the steps whose sources changed, and the steps that wait for them. Each stamped step lists its
+sources in `STEP_SOURCES` (`crates/iaf-setup/src/stamp.rs`). A source is a file, a folder (every file in it) or
+`Cargo.lock:<crate>` (the crate's locked version, for a library that decides the output, such as `image` for the
+pictures). `crates/iaf-setup/build.rs` fingerprints each file. A Rust file's comment lines and `mod x;` lines are
+left out of its fingerprint, because they change no output.
+
+| Steps | Sources (besides iaf-tools' `lib.rs`, iaf-formats' `lib.rs`, `bytes.rs`, `terrain_types.rs`) |
+|---|---|
+| `extract` | `extract.rs`; iso9660, esa, ssf; `explode`; `crates/iaf-setup/src/bodies.rs` |
+| `patch` | `patch.rs`, `rtpatch.rs`, `exe.rs`; `bodies.rs` |
+| `hebrew` | `pack.rs` and extract's sources (the Hebrew CD); `bodies.rs` |
+| `fonts`, `cockpits`, `briefings`, `reference`, `menu`, `menu_he`, `keys`, `missions`, `aircraft`, `objects`, `icon` | `convert.rs` and what it reaches (`aircraft.rs`, `exe.rs`, `gltf.rs`, `mis.rs`, `plane.rs`, `smooth.rs`, `upscale.rs`; emf, ini, menu, model, refs, rtf, winfnt, xfile); `image` |
+| `arm` | as `cockpits`, and `bodies.rs` |
+| `theatre`, `airbases` | `terrain.rs`, `airbases.rs`, `georef.rs`, `imagery.rs`, `runway_fix.rs`, their two data files; ini, lzo, ptt; `image` |
+| `models` | `f15.rs`, `thirdparty.rs`, `data/f15-livery`; ac3d; `image` |
+| `launcher` | `tools/install-launcher.sh`, `tools/windows/install-launcher.ps1` |
+
+`progress.rs` (the log, the threads) is in no step's sources. The steps whose work is in iaf-setup itself (extract,
+patch, hebrew, arm) have their bodies in `crates/iaf-setup/src/bodies.rs` and list that file.
+`crates/iaf-setup/src/steps.rs` (each step's call, and the steps without a stamp) is in no step's sources, so a
+change to a stamped step's call there needs its step redone by hand (`--redo-all`, or the step's stamp deleted). A new step whose work is more than a
+call into iaf-tools puts that work in `bodies.rs`.
+
+To add a stamped step, give it a row in `STEP_SOURCES`: the module its run function calls and every module and data
+file that module reaches. `cargo test -p iaf-setup` checks that every stamped step has a row, that every listed source
+exists, and that a row holds everything its files name (`crate::…`, `iaf_formats::…`, `include_str!` /
+`include_bytes!`).
+
+Before 2026-11-01 every step's stamp held one fingerprint of all of iaf-tools, iaf-formats, iaf-setup and
+`Cargo.lock`, so any code change redid every step. The first run after that change redoes every step once, because
+the old stamps hold the old fingerprint. After that, only the changed steps run. A setup run between that change
+and the move of the step bodies into `bodies.rs` (the same day) sees one more full redo.
+
 The imagery steps keep their own marks per work unit instead: a run converts only the units that are missing or
 were made under older rules, and is up to date when there are none. `scenery-fetch` is up to date when every file has
 its `.ok` mark, `scenery` when its manifest's `made_from` matches (docs/scenery.md §1.5). The guides decide per
@@ -116,7 +152,10 @@ picture.
 The downloads (`scenery-fetch`, `textures`, the Survey sheets) treat a transfer under 1 kB/s for 60 s as a stall and
 try a failed transfer (a stall, a reset connection) 5 more times (`CURL_PATIENCE` in
 `crates/iaf-tools/src/thirdparty.rs`). `scenery-fetch` and the Survey sheets keep a failed file's `.part`, so the
-next run resumes it; a server that cannot resume starts the file again.
+next run resumes it; a server that cannot resume starts the file again. A file that fails does not stop the others
+downloading beside it: they finish, the failure is logged with the file's name, and the rest of the theatre's
+scenery then tries only the failed files once more. Before 2026-11-01 one failure stopped the others and deleted their
+parts, so they started from zero again (a user's log: 124 MB at 0.1 MB/s).
 
 ## Uninstall
 

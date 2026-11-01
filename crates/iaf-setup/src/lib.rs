@@ -13,6 +13,7 @@ use std::sync::mpsc;
 use anyhow::Result;
 use iaf_tools::progress::Progress;
 
+mod bodies;
 mod checks;
 mod saved;
 mod stamp;
