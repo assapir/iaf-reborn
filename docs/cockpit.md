@@ -411,8 +411,11 @@ place of the 2D panel art. Today the F-16's, for the Barak and the Sufa; other j
   FlightGear's wide-angle HUD (`f16_war.xml`). An F-16I seen from the side shows one large combiner plate over a deep
   box (IDF Spokesperson's Unit, CC BY-SA 3.0, `File:Israeli_attacks_on_Yemen,_January_2025._XV.jpg` on Wikimedia
   Commons; a reference only); the wide-angle HUD is the closer of FlightGear's two (inferred), the Elbit HUD's own
-  shape and field are open. 59.5 k triangles in the file, about 54 k drawn (one HUD); 121 materials (FlightGear's
-  duplicates merged), 152 surfaces.
+  shape and field are open. The photo's combiner plate stands free between two black side posts: the wide-angle HUD's
+  bar over the glass and the lid on it (`HUDtop` with its screws) are left out (they sat at the eye's height and
+  closed the frame into a black loop around the view), and the plate's 2 cm rim (`HUDedge`, opaque in the source) is
+  a faint amber glass (25 % opaque; `cockpit3d.py` `hud_wide_top`). 54.8 k triangles in the file, about 54 k drawn
+  (one HUD); 121 materials (FlightGear's duplicates merged), 152 surfaces.
 * Left out: the seat, canopy frame and rear cockpit (the detailed F-16's cut model draws them, aircraft-models.md
   §1.4), the kneeboards, helmet and pilot.
 * The altimeter is ours: FlightGear's comes from FGData, outside the package. The ASI's mount and dial plate copied
@@ -507,7 +510,22 @@ place of the 2D panel art. Today the F-16's, for the Barak and the Sufa; other j
   * the DED (384 x 128 px): the CNI page's steerpoint (line 1) and time of day (line 3), green. Its radio and IFF
     fields are left out: the game has no radios to tune.
 * **Not driven** (open): the hydraulic, cabin, EPU and oxygen gauges, the ADI's glide slope, turn needle and slip
-  ball (the state has no turn rate or lateral acceleration); the PFD; the panel and flood lights at night.
+  ball (the state has no turn rate or lateral acceleration); the PFD.
+* **Light** (`cockpit3d.gd` `_lighting`, ours): FlightGear's ALS lights its interior with its own lights; with only the
+  scene's light the panel was dark blue-grey (the sun stays outside the glareshield and the tub, leaving the sky's blue
+  ambient). The panels', consoles' and instruments' materials also glow by their own texture × a colour, a flat fill
+  (not the lamps, nor the tub's floor, walls and pedal area, the air vents and the stick: `UNLIT`, where the fill showed
+  the floor texture's speckle): by day the sun's colour × 0.8 × its energy, so the labels read and dusk dims it. At the
+  cockpit's night (`cockpit.night`, the rule that darkens the 2D panel, `time_of_day.gd` `cockpit_night`, set at the
+  mission's start) the colour is FlightGear's flood light (`panel-standard.eff` `lightmap-color` 0.45, 0.34, 0.18; ×0.5)
+  plus its backlight (its implicit lightmap's `emit-color` 0.476, 0.9, 0.161; ×0.25): the white labels, dial marks, ICP
+  keys and the AoA tape light green, the dark paint stays dark (FlightGear lights only the texels near its tag colour;
+  the texture × colour is the cheap stand-in, inferred). The lamps (lit by their state), the MFDs, the RWR scope, EHSI
+  and DED (self-lit screens) and the HUD are as by day. Cost (`_flight_bench.gd`, Iris Xe, 1920×1080,
+  `BENCH_SET=cockpit_3d=3d`, 2026-11-01): GPU +0.3 ms at 150 m, +0.2 ms at 1,500 m by day, none at night.
+* **Fill light, tried and dropped (2026-11-01):** a shadowless OmniLight3D 25 cm above the eye (2.5 m range, the
+  sun's colour by day, the flood colour at night) shaded the panel well, but cost 1.9 ms GPU at 150 m and 1.2 ms at
+  1,500 m on the Iris Xe (the cockpit fills half the screen); the texture-times-colour fill replaced it.
 
 ## Horizon / RWR / ADI sections
 Per cockpit: the `[HORIZON]` horizon disc (on the panel, or with OnMfd 1 on an MFD page), the `[LENHORIZON]` lens ADI
