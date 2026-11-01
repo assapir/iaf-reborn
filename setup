@@ -32,6 +32,6 @@ command -v "$godot" >/dev/null || { tell "Setup needs Godot 4.7. Install it: $in
 
 echo "building the game's extension (the first time takes a few minutes)…"
 cargo build --release -p iaf-godot
-# Godot loads iaf.gdextension only once an import has listed it (a fresh clone has no game/.godot).
-[[ -f game/.godot/extension_list.cfg ]] || "$godot" --headless --path game --import >/dev/null 2>&1
+# Godot's import on a fresh clone and after a pull with new shaders or textures (tools/godot_import.sh).
+tools/godot_import.sh "$godot"
 exec "$godot" --path game --resolution 1200x820 res://setup/wizard.tscn

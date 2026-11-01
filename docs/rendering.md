@@ -1143,7 +1143,10 @@ a small cost. The parts:
    wings), 0.5 % of the span outside the skin; or its EndWing helpers when they sit at the wingtips within the mesh
    (the F-16's sit a third of the way out, the F-15's 0.1 m past its tips: the mesh's tips then). The tail light is
    the body's rearmost point on the centre line (not the hook or the gear); with twin fins (F-15) it sits on the
-   strobe's fin, at its trailing edge. Cached per model. By day the jets' lights glow at 12 %, dimmer than the
+   strobe's fin, at its trailing edge. A helicopter (CH-53, Mi-8, Mi-24, UH-60) leaves its rotors out (their blade
+   tips turn): its red and green lights are a mirrored pair on the cabin's widest point in its front 60 %, above the
+   gear's lowest quarter (the CH-53's sponsons, the Mi-24's stub wings). Cached per file drawn (the Detailed model and
+   the Sufa have their own). By day the jets' lights glow at 12 %, dimmer than the
    ground lights' 35 %. The cockpit-view model (`<plane>_bc`) carries its own set
    at its own wingtips, tail and fin top, so you see your wingtip lights when you look aside from the cockpit. The
    lights go out when the jet is hit, falls or is destroyed (damage state 3 and above), and when the player crashes.
@@ -1198,14 +1201,33 @@ from OpenStreetMap and the Microsoft footprints, credited with the scenery (docs
 
 **Where the buildings come from:**
 
-- the scenery cells (`assets/converted/scenery/L1`), and
-- setup's light cells (`assets/converted/scenery/lights/L1`, `iaf_tools::scenery::build_lights`, made by the
-  scenery step after the cells; by hand `iaf-scenery lights assets`). The scenery stops where the Survey photo stops:
-  the kept target insets (imagery.md §3: a target site keeps its 1998 art), Tel Aviv's coast among them. The light
-  cells hold, per level-1 node of map.ptt's Israel region, the buildings the scenery cell of that node lacks, by the
-  scenery's rules otherwise (`Rules::lights_open`: on land, off the airbases; the units' clearances; World scale
-  Real's sites), with no photo test and no roof colour. The town in an inset is lit at night; its ground stays the
-  1998 art.
+- the scenery cells (`assets/converted/scenery/L1`): the Survey layer's and the rest of the theatre's (scenery.md
+  §1.7: Lebanon, Syria, Jordan, Egypt and Cyprus, and the Israel region beyond the photo), and
+- setup's light cells (`assets/converted/scenery/lights/L1`, made by the scenery step after the cells; by hand
+  `iaf-scenery lights assets`). The scenery stops where the Survey photo stops: the kept target insets (imagery.md
+  §3: a target site keeps its 1998 art), Tel Aviv's coast among them. The light cells hold, per level-1 node, the
+  buildings the scenery cell of that node lacks, by the scenery's rules otherwise (on land, off the airbases; the
+  units' clearances; World scale Real's sites), with no photo test and no roof colour: over the Survey layer
+  `iaf_tools::scenery::build_lights`, elsewhere `build_theatre` (the kept insets abroad, Damascus's among them, and
+  the nodes the Sentinel-2 layer lacks). The town in an inset is lit at night; its ground stays the 1998 art.
+
+  Beyond the Survey layer the light cells also hold stand-ins where the footprints are sparse in a town
+  (`scenery::fill_lights`): Microsoft's footprints miss most of a dense old centre (central Damascus: about 4 200 in
+  7 km², a few times fewer than Tel Aviv's centre holds). Each GHS-BUILT-H square (about 100 m) whose average building
+  height is 7 m or more gets 12 m squares, its height, until it holds 8 footprints. The height marks a town's blocks
+  of flats (Damascus 14–18 m, Cairo 27 m, Amman 14 m, a Nile delta village 14 m; a village of houses 0–6 m).
+
+  The look to aim for is the region on night satellite imagery, NASA's Black Marble (VIIRS day-night band): Cairo and
+  the Nile delta the brightest, the valley a thread of lights up the river; the coast from Gaza to Beirut a near
+  unbroken band; Amman and Damascus bright blobs inland; Cyprus' towns on its coast[^black-marble-nile]. Syria's
+  lights fell by 83 % from 2011 to 2015 (Aleppo 97 %, Damascus 35 %)[^syria-lights]; the lights here are the buildings'
+  and lit as Israel's, as the region looked before (the game is set in the 1990s).
+
+  Measured 2026-10-30 (`iaf-scenery theatre`, scenery.md §1.7): 5529 light cells, 911 289 buildings beyond the
+  theatre's cells, most of them stand-ins. Cost at night (`BENCH_TOGGLE=_city_lights`, 3000 m at 250 m/s,
+  `BENCH_HOUR=22`, one run each on a quiet machine): over Beirut 15.01 → 16.01 ms GPU (+1.0 ms), over Damascus
+  15.41 → 16.38 ms (+1.0 ms), as over Tel Aviv (below). The towns' haze (below) spans the whole theatre: 250 m squares, 3254 ×
+  about 4230 (13.8 MB, with its mipmaps 18 MB).
 
   Measured 2026-10-28: 39 s, 3 004 light cells, 597 870 buildings (41 MB) beyond the scenery's 2.08 M: 275 000 in
   nodes the Survey layer lacks (Gaza and the West Bank inside the region, about 60 000 in Tel Aviv's inset), the
@@ -1293,7 +1315,8 @@ night-dark between them:
   They fade out over the last 20 % of 120 km. From 8000 m over the coast the towns show as a lit carpet to the
   horizon. Before (2026-10-28) they dimmed by half the fog and stopped at 60 km: the coast beyond read dark.
 - **The haze** over the dense lamp clusters: the lights thread sums every light's brightness per 125 m square (an R8
-  texture of 1 221 × 3 356 with its mipmaps, 5.5 MB). The terrain shader and the scenery's wall shaders read it per
+  texture with its mipmaps; over Israel 1 221 × 3 356, 5.5 MB). Over a box wider than 4500 squares the square grows
+  by whole steps of 125 m: with the rest of the theatre's lights, 250 m (3254 × about 4230, 18 MB with the mipmaps). The terrain shader and the scenery's wall shaders read it per
   vertex (a building at its centre) and add a faint sodium emission, the summed brightness to the power 1.5, mostly
   flat and a fifth of it the surface's own colour (`terrain/city_glow.gdshaderinc`): a dense centre glows softly, a
   suburb's sparse lamps hardly. It is a global shader parameter: off (k = 0) by day, with Night lights Original and
@@ -1337,9 +1360,8 @@ Tried and dropped (2026-10-28):
 
 Open:
 
-- Outside map.ptt's Israel region (Damascus, Amman, Cairo) there are no city lights: the building sources cover
-  Israel, the West Bank and Gaza only.
-- Outside the buildings' coverage a town has only its road lamps: no windows, no porch lights, no haze.
+- Turkey's Hatay strip and Saudi Arabia's north-west corner of the theatre have no building source (scenery.md §1.7):
+  their towns are dark.
 - With Anti-aliasing TAA the far 1-pixel points are softer and dimmer than with MSAA (the temporal blend averages a
   point that is under a pixel).
 - From above the cloud layer (`night_high`: 8000 m in mission 231, the layer at 7000 m) the moonlit deck covers the
@@ -1469,8 +1491,11 @@ of the camera (the player's and AI jets). With Detailed they replace the origina
   and then breaks up into noise. It fades in over the first 0.5 m behind the tip (per pixel: one frame's segment is
   several metres long), so it has no cut end. Each point
   drifts at 2.5 m/s in a spiral around the trail (the two tips turning opposite ways) and sinks at 0.6 m/s with the
-  downwash, so the wisp twists and wavers (inferred). The tips are the model's outermost vertices (the night lights'
-  wingtip spots, `night_lights.gd`): on the F-16 the aft fin of the wingtip missile, the tip's trailing edge.
+  downwash, so the wisp twists and wavers (inferred). The tips are the outermost vertices of the model's meshes, its
+  root mesh (the fuselage and wings) included (the night lights' wingtip spots, `night_lights.gd`): on the F-16 the
+  aft fin of the wingtip missile, the tip's trailing edge. Until 2026-10-30 the root mesh was left out, so the tips
+  sat at the ailerons' outer ends (the F-15's 0.9 m inboard) and the jet's length was the moving parts'; the LEX
+  spots below were re-based then to keep their places on each model.
   Strength follows the physics under one fixed humidity. The lift per span is ρ·V·Γ[^kj], so the tip vortex's
   circulation Γ grows with the lift; the core's pressure (and so temperature) drop grows with Γ², which for a given wing
   is ∝ n·CL·(W/S) (inferred). CL = n·(W/S) / q from the load factor n and the dynamic pressure q (ISA density at the
@@ -2142,5 +2167,11 @@ floor.
     https://www.gov.il/BlobFolder/policy/2020_tamrur_0/he/%D7%AA%D7%A7%D7%A0%D7%95%D7%AA%20%D7%95%D7%94%D7%A0%D7%97%D7%99%D7%95%D7%AA%20%D7%9C%D7%94%D7%A6%D7%91%D7%AA%20%D7%AA%D7%9E%D7%A8%D7%95%D7%A8%D7%99%D7%9D%202024.pdf
 [^sleeper]: Wikipedia, "Railroad tie" (sleepers 2.59 m long and 0.25 m wide; concrete ties every 61 cm):
     https://en.wikipedia.org/wiki/Railroad_tie
+[^black-marble-nile]: NASA Earth Observatory, "City Lights Illuminate the Nile" (VIIRS day-night band, Suomi NPP,
+    2012-10-13): https://www.earthobservatory.nasa.gov/images/79807/city-lights-illuminate-the-nile ; NASA Black
+    Marble: https://blackmarble.gsfc.nasa.gov/
+[^syria-lights]: Human Rights Watch, "Syria: 83% of Lights Extinguished After 4 Years of Crisis" (Wuhan University's
+    analysis of night-time satellite images, 2015-03-12):
+    https://www.hrw.org/news/2015/03/12/syria-83-lights-extinguished-after-4-years-crisis
 [^lamp-height]: Matamata-Piako District Council, Development Manual, Part 3 (street lighting: preferred mounting heights 6 m
     residential, 7 m industrial): https://www.mpdc.govt.nz/wmmp/120-district-plan/mpdc-development-manual/1887-part-3-3142

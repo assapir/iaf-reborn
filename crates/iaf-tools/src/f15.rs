@@ -19,6 +19,10 @@
 //!    `data/f15-livery`) projected onto the skin by their places on the jet;
 //! 6. writes a binary glTF with smooth normals (AC3D crease angles) and its JPEG / PNG textures inside; the game
 //!    compresses them at the parse and makes the LODs (util/gltf.gd).
+//!
+//! The same files also make the F-15I Ra'am ([`OUTPUT_I`], Extras "F-15 version"; docs/aircraft-models.md §6.7):
+//! FlightGear's two-seat canopy, conformal tanks with their pylons, rear cockpit and back-seater, in its IAF livery
+//! (F-15I 269 of 69 Squadron) as it comes.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -97,6 +101,18 @@ pub const SOURCE: &[Download] = &[
         bytes: 87_169,
     },
     Download {
+        file: "livery.IAF.jpg",
+        url: raw!("Liveries/livery.IAF%20235-69%20SQ%20HAMMERS.jpg"),
+        sha256: "1d5b04ebfe380dc75c697b696250acab45659b6d7be040ff983514aebf3596e4",
+        bytes: 555_660,
+    },
+    Download {
+        file: "f15-interior-back.ac",
+        url: raw!("Cockpit/f15-interior-back.ac"),
+        sha256: "8b392f5247992f991ae5836a1a6ad15eb189a5ff1631659e2591aa196500f54f",
+        bytes: 1_044_690,
+    },
+    Download {
         file: "patch.IAF.jpg",
         url: raw!("Liveries/patch.IAF.jpg"),
         sha256: "19949fa632d95b249b1cec070f382866b8508e42839b1a006485a976fa3da22a",
@@ -106,22 +122,26 @@ pub const SOURCE: &[Download] = &[
 
 /// The game's file, under `assets/`.
 pub const OUTPUT: &str = "converted/models/f15/f15c.glb";
+/// The F-15I Ra'am's (Extras "F-15 version" on Ra'am), under `assets/`.
+pub const OUTPUT_I: &str = "converted/models/f15/f15i.glb";
 
 /// Setup's step (and `iaf-convert f15-detailed`): the sources into `<assets>/source/f15` (the files there kept),
-/// then the model at `<assets>/`[`OUTPUT`].
-pub fn setup(assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Stats> {
+/// then the models at `<assets>/`[`OUTPUT`] and [`OUTPUT_I`].
+pub fn setup(assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     let src = assets.join("source/f15");
     crate::thirdparty::fetch_files(SOURCE, &src, pr, cancel)?;
-    pr.log("converting the FlightGear F-15C");
-    let st = build(&src, &assets.join("converted/planes/f15"), &assets.join(OUTPUT))?;
-    pr.log(&format!("{OUTPUT}: {} triangles, {:.1} MB (scale {:.4})", st.triangles, st.bytes as f64 / 1e6, st.scale));
-    Ok(st)
+    for (out, raam) in [(OUTPUT, false), (OUTPUT_I, true)] {
+        pr.log(if raam { "converting the FlightGear F-15 as the F-15I" } else { "converting the FlightGear F-15C" });
+        let st = build(&src, &assets.join("converted/planes/f15"), &assets.join(out), raam)?;
+        pr.log(&format!("{out}: {} triangles, {:.1} MB (scale {:.4})", st.triangles, st.bytes as f64 / 1e6, st.scale));
+    }
+    Ok(())
 }
 
 /// A hinge from f15c.xml in FlightGear's frame (x aft, y right, z up, metres): two points on the line.
-type Hinge = ([f32; 3], [f32; 3]);
+pub(crate) type Hinge = ([f32; 3], [f32; 3]);
 
-const fn axis_y(c: [f32; 3]) -> Hinge {
+pub(crate) const fn axis_y(c: [f32; 3]) -> Hinge {
     (c, [c[0], c[1] + 1.0, c[2]])
 }
 
@@ -208,16 +228,15 @@ const DOORS: &[Door] = &[
     },
 ];
 
-/// Groups and objects of f15c.ac left out: the stores and their rails (the game hangs its own), the two-seat
-/// canopy, the conformal tanks, the ladder, the radio call plates, the collision hull, and the canopy's rivet
-/// heads (60 000 triangles), inside glass, mirrors, lamps and wire (inside the canopy, textures we do not read).
+/// Groups and objects of f15c.ac left out of both: the stores and their rails (the game hangs its own), the ladder,
+/// the radio call plates, the collision hull, and the canopy's rivet heads (60 000 triangles), inside glass,
+/// mirrors, lamps and wire (inside the canopy, textures we do not read).
 const DROP: &[&str] = &[
     "aim-9",
     "aim-120",
     "mk-84",
     "aim-7",
     "tanks",
-    "f15d-canopy",
     "lau128-l1",
     "lau128-l2",
     "lau128-r1",
@@ -226,10 +245,6 @@ const DROP: &[&str] = &[
     "adu552-l2",
     "adu552-r1",
     "adu552-r2",
-    "CFT-left",
-    "CFT-right",
-    "CFT-left-pylons",
-    "CFT-right-pylons",
     "aircraft-ladder",
     "radio-call",
     "convexhull",
@@ -247,6 +262,16 @@ const DROP: &[&str] = &[
     "CanopyWire",
     "CanopyBackCover",
 ];
+
+/// Left out of the F-15C only: the two-seat canopy and the conformal tanks with their pylons.
+const DROP_C: &[&str] = &["f15d-canopy", "CFT-left", "CFT-right", "CFT-left-pylons", "CFT-right-pylons"];
+/// Left out of the F-15I only: the single-seat canopy (with the cover behind the seat).
+const DROP_I: &[&str] = &["f15c-canopy"];
+/// The rear cockpit's parts kept from f15-interior-back.ac (the F-15I's): its tub, side consoles, glare shield,
+/// instrument panel and seat (the rudder pedals are left out).
+const COCKPIT_BACK: &[&str] = &["interior-back", "Consoles", "InsideStructure"];
+/// The back-seater: FlightGear's pilot moved by f15c.xml's offset ("Backseater"; FlightGear's frame, m).
+const BACKSEATER: [f32; 3] = [1.4635, -0.0088, 0.1375];
 
 /// The front cockpit's parts kept from f15c-interior-front.ac (the tub, glare shields and the ACES II seat; the
 /// instrument panel and pedals are left out).
@@ -269,38 +294,38 @@ const TEXTURES: &[(&str, &str)] = &[
 ];
 
 /// FlightGear's frame (x aft, y right, z up) -> ours (x right, y up, z aft).
-fn fg(p: [f32; 3]) -> [f32; 3] {
+pub(crate) fn fg(p: [f32; 3]) -> [f32; 3] {
     [p[1], p[2], p[0]]
 }
 
 /// An AC3D file's frame (x aft, y up, z left) -> ours.
-fn ac(p: [f32; 3]) -> [f32; 3] {
+pub(crate) fn ac(p: [f32; 3]) -> [f32; 3] {
     [-p[2], p[1], p[0]]
 }
 
-type V = [f32; 3];
-fn sub(a: V, b: V) -> V {
+pub(crate) type V = [f32; 3];
+pub(crate) fn sub(a: V, b: V) -> V {
     [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
 }
-fn add(a: V, b: V) -> V {
+pub(crate) fn add(a: V, b: V) -> V {
     [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
 }
-fn scale(a: V, s: f32) -> V {
+pub(crate) fn scale(a: V, s: f32) -> V {
     [a[0] * s, a[1] * s, a[2] * s]
 }
-fn dot(a: V, b: V) -> f32 {
+pub(crate) fn dot(a: V, b: V) -> f32 {
     a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 }
-fn cross(a: V, b: V) -> V {
+pub(crate) fn cross(a: V, b: V) -> V {
     [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
 }
-fn norm(a: V) -> V {
+pub(crate) fn norm(a: V) -> V {
     let l = dot(a, a).sqrt();
     if l > 0.0 { scale(a, 1.0 / l) } else { a }
 }
 
 /// `p` turned by `deg` about the line through `c` along unit `axis` (right hand).
-fn rotate(p: V, c: V, axis: V, deg: f32) -> V {
+pub(crate) fn rotate(p: V, c: V, axis: V, deg: f32) -> V {
     let (s, co) = deg.to_radians().sin_cos();
     let v = sub(p, c);
     let r = add(add(scale(v, co), scale(cross(axis, v), s)), scale(axis, dot(axis, v) * (1.0 - co)));
@@ -309,7 +334,7 @@ fn rotate(p: V, c: V, axis: V, deg: f32) -> V {
 
 /// A triangle soup of one material: corners (position, normal, uv).
 #[derive(Default)]
-struct Soup {
+pub(crate) struct Soup {
     pos: Vec<V>,
     nrm: Vec<V>,
     uv: Vec<[f32; 2]>,
@@ -317,39 +342,40 @@ struct Soup {
 
 /// What a surface is painted with.
 #[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-struct Mat {
+pub(crate) struct Mat {
     /// Our texture's name, or "" for a plain colour.
-    texture: &'static str,
+    pub(crate) texture: &'static str,
     /// sRGB colour × 255, alpha × 255.
-    rgba: [u8; 4],
-    two_sided: bool,
+    pub(crate) rgba: [u8; 4],
+    pub(crate) two_sided: bool,
 }
 
 /// A triangle: its paint, corners, corner normals and uvs.
-type Tri = (Mat, [V; 3], [V; 3], [[f32; 2]; 3]);
+pub(crate) type Tri = (Mat, [V; 3], [V; 3], [[f32; 2]; 3]);
 
 /// One AC3D object made into triangles in our frame, with smooth normals.
-struct Piece {
-    name: String,
-    top: String,
-    tris: Vec<Tri>,
+pub(crate) struct Piece {
+    pub(crate) name: String,
+    pub(crate) top: String,
+    pub(crate) tris: Vec<Tri>,
 }
 
 impl Piece {
     /// One of `names`, itself or its top-level group.
-    fn is(&self, names: &[&str]) -> bool {
+    pub(crate) fn is(&self, names: &[&str]) -> bool {
         names.contains(&self.name.as_str()) || names.contains(&self.top.as_str())
     }
 }
 
-fn pieces(m: &ac3d::Model, f: impl Fn(V) -> V) -> Vec<Piece> {
+/// `textures`: the AC3D files' texture names -> ours (any other texture: a dark grey).
+pub(crate) fn pieces(m: &ac3d::Model, f: impl Fn(V) -> V, textures: &[(&str, &'static str)]) -> Vec<Piece> {
     let mut out = Vec::new();
     for o in &m.objects {
         if o.surfaces.is_empty() {
             continue;
         }
         let verts: Vec<V> = o.verts.iter().map(|v| f(*v)).collect();
-        let texture = o.texture.as_deref().map(|t| TEXTURES.iter().find(|(n, _)| *n == t).map_or("?", |x| x.1));
+        let texture = o.texture.as_deref().map(|t| textures.iter().find(|(n, _)| *n == t).map_or("?", |x| x.1));
         let glass = o.name.contains("Glass");
         // Face normals (Newell), then per position the faces about it.
         let faces: Vec<V> = o
@@ -429,25 +455,26 @@ fn pieces(m: &ac3d::Model, f: impl Fn(V) -> V) -> Vec<Piece> {
     out
 }
 
-fn srgb8(c: f32) -> u8 {
+pub(crate) fn srgb8(c: f32) -> u8 {
     (c.clamp(0.0, 1.0) * 255.0).round() as u8
 }
 
 /// The original model's facts the detailed one is fitted to (its glTF and descriptor).
-struct Original {
+pub(crate) struct Original {
     /// Helper nodes (no mesh) and their position under the root.
-    helpers: Vec<(String, V)>,
-    root_translation: V,
+    pub(crate) helpers: Vec<(String, V)>,
+    pub(crate) root_translation: V,
     /// The body mesh's bounds.
-    lo: V,
-    hi: V,
+    pub(crate) lo: V,
+    pub(crate) hi: V,
     /// Part name -> axis (unit) from aircraft.json.
-    axes: HashMap<String, V>,
+    pub(crate) axes: HashMap<String, V>,
 }
 
-fn original(dir: &Path) -> Result<Original> {
-    let g: Value =
-        serde_json::from_slice(&std::fs::read(dir.join("f15_h.gltf")).context("the original F-15 (f15_h.gltf)")?)?;
+/// The original model `<dir>/<name>_h.gltf` (its root node `name`) and its descriptor.
+pub(crate) fn original(dir: &Path, name: &str) -> Result<Original> {
+    let file = format!("{name}_h.gltf");
+    let g: Value = serde_json::from_slice(&std::fs::read(dir.join(&file)).with_context(|| file.clone())?)?;
     let d: Value = serde_json::from_slice(&std::fs::read(dir.join("aircraft.json"))?)?;
     let nodes = g["nodes"].as_array().context("nodes")?;
     let t = |n: &Value| -> V {
@@ -458,7 +485,7 @@ fn original(dir: &Path) -> Result<Original> {
             m[14].as_f64().unwrap_or(0.0) as f32,
         ]
     };
-    let root = nodes.iter().find(|n| n["name"] == "f15").context("no f15 root")?;
+    let root = nodes.iter().find(|n| n["name"] == name).context("no root")?;
     let acc = &g["accessors"]
         [g["meshes"][root["mesh"].as_u64().context("root mesh")? as usize]["primitives"][0]["attributes"]["POSITION"]
             .as_u64()
@@ -490,10 +517,10 @@ fn original(dir: &Path) -> Result<Original> {
 }
 
 /// One node of the output: name, position (under the root), triangles in its own frame.
-struct Node {
-    name: String,
-    at: V,
-    tris: Vec<Tri>,
+pub(crate) struct Node {
+    pub(crate) name: String,
+    pub(crate) at: V,
+    pub(crate) tris: Vec<Tri>,
 }
 
 /// What [`build`] made.
@@ -503,19 +530,22 @@ pub struct Stats {
     pub scale: f32,
 }
 
-/// Makes `out` (the glb) from the downloaded files in `src` and the original F-15 in `orig` (its converted folder).
-pub fn build(src: &Path, orig: &Path, out: &Path) -> Result<Stats> {
-    let o = original(orig)?;
+/// Makes `out` (the glb) from the downloaded files in `src` and the original F-15 in `orig` (its converted folder):
+/// the F-15C 802, or with `raam` the F-15I.
+pub fn build(src: &Path, orig: &Path, out: &Path, raam: bool) -> Result<Stats> {
+    let o = original(orig, "f15")?;
     let read = |f: &str| -> Result<ac3d::Model> {
         let b = std::fs::read(src.join(f)).with_context(|| format!("reading {f}"))?;
         ac3d::parse(&String::from_utf8_lossy(&b)).with_context(|| f.to_string())
     };
     let main = read("f15c.ac")?;
-    let mut all: Vec<Piece> = pieces(&main, ac).into_iter().filter(|p| !p.is(DROP)).collect();
+    let variant_drop = if raam { DROP_I } else { DROP_C };
+    let mut all: Vec<Piece> =
+        pieces(&main, ac, TEXTURES).into_iter().filter(|p| !p.is(DROP) && !p.is(variant_drop)).collect();
     let skin: Vec<Skin> =
         all.iter().flat_map(|p| &p.tris).filter(|t| t.0.texture == "livery").map(|t| (t.1, t.2, t.3)).collect();
     for (file, c) in NOZZLES {
-        for mut p in pieces(&read(file)?, ac) {
+        for mut p in pieces(&read(file)?, ac, TEXTURES) {
             let k: f32 = p.name.rsplit_once('.').and_then(|(_, k)| k.parse().ok()).unwrap_or(0.0);
             for t in &mut p.tris {
                 t.1 = t.1.map(|v| rotate(v, fg(*c), [0.0, 0.0, 1.0], 22.5 * k));
@@ -525,13 +555,23 @@ pub fn build(src: &Path, orig: &Path, out: &Path) -> Result<Stats> {
             all.push(p);
         }
     }
-    for mut p in pieces(&read("pilot.ac")?, ac) {
-        p.top = "pilot".into();
-        all.push(p);
+    let pilot = read("pilot.ac")?;
+    for seat in if raam { &[[0.0; 3], BACKSEATER][..] } else { &[[0.0; 3]][..] } {
+        for mut p in pieces(&pilot, |v| add(ac(v), fg(*seat)), TEXTURES) {
+            p.top = "pilot".into();
+            all.push(p);
+        }
     }
-    for p in pieces(&read("f15c-interior-front.ac")?, ac) {
+    for p in pieces(&read("f15c-interior-front.ac")?, ac, TEXTURES) {
         if COCKPIT.contains(&p.top.as_str()) {
             all.push(Piece { top: "cockpit".into(), ..p });
+        }
+    }
+    if raam {
+        for p in pieces(&read("f15-interior-back.ac")?, ac, TEXTURES) {
+            if COCKPIT_BACK.contains(&p.top.as_str()) {
+                all.push(Piece { top: "cockpit".into(), ..p });
+            }
         }
     }
 
@@ -658,8 +698,27 @@ pub fn build(src: &Path, orig: &Path, out: &Path) -> Result<Stats> {
 
     let body = Node { name: "f15".into(), at: [0.0; 3], tris: all.into_iter().flat_map(|p| p.tris).collect() };
     let triangles = body.tris.len() + nodes.iter().map(|n| n.tris.len()).sum::<usize>();
-    let livery = livery(src, &skin)?;
-    let glb = write_glb(body, o.root_translation, nodes, helpers, src, &livery)?;
+    let livery = if raam { image::open(src.join("livery.IAF.jpg"))?.to_rgba8() } else { livery(src, &skin)? };
+    let mut jpg = Vec::new();
+    image::DynamicImage::ImageRgba8(livery)
+        .to_rgb8()
+        .write_with_encoder(image::codecs::jpeg::JpegEncoder::new_with_quality(&mut jpg, 92))?;
+    let mut images = Vec::new();
+    for (_, ours) in TEXTURES {
+        images.push(if *ours == "livery" {
+            (*ours, jpg.clone(), "image/jpeg")
+        } else {
+            (*ours, std::fs::read(src.join(ours))?, if ours.ends_with(".png") { "image/png" } else { "image/jpeg" })
+        });
+    }
+    let glb = write_glb(
+        body,
+        o.root_translation,
+        nodes,
+        helpers,
+        &images,
+        "FlightGear F-15C: Enrique Laso, Richard Harrison, GeneB (GPL-2.0-only)",
+    )?;
     if let Some(d) = out.parent() {
         std::fs::create_dir_all(d)?;
     }
@@ -937,13 +996,14 @@ fn paint(img: &mut RgbaImage, skin: &[Skin]) -> Result<()> {
 
 /// The binary glTF: the body as the root mesh `f15` (at `root`, the original's), the parts and helpers under it
 /// (every position in the root's frame).
-fn write_glb(
+/// `images`: each texture's name (the triangles' `Mat::texture`), its file's bytes and MIME type.
+pub(crate) fn write_glb(
     body: Node,
     root: V,
     parts: Vec<Node>,
     helpers: Vec<(String, V)>,
-    src: &Path,
-    livery: &RgbaImage,
+    images_in: &[(&'static str, Vec<u8>, &'static str)],
+    copyright: &str,
 ) -> Result<Vec<u8>> {
     let mut bin: Vec<u8> = Vec::new();
     let (mut views, mut accessors, mut meshes, mut nodes) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
@@ -959,21 +1019,11 @@ fn write_glb(
         views.push(v);
         views.len() - 1
     };
-    // Images: the livery as JPEG, the others as they come.
     let mut images = Vec::new();
     let mut tex_index: HashMap<&str, usize> = HashMap::new();
-    let mut jpg = Vec::new();
-    image::DynamicImage::ImageRgba8(livery.clone())
-        .to_rgb8()
-        .write_with_encoder(image::codecs::jpeg::JpegEncoder::new_with_quality(&mut jpg, 92))?;
-    for (_, ours) in TEXTURES {
-        let (bytes, mime) = if *ours == "livery" {
-            (jpg.clone(), "image/jpeg")
-        } else {
-            (std::fs::read(src.join(ours))?, if ours.ends_with(".png") { "image/png" } else { "image/jpeg" })
-        };
-        let v = view(&mut bin, &bytes, None);
-        tex_index.insert(ours, images.len());
+    for (name, bytes, mime) in images_in {
+        let v = view(&mut bin, bytes, None);
+        tex_index.insert(name, images.len());
         images.push(json!({"bufferView": v, "mimeType": mime}));
     }
     let mut mats: Vec<Mat> = Vec::new();
@@ -1077,6 +1127,8 @@ fn write_glb(
             let mut v = json!({"name": format!("m{i}"), "pbrMetallicRoughness": pbr, "doubleSided": m.two_sided});
             if m.rgba[3] < 255 {
                 v["alphaMode"] = json!("BLEND");
+            } else if m.texture.ends_with("_clip") {
+                v["alphaMode"] = json!("MASK"); // a marking: its texture's alpha cuts it out
             }
             v
         })
@@ -1088,8 +1140,8 @@ fn write_glb(
     let doc = json!({
         "asset": {
             "version": "2.0",
-            "generator": "iaf-reborn iaf-convert f15-detailed",
-            "copyright": "FlightGear F-15C: Enrique Laso, Richard Harrison, GeneB (GPL-2.0-only)"
+            "generator": "iaf-reborn iaf-convert",
+            "copyright": copyright
         },
         "scene": 0,
         "scenes": [{"nodes": [nodes.len() - 1]}],
@@ -1181,11 +1233,13 @@ mod tests {
             return;
         }
         let out = std::env::temp_dir().join(format!("iaf-f15-{}.glb", std::process::id()));
-        let st = build(&src, &a.join("converted/planes/f15"), &out).unwrap();
-        let glb = std::fs::read(&out).unwrap();
-        std::fs::remove_file(&out).unwrap();
-        assert!(glb.starts_with(b"glTF") && glb.len() == st.bytes);
-        assert!((30_000..60_000).contains(&st.triangles), "{} triangles", st.triangles);
-        assert!((st.scale - 1.0).abs() < 0.05, "scale {}", st.scale);
+        for raam in [false, true] {
+            let st = build(&src, &a.join("converted/planes/f15"), &out, raam).unwrap();
+            let glb = std::fs::read(&out).unwrap();
+            std::fs::remove_file(&out).unwrap();
+            assert!(glb.starts_with(b"glTF") && glb.len() == st.bytes);
+            assert!((30_000..70_000).contains(&st.triangles), "raam {raam}: {} triangles", st.triangles);
+            assert!((st.scale - 1.0).abs() < 0.05, "scale {}", st.scale);
+        }
     }
 }

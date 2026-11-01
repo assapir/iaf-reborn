@@ -663,8 +663,6 @@ Where our port differs from the original. Everything else follows §15 (status i
         (2,765 kg·m), NON-MANEUVERING above 20,000; a take-off above 10,000 ft-lb needs the squadron commander's
         approval[^afman-f15e]. The F-15 counts the weapons' and stores' asymmetry with the fuel's in the
         total[^afman-f15].
-      * F/A-18: the fleet limit was 26,000 ft-lb; a flight test found flying qualities acceptable up to 28,000 ft-lb
-        (3,870 kg·m)[^ada301149].
       * F-16, F-4, Kfir, Mirage, Lavi, F-35: open.
       * What the game's loads can reach: the Arming screen (front-end.md §15) takes the default database's
         per-station maximum counts (`default6_1.bdb`, the player jets' `CDMEWeaponLoadItem`s) and blocks a take-off
@@ -685,8 +683,8 @@ Where our port differs from the original. Everything else follows §15 (status i
         | MiG-29 | 8,180 kg·m (59,100 ft-lb) | 3 × MK-83 on station 6: 3,900 kg·m (28,200 ft-lb) |
 
         Every jet's single heaviest station passes the F-15E's 10,000 ft-lb, and all but the Mirage's and the MiG-23's
-        pass 20,000; a full wing passes the F/A-18's tested 28,000 ft-lb on every jet but the MiG-23. The model flies
-        them all; beyond full stick the jet rolls off.
+        pass 20,000. The model flies them all; beyond full stick the jet rolls off. The game warns of no limit: only the
+        F-15's is known, and another type's limit is no stand-in for a jet's own.
     * The autopilot trims it: while a loop flies the jet, the stick that cancels the moment is added (within full
       stick; [autopilot.md](autopilot.md) §2.5).
     * The pilot trims it with our roll trim (Devices "Throttle rocker" = Roll trim, Alt + Left / Right; controls.md
@@ -2109,8 +2107,6 @@ and spin β apply underneath in both modes (§10).
     <https://ntrs.nasa.gov/citations/19730003312>.
 [^f16net-trim]: F-16.net forum, "Viper trim question" (2023; a pilot's account and the manual's "roll retrimming may
     be required as flight conditions change"), <https://www.f-16.net/forum/viewtopic.php?p=485001>.
-[^ada301149]: *Lateral Asymmetry Envelope Expansion Testing on a Highly Augmented Fighter
-    Aircraft*, Naval Air Warfare Center, 1995, <https://apps.dtic.mil/sti/pdfs/ADA301149.pdf>.
 [^nixon-f35]: D. W. Nixon (Lockheed Martin), *Flight Control Law Development for the F-35 Joint Strike Fighter*,
     MathWorks aerospace conference, 5 October 2004, slides 8–9 (dynamic inversion; the roll regulator maps the
     roll command and the roll-rate feedback into a desired roll acceleration, `ṗ_des = (Cmd − p)/τ`),

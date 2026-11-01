@@ -184,9 +184,12 @@ the F-16D has the cleanest licence.
 | Mirage IIICJ | FGAddon `MirageIII`, `MirageIIIE` | FGAddon policy (check files) | the IIICJ is close to the IIIC |
 | Kfir C2/C7 | none open; Sketchfab "Kfir C.10 Block 60" (CC BY, but taken from War Thunder — **rights doubtful**, don't use) | — | would be our own build from the Mirage III / 5 base |
 | Lavi | none | — | our own |
-| F-35I | FGAddon `F-35B` | FGAddon policy (check) | our F-35I is already ours (tools/f35i) |
-| MiG-21 / MiG-29 (AI) | FGAddon `MiG-21bis`, `Mig-29` | FGAddon policy (check) | |
-| MiG-23 / Su-22 / Su-24 (AI) | none open (only paid CGTrader / 3dcadbrowser, not redistributable) | — | keep the originals |
+| F-35I (F-35A) | FGAddon `F-35B` (FGMEMBERS/F-35B 2726b3b); PaoloAmoroso/F-35A (80500454) | F-35B: GPL-3.0 (`License.txt`); F-35A: a GPL-2.0 text over an FGUK airframe (FGUK hangars are CC BY-NC-SA), so **provenance doubtful** | the F-35B is the STOVL variant (lift fan doors, swivel nozzle, no gun hump) with ≈ 16 k triangles, below our F-35I's 52.8 k (andertan, CC BY 4.0); the F-35A has ≈ 240 k. Checked 2026-10-30: **keep ours** |
+| MiG-21bis (AI) | `github.com/l0k1/MiG-21bis` (9ca6f5b) | GPL-3.0 (`License.txt`) | ≈ 15 k triangles (`MiG-21bis.ac` 1.55 MB); its R-3S already a store |
+| MiG-29 9-12 (AI) | `github.com/Mercenary-Mercury/MiG-29_9-12` (d4a299b) | GPL-3.0 (`LICENSE`) | ≈ 21 k triangles (`MiG-29.ac` 2.1 MB), external model by Enrique Laso Leon; two 1024-class textures and a RuAF livery; every surface animated in `MiG-29.xml` (gear and doors, flaps, LERX flaps, ailerons, rudders, stabilators, airbrakes, canopy, 52 nozzle petals each side). **Built** 2026-10-30 (aircraft-models.md §7) |
+| MiG-23MLD (AI) | `github.com/xcvb85/MiG-23MLD` (df6c532) | GPL-3.0 (`LICENSE`) | ≈ 16 k triangles (`model.ac` 1.6 MB), 3D by Tim Samedov. Open |
+| Su-27SK | `github.com/yanes19/SU-27SK` | conflicting (GPL-2.0 files, README GPLv3+) over an FGUK airframe: don't use | ≈ 9 k triangles |
+| Su-22 / Su-24 (AI) | none open in FlightGear (the su22-fg-dev Su-22M4 is unreleased, non-commercial); Sketchfab CC BY: Su17 by manilov.ap (26 k), Su-24 by Chenzoss (120 k) — provenance unchecked | — | keep the originals |
 
 **Licence rules:** CC BY is usable with attribution; NC and ND are not usable. Our repo is GPL-3.0-or-later, so
 GPL-2.0-only files cannot ship in it.
@@ -208,7 +211,7 @@ user's machine, like the game's own data (inferred). Rejected:
 
 The FGUK F-15E has no stated licence and is an alpha. NASA 3D Resources and Smithsonian 3D have no F-15. Fallback:
 RaduCarstean's "F-15 Eagle No Textures" (Sketchfab, CC BY 4.0, 72k triangles), a bare mesh needing UVs, paint,
-split surfaces and LODs. No open F-15I Ra'am exists (inferred: our own conversion of an F-15D). Done 2026-10-28: setup downloads the
+split surfaces and LODs. No open F-15I Ra'am exists (inferred: our own conversion of an F-15D; done 2026-10-30 from the same Zaretto files: aircraft-models.md §6.7). Done 2026-10-28: setup downloads the
 Zaretto F-15C at a pinned commit and converts it in Rust (aircraft-models.md §6).
 
 A second, wider search (2026-10-26) found nothing better. Checked:

@@ -117,7 +117,7 @@ pub fn plan(inputs: &Inputs) -> Vec<Step> {
     );
     add(
         "models",
-        "detailed F-15: FlightGear F-15C by Enrique Laso, Richard Harrison, GeneB (GPL-2.0-only; download about 18 MB)",
+        "detailed F-15 and F-15I: FlightGear F-15C/D by Enrique Laso, Richard Harrison, GeneB (GPL-2.0-only; download about 20 MB)",
         false,
         &["aircraft"],
     );
@@ -139,20 +139,21 @@ pub fn plan(inputs: &Inputs) -> Vec<Step> {
         let k = inputs.scenery_kinds;
         let (fetch, make) = match (k.buildings, k.trees) {
             (true, false) => (
-                "scenery: sources (OpenStreetMap, Microsoft footprints, GHSL heights; about 373 MB; the other countries' roads 366 MB)",
-                "scenery: buildings over the Survey 2 m layer; the theatre's roads",
+                "scenery: sources (OpenStreetMap, Microsoft footprints, GHSL heights; about 373 MB; the rest of the theatre 1522 MB; the other countries' OpenStreetMap 366 MB)",
+                "scenery: buildings over the Survey 2 m layer and the rest of the theatre; the theatre's roads",
             ),
             (false, true) => (
-                "scenery: sources (OpenStreetMap, ETH canopy; about 267 MB; the other countries' roads 366 MB)",
-                "scenery: trees over the Survey 2 m layer; the theatre's roads",
+                "scenery: sources (OpenStreetMap, ETH canopy; about 267 MB; the rest of the theatre 294 MB; the other countries' OpenStreetMap 366 MB)",
+                "scenery: trees over the Survey 2 m layer and the rest of the theatre; the theatre's roads",
             ),
             _ => (
-                "scenery: sources (OpenStreetMap, Microsoft footprints, GHSL heights, ETH canopy; about 520 MB; the other countries' roads 366 MB)",
-                "scenery: buildings and trees over the Survey 2 m layer; the theatre's roads",
+                "scenery: sources (OpenStreetMap, Microsoft footprints, GHSL heights, ETH canopy; about 520 MB; the rest of the theatre 1816 MB; the other countries' OpenStreetMap 366 MB)",
+                "scenery: buildings and trees over the Survey 2 m layer and the rest of the theatre; the theatre's roads",
             ),
         };
         add("scenery-fetch", fetch, false, &[]);
-        add("scenery", make, false, &["mapi2015", "scenery-fetch", "missions", "objects", "airbases"]);
+        // After Sentinel-2 when it is made: the theatre's cells stand where it shows (docs/scenery.md §1.7).
+        add("scenery", make, false, &["mapi2015", "sentinel2", "scenery-fetch", "missions", "objects", "airbases"]);
     }
     if inputs.refresh {
         add("imagery-refresh", "imagery: convert again what older rules made", false, &["airbases"]);
@@ -482,7 +483,7 @@ mod tests {
         assert_eq!(get("aircraft").after, ["missions"]);
         assert_eq!(get("airbases").after, ["theatre"]);
         assert!(get("guides").after.contains(&"sentinel2") && get("guides").after.contains(&"mapi2015"));
-        assert_eq!(get("scenery").after, ["mapi2015", "scenery-fetch", "missions", "objects", "airbases"]);
+        assert_eq!(get("scenery").after, ["mapi2015", "sentinel2", "scenery-fetch", "missions", "objects", "airbases"]);
         assert!(get("scenery-fetch").after.is_empty());
         assert!(get("scenery").title.starts_with("scenery: buildings and trees"), "both by default");
         let trees =

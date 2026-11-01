@@ -4,6 +4,8 @@
 //! default), buildings or trees;
 //! `iaf-scenery lights <assets> [--near X,Y,KM]` makes the city lights' extra buildings where the scenery stops
 //! (`<assets>/converted/scenery/lights`, docs/rendering.md §5.1; `build` makes them too);
+//! `iaf-scenery theatre <assets> [--kinds K] [--near X,Y,KM]` makes the cells of the rest of the theatre (docs/scenery.md
+//! §1.7; `build` makes them too; `fetch` downloads their sources, each optional);
 //! `iaf-scenery roads <assets>` makes the road layer (`<assets>/converted/roads/roads.bin`, docs/scenery.md §6; `build`
 //! makes it too);
 //! `iaf-scenery tiles <assets>` lists the zoom-9 quadkeys the Survey 2 m layer touches (the tiles the list needs).
@@ -16,7 +18,7 @@ use iaf_tools::progress::Stdout;
 use iaf_tools::{roads, scenery, thirdparty};
 
 const USAGE: &str =
-    "usage: iaf-scenery fetch|build|lights|roads|tiles <assets> [--kinds both|buildings|trees] [--near X,Y,KM]";
+    "usage: iaf-scenery fetch|build|lights|theatre|roads|tiles <assets> [--kinds both|buildings|trees] [--near X,Y,KM]";
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -29,7 +31,7 @@ fn main() -> Result<()> {
         let v = rest.next().context(USAGE)?;
         match flag.as_str() {
             "--kinds" => kinds = scenery::Kinds::parse(v).context(USAGE)?,
-            "--near" if cmd == "build" || cmd == "lights" => {
+            "--near" if matches!(cmd.as_str(), "build" | "lights" | "theatre") => {
                 let n: Vec<f64> = v.split(',').map(str::parse).collect::<Result<_, _>>().context(USAGE)?;
                 let [x, y, km] = n[..] else { bail!(USAGE) };
                 near = Some(([x, y], km));
@@ -42,7 +44,13 @@ fn main() -> Result<()> {
             let list = kinds.downloads();
             let n = thirdparty::fetch_files(&list, &assets.join("source/scenery"), &Stdout, &cancel)?;
             println!("{n} fetched, {} kept", list.len() - n);
+            println!("the rest of the theatre: {} fetched", scenery::fetch_theatre(&assets, kinds, &Stdout, &cancel)?);
             println!("roads: {} other countries fetched", roads::fetch(&assets, &Stdout, &cancel)?);
+        }
+        "theatre" => {
+            if scenery::build_theatre(&scenery::Run { assets, near, kinds }, &Stdout, &cancel)?.up_to_date {
+                println!("the rest of the theatre: up to date");
+            }
         }
         "build" | "lights" => {
             let r = scenery::Run { assets, near, kinds };
@@ -51,6 +59,9 @@ fn main() -> Result<()> {
             }
             if scenery::build_lights(&r, &Stdout, &cancel)?.up_to_date {
                 println!("city lights: up to date");
+            }
+            if scenery::build_theatre(&r, &Stdout, &cancel)?.up_to_date {
+                println!("the rest of the theatre: up to date");
             }
             if cmd == "build" && roads::build(&r.assets, &Stdout, &cancel)?.up_to_date {
                 println!("roads: up to date");

@@ -24,8 +24,9 @@ const SENTINEL_GB := 11.3
 ## Scenery made, by kind (GB; the downloads come from IafSetup.scenery_download_bytes): both measured (cells 0.58 +
 ## work files 0.49); one kind computed from the cell format (a tree is 16 bytes: 28.6 M trees 0.46 GB, buildings
 ## 0.12 GB) and the work files (the OpenStreetMap extract 0.45 GB, the reduced canopy 0.04 GB for trees); each with
-## the theatre's roads (0.33 GB, docs/scenery.md §6).
-const SCENERY_BUILT_GB := {"both": 1.39, "buildings": 0.9, "trees": 1.27}
+## the theatre's roads (0.33 GB, docs/scenery.md §6); plus the rest of the theatre's cells (§1.7): both measured
+## 2.34 GB, buildings 0.86 (14.8 M buildings), trees 1.51 (94.6 M trees, 16 bytes each).
+const SCENERY_BUILT_GB := {"both": 3.73, "buildings": 1.76, "trees": 2.78}
 const SCENERY_KINDS := ["both", "buildings", "trees"]
 ## The pilot guides' pictures and PDFs (GB, estimated).
 const GUIDES_GB := 0.3
@@ -671,8 +672,13 @@ func _page_welcome() -> Control:
 				+ "([url=https://www.gnu.org/licenses/gpl-3.0.html]GPL 3.0[/url])\n"
 			)
 			+ (
-				"Detailed F-15: the [url=https://github.com/Zaretto/fg-aircraft]FlightGear F-15C[/url] by Enrique Laso "
-				+ "(3D model), Richard Harrison (rig) and GeneB (cockpit textures) "
+				"Detailed MiG-29: the [url=https://github.com/Mercenary-Mercury/MiG-29_9-12]FlightGear MiG-29 9-12[/url] "
+				+ "by Enrique Laso Leon (3D model) and Sergey Salov "
+				+ "([url=https://www.gnu.org/licenses/gpl-3.0.html]GPL 3.0[/url])\n"
+			)
+			+ (
+				"Detailed F-15 and F-15I: the [url=https://github.com/Zaretto/fg-aircraft]FlightGear F-15C/D[/url] by "
+				+ "Enrique Laso (3D model), Richard Harrison (rig) and GeneB (cockpit textures), with its IAF livery "
 				+ "([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL 2.0[/url] only), downloaded and "
 				+ "converted by setup, not distributed with the game\n"
 			)
@@ -697,7 +703,7 @@ func _page_welcome() -> Control:
 			+ "Survey of Israel imagery: © Survey of Israel 2015, via [url=https://data.gov.il]data.gov.il[/url]\n"
 			+ (
 				"Scenery and roads: © [url=https://www.openstreetmap.org/copyright]OpenStreetMap[/url] contributors "
-				+ "(ODbL 1.0), Geofabrik extracts; "
+				+ "(ODbL 1.0), Geofabrik extracts (Israel and Palestine, Lebanon, Syria, Jordan, Egypt, Cyprus); "
 				+ "[url=https://github.com/microsoft/GlobalMLBuildingFootprints]Microsoft Global ML "
 				+ "Building Footprints[/url] (CDLA-Permissive-2.0); GHS-BUILT-H R2023A, European Commission JRC; "
 				+ "[url=https://langnico.github.io/globalcanopyheight/]Global Canopy Height 2020[/url], Lang et al., ETH "
@@ -917,9 +923,10 @@ func _page_extras() -> Control:
 		"Scenery (buildings, trees and roads; up to %s download)" % mb.call("both"),
 		(
 			"Downloads OpenStreetMap, Microsoft building footprints and building heights for the buildings, tree "
-			+ "canopy data for the trees (kept), then builds them over the Survey of Israel 2 m photo (a few "
-			+ "minutes), and the theatre's roads from OpenStreetMap. Needs the Survey imagery. Turn it on in the "
-			+ "game under Graphics → MORE."
+			+ "canopy data for the trees (kept), then builds them over the Survey of Israel 2 m photo and the rest "
+			+ "of the theatre (Lebanon, Syria, Jordan, Egypt and Cyprus over the Sentinel-2 imagery; about half an "
+			+ "hour), the towns' night lights, and the theatre's roads from OpenStreetMap. Needs the Survey imagery. "
+			+ "Turn it on in the game under Graphics → MORE."
 		),
 		"" if gdal and tools.get("curl", false) else "Needs GDAL and curl (see Requirements)."
 	)

@@ -44,8 +44,10 @@ static MADE: LazyLock<Mutex<HashMap<(i64, i64), Made>>> = LazyLock::new(Default:
 static ROAD_LAMPS: AtomicBool = AtomicBool::new(false);
 /// The towns' glow when made (`glow`).
 static GLOW: LazyLock<Mutex<Option<Glow>>> = LazyLock::new(Default::default);
-/// The glow's square (m).
+/// The glow's square (m), and the most squares on a side: over a larger box (the whole theatre's lights) the square
+/// grows by whole steps of GLOW_M (250 m over the theatre: 3 200 × 4 200, 13 MB).
 const GLOW_M: f64 = 125.0;
+const GLOW_MAX: f64 = 4500.0;
 
 /// A job of the lights thread.
 enum Job {
@@ -81,7 +83,8 @@ fn glow() -> Glow {
         let ([x0, y1], [x1, y0]) = (origin(bi * BLOCK, bj * BLOCK), origin((bi + 1) * BLOCK, (bj + 1) * BLOCK));
         b = [b[0].min(x0), b[1].min(y0), b[2].max(x1), b[3].max(y1)];
     }
-    let mut g = Glow::new(if keys.is_empty() { [0.0; 4] } else { b }, GLOW_M);
+    let m = GLOW_M * ((b[2] - b[0]).max(b[3] - b[1]) / (GLOW_M * GLOW_MAX)).ceil().max(1.0);
+    let mut g = Glow::new(if keys.is_empty() { [0.0; 4] } else { b }, m);
     for (path, seed) in cells {
         if let Some(bs) = Cell::read_buildings(&path) {
             city_lights::lights(&bs, seed).iter().for_each(|l| g.add(l));

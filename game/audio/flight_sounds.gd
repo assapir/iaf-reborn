@@ -469,6 +469,9 @@ func _row_volume(r: Dictionary, inside: bool) -> float:
 ## A logical channel plays one sound at a time; a new one waits for the current (UNCERTAIN: queue
 ## vs replace, docs/sound.md §2).
 func _channel_play(ch: int, p: Node) -> void:
+	# A radio call queued by the mission (a kill report) can come after the flight has left the tree: no sound then.
+	if not p.is_inside_tree():
+		return
 	var c: Dictionary = _channels.get(ch, {"cur": null, "queue": []})
 	_channels[ch] = c
 	if c.cur != null and is_instance_valid(c.cur) and c.cur.playing:
