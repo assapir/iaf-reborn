@@ -61,8 +61,8 @@ const TERRAIN: &[&str] = &[
     "crates/iaf-formats/src/ptt.rs",
     "Cargo.lock:image",
 ];
-/// The step's own code in this crate (steps.rs holds the bodies of extract, patch, hebrew and arm).
-const STEPS: &[&str] = &["crates/iaf-setup/src/steps.rs"];
+/// The bodies of extract, patch, hebrew and arm in this crate (their one-line calls in steps.rs do not count).
+const STEPS: &[&str] = &["crates/iaf-setup/src/bodies.rs"];
 
 /// The sources (files, folders, `Cargo.lock:<crate>`) that decide each stamped step's output, as groups. A new step
 /// with a stamp gets a row (the tests check every stamped step has one and that each row holds every module its
@@ -336,9 +336,14 @@ mod tests {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let own = |id: &str| -> &[&str] {
             match id {
-                "extract" => &["crates/iaf-tools/src/extract.rs"],
-                "patch" => &["crates/iaf-tools/src/patch.rs"],
-                "hebrew" => &["crates/iaf-tools/src/pack.rs", "crates/iaf-tools/src/extract.rs"],
+                "extract" => &["crates/iaf-tools/src/extract.rs", "crates/iaf-setup/src/bodies.rs"],
+                "patch" => &["crates/iaf-tools/src/patch.rs", "crates/iaf-setup/src/bodies.rs"],
+                "hebrew" => &[
+                    "crates/iaf-tools/src/pack.rs",
+                    "crates/iaf-tools/src/extract.rs",
+                    "crates/iaf-setup/src/bodies.rs",
+                ],
+                "arm" => &["crates/iaf-tools/src/convert.rs", "crates/iaf-setup/src/bodies.rs"],
                 "theatre" | "airbases" => &["crates/iaf-tools/src/terrain.rs"],
                 "models" => &["crates/iaf-tools/src/f15.rs"],
                 "launcher" => &["tools/install-launcher.sh"],
@@ -376,5 +381,8 @@ mod tests {
         assert!(!differs("extract", "crates/iaf-tools/src/progress.rs"), "logging decides no output");
         assert!(differs("cockpits", "Cargo.lock:image") && !differs("extract", "Cargo.lock:image"));
         assert!(differs("models", "crates/iaf-tools/data/f15-livery/bird.png"), "a folder's files");
+        let steps = "crates/iaf-setup/src/steps.rs";
+        assert!(STEP_SOURCES.iter().all(|(id, _)| !differs(id, steps)), "steps.rs: the calls only");
+        assert!(differs("extract", "crates/iaf-setup/src/bodies.rs"));
     }
 }

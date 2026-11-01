@@ -119,18 +119,20 @@ left out of its fingerprint, because they change no output.
 
 | Steps | Sources (besides iaf-tools' `lib.rs`, iaf-formats' `lib.rs`, `bytes.rs`, `terrain_types.rs`) |
 |---|---|
-| `extract` | `extract.rs`; iso9660, esa, ssf; `explode`; `crates/iaf-setup/src/steps.rs` |
-| `patch` | `patch.rs`, `rtpatch.rs`, `exe.rs`; `steps.rs` |
-| `hebrew` | `pack.rs` and extract's sources (the Hebrew CD); `steps.rs` |
+| `extract` | `extract.rs`; iso9660, esa, ssf; `explode`; `crates/iaf-setup/src/bodies.rs` |
+| `patch` | `patch.rs`, `rtpatch.rs`, `exe.rs`; `bodies.rs` |
+| `hebrew` | `pack.rs` and extract's sources (the Hebrew CD); `bodies.rs` |
 | `fonts`, `cockpits`, `briefings`, `reference`, `menu`, `menu_he`, `keys`, `missions`, `aircraft`, `objects`, `icon` | `convert.rs` and what it reaches (`aircraft.rs`, `exe.rs`, `gltf.rs`, `mis.rs`, `plane.rs`, `smooth.rs`, `upscale.rs`; emf, ini, menu, model, refs, rtf, winfnt, xfile); `image` |
-| `arm` | as `cockpits`, and `steps.rs` |
+| `arm` | as `cockpits`, and `bodies.rs` |
 | `theatre`, `airbases` | `terrain.rs`, `airbases.rs`, `georef.rs`, `imagery.rs`, `runway_fix.rs`, their two data files; ini, lzo, ptt; `image` |
 | `models` | `f15.rs`, `thirdparty.rs`, `data/f15-livery`; ac3d; `image` |
 | `launcher` | `tools/install-launcher.sh`, `tools/windows/install-launcher.ps1` |
 
-`progress.rs` (the log, the threads) is in no step's sources. A step whose run function lives in
-`crates/iaf-setup/src/steps.rs` lists that file. The other steps' one-line calls there do not count, so a change to
-such a call needs its step redone by hand (`--redo-all`, or the step's stamp deleted).
+`progress.rs` (the log, the threads) is in no step's sources. The steps whose work is in iaf-setup itself (extract,
+patch, hebrew, arm) have their bodies in `crates/iaf-setup/src/bodies.rs` and list that file.
+`crates/iaf-setup/src/steps.rs` (each step's call, and the steps without a stamp) is in no step's sources, so a
+change to a stamped step's call there needs its step redone by hand (`--redo-all`, or the step's stamp deleted). A new step whose work is more than a
+call into iaf-tools puts that work in `bodies.rs`.
 
 To add a stamped step, give it a row in `STEP_SOURCES`: the module its run function calls and every module and data
 file that module reaches. `cargo test -p iaf-setup` checks that every stamped step has a row, that every listed source
@@ -139,7 +141,8 @@ exists, and that a row holds everything its files name (`crate::…`, `iaf_forma
 
 Before 2026-11-01 every step's stamp held one fingerprint of all of iaf-tools, iaf-formats, iaf-setup and
 `Cargo.lock`, so any code change redid every step. The first run after that change redoes every step once, because
-the old stamps hold the old fingerprint. After that, only the changed steps run.
+the old stamps hold the old fingerprint. After that, only the changed steps run. A setup run between that change
+and the move of the step bodies into `bodies.rs` (the same day) sees one more full redo.
 
 The imagery steps keep their own marks per work unit instead: a run converts only the units that are missing or
 were made under older rules, and is up to date when there are none. `scenery-fetch` is up to date when every file has
