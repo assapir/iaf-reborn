@@ -84,7 +84,7 @@ Setup's last step makes both (it needs a display). They show the original game's
      mission; `GUIDE_JOBS` processes run at once (default half the cores, at most one per 2 GB of free memory). The
      F-16's 13 shots take about 2.5 minutes on an 8-core laptop.
    - A picture whose stamp (`<name>.stamp`: its entry, the shot tools, Godot's version, the frame size, the data's
-     paths and sizes) still matches is kept; `--force` or `GUIDE_FORCE=1` renders every one. A FAIL line, a crash
+     paths and sizes, without the scenery, roads and detailed models that no shot draws) still matches is kept; `--force` or `GUIDE_FORCE=1` renders every one. A FAIL line, a crash
      or a process stuck past `GUIDE_TIMEOUT` s per shot (default 600) makes the exit status 1.
    - The Godot logs go to `assets/logs/guide-shots-<date>-<time>-<pid>/`, kept only when something failed. Each
      failure line ends with its process's log file, and the run ends with the list of the failed processes' logs.

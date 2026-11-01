@@ -79,8 +79,9 @@ if [[ -z $jobs ]]; then
 fi
 # Which shots to render: a shot is up to date when its picture's stamp (<name>.stamp beside it) matches its inputs: its
 # entry, the shot tools (this script, godot_window.sh, tests/godot/_guide_shots.gd), Godot's version, the frame size
-# and the data (assets/install and assets/converted, every file's path and size; the guides' own output and hidden
-# work folders left out). Game code changes do not re-render (so setup runs again without rendering): --force does.
+# and the data (assets/install and assets/converted, every file's path and size; the guides' own output, hidden
+# work folders and what no shot draws left out: the scenery, roads and detailed models are off in every shot's
+# settings). Game code changes do not re-render (so setup runs again without rendering): --force does.
 # One line per process: <jet> <name,name,…>; each shot's new stamp waits in $logs/<jet>/<name>.stamp.
 python3 -I - "$logs" "$shots_dir" "$only" "$batch" "${GUIDE_FORCE:-$force}" "${jets[@]}" <<'EOF' >"$logs/jobs"
 import hashlib, json, os, subprocess, sys
@@ -91,7 +92,8 @@ for f in ["tools/guide_shots.sh", "tools/godot_window.sh", "tests/godot/_guide_s
 h.update(subprocess.run(["godot", "--version"], capture_output=True).stdout + (os.environ.get("GUIDE_SIZE") or "3840x2160").encode())
 for top in ("assets/install", "assets/converted"):
     for d, dirs, files in os.walk(top, followlinks=True):
-        dirs[:] = sorted(x for x in dirs if not x.startswith(".") and os.path.join(d, x) != "assets/converted/guides")
+        unused = [f"assets/converted/{x}" for x in ("guides", "scenery", "roads", "models")]
+        dirs[:] = sorted(x for x in dirs if not x.startswith(".") and os.path.join(d, x) not in unused)
         for f in sorted(files):
             # ponytail: path and size, not the time, so identical regenerated data keeps the pictures; a same-size
             # change goes unseen (--force).
