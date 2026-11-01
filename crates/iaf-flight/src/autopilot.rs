@@ -1395,6 +1395,8 @@ struct Landing {
     flare: bool,
     /// The player's flare: the flight-path correction (rad) summed from its error ([`Landing::flare`]).
     flare_i: f32,
+    /// The player's flare: the wheels have touched (a bounce flares to [`FLARE_SINK`] only).
+    touched: bool,
 }
 
 /// A LandingCL child (docs/ai.md §8.3).
@@ -1429,7 +1431,7 @@ impl Acu {
         Acu { vt: vt.unwrap_or(entry_speed), done_latch: false, acu: true }
     }
 
-    fn step(&mut self, l: &mut Laws, p: Vec3, prev: Option<Vec3>, tol: f32, lim: f32) -> Leaf {
+    fn step(&mut self, l: &mut Laws, p: Vec3, prev: Option<Vec3>, tol: f32, lim: f32, off: bool) -> Leaf {
         let v = l.v;
         let pos = v.pos;
         let (dx, dy) = (p[0] - pos[0], p[1] - pos[1]);
@@ -1454,7 +1456,13 @@ impl Acu {
         }
         // Done on two consecutive ticks (the roll test is signed, as the original).
         let roll_deg = v.att.roll.to_degrees();
-        if (e.abs() <= tol || roll_deg <= 0.2) && self.done_latch {
+        // Off the original (`off`, docs/autopilot.md §2.3): rolled out within 1°, and the leg also ends once the jet
+        // has passed `p`. The F-4 on Real data with the Better physics switches holds 0.4° of right bank on CH2's
+        // line (e within tol), so the original's 0.2° test let CH2 creep on to P2; CH3 then began 8 km late, crept up
+        // the base with e ≈ 0.9° and passed P3, where the capture term flips e by ±2α each tick and |e| never comes
+        // within tol: the leg never ended.
+        let roll_max = if off { 1.0 } else { 0.2 };
+        if off && cos_a < 0.0 || (e.abs() <= tol || roll_deg <= roll_max) && self.done_latch {
             l.period = Some(0.5);
             l.out.rudder = Some(0.0);
             let y = l.pitch(0.0);
@@ -1463,7 +1471,7 @@ impl Acu {
             l.throttle(0.1);
             return Leaf::Done;
         }
-        self.done_latch = e.abs() <= tol && roll_deg <= 0.2;
+        self.done_latch = e.abs() <= tol && roll_deg <= roll_max;
         let c = l.c;
         let bank0 = (e / (PI / 6.0) * lim * c.change_head_k - v.rates[2] * c.change_head_beta).clamp(-lim, lim);
         let mut bank = bank0;
@@ -2280,6 +2288,7 @@ impl Landing {
             align: false,
             flare: false,
             flare_i: 0.0,
+            touched: false,
         })
     }
 
@@ -2338,7 +2347,7 @@ impl Landing {
                 *period = 0.2;
                 let prev = if i > 0 { Some(pt[i - 1]) } else { None };
                 let acu = self.acu.get_or_insert_with(|| Acu::new(l.v.speed, vt));
-                acu.step(l, pt[i], prev, tol, lim)
+                acu.step(l, pt[i], prev, tol, lim, self.player && self.flare)
             }
             Leg::Ca(i, r) => {
                 if (pos[2] - pt[i][2]).abs() < r {
@@ -2361,7 +2370,14 @@ impl Landing {
                 // Ours (Real data, the player): LW2 ends below the gear's 300 kt lever limit (150 m/s = 292 kt),
                 // so step 7's gear command is not refused (docs/autopilot.md §2.5).
                 let wait = self.step == 6 && self.player && l.v.gear_speed_wait;
-                level_wings_accel_max(l, &mut self.lw_pitch, speed, vmin12, wait.then_some(150.0))
+                let r = level_wings_accel_max(l, &mut self.lw_pitch, speed, vmin12, wait.then_some(150.0));
+                // The wait runs with the speed brake out, so the downwind ends near P2: the F-4 on Real data with
+                // the Better physics switches entered at 400 kt and needed 6.7 km at idle, and arrived on final
+                // at 200 kt.
+                if wait {
+                    l.brakes(r == Leaf::Run);
+                }
+                r
             }
             Leg::Ka(i, speed, r) => self.ka(l, i, speed, r),
             Leg::Fa(r) => {
@@ -2440,7 +2456,11 @@ impl Landing {
         let dot = |a: Vec3| a.dot(d) as f32;
         let (cross, along, above) = (dot(right), dot(fwd), dot(up));
         let vt = (vmin1 + 10.2944).max(72.0611);
-        let thr = l.thr(vt).min(0.5);
+        // The original caps the throttle at 0.5 (`5d4c50`, 0.5 at 0x6133c4): a heavy jet (the Kurnass 2000 with
+        // its 312 load) sinks below the glide path at its AoA limit and lands short. Off the original the player's
+        // jet below the path keeps the speed law's full throttle (docs/autopilot.md §2.3).
+        let thr = l.thr(vt);
+        let thr = if self.player && self.flare && above < 0.0 { thr } else { thr.min(0.5) };
         let e = wrap(self.rn - v.att.heading);
         let bank = if self.align {
             self.align_bank(l)
@@ -2485,6 +2505,7 @@ impl Landing {
         };
         if rolling {
             self.flare_i = 0.0;
+            self.touched = true;
             l.out.rudder = Some(0.0);
             l.throttle(0.0);
             let e = wrap(self.rn - v.att.heading);
@@ -2511,7 +2532,9 @@ impl Landing {
     /// speeds (its 1 g stick is not the flight model's there), so the error is summed in, once per StopPlane tick
     /// (0.2 s).
     fn flare(&mut self, v: &ApView) -> f32 {
-        let h = (v.pos[2] as f32 - v.ground_height - v.gear_clearance.abs()).max(0.0);
+        // After a bounce the height term would dive the jet back at the runway (the Kurnass 2000 Real with 312's
+        // load bounced to 16 m at 185 kt, then hit nose 9° down): it holds the small sink instead.
+        let h = if self.touched { 0.0 } else { (v.pos[2] as f32 - v.ground_height - v.gear_clearance.abs()).max(0.0) };
         let want = -((h / FLARE_TAU + FLARE_SINK) / v.speed.max(1.0)).min(1.0).asin();
         self.flare_i = (self.flare_i + (want - v.att.pitch) * 0.2 * FLARE_KI).clamp(-FLARE_I_MAX, 0.03);
         want + self.flare_i

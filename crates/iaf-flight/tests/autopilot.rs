@@ -16,7 +16,11 @@ fn install() -> Option<PathBuf> {
 }
 
 fn jet(install: &Path, name: &str, pos: Vec3, heading_deg: f32, airborne: bool) -> Aircraft {
-    let (p, e) = iaf_flight::load_with(install, name, DataSet::Original).unwrap();
+    jet_with(install, name, DataSet::Original, pos, heading_deg, airborne)
+}
+
+fn jet_with(install: &Path, name: &str, set: DataSet, pos: Vec3, heading_deg: f32, airborne: bool) -> Aircraft {
+    let (p, e) = iaf_flight::load_with(install, name, set).unwrap();
     let h = heading_deg.to_radians();
     let v = if airborne { 282.84 } else { 0.0 };
     let st = Start {
@@ -764,7 +768,7 @@ fn player_landing_312_flares_every_jet() {
     // instead (F-4: nose 13–25° down, the "landing" crash; F-15 and Lavi 5–6° down); all Original keeps that float.
     let Some(inst) = install() else { return };
     for name in ["F-16", "F-15", "F-4", "KFIR", "LAVI", "MIRAGE", "F-16I", "F-35I"] {
-        let (vz, pitch, x, stop) = landing_312(&inst, name, true);
+        let (vz, pitch, x, stop) = landing_312(&inst, jet_312(&inst, name, DataSet::Original), name, true);
         println!("{name}: touchdown sink {:.1} m/s, nose {pitch:.1}°, at x {x:.0}; stop {stop:?}", -vz);
         assert!(vz > -4.0 && pitch > 0.0, "{name}: a flared touchdown (sink {:.1} m/s, nose {pitch:.1}°)", -vz);
         assert!(x > RD_RUNWAY_X[0] && x < RD_RUNWAY_X[1], "{name}: touchdown on the runway (x {x:.0})");
@@ -772,17 +776,66 @@ fn player_landing_312_flares_every_jet() {
         assert!(stop > RD_RUNWAY_X[0], "{name}: stops on the runway (x {stop:.0})");
     }
     // All Original: the original's float, the jet stalling onto the runway well down it.
-    let (vz, pitch, x, _) = landing_312(&inst, "F-16", false);
+    let (vz, pitch, x, _) = landing_312(&inst, jet_312(&inst, "F-16", DataSet::Original), "F-16", false);
     println!("F-16, the original's float: touchdown sink {:.1} m/s, nose {pitch:.1}°, at x {x:.0}", -vz);
     assert!(vz < -8.0 && x < 356483.0 - 1000.0, "the original's float and stall ({:.1} m/s at x {x:.0})", -vz);
 }
 
-/// 312's circuit for the player's jet `name` (Easy landing off): the touchdown's vz, pitch (°) and x, and where the
+#[test]
+fn player_landing_312_f4_real_better_physics_ends_every_leg() {
+    // The F-4 on Real data with every Better physics switch, at 60 Hz: CH2 rolled out holding 0.4° of right bank
+    // with |e| within its 0.5°, so the original's signed 0.2° roll test kept the leg on to P2; CH3 then began 8 km
+    // late, crept up the base and passed P3, where |e| never came within tol again (before: still in landing step 8
+    // after 900 s, no touchdown). Off the original the legs end rolled out within 1° or past their point, and LW2's
+    // wait for 292 kt has the speed brake out (without it the jet reached the flare at 202 kt and bounced in: 8.2 m/s,
+    // nose 4.5° down).
+    let Some(inst) = install() else { return };
+    let mut ac = jet_312(&inst, "F-4", DataSet::Real);
+    ac.better = iaf_flight::aircraft::BetterPhysics::all();
+    let (vz, pitch, x, stop) = landing_312(&inst, ac, "F-4", true);
+    println!("F-4 Real, Better physics: touchdown sink {:.1} m/s, nose {pitch:.1}°, at x {x:.0}; stop {stop:?}", -vz);
+    assert!(vz > -4.0 && pitch > 0.0, "a flared touchdown (sink {:.1} m/s, nose {pitch:.1}°)", -vz);
+    assert!(x > RD_RUNWAY_X[0] && x < RD_RUNWAY_X[1], "touchdown on the runway (x {x:.0})");
+    assert!(stop.is_some_and(|s| s > RD_RUNWAY_X[0]), "stops on the runway ({stop:?})");
+}
+
+#[test]
+fn player_landing_312_heavy_jets_hold_the_glide_path() {
+    // A heavy jet on final: FinalApproach's throttle cap (0.5, `5d4c50`) leaves it at its AoA limit below the 6° path,
+    // and the original lands it short. In the game with everything Original: the Kurnass 2000 with 312's load
+    // (31.4 t) in the water-flagged strip 0.85–1.9 km before the threshold (the "water" crash), the Mirage with its
+    // load (17.5 t) at 90 kt on the rough ground before it. Off the original the player's jet below the path keeps
+    // the speed law's full throttle and lands on the runway. (On this flat ground the F-4 needs 33 t to land short.)
+    let Some(inst) = install() else { return };
+    for (name, kg) in [("F-4", 33000.0), ("MIRAGE", 17499.0)] {
+        let heavy = || {
+            let mut ac = jet_312(&inst, name, DataSet::Original);
+            let m = ac.state().mass_kg;
+            ac.set_stores(kg - m, 0.0, 0.0);
+            ac
+        };
+        let (vz, pitch, x, stop) = landing_312(&inst, heavy(), name, true);
+        println!("{name} {kg} kg: touchdown sink {:.1} m/s, nose {pitch:.1}°, at x {x:.0}; stop {stop:?}", -vz);
+        assert!(vz > -4.0 && pitch > 0.0, "{name}: a flared touchdown (sink {:.1} m/s, nose {pitch:.1}°)", -vz);
+        assert!(x > RD_RUNWAY_X[0] && x < RD_RUNWAY_X[1], "{name}: touchdown on the runway (x {x:.0})");
+        assert!(stop.is_some_and(|s| s > RD_RUNWAY_X[0]), "{name}: stops on the runway ({stop:?})");
+        // All Original: the cap and the short landing stay.
+        let (_, _, x, _) = landing_312(&inst, heavy(), name, false);
+        println!("{name} {kg} kg, the original: touchdown at x {x:.0}");
+        assert!(x > RD_RUNWAY_X[1] + 300.0, "{name}: the original lands short (x {x:.0})");
+    }
+}
+
+/// The player's jet at 312's start (2000 m, heading 270°, east of Ramat David).
+fn jet_312(inst: &Path, name: &str, set: DataSet) -> Aircraft {
+    jet_with(inst, name, set, Vec3::new(366755.0, 602361.0, 2000.0), 270.0, true)
+}
+
+/// 312's circuit for the player's jet `ac` (Easy landing off): the touchdown's vz, pitch (°) and x, and where the
 /// autopilot key came (the stop). Panics on a crash.
-fn landing_312(inst: &Path, name: &str, flare: bool) -> (f32, f32, f64, Option<f64>) {
+fn landing_312(inst: &Path, mut ac: Aircraft, name: &str, flare: bool) -> (f32, f32, f64, Option<f64>) {
     let bases = Airbase::load_all(&std::fs::read(inst.join("iaf.ibx")).unwrap());
     let z = bases.iter().find(|b| b.name == "David").unwrap().lineup[2];
-    let mut ac = jet(inst, name, Vec3::new(366755.0, 602361.0, 2000.0), 270.0, true);
     ac.easy_landing = false;
     let mut c = ac.controls();
     c.throttle = 0.74;

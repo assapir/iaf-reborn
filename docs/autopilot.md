@@ -116,9 +116,11 @@ approach and the float before touchdown steer to the centreline with a damped la
   300 kt there keeps its gear up and lands on its belly (with Original rules, an F-35I at mission 214's Home
   waypoint: 369 kt at step 7); the mission's own jet slows to 220 kt first and lands on its gear.
 - Ours, Flight data = Real (`Params::gear_speed_wait`; the F-35I always flies it): in the player's landing, LW2 also
-  waits for 150 m/s (292 kt), at idle and wings level, so step 7's gear command comes under the 300 kt limit. The
-  Real jets enter faster (the F-16 Real: 371 kt at LW2 from 312's start at 550 kt). The AI's gear has no lever limit
-  and is unchanged.
+  waits for 150 m/s (292 kt), at idle and wings level with the speed brake out, so step 7's gear command comes under
+  the 300 kt limit. The Real jets enter faster (the F-16 Real: 371 kt at LW2 from 312's start at 550 kt). The speed
+  brake keeps the wait short of P2: without it the F-4 Real with every Better physics switch entered LW2 at 400 kt,
+  needed 6.7 km and reached the flare at 202 kt (it bounced in, 8.2 m/s, nose 4.5° down). The AI's gear has no lever
+  limit and is unchanged.
 - The pitch law's "gear / flaps / brakes in above 150 m/s" clean-up is skipped in modes 0 and 8.
 - The ChangeHeading2PtAcu legs run without the ground watch (modes 0 and 8).
 - LandingCL Init (`5d36d2`): the stop condition is **1.0295 m/s** in FM mode 0 (25.736 m/s in mode 8). The children
@@ -140,10 +142,32 @@ approach and the float before touchdown steer to the centreline with a damped la
     there. So the flare adds the summed error (0.5/s, at most 3.4° down, 1.7° up; `Landing::flare`).
   - For the player, StopPlane counts as "rolling" once the wheels touch, not on the original's test (flight-path
     pitch within 0.2° and within 5 m of the ground). The flare's path passes that test above the runway.
+  - After the first touch a bounce flares to the 1.5 m/s sink only: the height term dived the bouncing jet back at
+    the runway (the Kurnass 2000 on Real data with 312's load and every Better physics switch, World scale Real:
+    up to 16 m at 185 kt, then the "landing" crash nose 9° down). Open: that heavy Kurnass still bounces 4–16 m off
+    its first touch at 170–185 kt (its AoA limit) with any of the switches, and comes down at up to 10 m/s.
   - Result: touchdown 300–650 m past the lineup at 150–185 kt, 0.2–2.4 m/s sink, nose 3–14° up. The jet stops 1–2.8 km
     down the runway, every flyable jet, both data sets, every Physics option, at 20, 60 and 120 Hz.
   - Test: `player_landing_312_flares_every_jet` (Easy landing off; with the flare off the F-16 still floats and
     stalls onto the runway at 11.6 m/s, 2.6° nose down, which the original's limits pass).
+- **The circuit off the original** (ours, the same switches as the flare, `Autopilot::player_flare`):
+  - ChangeHeading2PtAcu (CH2–CH5) is done when |e| ≤ its tolerance and the roll ≤ 0.2° (signed) on two ticks. The
+    F-4 Real with every Better physics switch, at 60 Hz, rolled out of CH2 holding 0.4° of right bank with |e| within
+    0.5°, so CH2 crept on to P2 and every later leg began late. CH3 then crept up the base with e ≈ 0.9° at 5° of bank
+    and passed P3. Past its point the line-capture term flips e by about ±2α each tick, so |e| stayed near 1.7° and
+    the leg never ended (landing step 8 for ever; at 20 and 120 Hz the same jet happened to finish). Off the original
+    the roll test is ≤ 1°, and the leg also ends once the jet has passed its point (cos α < 0). All Original keeps the
+    exe's test.
+  - FinalApproach (`5d4c50`) caps its speed-law throttle at 0.5 (the constant at `0x6133c4`). A heavy jet holds its
+    speed only at the AoA limit there and sinks below the 6° path: the Kurnass 2000 with 312's load (31.4 t) lands
+    in the water-flagged strip 0.85–1.9 km before the threshold (the "water" crash). The Mirage with its load
+    (17.5 t) leaves CH4 at 93 kt (CH4's throttle cap 0.7, `5dbe70`, while it climbs in the turn), sinks at the AoA
+    limit at 2300 ft/min and lands 2.8 km short on the rough ground (the "rough ground" crash; 20, 60 and 120 Hz).
+    All Original keeps this, as the exe's caps give. Off the original, the player's jet below the path keeps the
+    speed law's throttle (up to 1): both land on the runway.
+  - Tests: `player_landing_312_f4_real_better_physics_ends_every_leg` (before: still in step 8 after 900 s),
+    `player_landing_312_heavy_jets_hold_the_glide_path` (on flat ground the original lands the F-4 at 33 t 570 m
+    short and the Mirage at 17.5 t 2.8 km short; off it, both on the runway).
 
 ### 2.4 Runway into the wind (ours, Better physics "Wind and turbulence")
 **The original** flies every base one way, whatever the wind:
