@@ -241,8 +241,8 @@
   ]
  },
  {
-  "name": "mfd_radar",
-  "caption": "The radar locked on a MiG-23 51 NM ahead, beyond the F-16D's reach",
+  "name": "mfd_fcr_sms",
+  "caption": "FCR locked on a MiG-23 51 NM ahead; the SMS on the AMRAAMs",
   "mission": 231,
   "jet": -1,
   "settings": {
@@ -282,7 +282,7 @@
   "start": "airborne",
   "loadout": [
    [
-    11,
+    8,
     1
    ],
    [
@@ -314,7 +314,7 @@
     0
    ],
    [
-    11,
+    8,
     1
    ]
   ],
@@ -324,56 +324,253 @@
   },
   "actions": [
    "lock",
+   "station:0",
+   "mfd:2,1",
    "wait:1"
   ],
   "panel": 1.0,
-  "crop": "mfd_left",
+  "crop": "mfds",
   "annotations": [
    {
     "n": 1,
     "px": [
-     0.503,
+     0.169,
      0.375
     ],
     "label_at": [
-     0.62,
-     0.5
+     0.22,
+     0.6
     ]
    },
    {
     "n": 2,
     "px": [
-     0.17,
-     0.33
+     0.06,
+     0.32
     ],
     "label_at": [
-     0.3,
-     0.52
+     0.035,
+     0.58
     ]
    },
    {
     "n": 3,
     "px": [
-     0.27,
-     0.17
+     0.1,
+     0.175
     ],
     "label_at": [
-     0.4,
-     0.3
+     0.035,
+     0.06
     ]
    },
    {
     "n": 4,
     "px": [
-     0.69,
-     0.375
+     0.245,
+     0.225
     ],
     "label_at": [
-     0.72,
-     0.58
+     0.32,
+     0.07
+    ]
+   },
+   {
+    "n": 5,
+    "px": [
+     0.905,
+     0.27
+    ],
+    "label_at": [
+     0.93,
+     0.55
     ]
    }
   ]
+ },
+ {
+  "name": "mfd_wpn_test",
+  "caption": "WPN with a GBU-31 in PRE; TEST with no faults",
+  "mission": 231,
+  "jet": -1,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f16_variant": "sufa"
+  },
+  "start": "airborne",
+  "loadout": [
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1003,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1003,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    55,
+    1
+   ]
+  ],
+  "place": {
+   "ground_unit": true,
+   "ahead_m": 18000,
+   "bearing_deg": 4
+  },
+  "actions": [
+   "ag:2",
+   "pre",
+   "mfd:5,4",
+   "wait:1"
+  ],
+  "panel": 1.0,
+  "crop": "mfds"
+ },
+ {
+  "name": "mfd_hsd_tgp",
+  "caption": "HSD with the route to steerpoint 1; TGP on the target, laser on",
+  "mission": 231,
+  "jet": -1,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f16_variant": "sufa"
+  },
+  "start": "airborne",
+  "loadout": [
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1003,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1003,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    55,
+    1
+   ]
+  ],
+  "actions": [
+   "ag:2",
+   "flir",
+   "mfd:3,6",
+   "wait:1"
+  ],
+  "panel": 1.0,
+  "crop": "mfds",
+  "place": {
+   "ground_unit": true,
+   "ahead_m": 18000,
+   "bearing_deg": 4
+  }
  },
  {
   "name": "dash_9x",
@@ -681,5 +878,186 @@
     ]
    }
   ]
+ },
+ {
+  "name": "cockpit3d_ahead",
+  "caption": "The 3D cockpit looking ahead: the HUD and the upper panel",
+  "mission": 231,
+  "jet": -1,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f16_variant": "sufa",
+   "cockpit_3d": "3d"
+  },
+  "start": "airborne",
+  "loadout": [
+   [
+    8,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    8,
+    1
+   ]
+  ],
+  "place": {
+   "unit_prefix": "mig23",
+   "ahead_m": 95000
+  },
+  "actions": [
+   "lock",
+   "station:0",
+   "wait:1"
+  ],
+  "crop": "full"
+ },
+ {
+  "name": "cockpit3d_down",
+  "caption": "The 3D cockpit looking down: the MFDs, the instruments and the consoles",
+  "mission": 231,
+  "jet": -1,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f16_variant": "sufa",
+   "cockpit_3d": "3d"
+  },
+  "start": "airborne",
+  "loadout": [
+   [
+    8,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    8,
+    1
+   ]
+  ],
+  "place": {
+   "unit_prefix": "mig23",
+   "ahead_m": 95000
+  },
+  "actions": [
+   "lock",
+   "station:0",
+   "look:0,-30",
+   "wait:1"
+  ],
+  "crop": "full"
  }
 ]

@@ -21,8 +21,9 @@ Every guide follows the same order, for the sections its jet has:
    Shrike.
 8. Landing: the gear-down HUD (the HUD jets).
 9. Better cockpit: everything Extras → Better cockpit changes in that jet.
-10. Night vision: the goggles (Shift+N) at night, without and with.
-11. Key card and abbreviations.
+10. 3D cockpit, where the jet has one (the F-16 and the Sufa): Extras → Cockpit = 3D, the view and what works.
+11. Night vision: the goggles (Shift+N) at night, without and with.
+12. Key card and abbreviations.
 
 Each mode section gives when to use it, the keys, an annotated picture with its legend, and a worked example from
 the shot's own values.
@@ -30,9 +31,9 @@ the shot's own values.
 ## The guides
 
 - [F-16](f16.md): the F-16C HUD (NAV, gear down, EEGS, SRM, MRM with the DLZ, STRF, CCIP), the DASH helmet, laser /
-  TV / HARM weapons, the deep stall.
+  TV / HARM weapons, the deep stall, the real MFD formats (MFDs Real, green), the 3D cockpit.
 - [F-16I Sufa](f16i.md): our F-16I (Extras → F-16 version = Sufa): what differs from the F-16 (the CFTs' weight and
-  fuel, the APG-68(V)9), the AIM-9X / Python 5 off boresight and lock-on after launch, the JDAMs and GBU-39. It points
+  fuel, the APG-68(V)9, the colour MFD formats, the 3D cockpit's wide-angle HUD), the AIM-9X / Python 5 off boresight and lock-on after launch, the JDAMs and GBU-39. It points
   to the F-16 guide for the rest; with the switch on, the Reference screen's F-16 record shows it in place of the
   F-16's.
 - [F-15](f15.md): the F-15C Baz: the TO 1F-15A-1 HUD, the DASH helmet, the APG-63, Sparrows.
@@ -70,9 +71,9 @@ Setup's last step makes both (it needs a display). They show the original game's
    screen's size.
    - An entry sets the settings, the mission (`mc` builds a Mission Creator mission, 666: the MiGs fly only there),
      the start (mission, airborne, dive, final approach, or the briefing TSD with its GPS targets panel), a placed
-     target, actions (a radar lock, a store, a camera on the target, a radar-designated point, the GPS bombs' PRE
+     target, actions (a radar lock, a store, the MFDs' pages, a camera on the target, a radar-designated point, the GPS bombs' PRE
      target on it), an outside camera pinned beside the jet
-     (`camera`) and the crop: the whole frame, `hud`, an MFD, `compass` (the panel
+     (`camera`) and the crop: the whole frame, `hud`, an MFD, both MFDs (`mfds`), `compass` (the panel
      compass dial) or `panel` (a box around `crop_at`, [x, y] panel px of the 1920-px strip). `hud` and `compass`
      take `crop_w` (the box's width as a fraction of the frame; smaller zooms in) and `crop_dy` (the box moved down
      by that fraction of the frame's height).
