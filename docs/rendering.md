@@ -873,7 +873,12 @@ through:
   2000 m deep[^cu]; the heights are our choice within that (inferred: the Levant's summer cumulus sit higher than
   the temperate "below 550 m"). Cumulus fade into the haze by about 90 km.
 - **In the rain**: the rain's deck (§10.1) with its base and top, nearly closed (coverage 0.93 light, 1.0 heavy),
-  its top a field of rounded lumps. Seen from above it reaches the horizon and hides the ground.
+  its top a field of rounded lumps. Seen from above it reaches the horizon and hides the ground. The lumps are cells
+  of three sizes (the shape noise's Worley octaves: 2.2 km, 1.1 km and 560 m, over its Perlin-Worley billows), their
+  tops 0.7–1 of the deck's depth; the troughs between them hold less light from above (down to 45 % at 0.72 of the
+  depth, all of it at 0.98), so from straight above at noon the top shows soft lumps with darker troughs, as
+  stratocumulus and nimbostratus tops seen from above (inferred from photographs; the light model has no multiple
+  scattering between the lumps).
 - The TEXTURED SKY check governs only the 1998 layer: with Volumetric the clouds draw whatever it says.
 
 How it is drawn:
@@ -883,7 +888,10 @@ How it is drawn:
   clouds at half the 3D view's width and height (`clouds_march.glsl`, a compute shader) into a texture. A
   full-screen quad (`clouds_composite.gdshader`) lays that texture over the 3D view as the first transparent thing:
   the smoke, the rain streaks and the effects draw over it, and the 2D cockpit art, the HUD and the MFDs are canvas
-  layers drawn after the 3D view, so the clouds never cover them. The quad upsamples by the depth: of the four
+  layers drawn after the 3D view, so the clouds never cover them. Where a cloud lets less than 40 % of the light
+  through, the quad writes the cloud's depth (its mean distance along the view): the effects behind it (an explosion
+  inside the deck or behind a cumulus, a town's light points under the clouds) then fail the depth test and stay
+  hidden; in front of it they draw over it. A thinner cloud (more than 40 % through) hides nothing. The quad upsamples by the depth: of the four
   nearest cloud pixels, those whose scene depth matches the pixel's count, so a cloud does not bleed over a hill's
   edge. The EO sensor's camera leaves the quad out (visual layer 20).
 - **Shape** (after Schneider 2015[^schneider]): two tileable 3D noises, computed once on the GPU when the clouds are
@@ -897,16 +905,28 @@ How it is drawn:
   the sky's light from above (with the Atmospheric sky its own colour at the zenith and horizon, else the fog colour
   by the time of day's ambient) and the ground's from below (the Atmospheric sky's bounce). The sun is the scene's
   sun node (its colour and energy), so the clouds follow the time of day: white at noon, gold-rimmed and dark at
-  sunset, dark blue at night.
+  sunset.
+- **Night**: the clouds are lit as the 1998 layer at night (§2: (0.045, 0.055, 0.095), linear), whatever light the
+  moon gives the ground: the moon's light on their tops is 0.3× that colour (`NIGHT_MOON`), the sky's from above
+  0.4×, the ground's from below 0.15×. They stay dim and blue-grey against the dark ground, and the towns' glow
+  (below) still lights their bases.
 - **Haze**: each pixel's clouds fade by Godot's exponential fog over their distance into the haze: the Atmospheric
   sky's colour along the view (`atmosphere.gdshader`'s scattering, ported), else the fog colour. In the deck the
   fog's 150 m makes them the fog's colour, as the terrain.
 - **Steps**: at most 96 a pixel; a step is 6 % of its distance (at least 60 m) in clear air and 1.2 % (at least
   12 m) inside a cloud, from where the cheap density first finds one (half a step back) until eight empty samples.
-  A ray in the deck that runs out of steps ends there, opaque.
+  A ray ends where less than 5 % of the light gets through (`TR_MIN`), the rest counted as its last sample's light; a
+  ray in the deck that runs out of steps ends there, opaque.
+- **Far away**: past 30 km (`FAR_DETAIL`) the detail noise is finer than a pixel, so the edges erode by its mean
+  (0.5) instead of reading it; past 12 km (`FAR_LIGHT`) the light toward the sun takes four steps (120 m, growing
+  2.5×: the same 3 km reach) with the detail on the first only.
 - **Temporal reprojection**: each frame's ray start is jittered (interleaved gradient noise, shifted by the golden
-  ratio each frame) and blended 12 % into the last frames' result where the same cloud point was in the last frame;
+  ratio each frame) and blended 25 % into the last frames' result where the same cloud point was in the last frame;
   refused off screen or where the scene's depth there changed by more than 5 % (something moved in front).
+- **Interleaved** (`INTERLEAVE`): each frame only a quarter of the cloud pixels march, one of each 2 × 2 block in
+  turn (0,0), (1,1), (1,0), (0,1). The other three take the last frames' result where the same cloud point was,
+  found by the last frame's cloud distance at that pixel; where that is refused (off screen, the depth changed) they
+  march too. A pixel with nothing to march in front of the scene costs two texture reads.
 - **Flat**: the layer is flat, as the terrain is (no Earth curvature): a curved layer let the flat terrain show
   beyond its horizon.
 - **Light pollution** (with Night lights Detailed at night, §5.1): the towns' glow map (`city_lights.gd`, the
@@ -2010,16 +2030,26 @@ The camera's place in the deck sets the look (`Weather.update` → `blend()`), s
 - No rain falls above the base: the drops and the canopy drops thin out over the base's blend.
 - **The floor** (Clouds Original, every tier): a flat opaque square 400 km wide at the deck's top under the camera,
   seen from above only (`deck_floor.gdshader`). It hides the ground under the deck. Its lumps are the original's
-  overcast cloud texture (Cloud256_5) read as a height field at 9 km, 2.2 km and 600 m, no finer than its mip level
-  2 (§2): their slopes and a darker, bluer albedo in the dips shade it by the scene's sun (wrapped: much of the light
-  scatters back whatever the slope, × 1.5 against a white Lambert surface) and ambient. The time of day lights it and
-  the fog fades it into the horizon. It drifts with the wind. Cost: one opaque quad with six texture reads a pixel,
-  drawn only above the deck.
+  overcast cloud texture (Cloud256_5) read at 9 km, 2.2 km and 600 m, never finer than its mip level 2 (§2): the
+  9 km scale as broad swells; the two smaller folded about the art's mean alpha (0.73) into cells, rounded lumps with
+  soft troughs along the mean's contours, as stratocumulus tops seen from above. The art's alpha has 16 levels (flat
+  terraces with steps between them), so it is read as the 1998 layer's smoothing does (four bilinear taps half a
+  texel apart) at level 3.5 for the cells and 4.5 for the slopes, where the terraces have blurred into slopes. The
+  slopes (0.1 × the 600 m scale's relief) and a darker, bluer albedo in the troughs (0.78–0.86) shade it by the
+  scene's sun (wrapped: much of the light scatters back whatever the slope, × 1.5 against a white Lambert surface) and
+  ambient: from straight above at noon soft grey lumps, toward the sun their sunward sides lit. The time of day lights
+  it and the fog fades it into the horizon, with the lumps to the horizon. It drifts with the wind. Cost: one opaque
+  quad with 48 texture reads a pixel, drawn only above the deck.
 - With Clouds Volumetric the raymarched deck (§2.1) replaces the floor, and its base and lumps show from below too.
 
 Tried and dropped (2026-10-30): the top blended over ± 150 m like the base: the fog thinned ×2.25 per 25 m, a
 visible jump when climbing out; a floor lit by plain Lambert (albedo 0.92): a dull grey sheet under the AgX
 tonemapper, its lumps (9 km and 5 km scales only) not visible from a few hundred metres above.
+
+Tried and dropped (2026-10-30, the floor's cells): the cells folded 4× from the art at its mip level 2.5 with the
+slopes from the same reads: the alpha's 16-level terraces turned into flat grey blotches with hard edges, like
+camouflage; the slopes at 0.2× relief with a 0.35 wrap and troughs at 0.58 albedo: dark grey patches over half the
+floor.
 
 [^wtp]: Godot docs, ProjectSettings `threading/worker_pool/low_priority_thread_ratio` (default 0.3):
     https://docs.godotengine.org/en/stable/classes/class_projectsettings.html#class-projectsettings-property-threading-worker-pool-low-priority-thread-ratio

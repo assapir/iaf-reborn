@@ -43,6 +43,15 @@ const float K_BIG = 0.06;
 const float MIN_BIG = 60.0;
 const float K_FINE = 0.012;
 const float MIN_FINE = 12.0;
+// A ray ends where less than TR_MIN of the light gets through (the rest as its last sample's light). Past FAR_DETAIL
+// (m) the detail noise is finer than a pixel: the edges erode by its mean instead of reading it; past FAR_LIGHT the
+// light toward the sun takes four steps, not six.
+const float TR_MIN = 0.05;
+const float FAR_DETAIL = 30000.0;
+const float FAR_LIGHT = 12000.0;
+const float DETAIL_MEAN = 0.5;
+// The deck's troughs between its lumps: the share of the light from above they hold.
+const float TROUGH = 0.45;
 // The noises' tile sizes (m): shape, detail, the coverage's field.
 const float SHAPE_TILE = 9000.0;
 const float DETAIL_TILE = 800.0;
@@ -68,7 +77,9 @@ vec3 glow_at(vec2 xz) {
 	return vec3(1.0, 0.45, 0.14) * g * g * p.glow.x * p.glow.y;
 }
 
-float density(vec3 pos, float hf, bool full) {
+// The cloud's density at `pos` (hf: its height in the layer, 0..1). lod 0: the shape alone (cheap, to find a cloud),
+// 1: eroded by the detail noise, 2: eroded by the detail's mean (far away).
+float density(vec3 pos, float hf, int lod) {
 	if (hf <= 0.0 || hf >= 1.0) {
 		return 0.0;
 	}
@@ -88,17 +99,21 @@ float density(vec3 pos, float hf, bool full) {
 	} else {
 		// The deck: all but closed; its top a field of lumps (the local top at 0.8..1 of the depth), its base ragged.
 		// Cells (the Worley channel) of rounded tops with thinner cloud between them.
-		float lump = smoothstep(0.35, 0.85, n.g * 0.7 + n.r * 0.3);
-		float topline = 0.8 + 0.2 * lump;
+		// Cells of three sizes (the Worley octaves: 2.2 km, 1.1 km, 560 m) over the Perlin-Worley's billows.
+		float lump = smoothstep(0.35, 0.85, n.g * 0.45 + n.b * 0.25 + n.a * 0.1 + n.r * 0.2);
+		float topline = 0.7 + 0.3 * lump;
 		hp = smoothstep(0.0, 0.06 + 0.1 * (1.0 - lump), hf) * (1.0 - smoothstep(topline - 0.1, topline, hf));
 		s = hp * (0.35 + 0.65 * lump) * (0.7 + 0.3 * n.r);
 	}
 	s = clamp(s, 0.0, 1.0) * cov;
-	if (s <= 0.0 || !full) {
+	if (s <= 0.0 || lod == 0) {
 		return s;
 	}
-	vec3 dn = textureLod(detail_tex, q / DETAIL_TILE, 0.0).rgb;
-	float dfbm = dn.r * 0.625 + dn.g * 0.25 + dn.b * 0.125;
+	float dfbm = DETAIL_MEAN;
+	if (lod == 1) {
+		vec3 dn = textureLod(detail_tex, q / DETAIL_TILE, 0.0).rgb;
+		dfbm = dn.r * 0.625 + dn.g * 0.25 + dn.b * 0.125;
+	}
 	// Wispy at the base, billowy higher up.
 	float m = mix(1.0 - dfbm, dfbm, clamp(hf * 4.0, 0.0, 1.0));
 	// The deck is eroded at its top only: deep inside it must stay cloud (a hole would show the ground through it).
@@ -115,17 +130,21 @@ float phase(float mu, float k) {
 	return mix(hg(mu, 0.8 * k), hg(mu, -0.3 * k), 0.3);
 }
 
-// The optical depth toward the sun from `pos` (six steps, growing).
-float sun_depth(vec3 pos) {
+// The optical depth toward the sun from `pos`: six steps from 60 m, doubling, the detail on the first three; far away
+// (past FAR_LIGHT) four from 120 m growing 2.5×, the same reach, the detail on the first.
+float sun_depth(vec3 pos, bool far) {
 	float od = 0.0;
-	float st = 60.0;
+	float st = far ? 120.0 : 60.0;
+	float g = far ? 2.5 : 2.0;
 	float t = 0.5 * st;
-	for (int i = 0; i < 6; i++) {
+	int n = far ? 4 : 6;
+	int nd = far ? 1 : 3;
+	for (int i = 0; i < n; i++) {
 		vec3 x = pos + p.sun.xyz * t;
 		float hf = (x.y - p.layer.x) / (p.layer.y - p.layer.x);
-		od += density(x, hf, i < 3) * st;
+		od += density(x, hf, i < nd ? 1 : 0) * st;
 		t += st;
-		st *= 2.0;
+		st *= g;
 		t += 0.5 * st;
 	}
 	return od * p.layer.w;
@@ -165,8 +184,25 @@ float jitter(vec2 px) {
 	return fract(n + p.cam_frame.w * 0.61803399);
 }
 
-void main() {
-	ivec2 id = ivec2(gl_GlobalInvocationID.xy);
+// The last frames' result where the cloud point `wp` was in the last frame: false off screen or where the scene's
+// depth there changed (something moved in front, or out of the way).
+bool history(vec3 wp, float scene, out vec4 col, out float dist) {
+	vec4 pc = p.prev_vp * vec4(wp, 1.0);
+	vec2 puv = pc.xy / pc.w * 0.5 + 0.5;
+	if (pc.w <= 0.0 || any(lessThan(puv, vec2(0.0))) || any(greaterThan(puv, vec2(1.0)))) {
+		return false;
+	}
+	vec2 hd = textureLod(prev_dist, puv, 0.0).rg;
+	if (!((scene > 5e8 && hd.g > 5e8) || abs(hd.g - scene) < 0.05 * scene)) {
+		return false;
+	}
+	col = textureLod(prev_color, puv, 0.0);
+	dist = hd.r;
+	return true;
+}
+
+// One cloud pixel: `turn` marches; the others take the last frames' result where it holds.
+void shade(ivec2 id, bool turn) {
 	ivec2 size = ivec2(p.sizes.xy);
 	if (any(greaterThanEqual(id, size))) {
 		return;
@@ -199,107 +235,133 @@ void main() {
 	}
 	// Nothing past where the fog leaves 2 % (4 / density: 200 m inside the deck) shows: the march stops there.
 	t1 = min(t1, min(scene, min(p.shape.w, 4.0 / max(p.fog.w, 1e-7))));
+	// Nothing to march in front of the scene: clear, and no history (it smeared the deck over the jet).
+	if (t0 < 0.0 || t1 <= t0) {
+		imageStore(out_color, id, vec4(0.0, 0.0, 0.0, 1.0));
+		imageStore(out_dist, id, vec4(min(t1 > 0.0 ? t1 : 1e5, 1e5), scene, 0.0, 0.0));
+		return;
+	}
+	// Not this pixel's turn: the last frames' result where the same cloud point was (found by the last frame's cloud
+	// distance here), else it marches too.
+	if (!turn && p.sun_col.w > 0.5) {
+		float hd = textureLod(prev_dist, uv, 0.0).r;
+		vec4 hc;
+		float hdist;
+		if (history(o + d * min(hd, scene), scene, hc, hdist)) {
+			imageStore(out_color, id, hc);
+			imageStore(out_dist, id, vec4(hdist, scene, 0.0, 0.0));
+			return;
+		}
+	}
 	vec3 scat = vec3(0.0);
 	float tr = 1.0;
 	float dsum = 0.0;
 	float wsum = 0.0;
-	if (t0 >= 0.0 && t1 > t0) {
-		float mu = dot(d, p.sun.xyz);
-		float hspan = top - base;
-		// The light from above: the Atmospheric sky's own (its zenith and horizon), else the time of day's.
-		vec3 amb_top = p.sun.w > 0.5 ? 0.35 * (sky(vec3(0.0, 1.0, 0.0)) + sky(normalize(vec3(-p.sun.x, 0.15, -p.sun.z) + 1e-4))) : p.amb_top.rgb;
-		// Steps grow with the distance: long through clear air, short inside a cloud (from where the cheap density first
-		// finds one, half a long step back, until 8 empty samples).
-		float t = t0 + max(MIN_BIG, t0 * K_BIG) * jitter(vec2(id));
-		// The light of the last cloud sample (at first a sunlit cloud top's), for the end of a ray in the deck.
-		vec3 last = p.sun_col.rgb * phase(mu, 1.0) * SUN_GAIN * 0.5 + amb_top;
-		bool fine = false;
-		int empty = 0;
-		for (int i = 0; i < MAX_STEPS; i++) {
-			if (t > t1) {
+	float mu = dot(d, p.sun.xyz);
+	float hspan = top - base;
+	bool deck = p.shape.z > 0.5;
+	// The light from above: the Atmospheric sky's own (its zenith and horizon), else the time of day's.
+	vec3 amb_top = p.sun.w > 0.5 ? 0.35 * (sky(vec3(0.0, 1.0, 0.0)) + sky(normalize(vec3(-p.sun.x, 0.15, -p.sun.z) + 1e-4))) : p.amb_top.rgb;
+	// Steps grow with the distance: long through clear air, short inside a cloud (from where the cheap density first
+	// finds one, half a long step back, until 8 empty samples).
+	float t = t0 + max(MIN_BIG, t0 * K_BIG) * jitter(vec2(id));
+	// The light of the last cloud sample (at first a sunlit cloud top's), for the end of a ray in the deck.
+	vec3 last = p.sun_col.rgb * phase(mu, 1.0) * SUN_GAIN * 0.5 + amb_top;
+	bool fine = false;
+	bool opaque = false;
+	int empty = 0;
+	for (int i = 0; i < MAX_STEPS; i++) {
+		if (t > t1) {
+			break;
+		}
+		float st = fine ? max(MIN_FINE, t * K_FINE) : max(MIN_BIG, t * K_BIG);
+		vec3 x = o + d * t;
+		float hf = (x.y - base) / hspan;
+		float den = density(x, hf, 0);
+		if (!fine && den > 0.0) {
+			fine = true;
+			empty = 0;
+			t = max(t - 0.5 * st, t0);
+			continue;
+		}
+		if (den > 0.0) {
+			den = density(x, hf, t < FAR_DETAIL ? 1 : 2);
+		}
+		if (den <= 0.002 && fine && ++empty > 8) {
+			fine = false;
+		}
+		if (den > 0.002) {
+			empty = 0;
+			float sig = den * p.layer.w;
+			float od = sun_depth(x, t > FAR_LIGHT);
+			// Multiple scattering (Wrenninge 2013): octaves of weaker extinction and a wider phase.
+			vec3 light = vec3(0.0);
+			float a = 1.0;
+			float b = 1.0;
+			float c = 1.0;
+			for (int k = 0; k < 3; k++) {
+				light += a * exp(-od * b) * phase(mu, c);
+				a *= 0.5;
+				b *= 0.4;
+				c *= 0.5;
+			}
+			// Powder: little cloud behind the sunward edge scatters little light back (darker), not toward the sun.
+			float powder = 1.0 - exp(-2.0 * sig * 120.0);
+			powder = mix(powder, 1.0, 0.5 + 0.5 * mu);
+			// The deck's troughs between its lumps hold less light from above (darker, as a thinner cloud's top).
+			float hold = deck ? mix(TROUGH, 1.0, smoothstep(0.72, 0.98, hf)) : 1.0;
+			vec3 sun = p.sun_col.rgb * light * powder * SUN_GAIN * hold;
+			float h = clamp(hf, 0.0, 1.0);
+			vec3 amb = mix(p.amb_bottom.rgb, amb_top * hold, h) * mix(0.55, 1.0, sqrt(h));
+			// The towns' light from below at night (light pollution), strongest on the base.
+			amb += glow_at(x.xz) * (1.0 - 0.7 * h);
+			float step_tr = exp(-sig * st);
+			float w = tr * (1.0 - step_tr);
+			scat += (sun + amb) * w;
+			last = sun + amb;
+			dsum += t * w;
+			wsum += w;
+			tr *= step_tr;
+			if (tr < TR_MIN) {
+				opaque = true;
 				break;
 			}
-			float st = fine ? max(MIN_FINE, t * K_FINE) : max(MIN_BIG, t * K_BIG);
-			vec3 x = o + d * t;
-			float hf = (x.y - base) / hspan;
-			float den = density(x, hf, false);
-			if (!fine && den > 0.0) {
-				fine = true;
-				empty = 0;
-				t = max(t - 0.5 * st, t0);
-				continue;
-			}
-			if (den > 0.0) {
-				den = density(x, hf, true);
-			}
-			if (den <= 0.002 && fine && ++empty > 8) {
-				fine = false;
-			}
-			if (den > 0.002) {
-				empty = 0;
-				float sig = den * p.layer.w;
-				float od = sun_depth(x);
-				// Multiple scattering (Wrenninge 2013): octaves of weaker extinction and a wider phase.
-				vec3 light = vec3(0.0);
-				float a = 1.0;
-				float b = 1.0;
-				float c = 1.0;
-				for (int k = 0; k < 3; k++) {
-					light += a * exp(-od * b) * phase(mu, c);
-					a *= 0.5;
-					b *= 0.4;
-					c *= 0.5;
-				}
-				// Powder: little cloud behind the sunward edge scatters little light back (darker), not toward the sun.
-				float powder = 1.0 - exp(-2.0 * sig * 120.0);
-				powder = mix(powder, 1.0, 0.5 + 0.5 * mu);
-				vec3 sun = p.sun_col.rgb * light * powder * SUN_GAIN;
-				vec3 amb = mix(p.amb_bottom.rgb, amb_top, clamp(hf, 0.0, 1.0)) * mix(0.55, 1.0, sqrt(clamp(hf, 0.0, 1.0)));
-				// The towns' light from below at night (light pollution), strongest on the base.
-				amb += glow_at(x.xz) * (1.0 - 0.7 * clamp(hf, 0.0, 1.0));
-				float step_tr = exp(-sig * st);
-				float w = tr * (1.0 - step_tr);
-				scat += (sun + amb) * w;
-				last = sun + amb;
-				dsum += t * w;
-				wsum += w;
-				tr *= step_tr;
-				if (tr < 0.02) {
-					break;
-				}
-			}
-			t += st;
 		}
-		// The deck hides what lies under it: a ray that ran out of steps (grazing the lumps' tops) ends there, opaque.
-		if (p.shape.z > 0.5 && t < t1) {
-			scat += last * tr;
-			dsum += t * tr;
-			wsum += tr;
-			tr = 0.0;
-		}
+		t += st;
 	}
-	float dist = wsum > 0.0 ? dsum / wsum : min(t1 > 0.0 ? t1 : 1e5, 1e5);
+	// A ray all but opaque ends there: the rest of its light as its last sample's. The deck hides what lies under it:
+	// a ray that ran out of steps (grazing the lumps' tops) ends there, opaque.
+	if (opaque || (deck && t < t1)) {
+		scat += last * tr;
+		dsum += t * tr;
+		wsum += tr;
+		tr = 0.0;
+	}
+	float dist = wsum > 0.0 ? dsum / wsum : min(t1, 1e5);
 	// The haze between the camera and the cloud (Godot's exponential fog: 1 − e^(−density · distance)).
 	float f = wsum > 0.0 ? 1.0 - exp(-p.fog.w * dist) : 0.0;
 	vec3 haze = p.sun.w > 0.5 ? sky(d) : p.fog.rgb;
 	scat = mix(scat, haze * (1.0 - tr), f);
 	vec4 cur = vec4(scat, tr);
-	// Temporal reprojection: where the same cloud point was in the last frame; refused off screen or where the
-	// scene's depth there changed (something moved in front, or out of the way).
-	if (p.sun_col.w > 0.5) {
-		vec3 wp = o + d * min(dist, scene);
-		vec4 pc = p.prev_vp * vec4(wp, 1.0);
-		vec2 puv = pc.xy / pc.w * 0.5 + 0.5;
-		if (pc.w > 0.0 && all(greaterThanEqual(puv, vec2(0.0))) && all(lessThanEqual(puv, vec2(1.0)))) {
-			vec2 hd = textureLod(prev_dist, puv, 0.0).rg;
-			bool same = (scene > 5e8 && hd.g > 5e8) || abs(hd.g - scene) < 0.05 * scene;
-			// Nothing to march in front of the scene now: no history either (it smeared the deck over the jet).
-			same = same && t0 >= 0.0 && min(t1, scene) > t0;
-			if (same) {
-				cur = mix(textureLod(prev_color, puv, 0.0), cur, p.sizes.z);
-			}
-		}
+	// Temporal reprojection: blended into the last frames' result where the same cloud point was.
+	vec4 hc;
+	float hdist;
+	if (p.sun_col.w > 0.5 && history(o + d * min(dist, scene), scene, hc, hdist)) {
+		cur = mix(hc, cur, p.sizes.z);
 	}
 	imageStore(out_color, id, cur);
 	imageStore(out_dist, id, vec4(dist, scene, 0.0, 0.0));
+}
+
+// Each invocation draws a 2 × 2 block of cloud pixels. Interleaved (sizes.w): one of them marches each frame, in turn
+// (0,0), (1,1), (1,0), (0,1); the others reproject. A block per invocation keeps the marching pixels together, so the
+// GPU's lanes do not wait on one marching neighbour.
+void main() {
+	ivec2 b = ivec2(gl_GlobalInvocationID.xy) * 2;
+	int frame = int(p.cam_frame.w) & 3;
+	int turn = frame == 0 ? 0 : (frame == 1 ? 3 : (frame == 2 ? 1 : 2));
+	bool every = p.sizes.w < 0.5;
+	for (int k = 0; k < 4; k++) {
+		shade(b + ivec2(k & 1, k >> 1), every || k == turn);
+	}
 }

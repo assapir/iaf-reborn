@@ -3498,7 +3498,8 @@ func _process(delta: float) -> void:
 	if clouds != null:
 		clouds.set_fade(1.0 - Weather.grey())  # under the rain's overcast the high layer is hidden
 	if vclouds != null:
-		vclouds.update(($WorldEnvironment as WorldEnvironment).environment, $Sun, GpuFx.wind, delta)
+		var night: bool = _tod_sun.get("night", false)
+		vclouds.update(($WorldEnvironment as WorldEnvironment).environment, $Sun, GpuFx.wind, delta, night)
 	if get_viewport().get_camera_3d() != null:
 		RenderOptions.update_view(
 			($WorldEnvironment as WorldEnvironment).environment, get_viewport().get_camera_3d().global_position, terrain

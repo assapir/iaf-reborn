@@ -7,7 +7,8 @@
 # best (as _rain_shot.gd RAIN_BEST). CLOUD_ONLY=name,... picks shots; CLOUD_TAG prefixes the file names
 # (SHOT_DIR/<tag><name>.png). CLOUD_BENCH=secs: the average frame time and the GPU's render time of each shot's view
 # instead of pictures (vsync off). Shots: [name, rain, m above the ground, hour, pitch (deg, + up), turn from the
-# sun's azimuth (deg), view].
+# sun's azimuth (deg), view, and "fx": an explosion in the air above the deck and one inside it, 0.6 s before the
+# picture].
 extends "res://../tests/godot/base.gd"
 
 const TimeOfDay := preload("res://terrain/time_of_day.gd")
@@ -16,7 +17,9 @@ const SHOTS := [
 	["rain_below_external", "light", 400.0, 12.5, 4.0, 40.0, "external"],
 	["rain_inside", "light", 1900.0, 12.5, 0.0, 40.0, "cockpit"],
 	["rain_above_down", "light", 3450.0, 12.5, -12.0, 120.0, "external"],
+	["rain_above_nadir", "light", 3450.0, 12.5, -80.0, 120.0, "external"],
 	["rain_above_sun", "light", 3450.0, 16.5, -2.0, 0.0, "cockpit"],
+	["rain_above_fx", "light", 3450.0, 12.5, -45.0, 120.0, "external", "fx"],
 	["clear_above_sun", "off", 3450.0, 16.5, -2.0, 0.0, "cockpit"],
 	["heavy_above", "heavy", 6000.0, 12.5, -8.0, 60.0, "external"],
 	["cumulus_noon", "off", 600.0, 12.5, 6.0, 60.0, "external"],
@@ -27,6 +30,8 @@ const SHOTS := [
 ]
 
 var tv: Node
+## terrain/weather.gd (loaded at run time: it needs the Settings autoload).
+var weather: GDScript
 
 
 func _env(k: String, d: String) -> String:
@@ -65,6 +70,7 @@ func run() -> void:
 		var p := kv.split("=")
 		s.set(p[0], str_to_var(p[1]) if str_to_var(p[1]) != null else p[1])
 	seed(3)
+	weather = load("res://terrain/weather.gd")
 	tv = await start_mission(311)
 	await frames(30)
 	tv.frozen = true
@@ -101,13 +107,16 @@ func run() -> void:
 		while tv.terrain.missing_after_frame() and Time.get_ticks_msec() - t0 < 30000:
 			await process_frame
 		await frames(90)
+		if shot.size() > 7:
+			_explode()
+			await frames(36)
 		if bench > 0.0:
 			await _measure(shot[0], bench)
 			continue
 		await RenderingServer.frame_post_draw
 		var path := dir.path_join(_env("CLOUD_TAG", "") + shot[0] + ".png")
 		root.get_viewport().get_texture().get_image().save_png(path)
-		var w: GDScript = load("res://terrain/weather.gd")
+		var w := weather
 		var cam: Camera3D = root.get_viewport().get_camera_3d()
 		print(
 			"saved ",
@@ -123,6 +132,18 @@ func run() -> void:
 				]
 			)
 		)
+
+
+## Two air kills' explosions where the camera's view meets 200 m over the deck's top (in front of it, left) and 800 m
+## under it (inside the deck, behind its top: hidden, right).
+func _explode() -> void:
+	var cam: Camera3D = root.get_viewport().get_camera_3d()
+	var f := -cam.global_basis.z
+	var e: Dictionary = tv.effects.explosion_for(1, 0, false, false)
+	for k in [[200.0, -150.0], [-800.0, 150.0]]:
+		var y: float = weather.deck().y + k[0]
+		var a: Vector3 = cam.global_position + f * (cam.global_position.y - y) / maxf(-f.y, 0.1)
+		tv.effects.explosion(a + cam.global_basis.x * k[1], e.flags, 6.0, e.duration, 0.0, 8.0)
 
 
 func _measure(name: String, secs: float) -> void:

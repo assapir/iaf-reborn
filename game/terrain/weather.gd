@@ -256,8 +256,10 @@ func update(cam: Camera3D, cockpit_view: bool, wind: Vector3, fog: Color, delta:
 		dry_fog *= RenderOptions.haze_factor(p.y)  # the Atmospheric sky's haze by altitude
 	blend(env, get_parent().get_node("Sun") as DirectionalLight3D, dry_fog)
 	set_level()
-	deck_floor.visible = p.y > d.y and get_parent().get("vclouds") == null  # Volumetric draws its own deck
-	deck_floor.position = Vector3(p.x, d.y, p.z)
+	# With Clouds Volumetric the raymarched deck shows its own top; the floor lies at the deck's base under it, where
+	# it hides the ground the deck covers (the terrain's pixels cost more than the floor's).
+	deck_floor.visible = p.y > d.y
+	deck_floor.position = Vector3(p.x, d.x if get_parent().get("vclouds") != null else d.y, p.z)
 	# Its lumps stay put in the world and drift with the wind.
 	deck_floor.material_override.set_shader_parameter("drift", Vector2(_drift_world.x, _drift_world.z))
 	_drift_world += wind * delta

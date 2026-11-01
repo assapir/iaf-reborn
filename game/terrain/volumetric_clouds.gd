@@ -16,8 +16,16 @@ const DECK := {"light": {"cover": 0.93, "ext": 0.02}, "heavy": {"cover": 1.0, "e
 ## The farthest distance marched (m): the cumulus fade into the haze before it; the deck reaches the horizon.
 const FAR_CUMULUS := 90000.0
 const FAR_DECK := 200000.0
-## The new frame's share in the temporal blend.
-const BLEND := 0.12
+## The new frame's share in the temporal blend (each pixel marches every fourth frame: INTERLEAVE).
+const BLEND := 0.25
+## A quarter of the cloud pixels march each frame, each 2 × 2 block's in turn; the others reproject the last frames'.
+const INTERLEAVE := true
+## The moonlit clouds at night: the light on them as the original layer's night colour (cloud_layer.gd NIGHT_ATMO,
+## linear), the moon's on their tops, the sky's from above, the ground's from below (shares of it).
+const NIGHT := Color(0.045, 0.055, 0.095)
+const NIGHT_MOON := 0.3
+const NIGHT_TOP := 0.4
+const NIGHT_BOTTOM := 0.15
 ## The towns' light on the clouds from below at night (light pollution; as cloud_layer.gd GLOW_GAIN).
 const GLOW_GAIN := 4.0
 
@@ -72,8 +80,9 @@ func _exit_tree() -> void:
 
 
 ## Each frame: the clouds' layer (the rain's deck or the cumulus), the light (the sun node, the ambient, the sky), the
-## fog and the wind (scene m/s); and the textures' size when the 3D view's changed.
-func update(env: Environment, sun: DirectionalLight3D, wind: Vector3, delta: float) -> void:
+## fog and the wind (scene m/s), whether it is night (the moon's light); and the textures' size when the 3D view's
+## changed.
+func update(env: Environment, sun: DirectionalLight3D, wind: Vector3, delta: float, night := false) -> void:
 	for w in views:
 		var ef: Effect = w.effect
 		if ef.want != ef.size and ef.want != Vector2i.ZERO:
@@ -98,6 +107,10 @@ func update(env: Environment, sun: DirectionalLight3D, wind: Vector3, delta: flo
 	var top := fog * e
 	var bottom := env.ambient_light_color.srgb_to_linear() * e if atmo else top * 0.5
 	var sun_c := sun.light_color.srgb_to_linear() * sun.light_energy
+	if night:  # dim and blue-grey as the original's night layer, whatever the moon's light on the ground
+		sun_c = NIGHT * NIGHT_MOON
+		top = NIGHT * NIGHT_TOP
+		bottom = NIGHT * NIGHT_BOTTOM
 	var sd := sun.global_basis.z
 	# The Atmospheric sky's own values (null until RenderOptions first sets them).
 	var overcast = env.sky.sky_material.get_shader_parameter("overcast") if atmo else null
@@ -280,7 +293,7 @@ class Effect:
 		var p := params.duplicate()
 		p[7] = 1.0 if _valid else 0.0  # sun_col.w: the history holds the last frame
 		f.append_array(p.slice(0, 28))
-		f.append_array([float(size.x), float(size.y), BLEND, 0.0])
+		f.append_array([float(size.x), float(size.y), BLEND, 1.0 if INTERLEAVE else 0.0])
 		f.append_array(p.slice(28))
 		var bytes := f.to_byte_array()
 		rd.buffer_update(_ubo, 0, bytes.size(), bytes)
@@ -300,7 +313,7 @@ class Effect:
 		var cl := rd.compute_list_begin()
 		rd.compute_list_bind_compute_pipeline(cl, _pipe)
 		rd.compute_list_bind_uniform_set(cl, set_rid, 0)
-		rd.compute_list_dispatch(cl, (size.x + 7) / 8, (size.y + 7) / 8, 1)
+		rd.compute_list_dispatch(cl, (size.x + 15) / 16, (size.y + 15) / 16, 1)  # a 2 × 2 block an invocation
 		rd.compute_list_end()
 		var s3 := Vector3(size.x, size.y, 1)
 		rd.texture_copy(_b_color, a_color, Vector3.ZERO, Vector3.ZERO, s3, 0, 0, 0, 0)
