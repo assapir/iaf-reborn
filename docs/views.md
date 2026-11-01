@@ -286,6 +286,9 @@ Numpad snap keys turn the orbit: 8 / 2 pitch, 6 / 4 heading. F2 and 1 / 3 / 7 / 
 * **HUD only** (type 5): the HUD symbology and the message lines, with no panel / MFDs. The projection stays the
   cockpit's, so the HUD stays registered. (The original's viewport grows to 480 rows, which moves the projection
   centre: not ported.)
+* **3D cockpit** (ours, Extras "Cockpit": 3D; cockpit.md "3D cockpit"): the cockpit views draw the jet's 3D cockpit
+  in the cockpit-view model at the eye, the view at its true size (the screen's size and a 0.6 m viewing distance);
+  free look reaches 60° down (`views.gd` `pitch_min`), the snap views and padlock are unchanged.
 * **EO camera** (slot 1, type 0xb): a SubViewport camera for the FLIR pod and the TV weapons, riding a launched one
   (terrain_view.gd `_update_eo_view`). The pages and the full-screen weapon MFD (Z): docs/mfd.md "FLIR (6), TV (5)"
   and "Full-screen weapon MFD".

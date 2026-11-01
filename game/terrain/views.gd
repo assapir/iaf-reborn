@@ -60,6 +60,10 @@ var player: Node3D
 
 # --- head (cockpit types): yaw right +, pitch up + (radians) ---
 var head := Vector2.ZERO
+## Free look's lowest head pitch: the original's HEAD_PITCH_MIN; ours, the 3D cockpit (cockpit3d.gd) HEAD_PITCH_MIN_3D,
+## so the pilot can look down at the panel the 3D cockpit draws at its true size.
+var pitch_min := HEAD_PITCH_MIN
+const HEAD_PITCH_MIN_3D := -1.0471976  # −60°
 ## Slot 2: the snap view's head while its key is held (null = slot 0).
 var snap = null
 var _ret: Dictionary = {}  # head return to (0, 0) (FUN_0057fa10): from, t0, dur
@@ -255,7 +259,7 @@ func _free_look_head() -> Vector2:
 	var f := 2.0 * dt * (1.0 - pow(0.9, dt))
 	var h := _pan_from + _pan_rate * f
 	h.x = wrapf(h.x, -PI, PI)
-	h.y = clampf(h.y, HEAD_PITCH_MIN, HEAD_PITCH_MAX)
+	h.y = clampf(h.y, pitch_min, HEAD_PITCH_MAX)
 	return h
 
 

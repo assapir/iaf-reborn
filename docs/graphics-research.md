@@ -403,6 +403,15 @@ console labels match a Block 52 (they are the closest set).
 
 E and F add nothing over FlightGear for the F-16: not recommended.
 
+**B built (2026-10-30)**, Extras "Cockpit": 3D (docs/cockpit.md "3D cockpit"): `tools/f16d/cockpit3d.py` makes
+`game/extra/models/cockpit3d/f16.glb` from `cockpit.xml` as FlightGear's Block 50/52 shows it: 59.5 k triangles (54 k
+drawn: one of its two HUDs) (the consoles kept at 30–50 %, the tub cut at the eye; without the seat, kneeboards and
+pilot), KTX2 textures (4.2 MB), 37 animated parts. The Barak takes FlightGear's Block 40 panel sheet, the Sufa the
+Block 50 one. The MFDs draw into 512 px SubViewports, the HUD is masked to the combiner glass in a canvas shader, the
+view is at its true size (the screen's density and a 0.6 m viewing distance). C (the Sufa's own parts): the Sufa shows
+FlightGear's wide-angle HUD (one large combiner plate, as an F-16I seen from the side shows; inferred); its panel, the
+Elbit HUD's exact frame and its labels stay open: no source shows them (f16i.md §4). Iris Xe cost: rendering.md §3.2.
+
 ### 3.9 Atmosphere, clouds, fog — payoff 3, effort M
 - **Built:** the atmospheric sky and the cloud layer (docs/rendering.md).
 - **Volumetric fog:** measured free at our density, and it hides little at flight distances.

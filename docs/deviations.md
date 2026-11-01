@@ -168,6 +168,13 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   (`real_mfds`): the real F-16's head-down formats in green (FCR, SMS, HSD, WPN, TGP, TEST and the format menu), the
   OSBs as on the real jet (SWAP, three formats per MFD, DCLT); NAV, RWR and ADI are not offered and show the HSD. The
   F-16I Sufa draws them always, in colour. Other jets keep the original pages (mfd.md §9).
+- **Cockpit (Original 2D / 3D).** Original: the jets' 1998 2D panel art and the original's projection (50° across
+  640 px). Ours, with 3D (`cockpit_3d`, read at mission load): the F-16 (Barak and Sufa) flies with a real-time 3D
+  front cockpit built from the FlightGear F-16's (cockpit.md "3D cockpit"): the view at its true size (the screen's
+  size and a 0.6 m viewing distance) from the same eye; free look down to 60° (the original's 12°); the MFDs show the
+  same pages on the 3D screens; the HUD draws as before, cut to the combiner glass's outline; the needles FlightGear
+  animates move with the cockpit state; a click on an MFD push button presses it. The detailed F-16's cockpit model
+  stands behind it, with Models on Original too. Other jets keep their 2D panels.
 - **Briefing map (Original (1998) / Modern).** Original: text.emf's city dots where the 1998 map put them, up to
   ≈ 37 km from the real cities. Ours, with Modern (`briefing_map`): the eight labelled cities' dots and labels at
   their real places on the TSD / briefing / mission editor map, and today's motorways, trunk, primary and secondary

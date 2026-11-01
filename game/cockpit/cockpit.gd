@@ -375,8 +375,11 @@ func radar_mfd() -> Node:
 	return mfds[0]
 
 
-## Screen scale factor from the original 640x480 layout.
+## Screen scale factor from the original 640x480 layout. Ours, the 3D cockpit: the scale whose original focal length
+## (686.2 px × it) is the true-size view's (true_scale_focal), so the HUD's layout keeps its place on the world.
 func ui_scale() -> float:
+	if three_d():
+		return true_scale_focal() / (VIEW_WIDTH / 2.0 / tan(deg_to_rad(VIEW_FOV_DEG) / 2.0))
 	return size.y / ORIGINAL_HEIGHT * zoom
 
 
@@ -399,6 +402,8 @@ const REAL_VIEW_HEAD_DEG := 20.0
 ## forward; turned past REAL_VIEW_HEAD_DEG (the glass off the screen), the original's, blended in between, so the
 ## look-around views keep the original's view of the cockpit model (real-hud.md "Real view").
 func focal_length() -> float:
+	if three_d():  # the true-size view (Real HUD view has nothing to fit)
+		return true_scale_focal()
 	var f0 := VIEW_WIDTH / 2.0 / tan(deg_to_rad(VIEW_FOV_DEG) / 2.0) * ui_scale()
 	var away := clampf(maxf(absf(head.x), absf(head.y)) / deg_to_rad(REAL_VIEW_HEAD_DEG), 0.0, 1.0)
 	if Settings.hud_style == "real" and Settings.hud_view == "real" and away < 1.0:
@@ -411,6 +416,25 @@ func focal_length() -> float:
 		if k > 0.0:
 			return lerpf(k / tan(deg_to_rad(1.0)) * ui_scale(), f0, away)
 	return f0
+
+
+## Ours, the 3D cockpit's view (cockpit3d.gd): the eye VIEW_DISTANCE_M from the screen (inferred: a desk monitor or a
+## laptop at arm's length), so the world and the cockpit show at their true angular size.
+const VIEW_DISTANCE_M := 0.6
+## A screen whose density the system does not give: a 96 dpi desktop's.
+const FALLBACK_DPI := 96.0
+
+
+## The 3D cockpit's focal length (px of this viewport): the viewing distance in the screen's pixels. The screen's
+## density (DisplayServer.screen_get_dpi, physical px per inch) gives px per metre; the viewport's px per window px
+## scales it when the window's content is stretched.
+func true_scale_focal() -> float:
+	var win := get_window()
+	var dpi := float(DisplayServer.screen_get_dpi(win.current_screen))
+	if dpi <= 0.0:
+		dpi = FALLBACK_DPI
+	var k := get_viewport_rect().size.x / maxf(float(win.size.x), 1.0)
+	return VIEW_DISTANCE_M * dpi / 0.0254 * k
 
 
 ## The panel art for FUN_0052e750 (null: no art, the viewport is 480 rows) and its per-column D cache.
@@ -496,6 +520,8 @@ func hud_centre_screen() -> Vector2:
 ## panel (pushed down by MainOffsetY, like the original); the down view shows all of it.
 func panel_top() -> float:
 	var p: Dictionary = layout.get("PANEL", {})
+	if three_d():  # no panel art: the projection centre (the eye's line 5.5° under the nose) in the screen's middle
+		return size.y / 2.0 - (view_bottom() / 2.0 - float(p.get("MainOffsetY", 190))) * ui_scale()
 	var height: float = p.get("PanelHeight", 352)
 	var shown: float = height - p.get("MainOffsetY", 190) * (1.0 - panel_shift)
 	return size.y - shown * ui_scale()
@@ -553,15 +579,54 @@ var _glance_at := 0
 func _process(delta: float) -> void:
 	_lag_dt = delta
 	panel_shift = move_toward(panel_shift, panel_target, PANEL_SLIDE_SPEED * delta)
-	position = head_pan() * ui_scale() if view_mode == 0 else Vector2.ZERO
+	position = (view_shift if three_d() else head_pan() * ui_scale()) if view_mode == 0 else Vector2.ZERO
 	hud.visible = view_mode != 2
 	for m in mfds + [pcd, _pcd_sheen]:
 		if m != null:
 			m.visible = view_mode == 0
 	_update_compasses()
 	_update_instruments()
+	_update_hud_mask()
 	queue_redraw()
 	hud.queue_redraw()
+
+
+## Ours, the 3D cockpit (Extras "Cockpit": 3D, cockpit3d.gd): the combiner glass's outline seen from the eye
+## (px in this node), which the HUD is clipped to; null with the 2D panel. The panel art, needles and lamps are then
+## not drawn (the 3D model shows them) and the MFD nodes draw into the 3D screens.
+var hud_clip = null
+## The 3D cockpit's shift of the HUD with the head (px): where the nose is on the screen against where it is with the
+## head straight ahead, so the HUD stays on its glass (the 2D panel pans by head_pan instead).
+var view_shift := Vector2.ZERO
+var _hud_mask: ShaderMaterial
+
+
+func three_d() -> bool:
+	return hud_clip != null
+
+
+## The HUD and its outer layer drawn through hud_glass.gdshader with hud_clip's corners (everywhere while the helmet
+## display draws).
+func _update_hud_mask() -> void:
+	if hud_clip == null:
+		if _hud_mask != null:
+			for n in [hud, hud.outer]:
+				n.material = null
+			_hud_mask = null
+		return
+	if _hud_mask == null:
+		_hud_mask = ShaderMaterial.new()
+		_hud_mask.shader = preload("res://cockpit/hud_glass.gdshader")
+		for n in [hud, hud.outer]:
+			n.material = _hud_mask
+	var view := get_viewport_rect().size
+	var pts := PackedVector2Array()
+	for p in hud_clip.slice(0, 16):
+		pts.append((p + global_position) / view)
+	var n := pts.size()
+	_hud_mask.set_shader_parameter("count", 0 if dash() else (n if n >= 3 else -1))
+	pts.resize(16)
+	_hud_mask.set_shader_parameter("corners", pts)
 
 
 ## Ours, "Better cockpit" turning_compass (compass.gd): the panel compasses turn with the heading; made on first
@@ -570,7 +635,7 @@ var compasses: Array = []
 
 
 func _update_compasses() -> void:
-	var on := view_mode == 0 and Settings.better_cockpit_on("turning_compass")
+	var on := view_mode == 0 and not three_d() and Settings.better_cockpit_on("turning_compass")
 	if on and compasses.is_empty():
 		for spec in Compass.instruments(cockpit_dir.get_file()):
 			var n := Compass.new()
@@ -607,7 +672,7 @@ func _update_instruments() -> void:
 		better_instruments.setup(self, specs)
 		add_child(better_instruments)
 		move_child(better_instruments, hud.get_index())  # under the HUD symbology
-	better_instruments.visible = view_mode == 0
+	better_instruments.visible = view_mode == 0 and not three_d()
 	better_instruments.refresh()
 
 
@@ -632,7 +697,7 @@ func head_pan() -> Vector2:
 func _draw() -> void:
 	if layout.is_empty():
 		return
-	if view_mode != 0:
+	if view_mode != 0 or three_d():
 		if _lens != null:
 			_lens.visible = false
 		_draw_console()
