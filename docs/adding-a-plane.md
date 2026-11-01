@@ -57,6 +57,9 @@ the §1 type-code tables stay for the 1998 jets.
 
 **How the game reads a definition**
 - `crates/iaf-flight/src/airframe.rs` builds the files into the crate (the `FILES` list) and resolves the bases.
+- It then reads each resolved definition into the struct `Airframe` (same file). The struct is the list of fields:
+  an unknown field, a misspelt one or a wrong type fails `cargo test` (test `every_file_parses_and_its_base_exists`),
+  with the file, the error and the offending line of the resolved definition.
 - A definition with a `base` holds only what differs from it. It is a JSON Merge Patch (RFC 7386) on the base: an
   object merges key by key, `null` removes a key, any other value replaces the base's.
 - The adapter `airframe::id_for(type code, switches)` gives the definition a 1998 jet flies as:
@@ -64,27 +67,29 @@ the §1 type-code tables stay for the 1998 jets.
   - 110 → `f15`, or `f15i` with Extras "F-15 version" on Ra'am;
   - 1000 → `f35i` (the Extras "F-35I replaces" slot flies type 1000);
   - every other type → none: its tables decide.
-- GDScript asks `Settings.airframe(type_code)` (through `IafAirframe`). Each reader takes the definition's value and
-  falls back to its type-code table, so a base without the field gives exactly the 1998 value. With every switch off
-  the bases hold no table value (Rust test `switches_off_give_the_1998_values`).
+- Rust reads the struct's typed fields (`airframe::get(id)?.radar`). GDScript asks `Settings.airframe(type_code)`
+  (through `IafAirframe`): a Dictionary of the struct, with only the fields the definition holds. Each reader takes
+  the definition's value and falls back to its type-code table, so a base without the field gives exactly the 1998
+  value. With every switch off the bases hold no table value (Rust test `switches_off_give_the_1998_values`).
 
-**The fields** (all optional; `notes` holds each value's source)
+**The fields** (the struct `Airframe` and its nested structs; all optional except `jet_list`'s `title` and `desc`;
+`notes` holds each value's source, by field name, and no code reads it)
 
 | field | read by | what it decides |
 |---|---|---|
 | `base` | `airframe.rs` | the definition this one patches |
 | `name`, `doc` | — | the plane's name and its doc |
-| `jet_list` {`title`, `title_he`, `row_he`, `desc`} | `front_end.gd` `_jet_swap` | the Jet list button, row and description (Hebrew `desc` in `strings_he.json`) |
-| `flyable` | `player_aircraft.gd` `flyable` | flyable without a `FLYABLE` entry |
+| `jet_list` {`title`, `title_he`, `row_he`, `desc`} (strings) | `front_end.gd` `_jet_swap` | the Jet list button, row and description (Hebrew `desc` in `strings_he.json`) |
+| `flyable` (bool) | `player_aircraft.gd` `flyable` | flyable without a `FLYABLE` entry |
 | `cockpit` | `player_aircraft.gd` `profile`, `real_hud` `Jet::of_cockpit` | a cockpit dir in the repo instead of `cockpits.ibx`'s |
 | `hud` | `real_hud` `Jet::of_cockpit` | the Real HUD symbology of that cockpit (`f35`: the helmet-only display, `IafRealHud.helmet_only`) |
 | `fm` | `data_set::variant` | the flight-model type (`data_set.rs` `TYPES` / `REAL` row) |
 | `original_model`, `model` | `airframe::model_for`, `gltf.gd` `detailed` | `model` is drawn in place of the family's 1998 model file `original_model`, with Models on Original too |
-| `voice` {`betty`, `real`} | `flight_sounds.gd` `has_betty`, `real_voice` | the voice warnings, the Real HUD's calls |
-| `radar` {`row`, `km`, `ai_nm`} | `radar.gd`, `real_weapons.gd` `radar_nm`, `combat.gd` `sensor_nm` | the radar table row, the Real range, the AI's sensor range |
-| `gun_rounds` | `real_weapons.gd` `gun_rounds` | the Real gun rounds |
-| `flir` | `player_weapons.gd` | a built-in FLIR |
-| `weapons` {`arm_art`, `modern`, `loads`} | `mission_weapons.gd` `jet`, `modern_weapons.gd` `loads` | Arming art (`x_<id>`: `game/extra/planes/<id>/arm`), the modern weapons `"always"`, and their stations (`{"<record id>": [count, "stations"]}`) |
+| `voice` {`betty` (bool), `real`} | `flight_sounds.gd` `has_betty`, `real_voice` | the voice warnings, the Real HUD's calls |
+| `radar` {`row` (int), `km`, `ai_nm` (numbers)} | `radar.gd`, `real_weapons.gd` `radar_nm`, `combat.gd` `sensor_nm` | the radar table row, the Real range, the AI's sensor range |
+| `gun_rounds` (int) | `real_weapons.gd` `gun_rounds` | the Real gun rounds |
+| `flir` (bool) | `player_weapons.gd` | a built-in FLIR |
+| `weapons` {`arm_art`, `modern`, `loads`} | `mission_weapons.gd` `jet`, `modern_weapons.gd` `loads` | Arming art (`x_<id>`: `game/extra/planes/<id>/arm`), the modern weapons `"always"`, and their stations (`{"<record id>": [count, "stations"]}`, the id a whole number) |
 | `hud_3d` | `cockpit3d.gd` | the 3D cockpit's HUD (`HUD_std` / `HUD_wide`) |
 | `mfd` | `settings.gd` `real_mfd` | the F-16's real MFD formats |
 | `guide` | `reference.gd` `guide_name` | the pilot guide (`docs/guides/<guide>.md`) |
@@ -94,7 +99,8 @@ the §1 type-code tables stay for the 1998 jets.
 **To add a modern plane**
 1. Write `game/extra/planes/<id>/airframe.json` (a variant: a `base` and what differs).
 2. Add it to `FILES` in `crates/iaf-flight/src/airframe.rs`, and to `id_for` when a 1998 type code or switch picks it.
-3. Read a new field where the game decides it, with the type-code table as the fallback.
+3. A new field: add it to `Airframe` (or its nested struct) and to the table above, then read it where the game
+   decides it, with the type-code table as the fallback. GDScript only sees the struct's fields.
 
 Still keyed by type code for the F-35I (type 1000), and why:
 - the flight model's own tables, `spool.rs` `ENGINES` and the fly-by-wire `matches!` in `aircraft.rs`: the flight

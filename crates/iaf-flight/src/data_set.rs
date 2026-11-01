@@ -100,7 +100,7 @@ pub fn effective(set: DataSet, name: &str) -> DataSet {
 pub fn variant<'a>(name: &'a str, s: crate::airframe::Switches) -> &'a str {
     find_type(name)
         .and_then(|t| crate::airframe::of_type(t.type_code.into(), s))
-        .and_then(|a| a["fm"].as_str())
+        .and_then(|a| a.fm.as_deref())
         .unwrap_or(name)
 }
 
@@ -843,7 +843,7 @@ mod tests {
         assert_eq!(variant("F-35I", sufa), "F-35I");
         // Every definition's flight-model type is a row here.
         for (id, a) in crate::airframe::all() {
-            if let Some(fm) = a["fm"].as_str() {
+            if let Some(fm) = a.fm.as_deref() {
                 assert!(find_type(fm).is_some(), "{id}: {fm}");
             }
         }

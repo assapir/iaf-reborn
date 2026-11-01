@@ -3,6 +3,7 @@
 
 use std::path::Path;
 
+use iaf_flight::airframe::Airframe;
 use iaf_formats::model::{Frame, Model};
 use serde_json::Value;
 
@@ -263,15 +264,18 @@ pub const TABLES: &[Table] = &[
     Table { file: "tests/godot/test_jet_list.gd", anchor: "const JETS :=", what: "Jet list test row", list: true },
 ];
 
+/// Whether an aircraft definition holds a field.
+pub type Holds = fn(&Airframe) -> bool;
+
 /// The aircraft-definition field (docs/adding-a-plane.md "Modern planes") that stands for a table, by its anchor: a
 /// jet with a definition holding it needs no entry there.
-pub const DEFINED_BY: &[(&str, &str)] = &[
-    ("const FLYABLE :=", "flyable"),
-    ("const COCKPIT :=", "cockpit"),
-    ("const BETTY_TYPES :=", "voice"),
-    ("const RADAR_KM :=", "radar"),
-    ("const GUN_ROUNDS :=", "gun_rounds"),
-    ("const JET_ART :=", "weapons"),
+pub const DEFINED_BY: &[(&str, Holds)] = &[
+    ("const FLYABLE :=", |a| a.flyable.is_some()),
+    ("const COCKPIT :=", |a| a.cockpit.is_some()),
+    ("const BETTY_TYPES :=", |a| a.voice.is_some()),
+    ("const RADAR_KM :=", |a| a.radar.is_some()),
+    ("const GUN_ROUNDS :=", |a| a.gun_rounds.is_some()),
+    ("const JET_ART :=", |a| a.weapons.is_some()),
 ];
 
 /// The aircraft definitions a jet of type `code` flies as, whatever the Extras switches (`iaf_flight::airframe`).
@@ -330,9 +334,8 @@ pub fn checklist(repo: &Path, code: i64) -> Vec<Row> {
             let line = lines.iter().position(|l| l.contains(t.anchor));
             let present = line.is_some_and(|i| has_code(&statement(&lines, i), code));
             let field = DEFINED_BY.iter().find(|(a, _)| *a == t.anchor).map(|(_, f)| *f);
-            let defined = field.is_some_and(|f| {
-                definitions(code).iter().any(|id| iaf_flight::airframe::get(id).is_some_and(|a| a.get(f).is_some()))
-            });
+            let defined =
+                field.is_some_and(|f| definitions(code).iter().any(|id| iaf_flight::airframe::get(id).is_some_and(f)));
             Row { table: t, line: line.map(|i| i + 1), present, defined }
         })
         .collect()

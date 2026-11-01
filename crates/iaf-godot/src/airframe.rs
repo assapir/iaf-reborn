@@ -30,13 +30,14 @@ impl IafAirframe {
     /// Every definition's own model (what `model_for` can give), whatever the switches.
     #[func]
     fn models() -> PackedStringArray {
-        airframe::all().filter_map(|(_, a)| a["model"].as_str()).map(GString::from).collect()
+        airframe::all().filter_map(|(_, a)| a.model.as_deref()).map(GString::from).collect()
     }
 
-    /// The resolved definition `id` (its base merged in); {} for an unknown id.
+    /// The resolved definition `id` (its base merged in, read through the typed `airframe::Airframe`: only its
+    /// fields, the missing ones left out); {} for an unknown id.
     #[func]
     fn definition(id: GString) -> VarDictionary {
-        airframe::get(&id.to_string()).map(variant).and_then(|v| v.try_to().ok()).unwrap_or_default()
+        airframe::get(&id.to_string()).map(|a| variant(&a.to_value())).and_then(|v| v.try_to().ok()).unwrap_or_default()
     }
 }
 
