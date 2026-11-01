@@ -376,6 +376,15 @@ impl IafFlight {
         self.origin = (origin_x, origin_y);
     }
 
+    /// The player's landing flare (`Autopilot::player_flare`, docs/autopilot.md §2.3): on when the player has left
+    /// the original (World scale Real, Real flight data or a Better physics switch).
+    #[func]
+    fn ap_set_flare(&mut self, on: bool) {
+        if let Some(ap) = &mut self.ap {
+            ap.player_flare = on;
+        }
+    }
+
     /// Terrain height for the control loops: Callable(Vector3 scene position) -> float.
     #[func]
     fn ap_set_ground(&mut self, f: Callable) {

@@ -58,7 +58,6 @@ Each row: Original = the 1998 game; Ours = this port, for everyone.
 | Autopilot leaving NAV | throttle re-sync (`FUN_005a29d0`) gated on a vehicle getter == 0x1e (not traced) | re-sync (0.74 airborne, no throttle axis) on every exit from NAV | gate not traced | autopilot.md §1, controls/autopilot.gd |
 | Joystick input | DirectInput: the first joystick found at startup, named axes lX / lY / lZ / lRz (slider 0 or lRz decides "has a rudder"), DirectInput's ranges and 25 % dead zone, buffered buttons | Godot's joypad API (SDL): the first connected joypad, hot-plug; axes by number (`[devices] joy_axes`, default 0 / 1 / 2 / 3); the 25 % dead zone computed by us; a device counts as having all four axes; the hat from Godot's D-pad buttons 11–14; `.joy` files matched against SDL's device name | DirectInput is Windows-only; Godot does not name the axes | controls.md §5.2, controls/joystick.gd |
 | Joystick force feedback | `iaforce.ifr` effects on FF sticks | none | not ported | controls.md §5.1 |
-| Autopilot landing flare (the player's) | StopPlane holds the flight path level at idle from about 12 m up: the jet floats until it stalls and drops onto the runway nose first (in the port: 9–15 m/s; F-4 13–25° nose down, a crash) | a flare onto the runway: the sink is the wheels' height / 2 s + 1.5 m/s, the path error summed in; "rolling" once the wheels touch | the original's float crashed the F-4 every time and others with Easy landing off; the AI keeps the original | autopilot.md §2.3, autopilot.rs `Landing::flare` |
 | Autopilot level mode, ground watch | KeepOrientation posts an uninitialised throttle slot when the ground watch takes over | that slot starts at 0 (the watch's 250 m/s law applies) | undefined value in the original | autopilot.md §2.1 |
 | Weapon HUD geometry | the HUD projector (not traced) | seeker / circle angles at 12 px/deg from the camera ray through the HUD centre | projector untraced | weapons.md §5.1 |
 | Helmet sight in snap views | the seeker's helmet branch tests the view type (free look 0x12 / padlock 0x16); the snap views' slot-2 type is not traced | snap views (numpad / F2) stay on the nose case | type UNCERTAIN | weapons.md §5.4 |
@@ -146,6 +145,12 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 - **Autopilot landing gear.** Original: the NAV landing lowers the gear once, at step 7, and the lever refuses it
   above 300 kt, so a jet still faster there lands on its belly. Ours, with the switch (and always on the F-35I): the
   step before (LW2) holds wings level at idle until 292 kt, so the gear comes down — autopilot.md §2.3.
+- **Autopilot landing flare** (also on with World scale Real or any Better physics switch, and always on the F-35I
+  and the Sufa). Original: the player's StopPlane holds the flight path level at idle from about 12 m up; the jet floats
+  until it stalls and drops onto the runway (9–15 m/s; the F-4 13–25° nose down, a crash every time; the F-15 and the
+  Lavi 5–6° down, a crash with Easy landing off). Ours, with any of these: a flare onto the runway, the sink the
+  wheels' height / 2 s + 1.5 m/s with the path error summed in, "rolling" once the wheels touch. All Original keeps
+  the float; the AI always does — autopilot.md §2.3.
 
 **Preferences → Extras**
 - **Weapon data (Original / Real).** Original: the 1998 weapon data. Ours, with Real: public missile weights, top

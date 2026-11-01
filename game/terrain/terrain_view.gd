@@ -1852,6 +1852,18 @@ func ai_wind(f) -> void:
 ## terrain and the player's route ([X, Y, alt, T, action] per waypoint).
 func _setup_autopilot(install: String) -> void:
 	flight.ap_setup(install, terrain.world_origin.x, terrain.world_origin.y)
+	# The player's landing flare (docs/autopilot.md §2.3): off the original only (World scale Real, Real flight data,
+	# a jet that always flies its Real row, or a Better physics switch); all Original keeps StopPlane's float.
+	var type := int(player.get("type", 0))
+	flight.ap_set_flare(
+		(
+			Settings.world_scale == "real"
+			or Settings.flight_data == "real"
+			or type == PlayerAircraft.F35I
+			or Settings.sufa(type)
+			or true in Settings.better.values()
+		)
+	)
 	flight.ap_set_ground(
 		func(pos: Vector3):
 			var g = scene_ground(pos)

@@ -284,6 +284,7 @@ fn player_312_circuit_at_the_moved_ramat_david() {
             let mut ap = Autopilot::new(Config::load(&a.join("install")));
             ap.bases = ibx.clone();
             ap.align_final = true;
+            ap.player_flare = true; // World scale Real is off the original (docs/autopilot.md §2.3)
             ap.route = vec![g];
             ap.player_mode(&mut ac, 2, 0);
             let mut stop = None;
