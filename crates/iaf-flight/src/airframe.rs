@@ -35,6 +35,8 @@ pub struct Airframe {
     pub flir: Option<bool>,
     pub weapons: Option<Weapons>,
     pub hud_3d: Option<String>,
+    /// The 3D cockpit's model (Extras "Cockpit": 3D; docs/cockpit.md "3D cockpit").
+    pub cockpit_3d: Option<String>,
     pub mfd: Option<String>,
     pub guide: Option<String>,
     /// Each value's source, by field (`"radar.km"`); read by no code.
