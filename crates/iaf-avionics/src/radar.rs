@@ -1029,7 +1029,7 @@ mod tests {
         assert_eq!(r.ranges().get(Mode::Stt).map(|t| t.nm), Some(58.0));
         assert_eq!(r.ranges().get(Mode::Map).map(|m| (m.max, m.nm)), Some((4, 40.0)));
         // The Sufa's aircraft definition names this row (radar.gd setup).
-        assert_eq!(iaf_flight::airframe::get("f16i").and_then(|a| a["radar"]["row"].as_u64()), Some(F16I as u64));
+        assert_eq!(iaf_flight::airframe::get("f16i").and_then(|a| a.radar.as_ref()?.row), Some(F16I as u32));
     }
 
     #[test]
@@ -1040,8 +1040,8 @@ mod tests {
         assert_eq!(r.ranges().get(Mode::Stt).map(|t| t.index), Some(5));
         assert_eq!(Radar::new(1, None).ranges().get(Mode::Lrs).map(|t| t.index), Some(4), "the originals at 40 NM");
         // The F-35I's aircraft definition names this row (radar.gd setup).
-        let def = iaf_flight::airframe::get("f35i").and_then(|a| a["radar"]["row"].as_u64());
-        assert_eq!(def, Some(F35I as u64));
+        let def = iaf_flight::airframe::get("f35i").and_then(|a| a.radar.as_ref()?.row);
+        assert_eq!(def, Some(F35I as u32));
     }
 
     #[test]
