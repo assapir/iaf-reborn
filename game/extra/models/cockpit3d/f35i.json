@@ -5,7 +5,18 @@
   1.15,
   -5.1
  ],
- "night_plain": true,
+ "night_flood": [
+  0.25,
+  0.27,
+  0.3
+ ],
+ "night_glow": {
+  "label": [
+   0.18,
+   0.6,
+   0.25
+  ]
+ },
  "lamps": {
   "lamp_master_caution_0": {
    "key": "master_caution",

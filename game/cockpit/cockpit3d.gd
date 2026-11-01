@@ -147,10 +147,11 @@ const BACKLIGHT_ENERGY := 0.25
 ## The materials left out of the fill (by their texture in the material's name): the tub's floor, walls and pedal area,
 ## the air vents, the stick's grip: no panel, and the fill showed the floor's speckle.
 const UNLIT := ["floor", "pedaladj", "base-color", "airvent", "rear-left", "marked-iron", "stick-color", "tranbg"]
-## With <model>.json's `night_plain` (the F-35I's plain colours) the untextured materials glow at night by their own
-## colour × the night colour (the labels light, the dark paint stays dark); by day the scene lights them alone (the fill
-## made the dark grey paint twice as light as its panel render, tools/f35i/cockpit3d.py; 2026-11-01).
-var _plain_mats := []
+## The plain colours (the F-35I's, untextured) by <model>.json: by day the scene lights them alone (the fill made the
+## dark grey paint twice as light as its panel render, tools/f35i/cockpit3d.py); at the cockpit's night each glows by
+## its colour × `night_flood` (the render's floodlights), plus `night_glow` (material name -> rgb: the backlit labels).
+## The F-16's night colour × each colour turned the whole panel olive (2026-11-01).
+var _night_mats := {}  # material -> its emission at night
 
 
 func _setup_light(model: Node3D) -> void:
@@ -161,12 +162,14 @@ func _setup_light(model: Node3D) -> void:
 	for mi: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):
 		for s in mi.mesh.get_surface_count():
 			var mat := mi.get_active_material(s) as BaseMaterial3D  # the AoA tape's own copy too
-			if mat == null or mat in _lit_mats or mat in _plain_mats or mat in lamp_mats:
+			if mat == null or mat in _lit_mats or mat in lamp_mats:
 				continue
 			if mat.albedo_texture == null:
-				if meta.get("night_plain", false) and not mat.emission_enabled:  # not the screens
+				if meta.has("night_flood") and not mat.emission_enabled:  # not the screens
+					var f: Array = meta.night_flood
+					var g: Array = meta.get("night_glow", {}).get(mat.resource_name, [0, 0, 0])
 					mat.emission_enabled = true
-					_plain_mats.append(mat)
+					_night_mats[mat] = mat.albedo_color * Color(f[0], f[1], f[2]) + Color(g[0], g[1], g[2], 0)
 				continue
 			if UNLIT.any(func(u): return mat.resource_name.contains(u)):
 				continue
@@ -194,8 +197,8 @@ func _lighting() -> void:
 	_lit = c
 	for mat: BaseMaterial3D in _lit_mats:
 		mat.emission = c
-	for mat: BaseMaterial3D in _plain_mats:
-		mat.emission = mat.albedo_color * c if cockpit.night else Color.BLACK
+	for mat: BaseMaterial3D in _night_mats:
+		mat.emission = _night_mats[mat] if cockpit.night else Color.BLACK
 
 
 ## The MFD node drawn into a SubViewport shown on `screen` (emissive, under the glass's sheen).

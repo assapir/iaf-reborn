@@ -504,8 +504,10 @@ def export_glb(out, eye_g):
     def lens(key):
         return [round(c, 3) for c in
                 mats.lens[key].node_tree.nodes["Principled BSDF"].inputs["Emission Color"].default_value[:3]]
-    # night_plain: cockpit3d.gd lights the plain colours with its night colour.
-    meta = {"source": "ours, tools/f35i/cockpit3d.py --glb", "eye": [round(v, 5) for v in eye_g], "night_plain": True,
+    # At night (cockpit3d.gd) every plain colour × night_flood (the render's floodlights, floods()) and the labels'
+    # night_glow (their backlight, Mats.night).
+    meta = {"source": "ours, tools/f35i/cockpit3d.py --glb", "eye": [round(v, 5) for v in eye_g],
+            "night_flood": [0.25, 0.27, 0.3], "night_glow": {"label": [0.18, 0.6, 0.25]},
             "lamps": {"lamp_master_caution_0": {"key": "master_caution", "hide": False, "colour": lens("LIGHT000")},
                       "lamp_eng_fire_0": {"key": "eng_fire", "hide": False, "colour": lens("LIGHT001")},
                       "lamp_gear_transit_0": {"key": "gear_transit", "hide": False, "colour": lens("gear")}},

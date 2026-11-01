@@ -102,18 +102,18 @@ func _f35i() -> void:
 		c3._process(0.0)
 		turned.append(handle.transform.basis.get_euler().x)
 	check(turned[0] < -0.1 and turned[1] > 0.1, "F-35I 3D: the gear handle up and down (%s rad)" % [turned])
-	# The plain colours: unlit by day, at night by the night colour (the labels light).
-	var day: bool = c3._plain_mats.size() > 5
-	for m: BaseMaterial3D in c3._plain_mats:
+	# The labels: dark by day, glowing at night.
+	var day: bool = c3._night_mats.size() > 5
+	for m: BaseMaterial3D in c3._night_mats:
 		day = day and m.emission == Color.BLACK
 	var night: bool = c.night
 	c.night = true
 	c3._lighting()
 	var lit := true
-	for m: BaseMaterial3D in c3._plain_mats:
-		lit = lit and m.emission.get_luminance() > 0.0
+	for m: BaseMaterial3D in c3._night_mats:
+		lit = lit and m.emission.g > (0.5 if m.resource_name == "label" else 0.0)
 	c.night = night
-	check(day and lit, "F-35I 3D: the plain colours dark by day, lit at night (%d materials)" % c3._plain_mats.size())
+	check(day and lit, "F-35I 3D: the plain colours unlit by day, flood-lit at night, the labels glowing")
 	tv.queue_free()
 	await frames(2)
 	settings().f35i_slot = -1

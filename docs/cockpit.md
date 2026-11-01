@@ -396,9 +396,10 @@ TgenAPI (`DAT_0069942c`, 16-bit renderer vtable `0x5fd900`) draws the world into
 
 ### 3D cockpit (ours, Extras > Cockpit)
 Ours, opt-in (`cockpit_3d`: Original 2D / 3D, read at mission load; deviations.md §2): a real-time 3D cockpit in
-place of the 2D panel art. Today the F-16's, for the Barak and the Sufa; other jets keep their panels. The plumbing
-(`game/cockpit/cockpit3d.gd`) takes any jet whose cockpit directory has a model in `MODELS`; the F-35I's comes next
-(docs/f35i.md §4).
+place of the 2D panel art. Today the F-16's, for the Barak and the Sufa, and the F-35I's (ours, below and
+docs/f35i.md §4.5); other jets keep their panels. The plumbing (`game/cockpit/cockpit3d.gd`) takes any jet whose
+aircraft definition names a model in `cockpit_3d` (docs/adding-a-plane.md "Modern planes"); the F-16's HUD by the
+definition's `hud_3d`.
 
 **The model** (`game/extra/models/cockpit3d/f16.glb`, 4.2 MB with KTX2 textures; built by
 `tools/f16d/cockpit3d.py` from the FlightGear F-16 at commit ef4f192, GPL-2.0-or-later; credits and changes in
@@ -523,6 +524,24 @@ place of the 2D panel art. Today the F-16's, for the Barak and the Sufa; other j
   the texture × colour is the cheap stand-in, inferred). The lamps (lit by their state), the MFDs, the RWR scope, EHSI
   and DED (self-lit screens) and the HUD are as by day. Cost (`_flight_bench.gd`, Iris Xe, 1920×1080,
   `BENCH_SET=cockpit_3d=3d`, 2026-11-01): GPU +0.3 ms at 150 m, +0.2 ms at 1,500 m by day, none at night.
+* **The F-35I's** (`game/extra/models/cockpit3d/f35i.glb`, ours: `tools/f35i/cockpit3d.py --glb`, docs/f35i.md
+  §4.5) hangs in its cockpit-view model (`f35i_bc.gltf`) the same way, half size about the eye as that model's own
+  parts, so the Present scale draws it at its real size. It reads:
+  * `PCD`: the panoramic display (`pcd.gd`, the node that draws it on the 2D panel) drawn into a 1,496 × 671 px
+    SubViewport on the glass, 3 px per `[PCD]` panel px (`cockpit3d.gd` `PCD_PX`); the portals' hidden MFD nodes keep
+    the pages as before. A click on the glass goes through the same ray to its px and taps it as on the 2D panel
+    (`pcd.gd` `click`: the portal headers, the tabs, the MENU grids, the range arrows). The 2D sheen is left out: the
+    glass has its own.
+  * `ESIS`: the standby display, a second `pcd.gd` (layer 2) in its own 283 × 249 px SubViewport.
+  * The lamps (`f35i.json` `lamps`): master caution, engine fire and the gear handle's red light in transit, by the
+    rules of the F-16's above. The gear handle (`gear_handle`) turns ±11.7° about a pivot behind the panel, up or
+    down with `gear_handle_down` (the 2D art's three frames, LIGHT009, become one moving part).
+  * No combiner: the helmet HUD draws over the whole view.
+  * **Light:** plain colours, no textures. By day the scene lights them alone: with the F-16's fill they came out
+    twice as light as their panel render (2026-11-01). At night each glows by its colour × `f35i.json` `night_flood`
+    (the render's floodlights) and the labels by `night_glow` (their green backlight); the F-16's night colour × each
+    colour, tried first, turned the whole panel olive (2026-11-01).
+  * 41.2 k triangles, 11 materials in one mesh plus the named parts, 1.5 MB.
 * **Fill light, tried and dropped (2026-11-01):** a shadowless OmniLight3D 25 cm above the eye (2.5 m range, the
   sun's colour by day, the flood colour at night) shaded the panel well, but cost 1.9 ms GPU at 150 m and 1.2 ms at
   1,500 m on the Iris Xe (the cockpit fills half the screen); the texture-times-colour fill replaced it.
