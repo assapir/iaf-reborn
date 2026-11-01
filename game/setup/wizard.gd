@@ -230,11 +230,13 @@ func _build() -> void:
 		_page_done
 	]:
 		var p: Control = f.call()
-		if f != _page_install:  # Install scrolls its own step list
-			# A page taller than the window (Extras on a small screen) scrolls, so the footer's Next stays reachable.
+		# A page taller than the window (Extras on a small screen) scrolls, so the footer's Next stays reachable; it
+		# fills the body when shorter (Welcome's text scrolls on its own). Install scrolls its own step list.
+		if p.find_children("*", "ScrollContainer", true, false).is_empty():
 			var scroll := ScrollContainer.new()
 			scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 			p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			p.size_flags_vertical = Control.SIZE_EXPAND_FILL
 			scroll.add_child(p)
 			p = scroll
 		p.visible = false
