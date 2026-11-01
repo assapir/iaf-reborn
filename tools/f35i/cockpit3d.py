@@ -10,13 +10,22 @@
 #
 #   blender -b --python tools/f35i/cockpit3d.py -- <cockpit dir>          (LAYOUT_ONLY=1: cockpit.json only;
 #                                                                          PREVIEW=1: a quick low-sample day render)
+#
+# With `--glb <out.glb>` it writes the same cockpit as the game's real-time 3D cockpit instead (Extras "Cockpit": 3D;
+# docs/cockpit.md "3D cockpit", game/cockpit/cockpit3d.gd), in the cockpit-view model's frame (f35i_bc.gltf,
+# tools/f35i/bc.py: half size about the descriptor's eye); export_glb() lists what it adds and names, <out>.json its
+# lamps and the gear handle's turn.
+#   blender -b --python tools/f35i/cockpit3d.py -- game/extra/planes/f35i/cockpit \
+#       --glb game/extra/models/cockpit3d/f35i.glb
 import json
 import math
 import os
 import sys
 
+import bmesh
 import bpy
 import numpy as np
+from mathutils import Matrix, Vector
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "plane"))
 import kit  # noqa: E402
@@ -58,8 +67,11 @@ class Mats:
     """The cockpit's materials: dark charcoal panels with mottled wear, a matte rubberised glareshield, satin bezels,
     the display glass with a clear coat, metal, labels (white by day, backlit green at night) and lamp lenses."""
 
-    def __init__(self):
+    def __init__(self, flat=False):
         m = kit.material
+        if flat:  # the 3D cockpit: plain colours (the wear and grain are Cycles nodes; the coat a cost)
+            def m(*a, grain=0.0, wear=0.0, coat=0.0, **k):
+                return kit.material(*a, **k)
         self.panel = m("panel", (0.030, 0.032, 0.036), roughness=0.62, grain=0.05, wear=0.5)
         self.rubber = m("glareshield", (0.013, 0.013, 0.015), roughness=0.92, grain=0.12, wear=0.25)
         self.bezel = m("bezel", (0.026, 0.027, 0.030), roughness=0.38, wear=0.4)
@@ -382,8 +394,137 @@ def lamp_layout(lights):
     return sec
 
 
+PRESENT_SCALE = 2.0  # as tools/f35i/bc.py: the game draws the cockpit-view model at the Present scale
+BC_CUT = 0.05  # m behind the eye: where f35i_bc.gltf's side rails start (bc.py: -CUT + 0.05)
+# The gear handle turns about a pivot GEAR_PIVOT m behind the face through the slot's travel (set_gear's 22 mm either
+# side of its centre at the knob).
+GEAR_PIVOT = 0.06
+GEAR_DEG = math.degrees(math.atan2(0.022, 0.046 + GEAR_PIVOT))
+
+
+def screen_quad(name, x, z, w, h, depth, mat):
+    """A flat screen on the face, its UVs 0..1 left to right and top to bottom (the game draws a SubViewport on it)."""
+    me = bpy.data.meshes.new(name)
+    corners = [on_face(x + dx * w / 2, z + dz * h / 2, depth) for dx, dz in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+    me.from_pydata(corners, [], [(0, 1, 2, 3)])
+    uv = me.uv_layers.new(name="UVMap")
+    for li, st in enumerate(((0, 0), (1, 0), (1, 1), (0, 1))):  # Blender's v up (glTF's down)
+        uv.data[li].uv = st
+    me.materials.append(mat)
+    o = bpy.data.objects.new(name, me)
+    kit.scene().collection.objects.link(o)
+    return o
+
+
+def tub(mats):
+    """The 3D cockpit's tub under the panel and consoles (the panel render never sees it; f35i_bc.gltf has nothing
+    ahead of the eye): the floor, the footwell's front, the walls down to the floor, the seat's front with the
+    ejection handle's yellow loop (§4.1)."""
+    box = kit.box
+    box("tub_floor", (0, 0.20, -0.92), (0.90, 1.30, 0.02), mats.seal, bevel=0)
+    box("tub_front", (0, 0.80, -0.70), (0.80, 0.02, 0.44), mats.panel, bevel=0)
+    for s in (-1, 1):
+        box(f"tub_wall{s}", (s * 0.47, 0.20, -0.72), (0.03, 1.30, 0.40), mats.panel, bevel=0)
+        box(f"tub_console_side{s}", (s * 0.305, 0.215, -0.70), (0.02, 1.18, 0.44), mats.panel, bevel=0)  # to the front
+    box("seat_pan", (0, -0.25, -0.62), (0.42, 0.40, 0.08), mats.grip, bevel=0.02)
+    box("seat_front", (0, -0.06, -0.78), (0.42, 0.04, 0.26), mats.grip, bevel=0.01)
+    for s in (-1, 1):
+        box(f"seat_handle{s}", (s * 0.06, -0.035, -0.70), (0.015, 0.012, 0.06), mats.yellow, bevel=0.003)
+    box("seat_handle_bar", (0, -0.035, -0.67), (0.135, 0.012, 0.015), mats.yellow, bevel=0.003)
+
+
+def trim_aft(objs, y0):
+    """Drop the faces of `objs` aft of y = y0 (cut there first): f35i_bc.gltf draws what is behind."""
+    kit.bisect(objs, lambda c: True, (0, y0, 0), (0, 1, 0))
+    for o in objs:
+        bm = bmesh.new()
+        bm.from_mesh(o.data)
+        bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.calc_center_median().y < y0], context='FACES')
+        bm.to_mesh(o.data)
+        bm.free()
+
+
+def export_glb(out, eye_g):
+    """The 3D cockpit (game/cockpit/cockpit3d.gd): build() with plain colours, the tub, the screens as flat quads
+    `PCD` (the display's glass) and `ESIS` (the standby display), the lamp lenses as their own nodes
+    `lamp_<key>_0` and the gear handle `gear_handle` (its lamp `lamp_gear_transit_0` on it) turning about its pivot;
+    everything else one mesh. In the cockpit-view model's frame: the eye at eye_g (glTF: +Y up, -Z nose), half size
+    about it."""
+    mats = Mats(flat=True)
+    build(mats)
+    gear = gear_handle(mats)
+    set_gear(gear, 0.5)
+    tub(mats)
+    for n in ("pcd_glass", "esis_glass"):  # the quads take their front faces' places
+        bpy.data.objects.remove(bpy.data.objects[n])
+    pcd = screen_quad("PCD", 0, PCD_TOP - PCD[1] / 2, PCD[0], PCD[1], GLASS_D, mats.glass)
+    ex, ez, ew, eh = ESIS
+    esis = screen_quad("ESIS", ex, ez, ew, eh, 0.0245, mats.screen)
+    objs = [o for o in kit.scene().objects if o.type == 'MESH']
+    kit.deselect()
+    for o in objs:  # the bevels applied (a join keeps only the active object's modifiers)
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = objs[0]
+    bpy.ops.object.convert(target='MESH')
+    # The canopy rails, seals and bolts aft of where f35i_bc.gltf's own rails begin.
+    for o in [o for o in objs if o.name.startswith("rail_bolt") and o.matrix_world.translation.y < -BC_CUT]:
+        objs.remove(o)
+        bpy.data.objects.remove(o)
+    trim_aft([o for o in objs if o.name.startswith(("canopy_rail", "canopy_seal"))], -BC_CUT)
+    eye = Vector((eye_g[0], -eye_g[2], eye_g[1]))  # Blender: Z up, +Y nose
+    k = Matrix.Translation(eye) @ Matrix.Scale(1.0 / PRESENT_SCALE, 4)
+    pivot = k @ Vector(on_face(GEAR_X, GEAR_Z, -GEAR_PIVOT))
+    for o in objs:
+        o.matrix_world = k @ o.matrix_world
+    kit.bake_transforms(objs)
+    named = {"PCD": pcd, "ESIS": esis, "lamp_master_caution_0": bpy.data.objects["LIGHT000_lens"],
+             "lamp_eng_fire_0": bpy.data.objects["LIGHT001_lens"], "lamp_gear_transit_0": gear[3]}
+    handle = kit.join(gear[:3], "gear_handle")
+    for o in list(named.values()) + [handle]:  # the origin on the node's centre (the handle's on its pivot)
+        vs = [v.co for v in o.data.vertices]
+        at = pivot if o is handle else (Vector(map(min, *vs)) + Vector(map(max, *vs))) / 2
+        o.data.transform(Matrix.Translation(-at))
+        o.location = at
+    for name, o in named.items():
+        o.name = o.data.name = name
+    root = bpy.data.objects.new("f35i_cockpit3d", None)
+    kit.scene().collection.objects.link(root)
+    keep = set(named.values()) | {handle}
+    body = kit.join([o for o in kit.scene().objects if o.type == 'MESH' and o not in keep], "f35i_cockpit3d_body")
+    for o in [body, handle] + list(named.values()):
+        o.parent = root
+    lamp = named["lamp_gear_transit_0"]
+    lamp.parent = handle
+    lamp.location = lamp.location - pivot
+    for o in kit.scene().objects:
+        o.select_set(True)
+    bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', export_yup=True, use_selection=True,
+                              export_apply=True, export_lights=False, export_cameras=False)
+
+    def lens(key):
+        return [round(c, 3) for c in
+                mats.lens[key].node_tree.nodes["Principled BSDF"].inputs["Emission Color"].default_value[:3]]
+    # At night (cockpit3d.gd) every plain colour × night_flood (the render's floodlights, floods()) and the labels'
+    # night_glow (their backlight, Mats.night).
+    meta = {"source": "ours, tools/f35i/cockpit3d.py --glb", "eye": [round(v, 5) for v in eye_g],
+            "night_flood": [0.25, 0.27, 0.3], "night_glow": {"label": [0.18, 0.6, 0.25]},
+            "lamps": {"lamp_master_caution_0": {"key": "master_caution", "hide": False, "colour": lens("LIGHT000")},
+                      "lamp_eng_fire_0": {"key": "eng_fire", "hide": False, "colour": lens("LIGHT001")},
+                      "lamp_gear_transit_0": {"key": "gear_transit", "hide": False, "colour": lens("gear")}},
+            # Up at -GEAR_DEG, down at +GEAR_DEG about the x axis through the pivot (the node's origin).
+            "animations": {"gear_handle": [{"prop": "controls/gear/gear-down", "centre": [0, 0, 0], "axis": [1, 0, 0],
+                                            "factor": round(2 * GEAR_DEG, 3), "offset": round(-GEAR_DEG, 3)}]}}
+    json.dump(meta, open(os.path.splitext(out)[0] + ".json", "w"), indent=1)
+    tris = sum(len(p.vertices) - 2 for o in kit.scene().objects if o.type == 'MESH' for p in o.data.polygons)
+    print("COCKPIT3D", out, "triangles", tris, "bytes", os.path.getsize(out), "materials", len(body.data.materials))
+
+
 def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
+    if "--glb" in sys.argv:
+        desc = json.load(open(os.path.join(OUT_DIR, "..", "aircraft.json")))
+        export_glb(sys.argv[sys.argv.index("--glb") + 1], desc["eye"])
+        return
     mats = Mats()
     build(mats)
     gear = gear_handle(mats)

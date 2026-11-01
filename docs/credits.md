@@ -84,7 +84,7 @@ zip's pinned SHA-256). Setup composes the scenery trees' foliage from the leaf s
 | Foliage001 | Scenery trees: palm fronds' leaflets | https://ambientcg.com/a/Foliage001 |
 | Bark012 | Scenery trees: trunks | https://ambientcg.com/a/Bark012 |
 
-The F-35I's skin, roundels, numbers, cockpit panel and displays are our own, as is the F-16D's dorsal spine, and the
+The F-35I's skin, roundels, numbers, cockpit panel, 3D cockpit and displays are our own, as is the F-16D's dorsal spine, and the
 detailed F-15's markings (F-15C 802: roundels, name, kill marks, numbers, the Baz bird, 133 Squadron's band; drawn
 from photos, `crates/iaf-tools/data/f15-livery/`).
 

@@ -282,8 +282,9 @@ const EXTRAS := [
 	["bomb_release", "Bomb release", [["Original", "original"], ["Real", "real"]]],
 	# Ours: the F-16D Barak's real head-down formats (cockpit/f16_mfd.gd, docs/mfd.md §9); the Sufa always has them.
 	["real_mfds", "MFDs (F-16)", [["Original (1998)", "original"], ["Real", "real"]]],
-	# Ours: a 3D cockpit in place of the 2D panel, today the F-16's (Barak and Sufa) from the FlightGear F-16
-	# (cockpit/cockpit3d.gd MODELS, docs/cockpit.md "3D cockpit"); other jets keep their panels.
+	# Ours: a 3D cockpit in place of the 2D panel, today the F-16's (Barak and Sufa) from the FlightGear F-16 and the
+	# F-35I's (cockpit/cockpit3d.gd, the aircraft definition's cockpit_3d; docs/cockpit.md "3D cockpit"); other jets
+	# keep their panels.
 	["cockpit_3d", "Cockpit", [["Original 2D", "original"], ["3D", "3d"]]],
 ]
 

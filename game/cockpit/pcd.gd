@@ -3,8 +3,10 @@
 # Access Button strip along its top (engine, fuel, weapons, gear, ICAWS, autopilot, SWAP, radios, recorder, MENU, the
 # time and alerts); four portals, each a format (pcd_formats.gd) with its name and master mode, its option legends and
 # two sub-portal tabs that swap in; a portal's MENU grid; and the standby display (ESIS) under the glass. Layer 0 draws
-# it all; layer 1, over it, only the glass's sheen. Each portal keeps an MFD node (mfd.gd, hidden) whose page follows
-# the format, so the systems that read the pages (the EO camera, the M key, the full-screen MFD) work as before.
+# it all; layer 1, over it, only the glass's sheen. In the 3D cockpit (cockpit3d.gd) layer 0 draws the glass into its
+# screen's SubViewport (screen_px), the sheen is the glass's own and a layer 2 draws the ESIS into its own. Each portal
+# keeps an MFD node (mfd.gd, hidden) whose page follows the format, so the systems that read the pages (the EO camera,
+# the M key, the full-screen MFD) work as before.
 extends Control
 
 const Formats := preload("res://cockpit/pcd_formats.gd")
@@ -34,12 +36,16 @@ var menu_open := [false, false, false, false]
 var _page_seen := [-1, -1, -1, -1]
 ## Clickable areas of the last frame: [Rect2 (screen px), Callable].
 var _hits: Array = []
+## Ours, the 3D cockpit (cockpit3d.gd): drawn into a SubViewport at this many px per panel px, the panel px
+## screen_origin at its corner (0: on the 2D panel).
+var screen_px := 0.0
+var screen_origin := Vector2.ZERO
 
 
 func setup(c: Control, l: int) -> void:
 	cockpit = c
 	layer = l
-	mouse_filter = Control.MOUSE_FILTER_IGNORE if l == 1 else Control.MOUSE_FILTER_PASS
+	mouse_filter = Control.MOUSE_FILTER_PASS if l == 0 else Control.MOUSE_FILTER_IGNORE
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var sf := SystemFont.new()
 	sf.font_names = PackedStringArray(
@@ -57,10 +63,19 @@ func _process(_delta: float) -> void:
 	queue_redraw()
 
 
+## Screen px per panel px.
+func _s() -> float:
+	return screen_px if screen_px > 0.0 else cockpit.ui_scale()
+
+
 ## A rect of the [PCD] section (panel px [x, y, w, h]) on screen.
 func _rect(r: Array) -> Rect2:
-	var a: Vector2 = cockpit.panel_to_screen(float(r[0]), float(r[1]))
-	return Rect2(a, Vector2(float(r[2]), float(r[3])) * cockpit.ui_scale())
+	var a: Vector2 = (
+		(Vector2(float(r[0]), float(r[1])) - screen_origin) * screen_px
+		if screen_px > 0.0
+		else cockpit.panel_to_screen(float(r[0]), float(r[1]))
+	)
+	return Rect2(a, Vector2(float(r[2]), float(r[3])) * _s())
 
 
 func glass() -> Rect2:
@@ -70,7 +85,7 @@ func glass() -> Rect2:
 ## The four portals' screen rects, left to right (under the strip, to the glass's foot).
 func portals() -> Array:
 	var g := glass()
-	var s: float = cockpit.ui_scale()
+	var s: float = _s()
 	var top := g.position.y + FAB_H * s
 	var w := g.size.x / 4.0
 	var out := []
@@ -113,17 +128,22 @@ func _show(i: int, f: String) -> void:
 func _gui_input(event: InputEvent) -> void:
 	if layer != 0 or not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
-	var p: Vector2 = event.position
+	if click(event.position):
+		accept_event()
+
+
+## A tap at `p` (px in this node): true when it hit a clickable area.
+func click(p: Vector2) -> bool:
 	for h in _hits:
 		if h[0].has_point(p):
 			h[1].call()
-			accept_event()
-			return
+			return true
+	return false
 
 
 ## A clickable area in the current portal transform (`r` in panel px from `origin`).
 func _hit(origin: Vector2, r: Rect2, f: Callable) -> void:
-	var s: float = cockpit.ui_scale()
+	var s: float = _s()
 	_hits.append([Rect2(origin + r.position * s, r.size * s), f])
 
 
@@ -134,7 +154,11 @@ func _draw() -> void:
 	if cockpit == null or not cockpit.layout.has("PCD"):
 		return
 	if layer == 1:
-		_draw_sheen()
+		if screen_px == 0.0:
+			_draw_sheen()
+		return
+	if layer == 2:
+		_draw_esis(_rect(cockpit.layout.PCD.Esis))
 		return
 	_hits.clear()
 	var g := glass()
@@ -144,7 +168,7 @@ func _draw() -> void:
 	for i in 4:
 		_draw_portal(i, ps[i])
 	# The two halves (each with its own power and processor): a dark seam down the middle.
-	var s: float = cockpit.ui_scale()
+	var s: float = _s()
 	draw_line(
 		Vector2(g.get_center().x, g.position.y),
 		Vector2(g.get_center().x, g.end.y),
@@ -152,7 +176,8 @@ func _draw() -> void:
 		maxf(1.0, s * 0.9)
 	)
 	draw_rect(g, Color(0.10, 0.11, 0.13), false, maxf(1.0, s))
-	_draw_esis(_rect(cockpit.layout.PCD.Esis))
+	if screen_px == 0.0:
+		_draw_esis(_rect(cockpit.layout.PCD.Esis))
 
 
 ## The master mode under a portal's format name: NAV, A-A or A-S (a simulator manual), from the HUD mode.
@@ -162,7 +187,7 @@ func master_mode() -> String:
 
 
 func _draw_portal(i: int, pr: Rect2) -> void:
-	var s: float = cockpit.ui_scale()
+	var s: float = _s()
 	var pw := pr.size.x / s
 	var ph := pr.size.y / s
 	fmt.begin(pr.position, s)
@@ -302,7 +327,7 @@ func cautions() -> Array:
 ## Technologies picture and a simulator manual): engine dial, fuel, weapon counts, the gear planform, ICAWS, AP / AT,
 ## SWAP across the halves' seam, the radios, the recorder, MENU, then the time and alerts.
 func _draw_fab(g: Rect2) -> void:
-	var s: float = cockpit.ui_scale()
+	var s: float = _s()
 	var pw := g.size.x / s
 	var ph := FAB_H
 	var st: Dictionary = cockpit.state
@@ -441,7 +466,7 @@ func _draw_fab(g: Rect2) -> void:
 
 
 func _fs(px: float) -> int:
-	return maxi(int(px * cockpit.ui_scale()), 4)
+	return maxi(int(px * _s()), 4)
 
 
 func _text(at: Vector2, t: String, size: float, col: Color, align := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0) -> void:
@@ -456,7 +481,7 @@ func _text(at: Vector2, t: String, size: float, col: Color, align := HORIZONTAL_
 ## the heading.
 func _draw_esis(r: Rect2) -> void:
 	var st: Dictionary = cockpit.state
-	var s: float = cockpit.ui_scale()
+	var s: float = _s()
 	var c := r.get_center()
 	var k := r.size.y / 60.0  # screen px per degree
 	var roll := deg_to_rad(float(st.roll))

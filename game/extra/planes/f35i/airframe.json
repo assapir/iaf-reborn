@@ -10,6 +10,7 @@
   "flyable": true,
   "cockpit": "res://extra/planes/f35i/cockpit",
   "hud": "f35",
+  "cockpit_3d": "res://extra/models/cockpit3d/f35i.glb",
   "voice": { "betty": true, "real": "gaaf" },
   "radar": { "row": 10, "km": 148.0 },
   "gun_rounds": 180,
@@ -24,6 +25,7 @@
     "radar.km": "AN/APG-81, multiple-target track beyond 80 NM (U, docs/f35i.md)",
     "gun_rounds": "GAU-22/A 25 mm, 180 rounds (the 20 MM record stands in)",
     "voice.real": "the pull-up call only (Auto-GCAS lineage, docs/real-betty.md)",
+    "cockpit_3d": "the 3D cockpit (Extras Cockpit: 3D): ours, tools/f35i/cockpit3d.py --glb (docs/f35i.md §4.5)",
     "flir": "the built-in EOTS (docs/f35i.md §3.1)",
     "weapons.loads": "modern_weapons.gd record id -> [count, stations A..I] (docs/f35i.md §3.1)"
   }

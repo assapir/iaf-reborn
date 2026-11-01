@@ -49,11 +49,11 @@ the §1 type-code tables stay for the 1998 jets.
 
 | id | plane | base | holds |
 |---|---|---|---|
-| `f16` | F-16D Barak, the 1998 F-16 (type 100) | — | the F-16 family's base: `original_model`, `hud_3d` |
+| `f16` | F-16D Barak, the 1998 F-16 (type 100) | — | the F-16 family's base: `original_model`, `cockpit_3d`, `hud_3d` |
 | `f16i` | F-16I Sufa | `f16` | Jet list name, flight-model type, model, radar, stations, Arming art, guide, TSD label, 3D HUD, MFD colours |
 | `f15` | F-15C Baz, the 1998 F-15 (type 110) | — | the F-15 family's base: `original_model` |
 | `f15i` | F-15I Ra'am | `f15` | its model only (it flies on the F-15C's data, radar and weapons) |
-| `f35i` | F-35I Adir | — | Jet list name, cockpit, HUD, voice, radar, gun, built-in FLIR, stations, Arming art, `flyable` |
+| `f35i` | F-35I Adir | — | Jet list name, cockpit, 3D cockpit, HUD, voice, radar, gun, built-in FLIR, stations, Arming art, `flyable` |
 
 **How the game reads a definition**
 - `crates/iaf-flight/src/airframe.rs` builds the files into the crate (the `FILES` list) and resolves the bases.
@@ -90,6 +90,7 @@ the §1 type-code tables stay for the 1998 jets.
 | `gun_rounds` (int) | `real_weapons.gd` `gun_rounds` | the Real gun rounds |
 | `flir` (bool) | `player_weapons.gd` | a built-in FLIR |
 | `weapons` {`arm_art`, `modern`, `loads`} | `mission_weapons.gd` `jet`, `modern_weapons.gd` `loads` | Arming art (`x_<id>`: `game/extra/planes/<id>/arm`), the modern weapons `"always"`, and their stations (`{"<record id>": [count, "stations"]}`, the id a whole number) |
+| `cockpit_3d` (string) | `cockpit3d.gd` `model_for` | the 3D cockpit's model (Extras "Cockpit": 3D; cockpit.md "3D cockpit") |
 | `hud_3d` | `cockpit3d.gd` | the 3D cockpit's HUD (`HUD_std` / `HUD_wide`) |
 | `mfd` | `settings.gd` `real_mfd` | the F-16's real MFD formats |
 | `guide` | `reference.gd` `guide_name` | the pilot guide (`docs/guides/<guide>.md`) |
@@ -323,6 +324,10 @@ Options:
   `tools/f35i/cockpit3d.py` with the game's cockpit camera, with its own lamps rendered from the same scene.
 - **Looking aside / back:** `<plane>_bc.gltf` next to the extra plane's glTF is its cockpit-view model
   (`terrain_view.gd` `_spawn_player`; example `tools/f35i/bc.py`).
+- **A 3D cockpit** (Extras "Cockpit": 3D): a glb in the cockpit-view model's frame, named in the definition's
+  `cockpit_3d`, with `<model>.json` beside it; `cockpit3d.gd` reads its named nodes (docs/cockpit.md "3D cockpit").
+  Example: `tools/f35i/cockpit3d.py --glb` writes the F-35I's from the same scene as its panel art (docs/f35i.md
+  §4.5).
 
 ## 5. Weapons
 

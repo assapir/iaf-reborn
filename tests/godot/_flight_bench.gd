@@ -43,7 +43,8 @@ func run() -> void:
 	for kv in OS.get_environment("BENCH_SET").split(",", false):
 		var p := kv.split("=")
 		var cur = settings().get(p[0])
-		settings().set(p[0], (p[1] == "true") if cur is bool else (float(p[1]) if cur is float else p[1]))
+		var v = int(p[1]) if cur is int else (float(p[1]) if cur is float else p[1])
+		settings().set(p[0], (p[1] == "true") if cur is bool else v)
 	var tv = await start_mission(
 		int(OS.get_environment("BENCH_MISSION")) if OS.get_environment("BENCH_MISSION") != "" else 311
 	)

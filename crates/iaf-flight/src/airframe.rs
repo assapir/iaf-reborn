@@ -257,7 +257,8 @@ mod tests {
     }
 
     /// With every switch off a 1998 jet's definition holds no value its type-code tables decide, so the game reads
-    /// exactly the 1998 values; only what the original has no table for (the model file it is, the 3D cockpit's HUD).
+    /// exactly the 1998 values; only what the original has no table for (the model file it is, the 3D cockpit and
+    /// its HUD).
     #[test]
     fn switches_off_give_the_1998_values() {
         let off = Switches { f16: "barak", f15: "baz" };
@@ -267,7 +268,7 @@ mod tests {
             let a = a.as_object().unwrap();
             let keys: Vec<&str> = a.keys().map(String::as_str).collect();
             assert!(
-                keys.iter().all(|k| ["name", "doc", "notes", "original_model", "hud_3d"].contains(k)),
+                keys.iter().all(|k| ["name", "doc", "notes", "original_model", "hud_3d", "cockpit_3d"].contains(k)),
                 "{code}: {keys:?}"
             );
         }

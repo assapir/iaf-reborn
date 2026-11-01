@@ -3,8 +3,9 @@
 # (25° down), and the Real HUD over a ground unit 8 km ahead. C3D_LOOK=2d takes the same frames with
 # the 2D panel (side by side). The scene is _cockpit_show_shot.gd's cockpit_f16_day (Settings at their defaults, the
 # switch set here); C3D_HOUR=22 the night (the mission then starts at night: pass `-- --hour 22` too).
-# C3D_ONLY=panel takes only the lamps and displays: the master caution and fire lamps lit, the gear down, an emitter
-# and a launching one on the RWR scope; looking down at the panel, at the RWR scope and at the gear panel.
+# C3D_JET=f35i: the F-35I's instead (_f35i). C3D_ONLY=panel takes only the lamps and displays: the master caution and
+# fire lamps lit, the gear down, an emitter and a launching one on the RWR scope; looking down at the panel, at the RWR
+# scope and at the gear panel.
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOW_OUT=$PWD/.shots/c3d -- \
 #     --log-file /tmp/c3d.log --resolution 1920x1080 --path game -s ../tests/godot/_cockpit3d_shot.gd
 extends "res://../tests/godot/_cockpit_show_shot.gd"
@@ -25,6 +26,9 @@ func run() -> void:
 	settings().cockpit_3d = "original" if two_d else "3d"
 	settings().hud_style = "real"
 	var hour := float(OS.get_environment("C3D_HOUR")) if OS.get_environment("C3D_HOUR") != "" else 10.5
+	if OS.get_environment("C3D_JET") == "f35i":
+		await _f35i(hour)
+		return
 	for variant in ["barak", "sufa"]:
 		settings().f16_variant = variant
 		var spec: Array = COCKPITS.cockpit_f16_day.duplicate()
@@ -91,3 +95,32 @@ func _panel(variant: String) -> void:
 		var rid: RID = vps[name].get_viewport_rid()
 		print("GPU %-12s %.3f ms" % [name, RenderingServer.viewport_get_measured_render_time_gpu(rid)])
 	tv.views.snap = null
+
+
+## C3D_JET=f35i: the F-35I's (by day; C3D_HOUR=22 its night scene): ahead, down at the panoramic display, left, right,
+## back, and the gear panel with the lamps lit; the SubViewports' GPU time.
+func _f35i(hour: float) -> void:
+	var spec: Array = (COCKPITS.cockpit_f35i_night if hour >= 20.0 else COCKPITS.cockpit_f35i_day).duplicate()
+	await _cockpit_scene("f35i", spec)
+	var c: Control = tv.cockpit
+	var vps := {}
+	if tv.cockpit_3d != null:
+		vps = {"PCD": c.pcd.get_parent(), "ESIS": tv.cockpit_3d.esis.get_parent()}
+	for name in vps:
+		RenderingServer.viewport_set_measure_render_time(vps[name].get_viewport_rid(), true)
+	for v in [["down", 0.0, -20.0], ["left", -80.0, -30.0], ["right", 80.0, -30.0], ["back", 150.0, 0.0]]:
+		tv.views.snap = Vector2(deg_to_rad(v[1]), deg_to_rad(v[2]))
+		await _settle()
+		await _shot("f35i_" + v[0], 0.0)
+	c.indicators[0] = true
+	c.indicators[1] = true
+	tv.gear_down = true
+	tv.views.snap = Vector2(deg_to_rad(-20.0), deg_to_rad(-38.0))
+	await _settle()
+	await _shot("f35i_gear", 0.0)
+	for name in vps:
+		var rid: RID = vps[name].get_viewport_rid()
+		print("GPU %-6s %.3f ms" % [name, RenderingServer.viewport_get_measured_render_time_gpu(rid)])
+	tv.views.snap = null
+	settings().f35i_slot = -1
+	settings().jet_id = -1

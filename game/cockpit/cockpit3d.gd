@@ -1,30 +1,35 @@
 # Ours (Extras "Cockpit": 3D; docs/cockpit.md "3D cockpit"): a jet's real-time 3D cockpit in place of its 2D panel.
 # Today the F-16's front cockpit, the Barak's and the Sufa's (extra/models/cockpit3d/f16.glb, tools/f16d/cockpit3d.py
-# from the FlightGear F-16, GPL-2.0-or-later); a jet joins with its model in MODELS. The model hangs in the jet's
+# from the FlightGear F-16, GPL-2.0-or-later), and the F-35I's (f35i.glb, ours: tools/f35i/cockpit3d.py --glb); a jet
+# joins with its model in its aircraft definition's `cockpit_3d` (docs/adding-a-plane.md). The model hangs in the jet's
 # cockpit-view model (terrain_view.gd own_bc), in its frame, so it sits at the eye and turns, scales and leans with it;
 # the view is drawn at its true size (cockpit.gd true_scale_focal). It shows what the 2D panel draws:
 #   - the MFD nodes (mfd.gd) draw into a SubViewport per 3D screen: the same pages (the originals, or the real F-16
-#     formats on the Sufa / with MFDs Real);
+#     formats on the Sufa / with MFDs Real); the F-35I's panoramic display (pcd.gd) into one on its glass, its
+#     standby display into one on its own;
 #   - the HUD (hud.gd) draws as on the 2D panel, clipped to the combiner glass's outline seen from the eye
 #     (cockpit.hud_clip);
 #   - the HUD masked by no glass when the model has none (a helmet display);
 #   - the needles the model animates turn with the cockpit state, by the source's value mappings (<model>.json);
-#   - a click on an MFD's push button presses it (mfd.gd press).
+#   - a click on an MFD's push button presses it (mfd.gd press), one on the panoramic display taps it (pcd.gd click).
 extends Node3D
 
 const Gltf := preload("res://util/gltf.gd")
 const Mfd := preload("res://cockpit/mfd.gd")
-## The 3D cockpits by cockpit directory (cockpit.gd cockpit_dir's name): the model; beside it <model>.json (its
-## animations, its MFD push buttons' centres MFD_<side>_<T|B|L|R><n> in the root's frame) and optional art. The
-## model's nodes the game reads: MFD_L / MFD_R / MFD_M (screens drawn by the MFD of that index) and HUD_glass (the
-## combiner; the F-16's two HUDs: HUD_std / HUD_wide and their glasses).
-const MODELS := {"f16": "res://extra/models/cockpit3d/f16.glb"}
+## A 3D cockpit's model (the aircraft definition's `cockpit_3d`) has beside it <model>.json (its animations, its MFD
+## push buttons' centres MFD_<side>_<T|B|L|R><n> in the root's frame, its lamps) and optional art. The model's nodes
+## the game reads: MFD_L / MFD_R / MFD_M (screens drawn by the MFD of that index), PCD / ESIS (the panoramic display's
+## glass and its standby display) and HUD_glass (the combiner; the F-16's two HUDs: HUD_std / HUD_wide, picked by the
+## definition's `hud_3d`, and their glasses).
+const Pcd := preload("res://cockpit/pcd.gd")
 const Img := preload("res://util/img.gd")
 const Gauges := preload("res://cockpit/gauges.gd")
 ## The block panel sheet the model's materials carry (FlightGear's Block 50: the Sufa's).
 const BLOCK_SHEET := "blck50-panels1"
 ## Each MFD's SubViewport (px square): the Sufa's 484 px displays, rounded up.
 const SCREEN_PX := 512
+## The panoramic display's SubViewport px per [PCD] panel px (1,496 x 671 px for its 20 x 8 in glass).
+const PCD_PX := 3.0
 ## A click this close to a push button's centre (MFD px) presses it.
 const OSB_REACH := 12.0
 
@@ -40,19 +45,26 @@ var _glass_pts := PackedVector3Array()
 ## Per 3D screen: [MFD node, its SubViewport, screen MeshInstance3D, origin, u axis, v axis (screen-local, per UV),
 ## {osb: centre (MFD px)}].
 var _screens := []
+## The panoramic display on its glass: [pcd.gd layer 0, its SubViewport, the PCD MeshInstance3D, origin, u, v] (as
+## _screens); its standby display's own layer (pcd.gd layer 2).
+var _pcd := []
+var esis: Control
 var _sun: DirectionalLight3D  # _lighting
 var _lit_mats := []
 var _lit := Color(-1, -1, -1)  # the fill colour set
 
 
-## The model of the cockpit `cockpit_dir` (cockpit.gd) drawn in 3D, "" for its 2D panel (the switch off, no model).
-static func model_for(cockpit_dir: String) -> String:
-	var path: String = MODELS.get(cockpit_dir.get_file(), "")
+## The 3D cockpit model of a jet of bdb type `type_code` (its aircraft definition's `cockpit_3d`), "" for its 2D
+## panel (the switch off, no model).
+static func model_for(type_code: int) -> String:
+	var path: String = Settings.airframe(type_code).get("cockpit_3d", "")
 	return path if Settings.cockpit_3d == "3d" and path != "" and FileAccess.file_exists(path) else ""
 
 
-## The model `path` (model_for) under this node; the cockpit's MFDs moved onto its screens. False when it is missing.
-func setup(c: Control, cam: Camera3D, path: String) -> bool:
+## The 3D cockpit of a jet of type `type_code` (model_for) under this node; the cockpit's MFDs (or its panoramic
+## display) moved onto its screens. False when the model is missing.
+func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
+	var path := model_for(type_code)
 	cockpit = c
 	camera = cam
 	process_priority = 10  # after the flight scene has placed the camera (terrain_view.gd _apply_view)
@@ -62,17 +74,17 @@ func setup(c: Control, cam: Camera3D, path: String) -> bool:
 	var n := Gltf.instance(m)
 	add_child(n)
 	meta = Settings.load_json(path.get_basename() + ".json")
-	_materials(n, path)
+	_materials(n, path, Settings.airframe_id(type_code) == "f16")
 	var anims: Dictionary = meta.get("animations", {})
 	for name in anims:
 		var node := n.find_child(name, true, false) as Node3D
 		if node != null:
 			_anims.append([node, node.transform, anims[name]])
 	var glass := "HUD_glass"
-	if path == MODELS.f16:
+	var hud: String = Settings.airframe(type_code).get("hud_3d", "")
+	if hud != "":
 		# The F-16's two HUDs (tools/f16d/cockpit3d.py HUDS): the Block 50's for the Barak, the wide-angle one for
 		# the Sufa (its Elbit wide-angle HUD's shape is open; inferred).
-		var hud: String = Settings.airframe(100).get("hud_3d", "HUD_std")
 		for h in ["HUD_std", "HUD_wide"]:
 			for node in [n.find_child(h, true, false), n.find_child(h + "_glass", true, false)]:
 				if node != null:
@@ -87,10 +99,14 @@ func setup(c: Control, cam: Camera3D, path: String) -> bool:
 		g.roughness = 0.05
 		g.cull_mode = BaseMaterial3D.CULL_DISABLED
 		_glass.material_override = g
-	for mfd in cockpit.mfds:
-		var screen := n.find_child("MFD_" + "LRM"[mfd.index], true, false) as MeshInstance3D
-		if screen != null:
-			_attach(mfd, screen, n)
+	var pcd_glass := n.find_child("PCD", true, false) as MeshInstance3D
+	if cockpit.pcd != null and pcd_glass != null:
+		_attach_pcd(pcd_glass, n.find_child("ESIS", true, false) as MeshInstance3D)
+	else:
+		for mfd in cockpit.mfds:
+			var screen := n.find_child("MFD_" + "LRM"[mfd.index], true, false) as MeshInstance3D
+			if screen != null:
+				_attach(mfd, screen, n)
 	cockpit.hud_clip = PackedVector2Array()
 	_setup_instruments(n)
 	_setup_light(n)
@@ -99,10 +115,10 @@ func setup(c: Control, cam: Camera3D, path: String) -> bool:
 
 ## FlightGear's materials made matte (its ALS shading has little specular; ours at 0.5 greys the black parts under a
 ## bright sky), as the cut model's tub (aircraft_model.gd detailed_cockpit); the Barak's panel sheet (Block 40) in place
-## of the Sufa's (Block 50, the model's: tools/f16d/cockpit3d.py).
-func _materials(model: Node3D, path: String) -> void:
+## of the Sufa's (Block 50, the model's: tools/f16d/cockpit3d.py) when `barak_jet`.
+func _materials(model: Node3D, path: String, barak_jet: bool) -> void:
 	var barak: Texture2D = null
-	if path == MODELS.f16 and Settings.airframe_id(100) == "f16":  # the Barak (the F-16 base itself)
+	if barak_jet:  # the Barak (the F-16 base itself)
 		barak = Img.load_texture(path.get_base_dir().path_join("barak_panels.webp"), true)
 	var done := {}
 	for mi: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):
@@ -131,6 +147,11 @@ const BACKLIGHT_ENERGY := 0.25
 ## The materials left out of the fill (by their texture in the material's name): the tub's floor, walls and pedal area,
 ## the air vents, the stick's grip: no panel, and the fill showed the floor's speckle.
 const UNLIT := ["floor", "pedaladj", "base-color", "airvent", "rear-left", "marked-iron", "stick-color", "tranbg"]
+## The plain colours (the F-35I's, untextured) by <model>.json: by day the scene lights them alone (the fill made the
+## dark grey paint twice as light as its panel render, tools/f35i/cockpit3d.py); at the cockpit's night each glows by
+## its colour × `night_flood` (the render's floodlights), plus `night_glow` (material name -> rgb: the backlit labels).
+## The F-16's night colour × each colour turned the whole panel olive (2026-11-01).
+var _night_mats := {}  # material -> its emission at night
 
 
 func _setup_light(model: Node3D) -> void:
@@ -141,7 +162,14 @@ func _setup_light(model: Node3D) -> void:
 	for mi: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):
 		for s in mi.mesh.get_surface_count():
 			var mat := mi.get_active_material(s) as BaseMaterial3D  # the AoA tape's own copy too
-			if mat == null or mat.albedo_texture == null or mat in _lit_mats or mat in lamp_mats:
+			if mat == null or mat in _lit_mats or mat in lamp_mats:
+				continue
+			if mat.albedo_texture == null:
+				if meta.has("night_flood") and not mat.emission_enabled:  # not the screens
+					var f: Array = meta.night_flood
+					var g: Array = meta.get("night_glow", {}).get(mat.resource_name, [0, 0, 0])
+					mat.emission_enabled = true
+					_night_mats[mat] = mat.albedo_color * Color(f[0], f[1], f[2]) + Color(g[0], g[1], g[2], 0)
 				continue
 			if UNLIT.any(func(u): return mat.resource_name.contains(u)):
 				continue
@@ -169,21 +197,66 @@ func _lighting() -> void:
 	_lit = c
 	for mat: BaseMaterial3D in _lit_mats:
 		mat.emission = c
+	for mat: BaseMaterial3D in _night_mats:
+		mat.emission = _night_mats[mat] if cockpit.night else Color.BLACK
 
 
 ## The MFD node drawn into a SubViewport shown on `screen` (emissive, under the glass's sheen).
 func _attach(mfd: Control, screen: MeshInstance3D, model: Node3D) -> void:
-	var vp := SubViewport.new()
-	vp.size = Vector2i(SCREEN_PX, SCREEN_PX)
-	vp.disable_3d = true
-	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	var vp := _screen_viewport(screen, Vector2i(SCREEN_PX, SCREEN_PX))
 	var bg := ColorRect.new()
 	bg.color = Color.BLACK
 	bg.size = Vector2(SCREEN_PX, SCREEN_PX)
 	vp.add_child(bg)
-	add_child(vp)
 	mfd.reparent(vp, false)
 	mfd.screen_px = SCREEN_PX / Mfd.SIZE
+	var entry := [mfd, vp, screen] + _uv_frame(screen) + [{}]
+	# The 20 push buttons, numbered as osb_at numbers the 2D bezel's: top 1-5 and bottom 6-10 left to right, left
+	# 11-15 and right 16-20 top to bottom.
+	var edges := {"T": [], "B": [], "L": [], "R": []}
+	var root := model.get_child(0) as Node3D  # the model's root: the buttons' frame (<model>.json)
+	var buttons: Dictionary = meta.get("buttons", {})
+	for name: String in buttons:
+		if name.begins_with(screen.name + "_"):
+			edges[name.right(2)[0]].append(_uv(entry, root.global_transform * _v3(buttons[name])) * Mfd.SIZE)
+	for side in edges:
+		var pts: Array = edges[side]
+		var along := 0 if side in ["T", "B"] else 1
+		pts.sort_custom(func(x, y): return x[along] < y[along])
+		for i in pts.size():
+			entry[6][{"T": 1, "B": 6, "L": 11, "R": 16}[side] + i] = pts[i]
+	_screens.append(entry)
+
+
+## The panoramic display (cockpit.pcd; its sheen left out: the glass has its own) drawn into a SubViewport on its glass
+## `screen`, PCD_PX per [PCD] panel px from the glass's corner; its standby display (a layer 2 of its own) on
+## `esis_screen`.
+func _attach_pcd(screen: MeshInstance3D, esis_screen: MeshInstance3D) -> void:
+	var rect: Array = cockpit.layout.PCD.Rect
+	var p: Control = cockpit.pcd
+	var vp := _screen_viewport(screen, Vector2i(roundi(rect[2] * PCD_PX), roundi(rect[3] * PCD_PX)))
+	p.reparent(vp, false)
+	p.screen_px = PCD_PX
+	p.screen_origin = Vector2(rect[0], rect[1])
+	cockpit._pcd_sheen.screen_px = PCD_PX
+	_pcd = [p, vp, screen] + _uv_frame(screen)
+	if esis_screen != null:
+		var r: Array = cockpit.layout.PCD.Esis
+		var evp := _screen_viewport(esis_screen, Vector2i(roundi(r[2] * PCD_PX), roundi(r[3] * PCD_PX)))
+		esis = Pcd.new()
+		esis.setup(cockpit, 2)
+		esis.screen_px = PCD_PX
+		esis.screen_origin = Vector2(r[0], r[1])
+		evp.add_child(esis)
+
+
+## A SubViewport of `px` drawn on `screen` (emissive, under the glass's sheen), a child of this node.
+func _screen_viewport(screen: MeshInstance3D, px: Vector2i) -> SubViewport:
+	var vp := SubViewport.new()
+	vp.size = px
+	vp.disable_3d = true
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	add_child(vp)
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color.BLACK
 	mat.roughness = 0.25
@@ -191,7 +264,12 @@ func _attach(mfd: Control, screen: MeshInstance3D, model: Node3D) -> void:
 	mat.emission_texture = vp.get_texture()
 	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
 	screen.material_override = mat
-	# The screen's UV frame (its quad: local = origin + u · U + v · V), for the clicks and the buttons' places.
+	return vp
+
+
+## The screen's UV frame (its quad: local = origin + u · U + v · V), for the clicks and the buttons' places:
+## [origin, u, v].
+func _uv_frame(screen: MeshInstance3D) -> Array:
 	var a := screen.mesh.surface_get_arrays(0)
 	var p: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
 	var t: PackedVector2Array = a[Mesh.ARRAY_TEX_UV]
@@ -207,27 +285,11 @@ func _attach(mfd: Control, screen: MeshInstance3D, model: Node3D) -> void:
 	var e2 := p[k] - p[0]
 	var u := e1 * m.x.x + e2 * m.x.y
 	var v := e1 * m.y.x + e2 * m.y.y
-	var origin := p[0] - u * t[0].x - v * t[0].y
-	var entry := [mfd, vp, screen, origin, u, v, {}]
-	# The 20 push buttons, numbered as osb_at numbers the 2D bezel's: top 1-5 and bottom 6-10 left to right, left
-	# 11-15 and right 16-20 top to bottom.
-	var edges := {"T": [], "B": [], "L": [], "R": []}
-	var root := model.get_child(0) as Node3D  # the model's root: the buttons' frame (<model>.json)
-	var buttons: Dictionary = meta.get("buttons", {})
-	for name: String in buttons:
-		if name.begins_with(screen.name + "_"):
-			edges[name.right(2)[0]].append(_mfd_px(entry, root.global_transform * _v3(buttons[name])))
-	for side in edges:
-		var pts: Array = edges[side]
-		var along := 0 if side in ["T", "B"] else 1
-		pts.sort_custom(func(x, y): return x[along] < y[along])
-		for i in pts.size():
-			entry[6][{"T": 1, "B": 6, "L": 11, "R": 16}[side] + i] = pts[i]
-	_screens.append(entry)
+	return [p[0] - u * t[0].x - v * t[0].y, u, v]
 
 
-## A point (global) on a screen's plane -> MFD px (0..Mfd.SIZE across the page).
-func _mfd_px(entry: Array, world: Vector3) -> Vector2:
+## A point (global) on a screen's plane -> its UV (0..1 across the screen; entry as _screens').
+func _uv(entry: Array, world: Vector3) -> Vector2:
 	var screen: MeshInstance3D = entry[2]
 	var q: Vector3 = screen.global_transform.affine_inverse() * world - entry[3]
 	var u: Vector3 = entry[4]
@@ -239,7 +301,7 @@ func _mfd_px(entry: Array, world: Vector3) -> Vector2:
 	var det := uu * vv - uv * uv
 	var a := (q.dot(u) * vv - q.dot(v) * uv) / det
 	var b := (q.dot(v) * uu - q.dot(u) * uv) / det
-	return Vector2(a, b) * Mfd.SIZE
+	return Vector2(a, b)
 
 
 ## The MFD nodes back on the 2D panel (the jet changed): they outlive this node.
@@ -250,6 +312,13 @@ func release() -> void:
 			e[0].reparent(cockpit, false)
 			cockpit.move_child(e[0], cockpit.hud.get_index())
 	_screens.clear()
+	if not _pcd.is_empty() and is_instance_valid(_pcd[0]):
+		_pcd[0].screen_px = 0.0
+		_pcd[0].reparent(cockpit, false)
+		cockpit.move_child(_pcd[0], cockpit.hud.get_index())
+		if is_instance_valid(cockpit._pcd_sheen):
+			cockpit._pcd_sheen.screen_px = 0.0
+	_pcd.clear()
 	if cockpit != null:
 		cockpit.hud_clip = null
 
@@ -308,24 +377,33 @@ func _unhandled_input(event: InputEvent) -> void:
 	if camera == null or not camera.current or not is_visible_in_tree():
 		return
 	var ray := _ray(event.position)
-	var from: Vector3 = ray[0]
-	var dir: Vector3 = ray[1]
+	if not _pcd.is_empty():
+		var uv = _hit_uv(_pcd, ray)
+		if uv != null and Rect2(0, 0, 1, 1).has_point(uv) and _pcd[0].click(uv * Vector2(_pcd[1].size)):
+			get_viewport().set_input_as_handled()
+		return
 	for e in _screens:
-		var screen: MeshInstance3D = e[2]
-		var plane := Plane(
-			screen.global_transform.basis * (e[4] as Vector3).cross(e[5]).normalized(),
-			screen.global_transform * (e[3] as Vector3)
-		)
-		var hit = plane.intersects_ray(from, dir)
+		var hit = _hit_uv(e, ray)
 		if hit == null:
 			continue
-		var at := _mfd_px(e, hit)
+		var at: Vector2 = hit * Mfd.SIZE
 		var buttons: Dictionary = e[6]
 		for osb in buttons:
 			if at.distance_to(buttons[osb]) <= OSB_REACH:
 				e[0].press(osb)
 				get_viewport().set_input_as_handled()
 				return
+
+
+## Where the ray (_ray) meets a screen's plane (entry as _screens'), as its UV; null when it runs parallel or away.
+func _hit_uv(entry: Array, ray: Array):
+	var screen: MeshInstance3D = entry[2]
+	var plane := Plane(
+		screen.global_transform.basis * (entry[4] as Vector3).cross(entry[5]).normalized(),
+		screen.global_transform * (entry[3] as Vector3)
+	)
+	var hit = plane.intersects_ray(ray[0], ray[1])
+	return null if hit == null else _uv(entry, hit)
 
 
 ## The ray (global origin, direction) through a viewport point, by the inverse of the projection unproject_position
@@ -462,20 +540,8 @@ func _own_materials(mi: MeshInstance3D) -> Array:
 
 ## A Display drawn into a SubViewport whose texture lights `screen` (emissive), as the MFDs (_attach).
 func _attach_display(screen: MeshInstance3D, kind: int, px: Vector2i) -> void:
-	var vp := SubViewport.new()
-	vp.size = px
-	vp.disable_3d = true
-	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	var d := Display.new(cockpit, kind, px)
-	vp.add_child(d)
-	add_child(vp)
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color.BLACK
-	mat.roughness = 0.25
-	mat.emission_enabled = true
-	mat.emission_texture = vp.get_texture()
-	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
-	screen.material_override = mat
+	_screen_viewport(screen, px).add_child(d)
 	displays[String(screen.name)] = d
 
 

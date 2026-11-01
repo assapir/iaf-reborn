@@ -68,7 +68,7 @@ var aircraft: Node3D
 ## The jet's exterior as seen from its own cockpit (`<plane>_bc`, bdb Objects 0x546: wings, tail, seat back), drawn
 ## in the cockpit views instead of the jet model; null for a jet without one (docs/views.md §4.3).
 var own_bc: Node3D
-## Ours, the F-16's 3D cockpit (cockpit3d.gd) in own_bc; null with the 2D panel.
+## Ours, the 3D cockpit (cockpit3d.gd) in own_bc; null with the 2D panel.
 var cockpit_3d: Node3D
 ## Ours: the detailed cockpit model's eye (its front seat's, AircraftModel.detailed_cockpit), null with the original's.
 var _own_eye = null
@@ -1922,9 +1922,9 @@ func _spawn_player() -> void:
 		camera.near = 0.1
 	# Ours: the detailed F-16 (Models: Detailed, or the Sufa) gives its own seat, tub and canopy, cut at its seat's eye.
 	var hd := Gltf.detailed(str(aircraft.desc.get("model", "")))
-	# Ours, the F-16's 3D cockpit (Extras "Cockpit": 3D): hung in the detailed F-16's cut model, Models Original
+	# Ours, the 3D cockpit (Extras "Cockpit": 3D): the F-16's hung in the detailed F-16's cut model, Models Original
 	# too; that model's own tub ahead of the seat makes way for it.
-	var c3d_model: String = Cockpit3d.model_for(player.cockpit_dir)
+	var c3d_model: String = Cockpit3d.model_for(player.type)
 	var three_d: bool = c3d_model != "" and player.cockpit_dir.get_file() == "f16"
 	if three_d and hd == "":
 		hd = Gltf.DETAILED["f16_h.gltf"]
@@ -1949,7 +1949,7 @@ func _spawn_player() -> void:
 		if c3d_model != "":
 			cockpit_3d = Cockpit3d.new()
 			own_bc.add_child(cockpit_3d)
-			if not cockpit_3d.setup(cockpit, camera, c3d_model):
+			if not cockpit_3d.setup(cockpit, camera, player.type):
 				cockpit_3d.queue_free()
 				cockpit_3d = null
 		# Ours (Night lights = Detailed): the wingtip / tail lights and the strobe on it too, at its own tips and fin top.
