@@ -1,13 +1,16 @@
 # Scenery (docs/scenery.md §3): the switch only with the scenery files and a Survey 2 m Israel imagery (Settings
 # read_config, Graphics → MORE), and the cells loaded and freed around the terrain's focus. The cells are our own test
-# files (a 20 m house and a tree in the 3 × 3 cells around one of the layer's level-1 nodes), read by IafScenery.
+# files (a 20 m house and a tree in the 3 × 3 cells around one of the layer's level-1 nodes), read by IafScenery. The
+# rest of the theatre's cells (a stub theatre.json): the Israel region's always, the outside ones over Sentinel-2.
 extends "res://../tests/godot/base.gd"
 
 const TMP := "user://test_scenery"
+var _terrain: GDScript
 
 
 func run() -> void:
 	var Scenery: GDScript = load("res://terrain/scenery.gd")
+	_terrain = load("res://terrain/terrain.gd")
 	var layer := load("res://terrain/imagery_layers.gd").manifest("mapi2015") as Dictionary
 	if layer.is_empty():
 		print("SKIP test_scenery: no mapi2015 imagery converted")
@@ -88,6 +91,30 @@ func run() -> void:
 	# --- the cells around the focus, On and Detailed ---
 	for mode in ["on", "detailed"]:
 		await _stream(Scenery, meta, c, mode)
+
+	# --- the rest of the theatre (docs/scenery.md §1.7): its Israel-region cells always, its outside ones over
+	# Sentinel-2 only, their roofs in Sentinel-2's look ---
+	var inside := Vector2i(200, 250)
+	var outside := Vector2i(150, 100)
+	var f := FileAccess.open(TMP.path_join("converted/scenery/theatre.json"), FileAccess.WRITE)
+	f.store_string(JSON.stringify({"israel": [[inside.x, inside.y]], "outside": [[outside.x, outside.y]]}))
+	f.close()
+	for ids: Array[String] in [["mapi2015"] as Array[String], ["mapi2015", "sentinel2_modern"] as Array[String]]:
+		var t: Node3D = _terrain.new()
+		t.set_layers(ids)
+		var focus := Node3D.new()
+		root.add_child(focus)
+		t.focus = focus
+		root.add_child(t)
+		var s2 := ids.size() == 2
+		check(
+			t.scenery._cells.has(c) and t.scenery._cells.has(inside), "%s: the Survey's and the region's cells" % [ids]
+		)
+		check(t.scenery._cells.has(outside) == s2, "%s: the outside cells only over Sentinel-2" % [ids])
+		check(t.scenery.modern_outside == s2 and not t.scenery.modern, "%s: the outside roofs' look" % [ids])
+		t.queue_free()
+		focus.queue_free()
+		await frames(2)
 	Scenery.base_dir = ""
 	settings().scenery = "off"
 	settings().imagery_israel = "original"
@@ -96,8 +123,7 @@ func run() -> void:
 ## The cells around a focus over cell `c` streamed with Scenery = `mode`, then freed 30 km away.
 func _stream(sc: GDScript, meta: Dictionary, c: Vector2i, mode: String) -> void:
 	settings().scenery = mode
-	var T: GDScript = load("res://terrain/terrain.gd")
-	var t: Node3D = T.new()
+	var t: Node3D = _terrain.new()
 	var ids: Array[String] = ["mapi2015"]
 	t.set_layers(ids)
 	var focus := Node3D.new()

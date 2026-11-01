@@ -2,9 +2,9 @@
 # off; Detailed makes the road mask around the camera: road texels on the roads drawn on the ground (in the mask's own
 # frame, as the shader reads it), none on the runway the flight starts on (Ramat David) and none on the sea (Tel
 # Aviv); railways as ballast strips, and the marking mask's lanes and rails on the Ayalon's motorway and railway. With
-# Night lights Detailed the city lights' blocks get lamps along the lit roads, Amman's road-only block too, and
-# switching Roads or Night lights during a night flight adds or removes them at once. Needs setup's road layer (skips
-# without it).
+# Night lights Detailed the city lights' blocks get lamps along the lit roads, Amman's block too (road lamps only
+# without the rest of the theatre's cells), and switching Roads or Night lights during a night flight adds or removes
+# them at once. Needs setup's road layer (skips without it).
 extends "res://../tests/godot/base.gd"
 
 ## Tel Aviv (engine metres): its coast in the 1998 map (the sea west of x ≈ 311.2 km), and the city.
@@ -89,7 +89,8 @@ func run() -> void:
 	check(land_road > 1000, "Tel Aviv's roads: %d road texels (every 8th)" % land_road)
 
 	# Lamps along the lit roads: a Tel Aviv block made with and without them.
-	IafCityLights.open(load("res://terrain/scenery.gd").dir())
+	var scenery_dir: String = load("res://terrain/scenery.gd").dir()
+	IafCityLights.open(scenery_dir)
 	var b := Vector2i(-1, -1)
 	var near: PackedInt32Array = IafCityLights.blocks_near(TEL_AVIV.x, TEL_AVIV.y, 0.0)
 	if near.size() >= 3:
@@ -151,10 +152,17 @@ func run() -> void:
 	var dark: PackedInt32Array = IafCityLights.blocks_near(AMMAN.x, AMMAN.y, 0.0)
 	IafCityLights.set_road_lamps(true)
 	var lit: PackedInt32Array = IafCityLights.blocks_near(AMMAN.x, AMMAN.y, 0.0)
-	check(
-		dark.is_empty() and lit.size() >= 3,
-		"Amman: a block only with the road lamps (%d / %d)" % [dark.size(), lit.size()]
-	)
+	# With the rest of the theatre's cells (docs/scenery.md §1.7) Amman has its buildings' block either way.
+	if FileAccess.file_exists(scenery_dir.path_join("theatre.json")):
+		check(
+			dark.size() >= 3 and lit.size() >= 3,
+			"Amman: its buildings' block, with or without the road lamps (%d / %d)" % [dark.size(), lit.size()]
+		)
+	else:
+		check(
+			dark.is_empty() and lit.size() >= 3,
+			"Amman: a block only with the road lamps (%d / %d)" % [dark.size(), lit.size()]
+		)
 	if lit.size() >= 3:
 		tv.rig.position = tv.world_to_scene(AMMAN)
 		tv.rig.position.y = 1500.0

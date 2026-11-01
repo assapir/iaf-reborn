@@ -232,12 +232,17 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
             let list = ctx.inputs.scenery_kinds.downloads();
             let scenery = scenery_fetch(&list, &a.join("source/scenery"), SCENERY_PROBE, pr, cancel)?;
             // The road layer's other countries (docs/scenery.md §1.1), each optional.
+            // The rest of the theatre's sources (docs/scenery.md §1.7), each optional.
+            let kinds = ctx.inputs.scenery_kinds;
+            let src = a.join("source/scenery");
             if matches!(scenery, Outcome::Skipped(_))
-                || thirdparty::ROADS.iter().all(|d| thirdparty::file_done(&a.join("source/roads"), d))
+                || (thirdparty::ROADS.iter().all(|d| thirdparty::file_done(&a.join("source/roads"), d))
+                    && kinds.theatre_downloads().iter().all(|d| thirdparty::file_done(&src, d)))
             {
                 return Ok(scenery);
             }
             iaf_tools::roads::fetch(a, pr, cancel)?;
+            iaf_tools::scenery::fetch_theatre(a, kinds, pr, cancel)?;
             return Ok(Outcome::Done);
         }
         "scenery" => return scenery(a, ctx.inputs.scenery_kinds, pr, cancel),
@@ -468,7 +473,8 @@ fn scenery_fetch(
     Ok(Outcome::Done)
 }
 
-/// The road layer (iaf_tools::roads), the scenery cells and the city lights' buildings (iaf_tools::scenery): skipped
+/// The road layer (iaf_tools::roads), the scenery cells, the city lights' buildings and the rest of the theatre's cells
+/// (iaf_tools::scenery): skipped
 /// without GDAL or the sources; the cells and lights also without the Survey 2 m layer.
 fn scenery(a: &Path, kinds: iaf_tools::scenery::Kinds, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
     if !crate::tools().gdal {
@@ -486,7 +492,9 @@ fn scenery(a: &Path, kinds: iaf_tools::scenery::Kinds, pr: &dyn Progress, cancel
     let cells = iaf_tools::scenery::build(&r, pr, cancel)?.up_to_date;
     // The city lights' buildings where the scenery stops (docs/rendering.md §5.1).
     let lights = iaf_tools::scenery::build_lights(&r, pr, cancel)?.up_to_date;
-    Ok(if cells && lights && roads { Outcome::UpToDate } else { Outcome::Done })
+    // The rest of the theatre: its cells and its city lights' buildings (docs/scenery.md §1.7).
+    let theatre = iaf_tools::scenery::build_theatre(&r, pr, cancel)?.up_to_date;
+    Ok(if cells && lights && theatre && roads { Outcome::UpToDate } else { Outcome::Done })
 }
 
 /// A modern imagery layer: the estimate first; nothing to convert (every unit's mark holds) is up to date.

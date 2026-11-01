@@ -172,8 +172,9 @@ The wizard uses the original menus' colours. Pages:
    - Survey of Israel, all of Israel: 79 sheets, about 17 GB of downloads (kept in `assets/source`), about 5 GB
      converted. Around the airbases: 9 sheets, about 2 GB of downloads. Sheets already downloaded are not
      downloaded again.
-   - Scenery: the download of the chosen kinds, from the pinned files' sizes (both 520 MB, buildings only 373 MB,
-     trees only 267 MB). Files already downloaded are kept.
+   - Scenery: the download of the chosen kinds, from the pinned files' sizes, with the rest of the theatre's and the
+     other countries' OpenStreetMap extracts (both 2.7 GB, buildings only 2.3 GB, trees only 0.9 GB; scenery.md §1.6,
+     §1.7). Files already downloaded are kept.
    - Sentinel-2: about 28 GB read over the network, about 11 GB on disk (the tiles 2.6 GB, their pre-compressed
      copies 8.7 GB). Units already converted are not read again.
 

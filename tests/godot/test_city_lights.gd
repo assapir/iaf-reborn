@@ -1,14 +1,23 @@
 # City lights (docs/rendering.md §5.1): with Night lights = Detailed, at night over Tel Aviv the towns get their
 # lights from the installed scenery's buildings (city_lights.gd, IafCityLights): far points for every block in range,
 # near points for the near blocks, lights in the kept Tel Aviv inset too, every light a little above the ground, the
-# colours and ranks in range, the haze on. By day they hide and the haze is off; with Night lights = Original there
-# are none. Needs setup's scenery (skips without it).
+# colours and ranks in range, the haze on; with the rest of the theatre's cells, Beirut, Damascus, Amman, Cairo and
+# Nicosia lit too. By day they hide and the haze is off; with Night lights = Original there are none. Needs setup's
+# scenery (skips without it).
 extends "res://../tests/godot/base.gd"
 
 ## Tel Aviv (engine metres).
 const TEL_AVIV := Vector3(318500.0, 540500.0, 0.0)
 ## Inside the kept Tel Aviv inset (no Survey photo, no scenery cell there).
 const INSET := Vector3(315000.0, 541700.0, 0.0)
+## The rest of the theatre's towns (engine metres; docs/scenery.md §1.7).
+const TOWNS := {
+	"Beirut": Vector2(382250.0, 744956.0),
+	"Damascus": Vector2(457193.0, 702586.0),
+	"Amman": Vector2(422994.0, 529365.0),
+	"Cairo": Vector2(-22554.0, 317224.0),
+	"Nicosia": Vector2(178474.0, 885283.0),
+}
 
 
 func run() -> void:
@@ -75,6 +84,14 @@ func run() -> void:
 	while Time.get_ticks_msec() - t < 40000 and cl._glow == null:
 		await frames(10)
 	check(cl._glow != null and cl.glow_k > 0.0, "the haze over the towns")
+	# The rest of the theatre (setup's theatre.json): the towns beyond Israel have their buildings' lights, and the
+	# haze reaches them.
+	if FileAccess.file_exists(load("res://terrain/scenery.gd").dir().path_join("theatre.json")):
+		for town in TOWNS:
+			var at: Vector2 = TOWNS[town]
+			check(IafCityLights.blocks_near(at.x, at.y, 1000.0).size() > 0, "%s has light blocks" % town)
+		var g: Dictionary = IafCityLights.glow()
+		check(float(g.w) * float(g.m) > 600000.0, "the haze spans the theatre (%d squares of %d m)" % [g.w, g.m])
 	var mat: ShaderMaterial = far[0].material_override
 	check(float(mat.get_shader_parameter("vp_h")) > 0.0, "the shader has the render's rows")
 
