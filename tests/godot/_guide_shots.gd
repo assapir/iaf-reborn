@@ -23,12 +23,14 @@
 # camera on the placed unit (FLIR with the laser), "emitter" the placed unit's radar locks the jet, "fire" Space held,
 # "look:Y,P" the head turned Y° right / P° up (free look), "key:X" a game key, "designate" the radar's designated point
 # on the placed unit, "pre" every GPS station's pre-planned (PRE) target on the placed unit (as set on the briefing
-# TSD), "wait:S", "pcd:F1,F2,F3,F4" the F-35I portals' formats, "goggles" the night-vision goggles on), hour (the
-# mission's start hour, e.g. 1 for 01:00), panel (0 the forward view … 1 the whole panel), "dive" (an airborne start in
-# a `dive_deg` dive `dive_agl` m above the ground), camera ([right, up, back] m in the jet's axes: the external camera
-# pinned there, looking at the jet), view ("cockpit" / "hud", the HUD-only view / "external"), crop ("full", "hud",
-# "dash", "mfd_left", "mfd_right"; "hud" takes `crop_w`, the box's width as a fraction of the frame, default 0.38:
-# smaller zooms in; and `crop_dy`, the box moved down by that fraction of the frame's height, negative moves it up,
+# TSD), "wait:S", "pcd:F1,F2,F3,F4" the F-35I portals' formats, "mfd:L,R" the MFDs' pages, left and right (mfd.gd:
+# 2 radar, 1 stores, 3 TSD, 4 damage, 5 TV, 6 FLIR; the F-16's real formats show FCR, SMS, HSD, TEST, WPN, TGP),
+# "goggles" the night-vision goggles on), hour (the mission's start hour, e.g. 1 for 01:00), panel (0 the forward
+# view … 1 the whole panel), "dive" (an airborne start in a `dive_deg` dive `dive_agl` m above the ground), camera
+# ([right, up, back] m in the jet's axes: the external camera pinned there, looking at the jet), view ("cockpit" /
+# "hud", the HUD-only view / "external"), crop ("full", "hud", "dash", "mfd_left", "mfd_right", "mfds" both MFDs;
+# "hud" takes `crop_w`, the box's width as a fraction of the frame, default 0.38: smaller zooms in; and `crop_dy`,
+# the box moved down by that fraction of the frame's height, negative moves it up,
 # default 0: a gunsight's reticle that sits high; "compass": a 16:10 box around the panel's compass / HSI dial,
 # game/cockpit/compass.gd, with the same crop_w / crop_dy; "panel": the same box around `crop_at`, [x, y] panel px of
 # the 1920-px strip; "box": `crop_box` [x0, y0, x1, y1], fractions of the frame). Callouts ("annotations": [{n, anchor,
@@ -427,6 +429,10 @@ func _action(a: String) -> void:
 			tv._toggle_goggles()
 		"fire":  # Space held (the release; bombs: the delayed CCIP's designation)
 			w.fire_selected()
+		"mfd":  # the MFDs' pages, left to right ("mfd:2,1": the radar and the stores; the F-16's real FCR and SMS)
+			var ps := arg.split(",")
+			for i in mini(ps.size(), tv.cockpit.mfds.size()):
+				tv.cockpit.mfds[i].page = int(ps[i])
 		"pcd":  # the F-35I's portals' formats, left to right ("pcd:TSD-1,SRCH,SMS,TWD"; pcd.gd)
 			var fs := arg.split(",")
 			for i in mini(fs.size(), 4):
@@ -483,6 +489,12 @@ func _crop(c: String, size: Vector2i, hud_w := 0.38, hud_dy := 0.0, at: Array = 
 			var ht := int(wd * 10 / 16)
 			ctr.y += size.y * hud_dy
 			return Rect2i(Vector2i(ctr) - Vector2i(wd / 2, ht / 2), Vector2i(wd, ht)).intersection(full)
+		"mfds":  # both MFDs and the panel between them, with a margin
+			var r := Rect2()
+			for m in tv.cockpit.mfds:
+				var g: Rect2 = m.get_global_rect().grow(m.size.x * 0.06)
+				r = g if not r.has_area() else r.merge(g)
+			return Rect2i(r).intersection(full)
 		"mfd_left", "mfd_right":
 			for m in tv.cockpit.mfds:
 				if m.index == (0 if c == "mfd_left" else 1):

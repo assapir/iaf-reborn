@@ -616,10 +616,11 @@ func wpn() -> void:
 		_has()
 		return
 	var tv: Dictionary = cockpit.eo.get("tv", {})
-	if int(tv.get("status", 0)) != 0:
-		_maverick(wp, tv)
-	elif not wp.is_empty() and _gps(wp):
+	# A GPS bomb first: it shares the TV weapons' type 650, so the TV status is set with one selected.
+	if not wp.is_empty() and _gps(wp):
 		_jdam(wp)
+	elif int(tv.get("status", 0)) != 0:
+		_maverick(wp, tv)
 	else:
 		centred(66, 66, "WPN OFF", c("text"))
 
