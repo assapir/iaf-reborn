@@ -204,7 +204,7 @@ pub fn convert(
 }
 
 /// An extract's country for the credit line.
-fn country(file: &str) -> &str {
+pub(crate) fn country(file: &str) -> &str {
     match file.split('-').next().unwrap_or("") {
         "israel" => "Israel and Palestine",
         "lebanon" => "Lebanon",

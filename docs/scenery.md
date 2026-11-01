@@ -1,12 +1,14 @@
 # Scenery: buildings, trees and roads
 
 This doc describes the optional scenery: 3D buildings and trees that stand on the terrain over the Survey of Israel
-2 m photo (`mapi2015`, docs/imagery.md §8), and the road layer of the whole theatre (§6). Key facts:
+2 m photo (`mapi2015`, docs/imagery.md §8) and over the rest of the theatre (§1.7: Lebanon, Syria, Jordan, Egypt and
+Cyprus over the Sentinel-2 layer), and the road layer of the whole theatre (§6). Key facts:
 
 - It is opt-in. The original has no generic buildings or trees; its stationary models are mission units only.
 - Setup makes it from open data downloaded at setup time. The repo holds none of it.
-- One cell file per level-1 node of the `mapi2015` layer, the layer's own keys. Scenery stands only where the photo
-  shows.
+- One cell file per level-1 node of the terrain: the `mapi2015` layer's nodes, where scenery stands only where the
+  photo shows; the rest of the theatre's nodes (§1.7), where it stands over the 1998 art in the Israel region and over
+  the Sentinel-2 layer outside it.
 - Nothing stands at an original place: the sea, the airbases, the kept target insets, the missions' units and their
   routes, World scale Real's base sites. No tree stands on a road, a railway, a runway, a taxiway or an apron.
 - Related docs: the photo layer in docs/imagery.md §8; the warp into the game frame in docs/georef.md; the cell
@@ -35,9 +37,11 @@ Setup downloads every source into `assets/source/scenery/` and checks it against
 | Microsoft Global ML Building Footprints, release 2026-02-03[^ms] | building outlines where OSM has none (Israel, the West Bank, Gaza) | 24 quadkey files (238 MB) | CDLA Permissive 2.0[^ms] |
 | JRC GHS-BUILT-H R2023A, average net building height (ANBH), 100 m[^ghsl] | the height of a building without a height tag | 2 tiles, R5_C22 and R6_C22 (16 MB) | free re-use with the source acknowledged[^ghsl-terms] |
 | ETH Zürich Global Canopy Height 2020, 10 m[^chm] | where trees stand and how tall they are | 3 tiles of 3° × 3°, N27E033, N30E033, N33E033 (148 MB) | CC BY 4.0[^chm] |
+| The rest of the theatre (§1.7): Microsoft's footprints of Lebanon, Syria, Jordan, Egypt and Cyprus; GHS-BUILT-H; ETH's canopy | the same, beyond the Survey layer | 141 quadkey files of the 2026-02-03 release (1507 MB: Egypt 904, Syria 323, Jordan 111, Lebanon 94, Cyprus 74); GHS-BUILT-H R5_C21 and R6_C21 (15 MB); ETH N30E027, N27E030, N30E030, N33E030, N27E036, N30E036, N33E036 (294 MB); each optional | as above |
 
 Geofabrik keeps the extract of 1 January of each year for good, so the pinned file stays downloadable[^geofabrik].
-The road extracts are `ROADS` in `thirdparty.rs`. The theatre (lon 29.65°–38.29° E, lat 27.04°–36.62° N through the
+The road extracts are `ROADS` in `thirdparty.rs`; the rest of the theatre's files `SCENERY_THEATRE`. Microsoft's
+README gives the footprints' licence as CDLA Permissive 2.0 (checked 2026-10-30)[^ms]. The theatre (lon 29.65°–38.29° E, lat 27.04°–36.62° N through the
 georeference) also reaches into Turkey's Hatay strip and Saudi Arabia's north-west corner; their extracts (Turkey
 618 MB, the GCC states 245 MB, 2026-01-01) are left out for a thin strip of sparse roads. Iraq starts east of the
 theatre.
@@ -134,7 +138,8 @@ A route is the unit's `Path` scripts' paths and its formation's waypoints, from 
 | `assets/converted/scenery/L1/s_<i>_<j>.bin` | one cell per node with any building or tree (format: `iaf_avionics::scenery`) |
 | `assets/converted/scenery/lights/L1/s_<i>_<j>.bin` | the city lights' buildings where the scenery stops (the kept target insets, nodes the Survey layer lacks; same format, buildings only, rendering.md §5.1); `lights/manifest.json` its `made_from` |
 | `assets/converted/scenery/manifest.json` | `name`, `release`, `generator`, `kinds` (`both`, `buildings`, `trees`), `made_from`, `attribution` (the used sources), `licence`, `cells`, `buildings`, `trees`, `downloaded` |
-| `assets/converted/scenery/.work/` | kept between runs: the OSM extract and the reduced canopy tiles (about 350 MB) |
+| `assets/converted/scenery/theatre.json` | the rest of the theatre (§1.7): `made_from`, `kinds`, `attribution`, the counts, and its cells by list: `israel` (over the 1998 art), `outside` (over Sentinel-2), `lights` (its city lights' cells) |
+| `assets/converted/scenery/.work/` | kept between runs: the OSM extract and the reduced canopy tiles (about 350 MB); `theatre/` the rest of the theatre's cut extracts during its run (§1.7) |
 | `assets/source/roads/` | the other countries' OSM extracts (§1.1) and their `.ok` marks |
 | `assets/converted/roads/` | the road layer (§6): `main.bin`, `L3/r_<i>_<j>.bin`, `manifest.json` |
 
@@ -149,16 +154,18 @@ coverage, the converted missions, airbases, theatre and objects stamps: when it 
 
 | Step | Waits for | Does |
 |---|---|---|
-| `scenery-fetch` | | downloads the sources the kinds need and the other countries' road extracts (`iaf-scenery fetch`; a country that fails is logged and has no roads); skipped when download.geofabrik.de cannot be reached |
-| `scenery` | mapi2015, scenery-fetch, missions, objects, airbases | makes the road layer (§6; needs only the OSM extracts), then the cells of the kinds (`iaf-scenery build`), then the city lights' cells where the scenery stops (rendering.md §5.1; with buildings only); skipped without GDAL or the sources; the cells also without the `mapi2015` layer |
+| `scenery-fetch` | | downloads the sources the kinds need, the other countries' OpenStreetMap extracts and the rest of the theatre's files (`iaf-scenery fetch`; a country or file that fails is logged and left out); skipped when download.geofabrik.de cannot be reached |
+| `scenery` | mapi2015, sentinel2, scenery-fetch, missions, objects, airbases | makes the road layer (§6; needs only the OSM extracts), then the cells of the kinds (`iaf-scenery build`), then the city lights' cells where the scenery stops (rendering.md §5.1; with buildings only), then the rest of the theatre's cells (§1.7); skipped without GDAL or the sources; the cells also without the `mapi2015` layer |
 
 Both are optional (setup's `--scenery`, `tools/setup-cli.sh --scenery`). Setup makes one of three kinds:
 
 | Kinds | Wizard choice, setup.json `scenery_kinds`, CLI | Downloads |
 |---|---|---|
-| buildings and trees (the default) | "buildings and trees", `both`, `--scenery` | all 30 files, 520 MB |
-| buildings only | "buildings only", `buildings`, `--scenery=buildings` | OpenStreetMap, Microsoft, GHS-BUILT-H: 27 files, 373 MB |
-| trees only | "trees only", `trees`, `--scenery=trees` | OpenStreetMap, ETH canopy: 4 files, 267 MB |
+| buildings and trees (the default) | "buildings and trees", `both`, `--scenery` | all 30 files, 520 MB; the rest of the theatre's 150, 1816 MB |
+| buildings only | "buildings only", `buildings`, `--scenery=buildings` | OpenStreetMap, Microsoft, GHS-BUILT-H: 27 files, 373 MB; the rest of the theatre's 143, 1522 MB |
+| trees only | "trees only", `trees`, `--scenery=trees` | OpenStreetMap, ETH canopy: 4 files, 267 MB; the rest of the theatre's 7, 294 MB |
+
+Each kind also downloads the other countries' OpenStreetMap extracts (366 MB, `ROADS`).
 
 A setup.json without `scenery_kinds` means both. The build makes only the chosen kind; the roads, runways and
 clearances (§1.3) apply as with both. With trees only, OpenStreetMap's buildings still keep the trees off and set
@@ -186,6 +193,62 @@ Measured on this machine (Intel laptop, 2026-10-22), the whole layer (4664 nodes
 | One kind | the cells of one kind computed from the cell format (a tree is 16 bytes): trees 457 MB, buildings 121 MB. With the work files (the OSM extract 446 MB, the reduced canopy 40 MB for trees): buildings 0.57 GB, trees 0.94 GB, both 1.06 GB |
 
 Two runs give the same bytes (the SHA-256 of every cell file compared).
+
+### 1.7 The rest of the theatre
+
+`iaf_tools::scenery::build_theatre` (`iaf-scenery theatre assets`; `build`, `lights` and setup's `scenery` step make
+it too, after the Survey layer's cells and light cells) makes a cell for every level-1 node of the theatre that the
+Survey layer lacks: 128 456 nodes, of them 41 819 with a building or tree. Its sources are every source of §1.1 that
+is downloaded: the six OpenStreetMap extracts (Israel and Palestine's and the other countries'; a building or tree in
+two of them is kept once), Microsoft's footprints of Israel, the West Bank, Gaza, Lebanon, Syria, Jordan, Egypt and
+Cyprus, the four GHS-BUILT-H tiles and ten ETH canopy tiles. A file that failed to download leaves its area without
+buildings or trees. Turkey's Hatay strip and Saudi Arabia's corner have no source (as for the roads, §1.1).
+
+The cells follow §1.2 and §1.3 with these differences:
+
+| | In map.ptt's Israel region (Amman, Damascus, south Lebanon, Sinai's north, Gaza, the West Bank beyond the photo) | Outside it (Beirut, Cairo and the Nile delta, Cyprus, the rest of Syria and Jordan) |
+|---|---|---|
+| The ground under them | the 1998 art (the Survey layer equals it there) | the Sentinel-2 layer (imagery.md §1) |
+| Where they stand | `Rules::open` of the Israel region: on land, off the airbases and the kept target insets | `Rules::open` of an outside layer, and only on a level-3 node that `sentinel2` wrote |
+| Roof colours | the 1998 rendition at level 3 (9.9 m a pixel), both looks | `sentinel2` (1998 look) and `sentinel2_modern` (modern look), level 3 |
+| Shown | with the Survey layer, as the Survey's cells | only while Imagery outside Israel is a Sentinel-2 layer |
+
+- **Roofs on 10 m imagery**: a roof takes the median of the pixels whose centres lie in its footprint, else the
+  pixel under its centre, as on the photo. A house is about one pixel, so its roof takes the town's mixed colour;
+  the town keeps its tone.
+- **Placement**: the footprints go through the same georeference as the Sentinel-2 layer, so a block stands where
+  the layer shows it; the layer's 10 m blur shows no single house to miss.
+- **Trees**: one per 0.0002° cell (about 20 m), the tallest of its four 10 m cells, by the same thresholds. On the
+  10 m grid the theatre held 348 M trees (5.6 GB, 2026-10-30), most in the Nile delta's groves and Cyprus' and
+  Lebanon's forests. Up to 36° N: the 3° tiles north of it are 180–320 MB each, mostly Turkey.
+- **City lights**: a building that the cell leaves out but that stands on open land (the kept insets abroad,
+  Damascus's among them; the nodes without Sentinel-2) goes into the light cell of its node (`lights/L1`,
+  rendering.md §5.1), with stand-ins where a town's footprints are sparse (`fill_lights`, rendering.md §5.1).
+- **Work files**: the countries' cut extracts (1.8 GB) are removed after the run; cutting them again takes under a minute.
+
+Cost (Intel Iris Xe, 2560 × 1440, `tests/godot/_flight_bench.gd` with `BENCH_BEST=1 BENCH_SET=scenery=on`, 400 m
+at 150 m/s for 15 s, two runs each with and without `theatre.json`, under the shared GPU lock on a quiet machine,
+2026-10-30):
+
+| Over | GPU without | with | cost | video memory |
+|---|---|---|---|---|
+| Beirut (383500,744000) | 12.86 ms | 16.61 ms | +3.8 ms | 874 → 1447 MB |
+| Damascus (457193,702586) | 12.97 ms | 18.60 ms | +5.6 ms | 898 → 1307 MB |
+
+About a dense Israeli town's (§3.1: 46 → 36 fps, +6 ms, over a dense town at 150 m). The theatre's cells cost nothing
+where none is within 6 km.
+
+`theatre.json` lists the cells by region (`israel`, `outside`, `lights`); the next run removes them before writing
+its own. Its `made_from` holds the city lights' (so a new Survey build makes the theatre again), the version
+`THEATRE_VERSION`, the kinds, the files' checksums and the Sentinel-2 layers' level-3 nodes.
+
+Measured on this machine (Intel laptop, 8 threads, 2026-10-30), both kinds:
+
+| | |
+|---|---|
+| Downloads | 1816 MB in 150 files (Microsoft 1507 MB: Egypt 904, Syria 323, Jordan 111, Lebanon 94, Cyprus 74; GHS-BUILT-H 15 MB; ETH 294 MB); about 1–2 MB/s from Microsoft's server here, about 25 min |
+| Build | 5–8 min with the extracts cut again (7 min 34 s with the light stand-ins, the machine busy), peak memory 7.3 GB; with the Survey layer's cells and light cells before it about 9 min |
+| Output | 41 819 cells (6100 in the Israel region, 35 719 outside), 14 830 557 buildings (2 795 426 from OpenStreetMap), 94 591 554 trees, 2.34 GB; light cells: 5529 with 911 289 buildings (60 630 left out of the cells, the rest stand-ins, rendering.md §5.1) |
 
 ## 2. Runtime
 
@@ -222,8 +285,10 @@ Two runs give the same bytes (the SHA-256 of every cell file compared).
   - Picking another Israel imagery turns Scenery off. A saved On or Detailed without both loads as Off; an unknown
     saved value loads as Off.
 - **Streaming:** `game/terrain/scenery.gd` keeps the cells within 6 km of the camera's focus (4.5 km drawn plus 1.5 km
-  made ahead, so a cell is uploaded before it comes into view), and only the Survey
-  layer's level-1 nodes; each re-selection looks only at the cells around the focus.
+  made ahead, so a cell is uploaded before it comes into view): the Survey layer's level-1 nodes and the rest of the
+  theatre's cells of the Israel region (`theatre.json` `israel`); the outside ones (`outside`) only while Imagery
+  outside Israel is a Sentinel-2 layer, their roofs in its look (Sentinel-2 modern: the modern colours). Each
+  re-selection looks only at the cells around the focus.
   1. Worker threads read the files into `IafScenery`.
   2. `IafScenery.prepare` makes a cell's meshes and trees on a Rust thread of its own, from a copy of the cell, so the
      main thread never waits on it.

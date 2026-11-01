@@ -150,8 +150,13 @@ impl IafSetup {
     #[func]
     fn scenery_download_bytes(kinds: GString) -> i64 {
         let k = iaf_tools::scenery::Kinds::parse(&kinds.to_string()).unwrap_or_default();
-        // With the road layer's other countries (docs/scenery.md §1.1).
-        k.downloads().iter().chain(iaf_tools::thirdparty::ROADS).map(|d| d.bytes as i64).sum()
+        // With the rest of the theatre's sources and the other countries' extracts (docs/scenery.md §1.1).
+        k.downloads()
+            .iter()
+            .chain(&k.theatre_downloads())
+            .chain(iaf_tools::thirdparty::ROADS)
+            .map(|d| d.bytes as i64)
+            .sum()
     }
 
     /// The last run's inputs (setup.json's text), or "" before the first run.

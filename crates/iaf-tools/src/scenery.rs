@@ -14,7 +14,7 @@
 //! OpenStreetMap's roads, railways, runways, taxiways and aprons (`road_half_width`). The same pinned inputs give the
 //! same bytes on every install (`manifest.json` `release`).
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -29,7 +29,7 @@ use sha2::{Digest, Sha256};
 use crate::georef::{Georef, UNITS_TO_METRES};
 use crate::imagery::{Cache, Rules, Theatre};
 use crate::progress::{Progress, check, par_map, par_map_all, utf8};
-use crate::thirdparty::{self, Download, SCENERY};
+use crate::thirdparty::{self, Download, SCENERY, SCENERY_THEATRE};
 use crate::{airbases, log};
 
 /// The generator's version: part of the release, so a change to the rules below makes new ids.
@@ -310,6 +310,95 @@ impl Clear {
                 let (p, q) = (pts[i], pts[(i + 1) % n]);
                 dist_seg(self.a, p, q) < r || dist_seg(self.b, p, q) < r || segments_cross(self.a, self.b, p, q)
             })
+    }
+}
+
+/// The city lights' stand-ins where the footprints are sparse in a town (docs/scenery.md §1.7): Microsoft's footprints
+/// miss most of a dense old centre (central Damascus: about 4 200 in 7 km²). Per GHS-BUILT-H square (0.001°) of the
+/// node whose average net building height is FILL_MIN_H or more, squares of FILL_SIDE_M at seeded places until the
+/// square holds FILL_PER_CELL footprints (counting the sources' own, kept or not), each on open ground, its height
+/// the square's. Lights only: they go into the light cell.
+pub fn fill_lights(
+    n: &NodeIn,
+    heights: &Heights,
+    g: [f64; 4],
+    warp: &(dyn Fn(f64, f64) -> [f64; 2] + Sync),
+    open: &(dyn Fn([f64; 2]) -> bool + Sync),
+) -> Vec<Building> {
+    let st = Heights::STEP;
+    let cell =
+        |p: [f64; 2]| (((p[0] - heights.geo[0]) / st).floor() as i64, ((heights.geo[3] - p[1]) / st).floor() as i64);
+    let mut have: HashMap<(i64, i64), usize> = HashMap::new();
+    for f in n.osm.iter().chain(&n.ms) {
+        *have.entry(cell(f.geo)).or_default() += 1;
+    }
+    let ((c0, r1), (c1, r0)) = (cell([g[0], g[1]]), cell([g[2], g[3]]));
+    let rect = node_rect(n.key.0, n.key.1);
+    let mut out = Vec::new();
+    for r in r0.max(0)..=r1.min(heights.h as i64 - 1) {
+        for c in c0.max(0)..=c1.min(heights.w as i64 - 1) {
+            let h = heights.v[r as usize * heights.w + c as usize];
+            if !(FILL_MIN_H..250.0).contains(&h) {
+                continue;
+            }
+            for k in have.get(&(c, r)).copied().unwrap_or(0)..FILL_PER_CELL {
+                let s = [n.key.0 as u64, n.key.1 as u64, c as u64, r as u64, k as u64];
+                let (fx, fy) = (unit(&[&s[..], &[7]].concat()), unit(&[&s[..], &[8]].concat()));
+                let lon = heights.geo[0] + (c as f64 + fx) * st;
+                let lat = heights.geo[3] - (r as f64 + fy) * st;
+                let p = warp(lon, lat);
+                if p[0] < rect[0] || p[0] >= rect[2] || p[1] < rect[1] || p[1] >= rect[3] || !open(p) {
+                    continue;
+                }
+                let a = FILL_SIDE_M * 0.5;
+                let pts = [[-a, -a], [a, -a], [a, a], [-a, a]];
+                out.push(Building {
+                    points: pts.iter().map(|d| [(p[0] + d[0]) as f32, (p[1] + d[1]) as f32]).collect(),
+                    roof: Roof::Flat,
+                    wall: 2,
+                    height: h,
+                    roof_1998: [0; 3],
+                    roof_modern: [0; 3],
+                    source: SOURCE_MS,
+                    levels: (h / LEVEL_M) as u8,
+                });
+            }
+        }
+    }
+    out
+}
+
+/// The light stand-ins (`fill_lights`): the least average building height of a town's square (m; inferred: a
+/// village's houses average 3–6 m, a town's blocks of flats more), the footprints a square should hold (a dense
+/// centre's footprint every 30–35 m; inferred) and the stand-in's side (m).
+const FILL_MIN_H: f32 = 7.0;
+const FILL_PER_CELL: usize = 8;
+const FILL_SIDE_M: f64 = 12.0;
+
+/// Drops the second of two OpenStreetMap buildings with the same corners and of two mapped trees at the same point
+/// (an object in two countries' extracts).
+fn drop_twins(n: &mut NodeIn) {
+    let mut seen = HashSet::new();
+    n.osm.retain(|f| seen.insert(f.pts.iter().map(|p| p.map(f64::to_bits)).collect::<Vec<_>>()));
+    let mut seen = HashSet::new();
+    n.trees.retain(|t| seen.insert(t.p.map(f64::to_bits)));
+}
+
+impl Canopy {
+    /// An empty grid of `step` over the box [lon0, lat0, lon1, lat1], its edges on whole steps.
+    pub fn grid(b: [f64; 4], step: f64) -> Canopy {
+        let (c0, r0) = ((b[0] / step).floor(), (b[3] / step).ceil());
+        let (w, h) = (((b[2] / step).ceil() - c0) as usize, (r0 - (b[1] / step).floor()) as usize);
+        Canopy { lon0: c0 * step, lat1: r0 * step, step, w, h, v: Vec::new() }
+    }
+
+    /// The part over the box (inside this grid), on the same steps.
+    pub fn part(&self, b: [f64; 4]) -> Canopy {
+        let mut p = Canopy::grid(b, self.step);
+        let x0 = ((p.lon0 - self.lon0) / self.step).round() as usize;
+        let y0 = ((self.lat1 - p.lat1) / self.step).round() as usize;
+        p.v = (0..p.h).flat_map(|y| &self.v[(y0 + y) * self.w + x0..][..p.w]).copied().collect();
+        p
     }
 }
 
@@ -925,7 +1014,7 @@ pub(crate) fn run(mut cmd: Command) -> Result<()> {
 }
 
 /// The GHS-BUILT-H average net building height over the coverage (WGS84, 0.001°).
-struct Heights {
+pub struct Heights {
     geo: [f64; 4],
     w: usize,
     h: usize,
@@ -1264,6 +1353,32 @@ impl Kinds {
     pub fn downloads(self) -> Vec<Download> {
         SCENERY.iter().filter(|d| self.needs(d.file)).copied().collect()
     }
+
+    /// The downloads of `SCENERY_THEATRE` the kinds need (the rest of the theatre, `build_theatre`; each optional).
+    pub fn theatre_downloads(self) -> Vec<Download> {
+        SCENERY_THEATRE.iter().filter(|d| self.needs(d.file)).copied().collect()
+    }
+}
+
+/// Downloads the rest of the theatre's sources the kinds need (`thirdparty::SCENERY_THEATRE`) into
+/// `assets/source/scenery`: four at once; when one fails, file by file, and a file that fails is logged and left out
+/// (its area has no buildings or trees). The count downloaded now.
+pub fn fetch_theatre(assets: &Path, kinds: Kinds, pr: &dyn Progress, cancel: &AtomicBool) -> Result<usize> {
+    let (dir, list) = (assets.join("source/scenery"), kinds.theatre_downloads());
+    if let Ok(n) = thirdparty::fetch_files(&list, &dir, pr, cancel) {
+        return Ok(n);
+    }
+    let mut n = 0;
+    for d in &list {
+        match thirdparty::fetch_files(std::slice::from_ref(d), &dir, pr, cancel) {
+            Ok(k) => n += k,
+            Err(e) => {
+                check(cancel)?;
+                log!(pr, "scenery: {} not downloaded, its area has no buildings or trees: {e:#}", d.file);
+            }
+        }
+    }
+    Ok(n)
 }
 
 /// What `build` is asked to do.
@@ -1370,6 +1485,17 @@ fn made_from(r: &Run, keys: &[(u32, u32)]) -> String {
     h.finalize().iter().map(|b| format!("{b:02x}")).collect()
 }
 
+/// The clearances that reach within 50 m of the engine rect.
+fn clears_near(all: &[Clear], rect: [f64; 4]) -> Vec<Clear> {
+    all.iter()
+        .filter(|c| {
+            let b = c.bbox();
+            b[0] < rect[2] + 50.0 && b[2] > rect[0] - 50.0 && b[1] < rect[3] + 50.0 && b[3] > rect[1] - 50.0
+        })
+        .copied()
+        .collect()
+}
+
 /// The downloaded inputs of the list, or an error naming the first missing one.
 fn input(dir: &Path, d: &Download) -> Result<PathBuf> {
     if !thirdparty::file_done(dir, d) {
@@ -1449,14 +1575,7 @@ pub fn build(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary>
             let orig = theatre.rendition((1, i, j), &mut cache)?;
             let photo = photo_mask(&old, orig.as_deref());
             let rect = node_rect(i, j);
-            let near: Vec<Clear> = all_clears
-                .iter()
-                .filter(|c| {
-                    let b = c.bbox();
-                    b[0] < rect[2] + 50.0 && b[2] > rect[0] - 50.0 && b[1] < rect[3] + 50.0 && b[3] > rect[1] - 50.0
-                })
-                .copied()
-                .collect();
+            let near = clears_near(&all_clears, rect);
             let px = |p: [f64; 2]| {
                 let t = airbases::units(p[0], p[1]);
                 [(t[0] - i as f64 * NODE_UNITS) / PIXEL_UNITS, (t[1] - j as f64 * NODE_UNITS) / PIXEL_UNITS]
@@ -1607,9 +1726,24 @@ fn sources(
             nodes: keys.iter().map(|&k| (k, NodeIn { key: k, ..NodeIn::default() })).collect(),
             geo,
         };
-        let osm = osm_extract(&pick("israel-and-palestine")[0], geo, work, pr)?;
-        check(cancel)?;
-        read_osm(&osm, &mut g, cancel)?;
+        // Israel and Palestine's extract; with the other countries' (the theatre's cells), each in a work folder of
+        // its own (an extract's cut files replace the earlier ones in their folder).
+        let pbfs: Vec<PathBuf> = files.iter().filter(|p| p.to_string_lossy().ends_with(".osm.pbf")).cloned().collect();
+        for pbf in &pbfs {
+            let dir = if pbfs.len() == 1 {
+                work.to_path_buf()
+            } else {
+                work.join(pbf.file_name().unwrap_or_default().to_string_lossy().replace(".osm.pbf", ""))
+            };
+            std::fs::create_dir_all(&dir)?;
+            let osm = osm_extract(pbf, geo, &dir, pr)?;
+            check(cancel)?;
+            read_osm(&osm, &mut g, cancel)?;
+        }
+        // The extracts overlap at the borders: a building or tree in two of them is kept once.
+        if pbfs.len() > 1 {
+            g.nodes.values_mut().for_each(drop_twins);
+        }
         pr.fraction(0.15);
         log!(pr, "Microsoft footprints: {} files", pick("ms-").len());
         let ms = par_map(&pick("ms-"), cancel, |f| read_ms(f, &g))?;
@@ -1642,14 +1776,14 @@ fn sources(
 }
 
 /// The version of the light cells' rules (`build_lights`): part of their `made_from`.
-const LIGHTS_VERSION: u32 = 1;
+const LIGHTS_VERSION: u32 = 2;
 
 /// The city lights' extra buildings (docs/rendering.md §5.1) into `assets/converted/scenery/lights`: per level-1 node
-/// of the Israel region, the buildings the scenery cell of that node does not hold because the Survey photo or the
-/// scenery stops there (the kept target insets, Tel Aviv's coast among them; nodes the layer lacks), by the same
-/// rules as the scenery's otherwise (`Rules::lights_open`: off the airbases, on land; the units' clearances; World
-/// scale Real's sites). Buildings only, no roof colour; the game draws only their lights. Up to date when its
-/// manifest says it was made from the same scenery and inputs.
+/// of the Survey layer, the buildings the scenery cell of that node does not hold because the Survey photo or the
+/// scenery stops there (the kept target insets, Tel Aviv's coast among them), by the same rules as the scenery's
+/// otherwise (`Rules::lights_open`: off the airbases, on land; the units' clearances; World scale Real's sites).
+/// Buildings only, no roof colour; the game draws only their lights. The other nodes' light cells are
+/// `build_theatre`'s. Up to date when its manifest says it was made from the same scenery and inputs.
 pub fn build_lights(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary> {
     let started = std::time::Instant::now();
     let a = &r.assets;
@@ -1672,10 +1806,7 @@ pub fn build_lights(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<S
     let install = a.join("install");
     let theatre = Theatre::load(&a.join("converted/terrain/theatre"))?;
     let rules = Rules::load(&install, false, &theatre)?;
-    let isr = rules.israel.map(|v| v as f64 / NODE_UNITS);
-    let mut keys: Vec<(u32, u32)> = (isr[1].floor() as u32..isr[3].ceil() as u32)
-        .flat_map(|j| (isr[0].floor() as u32..isr[2].ceil() as u32).map(move |i| (i, j)))
-        .collect();
+    let mut keys = coverage(&a.join("converted/imagery"))?;
     if let Some((c, km)) = r.near {
         keys.retain(|k| {
             let n = node_rect(k.0, k.1);
@@ -1687,7 +1818,7 @@ pub fn build_lights(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<S
     let files: Vec<PathBuf> = kinds.downloads().iter().map(|d| input(&src, d)).collect::<Result<_>>()?;
     let work = a.join("converted/scenery/.work");
     std::fs::create_dir_all(&work)?;
-    log!(pr, "city lights: {} nodes of the Israel region", keys.len());
+    log!(pr, "city lights: {} nodes of the Survey 2 m layer", keys.len());
     let Sources { warp, nodes, heights, .. } = sources(&keys, kinds, &files, &work, pr, cancel)?;
     let units = airbases::mission_units(&a.join("converted/missions"));
     let lineups = airbases::ibx_lineups(&std::fs::read(install.join("iaf.ibx")).unwrap_or_default());
@@ -1710,15 +1841,7 @@ pub fn build_lights(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<S
     let items: Vec<&NodeIn> = nodes.values().filter(|n| !n.osm.is_empty() || !n.ms.is_empty()).collect();
     let counts = par_map(&items, cancel, |n| {
         let (i, j) = n.key;
-        let rect = node_rect(i, j);
-        let near: Vec<Clear> = all_clears
-            .iter()
-            .filter(|c| {
-                let b = c.bbox();
-                b[0] < rect[2] + 50.0 && b[2] > rect[0] - 50.0 && b[1] < rect[3] + 50.0 && b[3] > rect[1] - 50.0
-            })
-            .copied()
-            .collect();
+        let near = clears_near(&all_clears, node_rect(i, j));
         let env = Env { open: &open, clears: &near, built_height: &built, roof: &roof, warp: &w };
         let mut cell = build_cell(n, &env);
         cell.trees.clear();
@@ -1750,6 +1873,323 @@ pub fn build_lights(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<S
         "city lights: {} cells, {} buildings beyond the scenery, in {}",
         s.cells,
         s.buildings,
+        crate::progress::duration(started.elapsed())
+    );
+    Ok(s)
+}
+
+/// The version of the theatre cells' rules (`build_theatre`): part of their `made_from`.
+const THEATRE_VERSION: u32 = 4;
+/// The theatre's canopy grid (degrees, about 20 m): one tree per four of the Survey layer's cells, the tallest. On the
+/// 10 m grid the theatre held 348 M trees (5.6 GB, 2026-10-30): the Nile delta's groves and Cyprus' forests.
+const THEATRE_CANOPY_STEP: f64 = 0.0002;
+/// The theatre's cells are made in blocks of this many level-1 nodes a side (a level-5 node, about 40 km): one canopy
+/// warp and one set of ground images per block.
+const THEATRE_BLOCK: u32 = 16;
+/// The level of the ground images the theatre's roof colours come from: the Sentinel-2 layer's (9.9 m a pixel).
+const GROUND_LEVEL: u32 = 3;
+
+/// A level-3 node's ground: (1998 look, modern look).
+type Ground = Option<(std::sync::Arc<RgbImage>, std::sync::Arc<RgbImage>)>;
+
+/// The scenery of the rest of the theatre (docs/scenery.md §1.7): every level-1 node of the theatre that the Survey 2 m
+/// layer lacks, from every OpenStreetMap extract (Israel and Palestine's and the other countries' of the road layer),
+/// the Microsoft footprints, GHS-BUILT-H and ETH's canopy of `SCENERY` and `SCENERY_THEATRE` that are downloaded.
+/// Into the scenery's `L1` (no node of the Survey layer is among them), by the same rules:
+/// - in the Israel region, where the ground is the 1998 art: off the kept target insets (`Rules::open`); the roofs'
+///   colour from the 1998 rendition;
+/// - outside it, where the Sentinel-2 layer replaces the 1998 art (`Rules::open` of an outside layer and a level-3
+///   node of `sentinel2`): the roofs' colours from `sentinel2` and `sentinel2_modern`.
+///
+/// The buildings that stand nowhere else (the kept insets, the nodes without Sentinel-2) go into the city lights'
+/// cells (`lights/L1`). Writes `theatre.json`: the cells by region (the game shows the outside ones over Sentinel-2
+/// only), the counts and `made_from` (up to date when it matches: the city lights', the inputs, the Sentinel-2 node
+/// lists).
+pub fn build_theatre(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary> {
+    let started = std::time::Instant::now();
+    let a = &r.assets;
+    let out = a.join("converted/scenery");
+    let made_of = |p: &str| {
+        std::fs::read(out.join(p))
+            .ok()
+            .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
+            .and_then(|m| m["made_from"].as_str().map(str::to_string))
+    };
+    // After the scenery and the city lights' cells: their runs empty L1 and lights/L1.
+    let before = made_of("lights/manifest.json")
+        .filter(|_| r.kinds.buildings)
+        .or_else(|| made_of("manifest.json"))
+        .context("the scenery is not made (iaf-scenery build)")?;
+    let src = a.join("source/scenery");
+    let mut files: Vec<PathBuf> = r.kinds.downloads().iter().map(|d| input(&src, d)).collect::<Result<_>>()?;
+    let extra: Vec<Download> =
+        r.kinds.theatre_downloads().into_iter().filter(|d| thirdparty::file_done(&src, d)).collect();
+    files.extend(extra.iter().map(|d| src.join(d.file)));
+    let roads: Vec<&Download> =
+        thirdparty::ROADS.iter().filter(|d| thirdparty::file_done(&a.join("source/roads"), d)).collect();
+    files.extend(roads.iter().map(|d| a.join("source/roads").join(d.file)));
+    let s2 = |l: &str| -> BTreeSet<(u32, u32)> {
+        let m: Value = std::fs::read(a.join(format!("converted/imagery/{l}/manifest.json")))
+            .ok()
+            .and_then(|b| serde_json::from_slice(&b).ok())
+            .unwrap_or(Value::Null);
+        m["nodes"][GROUND_LEVEL.to_string()]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|ij| Some((ij[0].as_u64()? as u32, ij[1].as_u64()? as u32)))
+            .collect()
+    };
+    let (s2_old, s2_modern) = (s2("sentinel2"), s2("sentinel2_modern"));
+    let made = {
+        let mut h = Sha256::new();
+        h.update(format!("{before}\ntheatre {THEATRE_VERSION} {} {:?}\n", r.kinds.name(), r.near).as_bytes());
+        for d in extra.iter().chain(roads.iter().copied()) {
+            h.update(format!("{}\n", d.sha256).as_bytes());
+        }
+        h.update(format!("{s2_old:?}\n{s2_modern:?}\n").as_bytes());
+        h.finalize().iter().map(|b| format!("{b:02x}")).collect::<String>()
+    };
+    let manifest_p = out.join("theatre.json");
+    if let Ok(m) = std::fs::read(&manifest_p).map(|b| serde_json::from_slice::<Value>(&b).unwrap_or(Value::Null))
+        && m["made_from"] == made.as_str()
+    {
+        return Ok(Summary { up_to_date: true, ..Summary::default() });
+    }
+
+    // Every level-1 node of the theatre the Survey layer lacks.
+    let install = a.join("install");
+    let theatre = Theatre::load(&a.join("converted/terrain/theatre"))?;
+    let survey: BTreeSet<(u32, u32)> = coverage(&a.join("converted/imagery")).unwrap_or_default().into_iter().collect();
+    let n1 = [theatre.rect[2], theatre.rect[3]].map(|v| v.div_ceil(NODE_UNITS as u32));
+    let mut keys: Vec<(u32, u32)> =
+        (0..n1[0]).flat_map(|i| (0..n1[1]).map(move |j| (i, j))).filter(|k| !survey.contains(k)).collect();
+    if let Some((c, km)) = r.near {
+        keys.retain(|k| {
+            let n = node_rect(k.0, k.1);
+            ((n[0] + n[2]) * 0.5 - c[0]).hypot((n[1] + n[3]) * 0.5 - c[1]) <= km * 1000.0
+        });
+    }
+    // The old run's cells (a node may have nothing now).
+    if let Ok(m) = std::fs::read(&manifest_p).map(|b| serde_json::from_slice::<Value>(&b).unwrap_or(Value::Null)) {
+        for ij in ["israel", "outside", "lights"].iter().flat_map(|k| m[*k].as_array().cloned().unwrap_or_default()) {
+            let (i, j) = (ij[0].as_u64().unwrap_or(0), ij[1].as_u64().unwrap_or(0));
+            let _ = std::fs::remove_file(out.join(format!("L1/s_{i}_{j}.bin")));
+            let _ = std::fs::remove_file(out.join(format!("lights/L1/s_{i}_{j}.bin")));
+        }
+    }
+    let _ = std::fs::remove_file(&manifest_p);
+    let work = out.join(".work/theatre");
+    std::fs::create_dir_all(&work)?;
+    std::fs::create_dir_all(out.join("L1"))?;
+    std::fs::create_dir_all(out.join("lights/L1"))?;
+    log!(
+        pr,
+        "scenery of the theatre ({}): {} nodes, {} of the other countries' files, {} OpenStreetMap extracts",
+        r.kinds.name(),
+        keys.len(),
+        extra.len(),
+        roads.len() + 1
+    );
+    let Sources { warp, nodes, node_geos, heights, chm } = sources(&keys, r.kinds, &files, &work, pr, cancel)?;
+    let geos: HashMap<(u32, u32), [f64; 4]> = keys.iter().copied().zip(node_geos).collect();
+
+    let rules = Rules::load(&install, false, &theatre)?;
+    let rules_out = Rules::load(&install, true, &theatre)?;
+    let units = airbases::mission_units(&a.join("converted/missions"));
+    let lineups = airbases::ibx_lineups(&std::fs::read(install.join("iaf.ibx")).unwrap_or_default());
+    let all_clears =
+        clears(&units, &lineups, &Models::load(&a.join("converted/objects"), &a.join("converted/missions")));
+    let moves = base_moves(&install, &a.join("converted/terrain"));
+    let ring = iaf_flight::base_move::RING;
+    let g_span = (NODE_UNITS as u32) << (GROUND_LEVEL - 1);
+    let isr = rules.israel;
+    let in_israel =
+        |t: [f64; 2]| t[0] >= isr[0] as f64 && t[0] < isr[2] as f64 && t[1] >= isr[1] as f64 && t[1] < isr[3] as f64;
+    let g_key = |t: [f64; 2]| ((t[0].max(0.0) as u32) / g_span, (t[1].max(0.0) as u32) / g_span);
+    let off_sites = |p: [f64; 2]| !moves.bases.iter().any(|b| b.in_old(p, 0.0) || b.to_game(p, ring).is_some());
+    let open = |p: [f64; 2]| {
+        let t = airbases::units(p[0], p[1]);
+        (if in_israel(t) { rules.open(t[0], t[1]) } else { rules_out.open(t[0], t[1]) && s2_old.contains(&g_key(t)) })
+            && off_sites(p)
+    };
+    let lights_open = |p: [f64; 2]| {
+        let t = airbases::units(p[0], p[1]);
+        rules.ground_open(t[0], t[1]) && off_sites(p)
+    };
+    let built = |g: [f64; 2]| heights.at(g);
+    let w = |lon: f64, lat: f64| warp.at(lon, lat);
+
+    // Per block of nodes, on every core.
+    let mut blocks: BTreeMap<(u32, u32), Vec<&NodeIn>> = BTreeMap::new();
+    for n in nodes.values() {
+        blocks.entry((n.key.0 / THEATRE_BLOCK, n.key.1 / THEATRE_BLOCK)).or_default().push(n);
+    }
+    let blocks: Vec<Vec<&NodeIn>> = blocks.into_values().collect();
+    let done = std::sync::atomic::AtomicUsize::new(0);
+    let results = par_map(&blocks, cancel, |block| {
+        check(cancel)?;
+        let mut cache = Cache::default();
+        let mut grounds: HashMap<(u32, u32), Ground> = HashMap::new();
+        let mut ground = |k: (u32, u32)| -> Result<Ground> {
+            if let Some(g) = grounds.get(&k) {
+                return Ok(g.clone());
+            }
+            let t = [(k.0 * g_span) as f64, (k.1 * g_span) as f64];
+            let img = |l: &str| -> Result<std::sync::Arc<RgbImage>> {
+                let p = a.join(format!("converted/imagery/{l}/L{GROUND_LEVEL}/c_{}_{}.jpg", k.0, k.1));
+                Ok(std::sync::Arc::new(image::open(&p).with_context(|| format!("{}", p.display()))?.to_rgb8()))
+            };
+            let g = if in_israel(t) {
+                theatre.rendition((GROUND_LEVEL, k.0, k.1), &mut cache)?.map(|i| (i.clone(), i))
+            } else if s2_old.contains(&k) {
+                let old = img("sentinel2")?;
+                Some((old.clone(), if s2_modern.contains(&k) { img("sentinel2_modern")? } else { old }))
+            } else {
+                None
+            };
+            grounds.insert(k, g.clone());
+            Ok(g)
+        };
+        // The canopy over the block's nodes once, on the THEATRE_CANOPY_STEP grid (each node takes its part).
+        let canopy = match &chm {
+            Some(chm) => {
+                let b = block.iter().map(|n| geos[&n.key]).fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, g| {
+                    [b[0].min(g[0]), b[1].min(g[1]), b[2].max(g[2]), b[3].max(g[3])]
+                });
+                let mut c = Canopy::grid(b, THEATRE_CANOPY_STEP);
+                let geo = [c.lon0, c.lat1 - c.h as f64 * c.step, c.lon0 + c.w as f64 * c.step, c.lat1];
+                let tmp = work.join(format!("chm_{}_{}.bin", block[0].key.0, block[0].key.1));
+                c.v = gdal_warp(std::slice::from_ref(chm), geo, c.w, c.h, "max", &tmp)?;
+                Some(c)
+            }
+            None => None,
+        };
+        let mut v = Vec::new();
+        for n in block {
+            let (i, j) = n.key;
+            let mut node = (*n).clone();
+            node.canopy = canopy
+                .as_ref()
+                .map(|c| c.part(geos[&n.key]))
+                .filter(|c| c.v.iter().any(|&v| v >= ORCHARD_CANOPY_MIN_M));
+            if node.osm.is_empty() && node.ms.is_empty() && node.trees.is_empty() && node.canopy.is_none() {
+                continue;
+            }
+            // The roofs' colours: the ground image under the footprint's centre.
+            let mut roofs: HashMap<(u32, u32), Ground> = HashMap::new();
+            for f in node.osm.iter().chain(&node.ms) {
+                let k = g_key(airbases::units(centroid(&f.pts)[0], centroid(&f.pts)[1]));
+                if let std::collections::hash_map::Entry::Vacant(e) = roofs.entry(k) {
+                    e.insert(ground(k)?);
+                }
+            }
+            let roof = |pts: &[[f64; 2]]| {
+                let t = airbases::units(centroid(pts)[0], centroid(pts)[1]);
+                let k = g_key(t);
+                let Some(Some((old, modern))) = roofs.get(&k) else { return ([0; 3], [0; 3]) };
+                let s = g_span as f64 / 1024.0;
+                let q: Vec<[f64; 2]> = pts
+                    .iter()
+                    .map(|&p| {
+                        let t = airbases::units(p[0], p[1]);
+                        [(t[0] - (k.0 * g_span) as f64) / s, (t[1] - (k.1 * g_span) as f64) / s]
+                    })
+                    .collect();
+                (median_inside(old, &q), median_inside(modern, &q))
+            };
+            let near = clears_near(&all_clears, node_rect(i, j));
+            let env = Env { open: &open, clears: &near, built_height: &built, roof: &roof, warp: &w };
+            let mut cell = build_cell(&node, &env);
+            if !r.kinds.buildings {
+                cell.buildings.clear();
+            }
+            if !r.kinds.trees {
+                cell.trees.clear();
+            }
+            // The city lights' buildings: those the cell lacks where the ground is open.
+            let mut lights = Cell::default();
+            if r.kinds.buildings {
+                let bare = NodeIn { trees: Vec::new(), canopy: None, areas: Vec::new(), ..(*n).clone() };
+                let no_roof = |_: &[[f64; 2]]| ([0; 3], [0; 3]);
+                let env = Env { open: &lights_open, clears: &near, built_height: &built, roof: &no_roof, warp: &w };
+                lights = build_cell(&bare, &env);
+                let key = |b: &Building| (b.points[0][0].to_bits(), b.points[0][1].to_bits(), b.points.len());
+                let have: HashSet<_> = cell.buildings.iter().map(key).collect();
+                lights.buildings.retain(|b| !have.contains(&key(b)));
+                lights.trees.clear();
+                lights.buildings.extend(fill_lights(&node, &heights, geos[&n.key], &w, &lights_open));
+            }
+            let t = airbases::units(
+                (node_rect(i, j)[0] + node_rect(i, j)[2]) * 0.5,
+                (node_rect(i, j)[1] + node_rect(i, j)[3]) * 0.5,
+            );
+            let mut bytes = 0;
+            let (nb, nt, nl) = (cell.buildings.len(), cell.trees.len(), lights.buildings.len());
+            if nb + nt > 0 {
+                let data = cell.encode();
+                bytes += data.len() as u64;
+                std::fs::write(out.join(format!("L1/s_{i}_{j}.bin")), data)?;
+            }
+            if nl > 0 {
+                let data = lights.encode();
+                bytes += data.len() as u64;
+                std::fs::write(out.join(format!("lights/L1/s_{i}_{j}.bin")), data)?;
+            }
+            let osm = cell.buildings.iter().filter(|b| b.source == SOURCE_OSM).count();
+            v.push((n.key, in_israel(t), nb, osm, nt, nl, bytes));
+        }
+        let k = done.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+        pr.fraction(0.35 + 0.65 * k as f32 / blocks.len().max(1) as f32);
+        Ok(v)
+    })?;
+    let (mut s, mut light_cells, mut light_buildings) = (Summary::default(), 0, 0);
+    let (mut in_isr, mut outside, mut lit) = (Vec::new(), Vec::new(), Vec::new());
+    for (k, isr, nb, osm, nt, nl, bytes) in results.into_iter().flatten() {
+        if nb + nt > 0 {
+            s.cells += 1;
+            if isr { in_isr.push([k.0, k.1]) } else { outside.push([k.0, k.1]) }
+        }
+        if nl > 0 {
+            light_cells += 1;
+            lit.push([k.0, k.1]);
+        }
+        (s.buildings, s.osm, s.trees, s.bytes) = (s.buildings + nb, s.osm + osm, s.trees + nt, s.bytes + bytes);
+        light_buildings += nl;
+    }
+    let manifest = json!({
+        "name": "scenery theatre",
+        "made_from": made,
+        "kinds": r.kinds.name(),
+        "attribution": [
+            format!("© OpenStreetMap contributors (openstreetmap.org/copyright), Geofabrik extracts of 2026-01-01 ({})",
+                std::iter::once("Israel and Palestine").chain(roads.iter().map(|d| crate::roads::country(d.file))).collect::<Vec<_>>().join(", ")),
+            "Microsoft Global ML Building Footprints",
+            "GHS-BUILT-H R2023A, European Commission, Joint Research Centre (JRC)",
+            "Global Canopy Height 2020, Lang et al., ETH Zürich (EcoVision Lab)",
+        ],
+        "cells": s.cells,
+        "buildings": s.buildings,
+        "trees": s.trees,
+        "light_cells": light_cells,
+        "light_buildings": light_buildings,
+        "israel": in_isr,
+        "outside": outside,
+        "lights": lit,
+    });
+    std::fs::write(&manifest_p, serde_json::to_string(&manifest)? + "\n")?;
+    // The countries' cut extracts (1.8 GB) are not kept: they save about 2 minutes of a run that only new inputs ask.
+    let _ = std::fs::remove_dir_all(&work);
+    log!(
+        pr,
+        "scenery of the theatre: {} cells, {} buildings ({} OpenStreetMap), {} trees; city lights: {} cells, {} buildings; {:.1} MB in {}",
+        s.cells,
+        s.buildings,
+        s.osm,
+        s.trees,
+        light_cells,
+        light_buildings,
+        s.bytes as f64 / 1e6,
         crate::progress::duration(started.elapsed())
     );
     Ok(s)
@@ -1980,6 +2420,55 @@ mod tests {
         assert_eq!(kept, [(SOURCE_OSM, at(0.0, 492.0)[1] as f32), (SOURCE_MS, at(0.0, 532.0)[1] as f32)]);
         let ys: Vec<f32> = c.trees.iter().map(|t| t.y).collect();
         assert_eq!(ys, [at(0.0, 515.0)[1] as f32]);
+    }
+
+    #[test]
+    fn theatre_canopy_parts_and_twins() {
+        let mut block = Canopy::grid([34.00004, 31.99996, 34.01, 32.01], CANOPY_STEP);
+        assert_eq!((block.w, block.h), (100, 101));
+        assert!((block.lon0 - 34.0).abs() < 1e-9 && (block.lat1 - 32.01).abs() < 1e-9);
+        block.v = (0..block.w * block.h).map(|k| (k % 251) as u8).collect();
+        let p = block.part([34.00512, 32.00303, 34.00733, 32.00495]);
+        let (x0, y0) = (51, 50);
+        assert_eq!((p.w, p.h), (23, 20));
+        assert_eq!(p.v[0], block.v[y0 * block.w + x0]);
+        assert_eq!(p.v[p.w * 3 + 7], block.v[(y0 + 3) * block.w + x0 + 7]);
+
+        let mut n = NodeIn { key: KEY, ..NodeIn::default() };
+        let c = [origin()[0] + 500.0, origin()[1] + 500.0];
+        n.osm = vec![square(c, 5.0, SOURCE_OSM), square(c, 5.0, SOURCE_OSM), square(c, 6.0, SOURCE_OSM)];
+        let t = MappedTree { p: c, kind: None, height: 8.0 };
+        n.trees = vec![t.clone(), t.clone(), MappedTree { p: [c[0] + 1.0, c[1]], ..t }];
+        drop_twins(&mut n);
+        assert_eq!((n.osm.len(), n.trees.len()), (2, 2), "one of each pair is kept");
+    }
+
+    #[test]
+    fn light_stand_ins_fill_sparse_town_squares() {
+        // A node with an affine warp (1° = 100 km from its south-west corner) and a 4 × 4 height grid over it: one
+        // town square (12 m), one village square (4 m).
+        let o = origin();
+        let warp = move |lon: f64, lat: f64| [o[0] + (lon - 34.0) * 100_000.0, o[1] + (lat - 32.0) * 100_000.0];
+        let mut v = vec![0.0f32; 16];
+        v[5] = 12.0;
+        v[6] = 4.0;
+        let heights = Heights { geo: [34.0, 32.0, 34.004, 32.004], w: 4, h: 4, v };
+        let g = [34.0, 32.0, 34.004, 32.004];
+        let mut n = NodeIn { key: KEY, ..NodeIn::default() };
+        let fill = fill_lights(&n, &heights, g, &warp, &|_| true);
+        assert_eq!(fill.len(), FILL_PER_CELL, "the town square filled, the village left alone");
+        assert!(fill.iter().all(|b| b.height == 12.0 && b.points.len() == 4));
+        // Its centre (lon 34.0015, lat 32.0025) as engine metres; the stand-ins inside the square.
+        let c = warp(34.0015, 32.0025);
+        assert!(
+            fill.iter()
+                .all(|b| (b.points[0][0] as f64 - c[0]).abs() < 60.0 && (b.points[0][1] as f64 - c[1]).abs() < 60.0)
+        );
+        let mut f = square(c, 5.0, SOURCE_MS);
+        f.geo = [34.0015, 32.0025];
+        n.ms = vec![f; 3];
+        assert_eq!(fill_lights(&n, &heights, g, &warp, &|_| true).len(), FILL_PER_CELL - 3, "up to the count");
+        assert!(fill_lights(&n, &heights, g, &warp, &|_| false).is_empty(), "only on open ground");
     }
 
     #[test]
