@@ -63,8 +63,9 @@ float remap(float v, float a, float b, float c, float d) {
 	return c + (v - a) / (b - a) * (d - c);
 }
 
-// The towns' light under a cloud point: the glow map read 2 km wide (mip 4 of its 125 m squares), g² as the terrain's
-// haze (city_glow.gdshaderinc) times the gain, sodium orange.
+// The towns' light under a cloud point: the glow map at the mip level whose texels are 2 km wide (whatever its squares'
+// size), through four bilinear taps half a texel apart (a soft blur about 4 km wide: no edge at a coast), g² as the
+// terrain's haze (city_glow.gdshaderinc) times the gain, sodium orange.
 vec3 glow_at(vec2 xz) {
 	if (p.glow.x <= 0.0) {
 		return vec3(0.0);
@@ -73,7 +74,11 @@ vec3 glow_at(vec2 xz) {
 	if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) {
 		return vec3(0.0);
 	}
-	float g = textureLod(glow_tex, uv, 4.0).r;
+	vec2 n = vec2(textureSize(glow_tex, 0));
+	float lod = max(round(log2(2000.0 * p.glow_rect.z * n.x)), 0.0);
+	vec2 h = 0.5 * exp2(lod) / n;
+	float g = 0.25 * (textureLod(glow_tex, uv + h, lod).r + textureLod(glow_tex, uv - h, lod).r
+			+ textureLod(glow_tex, uv + vec2(h.x, -h.y), lod).r + textureLod(glow_tex, uv + vec2(-h.x, h.y), lod).r);
 	return vec3(1.0, 0.45, 0.14) * g * g * p.glow.x * p.glow.y;
 }
 
@@ -314,7 +319,7 @@ void shade(ivec2 id, bool turn) {
 			float h = clamp(hf, 0.0, 1.0);
 			vec3 amb = mix(p.amb_bottom.rgb, amb_top * hold, h) * mix(0.55, 1.0, sqrt(h));
 			// The towns' light from below at night (light pollution), strongest on the base.
-			amb += glow_at(x.xz) * (1.0 - 0.7 * h);
+			amb += glow_at(x.xz) * (1.0 - 0.9 * h);
 			float step_tr = exp(-sig * st);
 			float w = tr * (1.0 - step_tr);
 			scat += (sun + amb) * w;

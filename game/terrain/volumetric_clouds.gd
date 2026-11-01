@@ -27,7 +27,7 @@ const NIGHT_MOON := 0.3
 const NIGHT_TOP := 0.4
 const NIGHT_BOTTOM := 0.15
 ## The towns' light on the clouds from below at night (light pollution; as cloud_layer.gd GLOW_GAIN).
-const GLOW_GAIN := 4.0
+const GLOW_GAIN := 0.8
 
 const Weather := preload("res://terrain/weather.gd")
 const CityLights := preload("res://terrain/city_lights.gd")

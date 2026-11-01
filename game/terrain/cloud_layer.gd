@@ -23,7 +23,7 @@ const NIGHT_ATMO := Color(0.045, 0.055, 0.095)
 ## Night lights Detailed at night (city_lights.gd's glow): the towns' light on the layer's base (light pollution;
 ## tuned so a big town's sky glows a dim orange) and, seen from above, the alpha range that opens it into broken
 ## cloud, so the lit towns show through the gaps.
-const GLOW_GAIN := 10.0
+const GLOW_GAIN := 5.0
 const NIGHT_GAPS := Vector2(0.6, 1.0)
 
 const SHADER := """
@@ -113,7 +113,13 @@ void fragment() {
 		vec3 wp = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
 		vec2 g_uv = (wp.xz - city_glow_rect.xy) * city_glow_rect.zw;
 		if (all(greaterThanEqual(g_uv, vec2(0.0))) && all(lessThanEqual(g_uv, vec2(1.0)))) {
-			float g = textureLod(city_glow, g_uv, 4.0).r;
+			// The map at the level whose texels are 2 km wide, four taps half a texel apart: a soft ~4 km blur.
+			vec2 n = vec2(textureSize(city_glow, 0));
+			float lod = max(round(log2(2000.0 * city_glow_rect.z * n.x)), 0.0);
+			vec2 h = 0.5 * exp2(lod) / n;
+			float g = 0.25 * (textureLod(city_glow, g_uv + h, lod).r + textureLod(city_glow, g_uv - h, lod).r
+					+ textureLod(city_glow, g_uv + vec2(h.x, -h.y), lod).r
+					+ textureLod(city_glow, g_uv + vec2(-h.x, h.y), lod).r);
 			ALBEDO += vec3(1.0, 0.45, 0.14) * g * g * city_glow_k * glow_gain;
 		}
 	}

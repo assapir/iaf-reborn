@@ -852,11 +852,15 @@ The cloud layer is a dome of cloud texture plus a flat layer, and a whiteout nea
   At night (the gradient sky) the colour is a neutral (0.045, 0.055, 0.095) in place of the original's (20, 20, 60),
   which the AgX tonemapper turns violet. Original sky: unchanged apart from the mip level 2 floor.
 - **Night with Night lights Detailed** (ours, with the towns' lights of §5.1; deviations.md §2). The towns light the
-  layer from below (light pollution): the glow map of `city_lights.gd` read 2 km wide, g² × its strength × 10
-  (`GLOW_GAIN`), sodium orange, added to the layer's colour. Seen from above, the layer's alpha range is 0.6–1
+  layer from below (light pollution): the glow map of `city_lights.gd` at the mip level whose texels are 2 km wide
+  (level 3 of its 250 m squares), through four bilinear taps half a texel apart (a soft blur about 4 km wide, no edge
+  at a coast), g² × its strength × 5 (`GLOW_GAIN`), sodium orange, added to the layer's colour. Seen from above, the layer's alpha range is 0.6–1
   (`NIGHT_GAPS`): even the overcast Cloud256_5 opens into broken cloud, so the lit towns show through the gaps
   instead of a moonlit grey sheet over them (from 8000 m, showcase scene night_high). Without the towns' lights
   (Night lights Original) the layer is as before.
+  Tried and dropped (2026-11-01): the map read at a fixed mip level 4 (2 km of the 125 m squares) once the squares
+  became 250 m: 4 km texels, the undersides over Beirut strongly orange with a hard edge at the coastline; gains 10
+  (the layer) and 4 / 1.5 (Volumetric, with the night clouds dimmed): peach-orange cloud tops over Gush Dan.
 - **Under the rain's overcast** the layer fades by the overcast's share (`set_fade`, §10.1): it does not show
   through an overcast, and inside the deck not at all.
   Tried and dropped (2026-10-26): plain bilinear at mip 3 (contours at the texel edges); 0.45·d darkening with the
@@ -930,8 +934,9 @@ How it is drawn:
 - **Flat**: the layer is flat, as the terrain is (no Earth curvature): a curved layer let the flat terrain show
   beyond its horizon.
 - **Light pollution** (with Night lights Detailed at night, §5.1): the towns' glow map (`city_lights.gd`, the
-  terrain's sodium haze) read 2 km wide lights the clouds from below, strongest on their bases, sodium orange: the
-  clouds over a big town glow dimly. Seen from above, the fair-weather cumulus leave gaps the towns' lights show
+  terrain's sodium haze), read as the 1998 layer reads it (§2: 2 km texels, a soft 4 km blur) × 0.8 (`GLOW_GAIN`),
+  lights the clouds from below, on their bases fully and on their tops at 10 %, sodium orange: the clouds over a big
+  town glow dimly. Seen from above, the fair-weather cumulus leave gaps the towns' lights show
   through.
 - **Viewports**: each viewport that draws them has its own effect, textures and quad (`attach()`); a quad draws
   only in a 3D view of its effect's size, so another viewport of the same world (a screenshot helper's) shows no
