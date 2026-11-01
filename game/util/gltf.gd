@@ -282,7 +282,7 @@ static func _settings() -> Node:
 
 
 ## Detailed models (ours, Graphics → MORE → Models: Detailed; docs/aircraft-models.md): the original model's
-## file -> our model: in the repo (res://, GPL: tools/f16d/rig.py, the MiG-29 iaf-convert mig29-detailed, §7) or made
+## file -> our model: in the repo (res://, GPL: tools/f16/rig.py, the MiG-29 iaf-convert mig29-detailed, §7) or made
 ## by setup under assets/ (the F-15, §6).
 ## Each model falls back on the original on its own (the F-15 also when setup could not download its sources).
 const DETAILED := {
@@ -292,7 +292,7 @@ const DETAILED := {
 }
 ## The MiG-29's folder: its PNG textures are compressed at the parse, as the stores'.
 const MIG29_DIR := "res://extra/models/mig29/"
-## The F-16I Sufa (Extras "F-16 version" on Sufa; docs/f16i.md §8, tools/f16d/rig.py `sufa`): every F-16's model, with
+## The F-16I Sufa (Extras "F-16 version" on Sufa; docs/f16i.md §8, tools/f16/sufa.py): every F-16's model, with
 ## Models on Original too (the 1998 game has no Sufa).
 const SUFA := "res://extra/models/f16/f16i.glb"
 ## The F-15I Ra'am (Extras "F-15 version" on Ra'am; docs/aircraft-models.md §6.7): every F-15's model, with Models on

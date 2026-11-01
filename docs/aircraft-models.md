@@ -143,7 +143,8 @@ Tried and dropped:
 
 ### 1.3 The F-16I Sufa model
 
-`game/extra/models/f16/f16i.glb` is the same build with the `sufa` argument (docs/f16i.md §8.1 lists what it adds:
+`game/extra/models/f16/f16i.glb` is the same F-16 base with the Sufa layer (`tools/f16/sufa.py`, §2; docs/f16i.md
+§8.1 lists what it adds:
 FlightGear's conformal fuel tanks and P&W nozzle, our nose fairings, and the paint and markings of one real jet,
 F-16I 846 of 201 Squadron: its camouflage, colours, fin art and tail number).
 It keeps every part, hinge, helper and station of the F-16D, so arming, animation and the afterburner work
@@ -153,7 +154,7 @@ unchanged. `util/gltf.gd` `detailed()` returns it for `f16_h.gltf` whenever the 
 | item | value |
 |---|---|
 | triangles | 52 950: the F-16D's plus the CFTs (352 faces), the nozzle (16 × 13 faces), the seven nose fairings and the four tail-box fairings |
-| textures | as the F-16D's; the livery repainted by the script (`sufa_livery`) |
+| textures | as the F-16D's; the livery repainted by the Sufa layer (`sufa.py` `livery`) |
 | file size | 4.0 MB (KTX2) |
 
 The camouflage: on every texel within `SUFA_BODY_X` (1 m) of the centre line (fuselage, CFTs, spine, tail box) the
@@ -164,11 +165,11 @@ over the airframe's world frame (blotches about `BLOTCH_M` = 1.5 m, 1.3 × longe
 of the coordinates), each texel the colour of the strongest, soft over about 2 cm at an edge, the fields shifted
 until each colour covers a third. `texels` finds each texel's place on the jet (where faces share texels, the face
 whose texel size is nearest the livery's usual wins, not a sliver mapped over a large area), so the pattern runs on
-across parts and UV seams. Before it, `sufa_livery` updates the scene, so the moving parts (rudder, flaperons,
+across parts and UV seams. Before it, the Sufa's `livery` updates the scene, so the moving parts (rudder, flaperons,
 stabilators) are where the rig put them. It covers the texels of the livery's camouflage colours on faces looking up
 or sideways, the CFTs' and the spine's own UV islands (`CFT_UV`, `SP_ISLAND`) and the fin's old markings; texels
 between UV islands take the colour round them. The livery's panel lines and rivets stay (each texel times its
-brightness over the local brightest, as `panel_maps` finds the lines). The paint's roughness is `SUFA_MATTE` (0.25)
+brightness over the local brightest, as `panel_maps` finds the lines). The paint's roughness is `MATTE` (0.25)
 above the F-16D's.
 
 Checks: `tests/godot/test_sufa_model.gd`: with Barak the F-16 is the original or the F-16D as before; with Sufa
@@ -236,7 +237,7 @@ version on Barak it stays the original's `f16_bc`.
 - **The cut**: as the original's cockpit model, it ends at the eye. Every triangle wholly ahead of the eye is left
   out, so the nose, the instrument panel and the front of the canopy never show over the cockpit art.
 - **Left out**: the front pilot's body (the crew mesh's surfaces after the first `F16_SEAT_SURFACES`, the ACES II
-  seat's; rig.py joins seat then pilot), the canopy glass (from inside it fogs the whole view; the original hides
+  seat's; tools/f16/base.py `cockpit` joins seat then pilot), the canopy glass (from inside it fogs the whole view; the original hides
   the canopy there too), the gear legs and the open gear doors. The closed doors show.
 - **Kept**: the front seat with its headrest 0.56 m behind the eye, the canopy frame and rails, the rear tub with its
   seat and pilot, the spine, wings, tail and the stores on their stations.
@@ -261,19 +262,33 @@ install (`tools/setup-cli.sh`):
 
 ```sh
 git clone --depth 1 https://github.com/NikolaiVChr/f16.git /tmp/f16
-blender -b --python tools/f16d/rig.py -- /tmp/f16 assets/converted/planes/f16/f16_h.gltf game/extra/models/f16/f16d.glb
+blender -b --python tools/f16/rig.py -- /tmp/f16 assets/converted/planes/f16/f16_h.gltf game/extra/models/f16/f16d.glb barak
+blender -b --python tools/f16/rig.py -- /tmp/f16 assets/converted/planes/f16/f16_h.gltf game/extra/models/f16/f16i.glb sufa
 ```
 
-The F-16I Sufa (§1.3): the same command with `game/extra/models/f16/f16i.glb sufa` at the end.
-
 `F16D_FAST=1` skips the occlusion bake (about 1 minute) for quick geometry tries. `F16D_DEBUG=1` prints every
-object's bounds. The script uses `tools/plane/kit.py` (`import_ac` reads FlightGear's AC3D files) and
+object's bounds. The scripts use `tools/plane/kit.py` (`import_ac` reads FlightGear's AC3D files) and
 `tools/plane/glb_ktx2.py` (the KTX2 pass).
 
-The script:
+The build is the F-16 base plus one variant layer, in `tools/f16/`:
 
-1. imports `f16.ac` (FlightGear's single-seat F-16C) and the GE nozzle, and drops the parts the game draws itself
-   (flames, lights, USAF markings);
+| file | what it holds |
+|---|---|
+| `rig.py` | the entry: loads the base and the layer named by the last argument |
+| `base.py` | the F-16 base: every step below, and the paint tools the layers share (`recolour`, `texels`, `camo_weights`, `skin_bvh`, the FS colours) |
+| `barak.py` | the F-16D Barak layer: the GE F110 nozzle, three spine vents, the Barak's colours (`livery`, constants `BARAK`, `BARAK_Z_CAMO`) |
+| `sufa.py` | the F-16I Sufa layer (§1.3, docs/f16i.md §8.1): FlightGear's CFTs and P&W F100 nozzle, two taller spine vents, the nose and tail-box fairings (`nose_fairings`), 846's paint and markings (`livery`), the matte paint (`MATTE`) |
+
+A layer is a module with `SPINE_VENTS` (the spine's vents), `MATTE` (added to the paint's roughness), `nozzle()`,
+`fg_parts(body)` (its FlightGear parts, added before the two-seat stretch so they stretch with the skin),
+`own_parts(body)` (parts made on the finished airframe) and `livery(albedo, skin)`. Another F-16 variant is another
+such module: copy `barak.py` and change what differs. The two-seat stretch is in the base, so a single-seat
+variant needs it made a layer setting first.
+
+The steps:
+
+1. imports `f16.ac` (FlightGear's single-seat F-16C) and the layer's nozzle and parts (`nozzle`, `fg_parts`), and
+   drops the parts the game draws itself (flames, lights, USAF markings);
 2. makes it two-seat: everything above the canopy sill between the front seat and the fin root is stretched so the
    canopy ends 0.95 m further aft; a second tub, seat and pilot go 0.98 m behind the first; rebuilds the canopy's
    centre bow, takes out the single seater's bulkhead and opens the rear cockpit (`canopy_bow`, §1); adds the
@@ -285,8 +300,9 @@ The script:
    the fuselage and flared into it. Its front is the canopy glass's rear edge, an arch 0.38 m wide whose top is
    0.945 m, so the glass runs on into it. It widens to 0.68 m by 1 m aft of the glass, eases down to 0.878 m and runs
    level from there to its end: 0.40 m wide under the fin, ending in a round cap 0.08 m aft of the nozzle's exit,
-   with a dark floor over the nozzle. Three dark vents sit on each side ahead of the fin (the F-16I: two taller ones
-   and a blister and a fairing on each side of the tail box, docs/f16i.md §8). Before that (`lower_fin`)
+   with a dark floor over the nozzle. The layer's dark vents (`SPINE_VENTS`) sit on each side ahead of the fin: three
+   on the F-16D, two taller ones on the F-16I, whose `own_parts` adds a blister and a fairing on each side of the tail
+   box and the nose fairings (docs/f16i.md §8). Before that (`lower_fin`)
    FlightGear's fin and rudder are stretched down 0.27 m (`FIN_DROP`, `fin_z`; the rudder's hinge with them), their
    tip kept, and its tail root fairing is squashed to meet them: FlightGear's fin root is level with the canopy's
    top, where on the real jet the canopy stands 0.25 m above the fin's root and the spine; its fin tip is right
@@ -305,13 +321,13 @@ The script:
    position. Above each wing it sits on the fixed panel forward of the flaperon, mid-chord, 43 % of the way from the
    fuselage side to the tip rail, 0.53 m across. Under the left wing it mirrors the livery's own roundel under the
    right wing. A ray cast onto the skin finds each position's texels. Photographs: SOURCES.md, change 8;
-9. recolours the livery to the Barak's colours (`barak_livery`, constants `BARAK`, `BARAK_Z_CAMO`; the Sufa has
-   its own, `sufa_livery`): FlightGear's brown, sand and pale green become the tan, sand and grey-green measured on
+9. paints the livery by the layer's `livery`. The Barak's (`barak.py`, constants `BARAK`, `BARAK_Z_CAMO`; the
+   Sufa's in `sufa.py`, §1.3): FlightGear's brown, sand and pale green become the tan, sand and grey-green measured on
    photographs of IAF F-16Ds (§1.2, "The colours against photographs"); its pale green is nearly its grey, so above the strakes (0.15 m) and on faces
    looking up both become the green, and underneath the grey stays FS 36375. The stabilators' tops, grey in the
    livery, get our camouflage pattern (`camo_weights`) in the same colours;
 10. makes the maps: occlusion baked in Cycles, a normal map from the livery's thin dark lines (panel lines, rivets),
-   roughness from the lines and the occlusion;
+   roughness from the lines and the occlusion, plus the layer's `MATTE`;
 11. exports the glb and re-encodes its textures as KTX2.
 
 ## 3. Checks

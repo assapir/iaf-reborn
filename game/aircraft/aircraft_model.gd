@@ -150,7 +150,8 @@ const LDG_DOORS_UP := 0x94
 
 ## The front pilot's eye in the detailed F-16's `pilot` frame (FlightGear's pilot: between the eyes, under the visor).
 const F16_EYE_IN_PILOT := Vector3(0.026, 0.47, 0.28)
-## The detailed F-16's crew mesh (`pilot`, rig.py `cockpit`) is the ACES II seat's surfaces, then the pilot's.
+## The detailed F-16's crew mesh (`pilot`, tools/f16/base.py `cockpit`) is the ACES II seat's surfaces, then the
+## pilot's.
 const F16_SEAT_SURFACES := 39
 ## The canopy frame seen from the seat: FS 36118 gunship grey, matte (ours; FlightGear maps the frame into the livery,
 ## so it would take the camouflage).

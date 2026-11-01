@@ -178,7 +178,7 @@ the F-16D has the cleanest licence.
 
 | Jet (variant needed) | Candidate | Licence (checked) | Notes |
 |---|---|---|---|
-| F-16D (two-seat) | FlightGear F-16 `github.com/NikolaiVChr/f16` | **GPL-2.0-or-later** (`copyright.txt`: "version 2 of the License, or (at your option) any later version", all files) — compatible | **Built** from `Models/f16.ac` (the textured single-seat F-16C with separate moving parts, 2048² UVs, three IAF desert liveries) made two-seat by `tools/f16d/rig.py` ([aircraft-models.md](aircraft-models.md)). `Models/F-16D.ac` is a shared untextured AI model: one mesh with its stores baked in |
+| F-16D (two-seat) | FlightGear F-16 `github.com/NikolaiVChr/f16` | **GPL-2.0-or-later** (`copyright.txt`: "version 2 of the License, or (at your option) any later version", all files) — compatible | **Built** from `Models/f16.ac` (the textured single-seat F-16C with separate moving parts, 2048² UVs, three IAF desert liveries) made two-seat by `tools/f16/base.py` ([aircraft-models.md](aircraft-models.md)). `Models/F-16D.ac` is a shared untextured AI model: one mesh with its stores baked in |
 | F-15C (single) | Zaretto F-15 `github.com/Zaretto/fg-aircraft` (`aircraft/F-15`, also FGAddon `F-15`) | **GPL-2.0-only** (author, issue #211): can't ship in our GPL-3.0-or-later repo; setup can download and convert it locally | external model by Enrique Laso; C and D variants; cockpit with photo textures |
 | F-4E / Kurnass 2000 | FGAddon `McDonnell-F-4-Phantom`; `github.com/Zaretto/F-4X` (GPLv2+, early alpha, an F-4S) | GPLv2+ (F-4X README); FGAddon per file | F-4E differs (gun nose); Kurnass 2000 adds its own avionics bumps |
 | Mirage IIICJ | FGAddon `MirageIII`, `MirageIIIE` | FGAddon policy (check files) | the IIICJ is close to the IIIC |
@@ -326,7 +326,7 @@ MFDs (docs/mfd.md §9) and the Real HUD on it.
   kneeboards, the HUD (`hud.ac`, the dash-34 shape, 0.19 × 0.21 m; `f16_war_hud.ac`, the LANTIRN wide-angle HUD)
   and the JHMCS helmet (`hmcs.ac`).
 - **No rear seat:** the package has no F-16D interior; `F-16D.ac` is a bare shell (two objects). Our
-  `tools/f16d/rig.py` already makes the two-seater for the exterior: it stretches the canopy and places a second,
+  `tools/f16/base.py` already makes the two-seater for the exterior: it stretches the canopy and places a second,
   decimated copy of the front tub, seat and pilot (`cockpit()`).
 - **Canopy frame:** part of the exterior model (`f16.ac`), seen from inside; our rig rebuilds the two-seat centre bow.
 - **Size** (counted from the `.ac` files, `refs − 2` triangles per surface): about 147 k triangles for the whole
@@ -361,9 +361,9 @@ sits in each Sufa cockpit: open.
 | | option | licence | completeness | effort | Iris Xe cost |
 |---|---|---|---|---|---|
 | A | **Sufa 2D panel rendered from the FlightGear pit**: Cycles from the game's eye into the 1920 px panel strip, as `tools/f35i/cockpit3d.py`; the bezels where `[MFD]` puts our live MFDs, a third display through `MiddleActive` (docs/mfd.md §7) | GPL-2.0+ | front seat, HUD frame, consoles in the pan; no rear seat | S–M (≈ 1 week) | none: a 2D panel as today |
-| B | **Real-time 3D front cockpit from FlightGear**: Blender → one glb with KTX2, as `tools/f16d/rig.py`; Block 50 textures | GPL-2.0+ | front seat complete; the canopy frame from our F-16D | L (2–3 weeks; (b) above) | ≈ 60–80 k triangles with the consoles decimated to 30–50 %, ≈ 20–30 MB of textures in VRAM (inferred, not measured) |
+| B | **Real-time 3D front cockpit from FlightGear**: Blender → one glb with KTX2, as `tools/f16/rig.py`; Block 50 textures | GPL-2.0+ | front seat complete; the canopy frame from our F-16D | L (2–3 weeks; (b) above) | ≈ 60–80 k triangles with the consoles decimated to 30–50 %, ≈ 20–30 MB of textures in VRAM (inferred, not measured) |
 | C | **B + Sufa panels (hybrid)**: the third display, colour MFD glass, the Elbit HUD's frame, Sufa labels; our own parts in Blender | GPL-2.0+ and ours | the front seat Sufa-like where photos allow | M on top of B | as B |
-| D | **Rear WSO cockpit**: B's tub copied aft (as `rig.py` does outside), no HUD, its displays, the WSO's controllers (open) | GPL-2.0+ and ours | rear seat | M after B | a second eye point; one cockpit drawn at a time |
+| D | **Rear WSO cockpit**: B's tub copied aft (as `tools/f16/base.py` does outside), no HUD, its displays, the WSO's controllers (open) | GPL-2.0+ and ours | rear seat | M after B | a second eye point; one cockpit drawn at a time |
 | E | **Our own model from photos**, all Blender, as the F-35I | ours | what the photos show; the Sufa panel photos are missing | XL (6+ weeks) | as B |
 | F | **A Sketchfab base** | CC BY | single seat, less detail than FlightGear | M, then C's work anyway | 27–115 k triangles |
 
