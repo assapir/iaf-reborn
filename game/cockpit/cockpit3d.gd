@@ -40,6 +40,9 @@ var _glass_pts := PackedVector3Array()
 ## Per 3D screen: [MFD node, its SubViewport, screen MeshInstance3D, origin, u axis, v axis (screen-local, per UV),
 ## {osb: centre (MFD px)}].
 var _screens := []
+var _sun: DirectionalLight3D  # _lighting
+var _lit_mats := []
+var _lit := Color(-1, -1, -1)  # the fill colour set
 
 
 ## The model of the cockpit `cockpit_dir` (cockpit.gd) drawn in 3D, "" for its 2D panel (the switch off, no model).
@@ -90,6 +93,7 @@ func setup(c: Control, cam: Camera3D, path: String) -> bool:
 			_attach(mfd, screen, n)
 	cockpit.hud_clip = PackedVector2Array()
 	_setup_instruments(n)
+	_setup_light(n)
 	return true
 
 
@@ -111,6 +115,60 @@ func _materials(model: Node3D, path: String) -> void:
 			mat.metallic_specular = 0.25
 			if barak != null and mat.resource_name.contains(BLOCK_SHEET):
 				mat.albedo_texture = barak
+
+
+## Ours, the cockpit's own light. FlightGear's ALS shades its interior with its own lights; ours took only the scene's
+## sky ambient (the sun stays outside the glareshield and the tub), which left the panel dark blue-grey. Each textured
+## material glows by its own texture × a colour, a flat fill (no light: an OmniLight3D at the eye cost 1-2 ms on the
+## Iris Xe): by day the sun's colour; at the cockpit's night (cockpit.night, the 2D panel's darkening: time_of_day.gd
+## cockpit_night) FlightGear's flood (panel-standard.eff lightmap-color) and the panels' backlit labels (its implicit
+## lightmap: the light texels glow in its emit-color).
+const FILL := 0.8
+const FLOOD := Color(0.45, 0.34, 0.18)
+const FLOOD_ENERGY := 0.5
+const BACKLIGHT := Color(0.476, 0.9, 0.161)
+const BACKLIGHT_ENERGY := 0.25
+## The materials left out of the fill (by their texture in the material's name): the tub's floor, walls and pedal area,
+## the air vents, the stick's grip: no panel, and the fill showed the floor's speckle.
+const UNLIT := ["floor", "pedaladj", "base-color", "airvent", "rear-left", "marked-iron", "stick-color", "tranbg"]
+
+
+func _setup_light(model: Node3D) -> void:
+	var lamp_mats := []  # lit by their own lamp (_update_instruments)
+	for key in _lamps:
+		for l in _lamps[key]:
+			lamp_mats.append_array(l[2])
+	for mi: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):
+		for s in mi.mesh.get_surface_count():
+			var mat := mi.get_active_material(s) as BaseMaterial3D  # the AoA tape's own copy too
+			if mat == null or mat.albedo_texture == null or mat in _lit_mats or mat in lamp_mats:
+				continue
+			if UNLIT.any(func(u): return mat.resource_name.contains(u)):
+				continue
+			mat.emission_enabled = true
+			mat.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY
+			mat.emission_texture = mat.albedo_texture
+			mat.emission_energy_multiplier = 1.0
+			_lit_mats.append(mat)
+	var p := get_parent()
+	while p != null and _sun == null:
+		_sun = p.get_node_or_null("Sun") as DirectionalLight3D
+		p = p.get_parent()
+
+
+func _lighting() -> void:
+	var c := Color.BLACK
+	if cockpit.night:
+		c = FLOOD * FLOOD_ENERGY + BACKLIGHT * BACKLIGHT_ENERGY
+	elif _sun != null:
+		c = _sun.light_color * (FILL * _sun.light_energy)
+	c.a = 1.0
+	# Written only when it changed by more than an 8-bit step (the sun's colour moves once a sim second).
+	if maxf(maxf(absf(c.r - _lit.r), absf(c.g - _lit.g)), absf(c.b - _lit.b)) <= 1.0 / 255.0:
+		return
+	_lit = c
+	for mat: BaseMaterial3D in _lit_mats:
+		mat.emission = c
 
 
 ## The MFD node drawn into a SubViewport shown on `screen` (emissive, under the glass's sheen).
@@ -213,6 +271,7 @@ func _process(_delta: float) -> void:
 	if cockpit.view_mode == 0:
 		cockpit.position = cockpit.view_shift  # this frame's (cockpit.gd may have run before the camera moved)
 	cockpit.hud_clip = _glass_outline()
+	_lighting()
 
 
 ## The nose's place on the screen against its place with the head straight ahead (cockpit.view_shift); zero when the

@@ -10,7 +10,7 @@
 #     `lamps`); its `rotate` / `knob` animations on the properties the game drives (NEEDLE_PROPS) made nodes turning
 #     about their hinge, listed in <out>.json with FlightGear's value mapping; its texture scrolls on TEX_PROPS (the
 #     AoA tape) in <out>.json `textures`; the canvas displays the game draws (DISPLAYS) as named nodes;
-#   - in the detailed F-16's frame (tools/f16d/rig.py: FlightGear's model moved SHIFT aft, under a root at the original
+#   - in the detailed F-16's frame (tools/f16/base.py: FlightGear's model moved SHIFT aft, under a root at the original
 #     model's origin), so the game hangs it in the cut cockpit model (own_bc) as is;
 #   - the MFD screens (MFD_L, MFD_R: FlightGear's canvas quads), the HUD combiner glass (HUD_glass) and the 20 OSBs of
 #     each MFD as named nodes; written as one glb with KTX2 textures (tools/plane/glb_ktx2.py, needs `basisu`).
@@ -36,7 +36,7 @@ from mathutils import Matrix, Vector  # noqa: E402
 ARGS = sys.argv[sys.argv.index("--") + 1:]
 FG, ORIG, OUT = ARGS[:3]
 PIN = "ef4f192f06243cf4061c2be794511db0576ac2f9"  # the commit the detailed F-16D is built from (SOURCES.md)
-SHIFT = Vector((0.0, -1.05, 0.0))  # rig.py's: FlightGear's model -> the original's frame (the wing on its wing)
+SHIFT = Vector((0.0, -1.05, 0.0))  # base.py's: FlightGear's model -> the original's frame (the wing on its wing)
 # The sub-models of cockpit.xml left out: the seat and the canopy frame come from the detailed F-16's cut model, the
 # kneeboards and helmet are the pilot's; the B10 stick and the other HUDs are other blocks' (their conditions).
 SKIP = {"chair", "knee1", "knee2", "HMCS-basic", "HMCS-norm", "HUDb", "HUDd"}
@@ -364,6 +364,31 @@ def fix_materials(objs):
                     mat.blend_method = 'CLIP'
 
 
+def hud_wide_top(objs):
+    """The wide-angle HUD's top left out: HUDFrame's bar over the combiner (its faces above the glass, between the
+    side posts) and the lid on it (HUDtop with its screws and tissue). They sit at the eye's height and closed the
+    frame into a loop around the view; the F-16I's combiner plate stands free between its two side posts (the HUDS
+    photo)."""
+    for o in objs:
+        if o.name.split("/", 1)[1] in ("HUDtop", "screws", "tissue"):
+            o.data.clear_geometry()
+    glass = next((o for o in objs if o.name.endswith("/HUDImage2")), None)
+    frame = next((o for o in objs if o.name.endswith("/HUDFrame")), None)
+    if glass is None or frame is None:
+        return
+    vs = [v.co for v in glass.data.vertices]
+    top = max(v.z for v in vs)
+    cx = (min(v.x for v in vs) + max(v.x for v in vs)) / 2
+    half = (max(v.x for v in vs) - min(v.x for v in vs)) / 2 + 0.012  # the posts stand 2 cm outside the glass
+    bm = bmesh.new()
+    bm.from_mesh(frame.data)
+    gone = [f for f in bm.faces if all(v.co.z > top and abs(v.co.x - cx) < half for v in f.verts)]
+    bmesh.ops.delete(bm, geom=gone, context='FACES')
+    bm.to_mesh(frame.data)
+    bm.free()
+    print("hud_wide_top: %d faces left out" % len(gone))
+
+
 def main():
     head = subprocess.run(["git", "-C", FG, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     if head != PIN:
@@ -397,8 +422,17 @@ def main():
     # and metal on the jet (the F-16C panel photo, docs/graphics-research.md §3.8).
     # The wide-angle HUD's box is untextured light grey in f16_war_hud.ac; black on the F-16I (the HUDS photo).
     hud_black = kit.material("hud_black", (0.03, 0.03, 0.032), roughness=0.6)
+    # The combiner plate's 2 cm rim around the image (HUDedge, opaque "hudGlassEdge" in the .ac): glass, its edge a
+    # faint tint as on the photo (a frameless plate), not a black frame.
+    hud_edge = kit.material("hud_edge", (0.325, 0.251, 0.075), roughness=0.1, alpha=0.25)
+    hud_edge.use_backface_culling = False
+    hud_wide_top(b.parts.get("HUDc", []))
     for o in b.parts.get("HUDc", []):
-        if o.name.split("/", 1)[1] not in ("HUDImage2", "HUDImage2.back", "BackGlass"):  # all but the glass
+        part = o.name.split("/", 1)[1]
+        if part == "HUDedge":
+            for i in range(len(o.data.materials)):
+                o.data.materials[i] = hud_edge
+        elif part not in ("HUDImage2", "HUDImage2.back", "BackGlass"):  # all but the glass
             for i in range(len(o.data.materials)):
                 o.data.materials[i] = hud_black
     pedal = kit.material("pedal", (0.07, 0.07, 0.075), roughness=0.7)
