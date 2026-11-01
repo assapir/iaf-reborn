@@ -128,6 +128,13 @@ const V_MAX_NAV: f32 = 300.0; // 0x6134f4
 const V_NO_ETA: f32 = 275.0;
 const C130: u32 = 225;
 const PASS_R: f64 = 1852.0;
+/// Ours, the player's StopPlane flare ([`Landing::flare`]): the sink it asks for is the wheels' height over
+/// `FLARE_TAU` (s) plus `FLARE_SINK` (m/s); `FLARE_KI` (1/s) sums the flight path's error into a correction of
+/// at most `FLARE_I_MAX` (rad) down, 0.03 rad up.
+const FLARE_TAU: f32 = 2.0;
+const FLARE_SINK: f32 = 1.5;
+const FLARE_KI: f32 = 0.5;
+const FLARE_I_MAX: f32 = 0.06;
 
 /// Terrain height (m) at a world point (x, y), supplied by the host.
 pub type Ground<'a> = &'a dyn Fn(f64, f64) -> f32;
@@ -1384,6 +1391,8 @@ struct Landing {
     player: bool,
     /// `Autopilot::align_final`.
     align: bool,
+    /// The player's flare: the flight-path correction (rad) summed from its error ([`Landing::flare`]).
+    flare_i: f32,
 }
 
 /// A LandingCL child (docs/ai.md §8.3).
@@ -2262,6 +2271,7 @@ impl Landing {
             acu: None,
             player,
             align: false,
+            flare_i: 0.0,
         })
     }
 
@@ -2311,6 +2321,11 @@ impl Landing {
         let pos = l.v.pos;
         let pt = self.pts;
         let r = match leg {
+            // World scale Real: CH5's pursuit of P5 is not a line capture on a runway off the axes (CH4 can leave
+            // the jet 700 m off the centreline, and CH5 then flew level over the runway, so the final began
+            // 450 m above the lineup and dived into it); FinalApproach's centreline law takes over at once
+            // (docs/world-scale.md §4.3).
+            Leg::Ch(4, ..) if self.align => Leaf::Done,
             Leg::Ch(i, tol, lim, vt) => {
                 *period = 0.2;
                 let prev = if i > 0 { Some(pt[i - 1]) } else { None };
@@ -2451,9 +2466,16 @@ impl Landing {
             }
             return Leaf::Done;
         }
-        let rolling = v.att.pitch.abs() <= 0.2f32.to_radians()
-            && (v.pos[2] as f32) < v.ground_height + v.gear_clearance.abs() + 5.0;
+        // The player's flare (below) holds a small sink down to the wheels: within 5 m of the runway that path
+        // passes the original's test before the touchdown, so its "rolling" is the wheels on the ground.
+        let rolling = if self.player {
+            v.on_ground
+        } else {
+            v.att.pitch.abs() <= 0.2f32.to_radians()
+                && (v.pos[2] as f32) < v.ground_height + v.gear_clearance.abs() + 5.0
+        };
         if rolling {
+            self.flare_i = 0.0;
             l.out.rudder = Some(0.0);
             l.throttle(0.0);
             let e = wrap(self.rn - v.att.heading);
@@ -2464,11 +2486,25 @@ impl Landing {
             }
         } else {
             l.throttle(0.0);
-            let y = l.pitch(0.0);
+            // The original holds the flight path level (pitch 0): the jet floats at idle until it stalls and drops
+            // onto the runway nose first. The player's autopilot flares onto it instead (docs/autopilot.md §2.3).
+            let t = if self.player { self.flare(v) } else { 0.0 };
+            let y = l.pitch(t);
             let x = l.roll(if self.align { self.align_bank(l) } else { 0.0 });
             l.stick(y, x);
         }
         Leaf::Run
+    }
+
+    /// Ours, the player's flare (docs/autopilot.md §2.3): the flight path that sinks at the wheels' height over
+    /// [`FLARE_TAU`] plus [`FLARE_SINK`]. The pitch law (`5ca010`) holds that path a few degrees shallow at landing
+    /// speeds (its 1 g stick is not the flight model's there), so the error is summed in, once per StopPlane tick
+    /// (0.2 s).
+    fn flare(&mut self, v: &ApView) -> f32 {
+        let h = (v.pos[2] as f32 - v.ground_height - v.gear_clearance.abs()).max(0.0);
+        let want = -((h / FLARE_TAU + FLARE_SINK) / v.speed.max(1.0)).min(1.0).asin();
+        self.flare_i = (self.flare_i + (want - v.att.pitch) * 0.2 * FLARE_KI).clamp(-FLARE_I_MAX, 0.03);
+        want + self.flare_i
     }
 
     /// World scale Real only (docs/world-scale.md §4.3): the bank that holds the centreline through the lineup at

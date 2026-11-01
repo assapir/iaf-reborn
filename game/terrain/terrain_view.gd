@@ -1562,6 +1562,7 @@ func _check_collisions() -> void:
 		return
 	var ghost_fix: bool = Settings.better.get("fix_ghost_collision", false)
 	var hit := false
+	var names: PackedStringArray = []
 	for ent in runtime.entities.values():
 		if ent.player or ent.node == null or not ent.get("collidable", false) or not ent.has("coll_radius"):
 			continue
@@ -1576,9 +1577,11 @@ func _check_collisions() -> void:
 		if rig.position.distance_squared_to(ent.node.position) >= r * r:
 			continue
 		hit = true
+		names.append(String(ent.name))
 		if not ent.shield:
 			runtime.set_damage_level(ent, 5)
 	if hit and not me.shield and not mission_pref("invulnerable"):
+		_crash_report("collision with " + ", ".join(names))
 		runtime.set_damage_level(me, 5)
 
 
@@ -1875,9 +1878,7 @@ func _on_crashed(reason: String) -> void:
 	crashed = true
 	if aircraft != null:
 		aircraft.lights_off()
-	if not _log_st.is_empty():
-		_log_event(_log_st, {"event": "crash", "reason": reason})
-	print("player crashed: ", reason)
+	_crash_report(reason)
 	# The crash is a level-5 destruction of the player's unit (FUN_005bb9f0 -> FUN_004a8ae0(0, 5)):
 	# destroy event, explosion, role rules (after an ejection they were already settled).
 	if runtime != null and not runtime.player_entity().is_empty():
@@ -1886,6 +1887,50 @@ func _on_crashed(reason: String) -> void:
 	_entity_final({"player": true, "klass": 0x1c, "type_code": player.type, "size": 2.5, "node": null})
 	if not ejected:
 		get_tree().create_timer(5.0, false).timeout.connect(func(): _end_flight(false))
+
+
+## The player's crash in the log and the blackbox: the reason with the jet's state at that moment and the settings
+## that change a landing, so one log line from a player tells what hit and how (docs/blackbox.schema.json "crash").
+func _crash_report(reason: String) -> void:
+	var st: Dictionary = flight.state() if flight != null else {}
+	var e := {"event": "crash", "reason": reason}
+	if not st.is_empty():
+		var ground = scene_ground(st.position)
+		e.merge(
+			{
+				"type": int(player.get("type", 0)),
+				"vs_ms": snappedf(st.vs_fpm / 196.85, 0.1),
+				"roll": snappedf(st.roll, 0.1),
+				"aoa": snappedf(st.aoa, 0.1),
+				"on_ground": st.on_ground,
+				"gear": snappedf(st.gear, 0.01),
+				"flaps": snappedf(st.flaps, 0.01),
+				"brakes": st.brakes,
+				"throttle": snappedf(st.throttle, 0.01),
+				"surface": terrain.surface_at(st.position),
+				"slope_nz": snappedf(_ground_normal_z(st.position), 0.001),
+				"ap_mode": autopilot.mode if autopilot != null else 0,
+				"ap_stage": String(flight.ap_stage()),
+				"settings":
+				{
+					"flight_data": Settings.flight_data,
+					"world_scale": Settings.world_scale,
+					"easy_landing": Settings.easy_landing,
+					"f16_variant": Settings.f16_variant,
+					"airbases": Settings.airbases,
+					"scenery": Settings.scenery,
+					"better": Settings.better.keys().filter(func(k): return Settings.better[k]),
+				},
+			}
+		)
+		if ground != null:
+			e["agl_m"] = snappedf(st.position.y - ground, 0.1)
+		e["speed_kt"] = snappedf(st.speed_kt, 0.1)
+		e["pitch"] = snappedf(st.pitch, 0.1)
+	if not _log_st.is_empty():
+		_log_event(_log_st, e.duplicate(true))
+	var bb := ProjectSettings.globalize_path(Settings.blackbox_file) if Settings.blackbox_file != "" else "off"
+	print("player crashed: %s %s (blackbox: %s)" % [reason, JSON.stringify(e), bb])
 
 
 ## Terrain slope under the aircraft: the vertical share of the surface normal (1 = flat), from

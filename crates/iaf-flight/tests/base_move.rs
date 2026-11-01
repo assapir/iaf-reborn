@@ -256,3 +256,60 @@ fn takes_off_into_the_wind_from_the_moved_ramon() {
 fn lands_into_the_wind_at_the_moved_ramon() {
     land("Ramon", 480.0, true);
 }
+
+#[test]
+fn player_312_circuit_at_the_moved_ramat_david() {
+    // 312's demonstration in World scale Real (docs/world-scale.md §4.3): NAV from engage points around the moved
+    // Ramat David (its real heading 266.6°), the circuit, the final and the stop. CH4's tangent search on a runway off
+    // the axes can leave the jet hundreds of metres off the centreline; the original's CH5 then flew level over the
+    // runway and FinalApproach dived into it from 450 m ("the autopilot crashes as the brakes come out").
+    let Some((a, b, ibx, ms, tt)) = setup("David", 0.0, false) else { return };
+    let surf = |x: f64, y: f64| ms.surface([x, y], |x, y| tt.at(x, y));
+    let m = ms.get("David").unwrap().clone();
+    let z = b.lineup[2];
+    let d = b.runway_deg.to_radians() as f64;
+    let (lx, ly) = (b.lineup[0] as f64, b.lineup[1] as f64);
+    let (fx, fy) = (d.sin(), d.cos()); // down the runway
+    let g = Waypoint { x: lx + 5400.0 * fx, y: ly + 5400.0 * fy, z: 1500.0 + z as f64, t: 60.0, action: 7 };
+    let mut crashes = Vec::new();
+    for (back, side, hdg) in
+        [(9800.0, 0.0, 0.0), (9800.0, 1500.0, 0.0), (9800.0, -1500.0, 0.0), (15000.0, 3000.0, 20.0)]
+    {
+        for dt in [1.0 / 60.0, 1.0 / 120.0, 1.0 / 20.0] {
+            let pos = Vec3::new(lx - back * fx + side * fy, ly - back * fy - side * fx, 2000.0 + z as f64);
+            let mut ac = jet(&a, pos, b.runway_deg + hdg, true);
+            let mut c = ac.controls();
+            c.throttle = 0.74;
+            ac.set_controls(c);
+            let mut ap = Autopilot::new(Config::load(&a.join("install")));
+            ap.bases = ibx.clone();
+            ap.align_final = true;
+            ap.route = vec![g];
+            ap.player_mode(&mut ac, 2, 0);
+            let mut stop = None;
+            for _ in 0..(900.0 / dt) as usize {
+                ac.ground_height = z;
+                let p = ac.state().position;
+                ac.ground_flags = Some(surf(p[0], p[1]) as u32);
+                ac.ap_landing = ap.stage().starts_with("landing");
+                let o = ap.step(&mut ac, &|_: f64, _: f64| z);
+                ac.step(dt);
+                let st = ac.state();
+                if st.crashed.is_some() {
+                    crashes.push(format!("{back}/{side}/{hdg} dt {dt:.3}: {:?} in {}", st.crashed, ap.stage()));
+                    break;
+                }
+                if o.ap_key {
+                    stop = Some(st.position);
+                    break;
+                }
+            }
+            let Some(p) = stop else { continue };
+            let q = [p[0] - m.real_c[0], p[1] - m.real_c[1]];
+            let along = q[0] * m.real_d[0] + q[1] * m.real_d[1];
+            println!("{back}/{side}/{hdg} dt {dt:.3}: stopped {along:.0} m along");
+            assert_eq!(surf(p[0], p[1]) & RUNWAY, RUNWAY, "{back}/{side}/{hdg}: stopped on runway ground");
+        }
+    }
+    assert!(crashes.is_empty(), "crashes: {crashes:#?}");
+}
