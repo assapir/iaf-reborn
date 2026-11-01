@@ -1,0 +1,57 @@
+{
+ "source": "ours, tools/f35i/cockpit3d.py --glb",
+ "eye": [
+  0.0,
+  1.15,
+  -5.1
+ ],
+ "night_plain": true,
+ "lamps": {
+  "lamp_master_caution_0": {
+   "key": "master_caution",
+   "hide": false,
+   "colour": [
+    1.0,
+    0.62,
+    0.05
+   ]
+  },
+  "lamp_eng_fire_0": {
+   "key": "eng_fire",
+   "hide": false,
+   "colour": [
+    1.0,
+    0.08,
+    0.04
+   ]
+  },
+  "lamp_gear_transit_0": {
+   "key": "gear_transit",
+   "hide": false,
+   "colour": [
+    1.0,
+    0.1,
+    0.05
+   ]
+  }
+ },
+ "animations": {
+  "gear_handle": [
+   {
+    "prop": "controls/gear/gear-down",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1,
+     0,
+     0
+    ],
+    "factor": 23.45,
+    "offset": -11.725
+   }
+  ]
+ }
+}

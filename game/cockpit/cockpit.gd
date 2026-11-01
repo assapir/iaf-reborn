@@ -596,7 +596,7 @@ func _process(delta: float) -> void:
 	hud.visible = view_mode != 2
 	for m in mfds + [pcd, _pcd_sheen]:
 		if m != null:
-			m.visible = view_mode == 0
+			m.visible = view_mode == 0 and (pcd == null or m not in mfds)  # the PCD's portal nodes keep the pages only
 	_update_compasses()
 	_update_instruments()
 	_update_hud_mask()

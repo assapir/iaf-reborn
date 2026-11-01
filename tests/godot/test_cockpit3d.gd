@@ -1,13 +1,13 @@
-# The F-16's 3D cockpit (Extras "Cockpit": 3D; docs/cockpit.md "3D cockpit", cockpit/cockpit3d.gd). Original:
-# the 2D panel as before (no 3D model, the MFD nodes on the panel, the HUD unmasked, the original's projection and
-# free look). 3D, the Barak and the Sufa: the wide view, zoomed in its true size, and free look down to −60°; the
-# model in the cut cockpit model at the eye (the combiner ahead of the camera, on the nose axis), the MFD nodes drawing
-# the 2D cockpit's pages into SubViewports on the 3D screens, the HUD drawn and masked to the combiner's outline;
-# looking back or an outside view hides the glass's outline; a click on the left MFD's OSB 6 opens its menu; the
-# Barak's panel sheet is the Block 40 one and its HUD the Block 50's, the Sufa's the model's Block 50 sheet and the
+# The 3D cockpits (Extras "Cockpit": 3D; docs/cockpit.md "3D cockpit", cockpit/cockpit3d.gd), the F-16's and the
+# F-35I's. Original: the 2D panel as before (no 3D model, the MFD nodes on the panel, the HUD unmasked, the original's
+# projection and free look). 3D, the Barak and the Sufa: the wide view, zoomed in its true size, and free look down to
+# −60°; the model in the cut cockpit model at the eye (the combiner ahead of the camera, on the nose axis), the MFD
+# nodes drawing the 2D cockpit's pages into SubViewports on the 3D screens, the HUD drawn and masked to the combiner's
+# outline; looking back or an outside view hides the glass's outline; a click on the left MFD's OSB 6 opens its menu;
+# the Barak's panel sheet is the Block 40 one and its HUD the Block 50's, the Sufa's the model's Block 50 sheet and the
 # wide-angle HUD, and the Sufa's MFDs draw the real formats in colour; the lamps light from the cockpit state (the
-# master caution by its indicator, the gear lamps, the AoA indexer), the AoA tape scrolls, the fuel flow drums turn,
-# and the RWR scope, EHSI and DED draw into SubViewports on their screens.
+# master caution by its indicator, the gear lamps, the AoA indexer), the AoA tape scrolls, the fuel flow drums turn, and
+# the RWR scope, EHSI and DED draw into SubViewports on their screens. The F-35I: _f35i.
 extends "res://../tests/godot/base.gd"
 
 
@@ -30,9 +30,93 @@ func run() -> void:
 	await frames(2)
 	for variant in ["barak", "sufa"]:
 		await _three_d(variant, pages_2d)
+	await _f35i()
 	settings().cockpit_3d = "original"
 	settings().f16_variant = "barak"
 	settings().jet_id = -1
+
+
+## The F-35I's (ours, f35i.glb): in its cockpit-view model, the panoramic display ahead and below the eye, drawn
+## into a SubViewport on its glass, the standby display into its own; the helmet HUD unmasked over the whole view;
+## the wide view; a tap on the first portal's header opens its MENU grid; the master caution lamp and the gear
+## handle follow the cockpit; the plain colours take the fill light.
+func _f35i() -> void:
+	settings().f35i_slot = 1
+	settings().cockpit_3d = "3d"
+	var tv = await start_mission(231)
+	tv.views.set_cockpit(tv.views.COCKPIT)
+	await frames(5)
+	var c: Control = tv.cockpit
+	var c3 = tv.cockpit_3d
+	check(c3 != null and c3.get_parent() == tv.own_bc, "F-35I 3D: the cockpit model in the cockpit-view model")
+	if c3 == null:
+		settings().f35i_slot = -1
+		return
+	var screen := c3.find_child("PCD", true, false) as MeshInstance3D
+	# At its real size about the eye: half size in the cockpit-view model drawn at the Present scale (tools/f35i/bc.py).
+	var rel: Vector3 = tv.rig.global_transform.affine_inverse() * screen.global_position
+	check(
+		rel.z < -0.5 and rel.z > -0.8 and absf(rel.x) < 0.02 and rel.y < -0.1 and rel.y > -0.35,
+		"F-35I 3D: the display %.2f m ahead of the eye, %.2f m down" % [-rel.z, -rel.y]
+	)
+	var pcd: Control = c.pcd
+	var vp = pcd.get_parent()
+	check(
+		vp is SubViewport and pcd.screen_px > 0.0 and screen.material_override.emission_texture == vp.get_texture(),
+		"F-35I 3D: the panoramic display draws into its glass's SubViewport (%s)" % [vp.size if vp is Viewport else vp]
+	)
+	check(c.mfds.all(func(m): return not m.visible), "F-35I 3D: the portals' MFD nodes hidden (they keep the pages)")
+	var esis := c3.find_child("ESIS", true, false) as MeshInstance3D
+	check(
+		c3.esis != null and esis.material_override.emission_texture == c3.esis.get_parent().get_texture(),
+		"F-35I 3D: the standby display draws into its own SubViewport"
+	)
+	check(c3._glass == null and c.hud.visible, "F-35I 3D: no combiner, the helmet HUD drawn")
+	check((c.hud_clip as PackedVector2Array).size() == 4, "F-35I 3D: the HUD over the whole view")
+	var w: float = c.get_viewport_rect().size.x
+	var fov := rad_to_deg(2.0 * atan(w / 2.0 / c.focal_length()))
+	check(absf(fov - c.VIEW_3D_WIDE_DEG) < 0.1, "F-35I 3D: the wide view by default (%.1f°)" % fov)
+	# A tap on portal 0's header (pcd.gd _draw_portal: its MENU grid), through the ray onto the glass.
+	var head: Vector2 = pcd.portals()[0].position + Vector2(15.0, pcd.HEAD_H / 2.0) * pcd.screen_px
+	var uv: Vector2 = head / Vector2(vp.size)
+	var e: Array = c3._pcd
+	var at: Vector2 = tv.camera.unproject_position(screen.global_transform * (e[3] + e[4] * uv.x + e[5] * uv.y))
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	click.position = at
+	pcd.menu_open[0] = false
+	c3._unhandled_input(click)
+	check(pcd.menu_open[0], "F-35I 3D: a tap on the first portal's header opens its MENU grid")
+	pcd.menu_open[0] = false
+	c.indicators[0] = true
+	await frames(2)
+	var lamp := c3.find_child("lamp_master_caution_0", true, false) as MeshInstance3D
+	var lm := lamp.get_surface_override_material(0) as BaseMaterial3D if lamp != null else null
+	check(lm != null and lm.emission_energy_multiplier > 0.0, "F-35I 3D: master caution lit by its indicator")
+	c.indicators[0] = false
+	var handle := c3.find_child("gear_handle", true, false) as Node3D
+	var turned := []
+	for down in [false, true]:
+		c.gear_handle_down = down
+		c3._process(0.0)
+		turned.append(handle.transform.basis.get_euler().x)
+	check(turned[0] < -0.1 and turned[1] > 0.1, "F-35I 3D: the gear handle up and down (%s rad)" % [turned])
+	# The plain colours: unlit by day, at night by the night colour (the labels light).
+	var day: bool = c3._plain_mats.size() > 5
+	for m: BaseMaterial3D in c3._plain_mats:
+		day = day and m.emission == Color.BLACK
+	var night: bool = c.night
+	c.night = true
+	c3._lighting()
+	var lit := true
+	for m: BaseMaterial3D in c3._plain_mats:
+		lit = lit and m.emission.get_luminance() > 0.0
+	c.night = night
+	check(day and lit, "F-35I 3D: the plain colours dark by day, lit at night (%d materials)" % c3._plain_mats.size())
+	tv.queue_free()
+	await frames(2)
+	settings().f35i_slot = -1
 
 
 func _three_d(variant: String, pages_2d: Array) -> void:
