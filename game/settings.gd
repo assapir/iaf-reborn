@@ -302,6 +302,7 @@ var cd_launcher := false
 ## (reversed, as on macOS trackpads). The wheel scrolls a list or text by its scroll arrows' step.
 var wheel_scroll := "regular"
 var _pan_rest := 0.0  # the trackpad pan not yet turned into a step
+var _airframes := {}  # airframe_def's: id -> the resolved definition
 ## Better cockpit (ours, Extras page): false = the original cockpit; true = the BETTER_COCKPIT items whose own flag
 ## (cockpit_items: id -> on) is on.
 var better_cockpit := false
@@ -729,6 +730,29 @@ func real_weapons() -> bool:
 ## True when an aircraft of bdb type `type_code` is an F-16I Sufa (Extras "F-16" on Sufa, docs/f16i.md).
 func sufa(type_code: int) -> bool:
 	return type_code == 100 and f16_variant == "sufa"
+
+
+## Ours: the aircraft definition (game/extra/planes/<id>/airframe.json, docs/adding-a-plane.md "Modern planes") a jet
+## of bdb type `type_code` flies as with the Extras switches; {} for a 1998 jet without one (its tables decide).
+## Shared and read-only.
+func airframe(type_code: int) -> Dictionary:
+	return airframe_def(airframe_id(type_code))
+
+
+## The definition id a jet of bdb type `type_code` flies as (the adapter, IafAirframe.id_for), "" for none.
+func airframe_id(type_code: int) -> String:
+	return ClassDB.class_call_static("IafAirframe", "id_for", type_code, f16_variant, f15_variant)
+
+
+## The resolved definition `id` (IafAirframe.definition: its base merged in), {} for none; read once.
+func airframe_def(id: String) -> Dictionary:
+	if id == "":
+		return {}
+	if not _airframes.has(id):
+		var d: Dictionary = ClassDB.class_call_static("IafAirframe", "definition", id)
+		d.make_read_only()
+		_airframes[id] = d
+	return _airframes[id]
 
 
 ## The F-16's real MFD formats (docs/mfd.md §9): "colour" on the Sufa (always), "green" on the Barak with MFDs on

@@ -1037,6 +1037,9 @@ mod tests {
         assert_eq!(r.ranges().get(Mode::Tws).map(|t| (t.nm, t.index)), Some((60.0, 5)));
         assert_eq!(r.ranges().get(Mode::Stt).map(|t| t.index), Some(5));
         assert_eq!(Radar::new(1, None).ranges().get(Mode::Lrs).map(|t| t.index), Some(4), "the originals at 40 NM");
+        // The F-35I's aircraft definition names this row (radar.gd setup).
+        let def = iaf_flight::airframe::get("f35i").and_then(|a| a["radar"]["row"].as_u64());
+        assert_eq!(def, Some(F35I as u64));
     }
 
     #[test]

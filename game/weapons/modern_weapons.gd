@@ -132,18 +132,19 @@ const RECORDS := [
 ## IR missiles as the AIM-9L, the JDAMs on 3, 4, 6, 7 (the IAF's F-16s), the GBU-39s on 3 / 7. The F-15 (110): the
 ## AIM-9X two to a wing pylon as its AIM-9L, the GBU-31 on the wing pylons and the centreline as its MK-84. The F-35I
 ## (1000, docs/f35i.md §3.1): the AIM-9X on the outboard pylons A / I, the JDAMs in the bays C / G and on the heavy
-## pylons B / H, four GBU-39s in each bay.
+## pylons B / H, four GBU-39s in each bay. A jet with an aircraft definition loads its weapons.loads ({"<record id>":
+## [count, stations]}) instead of a column here, always with its weapons.modern "always".
 const LOADS := {
-	1001: {"sufa": [1, "ABCGHI"], 100: [1, "ABCGHI"], 110: [2, "AI"], 1000: [1, "AI"]},
+	1001: {"sufa": [1, "ABCGHI"], 100: [1, "ABCGHI"], 110: [2, "AI"]},
 	1002: {"sufa": [1, "ABCGHI"], 100: [1, "ABCGHI"]},
-	1003: {"sufa": [1, "CDFG"], 100: [1, "CDFG"], 110: [1, "BEH"], 1000: [1, "BCGH"]},
+	1003: {"sufa": [1, "CDFG"], 100: [1, "CDFG"], 110: [1, "BEH"]},
 	1004: {"sufa": [1, "CDFG"]},
-	1005: {"sufa": [1, "CDFG"], 1000: [1, "BCGH"]},
+	1005: {"sufa": [1, "CDFG"]},
 	1006: {"sufa": [1, "CDFG"], 100: [1, "CDFG"]},
-	1007: {"sufa": [4, "CDFG"], 100: [4, "CG"], 1000: [4, "CG"]},
+	1007: {"sufa": [4, "CDFG"], 100: [4, "CG"]},
 }
-## The jets that have their modern weapons whatever the switch: the Sufa and the F-35I.
-const ALWAYS := ["sufa", 1000]
+## The jets that have their modern weapons whatever the switch: the Sufa.
+const ALWAYS := ["sufa"]
 ## The AIM-9X and Python 5 only with Weapon data on Real (the user, 2026-10-29): high off-boresight missiles are a real-
 ## world addition, so the original weapon set keeps the original's IR missiles.
 const REAL_ONLY := [1001, 1002]
@@ -209,11 +210,13 @@ static func _missile(db: RefCounted, w: Dictionary, spec: Dictionary) -> void:
 static func loads(type: int) -> Array:
 	var settings: Node = Engine.get_main_loop().root.get_node("Settings")
 	var jet: Variant = "sufa" if settings.sufa(type) else type
+	var w: Dictionary = settings.airframe(type).get("weapons", {})
+	var own = w.get("loads")  # the aircraft definition's, else LOADS' column
 	var out := []
-	if not jet in ALWAYS and not settings.modern_weapons:
+	if not jet in ALWAYS and w.get("modern", "") != "always" and not settings.modern_weapons:
 		return out
 	for id in LOADS:
-		var l = LOADS[id].get(jet)
+		var l = LOADS[id].get(jet) if own == null else own.get(str(id))
 		if l == null or (id in REAL_ONLY and not settings.real_weapons()):
 			continue
 		var raw := PackedByteArray()

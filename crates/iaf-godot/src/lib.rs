@@ -2,6 +2,7 @@
 
 use godot::prelude::*;
 
+mod airframe;
 mod autorun;
 mod bases;
 mod bombs;

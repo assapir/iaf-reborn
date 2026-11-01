@@ -77,6 +77,12 @@ impl IafRealHud {
         Jet::of_cockpit(&dir.to_string()).real_view_px_per_deg(f).unwrap_or(0.0)
     }
 
+    /// True when the cockpit `dir`'s display is its helmet, with no glass (the F-35's: `Jet::fov_deg` None).
+    #[func]
+    fn helmet_only(dir: GString) -> bool {
+        Jet::of_cockpit(&dir.to_string()).fov_deg().is_none()
+    }
+
     #[func]
     fn reset_max_g(&mut self) {
         self.hud.reset_max_g();

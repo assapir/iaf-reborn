@@ -1514,12 +1514,15 @@ func _draw_extras_tab(delta: Vector2) -> void:
 
 ## Ours: the jet a Jet list id flies instead of the original's: the F-35I in the slot it replaces
 ## (Settings.f35i_slot), else the F-16I Sufa for the F-16 (Extras "F-16 version", docs/f16i.md); {} for none.
-## {title (the button), row (the list row's title, as the originals' "אף 16 / ברק"), desc (English, through _t)}.
+## {title (the button), row (the list row's title, as the originals' "אף 16 / ברק"), desc (English, through _t)}: the
+## aircraft definition's jet_list.
 func _jet_swap(id: int) -> Dictionary:
 	if id < 0:
 		return {}
-	if id == int(Settings.f35i_slot):
-		return {"title": "אדיר" if _he() else "F-35I", "row": "אף 35I / אדיר" if _he() else "F-35I", "desc": F35I_DESC}
+	var jl: Dictionary = Settings.airframe(PlayerAircraft.jet_type(id)).get("jet_list", {})
+	if not jl.is_empty():
+		var title: String = jl.get("title_he", jl.title) if _he() else jl.title
+		return {"title": title, "row": jl.get("row_he", title) if _he() else title, "desc": jl.desc}
 	if id == JET_IDS.f16 and Settings.sufa(100):
 		return {"title": "F-16I", "row": "אף 16I / סופה" if _he() else "F-16I", "desc": SUFA_DESC}
 	return {}
@@ -1600,8 +1603,7 @@ func _label_width(lf: Font, text: String, fs: int, sq: float, gap: float) -> flo
 	return w
 
 
-## The F-35I's Jet list description (Hebrew in strings_he.json).
-const F35I_DESC := "The most advanced stealth fighter in the world, able to strike unseen deep behind enemy lines."
+## The Sufa's Jet list description (Hebrew in strings_he.json; an aircraft definition's in its jet_list.desc).
 const SUFA_DESC := "Israel's long-range F-16, built to strike deep into enemy territory and fight its way back."
 
 ## The baked label's area inside a Jet list button (button-relative, panel px).

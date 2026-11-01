@@ -62,10 +62,14 @@ pub enum Jet {
 }
 
 impl Jet {
-    /// The display of a cockpit directory: each jet's own; f16 (and anything else) the F-16's.
+    /// The display of a cockpit directory: the `hud` of the aircraft definition with that `cockpit`
+    /// (`iaf_flight::airframe`), else each 1998 jet's own; f16 (and anything else) the F-16's.
     pub fn of_cockpit(dir: &str) -> Self {
         let d = dir.to_ascii_lowercase();
-        if d.contains("f35") {
+        let def = iaf_flight::airframe::all()
+            .find(|(_, a)| a["cockpit"].as_str().is_some_and(|c| c.eq_ignore_ascii_case(d.trim_end_matches('/'))))
+            .and_then(|(_, a)| a["hud"].as_str());
+        if def == Some("f35") {
             Jet::F35
         } else if d.ends_with("f15") {
             Jet::F15

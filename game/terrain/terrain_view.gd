@@ -381,7 +381,7 @@ func _ready() -> void:
 		trails.gpu = effects.gpu
 	player_damage = PlayerDamage.new()
 	player_damage.host = self
-	player_damage.betty = player.type in sounds.BETTY_TYPES
+	player_damage.betty = FlightSounds.has_betty(player.type)
 	player_damage.twin = player.twin
 	cockpit.damage_flags = player_damage.flags
 	cockpit.waypoints = route
@@ -2836,7 +2836,7 @@ func _take_over(target: Dictionary, old: Dictionary) -> void:
 	add_child(sounds)
 	player_damage = PlayerDamage.new()
 	player_damage.host = self
-	player_damage.betty = player.type in sounds.BETTY_TYPES
+	player_damage.betty = FlightSounds.has_betty(player.type)
 	player_damage.twin = player.twin
 	for i in mini(systems.size(), player_damage.flags.size()):
 		player_damage.flags[i] = systems[i]

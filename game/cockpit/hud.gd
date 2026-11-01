@@ -88,7 +88,7 @@ func _process(_delta: float) -> void:
 			cockpit != null
 			and not cockpit.three_d()
 			and Settings.hud_style == "real"
-			and not String(cockpit.cockpit_dir).contains("f35")
+			and not ClassDB.class_call_static("IafRealHud", "helmet_only", cockpit.cockpit_dir)
 			and not cockpit.dash()
 		)
 		cut.clip_contents = real
@@ -522,10 +522,10 @@ func _draw_range_scale(f: Rect2, w: float) -> void:
 func real_hud() -> Dictionary:
 	if Settings.hud_style != "real" or camera == null:
 		return {}
-	var f35 := String(cockpit.cockpit_dir).contains("f35")
-	# Looking aside: the F-35's helmet and the DASH of the F-16 / F-15 (docs/real-hud.md "DASH helmet"); the other
-	# jets' helmet display stays the original's.
-	var helmet := f35 or real_dash(String(cockpit.cockpit_dir))
+	# Looking aside: the helmet-only display (the F-35's: IafRealHud.helmet_only, its aircraft definition's hud) and the
+	# DASH of the F-16 / F-15 (docs/real-hud.md "DASH helmet"); the other jets' helmet display stays the original's.
+	var dir := String(cockpit.cockpit_dir)
+	var helmet: bool = ClassDB.class_call_static("IafRealHud", "helmet_only", dir) or real_dash(dir)
 	if cockpit.dash() and not helmet:
 		# The MiG-23ML has no helmet sight: looking aside its sight (on the glass) pans away and nothing is drawn.
 		if String(cockpit.cockpit_dir).get_file() == "mig23":
