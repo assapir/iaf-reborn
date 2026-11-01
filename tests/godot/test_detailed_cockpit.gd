@@ -11,7 +11,7 @@ const Gltf := preload("res://util/gltf.gd")
 func run() -> void:
 	await require_data()
 	var aircraft_model: GDScript = load("res://aircraft/aircraft_model.gd")
-	for path in [Gltf.DETAILED["f16_h.gltf"], Gltf.SUFA]:
+	for path in [Gltf.DETAILED["f16_h.gltf"], settings().airframe_def("f16i").model]:
 		var tag := String(path).get_file()
 		var whole: Node3D = Gltf.instance(Gltf.model(path))
 		var crew := whole.find_child("pilot", true, false) as MeshInstance3D

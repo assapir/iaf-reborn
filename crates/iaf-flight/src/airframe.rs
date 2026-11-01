@@ -10,7 +10,11 @@ use std::sync::LazyLock;
 use serde_json::Value;
 
 /// Every definition: its id (the folder) and the file's text.
-const FILES: &[(&str, &str)] = &[("f35i", include_str!("../../../game/extra/planes/f35i/airframe.json"))];
+const FILES: &[(&str, &str)] = &[
+    ("f16", include_str!("../../../game/extra/planes/f16/airframe.json")),
+    ("f16i", include_str!("../../../game/extra/planes/f16i/airframe.json")),
+    ("f35i", include_str!("../../../game/extra/planes/f35i/airframe.json")),
+];
 
 /// The Extras switches that pick a 1998 jet's variant (Settings `f16_variant`, `f15_variant`).
 #[derive(Clone, Copy, Debug, Default)]
@@ -20,9 +24,10 @@ pub struct Switches<'a> {
 }
 
 /// The adapter: the definition a jet of bdb type `type_code` flies as with the Extras switches `s`, None for a 1998
-/// jet without one (its tables decide).
-pub fn id_for(type_code: i64, _s: Switches) -> Option<&'static str> {
+/// jet without one (its tables decide). The F-16 (100): its base `f16` (the Barak), the F-16I `f16i` on Sufa.
+pub fn id_for(type_code: i64, s: Switches) -> Option<&'static str> {
     match type_code {
+        100 => Some(if s.f16 == "sufa" { "f16i" } else { "f16" }),
         1000 => Some("f35i"),
         _ => None,
     }
@@ -41,6 +46,16 @@ pub fn all() -> impl Iterator<Item = (&'static str, &'static Value)> {
 /// The resolved definition of a jet (the adapter, then [`get`]).
 pub fn of_type(type_code: i64, s: Switches) -> Option<&'static Value> {
     get(id_for(type_code, s)?)
+}
+
+/// The model drawn in place of the 1998 model file `file` (e.g. "f16_h.gltf"): the `model` of the definition the
+/// switches `s` pick for the jet whose `original_model` it is; None to keep the original's.
+pub fn model_for(file: &str, s: Switches) -> Option<&'static str> {
+    [100, 110, 1000]
+        .into_iter()
+        .filter_map(|code| of_type(code, s))
+        .find(|a| a["original_model"].as_str() == Some(file))?["model"]
+        .as_str()
 }
 
 static RESOLVED: LazyLock<BTreeMap<&'static str, Value>> = LazyLock::new(|| {
@@ -118,10 +133,43 @@ mod tests {
     fn the_adapter() {
         let off = Switches { f16: "barak", f15: "baz" };
         assert_eq!(id_for(1000, off), Some("f35i"));
+        assert_eq!(id_for(100, off), Some("f16"));
+        assert_eq!(id_for(100, Switches { f16: "sufa", f15: "baz" }), Some("f16i"));
+        assert_eq!(id_for(100, Switches { f16: "junk", f15: "" }), Some("f16"));
         // Every other 1998 jet has no definition: its tables decide.
         for code in [120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230] {
             assert_eq!(id_for(code, off), None, "{code}");
         }
         assert_eq!(of_type(1000, off).and_then(|a| a["radar"]["km"].as_f64()), Some(148.0));
+    }
+
+    /// With every switch off a 1998 jet's definition holds no value its type-code tables decide, so the game reads
+    /// exactly the 1998 values; only what the original has no table for (the model file it is, the 3D cockpit's HUD).
+    #[test]
+    fn switches_off_give_the_1998_values() {
+        let off = Switches { f16: "barak", f15: "baz" };
+        // Every 1998 type code: those without a definition (None) keep their tables.
+        for code in [100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230] {
+            let Some(a) = of_type(code, off).and_then(Value::as_object) else { continue };
+            let keys: Vec<&str> = a.keys().map(String::as_str).collect();
+            assert!(
+                keys.iter().all(|k| ["name", "doc", "notes", "original_model", "hud_3d"].contains(k)),
+                "{code}: {keys:?}"
+            );
+        }
+        assert_eq!(of_type(100, off).unwrap()["hud_3d"], "HUD_std");
+    }
+
+    #[test]
+    fn the_sufa_is_the_f16_base_with_its_own_values() {
+        let s = of_type(100, Switches { f16: "sufa", f15: "baz" }).unwrap();
+        assert_eq!(s["original_model"], "f16_h.gltf", "from the base");
+        assert_eq!((s["fm"].as_str(), s["hud_3d"].as_str()), (Some("F-16I"), Some("HUD_wide")));
+        assert_eq!(s["radar"]["km"].as_f64(), Some(104.0));
+        assert!(s.get("base").is_none());
+        let (sufa, barak) = (Switches { f16: "sufa", f15: "baz" }, Switches { f16: "barak", f15: "baz" });
+        assert_eq!(model_for("f16_h.gltf", sufa), Some("res://extra/models/f16/f16i.glb"));
+        assert_eq!(model_for("f16_h.gltf", barak), None);
+        assert_eq!(model_for("f15_h.gltf", sufa), None);
     }
 }

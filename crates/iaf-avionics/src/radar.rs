@@ -1028,6 +1028,8 @@ mod tests {
         assert_eq!(r.ranges().get(Mode::Tws).map(|t| t.nm), Some(45.0));
         assert_eq!(r.ranges().get(Mode::Stt).map(|t| t.nm), Some(58.0));
         assert_eq!(r.ranges().get(Mode::Map).map(|m| (m.max, m.nm)), Some((4, 40.0)));
+        // The Sufa's aircraft definition names this row (radar.gd setup).
+        assert_eq!(iaf_flight::airframe::get("f16i").and_then(|a| a["radar"]["row"].as_u64()), Some(F16I as u64));
     }
 
     #[test]

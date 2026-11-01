@@ -1789,7 +1789,8 @@ func _start_flight() -> void:
 			"airborne": start_airborne,
 			"engine_on": start_engine_on,
 			"real_data": real_data,
-			"sufa": Settings.f16_variant == "sufa"
+			"f16_variant": Settings.f16_variant,
+			"f15_variant": Settings.f15_variant
 		}
 	)
 	if err != "":
@@ -1927,7 +1928,7 @@ func _spawn_player() -> void:
 	var three_d: bool = c3d_model != "" and player.cockpit_dir.get_file() == "f16"
 	if three_d and hd == "":
 		hd = Gltf.DETAILED["f16_h.gltf"]
-	if hd in [Gltf.DETAILED["f16_h.gltf"], Gltf.SUFA]:
+	if hd != "" and hd in [Gltf.DETAILED["f16_h.gltf"], Gltf.variant_model("f16_h.gltf")]:
 		var cut: Array = AircraftModel.detailed_cockpit(hd, three_d)
 		own_bc = cut[0]
 		own_bc.scale = aircraft.scale
@@ -3573,8 +3574,8 @@ func _modes_text() -> String:
 		t.append("CKPT+")
 	if Settings.better.values().has(true) or _all_better:
 		t.append("PHYS+")
-	if Settings.f16_variant == "sufa":
-		t.append("SUFA")
+	if Settings.airframe(100).has("info_tag"):  # the F-16 version's (the Sufa's "SUFA")
+		t.append(Settings.airframe(100).info_tag)
 	if Settings.modern_weapons:
 		t.append("MODWPN")
 	return "ORIGINAL" if t.is_empty() else " ".join(t)

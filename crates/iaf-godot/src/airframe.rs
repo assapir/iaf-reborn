@@ -19,6 +19,20 @@ impl IafAirframe {
         airframe::id_for(type_code, Switches { f16: &f16, f15: &f15 }).unwrap_or_default().into()
     }
 
+    /// The model drawn in place of the 1998 model file `file` with the Extras switches (`airframe::model_for`: a
+    /// res:// path or one under assets/), "" to keep the original's.
+    #[func]
+    fn model_for(file: GString, f16_variant: GString, f15_variant: GString) -> GString {
+        let (f16, f15) = (f16_variant.to_string(), f15_variant.to_string());
+        airframe::model_for(&file.to_string(), Switches { f16: &f16, f15: &f15 }).unwrap_or_default().into()
+    }
+
+    /// Every definition's own model (what `model_for` can give), whatever the switches.
+    #[func]
+    fn models() -> PackedStringArray {
+        airframe::all().filter_map(|(_, a)| a["model"].as_str()).map(GString::from).collect()
+    }
+
     /// The resolved definition `id` (its base merged in); {} for an unknown id.
     #[func]
     fn definition(id: GString) -> VarDictionary {

@@ -23,7 +23,7 @@ func run() -> void:
 	settings().f16_variant = "sufa"
 	for m in ["original", "detailed"]:
 		settings().models = m
-		check(Gltf.detailed(F16) == Gltf.SUFA, "Sufa, Models %s: f16i.glb" % m)
+		check(Gltf.detailed(F16) == "res://extra/models/f16/f16i.glb", "Sufa, Models %s: f16i.glb" % m)
 	settings().models = "original"
 	check(Gltf.detailed("controllableplanes/f15/f15_h.gltf") == "", "Sufa leaves the F-15 alone")
 	var jet: Dictionary = mw.jet(100)

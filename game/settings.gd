@@ -303,6 +303,8 @@ var cd_launcher := false
 var wheel_scroll := "regular"
 var _pan_rest := 0.0  # the trackpad pan not yet turned into a step
 var _airframes := {}  # airframe_def's: id -> the resolved definition
+var _airframe_ids := {}  # airframe_id's: type code -> id, for the switches _airframe_ids_for
+var _airframe_ids_for := []
 ## Better cockpit (ours, Extras page): false = the original cockpit; true = the BETTER_COCKPIT items whose own flag
 ## (cockpit_items: id -> on) is on.
 var better_cockpit := false
@@ -727,9 +729,10 @@ func real_weapons() -> bool:
 	return weapon_data == "real"
 
 
-## True when an aircraft of bdb type `type_code` is an F-16I Sufa (Extras "F-16" on Sufa, docs/f16i.md).
+## True when an aircraft of bdb type `type_code` flies as the F-16I Sufa's definition (Extras "F-16" on Sufa,
+## docs/f16i.md).
 func sufa(type_code: int) -> bool:
-	return type_code == 100 and f16_variant == "sufa"
+	return airframe_id(type_code) == "f16i"
 
 
 ## Ours: the aircraft definition (game/extra/planes/<id>/airframe.json, docs/adding-a-plane.md "Modern planes") a jet
@@ -741,7 +744,14 @@ func airframe(type_code: int) -> Dictionary:
 
 ## The definition id a jet of bdb type `type_code` flies as (the adapter, IafAirframe.id_for), "" for none.
 func airframe_id(type_code: int) -> String:
-	return ClassDB.class_call_static("IafAirframe", "id_for", type_code, f16_variant, f15_variant)
+	if _airframe_ids_for != [f16_variant, f15_variant]:
+		_airframe_ids.clear()
+		_airframe_ids_for = [f16_variant, f15_variant]
+	if not _airframe_ids.has(type_code):
+		_airframe_ids[type_code] = ClassDB.class_call_static(
+			"IafAirframe", "id_for", type_code, f16_variant, f15_variant
+		)
+	return _airframe_ids[type_code]
 
 
 ## The resolved definition `id` (IafAirframe.definition: its base merged in), {} for none; read once.
@@ -755,13 +765,15 @@ func airframe_def(id: String) -> Dictionary:
 	return _airframes[id]
 
 
-## The F-16's real MFD formats (docs/mfd.md §9): "colour" on the Sufa (always), "green" on the Barak with MFDs on
-## Real, "" the original pages. `cockpit` is the cockpit's directory name (the F-16's is "f16").
+## The F-16's real MFD formats (docs/mfd.md §9): its aircraft definition's mfd ("colour" on the Sufa, always), "green"
+## on the Barak with MFDs on Real, "" the original pages. `cockpit` is the cockpit's directory name (the F-16's is
+## "f16").
 func real_mfd(cockpit: String) -> String:
 	if cockpit != "f16":
 		return ""
-	if sufa(100):
-		return "colour"
+	var own: String = airframe(100).get("mfd", "")
+	if own != "":
+		return own
 	return "green" if real_mfds == "real" else ""
 
 

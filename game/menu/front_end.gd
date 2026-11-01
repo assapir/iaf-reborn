@@ -1523,8 +1523,6 @@ func _jet_swap(id: int) -> Dictionary:
 	if not jl.is_empty():
 		var title: String = jl.get("title_he", jl.title) if _he() else jl.title
 		return {"title": title, "row": jl.get("row_he", title) if _he() else title, "desc": jl.desc}
-	if id == JET_IDS.f16 and Settings.sufa(100):
-		return {"title": "F-16I", "row": "אף 16I / סופה" if _he() else "F-16I", "desc": SUFA_DESC}
 	return {}
 
 
@@ -1602,9 +1600,6 @@ func _label_width(lf: Font, text: String, fs: int, sq: float, gap: float) -> flo
 		w += lf.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 	return w
 
-
-## The Sufa's Jet list description (Hebrew in strings_he.json; an aircraft definition's in its jet_list.desc).
-const SUFA_DESC := "Israel's long-range F-16, built to strike deep into enemy territory and fight its way back."
 
 ## The baked label's area inside a Jet list button (button-relative, panel px).
 const JET_LABEL := Rect2(14, 9, 81, 21)

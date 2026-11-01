@@ -58,7 +58,8 @@ const MISSILES := {
 }
 ## Radar detection range (LRS / STT) of a fighter-size target in km by bdb object type code; jets not listed keep
 ## the original table (docs/radar.md). Sources and confidence in docs/real-weapons.md §1.3. Ours: an aircraft
-## definition's radar.km (the F-35I's AN/APG-81).
+## definition's radar.km (the F-35I's AN/APG-81; the F-16I's APG-68(V)9, 30 % more air-to-air range than the F-16's
+## APG-68: 104 km, Lockheed Martin, docs/f16i.md §2).
 const RADAR_KM := {
 	100: 80.0,  # F-16C (Barak): AN/APG-68
 	110: 135.0,  # F-15: AN/APG-63, 110-160 km tracking a small fighter (U)
@@ -68,8 +69,6 @@ const RADAR_KM := {
 	130: 14.8,  # Kfir C7: EL/M-2001B ranging radar (no search mode), 14.8 km (U, one database)
 	190: 27.0,  # Mirage IIICJ: Cyrano I bis, ~27 km air-to-air lock (U, one game wiki)
 }
-## The F-16I's APG-68(V)9 against the F-16's APG-68: 30 % more air-to-air range (Lockheed Martin, docs/f16i.md §2).
-const SUFA_RADAR := 1.3
 ## The radar's NM (0x603390).
 const RADAR_NM_M := 1854.0
 ## bdb gun name -> {rpm (all barrels / guns of one jet), muzzle m/s}.
@@ -169,9 +168,8 @@ static func jet_gun(w: Dictionary, type_code: int) -> Dictionary:
 	return out
 
 
-## The real radar detection range (NM of the radar, LRS / STT) of a jet, or 0 = keep the original. The F-16I Sufa's
-## APG-68(V)9 sees 30 % further than the F-16's (docs/f16i.md §2): 104 km.
+## The real radar detection range (NM of the radar, LRS / STT) of a jet, or 0 = keep the original: its aircraft
+## definition's radar.km, else RADAR_KM.
 static func radar_nm(type_code: int) -> float:
-	var km := float(RADAR_KM.get(type_code, 0.0)) * (SUFA_RADAR if Settings.sufa(type_code) else 1.0)
-	km = float(Settings.airframe(type_code).get("radar", {}).get("km", km))
+	var km := float(Settings.airframe(type_code).get("radar", {}).get("km", RADAR_KM.get(type_code, 0.0)))
 	return km * 1000.0 / RADAR_NM_M
