@@ -7,9 +7,9 @@
  ],
  "day_fill": 0.9,
  "night_flood": [
-  0.25,
-  0.27,
-  0.3
+  0.4,
+  0.344,
+  0.264
  ],
  "night_atlas": 2.6,
  "night_glow": {
@@ -62,8 +62,8 @@
      0,
      0
     ],
-    "factor": 23.45,
-    "offset": -11.725
+    "factor": 19.275,
+    "offset": -9.638
    }
   ],
   "side_stick": [

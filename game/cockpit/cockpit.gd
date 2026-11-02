@@ -701,7 +701,7 @@ func _update_instruments() -> void:
 
 ## The panel's screen shift for the head angles (original pixels): pan = 1920 / AzimutAngleDeg (rad) · yaw,
 ## vpan = (PanelHeight + [HUD] CenterY) / ElevationAngleDeg (rad) · pitch, vpan ≥ 480 − MainOffsetY −
-## PanelHeight; the panel moves left by pan and down by vpan.
+## PanelHeight (and ≥ −MainOffsetY · (1 − panel_shift), ours); the panel moves left by pan and down by vpan.
 func head_pan() -> Vector2:
 	if head == Vector2.ZERO:
 		return Vector2.ZERO
@@ -710,9 +710,12 @@ func head_pan() -> Vector2:
 	var el := deg_to_rad(float(p.get("ElevationAngleDeg", 15.0)))
 	var ph := float(p.get("PanelHeight", 352))
 	var pan := roundf(1920.0 / az * head.x)
+	var main_y := float(p.get("MainOffsetY", 190))
+	# Ours: the panel raised (panel_shift) rises less with the head, so its bottom row never leaves the screen's bottom
+	# (the world showed under the art); with panel_shift 0 the original's bound alone.
 	var vpan := maxf(
 		roundf((ph + float(layout.get("HUD", {}).get("CenterY", 0))) / el * head.y),
-		480.0 - float(p.get("MainOffsetY", 190)) - ph
+		maxf(480.0 - main_y - ph, -main_y * (1.0 - panel_shift))
 	)
 	return Vector2(-pan, vpan)
 

@@ -373,6 +373,10 @@ TgenAPI (`DAT_0069942c`, 16-bit renderer vtable `0x5fd900`) draws the world into
   * pan(+0x564) = round(20·S+0x1094) + round(1920 / AzimutAngleDeg(rad) · S+0x108c).
   * vpan(+0x568) = round(20·S+0x1098) + round((PanelHeight + [HUD] CenterY) / ElevationAngleDeg(rad) · S+0x1090),
     with vpan ≥ 480 − MainOffsetY − PanelHeight.
+  * Ours: with the panel raised (V, `cockpit.gd` `panel_shift`, 0.8 by default) also vpan ≥ −MainOffsetY ·
+    (1 − panel_shift), so looking down the panel's bottom row stays on the screen's bottom. Until 2026-11-02 the
+    raised panel rose with the head by the original's bound as well and the world showed under it: 128 rows in the
+    F-35I, 24 in the F-16. With the panel lowered (0) the original's bound alone holds.
   * `FUN_005228a0` reads `[PANEL] AzimutAngleDeg` (default 90) and `ElevationAngleDeg` (default 15). Only the F-15 sets
     them: 100 / 50.
   * S+0x108c/0x1090 are the head yaw / pitch; S+0x1094/0x1098 are the view pan (`FUN_0057ff60`, `FUN_00580420`, stored
@@ -741,7 +745,8 @@ occlusion, 1.8 MB; built by
     day as a powered display under its anti-reflective coating; at roughness 0.25 it mirrored the sky and read navy.
   * `ESIS`: the standby display, a second `pcd.gd` (layer 2) in its own 283 × 249 px SubViewport.
   * The lamps (`f35i.json` `lamps`): master caution, engine fire and the gear handle's red light in transit, by the
-    rules of the F-16's above. The gear handle (`gear_handle`) turns ±11.7° about a pivot behind the panel, up or
+    rules of the F-16's above. The gear light means a leg not locked where the handle points (inferred, as the F-16's
+    handle light; no F-35 source found); off, it is dark red paint. The gear handle (`gear_handle`) turns ±9.6° about a pivot behind the panel, up or
     down with `gear_handle_down` (the 2D art's three frames, LIGHT009, become one moving part).
   * The controls (`f35i.json` `animations`, read as the F-16's): `side_stick` tilts 3° about its boot with
     `controls` stick_x / stick_y (`controls/flight/aileron` / `elevator`); `throttle` slides along its rail (a
@@ -754,9 +759,10 @@ occlusion, 1.8 MB; built by
     `day_fill` besides the scene's light, so the panel reads as light and neutral as its render; the scene's light
     alone left it dark and sky-blue (2026-11-02). The F-16's fill (0.8, the plain colours alone) had made them twice
     as light as the render (2026-11-01). At night each glows by its colour × `night_flood` (the render's
-    floodlights; the atlas × `night_atlas` more) and the labels by `night_glow` (their green backlight); the F-16's
+    warm white floodlights, `FLOOD_RGB` × 0.4; the atlas × `night_atlas` more; until 2026-11-02 a faint blue 0.25–0.3
+    that left the panel nearly black) and the labels by `night_glow` (their green backlight); the F-16's
     night colour × each colour, tried first, turned the whole panel olive (2026-11-01).
-  * 42.7 k triangles, 6 materials in one mesh plus the named parts, 3.5 MB.
+  * 43.5 k triangles, 6 materials in one mesh plus the named parts, 3.0 MB.
 * **Fill light, tried and dropped (2026-11-01):** a shadowless OmniLight3D 25 cm above the eye (2.5 m range, the
   sun's colour by day, the flood colour at night) shaded the panel well, but cost 1.9 ms GPU at 150 m and 1.2 ms at
   1,500 m on the Iris Xe (the cockpit fills half the screen); the texture-times-colour fill replaced it.

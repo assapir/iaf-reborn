@@ -176,19 +176,19 @@
   "Active": 1.0,
   "Left": 0.0,
   "Top": 0.0,
-  "Right": 64.0,
-  "Bottom": 55.25,
-  "OffsetX": 1204.0,
-  "OffsetY": 286.0
+  "Right": 62.0,
+  "Bottom": 57.0,
+  "OffsetX": 1136.0,
+  "OffsetY": 312.0
  },
  "LIGHT001": {
   "Active": 1.0,
-  "Left": 64.0,
+  "Left": 62.0,
   "Top": 0.0,
-  "Right": 132.0,
-  "Bottom": 55.25,
-  "OffsetX": 1265.0,
-  "OffsetY": 286.0,
+  "Right": 127.0,
+  "Bottom": 57.0,
+  "OffsetX": 1198.0,
+  "OffsetY": 312.0,
   "Blink": 1.0
  },
  "LIGHT002": {
@@ -214,12 +214,12 @@
  },
  "LIGHT009": {
   "Active": 1.0,
-  "Left": 132.0,
+  "Left": 127.0,
   "Top": 0.0,
-  "Right": 233.0,
-  "Bottom": 130.0,
-  "OffsetX": 575.0,
-  "OffsetY": 270.0,
+  "Right": 217.0,
+  "Bottom": 112.0,
+  "OffsetX": 678.0,
+  "OffsetY": 288.0,
   "AnimFrames": 3.0,
   "AnimTime": 600.0
  },

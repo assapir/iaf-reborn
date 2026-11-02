@@ -43,6 +43,7 @@ PANEL_HEIGHT = int(os.environ.get("PANEL_HEIGHT", "400"))
 CENTRE_ROW = float(os.environ.get("CENTRE_ROW", "-116"))
 MASK_OFFSET_Y2 = 0.0
 PREVIEW = bool(os.environ.get("PREVIEW"))
+FLOOD_W = float(os.environ.get("FLOOD_W", "0.8"))  # the panel flood's power (W; each console's 0.15 of it)
 SAMPLES = int(os.environ.get("SAMPLES", "256"))
 
 TILT = 18.0  # the panel face leans back (deg)
@@ -54,9 +55,10 @@ GLASS_D = 0.008  # the glass's height above the face
 # windows of 2.5 x 2.5 in under those (docs/f35i.md §4).
 BAR_IN = 0.5
 ESIS = (0.075, -0.392, 0.084, 0.066)  # the standby display's centre x, z and size (m)
-GEAR_X, GEAR_Z = -0.305, -0.385  # the gear handle's slot
-LAMPS = {"LIGHT000": (0.262, -0.372), "LIGHT001": (0.322, -0.372)}  # master caution, engine fire: centre x, z
+GEAR_X, GEAR_Z = -0.215, -0.395  # the gear handle's slot (left of the pedestal, under the display's left half)
+LAMPS = {"LIGHT000": (0.195, -0.394), "LIGHT001": (0.255, -0.394)}  # master caution, engine fire: centre x, z
 LAMP_W = 0.040
+GEAR_TRAVEL = 0.018  # the knob's travel either side of the slot's centre (m)
 STICK = (0.38, 0.44)  # the side-stick's x, y on the right console
 
 
@@ -88,11 +90,12 @@ class Mats:
         self.frame = m("canopy_frame", (0.055, 0.057, 0.062), roughness=0.5, wear=0.6)
         self.seal = m("canopy_seal", (0.010, 0.010, 0.011), roughness=0.85)
         self.knob = m("knob", (0.014, 0.014, 0.015), roughness=0.45, wear=0.3)
-        self.alu = m("fastener", (0.50, 0.51, 0.53), metallic=1.0, roughness=0.38)
+        # Screw heads and bolts: dark blackened steel (a light grey glowed white under the 3D cockpit's day fill).
+        self.alu = m("fastener", (0.045, 0.046, 0.050), metallic=1.0, roughness=0.32)
         self.grip = m("grip", (0.028, 0.028, 0.030), roughness=0.75, grain=0.2, wear=0.4)
         self.yellow = m("stripe_yellow", (0.80, 0.55, 0.02), roughness=0.5)
         self.wheel = m("gear_knob", (0.020, 0.020, 0.022), roughness=0.7, grain=0.3)
-        self.hub = m("gear_hub", (0.55, 0.56, 0.56), roughness=0.4, wear=0.3)
+        self.hub = m("gear_hub", (0.30, 0.31, 0.31), roughness=0.4, wear=0.3)
         self.label = m("label", (0.62, 0.63, 0.62), roughness=0.6, emission=((0.30, 1.0, 0.42), 0.0))
         self.lens = {}  # lamp -> its lens (off: a dark tinted lens; lit: emission)
         for key, rgb in (("LIGHT000", (1.0, 0.62, 0.05)), ("LIGHT001", (1.0, 0.08, 0.04)), ("gear", (1.0, 0.1, 0.05))):
@@ -111,9 +114,9 @@ def face_box(name, x, z, w, h, depth, mat, d0=0.0, bevel=0.003):
     return kit.box(name, on_face(x, z, d0 + (depth - d0) / 2), (w, depth - d0, h), mat, rot=FACE_ROT, bevel=bevel)
 
 
-def label(text, x, z, size, depth, mats):
+def label(text, x, z, size, depth, mats, off=0.0006):
     return kit.text_decal("lbl_" + text.replace(" ", "_"), text, mats.label, on_face(x, z, depth + 0.05), INTO_FACE,
-                          size, (1, 0, 0), off=0.0006)
+                          size, (1, 0, 0), off=off)
 
 
 def knob(name, x, z, depth, mats, r=0.008):
@@ -128,10 +131,23 @@ def rocker(name, x, z, depth, mats):
         face_box(f"{name}_{dz}", x, z + dz, 0.004, 0.0012, depth + 0.0095, mats.label, d0=depth + 0.009, bevel=0)
 
 
+def screw_head(name, centre, r, rot, m):
+    """A domed screw head (a flattened half sphere, its rim on the surface): shaded, where a flat disc read as a dot."""
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=10, ring_count=6, radius=r, location=centre,
+                                         rotation=[math.radians(a) for a in rot])
+    o = bpy.context.active_object
+    o.name = name
+    o.scale = (1.0, 1.0, 0.45)
+    bpy.ops.object.transform_apply(scale=True)
+    bpy.ops.object.shade_smooth()
+    o.data.materials.append(m)
+    return o
+
+
 def screws(name, x, z, w, h, depth, mats, r=0.0022):
     for i, (dx, dz) in enumerate(((-1, -1), (1, -1), (-1, 1), (1, 1))):
-        kit.cyl(f"{name}_scr{i}", on_face(x + dx * (w / 2 - 0.007), z + dz * (h / 2 - 0.007), depth + 0.0005), r,
-                0.0012, mats.alu, rot=KNOB_ROT, verts=12)
+        screw_head(f"{name}_scr{i}", on_face(x + dx * (w / 2 - 0.007), z + dz * (h / 2 - 0.007), depth), r,
+                   KNOB_ROT, mats.alu)
 
 
 def spline(pts, n):
@@ -179,7 +195,7 @@ def build(mats, rail_3d=False):
     kit.sweep("glareshield", mats.rubber, lip, path, bevel=0.003)
     # The cheeks: rounded blocks down each side of the display (the cowl's sides in the mock-up photo).
     for s in (-1, 1):
-        face_box(f"cheek{s}", s * 0.322, -0.232, 0.090, 0.235, 0.040, mats.rubber, bevel=0.022)
+        face_box(f"cheek{s}", s * 0.322, -0.232, 0.064, 0.235, 0.032, mats.rubber, bevel=0.018)
 
     # Under the display: the centre pedestal with the display brightness panel (left) and the standby display.
     face_box("pedestal", 0, -0.405, 0.30, 0.09, 0.012, mats.panel, bevel=0.005)
@@ -201,29 +217,32 @@ def build(mats, rail_3d=False):
                      0.006, 0.009, 0.027, mats.knob, d0=0.024, bevel=0.0012)
     screws("esis", ex, ez, ew + 0.022, eh + 0.020, 0.024, mats, r=0.0018)
 
-    # Left of the pedestal: the landing gear handle's slot (the lever is gear_handle()), the emergency jettison button.
-    face_box("gear_panel", GEAR_X, GEAR_Z, 0.075, 0.085, 0.016, mats.bezel, bevel=0.004)
-    face_box("gear_slot", GEAR_X, GEAR_Z, 0.010, 0.060, 0.0165, mats.seal, d0=0.015, bevel=0.001)
-    screws("gear", GEAR_X, GEAR_Z, 0.075, 0.085, 0.016, mats)
-    label("LDG GEAR", GEAR_X, GEAR_Z + 0.050, 0.0065, 0.016, mats)
-    label("UP", GEAR_X + 0.022, GEAR_Z + 0.025, 0.0055, 0.016, mats)
-    label("DN", GEAR_X + 0.022, GEAR_Z - 0.025, 0.0055, 0.016, mats)
-    jx, jz = GEAR_X - 0.065, -0.372
-    face_box("jett_panel", jx, jz, 0.045, 0.045, 0.012, mats.bezel, bevel=0.003)
-    cyl("jett_ring", on_face(jx, jz, 0.014), 0.014, 0.004, mats.yellow, rot=KNOB_ROT, verts=32)
-    cyl("jett_btn", on_face(jx, jz, 0.019), 0.010, 0.008, mats.lens["LIGHT001"], rot=KNOB_ROT, verts=32)
-    label("EMER JETT", jx, jz - 0.028, 0.0045, 0.012, mats)
+    # Left of the pedestal: the landing gear handle's slot (the lever is gear_handle()), the emergency jettison button
+    # outboard of it; both inside the consoles' line of sight and under the display's bottom rim.
+    face_box("gear_panel", GEAR_X, GEAR_Z, 0.075, 0.075, 0.016, mats.bezel, bevel=0.004)
+    face_box("gear_slot", GEAR_X, GEAR_Z, 0.010, 2 * GEAR_TRAVEL + 0.016, 0.0165, mats.seal, d0=0.015, bevel=0.001)
+    screws("gear", GEAR_X, GEAR_Z, 0.075, 0.075, 0.016, mats)
+    label("LDG GEAR", GEAR_X, GEAR_Z + 0.0315, 0.0060, 0.016, mats)
+    label("UP", GEAR_X + 0.022, GEAR_Z + GEAR_TRAVEL, 0.0055, 0.016, mats)
+    label("DN", GEAR_X + 0.022, GEAR_Z - GEAR_TRAVEL, 0.0055, 0.016, mats)
+    jx, jz = GEAR_X - 0.060, GEAR_Z + 0.018
+    face_box("jett_panel", jx, jz, 0.040, 0.040, 0.012, mats.bezel, bevel=0.003)
+    cyl("jett_ring", on_face(jx, jz + 0.003, 0.014), 0.012, 0.004, mats.yellow, rot=KNOB_ROT, verts=32)
+    cyl("jett_btn", on_face(jx, jz + 0.003, 0.019), 0.0085, 0.008, mats.lens["LIGHT001"], rot=KNOB_ROT, verts=32)
+    label("EMER JETT", jx, jz - 0.0145, 0.0040, 0.012, mats)
 
     # Right of the pedestal: the master caution and engine fire push-lights (our lamps LIGHT000 / LIGHT001).
-    face_box("lamp_panel", 0.292, -0.378, 0.118, 0.062, 0.012, mats.bezel, bevel=0.003)
-    screws("lamp", 0.292, -0.378, 0.118, 0.062, 0.012, mats)
+    lx, lz = (LAMPS["LIGHT000"][0] + LAMPS["LIGHT001"][0]) / 2, LAMPS["LIGHT000"][1] - 0.006
+    face_box("lamp_panel", lx, lz, 0.118, 0.062, 0.012, mats.bezel, bevel=0.003)
+    screws("lamp", lx, lz, 0.118, 0.062, 0.012, mats)
     for key, (x, z) in LAMPS.items():
         face_box(f"{key}_case", x, z, LAMP_W + 0.006, LAMP_W * 0.7 + 0.006, 0.018, mats.knob, d0=0.012, bevel=0.002)
         face_box(f"{key}_lens", x, z, LAMP_W, LAMP_W * 0.7, 0.0195, mats.lens[key], d0=0.017, bevel=0.0015)
-    label("MASTER", LAMPS["LIGHT000"][0], -0.366, 0.0050, 0.0196, mats)
-    label("CAUTION", LAMPS["LIGHT000"][0], -0.376, 0.0050, 0.0196, mats)
-    label("ENG", LAMPS["LIGHT001"][0], -0.366, 0.0055, 0.0196, mats)
-    label("FIRE", LAMPS["LIGHT001"][0], -0.377, 0.0055, 0.0196, mats)
+    for key, top, bottom, size in (("LIGHT000", "MASTER", "CAUTION", 0.0050), ("LIGHT001", "ENG", "FIRE", 0.0055)):
+        x, z = LAMPS[key]
+        # Lifted 1.5 mm off the lens: at 0.6 mm the 3D cockpit's depth buffer hid them in the lens.
+        label(top, x, z + 0.006, size, 0.0196, mats, off=0.0015)
+        label(bottom, x, z - 0.0045, size, 0.0196, mats, off=0.0015)
 
     # The canopy's frame along each side: a heavy rounded rail on the sill, bolted, its black seal on top, curving in
     # to the glareshield's ends (the one-piece canopy has no bow in front; its rear arch is behind the head).
@@ -236,8 +255,7 @@ def build(mats, rail_3d=False):
         kit.sweep(f"canopy_seal{s}", mats.seal, kit.rounded_rect(0.030, 0.014, 0.005),
                   [(x - s * 0.012, y, z + 0.034) for x, y, z in rail])
         for i, p in enumerate(rail[2:-6:3]):
-            cyl(f"rail_bolt{s}_{i}", (p[0] - s * 0.043, p[1], p[2] + 0.008), 0.0035, 0.004, mats.alu,
-                rot=(0, 90, 0), verts=12)
+            screw_head(f"rail_bolt{s}_{i}", (p[0] - s * 0.0425, p[1], p[2] + 0.008), 0.0035, (0, -s * 90, 0), mats.alu)
         box(f"console{s}", (s * 0.39, 0.10, -0.47), (0.17, 0.95, 0.10), mats.panel, bevel=0.012)
         # The wall under the rail, in steps following it down to the tub (its wall from -0.52 m).
         for i, (y0, y1) in enumerate(zip(np.arange(-0.55, 0.85, 0.1), np.arange(-0.45, 0.95, 0.1))):
@@ -266,16 +284,21 @@ def build(mats, rail_3d=False):
     cyl("stick_hat", (sx, sy - 0.005, -0.262), 0.006, 0.010, mats.knob, rot=(0, 0, 0))
 
 
+# The night floodlights' colour: warm white (incandescent floods), as the panel's flood in the F-16's 3D cockpit.
+FLOOD_RGB = (1.0, 0.86, 0.66)
+
+
 def floods():
     """The night floodlights: a strip under the glareshield's lip lighting the panel, and one over each console."""
     out = []
-    for name, loc, rot, size, watts in (("flood_panel", (0, 0.665, -0.14 - PANEL_DROP), (-60, 0, 0), (0.55, 0.02), 0.25),
-                                        ("flood_l", (-0.43, 0.30, -0.25), (0, -40, 0), (0.05, 0.4), 0.15),
-                                        ("flood_r", (0.43, 0.30, -0.25), (0, 40, 0), (0.05, 0.4), 0.15)):
+    for name, loc, rot, size, watts in (("flood_panel", (0, 0.665, -0.14 - PANEL_DROP), (-60, 0, 0), (0.55, 0.02),
+                                         FLOOD_W),
+                                        ("flood_l", (-0.43, 0.30, -0.25), (0, -40, 0), (0.05, 0.4), FLOOD_W * 0.15),
+                                        ("flood_r", (0.43, 0.30, -0.25), (0, 40, 0), (0.05, 0.4), FLOOD_W * 0.15)):
         light = bpy.data.lights.new(name, 'AREA')
         light.shape = 'RECTANGLE'
         light.size, light.size_y = size
-        light.color = (0.85, 0.92, 1.0)
+        light.color = FLOOD_RGB
         o = bpy.data.objects.new(name, light)
         o.location = loc
         o.rotation_euler = [math.radians(a) for a in rot]
@@ -300,7 +323,7 @@ def gear_handle(mats):
 
 def set_gear(parts, frac):
     """Handle travel: 0 up (top of the slot) .. 1 down."""
-    dz = 0.022 * (1 - 2 * frac)
+    dz = GEAR_TRAVEL * (1 - 2 * frac)
     for o, depth in zip(parts, (0.030, 0.046, 0.0515, 0.0530)):
         o.location = on_face(GEAR_X, GEAR_Z + dz, depth)
 
@@ -344,7 +367,7 @@ def lamp_frames(cam, mats, gear):
              [lambda key=key: mats.lamp(key, False), lambda key=key: mats.lamp(key, True)])
             for key, (x, z) in LAMPS.items()]
     # The gear handle: up / in transit (its lamp lit) / down, over the slot's full travel.
-    jobs.append(("LIGHT009", px_rect(cam, GEAR_X, GEAR_Z, 0.05, 0.085, 0.058, pad=3),
+    jobs.append(("LIGHT009", px_rect(cam, GEAR_X, GEAR_Z, 0.05, 0.075, 0.058, pad=3),
                  [lambda: (set_gear(gear, 0.0), mats.lamp("gear", False)),
                   lambda: (set_gear(gear, 0.5), mats.lamp("gear", True)),
                   lambda: (set_gear(gear, 1.0), mats.lamp("gear", False))]))
@@ -412,10 +435,10 @@ ARCH_Y, ARCH_TOP = -0.75, 0.21
 # modelled (until 2026-11-02, after the 2D cockpit's original layout): its glareshield 18 deg under the eye, below the
 # airframe's nose crest (13 deg) as f35i.gltf's own coaming (20 deg), so the nose shows over it.
 PANEL_DROP = 0.10
-# The gear handle turns about a pivot GEAR_PIVOT m behind the face through the slot's travel (set_gear's 22 mm either
-# side of its centre at the knob).
+# The gear handle turns about a pivot GEAR_PIVOT m behind the face through the slot's travel (set_gear's GEAR_TRAVEL
+# either side of its centre at the knob).
 GEAR_PIVOT = 0.06
-GEAR_DEG = math.degrees(math.atan2(0.022, 0.046 + GEAR_PIVOT))
+GEAR_DEG = math.degrees(math.atan2(GEAR_TRAVEL, 0.046 + GEAR_PIVOT))
 # The side-stick tilts STICK_DEG at full deflection about its boot's top (the real stick barely moves: fractions of an
 # inch, docs/f35i.md §4.5; the angle inferred). The throttle slides along its rail (a linear track): its arm at idle
 # THROTTLE_AFT m behind the render's place (military power), past the afterburner detent (0.75) THROTTLE_AB m ahead
@@ -426,6 +449,10 @@ THROTTLE_AFT, THROTTLE_AB = 0.18, 0.04
 # By day each colour glows by itself × the sun's × DAY_FILL (cockpit3d.gd), so the panel reads as light and neutral as
 # the panel render (lit by its whole sky; the game's sky ambient alone left it dark and blue).
 DAY_FILL = 0.9
+# At night each colour glows by itself × FLOOD_RGB × NIGHT_FLOOD (cockpit3d.gd): the floodlights' warm white, as light
+# as the night render's panel under them, dim (until 2026-11-02 a faint blue 0.25-0.3 that left the panel nearly black;
+# × 0.75 lit it as light as by day).
+NIGHT_FLOOD = float(os.environ.get("NIGHT_FLOOD", "0.4"))
 # At night the atlas's flood × NIGHT_ATLAS: its texels at ATLAS_GAIN under a 1 / ATLAS_GAIN factor came out darker than
 # the same paint as a plain colour (the colours multiply in sRGB, cockpit3d.gd), measured against the night render.
 NIGHT_ATLAS = 2.6
@@ -624,7 +651,8 @@ def export_glb(out, eye_g):
     # and the labels'
     # night_glow (their backlight, Mats.night).
     meta = {"source": "ours, tools/f35i/cockpit3d.py --glb", "eye": [round(v, 5) for v in eye_g],
-            "day_fill": DAY_FILL, "night_flood": [0.25, 0.27, 0.3], "night_atlas": NIGHT_ATLAS,
+            "day_fill": DAY_FILL, "night_flood": [round(c * NIGHT_FLOOD, 3) for c in FLOOD_RGB],
+            "night_atlas": NIGHT_ATLAS,
             "night_glow": {"label": [0.18, 0.6, 0.25]},
             "lamps": {"lamp_master_caution_0": {"key": "master_caution", "hide": False, "colour": lens("LIGHT000")},
                       "lamp_eng_fire_0": {"key": "eng_fire", "hide": False, "colour": lens("LIGHT001")},

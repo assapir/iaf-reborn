@@ -102,6 +102,7 @@ func _cockpit_scene(name: String, s: Array) -> void:
 		pos.y = (float(g) if g != null else 0.0) + s[4]
 		var fwd := Vector3(sin(deg_to_rad(hdg)), 0, -cos(deg_to_rad(hdg)))
 		tv.gear_down = false
+		tv.gear_legs = [0, 0, 0]  # up and locked: legs left down read as in transit (the gear lamps)
 		tv.flight.start(
 			settings().assets_dir().path_join("install"),
 			tv.player.fm_section,
