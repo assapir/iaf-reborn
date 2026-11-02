@@ -1,0 +1,34 @@
+{
+  "id": "s300-30n6e2",
+  "number": 14,
+  "name": "S-300PMU-2 fire-control radar 30N6E2",
+  "label": "30N6E2",
+  "status": "pending the user's decision",
+  "class": "radar_sam",
+  "type": 310,
+  "model": "",
+  "scale": 1.0,
+  "radius_m": 6.0,
+  "strength": 300,
+  "radar_km": 200,
+  "loadout": {},
+  "pylons": {},
+  "sources": {
+    "scale": "inferred",
+    "type": "inferred",
+    "radius_m": "open",
+    "strength": "inferred",
+    "radar_km": "open, w-s300"
+  },
+  "notes": {
+    "model": "none yet (iaf-2026/docs/threat-records.md lists the model source)",
+    "scale": "1: our models are built true size",
+    "type": "310 as the launcher, so one battery shows one RWR symbol (docs/rwr.md: radars of the launchers' type)",
+    "radius_m": "open: 6 m held (inferred)",
+    "strength": "our damage scale has no ground units yet; held at a fighter's 300 until D2 calibrates the scale (data-formats.md §6)",
+    "radar_km": "open: the 30N6E2's range (I/J band, 6 targets); the missile's 200 km held. the unit's sensor reach, compiled into its Objects row (combat.gd sensor_nm reads it before the type code's)"
+  },
+  "footnotes": {
+    "w-s300": "Wikipedia, \"S-300 missile system\" (PMU-2: 3–200 km, 0.01–27 km, 1,900 m/s, 30N6E2 I/J band, 64N6E2 search, 12 TELs, 3 s launch interval; comparison table PMU-2 column: missile mass 330–1,900 kg, warhead 180 kg; the table's figures are \"less reliable\") (read 2026-11-03), https://en.wikipedia.org/wiki/S-300_missile_system"
+  }
+}

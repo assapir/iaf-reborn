@@ -1,0 +1,46 @@
+{
+  "id": "tor-m1",
+  "number": 18,
+  "name": "Tor-M1 TELAR (9A331)",
+  "label": "Tor-M1",
+  "status": "pending the user's decision",
+  "class": "radar_sam",
+  "type": 330,
+  "model": "",
+  "scale": 1.0,
+  "radius_m": 3.75,
+  "strength": 300,
+  "range_km": 12,
+  "min_range_km": 1.5,
+  "ceiling_m": 6000,
+  "radar_km": 25,
+  "loadout": {},
+  "pylons": {
+    "A": {
+      "weapon": "9m331",
+      "count": 8
+    }
+  },
+  "sources": {
+    "scale": "inferred",
+    "type": "inferred",
+    "radius_m": "w-tor",
+    "strength": "inferred",
+    "range_km": "w-tor",
+    "min_range_km": "w-tor",
+    "ceiling_m": "w-tor",
+    "radar_km": "w-tor"
+  },
+  "notes": {
+    "model": "none yet (iaf-2026/docs/threat-records.md lists the model source)",
+    "scale": "1: our models are built true size",
+    "type": "330, the SA-8's code (the 1998 short-range TELAR): its RWR symbol and SPO-15 lamp stand in (inferred)",
+    "radius_m": "half the length, 7.5 m",
+    "strength": "our damage scale has no ground units yet; held at a fighter's 300 until D2 calibrates the scale (data-formats.md §6)",
+    "pylons": "8 ready missiles (Tor-M1)",
+    "radar_km": "the F-band search radar's 25 km; the G/H-band tracker reaches 20 km. the unit's sensor reach, compiled into its Objects row (combat.gd sensor_nm reads it before the type code's)"
+  },
+  "footnotes": {
+    "w-tor": "Wikipedia, \"Tor missile system\" (TELAR 7.5 m long, 3.3 m wide; F-band search 25 km, G/H-band track 20 km; 9M331 167 kg, 15 kg Frag-HE, 12 km, 6,000 m, 850 m/s, 30 g, radio command; M1: 8 missiles) (read 2026-11-03), https://en.wikipedia.org/wiki/Tor_missile_system"
+  }
+}

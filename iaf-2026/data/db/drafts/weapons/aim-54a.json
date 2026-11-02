@@ -1,0 +1,62 @@
+{
+  "id": "aim-54a",
+  "number": 50,
+  "name": "AIM-54A",
+  "status": "pending the user's decision",
+  "kind": "radar_missile",
+  "generation": 2,
+  "model": "",
+  "kg": 454,
+  "power": 400,
+  "blast_m": 21,
+  "drag": 0,
+  "range_km": 135,
+  "mach": 4.3,
+  "warhead_kg": 60,
+  "motion": {
+    "_chaseType": 2.0,
+    "_absAcceleration": 120.0,
+    "_spiralAccelBeta": 0.082,
+    "burn": 96.4,
+    "_timeAcceleration": 96.4,
+    "_timeConstVel": 0.0,
+    "_timeDecceleration": 0.0,
+    "_timeConstOrientation": 0.5
+  },
+  "sources": {
+    "drag": "open",
+    "kg": "w-aim54",
+    "power": "inferred",
+    "blast_m": "inferred, ds-aim9, w-aim54",
+    "range_km": "w-aim54",
+    "mach": "w-aim54",
+    "warhead_kg": "w-aim54",
+    "motion._chaseType": "inferred",
+    "motion._absAcceleration": "inferred",
+    "motion._spiralAccelBeta": "inferred, w-aim54",
+    "motion.burn": "inferred, w-aim54",
+    "motion._timeAcceleration": "inferred, w-aim54",
+    "motion._timeConstVel": "inferred",
+    "motion._timeDecceleration": "inferred",
+    "motion._timeConstOrientation": "inferred"
+  },
+  "notes": {
+    "drag": "carriage drag: none until a source gives one",
+    "generation": "2: in service from 1974 (inferred: before weapons.ibx's generation 3, 1983)",
+    "kind": "the engine's active radar missile (600): the AIM-54 homes on its own radar for the last part of its flight",
+    "kg": "1,000 lb, the low end of 1,000–1,040 lb (inferred: the A the lightest)",
+    "power": "one hit destroys a fighter (inferred, as the AIM-9M)",
+    "blast_m": "the lethal radius is open; held by blast scaling (inferred): the AIM-9A / B's 9 m (ds-aim9) for its 4.5 kg warhead (docs/real-weapons.md §1.4) times the cube root of this warhead's mass ratio (60 kg)",
+    "g_limit": "open",
+    "motion._chaseType": "2 = proportional navigation",
+    "motion._absAcceleration": "120 m/s², the AIM-9M record's (inferred: no burn time published)",
+    "motion._spiralAccelBeta": "top speed a / beta: 120 / the top speed",
+    "motion.burn": "the burn with which the motion flies the published range from 250 m/s before its flight ends 6 s after the burn (missile.rs real_burn, the rule real_weapons.gd gives the AIM-9M)",
+    "motion._timeAcceleration": "the burn, so the original's reading of the section flies as long",
+    "motion._timeConstOrientation": "flies straight 0.5 s after launch (the AIM-9M record's)"
+  },
+  "footnotes": {
+    "w-aim54": "Wikipedia, \"AIM-54 Phoenix\" (A/B 72.9 nmi (135 km), Mach 4.3; 1,000–1,040 lb; 133 lb (60 kg) warhead; SARH midcourse, active terminal homing) (read 2026-11-03), https://en.wikipedia.org/wiki/AIM-54_Phoenix",
+    "ds-aim9": "designation-systems.net, \"Raytheon AIM-9 Sidewinder\" (AIM-9A / B effective kill radius about 9 m), https://www.designation-systems.net/dusrm/m-9.html"
+  }
+}

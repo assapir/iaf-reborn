@@ -161,7 +161,7 @@ func setup(h: Node, flights: Node, bdb: Dictionary) -> void:
 		var u := Unit.new()
 		u.ent = ent
 		u.w = w
-		u.sensor_r = sensor_nm(int(ent.type_code)) * NM
+		u.sensor_r = sensor_nm(int(ent.type_code), float(ent.get("radar_km", 0.0))) * NM
 		var m: Dictionary = db.motion_for(int(w.type), int(w.generation))
 		u.reaction = float(m.get("_reactionTime", 10.0))
 		u.interval = float(m.get("_fireReleaseInterval", 0.5))
@@ -225,7 +225,7 @@ func _setup_aircraft(ent: Dictionary, obj: Dictionary, db, now: float, given: Ar
 	u.pilot = ent.pilot
 	u.brain = ent.pilot.brain
 	u.db = db
-	u.sensor_r = sensor_nm(int(ent.type_code)) * NM
+	u.sensor_r = sensor_nm(int(ent.type_code), float(ent.get("radar_km", 0.0))) * NM
 	u.next_scan = now + randf() * SCAN_PERIOD_AIR  # staggered
 	var load := given if not given.is_empty() else _armed(ent, Stores.loadout(ent, obj))
 	for s in load:
@@ -342,8 +342,11 @@ static func _weapon(ent: Dictionary, obj: Dictionary, db) -> Dictionary:
 
 ## Sensor range in nm by type code (FUN_004acae0, × 1854 m). Ours: an aircraft definition's radar.ai_nm: an F-16I
 ## Sufa's APG-68(V)9 sees 30 % further (docs/f16i.md §2), 52 NM; an F-15I Ra'am's APG-70I 104 / 135 of the F-15's
-## Real range (docs/f15i.md §2), 30.8 NM.
-static func sensor_nm(type: int) -> float:
+## Real range (docs/f15i.md §2), 30.8 NM. Ours: a unit's own reach `radar_km` (> 0; the sim's units, compiled from
+## their records, iaf-2026/docs/data-formats.md §3) before both; the original's units have none.
+static func sensor_nm(type: int, radar_km := 0.0) -> float:
+	if radar_km > 0.0:
+		return radar_km * 1000.0 / NM
 	var own = Settings.airframe(type).get("radar", {}).get("ai_nm")
 	if own != null:
 		return float(own)

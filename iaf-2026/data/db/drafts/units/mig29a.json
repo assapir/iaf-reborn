@@ -1,0 +1,76 @@
+{
+  "id": "mig29a",
+  "number": 11,
+  "name": "MiG-29A (9.12)",
+  "label": "MiG-29",
+  "status": "pending the user's decision",
+  "class": "fighter",
+  "type": 180,
+  "model": "",
+  "scale": 1.0,
+  "radius_m": 5.68,
+  "strength": 300,
+  "mach": 2.3,
+  "ceiling_m": 18000,
+  "g_limit": 9,
+  "range_km": 700,
+  "loadout": {
+    "30mm": 150,
+    "chaff": 60,
+    "flare": 60
+  },
+  "pylons": {
+    "A": {
+      "weapon": "r-73",
+      "count": 1
+    },
+    "B": {
+      "weapon": "r-73",
+      "count": 1
+    },
+    "C": {
+      "weapon": "r-27r",
+      "count": 1
+    },
+    "G": {
+      "weapon": "r-27r",
+      "count": 1
+    },
+    "H": {
+      "weapon": "r-73",
+      "count": 1
+    },
+    "I": {
+      "weapon": "r-73",
+      "count": 1
+    }
+  },
+  "sources": {
+    "scale": "inferred",
+    "type": "inferred",
+    "radius_m": "w-mig29",
+    "strength": "inferred",
+    "mach": "w-mig29",
+    "ceiling_m": "w-mig29",
+    "g_limit": "w-mig29",
+    "range_km": "w-mig29",
+    "loadout.30mm": "w-mig29",
+    "loadout.chaff": "open",
+    "loadout.flare": "open"
+  },
+  "notes": {
+    "model": "none yet (iaf-2026/docs/threat-records.md lists the model source)",
+    "scale": "1: our models are built true size",
+    "type": "the 1998 MiG-29's type code (docs/adding-a-plane.md §1); the sim's own bd.ibx has no MiG-29 row yet (open: an FM-0 row as item C1's)",
+    "radius_m": "half the span, 11.36 m",
+    "strength": "our damage scale's fighter",
+    "range_km": "combat range 700–900 km with 2 R-27 and 4 R-73: the low end",
+    "radar_km": "open: the N019's range",
+    "pylons": "2 R-27R inboard and 4 R-73 (the combat-range load); the stations are inferred",
+    "loadout.chaff": "no public count found; 60 held until one is (as the Sufa's)",
+    "loadout.flare": "no public count found; 60 held until one is (as the Sufa's)"
+  },
+  "footnotes": {
+    "w-mig29": "Wikipedia, \"Mikoyan MiG-29\" (span 11.36 m; Mach 2.3+ at altitude; ceiling 18,000 m; +9 g; 700–900 km combat range with 2 R-27 and 4 R-73; N019 radar; 1 × GSh-30-1 with 150 rounds) (read 2026-11-03), https://en.wikipedia.org/wiki/Mikoyan_MiG-29"
+  }
+}

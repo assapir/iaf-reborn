@@ -1,0 +1,32 @@
+{
+  "id": "s300-64n6e2",
+  "number": 15,
+  "name": "S-300PMU-2 search radar 64N6E2",
+  "label": "64N6E2",
+  "status": "pending the user's decision",
+  "class": "ground_radar",
+  "type": -1,
+  "model": "",
+  "scale": 1.0,
+  "radius_m": 6.0,
+  "strength": 300,
+  "loadout": {},
+  "pylons": {},
+  "sources": {
+    "scale": "inferred",
+    "type": "inferred",
+    "radius_m": "open",
+    "strength": "inferred"
+  },
+  "notes": {
+    "model": "none yet (iaf-2026/docs/threat-records.md lists the model source)",
+    "scale": "1: our models are built true size",
+    "type": "-1: a search radar has no engagement code; class 11 units have no sensor and never fire (docs/ai.md §14)",
+    "radius_m": "open: 6 m held (inferred)",
+    "strength": "our damage scale has no ground units yet; held at a fighter's 300 until D2 calibrates the scale (data-formats.md §6)",
+    "radar_km": "open: the 64N6E2's range and band"
+  },
+  "footnotes": {
+    "w-s300": "Wikipedia, \"S-300 missile system\" (PMU-2: 3–200 km, 0.01–27 km, 1,900 m/s, 30N6E2 I/J band, 64N6E2 search, 12 TELs, 3 s launch interval; comparison table PMU-2 column: missile mass 330–1,900 kg, warhead 180 kg; the table's figures are \"less reliable\") (read 2026-11-03), https://en.wikipedia.org/wiki/S-300_missile_system"
+  }
+}

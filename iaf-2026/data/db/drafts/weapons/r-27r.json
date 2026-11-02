@@ -1,0 +1,61 @@
+{
+  "id": "r-27r",
+  "number": 49,
+  "name": "R-27R",
+  "status": "pending the user's decision",
+  "kind": "semi_radar_missile",
+  "generation": 3,
+  "model": "",
+  "kg": 253,
+  "power": 400,
+  "blast_m": 18,
+  "drag": 0,
+  "range_km": 73,
+  "mach": 4.5,
+  "warhead_kg": 39,
+  "motion": {
+    "_chaseType": 2.0,
+    "_absAcceleration": 120.0,
+    "_spiralAccelBeta": 0.0784,
+    "burn": 52.2,
+    "_timeAcceleration": 52.2,
+    "_timeConstVel": 0.0,
+    "_timeDecceleration": 0.0,
+    "_timeConstOrientation": 0.5
+  },
+  "sources": {
+    "drag": "open",
+    "kg": "w-r27",
+    "power": "inferred",
+    "blast_m": "inferred, ds-aim9, w-r27",
+    "range_km": "w-r27",
+    "mach": "w-r27",
+    "warhead_kg": "w-r27",
+    "motion._chaseType": "inferred",
+    "motion._absAcceleration": "inferred",
+    "motion._spiralAccelBeta": "inferred, w-r27",
+    "motion.burn": "inferred, w-r27",
+    "motion._timeAcceleration": "inferred, w-r27",
+    "motion._timeConstVel": "inferred",
+    "motion._timeDecceleration": "inferred",
+    "motion._timeConstOrientation": "inferred"
+  },
+  "notes": {
+    "drag": "carriage drag: none until a source gives one",
+    "generation": "3: in service from 1987 (weapons.ibx's generation 3 = 1983–1995)",
+    "power": "one hit destroys a fighter (inferred, as the AIM-9M)",
+    "blast_m": "the lethal radius is open; held by blast scaling (inferred): the AIM-9A / B's 9 m (ds-aim9) for its 4.5 kg warhead (docs/real-weapons.md §1.4) times the cube root of this warhead's mass ratio (39 kg)",
+    "mach": "the low end of Mach 4.5–5.8, which the article marks \"citation needed\"",
+    "g_limit": "open (the article's \"below 5 g\" is the launcher's limit at launch)",
+    "motion._chaseType": "2 = proportional navigation",
+    "motion._absAcceleration": "120 m/s², the AIM-9M record's (inferred: no burn time published)",
+    "motion._spiralAccelBeta": "top speed a / beta: 120 / the top speed",
+    "motion.burn": "the burn with which the motion flies the published range from 250 m/s before its flight ends 6 s after the burn (missile.rs real_burn, the rule real_weapons.gd gives the AIM-9M)",
+    "motion._timeAcceleration": "the burn, so the original's reading of the section flies as long",
+    "motion._timeConstOrientation": "flies straight 0.5 s after launch (the AIM-9M record's)"
+  },
+  "footnotes": {
+    "w-r27": "Wikipedia, \"R-27 (air-to-air missile)\" (253 kg, 39 kg warhead; R-27R SARH 73 km; launch below 5 g; Mach 4.5–5.8 \"citation needed\") (read 2026-11-03), https://en.wikipedia.org/wiki/R-27_(air-to-air_missile)",
+    "ds-aim9": "designation-systems.net, \"Raytheon AIM-9 Sidewinder\" (AIM-9A / B effective kill radius about 9 m), https://www.designation-systems.net/dusrm/m-9.html"
+  }
+}

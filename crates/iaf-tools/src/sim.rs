@@ -87,7 +87,13 @@ pub fn hex(record: &str, field: &str) -> &'static str {
 }
 
 /// Unit classes: readable name → (bdb class 0x5aa, category 0x51e; docs/damage.md "By class").
-const CLASSES: &[(&str, i64, &str)] = &[("fighter", 0x1c, "Controlled aircraft")];
+const CLASSES: &[(&str, i64, &str)] = &[
+    ("fighter", 0x1c, "Controlled aircraft"),
+    ("radar_sam", 8, "Radar sam"),
+    ("ir_sam", 9, "Infra red sam"),
+    ("aaa", 10, "Gundish"),
+    ("ground_radar", 11, "Ground radar"),
+];
 /// Weapon kinds: readable name → (sub type 0x780, kind 0x712, station: 9–11 for the gun / chaff / flare, -1 a pylon
 /// store; weapons.ibx's OST_* enum, docs/weapons.md §1).
 const KINDS: &[(&str, i64, &str, i64)] = &[
@@ -96,6 +102,10 @@ const KINDS: &[(&str, i64, &str, i64)] = &[
     ("flare", 550, "Flare", 11),
     ("ir_missile", 570, "Heat missile", -1),
     ("bomb", 500, "Bomb", -1),
+    ("radar_missile", 600, "Radar missile", -1),
+    ("semi_radar_missile", 610, "Semi radar missile", -1),
+    ("ir_sam", 620, "Heat sam", -1),
+    ("radar_sam", 630, "Radar sam", -1),
 ];
 const SIDES: &[(&str, i64)] = &[("blue", 1), ("red", 2)];
 /// Pylon stations A..I are stations 0..8 (CArmament, docs/formats/mis.md "CArmament").
@@ -116,10 +126,13 @@ const OBJECT_REST: &[(&str, i64)] = &[
     ("0x5d2", 0),
     ("0x5d7", 0),
 ];
-/// Optional figures a unit may hold for the threat set (iaf-2026/docs/threats.md §6); checked for their sources, not
-/// compiled (no shared reader takes them yet).
-const UNIT_FIGURES: &[&str] =
-    &["range_km", "min_range_km", "ceiling_m", "floor_m", "speed_ms", "mach", "radar_km", "g_limit"];
+/// Optional figures a unit or weapon may hold for the threat set (iaf-2026/docs/threats.md §6); checked for their
+/// sources, not compiled (no shared reader takes them yet).
+const THREAT_FIGURES: &[&str] =
+    &["range_km", "min_range_km", "ceiling_m", "floor_m", "speed_ms", "mach", "radar_km", "g_limit", "warhead_kg"];
+/// The sub-folder of `db` that holds the drafts: records pending the user's decision, which `iaf-sim db` skips
+/// (iaf-2026/docs/data-formats.md §11).
+pub const DRAFTS: &str = "db/drafts";
 const LB_PER_KG: f64 = 1.0 / 0.45359;
 /// The jet's lineup point this far into the runway from its threshold (m; inferred: a jet's length and a margin).
 const LINEUP_IN_M: f64 = 100.0;
@@ -210,6 +223,8 @@ impl Db {
         for (files, what) in [(&db.units, "unit"), (&db.weapons, "weapon")] {
             let (mut numbers, mut ids) = (HashSet::new(), HashSet::new());
             for f in files {
+                // An approved draft drops its "status" as it moves out of db/drafts.
+                ensure!(f.v.get("status").is_none(), "{}: a record with a \"status\" belongs in {DRAFTS}", f.name);
                 let n = int(f, "number")?;
                 ensure!((1..1000).contains(&n), "{}: number {n} is not 1..999", f.name);
                 ensure!(numbers.insert(n), "{}: {what} number {n} is taken", f.name);
@@ -252,12 +267,15 @@ pub fn compile_db(db: &Db) -> Result<(Value, Map<String, Value>, String)> {
     };
     for w in &db.weapons {
         check_sources(w, &["kg", "power", "blast_m", "drag", "motion.*"])?;
+        check_sources(w, THREAT_FIGURES)?;
         let (kind, n) = (text(w, "kind")?, int(w, "number")?);
-        let (sub, kind_name, _) = KINDS
+        let (sub, kind_name, station) = KINDS
             .iter()
             .find(|k| k.0 == kind)
             .map(|k| (k.1, k.2, k.3))
             .with_context(|| format!("{}: unknown kind \"{kind}\"", w.name))?;
+        // A pylon store's weight loads the jet (the gun's rounds, chaff and flare weigh nothing here).
+        ensure!(station >= 0 || number(w, "kg")? > 0.0, "{}: a pylon store needs its weight (\"kg\" > 0)", w.name);
         let model = w.v["model"].as_str().unwrap_or("");
         // A weapon's Present record follows the units' (ids 1000 + number).
         let pid = if model.is_empty() { 0 } else { 1000 + n };
@@ -275,7 +293,7 @@ pub fn compile_db(db: &Db) -> Result<(Value, Map<String, Value>, String)> {
     }
     for u in &db.units {
         check_sources(u, &["type", "scale", "radius_m", "strength", "loadout.*"])?;
-        check_sources(u, UNIT_FIGURES)?;
+        check_sources(u, THREAT_FIGURES)?;
         let n = int(u, "number")?;
         let (class, category) = CLASSES
             .iter()
@@ -327,6 +345,10 @@ pub fn compile_db(db: &Db) -> Result<(Value, Map<String, Value>, String)> {
         if let Some(a) = u.v["airframe"].as_str() {
             ensure!(iaf_flight::airframe::get(a).is_some(), "{}: no aircraft definition \"{a}\"", u.name);
             o.insert("airframe".into(), json!(a));
+        }
+        // Ours, unhexed: the unit's sensor reach, which combat.gd `sensor_nm` takes before the type code's table.
+        if let Some(km) = u.v["radar_km"].as_f64() {
+            o.insert("radar_km".into(), json!(km));
         }
         objects.push(Value::Object(o));
     }
@@ -1117,22 +1139,106 @@ mod tests {
         let twin = File { name: "twin".into(), v: db.weapon("aim-9m").unwrap().v.clone() };
         db.weapons.push(twin);
         assert!(ibx(&db).unwrap_err().to_string().contains("a second weapon of type 3570"));
-        let dir = std::env::temp_dir().join(format!("iaf-sim-dup-{}", std::process::id()));
+        let root = db_copy("dup", |_| vec![]);
+        let dir = &root.0;
         std::fs::create_dir_all(dir.join("missions")).unwrap();
-        for d in ["db/units", "db/weapons"] {
-            std::fs::create_dir_all(dir.join(d)).unwrap();
-            for f in read_dir(&data().join(d)).unwrap() {
-                let name = Path::new(&f.name).file_name().unwrap().to_owned();
-                std::fs::write(dir.join(d).join(name), f.v.to_string()).unwrap();
-            }
-        }
         let mut a = ramon(json!({})).v;
         std::fs::write(dir.join("missions/a.json"), a.to_string()).unwrap();
         a["menu_id"] = json!(9999);
         std::fs::write(dir.join("missions/b.json"), a.to_string()).unwrap();
-        let e = missions(&dir, &dir.join("out"), &Stdout, &AtomicBool::new(false)).unwrap_err();
+        let e = missions(dir, &dir.join("out"), &Stdout, &AtomicBool::new(false)).unwrap_err();
         assert!(e.to_string().contains("is taken"), "{e}");
-        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// A temporary data root `iaf-sim-<name>-<pid>`, cleared first and removed when dropped: a copy of db/units and
+    /// db/weapons, plus `extra(kind)` for each kind.
+    fn db_copy(name: &str, extra: impl Fn(&str) -> Vec<File>) -> TempRoot {
+        let root = TempRoot(std::env::temp_dir().join(format!("iaf-sim-{name}-{}", std::process::id())));
+        let _ = std::fs::remove_dir_all(&root.0);
+        for kind in ["units", "weapons"] {
+            let out = root.0.join("db").join(kind);
+            std::fs::create_dir_all(&out).unwrap();
+            for f in read_dir(&data().join("db").join(kind)).unwrap().into_iter().chain(extra(kind)) {
+                std::fs::write(out.join(Path::new(&f.name).file_name().unwrap()), f.v.to_string()).unwrap();
+            }
+        }
+        root
+    }
+
+    /// The drafts (db/drafts, pending the user's decision) stay out of the compile, and each compiles cleanly once
+    /// approved as data-formats.md §11 says (moved to db/units or db/weapons, its "status" line deleted): numbers,
+    /// ids, classes, kinds, weights and every figure's source checked; each weapon finds its own weapons.ibx section
+    /// as `weapon_db.gd motion_for` looks it up (generation · 1000 + type, read by the ini parser); a unit's
+    /// `radar_km` reaches its Objects row; each SAM's launch zone from rest (combat.gd fires from the unit's pose at
+    /// speed 0) is its published range. A moved draft that keeps its status is refused.
+    #[test]
+    fn drafts_are_skipped_and_compile_once_approved() {
+        let live = Db::read(&data()).unwrap();
+        let approved = |kind: &str| -> Vec<File> {
+            let mut drafts = read_dir(&data().join(DRAFTS).join(kind)).unwrap();
+            assert!(!drafts.is_empty(), "no {kind} drafts");
+            for f in &mut drafts {
+                let status = f.v.as_object_mut().unwrap().remove("status");
+                assert_eq!(status, Some(json!("pending the user's decision")), "{}", f.name);
+                assert!(f.v["notes"].get("status").is_none(), "{}: a status note outlives the approval", f.name);
+                let id = f.v["id"].as_str().unwrap();
+                assert!(live.unit(id).is_err() && live.weapon(id).is_err(), "{id} is compiled");
+            }
+            drafts
+        };
+        let root = db_copy("drafts", approved);
+        let db = Db::read(&root.0).unwrap();
+        let (bdb, _, ibx_text) = compile_db(&db).unwrap();
+        // weapon_db.gd motion_for: the section of type generation · 1000 + type.
+        let ini = iaf_formats::ini::Ini::parse(ibx_text.as_bytes());
+        let section = |code: i64| {
+            ini.sections.iter().find(|s| s.entries.iter().any(|e| e.0 == "type" && e.1.parse() == Ok(code)))
+        };
+        for w in &db.weapons {
+            let sub = KINDS.iter().find(|k| w.v["kind"] == k.0).unwrap().1;
+            let s = section(int(w, "generation").unwrap() * 1000 + sub).unwrap_or_else(|| panic!("{}", w.name));
+            for (k, v) in w.v["motion"].as_object().unwrap() {
+                let got = s.entries.iter().find(|e| &e.0 == k).map(|e| e.1.parse::<f64>().unwrap());
+                assert_eq!(got, v.as_f64(), "{}: motion.{k}", w.name);
+            }
+        }
+        let row = |id: &str| bdb["objects"]["items"].as_array().unwrap().iter().find(|o| o["0x514"] == id).cloned();
+        assert_eq!(row("s300-tel").unwrap()["radar_km"], json!(200.0));
+        assert!(row("f16i").unwrap().get("radar_km").is_none());
+        // missile.rs dlz from a still launcher at a still target straight ahead (the "burn" key: the zone travelled).
+        for w in db.weapons.iter().filter(|w| w.v["kind"] == "radar_sam" || w.v["kind"] == "ir_sam") {
+            let (m, km) = (&w.v["motion"], number(w, "range_km").unwrap());
+            let f = |k: &str| m[k].as_f64().unwrap_or_else(|| panic!("{}: motion.{k}", w.name));
+            let motion = iaf_avionics::missile::ChaseMotion {
+                accel: f("_absAcceleration"),
+                beta: f("_spiralAccelBeta"),
+                spiral: 1000.0,
+                t_co: f("_timeConstOrientation"),
+                burn: f("burn"),
+                chase: iaf_avionics::missile::Chase::from_type(f("_chaseType") as i64),
+                high_angle_turn: false,
+                release_time: 0.0,
+                release_accel: 0.0,
+                real: true,
+                off_boresight: false,
+            };
+            use iaf_avionics::{Vec3, missile};
+            let site = missile::Launcher { pos: Vec3::ZERO, vel: Vec3::ZERO, fwd: Vec3::NORTH, up: Vec3::UP };
+            let target = missile::Kinematics { pos: Vec3::new(0.0, km * 1e3, 0.0), vel: Vec3::ZERO };
+            let zone = motion.dlz(&site, Some(&target)).max / 1e3;
+            assert!((zone / km - 1.0).abs() < 0.02, "{}: zone {zone:.1} km against {km} km", w.name);
+        }
+        std::fs::copy(data().join(DRAFTS).join("units/tor-m1.json"), root.0.join("db/units/tor-m1.json")).unwrap();
+        let e = Db::read(&root.0).err().unwrap();
+        assert!(e.to_string().contains("status"), "{e}");
+    }
+
+    /// A pylon store without a weight is refused (the gun, chaff and flare weigh nothing in their record).
+    #[test]
+    fn a_pylon_store_needs_its_weight() {
+        let mut db = Db::read(&data()).unwrap();
+        db.weapons.iter_mut().find(|w| w.v["id"] == "mk-84").unwrap().v["kg"] = json!(0);
+        assert!(compile_db(&db).unwrap_err().to_string().contains("weight"));
     }
 
     /// The original's converters (`iaf-convert aircraft` / `objects`) skip the sim's object database.

@@ -14,7 +14,7 @@ cargo run -p iaf-tools --bin iaf-sim -- all [iaf-2026/data] [assets]   # or db /
 
 | step | reads | writes (under `assets/`) |
 |---|---|---|
-| `iaf-sim db` | `data/db/units/*.json`, `data/db/weapons/*.json` | `converted/missions/sim.bdb.json`; the key `"sim.bdb"` of `converted/objects/objects.json` (the other keys stay); `converted/own/resource/weaponsmotion/weapons.ibx` |
+| `iaf-sim db` | `data/db/units/*.json`, `data/db/weapons/*.json` (not the drafts in `data/db/drafts/`, §11) | `converted/missions/sim.bdb.json`; the key `"sim.bdb"` of `converted/objects/objects.json` (the other keys stay); `converted/own/resource/weaponsmotion/weapons.ibx` |
 | `iaf-sim missions` | `data/missions/*.json`, the units | `converted/iaf-2026/missions/<id>.json`, `converted/iaf-2026/missions/missionlist.json` (menu id → `[<id>]`) |
 | `iaf-sim own` | `data/sounds/soundprop.json`, `data/sounds/voices.json`, `data/sounds/*.wav`, `data/keys.json` | `converted/own/resource/soundfiles/` (`soundprop.trx`, `phrasetemplates.trx`, `phraseparticalsdata.trx`, the clips; other files there are removed), `converted/own/keys.json` ([sound.md](sound.md)) |
 
@@ -42,9 +42,9 @@ reader takes them.
 
 | record | readable | hex | named values |
 |---|---|---|---|
-| unit | `id`, `category` (from `class`), `label`, `brain`, `radius_m`, `strength`, `collider`, `class`, `type` | `0x514`, `0x51e`, `0x528`, `0x532`, `0x564`, `0x56e`, `0x58c`, `0x5aa`, `0x5b4` | class `fighter` = 0x1c, "Controlled aircraft" |
+| unit | `id`, `category` (from `class`), `label`, `brain`, `radius_m`, `strength`, `collider`, `class`, `type` | `0x514`, `0x51e`, `0x528`, `0x532`, `0x564`, `0x56e`, `0x58c`, `0x5aa`, `0x5b4` | class `fighter` 0x1c "Controlled aircraft", `radar_sam` 8 "Radar sam", `ir_sam` 9 "Infra red sam", `aaa` 10 "Gundish", `ground_radar` 11 "Ground radar" |
 | unit (model) | `id`, `model`, `scale` | Present `0x640`, `0x64a`, `0x65e`; the unit's `0x53c` = its number | — |
-| weapon | `name`, `kind`, `model`, `drag`, `power`, `blast_m`, `kg` (→ pounds), `generation`, type (from `kind`) | `0x708`, `0x712`, `0x730`, `0x73a`, `0x744`, `0x74e`, `0x758`, `0x762`, `0x780` | `gun` 565, `chaff` 540, `flare` 550, `ir_missile` 570, `bomb` 500 |
+| weapon | `name`, `kind`, `model`, `drag`, `power`, `blast_m`, `kg` (→ pounds), `generation`, type (from `kind`) | `0x708`, `0x712`, `0x730`, `0x73a`, `0x744`, `0x74e`, `0x758`, `0x762`, `0x780` | `gun` 565, `chaff` 540, `flare` 550, `ir_missile` 570, `bomb` 500, `radar_missile` 600, `semi_radar_missile` 610, `ir_sam` 620, `radar_sam` 630 |
 | mission | `title.en`, `time`, `wind_kt`, `wind_from`, `win.en`, `lose.en`, `category` | misc `0x44c`, `0x460`, `0x46a`, `0x474`, `0x47e`, `0x492`, `0x4d8` | — |
 | placed unit | name, unit, side, x, y, `alt_m`, `heading` | `0x2bc`, `0x2c6`, `0x2d0`, `0x2e4`, `0x2ee`, `0x2f8`, `0x302` | side `blue` 1, `red` 2 |
 
@@ -63,7 +63,8 @@ A unit record holds what a mission needs of a unit. A flyable jet's behaviour st
 | `strength` | hit points on our damage scale (§6) |
 | `loadout` | weapon id → count for the gun, chaff and flare stations (9–11) |
 | `pylons` | station `A`..`I` → `{"weapon", "count"}` (none on the MVP jets) |
-| `range_km`, `min_range_km`, `ceiling_m`, `floor_m`, `speed_ms`, `mach`, `radar_km`, `g_limit` | the threat set's figures (threats.md §6), checked for sources; no shared reader takes them yet |
+| `range_km`, `min_range_km`, `ceiling_m`, `floor_m`, `speed_ms`, `mach`, `radar_km`, `g_limit`, `warhead_kg` | the threat set's figures (threats.md §6), checked for sources. `radar_km`, the unit's sensor reach, is compiled unhexed as `"radar_km"` into its Objects row, and the AI takes it before the type code's range (`combat.gd` `sensor_nm`); no shared reader takes the others yet |
+| `status` | only in a draft: `"pending the user's decision"` (§11) |
 
 The three MVP jets: the Sufa (`f16i`, number 1, type 100), the Barak (`f16d`, 2, type 100) and the F-35I (`f35i`,
 3, type 1000). The Sufa and the Barak share the F-16's type code, which the shared code keys the F-16 family on;
@@ -120,10 +121,12 @@ Example, `iaf-2026/data/db/units/f16i.json`:
 | `kind` | the weapon kind by name (§2), which gives its type code and station |
 | `generation` | the missile generation (weapons.ibx's: 3 = 1983–1995, 4 = from 1995); 0 otherwise |
 | `model` | the model under `assets/converted/objects/` (empty: none) |
-| `kg` | the weight (compiled to whole pounds, as the bdb holds it) |
+| `kg` | the weight (compiled to whole pounds, as the bdb holds it); a pylon store's must be above 0 |
 | `power`, `blast_m` | the warhead on our damage scale (§6) and the blast's zero-damage edge |
 | `drag` | the carriage drag on the jet |
-| `motion` | the weapons.ibx fields of its section (`_velocityJump`, `_absAcceleration`…, docs/weapons.md); a field left out takes the reader's default |
+| `motion` | the weapons.ibx fields of its section (`_velocityJump`, `_absAcceleration`, `_reactionTime`, `_fireReleaseInterval`…, docs/weapons.md); a field left out takes the reader's default. Ours: `burn`, which `missile.rs` reads as Weapon data Real's burn (the zone from the distance really travelled) |
+| `range_km`, `min_range_km`, `ceiling_m`, `floor_m`, `speed_ms`, `mach`, `g_limit`, `warhead_kg` | the weapon's own figures (range, altitudes, speed, g limit, warhead), checked for sources, not compiled |
+| `status` | only in a draft (§11) |
 
 Names and numbers the shared code relies on:
 - `"20 MM"` (number 25), `"Chaff"` (33) and `"Flare"` (34): `player_aircraft.gd` `f35i_object` loads these numbers,
@@ -321,6 +324,8 @@ rule assumes), a 20 mm hit does 100 (three hits destroy a fighter), an AIM-9M hi
   and each station's weapon exist in the bdb, each weapon type has a weapons.ibx section that the ini parser reads,
   the names the modern weapons base on exist, each mission's player must survive); a runway start takes the end its
   number names; a figure without a source is refused.
+- `sim::tests::drafts_are_skipped_and_compile_once_approved`: the drafts stay out of the compile and compile cleanly
+  once approved (§11).
 - `tests/godot/test_sim_data.gd`: runs `target/release/iaf-sim all` itself (`tools/test.sh` builds it; NEEDS DATA
   without it), which writes only the sim's own output into the shared `assets/`; then every compiled mission and sim.bdb through `MissionRuntime`, `PlayerAircraft.object_for` and
   `weapon_db.gd` (with the AIM-9X and GBU-31 built on our bases), each jet's `"airframe"`, every weapon's motion
@@ -396,6 +401,25 @@ Example (parts of `llrm.json`):
 
 Check: `cargo test -p iaf-tools --lib sim::tests::every_airbase_has_runways_with_two_ends_and_a_width` (every file
 parses, every runway has two ends with a place and a heading, and a width; every source resolves).
+
+## 11. Drafts: `data/db/drafts/`
+A draft is a unit or weapon record that waits for the user's decision. It sits in `data/db/drafts/units/` or
+`data/db/drafts/weapons/`, in the same format as §3 / §4, with one more field:
+`"status": "pending the user's decision"`.
+
+- **Kept out:** `iaf-sim db` reads only `data/db/units/` and `data/db/weapons/`, so a draft never reaches the
+  compiled files in `assets/`, and no mission can name it.
+- **Approval:** move the file to `data/db/units/` or `data/db/weapons/` and delete its `status` line (`git mv`, one
+  edit). The `status` field is the only mark of a draft. `iaf-sim db` refuses a record outside `drafts/` that still
+  holds a `status`.
+- **Checked while pending:** `sim::tests::drafts_are_skipped_and_compile_once_approved` approves every draft that
+  way in a copy of the data and compiles it with the live records. It checks numbers, ids, classes, kinds, weights
+  and every figure's source. It reads each weapon's own weapons.ibx section back through the ini parser, found as
+  `weapon_db.gd` `motion_for` finds it (generation · 1000 + type, so the Ta'er-2B's 005630 too). It also checks a
+  unit's `radar_km` in its Objects row, and each SAM's launch zone from rest against its `range_km` (§4, `burn`).
+
+The first drafts are the threat set of [threats.md](threats.md) §6, listed with their figures and open points in
+[threat-records.md](threat-records.md) (item D2, 2026-11-03).
 
 [^osm]: OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright (runway and apron ways via the Overpass API, 2026-10-20 and 2026-11-02).
 [^oa]: OurAirports, runways.csv and airports.csv (public domain), https://davidmegginson.github.io/ourairports-data/

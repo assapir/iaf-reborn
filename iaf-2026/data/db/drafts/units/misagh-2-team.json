@@ -1,0 +1,44 @@
+{
+  "id": "misagh-2-team",
+  "number": 22,
+  "name": "Misagh-2 MANPADS team",
+  "label": "Misagh-2",
+  "status": "pending the user's decision",
+  "class": "ir_sam",
+  "type": -1,
+  "model": "",
+  "scale": 1.0,
+  "radius_m": 1.0,
+  "strength": 100,
+  "range_km": 6,
+  "ceiling_m": 5000,
+  "radar_km": 10,
+  "loadout": {},
+  "pylons": {
+    "A": {
+      "weapon": "misagh-2",
+      "count": 1
+    }
+  },
+  "sources": {
+    "scale": "inferred",
+    "type": "inferred",
+    "radius_m": "inferred",
+    "strength": "inferred",
+    "range_km": "w-misagh",
+    "ceiling_m": "w-misagh",
+    "radar_km": "inferred"
+  },
+  "notes": {
+    "model": "none yet (iaf-2026/docs/threat-records.md lists the model source)",
+    "scale": "1: our models are built true size",
+    "type": "-1: no radar, so no RWR symbol",
+    "radar_km": "no radar: 10 km, a gunner's eye on a jet (inferred). the unit's sensor reach, compiled into its Objects row (combat.gd sensor_nm reads it before the type code's)",
+    "radius_m": "1 m: a person with a launcher (inferred)",
+    "strength": "one 20 mm hit (inferred)",
+    "pylons": "one missile per team (threats.md §2)"
+  },
+  "footnotes": {
+    "w-misagh": "Wikipedia, \"Misagh-2\" (12.74 kg, 1.42 kg HE, 850 m/s, 6 km, 5 km, IR fire and forget) (read 2026-11-03), https://en.wikipedia.org/wiki/Misagh-2"
+  }
+}

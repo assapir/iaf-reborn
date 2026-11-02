@@ -1,0 +1,38 @@
+{
+  "id": "30mm",
+  "number": 47,
+  "name": "30 MM",
+  "status": "pending the user's decision",
+  "kind": "gun",
+  "generation": 2,
+  "model": "",
+  "kg": 0,
+  "power": 200,
+  "blast_m": 5,
+  "drag": 0,
+  "motion": {
+    "_velocityJump": 860.0,
+    "_limitVel": 860.0,
+    "_absAcceleration": 0.0
+  },
+  "sources": {
+    "drag": "open",
+    "kg": "inferred",
+    "power": "inferred",
+    "blast_m": "inferred",
+    "motion._velocityJump": "w-gsh30",
+    "motion._limitVel": "w-gsh30",
+    "motion._absAcceleration": "inferred"
+  },
+  "notes": {
+    "drag": "carriage drag: none until a source gives one",
+    "generation": "2: ours, so the round has its own weapons.ibx section (the 20 mm 0, the 23 mm 1); a gun's generation keys nothing else",
+    "kg": "the rounds' weight is the jet's (none in the record)",
+    "power": "open: twice the 20 mm's 100 held (a heavier shell; no per-round value published)",
+    "blast_m": "as the 20 mm (inferred)",
+    "motion._absAcceleration": "the round's drag is open"
+  },
+  "footnotes": {
+    "w-gsh30": "Wikipedia, \"Gryazev-Shipunov GSh-30-1\" (1,500–1,800 rounds/min, muzzle velocity 860 m/s) (read 2026-11-03), https://en.wikipedia.org/wiki/Gryazev-Shipunov_GSh-30-1"
+  }
+}

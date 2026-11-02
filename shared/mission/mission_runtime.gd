@@ -361,6 +361,9 @@ static func _init_damage(ent: Dictionary, obj: Dictionary) -> void:
 	ent.damageable = true
 	# bdb Objects 0x58c: the unit gets a collider (FUN_004b8118, docs/damage.md §7).
 	ent.collidable = int(obj.get("0x58c", 0)) != 0
+	# Ours (the sim's units, iaf-2026/docs/data-formats.md §3): the sensor reach combat.gd sensor_nm takes first.
+	if obj.has("radar_km"):
+		ent.radar_km = float(obj.radar_km)
 	ent.damage = 0.0
 	ent.requested = -1
 	ent.killer = {}

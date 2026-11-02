@@ -3,6 +3,9 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **D2 drafts (2026-11-03), pending the user's decision:** the threat set's 12 units and 10 weapons as readable
+  records in `iaf-2026/data/db/drafts/`, every figure sourced; `iaf-sim db` skips them, and a test compiles them as if
+  approved ([threat-records.md](threat-records.md)).
 - **A1, the project (2026-11-02):** the `iaf-2026/` Godot project with its `shared` link, `sim_settings.gd`, the
   `install_dir()` / `own_dir()` / `keys_file()` calls in the shared code (the original game reads the same files as
   before), the launchers `./iaf2026` and `./iaf2026-setup` (+ `.ps1`), `tools/test.sh` over `iaf-2026/tests` and

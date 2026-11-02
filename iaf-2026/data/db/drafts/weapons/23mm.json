@@ -1,0 +1,45 @@
+{
+  "id": "23mm",
+  "number": 46,
+  "name": "23 MM",
+  "status": "pending the user's decision",
+  "kind": "gun",
+  "generation": 1,
+  "model": "",
+  "kg": 0,
+  "power": 100,
+  "blast_m": 5,
+  "drag": 0,
+  "motion": {
+    "_velocityJump": 975.0,
+    "_limitVel": 975.0,
+    "_absAcceleration": 0.0,
+    "_limitDist": 5000.0
+  },
+  "sources": {
+    "drag": "open",
+    "kg": "inferred",
+    "power": "inferred",
+    "blast_m": "inferred",
+    "motion._velocityJump": "w-zsu",
+    "motion._limitVel": "w-zsu",
+    "motion._absAcceleration": "inferred",
+    "motion._limitDist": "inferred, w-zsu"
+  },
+  "notes": {
+    "drag": "carriage drag: none until a source gives one",
+    "generation": "1: ours, so the round has its own weapons.ibx section beside the 20 mm's (generation 0); a gun's generation keys nothing else",
+    "kg": "the rounds' weight is the vehicle's (none in the record)",
+    "power": "as the 20 mm: three hits destroy a fighter (inferred)",
+    "blast_m": "as the 20 mm (inferred)",
+    "motion._velocityJump": "970–980 m/s: the middle",
+    "motion._limitVel": "970–980 m/s: the middle",
+    "motion._absAcceleration": "the round's drag is open",
+    "motion._limitDist": "twice the 2.5 km effective range: a ground gun fires within half its _limitDist (docs/ai.md §14)",
+    "motion._reactionTime": "open: the reader's default 10 s (combat.gd)",
+    "motion._fireReleaseInterval": "open: the reader's default 0.5 s between bursts (combat.gd); the rate of fire, 3,400–4,000 rounds/min (w-zsu), has no field"
+  },
+  "footnotes": {
+    "w-zsu": "Wikipedia, \"ZSU-23-4 Shilka\" (6.535 m long, 3.125 m wide; RPK-2 Ku band 20 km; 4 × 23 mm 2A7, 2,000 rounds, 3,400–4,000 rounds/min, 970–980 m/s; effective 2.5 km / 1.5 km, max 7 / 5.1 km) (read 2026-11-03), https://en.wikipedia.org/wiki/ZSU-23-4_Shilka"
+  }
+}

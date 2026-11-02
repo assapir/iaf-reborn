@@ -1,0 +1,48 @@
+{
+  "id": "kub-2p25",
+  "number": 19,
+  "name": "2K12 Kub launcher 2P25 (Fater-1)",
+  "label": "SA-6 TEL",
+  "status": "pending the user's decision",
+  "class": "radar_sam",
+  "type": 320,
+  "model": "",
+  "scale": 1.0,
+  "radius_m": 3.5,
+  "strength": 300,
+  "range_km": 24,
+  "min_range_km": 4,
+  "ceiling_m": 14000,
+  "floor_m": 50,
+  "radar_km": 75,
+  "loadout": {},
+  "pylons": {
+    "A": {
+      "weapon": "3m9",
+      "count": 3
+    }
+  },
+  "sources": {
+    "scale": "inferred",
+    "type": "inferred",
+    "radius_m": "open",
+    "strength": "inferred",
+    "range_km": "w-kub",
+    "min_range_km": "w-kub",
+    "ceiling_m": "w-kub",
+    "floor_m": "w-kub",
+    "radar_km": "inferred, w-kub"
+  },
+  "notes": {
+    "model": "none yet (iaf-2026/docs/threat-records.md lists the model source)",
+    "scale": "1: our models are built true size",
+    "type": "320, the SA-6's own code in the 1998 game (docs/ai.md §14)",
+    "radar_km": "the battery's 1S91, 75 km (inferred: the launcher sees through it). the unit's sensor reach, compiled into its Objects row (combat.gd sensor_nm reads it before the type code's)",
+    "radius_m": "open: 3.5 m held (a tracked vehicle as the Tor's, inferred)",
+    "strength": "our damage scale has no ground units yet; held at a fighter's 300 until D2 calibrates the scale (data-formats.md §6)",
+    "pylons": "3 missiles per TEL"
+  },
+  "footnotes": {
+    "w-kub": "Wikipedia, \"2K12 Kub\" (1S91 G/H band 75 km; 3M9 599 kg, 59 kg Frag-HE (56 kg in the text), Mach 2.8, effective 4–24 km and 50–14,000 m, command + SARH; 3 missiles per 2P25 TEL) (read 2026-11-03), https://en.wikipedia.org/wiki/2K12_Kub"
+  }
+}

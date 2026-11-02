@@ -178,6 +178,9 @@ Open before item D2 can close: every g limit marked open, the 3rd Khordad missil
 the F-14A (TF30) figures, the AWG-9 and N019 ranges, and a licence statement from the FlightGear MiG-29 and F-14
 authors.
 
+The set's unit and weapon records are drafted in `iaf-2026/data/db/drafts/`, pending the user's decision:
+[threat-records.md](threat-records.md) lists them with their figures, sources and open points (item D2, 2026-11-03).
+
 [^w-2026war]: Wikipedia, "2026 Israeli–United States strikes on Iran", https://en.wikipedia.org/wiki/2026_Israeli%E2%80%93United_States_strikes_on_Iran (strikes began 28 February 2026).
 [^ctp-0302]: Critical Threats, "Iran Update Evening Special Report: March 2, 2026", https://www.criticalthreats.org/analysis/iran-update-evening-special-report-march-2-2026 (over 200 air-defence systems targeted; air superiority over Tehran).
 [^ctp-0303]: Critical Threats, "Iran Update Evening Special Report, March 3, 2026", https://www.criticalthreats.org/analysis/iran-update-evening-special-report-march-3-2026 (about 300 launchers destroyed, IDF assessment).

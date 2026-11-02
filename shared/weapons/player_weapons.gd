@@ -2123,7 +2123,7 @@ func _rwr_search() -> void:
 	var sites := []
 	for u in _units():
 		if u.hostile:
-			var reach: float = cb.sensor_nm(int(u.ent.get("type_code", 0))) * cb.NM
+			var reach: float = cb.sensor_nm(int(u.ent.get("type_code", 0)), float(u.ent.get("radar_km", 0.0))) * cb.NM
 			sites.append({"key": u.key, "name": String(u.ent.get("name", "")), "reach": reach})
 	rwr.search(sites, host.mission_ground)
 

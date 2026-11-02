@@ -1,0 +1,34 @@
+{
+  "id": "khordad3-bashir",
+  "number": 17,
+  "name": "3rd Khordad search radar Bashir",
+  "label": "Bashir",
+  "status": "pending the user's decision",
+  "class": "ground_radar",
+  "type": -1,
+  "model": "",
+  "scale": 1.0,
+  "radius_m": 6.0,
+  "strength": 300,
+  "radar_km": 350,
+  "loadout": {},
+  "pylons": {},
+  "sources": {
+    "scale": "inferred",
+    "type": "inferred",
+    "radius_m": "open",
+    "strength": "inferred",
+    "radar_km": "w-3kh"
+  },
+  "notes": {
+    "model": "none yet (iaf-2026/docs/threat-records.md lists the model source)",
+    "scale": "1: our models are built true size",
+    "type": "-1: a search radar (class 11: no sensor, never fires, docs/ai.md §14)",
+    "radius_m": "open: 6 m held (inferred)",
+    "strength": "our damage scale has no ground units yet; held at a fighter's 300 until D2 calibrates the scale (data-formats.md §6)",
+    "radar_km": "S band, 350 km. the unit's sensor reach, compiled into its Objects row (combat.gd sensor_nm reads it before the type code's)"
+  },
+  "footnotes": {
+    "w-3kh": "Wikipedia, \"Sevom Khordad\" (3rd Khordad; IRGC; TELAR X-band, Bashir S-band 350 km; Ta'er-2B 50–105 km, 25–30 km altitude; 3 per TELAR; 4 targets, 2 missiles each) (read 2026-11-03), https://en.wikipedia.org/wiki/Sevom_Khordad"
+  }
+}
