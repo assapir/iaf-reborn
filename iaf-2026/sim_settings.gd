@@ -18,6 +18,7 @@ const PROFILE := {
 const PLANES := "res://data/planes"
 
 var _sim_airframes := {}
+var _said_no_bases := false
 
 
 func _ready() -> void:
@@ -48,6 +49,30 @@ func own_dir() -> String:
 
 func keys_file() -> String:
 	return own_dir().path_join("keys.json")
+
+
+## The flight-model name by type code on the sim's own bd.ibx (IafFlight.fm_type, iaf_flight::fm_name_in: 100 F-16,
+## 110 F-15, 1000 F-35I; the F-16 / F-15 switches then pick the Sufa / Ra'am), never the original's converted
+## descriptor. A code the own bd.ibx has no section for flies as the F-16 (iaf-2026/docs/flight-model.md §1).
+func fm_section(type: int) -> String:
+	var t := ""
+	if ClassDB.class_exists("IafFlight"):
+		t = ClassDB.class_call_static("IafFlight", "fm_type", own_dir(), type, real_data())
+	if t == "":
+		push_warning("type %d has no section in the sim's bd.ibx (%s): it flies as the F-16" % [type, own_dir()])
+		t = "F-16"
+	return t
+
+
+## World scale Real's base moves read the own iaf.ibx, which item B2b compiles: until it exists the sim flies with no
+## base moved, said once in the log (the shared warning stays for data missing from a layout that has an iaf.ibx).
+func sync_bases() -> bool:
+	if FileAccess.file_exists(own_dir().path_join("iaf.ibx")):
+		return super()
+	if not _said_no_bases:
+		_said_no_bases = true
+		print("no own iaf.ibx yet (%s, item B2b): no base moves" % own_dir())
+	return false
 
 
 ## The F-16 switch from the player's jet: the aircraft definition of its Objects row ("airframe",

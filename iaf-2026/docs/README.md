@@ -44,7 +44,7 @@ that as a failure.
 | `assets/converted/iaf-2026/missions/` | the compiled training missions |
 
 ## How the sim reads its data
-The shared code reads its files through three `Settings` calls. The sim's `sim_settings.gd` answers them with its own
+The shared code reads its files through four `Settings` calls. The sim's `sim_settings.gd` answers them with its own
 paths; the original game's `shared/settings.gd` answers with the install's.
 
 | call | original game | IAF 2026 |
@@ -52,6 +52,12 @@ paths; the original game's `shared/settings.gd` answers with the install's.
 | `install_dir()` | `assets/install` | `assets/iaf-2026-reads-no-install` (does not exist) |
 | `own_dir()`: flight model, sounds, radio phrases, weapons' motion, `iaf.ibx`, `terraintype.dat` | `assets/install` | `assets/converted/own` |
 | `keys_file()` | `assets/converted/keys.json` | `assets/converted/own/keys.json` |
+| `fm_section(type)`: the player's flight-model type (`PlayerAircraft.profile`) | "": the converted aircraft descriptor's `fm_section` | by type code on the own `bd.ibx` (`IafFlight.fm_type`, `iaf_flight::fm_name_in`): 100 `F-16`, 110 `F-15`, 1000 `F-35I`; a code whose section the own `bd.ibx` lacks flies as the `F-16` (a warning) |
+
+The base move and the tower's wind turn (`IafBases.setup` / `set_wind`, World scale Real) take `own_dir()`'s
+`iaf.ibx` from the caller. The sim has no own `iaf.ibx` until item B2b compiles one, so it flies with no base
+moved and no runway turned into the wind; it never reads the install's bases. Until then the sim's
+`sync_bases()` skips the setup and logs that once.
 
 The sim's settings also fix the switches that pick between the 1998 game and our replacements (3D cockpit, detailed
 models, world scale Real, flight and weapon data Real, the F-15I): the sim has no preferences row for them.

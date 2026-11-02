@@ -108,6 +108,15 @@ pub fn variant<'a>(name: &'a str, s: crate::airframe::Switches) -> &'a str {
         .unwrap_or(name)
 }
 
+/// The flight-model name a bdb type code (`veh+0xc54`) flies as: the original's section
+/// ([`crate::params::code_section`]: 100 the F-16, 110 the F-15…), else a type of ours without original data (1000
+/// the F-35I). The Extras switches then pick the variant ([`variant`]).
+pub fn fm_name(type_code: i64) -> Option<&'static str> {
+    crate::params::code_section(type_code).or_else(|| {
+        TYPES.iter().find(|t| i64::from(t.type_code) == type_code && NO_ORIGINAL.contains(&t.name)).map(|t| t.name)
+    })
+}
+
 /// The type for a type name, model folder or (first type of) a bd.ibx section, case-insensitive.
 pub fn find_type(name: &str) -> Option<&'static Type> {
     let eq = |a: &str| a.eq_ignore_ascii_case(name);
@@ -868,6 +877,23 @@ mod tests {
         assert_eq!(apply(DataSet::Original, "F-4", &p, &e).0.chute_cd, 0.0);
         let (r, _) = apply(DataSet::Real, "F-4", &p, &e);
         assert!((r.chute_cd - 0.63 * 18.68 / r.wing_area).abs() < 0.01, "{} (wing {} m²)", r.chute_cd, r.wing_area);
+    }
+
+    #[test]
+    fn sim_types_by_code() {
+        // IAF 2026's jets by type code (iaf-2026/docs/flight-model.md): the Barak, the Sufa and the F-35I on the own
+        // [F-16], the F-15I on the own [F-15].
+        assert_eq!([100, 110, 1000].map(fm_name), [Some("F-16"), Some("F-15"), Some("F-35I")]);
+        assert_eq!([200, 225, 999].map(fm_name), [Some("F-4"), Some("C130"), None]);
+        for (f16, code, name, sect) in [
+            ("barak", 100, "F-16", "F-16"),
+            ("sufa", 100, "F-16I", "F-16"),
+            ("sufa", 110, "F-15I", "F-15"),
+            ("sufa", 1000, "F-35I", "F-16"),
+        ] {
+            let fm = variant(fm_name(code).unwrap(), crate::airframe::Switches { f16, f15: "raam" });
+            assert_eq!((fm, section(effective(DataSet::Real, fm), fm)), (name, sect), "{f16} {code}");
+        }
     }
 
     #[test]

@@ -280,8 +280,13 @@ A jet new to the game has only Real numbers of its own. List it in `data_set.rs`
 row with either Flight data (`data_set::effective()`), as the F-35I does. If it is left out of that list, it flies its
 base section with Flight data = Original.
 
-The player's type reaches the flight model as the descriptor's `fm_section`:
-- `player_aircraft.gd` `profile()` → `terrain_view.gd` `flight.start(install, fm_section, …)` → `IafFlight`
+The player's type reaches the flight model as its `fm_section`:
+- `player_aircraft.gd` `profile()` asks `Settings.fm_section(type)`. The original game answers "", so `profile()`
+  takes the converted descriptor's `fm_section` (written by `iaf-convert` from `iaf_flight::params::code_section`,
+  the original's type → section table). IAF 2026 answers from its own bd.ibx (`IafFlight.fm_type`,
+  `iaf_flight::fm_name_in`: the code's section, or the F-35I for 1000, when the own bd.ibx holds the section it
+  loads; else the F-16).
+- `profile()` → `terrain_view.gd` `flight.start(install, fm_section, …)` → `IafFlight`
   (`crates/iaf-godot/src/flight.rs`) → `iaf_flight::load_in`;
 - AI aircraft pass the model folder (`ai_flights.gd`).
 

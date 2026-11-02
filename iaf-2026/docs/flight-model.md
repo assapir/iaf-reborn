@@ -35,9 +35,10 @@ figures. A REAL row replaces the fields it sets (weights, thrust level, fuel flo
 stall floor, ceiling, nose-wheel steering; [docs/real-aircraft.md](../../docs/real-aircraft.md) §2) and keeps the
 section's other keys.
 
-The game reads `<assets>/install/resource/md`. Until item A1 gives the sim its own install path, a run on the own data
-uses an assets folder whose `install/resource/md` is `converted/own/resource/md` (§7). Item A1's
-`install_dir()` hook replaces that: the sim's install path holds `resource/md` from `converted/own`.
+The game reads `<own_dir()>/resource/md`: `converted/own/resource/md` in the sim (item A1). The player's jet picks its
+type by its bdb type code on the own `bd.ibx` (`Settings.fm_section`, `iaf_flight::fm_name_in`: 100 the F-16, 110 the
+F-15, 1000 the F-35I), then the F-16 / F-15 switches the Sufa or the Ra'am, as in the table above. A code whose
+section the own `bd.ibx` lacks (the 1998 jets) flies as the F-16, with a warning.
 
 ## 2. What TP-1538 gives
 

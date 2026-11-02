@@ -7,6 +7,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   `install_dir()` / `own_dir()` / `keys_file()` calls in the shared code (the original game reads the same files as
   before), the launchers `./iaf2026` and `./iaf2026-setup` (+ `.ps1`), `tools/test.sh` over `iaf-2026/tests` and
   gdparse on both projects, the M0 probe.
+- **Own sources for the flight-model type and the bases (2026-11-03):** the player's jet takes its flight-model type
+  from the sim's table (`Settings.fm_section`), not the converted descriptor; `IafBases` reads `own_dir()`'s
+  `iaf.ibx`, not the install's ([README.md](README.md) "How the sim reads its data"). `test_own_sources.gd`.
 - **The M0 probe (2026-11-02):** passes the no-install check, the profile, the key and sound tables, and for each jet
   the mission's object database, the aircraft definition, the motion table, the 3D cockpit model and the flight
   model's start from the own `bd.ibx` (item C1's FM-0 data; `NEEDS DATA` without that file). It prints `NEEDS DATA`
@@ -20,7 +23,6 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **No wizard yet:** `./iaf2026-setup` runs `iaf-sim all` from the command line until item A3.
 - **The probe's flight checks:** the heights and the 3D-only cockpit (no 2D panel) need a flight on the sim's
   terrain; they are written when B1's terrain hook lands (the probe prints FAIL for them once the terrain exists).
-- **Original data still reached by the shared code:** the player's flight-model section comes from the converted
-  aircraft descriptor (`PlayerAircraft.profile`); the base move (`IafBases`, World scale Real) reads the install's
-  `iaf.ibx`; the radio's and the mission's `iaf.ibx` and the terrain's `terraintype.dat` have no own file yet (B2).
-  The temp-root run of item F finds every such read.
+- **No own `iaf.ibx` and `terraintype.dat` yet (B2b):** the base move, the tower's wind turn and the radio's bases
+  read `own_dir()`'s `iaf.ibx`, so the sim has no bases until B2b writes one; the terrain's `terraintype.dat` too.
+  The temp-root run of item F finds any read of the original's data still left.

@@ -84,6 +84,15 @@ pub fn read_md(install: &Path, name: &str) -> Result<Vec<u8>, String> {
     std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))
 }
 
+/// The flight-model name a type code flies as on the data in `install` with `set` (IAF 2026's player jets on its own
+/// bd.ibx): [`data_set::fm_name`] when the bd.ibx holds the section that name loads; None when it does not (the sim's
+/// own bd.ibx has only `[F-16]` and `[F-15]`) or the code has no name.
+pub fn fm_name_in(install: &Path, type_code: i64, set: DataSet) -> Option<&'static str> {
+    let name = data_set::fm_name(type_code)?;
+    let ini = iaf_formats::ini::Ini::parse(&read_md(install, "bd.ibx").ok()?);
+    ini.section(data_set::section(data_set::effective(set, name), name)).map(|_| name)
+}
+
 /// Decodes a v1.1 flight-data file (`bdgen.dat`, `*gen.skp`): byte i XOR (0x67 + i).
 pub fn decode_v11(bytes: &[u8]) -> Vec<u8> {
     bytes.iter().enumerate().map(|(i, b)| b ^ 0x67u8.wrapping_add(i as u8)).collect()
@@ -97,5 +106,19 @@ mod tests {
         let enc: Vec<u8> = plain.iter().enumerate().map(|(i, b)| b ^ 0x67u8.wrapping_add(i as u8)).collect();
         assert_eq!(&enc[..5], b"<.D^6");
         assert_eq!(super::decode_v11(&enc), plain);
+    }
+
+    /// IAF 2026's own bd.ibx (C1, `[F-16]` and `[F-15]`): the Barak / Sufa, the F-15I and the F-35I fly; the 1998
+    /// jets' codes have no section there.
+    #[test]
+    fn names_on_the_own_data() {
+        let own = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/converted/own");
+        if !own.join("resource/md/bd.ibx").exists() {
+            eprintln!("skipped: no own data (iaf-sim)");
+            return;
+        }
+        let f = |c| super::fm_name_in(&own, c, super::DataSet::Real);
+        assert_eq!([100, 110, 1000].map(f), [Some("F-16"), Some("F-15"), Some("F-35I")]);
+        assert_eq!([120, 130, 140, 160, 180, 190, 200, 999].map(f), [None; 8]);
     }
 }

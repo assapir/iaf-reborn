@@ -89,6 +89,27 @@ pub struct Params {
     pub engine_spool: Option<crate::spool::Spool>,
 }
 
+/// The bd.ibx section the original loads for a type code (`FUN_005a8980`; [`type_code`] backwards): None for the
+/// others, which keep the F-16's data. The converted aircraft descriptors' `fm_section` (iaf-tools `aircraft.rs`).
+pub fn code_section(type_code: i64) -> Option<&'static str> {
+    Some(match type_code {
+        100 => "F-16",
+        110 => "F-15",
+        120 | 200 => "F-4",
+        130 => "KFIR",
+        140 => "LAVI",
+        150 => "MIG21",
+        160 => "MIG23",
+        170 => "MIG25",
+        180 => "MIG29",
+        190 => "MIRAGE",
+        210 => "MIG17",
+        220 => "TU22",
+        225 => "C130",
+        _ => return None,
+    })
+}
+
 /// `veh+0xc54` for a bd.ibx section name (0 if unknown, e.g. SU24).
 pub fn type_code(section: &str) -> u32 {
     match section.to_ascii_uppercase().as_str() {

@@ -33,8 +33,14 @@ pub fn map_airbases(bases: &mut [Airbase]) {
     }
 }
 
-fn load(assets: &Path) -> Option<(BaseMoves, Meta)> {
-    let ibx = Airbase::load_all(&std::fs::read(assets.join("install/iaf.ibx")).ok()?);
+/// `own`'s iaf.ibx bases (Settings.own_dir(): the install in the original game, IAF 2026's own layout); None without
+/// that file.
+fn read_bases(own: &Path) -> Option<Vec<Airbase>> {
+    std::fs::read(own.join("iaf.ibx")).ok().map(|b| Airbase::load_all(&b))
+}
+
+fn load(assets: &Path, own: &Path) -> Option<(BaseMoves, Meta)> {
+    let ibx = read_bases(own)?;
     let terrain = assets.join("converted/terrain");
     let j: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(terrain.join("airbases.json")).ok()?).ok()?;
@@ -281,11 +287,12 @@ pub struct IafBases {}
 
 #[godot_api]
 impl IafBases {
-    /// Real (`on`): the moves from `assets` (iaf.ibx, airbases.json and its masks, the level-6 heights); Original:
-    /// none. False when on but the data is missing (then none).
+    /// Real (`on`): the moves from `own`'s iaf.ibx (Settings.own_dir(): the install in the original game, the sim's
+    /// own layout in IAF 2026) and `assets` (airbases.json and its masks, the level-6 heights); Original: none. False
+    /// when on but the data is missing (then none).
     #[func]
-    fn setup(on: bool, assets: GString) -> bool {
-        let got = if on { load(Path::new(&assets.to_string())) } else { None };
+    fn setup(on: bool, assets: GString, own: GString) -> bool {
+        let got = if on { load(Path::new(&assets.to_string()), Path::new(&own.to_string())) } else { None };
         let ok = got.is_some() == on;
         if let Some((m, meta)) = got {
             *META.write().unwrap() = meta;
@@ -298,14 +305,14 @@ impl IafBases {
 
     /// Better physics "Wind and turbulence" (docs/autopilot.md §2.4): the tower turns each base whose main runway
     /// (its true heading: the real one when moved) has the wind `knots` from `from_deg` behind it (`wind_reverses`)
-    /// to the runway's other end; 0 knots (the switch off, calm, NO WIND, training) turns none. Call after `setup`.
-    /// Returns the names of the bases turned.
+    /// to the runway's other end; 0 knots (the switch off, calm, NO WIND, training) turns none. The bases are `own`'s
+    /// iaf.ibx (as `setup`). Call after `setup`. Returns the names of the bases turned.
     #[func]
-    fn set_wind(knots: f64, from_deg: f64, assets: GString) -> PackedStringArray {
+    fn set_wind(knots: f64, from_deg: f64, assets: GString, own: GString) -> PackedStringArray {
         let mut out = Vec::new();
         if knots > 0.0 {
             let assets = Path::new(&assets.to_string()).to_path_buf();
-            let ibx = std::fs::read(assets.join("install/iaf.ibx")).map(|b| Airbase::load_all(&b)).unwrap_or_default();
+            let ibx = read_bases(Path::new(&own.to_string())).unwrap_or_default();
             let ends = main_runways(&assets);
             let moves = MOVES.read().unwrap();
             for b in ibx {
@@ -575,5 +582,22 @@ impl IafBases {
             upp * meta.m_per_unit,
         );
         PackedByteArray::from(v)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The bases come from the caller's iaf.ibx only: the install's in the original game, none from a folder without
+    /// one (IAF 2026's own layout until B2b writes its iaf.ibx).
+    #[test]
+    fn bases_from_the_own_layout() {
+        let assets = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets");
+        assert!(read_bases(&assets.join("iaf-2026-reads-no-install")).is_none(), "no iaf.ibx, no bases");
+        assert!(load(&assets, &assets.join("iaf-2026-reads-no-install")).is_none(), "no iaf.ibx, no moves");
+        if assets.join("install/iaf.ibx").exists() {
+            assert_eq!(read_bases(&assets.join("install")).map(|b| b.len()), Some(10), "the install's ten bases");
+        }
     }
 }

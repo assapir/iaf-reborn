@@ -78,11 +78,13 @@ static func profile(type: int) -> Dictionary:
 	if not flyable(type):
 		type = FALLBACK
 	var plane := plane_for(type)
-	var d := AircraftModel.load_descriptor(plane)
+	var fm := Settings.fm_section(type)
+	if fm == "":
+		fm = String(AircraftModel.load_descriptor(plane).get("fm_section", "F-16"))
 	return {
 		"type": type,
 		"plane": plane,
-		"fm_section": String(d.get("fm_section", "F-16")),
+		"fm_section": fm,
 		# Ours (in the repo): the aircraft definition's; the others the converted cockpits.ibx ones.
 		"cockpit_dir": Settings.airframe(type).get("cockpit", "converted/cockpits/" + cockpit_folder(type)),
 		"twin": type in TWIN

@@ -85,6 +85,15 @@ impl IafFlight {
         }
     }
 
+    /// The flight-model name `start` takes for a bdb type code on the data in `install` (`iaf_flight::fm_name_in`,
+    /// the Real or Original set): "F-16", "F-15", "F-35I"…; "" when that bd.ibx has no section for it. IAF 2026's
+    /// player jets (Settings.fm_section in iaf-2026/sim_settings.gd).
+    #[func]
+    fn fm_type(install: GString, type_code: i64, real_data: bool) -> GString {
+        let set = if real_data { iaf_flight::DataSet::Real } else { iaf_flight::DataSet::Original };
+        iaf_flight::fm_name_in(std::path::Path::new(&install.to_string()), type_code, set).unwrap_or_default().into()
+    }
+
     /// The start rule's base tests (`FUN_005a5820`, docs/ai.md §7.1): the base is the one whose lineup point
     /// (iaf.ibx) is nearest; x = at the base (within 5000 m horizontally and 15 m vertically of its tower),
     /// y = the engine runs (within 100 m of its lineup point). World coordinates.

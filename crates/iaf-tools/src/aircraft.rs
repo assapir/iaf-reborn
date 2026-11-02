@@ -97,26 +97,6 @@ fn helpers(id: u32) -> Option<(u32, u32)> {
     }
 }
 
-/// Flight-model data section per aircraft type (`FUN_005a8980`); other types keep the F-16 data.
-pub fn fm_section(type_code: i64) -> Option<&'static str> {
-    Some(match type_code {
-        100 => "F-16",
-        110 => "F-15",
-        120 | 200 => "F-4",
-        130 => "KFIR",
-        140 => "LAVI",
-        150 => "MIG21",
-        160 => "MIG23",
-        170 => "MIG25",
-        180 => "MIG29",
-        190 => "MIRAGE",
-        210 => "MIG17",
-        220 => "TU22",
-        225 => "C130",
-        _ => return None,
-    })
-}
-
 /// Table id of a frame name (case-insensitive, first entry wins), including the X1/X2 helpers.
 pub fn part_id(name: &str) -> Option<u32> {
     for &(n, id) in PART_NAMES {
@@ -271,7 +251,7 @@ pub fn describe(model: &Model, folder: &str, gltf: &str, source: &str, objects: 
         "root": root.map(|r| r.name.clone()).unwrap_or_default(),
         "type": primary,
         "types": types,
-        "fm_section": fm_section(primary),
+        "fm_section": iaf_flight::params::code_section(primary),
         "label": label,
         "objects": objects.iter().map(|o| json!({ "name": o.name, "class": o.class, "label": o.label, "type": o.type_code })).collect::<Vec<_>>(),
         "parts": parts,

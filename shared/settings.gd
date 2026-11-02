@@ -674,7 +674,7 @@ func runway_wind(id: int, misc: Dictionary) -> Array:
 	_flight_wind_id = id
 	var kt := 0.0 if flight_wind.is_empty() or no_wind or id in TRAINING_MISSIONS else float(flight_wind[0])
 	if ClassDB.class_exists("IafBases"):
-		IafBases.set_wind(kt, float(flight_wind[1]) if kt > 0.0 else 0.0, assets_dir())
+		IafBases.set_wind(kt, float(flight_wind[1]) if kt > 0.0 else 0.0, assets_dir(), own_dir())
 	return flight_wind
 
 
@@ -703,7 +703,7 @@ func clear_runway_wind() -> void:
 	flight_weather = ""
 	_flight_weather_for = ""
 	if ClassDB.class_exists("IafBases"):
-		IafBases.set_wind(0.0, 0.0, assets_dir())
+		IafBases.set_wind(0.0, 0.0, assets_dir(), own_dir())
 
 
 ## World scale Real: every airbase at its real place (docs/world-scale.md §3.3). Sets up the extension's base moves
@@ -717,7 +717,7 @@ func sync_bases() -> bool:
 		return false
 	if _bases_for != world_scale:
 		_bases_for = world_scale
-		if not IafBases.setup(world_scale == "real", assets_dir()):
+		if not IafBases.setup(world_scale == "real", assets_dir(), own_dir()):
 			push_warning("world scale real: the base data is missing (iaf.ibx, airbases.json): the bases stay")
 	return IafBases.active()
 
@@ -815,6 +815,13 @@ func install_dir() -> String:
 ## that layout in its project (iaf-2026/sim_settings.gd).
 func own_dir() -> String:
 	return install_dir()
+
+
+## The flight-model name the player's jet `type` flies (PlayerAircraft.profile, IafFlight.start's section); "" = the
+## converted aircraft descriptor's `fm_section` (the original game). IAF 2026 answers from its own data
+## (iaf-2026/sim_settings.gd).
+func fm_section(_type: int) -> String:
+	return ""
 
 
 ## The key table (key_table.gd): assets/converted/keys.json, converted from the exe by `iaf-convert keys`.

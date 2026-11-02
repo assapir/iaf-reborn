@@ -188,8 +188,8 @@ pub const TABLES: &[Table] = &[
         list: true,
     },
     Table {
-        file: "crates/iaf-tools/src/aircraft.rs",
-        anchor: "pub fn fm_section(type_code: i64)",
+        file: "crates/iaf-flight/src/params.rs",
+        anchor: "pub fn code_section(type_code: i64)",
         what: "type -> flight-model section in the descriptor",
         list: true,
     },
