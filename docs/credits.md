@@ -122,7 +122,10 @@ checksums are `SCENERY`, `SCENERY_THEATRE` and `ROADS` in `crates/iaf-tools/src/
 
 The sim's data compiler (`iaf-sim`, iaf-2026/docs/data-formats.md) uses open data kept in the repo: OpenStreetMap
 runway and apron ways (© OpenStreetMap contributors, ODbL 1.0[^osm]) in `crates/iaf-flight/data/real_runways.csv` and
-the mission files, and OurAirports' runway widths and field elevations (public domain). The sim's own setup wizard
+the mission files, the four airbases' layouts in `iaf-2026/data/airbases/` (runways, taxiways, aprons, hangars and
+shelters; iaf-2026/docs/airbases.md), and OurAirports' runway widths, lengths and field elevations (public domain).
+The attribution the sim shows for them: "Airbase and runway data © OpenStreetMap contributors, available under the
+Open Database Licence (ODbL) 1.0: openstreetmap.org/copyright". The sim's own setup wizard
 (item A3) lists them on its Attributions page. Every other figure of the data files is a cited fact with its source in
 the file.
 

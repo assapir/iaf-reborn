@@ -335,6 +335,67 @@ Each data file holds its own footnotes. The ones the first data uses:
 - the jets' spans and the F-35I's gun: Wikipedia[^w-f16][^w-f35]; the F-16's 511 rounds: General Dynamics OTS[^gdots];
 - the M61A1's muzzle velocity[^m61], the AIM-9M[^ds-aim9][^f16net] and the Mk 84[^mk84].
 
+## 10. Airbases: `data/airbases/<icao>.json`
+
+Written by `tools/iaf-2026/osm_airbase.py` from OpenStreetMap and OurAirports ([airbases.md](airbases.md)); not
+compiled yet (item B2b, after the terrain frame of B1). Places are WGS-84 `lat` / `lon`, headings true degrees,
+lengths metres; a polygon or polyline is a list of `[lat, lon]`. Every item names its source as §1 asks: `"source"`
+(one for the item) or `"sources"` (by field), each a footnote name of the file, `"inferred"` or `"open"`; an OSM
+item also holds `"osm"`, its element (`"way/188475529"`).
+
+| field | meaning |
+|---|---|
+| `icao`, `name` {`en`, `he`}, `osm` | the base; `osm` is its aerodrome way |
+| `elevation_m`, `reference` {`lat`, `lon`} | the field elevation and reference point |
+| `boundary` | the aerodrome way's ring |
+| `runways` | `designator` ("07L/25R"), `osm`, `length_m` (the way's), `length_published_m` (null: none), `width_m`, `surface`, `ends`, `sources` |
+| `runways[].ends` | two, the low number first: `designator`, `lat`, `lon` (the way's end), `heading` (toward the other end), `displaced_threshold_m`, `elevation_m` (null: none), `ils` (null: none known), `taxiway_entry_m` (the first taxiway joining from this end, null: none), `runway_start_m` (where the declared runway starts; B2b puts the lineup point from it), `sources` |
+| `stopways`, `taxiways` | `osm`, `points` (the centreline); a taxiway may hold `name`, `ref`, `width_m`, `note` |
+| `holding_positions` | `osm`, `lat`, `lon` |
+| `aprons`, `shelters` | `osm`, `polygon`; a shelter's `kind` is `hangar` (OSM hangar) or `shelter` (OSM bunker) |
+| `tower` | `lat`, `lon`, or null (`sources.tower` "open") |
+| `lights` | PAPI / approach lights: `kind`, `osm`, `lat`, `lon` (none in OSM at the four bases) |
+| `parking` | the start-up spots: `unit` (a unit id, `f15i` for the F-15I), `lat`, `lon`, `heading` (the nose) |
+| `sources`, `footnotes` | the base's own sources and the full citations |
+
+Example (parts of `llrm.json`):
+```json
+{
+ "icao": "LLRM",
+ "elevation_m": 648,
+ "runways": [
+  {
+   "designator": "07L/25R",
+   "osm": "way/188475529",
+   "length_m": 2684.9,
+   "length_published_m": 2700,
+   "width_m": 45.1,
+   "ends": [
+    {
+     "designator": "07L",
+     "lat": 30.7728061,
+     "lon": 34.6531986,
+     "heading": 66.8,
+     "displaced_threshold_m": 0.0,
+     "elevation_m": 642.5,
+     "ils": null,
+     "taxiway_entry_m": 0,
+     "runway_start_m": 0,
+     "sources": {"lat": "osm", "lon": "osm", "heading": "osm", "displaced_threshold_m": "oa", "elevation_m": "oa",
+                 "ils": "open", "taxiway_entry_m": "osm", "runway_start_m": "inferred"}
+    }
+   ],
+   "sources": {"designator": "osm", "ends": "osm", "width_m": "oa", "length_published_m": "oa", "length_m": "osm",
+               "surface": "osm"}
+  }
+ ],
+ "parking": [{"unit": "f16i", "lat": 30.769935, "lon": 34.6594868, "heading": 335, "source": "inferred"}]
+}
+```
+
+Check: `cargo test -p iaf-tools --lib sim::tests::every_airbase_has_runways_with_two_ends_and_a_width` (every file
+parses, every runway has two ends with a place and a heading, and a width; every source resolves).
+
 [^osm]: OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright (runway and apron ways via the Overpass API, 2026-10-20 and 2026-11-02).
 [^oa]: OurAirports, runways.csv and airports.csv (public domain), https://davidmegginson.github.io/ourairports-data/
 [^w-f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon

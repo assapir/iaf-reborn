@@ -1358,4 +1358,49 @@ mod tests {
         assert!(wav_seconds(&wav(3, 1, 22050, 32)).is_err());
         assert!(wav_seconds(b"OggS").is_err());
     }
+
+    /// Every airbase layout (`airbases/*.json`, iaf-2026/docs/airbases.md) parses, and every runway has two ends
+    /// with a place and a heading, and a width; every source names a footnote of the file, "inferred" or "open".
+    #[test]
+    fn every_airbase_has_runways_with_two_ends_and_a_width() {
+        let files = read_dir(&data().join("airbases")).unwrap();
+        for f in &files {
+            let (base, name) = (&f.v, &f.name);
+            let runways = base["runways"].as_array().unwrap();
+            assert!(!runways.is_empty(), "{name}: no runway");
+            for r in runways {
+                let ends = r["ends"].as_array().unwrap();
+                assert_eq!(ends.len(), 2, "{name} {}: two ends", r["designator"]);
+                for e in ends {
+                    for k in ["lat", "lon", "heading"] {
+                        assert!(e[k].is_f64(), "{name} {}: end without {k}", e["designator"]);
+                    }
+                }
+                assert!(r["width_m"].as_f64().is_some_and(|w| w > 0.0), "{name} {}: no width", r["designator"]);
+            }
+            // Every source, at any depth: one name or several joined by commas (§1).
+            let notes = base["footnotes"].as_object().unwrap();
+            let mut stack = vec![base];
+            while let Some(v) = stack.pop() {
+                match v {
+                    Value::Object(m) => {
+                        for (k, v) in m {
+                            let given = match (k.as_str(), v) {
+                                ("source", Value::String(s)) => vec![s.as_str()],
+                                ("sources", Value::Object(s)) => s.values().filter_map(Value::as_str).collect(),
+                                _ => vec![],
+                            };
+                            for n in given.iter().flat_map(|g| g.split(',')).map(str::trim) {
+                                assert!(["inferred", "open"].contains(&n) || notes.contains_key(n), "{name}: {n}");
+                            }
+                            stack.push(v);
+                        }
+                    }
+                    Value::Array(a) => stack.extend(a),
+                    _ => {}
+                }
+            }
+        }
+        assert_eq!(files.len(), 4, "Ramon, Hatzerim, Nevatim, Ramat David");
+    }
 }
