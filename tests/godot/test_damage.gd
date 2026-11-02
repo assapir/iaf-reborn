@@ -140,7 +140,10 @@ func run() -> void:
 		ring.ring and is_equal_approx(ring.node.scale.x, 28.8) and is_equal_approx(rq.transparency, 0.5),
 		"ring at t 0.5: 28.8 m across, half faded (%s, %.2f)" % [str(ring.node.scale), rq.transparency]
 	)
-	check(spl.node.get_child(0).material_override.albedo_texture != null, "splash uses the install's w_splash.tga")
+	check(
+		spl.node.get_child(0).material_override.get_shader_parameter("tex") != null,
+		"splash uses the install's w_splash.tga"
+	)
 	await seconds(2.6)
 	check(fx.counts().water == n0, "splash and ring gone after 2.4 s")
 	# Destroying the must-survive post fails the mission.

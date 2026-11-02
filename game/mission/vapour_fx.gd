@@ -55,6 +55,7 @@ shader_type spatial;
 render_mode unshaded, blend_mix, cull_disabled, depth_draw_never, shadows_disabled;
 uniform sampler2D noise : filter_linear_mipmap, repeat_enable;
 uniform vec3 light = vec3(1.0);
+#include "res://terrain/clouds_behind.gdshaderinc"
 void fragment() {
 	float across = 1.0 - abs(UV.y * 2.0 - 1.0);
 	float n = texture(noise, vec2(UV.x * 0.12, UV.y * 0.3 + UV.x * 0.031)).g;
@@ -64,12 +65,15 @@ void fragment() {
 	float broken = mix(1.0, smoothstep(0.2, 0.7, n), smoothstep(0.02, 0.2, COLOR.r));
 	float near = smoothstep(0.5, 3.0, length(VERTEX));
 	// The cloud forms within half a metre behind the tip (no cut end).
-	ALPHA = COLOR.a * smoothstep(0.0, 0.9, across) * broken * smoothstep(0.0, 0.5, UV2.x) * near;
+	ALPHA = COLOR.a * smoothstep(0.0, 0.9, across) * broken * smoothstep(0.0, 0.5, UV2.x) * near
+		* clouds_through(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX));
 }
 """
 
-## Soft at the silhouette and near the eye (the cockpit sits inside the vapour). Shared by both shells.
+## Soft at the silhouette and near the eye (the cockpit sits inside the vapour); behind a Volumetric cloud by the light
+## it lets through (clouds_behind.gdshaderinc). Shared by both shells.
 const SOFT := """
+#include "res://terrain/clouds_behind.gdshaderinc"
 float soft(vec3 n, vec3 view, vec3 vtx) {
 	return smoothstep(0.0, 0.4, abs(dot(n, view))) * smoothstep(0.5, 4.0, length(vtx));
 }
@@ -124,7 +128,8 @@ void fragment() {
 	float detail = smoothstep(0.5, 3.0, v_ppm);
 	puffs = mix(0.6, puffs, detail);
 	edge = mix(1.0, edge, detail);
-	ALPHA = clamp((cone + wing) * shape * axis * edge * puffs, 0.0, 0.75);
+	ALPHA = clamp((cone + wing) * shape * axis * edge * puffs, 0.0, 0.75)
+		* clouds_through(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX));
 }
 """
 )
@@ -174,7 +179,8 @@ void fragment() {
 	// down the length of the cloud: no silhouette fade then, nor for a far sheet.
 	float along = max(smoothstep(0.5, 0.9, abs(dot(v_axis, VIEW))), 1.0 - detail);
 	float edge = mix(soft(NORMAL, VIEW, VERTEX), smoothstep(0.5, 4.0, length(VERTEX)), along);
-	ALPHA = clamp(k_lex * shape * edge * streaks * 0.5, 0.0, 0.4);
+	ALPHA = clamp(k_lex * shape * edge * streaks * 0.5, 0.0, 0.4)
+		* clouds_through(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX));
 }
 """
 )

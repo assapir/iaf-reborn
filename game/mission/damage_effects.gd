@@ -87,6 +87,44 @@ void fragment() {
 }
 """
 
+## The puffs' sprites (the original look): a billboard of the instance's scale, the soft texture × the instance colour,
+## unshaded, fogged, no depth write; mix (smoke) or add (fire). Behind a Volumetric cloud a sprite shows by the light
+## the cloud lets through (clouds_behind.gdshaderinc).
+const SPRITE_SHADER := """
+shader_type spatial;
+render_mode BLEND, unshaded, depth_draw_never, shadows_disabled;
+#include "res://terrain/clouds_behind.gdshaderinc"
+uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_enable;
+void vertex() {
+	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(MAIN_CAM_INV_VIEW_MATRIX[0], MAIN_CAM_INV_VIEW_MATRIX[1],
+		MAIN_CAM_INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
+	MODELVIEW_MATRIX = MODELVIEW_MATRIX * mat4(vec4(length(MODEL_MATRIX[0].xyz), 0.0, 0.0, 0.0),
+		vec4(0.0, length(MODEL_MATRIX[1].xyz), 0.0, 0.0), vec4(0.0, 0.0, length(MODEL_MATRIX[2].xyz), 0.0),
+		vec4(0.0, 0.0, 0.0, 1.0));
+	MODELVIEW_NORMAL_MATRIX = mat3(MODELVIEW_MATRIX);
+}
+void fragment() {
+	vec4 c = texture(tex, UV) * COLOR;
+	ALBEDO = c.rgb;
+	ALPHA = c.a * clouds_through(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX));
+}
+"""
+
+## The water splash and ring (w_splash.tga / w_circle.tga): fixed in the world, both sides, colour 0xFAFAFA, faded by
+## the instance's transparency; behind a Volumetric cloud by the light it lets through.
+const WATER_SHADER := """
+shader_type spatial;
+render_mode blend_mix, unshaded, depth_draw_never, cull_disabled, shadows_disabled;
+#include "res://terrain/clouds_behind.gdshaderinc"
+uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_enable, hint_default_white;
+uniform vec4 albedo : source_color = vec4(1.0);
+void fragment() {
+	vec4 c = texture(tex, UV) * albedo;
+	ALBEDO = c.rgb;
+	ALPHA = c.a * clouds_through(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX));
+}
+"""
+
 const DecoyFx := preload("res://weapons/decoy_fx.gd")
 
 var _rng := RandomNumberGenerator.new()
@@ -138,16 +176,11 @@ func _make_layer(fire: bool) -> MultiMeshInstance3D:
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
 	var quad := QuadMesh.new()
-	var mat := StandardMaterial3D.new()
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	mat.billboard_keep_scale = true  # the instance scale is the sprite width
-	mat.vertex_color_use_as_albedo = true
-	mat.albedo_texture = _soft_texture(fire)
-	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
-	if fire:
-		mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	var sh := Shader.new()
+	sh.code = SPRITE_SHADER.replace("BLEND", "blend_add" if fire else "blend_mix")
+	var mat := ShaderMaterial.new()
+	mat.shader = sh
+	mat.set_shader_parameter("tex", _soft_texture(fire))
 	quad.material = mat
 	mm.mesh = quad
 	var inst := MultiMeshInstance3D.new()
@@ -316,14 +349,14 @@ func _add_puff(
 ##   255·(1 − t).
 func _water_fx(pos: Vector3, ring: bool, life: float, scale: float) -> void:
 	if not _water_mats.has(ring):
-		var mat := StandardMaterial3D.new()
-		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-		mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
-		mat.albedo_color = Color8(250, 250, 250)
-		mat.albedo_texture = DecoyFx._texture(
-			"w_circle.png" if ring else "w_splash.png", "w_circle.tga" if ring else "w_splash.tga"
+		var sh := Shader.new()
+		sh.code = WATER_SHADER
+		var mat := ShaderMaterial.new()
+		mat.shader = sh
+		mat.set_shader_parameter("albedo", Color8(250, 250, 250))
+		mat.set_shader_parameter(
+			"tex",
+			DecoyFx._texture("w_circle.png" if ring else "w_splash.png", "w_circle.tga" if ring else "w_splash.tga")
 		)
 		_water_mats[ring] = mat
 	var node := Node3D.new()

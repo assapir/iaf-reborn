@@ -77,6 +77,7 @@ varying float v_seed;
 varying vec2 v_local;
 varying float v_w;
 varying float v_z;
+varying vec3 v_view;
 void vertex() {
 	float age = max(now - INSTANCE_CUSTOM.w, 0.0);
 	v_age = age;
@@ -93,27 +94,22 @@ void vertex() {
 	vec2 q = mat2(vec2(cos(a), sin(a)), vec2(-sin(a), cos(a))) * vec2(l.x, -l.y);
 	vec3 v = c + vec3(q, 0.0) * 0.5 * v_w;
 	v_z = v.z;
+	v_view = v;
 	POSITION = PROJECTION_MATRIX * vec4(v, 1.0);
 }
 """
 )
 
 ## Soft edge where the billboard meets the scene (linear depth difference over a share of the width). Behind a
-## Clouds Volumetric cloud (volumetric_clouds.gd: its half-size image, a the light it lets through, and its distance)
-## the billboard shows only by the light the cloud lets through.
+## Clouds Volumetric cloud the billboard shows only by the light the cloud lets through (clouds_behind.gdshaderinc;
+## v_view: the point in view space).
 const SOFT := """
-global uniform float clouds_on;
-global uniform sampler2D clouds_light : filter_linear;
-global uniform sampler2D clouds_dist : filter_nearest;
-float soft(vec2 suv, float vz, float d, mat4 inv_proj, sampler2D dt) {
+#include "res://terrain/clouds_behind.gdshaderinc"
+float soft(vec2 suv, float vz, float d, mat4 inv_proj, sampler2D dt, vec2 vp_size, float dist) {
 	float z = texture(dt, suv).r;
 	vec4 p = inv_proj * vec4(suv * 2.0 - 1.0, z, 1.0);
 	float scene = -p.z / p.w;
-	float k = clamp((scene + vz) / max(d, 0.5), 0.0, 1.0);
-	if (clouds_on > 0.5 && -vz > textureLod(clouds_dist, suv, 0.0).r) {
-		k *= textureLod(clouds_light, suv, 0.0).a;
-	}
-	return k;
+	return clamp((scene + vz) / max(d, 0.5), 0.0, 1.0) * clouds_through(suv, vp_size, dist);
 }
 """
 
@@ -146,7 +142,8 @@ void fragment() {
 	float grey = COLOR.r;
 	vec3 col = grey * (ambient + sun_col * lit * 0.85) * (0.75 + 0.5 * n);
 	float fade = smoothstep(0.0, 0.06, v_f) * (1.0 - v_f * v_f);
-	float a = shape * fade * COLOR.a * soft(SCREEN_UV, v_z, v_w * 0.25, INV_PROJECTION_MATRIX, depth_tex);
+	float a = shape * fade * COLOR.a
+		* soft(SCREEN_UV, v_z, v_w * 0.25, INV_PROJECTION_MATRIX, depth_tex, VIEWPORT_SIZE, length(v_view));
 	ALBEDO = col;
 	ALPHA = clamp(a, 0.0, 1.0);
 }
@@ -177,7 +174,7 @@ void fragment() {
 	if (shape <= 0.0) { discard; }
 	float heat = clamp((1.0 - v_f * 1.25) * (0.15 + n * 1.25) * (1.25 - r * 0.9) * COLOR.r, 0.0, 1.0);
 	float a = shape * smoothstep(0.0, 0.05, v_f) * pow(1.0 - v_f, 1.4) * COLOR.a
-		* soft(SCREEN_UV, v_z, v_w * 0.2, INV_PROJECTION_MATRIX, depth_tex);
+		* soft(SCREEN_UV, v_z, v_w * 0.2, INV_PROJECTION_MATRIX, depth_tex, VIEWPORT_SIZE, length(v_view));
 	ALBEDO = ramp(heat) * a * (0.35 + heat);
 	ALPHA = 1.0;
 }
@@ -191,7 +188,9 @@ render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabl
 """
 	+ MOTION
 	+ """
+#include "res://terrain/clouds_behind.gdshaderinc"
 varying vec2 v_local;
+varying vec3 v_view;
 void vertex() {
 	// A streak along the velocity (0.08 s of travel, at least as long as wide), facing the camera.
 	float age = max(now - INSTANCE_CUSTOM.w, 0.0);
@@ -204,10 +203,13 @@ void vertex() {
 	side = length(side) > 1e-6 ? normalize(side) : vec3(1.0, 0.0, 0.0);
 	vec2 l = UV * 2.0 - 1.0;
 	v_local = l;
-	POSITION = PROJECTION_MATRIX * vec4(c + side * l.x * 0.5 * w - ax * (l.y * 0.5 + 0.5), 1.0);
+	vec3 v = c + side * l.x * 0.5 * w - ax * (l.y * 0.5 + 0.5);
+	v_view = v;
+	POSITION = PROJECTION_MATRIX * vec4(v, 1.0);
 }
 void fragment() {
-	float a = (1.0 - abs(v_local.x)) * (1.0 - (v_local.y * 0.5 + 0.5) * 0.8) * (1.0 - v_f) * COLOR.a;
+	float a = (1.0 - abs(v_local.x)) * (1.0 - (v_local.y * 0.5 + 0.5) * 0.8) * (1.0 - v_f) * COLOR.a
+		* clouds_through(SCREEN_UV, VIEWPORT_SIZE, length(v_view));
 	vec3 c = mix(vec3(1.0, 0.95, 0.7), vec3(1.0, 0.35, 0.05), v_f);
 	ALBEDO = c * clamp(a, 0.0, 1.0) * 2.0;
 	ALPHA = 1.0;

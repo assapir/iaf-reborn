@@ -16,8 +16,9 @@ const ORIGINAL_ROWS := 480.0
 
 ## The glow of a light point (Detailed). size_m: the glow's diameter in metres; the point keeps at least min_px and at
 ## most max_px pixels (at 1080 rows); gain: 1 at night; lift: metres above its spot (ground lights stand on the ground
-## and the terrain between the spots would cut them). Far points dim with half the fog. A vertex colour's alpha below 1
-## marks a one-way fixture (airbase_lights.gd): it shines one way only, and a PAPI unit turns white or red by the
+## and the terrain between the spots would cut them). Far points dim with half the fog; behind a Volumetric cloud a
+## point shows by the light the cloud lets through (clouds_behind.gdshaderinc). A vertex colour's alpha below 1 marks a
+## one-way fixture (airbase_lights.gd): it shines one way only, and a PAPI unit turns white or red by the
 ## viewer's angle above it.
 const GLOW_SHADER := """
 shader_type spatial;
@@ -29,11 +30,14 @@ uniform float gain = 1.0;
 uniform float fog_k = 0.00003;
 uniform float vp_h = 1080.0;
 uniform float lift = 1.5;
+#include "res://terrain/clouds_behind.gdshaderinc"
 varying float fade;
 varying vec3 col;
+varying float v_dist;
 void vertex() {
 	vec4 v = MODELVIEW_MATRIX * vec4(VERTEX, 1.0) + VIEW_MATRIX * vec4(0.0, lift, 0.0, 0.0);
 	float d = max(-v.z, 1.0);
+	v_dist = length(v.xyz);
 	float rows = vp_h / 1080.0;
 	float px = size_m * abs(PROJECTION_MATRIX[1][1]) * 0.5 * vp_h / d;
 	// A lamp outshines the haze: half the scene's fog, and a far point keeps 60 % of its light.
@@ -61,11 +65,12 @@ void fragment() {
 	float r = length(c);
 	float core = smoothstep(0.6, 0.0, r);
 	float halo = pow(1.0 - smoothstep(0.0, 1.0, r), 2.0) * 1.5;
-	ALBEDO = (col * (core * 3.0 + halo) + vec3(core * 1.2)) * fade;
+	ALBEDO = (col * (core * 3.0 + halo) + vec3(core * 1.2)) * fade * clouds_through(SCREEN_UV, VIEWPORT_SIZE, v_dist);
 }
 """
 
-## The night sky (Detailed): stars and the moon at the far plane, behind everything; the cloud layer draws over them.
+## The night sky (Detailed): stars and the moon at the far plane, behind everything; the cloud layer draws over them,
+## the Volumetric clouds hide them by their light let through (clouds_behind.gdshaderinc).
 const SKY_SHADER := """
 shader_type spatial;
 render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled, skip_vertex_transform;
@@ -73,6 +78,7 @@ uniform float size_px = 2.4;
 uniform bool moon = false;
 uniform float gain = 1.0;
 uniform float vp_h = 1080.0;
+#include "res://terrain/clouds_behind.gdshaderinc"
 varying float fade;
 void vertex() {
 	vec3 dir = normalize((VIEW_MATRIX * vec4(VERTEX, 0.0)).xyz);
@@ -86,7 +92,7 @@ void fragment() {
 	vec2 c = POINT_COORD * 2.0 - 1.0;
 	float r = length(c);
 	float a = moon ? smoothstep(0.42, 0.36, r) + exp(-r * r * 6.0) * 0.12 : exp(-r * r * 5.0) * COLOR.a;
-	ALBEDO = COLOR.rgb * a * fade;
+	ALBEDO = COLOR.rgb * a * fade * clouds_through(SCREEN_UV, VIEWPORT_SIZE, 1e9);
 }
 """
 

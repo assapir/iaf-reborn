@@ -3,7 +3,8 @@
 # can fly into and climb out of. A compositor effect (Effect, on the cockpit and chase cameras) marches them at half
 # the 3D view's width and height after the opaque scene (clouds_march.glsl), into a texture a full-screen quad lays
 # over the 3D view as its first transparent thing (clouds_composite.gdshader): the 2D cockpit and HUD stay on top. The
-# effects behind a cloud fade by the light it lets through (gpu_fx.gd reads the same textures).
+# effects, sparks and light points behind a cloud fade by the light it lets through (clouds_behind.gdshaderinc reads the
+# same textures).
 # Needs a RenderingDevice (Forward+ / Mobile); terrain_view.gd makes the node while the choice is Volumetric.
 extends Node3D
 
@@ -58,7 +59,8 @@ func attach(cams: Array[Camera3D]) -> void:
 	v.mat.render_priority = Material.RENDER_PRIORITY_MIN
 	v.mat.set_shader_parameter("clouds", v.color)
 	v.mat.set_shader_parameter("cloud_dist", v.dist)
-	# The effects behind a cloud show by the light it lets through (gpu_fx.gd SOFT): the last viewport attached.
+	# The effects, sparks and light points behind a cloud show by the light it lets through (clouds_behind.gdshaderinc):
+	# the last viewport attached.
 	RenderingServer.global_shader_parameter_set("clouds_light", v.color)
 	RenderingServer.global_shader_parameter_set("clouds_dist", v.dist)
 	RenderingServer.global_shader_parameter_set("clouds_on", 1.0)
@@ -96,9 +98,11 @@ func update(env: Environment, sun: DirectionalLight3D, wind: Vector3, delta: flo
 			w.color.texture_rd_rid = ef.a_color
 			w.dist.texture_rd_rid = ef.a_dist
 			w.mat.set_shader_parameter("full", Vector2(ef.full))
-			if w == views.back():  # the effects' (gpu_fx.gd): the global takes the new textures only when set again
+			# The effects' (clouds_behind.gdshaderinc): the global takes the new textures only when set again.
+			if w == views.back():
 				RenderingServer.global_shader_parameter_set("clouds_light", w.color)
 				RenderingServer.global_shader_parameter_set("clouds_dist", w.dist)
+				RenderingServer.global_shader_parameter_set("clouds_full", Vector2(ef.full))
 		w.quad.visible = ef.size != Vector2i.ZERO
 	_wind -= wind * delta
 	var l := Weather.level()
@@ -182,6 +186,8 @@ class Effect:
 	var _frame := 0
 	var _prev_vp := Projection.IDENTITY
 	var _valid := false
+	## Benches (_clouds_shot.gd): GPU timestamps around the march ("clouds march" / "clouds march end").
+	static var timing := false
 
 	func _init() -> void:
 		effect_callback_type = EFFECT_CALLBACK_TYPE_PRE_TRANSPARENT
@@ -323,6 +329,8 @@ class Effect:
 			),
 		]
 		var set_rid := UniformSetCacheRD.get_cache(_march, 0, us)
+		if timing:
+			rd.capture_timestamp("clouds march")
 		var cl := rd.compute_list_begin()
 		rd.compute_list_bind_compute_pipeline(cl, _pipe)
 		rd.compute_list_bind_uniform_set(cl, set_rid, 0)
@@ -331,6 +339,8 @@ class Effect:
 		var s3 := Vector3(size.x, size.y, 1)
 		rd.texture_copy(_b_color, a_color, Vector3.ZERO, Vector3.ZERO, s3, 0, 0, 0, 0)
 		rd.texture_copy(_b_dist, a_dist, Vector3.ZERO, Vector3.ZERO, s3, 0, 0, 0, 0)
+		if timing:
+			rd.capture_timestamp("clouds march end")
 		_prev_vp = vp
 		_frame += 1
 		_valid = true

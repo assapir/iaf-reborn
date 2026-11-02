@@ -54,6 +54,7 @@ uniform vec3 wind = vec3(0.0);
 uniform vec3 sun_dir = vec3(0.3, 0.8, 0.5);
 uniform vec3 sun_col : source_color = vec3(1.0);
 uniform vec3 ambient : source_color = vec3(0.72, 0.78, 0.86);
+#include "res://terrain/clouds_behind.gdshaderinc"
 // The scalars, packed four to a varying (the driver's varying limit): set from the vertex function's locals of the
 // same names, read through the defines before fragment().
 varying vec4 v_a;
@@ -187,7 +188,8 @@ void fragment() {
 	ALBEDO = col;
 	ALPHA = clamp(shape * mix(0.75, 1.0, depth) * (0.65 + 0.7 * n) * thin * fade * v_cover
 		* (1.0 - 0.15 * v_align) * dens * near_fade
-		* mix(1.0 - 0.9 * v_end, puff_alpha * v_end, v_disc), 0.0, 1.0);
+		* mix(1.0 - 0.9 * v_end, puff_alpha * v_end, v_disc), 0.0, 1.0)
+		* clouds_through(SCREEN_UV, VIEWPORT_SIZE, cam_d);
 }
 """
 
@@ -199,7 +201,9 @@ shader_type spatial;
 render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 uniform bool halo = false;
 uniform float min_px = 12.0;
+#include "res://terrain/clouds_behind.gdshaderinc"
 varying vec2 v_uv;
+varying float v_dist;
 varying float v_end_on;
 varying float v_gain;
 void vertex() {
@@ -210,6 +214,7 @@ void vertex() {
 	float wid = length(MODEL_MATRIX[0].xyz);
 	vec3 to_cam = INV_VIEW_MATRIX[3].xyz - c;
 	float d = length(to_cam);
+	v_dist = d;
 	// Looking into the nozzle (from behind the missile) the plume is short and the glow strongest.
 	v_end_on = max(dot(-a, to_cam / max(d, 1e-3)), 0.0);
 	float flick = 0.88 + 0.12 * sin(TIME * 63.0 + c.x * 0.7) * sin(TIME * 41.0 + c.z * 0.9);
@@ -247,7 +252,7 @@ void fragment() {
 		vec3 tip = vec3(1.0, 0.42, 0.08) * 2.2;
 		col = mix(hot, tip, smoothstep(0.08, 0.75, t)) * core * v_gain * (1.0 - 0.6 * v_end_on);
 	}
-	ALBEDO = col;
+	ALBEDO = col * clouds_through(SCREEN_UV, VIEWPORT_SIZE, v_dist);
 	ALPHA = 1.0;
 }
 """

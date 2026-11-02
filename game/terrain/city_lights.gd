@@ -38,7 +38,7 @@ const TAKES := 3
 ## its glow (its minimum size), a light keeps the glow's energy × glare, the kept far ones the dropped ones' too. A
 ## light is pulled toward the eye by its size and 1 % of its distance, so the coarser far terrain does not hide it.
 ## Far points dim and redden by `ext` of the fog (blue twice as fast as red) and fade out over the last 20 % of
-## `range`.
+## `range`. Behind a Volumetric cloud a light shows by the light the cloud lets through (clouds_behind.gdshaderinc).
 const SHADER := """
 shader_type spatial;
 render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
@@ -58,10 +58,13 @@ uniform float ext = 0.35;
 uniform float range = 120000.0;
 uniform float glare = 3.0;
 uniform float bright = 5.0;
+#include "res://terrain/clouds_behind.gdshaderinc"
 varying vec3 col;
+varying float v_dist;
 void vertex() {
 	vec4 v = MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
 	float d = max(-v.z, 1.0);
+	v_dist = length(v.xyz);
 	float keep = mix(1.0, far_share, smoothstep(keep_near, keep_far, d));
 	keep = mix(keep, xfar_share, smoothstep(xkeep_near, xkeep_far, d));
 	float on = 1.0 - smoothstep(keep * 0.8, keep, COLOR.a);
@@ -86,7 +89,7 @@ void fragment() {
 	float r = length(c);
 	float core = smoothstep(0.45, 0.0, r);
 	float halo = pow(max(1.0 - r, 0.0), 3.0);
-	ALBEDO = col * (core * 3.0 + halo * 0.9);
+	ALBEDO = col * (core * 3.0 + halo * 0.9) * clouds_through(SCREEN_UV, VIEWPORT_SIZE, v_dist);
 }
 """
 

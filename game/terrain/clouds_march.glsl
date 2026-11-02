@@ -47,6 +47,9 @@ const float MIN_FINE = 12.0;
 // (m) the detail noise is finer than a pixel: the edges erode by its mean instead of reading it; past FAR_LIGHT the
 // light toward the sun takes four steps, not six.
 const float TR_MIN = 0.05;
+// The light march toward the sun stops where even the weakest multiple-scattering octave (0.16 × the extinction) keeps
+// less than e^-OD_DARK of the light: its further steps would change nothing visible (deep in the deck).
+const float OD_DARK = 5.0;
 const float FAR_DETAIL = 30000.0;
 const float FAR_LIGHT = 12000.0;
 const float DETAIL_MEAN = 0.5;
@@ -145,6 +148,9 @@ float sun_depth(vec3 pos, bool far) {
 	int n = far ? 4 : 6;
 	int nd = far ? 1 : 3;
 	for (int i = 0; i < n; i++) {
+		if (od * p.layer.w * 0.16 > OD_DARK) {
+			break;
+		}
 		vec3 x = pos + p.sun.xyz * t;
 		float hf = (x.y - p.layer.x) / (p.layer.y - p.layer.x);
 		od += density(x, hf, i < nd ? 1 : 0) * st;
@@ -263,6 +269,8 @@ void shade(ivec2 id, bool turn) {
 	float dsum = 0.0;
 	float wsum = 0.0;
 	float mu = dot(d, p.sun.xyz);
+	// The multiple-scattering octaves' phases along this view (each half the light and the eccentricity of the last).
+	vec3 ph = vec3(phase(mu, 1.0), 0.5 * phase(mu, 0.5), 0.25 * phase(mu, 0.25));
 	float hspan = top - base;
 	bool deck = p.shape.z > 0.5;
 	// The light from above: the Atmospheric sky's own (its zenith and horizon), else the time of day's.
@@ -300,16 +308,7 @@ void shade(ivec2 id, bool turn) {
 			float sig = den * p.layer.w;
 			float od = sun_depth(x, t > FAR_LIGHT);
 			// Multiple scattering (Wrenninge 2013): octaves of weaker extinction and a wider phase.
-			vec3 light = vec3(0.0);
-			float a = 1.0;
-			float b = 1.0;
-			float c = 1.0;
-			for (int k = 0; k < 3; k++) {
-				light += a * exp(-od * b) * phase(mu, c);
-				a *= 0.5;
-				b *= 0.4;
-				c *= 0.5;
-			}
+			vec3 light = vec3(ph.x * exp(-od) + ph.y * exp(-od * 0.4) + ph.z * exp(-od * 0.16));
 			// Powder: little cloud behind the sunward edge scatters little light back (darker), not toward the sun.
 			float powder = 1.0 - exp(-2.0 * sig * 120.0);
 			powder = mix(powder, 1.0, 0.5 + 0.5 * mu);

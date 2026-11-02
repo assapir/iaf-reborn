@@ -155,6 +155,10 @@ clouds_dist={
 "type": "sampler2D",
 "value": ""
 }
+clouds_full={
+"type": "vec2",
+"value": Vector2(0, 0)
+}
 ground_albedo={
 "type": "sampler2DArray",
 "value": ""

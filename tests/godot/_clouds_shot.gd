@@ -8,7 +8,7 @@
 # (SHOT_DIR/<tag><name>.png). CLOUD_BENCH=secs: the average frame time and the GPU's render time of each shot's view
 # instead of pictures (vsync off). Shots: [name, rain, m above the ground, hour, pitch (deg, + up), turn from the
 # sun's azimuth (deg), view, and "fx": an explosion in the air above the deck and one inside it, 0.6 s before the
-# picture].
+# picture, or a list of [m along the view, m to the side]: explosions there].
 extends "res://../tests/godot/base.gd"
 
 const TimeOfDay := preload("res://terrain/time_of_day.gd")
@@ -27,6 +27,15 @@ const SHOTS := [
 	["cumulus_level", "off", 1900.0, 12.5, 0.0, 100.0, "external"],
 	["cumulus_sunset", "off", 600.0, 19.6, 4.0, 10.0, "external"],
 	["cumulus_night", "off", 600.0, 22.0, 6.0, 60.0, "external"],
+	# Behind the clouds or in front of them: explosions (with sparks under Effects Detailed) and the night's lights.
+	["cumulus_fx", "off", 900.0, 12.5, 8.0, 150.0, "cockpit", "auto"],
+	["cumulus_fx_ext", "off", 1500.0, 12.5, 4.0, 100.0, "external", "auto"],
+	["rain_below_fx", "light", 400.0, 12.5, 5.0, 40.0, "cockpit", "auto"],
+	["rain_inside_fx", "light", 1900.0, 12.5, 0.0, 40.0, "cockpit", [[60.0, -15.0], [150.0, 0.0], [400.0, 60.0]]],
+	["cumulus_night_above", "off", 3450.0, 22.0, -10.0, 0.0, "external"],
+	["cumulus_night_above2", "off", 3450.0, 22.0, -10.0, 90.0, "external"],
+	["cumulus_night_above3", "off", 3450.0, 22.0, -10.0, 180.0, "external"],
+	["cumulus_night_above4", "off", 3450.0, 22.0, -10.0, 270.0, "external"],
 ]
 
 var tv: Node
@@ -80,6 +89,7 @@ func run() -> void:
 	var bench := float(_env("CLOUD_BENCH", "0"))
 	if bench > 0.0:
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+		load("res://terrain/volumetric_clouds.gd").Effect.timing = true
 		RenderingServer.viewport_set_measure_render_time(root.get_viewport_rid(), true)
 	var only := _env("CLOUD_ONLY", "").split(",", false)
 	var start: Vector3 = tv.rig.position
@@ -108,7 +118,16 @@ func run() -> void:
 			await process_frame
 		await frames(90)
 		if shot.size() > 7:
-			_explode()
+			# The same explosions in every run (before / after pictures).
+			tv.effects._rng.seed = 7
+			if tv.effects.gpu != null:
+				tv.effects.gpu._rng.seed = 7
+			if shot[7] is Array:
+				_explode_along(shot[7])
+			elif shot[7] == "auto":
+				_explode_auto()
+			else:
+				_explode()
 			await frames(36)
 		if bench > 0.0:
 			await _measure(shot[0], bench)
@@ -146,9 +165,75 @@ func _explode() -> void:
 		tv.effects.explosion(a + cam.global_basis.x * k[1], e.flags, 6.0, e.duration, 0.0, 8.0)
 
 
+## Air kills' explosions picked by the clouds' image now (Volumetric): behind a thick cloud, behind a thin edge (both
+## 800 m past the cloud's mean distance) and in front of a thick cloud (at half its distance). Prints each spot.
+func _explode_auto() -> void:
+	var vc = tv.get("vclouds")
+	if vc == null or vc.views.is_empty():
+		return
+	var cam: Camera3D = root.get_viewport().get_camera_3d()
+	var ef = vc.views[0].effect
+	var rd := RenderingServer.get_rendering_device()
+	var dd := rd.texture_get_data(ef.a_dist, 0).to_float32_array()
+	var cc := rd.texture_get_data(ef.a_color, 0)
+	var vs := Vector2(root.get_viewport().get_visible_rect().size)
+	# [want light-through min, max, distance share]: thick behind, thin behind, thick in front.
+	var picks := [[0.0, 0.1, 1.0], [0.35, 0.75, 1.0], [0.0, 0.1, 0.5]]
+	var used: Array[Vector2] = []
+	var e: Dictionary = tv.effects.explosion_for(1, 0, false, false)
+	for want in picks:
+		var found := false
+		for gy in range(2, 44):
+			for gx in range(2, 38):
+				var uv := Vector2(gx / 40.0, gy / 48.0)
+				if uv.y > (0.5 if tv.in_cockpit else 0.9) or used.any(func(u): return u.distance_to(uv) < 0.15):
+					continue
+				var px := Vector2i(int(uv.x * ef.size.x), int(uv.y * ef.size.y))
+				var i: int = px.y * ef.size.x + px.x
+				var a := cc.decode_half(i * 8 + 6)
+				var cd: float = dd[i * 2]
+				if a < want[0] or a > want[1] or cd < 1000.0 or cd > 7000.0 or dd[i * 2 + 1] < cd + 2000.0:
+					continue
+				var d: float = cd + 800.0 if want[2] >= 1.0 else cd * want[2]
+				var p := cam.project_position(uv * vs, d)
+				p = cam.global_position + (p - cam.global_position).normalized() * d
+				tv.effects.explosion(p, e.flags, 6.0, e.duration, 0.0, 8.0)
+				print("FX at screen %s: light through %.2f, cloud %.0f m, explosion %.0f m" % [uv, a, cd, d])
+				used.append(uv)
+				found = true
+				break
+			if found:
+				break
+
+
+## Air kills' explosions at [m along the view, m to its right].
+func _explode_along(at: Array) -> void:
+	var cam: Camera3D = root.get_viewport().get_camera_3d()
+	var e: Dictionary = tv.effects.explosion_for(1, 0, false, false)
+	for k in at:
+		var a: Vector3 = cam.global_position - cam.global_basis.z * k[0] + cam.global_basis.x * k[1]
+		tv.effects.explosion(a, e.flags, 6.0, e.duration, 0.0, 8.0)
+
+
 func _measure(name: String, secs: float) -> void:
 	var times: Array[float] = []
 	var gpu := 0.0
+	var march := 0.0
+	var marches := 0
+	var rd := RenderingServer.get_rendering_device()
+	# CLOUD_PART: one part of the clouds left out, for its share: "noquad" (the composite), "nodispatch" (the march and
+	# its copies; the effect stays, with the resolved depth), "noeffect" (the compositor effect and the quad).
+	if OS.get_environment("CLOUD_MSAA") == "0":  # the 3D view without MSAA (for the share MSAA adds)
+		root.get_viewport().msaa_3d = Viewport.MSAA_DISABLED
+	var part := OS.get_environment("CLOUD_PART")
+	if part != "" and tv.vclouds != null:
+		var v: Dictionary = tv.vclouds.views[0]
+		v.quad.layers = 0
+		if part == "nodispatch":
+			v.effect._pipe = RID()
+		elif part == "noeffect":
+			for c in v.cams:
+				c.compositor = null
 	var start := Time.get_ticks_usec()
 	var last := start
 	while Time.get_ticks_usec() - start < int(secs * 1e6):
@@ -157,6 +242,14 @@ func _measure(name: String, secs: float) -> void:
 		times.append((now - last) / 1000.0)
 		gpu += RenderingServer.viewport_get_measured_render_time_gpu(root.get_viewport_rid())
 		last = now
+		var t0 := -1.0
+		for i in rd.get_captured_timestamps_count():
+			var n := rd.get_captured_timestamp_name(i)
+			if n == "clouds march":
+				t0 = rd.get_captured_timestamp_gpu_time(i)
+			elif n == "clouds march end" and t0 >= 0.0:
+				march += (rd.get_captured_timestamp_gpu_time(i) - t0) / 1e6  # ns
+				marches += 1
 	times.sort()
 	var avg := 0.0
 	for x in times:
@@ -164,7 +257,7 @@ func _measure(name: String, secs: float) -> void:
 	avg /= times.size()
 	print(
 		(
-			"CLOUDS %-22s frame %6.2f ms  p95 %6.2f  gpu %6.2f ms"
-			% [name, avg, times[int(times.size() * 0.95)], gpu / times.size()]
+			"CLOUDS %-22s frame %6.2f ms  p95 %6.2f  gpu %6.2f ms  march %6.2f ms"
+			% [name, avg, times[int(times.size() * 0.95)], gpu / times.size(), march / maxi(marches, 1)]
 		)
 	)

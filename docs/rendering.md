@@ -936,20 +936,34 @@ How it is drawn:
   layers drawn after the 3D view, so the clouds never cover them. The quad upsamples by the depth: of the four
   nearest cloud pixels, those whose scene depth matches the pixel's count, so a cloud does not bleed over a hill's
   edge. The EO sensor's camera leaves the quad out (visual layer 20).
-- **Effects behind a cloud**: the detailed effects' smoke and fire (§6, `gpu_fx.gd`'s soft edge) read the cloud
-  image and distance (global shader parameters `clouds_light`, `clouds_dist`, `clouds_on`): a billboard farther than
-  the cloud's mean distance along that pixel's view shows only by the light the cloud lets through, so an explosion
-  behind a cloud is hidden by it, softly at its thin edges; one in front draws over it. The sparks, the Original
-  effects' sprites and the night light points do not read it (open).
+- **Things behind a cloud**: everything drawn after the quad reads the cloud image and distance through one shader
+  include, `clouds_behind.gdshaderinc` (global shader parameters `clouds_light`, `clouds_dist`, `clouds_full`,
+  `clouds_on`): the detailed effects' smoke, fire and sparks (§6, `gpu_fx.gd`), the Original effects' sprites and
+  water splashes (`damage_effects.gd`), the missile smoke and motor flames (`missile_fx.gd`), the vapour
+  (`vapour_fx.gd`), the afterburner flames (`afterburner.gd`), the night light points, the jets' lights, the stars and
+  the moon (`night_lights.gd`) and the city lights (`city_lights.gd`). Each pixel of such a thing farther than the
+  clouds' mean distance along its view shows only by the light the clouds let through there: an explosion or a town
+  behind a cloud is hidden by it, softly at its thin edges; one in front draws over it. The change runs across ±10 % of
+  the clouds' distance (at least ±100 m), and that distance is the mean of the four nearest cloud pixels: inside the
+  deck the distance comes from a few jittered steps, and a sharp cut there drew the effects as a dither pattern. A
+  billboard takes its distance per pixel (a 1.5 km wide fireball's corners lie much farther than its middle). Another
+  viewport of the same world (the EO sensor's, a screenshot helper's) reads none of it (`clouds_full`, the 3D view
+  size the clouds were made for). The Original light points are opaque: the quad covers them already.
+  Checked 2026-11-02 with `_clouds_shot.gd` (the `*_fx` shots, explosions placed by the cloud image: behind a thick
+  cloud, behind a thin edge, in front of a cloud; the `cumulus_night_above*` shots): the explosions and the towns'
+  lights behind the cumulus no longer show through, the ones in front and below still do.
   Tried and dropped (2026-11-01): writing the cloud's depth from the composite quad (`depth_draw_always`, `DEPTH`) or
   from a depth-only next pass: the effects drew over the cloud even with the depth forced to the near plane (inferred:
   the transparent pass does not write depth there, as the effects sample the depth buffer for their soft edges).
+  Tried and dropped (2026-11-02): a ±10 % change with the nearest cloud pixel's distance: inside the deck the effects
+  showed a dither pattern (the jittered distance per pixel), so the change is now wider there and averaged.
 - **Shape** (after Schneider 2015[^schneider]): two tileable 3D noises, computed once on the GPU when the clouds are
   made (`clouds_noise.glsl`): 128³ Perlin-Worley plus three Worley octaves (tile 9 km) and 32³ Worley detail (tile
   800 m). The shape is cut by the coverage (a slow 60 km field for the cumulus) and a height profile (flat bases,
   rounded tops), then its edges are eroded by the detail: wispy at the base, billowy higher up. The deck is eroded at
   its top only, so no hole shows the ground through it.
-- **Light**: Beer's law toward the sun (six steps, 60 m doubling); a two-lobe Henyey-Greenstein phase (g 0.8 and
+- **Light**: Beer's law toward the sun (six steps, 60 m doubling; they stop where even the weakest octave below keeps
+  less than e^−5 of the light, deep in the deck); a two-lobe Henyey-Greenstein phase (g 0.8 and
   −0.3) with three multiple-scattering octaves (Wrenninge 2013[^wrenninge]: each half the light, 0.4× the
   extinction, half the eccentricity); a powder term that darkens the sunward edges, except looking toward the sun;
   the sky's light from above (with the Atmospheric sky its own colour at the zenith and horizon, else the fog colour
@@ -1030,12 +1044,63 @@ are not used.
   nothing was saved; with a 2 × 2 block per invocation and every pixel marching, the march cost 5–11 ms more than one
   pixel per invocation.
 - Below the deck and inside it the interleave saves little (≤ 1 ms), though the history holds there (checked by
-  painting the refused pixels red): what the remaining 6–9 ms is spent on is open.
+  painting the refused pixels red). Where the rest goes: "Where the time goes" below (2026-11-02).
 - The floor's 48 texture reads cost 1 ms over its earlier six (8.9 against 7.9 ms above the deck).
 - The M4 Pro (the high tier) is not measured (open). Inferred: its GPU has several times the Iris Xe's throughput
   and bandwidth, so about a quarter of the cost, 1–2 ms; the interleave and the floor save the same share there.
 - Inside the deck the march stops where the fog leaves 2 % (4 / density: 200 m); before that limit the same pose
   cost +22 ms.
+
+**Where the time goes** (2026-11-02). The same poses and settings (MSAA 4×, the default), the build of 2026-11-01.
+Each part measured on its own: the march by RenderingDevice timestamps around its dispatch and copies
+(`CLOUD_BENCH` prints it), the light march by a build without it, the quad by hiding it (`CLOUD_PART=noquad`), the
+depth resolve by keeping the effect but marching nothing and hiding the quad (`nodispatch`) against no effect at all
+(`noeffect`), the march's fixed part by a build whose loop takes no step. One run each, load 0.35–1.0 at the start.
+
+| pose | Volumetric's cost | the march | of it the light toward the sun | the march's fixed part | the quad | the MSAA depth resolve |
+|---|---|---|---|---|---|---|
+| dry, 900 m, the cumulus above | +7.3 ms | 3.9 ms | 0.9 ms | 0.5 ms | 1.0 ms | 1.4 ms |
+| dry, 3450 m, the cumulus below | +6.4 ms | 2.4 ms | 0.6 ms | 0.5 ms | 0.3 ms | 0.1 ms |
+| light rain, 400 m, below the base | +5.9 ms | 3.0 ms | 1.7 ms | 0.5 ms | 0.6 ms | 1.8 ms |
+| light rain, inside the deck | +8.2 ms | 3.0 ms | 1.4 ms | 0.6 ms | 1.4 ms | 2.0 ms |
+| light rain, above the deck, toward the sun | +5.7 ms | 2.6 ms | 1.1 ms | 0.5 ms | 0.7 ms | 0.0 ms |
+
+- No one part holds the cost: the march (its steps, half of them the light toward the sun) 2.4–3.9 ms, the quad
+  0.3–1.4 ms, the MSAA depth resolve the march and the quad ask for 0–2 ms. The march's fixed part (the ray's set-up,
+  the history, the stores and the two copies) is 0.5 ms.
+- Steps per marching pixel (painted as a heat map, 0–96 green to red): 30–45 below the deck (rays at a few degrees
+  cross the thin, ragged base slowly), about 19 inside it and above it; with the cumulus, the clear sky over the
+  layer takes all 96, but there each step is one or two shape reads (no light march).
+- Without MSAA the Original scene costs 3.3–8.4 ms less and the clouds 4.6–6.5 ms (against 5.7–8.2 ms with MSAA).
+- Between runs of the same build the same pose varies by up to 2.5 ms (inside the deck 21.8–24.8 ms; inferred: the
+  GPU's clock), more than any single fix below: a part's share was taken within one run.
+- Fixed (2026-11-02): the light march toward the sun stops where even its weakest octave keeps less than e^−5 of the
+  light (deep in the deck its far steps changed nothing), and the octaves' phases are taken once a pixel. The march
+  inside the deck 2.5–2.8 ms (was 3.0 ms); the frame within the run-to-run spread. The same pictures at the bench
+  poses (`_clouds_shot.gd`, before / after, with MSAA and TAA).
+
+Before and after the fix (four runs before, the origin/main build, and four after, two of them with the quad's
+discard below; the range of the runs; the clear sky's 31.1 ms after came with the load rising to 1.5):
+
+| pose | Clouds Original | Volumetric before | after |
+|---|---|---|---|
+| dry, 900 m, the cumulus above | 12.2–13.1 ms | 18.0–19.5 ms | 19.1–23.3 ms |
+| dry, 3450 m, the cumulus below | 19.1–20.8 ms | 23.5–25.8 ms | 24.3–27.0 ms |
+| light rain, 400 m, below the base | 11.8–12.0 ms | 17.5–17.7 ms | 17.3–17.7 ms |
+| light rain, inside the deck | 16.6–19.1 ms | 21.8–24.8 ms | 21.7–23.9 ms |
+| light rain, above the deck, toward the sun | 8.9–9.9 ms | 13.8–14.8 ms | 13.6–17.1 ms |
+
+Volumetric costs 5–8 ms on the Iris Xe at 1080p with MSAA 4×, before and after: a high-tier option there.
+
+Tried and dropped (2026-11-02):
+
+- The march reading the depth buffer itself (with MSAA its first sample, a `sampler2DMS` version of the shader) and
+  writing the scene's distance at full size for the quad, so that Godot need not resolve the MSAA depth: the march
+  took 4.7–5.7 ms (was 3.0 ms) and the frame was not faster (inside the deck +2.9 ms). Inferred: on the Iris Xe
+  reading a multisampled depth buffer costs what the resolve does, and the full-size store in the march's shader
+  slowed it.
+- The quad discarding clear pixels (no blend there): no change beyond the run-to-run spread.
+- Without the detail noise the march was 0.25 ms faster at most: its erosion is the cumulus' look, so it stays.
 
 ## 3. Measurements
 

@@ -19,10 +19,25 @@ const SEGMENTS := 12
 const CONES := [[2, 0.7], [3, 1.0]]
 
 var _mesh := ImmediateMesh.new()
-var _material: StandardMaterial3D
+var _material: ShaderMaterial
 ## Heat haze (Detailed effects, Preferences > Graphics > MORE): a refracting cone behind the nozzle, a sibling so it
 ## shows while the flame is off. null = the original look.
 var haze: MeshInstance3D
+
+## The flame: afterburn.tga (else a plain orange) added unshaded, both sides, no depth write; behind a Volumetric cloud
+## by the light the cloud lets through (clouds_behind.gdshaderinc).
+const FLAME_SHADER := """
+shader_type spatial;
+render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled;
+#include "res://terrain/clouds_behind.gdshaderinc"
+uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_enable, hint_default_white;
+uniform vec4 albedo : source_color = vec4(1.0);
+void fragment() {
+	vec4 c = texture(tex, UV) * albedo;
+	ALBEDO = c.rgb;
+	ALPHA = c.a * clouds_through(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX));
+}
+"""
 
 const HAZE_SHADER := """
 shader_type spatial;
@@ -54,6 +69,7 @@ void fragment() {
 
 ## afterburn.tga, read once for every flame (decoded ahead by prefetch()).
 static var _tex: Texture2D
+static var _flame_shader: Shader
 
 
 static func _path() -> String:
@@ -69,20 +85,17 @@ static func prefetch() -> void:
 func _init() -> void:
 	mesh = _mesh
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_material = StandardMaterial3D.new()
-	_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	_material.no_depth_test = false
-	_material.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
-	_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	if _flame_shader == null:
+		_flame_shader = Shader.new()
+		_flame_shader.code = FLAME_SHADER
+	_material = ShaderMaterial.new()
+	_material.shader = _flame_shader
 	if _tex == null:
 		_tex = Img.load_texture(_path())
 	if _tex != null:
-		_material.albedo_texture = _tex
+		_material.set_shader_parameter("tex", _tex)
 	else:
-		_material.albedo_color = Color(1.0, 0.75, 0.45, 0.6)
+		_material.set_shader_parameter("albedo", Color(1.0, 0.75, 0.45, 0.6))
 
 	if Settings.particle_effects:
 		haze = MeshInstance3D.new()
