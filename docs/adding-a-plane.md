@@ -92,6 +92,9 @@ the §1 type-code tables stay for the 1998 jets.
 | `weapons` {`arm_art`, `modern`, `loads`} | `mission_weapons.gd` `jet`, `modern_weapons.gd` `loads` | Arming art (`x_<id>`: `game/extra/planes/<id>/arm`), the modern weapons `"always"`, and their stations (`{"<record id>": [count, "stations"]}`, the id a whole number) |
 | `cockpit_3d` (string) | `cockpit3d.gd` `model_for` | the 3D cockpit's model (Extras "Cockpit": 3D; cockpit.md "3D cockpit") |
 | `hud_3d` | `cockpit3d.gd` | the 3D cockpit's HUD (`HUD_std` / `HUD_wide`) |
+| `fly_by_wire` (bool) | `aircraft.rs` `fly_by_wire` | the F-16's roll-rate command, and the deep stall in place of the spin |
+| `engine_spool` [4 numbers] | `spool.rs` `engine` | Better physics engine spool: idle → military, military → idle, afterburner light-off, light-off → full (s) |
+| `goggles` | `terrain_view.gd` `goggles_tube`, `goggles_lit` | the night goggles' tube whatever the year (`TUBES`), the cockpit lit for them |
 | `mfd` | `settings.gd` `real_mfd` | the F-16's real MFD formats |
 | `guide` | `reference.gd` `guide_name` | the pilot guide (`docs/guides/<guide>.md`) |
 | `label` | `tsd.gd` `unit_label` | the TSD's selected-unit label |
@@ -104,11 +107,8 @@ the §1 type-code tables stay for the 1998 jets.
    decides it, with the type-code table as the fallback. GDScript only sees the struct's fields.
 
 Still keyed by type code for the F-35I (type 1000), and why:
-- the flight model's own tables, `spool.rs` `ENGINES` and the fly-by-wire `matches!` in `aircraft.rs`: the flight
-  model knows only its type code, not the switches (open);
 - `data_set.rs` `TYPES` / `REAL`: the flight-model catalogue the definition's `fm` names;
-- `player_aircraft.gd` `f35i_object()`: the F-16's bdb object, which missions need;
-- the goggles (`terrain_view.gd` `goggles_tube`, `goggles_lit`) by `PlayerAircraft.F35I`.
+- `player_aircraft.gd` `f35i_object()`: the F-16's bdb object, which missions need.
 
 ## 1. The type code
 

@@ -5,6 +5,7 @@
 //! Faithful to the original by default; the [`BetterPhysics`] options switch on the fixes listed in
 //! docs/flight-model.md §10 / §15.11 ("BP"), each on its own.
 
+use crate::airframe;
 use crate::atmosphere::{air, q_s};
 use crate::channels::{Angle, Axis, Ramp};
 use crate::envelope::{Envelope, GLimit};
@@ -136,12 +137,18 @@ enum RollControl {
     Surface { cl_full: f32 },
 }
 
+/// The F-16 and the Lavi, or a modern jet whose definition says `fly_by_wire`.
+fn fly_by_wire(type_code: u32) -> bool {
+    matches!(type_code, 100 | 140) || airframe::of_fm_type(type_code).and_then(|a| a.fly_by_wire) == Some(true)
+}
+
 fn roll_control(type_code: u32) -> RollControl {
     match type_code {
         // F-16 (Nguyen et al., NASA TP-1538): Clp −0.40 at α 5–10°; full roll control (20° aileron + 5° differential
         // tail) ΔCl 0.050, i.e. 0.0025/°; the FLCS's roll loop K = 0.12°/(°/s), proportional: 0.0025·0.12·57.3.
-        // The F-16I (type 100 with the Sufa's data), the Lavi and the F-35I: the F-16's (inferred).
-        100 | 140 | 1000 => RollControl::RateCommand { clp: 0.40, fb: 0.0172 },
+        // The F-16I (type 100 with the Sufa's data), the Lavi and a `fly_by_wire` definition (the F-35I): the F-16's
+        // (inferred).
+        c if fly_by_wire(c) => RollControl::RateCommand { clp: 0.40, fb: 0.0172 },
         // F-4E, Kurnass 2000: the F-4C in power approach (Heffley & Jewell, NASA CR-2144, table IV-1) Cl_δa 0.057/rad
         // with the spoilers; δa at most 24° (the spoilers' 45° over their 1.87 gearing, inferred).
         120 | 200 => RollControl::Surface { cl_full: 0.024 },
@@ -2031,7 +2038,7 @@ impl Aircraft {
 
     /// Better physics: the fly-by-wire jets (F-16, Lavi) get the FLCS deep stall instead of the spin.
     fn fbw_departure(&self) -> bool {
-        self.better.fbw_departure && matches!(self.params.type_code, 100 | 140 | 1000)
+        self.better.fbw_departure && fly_by_wire(self.params.type_code)
     }
 
     /// Mode hook (`5aab90`'s place in both updates): the deep stall (BP, FBW jets) or the spin.
@@ -2155,7 +2162,7 @@ impl Aircraft {
         let p = self.params.clone();
         let max_beta = p.max_beta.abs();
         if self.mode == Mode::Normal {
-            if !aero || matches!(p.type_code, 100 | 140 | 1000) {
+            if !aero || fly_by_wire(p.type_code) {
                 return; // the F-16 and the Lavi never spin (better physics: the deep stall, `mode_hook`)
             }
             let qual = beta.abs() >= 0.8 * max_beta && drag_x > 0.57;

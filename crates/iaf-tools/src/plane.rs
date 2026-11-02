@@ -201,14 +201,8 @@ pub const TABLES: &[Table] = &[
     },
     Table {
         file: "crates/iaf-flight/src/aircraft.rs",
-        anchor: "self.better.fbw_departure && matches!(self.params.type_code",
-        what: "fly-by-wire deep stall",
-        list: true,
-    },
-    Table {
-        file: "crates/iaf-flight/src/aircraft.rs",
-        anchor: "if !aero || matches!(p.type_code",
-        what: "fly-by-wire: no spin",
+        anchor: "fn fly_by_wire(type_code: u32) -> bool {",
+        what: "fly-by-wire: roll-rate command, deep stall, no spin",
         list: true,
     },
     Table {
@@ -276,6 +270,8 @@ pub const DEFINED_BY: &[(&str, Holds)] = &[
     ("const RADAR_KM :=", |a| a.radar.is_some()),
     ("const GUN_ROUNDS :=", |a| a.gun_rounds.is_some()),
     ("const JET_ART :=", |a| a.weapons.is_some()),
+    ("pub const ENGINES: &[(u32, Spool)] = &[", |a| a.engine_spool.is_some()),
+    ("fn fly_by_wire(type_code: u32) -> bool {", |a| a.fly_by_wire.is_some()),
 ];
 
 /// The aircraft definitions a jet of type `code` flies as, whatever the Extras switches (`iaf_flight::airframe`).

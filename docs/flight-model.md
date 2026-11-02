@@ -521,7 +521,7 @@ Where our port differs from the original. Everything else follows §15 (status i
 
     v1.1's recovery slope and spin β update (§16) are original behaviour and apply in both modes; v1.1 changed none
     of the rules above.
-  * **Fly-by-wire departure** [`fbw_departure`] (F-16 type 100, Lavi 140, ours: F-35I 1000; §10.1). Original: these
+  * **Fly-by-wire departure** [`fbw_departure`] (F-16 type 100, Lavi 140, ours: a definition with `fly_by_wire`, the F-35I; §10.1). Original: these
     jets never depart (early return in the spin entry). BP gives them the FLCS deep stall; the other jets keep the (BP)
     spin.
   * **Lift-ramp rate factor** [`lift_rate_floor`] (§15.11 item 14). The original's factor `0.01 + 0.99·(V − 20)/200`
@@ -886,7 +886,7 @@ Table `spool::ENGINES` (seconds, sea level; `mil_idle` 5 s for every engine, inf
 | MiG-23ML (160) | R-35-300 | 5.0 | 1.0 | 1.5 | open: the 5 s idle → maximum limit[^bigenc] |
 | MiG-29 (180) | RD-33 | 3.0 | 0.8 | 1.2 | idle → maximum 3–4 s, maximum → full AB 2–3 s, idle → full AB 4–5 s[^rd33] |
 | Mirage (190) | Atar 9C | 5.0 | 1.0 | 1.5 | open: the 5 s limit[^bigenc][^far3373] |
-| F-35I (1000) | F135-PW-100 | 4.0 | 0.8 | 1.2 | flight idle → maximum power about 6 s[^pw135]; the split inferred |
+| F-35I (its definition's `engine_spool`) | F135-PW-100 | 4.0 | 0.8 | 1.2 | flight idle → maximum power about 6 s[^pw135]; the split inferred |
 
 * The F-15 test engine's afterburner first lit only weakly (strong flame 1.8 s after initiation); the fixed spray ring
   lit at once[^tm85902]. `ab_light` 0.5 s is between (inferred).
@@ -2028,7 +2028,7 @@ tests in `aircraft.rs` / `envelope.rs`; headless Godot test `tests/godot/test_cr
 |---|---|---|
 | 1 | Envelope | done: `envelope.rs` is §15.9 exactly (parser, pads, ceilings, lines, per-level lists, bracket, plane fits, codes 0/2/3/4). Tests: Python reference `tools/envelope_ref.py` run at test time (ceilings, Vmin, GLimit grid on a synthetic text and on every install `md/*.dat`) and the F-16 values of §15.9. `stall_floor` stays Real-only |
 | 2 | Landing / crash check | done: `landing_check` at touchdown (saved Euler, Easy landing ×2 default on, gear-not-down ×0.2/0.2/0.25, slope > 10°, immunity = Invulnerable / No crashes); water and rough ground (> 25.7 m/s) destroy while rolling; ours: scenery under the jet (`ground_obstacle`, scenery.md §4) destroys at every step, at any speed; the sim freezes (`crashed` + reason). Host: slope from `height_at`, water / rough ground from `terrain.gd surface_at`, crash → mission runtime player death → flight ends after 5 s. BP: sink 4 m/s, tail strike 15°, current attitude |
-| 3 | Spin mode | done: mode, three channels with their limits, two-stage entry (with the "No spins" quirk), update in both updates (5 Hz skips the forces), spin attitude, exit (velocity := rotated nose·V, `p_cmd = s1·0.1`); types 100/140 (F-16, Lavi; ours: also the F-35I, 1000) never spin. v1.1: recovery slope π/(2.2·MaxBeta), β updated at 5 Hz in the spin, axes re-based in the stay branch (test `spin_recovery_slope_v11`). BP: §10 `spin_fixes`; types 100/140 get the FLCS deep stall instead (§10.1, tests `fbw_deep_stall_*`). damage 0x18 forces entry (test `hydraulics_and_flight_control_damage`) |
+| 3 | Spin mode | done: mode, three channels with their limits, two-stage entry (with the "No spins" quirk), update in both updates (5 Hz skips the forces), spin attitude, exit (velocity := rotated nose·V, `p_cmd = s1·0.1`); types 100/140 (F-16, Lavi; ours: also a `fly_by_wire` definition, the F-35I) never spin. v1.1: recovery slope π/(2.2·MaxBeta), β updated at 5 Hz in the spin, axes re-based in the stay branch (test `spin_recovery_slope_v11`). BP: §10 `spin_fixes`; types 100/140 get the FLCS deep stall instead (§10.1, tests `fbw_deep_stall_*`). damage 0x18 forces entry (test `hydraulics_and_flight_control_damage`) |
 | 4 | Nose-wheel yaw ramp | done: `S+0x2a8` at \|BetaRate\|, ±MaxBeta; 5 Hz uses the ramp, 1 Hz the raw target |
 | 5 | Force angles | done: 5 Hz αT and β(t) (the β channel; ground: nose-wheel ramp), 1 Hz α(t) and β_cmd. BP: α(t)/β(t) in both |
 | 6 | α 1 Hz update | done: `5aa3a0` at every aero update with αT from the new Lnoflap, gains only there, ×0.5 damping above π (unreachable with MaxAlphaRate ≤ 2.5) |
