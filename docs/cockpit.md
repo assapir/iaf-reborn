@@ -417,8 +417,18 @@ definition's `hud_3d`.
   screws), the second glass ahead of the combiner with its black cover (`BackGlass`, `BackGlassCover`: a 4 cm strip
   at the eye's height, 8 to 16 cm ahead of the combiner) and the frame's bar over the combiner (`HUDFrame`'s faces
   above the glass that reach in over it; the posts' tops stay). The plate's 2 cm rim (`HUDedge`, opaque in the
-  source) is a faint amber glass (25 % opaque). 54.7 k triangles in the file, about 54 k drawn (one HUD); 121
+  source) is a faint amber glass (25 % opaque). 54.8 k triangles in the file, about 54 k drawn (one HUD); 121
   materials (FlightGear's duplicates merged), 152 surfaces.
+* The wide-angle HUD's plate holds the whole HUD (`cockpit3d.py` `hud_wide_plate`, 2026-11-02). In
+  `f16_war_hud.ac` its image glass (`HUDImage2`, the glass the game masks the HUD to) is 11.6 cm wide with its top
+  2 mm under the posts' tops. From the eye it reached ±88 px across and 35 px above the HUD centre (the original's
+  640 px screen; the Barak's small combiner ±118 and 51 px), so it cut the HUD field (69 px left, 70 right, 75 up,
+  60 down in the F-16's `[HUD]`), the Real HUD's speed and altitude boxes (to 92 px right) and heading tape (77 px
+  up), and the original HUD's heading box. The plate's top (the glass, its back and its rim) is now raised 4 cm along
+  its slope, standing over the posts' tops like the F-16I's plate in the photo, and the glass widened to the rim's
+  outer edge (±8 cm, the posts' inner edges). From the eye it now reaches ±122 px across, 96 px up and 150 px down,
+  at every zoom (`test_cockpit3d.gd` checks that it holds the field's corners). The Barak's combiner is unchanged:
+  its top at 51 px above the centre cuts the HUD's top 24 px, as before.
   - Tried and dropped (2026-11-01): leaving out only the lid and the bar's faces lying wholly between the posts. The
     bar's faces reach 1 mm past that test's edge, so the bar stayed; with the second glass's cover behind it, the
     view ahead still showed a dark bar joining the posts into a closed loop (fixed 2026-11-02).

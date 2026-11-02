@@ -423,6 +423,40 @@ def hud_wide_top(objs):
     print("hud_wide_top: %d faces left out" % len(gone))
 
 
+# The wide-angle HUD's combiner plate made to cover the HUD's symbology field from the eye (hud_wide_plate): its
+# top edge raised this far (m, along the plate's slope), standing over the posts' tops as on the F-16I (the HUDS photo).
+WIDE_PLATE_RAISE = 0.04
+
+
+def hud_wide_plate(objs):
+    """The wide-angle HUD's combiner plate made large enough for the HUD it carries: in f16_war_hud.ac its image glass
+    (HUDImage2, the glass the game masks the HUD to) is 11.6 cm wide and its top 2 mm under the frame's posts' tops,
+    so from the eye it showed less than the Block 50's small combiner (±88 x 35 px above the HUD centre in the
+    original's 640 px, against ±118 x 51) and cut the Real HUD's speed and altitude boxes, its heading tape and the
+    pitch ladder's top. The plate's top (the glass, its back and its rim, HUDImage2(.back), HUDedge) is raised
+    WIDE_PLATE_RAISE along the plate and the glass widened to the rim's outer edge, out to the posts (±8 cm). Runs
+    after hud_wide_top, which takes the glass's own top as the frame bar's height."""
+    parts = {o.name.split("/", 1)[1]: o for o in objs}
+    glass = parts.get("HUDImage2")
+    back = parts.get("HUDImage2.back")
+    if glass is None or back is None:
+        return
+    gv = [v.co for v in glass.data.vertices]
+    top, bottom = max(gv, key=lambda v: v.z), min(gv, key=lambda v: v.z)
+    up = Vector((0.0, top.y - bottom.y, top.z - bottom.z)).normalized()  # along the plate, upward
+    mid = (top.z + bottom.z) / 2
+    half = max(abs(v.co.x) for v in back.data.vertices)
+    for name in ("HUDImage2", "HUDImage2.back", "HUDedge"):
+        o = parts.get(name)
+        for v in o.data.vertices if o else []:
+            if v.co.z > mid:
+                v.co += up * WIDE_PLATE_RAISE
+            if name == "HUDImage2" and abs(v.co.x) > 0.01:
+                v.co.x = math.copysign(half, v.co.x)
+        if o:
+            o.data.update()
+
+
 def main():
     head = subprocess.run(["git", "-C", FG, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     if head != PIN:
@@ -461,6 +495,7 @@ def main():
     hud_edge = kit.material("hud_edge", (0.325, 0.251, 0.075), roughness=0.1, alpha=0.25)
     hud_edge.use_backface_culling = False
     hud_wide_top(b.parts.get("HUDc", []))
+    hud_wide_plate(b.parts.get("HUDc", []))
     for o in b.parts.get("HUDc", []):
         part = o.name.split("/", 1)[1]
         if part == "HUDedge":
@@ -476,6 +511,8 @@ def main():
     if os.environ.get("C3D_DEBUG") == "1":  # every object's bounds (Blender frame, before the shift)
         for o in everything:
             vs = [v.co for v in o.data.vertices]
+            if not vs:  # left out (hud_wide_top)
+                continue
             print("OBJ %-40s %s %s %s" % (o.name, tuple(round(x, 2) for x in map(min, *vs)),
                                           tuple(round(x, 2) for x in map(max, *vs)),
                                           [m.name for m in o.data.materials][:3]))

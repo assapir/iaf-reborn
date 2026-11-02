@@ -55,7 +55,10 @@ Made by `tools/f16d/cockpit3d.py` (re-runnable; docs/cockpit.md "3D cockpit"):
    The wide-angle HUD (`f16_war_hud.ac`): its frame and box made black; its top left out, so the combiner plate
    stands free between the two side posts as on the F-16I: the lid (`HUDtop`, `screws`, `tissue`), the second glass
    ahead of the combiner and its cover (`BackGlass`, `BackGlassCover`) and `HUDFrame`'s bar over the combiner glass
-   (2026-11-02; docs/cockpit.md "3D cockpit"); the glass's rim (`HUDedge`) a 25 % opaque amber glass.
+   (2026-11-02; docs/cockpit.md "3D cockpit"); the glass's rim (`HUDedge`) a 25 % opaque amber glass. Its
+   combiner plate made to hold the HUD's whole field from the eye (2026-11-02): its top (`HUDImage2`,
+   `HUDImage2.back`, `HUDedge`) raised 4 cm along the plate, over the posts' tops, and the image glass widened from
+   ±5.8 cm to the rim's outer edge (±8 cm).
 10. The ADI's turn needle moved 3.5 mm and its glide slope index 0.7 mm toward the pilot, in front of the face
     plate (2.8 mm behind it and on its plane in `adi.ac`: hidden); its ILS steering bars kept (FlightGear hides them
     with no ILS in range) and scaled to their stops at the full-scale deviation (`ILS_BARS`).

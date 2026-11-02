@@ -3,12 +3,13 @@
 # projection and free look). 3D, the Barak and the Sufa: the wide view, zoomed in its true size, and free look down to
 # −60°; the model in the cut cockpit model at the eye (the combiner ahead of the camera, on the nose axis), the MFD
 # nodes drawing the 2D cockpit's pages into SubViewports on the 3D screens, the HUD drawn and masked to the combiner's
-# outline; looking back or an outside view hides the glass's outline; a click on the left MFD's OSB 6 opens its menu;
-# the Barak's panel sheet is the Block 40 one and its HUD the Block 50's, the Sufa's the model's Block 50 sheet and the
-# wide-angle HUD, and the Sufa's MFDs draw the real formats in colour; the lamps light from the cockpit state (the
-# master caution by its indicator, the gear lamps, the AoA indexer), the AoA tape scrolls, the fuel flow drums turn, and
-# the RWR scope, EHSI, DED and pilot fault list draw into SubViewports on their screens, the ADI's turn needle, slip
-# ball and ILS bars and the hydraulic and cabin gauges follow the state (_adi_and_gauges). The F-35I: _f35i.
+# outline (the Sufa's wide plate holding the HUD's whole field); looking back or an outside view hides the glass's
+# outline; a click on the left MFD's OSB 6 opens its menu; the Barak's panel sheet is the Block 40 one and its HUD the
+# Block 50's, the Sufa's the model's Block 50 sheet and the wide-angle HUD, and the Sufa's MFDs draw the real formats in
+# colour; the lamps light from the cockpit state (the master caution by its indicator, the gear lamps, the AoA indexer),
+# the AoA tape scrolls, the fuel flow drums turn, and the RWR scope, EHSI, DED and pilot fault list draw into
+# SubViewports on their screens, the ADI's turn needle, slip ball and ILS bars and the hydraulic and cabin gauges follow
+# the state (_adi_and_gauges). The F-35I: _f35i.
 extends "res://../tests/godot/base.gd"
 
 
@@ -169,6 +170,13 @@ func _three_d(variant: String, pages_2d: Array) -> void:
 	)
 	check(String(c3._glass.name) == hud + "_glass", "%s 3D: its HUD's glass masks the HUD" % variant)
 	check(c.three_d() and (c.hud_clip as PackedVector2Array).size() >= 3, "%s 3D: the combiner's outline" % variant)
+	if variant == "sufa":
+		# The wide-angle HUD's plate (cockpit3d.py hud_wide_plate) holds the HUD's whole symbology field ([HUD] borders).
+		var f := Rect2(c.hud.position, c.hud.size)
+		var out := [f.position, Vector2(f.end.x, f.position.y), f.end, Vector2(f.position.x, f.end.y)].filter(
+			func(p): return not Geometry2D.is_point_in_polygon(p, c.hud_clip)
+		)
+		check(out.is_empty(), "sufa 3D: the combiner holds the HUD field %s (corners outside %s)" % [f, out])
 	# The wide view by default (VIEW_3D_WIDE_DEG across); zoomed fully in, the true size: the viewing distance in px.
 	var w: float = c.get_viewport_rect().size.x
 	var fov := rad_to_deg(2.0 * atan(w / 2.0 / c.focal_length()))

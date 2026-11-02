@@ -5,7 +5,8 @@
 # C3D_HOUR=22 the night (the mission then starts at night: pass `-- --hour 22` too). C3D_JET=f35i: the F-35I's instead
 # (_f35i). C3D_ONLY=panel takes only the lamps and displays: the master caution and fire lamps lit, the gear down, an
 # emitter and a launching one on the RWR scope; looking down at the panel, at the RWR scope and at the gear panel.
-# C3D_ONLY=hud: only ahead and looking up 8° (the HUD's frame against the sky).
+# C3D_ONLY=hud: only ahead, looking up 8° (the HUD's frame against the sky) and ahead zoomed in to the true size.
+# C3D_HUD=original: the original HUD (default the Real HUD).
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOW_OUT=$PWD/.shots/c3d -- \
 #     --log-file /tmp/c3d.log --resolution 1920x1080 --path game -s ../tests/godot/_cockpit3d_shot.gd
 extends "res://../tests/godot/_cockpit_show_shot.gd"
@@ -26,7 +27,7 @@ func run() -> void:
 	look = "2d" if two_d else "3d"
 	settings().show_info = false
 	settings().cockpit_3d = "original" if two_d else "3d"
-	settings().hud_style = "real"
+	settings().hud_style = OS.get_environment("C3D_HUD") if OS.get_environment("C3D_HUD") != "" else "real"
 	var hour := float(OS.get_environment("C3D_HOUR")) if OS.get_environment("C3D_HOUR") != "" else 10.5
 	if OS.get_environment("C3D_JET") == "f35i":
 		await _f35i(hour)
@@ -46,7 +47,15 @@ func run() -> void:
 			await _settle()
 			await _shot("f16_%s_%s" % [variant, h[0]], 0.0)
 		tv.views.snap = null
-		if OS.get_environment("C3D_ONLY") != "hud":
+		if OS.get_environment("C3D_ONLY") == "hud":  # ahead, zoomed in to the true size
+			var zoom: float = tv.cockpit.zoom
+			tv.cockpit.zoom = tv.cockpit.ZOOM_MAX
+			tv.views.snap = Vector2.ZERO
+			await _settle()
+			await _shot("f16_%s_zoom" % variant, 0.0)
+			tv.views.snap = null
+			tv.cockpit.zoom = zoom
+		else:
 			await _target(variant)
 	settings().jet_id = -1
 
