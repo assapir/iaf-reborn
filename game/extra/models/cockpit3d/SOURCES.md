@@ -3,7 +3,7 @@
 `f35i.glb` and `f35i.json` (the F-35I's) are our own: `tools/f35i/cockpit3d.py --glb` (docs/f35i.md §4.5).
 The rest of this file is the F-16's.
 
-`f16.glb`, `f16.json` and `barak_panels.webp` are derived works of the FlightGear F-16 and are licensed under the
+`f16.glb`, `f16.json`, `f16_light.png` and `barak_panels.webp` are derived works of the FlightGear F-16 and are licensed under the
 **GNU GPL, version 2 or (at your option) any later version**, as their source is. This repository distributes them
 under GPL-3.0-or-later.
 
@@ -45,7 +45,7 @@ Made by `tools/f16d/cockpit3d.py` (re-runnable; docs/cockpit.md "3D cockpit"):
 4. FlightGear's lamps and off flags hidden as on a powered jet with every lamp off; the needles FlightGear animates
    and the game drives made separate nodes on their hinges, with FlightGear's value tables in `f16.json`.
 5. The DED's and PFD's canvas placeholders replaced by a dark screen (the game draws into them); the rudder pedals made black.
-6. Textures larger than 1024 px halved; all re-encoded as KTX2 (Basis Universal); the Block 40 panel sheet as WebP.
+6. Textures larger than 2048 px halved (none: the console sheets, 1024 x 2048, kept whole since 2026-11-02); all re-encoded as KTX2 (Basis Universal); the Block 40 panel sheet as WebP.
 7. An altimeter added (FlightGear's comes from FGData, outside the package): the ASI's mount and dial plate copied
    to the altimeter's place, the dial `Models/Cockpit/Textures/faces1.png`'s altimeter face, a needle made by the
    script.
@@ -55,11 +55,17 @@ Made by `tools/f16d/cockpit3d.py` (re-runnable; docs/cockpit.md "3D cockpit"):
    The wide-angle HUD (`f16_war_hud.ac`): its frame and box made black; its top left out, so the combiner plate
    stands free between the two side posts as on the F-16I: the lid (`HUDtop`, `screws`, `tissue`), the second glass
    ahead of the combiner and its cover (`BackGlass`, `BackGlassCover`) and `HUDFrame`'s bar over the combiner glass
-   (2026-11-02; docs/cockpit.md "3D cockpit"); the glass's rim (`HUDedge`) a 25 % opaque amber glass. Its
-   combiner plate made to hold the HUD's whole field from the eye (2026-11-02): its top (`HUDImage2`,
-   `HUDImage2.back`, `HUDedge`) raised 4 cm along the plate, over the posts' tops, and the image glass widened from
-   ±5.8 cm to the rim's outer edge (±8 cm).
+   (2026-11-02; docs/cockpit.md "3D cockpit"); the glass's rim (`HUDedge`) a 25 % opaque amber glass. The Block 50
+   HUD's thick combiner top (`hud.ac` `HUDedge`, opaque light grey) the same glass. Both HUDs keep FlightGear's
+   height and place (a raised and widened wide-angle plate, 2026-11-02, was undone the same day) and are made wider
+   about their centre line (2026-11-02): the Block 50's ×1.15, the wide-angle one's ×1.12, every part; the wide-angle
+   plate's image glass (`HUDImage2`) spans the plate's whole width, its clear rim included (±7.9 cm before widening).
 10. The ADI's turn needle moved 3.5 mm and its glide slope index 0.7 mm toward the pilot, in front of the face
     plate (2.8 mm behind it and on its plane in `adi.ac`: hidden); its ILS steering bars kept (FlightGear hides them
     with no ILS in range) and scaled to their stops at the full-scale deviation (`ILS_BARS`).
 11. Placed in the detailed F-16's frame (`../f16/SOURCES.md`: 1.05 m aft, under the original model's root).
+12. Rounded (2026-11-02): the HUD posts and frames (`hud.ac` `hud_sides`, `f16_war_hud.ac` `HUDFrame`,
+    `HUDFrame.001`): every edge sharper than 35° bevelled 3 mm in two segments, the faces shaded smooth.
+13. Its ambient occlusion baked in Blender's Cycles (2026-11-02) into `f16_light.png` (2048 px, greyscale) over a
+    second UV set of every part but the glasses and screens (`TEXCOORD_1`, a smart UV projection packed over the
+    whole cockpit), each texel the more open of its face's two sides.

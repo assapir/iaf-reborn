@@ -41,6 +41,7 @@ var controls := {}
 var meta := {}
 var _anims := []  # [node, rest transform, records (outermost first)]
 var _glass: MeshInstance3D
+var _dir := ""  # the model's folder
 var _glass_pts := PackedVector3Array()
 ## Per 3D screen: [MFD node, its SubViewport, screen MeshInstance3D, origin, u axis, v axis (screen-local, per UV),
 ## {osb: centre (MFD px)}].
@@ -65,6 +66,7 @@ static func model_for(type_code: int) -> String:
 ## display) moved onto its screens. False when the model is missing.
 func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 	var path := model_for(type_code)
+	_dir = path.get_base_dir()
 	cockpit = c
 	camera = cam
 	process_priority = 10  # after the flight scene has placed the camera (terrain_view.gd _apply_view)
@@ -139,7 +141,7 @@ func _materials(model: Node3D, path: String, barak_jet: bool) -> void:
 ## Iris Xe): by day the sun's colour; at the cockpit's night (cockpit.night, the 2D panel's darkening: time_of_day.gd
 ## cockpit_night) FlightGear's flood (panel-standard.eff lightmap-color) and the panels' backlit labels (its implicit
 ## lightmap: the light texels glow in its emit-color).
-const FILL := 0.8
+const FILL := 1.3
 const FLOOD := Color(0.45, 0.34, 0.18)
 const FLOOD_ENERGY := 0.5
 const BACKLIGHT := Color(0.476, 0.9, 0.161)
@@ -186,10 +188,54 @@ func _setup_light(model: Node3D) -> void:
 			mat.emission_texture = mat.albedo_texture
 			mat.emission_energy_multiplier = 1.0
 			_lit_mats.append(mat)
+	_setup_baked_light(model, lamp_mats)
 	var p := get_parent()
 	while p != null and _sun == null:
 		_sun = p.get_node_or_null("Sun") as DirectionalLight3D
 		p = p.get_parent()
+
+
+## The model's baked light (<model>.json `light`: tools/f16d/cockpit3d.py bake_light, the ambient occlusion on its UV2)
+## and its sheets' relief multiplied over each opaque part as drawn (cockpit3d_light.gdshader, a next pass, blend_mul):
+## the fill above, the sky and the sun all darken in the corners, under the glareshield and around each switch, and the
+## labels, seams and screw heads printed on the sheets stand out of the paint.
+const LIGHT_SHADER := "res://cockpit/cockpit3d_light.gdshader"
+## The relief of the panels' printed detail (the shader's `relief`): at most this much brighter or darker.
+const RELIEF := 0.35
+
+
+func _setup_baked_light(model: Node3D, skip: Array) -> void:
+	var img := Image.load_from_file(_dir.path_join(meta.light)) if meta.has("light") else null
+	if img == null:
+		return
+	img.convert(Image.FORMAT_L8)
+	img.generate_mipmaps()
+	var light := ImageTexture.create_from_image(img)
+	var code := (load(LIGHT_SHADER) as Shader).code
+	var shaders := {}  # cull mode -> the pass's shader, culled as the part it darkens
+	for mi: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):
+		if mi.material_override != null:  # the glasses and screens
+			continue
+		for s in mi.mesh.get_surface_count():
+			var mat := mi.mesh.surface_get_material(s) as BaseMaterial3D
+			var uv2: bool = mi.mesh.surface_get_format(s) & Mesh.ARRAY_FORMAT_TEX_UV2 != 0  # not on the baked atlas
+			if mat == null or mat in skip or not uv2 or mat.next_pass != null:
+				continue
+			var clip := mat.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+			if mat.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED and not clip:  # glass: nothing to darken
+				continue
+			var cull := "cull_disabled" if mat.cull_mode == BaseMaterial3D.CULL_DISABLED else "cull_back"
+			if not shaders.has(cull):
+				shaders[cull] = Shader.new()
+				shaders[cull].code = code.replace("cull_back", cull)
+			var pass_mat := ShaderMaterial.new()
+			pass_mat.shader = shaders[cull]
+			pass_mat.set_shader_parameter("light", light)
+			pass_mat.set_shader_parameter("clip", clip)
+			if mat.albedo_texture != null:
+				pass_mat.set_shader_parameter("sheet", mat.albedo_texture)
+				pass_mat.set_shader_parameter("relief", RELIEF)
+			mat.next_pass = pass_mat
 
 
 func _lighting() -> void:
@@ -371,9 +417,7 @@ func _nose_shift() -> Vector2:
 	var nose := camera.global_position - get_parent_node_3d().global_basis.z * 1000.0
 	if camera.is_position_behind(nose):
 		return Vector2.ZERO
-	var centre: Vector2 = cockpit.projection_centre()
-	var ahead := Vector2(centre.x, centre.y - cockpit.focal_length() * tan(deg_to_rad(cockpit.VIEW_LOOK_DOWN_DEG)))
-	return camera.unproject_position(nose) - ahead
+	return camera.unproject_position(nose) - cockpit.boresight()
 
 
 ## The combiner glass's outline on the screen (px in the cockpit node); empty when out of sight.

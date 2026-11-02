@@ -1928,5 +1928,6 @@
   "ADI_glide-slope-index": "ils",
   "ADI_yaw-steering-bar": "ils",
   "ADI_pitch-strg-bar": "ils"
- }
+ },
+ "light": "f16_light.png"
 }

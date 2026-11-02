@@ -107,7 +107,7 @@ DECIMATE = {"LeftConsole": 0.3, "LeftAuxConsole": 0.3, "RightConsole": 0.35, "Ri
 # FlightGear's Block 50 sheet (the F-16I Sufa's base, a Block 52+); the F-16D Barak (Block 30/40, docs/real-aircraft.md
 # §8) gets the Block 40 one.
 SUFA_PANELS, BARAK_PANELS = "blck50-panels1.png", "blck40-panels1.png"
-MAX_TEX = 1024  # textures larger than this are halved (the console sheets are 1024 x 2048)
+MAX_TEX = 2048  # textures larger than this are halved (the console sheets, 1024 x 2048, kept whole: sharp labels)
 # FlightGear's frame (x aft, y right, z up) -> Blender's (x right, y forward, z up).
 C = Matrix(((0, 1, 0, 0), (-1, 0, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)))
 # The tub (cockpit.ac) ends at the eye's plane (FlightGear's frame x, aft): the detailed F-16's cut model
@@ -423,38 +423,147 @@ def hud_wide_top(objs):
     print("hud_wide_top: %d faces left out" % len(gone))
 
 
-# The wide-angle HUD's combiner plate made to cover the HUD's symbology field from the eye (hud_wide_plate): its
-# top edge raised this far (m, along the plate's slope), standing over the posts' tops as on the F-16I (the HUDS photo).
-WIDE_PLATE_RAISE = 0.04
+# The parts the eye sees most, rounded (smooth): FlightGear's are boxes with hard 90-degree edges and flat-shaded
+# faces. By (sub-model, object): each edge sharper than SMOOTH_ANGLE bevelled SMOOTH_BEVEL (m) in two segments and the
+# faces shaded smooth across the rest, as the F-16's cast and machined HUD frames and its moulded glareshield.
+SMOOTH = {("HUDa", "hud_sides"), ("HUDc", "HUDFrame"), ("HUDc", "HUDFrame.001")}
+SMOOTH_ANGLE = math.radians(35)
+SMOOTH_BEVEL = 0.003
 
 
-def hud_wide_plate(objs):
-    """The wide-angle HUD's combiner plate made large enough for the HUD it carries: in f16_war_hud.ac its image glass
-    (HUDImage2, the glass the game masks the HUD to) is 11.6 cm wide and its top 2 mm under the frame's posts' tops,
-    so from the eye it showed less than the Block 50's small combiner (±88 x 35 px above the HUD centre in the
-    original's 640 px, against ±118 x 51) and cut the Real HUD's speed and altitude boxes, its heading tape and the
-    pitch ladder's top. The plate's top (the glass, its back and its rim, HUDImage2(.back), HUDedge) is raised
-    WIDE_PLATE_RAISE along the plate and the glass widened to the rim's outer edge, out to the posts (±8 cm). Runs
-    after hud_wide_top, which takes the glass's own top as the frame bar's height."""
+# The HUDs made this much wider (x about the centre line; every part: box, posts, glass, rim). The game's HUDs reach
+# past FlightGear's combiners as the eye sees them (8.6 degrees right of the boresight where the posts lean in): the
+# original's altitude box with the radar altimeter's "R" to 9.3 degrees, the Real HUD's altitude box and right column
+# to 7.6. Each combiner widened until nothing the HUD draws is cut (inferred: the F-16's standard combiner shows a
+# 20-degree wide field, its wide-angle ones more).
+HUD_WIDEN = {"HUDa": 1.15, "HUDc": 1.12}
+
+
+def widen(objs, k):
+    for o in objs:
+        for v in o.data.vertices:
+            v.co.x *= k
+        o.data.update()
+
+
+def hud_wide_glass(objs):
+    """The wide-angle HUD's image glass (HUDImage2, the outline the game masks the HUD to) made the plate's whole width:
+    in f16_war_hud.ac it is 11.6 cm wide inside a 2 cm clear rim (HUDedge) of the same plate. The F-16I's combiner is
+    one piece of glass and the HUD shows across all of it; the image glass's 7.2 degrees from the eye cut the Real
+    HUD's altitude box and right data column (7.6 degrees). Its sides moved out to the plate's (HUDImage2.back's)
+    edges, its height and place FlightGear's."""
     parts = {o.name.split("/", 1)[1]: o for o in objs}
-    glass = parts.get("HUDImage2")
-    back = parts.get("HUDImage2.back")
+    glass, back = parts.get("HUDImage2"), parts.get("HUDImage2.back")
     if glass is None or back is None:
         return
-    gv = [v.co for v in glass.data.vertices]
-    top, bottom = max(gv, key=lambda v: v.z), min(gv, key=lambda v: v.z)
-    up = Vector((0.0, top.y - bottom.y, top.z - bottom.z)).normalized()  # along the plate, upward
-    mid = (top.z + bottom.z) / 2
     half = max(abs(v.co.x) for v in back.data.vertices)
-    for name in ("HUDImage2", "HUDImage2.back", "HUDedge"):
-        o = parts.get(name)
-        for v in o.data.vertices if o else []:
-            if v.co.z > mid:
-                v.co += up * WIDE_PLATE_RAISE
-            if name == "HUDImage2" and abs(v.co.x) > 0.01:
-                v.co.x = math.copysign(half, v.co.x)
-        if o:
-            o.data.update()
+    for v in glass.data.vertices:
+        if abs(v.co.x) > 0.01:
+            v.co.x = math.copysign(half, v.co.x)
+    glass.data.update()
+    print("hud_wide_glass: the image glass to +-%.3f m" % half)
+
+
+def smooth(b):
+    for o in (o for part, objs in b.parts.items() for o in objs if (part, o.name.split("/", 1)[1]) in SMOOTH):
+        if not o.data.polygons:
+            continue
+        bm = bmesh.new()
+        bm.from_mesh(o.data)
+        bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.0002)
+        sharp = [e for e in bm.edges if e.is_manifold and e.calc_face_angle(0) > SMOOTH_ANGLE]
+        bmesh.ops.bevel(bm, geom=sharp, offset=SMOOTH_BEVEL, segments=2, profile=0.5, affect='EDGES',
+                        clamp_overlap=True)
+        bm.to_mesh(o.data)
+        bm.free()
+        o.data.shade_smooth()
+        o.data.set_sharp_from_angle(angle=SMOOTH_ANGLE)
+        print("smooth %s: %d faces" % (o.name, len(o.data.polygons)))
+
+
+# The cockpit's baked light (bake_light): one atlas over a second UV set ("light", glTF TEXCOORD_1, Godot's UV2) of
+# every part but the glasses and screens; its size (px), Cycles samples, and the occlusion's reach (m): a switch's
+# contact shadow and the glareshield's shade over the panel both show, the tub's far walls not.
+LIGHT_PX = 2048
+LIGHT_SAMPLES = 192
+LIGHT_REACH = 0.3
+# The parts left out of the bake: the glasses and the screens (the game draws over them).
+NO_LIGHT = ("_glass", "MFD_L", "MFD_R", "_screen", "RWR_scope")
+
+
+def bake_light(objs, out_png):
+    """Ambient occlusion baked in Cycles over the whole cockpit into its own atlas: FlightGear's parts share their
+    texture sheets by overlapping UVs, so each part gets a second, non-overlapping UV set ("light", smart UV project
+    packed over all parts at once) and the occlusion goes into one greyscale image beside the model (out_png), which
+    the game multiplies over the panel's lighting (cockpit3d.gd _setup_light). The two HUDs stand in one place: each is
+    baked with the other hidden."""
+    sc = kit.scene()
+    sc.render.engine = 'CYCLES'
+    kit._cycles_gpu(sc)
+    sc.cycles.samples = LIGHT_SAMPLES
+    sc.render.bake.margin = 6
+    sc.render.bake.use_clear = False
+    if sc.world is None:
+        sc.world = bpy.data.worlds.new("bake")
+    sc.world.light_settings.distance = LIGHT_REACH
+    for o in objs:
+        uv = o.data.uv_layers.new(name="light")
+        o.data.uv_layers.active = uv
+    kit.deselect()
+    for o in objs:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = objs[0]
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.uv.smart_project(angle_limit=math.radians(60), island_margin=0.0015, area_weight=0.0)
+    bpy.ops.uv.pack_islands(margin=0.0015, rotate=True)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    img = bpy.data.images.new("light", LIGHT_PX, LIGHT_PX)
+    img.colorspace_settings.name = 'Non-Color'
+    img.pixels.foreach_set(np.ones(LIGHT_PX * LIGHT_PX * 4, np.float32))
+    nodes = []
+    for m in {m for o in objs for m in o.data.materials if m is not None}:
+        n = m.node_tree.nodes.new('ShaderNodeTexImage')
+        n.image = img
+        m.node_tree.nodes.active = n
+        nodes.append((m, n))
+    glass = [o for o in kit.scene().objects if o.type == 'MESH' and o.name.endswith("_glass")]
+    huds = {o.name: o for o in objs if o.name in HUDS.values()}
+    passes = []
+    # FlightGear's faces do not all face out (its two-sided materials draw either side): baked again with every face
+    # flipped, each texel keeps the more open side.
+    for flipped in (False, True):
+        for hud in [None] + list(huds.values()):
+            group = [o for o in objs if o not in huds.values()] if hud is None else [hud]
+            hidden = glass + [h for h in huds.values() if h is not hud]
+            for o in hidden:
+                o.hide_render = True
+            kit.deselect()
+            for o in group:
+                o.select_set(True)
+            bpy.context.view_layer.objects.active = group[0]
+            bpy.ops.object.bake(type='AO')
+            for o in hidden:
+                o.hide_render = False
+        a = np.empty(LIGHT_PX * LIGHT_PX * 4, np.float32)
+        img.pixels.foreach_get(a)
+        passes.append(a)
+        for o in objs:
+            o.data.flip_normals()
+    img.pixels.foreach_set(np.maximum(*passes))
+    for m, n in nodes:
+        m.node_tree.nodes.remove(n)
+    for o in objs:  # the texture sheets' UVs stay the first set
+        o.data.uv_layers.active = o.data.uv_layers[0]
+        o.data.uv_layers[0].active_render = True
+    a = np.empty(LIGHT_PX * LIGHT_PX * 4, np.float32)
+    img.pixels.foreach_get(a)
+    print("bake_light: mean occlusion %.3f" % a[0::4].mean())
+    sc.view_settings.view_transform = 'Standard'
+    sc.render.image_settings.file_format = 'PNG'
+    sc.render.image_settings.color_mode = 'BW'
+    sc.render.image_settings.color_depth = '8'
+    img.save_render(out_png, scene=sc)
 
 
 def main():
@@ -495,7 +604,10 @@ def main():
     hud_edge = kit.material("hud_edge", (0.325, 0.251, 0.075), roughness=0.1, alpha=0.25)
     hud_edge.use_backface_culling = False
     hud_wide_top(b.parts.get("HUDc", []))
-    hud_wide_plate(b.parts.get("HUDc", []))
+    hud_wide_glass(b.parts.get("HUDc", []))
+    for part, k in HUD_WIDEN.items():
+        widen(b.parts.get(part, []), k)
+    smooth(b)
     for o in b.parts.get("HUDc", []):
         part = o.name.split("/", 1)[1]
         if part == "HUDedge":
@@ -504,6 +616,12 @@ def main():
         elif part not in ("HUDImage2", "HUDImage2.back"):  # all but the glass
             for i in range(len(o.data.materials)):
                 o.data.materials[i] = hud_black
+    # The Block 50 combiner's thick top edge (HUDedge, opaque light grey in hud.ac): the glass's edge, as the
+    # wide-angle plate's (an F-16C seen from the pilot's seat: a thin frame at the sides, the glass's top free).
+    for o in b.parts.get("HUDa", []):
+        if o.name.split("/", 1)[1] == "HUDedge":
+            for i in range(len(o.data.materials)):
+                o.data.materials[i] = hud_edge
     pedal = kit.material("pedal", (0.07, 0.07, 0.075), roughness=0.7)
     for o in b.parts.get("RudderPedals", []):
         for i in range(len(o.data.materials)):
@@ -581,6 +699,8 @@ def main():
         hud.parent = rest_root
     body = kit.join(static, "f16_cockpit3d_body")
     body.parent = rest_root
+    bake_light([o for o in rest_root.children if o.type == 'MESH' and not o.name.endswith(NO_LIGHT)],
+               os.path.join(os.path.dirname(OUT), "f16_light.png"))
     # Blender (x right, y forward, z up) -> the game's glTF frame (x right, y up, z aft).
     gl = lambda v: [round(v[0], 5), round(v[2], 5), round(-v[1], 5)]  # noqa: E731
     for recs in anims.values():
@@ -589,7 +709,7 @@ def main():
     eye = C @ Vector(FG_EYE) + SHIFT - root_at
     textures = {k: b.texanims[v] for k, v in named.items() if v in b.texanims}
     meta = {"source": "FlightGear F-16 " + PIN, "eye": gl(eye), "animations": anims, "buttons": button_at,
-            "lamps": lamps, "textures": textures, "shown": shown}
+            "lamps": lamps, "textures": textures, "shown": shown, "light": "f16_light.png"}
     for o in kit.scene().objects:
         o.select_set(o is rest_root or o.parent is rest_root)
     tmp = OUT + ".png.glb"

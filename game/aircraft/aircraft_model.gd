@@ -150,6 +150,11 @@ const LDG_DOORS_UP := 0x94
 
 ## The front pilot's eye in the detailed F-16's `pilot` frame (FlightGear's pilot: between the eyes, under the visor).
 const F16_EYE_IN_PILOT := Vector3(0.026, 0.47, 0.28)
+## Ours, the 3D cockpit's seat height (m, down from F16_EYE_IN_PILOT): the F-16's seat moves up and down 5 in (12.7 cm)
+## for the pilot to sit at the HUD's design eye; set so the HUD's symbology field ([HUD] borders, 2.3° above to 8.9°
+## below the boresight) fits the Sufa's wide-angle plate seen from the eye (docs/cockpit.md "3D cockpit", "The HUD on
+## its glass").
+const F16_3D_SEAT_DOWN := 0.011
 ## The detailed F-16's crew mesh (`pilot`, tools/f16/base.py `cockpit`) is the ACES II seat's surfaces, then the
 ## pilot's.
 const F16_SEAT_SURFACES := 39
@@ -158,6 +163,10 @@ const F16_SEAT_SURFACES := 39
 const F16_FRAME_COLOUR := Color(0.31, 0.33, 0.32)
 ## Half the front tub's width (m, at 1:1; FlightGear's cockpit.ac is 1.24 m across).
 const F16_TUB_HALF_WIDTH := 0.63
+## The 3D cockpit's side consoles (FlightGear's, m at 1:1): they reach this far behind the eye, their tops this far
+## under it; the detailed F-16's interior there (its own consoles, which stood over FlightGear's) is left out.
+const F16_CONSOLE_AFT := 0.42
+const F16_CONSOLE_BELOW := 0.3
 
 
 ## Ours (Models: Detailed, or the Sufa): the cockpit view's own jet from the detailed F-16 at `path` instead of the
@@ -168,7 +177,8 @@ const F16_TUB_HALF_WIDTH := 0.63
 ## canopy frame F16_FRAME_COLOUR; copies, so the jets seen from outside keep theirs.
 ## `whole` (ours, the 3D cockpit: cockpit/cockpit3d.gd): the airframe ahead of the eye kept too (the sills and the
 ## forward fuselage beside the panel); of FlightGear's interior (`ac_*`) only what lies behind the eye or outside the
-## front tub's width (F16_TUB_HALF_WIDTH): the 3D cockpit draws the front tub ahead of the eye.
+## front tub's width (F16_TUB_HALF_WIDTH), and not beside the seat under the consoles (F16_CONSOLE_AFT): the 3D cockpit
+## draws the front tub ahead of the eye and its consoles.
 static func detailed_cockpit(path: String, whole := false) -> Array:
 	var node := Gltf.instance(Gltf.model(path))
 	var root := node.get_child(0) as Node3D
@@ -199,7 +209,16 @@ static func detailed_cockpit(path: String, whole := false) -> Array:
 				var p2 := xf * v[idx[t + 2]]
 				var behind := maxf(maxf(p0.z, p1.z), p2.z) > eye.z
 				var beside := maxf(maxf(absf(p0.x), absf(p1.x)), absf(p2.x)) > F16_TUB_HALF_WIDTH
-				if behind or (whole and (not interior or beside)):
+				# The 3D cockpit's consoles reach F16_CONSOLE_AFT behind the eye: this model's own there drop.
+				var console := (
+					whole
+					and interior
+					and not beside
+					and mi.name != "pilot"
+					and maxf(maxf(p0.y, p1.y), p2.y) < eye.y - F16_CONSOLE_BELOW
+					and minf(minf(p0.z, p1.z), p2.z) < eye.z + F16_CONSOLE_AFT
+				)
+				if not console and (behind or (whole and (not interior or beside))):
 					out.append_array([idx[t], idx[t + 1], idx[t + 2]])
 			if out.is_empty():
 				continue
@@ -218,7 +237,7 @@ static func detailed_cockpit(path: String, whole := false) -> Array:
 		for s in mi.get_surface_override_material_count():
 			mi.set_surface_override_material(s, null)
 		mi.mesh = cut
-	return [node, eye]
+	return [node, eye - Vector3(0, F16_3D_SEAT_DOWN if whole else 0.0, 0)]
 
 
 static func load_descriptor(plane: String) -> Dictionary:

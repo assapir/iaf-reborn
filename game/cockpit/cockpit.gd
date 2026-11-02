@@ -526,7 +526,8 @@ func hud_centre_screen() -> Vector2:
 	if dash():
 		var main_y: float = layout.get("PANEL", {}).get("MainOffsetY", 190)
 		return Vector2(size.x / 2 + (DASH_CENTRE.x - 320.0) * s, panel_top() + (DASH_CENTRE.y - main_y) * s)
-	return Vector2(size.x / 2, panel_top() - float(layout.get("HUD", {}).get("CenterY", 0)) * s) + head_pan() * s
+	var pan := view_shift if three_d() else head_pan() * s  # the 3D cockpit: the HUD on the nose (cockpit3d.gd)
+	return Vector2(size.x / 2, panel_top() - float(layout.get("HUD", {}).get("CenterY", 0)) * s) + pan
 
 
 ## Top of the panel in screen pixels. The forward view shows only the top part of the

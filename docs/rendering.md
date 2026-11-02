@@ -1139,6 +1139,20 @@ F-16, the GPU bench lock held), `BENCH_SET=cockpit_3d=3d` against the 2D panel, 
   px: 0.7 MB) take 0.02, 0.03 and 0.03 ms of GPU time a frame on the Iris Xe (`RenderingServer`'s measured viewport
   time, `_cockpit3d_shot.gd` C3D_ONLY=panel; an MFD's 512 px one 0.05 ms). The pilot fault list display's (256 × 128
   px, 0.13 MB; 2026-11-02): 0.015 ms.
+- **Baked occlusion and relief** (2026-11-02; cockpit.md "Baked occlusion and relief"): every opaque part drawn a
+  second time (`cockpit3d_light.gdshader`, `blend_mul`). `_flight_bench.gd`, mission 311, `BENCH_SET=cockpit_3d=3d`,
+  Iris Xe, 1920×1080, the GPU bench lock held, before and after alternated (two runs each; other sessions' work made
+  the runs vary by 1.5 ms):
+
+  | leg | before (GPU, calls, triangles) | after |
+  |---|---|---|
+  | 150 m, 250 m/s | 11.4 / 13.0 ms, 659 calls, 449 k | 11.6 / 13.3 ms, 746 calls, 530 k |
+  | 1,500 m | 17.8 / 15.9 ms, 647 calls, 442 k | 17.3 / 16.4 ms, 733 calls, 524 k |
+
+  About +0.3 ms low over the ground (the two pairs: +0.2 and +0.4 ms), none to measure higher up; 87 more draw calls
+  and 80 k more triangles (the second pass; the pass casts no shadow). Video memory: the 2048 px occlusion map, 8 bit
+  with mipmaps, 5.6 MB; the three console sheets at full size, BC3 with mipmaps, +6.3 MB: about +12 MB (the bench's
+  totals vary by ±30 MB run to run). The rounded HUD frames add 1.3 k triangles.
 
 ## 4. Time of day (built: game/terrain/time_of_day.gd)
 
