@@ -365,12 +365,13 @@ def fix_materials(objs):
 
 
 def hud_wide_top(objs):
-    """The wide-angle HUD's top left out: HUDFrame's bar over the combiner (its faces above the glass, between the
-    side posts) and the lid on it (HUDtop with its screws and tissue). They sit at the eye's height and closed the
-    frame into a loop around the view; the F-16I's combiner plate stands free between its two side posts (the HUDS
-    photo)."""
+    """The wide-angle HUD's top left out, so its combiner plate stands free between its two side posts as on the
+    F-16I (the HUDS photo): the lid (HUDtop with its screws and tissue); the second glass ahead of the combiner
+    (BackGlass, a 4 cm strip at the eye's height in a black cover, BackGlassCover); and HUDFrame's bar over the
+    combiner, its faces above the glass that reach in over it (the posts' tops stay). From the eye these drew a dark
+    bar across the top of the view, closing the posts into a loop."""
     for o in objs:
-        if o.name.split("/", 1)[1] in ("HUDtop", "screws", "tissue"):
+        if o.name.split("/", 1)[1] in ("HUDtop", "screws", "tissue", "BackGlass", "BackGlassCover"):
             o.data.clear_geometry()
     glass = next((o for o in objs if o.name.endswith("/HUDImage2")), None)
     frame = next((o for o in objs if o.name.endswith("/HUDFrame")), None)
@@ -379,10 +380,11 @@ def hud_wide_top(objs):
     vs = [v.co for v in glass.data.vertices]
     top = max(v.z for v in vs)
     cx = (min(v.x for v in vs) + max(v.x for v in vs)) / 2
-    half = (max(v.x for v in vs) - min(v.x for v in vs)) / 2 + 0.012  # the posts stand 2 cm outside the glass
+    half = (max(v.x for v in vs) - min(v.x for v in vs)) / 2
     bm = bmesh.new()
     bm.from_mesh(frame.data)
-    gone = [f for f in bm.faces if all(v.co.z > top and abs(v.co.x - cx) < half for v in f.verts)]
+    gone = [f for f in bm.faces
+            if all(v.co.z > top for v in f.verts) and min(abs(v.co.x - cx) for v in f.verts) < half]
     bmesh.ops.delete(bm, geom=gone, context='FACES')
     bm.to_mesh(frame.data)
     bm.free()
@@ -432,7 +434,7 @@ def main():
         if part == "HUDedge":
             for i in range(len(o.data.materials)):
                 o.data.materials[i] = hud_edge
-        elif part not in ("HUDImage2", "HUDImage2.back", "BackGlass"):  # all but the glass
+        elif part not in ("HUDImage2", "HUDImage2.back"):  # all but the glass
             for i in range(len(o.data.materials)):
                 o.data.materials[i] = hud_black
     pedal = kit.material("pedal", (0.07, 0.07, 0.075), roughness=0.7)

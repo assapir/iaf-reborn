@@ -1132,7 +1132,7 @@ F-16, the GPU bench lock held), `BENCH_SET=cockpit_3d=3d` against the 2D panel, 
   FlightGear's 195 materials and 40 separate push buttons: 254 surfaces, 692 calls and 13.0 ms at 150 m; merging the
   duplicate materials and joining the buttons into the body (tried and kept, 2026-11-01) took 1.9 ms off. Further:
   a texture atlas (open).
-- **Triangles:** 54 k drawn (54.8 k in the file with the second HUD; 59.4 k before the wide-angle HUD's top was left
+- **Triangles:** 54 k drawn (54.7 k in the file with the second HUD; 59.4 k before the wide-angle HUD's top was left
   out, 2026-11-01), as budgeted (the detailed F-16D's 51 k).
 - **Lamps and displays** (added after the table, 2026-11-01): the 15 lamps, the AoA tape and the 3 displays are
   nodes of their own (about 20 more surfaces). The displays' SubViewports (RWR scope and EHSI 256 px, DED 384 × 128

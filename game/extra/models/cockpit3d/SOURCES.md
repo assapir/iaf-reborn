@@ -52,6 +52,8 @@ Made by `tools/f16d/cockpit3d.py` (re-runnable; docs/cockpit.md "3D cockpit"):
 8. FlightGear's duplicate materials merged; the MFD push buttons joined into the body, their centres listed in
    `f16.json`.
 9. Two HUDs kept as separate nodes: `hud.xml` (the Barak's) and `f16_war.xml` (the Sufa's).
-   The wide-angle HUD (`f16_war_hud.ac`): its frame and box made black, the bar over the combiner glass and the lid
-   on it (`HUDtop`, `screws`, `tissue`) left out, the glass's rim (`HUDedge`) a 25 % opaque amber glass.
+   The wide-angle HUD (`f16_war_hud.ac`): its frame and box made black; its top left out, so the combiner plate
+   stands free between the two side posts as on the F-16I: the lid (`HUDtop`, `screws`, `tissue`), the second glass
+   ahead of the combiner and its cover (`BackGlass`, `BackGlassCover`) and `HUDFrame`'s bar over the combiner glass
+   (2026-11-02; docs/cockpit.md "3D cockpit"); the glass's rim (`HUDedge`) a 25 % opaque amber glass.
 10. Placed in the detailed F-16's frame (`../f16/SOURCES.md`: 1.05 m aft, under the original model's root).

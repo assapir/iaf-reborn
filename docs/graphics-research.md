@@ -404,7 +404,7 @@ console labels match a Block 52 (they are the closest set).
 E and F add nothing over FlightGear for the F-16: not recommended.
 
 **B built (2026-10-30)**, Extras "Cockpit": 3D (docs/cockpit.md "3D cockpit"): `tools/f16d/cockpit3d.py` makes
-`game/extra/models/cockpit3d/f16.glb` from `cockpit.xml` as FlightGear's Block 50/52 shows it: 54.8 k triangles (54 k
+`game/extra/models/cockpit3d/f16.glb` from `cockpit.xml` as FlightGear's Block 50/52 shows it: 54.7 k triangles (54 k
 drawn: one of its two HUDs; 59.4 k before the wide-angle HUD's top was left out) (the consoles kept at 30–50 %, the
 tub cut at the eye; without the seat, kneeboards and pilot), KTX2 textures (4.2 MB), 37 animated parts. The Barak
 takes FlightGear's Block 40 panel sheet, the Sufa the Block 50 one. The MFDs draw into 512 px SubViewports, the HUD is masked to the combiner glass in a canvas shader, the

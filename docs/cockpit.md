@@ -412,11 +412,16 @@ definition's `hud_3d`.
   FlightGear's wide-angle HUD (`f16_war.xml`). An F-16I seen from the side shows one large combiner plate over a deep
   box (IDF Spokesperson's Unit, CC BY-SA 3.0, `File:Israeli_attacks_on_Yemen,_January_2025._XV.jpg` on Wikimedia
   Commons; a reference only); the wide-angle HUD is the closer of FlightGear's two (inferred), the Elbit HUD's own
-  shape and field are open. The photo's combiner plate stands free between two black side posts: the wide-angle HUD's
-  bar over the glass and the lid on it (`HUDtop` with its screws) are left out (they sat at the eye's height and
-  closed the frame into a black loop around the view), and the plate's 2 cm rim (`HUDedge`, opaque in the source) is
-  a faint amber glass (25 % opaque; `cockpit3d.py` `hud_wide_top`). 54.8 k triangles in the file, about 54 k drawn
-  (one HUD); 121 materials (FlightGear's duplicates merged), 152 surfaces.
+  shape and field are open. The photo's combiner plate stands free between two black side posts, with nothing over
+  its top. So the wide-angle HUD's top is left out (`cockpit3d.py` `hud_wide_top`): the lid (`HUDtop` with its
+  screws), the second glass ahead of the combiner with its black cover (`BackGlass`, `BackGlassCover`: a 4 cm strip
+  at the eye's height, 8 to 16 cm ahead of the combiner) and the frame's bar over the combiner (`HUDFrame`'s faces
+  above the glass that reach in over it; the posts' tops stay). The plate's 2 cm rim (`HUDedge`, opaque in the
+  source) is a faint amber glass (25 % opaque). 54.7 k triangles in the file, about 54 k drawn (one HUD); 121
+  materials (FlightGear's duplicates merged), 152 surfaces.
+  - Tried and dropped (2026-11-01): leaving out only the lid and the bar's faces lying wholly between the posts. The
+    bar's faces reach 1 mm past that test's edge, so the bar stayed; with the second glass's cover behind it, the
+    view ahead still showed a dark bar joining the posts into a closed loop (fixed 2026-11-02).
 * Left out: the seat, canopy frame and rear cockpit (the detailed F-16's cut model draws them, aircraft-models.md
   §1.4), the kneeboards, helmet and pilot.
 * The altimeter is ours: FlightGear's comes from FGData, outside the package. The ASI's mount and dial plate copied

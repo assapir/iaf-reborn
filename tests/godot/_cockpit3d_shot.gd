@@ -1,17 +1,19 @@
-# Dev helper (not run by tools/test.sh): the F-16's 3D cockpit (Extras "Cockpit": 3D; docs/cockpit.md
-# "3D cockpit") in a real render, the Barak's and the Sufa's: straight ahead, looking left, right and down at the MFDs
-# (25° down), and the Real HUD over a ground unit 8 km ahead. C3D_LOOK=2d takes the same frames with
-# the 2D panel (side by side). The scene is _cockpit_show_shot.gd's cockpit_f16_day (Settings at their defaults, the
-# switch set here); C3D_HOUR=22 the night (the mission then starts at night: pass `-- --hour 22` too).
-# C3D_JET=f35i: the F-35I's instead (_f35i). C3D_ONLY=panel takes only the lamps and displays: the master caution and
-# fire lamps lit, the gear down, an emitter and a launching one on the RWR scope; looking down at the panel, at the RWR
-# scope and at the gear panel.
+# Dev helper (not run by tools/test.sh): the F-16's 3D cockpit (Extras "Cockpit": 3D; docs/cockpit.md "3D cockpit") in a
+# real render, the Barak's and the Sufa's: straight ahead, looking up a little (8°), left, right and down at the MFDs
+# (25° down), and the Real HUD over a ground unit 8 km ahead. C3D_LOOK=2d takes the same frames with the 2D panel (side
+# by side). The scene is _cockpit_show_shot.gd's cockpit_f16_day (Settings at their defaults, the switch set here);
+# C3D_HOUR=22 the night (the mission then starts at night: pass `-- --hour 22` too). C3D_JET=f35i: the F-35I's instead
+# (_f35i). C3D_ONLY=panel takes only the lamps and displays: the master caution and fire lamps lit, the gear down, an
+# emitter and a launching one on the RWR scope; looking down at the panel, at the RWR scope and at the gear panel.
+# C3D_ONLY=hud: only ahead and looking up 8° (the HUD's frame against the sky).
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOW_OUT=$PWD/.shots/c3d -- \
 #     --log-file /tmp/c3d.log --resolution 1920x1080 --path game -s ../tests/godot/_cockpit3d_shot.gd
 extends "res://../tests/godot/_cockpit_show_shot.gd"
 
 ## [name, head yaw, head pitch] (deg; + right, + up).
-const HEADS := [["front", 0.0, 0.0], ["left", -80.0, -30.0], ["right", 80.0, -30.0], ["down", 0.0, -25.0]]
+const HEADS := [
+	["front", 0.0, 0.0], ["up", 0.0, 8.0], ["left", -80.0, -30.0], ["right", 80.0, -30.0], ["down", 0.0, -25.0]
+]
 
 
 func run() -> void:
@@ -38,11 +40,14 @@ func run() -> void:
 			await _panel(variant)
 			continue
 		for h in HEADS.slice(1):
+			if OS.get_environment("C3D_ONLY") == "hud" and h[0] != "up":
+				continue
 			tv.views.snap = Vector2(deg_to_rad(h[1]), deg_to_rad(h[2]))
 			await _settle()
 			await _shot("f16_%s_%s" % [variant, h[0]], 0.0)
 		tv.views.snap = null
-		await _target(variant)
+		if OS.get_environment("C3D_ONLY") != "hud":
+			await _target(variant)
 	settings().jet_id = -1
 
 
