@@ -15,6 +15,9 @@
   "radar": { "row": 10, "km": 148.0 },
   "gun_rounds": 180,
   "flir": true,
+  "fly_by_wire": true,
+  "engine_spool": [4.0, 5.0, 0.8, 1.2],
+  "goggles": "gen3_late",
   "weapons": {
     "arm_art": "x_f35i",
     "modern": "always",
@@ -26,6 +29,8 @@
     "gun_rounds": "GAU-22/A 25 mm, 180 rounds (the 20 MM record stands in)",
     "voice.real": "the pull-up call only (Auto-GCAS lineage, docs/real-betty.md)",
     "cockpit_3d": "the 3D cockpit (Extras Cockpit: 3D): ours, tools/f35i/cockpit3d.py --glb (docs/f35i.md §4.5)",
+    "engine_spool": "F135-PW-100: flight idle -> maximum power about 6 s (Pratt & Whitney); the split inferred (docs/flight-model.md §10.2)",
+    "goggles": "the helmet's night camera, drawn as the late Gen III; its cockpit lit for it (docs/rendering.md §8.3)",
     "flir": "the built-in EOTS (docs/f35i.md §3.1)",
     "weapons.loads": "modern_weapons.gd record id -> [count, stations A..I] (docs/f35i.md §3.1)"
   }

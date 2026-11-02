@@ -38,6 +38,12 @@ pub struct Airframe {
     /// The 3D cockpit's model (Extras "Cockpit": 3D; docs/cockpit.md "3D cockpit").
     pub cockpit_3d: Option<String>,
     pub mfd: Option<String>,
+    /// The fly-by-wire flight controls: the roll-rate command and the deep stall in place of the spin (aircraft.rs).
+    pub fly_by_wire: Option<bool>,
+    /// The engine's spool times in seconds, `[idle_mil, mil_idle, ab_light, ab_fill]` (spool.rs `Spool`).
+    pub engine_spool: Option<[f32; 4]>,
+    /// The night-vision goggles' tube whatever the year (terrain_view.gd `TUBES`), its cockpit lit for them.
+    pub goggles: Option<String>,
     pub guide: Option<String>,
     /// Each value's source, by field (`"radar.km"`); read by no code.
     pub notes: Option<BTreeMap<String, String>>,
@@ -126,6 +132,12 @@ pub fn id_for(type_code: i64, s: Switches) -> Option<&'static str> {
 /// The resolved definition `id` (its base merged in), None for an unknown id.
 pub fn get(id: &str) -> Option<&'static Airframe> {
     RESOLVED.get(id)
+}
+
+/// The definition of a jet the flight model flies by type code alone: the switches off (the F-16 and F-15 their 1998
+/// bases, which hold no flight-model field; the F-35I its own).
+pub fn of_fm_type(type_code: u32) -> Option<&'static Airframe> {
+    of_type(type_code as i64, Switches::default())
 }
 
 /// Every definition id with its resolved definition.
@@ -275,6 +287,9 @@ mod tests {
             );
         }
         assert_eq!(of_type(100, off).unwrap().hud_3d.as_deref(), Some("HUD_std"));
+        // The F-35I flies its definition's engine and flight controls (type 1000 has no 1998 row).
+        assert_eq!(crate::spool::engine(1000).map(|s| s.idle_mil), Some(4.0));
+        assert_eq!(of_fm_type(1000).and_then(|a| a.fly_by_wire), Some(true));
     }
 
     #[test]

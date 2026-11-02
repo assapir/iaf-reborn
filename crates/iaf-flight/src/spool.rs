@@ -20,8 +20,8 @@ const fn spool(idle_mil: f32, mil_idle: f32, ab_light: f32, ab_fill: f32) -> Spo
     Spool { idle_mil, mil_idle, ab_light, ab_fill }
 }
 
-/// The engine of each flyable type, by type code (`Params::type_code`). Types without a row keep the
-/// original's response.
+/// The engine of each flyable 1998 type, by type code (`Params::type_code`). A modern jet's is its definition's
+/// `engine_spool`; types with neither keep the original's response.
 pub const ENGINES: &[(u32, Spool)] = &[
     // F-16D Block 30/40, F110-GE-100: no public figure; the F100's (inferred, open).
     (100, spool(3.0, 5.0, 0.5, 2.0)),
@@ -41,12 +41,13 @@ pub const ENGINES: &[(u32, Spool)] = &[
     (180, spool(3.0, 5.0, 0.8, 1.2)),
     // Mirage IIIC, Atar 9C: no public figure; the 5 s limit (open).
     (190, spool(5.0, 5.0, 1.0, 1.5)),
-    // F-35I Adir, F135-PW-100: flight idle → maximum power about 6 s (Pratt & Whitney); the split inferred.
-    (1000, spool(4.0, 5.0, 0.8, 1.2)),
 ];
 
 pub fn engine(type_code: u32) -> Option<Spool> {
-    ENGINES.iter().find(|(c, _)| *c == type_code).map(|(_, s)| *s)
+    ENGINES.iter().find(|(c, _)| *c == type_code).map(|(_, s)| *s).or_else(|| {
+        let [a, b, c, d] = crate::airframe::of_fm_type(type_code)?.engine_spool?;
+        Some(spool(a, b, c, d))
+    })
 }
 
 /// The rate's offset: the core's rate is ∝ (x + A), x = 0 at idle, 1 at military, so it spools 11× faster near

@@ -3360,11 +3360,12 @@ const TUBES := {
 
 
 ## The goggles of the flight's year and jet ({} = none): the best tube of the mission's year; the MiGs a Gen II at
-## most (the Soviet ONV-1), the F-35I its helmet camera, drawn as the late Gen III.
+## most (the Soviet ONV-1), a definition's `goggles` whatever the year (the F-35I's helmet camera).
 func goggles_tube() -> Dictionary:
 	var year := Settings.mission_year()
-	if player.get("type", 0) == PlayerAircraft.F35I:
-		return TUBES.gen3_late
+	var own: String = Settings.airframe(player.get("type", 0)).get("goggles", "")
+	if own:
+		return TUBES[own]
 	if year < 1972.0:
 		return {}
 	if player.get("type", 0) in [160, 180] or year < 1982.0:
@@ -3373,10 +3374,10 @@ func goggles_tube() -> Dictionary:
 
 
 ## Whether the jet's cockpit lighting suits the goggles (rendering.md §8.3): the F-15 and F-16 from 1996 (inferred
-## from the USAF's F-16 retrofit and the F-15I), the F-35I (its helmet camera); every other jet's panel glow washes out
-## the picture's lower part (the shader's `glare`).
+## from the USAF's F-16 retrofit and the F-15I), a definition with its own `goggles` (the F-35I); every other jet's
+## panel glow washes out the picture's lower part (the shader's `glare`).
 static func goggles_lit(type: int, year: float) -> bool:
-	return type == PlayerAircraft.F35I or (type in [100, 110] and year >= 1996.0)
+	return Settings.airframe(type).has("goggles") or (type in [100, 110] and year >= 1996.0)
 
 
 ## A cockpit start draws one frame of the external view behind the loading screen, then returns to the cockpit:
