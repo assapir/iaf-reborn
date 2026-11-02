@@ -1257,6 +1257,23 @@ F-16, the GPU bench lock held), `BENCH_SET=cockpit_3d=3d` against the 2D panel, 
   drawn into both; the Barak's posts and the bevelled coaming add 1.1 k triangles to the file (57.3 k). Video memory: the
   same (the lifted sheets compress as before). The after runs had the first coaming (a tube, since replaced by a
   bevel of the same size: fewer triangles).
+- **Whole knobs and throttle, the sills, the backlit labels** (2026-11-02; cockpit.md "Knobs and throttle", "The
+  canopy sills", "Light"): the consoles' flat faces merged instead of decimating every part, the knobs and the
+  throttle kept whole, the sills' seal, lip and screw heads: 66.9 k triangles in the file (+9.6 k), 124 materials
+  (+4). `_flight_bench.gd`, mission 311 at 10:30, `BENCH_SET=cockpit_3d=3d`, Iris Xe, 1920×1080, the GPU bench lock
+  held, after, before (the previous commit's model), after:
+
+  | leg | before (GPU, calls, triangles) | after |
+  |---|---|---|
+  | 150 m, 250 m/s | 12.9 ms, 787 calls, 555 k | 13.2 / 12.8 ms, 802 calls, 588 k |
+  | 1,500 m | 15.9 ms, 775 calls, 549 k | 16.1 / 15.9 ms, 790 calls, 580 k |
+
+  No GPU cost to measure (+0.1 ms on average, inside the runs' spread); 15 more draw calls and about 32 k more
+  triangles drawn (the cockpit is drawn into two shadow splits and its light pass). Video memory +32 MB in the bench's
+  totals (they vary by ±30 MB run to run; the glb is 0.2 MB larger). The backlit labels' pass is drawn only at the
+  cockpit's night; a run at 22:00 (`BENCH_HOUR=22`) showed no cost against the previous commit (10.7 against 11.1 ms
+  at 150 m), but the bench sets the clock after the mission's start, where the cockpit's night is decided, so that
+  pass's own cost is open.
 
 ## 4. Time of day (built: game/terrain/time_of_day.gd)
 

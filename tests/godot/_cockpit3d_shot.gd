@@ -1,6 +1,7 @@
 # Dev helper (not run by tools/test.sh): the F-16's 3D cockpit (Extras "Cockpit": 3D; docs/cockpit.md "3D cockpit") in a
 # real render, the Barak's and the Sufa's: straight ahead, looking up a little (8°), left, right, down at the MFDs (25°
-# down) and at the left console (45° left, 50° down), and the Real HUD over a ground unit 8 km ahead. C3D_LOOK=2d takes
+# down), at the left and right consoles (45° left / right, 50° down), the left sill (100° left, 35° down) and back
+# left (150°), and the Real HUD over a ground unit 8 km ahead. C3D_LOOK=2d takes
 # the same frames with the 2D panel (side by side). The scene is _cockpit_show_shot.gd's cockpit_f16_day (Settings at
 # their defaults, the switch set here); C3D_HOUR=22 the night (the mission then starts at night: pass `-- --hour 22`
 # too). C3D_JET=f35i: the F-35I's instead (_f35i). C3D_ONLY=panel takes only the lamps and displays: the master caution
@@ -19,7 +20,10 @@ const HEADS := [
 	["left", -80.0, -30.0],
 	["right", 80.0, -30.0],
 	["down", 0.0, -25.0],
-	["console", -45.0, -50.0]
+	["console", -45.0, -50.0],
+	["console_r", 45.0, -50.0],
+	["sill", -100.0, -35.0],
+	["back", -150.0, -5.0]
 ]
 
 

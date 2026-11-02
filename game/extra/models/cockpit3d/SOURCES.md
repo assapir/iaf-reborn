@@ -40,8 +40,10 @@ Made by `tools/f16d/cockpit3d.py` (re-runnable; docs/cockpit.md "3D cockpit"):
 
 1. The parts of the Block 50/52 cockpit (`sim/variant-id` 5) placed by FlightGear's offsets; the seat, kneeboards,
    helmet, pilot and the other blocks' HUDs and stick left out.
-2. The tub cut at the pilot's eye (the detailed F-16's own tub and seat draw the rest).
-3. The consoles, ICP, throttle and stick decimated (about 40 % of their triangles kept).
+2. The tub cut at the pilot's eye (the detailed F-16's own tub and seat draw the rest); its side walls and sill
+   border (`COCKPIT`, `cockpit_border`) 0.42 m behind it (2026-11-02).
+3. The ICP and the stick decimated (about 45 % of their triangles kept); the consoles and the throttle (2026-11-02)
+   their flat faces merged (a planar decimation within 3°), only their parts over 1,600 triangles decimated to 40 %.
 4. FlightGear's lamps and off flags hidden as on a powered jet with every lamp off; the needles FlightGear animates
    and the game drives made separate nodes on their hinges, with FlightGear's value tables in `f16.json`.
 5. The DED's and PFD's canvas placeholders replaced by a dark screen (the game draws into them); the rudder pedals made black.
@@ -76,5 +78,13 @@ Made by `tools/f16d/cockpit3d.py` (re-runnable; docs/cockpit.md "3D cockpit"):
 15. The panel paint lifted (2026-11-02, `lift_paint`): every sheet but the tub's floor and walls, the vents, the
     stick and the glass, linear colour `0.06 + 0.94 · c` (FlightGear's #101010 console plates become #484848, its
     #2D2D2D panel #525252); the Block 40 sheet in `barak_panels.webp` too.
-16. The tub's top border under the canopy sills (`cockpit.ac` `cockpit_border`, untextured light grey) made dark
-    grey (2026-11-02).
+16. The tub's top border under the canopy sills (`cockpit.ac` `cockpit_border`, untextured light grey) made near
+    black (2026-11-02).
+17. The knobs (2026-11-02, `darken_knobs`): the light grey texels under every knob's and throttle button's UV
+    footprint darkened to a fifth (the white index lines and labels kept), in `panels-MLU-right_console.png`,
+    `panels-MLU-left_console.png`, `panels-B50-left_right-aux-consoles.png`, `throttle.png`, `temp.zKnob.png` and the
+    instruments' sheets, and over the whole of `panels-B50-left_console.png` (its knobs painted on flat panels); the
+    left console's untextured rotary knobs (`SW_KNOB_*`) made black, its switch guards
+    (`*Guards*`) dark grey; the stick's boot (`F-16-FS.ac` `Grommet`) black.
+18. Ours (2026-11-02, `sills`): along each canopy sill a black seal tube and a dark grey rounded lip under it with a
+    row of screw heads; the tub's side walls above the consoles (`COCKPIT`'s faces facing in) near black.

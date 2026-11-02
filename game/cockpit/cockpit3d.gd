@@ -146,8 +146,10 @@ func _materials(model: Node3D, path: String, barak_jet: bool) -> void:
 ## sky ambient (the sun stays outside the glareshield and the tub), which left the panel dark blue-grey. Each textured
 ## material glows by its own texture × a colour, a flat fill (no light: an OmniLight3D at the eye cost 1-2 ms on the
 ## Iris Xe): by day the sun's colour; at the cockpit's night (cockpit.night, the 2D panel's darkening: time_of_day.gd
-## cockpit_night) FlightGear's flood (panel-standard.eff lightmap-color) and the panels' backlit labels (its implicit
-## lightmap: the light texels glow in its emit-color).
+## cockpit_night) FlightGear's flood (panel-standard.eff lightmap-color) on everything and the panels' backlit labels
+## (its implicit lightmap: only the near-white texels glow in its emit-color, _setup_backlight). Until 2026-11-02 the
+## backlight's colour was added to the flood over every texel: the whole panel, the gauges' faces and the ADI ball
+## turned green.
 ## The fill by day (× the sun's colour and energy): 1.3 on FlightGear's near-black paint; 1.0 since the sheets' paint
 ## was lifted (tools/f16d/cockpit3d.py PAINT_FLOOR, 2026-11-02). The sun itself lights what it reaches through the
 ## canopy, its shadows sharp in the cockpit (_sun_split).
@@ -202,6 +204,7 @@ func _setup_light(model: Node3D) -> void:
 			mat.emission_energy_multiplier = 1.0
 			_lit_mats.append(mat)
 	_setup_baked_light(model, lamp_mats)
+	_setup_backlight()
 	var p := get_parent()
 	while p != null and _sun == null:
 		_sun = p.get_node_or_null("Sun") as DirectionalLight3D
@@ -251,11 +254,49 @@ func _setup_baked_light(model: Node3D, skip: Array) -> void:
 			mat.next_pass = pass_mat
 
 
+## The backlit labels (cockpit3d_backlight.gdshader, a pass added after each lit part's own and its baked light, only
+## at night): [the material it hangs from, the pass]. FlightGear's thresholds (panel-standard.eff).
+const BACKLIGHT_SHADER := "res://cockpit/cockpit3d_backlight.gdshader"
+## The attitude spheres (their sheets by name: the ADI's ball, the standby ADI's drum): lit by the flood alone, their
+## sky and ground dim; their light grey sky would glow green as a label.
+const NO_BACKLIGHT := ["adi-sphere", "stdby-adi-drum"]
+var _backlights := []
+var _backlit := false
+
+
+func _setup_backlight() -> void:
+	var shaders := {}  # cull mode -> the pass's shader
+	for mat: BaseMaterial3D in _lit_mats:
+		if NO_BACKLIGHT.any(func(n): return mat.resource_name.contains(n)):
+			continue
+		var cull := "cull_disabled" if mat.cull_mode == BaseMaterial3D.CULL_DISABLED else "cull_back"
+		if not shaders.has(cull):
+			shaders[cull] = Shader.new()
+			shaders[cull].code = (load(BACKLIGHT_SHADER) as Shader).code.replace("cull_back", cull)
+		var glow := ShaderMaterial.new()
+		glow.shader = shaders[cull]
+		glow.set_shader_parameter("sheet", mat.albedo_texture)
+		glow.set_shader_parameter("clip", mat.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR)
+		var c := BACKLIGHT * BACKLIGHT_ENERGY
+		glow.set_shader_parameter("glow", Vector3(c.r, c.g, c.b))
+		_backlights.append([mat.next_pass if mat.next_pass != null else mat, glow])
+
+
+## The backlit labels' passes hung on (`on`) or off: drawn only at night.
+func _backlight_on(on: bool) -> void:
+	if on == _backlit:
+		return
+	_backlit = on
+	for b in _backlights:
+		b[0].next_pass = b[1] if on else null
+
+
 func _lighting() -> void:
 	_sun_split()
 	var c := Color.BLACK
+	_backlight_on(cockpit.night)
 	if cockpit.night:
-		c = FLOOD * FLOOD_ENERGY + BACKLIGHT * BACKLIGHT_ENERGY
+		c = FLOOD * FLOOD_ENERGY
 	elif _sun != null:
 		c = _sun.light_color * (FILL * _sun.light_energy)
 	c.a = 1.0

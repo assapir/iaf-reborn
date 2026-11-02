@@ -103,9 +103,17 @@ SHOWN = {("adi", "ADI_yaw-steering-bar"): "ils", ("adi", "ADI_pitch-strg-bar"): 
 ILS_BARS = {("adi", "ADI_pitch-strg-bar"): 0.015, ("adi", "ADI_yaw-steering-bar"): 0.018}
 TO_FRONT = {("adi", "ADI_turn-indicator"): 0.0035, ("adi", "ADI_glide-slope-index"): 0.0007}
 # Triangles kept of each heavy part (FlightGear's counts; the research's Iris Xe budget, docs/graphics-research.md
-# §3.8): the consoles beside and below the eye.
-DECIMATE = {"LeftConsole": 0.3, "LeftAuxConsole": 0.3, "RightConsole": 0.35, "RightAuxConsole": 0.5, "ICP": 0.45,
-            "MISC": 0.5, "Throttle": 0.4, "F-16-FS": 0.5}
+# §3.8): the ICP and the stick collapsed to this ratio, each object over 40 faces.
+DECIMATE = {"ICP": 0.45, "F-16-FS": 0.5}
+# The consoles and the throttle, beside and below the eye (2026-11-02): FlightGear's flat faces merged first (a planar
+# dissolve within PLANAR_DEG, the UV seams, materials and sharp edges kept: the shape stays, the knobs' knurls and
+# bevels too), then only the objects still over HEAVY triangles collapsed to the part's ratio (the gear handle and its
+# lamp, the alternate gear handle, the KY-58 plug). Collapsing every object to 30-40 % (until then) made the knobs and
+# the throttle's grip lumpy.
+PLANAR = {"LeftConsole": 0.4, "LeftAuxConsole": 0.4, "RightConsole": 0.4, "RightAuxConsole": 0.5, "MISC": 0.5,
+          "Throttle": 0.5}
+PLANAR_DEG = 3.0
+HEAVY = 1600
 # The block panel sheets (Textures/Block-panels; the left aux console's and the RWR head's labels): the model keeps
 # FlightGear's Block 50 sheet (the F-16I Sufa's base, a Block 52+); the F-16D Barak (Block 30/40, docs/real-aircraft.md
 # §8) gets the Block 40 one.
@@ -127,6 +135,11 @@ C = Matrix(((0, 1, 0, 0), (-1, 0, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)))
 # (aircraft_model.gd detailed_cockpit) draws the tub from there aft, with its two-seat changes. The game's eye there:
 # the detailed F-16's pilot + F16_EYE_IN_PILOT, 3.3 cm aft of FlightGear's view point (measured in the game).
 TUB_CUT_X = -4.072
+# The tub's side walls and sill border (`COCKPIT`, `cockpit_border`) end SIDE_AFT further aft (2026-11-02): the cut
+# model leaves its own interior out there, under the sills beside the seat (aircraft_model.gd F16_CONSOLE_AFT, the same
+# 0.42 m), and through the gap the fuselage's painted skin showed beside the pilot.
+SIDE_CUT = ("Tub/COCKPIT", "Tub/cockpit_border")
+SIDE_AFT = 0.42
 # FlightGear's pilot view (f16-base.xml view 0: x-offset 0, y-offset 0.8579 up, z-offset -4.105 aft), FlightGear frame.
 FG_EYE = (-4.105, 0.0, 0.8579)
 
@@ -347,6 +360,95 @@ def altimeter(b):
     # Clockwise as the pilot sees it: about the axis into the panel (FlightGear's right-hand rule).
     b.anims[needle] = [{"prop": "instrumentation/altimeter/indicated-altitude-ft", "factor": 0.36, "offset": 0.0,
                         "centre": list(base), "axis": list(-normal)}]
+
+
+# The knobs and the throttle's buttons (2026-11-02): FlightGear maps their sides onto light grey patches of their sheets
+# (a square of the console sheets, a corner of throttle.png), which from the eye read white; the F-16's knobs and
+# throttle buttons are black with white index lines (the photos, docs/cockpit.md). Under their UV footprint the sheets'
+# light grey texels are darkened to KNOB_DARK of themselves: those between the luminances KNOB_GREY (sRGB, from the
+# first, fully from the second) and KNOB_WHITE (kept from the second up: the index lines and labels).
+KNOB_DARK = 0.2
+KNOB_GREY = (0.25, 0.35)
+KNOB_WHITE = (0.75, 0.85)
+KNOB_GROW = 4  # texels
+# The left console's radio panels (UHF, AUDIO 1) are flat in places, their knobs painted on the sheets in light grey:
+# on these sheets the grey (unsaturated) light grey areas at least 2 · KNOB_PAINT_MIN + 1 texels across (the painted
+# knobs, not the labels' anti-aliased edges) are darkened too.
+KNOBS_PAINTED = ("panels-B50-left_console.png", "panels-MLU-left_console.png")
+KNOB_PAINT_MIN = 2
+
+
+def is_knob(part, name):
+    return "knob" in name.lower() or (part == "Throttle" and name != "GRIP")
+
+
+def grow(m, n, op):
+    """The mask `m` eroded (op np.logical_and) or dilated (np.logical_or) by n texels."""
+    for _ in range(n):
+        for ax in (0, 1):
+            m = op(m, op(np.roll(m, 1, ax), np.roll(m, -1, ax)))
+    return m
+
+
+def darken_knobs(b):
+    masks = {}  # image -> the texels under a knob
+    for part, objs in b.parts.items():
+        for o in objs:
+            if not is_knob(part, o.name.split("/", 1)[1]) or not o.data.uv_layers:
+                continue
+            uv = o.data.uv_layers[0].data
+            o.data.calc_loop_triangles()
+            for tri in o.data.loop_triangles:
+                mat = o.data.materials[tri.material_index] if o.data.materials else None
+                tex = next((n for n in mat.node_tree.nodes if n.type == 'TEX_IMAGE'), None) if mat else None
+                if tex is None or tex.image is None:
+                    continue
+                img = tex.image
+                w, h = img.size
+                m = masks.setdefault(img, np.zeros((h, w), bool))
+                p = np.array([uv[li].uv[:] for li in tri.loops]) % 1.0 * (w, h)
+                x0, y0 = np.floor(p.min(0)).astype(int) - 1
+                x1, y1 = np.ceil(p.max(0)).astype(int) + 1
+                xs, ys = np.meshgrid(np.arange(max(x0, 0), min(x1, w)) + 0.5, np.arange(max(y0, 0), min(y1, h)) + 0.5)
+                # Its corners (many knobs map whole faces onto one point of the patch), then the texels inside it.
+                m[np.clip(p[:, 1].astype(int), 0, h - 1), np.clip(p[:, 0].astype(int), 0, w - 1)] = True
+                (ax, ay), (bx, by), (cx, cy) = p
+                d = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy)
+                if abs(d) < 1e-9 or xs.size == 0:
+                    continue
+                l1 = ((by - cy) * (xs - cx) + (cx - bx) * (ys - cy)) / d
+                l2 = ((cy - ay) * (xs - cx) + (ax - cx) * (ys - cy)) / d
+                inside = (l1 >= 0) & (l2 >= 0) & (1 - l1 - l2 >= 0)
+                m[ys[inside].astype(int), xs[inside].astype(int)] = True
+    for img in [i for i in bpy.data.images if os.path.basename(i.filepath) in KNOBS_PAINTED]:
+        px = np.empty(img.size[0] * img.size[1] * img.channels, np.float32)
+        img.pixels.foreach_get(px)
+        rgb = px.reshape(img.size[1], img.size[0], img.channels)[..., :3]
+        lum = rgb @ np.array([0.3, 0.59, 0.11], np.float32)
+        grey = (lum > KNOB_GREY[0]) & (lum < KNOB_WHITE[1]) & (rgb.max(-1) - rgb.min(-1) < 0.12)
+        painted = grow(grow(grey, KNOB_PAINT_MIN, np.logical_and), KNOB_PAINT_MIN + 1, np.logical_or)
+        masks[img] = masks.get(img, np.zeros_like(grey)) | painted
+    for img, m in masks.items():
+        m = grow(m, KNOB_GROW, np.logical_or)  # past the edges, as the sheet's mipmaps blur it seen from afar
+        a = np.empty(img.size[0] * img.size[1] * img.channels, np.float32)
+        img.pixels.foreach_get(a)
+        px = a.reshape(img.size[1], img.size[0], img.channels)
+        lum = px[..., :3] @ np.array([0.3, 0.59, 0.11], np.float32)
+        ramp = lambda lo_hi: np.clip((lum - lo_hi[0]) / (lo_hi[1] - lo_hi[0]), 0, 1)  # noqa: E731
+        k = 1 - (1 - KNOB_DARK) * ramp(KNOB_GREY) * (1 - ramp(KNOB_WHITE))
+        px[..., :3] *= np.where(m, k, 1.0)[..., None]
+        img.pixels.foreach_set(a)
+        print("darken_knobs %s: %d texels" % (img.name, m.sum()))
+
+
+def planar(o):
+    """FlightGear's flat faces merged (PLANAR): the shape kept."""
+    d = o.modifiers.new("planar", 'DECIMATE')
+    d.decimate_type = 'DISSOLVE'
+    d.angle_limit = math.radians(PLANAR_DEG)
+    d.delimit = {'UV', 'MATERIAL', 'SHARP'}
+    bpy.context.view_layer.objects.active = o
+    bpy.ops.object.modifier_apply(modifier="planar")
 
 
 def merge_materials(objs):
@@ -640,6 +742,66 @@ def coaming(b):
     print("coaming: %d edges, %.2f m bevelled" % (len(edges), n))
 
 
+# The canopy sills (sills, 2026-11-02): FlightGear's sill is the tub's flat border strip (`cockpit_border`) under the
+# canopy frame's skirt; from the eye a bare slab along each side. The F-16's (the photos, docs/cockpit.md) has the
+# canopy's black rubber seal along the frame's foot and under it the sill's inner face, a grey lip (lighter than
+# the near-black wall under it) over the console. Along the border's top inner edge, each side: the seal, a tube SEAL_R
+# round, and the lip, a rounded rectangle LIP_W wide and LIP_H deep under it (inferred sizes, m), from the border's
+# aft end to its front, a screw head SCREW_R round every SCREW_STEP along the lip's face.
+SEAL_R = 0.011
+LIP_W, LIP_H = 0.02, 0.06
+SCREW_R, SCREW_STEP = 0.004, 0.1
+SILL_WALL_X = 0.3  # the side walls: COCKPIT's faces this far out (m) and more
+
+
+def sills(b):
+    border = next((o for o in b.parts.get("Tub", []) if o.name == "Tub/cockpit_border"), None)
+    if border is None:
+        return
+    uv_name = border.data.uv_layers[0].name if border.data.uv_layers else "UVMap"
+    seal = kit.material("seal", (0.018, 0.018, 0.02), roughness=0.8)
+    lip = kit.material("sill_lip", (0.06, 0.062, 0.066), roughness=0.55)
+    screw = kit.material("sill_screw", (0.16, 0.16, 0.16), roughness=0.4)
+    for s in (-1, 1):
+        vs = [v.co.copy() for v in border.data.vertices if v.co.x * s > 0]
+        aft_y, fore_y = min(v.y for v in vs), max(v.y for v in vs)
+        aft = max((v for v in vs if v.y < aft_y + 0.01), key=lambda v: v.z)  # the top edge's ends
+        fore = max((v for v in vs if v.y > fore_y - 0.01), key=lambda v: v.z)
+        t = (fore - aft).normalized()
+        inward = Vector((-s, 0, 0))
+        inward = (inward - t * inward.dot(t)).normalized()
+        up = t.cross(inward) if t.cross(inward).z > 0 else inward.cross(t)
+        side = "LR"[s > 0]
+        rings = [[p + up * (0.003 + SEAL_R * math.sin(a)) + inward * (SEAL_R * math.cos(a))
+                  for a in (2 * math.pi * i / 16 for i in range(16))] for p in (aft, fore)]
+        sweep("sill_seal_" + side, rings, seal, uv_name)
+        lip_at = [(x - LIP_W / 2 + 0.006, y - LIP_H / 2) for x, y in superellipse(LIP_W / 2, LIP_H / 2)]
+        rings = [[p + up * y + inward * x for x, y in lip_at] for p in (aft, fore)]
+        sweep("sill_lip_" + side, rings, lip, uv_name)
+        # The lip's fasteners: a row of screw heads along its face.
+        n = int((fore - aft).length / SCREW_STEP)
+        for k in range(n):
+            c = aft + t * (SCREW_STEP * (k + 0.5)) - up * (LIP_H / 2)
+            rings = [[c + inward * d + up * (SCREW_R * math.sin(a)) + t * (SCREW_R * math.cos(a))
+                      for a in (2 * math.pi * i / 6 for i in range(6))] for d in (0.005, 0.0075)]
+            sweep("sill_screw_%s%d" % (side, k), rings, screw, uv_name)
+        print("sills %s: %s -> %s, %d screws" % (side, tuple(round(x, 3) for x in aft),
+                                                 tuple(round(x, 3) for x in fore), n))
+    # The side walls under the sills (`COCKPIT`'s faces facing in, above the consoles): FlightGear's grey tub sheet
+    # (panels.png) read as a light slab in the sun; the photos show them near black under the sill's lighter edge.
+    tub = next((o for o in b.parts["Tub"] if o.name == "Tub/COCKPIT"), None)
+    if tub is not None:
+        tub.data.materials.append(kit.material("sill_wall", (0.025, 0.026, 0.028), roughness=0.8))
+        k = len(tub.data.materials) - 1
+        n = 0
+        for p in tub.data.polygons:
+            vs = [tub.data.vertices[i].co for i in p.vertices]
+            if abs(p.normal.x) > 0.5 and min(abs(v.x) for v in vs) > SILL_WALL_X and min(v.z for v in vs) > 0.12:
+                p.material_index = k
+                n += 1
+        print("sills: %d wall faces" % n)
+
+
 # The cockpit's baked light (bake_light): one atlas over a second UV set ("light", glTF TEXCOORD_1, Godot's UV2) of
 # every part but the glasses and screens; its size (px), Cycles samples, and the occlusion's reach (m): a switch's
 # contact shadow and the glareshield's shade over the panel both show, the tub's far walls not.
@@ -734,21 +896,26 @@ def main():
     b.walk(os.path.join(FG, "Models/Cockpit/Main/cockpit.xml"), Matrix.Identity(4), "Tub")
     altimeter(b)
     root_at = original_root()
+    sills(b)
+    darken_knobs(b)
     for o in b.parts["Tub"]:
         bm = bmesh.new()
         bm.from_mesh(o.data)
-        bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=C @ Vector((TUB_CUT_X, 0, 0)),
+        cut = TUB_CUT_X + (SIDE_AFT if o.name in SIDE_CUT else 0.0)
+        bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=C @ Vector((cut, 0, 0)),
                                plane_no=(0, 1, 0), clear_inner=True)
         bm.to_mesh(o.data)
         bm.free()
     # The gear handle (8.6 k triangles) and the throttle turn but are decimated with their consoles; the other turning
     # parts are kept whole.
     decimate_turning = {"controls/gear/gear-down", "controls/engines/engine/throttle-movement"}
-    for name, ratio in DECIMATE.items():
+    for name, ratio in {**DECIMATE, **PLANAR}.items():
         objs = [o for o in b.parts.get(name, []) if o not in b.anims or b.anims[o][0]["prop"] in decimate_turning]
         before = tris(objs)
         for o in objs:
-            if len(o.data.polygons) > 40:
+            if name in PLANAR and len(o.data.polygons) > 3:
+                planar(o)
+            if len(o.data.polygons) > 40 and (name not in PLANAR or tris([o]) > HEAVY):
                 kit.decimate(o, ratio)
         print("decimated %-16s %6d -> %6d" % (name, before, tris(objs)))
     everything = [o for o in kit.scene().objects if o.type == 'MESH']
@@ -785,13 +952,26 @@ def main():
             for i in range(len(o.data.materials)):
                 o.data.materials[i] = hud_edge
     pedal = kit.material("pedal", (0.07, 0.07, 0.075), roughness=0.7)
-    for o in b.parts.get("RudderPedals", []):
+    # The stick's boot (`F-16-FS.ac` `Grommet`, untextured white) the same black rubber (the photos).
+    for o in b.parts.get("RudderPedals", []) + [o for o in b.parts.get("F-16-FS", []) if o.name.endswith("/Grommet")]:
         for i in range(len(o.data.materials)):
             o.data.materials[i] = pedal
+    # The left console's three big rotary knobs (ENG FEED, IFF MASTER, C & I) and its switch guards are untextured
+    # light grey (0.83) in panels_mlu_left-console.ac (FlightGear's `Knobs` material): from the eye white lumps beside
+    # the dark knobs printed on the sheets. The F-16's knobs are black, its guards the panels' dark grey (the photos,
+    # 2026-11-02).
+    knob = kit.material("knob", (0.02, 0.02, 0.022), roughness=0.6)
+    guard = kit.material("guard", (0.05, 0.052, 0.055), roughness=0.7)
+    for o in b.parts.get("LeftConsole", []):
+        n = o.name.split("/", 1)[1]
+        if n.startswith("SW_KNOB_") or "Guards" in n:
+            for i, m in enumerate(o.data.materials):
+                if m is not None and not any(t.type == 'TEX_IMAGE' for t in m.node_tree.nodes):
+                    o.data.materials[i] = knob if n.startswith("SW_KNOB_") else guard
     # The tub's top border under the canopy sills (`cockpit.ac` `cockpit_border`) is untextured light grey (0.16) in
-    # the .ac: in the sun a pale slab along the sill, looking left or right. Dark grey as the sills' inside in the
-    # photos (2026-11-02).
-    sill = kit.material("sill", (0.05, 0.052, 0.055), roughness=0.8)
+    # the .ac: in the sun a pale slab along the sill, looking left or right. Near black as the sills' inside in the
+    # photos, between the seal and the lighter lip (sills; 2026-11-02, dark grey 0.05 until the lip came).
+    sill = kit.material("sill", (0.025, 0.026, 0.028), roughness=0.8)
     for o in b.parts.get("Tub", []):
         if o.name == "Tub/cockpit_border":
             for i in range(len(o.data.materials)):

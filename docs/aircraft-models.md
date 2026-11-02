@@ -243,7 +243,8 @@ version on Barak it stays the original's `f16_bc`.
   seat and pilot, the spine, wings, tail and the stores on their stations.
 - **Materials**: FlightGear gives the seat and tub roughness 0.5, which shone with sky-blue glare; the cockpit
   model's copies are matte (roughness 0.9, specular 0.2). FlightGear maps the canopy frame into the livery, so on
-  the Sufa it took the camouflage; here it is FS 36118 gunship grey (`F16_FRAME_COLOUR`). The jets seen from
+  the Sufa it took the camouflage; here it is FS 36118 gunship grey (`F16_FRAME_COLOUR`); with the 3D cockpit dark
+  grey (`F16_FRAME_INSIDE`, the frame's inside as the photos show it, cockpit.md "3D cockpit"). The jets seen from
   outside keep their materials.
 - **The canopy's centre bow** stands upright between the two seats, about 0.6 m behind the eye, 0.07 m deep, as on
   the real two-seater (§1, the canopy between the seats). Seen from the seat it is frame grey as the rest of the

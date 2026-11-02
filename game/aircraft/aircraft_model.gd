@@ -161,6 +161,9 @@ const F16_SEAT_SURFACES := 39
 ## The canopy frame seen from the seat: FS 36118 gunship grey, matte (ours; FlightGear maps the frame into the livery,
 ## so it would take the camouflage).
 const F16_FRAME_COLOUR := Color(0.31, 0.33, 0.32)
+## With the 3D cockpit (ours, 2026-11-02): the frame's inside dark grey, as the F-16 photos show it from the seat and
+## with the canopy open (docs/cockpit.md "3D cockpit"); the grey frame's skirt read as a bare slab over the sills.
+const F16_FRAME_INSIDE := Color(0.07, 0.074, 0.078)
 ## Half the front tub's width (m, at 1:1; FlightGear's cockpit.ac is 1.24 m across).
 const F16_TUB_HALF_WIDTH := 0.63
 ## The 3D cockpit's side consoles (FlightGear's, m at 1:1): they reach this far behind the eye, their tops this far
@@ -187,7 +190,7 @@ static func detailed_cockpit(path: String, whole := false) -> Array:
 	for n in ["LdgF", "LdgL", "LdgR", "LdgDr"]:
 		root.get_node(n).free()
 	var frame := StandardMaterial3D.new()
-	frame.albedo_color = F16_FRAME_COLOUR
+	frame.albedo_color = F16_FRAME_INSIDE if whole else F16_FRAME_COLOUR
 	frame.roughness = 0.85
 	frame.metallic_specular = 0.2
 	var matte := {}
