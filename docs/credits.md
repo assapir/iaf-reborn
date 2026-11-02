@@ -141,7 +141,9 @@ iaf-2026/docs/sound.md §6.
 
 The sim's flight data (`tools/iaf-2026/fm0.py`, iaf-2026/docs/flight-model.md) comes from NASA TP-1538[^tp1538], a
 work of the U.S. Government (public domain; no credit required, named anyway), and from the public figures with their
-sources in docs/real-aircraft.md, docs/f16i.md, docs/f15i.md and docs/f35i.md.
+sources in docs/real-aircraft.md, docs/f16i.md, docs/f15i.md and docs/f35i.md. The sim's 6-DoF (`crates/iaf-flight/src/sixdof/`) holds TP-1538's
+aerodynamic tables, transcribed from the report's scan; the University of Minnesota's typed copy of them (its F-16
+simulation package) served as the candidate checked against the scan (iaf-2026/docs/flight-model.md §9.1).
 
 ## Testing
 

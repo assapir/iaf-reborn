@@ -3,6 +3,10 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **C2 stage (a), the 6-DoF's core (2026-11-03):** `crates/iaf-flight/src/sixdof/`: NASA TP-1538's aerodynamic
+  tables checked value by value against the scan, appendix B's coefficient build-up, a quaternion rigid body; the
+  trim tests match the report's trims and Stevens & Lewis's ([flight-model.md](flight-model.md) §9). Nothing calls
+  it yet.
 - **D2 drafts (2026-11-03), pending the user's decision:** the threat set's 12 units and 10 weapons as readable
   records in `iaf-2026/data/db/drafts/`, every figure sourced; `iaf-sim db` skips them, and a test compiles them as if
   approved ([threat-records.md](threat-records.md)).
@@ -21,6 +25,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   their rows in [plan.md](plan.md).
 
 ## Open
+- **The 6-DoF flies nothing yet (C2 stages (b) and (c)):** (b) the engines and the gear; (c) the `IafFlight` switch
+  (`Model=6dof`), the flight control system, Mach effects, the validation rows and the bench
+  ([flight-model.md](flight-model.md) §9.6).
 - **No screen yet:** `./iaf2026` runs the M0 probe until the front end (item E2, its main scene `main.tscn`); the sim's
   `Settings` still has the original's `front_end_scene()` / `front_end_overlay()` (E2 overrides them).
 - **No wizard yet:** `./iaf2026-setup` runs `iaf-sim all` from the command line until item A3.

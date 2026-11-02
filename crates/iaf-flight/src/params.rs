@@ -3,9 +3,10 @@
 
 use iaf_formats::ini::Section;
 
+/// The original's rounded value (exact: `units::LB`); its loaded weights depend on it.
 const LB: f32 = 0.45359;
 const FT2: f32 = 0.092903;
-pub(crate) const FT: f32 = 0.3048;
+pub(crate) const FT: f32 = crate::units::FT as f32;
 const DEG: f32 = 0.017_453_3;
 const DI: f32 = 1e-4;
 

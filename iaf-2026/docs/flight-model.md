@@ -334,6 +334,158 @@ dropped exact-military fit (§3) climbed 17,900 ft/min at 450 kt from 4,000 ft.
 * The AI types (MiGs, transports): the own `bd.ibx` holds the four jets only, so another AI aircraft fails to load on
   the own data (the threat set is item D1 / D2).
 
+## 9. C2: the own 6-DoF, stage (a): tables, rigid body, trim
+
+Stage (a) of item C2 is the core of the sim's own six-degrees-of-freedom model: TP-1538's aerodynamic tables, the
+report's coefficient build-up and a quaternion rigid body, with trim tests. Nothing calls it yet: stage (b) adds the
+engines and the gear, stage (c) puts it behind `IafFlight` (§9.6). The original game's model and its tests are
+unchanged.
+
+```sh
+cargo test -p iaf-flight --lib sixdof                     # the rigid body and the interpolation
+cargo test -p iaf-flight --test sixdof -- --nocapture     # the trim points, printed against their sources
+```
+
+| file | what it holds |
+|---|---|
+| `crates/iaf-flight/src/sixdof/tables/data.rs` | TP-1538 Table III, every table, in units of 10⁻⁵, laid out like the printed page |
+| `crates/iaf-flight/src/sixdof/tables.rs` | the breakpoints and the interpolation |
+| `crates/iaf-flight/src/sixdof/aero.rs` | appendix B's total coefficients; appendix A's flap schedule |
+| `crates/iaf-flight/src/sixdof/body.rs` | the airframe (Table I), the quaternion rigid body, the RK4 integrator |
+| `crates/iaf-flight/tests/sixdof.rs` | the trim tests |
+
+### 9.1 The tables and how they were transcribed
+
+TP-1538's Table III[^tp1538] fills printed pages 45–91 (PDF pages 51–97 of the NTRS scan). Every table in it is in
+`data.rs`, each with a comment naming the table and its printed page:
+
+| coefficient | tables (printed page) |
+|---|---|
+| CX | CX(α, β, δh) at δh −25, −10, 0, 10, 25° (45–49); CX,lef(α, β) (50); ΔCX,sb(α), CXq(α), ΔCXq,lef(α) (51) |
+| CZ | CZ(α, β, δh) at the same five δh (52–56); CZ,lef (57); ΔCZ,sb, CZq, ΔCZq,lef (58) |
+| Cm | Cm(α, β, δh) at the five δh (59–63); Cm,lef (64); ΔCm,sb(α), ΔCm(α), ηδh(δh) (65); Cmq, ΔCmq,lef (66); ΔCm,ds(α, δh) (67) |
+| CY | CY(α, β) (68); CY,lef (69); CY,δa=20° (70); CY,δa=20°,lef (71); CY,δr=30° (72); CYr, ΔCYr,lef, CYp, ΔCYp,lef (73) |
+| Cn | Cn(α, β, δh) at δh −25, 0, 25° (74–76); Cn,lef (77); Cn,δa=20° (78); Cn,δa=20°,lef (79); Cn,δr=30° (80); Cnr, ΔCnβ, ΔCnδa (81); ΔCnr,lef, Cnp, ΔCnp,lef (82) |
+| Cl | Cl(α, β, δh) at δh −25, 0, 25° (83–85); Cl,lef (86); Cl,δa=20° (87); Cl,δa=20°,lef (88); Cl,δr=30° (89); Clr, ΔClβ, ΔClr,lef (90); Clp, ΔClp,lef (91) |
+
+Breakpoints: α −20…90° (−20…45° for the `,lef` tables), β −30…30°, δh as listed. About 13,000 values.
+
+**How.** The scan is a line printer's output, legible at 200 dpi, but its text layer (OCR) is unusable. The values
+were taken from a typed copy of the same tables, the University of Minnesota F-16 package[^umn], and every value was
+then compared with the scan, digit by digit, by reading enlarged crops of each page. Three changed digits were planted
+in the candidates of each page as a control: every one of them was found. Where the scan and the typed copy differ,
+the scan wins:
+* **The lateral tables (CY, Cn, Cl and their flap, aileron and rudder versions).** The typed copy adds a constant per
+  α to every value of a row: the base table's value at β = 0 (an asymmetry term). The report prints these tables with
+  0 at β = 0 (CY, Cn, Cl and their `,lef` tables), and its aileron and rudder tables without the shift. The model
+  takes the printed values; the asymmetry, which the report models separately in some of its deep-stall runs
+  (figures 51 and 52), is left out.
+* **Damping derivatives at high α.** The typed copy's Cmq (α ≥ 25°), Cnr (α ≥ 15°), Cnp (α ≥ 10°) and Clp
+  (α ≥ 30°) are other data; the report's printed values are used.
+* **One digit** in the big tables: CX(α −15°, β +8°, δh −25°) is −.18460 on the page (the typed copy −.18480).
+* **Five tables are not in the typed copy** (ΔCX,sb, ΔCZ,sb, ΔCm,sb, ΔCm,ds, ΔCnδa): transcribed from the scan,
+  read twice independently.
+
+The checks: pages 45–64 and 68–80 (CX, CZ, Cm, CY, Cn) by reading against the candidate, Cn and CY also by a full second
+transcription, which matched the shift-corrected copy in every cell; the Cl pages (83–89) by one reading, which found 19
+of its 21 planted digits (the two it missed are right in the data: checked on the scan). One cell is crossed by a
+printed rule: Cl,δa=20°,lef(α 30°, β 0°) reads −.02220 (−.02290 not ruled out). Otherwise no page was illegible. Values
+that look odd but are printed so, kept as printed: Cm,lef(α 25°, β −6°) = −.16070 (its neighbours −.06480 and −.05580:
+probably a typo in the report), CX(α 80°, β +10°, δh 0°) = .07090, CZ(α −10°, β −8°, δh −25°) = .88880, Clr(α 35°) =
+.10000 between .68000 and .44700.
+
+**Interpolation.** The report gives the tables, not how to read between their points. The model interpolates
+linearly in α, β and δh and holds the end values outside the tables (inferred).
+
+### 9.2 The build-up (appendix B)
+
+`aero::coefficients` sums the tables as appendix B's equations (printed pp. 37–40) do: each coefficient is its
+(α, β, δh) table, plus the flap increment weighted by (1 − δlef/25), the speed brake by δsb/60, the aileron
+increments by δa/20 and the rudder's by δr/30, the rate terms with c̄/2V (pitch) and b/2V (roll, yaw), the c.g.
+shift from the data's 0.35 c̄ (CZ into Cm, CY into Cn) and ΔCm(α), ΔCm,ds(α, δh), ΔCnβ(α)·β, ΔClβ(α)·β. Choices the
+report leaves open (inferred): the `,lef` tables end at α 45°, so above 45° their increments hold the 45° values
+(the flap is fully down there and the increments' weight is 0); ΔCnβ and ΔClβ multiply β in degrees (the tables'
+unit). Table III's ΔCnδa(α) is in `data.rs`, but appendix B's equations do not use it, so the model leaves it out.
+The flap schedule of appendix A (printed p. 34) is `lef_schedule`: δlef = 1.38 α − 9.05 q̄/ps + 1.45, limited to
+0–25°, without its lag filters (they are stage (c)'s flight control system).
+
+TP-1538's data are low-speed wind-tunnel data: no Mach effects. Compressibility is open for stage (c).
+
+### 9.3 The rigid body
+
+`body.rs` integrates appendix B's equations of motion in body axes (x forward, y right, z down) over a flat earth in
+north-east-down axes:
+* forces: m (u̇, v̇, ẇ) = F + m·g_body − m·ω × v;
+* moments: J ω̇ = M − ω × (J ω + H), with J holding the xz product of inertia and H the engine's angular momentum
+  along the body x axis (the report's 160 slug-ft²/s). Its gyroscopic terms are appendix B's − H r / Iy in pitch and
+  + H q / Iz in the yaw equation; that equation also holds Ixz ṗ, so solved for the rates the yaw term is
+  ṙ = Ix H q / Γ and the roll term ṗ = Ixz H q / Γ, with Γ = Ix Iz − Ixz²;
+* attitude: a unit quaternion, q̇ = ½ q ⊗ (0, ω), renormalised after each step. No attitude is singular; only the
+  Euler angles read out of it are, at θ = ±90°. The report itself "used quaternions to allow continuity of attitude
+  motions".
+
+The mass data are TP-1538 Table I's (printed p. 43): 20,500 lb, Ix 9,496, Iy 55,814, Iz 63,100, Ixz 982 slug-ft²,
+span 30 ft, area 300 ft², chord 11.32 ft, reference c.g. 0.35 c̄, converted to SI.
+
+**Integrator.** The game steps its flight model once per rendered frame with the frame's time (variable, about 1/60 s;
+`shared/terrain/terrain_view.gd` calls `flight.step(delta)`). `Body::step` cuts a frame into equal fourth-order
+Runge-Kutta steps of at most 1/120 s, so the result does not depend on a carried remainder. A frame longer than 0.25 s
+(a hitch) is cut to 0.25 s, as `IafFlight::step` does for the original model; a frame time that is not a positive number
+changes nothing. 1/120 s is inferred: well inside RK4's stability for the fastest modes (the roll mode, about 0.15 s at
+high dynamic pressure, and the report's 0.0495 s surface actuators that stage (c) adds).
+
+Its tests (`cargo test -p iaf-flight --lib sixdof`): free fall (½ g t²), a steady turn back to its start after one
+circle, a loop through the vertical back to the start attitude, a torque-free tumble that keeps its energy and
+angular momentum to 10⁻⁷ over 60 s, the gyroscopic moment against appendix B's formula, and a frame split equal to
+its steps one by one.
+
+### 9.4 Trim results
+
+TP-1538 tabulates no trim points. It states its trims in the text (printed p. 19, from figure 10 at c.g. 0.35 c̄),
+and the Stevens & Lewis F-16 model[^stevens-lewis], built on a reduced set of the same NASA data (no leading-edge
+flap), publishes a wings-level trim. The tolerances were set before the first run.
+
+| trim point | the model | source | tolerance |
+|---|---|---|---|
+| static margin, α 0–10°, configuration fixed (flap up) | −3.9 % c̄ | about −4 % (TP-1538 p. 19) | −2 … −6 % |
+| trim α at δh = −25° (full nose up), flap down | 65.8° | 66° (TP-1538 p. 19) | ±3° |
+| stable deep-stall trim α at δh = +25° (full nose down) | 58.6°, dCm/dα −0.0084/deg (stable) | 60°, "weak but stable" (TP-1538 p. 19) | ±3°, slope < 0 |
+| α of maximum CL, δh = 0, flap down | 36° (CL 1.894) | near 35° (TP-1538 p. 19) | ±5° |
+| wings-level trim, 502 ft/s, sea level, c.g. 0.35 c̄: α | 2.161° | 2.115° (Stevens & Lewis) | ±0.5° |
+| the same: stabilator | −0.598° | −0.759° (Stevens & Lewis's elevator) | ±1.5° |
+| the same: thrust | 2,196 lbf | (throttle 0.1385 in their engine model) | — |
+| the trim flown 2 s open loop | α within 0.0001°, height within 1 mm | (equilibrium) | 0.01°, 5 cm |
+
+The 502 ft/s trim flies the flap on appendix A's schedule (3.1° there). The trim is checked on the full rigid body:
+all accelerations zero.
+
+**Tested and corrected (2026-11-03): the static margin's measurement.** The first run measured −dCm/dCL with the
+flap moving on its schedule (1° to 15° over α 0–10°): −0.4 %. That mixes the flap's own pitching moment into the
+slope; static stability holds the configuration fixed. With the flap held at 0°, 10° or 25° the margin is −3.9 %,
+−3.3 % and −2.4 % (α 0–10°), −3.8 % at α −5…5° for all three: the test holds the flap up.
+
+### 9.5 Inferred figures, all in one list
+
+Linear interpolation and end-value hold outside the tables; the `,lef` increments held at α 45° above 45°; ΔCnβ and
+ΔClβ per degree of β; ΔCnδa left out (appendix B does not use it); the asymmetry term of the typed copy left out (the
+report prints the tables without it); the flap schedule without its lag filters (stage (c) adds them); the integrator
+step of 1/120 s; the inertia, chord and weights in SI from the report's U.S. values (its own SI values are these,
+rounded).
+
+### 9.6 Stages (b) and (c)
+
+* **(b) engines and gear.** The rigid body takes any body force and moment, so the engine adds its thrust along x and
+  its angular momentum (`Airframe::h_engine`, today the report's constant) as a function of spool speed: an
+  F100-PW-229 / F110 / F135 model from public thrust and spool data (TP-1538 Table VI and figure 66's first-order
+  lag as the F-16's start). The gear adds wheel contact forces in the same closure. Each sim jet gets its own
+  `Airframe` (weights, inertia from public data or scaled from Table I, inferred where not public).
+* **(c) the switch, validation, bench.** `enum Fm { Original, SixDof }` inside `IafFlight`, chosen by `Model=6dof` in the
+  own section; the flight control system of appendix A (g command, α limiter at 25°, roll-rate command to 308 deg/s,
+  the actuators' lags and limits, the flap schedule's filters); the state mapped to the game's ENU frame ((east,
+  north, up) = (y, x, −z) of NED) and to `State` / `ApView`; the validation rows again on the 6-DoF; Mach effects;
+  `_flight_bench.gd` no slower than FM-0. Stevens & Lewis's roll and turn results and TP-1538 Table V's roll times
+  (90° in 2.6 s, 180° in 3.8 s with control system A) become tests once the control system exists.
+
 [^tp1538]: L. T. Nguyen, M. E. Ogburn, W. P. Gilbert, K. S. Kibler, P. W. Brown, P. L. Deal, "Simulator Study of
     Stall/Post-Stall Characteristics of a Fighter Airplane With Relaxed Longitudinal Static Stability", NASA
     TP-1538, December 1979 (public domain, a work of the U.S. Government): https://ntrs.nasa.gov/citations/19800005879
@@ -350,3 +502,10 @@ dropped exact-military fit (§3) climbed 17,900 ft/min at 450 kt from 4,000 ft.
 [^to-f15e]: USAF, TO 1F-15E-1, *Flight Manual, USAF Series F-15E Aircraft*, 15 August 1990, change 2 (weights §I,
     limits fig. 5-7, CFT fuel p. A9-4, stall speeds figs. A1-4 to A1-7; as read for docs/f15i.md §1):
     https://archive.org/details/f-15-e
+[^umn]: University of Minnesota, Aerospace Engineering and Mechanics, F-16 nonlinear simulation package
+    (R. S. Russell, 2003; `F16Simulation.tar.gz`, its high-fidelity data files typed from TP-1538), used only as the
+    candidate transcription checked against the scan: https://dept.aem.umn.edu/~balas/darpa_sec/SEC.Software.html
+[^stevens-lewis]: B. L. Stevens, F. L. Lewis, *Aircraft Control and Simulation*, 2nd ed., Wiley, 2003, the F-16
+    model's trim at 502 ft/s, sea level, c.g. 0.35 c̄ (α 2.1148°, elevator −0.7588°, throttle 0.1385); the book was
+    not read, the values as reproduced by SirPicklee/f16-flight-dynamics (GPL-3.0; no code or data taken):
+    https://github.com/SirPicklee/f16-flight-dynamics

@@ -11,6 +11,8 @@ pub struct Air {
     pub sound: f32,
     /// Temperature, K.
     pub temperature: f32,
+    /// Static pressure, Pa (the original keeps kgf/m²; × standard gravity). Read by the IAF 2026 6-DoF only.
+    pub pressure: f32,
 }
 
 pub fn air(alt_m: f32) -> Air {
@@ -26,7 +28,7 @@ pub fn air(alt_m: f32) -> Air {
         (t, (t / t0).powf(5.255_876) * P0 * ((alt - 11000.0) * (-0.034_04 / t)).exp())
     };
     let theta = t / t0;
-    Air { rho: 1.225 * (p / P0) / theta, sound: (401.8743 * t).sqrt(), temperature: t }
+    Air { rho: 1.225 * (p / P0) / theta, sound: (401.8743 * t).sqrt(), temperature: t, pressure: p * 9.806_65 }
 }
 
 /// Dynamic pressure times wing area, N.
@@ -43,6 +45,7 @@ mod tests {
         let sl = air(0.0);
         assert!((sl.rho - 1.225).abs() < 1e-3);
         assert!((sl.sound - 340.3).abs() < 0.5);
+        assert!((sl.pressure - 101_325.0).abs() < 1.0, "{}", sl.pressure);
         let a11 = air(11000.0);
         assert!((a11.rho - 0.3639).abs() < 0.01, "rho(11km) = {}", a11.rho);
         assert!((a11.sound - 295.1).abs() < 1.0);

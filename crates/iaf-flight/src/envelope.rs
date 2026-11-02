@@ -11,7 +11,7 @@
 //! (UNCERTAIN: last-digit rounding).
 
 const KT: f64 = 0.514_722_228_050_231_9; // f32 0.5147222
-const FT: f64 = 0.304_800_003_767_013_55; // f32 0.3048
+const FT: f64 = crate::units::FT as f32 as f64; // the original computes with the f32 0.3048
 /// Sentinel altitude the original appends to every graph (0x46ea6000 = 30000.0 m).
 const SENTINEL_ALT: f64 = 30000.0;
 const EPS: f64 = 9.999_999_747_378_752e-6; // f32 1e-5
