@@ -669,6 +669,15 @@ func real_hud() -> Dictionary:
 	return _real
 
 
+## Ours: the Real HUD's MRM steering dot inside the launch circle it drew last frame (IafRealHud mrm_inside), so the
+## shoot cue agrees with the picture; null when this frame's display has no such circle (the original HUD, the DASH,
+## no dot): the original's own test applies.
+func real_mrm_inside() -> Variant:
+	if _real_frame < Engine.get_process_frames() - 2:
+		return null
+	return _real.get("mrm_inside")
+
+
 ## The cockpits with a Real helmet sight: the IAF F-16C/D's and F-15C/D's Elbit DASH, the MiG-29's Щель-3УМ.
 static func real_dash(dir: String) -> bool:
 	return dir.get_file() in ["f16", "f15", "mig29"]

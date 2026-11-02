@@ -144,8 +144,8 @@ pub(super) fn frame(_hud: Field, i: &Input, max_g: f64) -> Frame {
             }
         }
         2 => {
-            let c = add(i.boresight, (0.0, i.deg(4.0)));
-            p.push(Prim::Circle { c, r: i.mr(40.0) * (w.circle / 5.0).clamp(0.4, 1.0) });
+            let (c, r) = super::mrm_circle(i).unwrap_or_default();
+            p.push(Prim::Circle { c, r });
             if let Some(s) = w.steering {
                 let (q, _) = f.clamp_from(c, s);
                 p.push(Prim::Dot { c: q, r: i.mr(3.0) });

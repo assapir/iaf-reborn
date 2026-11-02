@@ -354,6 +354,11 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   steps, gun range bars and bank-scale spacing, the F-15's ILS bar scale and glide-slope capture (real-hud.md "What
   ours draws"), the Lavi's bank scale and ILS needles.
 
+  The MRM shoot cue tests the steering dot against the launch circle the Real HUD draws (the F-16's ASEC 6° under
+  the gun cross, the F-35I's 4° under the boresight, the F-15's, Lavi's and Kurnass 2000's on the HUD centre), not
+  the original's circle on the HUD centre, so SHOOT agrees with the picture (since 2026-11-02; `real_hud::mrm_circle`,
+  `hud.gd` `real_mrm_inside`). The MiG-29's display draws no fixed circle and keeps the original's test.
+
   The bingo (the F-16's and the Kurnass 2000's FUEL cue) is the player's, as in the real jet: Extras "Real HUD bingo",
   500–5,000 lb in 500 lb steps, 1,500 lb by default (`Settings.bingo_lbs`).
 

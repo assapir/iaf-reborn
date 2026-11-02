@@ -363,6 +363,9 @@ pub struct Frame {
     pub outer: Vec<Prim>,
     pub colour: Option<[f32; 3]>,
     pub sight: bool,
+    /// MRM (mode 2) with the steering dot shown: the dot inside the launch circle this display draws (the shoot cue
+    /// tests it in place of the original's circle, so SHOOT agrees with the picture); None otherwise.
+    pub mrm_inside: Option<bool>,
 }
 
 /// The Real HUD's own state: the max g latch, the F-15's glide-slope capture.
@@ -384,6 +387,16 @@ impl RealHud {
 
     pub fn frame(&mut self, f: Field, i: &Input) -> Frame {
         self.max_g = self.max_g.max(i.g);
+        let mut fr = self.jet_frame(f, i);
+        if i.weapons.hud_mode == 2 && !i.off_boresight {
+            fr.mrm_inside = mrm_circle(i)
+                .zip(i.weapons.steering)
+                .map(|((c, r), s)| ((s.0 - c.0).powi(2) + (s.1 - c.1).powi(2)).sqrt() <= r);
+        }
+        fr
+    }
+
+    fn jet_frame(&mut self, f: Field, i: &Input) -> Frame {
         match i.jet {
             Jet::F16 | Jet::F15 if i.off_boresight => dash::frame(i),
             Jet::MiG29 if i.off_boresight => mig29::helmet(i),
@@ -405,6 +418,20 @@ impl RealHud {
 }
 
 // --- shared pieces ----------------------------------------------------------------------------------------------
+
+/// The MRM launch circle (mode 2) the jet's display draws: centre and radius in HUD px; None where it draws none fixed.
+/// F-16: the ASEC, 6° under the gun cross, up to 56 mr; F-35: 4° under the boresight, up to 40 mr; F-15, Lavi,
+/// Kurnass 2000: on the HUD centre, 60 / 50 / 60 mr. The radius follows the original's circle size (3 .. 5).
+fn mrm_circle(i: &Input) -> Option<(P, f64)> {
+    let k = |lo: f64| (i.weapons.circle / 5.0).clamp(lo, 1.0);
+    match i.jet {
+        Jet::F16 => Some((add(i.gun_cross, (0.0, i.deg(6.0))), i.mr(56.0) * k(0.3))),
+        Jet::F35 => Some((add(i.boresight, (0.0, i.deg(4.0))), i.mr(40.0) * k(0.4))),
+        Jet::F15 | Jet::Kurnass2000 => Some(((0.0, 0.0), i.mr(60.0) * k(0.3))),
+        Jet::Lavi => Some(((0.0, 0.0), i.mr(50.0) * k(0.3))),
+        _ => None,
+    }
+}
 
 /// A vertical scale's ticks: values `step` apart within ±half px of `v` at `k` px per unit; `up`: higher values up.
 fn ticks(v: f64, step: f64, k: f64, half: f64, up: bool) -> impl Iterator<Item = (f64, f64)> {
@@ -855,6 +882,11 @@ mod tests {
     }
 
     /// The F-16's frames for fixed inputs in every mode, hashed: other jets' displays must leave them unchanged.
+    /// A frame as the snapshot hashes it: what it draws (mrm_inside, a value for the shoot cue, left out).
+    pub(super) fn snapshot(fr: &Frame) -> String {
+        format!("{:?}", Frame { mrm_inside: None, ..fr.clone() }).replace(", mrm_inside: None", "")
+    }
+
     fn f16_fingerprint() -> u64 {
         use std::hash::{Hash, Hasher};
         let mut h = std::collections::hash_map::DefaultHasher::new();
@@ -870,10 +902,35 @@ mod tests {
                 i.weapons.circle = 4.0;
                 i.target = Some(Target { range_m: 5000.0, closure: 150.0, at: Some((10.0, -5.0)), aspect: Some(1.0) });
                 i.dlz = Some(Dlz { max: 9000.0, min: 1500.0 });
-                format!("{:?}", RealHud::default().frame(FIELD, &i)).hash(&mut h);
+                snapshot(&RealHud::default().frame(FIELD, &i)).hash(&mut h);
             }
         }
         h.finish()
+    }
+
+    #[test]
+    fn mrm_inside_is_the_drawn_circle() {
+        for jet in [Jet::F16, Jet::F15, Jet::F35, Jet::Lavi, Jet::Kurnass2000] {
+            let mut i = input(jet);
+            i.weapons.hud_mode = 2;
+            i.weapons.circle = 5.0;
+            let (c, r) = mrm_circle(&i).unwrap();
+            i.weapons.steering = Some(c);
+            assert_eq!(RealHud::default().frame(FIELD, &i).mrm_inside, Some(true), "{jet:?}: the dot on the centre");
+            // The original's circle is on the HUD centre: a dot there is outside the F-16's ASEC (6° lower).
+            i.weapons.steering = Some((c.0, c.1 - r * 1.2));
+            assert_eq!(
+                RealHud::default().frame(FIELD, &i).mrm_inside,
+                Some(false),
+                "{jet:?}: the dot above the circle"
+            );
+            i.weapons.steering = None;
+            assert_eq!(RealHud::default().frame(FIELD, &i).mrm_inside, None, "{jet:?}: no dot");
+        }
+        let mut i = input(Jet::MiG29);
+        i.weapons.hud_mode = 2;
+        i.weapons.steering = Some((0.0, 0.0));
+        assert_eq!(RealHud::default().frame(FIELD, &i).mrm_inside, None, "no fixed circle: the original's test");
     }
 
     #[test]
@@ -931,7 +988,7 @@ mod tests {
 
 #[cfg(test)]
 mod f16_snapshot {
-    use super::tests::{FIELD, input};
+    use super::tests::{FIELD, input, snapshot};
     use super::*;
 
     /// FNV-1a of the F-16's frames in every mode, gear up / down, with a target and a pipper: the Kfir / Lavi /
@@ -948,7 +1005,7 @@ mod f16_snapshot {
                 i.weapons.pipper = Some((-3.0, 30.0));
                 i.target = Some(Target { range_m: 3000.0, closure: 120.0, at: Some((10.0, -8.0)), aspect: Some(0.5) });
                 i.dlz = Some(Dlz { max: 9000.0, min: 900.0 });
-                for b in format!("{:?}", RealHud::default().frame(FIELD, &i)).bytes() {
+                for b in snapshot(&RealHud::default().frame(FIELD, &i)).bytes() {
                     h = (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3);
                 }
             }
@@ -959,11 +1016,36 @@ mod f16_snapshot {
             i.weapons.hud_mode = 5;
             i.weapons.pipper = Some((-3.0, 130.0));
             i.weapons.delay = Some(Delay { ttg: 6.0, target: Some((-2.0, 60.0)), designated });
-            for b in format!("{:?}", RealHud::default().frame(FIELD, &i)).bytes() {
+            for b in snapshot(&RealHud::default().frame(FIELD, &i)).bytes() {
                 h = (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3);
             }
         }
         h
+    }
+
+    #[test]
+    fn mrm_inside_is_the_drawn_circle() {
+        for jet in [Jet::F16, Jet::F15, Jet::F35, Jet::Lavi, Jet::Kurnass2000] {
+            let mut i = input(jet);
+            i.weapons.hud_mode = 2;
+            i.weapons.circle = 5.0;
+            let (c, r) = mrm_circle(&i).unwrap();
+            i.weapons.steering = Some(c);
+            assert_eq!(RealHud::default().frame(FIELD, &i).mrm_inside, Some(true), "{jet:?}: the dot on the centre");
+            // The original's circle is on the HUD centre: a dot there is outside the F-16's ASEC (6° lower).
+            i.weapons.steering = Some((c.0, c.1 - r * 1.2));
+            assert_eq!(
+                RealHud::default().frame(FIELD, &i).mrm_inside,
+                Some(false),
+                "{jet:?}: the dot above the circle"
+            );
+            i.weapons.steering = None;
+            assert_eq!(RealHud::default().frame(FIELD, &i).mrm_inside, None, "{jet:?}: no dot");
+        }
+        let mut i = input(Jet::MiG29);
+        i.weapons.hud_mode = 2;
+        i.weapons.steering = Some((0.0, 0.0));
+        assert_eq!(RealHud::default().frame(FIELD, &i).mrm_inside, None, "no fixed circle: the original's test");
     }
 
     #[test]

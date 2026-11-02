@@ -102,7 +102,8 @@ test-pilot accounts[^f16net].
 - AIM-9 reticle: 3° below the cross; 35 / 65 / 100 mr by seeker mode; a seeker diamond. Under 12,000 ft it shows
   range tics and a range cue at 1,000 ft per clock hour. A target-aspect triangle (6 o'clock = tail).
 - AIM-120: the ASEC (allowable steering error circle), a breathing circle of at most 56 mr radius at Rpi, with an 8 mr
-  steering dot (the ASC, attack steering cue).
+  steering dot (the ASC, attack steering cue). SHOOT shows with the dot inside the ASEC drawn (and the range in the DLZ): ours tests the
+  drawn circle, not the original's on the HUD centre (deviations.md §2).
 - DLZ: on the right, beside the altitude scale.
   - Top = the radar range (80/40/20/10/5).
   - The target-range caret `>` with the closure at its left (`804>`).

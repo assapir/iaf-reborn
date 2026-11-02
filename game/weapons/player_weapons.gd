@@ -2483,6 +2483,10 @@ func _publish() -> void:
 				mrm_pt = sg.pred
 				var hud_only: bool = host.get("views") != null and host.views.type == Views.HUD_ONLY
 				var inside: bool = MrmSight.in_circle(IrSeeker.screen_offset(o, sg.pred), sg.r, hud_only)[0]
+				# Ours: with the Real HUD, inside the circle it draws (its ASEC), not the original's (real-hud.md).
+				var real = host.cockpit.hud.real_mrm_inside() if host.get("cockpit") != null else null
+				if real != null:
+					inside = real
 				shoot = ClassDB.class_call_static(
 					"IafRelease", "shoot_cue", inside, have, radar.aa, sg.dlz, float(sg.dist)
 				)

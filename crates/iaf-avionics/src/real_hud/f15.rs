@@ -175,8 +175,8 @@ pub(super) fn frame(f: Field, i: &Input, gs_captured: bool) -> Frame {
     }
     match mode {
         2 => {
-            let c = (0.0, 0.0);
-            p.push(Prim::Circle { c, r: i.mr(60.0) * (w.circle / 5.0).clamp(0.3, 1.0) });
+            let (c, r) = super::mrm_circle(i).unwrap_or_default();
+            p.push(Prim::Circle { c, r });
             if let Some(s) = w.steering {
                 let (q, _) = f.clamp_from(c, s);
                 p.push(Prim::Dot { c: q, r: i.mr(3.0) });

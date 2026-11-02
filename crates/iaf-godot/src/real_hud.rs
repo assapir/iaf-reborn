@@ -93,7 +93,7 @@ impl IafRealHud {
     /// (null), boresight, gun_cross, horizon, px_per_deg, radar_mode, ils (the ILS bars' [x, y] or null), steerpoint ({number, bearing, dist_m, eta_s, at} or {}),
     /// target ({range_m, closure, at, aspect} or {}), dlz ([max, min] or []), weapons {hud_mode, selected, srm, mrm, seeker,
     /// lcos, pipper, steering, circle, shoot, delay (the delayed CCIP's time to go, or null), delay_at
-    /// (the target under its pipper), designated, gps ({pre, at, range, rmin, rmax, in_range, tmr} or {}), hobs ({cone, at (the seeker's target or null), loal} or {})}}. Returns {field, outer, colour (Color or null), sight (no HUD)}.
+    /// (the target under its pipper), designated, gps ({pre, at, range, rmin, rmax, in_range, tmr} or {}), hobs ({cone, at (the seeker's target or null), loal} or {})}}. Returns {field, outer, colour (Color or null), sight (no HUD), mrm_inside (the MRM dot in the drawn circle, or null)}.
     #[func]
     fn frame(&mut self, field: Rect2, i: VarDictionary) -> VarDictionary {
         let f = |k: &str| num(&i, k).unwrap_or_default();
@@ -191,6 +191,7 @@ impl IafRealHud {
         let colour = out.colour.map_or(Variant::nil(), |[r, g, b]| Color::from_rgb(r, g, b).to_variant());
         vdict! {
             "field" => &prims(&out.field), "outer" => &prims(&out.outer), "colour" => &colour, "sight" => out.sight,
+            "mrm_inside" => &out.mrm_inside.map_or(Variant::nil(), |b| b.to_variant()),
         }
     }
 }

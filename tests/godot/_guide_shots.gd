@@ -16,20 +16,20 @@
 # player flight's Arming table `loadout`, the map zoomed in `tsd_zoom` steps (default 2) on the route's middle point,
 # `gps` {station 1-9: "unit" (the enemy ground unit nearest the centre) | [dx, dy] (the map point that many client px
 # from the centre)} assigned as by clicks, `gps_armed` the station whose row is armed), place ({"unit_prefix": "mig23" |
-# "ground_unit": true, "ahead_m": N} puts that unit N m ahead (`bearing_deg` right of the nose; an air unit flying away
-# at `vel_ms`), in the air at the jet's height / on the ground), actions (in order; the frozen starts advance a scripted
-# sim time, the others real time: "lock" radar lock on the placed unit, "on_impact" the placed unit onto the bomb's
-# predicted impact, "station:N" the A-A store / gun on station N, "ag:N" the A-G store on station N, "flir" / "tv" the
-# camera on the placed unit (FLIR with the laser), "emitter" the placed unit's radar locks the jet, "fire" Space held,
-# "look:Y,P" the head turned Y° right / P° up (free look), "key:X" a game key, "designate" the radar's designated point
-# on the placed unit, "pre" every GPS station's pre-planned (PRE) target on the placed unit (as set on the briefing
-# TSD), "wait:S", "pcd:F1,F2,F3,F4" the F-35I portals' formats, "mfd:L,R" the MFDs' pages, left and right (mfd.gd:
-# 2 radar, 1 stores, 3 TSD, 4 damage, 5 TV, 6 FLIR; the F-16's real formats show FCR, SMS, HSD, TEST, WPN, TGP),
-# "goggles" the night-vision goggles on), hour (the mission's start hour, e.g. 1 for 01:00), panel (0 the forward
-# view … 1 the whole panel), "dive" (an airborne start in a `dive_deg` dive `dive_agl` m above the ground), camera
-# ([right, up, back] m in the jet's axes: the external camera pinned there, looking at the jet), view ("cockpit" /
-# "hud", the HUD-only view / "external"), crop ("full", "hud", "dash", "mfd_left", "mfd_right", "mfds" both MFDs;
-# "hud" takes `crop_w`, the box's width as a fraction of the frame, default 0.38: smaller zooms in; and `crop_dy`,
+# "ground_unit": true, "ahead_m": N} puts that unit N m ahead (`bearing_deg` right of the nose, `elevation_deg` above
+# it; an air unit flying away at `vel_ms`), in the air at the jet's height / on the ground), actions (in order; the
+# frozen starts advance a scripted sim time, the others real time: "lock" radar lock on the placed unit, "on_impact"
+# the placed unit onto the bomb's predicted impact, "station:N" the A-A store / gun on station N, "ag:N" the A-G store
+# on station N, "flir" / "tv" the camera on the placed unit (FLIR with the laser), "emitter" the placed unit's radar
+# locks the jet, "fire" Space held, "look:Y,P" the head turned Y° right / P° up (free look), "key:X" a game key,
+# "designate" the radar's designated point on the placed unit, "pre" every GPS station's pre-planned (PRE) target on the
+# placed unit (as set on the briefing TSD), "wait:S", "pcd:F1,F2,F3,F4" the F-35I portals' formats, "mfd:L,R" the MFDs'
+# pages, left and right (mfd.gd: 2 radar, 1 stores, 3 TSD, 4 damage, 5 TV, 6 FLIR; the F-16's real formats show FCR,
+# SMS, HSD, TEST, WPN, TGP), "goggles" the night-vision goggles on), hour (the mission's start hour, e.g. 1 for 01:00),
+# panel (0 the forward view … 1 the whole panel), "dive" (an airborne start in a `dive_deg` dive `dive_agl` m above the
+# ground), camera ([right, up, back] m in the jet's axes: the external camera pinned there, looking at the jet), view
+# ("cockpit" / "hud", the HUD-only view / "external"), crop ("full", "hud", "dash", "mfd_left", "mfd_right", "mfds" both
+# MFDs; "hud" takes `crop_w`, the box's width as a fraction of the frame, default 0.38: smaller zooms in; and `crop_dy`,
 # the box moved down by that fraction of the frame's height, negative moves it up,
 # default 0: a gunsight's reticle that sits high; "compass": a 16:10 box around the panel's compass / HSI dial,
 # game/cockpit/compass.gd, with the same crop_w / crop_dy; "panel": the same box around `crop_at`, [x, y] panel px of
@@ -360,6 +360,8 @@ func _put(p: Dictionary) -> void:
 	var d := float(p.get("ahead_m", 5000.0))
 	# "bearing_deg": that many degrees right of the nose (negative: left).
 	var fwd: Vector3 = Vector3(o.fwd).rotated(Vector3(0, 0, 1), deg_to_rad(-float(p.get("bearing_deg", 0.0))))
+	# "elevation_deg": that many degrees above the nose (negative: below), about the jet's right wing.
+	fwd = fwd.rotated(Vector3(o.right).normalized(), deg_to_rad(float(p.get("elevation_deg", 0.0))))
 	if p.has("unit_prefix"):
 		for ent in tv.runtime.entities.values():
 			if String(ent.name).begins_with(String(p.unit_prefix)):

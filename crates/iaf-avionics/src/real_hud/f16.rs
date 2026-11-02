@@ -155,8 +155,7 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
             }
         }
         2 => {
-            let c = add(i.gun_cross, (0.0, i.deg(6.0)));
-            let r = i.mr(56.0) * (w.circle / 5.0).clamp(0.3, 1.0);
+            let (c, r) = super::mrm_circle(i).unwrap_or_default();
             p.push(Prim::Circle { c, r });
             if let Some(a) = i.target.and_then(|t| t.aspect) {
                 aspect_triangle(p, c, r, a, i.mr(5.0));
