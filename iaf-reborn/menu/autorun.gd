@@ -44,7 +44,7 @@ var sound: AudioStreamPlayer
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var dir := Settings.assets_dir().path_join("install/autorun")
+	var dir := Settings.install_dir().path_join("autorun")
 	poster = _texture(dir.path_join("poster.bmp"))
 	buttons = _texture(dir.path_join("buttons.bmp"))
 	slots = IafAutorun.rects(dir.path_join("poster.rgn"))

@@ -1,9 +1,11 @@
-# Windows: what ./setup, ./iafjets and ./mission-editor do on Linux and macOS (setup.ps1, iafjets.ps1 and
-# mission-editor.ps1 call this with their mode). Builds the game's extension, imports the Godot project on a fresh
-# clone, then starts the setup wizard (setup), the game (game; without game data: the wizard) or the mission editor
-# (editor). The arguments after the mode go to the game, e.g. .\iafjets.ps1 --mission 311. IAF_SCENE=res://... starts
-# that scene instead of the main menu. ASCII only: Windows PowerShell 5.1 reads a script without a BOM as ANSI.
-# No param() block: PowerShell would bind game arguments such as -m or -- to its parameters.
+# Windows: what ./setup, ./iafjets, ./mission-editor, ./iaf2026 and ./iaf2026-setup do on Linux and macOS (setup.ps1,
+# iafjets.ps1, mission-editor.ps1, iaf2026.ps1 and iaf2026-setup.ps1 call this with their mode). Builds the game's
+# extension, imports the Godot project on a fresh clone, then starts the setup wizard (setup), the game (game; without
+# game data: the wizard), the mission editor (editor), IAF 2026 (sim; without its data: sim-setup; until its front end,
+# item E2, its M0 probe) or IAF 2026's data build (sim-setup: iaf-sim all, until its wizard, item A3). The arguments
+# after the mode go to the game, e.g. .\iafjets.ps1 --mission 311. IAF_SCENE=res://... starts that scene instead of the
+# main menu. ASCII only: Windows PowerShell 5.1 reads a script without a BOM as ANSI. No param() block: PowerShell would
+# bind game arguments such as -m or -- to its parameters.
 $ErrorActionPreference = 'Stop'
 $mode = $args[0]
 $gameArgs = @($args | Select-Object -Skip 1 | Where-Object { $_ -ne '--' })
@@ -11,7 +13,8 @@ Push-Location (Resolve-Path "$PSScriptRoot\..\..")
 try {
 	function Tell([string]$msg) {
 		Add-Type -AssemblyName PresentationFramework
-		[void][System.Windows.MessageBox]::Show($msg, "Jane's IAF (reborn) $([char]0x2014) Setup", 'OK', 'Warning')
+		$title = if ($project -eq 'iaf-2026') { 'IAF 2026' } else { "Jane's IAF (reborn)" }
+		[void][System.Windows.MessageBox]::Show($msg, "$title $([char]0x2014) Setup", 'OK', 'Warning')
 		throw $msg
 	}
 
@@ -41,12 +44,17 @@ try {
 		& $run
 	}
 
-	if ($mode -notin 'setup', 'game', 'editor') { throw "usage: launch.ps1 setup|game|editor [game arguments]" }
+	if ($mode -notin 'setup', 'game', 'editor', 'sim', 'sim-setup') { throw "usage: launch.ps1 setup|game|editor|sim|sim-setup [game arguments]" }
+	$project = if ($mode -like 'sim*') { 'iaf-2026' } else { 'iaf-reborn' }
 	. "$PSScriptRoot\gdal.ps1"
 	$install = 'winget install Rustlang.Rustup GodotEngine.GodotEngine Microsoft.VisualStudio.BuildTools (the C++ workload), then: rustup default stable'
 	if ($mode -eq 'game' -and -not (Test-Path 'assets\converted')) {
 		Write-Host 'No game data yet: starting the setup wizard.'
 		$mode = 'setup'
+	}
+	if ($mode -eq 'sim' -and -not (Test-Path 'assets\converted\own')) {
+		Write-Host 'No IAF 2026 data yet: building it.'
+		$mode = 'sim-setup'
 	}
 	if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
 		$cargo = Join-Path $env:USERPROFILE '.cargo\bin'
@@ -67,14 +75,21 @@ try {
 	if ($mode -eq 'setup') { Write-Host "building the game's extension (the first time takes a few minutes)..." }
 	Native { cargo build --release -p iaf-godot }
 	if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+	if ($mode -eq 'sim-setup') {
+		Write-Host "IAF 2026's setup wizard comes with item A3; building the sim's data from the command line (iaf-sim all)..."
+		Native { cargo build --release -p iaf-tools --bin iaf-sim }
+		if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+		Native { & target\release\iaf-sim.exe all iaf-2026\data assets }
+		exit $LASTEXITCODE
+	}
 	# Godot's import (as tools/godot_import.sh): on a fresh clone (Godot loads iaf.gdextension only once an import has
 	# listed it in .godot/extension_list.cfg) and after a pull that brought new or changed shaders or textures (an
-	# .import file or its source newer than the last import, iaf-reborn\.godot\.iaf_imported).
-	$stamp = 'iaf-reborn\.godot\.iaf_imported'
-	$need = -not (Test-Path 'iaf-reborn\.godot\extension_list.cfg') -or -not (Test-Path $stamp)
+	# .import file or its source newer than the last import, <project>\.godot\.iaf_imported).
+	$stamp = "$project\.godot\.iaf_imported"
+	$need = -not (Test-Path "$project\.godot\extension_list.cfg") -or -not (Test-Path $stamp)
 	if (-not $need) {
 		$since = (Get-Item $stamp).LastWriteTime
-		$need = [bool](Get-ChildItem iaf-reborn, shared -Recurse -Filter *.import -File | Where-Object {
+		$need = [bool](Get-ChildItem $project, shared -Recurse -Filter *.import -File | Where-Object {
 				$_.FullName -notlike '*\.godot\*' -and ($_.LastWriteTime -gt $since -or
 					((Test-Path ($_.FullName -replace '\.import$', '')) -and
 						(Get-Item ($_.FullName -replace '\.import$', '')).LastWriteTime -gt $since))
@@ -82,12 +97,19 @@ try {
 	}
 	if ($need) {
 		Write-Host "importing the game's new or changed files (shaders, textures)..."
-		Native { & $console --headless --path iaf-reborn --import *> $null }
+		Native { & $console --headless --path $project --import *> $null }
 		New-Item -ItemType File -Force $stamp | Out-Null
 	}
 
-	$godotArgs = @('--path', 'iaf-reborn')
+	$godotArgs = @('--path', $project)
+	if ($mode -eq 'sim' -and -not (Test-Path 'iaf-2026\main.tscn')) {
+		Write-Host "IAF 2026's front end comes with item E2; the M0 probe meanwhile:"
+		$env:IAF_DEFAULT_SETTINGS = '1'
+		Native { & $console --headless --audio-driver Dummy --path iaf-2026 -s ../iaf-2026/tests/test_m0_boot.gd --log-file ([IO.Path]::GetTempFileName()) }
+		exit $LASTEXITCODE
+	}
 	switch ($mode) {
+		'sim' { $godotArgs += 'res://main.tscn' }
 		'setup' { $godotArgs += @('--resolution', '1200x820', 'res://setup/wizard.tscn') }
 		'editor' { $godotArgs += 'res://editor/mission_editor.tscn' }
 		default { if ($env:IAF_SCENE) { $godotArgs += $env:IAF_SCENE } }

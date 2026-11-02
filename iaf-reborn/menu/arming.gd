@@ -74,7 +74,7 @@ func setup(front_end: Control, mission_weapons: RefCounted, n: int) -> void:
 	name_font = Img.arial(500)
 	title_font = Img.arial(800)
 	for c in ["move", "grab"]:
-		_cursors[c] = Img.load_cursor(Settings.assets_dir().path_join("install/resource/menu/cur/%s.cur" % c))
+		_cursors[c] = Img.load_cursor(Settings.install_dir().path_join("resource/menu/cur/%s.cur" % c))
 	# FUN_00507400: the AA tab is checked on entry.
 	tab = 0
 	_check_tab()

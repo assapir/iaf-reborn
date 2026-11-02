@@ -425,7 +425,11 @@ func _ready() -> void:
 	_log_startup()
 	apply_display()
 	_update_splash()
-	# The original icon (setup: iaf-convert icon) for compositors / desktops that take the window icon.
+	_set_icon()
+
+
+## The original icon (setup: iaf-convert icon) for compositors / desktops that take the window icon.
+func _set_icon() -> void:
 	var icon := assets_dir().path_join("converted/icon.png")
 	if FileAccess.file_exists(icon):
 		DisplayServer.set_icon(Image.load_from_file(icon))
@@ -439,8 +443,9 @@ func _log_startup() -> void:
 	var win := get_window()
 	print(
 		(
-			"iaf-reborn %s | Godot %s | %s %s, %s, %d cores, %d GB RAM"
+			"%s %s | Godot %s | %s %s, %s, %d cores, %d GB RAM"
 			% [
+				ProjectSettings.get_setting("application/config/name"),
 				info.commit() if info != null else "(no extension)",
 				Engine.get_version_info().string,
 				OS.get_name(),
@@ -798,6 +803,23 @@ func assets_dir() -> String:
 	if OS.get_environment("IAF_ASSETS_DIR") != "":
 		return OS.get_environment("IAF_ASSETS_DIR")
 	return ProjectSettings.globalize_path("res://").path_join("../assets").simplify_path()
+
+
+## The original game's install (the ISO's files, setup's extract step): assets/install.
+func install_dir() -> String:
+	return assets_dir().path_join("install")
+
+
+## The root of the resource layout the flight model, the sounds, the weapons' motion, iaf.ibx and terraintype.dat are
+## read from (resource/md, resource/soundfiles, resource/weaponsmotion…): the install here; IAF 2026's own copy of
+## that layout in its project (iaf-2026/sim_settings.gd).
+func own_dir() -> String:
+	return install_dir()
+
+
+## The key table (key_table.gd): assets/converted/keys.json, converted from the exe by `iaf-convert keys`.
+func keys_file() -> String:
+	return assets_dir().path_join("converted/keys.json")
 
 
 ## txt/msgs.trx lines for the current language. In Hebrew, a line the Hebrew pack leaves in English (the

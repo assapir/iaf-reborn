@@ -7,8 +7,8 @@ System; vrms = the RMS of the samples above 2 % of the peak (the pauses left out
 2 November 2026 (item E1b). The sim plays its own sounds and voices and reads its own key table. All three are
 authored in `iaf-2026/data/` and compiled by `iaf-sim own` into the files and shapes the shared readers already read
 (`sound_table.gd`, `radio.gd`, `key_table.gd`). Nothing comes from the original game: every clip is an openly
-licensed recording, a tone we computed or our TTS. The readers take these files once item A1's `install_dir()` hook
-points them at `converted/own/`.
+licensed recording, a tone we computed or our TTS. The readers take these files under `Settings.own_dir()` and
+`Settings.keys_file()`, which the sim's settings point at `converted/own/` (item A1).
 
 | what | authored in | made by | compiled to (under `assets/`) |
 |---|---|---|---|
@@ -185,7 +185,6 @@ The setup wizard (item A3) and the credits roll live outside this branch's folde
 - The squelch at run time: a tower phrase is a chain of particles without squelch; item E3's radio menu plays
   `kch2.wav` around it or adds the clicks.
 - One engine sound set for all three jets (one clip per code in the shared table).
-- The reader hooks: A1 points `sound_table.gd`, `radio.gd`, `g_effects.gd` and `key_table.gd` at `converted/own/`.
 
 ## 8. Checks
 - `cargo test -p iaf-tools --lib sim::`: every row's clip and every particle's clip exists and is a 22050 Hz 16-bit

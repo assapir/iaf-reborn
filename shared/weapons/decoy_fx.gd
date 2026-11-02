@@ -105,7 +105,7 @@ func _ready() -> void:
 static func _texture(png: String, original: String) -> Texture2D:
 	var path := Settings.assets_dir().path_join("converted/objects").path_join(png)
 	if not FileAccess.file_exists(path):
-		path = Settings.assets_dir().path_join("install/resource/3dobjects").path_join(original)
+		path = Settings.install_dir().path_join("resource/3dobjects").path_join(original)
 	return Img.load_texture(path, true)
 
 

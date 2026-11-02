@@ -17,11 +17,14 @@ Run from the repo root.
 tools/setup-cli.sh [--patch v1.1.exe] "/path/to/Jane's IAF.iso"   # one-time: extract + convert everything into assets/
 ./iafjets [-- --mission 311]                                  # builds the iaf-godot extension (release) and starts the game
 ./mission-editor                                              # the mission editor (docs/mission-editor.md), same build as ./iafjets
+./iaf2026-setup                                               # IAF 2026's data (iaf-sim all) into assets/ (its wizard: item A3)
+./iaf2026                                                     # IAF 2026 (iaf-2026/docs/README.md); the M0 probe until its front end (E2)
 cargo test -q --workspace                                     # Rust tests (data/python3-dependent ones skip with a message)
 cargo test -q -p iaf-flight --test validation <name>          # one Rust test
-tools/test.sh                                                 # everything: cargo tests + every tests/godot/test_*.gd headless
+tools/test.sh                                                 # everything: cargo tests, tests/godot + iaf-2026/tests headless, gdparse
 cargo build --release -p iaf-godot                            # needed before Godot tests: game loads target/release/libiaf_godot.*
 IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-reborn -s ../tests/godot/test_radar.gd   # one Godot test
+IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-2026 -s ../iaf-2026/tests/test_m0_boot.gd   # IAF 2026's M0 probe
 tools/ghidra/fn.sh 5643a0 | --grep PATTERN                    # decompiled original exe function (assets/ghidra_v11/iafjets.c)
 tools/worktree.sh <name>                                      # parallel worktree sharing assets/ via symlink
 tools/doclint.py                                              # lint the docs (links, paths, § refs, tables)
@@ -30,7 +33,7 @@ tools/guide_shots.sh [jet] && python3 -I tools/guide_pdf.py   # pilot guides' pi
 python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded flight (blackbox) as a timeline + summary
 ```
 
-- Windows (docs/windows.md): `.\setup.ps1`, `.\iafjets.ps1 [--mission 311]`, `.\mission-editor.ps1`,
+- Windows (docs/windows.md): `.\setup.ps1`, `.\iafjets.ps1 [--mission 311]`, `.\mission-editor.ps1`, `.\iaf2026.ps1`, `.\iaf2026-setup.ps1`,
   `tools\windows\setup-cli.ps1` (iaf-setup's options); no bash, so `tools/*.sh` do not run. Keep the clone LF
   (`git config core.autocrlf false`; gdformat writes CRLF there) and the .ps1 files ASCII.
 - Run every scripted Godot test or capture with `IAF_DEFAULT_SETTINGS=1`. This keeps the user's `settings.cfg`
@@ -39,8 +42,8 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
   `tools/test.sh`, `guide_shots.sh` and `mission_sweep.sh` already do both; the project keeps 30 logs as a safety net.
 - A Godot test passes only if it prints `RESULT PASS` and prints zero `SCRIPT ERROR` lines.
 - Godot tests need the converted assets, so they run locally only (no hosted CI).
-- On a fresh clone Godot's import folder (`.godot` in `iaf-reborn/`) is missing. Run `godot --headless --path iaf-reborn --import` once, or the extension won't
-  load (`./iafjets` does this for you).
+- On a fresh clone Godot's import folder (`.godot` in `iaf-reborn/`, `iaf-2026/`) is missing. Run `godot --headless --path iaf-reborn --import` (and
+  `--path iaf-2026`) once, or the extension won't load (`./iafjets` and `./iaf2026` do this for you).
 - `tests/godot/_*_shot.gd` are real-render screenshot helpers (usage in each header). `tools/test.sh` skips them.
 - Run every real-render Godot process (screenshots, benches) through `tools/godot_window.sh VAR=value … -- <godot args>`:
   on macOS it renders as a hidden app that never takes the user's focus. Plain `godot` without `--headless` opens a
@@ -82,11 +85,18 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
 - `shared/` — the engine GDScript, scenes and shaders every Godot project uses: `aircraft`, `ai`, `audio`, `cockpit`,
   `controls`, `extra`, `mission`, `terrain`, `util`, `weapons` (radar, RWR, stores), `settings.gd` (the `Settings`
   base class), `default_bus_layout.tres`. A project reaches it through one committed symlink, `iaf-reborn/shared ->
-  ../shared` (Windows: a junction, `tools/windows/links.ps1`), so every shared file is `res://shared/...`. A shared
+  ../shared` and `iaf-2026/shared -> ../shared` (Windows: a junction, `tools/windows/links.ps1`), so every shared file is `res://shared/...`. A shared
   script reaches the front end only through `Settings` (`front_end_scene()`, `front_end_overlay()`).
   `tools/split_shared.py` made the split (`iaf-2026/docs/plan.md` A0). Assets are read at run time from
-  `res://../assets/converted/...` and `assets/install`.
-- `tests/godot/` — headless tests extending `tests/godot/base.gd` (`check()`, `frames()`, `start_mission(id)`).
+  `res://../assets/converted/...` and `Settings.install_dir()` (`assets/install`); the readers of the install's
+  resource layout (flight model, sounds, weapons' motion, iaf.ibx, terraintype.dat) take `Settings.own_dir()` (the
+  install in the original game), the key table `Settings.keys_file()`.
+- `iaf-2026/` — IAF 2026, the modern sim on own data only (`iaf-2026/docs/README.md`): its Godot project with
+  autoload `Settings = res://sim_settings.gd` (`install_dir()` a path that does not exist, `own_dir()` =
+  `assets/converted/own`, the 1998-only switches fixed), `data/` (authored data, compiled by `iaf-sim`), `tests/`,
+  `docs/`.
+- `tests/godot/` — headless tests extending `tests/godot/base.gd` (`check()`, `frames()`, `start_mission(id)`);
+  IAF 2026's in `iaf-2026/tests/` extend the same base and run with `--path iaf-2026`.
 
 Rule of placement: game logic belongs in the Rust crates. Godot renders and wires.
 
@@ -121,7 +131,8 @@ Rule of placement: game logic belongs in the Rust crates. Godot renders and wire
 - GDScript is formatted with gdtoolkit's `gdformat --line-length 120 <files>` (gdtoolkit 4.x: `pip install
   'gdtoolkit==4.*'` in a venv) and linted with `gdlint <files>` (config: `gdlintrc`); run both on the `.gd` files you
   changed before committing. Then parse-check every script (`godot --headless --path iaf-reborn -s ../tools/gdparse.gd
-  --log-file <temp path>`, the autoloads loaded; exit 1 on a failure): gdformat can split a multi-line lambda inside
+  --log-file <temp path>`, and the same with `--path iaf-2026` when `shared/` or `iaf-2026/` changed; the autoloads
+  loaded; exit 1 on a failure): gdformat can split a multi-line lambda inside
   an array in a way Godot rejects (7d3c78e).
 - Docs follow ISO 24495-1 plain language: relevant, findable, understandable, usable. Describe what a thing is or
   does, never what it isn't.

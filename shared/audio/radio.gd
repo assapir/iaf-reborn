@@ -8,7 +8,7 @@
 ## with the sim time every frame.
 extends Node
 
-const SOUND_DIR := "install/resource/soundfiles"
+const SOUND_DIR := "resource/soundfiles"
 ## TowersManager (54eb30): the iaf.ibx sections in base order; 0..3 have a talking tower.
 const BASES := ["Ramon", "David", "TelNof", "Refidim", "Inshas", "Damescuss", "Kuzeir", "Bley", "Ryak", "Aman"]
 const TOWER_BASES := 4
@@ -104,10 +104,10 @@ var _awacs_next := INF
 
 
 func _ready() -> void:
-	var dir: String = Settings.assets_dir().path_join(SOUND_DIR)
+	var dir: String = Settings.own_dir().path_join(SOUND_DIR)
 	_load_templates(dir.path_join("phrasetemplates.trx"))
 	_load_particles(dir.path_join("phraseparticalsdata.trx"))
-	_load_bases(Settings.assets_dir().path_join("install/iaf.ibx"))
+	_load_bases(Settings.own_dir().path_join("iaf.ibx"))
 
 
 # --- phrases (§1) -------------------------------------------------------------------------------

@@ -6,7 +6,7 @@
 # shipped (e.g. AircraftCrash, WrnSfxMissile) play nothing, as in the original.
 extends RefCounted
 
-const DIR := "install/resource/soundfiles"
+const DIR := "resource/soundfiles"
 const OUR_NUMBERS := "res://shared/extra/tower_numbers"
 
 ## "CODE/SUB1" -> row Dictionary (see _parse_row).
@@ -23,7 +23,7 @@ static func load_table() -> RefCounted:
 
 
 func _load() -> void:
-	var dir: String = Settings.assets_dir().path_join(DIR)
+	var dir: String = Settings.own_dir().path_join(DIR)
 	var d := DirAccess.open(dir)
 	if d != null:
 		for f in d.get_files():

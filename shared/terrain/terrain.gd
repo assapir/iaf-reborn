@@ -163,7 +163,7 @@ func prepare() -> void:
 					_add_colour_node(n)
 	for l in _root_level + 1:
 		_meshes.append(_grid_mesh(_span_m(l), _quads(l)))
-	_load_terrain_types(Settings.assets_dir().path_join("install/terraintype.dat"))
+	_load_terrain_types(Settings.own_dir().path_join("terraintype.dat"))
 
 
 func _ready() -> void:
@@ -186,7 +186,7 @@ func _ready() -> void:
 	_bases_moved = Settings.sync_bases()
 	if _bases_moved:
 		_add_insets()
-	IafSurface.load(Settings.assets_dir().path_join("install/terraintype.dat"))
+	IafSurface.load(Settings.own_dir().path_join("terraintype.dat"))
 	_bake_bounds = IafBases.bounds() if _bases_moved else PackedFloat64Array()
 	if _bases_moved:
 		_fill_sources()

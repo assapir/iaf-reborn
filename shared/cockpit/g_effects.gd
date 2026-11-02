@@ -59,7 +59,7 @@ func _process(delta: float) -> void:
 
 
 func _play(player: AudioStreamPlayer, file: String) -> void:
-	var path := Settings.assets_dir().path_join("install/resource/soundfiles").path_join(file)
+	var path := Settings.own_dir().path_join("resource/soundfiles").path_join(file)
 	if FileAccess.file_exists(path):
 		player.stream = AudioStreamWAV.load_from_file(path)
 		player.play()

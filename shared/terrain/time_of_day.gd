@@ -4,7 +4,7 @@
 # night rule (FUN_0052df40). Times are seconds since midnight; directions ENU.
 extends RefCounted
 
-const TCS := "install/defcolorset.tcs"
+const TCS := "defcolorset.tcs"
 const NIGHT_LIGHT := Color(20 / 255.0, 20 / 255.0, 60 / 255.0)
 
 ## [[minute, sky, light, horizon B, C, D, k]] in table order.
@@ -15,7 +15,7 @@ static func _load() -> void:
 	if not _rows.is_empty():
 		return
 	var settings: Node = Engine.get_main_loop().root.get_node("Settings")
-	var path: String = settings.assets_dir().path_join(TCS)
+	var path: String = settings.install_dir().path_join(TCS)
 	if not FileAccess.file_exists(path):
 		return
 	for line in FileAccess.get_file_as_string(path).split("\n"):

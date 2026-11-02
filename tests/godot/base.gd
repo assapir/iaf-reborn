@@ -62,11 +62,7 @@ func mouse_button(pos: Vector2, down: bool, double := false) -> InputEventMouseB
 ## read: the CI sweep (docs/ci.md) counts it as needs-data. With the data it returns at once. A test running
 ## alongside can create assets/converted: the key table and the install tell.
 func require_data() -> void:
-	var a: String = settings().assets_dir()
-	if (
-		FileAccess.file_exists(a.path_join("converted/keys.json"))
-		and DirAccess.dir_exists_absolute(a.path_join("install"))
-	):
+	if FileAccess.file_exists(settings().keys_file()) and DirAccess.dir_exists_absolute(settings().install_dir()):
 		return
 	print("NEEDS DATA: this test reads assets/ (tools/setup-cli.sh)")
 	await _quit(2)
@@ -198,7 +194,7 @@ func airborne_case(tv, hardpoints: Array):
 	tv.rig.position.y += 3000.0
 	var st0: Dictionary = tv.flight.state()
 	tv.flight.start(
-		settings().assets_dir().path_join("install"),
+		settings().own_dir(),
 		tv.player.fm_section,
 		st0.position,
 		Vector3(0.0, 0.0, st0.heading),
@@ -247,9 +243,7 @@ func start_over(tv, w, ground_pt: Vector3, vel: Vector3, section: String, height
 	var sp: Vector3 = tv.world_to_scene(Vector3(ground_pt.x, ground_pt.y, float(g if g != null else 0.0) + height))
 	tv.rig.position = sp
 	tv.rig.basis = Basis()
-	tv.flight.start(
-		settings().assets_dir().path_join("install"), section, sp, Vector3(0.0, 0.0, 0.0), vel, airborne_flags()
-	)
+	tv.flight.start(settings().own_dir(), section, sp, Vector3(0.0, 0.0, 0.0), vel, airborne_flags())
 	w._push_stores()
 
 

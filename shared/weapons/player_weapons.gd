@@ -2783,7 +2783,7 @@ func _update_store_nodes() -> void:
 ## FUN_00411d90: two crossed quads along the gun line, gunFire.tga, 0.85–1.15 long × 0.6 wide
 ## (s = 1 m: the original's scale UNCERTAIN), redrawn with a new length every frame while firing.
 func _muzzle_flash() -> Node3D:
-	var path := Settings.assets_dir().path_join("install/resource/3dobjects/gunfire.tga")
+	var path := Settings.install_dir().path_join("resource/3dobjects/gunfire.tga")
 	var img := Image.load_from_file(path) if FileAccess.file_exists(path) else null
 	var root := Node3D.new()
 	var mat := StandardMaterial3D.new()

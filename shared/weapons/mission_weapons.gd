@@ -44,7 +44,7 @@ const JET_ART := {
 	190: "mirage",
 	200: "phantom"
 }
-const JET_DIR := "install/resource/menu/bmp/arm/jets"
+const JET_DIR := "resource/menu/bmp/arm/jets"
 ## Flight names 1..6 (FUN_005bd3c0; flight table +0x328).
 const FLIGHT_NAMES := ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
 ## Wing balance margin: 0.05 × the current load (0x6084b4).
@@ -306,7 +306,7 @@ static func jet(type: int) -> Dictionary:
 	var out := {"art": art, "base": 0.0, "max": 0.0, "stations": {}}
 	if art.begins_with("x_"):
 		return _extra_jet(art, out)
-	var path := Settings.assets_dir().path_join(JET_DIR).path_join(art + ".trx")
+	var path := Settings.install_dir().path_join(JET_DIR).path_join(art + ".trx")
 	if not FileAccess.file_exists(path):
 		return out
 	var tok := _tokens(path)

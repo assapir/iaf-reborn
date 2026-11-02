@@ -116,7 +116,7 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 		present[int(p["0x1e"])] = p
 	_load_formations(files)
 	var planes: Dictionary = AircraftModel.index()
-	var install := Settings.assets_dir().path_join("install")
+	var install := Settings.own_dir()
 	for ent in runtime.entities.values():
 		# Activation (FUN_004a9100) gives every BRAIN-controlled unit the FM mover, by control mode, not class: the
 		# transports (class 3: C-130, IL-76) fly as the jets do.

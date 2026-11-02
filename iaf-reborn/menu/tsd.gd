@@ -612,7 +612,7 @@ func _on_link(name: String, entry: Dictionary) -> void:
 			var obj := _target_unit(
 				(
 					FileAccess
-					. get_file_as_string(Settings.assets_dir().path_join("install/resource").path_join(file))
+					. get_file_as_string(Settings.install_dir().path_join("resource").path_join(file))
 					. split("\n")[0]
 				)
 			)

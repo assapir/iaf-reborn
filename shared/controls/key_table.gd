@@ -5,7 +5,6 @@
 # Settings.key_bindings ({record index: [key, joystick button]}); everything else is the default.
 extends RefCounted
 
-const PATH := "converted/keys.json"
 ## Modifier bits of a key (FUN_004e08c0 / 511dc0): one modifier per key, tested in this order.
 const CTRL := 0x11
 const SHIFT := 0x22
@@ -126,7 +125,7 @@ var _key_to_dik := {}
 
 static func load_table() -> RefCounted:
 	var t: RefCounted = load("res://shared/controls/key_table.gd").new()
-	t._load(Settings.assets_dir().path_join(PATH))
+	t._load(Settings.keys_file())
 	return t
 
 

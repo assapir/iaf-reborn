@@ -67,7 +67,7 @@ A unit record holds what a mission needs of a unit. A flyable jet's behaviour st
 
 The three MVP jets: the Sufa (`f16i`, number 1, type 100), the Barak (`f16d`, 2, type 100) and the F-35I (`f35i`,
 3, type 1000). The Sufa and the Barak share the F-16's type code, which the shared code keys the F-16 family on;
-their aircraft definitions tell them apart. `airframe::id_for(100, …)` picks `f16` or `f16i` by the F-16 switch alone, so the sim's settings (item A1) set that switch from the player's Objects row's `"airframe"` (2026-11-02). They carry the gun, chaff and flare and no pylon stores. Their `model`
+their aircraft definitions tell them apart. `airframe::id_for(100, …)` picks `f16` or `f16i` by the F-16 switch alone, so the sim's settings set that switch from the player's Objects row's `"airframe"`: `Settings.set_jet(airframe)` in `iaf-2026/sim_settings.gd` (item A1, 2026-11-02). They carry the gun, chaff and flare and no pylon stores. Their `model`
 is empty: the player's jet is drawn from its aircraft definition, and the sim's own model index comes later.
 
 Example, `iaf-2026/data/db/units/f16i.json`:
@@ -134,9 +134,9 @@ Names and numbers the shared code relies on:
 
 weapons.ibx gets one `[WEAPONnnn]` section per weapon with `type = generation · 1000 + type code`, and the first
 weapon of each type code also as that code's default section (`weapon_db.gd motion_for` falls back to it), unless a
-generation-0 weapon of that code has its own; two weapons on one section are refused. The game does not read this
-file yet: `weapon_db.gd` reads the install's weapons.ibx, and the reader hook (`Settings.install_dir()` pointing at
-`converted/own/`) comes with item A1. `test_sim_data.gd` reads it through `weapon_db.gd`'s own parser meanwhile.
+generation-0 weapon of that code has its own; two weapons on one section are refused. The sim reads this file
+through `weapon_db.gd`, which takes weapons.ibx under `Settings.own_dir()`: `converted/own/` in the sim (item A1),
+the install in the original game.
 
 Example, `iaf-2026/data/db/weapons/aim-9m.json`:
 ```json

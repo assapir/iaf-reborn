@@ -40,7 +40,7 @@ const POV := {
 	31500: [315, 7],
 	0xffff: [-1, 5]
 }
-const JOY_DIR := "install/resource/menu/joy"
+const JOY_DIR := "resource/menu/joy"
 ## Ours: an unknown stick (no SDL gamepad mapping) reports its buttons by raw index and its hat as the D-pad
 ## buttons 11..14, so a 12th..15th button is the same event as a hat direction. Such a stick gets a mapping:
 ## buttons 0..10 keep their index, 11..16 move to 15..20 (misc1, paddles, touchpad), the hat stays on 11..14;
@@ -348,7 +348,7 @@ func _connected(d: int) -> void:
 ## name sets the default table's buttons: all none, then line k (0-based after the name) = record n − 1 (n
 ## in 1..117; 0 = no record) on button k.
 func _load_joy_map(name: String) -> void:
-	var dir := Settings.assets_dir().path_join(JOY_DIR)
+	var dir := Settings.install_dir().path_join(JOY_DIR)
 	var files := Array(DirAccess.get_files_at(dir)).filter(func(f): return f.to_lower().ends_with(".joy"))
 	files.sort()
 	for f in files:

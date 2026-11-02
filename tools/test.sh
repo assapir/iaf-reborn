@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Runs every test: Rust unit/validation tests, then the headless Godot tests in tests/godot.
+# Runs every test: Rust unit/validation tests, the headless Godot tests in tests/godot (the original game) and
+# iaf-2026/tests (IAF 2026), then gdparse on both projects.
 # Needs the converted assets (tools/setup-cli.sh). Tests never touch the player's settings
 # (IAF_DEFAULT_SETTINGS=1) and open no window.
 set -uo pipefail
@@ -26,6 +27,24 @@ for t in tests/godot/test_*.gd; do
 	[[ $rc == 124 ]] && { echo "FAIL timeout (300 s); last output:"; echo "$out" | tail -15; }
 	echo "$out" | grep -q "RESULT PASS" || fail=1
 	echo "$out" | grep -q "SCRIPT ERROR" && { echo "FAIL script errors"; fail=1; }
+done
+# IAF 2026's tests in its own project; NEEDS DATA (the sim's data not built yet, iaf-2026/docs/status.md) is no failure.
+for t in iaf-2026/tests/test_*.gd; do
+	echo "== $t"
+	out=$(IAF_DEFAULT_SETTINGS=1 timeout 300 godot --log-file "$logs/2026-$(basename "$t" .gd).log" --headless --audio-driver Dummy --path iaf-2026 -s "../$t" 2>&1)
+	rc=$?
+	echo "$out" | grep -E "^(PASS|FAIL|RESULT|NEEDS DATA)|SCRIPT ERROR"
+	[[ $rc == 124 ]] && { echo "FAIL timeout (300 s); last output:"; echo "$out" | tail -15; }
+	echo "$out" | grep -qE "RESULT PASS|^NEEDS DATA" || fail=1
+	echo "$out" | grep -q "SCRIPT ERROR" && { echo "FAIL script errors"; fail=1; }
+done
+# Every script of both projects parses (tools/gdparse.gd).
+for p in iaf-reborn iaf-2026; do
+	echo "== gdparse $p"
+	out=$(godot --headless --path "$p" -s ../tools/gdparse.gd --log-file "$logs/gdparse-$p.log" 2>&1)
+	rc=$?
+	echo "$out" | grep -E "^(BAD|gdparse)"
+	[[ $rc == 0 ]] || fail=1
 done
 # The logs (and the wizard's scratch data) are kept only when something failed.
 [[ $fail == 0 ]] && { rm -rf "$logs"; echo "ALL TESTS PASSED"; } || { echo "SOME TESTS FAILED (logs: $logs)"; exit 1; }

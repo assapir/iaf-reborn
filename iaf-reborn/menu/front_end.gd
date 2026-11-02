@@ -1229,7 +1229,7 @@ func _pref_label(base: Vector2, text: String, fs: int, col: Color) -> void:
 
 ## Gill Sans Bold Condensed from the install, a little heavier like the art's labels (_pref_label slants it).
 func _pref_face() -> Font:
-	var file := Settings.assets_dir().path_join("install/resource/menu/fnt/cr4.ttf")
+	var file := Settings.install_dir().path_join("resource/menu/fnt/cr4.ttf")
 	var base: Font = font_art
 	if FileAccess.file_exists(file):
 		var ff := FontFile.new()

@@ -1195,7 +1195,7 @@ func debrief_text(mission_id := -1) -> Dictionary:
 ## absent: "Congratulations," / "Too bad," + " " for the player's side (FUN_0059a450: Charlie / Delta red), then
 ## "<side> team won." + "\n\n\n\n"; a draw "Red team/Blue team draw." + "\n\n\n\n" alone, result 0.
 func mc_headline(by_kills: bool) -> Array:
-	var ibx: Dictionary = Settings.load_ibx(Settings.assets_dir().path_join("install/iaf.ibx"))
+	var ibx: Dictionary = Settings.load_ibx(Settings.own_dir().path_join("iaf.ibx"))
 	var sec := {}
 	for k in ibx:
 		if String(k).to_lower() == "debrief":
@@ -1226,7 +1226,7 @@ func mc_headline(by_kills: bool) -> Array:
 ## MissBonus from the score file (iaf.ibx [Scenario] ScoreFile = Resource\Missions\Scores.ibx,
 ## FUN_0059add0): the mission's bonus, 0 when not listed.
 static func mission_bonus(id: int) -> int:
-	var ibx := Settings.load_ibx(Settings.assets_dir().path_join("install/resource/missions/scores.ibx"))
+	var ibx := Settings.load_ibx(Settings.install_dir().path_join("resource/missions/scores.ibx"))
 	for section in ibx:
 		if section.to_lower() == "missbonus" and ibx[section].has(str(id)):
 			return ibx[section][str(id)].to_int()

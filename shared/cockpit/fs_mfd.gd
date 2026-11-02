@@ -39,7 +39,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # the art's key edges stay crisp
 	_font = preload("res://shared/util/img.gd").arial(400, false)
-	var dir: String = Settings.assets_dir().path_join("install/resource/cockpits/fsmfd")
+	var dir: String = Settings.install_dir().path_join("resource/cockpits/fsmfd")
 	var ibx: Dictionary = Settings.load_ibx(dir.path_join("data.ibx"))
 	var rect := func(k: String) -> Rect2:
 		var s: Dictionary = ibx.get(k, {})

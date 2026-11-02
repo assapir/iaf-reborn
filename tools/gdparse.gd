@@ -1,17 +1,19 @@
-# Parse-checks every GDScript in iaf-reborn/ and tests/godot/ with the project's autoloads in place (a plain
-# `--check-only -s <file>` reports their names as unknown identifiers). Prints one BAD line per script that fails to
-# load and the count; exit status 1 on any failure:
-#   godot --headless --path iaf-reborn -s ../tools/gdparse.gd --log-file <temp path>
+# Parse-checks every GDScript of a project (iaf-reborn/ with tests/godot/, or iaf-2026/ with its tests/) with the
+# project's autoloads in place (a plain `--check-only -s <file>` reports their names as unknown identifiers). Prints
+# one BAD line per script that fails to load and the count; exit status 1 on any failure:
+#   godot --headless --path iaf-reborn -s ../tools/gdparse.gd --log-file <temp path>   (or --path iaf-2026)
 extends SceneTree
 
 
 func _initialize() -> void:
 	await process_frame  # the autoloads exist from the first frame on (tests/godot/base.gd)
 	var bad := _walk("res://")
-	# DirAccess does not list res://.. paths: the tests' folder by its file system path, each loaded as res://../.
-	for f in DirAccess.get_files_at(ProjectSettings.globalize_path("res://").path_join("../tests/godot")):
-		if f.ends_with(".gd"):
-			bad += _check("res://../tests/godot".path_join(f))
+	# The original game's tests (tests/godot) run in its project; IAF 2026's are its own res://tests. DirAccess does
+	# not list res://.. paths: the tests' folder by its file system path, each loaded as res://../.
+	if ProjectSettings.get_setting("application/config/name") == "iaf-reborn":
+		for f in DirAccess.get_files_at(ProjectSettings.globalize_path("res://").path_join("../tests/godot")):
+			if f.ends_with(".gd"):
+				bad += _check("res://../tests/godot".path_join(f))
 	print("gdparse: %d scripts failed" % bad)
 	quit(1 if bad > 0 else 0)
 

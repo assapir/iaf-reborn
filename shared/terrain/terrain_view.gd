@@ -833,9 +833,7 @@ func _choose_start(args: PackedStringArray) -> void:
 		# within 5 km / 15 m of its tower); a ground start has gear down, full flaps, brakes on, throttle 0,
 		# and the engine runs only within 100 m of the lineup point (docs/ai.md §7.1).
 		var rule: Vector2i = (
-			ClassDB.class_call_static(
-				"IafFlight", "start_rule", Settings.assets_dir().path_join("install"), origin.x, origin.y, alt
-			)
+			ClassDB.class_call_static("IafFlight", "start_rule", Settings.own_dir(), origin.x, origin.y, alt)
 			if ClassDB.class_exists("IafFlight")
 			else Vector2i.ZERO
 		)
@@ -1627,7 +1625,7 @@ func mission_play_wav(wav: String) -> void:
 	var name := wav.to_lower()
 	if not "." in name:
 		name += ".wav"
-	var path := Settings.assets_dir().path_join("install/resource/soundfiles").path_join(name)
+	var path := Settings.own_dir().path_join("resource/soundfiles").path_join(name)
 	if not FileAccess.file_exists(path):
 		return
 	var stream := AudioStreamWAV.load_from_file(path)
@@ -1775,7 +1773,7 @@ func _start_flight() -> void:
 		push_error("IafFlight missing: build the extension (cargo build -p iaf-godot)")
 		return
 	flight = ClassDB.instantiate("IafFlight")
-	var install := Settings.assets_dir().path_join("install")
+	var install := Settings.own_dir()
 	var fwd := -rig.global_basis.z
 	var heading := fposmod(rad_to_deg(atan2(fwd.x, -fwd.z)), 360.0)
 	real_data = Settings.real_data() or OS.get_cmdline_user_args().has("--real")
