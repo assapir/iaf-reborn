@@ -437,15 +437,19 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - radar: with Weapon data Real 104 km (the APG-70I), not the Baz's 135 km; the AI's F-15s see 30.8 NM instead of
     the 40 NM every AI jet has; the mode table stays the F-15's;
   - gun: 500 rounds with Weapon data Real (F-15E), not 940;
-  - weapons: the Arming screen also lists the Python 5 (two per wing pylon; Weapon data Real), the GBU-31(V)3 (wing
-    pylons and the CFT stations 3, 4, 6, 7) and the SPICE 1000 (wing pylons 2 / 8), whatever Extras "Weapons" says;
-    the original's items stay;
+  - weapons: the Arming screen also lists the Python 5 (two per wing pylon; Weapon data Real), the GBU-31(V)3
+    (`BLU109`) and the GBU-31 (Mk 84), each on seven stations 2–8 (wing pylons, the CFT stations and the centreline),
+    the GBU-28 (2 / 5 / 8), the GBU-39 (four to a rack on 2, 4, 5, 6, 8) and the SPICE 1000 (`SPICE1`, wing pylons
+    2 / 8), whatever Extras "Weapons" says; the original's items stay;
+  - engine: with Better physics' engine spool, the -229's own times (under 4 s idle to maximum afterburner), not the
+    -220's;
   - the Arming screen shows its own front-view art with the conformal tanks (rendered by setup) and the Ra'am's weights
     (base 59,734 lb, max 81,000 lb);
   - the TSD calls the selected F-15 "F-15I"; the info line shows RAAM; the Jet list's F15 button reads F-15I (Hebrew
     רעם); the Reference screen's F-15 guide is guides/f15i.md;
   - the Real HUD (Extras HUD on Real) is the F-15E's, not the F-15A/C's (TO 1F-15E-1, labelled F-15E: the F-15I's
-    own HUD software is open; real-hud.md "F-15E (F-15I Ra'am)"), and the Real view fits its 28° × 21° field;
+    own HUD software is open; real-hud.md "F-15E (F-15I Ra'am)"), its allowable-g window showing the jet's +8.1, and
+    the Real view fits its 28° × 21° field;
   - the livery: the inner fins' black bands painted out and the nose numbers blue, as the photos show, and the
     camouflage in flat paint (FS 3xxxx colours; f15i.md §7).
   - Stores, gun, wingtips, eye and wheel height come from the original's helpers. The detailed model brings its own
