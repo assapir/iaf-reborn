@@ -85,6 +85,10 @@ Rule of placement: game logic belongs in the Rust crates. Godot renders and wire
 
 ## Conventions
 
+- **Squash merges only** (the user, 2026-11-02). A branch or worktree lands on main as one commit with a real
+  message: `git merge --squash <branch>` then `git commit`. Never a merge commit ("Merge branch …"); to bring main into
+  a branch, rebase the branch instead of merging main into it.
+
 - **Original by default.** Logic, layout, timing and colours match the original v1.1 exe. Any improvement or new
   content is an opt-in switch (Preferences → Extras) and is recorded in `docs/deviations.md`.
 - The original manual is a reference for what the game intends; the exe wins where they differ. The CDs hold no
