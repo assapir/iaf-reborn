@@ -322,8 +322,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     F-35I wins when it replaces the F-16.
 - **"Weapons" (Original (1998) / Modern)** (ours, Extras; [weapons.md](weapons.md) §13). Original: the 1998 Arming
   lists. Ours, with Modern: the Arming screen also lists our modern weapons (AIM-9X, Python 5, GBU-31, GBU-31(V)3,
-  GBU-32, GBU-38, GBU-39) on every jet a public source shows carrying them (real-weapons.md §1.7): the Barak the AIM-9X,
-  Python 5, GBU-31, GBU-38 and GBU-39; the F-15 the AIM-9X and GBU-31; the other jets none. The F-16I Sufa and the
+  GBU-32, GBU-38, GBU-39, SPICE 1000) on every jet a public source shows carrying them (real-weapons.md §1.7): the
+  Barak the AIM-9X, Python 5, GBU-31, GBU-38 and GBU-39; the F-15 the AIM-9X, GBU-31 and SPICE 1000; the other jets
+  none. The F-16I Sufa and the
   F-35I have theirs with either setting. The AI's loads stay the original's. The info line shows MODWPN. The
   AIM-9X and Python 5 also need Weapon data on Real, on every jet.
   - GPS bombs (with the Sufa, the F-35I or Weapons on Modern; weapons.md §13.2–§13.3): they fly to coordinates in
@@ -435,8 +436,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - radar: with Weapon data Real 104 km (the APG-70I), not the Baz's 135 km; the AI's F-15s see 30.8 NM instead of
     the 40 NM every AI jet has; the mode table stays the F-15's;
   - gun: 500 rounds with Weapon data Real (F-15E), not 940;
-  - weapons: the Arming screen also lists the Python 5 (two per wing pylon; Weapon data Real) and the GBU-31(V)3 (wing
-    pylons and the CFT stations 3, 4, 6, 7), whatever Extras "Weapons" says; the original's items stay;
+  - weapons: the Arming screen also lists the Python 5 (two per wing pylon; Weapon data Real), the GBU-31(V)3 (wing
+    pylons and the CFT stations 3, 4, 6, 7) and the SPICE 1000 (wing pylons 2 / 8), whatever Extras "Weapons" says;
+    the original's items stay;
   - the Arming screen shows its own front-view art with the conformal tanks (rendered by setup) and the Ra'am's weights
     (base 59,734 lb, max 81,000 lb);
   - the TSD calls the selected F-15 "F-15I"; the info line shows RAAM; the Jet list's F15 button reads F-15I (Hebrew

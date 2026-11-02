@@ -22,6 +22,7 @@ const ICONS := {
 	"gbu32": ["res://extra/models/stores/gbu32.glb", 0.74],
 	"gbu38": ["res://extra/models/stores/gbu38.glb", 0.66],
 	"gbu39": ["res://extra/models/stores/gbu39.glb", 0.46],
+	"spice1000": ["res://extra/models/stores/spice1000.glb", 0.80],
 }
 
 

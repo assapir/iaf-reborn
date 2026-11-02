@@ -265,6 +265,7 @@ const STAND_INS := {
 	"weapons/sufa/pyth5_m.gltf": "weapons/pthon4/pthon4_m.gltf",
 	"weapons/sufa/gbu32_m.gltf": "weapons/mk83lb/mk83lb_m.gltf",
 	"weapons/sufa/gbu39_m.gltf": "weapons/mk82/mk82_m.gltf",
+	"weapons/sufa/spice1000_m.gltf": "weapons/mk83lb/mk83lb_m.gltf",
 }
 
 
@@ -322,6 +323,7 @@ const STORES := {
 	"pyth5_m.gltf": "pyth5",
 	"gbu32_m.gltf": "gbu32",
 	"gbu39_m.gltf": "gbu39",
+	"spice1000_m.gltf": "spice1000",
 	"popeye_m.gltf": "popeye",
 	"aa2_m.gltf": "aa2",
 	"aa8_m.gltf": "aa8",

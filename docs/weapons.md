@@ -1107,25 +1107,26 @@ on the EO self layer; then the camera is back on the jet; the last one launched 
 
 ## 13. The modern weapons (ours)
 
-Seven weapons the 1998 game does not have: the AIM-9X, Python 5, GBU-31, GBU-31(V)3, GBU-32, GBU-38 and GBU-39. They are
-ours: new records built from public data whatever Weapon data says (values and sources: docs/real-weapons.md §1.6).
+Eight weapons the 1998 game does not have: the AIM-9X, Python 5, GBU-31, GBU-31(V)3, GBU-32, GBU-38, GBU-39 and SPICE
+1000. They are ours: new records built from public data whatever Weapon data says (values and sources: docs/real-weapons.md §1.6).
 - **The modern jets** always list theirs: the F-16I Sufa (Extras "F-16 version" = Sufa, `Settings.sufa(100)`,
-  docs/f16i.md) all seven, the F-35I (docs/f35i.md §3) the AIM-9X, GBU-31, GBU-32 and GBU-39.
+  docs/f16i.md) all but the SPICE 1000, the F-15I Ra'am (Extras "F-15 version" = Ra'am, docs/f15i.md §3) the Python 5,
+  GBU-31(V)3 and SPICE 1000, the F-35I (docs/f35i.md §3) the AIM-9X, GBU-31, GBU-32 and GBU-39.
 - **Extras "Weapons"** (`Settings.modern_weapons`): on Original (the default) every other jet's Arming list is the
   original's. On Modern a jet also lists each weapon a public source shows it carrying (docs/real-weapons.md §1.7):
 
   | jet | weapons with Weapons on Modern |
   |---|---|
   | F-16D Barak | AIM-9X, Python 5, GBU-31, GBU-38, GBU-39 |
-  | F-15 Baz | AIM-9X, GBU-31 |
+  | F-15 Baz | AIM-9X, GBU-31, SPICE 1000 |
   | F-4E, Kurnass 2000, Kfir, Lavi, Mirage, MiG-23, MiG-29 | none |
 
 - The AI never gets them.
 
-- **Records** (`game/weapons/modern_weapons.gd`, ids 1001–1007, added to every weapon database by `weapon_db.gd`): each
+- **Records** (`game/weapons/modern_weapons.gd`, ids 1001–1007 and 1009, added to every weapon database by `weapon_db.gd`): each
   copies an original record for its blast, drag and model and overrides the rest. A record built on a bomb with less
   explosive (GBU-31(V)3, GBU-39) scales the base's power by its fill over the Mk 84's 429 kg and the radius by the
-  cube root of that (inferred). Stations as numbered 1–9 on the Arming screen:
+  cube root of that (inferred). Stations as numbered 1–9 on the Arming screen (the F-15I: docs/f15i.md §3):
 
   | record | type | built on (blast) | model (Original / Detailed) | Sufa | Barak | F-15 | F-35I | count |
   |---|---|---|---|---|---|---|---|---|
@@ -1136,6 +1137,7 @@ ours: new records built from public data whatever Weapon data says (values and s
   | `GBU-32` | 650 + GPS | MK-83 | MK-83L / FlightGear GBU-31 at the GBU-32's length | 3, 4, 6, 7 | – | – | 2, 3, 7, 8 | 1 |
   | `GBU-38` | 650 + GPS | MK-82 | MK-82L / FlightGear GBU-54 (the laser JDAM's look) | 3, 4, 6, 7 | 3, 4, 6, 7 | – | – | 1 |
   | `GBU-39` | 650 + GPS | MK-84 × 16 / 429 | MK-82 at 0.8 scale / ours, on its BRU-61/A rack (aircraft-models.md §5.6) | 3, 4, 6, 7 | 3, 7 | – | 3, 7 (bays) | 4 (one rack) |
+  | `SPICE-1K` | 650 + GPS | MK-83 | MK-83L / ours, wings folded (aircraft-models.md §5.6) | – | – | 2, 8 | – | 1 |
 
 - **Arming**: `mission_weapons.gd` lists them after the bdb's weapons and adds their load items (`ModernWeapons.loads`)
   to the jet's. A jet picked on the Jet list takes the modern items of the jet flown, with the mission jet's original
@@ -1171,10 +1173,15 @@ Arming lists keep the 1998 IR missiles, also on the Sufa and the F-35I. Both are
   seeker diamond on its target or on the aiming cross, the seeker limit beyond the cone, SHOOT, and LOAL while a
   missile launched without a lock searches (`hobs_cue()` in `player_weapons.gd`).
 
-### 13.2 GPS bombs (JDAM, GBU-39)
+### 13.2 GPS bombs (JDAM, GBU-39, SPICE 1000)
 
-A GPS bomb has no seeker and never follows a laser: it flies to the coordinates the jet hands it at its release
-(`crates/iaf-avionics/src/gps.rs`, `IafGpsBomb`). The jet takes those coordinates in one of two modes, as the real F-16
+A GPS bomb never follows a laser: it flies to the coordinates the jet hands it at its release
+(`crates/iaf-avionics/src/gps.rs`, `IafGpsBomb`). The JDAMs and the GBU-39 have no seeker. The SPICE 1000
+(`SPICE-1K`) has one: it flies by INS / GPS to the target area, then matches its electro-optical picture to the
+stored reference image of the target and homes onto it (Rafael, docs/real-weapons.md §1.6). The game has no GPS
+jamming and its targets' coordinates have no error, so the scene matching ends where the GPS / INS leads: the SPICE
+uses the same code as the JDAM and lands on its stored point (inferred). Its wings give it the long glide (LD 6.8). In
+VIS the designated point stands for a mission planned in the air (Rafael: "in the air or on the ground"; inferred). The jet takes those coordinates in one of two modes, as the real F-16
 does[^dcs-jdam][^bms-jdam]; the F-35I's are inferred to work the same.
 - **Mode** per GPS weapon (`player_weapons.gd` `gps_modes`, by weapon name): PRE by default. Key **K** switches the
   selected GPS bomb between PRE and VIS (docs/controls.md "Own keys"); a subtitle shows the new mode.
@@ -1208,7 +1215,9 @@ does[^dcs-jdam][^bms-jdam]; the F-35I's are inferred to work the same.
   (§9.5). The real kits' error (5 m CEP for a JDAM with GPS) is not modelled: the bomb lands on its aim.
 - **Reach**: from height h above the aim at speed s, LD · (h + (s² − 150²) / 2g) over the ground, whatever the path.
   JDAM: LD 1.6, about 24 km from 40,000 ft at Mach 0.9, 8 km from 3,000 m at 250 m/s. GBU-39: LD 7.6, about 110 km
-  from 40,000 ft.
+  from 40,000 ft. SPICE 1000: LD 6.8, about 100 km from 40,000 ft, 55 km from 6,000 m above the target at 250 m/s.
+- Not modelled for the SPICE: the 3 m CEP (inside the Mk 83's blast), the 5% failed target acquisitions, the impact
+  angle and azimuth set before the release, the wings unfolding (the model keeps them folded).
 
 ### 13.3 The launch acceptability region (LAR) and the HUD cues
 
@@ -1248,7 +1257,8 @@ bomb selected (`gps.rs` `Kit::lar`; the rules are ours, inferred from the energy
 ### 13.4 Validation
 
 - Rust: `gps.rs` (a bomb inside the LAR lands on a point 30° off the track; outside it falls short; the reach from
-  40,000 ft), `missile.rs` `off_boresight_missile_turns_to_a_target_behind_the_beam` (100° off the nose: the original
+  40,000 ft; `spice_wings_glide_to_the_published_range`: the SPICE's 100 km from 40,000 ft, and a release 80 km out
+  20° off the track, outside a JDAM's LAR, glides onto the point, its TTI the flight's time), `missile.rs` `off_boresight_missile_turns_to_a_target_behind_the_beam` (100° off the nose: the original
   rule ends the flight, the off-boresight one hits), `sight.rs` `loal_takes_the_unit_nearest_the_cued_axis`,
   `release.rs` `gps_aim_pre_or_pod_then_td_then_ccip`; `gps.rs` `lar_min_range_is_the_turn_circle` (inside Rmin
   the bomb overflies, just past it hits), `time_to_max_range_counts_down_then_in_range`, `time_to_impact_matches_the_flight_and_counts_down` (the TTI at
@@ -1266,6 +1276,9 @@ bomb selected (`gps.rs` `Kit::lar`; the rules are ours, inferred from the energy
   map, stores that point; in flight a unit stands there 50° off the nose with the radar designating elsewhere: 20 km
   out out of range with a TMR, 6 km out IN RNG; the bomb flies to the briefing's point and destroys the unit. With
   Bomb release Real a pair leaves at once, each bomb to its own station's target.
+- `tests/godot/test_raam.gd`: the F-15I lists the SPICE-1K on stations 2 / 8; in PRE 45 km from the briefing's
+  target, 9,000 m up at 250 m/s, it is in range (a JDAM's LAR is not), glides 179 s to the point (the TTI at the
+  release within 1 s of that) and destroys the unit there.
 
 ## UNCERTAIN
 Open points:

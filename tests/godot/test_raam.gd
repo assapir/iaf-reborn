@@ -1,10 +1,12 @@
 # The Extras switch "F-15 version" on Ra'am (docs/f15i.md): every F-15 (type 110), the player's and the AI's, flies the
 # F-15I row (22,665 lb internal fuel), gets the APG-70I's 104 km and the F-15E's 500 rounds, and its Arming lists the
-# Python 5 and the GBU-31(V)3 whatever Extras "Weapons" says; the TSD, the info line and the Reference name it.
+# Python 5, the GBU-31(V)3 and the SPICE 1000 whatever Extras "Weapons" says; the TSD, the info line and the Reference
+# name it. A SPICE 1000 released in PRE 45 km from its target, 9,000 m up, glides to it and destroys the unit there.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path game -s ../tests/godot/test_raam.gd
 extends "res://../tests/godot/base.gd"
 
 const RAAM_FUEL_KG := 22665.0 * 0.45359
+const SPICE := 1009
 
 
 func run() -> void:
@@ -31,11 +33,16 @@ func run() -> void:
 		var names := []
 		for t in [0, 1]:
 			names.append_array(mw.tab_list(t).map(func(x): return x.name))
-		check(names.has("PYTH-5") and names.has("GBU-31V3"), "F-15I lists PYTH-5 and GBU-31V3: %s" % [names])
+		check(
+			names.has("PYTH-5") and names.has("GBU-31V3") and names.has("SPICE-1K"),
+			"F-15I lists PYTH-5, GBU-31V3 and SPICE-1K: %s" % [names]
+		)
 		check(not names.has("AIM-9X") and not names.has("GBU-31"), "no AIM-9X / GBU-31 (no F-15I source)")
 		for w in mw.weapons:
 			if w.name == "GBU-31V3":
 				check(w.max == [0, 1, 1, 1, 0, 1, 1, 1, 0], "GBU-31V3 on B, C, D, F, G, H: %s" % [w.max])
+			elif w.name == "SPICE-1K":
+				check(w.max == [0, 1, 0, 0, 0, 0, 0, 1, 0], "SPICE-1K on B and H: %s" % [w.max])
 			elif w.name == "PYTH-5":
 				check(w.max == [2, 0, 0, 0, 0, 0, 0, 0, 2], "PYTH-5 two on A and I: %s" % [w.max])
 		break
@@ -78,4 +85,58 @@ func run() -> void:
 	)
 	var burn := float(s0.fuel_lbs - s.fuel_lbs) * 0.45359
 	check(burn > 300.0, "it burns the -229s' afterburner fuel: %.0f kg in 30 s" % burn)
+	_spice(tv)
 	settings().f15_variant = "baz"
+
+
+## PRE, the briefing's target 45 km ahead, 9,000 m up at 250 m/s: in the SPICE's LAR (a JDAM's is far short); the
+## bomb glides to the point, its TTI the flight's time, and destroys the unit there (docs/weapons.md §13.2).
+func _spice(tv) -> void:
+	var site := _ground_unit(tv)
+	var n: int = tv.player_flight_number
+	if site.is_empty():
+		check(false, "a ground unit")
+		return
+	settings().gps_targets[n] = {1: [site.world.x, site.world.y, "SPICE"]}
+	var w = airborne_case(tv, [0, 0, SPICE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, SPICE, 1, 0, 0, 25, 235, 33, 120, 34, 60])
+	var p: Vector3 = w._on_ground(Vector2(site.world.x, site.world.y))
+	site.world = p
+	site.alt = p.z
+	tv.mission_entity_moved(site)
+	var vel: Vector3 = tv.world_to_scene(Vector3(0, 250, 0)) - tv.world_to_scene(Vector3.ZERO)
+	start_over(tv, w, p - Vector3(0, 45000, 0), vel, tv.player.fm_section, 9000.0)
+	var t := 40.0
+	w.update(t)
+	w.nav_key(0)
+	w.stores.cur = 1
+	w.select_ag()
+	t += 0.05
+	w.update(t)
+	var gps: Dictionary = w.ag.get("gps", {})
+	check(
+		gps.get("pre", false) and gps.get("aim", Vector3.INF).distance_to(p) < 1.0,
+		"SPICE selected: the aim is the briefing's point (%s)" % gps.get("aim")
+	)
+	check(gps.get("in_range", false), "45 km out from 9,000 m: in the SPICE's range (%s)" % gps.get("lar"))
+	var o: Dictionary = w.own()
+	var jdam = load("res://weapons/modern_weapons.gd").JDAM
+	check(not ClassDB.class_call_static("IafGpsBomb", "in_range", jdam, o.pos, o.vel, p), "a JDAM's is far short")
+	w.fire_selected()
+	w.update(t + 0.01)
+	w.release_selected()
+	check(w.gps_bombs.size() == 1 and w.gps_bombs[0].g.aim().distance_to(p) < 1.0, "the SPICE flies to the point")
+	var t_rel := t
+	t += 0.02
+	w.update(t)
+	var tti0 = tv.cockpit.weapons.get("gps_tti")
+	for i in 4000:
+		t += 0.2
+		w.update(t)
+		if w.gps_bombs.is_empty():
+			break
+	var flown := t - t_rel - 0.02
+	check(tti0 != null and absf(float(tti0) - flown) < 1.0, "TTI at the release %s, flown %.1f s" % [tti0, flown])
+	check(
+		w.gps_bombs.is_empty() and int(site.state) != 1,
+		"the SPICE glided %.0f s and destroyed the unit (state %d)" % [flown, int(site.state)]
+	)

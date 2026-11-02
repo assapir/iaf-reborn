@@ -10,6 +10,8 @@
 #   the beam (missile.rs); "loal": launched without a lock they fly toward the cued line and lock on after launch.
 # - The JDAMs (GBU-31, GBU-31(V)3 with the BLU-109, GBU-32, GBU-38) and the GBU-39 SDB (type 650 with a "gps" kit):
 #   no seeker, they fly to a point fixed at the release (gps.rs).
+# - The SPICE 1000 (type 650 with a "gps" kit): GPS / INS to the stored target, its scene-matching seeker ending on that
+#   point (docs/weapons.md §13.2), its wings giving the long glide.
 extends RefCounted
 
 const LB_PER_KG := 1.0 / 0.45359
@@ -20,6 +22,9 @@ const MK84_FILL_KG := 429.0
 ## The JDAM tail kit and the SDB's wings (docs/real-weapons.md §1.6; inferred from the published ranges).
 const JDAM := {"glide": 1.6, "min_speed": 150.0, "max_speed": 300.0, "max_g": 3.0}
 const SDB := {"glide": 7.6, "min_speed": 150.0, "max_speed": 300.0, "max_g": 3.0}
+## The SPICE 1000's kit, its wings out: glide ratio 6.8 for Rafael's 100 km from 40,000 ft at Mach 0.9 (inferred
+## conditions, as the JDAM's; docs/real-weapons.md §1.6).
+const SPICE := {"glide": 6.8, "min_speed": 150.0, "max_speed": 300.0, "max_g": 3.0}
 ## The high off-boresight missiles' motion (inferred): jet-vane / thrust-vector control turns them from the rail.
 const AGILE := {"_absAcceleration": 600.0, "_timeConstOrientation": 0.05, "_offBoresight": 1.0, "_timeRelease": 0.0}
 
@@ -123,6 +128,17 @@ const RECORDS := [
 		"fill_kg": 16.0,
 		"scale": 0.8
 	},
+	{
+		"id": 1009,
+		"name": "SPICE-1K",
+		"type": 650,
+		"base": "MK-83",
+		"model_of": "MK-83L",
+		"model_path": "weapons/sufa/spice1000_m.gltf",
+		"kg": 453.0,
+		"icon": "spice1000",
+		"gps": SPICE
+	},
 ]
 ## The jets that may load each record: id -> {jet: [count, stations A..I]}, a jet by its bdb type code. A jet with an
 ## aircraft definition loads its weapons.loads ({"<record id>": [count, stations]}) instead, always with its
@@ -133,13 +149,14 @@ const RECORDS := [
 ## IR missiles as the AIM-9L, the JDAMs on 3, 4, 6, 7 (the IAF's F-16s), the GBU-39s on 3 / 7. The F-15 (110): the
 ## AIM-9X two to a wing pylon as its AIM-9L, the GBU-31 on the wing pylons and the centreline as its MK-84. The F-35I
 ## (1000, docs/f35i.md §3.1): the AIM-9X on the outboard pylons A / I, the JDAMs in the bays C / G and on the heavy
-## pylons B / H, four GBU-39s in each bay.
+## pylons B / H, four GBU-39s in each bay. The SPICE 1000 on the F-15's wing pylons B / H (a pair, as on the Baz).
 const LOADS := {
 	1001: {100: [1, "ABCGHI"], 110: [2, "AI"]},
 	1002: {100: [1, "ABCGHI"]},
 	1003: {100: [1, "CDFG"], 110: [1, "BEH"]},
 	1006: {100: [1, "CDFG"]},
 	1007: {100: [4, "CG"]},
+	1009: {110: [1, "BH"]},
 }
 ## The AIM-9X and Python 5 only with Weapon data on Real (the user, 2026-10-29): high off-boresight missiles are a real-
 ## world addition, so the original weapon set keeps the original's IR missiles.

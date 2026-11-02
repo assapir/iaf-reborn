@@ -1,5 +1,6 @@
-//! GPS / INS guided bombs (ours, the JDAMs and the GBU-39; docs/weapons.md §13): no seeker, the bomb flies to the
-//! coordinates handed to it at its release. Not in the original game.
+//! GPS / INS guided bombs (ours, the JDAMs, the GBU-39 and the SPICE 1000; docs/weapons.md §13): the bomb flies to
+//! the coordinates handed to it at its release (the SPICE's scene matching ends on that same point, §13.2). Not in the
+//! original game.
 //!
 //! An energy model (inferred, docs/weapons.md §13.2): the bomb's specific energy e = g·z + ½·s² drains by g / LD
 //! per metre flown over the ground (LD = the kit's glide ratio), its speed is what the energy leaves at its height,
@@ -247,6 +248,26 @@ mod tests {
         // 40,000 ft at Mach 0.9 (265 m/s): about the published 24 km (docs/real-weapons.md §1.6).
         let r = JDAM.reach(12_192.0, 265.0);
         assert!((r - 24_000.0).abs() < 1_000.0, "{r}");
+    }
+
+    /// The SPICE 1000's kit, its wings out (docs/real-weapons.md §1.6).
+    const SPICE: Kit = Kit { glide: 6.8, ..JDAM };
+
+    #[test]
+    fn spice_wings_glide_to_the_published_range() {
+        // 40,000 ft at Mach 0.9: about Rafael's 100 km.
+        let r = SPICE.reach(12_192.0, 265.0);
+        assert!((r - 100_000.0).abs() < 2_000.0, "{r}");
+        // Released 80 km out and 20° off the track from 40,000 ft: inside the LAR, a long glide onto the point.
+        let pos = Vec3::new(0.0, 0.0, 12_192.0);
+        let vel = Vec3::new(0.0, 265.0, 0.0);
+        let aim = Vec3::new(80_000.0 * 0.342, 80_000.0 * 0.940, 300.0);
+        assert!(SPICE.in_range(pos, vel, aim) && !JDAM.in_range(pos, vel, aim));
+        let mut b = GpsBomb::launch(SPICE, 0.0, pos, vel, aim);
+        let tti = b.time_to_impact();
+        assert!(b.advance(1200.0, &|_| Some(0.0)), "it lands");
+        assert!(b.pos.distance(aim) < 3.0, "on the point: {:?}", b.pos);
+        assert!(tti > 250.0 && (tti - b.t).abs() < 1.0, "a glide of minutes: {tti} vs {}", b.t);
     }
 
     #[test]

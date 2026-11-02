@@ -151,7 +151,7 @@ keeps the original gun and count.
 
 ### 1.6 The modern weapons (ours)
 
-New records (docs/weapons.md §13) for the F-16I Sufa and the F-35I, and with Extras "Weapons" on Modern for the jets of
+New records (docs/weapons.md §13) for the F-16I Sufa, the F-15I Ra'am and the F-35I, and with Extras "Weapons" on Modern for the jets of
 §1.7, with these values under both Weapon data settings: the 1998
 data has none. Israel bought 600 AIM-9X-2 Block II missiles (US notice of July 2014)[^isr9x]; the Sufa's JDAMs and
 Python 5: docs/f16i.md §5; the F-16I has carried the SDB since August 2015 (107 Squadron, the first F-16I unit)[^sdbf16i].
@@ -165,6 +165,7 @@ Python 5: docs/f16i.md §5; the F-16I has carried the SDB since August 2015 (107
 | GBU-32 (Mk 83) | 468 kg | – | 24 km | GPS / INS | [^dsjdam] |
 | GBU-38 (Mk 82) | 253 kg | – | 24 km | GPS / INS | [^dsjdam] |
 | GBU-39 SDB | 129 kg | – | 111 km ("over 60 nmi") | GPS / INS, wings; four on a BRU-61 rack | [^sdb] |
+| SPICE-1K (SPICE 1000, Mk 83) | 453 kg (the 1,000 lb class; the exact weight open) | – | 100 km | INS / GPS, an electro-optical scene-matching seeker, deployable wings | [^spicebro], [^wpspice], [^twzspice] |
 
 - **Weights** are the records' bdb weight (0x758) in whole pounds.
 - **Missiles**: speed and range set β and the burn as §2 does. Inferred: the motor's acceleration 600 m/s² (so a
@@ -184,11 +185,33 @@ Python 5: docs/f16i.md §5; the F-16I has carried the SDB since August 2015 (107
   root of that (inferred).
 - **Accuracy**: a JDAM with GPS has a 5 m CEP[^jdam] (13 m official, about 10 m in use[^dsjdam]), the GBU-39 1 m[^sdb];
   the game's bomb lands on its aim (not modelled).
+- **SPICE 1000** (research of 2 November 2026):
+  - **What it is**: Rafael's kit for 1,000 lb bodies (Mk 83, BLU-110, I-1000, RAP-1000), with "unique deployable
+    wings that substantially increase its range"[^spicebro]. Weight: "a 1,000-pound-class bomb"[^twzspice]; the record
+    takes 453 kg, Wikipedia's 1,000 lb figure[^wpspice] (the exact
+    weight with the kit is open). Blast: the MK-83's (a Mk 83 body, inferred).
+  - **Range**: 100 km, from Rafael's SPICE 1000 / 2000 page as Wikipedia cites it[^wpspice]; The War Zone gives a
+    "manufacturer-stated range of approximately 125 kilometers"[^twzspice]; the older brochure "over 60 km" for the
+    family[^spicebro]. The record takes 100 km. The release conditions are not published: from 40,000 ft at Mach 0.9,
+    as the JDAM's and the SDB's (inferred), that is glide ratio 6.8. The 3 g turn, the 150 m/s slowest and 300 m/s
+    fastest speeds are the JDAM's (inferred).
+  - **Guidance**: mid-course "autonomously by means of INS/GPS"; near the target "Spice's unique scene-matching
+    algorithm compares the electro-optical image received in real-time via the weapon seeker with mission reference
+    data stored in the weapon computer", then "acquires the target automatically" and homes "to the exact target
+    location in the pre-defined impact angle and azimuth". It "overcomes GPS jamming and Target Location Error". Each
+    weapon holds up to 100 missions, planned "in the air or on the ground" from target coordinates, impact angle and
+    azimuth, imagery and terrain data; the pilot allocates one to each weapon before release. Day, night and adverse
+    weather; target acquisition probability 95%[^spicebro]. Fire and forget; it "can also be programmed to approach a
+    target from a particular azimuth and impact angle"[^twzspice].
+  - **Accuracy**: CEP "less than 3 meters"[^spicebro] ("around three meters"[^twzspice]).
+  - **In the game** (docs/weapons.md §13.2): the game has no GPS jamming and its targets' coordinates have no error,
+    so the scene matching ends where the GPS / INS leads: the bomb lands on its stored point (inferred). Not modelled:
+    the 3 m CEP (inside the Mk 83's blast), the 5% failed acquisitions, the impact angle and azimuth.
 
 Not added (docs/f16i.md §5):
-- **SPICE 1000 / 2000**: the IAF fielded the SPICE 1000 on the F-16C/D first; its F-16I use was planned for the Ramon
-  squadrons in 2017[^spice1000]; no source shows the SPICE 2000 on the F-16I. Its electro-optical scene matching would
-  be a new seeker rule. Open, a follow-up (what it needs: §1.8).
+- **SPICE 1000 on the Sufa**: integrated on the F-16I[^twzspice] (planned for the Ramon squadrons in 2017[^spice1000]),
+  but no source shows its stations on the F-16I: open, not loaded (§1.7).
+- **SPICE 2000**: no source shows it on the F-16I.
 - **GBU-28**: no source puts it on the F-16I (Israel's carrier is the F-15I, inferred).
 - **Laser JDAM (GBU-54)**: Israel co-developed the laser seeker with Elbit[^jdam]; its use on the F-16I: open.
 
@@ -208,25 +231,30 @@ always has its own, whatever the switch. Research of 29 October 2026.
 | GBU-32 | open: listed for the F-16C/D by one source[^afmjdam], not by another | no source | no source | no source | no source | no source | yes: F-35A[^afmjdam] |
 | GBU-38 | yes: USAF F-16[^afmjdam] | no source (the F-15E's) | no source | no source | no source | no source | open: a 2011 Lockheed chart only |
 | GBU-39 | yes: USAF F-16 (Block 30/40/50 integration, 8 on BRU-61 racks)[^ar39] | no source (the F-15E's) | no source | no source | no source | no source | yes: F-35A internal, RNLAF and RAAF[^raaf39] |
+| SPICE-1K | open: IAF F-16C/D since 2017[^spice1000][^twzspice], no source for its stations | yes: IAF Baz, "each carrying a pair" (an OSINT post), a photo of a Baz with a SPICE pair on the underwing pylons[^twzspice] | no source | no source | no source | no source | open: integration announced 2026[^spice35][^twzspice] |
 
 Stations (`modern_weapons.gd` `LOADS`; letters A–I are the Arming screen's stations 1–9):
 - **Barak**: AIM-9X and Python 5 on A, B, C, G, H, I, where the F-16 carries its AIM-9L (inferred: no official
   station list). GBU-31 and GBU-38 on C, D, F, G: the IAF's F-16s load JDAMs on the inner wing pylons as well as the
   standard heavy ones[^avi23]. GBU-39 four to a rack on C / G (inferred from the eight on two racks[^ar39]).
 - **F-15**: AIM-9X two to a wing pylon on A / I, as its AIM-9L; GBU-31 on B, E, H, the wing pylons and the centreline
-  ("three GBU-31(V)1 JDAM bombs, loaded on the centerline and wing stations"[^avi23]).
+  ("three GBU-31(V)1 JDAM bombs, loaded on the centerline and wing stations"[^avi23]); SPICE-1K a pair on the wing
+  pylons B / H[^twzspice] (the photo's caption calls the pair 2,000 lb SPICEs, the article's text 1,000 lb ones).
+- **F-15I Ra'am** (its own loads, docs/f15i.md §3): the SPICE-1K on B / H as the Baz's pair (the F-15I's own stations:
+  no source, inferred).
 - **F-35I** (docs/f35i.md §3.1): AIM-9X on the outboard pylons A / I[^dt35]; GBU-31 and GBU-32 in the bays C / G and on
   the heavy pylons B / H; GBU-39 four to a bay on C / G[^raaf39].
 
-### 1.8 Spike and SPICE: models only (open)
+### 1.8 Spike and SPICE: the SPICE 1000 built, the others models only (open)
 
-The SPICE 1000, the SPICE 2000 and the Spike NLOS have detailed models (ours, docs/aircraft-models.md §5.6) but no
-weapon record yet. Research of 30 October 2026.
+The SPICE 1000, the SPICE 2000 and the Spike NLOS have detailed models (ours, docs/aircraft-models.md §5.6). The SPICE
+1000 is a weapon record since 2 November 2026 (`SPICE-1K`, §1.6); the others have none yet. Research of 30 October 2026.
 
 **Which ones the IAF fields:**
 - **SPICE 2000**: on the IAF's F-16s since 2005 (a search snippet citing GlobalSecurity; open). A kit on the Mk 84,
   BLU-109 and other 2000 lb bodies[^spicebro].
-- **SPICE 1000**: IOC on the F-16C/D in 2017, the F-16I next[^spice1000]. Integration on the F-35I was announced in
+- **SPICE 1000**: IOC on the F-16C/D in 2017, the F-16I and F-15I next[^spice1000]; integrated on the F-16I, F-16C/D,
+  F-15I and F-15 Baz by 2026[^twzspice]. Integration on the F-35I was announced in
   September 2026[^spice35]. A kit on the Mk 83, BLU-110 and other 1000 lb bodies, with "deployable wings"[^spicebro].
 - **SPICE 250**: four to a Smart Quad Rack, up to 16 on an F-16[^spice250rack]; 113 kg[^spice250]. Its IAF use and
   carriers: open. No model: its length, span and wing layout are open.
@@ -235,11 +263,9 @@ weapon record yet. Research of 30 October 2026.
   it on the F-16I, F-15I or F-35I. The game has no player helicopter, so it has no station to load it.
 
 **What adding them as weapons needs** (open, a follow-up; `modern_weapons.gd` belongs to the weapons work):
-- **SPICE 1000 / 2000**: a type 650 record each on the MK-83 / MK-84 base, as the GBU-32 / GBU-31; a new seeker rule
-  for the electro-optical scene matching (it flies to the stored scene, not a GPS point); range "over 60 km"[^spicebro]
-  (a glide ratio from that, as the JDAM's, inferred); CEP under 3 m[^spicebro]. Jets and stations: the Barak (100) and
-  the Sufa on C, D, F, G (as the JDAMs; the F-16I: planned[^spice1000], open); the F-35I on B / H and in the bays C / G
-  (SPICE 1000 only[^spice35]); the F-15I has no record in the game (the F-15 Baz, 110: no source).
+- **SPICE 2000**: a type 650 record on the MK-84 base, as the GBU-31, with the SPICE 1000's guidance (§1.6); range
+  60 km[^wpspice] (no wings); its IAF carriers and stations: open.
+- **SPICE 1000** on the Barak, the Sufa and the F-35I: their stations (§1.7).
 - **Spike NLOS**: none until the game has a helicopter station; its record would be an electro-optical guided missile
   (type 600 as the AGM-65, inferred) with 25 km range[^avinlos].
 - Their models: `spice1000.glb`, `spice2000.glb`, `spikenlos.glb` in `game/extra/models/stores/`; a record names them
@@ -399,7 +425,7 @@ Each real value lands in one field or rule of the original model:
 [^blu109]: Wikipedia, "BLU-109 bomb" (550 lb, 250 kg of tritonal), https://en.wikipedia.org/wiki/BLU-109_bomb
 [^mk84]: Wikipedia, "Mark 84 bomb" (945 lb, 429 kg of tritonal), https://en.wikipedia.org/wiki/Mark_84_bomb
 [^spice1000]: Airforce Technology, "IAF's SPICE 1000 munition attains IOC for use on F-16C/D aircraft" (the Ramon F-16I
-    squadrons next), https://www.airforce-technology.com/news/iafs-spice-1000-munition-attains-ioc-use-f-16c-d-aircraft/
+    squadrons next, later the F-15I), https://www.airforce-technology.com/news/iafs-spice-1000-munition-attains-ioc-use-f-16c-d-aircraft/
 [^afm9x]: Air & Space Forces Magazine, "AIM-9 Sidewinder" (AIM-9X on the F-15C/D/E, F-16C/D, F-22A),
     https://www.airandspaceforces.com/weapons-platforms/aim-9/
 [^kunsan]: PACAF, "Kunsan receives great capability with AIM-9X missile" (8th Fighter Wing Block 40 F-16s),
@@ -434,8 +460,16 @@ Each real value lands in one field or rule of the original model:
     introduction of the JDAM), 2003, https://www.iaf.org.il/440-21281-he/IAF.aspx (cited from Hebrew Wikipedia "JDAM",
     which adds that the F-16s were adapted by a software block update; the page refuses automatic fetches)
 [^spicebro]: Rafael, "SPICE" brochure (SPICE 2000 a kit for the Mk 84, BLU-109, APW and RAP-2000; SPICE 1000 for the
-    Mk 83, BLU-110, I-1000 and RAP-1000, with deployable wings; over 60 km, CEP under 3 m),
+    Mk 83, BLU-110, I-1000 and RAP-1000, with deployable wings; over 60 km, CEP under 3 m; INS / GPS navigation and
+    scene matching against stored reference images; 95% target acquisition; 100 missions per weapon),
     https://omnirole-rafale.com/wp-content/uploads/2019/10/Spice.pdf
+[^wpspice]: Wikipedia, "Spice (bomb)" (Spice 1000: a kit for 450 kg bodies, deployable wings, 100 km, citing Rafael's
+    "Spice 2000/1000 Family" page, https://www.rafael.co.il/system/spice-family-1000-2000/, which refuses automatic
+    fetches; Spice 2000 60 km; CEP 3 m; 453 kg in the family's infobox), https://en.wikipedia.org/wiki/Spice_(bomb)
+[^twzspice]: T. Newdick, The War Zone, "Israel Is Bringing SPICE 1000 Standoff Weapon To The F-35", 16 September 2026
+    (1,000 lb class; pop-out wings, about 125 km; CEP about 3 m; INS / GPS and an electro-optical seeker with scene
+    matching; integrated on the F-16I, F-16C/D, F-15I and F-15 Baz; a Baz with a pair on the underwing pylons),
+    https://www.twz.com/air/israel-is-bringing-spice-1000-standoff-weapon-to-the-f-35
 [^spice35]: Defense News, "Israel's SPICE 1000 bombs can soon drop from F-35 fighters", 16 September 2026,
     https://defensenews.com/global/mideast-africa/2026/09/16/israels-spice-1000-bombs-can-soon-drop-from-f-35-fighters
 [^spice250rack]: AIN Online, "Rafael unveils new SPICE rack", 17 June 2013 (four SPICE 250 per station, up to 16 on
