@@ -488,7 +488,8 @@ They parse on low-priority pool tasks, which leave the decode tasks and the menu
     wayland_thread.cpp:3854). The swapchain's release is a second place where the main thread depends on the events
     thread. With the workaround the same script exited 4 of 4 runs.
   - With the workaround, 10 runs of `_preload_bench.gd` through `godot_window.sh` (2560 × 1440): 10 exited
-    cleanly (the natural rate is too low for these 10 to prove it; the shim test does).
+    cleanly; 20 more on main on 2026-11-02 (`PB_WAIT=1 PB_FLY=3`): 20 exited cleanly. Without it the race hit about
+    1 run in 37, so 30 clean runs make a natural hang unlikely but do not prove it gone; the shim test does.
 
   `tools/guide_shots.sh` still stops a process 30 s after its RESULT and keeps its pictures.
 - **The menus.** The preload's terrain runs 2 decode tasks (the flight's 4). A Fly while the flight scene or its
