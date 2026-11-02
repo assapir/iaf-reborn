@@ -150,8 +150,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   and the Sufa). Original: the player's StopPlane holds the flight path level at idle from about 12 m up; the jet floats
   until it stalls and drops onto the runway (9–15 m/s; the F-4 13–25° nose down, a crash every time; the F-15 and the
   Lavi 5–6° down, a crash with Easy landing off). Ours, with any of these: a flare onto the runway, the sink the
-  wheels' height / 2 s + 1.5 m/s with the path error summed in (after a bounce 1.5 m/s), "rolling" once the wheels
-  touch. All Original keeps the float; the AI always does — autopilot.md §2.3. With the same switches the player's
+  wheels' height / 2 s + 1.5 m/s with the path error summed in (down only; after a bounce 1.5 m/s), begun once the
+  wheels are below that profile's height for the jet's sink (original: about 12 m up for every jet), "rolling" once
+  the wheels touch, with the ground law's stick on every tick (original: only off the runway heading). All Original keeps the float; the AI always does — autopilot.md §2.3. With the same switches the player's
   circuit also: ends a ChangeHeading2PtAcu leg rolled out within 1° (original: a signed 0.2°) or once past its
   point (original: never), and on final, below the 6° path, keeps the speed law's throttle (original: at most 0.5,
   so a heavy jet lands short).

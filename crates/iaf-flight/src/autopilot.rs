@@ -129,8 +129,9 @@ const V_NO_ETA: f32 = 275.0;
 const C130: u32 = 225;
 const PASS_R: f64 = 1852.0;
 /// Ours, the player's StopPlane flare ([`Landing::flare`]): the sink it asks for is the wheels' height over
-/// `FLARE_TAU` (s) plus `FLARE_SINK` (m/s); `FLARE_KI` (1/s) sums the flight path's error into a correction of
-/// at most `FLARE_I_MAX` (rad) down, 0.03 rad up.
+/// `FLARE_TAU` (s) plus `FLARE_SINK` (m/s); `FLARE_KI` (1/s) sums the flight path's error into a downward
+/// correction of at most `FLARE_I_MAX` (rad). FinalApproach hands over to it once the wheels are below that
+/// profile's height for the jet's sink.
 const FLARE_TAU: f32 = 2.0;
 const FLARE_SINK: f32 = 1.5;
 const FLARE_KI: f32 = 0.5;
@@ -2382,7 +2383,13 @@ impl Landing {
             Leg::Ka(i, speed, r) => self.ka(l, i, speed, r),
             Leg::Fa(r) => {
                 *period = 0.1;
-                if dist2(pos, pt[4][0], pt[4][1]) < r {
+                // Ours, the player's flare: StopPlane takes over once the wheels are below the flare's height for the
+                // jet's sink, so a fast final (the Kurnass 2000 Real at 200 kt sinks 11 m/s) starts on its profile
+                // instead of 2° below it at the original's ~12 m (docs/autopilot.md §2.3).
+                let v = l.v;
+                let flare_h = FLARE_TAU * (-(v.vel[2] as f32) - FLARE_SINK);
+                let early = self.player && self.flare && wheels_height(v) < flare_h;
+                if early || dist2(pos, pt[4][0], pt[4][1]) < r {
                     l.out.rudder = Some(0.0);
                     Leaf::Done
                 } else {
@@ -2504,12 +2511,15 @@ impl Landing {
                 && (v.pos[2] as f32) < v.ground_height + v.gear_clearance.abs() + 5.0
         };
         if rolling {
-            self.flare_i = 0.0;
+            // The flare's summed correction is kept: it is the pitch law's bias at this speed, and dropping it lifted
+            // the jet off again after a soft touch.
             self.touched = true;
             l.out.rudder = Some(0.0);
             l.throttle(0.0);
+            // The original steers (and sets the stick) only off the runway heading; the flare's last pull then stays
+            // on the wheels. The player's flare flies the ground law on every tick (docs/autopilot.md §2.3).
             let e = wrap(self.rn - v.att.heading);
-            if e.abs() > 0.1f32.to_radians() {
+            if flare || e.abs() > 0.1f32.to_radians() {
                 let y = l.pitch_b(0.0);
                 let x = l.roll((e - v.rates[2]).clamp(-deg80(), deg80()));
                 l.stick(y, x);
@@ -2534,9 +2544,11 @@ impl Landing {
     fn flare(&mut self, v: &ApView) -> f32 {
         // After a bounce the height term would dive the jet back at the runway (the Kurnass 2000 Real with 312's
         // load bounced to 16 m at 185 kt, then hit nose 9° down): it holds the small sink instead.
-        let h = if self.touched { 0.0 } else { (v.pos[2] as f32 - v.ground_height - v.gear_clearance.abs()).max(0.0) };
+        let h = if self.touched { 0.0 } else { wheels_height(v).max(0.0) };
         let want = -((h / FLARE_TAU + FLARE_SINK) / v.speed.max(1.0)).min(1.0).asin();
-        self.flare_i = (self.flare_i + (want - v.att.pitch) * 0.2 * FLARE_KI).clamp(-FLARE_I_MAX, 0.03);
+        // Down only: the law's bias is always shallow. While the jet lags the profile the error points up, and an
+        // upward sum left it pulling at the touch (the Kurnass 2000: 1.7° up there, then a balloon).
+        self.flare_i = (self.flare_i + (want - v.att.pitch) * 0.2 * FLARE_KI).clamp(-FLARE_I_MAX, 0.0);
         want + self.flare_i
     }
 
@@ -2579,6 +2591,11 @@ impl Landing {
         self.park = Some((x, y, hdg, d));
         Leaf::Run
     }
+}
+
+/// The wheels' height above the terrain (m).
+fn wheels_height(v: &ApView) -> f32 {
+    v.pos[2] as f32 - v.ground_height - v.gear_clearance.abs()
 }
 
 fn deg30() -> f32 {

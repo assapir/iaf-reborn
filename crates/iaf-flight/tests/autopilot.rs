@@ -826,14 +826,51 @@ fn player_landing_312_heavy_jets_hold_the_glide_path() {
     }
 }
 
+#[test]
+fn player_landing_312_heavy_kurnass_stays_down() {
+    // The Kurnass 2000 on Real data with 312's load (31.4 t) and every Better physics switch, World scale Real (its
+    // true-size gear clearance, 2.74 m, and the aligned final): it flies final at 195–200 kt, sinking 11 m/s on the 6°
+    // path. FinalApproach ended about 12 m up, 2° below the flare's profile; the flare pulled late and hard, its sum
+    // wound 1.7° up, and the jet touched still pulling: 4–16 m bounces off the first touch, down again at up to 10 m/s.
+    // Now the flare starts at the profile's height for the sink, sums down only, keeps its sum on the wheels and flies
+    // the ground law there (docs/autopilot.md §2.3); `landing_312` fails a bounce over 1 m.
+    let Some(inst) = install() else { return };
+    for dt in [1.0 / 20.0, DT, 1.0 / 120.0] {
+        let mut ac = jet_312(&inst, "F-4", DataSet::Real);
+        ac.better = iaf_flight::aircraft::BetterPhysics::all();
+        let m = ac.state().mass_kg;
+        ac.set_stores(31400.0 - m, 0.0, 0.0);
+        ac.gear_clearance = 2.74;
+        ac.true_clearance = Some(2.74);
+        let (vz, pitch, x, stop) = landing_312_at(&inst, ac, "F-4", true, true, dt);
+        println!("{:.0} Hz: touchdown sink {:.1} m/s, nose {pitch:.1}°, at x {x:.0}; stop {stop:?}", 1.0 / dt, -vz);
+        assert!(vz > -3.0 && pitch > 0.0, "a flared touchdown (sink {:.1} m/s, nose {pitch:.1}°)", -vz);
+        assert!(x > RD_RUNWAY_X[0] && x < RD_RUNWAY_X[1], "touchdown on the runway (x {x:.0})");
+        assert!(stop.is_some_and(|s| s > RD_RUNWAY_X[0]), "stops on the runway ({stop:?})");
+    }
+}
+
 /// The player's jet at 312's start (2000 m, heading 270°, east of Ramat David).
 fn jet_312(inst: &Path, name: &str, set: DataSet) -> Aircraft {
     jet_with(inst, name, set, Vec3::new(366755.0, 602361.0, 2000.0), 270.0, true)
 }
 
 /// 312's circuit for the player's jet `ac` (Easy landing off): the touchdown's vz, pitch (°) and x, and where the
-/// autopilot key came (the stop). Panics on a crash.
-fn landing_312(inst: &Path, mut ac: Aircraft, name: &str, flare: bool) -> (f32, f32, f64, Option<f64>) {
+/// autopilot key came (the stop). Panics on a crash, and with the flare on, on a bounce: the wheels more than 1 m up
+/// after the first touch.
+fn landing_312(inst: &Path, ac: Aircraft, name: &str, flare: bool) -> (f32, f32, f64, Option<f64>) {
+    landing_312_at(inst, ac, name, flare, false, DT)
+}
+
+/// [`landing_312`] with World scale Real's final (`align`) at the step `dt` (s).
+fn landing_312_at(
+    inst: &Path,
+    mut ac: Aircraft,
+    name: &str,
+    flare: bool,
+    align: bool,
+    dt: f64,
+) -> (f32, f32, f64, Option<f64>) {
     let bases = Airbase::load_all(&std::fs::read(inst.join("iaf.ibx")).unwrap());
     let z = bases.iter().find(|b| b.name == "David").unwrap().lineup[2];
     ac.easy_landing = false;
@@ -843,19 +880,25 @@ fn landing_312(inst: &Path, mut ac: Aircraft, name: &str, flare: bool) -> (f32, 
     let mut ap = Autopilot::new(Config::load(inst));
     ap.bases = bases;
     ap.player_flare = flare;
+    ap.align_final = align;
     ap.route = vec![Waypoint { x: 351083.0, y: 602383.0, z: 1500.0, t: 60.0, action: 7 }];
     ap.player_mode(&mut ac, 2, 0);
     let mut touch = None;
-    for _ in 0..(900.0 / DT) as usize {
+    let mut bounce = 0.0f64;
+    for _ in 0..(900.0 / dt) as usize {
         ac.ground_height = z;
         ac.ap_landing = ap.stage().starts_with("landing");
         let o = ap.step(&mut ac, &|_: f64, _: f64| z);
         let before = ac.state();
-        ac.step(DT);
+        ac.step(dt);
         let s = ac.state();
         assert!(s.crashed.is_none(), "{name}: crashed ({:?}) in {}", s.crashed, ap.stage());
         if touch.is_none() && s.on_ground {
             touch = Some((before.velocity[2], before.pitch.to_degrees(), s.position[0]));
+        }
+        if touch.is_some() {
+            bounce = bounce.max(s.position[2] - (z + ac.gear_clearance) as f64);
+            assert!(!flare || bounce < 1.0, "{name}: bounced {bounce:.1} m off the first touch");
         }
         if o.ap_key {
             let (vz, pitch, x) = touch.expect("touchdown");
