@@ -135,7 +135,7 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
   the needles in place of the original's lines) and the Lavi's NAV bank scale: their `landing_final` and NAV pictures
   (guides/f15.md §11, guides/lavi.md §3 / §11).
 - **F-15I Ra'am** (Extras "F-15 version", f15i.md §11): built: the flight row (F-15E figures where the F-15I has
-  none), the APG-70I's 104 km and the AI's 30.8 NM, the F-15E's 500 rounds, the Python 5, the GBU-31(V)3 (named
+  none), the APG-70I's 104 km and the AI's 30.8 NM, the F-15E's 500 rounds, the Python 5, seven GBU-31 (Mk 84) or GBU-31(V)3 (named
   BLU109), the GBU-28 (our record and model; laser-guided, no designator on the F-15) and the GBU-39, the SPICE 1000,
   its own Arming art (lit as the original's, the CFT stations apart), the TSD / info line / Jet list names, the livery
   fixes, the pilot guide guides/f15i.md, the F-15E's Real HUD (real-hud.md "F-15E (F-15I Ra'am)"). Open: the AIM-9X /

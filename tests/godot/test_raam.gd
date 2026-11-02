@@ -50,12 +50,12 @@ func run() -> void:
 			"F-15I lists PYTH-5, BLU109, GBU-28, GBU-39 and SPICE1: %s" % [names]
 		)
 		check(
-			not names.has("AIM-9X") and not names.has("GBU-31") and not names.has("GBU-38"),
-			"no AIM-9X / GBU-31 / GBU-38 (open for the F-15I)"
+			names.has("GBU-31") and not names.has("AIM-9X") and not names.has("GBU-38"),
+			"the GBU-31; no AIM-9X / GBU-38 (open for the F-15I)"
 		)
 		for w in mw.weapons:
-			if w.name == "BLU109":
-				check(w.max == [0, 1, 1, 1, 0, 1, 1, 1, 0], "BLU109 on B, C, D, F, G, H: %s" % [w.max])
+			if w.name == "BLU109" or w.name == "GBU-31":
+				check(w.max == [0, 1, 1, 1, 1, 1, 1, 1, 0], "%s on B, C, D, E, F, G, H: %s" % [w.name, w.max])
 			elif w.name == "GBU-28":
 				check(w.max == [0, 1, 0, 0, 1, 0, 0, 1, 0], "GBU-28 on B, E, H: %s" % [w.max])
 			elif w.name == "GBU-39":

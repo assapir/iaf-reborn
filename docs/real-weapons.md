@@ -264,8 +264,9 @@ always has its own, whatever the switch. Research of 29 October 2026.
 - **GBU-38**: open. Israel bought 4,000 JDAM kits for the Mk 82 in 2015[^fr1536]; the Ra'am carries JDAMs (the IAF's
   JDAM jets "include, among others, Baz, Ra'am, Sufa"[^fpri26]) but no source names the 500 lb GBU-38 on the F-15I
   (searched: F-15I GBU-38 / Mk 82 JDAM photos 2023–2025). Not offered.
-- The GBU-31 (Mk 84 body) has a better case than when the Ra'am was built: the IAF uses "GBU-31(V)1/B and
-  GBU-31(V)3/B" and the F-15I carries "seven GBU-31 series weapons"[^fpri26]; not offered yet (a follow-up).
+- **GBU-31 (Mk 84 body)**: the IAF uses "GBU-31(V)1/B and GBU-31(V)3/B" and the F-15I carries "seven GBU-31 series
+  weapons"[^fpri26]: offered on the F-15I since 2026-11-02 (the user's decision), on the BLU109's seven stations
+  B, C, D, E, F, G, H (inferred), as is the seventh BLU109 on the centreline.
 
 Stations (`modern_weapons.gd` `LOADS`; letters A–I are the Arming screen's stations 1–9):
 - **Barak**: AIM-9X and Python 5 on A, B, C, G, H, I, where the F-16 carries its AIM-9L (inferred: no official
