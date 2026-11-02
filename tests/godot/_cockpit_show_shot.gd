@@ -85,6 +85,7 @@ func _cockpit_scene(name: String, s: Array) -> void:
 	tv.cockpit.subtitles = [] as Array[String]
 	tv.runtime.misc["0x460"] = s[2] * 3600.0 - tv.runtime.now
 	tv._tod_t = -INF
+	tv._tod_cockpit_set = false  # the cockpit's night by the clock set here (it is taken once, at the start)
 	if s[7] == "missile":
 		var hp := []
 		var ids := {}

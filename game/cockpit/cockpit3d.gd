@@ -26,6 +26,9 @@ const Img := preload("res://util/img.gd")
 const Gauges := preload("res://cockpit/gauges.gd")
 ## The block panel sheet the model's materials carry (FlightGear's Block 50: the Sufa's).
 const BLOCK_SHEET := "blck50-panels1"
+## The F-16 model's own satin black parts (tools/f16d/cockpit3d.py: the HUD posts and the wide-angle HUD's box):
+## their roughness kept, a sheen along their rounded edges.
+const SATIN := ["hud_black"]
 ## Each MFD's SubViewport (px square): the Sufa's 484 px displays, rounded up.
 const SCREEN_PX := 512
 ## The panoramic display's SubViewport px per [PCD] panel px (1,496 x 671 px for its 20 x 8 in glass).
@@ -53,6 +56,7 @@ var esis: Control
 var _sun: DirectionalLight3D  # _lighting
 var _lit_mats := []
 var _lit := Color(-1, -1, -1)  # the fill colour set
+var _split := -1.0  # the scene's first shadow split (_sun_split)
 
 
 ## The 3D cockpit model of a jet of bdb type `type_code` (its aircraft definition's `cockpit_3d`), "" for its 2D
@@ -116,8 +120,8 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 
 
 ## FlightGear's materials made matte (its ALS shading has little specular; ours at 0.5 greys the black parts under a
-## bright sky), as the cut model's tub (aircraft_model.gd detailed_cockpit); the Barak's panel sheet (Block 40) in place
-## of the Sufa's (Block 50, the model's: tools/f16d/cockpit3d.py) when `barak_jet`.
+## bright sky), as the cut model's tub (aircraft_model.gd detailed_cockpit), but for ours of SATIN; the Barak's panel
+## sheet (Block 40) in place of the Sufa's (Block 50, the model's: tools/f16d/cockpit3d.py) when `barak_jet`.
 func _materials(model: Node3D, path: String, barak_jet: bool) -> void:
 	var barak: Texture2D = null
 	if barak_jet:  # the Barak (the F-16 base itself)
@@ -129,6 +133,9 @@ func _materials(model: Node3D, path: String, barak_jet: bool) -> void:
 			if mat == null or done.has(mat):
 				continue
 			done[mat] = true
+			if mat.resource_name in SATIN:  # ours, the moulded parts: a soft sheen shows their shape
+				mat.metallic_specular = 0.4
+				continue
 			mat.roughness = maxf(mat.roughness, 0.8)
 			mat.metallic_specular = 0.25
 			if barak != null and mat.resource_name.contains(BLOCK_SHEET):
@@ -141,19 +148,25 @@ func _materials(model: Node3D, path: String, barak_jet: bool) -> void:
 ## Iris Xe): by day the sun's colour; at the cockpit's night (cockpit.night, the 2D panel's darkening: time_of_day.gd
 ## cockpit_night) FlightGear's flood (panel-standard.eff lightmap-color) and the panels' backlit labels (its implicit
 ## lightmap: the light texels glow in its emit-color).
-const FILL := 1.3
+## The fill by day (× the sun's colour and energy): 1.3 on FlightGear's near-black paint; 1.0 since the sheets' paint
+## was lifted (tools/f16d/cockpit3d.py PAINT_FLOOR, 2026-11-02). The sun itself lights what it reaches through the
+## canopy, its shadows sharp in the cockpit (_sun_split).
+const FILL := 1.0
+## The sun's first shadow split while the cockpit is drawn (m at the model's scale; the scene's is 40 m): the
+## glareshield's, the HUD's, the stick's and the canopy sills' shadows sharp on the panel, the consoles and the floor.
+const SPLIT_M := 4.0
 const FLOOD := Color(0.45, 0.34, 0.18)
-const FLOOD_ENERGY := 0.5
+const FLOOD_ENERGY := 0.9
 const BACKLIGHT := Color(0.476, 0.9, 0.161)
-const BACKLIGHT_ENERGY := 0.25
+const BACKLIGHT_ENERGY := 0.7
 ## The materials left out of the fill (by their texture in the material's name): the tub's floor, walls and pedal area,
 ## the air vents, the stick's grip: no panel, and the fill showed the floor's speckle.
 const UNLIT := ["floor", "pedaladj", "base-color", "airvent", "rear-left", "marked-iron", "stick-color", "tranbg"]
 ## The F-35I's colours (its baked atlas and plain colours) by <model>.json: by day each glows by its colour × the sun's
-## × `day_fill` (the F-16's FILL made the dark grey paint twice as light as its panel render, tools/f35i/cockpit3d.py;
-## the scene's light alone left it dark and sky-blue); at the cockpit's night by its colour × `night_flood` (the
-## render's floodlights; the atlas × `night_atlas`), plus `night_glow` (material name -> rgb: the backlit labels). The
-## F-16's night colour × each colour turned the whole panel olive (2026-11-01).
+## × `day_fill` (the F-16's fill then, 1.3, made the dark grey paint twice as light as its panel render,
+## tools/f35i/cockpit3d.py; the scene's light alone left it dark and sky-blue); at the cockpit's night by its colour
+## × `night_flood` (the render's floodlights; the atlas × `night_atlas`), plus `night_glow` (material name -> rgb: the
+## backlit labels). The F-16's night colour × each colour turned the whole panel olive (2026-11-01).
 var _night_mats := {}  # material -> [its emission at night, its colour (× the day's fill)]
 
 
@@ -239,6 +252,7 @@ func _setup_baked_light(model: Node3D, skip: Array) -> void:
 
 
 func _lighting() -> void:
+	_sun_split()
 	var c := Color.BLACK
 	if cockpit.night:
 		c = FLOOD * FLOOD_ENERGY + BACKLIGHT * BACKLIGHT_ENERGY
@@ -254,6 +268,18 @@ func _lighting() -> void:
 	var day := c * (float(meta.get("day_fill", 0.0)) / FILL)
 	for mat: BaseMaterial3D in _night_mats:
 		mat.emission = _night_mats[mat][0] if cockpit.night else _night_mats[mat][1] * day
+
+
+## The sun's first shadow split pulled in to the cockpit (SPLIT_M) while it is drawn, the scene's otherwise.
+func _sun_split() -> void:
+	if _sun == null:
+		return
+	if _split < 0.0:
+		_split = _sun.directional_shadow_split_1
+	var inside := is_visible_in_tree() and camera.current
+	_sun.directional_shadow_split_1 = (
+		SPLIT_M * global_basis.get_scale().x / _sun.directional_shadow_max_distance if inside else _split
+	)
 
 
 ## The MFD node drawn into a SubViewport shown on `screen` (emissive, under the glass's sheen).
@@ -386,6 +412,8 @@ func release() -> void:
 	_pcd.clear()
 	if cockpit != null:
 		cockpit.hud_clip = null
+	if _sun != null and _split >= 0.0:
+		_sun.directional_shadow_split_1 = _split
 
 
 func _process(_delta: float) -> void:

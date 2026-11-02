@@ -418,14 +418,38 @@ occlusion, 1.9 MB; built by
   screws), the second glass ahead of the combiner with its black cover (`BackGlass`, `BackGlassCover`: a 4 cm strip
   at the eye's height, 8 to 16 cm ahead of the combiner) and the frame's bar over the combiner (`HUDFrame`'s faces
   above the glass that reach in over it; the posts' tops stay). The plate's 2 cm rim (`HUDedge`, opaque in the
-  source) is a faint amber glass (25 % opaque). 56.2 k triangles in the file (54.8 k before the rounded HUD
-  frames), about 55 k drawn (one HUD); 121 materials (FlightGear's duplicates merged), 152 surfaces.
+  source) is a faint amber glass (25 % opaque). 57.3 k triangles in the file (56.2 k before the Barak's new HUD
+  posts and the bevelled coaming, 54.8 k before the rounded HUD frames), about 56 k drawn (one HUD); 121 materials
+  (FlightGear's duplicates merged), 152 surfaces.
 * The HUDs' posts and frames rounded (`cockpit3d.py` `smooth`, 2026-11-02): FlightGear's are boxes with hard edges
   and flat faces, which read as blocky beside the glass. Every edge sharper than 35° is bevelled 3 mm in two segments
   and the faces shaded smooth across the rest (`hud.ac` `hud_sides`, `f16_war_hud.ac` `HUDFrame`), as the cast frames
   in F-16 photos[^f16-photos]. The Block 50 combiner's thick top (`HUDedge`, opaque light grey in `hud.ac`) is the
   same faint amber glass as the wide-angle plate's rim: an F-16C seen from the seat shows a thin frame at the glass's
-  sides and its top edge free. A remodel from photos (new posts, the glareshield's edge, the canopy bow) is open.
+  sides and its top edge free.
+* **Remodelled from photos** (`cockpit3d.py` `hud_posts`, `coaming`, 2026-11-02), the parts the eye sees most:
+  * The Block 50 HUD's posts (the Barak's). FlightGear's are flat side plates 19 cm deep: from the eye, broad black
+    bands either side of the glass. The photos[^f16-photos] show slender posts holding the glass's sides. FlightGear's
+    are cut off 4 mm under the glass's foot (the cut capped), and each side gets a post of ours along the glass's
+    edge: a rounded rectangle (a superellipse) 2.0 cm wide and 3.4 cm deep at its foot, tapering to 1.3 × 2.2 cm,
+    from the glass's foot to 8 mm over its top, the top domed. The sizes are inferred from the photos. Nothing of the
+    HUD's field moves: the posts stand outside the glass, which keeps its outline (`test_cockpit3d.gd`).
+  * The wide-angle HUD (the Sufa's) keeps FlightGear's curved posts, bevelled and smooth (above); the F-16I's arms
+    are thin and lean with the plate (the IDF photo above), as FlightGear's do.
+    - Tried and dropped (2026-11-02): posts of ours there too, straight tubes curving in onto the HUD's box, the
+      box cut under the glass. From the eye they read as one thick "U" with small fins of the box beside them,
+      worse than FlightGear's.
+  * The posts and the wide-angle HUD's frame and box are satin black (`hud_black`, roughness 0.6; `cockpit3d.gd`
+    `SATIN` keeps it), so a soft sheen runs along their round edges; FlightGear's own materials stay matte.
+  * The glareshield's aft top edge. FlightGear's glareshield (`cockpit.ac` `poly`) meets its aft face at a hard edge,
+    a straight dark line across the view under the HUD; the F-16's is a moulded coaming with a rounded lip (the IDF
+    photo). That edge (the hood's edges sharper than 40° at its aft end, within 1.5 cm of its top) is bevelled 1 cm
+    in four segments and shaded smooth, so it rounds off and catches the light.
+    - Tried and dropped (2026-11-02): a 1.1 cm tube laid along the edge. It stood out of the overhanging aft face
+      and hid the DED's top line (STPT) under it; the bevel cuts into the corner instead. Posts reaching 3 cm under
+      the glass's foot passed in front of the DED too.
+  * The canopy bow: none to model. The F-16's canopy is one piece of glass with no frame ahead of the pilot; its frame
+    starts behind the seat (the photos), where the detailed F-16's cut model draws it.
 * Both HUDs keep FlightGear's height and place and are made wider (`cockpit3d.py` `HUD_WIDEN`, `hud_wide_glass`,
   2026-11-02). The game's HUDs reach past FlightGear's combiners as the eye sees them: the original HUD's altitude box
   with its "R" to 9.3° right of the boresight, the Real HUD's altitude box and right data column to 7.6°, against
@@ -471,6 +495,19 @@ occlusion, 1.9 MB; built by
   the Block 40 one (`blck40-panels1.png`, shipped as `barak_panels.webp` and swapped in at load: the game's Barak is
   a Block 30/40, real-aircraft.md §8; FlightGear's Block 30 sheet differs from the Block 40 one in 2 % of its
   pixels). The rest of the cockpit is one geometry and texture set for every block in FlightGear.
+* The tub's top border under the canopy sills (`cockpit.ac` `cockpit_border`, untextured light grey in the source)
+  is dark grey (`cockpit3d.py` `sill`, 2026-11-02): in the sun it showed as a pale slab along the sill, looking left
+  or right. The camouflaged surface beyond the left sill, looking down and left, is the jet's own wing root (the
+  detailed F-16's skin), not a cockpit part.
+* **The panel paint lifted** (`cockpit3d.py` `lift_paint`, `PAINT_FLOOR`, 2026-11-02). FlightGear paints the
+  consoles' lighting plates #101010 and the panels #232323 to #2D2D2D: 0.5 to 2.6 % reflectance, darker than any
+  paint, so the game drew them black. The photos[^f16-photos] show dark grey plates and a grey panel (FS 36118
+  gunship grey reflects about 8 %, a flat black about 4 %). Every sheet's linear colour is lifted to
+  0.06 + 0.94 · c: the plates become #484848, the panel #525252, the white labels stay white (label contrast about
+  14:1 on the plates). The tub's floor and walls, the vents, the stick and the glass keep theirs. The Barak's Block
+  40 sheet the same. The 6 % floor is inferred, set against the photos in the game's light (below).
+  - Tried and dropped (2026-11-02): a 4 % floor. With the fill lowered for the sun's shadows, the shaded consoles
+    read black again.
 
 **In the flight** (`cockpit3d.gd`, `terrain_view.gd` `_spawn_player`):
 * The model hangs in the cockpit-view model (`own_bc`): with the 3D cockpit the F-16 always uses the detailed F-16's
@@ -608,15 +645,30 @@ occlusion, 1.9 MB; built by
   the scene's light the panel was dark blue-grey (the sun stays outside the glareshield and the tub, leaving the sky's
   blue ambient). The panels', consoles' and instruments' materials also glow by their own texture × a colour, a flat
   fill (not the lamps, nor the tub's floor, walls and pedal area, the air vents and the stick: `UNLIT`, where the fill
-  showed the floor texture's speckle): by day the sun's colour × 1.3 × its energy (0.8 before the baked occlusion,
-  which takes about a quarter of it on average), so the labels read and dusk dims it. At the cockpit's night
+  showed the floor texture's speckle): by day the sun's colour × 1.0 × its energy (`FILL`; 1.3 on FlightGear's
+  near-black paint before it was lifted, 0.8 before the baked occlusion, which takes about a quarter of it on
+  average), so the labels read and dusk dims it. At the cockpit's night
   (`cockpit.night`, the rule that darkens the 2D panel, `time_of_day.gd` `cockpit_night`, set at the mission's start)
-  the colour is FlightGear's flood light (`panel-standard.eff` `lightmap-color` 0.45, 0.34, 0.18; ×0.5) plus its
-  backlight (its implicit lightmap's `emit-color` 0.476, 0.9, 0.161; ×0.25): the white labels, dial marks, ICP keys
+  the colour is FlightGear's flood light (`panel-standard.eff` `lightmap-color` 0.45, 0.34, 0.18; ×0.9) plus its
+  backlight (its implicit lightmap's `emit-color` 0.476, 0.9, 0.161; ×0.7; ×0.5 and ×0.25 until 2026-11-02, when the
+  panel read almost black at night and the backlit labels faint): the white labels, dial marks, ICP keys
   and the AoA tape light green, the dark paint stays dark (FlightGear lights only the texels near its tag colour; the
   texture × colour is the cheap stand-in, inferred). The lamps (lit by their state), the MFDs, the RWR scope, EHSI and
   DED (self-lit screens) and the HUD are as by day. Cost (`_flight_bench.gd`, Iris Xe, 1920×1080,
   `BENCH_SET=cockpit_3d=3d`, 2026-11-01): GPU +0.3 ms at 150 m, +0.2 ms at 1,500 m by day, none at night.
+* **The sun's shadows** (2026-11-02; `cockpit3d.gd` `_sun_split`): the scene's sun (`terrain_view.tscn` `Sun`, four
+  shadow splits over 400 m, the 4096 px atlas, rendering.md §3.1) always shadowed the cockpit, but its first split
+  reached 40 m: 2 cm a texel, the shadows a blur the fill drowned. While the 3D cockpit is drawn (the cockpit views)
+  the first split ends at 4 m (`SPLIT_M`, × the Present scale): about 2 mm a texel, so the canopy sills, the seat,
+  the HUD posts, the glareshield and the stick throw sharp shadows on the panel, the consoles and the floor, from
+  where the sun is, moving as the jet turns. The second split then reaches from 4 m to its
+  100 m (the ground near the jet a little softer); the outside views keep the scene's splits. With the paint lifted
+  (above), a sunlit panel reads light grey and a shaded one darker grey, as in the photos; the fill keeps the shade
+  readable. The sun casts no shadows before 08:00 and after 17:00 (the original's SHADOWS hours, rendering.md §4) nor
+  with Graphics SHADOWS off: then it lights the cockpit unshadowed, as before.
+  - Considered and not built: a second DirectionalLight on the cockpit's own layer with a short shadow range. Godot
+    draws each shadowed directional light into its own atlas slice: a second full shadow pass; tightening the first
+    split costs no pass.
 * **Baked occlusion and relief** (2026-11-02; `cockpit3d.gd` `_setup_baked_light`, `cockpit3d_light.gdshader`,
   `tools/f16d/cockpit3d.py` `bake_light`): Blender's Cycles bakes the cockpit's ambient occlusion (0.3 m reach, 192
   samples) into `f16_light.png`, 2048 px greyscale, over a second UV set (glTF `TEXCOORD_1`, Godot's UV2): FlightGear's

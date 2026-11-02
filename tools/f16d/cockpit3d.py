@@ -18,6 +18,9 @@
 #
 #   blender -b --python tools/f16d/cockpit3d.py -- <FlightGear f16 checkout> \
 #       <assets/converted/planes/f16/f16_h.gltf> game/extra/models/cockpit3d/f16.glb
+# C3D_NOBAKE=1: a quick build while modelling (a minute, against the bake's ten): no light map (the game then skips
+# its pass), the PNG glb kept beside the output (<out>.png.glb, for Blender's importer). C3D_DEBUG=1 prints each part's
+# bounds.
 import json
 import math
 import os
@@ -107,6 +110,16 @@ DECIMATE = {"LeftConsole": 0.3, "LeftAuxConsole": 0.3, "RightConsole": 0.35, "Ri
 # FlightGear's Block 50 sheet (the F-16I Sufa's base, a Block 52+); the F-16D Barak (Block 30/40, docs/real-aircraft.md
 # §8) gets the Block 40 one.
 SUFA_PANELS, BARAK_PANELS = "blck50-panels1.png", "blck40-panels1.png"
+# The panel paint lifted (lift_paint, 2026-11-02): FlightGear's sheets paint the consoles' lighting plates #101010 and
+# the panels #232323-#2D2D2D (0.5-2.6 % reflectance), darker than any paint; in the game they drew black, where the F-16
+# photos (docs/cockpit.md) show dark grey plates and a grey panel. Every sheet's colours lifted to a floor of
+# PAINT_FLOOR (linear): out = floor + (1 - floor) · in; the plates become #484848, the panel #525252, the white labels
+# stay white (a flat black paint reflects about 4 %, FS 36118 gunship grey about 8 %; the 6 % floor chosen against the
+# photos, inferred). Not the sheets of PAINT_KEEP (the tub's floor and walls, the vents, the stick: their own colours;
+# the glass).
+PAINT_FLOOR = 0.06
+PAINT_KEEP = ("floor", "pedaladj", "base-color", "airvent", "rear-left", "marked-iron", "stick-color", "tranbg",
+              "canvas")
 MAX_TEX = 2048  # textures larger than this are halved (the console sheets, 1024 x 2048, kept whole: sharp labels)
 # FlightGear's frame (x aft, y right, z up) -> Blender's (x right, y forward, z up).
 C = Matrix(((0, 1, 0, 0), (-1, 0, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)))
@@ -366,9 +379,24 @@ def tris(objs):
     return sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in objs)
 
 
+def lift_paint(img):
+    """The sheet's colours lifted to PAINT_FLOOR (linear; Blender's byte pixels are the sRGB values)."""
+    if img.get("lifted") or any(k in os.path.basename(img.filepath) for k in PAINT_KEEP):
+        return
+    a = np.empty(img.size[0] * img.size[1] * img.channels, np.float32)
+    img.pixels.foreach_get(a)
+    rgb = a.reshape(-1, img.channels)[:, :3]
+    lin = np.where(rgb <= 0.04045, rgb / 12.92, ((rgb + 0.055) / 1.055) ** 2.4)
+    lin = PAINT_FLOOR + (1.0 - PAINT_FLOOR) * lin
+    a.reshape(-1, img.channels)[:, :3] = np.where(lin <= 0.0031308, lin * 12.92, 1.055 * lin ** (1 / 2.4) - 0.055)
+    img.pixels.foreach_set(a)
+    img["lifted"] = True
+
+
 def fix_materials(objs):
     """FlightGear's textures with cut-out alpha (labels, the button sheets) drawn with alpha clip; images larger than
-    MAX_TEX halved; the DED's and PFD's canvas placeholders ("DED panel") a dark, unlit display."""
+    MAX_TEX halved; the paint lifted (lift_paint); the DED's and PFD's canvas placeholders ("DED panel") a dark, unlit
+    display."""
     seen = set()
     dark = kit.material("display_off", (0.012, 0.016, 0.014), roughness=0.15)
     for o in objs:
@@ -387,6 +415,7 @@ def fix_materials(objs):
             if max(img.size) > MAX_TEX and not img.get("halved"):
                 img.scale(img.size[0] // 2, img.size[1] // 2)
                 img["halved"] = True
+            lift_paint(img)
             if img.channels == 4:
                 a = np.empty(img.size[0] * img.size[1] * 4, np.float32)
                 img.pixels.foreach_get(a)
@@ -479,6 +508,136 @@ def smooth(b):
         o.data.shade_smooth()
         o.data.set_sharp_from_angle(angle=SMOOTH_ANGLE)
         print("smooth %s: %d faces" % (o.name, len(o.data.polygons)))
+
+
+# The Block 50 HUD's posts remodelled (hud_posts, 2026-11-02): FlightGear's are flat side plates (`hud_sides`, 19 cm
+# deep), which from the eye read as broad black bands; the F-16 photos (docs/cockpit.md) show slender, tapered posts
+# holding the glass's sides. FlightGear's posts are cut off POST_CUT under the glass's foot (the cut capped) and each
+# side gets a post of ours along the glass's edge: a rounded rectangle (a superellipse of exponent POST_ROUND) POST_W
+# wide and POST_D deep at its foot, tapering to POST_W_TOP x POST_D_TOP, from the glass's foot to POST_TOP above it,
+# its top domed, the glass's edge POST_GRIP inside it (inferred sizes, m). The wide-angle HUD keeps FlightGear's curved
+# posts (bevelled, smooth): straight tubes of ours there, curving onto its box, read as a thick "U" (tried and dropped
+# 2026-11-02). By HUD: its frame object.
+POSTS = {"HUDa": "hud_sides"}
+POST_CUT = 0.004
+POST_W, POST_D, POST_W_TOP, POST_D_TOP = 0.020, 0.034, 0.013, 0.022
+POST_TOP, POST_GRIP = 0.008, 0.003
+POST_ROUND = 4.0
+POST_RINGS, POST_SIDES = 14, 20
+
+
+def superellipse(a, b, n=POST_SIDES, p=POST_ROUND):
+    """A rounded rectangle's outline, half sizes a x b: |x/a|^p + |y/b|^p = 1, n points."""
+    out = []
+    for i in range(n):
+        t = 2 * math.pi * i / n
+        c, s = math.cos(t), math.sin(t)
+        out.append((a * math.copysign(abs(c) ** (2 / p), c), b * math.copysign(abs(s) ** (2 / p), s)))
+    return out
+
+
+def sweep(name, rings, mat, uv_name):
+    """A smooth tube through `rings` (lists of Vectors, as many points each), both ends capped, one material, a zero
+    UV layer `uv_name` (the texture slot the parts it joins have; the bake adds its own)."""
+    n = len(rings[0])
+    verts = [v for r in rings for v in r]
+    faces = [(k * n + i, k * n + (i + 1) % n, (k + 1) * n + (i + 1) % n, (k + 1) * n + i)
+             for k in range(len(rings) - 1) for i in range(n)]
+    for k in (0, len(rings) - 1):
+        verts.append(sum(rings[k], Vector()) / n)
+        faces += [(k * n + i, k * n + (i + 1) % n, len(verts) - 1) for i in range(n)]
+    me = bpy.data.meshes.new(name)
+    me.from_pydata(verts, [], faces)
+    me.validate()
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(me)
+    bm.free()
+    me.uv_layers.new(name=uv_name)
+    me.materials.append(mat)
+    me.shade_smooth()
+    o = bpy.data.objects.new(name, me)
+    kit.scene().collection.objects.link(o)
+    return o
+
+
+def hud_posts(b, mat):
+    for part, frame_name in POSTS.items():
+        objs = {o.name.split("/", 1)[1]: o for o in b.parts.get(part, [])}
+        glass, frame = objs.get("HUDImage2"), objs.get(frame_name)
+        if glass is None or frame is None:
+            continue
+        vs = [v.co.copy() for v in glass.data.vertices]
+        half = max(abs(v.x) for v in vs)
+        foot = min(v.z for v in vs)
+        bm = bmesh.new()
+        bm.from_mesh(frame.data)
+        cut = bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], dist=1e-5,
+                                     plane_co=(0, 0, foot - POST_CUT), plane_no=(0, 0, 1), clear_outer=True)
+        edges = [e for e in cut["geom_cut"] if isinstance(e, bmesh.types.BMEdge)]
+        if edges:
+            bmesh.ops.triangle_fill(bm, edges=edges, use_beauty=True, use_dissolve=False)
+        bm.to_mesh(frame.data)
+        bm.free()
+        n = glass.data.polygons[0].normal.copy() if glass.data.polygons else Vector((0, -1, 0))
+        if n.y > 0:
+            n = -n  # toward the pilot
+        uv_name = frame.data.uv_layers[0].name if frame.data.uv_layers else "UVMap"
+        for s in (-1, 1):
+            side = [v for v in vs if v.x * s > 0.8 * half]
+            lo, hi = min(side, key=lambda v: v.z), max(side, key=lambda v: v.z)
+            e = (hi - lo).normalized()
+            u = e.cross(n).normalized()
+            if u.x * s < 0:
+                u = -u
+            end = hi + e * POST_TOP
+            rings = []
+            for k in range(POST_RINGS):
+                t = k / (POST_RINGS - 1)
+                w, d = POST_W + (POST_W_TOP - POST_W) * t, POST_D + (POST_D_TOP - POST_D) * t
+                c = lo.lerp(end, t) + u * (w / 2 - POST_GRIP)
+                rings.append([c + u * x + n * y for x, y in superellipse(w / 2, d / 2)])
+            c = end + u * (POST_W_TOP / 2 - POST_GRIP)
+            for r, h in ((0.8, 0.003), (0.45, 0.0055)):  # the dome
+                dome = superellipse(POST_W_TOP / 2 * r, POST_D_TOP / 2 * r)
+                rings.append([c + e * h + u * x + n * y for x, y in dome])
+            b.parts[part].append(sweep("%s/post_%s" % (part, "LR"[s > 0]), rings, mat, uv_name))
+        print("hud_posts %s: glass +-%.3f m, its foot at %.3f m" % (part, half, foot))
+
+
+# The glareshield's aft top edge rounded (coaming, 2026-11-02): FlightGear's glareshield (`Tub/poly`) meets its aft face
+# at a hard edge, a straight line across the view under the HUD. The F-16's is a moulded coaming with a rounded lip
+# (the HUDS photo). That edge is bevelled COAMING_R (m) in COAMING_SEGMENTS and shaded smooth: the hood's edges sharper
+# than COAMING_ANGLE lying within COAMING_AFT of its aft end and within COAMING_DROP of its top, the top edge across
+# the view. The bevel cuts into the corner: a tube laid along it (tried first) stood out of the overhanging aft face
+# and hid the DED's top line under it.
+COAMING_R = 0.01
+COAMING_SEGMENTS = 4
+COAMING_ANGLE = math.radians(40)
+COAMING_AFT = 0.03
+COAMING_DROP = 0.015
+
+
+def coaming(b):
+    hood = next((o for o in b.parts.get("Tub", []) if o.name == "Tub/poly"), None)
+    if hood is None:
+        return
+    bm = bmesh.new()
+    bm.from_mesh(hood.data)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.0005)
+    aft = min(v.co.y for v in bm.verts)
+    top = max(v.co.z for v in bm.verts)
+    edges = [e for e in bm.edges if e.is_manifold and e.calc_face_angle(0) > COAMING_ANGLE
+             and all(v.co.y < aft + COAMING_AFT and v.co.z > top - COAMING_DROP for v in e.verts)]
+    n = sum(e.calc_length() for e in edges)
+    bmesh.ops.bevel(bm, geom=edges, offset=COAMING_R, segments=COAMING_SEGMENTS, profile=0.5, affect='EDGES',
+                    clamp_overlap=True)
+    bm.to_mesh(hood.data)
+    bm.free()
+    hood.data.shade_smooth()
+    hood.data.set_sharp_from_angle(angle=SMOOTH_ANGLE)
+    print("coaming: %d edges, %.2f m bevelled" % (len(edges), n))
 
 
 # The cockpit's baked light (bake_light): one atlas over a second UV set ("light", glTF TEXCOORD_1, Godot's UV2) of
@@ -608,6 +767,9 @@ def main():
     for part, k in HUD_WIDEN.items():
         widen(b.parts.get(part, []), k)
     smooth(b)
+    hud_posts(b, hud_black)
+    coaming(b)
+    everything = [o for o in kit.scene().objects if o.type == 'MESH']  # the new posts and coaming too
     for o in b.parts.get("HUDc", []):
         part = o.name.split("/", 1)[1]
         if part == "HUDedge":
@@ -626,6 +788,14 @@ def main():
     for o in b.parts.get("RudderPedals", []):
         for i in range(len(o.data.materials)):
             o.data.materials[i] = pedal
+    # The tub's top border under the canopy sills (`cockpit.ac` `cockpit_border`) is untextured light grey (0.16) in
+    # the .ac: in the sun a pale slab along the sill, looking left or right. Dark grey as the sills' inside in the
+    # photos (2026-11-02).
+    sill = kit.material("sill", (0.05, 0.052, 0.055), roughness=0.8)
+    for o in b.parts.get("Tub", []):
+        if o.name == "Tub/cockpit_border":
+            for i in range(len(o.data.materials)):
+                o.data.materials[i] = sill
     if os.environ.get("C3D_DEBUG") == "1":  # every object's bounds (Blender frame, before the shift)
         for o in everything:
             vs = [v.co for v in o.data.vertices]
@@ -699,8 +869,9 @@ def main():
         hud.parent = rest_root
     body = kit.join(static, "f16_cockpit3d_body")
     body.parent = rest_root
-    bake_light([o for o in rest_root.children if o.type == 'MESH' and not o.name.endswith(NO_LIGHT)],
-               os.path.join(os.path.dirname(OUT), "f16_light.png"))
+    if os.environ.get("C3D_NOBAKE") != "1":
+        bake_light([o for o in rest_root.children if o.type == 'MESH' and not o.name.endswith(NO_LIGHT)],
+                   os.path.join(os.path.dirname(OUT), "f16_light.png"))
     # Blender (x right, y forward, z up) -> the game's glTF frame (x right, y up, z aft).
     gl = lambda v: [round(v[0], 5), round(v[2], 5), round(-v[1], 5)]  # noqa: E731
     for recs in anims.values():
@@ -716,10 +887,12 @@ def main():
     bpy.ops.export_scene.gltf(filepath=tmp, export_format='GLB', export_yup=True, use_selection=True,
                               export_apply=True, export_image_format='AUTO')
     glb_ktx2.convert(tmp, OUT)
-    os.remove(tmp)
+    if os.environ.get("C3D_NOBAKE") != "1":
+        os.remove(tmp)
     # The Barak's panel sheet (Block 40) in place of the Block 50 one the model carries (the Sufa's); cockpit3d.gd swaps
     # it in at load.
     img = bpy.data.images.load(os.path.join(FG, "Models/Cockpit/Textures/Block-panels", BARAK_PANELS))
+    lift_paint(img)
     sc = kit.scene()
     sc.render.image_settings.file_format = 'WEBP'
     sc.render.image_settings.quality = 90

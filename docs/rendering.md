@@ -1242,6 +1242,21 @@ F-16, the GPU bench lock held), `BENCH_SET=cockpit_3d=3d` against the 2D panel, 
   and 80 k more triangles (the second pass; the pass casts no shadow). Video memory: the 2048 px occlusion map, 8 bit
   with mipmaps, 5.6 MB; the three console sheets at full size, BC3 with mipmaps, +6.3 MB: about +12 MB (the bench's
   totals vary by ±30 MB run to run). The rounded HUD frames add 1.3 k triangles.
+- **The sun's sharp shadows, the lifted paint and the remodelled HUD posts and coaming** (2026-11-02; cockpit.md
+  "The sun's shadows", "Remodelled from photos"): the sun's first shadow split pulled in to 4 m while the 3D cockpit
+  is drawn; no light and no shadow pass added. `_flight_bench.gd`, mission 311 at 10:30, `BENCH_SET=cockpit_3d=3d`,
+  Iris Xe, 1920×1080, the GPU bench lock held, before (the previous commit's script and model) twice and after twice:
+
+  | leg | before (GPU, calls, triangles) | after |
+  |---|---|---|
+  | 150 m, 250 m/s | 13.1 / 13.4 ms, 746 calls, 529 k | 13.3 / 13.0 ms, 788 calls, 560 k |
+  | 1,500 m | 16.0 / 16.2 ms, 733 calls, 524 k | 16.0 / 16.5 ms, 775 calls, 553 k |
+
+  No GPU cost to measure (the pairs differ by −0.4 to +0.3 ms, the runs' own spread): well inside the 1 ms budget.
+  42 more draw calls and about 30 k more triangles drawn: the cockpit now spans the first two shadow splits and is
+  drawn into both; the Barak's posts and the bevelled coaming add 1.1 k triangles to the file (57.3 k). Video memory: the
+  same (the lifted sheets compress as before). The after runs had the first coaming (a tube, since replaced by a
+  bevel of the same size: fewer triangles).
 
 ## 4. Time of day (built: game/terrain/time_of_day.gd)
 
