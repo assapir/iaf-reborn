@@ -133,7 +133,7 @@ const RECORDS := [
 	},
 	{
 		"id": 1009,
-		"name": "SPICE-1K",
+		"name": "SPICE1",
 		"type": 650,
 		"base": "MK-83",
 		"model_of": "MK-83L",

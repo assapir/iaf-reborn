@@ -165,7 +165,7 @@ Python 5: docs/f16i.md §5; the F-16I has carried the SDB since August 2015 (107
 | GBU-32 (Mk 83) | 468 kg | – | 24 km | GPS / INS | [^dsjdam] |
 | GBU-38 (Mk 82) | 253 kg | – | 24 km | GPS / INS | [^dsjdam] |
 | GBU-39 SDB | 129 kg | – | 111 km ("over 60 nmi") | GPS / INS, wings; four on a BRU-61 rack | [^sdb] |
-| SPICE-1K (SPICE 1000, Mk 83) | 453 kg (the 1,000 lb class; the exact weight open) | – | 100 km | INS / GPS, an electro-optical scene-matching seeker, deployable wings | [^spicebro], [^wpspice], [^twzspice] |
+| SPICE1 (SPICE 1000, Mk 83) | 453 kg (the 1,000 lb class; the exact weight open) | – | 100 km | INS / GPS, an electro-optical scene-matching seeker, deployable wings | [^spicebro], [^wpspice], [^twzspice] |
 | GBU-28 (BLU-113) | 2,130 kg | – | the laser bombs' glide (inferred) | laser (Paveway III, the GBU-27's kit) | [^gbu28kopp], [^gbu28fas], [^gbu28wp] |
 
 - **Weights** are the records' bdb weight (0x758) in whole pounds.
@@ -241,7 +241,7 @@ always has its own, whatever the switch. Research of 29 October 2026.
 | GBU-32 | open: listed for the F-16C/D by one source[^afmjdam], not by another | no source | no source | no source | no source | no source | yes: F-35A[^afmjdam] |
 | GBU-38 | yes: USAF F-16[^afmjdam] | no source (the F-15E's) | no source | no source | no source | no source | open: a 2011 Lockheed chart only |
 | GBU-39 | yes: USAF F-16 (Block 30/40/50 integration, 8 on BRU-61 racks)[^ar39] | no source (the F-15E's) | no source | no source | no source | no source | yes: F-35A internal, RNLAF and RAAF[^raaf39] |
-| SPICE-1K | open: IAF F-16C/D since 2017[^spice1000][^twzspice], no source for its stations | yes: IAF Baz, "each carrying a pair" (an OSINT post), a photo of a Baz with a SPICE pair on the underwing pylons[^twzspice] | no source | no source | no source | no source | open: integration announced 2026[^spice35][^twzspice] |
+| SPICE1 | open: IAF F-16C/D since 2017[^spice1000][^twzspice], no source for its stations | yes: IAF Baz, "each carrying a pair" (an OSINT post), a photo of a Baz with a SPICE pair on the underwing pylons[^twzspice] | no source | no source | no source | no source | open: integration announced 2026[^spice35][^twzspice] |
 
 **F-15I Ra'am** (its definition's `weapons.loads`, docs/f15i.md §3; searched 2 November 2026):
 - **GBU-28**: yes. Israel ordered "100 advanced GBU-28 bombs", "designed for use by F-15 warplanes used by Israel"
@@ -272,9 +272,9 @@ Stations (`modern_weapons.gd` `LOADS`; letters A–I are the Arming screen's sta
   station list). GBU-31 and GBU-38 on C, D, F, G: the IAF's F-16s load JDAMs on the inner wing pylons as well as the
   standard heavy ones[^avi23]. GBU-39 four to a rack on C / G (inferred from the eight on two racks[^ar39]).
 - **F-15**: AIM-9X two to a wing pylon on A / I, as its AIM-9L; GBU-31 on B, E, H, the wing pylons and the centreline
-  ("three GBU-31(V)1 JDAM bombs, loaded on the centerline and wing stations"[^avi23]); SPICE-1K a pair on the wing
+  ("three GBU-31(V)1 JDAM bombs, loaded on the centerline and wing stations"[^avi23]); SPICE1 a pair on the wing
   pylons B / H[^twzspice] (the photo's caption calls the pair 2,000 lb SPICEs, the article's text 1,000 lb ones).
-- **F-15I Ra'am** (its own loads, docs/f15i.md §3): the SPICE-1K on B / H as the Baz's pair (the F-15I's own stations:
+- **F-15I Ra'am** (its own loads, docs/f15i.md §3): the SPICE1 on B / H as the Baz's pair (the F-15I's own stations:
   no source, inferred).
 - **F-35I** (docs/f35i.md §3.1): AIM-9X on the outboard pylons A / I[^dt35]; GBU-31 and GBU-32 in the bays C / G and on
   the heavy pylons B / H; GBU-39 four to a bay on C / G[^raaf39].
@@ -282,7 +282,7 @@ Stations (`modern_weapons.gd` `LOADS`; letters A–I are the Arming screen's sta
 ### 1.8 Spike and SPICE: the SPICE 1000 built, the others models only (open)
 
 The SPICE 1000, the SPICE 2000 and the Spike NLOS have detailed models (ours, docs/aircraft-models.md §5.6). The SPICE
-1000 is a weapon record since 2 November 2026 (`SPICE-1K`, §1.6); the others have none yet. Research of 30 October 2026.
+1000 is a weapon record since 2 November 2026 (`SPICE1`, §1.6); the others have none yet. Research of 30 October 2026.
 
 **Which ones the IAF fields:**
 - **SPICE 2000**: on the IAF's F-16s since 2005 (a search snippet citing GlobalSecurity; open). A kit on the Mk 84,

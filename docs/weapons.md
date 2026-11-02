@@ -1137,14 +1137,14 @@ Eight weapons the 1998 game does not have: the AIM-9X, Python 5, GBU-31, GBU-31(
   | `GBU-32` | 650 + GPS | MK-83 | MK-83L / FlightGear GBU-31 at the GBU-32's length | 3, 4, 6, 7 | – | – | 2, 3, 7, 8 | 1 |
   | `GBU-38` | 650 + GPS | MK-82 | MK-82L / FlightGear GBU-54 (the laser JDAM's look) | 3, 4, 6, 7 | 3, 4, 6, 7 | – | – | 1 |
   | `GBU-39` | 650 + GPS | MK-84 × 16 / 429 | MK-82 at 0.8 scale / ours, on its BRU-61/A rack (aircraft-models.md §5.6) | 3, 4, 6, 7 | 3, 7 | – | 3, 7 (bays) | 4 (one rack) |
-  | `SPICE-1K` | 650 + GPS | MK-83 | MK-83L / ours, wings folded (aircraft-models.md §5.6) | – | – | 2, 8 | – | 1 |
+  | `SPICE1` | 650 + GPS | MK-83 | MK-83L / ours, wings folded (aircraft-models.md §5.6) | – | – | 2, 8 | – | 1 |
   | `GBU-28` (BLU-113) | 650 (laser) | MK-84 × 286 / 429 | MK-84L / ours (aircraft-models.md §5.6) | – | – | – | – | 1 |
 
   The F-15I Ra'am (its definition, docs/f15i.md §3): `PYTH-5` on 1, 9 (two each), `BLU109` on 2–4, 6–8, `GBU-28` on 2,
-  5, 8, `GBU-39` four to a rack on 2, 4, 5, 6, 8, `SPICE-1K` on 2, 8. The names are 6 characters at most, as the original's: a station
+  5, 8, `GBU-39` four to a rack on 2, 4, 5, 6, 8, `SPICE1` on 2, 8. The names are 6 characters at most, as the original's: a station
   box shows "%dx%s" in 8 characters, centred and clipped (`FUN_005061c0`, DrawText `0x25`), so the GBU-31(V)3 is
-  `BLU109` (as `GBU-31V3` it read "xGBU-31V"). The SPICE 1000's `SPICE-1K` (8 characters) still reads "xSPICE-1":
-  its name is open.
+  `BLU109` (as `GBU-31V3` it read "xGBU-31V"). The SPICE 1000 is `SPICE1` (as `SPICE-1K` it read
+  "xSPICE-1").
 
 - **Arming**: `mission_weapons.gd` lists them after the bdb's weapons and adds their load items (`ModernWeapons.loads`)
   to the jet's. A jet picked on the Jet list takes the modern items of the jet flown, with the mission jet's original
@@ -1184,7 +1184,7 @@ Arming lists keep the 1998 IR missiles, also on the Sufa and the F-35I. Both are
 
 A GPS bomb never follows a laser: it flies to the coordinates the jet hands it at its release
 (`crates/iaf-avionics/src/gps.rs`, `IafGpsBomb`). The JDAMs and the GBU-39 have no seeker. The SPICE 1000
-(`SPICE-1K`) has one: it flies by INS / GPS to the target area, then matches its electro-optical picture to the
+(`SPICE1`) has one: it flies by INS / GPS to the target area, then matches its electro-optical picture to the
 stored reference image of the target and homes onto it (Rafael, docs/real-weapons.md §1.6). The game has no GPS
 jamming and its targets' coordinates have no error, so the scene matching ends where the GPS / INS leads: the SPICE
 uses the same code as the JDAM and lands on its stored point (inferred). Its wings give it the long glide (LD 6.8). In
@@ -1283,7 +1283,7 @@ bomb selected (`gps.rs` `Kit::lar`; the rules are ours, inferred from the energy
   map, stores that point; in flight a unit stands there 50° off the nose with the radar designating elsewhere: 20 km
   out out of range with a TMR, 6 km out IN RNG; the bomb flies to the briefing's point and destroys the unit. With
   Bomb release Real a pair leaves at once, each bomb to its own station's target.
-- `tests/godot/test_raam.gd`: the F-15I lists the SPICE-1K on stations 2 / 8; in PRE 45 km from the briefing's
+- `tests/godot/test_raam.gd`: the F-15I lists the SPICE1 on stations 2 / 8; in PRE 45 km from the briefing's
   target, 9,000 m up at 250 m/s, it is in range (a JDAM's LAR is not), glides 179 s to the point (the TTI at the
   release within 1 s of that) and destroys the unit there.
 

@@ -34,9 +34,14 @@ func run() -> void:
 		for t in [0, 1]:
 			names.append_array(mw.tab_list(t).map(func(x): return x.name))
 		check(
-			names.has("PYTH-5") and names.has("BLU109") and names.has("GBU-28") and names.has("GBU-39")
-			and names.has("SPICE-1K"),
-			"F-15I lists PYTH-5, BLU109, GBU-28, GBU-39 and SPICE-1K: %s" % [names]
+			(
+				names.has("PYTH-5")
+				and names.has("BLU109")
+				and names.has("GBU-28")
+				and names.has("GBU-39")
+				and names.has("SPICE1")
+			),
+			"F-15I lists PYTH-5, BLU109, GBU-28, GBU-39 and SPICE1: %s" % [names]
 		)
 		check(
 			not names.has("AIM-9X") and not names.has("GBU-31") and not names.has("GBU-38"),
@@ -49,8 +54,8 @@ func run() -> void:
 				check(w.max == [0, 1, 0, 0, 1, 0, 0, 1, 0], "GBU-28 on B, E, H: %s" % [w.max])
 			elif w.name == "GBU-39":
 				check(w.max == [0, 4, 0, 4, 4, 4, 0, 4, 0], "GBU-39 four on B, D, E, F, H: %s" % [w.max])
-			elif w.name == "SPICE-1K":
-				check(w.max == [0, 1, 0, 0, 0, 0, 0, 1, 0], "SPICE-1K on B and H: %s" % [w.max])
+			elif w.name == "SPICE1":
+				check(w.max == [0, 1, 0, 0, 0, 0, 0, 1, 0], "SPICE1 on B and H: %s" % [w.max])
 			elif w.name == "PYTH-5":
 				check(w.max == [2, 0, 0, 0, 0, 0, 0, 0, 2], "PYTH-5 two on A and I: %s" % [w.max])
 		break
