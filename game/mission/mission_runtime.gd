@@ -103,8 +103,11 @@ static func _into_wind(id: int, m: Dictionary, main: bool) -> void:
 ## path point and formation route point on or around a base moves with it (position, altitude + dz, heading + the
 ## base's turn); a moved entity keeps the scale its base took (k on the base, 1 around it) as "base_scale" for its kept
 ## model (Settings.keeps_present). Its reached / left radii keep their size: the 4 s check (§2.2) samples the jet at its
-## true speed, and 312's touchdown marker at 200 × 0.69 m let the landing pass between two checks.
+## true speed, and 312's touchdown marker at 200 × 0.69 m let the landing pass between two checks. A file already in the
+## real frame (`"frame": "real"`, IAF 2026's compiled missions: iaf-2026/docs/data-formats.md) stays where it is.
 static func move_with_bases(m: Dictionary) -> void:
+	if String(m.get("frame", "")) == "real":
+		return
 	for e in m.get("entities", {}).get("items", []):
 		if not (e is Dictionary) or (float(e.get("0x2e4", -1)) < 0 and float(e.get("0x2ee", -1)) < 0):
 			continue

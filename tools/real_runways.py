@@ -34,6 +34,9 @@ BASES = [
     ("Bley", "Marj Ruhayyil AB (inferred)", [95678635, 95678643]),
     ("Ryak", "Rayak AB", [23880576]),
     ("Aman", "Queen Alia", [30089088, 30089092]),
+    # Not an iaf.ibx base: IAF 2026's Nevatim (iaf-2026/docs/data-formats.md), the two runways OSM gives a ref; way
+    # 130240671 (no ref, OurAirports' "08R" by its ends) and 292186881 (no OurAirports record) left out.
+    ("Nevatim", "Nevatim AB", [130240673, 130240674]),
 ]
 
 
@@ -48,6 +51,7 @@ OURAIRPORTS = {
     30160502: (141, None), 30444201: (131, None),
     95678643: (150, "06L/24R"), 95678635: (97, "06R/24L"),
     23880576: (148, None),
+    130240673: (147, None), 130240674: (147, None),
 }
 
 
@@ -101,7 +105,8 @@ def main():
                          "%.7f" % b["lat"], "%.7f" % b["lon"], "%.1f" % x0, "%.1f" % y0, "%.1f" % x1, "%.1f" % y1,
                          designator(ref, a["lat"], a["lon"], b["lat"], b["lon"]), src])
     with open(OUT, "w") as f:
-        f.write("# The real runways of the ten iaf.ibx airbases (docs/world-scale.md §3.3), from tools/real_runways.py.\n")
+        f.write("# The real runways of the ten iaf.ibx airbases (docs/world-scale.md §3.3) and IAF 2026's Nevatim, from\n"
+                "# tools/real_runways.py.\n")
         f.write("# Data (c) OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright\n")
         f.write("# (aeroway=runway ways via the Overpass API, %s). x / y: the way's ends in engine metres\n"
                 % data.get("osm3s", {}).get("timestamp_osm_base", "?")[:10])

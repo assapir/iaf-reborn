@@ -1,0 +1,67 @@
+{
+  "category": "training",
+  "time": "08:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f16d",
+    "base": "Ramat David",
+    "at": "parking",
+    "lat": 32.6680274,
+    "lon": 35.177413,
+    "heading": 180,
+    "elevation_m": 56
+  },
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.lat": "osm-apron",
+    "start.lon": "osm-apron",
+    "start.heading": "inferred",
+    "start.elevation_m": "oa",
+    "route": "inferred"
+  },
+  "notes": {
+    "time": "the MVP's conditions: day (plan.md, MVP)",
+    "wind_kt": "the MVP's conditions: calm (plan.md, MVP)",
+    "wind_from": "calm: no direction",
+    "start": "the centre of an apron by the runways until B2 gives the base's real parking spots",
+    "start.heading": "facing the nearest runway",
+    "route": "the departure point: 10 km beyond runway 27's far end on its heading, 900 m above the field"
+  },
+  "footnotes": {
+    "osm-apron": "OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright: aeroway=apron way 1328724315 (its centre, Overpass API, 2026-11-02), https://www.openstreetmap.org/way/1328724315",
+    "oa": "OurAirports, airports.csv (public domain; LLRD elevation 185 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "ramat_david_takeoff",
+  "menu_id": 2022,
+  "title": {
+    "en": "Take-off from Ramat David",
+    "he": "המראה מרמת דוד"
+  },
+  "briefing": {
+    "en": "Ask the tower for start-up, taxi and take-off, taxi to runway 27 and take off on its heading.",
+    "he": "בקש מהמגדל התנעה, הסעה והמראה, הסע למסלול 27 והמרא בכיוונו."
+  },
+  "win": {
+    "en": "Mission - successful. Airborne with the gear up.",
+    "he": "המשימה הצליחה. באוויר עם כן נסע אסוף."
+  },
+  "lose": {
+    "en": "Mission - failed. Better try again.",
+    "he": "המשימה נכשלה. נסה שוב."
+  },
+  "runway": "27",
+  "route": [
+    {
+      "lat": 32.65998,
+      "lon": 35.05315,
+      "alt_m": 956,
+      "speed_kmh": 600
+    }
+  ]
+}

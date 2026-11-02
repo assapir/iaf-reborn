@@ -1,0 +1,25 @@
+{
+  "id": "chaff",
+  "number": 33,
+  "name": "Chaff",
+  "kind": "chaff",
+  "generation": 0,
+  "model": "",
+  "kg": 0,
+  "power": 0,
+  "blast_m": 0,
+  "drag": 0,
+  "motion": {},
+  "sources": {
+    "kg": "inferred",
+    "power": "inferred",
+    "blast_m": "inferred",
+    "drag": "inferred"
+  },
+  "notes": {
+    "number": "33: see 20mm",
+    "kg": "a cartridge's weight is the jet's",
+    "motion": "the reader's defaults (decoys: docs/weapons.md §10)"
+  },
+  "footnotes": {}
+}

@@ -1,0 +1,57 @@
+{
+  "category": "training",
+  "time": "08:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f35i",
+    "base": "Nevatim",
+    "at": "parking",
+    "lat": 31.2092238,
+    "lon": 35.0310662,
+    "heading": 0,
+    "elevation_m": 405
+  },
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.lat": "osm-apron",
+    "start.lon": "osm-apron",
+    "start.heading": "inferred",
+    "start.elevation_m": "oa"
+  },
+  "notes": {
+    "time": "the MVP's conditions: day (plan.md, MVP)",
+    "wind_kt": "the MVP's conditions: calm (plan.md, MVP)",
+    "wind_from": "calm: no direction",
+    "start": "the centre of an apron by the runways until B2 gives the base's real parking spots",
+    "start.heading": "facing the nearest runway"
+  },
+  "footnotes": {
+    "osm-apron": "OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright: aeroway=apron way 1089049617 (its centre, Overpass API, 2026-11-02), https://www.openstreetmap.org/way/1089049617",
+    "oa": "OurAirports, airports.csv (public domain; LLNV elevation 1330 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "nevatim_startup",
+  "menu_id": 2031,
+  "title": {
+    "en": "Start-up at Nevatim",
+    "he": "התנעה בנבטים"
+  },
+  "briefing": {
+    "en": "Your F-35I Adir stands cold on the apron at Nevatim. Start the engine and bring the avionics up.",
+    "he": "האדיר שלך עומד כבוי ברחבה בנבטים. התנע את המנוע והעלה את מערכות האוויוניקה."
+  },
+  "win": {
+    "en": "Mission - successful. The engine is at idle and the avionics are up.",
+    "he": "המשימה הצליחה. המנוע בסרק והאוויוניקה פועלת."
+  },
+  "lose": {
+    "en": "Mission - failed. Better try again.",
+    "he": "המשימה נכשלה. נסה שוב."
+  },
+  "note": "Nevatim has no game base until item B2: no tower, lineup or start rule; the jet stands at the real apron's place on the original terrain."
+}

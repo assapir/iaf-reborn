@@ -1,0 +1,38 @@
+{
+  "id": "f16i",
+  "number": 1,
+  "name": "F-16I Sufa",
+  "label": "F-16I",
+  "class": "fighter",
+  "type": 100,
+  "airframe": "f16i",
+  "model": "",
+  "scale": 1.0,
+  "radius_m": 4.98,
+  "strength": 300,
+  "loadout": { "20mm": 511, "chaff": 60, "flare": 60 },
+  "pylons": {},
+  "sources": {
+    "type": "inferred",
+    "scale": "inferred",
+    "radius_m": "w-f16",
+    "strength": "inferred",
+    "loadout.20mm": "gdots-f16",
+    "loadout.chaff": "open",
+    "loadout.flare": "open"
+  },
+  "notes": {
+    "type": "the F-16's type code, the one the shared code keys the F-16 family on; the airframe definition f16i makes it the Sufa",
+    "model": "none: the player's jet is drawn from its airframe definition (game/extra/planes/f16i/airframe.json)",
+    "scale": "1: our models are built true size",
+    "radius_m": "half the span over the wingtip rails, 9.96 m",
+    "strength": "our damage scale's fighter (iaf-2026/docs/data-formats.md, damage scale)",
+    "loadout.20mm": "M61A1, 511 rounds (the F-16's; the two-seat Sufa's count is not published, inferred the same)",
+    "loadout.chaff": "no public count found; 60 held until one is",
+    "loadout.flare": "no public count found; 60 held until one is"
+  },
+  "footnotes": {
+    "w-f16": "Wikipedia, \"General Dynamics F-16 Fighting Falcon\" (span 32 ft 8 in, 9.96 m), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon",
+    "gdots-f16": "General Dynamics OTS, \"F-16 20mm Gatling gun system\" (511 rounds), https://www.gd-ots.com/wp-content/uploads/2017/11/F-16.pdf"
+  }
+}

@@ -1,0 +1,870 @@
+//! IAF 2026's data compilers (`iaf-sim`, iaf-2026/docs/data-formats.md): the readable unit, weapon and mission files
+//! under `iaf-2026/data/` compiled into the shapes the shared readers consume today, with no reader change:
+//! - `db`: `db/units/*.json` and `db/weapons/*.json` → `converted/missions/sim.bdb.json` (the parts and hex keys of a
+//!   converted `.bdb`, docs/formats/mis.md §4), its models under the key `"sim.bdb"` of
+//!   `converted/objects/objects.json` (the scenery's fingerprint leaves that key out), and the weapons' motion in
+//!   `converted/own/resource/weaponsmotion/weapons.ibx` (`[WEAPONnnn]` by type, the shape `weapon_db.gd` reads; the
+//!   game reads it once A1's `install_dir()` switch points there);
+//! - `missions`: `missions/*.json` → `converted/iaf-2026/missions/<id>.json` + `missionlist.json`, built with the
+//!   mission editor's builders (`mission_edit`), `bdb: "sim.bdb"`.
+//!
+//! Nothing is read from the install or the exe: every figure comes from the data files, each with its source.
+
+use std::collections::{BTreeMap, HashSet};
+use std::path::Path;
+use std::sync::atomic::AtomicBool;
+
+use anyhow::{Context, Result, bail, ensure};
+use iaf_flight::base_move::{RealRunway, real_runways};
+use serde_json::{Map, Value, json};
+
+use crate::georef::Georef;
+use crate::log;
+use crate::mission_edit;
+use crate::progress::{Progress, check};
+
+/// The compiled object database's name: missions name it in `bdb`, the object index keys its models by it and
+/// `weapon_db.gd` finds that key through the bdb's `_file`.
+pub const BDB: &str = "sim.bdb";
+/// Under the assets root.
+pub const BDB_FILE: &str = "converted/missions/sim.bdb.json";
+pub const OBJECTS_FILE: &str = "converted/objects/objects.json";
+pub const IBX_FILE: &str = "converted/own/resource/weaponsmotion/weapons.ibx";
+/// The sim's missions: their own folder, beside the original's `converted/missions` (whose readers and tests take
+/// every file there as an original mission).
+pub const MISSIONS_DIR: &str = "converted/iaf-2026/missions";
+
+// --- The readable → hex mapping ------------------------------------------------------------------------------------
+
+/// Every readable field the compilers write, by record: (record, readable name, hex key of the converted JSON,
+/// docs/formats/mis.md).
+pub const FIELDS: &[(&str, &str, &str)] = &[
+    ("unit", "id", "0x514"),
+    ("unit", "category", "0x51e"),
+    ("unit", "label", "0x528"),
+    ("unit", "brain", "0x532"),
+    ("unit", "present", "0x53c"),
+    ("unit", "radius_m", "0x564"),
+    ("unit", "strength", "0x56e"),
+    ("unit", "collider", "0x58c"),
+    ("unit", "class", "0x5aa"),
+    ("unit", "type", "0x5b4"),
+    ("present", "name", "0x640"),
+    ("present", "model", "0x64a"),
+    ("present", "scale", "0x65e"),
+    ("weapon", "name", "0x708"),
+    ("weapon", "kind", "0x712"),
+    ("weapon", "model", "0x730"),
+    ("weapon", "drag", "0x73a"),
+    ("weapon", "power", "0x744"),
+    ("weapon", "blast_m", "0x74e"),
+    ("weapon", "kg", "0x758"),
+    ("weapon", "generation", "0x762"),
+    ("weapon", "type", "0x780"),
+    ("mission", "title", "0x44c"),
+    ("mission", "time", "0x460"),
+    ("mission", "wind_kt", "0x46a"),
+    ("mission", "wind_from", "0x474"),
+    ("mission", "win", "0x47e"),
+    ("mission", "lose", "0x492"),
+    ("mission", "category", "0x4d8"),
+    ("entity", "name", "0x2bc"),
+    ("entity", "unit", "0x2c6"),
+    ("entity", "side", "0x2d0"),
+    ("entity", "x", "0x2e4"),
+    ("entity", "y", "0x2ee"),
+    ("entity", "alt_m", "0x2f8"),
+    ("entity", "heading", "0x302"),
+];
+
+/// The hex key of `record`'s readable `field` (FIELDS).
+pub fn hex(record: &str, field: &str) -> &'static str {
+    FIELDS.iter().find(|f| f.0 == record && f.1 == field).map(|f| f.2).unwrap_or_else(|| panic!("{record}.{field}"))
+}
+
+/// Unit classes: readable name → (bdb class 0x5aa, category 0x51e; docs/damage.md "By class").
+const CLASSES: &[(&str, i64, &str)] = &[("fighter", 0x1c, "Controlled aircraft")];
+/// Weapon kinds: readable name → (sub type 0x780, kind 0x712, station: 9–11 for the gun / chaff / flare, -1 a pylon
+/// store; weapons.ibx's OST_* enum, docs/weapons.md §1).
+const KINDS: &[(&str, i64, &str, i64)] = &[
+    ("gun", 565, "Gun bullet", 9),
+    ("chaff", 540, "Chaff", 10),
+    ("flare", 550, "Flare", 11),
+    ("ir_missile", 570, "Heat missile", -1),
+    ("bomb", 500, "Bomb", -1),
+];
+const SIDES: &[(&str, i64)] = &[("blue", 1), ("red", 2)];
+/// Pylon stations A..I are stations 0..8 (CArmament, docs/formats/mis.md "CArmament").
+const PYLONS: &str = "ABCDEFGHI";
+/// The Objects fields whose meaning is open (docs/formats/mis.md §4): every reader ignores them; written as the
+/// format's usual values.
+const OBJECT_REST: &[(&str, i64)] = &[
+    ("0x546", 0),
+    ("0x550", 0),
+    ("0x55a", 0),
+    ("0x578", 1),
+    ("0x582", 1),
+    ("0x596", 1),
+    ("0x5a0", 1),
+    ("0x5be", 1),
+    ("0x5c8", 0),
+    ("0x5cd", 0),
+    ("0x5d2", 0),
+    ("0x5d7", 0),
+];
+/// Optional figures a unit may hold for the threat set (iaf-2026/docs/threats.md §6); checked for their sources, not
+/// compiled (no shared reader takes them yet).
+const UNIT_FIGURES: &[&str] =
+    &["range_km", "min_range_km", "ceiling_m", "floor_m", "speed_ms", "mach", "radar_km", "g_limit"];
+const LB_PER_KG: f64 = 1.0 / 0.45359;
+/// The jet's lineup point this far into the runway from its threshold (m; inferred: a jet's length and a margin).
+const LINEUP_IN_M: f64 = 100.0;
+/// The bearing step (m) that turns a true heading into the engine frame's.
+const HEADING_STEP_M: f64 = 100.0;
+
+fn side(name: &str) -> Result<i64> {
+    SIDES.iter().find(|t| t.0 == name).map(|t| t.1).with_context(|| format!("unknown side \"{name}\""))
+}
+
+// --- Reading the data -----------------------------------------------------------------------------------------------
+
+/// A data file: its path (for messages) and its JSON.
+pub struct File {
+    pub name: String,
+    pub v: Value,
+}
+
+/// Every `*.json` in `dir`, by file name.
+pub fn read_dir(dir: &Path) -> Result<Vec<File>> {
+    let mut out = vec![];
+    if !dir.exists() {
+        return Ok(out);
+    }
+    for e in std::fs::read_dir(dir).with_context(|| dir.display().to_string())? {
+        let p = e?.path();
+        if p.extension().is_some_and(|x| x == "json") {
+            let text = std::fs::read_to_string(&p).with_context(|| p.display().to_string())?;
+            let v = serde_json::from_str(&text).with_context(|| p.display().to_string())?;
+            out.push(File { name: p.display().to_string(), v });
+        }
+    }
+    out.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(out)
+}
+
+fn text<'a>(f: &'a File, k: &str) -> Result<&'a str> {
+    f.v[k].as_str().with_context(|| format!("{}: \"{k}\" must be a string", f.name))
+}
+
+fn number(f: &File, k: &str) -> Result<f64> {
+    f.v[k].as_f64().with_context(|| format!("{}: \"{k}\" must be a number", f.name))
+}
+
+fn int(f: &File, k: &str) -> Result<i64> {
+    f.v[k].as_i64().with_context(|| format!("{}: \"{k}\" must be a whole number", f.name))
+}
+
+/// A figure the file holds: not null, not an empty list (a route with no points).
+fn given(v: &Value) -> bool {
+    !v.is_null() && v.as_array().is_none_or(|a| !a.is_empty())
+}
+
+/// Every figure named in `figures` that `f` holds (a dotted name reaches into an object: "motion._limitVel", or
+/// "loadout.*" every key of one) has a source: a footnote of the file's `footnotes`, "inferred" or "open".
+fn check_sources(f: &File, figures: &[&str]) -> Result<()> {
+    let notes = f.v["footnotes"].as_object();
+    let mut names = vec![];
+    for fig in figures {
+        match fig.split_once('.') {
+            Some((obj, "*")) => {
+                names.extend(f.v[obj].as_object().into_iter().flatten().map(|(k, _)| format!("{obj}.{k}")))
+            }
+            Some((obj, k)) if given(&f.v[obj][k]) => names.push(fig.to_string()),
+            None if given(&f.v[*fig]) => names.push(fig.to_string()),
+            _ => {}
+        }
+    }
+    for n in names {
+        let src = f.v["sources"][&n].as_str().with_context(|| format!("{}: \"{n}\" has no source", f.name))?;
+        for s in src.split(',').map(str::trim) {
+            let known = s == "inferred" || s == "open" || notes.is_some_and(|m| m.contains_key(s));
+            ensure!(known, "{}: source \"{s}\" of \"{n}\" is not in \"footnotes\"", f.name);
+        }
+    }
+    Ok(())
+}
+
+/// The units and weapons, each with its bdb number.
+pub struct Db {
+    pub units: Vec<File>,
+    pub weapons: Vec<File>,
+}
+
+impl Db {
+    pub fn read(data: &Path) -> Result<Self> {
+        let db = Db { units: read_dir(&data.join("db/units"))?, weapons: read_dir(&data.join("db/weapons"))? };
+        for (files, what) in [(&db.units, "unit"), (&db.weapons, "weapon")] {
+            let (mut numbers, mut ids) = (HashSet::new(), HashSet::new());
+            for f in files {
+                let n = int(f, "number")?;
+                ensure!((1..1000).contains(&n), "{}: number {n} is not 1..999", f.name);
+                ensure!(numbers.insert(n), "{}: {what} number {n} is taken", f.name);
+                ensure!(ids.insert(text(f, "id")?.to_string()), "{}: {what} id is taken", f.name);
+            }
+        }
+        Ok(db)
+    }
+
+    /// The unit whose `id` is `id`.
+    pub fn unit(&self, id: &str) -> Result<&File> {
+        self.units.iter().find(|u| u.v["id"] == id).with_context(|| format!("no unit \"{id}\""))
+    }
+
+    fn weapon(&self, id: &str) -> Result<&File> {
+        self.weapons.iter().find(|w| w.v["id"] == id).with_context(|| format!("no weapon \"{id}\""))
+    }
+}
+
+// --- db -------------------------------------------------------------------------------------------------------------
+
+/// A part of the bdb: its rows, then the placeholder row every part ends with (0x14 = 1, "Add data here").
+fn part(class: &str, item: &str, name_key: &str, mut rows: Vec<Value>) -> Value {
+    let next = rows.iter().filter_map(|r| r["0x1e"].as_i64()).max().unwrap_or(0) + 1;
+    rows.push(json!({"0x14": 1, "0x1e": next, name_key: "Add data here", "_class": item}));
+    json!({"_class": class, "items": rows})
+}
+
+/// The compiled object database (`sim.bdb.json`), its models ({present id: model path}) and its `weapons.ibx` text.
+pub fn compile_db(db: &Db) -> Result<(Value, Map<String, Value>, String)> {
+    let (mut objects, mut present, mut weapons, mut models) = (vec![], vec![], vec![], Map::new());
+    let mut add_present = |id: i64, name: &str, model: &str, scale: f64| {
+        present.push(json!({
+            "0x14": 0, "0x1e": id, hex("present", "name"): name, hex("present", "model"): model, "0x654": 0,
+            hex("present", "scale"): scale, "_class": "CDMEPresentItem",
+        }));
+        if !model.is_empty() {
+            models.insert(id.to_string(), json!(model));
+        }
+    };
+    for w in &db.weapons {
+        check_sources(w, &["kg", "power", "blast_m", "drag", "motion.*"])?;
+        let (kind, n) = (text(w, "kind")?, int(w, "number")?);
+        let (sub, kind_name, _) = KINDS
+            .iter()
+            .find(|k| k.0 == kind)
+            .map(|k| (k.1, k.2, k.3))
+            .with_context(|| format!("{}: unknown kind \"{kind}\"", w.name))?;
+        let model = w.v["model"].as_str().unwrap_or("");
+        // A weapon's Present record follows the units' (ids 1000 + number).
+        let pid = if model.is_empty() { 0 } else { 1000 + n };
+        if pid > 0 {
+            add_present(pid, text(w, "id")?, model, 1.0);
+        }
+        weapons.push(json!({
+            "0x14": 0, "0x1e": n, hex("weapon", "name"): text(w, "name")?, hex("weapon", "kind"): kind_name,
+            "0x71c": "", "0x726": "", hex("weapon", "model"): pid, hex("weapon", "drag"): number(w, "drag")?,
+            hex("weapon", "power"): number(w, "power")?, hex("weapon", "blast_m"): number(w, "blast_m")?,
+            hex("weapon", "kg"): (number(w, "kg")? * LB_PER_KG).round(),
+            hex("weapon", "generation"): int(w, "generation")? as f64, "0x76c": 4, "0x776": "N.A",
+            hex("weapon", "type"): sub, "_class": "CDMEWeaponsItem",
+        }));
+    }
+    for u in &db.units {
+        check_sources(u, &["type", "scale", "radius_m", "strength", "loadout.*"])?;
+        check_sources(u, UNIT_FIGURES)?;
+        let n = int(u, "number")?;
+        let (class, category) = CLASSES
+            .iter()
+            .find(|c| c.0 == text(u, "class").unwrap_or(""))
+            .map(|c| (c.1, c.2))
+            .with_context(|| format!("{}: unknown class {}", u.name, u.v["class"]))?;
+        add_present(n, text(u, "id")?, u.v["model"].as_str().unwrap_or(""), number(u, "scale")?);
+        let mut hard = vec![0i64; 24];
+        for (wid, count) in u.v["loadout"].as_object().into_iter().flatten() {
+            let w = db.weapon(wid).with_context(|| u.name.clone())?;
+            let station = KINDS.iter().find(|k| w.v["kind"] == k.0).map_or(-1, |k| k.3);
+            ensure!(station >= 9, "{}: {wid} is a pylon store: give it under \"pylons\"", u.name);
+            hard[2 * station as usize] = int(w, "number")?;
+            hard[2 * station as usize + 1] = count.as_i64().with_context(|| format!("{}: loadout.{wid}", u.name))?;
+        }
+        for (st, p) in u.v["pylons"].as_object().into_iter().flatten() {
+            let i = PYLONS.find(st.as_str()).filter(|_| st.len() == 1);
+            let i = i.with_context(|| format!("{}: pylon \"{st}\" is not A..I", u.name))?;
+            let w = db.weapon(p["weapon"].as_str().unwrap_or("")).with_context(|| u.name.clone())?;
+            hard[2 * i] = int(w, "number")?;
+            hard[2 * i + 1] = p["count"].as_i64().unwrap_or(1);
+        }
+        let mut o = Map::new();
+        for (k, v) in [
+            (hex("unit", "id"), json!(text(u, "id")?)),
+            (hex("unit", "category"), json!(category)),
+            (hex("unit", "label"), json!(text(u, "label")?)),
+            (hex("unit", "brain"), json!(u.v["brain"].as_str().unwrap_or(""))),
+            (hex("unit", "present"), json!(n)),
+            (hex("unit", "radius_m"), json!(number(u, "radius_m")?)),
+            (hex("unit", "strength"), json!(number(u, "strength")?)),
+            (hex("unit", "collider"), json!(i64::from(u.v["collider"].as_bool().unwrap_or(true)))),
+            (hex("unit", "class"), json!(class)),
+            (hex("unit", "type"), json!(int(u, "type")?)),
+        ] {
+            o.insert(k.into(), v);
+        }
+        for (k, v) in OBJECT_REST {
+            o.insert((*k).into(), json!(v));
+        }
+        o.insert("0x14".into(), json!(0));
+        o.insert("0x1e".into(), json!(n));
+        o.insert("_class".into(), json!("CDMEObjectsItem"));
+        o.insert("armament".into(), json!({"_class": "CArmament", "hardpoints": hard}));
+        o.insert("loads".into(), json!({"_class": "CObArray", "items": []}));
+        // Ours, unhexed (as "weather" in a mission): the aircraft definition the unit flies as. The Sufa and the Barak
+        // share type 100, which `airframe::id_for` resolves by the F-16 switch alone; the sim's settings (item A1)
+        // set that switch from this key.
+        if let Some(a) = u.v["airframe"].as_str() {
+            ensure!(iaf_flight::airframe::get(a).is_some(), "{}: no aircraft definition \"{a}\"", u.name);
+            o.insert("airframe".into(), json!(a));
+        }
+        objects.push(Value::Object(o));
+    }
+    let bdb = json!({
+        "_file": BDB,
+        "actions": part("CDMEActionPart", "CDMEActionItem", "0x64", vec![]),
+        "audio": part("CDMEAudioPart", "CDMEAudioItem", "0x12c", vec![]),
+        "brains": part("CDMEBrainPart", "CDMEBrainItem", "0x1f4", vec![]),
+        "objects": part("CDMEObjectsPart", "CDMEObjectsItem", "0x514", objects),
+        "present": part("CDMEPresentPart", "CDMEPresentItem", "0x640", present),
+        "weapons": part("CDMEWeaponsPart", "CDMEWeaponsItem", "0x708", weapons),
+    });
+    Ok((bdb, models, ibx(db)?))
+}
+
+/// `weapons.ibx`: one `[WEAPONnnn]` section per weapon, `type` = generation · 1000 + sub type, then its motion; the
+/// first weapon of each sub type also as the sub type's default section (generation 0: `weapon_db.gd motion_for`).
+fn ibx(db: &Db) -> Result<String> {
+    let mut out = String::from("; IAF 2026's weapon motion, compiled by iaf-sim db from iaf-2026/data/db/weapons.\n");
+    let mut sections: BTreeMap<i64, (&str, &Map<String, Value>)> = BTreeMap::new();
+    let mut defaults = BTreeMap::new();
+    for w in &db.weapons {
+        let sub = KINDS.iter().find(|k| w.v["kind"] == k.0).map(|k| k.1).unwrap_or(0);
+        let motion = w.v["motion"].as_object().with_context(|| format!("{}: \"motion\" must be an object", w.name))?;
+        let name = text(w, "name")?;
+        let code = int(w, "generation")? * 1000 + sub;
+        ensure!(sections.insert(code, (name, motion)).is_none(), "{}: a second weapon of type {code}", w.name);
+        defaults.entry(sub).or_insert((name, motion));
+    }
+    // A type with no generation-0 weapon of its own takes its first weapon's as its default.
+    for (sub, d) in defaults {
+        sections.entry(sub).or_insert(d);
+    }
+    for (i, (code, (name, motion))) in sections.iter().enumerate() {
+        out += &format!("\n; {name}\n[WEAPON{i:03}]\n\ttype = {code:06}\n");
+        for (k, v) in *motion {
+            let v = v.as_f64().with_context(|| format!("{name}: motion.{k} must be a number"))?;
+            out += &format!("\t{k} = {v:?}\n");
+        }
+    }
+    Ok(out)
+}
+
+/// `iaf-sim db`: compiles `<data>/db` into `<assets>/converted/…` (BDB_FILE, OBJECTS_FILE's "sim.bdb" key, IBX_FILE).
+pub fn db(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
+    check(cancel)?;
+    let d = Db::read(data)?;
+    let (bdb, models, ibx) = compile_db(&d)?;
+    write(&assets.join(BDB_FILE), &serde_json::to_string(&bdb)?)?;
+    // objects.json belongs to `iaf-convert objects` too: only the "sim.bdb" key is ours. A missing file starts
+    // empty; any other read error stops (never rewrite a file that could not be read).
+    let objects = assets.join(OBJECTS_FILE);
+    let mut index: Map<String, Value> = match std::fs::read_to_string(&objects) {
+        Ok(t) => serde_json::from_str(&t).with_context(|| objects.display().to_string())?,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Map::new(),
+        Err(e) => return Err(e).with_context(|| objects.display().to_string()),
+    };
+    index.insert(BDB.into(), Value::Object(models));
+    write(&objects, &serde_json::to_string_pretty(&index)?)?;
+    write(&assets.join(IBX_FILE), &ibx)?;
+    log!(pr, "db: {} units, {} weapons -> {}", d.units.len(), d.weapons.len(), assets.join(BDB_FILE).display());
+    Ok(())
+}
+
+fn write(path: &Path, text: &str) -> Result<()> {
+    std::fs::create_dir_all(path.parent().context("no folder")?)?;
+    std::fs::write(path, text).with_context(|| path.display().to_string())
+}
+
+// --- missions -------------------------------------------------------------------------------------------------------
+
+/// The empty mission every compiled one starts from: the seven parts (docs/formats/mis.md §2), each with only its
+/// placeholder row, the header row of misc, and the bdb.
+pub fn skeleton() -> Value {
+    let slot = json!({"0x334": "", "0x33e": 0, "0x348": 0, "0x352": 0});
+    let entity = json!({
+        "0x14": 1, "0x1e": 1, "0x2bc": "Add data here", "0x2c6": -1, "0x2d0": 1, "0x2da": -1, "0x2e4": -1,
+        "0x2ee": -1, "0x2f8": 0, "0x302": 0, "0x30c": 0, "0x316": "", "0x320": 0, "0x32a": 2, "0x35c": 0, "0xac": -1,
+        "_class": "CDMEEntitiesItem", "armament": {"_class": "CArmament", "hardpoints": vec![0; 24]},
+        "scripts0": {"_class": "CObArray", "items": []}, "scripts1": {"_class": "CObArray", "items": []},
+        "slots": vec![slot; 7],
+    });
+    let misc = |real: bool| {
+        json!({
+            "0x14": i64::from(!real), "0x1e": if real { 1 } else { 2 }, "0x44c": if real { "" } else { "Add data here" },
+            "0x456": "", "0x460": 0.0, "0x46a": 0, "0x474": 0, "0x47e": "", "0x488": "", "0x492": "", "0x49c": "",
+            "0x4a6": "", "0x4b0": "", "0x4ba": -1, "0x4c4": -1, "0x4ce": -1, "0x4d8": "", "0x4e2": 0, "0x4ec": 0,
+            "_class": "CDMEMiscItem",
+        })
+    };
+    let cond = json!({"0x3b6": "", "0x3c0": "", "0x3ca": 0, "0x3d4": 0, "0x3de": -1});
+    let one = |class: &str, row: Value| json!({"_class": class, "items": [row]});
+    json!({
+        "bdb": BDB, "version": 9,
+        "misc": {"_class": "CDMEMiscPart", "items": [misc(true), misc(false)]},
+        "timevars": one("CDMETimeVarsPart",
+            json!({"0x14": 1, "0x1e": 1, "0x6a4": "Add data here", "0x6ae": 0.0, "_class": "CDMETimeVarsItem"})),
+        "paths": one("CDMEPathsPart",
+            json!({"0x14": 1, "0x1e": 1, "0x5dc": "Add data here", "0x5e6": "", "_class": "CDMEPathsItem", "points": []})),
+        "entities": one("CDMEEntitiesPart", entity),
+        "formations": one("CDMEFormationPart", json!({
+            "0x14": 1, "0x1e": 1, "0x3e8": "Add data here", "0x3f2": 0, "0x3fc": 0, "0x406": 0,
+            "_class": "CDMEFormationItem", "members": vec![json!({"0x410": "", "0x41a": -1, "0x424": -1}); 2], "names": [],
+            "points": [],
+        })),
+        "debrief": one("CDMEDebriefPart",
+            json!({"0x14": 1, "0x1e": 1, "0x258": "Add data here", "0x262": 1, "0x26c": "", "_class": "CDMEDebriefItem"})),
+        "events": one("CDMEEventPart", json!({
+            "0x14": 1, "0x1e": 1, "0x384": "Add data here", "0x38e": -1, "0x398": 1, "0x3a2": "", "0x3ac": -1,
+            "_class": "CDMEEventItem", "conds": vec![cond; 3], "list": [],
+        })),
+    })
+}
+
+/// A point of a mission file in the engine frame: (x east, y north) from its "lat" / "lon".
+fn place(geo: &Georef, p: &Value, what: &str) -> Result<[f64; 2]> {
+    let (lat, lon) = (p["lat"].as_f64(), p["lon"].as_f64());
+    let (Some(lat), Some(lon)) = (lat, lon) else { bail!("{what}: \"lat\" and \"lon\" must be numbers") };
+    Ok(geo.geo_to_engine(lon, lat))
+}
+
+/// A true heading at (lat, lon) as the engine frame's compass heading (the georeference's warp turns it a little).
+fn engine_heading(geo: &Georef, lat: f64, lon: f64, heading: f64) -> f64 {
+    let a = geo.geo_to_engine(lon, lat);
+    let r = heading.to_radians();
+    let (dlat, dlon) =
+        (r.cos() * HEADING_STEP_M / 111_320.0, r.sin() * HEADING_STEP_M / (111_320.0 * lat.to_radians().cos()));
+    let b = geo.geo_to_engine(lon + dlon, lat + dlat);
+    (b[0] - a[0]).atan2(b[1] - a[1]).to_degrees().rem_euclid(360.0)
+}
+
+/// The runway end of `base` (the `real` column of real_runways.csv without " AB") whose take-off heading has
+/// `number` ("25R": 250° magnetic): (x, y, engine heading) of the lineup point LINEUP_IN_M in from that end.
+fn runway_start(rows: &[RealRunway], base: &str, number: &str) -> Result<[f64; 3]> {
+    let digits: String = number.chars().take_while(char::is_ascii_digit).collect();
+    let n: f64 = digits.parse().with_context(|| format!("runway \"{number}\" has no number"))?;
+    let row = rows
+        .iter()
+        .find(|r| r.designator.split('/').any(|d| d == number))
+        .with_context(|| format!("{base}: no runway {number} in real_runways.csv"))?;
+    // The end to start from: the one whose heading down the runway is nearer 10 · n (magnetic; the declination
+    // is a few degrees, real_runways.py).
+    let hdg = |p: [f64; 2], q: [f64; 2]| (q[0] - p[0]).atan2(q[1] - p[1]).to_degrees().rem_euclid(360.0);
+    let off = |h: f64| (h - 10.0 * n + 540.0).rem_euclid(360.0) - 180.0;
+    let (from, to) =
+        if off(hdg(row.a, row.b)).abs() < off(hdg(row.b, row.a)).abs() { (row.a, row.b) } else { (row.b, row.a) };
+    let h = hdg(from, to);
+    let r = h.to_radians();
+    Ok([from[0] + LINEUP_IN_M * r.sin(), from[1] + LINEUP_IN_M * r.cos(), h])
+}
+
+/// A flight's route with points; without one set_flight gives the flight its one point 20 km ahead.
+fn has_route(r: &Value) -> bool {
+    r.as_array().is_some_and(|a| !a.is_empty())
+}
+
+/// The figures of a mission file, of each of its flights and of each placed unit that need a source (§1 of
+/// data-formats.md): a whole route is one figure.
+const MISSION_FIGURES: [&str; 8] =
+    ["time", "wind_kt", "wind_from", "start.lat", "start.lon", "start.heading", "start.elevation_m", "route"];
+const FLIGHT_FIGURES: [&str; 5] = ["start.lat", "start.lon", "start.heading", "start.alt_m", "route"];
+const PLACED_FIGURES: [&str; 6] = ["lat", "lon", "heading", "alt_m", "route", "speed_kmh"];
+
+/// The texts of a mission file: `{"en": …, "he": …}`, both required.
+fn texts(f: &File, k: &str) -> Result<Value> {
+    for lang in ["en", "he"] {
+        ensure!(f.v[k][lang].is_string(), "{}: \"{k}\" needs \"{lang}\"", f.name);
+    }
+    Ok(f.v[k].clone())
+}
+
+/// One compiled mission file from a readable one.
+pub fn compile_mission(f: &File, db: &Db, geo: &Georef, runways: &[RealRunway]) -> Result<Value> {
+    check_sources(f, &MISSION_FIGURES)?;
+    // Each flight and placed unit names its own sources (the mission's footnotes serve them).
+    for (list, figures) in
+        [("flights", &FLIGHT_FIGURES[..]), ("targets", &PLACED_FIGURES), ("sam_sites", &PLACED_FIGURES)]
+    {
+        for (k, part) in f.v[list].as_array().into_iter().flatten().enumerate() {
+            let mut v = part.clone();
+            v["footnotes"] = f.v["footnotes"].clone();
+            check_sources(&File { name: format!("{} {list}[{k}]", f.name), v }, figures)?;
+        }
+    }
+    let id = text(f, "id")?;
+    mission_edit::valid_name(id).map_err(|e| anyhow::anyhow!("{}: id: {e}", f.name))?;
+    let mut m = mission_edit::blank(skeleton());
+    let misc = &mut m["misc"]["items"][0];
+    let time = text(f, "time")?;
+    let (hh, mm) = time.split_once(':').with_context(|| format!("{}: time \"{time}\" is not HH:MM", f.name))?;
+    misc[hex("mission", "title")] = f.v["title"]["en"].clone();
+    misc[hex("mission", "time")] = json!(hh.parse::<f64>()? * 3600.0 + mm.parse::<f64>()? * 60.0);
+    misc[hex("mission", "wind_kt")] = json!(f.v["wind_kt"].as_i64().unwrap_or(0));
+    misc[hex("mission", "wind_from")] = json!(f.v["wind_from"].as_i64().unwrap_or(0));
+    misc[hex("mission", "win")] = texts(f, "win")?["en"].clone();
+    misc[hex("mission", "lose")] = texts(f, "lose")?["en"].clone();
+    misc[hex("mission", "category")] = json!(f.v["category"].as_str().unwrap_or(""));
+    // The player's flight (Alpha): the start, its unit and its route.
+    let start = &f.v["start"];
+    let unit = db.unit(start["unit"].as_str().unwrap_or("")).with_context(|| f.name.clone())?;
+    let elev = start["elevation_m"].as_f64().with_context(|| format!("{}: start needs \"elevation_m\"", f.name))?;
+    let [x, y, h] = match start["at"].as_str() {
+        Some("runway") => {
+            let base = start["base"].as_str().with_context(|| format!("{}: a runway start needs \"base\"", f.name))?;
+            // real_runways.csv's real name ("Ramat David AB").
+            let rows: Vec<RealRunway> = runways.iter().filter(|r| r.real == format!("{base} AB")).cloned().collect();
+            ensure!(!rows.is_empty(), "{}: no base \"{base} AB\" in real_runways.csv", f.name);
+            runway_start(&rows, base, start["runway"].as_str().unwrap_or(""))?
+        }
+        Some("parking") => {
+            let [x, y] = place(geo, start, &f.name)?;
+            let hdg = start["heading"].as_f64().with_context(|| format!("{}: parking needs \"heading\"", f.name))?;
+            [x, y, engine_heading(geo, start["lat"].as_f64().unwrap_or(0.0), start["lon"].as_f64().unwrap_or(0.0), hdg)]
+        }
+        _ => bail!("{}: start \"at\" must be \"parking\" or \"runway\"", f.name),
+    };
+    // A waypoint's fourth value is its planned arrival time in sim seconds (docs/ai.md §7.2): its own "t_s", else the
+    // time from the flight's start along the legs (3-D) at each point's "speed_kmh".
+    let route = |r: &Value, from: [f64; 3]| -> Result<Vec<Value>> {
+        let (mut out, mut at, mut t) = (vec![], from, 0.0);
+        for p in r.as_array().into_iter().flatten() {
+            let [px, py] = place(geo, p, &f.name)?;
+            let alt = p["alt_m"].as_f64().unwrap_or(1000.0);
+            let leg = ((px - at[0]).powi(2) + (py - at[1]).powi(2) + (alt - at[2]).powi(2)).sqrt();
+            t = match p["t_s"].as_f64() {
+                Some(ts) => ts,
+                None => {
+                    let v = p["speed_kmh"].as_f64().filter(|v| *v > 0.0);
+                    t + leg
+                        / (v.with_context(|| format!("{}: a waypoint needs \"speed_kmh\" or \"t_s\"", f.name))? / 3.6)
+                }
+            };
+            out.push(json!([px.round(), py.round(), alt, t.round(), 0]));
+            at = [px, py, alt];
+        }
+        Ok(out)
+    };
+    let mut spec = json!({"type": int(unit, "number")?, "count": start["count"].as_i64().unwrap_or(1),
+        "slot_x": x.round(), "slot_y": y.round(), "alt": elev, "heading": h.round()});
+    if has_route(&f.v["route"]) {
+        spec["points"] = json!(route(&f.v["route"], [x, y, elev])?);
+    }
+    m = mission_edit::set_flight(m, 1, &spec);
+    // Only the player's jet (Alpha's leader, Player1) must survive; a wingman keeps the neutral role.
+    let player = m["formations"]["items"][0]["members"][0]["0x41a"].as_i64().unwrap_or(-1);
+    m = mission_edit::set_role(m, &[player], mission_edit::MUST_SURVIVE);
+    // The other blue flights (Bravo..Delta).
+    let flights = f.v["flights"].as_array().map_or(&[][..], Vec::as_slice);
+    ensure!(flights.len() <= 3, "{}: {} flights besides Alpha; set_flight takes Bravo..Delta", f.name, flights.len());
+    for (k, fl) in flights.iter().enumerate() {
+        let u = db.unit(fl["unit"].as_str().unwrap_or("")).with_context(|| f.name.clone())?;
+        let at = &fl["start"];
+        let [fx, fy] = place(geo, at, &f.name)?;
+        let fh = engine_heading(
+            geo,
+            at["lat"].as_f64().unwrap_or(0.0),
+            at["lon"].as_f64().unwrap_or(0.0),
+            at["heading"].as_f64().unwrap_or(0.0),
+        );
+        let mut spec = json!({"type": int(u, "number")?, "count": fl["count"].as_i64().unwrap_or(2),
+            "slot_x": fx.round(), "slot_y": fy.round(), "alt": at["alt_m"].as_f64().unwrap_or(elev), "heading": fh.round()});
+        if has_route(&fl["route"]) {
+            spec["points"] = json!(route(&fl["route"], [fx, fy, at["alt_m"].as_f64().unwrap_or(elev)])?);
+        }
+        m = mission_edit::set_flight(m, k as i64 + 2, &spec);
+    }
+    // Targets (role 1) and SAM sites (red, neutral role), each optionally on a ground route.
+    let template = skeleton()["entities"]["items"][0].clone();
+    for (list, default_side, role) in [("targets", "red", mission_edit::TARGET), ("sam_sites", "red", 2)] {
+        for (k, t) in f.v[list].as_array().into_iter().flatten().enumerate() {
+            let u = db.unit(t["unit"].as_str().unwrap_or("")).with_context(|| f.name.clone())?;
+            let [tx, ty] = place(geo, t, &f.name)?;
+            let mut fields = Map::new();
+            for (key, v) in [
+                (hex("entity", "name"), json!(t["name"].as_str().map_or(format!("{list} {}", k + 1), String::from))),
+                (hex("entity", "unit"), json!(int(u, "number")?)),
+                (hex("entity", "side"), json!(side(t["side"].as_str().unwrap_or(default_side))?)),
+                (hex("entity", "x"), json!(tx.round())),
+                (hex("entity", "y"), json!(ty.round())),
+                (hex("entity", "alt_m"), json!(t["alt_m"].as_f64().unwrap_or(0.0))),
+                (
+                    hex("entity", "heading"),
+                    json!(
+                        engine_heading(
+                            geo,
+                            t["lat"].as_f64().unwrap_or(0.0),
+                            t["lon"].as_f64().unwrap_or(0.0),
+                            t["heading"].as_f64().unwrap_or(0.0)
+                        )
+                        .round()
+                    ),
+                ),
+                ("0x14", json!(0)),
+            ] {
+                fields.insert(key.into(), v);
+            }
+            let (mm, eid) = mission_edit::add_entity(m, &template, &fields);
+            m = mission_edit::set_role(mm, &[eid], role);
+            if let Some(r) = t["route"].as_array().filter(|r| !r.is_empty()) {
+                ensure!(r.len() >= 2, "{}: {list}[{k}]: a ground route needs at least two points", f.name);
+                let pts: Vec<[f64; 3]> =
+                    r.iter().map(|p| place(geo, p, &f.name).map(|[a, b]| [a, b, 0.0])).collect::<Result<_>>()?;
+                m = mission_edit::set_route(m, &[eid], &pts, t["speed_kmh"].as_f64().unwrap_or(30.0), true);
+            }
+        }
+    }
+    // Ours, only in the compiled JSON (as "weather" is): the texts in both languages for the sim's own screens.
+    m["name"] = json!(id);
+    // Placed at the real bases already: World scale Real's base move leaves the file as it is
+    // (mission_runtime.gd move_with_bases).
+    m["frame"] = json!("real");
+    m["sim"] = json!({"title": texts(f, "title")?, "briefing": texts(f, "briefing")?, "win": f.v["win"],
+        "lose": f.v["lose"], "menu_id": int(f, "menu_id")?, "runway": f.v["runway"]});
+    if let Some(note) = f.v["note"].as_str() {
+        m["sim"]["note"] = json!(note);
+    }
+    Ok(m)
+}
+
+/// `iaf-sim missions`: compiles `<data>/missions` into `<assets>/MISSIONS_DIR` (`<id>.json` + `missionlist.json`:
+/// menu id → [id]).
+pub fn missions(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
+    let db = Db::read(data)?;
+    let (geo, runways) = (Georef::load()?, real_runways());
+    let out = assets.join(MISSIONS_DIR);
+    let mut list = Map::new();
+    let files = read_dir(&data.join("missions"))?;
+    let mut ids = HashSet::new();
+    for f in &files {
+        check(cancel)?;
+        ensure!(ids.insert(text(f, "id")?.to_lowercase()), "{}: mission id {} is taken", f.name, f.v["id"]);
+        let m = compile_mission(f, &db, &geo, &runways)?;
+        if let Some(note) = m["sim"]["note"].as_str() {
+            pr.warn(&format!("missions: {}: {note}", m["name"].as_str().unwrap_or("")));
+        }
+        let key = int(f, "menu_id")?.to_string();
+        ensure!(!list.contains_key(&key), "{}: menu_id {key} is taken", f.name);
+        list.insert(key, json!([m["name"]]));
+        write(&out.join(format!("{}.json", text(f, "id")?)), &serde_json::to_string(&m)?)?;
+    }
+    write(&out.join("missionlist.json"), &serde_json::to_string_pretty(&list)?)?;
+    log!(pr, "missions: {} -> {}", files.len(), out.display());
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::progress::Stdout;
+
+    fn data() -> std::path::PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../iaf-2026/data")
+    }
+
+    /// Every data file compiles, and the result loads as the game reads it: the bdb's references resolve (each
+    /// entity's unit, each station's weapon, each weapon's motion section), the missions pass the editor's
+    /// Win-and-lose reading, and weapons.ibx parses as `Settings.load_ibx` reads it (the ini parser).
+    #[test]
+    fn every_data_file_compiles_and_loads() {
+        let dir = std::env::temp_dir().join(format!("iaf-sim-test-{}", std::process::id()));
+        let cancel = AtomicBool::new(false);
+        db(&data(), &dir, &Stdout, &cancel).unwrap();
+        missions(&data(), &dir, &Stdout, &cancel).unwrap();
+        let read = |p: &str| -> Value { serde_json::from_str(&std::fs::read_to_string(dir.join(p)).unwrap()).unwrap() };
+        let bdb = read(BDB_FILE);
+        assert_eq!(bdb["_file"], BDB);
+        let rows = |part: &str| -> Vec<Value> { bdb[part]["items"].as_array().unwrap().clone() };
+        let ids = |part: &str| -> HashSet<i64> { rows(part).iter().map(|r| r["0x1e"].as_i64().unwrap()).collect() };
+        let (objects, weapons, present) = (ids("objects"), ids("weapons"), ids("present"));
+        let ini = iaf_formats::ini::Ini::parse(&std::fs::read(dir.join(IBX_FILE)).unwrap());
+        let types: HashSet<i64> = ini
+            .sections
+            .iter()
+            .filter_map(|s| s.entries.iter().find(|e| e.0 == "type").and_then(|e| e.1.parse().ok()))
+            .collect();
+        for w in rows("weapons").iter().filter(|w| w["0x14"] == 0) {
+            let t = w["0x780"].as_i64().unwrap();
+            assert!(types.contains(&t), "{} has no motion section", w["0x708"]);
+        }
+        for o in rows("objects").iter().filter(|o| o["0x14"] == 0) {
+            assert!(present.contains(&o["0x53c"].as_i64().unwrap()));
+            for pair in o["armament"]["hardpoints"].as_array().unwrap().chunks(2) {
+                let w = pair[0].as_i64().unwrap();
+                assert!(w == 0 || weapons.contains(&w), "{}: weapon {w}", o["0x514"]);
+            }
+        }
+        // The Sufa and the Barak (both type 100) tell their aircraft definitions apart.
+        let airframe = |id: &str| rows("objects").iter().find(|o| o["0x514"] == id).unwrap()["airframe"].clone();
+        assert_eq!((airframe("f16i"), airframe("f16d")), (json!("f16i"), json!("f16")));
+        // The names the modern weapons base on (modern_weapons.gd RECORDS "base").
+        let names: Vec<String> = rows("weapons").iter().map(|w| w["0x708"].as_str().unwrap().to_string()).collect();
+        for n in ["AIM-9M", "MK-84", "20 MM"] {
+            assert!(names.iter().any(|x| x == n), "{n}");
+        }
+        let list = read(&format!("{MISSIONS_DIR}/missionlist.json"));
+        assert_eq!(list.as_object().unwrap().len(), read_dir(&data().join("missions")).unwrap().len());
+        for files in list.as_object().unwrap().values() {
+            let m = read(&format!("{MISSIONS_DIR}/{}.json", files[0].as_str().unwrap()));
+            assert_eq!(m["bdb"], BDB);
+            assert_eq!(m["frame"], "real");
+            for e in mission_edit::spawned(&m) {
+                assert!(objects.contains(&e["0x2c6"].as_i64().unwrap()), "{}: {}", m["name"], e["0x2bc"]);
+            }
+            // Waypoint "speed" = the planned arrival time (s): the take-off's point is over a minute out at 600 km/h.
+            for p in m["formations"]["items"][0]["points"].as_array().unwrap() {
+                assert!(p[4].as_f64().unwrap() > 60.0, "{}: {p}", m["name"]);
+            }
+            let c = mission_edit::conditions(&m, &bdb);
+            assert_eq!(c["keep_alive"].as_array().unwrap().len(), 1, "{}: the player must survive", m["name"]);
+        }
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// A mission file from Ramon's start-up with `extra` on top.
+    fn ramon(extra: Value) -> File {
+        let mut v: Value =
+            serde_json::from_str(&std::fs::read_to_string(data().join("missions/ramon_startup.json")).unwrap())
+                .unwrap();
+        for (k, x) in extra.as_object().unwrap() {
+            v[k] = x.clone();
+        }
+        File { name: "ramon".into(), v }
+    }
+
+    #[test]
+    fn placed_units_take_the_engine_frames_heading() {
+        let (db, geo) = (Db::read(&data()).unwrap(), Georef::load().unwrap());
+        let src = json!({"lat": "inferred", "lon": "inferred", "heading": "inferred"});
+        let t = json!({"unit": "f16d", "name": "T", "lat": 30.9, "lon": 34.8, "heading": 90, "sources": src});
+        let m = compile_mission(&ramon(json!({"targets": [t]})), &db, &geo, &real_runways()).unwrap();
+        let e = m["entities"]["items"].as_array().unwrap().iter().find(|e| e["0x2bc"] == "T").unwrap().clone();
+        assert_eq!(e["0x302"].as_f64().unwrap(), engine_heading(&geo, 30.9, 34.8, 90.0).round());
+        assert_eq!(e["0x32a"], mission_edit::TARGET);
+        // A ground route of one point is refused (set_route needs two).
+        let mut one = t.clone();
+        one["route"] = json!([{"lat": 30.9, "lon": 34.81}]);
+        one["sources"]["route"] = json!("inferred");
+        let e = compile_mission(&ramon(json!({"targets": [one]})), &db, &geo, &real_runways()).unwrap_err();
+        assert!(e.to_string().contains("at least two points"), "{e}");
+        // Its figures need sources as the mission's do.
+        let bare = json!({"unit": "f16d", "name": "T", "lat": 30.9, "lon": 34.8, "heading": 90});
+        let e = compile_mission(&ramon(json!({"targets": [bare]})), &db, &geo, &real_runways()).unwrap_err();
+        assert!(e.to_string().contains("targets[0]: \"lat\" has no source"), "{e}");
+    }
+
+    #[test]
+    fn only_the_players_jet_must_survive() {
+        let (db, geo) = (Db::read(&data()).unwrap(), Georef::load().unwrap());
+        let mut f = ramon(json!({}));
+        f.v["start"]["count"] = json!(2);
+        let m = compile_mission(&f, &db, &geo, &real_runways()).unwrap();
+        let c = mission_edit::conditions(&m, &Value::Null);
+        assert_eq!(c["keep_alive"], json!([{"id": 1, "name": "Player1"}]), "{c}");
+    }
+
+    /// A flight without a route (none or empty) gets set_flight's default point, as Alpha does.
+    #[test]
+    fn a_flight_without_a_route_gets_the_default_point() {
+        let (db, geo) = (Db::read(&data()).unwrap(), Georef::load().unwrap());
+        let src = json!({"start.lat": "inferred", "start.lon": "inferred", "start.heading": "inferred"});
+        let fl = |r: Value| {
+            json!({"unit": "f16d", "start": {"lat": 30.9, "lon": 34.8, "heading": 0}, "route": r,
+            "sources": src})
+        };
+        let f = ramon(json!({"flights": [fl(json!([])), fl(Value::Null)], "route": []}));
+        let m = compile_mission(&f, &db, &geo, &real_runways()).unwrap();
+        for fm in m["formations"]["items"].as_array().unwrap().iter().filter(|f| f["0x14"] == 0) {
+            assert_eq!(fm["points"].as_array().unwrap().len(), 1, "{}", fm["0x3e8"]);
+        }
+    }
+
+    #[test]
+    fn clashes_are_refused() {
+        let (db, geo) = (Db::read(&data()).unwrap(), Georef::load().unwrap());
+        let src = json!({"start.lat": "inferred", "start.lon": "inferred", "start.heading": "inferred"});
+        let fl =
+            json!({"unit": "f16d", "start": {"lat": 30.9, "lon": 34.8, "heading": 0}, "route": [], "sources": src});
+        let m = compile_mission(&ramon(json!({"flights": [fl, fl, fl, fl]})), &db, &geo, &real_runways());
+        assert!(m.unwrap_err().to_string().contains("4 flights"));
+        let mut db = Db::read(&data()).unwrap();
+        let twin = File { name: "twin".into(), v: db.weapon("aim-9m").unwrap().v.clone() };
+        db.weapons.push(twin);
+        assert!(ibx(&db).unwrap_err().to_string().contains("a second weapon of type 3570"));
+        let dir = std::env::temp_dir().join(format!("iaf-sim-dup-{}", std::process::id()));
+        std::fs::create_dir_all(dir.join("missions")).unwrap();
+        for d in ["db/units", "db/weapons"] {
+            std::fs::create_dir_all(dir.join(d)).unwrap();
+            for f in read_dir(&data().join(d)).unwrap() {
+                let name = Path::new(&f.name).file_name().unwrap().to_owned();
+                std::fs::write(dir.join(d).join(name), f.v.to_string()).unwrap();
+            }
+        }
+        let mut a = ramon(json!({})).v;
+        std::fs::write(dir.join("missions/a.json"), a.to_string()).unwrap();
+        a["menu_id"] = json!(9999);
+        std::fs::write(dir.join("missions/b.json"), a.to_string()).unwrap();
+        let e = missions(&dir, &dir.join("out"), &Stdout, &AtomicBool::new(false)).unwrap_err();
+        assert!(e.to_string().contains("is taken"), "{e}");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// The original's converters (`iaf-convert aircraft` / `objects`) skip the sim's object database.
+    #[test]
+    fn the_converters_skip_the_sims_bdb() {
+        let dir = std::env::temp_dir().join(format!("iaf-sim-bdbs-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("default6_1.bdb.json"), "{}").unwrap();
+        std::fs::write(dir.join("sim.bdb.json"), "{}").unwrap();
+        let names: Vec<String> = crate::aircraft::read_bdbs(&dir).unwrap().into_iter().map(|b| b.0).collect();
+        assert_eq!(names, ["default6_1"]);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn a_runway_start_takes_the_end_its_number_names() {
+        let rows: Vec<RealRunway> = real_runways().into_iter().filter(|r| r.base == "Ramon").collect();
+        // 07L/25R: 25R takes off toward the west-south-west, from the east end.
+        let [x, _, h] = runway_start(&rows, "Ramon", "25R").unwrap();
+        assert!((h - 247.0).abs() < 5.0, "{h}");
+        assert!(x > 303000.0, "{x}");
+        let [x, _, h] = runway_start(&rows, "Ramon", "07L").unwrap();
+        assert!((h - 67.0).abs() < 5.0, "{h}");
+        assert!(x < 302000.0, "{x}");
+        assert!(runway_start(&rows, "Ramon", "12").is_err());
+    }
+
+    #[test]
+    fn a_figure_without_a_source_is_refused() {
+        let f = |v: Value| File { name: "t".into(), v };
+        let ok = f(json!({"kg": 1, "sources": {"kg": "mk84"}, "footnotes": {"mk84": "x"}}));
+        assert!(check_sources(&ok, &["kg"]).is_ok());
+        assert!(check_sources(&f(json!({"kg": 1})), &["kg"]).is_err());
+        assert!(check_sources(&f(json!({"kg": 1, "sources": {"kg": "nowhere"}})), &["kg"]).is_err());
+        let star = f(json!({"motion": {"a": 1, "b": 2}, "sources": {"motion.a": "inferred"}}));
+        assert!(check_sources(&star, &["motion.*"]).is_err());
+    }
+
+    #[test]
+    fn every_hex_key_is_named_once() {
+        let mut seen = HashSet::new();
+        for (rec, name, key) in FIELDS {
+            assert!(seen.insert((rec, name)) && key.starts_with("0x"), "{rec}.{name}");
+        }
+    }
+}

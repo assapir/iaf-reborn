@@ -1,0 +1,68 @@
+{
+  "category": "training",
+  "time": "08:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f35i",
+    "base": "Nevatim",
+    "at": "parking",
+    "lat": 31.2092238,
+    "lon": 35.0310662,
+    "heading": 0,
+    "elevation_m": 405
+  },
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.lat": "osm-apron",
+    "start.lon": "osm-apron",
+    "start.heading": "inferred",
+    "start.elevation_m": "oa",
+    "route": "inferred"
+  },
+  "notes": {
+    "time": "the MVP's conditions: day (plan.md, MVP)",
+    "wind_kt": "the MVP's conditions: calm (plan.md, MVP)",
+    "wind_from": "calm: no direction",
+    "start": "the centre of an apron by the runways until B2 gives the base's real parking spots",
+    "start.heading": "facing the nearest runway",
+    "route": "the departure point: 10 km beyond runway 26L's far end on its heading, 900 m above the field"
+  },
+  "footnotes": {
+    "osm-apron": "OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright: aeroway=apron way 1089049617 (its centre, Overpass API, 2026-11-02), https://www.openstreetmap.org/way/1089049617",
+    "oa": "OurAirports, airports.csv (public domain; LLNV elevation 1330 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "nevatim_takeoff",
+  "menu_id": 2032,
+  "title": {
+    "en": "Take-off from Nevatim",
+    "he": "המראה מנבטים"
+  },
+  "briefing": {
+    "en": "Taxi to runway 26L and take off on its heading.",
+    "he": "הסע למסלול 26L והמרא בכיוונו."
+  },
+  "win": {
+    "en": "Mission - successful. Airborne with the gear up.",
+    "he": "המשימה הצליחה. באוויר עם כן נסע אסוף."
+  },
+  "lose": {
+    "en": "Mission - failed. Better try again.",
+    "he": "המשימה נכשלה. נסה שוב."
+  },
+  "runway": "26L",
+  "route": [
+    {
+      "lat": 31.18394,
+      "lon": 34.89001,
+      "alt_m": 1305,
+      "speed_kmh": 600
+    }
+  ],
+  "note": "Nevatim has no game base until item B2: no tower, lineup or start rule; the jet stands at the real apron's place on the original terrain."
+}

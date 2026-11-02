@@ -118,6 +118,14 @@ The road layer (docs/scenery.md §6) and the rest of the theatre's scenery (§1.
 `attribution` too: OpenStreetMap with the extracts used. ODbL and CC BY ask for the credit. The files and their
 checksums are `SCENERY`, `SCENERY_THEATRE` and `ROADS` in `crates/iaf-tools/src/thirdparty.rs`.
 
+## IAF 2026 data
+
+The sim's data compiler (`iaf-sim`, iaf-2026/docs/data-formats.md) uses open data kept in the repo: OpenStreetMap
+runway and apron ways (© OpenStreetMap contributors, ODbL 1.0[^osm]) in `crates/iaf-flight/data/real_runways.csv` and
+the mission files, and OurAirports' runway widths and field elevations (public domain). The sim's own setup wizard
+(item A3) lists them on its Attributions page. Every other figure of the data files is a cited fact with its source in
+the file.
+
 ## Testing
 
 * `tests/godot/test_credits.gd` checks:

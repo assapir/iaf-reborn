@@ -1,0 +1,39 @@
+{
+  "id": "20mm",
+  "number": 25,
+  "name": "20 MM",
+  "kind": "gun",
+  "generation": 0,
+  "model": "",
+  "kg": 0,
+  "power": 100,
+  "blast_m": 5,
+  "drag": 0,
+  "motion": {
+    "_velocityJump": 1030.0,
+    "_limitVel": 1030.0,
+    "_absAcceleration": 0.0
+  },
+  "sources": {
+    "kg": "inferred",
+    "power": "inferred",
+    "blast_m": "inferred",
+    "drag": "inferred",
+    "motion._velocityJump": "w-m61",
+    "motion._limitVel": "w-m61",
+    "motion._absAcceleration": "inferred"
+  },
+  "notes": {
+    "number": "25: player_aircraft.gd f35i_object loads the gun, chaff and flare by these numbers (25, 33, 34)",
+    "name": "the name real_weapons.gd GUNS keys the M61A1 on",
+    "kg": "the rounds' weight is the jet's (none in the record)",
+    "power": "three hits destroy a fighter of strength 300 (our damage scale)",
+    "blast_m": "the M505 fuze fires on impact: a small blast edge",
+    "motion._velocityJump": "M56 HEI muzzle velocity",
+    "motion._limitVel": "M56 HEI muzzle velocity",
+    "motion._absAcceleration": "the round's drag is open: it flies at its muzzle velocity"
+  },
+  "footnotes": {
+    "w-m61": "Wikipedia, \"M61 Vulcan\" (6,000 rounds per minute; M56 HEI 1,030 m/s), https://en.wikipedia.org/wiki/M61_Vulcan"
+  }
+}

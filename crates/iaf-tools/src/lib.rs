@@ -32,6 +32,7 @@ pub mod roads;
 pub mod rtpatch;
 pub mod runway_fix;
 pub mod scenery;
+pub mod sim;
 pub mod smooth;
 pub mod terrain;
 pub mod thirdparty;

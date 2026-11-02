@@ -1,0 +1,51 @@
+{
+  "id": "aim-9m",
+  "number": 1,
+  "name": "AIM-9M",
+  "kind": "ir_missile",
+  "generation": 3,
+  "model": "",
+  "kg": 86,
+  "power": 400,
+  "blast_m": 9,
+  "drag": 0,
+  "motion": {
+    "_chaseType": 2.0,
+    "_absAcceleration": 120.0,
+    "_spiralAccelBeta": 0.141,
+    "_timeAcceleration": 19.7,
+    "_timeConstVel": 0.0,
+    "_timeDecceleration": 0.0,
+    "_timeConstOrientation": 0.5
+  },
+  "sources": {
+    "kg": "ds-aim9",
+    "power": "inferred",
+    "blast_m": "ds-aim9",
+    "drag": "open",
+    "motion._chaseType": "inferred",
+    "motion._absAcceleration": "inferred",
+    "motion._spiralAccelBeta": "inferred, ds-aim9",
+    "motion._timeAcceleration": "inferred, f16net",
+    "motion._timeConstVel": "inferred",
+    "motion._timeDecceleration": "inferred",
+    "motion._timeConstOrientation": "inferred"
+  },
+  "notes": {
+    "number": "ours; modern_weapons.gd finds its base by the name",
+    "name": "the base of the AIM-9X (modern_weapons.gd RECORDS)",
+    "generation": "the third generation (weapons.ibx's generations: 1983-1995)",
+    "power": "one hit destroys a fighter of strength 300 (our damage scale)",
+    "blast_m": "the AIM-9A / B's effective kill radius, about 9 m (the AIM-9M's is not published)",
+    "drag": "carriage drag: none until a source gives one",
+    "motion._chaseType": "2 = proportional navigation",
+    "motion._absAcceleration": "Mach 0.7 to Mach 2.5 in about 5 s of motor burn (the burn time is open)",
+    "motion._spiralAccelBeta": "top speed a / beta = Mach 2.5 (851 m/s): 120 / 851",
+    "motion._timeAcceleration": "the burn with which the missile flies 17.7 km from 250 m/s before its flight ends 6 s after the burn (real_weapons.gd's rule)",
+    "motion._timeConstOrientation": "flies straight 0.5 s off the rail"
+  },
+  "footnotes": {
+    "ds-aim9": "designation-systems.net, \"Raytheon AIM-9 Sidewinder\" (AIM-9L / M 86 kg, Mach 2.5+; AIM-9A / B effective kill radius about 9 m), https://www.designation-systems.net/dusrm/m-9.html",
+    "f16net": "F-16.net, \"AIM-9 Sidewinder\" (AIM-9L / M / P 17.7 km), https://www.f-16.net/f-16_armament_article1.html"
+  }
+}

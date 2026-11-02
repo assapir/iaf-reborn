@@ -1,0 +1,56 @@
+{
+  "category": "training",
+  "time": "08:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f16d",
+    "base": "Ramat David",
+    "at": "parking",
+    "lat": 32.6680274,
+    "lon": 35.177413,
+    "heading": 180,
+    "elevation_m": 56
+  },
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.lat": "osm-apron",
+    "start.lon": "osm-apron",
+    "start.heading": "inferred",
+    "start.elevation_m": "oa"
+  },
+  "notes": {
+    "time": "the MVP's conditions: day (plan.md, MVP)",
+    "wind_kt": "the MVP's conditions: calm (plan.md, MVP)",
+    "wind_from": "calm: no direction",
+    "start": "the centre of an apron by the runways until B2 gives the base's real parking spots",
+    "start.heading": "facing the nearest runway"
+  },
+  "footnotes": {
+    "osm-apron": "OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright: aeroway=apron way 1328724315 (its centre, Overpass API, 2026-11-02), https://www.openstreetmap.org/way/1328724315",
+    "oa": "OurAirports, airports.csv (public domain; LLRD elevation 185 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "ramat_david_startup",
+  "menu_id": 2021,
+  "title": {
+    "en": "Start-up at Ramat David",
+    "he": "התנעה ברמת דוד"
+  },
+  "briefing": {
+    "en": "Your F-16D Barak stands cold on the apron at Ramat David. Start the engine and bring the avionics up.",
+    "he": "הברק שלך עומד כבוי ברחבה ברמת דוד. התנע את המנוע והעלה את מערכות האוויוניקה."
+  },
+  "win": {
+    "en": "Mission - successful. The engine is at idle and the avionics are up.",
+    "he": "המשימה הצליחה. המנוע בסרק והאוויוניקה פועלת."
+  },
+  "lose": {
+    "en": "Mission - failed. Better try again.",
+    "he": "המשימה נכשלה. נסה שוב."
+  }
+}

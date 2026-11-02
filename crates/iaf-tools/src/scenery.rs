@@ -1491,7 +1491,13 @@ fn made_from(r: &Run, keys: &[(u32, u32)]) -> String {
 /// leave it out).
 pub(crate) fn converted_inputs(h: &mut Sha256, a: &Path, objects: bool) {
     let c = a.join("converted");
-    let mut files: Vec<PathBuf> = crate::walk_files(&c.join("missions")).unwrap_or_default();
+    // IAF 2026's object database (iaf-sim) lies beside the original's and changes no scenery.
+    let sim = Path::new(crate::sim::BDB_FILE).file_name();
+    let mut files: Vec<PathBuf> = crate::walk_files(&c.join("missions"))
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|f| f.file_name() != sim)
+        .collect();
     files.push(c.join("terrain/airbases.json"));
     files.push(c.join("terrain/theatre/meta.json"));
     if objects {
@@ -1500,7 +1506,8 @@ pub(crate) fn converted_inputs(h: &mut Sha256, a: &Path, objects: bool) {
     files.sort();
     for f in &files {
         h.update(format!("{}\n", f.strip_prefix(&c).unwrap_or(f).display()).as_bytes());
-        h.update(std::fs::read(f).unwrap_or_default());
+        let bytes = std::fs::read(f).unwrap_or_default();
+        h.update(if f.ends_with("objects/objects.json") { without_sim(bytes) } else { bytes });
     }
     let mut theatre = crate::walk_files(&c.join("terrain/theatre")).unwrap_or_default();
     theatre.sort();
@@ -1508,6 +1515,16 @@ pub(crate) fn converted_inputs(h: &mut Sha256, a: &Path, objects: bool) {
         let len = std::fs::metadata(f).map_or(0, |m| m.len());
         h.update(format!("{} {len}\n", f.strip_prefix(&c).unwrap_or(f).display()).as_bytes());
     }
+}
+
+/// `objects.json`'s bytes without IAF 2026's key (iaf-sim's `"sim.bdb"`): re-serialised as `iaf-convert objects`
+/// writes it (pretty, keys sorted), which gives back the original's bytes; any other file as it is.
+fn without_sim(bytes: Vec<u8>) -> Vec<u8> {
+    let Ok(mut m) = serde_json::from_slice::<serde_json::Map<String, serde_json::Value>>(&bytes) else { return bytes };
+    if m.remove(crate::sim::BDB).is_none() {
+        return bytes;
+    }
+    serde_json::to_vec_pretty(&m).unwrap_or(bytes)
 }
 
 /// The clearances that reach within 50 m of the engine rect.
@@ -2292,7 +2309,16 @@ mod tests {
             converted_inputs(&mut h, &a, true);
             h.finalize()
         };
+        // IAF 2026's output (iaf-sim) leaves the fingerprint as it is: its bdb, and its key in objects.json.
+        std::fs::create_dir_all(c.join("objects")).unwrap();
+        let index = serde_json::json!({"default6_1.bdb": {"1": "a/b.gltf", "10": "c.gltf"}});
+        std::fs::write(c.join("objects/objects.json"), serde_json::to_string_pretty(&index).unwrap()).unwrap();
         let first = fp();
+        std::fs::write(c.join("missions/sim.bdb.json"), "{}").unwrap();
+        let mut with = index.clone();
+        with["sim.bdb"] = serde_json::json!({"3": "f16i.gltf"});
+        std::fs::write(c.join("objects/objects.json"), serde_json::to_string_pretty(&with).unwrap()).unwrap();
+        assert_eq!(fp(), first, "IAF 2026's output");
         std::fs::write(c.join("missions.stamp"), "iaf-setup 1234").unwrap();
         assert_eq!(fp(), first, "a stamp alone");
         std::fs::write(c.join("missions/m.json"), "{\"a\":1}").unwrap();

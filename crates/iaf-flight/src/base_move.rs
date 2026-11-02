@@ -37,7 +37,10 @@ pub const INSET_FADE: f64 = 250.0;
 /// A real runway: its ends (engine metres) and width (m).
 #[derive(Debug, Clone, PartialEq)]
 pub struct RealRunway {
+    /// The iaf.ibx section of the game's base ("David"), or the sim's base name ("Nevatim").
     pub base: String,
+    /// The real base's name ("Ramat David AB").
+    pub real: String,
     pub a: [f64; 2],
     pub b: [f64; 2],
     pub width: f64,
@@ -55,6 +58,7 @@ pub fn real_runways() -> Vec<RealRunway> {
             let f = |i: usize| c.get(i)?.trim().parse::<f64>().ok();
             Some(RealRunway {
                 base: c.first()?.to_string(),
+                real: c.get(1)?.to_string(),
                 a: [f(9)?, f(10)?],
                 b: [f(11)?, f(12)?],
                 width: f(4).unwrap_or(DEFAULT_WIDTH),
@@ -1157,6 +1161,7 @@ mod tests {
                 // The twin first in the table, 400 m north; the longer one is the main runway.
                 RealRunway {
                     base: "X".into(),
+                    real: "X AB".into(),
                     a: [0.0, 400.0],
                     b: [-2500.0, -665.0],
                     width: 45.0,
@@ -1164,6 +1169,7 @@ mod tests {
                 },
                 RealRunway {
                     base: "X".into(),
+                    real: "X AB".into(),
                     a: [0.0, 0.0],
                     b: [-2700.0, -1150.0],
                     width: 45.0,

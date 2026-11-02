@@ -1,6 +1,7 @@
-# The real runways of the ten iaf.ibx airbases (docs/world-scale.md §3.3), from tools/real_runways.py.
+# The real runways of the ten iaf.ibx airbases (docs/world-scale.md §3.3) and IAF 2026's Nevatim, from
+# tools/real_runways.py.
 # Data (c) OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright
-# (aeroway=runway ways via the Overpass API, 2026-10-20). x / y: the way's ends in engine metres
+# (aeroway=runway ways via the Overpass API, 2026-10-20; Nevatim's 2026-11-02). x / y: the way's ends in engine metres
 # (X east, Y north) through the georeference (docs/georef.md).
 # width (m): the OSM tag (width_src osm), else OurAirports' runways.csv width_ft in metres (width_src ourairports;
 # public domain, https://davidmegginson.github.io/ourairports-data/runways.csv, 2026-10-20); empty = neither (45 m).
@@ -27,3 +28,5 @@ Bley,Marj Ruhayyil AB (inferred),95678643,,45.7,33.2826835,36.4413441,33.2951633
 Ryak,Rayak AB,23880576,,45.1,33.8419050,35.9757249,33.8607090,35.9987886,427556.1,739560.1,429774.0,741647.4,04/22,ourairports
 Aman,Queen Alia,30089088,08R/26L,61,31.7141666,35.9788057,31.7201236,36.0201744,427806.0,503262.3,431750.0,503950.2,08R/26L,osm
 Aman,Queen Alia,30089092,08L/26R,61,31.7264357,35.9673452,31.7324774,36.0091350,426705.3,504614.5,430689.1,505312.0,08L/26R,osm
+Nevatim,Nevatim AB,130240673,08L/26R,44.8,31.2138864,35.0236314,31.2074303,34.9912161,337016.1,447435.6,333923.7,446722.6,08L/26R,ourairports
+Nevatim,Nevatim AB,130240674,08R/26L,44.8,31.2044060,34.9923863,31.2124772,35.0328225,334034.9,446387.0,337892.5,447278.6,08R/26L,ourairports

@@ -284,6 +284,7 @@ pub fn objects(
     }
     check(cancel)?;
     done.extend(convert_all(extra, false)?);
+    keep_others(&out.join("objects.json"), &mut index)?;
     std::fs::write(out.join("objects.json"), serde_json::to_string_pretty(&index)?)?;
     // The decoy sprites (docs/weapons.md §10): the burning flare (missFLR.tga, sprite 0xcd) and
     // the chaff pieces' texture (chaff.bmp, sprite 0xce).
@@ -1231,8 +1232,44 @@ pub fn icon(install: &Path, out: &Path, pr: &dyn Progress, cancel: &AtomicBool) 
     Ok(())
 }
 
+/// The keys of the index file `path` that `index` does not hold (another tool's: IAF 2026's "sim.bdb", written by
+/// `iaf-sim db`) kept in `index`; a missing file keeps none, any other read error fails.
+fn keep_others(path: &Path, index: &mut serde_json::Map<String, serde_json::Value>) -> Result<()> {
+    let old: serde_json::Map<String, serde_json::Value> = match std::fs::read_to_string(path) {
+        Ok(t) => serde_json::from_str(&t).with_context(|| path.display().to_string())?,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => return Err(e).with_context(|| path.display().to_string()),
+    };
+    for (k, v) in old {
+        index.entry(k).or_insert(v);
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
+    /// Rerunning `iaf-convert objects` keeps the index keys it did not write (IAF 2026's "sim.bdb").
+    #[test]
+    fn objects_index_keeps_other_tools_keys() {
+        let dir = std::env::temp_dir().join(format!("iaf-objects-keep-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("objects.json");
+        let mut index = serde_json::Map::new();
+        index.insert("default6_1.bdb".into(), serde_json::json!({"1": "new.gltf"}));
+        keep_others(&path, &mut index).unwrap();
+        assert_eq!(index.len(), 1, "no file: nothing kept");
+        let old = serde_json::json!({"default6_1.bdb": {"1": "old.gltf"}, "sim.bdb": {"3": "f16i.gltf"}});
+        std::fs::write(&path, old.to_string()).unwrap();
+        keep_others(&path, &mut index).unwrap();
+        assert_eq!(
+            serde_json::Value::Object(index),
+            serde_json::json!({"default6_1.bdb": {"1": "new.gltf"}, "sim.bdb": {"3": "f16i.gltf"}})
+        );
+        std::fs::write(&path, "not json").unwrap();
+        assert!(keep_others(&path, &mut serde_json::Map::new()).is_err());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
     use super::*;
 
     /// Both real exes (when present: v1.0 in `assets/v1.0` or an unpatched `assets/install`, v1.1 in
