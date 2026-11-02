@@ -1479,11 +1479,35 @@ fn made_from(r: &Run, keys: &[(u32, u32)]) -> String {
             h.update(format!("{k:?} {}\n", std::fs::metadata(&p).map_or(0, |m| m.len())).as_bytes());
         }
     }
-    for s in ["missions.stamp", "terrain/airbases.json.stamp", "terrain/theatre.stamp", "objects.stamp"] {
-        h.update(std::fs::read(a.join("converted").join(s)).unwrap_or_default());
-    }
+    converted_inputs(&mut h, a, true);
     h.update(format!("{:?}", r.near).as_bytes());
     h.finalize().iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// The converted files the scenery and the roads read (the missions' units and object lists, the objects' models
+/// list, the airbases, the theatre's nodes), into `h`: the small ones by content, the theatre by its files' sizes
+/// (2.3 GB). Not the setup steps' stamps: those hold the converters' code fingerprint, so any pull that touched a
+/// converter made the scenery again (about 10 min) from the same files. `objects`: the objects' list too (the roads
+/// leave it out).
+pub(crate) fn converted_inputs(h: &mut Sha256, a: &Path, objects: bool) {
+    let c = a.join("converted");
+    let mut files: Vec<PathBuf> = crate::walk_files(&c.join("missions")).unwrap_or_default();
+    files.push(c.join("terrain/airbases.json"));
+    files.push(c.join("terrain/theatre/meta.json"));
+    if objects {
+        files.push(c.join("objects/objects.json"));
+    }
+    files.sort();
+    for f in &files {
+        h.update(format!("{}\n", f.strip_prefix(&c).unwrap_or(f).display()).as_bytes());
+        h.update(std::fs::read(f).unwrap_or_default());
+    }
+    let mut theatre = crate::walk_files(&c.join("terrain/theatre")).unwrap_or_default();
+    theatre.sort();
+    for f in &theatre {
+        let len = std::fs::metadata(f).map_or(0, |m| m.len());
+        h.update(format!("{} {len}\n", f.strip_prefix(&c).unwrap_or(f).display()).as_bytes());
+    }
 }
 
 /// The clearances that reach within 50 m of the engine rect.
@@ -2252,6 +2276,32 @@ fn median_inside(img: &RgbImage, q: &[[f64; 2]]) -> [u8; 3] {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The fingerprint follows the converted files, not the setup stamps (a converter's code change alone no longer
+    /// makes the scenery again).
+    #[test]
+    fn converted_inputs_follow_the_files() {
+        let a = std::env::temp_dir().join(format!("iaf-scenery-inputs-{}", std::process::id()));
+        let c = a.join("converted");
+        std::fs::create_dir_all(c.join("missions")).unwrap();
+        std::fs::create_dir_all(c.join("terrain/theatre/L1")).unwrap();
+        std::fs::write(c.join("missions/m.json"), "{}").unwrap();
+        std::fs::write(c.join("terrain/theatre/L1/c_0_0.jpg"), "abc").unwrap();
+        let fp = || {
+            let mut h = Sha256::new();
+            converted_inputs(&mut h, &a, true);
+            h.finalize()
+        };
+        let first = fp();
+        std::fs::write(c.join("missions.stamp"), "iaf-setup 1234").unwrap();
+        assert_eq!(fp(), first, "a stamp alone");
+        std::fs::write(c.join("missions/m.json"), "{\"a\":1}").unwrap();
+        let second = fp();
+        assert_ne!(second, first, "a mission's content");
+        std::fs::write(c.join("terrain/theatre/L1/c_0_0.jpg"), "abcd").unwrap();
+        assert_ne!(fp(), second, "a theatre file's size");
+        std::fs::remove_dir_all(&a).unwrap();
+    }
 
     /// A node far from everything with an affine warp (1° = 100 km, origin at its south-west corner).
     const KEY: (u32, u32) = (200, 200);

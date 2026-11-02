@@ -317,9 +317,7 @@ fn made_from(a: &Path, inputs: &[(&thirdparty::Download, PathBuf)]) -> String {
         h.update(format!("{}\n", d.sha256).as_bytes());
     }
     h.update(format!("roads {ROADS_VERSION}\n").as_bytes());
-    for s in ["missions.stamp", "terrain/airbases.json.stamp", "terrain/theatre.stamp"] {
-        h.update(std::fs::read(a.join("converted").join(s)).unwrap_or_default());
-    }
+    crate::scenery::converted_inputs(&mut h, a, false);
     h.finalize().iter().map(|b| format!("{b:02x}")).collect()
 }
 

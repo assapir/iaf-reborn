@@ -148,7 +148,11 @@ A route is the unit's `Path` scripts' paths and its formation's waypoints, from 
 `release` is the SHA-256 of the checksums of the pinned inputs the kinds need, the generator's version
 (`scenery::GENERATOR`) and the kinds when not both (`scenery::release`; both keeps the release of before the kinds). A
 building's id is `<i>_<j>:<index>`, its place in the sorted cell; it is valid for one release. `made_from` adds the
-coverage, the converted missions, airbases, theatre and objects stamps: when it matches, the step is up to date.
+coverage and the converted files the scenery reads (`scenery::converted_inputs`): the missions, `airbases.json`,
+`objects.json` and the theatre's `meta.json` by content, the theatre's other files by size. When it matches, the step
+is up to date. Until 2026-11-02 it held the setup steps' stamps instead, which carry the converters' code
+fingerprint, so any pull that touched a converter made the scenery and its lights again (about 10 min) from the same
+files.
 
 ### 1.6 Setup
 
@@ -713,7 +717,7 @@ road shows, and routes stay straight.
    indices. A junction is one index in a file; across block files the same point has the same coordinates.
 
 The manifest (`converted/roads/manifest.json`) holds `made_from` (the extracts' checksums, the converter's version
-`ROADS_VERSION`, the missions, airbases and theatre stamps; when it matches, the step is up to date), the extracts
+`ROADS_VERSION`, the converted missions, airbases and theatre as in §1.5; when it matches, the step is up to date), the extracts
 used, the counts and the attribution the credits roll shows.
 
 ### 6.2 Counts
