@@ -507,10 +507,11 @@ occlusion, 1.8 MB; built by
   sheet), and the left console's three big rotary knobs (ENG FEED, IFF MASTER, C & I) and its switch guards are
   untextured light grey. The F-16's are black with white index lines, the guards dark grey (the
   photos[^f16-photos]). Under every knob's and throttle button's UV footprint the sheets' light grey texels are
-  darkened to a fifth (the white index lines and labels kept), the three big knobs are black and the guards dark grey;
-  the Block 50 AUDIO 1 and UHF panels are flat in FlightGear, their knobs painted light grey on the sheet
-  (`panels-B50-left_console.png`): that whole sheet's light grey is darkened the same way (`KNOBS_PAINTED`). The
-  stick's boot (`F-16-FS.ac` `Grommet`, untextured white) is black rubber as the pedals.
+  darkened to a fifth (the white index lines and labels kept; a footprint crossing the sheet's edge wraps round it),
+  the three big knobs are black and the guards dark grey; the Block 50 AUDIO 1 and UHF panels are flat in
+  FlightGear, their knobs painted light grey on the sheet (`panels-B50-left_console.png`): that whole sheet's light
+  grey is darkened the same way (`KNOBS_PAINTED`). The stick's boot (`F-16-FS.ac` `Grommet`, untextured white) is
+  black rubber as the pedals.
 * **The canopy sills** (2026-11-02). FlightGear's sill is the tub's border strip under the canopy frame's skirt, and
   the detailed F-16's cut model drew the frame's skirt flat gunship grey (`aircraft_model.gd` `F16_FRAME_COLOUR`):
   looking left or right, bare grey slabs along each side, and beside and behind the eye, where the cut model leaves
@@ -519,7 +520,7 @@ occlusion, 1.8 MB; built by
     gap; the walls above the consoles are near black (`sill_wall`), as the photos show them;
   * along each sill (`sills`): the canopy's black rubber seal, a 2.2 cm tube along the frame's foot, and under it the
     sill's inner face, a dark grey lip 2 cm wide and 6 cm deep with rounded edges, a little lighter than the wall,
-    with a screw head every 10 cm (sizes inferred from the photos);
+    with a screw head every 10 cm (sizes inferred from the photos), ending with the border 0.42 m behind the eye;
   * with the 3D cockpit the canopy frame is dark grey inside (`F16_FRAME_INSIDE`), as an F-16's frame is seen from
     the seat and with the canopy open[^f16-photos].
   The look back (the seat, the canopy bow and the frame behind it) keeps the cut model's shapes, the frame now dark.
@@ -679,7 +680,9 @@ occlusion, 1.8 MB; built by
   its sheet is near white, as FlightGear's implicit lightmap does (`1 − smoothstep(0.1, 0.7, |texel − tag|)`, the
   tag colour 0.87, 0.9, 0.91, the texel as stored). The white labels, dial marks, ICP keys and the AoA tape light
   green; the paint, the gauges' black faces and the attitude spheres (the ADI's ball, the standby ADI's drum:
-  `NO_BACKLIGHT`, their light sky would glow as a label) keep the warm flood alone. The pass is hung on only at night.
+  `NO_BACKLIGHT`, their light sky would glow as a label) keep the warm flood alone. On a translucent part the glow
+  is × the texel's alpha (its clear texels stay dark); it follows a scrolled part's texture (the AoA tape's
+  `uv1_offset`). The pass is hung on only at night.
   Until 2026-11-02 the backlight's colour was added to the flood over every texel: the whole panel, the gauges' faces
   and the ADI ball turned green. The lamps (lit by their state), the MFDs, the RWR scope, EHSI and DED (self-lit
   screens) and the HUD are as by day. Cost (`_flight_bench.gd`, Iris Xe, 1920×1080, `BENCH_SET=cockpit_3d=3d`,

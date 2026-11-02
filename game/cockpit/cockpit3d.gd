@@ -227,8 +227,6 @@ func _setup_baked_light(model: Node3D, skip: Array) -> void:
 	img.convert(Image.FORMAT_L8)
 	img.generate_mipmaps()
 	var light := ImageTexture.create_from_image(img)
-	var code := (load(LIGHT_SHADER) as Shader).code
-	var shaders := {}  # cull mode -> the pass's shader, culled as the part it darkens
 	for mi: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):
 		if mi.material_override != null:  # the glasses and screens
 			continue
@@ -237,49 +235,63 @@ func _setup_baked_light(model: Node3D, skip: Array) -> void:
 			var uv2: bool = mi.mesh.surface_get_format(s) & Mesh.ARRAY_FORMAT_TEX_UV2 != 0  # not on the baked atlas
 			if mat == null or mat in skip or not uv2 or mat.next_pass != null:
 				continue
-			var clip := mat.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-			if mat.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED and not clip:  # glass: nothing to darken
+			if _translucent(mat):  # nothing to darken
 				continue
-			var cull := "cull_disabled" if mat.cull_mode == BaseMaterial3D.CULL_DISABLED else "cull_back"
-			if not shaders.has(cull):
-				shaders[cull] = Shader.new()
-				shaders[cull].code = code.replace("cull_back", cull)
-			var pass_mat := ShaderMaterial.new()
-			pass_mat.shader = shaders[cull]
+			var pass_mat := _pass(LIGHT_SHADER, mat)
 			pass_mat.set_shader_parameter("light", light)
-			pass_mat.set_shader_parameter("clip", clip)
 			if mat.albedo_texture != null:
 				pass_mat.set_shader_parameter("sheet", mat.albedo_texture)
 				pass_mat.set_shader_parameter("relief", RELIEF)
 			mat.next_pass = pass_mat
 
 
+## Alpha-blended (not alpha-scissored): the glasses and the translucent parts.
+func _translucent(mat: BaseMaterial3D) -> bool:
+	return mat.transparency not in [BaseMaterial3D.TRANSPARENCY_DISABLED, BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR]
+
+
+var _pass_shaders := {}  # "<shader path>:<cull mode>" -> the pass's shader
+
+
+## A pass over `mat` drawn by the shader at `path`: culled as `mat` (the shader's cull_back becomes its cull mode),
+## `clip` keeping an alpha-scissored part's cut-outs.
+func _pass(path: String, mat: BaseMaterial3D) -> ShaderMaterial:
+	var cull := "cull_disabled" if mat.cull_mode == BaseMaterial3D.CULL_DISABLED else "cull_back"
+	var key := path + ":" + cull
+	if not _pass_shaders.has(key):
+		_pass_shaders[key] = Shader.new()
+		_pass_shaders[key].code = (load(path) as Shader).code.replace("cull_back", cull)
+	var m := ShaderMaterial.new()
+	m.shader = _pass_shaders[key]
+	m.set_shader_parameter("clip", mat.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR)
+	return m
+
+
 ## The backlit labels (cockpit3d_backlight.gdshader, a pass added after each lit part's own and its baked light, only
-## at night): [the material it hangs from, the pass]. FlightGear's thresholds (panel-standard.eff).
+## at night): [the material it hangs from, the pass]. FlightGear's thresholds (panel-standard.eff). On the
+## alpha-blended parts (_translucent) by the texels' alpha: their clear near-white texels glowed green.
 const BACKLIGHT_SHADER := "res://cockpit/cockpit3d_backlight.gdshader"
 ## The attitude spheres (their sheets by name: the ADI's ball, the standby ADI's drum): lit by the flood alone, their
 ## sky and ground dim; their light grey sky would glow green as a label.
 const NO_BACKLIGHT := ["adi-sphere", "stdby-adi-drum"]
 var _backlights := []
+var _glows := {}  # lit material -> its backlight pass (the scrolled ones' offset follows theirs)
 var _backlit := false
 
 
 func _setup_backlight() -> void:
-	var shaders := {}  # cull mode -> the pass's shader
 	for mat: BaseMaterial3D in _lit_mats:
 		if NO_BACKLIGHT.any(func(n): return mat.resource_name.contains(n)):
 			continue
-		var cull := "cull_disabled" if mat.cull_mode == BaseMaterial3D.CULL_DISABLED else "cull_back"
-		if not shaders.has(cull):
-			shaders[cull] = Shader.new()
-			shaders[cull].code = (load(BACKLIGHT_SHADER) as Shader).code.replace("cull_back", cull)
-		var glow := ShaderMaterial.new()
-		glow.shader = shaders[cull]
+		var glow := _pass(BACKLIGHT_SHADER, mat)
+		glow.set_shader_parameter("blend", _translucent(mat))
 		glow.set_shader_parameter("sheet", mat.albedo_texture)
-		glow.set_shader_parameter("clip", mat.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR)
+		glow.set_shader_parameter("uv1_scale", mat.uv1_scale)
+		glow.set_shader_parameter("uv1_offset", mat.uv1_offset)
 		var c := BACKLIGHT * BACKLIGHT_ENERGY
 		glow.set_shader_parameter("glow", Vector3(c.r, c.g, c.b))
 		_backlights.append([mat.next_pass if mat.next_pass != null else mat, glow])
+		_glows[mat] = glow
 
 
 ## The backlit labels' passes hung on (`on`) or off: drawn only at night.
@@ -711,6 +723,8 @@ func _update_instruments() -> void:
 			off += Vector3(float(r.axis[0]) * d, -float(r.axis[1]) * d, 0.0)
 		for m in s[2]:
 			m.uv1_offset = off
+			if _glows.has(m):
+				_glows[m].set_shader_parameter("uv1_offset", off)
 
 
 ## A lamp lit by the cockpit state the 2D panel's lamps read (cockpit.gd indicators / gear_legs, instruments.gd's

@@ -2012,9 +2012,9 @@ func _spawn_player() -> void:
 			if not cockpit_3d.setup(cockpit, camera, player.type):
 				cockpit_3d.queue_free()
 				cockpit_3d = null
-		# Ours, the F-35I's (bc.py): the 3D cockpit has its own canopy frame (cockpit3d.py), the model's goes.
-		var frame := own_bc.find_child("f35i_bc_frame", true, false) as Node3D
-		if frame != null:
+		# Ours: a cockpit-view model's canopy frame (`*_bc_frame`, the F-35I's bc.py) goes when the 3D cockpit draws its
+		# own (cockpit3d.py).
+		for frame: Node3D in own_bc.find_children("*_bc_frame", "Node3D", true, false):
 			frame.visible = cockpit_3d == null
 		# Ours (Night lights = Detailed): the wingtip / tail lights and the strobe on it too, at its own tips and fin top.
 		aircraft.attach_nav_lights(own_bc)

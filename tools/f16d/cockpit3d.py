@@ -406,12 +406,15 @@ def darken_knobs(b):
                 img = tex.image
                 w, h = img.size
                 m = masks.setdefault(img, np.zeros((h, w), bool))
-                p = np.array([uv[li].uv[:] for li in tri.loops]) % 1.0 * (w, h)
+                # The whole triangle moved into one tile (not each corner: one crossing a tile's edge stays small),
+                # the texels it covers wrapped back onto the sheet.
+                p = np.array([uv[li].uv[:] for li in tri.loops])
+                p = (p - np.floor(p.min(0))) * (w, h)
                 x0, y0 = np.floor(p.min(0)).astype(int) - 1
                 x1, y1 = np.ceil(p.max(0)).astype(int) + 1
-                xs, ys = np.meshgrid(np.arange(max(x0, 0), min(x1, w)) + 0.5, np.arange(max(y0, 0), min(y1, h)) + 0.5)
+                xs, ys = np.meshgrid(np.arange(x0, x1) + 0.5, np.arange(y0, y1) + 0.5)
                 # Its corners (many knobs map whole faces onto one point of the patch), then the texels inside it.
-                m[np.clip(p[:, 1].astype(int), 0, h - 1), np.clip(p[:, 0].astype(int), 0, w - 1)] = True
+                m[p[:, 1].astype(int) % h, p[:, 0].astype(int) % w] = True
                 (ax, ay), (bx, by), (cx, cy) = p
                 d = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy)
                 if abs(d) < 1e-9 or xs.size == 0:
@@ -419,7 +422,7 @@ def darken_knobs(b):
                 l1 = ((by - cy) * (xs - cx) + (cx - bx) * (ys - cy)) / d
                 l2 = ((cy - ay) * (xs - cx) + (ax - cx) * (ys - cy)) / d
                 inside = (l1 >= 0) & (l2 >= 0) & (1 - l1 - l2 >= 0)
-                m[ys[inside].astype(int), xs[inside].astype(int)] = True
+                m[ys[inside].astype(int) % h, xs[inside].astype(int) % w] = True
     for img in [i for i in bpy.data.images if os.path.basename(i.filepath) in KNOBS_PAINTED]:
         px = np.empty(img.size[0] * img.size[1] * img.channels, np.float32)
         img.pixels.foreach_get(px)
@@ -896,7 +899,6 @@ def main():
     b.walk(os.path.join(FG, "Models/Cockpit/Main/cockpit.xml"), Matrix.Identity(4), "Tub")
     altimeter(b)
     root_at = original_root()
-    sills(b)
     darken_knobs(b)
     for o in b.parts["Tub"]:
         bm = bmesh.new()
@@ -906,6 +908,7 @@ def main():
                                plane_no=(0, 1, 0), clear_inner=True)
         bm.to_mesh(o.data)
         bm.free()
+    sills(b)  # along the border as cut: they end with it
     # The gear handle (8.6 k triangles) and the throttle turn but are decimated with their consoles; the other turning
     # parts are kept whole.
     decimate_turning = {"controls/gear/gear-down", "controls/engines/engine/throttle-movement"}

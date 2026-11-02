@@ -323,7 +323,8 @@ Options:
   only what it lacks. Example: `game/extra/planes/f35i/cockpit/`, the panel modelled and rendered by
   `tools/f35i/cockpit3d.py` with the game's cockpit camera, with its own lamps rendered from the same scene.
 - **Looking aside / back:** `<plane>_bc.gltf` next to the extra plane's glTF is its cockpit-view model
-  (`terrain_view.gd` `_spawn_player`; example `tools/f35i/bc.py`).
+  (`terrain_view.gd` `_spawn_player`; example `tools/f35i/bc.py`). Its object named `<anything>_bc_frame` (a canopy
+  frame) is hidden while the 3D cockpit draws its own.
 - **A 3D cockpit** (Extras "Cockpit": 3D): a glb in the cockpit-view model's frame, named in the definition's
   `cockpit_3d`, with `<model>.json` beside it; `cockpit3d.gd` reads its named nodes (docs/cockpit.md "3D cockpit").
   Example: `tools/f35i/cockpit3d.py --glb` writes the F-35I's from the same scene as its panel art (docs/f35i.md
