@@ -43,12 +43,12 @@ and each step uses every core inside.
 | `hebrew` | the install | `assets/packs/he` |
 | `briefings`, `keys` | the install, hebrew | `assets/converted/briefings`, `keys.json` |
 | `menu_he` | the install, hebrew | `assets/converted/menu_he` |
-| `arm` | menu, menu_he | the extra planes' arming art whose front view is in the repo (the F-15I's: `models`) |
+| `arm` | menu, menu_he, models | each menu set's `arm/jets/x_<plane>.png`: every extra plane's arming art, the F-15I's once `models` has made its front view |
 | `aircraft`, `objects` | missions | `assets/converted/planes`, `objects` |
 | `airbases` | theatre | `assets/converted/terrain/airbases.json`, `airbases/` |
 | `launcher` | icon | the desktop launcher (`tools/install-launcher.sh`) |
 | `textures` | | `assets/thirdparty/ambientcg`: the CC0 textures of Ground textures and Model detail (≈ 250 MB download; docs/rendering.md §1.4, §9) |
-| `models` | aircraft, menu, menu_he | `assets/source/f15` (the FlightGear F-15's files, ≈ 20 MB download, GPL-2.0-only), `assets/converted/models/f15/f15c.glb`, the detailed F-15, and `f15i.glb`, the F-15I Ra'am, with its front view `f15i_arm.png`, composed into each menu set's `arm/jets/x_f15i.png` (docs/aircraft-models.md §6, §6.7) |
+| `models` | aircraft | `assets/source/f15` (the FlightGear F-15's files, ≈ 20 MB download, GPL-2.0-only), `assets/converted/models/f15/f15c.glb`, the detailed F-15, and `f15i.glb`, the F-15I Ra'am, with its front view `f15i_arm.png`, which `arm` composes (docs/aircraft-models.md §6, §6.7) |
 | `sentinel2`, `mapi2015-fetch`, `mapi2015` | airbases | `assets/converted/imagery` |
 | `scenery-fetch` | | `assets/source/scenery`: the sources the chosen kinds need (both 520 MB, buildings 373 MB, trees 267 MB); `assets/source/roads`: the other countries' road extracts (366 MB, each optional; docs/scenery.md §1.1) |
 | `scenery` | mapi2015, scenery-fetch, missions, objects, airbases | `assets/converted/roads`: the theatre's road layer (docs/scenery.md §6); `assets/converted/scenery`: the chosen kinds, buildings and trees, buildings only or trees only (docs/scenery.md §1.6) |
@@ -57,7 +57,8 @@ and each step uses every core inside.
 
 "The install" is `patch` when a patch is given, else `extract`. A failed required step stops the setup; the steps
 that wait for it do not run. `launcher`, `textures`, `models`, the imagery, `bc1`, the scenery and the guides are optional: their failure stops only
-what waits for them.
+the optional steps that wait for them. A required step waits for an optional one to end, not to succeed: `arm` runs
+after a failed or offline `models` and leaves only the F-15I's art out.
 
 `textures` (`iaf_tools::thirdparty`, CLI `iaf-textures`) fetches each material of `thirdparty::LISTS` with curl,
 checks its zip against the pinned SHA-256 and packs its maps. A material done before is kept, so the step is up to
@@ -125,7 +126,7 @@ left out of its fingerprint, because they change no output.
 | `fonts`, `cockpits`, `briefings`, `reference`, `menu`, `menu_he`, `keys`, `missions`, `aircraft`, `objects`, `icon` | `convert.rs` and what it reaches (`aircraft.rs`, `exe.rs`, `gltf.rs`, `mis.rs`, `plane.rs`, `smooth.rs`, `upscale.rs`; emf, ini, menu, model, refs, rtf, winfnt, xfile); `image` |
 | `arm` | as `cockpits`, and `bodies.rs` |
 | `theatre`, `airbases` | `terrain.rs`, `airbases.rs`, `georef.rs`, `imagery.rs`, `runway_fix.rs`, their two data files; ini, lzo, ptt; `image` |
-| `models` | `f15.rs`, `thirdparty.rs`, `data/f15-livery`; ac3d; `image`; as `cockpits` and `bodies.rs` (the F-15I's arming art), and `game/extra/planes/f15i/arm` |
+| `models` | `f15.rs`, `thirdparty.rs`, `data/f15-livery`; ac3d; `image` |
 | `launcher` | `tools/install-launcher.sh`, `tools/windows/install-launcher.ps1` |
 
 `progress.rs` (the log, the threads) is in no step's sources. The steps whose work is in iaf-setup itself (extract,

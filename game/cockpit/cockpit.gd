@@ -45,6 +45,9 @@ static func hud_colour() -> Color:
 const DEFAULT_DIR := "converted/cockpits/f16"
 ## Under assets/.
 @export var cockpit_dir := DEFAULT_DIR
+## The jet's aircraft definition's Real HUD (its `hud`: "f15e" on the Ra'am, "f35" on the F-35I), "" for its cockpit's
+## own; set by the flight scene with the jet (real_hud_key).
+var hud_key := ""
 
 ## Flight state shown by the instruments. Angles in degrees, speed in knots,
 ## altitude in feet, vertical speed in ft/min, fuel in lbs, rpm/throttle 0..1.
@@ -159,6 +162,12 @@ func _night_mod(section: String) -> Color:
 		pow(2.0, -float(p.get("NightGScale", 0))),
 		pow(2.0, -float(p.get("NightBScale", 0)))
 	)
+
+
+## The Real HUD's display key, every IafRealHud call's `cockpit` (Jet::of_cockpit): the definition's hud_key, else
+## the cockpit dir.
+func real_hud_key() -> String:
+	return hud_key if hud_key != "" else cockpit_dir
 
 
 func _ready() -> void:
@@ -412,9 +421,7 @@ func focal_length() -> float:
 		var t: float = h.get("TopBorder", 70)
 		# The whole dir: the F-35I's ends in ".../f35i/cockpit", which alone would read as the F-16's.
 		var glass := Rect2(-l, -t, l + float(h.get("RightBorder", 98)), t + float(h.get("BottomBorder", 70)))
-		var k: float = ClassDB.class_call_static(
-			"IafRealHud", "real_view_px_per_deg", Settings.real_hud_dir(cockpit_dir), glass
-		)
+		var k: float = ClassDB.class_call_static("IafRealHud", "real_view_px_per_deg", real_hud_key(), glass)
 		if k > 0.0:
 			return lerpf(k / tan(deg_to_rad(1.0)) * ui_scale(), f0, away)
 	return f0

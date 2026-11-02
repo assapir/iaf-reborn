@@ -133,7 +133,7 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
         "reference" => convert::reference(&install, &conv.join("reference"), &up, pr, cancel)?,
         "menu" => convert::menu(&install, None, &conv.join("menu"), &up, pr, cancel)?,
         "menu_he" => convert::menu(&install, Some(&a.join("packs/he")), &conv.join("menu_he"), &up, pr, cancel)?,
-        "arm" => bodies::arm(ctx, false, pr, cancel)?,
+        "arm" => bodies::arm(ctx, pr, cancel)?,
         "keys" => convert::keys(&install, &packs, &conv.join("keys.json"), pr, cancel)?,
         "missions" => convert::missions(&install, &conv.join("missions"), pr, cancel)?,
         "aircraft" => convert::aircraft(&install, &conv.join("missions"), &conv.join("planes"), &smooth, pr, cancel)?,
@@ -173,13 +173,7 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
             return Ok(Outcome::Done);
         }
         "scenery" => return scenery(a, ctx.inputs.scenery_kinds, pr, cancel),
-        "models" => {
-            let done = f15(a, F15_PROBE, pr, cancel)?;
-            if matches!(done, Outcome::Done) {
-                bodies::arm(ctx, true, pr, cancel)?; // the F-15I's arming art from its front view
-            }
-            return Ok(done);
-        }
+        "models" => return f15(a, F15_PROBE, pr, cancel),
         "bc1" => {
             let mut dirs = vec![conv.join("terrain/theatre")];
             // Only the imagery layers the game is set to show (each layer's .dds is ~4.5 GB); without the game's

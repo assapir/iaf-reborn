@@ -83,17 +83,12 @@ pub(crate) fn patch(ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool) -> Result
     Ok(())
 }
 
-/// The extra planes' arming art (docs/adding-a-plane.md §5) into each converted menu set: those whose front view is in
-/// the repo (the arm step), or with `made` those whose front view setup makes (arm.json's `front`: the F-15I's, made
-/// and composed by the models step).
-pub(crate) fn arm(ctx: &Ctx, made: bool, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
+/// The extra planes' arming art (docs/adding-a-plane.md §5) into each converted menu set: every plane's, those whose
+/// front view setup makes (arm.json's `front`: the F-15I's, by the models step) once it is there.
+pub(crate) fn arm(ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     let conv = ctx.assets.join("converted");
-    let made_here = |arm: &PathBuf| {
-        std::fs::read(arm.join("arm.json"))
-            .is_ok_and(|b| serde_json::from_slice::<serde_json::Value>(&b).is_ok_and(|v| v.get("front").is_some()))
-    };
     let mut arms: Vec<PathBuf> = std::fs::read_dir(ctx.repo.join("game/extra/planes"))
-        .map(|rd| rd.flatten().map(|e| e.path().join("arm")).filter(|p| p.is_dir() && made_here(p) == made).collect())
+        .map(|rd| rd.flatten().map(|e| e.path().join("arm")).filter(|p| p.is_dir()).collect())
         .unwrap_or_default();
     arms.sort();
     for arm in &arms {

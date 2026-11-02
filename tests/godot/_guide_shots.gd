@@ -133,7 +133,7 @@ func _shot(name: String, e: Dictionary) -> void:
 			tv.rig.position,
 			Vector3(0.0, 0.0, st.heading + turn),
 			Vector3(st.forward).rotated(Vector3.UP, deg_to_rad(-turn)) * 250.0,
-			{"airborne": true, "engine_on": true, "real_data": settings().real_data()}
+			airborne_flags(settings().real_data())
 		)
 	elif start == "dive":
 		frozen_start = true
@@ -382,7 +382,7 @@ func _final(dist: float, alt: float, aoa: float) -> Node:
 		tv.rig.position,
 		Vector3(aoa - 3.0, 0.0, st0.heading),
 		glide,
-		{"airborne": true, "engine_on": true, "real_data": settings().real_data()}
+		airborne_flags(settings().real_data())
 	)
 	return tv.weapons
 
@@ -402,7 +402,7 @@ func _dive(deg: float, agl: float, speed: float) -> void:
 		tv.rig.position,
 		Vector3(-deg, 0.0, st0.heading),
 		dir * speed,
-		{"airborne": true, "engine_on": true, "real_data": settings().real_data()}
+		airborne_flags(settings().real_data())
 	)
 
 

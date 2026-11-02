@@ -88,7 +88,7 @@ func _process(_delta: float) -> void:
 			cockpit != null
 			and not cockpit.three_d()
 			and Settings.hud_style == "real"
-			and not ClassDB.class_call_static("IafRealHud", "helmet_only", cockpit.cockpit_dir)
+			and not ClassDB.class_call_static("IafRealHud", "helmet_only", cockpit.real_hud_key())
 			and not cockpit.dash()
 		)
 		cut.clip_contents = real
@@ -163,7 +163,7 @@ func _draw() -> void:
 		if real.sight:
 			return
 		_draw_prims(self, real.field, w, real.colour)
-		if _mode() == 0 and cockpit.gear_handle_down and not dash and not real_ils(String(cockpit.cockpit_dir)):
+		if _mode() == 0 and cockpit.gear_handle_down and not dash and not real_ils(cockpit.real_hud_key()):
 			_draw_ils(st, w)
 		if _mode() in [7, 8]:
 			_draw_weapons(s, w, gun, dash)
@@ -524,11 +524,11 @@ func real_hud() -> Dictionary:
 		return {}
 	# Looking aside: the helmet-only display (the F-35's: IafRealHud.helmet_only, its aircraft definition's hud) and the
 	# DASH of the F-16 / F-15 (docs/real-hud.md "DASH helmet"); the other jets' helmet display stays the original's.
-	var dir := String(cockpit.cockpit_dir)
+	var dir: String = cockpit.real_hud_key()
 	var helmet: bool = ClassDB.class_call_static("IafRealHud", "helmet_only", dir) or real_dash(dir)
 	if cockpit.dash() and not helmet:
 		# The MiG-23ML has no helmet sight: looking aside its sight (on the glass) pans away and nothing is drawn.
-		if String(cockpit.cockpit_dir).get_file() == "mig23":
+		if dir.get_file() == "mig23":
 			return {"field": [], "outer": [], "colour": null, "sight": true}
 		return {}
 	var fr := Engine.get_process_frames()
@@ -608,7 +608,7 @@ func real_hud() -> Dictionary:
 	if hobs.get("pos") != null:
 		hobs.at = _hud_point(hobs.pos, true)
 	_real_in = {
-		"cockpit": Settings.real_hud_dir(String(cockpit.cockpit_dir)),
+		"cockpit": dir,
 		"time": st.get("time", 0.0),
 		"off_boresight": helmet and cockpit.dash(),
 		"head_view": (centre - _c) / _s,
@@ -629,6 +629,7 @@ func real_hud() -> Dictionary:
 		"roll": st.get("roll", 0.0),
 		"mach": st.get("mach", 0.0),
 		"g": st.get("g", 1.0),
+		"g_limit": st.get("g_limit", 9.0),
 		"aoa": st.get("aoa", 0.0),
 		"gear_down": cockpit.gear_handle_down,
 		"fuel_lbs": st.get("fuel_lbs", 0.0),
@@ -679,9 +680,10 @@ func real_mrm_inside() -> Variant:
 	return _real.get("mrm_inside")
 
 
-## The cockpits with a Real helmet sight: the IAF F-16C/D's and F-15C/D's Elbit DASH, the MiG-29's Щель-3УМ.
+## The Real HUDs (keys: cockpit.real_hud_key) with a Real helmet sight: the IAF F-16C/D's and F-15C/D's Elbit DASH
+## (the Ra'am's F-15E HUD too), the MiG-29's Щель-3УМ.
 static func real_dash(dir: String) -> bool:
-	return dir.get_file() in ["f16", "f15", "mig29"]
+	return dir.get_file() in ["f16", "f15", "f15e", "mig29"]
 
 
 ## The jets whose Real HUD is a reticle-only gunsight (the F-4E's LCOSS, the Mirage's CSF, the MiG-23's АСП-17МЛ): a
@@ -694,10 +696,10 @@ static func real_reticle(dir: String) -> bool:
 const RETICLE_PEN := 1.8
 
 
-## The Real HUDs that draw their own ILS (the F-15's flight director, the Lavi's needles; docs/real-hud.md): the
-## original's ILS lines are not drawn over them.
+## The Real HUDs that draw their own ILS (the F-15's flight director, the F-15E's, the Lavi's needles;
+## docs/real-hud.md): the original's ILS lines are not drawn over them.
 static func real_ils(dir: String) -> bool:
-	return dir.get_file() in ["f15", "lavi"]
+	return dir.get_file() in ["f15", "f15e", "lavi"]
 
 
 ## A world point (X east, Y north, Z up) in HUD pixels from the HUD centre; behind the eye: null, or with `far` a
@@ -717,7 +719,7 @@ func _hud_point(world: Vector3, far: bool) -> Variant:
 ## Draws Real HUD primitives (HUD pixels from the HUD centre) on `ci`, in `colour` (null: the HUD's).
 func _draw_prims(ci: CanvasItem, prims: Array, w: float, colour = null) -> void:
 	var col: Color = colour if colour != null else _hc()
-	if real_reticle(String(cockpit.cockpit_dir)):
+	if real_reticle(cockpit.real_hud_key()):
 		w *= RETICLE_PEN
 	for p in prims:
 		match p.k:

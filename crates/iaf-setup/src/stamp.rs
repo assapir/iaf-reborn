@@ -61,7 +61,7 @@ const TERRAIN: &[&str] = &[
     "crates/iaf-formats/src/ptt.rs",
     "Cargo.lock:image",
 ];
-/// The bodies of extract, patch, hebrew and arm (also run by models) in this crate (their one-line calls in steps.rs do not count).
+/// The bodies of extract, patch, hebrew and arm in this crate (their one-line calls in steps.rs do not count).
 const STEPS: &[&str] = &["crates/iaf-setup/src/bodies.rs"];
 
 /// The sources (files, folders, `Cargo.lock:<crate>`) that decide each stamped step's output, as groups. A new step
@@ -97,8 +97,6 @@ pub(crate) const STEP_SOURCES: &[(&str, &[&[&str]])] = &[
         "models",
         &[
             BASE,
-            CONVERT, // the F-15I's arming art (bodies.rs arm, convert.rs arm_extra)
-            STEPS,
             &[
                 "crates/iaf-tools/src/f15.rs",
                 "crates/iaf-tools/src/thirdparty.rs",
@@ -233,11 +231,7 @@ pub(crate) fn of(step: &Step, ctx: &Ctx) -> Result<Option<Stamp>> {
         }
         "aircraft" => (Some(conv("planes")), conv("planes.stamp"), vec![]),
         "objects" => (Some(conv("objects")), conv("objects.stamp"), vec![]),
-        "models" => (
-            Some(a.join(iaf_tools::f15::OUTPUT)),
-            conv("models/f15.stamp"),
-            vec![ctx.repo.join("game/extra/planes/f15i/arm")],
-        ),
+        "models" => (Some(a.join(iaf_tools::f15::OUTPUT)), conv("models/f15.stamp"), vec![]),
         _ => return Ok(None),
     };
     let mut text = format!("iaf-setup {:016x}\nstep {}\n", code(step.id, SOURCES), step.id);

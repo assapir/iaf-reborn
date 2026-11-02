@@ -843,11 +843,6 @@ pub fn apply(set: DataSet, name: &str, params: &Params, envelope: &Envelope) -> 
     if let Some(ab) = r.afterburner {
         p.has_afterburner = ab;
     }
-    // A modern jet's engine (its definition's `engine_spool`, e.g. the F-15I's -229 on type 110's code).
-    p.engine_spool = crate::airframe::all()
-        .find(|(_, a)| a.fm.as_deref() == Some(r.aircraft))
-        .and_then(|(_, a)| a.engine_spool)
-        .map(crate::spool::of_definition);
     if let Some(n) = r.nose_wheel {
         p.nose_wheel = Some(NoseWheel {
             max_angle: n.angle_deg.to_radians(),
@@ -919,11 +914,21 @@ mod tests {
         // The type code finds the Baz first (mission_sanity).
         assert_eq!(TYPES.iter().find(|t| t.type_code == 110).map(|t| t.name), Some("F-15"));
         // Its -229 spools from its definition, the Baz's -220 by type code: idle to maximum afterburner under 4 s.
-        let p = Params::from_section(iaf_formats::ini::Ini::parse(b"[F-15]\r\n").section("F-15").unwrap());
-        let e = Envelope::parse(b"[Min Velocity Table]\r\n0 100 0\r\n1 150 0\r\n1 160 40000\r\n");
-        let s = apply(DataSet::Real, "F-15I", &p, &e).0.engine_spool.expect("the F-15I's spool");
+        let s = crate::spool::of_type("F-15I", 110).expect("the F-15I's spool");
         assert!(s.idle_mil + s.ab_light + s.ab_fill < 4.0, "{s:?}");
-        assert_eq!(apply(DataSet::Real, "F-15", &p, &e).0.engine_spool, None);
+        assert_eq!(crate::spool::of_type("F-15", 110), None);
+    }
+
+    /// The Ra'am's Arming base weight (its arm.json `base`) is the F-15's (f-15.trx: 42,000 lb) plus the F-15I row's
+    /// heavier empty weight and larger fuel against the F-15 row's.
+    #[test]
+    fn raam_arm_base_follows_the_row() {
+        let arm: serde_json::Value =
+            serde_json::from_str(include_str!("../../../game/extra/planes/f15i/arm/arm.json")).unwrap();
+        let row = |n| find_type(n).and_then(real).unwrap();
+        let (i, c) = (row("F-15I"), row("F-15"));
+        let want = 42_000.0 + i.empty_lb - c.empty_lb + i.fuel_lb.unwrap() - c.fuel_lb.unwrap();
+        assert_eq!(arm["base"].as_f64(), Some(want as f64));
     }
 
     #[test]

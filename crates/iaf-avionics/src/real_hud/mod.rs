@@ -66,16 +66,18 @@ pub enum Jet {
 }
 
 impl Jet {
-    /// The display of a cockpit directory: the `hud` of the aircraft definition with that `cockpit`
-    /// (`iaf_flight::airframe`), else each 1998 jet's own; f16 (and anything else) the F-16's.
+    /// The display of a Real HUD key (the game's `cockpit.real_hud_key`): an aircraft definition's `hud` ("f35",
+    /// "f15e"), or a cockpit directory: the `hud` of the definition with that `cockpit` (`iaf_flight::airframe`),
+    /// else each 1998 jet's own; f16 (and anything else) the F-16's.
     pub fn of_cockpit(dir: &str) -> Self {
         let d = dir.to_ascii_lowercase();
         let def = iaf_flight::airframe::all()
             .find(|(_, a)| a.cockpit.as_deref().is_some_and(|c| c.eq_ignore_ascii_case(d.trim_end_matches('/'))))
             .and_then(|(_, a)| a.hud.as_deref());
-        if def == Some("f35") {
+        let key = def.unwrap_or(&d);
+        if key == "f35" {
             Jet::F35
-        } else if d == "f15e" {
+        } else if key == "f15e" {
             Jet::F15E
         } else if d.ends_with("f15") {
             Jet::F15
@@ -327,6 +329,8 @@ pub struct Input {
     pub roll_deg: f64,
     pub mach: f64,
     pub g: f64,
+    /// The jet's positive g limit (its flight data's MaxG; the F-15E HUD's allowable g).
+    pub g_limit: f64,
     pub aoa_deg: f64,
     pub gear_down: bool,
     pub fuel_lbs: f64,
@@ -715,11 +719,19 @@ fn dlz_scale(p: &mut Vec<Prim>, x: f64, y0: f64, half: f64, t: Target, z: Dlz) -
 ///   outside;
 /// - the azimuth steering line: through the aim along the rolled vertical; the pilot puts the marker on it;
 /// - the LAR staple at `x` (centred on `y0`, `half` px high, 0 at the bottom, the scale's NM above): a bracket from
-///   Rmin to Rmax opening left, the range caret on its left; under it, ending at the bracket, `IN RNG` inside the LAR, else the time to Rmax
-///   (`TMR m:ss`) while closing.
+///   Rmin to Rmax opening left, the range caret on its left; with `cue`, under it, ending at the bracket, the range cue
+///   ([`gps_cue`]; the F-15E puts it in its window 19 instead).
 ///
 /// Field symbols go to `p`, the scale to `o`.
-fn gps_cues(p: &mut Vec<Prim>, o: &mut Vec<Prim>, i: &Input, f: Field, (x, y0, half): (f64, f64, f64), box_half: f64) {
+fn gps_cues(
+    p: &mut Vec<Prim>,
+    o: &mut Vec<Prim>,
+    i: &Input,
+    f: Field,
+    (x, y0, half): (f64, f64, f64),
+    box_half: f64,
+    cue: bool,
+) {
     let Some(g) = i.weapons.gps else { return };
     if let Some(at) = g.at {
         let roll = i.roll_deg.to_radians();
@@ -754,17 +766,20 @@ fn gps_cues(p: &mut Vec<Prim>, o: &mut Vec<Prim>, i: &Input, f: Field, (x, y0, h
     let r = y(l.range);
     o.push(line((x, r), (x - 3.0, r - 2.0)));
     o.push(line((x, r), (x - 3.0, r + 2.0)));
-    let cue = if l.in_range {
-        Some("IN RNG".to_string())
-    } else {
-        l.tmr.map(|t| {
-            let t = t.min(5999.0).ceil() as i64;
-            format!("TMR {}:{:02}", t / 60, t % 60)
-        })
-    };
-    if let Some(c) = cue {
+    if let Some(c) = gps_cue(&l).filter(|_| cue) {
         o.push(text((x + 4.0, y0 + half + 10.0), c, Align::Right));
     }
+}
+
+/// A GPS bomb's range cue: `IN RNG` inside the LAR, else the time to Rmax (`TMR m:ss`) while closing.
+fn gps_cue(l: &crate::gps::Lar) -> Option<String> {
+    if l.in_range {
+        return Some("IN RNG".to_string());
+    }
+    l.tmr.map(|t| {
+        let t = t.min(5999.0).ceil() as i64;
+        format!("TMR {}:{:02}", t / 60, t % 60)
+    })
 }
 
 /// A GPS bomb's time to impact as the HUDs show it (`TTI m:ss`, whole seconds rounded up).
@@ -836,6 +851,7 @@ mod tests {
             heading_deg: 333.0,
             mach: 0.85,
             g: 2.3,
+            g_limit: 8.1,
             fuel_lbs: 5000.0,
             bingo_lbs: 1500.0,
             fpm: Some((0.0, 10.0)),
@@ -855,7 +871,7 @@ mod tests {
     #[test]
     fn gps_cues_on_the_gps_jets() {
         use crate::gps::Lar;
-        for jet in [Jet::F16, Jet::F15, Jet::F35] {
+        for jet in [Jet::F16, Jet::F15, Jet::F35, Jet::F15E] {
             let mut i = input(jet);
             i.weapons.hud_mode = 5;
             i.weapons.pipper = Some((-5.0, 30.0));
@@ -965,6 +981,7 @@ mod tests {
     fn cockpits_pick_their_display() {
         assert_eq!(Jet::of_cockpit("converted/cockpits/f15"), Jet::F15);
         assert_eq!(Jet::of_cockpit("f15e"), Jet::F15E);
+        assert_eq!(Jet::of_cockpit("f35"), Jet::F35, "a definition's hud key");
         assert_eq!(Jet::of_cockpit("converted/cockpits/lavi"), Jet::Lavi);
         assert_eq!(Jet::of_cockpit("res://extra/planes/f35i/cockpit"), Jet::F35);
         assert_eq!(Jet::of_cockpit("converted/cockpits/phantom"), Jet::Phantom);

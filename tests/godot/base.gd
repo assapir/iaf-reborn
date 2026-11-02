@@ -177,6 +177,18 @@ func _named(rt, name: String) -> Dictionary:
 	return {}
 
 
+## IafFlight.start's flags for an airborne restart: the data set (`real_data`), the Extras variants as Settings has
+## them (the F-16I on Sufa, the F-15I on Ra'am: flight.rs picks the flight model from them).
+func airborne_flags(real_data := false) -> Dictionary:
+	return {
+		"airborne": true,
+		"engine_on": true,
+		"real_data": real_data,
+		"f16_variant": settings().f16_variant,
+		"f15_variant": settings().f15_variant,
+	}
+
+
 ## A frozen, airborne weapons case: the jet 3000 m up at 250 m/s, the flight model stopped, a fresh player
 ## weapons node with `hardpoints` in place of the mission's. Returns the weapons node.
 func airborne_case(tv, hardpoints: Array):
@@ -191,7 +203,7 @@ func airborne_case(tv, hardpoints: Array):
 		st0.position,
 		Vector3(0.0, 0.0, st0.heading),
 		st0.forward * 250.0,
-		{"airborne": true, "engine_on": true, "real_data": false}
+		airborne_flags()
 	)
 	var w = tv.weapons
 	var w2 = load("res://weapons/player_weapons.gd").new()
@@ -236,12 +248,7 @@ func start_over(tv, w, ground_pt: Vector3, vel: Vector3, section: String, height
 	tv.rig.position = sp
 	tv.rig.basis = Basis()
 	tv.flight.start(
-		settings().assets_dir().path_join("install"),
-		section,
-		sp,
-		Vector3(0.0, 0.0, 0.0),
-		vel,
-		{"airborne": true, "engine_on": true, "real_data": false}
+		settings().assets_dir().path_join("install"), section, sp, Vector3(0.0, 0.0, 0.0), vel, airborne_flags()
 	)
 	w._push_stores()
 

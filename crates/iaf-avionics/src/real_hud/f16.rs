@@ -170,7 +170,7 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
             }
         }
         3 => eegs(p, i, f),
-        5 | 6 if gps => gps_cues(p, o, i, f, (sc.right - DLZ_IN, tape_y, DLZ_HALF), i.mr(4.0)),
+        5 | 6 if gps => gps_cues(p, o, i, f, (sc.right - DLZ_IN, tape_y, DLZ_HALF), i.mr(4.0), true),
         5 | 6 if let Some((d, t)) = delayed => delayed_ccip(p, i, f, d, t),
         4..=6 => {
             if let Some(c) = w.pipper {

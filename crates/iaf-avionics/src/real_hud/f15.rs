@@ -199,7 +199,7 @@ pub(super) fn frame(f: Field, i: &Input, gs_captured: bool) -> Frame {
                 lcos(p, i, c);
             }
         }
-        5 | 6 if gps.is_some() => gps_cues(p, o, i, f, (sc.right - RANGE_IN, tape_y, RANGE_HALF), i.mr(4.0)),
+        5 | 6 if gps.is_some() => gps_cues(p, o, i, f, (sc.right - RANGE_IN, tape_y, RANGE_HALF), i.mr(4.0), true),
         _ => {}
     }
     fr

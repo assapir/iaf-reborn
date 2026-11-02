@@ -773,16 +773,6 @@ func real_mfd(cockpit: String) -> String:
 	return "green" if real_mfds == "real" else ""
 
 
-## The Real HUD's display key for the cockpit directory `dir` (IafRealHud's `cockpit`): the F-15's aircraft
-## definition's hud ("f15e" on the Ra'am, docs/real-hud.md "F-15E"), else `dir` itself.
-func real_hud_dir(dir: String) -> String:
-	if dir.get_file() == "f15":
-		var own: String = airframe(110).get("hud", "")
-		if own != "":
-			return own
-	return dir
-
-
 ## Scroll steps for a wheel or trackpad pan event (ours, the original has no wheel): +1 = one step down, -1 = up,
 ## 0 = none; "natural" reverses them. A pan adds up its delta.y (+ = down, as Godot's ScrollContainer reads it) and
 ## steps once per whole unit.

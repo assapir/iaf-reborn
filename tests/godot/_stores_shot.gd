@@ -350,7 +350,7 @@ func _raam_case() -> void:
 		st0.position,
 		Vector3(0.0, 0.0, st0.heading),
 		st0.forward * 250.0,
-		{"airborne": true, "engine_on": true, "real_data": false}
+		airborne_flags()
 	)
 	var w = tv.weapons
 	_pin()

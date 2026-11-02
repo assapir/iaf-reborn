@@ -926,6 +926,7 @@ func _choose_player() -> void:
 	)
 	if cockpit.cockpit_dir != player.cockpit_dir:
 		cockpit.load_cockpit(player.cockpit_dir)
+	cockpit.hud_key = Settings.airframe(player.type).get("hud", "")
 	cockpit.twin_engines = player.twin
 
 
@@ -2894,6 +2895,7 @@ func _take_over(target: Dictionary, old: Dictionary) -> void:
 	player = PlayerAircraft.profile(int(target.type_code))
 	if cockpit.cockpit_dir != player.cockpit_dir:
 		cockpit.load_cockpit(player.cockpit_dir)
+	cockpit.hud_key = Settings.airframe(player.type).get("hud", "")
 	cockpit.twin_engines = player.twin
 	sounds.queue_free()
 	sounds = FlightSounds.create(self, player.type)
@@ -3493,6 +3495,7 @@ func _process(delta: float) -> void:
 			"heading",
 			"aoa",
 			"g",
+			"g_limit",
 			"rpm",
 			"throttle",
 			"fuel_lbs",

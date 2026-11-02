@@ -68,7 +68,7 @@ tr { page-break-inside: avoid; }
 th { background: #2f3440; color: #fff; text-align: left; font-weight: 600; padding: 1.6mm 2.2mm; }
 td { padding: 1.4mm 2.2mm; border-bottom: 1px solid #dfe1e6; vertical-align: top; }
 tbody tr:nth-child(even) td { background: #f5f6f8; }
-figure { margin: 3mm 0 6mm; }
+figure { margin: 3mm 0 6mm; break-inside: avoid; }  /* the legend on its picture's page */
 figure .pic { break-inside: avoid; }
 ol.legend li { break-inside: avoid; }
 figure img { display: block; width: 100%; border-radius: 1.5mm; border: 1px solid #c8cbd2; }

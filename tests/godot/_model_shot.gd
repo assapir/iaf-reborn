@@ -148,7 +148,7 @@ func run() -> void:
 			tv.rig.position,
 			Vector3(0.0, 0.0, st.heading),
 			st.forward * 250.0,
-			{"airborne": true, "engine_on": true, "real_data": settings().real_data()}
+			airborne_flags(settings().real_data())
 		)
 	if OS.get_environment("SHOT_NO_NORMAL") == "1":  # (debug: the normal maps' share of the look)
 		for mi: MeshInstance3D in tv.aircraft.find_children("*", "MeshInstance3D", true, false):

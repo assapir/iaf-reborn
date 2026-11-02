@@ -221,7 +221,8 @@ Symbology:
 ## F-15E (F-15I Ra'am)
 
 With Extras "F-15 version" on Ra'am the F-15's Real HUD is the F-15E's: the F-15I's aircraft definition says so
-(`hud`: "f15e"; `Settings.real_hud_dir` passes it to `IafRealHud` in place of the cockpit folder). The F-15I's own HUD
+(`hud`: "f15e"; the flight scene sets it as the cockpit's `hud_key`, and `cockpit.real_hud_key()` passes it to every
+`IafRealHud` call and the HUD's DASH / ILS checks in place of the cockpit folder; `Jet::of_cockpit` maps it). The F-15I's own HUD
 software is open; the F-15E's is used and labelled F-15E (docs/f15i.md §10, decision 2). Built 2026-11-02 in
 `real_hud/f15e.rs`.
 
@@ -233,11 +234,13 @@ Source: TO 1F-15E-1 (1990, change 2 of 1991), "Head-Up Display (HUD)" pp. 1-68 t
 Field of view: 21° tall by 28° wide (p. 1-68), the Real view's field (below).
 
 Symbology (from the sources):
-- Digital windows in place of the F-15A/C's tapes. Left: window 1 the calibrated airspeed in a box, window 2 the AoA
+- Digital windows in place of the F-15A/C's tapes. Left: window 1 the airspeed in a box, its source letter left of the
+  box (`C` calibrated; `T` true or `G` ground speed when selected on the UFC; fig. 1-22), window 2 the AoA
   (`α 10.2`) under it; lower left window 5 (gun rounds `700`; the missile count `M4A` / `S4L`: M or S, the count, the
   type in priority, A AIM-120A, F / M AIM-7F / M, J / P / L / M the AIM-9s), window 6 the Mach (`0.900`, gear up),
   window 7 current g on the left and maximum allowable g on the right (`-4.5  9.0G`, gear up). Right: window 13 the
-  barometric altitude in a box, window 14 the vertical velocity (`VV`, NAV gear down), 14A the radar altitude
+  altitude in a box, its source letter left of the box (`B` barometric, `R` radar when selected on the UFC; fig.
+  1-22; the thousands digits larger, p. 1-80), window 14 the vertical velocity (`VV`, NAV gear down), 14A the radar altitude
   (`R1500`, selected on the UFC); lower right window 17 the steering mode and destination (`NAV`, `TCN`, `ILSN`,
   `GT`), 18 the range with its source (`R` radar, `G` A-G, `N` nav, `T` TACAN; 0.1 NM), 19 the times (`35 SEC` MRM time
   to go, `1:15 TIMPCT` time to impact, `10:15 TREL` time to release, `01:30:15` nav time to go), 20 the course set,
@@ -260,15 +263,19 @@ Symbology (from the sources):
   (AUTO) or on the weapon's boresight (an EO guided weapon); the reticle range bar inside the circle (0 to 12,000 ft on
   the first turn); the A-G target designator diamond; the break X when diving more than 3° and a 4 g pull-out
   reached in 2 s would end below 200 ft of radar altitude (p. 1-71).
+- The break X in the A/G master mode only: the TO describes no breakaway X in A-A, inside a missile's minimum range
+  or elsewhere (p. 1-71; the F-15A/C's breakaway X inside Rmin is the -34's), so the A-A modes draw none.
 
 Ours (what `f15e.rs` draws):
 - Places: fig. 1-23 sheet 1 is a schematic drawing; ours keeps every window on its side and in its order, as
   fractions of the cockpit's HUD field from its centre, with rows 9 px apart (the HUD font is larger against the glass
   than the real HUD's; inferred). The heading scale is 90 px wide (the figure's would put its labels 3 px apart at
   the game's font; inferred).
-- Drawn: windows 1, 2, 5, 6, 7, 13, 14, 14A (outside A-A: the UFC selection taken as on), 17 (`NAV n`, `ILSN n`),
+- Drawn: windows 1 (`C`), 2, 5, 6, 7, 13 (`B`: the game's box shows the barometric altitude; one font size, the
+  larger thousands digits not drawn), 14, 14A (outside A-A: the UFC selection taken as on), 17 (`NAV n`, `ILSN n`),
   18, 19 (nav time to go, `TREL` for the delayed CDIP, `TIMPCT` for a released GPS bomb), 20 (aspect; `GUN`, `CDIP`,
-  `GUIDED`, `PRE` / `VIS` for a GPS bomb, with `RALT` or `BARO`); the heading scale with the command heading marker
+  `GUIDED`, `PRE` / `VIS` for a GPS bomb, with `RALT` or `BARO`); a GPS bomb's `IN RNG` / `TMR m:ss` a row of its own
+  under window 19 (the F-16's under the LAR staple, which here stands left of the right column; inferred); the heading scale with the command heading marker
   on the steerpoint's bearing; the ladder and velocity vector; the waterline symbol; the gun cross; the radar
   altimeter thermometer; the bank scale (pointer: inferred, the F-16's sense); the A-A range scale with windows 10 to
   12; the A-G reticle and the target diamond; the break X (ours: one second at the present sink stands for the 2 s g
@@ -276,7 +283,8 @@ Ours (what `f15e.rs` draws):
 - Inferred where the -34 holds the symbol (marked F-15A/C in the code): the TD box, the ASE circle and steering dot
   (60 mr, on the HUD centre), the SRM seeker circle, `SHOOT` under the ASE circle, the LCOS gunsight (the F-15A/C's),
   the ILS bank and pitch steering bars (the F-15A/C's flight director).
-- Allowable g: 9.0 (the game has no overload warning system; the F-15I's +9 g limit, inferred).
+- Allowable g: the jet's own limit, its flight data's MaxG (the F-15I row's +8.1, f15i.md §1; the game has no
+  overload warning system's weight curve, inferred).
 - The missile letter: none for the Python 3 / 4 / 5 and the AIM-9X (the manual lists none; open).
 - Not drawn: windows 3, 4, 8, 9, 15, 16, 21 (terrain following, IN CMD, alignment, PDT altitude, training: the game
   has none), 2A (true / ground speed: off unless selected on the UFC), the ghost velocity vector (no caging), command
@@ -674,6 +682,7 @@ game's rule (docs/cockpit.md "break X", docs/sound.md §4).
 | --- | --- | --- |
 | F-16 | the break X: flashing at the GAAF advisory in every master mode; steady in the A-A missile modes inside Rmin[^dash34brk]; the pull-up anticipation U rising to the flight path marker in the A-G modes[^dash34brk]; `AL` flashing below ALOW[^dash34alow] | "PULL UP – PULL UP" at the GAAF advisory[^dash34gaaf]; "ALTITUDE – ALTITUDE" below the ALOW height[^dash34alow], 300 ft by default[^betty] |
 | F-15 | the breakaway X inside Rmin (section F-15A/C above) | none: the sources list no pull-up or height call[^betty] |
+| F-15E (the F-15I Ra'am) | the break X in the A-G master mode: a dive of more than 3° whose 4 g pull-out (reached in 2 s; ours: one second at the present sink) would end below 200 ft of radar altitude; none in A-A, as the TO (section F-15E above) | none, as the F-15's (the F-15I's voice system is open) |
 | F-35I | open (none drawn) | "PULL UP" at the F-16's GAAF rule (inferred: Auto-GCAS lineage[^betty]); no height call |
 | Lavi, Kurnass 2000 | open (none drawn) | the game's Betty rule (the jets' voice systems are open[^betty]) |
 | Kfir | open (none drawn) | none (no voice[^betty]) |
@@ -760,7 +769,7 @@ inferred). Built in `real_hud/mod.rs` `gps_cues`, drawn while a GPS bomb has an 
 | azimuth steering line | through the aim along the rolled vertical; the pilot puts the flight path marker on it | yes | yes | yes |
 | LAR staple | a bracket from Rmin to Rmax opening left, 0 at the bottom, the scale's NM (5 / 10 / 20 / 40 / 80) above it | where the DLZ goes, the altitude scale moved out | where the range scale goes | right of centre, as its DLZ |
 | range caret | the ground distance to the aim, left of the staple | yes | yes | yes |
-| `TMR m:ss` / `IN RNG` | under the staple: the time to Rmax while closing, then in range | yes | yes | yes |
+| `TMR m:ss` / `IN RNG` | under the staple: the time to Rmax while closing, then in range | yes | yes (the F-15E HUD: a row of the right column under window 19) | yes |
 | PRE / VIS | the mode | the weapon window (instead of CCIP) | under the G | the weapon line (`1 PRE`) |
 | `TTI m:ss` | after the release, the last released bomb's time to impact until it bursts, in every HUD mode (docs/weapons.md §13.3) | the right column's time row, in place of the steerpoint's time | the time row under the steerpoint (instead of `N MIN`) | the time row under the steerpoint, also looking aside |
 

@@ -829,8 +829,11 @@ fn arm_front(tris: &[&Tri], helpers: &[(String, V)]) -> (RgbaImage, Vec<[f64; 2]
     let half = norm(add(key, [0.0, 0.0, -1.0])); // the viewer looks along +z
     // Each sample's nearest surface (z) and brightness (< 0: none); the opaque surfaces first, then the glass in
     // front of them.
-    let raster = |glass: bool, depth: &mut [f32], lum: &mut [f32], behind: &[f32]| {
-        for t in tris.iter().filter(|t| (t.0.rgba[3] < 200) == glass) {
+    // `win` (x, y, width, height): the samples `depth` / `lum` hold; `behind`: the full image's opaque depth.
+    let is_glass = |t: &&&Tri| t.0.rgba[3] < 200;
+    let raster = |glass: bool, win: [u32; 4], depth: &mut [f32], lum: &mut [f32], behind: Option<&[f32]>| {
+        let [wx, wy, ww, wh] = win;
+        for t in tris.iter().filter(|t| is_glass(t) == glass) {
             let p = t.1.map(px);
             let area = (p[1][0] - p[0][0]) * (p[2][1] - p[0][1]) - (p[2][0] - p[0][0]) * (p[1][1] - p[0][1]);
             if area.abs() < 1e-6 {
@@ -840,8 +843,9 @@ fn arm_front(tris: &[&Tri], helpers: &[(String, V)]) -> (RgbaImage, Vec<[f64; 2]
                 (p.iter().map(|q| q[0]).fold(f32::MAX, f32::min), p.iter().map(|q| q[0]).fold(f32::MIN, f32::max));
             let (y0, y1) =
                 (p.iter().map(|q| q[1]).fold(f32::MAX, f32::min), p.iter().map(|q| q[1]).fold(f32::MIN, f32::max));
-            for y in (y0.floor().max(0.0) as u32)..=(y1.ceil().min(h as f32 - 1.0).max(0.0) as u32) {
-                for x in (x0.floor().max(0.0) as u32)..=(x1.ceil().min(w as f32 - 1.0).max(0.0) as u32) {
+            let ys = (y0.floor().max(wy as f32) as u32)..=(y1.ceil().min((wy + wh) as f32 - 1.0).max(0.0) as u32);
+            for y in ys {
+                for x in (x0.floor().max(wx as f32) as u32)..=(x1.ceil().min((wx + ww) as f32 - 1.0).max(0.0) as u32) {
                     let (cx, cy) = (x as f32 + 0.5, y as f32 + 0.5);
                     let e =
                         |a: [f32; 2], b: [f32; 2]| ((b[0] - a[0]) * (cy - a[1]) - (cx - a[0]) * (b[1] - a[1])) / area;
@@ -851,8 +855,8 @@ fn arm_front(tris: &[&Tri], helpers: &[(String, V)]) -> (RgbaImage, Vec<[f64; 2]
                     }
                     // Nearer: further forward (the nose is at −z).
                     let z = b[0] * t.1[0][2] + b[1] * t.1[1][2] + b[2] * t.1[2][2];
-                    let i = (y * w + x) as usize;
-                    if z >= depth[i] || z >= behind[i] {
+                    let i = ((y - wy) * ww + x - wx) as usize;
+                    if z >= depth[i] || behind.is_some_and(|b| z >= b[(y * w + x) as usize]) {
                         continue;
                     }
                     depth[i] = z;
@@ -875,9 +879,28 @@ fn arm_front(tris: &[&Tri], helpers: &[(String, V)]) -> (RgbaImage, Vec<[f64; 2]
     };
     let n = (w * h) as usize;
     let (mut depth, mut lum) = (vec![f32::MAX; n], vec![-1.0f32; n]);
-    raster(false, &mut depth, &mut lum, &vec![f32::MAX; n]);
-    let (mut glass_z, mut glass) = (vec![f32::MAX; n], vec![-1.0f32; n]);
-    raster(true, &mut glass_z, &mut glass, &depth);
+    raster(false, [0, 0, w, h], &mut depth, &mut lum, None);
+    // The glass only over the canopy's bounding box (in the image).
+    let (mut gx0, mut gy0, mut gx1, mut gy1) = (w, h, 0, 0);
+    for t in tris.iter().filter(is_glass) {
+        for q in t.1.map(px) {
+            gx0 = gx0.min(q[0].floor().clamp(0.0, w as f32 - 1.0) as u32);
+            gy0 = gy0.min(q[1].floor().clamp(0.0, h as f32 - 1.0) as u32);
+            gx1 = gx1.max(q[0].ceil().clamp(0.0, w as f32 - 1.0) as u32 + 1);
+            gy1 = gy1.max(q[1].ceil().clamp(0.0, h as f32 - 1.0) as u32 + 1);
+        }
+    }
+    let gwin = [gx0, gy0, gx1.saturating_sub(gx0), gy1.saturating_sub(gy0)];
+    let gn = (gwin[2] * gwin[3]) as usize;
+    let (mut glass_z, mut glass_lum) = (vec![f32::MAX; gn], vec![-1.0f32; gn]);
+    raster(true, gwin, &mut glass_z, &mut glass_lum, Some(&depth));
+    let glass = |x: u32, y: u32| -> f32 {
+        if (gx0..gx1).contains(&x) && (gy0..gy1).contains(&y) {
+            glass_lum[((y - gy0) * gwin[2] + x - gx0) as usize]
+        } else {
+            -1.0
+        }
+    };
     let (ow, oh) = (w / SS, h / SS);
     // Ambient occlusion (screen space): a pixel further back than the mean of the surfaces within AO_M round it is
     // shaded by how much (the intakes' insides, the gaps under the wings), as the original's dark recesses.
@@ -921,11 +944,13 @@ fn arm_front(tris: &[&Tri], helpers: &[(String, V)]) -> (RgbaImage, Vec<[f64; 2]
         let (mut sum, mut n) = (0.0, 0.0);
         let shade = 1.0 - AO * occlusion(x as usize, y as usize);
         for k in 0..SS * SS {
-            let i = ((y * SS + k / SS) * w + x * SS + k % SS) as usize;
+            let (sx, sy) = (x * SS + k % SS, y * SS + k / SS);
+            let i = (sy * w + sx) as usize;
+            let g = glass(sx, sy);
             // The glass tints what lies behind it (ARM_GLASS of its own shade), or stands alone over the background.
-            let l = match (lum[i] >= 0.0, glass[i] >= 0.0) {
-                (true, true) => lum[i] * shade * (1.0 - ARM_GLASS) + glass[i] * ARM_GLASS,
-                (_, true) => glass[i],
+            let l = match (lum[i] >= 0.0, g >= 0.0) {
+                (true, true) => lum[i] * shade * (1.0 - ARM_GLASS) + g * ARM_GLASS,
+                (_, true) => g,
                 _ => lum[i] * shade,
             };
             if l >= 0.0 {

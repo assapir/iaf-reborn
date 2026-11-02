@@ -22,7 +22,7 @@ func run() -> void:
 	check(combat.sensor_nm(110) == 30.8, "AI F-15I sensor: 30.8 NM")
 	check(combat.sensor_nm(100) == 40.0, "AI F-16 sensor unchanged: 40 NM")
 	check(load("res://menu/tsd.gd").unit_label({"type": 110, "cls": 2, "name": ""}) == "F-15I", "TSD names it F-15I")
-	check(settings().real_hud_dir("converted/cockpits/f15") == "f15e", "the Real HUD is the F-15E's")
+	check(settings().airframe(110).get("hud", "") == "f15e", "the Real HUD is the F-15E's")
 	check(
 		ClassDB.class_call_static("IafRealHud", "real_view_px_per_deg", "f15e", Rect2(-98, -60, 196, 130)) < 6.0,
 		"the Real view fits the F-15E's 28° × 21° field"
@@ -75,6 +75,9 @@ func run() -> void:
 	var tv = await start_mission(231)
 	await frames(5)
 	check(tv.player.type == 110, "the F-15 flies mission 231")
+	check(tv.cockpit.real_hud_key() == "f15e", "the cockpit's Real HUD key: %s" % tv.cockpit.real_hud_key())
+	var g_limit := float(tv.flight.state().get("g_limit", 0.0))
+	check(absf(g_limit - 8.1) < 0.01, "the F-15E HUD's allowable g is the row's +8.1: %.2f" % g_limit)
 	var fuel: float = tv.flight.state().internal_fuel_kg
 	check(absf(fuel - RAAM_FUEL_KG) < 1.0, "player F-15I: internal fuel %.0f kg" % fuel)
 	check(tv._modes_text().contains("RAAM"), "info line: %s" % tv._modes_text())
@@ -106,7 +109,7 @@ func run() -> void:
 	check(burn > 300.0, "it burns the -229s' afterburner fuel: %.0f kg in 30 s" % burn)
 	_spice(tv)
 	settings().f15_variant = "baz"
-	check(settings().real_hud_dir("converted/cockpits/f15") == "converted/cockpits/f15", "Baz: the F-15A/C Real HUD")
+	check(settings().airframe(110).get("hud", "") == "", "Baz: the F-15A/C Real HUD (its cockpit's)")
 
 
 ## PRE, the briefing's target 45 km ahead, 9,000 m up at 250 m/s: in the SPICE's LAR (a JDAM's is far short); the

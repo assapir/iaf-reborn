@@ -704,6 +704,7 @@ impl IafFlight {
         d.set("heading", s.heading.to_degrees());
         d.set("aoa", s.alpha.to_degrees());
         d.set("g", s.g);
+        d.set("g_limit", ac.params.max_g_m1 + 1.0); // the flight data's MaxG (the F-15I row's +8.1)
         d.set("rpm", s.rpm / 100.0);
         d.set("throttle", s.throttle);
         d.set("afterburner", s.afterburner as i64);

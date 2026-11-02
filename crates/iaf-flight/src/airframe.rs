@@ -288,7 +288,8 @@ mod tests {
         }
         assert_eq!(of_type(100, off).unwrap().hud_3d.as_deref(), Some("HUD_std"));
         // The F-35I flies its definition's engine and flight controls (type 1000 has no 1998 row).
-        assert_eq!(crate::spool::engine(1000).map(|s| s.idle_mil), Some(4.0));
+        assert_eq!(crate::spool::of_type("F-35I", 1000).map(|s| s.idle_mil), Some(4.0));
+        assert_eq!(crate::spool::engine(1000), None, "the type table holds the 1998 jets only");
         assert_eq!(of_fm_type(1000).and_then(|a| a.fly_by_wire), Some(true));
     }
 

@@ -160,7 +160,8 @@ const REFS: &[Ref] = &[
         thrust_ab: Some((57800.0, 58800.0, "2 x 29,160 lbf (F100-PW-229)")),
         stall: Some((150.0, 160.0, "155 KCAS power off, flaps up, at 59,665 lb (F-15E, TO 1F-15E-1 fig. A1-6)")),
         ceiling: Some((58000.0, 62000.0, "60,000 ft (USAF F-15E)")),
-        vmax_sl: Some((680.0, 720.0, "~700 kt with CFTs (F-15E, Wikipedia note, secondary)")),
+        // The ~700 kt with CFTs at low altitude reads as a limit, not a top speed: not fitted (docs/f15i.md §1).
+        vmax_sl: None,
         vmax_hi: Some((1120.0, 1175.0, "~Mach 2.0 with CFTs (F-15E, Wikipedia note, secondary)")),
         ff_mil: Some((25000.0, 29000.0, "~2 x 13,500 lb/h (TSFC 0.76, inferred)")),
         ff_ab: Some((105000.0, 120000.0, "~2 x 56,550 lb/h (TSFC 1.94, inferred)")),

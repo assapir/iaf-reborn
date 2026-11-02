@@ -292,14 +292,15 @@ j_menu_he() {
 }
 
 # Extra planes' arming art (docs/adding-a-plane.md §5): composed from the original arming art of the menus and the
-# plane's front view (game/extra/planes/<p>/arm).
+# plane's front view (game/extra/planes/<p>/arm). After j_models, which makes the F-15I's front view; j_models is
+# optional, so its failure only leaves the F-15I's art out (arm-extra skips a plane whose front view is not there).
 j_arm() {
 	needs menu
 	needs menu_he
+	needs models || true
 	step "extra planes' arming art"
 	local arm p m
 	for arm in game/extra/planes/*/arm; do
-		grep -q '"front"' "$arm/arm.json" && continue  # its front view made by j_models, which composes it
 		p=$(basename "$(dirname "$arm")")
 		for m in assets/converted/menu assets/converted/menu_he; do
 			if [[ -d $m/img/arm/jets ]]; then
@@ -362,17 +363,9 @@ j_textures() {  # optional: a failure (offline) only leaves Graphics → MORE �
 
 j_models() {  # optional: a failure (offline) only leaves the F-15 Original with Models Detailed
 	needs aircraft
-	needs menu
-	needs menu_he
 	step "detailed F-15: FlightGear F-15C by Enrique Laso, Richard Harrison, GeneB (GPL-2.0-only; download about 18 MB; docs/aircraft-models.md §6)"
 	./target/release/iaf-convert f15-detailed assets ||
 		echo "WARNING: the F-15's sources could not be fetched or converted (offline?): the F-15 stays Original with Models Detailed; run setup again online"
-	local m  # the F-15I's arming art from the front view just made (arm-extra skips it when there is none)
-	for m in assets/converted/menu assets/converted/menu_he; do
-		if [[ -d $m/img/arm/jets ]]; then
-			./target/release/iaf-convert arm-extra "$m/img" game/extra/planes/f15i/arm "$m/img/arm/jets/x_f15i.png"
-		fi
-	done
 }
 
 for j in fonts cockpits hebrew briefings reference menu menu_he arm keys missions aircraft objects theatre airbases \

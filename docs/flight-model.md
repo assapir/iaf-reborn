@@ -889,9 +889,10 @@ Table `spool::ENGINES` (seconds, sea level; `mil_idle` 5 s for every engine, inf
 | F-35I (its definition's `engine_spool`) | F135-PW-100 | 4.0 | 0.8 | 1.2 | flight idle → maximum power about 6 s[^pw135]; the split inferred |
 | F-15I Ra'am (its definition's `engine_spool`, before type 110's) | F100-PW-229 | 3.0 | 0.0 | 0.9 | F-15E: idle → maximum AB in less than 4 s[^usaf-f15e]; in a snap acceleration the AB's first segment lights just above idle[^to-f15e]; idle → military the -220's (inferred), the rest inferred |
 
-* A modern jet's definition (`engine_spool` in `game/extra/planes/<id>/airframe.json`) goes before its type code's
-  row: `data_set::apply` puts it in `Params::engine_spool` for the jet whose `fm` is the row, so the F-15I on type
-  110 spools as the -229 and the Baz as the -220. The F-16I has none and flies type 100's.
+* An aircraft definition's `engine_spool` (`game/extra/planes/<id>/airframe.json`) goes before its type code's row,
+  with either data set: loading the flight data (`spool::of_type`) puts it in `Params::engine_spool`, from the
+  definition whose `fm` is the type flown, else the type code's own (the F-35I's). The F-15I on type 110 spools as
+  the -229 and the Baz as the -220. The F-16I has none and flies type 100's.
 * The -229's light-off: the model lights the afterburner only once the core is at military, so `ab_light` 0 is the
   nearest to the TO's light-off just above idle (inferred). Tried and dropped (2026-11-02): no public -229 figure for
   idle → military or for the fill; the F-15 ACTIVE report (NASA Dryden, Orme and Sims, 1999) gives the -229's nozzle efficiencies, not its

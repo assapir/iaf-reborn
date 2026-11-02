@@ -37,9 +37,6 @@ const ROW: f64 = 9.0;
 /// every 10° (inferred: widened from the figure's third of the frame so that the two-digit labels stay apart).
 const HDG_HALF: f64 = 45.0;
 const HDG_WINDOW: f64 = 30.0;
-/// Current g / maximum allowable g (window 7): the game has no overload warning system's weight curve; the F-15I's
-/// +9 g limit stands for it (inferred).
-const ALLOW_G: f64 = 9.0;
 /// Break X (p. 1-71): dive steeper than 3°, the pull-out on a 4.0 g pull attained in 2 s (ours: one second at the
 /// present sink stands for the onset), shown when the recovery ends below 200 ft of radar altitude.
 const BREAK_DIVE_DEG: f64 = 3.0;
@@ -76,6 +73,9 @@ pub(super) fn frame(f: Field, i: &Input, gs_captured: bool) -> Frame {
     // Left: window 1 (boxed CAS), 2 (AoA); 5 (rounds / missiles), 6 (Mach, gear up), 7 (g, gear up).
     let (lx, by) = fit.at(LEFT_X, BOX_Y);
     boxed(o, lx - 30.0, by, lx, &format!("{}", i.kcas.max(0.0).round() as i64), Align::Right);
+    // Its source letter left of the box (fig. 1-22): C, calibrated (T / G, true / ground speed: UFC selections the
+    // game has not).
+    o.push(text((lx - 32.0, by + 3.0), "C", Align::Right));
     o.push(text((lx, by + 5.0 + ROW + 1.0), format!("α {:.1}", i.aoa_deg), Align::Right));
     let (_, ly) = fit.at(0.0, LOW_Y);
     let mut rows = Vec::new();
@@ -87,7 +87,9 @@ pub(super) fn frame(f: Field, i: &Input, gs_captured: bool) -> Frame {
     }
     if !i.gear_down {
         rows.push(format!("{:.3}", i.mach));
-        rows.push(format!("{:.1}  {ALLOW_G:.1}G", i.g));
+        // Current g / maximum allowable g (window 7): the game has no overload warning system's weight curve; the
+        // jet's own limit (the F-15I row's +8.1) stands for it (inferred).
+        rows.push(format!("{:.1}  {:.1}G", i.g, i.g_limit));
     }
     for (k, t) in rows.into_iter().enumerate() {
         o.push(text((lx, ly + k as f64 * ROW), t, Align::Right));
@@ -97,6 +99,9 @@ pub(super) fn frame(f: Field, i: &Input, gs_captured: bool) -> Frame {
     // outside A-A: the UFC selection, inferred on); 17 to 20.
     let (rx, _) = fit.at(RIGHT_X, 0.0);
     boxed(o, rx + 4.0, by, rx + 38.0, &format!("{}", (i.alt_ft / 10.0).round() as i64 * 10), Align::Right);
+    // Its source letter left of the box (fig. 1-22): B, barometric (R, radar: a UFC selection; the radar altitude is
+    // window 14A).
+    o.push(text((rx + 2.0, by + 3.0), "B", Align::Right));
     let mut ry = by + 5.0 + ROW + 1.0;
     if mode == 0 && i.gear_down {
         o.push(text((rx, ry), format!("VV {}", (i.vs_fpm / 100.0).round() as i64 * 100), Align::Left));
@@ -124,6 +129,11 @@ pub(super) fn frame(f: Field, i: &Input, gs_captured: bool) -> Frame {
     } else if let Some(t) = i.steerpoint.filter(|_| mode == 0).and_then(|s| s.eta_s) {
         let t = t.clamp(0.0, 359_999.0).round() as i64;
         right.push(format!("{:02}:{:02}:{:02}", t / 3600, t / 60 % 60, t % 60));
+    }
+    // A GPS bomb's range cue (`IN RNG` / `TMR m:ss`, ours: the F-16's, under the staple there): a row of its own
+    // under window 19, clear of the other windows (inferred).
+    if let Some(c) = gps.and_then(|g| gps_cue(&g.lar)) {
+        right.push(c);
     }
     // 20: the target's aspect (A-A), the A-G delivery mode and the height-above-target sensor.
     if aa && let Some(a) = i.target.and_then(|t| t.aspect) {
@@ -235,7 +245,7 @@ pub(super) fn frame(f: Field, i: &Input, gs_captured: bool) -> Frame {
                 f15::lcos(p, i, c);
             }
         }
-        5 | 6 if gps.is_some() => gps_cues(p, o, i, f, (sx, sy, half), i.mr(4.0)),
+        5 | 6 if gps.is_some() => gps_cues(p, o, i, f, (sx, sy, half), i.mr(4.0), false),
         4..=6 => {
             if let Some(c) = w.pipper {
                 reticle(p, i, c);
@@ -417,13 +427,38 @@ mod tests {
     fn nav_windows_as_fig_1_23() {
         let fr = frame(FIELD, &nav(), false);
         let t = texts(&fr.outer);
-        for want in ["352", "10450", "α 0.0", "0.850", "2.3  9.0G", "NAV 3", "N12.0", "00:05:23", "33", "34"] {
+        for want in ["C", "352", "B", "10450", "α 0.0", "0.850", "2.3  8.1G", "NAV 3", "N12.0", "00:05:23", "33", "34"]
+        {
             assert!(t.contains(&want), "{want} in {t:?}");
         }
         // Gear down: no Mach / g, the vertical velocity.
         let i = Input { gear_down: true, vs_fpm: -720.0, ..nav() };
         let t = texts(&frame(FIELD, &i, false).outer).into_iter().map(String::from).collect::<Vec<_>>();
         assert!(t.contains(&"VV -700".to_string()) && !t.iter().any(|s| s.ends_with('G')), "{t:?}");
+    }
+
+    /// A GPS bomb's range cue is a row of the right column under window 19, clear of the LAR staple and range text;
+    /// with a bomb in flight both the time to impact and the cue.
+    #[test]
+    fn gps_range_cue_in_window_19() {
+        use crate::gps::Lar;
+        let mut i = nav();
+        i.weapons.hud_mode = 5;
+        let lar = Lar { range: 8000.0, rmin: 2000.0, rmax: 12_000.0, in_range: true, tmr: None };
+        i.weapons.gps = Some(GpsCue { pre: true, at: Some((20.0, 40.0)), lar });
+        let fr = frame(FIELD, &i, false);
+        let at = |s: &str| {
+            fr.outer.iter().find_map(|p| match p {
+                Prim::Text { at, text, align } if text.starts_with(s) => Some((*at, *align)),
+                _ => None,
+            })
+        };
+        let (cue, range) = (at("IN RNG").expect("IN RNG"), at("N12.0").expect("N12.0"));
+        assert_eq!((cue.0.0, cue.1), (range.0.0, Align::Left), "{cue:?} {range:?}");
+        assert!(cue.0.1 > range.0.1, "under window 18");
+        i.weapons.tti = Some(188.0);
+        let t = texts(&frame(FIELD, &i, false).outer).into_iter().map(String::from).collect::<Vec<_>>();
+        assert!(t.contains(&"IN RNG".to_string()) && t.iter().any(|s| s.ends_with("TIMPCT")), "{t:?}");
     }
 
     #[test]

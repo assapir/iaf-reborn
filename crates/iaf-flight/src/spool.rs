@@ -20,8 +20,8 @@ const fn spool(idle_mil: f32, mil_idle: f32, ab_light: f32, ab_fill: f32) -> Spo
     Spool { idle_mil, mil_idle, ab_light, ab_fill }
 }
 
-/// The engine of each flyable 1998 type, by type code (`Params::type_code`). A modern jet's is its definition's
-/// `engine_spool`; types with neither keep the original's response.
+/// The engine of each flyable 1998 type, by type code (`Params::type_code`). A jet whose aircraft definition gives
+/// `engine_spool` flies that instead ([`of_type`]); types with neither keep the original's response.
 pub const ENGINES: &[(u32, Spool)] = &[
     // F-16D Block 30/40, F110-GE-100: no public figure; the F100's (inferred, open).
     (100, spool(3.0, 5.0, 0.5, 2.0)),
@@ -44,11 +44,18 @@ pub const ENGINES: &[(u32, Spool)] = &[
 ];
 
 pub fn engine(type_code: u32) -> Option<Spool> {
-    ENGINES
-        .iter()
-        .find(|(c, _)| *c == type_code)
-        .map(|(_, s)| *s)
-        .or_else(|| crate::airframe::of_fm_type(type_code)?.engine_spool.map(of_definition))
+    ENGINES.iter().find(|(c, _)| *c == type_code).map(|(_, s)| *s)
+}
+
+/// The engine of the flight-model type `name` (type code `type_code`) from its aircraft definition: the one whose
+/// `fm` is `name` (the F-15I's on an F-15 on Ra'am), else its type's (the F-35I's); None: [`engine`]'s table.
+pub fn of_type(name: &str, type_code: u32) -> Option<Spool> {
+    crate::airframe::all()
+        .map(|(_, a)| a)
+        .find(|a| a.fm.as_deref().is_some_and(|f| f.eq_ignore_ascii_case(name)))
+        .or_else(|| crate::airframe::of_fm_type(type_code))?
+        .engine_spool
+        .map(of_definition)
 }
 
 /// An aircraft definition's `engine_spool` `[idle_mil, mil_idle, ab_light, ab_fill]`.

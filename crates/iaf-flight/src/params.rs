@@ -84,8 +84,8 @@ pub struct Params {
     /// 210 MiG-17, 220 Tu-22, 225 C-130; 0 = unknown. Types 100/140 never spin (§15.5); type 100
     /// lowers its flaps to a third (§15.6.4).
     pub type_code: u32,
-    /// The engine's spool times when its aircraft definition gives them (`data_set::apply`, a modern jet's
-    /// `engine_spool`); None = by type code ([`crate::spool::engine`]).
+    /// The engine's spool times when its aircraft definition gives them (`load_with` / `load_in`: [`crate::spool::of_type`]);
+    /// None = by type code ([`crate::spool::engine`]).
     pub engine_spool: Option<crate::spool::Spool>,
 }
 

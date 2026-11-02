@@ -451,21 +451,24 @@ pub fn compose_arm(
     let (w, h) = base.dimensions();
     let mut out = image::RgbaImage::new(w, h);
     let mut unsure = Vec::new();
+    let same: Vec<&image::RgbaImage> = originals.iter().filter(|o| o.dimensions() == (w, h)).collect();
+    let mut vals: Vec<[u8; 4]> = Vec::with_capacity(same.len());
+    let near = |a: &[u8; 4], b: &[u8; 4]| (0..3).map(|c| a[c].abs_diff(b[c]) as u32).sum::<u32>() <= MATCH;
     for y in 0..h {
         for x in 0..w {
             let mut px = [0u8; 4];
             // The darkest colour two originals agree on (within MATCH): a jet's silhouette and leader lines are
             // brighter than the background, and one jet's own shade does not count. Fewer than SURE agreeing: a
             // jet's part most originals share (filled below).
-            let mut vals: Vec<[u8; 4]> =
-                originals.iter().filter(|o| o.dimensions() == (w, h)).map(|o| o.get_pixel(x, y).0).collect();
+            vals.clear();
+            vals.extend(same.iter().map(|o| o.get_pixel(x, y).0));
             vals.sort_unstable_by_key(|a| a[..3].iter().map(|&v| v as u32).sum::<u32>());
-            let near = |a: &[u8; 4], b: &[u8; 4]| (0..3).map(|c| a[c].abs_diff(b[c]) as u32).sum::<u32>() <= MATCH;
             let agree = |i: usize| vals.iter().filter(|b| near(&vals[i], b)).count();
-            let pick = (0..vals.len()).find(|&i| agree(i) >= 2);
-            if let Some(i) = pick.or((!vals.is_empty()).then_some(vals.len() / 4)) {
+            let pick = (0..vals.len()).map(|i| (i, agree(i))).find(|&(_, n)| n >= 2);
+            let fallback = || (!vals.is_empty()).then(|| (vals.len() / 4, agree(vals.len() / 4)));
+            if let Some((i, n)) = pick.or_else(fallback) {
                 px[..3].copy_from_slice(&vals[i][..3]);
-                if agree(i) < SURE {
+                if n < SURE {
                     unsure.push((x, y));
                 }
             }

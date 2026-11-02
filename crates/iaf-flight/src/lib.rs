@@ -51,6 +51,8 @@ fn load_section(install: &Path, name: &str, set: DataSet, section: &str) -> Resu
     if let Some(t) = data_set::find_type(name) {
         p.type_code = t.type_code;
     }
+    // The aircraft definition's engine, whatever the data set: it wins over the type code's (spool::ENGINES).
+    p.engine_spool = spool::of_type(name, p.type_code);
     Ok(data_set::apply(set, name, &p, &e))
 }
 

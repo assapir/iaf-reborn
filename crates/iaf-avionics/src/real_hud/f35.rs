@@ -153,7 +153,7 @@ pub(super) fn frame(_hud: Field, i: &Input, max_g: f64) -> Frame {
             }
         }
         3 => funnel(p, i, 3000.0),
-        5 | 6 if gps => gps_cues(p, o, i, f, (0.5 * f.right, y0, 18.0), i.mr(4.0)),
+        5 | 6 if gps => gps_cues(p, o, i, f, (0.5 * f.right, y0, 18.0), i.mr(4.0), true),
         4..=6 => {
             if let Some(c) = w.pipper {
                 pipper(p, c, i.mr(0.5).max(0.8), i.mr(6.0));

@@ -101,7 +101,6 @@ pub fn plan(inputs: &Inputs) -> Vec<Step> {
     if he_menu {
         add("menu_he", "front-end menus in Hebrew", true, &[base, "hebrew"]);
     }
-    add("arm", "extra planes' arming art", true, if he_menu { &["menu", "menu_he"] } else { &["menu"] });
     add("keys", "key table (default keys from the exe + keys.trx labels)", true, with_he);
     add("missions", "missions (all .mis + object database -> JSON, mission list)", true, &[base]);
     add("aircraft", "aircraft: every plane's model and descriptor", true, &["missions"]);
@@ -120,8 +119,15 @@ pub fn plan(inputs: &Inputs) -> Vec<Step> {
         "models",
         "detailed F-15 and F-15I: FlightGear F-15C/D by Enrique Laso, Richard Harrison, GeneB (GPL-2.0-only; download about 20 MB)",
         false,
-        // The menus too: it composes the F-15I's arming art from the front view it renders.
-        if he_menu { &["aircraft", "menu", "menu_he"] } else { &["aircraft", "menu"] },
+        &["aircraft"],
+    );
+    // After models too: the F-15I's front view is made there; models is optional, so its failure only leaves the
+    // F-15I's art out (run_graph).
+    add(
+        "arm",
+        "extra planes' arming art",
+        true,
+        if he_menu { &["menu", "menu_he", "models"] } else { &["menu", "models"] },
     );
     let mut last: Vec<&'static str> = Vec::new();
     for im in &inputs.imagery {
@@ -261,7 +267,8 @@ pub(crate) enum Outcome {
 }
 
 /// Runs `steps` (from `plan`) as a dependency graph: a step starts once every step it waits for is done or up to date;
-/// independent steps run at once. A step whose stamp matches is up to date unless `redo(id)` (redo all: `&|_| true`). A required step's failure
+/// independent steps run at once; a required step waits for an optional one to end, not to succeed (an optional
+/// step's failure stops only itself and the optional steps after it). A step whose stamp matches is up to date unless `redo(id)` (redo all: `&|_| true`). A required step's failure
 /// sets `cancel` (the other running steps stop at their next item); setting `cancel` stops the run the same way.
 /// Returns every step's final state, in `steps`' order.
 pub fn run(
@@ -331,12 +338,18 @@ pub(crate) fn run_graph(
                 if snapshot[k] != State::Waiting {
                     continue;
                 }
-                let deps: Vec<&State> = step.after.iter().filter_map(|a| index.get(a).map(|&i| &snapshot[i])).collect();
+                let deps: Vec<(bool, &State)> = step
+                    .after
+                    .iter()
+                    .filter_map(|a| index.get(a).map(|&i| (steps[i].required, &snapshot[i])))
+                    .collect();
+                // A required step goes on past an optional step's failure (the arm step past models).
+                let ok = |&(req, d): &(bool, &State)| d.ok() || (step.required && !req && d.finished());
                 if cancel.load(Ordering::Relaxed) {
                     set(k, State::Cancelled);
-                } else if deps.iter().any(|d| d.finished() && !d.ok()) {
+                } else if deps.iter().any(|d| d.1.finished() && !ok(d)) {
                     set(k, State::Blocked);
-                } else if deps.iter().all(|d| d.ok()) {
+                } else if deps.iter().all(ok) {
                     set(k, State::Running);
                     running += 1;
                     let (tx, stamps, set) = (tx.clone(), &stamps, &set);
@@ -452,7 +465,6 @@ mod tests {
                 "briefings",
                 "reference",
                 "menu",
-                "arm",
                 "keys",
                 "missions",
                 "aircraft",
@@ -463,6 +475,7 @@ mod tests {
                 "launcher",
                 "textures",
                 "models",
+                "arm",
                 "bc1"
             ]
         );
@@ -481,9 +494,9 @@ mod tests {
         assert_eq!(get("fonts").after, ["patch"]);
         assert_eq!(get("briefings").after, ["patch", "hebrew"]);
         assert_eq!(get("menu_he").after, ["patch", "hebrew"]);
-        assert_eq!(get("arm").after, ["menu", "menu_he"]);
+        assert_eq!(get("arm").after, ["menu", "menu_he", "models"]);
         assert_eq!(get("aircraft").after, ["missions"]);
-        assert_eq!(get("models").after, ["aircraft", "menu", "menu_he"]);
+        assert_eq!(get("models").after, ["aircraft"]);
         assert_eq!(get("airbases").after, ["theatre"]);
         assert!(get("guides").after.contains(&"sentinel2") && get("guides").after.contains(&"mapi2015"));
         assert_eq!(get("scenery").after, ["mapi2015", "sentinel2", "scenery-fetch", "missions", "objects", "airbases"]);
@@ -635,6 +648,23 @@ mod tests {
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
+    /// An optional step's failure stops the optional steps after it, never a required one (arm after models).
+    #[test]
+    fn an_optional_failure_blocks_only_optional_steps() {
+        let step = |id, required, after: &[&'static str]| Step { id, title: id, required, after: after.to_vec() };
+        let steps = [step("models", false, &[]), step("arm", true, &["models"]), step("extra", false, &["models"])];
+        let ex = |s: &Step, _: &dyn Progress| -> Result<Outcome> {
+            if s.id == "models" {
+                anyhow::bail!("offline");
+            }
+            Ok(Outcome::Done)
+        };
+        let states = run_graph(&steps, &|_| false, &Quiet, &AtomicBool::new(false), &|_| Ok(None), &ex);
+        assert!(matches!(states[0].1, State::Failed(_)), "{states:?}");
+        assert_eq!(states[1].1, State::Done);
+        assert_eq!(states[2].1, State::Blocked);
+    }
+
     /// Running setup again with an extra added (or Hebrew content given) runs only the new steps and what waits for them.
     #[test]
     fn an_added_extra_runs_alone() {
@@ -670,8 +700,7 @@ mod tests {
             hebrew: Hebrew::Packs { brief: Some("b.zip".into()), menu: Some("m.zip".into()) },
             ..more.clone()
         };
-        // The models step too: it composes the F-15I's arming art into the Hebrew menus.
-        assert_eq!(go(&he), ["arm", "briefings", "hebrew", "keys", "menu_he", "models"]);
+        assert_eq!(go(&he), ["arm", "briefings", "hebrew", "keys", "menu_he"]);
         assert!(go(&he).is_empty());
         std::fs::remove_dir_all(&dir).unwrap();
     }

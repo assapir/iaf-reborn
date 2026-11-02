@@ -652,9 +652,9 @@ cockpit; the brightness mapped through five greens sampled on `f-15.png` (shade,
 highlight). The first version (flat Lambert light into two greens, the glass left out) looked dark and muddy beside
 the originals. Station points: the helpers', but C / D and F / G, which share one spot on each intake in front view
 (the F-15C's fore and aft Sparrows), go to the conformal tanks' racks: C and G the outer row, D and F the lower row
-(FlightGear's CFT pylon stubs; `f15::cft_stations`). The `models` step then composes `arm/jets/x_f15i.png` in each menu set from it with
-`game/extra/planes/f15i/arm/arm.json` (`iaf-convert arm-extra`; the F-15's boxes, `base_art` f-15); the `arm` step
-leaves it to that step.
+(FlightGear's CFT pylon stubs; `f15::cft_stations`). The `arm` step, after `models`, then composes `arm/jets/x_f15i.png` in each menu set from it with
+`game/extra/planes/f15i/arm/arm.json` (`iaf-convert arm-extra`; the F-15's boxes, `base_art` f-15); without the
+front view (`models` failed or offline) it leaves the F-15I out.
 
 The real F-15I[^raam-side][^raam-front][^raam-rear]: two seats under one canopy, conformal fuel tanks with tangential
 pylons, F100-PW-229 engines, a desert camouflage of sand, tan and green over light grey, and an eagle's head on the
