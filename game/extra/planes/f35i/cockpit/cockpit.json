@@ -4,10 +4,10 @@
  "image_scale": 4,
  "PANEL": {
   "FileName": "f35panel.webp",
-  "MainOffsetY": 190.0,
-  "PanelHeight": 352.0,
+  "MainOffsetY": 260.0,
+  "PanelHeight": 400.0,
   "MaskOffsetY1": 288.0,
-  "MaskOffsetY2": 93.0,
+  "MaskOffsetY2": 0.0,
   "NightRScale": 0.0,
   "NightGScale": 0.0,
   "NightBScale": 0.0,
@@ -32,11 +32,11 @@
   "OFFSET15": 187.0
  },
  "HUD": {
-  "BorePositionY": 112.1,
+  "BorePositionY": 182.1,
   "BottomBorder": 60.0,
-  "CenterY": 120.1,
+  "CenterY": 190.1,
   "Dash": 1.0,
-  "GunRetPositionY": 107.1,
+  "GunRetPositionY": 177.1,
   "Height": 182.0,
   "LeftBorder": 69.0,
   "MaskOffsetX": 56.0,
@@ -52,27 +52,27 @@
  "MFD": {
   "Portals": [
    [
-    710.74,
-    32.55,
-    0.9442,
+    714.11,
+    58.25,
+    0.9314,
     3
    ],
    [
-    835.37,
-    32.55,
-    0.9442,
+    837.05,
+    58.25,
+    0.9314,
     2
    ],
    [
-    960.01,
-    32.55,
-    0.9442,
+    960.0,
+    58.25,
+    0.9314,
     1
    ],
    [
-    1084.64,
-    32.55,
-    0.9442,
+    1082.94,
+    58.25,
+    0.9314,
     7
    ]
   ]
@@ -151,18 +151,18 @@
  },
  "PCD": {
   "Rect": [
-   710.7,
-   18.6,
-   498.5,
-   223.5
+   714.1,
+   44.1,
+   491.8,
+   227.0
   ],
-  "Bar": 14.0,
-  "WindowTop": 157.2,
+  "Bar": 14.2,
+  "WindowTop": 181.2,
   "Esis": [
-   995.8,
-   271.2,
-   94.3,
-   83.1
+   995.3,
+   302.9,
+   92.8,
+   84.2
   ]
  },
  "LIGHTSON": {
@@ -176,19 +176,19 @@
   "Active": 1.0,
   "Left": 0.0,
   "Top": 0.0,
-  "Right": 66.0,
-  "Bottom": 52.0,
-  "OffsetX": 1207.0,
-  "OffsetY": 258.0
+  "Right": 64.0,
+  "Bottom": 55.25,
+  "OffsetX": 1204.0,
+  "OffsetY": 286.0
  },
  "LIGHT001": {
   "Active": 1.0,
-  "Left": 66.0,
+  "Left": 64.0,
   "Top": 0.0,
-  "Right": 134.0,
-  "Bottom": 52.0,
-  "OffsetX": 1270.0,
-  "OffsetY": 258.0,
+  "Right": 132.0,
+  "Bottom": 55.25,
+  "OffsetX": 1265.0,
+  "OffsetY": 286.0,
   "Blink": 1.0
  },
  "LIGHT002": {
@@ -214,12 +214,12 @@
  },
  "LIGHT009": {
   "Active": 1.0,
-  "Left": 134.0,
+  "Left": 132.0,
   "Top": 0.0,
-  "Right": 237.0,
-  "Bottom": 110.0,
-  "OffsetX": 569.0,
-  "OffsetY": 242.0,
+  "Right": 233.0,
+  "Bottom": 130.0,
+  "OffsetX": 575.0,
+  "OffsetY": 270.0,
   "AnimFrames": 3.0,
   "AnimTime": 600.0
  },

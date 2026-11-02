@@ -31,10 +31,17 @@ import glb_ktx2  # noqa: E402
 import kit  # noqa: E402
 
 OUT_DIR = sys.argv[sys.argv.index("--") + 1]
-# As the original jets (F-16 190): the forward view shows 162 rows of the panel. CENTRE_ROW is the projection
-# centre's panel row for it, measured in the game (cockpit.projection_centre() - panel_top(), original px).
-MAIN_OFFSET_Y = 190.0
-CENTRE_ROW = float(os.environ.get("CENTRE_ROW", "-46"))
+# The panel strip is PANEL_HEIGHT rows (the originals' 352; ours taller since the panel sits lower, PANEL_DROP, down to
+# the standby display); the forward view shows its top PANEL_HEIGHT - MAIN_OFFSET_Y rows (140; the F-16's 162).
+# CENTRE_ROW is the projection centre's panel row for them, measured in the game (cockpit.projection_centre() -
+# panel_top(), original px): the original's viewport rule puts it half way down [0, D + MainOffsetY + 7), D the
+# art's lowest transparent row at panel x 640 / 1280 (the cheeks' tops, row 28; [PANEL] MaskOffsetY2 0 so nothing
+# overrides it), so the art and the centre are rendered together. It leaves the projection centre 224 rows down the
+# 480-row screen and the glareshield at row 16 of the strip.
+MAIN_OFFSET_Y = float(os.environ.get("MAIN_OFFSET_Y", "260"))
+PANEL_HEIGHT = int(os.environ.get("PANEL_HEIGHT", "400"))
+CENTRE_ROW = float(os.environ.get("CENTRE_ROW", "-116"))
+MASK_OFFSET_Y2 = 0.0
 PREVIEW = bool(os.environ.get("PREVIEW"))
 SAMPLES = int(os.environ.get("SAMPLES", "256"))
 
@@ -56,7 +63,7 @@ STICK = (0.38, 0.44)  # the side-stick's x, y on the right console
 def on_face(x, z, depth=0.0):
     """A point on the panel face at lateral x, height z; `depth` toward the pilot along its normal."""
     t = math.radians(TILT)
-    return (x, FACE_Y + (z - FACE_Z) * math.tan(t) - depth * math.cos(t), z + depth * math.sin(t))
+    return (x, FACE_Y + (z - FACE_Z) * math.tan(t) - depth * math.cos(t), z - PANEL_DROP + depth * math.sin(t))
 
 
 FACE_ROT = (-TILT, 0, 0)
@@ -161,13 +168,14 @@ def build(mats, rail_3d=False):
     # The glareshield: a thin rubberised coaming over the display, its rear lip just above the glass's top edge,
     # domed across and falling at the ends into the cheeks that frame the display.
     path = []
-    for x in np.linspace(-0.45, 0.45, 61):
+    for x in np.linspace(-0.37, 0.37, 61):  # its ends fall inside the cheeks' tops
         ax = abs(x)
         z = -0.123 - 0.007 * (ax / 0.27) ** 2 if ax < 0.27 else -0.130 - 1.6 * (ax - 0.27) ** 2
-        path.append((float(x), 0.684 - 0.15 * max(0.0, ax - 0.30) ** 2, z))
-    # The section (u toward the pilot, v up): a rounded rear lip, the top sloping down to the windscreen.
-    lip = [(0.0, -0.014), (0.006, -0.010), (0.008, -0.004), (0.006, 0.002), (0.0, 0.005), (-0.10, 0.004),
-           (-0.25, -0.012), (-0.40, -0.040), (-0.40, -0.052), (-0.25, -0.030), (-0.10, -0.020)]
+        path.append((float(x), 0.684 - 0.15 * max(0.0, ax - 0.30) ** 2, z - PANEL_DROP))
+    # The section (u toward the pilot, v up): a rounded rear lip, the top falling steeply to the windscreen, so the
+    # nose ahead shows over it as over the airframe's own coaming.
+    lip = [(0.0, -0.014), (0.006, -0.010), (0.008, -0.004), (0.006, 0.002), (0.0, 0.005), (-0.06, 0.0),
+           (-0.14, -0.04), (-0.22, -0.10), (-0.22, -0.112), (-0.14, -0.052), (-0.06, -0.012)]
     kit.sweep("glareshield", mats.rubber, lip, path, bevel=0.003)
     # The cheeks: rounded blocks down each side of the display (the cowl's sides in the mock-up photo).
     for s in (-1, 1):
@@ -219,42 +227,33 @@ def build(mats, rail_3d=False):
 
     # The canopy's frame along each side: a heavy rounded rail on the sill, bolted, its black seal on top, curving in
     # to the glareshield's ends (the one-piece canopy has no bow in front; its rear arch is behind the head).
-    # With `rail_3d` (the 3D cockpit) each rail runs on aft along f35i_bc.gltf's own rail (tools/f35i/bc.py) and is
-    # RAIL_GROW wider and taller, so it sheathes that rail: one rail with its seal from the glareshield to behind the
-    # arch, no step where the two models meet.
-    grow = RAIL_GROW if rail_3d else 0.0
+    # The rails lie on f35i.gltf's own sills (RAIL): from behind the head (as bc.py's rails, which the 2D cockpit's
+    # look-around shows) forward past the glareshield and down along the nose, converging to the canopy's front.
+    # With `rail_3d` (the 3D cockpit) they and the arch stand in for the cockpit-view model's frame, which it hides.
     for s in (-1, 1):
-        rail = spline([(s * 0.47, -0.6, -0.235), (s * 0.47, 0.2, -0.225), (s * 0.465, 0.55, -0.205),
-                       (s * 0.44, 0.78, -0.185), (s * 0.40, 0.95, -0.165), (s * 0.36, 1.10, -0.150)], 40)
-        if rail_3d:
-            rail = [(s * x, y, z) for x, y, z in BC_RAIL] + [p for p in rail if p[1] > BC_RAIL[-1][1] + 0.02]
-        kit.sweep(f"canopy_rail{s}", mats.frame, kit.rounded_rect(0.085 + grow, 0.060 + grow, 0.022), rail)
+        rail = spline([(s * x, y, z) for x, y, z in RAIL], 60)
+        kit.sweep(f"canopy_rail{s}", mats.frame, kit.rounded_rect(0.085, 0.060, 0.022), rail)
         kit.sweep(f"canopy_seal{s}", mats.seal, kit.rounded_rect(0.030, 0.014, 0.005),
-                  [(x - s * 0.012, y, z + 0.034 + grow / 2) for x, y, z in rail])
+                  [(x - s * 0.012, y, z + 0.034) for x, y, z in rail])
         for i, p in enumerate(rail[2:-6:3]):
-            cyl(f"rail_bolt{s}_{i}", (p[0] - s * (0.043 + grow / 2), p[1], p[2] + 0.008), 0.0035, 0.004, mats.alu,
+            cyl(f"rail_bolt{s}_{i}", (p[0] - s * 0.043, p[1], p[2] + 0.008), 0.0035, 0.004, mats.alu,
                 rot=(0, 90, 0), verts=12)
-        # The tub's wall under the rail, and the side console with its panels.
-        box(f"wall{s}", (s * 0.47, 0.15, -0.38), (0.03, 1.4, 0.26), mats.panel, bevel=0.006)
         box(f"console{s}", (s * 0.39, 0.10, -0.47), (0.17, 0.95, 0.10), mats.panel, bevel=0.012)
-        # Switch panels on the wall's inner face, under the rail.
-        for i, (y, z, name) in enumerate(((0.70, -0.30, "FUEL" if s < 0 else "OBOGS"), (0.52, -0.30, "ENG" if s < 0 else "LIGHTS"),
-                                          (0.70, -0.40, "FCS" if s < 0 else "CANOPY"), (0.52, -0.40, "ICC" if s < 0 else "ECS"))):
-            wx = s * 0.4535
-            box(f"wpanel{s}_{i}", (wx - s * 0.003, y, z), (0.006, 0.16, 0.085), mats.bezel, bevel=0.002)
-            for j in range(3):
-                yy = y + (j - 1) * 0.045
-                box(f"wtog_base{s}_{i}_{j}", (wx - s * 0.007, yy, z - 0.008), (0.004, 0.014, 0.014), mats.knob, bevel=0.001)
-                box(f"wtog{s}_{i}_{j}", (wx - s * 0.016, yy, z - 0.004), (0.016, 0.004, 0.004), mats.alu,
-                    rot=(0, s * 25, 0), bevel=0.001)
-                cyl(f"wscr{s}_{i}_{j}", (wx - s * 0.0065, yy, z - 0.035), 0.002, 0.001, mats.alu, rot=(0, 90, 0), verts=10)
-            kit.text_decal(f"wlbl{s}_{i}", name, mats.label, (wx - s * 0.1, y, z + 0.026), (s, 0, 0), 0.010,
-                           (0, -s, 0), off=0.0005)
+        # The wall under the rail, in steps following it down to the tub (its wall from -0.52 m).
+        for i, (y0, y1) in enumerate(zip(np.arange(-0.55, 0.85, 0.1), np.arange(-0.45, 0.95, 0.1))):
+            top = min(z for x, y, z in rail if y0 - 0.06 <= y <= y1 + 0.06) - 0.03
+            box(f"wall{s}_{i}", (s * 0.47, (y0 + y1) / 2, (top - 0.53) / 2), (0.03, 0.1, top + 0.53), mats.panel,
+                bevel=0.004)
         for i in range(5):
             box(f"cpanel{s}_{i}", (s * 0.39, 0.46 - i * 0.14, -0.418), (0.145, 0.12, 0.006), mats.bezel, bevel=0.002)
             for j in range(3):
                 cyl(f"csw{s}_{i}_{j}", (s * 0.39 + (j - 1) * 0.04, 0.46 - i * 0.14, -0.41), 0.006, 0.012, mats.knob,
                     rot=(0, 0, 0))
+    if rail_3d:  # the canopy's rear frame arch over the head box, from rail to rail (bc.py's, on the lower rails)
+        z0 = -0.34
+        arch = [(0.46 * math.sin(a), ARCH_Y - 0.05 * math.cos(a), z0 + (ARCH_TOP - z0) * math.cos(a))
+                for a in np.linspace(-math.pi / 2, math.pi / 2, 25)]
+        kit.sweep("canopy_arch", mats.frame, kit.rounded_rect(0.07, 0.05, 0.018), arch)
     # HOTAS: the throttle (left console) and the side-stick (right console's front).
     box("throttle_rail", (-0.36, 0.22, -0.415), (0.035, 0.30, 0.012), mats.seal, bevel=0.002)
     box("throttle_arm", (-0.36, 0.30, -0.37), (0.03, 0.05, 0.09), mats.grip, rot=(-15, 0, 0), bevel=0.01)
@@ -270,7 +269,7 @@ def build(mats, rail_3d=False):
 def floods():
     """The night floodlights: a strip under the glareshield's lip lighting the panel, and one over each console."""
     out = []
-    for name, loc, rot, size, watts in (("flood_panel", (0, 0.665, -0.140), (-60, 0, 0), (0.55, 0.02), 0.25),
+    for name, loc, rot, size, watts in (("flood_panel", (0, 0.665, -0.14 - PANEL_DROP), (-60, 0, 0), (0.55, 0.02), 0.25),
                                         ("flood_l", (-0.43, 0.30, -0.25), (0, -40, 0), (0.05, 0.4), 0.15),
                                         ("flood_r", (0.43, 0.30, -0.25), (0, 40, 0), (0.05, 0.4), 0.15)):
         light = bpy.data.lights.new(name, 'AREA')
@@ -403,10 +402,16 @@ def lamp_layout(lights):
 
 
 PRESENT_SCALE = 2.0  # as tools/f35i/bc.py: the game draws the cockpit-view model at the Present scale
-# f35i_bc.gltf's right side rail (tools/f35i/bc.py: its path about the eye, aft to fore; the left one mirrored) and how
-# much wider and taller the 3D cockpit's rail is to sheathe it (build rail_3d).
-BC_RAIL = ((0.42, -1.1, -0.20), (0.46, -0.6, -0.23), (0.47, -0.05, -0.23))
-RAIL_GROW = 0.003
+# The right canopy rail (aft to fore about the eye, the left one mirrored; bc.py's rail behind the eye the same): on f35i.gltf's
+# sill (its outer skin's top at x 0.45 m: 0.41 m under the eye beside it, 0.53 m 1 m ahead, 0.60 m 1.6 m ahead),
+# converging to the canopy's front 2 m ahead. The arch over the head stands on it ARCH_Y behind the eye.
+RAIL = ((0.42, -1.1, -0.32), (0.46, -0.6, -0.35), (0.47, -0.05, -0.36), (0.47, 0.3, -0.37), (0.465, 0.6, -0.40),
+           (0.45, 0.9, -0.45), (0.42, 1.2, -0.51), (0.36, 1.5, -0.56), (0.26, 1.8, -0.60), (0.12, 2.0, -0.62))
+ARCH_Y, ARCH_TOP = -0.75, 0.21
+# The panel (everything placed on the face, on_face, the glareshield and its flood) sits PANEL_DROP m lower than first
+# modelled (until 2026-11-02, after the 2D cockpit's original layout): its glareshield 18 deg under the eye, below the
+# airframe's nose crest (13 deg) as f35i.gltf's own coaming (20 deg), so the nose shows over it.
+PANEL_DROP = 0.10
 # The gear handle turns about a pivot GEAR_PIVOT m behind the face through the slot's travel (set_gear's 22 mm either
 # side of its centre at the knob).
 GEAR_PIVOT = 0.06
@@ -652,6 +657,7 @@ def main():
         desc = json.load(open(os.path.join(OUT_DIR, "..", "aircraft.json")))
         export_glb(sys.argv[sys.argv.index("--glb") + 1], desc["eye"])
         return
+    kit.PANEL_H = PANEL_HEIGHT
     mats = Mats()
     build(mats)
     gear = gear_handle(mats)
@@ -684,7 +690,8 @@ def main():
                  "night); the MFD atlas, RWR symbols and TSD map are the converted F-16 cockpit's (Shared). No HUD glass: "
                  "the HUD symbology is the helmet's (Dash 1). [MFD] Portals are [x, y, scale, page] (page: 1 stores, 2 "
                  "radar, 3 TSD, 7 RWR); [PCD] places the display around them (game/cockpit/pcd.gd).")
-    c["PANEL"].update({"FileName": "f35panel.webp", "NightFileName": "f35panel_night.webp", "NightRScale": 0.0,
+    c["PANEL"].update({"PanelHeight": float(PANEL_HEIGHT), "MaskOffsetY2": MASK_OFFSET_Y2,
+                       "FileName": "f35panel.webp", "NightFileName": "f35panel_night.webp", "NightRScale": 0.0,
                        "NightGScale": 0.0, "NightBScale": 0.0})
     for gone in ("FUELDIGITAL", "THROTTLEDIGITAL", "TEXTMESSAGE", "CHAFF", "FLARE"):  # pcd.gd draws them
         c.pop(gone, None)

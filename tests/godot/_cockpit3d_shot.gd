@@ -212,6 +212,9 @@ func _f35i(hour: float) -> void:
 	forcer.process_priority = 5
 	tv.add_child(forcer)
 	for v in [
+		["up", 0.0, 8.0],
+		["nose_left", -30.0, -10.0],
+		["nose_right", 30.0, -10.0],
 		["down", 0.0, -20.0],
 		["left", -80.0, -30.0],
 		["right", 80.0, -30.0],
