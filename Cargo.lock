@@ -365,6 +365,7 @@ dependencies = [
  "iaf-setup",
  "iaf-tools",
  "image",
+ "libc",
  "serde_json",
 ]
 
