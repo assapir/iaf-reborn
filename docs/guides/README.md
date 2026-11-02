@@ -37,9 +37,10 @@ the shot's own values.
   to the F-16 guide for the rest; with the switch on, the Reference screen's F-16 record shows it in place of the
   F-16's.
 - [F-15](f15.md): the F-15C Baz: the TO 1F-15A-1 HUD, the DASH helmet, the APG-63, Sparrows.
-- [F-15I Ra'am](f15i.md): our F-15I (Extras → F-15 version = Ra'am): what differs from the F-15 (the CFTs' weight
-  and fuel, the -229 engines, the APG-70I, the F-15E's gun count), the Python 5 and the GBU-31(V)3 JDAM, its Arming
-  art. It points to the F-15 guide for the rest; with the switch on, the Reference screen's F-15 record shows it.
+- [F-15I Ra'am](f15i.md): our F-15I (Extras → F-15 version = Ra'am), a standalone guide: the F-15E HUD (NAV, SRM,
+  MRM, the gun, CDIP, the GPS bombs' LAR, gear down), the CFTs' weight and fuel, the -229 engines, the APG-70I, the
+  DASH with the Python 5, the GBU-31 / BLU109 JDAMs, GBU-39, SPICE1 and GBU-28, its Arming screen. With the switch on,
+  the Reference screen's F-15 record shows it.
 - [Lavi](lavi.md): the two-seat Lavi of the game's model: its wide-angle HUD (a reconstruction), the EL/M-2035 radar.
 - [Mirage](mirage.md): the Mirage IIICJ Shahak: the CSF 95 gyro gunsight, the Cyrano radar, Shafrir 2 / AIM-9D.
 - [F-35I](f35i.md): our F-35I Adir (Extras → F-35I replaces): the helmet's virtual HUD, the APG-81, the weapon bays,
@@ -73,7 +74,7 @@ Setup's last step makes both (it needs a display). They show the original game's
    the header of `tests/godot/_guide_shots.gd`) into `shots/<jet>/<name>.png`, in a 3840×2160 frame whatever the
    screen's size.
    - An entry sets the settings, the mission (`mc` builds a Mission Creator mission, 666: the MiGs fly only there),
-     the start (mission, airborne, dive, final approach, or the briefing TSD with its GPS targets panel), a placed
+     the start (mission, airborne, dive, final approach, the briefing TSD with its GPS targets panel, or the Arming screen), a placed
      target, actions (a radar lock, a store, the MFDs' pages, a camera on the target, a radar-designated point, the GPS bombs' PRE
      target on it), an outside camera pinned beside the jet
      (`camera`) and the crop: the whole frame, `hud`, an MFD, both MFDs (`mfds`), `compass` (the panel

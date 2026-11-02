@@ -13,11 +13,14 @@
 # up at 250 m/s with `loadout` (9 [weapon id, count] pairs) on the pylons, the heading turned `turn_deg`° right;
 # "final": frozen on final approach, `final_m` before the start point at `final_alt` m on a 3° glide path, the nose
 # `final_aoa`° above it, gear down; "tsd": the briefing TSD (front end) of the mission with the GPS targets panel, the
-# player flight's Arming table `loadout`, the map zoomed in `tsd_zoom` steps (default 2) on the route's middle point,
+# player flight's (`tsd_type`: the flight of that type's) Arming table `loadout`, the map zoomed in `tsd_zoom` steps
+# (default 2) on the route's middle point,
 # `gps` {station 1-9: "unit" (the enemy ground unit nearest the centre) | [dx, dy] (the map point that many client px
-# from the centre)} assigned as by clicks, `gps_armed` the station whose row is armed), place ({"unit_prefix": "mig23" |
-# "ground_unit": true, "ahead_m": N} puts that unit N m ahead (`bearing_deg` right of the nose, `elevation_deg` above
-# it; an air unit flying away at `vel_ms`), in the air at the jet's height / on the ground), actions (in order; the
+# from the centre)} assigned as by clicks, `gps_armed` the station whose row is armed; "arm": the Arming screen of the
+# mission's flight of type `arm_type` (default 110), `loadout`'s weapon ids on its stations, the list's tab `arm_tab`),
+# place ({"unit_prefix": "mig23" | "ground_unit": true, "ahead_m": N} puts that unit N m ahead (`bearing_deg` right of
+# the nose, `elevation_deg` above it; an air unit flying away at `vel_ms`), in the air at the jet's height / on the
+# ground), actions (in order; the
 # frozen starts advance a scripted sim time, the others real time: "lock" radar lock on the placed unit, "on_impact"
 # the placed unit onto the bomb's predicted impact, "station:N" the A-A store / gun on station N, "ag:N" the A-G store
 # on station N, "flir" / "tv" the camera on the placed unit (FLIR with the laser), "emitter" the placed unit's radar
@@ -100,6 +103,9 @@ func _shot(name: String, e: Dictionary) -> void:
 		_mission_creator(e.mc)
 	if e.get("start") == "tsd":
 		await _tsd(name, e)
+		return
+	if e.get("start") == "arm":
+		await _arm(name, e)
 		return
 	tv = await start_mission(int(e.mission))
 	if e.has("hour"):
@@ -219,7 +225,7 @@ func _tsd(name: String, e: Dictionary) -> void:
 	settings().mission_id = int(e.mission)
 	unload_current_scene()  # the previous shot's flight scene and its HUD layers
 	await frames(2)
-	var fe = load("res://menu/front_end.tscn").instantiate()
+	var fe = _front_end()
 	root.add_child(fe)
 	_extra.append(fe)
 	await frames(3)
@@ -230,6 +236,10 @@ func _tsd(name: String, e: Dictionary) -> void:
 	fe.tsd_checks["briefing"] = false
 	fe.tsd.open_briefing(false)
 	var tsd = fe.tsd
+	# "tsd_type": the flight whose leader is of that type (e.g. 110 the F-15s), else the mission's default flight.
+	for f in tsd.flights:
+		if int(tsd.units[tsd.flights[f].leader].type) == int(e.get("tsd_type", -1)):
+			tsd.select_flight(f)
 	var n: int = tsd.default_flight()
 	settings().arm_loadouts[n] = e.get("loadout", [])
 	for i in int(e.get("tsd_zoom", 2)):
@@ -261,6 +271,49 @@ func _tsd(name: String, e: Dictionary) -> void:
 	print("GUIDE_INFO %s gps_targets=%s" % [name, settings().gps_targets])
 	settings().arm_loadouts = {}
 	settings().gps_targets = {}
+
+
+## "start": "arm": the Arming screen (front end) of the mission's flight of the player's jet type, as
+## tests/godot/_arm_shot.gd: `loadout`'s weapon ids put on stations 1-9 (each at the station's most), the list's tab
+## `arm_tab` (0 AA, 1 AG).
+func _arm(name: String, e: Dictionary) -> void:
+	settings().mission_id = int(e.mission)
+	unload_current_scene()
+	await frames(2)
+	var fe = _front_end()
+	root.add_child(fe)
+	_extra.append(fe)
+	await frames(3)
+	fe._reset_tsd_checks()
+	fe.tsd_return = "jet"
+	fe.screen = "tsd"
+	fe._enter_screen()
+	await settle(fe)
+	fe._on_button(fe._key_for_label("Alpha"))
+	await settle(fe)
+	fe._on_button(fe._key_for_label("Arm"))
+	await settle(fe)
+	check(fe.screen == "arm", "shot %s: the Arming screen is open" % name)
+	var arm = fe.arm
+	for n in arm.data.flights:
+		if int(arm.data.flights[n].type) == int(e.get("arm_type", 110)):
+			arm.set_flight(n)
+			break
+	var pairs: Array = e.get("loadout", [])
+	for i in mini(9, pairs.size()):
+		arm.data.put(arm.flight, i, arm.data.weapon(int(pairs[i][0])))
+	arm.set_tab(int(e.get("arm_tab", 0)))
+	arm._check_tab()
+	arm.queue_redraw()
+	for i in 30:
+		await process_frame
+	var size := root.get_viewport().get_texture().get_size()
+	await _capture(name, e, _crop(String(e.get("crop", "full")), size, 0.38, 0.0, [0, 0], e.get("crop_box", [])))
+
+
+## A front end in place of the previous shot's flight scene.
+func _front_end() -> Node:
+	return load("res://menu/front_end.tscn").instantiate()
 
 
 ## A Mission Creator mission (mission 666) from a blank record with the entry's fields set: a number, or an array

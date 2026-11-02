@@ -91,6 +91,143 @@
   ]
  },
  {
+  "name": "cockpit",
+  "caption": "The F-15I's front cockpit at 10,000 ft: the F-15E HUD over the F-15's panel",
+  "mission": 231,
+  "jet": 0,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f15_variant": "raam",
+   "better_cockpit": true
+  },
+  "start": "airborne",
+  "loadout": [
+   [
+    1002,
+    2
+   ],
+   [
+    1004,
+    1
+   ],
+   [
+    1004,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1004,
+    1
+   ],
+   [
+    1004,
+    1
+   ],
+   [
+    1002,
+    2
+   ]
+  ],
+  "actions": [
+   "wait:1"
+  ],
+  "crop": "box",
+  "annotations": [
+   {
+    "n": 1,
+    "px": [
+     0.67,
+     0.25
+    ],
+    "label_at": [
+     0.8,
+     0.2
+    ]
+   },
+   {
+    "n": 2,
+    "px": [
+     0.2925,
+     0.785
+    ],
+    "label_at": [
+     0.12,
+     0.62
+    ]
+   },
+   {
+    "n": 3,
+    "px": [
+     0.5,
+     0.876
+    ],
+    "label_at": [
+     0.585,
+     0.72
+    ]
+   },
+   {
+    "n": 4,
+    "px": [
+     0.695,
+     0.785
+    ],
+    "label_at": [
+     0.88,
+     0.62
+    ]
+   }
+  ],
+  "panel": 0.5,
+  "crop_box": [
+   0.2,
+   0.3,
+   0.8,
+   1.0
+  ]
+ },
+ {
   "name": "hud_nav",
   "caption": "The F-15E HUD in NAV at 10,000 ft, steerpoint 1 ahead",
   "mission": 231,
@@ -249,6 +386,321 @@
     "label_at": [
      0.5,
      0.72
+    ]
+   }
+  ]
+ },
+ {
+  "name": "hud_srm",
+  "caption": "A Python 5 locked on a MiG-23 1.6 NM ahead",
+  "mission": 231,
+  "jet": 0,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f15_variant": "raam"
+  },
+  "start": "airborne",
+  "loadout": [
+   [
+    1002,
+    2
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1002,
+    2
+   ]
+  ],
+  "place": {
+   "unit_prefix": "mig23",
+   "ahead_m": 3000
+  },
+  "actions": [
+   "lock",
+   "station:0",
+   "wait:1.5"
+  ],
+  "crop": "hud",
+  "crop_w": 0.3,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "circle:1",
+    "edge": 315,
+    "label_at": [
+     0.3,
+     0.16
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "seeker",
+    "d": [
+     4,
+     -4
+    ],
+    "label_at": [
+     0.62,
+     0.08
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "target",
+    "d": [
+     -10.3,
+     5
+    ],
+    "label_at": [
+     0.29,
+     0.4
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^10$",
+    "label_at": [
+     0.68,
+     0.12
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:>$",
+    "label_at": [
+     0.6,
+     0.68
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^SHOOT$",
+    "label_at": [
+     0.38,
+     0.68
+    ]
+   },
+   {
+    "n": 7,
+    "sym": "text:^S\\d",
+    "label_at": [
+     0.22,
+     0.44
+    ]
+   }
+  ]
+ },
+ {
+  "name": "dash_p5",
+  "caption": "Looking 90° right at a MiG-23 with the Python 5: the seeker follows the helmet",
+  "mission": 231,
+  "jet": 0,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f15_variant": "raam"
+  },
+  "start": "airborne",
+  "loadout": [
+   [
+    1002,
+    2
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1002,
+    2
+   ]
+  ],
+  "place": {
+   "unit_prefix": "mig23",
+   "ahead_m": 3000,
+   "bearing_deg": 90
+  },
+  "actions": [
+   "station:0",
+   "look:90,2",
+   "wait:1.5"
+  ],
+  "crop": "dash",
+  "annotations": [
+   {
+    "n": 1,
+    "px": [
+     0.4995,
+     0.675
+    ],
+    "label_at": [
+     0.4,
+     0.86
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "seeker",
+    "off": [
+     0.1,
+     -0.1
+    ],
+    "d": [
+     8,
+     0
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "text:^000$",
+    "label_at": [
+     0.44,
+     0.308
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^ARM$",
+    "label_at": [
+     0.272,
+     0.652
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:SRM",
+    "label_at": [
+     0.272,
+     0.724
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^SHOOT$",
+    "label_at": [
+     0.62,
+     0.86
+    ]
+   },
+   {
+    "n": 7,
+    "px": [
+     0.4514,
+     0.64
+    ],
+    "label_at": [
+     0.36,
+     0.8
     ]
    }
   ]
@@ -414,6 +866,160 @@
     "label_at": [
      0.5,
      0.64
+    ]
+   }
+  ]
+ },
+ {
+  "name": "hud_gun",
+  "caption": "The gunsight locked on a MiG-23 at 2,600 ft",
+  "mission": 231,
+  "jet": 0,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f15_variant": "raam"
+  },
+  "start": "airborne",
+  "loadout": [
+   [
+    1002,
+    2
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1002,
+    2
+   ]
+  ],
+  "place": {
+   "unit_prefix": "mig23",
+   "ahead_m": 800
+  },
+  "actions": [
+   "lock",
+   "station:9",
+   "wait:1"
+  ],
+  "crop": "hud",
+  "crop_w": 0.24,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "circle:1",
+    "edge": 290,
+    "label_at": [
+     0.3,
+     0.2
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "lcos",
+    "d": [
+     1.5,
+     1.5
+    ],
+    "label_at": [
+     0.56,
+     0.62
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "circle:2",
+    "edge": 40,
+    "label_at": [
+     0.66,
+     0.12
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "target",
+    "d": [
+     10.3,
+     10.3
+    ],
+    "label_at": [
+     0.7,
+     0.36
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "gun_cross",
+    "d": [
+     5,
+     0
+    ],
+    "label_at": [
+     0.3,
+     0.06
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^500$",
+    "label_at": [
+     0.2,
+     0.5
     ]
    }
   ]
@@ -712,6 +1318,630 @@
     "label_at": [
      0.48,
      0.44
+    ]
+   }
+  ]
+ },
+ {
+  "name": "hud_spice",
+  "caption": "A SPICE1 released in PRE 45 km from its target: the time to impact, the second bomb in range",
+  "mission": 231,
+  "jet": 0,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f15_variant": "raam"
+  },
+  "start": "dive",
+  "dive_deg": 5,
+  "dive_agl": 6000,
+  "speed": 250,
+  "loadout": [
+   [
+    0,
+    0
+   ],
+   [
+    1009,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1009,
+    1
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "place": {
+   "ground_unit": true,
+   "ahead_m": 45000
+  },
+  "actions": [
+   "ag:1",
+   "pre",
+   "wait:1",
+   "fire",
+   "wait:2"
+  ],
+  "crop": "hud",
+  "crop_w": 0.34,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "gps_at",
+    "label_at": [
+     0.36,
+     0.75
+    ]
+   },
+   {
+    "n": 2,
+    "px": [
+     0.561,
+     0.4
+    ],
+    "label_at": [
+     0.62,
+     0.08
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "text:^IN RNG",
+    "label_at": [
+     0.3,
+     0.56
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:TIMPCT",
+    "label_at": [
+     0.8,
+     0.66
+    ]
+   }
+  ]
+ },
+ {
+  "name": "hud_gbu28",
+  "caption": "A GBU-28 on the centreline in a 55° dive: the CDIP reticle on the target",
+  "mission": 231,
+  "jet": 0,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f15_variant": "raam"
+  },
+  "start": "dive",
+  "dive_deg": 55,
+  "dive_agl": 1200,
+  "speed": 220,
+  "loadout": [
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1010,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "place": {
+   "ground_unit": true,
+   "ahead_m": 2000
+  },
+  "actions": [
+   "ag:4",
+   "wait:0.5",
+   "on_impact",
+   "wait:0.5"
+  ],
+  "crop": "hud",
+  "crop_w": 0.3,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "circle:1",
+    "edge": 300,
+    "label_at": [
+     0.3,
+     0.7
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "pipper",
+    "d": [
+     2,
+     2
+    ],
+    "label_at": [
+     0.62,
+     0.68
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "text:^CDIP",
+    "label_at": [
+     0.8,
+     0.6
+    ]
+   }
+  ]
+ },
+ {
+  "name": "tsd_gps",
+  "caption": "The briefing TSD: the GPS targets panel with the Ra'am's BLU109s and GBU-39s",
+  "mission": 231,
+  "jet": -1,
+  "settings": {
+   "f15_variant": "raam",
+   "weapon_data": "real"
+  },
+  "start": "tsd",
+  "loadout": [
+   [
+    0,
+    0
+   ],
+   [
+    1004,
+    1
+   ],
+   [
+    1004,
+    1
+   ],
+   [
+    1007,
+    4
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1007,
+    4
+   ],
+   [
+    1004,
+    1
+   ],
+   [
+    1004,
+    1
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "gps": {
+   "2": "unit",
+   "8": [
+    40,
+    30
+   ]
+  },
+  "gps_armed": 4,
+  "crop": "box",
+  "crop_box": [
+   0.4,
+   0.39,
+   0.84,
+   0.835
+  ],
+  "annotations": [
+   {
+    "n": 1,
+    "px": [
+     0.746,
+     0.578
+    ],
+    "label_at": [
+     0.88,
+     0.47
+    ]
+   },
+   {
+    "n": 2,
+    "px": [
+     0.56,
+     0.761
+    ],
+    "label_at": [
+     0.47,
+     0.85
+    ]
+   },
+   {
+    "n": 3,
+    "px": [
+     0.7626,
+     0.7
+    ],
+    "label_at": [
+     0.98,
+     0.6
+    ]
+   },
+   {
+    "n": 4,
+    "px": [
+     0.374,
+     0.343
+    ],
+    "label_at": [
+     0.22,
+     0.226
+    ]
+   },
+   {
+    "n": 5,
+    "px": [
+     0.5,
+     0.302
+    ],
+    "label_at": [
+     0.6,
+     0.44
+    ]
+   }
+  ],
+  "tsd_type": 110
+ },
+ {
+  "name": "arming",
+  "caption": "The Ra'am's Arming screen: Python 5s, BLU109s and GBU-39s",
+  "mission": 231,
+  "jet": -1,
+  "settings": {
+   "f15_variant": "raam",
+   "weapon_data": "real"
+  },
+  "start": "arm",
+  "loadout": [
+   [
+    1002,
+    2
+   ],
+   [
+    1004,
+    1
+   ],
+   [
+    1004,
+    1
+   ],
+   [
+    1007,
+    4
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1007,
+    4
+   ],
+   [
+    1004,
+    1
+   ],
+   [
+    1004,
+    1
+   ],
+   [
+    1002,
+    2
+   ]
+  ],
+  "arm_tab": 1,
+  "crop": "box",
+  "annotations": [
+   {
+    "n": 1,
+    "px": [
+     0.502,
+     0.676
+    ],
+    "label_at": [
+     0.42,
+     0.47
+    ]
+   },
+   {
+    "n": 2,
+    "px": [
+     0.129,
+     0.667
+    ],
+    "label_at": [
+     0.05,
+     0.55
+    ]
+   },
+   {
+    "n": 3,
+    "px": [
+     0.483,
+     0.798
+    ],
+    "label_at": [
+     0.62,
+     0.7
+    ]
+   },
+   {
+    "n": 4,
+    "px": [
+     0.873,
+     0.798
+    ],
+    "label_at": [
+     0.93,
+     0.93
+    ]
+   },
+   {
+    "n": 5,
+    "px": [
+     0.915,
+     0.131
+    ],
+    "label_at": [
+     0.85,
+     0.25
+    ]
+   }
+  ],
+  "crop_box": [
+   0.125,
+   0.0,
+   0.875,
+   1.0
+  ]
+ },
+ {
+  "name": "landing_final",
+  "caption": "Final approach, gear down: the F-15E HUD's landing windows",
+  "mission": 311,
+  "jet": 0,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f15_variant": "raam"
+  },
+  "start": "final",
+  "final_m": 4000,
+  "final_alt": 210,
+  "final_aoa": 5,
+  "crop": "hud",
+  "crop_w": 0.3,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "fpm",
+    "d": [
+     7,
+     0
+    ],
+    "label_at": [
+     0.62,
+     0.68
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "text:^α",
+    "label_at": [
+     0.25,
+     0.42
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "text:^\\d{3}$",
+    "label_at": [
+     0.22,
+     0.25
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^\\d{3,5}$",
+    "nth": 2,
+    "label_at": [
+     0.8,
+     0.12
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:^VV",
+    "label_at": [
+     0.92,
+     0.3
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^R \\d",
+    "label_at": [
+     0.92,
+     0.4
+    ]
+   },
+   {
+    "n": 7,
+    "px": [
+     0.713,
+     0.5
+    ],
+    "label_at": [
+     0.86,
+     0.6
+    ]
+   },
+   {
+    "n": 8,
+    "sym": "text:^ILSN",
+    "label_at": [
+     0.92,
+     0.5
+    ]
+   },
+   {
+    "n": 9,
+    "px": [
+     0.4995,
+     0.27
+    ],
+    "label_at": [
+     0.38,
+     0.14
     ]
    }
   ]
