@@ -6,9 +6,11 @@
 # CLOUD_SET="key=value,..." sets Settings first (e.g. clouds=volumetric); CLOUD_BEST=1 every graphics option at its
 # best (as _rain_shot.gd RAIN_BEST). CLOUD_ONLY=name,... picks shots; CLOUD_TAG prefixes the file names
 # (SHOT_DIR/<tag><name>.png). CLOUD_BENCH=secs: the average frame time and the GPU's render time of each shot's view
-# instead of pictures (vsync off). Shots: [name, rain, m above the ground, hour, pitch (deg, + up), turn from the
-# sun's azimuth (deg), view, and "fx": an explosion in the air above the deck and one inside it, 0.6 s before the
-# picture, or a list of [m along the view, m to the side]: explosions there].
+# instead of pictures (vsync off). CLOUD_FX_FLAGS: the explosions' flags (damage_effects.gd F_*, e.g. 0x42 the debris
+# alone). Each wait counts drawn frames (_drawn: a window the desktop does not show draws seldom). Shots: [name, rain,
+# m above the ground, hour, pitch (deg, + up), turn from the sun's azimuth (deg), view, and "fx": an explosion in the
+# air above the deck and one inside it, 36 frames before the picture, "auto" (_explode_auto), or a list of [m along
+# the view, m to the side]: explosions there].
 extends "res://../tests/godot/base.gd"
 
 const TimeOfDay := preload("res://terrain/time_of_day.gd")
@@ -116,7 +118,7 @@ func run() -> void:
 		await frames(10)
 		while tv.terrain.missing_after_frame() and Time.get_ticks_msec() - t0 < 30000:
 			await process_frame
-		await frames(90)
+		await _drawn(90)
 		if shot.size() > 7:
 			# The same explosions in every run (before / after pictures).
 			tv.effects._rng.seed = 7
@@ -128,7 +130,7 @@ func run() -> void:
 				_explode_auto()
 			else:
 				_explode()
-			await frames(36)
+			await _drawn(36)
 		if bench > 0.0:
 			await _measure(shot[0], bench)
 			continue
@@ -162,7 +164,7 @@ func _explode() -> void:
 	for k in [[200.0, -150.0], [-800.0, 150.0]]:
 		var y: float = weather.deck().y + k[0]
 		var a: Vector3 = cam.global_position + f * (cam.global_position.y - y) / maxf(-f.y, 0.1)
-		tv.effects.explosion(a + cam.global_basis.x * k[1], e.flags, 6.0, e.duration, 0.0, 8.0)
+		tv.effects.explosion(a + cam.global_basis.x * k[1], _fx_flags(e.flags), 6.0, e.duration, 0.0, 8.0)
 
 
 ## Air kills' explosions picked by the clouds' image now (Volumetric): behind a thick cloud, behind a thin edge (both
@@ -197,7 +199,7 @@ func _explode_auto() -> void:
 				var d: float = cd + 800.0 if want[2] >= 1.0 else cd * want[2]
 				var p := cam.project_position(uv * vs, d)
 				p = cam.global_position + (p - cam.global_position).normalized() * d
-				tv.effects.explosion(p, e.flags, 6.0, e.duration, 0.0, 8.0)
+				tv.effects.explosion(p, _fx_flags(e.flags), 6.0, e.duration, 0.0, 8.0)
 				print("FX at screen %s: light through %.2f, cloud %.0f m, explosion %.0f m" % [uv, a, cd, d])
 				used.append(uv)
 				found = true
@@ -206,13 +208,30 @@ func _explode_auto() -> void:
 				break
 
 
+## The explosion's flags; CLOUD_FX_FLAGS (a number) in their place, e.g. 0x42: only the debris, at once.
+func _fx_flags(flags: int) -> int:
+	var f := _env("CLOUD_FX_FLAGS", "")
+	return flags if f == "" else f.hex_to_int() if f.begins_with("0x") else int(f)
+
+
 ## Air kills' explosions at [m along the view, m to its right].
 func _explode_along(at: Array) -> void:
 	var cam: Camera3D = root.get_viewport().get_camera_3d()
 	var e: Dictionary = tv.effects.explosion_for(1, 0, false, false)
 	for k in at:
 		var a: Vector3 = cam.global_position - cam.global_basis.z * k[0] + cam.global_basis.x * k[1]
-		tv.effects.explosion(a, e.flags, 6.0, e.duration, 0.0, 8.0)
+		tv.effects.explosion(a, _fx_flags(e.flags), 6.0, e.duration, 0.0, 8.0)
+
+
+## n frames drawn: a window the desktop does not show (Wayland stops its frame callbacks) draws about one frame in 40,
+## so the clouds' temporal history held the last shot's clouds (2026-11-02); such a frame is drawn here.
+func _drawn(n: int) -> void:
+	var last := Engine.get_frames_drawn()
+	for i in n:
+		await process_frame
+		if Engine.get_frames_drawn() == last:
+			RenderingServer.force_draw(false)
+		last = Engine.get_frames_drawn()
 
 
 func _measure(name: String, secs: float) -> void:

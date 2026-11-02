@@ -949,6 +949,13 @@ How it is drawn:
   billboard takes its distance per pixel (a 1.5 km wide fireball's corners lie much farther than its middle). Another
   viewport of the same world (the EO sensor's, a screenshot helper's) reads none of it (`clouds_full`, the 3D view
   size the clouds were made for). The Original light points are opaque: the quad covers them already.
+  How a thing behind shows depends on its blend. An added thing (fire, sparks, flames, light points) adds its light ×
+  the light the clouds let through (`clouds_through`). A blended thing (smoke, the debris' smoke trails, vapour,
+  missile smoke, water splashes) keeps its own alpha and takes as its colour its own × the light let through + the
+  clouds' own light (`clouds_mix`). The picture there is the scene × the light let through + the clouds' light, so
+  such a layer replaces only the part behind the clouds, and a stack of layers (a smoke trail is dozens of puffs)
+  shows no more than one opaque thing there would. Opaque things (the debris pieces, the jets) are drawn before the
+  quad and covered as the terrain is.
   Checked 2026-11-02 with `_clouds_shot.gd` (the `*_fx` shots, explosions placed by the cloud image: behind a thick
   cloud, behind a thin edge, in front of a cloud; the `cumulus_night_above*` shots): the explosions and the towns'
   lights behind the cumulus no longer show through, the ones in front and below still do.
@@ -957,6 +964,13 @@ How it is drawn:
   the transparent pass does not write depth there, as the effects sample the depth buffer for their soft edges).
   Tried and dropped (2026-11-02): a ±10 % change with the nearest cloud pixel's distance: inside the deck the effects
   showed a dither pattern (the jittered distance per pixel), so the change is now wider there and averaged.
+  Fixed (2026-11-02): a destroyed jet's debris behind a cumulus showed faintly through it, as a grey streak. The
+  streak was the debris' smoke trail, not the pieces: with only the debris (`CLOUD_FX_FLAGS=0x42`) nothing showed
+  behind the thick cloud, with only the trails (0x4078) the streak did. Each puff's alpha was × the light the cloud
+  lets through (0.08 there), and a trail's dozens of overlapping puffs added up to most of its darkness (1 −
+  0.92^N). With `clouds_mix` the streak is gone behind the thick cloud and a faint smoke shape shows behind the thin
+  edge (0.6 let through), under the edge's own light. Before / after: `_clouds_shot.gd` `cumulus_fx`, Effects
+  Original and Detailed.
 - **Shape** (after Schneider 2015[^schneider]): two tileable 3D noises, computed once on the GPU when the clouds are
   made (`clouds_noise.glsl`): 128³ Perlin-Worley plus three Worley octaves (tile 9 km) and 32³ Worley detail (tile
   800 m). The shape is cut by the coverage (a slow 60 km field for the cumulus) and a height profile (flat bases,
@@ -986,7 +1000,16 @@ How it is drawn:
   2.5×: the same 3 km reach) with the detail on the first only.
 - **Temporal reprojection**: each frame's ray start is jittered (interleaved gradient noise, shifted by the golden
   ratio each frame) and blended 25 % into the last frames' result where the same cloud point was in the last frame;
-  refused off screen or where the scene's depth there changed by more than 5 % (something moved in front).
+  refused off screen or where the scene's depth there changed by more than 5 % (something moved in front). The
+  whole history is dropped (every pixel marches afresh) where it would show other clouds or another light: the
+  camera moved more than 500 m since the last march (another jet's view, a mission's start), the sun turned by more
+  than 2°, or the layer's coverage, extinction or kind changed (the rain set).
+  Fixed (2026-11-02): at sunset (`cumulus_sunset`) a hard-edged white patch of noon cloud sat at the right edge. It
+  was the last shot's history (`cumulus_level`: noon, 1300 m higher): the depth test kept it (the sky behind both),
+  and the shot's window drew one frame in about 40 (Wayland stops the frame callbacks of a window the desktop does
+  not show: 61 frames drawn in 2767), so it never faded. Now the sun's turn drops it, and `_clouds_shot.gd` draws
+  the frames it waits for (`RenderingServer.force_draw` when the window did not). Checked with the same shots in
+  the same order: the patch is gone with either change alone.
 - **Interleaved** (`INTERLEAVE`): each frame only a quarter of the cloud pixels march, one of each 2 × 2 block in
   turn (0,0), (1,1), (1,0), (0,1). The other three take the last frames' result where the same cloud point was,
   found by the last frame's cloud distance at that pixel; where that is refused (off screen, the depth changed) they
@@ -1026,7 +1049,8 @@ at Ramat David, the flight model stopped; `_clouds_shot.gd CLOUD_BENCH=8`, the G
 (`viewport_get_measured_render_time_gpu`), one run each, 2026-11-01, load 0.3–2.2 (other sessions' work):
 before (the clouds of 2026-10-30) and after the interleaved march, the floor under the deck and the far-away steps
 (§2.1). The cockpit poses only: in the chase view the measured render time exceeds the frame time, so those numbers
-are not used.
+are not used. The bench times each frame; a window the desktop does not show draws only about one frame in 40 (§2.1
+"Temporal reprojection"), so its numbers hold only with the window on screen.
 
 | pose | Clouds Original | Volumetric before | after | Volumetric's cost after |
 |---|---|---|---|---|

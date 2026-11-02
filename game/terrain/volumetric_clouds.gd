@@ -186,6 +186,10 @@ class Effect:
 	var _frame := 0
 	var _prev_vp := Projection.IDENTITY
 	var _valid := false
+	## The last march's camera position and its sun direction, the layer's coverage and extinction and its mode
+	## (params 0..2, 22, 23, 26; not its base and top, which follow the ground): a jump drops the history (_jumped).
+	var _prev_cam := Vector3.ZERO
+	var _prev_light := PackedFloat32Array()
 	## Benches (_clouds_shot.gd): GPU timestamps around the march ("clouds march" / "clouds march end").
 	static var timing := false
 
@@ -276,6 +280,23 @@ class Effect:
 		size = s
 		_valid = false
 
+	## Whether the history shows other clouds or another light than this frame's: the camera moved more than 500 m
+	## since the last march (another jet's view, a mission's start; a jet at Mach 2 flies 35 m in a 20 fps frame), the
+	## sun turned by more than 2° (a time-of-day jump), or the layer's kind changed (the rain set). The history test
+	## (the scene's depth) can't see these: kept, the last clouds stayed for the 16 frames the history takes to fade,
+	## and in a window that draws seldom much longer (the white noon patch over a sunset in _clouds_shot.gd,
+	## 2026-11-02).
+	func _jumped(origin: Vector3, light: PackedFloat32Array) -> bool:
+		if _prev_light.size() != light.size() or origin.distance_to(_prev_cam) > 500.0:
+			return true
+		var sd := Vector3(light[0], light[1], light[2])
+		if sd.dot(Vector3(_prev_light[0], _prev_light[1], _prev_light[2])) < cos(deg_to_rad(2.0)):
+			return true
+		for i in range(3, light.size()):
+			if absf(light[i] - _prev_light[i]) > 1e-3 * maxf(absf(light[i]), 1.0):
+				return true
+		return false
+
 	func _uniform(type: RenderingDevice.UniformType, binding: int, ids: Array) -> RDUniform:
 		var u := RDUniform.new()
 		u.uniform_type = type
@@ -306,6 +327,11 @@ class Effect:
 				f.append_array([col.x, col.y, col.z, col.w])
 		f.append_array([cam.origin.x, cam.origin.y, cam.origin.z, float(_frame % 1024)])
 		var p := params.duplicate()
+		var light := PackedFloat32Array([p[0], p[1], p[2], p[22], p[23], p[26]])
+		if _jumped(cam.origin, light):
+			_valid = false
+		_prev_cam = cam.origin
+		_prev_light = light
 		p[7] = 1.0 if _valid else 0.0  # sun_col.w: the history holds the last frame
 		f.append_array(p.slice(0, 28))
 		f.append_array([float(size.x), float(size.y), BLEND, 1.0 if INTERLEAVE else 0.0])

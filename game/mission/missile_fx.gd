@@ -185,11 +185,10 @@ void fragment() {
 	float dens = mix(1.0, (1.0 - exp(-chord * 1.2)) * (1.0 - 0.5 * v_align), v_near);
 	float cam_d = length(v_pos - CAMERA_POSITION_WORLD);
 	float near_fade = smoothstep(0.5, 1.5 + v_w, cam_d);
-	ALBEDO = col;
+	ALBEDO = clouds_mix(SCREEN_UV, VIEWPORT_SIZE, cam_d, col);
 	ALPHA = clamp(shape * mix(0.75, 1.0, depth) * (0.65 + 0.7 * n) * thin * fade * v_cover
 		* (1.0 - 0.15 * v_align) * dens * near_fade
-		* mix(1.0 - 0.9 * v_end, puff_alpha * v_end, v_disc), 0.0, 1.0)
-		* clouds_through(SCREEN_UV, VIEWPORT_SIZE, cam_d);
+		* mix(1.0 - 0.9 * v_end, puff_alpha * v_end, v_disc), 0.0, 1.0);
 }
 """
 

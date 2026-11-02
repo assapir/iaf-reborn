@@ -88,11 +88,12 @@ void fragment() {
 """
 
 ## The puffs' sprites (the original look): a billboard of the instance's scale, the soft texture × the instance colour,
-## unshaded, fogged, no depth write; mix (smoke) or add (fire). Behind a Volumetric cloud a sprite shows by the light
-## the cloud lets through (clouds_behind.gdshaderinc).
+## unshaded, fogged, no depth write; mix (smoke) or add (fire, ADD defined). Behind a Volumetric cloud a sprite shows by
+## the light the cloud lets through (clouds_behind.gdshaderinc).
 const SPRITE_SHADER := """
 shader_type spatial;
 render_mode BLEND, unshaded, depth_draw_never, shadows_disabled;
+DEFINES
 #include "res://terrain/clouds_behind.gdshaderinc"
 uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_enable;
 void vertex() {
@@ -105,8 +106,13 @@ void vertex() {
 }
 void fragment() {
 	vec4 c = texture(tex, UV) * COLOR;
+#ifdef ADD
 	ALBEDO = c.rgb;
 	ALPHA = c.a * clouds_through(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX));
+#else
+	ALBEDO = clouds_mix(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX), c.rgb);
+	ALPHA = c.a;
+#endif
 }
 """
 
@@ -120,8 +126,8 @@ uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_enable, hint_
 uniform vec4 albedo : source_color = vec4(1.0);
 void fragment() {
 	vec4 c = texture(tex, UV) * albedo;
-	ALBEDO = c.rgb;
-	ALPHA = c.a * clouds_through(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX));
+	ALBEDO = clouds_mix(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX), c.rgb);
+	ALPHA = c.a;
 }
 """
 
@@ -177,7 +183,9 @@ func _make_layer(fire: bool) -> MultiMeshInstance3D:
 	mm.use_colors = true
 	var quad := QuadMesh.new()
 	var sh := Shader.new()
-	sh.code = SPRITE_SHADER.replace("BLEND", "blend_add" if fire else "blend_mix")
+	sh.code = (SPRITE_SHADER.replace("BLEND", "blend_add" if fire else "blend_mix").replace(
+		"DEFINES", "#define ADD" if fire else ""
+	))
 	var mat := ShaderMaterial.new()
 	mat.shader = sh
 	mat.set_shader_parameter("tex", _soft_texture(fire))

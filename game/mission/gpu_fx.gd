@@ -101,15 +101,15 @@ void vertex() {
 )
 
 ## Soft edge where the billboard meets the scene (linear depth difference over a share of the width). Behind a
-## Clouds Volumetric cloud the billboard shows only by the light the cloud lets through (clouds_behind.gdshaderinc;
-## v_view: the point in view space).
+## Clouds Volumetric cloud the billboard shows only by the light the cloud lets through (clouds_behind.gdshaderinc,
+## the smoke's colour by clouds_mix, the fire's light by clouds_through; v_view: the point in view space).
 const SOFT := """
 #include "res://terrain/clouds_behind.gdshaderinc"
-float soft(vec2 suv, float vz, float d, mat4 inv_proj, sampler2D dt, vec2 vp_size, float dist) {
+float soft(vec2 suv, float vz, float d, mat4 inv_proj, sampler2D dt) {
 	float z = texture(dt, suv).r;
 	vec4 p = inv_proj * vec4(suv * 2.0 - 1.0, z, 1.0);
 	float scene = -p.z / p.w;
-	return clamp((scene + vz) / max(d, 0.5), 0.0, 1.0) * clouds_through(suv, vp_size, dist);
+	return clamp((scene + vz) / max(d, 0.5), 0.0, 1.0);
 }
 """
 
@@ -143,8 +143,8 @@ void fragment() {
 	vec3 col = grey * (ambient + sun_col * lit * 0.85) * (0.75 + 0.5 * n);
 	float fade = smoothstep(0.0, 0.06, v_f) * (1.0 - v_f * v_f);
 	float a = shape * fade * COLOR.a
-		* soft(SCREEN_UV, v_z, v_w * 0.25, INV_PROJECTION_MATRIX, depth_tex, VIEWPORT_SIZE, length(v_view));
-	ALBEDO = col;
+		* soft(SCREEN_UV, v_z, v_w * 0.25, INV_PROJECTION_MATRIX, depth_tex);
+	ALBEDO = clouds_mix(SCREEN_UV, VIEWPORT_SIZE, length(v_view), col);
 	ALPHA = clamp(a, 0.0, 1.0);
 }
 """
@@ -174,7 +174,8 @@ void fragment() {
 	if (shape <= 0.0) { discard; }
 	float heat = clamp((1.0 - v_f * 1.25) * (0.15 + n * 1.25) * (1.25 - r * 0.9) * COLOR.r, 0.0, 1.0);
 	float a = shape * smoothstep(0.0, 0.05, v_f) * pow(1.0 - v_f, 1.4) * COLOR.a
-		* soft(SCREEN_UV, v_z, v_w * 0.2, INV_PROJECTION_MATRIX, depth_tex, VIEWPORT_SIZE, length(v_view));
+		* soft(SCREEN_UV, v_z, v_w * 0.2, INV_PROJECTION_MATRIX, depth_tex)
+		* clouds_through(SCREEN_UV, VIEWPORT_SIZE, length(v_view));
 	ALBEDO = ramp(heat) * a * (0.35 + heat);
 	ALPHA = 1.0;
 }

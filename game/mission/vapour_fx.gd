@@ -59,14 +59,13 @@ uniform vec3 light = vec3(1.0);
 void fragment() {
 	float across = 1.0 - abs(UV.y * 2.0 - 1.0);
 	float n = texture(noise, vec2(UV.x * 0.12, UV.y * 0.3 + UV.x * 0.031)).g;
-	ALBEDO = light;
+	ALBEDO = clouds_mix(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX), light);
 	// Soft across; a solid core at the tip that breaks up along as it ages; faded only within a few metres of the eye
 	// (the own jet's wingtips are 5 m or more away from the cockpit).
 	float broken = mix(1.0, smoothstep(0.2, 0.7, n), smoothstep(0.02, 0.2, COLOR.r));
 	float near = smoothstep(0.5, 3.0, length(VERTEX));
 	// The cloud forms within half a metre behind the tip (no cut end).
-	ALPHA = COLOR.a * smoothstep(0.0, 0.9, across) * broken * smoothstep(0.0, 0.5, UV2.x) * near
-		* clouds_through(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX));
+	ALPHA = COLOR.a * smoothstep(0.0, 0.9, across) * broken * smoothstep(0.0, 0.5, UV2.x) * near;
 }
 """
 
@@ -119,7 +118,7 @@ void fragment() {
 	float axis = mix(1.0 - smoothstep(0.3, 0.8, abs(dot(v_axis, VIEW))), 1.0, inside);
 	float cone = k_cone * (0.55 + 0.45 * step(0.0, v_up));
 	float wing = k_wing * step(0.0, v_up);
-	ALBEDO = light;
+	ALBEDO = clouds_mix(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX), light);
 	// From inside, a wider silhouette fade: the doubled shell at the outline would read as a hard glassy arc.
 	float sil = smoothstep(0.0, mix(0.4, 0.8, inside), abs(dot(NORMAL, VIEW)));
 	float edge = sil * smoothstep(0.5, 4.0, length(VERTEX));
@@ -128,8 +127,7 @@ void fragment() {
 	float detail = smoothstep(0.5, 3.0, v_ppm);
 	puffs = mix(0.6, puffs, detail);
 	edge = mix(1.0, edge, detail);
-	ALPHA = clamp((cone + wing) * shape * axis * edge * puffs, 0.0, 0.75)
-		* clouds_through(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX));
+	ALPHA = clamp((cone + wing) * shape * axis * edge * puffs, 0.0, 0.75);
 }
 """
 )
@@ -174,13 +172,12 @@ void fragment() {
 	// Fading in from the start, thinning to nothing at the sheet's edges, ragged where it streams off.
 	float across = pow(sin(3.14159 * v), 2.0);
 	float shape = smoothstep(0.0, 0.1, u) * (1.0 - smoothstep(0.45 + 0.35 * n * detail, 1.0, u)) * across;
-	ALBEDO = light;
+	ALBEDO = clouds_mix(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX), light);
 	// Seen along the vortex (from the cockpit looking back) the thin sheet is all edge-on, yet the eye looks
 	// down the length of the cloud: no silhouette fade then, nor for a far sheet.
 	float along = max(smoothstep(0.5, 0.9, abs(dot(v_axis, VIEW))), 1.0 - detail);
 	float edge = mix(soft(NORMAL, VIEW, VERTEX), smoothstep(0.5, 4.0, length(VERTEX)), along);
-	ALPHA = clamp(k_lex * shape * edge * streaks * 0.5, 0.0, 0.4)
-		* clouds_through(SCREEN_UV, VIEWPORT_SIZE, length(VERTEX));
+	ALPHA = clamp(k_lex * shape * edge * streaks * 0.5, 0.0, 0.4);
 }
 """
 )

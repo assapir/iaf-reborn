@@ -1,7 +1,8 @@
 # Preferences > Graphics → MORE "Clouds" (docs/rendering.md §2.1, terrain/volumetric_clouds.gd): Original by default
 # (the 1998 layer of TEXTURED SKY, no volumetric node), saved and read back. Volumetric needs a RenderingDevice:
 # headless has none, so it makes no node and the original layer stays (the Graphics row greys it out). The compute
-# shaders compile. With a RenderingDevice (a real render) the node takes the layer's place on both main cameras.
+# shaders compile; the history is dropped across a camera jump or a change of the sun or the layer. With a
+# RenderingDevice (a real render) the node takes the layer's place on both main cameras.
 extends "res://../tests/godot/base.gd"
 
 
@@ -20,6 +21,21 @@ func run() -> void:
 			spirv.compile_error_compute == "" and not spirv.bytecode_compute.is_empty(),
 			"%s compiles %s" % [f.get_file(), spirv.compile_error_compute]
 		)
+	# The temporal history is dropped where it would show other clouds or another light (Effect._jumped).
+	var ef = vc.Effect.new()
+	var light := PackedFloat32Array([0.0, 1.0, 0.0, 0.3, 0.12, 0.0])
+	check(ef._jumped(Vector3.ZERO, light), "the first march has no history")
+	ef._prev_light = light
+	var sunset := light.duplicate()
+	sunset[1] = 0.999
+	sunset[2] = 0.05
+	var rain := light.duplicate()
+	rain[5] = 1.0
+	check(
+		not ef._jumped(Vector3(300, 0, 0), light) and ef._jumped(Vector3(600, 0, 0), light),
+		"the history holds as the camera flies on, not across a 600 m jump"
+	)
+	check(ef._jumped(Vector3.ZERO, sunset) and ef._jumped(Vector3.ZERO, rain), "nor across a sun or layer change")
 	s.clouds = "original"
 	var tv := await start_mission(311)
 	await frames(3)
