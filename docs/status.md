@@ -131,6 +131,8 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
   `hud_ccip_designated` (guides/f16.md §11). Changed since: the F-15's and Lavi's Real HUD ILS (the flight director /
   the needles in place of the original's lines) and the Lavi's NAV bank scale: their `landing_final` and NAV pictures
   (guides/f15.md §11, guides/lavi.md §3 / §11).
+- **F-15I Ra'am** (Extras "F-15 version"): its look only; it flies on the F-15C's data, radar and weapons. The
+  research for the rest (flight data, APG-70I, weapons, helmet, EW, voice) is in f15i.md, with its build order (§10).
 - **World scale Real 1:1**: the real blast radii of the missiles / SAMs without a published lethal radius.
 - **Setup wizard**: the pages wait for the user's review (roadmap.md).
 - **Flight start**: with TAA the loading screen stops for ≈ 1.2 s (warm) while Godot loads the motion-vector shaders

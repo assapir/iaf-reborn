@@ -243,6 +243,8 @@ live play while recording at 4K. Two ways:
 - **What it would change** (each with public sources, as for the Sufa): flight data (F100-PW-229 engines, conformal
   fuel tanks), radar (APG-70I), helmet and HUD, weapons, RWR / self-protection, and how it looks: the Ra'am on the
   Detailed F-15 (the Zaretto F-15C model, added 2026-10-28) with conformal tanks, the second seat and the IAF livery.
+- **Steps:** 1. research (done 2026-11-02: [f15i.md](f15i.md), with its open questions and build outline); built so far:
+  the look only (aircraft-models.md §6.7). 2. build it behind the switch, the 1990s Baz unchanged.
 
 ## Modern aircraft and weapons (post everything)
 - Newer aircraft (e.g. F-16I Sufa, F-15I Ra'am, and modern threats; the F-35I Adir is built, f35i.md) together with
