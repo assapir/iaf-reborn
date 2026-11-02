@@ -311,6 +311,6 @@ mod tests {
         assert_eq!((r.original_model.as_deref(), r.fm.as_deref()), (Some("f15_h.gltf"), Some("F-15I")));
         assert_eq!(r.radar.as_ref().map(|r| (r.row, r.km, r.ai_nm)), Some((None, Some(104.0), Some(30.8))));
         assert_eq!(r.gun_rounds, Some(500));
-        assert_eq!(r.weapons.as_ref().and_then(|w| w.loads.as_ref()?.get(&1004).cloned()), Some((1, "BCDFGH".into())));
+        assert_eq!(r.weapons.as_ref().and_then(|w| w.loads.as_ref()?.get(&1004).cloned()), Some((1, "BCDEFGH".into())));
     }
 }
