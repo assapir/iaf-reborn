@@ -12,6 +12,8 @@
 #   no seeker, they fly to a point fixed at the release (gps.rs).
 # - The SPICE 1000 (type 650 with a "gps" kit): GPS / INS to the stored target, its scene-matching seeker ending on that
 #   point (docs/weapons.md §13.2), its wings giving the long glide.
+# - The GBU-28 (the F-15I's 4,700 lb penetrator, docs/real-weapons.md §1.6): a laser bomb (type 650 without a kit),
+#   the original's laser rules (docs/weapons.md §9.8).
 extends RefCounted
 
 const LB_PER_KG := 1.0 / 0.45359
@@ -28,7 +30,8 @@ const SPICE := {"glide": 6.8, "min_speed": 150.0, "max_speed": 300.0, "max_g": 3
 ## The high off-boresight missiles' motion (inferred): jet-vane / thrust-vector control turns them from the rail.
 const AGILE := {"_absAcceleration": 600.0, "_timeConstOrientation": 0.05, "_offBoresight": 1.0, "_timeRelease": 0.0}
 
-## id (above every bdb's), name (as the Arming screen shows it, 8 characters at most), type, generation, base (blast,
+## id (above every bdb's), name (as the Arming screen shows it: 6 characters at most, as the original's weapon names,
+## so a station box's "%dx%s" fits its 8 characters; arming.gd `_key_text`), type, generation, base (blast,
 ## drag), model_of (the original model standing in), model_path (ours, util/gltf.gd STAND_INS), kg, icon (ours,
 ## game/extra/weapons/arm/<icon>.png; none: the install's icon of the model), and per kind: the missiles' mach,
 ## range_km, cone_deg, rear_km / front_km / front_ab_km (lock ranges), max_g; the bombs' gps kit, fill_kg, scale.
@@ -83,7 +86,7 @@ const RECORDS := [
 	},
 	{
 		"id": 1004,
-		"name": "GBU-31V3",
+		"name": "BLU109",
 		"type": 650,
 		"base": "MK-84",
 		"model_of": "MK-84L",
@@ -138,6 +141,17 @@ const RECORDS := [
 		"kg": 453.0,
 		"icon": "spice1000",
 		"gps": SPICE
+	},
+	{
+		"id": 1010,
+		"name": "GBU-28",
+		"type": 650,
+		"base": "MK-84",
+		"model_of": "MK-84L",
+		"model_path": "weapons/sufa/gbu28_m.gltf",
+		"kg": 2130.0,
+		"icon": "gbu28",
+		"fill_kg": 286.0
 	},
 ]
 ## The jets that may load each record: id -> {jet: [count, stations A..I]}, a jet by its bdb type code. A jet with an
@@ -195,7 +209,7 @@ static func add_to(db: RefCounted) -> void:
 			w.radius = float(base.radius) * pow(k, 1.0 / 3.0)
 		if spec.has("gps"):
 			w.gps = spec.gps
-		else:
+		elif spec.has("mach"):
 			_missile(db, w, spec)
 		db.weapons[w.id] = w
 

@@ -34,13 +34,21 @@ func run() -> void:
 		for t in [0, 1]:
 			names.append_array(mw.tab_list(t).map(func(x): return x.name))
 		check(
-			names.has("PYTH-5") and names.has("GBU-31V3") and names.has("SPICE-1K"),
-			"F-15I lists PYTH-5, GBU-31V3 and SPICE-1K: %s" % [names]
+			names.has("PYTH-5") and names.has("BLU109") and names.has("GBU-28") and names.has("GBU-39")
+			and names.has("SPICE-1K"),
+			"F-15I lists PYTH-5, BLU109, GBU-28, GBU-39 and SPICE-1K: %s" % [names]
 		)
-		check(not names.has("AIM-9X") and not names.has("GBU-31"), "no AIM-9X / GBU-31 (no F-15I source)")
+		check(
+			not names.has("AIM-9X") and not names.has("GBU-31") and not names.has("GBU-38"),
+			"no AIM-9X / GBU-31 / GBU-38 (open for the F-15I)"
+		)
 		for w in mw.weapons:
-			if w.name == "GBU-31V3":
-				check(w.max == [0, 1, 1, 1, 0, 1, 1, 1, 0], "GBU-31V3 on B, C, D, F, G, H: %s" % [w.max])
+			if w.name == "BLU109":
+				check(w.max == [0, 1, 1, 1, 0, 1, 1, 1, 0], "BLU109 on B, C, D, F, G, H: %s" % [w.max])
+			elif w.name == "GBU-28":
+				check(w.max == [0, 1, 0, 0, 1, 0, 0, 1, 0], "GBU-28 on B, E, H: %s" % [w.max])
+			elif w.name == "GBU-39":
+				check(w.max == [0, 4, 0, 4, 4, 4, 0, 4, 0], "GBU-39 four on B, D, E, F, H: %s" % [w.max])
 			elif w.name == "SPICE-1K":
 				check(w.max == [0, 1, 0, 0, 0, 0, 0, 1, 0], "SPICE-1K on B and H: %s" % [w.max])
 			elif w.name == "PYTH-5":

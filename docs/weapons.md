@@ -1123,9 +1123,9 @@ Eight weapons the 1998 game does not have: the AIM-9X, Python 5, GBU-31, GBU-31(
 
 - The AI never gets them.
 
-- **Records** (`game/weapons/modern_weapons.gd`, ids 1001–1007 and 1009, added to every weapon database by `weapon_db.gd`): each
+- **Records** (`game/weapons/modern_weapons.gd`, ids 1001–1007, 1009 and 1010, added to every weapon database by `weapon_db.gd`): each
   copies an original record for its blast, drag and model and overrides the rest. A record built on a bomb with less
-  explosive (GBU-31(V)3, GBU-39) scales the base's power by its fill over the Mk 84's 429 kg and the radius by the
+  explosive (GBU-31(V)3, GBU-39, GBU-28) scales the base's power by its fill over the Mk 84's 429 kg and the radius by the
   cube root of that (inferred). Stations as numbered 1–9 on the Arming screen (the F-15I: docs/f15i.md §3):
 
   | record | type | built on (blast) | model (Original / Detailed) | Sufa | Barak | F-15 | F-35I | count |
@@ -1133,11 +1133,18 @@ Eight weapons the 1998 game does not have: the AIM-9X, Python 5, GBU-31, GBU-31(
   | `AIM-9X` | 570, gen. 4 | AIM-9M | AIM-9 / FlightGear AIM-9X | 1–3, 7–9 | 1–3, 7–9 | 1, 9 (two each) | 1, 9 | 1 |
   | `PYTH-5` | 570, gen. 4 | PYTH-4 | Python 4 / ours (aircraft-models.md §5.6) | 1–3, 7–9 | 1–3, 7–9 | – | – | 1 |
   | `GBU-31` | 650 + GPS | MK-84 | MK-84L / FlightGear GBU-31 | 3, 4, 6, 7 | 3, 4, 6, 7 | 2, 5, 8 | 2, 3, 7, 8 | 1 |
-  | `GBU-31V3` (BLU-109) | 650 + GPS | MK-84 × 250 / 429 | MK-84L / FlightGear GBU-31, slimmer (the BLU-109's 370 mm) | 3, 4, 6, 7 | – | – | – | 1 |
+  | `BLU109` (GBU-31(V)3) | 650 + GPS | MK-84 × 250 / 429 | MK-84L / FlightGear GBU-31, slimmer (the BLU-109's 370 mm) | 3, 4, 6, 7 | – | – | – | 1 |
   | `GBU-32` | 650 + GPS | MK-83 | MK-83L / FlightGear GBU-31 at the GBU-32's length | 3, 4, 6, 7 | – | – | 2, 3, 7, 8 | 1 |
   | `GBU-38` | 650 + GPS | MK-82 | MK-82L / FlightGear GBU-54 (the laser JDAM's look) | 3, 4, 6, 7 | 3, 4, 6, 7 | – | – | 1 |
   | `GBU-39` | 650 + GPS | MK-84 × 16 / 429 | MK-82 at 0.8 scale / ours, on its BRU-61/A rack (aircraft-models.md §5.6) | 3, 4, 6, 7 | 3, 7 | – | 3, 7 (bays) | 4 (one rack) |
   | `SPICE-1K` | 650 + GPS | MK-83 | MK-83L / ours, wings folded (aircraft-models.md §5.6) | – | – | 2, 8 | – | 1 |
+  | `GBU-28` (BLU-113) | 650 (laser) | MK-84 × 286 / 429 | MK-84L / ours (aircraft-models.md §5.6) | – | – | – | – | 1 |
+
+  The F-15I Ra'am (its definition, docs/f15i.md §3): `PYTH-5` on 1, 9 (two each), `BLU109` on 2–4, 6–8, `GBU-28` on 2,
+  5, 8, `GBU-39` four to a rack on 2, 4, 5, 6, 8, `SPICE-1K` on 2, 8. The names are 6 characters at most, as the original's: a station
+  box shows "%dx%s" in 8 characters, centred and clipped (`FUN_005061c0`, DrawText `0x25`), so the GBU-31(V)3 is
+  `BLU109` (as `GBU-31V3` it read "xGBU-31V"). The SPICE 1000's `SPICE-1K` (8 characters) still reads "xSPICE-1":
+  its name is open.
 
 - **Arming**: `mission_weapons.gd` lists them after the bdb's weapons and adds their load items (`ModernWeapons.loads`)
   to the jet's. A jet picked on the Jet list takes the modern items of the jet flown, with the mission jet's original

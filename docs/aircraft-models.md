@@ -374,9 +374,9 @@ authors and changes in `SOURCES.md` there). They show on every jet that carries 
 | ECM | AN/ALQ-131 | 1 284 |
 | FLIR | AN/AAQ-13 (LANTIRN) | 938 |
 | AIM-9X (the Sufa's, ours) | AIM-9X | 7 766 |
-| GBU-31, GBU-31V3 (the Sufa's) | GBU-31 | 2 944 |
+| GBU-31, BLU109 (the Sufa's) | GBU-31 | 2 944 |
 | GBU-38 (the Sufa's) | GBU-54 (the laser JDAM: a GBU-38 with a laser nose) | 3 208 |
-| GBU-31V3 (the Sufa's) | GBU-31, slimmer to the BLU-109's 370 mm | 2 944 |
+| BLU109 (the GBU-31(V)3) | GBU-31, slimmer to the BLU-109's 370 mm | 2 944 |
 | GBU-32 (the Sufa's, the F-35I's) | GBU-31 at the GBU-32's 3.035 m | 2 944 |
 | PYTH-5, GBU-39 (with its BRU-61/A rack), POPEYE | ours (§5.6) | 1 060, 776 (+ 492), 888 |
 | AA-2 (and "Rockets", which shares its model) | R-3S (MiG-21bis) | 3 558 |
@@ -460,7 +460,7 @@ IAF_DEFAULT_SETTINGS=1 godot --headless --path game -s ../tools/stores/build.gd 
 
 ### 5.6 Our own stores
 
-No open model exists for the Python 5, the GBU-39, its BRU-61/A rack, the Popeye, the SPICE kits or the Spike NLOS
+No open model exists for the Python 5, the GBU-39, its BRU-61/A rack, the Popeye, the GBU-28, the SPICE kits or the Spike NLOS
 (graphics-research.md §3.13; the FlightGear F-22's GBU-39 is GPL-2.0-only and marked "By FGUK's Davinci F-35", an
 unverified source). `tools/stores/build.gd` builds them from shapes in `tools/stores/ours.gd` (`parts()`): bodies of
 revolution with colour bands, fins and boxes, flat colours (no texture), each surface its own material. The lengths,
@@ -474,6 +474,7 @@ its original's length (4.69 m, the real one 4.82 m).
 | `pyth5` | shallow glass dome, two rows of four delta canards (X) right behind it, four long-chord rear wings (X) each with a trailing control surface, rail hangers; grey, darker guidance section, bare motor with red bands. Measured on a top-view photo: canard root chords 0.21 / 0.34 m, rear wing root 0.45 m plus 0.23 m of control surface; spans from the published 640 mm (inferred, the photo does not show X or +) | 16 surfaces against the 18 Wikipedia counts (open); no markings or rivets; the dome is dark glass (the real one clear, its seeker inside) |
 | `gbu39` | long ogive nose, squarish (flat-sided) section, dark grey with a yellow band and a darker tail section, the folded wing pack on top, four tail fins (X) | its section is a rounded square (the real one has flat panels and a flat top); no lugs or stencils; wings folded only |
 | `bru61` | squared beam with a keel below, at its real 3.63 m, the four bombs under it in two side-by-side pairs, fore and aft (`PlayerWeapons.RACK_PAIR`, inferred from the photos) | drawn only with Models Detailed over a station of four GBU-39s (`Gltf.RACKS`, `PlayerWeapons._rack`). The bombs are drawn there, not at the game's slots (4 m apart fore and aft, `BOMB_STATION_LENGTH`); each is still released from its slot, about 1 m from where it was drawn. No ejector pistons or sway braces |
+| `gbu28` | the GBU-28 at its real 5.82 m (the MK-84's scale, on the MK-84L it stands in for): a slim grey Paveway III guidance section with a small dome and four canards (X), a long taper onto the olive BLU-113 body (368 mm) with a yellow band, a grey tail cone with four broad wings (X), two lugs; measured on the USAF photo of an F-15E releasing one | the wings' span is open (by eye); no stencils; wings shown open, as released |
 | `popeye` | glass dome (dark, the real one gold-tinted), small fins (X) behind the nose, long-chord swept tail fins (X), yellow band | no datalink pod or fairings; the original's length |
 | `spice1000`, `spice2000`, `spikenlos` | SPICE kits on the Mk 83 / Mk 84 (canards, mid-body strakes on the 2000, folded wings under the 1000, tail fins); Spike NLOS with its dark dome and long pop-out wings | `spice1000`: the `SPICE-1K` record's (weapons.md §13), its wings folded also after the release; `spice2000` and `spikenlos`: not in the game yet (real-weapons.md §1.8); lengths inferred from photos (open) |
 
@@ -642,9 +643,16 @@ afterburners. The conformal tanks' pylons stay empty: the game hangs the F-15's 
 **Arming art.** The same build renders the jet's front view for the Arming screen (`f15::arm_front`, beside the model:
 `f15i_arm.png` and its station points `f15i_arm.json`). It is the Sufa's way (`tools/plane/kit.py`
 `arm_front_view`, f16i.md §8.1) done in Rust without Blender, as the model may not ship: orthographic from the
-front, gear down, the glass left out, Lambert-shaded from the upper left, mapped to the arming greens, at 2 × 2
-samples a pixel; mirrored as the originals (station A on the left); the wingtips 427 menu px apart at height 146,
-as on the original `f-15.png`. The `models` step then composes `arm/jets/x_f15i.png` in each menu set from it with
+front, gear down, at 2 × 2 samples a pixel; mirrored as the originals (station A on the left); the wingtips 427 menu
+px apart at height 146, as on the original `f-15.png`. Lit to match the original's glossy render (2026-11-02): a key
+light from above and a little left, a fill from the right, the sky from above, a Blinn-Phong highlight on the smooth
+normals, screen-space ambient occlusion in the recesses (a pixel more than 0.3 m behind the mean depth within 0.6 m
+darkens, fully at 1.8 m: the intakes' insides, the gaps under the wings), and the canopy a glossy tint over the
+cockpit; the brightness mapped through five greens sampled on `f-15.png` (shade, fin, fuselage, lit wing, nose
+highlight). The first version (flat Lambert light into two greens, the glass left out) looked dark and muddy beside
+the originals. Station points: the helpers', but C / D and F / G, which share one spot on each intake in front view
+(the F-15C's fore and aft Sparrows), go to the conformal tanks' racks: C and G the outer row, D and F the lower row
+(FlightGear's CFT pylon stubs; `f15::cft_stations`). The `models` step then composes `arm/jets/x_f15i.png` in each menu set from it with
 `game/extra/planes/f15i/arm/arm.json` (`iaf-convert arm-extra`; the F-15's boxes, `base_art` f-15); the `arm` step
 leaves it to that step.
 

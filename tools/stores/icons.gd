@@ -12,7 +12,9 @@ extends SceneTree
 
 const SIZE := Vector2i(196, 120)
 ## The close-ups' stores (ours and the new FlightGear-derived ones).
-const CLOSEUPS := ["pyth5", "gbu39", "bru61", "gbu32", "gbu31v3", "popeye", "spice1000", "spice2000", "spikenlos"]
+const CLOSEUPS := [
+	"pyth5", "gbu39", "bru61", "gbu32", "gbu31v3", "popeye", "spice1000", "spice2000", "spikenlos", "gbu28"
+]
 ## icon -> [model (res:// detailed store, or a path under converted/objects), length on the icon (share of its width)].
 const ICONS := {
 	"aim9x": ["res://extra/models/stores/aim9x.glb", 0.86],
@@ -23,6 +25,7 @@ const ICONS := {
 	"gbu38": ["res://extra/models/stores/gbu38.glb", 0.66],
 	"gbu39": ["res://extra/models/stores/gbu39.glb", 0.46],
 	"spice1000": ["res://extra/models/stores/spice1000.glb", 0.80],
+	"gbu28": ["res://extra/models/stores/gbu28.glb", 0.92],
 }
 
 

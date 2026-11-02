@@ -75,6 +75,8 @@ const STORES := {
 	# Spike NLOS at their real size (no game record yet: docs/real-weapons.md §1.8).
 	"pyth5": {"orig": "pthon4/pthon4_m.gltf", "parts": Ours.PYTH5, "scale_as": "aim9"},
 	"gbu39": {"orig": "mk82/mk82_m.gltf", "parts": Ours.GBU39, "scale_as": "mk82"},
+	# The GBU-28 (ours, the F-15I's) at the MK-84's scale on the MK-84L it stands in for: its real 5.82 m.
+	"gbu28": {"orig": "mk84lb/mk84lb_m.gltf", "parts": Ours.GBU28, "scale_as": "mk84"},
 	"bru61": {"parts": Ours.BRU61},
 	"popeye": {"orig": "popeye/popeye_m.gltf", "parts": Ours.POPEYE},
 	"spice1000": {"parts": Ours.SPICE1000},

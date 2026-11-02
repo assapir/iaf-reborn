@@ -423,15 +423,23 @@ mod tests {
 
 /// The arming screen art of an extra plane (docs/adding-a-plane.md §5), composed on the user's machine from the
 /// original's arming art (never committed) and the plane's own front view:
-/// - the background: a low percentile (the lower quarter) of every original jet image per pixel: each jet's
-///   silhouette and leader lines (brighter than the dark background) are outvoted, the grid and radar ring they
-///   all share remain;
+/// - the background: per pixel, the darkest colour two original jet images agree on: each jet's silhouette and
+///   leader lines (brighter than the dark background) drop out, the grid and radar ring they all share remain; where
+///   fewer than four agree (the parts most jets share, the wings' height), painted over from the background round
+///   it (a low percentile per channel left a ghost of the wings there);
 /// - the station boxes and the bottom band (labels, DEFAULT) copied from `base` (an original jet's image whose box
 ///   layout the plane uses);
 /// - the title area cleared (the game draws the plane's title);
 /// - the front view over it, and a leader line from each box's top to its station point.
 ///
 /// `scale`: art px per menu px (the converted menu art is 4×). Boxes and points are menu px.
+/// Two originals' pixels within this (the sum of the RGB differences) show the same background.
+const MATCH: u32 = 24;
+/// How many originals (itself included) must agree on a background colour for it to stand; fewer: painted over, in
+/// FILL_PASSES passes.
+const SURE: usize = 4;
+const FILL_PASSES: usize = 300;
+
 pub fn compose_arm(
     originals: &[image::RgbaImage],
     base: &image::RgbaImage,
@@ -442,19 +450,53 @@ pub fn compose_arm(
 ) -> image::RgbaImage {
     let (w, h) = base.dimensions();
     let mut out = image::RgbaImage::new(w, h);
-    let mut vals: Vec<u8> = Vec::with_capacity(originals.len());
+    let mut unsure = Vec::new();
     for y in 0..h {
         for x in 0..w {
             let mut px = [0u8; 4];
-            for (c, slot) in px.iter_mut().enumerate().take(3) {
-                vals.clear();
-                vals.extend(originals.iter().filter(|o| o.dimensions() == (w, h)).map(|o| o.get_pixel(x, y)[c]));
-                vals.sort_unstable();
-                *slot = if vals.is_empty() { 0 } else { vals[vals.len() / 4] };
+            // The darkest colour two originals agree on (within MATCH): a jet's silhouette and leader lines are
+            // brighter than the background, and one jet's own shade does not count. Fewer than SURE agreeing: a
+            // jet's part most originals share (filled below).
+            let mut vals: Vec<[u8; 4]> =
+                originals.iter().filter(|o| o.dimensions() == (w, h)).map(|o| o.get_pixel(x, y).0).collect();
+            vals.sort_unstable_by_key(|a| a[..3].iter().map(|&v| v as u32).sum::<u32>());
+            let near = |a: &[u8; 4], b: &[u8; 4]| (0..3).map(|c| a[c].abs_diff(b[c]) as u32).sum::<u32>() <= MATCH;
+            let agree = |i: usize| vals.iter().filter(|b| near(&vals[i], b)).count();
+            let pick = (0..vals.len()).find(|&i| agree(i) >= 2);
+            if let Some(i) = pick.or((!vals.is_empty()).then_some(vals.len() / 4)) {
+                px[..3].copy_from_slice(&vals[i][..3]);
+                if agree(i) < SURE {
+                    unsure.push((x, y));
+                }
             }
             px[3] = 255;
             out.put_pixel(x, y, image::Rgba(px));
         }
+    }
+    // The unsure pixels painted over from the sure ones round them (a membrane: each the mean of its neighbours,
+    // repeated), so no jet's ghost or speckle stays.
+    let mut fill = vec![false; (w * h) as usize];
+    for &(x, y) in &unsure {
+        fill[(y * w + x) as usize] = true;
+    }
+    let mut col: Vec<[f32; 3]> = out.pixels().map(|p| [p[0] as f32, p[1] as f32, p[2] as f32]).collect();
+    for _ in 0..FILL_PASSES {
+        for &(x, y) in &unsure {
+            let (mut sum, mut n) = ([0.0f32; 3], 0.0);
+            for (dx, dy) in [(-1i64, 0i64), (1, 0), (0, -1), (0, 1)] {
+                let (nx, ny) = (x as i64 + dx, y as i64 + dy);
+                if nx >= 0 && ny >= 0 && (nx as u32) < w && (ny as u32) < h {
+                    let c = col[(ny as u32 * w + nx as u32) as usize];
+                    sum = [sum[0] + c[0], sum[1] + c[1], sum[2] + c[2]];
+                    n += 1.0;
+                }
+            }
+            col[(y * w + x) as usize] = sum.map(|v| v / n);
+        }
+    }
+    for &(x, y) in &unsure {
+        let c = col[(y * w + x) as usize];
+        out.put_pixel(x, y, image::Rgba([c[0].round() as u8, c[1].round() as u8, c[2].round() as u8, 255]));
     }
     let s = |v: f32| (v * scale).round() as i64;
     let copy = |out: &mut image::RgbaImage, x0: i64, y0: i64, x1: i64, y1: i64| {

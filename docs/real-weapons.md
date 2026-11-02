@@ -166,6 +166,7 @@ Python 5: docs/f16i.md §5; the F-16I has carried the SDB since August 2015 (107
 | GBU-38 (Mk 82) | 253 kg | – | 24 km | GPS / INS | [^dsjdam] |
 | GBU-39 SDB | 129 kg | – | 111 km ("over 60 nmi") | GPS / INS, wings; four on a BRU-61 rack | [^sdb] |
 | SPICE-1K (SPICE 1000, Mk 83) | 453 kg (the 1,000 lb class; the exact weight open) | – | 100 km | INS / GPS, an electro-optical scene-matching seeker, deployable wings | [^spicebro], [^wpspice], [^twzspice] |
+| GBU-28 (BLU-113) | 2,130 kg | – | the laser bombs' glide (inferred) | laser (Paveway III, the GBU-27's kit) | [^gbu28kopp], [^gbu28fas], [^gbu28wp] |
 
 - **Weights** are the records' bdb weight (0x758) in whole pounds.
 - **Missiles**: speed and range set β and the burn as §2 does. Inferred: the motor's acceleration 600 m/s² (so a
@@ -181,8 +182,17 @@ Python 5: docs/f16i.md §5; the F-16I has carried the SDB since August 2015 (107
 - **GBU-39 range**: "over 60 nmi" air-dropped[^sdb]: glide ratio 7.6 from the same release. Weight: the spec box's
   129 kg (the lead says 250 lb, 110 kg[^sdb]).
 - **Blast**: the bomb's own record (Mk 84 / 83 / 82). The BLU-109 holds 250 kg of tritonal[^blu109], the GBU-39 16 kg
-  of AFX-757[^sdb], against the Mk 84's 429 kg[^mk84]: their power is the MK-84's × fill / 429, the radius × the cube
-  root of that (inferred).
+  of AFX-757[^sdb], the GBU-28's BLU-113 630 lb (286 kg)[^gbu28fas][^gbu28kopp], against the Mk 84's 429 kg[^mk84]:
+  their power is the MK-84's × fill / 429, the radius × the cube root of that (inferred).
+- **GBU-28**: "4,700 lb (2,130 kg)", "over 19 ft (5.8 m)", 630 lb of explosive in a 13 ft case with 2.25 in walls
+  (Kopp[^gbu28kopp]); FAS: "weigh 4,637 pounds, and contain 630 pounds of high explosives", "14.5 inches in diameter
+  and almost 19 feet long", laser guided, carried by the F-15E and F-111F[^gbu28fas]; Wikipedia: 5.824 m overall, the
+  body 4.04 m, 4,000–5,000 lb, 306 kg of tritonal[^gbu28wp]. The game's record weighs Kopp's 2,130 kg and fills
+  FAS's and Kopp's 286 kg. Its guidance is the game's laser bomb (type 650, docs/weapons.md §9.8): with the FLIR pod's
+  laser on it flies to the designated point, else to the ripple's aim. The F-15 cannot carry the game's FLIR pod (the
+  F-15E's LANTIRN pods hang on their own intake pylons, not on a game station), so on the Ra'am the GBU-28 falls on
+  the ripple aim (CCIP), guided there by the laser-bomb motion; a designation for it is open. The GPS-aided versions
+  (EGBU-28/B, EGBU-28C/B with the BLU-122[^gbu28kopp][^gbu28wp]) are not modelled: no source says Israel has them.
 - **Accuracy**: a JDAM with GPS has a 5 m CEP[^jdam] (13 m official, about 10 m in use[^dsjdam]), the GBU-39 1 m[^sdb];
   the game's bomb lands on its aim (not modelled).
 - **SPICE 1000** (research of 2 November 2026):
@@ -212,7 +222,7 @@ Not added (docs/f16i.md §5):
 - **SPICE 1000 on the Sufa**: integrated on the F-16I[^twzspice] (planned for the Ramon squadrons in 2017[^spice1000]),
   but no source shows its stations on the F-16I: open, not loaded (§1.7).
 - **SPICE 2000**: no source shows it on the F-16I.
-- **GBU-28**: no source puts it on the F-16I (Israel's carrier is the F-15I, inferred).
+- **GBU-28**: no source puts it on the F-16I; Israel bought it for its F-15s (§1.7, the F-15I).
 - **Laser JDAM (GBU-54)**: Israel co-developed the laser seeker with Elbit[^jdam]; its use on the F-16I: open.
 
 ### 1.7 Which jet carried which modern weapon
@@ -227,11 +237,35 @@ always has its own, whatever the switch. Research of 29 October 2026.
 | AIM-9X | yes: USAF F-16C/D[^afm9x][^kunsan] | yes: USAF F-15C, first operational shot 2004[^afm9x][^acc9x] | no source | no source | no source | no source | yes: IAF F-35I[^janes35]; F-35A outboard pylons[^dt35] |
 | PYTH-5 | yes: IAF F-16 (first combat kill 2006)[^f16py5] | open: Python 4 or 5 unclear[^twzbaz] | open: Turkish F-4E 2020, a forum only | open: Colombian Kfir C10 / C12, weak sources | no source | no source | open: integration not complete[^janes35] |
 | GBU-31 | yes: IAF F-16C/D (Boeing integrated the JDAM on Peace Marble II / III, the Block 30 Barak and Block 40 Brakeet, from 2000, the first export JDAM sale[^boe00]; the IAF fielded it in 2003[^iaf03]; four per jet in 2023[^avi23]); USAF Block 30s in 2003[^aftc03] | yes: IAF Baz[^avi23][^twzbaz] | no source | no source | no source | no source | yes: F-35A internal[^dt35]; IAF F-35I[^avi23] |
-| GBU-31V3 | open | open | no source | no source | no source | no source | open |
+| BLU109 (GBU-31(V)3) | open | open | no source | no source | no source | no source | open |
 | GBU-32 | open: listed for the F-16C/D by one source[^afmjdam], not by another | no source | no source | no source | no source | no source | yes: F-35A[^afmjdam] |
 | GBU-38 | yes: USAF F-16[^afmjdam] | no source (the F-15E's) | no source | no source | no source | no source | open: a 2011 Lockheed chart only |
 | GBU-39 | yes: USAF F-16 (Block 30/40/50 integration, 8 on BRU-61 racks)[^ar39] | no source (the F-15E's) | no source | no source | no source | no source | yes: F-35A internal, RNLAF and RAAF[^raaf39] |
 | SPICE-1K | open: IAF F-16C/D since 2017[^spice1000][^twzspice], no source for its stations | yes: IAF Baz, "each carrying a pair" (an OSINT post), a photo of a Baz with a SPICE pair on the underwing pylons[^twzspice] | no source | no source | no source | no source | open: integration announced 2026[^spice35][^twzspice] |
+
+**F-15I Ra'am** (its definition's `weapons.loads`, docs/f15i.md §3; searched 2 November 2026):
+- **GBU-28**: yes. Israel ordered "100 advanced GBU-28 bombs", "designed for use by F-15 warplanes used by Israel"
+  (2005)[^globes05]; "The IAF is also equipping its F-15I squadron with the GBU-28 2.2-ton hard target penetrator
+  bomb" (2010)[^globes10]; the IAF's "US-supplied 5,000-pound class GBU-28 series" (2026)[^fpri26]. Station: no source
+  for the F-15E or F-15I. The F-15E's CFT racks are "stressed for up to 1000 lb" (outer) and "2000 lb" (inner fore and
+  aft)[^kopp85], too little for it, so the game puts it on the wing pylons B / H and the centreline E (inferred; the
+  2003 USAF photo of an F-15E releasing one[^gbu28photo] shows it leaving from under the fuselage: the centreline or
+  the far wing, a side view cannot tell).
+- **GBU-39**: yes. "Israel will shortly bring the GBU-39 bomb into operational use with the F-15I "Thunder"
+  squadron" (2010)[^globes10]; "footage released by the IDF also shows SDB-armed BRU-61/As being loaded onto F-15I
+  Ra'am aircraft",
+  and the F-15I carries "up to 20 SDBs or seven GBU-31 series weapons" (2026)[^fpri26]. Stations: the game puts a
+  BRU-61/A of four on five stations for the 20: the wing pylons B / H, the centreline E and the CFTs' inner (2,000 lb)
+  racks D / F[^kopp85] (inferred; the F-15E's 12 on "the centerline and two conformal tank stations" is a 2004 press
+  snippet not read in full, open).
+- **AIM-9X**: open. Israel bought "up to 600 AIM–9X–2 Sidewinder Block II" missiles (US notice of July 2014, no jet
+  named)[^isr9x]; an IAF F-35I fired one in 2023[^twz35x]. No photo or statement shows an F-15I with one (searched:
+  "F-15I AIM-9X", IAF AIM-9X photos, later US notices for Israel). Not offered.
+- **GBU-38**: open. Israel bought 4,000 JDAM kits for the Mk 82 in 2015[^fr1536]; the Ra'am carries JDAMs (the IAF's
+  JDAM jets "include, among others, Baz, Ra'am, Sufa"[^fpri26]) but no source names the 500 lb GBU-38 on the F-15I
+  (searched: F-15I GBU-38 / Mk 82 JDAM photos 2023–2025). Not offered.
+- The GBU-31 (Mk 84 body) has a better case than when the Ra'am was built: the IAF uses "GBU-31(V)1/B and
+  GBU-31(V)3/B" and the F-15I carries "seven GBU-31 series weapons"[^fpri26]; not offered yet (a follow-up).
 
 Stations (`modern_weapons.gd` `LOADS`; letters A–I are the Arming screen's stations 1–9):
 - **Barak**: AIM-9X and Python 5 on A, B, C, G, H, I, where the F-16 carries its AIM-9L (inferred: no official
@@ -503,3 +537,24 @@ Each real value lands in one field or rule of the original model:
 [^hef16]: Hebrew Wikipedia, "F-16 פייטינג פלקון" (Barak, Netz), https://he.wikipedia.org/wiki/F-16_פייטינג_פלקון
 [^hef15]: Hebrew Wikipedia, "F-15 איגל" ("שמם שונה ל-F-15I "רעם""; "הכינוי "בז""), https://he.wikipedia.org/wiki/F-15_איגל
 [^hef35]: Hebrew Wikipedia, "F-35 לייטנינג II" ("ושמו העברי "אדיר""), https://he.wikipedia.org/wiki/F-35_לייטנינג_II
+[^gbu28kopp]: C. Kopp, "Raytheon / Texas Instruments GBU-28 Bunker Buster", Air Power Australia APA-TR-2005-0501
+    (4,700 lb, over 19 ft, 630 lb of explosive; EGBU-28/B, EGBU-28C/B), https://ausairpower.net/GBU-28.html
+[^gbu28fas]: FAS, "Guided Bomb Unit-28 (GBU-28) Bunker Buster", 22 February 1998 (4,637 lb, 630 lb, 14.5 in, almost
+    19 ft; laser; F-15E, F-111F), https://man.fas.org/dod-101/sys/smart/gbu-28.htm
+[^gbu28wp]: Wikipedia, "GBU-28" (5.824 m, body 4.04 m, 306 kg tritonal; GBU-28C/B with the BLU-122),
+    https://en.wikipedia.org/wiki/GBU-28
+[^gbu28photo]: USAF, Tech. Sgt. M. Ammons, an F-15E of the 492nd Fighter Squadron releasing a GBU-28 over the Utah
+    Test and Training Range, 5 August 2003, https://commons.wikimedia.org/wiki/File:F-15E_gbu-28_release.jpg
+[^globes05]: Globes, "Pentagon: We'll sell bunker bombs to Israel", 27 April 2005,
+    https://en.globes.co.il/en/article-908453
+[^globes10]: R. Dagoni, Globes, "US to upgrade Israel Air Force precision munitions", 4 May 2010,
+    https://en.globes.co.il/en/article-1000557096
+[^fpri26]: G. Plopsky, FPRI, "Rising Lion's Air Offensive: Part I", 12 March 2026,
+    https://www.fpri.org/article/2026/03/rising-lions-air-offensive-part-i/
+[^kopp85]: C. Kopp, "F-15E – Anatomy of Strike Fighter", Australian Aviation, March 1985 (the CFTs' six tangential
+    hardpoints each: outboard up to 1000 lb, inboard fore and aft up to 2000 lb),
+    https://www.ausairpower.net/TE-F-15E-Strike-Eagle.html
+[^twz35x]: T. Newdick, The War Zone, "Israeli F-35 Shoots Down Cruise Missile", 2 November 2023,
+    https://www.twz.com/israeli-f-35-shoots-down-cruise-missile
+[^fr1536]: US Federal Register 80 FR 31582, 3 June 2015, Transmittal No. 15-36 (Israel: JDAM kits "4,000 for Mk–82";
+    "4,100 GBU–39"; "50 BLU–113 bombs"), https://www.govinfo.gov/content/pkg/FR-2015-06-03/pdf/2015-13478.pdf

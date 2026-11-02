@@ -18,7 +18,7 @@ const EoSensor := preload("res://weapons/eo_sensor.gd")
 const AIM9X := 1001
 const GBU31 := 1003
 const GBU39 := 1007
-const SUFA := ["AIM-9X", "PYTH-5", "GBU-31", "GBU-31V3", "GBU-32", "GBU-38", "GBU-39"]
+const SUFA := ["AIM-9X", "PYTH-5", "GBU-31", "BLU109", "GBU-32", "GBU-38", "GBU-39"]
 const MODERN := SUFA + ["SPICE-1K"]
 ## [Jet list id, F-35I slot, F-16 version, type, the modern weapons listed with Weapons on Modern].
 const JETS := [

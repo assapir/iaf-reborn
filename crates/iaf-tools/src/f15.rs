@@ -701,12 +701,13 @@ pub fn build(src: &Path, orig: &Path, out: &Path, raam: bool) -> Result<Stats> {
         helpers.push((format!("Engine{side}1"), add(c, [0.0, (yb - ya) / 2.0, 0.0])));
     }
 
+    let arm_helpers = if raam { cft_stations(&all, &helpers)? } else { Vec::new() };
     let body = Node { name: "f15".into(), at: [0.0; 3], tris: all.into_iter().flat_map(|p| p.tris).collect() };
     let triangles = body.tris.len() + nodes.iter().map(|n| n.tris.len()).sum::<usize>();
     if raam {
         let tris: Vec<&Tri> =
             body.tris.iter().chain(nodes.iter().filter(|n| n.name != "LdgDrUp").flat_map(|n| &n.tris)).collect();
-        let (front, points) = arm_front(&tris, &helpers);
+        let (front, points) = arm_front(&tris, &arm_helpers);
         let dir = out.parent().context("no output folder")?;
         std::fs::create_dir_all(dir)?;
         front.save(dir.join(ARM_FRONT))?;
@@ -743,18 +744,71 @@ pub fn build(src: &Path, orig: &Path, out: &Path, raam: bool) -> Result<Stats> {
     Ok(Stats { triangles, bytes: glb.len(), scale: s })
 }
 
+/// The helpers with the arming art's C, D, F, G on the conformal tanks' racks: in the front view the F-15C's
+/// stations there (its fore and aft Sparrows) share one spot on each intake. C and G go to the tank's outer row of racks
+/// (FlightGear's pylon stubs facing out), D and F to its lower row (the stubs facing down), as the F-15E's two rows
+/// of tangential racks along each tank (f15i.md §3). The game's weapon slots keep the original's helpers.
+fn cft_stations(all: &[Piece], helpers: &[(String, V)]) -> Result<Vec<(String, V)>> {
+    let mut out = helpers.to_vec();
+    for (name, side, outer, lower) in
+        [("CFT-left-pylons", -1.0f32, "StationC", "StationD"), ("CFT-right-pylons", 1.0, "StationG", "StationF")]
+    {
+        let vs: Vec<V> = all.iter().filter(|p| p.name == name).flat_map(|p| p.tris.iter().flat_map(|t| t.1)).collect();
+        ensure!(!vs.is_empty(), "f15c.ac: no {name}");
+        let mean = |f: &dyn Fn(&V) -> bool| {
+            let sel: Vec<&V> = vs.iter().filter(|v| f(v)).collect();
+            scale(sel.iter().fold([0.0; 3], |a, v| add(a, **v)), 1.0 / sel.len() as f32)
+        };
+        let ylo = vs.iter().map(|v| v[1]).fold(f32::MAX, f32::min);
+        let xout = vs.iter().map(|v| v[0] * side).fold(f32::MIN, f32::max);
+        let at = [(outer, mean(&|v| v[0] * side > xout - 0.1)), (lower, mean(&|v| v[1] < ylo + 0.1))];
+        for (st, p) in at {
+            out.retain(|h| h.0 != st);
+            out.push((st.to_string(), p));
+        }
+    }
+    Ok(out)
+}
+
 /// The arming art's size (menu px; the converted art is ×4) and the original F-15 art's jet: its wingtips 427 menu px
 /// apart at height 146, centred (measured on f-15.png).
 const ARM_SIZE: (u32, u32) = (454, 357);
 const ARM_ART: u32 = 4;
 const ARM_SPAN_PX: f32 = 427.0;
 const ARM_WING: (f32, f32) = (227.0, 146.0);
-/// The arming art's greens, dark to light (tools/plane/kit.py ARM_DARK, ARM_LIGHT).
-const ARM_DARK: [f32; 3] = [0.03, 0.08, 0.02];
-const ARM_LIGHT: [f32; 3] = [0.42, 0.7, 0.36];
+/// The original F-15 art's greens, shadow to highlight (sRGB 0..1, sampled on f-15.png: the intakes' shade, the fins'
+/// dark side, the fuselage, the lit wing, the nose's highlight), and the brightness each stands at.
+const ARM_RAMP: [(f32, [f32; 3]); 5] = [
+    (0.0, [0.04, 0.07, 0.01]),
+    (0.35, [0.22, 0.36, 0.08]),
+    (0.65, [0.47, 0.63, 0.37]),
+    (0.85, [0.65, 0.74, 0.63]),
+    (1.0, [0.82, 0.88, 0.84]),
+];
+
+/// The canopy glass's share of a sample's brightness over what lies behind it.
+const ARM_GLASS: f32 = 0.5;
+
+/// The front view's ambient occlusion: the radius round each pixel (m), the depth behind the surfaces there where it
+/// starts and the depth over which it grows to full (m), and the most it darkens.
+const AO_M: f32 = 0.6;
+const AO_FROM: f32 = 0.3;
+const AO_DEPTH: f32 = 1.5;
+const AO: f32 = 0.75;
+
+/// The ramp's colour at brightness `l` (0..1).
+fn arm_green(l: f32) -> [f32; 3] {
+    let l = l.clamp(0.0, 1.0);
+    let k = ARM_RAMP.iter().position(|s| s.0 >= l).unwrap_or(ARM_RAMP.len() - 1).max(1);
+    let ((a, ca), (b, cb)) = (ARM_RAMP[k - 1], ARM_RAMP[k]);
+    let t = ((l - a) / (b - a)).clamp(0.0, 1.0);
+    [0, 1, 2].map(|i| ca[i] + (cb[i] - ca[i]) * t)
+}
 
 /// The jet's front view in the arming art's greens (as tools/plane/kit.py `arm_front_view` renders the Sufa's in
-/// Blender): orthographic, gear down, glass left out, Lambert-shaded from the upper left, at 2 × 2 samples a pixel,
+/// Blender): orthographic, gear down, the canopy glass a glossy tint over the cockpit, at 2 × 2 samples a pixel; lit as the original's glossy render: a
+/// key light from above and a little left, a fill from the right, the sky from above, a specular highlight (Blinn-Phong)
+/// on the smooth normals and ambient occlusion in the recesses, in the original F-15's greens (ARM_RAMP);
 /// transparent round it; station A (the left wing) on the image's left as the original art. Also each Station*
 /// helper's point in menu px, A..I (where the leader lines end).
 fn arm_front(tris: &[&Tri], helpers: &[(String, V)]) -> (RgbaImage, Vec<[f64; 2]>) {
@@ -770,56 +824,117 @@ fn arm_front(tris: &[&Tri], helpers: &[(String, V)]) -> (RgbaImage, Vec<[f64; 2]
         let m = menu(v);
         [m[0] * (ARM_ART * SS) as f32, m[1] * (ARM_ART * SS) as f32]
     };
-    let light = norm([-0.6, 0.5, -0.6]);
-    let mut depth = vec![f32::MAX; (w * h) as usize];
-    let mut lum = vec![-1.0f32; (w * h) as usize];
-    for t in tris.iter().filter(|t| t.0.rgba[3] >= 200) {
-        let p = t.1.map(px);
-        let area = (p[1][0] - p[0][0]) * (p[2][1] - p[0][1]) - (p[2][0] - p[0][0]) * (p[1][1] - p[0][1]);
-        if area.abs() < 1e-6 {
-            continue;
-        }
-        let (x0, x1) =
-            (p.iter().map(|q| q[0]).fold(f32::MAX, f32::min), p.iter().map(|q| q[0]).fold(f32::MIN, f32::max));
-        let (y0, y1) =
-            (p.iter().map(|q| q[1]).fold(f32::MAX, f32::min), p.iter().map(|q| q[1]).fold(f32::MIN, f32::max));
-        for y in (y0.floor().max(0.0) as u32)..=(y1.ceil().min(h as f32 - 1.0).max(0.0) as u32) {
-            for x in (x0.floor().max(0.0) as u32)..=(x1.ceil().min(w as f32 - 1.0).max(0.0) as u32) {
-                let (cx, cy) = (x as f32 + 0.5, y as f32 + 0.5);
-                let e = |a: [f32; 2], b: [f32; 2]| ((b[0] - a[0]) * (cy - a[1]) - (cx - a[0]) * (b[1] - a[1])) / area;
-                let b = [e(p[1], p[2]), e(p[2], p[0]), e(p[0], p[1])];
-                if b.iter().any(|&k| k < 0.0) {
-                    continue;
+    let (key, fill) = (norm([-0.35, 0.6, -0.75]), norm([0.7, 0.1, -0.7]));
+    let half = norm(add(key, [0.0, 0.0, -1.0])); // the viewer looks along +z
+    // Each sample's nearest surface (z) and brightness (< 0: none); the opaque surfaces first, then the glass in
+    // front of them.
+    let raster = |glass: bool, depth: &mut [f32], lum: &mut [f32], behind: &[f32]| {
+        for t in tris.iter().filter(|t| (t.0.rgba[3] < 200) == glass) {
+            let p = t.1.map(px);
+            let area = (p[1][0] - p[0][0]) * (p[2][1] - p[0][1]) - (p[2][0] - p[0][0]) * (p[1][1] - p[0][1]);
+            if area.abs() < 1e-6 {
+                continue;
+            }
+            let (x0, x1) =
+                (p.iter().map(|q| q[0]).fold(f32::MAX, f32::min), p.iter().map(|q| q[0]).fold(f32::MIN, f32::max));
+            let (y0, y1) =
+                (p.iter().map(|q| q[1]).fold(f32::MAX, f32::min), p.iter().map(|q| q[1]).fold(f32::MIN, f32::max));
+            for y in (y0.floor().max(0.0) as u32)..=(y1.ceil().min(h as f32 - 1.0).max(0.0) as u32) {
+                for x in (x0.floor().max(0.0) as u32)..=(x1.ceil().min(w as f32 - 1.0).max(0.0) as u32) {
+                    let (cx, cy) = (x as f32 + 0.5, y as f32 + 0.5);
+                    let e =
+                        |a: [f32; 2], b: [f32; 2]| ((b[0] - a[0]) * (cy - a[1]) - (cx - a[0]) * (b[1] - a[1])) / area;
+                    let b = [e(p[1], p[2]), e(p[2], p[0]), e(p[0], p[1])];
+                    if b.iter().any(|&k| k < 0.0) {
+                        continue;
+                    }
+                    // Nearer: further forward (the nose is at −z).
+                    let z = b[0] * t.1[0][2] + b[1] * t.1[1][2] + b[2] * t.1[2][2];
+                    let i = (y * w + x) as usize;
+                    if z >= depth[i] || z >= behind[i] {
+                        continue;
+                    }
+                    depth[i] = z;
+                    let mut n = norm((0..3).fold([0.0; 3], |n, k| add(n, scale(t.2[k], b[k]))));
+                    if n[2] > 0.0 {
+                        n = scale(n, -1.0); // the side facing the viewer
+                    }
+                    let spec = dot(n, half).max(0.0).powi(if glass { 40 } else { 10 });
+                    lum[i] = if glass {
+                        0.2 + 0.15 * dot(n, key).max(0.0) + 0.8 * spec
+                    } else {
+                        0.1 + 0.95 * dot(n, key).max(0.0)
+                            + 0.15 * dot(n, fill).max(0.0)
+                            + 0.1 * (0.5 + 0.5 * n[1])
+                            + 0.5 * spec
+                    };
                 }
-                // Nearer: further forward (the nose is at −z).
-                let z = b[0] * t.1[0][2] + b[1] * t.1[1][2] + b[2] * t.1[2][2];
-                let i = (y * w + x) as usize;
-                if z >= depth[i] {
-                    continue;
-                }
-                depth[i] = z;
-                let mut n = norm((0..3).fold([0.0; 3], |n, k| add(n, scale(t.2[k], b[k]))));
-                if n[2] > 0.0 {
-                    n = scale(n, -1.0); // the side facing the viewer
-                }
-                lum[i] = 0.12 + 0.95 * dot(n, light).max(0.0);
             }
         }
-    }
+    };
+    let n = (w * h) as usize;
+    let (mut depth, mut lum) = (vec![f32::MAX; n], vec![-1.0f32; n]);
+    raster(false, &mut depth, &mut lum, &vec![f32::MAX; n]);
+    let (mut glass_z, mut glass) = (vec![f32::MAX; n], vec![-1.0f32; n]);
+    raster(true, &mut glass_z, &mut glass, &depth);
     let (ow, oh) = (w / SS, h / SS);
+    // Ambient occlusion (screen space): a pixel further back than the mean of the surfaces within AO_M round it is
+    // shaded by how much (the intakes' insides, the gaps under the wings), as the original's dark recesses.
+    let (pw, ph) = (ow as usize, oh as usize);
+    let mut zsum = vec![0.0f64; (pw + 1) * (ph + 1)];
+    let mut zcnt = vec![0.0f64; (pw + 1) * (ph + 1)];
+    let mut zpx = vec![f32::NAN; pw * ph];
+    for y in 0..ph {
+        for x in 0..pw {
+            let (mut s, mut c) = (0.0, 0.0);
+            for k in 0..SS * SS {
+                let i = ((y as u32 * SS + k / SS) * w + x as u32 * SS + k % SS) as usize;
+                if lum[i] >= 0.0 {
+                    s += depth[i];
+                    c += 1.0;
+                }
+            }
+            if c > 0.0 {
+                zpx[y * pw + x] = s / c;
+            }
+            let (z, n) = if c > 0.0 { ((s / c) as f64, 1.0) } else { (0.0, 0.0) };
+            let at = (y + 1) * (pw + 1) + x + 1;
+            zsum[at] = z + zsum[at - 1] + zsum[at - pw - 1] - zsum[at - pw - 2];
+            zcnt[at] = n + zcnt[at - 1] + zcnt[at - pw - 1] - zcnt[at - pw - 2];
+        }
+    }
+    let r = (AO_M * ppm * ARM_ART as f32).round() as usize;
+    let occlusion = |x: usize, y: usize| -> f32 {
+        let z = zpx[y * pw + x];
+        if z.is_nan() {
+            return 0.0;
+        }
+        let (x0, y0, x1, y1) = (x.saturating_sub(r), y.saturating_sub(r), (x + r + 1).min(pw), (y + r + 1).min(ph));
+        let rect =
+            |t: &[f64]| t[y1 * (pw + 1) + x1] - t[y0 * (pw + 1) + x1] - t[y1 * (pw + 1) + x0] + t[y0 * (pw + 1) + x0];
+        let mean = (rect(&zsum) / rect(&zcnt).max(1.0)) as f32;
+        ((z - mean - AO_FROM) / AO_DEPTH).clamp(0.0, 1.0)
+    };
     let mut img = RgbaImage::new(ow, oh);
     for (x, y, out) in img.enumerate_pixels_mut() {
         let (mut sum, mut n) = (0.0, 0.0);
+        let shade = 1.0 - AO * occlusion(x as usize, y as usize);
         for k in 0..SS * SS {
-            let l = lum[((y * SS + k / SS) * w + x * SS + k % SS) as usize];
+            let i = ((y * SS + k / SS) * w + x * SS + k % SS) as usize;
+            // The glass tints what lies behind it (ARM_GLASS of its own shade), or stands alone over the background.
+            let l = match (lum[i] >= 0.0, glass[i] >= 0.0) {
+                (true, true) => lum[i] * shade * (1.0 - ARM_GLASS) + glass[i] * ARM_GLASS,
+                (_, true) => glass[i],
+                _ => lum[i] * shade,
+            };
             if l >= 0.0 {
                 sum += l;
                 n += 1.0;
             }
         }
         if n > 0.0 {
-            let l = (sum / n).clamp(0.0, 1.0).powf(1.1);
-            let c = [0, 1, 2].map(|k| ((ARM_DARK[k] * (1.0 - l) + ARM_LIGHT[k] * l) * 255.0).round() as u8);
+            let g = arm_green(sum / n);
+            let c = g.map(|v| (v * 255.0).round() as u8);
             *out = Rgba([c[0], c[1], c[2], (n / (SS * SS) as f32 * 255.0).round() as u8]);
         }
     }
@@ -1403,6 +1518,14 @@ mod tests {
         for p in pts {
             let (x, y) = (p[0].as_f64().unwrap(), p[1].as_f64().unwrap());
             assert!((1.0..453.0).contains(&x) && (100.0..250.0).contains(&y), "station point {p}");
+        }
+        // Each station its own spot (the CFT's C / D and F / G apart).
+        for (i, a) in pts.iter().enumerate() {
+            for b in &pts[i + 1..] {
+                let d = (a[0].as_f64().unwrap() - b[0].as_f64().unwrap())
+                    .hypot(a[1].as_f64().unwrap() - b[1].as_f64().unwrap());
+                assert!(d > 4.0, "station points {a} and {b} {d:.1} px apart");
+            }
         }
     }
 }

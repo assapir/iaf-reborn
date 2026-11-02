@@ -353,8 +353,10 @@ Options:
   - a front view setup must make on the user's machine (a model that may not ship: the F-15I's, aircraft-models.md
     §6.7) is `arm.json`'s `front`, a path under `converted/` with its `points` in the `.json` beside it;
   - `iaf-convert arm-extra <converted menu>/img <arm dir> <out png>` (run by `tools/setup-cli.sh`) composes the screen
-    on the user's machine: the background from the original jets' images (a low percentile per pixel outvotes
-    each jet and its lines), the base jet's boxes and bottom band, our front view and leader lines;
+    on the user's machine: the background from the original jets' images (per pixel the darkest colour two of them
+    agree on, which drops each jet and its lines; where fewer than four agree, the wings' height most jets share,
+    painted over from the background round it: a low percentile there left a ghost of the wings, changed
+    2026-11-02), the base jet's boxes and bottom band, our front view and leader lines;
   - the game draws the title (`arming.gd`), reads `arm.json` (`mission_weapons.gd` `_extra_jet`); a jet picked on
     the Jet list arms as itself (art, stations, default load; the allowed counts stay the mission jet's, as the
     original's `FUN_0058f110` / `FUN_004ef8a0`; the F-35I keeps its own) with its chosen load used in flight

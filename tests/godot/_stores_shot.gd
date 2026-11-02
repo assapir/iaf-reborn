@@ -2,7 +2,8 @@
 # (docs/aircraft-models.md §5): loadouts on the ground (the Arming screen's loads, mission 311), a bomb falling and a
 # missile in flight (mission 231, airborne); the MiG-29 / MiG-23 (Mission Creator mission 666) with the Soviet stores
 # and an AA-10 in flight; the modern weapons (ours) on the F-16I Sufa and the F-35I, the Popeye on the F-15 with our
-# stores that have no game record yet beside it, a GBU-39 falling. Needs a window; run it once per look:
+# stores that have no game record yet beside it, a GBU-39 falling, the F-15I Ra'am with GBU-28s and one falling
+# (SHOT_ONLY=raam). Needs a window; run it once per look:
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_MODELS=detailed SHOT_OUT=/tmp/shots -- --log-file /tmp/s.log \
 #       --path game --resolution 1600x900 -s ../tests/godot/_stores_shot.gd
 # Writes SHOT_OUT/<shot>_before.png (Original) or <shot>_after.png (Detailed). SHOT_ONLY=a,b picks cases.
@@ -179,6 +180,8 @@ const OURS := [
 ## The modern weapons' settings: the Sufa, Weapon data Real (the Python 5); the F-35I in the F-15I's slot.
 const SUFA := {"f16_variant": "sufa", "weapon_data": "real", "f35i_slot": -1}
 const F35I := {"f16_variant": "barak", "weapon_data": "real", "f35i_slot": 4}
+## The F-15I Ra'am (Weapon data Real: the Python 5).
+const RAAM := {"f15_variant": "raam", "f16_variant": "barak", "weapon_data": "real", "f35i_slot": -1}
 ## The Mission Creator's jet types (its TYPE combo: docs/guides/mig29.shots.json).
 const MC_MIG23 := 7
 const MC_MIG29 := 8
@@ -212,6 +215,8 @@ func run() -> void:
 		await _flight_case("python5_", ["PYTH-5", "PYTH-5", "", "", "", "", "", "PYTH-5", "PYTH-5"], ["missile"], SUFA)
 	if only.is_empty() or "flight29" in only:
 		await _aa10_case()
+	if only.is_empty() or "raam" in only:
+		await _raam_case()
 	settings().jet_id = -1
 	settings().arm_loadouts = {}
 	check(true, "shots done")
@@ -305,6 +310,75 @@ func _flight_case(pre: String, loads: Array, kinds: Array, opts := {}) -> void:
 			var c0: Vector3 = node.global_position + b.x * side + b.z * side * 0.6 + Vector3.UP * 1.5
 			return Transform3D(Basis.looking_at(node.global_position - c0, Vector3.UP), c0)
 		await _shot("%s%s_flight" % [pre, k])
+
+
+## The F-15I Ra'am's GBU-28s (wing pylons, centreline), GBU-39 racks (CFT) and Python 5s at 3000 m (mission 231), seen
+## round the jet, then a GBU-28 dropped from station B seen beside it 1.2 s later, the clock stopped.
+func _raam_case() -> void:
+	for k in RAAM:
+		settings().set(k, RAAM[k])
+	settings().jet_id = 0
+	var arm := _loadout(
+		231,
+		[
+			["PYTH-5", 2],
+			["GBU-28", 1],
+			["", 0],
+			["GBU-39", 4],
+			["GBU-28", 1],
+			["GBU-39", 4],
+			["", 0],
+			["GBU-28", 1],
+			["PYTH-5", 2]
+		]
+	)
+	var al := {}
+	for n in 64:
+		al[n] = arm
+	settings().arm_loadouts = al
+	tv = await start_mission(231)
+	await frames(3)
+	# Airborne at 3000 m with the armed stores (base.gd airborne_case would put a new weapons node over them).
+	tv.frozen = true
+	tv.fm_stopped = true
+	tv.gear_down = false
+	tv.rig.position.y += 3000.0
+	var st0: Dictionary = tv.flight.state()
+	tv.flight.start(
+		settings().assets_dir().path_join("install"),
+		tv.player.fm_section,
+		st0.position,
+		Vector3(0.0, 0.0, st0.heading),
+		st0.forward * 250.0,
+		{"airborne": true, "engine_on": true, "real_data": false}
+	)
+	var w = tv.weapons
+	_pin()
+	await seconds(4)
+	for s in [
+		["raam_front", 16.0, 35.0, 6.0, Vector3(0, -0.5, 0)],
+		["raam_left", 9.0, 300.0, -6.0, Vector3(-2.6, -0.9, 0.5)],
+		["raam_below", 10.0, 220.0, -20.0, Vector3(0, -1.0, 0.5)]
+	]:
+		var ac: Node3D = tv.aircraft
+		var yaw := deg_to_rad(float(s[2]))
+		var pitch := deg_to_rad(float(s[3]))
+		var off := Vector3(sin(yaw) * cos(pitch), sin(pitch), -cos(yaw) * cos(pitch)) * float(s[1])
+		var aim: Vector3 = s[4]
+		_cam = func() -> Transform3D:
+			var c0: Vector3 = ac.to_global(aim + off)
+			return Transform3D(Basis.looking_at(ac.to_global(aim) - c0, ac.global_basis.y.normalized()), c0)
+		await _shot(String(s[0]))
+	tv.frozen = false
+	w._drop_store(1, w.own().pos + w.own().fwd * 3000.0)
+	var node: Node3D = w.guided[-1].get_meta("node")  # a laser bomb flies the guided motion
+	await fly(tv, 1.2)
+	tv.frozen = true
+	_cam = func() -> Transform3D:
+		var b := node.global_basis.orthonormalized()
+		var c0: Vector3 = node.global_position + b.x * 13.0 + b.z * 2.0 + Vector3.UP * 2.0
+		return Transform3D(Basis.looking_at(node.global_position - c0, Vector3.UP), c0)
+	await _shot("raam_gbu28_flight")
 
 
 ## An AA-10 launched from a Mission Creator MiG-29 at 3000 m, seen from beside 0.6 s later, the clock stopped.

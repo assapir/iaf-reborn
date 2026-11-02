@@ -81,7 +81,7 @@ the same licence.
 
 ## Our own
 
-`pyth5.glb`, `gbu39.glb`, `bru61.glb`, `popeye.glb`, `spice1000.glb`, `spice2000.glb` and `spikenlos.glb` are ours,
+`pyth5.glb`, `gbu39.glb`, `bru61.glb`, `popeye.glb`, `gbu28.glb`, `spice1000.glb`, `spice2000.glb` and `spikenlos.glb` are ours,
 made by `tools/stores/build.gd` from the shapes in `tools/stores/ours.gd` (no third-party mesh or texture), under the
 repository's licence (GPL-3.0-or-later). Their sizes come from these sources; the rest is measured by eye on the
 photos (inferred):
@@ -96,6 +96,9 @@ photos (inferred):
 - Popeye: 4.82 m, 533 mm, 1.98 m span: Wikipedia, "Popeye (missile)", https://en.wikipedia.org/wiki/Popeye_(missile),
   and FAS, "AGM-142 Have Nap", https://man.fas.org/dod-101/sys/smart/agm-142.htm; photo: Commons "Popey missile.jpg",
   https://commons.wikimedia.org/wiki/Category:Popeye_(missile)
+- GBU-28: 5.82 m overall, the body 4.04 m: Wikipedia, "GBU-28", https://en.wikipedia.org/wiki/GBU-28; 14.5 in (368 mm):
+  FAS, "GBU-28", https://man.fas.org/dod-101/sys/smart/gbu-28.htm; photo: Commons "F-15E gbu-28 release.jpg"
+  (USAF, 2003), https://commons.wikimedia.org/wiki/File:F-15E_gbu-28_release.jpg; the wings' span is open
 - SPICE 1000 / 2000: the Mk 83 / Mk 84 bodies they fit (Rafael's SPICE brochure, https://omnirole-rafale.com/wp-content/uploads/2019/10/Spice.pdf),
   12 control surfaces in three groups (Wikipedia, "Spice (bomb)", https://en.wikipedia.org/wiki/Spice_(bomb)); photos:
   Commons "ILA Berlin 2012 PD 035.JPG" and "Spice bomb front.JPG"; their lengths are open (inferred from the photos)

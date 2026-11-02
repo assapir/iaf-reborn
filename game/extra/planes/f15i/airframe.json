@@ -21,7 +21,9 @@
     "loads": {
       "1002": [2, "AI"],
       "1004": [1, "BCDFGH"],
-      "1009": [1, "BH"]
+      "1009": [1, "BH"],
+      "1007": [4, "BDEFH"],
+      "1010": [1, "BEH"]
     }
   },
   "notes": {
@@ -37,6 +39,6 @@
     "radar.ai_nm": "the AI's sensor range: the 40 NM of every AI jet x 104 / 135 (the APG-70I's km against the F-15's Real 135 km), as the Sufa's 40 x 1.3",
     "gun_rounds": "F-15E: M61A1, 500 rounds (USAF fact sheet); the F-15I's own count is open",
     "weapons.arm_art": "its own Arming art, x_f15i (arm/arm.json; the front view setup renders from the model)",
-    "weapons.loads": "modern_weapons.gd record id -> [count, stations A..I] (docs/f15i.md §3): Python 5 two per wing pylon as the F-15's AIM-9L (IAF photos, April 2024); GBU-31(V)3 (BLU-109 JDAM) on the wing pylons B / H and the CFT stations C, D, F, G: six per jet (June 2025 photos; September 2024 analysis); SPICE 1000 a pair on the wing pylons B / H, as on the Baz (The War Zone 2026; the F-15I's own stations inferred)"
+    "weapons.loads": "modern_weapons.gd record id -> [count, stations A..I] (docs/f15i.md §3): Python 5 two per wing pylon as the F-15's AIM-9L (IAF photos, April 2024); GBU-31(V)3 (BLU-109 JDAM) on the wing pylons B / H and the CFT stations C, D, F, G: six per jet (June 2025 photos; September 2024 analysis); SPICE 1000 a pair on the wing pylons B / H, as on the Baz (The War Zone 2026; the F-15I's own stations inferred); GBU-39 four to a BRU-61/A on B, D, E, F, H: 20 (FPRI 2026; stations inferred: the CFTs' inner 2,000 lb racks D / F); GBU-28 on B, E, H (Globes 2005 / 2010; stations inferred: too heavy for the CFT racks)"
   }
 }

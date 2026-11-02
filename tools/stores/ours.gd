@@ -181,3 +181,35 @@ const SPIKE_NLOS := [
 	{"fins": {"root": [1.50, 1.69], "tip": [1.60, 1.69], "r": 0.085, "h": 0.09, "roll": 45.0, "t": 0.006}, "rgb": GREY},
 	{"box": [Vector3(0, 0.092, 0.85), Vector3(0.03, 0.016, 1.1)], "rgb": GREY},
 ]
+
+## GBU-28: 5.82 m long (Wikipedia: 5.824 m; Kopp: "over 19 ft (5.8 m)"), the BLU-113 body 368 mm across (FAS: 14.5 in)
+## and 4.04 m long; the GBU-27's Paveway III kit: a slim guidance section with a small seeker dome and four canards
+## (X), a long taper onto the body, the tail cone with four broad wings (X); the body olive with a yellow band behind
+## the taper, the kit grey; two lugs 30 in apart on top. Profile, canards, wings and colours measured by eye on the
+## USAF photo of an F-15E releasing one (Commons "F-15E gbu-28 release.jpg", 2003: inert there, a blue band) along its
+## 5.82 m (inferred); the wings' span is open.
+const GB28_BODY := [
+	[0.0, 0.0],
+	[0.03, 0.06],
+	[0.10, 0.085],
+	[0.30, 0.092],
+	[0.95, 0.096],
+	[1.25, 0.15],
+	[1.55, 0.184],
+	[4.95, 0.184],
+	[5.40, 0.15],
+	[5.82, 0.125],
+	[5.82, 0.0]
+]
+const GBU28 := [
+	{"lathe": GB28_BODY, "to": 0.05, "glass": true},
+	{"lathe": GB28_BODY, "from": 0.05, "to": 1.25, "rgb": GREY},
+	{"lathe": GB28_BODY, "from": 1.25, "to": 1.72, "rgb": OLIVE},
+	{"lathe": GB28_BODY, "from": 1.72, "to": 1.80, "rgb": YELLOW},
+	{"lathe": GB28_BODY, "from": 1.80, "to": 4.95, "rgb": OLIVE},
+	{"lathe": GB28_BODY, "from": 4.95, "rgb": GREY},
+	{"fins": {"root": [0.55, 0.85], "tip": [0.70, 0.85], "r": 0.09, "h": 0.17, "roll": 45.0, "t": 0.01}, "rgb": GREY},
+	{"fins": {"root": [5.00, 5.80], "tip": [5.45, 5.82], "r": 0.16, "h": 0.26, "roll": 45.0, "t": 0.014}, "rgb": GREY},
+	{"box": [Vector3(0, 0.195, 2.98), Vector3(0.05, 0.03, 0.10)], "rgb": DARK},
+	{"box": [Vector3(0, 0.195, 3.74), Vector3(0.05, 0.03, 0.10)], "rgb": DARK},
+]
