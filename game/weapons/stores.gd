@@ -194,6 +194,11 @@ func fire_station() -> int:
 	return _s.fire_station()
 
 
+## Ours: the station that fires next without changing the selection, for displays that ask every frame; −1 none.
+func next_station() -> int:
+	return _s.next_station()
+
+
 ## Extras "Bomb release" Real (ours, docs/weapons.md §9.10): the stations of the next release pulse (a symmetric pair
 ## in pairs mode, else one), the selection moved to the first; empty without rounds.
 func real_pulse(pairs: bool) -> PackedInt32Array:

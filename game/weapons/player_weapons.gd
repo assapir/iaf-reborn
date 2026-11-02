@@ -1586,7 +1586,7 @@ var pre_index := 0
 
 ## The station whose bomb goes next (the selected store's), -1 none.
 func gps_station() -> int:
-	var i: int = stores.fire_station()
+	var i: int = stores.next_station()
 	return i if i >= 0 else stores.cur
 
 
@@ -1784,7 +1784,7 @@ func _launch_gps(w: Dictionary, p0: Vector3, vel: Vector3, aim: Vector3, owner: 
 ## §13.1, docs/real-hud.md "DASH helmet"): {cone (°), tracking (the seeker has a target), loal (a player's missile
 ## launched without a lock still searches), pos (the seeker's target, world; null without one)}; {} otherwise.
 func hobs_cue() -> Dictionary:
-	var fs: int = stores.fire_station()
+	var fs: int = stores.next_station()
 	# The station that fires next, else the selected one (its last round gone).
 	var w: Dictionary = stores.station(fs if fs >= 0 else stores.cur).get("w", {})
 	if hud_mode != 1 or not w.get("loal", false):

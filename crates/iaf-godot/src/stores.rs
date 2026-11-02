@@ -113,6 +113,12 @@ impl IafStores {
         self.stores.fire_station().map_or(-1, |i| i as i64)
     }
 
+    /// The station that fires next without changing the selection (the displays' question), −1 none.
+    #[func]
+    fn next_station(&self) -> i64 {
+        self.stores.next_station().map_or(-1, |i| i as i64)
+    }
+
     /// Extras "Bomb release" Real: the stations of the next release pulse (pairs mode or single); the selection moves to
     /// the first.
     #[func]

@@ -284,14 +284,8 @@ impl Stores {
     /// first one; None without any.
     pub fn fire_station(&mut self) -> Option<usize> {
         if self.cur == self.last_fired && self.just_fired {
-            if let Some(w) = self.current().map(|s| s.weapon.clone()) {
-                let far = (0..10)
-                    .filter(|&i| self.station(i).is_some_and(|s| s.same_weapon(&w) && s.displayed() > 0))
-                    .filter(|&i| i != self.last_fired)
-                    .max_by_key(|&i| (i.abs_diff(self.last_fired), std::cmp::Reverse(i)));
-                if let Some(best) = far {
-                    self.cur = best;
-                }
+            if let Some(best) = self.farthest_same() {
+                self.cur = best;
             }
             self.just_fired = false;
             self.remember(if Category::of(self.type_of(self.cur)) == Category::AirToAir {
@@ -300,10 +294,32 @@ impl Stores {
                 Category::AirToGround
             });
         }
+        self.next_station()
+    }
+
+    /// Ours: the station [`Self::fire_station`] would answer, without moving the selection or ending the "just fired"
+    /// state, for the displays that ask every frame (the helmet's cue, the GPS cues). Asking `fire_station` there
+    /// cleared the state Bomb release Real's SGL reads, so a single release no longer alternated wings.
+    pub fn next_station(&self) -> Option<usize> {
+        if self.cur == self.last_fired
+            && self.just_fired
+            && let Some(best) = self.farthest_same()
+        {
+            return Some(best);
+        }
         if self.current().is_some() {
             return Some(self.cur);
         }
         (0..11).find(|&i| self.station(i).is_some())
+    }
+
+    /// After a shot: the station of the current weapon with rounds left farthest from the last one.
+    fn farthest_same(&self) -> Option<usize> {
+        let w = &self.current()?.weapon;
+        (0..10)
+            .filter(|&i| self.station(i).is_some_and(|s| s.same_weapon(w) && s.displayed() > 0))
+            .filter(|&i| i != self.last_fired)
+            .max_by_key(|&i| (i.abs_diff(self.last_fired), std::cmp::Reverse(i)))
     }
 
     /// Extras "Bomb release" Real (ours, docs/weapons.md §9.10): the stations of the next release pulse of the
@@ -557,6 +573,25 @@ mod tests {
         assert_eq!(pulses, vec![vec![1, 7], vec![2, 6], vec![3, 5]]);
         assert!(moments.iter().all(|m| m.abs() < 1e-9), "{moments:?}");
         assert!(s.real_pulse(true).is_empty());
+    }
+
+    /// The displays ask for the next station every frame (the helmet's cue, the GPS cues): asking must not end the
+    /// "just fired" state the SGL mirror reads, or the singles go 1 2 3 7 6 5.
+    #[test]
+    fn real_singles_alternate_with_displays_asking() {
+        let mut s = six_singles();
+        let mut out = Vec::new();
+        loop {
+            assert_eq!(s.next_station(), s.next_station());
+            let p = s.real_pulse(false);
+            if p.is_empty() {
+                break;
+            }
+            p.iter().for_each(|&i| s.fired(i));
+            s.next_station();
+            out.push(p);
+        }
+        assert_eq!(out, [[1], [7], [2], [6], [3], [5]]);
     }
 
     #[test]
