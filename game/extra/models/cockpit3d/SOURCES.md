@@ -75,8 +75,8 @@ Made by `tools/f16d/cockpit3d.py` (re-runnable; docs/cockpit.md "3D cockpit"):
     glass's foot cut off and replaced by slender tapered posts of ours along the glass's sides, rounded-rectangle
     sections 2.0 × 3.4 cm at the foot, 1.3 × 2.2 cm at the domed top, satin black; the glareshield's (`cockpit.ac`
     `poly`) aft top edge bevelled 1 cm in four segments and shaded smooth.
-15. The panel paint lifted (2026-11-02, `lift_paint`): every sheet but the tub's floor and walls, the vents, the
-    stick and the glass, linear colour `0.06 + 0.94 · c` (FlightGear's #101010 console plates become #484848, its
+15. The panel paint lifted (2026-11-02, `lift_paint`): every sheet but the tub's walls, the vents, the stick and
+    the glass (the tub's floor sheet `floor.png` too, its painted black footwell shadow made dark grey), linear colour `0.06 + 0.94 · c` (FlightGear's #101010 console plates become #484848, its
     #2D2D2D panel #525252); the Block 40 sheet in `barak_panels.webp` too.
 16. The tub's top border under the canopy sills (`cockpit.ac` `cockpit_border`, untextured light grey) made near
     black (2026-11-02).

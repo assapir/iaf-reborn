@@ -377,6 +377,18 @@ TgenAPI (`DAT_0069942c`, 16-bit renderer vtable `0x5fd900`) draws the world into
     (1 − panel_shift), so looking down the panel's bottom row stays on the screen's bottom. Until 2026-11-02 the
     raised panel rose with the head by the original's bound as well and the world showed under it: 128 rows in the
     F-35I, 24 in the F-16. With the panel lowered (0) the original's bound alone holds.
+  * Ours, the camera with that bound (`cockpit.gd` `view_pitch`): while it holds the panel lower than the original's
+    bound would, the camera takes the head pitch that pans the panel that far (vpan · ElevationAngleDeg /
+    (PanelHeight + CenterY)), so the world stops with the panel and the HUD. Looking down (Shift+Numpad 2, −12°) with
+    the default panel, 1920 × 994 window: F-16 world 44 px, panel and HUD 47 px; F-35I 63 / 65 px. Earlier on 2026-11-02
+    the camera kept the original's pitch: the world rose 68 px against the panel's 41 (F-16, a 1600-px
+    shot), the HUD's symbols 3–4° off the world. Whenever the original's bound holds (the panel lowered, or not yet
+    at the raised bound) the camera's pitch is the original's.
+  * In the original the panel and the world stop together only roughly: the camera stops at −9° looking ahead
+    (`FUN_00585270`, below), the panel at its bound; the F-16 with the panel lowered: world 93 px, panel 77 px
+    (1920 × 994).
+  * The F-35I's `[PANEL] ElevationAngleDeg` is 25 (ours; the default 15 panned its tall panel 2,254 px per radian of
+    head pitch against the world's about 1,390 px, 15 px off at the raised bound).
   * `FUN_005228a0` reads `[PANEL] AzimutAngleDeg` (default 90) and `ElevationAngleDeg` (default 15). Only the F-15 sets
     them: 100 / 50.
   * S+0x108c/0x1090 are the head yaw / pitch; S+0x1094/0x1098 are the view pan (`FUN_0057ff60`, `FUN_00580420`, stored
@@ -536,8 +548,10 @@ occlusion, 1.8 MB; built by
   paint, so the game drew them black. The photos[^f16-photos] show dark grey plates and a grey panel (FS 36118
   gunship grey reflects about 8 %, a flat black about 4 %). Every sheet's linear colour is lifted to
   0.06 + 0.94 · c: the plates become #484848, the panel #525252, the white labels stay white (label contrast about
-  14:1 on the plates). The tub's floor and walls, the vents, the stick and the glass keep theirs. The Barak's Block
-  40 sheet the same. The 6 % floor is inferred, set against the photos in the game's light (below).
+  14:1 on the plates). The tub's walls, the vents, the stick and the glass keep theirs. The tub's floor sheet
+  (`floor.png`) is lifted too: FlightGear paints the footwell under the panel black into it, a shadow its ALS lighting
+  stands for; kept, the footwell was a black void between the consoles (sRGB 3, 4, 8 looking 45° down, until
+  2026-11-02). Lifted, it is dark grey, shaded by the baked occlusion. The Barak's Block 40 sheet the same. The 6 % floor is inferred, set against the photos in the game's light (below).
   - Tried and dropped (2026-11-02): a 4 % floor. With the fill lowered for the sun's shadows, the shaded consoles
     read black again.
 
@@ -679,8 +693,9 @@ occlusion, 1.8 MB; built by
 * **Light** (`cockpit3d.gd` `_lighting`, ours): FlightGear's ALS lights its interior with its own lights; with only
   the scene's light the panel was dark blue-grey (the sun stays outside the glareshield and the tub, leaving the sky's
   blue ambient). The panels', consoles' and instruments' materials also glow by their own texture × a colour, a flat
-  fill (not the lamps, nor the tub's floor, walls and pedal area, the air vents and the stick: `UNLIT`, where the fill
-  showed the floor texture's speckle): by day the sun's colour × 1.0 × its energy (`FILL`; 1.3 on FlightGear's
+  fill (not the lamps; the tub's floor, walls and pedal area, the air vents and the stick, `UNLIT`, at `TUB_FILL` 0.4
+  of it, where the full fill showed the floor texture's speckle; until 2026-11-02 at none, and the footwell under the
+  panel, which the sun does not reach, was a black void; they take no backlight at night): by day the sun's colour × 1.0 × its energy (`FILL`; 1.3 on FlightGear's
   near-black paint before it was lifted, 0.8 before the baked occlusion, which takes about a quarter of it on
   average), so the labels read and dusk dims it. At the cockpit's night
   (`cockpit.night`, the rule that darkens the 2D panel, `time_of_day.gd` `cockpit_night`, set at the mission's start)
@@ -698,7 +713,11 @@ occlusion, 1.8 MB; built by
   as by day. The MFDs are turned down to 0.3 of their day brightness (`MFD_NIGHT`, ours, as a pilot turns the BRT
   rocker down), and the original TSD page's map fill is darkened by 0.65 (`MAP_NIGHT`; `mfd.gd` `map_dim`, the
   Sufa's HSD map by at least as much as its 0.62 by day): at full brightness the map pages' light grey land glared in
-  the dark cockpit, and turned down alone the TSD's near-white land still read as a light grey slab. The Real HUD's greens are no darker than the fifth HUD colour at night (`hud.gd` `REAL_NIGHT_GREEN`,
+  the dark cockpit, and turned down alone the TSD's near-white land still read as a light grey slab. On the 2D panel
+  the original TSD keeps its day colours at night, as the original's (`FUN_0052df40` darkens only the panel, its
+  lights and the HUD glass). The Sufa's HSD map, ours, is darkened by 0.82 there at night (`MAP_NIGHT_2D`: the 2D
+  screens are not turned down, and at 0.65 its land stayed sRGB 70, a light slab on the darkened panel; until
+  2026-11-02 its day 0.62, sRGB 76). The Real HUD's greens are no darker than the fifth HUD colour at night (`hud.gd` `REAL_NIGHT_GREEN`,
   real-hud.md). Cost (`_flight_bench.gd`, Iris Xe, 1920×1080, `BENCH_SET=cockpit_3d=3d`,
   2026-11-01): GPU +0.3 ms at 150 m, +0.2 ms at 1,500 m by day, none at night; the backlit labels' pass: rendering.md
   §3.2.

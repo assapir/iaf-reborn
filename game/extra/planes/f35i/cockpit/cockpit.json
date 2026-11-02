@@ -11,7 +11,8 @@
   "NightRScale": 0.0,
   "NightGScale": 0.0,
   "NightBScale": 0.0,
-  "NightFileName": "f35panel_night.webp"
+  "NightFileName": "f35panel_night.webp",
+  "ElevationAngleDeg": 25.0
  },
  "PANELST": {
   "OFFSET00": 230.0,

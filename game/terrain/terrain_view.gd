@@ -2092,7 +2092,7 @@ func _apply_view() -> void:
 	var dy: float = cockpit.projection_centre().y - cockpit.size.y / 2.0
 	camera.set_frustum(camera.near * cockpit.size.y / f, Vector2(0, dy * camera.near / f), camera.near, camera.far)
 	var h: Vector2 = views.head_angles()
-	var pitch := maxf(h.y - deg_to_rad(cockpit.VIEW_LOOK_DOWN_DEG), 0.1 * (absf(h.x) - PI / 2.0))
+	var pitch: float = cockpit.view_pitch(h)
 	if cockpit.three_d():  # ours, the 3D cockpit: the head looks down at its panel (free look's pitch_min)
 		pitch = h.y - deg_to_rad(cockpit.VIEW_LOOK_DOWN_DEG)
 	camera.rotation = Vector3(pitch, -h.x, 0)

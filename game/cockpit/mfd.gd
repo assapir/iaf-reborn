@@ -106,9 +106,15 @@ func _bezel() -> float:
 ## Ours, the 3D cockpit (cockpit3d.gd): the page is drawn into its 3D screen's SubViewport at this many viewport px per
 ## MFD px, the page filling it (0: on the 2D panel).
 var screen_px := 0.0
-## Ours, the 3D cockpit at night (cockpit3d.gd MAP_NIGHT): the TSD's map fill darkened by this much (Color.darkened; 0
-## on the 2D panel).
+## Ours, the 3D cockpit at night (cockpit3d.gd): the TSD's map fill darkened by this much (Color.darkened; 0 on the 2D
+## panel, whose original TSD the original draws as by day: FUN_0052df40 darkens only the panel, lights and HUD glass).
 var map_dim := 0.0
+## The map fill's darkening at the cockpit's night where ours draws it (Color.darkened): the 3D cockpit's TSD and HSD,
+## their screens also turned down (cockpit3d.gd MFD_NIGHT; the near-white land, turned down alone, still read as a light
+## grey slab in the dark cockpit); the Sufa's HSD on the 2D panel, whose screens keep their brightness, MAP_NIGHT_2D
+## (at 0.65 its land stayed sRGB 70, a light slab on the darkened panel).
+const MAP_NIGHT := 0.65
+const MAP_NIGHT_2D := 0.82
 
 
 ## Screen px per MFD px.

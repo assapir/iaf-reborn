@@ -89,6 +89,8 @@ class Mats:
         self.screen = m("esis_glass", (0.003, 0.004, 0.006), roughness=0.05, coat=1.0)
         self.frame = m("canopy_frame", (0.055, 0.057, 0.062), roughness=0.5, wear=0.6)
         self.seal = m("canopy_seal", (0.010, 0.010, 0.011), roughness=0.85)
+        # The tub's floor: dark grey non-slip paint, lighter than the panels (as the black seal it read as a void).
+        self.floor = m("tub_floor", (0.040, 0.041, 0.044), roughness=0.9, grain=0.15, wear=0.3)
         self.knob = m("knob", (0.014, 0.014, 0.015), roughness=0.45, wear=0.3)
         # Screw heads and bolts: dark blackened steel (a light grey glowed white under the 3D cockpit's day fill).
         self.alu = m("fastener", (0.045, 0.046, 0.050), metallic=1.0, roughness=0.32)
@@ -489,12 +491,15 @@ def tub(mats):
     ahead of the eye): the floor, the footwell's front, the walls down to the floor, the seat's front with the
     ejection handle's yellow loop (§4.1)."""
     box = kit.box
-    box("tub_floor", (0, 0.20, -0.92), (0.90, 1.30, 0.02), mats.seal, bevel=TUB_BEVEL)
+    box("tub_floor", (0, 0.20, -0.92), (0.90, 1.30, 0.02), mats.floor, bevel=TUB_BEVEL)
     box("tub_front", (0, 0.80, -0.70), (0.80, 0.02, 0.44), mats.panel, bevel=TUB_BEVEL)
     for s in (-1, 1):
         box(f"tub_wall{s}", (s * 0.47, 0.20, -0.72), (0.03, 1.30, 0.40), mats.panel, bevel=TUB_BEVEL)
         box(f"tub_console_side{s}", (s * 0.305, 0.215, -0.70), (0.02, 1.18, 0.44), mats.panel,  # to the front
             bevel=TUB_BEVEL)
+    for s in (-1, 1):  # the rudder pedals at the footwell's front: a plate on an arm from the front wall
+        box(f"pedal{s}", (s * 0.13, 0.70, -0.80), (0.09, 0.02, 0.15), mats.grip, rot=(-15, 0, 0), bevel=0.006)
+        box(f"pedal_arm{s}", (s * 0.13, 0.75, -0.73), (0.025, 0.10, 0.025), mats.bezel, bevel=0.004)
     box("seat_pan", (0, -0.25, -0.62), (0.42, 0.40, 0.08), mats.grip, bevel=0.02)
     box("seat_front", (0, -0.06, -0.78), (0.42, 0.04, 0.26), mats.grip, bevel=0.01)
     for s in (-1, 1):
@@ -601,7 +606,7 @@ def export_glb(out, eye_g):
     for o in objs:
         o.matrix_world = k @ o.matrix_world
     kit.bake_transforms(objs)
-    baked = [mats.panel, mats.rubber, mats.bezel, mats.frame, mats.grip, mats.seal]
+    baked = [mats.panel, mats.rubber, mats.bezel, mats.frame, mats.grip, mats.seal, mats.floor]
     bake_atlas([o for o in objs if o.data.materials and o.data.materials[0] in baked], baked)
     swap = {getattr(mats, a): getattr(flat, a) for a in vars(mats) if a != "lens"}
     swap.update({mats.lens[key]: flat.lens[key] for key in mats.lens})
@@ -720,7 +725,10 @@ def main():
                  "radar, 3 TSD, 7 RWR); [PCD] places the display around them (game/cockpit/pcd.gd).")
     c["PANEL"].update({"PanelHeight": float(PANEL_HEIGHT), "MaskOffsetY2": MASK_OFFSET_Y2,
                        "FileName": "f35panel.webp", "NightFileName": "f35panel_night.webp", "NightRScale": 0.0,
-                       "NightGScale": 0.0, "NightBScale": 0.0})
+                       "NightGScale": 0.0, "NightBScale": 0.0,
+                       # The head pitch per panel pan (FUN_005228a0's default 15°): 25° moves the tall panel and the
+                       # HUD as far as the world looking down (docs/cockpit.md "Pans").
+                       "ElevationAngleDeg": 25.0})
     for gone in ("FUELDIGITAL", "THROTTLEDIGITAL", "TEXTMESSAGE", "CHAFF", "FLARE"):  # pcd.gd draws them
         c.pop(gone, None)
     c["LENHORIZON"] = {"Active": 0.0}

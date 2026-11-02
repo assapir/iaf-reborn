@@ -80,6 +80,29 @@ func run() -> void:
 	check(axis.distance_to(c) < 0.5, "the camera axis projects on the projection centre (%s vs %s)" % [axis, c])
 	var nose := cam.unproject_position(cam.global_position - tv.rig.global_basis.z * 1000.0)
 	check(absf(nose.y - (c.y - cp.focal_length() * tan(deg_to_rad(5.5)))) < 0.5, "the nose 5.5° above the centre")
+	# Looking down (−12°): the panel lowered, the original's camera (−9°, FUN_00585270) and pan bound (−62); raised
+	# (0.8), our bound (−38) and the camera at the head pitch that pans the panel that far (cockpit.md "Pans").
+	var shift: float = cp.panel_shift
+	cp.head = Vector2(0.0, -0.20944)
+	cp.panel_shift = 0.0
+	check(
+		cp.head_pan().y == -62.0 and is_equal_approx(cp.view_pitch(cp.head), deg_to_rad(-9.0)),
+		(
+			"look down, panel lowered: vpan −62, camera −9° (%.0f, %.2f°)"
+			% [cp.head_pan().y, rad_to_deg(cp.view_pitch(cp.head))]
+		)
+	)
+	cp.panel_shift = 0.8
+	var want := -38.0 * deg_to_rad(15.0) / (352.0 + 88.0) - deg_to_rad(5.5)
+	check(
+		cp.head_pan().y == -38.0 and is_equal_approx(cp.view_pitch(cp.head), want),
+		(
+			"look down, panel raised: vpan −38, camera −6.8° (%.0f, %.2f°)"
+			% [cp.head_pan().y, rad_to_deg(cp.view_pitch(cp.head))]
+		)
+	)
+	cp.head = Vector2.ZERO
+	cp.panel_shift = shift
 	var up := cam.unproject_position(
 		cam.global_position + (-cam.global_basis.z + cam.global_basis.y * tan(deg_to_rad(10.0))) * 1000.0
 	)

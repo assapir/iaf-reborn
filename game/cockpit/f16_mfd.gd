@@ -397,13 +397,15 @@ func hsd() -> void:
 	var mpp := nm * 1852.0 / HSD_R
 	var clip := PackedVector2Array([Vector2(1, 12), Vector2(131, 12), Vector2(131, 121), Vector2(1, 121)])
 	if m.real_look == "colour":
+		# At night darker: the 3D screens by MAP_NIGHT (cockpit3d.gd sets map_dim), the 2D panel's by MAP_NIGHT_2D.
+		var dim := maxf(0.62, MfdNode.MAP_NIGHT_2D if cockpit.night and m.screen_px == 0.0 else m.map_dim)
 		for piece_src in cockpit.tsd_map:
 			var pts := PackedVector2Array()
 			for w in piece_src.points:
 				pts.append(to_scope(w, HSD_OWN, mpp))
 			for piece in Geometry2D.intersect_polygons(pts, clip):
 				if piece.size() >= 3 and not Geometry2D.triangulate_polygon(piece).is_empty():
-					ci.draw_colored_polygon(piece, Color(piece_src.color).darkened(maxf(0.62, m.map_dim)))
+					ci.draw_colored_polygon(piece, Color(piece_src.color).darkened(dim))
 	label(1, "DEP")
 	label(5, "CNTL")
 	stepper("%d" % int(nm))

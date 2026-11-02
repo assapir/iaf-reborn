@@ -164,12 +164,11 @@ const BACKLIGHT_ENERGY := 0.7
 ## The MFDs' brightness at the cockpit's night (ours, as a pilot turns the BRT rocker down): at full brightness the
 ## map pages' light grey land (the TSD's, the Sufa's HSD's) glared in the dark cockpit.
 const MFD_NIGHT := 0.3
-## The original TSD page's near-white land darkened by this much at night (Color.darkened; the Sufa's HSD map is
-## darkened by 0.62 at all hours, f16_mfd.gd): turned down alone it still read as a light grey slab.
-const MAP_NIGHT := 0.65
-## The materials left out of the fill (by their texture in the material's name): the tub's floor, walls and pedal area,
-## the air vents, the stick's grip: no panel, and the fill showed the floor's speckle.
+## The materials under a dimmer fill (by their texture in the material's name): the tub's floor, walls and pedal area,
+## the air vents, the stick's grip: no panel. At the full fill the floor's speckle showed; with none (until 2026-11-02)
+## the footwell under the panel, which the sun does not reach, was a black void.
 const UNLIT := ["floor", "pedaladj", "base-color", "airvent", "rear-left", "marked-iron", "stick-color", "tranbg"]
+const TUB_FILL := 0.4
 ## The F-35I's colours (its baked atlas and plain colours) by <model>.json: by day each glows by its colour × the sun's
 ## × `day_fill` (the F-16's fill then, 1.3, made the dark grey paint twice as light as its panel render,
 ## tools/f35i/cockpit3d.py; the scene's light alone left it dark and sky-blue); at the cockpit's night by its colour
@@ -202,12 +201,12 @@ func _setup_light(model: Node3D) -> void:
 				continue
 			if mat.albedo_texture == null:
 				continue
-			if UNLIT.any(func(u): return mat.resource_name.contains(u)):
-				continue
 			mat.emission_enabled = true
 			mat.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY
 			mat.emission_texture = mat.albedo_texture
-			mat.emission_energy_multiplier = 1.0
+			mat.emission_energy_multiplier = (
+				TUB_FILL if UNLIT.any(func(u): return mat.resource_name.contains(u)) else 1.0
+			)
 			_lit_mats.append(mat)
 	_setup_baked_light(model, lamp_mats)
 	_setup_backlight()
@@ -287,7 +286,7 @@ var _backlit := false
 
 func _setup_backlight() -> void:
 	for mat: BaseMaterial3D in _lit_mats:
-		if NO_BACKLIGHT.any(func(n): return mat.resource_name.contains(n)):
+		if (NO_BACKLIGHT + UNLIT).any(func(n): return mat.resource_name.contains(n)):  # the tub: no labels
 			continue
 		var glow := _pass(BACKLIGHT_SHADER, mat)
 		glow.set_shader_parameter("blend", _translucent(mat))
@@ -315,7 +314,7 @@ func _lighting() -> void:
 	_backlight_on(cockpit.night)
 	for e in _screens:  # the MFDs turned down at night (MFD_NIGHT), their map fill darker (MAP_NIGHT)
 		(e[2].material_override as StandardMaterial3D).emission_energy_multiplier = MFD_NIGHT if cockpit.night else 1.0
-		e[0].map_dim = MAP_NIGHT if cockpit.night else 0.0
+		e[0].map_dim = Mfd.MAP_NIGHT if cockpit.night else 0.0
 	if cockpit.night:
 		c = FLOOD * FLOOD_ENERGY
 	elif _sun != null:

@@ -701,8 +701,9 @@ func _update_instruments() -> void:
 
 ## The panel's screen shift for the head angles (original pixels): pan = 1920 / AzimutAngleDeg (rad) · yaw,
 ## vpan = (PanelHeight + [HUD] CenterY) / ElevationAngleDeg (rad) · pitch, vpan ≥ 480 − MainOffsetY −
-## PanelHeight (and ≥ −MainOffsetY · (1 − panel_shift), ours); the panel moves left by pan and down by vpan.
-func head_pan() -> Vector2:
+## PanelHeight (and ≥ −MainOffsetY · (1 − panel_shift), ours, unless `original_bound`); the panel moves left by pan
+## and down by vpan.
+func head_pan(original_bound := false) -> Vector2:
 	if head == Vector2.ZERO:
 		return Vector2.ZERO
 	var p: Dictionary = layout.get("PANEL", {})
@@ -715,9 +716,24 @@ func head_pan() -> Vector2:
 	# (the world showed under the art); with panel_shift 0 the original's bound alone.
 	var vpan := maxf(
 		roundf((ph + float(layout.get("HUD", {}).get("CenterY", 0))) / el * head.y),
-		maxf(480.0 - main_y - ph, -main_y * (1.0 - panel_shift))
+		maxf(480.0 - main_y - ph, -INF if original_bound else -main_y * (1.0 - panel_shift))
 	)
 	return Vector2(-pan, vpan)
+
+
+## The cockpit camera's pitch (rad) for the head angles `h`: FUN_00585270, max(head pitch − 5.5°, 0.1·(|yaw| − 90°)),
+## so −9° at most looking ahead. Ours: where the raised panel's bound (head_pan) holds the panel lower than the
+## original's bound would, the camera takes the head pitch that pans the panel that far, so the world stops with the
+## panel and HUD (the HUD's symbols stay on the world) instead of looking further down; with the original's bound in
+## force the original's pitch.
+func view_pitch(h: Vector2) -> float:
+	var hy := h.y
+	var vpan := head_pan().y
+	if vpan != head_pan(true).y and not three_d():
+		var p: Dictionary = layout.get("PANEL", {})
+		var el := deg_to_rad(float(p.get("ElevationAngleDeg", 15.0)))
+		hy = vpan * el / (float(p.get("PanelHeight", 352)) + float(layout.get("HUD", {}).get("CenterY", 0)))
+	return maxf(hy - deg_to_rad(VIEW_LOOK_DOWN_DEG), 0.1 * (absf(h.x) - PI / 2.0))
 
 
 func _draw() -> void:

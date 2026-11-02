@@ -105,6 +105,7 @@ Each row: Original = the 1998 game; Ours = this port, for everyone.
 | FlyTSD Visit | sets the visual-record flag +8 of the unit and of the player's jet and clears the cockpit part's (UNCERTAIN: "drawn from outside") | no such flags: every model is drawn | no visual records in ours | views.md §1 |
 | Views: unknown conventions | — | fly-by offset axes (x right, y forward, z up), orbit signs, object size = largest scaled-model dimension, visual lock at the screen centre | UNCERTAIN in the trace | views.md §4.4 |
 | HUD-only view (F1 twice) | viewport grows to 480 rows (projection centre moves); the HUD drawn at scale 2 around (320, 240) (`FUN_00530b70` case 5) | the cockpit projection kept, no panel / MFDs drawn, the HUD at the cockpit scale and place | keeps the HUD registered | views.md §4.4 |
+| Looking down with the panel raised | the panel pans by vpan ≥ 480 − MainOffsetY − PanelHeight (`FUN_0051f610`); the camera pitch max(head pitch − 5.5°, 0.1·(\|yaw\| − 90°)) (`FUN_00585270`) | with our raised panel (V / PgUp, `panel_shift`) also vpan ≥ −MainOffsetY · (1 − panel_shift), and the camera takes the head pitch that pans the panel that far; the original's whenever its own bound holds | the strip stays on the screen's bottom, the HUD on the world | cockpit.md "Pans" |
 | Cockpit zoom keys | 20 / 21 enter free look with no motion (the zoom only sets culling) | our cockpit art zoom, one step per press | ours (kept) | views.md §4.4 |
 | Wreck circle | circles the attacker when it is within 1000 m | always the wreck | no attacker field yet | views.md §4.4 |
 | Briefing links of type 0 naming a model / bitmap | two .brl records (`/3dobjects/groundforces/sa6lcr/sa6lcr_h.x`, `/brief/bmp/interc.bmp`) are type 0: streamed as RTF (no useful window) | opened as the 3D-model / picture window | the link works | front-end.md §6, tsd.gd |
@@ -179,7 +180,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 - **MFDs (F-16) (Original (1998) / Real).** Original: the F-16D Barak's MFDs draw the 1998 pages. Ours, with Real
   (`real_mfds`): the real F-16's head-down formats in green (FCR, SMS, HSD, WPN, TGP, TEST and the format menu), the
   OSBs as on the real jet (SWAP, three formats per MFD, DCLT); NAV, RWR and ADI are not offered and show the HSD. The
-  F-16I Sufa draws them always, in colour. Other jets keep the original pages (mfd.md §9).
+  F-16I Sufa draws them always, in colour; at the cockpit's night its HSD map is darkened by 0.82 on the 2D panel and
+  by 0.65 in the 3D cockpit, whose screens are also turned down (0.62 by day). Other jets keep the original pages (mfd.md §9), drawn as by day at night as in
+  the original (`FUN_0052df40` darkens only the panel, its lights and the HUD glass).
 - **Cockpit (Original 2D / 3D).** Original: the jets' 1998 2D panel art and the original's projection (50° across
   640 px). Ours, with 3D (`cockpit_3d`, read at mission load): the F-16 (Barak and Sufa) flies with a real-time 3D
   front cockpit built from the FlightGear F-16's (cockpit.md "3D cockpit"): a 75° view that the zoom narrows to its true size (the screen's

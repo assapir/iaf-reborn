@@ -123,10 +123,12 @@ SUFA_PANELS, BARAK_PANELS = "blck50-panels1.png", "blck40-panels1.png"
 # photos (docs/cockpit.md) show dark grey plates and a grey panel. Every sheet's colours lifted to a floor of
 # PAINT_FLOOR (linear): out = floor + (1 - floor) · in; the plates become #484848, the panel #525252, the white labels
 # stay white (a flat black paint reflects about 4 %, FS 36118 gunship grey about 8 %; the 6 % floor chosen against the
-# photos, inferred). Not the sheets of PAINT_KEEP (the tub's floor and walls, the vents, the stick: their own colours;
-# the glass).
+# photos, inferred). Not the sheets of PAINT_KEEP (the tub's walls, the vents, the stick: their own colours; the glass).
+# The tub's floor sheet (floor.png) is lifted too (2026-11-02): FlightGear paints the footwell under the panel black
+# into it (a shadow that its ALS lighting stands for), and in the game the footwell was a black void; lifted, it is a
+# dark grey that the baked occlusion shades.
 PAINT_FLOOR = 0.06
-PAINT_KEEP = ("floor", "pedaladj", "base-color", "airvent", "rear-left", "marked-iron", "stick-color", "tranbg",
+PAINT_KEEP = ("pedaladj", "base-color", "airvent", "rear-left", "marked-iron", "stick-color", "tranbg",
               "canvas")
 MAX_TEX = 2048  # textures larger than this are halved (the console sheets, 1024 x 2048, kept whole: sharp labels)
 # FlightGear's frame (x aft, y right, z up) -> Blender's (x right, y forward, z up).

@@ -881,7 +881,8 @@ with a targeting pod, as the original's MENU "FLIR"), WPN (18), SMS (6), HSD (7)
   as a solid diamond.
 - HSD: three rings a third of the range apart (the outer one the range), the north tic, the route through the past,
   current (filled) and next two steerpoints, the radar's scan as a wedge, the SAM sites' rings (inferred), the ownship.
-  The Sufa only: the map (map.emf) under it, dimmed, as its colour moving map.
+  The Sufa only: the map (map.emf) under it, dimmed (darkened 0.62; at the cockpit's night 0.82 on the 2D panel,
+  0.65 in the 3D cockpit: `mfd.gd` `MAP_NIGHT_2D`, `MAP_NIGHT`), as its colour moving map.
 - SMS: INV with each station's count and store by its OSB (an empty one dashed), the gun in tens and the chaff /
   flare counts; AAM: the weapon, RDY / MAL and the stations holding it (`M` row, the selected boxed); A-G: CCIP or
   the GPS bomb's PRE / VIS, the weapon, SGL / PAIR, the interval, the release pulses, RDY. A GPS bomb adds its
