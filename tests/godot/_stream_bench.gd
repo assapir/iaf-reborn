@@ -5,14 +5,14 @@
 # second, the worst frame and the average fps; then the time to load one colour node on a worker thread (the
 # nodes loaded, each again). ST_DDS=0 loads the JPEGs and compresses them (the path without setup's bc1 step).
 # GT_SET="key=value,…" sets Settings keys (str_to_var values). Vsync off.
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 -- --log-file /tmp/s.log --path game --resolution 2560x1440 \
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 -- --log-file /tmp/s.log --path iaf-reborn --resolution 2560x1440 \
 #     -s ../tests/godot/_stream_bench.gd -- --mission 311
 extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	var tp: GDScript = load("res://terrain/terrain_preload.gd")
-	load("res://terrain/terrain.gd").precompressed = OS.get_environment("ST_DDS") != "0"
+	var tp: GDScript = load("res://shared/terrain/terrain_preload.gd")
+	load("res://shared/terrain/terrain.gd").precompressed = OS.get_environment("ST_DDS") != "0"
 	settings().vsync = false
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	for kv in OS.get_environment("GT_SET").split(",", false):

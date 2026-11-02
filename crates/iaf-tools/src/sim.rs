@@ -1232,7 +1232,7 @@ mod tests {
             assert_eq!(r.len(), 14, "{r:?}");
             assert!(clip(r[13]) > 0.05, "{}", r[13]);
         }
-        // The codes game/ plays by code (flight_sounds.gd, player_weapons.gd, player_damage.gd, rwr.gd, combat.gd,
+        // The codes iaf-reborn/ plays by code (flight_sounds.gd, player_weapons.gd, player_damage.gd, rwr.gd, combat.gd,
         // damage_model.gd); BTY_MISS, BTY_OVER_G and BTY_SPIN have no row on purpose (the F-16 VMS has no such voice).
         for key in [
             "SFX_LANDING/None",

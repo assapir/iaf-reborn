@@ -5,7 +5,7 @@
 # the window's size. tools/guide_shots.sh runs a few shots per process:
 #   GUIDE_JSON=$PWD/docs/guides/f16.shots.json GUIDE_SHOTS=hud_nav,hud_original GUIDE_OUT=/tmp/shots \
 #     IAF_DEFAULT_SETTINGS=1 \
-#       tools/godot_window.sh -- --log-file /tmp/g.log --path game --resolution 3840x2160 -s \
+#       tools/godot_window.sh -- --log-file /tmp/g.log --path iaf-reborn --resolution 3840x2160 -s \
 #         ../tests/godot/_guide_shots.gd
 # An entry: name, caption, mission, jet (Jet list id, -1 the mission's), mc (mission 666's Mission Creator record:
 # {field: number | [per formation]}, e.g. {"count": [1, 0, 1], "type": [7, 0, 11], "weapons": 1}), settings ({Settings
@@ -35,7 +35,7 @@
 # MFDs; "hud" takes `crop_w`, the box's width as a fraction of the frame, default 0.38: smaller zooms in; and `crop_dy`,
 # the box moved down by that fraction of the frame's height, negative moves it up,
 # default 0: a gunsight's reticle that sits high; "compass": a 16:10 box around the panel's compass / HSI dial,
-# game/cockpit/compass.gd, with the same crop_w / crop_dy; "panel": the same box around `crop_at`, [x, y] panel px of
+# shared/cockpit/compass.gd, with the same crop_w / crop_dy; "panel": the same box around `crop_at`, [x, y] panel px of
 # the 1920-px strip; "box": `crop_box` [x0, y0, x1, y1], fractions of the frame). Callouts ("annotations": [{n, anchor,
 # label_at | off}]) are drawn on the picture: a numbered yellow marker at `label_at` (a fraction of the crop) or at the
 # anchor + `off` (× the crop's shorter side; [0, 0] puts the marker on the anchor, no arrow) with an arrow to the
@@ -50,7 +50,7 @@
 # shot prints a GUIDE_INFO line with the HUD's texts and the radar lock / DLZ (for the guide's examples).
 extends "res://../tests/godot/base.gd"
 
-const EoSensor := preload("res://weapons/eo_sensor.gd")
+const EoSensor := preload("res://shared/weapons/eo_sensor.gd")
 
 var tv: Node
 var w: Node
@@ -538,7 +538,7 @@ func _crop(c: String, size: Vector2i, hud_w := 0.38, hud_dy := 0.0, at: Array = 
 			var ck = tv.cockpit
 			var p := Vector2(at[0], at[1])
 			if c == "compass":
-				p = load("res://cockpit/compass.gd").instruments(String(ck.cockpit_dir).get_file())[0].centre
+				p = load("res://shared/cockpit/compass.gd").instruments(String(ck.cockpit_dir).get_file())[0].centre
 			var ctr: Vector2 = ck.panel_to_screen(p.x, p.y) + ck.global_position
 			var wd := int(size.x * hud_w)
 			var ht := int(wd * 10 / 16)

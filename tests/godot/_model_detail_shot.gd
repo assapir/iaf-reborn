@@ -7,11 +7,11 @@
 # SHOT_ONLY=pylons,wheels: only those shots. SHOT_SET="key=value,…" sets Settings keys first (str_to_var values; e.g.
 # SHOT_SET='ground_textures="ambientcg"' for Ground textures under both shots).
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 MESA_VK_WSI_PRESENT_MODE=immediate SHOT_DIR=/tmp/md -- \
-#     --log-file /tmp/g.log --path game --resolution 1920x1080 -s ../tests/godot/_model_detail_shot.gd
+#     --log-file /tmp/g.log --path iaf-reborn --resolution 1920x1080 -s ../tests/godot/_model_detail_shot.gd
 extends "res://../tests/godot/base.gd"
 
-const Gltf := preload("res://util/gltf.gd")
-const ModelDetail := preload("res://util/model_detail.gd")
+const Gltf := preload("res://shared/util/gltf.gd")
+const ModelDetail := preload("res://shared/util/model_detail.gd")
 ## Pylon loads (weapon names in the mission's Weapons table, as _model_shot.gd matches them): Mk-82s and a centre tank.
 const LOADOUT := {1: "MK82", 2: "MK82", 4: "300", 6: "MK82", 7: "MK82"}
 ## Props: [model under converted/objects or "jet:<plane>", metres right / forward of the player's jet (jets: at true
@@ -244,7 +244,7 @@ func _aim(cam: Vector3, look: Vector3, jet_size: bool) -> void:
 
 func _arm() -> void:
 	var hp := []
-	var db: RefCounted = load("res://weapons/mission_weapons.gd").create(311)
+	var db: RefCounted = load("res://shared/weapons/mission_weapons.gd").create(311)
 	for i in 9:
 		var want: String = LOADOUT.get(i, "")
 		var id := 0
@@ -254,7 +254,7 @@ func _arm() -> void:
 				break
 		hp.append_array([id, 1 if id != 0 else 0])
 	var w = tv.weapons
-	var w2 = load("res://weapons/player_weapons.gd").new()
+	var w2 = load("res://shared/weapons/player_weapons.gd").new()
 	tv.add_child(w2)
 	var bdb: Dictionary = tv.mission_bdb
 	w2.setup(tv, {"armament": {"hardpoints": hp}}, tv._player_object(bdb), bdb, w.descriptor)
@@ -264,7 +264,7 @@ func _arm() -> void:
 
 
 func _place_props() -> void:
-	var am: GDScript = load("res://aircraft/aircraft_model.gd")
+	var am: GDScript = load("res://shared/aircraft/aircraft_model.gd")
 	var ground: float = tv.aircraft.global_position.y
 	var hp := tv.aircraft.find_child("height", true, false) as Node3D
 	if hp != null:

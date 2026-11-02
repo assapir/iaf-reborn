@@ -178,12 +178,12 @@ The scale of the packed position and attitude fields is open (the `__ftol` argum
 | Piece | Today | Multiplayer adds |
 |---|---|---|
 | Flight model (`crates/iaf-flight`) | steps the player's jet with the frame time (`terrain_view.gd`) | a remote-jet mode: no physics, follow received states with the Multiplayer smoothing gains; state export at 5 Hz |
-| AI (`game/ai/`, `crates/iaf-flight/src/autopilot.rs`) | every AI flight runs locally | runs on the host only; clients show copies |
-| Mission runtime (`game/mission/mission_runtime.gd`) | scripts, triggers, win / lose | host only; script jumps and the result go to clients; `PlayerN` role 2 |
-| Damage (`game/mission/damage_model.gd`, `player_damage.gd`) | applied where the hit happens | applied by the owner; hit messages; kill credit with the eject rule |
+| AI (`shared/ai/`, `crates/iaf-flight/src/autopilot.rs`) | every AI flight runs locally | runs on the host only; clients show copies |
+| Mission runtime (`shared/mission/mission_runtime.gd`) | scripts, triggers, win / lose | host only; script jumps and the result go to clients; `PlayerN` role 2 |
+| Damage (`shared/mission/damage_model.gd`, `player_damage.gd`) | applied where the hit happens | applied by the owner; hit messages; kill credit with the eject rule |
 | Weapons (`crates/iaf-avionics`) | local missiles, rounds, RWR | missile / bomb states from their owner; RWR lock messages |
-| Front end (`game/menu/front_end.gd`) | screens 0x15–0x18, 0x1b, 0x1d are not built | the lobby, side / jet choice, the MP TSD, chat, MP debrief |
-| Preferences (`game/settings.gd`) | local prefs | the multiplayer overrides (§1) |
+| Front end (`iaf-reborn/menu/front_end.gd`) | screens 0x15–0x18, 0x1b, 0x1d are not built | the lobby, side / jet choice, the MP TSD, chat, MP debrief |
+| Preferences (`shared/settings.gd`) | local prefs | the multiplayer overrides (§1) |
 
 ### 3.2 Option (a): our own protocol between our clients
 - Transport: Godot's ENet (`ENetMultiplayerPeer`, UDP with reliable and unreliable channels). LAN search by UDP

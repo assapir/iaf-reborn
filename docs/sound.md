@@ -5,7 +5,7 @@ loop and the cockpit sounds. Addresses are `IAFJets.exe` **v1.1**; [v1.1.md](v1.
 
 * **Sources**: `assets/ghidra_v11/iafjets.c` plus `objdump` of `v1.1/iafjets.exe`, and the original sound table
   `resource/soundfiles/SoundProp.trx`.
-* **Port**: `game/audio/` (`flight_sounds.gd`, `sound_table.gd`, `sound_buses.gd`); test
+* **Port**: `shared/audio/` (`flight_sounds.gd`, `sound_table.gd`, `sound_buses.gd`); test
   `tests/godot/test_sounds.gd`.
 * **Elsewhere**: front-end sounds (buttons, palettes, music, the Preferences previews): docs/front-end.md; mission
   voices: docs/mission-runtime.md §3.3; radio phrases: docs/radio.md.
@@ -212,7 +212,7 @@ The stall buffet and touchdown / off-runway rumble are DirectInput force-feedbac
 
 ## 6. Port notes and UNCERTAIN points
 
-* **Host**: `game/terrain/terrain_view.gd` adds `FlightSounds` (the player's type, `player.type`). `FlightSounds`
+* **Host**: `shared/terrain/terrain_view.gd` adds `FlightSounds` (the player's type, `player.type`). `FlightSounds`
   polls the host every frame: flight state, lever variables, view, terrain height. Lever sounds fire on the host's
   accepted lever changes; the host applies the original's lever rules.
 * **3-D sounds**: `AudioStreamPlayer3D` at the jet, gain = min / clamp(distance to the camera, min, max)

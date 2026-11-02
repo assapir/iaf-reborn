@@ -1,4 +1,4 @@
-//! `IafRealHud`: the Real HUD's layout (`iaf_avionics::real_hud`, docs/real-hud.md) for `game/cockpit/hud.gd`. The
+//! `IafRealHud`: the Real HUD's layout (`iaf_avionics::real_hud`, docs/real-hud.md) for `shared/cockpit/hud.gd`. The
 //! primitives come back as dictionaries in HUD pixels from the HUD centre: {k: "line", a, b}, {k: "circle", c, r},
 //! {k: "dot", c, r}, {k: "arc", c, r, from, sweep (radians clockwise from 12 o'clock)}, {k: "text", at, text, align
 //! (0 left, 1 centre, 2 right)}.

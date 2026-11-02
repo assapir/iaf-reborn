@@ -84,7 +84,8 @@ func run() -> void:
 	)
 
 	# Recording and scoring.
-	check(Pilots.mission_bonus(311) == 500 and Pilots.mission_bonus(217) == 5000, "MissBonus from scores.ibx")
+	var runtime = load("res://shared/mission/mission_runtime.gd")
+	check(runtime.mission_bonus(311) == 500 and runtime.mission_bonus(217) == 5000, "MissBonus from scores.ibx")
 	# MiG-21 (cat 5, 500) and a tank (cat 16, 100) destroyed, own F-16 (cat 1, 800) lost, bonus 500.
 	Pilots.record(15, 311, {"result": 1, "bonus": 500, "kills": [[150, 28], [250, 5]], "losses": [[100, 28]]}, 1.0)
 	var h: Array = Pilots.history(15)

@@ -292,7 +292,7 @@ j_menu_he() {
 }
 
 # Extra planes' arming art (docs/adding-a-plane.md §5): composed from the original arming art of the menus and the
-# plane's front view (game/extra/planes/<p>/arm). After j_models, which makes the F-15I's front view; j_models is
+# plane's front view (shared/extra/planes/<p>/arm). After j_models, which makes the F-15I's front view; j_models is
 # optional, so its failure only leaves the F-15I's art out (arm-extra skips a plane whose front view is not there).
 j_arm() {
 	needs menu
@@ -300,7 +300,7 @@ j_arm() {
 	needs models || true
 	step "extra planes' arming art"
 	local arm p m
-	for arm in game/extra/planes/*/arm; do
+	for arm in shared/extra/planes/*/arm; do
 		p=$(basename "$(dirname "$arm")")
 		for m in assets/converted/menu assets/converted/menu_he; do
 			if [[ -d $m/img/arm/jets ]]; then

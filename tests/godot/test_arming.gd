@@ -1,4 +1,4 @@
-# Arming screen data (docs/front-end.md §15, game/weapons/mission_weapons.gd): the weapon list and
+# Arming screen data (docs/front-end.md §15, shared/weapons/mission_weapons.gd): the weapon list and
 # its tabs, the per-station allowed counts of the flight leader, the default loadout, drops with the
 # station maximum, the overweight / wing balance checks, Yes / No / DEFAULT; then the loadout put on
 # the aircraft reaching the player's stores in mission 231 (weight / drag, counts); slots 7..10 in mission 112.
@@ -7,7 +7,7 @@ extends "res://../tests/godot/base.gd"
 
 func run() -> void:
 	await require_data()
-	var MW = load("res://weapons/mission_weapons.gd")
+	var MW = load("res://shared/weapons/mission_weapons.gd")
 	var mw = MW.create(231)
 	check(mw.flights.has(1) and mw.flights.has(2) and not mw.flights.has(3), "mission 231: flights Alpha and Bravo")
 	check(mw.flights[1].type == 100, "Alpha's leader is an F-16")
@@ -81,7 +81,7 @@ func run() -> void:
 	check(Arming.g(27600.0) == "27600" and Arming.g(1234.5) == "1234.5", "%g formatting")
 
 	# --- where the stores hang (docs/weapons.md §2.2): the stations against the F-16 model ---------
-	var Model = load("res://aircraft/aircraft_model.gd")
+	var Model = load("res://shared/aircraft/aircraft_model.gd")
 	var ac: Node3D = Model.create("f16", 100, false)
 	root.add_child(ac)
 	var airframe := ac.root_frame as MeshInstance3D  # the root frame's mesh is the airframe
@@ -94,10 +94,12 @@ func run() -> void:
 			% [desc.stations.StationA[0], desc.stations.StationI[0], tip]
 		)
 	)
-	var PW = load("res://weapons/player_weapons.gd")
-	var st9 = load("res://weapons/stores.gd").new()
-	var Runtime = load("res://mission/mission_runtime.gd")
-	var db9 = load("res://weapons/weapon_db.gd").create(Runtime.load_bdb(Runtime.mission_files(231)[0].data), false)
+	var PW = load("res://shared/weapons/player_weapons.gd")
+	var st9 = load("res://shared/weapons/stores.gd").new()
+	var Runtime = load("res://shared/mission/mission_runtime.gd")
+	var db9 = load("res://shared/weapons/weapon_db.gd").create(
+		Runtime.load_bdb(Runtime.mission_files(231)[0].data), false
+	)
 	st9.setup(
 		[[11, 1], [8, 1], [17, 1], [19, 1], [61, 1], [19, 1], [17, 1], [8, 1], [11, 1], [25, 235], [33, 90], [34, 60]],
 		db9,

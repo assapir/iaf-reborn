@@ -275,7 +275,7 @@ returns at once when mode / arg / pose are unchanged (`5c8a70`), so **a running 
 | 280 | Takeoff | 9 | self, only if +0xe0 == 0 | TakeOffSequenceCL (+0x3e70), §8.2 |
 | 290 | Dive bomb | 0x17 | T | DiveBombCL |
 
-The other action types belong to the combat job (built in `game/ai/combat.gd`, §13):
+The other action types belong to the combat job (built in `shared/ai/combat.gd`, §13):
 
 | type | codes | effect |
 |---|---|---|
@@ -600,8 +600,8 @@ Where each part of this document lives in our code:
 - `crates/iaf-flight/src/aircraft.rs`: the AI cases (§11), `ap_view` (the loops' inputs), the pivot turn.
 - `crates/iaf-godot/src/flight.rs`: `set_ai`, `ap_setup` / `ap_set_route` / `ap_set_mode` / `ap_step` / `ap_set_leader`
   / `ap_waypoint_index`, `start_rule` (§7.1, also used for the player's start).
-- `game/ai/brain.gd`: the rule engine (§2–§6); combat measures and actions are hooks (`combat_hook`).
-- `game/ai/ai_flights.gd`: every brain-controlled aircraft (class 0x1c, transports class 3) with an FM type flies (one
+- `shared/ai/brain.gd`: the rule engine (§2–§6); combat measures and actions are hooks (`combat_hook`).
+- `shared/ai/ai_flights.gd`: every brain-controlled aircraft (class 0x1c, transports class 3) with an FM type flies (one
   IafFlight, the aircraft model at the Present scale); `contacts()` for radar / RWR; ops 21 / 22 via
   `mission_runtime.gd`.
 - Wingman commands (docs/radio.md §3): `radio.gd` sets the wingman brain's command / target; its bdb rules answer.
@@ -618,7 +618,7 @@ Where each part of this document lives in our code:
 ## 13. Combat (partly built)
 
 This section covers the AI jets' combat: sensors, target choice, weapons and the combat manoeuvres. The port lives
-in `game/ai/combat.gd` (AI jets) and `crates/iaf-flight/src/autopilot.rs` (manoeuvres).
+in `shared/ai/combat.gd` (AI jets) and `crates/iaf-flight/src/autopilot.rs` (manoeuvres).
 
 **Built:**
 - **The sensor** (kind 4: 10 slots, a scan every 2 s; the range by type, else 40 nm) and the selectors: **400 / 440**
@@ -786,10 +786,10 @@ RWR = CTL+0x5b0 (10 entries × 0x24 from +0xc; +0 emitter, +0x14 launch flag; +0
 ## 14. Ground defences, RWR, script ops 1 / 2
 
 This section covers how ground units (guns, SAM sites, armed vehicles) find targets and fire, the RWR, and the
-script fire ops. All of it is traced and built: the ground units' fire in `game/ai/combat.gd`, the player's RWR in
+script fire ops. All of it is traced and built: the ground units' fire in `shared/ai/combat.gd`, the player's RWR in
 docs/rwr.md, the decoys and their effect on missiles in docs/weapons.md §10.
 
-**Port** (`game/ai/combat.gd`):
+**Port** (`shared/ai/combat.gd`):
 - Every armed unit other than the aircraft has a weapon handler (its first valid station), which script op 2 fires
   (below).
 - A unit of a sensor class with a brain, brain or mission controlled (a mission-controlled unit's brain runs, §3),

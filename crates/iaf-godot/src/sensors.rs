@@ -1,5 +1,5 @@
 //! `IafEo` (the EO sensor, `iaf_avionics::eo`) and `IafHarm` (the HARM sensor's list, `iaf_avionics::harm`) for
-//! `game/weapons/eo_sensor.gd` and `harm_sensor.gd`. A base is Vector2(heading, pitch).
+//! `shared/weapons/eo_sensor.gd` and `harm_sensor.gd`. A base is Vector2(heading, pitch).
 
 use crate::world::{get, num, terrain, vec3, vector3};
 use godot::prelude::*;

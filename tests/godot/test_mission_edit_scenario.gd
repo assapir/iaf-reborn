@@ -5,7 +5,7 @@
 # waits until the SA-6 dies and then drives. Writes only under user://missions_test_scn.
 extends "res://../tests/godot/base.gd"
 
-const DM := preload("res://mission/damage_model.gd")
+const DM := preload("res://shared/mission/damage_model.gd")
 const DIR := "user://missions_test_scn"
 const LAND := Vector2(350000, 600000)  # inland, 212 m; 6.7 km from Ramat David's start
 const BANDITS := 496  # bdb audio "MiG's! MiG's! MiG's!"

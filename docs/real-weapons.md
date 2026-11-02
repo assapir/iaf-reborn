@@ -1,7 +1,7 @@
 # Weapon data "Real"
 
 This doc lists the real-world weapon numbers that the *Real weapons* option puts on the original weapon records
-(`game/weapons/real_weapons.gd`), and how each number maps onto the original model.
+(`shared/weapons/real_weapons.gd`), and how each number maps onto the original model.
 
 - **Switch:** Preferences > Extras > **Weapon data**: *Original (1998)* (default) or *Real weapons*, separate from
   Flight data.
@@ -303,7 +303,7 @@ The SPICE 1000, the SPICE 2000 and the Spike NLOS have detailed models (ours, do
 - **SPICE 1000** on the Barak, the Sufa and the F-35I: their stations (§1.7).
 - **Spike NLOS**: none until the game has a helicopter station; its record would be an electro-optical guided missile
   (type 600 as the AGM-65, inferred) with 25 km range[^avinlos].
-- Their models: `spice1000.glb`, `spice2000.glb`, `spikenlos.glb` in `game/extra/models/stores/`; a record names them
+- Their models: `spice1000.glb`, `spice2000.glb`, `spikenlos.glb` in `shared/extra/models/stores/`; a record names them
   as the Sufa's records do (`model_path` under `weapons/sufa/`, `util/gltf.gd` STAND_INS and STORES).
 
 ### 1.9 The IAF's Hebrew names

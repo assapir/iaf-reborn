@@ -1,5 +1,5 @@
 //! `IafFlightController`: the FlightController's radio reports (`iaf_avionics::fctrl`, docs/radio.md §4) for
-//! `game/audio/radio.gd`: the AWACS contact calls, the kill calls and the airborne / landed repeat filters.
+//! `shared/audio/radio.gd`: the AWACS contact calls, the kill calls and the airborne / landed repeat filters.
 
 use crate::world::{get, num, vec3};
 use godot::prelude::*;

@@ -10,7 +10,7 @@ func run() -> void:
 	# The parachuter's swing (FUN_0054a250, 0.2 s ticks): set up at pitch 30°, roll 20°; the first tick (0.2 s)
 	# keeps it still (previous tick +0xbc = 0, more than 0.4 s back), then the rates are (−20·sin pitch,
 	# −40·sin roll) °/s and the attitude settles towards level.
-	var TV := load("res://terrain/terrain_view.gd")
+	var TV := load("res://shared/terrain/terrain_view.gd")
 	var pc := {"ang": TV.CHUTE_ANGLES, "omega": Vector3.ZERO, "tb": 100.0, "last": 0.0}
 	TV.chute_swing(pc, 100.2)
 	check(pc.omega == Vector3.ZERO and pc.ang == Vector3(30, 20, 0), "first tick: no swing yet")

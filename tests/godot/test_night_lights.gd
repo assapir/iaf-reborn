@@ -4,7 +4,7 @@
 # and the moonlight, and none of it by day. Night vision (§8): Shift+N toggles the goggles.
 extends "res://../tests/godot/base.gd"
 
-const NightLights := preload("res://terrain/night_lights.gd")
+const NightLights := preload("res://shared/terrain/night_lights.gd")
 
 
 ## The mission units drawn as light points.
@@ -237,7 +237,7 @@ func run() -> void:
 		)
 	)
 	# Each file drawn has its own spots: the Original F-15 after the Detailed one keeps its own wingtips.
-	var am = load("res://aircraft/aircraft_model.gd")
+	var am = load("res://shared/aircraft/aircraft_model.gd")
 	settings().models = "original"
 	var f15o: Node3D = am.create("f15", -1, false)
 	root.add_child(f15o)

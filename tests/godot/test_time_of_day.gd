@@ -5,7 +5,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	var T = load("res://terrain/time_of_day.gd")
+	var T = load("res://shared/terrain/time_of_day.gd")
 	# The peak is f = 0.5: 05:00 + 7.5 h = 12:30.
 	var noon: Dictionary = T.sun(12.5 * 3600.0)
 	check(

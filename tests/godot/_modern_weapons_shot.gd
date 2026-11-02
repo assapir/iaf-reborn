@@ -4,7 +4,7 @@
 # SHOT_DETAILED=1 the loaded jet from outside with Models: Detailed (ext_stores.png). SHOT_HOBS=1 instead: the Real
 # HUD's DASH with the AIM-9X locked on a MiG 70° off the nose (dash_aim9x.png) and a Python 5 launched without a lock
 # at a MiG 40° off and out of its lock range, LOAL on the DASH (dash_python5_loal.png).
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=$PWD/.shots -- --log-file /tmp/s.log --path game \
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=$PWD/.shots -- --log-file /tmp/s.log --path iaf-reborn \
 #     -s ../tests/godot/_modern_weapons_shot.gd
 extends "res://../tests/godot/base.gd"
 

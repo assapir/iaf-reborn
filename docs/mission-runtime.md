@@ -339,7 +339,7 @@ execute that entry and schedule its end timer.
 | 13 / 14 | **Visible on / off** | `0x5c4410` / `0x5c4420` | `FUN_00463f10` / `FUN_00463ec0` (show / hide model) |
 | 16 / 17 | — | `0x5c4430` / `0x5c4450` | sensor flag on / off (scenario+0xdc) |
 | 20 | — | `0x5c4470` | `FUN_004bb409(arg)` + `FUN_004a8e70(1)` (back to brain control) — UNCERTAIN |
-| 21 / 22 | Enable / Disable combat | `0x5c44b0` / `0x5c44c0` | `FUN_00440830` / `FUN_004407e0` on the unit's brain (docs/ai.md §6). Enable: +0x6c = 0, then (v1.1) the brain is reset (`FUN_0043eef0`: flags cleared, the tick scheduled again). Disable: +0x6c = 1; if engaged (+0x68): clear it, weapons safe (`FUN_004aa900(1)` is the weapon handler's SAFE flag), tell the target selector, and (v1.1) `MBrain::transferControl` (`FUN_004401d0`: the brain stops ticking, the autopilot off). Port: `game/ai/brain.gd` `enable_combat` / `disable_combat` |
+| 21 / 22 | Enable / Disable combat | `0x5c44b0` / `0x5c44c0` | `FUN_00440830` / `FUN_004407e0` on the unit's brain (docs/ai.md §6). Enable: +0x6c = 0, then (v1.1) the brain is reset (`FUN_0043eef0`: flags cleared, the tick scheduled again). Disable: +0x6c = 1; if engaged (+0x68): clear it, weapons safe (`FUN_004aa900(1)` is the weapon handler's SAFE flag), tell the target selector, and (v1.1) `MBrain::transferControl` (`FUN_004401d0`: the brain stops ticking, the autopilot off). Port: `shared/ai/brain.gd` `enable_combat` / `disable_combat` |
 | 24, 25, 27, 28 | — | `0x5c44d0`… | status+0x1c = 0, 1, 2, 3 — UNCERTAIN |
 | 40 | (ours) | — | not in the exe: the mission editor's "Flight takes off", run only for a mission flown from the editor (mission-editor.md §18.6) |
 
@@ -349,7 +349,7 @@ execute that entry and schedule its end timer.
 |---|---|---|---|
 | 1 | **Hover** | `0x5c38b0` | motion mode 1: hold position |
 | 5 | Turn | `0x5c3940` | mover mode 5 with the arg +0x28 (vfunc +0x8c). The FM mover's setMode `FUN_005a8410` has no case 5, and the data's only use is 224's brain-controlled MiG: nothing happens. Other movers' mode 5: not traced |
-| 11 | **Yaw to target** | `0x5c39e0` | target = entity `0x8ac`. Types 250 and 291–339: the "Subpart yaw to target motion" (vtable `0x612898`, tick `FUN_005c3ee0` now and every 1.0 s, no end): the turret (250, part record +0xc) or the launcher (+0x14) at the target's bearing. Type 270: the same timer lowers +0x10 (carrier, missile) 1.5° a tick to −90°: the launcher rises. Others: mover mode 9 at the target. Port: `_yaw_to_target`, parts posed by `game/mission/vehicle_parts.gd`; UNCERTAIN: the angle as the bearing relative to the hull (the −10° term not reproduced), mode 9 as facing the target each tick, a new motion entry ending the timer |
+| 11 | **Yaw to target** | `0x5c39e0` | target = entity `0x8ac`. Types 250 and 291–339: the "Subpart yaw to target motion" (vtable `0x612898`, tick `FUN_005c3ee0` now and every 1.0 s, no end): the turret (250, part record +0xc) or the launcher (+0x14) at the target's bearing. Type 270: the same timer lowers +0x10 (carrier, missile) 1.5° a tick to −90°: the launcher rises. Others: mover mode 9 at the target. Port: `_yaw_to_target`, parts posed by `shared/mission/vehicle_parts.gd`; UNCERTAIN: the angle as the bearing relative to the hull (the −10° term not reproduced), mode 9 as facing the target each tick, a new motion entry ending the timer |
 | 16 | **Path** | `0x5c3d00` | mode 0xe, `FUN_0047b9a9(path, …)`: follow CDMEPathsItem `0x8ac` (details below) |
 
 Path details:

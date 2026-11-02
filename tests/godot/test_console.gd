@@ -4,8 +4,8 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	var tv = load("res://terrain/terrain_view.gd").new()
-	var cockpit = load("res://cockpit/cockpit.gd").new()
+	var tv = load("res://shared/terrain/terrain_view.gd").new()
+	var cockpit = load("res://shared/cockpit/cockpit.gd").new()
 	tv.cockpit = cockpit
 	var t := 0.0
 	tv._console_update(t)  # first-frame tick

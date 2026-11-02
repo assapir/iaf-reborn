@@ -11,7 +11,7 @@ var vel_scene := Vector3(0, 0, -200)  # 200 m/s north
 
 
 func run() -> void:
-	var B = load("res://weapons/bombs.gd")
+	var B = load("res://shared/weapons/bombs.gd")
 	var flat := func(_p): return 0.0
 	# --- pure ----------------------------------------------------------------------------------
 	var p := Vector3(0, 0, 1000)
@@ -61,10 +61,10 @@ func run() -> void:
 
 	await require_data()
 	# --- in flight: mission 231 ---------------------------------------------------------------
-	var MR = load("res://mission/mission_runtime.gd")
+	var MR = load("res://shared/mission/mission_runtime.gd")
 	var bdb: Dictionary = MR.load_bdb(MR.mission_files(231)[0].data)
 	var f16: Dictionary = MR.bdb_objects(bdb)[1]
-	var desc: Dictionary = load("res://aircraft/aircraft_model.gd").load_descriptor("f16")
+	var desc: Dictionary = load("res://shared/aircraft/aircraft_model.gd").load_descriptor("f16")
 	tv = await start_mission(231)
 	await frames(5)
 	tv.frozen = true
@@ -74,7 +74,7 @@ func run() -> void:
 		"armament":
 		{"hardpoints": [14, 4, 0, 0, 31, 1, 15, 3, 28, 1, 15, 3, 31, 1, 0, 0, 14, 4, 25, 235, 33, 90, 34, 60]}
 	}
-	w = load("res://weapons/player_weapons.gd").new()
+	w = load("res://shared/weapons/player_weapons.gd").new()
 	tv.add_child(w)
 	w.setup(tv, load, f16, bdb, desc)
 	tv.cockpit.on_ripple_event = w.ripple_event

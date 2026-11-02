@@ -983,7 +983,7 @@ mod tests {
         assert_eq!(Jet::of_cockpit("f15e"), Jet::F15E);
         assert_eq!(Jet::of_cockpit("f35"), Jet::F35, "a definition's hud key");
         assert_eq!(Jet::of_cockpit("converted/cockpits/lavi"), Jet::Lavi);
-        assert_eq!(Jet::of_cockpit("res://extra/planes/f35i/cockpit"), Jet::F35);
+        assert_eq!(Jet::of_cockpit("res://shared/extra/planes/f35i/cockpit"), Jet::F35);
         assert_eq!(Jet::of_cockpit("converted/cockpits/phantom"), Jet::Phantom);
         assert_eq!(Jet::of_cockpit("converted/cockpits/mirage"), Jet::Mirage);
         assert_eq!(Jet::of_cockpit("converted/cockpits/f4-2000"), Jet::Kurnass2000);

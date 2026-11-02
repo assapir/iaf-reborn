@@ -16,7 +16,7 @@ func fly_bravo(tv) -> void:
 
 
 func run() -> void:
-	var DM = load("res://mission/damage_model.gd")
+	var DM = load("res://shared/mission/damage_model.gd")
 	var tv = await start_mission(221)
 	await frames(10)
 	var rt = tv.runtime

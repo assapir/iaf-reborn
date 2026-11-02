@@ -11,8 +11,8 @@ const CASES := [[-1, -1, 100, 8], [0, -1, 110, 9], [2, -1, 120, 48], [3, -1, 200
 
 
 func run() -> void:
-	var Missile = load("res://weapons/missile.gd")
-	var Sight = load("res://weapons/mrm_sight.gd")
+	var Missile = load("res://shared/weapons/missile.gd")
+	var Sight = load("res://shared/weapons/mrm_sight.gd")
 	# --- pure ----------------------------------------------------------------------------------------
 	var m := {
 		"_absAcceleration": 120.0,
@@ -71,9 +71,9 @@ func run() -> void:
 	settings().jet_id = -1
 	settings().f35i_slot = -1
 	# Weapon data Real: AMRAAM 157 kg, Mach 4, 70 km.
-	var MR = load("res://mission/mission_runtime.gd")
+	var MR = load("res://shared/mission/mission_runtime.gd")
 	var bdb: Dictionary = MR.load_bdb(MR.mission_files(231)[0].data)
-	var real = load("res://weapons/weapon_db.gd").create(bdb, true)
+	var real = load("res://shared/weapons/weapon_db.gd").create(bdb, true)
 	var am: Dictionary = real.by_id(8)
 	var mot: Dictionary = am.motion
 	# The distance flown from a 250 m/s launch in the flight's burn + 6 s (ChaseMotion::travelled).
@@ -118,7 +118,7 @@ func _shot_case(tv, name: String, wid: int, shots: bool) -> void:
 	)
 	var w = tv.weapons
 	var hp := [wid, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, wid, 1, 25, 235, 33, 90, 34, 60]
-	var w2 = load("res://weapons/player_weapons.gd").new()
+	var w2 = load("res://shared/weapons/player_weapons.gd").new()
 	tv.add_child(w2)
 	var bdb: Dictionary = tv.mission_bdb
 	w2.setup(tv, {"armament": {"hardpoints": hp}}, tv._player_object(bdb), bdb, w.descriptor)

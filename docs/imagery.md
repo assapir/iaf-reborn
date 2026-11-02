@@ -153,13 +153,13 @@ Each source has two looks: one in the 1998 palette and one in modern colours.
 The player picks a layer per region in Preferences → Graphics → MORE (ours); the terrain then reads those nodes from
 the layer.
 
-- `game/terrain/imagery_layers.gd`: the options per region (`REGIONS`), `available(id)` (= its manifest exists;
+- `shared/terrain/imagery_layers.gd`: the options per region (`REGIONS`), `available(id)` (= its manifest exists;
   "original" always), `selected()` (the picked, converted layers, Israel first), `attributions()`.
 - **Graphics → MORE** rows, after the other graphics rows (the view scrolls, 8 rows shown):
   - "Imagery Israel": Original / Survey 2 m / Survey 2 m modern;
   - "Imagery outside Israel": Original / Sentinel-2 / Sentinel-2 modern;
   - three choices in narrower columns. Options whose layer is not converted are greyed out and cannot be picked.
-  - Default "Original"; DEFAULT on that view resets them. Hebrew labels in game/menu/strings_he.json.
+  - Default "Original"; DEFAULT on that view resets them. Hebrew labels in iaf-reborn/menu/strings_he.json.
   - Settings `imagery_israel` / `imagery_outside` ([gameplay] section, with the other Extras).
 - `terrain.gd`:
   - At `_ready` it adds each picked layer's nodes to the colour-node set with their directory (`colour_dir(node)`).

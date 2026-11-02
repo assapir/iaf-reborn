@@ -747,7 +747,7 @@ Extras → "Real HUD view": Original (1998) / Real field of view. It acts with H
 | F-35I | — (the helmet's 40° × 30°: the original view stays) | Collins datasheet[^collins-hmds] |
 
 Until 2026-10-26 the F-35I took the F-16's Real view by mistake: `cockpit.gd` `focal_length()` passed only the cockpit
-folder's last part, and the F-35I's (`res://extra/planes/f35i/cockpit`) ends in `cockpit`, which `Jet::of_cockpit`
+folder's last part, and the F-35I's (`res://shared/extra/planes/f35i/cockpit`) ends in `cockpit`, which `Jet::of_cockpit`
 reads as the F-16. The view widened and the eye seemed to move between Real view off and on. It now passes the whole
 path (`test_hud.gd` checks it).
 

@@ -7,7 +7,7 @@
 # frozen; the weapons run on a scripted sim time.
 extends "res://../tests/godot/base.gd"
 
-const EoSensor := preload("res://weapons/eo_sensor.gd")
+const EoSensor := preload("res://shared/weapons/eo_sensor.gd")
 ## [Jet list id, F-35I slot, type].
 const CASES := [
 	[-1, -1, 100], [0, -1, 110], [2, -1, 120], [3, -1, 200], [4, -1, 140], [5, -1, 130], [6, -1, 190], [4, 4, 1000]

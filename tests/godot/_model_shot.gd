@@ -1,7 +1,7 @@
 # Dev helper (not run by tools/test.sh): real-render pictures of the player's jet from outside, for comparing
 # Models: Original / Detailed (docs/aircraft-models.md). Needs a window.
 #   SHOT_MODELS=detailed SHOT_OUT=/tmp/shots SHOT_START=airborne IAF_DEFAULT_SETTINGS=1 \
-#       godot --path game --resolution 1920x1080 -s ../tests/godot/_model_shot.gd
+#       godot --path iaf-reborn --resolution 1920x1080 -s ../tests/godot/_model_shot.gd
 # SHOT_START: "airborne" (mission 231, frozen 3000 m up, LOADOUT on the pylons) or "ground" (mission 311 on the
 # runway, gear down). Each shot in SHOTS: the camera at `dist` m from the jet's origin, `yaw` degrees round from
 # the nose (90 = from the right), `pitch` degrees above; the pose (gear / flaps / brakes / afterburner) set and
@@ -133,7 +133,7 @@ func run() -> void:
 				c.visible = false  # the mission's messages
 	var stand := OS.get_environment("SHOT_TYPE").split(":")
 	if stand.size() == 2:  # another type's model drawn in the player's jet's place (the AI-only jets)
-		var m: Node3D = load("res://aircraft/aircraft_model.gd").create(stand[0], int(stand[1]), ground)
+		var m: Node3D = load("res://shared/aircraft/aircraft_model.gd").create(stand[0], int(stand[1]), ground)
 		tv.aircraft.add_sibling(m)
 		m.transform = tv.aircraft.transform
 		m.position.y += m.basis.y.y * (float(tv.aircraft.desc.height) - float(m.desc.height))
@@ -190,7 +190,7 @@ func _loadout(mission: int, loads: Array) -> Array:
 
 ## Mission `mission`'s weapon database (loaded at run time: it needs the autoloads).
 func _weapons(mission: int) -> RefCounted:
-	return load("res://weapons/mission_weapons.gd").create(mission)
+	return load("res://shared/weapons/mission_weapons.gd").create(mission)
 
 
 func _bench() -> void:

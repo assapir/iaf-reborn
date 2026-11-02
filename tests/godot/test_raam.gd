@@ -3,7 +3,7 @@
 # Python 5, the GBU-31(V)3 and the SPICE 1000 whatever Extras "Weapons" says; the TSD, the info line and the Reference
 # name it; its Real HUD is the F-15E's. A SPICE 1000 released in PRE 45 km from its target, 9,000 m up, glides to it
 # and destroys the unit there.
-#   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path game -s ../tests/godot/test_raam.gd
+#   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-reborn -s ../tests/godot/test_raam.gd
 extends "res://../tests/godot/base.gd"
 
 const RAAM_FUEL_KG := 22665.0 * 0.45359
@@ -14,9 +14,9 @@ func run() -> void:
 	await require_data()
 	settings().f15_variant = "raam"
 	settings().weapon_data = "real"
-	var real_weapons = load("res://weapons/real_weapons.gd")
-	var mission_weapons = load("res://weapons/mission_weapons.gd")
-	var combat = load("res://ai/combat.gd")
+	var real_weapons = load("res://shared/weapons/real_weapons.gd")
+	var mission_weapons = load("res://shared/weapons/mission_weapons.gd")
+	var combat = load("res://shared/ai/combat.gd")
 	check(absf(real_weapons.radar_nm(110) * 1854.0 - 104000.0) < 1.0, "Real F-15I (APG-70I): 104 km")
 	check(real_weapons.gun_rounds(110) == 500, "Real F-15I gun: 500 rounds (F-15E)")
 	check(combat.sensor_nm(110) == 30.8, "AI F-15I sensor: 30.8 NM")
@@ -142,7 +142,7 @@ func _spice(tv) -> void:
 	)
 	check(gps.get("in_range", false), "45 km out from 9,000 m: in the SPICE's range (%s)" % gps.get("lar"))
 	var o: Dictionary = w.own()
-	var jdam = load("res://weapons/modern_weapons.gd").JDAM
+	var jdam = load("res://shared/weapons/modern_weapons.gd").JDAM
 	check(not ClassDB.class_call_static("IafGpsBomb", "in_range", jdam, o.pos, o.vel, p), "a JDAM's is far short")
 	w.fire_selected()
 	w.update(t + 0.01)

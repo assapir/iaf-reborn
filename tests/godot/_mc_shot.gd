@@ -2,8 +2,8 @@
 # MC_LANG (en / he) after RANDOM, with combo MC_OPEN (an index into mission_creator.gd combos, default none) open,
 # saved to MC_SHOT. MC_BETTER=1 turns Extras "Mission Creator: Better" on (the WIND / FROM / WEATHER
 # combos, 20 to 22).
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 MC_OPEN=7 MC_SHOT=/tmp/mc.png -- --log-file /tmp/mc.log --path game \
-#     --resolution 1280x960 -s ../tests/godot/_mc_shot.gd
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 MC_OPEN=7 MC_SHOT=/tmp/mc.png -- --log-file /tmp/mc.log \
+#     --path iaf-reborn --resolution 1280x960 -s ../tests/godot/_mc_shot.gd
 extends "res://../tests/godot/base.gd"
 
 

@@ -1,6 +1,6 @@
-# Dev helper (not run by tools/test.sh): a real-render capture of the credits roll (game/menu/credits_roll.gd)
+# Dev helper (not run by tools/test.sh): a real-render capture of the credits roll (iaf-reborn/menu/credits_roll.gd)
 # with our lines' first line CREDITS_Y px below the top (default 40), saved to CREDITS_SHOT, e.g.
-#   CREDITS_LANG=he CREDITS_SHOT=/tmp/c.png godot --path game -s ../tests/godot/_credits_shot.gd
+#   CREDITS_LANG=he CREDITS_SHOT=/tmp/c.png godot --path iaf-reborn -s ../tests/godot/_credits_shot.gd
 extends "res://../tests/godot/base.gd"
 
 

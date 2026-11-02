@@ -46,7 +46,7 @@ multiplayer rules. Paragraphs marked **Ours** say what the port does; opt-in dev
 
 * The menu is a GDI/MFC window, **640×480**, centred on the desktop (`FUN_004e8d70`).
 * `bmp/back.bmp` is the full-screen frame. `bmp/back0.bmp` is the startup splash, drawn once in `FUN_004e2960`.
-  Ours: the splash is Godot's boot splash (`project.godot`). In Hebrew, `settings.gd` writes `game/override.cfg`,
+  Ours: the splash is Godot's boot splash (`project.godot`). In Hebrew, `settings.gd` writes `iaf-reborn/override.cfg`,
   which points at the Hebrew CD's splash (setup `--hebrew-iso`, docs/packs.md).
 * The **content area** is a child window at **(155,42), size 453×357** (`FUN_004e8d70`:
   `0x9b,0x2a,0x1c5,0x165`). Each screen's header in `dat/<screen>.trx` repeats this as
@@ -252,12 +252,12 @@ as `FUN_004e7880(1, 50, 8, 5000, 0)` (objdump push order: steps 50, step 8 ms, s
     leaves.
 * **End**: the roll ends when `m_nYLastText` < the client top (the last line has gone), or on WM_KEYDOWN,
   WM_SYSKEYDOWN, WM_LBUTTONDOWN or WM_RBUTTONDOWN (`FUN_004e8160`). The music stops. WM_SETCURSOR hides the cursor.
-* **Ours** (game/menu/credits_roll.gd, docs/credits.md):
+* **Ours** (iaf-reborn/menu/credits_roll.gd, docs/credits.md):
   * The same reader, layout, timings and assets: `strings.json` "credits" = credits.trx, `img/screens/cr*.png`,
     `wav/credits.wav`, cr1 / cr4.ttf.
   * Text is drawn smoothly in the scaled 640 × 480 screen. Scroll and fades follow the clock (1 px / 16 ms, 400 ms
     fades).
-  * Before the original's lines come our own (game/menu/credits_ours.json; Hebrew in Hebrew, with Arial as the
+  * Before the original's lines come our own (iaf-reborn/menu/credits_ours.json; Hebrew in Hebrew, with Arial as the
     Hebrew fallback) and the converted imagery layers' credits (deviation, docs/deviations.md).
   * Empty runs count cy = 0 (UNCERTAIN: GetTextExtentPoint of an empty string). Only the end time depends on it.
 
@@ -591,7 +591,7 @@ The state fields:
 In flight the table is rebuilt on every paint (`FUN_00517cd0`), so the FlyTSD shows the live battle: current positions
 and headings, dead units gone, a flight gone once both members are, and its leader member 1 once member 0 is down.
 
-**Ours** (`game/menu/tsd.gd` `_load_units`): before the flight the records come from the mission files; on the
+**Ours** (`iaf-reborn/menu/tsd.gd` `_load_units`): before the flight the records come from the mission files; on the
 FlyTSD from the runtime entities (`state`, `control`, the live position and heading), with `known` set by the player's
 radar (`IafRadar` event "detected").
 
@@ -903,7 +903,7 @@ message `0x55c` to the frame with wParam = the target screen and lParam = the bu
 * In MP, MAIN shows msg 11 ("quit the session?"), whose handler `0x557` → `4ed120` calls
   `FUN_004ee5b0` and then goes to Main. BACK still shows msg 8.
 
-### 8.2 GPS targets (ours, `game/menu/tsd_gps.gd`)
+### 8.2 GPS targets (ours, `iaf-reborn/menu/tsd_gps.gd`)
 
 Before the flight, while the selected flight carries GPS bombs (its Arming table, else the mission's load), the TSD
 shows a panel in the map's lower-right corner (clear of the briefing window, which opens on the left): a `GPS TARGETS` header and a row per GPS station, `STA 5 GBU-31` and
@@ -1404,7 +1404,7 @@ against `_0` in both languages (pixel colour distance > 90, connected regions):
 
 So the Hebrew pages use the same rects as §12.3–§12.6.
 
-### 12.9 Ours (game/menu/front_end.gd, game/settings.gd)
+### 12.9 Ours (iaf-reborn/menu/front_end.gd, shared/settings.gd)
 * §12.1–§12.7 are ported: the tabs, "first visit Sound, then the last page" (`Settings.pref_page`, kept for the
   session only), the `_0` art plus lit rects from `_1`, sliders with the `slider.bmp` thumb (image through its
   mask), the scoring strip, DEFAULT on every page but Devices, the working copy, and msg 38 Yes/No/Cancel when
@@ -1850,7 +1850,7 @@ node's +4); "passed" is any attempt with a result > 0 (`FUN_004f6d40`). "Current
 * Page coordinates (Dossier, Records, Kills, Losses) are relative to content (26,55), so
   screen = (181 + x, 97 + y). The list box is already in screen coordinates.
 
-### 13.13 Ours (game/menu/pilots.gd, pilot_records.gd)
+### 13.13 Ours (iaf-reborn/menu/pilots.gd, pilot_records.gd)
 * `pilots.gd`: the list, the histories, `record()` = `FUN_004f68b0`, `attempt_score()` = `FUN_004f7b30`,
   `totals()` = `FUN_004f66d0`, `rank()`, the categories / groups / points tables, the MissBonus read from the
   install's `scores.ibx`. Storage is our own JSON in `user://pilots` (docs/deviations.md): `pilots.json` = the
@@ -1951,14 +1951,14 @@ shows the new page.
   English art. The exe draws the same numbers in both languages, so in Hebrew the kill sum stands next to "losses".
   The port keeps it.
 
-Ours: `game/menu/debrief.gd` (`items()` lists what a page draws; the front end creates it on the screen and routes
+Ours: `iaf-reborn/menu/debrief.gd` (`items()` lists what a page draws; the front end creates it on the screen and routes
 the content clicks to it), the data from `pilots.gd record()` (the attempt and the pilot's score). Test:
 test_debrief_flow (pages, names, counts, colours, tabs, the structure quirk), test_pilot_records (PILOT SCORE).
 
 ## 14. Reference screen (screen 5, `ref.trx`, content class ctor `FUN_004fc490`, vtable `0x607b18`)
 
 **Ours:**
-* Code: `game/menu/reference.gd`, wired by `front_end.gd`. `iaf-convert reference` converts the records,
+* Code: `iaf-reborn/menu/reference.gd`, wired by `front_end.gd`. `iaf-convert reference` converts the records,
   descriptions, model paths, `.cp` limits and pictures into `assets/converted/reference/` (parser
   `crates/iaf-formats/src/refs.rs`). Tests: tests/godot/test_reference.gd; real render
   `tests/godot/_reference_shot.gd`.
@@ -2303,7 +2303,7 @@ dragging, the arrow otherwise (`SETCURSOR 506720`).
 * Quirk: picking up a station's weapon looks for its list row from row 1 (`506810`), so with the tab unchanged a
   weapon in row 0 does not become the selection.
 
-**Ours** (`game/menu/arming.gd`, `game/weapons/mission_weapons.gd`, `game/menu/front_end.gd`):
+**Ours** (`iaf-reborn/menu/arming.gd`, `shared/weapons/mission_weapons.gd`, `iaf-reborn/menu/front_end.gd`):
 * `mission_weapons.gd` = `CMissionWeapons`: the list (bdb order, tabs), `reset(n)` = `FUN_004ef8a0` from the
   leader object's `loads` (`CDMEWeaponLoadItem` `raw` = 9 int32 station flags), the three tables for slots
   1..10 (`MissionRuntime.flight_slots()` picks each slot's formation as above; the leader is member 0, a slot without
@@ -2332,7 +2332,7 @@ dragging, the arrow otherwise (`SETCURSOR 506720`).
 
 ## 16. In-flight pause and On-The-Fly menu (flight window `CFlightWnd::OnGameEvent` 0x4dc280)
 
-Traced from the disassembly (unless marked UNCERTAIN). Built: docs/views.md §1 (`game/terrain/flight_overlay.gd`,
+Traced from the disassembly (unless marked UNCERTAIN). Built: docs/views.md §1 (`shared/terrain/flight_overlay.gd`,
 `terrain_view.gd`).
 
 **Single player only**: both keys are ignored when `[0x699350+4]` ≠ 0.
@@ -2390,7 +2390,7 @@ Ctrl+P works only with no message box up and the menu closed. It toggles between
 * **FlyTSD screen (0x20)**: the menu frame handles Ctrl+P itself (`FUN_004edbc0` / `FUN_004ede30`). It dithers a
   screen snapshot with `misc/pat1.bmp` (SRCAND) + `pat2.bmp` (SRCPAINT), disables the window, and draws the same
   "II  PAUSE" at (30, 450) (`FUN_004e92b0`). Only Ctrl+P resumes it (the key manager is down, so Esc is ignored).
-  Ours: `front_end.gd` `tsd_pause_key`, `game/menu/tsd_pause.gd` (docs/views.md §1).
+  Ours: `front_end.gd` `tsd_pause_key`, `iaf-reborn/menu/tsd_pause.gd` (docs/views.md §1).
 
 ### 16.2 Ctrl+O "On-The-Fly menu" (0x4dc479)
 Ctrl+O works only when the game is not paused. It toggles between open (`FUN_004dbff0`) and close
@@ -2444,7 +2444,7 @@ In network mission 0x21d, Esc shows msg 8 (host) / msg 11 (client).
     RoundRect paints.
   * The hit test does not check for a message box. So while a box hides the menu, a press where an item is still
     acts on that item. Presses on the box itself go to the box, a child window.
-* Ours (`game/terrain/flight_overlay.gd`, `game/util/gdi.gd`):
+* Ours (`shared/terrain/flight_overlay.gd`, `shared/util/gdi.gd`):
   * The geometry, colours, pens, corners, alignment and hit test are the original's. At a 640×480 window, every
     shape pixel matches a reference drawn from these rules.
   * The text is Arial with no smoothing. The positions and the cell come from the font file's own `hdmx` and
@@ -2536,7 +2536,7 @@ posts 0x75 with param 1, which does not pause sounds.
     them: the box disables the key manager (`FUN_004df500(-1)`), and nothing gives it the focus.
   * Ours is mouse only.
   * Presses outside the box go to the flight window (§16.2: the menu's items, the cockpit).
-* Ours: `game/mission/render_box.gd`, created by `terrain_view.gd _on_mission_box` (the On-The-Fly boxes,
+* Ours: `shared/mission/render_box.gd`, created by `terrain_view.gd _on_mission_box` (the On-The-Fly boxes,
   Ctrl+Q, the mission-end boxes). It freezes the flight as above (`_box_froze`). While a box is up, `window_key`
   ignores Esc / Ctrl+O / Ctrl+P. The FlyTSD and the in-flight Preferences are the front end and keep the mbgback
   box.
@@ -2555,7 +2555,7 @@ Multiplayer is not ported (research: [multiplayer.md](multiplayer.md)). Its port
 
 The exe opens its 640×480 window (`FUN_004e2130`), then plays two videos and opens the main menu. Ours goes straight
 to the main menu (§18.2). The CD launcher is a separate program on the CD; the port can show it first (Extras → CD
-launcher, off by default). Code: `game/menu/startup.gd` (the main scene), `game/menu/autorun.gd`.
+launcher, off by default). Code: `iaf-reborn/menu/startup.gd` (the main scene), `iaf-reborn/menu/autorun.gd`.
 
 ### 18.1 CD launcher (ours: Extras → CD launcher)
 The CD's `Jauto.exe` (formats/autorun.md) is a captionless 468×451 poster window centred on the desktop with eight
@@ -2782,7 +2782,7 @@ also when the stores come from the type's default load. Guns Only also disables 
   (`FUN_00447e70`).
 
 ### 19.4 Ours
-* `game/menu/mission_creator.gd` draws the screen and drives the combos and boxes as above; the record is
+* `iaf-reborn/menu/mission_creator.gd` draws the screen and drives the combos and boxes as above; the record is
   `Settings.mc`, read and written by `IafMcr` (`crates/iaf-godot/src/mcr.rs` over `crates/iaf-formats/src/mcr.rs`).
 * LOAD opens the system's file dialog on `user://mcr` (the exe: its old-style Windows dialog, template 0x72, a bare
   file list with OK / Cancel). A file shorter than 0x5ac bytes is refused and the screen keeps its state.
@@ -2793,7 +2793,7 @@ also when the stores come from the type's default load. Guns Only also disables 
 * The attack targets are picked in the exe's entity map order (`ground_targets` in
   `crates/iaf-tools/src/mission_creator.rs`). The weapon table drops the types not kept (`MissionRuntime.load_bdb`
   with the main file's `weapon_types`), for the player's and the AI's stores.
-* The score and headline: `game/mission/mission_runtime.gd` `_mc_count` / `mc_headline`, read by `debrief_text` for
+* The score and headline: `shared/mission/mission_runtime.gd` `_mc_count` / `mc_headline`, read by `debrief_text` for
   0x29a. Assumed: a unit's spawn order is its document order (it orders the entries of one hash bucket).
 * **Mission Creator: Better** (Extras, `Settings.better_mc`; off by default, deviations.md §2). The exe's mission
   0x29a writes no wind: `FUN_0058d720` sets the title and the start time only, so misc 0x46a / 0x474 stay the

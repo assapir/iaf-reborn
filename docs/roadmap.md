@@ -177,7 +177,7 @@ helmet"). Left:
   documented).
 
 ## Setup wizard: the user's review
-Built (`./setup`, `game/setup/`, setup.md); the pages wait for the user's review. Running setup again is the way to
+Built (`./setup`, `iaf-reborn/setup/`, setup.md); the pages wait for the user's review. Running setup again is the way to
 add an extra or redo a step; there is no setup button in the game (user decision).
 
 ## Exported build (with the setup wizard)

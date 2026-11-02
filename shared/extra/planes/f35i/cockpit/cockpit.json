@@ -1,0 +1,239 @@
+{
+ "_doc": "F-35I cockpit (ours, docs/f35i.md \u00a74): the panel and lamps are tools/f35i/cockpit3d.py's renders (day / night); the MFD atlas, RWR symbols and TSD map are the converted F-16 cockpit's (Shared). No HUD glass: the HUD symbology is the helmet's (Dash 1). [MFD] Portals are [x, y, scale, page] (page: 1 stores, 2 radar, 3 TSD, 7 RWR); [PCD] places the display around them (shared/cockpit/pcd.gd).",
+ "Shared": "f16",
+ "image_scale": 4,
+ "PANEL": {
+  "FileName": "f35panel.webp",
+  "MainOffsetY": 260.0,
+  "PanelHeight": 400.0,
+  "MaskOffsetY1": 288.0,
+  "MaskOffsetY2": 0.0,
+  "NightRScale": 0.0,
+  "NightGScale": 0.0,
+  "NightBScale": 0.0,
+  "NightFileName": "f35panel_night.webp",
+  "ElevationAngleDeg": 25.0
+ },
+ "PANELST": {
+  "OFFSET00": 230.0,
+  "OFFSET01": 187.0,
+  "OFFSET02": 143.0,
+  "OFFSET03": 100.0,
+  "OFFSET04": 57.0,
+  "OFFSET05": 22.0,
+  "OFFSET06": 12.0,
+  "OFFSET07": 10.0,
+  "OFFSET08": 10.0,
+  "OFFSET09": 10.0,
+  "OFFSET10": 12.0,
+  "OFFSET11": 22.0,
+  "OFFSET12": 57.0,
+  "OFFSET13": 100.0,
+  "OFFSET14": 143.0,
+  "OFFSET15": 187.0
+ },
+ "HUD": {
+  "BorePositionY": 182.1,
+  "BottomBorder": 60.0,
+  "CenterY": 190.1,
+  "Dash": 1.0,
+  "GunRetPositionY": 177.1,
+  "Height": 182.0,
+  "LeftBorder": 69.0,
+  "MaskOffsetX": 56.0,
+  "MaskOffsetY": 23.0,
+  "MaskOffsetY2": 164.0,
+  "RightBorder": 70.0,
+  "TopBorder": 75.0,
+  "TxtOffX": 82.0,
+  "TxtOffY": 48.0,
+  "VertSclOffY": 15.0,
+  "Width": 319.0
+ },
+ "MFD": {
+  "Portals": [
+   [
+    714.11,
+    58.25,
+    0.9314,
+    3
+   ],
+   [
+    837.05,
+    58.25,
+    0.9314,
+    2
+   ],
+   [
+    960.0,
+    58.25,
+    0.9314,
+    1
+   ],
+   [
+    1082.94,
+    58.25,
+    0.9314,
+    7
+   ]
+  ]
+ },
+ "LENHORIZON": {
+  "Active": 0.0
+ },
+ "HORIZON": {
+  "ClockCenterX": 1100.0,
+  "ClockCenterY": 91.0,
+  "GndColor": 0.0,
+  "OnMfd": 0.0,
+  "Radius": 17.0,
+  "Scale": 0.9,
+  "SkyColor": 12500670.0,
+  "Active": 0.0
+ },
+ "PANELRWR": {
+  "Active": 0.0
+ },
+ "PANELAOA": {
+  "Active": 0.0
+ },
+ "PANELVARIO": {
+  "Active": 0.0
+ },
+ "SPEEDCLOCK": {
+  "Active": 0.0,
+  "AngleOffset": -1.570796,
+  "FullClock": 1000.0,
+  "NeedleColor": 16448250.0,
+  "NeedleWidth": 2.0,
+  "OffsetX": 923.0,
+  "OffsetY": 162.0,
+  "Radius": 19.0
+ },
+ "ALTITUDELOCK": {
+  "Active": 0.0,
+  "AngleOffset": -1.570796,
+  "FullClock": 1000.0,
+  "NeedleColor": 16447210.0,
+  "NeedleWidth": 2.0,
+  "OffsetX": 1008.0,
+  "OffsetY": 162.0,
+  "Radius": 24.0
+ },
+ "RPMCLOCK": {
+  "Active": 0.0,
+  "AngleOffset": -1.570796,
+  "FullClock": 1.0,
+  "NeedleColor": 16447210.0,
+  "NeedleWidth": 1.0,
+  "OffsetX": 1260.0,
+  "OffsetY": 189.0,
+  "Radius": 20.0
+ },
+ "TEMPCLOCK": {
+  "Active": 0.0,
+  "AngleOffset": -1.570796,
+  "FullClock": 1.0,
+  "NeedleColor": 16447210.0,
+  "NeedleWidth": 1.0,
+  "OffsetX": 1260.0,
+  "OffsetY": 243.0,
+  "Radius": 12.0
+ },
+ "THROTTLECLOCK": {
+  "Active": 0.0,
+  "AngleOffset": -1.570796,
+  "FullClock": 1.0,
+  "NeedleColor": 16447210.0,
+  "NeedleWidth": 1.0,
+  "OffsetX": 1257.0,
+  "OffsetY": 150.0,
+  "Radius": 10.0
+ },
+ "PCD": {
+  "Rect": [
+   714.1,
+   44.1,
+   491.8,
+   227.0
+  ],
+  "Bar": 14.2,
+  "WindowTop": 181.2,
+  "Esis": [
+   995.3,
+   302.9,
+   92.8,
+   84.2
+  ]
+ },
+ "LIGHTSON": {
+  "FileName": "f35lights.png",
+  "NightFileName": "f35lights_night.png",
+  "NightRScale": 0.0,
+  "NightGScale": 0.0,
+  "NightBScale": 0.0
+ },
+ "LIGHT000": {
+  "Active": 1.0,
+  "Left": 0.0,
+  "Top": 0.0,
+  "Right": 62.0,
+  "Bottom": 57.0,
+  "OffsetX": 1136.0,
+  "OffsetY": 312.0
+ },
+ "LIGHT001": {
+  "Active": 1.0,
+  "Left": 62.0,
+  "Top": 0.0,
+  "Right": 127.0,
+  "Bottom": 57.0,
+  "OffsetX": 1198.0,
+  "OffsetY": 312.0,
+  "Blink": 1.0
+ },
+ "LIGHT002": {
+  "Active": 0.0
+ },
+ "LIGHT003": {
+  "Active": 0.0
+ },
+ "LIGHT004": {
+  "Active": 0.0
+ },
+ "LIGHT005": {
+  "Active": 0.0
+ },
+ "LIGHT006": {
+  "Active": 0.0
+ },
+ "LIGHT007": {
+  "Active": 0.0
+ },
+ "LIGHT008": {
+  "Active": 0.0
+ },
+ "LIGHT009": {
+  "Active": 1.0,
+  "Left": 127.0,
+  "Top": 0.0,
+  "Right": 217.0,
+  "Bottom": 112.0,
+  "OffsetX": 678.0,
+  "OffsetY": 288.0,
+  "AnimFrames": 3.0,
+  "AnimTime": 600.0
+ },
+ "SLIGHT000": {
+  "Active": 0.0
+ },
+ "SLIGHT001": {
+  "Active": 0.0
+ },
+ "SLIGHT002": {
+  "Active": 0.0
+ },
+ "SLIGHT003": {
+  "Active": 0.0
+ }
+}

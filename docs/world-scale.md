@@ -60,12 +60,12 @@ Present scale per class (bdb object `0x5aa`):
 | weapons | stores, missiles, bombs, rounds | 2.0 |
 
 Where ours applies it (every place reads `0x65e`):
-- mission models: `_spawn_mission_objects` in `game/terrain/terrain_view.gd`;
+- mission models: `_spawn_mission_objects` in `shared/terrain/terrain_view.gd`;
 - the player's jet and its cockpit model (`_player_model_scale()`, `own_bc`);
-- the AI jets (`game/ai/ai_flights.gd` `_attach`);
-- weapons and rounds (`game/weapons/weapon_db.gd`, `STORE_PRESENT_SCALE` in `game/weapons/player_weapons.gd`,
-  `game/ai/combat.gd`);
-- the briefing's target view (`game/menu/tsd.gd` reads the scales, `game/menu/model_view.gd` applies them).
+- the AI jets (`shared/ai/ai_flights.gd` `_attach`);
+- weapons and rounds (`shared/weapons/weapon_db.gd`, `STORE_PRESENT_SCALE` in `shared/weapons/player_weapons.gd`,
+  `shared/ai/combat.gd`);
+- the briefing's target view (`iaf-reborn/menu/tsd.gd` reads the scales, `iaf-reborn/menu/model_view.gd` applies them).
 
 The front-end model viewer uses a fixed 10.0, as the exe (`FUN_0050f9e6`).
 
@@ -135,7 +135,7 @@ points are fixed world metres on that picture. So the 1998 designers drew each b
   destroys a jet above 25.7 m/s, flight-model.md §15.6.2);
 - the imagery footprints (Ramon 8.1 km², Tel Nof 11.0, Ramat David 13.5; imagery.md §3);
 - the Detailed airbases mask and runway data (rendering.md §7);
-- the night base lights `BASE_LIGHTS` (`game/terrain/night_lights.gd`);
+- the night base lights `BASE_LIGHTS` (`shared/terrain/night_lights.gd`);
 - the TSD airport icons (the type-450 runway entities of the base missions).
 
 ### 1.3 Other sizes
@@ -158,14 +158,14 @@ the model scale (every one is derived from the node's scale today, so it changes
 |---|---|---|---|
 | collision radius `0.25·(dx+dy+dz)` | `terrain_view.gd`, `ai_flights.gd`; exe `FUN_0043b1c0` | F-16 ≈ 18.8 m, shelter 36 m | half |
 | player vs unit and mid-air collisions | `_check_collisions` (centre distance < the target's radius) | — | targets half as wide |
-| radio lineup / runway zones `3(r+ro)²` | `game/audio/radio.gd` | ro = the jet's radius | slightly smaller |
+| radio lineup / runway zones `3(r+ro)²` | `shared/audio/radio.gd` | ro = the jet's radius | slightly smaller |
 | gear clearance (the FM's ground contact height) | `set_gear_clearance(−height.y × scale)` | F-16 3.38 m | 1.69 m |
 | true-size clearance (the ground effect's wing height) | `set_true_gear_clearance(−height.y)` | F-16 1.69 m | 1.69 m |
 | radar altimeter, AGL, the AI's rolling test | via the gear clearance | — | follows |
 | cockpit model offset | `own_bc.position = −eye × scale` | F-16 eye 8.98 m ahead of the origin | 4.49 m |
 | gun muzzle, muzzle flash, afterburner, nav lights, wingtip trails | model-relative | — | follow |
 | missile trail head | 1 m + half the scaled length | — | follows |
-| external views' orbit distances | `game/terrain/views.gd` (`dmin` from the largest scaled dimension) | — | half |
+| external views' orbit distances | `shared/terrain/views.gd` (`dmin` from the largest scaled dimension) | — | half |
 | LOD switch distances | `terrain_view.gd` | — | half (same pixel size) |
 | EO centre-point pick | the drawn model's box | — | follows |
 | burned-copy jitter | `max_extent` | — | follows |
@@ -312,7 +312,7 @@ true-size models (§4.1), steps 5–8 move the bases (§4.2), step 9 is the docs
 
 - **The setting:** `Settings.world_scale` ("original" / "real", settings.cfg `[gameplay]`), read at mission load.
   Its Extras row: "World scale", Original / Real 1:1.
-- **The helpers** (`game/settings.gd`): `model_scale(present, keep)` returns the Present scale in Original and in
+- **The helpers** (`shared/settings.gd`): `model_scale(present, keep)` returns the Present scale in Original and in
   Real for a kept model, else 1. `keeps_present(path, raw_box, present, klass, flat)` names the kept models: the
   light sets (`LT_*`), the flat underlays (their Original height under 0.05 m), the multi-part layouts
   `KEPT_LAYOUTS` (the sign groups SIGNTLNF / SIGNRMON / SIGNRFID / SIGNDVID, the SA-5 cables), the effects (Present
@@ -445,7 +445,7 @@ true-size models (§4.1), steps 5–8 move the bases (§4.2), step 9 is the docs
   Marj Ruhayyil 24R / 06L, Queen Alia 26R / 08L; Bley's second runway lies on 06R/24L; Ramon's second lies more than
   150 m from both real runways (07 / 25, no letter). The tower's runway (`radio.gd`, `b.rwy`) is the number × 10 (Ramon 250), without the
   letter; the zones and the alignment check use the true heading (`b.hdg`).
-- **The taxi signs re-lettered** (`game/terrain/sign_boards.gd`, `terrain_view.gd _real_sign`). The sign models
+- **The taxi signs re-lettered** (`shared/terrain/sign_boards.gd`, `terrain_view.gd _real_sign`). The sign models
   bake their number in parts.png's yellow boards (`<27>`, `<09>`, `<23>`; the groups SIGNDVID 27, SIGNRFID 27,
   SIGNRMON 23, SIGNTLNF 09, the single signs `sign<NN><l|r>`). In Real a sign whose real designation differs
   (`IafBases.sign_designation`: the game number turned with the base, on the main real runway, with its letter) shows

@@ -4,11 +4,11 @@
 # right of the sun's azimuth (default 25), from the cockpit and outside (orbit 150°, 12°, 40 m). SKY_SET="key=value,..."
 # sets Settings first (default sky=atmospheric); SKY_SEED (default 3) fixes the cloud texture. Saved to
 # SHOT_DIR/sky_<alt>_<hour>_{cockpit,external}.png.
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/shots -- --log-file /tmp/s.log --path game \
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/shots -- --log-file /tmp/s.log --path iaf-reborn \
 #       --resolution 1920x1080 -s ../tests/godot/_sky_shot.gd
 extends "res://../tests/godot/base.gd"
 
-const TimeOfDay := preload("res://terrain/time_of_day.gd")
+const TimeOfDay := preload("res://shared/terrain/time_of_day.gd")
 
 
 func _env(k: String, d: String) -> String:

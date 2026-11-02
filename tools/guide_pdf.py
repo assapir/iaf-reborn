@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """A pilot guide (docs/guides/<jet>.md) as a print-styled PDF: assets/converted/guides/<jet>.pdf.
 
-The Markdown subset is the in-game viewer's (game/menu/guide_md.gd): # / ## / ### headings, paragraphs, **bold**,
+The Markdown subset is the in-game viewer's (iaf-reborn/menu/guide_md.gd): # / ## / ### headings, paragraphs, **bold**,
 *italic*, `code`, one-level bullet / numbered lists, pipe tables, `---`, [text](link) and pictures on a line of their
 own, `![caption](shots/<jet>/<name>.png)` under assets/converted/guides (tools/guide_shots.sh); a numbered list right
 under a picture is its legend (the picture's numbered callouts, `annotations` in <jet>.shots.json: the counts must

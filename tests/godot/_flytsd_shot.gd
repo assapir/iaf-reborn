@@ -2,7 +2,7 @@
 # FLYTSD_SHOTS: live.png (the live map after FLYTSD_WAIT s of flight, default 20), ruler.png (a right-drag ruler from
 # the own jet), pause.png (Ctrl+P, text on) and visit.png (Visit on the nearest other unit, 4 s later). Mission
 # FLYTSD_MISSION (default 133).
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 FLYTSD_SHOTS=/tmp/shots -- --log-file /tmp/s.log --path game \
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 FLYTSD_SHOTS=/tmp/shots -- --log-file /tmp/s.log --path iaf-reborn \
 #       --resolution 1280x960 -s ../tests/godot/_flytsd_shot.gd
 extends "res://../tests/godot/base.gd"
 

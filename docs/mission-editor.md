@@ -9,8 +9,8 @@ game: the original Mission Creator (front-end.md §19) stays as it was. The edit
 - **Code:**
   - the edits and checks: `crates/iaf-tools/src/mission_edit.rs`;
   - their Godot class: `IafMissionEdit` (`crates/iaf-godot/src/mission_edit.rs`);
-  - the editor scene: `game/editor/mission_editor.tscn`;
-  - Fly: `Settings.fly_edited` (`game/settings.gd`).
+  - the editor scene: `iaf-reborn/editor/mission_editor.tscn`;
+  - Fly: `Settings.fly_edited` (`shared/settings.gd`).
 
 **Terms**
 - **Original mission:** one of the converted files in `assets/converted/missions`. The editor never writes there.
@@ -18,14 +18,14 @@ game: the original Mission Creator (front-end.md §19) stays as it was. The edit
 - **Flight:** a formation (`formations.items`): two member slots and a waypoint route.
 - **Placeholder row:** the last row of every part (`0x14` = 1, "Add data here"). Every edit keeps it last.
 
-The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
+The editor scene calls `IafMissionEdit` through `iaf-reborn/editor/_edit_api.gd`.
 
 ## 1. The window
 
 - **Start:** with no mission open, two choices stand where the map goes: **New mission** and **Open a mission**.
 - **Top bar:** New, Open, Fork, Duplicate (your own mission, §17), Save, Save as, Undo, Delete (your own mission,
   after a confirmation; originals have none), the mission's name, **Fly as** (Alpha … Delta) and Fly.
-- **Map:** the TSD (`game/menu/tsd.gd`) in its edit mode. Its client (`tsd.area`) grows to the whole map pane, so
+- **Map:** the TSD (`iaf-reborn/menu/tsd.gd`) in its edit mode. Its client (`tsd.area`) grows to the whole map pane, so
   the map fills it at any window size, 4K full screen included; the art and icons keep the size the original's frame
   would have there, and the farthest zoom still fills the pane (`tsd.min_zoom`). The mouse moves it: the wheel zooms
   about the point under the cursor (the + / − buttons at the top right zoom too), and a drag with the middle button,
@@ -856,7 +856,7 @@ blocks. The rules are written as the original's own event data (mission-runtime.
 with no change, as it runs the originals' events.
 
 Code: `crates/iaf-tools/src/mission_events.rs` (`rules`, `set_rules`, `audio_list`, through `IafMissionEdit`), the
-tab `game/editor/scenario_editor.gd`.
+tab `iaf-reborn/editor/scenario_editor.gd`.
 
 ### 18.1 The tab
 - At the top, the WHEN and THEN palettes. Drag a block onto a rule, or click it: a WHEN block makes a new rule (or

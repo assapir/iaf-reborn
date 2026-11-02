@@ -18,7 +18,7 @@ func leader_name(id: int, wanted := 0) -> String:
 
 
 func run() -> void:
-	mission_runtime = load("res://mission/mission_runtime.gd")
+	mission_runtime = load("res://shared/mission/mission_runtime.gd")
 	check(leader_name(311) == "Player1/1", "311: Player1 leads flight 1 (%s)" % leader_name(311))
 	check(leader_name(324) == "Player/1", "324: the flight-1 leader 'Player' (%s)" % leader_name(324))
 	check(leader_name(136) == "Alpha Leader/1", "136: Alpha Leader (%s)" % leader_name(136))

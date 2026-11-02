@@ -7,7 +7,7 @@ extends "res://../tests/godot/base.gd"
 
 ## A terrain node focused on terrain units (tx, ty) at `alt` metres; waits until its ground is ready.
 func terrain_at(tx: float, ty: float, alt: float) -> Node3D:
-	var t: Node3D = load("res://terrain/terrain.gd").new()
+	var t: Node3D = load("res://shared/terrain/terrain.gd").new()
 	var focus := Node3D.new()
 	root.add_child(focus)
 	root.add_child(t)
@@ -30,7 +30,7 @@ func run() -> void:
 	await require_data()
 	# The flight scene: the loading screen is up and the simulation holds until the ground is ready.
 	settings().mission_id = 311
-	change_scene_to_file("res://terrain/terrain_view.tscn")
+	change_scene_to_file("res://shared/terrain/terrain_view.tscn")
 	var tv = null
 	while tv == null or tv.get("flight") == null:
 		await process_frame

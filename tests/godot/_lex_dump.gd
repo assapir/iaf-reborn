@@ -1,7 +1,7 @@
 # Dev helper (not run by tools/test.sh): dumps each jet model's triangles in its root frame, as vapour_fx.gd's
 # _geometry sees them, to measure where the LEX / chine / canard vortices start (vapour_fx.gd LEX, docs/rendering.md
 # §6 "LEX sheet"). Headless:
-#   IAF_DEFAULT_SETTINGS=1 LEX_OUT=/tmp/lex godot --headless --path game --log-file /tmp/l.log \
+#   IAF_DEFAULT_SETTINGS=1 LEX_OUT=/tmp/lex godot --headless --path iaf-reborn --log-file /tmp/l.log \
 #     -s ../tests/godot/_lex_dump.gd
 # Writes LEX_OUT/<model file>.json: {tips: [l, r], box: [pos, size], eye, v: the triangles [x, y, z, ...]};
 # tools/lex_measure.py reads them.
@@ -11,8 +11,8 @@ extends "res://../tests/godot/base.gd"
 func run() -> void:
 	var out := OS.get_environment("LEX_OUT")
 	DirAccess.make_dir_recursive_absolute(out)
-	var NightLights = load("res://terrain/night_lights.gd")
-	var Gltf = load("res://util/gltf.gd")
+	var NightLights = load("res://shared/terrain/night_lights.gd")
+	var Gltf = load("res://shared/util/gltf.gd")
 	for pm in [
 		"f16:original:",
 		"f16:detailed:",
@@ -27,7 +27,7 @@ func run() -> void:
 		var c: PackedStringArray = pm.split(":")
 		settings().models = c[1]
 		settings().f16_variant = c[2] if c[2] != "" else "barak"
-		var m: Node3D = load("res://aircraft/aircraft_model.gd").create(c[0], -1, false)
+		var m: Node3D = load("res://shared/aircraft/aircraft_model.gd").create(c[0], -1, false)
 		root.add_child(m)
 		var hd: String = Gltf.detailed(str(m.desc.get("model", "")))
 		var file := (hd if hd != "" else str(m.desc.model)).get_file()

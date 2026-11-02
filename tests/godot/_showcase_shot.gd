@@ -6,7 +6,7 @@
 # line, instructor text, HUD) are hidden except in the cockpit scene. Saves SHOW_OUT/<scene>_<look>.png and prints a
 # rough frame rate per scene.
 #   for look in before after; do tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOW_OUT=/tmp/show SHOW_LOOK=$look \
-#     -- --log-file /tmp/show_$look.log --path game -s ../tests/godot/_showcase_shot.gd; done
+#     -- --log-file /tmp/show_$look.log --path iaf-reborn -s ../tests/godot/_showcase_shot.gd; done
 # Prefix the run with `flock ~/.cache/iaf-gpu-bench.lock` while another session may be benchmarking the GPU.
 # SHOW_SCENES="town,night" takes only those scenes (SCENES' names: town airbase takeoff cockpit coast sea missile_launch
 # missile_close bomb vapour sunset sunset_away night lookdown night_apron_pass night_apron carmel_low night_city
@@ -20,8 +20,8 @@
 # the same). SHOW_TOGGLE="key=value" switches that Setting in flight after each shot and shoots again (`_toggled`).
 extends "res://../tests/godot/base.gd"
 
-const TimeOfDay := preload("res://terrain/time_of_day.gd")
-const NightLights := preload("res://terrain/night_lights.gd")
+const TimeOfDay := preload("res://shared/terrain/time_of_day.gd")
+const NightLights := preload("res://shared/terrain/night_lights.gd")
 ## Every option at its best (Settings keys). TAA at native resolution: FSR 2 fades distant jets.
 const AFTER := {
 	"terrain_detail": 1.0,
@@ -145,15 +145,15 @@ func run() -> void:
 	for kv in OS.get_environment("SHOW_SET").split(",", false):  # SHOW_SET="key=value,...": more Settings
 		var p := kv.split("=")
 		settings().set(p[0], str_to_var(p[1]) if str_to_var(p[1]) != null else p[1])
-	var layers: GDScript = load("res://terrain/imagery_layers.gd")
+	var layers: GDScript = load("res://shared/terrain/imagery_layers.gd")
 	print(
 		(
 			"LOOK %s  ground textures %s  model detail %s  scenery %s  imagery %s / %s"
 			% [
 				look,
-				load("res://terrain/ground_textures.gd").available(),
-				load("res://util/model_detail.gd").available(),
-				load("res://terrain/scenery.gd").available(),
+				load("res://shared/terrain/ground_textures.gd").available(),
+				load("res://shared/util/model_detail.gd").available(),
+				load("res://shared/terrain/scenery.gd").available(),
 				layers.available("mapi2015_modern"),
 				layers.available("sentinel2_modern"),
 			]
@@ -184,7 +184,7 @@ func _scene(name: String, s: Array) -> void:
 	if name.begins_with("missile_"):
 		var hp := []
 		var ids := {}
-		for wd in load("res://weapons/mission_weapons.gd").create(s[0]).weapons:
+		for wd in load("res://shared/weapons/mission_weapons.gd").create(s[0]).weapons:
 			ids[String(wd.name)] = int(wd.id)
 		for n in ["AIM-9M", "AMRAAM", "", "", "", "", "", "AMRAAM", "AIM-9M"]:
 			hp.append_array([int(ids.get(n, 0)), 1 if ids.has(n) else 0])
@@ -433,7 +433,7 @@ func _roll(off: Vector3, at: Vector3) -> void:
 ## of its own: the flight feeds the player's jet its own 1 G state every frame.
 func _vapour() -> void:
 	var vf = tv.effects.gpu.vapour if tv.effects.gpu != null else null
-	var m: Node3D = load("res://aircraft/aircraft_model.gd").create("f16", -1, false)
+	var m: Node3D = load("res://shared/aircraft/aircraft_model.gd").create("f16", -1, false)
 	tv.add_child(m)
 	var base: Vector3 = tv.rig.global_position
 	var v := 270.0

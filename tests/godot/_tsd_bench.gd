@@ -3,14 +3,14 @@
 # Basic -> Takeoff (mission 311) -> F-16 -> TSD, then 20 s on the TSD with a click every 2 s (select the next flight
 # and back); prints every frame over 25 ms with what had finished by then, the worst frame and the preload's state.
 # ST_DDS=0 loads the terrain's JPEGs and compresses them (the path without setup's bc1 step). Vsync off.
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 -- --log-file /tmp/t.log --path game --resolution 2560x1440 \
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 -- --log-file /tmp/t.log --path iaf-reborn --resolution 2560x1440 \
 #     -s ../tests/godot/_tsd_bench.gd
 extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	var tp: GDScript = load("res://terrain/terrain_preload.gd")
-	load("res://terrain/terrain.gd").precompressed = OS.get_environment("ST_DDS") != "0"
+	var tp: GDScript = load("res://shared/terrain/terrain_preload.gd")
+	load("res://shared/terrain/terrain.gd").precompressed = OS.get_environment("ST_DDS") != "0"
 	settings().vsync = false
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	for kv in OS.get_environment("GT_SET").split(",", false):

@@ -1,6 +1,6 @@
 # Dev helper (not run by tools/test.sh): one real-render run that measures the frame rate of the Graphics /
 # Extras render options at fixed poses and saves a screenshot of each to BENCH_DIR (docs/rendering.md).
-#   IAF_DEFAULT_SETTINGS=1 BENCH_DIR=/tmp/bench godot --path game --resolution 1920x1080 -s \
+#   IAF_DEFAULT_SETTINGS=1 BENCH_DIR=/tmp/bench godot --path iaf-reborn --resolution 1920x1080 -s \
 #     ../tests/godot/_visual_bench.gd
 # BENCH_ONLY=name,name limits the configs; BENCH_POSES=name,name the poses; BENCH_SEED the cloud texture's seed
 # (7: Cloud256_5, the overcast one; 3: Cloud256_0, broken clouds).

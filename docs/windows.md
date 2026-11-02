@@ -24,6 +24,11 @@ git clone https://github.com/assapir/iaf-reborn; cd iaf-reborn
 .\iafjets.ps1     # builds the extension (target\release\iaf_godot.dll) and starts the game
 ```
 
+The Godot project `iaf-reborn/` reaches the engine folders in `shared/` through the link `iaf-reborn/shared`, committed as a
+symlink. Git for Windows checks a symlink out as a small text file unless symlinks are enabled, so
+`tools/windows/links.ps1` replaces it with a directory junction (no admin rights needed) and tells git to keep the
+committed link. `launch.ps1` runs it before every start; after a clone, run it by hand before starting Godot directly.
+
 `.\iafjets.ps1 --mission 311` passes its arguments to the game, as `./iafjets -- --mission 311` does;
 `.\mission-editor.ps1` starts the mission editor. All three run `tools/windows/launch.ps1`.
 
@@ -58,7 +63,7 @@ console build of Godot, which prints to the terminal and waits:
 ```powershell
 $godot = (Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\GodotEngine.GodotEngine*\Godot_v*_console.exe").FullName
 $env:IAF_DEFAULT_SETTINGS = '1'
-& $godot --headless --audio-driver Dummy --path game -s ../tests/godot/test_radar.gd --log-file "$env:TEMP\test_radar.log"
+& $godot --headless --audio-driver Dummy --path iaf-reborn -s ../tests/godot/test_radar.gd --log-file "$env:TEMP\test_radar.log"
 ```
 
 A test passes when it prints `RESULT PASS` and no `SCRIPT ERROR` (CLAUDE.md).

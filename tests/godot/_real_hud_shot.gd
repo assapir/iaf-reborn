@@ -1,6 +1,6 @@
 # Real HUD screenshots (not a test): mission 231, the F-16 3000 m up with AMRAAMs, a MiG locked 8 km ahead in the MRM
 # HUD mode, Extras > HUD = Real F-16. Usage:
-#   SHOT_DIR=/tmp/shots IAF_DEFAULT_SETTINGS=1 godot --audio-driver Dummy --path game -s \
+#   SHOT_DIR=/tmp/shots IAF_DEFAULT_SETTINGS=1 godot --audio-driver Dummy --path iaf-reborn -s \
 #     ../tests/godot/_real_hud_shot.gd
 extends "res://../tests/godot/base.gd"
 

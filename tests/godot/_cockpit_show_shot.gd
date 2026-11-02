@@ -4,7 +4,7 @@
 # airborne there (the flight model started, then held) so the instruments read the pose. The cockpit is drawn in the
 # window (godot_window.sh clamps it to the screen), the instructor text and info line hidden.
 #   for look in before after; do flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 \
-#     SHOW_OUT=/tmp/cockpit SHOW_LOOK=$look -- --log-file /tmp/c_$look.log --resolution 1920x1080 --path game \
+#     SHOW_OUT=/tmp/cockpit SHOW_LOOK=$look -- --log-file /tmp/c_$look.log --resolution 1920x1080 --path iaf-reborn \
 #     -s ../tests/godot/_cockpit_show_shot.gd; done
 # SHOW_SCENES="cockpit_f16_day,..." takes only those scenes; SHOW_SET / SHOW_TAG as in _showcase_shot.gd. The night
 # scenes need the mission to start at night (Ramat David's lights are placed at load): run them on their own with
@@ -89,7 +89,7 @@ func _cockpit_scene(name: String, s: Array) -> void:
 	if s[7] == "missile":
 		var hp := []
 		var ids := {}
-		for wd in load("res://weapons/mission_weapons.gd").create(s[1]).weapons:
+		for wd in load("res://shared/weapons/mission_weapons.gd").create(s[1]).weapons:
 			ids[String(wd.name)] = int(wd.id)
 		for n in ["AIM-9M", "AMRAAM", "", "", "", "", "", "AMRAAM", "AIM-9M"]:
 			hp.append_array([int(ids.get(n, 0)), 1 if ids.has(n) else 0])

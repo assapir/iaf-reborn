@@ -60,7 +60,7 @@ func _ab_run(tv, c) -> Dictionary:
 
 ## Each needle's angle for its input this frame, unlagged.
 func _raw(c) -> Dictionary:
-	var gauges: GDScript = load("res://cockpit/gauges.gd")
+	var gauges: GDScript = load("res://shared/cockpit/gauges.gd")
 	var en: PackedFloat32Array = gauges.engine_needles(c.state)
 	return {
 		"THROTTLECLOCK": c.needle_angle("THROTTLECLOCK", en[0], gauges.needle_full("THROTTLECLOCK", c.layout)),

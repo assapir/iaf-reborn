@@ -2,7 +2,8 @@
 # (3 per wing), in ripple pairs (quantity 2), the first press on station 1 (set here, as the AG cycle does); (B) with
 # Better physics "Asymmetric stores", the F-16's roll with a right-heavy moment and after the moment returns to 0 (the
 # load balanced again), stick centred, autopilot off. Rust test: aircraft.rs balanced_stores_stop_the_roll.
-#   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path game -s ../tests/godot/_drop_balance_probe.gd
+#   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-reborn \
+#     -s ../tests/godot/_drop_balance_probe.gd
 extends "res://../tests/godot/base.gd"
 
 
@@ -13,17 +14,17 @@ func bank(tv: Node) -> float:
 func run() -> void:
 	await require_data()
 	# --- A: release order -------------------------------------------------------------------
-	var MR = load("res://mission/mission_runtime.gd")
+	var MR = load("res://shared/mission/mission_runtime.gd")
 	var bdb: Dictionary = MR.load_bdb(MR.mission_files(231)[0].data)
 	var f16: Dictionary = MR.bdb_objects(bdb)[1]
-	var desc: Dictionary = load("res://aircraft/aircraft_model.gd").load_descriptor("f16")
+	var desc: Dictionary = load("res://shared/aircraft/aircraft_model.gd").load_descriptor("f16")
 	var tv = await start_mission(231)
 	await frames(5)
 	tv.frozen = true
 	tv.fm_stopped = true
 	tv.gear_down = false
 	var hp := [0, 0, 15, 1, 15, 1, 15, 1, 0, 0, 15, 1, 15, 1, 15, 1, 0, 0]
-	var w = load("res://weapons/player_weapons.gd").new()
+	var w = load("res://shared/weapons/player_weapons.gd").new()
 	tv.add_child(w)
 	w.setup(tv, {"armament": {"hardpoints": hp}}, f16, bdb, desc)
 	var vel := Vector3(0, 0, -200)

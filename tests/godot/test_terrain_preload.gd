@@ -21,9 +21,9 @@ func open_tsd(fe: Node, id: int) -> void:
 
 
 func run() -> void:
-	var tp: GDScript = load("res://terrain/terrain_preload.gd")
-	var mr: GDScript = load("res://mission/mission_runtime.gd")
-	var gltf: GDScript = load("res://util/gltf.gd")
+	var tp: GDScript = load("res://shared/terrain/terrain_preload.gd")
+	var mr: GDScript = load("res://shared/mission/mission_runtime.gd")
+	var gltf: GDScript = load("res://shared/util/gltf.gd")
 	change_scene_to_file("res://menu/front_end.tscn")
 	await frames(3)
 	var fe: Node = current_scene

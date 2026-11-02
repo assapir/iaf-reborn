@@ -11,7 +11,7 @@
 # with its pipeline compiles; on the TSD each frame over 100 ms. PB_EVENTS=1 then times what
 # first shows mid-flight (_events); PB_SHOTS=<dir> saves the view after the start and after each event. Vsync off; the
 # menus run at Max FPS.
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 PB_MISSION=311 PB_WAIT=6 -- --log-file /tmp/p.log --path game \
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 PB_MISSION=311 PB_WAIT=6 -- --log-file /tmp/p.log --path iaf-reborn \
 #     --resolution 2560x1440 -s ../tests/godot/_preload_bench.gd
 extends "res://../tests/godot/base.gd"
 
@@ -83,7 +83,7 @@ func run() -> void:
 	var id := int(OS.get_environment("PB_MISSION")) if OS.get_environment("PB_MISSION") != "" else 311
 	var wait := float(OS.get_environment("PB_WAIT")) if OS.get_environment("PB_WAIT") != "" else 6.0
 	if OS.get_environment("PB_JPEG") == "1":
-		load("res://terrain/terrain.gd").precompressed = false  # the JPEGs, compressed at run time
+		load("res://shared/terrain/terrain.gd").precompressed = false  # the JPEGs, compressed at run time
 	for kv in OS.get_environment("PB_PREFS").split(",", false):
 		var p := kv.split("=")
 		settings().set(
@@ -128,7 +128,7 @@ func run() -> void:
 				]
 			)
 		)
-	var tp: GDScript = load("res://terrain/terrain_preload.gd")
+	var tp: GDScript = load("res://shared/terrain/terrain_preload.gd")
 	var pt: Node = tp._terrain
 	if pt != null:
 		print(

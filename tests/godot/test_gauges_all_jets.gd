@@ -29,8 +29,8 @@ var instruments: GDScript
 
 
 func run() -> void:
-	gauges = load("res://cockpit/gauges.gd")
-	instruments = load("res://cockpit/instruments.gd")
+	gauges = load("res://shared/cockpit/gauges.gd")
+	instruments = load("res://shared/cockpit/instruments.gd")
 	var hands: Array = gauges.clock_hands(15.0 * 3600.0 + 15.0 * 60.0)
 	check(
 		is_equal_approx(hands[0], 3.25 / 12.0 * TAU) and is_equal_approx(hands[1], PI / 2.0),

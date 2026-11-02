@@ -1,10 +1,10 @@
-# Renders the Arming screen icons of the modern weapons (game/weapons/modern_weapons.gd) in the originals' style:
+# Renders the Arming screen icons of the modern weapons (shared/weapons/modern_weapons.gd) in the originals' style:
 # the store from the side, nose right, lit from above on black, 196 × 120 px (4× the original's 49 × 30), softened
-# like the originals' downscaled renders. Writes game/extra/weapons/arm/<icon>.png from our detailed stores only (GPL,
-# game/extra/models/stores/SOURCES.md), so no original game data goes into the repo.
+# like the originals' downscaled renders. Writes shared/extra/weapons/arm/<icon>.png from our detailed stores only (GPL,
+# shared/extra/models/stores/SOURCES.md), so no original game data goes into the repo.
 # Needs a real renderer:
 #
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 -- --log-file /tmp/i.log --path game -s ../tools/stores/icons.gd
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 -- --log-file /tmp/i.log --path iaf-reborn -s ../tools/stores/icons.gd
 #
 # ICONS_CLOSEUP=<dir> instead renders close-ups for review (not the icons): each store in CLOSEUPS (or ICONS_ONLY=a,b,
 # files under extra/models/stores without .glb) from the side, the front quarter and above, 1568 × 960 px, on grey.
@@ -17,28 +17,28 @@ const CLOSEUPS := [
 ]
 ## icon -> [model (res:// detailed store, or a path under converted/objects), length on the icon (share of its width)].
 const ICONS := {
-	"aim9x": ["res://extra/models/stores/aim9x.glb", 0.86],
-	"pyth5": ["res://extra/models/stores/pyth5.glb", 0.88],
-	"gbu31": ["res://extra/models/stores/gbu31.glb", 0.82],
-	"gbu31v3": ["res://extra/models/stores/gbu31v3.glb", 0.80],
-	"gbu32": ["res://extra/models/stores/gbu32.glb", 0.74],
-	"gbu38": ["res://extra/models/stores/gbu38.glb", 0.66],
-	"gbu39": ["res://extra/models/stores/gbu39.glb", 0.46],
-	"spice1000": ["res://extra/models/stores/spice1000.glb", 0.80],
-	"gbu28": ["res://extra/models/stores/gbu28.glb", 0.92],
+	"aim9x": ["res://shared/extra/models/stores/aim9x.glb", 0.86],
+	"pyth5": ["res://shared/extra/models/stores/pyth5.glb", 0.88],
+	"gbu31": ["res://shared/extra/models/stores/gbu31.glb", 0.82],
+	"gbu31v3": ["res://shared/extra/models/stores/gbu31v3.glb", 0.80],
+	"gbu32": ["res://shared/extra/models/stores/gbu32.glb", 0.74],
+	"gbu38": ["res://shared/extra/models/stores/gbu38.glb", 0.66],
+	"gbu39": ["res://shared/extra/models/stores/gbu39.glb", 0.46],
+	"spice1000": ["res://shared/extra/models/stores/spice1000.glb", 0.80],
+	"gbu28": ["res://shared/extra/models/stores/gbu28.glb", 0.92],
 }
 
 
 func _initialize() -> void:
 	await process_frame
-	var Gltf = load("res://util/gltf.gd")
-	var out := ProjectSettings.globalize_path("res://extra/weapons/arm")
+	var Gltf = load("res://shared/util/gltf.gd")
+	var out := ProjectSettings.globalize_path("res://shared/extra/weapons/arm")
 	var closeup := OS.get_environment("ICONS_CLOSEUP")
 	if closeup != "":
 		DirAccess.make_dir_recursive_absolute(closeup)
 		var only := OS.get_environment("ICONS_ONLY").split(",", false)
 		for n in only if not only.is_empty() else CLOSEUPS:
-			var m = Gltf.open("res://extra/models/stores/%s.glb" % n)
+			var m = Gltf.open("res://shared/extra/models/stores/%s.glb" % n)
 			# side, front quarter, and from above with the X fins rolled flat (as a photo of a + display round)
 			for v in [["side", -90.0, 12.0, 0.0], ["front", -150.0, 20.0, 0.0], ["top", -90.0, 89.0, 45.0]]:
 				var held := Node3D.new()

@@ -13,11 +13,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DECOMPILE = ROOT / "assets/ghidra_v11/iafjets.c"
 # Paths named in backticks are checked only under these roots; placeholders (<id>, *, …) are skipped.
-PATH_ROOTS = ("game/", "crates/", "tests/", "tools/", "docs/", "iaf-2026/")
+PATH_ROOTS = ("iaf-reborn/", "shared/", "crates/", "tests/", "tools/", "docs/", "iaf-2026/")
 
 
 def ignored(rel):
-    """Git-ignored paths (generated / local, e.g. game/.godot) are missing in a fresh worktree."""
+    """Git-ignored paths (generated / local, e.g. iaf-reborn/.godot) are missing in a fresh worktree."""
     return subprocess.run(["git", "-C", str(ROOT), "check-ignore", "-q", rel]).returncode == 0
 
 

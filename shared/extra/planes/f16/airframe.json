@@ -1,0 +1,13 @@
+{
+  "name": "F-16D Barak",
+  "doc": "docs/f16i.md",
+  "original_model": "f16_h.gltf",
+  "hud_3d": "HUD_std",
+  "cockpit_3d": "res://shared/extra/models/cockpit3d/f16.glb",
+  "notes": {
+    "": "The F-16 family's base and the Barak itself (the 1998 type 100): everything else of the Barak is the original's type-code tables.",
+    "original_model": "the 1998 model file a variant's model replaces",
+    "hud_3d": "the 3D cockpit's HUD (tools/f16d/cockpit3d.py HUDS): the Block 50's",
+    "cockpit_3d": "the 3D cockpit (Extras Cockpit: 3D), the Barak's and the Sufa's: tools/f16d/cockpit3d.py from the FlightGear F-16"
+  }
+}

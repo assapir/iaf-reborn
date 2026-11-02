@@ -4,7 +4,7 @@
 # SAMs), PROFILE_ALT (m above the ground, default 150), PROFILE_SECS (default 15), PROFILE_LIVE=1 (the simulation runs:
 # the jet flies its flight model, the AI and weapons work; else frozen and the rig is moved), PROFILE_UPSCALING
 # (Settings.upscaling, default off). docs/graphics-research.md.
-#   IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 1920x1080 -s ../tests/godot/_cpu_profile.gd
+#   IAF_DEFAULT_SETTINGS=1 godot --path iaf-reborn --resolution 1920x1080 -s ../tests/godot/_cpu_profile.gd
 extends "res://../tests/godot/base.gd"
 
 

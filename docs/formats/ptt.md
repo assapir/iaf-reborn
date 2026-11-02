@@ -165,7 +165,7 @@ The node sets:
 Result: 2342 nodes, **732 MB**, built in **30 s** on 8 threads (the file itself: 394 MB). Engine world metres from
 terrain units (`FUN_004053f0`): `X = tx·1.2411389 − 166850`, `Y = 1043780 − ty·1.2411389`.
 
-## Rendering here (game/terrain/terrain.gd, terrain.gdshader)
+## Rendering here (shared/terrain/terrain.gd, terrain.gdshader)
 - **Level of detail**: a node splits into its four children while the focus is nearer than `split_factor` (1.5) ×
   its side.
   - The TERRAIN DETAIL slider scales this with the ratios of the original's tables: 0.69 / 0.78 / 0.91 / 1 / 1.03 for

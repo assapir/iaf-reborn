@@ -6,7 +6,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	var KT: GDScript = load("res://controls/key_table.gd")
+	var KT: GDScript = load("res://shared/controls/key_table.gd")
 	var kt = KT.load_table()
 	check(kt.size() == 117, "117 records (%d)" % kt.size())
 	check(

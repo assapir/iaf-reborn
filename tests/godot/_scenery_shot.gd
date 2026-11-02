@@ -2,7 +2,7 @@
 # Graphics → MORE with the Scenery row not downloaded, needing Survey 2 m, and picked; then three test houses (one per
 # wall material but corrugated, one damaged) and trees with scenery.gdshader, by day and at night; the trees up close,
 # lit from behind the camera and against the sun.
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/shots -- --log-file /tmp/s.log --path game \
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/shots -- --log-file /tmp/s.log --path iaf-reborn \
 #     --resolution 1280x960 -s ../tests/godot/_scenery_shot.gd
 extends "res://../tests/godot/base.gd"
 
@@ -12,7 +12,7 @@ const TMP := "user://scenery_shot"
 func run() -> void:
 	var out := OS.get_environment("SHOT_DIR")
 	DirAccess.make_dir_recursive_absolute(out)
-	var Scenery: GDScript = load("res://terrain/scenery.gd")
+	var Scenery: GDScript = load("res://shared/terrain/scenery.gd")
 	Scenery.base_dir = ProjectSettings.globalize_path(TMP)
 	DirAccess.make_dir_recursive_absolute(TMP.path_join("converted/scenery"))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TMP.path_join("converted/scenery/manifest.json")))

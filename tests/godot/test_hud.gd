@@ -62,7 +62,7 @@ func run() -> void:
 	check(absf(cp.focal_length() - (fr + 686.2414 * s) / 2.0) < 0.01 * s, "Real view, head 10° right: halfway")
 	cp.head = Vector2.ZERO
 	var dir: String = cp.cockpit_dir
-	cp.cockpit_dir = "res://extra/planes/f35i/cockpit"
+	cp.cockpit_dir = "res://shared/extra/planes/f35i/cockpit"
 	check(absf(cp.focal_length() - 686.2414 * s) < 0.01 * s, "Real view: the F-35I keeps the original focal length")
 	cp.cockpit_dir = dir
 	settings().hud_style = "original"
@@ -143,7 +143,7 @@ func run() -> void:
 func _traced(tv) -> void:
 	var cp = tv.cockpit
 	var hud = cp.hud
-	var Hud = load("res://cockpit/hud.gd")
+	var Hud = load("res://shared/cockpit/hud.gd")
 	# Heading tape (FUN_00537cd0): 2 px/deg, ticks every 5° outside the box, labels every 10°.
 	var ht: Dictionary = Hud.heading_tape(0.0, 0.0)
 	check(ht.box == "000" and ht.caret == 0, "heading 000: box and caret centred")
@@ -321,7 +321,7 @@ func _traced(tv) -> void:
 	)
 
 	# Every cockpit draws the HUD (both layers) without script errors, NAV gear down and gear up.
-	var PlayerAircraft = load("res://aircraft/player_aircraft.gd")
+	var PlayerAircraft = load("res://shared/aircraft/player_aircraft.gd")
 	var dirs := {}
 	for t in PlayerAircraft.COCKPIT:
 		dirs[PlayerAircraft.cockpit_folder(t)] = true

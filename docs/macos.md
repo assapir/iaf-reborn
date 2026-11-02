@@ -7,7 +7,7 @@ The code builds and runs on macOS (Apple silicon), with the same Rust tools and 
 1. Install the tools:
    ```sh
    brew install rustup coreutils      # coreutils: `timeout` for tools/test.sh
-   brew install --cask godot          # Godot 4.7 (game/iaf.gdextension and ./setup require it)
+   brew install --cask godot          # Godot 4.7 (iaf-reborn/iaf.gdextension and ./setup require it)
    brew install gdal                  # optional: modern terrain imagery
    rustup default stable
    ```

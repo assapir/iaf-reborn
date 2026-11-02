@@ -7,8 +7,8 @@
 # ground_tex). Each shot also prints the video memory of the textures. Pose with terrain_view's args:
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/s SHOT_NAME=david_final \
 #     SHOT_CONFIGS="o:airbases=\"original\";d:airbases=\"detailed\"" \
-#       -- --log-file /tmp/g.log --path game --resolution 1920x1080 -s ../tests/godot/_airbase_shot.gd -- --mission \
-#         311 --at X Y ALT HDG PITCH --freeze
+#       -- --log-file /tmp/g.log --path iaf-reborn --resolution 1920x1080 -s ../tests/godot/_airbase_shot.gd -- \
+#         --mission 311 --at X Y ALT HDG PITCH --freeze
 extends "res://../tests/godot/base.gd"
 
 
@@ -25,7 +25,7 @@ func run() -> void:
 		for kv in name_kv[1].split(",", false):
 			var p := kv.split("=")
 			settings().set(p[0], str_to_var(p[1]))
-		change_scene_to_file("res://terrain/terrain_view.tscn")
+		change_scene_to_file("res://shared/terrain/terrain_view.tscn")
 		await frames(2)
 		tv = null
 		while tv == null or tv.get("flight") == null or tv.waiting_for_ground:

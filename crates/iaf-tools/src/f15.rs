@@ -121,7 +121,7 @@ pub const SOURCE: &[Download] = &[
 ];
 
 /// The F-15I's arming art (its front view) and its stations' points, next to [`OUTPUT_I`]: made on the player's
-/// machine, as the model ([`arm_front`]); `iaf-convert arm-extra` composes them with game/extra/planes/f15i/arm.
+/// machine, as the model ([`arm_front`]); `iaf-convert arm-extra` composes them with shared/extra/planes/f15i/arm.
 pub const ARM_FRONT: &str = "f15i_arm.png";
 pub const ARM_POINTS: &str = "f15i_arm.json";
 

@@ -1,6 +1,6 @@
 # Our own store shapes for tools/stores/build.gd parts() (no open model exists for these; docs/aircraft-models.md
 # §5.6): bodies of revolution with fins, in metres, nose at z 0 and aft +z, top +y. Lengths, diameters and spans from
-# the published data (the sources in game/extra/models/stores/SOURCES.md); the rest (profiles, fin planforms, band
+# the published data (the sources in shared/extra/models/stores/SOURCES.md); the rest (profiles, fin planforms, band
 # positions, colours) measured by eye on the photos listed there (inferred). Colours sRGB (material colours).
 extends RefCounted
 

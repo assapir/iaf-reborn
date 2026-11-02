@@ -2,15 +2,16 @@
 # or the Sufa, the player's cockpit model is the detailed F-16 cut at its front seat's eye: the ACES II seat kept
 # behind the eye with its headrest, the front pilot's body, the gear legs and nothing ahead of the eye left out; with
 # Models Original it stays the original's f16_bc.
-#   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path game -s ../tests/godot/test_detailed_cockpit.gd
+#   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-reborn \
+#     -s ../tests/godot/test_detailed_cockpit.gd
 extends "res://../tests/godot/base.gd"
 
-const Gltf := preload("res://util/gltf.gd")
+const Gltf := preload("res://shared/util/gltf.gd")
 
 
 func run() -> void:
 	await require_data()
-	var aircraft_model: GDScript = load("res://aircraft/aircraft_model.gd")
+	var aircraft_model: GDScript = load("res://shared/aircraft/aircraft_model.gd")
 	for path in [Gltf.DETAILED["f16_h.gltf"], settings().airframe_def("f16i").model]:
 		var tag := String(path).get_file()
 		var whole: Node3D = Gltf.instance(Gltf.model(path))

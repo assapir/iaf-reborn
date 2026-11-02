@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "iaf-reborn/blackbox.schema.json",
   "title": "iaf-reborn blackbox line",
-  "description": "The flight recorder (game/terrain/terrain_view.gd _record, one file per flight: user://flights/flight-<YYYY-MM-DD_HH-MM-SS>-m<mission>.jsonl, the newest 10 kept; the debrief screen exports the last one). JSON Lines: line 1 is the header, then rows (arrays, 10 per second) and events (objects) in time order. Frame: x east, z south (Godot), metres; angles in degrees.",
+  "description": "The flight recorder (shared/terrain/terrain_view.gd _record, one file per flight: user://flights/flight-<YYYY-MM-DD_HH-MM-SS>-m<mission>.jsonl, the newest 10 kept; the debrief screen exports the last one). JSON Lines: line 1 is the header, then rows (arrays, 10 per second) and events (objects) in time order. Frame: x east, z south (Godot), metres; angles in degrees.",
   "oneOf": [
     { "$ref": "#/$defs/header" },
     { "$ref": "#/$defs/row" },

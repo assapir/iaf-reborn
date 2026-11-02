@@ -237,7 +237,7 @@ renderer, S = the cockpit state (`0x82f544`). The reader stores the `[HUD]` keys
   * VertSclOffY moves both boxes: F-16 15 px above the centre, Mirage 20, F-15 / F-4 2000 5, Lavi 5 below, the others
     at the centre.
   * The ILS, the cues and the text block are the same for all.
-* **Port** (`game/cockpit/hud.gd`, tests/godot/test_hud.gd; the ILS in Rust `iaf_flight::airbase::ils`,
+* **Port** (`shared/cockpit/hud.gd`, tests/godot/test_hud.gd; the ILS in Rust `iaf_flight::airbase::ils`,
   `IafFlight.ils()`):
   * The field and ladder sit in the Hud control (clipped); the tapes / boxes / text block sit on the unclipped sibling
     `HudOuter`. The geometry is the original's, in 640x480 pixels × the ui scale.
@@ -413,14 +413,14 @@ TgenAPI (`DAT_0069942c`, 16-bit renderer vtable `0x5fd900`) draws the world into
 ### 3D cockpit (ours, Extras > Cockpit)
 Ours, opt-in (`cockpit_3d`: Original 2D / 3D, read at mission load; deviations.md §2): a real-time 3D cockpit in
 place of the 2D panel art. Today the F-16's, for the Barak and the Sufa, and the F-35I's (ours, below and
-docs/f35i.md §4.5); other jets keep their panels. The plumbing (`game/cockpit/cockpit3d.gd`) takes any jet whose
+docs/f35i.md §4.5); other jets keep their panels. The plumbing (`shared/cockpit/cockpit3d.gd`) takes any jet whose
 aircraft definition names a model in `cockpit_3d` (docs/adding-a-plane.md "Modern planes"); the F-16's HUD by the
 definition's `hud_3d`.
 
-**The model** (`game/extra/models/cockpit3d/f16.glb`, 5.6 MB with KTX2 textures, and `f16_light.png`, its baked
+**The model** (`shared/extra/models/cockpit3d/f16.glb`, 5.6 MB with KTX2 textures, and `f16_light.png`, its baked
 occlusion, 1.8 MB; built by
 `tools/f16d/cockpit3d.py` from the FlightGear F-16 at commit ef4f192, GPL-2.0-or-later; credits and changes in
-`game/extra/models/cockpit3d/SOURCES.md`):
+`shared/extra/models/cockpit3d/SOURCES.md`):
 * FlightGear's `Models/Cockpit/Main/cockpit.xml` and the parts it includes, each placed by its `<offsets>`, as its
   Block 50/52 shows them (`sim/variant-id` 5): the tub and glareshield ahead of the eye, the HUD, both MFDs (20 push
   buttons each), ICP, DED, the small PFD, the RWR head, the instruments, the eyebrow lamp panels, the four consoles
@@ -752,7 +752,7 @@ occlusion, 1.8 MB; built by
     read at the true-size view. Compressed at load (BC3), 2.8 MB each with mipmaps.
   - Tried and dropped (2026-11-02): one bake with the faces as FlightGear has them: the faces that point in baked
     black (about a third of the switches and the parts of the left auxiliary console), mean 0.59 against 0.71.
-* **The F-35I's** (`game/extra/models/cockpit3d/f35i.glb`, ours: `tools/f35i/cockpit3d.py --glb`, docs/f35i.md
+* **The F-35I's** (`shared/extra/models/cockpit3d/f35i.glb`, ours: `tools/f35i/cockpit3d.py --glb`, docs/f35i.md
   §4.5) hangs in its cockpit-view model (`f35i_bc.gltf`) the same way, half size about the eye as that model's own
   parts, so the Present scale draws it at its real size. Ahead of the glareshield that model's `f35i_bc_nose`
   (the jet's own fuselage and nose, docs/f35i.md §4.4) shows, as in the 2D cockpit. It reads:
@@ -943,7 +943,7 @@ each item's details.
 
 ### Turning compass / HSI (`turning_compass`)
 The compass card turns with the heading, so the heading reads under the lubber mark at the top
-(`game/cockpit/compass.gd`, `compass.gdshader`).
+(`shared/cockpit/compass.gd`, `compass.gdshader`).
 * **The art:** the card is a disc cut from the panel art itself (the 4x converted panel, mipmapped), so it keeps the
   original look. The shader turns the disc by the heading; inside the hub radius the panel's own art shows (the face
   with its aircraft symbol). The dial pans and slides with the panel.
@@ -996,7 +996,7 @@ the 1x original art and its 4x conversion; the art is small, so many dial faces 
 One table per flyable cockpit: each round engine dial, lamp and readout the panel art paints, its real name and
 meaning, where the 2D art has it (panel px of the 1920-px strip), which original record draws on it and which game
 value drives it with Better cockpit on. A future 3D cockpit can take the same mapping. The data the code reads is
-`game/cockpit/gauges.gd` `DIALS` (the dials) and `game/cockpit/instruments.gd` `INSTRUMENTS` (the lamps).
+`shared/cockpit/gauges.gd` `DIALS` (the dials) and `shared/cockpit/instruments.gd` `INSTRUMENTS` (the lamps).
 
 How it was read: every `*CLOCK` record of the cockpit.ibx against the dial at its centre, on the 4x art cropped at
 full resolution. The records sit on the dials' centres to within a pixel.
@@ -1162,7 +1162,7 @@ real instrument's lag.
   jumps 0.5 rad when the AB lights; Original draws every needle at its value).
 
 ### AoA indexer (`aoa_indexer`)
-The F-16's indexer on the HUD frame, left of the glass (`game/cockpit/instruments.gd`). The art paints all three
+The F-16's indexer on the HUD frame, left of the glass (`shared/cockpit/instruments.gd`). The art paints all three
 symbols lit; with the item on, the unlit ones are drawn from a copy of the art with their colour taken out (each pixel
 keeps its darkest channel), so only the lit symbol glows.
 * **Bands** (`iaf_flight::instruments::aoa_indexer`, from IafFlight.better_instruments `aoa_index`): the upper chevron
@@ -1200,7 +1200,7 @@ A lamp the original leaves unlit is lit for the state its legend names: the pain
 ### Engine gauges (`engine_rpm`, `engine_temp`, `throttle_ab`)
 With these items on, the round engine needles read the flight model's own values (`iaf_flight::instruments::
 better_engine_needles`, `EngineTemps`; `IafFlight.instruments` → `engines_better`, `engine_temp_c`;
-`game/cockpit/gauges.gd` picks them per item). Twin-engine cockpits (F-15, F-4E, Kurnass 2000) get both needles, each
+`shared/cockpit/gauges.gd` picks them per item). Twin-engine cockpits (F-15, F-4E, Kurnass 2000) get both needles, each
 with its own damage flags.
 
 | Needle | Original | Better |
@@ -1281,15 +1281,15 @@ Every MFD page drawn at the screen's resolution with the original layout, conten
   the opaque panel, and its standby disc is hidden.
 * `tools/setup-cli.sh` converts every cockpit (step "cockpits": f16, f15, f4-2000, phantom, cfir, lavi, mirage, mig23,
   mig29).
-* `game/cockpit/cockpit.gd`:
+* `shared/cockpit/cockpit.gd`:
   * `cockpit_dir` defaults to `.../cockpits/f16`; the player's cockpit replaces it.
   * It places the MFDs from `[MFD]` (`_create_mfds`, mfd.md §7).
   * The attitude indicators and the vario / AoA tapes follow the original (see "Attitude indicators").
   * It draws all round needles with the original's inputs (see "Round gauges").
   * It draws the lights (`_draw_lights`, "Panel lights" below).
-* `game/terrain/terrain_view.gd` flies the player's type (`aircraft/player_aircraft.gd`, docs/aircraft.md §5) and
+* `shared/terrain/terrain_view.gd` flies the player's type (`aircraft/player_aircraft.gd`, docs/aircraft.md §5) and
   loads its cockpit (`cockpit.load_cockpit`).
-* `game/aircraft/aircraft_model.gd` keeps the per-type mixing constants (aircraft data).
+* `shared/aircraft/aircraft_model.gd` keeps the per-type mixing constants (aircraft data).
 
 ## Panel lights (`[LIGHTSON]`, `[LIGHT000..009]`, `[SLIGHT000..003]`, `[TEXTMESSAGE]`, `[CHAFF]`/`[FLARE]`, `[PANELST]`)
 The panel lights are warning and state lamps, plus the gear handle, cut from one light bitmap per cockpit. One generic

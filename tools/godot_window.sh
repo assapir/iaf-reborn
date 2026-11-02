@@ -4,7 +4,7 @@
 # Vulkan on Intel, Godot finds no present queue on Xvfb and opens on the desktop's Wayland: docs/rendering.md §1.5).
 # VAR=value words before `--` are passed to Godot's environment; the rest are Godot's arguments. --log-file is required:
 # Godot's output goes there (open has no stdout), and the script prints it when Godot exits.
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 GUIDE_SHOTS=hud_nav -- --log-file /tmp/g.log --path game -s ../tests/godot/_guide_shots.gd
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 GUIDE_SHOTS=hud_nav -- --log-file /tmp/g.log --path iaf-reborn -s ../tests/godot/_guide_shots.gd
 set -euo pipefail
 envs=()
 while (($#)) && [[ $1 != -- ]]; do envs+=("$1"); shift; done

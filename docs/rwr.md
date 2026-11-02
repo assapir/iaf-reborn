@@ -4,7 +4,7 @@ This doc describes the RWR of a controller (`ctl+0x5b0`, ctor `FUN_004515d0`, v1
 it. The RWR lists the radars that lock the jet and the missiles launched at it, and
 lights the 'ai' / 'sam' lamps.
 
-- **Code:** `crates/iaf-avionics/src/rwr.rs` (unit tests there). `IafRwr` runs it for `game/weapons/rwr.gd`, which
+- **Code:** `crates/iaf-avionics/src/rwr.rs` (unit tests there). `IafRwr` runs it for `shared/weapons/rwr.gd`, which
   `player_weapons.gd` owns. `cockpit/cockpit.gd` `draw_rwr_symbols` draws it on MFD (multi-function display) page 7
   (`cockpit/mfd.gd`) and on the panel dial.
 - **Frame and units:** world frame X east, Y north, Z up; metres; sim seconds.
@@ -101,7 +101,7 @@ view (`@4ce003`), AI action 430 and condition 38 (for a unit with a controller) 
   the wall clock).
 - Feeds:
   - the player's radar lock hook (`player_weapons._radar_lock`: the AI's brain+0x7c, §2);
-  - the AI target sensors' pick (actions 400 / 410 / 420 / 440 of AI jets and ground units, `game/ai/combat.gd`
+  - the AI target sensors' pick (actions 400 / 410 / 420 / 440 of AI jets and ground units, `shared/ai/combat.gd`
     `_pick`: `rwr.lock(key)` / `unlock(key)`);
   - every missile launched at the player (`player_weapons.launch_homing`: `rwr.launch(key, missile)`; its end
     `rwr.missile_end(key, missile)`).

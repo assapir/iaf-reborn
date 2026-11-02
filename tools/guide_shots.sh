@@ -12,7 +12,7 @@ cd "$(dirname "$0")/.."
 if [[ ${1:-} == --job ]]; then  # one process: --job <jet> <name,name,…> (xargs below; $logs / $shots_dir exported)
 	jet=$2 names=$3 log="$logs/$2-${3%%,*}"
 	tools/godot_window.sh GUIDE_JSON="$PWD/docs/guides/$jet.shots.json" GUIDE_SHOTS="$names" GUIDE_OUT="$shots_dir/$jet" \
-		GUIDE_SIZE="${GUIDE_SIZE:-3840x2160}" IAF_DEFAULT_SETTINGS=1 -- --log-file "$log.log" --path game \
+		GUIDE_SIZE="${GUIDE_SIZE:-3840x2160}" IAF_DEFAULT_SETTINGS=1 -- --log-file "$log.log" --path iaf-reborn \
 		--resolution 3840x2160 --audio-driver Dummy -s ../tests/godot/_guide_shots.gd >/dev/null 2>&1 &
 	# A process that runs past GUIDE_TIMEOUT s per shot (default 600) is stopped; one that printed its RESULT and is
 	# still there 30 s later (Godot's Wayland exit race, docs/rendering.md §1.5) is stopped too, its pictures kept.

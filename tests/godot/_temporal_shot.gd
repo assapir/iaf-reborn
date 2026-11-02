@@ -3,7 +3,7 @@
 # far_<km>: the jet crossing at 250 m/s seen from a still camera 5 / 10 / 15 km off its path (crop TS_CROP px around
 # it, plus the whole frame); low / chase: 60 m above the ground at 300 m/s rolling 90°/s, a fireball ahead and a
 # missile trail crossing (cockpit view with the HUD; a camera behind the jet). Saves TS_OUT/<scene>_<config>.png.
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 TS_OUT=/tmp/ts -- --log-file /tmp/ts.log --path game \
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 TS_OUT=/tmp/ts -- --log-file /tmp/ts.log --path iaf-reborn \
 #     --resolution 2560x1440 -s ../tests/godot/_temporal_shot.gd
 extends "res://../tests/godot/base.gd"
 

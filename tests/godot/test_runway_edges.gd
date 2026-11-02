@@ -31,7 +31,7 @@ func run() -> void:
 
 
 func _base(b: Dictionary) -> void:
-	var t: Node3D = load("res://terrain/terrain.gd").new()
+	var t: Node3D = load("res://shared/terrain/terrain.gd").new()
 	var focus := Node3D.new()
 	root.add_child(focus)
 	root.add_child(t)

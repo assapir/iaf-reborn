@@ -1,6 +1,6 @@
 # Weapons — the player's gun, IR missiles, stores (v1.1)
 
-This doc describes how Jane's IAF v1.1 arms the player's jet and how ours ports it (`game/weapons/`, logic in
+This doc describes how Jane's IAF v1.1 arms the player's jet and how ours ports it (`shared/weapons/`, logic in
 `crates/iaf-avionics`): the data records, the stores, the gun, the missiles, the bombs and rockets, the decoys and
 the TV weapons. The radar and its lock are in docs/radar.md, the RWR in docs/rwr.md, the Real numbers in
 docs/real-weapons.md.
@@ -15,7 +15,7 @@ Key facts:
   - `S` = the flight-model state.
 - There is no master arm and no "out of ammo" message or sound.
 - AI units have no ECM (only a unit with a controller jams: docs/ai.md §13). The AI's weapons are in
-  `game/ai/combat.gd` (docs/ai.md §13–14).
+  `shared/ai/combat.gd` (docs/ai.md §13–14).
 
 Terms used in this doc:
 
@@ -522,7 +522,7 @@ Arming screen's CURRENT LOAD and weights use the flight's numbers, so Real shows
   toggle, reload stores, re-read Weapons.ibx) are in docs/controls.md §4.
 
 ## 9. Bombs and rockets (500, 510, 560, 650)
-Built: `crates/iaf-avionics/src/bombs.rs` via `game/weapons/bombs.gd`, `player_weapons.gd`, HUD `hud.gd _draw_ag`;
+Built: `crates/iaf-avionics/src/bombs.rs` via `shared/weapons/bombs.gd`, `player_weapons.gd`, HUD `hud.gd _draw_ag`;
 tests test_bombs.gd, test_bomb_missions.gd.
 
 - Types 500 / 510 / 560 / 650 share the release path ("bomb types", `FUN_00457bc0`). Rockets share it too, except the
@@ -728,7 +728,7 @@ The aim (`FUN_00454b70` case 0x28a), recomputed per store:
 Test: `tests/godot/test_laser_bombs.gd` (all jets incl. the F-35I: designated hit, laser off, a designation behind
 refused).
 
-### 9.9 AI bomb runs (built: `game/ai/combat.gd` `release` / `_ripple_tick`)
+### 9.9 AI bomb runs (built: `shared/ai/combat.gd` `release` / `_ripple_tick`)
 1. **Trigger**: the AI calls `FUN_00440440` (gate `FUN_004d4100`) from `FUN_005cd0d0` (impact within the tolerance or
    1000 m, 0x612fc0), `FUN_005d8590` (miss < 400 m, 600 m for kinds 0xd2 / 0xdc, angle < 15°, state 9 → 0xb) or
    `FUN_005d9290`.
@@ -780,7 +780,7 @@ releases stay original.
 - **F-15, Lavi, Kfir, Mirage, F-35I, Kurnass 2000:** no public source found (open).
 
 **What ours does with Real** (`crates/iaf-avionics/src/stores.rs` `Stores::real_pulse`, `release.rs`
-`Ripple::pulses`, wired in `game/weapons/player_weapons.gd` `_ripple_tick`):
+`Ripple::pulses`, wired in `shared/weapons/player_weapons.gd` `_ripple_tick`):
 - **PAIRS / SGL.** Stores page OSB 7 (bottom, second from the left) toggles PAIRS and SGL, PAIRS at the start. The
   page then shows "1 PAIR" / "1 SGL" (the quantity and the mode) in the quantity's place ("%dQnt"); the art is unchanged.
 - **The quantity counts release pulses** (F-16 rule, used for every jet but the F-4s, inferred). Each pulse is one
@@ -1022,7 +1022,7 @@ The weapon class (vtable 0x605178):
 - reports the status with +0x30 (`FUN_004d8030`: (mode ≠ 0) + 2 = 2 TRA / 3 TER).
 
 Explosion class 0x19: the falling store's (flash + streamers, no trail). Code: `crates/iaf-avionics/src/guided.rs` via
-`game/weapons/guided.gd`.
+`shared/weapons/guided.gd`.
 
 ### 12.2 Guided motion
 - **Config** (`FUN_00563d30`; weapons.ibx field → its use, the ibx comments name it): `_absAcceleration` +0x78 the
@@ -1123,7 +1123,7 @@ Eight weapons the 1998 game does not have: the AIM-9X, Python 5, GBU-31, GBU-31(
 
 - The AI never gets them.
 
-- **Records** (`game/weapons/modern_weapons.gd`, ids 1001–1007, 1009 and 1010, added to every weapon database by `weapon_db.gd`): each
+- **Records** (`shared/weapons/modern_weapons.gd`, ids 1001–1007, 1009 and 1010, added to every weapon database by `weapon_db.gd`): each
   copies an original record for its blast, drag and model and overrides the rest. A record built on a bomb with less
   explosive (GBU-31(V)3, GBU-39, GBU-28) scales the base's power by its fill over the Mk 84's 429 kg and the radius by the
   cube root of that (inferred). Stations as numbered 1–9 on the Arming screen (the F-15I: docs/f15i.md §3):
@@ -1148,7 +1148,7 @@ Eight weapons the 1998 game does not have: the AIM-9X, Python 5, GBU-31, GBU-31(
 
 - **Arming**: `mission_weapons.gd` lists them after the bdb's weapons and adds their load items (`ModernWeapons.loads`)
   to the jet's. A jet picked on the Jet list takes the modern items of the jet flown, with the mission jet's original
-  items (docs/front-end.md §15). Their icons are ours (`game/extra/weapons/arm/`, renders of the detailed stores by
+  items (docs/front-end.md §15). Their icons are ours (`shared/extra/weapons/arm/`, renders of the detailed stores by
   `tools/stores/icons.gd`); the Python 5 shows the install's Python 4 icon. A GPS bomb takes the bomb rack layout
   (§2.2), so four GBU-39s sit on one station.
 - **On every jet**: the guidance, the release and the HUD cues below are the same on every jet that

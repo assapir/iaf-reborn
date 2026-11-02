@@ -1,4 +1,4 @@
-# "Better cockpit" aoa_indexer, standby_instruments, warning_lamps and ar_nws_lights (game/cockpit/instruments.gd,
+# "Better cockpit" aoa_indexer, standby_instruments, warning_lamps and ar_nws_lights (shared/cockpit/instruments.gd,
 # docs/cockpit.md "Better cockpit"): with Original nothing is drawn; with Better each item follows its input (the
 # F-16's AoA indexer, FLCS / TO/LDG CONFIG lamps and AR/NWS lamp, the Mirage's VVI needle), and each item's own flag
 # turns it off. The values come from IafFlight.better_instruments (iaf_flight::instruments).

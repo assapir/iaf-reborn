@@ -8,7 +8,7 @@
 # flies as the player's and the AI's jets.
 extends "res://../tests/godot/base.gd"
 
-const Gltf := preload("res://util/gltf.gd")
+const Gltf := preload("res://shared/util/gltf.gd")
 const HELPER_M := 0.01
 ## How far a part's pivot may lie outside its own mesh bounds.
 const HINGE_M := 0.05
@@ -21,7 +21,7 @@ const MIG29_GEAR_DEG := 65.0
 ## How far a detailed mesh may reach outside the original's bounds (the FlightGear F-16 is 0.6 m shorter, 0.2 m
 ## taller on its gear).
 const LOOSE_M := 1.0
-## The IAF dorsal spine, as on IAF F-16D 027 photographed side on (game/extra/models/f16/SOURCES.md): at stations
+## The IAF dorsal spine, as on IAF F-16D 027 photographed side on (shared/extra/models/f16/SOURCES.md): at stations
 ## (m aft of the eye, along the jet) from behind the canopy to just ahead of the fin's leading edge, the body's top
 ## 0.1 m off the centre line is level within SPINE_M, SPINE_BELOW_M under the canopy's top, and 0.3 m off the centre
 ## line within SPINE_SIDE_M of it (a flat-topped box). FlightGear's slim US spine is 0.2 to 0.3 m below.
@@ -46,7 +46,7 @@ var aircraft_model: GDScript
 
 func run() -> void:
 	await require_data()
-	aircraft_model = load("res://aircraft/aircraft_model.gd")
+	aircraft_model = load("res://shared/aircraft/aircraft_model.gd")
 	var orig_desc: Dictionary = aircraft_model.load_descriptor("f16")
 	var orig_path: String = settings().assets_dir().path_join("converted/planes/f16").path_join(orig_desc.model)
 	var orig_scene: Node3D = Gltf.instance(Gltf.open(orig_path))
@@ -297,7 +297,7 @@ func run() -> void:
 	var holder := Node3D.new()
 	mi_a.owner = null
 	mi_a.reparent(holder, false)
-	load("res://terrain/night_lights.gd").to_points(holder, StandardMaterial3D.new())
+	load("res://shared/terrain/night_lights.gd").to_points(holder, StandardMaterial3D.new())
 	check(
 		mi_a.mesh != mi_b.mesh and mi_b.mesh.surface_get_primitive_type(0) == Mesh.PRIMITIVE_TRIANGLES,
 		"changing one jet's mesh leaves the other's"
@@ -514,7 +514,7 @@ func _check_mig29() -> void:
 ## length (STORE_LEN, the laser bombs longer: the Paveway kit on the plain bomb), with LODs and BC1 textures, the
 ## original drawn beyond PlayerWeapons.STORE_LOD_M; the Hawk SAM keeps the original AGM-88.
 func _check_stores() -> void:
-	var pw: GDScript = load("res://weapons/player_weapons.gd")
+	var pw: GDScript = load("res://shared/weapons/player_weapons.gd")
 	var paths: Array = (
 		settings()
 		. load_json(settings().assets_dir().path_join("converted/objects/objects.json"))
@@ -566,7 +566,7 @@ func _check_stores() -> void:
 		"on: detailed stores on their originals' axis and length, LODs, BC1, far original (bad: %s)" % [bad]
 	)
 	_check_rack(pw)
-	var db: RefCounted = load("res://weapons/weapon_db.gd").create(
+	var db: RefCounted = load("res://shared/weapons/weapon_db.gd").create(
 		settings().load_json(settings().assets_dir().path_join("converted/missions/default6_1.bdb.json"))
 	)
 	var hawk := {}

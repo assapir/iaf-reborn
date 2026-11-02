@@ -59,7 +59,7 @@ The file names follow the Reference screen's record folders (`f4`, `f42000`, `cf
 
 ## Markdown
 
-The guides use the Markdown subset of `game/menu/guide_md.gd`, which `tools/guide_pdf.py` reads too: `#` / `##` /
+The guides use the Markdown subset of `iaf-reborn/menu/guide_md.gd`, which `tools/guide_pdf.py` reads too: `#` / `##` /
 `###` headings, paragraphs, bold / italic / code, one-level lists, pipe tables, `---`, footnotes (`[^name]` in the
 text, `[^name]: source` at the end, shown as `[name]`) and pictures on a line of
 their own, `![caption](shots/<jet>/<name>.png)`. A numbered list right under a picture is its legend: one item per

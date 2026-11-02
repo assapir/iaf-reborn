@@ -4,7 +4,7 @@
 # back-left / -right, left / right) in a 7 G pull at 200 m/s, a 4.5 G pull at 120 m/s (the original's ribbon regime)
 # and the Mach 0.95 pass.
 # Needs a window:
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 VAPOUR_OUT=/tmp/vapour -- --log-file /tmp/v.log --path game \
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 VAPOUR_OUT=/tmp/vapour -- --log-file /tmp/v.log --path iaf-reborn \
 #     --resolution 1920x1080 --fixed-fps 30 -s ../tests/godot/_vapour_shot.gd
 # (--fixed-fps: a software-rendered window draws a frame in ~0.3 s; the trails need even time steps.)
 # Saves VAPOUR_OUT/<plane>_<model>_<scene>.png; VAPOUR_ONLY=cockpit takes only the cockpit pictures (the player's jet:
@@ -64,7 +64,7 @@ func run() -> void:
 		for pm in (planes if planes != "" else "f16:original,f16:detailed,f35i:original").split(","):
 			var c := pm.split(":")
 			settings().models = c[1]
-			var m: Node3D = load("res://aircraft/aircraft_model.gd").create(c[0], -1, false)
+			var m: Node3D = load("res://shared/aircraft/aircraft_model.gd").create(c[0], -1, false)
 			tv.add_child(m)
 			var name := OS.get_environment("VAPOUR_TAG") + c[0] + "_" + c[1]
 			await _turn(m, base, 200.0, 7.0, 0.6, Vector3(-9, 4, 34), name + "_turn_chase")

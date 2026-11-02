@@ -7,10 +7,10 @@ extends "res://../tests/godot/_mfd_shot.gd"
 
 
 func run() -> void:
-	var F16Mfd = load("res://cockpit/f16_mfd.gd")
+	var F16Mfd = load("res://shared/cockpit/f16_mfd.gd")
 	var layer := CanvasLayer.new()
 	root.add_child(layer)
-	var c: Control = load("res://cockpit/cockpit.tscn").instantiate()
+	var c: Control = load("res://shared/cockpit/cockpit.tscn").instantiate()
 	layer.add_child(c)
 	await frames(2)
 	c.remove_child(c.hud)

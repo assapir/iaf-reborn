@@ -10,7 +10,7 @@
 # zoomed in to the true size. C3D_HUD=original: the original HUD (default the Real HUD). C3D_ALL=1: every graphics
 # option at its best (_showcase_shot.gd AFTER), as a player with everything on sees it.
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOW_OUT=$PWD/.shots/c3d -- \
-#     --log-file /tmp/c3d.log --resolution 1920x1080 --path game -s ../tests/godot/_cockpit3d_shot.gd
+#     --log-file /tmp/c3d.log --resolution 1920x1080 --path iaf-reborn -s ../tests/godot/_cockpit3d_shot.gd
 extends "res://../tests/godot/_cockpit_show_shot.gd"
 
 ## [name, head yaw, head pitch] (deg; + right, + up).

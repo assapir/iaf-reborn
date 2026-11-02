@@ -2,7 +2,7 @@
 # the FLCS and TO/LDG CONFIG lamps lit) and the Mirage (VVI at +2000 ft/min), each Original then Better, written as
 # instruments_<cockpit>_<original|better>.png (the frame) and _zoom.png (each item, 3× nearest). Mission 312. Usage:
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=~/.cache/shots -- --log-file ~/.cache/g.log --resolution \
-#     1920x1080 --path game -s ../tests/godot/_instruments_shot.gd
+#     1920x1080 --path iaf-reborn -s ../tests/godot/_instruments_shot.gd
 extends "res://../tests/godot/base.gd"
 
 ## Jet list id -> [the cockpit state to show, the panel points to zoom on].

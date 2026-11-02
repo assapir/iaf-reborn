@@ -251,7 +251,7 @@ pub type GuidesFn<'a> = dyn Fn(&dyn Progress, &AtomicBool) -> Result<()> + Sync 
 pub struct Ctx<'a> {
     /// The assets folder (`<repo>/assets` normally).
     pub assets: PathBuf,
-    /// The repo checkout (game/extra/planes, tools/install-launcher.sh, tools/imagery).
+    /// The repo checkout (shared/extra/planes, tools/install-launcher.sh, tools/imagery).
     pub repo: PathBuf,
     pub inputs: Inputs,
     /// The launcher's XDG_DATA_HOME (default: the user's).

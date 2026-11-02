@@ -1,4 +1,4 @@
-# The mission editor (game/editor/mission_editor.gd, docs/mission-editor.md): the start choices, New from scratch
+# The mission editor (iaf-reborn/editor/mission_editor.gd, docs/mission-editor.md): the start choices, New from scratch
 # by year (the year's bases and jets, a red flight from a red base, a flipped Refidim before June 1967, the year kept
 # by Save / Open);
 # then on 512 Wild West: Fork offers a free

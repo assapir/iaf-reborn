@@ -1,5 +1,5 @@
 //! `IafRelease`: the player's release rules and the HUD's weapon cues (`iaf_avionics::{release, hud}`) as statics for
-//! `game/weapons/player_weapons.gd`, and `IafRipple` (the ripple settings).
+//! `shared/weapons/player_weapons.gd`, and `IafRipple` (the ripple settings).
 
 use crate::world::{vec3, vector3};
 use godot::prelude::*;

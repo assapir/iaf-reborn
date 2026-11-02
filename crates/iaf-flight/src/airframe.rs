@@ -1,5 +1,5 @@
 //! Ours: the aircraft definitions of the modern jets (docs/adding-a-plane.md "Modern planes"). Each is one
-//! `game/extra/planes/<id>/airframe.json`, built into the crate. A definition may name a `base`: it is then a JSON
+//! `shared/extra/planes/<id>/airframe.json`, built into the crate. A definition may name a `base`: it is then a JSON
 //! Merge Patch (RFC 7386) on that base, holding only what differs (an object merges key by key, `null` removes a key,
 //! any other value replaces). The 1998 type codes reach a definition through [`id_for`]; a 1998 jet without one keeps
 //! its type-code tables. The resolved definition is read into [`Airframe`], which rejects an unknown field or a wrong
@@ -103,11 +103,11 @@ fn strip_nulls(v: &mut Value) {
 
 /// Every definition: its id (the folder) and the file's text.
 const FILES: &[(&str, &str)] = &[
-    ("f15", include_str!("../../../game/extra/planes/f15/airframe.json")),
-    ("f15i", include_str!("../../../game/extra/planes/f15i/airframe.json")),
-    ("f16", include_str!("../../../game/extra/planes/f16/airframe.json")),
-    ("f16i", include_str!("../../../game/extra/planes/f16i/airframe.json")),
-    ("f35i", include_str!("../../../game/extra/planes/f35i/airframe.json")),
+    ("f15", include_str!("../../../shared/extra/planes/f15/airframe.json")),
+    ("f15i", include_str!("../../../shared/extra/planes/f15i/airframe.json")),
+    ("f16", include_str!("../../../shared/extra/planes/f16/airframe.json")),
+    ("f16i", include_str!("../../../shared/extra/planes/f16i/airframe.json")),
+    ("f35i", include_str!("../../../shared/extra/planes/f35i/airframe.json")),
 ];
 
 /// The Extras switches that pick a 1998 jet's variant (Settings `f16_variant`, `f15_variant`).
@@ -175,7 +175,7 @@ fn parse(id: &str, v: &Value) -> Result<Airframe, String> {
     let text = serde_json::to_string_pretty(v).expect("a Value is JSON");
     serde_json::from_str(&text).map_err(|e| {
         let line = text.lines().nth(e.line().saturating_sub(1)).unwrap_or_default().trim();
-        format!("game/extra/planes/{id}/airframe.json (base merged in): {e}: {line}")
+        format!("shared/extra/planes/{id}/airframe.json (base merged in): {e}: {line}")
     })
 }
 
@@ -302,7 +302,7 @@ mod tests {
         assert_eq!(s.weapons.as_ref().and_then(|w| w.loads.as_ref()?.get(&1007).cloned()), Some((4, "CDFG".into())));
         assert!(s.base.is_none());
         let (sufa, barak) = (Switches { f16: "sufa", f15: "baz" }, Switches { f16: "barak", f15: "baz" });
-        assert_eq!(model_for("f16_h.gltf", sufa), Some("res://extra/models/f16/f16i.glb"));
+        assert_eq!(model_for("f16_h.gltf", sufa), Some("res://shared/extra/models/f16/f16i.glb"));
         assert_eq!(model_for("f16_h.gltf", barak), None);
         assert_eq!(model_for("f15_h.gltf", sufa), None);
         let raam = Switches { f16: "barak", f15: "raam" };

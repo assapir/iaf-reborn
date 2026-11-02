@@ -81,8 +81,8 @@ directly (`CFlightWnd::OnGameEvent` 0x4dc280). They bypass the game-event queue.
   In each message box, NO closes the box and the menu stays.
 
 ### iaf-reborn
-* **Code**: `game/terrain/flight_overlay.gd` draws the pause text / wash and the menu with the GDI rules of
-  `game/util/gdi.gd` (front-end.md §16.2); `game/mission/render_box.gd` is the in-flight message box (§16.4). In
+* **Code**: `shared/terrain/flight_overlay.gd` draws the pause text / wash and the menu with the GDI rules of
+  `shared/util/gdi.gd` (front-end.md §16.2); `shared/mission/render_box.gd` is the in-flight message box (§16.4). In
   `terrain_view.gd`: `window_key`, `_pause_key`, `_menu_key`, `_esc_key`, `menu_choice`.
 * **Sim clock stop** = the **scene tree's pause**: every sim node stops. The overlay, message boxes and the front
   end over the flight keep running while paused.
@@ -92,7 +92,7 @@ directly (`CFlightWnd::OnGameEvent` 0x4dc280). They bypass the game-event queue.
   the textured sky and the Extras render options, blackouts).
 * **Restart / New mission** end the flight with the debrief. `Settings.debrief.auto` = the button the debrief
   presses after 50 ms (`replaymission` / `newmission`).
-* **FlyTSD live map**: `game/menu/tsd.gd` `_load_units` builds the tables from the flight's runtime entities when the
+* **FlyTSD live map**: `iaf-reborn/menu/tsd.gd` `_load_units` builds the tables from the flight's runtime entities when the
   TSD opens. The sim is frozen while it is up, so one build equals the original's rebuild on every paint.
 * **Fly** (`terrain_view.gd` `fly_unit` / `_take_over`): the target's IafFlight becomes the player's flight model. The
   player's jet is then rebuilt for the target's type: cockpit, sounds, systems damage, model and `_bc` model,
@@ -104,7 +104,7 @@ directly (`CFlightWnd::OnGameEvent` 0x4dc280). They bypass the game-event queue.
   `combat.gd` `adopt`). Weapons already in the air fly on.
 * **Visit** (`terrain_view.gd` `visit_unit`): the radar-target view (`_follow_radar_target`) on the unit's node, the
   own jet's rig for the player's own unit. The visual-record flags have no equivalent here: every model is drawn.
-* **Ctrl+P on the FlyTSD**: `front_end.gd` `tsd_pause_key`, drawn by `game/menu/tsd_pause.gd` (the dither as a
+* **Ctrl+P on the FlyTSD**: `front_end.gd` `tsd_pause_key`, drawn by `iaf-reborn/menu/tsd_pause.gd` (the dither as a
   shader on the viewport's snapshot).
 * **Fly with the own jet down** (falling, destroyed or ejected; `terrain_view.gd` `_leave_downed`): `FUN_004d3250`
   keeps no old jet in state 3 / 4 / 5 or with control 0, so the old jet gets no brain and stays as it is. The new jet
@@ -166,7 +166,7 @@ Traced in v1.1:
 * per-frame pose `FUN_00582880`;
 * keys in `FUN_004cd630` cases 0x14–0x1c.
 
-Port: `game/terrain/views.gd`, `terrain_view.gd` `_view_command` / `_snap_command` / `_apply_view`.
+Port: `shared/terrain/views.gd`, `terrain_view.gd` `_view_command` / `_snap_command` / `_apply_view`.
 
 ### 4.1 Architecture
 * **Camera slots**: three slots of 0x490 bytes at `mgr + 8 + k·0x490` (`mgr+0` = the active slot):

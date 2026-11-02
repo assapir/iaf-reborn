@@ -8,7 +8,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	var PlayerAircraft = load("res://aircraft/player_aircraft.gd")
+	var PlayerAircraft = load("res://shared/aircraft/player_aircraft.gd")
 	var p: Dictionary = PlayerAircraft.profile(200)
 	check(
 		p.plane == "f42000" and p.fm_section == "F-4" and p.cockpit_dir.ends_with("/f4-2000") and p.twin,
@@ -87,7 +87,7 @@ func run() -> void:
 		is_equal_approx(tv.cockpit.state.fuel_fill, ins.fuel_fill) and ins.fuel_fill > 0.9,
 		"fuel fill %.2f in the cockpit" % ins.fuel_fill
 	)
-	var Hud = load("res://cockpit/hud.gd")
+	var Hud = load("res://shared/cockpit/hud.gd")
 	check(
 		(
 			Hud.speed_text({"tas_kt": 300.0, "ground_kt": 280.0, "ias_kt": 250.0}, 0, false) == " 280G"

@@ -190,7 +190,7 @@ Their output goes to the step's log.
 
 `./setup` checks for Rust (cargo) and Godot 4.7 first. A missing one opens a dialog (zenity or kdialog on Linux,
 osascript on macOS, else the terminal) with the install command. Then it builds the game's extension and opens the
-wizard (`game/setup/wizard.tscn`). `./iafjets` starts `./setup` when there is no game data, and so does the game's
+wizard (`iaf-reborn/setup/wizard.tscn`). `./iafjets` starts `./setup` when there is no game data, and so does the game's
 start-up when `assets/converted` is missing. The desktop launcher "Jane's IAF (reborn) — Setup" runs it too.
 Windows: `.\setup.ps1`, `.\iafjets.ps1` and `.\mission-editor.ps1` (`tools/windows/launch.ps1`) do the same; a
 missing tool opens a message box. `tools\windows\setup-cli.ps1` runs the steps from a terminal through `iaf-setup`.
@@ -228,7 +228,7 @@ The wizard uses the original menus' colours. Pages:
    Under the extras one line gives the expected size of `assets/` for the choices, updated as they change:
    "Expected size of assets: about 24 GB (19 GB of it downloads); 6.2 GB of it is new; 120 GB free". The total is
    what is on disk now plus the new part. Each chosen part (the game, each extra) counts only what it lacks on disk
-   as new; a part with 85 % or more of its size on disk counts as there ("nothing of it is new"). The part sizes are constants in `game/setup/wizard.gd`, measured on the developer's laptop. The line
+   as new; a part with 85 % or more of its size on disk counts as there ("nothing of it is new"). The part sizes are constants in `iaf-reborn/setup/wizard.gd`, measured on the developer's laptop. The line
    turns orange when the new part is larger than the free space.
 6. **Summary**: the inputs, the expected size line (orange when it does not fit) and the number of steps.
 7. **Install**: one row per step. Before Install each row says whether it is "up to date" or "will run"

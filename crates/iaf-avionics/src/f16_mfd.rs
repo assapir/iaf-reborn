@@ -1,6 +1,6 @@
 //! The F-16's real MFD formats (ours, docs/real-mfd.md "F-16C/D Barak", docs/mfd.md §9): the format each game page
 //! stands for, the three formats each MFD holds, the format menu and what each OSB (option select button) does. The
-//! drawing is `game/cockpit/f16_mfd.gd`; the page an MFD shows stays the game's (docs/mfd.md §3), so the systems that
+//! drawing is `shared/cockpit/f16_mfd.gd`; the page an MFD shows stays the game's (docs/mfd.md §3), so the systems that
 //! set pages (a weapon, the M key) work as before.
 
 /// The game's MFD pages (state+0x504, docs/mfd.md §3).

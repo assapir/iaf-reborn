@@ -2,28 +2,28 @@
 # f16i.glb, with Models on Original as on Detailed; it keeps every helper of the original within 1 cm (stations, eye,
 # wheels: what arms and animates the F-16D works unchanged); the player's and the AI's F-16s in a mission use it; the
 # Arming screen shows the Sufa's art and weights. With Barak, everything is as before.
-#   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path game -s ../tests/godot/test_sufa_model.gd
+#   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-reborn -s ../tests/godot/test_sufa_model.gd
 extends "res://../tests/godot/base.gd"
 
-const Gltf := preload("res://util/gltf.gd")
+const Gltf := preload("res://shared/util/gltf.gd")
 const F16 := "controllableplanes/f16/f16_h.gltf"
 const HELPER_M := 0.01
 
 
 func run() -> void:
 	await require_data()
-	var aircraft_model: GDScript = load("res://aircraft/aircraft_model.gd")
-	var mw: GDScript = load("res://weapons/mission_weapons.gd")
+	var aircraft_model: GDScript = load("res://shared/aircraft/aircraft_model.gd")
+	var mw: GDScript = load("res://shared/weapons/mission_weapons.gd")
 	check(settings().models == "original" and settings().f16_variant == "barak", "defaults: Original, Barak")
 	check(Gltf.detailed(F16) == "", "Barak, Original: the original F-16")
 	check(mw.jet(100).art == "f-16" and float(mw.jet(100).max) == 48000.0, "Barak: the F-16's arming art and weights")
 	settings().models = "detailed"
-	check(Gltf.detailed(F16) == "res://extra/models/f16/f16d.glb", "Barak, Detailed: the F-16D")
+	check(Gltf.detailed(F16) == "res://shared/extra/models/f16/f16d.glb", "Barak, Detailed: the F-16D")
 
 	settings().f16_variant = "sufa"
 	for m in ["original", "detailed"]:
 		settings().models = m
-		check(Gltf.detailed(F16) == "res://extra/models/f16/f16i.glb", "Sufa, Models %s: f16i.glb" % m)
+		check(Gltf.detailed(F16) == "res://shared/extra/models/f16/f16i.glb", "Sufa, Models %s: f16i.glb" % m)
 	settings().models = "original"
 	check(Gltf.detailed("controllableplanes/f15/f15_h.gltf") == "", "Sufa leaves the F-15 alone")
 	var jet: Dictionary = mw.jet(100)

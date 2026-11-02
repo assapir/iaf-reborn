@@ -55,7 +55,7 @@ func run() -> void:
 	check(rb.get("rwy", 0) == 270, "the radio's runway is the real designator (%s)" % rb.get("rwy"))
 	# The taxi signs (terrain_view.gd _real_sign): David's 27 / 09 agree with the real 09/27; Ramon's 23 is the
 	# real 25L (the main runway 07R/25L): re-lettered.
-	var TV = load("res://terrain/terrain_view.gd")
+	var TV = load("res://shared/terrain/terrain_view.gd")
 	var ramon: Vector3 = tv.radio.bases.filter(func(b): return b.name == "Ramon")[0].lineup
 	check(
 		(
@@ -89,7 +89,7 @@ func run() -> void:
 	)
 
 	# --- step 7: the mission data moves with the base ---
-	var MR = load("res://mission/mission_runtime.gd")
+	var MR = load("res://shared/mission/mission_runtime.gd")
 	var o_start: Vector3 = _start_of(prefs, MR, 311, "original")
 	var r_start: Vector3 = _start_of(prefs, MR, 311, "real")
 	var ms: PackedFloat64Array = prefs.base_moved(o_start.x, o_start.y)
@@ -169,7 +169,7 @@ func run() -> void:
 	check(ok, "237: the SA-3 site at Ryak moved with the base, its launchers kept around the radar")
 
 	# --- step 8: the Detailed airbases surface at the new site ---
-	var AB = load("res://terrain/airbases.gd")
+	var AB = load("res://shared/terrain/airbases.gd")
 	var david: Dictionary = {}
 	for b in AB.bases():
 		if b.name == "David":

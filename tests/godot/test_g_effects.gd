@@ -4,7 +4,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	var fx = load("res://cockpit/g_effects.gd").new()
+	var fx = load("res://shared/cockpit/g_effects.gd").new()
 	root.add_child(fx)
 	fx.g = 9.0
 	_integrate(fx, 10.5)

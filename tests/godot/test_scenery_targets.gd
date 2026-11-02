@@ -6,7 +6,7 @@
 # Writes only under user://missions_test_scenery and user://test_scenery_targets.
 extends "res://../tests/godot/base.gd"
 
-const DM := preload("res://mission/damage_model.gd")
+const DM := preload("res://shared/mission/damage_model.gd")
 const DIR := "user://missions_test_scenery"
 const TMP := "user://test_scenery_targets"
 const LAND := Vector2(350000, 600000)  # inland, near Ramat David
@@ -15,7 +15,7 @@ const RELEASE := "test-release"
 
 func run() -> void:
 	await require_data()
-	var Scenery: GDScript = load("res://terrain/scenery.gd")
+	var Scenery: GDScript = load("res://shared/terrain/scenery.gd")
 	Scenery.base_dir = ProjectSettings.globalize_path(TMP)
 	var meta: Dictionary = settings().load_json(
 		settings().assets_dir().path_join("converted/terrain/theatre/meta.json")

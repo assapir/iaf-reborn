@@ -27,7 +27,7 @@
   },
   "notes": {
     "type": "type codes from 1000 are ours (docs/adding-a-plane.md §1); 1000 is the F-35I's",
-    "model": "none: the player's jet is drawn from its airframe definition (game/extra/planes/f35i/airframe.json)",
+    "model": "none: the player's jet is drawn from its airframe definition (shared/extra/planes/f35i/airframe.json)",
     "scale": "1: our models are built true size",
     "radius_m": "half the span, 35 ft (10.67 m)",
     "strength": "our damage scale's fighter (iaf-2026/docs/data-formats.md, damage scale)",

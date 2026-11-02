@@ -9,7 +9,7 @@ func cond(counter: int, op: int, value: int) -> Dictionary:
 
 
 func run() -> void:
-	var rt = load("res://mission/mission_runtime.gd").new()
+	var rt = load("res://shared/mission/mission_runtime.gd").new()
 	var unset := cond(-842150451, 0, 0)
 	var mission := {
 		"misc": {"items": [{}]},

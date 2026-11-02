@@ -11,7 +11,7 @@ aircraft:
 The switch changes the look only (docs/deviations.md §2 "Models"). Stores, the gun, the flight model, damage and the
 cockpit view work as with the original models.
 
-Today the detailed models are the **F-16D** (`game/extra/models/f16/f16d.glb`), used for the player's F-16, the AI's
+Today the detailed models are the **F-16D** (`shared/extra/models/f16/f16d.glb`), used for the player's F-16, the AI's
 F-16s, parked F-16s and the Reference viewer; the **F-16I Sufa** (§1.3, `f16i.glb`), which stands in for every F-16
 with the Extras switch "F-16 version" on Sufa, whatever Models says; the **F-15C** (§6), which setup makes on your machine from the
 FlightGear F-15 and which stands in for every F-15 the same way; the **F-15I Ra'am** (§6.7), made by the same step, for
@@ -23,7 +23,7 @@ them. Plans for more jets and stores: [graphics-research.md](graphics-research.m
 
 | item | value |
 |---|---|
-| source | FlightGear F-16 (`github.com/NikolaiVChr/f16`), GPL-2.0-or-later; credits and changes in `game/extra/models/f16/SOURCES.md` |
+| source | FlightGear F-16 (`github.com/NikolaiVChr/f16`), GPL-2.0-or-later; credits and changes in `shared/extra/models/f16/SOURCES.md` |
 | triangles | 51 400 (original: 7 200); runtime LODs cut far jets to a fraction |
 | textures | livery, occlusion / roughness / metallic and normal maps at 2048²; the nozzle, cockpit, seat and pilot textures at 512 px or less; KTX2 inside the glb (about 110 MB in video memory as RGBA8) |
 | file size | 3.8 MB |
@@ -72,7 +72,7 @@ in the file. KTX2 keeps the glb small; in video memory the textures are uncompre
 
 #### The dorsal spine against photographs (2026-10-29)
 
-Our renders were set beside IAF photographs (game/extra/models/f16/SOURCES.md, change 2), above all F-16D 027
+Our renders were set beside IAF photographs (shared/extra/models/f16/SOURCES.md, change 2), above all F-16D 027
 parked side on. Measured on 027 with the canopy's length as the scale: the canopy's top stands 0.25 m above the
 spine, the spine's top is level from the canopy's rear frame to the fin, and the fin rises from it. The earlier spine
 climbed from 0.93 m behind the canopy to 1.148 m at the fin, level with the canopy's top (0.303 m and 0.304 m above
@@ -143,7 +143,7 @@ Tried and dropped:
 
 ### 1.3 The F-16I Sufa model
 
-`game/extra/models/f16/f16i.glb` is the same F-16 base with the Sufa layer (`tools/f16/sufa.py`, §2; docs/f16i.md
+`shared/extra/models/f16/f16i.glb` is the same F-16 base with the Sufa layer (`tools/f16/sufa.py`, §2; docs/f16i.md
 §8.1 lists what it adds:
 FlightGear's conformal fuel tanks and P&W nozzle, our nose fairings, and the paint and markings of one real jet,
 F-16I 846 of 201 Squadron: its camouflage, colours, fin art and tail number).
@@ -263,8 +263,8 @@ install (`tools/setup-cli.sh`):
 
 ```sh
 git clone --depth 1 https://github.com/NikolaiVChr/f16.git /tmp/f16
-blender -b --python tools/f16/rig.py -- /tmp/f16 assets/converted/planes/f16/f16_h.gltf game/extra/models/f16/f16d.glb barak
-blender -b --python tools/f16/rig.py -- /tmp/f16 assets/converted/planes/f16/f16_h.gltf game/extra/models/f16/f16i.glb sufa
+blender -b --python tools/f16/rig.py -- /tmp/f16 assets/converted/planes/f16/f16_h.gltf shared/extra/models/f16/f16d.glb barak
+blender -b --python tools/f16/rig.py -- /tmp/f16 assets/converted/planes/f16/f16_h.gltf shared/extra/models/f16/f16i.glb sufa
 ```
 
 `F16D_FAST=1` skips the occlusion bake (about 1 minute) for quick geometry tries. `F16D_DEBUG=1` prints every
@@ -356,7 +356,7 @@ The steps:
 ## 5. Detailed stores
 
 With Models Detailed the stores below are FlightGear models (the F-16's; the Soviet ones the MiG-21bis's and the
-MiG-29 9-12's) (`game/extra/models/stores/<name>.glb`; sources,
+MiG-29 9-12's) (`shared/extra/models/stores/<name>.glb`; sources,
 authors and changes in `SOURCES.md` there). They show on every jet that carries them, on the pylons and in flight
 (a missile flying, a bomb falling), and in the Reference viewer. The other stores keep their original models.
 
@@ -434,7 +434,7 @@ git clone https://github.com/NikolaiVChr/f16.git /tmp/fg/f16 && git -C /tmp/fg/f
 git clone https://github.com/l0k1/MiG-21bis.git /tmp/fg/MiG-21bis && git -C /tmp/fg/MiG-21bis checkout 9ca6f5b
 git clone https://github.com/Mercenary-Mercury/MiG-29_9-12.git /tmp/fg/MiG-29_9-12
 git -C /tmp/fg/MiG-29_9-12 checkout d4a299b
-IAF_DEFAULT_SETTINGS=1 godot --headless --path game -s ../tools/stores/build.gd -- /tmp/fg "$PWD/assets" [name …]
+IAF_DEFAULT_SETTINGS=1 godot --headless --path iaf-reborn -s ../tools/stores/build.gd -- /tmp/fg "$PWD/assets" [name …]
 ```
 
 `STORES_STATS=1` prints each model's and each original's measurements and writes nothing.
@@ -465,7 +465,7 @@ No open model exists for the Python 5, the GBU-39, its BRU-61/A rack, the Popeye
 (graphics-research.md §3.13; the FlightGear F-22's GBU-39 is GPL-2.0-only and marked "By FGUK's Davinci F-35", an
 unverified source). `tools/stores/build.gd` builds them from shapes in `tools/stores/ours.gd` (`parts()`): bodies of
 revolution with colour bands, fins and boxes, flat colours (no texture), each surface its own material. The lengths,
-diameters and spans are the published ones (`game/extra/models/stores/SOURCES.md`); the profiles, fin planforms, bands
+diameters and spans are the published ones (`shared/extra/models/stores/SOURCES.md`); the profiles, fin planforms, bands
 and colours are measured by eye on photos (inferred). Fitted as the FlightGear stores (§5.1): the Python 5 at the
 AIM-9's scale on the Python 4 (3.05 m against its 3.06 m), the GBU-39 at the MK-82's scale on the MK-82, the Popeye to
 its original's length (4.69 m, the real one 4.82 m).
@@ -654,7 +654,7 @@ highlight). The first version (flat Lambert light into two greens, the glass lef
 the originals. Station points: the helpers', but C / D and F / G, which share one spot on each intake in front view
 (the F-15C's fore and aft Sparrows), go to the conformal tanks' racks: C and G the outer row, D and F the lower row
 (FlightGear's CFT pylon stubs; `f15::cft_stations`). The `arm` step, after `models`, then composes `arm/jets/x_f15i.png` in each menu set from it with
-`game/extra/planes/f15i/arm/arm.json` (`iaf-convert arm-extra`; the F-15's boxes, `base_art` f-15); without the
+`shared/extra/planes/f15i/arm/arm.json` (`iaf-convert arm-extra`; the F-15's boxes, `base_art` f-15); without the
 front view (`models` failed or offline) it leaves the F-15I out.
 
 The real F-15I[^raam-side][^raam-front][^raam-rear]: two seats under one canopy, conformal fuel tanks with tangential
@@ -677,7 +677,7 @@ outer fins. What differs on ours (open):
 
 With Models Detailed every MiG-29 (the AI's and parked ones) is the FlightGear MiG-29 9-12, the jet of the
 original's own MiG-29 (a Fulcrum-A). Its licence (GPL-3.0) lets it ship in the repo:
-`game/extra/models/mig29/mig29.glb` (sources and changes in `game/extra/models/mig29/SOURCES.md`).
+`shared/extra/models/mig29/mig29.glb` (sources and changes in `shared/extra/models/mig29/SOURCES.md`).
 
 | item | value |
 |---|---|

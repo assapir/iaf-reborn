@@ -1,6 +1,6 @@
 # The F-16 base of the detailed F-16 models (docs/aircraft-models.md §2; run through tools/f16/rig.py with a variant
 # layer: barak.py, sufa.py). From the FlightGear F-16 (github.com/NikolaiVChr/f16, GPL-2.0-or-later;
-# game/extra/models/f16/SOURCES.md) with tools/plane/kit.py:
+# shared/extra/models/f16/SOURCES.md) with tools/plane/kit.py:
 #   - FlightGear's single-seat f16.ac made two-seat: the canopy and the spine behind it stretched aft, a second
 #     cockpit, seat and pilot, the single seater's aft canopy hoop rebuilt as the two-seater's centre bow;
 #   - placed on the original model's frame: the wing on the original's wing, the pylons moved onto the original's

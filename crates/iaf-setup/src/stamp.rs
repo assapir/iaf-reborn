@@ -220,7 +220,7 @@ pub(crate) fn of(step: &Step, ctx: &Ctx) -> Result<Option<Stamp>> {
             };
             (Some(a.join("packs/he")), a.join("packs/he.stamp"), files)
         }
-        "arm" => (None, conv("arm.stamp"), vec![ctx.repo.join("game/extra/planes")]),
+        "arm" => (None, conv("arm.stamp"), vec![ctx.repo.join("shared/extra/planes")]),
         "launcher" => (None, conv("launcher.stamp"), vec![]),
         "theatre" => (Some(conv("terrain/theatre")), conv("terrain/theatre.stamp"), vec![]),
         "airbases" => (Some(conv("terrain/airbases.json")), conv("terrain/airbases.json.stamp"), vec![]),

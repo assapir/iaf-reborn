@@ -5,7 +5,7 @@ extends "res://../tests/godot/base.gd"
 
 const TMP := "user://test_scenery_solid"
 const AGM65 := 7
-const EoSensor := preload("res://weapons/eo_sensor.gd")
+const EoSensor := preload("res://shared/weapons/eo_sensor.gd")
 ## The test cell's key: any key works, IafScenery indexes a cell by its contents.
 const CELL := Vector2i(9000, 9000)
 

@@ -51,7 +51,7 @@ func run() -> void:
 	check(not tv.paused, "Ctrl+P ignored while the menu is open")
 	# The layout of FUN_004ee7b0 in 640×480 units: Arial 11 ppem, W = 91 (RESTART MISSION, GDI widths), H = 14.
 	var ov = tv.overlay
-	var Gdi := preload("res://util/gdi.gd")
+	var Gdi := preload("res://shared/util/gdi.gd")
 	# The exact GDI pixels need Arial's own hdmx / VDMX tables; a stand-in font (Liberation Sans) has neither.
 	var arial: bool = not Gdi._font_tables(400).hdmx.is_empty()
 	if not arial:
@@ -219,7 +219,7 @@ func run() -> void:
 	settings().hud_style = "real"
 	settings().hud_view = "real"
 	tv._apply_view()
-	var eye: Array = load("res://aircraft/aircraft_model.gd").load_descriptor(tv.player.plane).eye
+	var eye: Array = load("res://shared/aircraft/aircraft_model.gd").load_descriptor(tv.player.plane).eye
 	check(
 		(
 			tv.camera.position == Vector3.ZERO

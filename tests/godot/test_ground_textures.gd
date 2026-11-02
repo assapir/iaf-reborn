@@ -7,9 +7,9 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	var GT: GDScript = load("res://terrain/ground_textures.gd")
-	var MD: GDScript = load("res://util/model_detail.gd")
-	var RO: GDScript = load("res://terrain/render_options.gd")
+	var GT: GDScript = load("res://shared/terrain/ground_textures.gd")
+	var MD: GDScript = load("res://shared/util/model_detail.gd")
+	var RO: GDScript = load("res://shared/terrain/render_options.gd")
 	check(settings().ground_textures == "original", "defaults to Original")
 	var present: bool = GT.available()
 	var md_present: bool = MD.available()

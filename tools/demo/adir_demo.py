@@ -6,7 +6,7 @@
     python3 -I tools/demo/adir_demo.py --draft    # 960x540   -> assets/converted/demo/adir_demo_v3_draft.mp4
 
 It renders the three parts of tests/godot/_adir_demo_v3_shot.gd (DEMO_PART 315, 223, 214; seed 35) with Godot's
-movie writer at 30 fps through tools/godot_window.sh (a temporary game/override.cfg sets the size and is removed
+movie writer at 30 fps through tools/godot_window.sh (a temporary iaf-reborn/override.cfg sets the size and is removed
 afterwards), cuts the shots in the storyboard's order from the parts' "SEG" lines, widened so no radio call
 ("VOICE" lines) is cut mid-sentence, and encodes for X: H.264 High, yuv420p, 30 fps, AAC stereo, +faststart.
 An existing output file is never overwritten. --work DIR keeps the parts (default /tmp/adir_demo_v3);
@@ -38,7 +38,7 @@ def render(part, work, size):
         if os.path.exists(f):
             os.remove(f)
     cmd = ["timeout", "5400", os.path.join(ROOT, "tools/godot_window.sh"), "IAF_DEFAULT_SETTINGS=1",
-           f"DEMO_PART={part}", f"DEMO_SEED={SEED}", "--", "--log-file", log, "--path", os.path.join(ROOT, "game"),
+           f"DEMO_PART={part}", f"DEMO_SEED={SEED}", "--", "--log-file", log, "--path", os.path.join(ROOT, "iaf-reborn"),
            "--write-movie", movie, "--fixed-fps", str(FPS), "-s", "../tests/godot/_adir_demo_v3_shot.gd"]
     subprocess.run(cmd, check=False, stdout=subprocess.DEVNULL)
     text = open(log, encoding="utf-8", errors="replace").read()
@@ -79,7 +79,7 @@ def main():
         sys.exit(f"{out} exists: not overwritten")
     os.makedirs(a.work, exist_ok=True)
     if not a.skip_render:
-        cfg = os.path.join(ROOT, "game/override.cfg")
+        cfg = os.path.join(ROOT, "iaf-reborn/override.cfg")
         with open(cfg, "w") as f:
             f.write(f"[display]\n\nwindow/size/viewport_width={w}\nwindow/size/viewport_height={h}\n")
         try:

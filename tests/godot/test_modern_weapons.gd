@@ -13,7 +13,7 @@
 # target A, bombs 3-3 and 3-4 their own B; released one by one in flight, bombs 1-2 burst on A and 3-4 on B.
 extends "res://../tests/godot/base.gd"
 
-const EoSensor := preload("res://weapons/eo_sensor.gd")
+const EoSensor := preload("res://shared/weapons/eo_sensor.gd")
 
 const AIM9X := 1001
 const GBU31 := 1003
@@ -92,7 +92,7 @@ func run() -> void:
 
 ## The player's flight of mission 231 flying jet `type`: {names (AA + AG lists), defaults}; {} when none.
 func _arming(type: int) -> Dictionary:
-	var mw = load("res://weapons/mission_weapons.gd").create(231)
+	var mw = load("res://shared/weapons/mission_weapons.gd").create(231)
 	for n in mw.flights:
 		if int(mw.flights[n].type) == type:
 			mw.reset(n)

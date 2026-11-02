@@ -1,5 +1,5 @@
 //! `IafRounds` (a fixed weapon's pool of rounds: gun, rockets, decoys) and `IafLcos` (the AA gun pipper) from
-//! `iaf_avionics::gun`, for `game/weapons/gun_rounds.gd` and `player_weapons.gd`.
+//! `iaf_avionics::gun`, for `shared/weapons/gun_rounds.gd` and `player_weapons.gd`.
 
 use crate::world::{get, terrain, vec3, vector3};
 use godot::prelude::*;

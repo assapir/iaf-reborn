@@ -9,9 +9,9 @@ var _terrain: GDScript
 
 
 func run() -> void:
-	var Scenery: GDScript = load("res://terrain/scenery.gd")
-	_terrain = load("res://terrain/terrain.gd")
-	var layer := load("res://terrain/imagery_layers.gd").manifest("mapi2015") as Dictionary
+	var Scenery: GDScript = load("res://shared/terrain/scenery.gd")
+	_terrain = load("res://shared/terrain/terrain.gd")
+	var layer := load("res://shared/terrain/imagery_layers.gd").manifest("mapi2015") as Dictionary
 	if layer.is_empty():
 		print("SKIP test_scenery: no mapi2015 imagery converted")
 		return

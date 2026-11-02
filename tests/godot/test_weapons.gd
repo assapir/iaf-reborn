@@ -7,13 +7,13 @@ extends "res://../tests/godot/base.gd"
 
 func run() -> void:
 	await require_data()
-	var MR = load("res://mission/mission_runtime.gd")
+	var MR = load("res://shared/mission/mission_runtime.gd")
 	var bdb: Dictionary = MR.load_bdb(MR.mission_files(231)[0].data)
 	var objs: Dictionary = MR.bdb_objects(bdb)
 	var f16: Dictionary = objs[1]
-	var desc: Dictionary = load("res://aircraft/aircraft_model.gd").load_descriptor("f16")
-	var Db = load("res://weapons/weapon_db.gd")
-	var Stores = load("res://weapons/stores.gd")
+	var desc: Dictionary = load("res://shared/aircraft/aircraft_model.gd").load_descriptor("f16")
+	var Db = load("res://shared/weapons/weapon_db.gd")
+	var Stores = load("res://shared/weapons/stores.gd")
 
 	# --- data ---------------------------------------------------------------------------------
 	var db = Db.create(bdb, false)
@@ -78,7 +78,7 @@ func run() -> void:
 		),
 		"Real AIM-9L chase: top speed Mach 2.5, flies 17.7 km from 250 m/s"
 	)
-	var missile_script: GDScript = load("res://weapons/missile.gd")
+	var missile_script: GDScript = load("res://shared/weapons/missile.gd")
 	var dlz: Array = missile_script.dlz(
 		real.motion_for(570, 3).merged(m9, true),
 		{"pos": Vector3.ZERO, "fwd": Vector3(0, 1, 0), "vel": Vector3(0, 250, 0)},
@@ -114,7 +114,7 @@ func run() -> void:
 	for n in ["AIM-9L", "PYTH-3", "SA6", "MK-82", "20 MM"]:
 		radii_ok = radii_ok and by_name[n].radius == orig[n]
 	check(radii_ok, "Real blast radii from the lethal radii (SA-2 65 m, AIM-7M 23.75 m); the rest and Original kept")
-	var sk = load("res://weapons/ir_seeker.gd").new()
+	var sk = load("res://shared/weapons/ir_seeker.gd").new()
 	sk.set_weapon(by_name["AIM-9D"])
 	var me := {"pos": Vector3.ZERO, "yaw": 0.0}
 	check(
@@ -169,7 +169,7 @@ func run() -> void:
 	check(is_equal_approx(float(rst.station(9).w.motion._velocityJump), 1030.0), "the F-16 keeps the M61A1's 1030 m/s")
 
 	# --- gun rounds (pure) ----------------------------------------------------------------------
-	var G = load("res://weapons/gun_rounds.gd")
+	var G = load("res://shared/weapons/gun_rounds.gd")
 	var g = G.new()
 	g.configure(db.motion_for(565, 0), 565)
 	var unit := {"key": "u", "pos": Vector3(0, 1000, 100)}
@@ -360,7 +360,7 @@ func run() -> void:
 	var internal: float = tv.flight.state().internal_fuel_kg
 	for fixed in [false, true]:
 		settings().better["fix_stores_weight"] = fixed
-		var w2 = load("res://weapons/player_weapons.gd").new()
+		var w2 = load("res://shared/weapons/player_weapons.gd").new()
 		tv.add_child(w2)
 		w2.setup(tv, tank_load, f16, bdb, desc)
 		var want: float = internal + (2700.0 * 0.45359 if fixed else 2700.0)

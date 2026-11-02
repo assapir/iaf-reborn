@@ -55,7 +55,7 @@ The menus, HUD, radio messages and speech stay English.
 * Convert it with `iaf-convert menu … assets/converted/menu_he --pack assets/packs/he`. The front end uses it when the
   language is Hebrew.
 * Its `txt/msgs.trx` is still all English (message boxes, the On-The-Fly menu items). Ours: in Hebrew, every msgs
-  line the pack leaves in English takes our Hebrew from `game/menu/strings_he.json` "msgs" (`Settings.msgs()`, used
+  line the pack leaves in English takes our Hebrew from `iaf-reborn/menu/strings_he.json` "msgs" (`Settings.msgs()`, used
   by the message boxes and the On-The-Fly menu). A pack line in Hebrew wins.
 
 ### `he` — Hebrew retail CD (Hed Arzi, v1.0, copy-protected)
@@ -68,7 +68,7 @@ The menus, HUD, radio messages and speech stay English.
 * The official Hebrew v1.1 patch (`IAFheb1_1.EXE`) replaces those three files with the English v1.1 ones, so setup
   takes them from the CD into the `he` pack.
 * The Graphics page is v1.0 art: it lacks v1.1's 32MB / 48MB labels under the terrain slider.
-* In Hebrew the boot splash is the Hebrew one (`game/override.cfg`, written by `settings.gd`).
+* In Hebrew the boot splash is the Hebrew one (`iaf-reborn/override.cfg`, written by `settings.gd`).
 * The CD's `iafjets.exe` is the protected build. Setup takes nothing from it. `IAFheb1_1.EXE` does not apply to it:
   the patch wants the 2,623,488-byte exe of preflight.us's `IAF_Hebrew_Fix.zip`, now offline.
 

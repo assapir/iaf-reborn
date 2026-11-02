@@ -4,7 +4,7 @@
 # 120 frames in the same window (the water bench's method); prints the median of the on − off pairs. FX_DETAILED=1
 # turns on "Particle effects: Detailed". Run at 4K with a render scale so the GPU, not the display's refresh, sets the
 # frame (docs/graphics-research.md §1):
-#   FX_DETAILED=1 FX_SCALE=1.6 IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 3840x2160 -s \
+#   FX_DETAILED=1 FX_SCALE=1.6 IAF_DEFAULT_SETTINGS=1 godot --path iaf-reborn --resolution 3840x2160 -s \
 #     ../tests/godot/_fx_bench.gd
 extends "res://../tests/godot/base.gd"
 

@@ -5,14 +5,14 @@
 # stores that have no game record yet beside it, a GBU-39 falling, the F-15I Ra'am with GBU-28s and one falling
 # (SHOT_ONLY=raam). Needs a window; run it once per look:
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_MODELS=detailed SHOT_OUT=/tmp/shots -- --log-file /tmp/s.log \
-#       --path game --resolution 1600x900 -s ../tests/godot/_stores_shot.gd
+#       --path iaf-reborn --resolution 1600x900 -s ../tests/godot/_stores_shot.gd
 # Writes SHOT_OUT/<shot>_before.png (Original) or <shot>_after.png (Detailed). SHOT_ONLY=a,b picks cases.
 extends "res://../tests/godot/base.gd"
 
 ## [case, Jet list id (or the Mission Creator's jet type: mission 666), loads by pylon A..I ([weapon name, count]),
 ## shots [name, dist, yaw, pitch, aim (jet frame)], optional settings {name: value}, optional models shown beside the
 ## jet [[file under extra/models/stores, position (jet frame)]]].
-const Gltf := preload("res://util/gltf.gd")
+const Gltf := preload("res://shared/util/gltf.gd")
 const CASES := [
 	[
 		"f16_a",
@@ -224,7 +224,7 @@ func run() -> void:
 
 func _ids(mission: int) -> Dictionary:
 	var by_name := {}
-	for w in load("res://weapons/mission_weapons.gd").create(mission).weapons:
+	for w in load("res://shared/weapons/mission_weapons.gd").create(mission).weapons:
 		by_name[String(w.name)] = int(w.id)
 	return by_name
 
@@ -258,7 +258,7 @@ func _loadout_case(c: Array) -> void:
 	_pin()
 	var shown: Array = c[5] if c.size() > 5 else []
 	for m in shown:
-		var model = Gltf.open("res://extra/models/stores/" + String(m[0]))
+		var model = Gltf.open("res://shared/extra/models/stores/" + String(m[0]))
 		if model != null:
 			var n: Node3D = Gltf.instance(model)
 			tv.aircraft.add_child(n)

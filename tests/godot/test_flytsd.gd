@@ -225,7 +225,7 @@ func run() -> void:
 
 	# --- a unit unknown to the player (entity 0x35c = 0) shows once the player's radar records it (@4afae6) ---
 	var hidden: Dictionary = {}
-	var files: Array = load("res://mission/mission_runtime.gd").mission_files(221)
+	var files: Array = load("res://shared/mission/mission_runtime.gd").mission_files(221)
 	for fi in files.size():
 		for e in files[fi].data.get("entities", {}).get("items", []):
 			var ent: Dictionary = rt.entities.get("%d:%d" % [fi, int(e.get("0x1e", -1))], {}) if e is Dictionary else {}

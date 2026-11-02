@@ -69,7 +69,7 @@ the details.
 
 ## F-35I Adir: the panoramic cockpit display (PCD)
 
-Built (2026-10-21; f35i.md §4.3, `game/cockpit/pcd.gd`, `pcd_formats.gd`): the black glass, the Function Access Button
+Built (2026-10-21; f35i.md §4.3, `shared/cockpit/pcd.gd`, `pcd_formats.gd`): the black glass, the Function Access Button
 strip, four portals with their headers, legends and sub-portal tabs, the MENU grid, and the formats TSD-1 / 2 / 3,
 SRCH / ASR, SMS, TFLIR, TWD, EFI, ICAWS, FUEL and ENG, plus the ESIS. The F-35I has no original display, so this is
 its only one.
@@ -185,7 +185,7 @@ called TFLIR on the cockpit displays"[^baseline]. The threat format is TWD. MENU
 
 ## F-16C/D Barak (Block 30/40)
 
-Built (2026-10-30; mfd.md §9, `crates/iaf-avionics/src/f16_mfd.rs`, `game/cockpit/f16_mfd.gd`): the common frame
+Built (2026-10-30; mfd.md §9, `crates/iaf-avionics/src/f16_mfd.rs`, `shared/cockpit/f16_mfd.gd`): the common frame
 (the mnemonics by their real OSB numbers, the bottom row's SWAP, three formats and DCLT, the format menu), FCR, SMS,
 HSD, WPN (the Maverick, HAS, a GPS bomb's status), TGP and TEST. The F-16I Sufa draws them in colour (see "Colours
 and font"), the Barak in green. Built as decided where the sections below leave it open: HAS is offered (the WPN

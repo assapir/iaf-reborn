@@ -1,7 +1,7 @@
 # Every jet's Real HUD (not a test): per row one jet (Jet list id; the F-35I in place of the F-16), three cells: the
 # original HUD in NAV, the Real HUD in NAV, the Real HUD in the A-A gun mode with a MiG locked 800 m ahead. Mission
 # 231, 3000 m up. HUD_VIEW=real: the Real HUD cells with the real field of view. Writes real_hud_jets.png. Usage:
-#   SHOT_DIR=/tmp/shots IAF_DEFAULT_SETTINGS=1 godot --audio-driver Dummy --path game -s \
+#   SHOT_DIR=/tmp/shots IAF_DEFAULT_SETTINGS=1 godot --audio-driver Dummy --path iaf-reborn -s \
 #     ../tests/godot/_real_hud_jets_shot.gd
 extends "res://../tests/godot/base.gd"
 

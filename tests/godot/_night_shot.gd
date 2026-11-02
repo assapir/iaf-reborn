@@ -3,7 +3,8 @@
 # in NIGHT_LIGHTS (default original,detailed): the cockpit and the external view (SHOT_ORBIT "yaw,pitch,dist", default
 # 150,12,40), saved to SHOT_DIR/night_<mission>_<value>_{cockpit,external}.png with the frame rate
 # over 120 frames (vsync off).
-#   SHOT_DIR=/tmp/shots IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 1920x1080 -s ../tests/godot/_night_shot.gd
+#   SHOT_DIR=/tmp/shots IAF_DEFAULT_SETTINGS=1 godot --path iaf-reborn --resolution 1920x1080 \
+#     -s ../tests/godot/_night_shot.gd
 # NIGHT_VISION=1 puts the goggles on (Graphics → MORE "Night vision", §8) and adds "_nvg" to the file names.
 # terrain_view's user args pose it, e.g. `-- --hour 22 --at X Y ALT HDG PITCH --freeze` (--hour: the start time).
 extends "res://../tests/godot/base.gd"

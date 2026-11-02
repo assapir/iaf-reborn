@@ -21,8 +21,8 @@ An aircraft is **data from the original install + one generic piece of code**:
 | descriptor: parts, hinges, nozzles, stations, type codes | `assets/converted/planes/<p>/aircraft.json` | `iaf-convert aircraft` (`crates/iaf-tools/src/aircraft.rs`) |
 | index of all aircraft | `assets/converted/planes/aircraft.json` | same |
 | afterburner texture (`afterburn.tga`) | `assets/converted/planes/afterburn.png` | same |
-| per-type part rules (the original callback `FUN_005a09c0`) | `game/aircraft/aircraft_model.gd` `part_pose()` | code (a port) |
-| afterburner flame (`FUN_004121e0`) | `game/aircraft/afterburner.gd` | code (a port) |
+| per-type part rules (the original callback `FUN_005a09c0`) | `shared/aircraft/aircraft_model.gd` `part_pose()` | code (a port) |
+| afterburner flame (`FUN_004121e0`) | `shared/aircraft/afterburner.gd` | code (a port) |
 | flight model data | `resource/md/bd.ibx` `[<SECTION>]` + `<n>.dat` envelope | `crates/iaf-flight` (docs/flight-model.md) |
 | cockpit | `resource/cockpits/<c>` | `iaf-convert cockpit` (docs/cockpit.md) |
 
@@ -56,10 +56,10 @@ The converter replays what the original loader does with the frame file (`FUN_00
 * optional `part_rules` (hand-written; the converter leaves it out): per-part overrides
   `{ "<part>": {"sign": -1, "visible": false} }` for a model whose helper order conflicts with the type's rules.
 
-## 2. The generic component (`game/aircraft/aircraft_model.gd`)
+## 2. The generic component (`shared/aircraft/aircraft_model.gd`)
 
 ```gdscript
-var m = preload("res://aircraft/aircraft_model.gd").create("f16", 100, on_ground_start)
+var m = preload("res://shared/aircraft/aircraft_model.gd").create("f16", 100, on_ground_start)
 rig.add_child(m)
 m.update({"stick_x": sx, "stick_y": sy, "rudder": ru, "flaps": lever, "gear_down": g, "brakes": b,
           "hook": h, "chute": c, "on_ground": og, "gear": fm_gear_ramp, "afterburner": stage, "rpm": rpm}, delta)
@@ -131,7 +131,7 @@ flight-model.md §15.8) and both nozzles show the same level. Port choices:
 
 The controllable jets are the eight in `controllableplanes`; `bd.ibx` also has `[MIG25] [MIG17] [MIG21] [TU22]
 [C130] [SU24]` for the AI planes. Contact sheet of every model (gear / flaps / speed brakes / AB), a real render:
-`tools/godot_window.sh -- --log-file <log> --path game -s tools/aircraft_sheet.gd -- <out-dir> [plane…]`.
+`tools/godot_window.sh -- --log-file <log> --path iaf-reborn -s tools/aircraft_sheet.gd -- <out-dir> [plane…]`.
 
 ## 4. Adding a new aircraft
 
@@ -162,7 +162,7 @@ F-35I as the worked example.
 
 ## 5. Making a type flyable
 
-The flight scene flies any type through `game/aircraft/player_aircraft.gd`: `profile(type)` gives the plane folder
+The flight scene flies any type through `shared/aircraft/player_aircraft.gd`: `profile(type)` gives the plane folder
 (the descriptor whose `types` list holds the type: `f42000` serves F-4E 120 and F-4 2000 200), the flight-model
 section (descriptor `fm_section`), the cockpit (`COCKPIT`, the exe's type → `cockpits.ibx` index table
 `FUN_00447e70`, then `Cockpit00k = <dir>`) and the twin-engine flag (`TWIN`, logic+0x24). The Jet list's aircraft id
@@ -177,7 +177,7 @@ To add one:
    brake / afterburner / chute / ejection).
 
 Its Real rows are per type too: `crates/iaf-flight/src/data_set.rs` (flight data, incl. `ceiling_ft` and `chute`) and
-`game/weapons/real_weapons.gd` (`RADAR_KM`, `GUN_ROUNDS`). Ejection throws one seat per crew part of the model
+`shared/weapons/real_weapons.gd` (`RADAR_KM`, `GUN_ROUNDS`). Ejection throws one seat per crew part of the model
 (`pilot`, `pilotB`).
 
 Flyable today: the Jet list's seven (F-15 110, F-16 100, F-4E 120, F-4 2000 200, Lavi 140, Kfir 130, Mirage 190)

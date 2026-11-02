@@ -2,7 +2,7 @@
 # from a fixed camera near the player's jet: a ground vehicle's and an air kill's explosion, a missile hit, a missile
 # trail and the engine heat haze. FX_DETAILED=1 turns on Preferences > Graphics > MORE "Particle effects: Detailed".
 # Needs a window:
-#   FX_OUT=/tmp/fx FX_DETAILED=1 IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 1920x1080 -s \
+#   FX_OUT=/tmp/fx FX_DETAILED=1 IAF_DEFAULT_SETTINGS=1 godot --path iaf-reborn --resolution 1920x1080 -s \
 #     ../tests/godot/_fx_shot.gd
 # Saves FX_OUT/<scene>_<t>_<original|detailed>.png; FX_MISSION picks the mission (default 231).
 extends "res://../tests/godot/base.gd"

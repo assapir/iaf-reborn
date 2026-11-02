@@ -1,4 +1,4 @@
-//! `IafSetup`: the setup pipeline (`iaf_setup`, docs/setup.md) for the wizard (`game/setup/wizard.gd`). `start` runs
+//! `IafSetup`: the setup pipeline (`iaf_setup`, docs/setup.md) for the wizard (`iaf-reborn/setup/wizard.gd`). `start` runs
 //! the plan on its own thread; the wizard calls `poll` every frame for the steps' states, fractions and new log lines.
 //! Inputs travel as setup.json's JSON text (`iaf_setup::to_json` / `from_json`).
 

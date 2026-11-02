@@ -20,7 +20,7 @@ const F35I_CASE := [4, [1000, "cockpit", false]]
 func run() -> void:
 	# The Arming screen of a training mission (311, the file's F-16) after the Jet list's F-15: the F-15's art,
 	# stations and default load, the F-16's allowed counts (FUN_0058f110 / FUN_004ef8a0).
-	var MW: GDScript = load("res://weapons/mission_weapons.gd")
+	var MW: GDScript = load("res://shared/weapons/mission_weapons.gd")
 	settings().jet_id = 0
 	var picked: Array = MW.create(311).flights.values().filter(func(x): return x.has("limits"))
 	check(

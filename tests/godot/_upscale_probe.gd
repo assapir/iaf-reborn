@@ -4,8 +4,8 @@
 # timed (default: frozen, every mode). UP_GFX=ssao | vol_fog | ssao_ssil adds a heavy per-pixel effect.
 # UP_SHOT_DIR=dir: no timing; one shot per Upscaling choice (Settings.upscaling) as dir/upscale_<UP_TAG>_<choice>.png.
 # Run on the 120 Hz screen (--screen 1 here), so the GPU sets the frame (Metal holds it at the display's refresh):
-#   IAF_DEFAULT_SETTINGS=1 godot --path game --screen 1 --resolution 3840x2160 -s ../tests/godot/_upscale_probe.gd [-- \
-#     --external --orbit 150 10 25]
+#   IAF_DEFAULT_SETTINGS=1 godot --path iaf-reborn --screen 1 --resolution 3840x2160 \
+#     -s ../tests/godot/_upscale_probe.gd [-- --external --orbit 150 10 25]
 extends "res://../tests/godot/base.gd"
 
 const CFGS := [

@@ -1,5 +1,5 @@
 //! `IafMissile` (the chase motion of a homing weapon) and `IafGuided` (the guided motion of the TV missile / laser
-//! bomb) from `iaf_avionics::{missile, guided}`, for `game/weapons/missile.gd` and `guided.gd`.
+//! bomb) from `iaf_avionics::{missile, guided}`, for `shared/weapons/missile.gd` and `guided.gd`.
 
 use crate::world::{get, num, terrain, vec3, vector3};
 use godot::prelude::*;

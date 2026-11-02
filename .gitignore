@@ -4,5 +4,5 @@
 *.esa
 *.PTT
 .godot/
-/game/override.cfg
+/iaf-reborn/override.cfg
 __pycache__/

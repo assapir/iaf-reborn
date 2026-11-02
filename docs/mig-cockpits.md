@@ -135,7 +135,7 @@ are in %, as the game. The fuel face is in lb (Western art), as the game.
 
 ## 4. Better cockpit items per MiG
 
-The items: `Settings.BETTER_COCKPIT` (`game/settings.gd`) and docs/cockpit.md "Better cockpit". "Applies" means the
+The items: `Settings.BETTER_COCKPIT` (`shared/settings.gd`) and docs/cockpit.md "Better cockpit". "Applies" means the
 item changes something on that panel.
 
 | Item | MiG-23 | MiG-29 |

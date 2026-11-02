@@ -2,7 +2,7 @@
 
 This doc specifies the player's autopilot as the original v1.1 exe runs it: its modes, what engages and disengages it,
 the loops it flies and the landing training mission 312. It is for developers who port or maintain
-`crates/iaf-flight/src/autopilot.rs` and `game/controls/autopilot.gd`. All addresses are v1.1.
+`crates/iaf-flight/src/autopilot.rs` and `shared/controls/autopilot.gd`. All addresses are v1.1.
 
 **Terms**
 - **AI**: the computer-flown aircraft. **FM**: flight model ([flight-model.md](flight-model.md)).
@@ -371,7 +371,7 @@ origin (`Autopilot::origin`). In f64, P3 and P4 differ by ~4·10⁻⁵ m: the se
   loops, `keep_orientation`, the mode-0 rules of Fly2WayPt / LandingCL / StopPlane. `step` returns the posted commands
   (`Out`, with `ap_key`).
 - `crates/iaf-godot/src/flight.rs`: `ap_player_mode`, `ap_stage`. `ap_step` returns the commands.
-- `game/controls/autopilot.gd`: the mode, the lamp, the A key, stick / rudder break-out, throttle drop and re-sync,
+- `shared/controls/autopilot.gd`: the mode, the lamp, the A key, stick / rudder break-out, throttle drop and re-sync,
   damage, waypoint sequencing, and the commands mirrored on the levers. `terrain_view.gd` wires it in.
   `hud.gd` draws `AP LVL` / `AP NAV`.
 - Tests: `crates/iaf-flight/tests/autopilot.rs` (`player_level_mode_…`, `player_nav_…`, `player_approach_mission_312`,

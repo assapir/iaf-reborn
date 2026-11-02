@@ -21,7 +21,7 @@ cargo test -q --workspace                                     # Rust tests (data
 cargo test -q -p iaf-flight --test validation <name>          # one Rust test
 tools/test.sh                                                 # everything: cargo tests + every tests/godot/test_*.gd headless
 cargo build --release -p iaf-godot                            # needed before Godot tests: game loads target/release/libiaf_godot.*
-IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path game -s ../tests/godot/test_radar.gd   # one Godot test
+IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-reborn -s ../tests/godot/test_radar.gd   # one Godot test
 tools/ghidra/fn.sh 5643a0 | --grep PATTERN                    # decompiled original exe function (assets/ghidra_v11/iafjets.c)
 tools/worktree.sh <name>                                      # parallel worktree sharing assets/ via symlink
 tools/doclint.py                                              # lint the docs (links, paths, § refs, tables)
@@ -39,7 +39,7 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
   `tools/test.sh`, `guide_shots.sh` and `mission_sweep.sh` already do both; the project keeps 30 logs as a safety net.
 - A Godot test passes only if it prints `RESULT PASS` and prints zero `SCRIPT ERROR` lines.
 - Godot tests need the converted assets, so they run locally only (no hosted CI).
-- On a fresh clone Godot's import folder (`.godot` in `game/`) is missing. Run `godot --headless --path game --import` once, or the extension won't
+- On a fresh clone Godot's import folder (`.godot` in `iaf-reborn/`) is missing. Run `godot --headless --path iaf-reborn --import` once, or the extension won't
   load (`./iafjets` does this for you).
 - `tests/godot/_*_shot.gd` are real-render screenshot helpers (usage in each header). `tools/test.sh` skips them.
 - Run every real-render Godot process (screenshots, benches) through `tools/godot_window.sh VAR=value … -- <godot args>`:
@@ -67,17 +67,24 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
   (`gun.rs`), the homing / guided missiles (`missile.rs`, `guided.rs`), the IR seeker and MRM sight (`sight.rs`),
   the radio controller (`fctrl.rs`: AWACS contact calls, kill / airborne / landed reports), the stores (`stores.rs`), bombs / CCIP (`bombs.rs`), the master / HUD modes (`master.rs`), the RWR (`rwr.rs`), I-mode (`imode.rs`), the terrain height field (`heights.rs`),
   the EO (`eo.rs`) and HARM (`harm.rs`) sensors, the release rules (`release.rs`), the HUD's weapon values and range
-  scale (`hud.rs`), the per-jet Real HUD symbology (`real_hud/`) and the F-16's ground-avoidance cues (`gaaf.rs`). Their GDScript fronts in `game/weapons/` (`radar.gd`,
+  scale (`hud.rs`), the per-jet Real HUD symbology (`real_hud/`) and the F-16's ground-avoidance cues (`gaaf.rs`). Their GDScript fronts in `shared/weapons/` (`radar.gd`,
   `gun_rounds.gd`, `missile.gd`, `guided.gd`, `ir_seeker.gd`, `mrm_sight.gd`, `stores.gd`, `bombs.gd`, `rwr.gd`,
   `eo_sensor.gd`, `harm_sensor.gd`; the modes in `player_weapons.gd`) keep the old interface and mirror the state.
 - `crates/iaf-godot` — gdext bridge: `IafFlight` (`flight.rs`), `IafRadar` (`radar.rs`), `IafRounds` / `IafLcos`
   (`gun.rs`), `IafMissile` / `IafGuided` (`missile.rs`), `IafSeeker` / `IafMrmSight` (`sight.rs`), `IafStores`
   (`stores.rs`), `IafBomb` / `IafModes` (`bombs.rs`), `IafRwr` (`rwr.rs`), `IafEo` / `IafHarm` (`sensors.rs`), `IafRelease` / `IafRipple` (`release.rs`), `IafRealHud` (`real_hud.rs`), `IafFlightController` (`fctrl.rs`, the AWACS and radio reports), `IafSetup` (`setup.rs`, the setup wizard's pipeline), `IafSurface` (`surface.rs`, terraintype.dat rasterised for the terrain shader), `IafEmf` (`emf.rs`, the TSD map's polygon fill), `IafHeights` (`heights.rs`), `IafImode` (`imode.rs`), `IafBases` (`bases.rs`, the base move), `IafMcr` (`mcr.rs`, the Mission Creator), `IafMissionEdit` (`mission_edit.rs`, the mission editor), `IafAutorun` (`autorun.rs`, the CD launcher);
   `world.rs` converts the weapons' world frame. Handles the frame conversion: FM is ENU (east, north, up); Godot is
-  X east, Y up, Z south. Loaded via `game/iaf.gdextension`.
-- `game/` — Godot project. Main scene `menu/front_end.tscn`; autoloads `Settings` (`settings.gd`) and `Joystick`.
-  Flight scene is `terrain/terrain_view.tscn`. Subdirs by system: `aircraft`, `ai`, `cockpit`, `weapons` (radar, RWR,
-  stores), `mission`, `menu`, `audio`, `controls`, `terrain`, `editor` (the mission editor, `./mission-editor`). Assets are read at run time from
+  X east, Y up, Z south. Loaded via `iaf-reborn/iaf.gdextension`.
+- `iaf-reborn/` — the original game's Godot project: `menu` (the front end, TSD, pilots), `setup` (the wizard), `editor`
+  (the mission editor, `./mission-editor`), `viewer`, `project.godot`, `iaf.gdextension`. Main scene
+  `menu/front_end.tscn`; autoloads `Settings` (`res://shared/settings.gd`) and `Joystick`. Flight scene is
+  `res://shared/terrain/terrain_view.tscn`.
+- `shared/` — the engine GDScript, scenes and shaders every Godot project uses: `aircraft`, `ai`, `audio`, `cockpit`,
+  `controls`, `extra`, `mission`, `terrain`, `util`, `weapons` (radar, RWR, stores), `settings.gd` (the `Settings`
+  base class), `default_bus_layout.tres`. A project reaches it through one committed symlink, `iaf-reborn/shared ->
+  ../shared` (Windows: a junction, `tools/windows/links.ps1`), so every shared file is `res://shared/...`. A shared
+  script reaches the front end only through `Settings` (`front_end_scene()`, `front_end_overlay()`).
+  `tools/split_shared.py` made the split (`iaf-2026/docs/plan.md` A0). Assets are read at run time from
   `res://../assets/converted/...` and `assets/install`.
 - `tests/godot/` — headless tests extending `tests/godot/base.gd` (`check()`, `frames()`, `start_mission(id)`).
 
@@ -104,7 +111,7 @@ Rule of placement: game logic belongs in the Rust crates. Godot renders and wire
   in `tools/f35i/`) has to be tracked in the repo and be our own or redistributable.
 - Per-aircraft behaviour of the 1998 jets is keyed by type code scattered across many tables (`iaf-convert
   plane-checklist <code>` lists every table). A modern jet (the Sufa, the Ra'am, the F-35I) is its aircraft definition
-  `game/extra/planes/<id>/airframe.json`, and adding one means writing that file (`docs/adding-a-plane.md` "Modern
+  `shared/extra/planes/<id>/airframe.json`, and adding one means writing that file (`docs/adding-a-plane.md` "Modern
   planes"). A new modern-jet check reads the definition (`Settings.airframe`), never a type code or a switch.
 - Rust is formatted with `cargo fmt --all` (rustfmt.toml: width 120, compact heuristics); run it before committing
   Rust changes.
@@ -113,7 +120,7 @@ Rule of placement: game logic belongs in the Rust crates. Godot renders and wire
   Godot types; an exe constant is written as its exact stored value).
 - GDScript is formatted with gdtoolkit's `gdformat --line-length 120 <files>` (gdtoolkit 4.x: `pip install
   'gdtoolkit==4.*'` in a venv) and linted with `gdlint <files>` (config: `gdlintrc`); run both on the `.gd` files you
-  changed before committing. Then parse-check every script (`godot --headless --path game -s ../tools/gdparse.gd
+  changed before committing. Then parse-check every script (`godot --headless --path iaf-reborn -s ../tools/gdparse.gd
   --log-file <temp path>`, the autoloads loaded; exit 1 on a failure): gdformat can split a multi-line lambda inside
   an array in a way Godot rejects (7d3c78e).
 - Docs follow ISO 24495-1 plain language: relevant, findable, understandable, usable. Describe what a thing is or

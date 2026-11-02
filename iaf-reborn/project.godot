@@ -1,0 +1,190 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="iaf-reborn"
+config/description="Native re-implementation of Jane's IAF (1998)"
+run/main_scene="res://menu/startup.tscn"
+config/features=PackedStringArray("4.7", "Forward Plus")
+boot_splash/image="res://../assets/converted/menu/img/back0.png"
+boot_splash/bg_color=Color(0, 0, 0, 1)
+
+
+[debug]
+
+file_logging/max_log_files=30
+
+[audio]
+
+buses/default_bus_layout="res://shared/default_bus_layout.tres"
+
+[autoload]
+
+Settings="*res://shared/settings.gd"
+Joystick="*res://shared/controls/joystick.gd"
+
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+display_server/driver.linuxbsd="wayland"
+
+[shader_globals]
+
+terrain_detail={
+"type": "float",
+"value": 0.0
+}
+terrain_water={
+"type": "float",
+"value": 0.0
+}
+terrain_water_noise={
+"type": "sampler2D",
+"value": "res://shared/terrain/detail_normal.tres"
+}
+terrain_water_warp={
+"type": "sampler2D",
+"value": "res://shared/terrain/detail_noise.tres"
+}
+terrain_detail_tex={
+"type": "sampler2D",
+"value": "res://shared/terrain/detail_noise.tres"
+}
+terrain_detail_normal={
+"type": "sampler2D",
+"value": "res://shared/terrain/detail_normal.tres"
+}
+terrain_surface={
+"type": "sampler2D",
+"value": ""
+}
+terrain_surface_rect={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+terrain_airbases={
+"type": "float",
+"value": 0.0
+}
+airbase_mask={
+"type": "sampler2D",
+"value": ""
+}
+airbase_mask_rect={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+airbase_mask_xf={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+airbase_data={
+"type": "sampler2D",
+"value": ""
+}
+airbase_info={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+ground_roads={
+"type": "float",
+"value": 0.0
+}
+road_mask={
+"type": "sampler2D",
+"value": ""
+}
+road_marks={
+"type": "sampler2D",
+"value": ""
+}
+road_mask_rect={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+road_marks_rect={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+rain_wet={
+"type": "float",
+"value": 0.0
+}
+rain_spec={
+"type": "float",
+"value": 0.3
+}
+ground_tex={
+"type": "float",
+"value": 0.0
+}
+terrain_warm={
+"type": "float",
+"value": 0.0
+}
+city_glow_k={
+"type": "float",
+"value": 0.0
+}
+city_glow={
+"type": "sampler2D",
+"value": ""
+}
+city_glow_rect={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+city_glow_fog={
+"type": "float",
+"value": 0.0
+}
+clouds_on={
+"type": "float",
+"value": 0.0
+}
+clouds_light={
+"type": "sampler2D",
+"value": ""
+}
+clouds_dist={
+"type": "sampler2D",
+"value": ""
+}
+clouds_full={
+"type": "vec2",
+"value": Vector2(0, 0)
+}
+ground_albedo={
+"type": "sampler2DArray",
+"value": ""
+}
+ground_nr={
+"type": "sampler2DArray",
+"value": ""
+}
+ground_scale_a={
+"type": "vec4",
+"value": Vector4(1, 1, 1, 1)
+}
+ground_scale_b={
+"type": "vec4",
+"value": Vector4(1, 1, 1, 1)
+}
+
+[rendering]
+
+textures/vram_compression/compress_with_gpu=false
+
+lights_and_shadows/directional_shadow/size=4096
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality=3
+
+anti_aliasing/quality/msaa_3d=2

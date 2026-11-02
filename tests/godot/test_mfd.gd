@@ -7,9 +7,9 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	var Eo = load("res://weapons/eo_sensor.gd")
-	var Harm = load("res://weapons/harm_sensor.gd")
-	var Mfd = load("res://cockpit/mfd.gd")
+	var Eo = load("res://shared/weapons/eo_sensor.gd")
+	var Harm = load("res://shared/weapons/harm_sensor.gd")
+	var Mfd = load("res://shared/cockpit/mfd.gd")
 	# --- pure: the EO camera -----------------------------------------------------------------------
 	var e = Eo.new()
 	var base := Vector2.ZERO

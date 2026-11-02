@@ -7,8 +7,8 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	var Rwr = load("res://weapons/rwr.gd")
-	var Cockpit = load("res://cockpit/cockpit.gd")
+	var Rwr = load("res://shared/weapons/rwr.gd")
+	var Cockpit = load("res://shared/cockpit/cockpit.gd")
 	# --- pure ------------------------------------------------------------------------------------
 	var units := {
 		"sam": {"pos": Vector3(14142, 14142, 0), "klass": 8, "type": 300, "state": 1},  # SA-3, 20 km at 045°

@@ -1,6 +1,6 @@
 # Credits
 
-The credits roll when you quit from the menus, as in the original. The code is in game/menu/credits_roll.gd.
+The credits roll when you quit from the menus, as in the original. The code is in iaf-reborn/menu/credits_roll.gd.
 
 * **Trigger**: QUIT → "Are you sure you want to quit the game?" → Yes. The roll runs only when the game was started
   without arguments (`./iafjets`).
@@ -10,7 +10,7 @@ The credits roll when you quit from the menus, as in the original. The code is i
 
 ## Adding a credit
 
-Our lines are in **game/menu/credits_ours.json**. Keep them out of the script. Each entry is one line:
+Our lines are in **iaf-reborn/menu/credits_ours.json**. Keep them out of the script. Each entry is one line:
 
 ```json
 {"style": "role", "text": "Created by", "he": "יוצר"},
@@ -42,15 +42,15 @@ for each.
 
 | Model | Based on | Licence | Full credit |
 |---|---|---|---|
-| Detailed F-16D and F-16I Sufa (docs/aircraft-models.md, docs/f16i.md §8.1) | the FlightGear F-16, https://github.com/NikolaiVChr/f16, by Erik Hofman, Nikolai V. Chr., J Maverick 16, Pensacola and the other authors in its `authors.txt`; its centreline pylon and IAF livery, and the Sufa's conformal fuel tanks and P&W nozzle, come from the same project | GPL 2.0 or later | `game/extra/models/f16/SOURCES.md` (commit, authors, changes, the photo references) |
-| 3D F-16 cockpit (docs/cockpit.md "3D cockpit") | the FlightGear F-16's cockpit (`Models/Cockpit/`), https://github.com/NikolaiVChr/f16, 3D work by J Maverick 16, textures and layout by Martin "Pegasus" Schmitt and Prohm "Rama" Snitwong, MFD / HUD / cockpit changes by Nikolai V. Chr., with Jonathan Redpath, Erik Hofman and the other authors in its `authors.txt` | GPL 2.0 or later | `game/extra/models/cockpit3d/SOURCES.md` (commit, authors, files, changes) |
-| Detailed stores (docs/aircraft-models.md §5) | the FlightGear F-16's weapons and external stores (`Models/Armament/`), https://github.com/NikolaiVChr/f16, 3D work by J Maverick 16, with Nikolai V. Chr., Erik Hofman and the other authors in its `authors.txt`; the tanks' paint from its IAF livery | GPL 2.0 or later | `game/extra/models/stores/SOURCES.md` (commit, authors, files, changes) |
-| Detailed Soviet stores (docs/aircraft-models.md §5) | the FlightGear MiG-21bis's R-3S (AA-2), https://github.com/l0k1/MiG-21bis, by the OPRF MiG-21bis team (Petar Jedvaj, JMav-16, NikolaiVChr, pinto and the other authors in its `MiG-21bis-set.xml`); the FlightGear MiG-29 9-12's R-60M (AA-8), R-27R (AA-10), R-73 (AA-11) and PTB-1500 tank, https://github.com/Mercenary-Mercury/MiG-29_9-12, by Sergey "Mercenary_Mercury" Salov | GPL 3.0 | `game/extra/models/stores/SOURCES.md` |
-| Detailed MiG-29 (docs/aircraft-models.md §7) | the FlightGear MiG-29 9-12, https://github.com/Mercenary-Mercury/MiG-29_9-12 (commit d4a299b), external model by Enrique Laso Leon, FDM, cockpit and submodels by Sergey "Mercenary_Mercury" Salov; its pilot, K-36DM seat and default livery | GPL 3.0 | `game/extra/models/mig29/SOURCES.md` |
+| Detailed F-16D and F-16I Sufa (docs/aircraft-models.md, docs/f16i.md §8.1) | the FlightGear F-16, https://github.com/NikolaiVChr/f16, by Erik Hofman, Nikolai V. Chr., J Maverick 16, Pensacola and the other authors in its `authors.txt`; its centreline pylon and IAF livery, and the Sufa's conformal fuel tanks and P&W nozzle, come from the same project | GPL 2.0 or later | `shared/extra/models/f16/SOURCES.md` (commit, authors, changes, the photo references) |
+| 3D F-16 cockpit (docs/cockpit.md "3D cockpit") | the FlightGear F-16's cockpit (`Models/Cockpit/`), https://github.com/NikolaiVChr/f16, 3D work by J Maverick 16, textures and layout by Martin "Pegasus" Schmitt and Prohm "Rama" Snitwong, MFD / HUD / cockpit changes by Nikolai V. Chr., with Jonathan Redpath, Erik Hofman and the other authors in its `authors.txt` | GPL 2.0 or later | `shared/extra/models/cockpit3d/SOURCES.md` (commit, authors, files, changes) |
+| Detailed stores (docs/aircraft-models.md §5) | the FlightGear F-16's weapons and external stores (`Models/Armament/`), https://github.com/NikolaiVChr/f16, 3D work by J Maverick 16, with Nikolai V. Chr., Erik Hofman and the other authors in its `authors.txt`; the tanks' paint from its IAF livery | GPL 2.0 or later | `shared/extra/models/stores/SOURCES.md` (commit, authors, files, changes) |
+| Detailed Soviet stores (docs/aircraft-models.md §5) | the FlightGear MiG-21bis's R-3S (AA-2), https://github.com/l0k1/MiG-21bis, by the OPRF MiG-21bis team (Petar Jedvaj, JMav-16, NikolaiVChr, pinto and the other authors in its `MiG-21bis-set.xml`); the FlightGear MiG-29 9-12's R-60M (AA-8), R-27R (AA-10), R-73 (AA-11) and PTB-1500 tank, https://github.com/Mercenary-Mercury/MiG-29_9-12, by Sergey "Mercenary_Mercury" Salov | GPL 3.0 | `shared/extra/models/stores/SOURCES.md` |
+| Detailed MiG-29 (docs/aircraft-models.md §7) | the FlightGear MiG-29 9-12, https://github.com/Mercenary-Mercury/MiG-29_9-12 (commit d4a299b), external model by Enrique Laso Leon, FDM, cockpit and submodels by Sergey "Mercenary_Mercury" Salov; its pilot, K-36DM seat and default livery | GPL 3.0 | `shared/extra/models/mig29/SOURCES.md` |
 | Detailed F-15 (docs/aircraft-models.md §6) | the FlightGear F-15C/D, https://github.com/Zaretto/fg-aircraft (`aircraft/F-15`, commit 062cb58), 3D model by Enrique Laso, rig and systems by Richard Harrison (Zaretto), cockpit textures by GeneB; its grey livery, its IAF F-15I livery (69 Squadron, tail 269; the F-15I Ra'am, §6.7), its rear cockpit and IAF pilot patch | GPL 2.0 only (the author, fg-aircraft issue #211); setup downloads and converts it on the player's machine, so the repo and the game's distribution hold none of it | `crates/iaf-tools/src/f15.rs` (files, checksums, changes) |
-| F-35I Adir (docs/f35i.md) | "Lockheed Martin F35 Lightning II" by andertan, https://sketchfab.com/3d-models/lockheed-martin-f35-lightning-ii-db911de503c74285a8d506951df786d6 | CC BY 4.0, https://creativecommons.org/licenses/by/4.0/ | `game/extra/planes/f35i/CREDITS.md` |
-| F-35I 116 Squadron badge | "IAF Squadron 116 Adir.png" by the IDF Spokesperson's Unit, https://commons.wikimedia.org/wiki/File:IAF_Squadron_116_Adir.png | CC BY-SA 3.0, https://creativecommons.org/licenses/by-sa/3.0/ | `game/extra/planes/f35i/CREDITS.md` |
-| The setup wizard's icon (docs/setup.md) | "Roundel of Israel.svg" by Zscout370, https://commons.wikimedia.org/wiki/File:Roundel_of_Israel.svg, with our "REBORN" banner | CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/ | `game/setup/icon.svg` |
+| F-35I Adir (docs/f35i.md) | "Lockheed Martin F35 Lightning II" by andertan, https://sketchfab.com/3d-models/lockheed-martin-f35-lightning-ii-db911de503c74285a8d506951df786d6 | CC BY 4.0, https://creativecommons.org/licenses/by/4.0/ | `shared/extra/planes/f35i/CREDITS.md` |
+| F-35I 116 Squadron badge | "IAF Squadron 116 Adir.png" by the IDF Spokesperson's Unit, https://commons.wikimedia.org/wiki/File:IAF_Squadron_116_Adir.png | CC BY-SA 3.0, https://creativecommons.org/licenses/by-sa/3.0/ | `shared/extra/planes/f35i/CREDITS.md` |
+| The setup wizard's icon (docs/setup.md) | "Roundel of Israel.svg" by Zscout370, https://commons.wikimedia.org/wiki/File:Roundel_of_Israel.svg, with our "REBORN" banner | CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/ | `iaf-reborn/setup/icon.svg` |
 
 ## Texture credits
 
@@ -93,7 +93,7 @@ from photos, `crates/iaf-tools/data/f15-livery/`).
 The `imagery` entry expands to "Terrain Imagery", followed by the `attribution` of every converted imagery layer
 (`assets/converted/imagery/<id>/manifest.json`, written by `iaf-imagery`).
 
-* Identical attributions are listed once (`game/terrain/imagery_layers.gd attributions()`).
+* Identical attributions are listed once (`shared/terrain/imagery_layers.gd attributions()`).
 * The list builds itself. When a new source is converted, its manifest's `attribution` rolls. Example: the Survey of
   Israel 2015 photo, "© Survey of Israel 2015, via data.gov.il".
 * When no layer is converted, the section is left out.
@@ -154,7 +154,7 @@ iaf-2026/docs/sound.md §6.
   (default 40):
   ```sh
   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 CREDITS_SHOT=/tmp/credits.png -- \
-      --log-file /tmp/credits.log --path game -s ../tests/godot/_credits_shot.gd
+      --log-file /tmp/credits.log --path iaf-reborn -s ../tests/godot/_credits_shot.gd
   ```
   `CREDITS_LANG=he` takes the Hebrew roll.
 * In the game: run `./iafjets`, then QUIT and Yes.

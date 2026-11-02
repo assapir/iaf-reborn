@@ -1,7 +1,7 @@
-# Parse-checks every GDScript in game/ and tests/godot/ with the project's autoloads in place (a plain
+# Parse-checks every GDScript in iaf-reborn/ and tests/godot/ with the project's autoloads in place (a plain
 # `--check-only -s <file>` reports their names as unknown identifiers). Prints one BAD line per script that fails to
 # load and the count; exit status 1 on any failure:
-#   godot --headless --path game -s ../tools/gdparse.gd --log-file <temp path>
+#   godot --headless --path iaf-reborn -s ../tools/gdparse.gd --log-file <temp path>
 extends SceneTree
 
 

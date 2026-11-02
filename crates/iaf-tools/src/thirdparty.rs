@@ -86,7 +86,7 @@ pub const GROUND_TEXTURES: &[Material] = &[
     },
 ];
 
-/// The "Model detail" materials (Graphics → MORE, game/util/model_detail.gd), in that file's MATERIALS order: painted,
+/// The "Model detail" materials (Graphics → MORE, shared/util/model_detail.gd), in that file's MATERIALS order: painted,
 /// worn, concrete, rubber. The game sets each use's own repeat; `size_m` is the material's real size.
 pub const MODEL_DETAIL: &[Material] = &[
     Material {
@@ -115,7 +115,7 @@ pub const MODEL_DETAIL: &[Material] = &[
     },
 ];
 
-/// The "Scenery" wall materials (Graphics → MORE, game/terrain/scenery.gdshader), in the shader's layer order = the
+/// The "Scenery" wall materials (Graphics → MORE, shared/terrain/scenery.gdshader), in the shader's layer order = the
 /// cell file's wall index (docs/scenery.md): plaster, stone, concrete, corrugated steel. The roof colour tints them.
 pub const SCENERY_WALLS: &[Material] = &[
     Material {
@@ -144,7 +144,7 @@ pub const SCENERY_WALLS: &[Material] = &[
     },
 ];
 
-/// The scenery trees' sources (game/terrain/scenery.gd, docs/scenery.md §3.2), in `foliage::LAYERS` order: setup
+/// The scenery trees' sources (shared/terrain/scenery.gd, docs/scenery.md §3.2), in `foliage::LAYERS` order: setup
 /// composes the foliage textures from their kept colour and opacity maps (`foliage::build`). `size_m`: one leaf,
 /// sprig or blade, the bark's repeat.
 pub const TREE_TEXTURES: &[Material] = &[

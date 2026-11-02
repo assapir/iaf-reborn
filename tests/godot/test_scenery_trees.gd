@@ -8,8 +8,8 @@ const TMP := "user://test_scenery_trees"
 
 
 func run() -> void:
-	var Scenery: GDScript = load("res://terrain/scenery.gd")
-	var GroundTextures: GDScript = load("res://terrain/ground_textures.gd")
+	var Scenery: GDScript = load("res://shared/terrain/scenery.gd")
+	var GroundTextures: GDScript = load("res://shared/terrain/ground_textures.gd")
 
 	# --- the fallback: no textures ---
 	DirAccess.make_dir_recursive_absolute(TMP.path_join("thirdparty/ambientcg"))

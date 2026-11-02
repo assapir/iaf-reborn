@@ -7,7 +7,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	var FX: GDScript = load("res://mission/damage_effects.gd")
+	var FX: GDScript = load("res://shared/mission/damage_effects.gd")
 	check(
 		FX.effects_level(0.0) == 1 and FX.effects_level(0.5) == 2 and FX.effects_level(1.0) == 3,
 		"effects level 1 + 2·slider"
@@ -41,7 +41,7 @@ func run() -> void:
 	fx.queue_free()
 
 	# SMOKE TRAILS: one point per owner frame, the glow while growing, a gap of > 3 frames restarts.
-	var Trails: GDScript = load("res://mission/trails.gd")
+	var Trails: GDScript = load("res://shared/mission/trails.gd")
 	var tr = Trails.new()
 	root.add_child(tr)
 	for i in 10:
@@ -66,8 +66,8 @@ func run() -> void:
 	tr.queue_free()
 
 	# OBJECT DETAIL: levels and switch distances (F·extent·0.7 / px, F = 640 / tan 25°).
-	var TV: GDScript = load("res://terrain/terrain_view.gd")
-	var Gltf: GDScript = load("res://util/gltf.gd")
+	var TV: GDScript = load("res://shared/terrain/terrain_view.gd")
+	var Gltf: GDScript = load("res://shared/util/gltf.gd")
 	check(Gltf.detail_level(0.0) == 1 and Gltf.detail_level(1.0) == 3, "object level 1 + 2·slider")
 	var d3: Vector2 = TV.lod_distances(3, 10.0)
 	check(
@@ -144,7 +144,7 @@ func run() -> void:
 	tv.apply_render_options()
 	check(tv.clouds != null, "textured sky on in flight: the layer comes back")
 	# Extras render options (docs/rendering.md): defaults = the look before; each switch sets its render settings.
-	var RO: GDScript = load("res://terrain/render_options.gd")
+	var RO: GDScript = load("res://shared/terrain/render_options.gd")
 	var vp: Viewport = tv.get_viewport()
 	var env: Environment = (tv.get_node("WorldEnvironment") as WorldEnvironment).environment
 	var sky0: Sky = env.sky
@@ -290,7 +290,7 @@ func run() -> void:
 	# every node ("requires tangents with a mesh that doesn't contain tangents"); the detail normal is built in
 	# the fragment shader instead.
 	var re := RegEx.create_from_string("\\b(NORMAL_MAP|TANGENT|BINORMAL)\\b")
-	var code: String = load("res://terrain/terrain.gdshader").code
+	var code: String = load("res://shared/terrain/terrain.gdshader").code
 	var drawn: Array = tv.terrain.find_children("*", "MeshInstance3D", false, false)
 	check(
 		(

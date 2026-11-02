@@ -8,7 +8,7 @@ var aircraft_model: GDScript
 
 
 func run() -> void:
-	aircraft_model = load("res://aircraft/aircraft_model.gd")
+	aircraft_model = load("res://shared/aircraft/aircraft_model.gd")
 	var air: Node3D = aircraft_model.create("f35i", 1000, false)
 	root.add_child(air)
 	air.update({}, 0.1)

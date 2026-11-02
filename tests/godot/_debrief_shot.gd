@@ -2,7 +2,7 @@
 # after a real mission DEB_MISSION (default 115): up to DEB_PER_TYPE (2) enemy units of each type and the player's
 # jet are set destroyed, the flight ends through DEBRIEF, and each tab (Debriefing / Kill Tally / Losses) is saved
 # as DEB_SHOT with _0 / _1 / _2 before ".png", in DEB_LANG (en / he).
-#   DEB_LANG=he DEB_SHOT=/tmp/deb.png IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 1280x960 -s \
+#   DEB_LANG=he DEB_SHOT=/tmp/deb.png IAF_DEFAULT_SETTINGS=1 godot --path iaf-reborn --resolution 1280x960 -s \
 #     ../tests/godot/_debrief_shot.gd
 extends "res://../tests/godot/base.gd"
 

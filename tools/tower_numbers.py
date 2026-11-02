@@ -6,7 +6,7 @@ some of them; this speaks the missing ones with Piper TTS and the voice en_US-jo
 matches the originals: 22050 Hz 16-bit mono, the radio band (300-3000 Hz, nothing of the originals is above 4 kHz
 or below 200 Hz), the voiced RMS of the install's NumNNN clips, the peak at their 0.79, the silence trimmed.
 The wording follows the originals: digit by digit with a leading zero ("zero three", "two seven"). It also speaks a
-parallel runway's letter (left, right, center). A clip already in game/extra/tower_numbers is kept: delete it to
+parallel runway's letter (left, right, center). A clip already in shared/extra/tower_numbers is kept: delete it to
 make it again.
 
 Setup (once, under ~/.cache, not system-wide):
@@ -27,7 +27,7 @@ from scipy.signal import butter, sosfiltfilt
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INSTALL = os.path.join(ROOT, "assets/install/resource/soundfiles")
-OUT = os.path.join(ROOT, "game/extra/tower_numbers")
+OUT = os.path.join(ROOT, "shared/extra/tower_numbers")
 VOICE = os.path.expanduser("~/.cache/iaf-tts/voices/en_US-john-medium.onnx")
 SR = 22050
 PEAK = 0.79  # the originals' peak (-2 dBFS)

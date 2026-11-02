@@ -5,8 +5,8 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	var RO: GDScript = load("res://terrain/render_options.gd")
-	var shader: Shader = load("res://terrain/terrain.gdshader")
+	var RO: GDScript = load("res://shared/terrain/render_options.gd")
+	var shader: Shader = load("res://shared/terrain/terrain.gdshader")
 	check(not settings().water and settings().default_value("water") == false, "water defaults to the original")
 	var tv = await start_mission(311)
 	await frames(10)

@@ -8,7 +8,7 @@ extends "res://../tests/godot/base.gd"
 
 func run() -> void:
 	var s := settings()
-	var weather: GDScript = load("res://terrain/weather.gd")
+	var weather: GDScript = load("res://shared/terrain/weather.gd")
 	s.rain = "heavy"
 	var cfg: ConfigFile = s.write_config()
 	s.rain = "off"
@@ -88,7 +88,7 @@ func run() -> void:
 	s.flight_weather = ""
 	tv.apply_render_options()
 	# The mission's misc picks the flight's weather (MissionRuntime.mission_files → Settings.mission_weather).
-	var rt: GDScript = load("res://mission/mission_runtime.gd")
+	var rt: GDScript = load("res://shared/mission/mission_runtime.gd")
 	var mc_files: Array = s.mc_files
 	s.mc_files = [{"name": "t", "data": {"misc": {"items": [{"weather": "heavy"}]}}}]
 	rt.mission_files(0x29a)

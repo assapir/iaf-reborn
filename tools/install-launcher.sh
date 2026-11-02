@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Desktop launchers: "Jane's IAF (reborn)" runs ./iafjets, with the original icon (assets/converted/icon.png, extracted
 # from iafjets.exe); "Jane's IAF (reborn) — Setup" runs ./setup (the setup wizard, docs/setup.md), with ours
-# (game/setup/icon.png: the IAF roundel with "REBORN").
+# (iaf-reborn/setup/icon.png: the IAF roundel with "REBORN").
 # Linux: ~/.local/share/applications/iaf-reborn.desktop (the file name matches the game window's app id, iaf-reborn,
 # which is how GNOME / KDE pick the window icon) and iaf-reborn-setup.desktop.
 # macOS: ~/Applications/Jane's IAF (reborn).app and "Jane's IAF (reborn) — Setup.app", bundles running the scripts.
@@ -10,7 +10,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 root=$(pwd)
 if [[ "$(uname)" == Darwin ]]; then
-	for entry in "Jane's IAF (reborn)|iafjets|org.iaf-reborn.launcher|assets/converted/icon.png" "Jane's IAF (reborn) — Setup|setup|org.iaf-reborn.setup|game/setup/icon.png"; do
+	for entry in "Jane's IAF (reborn)|iafjets|org.iaf-reborn.launcher|assets/converted/icon.png" "Jane's IAF (reborn) — Setup|setup|org.iaf-reborn.setup|iaf-reborn/setup/icon.png"; do
 		IFS='|' read -r name script id icon <<<"$entry"
 		app="$HOME/Applications/$name.app"
 		rm -rf "$app"
@@ -65,7 +65,7 @@ Name=Jane's IAF (reborn) — Setup
 Comment=Set up Jane's IAF (reborn) from your CDs, or add an extra
 Exec="$root/setup"
 Path=$root
-Icon=$root/game/setup/icon.png
+Icon=$root/iaf-reborn/setup/icon.png
 Terminal=false
 Categories=Game;Simulation;
 DESKTOP

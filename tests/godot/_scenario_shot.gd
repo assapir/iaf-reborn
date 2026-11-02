@@ -2,7 +2,7 @@
 # SCN_SHOT_DIR: 1.png a fork of 512 Wild West (its original rules), 2.png a New mission with three rules built on the
 # tab (one with a unit still to pick) and an enemy flight that takes off on a rule, 3.png its Flights tab with that
 # flight picked (waiting for the rule). The missions live in user://missions_shot_scn and are removed after.
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SCN_SHOT_DIR=/tmp -- --log-file /tmp/scn.log --path game \
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SCN_SHOT_DIR=/tmp -- --log-file /tmp/scn.log --path iaf-reborn \
 #     --resolution 1600x1000 -s ../tests/godot/_scenario_shot.gd
 extends "res://../tests/godot/base.gd"
 

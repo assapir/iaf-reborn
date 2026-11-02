@@ -31,7 +31,7 @@ func run() -> void:
 	)
 
 	# --- leader death (FUN_004a86b0 → FUN_00440eb0 → FUN_00440ed0): the wingman takes the dead leader's index ---
-	var DM = load("res://mission/damage_model.gd")
+	var DM = load("res://shared/mission/damage_model.gd")
 	var ai_pair: Dictionary = {}
 	for f in tv.ai._formations:
 		if (

@@ -15,9 +15,9 @@
 # (the day part in pieces: a piece re-run alone when the AI flies it differently).
 # Each shot prints "SEG <name> <first frame> <last frame>" (drawn frames from the start): the frames between the
 # shots (teleports, terrain loading) are cut when the clip is assembled. Run hidden, e.g.:
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 DEMO_PART=day -- --log-file /tmp/d.log --path game \
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 DEMO_PART=day -- --log-file /tmp/d.log --path iaf-reborn \
 #       --write-movie /tmp/day.avi --fixed-fps 30 -s ../tests/godot/_adir_demo_shot.gd [-- --hour 20.1]
-# (the movie's size is the project's viewport size: a temporary game/override.cfg sets 3840 x 2160).
+# (the movie's size is the project's viewport size: a temporary iaf-reborn/override.cfg sets 3840 x 2160).
 extends "res://../tests/godot/base.gd"
 
 ## Ramon's line-up point and runway (iaf.ibx [Ramon]), world metres (X east, Y north, Z up).
@@ -114,7 +114,7 @@ func run() -> void:
 ## A fresh weapons node with HARDPOINTS (the stores, pylons and bays as loaded at the Arming screen).
 func _arm() -> void:
 	var old = tv.weapons
-	w = load("res://weapons/player_weapons.gd").new()
+	w = load("res://shared/weapons/player_weapons.gd").new()
 	tv.add_child(w)
 	var bdb: Dictionary = tv.mission_bdb
 	w.setup(tv, {"armament": {"hardpoints": HARDPOINTS}}, tv._player_object(bdb), bdb, old.descriptor)
@@ -323,7 +323,7 @@ func _sea() -> void:
 	w.select_ag()
 	w.ripple_qty = 1
 	# The FLIR pod on the tank (as on a radar-locked unit, _eo_start), the laser on.
-	w.eo.start(load("res://weapons/eo_sensor.gd").FLIR, true, String(tank.key), w.now)
+	w.eo.start(load("res://shared/weapons/eo_sensor.gd").FLIR, true, String(tank.key), w.now)
 	w.eo_on_unit = true
 	w.eo.laser = true
 	await _until(func(): return _w_dist(tgt_w) < 2600.0, 12.0)
@@ -389,7 +389,7 @@ func _wing() -> void:
 	await _fly_ready(p, 65.0, 230.0, false)
 	_ap_level()
 	var install: String = settings().assets_dir().path_join("install")
-	adir = load("res://aircraft/aircraft_model.gd").create("f35i", 1000, false)
+	adir = load("res://shared/aircraft/aircraft_model.gd").create("f35i", 1000, false)
 	tv.add_child(adir)
 	adir_fm = ClassDB.instantiate("IafFlight")
 	var ap: Vector3 = (
@@ -397,7 +397,7 @@ func _wing() -> void:
 	)
 	adir_fm.start(
 		install,
-		load("res://aircraft/player_aircraft.gd").profile(1000).fm_section,
+		load("res://shared/aircraft/player_aircraft.gd").profile(1000).fm_section,
 		_w2s(ap),
 		Vector3(0.0, 0.0, 65.0),
 		_s_dir(65.0) * 226.0,

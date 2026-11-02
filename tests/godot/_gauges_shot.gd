@@ -2,7 +2,7 @@
 # Jet list jet with round gauges (not a test): mission 312, airborne, drop tanks, AB 1 for 3 s, the panel fully up.
 # Writes gauges_<cockpit>.png (the whole frame) and gauges_<cockpit>_zoom.png (the gauges' area, 2× nearest).
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=~/.cache/shots -- --log-file ~/.cache/g.log --resolution \
-#     1920x1080 --path game -s ../tests/godot/_gauges_shot.gd
+#     1920x1080 --path iaf-reborn -s ../tests/godot/_gauges_shot.gd
 extends "res://../tests/godot/base.gd"
 
 ## Jet list ids: F-15, F-16, F-4E, Kurnass 2000, Lavi, Kfir, Mirage.
@@ -15,7 +15,7 @@ func run() -> void:
 		print("needs a window and SHOT_DIR")
 		return
 	DirAccess.make_dir_recursive_absolute(dir)
-	var G = load("res://cockpit/gauges.gd")
+	var G = load("res://shared/cockpit/gauges.gd")
 	settings().better_cockpit = true
 	for id in JETS:
 		settings().jet_id = id

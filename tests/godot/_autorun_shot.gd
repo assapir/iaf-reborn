@@ -1,7 +1,7 @@
-# Dev helper (not run by tools/test.sh): a real-render capture of the CD launcher (game/menu/autorun.gd,
+# Dev helper (not run by tools/test.sh): a real-render capture of the CD launcher (iaf-reborn/menu/autorun.gd,
 # docs/front-end.md §18.1) saved to AUTORUN_SHOT. AUTORUN_STATE: "start" (PLAY focused, default), "quit" (focus on
 # QUIT) or "pressed" (the mouse held down on QUIT), e.g.
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 AUTORUN_SHOT=/tmp/a.png -- --log-file /tmp/a.log --path game \
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 AUTORUN_SHOT=/tmp/a.png -- --log-file /tmp/a.log --path iaf-reborn \
 #     --resolution 1280x960 -s ../tests/godot/_autorun_shot.gd
 extends "res://../tests/godot/base.gd"
 

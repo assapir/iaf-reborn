@@ -1,7 +1,7 @@
 # Dev helper (not run by tools/test.sh): a real-render capture of a Preferences page (PREF_PAGE: the tab's label,
 # e.g. Devices, Extras, Physics, or Graphics+ for the Graphics page's MORE view; default Devices) in PREF_LANG (en /
 # he), saved to PREF_SHOT; prints the labels that have no Hebrew text. PREF_ROW=<setting key> scrolls to that row.
-#   PREF_PAGE=Devices PREF_LANG=he PREF_SHOT=/tmp/p.png IAF_DEFAULT_SETTINGS=1 godot --path game --resolution \
+#   PREF_PAGE=Devices PREF_LANG=he PREF_SHOT=/tmp/p.png IAF_DEFAULT_SETTINGS=1 godot --path iaf-reborn --resolution \
 #     1920x1080 -s ../tests/godot/_prefs_shot.gd
 extends "res://../tests/godot/base.gd"
 

@@ -1,4 +1,4 @@
-//! `IafRwr`: the RWR (`iaf_avionics::rwr`, docs/rwr.md) for `game/weapons/rwr.gd`. Every call that needs the world
+//! `IafRwr`: the RWR (`iaf_avionics::rwr`, docs/rwr.md) for `shared/weapons/rwr.gd`. Every call that needs the world
 //! takes the unit lookup `unit(key) -> {pos, klass, type, state}` ({} gone), the own jet {pos, yaw} and the sim time.
 
 use crate::world::{get, num, vec3, vector3};

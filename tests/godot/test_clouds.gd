@@ -8,14 +8,14 @@ extends "res://../tests/godot/base.gd"
 
 func run() -> void:
 	var s := settings()
-	var vc: GDScript = load("res://terrain/volumetric_clouds.gd")
+	var vc: GDScript = load("res://shared/terrain/volumetric_clouds.gd")
 	check(s.default_value("clouds") == "original" and s.clouds == "original", "Clouds: Original by default")
 	s.clouds = "volumetric"
 	var cfg: ConfigFile = s.write_config()
 	s.clouds = "original"
 	s.read_config(cfg)
 	check(s.clouds == "volumetric", "Clouds is saved and read back")
-	for f in ["res://terrain/clouds_noise.glsl", "res://terrain/clouds_march.glsl"]:
+	for f in ["res://shared/terrain/clouds_noise.glsl", "res://shared/terrain/clouds_march.glsl"]:
 		var spirv: RDShaderSPIRV = (load(f) as RDShaderFile).get_spirv()
 		check(
 			spirv.compile_error_compute == "" and not spirv.bytecode_compute.is_empty(),

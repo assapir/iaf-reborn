@@ -10,7 +10,7 @@ const STEP := 1.0 / 30.0
 
 func _effects(detailed: bool) -> Node3D:
 	settings().particle_effects = detailed
-	var fx: Node3D = load("res://mission/damage_effects.gd").new()
+	var fx: Node3D = load("res://shared/mission/damage_effects.gd").new()
 	root.add_child(fx)
 	fx.set_process(false)
 	fx._rng.seed = 1234
@@ -75,7 +75,7 @@ func run() -> void:
 	check(em.smoke > 0 and em.fire > 0 and em.sparks > 0, "Detailed: smoke, fire and sparks emitted (%s)" % [em])
 
 	# Trails: the same bookkeeping; missile trails become GPU smoke, wingtip trails stay ribbons.
-	var trails_script: GDScript = load("res://mission/trails.gd")
+	var trails_script: GDScript = load("res://shared/mission/trails.gd")
 	var ta: Node3D = trails_script.new()
 	var tb: Node3D = trails_script.new()
 	root.add_child(ta)
@@ -121,7 +121,7 @@ func run() -> void:
 	check(tb._mesh.get_surface_count() == 1, "wingtip trail: still a ribbon with Detailed")
 
 	# Better physics wind: trail points and smoke puffs drift with the air mass (gpu_fx.gd `wind`, scene m/s).
-	var gpu_fx: GDScript = load("res://mission/gpu_fx.gd")
+	var gpu_fx: GDScript = load("res://shared/mission/gpu_fx.gd")
 	gpu_fx.wind = Vector3(10, 0, 0)
 	var pt: Array = ta._trails[-1].pts[-1]
 	var x0: float = pt[0].x
@@ -141,7 +141,7 @@ func run() -> void:
 	var jet := Node3D.new()
 	jet.set_script(model_script)
 	root.add_child(jet)
-	var afterburner_script: GDScript = load("res://aircraft/afterburner.gd")
+	var afterburner_script: GDScript = load("res://shared/aircraft/afterburner.gd")
 	var noz: MeshInstance3D = afterburner_script.new()
 	jet.add_child(noz)
 	jet.flames.append(noz)
@@ -185,7 +185,7 @@ func run() -> void:
 	await require_data()
 	# On real jets the haze starts at the model's EngineL / EngineR helper, also with the jet moved and turned.
 	settings().particle_effects = true
-	var AM = load("res://aircraft/aircraft_model.gd")
+	var AM = load("res://shared/aircraft/aircraft_model.gd")
 	for case in [["f16", "original"], ["mig29", "original"], ["f16", "detailed"]]:
 		var plane: String = case[0]
 		settings().models = case[1]

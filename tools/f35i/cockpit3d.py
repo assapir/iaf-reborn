@@ -3,7 +3,7 @@
 # cockpit camera into the panel strip (Cycles, by day and by night). The same camera places the live parts, written
 # into cockpit.json:
 #   - [PCD]: the panoramic cockpit display's glass, its status bar, the four portals (the MFD pages, [MFD] Portals),
-#     the eight lower windows and the standby display (ESIS), drawn by game/cockpit/pcd.gd;
+#     the eight lower windows and the standby display (ESIS), drawn by shared/cockpit/pcd.gd;
 #   - our own lamps (master caution, engine fire, the gear handle's three positions) as crops of the same render
 #     with the lamp lit / the handle moved ([LIGHTSON] f35lights.png), so they sit seamlessly in the panel;
 #   - the helmet HUD on the nose axis.
@@ -12,11 +12,11 @@
 #                                                                          PREVIEW=1: a quick low-sample day render)
 #
 # With `--glb <out.glb>` it writes the same cockpit as the game's real-time 3D cockpit instead (Extras "Cockpit": 3D;
-# docs/cockpit.md "3D cockpit", game/cockpit/cockpit3d.gd), in the cockpit-view model's frame (f35i_bc.gltf,
+# docs/cockpit.md "3D cockpit", shared/cockpit/cockpit3d.gd), in the cockpit-view model's frame (f35i_bc.gltf,
 # tools/f35i/bc.py: half size about the descriptor's eye); export_glb() lists what it adds and names, <out>.json its
 # lamps and the gear handle's turn.
-#   blender -b --python tools/f35i/cockpit3d.py -- game/extra/planes/f35i/cockpit \
-#       --glb game/extra/models/cockpit3d/f35i.glb
+#   blender -b --python tools/f35i/cockpit3d.py -- shared/extra/planes/f35i/cockpit \
+#       --glb shared/extra/models/cockpit3d/f35i.glb
 import json
 import math
 import os
@@ -573,7 +573,7 @@ def bake_atlas(objs, baked):
 
 
 def export_glb(out, eye_g):
-    """The 3D cockpit (game/cockpit/cockpit3d.gd): build() with plain colours, the tub, the screens as flat quads
+    """The 3D cockpit (shared/cockpit/cockpit3d.gd): build() with plain colours, the tub, the screens as flat quads
     `PCD` (the display's glass) and `ESIS` (the standby display), the lamp lenses as their own nodes
     `lamp_<key>_0`, the gear handle `gear_handle` (its lamp `lamp_gear_transit_0` on it) turning about its pivot, the
     side-stick `side_stick` tilting about its boot and the throttle `throttle` sliding on its rail; everything else
@@ -722,7 +722,7 @@ def main():
     c["_doc"] = ("F-35I cockpit (ours, docs/f35i.md §4): the panel and lamps are tools/f35i/cockpit3d.py's renders (day / "
                  "night); the MFD atlas, RWR symbols and TSD map are the converted F-16 cockpit's (Shared). No HUD glass: "
                  "the HUD symbology is the helmet's (Dash 1). [MFD] Portals are [x, y, scale, page] (page: 1 stores, 2 "
-                 "radar, 3 TSD, 7 RWR); [PCD] places the display around them (game/cockpit/pcd.gd).")
+                 "radar, 3 TSD, 7 RWR); [PCD] places the display around them (shared/cockpit/pcd.gd).")
     c["PANEL"].update({"PanelHeight": float(PANEL_HEIGHT), "MaskOffsetY2": MASK_OFFSET_Y2,
                        "FileName": "f35panel.webp", "NightFileName": "f35panel_night.webp", "NightRScale": 0.0,
                        "NightGScale": 0.0, "NightBScale": 0.0,

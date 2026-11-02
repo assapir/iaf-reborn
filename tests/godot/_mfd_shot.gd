@@ -2,7 +2,7 @@
 # page) with made-up radar / RWR / stores / EO / HARM / route data, the Left MFD cropped per page as
 # mfd_<page>_original.png and mfd_<page>_crisp.png (MFD_SCALE=2: drawn twice as large, as on a 4K screen). Usage:
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=~/.cache/shots -- --log-file ~/.cache/g.log --resolution \
-#     1920x1080 --path game -s ../tests/godot/_mfd_shot.gd
+#     1920x1080 --path iaf-reborn -s ../tests/godot/_mfd_shot.gd
 # MFD_ONLY=<name> shoots one case; MFD_RELEASE=PAIR|SGL shows the stores page as with Bomb release Real.
 # MFD_LOOK=sufa|barak|original: the F-16's real formats' cases (docs/mfd.md §9: the Sufa in colour, the Barak with
 # MFDs on Real; original: the Barak with MFDs on Original, to compare), each the whole cockpit
@@ -48,7 +48,7 @@ func run() -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
 	var layer := CanvasLayer.new()
 	root.add_child(layer)
-	var c: Control = load("res://cockpit/cockpit.tscn").instantiate()
+	var c: Control = load("res://shared/cockpit/cockpit.tscn").instantiate()
 	layer.add_child(c)
 	await frames(2)
 	c.remove_child(c.hud)  # the HUD would read a full weapons snapshot; only the MFDs are shown

@@ -5,7 +5,7 @@ extends "res://../tests/godot/base.gd"
 
 ## Loaded at run time: scripts that use the Settings autoload do not compile before it exists.
 var flight_sounds: GDScript
-const SoundBuses := preload("res://audio/sound_buses.gd")
+const SoundBuses := preload("res://shared/audio/sound_buses.gd")
 
 
 func _state(over := {}) -> Dictionary:
@@ -34,7 +34,7 @@ func _count(fs, what: String) -> int:
 
 
 func run() -> void:
-	flight_sounds = load("res://audio/flight_sounds.gd")
+	flight_sounds = load("res://shared/audio/flight_sounds.gd")
 	# The original table.
 	var fs = flight_sounds.create(null, 100)
 	root.add_child(fs)

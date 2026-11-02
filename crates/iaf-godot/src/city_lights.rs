@@ -1,5 +1,5 @@
 //! `IafCityLights`: the city lights at night (iaf_avionics::city_lights, docs/rendering.md §5.1) for
-//! `game/terrain/city_lights.gd`, in blocks of 4 × 4 scenery cells (≈ 10 km). One thread of its own reads a block's
+//! `shared/terrain/city_lights.gd`, in blocks of 4 × 4 scenery cells (≈ 10 km). One thread of its own reads a block's
 //! cell files (the buildings only), places the lights and stands them on the terrain height field.
 //!
 //! Frames: `blocks_near` takes the engine world frame (X east, Y north); a block's `origin` is its north-west corner,

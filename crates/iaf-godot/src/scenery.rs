@@ -1,5 +1,5 @@
 //! `IafScenery`: the buildings and trees over the Survey of Israel 2 m photo (iaf_avionics::scenery,
-//! docs/scenery.md §2), one process-wide store `game/terrain/scenery.gd` loads cells into. `world::terrain` adds its
+//! docs/scenery.md §2), one process-wide store `shared/terrain/scenery.gd` loads cells into. `world::terrain` adds its
 //! tops to `mission_ground`, so every Rust weapon / sensor sees roofs and trees.
 //!
 //! Frames: `cell_origin` and every point passed in are the engine world frame (X east, Y north, Z up); mesh vertices

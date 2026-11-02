@@ -72,9 +72,9 @@ jobs:
           if-no-files-found: error
       - run: tools/ci_install_godot.sh
       - run: godot --version
-      - run: godot --headless --path game --import
+      - run: godot --headless --path iaf-reborn --import
       - name: Parse-check every script
-        run: godot --headless --path game -s ../tools/gdparse.gd --log-file "$RUNNER_TEMP/gdparse.log"
+        run: godot --headless --path iaf-reborn -s ../tools/gdparse.gd --log-file "$RUNNER_TEMP/gdparse.log"
       - if: runner.os == 'macOS' # for timeout (gtimeout)
         run: command -v gtimeout || brew install coreutils
       # The Godot tests that pass without game data (docs/ci.md); required.
@@ -108,7 +108,7 @@ jobs:
           name: iaf-godot-${{ runner.os }}
           path: target/release
       - run: tools/ci_install_godot.sh
-      - run: godot --headless --path game --import
+      - run: godot --headless --path iaf-reborn --import
       - if: runner.os == 'macOS' # for timeout (gtimeout)
         run: command -v gtimeout || brew install coreutils
       - run: tools/ci_godot_tests.sh

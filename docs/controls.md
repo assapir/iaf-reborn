@@ -4,7 +4,7 @@ Jane's IAF sends every keyboard and joystick command through one table of **117 
 covers the table layout (§1), how a key becomes a command in flight (§2), every key (§3), the hidden and cheat
 commands (§4) and the joystick (§5). iaf-reborn converts the table (`iaf-convert keys` →
 `assets/converted/keys.json`), shows it on the Preferences Controls page (docs/front-end.md §12.7) and looks up every
-in-flight key in it (`game/controls/key_table.gd`, `game/terrain/terrain_view.gd`).
+in-flight key in it (`shared/controls/key_table.gd`, `shared/terrain/terrain_view.gd`).
 
 Addresses are `IAFJets.exe` **v1.1**; [v1.1.md](v1.1.md) maps them to v1.0.
 
@@ -422,7 +422,7 @@ the same code).
 
 ### 5.2 iaf-reborn
 
-* **The poller** is `game/controls/joystick.gd` (autoload `Joystick`). It uses **Godot's joypad API** (SDL3 since
+* **The poller** is `shared/controls/joystick.gd` (autoload `Joystick`). It uses **Godot's joypad API** (SDL3 since
   Godot 4.5; SDL: Simple DirectMedia Layer).
   * Device: the **first connected joypad** (lowest id); one device only.
   * Hot-plug works: Godot reports it, the next poll uses the new device, and the last values are kept.

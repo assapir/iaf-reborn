@@ -4,7 +4,7 @@
 # missile (a 3 m grey cylinder) flies from 250 m/s at 100 m/s², its motor burning MFX_BURN s (default 5), then coasts
 # and bursts at 9 s. Needs a window:
 #   tools/godot_window.sh MFX_OUT=/tmp/mfx MFX_CLOCK=19.2 IAF_DEFAULT_SETTINGS=1 -- --log-file /tmp/m.log \
-#     --path game --resolution 1920x1080 -s ../tests/godot/_missile_fx_shot.gd
+#     --path iaf-reborn --resolution 1920x1080 -s ../tests/godot/_missile_fx_shot.gd
 # Saves MFX_OUT/<shot>_<clock>_<after|before>.png; MFX_CLOCK = the time of day in hours (default: the mission's),
 # MFX_LOOK=before = the same shots with Particle effects Original, FX_MISSION the mission (default 231).
 extends "res://../tests/godot/base.gd"

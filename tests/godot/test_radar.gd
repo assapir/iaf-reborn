@@ -7,7 +7,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	var Radar = load("res://weapons/radar.gd")
+	var Radar = load("res://shared/weapons/radar.gd")
 	# --- pure: range, cone ------------------------------------------------------------------------
 	var r = Radar.new()
 	r.setup(100)
@@ -43,7 +43,8 @@ func run() -> void:
 	r.scan(2.0)
 	check(r.contacts.is_empty(), "65° off the nose: outside the 60° cone")
 	check(
-		absf(load("res://weapons/real_weapons.gd").radar_nm(100) * 1854.0 - 80000.0) < 1.0, "Real F-16 (APG-68): 80 km"
+		absf(load("res://shared/weapons/real_weapons.gd").radar_nm(100) * 1854.0 - 80000.0) < 1.0,
+		"Real F-16 (APG-68): 80 km"
 	)
 
 	# --- mission 221 ------------------------------------------------------------------------------
@@ -185,7 +186,7 @@ func run() -> void:
 	await frames(2)
 
 	# --- MAP page (FUN_00535ea0 / FUN_0053b0a0) -----------------------------------------------------
-	var Mfd = load("res://cockpit/mfd.gd")
+	var Mfd = load("res://shared/cockpit/mfd.gd")
 	var own2: Vector2 = tv.cockpit.state.world
 	var q: Vector2 = Mfd.isr_px(own2)
 	check(

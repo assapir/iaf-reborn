@@ -3,7 +3,7 @@
 This doc describes the radar manager of the player's controller (`ctl+0x84`, `FUN_004acc20`, v1.1 addresses) and
 how ours follows it.
 
-- **Code:** `crates/iaf-avionics/src/radar.rs` (unit tests there). `IafRadar` runs it for `game/weapons/radar.gd`,
+- **Code:** `crates/iaf-avionics/src/radar.rs` (unit tests there). `IafRadar` runs it for `shared/weapons/radar.gd`,
   which `player_weapons.gd` owns. `cockpit/mfd.gd` and `cockpit/hud.gd` draw it.
 - **MFD page geometry:** docs/mfd.md §"Radar (2)". MFD is the multi-function display; HUD is the head-up display.
 - **Frame and units:** world frame X east, Y north, Z up; metres; sim seconds.

@@ -62,17 +62,19 @@ try {
 	# The scripts the game and setup start (the guides) find Godot here.
 	$env:GODOT = $godot
 
+	# The project's link to the shared engine folder (a junction on a clone without symlinks).
+	& "$PSScriptRoot\links.ps1"
 	if ($mode -eq 'setup') { Write-Host "building the game's extension (the first time takes a few minutes)..." }
 	Native { cargo build --release -p iaf-godot }
 	if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 	# Godot's import (as tools/godot_import.sh): on a fresh clone (Godot loads iaf.gdextension only once an import has
 	# listed it in .godot/extension_list.cfg) and after a pull that brought new or changed shaders or textures (an
-	# .import file or its source newer than the last import, game\.godot\.iaf_imported).
-	$stamp = 'game\.godot\.iaf_imported'
-	$need = -not (Test-Path 'game\.godot\extension_list.cfg') -or -not (Test-Path $stamp)
+	# .import file or its source newer than the last import, iaf-reborn\.godot\.iaf_imported).
+	$stamp = 'iaf-reborn\.godot\.iaf_imported'
+	$need = -not (Test-Path 'iaf-reborn\.godot\extension_list.cfg') -or -not (Test-Path $stamp)
 	if (-not $need) {
 		$since = (Get-Item $stamp).LastWriteTime
-		$need = [bool](Get-ChildItem game -Recurse -Filter *.import -File | Where-Object {
+		$need = [bool](Get-ChildItem iaf-reborn, shared -Recurse -Filter *.import -File | Where-Object {
 				$_.FullName -notlike '*\.godot\*' -and ($_.LastWriteTime -gt $since -or
 					((Test-Path ($_.FullName -replace '\.import$', '')) -and
 						(Get-Item ($_.FullName -replace '\.import$', '')).LastWriteTime -gt $since))
@@ -80,11 +82,11 @@ try {
 	}
 	if ($need) {
 		Write-Host "importing the game's new or changed files (shaders, textures)..."
-		Native { & $console --headless --path game --import *> $null }
+		Native { & $console --headless --path iaf-reborn --import *> $null }
 		New-Item -ItemType File -Force $stamp | Out-Null
 	}
 
-	$godotArgs = @('--path', 'game')
+	$godotArgs = @('--path', 'iaf-reborn')
 	switch ($mode) {
 		'setup' { $godotArgs += @('--resolution', '1200x820', 'res://setup/wizard.tscn') }
 		'editor' { $godotArgs += 'res://editor/mission_editor.tscn' }

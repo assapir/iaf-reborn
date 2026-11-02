@@ -80,7 +80,7 @@ func run() -> void:
 
 	await _pages()
 
-	var box = load("res://mission/mission_box.gd").new()
+	var box = load("res://shared/mission/mission_box.gd").new()
 	box.setup(56, ["ok"])
 	var lines: int = (
 		String(settings().load_json(settings().assets_dir().path_join("converted/menu/strings.json")).get("msgs", ""))

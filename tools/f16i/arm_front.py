@@ -5,7 +5,7 @@
 # F-16 with the Extras switch "F-16 version" on Sufa.
 #
 #   F16D_KEEP_PNG=1 blender -b --python tools/f16/rig.py -- <FlightGear f16> <f16_h.gltf> /tmp/f16i.glb sufa
-#   blender -b --python tools/f16i/arm_front.py -- /tmp/f16i.glb.png.glb game/extra/planes/f16i/arm
+#   blender -b --python tools/f16i/arm_front.py -- /tmp/f16i.glb.png.glb shared/extra/planes/f16i/arm
 #
 # (Blender reads the rig's glb before its KTX2 pass, not f16i.glb.)
 import json
@@ -26,7 +26,7 @@ BOXES = [(1, 210), (21, 261), (81, 261), (141, 261), (201, 282), (261, 261), (32
 os.makedirs(OUT, exist_ok=True)
 # The wingtips carry the Sufa's AIM-9X, as the original F-16 art shows a missile on each tip: under the rail
 # (offset, m).
-TIP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "game", "extra", "models", "stores",
+TIP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "shared", "extra", "models", "stores",
                    "aim9x.glb")
 TIP_A, TIP_I = (0.08, 0.0, -0.2), (-0.08, 0.0, -0.2)  # station A is the left wing (-x)
 pts = kit.arm_front_view(GLB, os.path.join(OUT, "front.png"), PX_PER_M, CENTRE,

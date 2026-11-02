@@ -1,5 +1,5 @@
 //! The terrain height field the weapons and sensors read (the line of sight, impacts): the streamed full-detail
-//! height nodes of `game/terrain/terrain.gd`, handed over as they load, sampled as `terrain.gd height_at` does, so the
+//! height nodes of `shared/terrain/terrain.gd`, handed over as they load, sampled as `terrain.gd height_at` does, so the
 //! answers match without a call back into GDScript per sample.
 
 use std::collections::HashMap;

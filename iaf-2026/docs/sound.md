@@ -92,7 +92,7 @@ original's clips of the same codes were measured for level only: ours are mostly
 1. pre-emphasis (x[n] − 0.9 x[n−1]), a headset microphone's presence lift;
 2. band-pass 300–3000 Hz (4th-order Butterworth, zero phase), the voice band of a radio;
 3. slight distortion: half the signal through tanh(2.5 x);
-4. level: vrms to −17.9 dB (0.127, the level of `game/extra/tower_numbers`, which match the original speech), then a
+4. level: vrms to −17.9 dB (0.127, the level of `shared/extra/tower_numbers`, which match the original speech), then a
    soft limit at −2 dBFS;
 5. hiss: band-passed noise at −42 dB;
 6. squelch: a 2 ms key-up click and 40 ms of noise before the voice; a 120 ms noise tail and a click after it.

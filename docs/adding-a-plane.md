@@ -42,7 +42,7 @@ Both are in `crates/iaf-tools/src/plane.rs`.
 ## Modern planes: the aircraft definition
 
 A modern plane (ours, not in the 1998 game) keeps its behaviour in one file, its **aircraft definition**
-`game/extra/planes/<id>/airframe.json`, next to its model and cockpit. Adding a modern plane means writing that file;
+`shared/extra/planes/<id>/airframe.json`, next to its model and cockpit. Adding a modern plane means writing that file;
 the §1 type-code tables stay for the 1998 jets.
 
 **The definitions today**
@@ -89,7 +89,7 @@ the §1 type-code tables stay for the 1998 jets.
 | `radar` {`row` (int), `km`, `ai_nm` (numbers)} | `radar.gd`, `real_weapons.gd` `radar_nm`, `combat.gd` `sensor_nm` | the radar table row, the Real range, the AI's sensor range |
 | `gun_rounds` (int) | `real_weapons.gd` `gun_rounds` | the Real gun rounds |
 | `flir` (bool) | `player_weapons.gd` | a built-in FLIR |
-| `weapons` {`arm_art`, `modern`, `loads`} | `mission_weapons.gd` `jet`, `modern_weapons.gd` `loads` | Arming art (`x_<id>`: `game/extra/planes/<id>/arm`), the modern weapons `"always"`, and their stations (`{"<record id>": [count, "stations"]}`, the id a whole number) |
+| `weapons` {`arm_art`, `modern`, `loads`} | `mission_weapons.gd` `jet`, `modern_weapons.gd` `loads` | Arming art (`x_<id>`: `shared/extra/planes/<id>/arm`), the modern weapons `"always"`, and their stations (`{"<record id>": [count, "stations"]}`, the id a whole number) |
 | `cockpit_3d` (string) | `cockpit3d.gd` `model_for` | the 3D cockpit's model (Extras "Cockpit": 3D; cockpit.md "3D cockpit") |
 | `hud_3d` | `cockpit3d.gd` | the 3D cockpit's HUD (`HUD_std` / `HUD_wide`) |
 | `fly_by_wire` (bool) | `aircraft.rs` `fly_by_wire` | the F-16's roll-rate command, and the deep stall in place of the spin |
@@ -101,7 +101,7 @@ the §1 type-code tables stay for the 1998 jets.
 | `info_tag` | `terrain_view.gd` | the flight info line's tag |
 
 **To add a modern plane**
-1. Write `game/extra/planes/<id>/airframe.json` (a variant: a `base` and what differs).
+1. Write `shared/extra/planes/<id>/airframe.json` (a variant: a `base` and what differs).
 2. Add it to `FILES` in `crates/iaf-flight/src/airframe.rs`, and to `id_for` when a 1998 type code or switch picks it.
 3. A new field: add it to `Airframe` (or its nested struct) and to the table above, then read it where the game
    decides it, with the type-code table as the fallback. GDScript only sees the struct's fields.
@@ -127,7 +127,7 @@ share this code space:
 
 | where | table | what it decides | needed? |
 |---|---|---|---|
-| `game/aircraft/player_aircraft.gd` | `FLYABLE` | flyable (any other type flies as the F-16) | yes |
+| `shared/aircraft/player_aircraft.gd` | `FLYABLE` | flyable (any other type flies as the F-16) | yes |
 | | `COCKPIT` | cockpit index into `cockpits.ibx`, also the row of `TABLES` in `crates/iaf-avionics/src/radar.rs` | or a cockpit dir (§4) |
 | | `TWIN` | two engines (gauges, logic+0x24) | if twin |
 | | `JET_TYPES` | Jet list id → type | yes (§6) |
@@ -139,13 +139,13 @@ share this code space:
 | `crates/iaf-flight/src/aircraft.rs` | `type_code == 100` (flaps) | F-16 flaps at one third | review |
 | | `fbw_departure && matches!(…, 100 \| 140)` | fly-by-wire deep stall | if fly-by-wire |
 | | `matches!(p.type_code, 100 \| 140 …)` | fly-by-wire: no spin | if fly-by-wire |
-| `game/aircraft/aircraft_model.gd` | `delta_wing`, pitch mixer, `part_pose()` | per-type part signs (§2.3) | review |
-| `game/audio/flight_sounds.gd` | `BETTY_TYPES` | voice warnings (also the RWR's and the damage voice) | if it has them |
-| `game/weapons/real_weapons.gd` | `RADAR_KM`, `GUN_ROUNDS` | Real weapon data | yes (§5) |
-| `game/weapons/mission_weapons.gd` | `JET_ART` | Arming screen art and station boxes | yes (§5) |
-| `game/menu/pilots.gd` | `TYPE_CATEGORY` | pilot records kill category | yes |
-| `game/menu/tsd.gd` | `FLYABLE_TYPES` | TSD flight selection (missions that place the type) | if missions place it |
-| `game/cockpit/cockpit.gd` | `RWR_GLYPH` | RWR symbol when others see this type | if AI flies it |
+| `shared/aircraft/aircraft_model.gd` | `delta_wing`, pitch mixer, `part_pose()` | per-type part signs (§2.3) | review |
+| `shared/audio/flight_sounds.gd` | `BETTY_TYPES` | voice warnings (also the RWR's and the damage voice) | if it has them |
+| `shared/weapons/real_weapons.gd` | `RADAR_KM`, `GUN_ROUNDS` | Real weapon data | yes (§5) |
+| `shared/weapons/mission_weapons.gd` | `JET_ART` | Arming screen art and station boxes | yes (§5) |
+| `iaf-reborn/menu/pilots.gd` | `TYPE_CATEGORY` | pilot records kill category | yes |
+| `iaf-reborn/menu/tsd.gd` | `FLYABLE_TYPES` | TSD flight selection (missions that place the type) | if missions place it |
+| `shared/cockpit/cockpit.gd` | `RWR_GLYPH` | RWR symbol when others see this type | if AI flies it |
 | `crates/iaf-tools/src/bin/iaf-mission-report.rs` | `FLYABLE_NOW` | mission coverage report | yes |
 | `tests/godot/test_jet_list.gd` | `JETS` | Jet list test row | yes (§9) |
 
@@ -155,9 +155,9 @@ above); `plane-checklist` lists the definitions too.
 ## 2. The 3D model
 
 ### 2.1 What the game loads
-- `game/aircraft/aircraft_model.gd` `create(plane, type)` reads `<planes>/aircraft.json` (the index, `index()`) and
+- `shared/aircraft/aircraft_model.gd` `create(plane, type)` reads `<planes>/aircraft.json` (the index, `index()`) and
   `<planes>/<plane>/aircraft.json` (the descriptor, `load_descriptor()`).
-- It opens the glTF at run time with `res://util/gltf.gd` and finds the node named `root`.
+- It opens the glTF at run time with `res://shared/util/gltf.gd` and finds the node named `root`.
 - Each **direct child** of the root is a part when the descriptor's `parts` lists it, and hidden otherwise.
 - A part turns about its own node origin, around the descriptor's `axis` (the `pivot` field is informational).
 - The jet is drawn at the bdb Present scale (`0x65e`, `terrain_view.gd` `_player_model_scale()`): 2.0 for every
@@ -225,13 +225,13 @@ Edit afterwards if needed:
 ### 2.4 Where it lives
 `iaf-convert aircraft` rewrites `assets/converted/planes/aircraft.json` from the install on every run, so that file
 holds only the install's planes. Extra planes live in the repo:
-- `game/extra/planes/<plane>/` holds the glTF, `.bin`, textures, `aircraft.json` and a `CREDITS.md` for third-party
+- `shared/extra/planes/<plane>/` holds the glTF, `.bin`, textures, `aircraft.json` and a `CREDITS.md` for third-party
   sources.
 - `aircraft_model.gd` `index()` merges every folder there into the converted index, and `load_descriptor()` /
   `create()` read from it.
-- `game/extra/.gdignore` keeps Godot's importer off the raw glTF.
+- `shared/extra/.gdignore` keeps Godot's importer off the raw glTF.
 
-Example: `game/extra/planes/f35i/`, built by `tools/f35i/rig.py` (Blender, headless).
+Example: `shared/extra/planes/f35i/`, built by `tools/f35i/rig.py` (Blender, headless).
 
 ### 2.5 Check it
 - The contact sheet (aircraft.md §3, `<out-dir> <plane>`) renders gear, flaps, speed brakes and the flame.
@@ -287,7 +287,7 @@ The player's type reaches the flight model as the descriptor's `fm_section`:
 
 ## 4. Cockpit
 
-`game/cockpit/cockpit.gd` `load_cockpit(dir)` reads `<assets>/<dir>/cockpit.json`. That file is the original
+`shared/cockpit/cockpit.gd` `load_cockpit(dir)` reads `<assets>/<dir>/cockpit.json`. That file is the original
 `cockpit.ibx` as JSON (`iaf-convert cockpit`, docs/cockpit.md), with `image_scale` 4. It loads:
 - the textures named by `PANEL`, `HUD`, `LENHORIZON`, `PANELVARIO`, `PANELAOA`, `LIGHTSON` `FileName` (ours: a
   `.webp` name loads that file; `PANEL` / `LIGHTSON` `NightFileName` is the art shown at night instead of the
@@ -315,12 +315,12 @@ Options:
   - In free look and padlock, the IR seeker locks off-boresight (docs/weapons.md §5.4).
 - **More than three displays** (e.g. one panoramic screen): `[MFD] Portals` = [[x, y, scale, page], …] (the page's
   top-left in panel px), one MFD node per portal drawn at `scale` (`cockpit.gd` `_create_mfds()`, `mfd.gd` `portal_scale`).
-  With a `[PCD]` section (`Rect`, `Bar`, `WindowTop`, `Esis`) `game/cockpit/pcd.gd` draws the display around them:
+  With a `[PCD]` section (`Rect`, `Bar`, `WindowTop`, `Esis`) `shared/cockpit/pcd.gd` draws the display around them:
   the glass, status bar, lower windows and standby display (docs/f35i.md §4.3).
 - **A cockpit in the repo:** a `res://` cockpit dir (the aircraft definition's `cockpit`), and `"Shared": "<converted
   cockpit>"` for the original art it borrows (MFD atlas, RWR symbols, TSD map, ADI ball, the lamps and gear lever;
   `cockpit.gd` `_file()`), since that art cannot be committed. Reuse the original's pieces first; model and render
-  only what it lacks. Example: `game/extra/planes/f35i/cockpit/`, the panel modelled and rendered by
+  only what it lacks. Example: `shared/extra/planes/f35i/cockpit/`, the panel modelled and rendered by
   `tools/f35i/cockpit3d.py` with the game's cockpit camera, with its own lamps rendered from the same scene.
 - **Looking aside / back:** `<plane>_bc.gltf` next to the extra plane's glTF is its cockpit-view model
   (`terrain_view.gd` `_spawn_player`; example `tools/f35i/bc.py`). Its object named `<anything>_bc_frame` (a canopy
@@ -346,9 +346,9 @@ Options:
   A missing frame hangs the store at the origin. A station is the pylon point: the store hangs below it by its
   `pilon`. Bays: cut the doors from the belly skin and close the hole with `kit.cavity` (`tools/f35i/rig.py`
   `cut_bays`), then list the bay stations in `internal_stations`.
-- **Arming screen:** `game/weapons/mission_weapons.gd` `JET_ART` → `menu/bmp/arm/jets/<art>.bmp/.trx`. The `.trx`
+- **Arming screen:** `shared/weapons/mission_weapons.gd` `JET_ART` → `menu/bmp/arm/jets/<art>.bmp/.trx`. The `.trx`
   holds the base weight, max take-off weight and the 9 station boxes. An extra plane (`JET_ART` "x_<plane>"):
-  - `game/extra/planes/<plane>/arm/front.png`: its front view in the arming greens (`tools/plane/kit.py`
+  - `shared/extra/planes/<plane>/arm/front.png`: its front view in the arming greens (`tools/plane/kit.py`
     `arm_front_view`, mirrored like the originals: station A on the image's left) and `arm.json` (base / max lb,
     `boxes` = a base jet's station boxes, `points` = the stations on the front view, `title`, `base_art`);
   - a front view setup must make on the user's machine (a model that may not ship: the F-15I's, aircraft-models.md
@@ -362,7 +362,7 @@ Options:
     the Jet list arms as itself (art, stations, default load; the allowed counts stay the mission jet's, as the
     original's `FUN_0058f110` / `FUN_004ef8a0`; the F-35I keeps its own) with its chosen load used in flight
     (`player_weapons.gd` `_arm`).
-- **Real data:** `game/weapons/real_weapons.gd` `RADAR_KM` (km) and `GUN_ROUNDS`. Weapons the game lacks map to the
+- **Real data:** `shared/weapons/real_weapons.gd` `RADAR_KM` (km) and `GUN_ROUNDS`. Weapons the game lacks map to the
   nearest original (docs/real-weapons.md).
 
 ## 6. Front end (Jet list)
@@ -381,7 +381,7 @@ All 7 buttons are taken. Two ways in:
 - **An 8th button:** the art has room under LAVI (y ≈ 377, the 44 px step). Append a button to the panel and draw
   its band the same way. This needs hit testing and `menus.json` handling.
 
-Hebrew labels go in `game/menu/strings_he.json` (our strings only).
+Hebrew labels go in `iaf-reborn/menu/strings_he.json` (our strings only).
 
 ## 7. Sounds, radar, RWR
 - **Engine sounds** are the same for every jet (`flight_sounds.gd`). Only `BETTY_TYPES` is per type (voice

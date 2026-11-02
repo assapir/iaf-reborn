@@ -5,8 +5,8 @@
 # the switch changes nothing and its row says so. The packs are DXT5-compressed and stay inside the video memory budget.
 extends "res://../tests/godot/base.gd"
 
-const Gltf := preload("res://util/gltf.gd")
-const ModelDetail := preload("res://util/model_detail.gd")
+const Gltf := preload("res://shared/util/gltf.gd")
+const ModelDetail := preload("res://shared/util/model_detail.gd")
 ## The video memory budget of the packs (MiB).
 const VRAM_MIB := 32.0
 
@@ -14,7 +14,7 @@ var aircraft_model: GDScript
 
 
 func run() -> void:
-	aircraft_model = load("res://aircraft/aircraft_model.gd")
+	aircraft_model = load("res://shared/aircraft/aircraft_model.gd")
 	check(settings().model_detail == "original", "Model detail defaults to Original")
 	await require_data()
 	var off: Node3D = aircraft_model.create("cfir", 130, true)

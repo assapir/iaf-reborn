@@ -1,5 +1,5 @@
 //! `terraintype.dat` surface flags (docs/formats/ptt.md "Terrain types"): the main 2-D BSP tree,
-//! looked up like the original (`FUN_004024b0`) and `game/terrain/terrain.gd surface_at()`.
+//! looked up like the original (`FUN_004024b0`) and `shared/terrain/terrain.gd surface_at()`.
 
 use crate::{Error, bytes};
 

@@ -34,4 +34,4 @@ echo "building the game's extension (the first time takes a few minutes)…"
 cargo build --release -p iaf-godot
 # Godot's import on a fresh clone and after a pull with new shaders or textures (tools/godot_import.sh).
 tools/godot_import.sh "$godot"
-exec "$godot" --path game --resolution 1200x820 res://setup/wizard.tscn
+exec "$godot" --path iaf-reborn --resolution 1200x820 res://setup/wizard.tscn

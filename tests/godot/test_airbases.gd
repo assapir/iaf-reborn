@@ -8,7 +8,7 @@ var airbases: GDScript
 
 
 func run() -> void:
-	airbases = load("res://terrain/airbases.gd")
+	airbases = load("res://shared/terrain/airbases.gd")
 	var bases: Array = airbases.bases()
 	check(bases.size() == 10, "airbases.json: the ten iaf.ibx bases (%d)" % bases.size())
 	for b in bases:

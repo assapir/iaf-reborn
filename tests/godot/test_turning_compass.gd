@@ -1,4 +1,4 @@
-# "Better cockpit" turning_compass (game/cockpit/compass.gd, docs/cockpit.md "Turning compass / HSI"): off (the
+# "Better cockpit" turning_compass (shared/cockpit/compass.gd, docs/cockpit.md "Turning compass / HSI"): off (the
 # original) no compass node turns; on, each jet with a panel compass gets one per dial, its card turned by the
 # heading (shader angle = heading), and the Mirage's pointers at the waypoint's bearing relative to the heading.
 extends "res://../tests/godot/base.gd"

@@ -1,5 +1,5 @@
 # The F-16's real-time 3D front cockpit (Extras "Cockpit": 3D; docs/cockpit.md "3D cockpit") from the FlightGear
-# F-16's interior (github.com/NikolaiVChr/f16 at PIN, GPL-2.0-or-later; game/extra/models/f16/SOURCES.md) with
+# F-16's interior (github.com/NikolaiVChr/f16 at PIN, GPL-2.0-or-later; shared/extra/models/f16/SOURCES.md) with
 # tools/plane/kit.py:
 #   - FlightGear's `Models/Cockpit/Main/cockpit.xml` and the parts it includes, as its Block 50/52 (sim/variant-id 5)
 #     shows them: the tub and glareshield, the HUD, both MFDs, ICP, DED, the instruments, eyebrow lamp panels, the
@@ -17,7 +17,7 @@
 #     each MFD as named nodes; written as one glb with KTX2 textures (tools/plane/glb_ktx2.py, needs `basisu`).
 #
 #   blender -b --python tools/f16d/cockpit3d.py -- <FlightGear f16 checkout> \
-#       <assets/converted/planes/f16/f16_h.gltf> game/extra/models/cockpit3d/f16.glb
+#       <assets/converted/planes/f16/f16_h.gltf> shared/extra/models/cockpit3d/f16.glb
 # C3D_NOBAKE=1: a quick build while modelling (a minute, against the bake's ten): no light map (the game then skips
 # its pass), the PNG glb kept beside the output (<out>.png.glb, for Blender's importer). C3D_DEBUG=1 prints each part's
 # bounds.
@@ -53,7 +53,7 @@ HUDS = {"HUDa": "HUD_std", "HUDc": "HUD_wide"}
 # The Block 50/52 jet FlightGear's conditions see: powered, its instruments serviceable, every lamp and test off.
 PROPS = {"sim/variant-id": 5, "sim/current-view/internal": 1, "systems/static/serviceable": 1}
 POWER_PREFIX = "fdm/jsbsim/elec/bus/"
-# FlightGear's properties the game drives (game/cockpit/cockpit3d.gd PROPS): the rotate animations on them become
+# FlightGear's properties the game drives (shared/cockpit/cockpit3d.gd PROPS): the rotate animations on them become
 # turning nodes; the rest stay at rest.
 NEEDLE_PROPS = {
     "instrumentation/airspeed-indicator/indicated-speed-kt", "velocities/mach", "f16/avionics/vvi-indicated-speed-fps",

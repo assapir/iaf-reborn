@@ -1,5 +1,5 @@
-# The setup wizard (game/setup/wizard.gd, docs/setup.md) on an empty scratch assets folder:
-#   IAF_ASSETS_DIR=<empty dir> IAF_DEFAULT_SETTINGS=1 godot --headless --path game -s \
+# The setup wizard (iaf-reborn/setup/wizard.gd, docs/setup.md) on an empty scratch assets folder:
+#   IAF_ASSETS_DIR=<empty dir> IAF_DEFAULT_SETTINGS=1 godot --headless --path iaf-reborn -s \
 #     ../tests/godot/test_setup_wizard.gd
 # Startup opens the wizard without game data; the pages go in order; a bad file is rejected; Find in a folder finds
 # the CD in the background; before a run the Install rows show which steps are up to date; with the English ISO

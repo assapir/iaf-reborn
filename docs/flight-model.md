@@ -757,7 +757,7 @@ Where our port differs from the original. Everything else follows §15 (status i
   * the F-16 values of §15.9.
 * **Real data set only** (new, not original): `stall_floor` (also caps the GLimit), `wave_drag`, the geometric
   nose-wheel steering (without the ×4 lift quirk), §11.
-* **Host (game/terrain/terrain_view.gd)**:
+* **Host (shared/terrain/terrain_view.gd)**:
   * Airborne start: speed 282.84 m/s along the heading, vz 0. The activation `FUN_004a9100` passes the velocity
     (200, 200, 0) (docs/ai.md §7.1).
   * Near-base and runway-start-point tests (§15.6.4) use the iaf.ibx airbases (`551280`, docs/ai.md §9,
@@ -889,7 +889,7 @@ Table `spool::ENGINES` (seconds, sea level; `mil_idle` 5 s for every engine, inf
 | F-35I (its definition's `engine_spool`) | F135-PW-100 | 4.0 | 0.8 | 1.2 | flight idle → maximum power about 6 s[^pw135]; the split inferred |
 | F-15I Ra'am (its definition's `engine_spool`, before type 110's) | F100-PW-229 | 3.0 | 0.0 | 0.9 | F-15E: idle → maximum AB in less than 4 s[^usaf-f15e]; in a snap acceleration the AB's first segment lights just above idle[^to-f15e]; idle → military the -220's (inferred), the rest inferred |
 
-* An aircraft definition's `engine_spool` (`game/extra/planes/<id>/airframe.json`) goes before its type code's row,
+* An aircraft definition's `engine_spool` (`shared/extra/planes/<id>/airframe.json`) goes before its type code's row,
   with either data set: loading the flight data (`spool::of_type`) puts it in `Params::engine_spool`, from the
   definition whose `fm` is the type flown, else the type code's own (the F-35I's). The F-15I on type 110 spools as
   the -229 and the Baz as the -220. The F-16I has none and flies type 100's.

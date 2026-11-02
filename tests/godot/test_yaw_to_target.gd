@@ -5,7 +5,7 @@
 # part per frame; a release hides the Scud's Missile part (FUN_004ab810).
 extends "res://../tests/godot/base.gd"
 
-const VehicleParts := preload("res://mission/vehicle_parts.gd")
+const VehicleParts := preload("res://shared/mission/vehicle_parts.gd")
 
 
 func run() -> void:

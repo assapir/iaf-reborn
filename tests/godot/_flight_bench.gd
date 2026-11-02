@@ -2,7 +2,7 @@
 # rest. Mission 311 from Ramat David, the rig moved straight ahead at `speed` for `secs` at each altitude, the flight
 # model stopped. Per leg: frames per second, frame time average / 95th percentile / worst, the main-thread process
 # time, the GPU time, draw calls, primitives and the terrain nodes drawn.
-#   IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 1920x1080 -s ../tests/godot/_flight_bench.gd
+#   IAF_DEFAULT_SETTINGS=1 godot --path iaf-reborn --resolution 1920x1080 -s ../tests/godot/_flight_bench.gd
 # BENCH_MISSION=id flies another mission's start. BENCH_LEGS=alt:speed:secs,... (default
 # 150:250:20,1500:250:20,6000:300:20). BENCH_BEST=1: the best graphics (every Graphics slider / switch up, MSAA 4× +
 # FXAA, terrain close up, atmospheric sky, the modern imagery layers where converted: mapi2015 in Israel, sentinel2
@@ -54,7 +54,7 @@ func run() -> void:
 		tv.runtime.misc["0x460"] = float(OS.get_environment("BENCH_HOUR")) * 3600.0 - tv.runtime.now
 		tv._tod_t = -INF
 		# The cockpit's night is decided once at the mission's start (terrain_view.gd _update_time_of_day): again here.
-		tv.cockpit.night = preload("res://terrain/time_of_day.gd").cockpit_night(tv.time_of_day())
+		tv.cockpit.night = preload("res://shared/terrain/time_of_day.gd").cockpit_night(tv.time_of_day())
 	print("layers: ", tv.terrain.layers)
 	tv.frozen = true
 	tv.fm_stopped = true

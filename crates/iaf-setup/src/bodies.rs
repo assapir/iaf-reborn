@@ -87,7 +87,7 @@ pub(crate) fn patch(ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool) -> Result
 /// front view setup makes (arm.json's `front`: the F-15I's, by the models step) once it is there.
 pub(crate) fn arm(ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     let conv = ctx.assets.join("converted");
-    let mut arms: Vec<PathBuf> = std::fs::read_dir(ctx.repo.join("game/extra/planes"))
+    let mut arms: Vec<PathBuf> = std::fs::read_dir(ctx.repo.join("shared/extra/planes"))
         .map(|rd| rd.flatten().map(|e| e.path().join("arm")).filter(|p| p.is_dir()).collect())
         .unwrap_or_default();
     arms.sort();

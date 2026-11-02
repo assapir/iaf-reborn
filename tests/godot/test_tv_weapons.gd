@@ -6,8 +6,8 @@
 # on a scripted sim time.
 extends "res://../tests/godot/base.gd"
 
-const Guided := preload("res://weapons/guided.gd")
-const EoSensor := preload("res://weapons/eo_sensor.gd")
+const Guided := preload("res://shared/weapons/guided.gd")
+const EoSensor := preload("res://shared/weapons/eo_sensor.gd")
 ## [Jet list id, F-35I slot, type].
 const CASES := [
 	[-1, -1, 100], [0, -1, 110], [2, -1, 120], [3, -1, 200], [4, -1, 140], [5, -1, 130], [6, -1, 190], [4, 4, 1000]
@@ -104,7 +104,7 @@ func _case(tv, name: String, shots: bool) -> void:
 	# depth pick).
 	var eye: Vector3 = w.own().pos
 	var tg = w.ground_hit(eye, w.eo_dir)
-	var sb: AABB = site.node.global_transform * preload("res://util/gltf.gd").model_aabb(site.node)
+	var sb: AABB = site.node.global_transform * preload("res://shared/util/gltf.gd").model_aabb(site.node)
 	var on_box: bool = sb.grow(0.01).has_point(w.to_scene(w.eo_centre))
 	check(
 		on_box and (tg == null or eye.distance_to(w.eo_centre) < eye.distance_to(tg) - 0.5),

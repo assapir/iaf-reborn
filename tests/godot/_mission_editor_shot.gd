@@ -1,7 +1,7 @@
 # Dev helper (not run by tools/test.sh): a real-render capture of the mission editor on a fork of 512 Wild West, an
 # SA-6 put in the sea (its red ring), zoomed in on Alpha, saved to ED_SHOT. The fork lives in user://missions_shot
 # and is removed after.
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 ED_SHOT=/tmp/ed.png -- --log-file /tmp/ed.log --path game \
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 ED_SHOT=/tmp/ed.png -- --log-file /tmp/ed.log --path iaf-reborn \
 #     --resolution 1600x1000 -s ../tests/godot/_mission_editor_shot.gd
 # ED_SCENERY=menu: zoomed in on a town of the scenery (docs/scenery.md §5) with a building picked and its Set as target
 # menu open; ED_SCENERY=target: that building set as a target (its marker selected). ED_TAB=<title>: that side tab

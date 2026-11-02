@@ -10,7 +10,7 @@ This doc lists the rendering options of the flight scene, what each one sets, an
   (docs/imagery.md §5). Preferences → Extras holds the rest of ours.
 - The time of day (§4) follows the original's rules: the sun, light and fog colours come from the mission start time.
 
-Code: `game/terrain/render_options.gd` (applied by `terrain_view.gd apply_render_options()` at the start of a flight
+Code: `shared/terrain/render_options.gd` (applied by `terrain_view.gd apply_render_options()` at the start of a flight
 and when the in-flight Preferences close), `terrain/terrain.gdshader`, `terrain/atmosphere.gdshader`,
 `terrain/cloud_layer.gd`, `terrain/night_lights.gd`, `terrain/city_lights.gd`, `terrain/night_vision.gdshader`, `terrain/airbases.gd`, `terrain/ground_textures.gd`, `util/model_detail.gd`, `terrain/weather.gd`, `terrain/deck_floor.gdshader`, `terrain/volumetric_clouds.gd`. Tests: `tests/godot/test_graphics_prefs.gd` (switches → render
 settings, save / load), `test_ui_smoke.gd` (Graphics → MORE and Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5, §8 the goggles key), `test_city_lights.gd` (§5.1), `test_water.gd` (§1.3), `test_ground_textures.gd` (§1.4), `test_particle_effects.gd` (§6), `test_airbases.gd` (§7), `test_model_detail.gd` (§9), `test_rain.gd` (§10: the levels, the switch × mission weather rules and the cloud deck), `test_clouds.gd` (§2.1).
@@ -658,7 +658,7 @@ Cost (inferred, not measured on the Iris Xe): the motion-vector pass is what TAA
 cost more than TAA's resolve: on the M4 Pro at 4K, Quality FSR 2 took 11.3 ms against 8.3 ms for native TAA and
 9.4 ms for Quality MetalFX temporal (§3.10 there). On the Iris Xe, expect Quality FSR 2 near native TAA (the 3D
 scene at 0.59 of the pixels pays for the passes) and Native FSR 2 above it. To measure, run
-`BENCH_SET=antialiasing=temporal,upscaling=quality IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 2560x1440
+`BENCH_SET=antialiasing=temporal,upscaling=quality IAF_DEFAULT_SETTINGS=1 godot --path iaf-reborn --resolution 2560x1440
 -s ../tests/godot/_flight_bench.gd` against `BENCH_SET=antialiasing=taa` and the default (§3.1), on an idle machine;
 or `tests/godot/_upscale_probe.gd`, which cycles the modes in one process.
 
@@ -907,7 +907,7 @@ The cloud layer is a dome of cloud texture plus a flat layer, and a whiteout nea
   Tried and dropped (2026-10-26): plain bilinear at mip 3 (contours at the texel edges); 0.45·d darkening with the
   sky's full sun (a flat peach veil with no cloud shapes at 19:30).
 
-### 2.1 Volumetric clouds (Graphics → MORE "Clouds" Volumetric, built: game/terrain/volumetric_clouds.gd)
+### 2.1 Volumetric clouds (Graphics → MORE "Clouds" Volumetric, built: shared/terrain/volumetric_clouds.gd)
 
 Preferences → Graphics → MORE → **Clouds = Original / Volumetric** (ours, docs/deviations.md §2). Original (the
 default) is the 1998 layer above, unchanged. Volumetric replaces it with raymarched clouds that the jet can fly
@@ -1289,7 +1289,7 @@ F-16, the GPU bench lock held), `BENCH_SET=cockpit_3d=3d` against the 2D panel, 
   No GPU cost to measure: on minus off is −0.5 and −0.4 ms at 150 m, +0.1 and +0.9 ms at 1,500 m, inside the runs'
   spread. The pass adds 67 draw calls (594 against 527 at 150 m) and about 40 k triangles (467 k against 428 k).
 
-## 4. Time of day (built: game/terrain/time_of_day.gd)
+## 4. Time of day (built: shared/terrain/time_of_day.gd)
 
 This section describes the original's day / night rendering and our port of it. By these rules only mission 214
 starts at night; missions 112, 237 and 515 start at 05:xx, which is dawn.
@@ -1305,7 +1305,7 @@ starts at night; missions 112, 237 and 515 start at 05:xx, which is dawn.
   - no sun disc at night; at night the atmospheric sky (Graphics → MORE) falls back to the gradient one.
 - Every frame it sets the fog / horizon colour by the view's heading (B → C → D).
 - The sun node lights the terrain; the original pre-lights it with the light colour (UNCERTAIN match).
-- The cockpit darkening is game/cockpit/cockpit.gd `night` (docs/cockpit.md).
+- The cockpit darkening is shared/cockpit/cockpit.gd `night` (docs/cockpit.md).
 
 **Original.**
 
@@ -1358,7 +1358,7 @@ starts at night; missions 112, 237 and 515 start at 05:xx, which is dawn.
   afternoon, 17–21 evening, ≥ 22 morning, a quirk). The time option labels Noon / Dawn / Sunset / Night = 12:00 /
   06:00 / 19:00 / 22:00.
 
-## 5. Night lights, Detailed (built: game/terrain/night_lights.gd)
+## 5. Night lights, Detailed (built: shared/terrain/night_lights.gd)
 
 Preferences → Graphics → MORE → **Night lights = Detailed** (ours, docs/deviations.md §2). It aims at a modern night look at
 a small cost. The parts:
@@ -1427,7 +1427,7 @@ Metal notes (Godot 4.7.2): in a spatial shader's `vertex()`, `VIEWPORT_SIZE` rea
 Y-flipped. The shaders get the viewport rows as a uniform and take the focal length as
 `abs(PROJECTION_MATRIX[1][1])`. `POINT_SIZE` and `POINT_COORD` work.
 
-### 5.1 City lights (built: game/terrain/city_lights.gd)
+### 5.1 City lights (built: shared/terrain/city_lights.gd)
 
 With Night lights = Detailed, at night, the towns have lights (ours, docs/deviations.md §2). The original lights no
 town but Damascus, by its `LT_` sets (§4). The lights need setup's scenery (scenery.md §1): they are placed from its
@@ -1579,7 +1579,7 @@ ms, with 2 pixels near and the haze read per pixel 2.5 ms; their vertices alone 
 ```sh
 flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 BENCH_BEST=1 BENCH_HOUR=22 \
   BENCH_AT=318500,540500 BENCH_LEGS=3000:250:20 BENCH_SETTLE=6 BENCH_SET=night_lights=detailed \
-  BENCH_TOGGLE=_city_lights -- --log-file /tmp/b.log --resolution 2560x1440 --path game -s ../tests/godot/_flight_bench.gd
+  BENCH_TOGGLE=_city_lights -- --log-file /tmp/b.log --resolution 2560x1440 --path iaf-reborn -s ../tests/godot/_flight_bench.gd
 ```
 
 Tried and dropped (2026-10-28):
@@ -1607,7 +1607,7 @@ the sea), `night_town_low` (300 m over Rishon LeZion) and `night_haifa` (Haifa b
 `SHOW_NO_CITY=1` hides the city lights for a before picture. The night glows there are sized in the shot's rows (the
 window under xvfb is smaller). Test: `test_city_lights.gd`.
 
-## 6. Effects, Detailed (built: game/mission/gpu_fx.gd)
+## 6. Effects, Detailed (built: shared/mission/gpu_fx.gd)
 
 Preferences → Graphics → MORE → **Particle effects = Detailed** (ours, docs/deviations.md §2) draws the original's effects
 with GPU particles. It takes effect at the next flight. What spawns, when, where, how fast, how wide and for how long stays the original's
@@ -1841,7 +1841,7 @@ the Iris Xe at 2560 × 1440, Particle effects Original against Detailed.
 from behind through the haze). The missile smoke and flame: `tests/godot/_missile_fx_shot.gd` (a launch from
 beside, from behind, mid-flight, and the trail 4 s after the hit; any time of day; before / after).
 
-## 7. Airbases, Detailed (built: game/terrain/airbases.gd, terrain.gdshader)
+## 7. Airbases, Detailed (built: shared/terrain/airbases.gd, terrain.gdshader)
 
 Preferences → Graphics → MORE → **Airbases = Detailed** (ours, docs/deviations.md §2) draws the nearest base's runways,
 taxiways and aprons as a procedural surface with ICAO markings when the camera is near the ground. Original shows the
@@ -1952,7 +1952,7 @@ noise (the surface fades out by 6 km and only the mask's rectangle runs the code
 Ramat David, Tel Nof, Ramon and Damascus; take-off, roll (800 m), 300 m on final, 1500 m overhead, an external low pass;
 noon and 22:00 (with Night lights = Detailed: the base's light set lines up with the runway edges).
 
-## 8. Night vision (built: game/terrain/night_vision.gdshader)
+## 8. Night vision (built: shared/terrain/night_vision.gdshader)
 
 Preferences → Graphics → MORE → **Night vision = Goggles** (ours, docs/deviations.md §2). In flight, **Shift+N** puts
 the goggles on and takes them off (`terrain_view.gd _toggle_goggles`). The original has no night vision.
@@ -2040,7 +2040,7 @@ original's by its id (`mission_year.rs default_year`: 111–117 1967, 121–127 
 ground's texture and the AI jet ahead, which are black without them. Cost: 68.5 against 71.4 fps at 1920×1080 on this
 Iris Xe laptop, measured while another render ran (to measure again on an idle machine).
 
-## 9. Model detail (built: game/util/model_detail.gd, model_detail.gdshaderinc)
+## 9. Model detail (built: shared/util/model_detail.gd, model_detail.gdshaderinc)
 
 Preferences → Graphics → MORE → **Model detail = ambientCG** (ours, docs/deviations.md §2) gives the original models
 a fine surface up close: the stores read as painted metal, the jets as worn paint, the vehicles as weathered steel,
@@ -2141,7 +2141,7 @@ hangar. On Linux, run it on X11 with `MESA_VK_WSI_PRESENT_MODE=immediate` (`DISP
 Wayland window covered by other windows is drawn once a second.
 
 
-## 10. Rain (built: game/terrain/weather.gd)
+## 10. Rain (built: shared/terrain/weather.gd)
 
 Preferences → Graphics → MORE → **Rain = Off / Light / Heavy** (ours, docs/deviations.md §2). The original has no
 weather, so the default is Off, which makes no node and changes nothing. The choice is saved (`Settings.rain`,

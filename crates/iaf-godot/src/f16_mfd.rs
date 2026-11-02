@@ -1,4 +1,4 @@
-//! `IafF16Mfd`: one F-16 MFD's real formats (`iaf_avionics::f16_mfd`, docs/mfd.md §9) for `game/cockpit/mfd.gd`.
+//! `IafF16Mfd`: one F-16 MFD's real formats (`iaf_avionics::f16_mfd`, docs/mfd.md §9) for `shared/cockpit/mfd.gd`.
 
 use godot::prelude::*;
 use iaf_avionics::f16_mfd::{self, Format, Mfd, Press};

@@ -7,7 +7,7 @@
 # (tsd_gps_rack.png). With GPS_SHOT=tti only the F-16I's Real HUD 5 s after a GBU-31's release 6 km out, the time to
 # impact counting down (hud_f16_tti.png).
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=$PWD/.shots -- \
-#     --log-file /tmp/s.log --path game -s ../tests/godot/_gps_shot.gd
+#     --log-file /tmp/s.log --path iaf-reborn -s ../tests/godot/_gps_shot.gd
 extends "res://../tests/godot/base.gd"
 
 const GBU31 := 1003

@@ -1,7 +1,7 @@
 # Dev helper (not run by tools/test.sh): a real-render capture of the On-The-Fly menu (Ctrl+O, item 2 hovered) in
 # mission 311, in MENU_LANG (en / he), saved to MENU_SHOT; with MENU_BOX=1 the "End mission" Yes/No box instead
 # (YES hovered); with MENU_PAUSE=1 the Ctrl+P pause screen (text on) instead of the menu.
-#   MENU_LANG=he MENU_SHOT=/tmp/m.png IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 1920x1080 -s \
+#   MENU_LANG=he MENU_SHOT=/tmp/m.png IAF_DEFAULT_SETTINGS=1 godot --path iaf-reborn --resolution 1920x1080 -s \
 #     ../tests/godot/_flymenu_shot.gd
 extends "res://../tests/godot/base.gd"
 

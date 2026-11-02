@@ -2,7 +2,8 @@
 # §10.1): the rain's deck from below, inside and above it, and the fair-weather cumulus, at Ramat David (mission 311),
 # the flight model stopped.
 #   flock -o ~/.cache/iaf-gpu-bench.lock timeout -k 10 300 tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 \
-#     SHOT_DIR=/tmp/clouds -- --log-file /tmp/c.log --path game --resolution 1920x1080 -s ../tests/godot/_clouds_shot.gd
+#     SHOT_DIR=/tmp/clouds -- --log-file /tmp/c.log --path iaf-reborn --resolution 1920x1080 \
+#     -s ../tests/godot/_clouds_shot.gd
 # CLOUD_SET="key=value,..." sets Settings first (e.g. clouds=volumetric); CLOUD_BEST=1 every graphics option at its
 # best (as _rain_shot.gd RAIN_BEST). CLOUD_ONLY=name,... picks shots; CLOUD_TAG prefixes the file names
 # (SHOT_DIR/<tag><name>.png). CLOUD_BENCH=secs: the average frame time and the GPU's render time of each shot's view
@@ -13,7 +14,7 @@
 # the view, m to the side]: explosions there].
 extends "res://../tests/godot/base.gd"
 
-const TimeOfDay := preload("res://terrain/time_of_day.gd")
+const TimeOfDay := preload("res://shared/terrain/time_of_day.gd")
 const SHOTS := [
 	["rain_below_cockpit", "light", 400.0, 12.5, 4.0, 40.0, "cockpit"],
 	["rain_below_external", "light", 400.0, 12.5, 4.0, 40.0, "external"],
@@ -73,15 +74,15 @@ func run() -> void:
 		}
 		for k in best:
 			s.set(k, best[k])
-		if load("res://terrain/ground_textures.gd").available():
+		if load("res://shared/terrain/ground_textures.gd").available():
 			s.ground_textures = "ambientcg"
-		if load("res://util/model_detail.gd").available():
+		if load("res://shared/util/model_detail.gd").available():
 			s.model_detail = "ambientcg"
 	for kv in _env("CLOUD_SET", "").split(",", false):
 		var p := kv.split("=")
 		s.set(p[0], str_to_var(p[1]) if str_to_var(p[1]) != null else p[1])
 	seed(3)
-	weather = load("res://terrain/weather.gd")
+	weather = load("res://shared/terrain/weather.gd")
 	tv = await start_mission(311)
 	await frames(30)
 	tv.frozen = true
@@ -91,7 +92,7 @@ func run() -> void:
 	var bench := float(_env("CLOUD_BENCH", "0"))
 	if bench > 0.0:
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
-		load("res://terrain/volumetric_clouds.gd").Effect.timing = true
+		load("res://shared/terrain/volumetric_clouds.gd").Effect.timing = true
 		RenderingServer.viewport_set_measure_render_time(root.get_viewport_rid(), true)
 	var only := _env("CLOUD_ONLY", "").split(",", false)
 	var start: Vector3 = tv.rig.position

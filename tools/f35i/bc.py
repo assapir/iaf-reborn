@@ -6,7 +6,7 @@
 # eye, its own object f35i_bc_nose, seen over the glareshield in both cockpits. Same frame as f35i.gltf, so the game
 # moves it by the descriptor's eye like the originals' *_bc.x.
 #
-#   blender -b --python tools/f35i/bc.py -- game/extra/planes/f35i
+#   blender -b --python tools/f35i/bc.py -- shared/extra/planes/f35i
 import json
 import math
 import os

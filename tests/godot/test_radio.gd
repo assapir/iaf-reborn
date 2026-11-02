@@ -15,7 +15,7 @@ class FakeFlight:
 ## The phrase channel on the real sound table: the file each wav name resolves to (a stream that loads).
 class FakeSounds:
 	extends RefCounted
-	var table = load("res://audio/sound_table.gd").load_table()
+	var table = load("res://shared/audio/sound_table.gd").load_table()
 	var played: Array[String] = []
 
 	func path(file: String) -> String:
@@ -78,7 +78,7 @@ func console_has(tv: Node, line: String) -> bool:
 func run() -> void:
 	await require_data()
 	# --- the phrase engine ----------------------------------------------------------------------
-	var radio_script: GDScript = load("res://audio/radio.gd")
+	var radio_script: GDScript = load("res://shared/audio/radio.gd")
 	var r = radio_script.new()
 	r._ready()
 	var p: Dictionary = r.expand("ACFT_TAXI_TO_RUNWAY", ["Alpha_t", "MORNING"], [27])
@@ -136,7 +136,7 @@ func run() -> void:
 	)
 	r.free()
 
-	# --- the runway-number clips: the install's where it has one, else ours (game/extra/tower_numbers) -----
+	# --- the runway-number clips: the install's where it has one, else ours (shared/extra/tower_numbers) -----
 	var nh := FakeHost.new()
 	root.add_child(nh)
 	nh.sounds = FakeSounds.new()
@@ -148,7 +148,7 @@ func run() -> void:
 		var n: String = r.expand("ACFT_PROCEED_TO_RUNWAY", ["Alpha_t"], [int(r.bases[i].rwy) / 10]).wavs[-1]
 		check(nh.sounds.path(n).begins_with(inst), "%s runway %s: the install's clip" % [r.BASES[i], n])
 	r.base = 0
-	for c in [[250, "res://extra/tower_numbers/num025.wav"], [270, inst.path_join("num027.wav")]]:
+	for c in [[250, "res://shared/extra/tower_numbers/num025.wav"], [270, inst.path_join("num027.wav")]]:
 		r.bases[0].rwy = c[0]
 		nh.sounds.played.clear()
 		r._say(5)

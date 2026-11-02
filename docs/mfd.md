@@ -2,7 +2,7 @@
 
 How the original game draws and drives the cockpit's multi-function displays (MFDs): geometry, text and colours,
 every page, the full-screen weapon MFD, the radar MAP picture, the keys, a short HUD note and the per-aircraft cockpit
-table. Use it to re-implement or check `game/cockpit/mfd.gd`, `game/cockpit/fs_mfd.gd`
+table. Use it to re-implement or check `shared/cockpit/mfd.gd`, `shared/cockpit/fs_mfd.gd`
 and the EO / HARM sensors in `crates/iaf-avionics`.
 
 Key facts:
@@ -582,7 +582,7 @@ event 0x1f, so the mode was unreachable. v1.1 only wired Z (docs/v1.1.md).
 **iaf-reborn:** built: `eo.rs` `full_screen_ok`, `player_weapons.gd` `full_screen_key` / `_update_full_screen`
 (Z, the per-frame exits, the impact fly-by via `terrain_view.gd` `full_screen_impact`), `terrain_view.gd`
 `_update_full_screen` (the overlay, the cockpit hidden, the main viewport's 3D off, the EO viewport at 385×382 ×
-the window height / 480, the waypoint projected through the EO camera) and `game/cockpit/fs_mfd.gd` (the layers,
+the window height / 480, the waypoint projected through the EO camera) and `shared/cockpit/fs_mfd.gd` (the layers,
 fsmfd.bmp and data.ibx read from the install, the OSB strips). Differences: the cursor stays visible over the
 picture; ANSI_VAR_FONT is Arial 13 px; the frame is redrawn every frame. Test: tests/godot/test_tv_weapons.gd (Z, F1,
 Z, the hit's fly-by).
@@ -786,7 +786,7 @@ MiG-23 298/126/190; MiG-29 297/44/190. HUD `[HUD]` values are in docs/cockpit.md
 Reachability: the Jet list offers only the seven jets above. `mig23` and `mig29` (types 160/180) are reached through a
 mission that makes the player's flight MiGs: the Mission Creator's Alpha / Bravo TYPE lists hold both (docs/front-end.md
 §19), the TSD's flyable list `FUN_00505730` has them, and `FUN_00447e70` gives them cockpits 8 (`mig23`) and 7 (`mig29`).
-Ours flies them the same way (game/aircraft/player_aircraft.gd FLYABLE). `Cockpit009..012 = F16` in cockpits.ibx are
+Ours flies them the same way (shared/aircraft/player_aircraft.gd FLYABLE). `Cockpit009..012 = F16` in cockpits.ibx are
 never returned by `FUN_00447e70` (indices only 0..8). `fsmfd/` (full-screen MFD art + `data.ibx`) and
 `mfds.bmp/rwrsymb.bmp/isr.bmp` are shared by all cockpits; `emf/map.emf` is the TSD map for all.
 
@@ -848,7 +848,7 @@ right 16–20 are 6–10). On every format the bottom row holds:
 The formats at the start (inferred): left FCR, TGP, TEST; right HSD, SMS, WPN. A page set elsewhere puts its format
 first: from its slot, else in place of the shown one. The format menu (fig. 1-29) offers FCR (OSB 20), TGP (19, only
 with a targeting pod, as the original's MENU "FLIR"), WPN (18), SMS (6), HSD (7) and TEST (9). The logic is
-`crates/iaf-avionics/src/f16_mfd.rs` (`IafF16Mfd`); the drawing `game/cockpit/f16_mfd.gd`.
+`crates/iaf-avionics/src/f16_mfd.rs` (`IafF16Mfd`); the drawing `shared/cockpit/f16_mfd.gd`.
 
 **Each format's own OSBs** (real numbers; the game event each sends):
 

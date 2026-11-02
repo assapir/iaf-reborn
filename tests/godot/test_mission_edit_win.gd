@@ -5,7 +5,7 @@
 # Writes only under user://missions_test_win.
 extends "res://../tests/godot/base.gd"
 
-const DM := preload("res://mission/damage_model.gd")
+const DM := preload("res://shared/mission/damage_model.gd")
 const DIR := "user://missions_test_win"
 const LAND := Vector2(350000, 600000)  # inland, 212 m
 

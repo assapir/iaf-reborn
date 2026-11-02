@@ -33,9 +33,9 @@ func run() -> void:
 		func(f): return f.ends_with(".json")
 	)
 	check(list.size() == sources.size() and list.size() > 0, "a compiled mission per data file: %d" % list.size())
-	var MR = load("res://mission/mission_runtime.gd")
-	var PA = load("res://aircraft/player_aircraft.gd")
-	var Db = load("res://weapons/weapon_db.gd")
+	var MR = load("res://shared/mission/mission_runtime.gd")
+	var PA = load("res://shared/aircraft/player_aircraft.gd")
+	var Db = load("res://shared/weapons/weapon_db.gd")
 	var first := {}
 	for id in list:
 		var name := String(list[id][0])

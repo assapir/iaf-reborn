@@ -22,7 +22,7 @@ const TOWNS := {
 
 func run() -> void:
 	await require_data()
-	var CityLights: GDScript = load("res://terrain/city_lights.gd")
+	var CityLights: GDScript = load("res://shared/terrain/city_lights.gd")
 	if not CityLights.available():
 		print("SKIP: no scenery (tools/setup-cli.sh --scenery): the city lights need its buildings")
 		return
@@ -86,7 +86,7 @@ func run() -> void:
 	check(cl._glow != null and cl.glow_k > 0.0, "the haze over the towns")
 	# The rest of the theatre (setup's theatre.json): the towns beyond Israel have their buildings' lights, and the
 	# haze reaches them.
-	if FileAccess.file_exists(load("res://terrain/scenery.gd").dir().path_join("theatre.json")):
+	if FileAccess.file_exists(load("res://shared/terrain/scenery.gd").dir().path_join("theatre.json")):
 		for town in TOWNS:
 			var at: Vector2 = TOWNS[town]
 			check(IafCityLights.blocks_near(at.x, at.y, 1000.0).size() > 0, "%s has light blocks" % town)

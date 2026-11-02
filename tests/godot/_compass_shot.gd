@@ -3,7 +3,7 @@
 # frame) and compass_<cockpit>_<heading>_zoom.png (the dial, 3× nearest). Mission 312, airborne, on a made-up two-leg
 # route. Usage:
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=~/.cache/shots -- --log-file ~/.cache/g.log --resolution \
-#     1920x1080 --path game -s ../tests/godot/_compass_shot.gd
+#     1920x1080 --path iaf-reborn -s ../tests/godot/_compass_shot.gd
 extends "res://../tests/godot/base.gd"
 
 ## Jet list id: Kfir, F-4E, Mirage.
@@ -49,7 +49,7 @@ func run() -> void:
 			img.convert(Image.FORMAT_RGB8)
 			var name := "compass_%s_%03d%s" % [String(c.cockpit_dir).get_file(), int(k[0]), "" if k[1] else "_original"]
 			img.save_png(dir.path_join(name + ".png"))
-			for spec in load("res://cockpit/compass.gd").instruments(String(c.cockpit_dir).get_file()):
+			for spec in load("res://shared/cockpit/compass.gd").instruments(String(c.cockpit_dir).get_file()):
 				var s: float = c.ui_scale()
 				var ctr: Vector2 = c.panel_to_screen(spec.centre.x, spec.centre.y) + c.global_position
 				var half := int((float(spec.r) + 8.0) * s)

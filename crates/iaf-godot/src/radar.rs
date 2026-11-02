@@ -1,4 +1,4 @@
-//! `IafRadar`: the player's radar (`iaf_avionics::radar`, docs/radar.md) for `game/weapons/radar.gd`.
+//! `IafRadar`: the player's radar (`iaf_avionics::radar`, docs/radar.md) for `shared/weapons/radar.gd`.
 //!
 //! `set_input` hands over the own jet, the units and the terrain before a call that can scan; `state()` and
 //! `events()` read the result back.

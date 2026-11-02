@@ -1,7 +1,7 @@
 # Dev helper (not run by tools/test.sh): real-render captures of the Israel imagery layers (docs/imagery.md §8) at one
 # pose, one per layer in SHOT_LAYERS (default original,mapi2015,mapi2015_modern), with the frame rate over 180
 # frames (vsync off). Pose with terrain_view's user args (engine metres; `iaf-terrain game <points> lat lon`):
-#   IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/shots SHOT_NAME=rishon godot --path game --resolution 1920x1080 \
+#   IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/shots SHOT_NAME=rishon godot --path iaf-reborn --resolution 1920x1080 \
 #       -s ../tests/godot/_imagery_shot.gd -- --at X Y ALT HDG PITCH --freeze
 # SHOT_ORBIT="yaw,pitch,dist" draws from the external view instead of the cockpit. SHOT_SCENERY=on: with Scenery
 # (docs/scenery.md).
@@ -20,7 +20,7 @@ func run() -> void:
 		settings().scenery = OS.get_environment("SHOT_SCENERY")
 	for layer in layers:
 		settings().imagery_israel = layer
-		change_scene_to_file("res://terrain/terrain_view.tscn")
+		change_scene_to_file("res://shared/terrain/terrain_view.tscn")
 		await frames(2)
 		var tv: Node = null
 		while tv == null or tv.get("flight") == null or tv.waiting_for_ground:

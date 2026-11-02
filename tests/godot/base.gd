@@ -82,7 +82,7 @@ var continue_boxes := true
 func start_mission(id: int) -> Node:
 	await require_data()
 	settings().mission_id = id
-	change_scene_to_file("res://terrain/terrain_view.tscn")
+	change_scene_to_file("res://shared/terrain/terrain_view.tscn")
 	var tv: Node = null
 	while tv == null or tv.get("flight") == null or tv.waiting_for_ground:
 		await process_frame
@@ -206,7 +206,7 @@ func airborne_case(tv, hardpoints: Array):
 		airborne_flags()
 	)
 	var w = tv.weapons
-	var w2 = load("res://weapons/player_weapons.gd").new()
+	var w2 = load("res://shared/weapons/player_weapons.gd").new()
 	tv.add_child(w2)
 	var bdb: Dictionary = tv.mission_bdb
 	w2.setup(tv, {"armament": {"hardpoints": hardpoints}}, tv._player_object(bdb), bdb, w.descriptor)

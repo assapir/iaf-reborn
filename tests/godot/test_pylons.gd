@@ -3,7 +3,7 @@
 # flyable jet's converted model has pylon geometry reaching down to (below) its wing stations B..D, F..H.
 extends "res://../tests/godot/base.gd"
 
-const Gltf := preload("res://util/gltf.gd")
+const Gltf := preload("res://shared/util/gltf.gd")
 const JETS := ["f16", "f15", "f42000", "lavi", "cfir", "mirage"]
 const WING := ["StationB", "StationC", "StationD", "StationF", "StationG", "StationH"]
 

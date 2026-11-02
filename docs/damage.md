@@ -18,7 +18,7 @@ lists what the patch changed. The Ghidra C is in `assets/ghidra_v11/iafjets.c`. 
 decompiled at their address.
 
 **Port.**
-- `game/mission/damage_model.gd`: the rules.
+- `shared/mission/damage_model.gd`: the rules.
 - `mission_runtime.gd`: unit status, events, roles.
 - `player_damage.gd`: the player's systems.
 - `damage_effects.gd`: explosions, smoke, debris.
@@ -275,7 +275,7 @@ The v1.1 patch changed the gun aim and range, the ballistic correction of fallin
 sphere, the missile launch q, the AI fire cone, the missile after guns, the relative-bearing wrap and the multiplayer
 kill credit. Each rule, its v1.0 → v1.1 addresses and our port: [v1.1.md](v1.1.md#summary-release-notes--codedata--port);
 v1.0 data handling: [v1.1.md](v1.1.md#v10-data-compatibility). The gun and missile rules are in docs/weapons.md, the
-AI rules in `game/ai/combat.gd`.
+AI rules in `shared/ai/combat.gd`.
 
 ## 5. The player's jet: systems damage
 A hit that leaves a controlled aircraft (class 0x1c) alive runs its controller's reaction `FUN_0044d590`:
@@ -509,7 +509,7 @@ Details:
 - The preference does not gate the damage smoke (§6.3), decoy smoke or explosion smoke.
 
 **Port:**
-- `game/mission/trails.gd`: an ImmediateMesh of the crossed quads; the glow is a billboard MultiMesh.
+- `shared/mission/trails.gd`: an ImmediateMesh of the crossed quads; the glow is a billboard MultiMesh.
 - Owners: `player_weapons.gd` (missiles, rockets), `terrain_view.gd` (the player's wingtips), `ai_flights.gd` (AI
   jets). The flight model exports `vortex`.
 - With the preference off, trails are not drawn.

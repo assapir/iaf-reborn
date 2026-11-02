@@ -44,8 +44,8 @@ var instruments: GDScript
 
 
 func run() -> void:
-	gauges = load("res://cockpit/gauges.gd")
-	instruments = load("res://cockpit/instruments.gd")
+	gauges = load("res://shared/cockpit/gauges.gd")
+	instruments = load("res://shared/cockpit/instruments.gd")
 	for folder in JETS:
 		await _jet(folder)
 	settings().better_cockpit = false
@@ -89,7 +89,7 @@ func _jet(folder: String) -> void:
 		"%s: metric_gauges: the altimeter in m (%.0f m)" % [folder, c.state.alt_ft / 3.28084]
 	)
 	if folder == "mig23":
-		var nav: Dictionary = load("res://cockpit/hud.gd").nav_cues(c.state, c.waypoints, c.current_waypoint)
+		var nav: Dictionary = load("res://shared/cockpit/hud.gd").nav_cues(c.state, c.waypoints, c.current_waypoint)
 		check(
 			c.waypoints.size() > 0 and gauges.rsbn_km(c) == mini(int(nav.dist_nm * 1.852), 999),
 			"mig23: rsbn_counter: the drum reads the waypoint distance (%03d km)" % gauges.rsbn_km(c)

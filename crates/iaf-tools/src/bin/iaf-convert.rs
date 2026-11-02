@@ -130,11 +130,11 @@ fn plane_checklist(code: &str, repo: &Path) -> Result<()> {
     use iaf_tools::plane;
     let code: i64 = code.parse().context("type code")?;
     if plane::RESERVED.contains(&code) {
-        println!("type {code} is skipped by the RWR (game/weapons/rwr.gd IGNORED_TYPES): pick another");
+        println!("type {code} is skipped by the RWR (shared/weapons/rwr.gd IGNORED_TYPES): pick another");
     }
     for id in plane::definitions(code) {
         println!(
-            "def game/extra/planes/{id}/airframe.json  its aircraft definition (docs/adding-a-plane.md \"Modern planes\")"
+            "def shared/extra/planes/{id}/airframe.json  its aircraft definition (docs/adding-a-plane.md \"Modern planes\")"
         );
     }
     let mut missing = 0;

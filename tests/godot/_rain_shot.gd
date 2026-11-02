@@ -1,6 +1,6 @@
 # Dev helper (not run by tools/test.sh): real-render pictures and frame times of the rain (terrain/weather.gd,
 # Preferences > Graphics → MORE "Rain", docs/rendering.md §10). Mission 311 at Ramat David, the flight model stopped.
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 RAIN_OUT=/tmp/rain -- --log-file /tmp/r.log --path game \
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 RAIN_OUT=/tmp/rain -- --log-file /tmp/r.log --path iaf-reborn \
 #     --resolution 2560x1440 -s ../tests/godot/_rain_shot.gd
 # RAIN_LEVELS=off,light,heavy (default) picks the levels; per level the pictures <tag><level>_<view>.png: the cockpit
 # on the runway, the cockpit at 400 kt 150 m over the desert, the chase view there and on the runway, the wet runway
@@ -43,9 +43,9 @@ func run() -> void:
 		}
 		for k in best:
 			s.set(k, best[k])
-		if load("res://terrain/ground_textures.gd").available():
+		if load("res://shared/terrain/ground_textures.gd").available():
 			s.ground_textures = "ambientcg"
-		if load("res://util/model_detail.gd").available():
+		if load("res://shared/util/model_detail.gd").available():
 			s.model_detail = "ambientcg"
 		var im := OS.get_environment("RAIN_IMAGERY").split(",", false)
 		if im.size() == 2:

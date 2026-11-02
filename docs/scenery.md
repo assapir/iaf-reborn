@@ -288,7 +288,7 @@ Measured on this machine (Intel laptop, 8 threads, 2026-10-30), both kinds:
     "Needs Survey 2 m".
   - Picking another Israel imagery turns Scenery off. A saved On or Detailed without both loads as Off; an unknown
     saved value loads as Off.
-- **Streaming:** `game/terrain/scenery.gd` keeps the cells within 6 km of the camera's focus (4.5 km drawn plus 1.5 km
+- **Streaming:** `shared/terrain/scenery.gd` keeps the cells within 6 km of the camera's focus (4.5 km drawn plus 1.5 km
   made ahead, so a cell is uploaded before it comes into view): the Survey layer's level-1 nodes and the rest of the
   theatre's cells of the Israel region (`theatre.json` `israel`); the outside ones (`outside`) only while Imagery
   outside Israel is a Sentinel-2 layer, their roofs in its look (Sentinel-2 modern: the modern colours). Each

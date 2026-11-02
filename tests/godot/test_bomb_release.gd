@@ -10,16 +10,16 @@ const HP := [0, 0, 15, 1, 15, 1, 15, 1, 0, 0, 15, 1, 15, 1, 15, 1, 0, 0]
 ## The release events of every store: [[stations that dropped in one step], ...] and the moment after each.
 func releases(mode: String, pairs: bool) -> Dictionary:
 	settings().bomb_release = mode
-	var MR = load("res://mission/mission_runtime.gd")
+	var MR = load("res://shared/mission/mission_runtime.gd")
 	var bdb: Dictionary = MR.load_bdb(MR.mission_files(231)[0].data)
 	var f16: Dictionary = MR.bdb_objects(bdb)[1]
-	var desc: Dictionary = load("res://aircraft/aircraft_model.gd").load_descriptor("f16")
+	var desc: Dictionary = load("res://shared/aircraft/aircraft_model.gd").load_descriptor("f16")
 	var tv = await start_mission(231)
 	await frames(5)
 	tv.frozen = true
 	tv.fm_stopped = true
 	tv.gear_down = false
-	var w = load("res://weapons/player_weapons.gd").new()
+	var w = load("res://shared/weapons/player_weapons.gd").new()
 	tv.add_child(w)
 	w.setup(tv, {"armament": {"hardpoints": HP}}, f16, bdb, desc)
 	w.release_pairs = pairs

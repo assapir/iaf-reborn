@@ -1,4 +1,4 @@
-# The start-up (game/menu/startup.gd, docs/front-end.md §18): the main scene opens the main menu at once; with
+# The start-up (iaf-reborn/menu/startup.gd, docs/front-end.md §18): the main scene opens the main menu at once; with
 # Extras → CD launcher the poster shows first and PLAY goes on to the menu.
 extends "res://../tests/godot/base.gd"
 

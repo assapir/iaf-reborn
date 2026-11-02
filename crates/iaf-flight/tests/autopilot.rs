@@ -868,7 +868,7 @@ fn true_clearance(inst: &Path, name: &str) -> f32 {
         m => m,
     };
     let dirs =
-        [inst.join("../converted/planes"), PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../game/extra/planes")];
+        [inst.join("../converted/planes"), PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../shared/extra/planes")];
     let path = dirs.iter().map(|d| d.join(model).join("aircraft.json")).find(|p| p.is_file()).expect("aircraft.json");
     let desc: serde_json::Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
     -desc["height"].as_f64().expect("a height helper") as f32

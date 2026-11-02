@@ -11,7 +11,7 @@ const FINE := Vector3i(100, 292, 1)
 
 
 func run() -> void:
-	var Layers = load("res://terrain/imagery_layers.gd")
+	var Layers = load("res://shared/terrain/imagery_layers.gd")
 	var dir: String = Layers.layer_dir(ID)
 	DirAccess.make_dir_recursive_absolute(dir.path_join("L3"))
 	var img := Image.create(64, 64, false, Image.FORMAT_RGB8)
@@ -40,7 +40,7 @@ func run() -> void:
 	check(Layers.selected() == [ID] and Layers.attributions([ID]) == ["test credit"], "the picked layer and its credit")
 
 	# Terrain with the layer (from the setting) vs without.
-	var terrain_script: GDScript = load("res://terrain/terrain.gd")
+	var terrain_script: GDScript = load("res://shared/terrain/terrain.gd")
 	var t: Node3D = terrain_script.new()
 	root.add_child(t)
 	var plain: Node3D = terrain_script.new()

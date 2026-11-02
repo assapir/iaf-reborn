@@ -19,7 +19,7 @@ var roads: GDScript
 
 func run() -> void:
 	await require_data()
-	roads = load("res://terrain/ground_roads.gd")
+	roads = load("res://shared/terrain/ground_roads.gd")
 	if not roads.available():
 		print("SKIP: no road layer (tools/setup-cli.sh): Roads = Detailed needs it")
 		return
@@ -89,7 +89,7 @@ func run() -> void:
 	check(land_road > 1000, "Tel Aviv's roads: %d road texels (every 8th)" % land_road)
 
 	# Lamps along the lit roads: a Tel Aviv block made with and without them.
-	var scenery_dir: String = load("res://terrain/scenery.gd").dir()
+	var scenery_dir: String = load("res://shared/terrain/scenery.gd").dir()
 	IafCityLights.open(scenery_dir)
 	var b := Vector2i(-1, -1)
 	var near: PackedInt32Array = IafCityLights.blocks_near(TEL_AVIV.x, TEL_AVIV.y, 0.0)

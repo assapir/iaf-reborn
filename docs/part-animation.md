@@ -2,7 +2,7 @@
 
 This spec describes how the original exe finds an aircraft model's moving parts at load time and poses them every frame:
 control surfaces, gear, hook, drag chute, ejection, vehicle parts and the afterburner flame. It is for developers who
-port or maintain `game/aircraft/aircraft_model.gd` and the ejection code.
+port or maintain `shared/aircraft/aircraft_model.gd` and the ejection code.
 
 Addresses are `IAFJets.exe` **v1.1** (the reference version); [v1.1.md](v1.1.md) maps them to v1.0 and lists what the patch changed.
 
@@ -231,7 +231,7 @@ view. The FM callback alone would hide them; the crew object answers first.
    * For the player's ejection (above 50 m, see mission-runtime.md §5.4), "Jump to tactical display event" (`0x60c918`) is scheduled at `land − 10 s`.
 The parachute opens without an animation or a sound (no code references `parachute open.wav`).
 
-**Port (iaf-reborn, `game/terrain/terrain_view.gd` `_eject*`, `aircraft_model.gd` `ejected` / `canopy_offset`):**
+**Port (iaf-reborn, `shared/terrain/terrain_view.gd` `_eject*`, `aircraft_model.gd` `ejected` / `canopy_offset`):**
 - The pilots are hidden.
 - The canopies ride the 0.05 s ticks (+3 m straight up in the jet frame, v1.1) until 100 m.
 - The seat (`objects/pilot/ejecta`, unscaled: `Cull/PilotOnChairSize` is a cull size) starts after 2 s and turns
@@ -259,7 +259,7 @@ Each turns about its X1 / X2 hinge as the aircraft parts. Writer: script motion 
 The Radar step (`FUN_005c5460` case 0x19): once `now − +0x1c ≥ 2.0`, +0x1c = now and +0x18 += 0.4 (+0x1c starts at 0,
 so the first call steps). A release clears +8 (`FUN_004ab810`), hiding the Missile part. Calls are per part per frame, so
 the rotors' and wheels' speed depends on the frame rate (kept: per our frame).
-Port: `game/mission/vehicle_parts.gd` (Turret, Carrier, Launcher, Missile incl. its hiding, the Radar step, the rotors
+Port: `shared/mission/vehicle_parts.gd` (Turret, Carrier, Launcher, Missile incl. its hiding, the Radar step, the rotors
 `step_rotors`), driven per frame by `terrain_view.gd` `_dishes`; a flown aircraft's rotors in `aircraft_model.gd`
 (the crew object's +0x10, the same rule). Wheels: the shipped vehicle models carry no Wheels frames, so nothing turns.
 The vehicles' frames come from their `_h.xfr` (the object database names it).
@@ -297,7 +297,7 @@ models and the detailed F-16D keep their wheels in the leg meshes, so their whee
   `r = |ΔY(EngineX, EngineX1)|`; the tip is at `z − ((3.5+j)·k·scale + 1.5·i)` (toward −Z, aft) with radius
   `base·(j+0.25)`. 3D-card path (`DAT_007d1960`): i = 2 (base 0.7·r) then i = 3 (base r); software path: only i = 3.
   Texture `afterburn.tga`, u = rand/32767 − s/12, v = 0.9999 at the base, 0 at the tip. Blend state UNCERTAIN.
-  Port: `game/aircraft/afterburner.gd`, docs/aircraft.md §2.2.
+  Port: `shared/aircraft/afterburner.gd`, docs/aircraft.md §2.2.
 * **Camera**: eye point `obj+0x2c`, E frame. A `Pilon` frame takes priority if present. The default is (0,0,`PilonDefaultZ`).
   Config `Camera/BackCockpitDistance` (default 20) goes to `global[0]`. **UNCERTAIN** which view uses which.
 * **EndWingL/R**: stored as `(−x·s, z·s, y·s)` in `obj+0x38/+0x44`, with flag `obj+0x50`. The consumer was not found

@@ -1,5 +1,5 @@
 //! `IafBomb` (one falling store, `iaf_avionics::bombs`) with the impact prediction and ripple line as statics, and
-//! `IafModes` (the master / HUD modes, `iaf_avionics::master`), for `game/weapons/bombs.gd` and `player_weapons.gd`.
+//! `IafModes` (the master / HUD modes, `iaf_avionics::master`), for `shared/weapons/bombs.gd` and `player_weapons.gd`.
 
 use crate::world::{get, num, terrain, vec3, vector3};
 use godot::prelude::*;

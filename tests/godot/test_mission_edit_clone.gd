@@ -1,5 +1,5 @@
 # The mission editor's sanity check, Duplicate, Copy / Paste, the year's map and Remove for an enemy flight
-# (game/editor/mission_editor.gd, docs/mission-editor.md §16, §17, §12), on a New 1998 mission:
+# (iaf-reborn/editor/mission_editor.gd, docs/mission-editor.md §16, §17, §12), on a New 1998 mission:
 # - Duplicate writes a copy and keeps you on yours;
 # - three SA-6s copied (Ctrl+C) and pasted (Ctrl+V, a click) keep their layout, headings and roles, with new ids at
 #   the ground's height;

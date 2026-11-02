@@ -924,7 +924,7 @@ mod tests {
     #[test]
     fn raam_arm_base_follows_the_row() {
         let arm: serde_json::Value =
-            serde_json::from_str(include_str!("../../../game/extra/planes/f15i/arm/arm.json")).unwrap();
+            serde_json::from_str(include_str!("../../../shared/extra/planes/f15i/arm/arm.json")).unwrap();
         let row = |n| find_type(n).and_then(real).unwrap();
         let (i, c) = (row("F-15I"), row("F-15"));
         let want = 42_000.0 + i.empty_lb - c.empty_lb + i.fuel_lb.unwrap() - c.fuel_lb.unwrap();

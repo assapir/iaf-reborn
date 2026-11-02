@@ -2,11 +2,12 @@
 # aircraft's stores (AC3D files and their textures: the F-16, the MiG-21bis, the MiG-29 9-12) and fits each onto the
 # original model of the store it replaces: its length, its body's axis and its nose direction, so the game's rack
 # slots, release points and trails stay.
-# Writes game/extra/models/stores/<name>.glb (JPEG textures; the CBU-97 shows the CBU-87's, util/gltf.gd STORES).
+# Writes shared/extra/models/stores/<name>.glb (JPEG textures; the CBU-97 shows the CBU-87's, util/gltf.gd STORES).
 # Needs the FlightGear checkouts in one folder (f16 at ef4f192, MiG-21bis at 9ca6f5b, MiG-29_9-12 at d4a299b;
 # docs/aircraft-models.md §5.3) and the converted install (tools/setup-cli.sh):
 #
-#   IAF_DEFAULT_SETTINGS=1 godot --headless --path game -s ../tools/stores/build.gd -- /tmp/fg "$PWD/assets" [name …]
+#   IAF_DEFAULT_SETTINGS=1 godot --headless --path iaf-reborn -s ../tools/stores/build.gd -- \
+#     /tmp/fg "$PWD/assets" [name …]
 #
 # STORES_STATS=1 only prints each model's measurements (no files written).
 extends SceneTree
@@ -140,7 +141,7 @@ func _init() -> void:
 	src = a[0]
 	fg = src.path_join("f16/Models")
 	assets = a[1]
-	out_dir = ProjectSettings.globalize_path("res://extra/models/stores")
+	out_dir = ProjectSettings.globalize_path("res://shared/extra/models/stores")
 	stats = OS.get_environment("STORES_STATS") == "1"
 	var names: Array = a.slice(2) if a.size() > 2 else STORES.keys()
 	DirAccess.make_dir_recursive_absolute(out_dir)

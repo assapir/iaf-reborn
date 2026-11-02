@@ -22,7 +22,7 @@ one() {
 	local env=()
 	[[ $n == test_setup_wizard ]] && env=(IAF_ASSETS_DIR="$out/$n-assets") && mkdir -p "$out/$n-assets"
 	env ${env[@]+"${env[@]}"} IAF_DEFAULT_SETTINGS=1 "$to" -k 5 60 godot --log-file "$out/$n.log" --headless \
-		--audio-driver Dummy --path game -s "../$t" >"$out/$n.out" 2>&1
+		--audio-driver Dummy --path iaf-reborn -s "../$t" >"$out/$n.out" 2>&1
 	local rc=$? f="$out/$n.out"
 	if [[ $rc == 124 || $rc == 137 ]]; then
 		r=timeout

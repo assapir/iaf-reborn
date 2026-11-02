@@ -50,7 +50,7 @@ reader takes them.
 
 ## 3. Units: `data/db/units/<id>.json`
 A unit record holds what a mission needs of a unit. A flyable jet's behaviour stays in its aircraft definition
-(`game/extra/planes/<id>/airframe.json`); the record names it in `airframe`.
+(`shared/extra/planes/<id>/airframe.json`); the record names it in `airframe`.
 
 | field | meaning |
 |---|---|
@@ -97,7 +97,7 @@ Example, `iaf-2026/data/db/units/f16i.json`:
   },
   "notes": {
     "type": "the F-16's type code, the one the shared code keys the F-16 family on; the airframe definition f16i makes it the Sufa",
-    "model": "none: the player's jet is drawn from its airframe definition (game/extra/planes/f16i/airframe.json)",
+    "model": "none: the player's jet is drawn from its airframe definition (shared/extra/planes/f16i/airframe.json)",
     "scale": "1: our models are built true size",
     "radius_m": "half the span over the wingtip rails, 9.96 m",
     "strength": "our damage scale's fighter (iaf-2026/docs/data-formats.md, damage scale)",

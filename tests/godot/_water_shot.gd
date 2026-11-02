@@ -4,7 +4,7 @@
 # SHOT_BENCH=1 then times the switch in place (_bench). SHOT_REVERSE=1 takes Detailed first (to see the order's own
 # effect on the frame). SHOT_SET="key=value,..." sets more Settings first (e.g. sky=atmospheric). Pose with
 # terrain_view's user args:
-#   IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/shots SHOT_NAME=coast godot --path game --resolution 1920x1080 \
+#   IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/shots SHOT_NAME=coast godot --path iaf-reborn --resolution 1920x1080 \
 #       -s ../tests/godot/_water_shot.gd -- --at X Y ALT HDG PITCH --freeze
 extends "res://../tests/godot/base.gd"
 
@@ -18,7 +18,7 @@ func run() -> void:
 		settings().set(p[0], str_to_var(p[1]) if str_to_var(p[1]) != null else p[1])
 	for on in [true, false] if OS.get_environment("SHOT_REVERSE") != "" else [false, true]:
 		settings().water = on
-		change_scene_to_file("res://terrain/terrain_view.tscn")
+		change_scene_to_file("res://shared/terrain/terrain_view.tscn")
 		await frames(2)
 		var tv: Node = null
 		while tv == null or tv.get("flight") == null or tv.waiting_for_ground:

@@ -6,8 +6,8 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	var Seeker = load("res://weapons/ir_seeker.gd")
-	var Hud = load("res://cockpit/hud.gd")
+	var Seeker = load("res://shared/weapons/ir_seeker.gd")
+	var Hud = load("res://shared/cockpit/hud.gd")
 	var sk = Seeker.new()
 	# Own jet heading north (world X east, Y north, Z up); the head turned 50° right; a target on that axis, 4° up, 3 km.
 	var view := Vector3(sin(deg_to_rad(50.0)), cos(deg_to_rad(50.0)), 0.0)

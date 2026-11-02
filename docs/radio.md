@@ -6,7 +6,7 @@ answers your commands, and the flight controller's reports.
 Addresses are `IAFJets.exe` **v1.1** (`assets/ghidra_v11/iafjets.c`; argument orders checked in the disassembly).
 Related: [controls.md](controls.md) (records 47, 98–103), [ai.md](ai.md) (brain, condition 29, §10),
 [autopilot.md](autopilot.md) §2.2 (waypoint sequencing), [sound.md](sound.md) (speech volume, phrase channel),
-[mission-runtime.md](mission-runtime.md) §3.3 (subtitle console). Port: `game/audio/radio.gd`.
+[mission-runtime.md](mission-runtime.md) §3.3 (subtitle console). Port: `shared/audio/radio.gd`.
 
 ## How it sounds in the game
 - **The tower talks on its own.** It talks when you are on the ground within 18.54 km of one of the four Israeli
@@ -66,7 +66,7 @@ The install lacks:
 - `Pause.wav` (the `,` / `.` particle), `Null`, `Bear000`, `Head000` and the three `…Twr` files;
 - most `NumNNN`. It ships 3, 5, 9, 15, 18, 21, 23, 27, 33, which include the runway numbers of the four Israeli bases.
   (It also has `num36.wav`, which `Num036` does not name.) Only World scale Real's real runway numbers and the runway into the wind need the others
-  (deviations.md §2). The port fills them from `game/extra/tower_numbers/` (01-36): `sound_table.gd` reads our clip
+  (deviations.md §2). The port fills them from `shared/extra/tower_numbers/` (01-36): `sound_table.gd` reads our clip
   only for a name the install lacks. The clips say the digits like the originals ("zero four") in Piper TTS's
   public-domain voice en_US-john-medium, matched to the originals' format (22050 Hz, 16-bit, mono), radio band
   (300-3000 Hz), loudness and trimmed silence. `tools/tower_numbers.py` regenerates them; the folder's README names
@@ -360,7 +360,7 @@ ARMOREDVEHICLE, 280 SOFTVEHICLE, 290–340 SAM, 350 AAA, 360 GUNDISH, 370 SHIP, 
 The callsign is `5513c0` (§2), so every enemy formation (kind 7) is "Alpha" and only one of them is in the table at
 a time (kept quirk).
 
-## 5. Port (`game/audio/radio.gd`)
+## 5. Port (`shared/audio/radio.gd`)
 - `Radio.expand()` / `say()`: the phrase engine from the two .trx files; the parts queue on the phrase channel
   (`flight_sounds.gd` channel 101, speech bus); the text goes to the subtitle console (`terrain_view._on_subtitle`).
 - Tower: §2 literally (bases from iaf.ibx, the two zones as sphere chains, the timer on the flight's sim time).

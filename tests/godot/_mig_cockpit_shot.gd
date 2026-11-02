@@ -4,7 +4,7 @@
 # view's updates and sets the lamps' inputs: the MiG-23's SPO-15 with three emitters (one launching) and its ПНП bars
 # off centre (gear handle down), the MiG-29's danger-height lamp.
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=~/.cache/shots -- --log-file ~/.cache/g.log --resolution \
-#     1920x1080 --path game -s ../tests/godot/_mig_cockpit_shot.gd
+#     1920x1080 --path iaf-reborn -s ../tests/godot/_mig_cockpit_shot.gd
 extends "res://../tests/godot/base.gd"
 
 ## Mission Creator type index -> cockpit folder.

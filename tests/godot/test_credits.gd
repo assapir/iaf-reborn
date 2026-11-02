@@ -6,7 +6,7 @@ extends "res://../tests/godot/base.gd"
 
 func run() -> void:
 	var Roll = load("res://menu/credits_roll.gd")
-	var Layers = load("res://terrain/imagery_layers.gd")
+	var Layers = load("res://shared/terrain/imagery_layers.gd")
 
 	# The RTF reader on the original's markup.
 	var runs: Array = Roll.parse_rtf(

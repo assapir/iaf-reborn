@@ -1,0 +1,667 @@
+# Generic external model of any IAF aircraft, animated exactly like the original's flight-model
+# part callback FUN_005a09c0 (docs/part-animation.md, docs/aircraft.md).
+#
+# Data: `assets/converted/planes/<plane>/aircraft.json` (written by `iaf-convert aircraft`): the
+# parts the original loader keeps (table ids, pivots, hinge axes), the nozzles, stations and other
+# helpers. Logic: the per-type rules of the callback, below, keyed by the aircraft type code
+# (100 F-16, 110 F-15, 120/200 F-4, 130 Kfir, 140 Lavi, 150 MiG-21, 160 MiG-23, 170 MiG-25,
+# 180 MiG-29, 190 Mirage, 210 MiG-17, 220 Tu-22 …). A descriptor may add `part_rules` overrides.
+#
+# Hinge (FUN_0053da00): the part turns about its OWN origin, axis from the helper frame (X1/X2)
+# nearer the model origin toward the farther one, by +θ in our Z-mirrored glTF space.
+extends Node3D
+
+const NightLights := preload("res://shared/terrain/night_lights.gd")
+const Gltf := preload("res://shared/util/gltf.gd")
+
+## Ramp limits (rad) and rates (rad/s), constructor FUN_005ba430 / FUN_005a5820.
+const FLAPS_MAX := 0.29275  # 16.8°
+const F16_FLAPS_FACTOR := 0.33  # event 6 on the F-16 (type 100)
+const GEAR_MAX := 1.569  # 89.9°, 0 = down
+const SPEED_BRAKE_MAX := 0.855  # 49°
+const HOOK_MAX := 0.7855  # 45°
+const RUDDER_MAX := 0.3926  # 22.5°
+const ELEVATOR_MAX := 0.5236  # 30°
+const AILERON_MAX := 0.7855  # 45°
+const RATE_CONFIG := 0.5  # S+0x300..0x360
+const RATE_SURFACE := 0.7  # S+0x380..0x400
+## Weapon bay doors (ours, the F-35I's BayLi..BayRo): open angle and rate (rad/s).
+const BAY_MAX := 1.4
+const RATE_BAY := 3.0
+## Visibility thresholds of the callback.
+const EPS := 1e-5
+## Drag chute jitter: a new ±5° angle every 0.1 s while deployed (state 2).
+const CHUTE_JITTER := PI / 36.0
+const CHUTE_PERIOD := 0.1
+## Ours (the detailed F-16s): seconds for the jet to settle onto its nose wheel or lift off it (`sit`).
+const SIT_TIME := 0.6
+
+## The descriptor (aircraft.json) and the type code whose rules apply.
+var desc: Dictionary = {}
+var type_code := 100
+## The glTF scene and its root frame (parts are its direct children).
+var scene: Node3D
+var root_frame: Node3D
+## name -> {node, id, basis, origin, axis (Vector3 or null)}
+var parts := {}
+## Afterburner flames (left, right) — only when the model has an engine pair.
+var flames: Array = []
+## The original's animation ramps (radians).
+var ramps := {
+	"flaps": 0.0,
+	"gear": GEAR_MAX,
+	"speed_brake": 0.0,
+	"hook": 0.0,
+	"rudder": 0.0,
+	"elevator_l": 0.0,
+	"elevator_r": 0.0,
+	"aileron_l": 0.0,
+	"aileron_r": 0.0,
+	"bay": 0.0
+}
+var _targets := {}
+## Last lever positions: like the original's events, a ramp is retargeted only when its lever moves.
+var _levers := {}
+## Pilot / canopy (ids 0x14..0x17): the crew object's callback 0x53eb50 draws them whenever the crew is
+## aboard and the cockpit flag is clear (docs/aircraft.md §2.3), on every jet including the player's. v1.1
+## starts the flag at 0 and sets it only while the own jet is drawn from the cockpit (ours: hidden then).
+var crew_visible := true
+## Ejection (docs/part-animation.md "Ejection", crew object callback 0x53eb50): the pilots are gone,
+## the canopies ride `canopy_offset` (metres in the jet frame: +y up; v1.1 throws straight up) until
+## `canopy_gone`.
+var ejected := false
+var canopy_offset := Vector3.ZERO
+var canopy_gone := false
+var _chute_angle := 0.0
+var _rotor := 0.0  # the rotors' angle, degrees (crew object +0x10)
+## Rolling wheels (ours, Graphics → MORE; docs/part-animation.md §2.2): the wheel frames WheelsA..F that ride on a
+## gear leg (a child of it), each {node, basis, radius (m, from its mesh)}; `wheel_roll` the distance rolled (m,
+## negative = forward), so each wheel's angle is wheel_roll / its radius.
+var wheels: Array = []
+var wheel_roll := 0.0
+var _chute_t := 0.0
+## Ours (the detailed F-16s, docs/aircraft-models.md §1.1): on its wheels the jet sits nose up, turned about the
+## main wheels' touch (helper Sit1) until the nose wheel's (Sit2) touches too. The game holds the jet level on the
+## ground (flight-model.md §14.5a), so only the drawn model turns. `sit`: 0 in the air .. 1 on the wheels.
+var sit := 0.0
+var _sit_angle := 0.0
+var _sit_pivot := Vector3.ZERO
+var _sit_base := Transform3D.IDENTITY
+var _time := 0.0
+
+
+## Loads `<planes>/<plane>/aircraft.json` and its glTF. `type` < 0 takes the descriptor's type.
+## `on_ground`: the ground-start ramps (gear down, full flaps, speed brake open; FUN_005a5820).
+static func create(plane: String, type := -1, on_ground := false) -> Node3D:
+	var dir := _planes_dir(plane).path_join(plane)
+	var d: Dictionary = load_descriptor(plane)
+	if d.is_empty():
+		return null
+	var hd: String = Gltf.detailed(String(d.model))
+	var model = Gltf.model(hd if hd != "" else dir.path_join(d.model))
+	if model == null:
+		return null
+	var node: Node3D = Gltf.instance(model)
+	if hd != "":
+		d = detailed_descriptor(d, node)
+	var m: Node3D = load("res://shared/aircraft/aircraft_model.gd").new()
+	m.name = plane
+	m.setup(node, d, type, on_ground)
+	return m
+
+
+## The descriptor for a detailed model (Models: Detailed, util/gltf.gd DETAILED): the original's, so everything the
+## game reads (stations, gun, wingtips, eye, height) stays the original's. From the detailed model's own helpers come
+## what only shows: the parts' hinge axes (`<part>1/2`, nearer -> farther from the origin, as the original's loader
+## takes them), the afterburners at the nozzles' exits (EngineL / EngineR, the radius up to EngineL1 / EngineR1), its
+## closed gear doors (LdgDrUp, ours: shown only with the gear up), and its speed brake and hook shown also shut.
+static func detailed_descriptor(d: Dictionary, scene: Node3D) -> Dictionary:
+	var out := d.duplicate(true)
+	var root := scene.find_child(str(d.get("root", "")), true, false) as Node3D
+	if root == null:
+		return out
+	for name in out.get("parts", {}):
+		var a := root.get_node_or_null(NodePath(name + "1")) as Node3D
+		var b := root.get_node_or_null(NodePath(name + "2")) as Node3D
+		if a == null or b == null or out.parts[name].axis == null:
+			continue
+		var near := a.position if a.position.length() <= b.position.length() else b.position
+		var far := b.position if near == a.position else a.position
+		var ax := (far - near).normalized()
+		out.parts[name].axis = [ax.x, ax.y, ax.z]
+	if root.get_node_or_null("LdgDrUp") != null:
+		out.parts["LdgDrUp"] = {"id": LDG_DOORS_UP, "axis": null}
+	for side in ["L", "R"]:
+		var e0 := root.get_node_or_null("Engine" + side) as Node3D
+		var e1 := root.get_node_or_null("Engine%s1" % side) as Node3D
+		if e0 != null and e1 != null and out.get("engines") is Dictionary and (side == "L" or out.engines.has("right")):
+			out.engines["left" if side == "L" else "right"] = [e0.position.x, e0.position.y, e0.position.z]
+			out.engines.radius = e1.position.y - e0.position.y
+	# The speed brake and hook are modelled shut in place (the originals that hide them closed have them in the body).
+	for name in ["SpdbrU", "Hook"]:
+		if root.get_node_or_null(name) is MeshInstance3D and out.parts.has(name):
+			out["part_rules"] = out.get("part_rules", {})
+			out.part_rules[name] = {"visible": true}
+	return out
+
+
+## Part id of a detailed model's closed gear doors (ours).
+const LDG_DOORS_UP := 0x94
+
+## The front pilot's eye in the detailed F-16's `pilot` frame (FlightGear's pilot: between the eyes, under the visor).
+const F16_EYE_IN_PILOT := Vector3(0.026, 0.47, 0.28)
+## Ours, the 3D cockpit's seat height (m, down from F16_EYE_IN_PILOT): the F-16's seat moves up and down 5 in (12.7 cm)
+## for the pilot to sit at the HUD's design eye; set so the HUD's symbology field ([HUD] borders, 2.3° above to 8.9°
+## below the boresight) fits the Sufa's wide-angle plate seen from the eye (docs/cockpit.md "3D cockpit", "The HUD on
+## its glass").
+const F16_3D_SEAT_DOWN := 0.011
+## The detailed F-16's crew mesh (`pilot`, tools/f16/base.py `cockpit`) is the ACES II seat's surfaces, then the
+## pilot's.
+const F16_SEAT_SURFACES := 39
+## The canopy frame seen from the seat: FS 36118 gunship grey, matte (ours; FlightGear maps the frame into the livery,
+## so it would take the camouflage).
+const F16_FRAME_COLOUR := Color(0.31, 0.33, 0.32)
+## With the 3D cockpit (ours, 2026-11-02): the frame's inside dark grey, as the F-16 photos show it from the seat and
+## with the canopy open (docs/cockpit.md "3D cockpit"); the grey frame's skirt read as a bare slab over the sills.
+const F16_FRAME_INSIDE := Color(0.07, 0.074, 0.078)
+## Half the front tub's width (m, at 1:1; FlightGear's cockpit.ac is 1.24 m across).
+const F16_TUB_HALF_WIDTH := 0.63
+## The 3D cockpit's side consoles (FlightGear's, m at 1:1): they reach this far behind the eye, their tops this far
+## under it; the detailed F-16's interior there (its own consoles, which stood over FlightGear's) is left out.
+const F16_CONSOLE_AFT := 0.42
+const F16_CONSOLE_BELOW := 0.3
+
+
+## Ours (Models: Detailed, or the Sufa): the cockpit view's own jet from the detailed F-16 at `path` instead of the
+## original's f16_bc (docs/aircraft-models.md §1.4). Returns [model, eye]: the model cut at the front seat's eye as the
+## original's cockpit model is (the triangles wholly ahead of it dropped), without the front pilot's body (the seat
+## stays), the canopy glass, the gear legs and the open gear doors (the closed ones shown); `eye` is the front pilot's
+## eye in its frame. The seat and tub (FlightGear's `ac_*` materials, glossy at roughness 0.5) are made matte, the
+## canopy frame F16_FRAME_COLOUR; copies, so the jets seen from outside keep theirs.
+## `whole` (ours, the 3D cockpit: cockpit/cockpit3d.gd): the airframe ahead of the eye kept too (the sills and the
+## forward fuselage beside the panel); of FlightGear's interior (`ac_*`) only what lies behind the eye or outside the
+## front tub's width (F16_TUB_HALF_WIDTH), and not beside the seat under the consoles (F16_CONSOLE_AFT): the 3D cockpit
+## draws the front tub ahead of the eye and its consoles.
+static func detailed_cockpit(path: String, whole := false) -> Array:
+	var node := Gltf.instance(Gltf.model(path))
+	var root := node.get_child(0) as Node3D
+	var eye: Vector3 = root.transform * ((root.get_node("pilot") as Node3D).position + F16_EYE_IN_PILOT)
+	(root.get_node("LdgDrUp") as Node3D).visible = true
+	for n in ["LdgF", "LdgL", "LdgR", "LdgDr"]:
+		root.get_node(n).free()
+	var frame := StandardMaterial3D.new()
+	frame.albedo_color = F16_FRAME_INSIDE if whole else F16_FRAME_COLOUR
+	frame.roughness = 0.85
+	frame.metallic_specular = 0.2
+	var matte := {}
+	for mi: MeshInstance3D in node.find_children("*", "MeshInstance3D", true, false):
+		var xf: Transform3D = root.transform * mi.transform if mi.get_parent() == root else root.transform
+		var keep := F16_SEAT_SURFACES if mi.name == "pilot" else mi.mesh.get_surface_count()
+		var cut := ArrayMesh.new()
+		for s in keep:
+			if mi.mesh.surface_get_material(s).resource_name == "canopy_glass":
+				continue  # as the original's cockpit flag hides the canopy: from inside, its glass fogs the view
+			var a := mi.mesh.surface_get_arrays(s)
+			var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+			var idx: PackedInt32Array = a[Mesh.ARRAY_INDEX]
+			var out := PackedInt32Array()
+			var interior: bool = mi.mesh.surface_get_material(s).resource_name.begins_with("ac_")
+			for t in range(0, idx.size(), 3):
+				var p0 := xf * v[idx[t]]
+				var p1 := xf * v[idx[t + 1]]
+				var p2 := xf * v[idx[t + 2]]
+				var behind := maxf(maxf(p0.z, p1.z), p2.z) > eye.z
+				var beside := maxf(maxf(absf(p0.x), absf(p1.x)), absf(p2.x)) > F16_TUB_HALF_WIDTH
+				# The 3D cockpit's consoles reach F16_CONSOLE_AFT behind the eye: this model's own there drop.
+				var console := (
+					whole
+					and interior
+					and not beside
+					and mi.name != "pilot"
+					and maxf(maxf(p0.y, p1.y), p2.y) < eye.y - F16_CONSOLE_BELOW
+					and minf(minf(p0.z, p1.z), p2.z) < eye.z + F16_CONSOLE_AFT
+				)
+				if not console and (behind or (whole and (not interior or beside))):
+					out.append_array([idx[t], idx[t + 1], idx[t + 2]])
+			if out.is_empty():
+				continue
+			a[Mesh.ARRAY_INDEX] = out
+			cut.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a)
+			var mat := mi.get_active_material(s)
+			if mi.name == "Canopy":
+				mat = frame
+			elif mat is BaseMaterial3D and mat.resource_name.begins_with("ac_"):
+				if not matte.has(mat):
+					matte[mat] = mat.duplicate()
+					matte[mat].roughness = 0.9
+					matte[mat].metallic_specular = 0.2
+				mat = matte[mat]
+			cut.surface_set_material(cut.get_surface_count() - 1, mat)
+		for s in mi.get_surface_override_material_count():
+			mi.set_surface_override_material(s, null)
+		mi.mesh = cut
+	return [node, eye - Vector3(0, F16_3D_SEAT_DOWN if whole else 0.0, 0)]
+
+
+static func load_descriptor(plane: String) -> Dictionary:
+	return Settings.load_json(_planes_dir(plane).path_join(plane).path_join("aircraft.json"))
+
+
+## Planes the original does not have (docs/adding-a-plane.md §2.4): tracked in the repo, one folder per
+## plane with its glTF and hand-made descriptor; `.gdignore` keeps Godot's importer off them.
+const EXTRA_DIR := "res://shared/extra/planes"
+
+
+## Every aircraft: the install's (the converter's index) and the extra planes: plane folder -> {model, type,
+## label, …}.
+static func index() -> Dictionary:
+	var idx: Dictionary = Settings.load_json(_planes_dir().path_join("aircraft.json"))
+	for plane in DirAccess.get_directories_at(EXTRA_DIR):
+		var d: Dictionary = load_descriptor(plane)
+		if not d.is_empty():
+			idx[plane] = {
+				"model": plane.path_join(d.model),
+				"descriptor": plane.path_join("aircraft.json"),
+				"type": d.get("type", -1),
+				"label": d.get("label", ""),
+				"group": "extra"
+			}
+	return idx
+
+
+## An extra plane's descriptor may borrow a part's look from a converted original (`"borrow": {"pilot": {"plane":
+## "f16", "part": "pilot", "offset": [x, y, z]}}`, docs/adding-a-plane.md §2): that part's meshes replace ours, kept
+## where they sit relative to the source's eye, from ours (plus `offset`, metres). Original art, loaded from the user's
+## install, never committed.
+func _borrow_parts() -> void:
+	var b: Dictionary = desc.get("borrow", {})
+	for part in b:
+		var src: Dictionary = b[part]
+		var mine := root_frame.get_node_or_null(NodePath(String(part))) as Node3D
+		var sd := load_descriptor(String(src.plane))
+		if mine == null or sd.is_empty():
+			continue
+		var model = Gltf.open(_borrowed_model(src))
+		if model == null:
+			continue
+		var other: Node3D = Gltf.instance(model)
+		var theirs := other.find_child(String(src.get("part", part)), true, false) as Node3D
+		if theirs == null:
+			other.free()
+			continue
+		var pos: Vector3 = theirs.transform.origin
+		var e0 = sd.get("eye")
+		var e1 = desc.get("eye")
+		if e0 != null and e1 != null:
+			pos += Vector3(e1[0], e1[1], e1[2]) - Vector3(e0[0], e0[1], e0[2])
+		var off: Array = src.get("offset", [0, 0, 0])
+		pos += Vector3(off[0], off[1], off[2])
+		if mine is MeshInstance3D:
+			(mine as MeshInstance3D).mesh = null
+		for c in mine.get_children():
+			c.free()
+		var copy := theirs.duplicate() as Node3D
+		mine.add_child(copy)
+		copy.transform = Transform3D(theirs.transform.basis, pos - mine.transform.origin)
+		other.free()
+
+
+## The full paths of the models descriptor `d` borrows parts from (parsed ahead on the mission screens).
+static func borrowed_models(d: Dictionary) -> Array:
+	var out := []
+	for part in d.get("borrow", {}):
+		var path := _borrowed_model(d.borrow[part])
+		if path != "" and not path in out:
+			out.append(path)
+	return out
+
+
+## The model file of a borrowed part's source plane, "" when it has no descriptor.
+static func _borrowed_model(src: Dictionary) -> String:
+	var sd := load_descriptor(String(src.plane))
+	if sd.is_empty():
+		return ""
+	return _planes_dir(String(src.plane)).path_join(String(src.plane)).path_join(sd.model)
+
+
+static func _planes_dir(plane := "") -> String:
+	if plane != "" and FileAccess.file_exists(EXTRA_DIR.path_join(plane).path_join("aircraft.json")):
+		return EXTRA_DIR
+	return Settings.assets_dir().path_join("converted/planes")
+
+
+func setup(gltf_scene: Node3D, descriptor: Dictionary, type := -1, on_ground := false) -> void:
+	scene = gltf_scene
+	desc = descriptor
+	type_code = type if type >= 0 else int(desc.get("type", 100))
+	add_child(scene)
+	root_frame = scene.find_child(str(desc.get("root", "")), true, false) as Node3D
+	if root_frame == null:
+		root_frame = scene.get_child(0) as Node3D if scene.get_child_count() > 0 else scene
+	_borrow_parts()
+	var info: Dictionary = desc.get("parts", {})
+	for n in root_frame.get_children():
+		if not n is Node3D:
+			continue
+		var p = info.get(str(n.name))
+		if p == null:
+			# Not a part: the loader drops unknown frames and never draws helpers, stations,
+			# EndWing, Pilon / Camera, height (FUN_0041c270, FUN_0053da00).
+			n.visible = false
+			continue
+		var axis = null
+		if p.axis != null:
+			axis = Vector3(p.axis[0], p.axis[1], p.axis[2]).normalized()
+		parts[str(n.name)] = {
+			"node": n, "id": int(p.id), "basis": n.transform.basis, "origin": n.transform.origin, "axis": axis
+		}
+	for p in parts.values():
+		for w in p.node.get_children():
+			if w is Node3D and str(w.name).begins_with("Wheels"):
+				var r := _wheel_radius(w)
+				if r > 0.0:
+					wheels.append({"node": w, "basis": w.transform.basis, "radius": r})
+	# Afterburner: only a model with a complete Engine / Engine1 pair draws flames (clump+0x27c).
+	var eng: Dictionary = desc.get("engines", {})
+	if int(eng.get("pairs", 0)) > 0:
+		for side in ["left", "right"]:
+			var pos = eng.get(side)
+			if pos == null:
+				continue  # the original draws it at the unset 99999 position: nowhere
+			var f: MeshInstance3D = load("res://shared/aircraft/afterburner.gd").new()
+			f.name = "Afterburner_" + side
+			f.nozzle = Vector3(pos[0], pos[1], pos[2])
+			f.radius = float(eng.radius)
+			f.scale_factor = float(desc.get("scale", 5.0))
+			root_frame.add_child(f)
+			flames.append(f)
+	var s1 := root_frame.get_node_or_null("Sit1") as Node3D
+	var s2 := root_frame.get_node_or_null("Sit2") as Node3D
+	if s1 != null and s2 != null:
+		_sit_pivot = s1.position
+		_sit_angle = atan2(s1.position.y - s2.position.y, s1.position.z - s2.position.z)
+		_sit_base = root_frame.transform
+	sit = 1.0 if on_ground else 0.0
+	_apply_sit()
+	# Start ramps (FUN_005a5820): airborne gear up, flaps 0, speed brake 0; ground start gear 0,
+	# flaps 0.29275 (the full value, also on the F-16), speed brake 0.855.
+	ramps.gear = 0.0 if on_ground else GEAR_MAX
+	ramps.flaps = FLAPS_MAX if on_ground else 0.0
+	ramps.speed_brake = SPEED_BRAKE_MAX if on_ground else 0.0
+	for k in ramps:
+		_targets[k] = ramps[k]
+	_apply()
+	# Ours (Extras > Night lights = Detailed): navigation lights and a strobe (after _apply: the chute is hidden).
+	if NightLights.detailed():
+		var strobe := NightLights.add_nav_lights(self)
+		if strobe != null:
+			_strobes = [strobe]
+			_lights = [root_frame.get_node("NavLights"), strobe]
+		_strobe_phase = randf() * NightLights.STROBE_PERIOD
+
+
+## The navigation lights and strobes (the model's own, and the copies attach_nav_lights makes); `_lit` false once the
+## jet is hit or destroyed (lights_off).
+var _lights: Array = []
+var _strobes: Array = []
+var _strobe_phase := 0.0
+var _lit := true
+
+
+## Puts navigation lights and a strobe on `to`, this jet's cockpit-view model (`<plane>_bc`, its own wingtips, tail and
+## fin top, which can lie farther out than this model's); they blink and go out with this model's.
+func attach_nav_lights(to: Node3D) -> void:
+	if _strobes.is_empty():
+		return
+	var m := str(desc.get("model", name))
+	var strobe := NightLights.add_lights_on(to, m + "_bc" + Gltf.detailed(m), null)
+	if strobe != null:
+		_strobes.append(strobe)
+		_lights.append_array([to.get_node("NavLights"), strobe])
+
+
+## Switches the navigation lights and strobe off (a hit, falling or destroyed jet).
+func lights_off() -> void:
+	_lit = false
+	for n: Node3D in _lights:
+		n.visible = false
+
+
+## Drives the parts. `input` (all optional, like the flight state dictionary):
+##   stick_x (+right), stick_y (+pull), rudder (−1..1), flaps (lever 0..1), gear_down, brakes (speed brake),
+##   hook, chute (0 off, 1 armed, 2 deployed, 3 gone), on_ground, gear (the flight model's gear ramp, rad),
+##   afterburner (stage 0..2), rpm (0..1.14), ab_damage ([left, right] afterburner damage flags 8 / 9),
+##   bay_open (ours: the weapon bay doors).
+func update(input: Dictionary, delta: float) -> void:
+	_time += delta
+	var on_ground: bool = input.get("on_ground", false)
+	# Events (FUN_0059fba0 / d170 / d370 / d570): retarget only when the lever moves.
+	if _lever("flaps", float(input.get("flaps", 0.0))):
+		_targets.flaps = float(input.get("flaps", 0.0)) * FLAPS_MAX * (F16_FLAPS_FACTOR if type_code == 100 else 1.0)
+	var gear_down: bool = input.get("gear_down", _targets.gear < GEAR_MAX)
+	if _lever("gear_down", gear_down):
+		_targets.gear = 0.0 if gear_down else GEAR_MAX
+	var brakes: bool = input.get("brakes", false)
+	if _lever("brakes", brakes):
+		_targets.speed_brake = SPEED_BRAKE_MAX if brakes else 0.0
+	var hook: bool = input.get("hook", false)
+	if _lever("hook", hook):
+		_targets.hook = HOOK_MAX if hook else 0.0
+	_targets.bay = BAY_MAX if input.get("bay_open", false) else 0.0
+	var sr: float = input.get("stick_x", 0.0)
+	var sp: float = input.get("stick_y", 0.0)
+	# Rudder (FUN_0059f5a0 / FUN_005a03c0): the pedals in the air, the stick roll on the ground.
+	_targets.rudder = (-sr * RUDDER_MAX) if on_ground else float(input.get("rudder", 0.0)) * RUDDER_MAX
+	# Ailerons (FUN_005a03c0): airborne only, not on the deltas (their elevons come from the mixer).
+	var delta_wing := type_code in [130, 190]
+	if not on_ground and not delta_wing:
+		_targets.aileron_l = -AILERON_MAX * sr
+		_targets.aileron_r = -AILERON_MAX * sr
+	# Pitch mixer FUN_005a0650.
+	var a := AILERON_MAX if delta_wing else ELEVATOR_MAX
+	var f := 0.5 if type_code in [110, 190, 130] else (0.65 if type_code == 100 else 1.0)
+	var m := (1.0 - f) * sr * a if type_code in [110, 100, 190, 130] else 0.0
+	var l := sp * f * a - m
+	var r := -sp * f * a - m
+	if type_code in [120, 200]:
+		l *= 0.6
+		r *= 0.6
+	if delta_wing:
+		_targets.aileron_l = l
+		_targets.aileron_r = r
+	else:
+		_targets.elevator_l = l
+		_targets.elevator_r = r
+	for k in ramps:
+		var rate := (
+			RATE_SURFACE if k in ["rudder", "elevator_l", "elevator_r", "aileron_l", "aileron_r"] else RATE_CONFIG
+		)
+		if k == "bay":
+			rate = RATE_BAY
+		ramps[k] = move_toward(ramps[k], _targets[k], rate * delta)
+	if input.has("gear"):
+		ramps.gear = float(input.gear)  # the flight model's own gear ramp (exact timing)
+	sit = move_toward(sit, 1.0 if on_ground and ramps.gear < EPS else 0.0, delta / SIT_TIME)
+	_apply_sit()
+	# Rolling wheels (ours): on the ground each wheel turns at ground speed / its radius; in the air it holds.
+	if on_ground and Settings.rolling_wheels:
+		wheel_roll -= float(input.get("ground_speed", 0.0)) * delta
+	# Drag chute (FUN_005a2b80): jitter while deployed.
+	var chute: int = input.get("chute", 0)
+	if chute == 2 and _time - _chute_t > CHUTE_PERIOD:
+		_chute_angle = randf_range(-CHUTE_JITTER, CHUTE_JITTER)
+		_chute_t = _time
+	_chute_state = chute
+	for sn: Node3D in _strobes:
+		sn.visible = _lit and NightLights.strobe_on(_time, _strobe_phase)
+	# Afterburner level (FUN_005abc90 left / FUN_005abdc0 right): 75 + 12.5·stage when lit and that side's
+	# afterburner damage flag (8 / 9) is clear, else RPM·100·0.74 (never drawn).
+	var stage: int = input.get("afterburner", 0)
+	var dry := int(clampf(float(input.get("rpm", 0.0)), 0.0, 1.0) * 100.0 * 0.74)
+	var ab_damage: Array = input.get("ab_damage", [false, false])
+	for fl in flames:
+		var dmg: bool = ab_damage[0 if str(fl.name).ends_with("left") else 1]
+		fl.level = int(75.0 + 12.5 * stage) if stage > 0 and not dmg else dry
+	_apply()
+
+
+var _chute_state := 0
+
+
+## The EndWingL / R helpers in the world (obj+0x38 / +0x44, set when the model has EndWingR: obj+0x50), the heads
+## of the wingtip vortex trails; empty without them.
+func wingtips() -> Array:
+	var ew: Dictionary = desc.get("end_wing", {}) if desc.get("end_wing") is Dictionary else {}
+	if not (ew.get("left") is Array and ew.get("right") is Array) or root_frame == null:
+		return []
+	return [
+		root_frame.to_global(Vector3(ew.left[0], ew.left[1], ew.left[2])),
+		root_frame.to_global(Vector3(ew.right[0], ew.right[1], ew.right[2]))
+	]
+
+
+## How far the weapon bay doors are open (0 shut .. 1).
+func bay_fraction() -> float:
+	return ramps.bay / BAY_MAX
+
+
+## Ends every ramp at its target at once (posed captures and tests).
+func settle() -> void:
+	for k in ramps:
+		ramps[k] = _targets[k]
+	_apply()
+
+
+func _lever(key: String, value) -> bool:
+	if not _levers.has(key):
+		_levers[key] = value  # the first call only records the start position (no event)
+		return false
+	if _levers[key] == value:
+		return false
+	_levers[key] = value
+	return true
+
+
+## A wheel's radius (m): half its mesh's height (a wheel frame's mesh is the wheel, centred on its axle).
+static func _wheel_radius(w: Node3D) -> float:
+	var r := 0.0
+	for mi: MeshInstance3D in (
+		w.find_children("*", "MeshInstance3D", true, false) + ([w] if w is MeshInstance3D else [])
+	):
+		if mi.mesh != null:
+			r = maxf(r, mi.mesh.get_aabb().size.y / 2.0)
+	return r
+
+
+## Angle θ and visibility of part `id` (FUN_005a09c0), from the current ramps.
+func part_pose(id: int) -> Array:
+	var t := type_code
+	var g: float = ramps.gear
+	var gear_out := absf(g - GEAR_MAX) >= EPS
+	match id:
+		1:  # AilerL (the F-16 flaperons droop with the flaps)
+			return [ramps.aileron_l - (ramps.flaps if t == 100 else 0.0), true]
+		2:  # AilerR
+			return [ramps.aileron_r + (ramps.flaps if t == 100 else 0.0), true]
+		5, 6:  # RuddeL, Rudde
+			return [ramps.rudder, true]
+		7:  # FlapL
+			return [-ramps.flaps, true]
+		8:  # FlapR
+			return [ramps.flaps, true]
+		9, 10:  # SpdbrU / SpdbrD
+			var sb: float = ramps.speed_brake * (1.0 if id == 9 else -1.0)
+			if t in [110, 140, 160, 190]:
+				sb = -sb
+			return [sb, t == 100 or absf(sb) >= EPS]
+		11:  # ElevaL
+			return [-ramps.elevator_l if t == 140 else ramps.elevator_l, true]
+		12:  # ElevaR
+			return [-ramps.elevator_r if t == 140 else ramps.elevator_r, true]
+		13:  # ElevoL
+			return [ramps.aileron_l, true]
+		14:  # ElevoR
+			return [ramps.aileron_r, true]
+		15:  # LdgL
+			if t == 180:
+				return [-g, g < 0.8889 * GEAR_MAX]
+			if t == 190:
+				return [g, g < 0.7778 * GEAR_MAX]
+			return [-g if t == 110 else g, gear_out]
+		16:  # LdgR
+			if t == 180:
+				return [g, g < 0.8889 * GEAR_MAX]
+			if t == 190:
+				return [-g, g < 0.7778 * GEAR_MAX]
+			return [g if t == 110 else -g, gear_out]
+		17:  # LdgF
+			if t == 180:
+				return [minf(g, 0.87264), gear_out]
+			return [g if t in [110, 130, 140, 160] else -g, gear_out]
+		18:  # LdgDr: never rotates, hidden once the gear is fully up
+			return [0.0, gear_out]
+		LDG_DOORS_UP:  # LdgDrUp (ours, detailed models): the doors shut, shown once the gear is fully up
+			return [0.0, not gear_out]
+		19:  # Hook
+			return [ramps.hook, absf(ramps.hook) >= EPS]
+		0x14, 0x15:  # pilot, pilotB
+			return [0.0, crew_visible and not ejected]
+		0x16, 0x17:  # canopy, canopyB
+			if ejected:
+				return [0.0, not canopy_gone]
+			return [0.0, crew_visible]
+		0x27:  # Parach
+			return [_chute_angle, _chute_state == 2]
+		0x90, 0x91, 0x92, 0x93:  # BayLi, BayLo, BayRi, BayRo (ours)
+			return [ramps.bay, true]
+		0x1d, 0x1e, 0x1f, 0x20:  # RotorA..D
+			# The crew object answers them before the FM (0x53eb50): +10° per part call (0x60c6d0), one angle,
+			# back to 0 once above 360° (0x60c6e4); frame-rate dependent, as the original.
+			_rotor += 10.0
+			if _rotor > 360.0:
+				_rotor = 0.0
+			return [deg_to_rad(_rotor), t < 0]
+	# Canards, turret, radar, wheels, engines…: not drawn on a flown aircraft.
+	return [0.0, false]
+
+
+## The drawn jet turned nose up about the main wheels by `sit` of its sitting angle (none without Sit1 / Sit2).
+func _apply_sit() -> void:
+	if _sit_angle == 0.0:
+		return
+	var r := Basis(Vector3.RIGHT, _sit_angle * sit)
+	root_frame.transform = _sit_base * Transform3D(r, _sit_pivot - r * _sit_pivot)
+
+
+func _apply() -> void:
+	var overrides: Dictionary = desc.get("part_rules", {})
+	for name in parts:
+		var p: Dictionary = parts[name]
+		var pose := part_pose(p.id)
+		var o = overrides.get(name)
+		if o is Dictionary:
+			pose[0] *= float(o.get("sign", 1.0))
+			if o.has("visible"):
+				pose[1] = bool(o.visible)
+		p.node.visible = pose[1]
+		var b: Basis = p.basis
+		if p.axis != null and pose[1]:
+			b = Basis(p.axis, pose[0]) * b
+		p.node.transform = Transform3D(b, p.origin)
+		if ejected and p.id in [0x16, 0x17] and is_inside_tree():
+			p.node.global_position += global_basis.orthonormalized() * canopy_offset
+	# The wheels roll about their axle (the leg's X): one ground distance, each wheel's own radius.
+	for w in wheels:
+		w.node.transform.basis = Basis(Vector3.RIGHT, fmod(wheel_roll / w.radius, TAU)) * w.basis
+
+
+## True while any afterburner flame is drawn.
+func flame_lit() -> bool:
+	for f in flames:
+		if f.lit():
+			return true
+	return false
+
+
+func part_node(name: String) -> Node3D:
+	return parts[name].node if parts.has(name) else null

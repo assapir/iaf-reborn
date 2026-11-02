@@ -168,7 +168,7 @@ func run() -> void:
 		t15.has("1   NAV") and t15.has("N 5.0") and t15.has("1.8G") and t15.has("IN RNG") and t15.has("400"),
 		"F-15: the NAV window, 1.8G, IN RNG, full-value airspeed labels (%s)" % str(t15)
 	)
-	var f35: Dictionary = rh.frame(field, base.merged({"cockpit": "res://extra/planes/f35i/cockpit"}))
+	var f35: Dictionary = rh.frame(field, base.merged({"cockpit": "res://shared/extra/planes/f35i/cockpit"}))
 	var t35 := _texts(f35.outer)
 	check(
 		t35.has("GS 420") and t35.has("AA1") and t35.has("4 AIM-A") and t35.has("-1125") and f35.colour != null,
@@ -176,7 +176,9 @@ func run() -> void:
 	)
 	var off: Dictionary = rh.frame(
 		field,
-		base.merged({"cockpit": "res://extra/planes/f35i/cockpit", "off_boresight": true, "head_heading": 90.0}, true)
+		base.merged(
+			{"cockpit": "res://shared/extra/planes/f35i/cockpit", "off_boresight": true, "head_heading": 90.0}, true
+		)
 	)
 	var to := _texts(off.outer)
 	check(

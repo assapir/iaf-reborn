@@ -5,7 +5,7 @@
 # Real-render (SHOT_DIR): maverick_mfd_flight.png mid-flight in the cockpit.
 extends "res://../tests/godot/base.gd"
 
-const EoSensor := preload("res://weapons/eo_sensor.gd")
+const EoSensor := preload("res://shared/weapons/eo_sensor.gd")
 const AGM65 := 7
 
 

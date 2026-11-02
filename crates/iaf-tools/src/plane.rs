@@ -140,25 +140,25 @@ pub struct Table {
 /// Every place the code tables or switches on aircraft type codes (docs/adding-a-plane.md §1).
 pub const TABLES: &[Table] = &[
     Table {
-        file: "game/aircraft/player_aircraft.gd",
+        file: "shared/aircraft/player_aircraft.gd",
         anchor: "const FLYABLE :=",
         what: "flyable types (else flown as the F-16)",
         list: true,
     },
     Table {
-        file: "game/aircraft/player_aircraft.gd",
+        file: "shared/aircraft/player_aircraft.gd",
         anchor: "const COCKPIT :=",
         what: "cockpit index in cockpits.ibx (also iaf-avionics radar.rs TABLES' row)",
         list: true,
     },
     Table {
-        file: "game/aircraft/player_aircraft.gd",
+        file: "shared/aircraft/player_aircraft.gd",
         anchor: "const TWIN :=",
         what: "twin engines (cockpit gauges)",
         list: true,
     },
     Table {
-        file: "game/aircraft/player_aircraft.gd",
+        file: "shared/aircraft/player_aircraft.gd",
         anchor: "const JET_TYPES :=",
         what: "Jet list id -> type",
         list: true,
@@ -206,45 +206,50 @@ pub const TABLES: &[Table] = &[
         list: true,
     },
     Table {
-        file: "game/aircraft/aircraft_model.gd",
+        file: "shared/aircraft/aircraft_model.gd",
         anchor: "var delta_wing := type_code in",
         what: "delta wing (elevons)",
         list: false,
     },
     Table {
-        file: "game/aircraft/aircraft_model.gd",
+        file: "shared/aircraft/aircraft_model.gd",
         anchor: "func part_pose(",
         what: "per-type part signs (speed brake, elevators, gear legs)",
         list: false,
     },
     Table {
-        file: "game/audio/flight_sounds.gd",
+        file: "shared/audio/flight_sounds.gd",
         anchor: "const BETTY_TYPES :=",
         what: "voice warnings (also RWR and damage)",
         list: true,
     },
-    Table { file: "game/weapons/real_weapons.gd", anchor: "const RADAR_KM :=", what: "real radar range", list: true },
-    Table { file: "game/weapons/real_weapons.gd", anchor: "const GUN_ROUNDS :=", what: "real gun rounds", list: true },
+    Table { file: "shared/weapons/real_weapons.gd", anchor: "const RADAR_KM :=", what: "real radar range", list: true },
     Table {
-        file: "game/weapons/mission_weapons.gd",
+        file: "shared/weapons/real_weapons.gd",
+        anchor: "const GUN_ROUNDS :=",
+        what: "real gun rounds",
+        list: true,
+    },
+    Table {
+        file: "shared/weapons/mission_weapons.gd",
         anchor: "const JET_ART :=",
         what: "Arming screen art + station boxes",
         list: true,
     },
     Table {
-        file: "game/menu/pilots.gd",
+        file: "iaf-reborn/menu/pilots.gd",
         anchor: "const TYPE_CATEGORY :=",
         what: "pilot records kill category",
         list: true,
     },
     Table {
-        file: "game/menu/tsd.gd",
+        file: "iaf-reborn/menu/tsd.gd",
         anchor: "const FLYABLE_TYPES :=",
         what: "flights selectable on the TSD",
         list: true,
     },
     Table {
-        file: "game/cockpit/cockpit.gd",
+        file: "shared/cockpit/cockpit.gd",
         anchor: "const RWR_GLYPH :=",
         what: "RWR symbol when others see this type",
         list: true,
@@ -393,9 +398,9 @@ mod tests {
     #[test]
     fn checklist_finds_codes_in_definitions() {
         let dir = std::env::temp_dir().join(format!("iaf-plane-{}", std::process::id()));
-        std::fs::create_dir_all(dir.join("game/aircraft")).unwrap();
+        std::fs::create_dir_all(dir.join("shared/aircraft")).unwrap();
         std::fs::write(
-            dir.join("game/aircraft/player_aircraft.gd"),
+            dir.join("shared/aircraft/player_aircraft.gd"),
             "const FLYABLE := [110, 100]\nconst COCKPIT := {\n\t110: 0,\n\t1100: 1,\n}\nconst TWIN := [110]\n",
         )
         .unwrap();

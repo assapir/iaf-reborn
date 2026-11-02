@@ -1,4 +1,4 @@
-//! `IafStores`: the stores of one aircraft (`iaf_avionics::stores`) for `game/weapons/stores.gd`.
+//! `IafStores`: the stores of one aircraft (`iaf_avionics::stores`) for `shared/weapons/stores.gd`.
 
 use crate::world::{get, num, vec3, vector3};
 use godot::prelude::*;

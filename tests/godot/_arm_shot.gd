@@ -5,7 +5,7 @@
 # ARM_JET = a Jet list id to fly (ARM_F35I = the F-35I's slot), ARM_MODERN=1 Extras "Weapons" on Modern, ARM_TAB = the
 # list's tab (0 AA, 1 AG; docs/weapons.md §13), ARM_PUT = 9 comma-separated weapon ids put on stations 1..9 (0 empty).
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 ARM_F16=sufa ARM_SHOT=/tmp/arm.png -- --log-file /tmp/a.log \
-#       --path game --resolution 1280x960 -s ../tests/godot/_arm_shot.gd
+#       --path iaf-reborn --resolution 1280x960 -s ../tests/godot/_arm_shot.gd
 extends "res://../tests/godot/base.gd"
 
 

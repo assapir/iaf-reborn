@@ -10,21 +10,22 @@
 # load and the first frame's art and models (terrain/terrain_preload.gd preload_scene, prefetch_flight), as the
 # front end does.
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 GT_SET='ground_textures="ambientcg"' GT_PRELOAD=1 -- \
-#     --log-file /tmp/g.log --path game --resolution 2560x1440 -s ../tests/godot/_ground_tex_bench.gd -- --mission 311
+#     --log-file /tmp/g.log --path iaf-reborn --resolution 2560x1440 -s ../tests/godot/_ground_tex_bench.gd -- \
+#     --mission 311
 extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	var tp: GDScript = load("res://terrain/terrain_preload.gd")
+	var tp: GDScript = load("res://shared/terrain/terrain_preload.gd")
 	settings().vsync = false
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	for kv in OS.get_environment("GT_SET").split(",", false):
 		var p := kv.split("=")
 		settings().set(p[0], str_to_var(p[1]))
 	if OS.get_environment("GT_PRELOAD") == "1":
-		var gt: GDScript = load("res://terrain/ground_textures.gd")
+		var gt: GDScript = load("res://shared/terrain/ground_textures.gd")
 		gt.preload_async()
-		load("res://util/model_detail.gd").preload_packs()
+		load("res://shared/util/model_detail.gd").preload_packs()
 		tp.preload_scene()
 		while ResourceLoader.load_threaded_get_status(tp.SCENE) == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
 			await process_frame
@@ -39,7 +40,7 @@ func run() -> void:
 	if OS.get_environment("GT_PRELOAD") == "1":
 		change_scene_to_packed(tp.scene())
 	else:
-		change_scene_to_file("res://terrain/terrain_view.tscn")
+		change_scene_to_file("res://shared/terrain/terrain_view.tscn")
 	await frames(2)
 	var tv: Node = null
 	while tv == null or tv.get("flight") == null or tv.waiting_for_ground:

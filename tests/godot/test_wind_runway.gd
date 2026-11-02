@@ -13,7 +13,7 @@ func turned(name: String) -> PackedFloat64Array:
 
 ## The tower's taxi call at base `i` (a fresh radio over the bases as now turned).
 func taxi_call(i: int) -> Dictionary:
-	var r = load("res://audio/radio.gd").new()
+	var r = load("res://shared/audio/radio.gd").new()
 	r._ready()
 	var host := Node.new()  # no runtime, no AI: the callsign "Alpha", the morning
 	r.host = host
@@ -28,8 +28,8 @@ func taxi_call(i: int) -> Dictionary:
 func run() -> void:
 	await require_data()
 	var s := settings()
-	var mr: GDScript = load("res://mission/mission_runtime.gd")
-	var tv: GDScript = load("res://terrain/terrain_view.gd")
+	var mr: GDScript = load("res://shared/mission/mission_runtime.gd")
+	var tv: GDScript = load("res://shared/terrain/terrain_view.gd")
 	s.better["wind"] = true
 	s.sync_bases()
 

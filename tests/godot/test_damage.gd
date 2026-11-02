@@ -8,7 +8,7 @@
 # friendly-hit voice.
 extends "res://../tests/godot/base.gd"
 
-const DamageModel := preload("res://mission/damage_model.gd")
+const DamageModel := preload("res://shared/mission/damage_model.gd")
 
 
 func unit(rt, name: String) -> Dictionary:

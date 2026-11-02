@@ -13,7 +13,7 @@ The game plays as the original v1.1 by default; every improvement is an opt-in s
 
 - `crates/` – Rust workspace: file-format parsers, extraction / conversion tools, setup, flight model, avionics,
   Godot extension
-- `game/` – Godot 4.7 project
+- `iaf-reborn/` – Godot 4.7 project
 - `docs/` – reverse-engineering notes per system; `docs/formats/` – file formats
 - `assets/` – generated from your ISO (git-ignored)
 
@@ -34,7 +34,7 @@ If you do not have them, search the web for the ISO and the Hebrew packs. I trus
 | package | source | needed for |
 |---|---|---|
 | `rustup` (then `rustup default stable`) | extra | building the tools (`crates/`) |
-| `godot` (4.7) | extra | running the game (`game/`) |
+| `godot` (4.7) | extra | running the game (`iaf-reborn/`) |
 | `vulkan-intel` / `vulkan-radeon` / `nvidia-utils` (match your GPU) | extra | Vulkan rendering |
 | `ttf-liberation` (or `ttf-ms-fonts` from AUR for real Arial) | extra | menu text (the original uses Arial; Liberation Sans is metric-compatible, [docs/macos.md](docs/macos.md#platform-differences)) |
 | `gdal` _(optional)_ | extra | modern terrain imagery |
@@ -91,8 +91,8 @@ files; [docs/formats/rtpatch.md](docs/formats/rtpatch.md)).
 Other entry points:
 
 - `./iafjets -- --mission 311`: straight into a mission (Windows: `.\iafjets.ps1 --mission 311`).
-- `godot --path game res://terrain/terrain_view.tscn`: straight into the air.
-- `godot --path game res://viewer/viewer.tscn`: the model viewer, with hot reload.
+- `godot --path iaf-reborn res://shared/terrain/terrain_view.tscn`: straight into the air.
+- `godot --path iaf-reborn res://viewer/viewer.tscn`: the model viewer, with hot reload.
 
 ## Intro videos
 
@@ -178,7 +178,7 @@ the wrong control moves, edit `[devices] joy_axes` in the settings file. Details
 
 The code in this repository is licensed under the GNU General Public License v3.0 or later — see [LICENSE](LICENSE).
 It contains no data from the original game; you must supply your own copy. Third-party models, pictures and sounds
-in `game/extra/` keep their own licences; each has its credits beside it (`SOURCES.md`, `CREDITS.md`, `README.md`).
+in `shared/extra/` keep their own licences; each has its credits beside it (`SOURCES.md`, `CREDITS.md`, `README.md`).
 The CC0 textures from ambientCG (Ground textures, Model detail) are downloaded by setup into the git-ignored `assets/thirdparty/`
 ([docs/credits.md](docs/credits.md)).
 

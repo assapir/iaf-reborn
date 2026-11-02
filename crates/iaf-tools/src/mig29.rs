@@ -1,5 +1,5 @@
 //! The detailed MiG-29 (Graphics → MORE → Models: Detailed; docs/aircraft-models.md §7), built by a developer and
-//! shipped in the repo (`game/extra/models/mig29/mig29.glb`).
+//! shipped in the repo (`shared/extra/models/mig29/mig29.glb`).
 //!
 //! Source: the FlightGear MiG-29 9-12 (`github.com/Mercenary-Mercury/MiG-29_9-12`, external model by Enrique Laso
 //! Leon, FDM / cockpit / submodels by Sergey "Mercenary_Mercury" Salov), GPL-3.0. [`build`] converts it with the
