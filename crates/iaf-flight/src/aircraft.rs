@@ -1317,7 +1317,10 @@ impl Aircraft {
 
     /// BP `engine_spool`: the player's engine transient times (none for the AI or a type without a row).
     fn spool(&self) -> Option<Spool> {
-        if self.better.engine_spool && !self.ai() { spool::engine(self.params.type_code) } else { None }
+        if !self.better.engine_spool || self.ai() {
+            return None;
+        }
+        self.params.engine_spool.or_else(|| spool::engine(self.params.type_code))
     }
 
     /// Puts the spool state at the RPM ramp's value (start, `start_rpm`, the switch turned on).

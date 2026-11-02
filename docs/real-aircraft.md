@@ -106,7 +106,8 @@ The original thrust and fuel model limits what a row can match:
   (g ≤ (V / floor)²). A jet whose FLCS limits AoA lower in a hard turn than near the landing AoA cannot match both;
   the rows set the floor from the landing side.
 * **Engine spool** (better physics, `spool.rs`) is keyed by type code, so variants on one code share it: the F-16I
-  flies type 100's (F100) times.
+  flies type 100's (F100) times. A definition's own `engine_spool` goes first: the F-15I spools as the -229
+  (flight-model.md §10.2).
 
 ### 2.1 Service ceilings
 
@@ -209,17 +210,27 @@ neither has one it keeps the F-15C row's, marked open. The values and their sour
 | max weight | 81,000 lb | F-15E |
 | ceiling | 60,000 ft | F-15E (USAF fact sheet) |
 | fuel flow | 113,100 lb/h full AB, 27,000 lb/h military | -229 TSFC (inferred) |
-| stall floor | 155 kt: the F-15C row's 130 kt at the heavier weight | inferred |
-| wave drag | 0.04, fitted to Mach 2.0 at 40,000 ft with the CFTs | F-15E (secondary) |
-| as the F-15C row | CD0 0.040, 20 km thrust × 2.4, NWS ±45° / 17.78 ft, the original's roll rate and g | open |
+| stall floor | 155 kt: power off, flaps up, at full fuel (59,665 lb) | F-15E (TO fig. A1-6) |
+| CD0 | 0.042: the F-15C row's 0.040 + the CFTs' drag number 20.1 × 10⁻⁴ | F-15E (TO fig. A1-1); the conversion inferred |
+| g | +8.1 / −2.0: OWS inoperative, with CFTs, at the operating weight | F-15E (TO fig. 5-7) |
+| wave drag | 0.04, fitted to Mach 2.0 at 40,000 ft with the CFTs (with CD0 0.040) | F-15E (secondary) |
+| spool (better physics) | idle → military 3.0 s, light-off 0, fill 0.9 s: idle → maximum AB 3.9 s | F-15E (USAF fact sheet, TO); the split inferred |
+| as the F-15C row | 20 km thrust × 2.4 (the -229's lapse: open, below), NWS ±45° / 17.78 ft, the original's roll rate | open |
 
-The validation run (`IAF_JET=F-15I`) gives Mach 2.00 at 40,000 ft and Mach 1.16 (771 kt) at sea level. The
-F-15C row's wave drag (0.016) gave Mach 2.39 and 1.36, faster than the Baz with the CFTs on. The F-15E's 700 kt at
+The validation run (`IAF_JET=F-15I`) gives Mach 1.98 at 40,000 ft and Mach 1.16 (765 kt) at sea level (Mach 2.00 and
+771 kt before the CFTs' drag number raised CD0, 2026-11-02). The F-15C row's wave drag (0.016) gave Mach 2.39 and 1.36,
+faster than the Baz with the CFTs on. The F-15E's 700 kt at
 low altitude with the CFTs is not fitted: a drag that keeps Mach 2.0 high cannot also hold 700 kt at sea level, so it
-reads as a limit, as the F-15C's 800 KCAS (inferred). At full fuel (59,665 lb) the jet climbs 37,700 ft/min at sea
+reads as a limit, as the F-15C's 800 KCAS (inferred). At full fuel (59,665 lb) the jet climbs 37,300 ft/min at sea
 level (the F-15C row 42,000) and turns 16.1 deg/s at 6.4 g at 420 kt (the F-15C row 22.4 at 8.7 g). The neutral-stick
 test from 350 kt shows a 0.9° climb: the start at 13° α leaves it, and the flight-path hold keeps it (with a stall
 floor up to 145 kt the transient settles level; a test-point effect, not a row value).
+
+**Thrust over Mach / altitude** stays the F-15C row's table shape (× 2.4 at altitude). Searched 2026-11-02: the TO's
+-229 performance appendix was still empty in 1991 ("charts for the PW-229 engines are currently being developed");
+the NASA F-15 ACTIVE report (1999) measured the -229's gross thrust and nozzle efficiency at 30,000 ft and Mach 0.9
+only, not the net thrust the model uses; no installed or uninstalled -229 deck is public (open, as for the Sufa,
+§8.1).
 
 ## 4. F-4E Kurnass (2 × J79-GE-17), also the Kurnass 2000
 

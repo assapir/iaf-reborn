@@ -158,7 +158,7 @@ const REFS: &[Ref] = &[
         fuel: Some((22200.0, 22700.0, "12,915 lb + 2 x 4,875 lb CFTs (F-15E; Wikipedia's total 22,267)")),
         thrust_mil: Some((35000.0, 36200.0, "2 x 17,800 lbf (F100-PW-229)")),
         thrust_ab: Some((57800.0, 58800.0, "2 x 29,160 lbf (F100-PW-229)")),
-        stall: Some((145.0, 165.0, "~155 kt (inferred from the F-15C at the heavier weight)")),
+        stall: Some((150.0, 160.0, "155 KCAS power off, flaps up, at 59,665 lb (F-15E, TO 1F-15E-1 fig. A1-6)")),
         ceiling: Some((58000.0, 62000.0, "60,000 ft (USAF F-15E)")),
         vmax_sl: Some((680.0, 720.0, "~700 kt with CFTs (F-15E, Wikipedia note, secondary)")),
         vmax_hi: Some((1120.0, 1175.0, "~Mach 2.0 with CFTs (F-15E, Wikipedia note, secondary)")),

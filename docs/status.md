@@ -136,8 +136,7 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
 - **F-15I Ra'am** (Extras "F-15 version", f15i.md §11): built: the flight row (F-15E figures where the F-15I has
   none), the APG-70I's 104 km and the AI's 30.8 NM, the F-15E's 500 rounds, the Python 5 and GBU-31(V)3, its own
   Arming art, the TSD / info line / Jet list names, the livery fixes, the pilot guide guides/f15i.md. Open: the
-  GBU-28 and SPICE 1000 records, the CFTs' drag and the stall speeds (TO figures not legible), the -229's thrust
-  lapse and spool, the F-15E HUD and displays, the rear seat, the missile-approach cue, IFF.
+  GBU-28 and SPICE 1000 records, the g limit by weight, the -229's thrust lapse, the F-15E HUD and displays, the rear seat, the missile-approach cue, IFF.
 - **World scale Real 1:1**: the real blast radii of the missiles / SAMs without a published lethal radius.
 - **Setup wizard**: the pages wait for the user's review (roadmap.md).
 - **Flight start**: with TAA the loading screen stops for ≈ 1.2 s (warm) while Godot loads the motion-vector shaders

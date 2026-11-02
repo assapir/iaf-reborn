@@ -10,6 +10,7 @@
     "desc": "Israel's advanced long-range strike jet, built for heavy bombs on hardened targets."
   },
   "fm": "F-15I",
+  "engine_spool": [3.0, 5.0, 0.0, 0.9],
   "model": "converted/models/f15/f15i.glb",
   "guide": "f15i",
   "radar": { "km": 104.0, "ai_nm": 30.8 },
@@ -27,6 +28,7 @@
     "label": "the TSD's selected-unit label",
     "info_tag": "the flight info line's tag",
     "fm": "the flight-model type (iaf_flight::data_set TYPES / REAL): its real row on the F-15's section",
+    "engine_spool": "F100-PW-229, F-15E: idle -> maximum afterburner in less than 4 s (USAF fact sheet), the afterburner's first segment lighting just above idle in a snap acceleration (TO 1F-15E-1): idle -> military 3.0 s as the F100-PW-220 (NASA TM-4320, inferred for the -229), light-off 0, fill 0.9 s (inferred); docs/f15i.md §1",
     "model": "every F-15's model, with Models on Original too, when setup made it (under assets/, as the F-15C)",
     "guide": "the pilot guide, docs/guides/f15i.md",
     "radar": "no row of its own: the F-15's mode table (row 0; no source gives the APG-70's modes a ratio to the APG-63's)",

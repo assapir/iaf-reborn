@@ -44,10 +44,16 @@ pub const ENGINES: &[(u32, Spool)] = &[
 ];
 
 pub fn engine(type_code: u32) -> Option<Spool> {
-    ENGINES.iter().find(|(c, _)| *c == type_code).map(|(_, s)| *s).or_else(|| {
-        let [a, b, c, d] = crate::airframe::of_fm_type(type_code)?.engine_spool?;
-        Some(spool(a, b, c, d))
-    })
+    ENGINES
+        .iter()
+        .find(|(c, _)| *c == type_code)
+        .map(|(_, s)| *s)
+        .or_else(|| crate::airframe::of_fm_type(type_code)?.engine_spool.map(of_definition))
+}
+
+/// An aircraft definition's `engine_spool` `[idle_mil, mil_idle, ab_light, ab_fill]`.
+pub fn of_definition([a, b, c, d]: [f32; 4]) -> Spool {
+    spool(a, b, c, d)
 }
 
 /// The rate's offset: the core's rate is ∝ (x + A), x = 0 at idle, 1 at military, so it spools 11× faster near

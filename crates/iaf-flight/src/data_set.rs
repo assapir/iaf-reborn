@@ -447,8 +447,7 @@ const REAL: &[Real] = &[
     Real {
         aircraft: "F-15I",
         base: Some("F-15"),
-        // Not set, as on the F-15C row: the roll rate and g limits stay the original F-15 section's (the F-15I's roll
-        // rate and the OWS weight curve are open).
+        // Not set, as on the F-15C row: the roll rate stays the original F-15 section's (the F-15I's is open).
         // F-15E: operating weight with CFTs 37,000 lb (TO 1F-15E-1, crew included, to the nearest 500 lb).
         empty_lb: 37_000.0,
         // F-15E: 12,915 lb internal (Wikipedia, citing the TO) + 2 x 4,875 lb in the CFTs (TO p. A9-4), one pool.
@@ -460,8 +459,9 @@ const REAL: &[Real] = &[
         mil_ratio: Some(17_800.0 / 29_160.0),
         // The F-15C row's altitude lapse: the -229's lapse is open.
         alt_thrust: Some(2.4),
-        // Subsonic drag: the F-15C row's (open: the CFTs' drag index, TO fig. A1-1, is not legible in the public scan).
-        cd0: Some(0.040),
+        // F-15E: the F-15C row's 0.040 + the two CFTs' drag number 20.1 (TO 1F-15E-1 fig. A1-1), a drag index being
+        // 10^4 x the cruise ΔCD on the jet's wing area (inferred, as the original's DragIndex x 1e-4).
+        cd0: Some(0.042),
         // Fit: Mach 2.00 at 40k ft, the F-15E's "Mach 2.0 at high altitude" with CFTs (Wikipedia note, secondary). The
         // F-15C row's 0.016 gave Mach 2.39 there and 1.36 at SL. The note's 700 kt at low altitude is not fitted: no
         // drag that keeps Mach 2.0 high gives it (Mach 1.16 at SL here); a limit, as the F-15C row's 800 KCAS (inferred).
@@ -469,9 +469,13 @@ const REAL: &[Real] = &[
         // F100-PW-229: TSFC 1.94 with AB, 0.76 military → 2 x ~56,550 lb/h and 2 x ~13,500 lb/h (inferred).
         ff_ab_lb_s: Some(113_100.0 / 3600.0),
         ff_mil_lb_h: Some(27_000.0),
-        // The F-15C row's 130 kt at its full fuel (41,931 lb) scaled to 59,665 lb on the same 608 ft² wing:
-        // 130 · √(59,665 / 41,931) (inferred; the TO's stall charts are open).
+        // F-15E: power off, gear and flaps up, at full fuel (59,665 lb): 155 KCAS (TO 1F-15E-1 fig. A1-6, read off the
+        // chart; as the F-15C row's SAC power-off figure).
         stall_kt: Some(155.0),
+        // F-15E with CFTs, OWS inoperative, symmetrical (TO 1F-15E-1 fig. 5-7, configuration C): +8.1 / −2.0 up to
+        // about 38,000 lb, falling to +5.3 / −1.05 at full fuel. One pair: the limits at the operating weight (the
+        // weight curve: open).
+        g: Some((8.1, -2.0)),
         // As the F-15C row (open: the F-15E's nose gear).
         nose_wheel: Some(Nws { angle_deg: 45.0, wheelbase_ft: 17.78, grip_g: 0.3 }),
         // F-15E: service ceiling 60,000 ft (USAF fact sheet).
@@ -839,6 +843,11 @@ pub fn apply(set: DataSet, name: &str, params: &Params, envelope: &Envelope) -> 
     if let Some(ab) = r.afterburner {
         p.has_afterburner = ab;
     }
+    // A modern jet's engine (its definition's `engine_spool`, e.g. the F-15I's -229 on type 110's code).
+    p.engine_spool = crate::airframe::all()
+        .find(|(_, a)| a.fm.as_deref() == Some(r.aircraft))
+        .and_then(|(_, a)| a.engine_spool)
+        .map(crate::spool::of_definition);
     if let Some(n) = r.nose_wheel {
         p.nose_wheel = Some(NoseWheel {
             max_angle: n.angle_deg.to_radians(),
@@ -909,6 +918,12 @@ mod tests {
         assert_eq!(find_type("F-15I").map(|t| t.type_code), Some(110));
         // The type code finds the Baz first (mission_sanity).
         assert_eq!(TYPES.iter().find(|t| t.type_code == 110).map(|t| t.name), Some("F-15"));
+        // Its -229 spools from its definition, the Baz's -220 by type code: idle to maximum afterburner under 4 s.
+        let p = Params::from_section(iaf_formats::ini::Ini::parse(b"[F-15]\r\n").section("F-15").unwrap());
+        let e = Envelope::parse(b"[Min Velocity Table]\r\n0 100 0\r\n1 150 0\r\n1 160 40000\r\n");
+        let s = apply(DataSet::Real, "F-15I", &p, &e).0.engine_spool.expect("the F-15I's spool");
+        assert!(s.idle_mil + s.ab_light + s.ab_fill < 4.0, "{s:?}");
+        assert_eq!(apply(DataSet::Real, "F-15", &p, &e).0.engine_spool, None);
     }
 
     #[test]

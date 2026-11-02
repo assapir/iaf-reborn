@@ -430,7 +430,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   (setup offline) the look stays the F-15C's; the rest applies.
   - flight data: the "F-15I" row whatever the Flight data setting says (real-aircraft.md §3.1): 2 × F100-PW-229
     (58,320 lbf), 37,000 lb with the CFTs (F-15E), 22,665 lb of fuel (F-15E), 81,000 lb maximum (F-15E), ceiling
-    60,000 ft (F-15E); the drag fitted to the F-15E's Mach 2.0 at altitude with the CFTs;
+    60,000 ft (F-15E); the CFTs' drag, the stall speed and g +8.1 / −2.0 from the F-15E flight manual; the wave drag
+    fitted to the F-15E's Mach 2.0 at altitude with the CFTs;
   - radar: with Weapon data Real 104 km (the APG-70I), not the Baz's 135 km; the AI's F-15s see 30.8 NM instead of
     the 40 NM every AI jet has; the mode table stays the F-15's;
   - gun: 500 rounds with Weapon data Real (F-15E), not 940;

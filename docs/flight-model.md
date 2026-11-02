@@ -887,7 +887,15 @@ Table `spool::ENGINES` (seconds, sea level; `mil_idle` 5 s for every engine, inf
 | MiG-29 (180) | RD-33 | 3.0 | 0.8 | 1.2 | idle → maximum 3–4 s, maximum → full AB 2–3 s, idle → full AB 4–5 s[^rd33] |
 | Mirage (190) | Atar 9C | 5.0 | 1.0 | 1.5 | open: the 5 s limit[^bigenc][^far3373] |
 | F-35I (its definition's `engine_spool`) | F135-PW-100 | 4.0 | 0.8 | 1.2 | flight idle → maximum power about 6 s[^pw135]; the split inferred |
+| F-15I Ra'am (its definition's `engine_spool`, before type 110's) | F100-PW-229 | 3.0 | 0.0 | 0.9 | F-15E: idle → maximum AB in less than 4 s[^usaf-f15e]; in a snap acceleration the AB's first segment lights just above idle[^to-f15e]; idle → military the -220's (inferred), the rest inferred |
 
+* A modern jet's definition (`engine_spool` in `game/extra/planes/<id>/airframe.json`) goes before its type code's
+  row: `data_set::apply` puts it in `Params::engine_spool` for the jet whose `fm` is the row, so the F-15I on type
+  110 spools as the -229 and the Baz as the -220. The F-16I has none and flies type 100's.
+* The -229's light-off: the model lights the afterburner only once the core is at military, so `ab_light` 0 is the
+  nearest to the TO's light-off just above idle (inferred). Tried and dropped (2026-11-02): no public -229 figure for
+  idle → military or for the fill; the F-15 ACTIVE report (NASA Dryden, Orme and Sims, 1999) gives the -229's nozzle efficiencies, not its
+  transients.
 * The F-15 test engine's afterburner first lit only weakly (strong flame 1.8 s after initiation); the fixed spray ring
   lit at once[^tm85902]. `ab_light` 0.5 s is between (inferred).
 * Open: the F110, PW1120, R-35, Atar and J79 afterburner times; the decelerations (the F100 drops fast to low thrust,
@@ -2093,6 +2101,13 @@ and spin β apply underneath in both modes (§10).
 [^pw135]: Pratt & Whitney, "Five facts about the most advanced fighter engine in the world" (2019): "The F135 engine can go
     from flight idle to maximum power in about six seconds" (quoted from the search summary; the page renders by script),
     <https://www.rtx.com/prattwhitney/newsroom/news/2019/07/18/five-facts-about-the-most-advanced-fighter-engine-in-the-world>.
+[^usaf-f15e]: US Air Force, "F-15E Strike Eagle" fact sheet: the engines' digital control gives "acceleration from idle
+    to maximum afterburner in less than four seconds",
+    <https://www.af.mil/About-Us/Fact-Sheets/Display/Article/104499/f-15e-strike-eagle/>.
+[^to-f15e]: USAF, TO 1F-15E-1, *Flight Manual, USAF Series F-15E Aircraft*, change 2 of 15 March 1991, §I "IDEEC -229
+    engines" and "Afterburner": ground idle → military about 1 s longer than from flight idle; "During snap
+    accelerations the first segment of the afterburner may, depending on flight condition, light at just above IDLE
+    rpm", 11 segments, <https://archive.org/details/f-15-e>.
 [^bigenc]: Большая российская энциклопедия, «Приёмистость авиационного двигателя»: the norms limit idle → maximum at sea
     level to 5 s, timed to 95 % of the final thrust, <https://bigenc.ru/c/priiomistost-aviatsionnogo-dvigatelia-481568>.
 [^far3373]: 14 CFR 33.73(b): 15 % → 95 % of the rated take-off thrust "in not over 5 seconds",
