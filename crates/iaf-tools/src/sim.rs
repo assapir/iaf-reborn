@@ -27,11 +27,7 @@ use crate::mission_edit;
 use crate::progress::{Progress, check};
 use crate::training;
 
-/// The compiled object database's name: missions name it in `bdb`, the object index keys its models by it and
-/// `weapon_db.gd` finds that key through the bdb's `_file`.
-pub const BDB: &str = "sim.bdb";
-/// Under the assets root.
-pub const BDB_FILE: &str = "converted/missions/sim.bdb.json";
+pub use crate::sim_files::{BDB, BDB_FILE};
 pub const OBJECTS_FILE: &str = "converted/objects/objects.json";
 pub const IBX_FILE: &str = "converted/own/resource/weaponsmotion/weapons.ibx";
 /// The sim's missions: their own folder, beside the original's `converted/missions` (whose readers and tests take

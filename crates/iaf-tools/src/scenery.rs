@@ -1492,7 +1492,7 @@ fn made_from(r: &Run, keys: &[(u32, u32)]) -> String {
 pub(crate) fn converted_inputs(h: &mut Sha256, a: &Path, objects: bool) {
     let c = a.join("converted");
     // IAF 2026's object database (iaf-sim) lies beside the original's and changes no scenery.
-    let sim = Path::new(crate::sim::BDB_FILE).file_name();
+    let sim = Path::new(crate::sim_files::BDB_FILE).file_name();
     let mut files: Vec<PathBuf> = crate::walk_files(&c.join("missions"))
         .unwrap_or_default()
         .into_iter()
@@ -1521,7 +1521,7 @@ pub(crate) fn converted_inputs(h: &mut Sha256, a: &Path, objects: bool) {
 /// writes it (pretty, keys sorted), which gives back the original's bytes; any other file as it is.
 fn without_sim(bytes: Vec<u8>) -> Vec<u8> {
     let Ok(mut m) = serde_json::from_slice::<serde_json::Map<String, serde_json::Value>>(&bytes) else { return bytes };
-    if m.remove(crate::sim::BDB).is_none() {
+    if m.remove(crate::sim_files::BDB).is_none() {
         return bytes;
     }
     serde_json::to_vec_pretty(&m).unwrap_or(bytes)

@@ -31,6 +31,7 @@ const EXTRACT: &[&str] = &[
 const CONVERT: &[&str] = &[
     "crates/iaf-tools/src/convert.rs",
     "crates/iaf-tools/src/aircraft.rs",
+    "crates/iaf-tools/src/sim_files.rs",
     "crates/iaf-tools/src/exe.rs",
     "crates/iaf-tools/src/gltf.rs",
     "crates/iaf-tools/src/mis.rs",

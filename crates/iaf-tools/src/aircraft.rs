@@ -298,7 +298,7 @@ pub fn read_bdbs(missions: &std::path::Path) -> anyhow::Result<Vec<(String, Valu
         let name = entry.file_name().to_string_lossy().to_string();
         let Some(stem) = name.strip_suffix(".bdb.json") else { continue };
         // IAF 2026's (iaf-sim): not an original database, its models are not in the install.
-        if Some(std::ffi::OsStr::new(&name)) == std::path::Path::new(crate::sim::BDB_FILE).file_name() {
+        if Some(std::ffi::OsStr::new(&name)) == std::path::Path::new(crate::sim_files::BDB_FILE).file_name() {
             continue;
         }
         out.push((stem.to_string(), serde_json::from_slice(&std::fs::read(entry.path())?)?));
