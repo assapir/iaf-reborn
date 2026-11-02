@@ -194,6 +194,33 @@ with -220 engines from the SAC chart[^sac-f15], the only primary document found 
 Fit (fitted, inferred): CD0 0.040, wave drag 0.016, 20 km thrust × 2.4. Biggest original errors: thrust −18 %,
 stall 78 kt, fuel flow half the real one.
 
+### 3.1 F-15I Ra'am (2 × F100-PW-229, conformal fuel tanks)
+
+With Extras "F-15 version" on Ra'am, every F-15 (type 110) flies the row "F-15I". The 1998 game has no Ra'am, so this
+row applies whatever the Flight data setting says. It starts from the original's F-15 section, like the F-16I on the
+F-16's. Where the F-15I has no public figure the row takes the F-15E's (the user's decision of 2026-11-02); where
+neither has one it keeps the F-15C row's, marked open. The values and their sources are in [f15i.md](f15i.md) §1:
+
+| field | F-15I row | whose figure |
+|---|---|---|
+| thrust | 58,320 lbf full AB (2 × 29,160), military ratio 17,800 / 29,160 | F-15I's own engines |
+| empty weight | 37,000 lb (operating weight with the CFTs) | F-15E (TO 1F-15E-1) |
+| internal fuel | 22,665 lb (12,915 + the CFTs' 2 × 4,875), one pool | F-15E |
+| max weight | 81,000 lb | F-15E |
+| ceiling | 60,000 ft | F-15E (USAF fact sheet) |
+| fuel flow | 113,100 lb/h full AB, 27,000 lb/h military | -229 TSFC (inferred) |
+| stall floor | 155 kt: the F-15C row's 130 kt at the heavier weight | inferred |
+| wave drag | 0.04, fitted to Mach 2.0 at 40,000 ft with the CFTs | F-15E (secondary) |
+| as the F-15C row | CD0 0.040, 20 km thrust × 2.4, NWS ±45° / 17.78 ft, the original's roll rate and g | open |
+
+The validation run (`IAF_JET=F-15I`) gives Mach 2.00 at 40,000 ft and Mach 1.16 (771 kt) at sea level. The
+F-15C row's wave drag (0.016) gave Mach 2.39 and 1.36, faster than the Baz with the CFTs on. The F-15E's 700 kt at
+low altitude with the CFTs is not fitted: a drag that keeps Mach 2.0 high cannot also hold 700 kt at sea level, so it
+reads as a limit, as the F-15C's 800 KCAS (inferred). At full fuel (59,665 lb) the jet climbs 37,700 ft/min at sea
+level (the F-15C row 42,000) and turns 16.1 deg/s at 6.4 g at 420 kt (the F-15C row 22.4 at 8.7 g). The neutral-stick
+test from 350 kt shows a 0.9° climb: the start at 13° α leaves it, and the flight-path hold keeps it (with a stall
+floor up to 145 kt the transient settles level; a test-point effect, not a row value).
+
 ## 4. F-4E Kurnass (2 × J79-GE-17), also the Kurnass 2000
 
 Sources: Jane's via globalsecurity.org[^janes-gs] (weights, speed), GE engine data[^ge-j79], the Heatblur manual

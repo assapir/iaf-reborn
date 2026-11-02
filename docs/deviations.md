@@ -422,11 +422,25 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     (aircraft-models.md §6): grey with IAF roundels, its speed brake and hook shown also shut.
     Every MiG-29 becomes the FlightGear MiG-29 9-12 (GPL-3.0; aircraft-models.md §7), repainted as a Syrian jet
     (two-tone grey, the Syrian roundel and fin flag), our pylons on the original's stations.
-- **"F-15 version" (Baz (F-15C) / Ra'am (F-15I))** (ours, Extras; aircraft-models.md §6.7). Visual only; the default
-  is Baz. With Ra'am every F-15 (the player's, the AI's, parked ones) is drawn as the F-15I setup made from the
-  FlightGear F-15 (two seats, conformal tanks, 69 Squadron's desert camouflage), also with Models on Original; its
-  flight data, weapons, radar and cockpit stay the F-15C's. Without the file (setup offline) the switch changes
-  nothing.
+- **"F-15 version" (Baz (F-15C) / Ra'am (F-15I))** (ours, Extras; [f15i.md](f15i.md), aircraft-models.md §6.7).
+  The default is Baz. With Ra'am every F-15 (the player's, the AI's, parked ones) is drawn as the F-15I setup made
+  from the FlightGear F-15 (two seats, conformal tanks, 69 Squadron's desert camouflage), also with Models on
+  Original, and flies as today's F-15I (the user's choice of 2026-11-02). Where the F-15I has no public figure the
+  F-15E's is used, labelled F-15E in f15i.md and the data comments (the user's decision 2). Without the model file
+  (setup offline) the look stays the F-15C's; the rest applies.
+  - flight data: the "F-15I" row whatever the Flight data setting says (real-aircraft.md §3.1): 2 × F100-PW-229
+    (58,320 lbf), 37,000 lb with the CFTs (F-15E), 22,665 lb of fuel (F-15E), 81,000 lb maximum (F-15E), ceiling
+    60,000 ft (F-15E); the drag fitted to the F-15E's Mach 2.0 at altitude with the CFTs;
+  - radar: with Weapon data Real 104 km (the APG-70I), not the Baz's 135 km; the AI's F-15s see 30.8 NM instead of
+    the 40 NM every AI jet has; the mode table stays the F-15's;
+  - gun: 500 rounds with Weapon data Real (F-15E), not 940;
+  - weapons: the Arming screen also lists the Python 5 (two per wing pylon; Weapon data Real) and the GBU-31(V)3 (wing
+    pylons and the CFT stations 3, 4, 6, 7), whatever Extras "Weapons" says; the original's items stay;
+  - the Arming screen shows its own front-view art with the conformal tanks (rendered by setup) and the Ra'am's weights
+    (base 59,734 lb, max 81,000 lb);
+  - the TSD calls the selected F-15 "F-15I"; the info line shows RAAM; the Jet list's F15 button reads F-15I (Hebrew
+    רעם); the Reference screen's F-15 guide is guides/f15i.md;
+  - the livery: the inner fins' black bands painted out and the nose numbers blue, as the photos show (f15i.md §7).
   - Stores, gun, wingtips, eye and wheel height come from the original's helpers. The detailed model brings its own
     hinge lines, its afterburner position at its nozzle's exit, and closed gear doors shown while the gear is up.
   - The detailed F-16s sit 3.0° nose up on their wheels, as the real jet does (its nose oleo at its static

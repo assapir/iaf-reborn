@@ -202,7 +202,7 @@ const EXTRAS := [
 	["weapon_data", "Weapon data", [["Original (1998)", "original"], ["Real weapons", "real"]]],
 	# Ours: every F-16 as the F-16I Sufa (docs/f16i.md): its flight data, radar and look.
 	["f16_variant", "F-16 version", [["Barak (F-16D)", "barak"], ["Sufa (F-16I)", "sufa"]]],
-	# Ours: every F-15 drawn as the F-15I Ra'am (docs/aircraft-models.md §6.7), its look only.
+	# Ours: every F-15 as the F-15I Ra'am (docs/f15i.md): its flight data, radar, weapons and look.
 	["f15_variant", "F-15 version", [["Baz (F-15C)", "baz"], ["Ra'am (F-15I)", "raam"]]],
 	# Ours: the modern weapons (weapons/modern_weapons.gd) on every jet that really carried them.
 	["modern_weapons", "Weapons", [["Original (1998)", false], ["Modern", true]]],
@@ -1514,7 +1514,8 @@ func _draw_extras_tab(delta: Vector2) -> void:
 
 
 ## Ours: the jet a Jet list id flies instead of the original's: the F-35I in the slot it replaces
-## (Settings.f35i_slot), else the F-16I Sufa for the F-16 (Extras "F-16 version", docs/f16i.md); {} for none.
+## (Settings.f35i_slot), else the F-16I Sufa for the F-16 (Extras "F-16 version", docs/f16i.md) or the F-15I Ra'am
+## for the F-15 ("F-15 version", docs/f15i.md); {} for none.
 ## {title (the button), row (the list row's title, as the originals' "אף 16 / ברק"), desc (English, through _t)}: the
 ## aircraft definition's jet_list.
 func _jet_swap(id: int) -> Dictionary:

@@ -37,6 +37,9 @@ the shot's own values.
   to the F-16 guide for the rest; with the switch on, the Reference screen's F-16 record shows it in place of the
   F-16's.
 - [F-15](f15.md): the F-15C Baz: the TO 1F-15A-1 HUD, the DASH helmet, the APG-63, Sparrows.
+- [F-15I Ra'am](f15i.md): our F-15I (Extras → F-15 version = Ra'am): what differs from the F-15 (the CFTs' weight
+  and fuel, the -229 engines, the APG-70I, the F-15E's gun count), the Python 5 and the GBU-31(V)3 JDAM, its Arming
+  art. It points to the F-15 guide for the rest; with the switch on, the Reference screen's F-15 record shows it.
 - [Lavi](lavi.md): the two-seat Lavi of the game's model: its wide-angle HUD (a reconstruction), the EL/M-2035 radar.
 - [Mirage](mirage.md): the Mirage IIICJ Shahak: the CSF 95 gyro gunsight, the Cyrano radar, Shafrir 2 / AIM-9D.
 - [F-35I](f35i.md): our F-35I Adir (Extras → F-35I replaces): the helmet's virtual HUD, the APG-81, the weapon bays,

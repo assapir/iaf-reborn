@@ -1,0 +1,9 @@
+{
+ "_doc": "F-15I Ra'am arming screen: front = its front view, which setup renders from the F-15I model on the player's machine (iaf_tools::f15::arm_front, under converted/, its station points in the .json beside it); iaf-convert arm-extra composes it over the original's arming background with the F-15's station boxes (base_art f-15). Weights in lb: base = the F-15's 42,000 + 8,524 heavier empty + 9,210 more fuel (37,000 lb and 22,665 lb, F-15E figures, docs/f15i.md §1); max take-off 81,000 (F-15E, TO 1F-15E-1). boxes = top-left of each station's 51x32 box (menu px, stations A..I, f-15.trx).",
+ "title": "F-15I",
+ "base": 59734,
+ "max": 81000,
+ "base_art": "f-15",
+ "front": "models/f15/f15i_arm.png",
+ "boxes": [[1, 210], [21, 261], [81, 261], [141, 261], [201, 282], [261, 261], [321, 261], [381, 261], [401, 210]]
+}

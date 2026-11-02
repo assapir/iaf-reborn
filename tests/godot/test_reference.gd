@@ -97,6 +97,11 @@ func run() -> void:
 	check(ref.guide_path(ref.shown).ends_with("f16i.md") and ref.guide_pdf(ref.shown) == "", "Sufa: the F-16I guide")
 	settings().f16_variant = "barak"
 	DirAccess.remove_absolute(dir.path_join("f16i.md"))
+	# With "F-15 version" on Ra'am the F-15's guide is the Ra'am's (f15i.md).
+	settings().f15_variant = "raam"
+	var f15: int = ref.records.map(func(r): return String(r.dir)).find("f15")
+	check(f15 >= 0 and ref.guide_name(f15) == "f15i", "Ra'am: the F-15I guide")
+	settings().f15_variant = "baz"
 	fe._on_button(fe._key_for_label("Next"))
 	check(
 		(

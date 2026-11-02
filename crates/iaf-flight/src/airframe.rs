@@ -307,9 +307,10 @@ mod tests {
         let raam = Switches { f16: "barak", f15: "raam" };
         assert_eq!(model_for("f15_h.gltf", raam), Some("converted/models/f15/f15i.glb"));
         assert_eq!(model_for("f16_h.gltf", raam), None);
-        // The Ra'am differs from the Baz in its model only.
-        let (r, b) = (of_type(110, raam).unwrap(), of_type(110, barak).unwrap());
-        let r = Airframe { model: None, name: None, notes: None, ..r.clone() };
-        assert_eq!(r, Airframe { name: None, notes: None, ..b.clone() });
+        let r = of_type(110, raam).unwrap();
+        assert_eq!((r.original_model.as_deref(), r.fm.as_deref()), (Some("f15_h.gltf"), Some("F-15I")));
+        assert_eq!(r.radar.as_ref().map(|r| (r.row, r.km, r.ai_nm)), Some((None, Some(104.0), Some(30.8))));
+        assert_eq!(r.gun_rounds, Some(500));
+        assert_eq!(r.weapons.as_ref().and_then(|w| w.loads.as_ref()?.get(&1004).cloned()), Some((1, "BCDFGH".into())));
     }
 }

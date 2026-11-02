@@ -152,6 +152,21 @@ const REFS: &[Ref] = &[
         ..JET
     },
     Ref {
+        aircraft: "F-15I",
+        name: "F-15I Ra'am (F-15E data, 2x F100-PW-229, CFTs)",
+        empty: Some((36500.0, 37500.0, "37,000 lb operating weight with CFTs (F-15E, TO 1F-15E-1)")),
+        fuel: Some((22200.0, 22700.0, "12,915 lb + 2 x 4,875 lb CFTs (F-15E; Wikipedia's total 22,267)")),
+        thrust_mil: Some((35000.0, 36200.0, "2 x 17,800 lbf (F100-PW-229)")),
+        thrust_ab: Some((57800.0, 58800.0, "2 x 29,160 lbf (F100-PW-229)")),
+        stall: Some((145.0, 165.0, "~155 kt (inferred from the F-15C at the heavier weight)")),
+        ceiling: Some((58000.0, 62000.0, "60,000 ft (USAF F-15E)")),
+        vmax_sl: Some((680.0, 720.0, "~700 kt with CFTs (F-15E, Wikipedia note, secondary)")),
+        vmax_hi: Some((1120.0, 1175.0, "~Mach 2.0 with CFTs (F-15E, Wikipedia note, secondary)")),
+        ff_mil: Some((25000.0, 29000.0, "~2 x 13,500 lb/h (TSFC 0.76, inferred)")),
+        ff_ab: Some((105000.0, 120000.0, "~2 x 56,550 lb/h (TSFC 1.94, inferred)")),
+        ..JET
+    },
+    Ref {
         aircraft: "F-4",
         name: "F-4E Kurnass (2x J79-GE-17)",
         empty: Some((29500.0, 31000.0, "~30,330 lb (Jane's)")),

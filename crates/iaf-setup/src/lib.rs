@@ -120,7 +120,8 @@ pub fn plan(inputs: &Inputs) -> Vec<Step> {
         "models",
         "detailed F-15 and F-15I: FlightGear F-15C/D by Enrique Laso, Richard Harrison, GeneB (GPL-2.0-only; download about 20 MB)",
         false,
-        &["aircraft"],
+        // The menus too: it composes the F-15I's arming art from the front view it renders.
+        if he_menu { &["aircraft", "menu", "menu_he"] } else { &["aircraft", "menu"] },
     );
     let mut last: Vec<&'static str> = Vec::new();
     for im in &inputs.imagery {
@@ -482,6 +483,7 @@ mod tests {
         assert_eq!(get("menu_he").after, ["patch", "hebrew"]);
         assert_eq!(get("arm").after, ["menu", "menu_he"]);
         assert_eq!(get("aircraft").after, ["missions"]);
+        assert_eq!(get("models").after, ["aircraft", "menu", "menu_he"]);
         assert_eq!(get("airbases").after, ["theatre"]);
         assert!(get("guides").after.contains(&"sentinel2") && get("guides").after.contains(&"mapi2015"));
         assert_eq!(get("scenery").after, ["mapi2015", "sentinel2", "scenery-fetch", "missions", "objects", "airbases"]);
@@ -668,7 +670,8 @@ mod tests {
             hebrew: Hebrew::Packs { brief: Some("b.zip".into()), menu: Some("m.zip".into()) },
             ..more.clone()
         };
-        assert_eq!(go(&he), ["arm", "briefings", "hebrew", "keys", "menu_he"]);
+        // The models step too: it composes the F-15I's arming art into the Hebrew menus.
+        assert_eq!(go(&he), ["arm", "briefings", "hebrew", "keys", "menu_he", "models"]);
         assert!(go(&he).is_empty());
         std::fs::remove_dir_all(&dir).unwrap();
     }

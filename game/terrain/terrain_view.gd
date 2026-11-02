@@ -1854,14 +1854,15 @@ func ai_wind(f) -> void:
 func _setup_autopilot(install: String) -> void:
 	flight.ap_setup(install, terrain.world_origin.x, terrain.world_origin.y)
 	# The player's landing flare (docs/autopilot.md §2.3): off the original only (World scale Real, Real flight data,
-	# a jet that always flies its Real row, or a Better physics switch); all Original keeps StopPlane's float.
+	# a jet that always flies its Real row: the F-35I, a definition's `fm`; or a Better physics switch); all Original
+	# keeps StopPlane's float.
 	var type := int(player.get("type", 0))
 	flight.ap_set_flare(
 		(
 			Settings.world_scale == "real"
 			or Settings.flight_data == "real"
 			or type == PlayerAircraft.F35I
-			or Settings.sufa(type)
+			or Settings.airframe(type).has("fm")
 			or true in Settings.better.values()
 		)
 	)
@@ -1930,6 +1931,7 @@ func _crash_report(reason: String) -> void:
 					"world_scale": Settings.world_scale,
 					"easy_landing": Settings.easy_landing,
 					"f16_variant": Settings.f16_variant,
+					"f15_variant": Settings.f15_variant,
 					"airbases": Settings.airbases,
 					"scenery": Settings.scenery,
 					"better": Settings.better.keys().filter(func(k): return Settings.better[k]),
@@ -3617,7 +3619,7 @@ func _process(delta: float) -> void:
 
 ## The info line's first field: ORIGINAL, or a short tag per switch not at its original setting (FLT real flight
 ## data, WPN real weapons, HUD:<style>, 1:1 world scale, CKPT+ better cockpit, PHYS+ better physics, SUFA the F-16I,
-## MODWPN the modern weapons).
+## RAAM the F-15I, MODWPN the modern weapons).
 func _modes_text() -> String:
 	var t := []
 	if real_data:
@@ -3632,8 +3634,9 @@ func _modes_text() -> String:
 		t.append("CKPT+")
 	if Settings.better.values().has(true) or _all_better:
 		t.append("PHYS+")
-	if Settings.airframe(100).has("info_tag"):  # the F-16 version's (the Sufa's "SUFA")
-		t.append(Settings.airframe(100).info_tag)
+	for type in [100, 110]:  # the F-16 and F-15 versions' (the Sufa's "SUFA", the Ra'am's "RAAM")
+		if Settings.airframe(type).has("info_tag"):
+			t.append(Settings.airframe(type).info_tag)
 	if Settings.modern_weapons:
 		t.append("MODWPN")
 	return "ORIGINAL" if t.is_empty() else " ".join(t)

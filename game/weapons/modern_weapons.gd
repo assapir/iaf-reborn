@@ -1,8 +1,8 @@
 # The modern weapons (ours; docs/weapons.md §13, values and sources docs/real-weapons.md §1.6, the jets that carried
 # them §1.7): records the 1998 data has no counterpart for, built from public real data whatever Weapon data says. Each
 # takes its blast, drag and model from an original record ("base" / "model_of", read from the mission's bdb at run
-# time) and overrides what the sources give. The modern jets, the F-16I Sufa and the F-35I (their aircraft
-# definitions), always load theirs; another jet loads a weapon only with Extras "Weapons" on Modern
+# time) and overrides what the sources give. The modern jets, the F-16I Sufa, the F-15I Ra'am and the F-35I (their
+# aircraft definitions), always load theirs; another jet loads a weapon only with Extras "Weapons" on Modern
 # (`Settings.modern_weapons`) and when a source shows the jet carrying it (`LOADS`).
 #
 # - AIM-9X Block II and Python 5 (type 570): the helmet-cued, high off-boresight IR missiles. Their seeker cone is the
@@ -126,8 +126,8 @@ const RECORDS := [
 ]
 ## The jets that may load each record: id -> {jet: [count, stations A..I]}, a jet by its bdb type code. A jet with an
 ## aircraft definition loads its weapons.loads ({"<record id>": [count, stations]}) instead, always with its
-## weapons.modern "always" (the Sufa, the F-35I); every other jet only with Extras "Weapons" on Modern. Which jet
-## carried what, and the stations: docs/real-weapons.md §1.7.
+## weapons.modern "always" (the Sufa, the Ra'am, the F-35I); every other jet only with Extras "Weapons" on Modern.
+## Which jet carried what, and the stations: docs/real-weapons.md §1.7.
 ## The Sufa (docs/f16i.md §5): the IR missiles on the wingtip rails and the outer pylons (1–3, 7–9, as the F-16's
 ## AIM-9L), the JDAMs on the heavy wing stations 3, 4, 6, 7, four GBU-39s on a BRU-61 rack there. The Barak (100): the
 ## IR missiles as the AIM-9L, the JDAMs on 3, 4, 6, 7 (the IAF's F-16s), the GBU-39s on 3 / 7. The F-15 (110): the

@@ -51,12 +51,27 @@ pub fn model(
 }
 
 /// An extra plane's arming art (docs/adding-a-plane.md §5) from the original arming art in `menu_img`
-/// (`<converted menu>/img`, its `arm/jets/*.png`) and the plane's `arm_dir` (`front.png`, `arm.json`).
+/// (`<converted menu>/img`, its `arm/jets/*.png`) and the plane's `arm_dir` (`front.png`, `arm.json`). A front view
+/// setup makes (the F-15I's, iaf_tools::f15::ARM_FRONT) is arm.json's `front`, under `converted/`, its points in
+/// the `.json` beside it; until setup has made it, nothing is composed.
 pub fn arm_extra(menu_img: &Path, arm_dir: &Path, out: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     check(cancel)?;
     let jets = menu_img.join("arm/jets");
-    let arm: serde_json::Value =
+    let mut arm: serde_json::Value =
         serde_json::from_slice(&std::fs::read(arm_dir.join("arm.json"))?).context("arm.json")?;
+    let front_path = match arm["front"].as_str() {
+        Some(f) => {
+            let p = menu_img.join("../..").join(f);
+            if !p.is_file() {
+                log!(pr, "{}: no {} yet (setup's models step makes it)", arm_dir.display(), p.display());
+                return Ok(());
+            }
+            let side: serde_json::Value = serde_json::from_slice(&std::fs::read(p.with_extension("json"))?)?;
+            arm["points"] = side["points"].clone();
+            p
+        }
+        None => arm_dir.join("front.png"),
+    };
     let base_name = arm["base_art"].as_str().unwrap_or("f-16");
     let mut originals = Vec::new();
     let mut base = None;
@@ -72,7 +87,7 @@ pub fn arm_extra(menu_img: &Path, arm_dir: &Path, out: &Path, pr: &dyn Progress,
         }
     }
     let base = base.with_context(|| format!("no {base_name}.png in {}", jets.display()))?;
-    let front = image::open(arm_dir.join("front.png"))?.to_rgba8();
+    let front = image::open(&front_path)?.to_rgba8();
     let pairs = |k: &str| -> Vec<(f32, f32)> {
         arm[k]
             .as_array()

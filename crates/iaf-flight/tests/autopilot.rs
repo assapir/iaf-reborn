@@ -767,7 +767,7 @@ fn player_landing_312_flares_every_jet() {
     // small sink, nose up, and the jet stops on the runway. The original's level float stalled the jets onto it
     // instead (F-4: nose 13–25° down, the "landing" crash; F-15 and Lavi 5–6° down); all Original keeps that float.
     let Some(inst) = install() else { return };
-    for name in ["F-16", "F-15", "F-4", "KFIR", "LAVI", "MIRAGE", "F-16I", "F-35I"] {
+    for name in ["F-16", "F-15", "F-4", "KFIR", "LAVI", "MIRAGE", "F-16I", "F-15I", "F-35I"] {
         let (vz, pitch, x, stop) = landing_312(&inst, jet_312(&inst, name, DataSet::Original), name, true);
         println!("{name}: touchdown sink {:.1} m/s, nose {pitch:.1}°, at x {x:.0}; stop {stop:?}", -vz);
         assert!(vz > -4.0 && pitch > 0.0, "{name}: a flared touchdown (sink {:.1} m/s, nose {pitch:.1}°)", -vz);
@@ -859,10 +859,14 @@ fn jet_312(inst: &Path, name: &str, set: DataSet) -> Aircraft {
 }
 
 /// The jet model's `height` helper (m below the origin) at true size: the converted 1998 models, the F-35I's own.
-/// The Sufa's f16i.glb keeps the F-16's helper (1.69 m).
+/// The Sufa's f16i.glb keeps the F-16's helper (1.69 m), the Ra'am's f15i.glb the F-15's.
 fn true_clearance(inst: &Path, name: &str) -> f32 {
     let model = iaf_flight::data_set::find_type(name).expect("a flown type").model;
-    let model = if model == "f16i" { "f16" } else { model };
+    let model = match model {
+        "f16i" => "f16",
+        "f15i" => "f15",
+        m => m,
+    };
     let dirs =
         [inst.join("../converted/planes"), PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../game/extra/planes")];
     let path = dirs.iter().map(|d| d.join(model).join("aircraft.json")).find(|p| p.is_file()).expect("aircraft.json");

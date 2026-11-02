@@ -69,6 +69,9 @@ pub const TYPES: &[Type] = &[
     // Ours: the F-16I Sufa, type 100 with the Extras switch "F-16" on Sufa (docs/f16i.md). No 1998 data: it always
     // flies its Real row, on the F-16's section.
     ty("F-16I", "f16i", "F-16", 100),
+    // Ours: the F-15I Ra'am, type 110 with the Extras switch "F-15 version" on Ra'am (docs/f15i.md). No 1998 data: it
+    // always flies its Real row, on the F-15's section.
+    ty("F-15I", "f15i", "F-15", 110),
     ty("MIRAGE", "mirage", "MIRAGE", 190),
     ty("MIG21", "mig21", "MIG21", 150),
     ty("MIG23", "mig23", "MIG23", 160),
@@ -85,7 +88,7 @@ pub const TYPES: &[Type] = &[
 ];
 
 /// Types the original never had: no Original data, so they always fly their Real row.
-const NO_ORIGINAL: &[&str] = &["F-35I", "F-16I"];
+const NO_ORIGINAL: &[&str] = &["F-35I", "F-16I", "F-15I"];
 
 /// The data set a type flies with: `set`, except that a type without original data always takes Real.
 pub fn effective(set: DataSet, name: &str) -> DataSet {
@@ -96,7 +99,8 @@ pub fn effective(set: DataSet, name: &str) -> DataSet {
 }
 
 /// The type a mission's `name` flies as with the Extras switches `s`: its aircraft definition's `fm`
-/// ([`crate::airframe`]; the F-16I for an F-16 on Sufa, docs/f16i.md), else `name` itself.
+/// ([`crate::airframe`]; the F-16I for an F-16 on Sufa, docs/f16i.md; the F-15I for an F-15 on Ra'am, docs/f15i.md),
+/// else `name` itself.
 pub fn variant<'a>(name: &'a str, s: crate::airframe::Switches) -> &'a str {
     find_type(name)
         .and_then(|t| crate::airframe::of_type(t.type_code.into(), s))
@@ -434,6 +438,44 @@ const REAL: &[Real] = &[
         nose_wheel: Some(Nws { angle_deg: 32.0, wheelbase_ft: 13.2, grip_g: 0.3 }),
         // Block 50/52 "above 50,000 ft" as every F-16 (USAF fact sheet); 52,490 ft for the F-16I is secondary.
         ceiling_ft: Some(50_000.0),
+        ..NONE
+    },
+    // F-15I Ra'am (two-seat F-15E derivative, 2 x F100-PW-229, conformal fuel tanks), docs/f15i.md §1. The F-15I's own
+    // figures where a source gives them; else the F-15E's (TO 1F-15E-1, the USAF fact sheet: the user's decision of
+    // 2026-11-02, labelled "F-15E"); else the F-15C row's, open. Starts from the original's F-15 section like the
+    // F-16I, so it repeats the F-15C row's fields it keeps.
+    Real {
+        aircraft: "F-15I",
+        base: Some("F-15"),
+        // Not set, as on the F-15C row: the roll rate and g limits stay the original F-15 section's (the F-15I's roll
+        // rate and the OWS weight curve are open).
+        // F-15E: operating weight with CFTs 37,000 lb (TO 1F-15E-1, crew included, to the nearest 500 lb).
+        empty_lb: 37_000.0,
+        // F-15E: 12,915 lb internal (Wikipedia, citing the TO) + 2 x 4,875 lb in the CFTs (TO p. A9-4), one pool.
+        fuel_lb: Some(22_665.0),
+        // F-15E: 81,000 lb for flight, ground and landing (TO 1F-15E-1, USAF fact sheet).
+        max_lb: Some(81_000.0),
+        // F-15I's own engines: 2 x F100-PW-229, 29,160 lbf with afterburner, 17,800 lbf military each (Pratt & Whitney).
+        thrust: Thrust::StaticAb(58_320.0),
+        mil_ratio: Some(17_800.0 / 29_160.0),
+        // The F-15C row's altitude lapse: the -229's lapse is open.
+        alt_thrust: Some(2.4),
+        // Subsonic drag: the F-15C row's (open: the CFTs' drag index, TO fig. A1-1, is not legible in the public scan).
+        cd0: Some(0.040),
+        // Fit: Mach 2.00 at 40k ft, the F-15E's "Mach 2.0 at high altitude" with CFTs (Wikipedia note, secondary). The
+        // F-15C row's 0.016 gave Mach 2.39 there and 1.36 at SL. The note's 700 kt at low altitude is not fitted: no
+        // drag that keeps Mach 2.0 high gives it (Mach 1.16 at SL here); a limit, as the F-15C row's 800 KCAS (inferred).
+        wave_drag: 0.04,
+        // F100-PW-229: TSFC 1.94 with AB, 0.76 military → 2 x ~56,550 lb/h and 2 x ~13,500 lb/h (inferred).
+        ff_ab_lb_s: Some(113_100.0 / 3600.0),
+        ff_mil_lb_h: Some(27_000.0),
+        // The F-15C row's 130 kt at its full fuel (41,931 lb) scaled to 59,665 lb on the same 608 ft² wing:
+        // 130 · √(59,665 / 41,931) (inferred; the TO's stall charts are open).
+        stall_kt: Some(155.0),
+        // As the F-15C row (open: the F-15E's nose gear).
+        nose_wheel: Some(Nws { angle_deg: 45.0, wheelbase_ft: 17.78, grip_g: 0.3 }),
+        // F-15E: service ceiling 60,000 ft (USAF fact sheet).
+        ceiling_ft: Some(60_000.0),
         ..NONE
     },
     // --- AI types (docs/real-aircraft.md §9). No public roll rate was found for any of them: the
@@ -852,6 +894,21 @@ mod tests {
         assert_eq!(find_type("F-16I").map(|t| t.type_code), Some(100));
         // The type code finds the Barak first (mission_sanity).
         assert_eq!(TYPES.iter().find(|t| t.type_code == 100).map(|t| t.name), Some("F-16"));
+    }
+
+    #[test]
+    fn raam_is_the_f15_with_the_switch() {
+        use crate::airframe::Switches;
+        let (raam, baz) = (Switches { f16: "barak", f15: "raam" }, Switches { f16: "barak", f15: "baz" });
+        assert_eq!(variant("F-15", raam), "F-15I");
+        assert_eq!(variant("f15", raam), "F-15I");
+        assert_eq!(variant("F-15", baz), "F-15");
+        assert_eq!(variant("F-16", raam), "F-16");
+        assert_eq!(effective(DataSet::Original, "F-15I"), DataSet::Real);
+        assert_eq!(section(DataSet::Real, "F-15I"), "F-15");
+        assert_eq!(find_type("F-15I").map(|t| t.type_code), Some(110));
+        // The type code finds the Baz first (mission_sanity).
+        assert_eq!(TYPES.iter().find(|t| t.type_code == 110).map(|t| t.name), Some("F-15"));
     }
 
     #[test]

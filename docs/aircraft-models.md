@@ -623,8 +623,8 @@ wheels flat), so a leg in transit takes a simpler path. `util/gltf.gd` maps `f15
 ### 6.7 The F-15I Ra'am
 
 The Extras switch **F-15 version** (Baz (F-15C) / Ra'am (F-15I)) draws every F-15 as the IAF's two-seat strike
-Eagle, whatever Models says, when setup made `assets/converted/models/f15/f15i.glb`. It changes the look only: the
-flight data, weapons, radar and cockpit stay the F-15C's (deviations.md §2). Setup's `models` step makes it from
+Eagle, whatever Models says, when setup made `assets/converted/models/f15/f15i.glb`. The switch also changes the
+flight data, radar, gun and weapons ([f15i.md](f15i.md)); the cockpit stays the F-15C's. Setup's `models` step makes it from
 the same FlightGear files as the F-15C plus two (`livery.IAF.jpg`, `f15-interior-back.ac`), with
 `f15::build(…, raam = true)`:
 
@@ -633,11 +633,20 @@ the same FlightGear files as the F-15C plus two (`livery.IAF.jpg`, `f15-interior
 | source | the Zaretto F-15 above (§6), GPL-2.0-only, the F-15D / F-15E parts of the same `f15c.ac` |
 | triangles | 60 400 (the F-15C's 42 400 with the two-seat canopy, conformal tanks and their pylons, the rear cockpit and a second pilot) |
 | file size | 4.1 MB |
-| livery | FlightGear's "IAF 235-69 SQ HAMMERS" as it comes: 69 Squadron's three-tone desert camouflage over light grey, tail number 269 on the fins and the nose, the eagle's head on the outer fins, IAF roundels on the nose and wings |
+| livery | FlightGear's "IAF 235-69 SQ HAMMERS": 69 Squadron's three-tone desert camouflage over light grey, tail number 269 on the fins and the nose, the eagle's head on the outer fins, IAF roundels on the nose and wings; the inner fins' black bands painted out and the nose numbers recoloured blue, as photos of 227, 232 and 259 show (`f15::livery_i`, f15i.md §7) |
 | crew | two pilots on ACES II seats, front and rear cockpit tubs (the rear one at f15c.xml's "Backseater" offset) |
 
 Everything else is the F-15C's conversion (§6.1): the same scale (0.982), helpers, hinges, gear doors, pylons and
 afterburners. The conformal tanks' pylons stay empty: the game hangs the F-15's stores on the original's stations.
+
+**Arming art.** The same build renders the jet's front view for the Arming screen (`f15::arm_front`, beside the model:
+`f15i_arm.png` and its station points `f15i_arm.json`). It is the Sufa's way (`tools/plane/kit.py`
+`arm_front_view`, f16i.md §8.1) done in Rust without Blender, as the model may not ship: orthographic from the
+front, gear down, the glass left out, Lambert-shaded from the upper left, mapped to the arming greens, at 2 × 2
+samples a pixel; mirrored as the originals (station A on the left); the wingtips 427 menu px apart at height 146,
+as on the original `f-15.png`. The `models` step then composes `arm/jets/x_f15i.png` in each menu set from it with
+`game/extra/planes/f15i/arm/arm.json` (`iaf-convert arm-extra`; the F-15's boxes, `base_art` f-15); the `arm` step
+leaves it to that step.
 
 The real F-15I[^raam-side][^raam-front][^raam-rear]: two seats under one canopy, conformal fuel tanks with tangential
 pylons, F100-PW-229 engines, a desert camouflage of sand, tan and green over light grey, and an eagle's head on the
@@ -647,8 +656,7 @@ outer fins. What differs on ours (open):
 - FlightGear's livery is a fan's painting: its camouflage pattern and the wing roundels' places are not checked
   against a photo of 269;
 - the rear cockpit's instrument panel is dark grey (its textures are SGI `.rgb` files, as the front's);
-- the cockpit view, the HUD and the flight model stay the F-15C's; the F-15I's own (flight data, weapons, the
-  rear seat) are open.
+- the cockpit view and the HUD stay the F-15C's; the rear seat's cockpit view is open.
 
 ## 7. The detailed MiG-29
 

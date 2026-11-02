@@ -120,6 +120,11 @@ pub const SOURCE: &[Download] = &[
     },
 ];
 
+/// The F-15I's arming art (its front view) and its stations' points, next to [`OUTPUT_I`]: made on the player's
+/// machine, as the model ([`arm_front`]); `iaf-convert arm-extra` composes them with game/extra/planes/f15i/arm.
+pub const ARM_FRONT: &str = "f15i_arm.png";
+pub const ARM_POINTS: &str = "f15i_arm.json";
+
 /// The game's file, under `assets/`.
 pub const OUTPUT: &str = "converted/models/f15/f15c.glb";
 /// The F-15I Ra'am's (Extras "F-15 version" on Ra'am), under `assets/`.
@@ -698,7 +703,17 @@ pub fn build(src: &Path, orig: &Path, out: &Path, raam: bool) -> Result<Stats> {
 
     let body = Node { name: "f15".into(), at: [0.0; 3], tris: all.into_iter().flat_map(|p| p.tris).collect() };
     let triangles = body.tris.len() + nodes.iter().map(|n| n.tris.len()).sum::<usize>();
-    let livery = if raam { image::open(src.join("livery.IAF.jpg"))?.to_rgba8() } else { livery(src, &skin)? };
+    if raam {
+        let tris: Vec<&Tri> =
+            body.tris.iter().chain(nodes.iter().filter(|n| n.name != "LdgDrUp").flat_map(|n| &n.tris)).collect();
+        let (front, points) = arm_front(&tris, &helpers);
+        let dir = out.parent().context("no output folder")?;
+        std::fs::create_dir_all(dir)?;
+        front.save(dir.join(ARM_FRONT))?;
+        let points: Vec<Value> = points.iter().map(|p| json!([p[0], p[1]])).collect();
+        std::fs::write(dir.join(ARM_POINTS), serde_json::to_vec_pretty(&json!({ "points": points }))?)?;
+    }
+    let livery = if raam { livery_i(src)? } else { livery(src, &skin)? };
     let mut jpg = Vec::new();
     image::DynamicImage::ImageRgba8(livery)
         .to_rgb8()
@@ -728,6 +743,98 @@ pub fn build(src: &Path, orig: &Path, out: &Path, raam: bool) -> Result<Stats> {
     Ok(Stats { triangles, bytes: glb.len(), scale: s })
 }
 
+/// The arming art's size (menu px; the converted art is ×4) and the original F-15 art's jet: its wingtips 427 menu px
+/// apart at height 146, centred (measured on f-15.png).
+const ARM_SIZE: (u32, u32) = (454, 357);
+const ARM_ART: u32 = 4;
+const ARM_SPAN_PX: f32 = 427.0;
+const ARM_WING: (f32, f32) = (227.0, 146.0);
+/// The arming art's greens, dark to light (tools/plane/kit.py ARM_DARK, ARM_LIGHT).
+const ARM_DARK: [f32; 3] = [0.03, 0.08, 0.02];
+const ARM_LIGHT: [f32; 3] = [0.42, 0.7, 0.36];
+
+/// The jet's front view in the arming art's greens (as tools/plane/kit.py `arm_front_view` renders the Sufa's in
+/// Blender): orthographic, gear down, glass left out, Lambert-shaded from the upper left, at 2 × 2 samples a pixel,
+/// transparent round it; station A (the left wing) on the image's left as the original art. Also each Station*
+/// helper's point in menu px, A..I (where the leader lines end).
+fn arm_front(tris: &[&Tri], helpers: &[(String, V)]) -> (RgbaImage, Vec<[f64; 2]>) {
+    const SS: u32 = 2;
+    let (w, h) = (ARM_SIZE.0 * ARM_ART * SS, ARM_SIZE.1 * ARM_ART * SS);
+    // The wingtips: the jet's x extremes, their height the wing's.
+    let vs = || tris.iter().flat_map(|t| t.1);
+    let tip = vs().fold([f32::MAX, 0.0, 0.0], |m, v| if v[0] < m[0] { v } else { m });
+    let right = vs().map(|v| v[0]).fold(f32::MIN, f32::max);
+    let ppm = ARM_SPAN_PX / (right - tip[0]);
+    let menu = |v: V| [ARM_WING.0 + (v[0] - (tip[0] + right) / 2.0) * ppm, ARM_WING.1 - (v[1] - tip[1]) * ppm];
+    let px = |v: V| {
+        let m = menu(v);
+        [m[0] * (ARM_ART * SS) as f32, m[1] * (ARM_ART * SS) as f32]
+    };
+    let light = norm([-0.6, 0.5, -0.6]);
+    let mut depth = vec![f32::MAX; (w * h) as usize];
+    let mut lum = vec![-1.0f32; (w * h) as usize];
+    for t in tris.iter().filter(|t| t.0.rgba[3] >= 200) {
+        let p = t.1.map(px);
+        let area = (p[1][0] - p[0][0]) * (p[2][1] - p[0][1]) - (p[2][0] - p[0][0]) * (p[1][1] - p[0][1]);
+        if area.abs() < 1e-6 {
+            continue;
+        }
+        let (x0, x1) =
+            (p.iter().map(|q| q[0]).fold(f32::MAX, f32::min), p.iter().map(|q| q[0]).fold(f32::MIN, f32::max));
+        let (y0, y1) =
+            (p.iter().map(|q| q[1]).fold(f32::MAX, f32::min), p.iter().map(|q| q[1]).fold(f32::MIN, f32::max));
+        for y in (y0.floor().max(0.0) as u32)..=(y1.ceil().min(h as f32 - 1.0).max(0.0) as u32) {
+            for x in (x0.floor().max(0.0) as u32)..=(x1.ceil().min(w as f32 - 1.0).max(0.0) as u32) {
+                let (cx, cy) = (x as f32 + 0.5, y as f32 + 0.5);
+                let e = |a: [f32; 2], b: [f32; 2]| ((b[0] - a[0]) * (cy - a[1]) - (cx - a[0]) * (b[1] - a[1])) / area;
+                let b = [e(p[1], p[2]), e(p[2], p[0]), e(p[0], p[1])];
+                if b.iter().any(|&k| k < 0.0) {
+                    continue;
+                }
+                // Nearer: further forward (the nose is at −z).
+                let z = b[0] * t.1[0][2] + b[1] * t.1[1][2] + b[2] * t.1[2][2];
+                let i = (y * w + x) as usize;
+                if z >= depth[i] {
+                    continue;
+                }
+                depth[i] = z;
+                let mut n = norm((0..3).fold([0.0; 3], |n, k| add(n, scale(t.2[k], b[k]))));
+                if n[2] > 0.0 {
+                    n = scale(n, -1.0); // the side facing the viewer
+                }
+                lum[i] = 0.12 + 0.95 * dot(n, light).max(0.0);
+            }
+        }
+    }
+    let (ow, oh) = (w / SS, h / SS);
+    let mut img = RgbaImage::new(ow, oh);
+    for (x, y, out) in img.enumerate_pixels_mut() {
+        let (mut sum, mut n) = (0.0, 0.0);
+        for k in 0..SS * SS {
+            let l = lum[((y * SS + k / SS) * w + x * SS + k % SS) as usize];
+            if l >= 0.0 {
+                sum += l;
+                n += 1.0;
+            }
+        }
+        if n > 0.0 {
+            let l = (sum / n).clamp(0.0, 1.0).powf(1.1);
+            let c = [0, 1, 2].map(|k| ((ARM_DARK[k] * (1.0 - l) + ARM_LIGHT[k] * l) * 255.0).round() as u8);
+            *out = Rgba([c[0], c[1], c[2], (n / (SS * SS) as f32 * 255.0).round() as u8]);
+        }
+    }
+    let points = ('A'..='I')
+        .map(|c| {
+            let name = format!("Station{c}");
+            helpers
+                .iter()
+                .find(|h| h.0 == name)
+                .map_or([0.0, 0.0], |h| menu(h.1).map(|v| (v as f64 * 10.0).round() / 10.0))
+        })
+        .collect();
+    (img, points)
+}
+
 /// The grey livery's US markings painted out (x0, y0, x1, y1): the squadron bands at the fin tips, the tail codes
 /// and the fin flash.
 const ERASE: &[[u32; 4]] = &[
@@ -741,63 +848,106 @@ const ERASE: &[[u32; 4]] = &[
 /// The USAF crests on the fuselage sides painted out: centre, radius.
 const CRESTS: &[([u32; 2], u32)] = &[([1869, 1545], 40), ([916, 1714], 40)];
 
+/// The livery's background (its unpainted white).
+fn blank(p: &Rgba<u8>) -> bool {
+    p[0] > 235 && p[1] > 235 && p[2] > 235
+}
+
+/// Paints a region of a 2048² livery out: each of its pixels `inside` (x0..=x1, y0..=y1) the mean of its neighbours
+/// (background left out), repeated until it settles (a membrane over the colours round it: no streaks, no text).
+fn erase(img: &mut RgbaImage, inside: &dyn Fn(u32, u32) -> bool, [x0, y0, x1, y1]: [u32; 4]) {
+    // The region and a pixel round it: (a hole pixel, its colour or None for background).
+    let (gx, gy) = (x0.saturating_sub(1), y0.saturating_sub(1));
+    let (w, h) = ((x1 + 2).min(2048) - gx, (y1 + 2).min(2048) - gy);
+    let mut cells: Vec<(bool, Option<[f32; 3]>)> = (0..w * h)
+        .map(|i| {
+            let (x, y) = (gx + i % w, gy + i / w);
+            let p = img.get_pixel(x, y);
+            let hole = (x0..=x1).contains(&x) && (y0..=y1).contains(&y) && inside(x, y);
+            (hole, (!blank(p)).then(|| [p[0] as f32, p[1] as f32, p[2] as f32]))
+        })
+        .collect();
+    // Starting from the mean colour round it.
+    let rim: Vec<[f32; 3]> = cells.iter().filter(|c| !c.0).filter_map(|c| c.1).collect();
+    let start = if rim.is_empty() {
+        [128.0; 3]
+    } else {
+        scale(rim.iter().fold([0.0; 3], |a, c| add(a, *c)), 1.0 / rim.len() as f32)
+    };
+    for c in cells.iter_mut().filter(|c| c.0) {
+        c.1 = Some(start);
+    }
+    for _ in 0..400 {
+        for i in 0..cells.len() {
+            let (x, y) = (i as u32 % w, i as u32 / w);
+            if !cells[i].0 || x == 0 || y == 0 || x == w - 1 || y == h - 1 {
+                continue;
+            }
+            let around = [i - 1, i + 1, i - w as usize, i + w as usize];
+            let near: Vec<[f32; 3]> = around.iter().filter_map(|&j| cells[j].1).collect();
+            if !near.is_empty() {
+                cells[i].1 = Some(scale(near.iter().fold([0.0; 3], |a, c| add(a, *c)), 1.0 / near.len() as f32));
+            }
+        }
+    }
+    for (i, c) in cells.iter().enumerate() {
+        if let (true, Some(c)) = c {
+            let (x, y) = (gx + i as u32 % w, gy + i as u32 / w);
+            img.put_pixel(x, y, Rgba([c[0].round() as u8, c[1].round() as u8, c[2].round() as u8, 255]));
+        }
+    }
+}
+
+/// FlightGear's IAF livery with the black band and white eagle's head at the top of each fin's inner face painted
+/// out: the inner faces of 259, 227 and 232 show the camouflage up to the tip (docs/f15i.md §7).
+const ERASE_I: &[[u32; 4]] = &[[1580, 374, 1712, 418], [1440, 683, 1612, 729]];
+
+/// The nose numbers ("269" on each side), dark grey in the livery; dark blue on the jets (232, 227 and 259:
+/// docs/f15i.md §7), [`NOSE_BLUE`] as measured on 232's (sRGB; the digits' mean with their edges, evening light).
+const NOSE_NUMBERS: &[[u32; 4]] = &[[870, 1958, 934, 1992], [1100, 1958, 1160, 1994]];
+const NOSE_BLUE: [f32; 3] = [52.0, 80.0, 102.0];
+
+/// The F-15I's livery: FlightGear's "IAF 235-69 SQ HAMMERS" with [`ERASE_I`] painted out and the nose numbers in
+/// blue: each pixel of a number's box as far from the box's grey towards [`NOSE_BLUE`] as it is darker than the grey.
+fn livery_i(src: &Path) -> Result<RgbaImage> {
+    let mut img = image::open(src.join("livery.IAF.jpg"))?.to_rgba8();
+    ensure!(img.dimensions() == (2048, 2048), "livery.IAF.jpg: unexpected size");
+    for r in ERASE_I {
+        erase(&mut img, &|_, _| true, *r);
+    }
+    let lum = |p: &Rgba<u8>| (p[0] as f32 + p[1] as f32 + p[2] as f32) / 3.0;
+    for &[x0, y0, x1, y1] in NOSE_NUMBERS {
+        let px: Vec<(u32, u32)> = (y0..=y1).flat_map(|y| (x0..=x1).map(move |x| (x, y))).collect();
+        let top = px.iter().map(|&(x, y)| lum(img.get_pixel(x, y))).fold(0.0, f32::max);
+        let bg: Vec<V> = px
+            .iter()
+            .map(|&(x, y)| img.get_pixel(x, y))
+            .filter(|p| lum(p) > top - 25.0)
+            .map(|p| [p[0] as f32, p[1] as f32, p[2] as f32])
+            .collect();
+        let grey = scale(bg.iter().fold([0.0; 3], |a, c| add(a, *c)), 1.0 / bg.len().max(1) as f32);
+        let (g, ink) = ((grey[0] + grey[1] + grey[2]) / 3.0, 60.0);
+        for (x, y) in px {
+            let t = ((g - lum(img.get_pixel(x, y))) / (g - ink)).clamp(0.0, 1.0);
+            let c = add(scale(grey, 1.0 - t), scale(NOSE_BLUE, t));
+            img.put_pixel(x, y, Rgba([c[0].round() as u8, c[1].round() as u8, c[2].round() as u8, 255]));
+        }
+    }
+    Ok(img)
+}
+
 /// The grey F-15C livery as F-15C 802 (see [`build`]): `skin`, the livery's triangles (our frame, unscaled).
 fn livery(src: &Path, skin: &[Skin]) -> Result<RgbaImage> {
     let mut grey = image::open(src.join("livery.AF80-0007.jpg"))?.to_rgba8();
     ensure!(grey.dimensions() == (2048, 2048), "livery.AF80-0007.jpg: unexpected size");
-    let blank = |p: &Rgba<u8>| p[0] > 235 && p[1] > 235 && p[2] > 235;
-    // Paints a region out: each of its pixels (background left out) the mean of its neighbours, repeated until it
-    // settles (a membrane over the colours round it: no streaks, no text).
-    let erase = |img: &mut RgbaImage, inside: &dyn Fn(u32, u32) -> bool, x0: u32, y0: u32, x1: u32, y1: u32| {
-        // The region and a pixel round it: (a hole pixel, its colour or None for background).
-        let (gx, gy) = (x0.saturating_sub(1), y0.saturating_sub(1));
-        let (w, h) = ((x1 + 2).min(2048) - gx, (y1 + 2).min(2048) - gy);
-        let mut cells: Vec<(bool, Option<[f32; 3]>)> = (0..w * h)
-            .map(|i| {
-                let (x, y) = (gx + i % w, gy + i / w);
-                let p = img.get_pixel(x, y);
-                let hole = (x0..=x1).contains(&x) && (y0..=y1).contains(&y) && inside(x, y);
-                (hole, (!blank(p)).then(|| [p[0] as f32, p[1] as f32, p[2] as f32]))
-            })
-            .collect();
-        // Starting from the mean colour round it.
-        let rim: Vec<[f32; 3]> = cells.iter().filter(|c| !c.0).filter_map(|c| c.1).collect();
-        let start = if rim.is_empty() {
-            [128.0; 3]
-        } else {
-            scale(rim.iter().fold([0.0; 3], |a, c| add(a, *c)), 1.0 / rim.len() as f32)
-        };
-        for c in cells.iter_mut().filter(|c| c.0) {
-            c.1 = Some(start);
-        }
-        for _ in 0..400 {
-            for i in 0..cells.len() {
-                let (x, y) = (i as u32 % w, i as u32 / w);
-                if !cells[i].0 || x == 0 || y == 0 || x == w - 1 || y == h - 1 {
-                    continue;
-                }
-                let around = [i - 1, i + 1, i - w as usize, i + w as usize];
-                let near: Vec<[f32; 3]> = around.iter().filter_map(|&j| cells[j].1).collect();
-                if !near.is_empty() {
-                    cells[i].1 = Some(scale(near.iter().fold([0.0; 3], |a, c| add(a, *c)), 1.0 / near.len() as f32));
-                }
-            }
-        }
-        for (i, c) in cells.iter().enumerate() {
-            if let (true, Some(c)) = c {
-                let (x, y) = (gx + i as u32 % w, gy + i as u32 / w);
-                img.put_pixel(x, y, Rgba([c[0].round() as u8, c[1].round() as u8, c[2].round() as u8, 255]));
-            }
-        }
-    };
     for r in ERASE {
         let keep = grey.clone();
-        erase(&mut grey, &|x, y| !blank(keep.get_pixel(x, y)), r[0], r[1], r[2], r[3]);
+        erase(&mut grey, &|x, y| !blank(keep.get_pixel(x, y)), *r);
     }
     for (c, r) in CRESTS {
         let (cx, cy, r) = (c[0] as i64, c[1] as i64, *r as i64);
         let inside = |x: u32, y: u32| (x as i64 - cx).pow(2) + (y as i64 - cy).pow(2) <= r * r;
-        erase(&mut grey, &inside, (cx - r) as u32, (cy - r) as u32, (cx + r) as u32, (cy + r) as u32);
+        erase(&mut grey, &inside, [(cx - r) as u32, (cy - r) as u32, (cx + r) as u32, (cy + r) as u32]);
     }
     tint(&mut grey);
     paint(&mut grey, skin)?;
@@ -1240,6 +1390,19 @@ mod tests {
             assert!(glb.starts_with(b"glTF") && glb.len() == st.bytes);
             assert!((30_000..70_000).contains(&st.triangles), "raam {raam}: {} triangles", st.triangles);
             assert!((st.scale - 1.0).abs() < 0.05, "scale {}", st.scale);
+        }
+        // The Ra'am's arming art beside it: the art's size, its nine stations inside the art.
+        let dir = out.parent().unwrap();
+        let front = image::open(dir.join(ARM_FRONT)).unwrap();
+        let pts: Value = serde_json::from_slice(&std::fs::read(dir.join(ARM_POINTS)).unwrap()).unwrap();
+        std::fs::remove_file(dir.join(ARM_FRONT)).unwrap();
+        std::fs::remove_file(dir.join(ARM_POINTS)).unwrap();
+        assert_eq!((front.width(), front.height()), (ARM_SIZE.0 * ARM_ART, ARM_SIZE.1 * ARM_ART));
+        let pts = pts["points"].as_array().unwrap();
+        assert_eq!(pts.len(), 9);
+        for p in pts {
+            let (x, y) = (p[0].as_f64().unwrap(), p[1].as_f64().unwrap());
+            assert!((1.0..453.0).contains(&x) && (100.0..250.0).contains(&y), "station point {p}");
         }
     }
 }

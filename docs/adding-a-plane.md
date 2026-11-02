@@ -52,7 +52,7 @@ the §1 type-code tables stay for the 1998 jets.
 | `f16` | F-16D Barak, the 1998 F-16 (type 100) | — | the F-16 family's base: `original_model`, `cockpit_3d`, `hud_3d` |
 | `f16i` | F-16I Sufa | `f16` | Jet list name, flight-model type, model, radar, stations, Arming art, guide, TSD label, 3D HUD, MFD colours |
 | `f15` | F-15C Baz, the 1998 F-15 (type 110) | — | the F-15 family's base: `original_model` |
-| `f15i` | F-15I Ra'am | `f15` | its model only (it flies on the F-15C's data, radar and weapons) |
+| `f15i` | F-15I Ra'am | `f15` | Jet list name, flight-model type, model, radar range, gun rounds, stations, Arming art, guide, TSD label, info tag |
 | `f35i` | F-35I Adir | — | Jet list name, cockpit, 3D cockpit, HUD, voice, radar, gun, built-in FLIR, stations, Arming art, `flyable` |
 
 **How the game reads a definition**
@@ -350,6 +350,8 @@ Options:
   - `game/extra/planes/<plane>/arm/front.png`: its front view in the arming greens (`tools/plane/kit.py`
     `arm_front_view`, mirrored like the originals: station A on the image's left) and `arm.json` (base / max lb,
     `boxes` = a base jet's station boxes, `points` = the stations on the front view, `title`, `base_art`);
+  - a front view setup must make on the user's machine (a model that may not ship: the F-15I's, aircraft-models.md
+    §6.7) is `arm.json`'s `front`, a path under `converted/` with its `points` in the `.json` beside it;
   - `iaf-convert arm-extra <converted menu>/img <arm dir> <out png>` (run by `tools/setup-cli.sh`) composes the screen
     on the user's machine: the background from the original jets' images (a low percentile per pixel outvotes
     each jet and its lines), the base jet's boxes and bottom band, our front view and leader lines;

@@ -1,0 +1,254 @@
+[
+ {
+  "name": "external",
+  "caption": "The F-15I Ra'am: the two-seat canopy, the conformal fuel tanks, Python 5s and GBU-31(V)3s",
+  "mission": 231,
+  "jet": 0,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f15_variant": "raam"
+  },
+  "start": "airborne",
+  "loadout": [
+   [
+    1002,
+    2
+   ],
+   [
+    1004,
+    1
+   ],
+   [
+    1004,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1004,
+    1
+   ],
+   [
+    1004,
+    1
+   ],
+   [
+    1002,
+    2
+   ]
+  ],
+  "actions": [
+   "key:B",
+   "key:F10",
+   "wait:1"
+  ],
+  "view": "external",
+  "crop": "full",
+  "camera": [
+   -26,
+   9,
+   8
+  ]
+ },
+ {
+  "name": "hud_jdam",
+  "caption": "A GBU-31(V)3 in PRE 18 km from its target: the LAR staple and the time to max range",
+  "mission": 231,
+  "jet": 0,
+  "start": "dive",
+  "loadout": [
+   [
+    0,
+    0
+   ],
+   [
+    1004,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1004,
+    1
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "crop": "hud",
+  "dive_deg": 8.5,
+  "dive_agl": 3000,
+  "speed": 250,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f15_variant": "raam"
+  },
+  "place": {
+   "ground_unit": true,
+   "ahead_m": 18000,
+   "bearing_deg": 4
+  },
+  "actions": [
+   "ag:1",
+   "pre",
+   "wait:1"
+  ],
+  "crop_w": 0.34,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "gps_at",
+    "label_at": [
+     0.56,
+     0.47
+    ]
+   },
+   {
+    "n": 2,
+    "px": [
+     0.597,
+     0.552
+    ],
+    "label_at": [
+     0.52,
+     0.69
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "fpm",
+    "label_at": [
+     0.43,
+     0.3
+    ]
+   },
+   {
+    "n": 4,
+    "px": [
+     0.6636,
+     0.454
+    ],
+    "label_at": [
+     0.8,
+     0.47
+    ]
+   },
+   {
+    "n": 5,
+    "px": [
+     0.653,
+     0.328
+    ],
+    "label_at": [
+     0.62,
+     0.3
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^TMR",
+    "label_at": [
+     0.5,
+     0.58
+    ]
+   },
+   {
+    "n": 7,
+    "sym": "text:^PRE$",
+    "label_at": [
+     0.2,
+     0.64
+    ]
+   }
+  ]
+ }
+]

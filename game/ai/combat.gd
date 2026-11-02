@@ -340,8 +340,9 @@ static func _weapon(ent: Dictionary, obj: Dictionary, db) -> Dictionary:
 	return {}
 
 
-## Sensor range in nm by type code (FUN_004acae0, × 1854 m). Ours: an F-16I Sufa's APG-68(V)9 sees 30 % further
-## (docs/f16i.md §2): its aircraft definition's radar.ai_nm, 52 NM.
+## Sensor range in nm by type code (FUN_004acae0, × 1854 m). Ours: an aircraft definition's radar.ai_nm: an F-16I
+## Sufa's APG-68(V)9 sees 30 % further (docs/f16i.md §2), 52 NM; an F-15I Ra'am's APG-70I 104 / 135 of the F-15's
+## Real range (docs/f15i.md §2), 30.8 NM.
 static func sensor_nm(type: int) -> float:
 	var own = Settings.airframe(type).get("radar", {}).get("ai_nm")
 	if own != null:

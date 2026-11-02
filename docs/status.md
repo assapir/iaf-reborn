@@ -22,7 +22,9 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (radar.md).
   - Left: the 7 multiplayer missions (511–516, 777). 666 flies in single player as the Mission Creator's mission.
 - **Flyable jets:** the Jet list's seven — F-15, F-16, F-4E, F-4 Kurnass 2000, Lavi, Kfir, Mirage (the Jet list or a
   mission's jet; aircraft.md §5); the MiG-23 / MiG-29 with their own cockpits wherever a mission puts the player in
-  one (the Mission Creator does; no campaign mission does); our F-35I in one jet's slot (Extras, f35i.md); every F-16
+  one (the Mission Creator does; no campaign mission does); our F-35I in one jet's slot (Extras, f35i.md); every F-15
+  as the F-15I Ra'am (Extras "F-15 version", f15i.md: flight data, radar, gun, Python 5 and GBU-31(V)3, arming art,
+  its pilot guide guides/f15i.md); every F-16
   as the F-16I Sufa (Extras "F-16 version", f16i.md: flight data, radar, the TSD name, its model (painted as F-16I 846 of 201 Squadron, its right side copied from 2025 photos; its left side and top open) and arming art, and
   the new weapons AIM-9X, Python 5, JDAMs and GBU-39, weapons.md §13; the GPS bombs' PRE targets set on the briefing
   TSD per station or per bomb of a GBU-39 rack and VIS designations, keys K / Shift+K, the JDAM cues on the F-16, F-15 and F-35I Real HUDs, the released bomb's `TTI m:ss` countdown (those Real HUDs and the original-style HUD); open: the impact
@@ -131,8 +133,11 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
   `hud_ccip_designated` (guides/f16.md §11). Changed since: the F-15's and Lavi's Real HUD ILS (the flight director /
   the needles in place of the original's lines) and the Lavi's NAV bank scale: their `landing_final` and NAV pictures
   (guides/f15.md §11, guides/lavi.md §3 / §11).
-- **F-15I Ra'am** (Extras "F-15 version"): its look only; it flies on the F-15C's data, radar and weapons. The
-  research for the rest (flight data, APG-70I, weapons, helmet, EW, voice) is in f15i.md, with its build order (§10).
+- **F-15I Ra'am** (Extras "F-15 version", f15i.md §11): built: the flight row (F-15E figures where the F-15I has
+  none), the APG-70I's 104 km and the AI's 30.8 NM, the F-15E's 500 rounds, the Python 5 and GBU-31(V)3, its own
+  Arming art, the TSD / info line / Jet list names, the livery fixes, the pilot guide guides/f15i.md. Open: the
+  GBU-28 and SPICE 1000 records, the CFTs' drag and the stall speeds (TO figures not legible), the -229's thrust
+  lapse and spool, the F-15E HUD and displays, the rear seat, the missile-approach cue, IFF.
 - **World scale Real 1:1**: the real blast radii of the missiles / SAMs without a published lethal radius.
 - **Setup wizard**: the pages wait for the user's review (roadmap.md).
 - **Flight start**: with TAA the loading screen stops for ≈ 1.2 s (warm) while Godot loads the motion-vector shaders
