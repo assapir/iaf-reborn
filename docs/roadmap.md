@@ -21,6 +21,7 @@ situation display (map).
 Graphics options (models, cockpit, DEM, water, effects, vegetation, lighting, upscaling), with measured costs and a
 ranked order: [graphics-research.md](graphics-research.md).
 
+- **IAF 2026** (decided 2026-11-02): the independent sim, its plan and decisions: ../iaf-2026/docs/plan.md
 - **Iran theatre** (wishlist, user 2026-10-20): a second map east of the original's, for modern long-range strikes.
   The 1998 world is one fixed theatre (Israel and its neighbours); Iran is far outside it, so this means new terrain,
   imagery, bases and units (large).
