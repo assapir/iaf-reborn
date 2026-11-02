@@ -1137,7 +1137,8 @@ F-16, the GPU bench lock held), `BENCH_SET=cockpit_3d=3d` against the 2D panel, 
 - **Lamps and displays** (added after the table, 2026-11-01): the 15 lamps, the AoA tape and the 3 displays are
   nodes of their own (about 20 more surfaces). The displays' SubViewports (RWR scope and EHSI 256 px, DED 384 × 128
   px: 0.7 MB) take 0.02, 0.03 and 0.03 ms of GPU time a frame on the Iris Xe (`RenderingServer`'s measured viewport
-  time, `_cockpit3d_shot.gd` C3D_ONLY=panel; an MFD's 512 px one 0.05 ms).
+  time, `_cockpit3d_shot.gd` C3D_ONLY=panel; an MFD's 512 px one 0.05 ms). The pilot fault list display's (256 × 128
+  px, 0.13 MB; 2026-11-02): 0.015 ms.
 
 ## 4. Time of day (built: game/terrain/time_of_day.gd)
 

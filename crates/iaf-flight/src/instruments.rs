@@ -2,7 +2,8 @@
 //! and "Attitude indicators"), from the flight model's state as the player controller fills it (`FUN_00448b20`:
 //! `FUN_004458b0`, `FUN_004459a0`; the engine and fuel values @45ac00). The host only draws them.
 
-use crate::aircraft::State;
+use crate::aircraft::{G, State};
+use crate::vec3::Vec3;
 
 /// m/s → kt (`0x600a70`, `0x611cac`).
 const KT: f32 = 1.942_795_5;
@@ -168,6 +169,77 @@ impl EngineTemps {
     }
 }
 
+/// Ours (the F-16 3D cockpit's ADI, docs/cockpit.md "3D cockpit"): the turn needle's yaw rate and the slip ball's
+/// specific force, from the FM state's change between two updates (the FM keeps no body rates or accelerations),
+/// each lagged by `TAU` (FlightGear's slip ball: a low pass of dt·2, inferred for the needle too).
+#[derive(Debug, Clone, Copy)]
+pub struct TurnSlip {
+    /// The last update: FM time, velocity (m/s, ENU), the nose's direction.
+    last: Option<(f64, Vec3, Vec3)>,
+    /// The body yaw rate, °/s, nose right positive.
+    pub yaw_rate_dps: f32,
+    /// The specific force (what an accelerometer reads) along the right wing, g: right positive.
+    pub lateral_g: f32,
+    /// The specific force along the body's up axis, g (1 in level flight).
+    pub normal_g: f32,
+}
+
+impl Default for TurnSlip {
+    fn default() -> Self {
+        TurnSlip { last: None, yaw_rate_dps: 0.0, lateral_g: 0.0, normal_g: 1.0 }
+    }
+}
+
+impl TurnSlip {
+    pub const TAU: f32 = 0.5;
+    /// A gap longer than this (s), or a time going back, starts the measure again (a new flight, a jump).
+    pub const MAX_DT: f64 = 0.5;
+
+    /// Steps to the FM time `time` with the jet's velocity (m/s, ENU) and body axes (ENU unit vectors). The same
+    /// time again (paused) keeps the values.
+    pub fn update(&mut self, time: f64, velocity: Vec3, forward: Vec3, right: Vec3, up: Vec3) {
+        let last = self.last.replace((time, velocity, forward));
+        let Some((t0, v0, f0)) = last else { return };
+        let dt = time - t0;
+        if dt == 0.0 {
+            return;
+        }
+        if !(0.0..=Self::MAX_DT).contains(&dt) {
+            *self = TurnSlip { last: self.last, ..Default::default() };
+            return;
+        }
+        // The rotation of the nose (ω ⟂ nose = f0 × f1 / dt) about the body's up axis: + turns it left.
+        let yaw = -(f0.cross(forward).dot(up) / dt).to_degrees() as f32;
+        let g = G as f64;
+        let f = (velocity - v0) / dt + Vec3::new(0.0, 0.0, g);
+        let k = 1.0 - (-(dt as f32) / Self::TAU).exp();
+        self.yaw_rate_dps += (yaw - self.yaw_rate_dps) * k;
+        self.lateral_g += ((f.dot(right) / g) as f32 - self.lateral_g) * k;
+        self.normal_g += ((f.dot(up) / g) as f32 - self.normal_g) * k;
+    }
+}
+
+/// The F-16's cabin pressure schedule (cabin altitude, ft, from the pressure altitude, ft): unpressurised to
+/// 8,000 ft, 8,000 ft held to about 23,000 ft, then a 5 psi differential, by the ISA (FlightGear's F-16 table
+/// `pressure-ft-pressurized`; the 5 psi above 23,000 ft of earlier fighters, docs/cockpit.md "3D cockpit").
+pub fn cabin_altitude_ft(alt_ft: f32) -> f32 {
+    const SL_PSI: f32 = 14.696;
+    const LAPSE: f32 = 6.8756e-6; // 1/ft
+    const EXP: f32 = 5.2559;
+    const TROPOPAUSE_FT: f32 = 36_089.0;
+    if alt_ft <= 8000.0 {
+        return alt_ft;
+    }
+    let p = if alt_ft <= TROPOPAUSE_FT {
+        SL_PSI * (1.0 - LAPSE * alt_ft).powf(EXP)
+    } else {
+        3.2825 * (-(alt_ft - TROPOPAUSE_FT) / 20_806.0).exp()
+    };
+    // The cabin's pressure (≥ 5 psi) always lies in the troposphere's band.
+    let h = (1.0 - ((p + 5.0) / SL_PSI).powf(1.0 / EXP)) / LAPSE;
+    h.clamp(8000.0, alt_ft)
+}
+
 /// The cockpit state from the FM state. `ground_height` / `gear_clearance` in m, `internal_fuel_kg` the
 /// capacity (FuelWeight), `fuel_capacity_kg` the fuel maximum with the tanks (FuelWeight + tanks), `ias_fix` = `Params::ias_low_speed_fix`. Both engines read the one RPM (the original
 /// has one engine state too).
@@ -292,6 +364,14 @@ pub const HYD_FULL_RPM: f32 = 0.5;
 /// hydraulics damage (flag 18).
 pub fn hydraulic_pressure(rpm: f32, damaged: bool) -> f32 {
     if damaged { 0.0 } else { HYD_NORMAL * (rpm / HYD_FULL_RPM).clamp(0.0, 1.0) }
+}
+
+/// Ours, the F-16 3D cockpit's HYD PRESS A / B gauge: each system's pressure / its normal pressure, from the
+/// engine-driven pumps as `hydraulic_pressure`. The hydraulics damage (flag 18) empties system A and leaves B: the
+/// stick still moves the surfaces at a quarter (docs/damage.md §5.3; inferred).
+pub fn hydraulic_systems(rpm: f32, damaged: bool) -> [f32; 2] {
+    let b = (rpm / HYD_FULL_RPM).clamp(0.0, 1.0);
+    [if damaged { 0.0 } else { b }, b]
 }
 
 /// The ILS deviation at the full deflection of the MiG-23 ПНП's bars, degrees (`pnp_bars`; inferred: the usual
@@ -447,5 +527,57 @@ mod tests {
         assert!((c[0] - EngineTemps::IDLE).abs() < 0.1 && (c[1] - EngineTemps::FIRE).abs() < 0.1);
         // A restarted flight (time back to 0) starts at the target again: engine off, ambient.
         assert_eq!(t.update(0.0, 0.0, 0, none), [EngineTemps::AMBIENT; 2]);
+    }
+
+    #[test]
+    fn turn_slip_from_the_state_change() {
+        // A coordinated level turn to the right at 3°/s, 200 m/s: the lift tilted with the bank, so the specific
+        // force lies along the body's up axis and the ball stays centred.
+        let (v, rate) = (200.0_f64, 3.0_f64.to_radians());
+        let bank = (v * rate / G as f64).atan();
+        let at = |t: f64, bank: f64| {
+            let h = rate * t; // heading clockwise from north
+            let fwd = Vec3::new(h.sin(), h.cos(), 0.0);
+            let level_right = Vec3::new(h.cos(), -h.sin(), 0.0);
+            let right = level_right * bank.cos() - Vec3::UP * bank.sin();
+            let up = right.cross(fwd);
+            (fwd * v, fwd, right, up)
+        };
+        let mut ts = TurnSlip::default();
+        for i in 0..200 {
+            let t = i as f64 * 0.02;
+            let (vel, f, r, u) = at(t, bank);
+            ts.update(t, vel, f, r, u);
+        }
+        assert!((ts.yaw_rate_dps - 3.0 * bank.cos() as f32).abs() < 0.05, "yaw {}", ts.yaw_rate_dps);
+        assert!(ts.lateral_g.abs() < 0.01, "lateral {}", ts.lateral_g);
+        assert!((ts.normal_g - 1.0 / bank.cos() as f32).abs() < 0.01, "normal {}", ts.normal_g);
+        // The same turn wings level (a flat skid): the push to the right reads on the right wing's axis.
+        let mut ts = TurnSlip::default();
+        for i in 0..200 {
+            let t = i as f64 * 0.02;
+            let (vel, f, r, u) = at(t, 0.0);
+            ts.update(t, vel, f, r, u);
+        }
+        let push = (v * rate / G as f64) as f32;
+        assert!((ts.lateral_g - push).abs() < 0.01 && (ts.yaw_rate_dps - 3.0).abs() < 0.05, "{ts:?}");
+        // A time going back (a new flight) starts again.
+        let (vel, f, r, u) = at(0.0, 0.0);
+        ts.update(0.0, vel, f, r, u);
+        assert_eq!((ts.yaw_rate_dps, ts.lateral_g, ts.normal_g), (0.0, 0.0, 1.0));
+    }
+
+    #[test]
+    fn cabin_altitude_and_hydraulics() {
+        assert_eq!(cabin_altitude_ft(5000.0), 5000.0);
+        assert_eq!(cabin_altitude_ft(15_000.0), 8000.0);
+        assert_eq!(cabin_altitude_ft(23_000.0), 8000.0);
+        // 5 psi over the outside (30,000 ft: 4.36 psi outside, 9.36 in, the ISA's 11,950 ft); FlightGear's F-16 table
+        // reads 17,000 ft at 40,000 (13,000 at 30,000: its straight line from 23,000 ft).
+        assert!((cabin_altitude_ft(30_000.0) - 11_950.0).abs() < 100.0, "{}", cabin_altitude_ft(30_000.0));
+        assert!((cabin_altitude_ft(40_000.0) - 17_000.0).abs() < 800.0, "{}", cabin_altitude_ft(40_000.0));
+        assert_eq!(hydraulic_systems(0.9, false), [1.0, 1.0]);
+        assert_eq!(hydraulic_systems(0.9, true), [0.0, 1.0]);
+        assert_eq!(hydraulic_systems(0.0, false), [0.0, 0.0]);
     }
 }

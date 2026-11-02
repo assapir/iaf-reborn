@@ -185,8 +185,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   front cockpit built from the FlightGear F-16's (cockpit.md "3D cockpit"): a 75° view that the zoom narrows to its true size (the screen's
   size and a 0.6 m viewing distance) from the same eye; free look down to 60° (the original's 12°); the MFDs show the
   same pages on the 3D screens; the HUD draws as before, cut to the combiner glass's outline; the needles FlightGear
-  animates move with the cockpit state, its lamps light from it, the RWR scope, EHSI and DED draw from it; a click on
-  an MFD push button presses it. The detailed F-16's cockpit model stands behind it, with Models on Original too.
+  animates move with the cockpit state, its lamps light from it, the RWR scope, EHSI, DED and pilot fault list draw
+  from it; a click on an MFD push button presses it. The detailed F-16's cockpit model stands behind it, with Models
+  on Original too.
   The F-35I flies with ours (f35i.md §4.5): its panoramic display on the 3D glass, a tap on it as on the 2D panel,
   the helmet HUD over the whole view. Other jets keep their 2D panels.
 - **Briefing map (Original (1998) / Modern).** Original: text.emf's city dots where the 1998 map put them, up to

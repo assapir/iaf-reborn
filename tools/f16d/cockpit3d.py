@@ -7,9 +7,10 @@
 #     docs/aircraft-models.md §1.4), the kneeboards, pilot and helmet;
 #   - each sub-model placed by its <offsets>; its `select` animations evaluated once for a powered jet with every lamp
 #     off (the off flags and lamps hidden), but for the lamps the game lights (LAMPS: their own nodes, <out>.json
-#     `lamps`); its `rotate` / `knob` animations on the properties the game drives (NEEDLE_PROPS) made nodes turning
-#     about their hinge, listed in <out>.json with FlightGear's value mapping; its texture scrolls on TEX_PROPS (the
-#     AoA tape) in <out>.json `textures`; the canvas displays the game draws (DISPLAYS) as named nodes;
+#     `lamps`); its `rotate` / `knob` / `translate` animations on the properties the game drives (NEEDLE_PROPS) made
+#     nodes turning about their hinge or sliding along their axis, listed in <out>.json with FlightGear's value mapping;
+#     its texture scrolls on TEX_PROPS (the AoA tape) in <out>.json `textures`; the canvas displays the game draws
+#     (DISPLAYS) as named nodes; the parts the game shows itself (SHOWN: the ADI's steering bars) in `shown`;
 #   - in the detailed F-16's frame (tools/f16/base.py: FlightGear's model moved SHIFT aft, under a root at the original
 #     model's origin), so the game hangs it in the cut cockpit model (own_bc) as is;
 #   - the MFD screens (MFD_L, MFD_R: FlightGear's canvas quads), the HUD combiner glass (HUD_glass) and the 20 OSBs of
@@ -63,7 +64,11 @@ NEEDLE_PROPS = {
     "consumables/fuel/total-fuel-lbs-10000", "f16/fuel/hand-fwd-lag", "f16/fuel/hand-aft-lag",
     "instrumentation/clock/indicated-sec", "controls/flight/elevator", "controls/flight/aileron",
     "controls/gear/gear-down", "f16/cockpit/fuel-flow-digit-3", "f16/cockpit/fuel-flow-digit-4",
-    "f16/cockpit/fuel-flow-digit-5",
+    "f16/cockpit/fuel-flow-digit-5", "instrumentation/turn-indicator/indicated-turn-rate",
+    "instrumentation/slip-skid-ball/indicated-slip-skid", "instrumentation/nav[0]/gs-needle-deflection",
+    "instrumentation/nav/heading-needle-deflection", "fdm/jsbsim/systems/hydraulics/sysa-psi",
+    "fdm/jsbsim/systems/hydraulics/sysb-psi", "f16/cockpit/pressure-ft", "f16/cockpit/hydrazine-minutes",
+    "f16/cockpit/oxygen-liters-output", "f16/avionics/oxy-psi",
 }
 # The texture scrolls (`textranslate`) the game drives: the AoA tape.
 TEX_PROPS = {"fdm/jsbsim/fcs/fly-by-wire/pitch/alpha-indicated"}
@@ -79,7 +84,21 @@ LAMPS = {
     ("LeftAuxConsole", "gear_lever_light"): "gear_transit", ("THREAT", "launch"): "rwr_launch",
 }
 # FlightGear's canvas displays the game draws into (cockpit3d.gd _attach_display), by (sub-model, object): the node.
-DISPLAYS = {("IFF", "bkg"): "RWR_scope", ("EHSI", "EHSI-Display"): "EHSI_screen", ("DED", "poly.003"): "DED_screen"}
+DISPLAYS = {("IFF", "bkg"): "RWR_scope", ("EHSI", "EHSI-Display"): "EHSI_screen", ("DED", "poly.003"): "DED_screen",
+            ("PFD", "PFDscreen"): "PFD_screen"}
+# The parts the game shows and hides itself (cockpit3d.gd _shown), by (sub-model, object): the key, listed in <out>.json
+# `shown`: the ADI's ILS steering bars (FlightGear's `select` hides them for the jet of PROPS: no ILS in range) and its
+# glide slope index (FlightGear shows it in the ILS instrument modes).
+SHOWN = {("adi", "ADI_yaw-steering-bar"): "ils", ("adi", "ADI_pitch-strg-bar"): "ils",
+         ("adi", "ADI_glide-slope-index"): "ils"}
+# Parts moved toward the pilot (m, the sub-model's x: aft) to show in front of their face: the ADI's turn needle sits
+# 2.8 mm behind its opaque face plate in adi.ac and its glide slope index on the plate's plane (both hidden, seen in
+# the game; FlightGear's own view of them is not checked). Each ends 0.7 mm in front of the plate.
+# The ADI's ILS steering bars, m per full-scale deviation (the game feeds the ILS deviations as −1..1 of the full
+# scale, cockpit3d.gd): each at its own clamp. FlightGear's factors (0.0025 / 0.006 m per unit) move the glide slope
+# bar 2.5 mm where its glide slope index (FlightGear's table: 14.4 mm per unit) reaches the face's second dot.
+ILS_BARS = {("adi", "ADI_pitch-strg-bar"): 0.015, ("adi", "ADI_yaw-steering-bar"): 0.018}
+TO_FRONT = {("adi", "ADI_turn-indicator"): 0.0035, ("adi", "ADI_glide-slope-index"): 0.0007}
 # Triangles kept of each heavy part (FlightGear's counts; the research's Iris Xe budget, docs/graphics-research.md
 # §3.8): the consoles beside and below the eye.
 DECIMATE = {"LeftConsole": 0.3, "LeftAuxConsole": 0.3, "RightConsole": 0.35, "RightAuxConsole": 0.5, "ICP": 0.45,
@@ -180,16 +199,19 @@ def axis_of(a):
     return Vector((num(ax, "x"), num(ax, "y"), num(ax, "z"))).normalized(), None
 
 
-def mapping(a):
-    """FlightGear's value mapping of a rotate animation (simgear read_value): an interpolation table, else
-    factor · value + offset-deg clamped to min-deg / max-deg."""
+def mapping(a, unit="-deg"):
+    """FlightGear's value mapping of a rotate (unit -deg) or translate (-m) animation (simgear read_value): an
+    interpolation table, else factor · value + offset<unit> clamped to min<unit> / max<unit>. A translate's plain
+    <min> / <max> (the ADI's turn needle; simgear reads only min-m / max-m) are kept: they hold the needle on its face."""
     tab = a.find("interpolation")
     if tab is not None:
         return {"table": [[float(e.findtext("ind")), float(e.findtext("dep"))] for e in tab.findall("entry")]}
-    m = {"factor": num(a, "factor", 1.0), "offset": num(a, "offset-deg")}
-    for k in ("min-deg", "max-deg"):
-        if a.find(k) is not None:
-            m[k[:3]] = num(a, k)
+    m = {"factor": num(a, "factor", 1.0), "offset": num(a, "offset" + unit)}
+    for k in ("min", "max"):
+        for tag in (k + unit, k):
+            if a.find(tag) is not None:
+                m[k] = num(a, tag)
+                break
     return m
 
 
@@ -201,6 +223,7 @@ class Build:
         self.texanims = {}  # object -> [textranslate records]
         self.lamps = {}  # object -> {key, hide (a select lamp: hidden when off), colour (its emission)}
         self.displays = {}  # object -> node name
+        self.shown = {}  # object -> SHOWN key
 
     def walk(self, xml, m, part, depth=0):
         here = os.path.dirname(xml)
@@ -210,12 +233,17 @@ class Build:
         objs, groups = {}, {}
         if ac and fg_path(ac, here) and os.path.exists(fg_path(ac, here)):
             objs = kit.import_ac(fg_path(ac, here), matrix=C @ m @ C.inverted(), prefix=part + "/", groups=groups)
+        for n, d in ((n, d) for (p, n), d in TO_FRONT.items() if p == part and n in objs):
+            objs[n].data.transform(Matrix.Translation((C @ m).to_3x3() @ Vector((d, 0, 0))))
         hide = set()
         for a in root.findall("animation"):
             t = (a.findtext("type") or "").strip()
             names = [o.text.strip() for o in a.findall("object-name")]
-            lamps = [n for n in names if (part, n) in LAMPS and n in objs]
+            lamps = [n for n in names if ((part, n) in LAMPS or (part, n) in SHOWN) and n in objs]
             for n in lamps:
+                if (part, n) in SHOWN:
+                    self.shown[objs[n]] = SHOWN[(part, n)]
+                    continue
                 rec = self.lamps.setdefault(objs[n], {"key": LAMPS[(part, n)], "hide": False, "colour": [1, 1, 1]})
                 if t == "select":
                     rec["hide"] = True
@@ -230,12 +258,16 @@ class Build:
                 for n in names:
                     if n in objs:
                         self.texanims.setdefault(objs[n], []).append(rec)
-            elif t in ("rotate", "knob") and (a.findtext("property") or "").strip() in NEEDLE_PROPS:
+            elif t in ("rotate", "knob", "translate") and (a.findtext("property") or "").strip() in NEEDLE_PROPS:
                 axis, mid = axis_of(a)
                 c = a.find("center")
                 centre = Vector((num(c, "x-m"), num(c, "y-m"), num(c, "z-m"))) if c is not None else (mid or Vector())
-                rec = {"prop": a.findtext("property").strip(), **mapping(a),
+                rec = {"prop": a.findtext("property").strip(), **mapping(a, "-m" if t == "translate" else "-deg"),
                        "centre": list(C @ m @ centre), "axis": list((C @ m).to_3x3() @ axis)}
+                if t == "translate":  # slides along its axis (m), no hinge
+                    rec["type"] = "translate"
+                    if (part, names[0]) in ILS_BARS:
+                        rec["factor"] = ILS_BARS[(part, names[0])]
                 for n in dict.fromkeys(g for n in names for g in groups.get(n, [n])):  # a group: its meshes
                     if n in objs:
                         self.anims.setdefault(objs[n], []).append(rec)
@@ -476,6 +508,10 @@ def main():
         lamps[name] = rec
     for o, name in b.displays.items():
         named[name] = o
+    shown = {}
+    for o, key in b.shown.items():
+        named[o.name.split("/", 1)[1]] = o
+        shown[o.name.split("/", 1)[1]] = key
     for o in b.texanims:
         named[o.name.split("/", 1)[1]] = o
     rest_root = bpy.data.objects.new("f16_cockpit3d", None)
@@ -488,8 +524,10 @@ def main():
         if o in b.anims or name is not None:
             vs = [v.co for v in o.data.vertices]
             lo, hi = Vector(map(min, *vs)), Vector(map(max, *vs))
-            # A turning part's origin on its first hinge, a named one on its centre (the game reads its place).
-            pivot = (Vector(b.anims[o][0]["centre"]) + SHIFT - root_at) if o in b.anims else (lo + hi) / 2
+            # A turning part's origin on its first hinge, a named or sliding one on its centre (the game reads its
+            # place).
+            hinge = o in b.anims and b.anims[o][0].get("type") != "translate"
+            pivot = (Vector(b.anims[o][0]["centre"]) + SHIFT - root_at) if hinge else (lo + hi) / 2
             o.data.transform(Matrix.Translation(-pivot))
             o.location = pivot
             o.parent = rest_root
@@ -514,7 +552,7 @@ def main():
     eye = C @ Vector(FG_EYE) + SHIFT - root_at
     textures = {k: b.texanims[v] for k, v in named.items() if v in b.texanims}
     meta = {"source": "FlightGear F-16 " + PIN, "eye": gl(eye), "animations": anims, "buttons": button_at,
-            "lamps": lamps, "textures": textures}
+            "lamps": lamps, "textures": textures, "shown": shown}
     for o in kit.scene().objects:
         o.select_set(o is rest_root or o.parent is rest_root)
     tmp = OUT + ".png.glb"

@@ -18,6 +18,8 @@ pub struct IafFlight {
     ground: Option<Callable>,
     /// The Better cockpit's engine temperatures (iaf_flight::instruments::EngineTemps).
     temps: iaf_flight::instruments::EngineTemps,
+    /// The F-16 3D cockpit's turn needle and slip ball (iaf_flight::instruments::TurnSlip).
+    turn_slip: iaf_flight::instruments::TurnSlip,
     /// The MiG-29 AoA / g meter's max-g memory (iaf_flight::instruments::g_memory); reset by `start`.
     g_max: f32,
 }
@@ -583,7 +585,10 @@ impl IafFlight {
     /// Better cockpit (ours): `engines_better` (the same 6 floats from the FM's own values,
     /// `better_engine_needles`), `engine_temp_c` (2 floats, °C), `fuel_fill_total` (fuel / capacity with tanks),
     /// `nozzle_oil` (left nozzle %, left oil psi, then right; `nozzle_and_oil`), `fuel_flow_pph` (the FM's fuel
-    /// flow, lb/h: the 3D cockpit's fuel flow indicator).
+    /// flow, lb/h: the 3D cockpit's fuel flow indicator). The F-16 3D cockpit's (`TurnSlip`, docs/cockpit.md
+    /// "3D cockpit"): `yaw_rate_dps` (the body yaw rate, °/s, right +), `lateral_g` / `normal_g` (the specific force
+    /// along the right wing / the body's up axis, g), `cabin_alt_ft` (`cabin_altitude_ft`), `hyd_ab` (systems A, B:
+    /// pressure / normal, `hydraulic_systems`).
     #[func]
     fn instruments(&mut self, damage: VarArray) -> VarDictionary {
         use iaf_flight::instruments::{self, EngineDamage};
@@ -619,6 +624,13 @@ impl IafFlight {
         d.set("nozzle_oil", &PackedFloat32Array::from(no.as_slice()));
         d.set("fuel_fill_total", i.fuel_fill_total);
         d.set("fuel_flow_pph", ac.fuel_flow * 3600.0 / 0.45359);
+        let v = Vec3::new(s.velocity[0] as f64, s.velocity[1] as f64, s.velocity[2] as f64);
+        self.turn_slip.update(s.time, v, s.forward, s.right, s.up);
+        d.set("yaw_rate_dps", self.turn_slip.yaw_rate_dps);
+        d.set("lateral_g", self.turn_slip.lateral_g);
+        d.set("normal_g", self.turn_slip.normal_g);
+        d.set("cabin_alt_ft", instruments::cabin_altitude_ft(s.position[2] as f32 * 3.281));
+        d.set("hyd_ab", &PackedFloat32Array::from(&instruments::hydraulic_systems(rpm, flag(18))[..]));
         d.set("tas_kt", i.tas_kt);
         d.set("ground_kt", i.ground_kt);
         d.set("ias_kt", i.ias_kt);

@@ -7,7 +7,8 @@
 # the Barak's panel sheet is the Block 40 one and its HUD the Block 50's, the Sufa's the model's Block 50 sheet and the
 # wide-angle HUD, and the Sufa's MFDs draw the real formats in colour; the lamps light from the cockpit state (the
 # master caution by its indicator, the gear lamps, the AoA indexer), the AoA tape scrolls, the fuel flow drums turn, and
-# the RWR scope, EHSI and DED draw into SubViewports on their screens. The F-35I: _f35i.
+# the RWR scope, EHSI, DED and pilot fault list draw into SubViewports on their screens, the ADI's turn needle, slip
+# ball and ILS bars and the hydraulic and cabin gauges follow the state (_adi_and_gauges). The F-35I: _f35i.
 extends "res://../tests/godot/base.gd"
 
 
@@ -252,7 +253,8 @@ func _instruments(tv: Node, c: Control, c3: Node3D, variant: String) -> void:
 	)
 	var digits := [5, 4, 3].map(func(k): return c3._prop("f16/cockpit/fuel-flow-digit-%d" % k))
 	check(digits == [0.0, 4.0, 5.0], "%s 3D: the fuel flow drums at 4,567 lb/h %s" % [variant, digits])
-	for name in ["RWR_scope", "EHSI_screen", "DED_screen"]:
+	await _adi_and_gauges(c, c3, variant)
+	for name in ["RWR_scope", "EHSI_screen", "DED_screen", "PFD_screen"]:
 		var mi := c3.find_child(name, true, false) as MeshInstance3D
 		var d = c3.displays.get(name)
 		check(
@@ -272,3 +274,88 @@ func _instruments(tv: Node, c: Control, c3: Node3D, variant: String) -> void:
 	check(
 		lines.size() == 5 and "STPT" in lines[0] and ":" in lines[2], "%s 3D: the DED's CNI page %s" % [variant, lines]
 	)
+	# The pilot fault list: the hydraulics damage (flag 18) lists HYD A under FLCS.
+	var flags: Array = c.damage_flags
+	var had: bool = flags[18]
+	flags[18] = true
+	await frames(2)
+	lines = c3.displays.PFD_screen.shown.get("lines", [])
+	flags[18] = had
+	check(
+		lines.size() == 5 and "FLCS" in lines[0] and "HYD  A" in lines[2],
+		"%s 3D: the pilot fault list shows the hydraulics fault %s" % [variant, lines]
+	)
+
+
+## The node the model animates by FlightGear's property `prop` (cockpit3d.gd _anims): [node, rest transform].
+func _anim(c3: Node3D, prop: String) -> Array:
+	for a in c3._anims:
+		if (a[2] as Array).any(func(r): return r.prop == prop):
+			return [a[0], a[1]]
+	return [null, Transform3D()]
+
+
+## The ADI's turn needle, slip ball and ILS bars, the hydraulic, cabin, EPU and oxygen gauges (cockpit3d.gd
+## _instrument_prop): each moves with the state set here (the flight writes it each frame; _process reads it at once).
+func _adi_and_gauges(c: Control, c3: Node3D, variant: String) -> void:
+	check(
+		c.state.has("yaw_rate_dps") and c.state.has("lateral_g") and c.state.has("hyd_ab"),
+		"%s 3D: the state's turn rate, lateral g and hydraulics" % variant
+	)
+	var fill := clampf(float(c.state.rpm) / 0.5, 0.0, 1.0)
+	check(
+		c.state.hyd_ab.size() == 2 and absf(c.state.hyd_ab[0] - fill) < 0.02 and absf(c.state.hyd_ab[1] - fill) < 0.02,
+		"%s 3D: both hydraulic systems by the engine's RPM (%.2f): %s" % [variant, c.state.rpm, c.state.hyd_ab]
+	)
+	var turn := _anim(c3, "instrumentation/turn-indicator/indicated-turn-rate")
+	var ball := _anim(c3, "instrumentation/slip-skid-ball/indicated-slip-skid")
+	var hyd := _anim(c3, "fdm/jsbsim/systems/hydraulics/sysa-psi")
+	check(turn[0] != null and ball[0] != null and hyd[0] != null, "%s 3D: the turn needle, ball, HYD needle" % variant)
+	if turn[0] == null or ball[0] == null or hyd[0] == null:
+		return
+	var centre: Vector3 = (ball[0] as MeshInstance3D).get_aabb().get_center()
+	c.state.yaw_rate_dps = 3.0
+	c.state.lateral_g = 0.1
+	c.state.normal_g = 1.0
+	c.state.hyd_ab = PackedFloat32Array([1.0, 1.0])
+	c3._process(0.0)
+	var moved: Vector3 = turn[0].position - turn[1].origin
+	check(
+		absf(moved.x - 0.0073) < 1e-4 and absf(moved.y) < 1e-5,
+		"%s 3D: a standard-rate turn moves the turn needle 7.3 mm right (%s)" % [variant, moved]
+	)
+	var ball_dx: float = (ball[0].transform * centre).x - (ball[1] * centre).x
+	check(
+		ball_dx < -1e-4, "%s 3D: a push to the right rolls the slip ball left (%.2f mm)" % [variant, ball_dx * 1000.0]
+	)
+	check(
+		c3._prop("fdm/jsbsim/systems/hydraulics/sysa-psi") == 3000.0,
+		"%s 3D: the HYD PRESS A needle at 3,000 psi" % variant
+	)
+	var ang := rad_to_deg(hyd[0].transform.basis.get_rotation_quaternion().get_angle())
+	check(
+		absf(ang - 261.0) < 0.5 or absf(ang - 99.0) < 0.5,
+		"%s 3D: the HYD A needle turned 261° (3,000 psi × 0.08 + 21; %.1f°)" % [variant, ang]
+	)
+	c.state.hyd_ab = PackedFloat32Array([0.0, 1.0])
+	check(c3._prop("fdm/jsbsim/systems/hydraulics/sysa-psi") == 0.0, "%s 3D: system A empty when damaged" % variant)
+	c.state.cabin_alt_ft = 8000.0
+	check(c3._prop("f16/cockpit/pressure-ft") == 8000.0, "%s 3D: the cabin altimeter" % variant)
+	# The ILS bars: shown with the gear handle down in NAV, at the HUD's deviations.
+	var bar := c3.find_child("ADI_yaw-steering-bar", true, false) as Node3D
+	var down: bool = c.gear_handle_down
+	c.gear_handle_down = true
+	c.state.better.pnp_bars = Vector2(0.5, -0.4)  # the runway right, the jet below the glide slope
+	c3._process(0.0)
+	var dev := Vector2(
+		c3._prop("instrumentation/nav/heading-needle-deflection"),
+		c3._prop("instrumentation/nav[0]/gs-needle-deflection")
+	)
+	check(
+		bar != null and bar.visible and dev.is_equal_approx(Vector2(0.5, 0.4)),
+		"%s 3D: the ILS bars shown at the deviations (%s of the full scale)" % [variant, dev]
+	)
+	c.gear_handle_down = false
+	c3._process(0.0)
+	check(bar != null and not bar.visible, "%s 3D: the ILS bars hidden with the gear handle up" % variant)
+	c.gear_handle_down = down

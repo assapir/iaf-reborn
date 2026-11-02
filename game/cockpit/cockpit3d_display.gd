@@ -1,11 +1,12 @@
 # Ours (Extras "Cockpit": 3D; docs/cockpit.md "3D cockpit"): a small display of the 3D cockpit that FlightGear draws
 # with its canvas system, drawn here from our cockpit state into a SubViewport on the model's screen
 # (cockpit3d.gd _attach_display): the RWR azimuth indicator's scope (the 2D panel's RWR symbols), the EHSI (heading
-# rose, bearing and range to the steerpoint) and the DED's CNI page (steerpoint, time of day).
+# rose, bearing and range to the steerpoint), the DED's CNI page (steerpoint, time of day) and the pilot fault list
+# display (the systems damage).
 extends Control
 
 const Hud := preload("res://cockpit/hud.gd")
-enum Kind { RWR, EHSI, DED }
+enum Kind { RWR, EHSI, DED, PFL }
 ## The 2D panel RWR dial's radius ([PANELRWR] of the F-16, original px): the symbols' scale against the scope.
 const RWR_RADIUS := 28.0
 ## The scope's printed rings, the EHSI's white and the DED's green (inferred from cockpit photos).
@@ -13,6 +14,33 @@ const RING := Color(0.12, 0.45, 0.16)
 const WHITE := Color(0.92, 0.95, 0.92)
 const CYAN := Color(0.3, 0.85, 1.0)
 const DED_GREEN := Color(0.55, 1.0, 0.3)
+## The pilot fault list display's colours (FlightGear's pfd.nas, the Block 50/52's).
+const PFL_BG := Color(0.0, 0.04, 0.01)
+const PFL_GREEN := Color(0.45, 0.98, 0.06)
+## The pilot fault list's lines by the damage flags (docs/damage.md §5.2), warnings first: [flags, class (0 FLCS
+## warning, 1 FLCS, 2 ENG, 3 AV), text]. The texts are FlightGear's fault list's (failures.nas, from GR1F-F16CJ-34-1
+## p. 1-475); the AB, gun and ECM lines are ours (inferred).
+const FAULTS := [
+	[[16, 17], 0, ">FIRE          <"],
+	[[24], 0, ">FLCS BIT  FAIL<"],
+	[[18], 1, " HYD  A    FAIL "],
+	[[4], 1, " ISA  FLAP FAIL "],
+	[[5], 1, " SPD  BRAK FAIL "],
+	[[7], 1, " GEAR      FAIL "],
+	[[6], 1, " FLCS A/P  FAIL "],
+	[[2, 3, 22, 23], 2, " ENG       FAIL "],
+	[[8, 9], 2, " ENG  AB   FAIL "],
+	[[10], 2, " TANK LEAK      "],
+	[[19, 21], 3, " GEN  MAIN FAIL "],
+	[[21], 3, " GEN  STBY FAIL "],
+	[[15], 3, " FCR       FAIL "],
+	[[14], 3, " RWR  DEGR      "],
+	[[12], 3, " HUD       FAIL "],
+	[[11], 3, " AIR  DATA FAIL "],
+	[[20], 3, " FCC       FAIL "],
+	[[13], 3, " GUN       FAIL "],
+	[[1], 3, " ECM       FAIL "],
+]
 const ROSE := ["N", "3", "6", "E", "12", "15", "S", "21", "24", "W", "30", "33"]
 
 static var _font: SystemFont
@@ -47,6 +75,8 @@ func _draw() -> void:
 			_ehsi()
 		Kind.DED:
 			_ded()
+		Kind.PFL:
+			_pfl()
 
 
 ## The 2D panel's RWR symbols (cockpit.gd draw_rwr_symbols) about the scope's centre; none with RWR damage (14).
@@ -113,6 +143,42 @@ func _ded() -> void:
 	for i in 5:
 		draw_string(
 			_font, Vector2(size.x * 0.02, lh * (i + 0.8)), lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, DED_GREEN
+		)
+	shown = {"lines": lines}
+
+
+## The pilot fault list display (FlightGear's pfd.nas layout): line 1 the classes with a fault (FLCS, ENG, AV), lines
+## 3-5 the first three faults, a third line framed by ▼ when more wait.
+func _pfl() -> void:
+	draw_rect(Rect2(Vector2.ZERO, size), PFL_BG)
+	var flags: Array = cockpit.damage_flags
+	var faults := []
+	var classes := [false, false, false]
+	for f in FAULTS:
+		if f[0].any(func(i: int) -> bool: return i < flags.size() and bool(flags[i])):
+			faults.append(f[2])
+			classes[maxi(f[1] - 1, 0)] = true
+	var lines := [
+		(
+			"  %s     %s     %s"
+			% ["FLCS" if classes[0] else "    ", "ENG" if classes[1] else "   ", "AV" if classes[2] else "  "]
+		),
+		"",
+	]
+	for i in 3:
+		lines.append(("  %s  " % faults[i]) if i < faults.size() else "")
+	if faults.size() > 3:
+		lines[4] = "\u25bc %s \u25bc" % faults[2]
+	var fs := int(size.y * 0.1)
+	for i in 5:
+		draw_string(
+			_font,
+			Vector2(size.x * 0.215, size.y * (0.2 + 0.1 * i)),
+			lines[i],
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			fs,
+			PFL_GREEN
 		)
 	shown = {"lines": lines}
 

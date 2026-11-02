@@ -44,7 +44,7 @@ Made by `tools/f16d/cockpit3d.py` (re-runnable; docs/cockpit.md "3D cockpit"):
 3. The consoles, ICP, throttle and stick decimated (about 40 % of their triangles kept).
 4. FlightGear's lamps and off flags hidden as on a powered jet with every lamp off; the needles FlightGear animates
    and the game drives made separate nodes on their hinges, with FlightGear's value tables in `f16.json`.
-5. The DED's and PFD's canvas placeholders replaced by a dark screen; the rudder pedals made black.
+5. The DED's and PFD's canvas placeholders replaced by a dark screen (the game draws into them); the rudder pedals made black.
 6. Textures larger than 1024 px halved; all re-encoded as KTX2 (Basis Universal); the Block 40 panel sheet as WebP.
 7. An altimeter added (FlightGear's comes from FGData, outside the package): the ASI's mount and dial plate copied
    to the altimeter's place, the dial `Models/Cockpit/Textures/faces1.png`'s altimeter face, a needle made by the
@@ -56,4 +56,7 @@ Made by `tools/f16d/cockpit3d.py` (re-runnable; docs/cockpit.md "3D cockpit"):
    stands free between the two side posts as on the F-16I: the lid (`HUDtop`, `screws`, `tissue`), the second glass
    ahead of the combiner and its cover (`BackGlass`, `BackGlassCover`) and `HUDFrame`'s bar over the combiner glass
    (2026-11-02; docs/cockpit.md "3D cockpit"); the glass's rim (`HUDedge`) a 25 % opaque amber glass.
-10. Placed in the detailed F-16's frame (`../f16/SOURCES.md`: 1.05 m aft, under the original model's root).
+10. The ADI's turn needle moved 3.5 mm and its glide slope index 0.7 mm toward the pilot, in front of the face
+    plate (2.8 mm behind it and on its plane in `adi.ac`: hidden); its ILS steering bars kept (FlightGear hides them
+    with no ILS in range) and scaled to their stops at the full-scale deviation (`ILS_BARS`).
+11. Placed in the detailed F-16's frame (`../f16/SOURCES.md`: 1.05 m aft, under the original model's root).

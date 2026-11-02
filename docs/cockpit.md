@@ -434,8 +434,16 @@ definition's `hud_3d`.
 * FlightGear's `rotate` and `knob` animations on the properties the game drives turn their parts; an animation on an
   AC group turns every mesh in the group (the fuel quantity needles, the whole throttle). Its `textranslate` on the
   AoA moves the AoA tape's texture (`f16.json` `textures`).
-* Three of FlightGear's canvas displays are named nodes the game draws into: `RWR_scope` (the RWR azimuth
-  indicator's face), `EHSI_screen` and `DED_screen`. The PFD's screen stays dark.
+* Four of FlightGear's canvas displays are named nodes the game draws into: `RWR_scope` (the RWR azimuth
+  indicator's face), `EHSI_screen`, `DED_screen` and `PFD_screen` (FlightGear's "PFD": the pilot fault list display,
+  its `pfd.nas`).
+* FlightGear's `translate` animations on the game's properties slide their parts (the ADI's turn needle, glide slope
+  index and ILS steering bars). The steering bars and the glide slope index are kept as named nodes the game shows
+  (`f16.json` `shown`): FlightGear hides the bars with no ILS in range, the index outside its ILS instrument modes.
+  The turn needle sits 2.8 mm behind the ADI's face plate in FlightGear's `adi.ac` and the index on its plane, both
+  hidden in our render; `cockpit3d.py` `TO_FRONT` moves them 0.7 mm in front of the plate. The steering bars travel
+  to their stops (18 mm localizer, 15 mm glide slope) at the full-scale deviation (`ILS_BARS`); FlightGear's own
+  factors moved the glide slope bar 2.5 mm where the index reaches the face's second dot.
 * The gear handle and the throttle are decimated with their consoles; the other turning parts are kept whole.
   59.4 k triangles in the file.
 * The panel sheets per jet (FlightGear's `Textures/Block-panels`, the labels of the left auxiliary console and the
@@ -489,6 +497,32 @@ definition's `hud_3d`.
   per degree), the fuel flow drums (hundreds, thousands, ten thousands of lb/h: `instruments` `fuel_flow_pph`, the
   flight model's fuel flow) and the fuel quantity indicator's FWD and AFT needles (each half the internal fuel:
   inferred, the indicator's NORM position reads the fwd + right wing and aft + left wing tanks).
+* **ADI** (`_instrument_prop`; `instruments` from `iaf_flight::instruments::TurnSlip`, ours: the FM keeps no body
+  rates or accelerations, so they come from its state's change between frames, lagged 0.5 s as FlightGear's slip
+  ball):
+  * the turn needle: the body yaw rate (`yaw_rate_dps`), FlightGear's 7.3 mm per standard-rate turn (3°/s), stopped
+    at 11.1 mm;
+  * the slip ball: FlightGear's `SlipSkidBall`, 10 × the lateral over the normal specific force (`lateral_g`,
+    `normal_g`; the normal one at least 60 ft/s²), 2° of the ball's arc per unit, at most 2°. The ball runs against
+    the specific force: a push to the right (a skid to the right) sends it left;
+  * the ILS: while the HUD shows its ILS (NAV mode, the gear handle down, as the MiG-23's ПНП bars), the steering
+    bars and the glide slope index show, at the HUD's deviations as a fraction of the full scale (`pnp_bars`: ±2.5°
+    localizer, ±0.7° glide slope; inferred). The index reaches the face's second dot at the full scale; the bars show
+    where the beam is (the localizer bar right with the runway to the right, the glide slope bar and index down with
+    the jet high). Hidden otherwise.
+* **Right auxiliary console and oxygen** (`_instrument_prop`):
+  * HYD PRESS A / B: 3,000 psi (the F-16's normal pressure) × each system's share (`instruments` `hyd_ab`,
+    `iaf_flight::instruments::hydraulic_systems`): full from 50 % RPM as the MiG-23's gauge (less while the engine
+    spools); the hydraulics damage (flag 18) empties system A and leaves B (inferred: the stick still moves the
+    surfaces at a quarter, damage.md §5.3), and lists HYD A on the pilot fault list;
+  * the cabin pressure altimeter: `cabin_alt_ft` (`cabin_altitude_ft`): the jet's altitude to 8,000 ft, 8,000 ft
+    held to about 23,000 ft, then 5 psi over the outside air by the ISA (11,950 ft at 30,000 ft, 17,600 ft at
+    40,000 ft). FlightGear's F-16 holds the same schedule as a table (`Systems/jsb-misc.xml`
+    `pressure-ft-pressurized`: 8,000 ft from 8,000 to 23,000 ft, 13,000 ft at 30,000, 17,000 ft at 40,000)[^fg-cabin];
+    earlier fighters' systems hold 5 psi above 23,000 ft[^f22-press]; the F-16's own manual figure is open;
+  * the EPU fuel gauge: full (FlightGear's 10 minutes of hydrazine; the game has no EPU);
+  * the liquid oxygen quantity: 5 L (full) and the oxygen regulator's pressure 75 psi (FlightGear's values with
+    oxygen aboard): fixed, the game has no oxygen system (inferred).
 * **Lamps** (`cockpit3d.gd` `_lamp_on`; a lit lamp glows with its own art, a `select` lamp shows only when lit), from
   the state the 2D panel's lamps read:
 
@@ -514,9 +548,15 @@ definition's `hud_3d`.
     (NM, top left; `hud.gd` `nav_cues`), "NAV" bottom left. The course arrow, the CDI and the heading bug are left
     out: the game has no selected course or heading;
   * the DED (384 x 128 px): the CNI page's steerpoint (line 1) and time of day (line 3), green. Its radio and IFF
-    fields are left out: the game has no radios to tune.
-* **Not driven** (open): the hydraulic, cabin, EPU and oxygen gauges, the ADI's glide slope, turn needle and slip
-  ball (the state has no turn rate or lateral acceleration); the PFD.
+    fields are left out: the game has no radios to tune;
+  * the pilot fault list display (256 x 128 px, FlightGear's `pfd.nas` layout and colours: green on a dark green
+    ground): line 1 the classes with a fault (FLCS, ENG, AV), lines 3–5 the first three faults, the third framed by
+    ▼ when more wait; blank with none. The faults come from the damage flags (damage.md §5.2), warnings first, with
+    FlightGear's fault texts (its `failures.nas` fault list, citing GR1F-F16CJ-34-1 p. 1-475): FIRE (16 / 17),
+    FLCS BIT FAIL (24), HYD A FAIL (18), ISA FLAP FAIL (4), SPD BRAK FAIL (5), GEAR FAIL (7), FLCS A/P FAIL (6),
+    ENG FAIL (2 / 3 / 22 / 23), TANK LEAK (10), GEN MAIN FAIL (19 / 21), GEN STBY FAIL (21), FCR FAIL (15), RWR DEGR
+    (14), HUD FAIL (12), AIR DATA FAIL (11), FCC FAIL (20); ENG AB FAIL (8 / 9), GUN FAIL (13) and ECM FAIL (1) are
+    ours (inferred). The F-16's "PFD" in FlightGear's model is this display, not a primary flight display.
 * **Light** (`cockpit3d.gd` `_lighting`, ours): FlightGear's ALS lights its interior with its own lights; with only the
   scene's light the panel was dark blue-grey (the sun stays outside the glareshield and the tub, leaving the sky's blue
   ambient). The panels', consoles' and instruments' materials also glow by their own texture × a colour, a flat fill
@@ -1298,5 +1338,11 @@ The `[PANEL]` Night shifts are listed separately. File names are case-insensitiv
 [^dcs-j79]: Eagle Dynamics forum, "Spoolup time of J79 engines too quick" (a post quoting the F-4C flight manual: idle
     EGT 400–500 °C; in AB the EGT should stabilise after about 2 s at 625 ± 10 °C; a secondary source).
     <https://forum.dcs.world/topic/349516-spoolup-time-of-j79-engines-too-quick>
+[^fg-cabin]: FlightGear F-16 (github.com/NikolaiVChr/f16, commit ef4f192), `Systems/jsb-misc.xml`, the
+`/f16/cockpit/pressure-ft-pressurized` table.
+
+[^f22-press]: DTIC report ADA426909 (<https://apps.dtic.mil/sti/pdfs/ADA426909.pdf>), on the F-22's cockpit
+pressurisation: based on earlier fighters' systems, which hold a 5.0 psi differential above 23,000 ft.
+
 [^dcs-fov]: DCS World forum, "Default FOV" (the F-16C's Views.lua: CameraViewAngleLimits 60–114°, default about 78°).
     <https://forum.dcs.world/topic/212149-default-fov>

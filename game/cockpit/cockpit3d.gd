@@ -331,6 +331,9 @@ func _process(_delta: float) -> void:
 		var recs: Array = a[2]
 		for i in range(recs.size() - 1, -1, -1):  # the innermost first
 			var r: Dictionary = recs[i]
+			if r.get("type", "") == "translate":  # slid along its axis by the mapping's metres
+				xf = Transform3D(Basis(), _v3(r.axis) * _angle(r)) * xf
+				continue
 			var c: Vector3 = a[1].origin + _v3(r.centre)
 			var b := Basis(_v3(r.axis), deg_to_rad(_angle(r)))
 			xf = Transform3D(b, c - b * c) * xf
@@ -423,7 +426,8 @@ static func _v3(a: Array) -> Vector3:
 	return Vector3(a[0], a[1], a[2])
 
 
-## An animation's angle (deg) for the cockpit state: FlightGear's table, else factor · value + offset, clamped.
+## An animation's angle (deg; a translate's distance, m) for the cockpit state: FlightGear's table, else
+## factor · value + offset, clamped.
 func _angle(r: Dictionary) -> float:
 	var x := _prop(r.prop)
 	if r.has("table"):
@@ -485,11 +489,13 @@ func _prop(p: String) -> float:
 # The lamps, the AoA tape and the canvas displays (docs/cockpit.md "3D cockpit"): <model>.json `lamps` (node ->
 # {key, hide, colour}), `textures` (node -> FlightGear's texture scrolls) and the display nodes.
 const Display := preload("res://cockpit/cockpit3d_display.gd")
-## The displays' SubViewports (px): the RWR scope's and the EHSI's square faces, the DED's 24 x 5 characters.
+## The displays' SubViewports (px): the RWR scope's and the EHSI's square faces, the DED's 24 x 5 characters, the
+## pilot fault list display's (FlightGear's PFD canvas, 256 x 128).
 const DISPLAYS := {
 	"RWR_scope": [Display.Kind.RWR, Vector2i(256, 256)],
 	"EHSI_screen": [Display.Kind.EHSI, Vector2i(256, 256)],
 	"DED_screen": [Display.Kind.DED, Vector2i(384, 128)],
+	"PFD_screen": [Display.Kind.PFL, Vector2i(256, 128)],
 }
 ## The launch lamp's blink (ms per phase): the 2D RWR symbols' (cockpit.gd draw_rwr_symbols).
 const BLINK_MS := 300
@@ -500,6 +506,8 @@ var lamps_lit := {}
 var _scrolls := []
 ## Display node name -> the Display drawing it.
 var displays := {}
+## The parts shown only with their key on (<model>.json `shown`: the ADI's ILS bars): [node, key].
+var _shown := []
 
 
 func _setup_instruments(model: Node3D) -> void:
@@ -525,6 +533,11 @@ func _setup_instruments(model: Node3D) -> void:
 		var mi := model.find_child(name, true, false) as MeshInstance3D
 		if mi != null:
 			_attach_display(mi, DISPLAYS[name][0], DISPLAYS[name][1])
+	var shown: Dictionary = meta.get("shown", {})
+	for name in shown:
+		var n := model.find_child(name, true, false) as Node3D
+		if n != null:
+			_shown.append([n, shown[name]])
 
 
 ## Each surface's material copied into the node's own (it then changes alone).
@@ -554,6 +567,9 @@ func _update_instruments() -> void:
 				l[0].visible = on
 			for m in l[2]:
 				m.emission_energy_multiplier = 1.0 if on else 0.0
+	var ils := _ils_live()
+	for e in _shown:
+		e[0].visible = ils if e[1] == "ils" else true
 	# FlightGear's textranslate: the texture moved by factor · value + offset along its axis (the glTF's v runs
 	# down, FlightGear's up).
 	for s in _scrolls:
@@ -595,11 +611,57 @@ func _lamp_on(key: String) -> bool:
 	return false
 
 
+## The ADI's ILS bars show while the HUD shows its ILS (NAV mode, the gear handle down: hud.gd), as the MiG-23's ПНП
+## bars (gauges.gd pnp_live).
+func _ils_live() -> bool:
+	return int(cockpit.weapons.get("hud_mode", 0)) == 0 and cockpit.gear_handle_down
+
+
+## The F-16's normal hydraulic pressure, psi (both systems).
+const HYD_PSI := 3000.0
+## The EPU fuel (hydrazine) gauge's full tank: FlightGear's 10 min (f16-base.xml hydrazine-minutes); the game has no
+## EPU.
+const EPU_FULL_MIN := 10.0
+## The liquid oxygen quantity (FlightGear's full 5 L) and the oxygen regulator's pressure (its 75 psi with oxygen in
+## the tank): fixed, the game has no oxygen system (inferred).
+const LOX_FULL_L := 5.0
+const OXY_PSI := 75.0
+## FlightGear's slip ball (its SlipSkidBall): 10 × the lateral over the normal acceleration, the normal one at least
+## 60 ft/s²; our specific forces are in g.
+const FT_S2_PER_G := 32.174
+
+
 ## The props of the instruments _prop leaves out: the gear handle, the AoA, the fuel quantity needles, the fuel flow
-## drums.
+## drums, the ADI's turn needle, slip ball and ILS bars, the right auxiliary console's gauges, the oxygen pressure.
 func _instrument_prop(p: String) -> float:
 	var s: Dictionary = cockpit.state
 	match p:
+		"instrumentation/turn-indicator/indicated-turn-rate":
+			# FlightGear's unit: standard-rate turns (3°/s).
+			return float(s.get("yaw_rate_dps", 0.0)) / 3.0
+		"instrumentation/slip-skid-ball/indicated-slip-skid":
+			# + rolls the ball left: the ball runs against the specific force (a push to the right sends it left).
+			var nz := maxf(float(s.get("normal_g", 1.0)) * FT_S2_PER_G, 60.0)
+			return 10.0 * float(s.get("lateral_g", 0.0)) * FT_S2_PER_G / nz
+		"instrumentation/nav[0]/gs-needle-deflection", "instrumentation/nav/heading-needle-deflection":
+			# The HUD's ILS deviations as −1..1 of the full scale (pnp_bars: ±0.7° glide slope, ±2.5° localizer): the
+			# glide slope + with the jet below it (the index and bar up), the localizer + with the runway to the right.
+			# The index reaches the face's second dot at the full scale, the bars their stops (f16.json).
+			if not _ils_live():
+				return 0.0
+			var bars: Vector2 = s.get("better", {}).get("pnp_bars", Vector2.ZERO)
+			return -bars.y if p.begins_with("instrumentation/nav[0]/gs") else bars.x
+		"fdm/jsbsim/systems/hydraulics/sysa-psi", "fdm/jsbsim/systems/hydraulics/sysb-psi":
+			var ab: PackedFloat32Array = s.get("hyd_ab", PackedFloat32Array([0.0, 0.0]))
+			return HYD_PSI * ab[0 if p.ends_with("sysa-psi") else 1]
+		"f16/cockpit/pressure-ft":
+			return float(s.get("cabin_alt_ft", 0.0))
+		"f16/cockpit/hydrazine-minutes":
+			return EPU_FULL_MIN
+		"f16/cockpit/oxygen-liters-output":
+			return LOX_FULL_L
+		"f16/avionics/oxy-psi":
+			return OXY_PSI
 		"controls/gear/gear-down":
 			return 1.0 if cockpit.gear_handle_down else 0.0
 		"fdm/jsbsim/fcs/fly-by-wire/pitch/alpha-indicated":
