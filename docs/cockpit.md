@@ -502,7 +502,8 @@ definition's `hud_3d`.
   and Mach scale, the ADI ball (roll,
   pitch) and bank index, the VSI, the standby ADI, RPM, FTIT, nozzle and oil pressure (`instruments` `engine_temp_c`,
   `nozzle_oil`), the magnetic compass, the fuel totaliser drums, the clock's hands (the time of day), the throttle
-  (afterburner detent) and the stick (the flight model's stick). Also (`cockpit3d.gd` `_instrument_prop`): the gear
+  (afterburner detent) and the stick (the flight model's stick: leaning aft with a pull, as FlightGear's elevator
+  is positive for a push; until 2026-11-02 it leaned forward). Also (`cockpit3d.gd` `_instrument_prop`): the gear
   handle (down with `gear_handle_down`, at once), the AoA tape (the state's AoA, FlightGear's 0.0235 of the texture
   per degree), the fuel flow drums (hundreds, thousands, ten thousands of lb/h: `instruments` `fuel_flow_pph`, the
   flight model's fuel flow) and the fuel quantity indicator's FWD and AFT needles (each half the internal fuel:
@@ -586,17 +587,26 @@ definition's `hud_3d`.
     SubViewport on the glass, 3 px per `[PCD]` panel px (`cockpit3d.gd` `PCD_PX`); the portals' hidden MFD nodes keep
     the pages as before. A click on the glass goes through the same ray to its px and taps it as on the 2D panel
     (`pcd.gd` `click`: the portal headers, the tabs, the MENU grids, the range arrows). The 2D sheen is left out: the
-    glass has its own.
+    glass has its own, matte (`cockpit3d.gd` `_matte`: roughness 0.7, specular 0.12), so the display reads black by
+    day as a powered display under its anti-reflective coating; at roughness 0.25 it mirrored the sky and read navy.
   * `ESIS`: the standby display, a second `pcd.gd` (layer 2) in its own 283 × 249 px SubViewport.
   * The lamps (`f35i.json` `lamps`): master caution, engine fire and the gear handle's red light in transit, by the
     rules of the F-16's above. The gear handle (`gear_handle`) turns ±11.7° about a pivot behind the panel, up or
     down with `gear_handle_down` (the 2D art's three frames, LIGHT009, become one moving part).
+  * The controls (`f35i.json` `animations`, read as the F-16's): `side_stick` tilts 3° about its boot with
+    `controls` stick_x / stick_y (`controls/flight/aileron` / `elevator`); `throttle` slides along its rail (a
+    `translate` record with a `table`) with the cockpit state's throttle, a step forward at the afterburner detent
+    (0.75).
   * No combiner: the helmet HUD draws over the whole view.
-  * **Light:** plain colours, no textures. By day the scene lights them alone: with the F-16's fill they came out
-    twice as light as their panel render (2026-11-01). At night each glows by its colour × `f35i.json` `night_flood`
-    (the render's floodlights) and the labels by `night_glow` (their green backlight); the F-16's night colour × each
-    colour, tried first, turned the whole panel olive (2026-11-01).
-  * 41.2 k triangles, 11 materials in one mesh plus the named parts, 1.5 MB.
+  * **Look:** the large surfaces carry the panel render's wear, mottled roughness and ambient occlusion baked into
+    one atlas (docs/f35i.md §4.5); the small parts plain colours.
+  * **Light:** by day each colour (the atlas's texels too) glows by itself × the sun's colour × `f35i.json`
+    `day_fill` besides the scene's light, so the panel reads as light and neutral as its render; the scene's light
+    alone left it dark and sky-blue (2026-11-02). The F-16's fill (0.8, the plain colours alone) had made them twice
+    as light as the render (2026-11-01). At night each glows by its colour × `night_flood` (the render's
+    floodlights; the atlas × `night_atlas` more) and the labels by `night_glow` (their green backlight); the F-16's
+    night colour × each colour, tried first, turned the whole panel olive (2026-11-01).
+  * 42.7 k triangles, 6 materials in one mesh plus the named parts, 3.5 MB.
 * **Fill light, tried and dropped (2026-11-01):** a shadowless OmniLight3D 25 cm above the eye (2.5 m range, the
   sun's colour by day, the flood colour at night) shaded the panel well, but cost 1.9 ms GPU at 150 m and 1.2 ms at
   1,500 m on the Iris Xe (the cockpit fills half the screen); the texture-times-colour fill replaced it.

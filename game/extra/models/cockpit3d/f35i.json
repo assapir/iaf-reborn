@@ -5,11 +5,13 @@
   1.15,
   -5.1
  ],
+ "day_fill": 0.9,
  "night_flood": [
   0.25,
   0.27,
   0.3
  ],
+ "night_atlas": 2.6,
  "night_glow": {
   "label": [
    0.18,
@@ -62,6 +64,67 @@
     ],
     "factor": 23.45,
     "offset": -11.725
+   }
+  ],
+  "side_stick": [
+   {
+    "prop": "controls/flight/elevator",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     -1,
+     0,
+     0
+    ],
+    "factor": 3.0,
+    "offset": 0.0
+   },
+   {
+    "prop": "controls/flight/aileron",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     0,
+     0,
+     -1
+    ],
+    "factor": 3.0,
+    "offset": 0.0
+   }
+  ],
+  "throttle": [
+   {
+    "type": "translate",
+    "prop": "controls/engines/engine/throttle-movement",
+    "axis": [
+     0,
+     0,
+     -1
+    ],
+    "table": [
+     [
+      0.0,
+      -0.09
+     ],
+     [
+      0.74,
+      0.0
+     ],
+     [
+      0.75,
+      0.012
+     ],
+     [
+      1.0,
+      0.02
+     ]
+    ]
    }
   ]
  }

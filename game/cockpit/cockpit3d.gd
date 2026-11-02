@@ -147,11 +147,12 @@ const BACKLIGHT_ENERGY := 0.25
 ## The materials left out of the fill (by their texture in the material's name): the tub's floor, walls and pedal area,
 ## the air vents, the stick's grip: no panel, and the fill showed the floor's speckle.
 const UNLIT := ["floor", "pedaladj", "base-color", "airvent", "rear-left", "marked-iron", "stick-color", "tranbg"]
-## The plain colours (the F-35I's, untextured) by <model>.json: by day the scene lights them alone (the fill made the
-## dark grey paint twice as light as its panel render, tools/f35i/cockpit3d.py); at the cockpit's night each glows by
-## its colour × `night_flood` (the render's floodlights), plus `night_glow` (material name -> rgb: the backlit labels).
-## The F-16's night colour × each colour turned the whole panel olive (2026-11-01).
-var _night_mats := {}  # material -> its emission at night
+## The F-35I's colours (its baked atlas and plain colours) by <model>.json: by day each glows by its colour × the sun's
+## × `day_fill` (the F-16's FILL made the dark grey paint twice as light as its panel render, tools/f35i/cockpit3d.py;
+## the scene's light alone left it dark and sky-blue); at the cockpit's night by its colour × `night_flood` (the
+## render's floodlights; the atlas × `night_atlas`), plus `night_glow` (material name -> rgb: the backlit labels). The
+## F-16's night colour × each colour turned the whole panel olive (2026-11-01).
+var _night_mats := {}  # material -> [its emission at night, its colour (× the day's fill)]
 
 
 func _setup_light(model: Node3D) -> void:
@@ -164,12 +165,19 @@ func _setup_light(model: Node3D) -> void:
 			var mat := mi.get_active_material(s) as BaseMaterial3D  # the AoA tape's own copy too
 			if mat == null or mat in _lit_mats or mat in lamp_mats:
 				continue
-			if mat.albedo_texture == null:
-				if meta.has("night_flood") and not mat.emission_enabled:  # not the screens
+			if meta.has("night_flood"):
+				if not mat.emission_enabled:  # not the screens
 					var f: Array = meta.night_flood
 					var g: Array = meta.get("night_glow", {}).get(mat.resource_name, [0, 0, 0])
 					mat.emission_enabled = true
-					_night_mats[mat] = mat.albedo_color * Color(f[0], f[1], f[2]) + Color(g[0], g[1], g[2], 0)
+					if mat.albedo_texture != null:  # the baked atlas: its texels × the flood
+						mat.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY
+						mat.emission_texture = mat.albedo_texture
+					var base := mat.albedo_color  # the atlas's factor (its texels stored lighter)
+					var k := float(meta.get("night_atlas", 1.0)) if mat.albedo_texture != null else 1.0
+					_night_mats[mat] = [base * Color(f[0], f[1], f[2]) * k + Color(g[0], g[1], g[2], 0), base]
+				continue
+			if mat.albedo_texture == null:
 				continue
 			if UNLIT.any(func(u): return mat.resource_name.contains(u)):
 				continue
@@ -197,8 +205,9 @@ func _lighting() -> void:
 	_lit = c
 	for mat: BaseMaterial3D in _lit_mats:
 		mat.emission = c
+	var day := c * (float(meta.get("day_fill", 0.0)) / FILL)
 	for mat: BaseMaterial3D in _night_mats:
-		mat.emission = _night_mats[mat] if cockpit.night else Color.BLACK
+		mat.emission = _night_mats[mat][0] if cockpit.night else _night_mats[mat][1] * day
 
 
 ## The MFD node drawn into a SubViewport shown on `screen` (emissive, under the glass's sheen).
@@ -240,9 +249,11 @@ func _attach_pcd(screen: MeshInstance3D, esis_screen: MeshInstance3D) -> void:
 	p.screen_origin = Vector2(rect[0], rect[1])
 	cockpit._pcd_sheen.screen_px = PCD_PX
 	_pcd = [p, vp, screen] + _uv_frame(screen)
+	_matte(screen)
 	if esis_screen != null:
 		var r: Array = cockpit.layout.PCD.Esis
 		var evp := _screen_viewport(esis_screen, Vector2i(roundi(r[2] * PCD_PX), roundi(r[3] * PCD_PX)))
+		_matte(esis_screen)
 		esis = Pcd.new()
 		esis.setup(cockpit, 2)
 		esis.screen_px = PCD_PX
@@ -265,6 +276,14 @@ func _screen_viewport(screen: MeshInstance3D, px: Vector2i) -> SubViewport:
 	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
 	screen.material_override = mat
 	return vp
+
+
+## The F-35I's displays: a matte anti-reflective glass, black by day (at roughness 0.25 the glass mirrored the sky and
+## its black read navy), a faint broad sheen left.
+func _matte(screen: MeshInstance3D) -> void:
+	var mat := screen.material_override as StandardMaterial3D
+	mat.roughness = 0.7
+	mat.metallic_specular = 0.12
 
 
 ## The screen's UV frame (its quad: local = origin + u · U + v · V), for the clicks and the buttons' places:
@@ -475,7 +494,7 @@ func _prop(p: String) -> float:
 		"instrumentation/clock/indicated-sec":
 			return fmod(float(s.get("tod", 0.0)), 43200.0)
 		"controls/flight/elevator":
-			return float(controls.get("stick_y", 0.0))
+			return -float(controls.get("stick_y", 0.0))  # FlightGear's elevator: + pushes (stick_y: + pulls)
 		"controls/flight/aileron":
 			return float(controls.get("stick_x", 0.0))
 	if p.begins_with("consumables/fuel/total-fuel-lbs-"):

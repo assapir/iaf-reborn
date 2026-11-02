@@ -22,12 +22,12 @@ import math
 import os
 import sys
 
-import bmesh
 import bpy
 import numpy as np
 from mathutils import Matrix, Vector
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "plane"))
+import glb_ktx2  # noqa: E402
 import kit  # noqa: E402
 
 OUT_DIR = sys.argv[sys.argv.index("--") + 1]
@@ -50,6 +50,7 @@ ESIS = (0.075, -0.392, 0.084, 0.066)  # the standby display's centre x, z and si
 GEAR_X, GEAR_Z = -0.305, -0.385  # the gear handle's slot
 LAMPS = {"LIGHT000": (0.262, -0.372), "LIGHT001": (0.322, -0.372)}  # master caution, engine fire: centre x, z
 LAMP_W = 0.040
+STICK = (0.38, 0.44)  # the side-stick's x, y on the right console
 
 
 def on_face(x, z, depth=0.0):
@@ -140,7 +141,7 @@ def spline(pts, n):
     return out
 
 
-def build(mats):
+def build(mats, rail_3d=False):
     box, cyl = kit.box, kit.cyl
     # The panel face: one dark plate behind everything, from the glareshield down past the knees.
     face_box("face", 0, -0.31, 0.80, 0.40, 0.0, mats.panel, d0=-0.03, bevel=0.006)
@@ -218,15 +219,21 @@ def build(mats):
 
     # The canopy's frame along each side: a heavy rounded rail on the sill, bolted, its black seal on top, curving in
     # to the glareshield's ends (the one-piece canopy has no bow in front; its rear arch is behind the head).
+    # With `rail_3d` (the 3D cockpit) each rail runs on aft along f35i_bc.gltf's own rail (tools/f35i/bc.py) and is
+    # RAIL_GROW wider and taller, so it sheathes that rail: one rail with its seal from the glareshield to behind the
+    # arch, no step where the two models meet.
+    grow = RAIL_GROW if rail_3d else 0.0
     for s in (-1, 1):
         rail = spline([(s * 0.47, -0.6, -0.235), (s * 0.47, 0.2, -0.225), (s * 0.465, 0.55, -0.205),
                        (s * 0.44, 0.78, -0.185), (s * 0.40, 0.95, -0.165), (s * 0.36, 1.10, -0.150)], 40)
-        kit.sweep(f"canopy_rail{s}", mats.frame, kit.rounded_rect(0.085, 0.060, 0.022), rail)
+        if rail_3d:
+            rail = [(s * x, y, z) for x, y, z in BC_RAIL] + [p for p in rail if p[1] > BC_RAIL[-1][1] + 0.02]
+        kit.sweep(f"canopy_rail{s}", mats.frame, kit.rounded_rect(0.085 + grow, 0.060 + grow, 0.022), rail)
         kit.sweep(f"canopy_seal{s}", mats.seal, kit.rounded_rect(0.030, 0.014, 0.005),
-                  [(x - s * 0.012, y, z + 0.034) for x, y, z in rail])
+                  [(x - s * 0.012, y, z + 0.034 + grow / 2) for x, y, z in rail])
         for i, p in enumerate(rail[2:-6:3]):
-            cyl(f"rail_bolt{s}_{i}", (p[0] - s * 0.043, p[1], p[2] + 0.008), 0.0035, 0.004, mats.alu, rot=(0, 90, 0),
-                verts=12)
+            cyl(f"rail_bolt{s}_{i}", (p[0] - s * (0.043 + grow / 2), p[1], p[2] + 0.008), 0.0035, 0.004, mats.alu,
+                rot=(0, 90, 0), verts=12)
         # The tub's wall under the rail, and the side console with its panels.
         box(f"wall{s}", (s * 0.47, 0.15, -0.38), (0.03, 1.4, 0.26), mats.panel, bevel=0.006)
         box(f"console{s}", (s * 0.39, 0.10, -0.47), (0.17, 0.95, 0.10), mats.panel, bevel=0.012)
@@ -252,11 +259,12 @@ def build(mats):
     box("throttle_rail", (-0.36, 0.22, -0.415), (0.035, 0.30, 0.012), mats.seal, bevel=0.002)
     box("throttle_arm", (-0.36, 0.30, -0.37), (0.03, 0.05, 0.09), mats.grip, rot=(-15, 0, 0), bevel=0.01)
     box("throttle_grip", (-0.37, 0.31, -0.315), (0.055, 0.085, 0.07), mats.grip, rot=(-15, 0, -8), bevel=0.022)
-    box("stick_base", (0.38, 0.44, -0.425), (0.08, 0.10, 0.03), mats.bezel, bevel=0.008)
-    cyl("stick_boot", (0.38, 0.44, -0.40), 0.020, 0.03, mats.seal, rot=(0, 0, 0))
-    cyl("stick", (0.38, 0.44, -0.37), 0.013, 0.06, mats.grip, rot=(0, 0, 0))
-    box("stick_grip", (0.38, 0.445, -0.31), (0.040, 0.050, 0.085), mats.grip, rot=(-10, 0, 0), bevel=0.016)
-    cyl("stick_hat", (0.38, 0.435, -0.262), 0.006, 0.010, mats.knob, rot=(0, 0, 0))
+    sx, sy = STICK
+    box("stick_base", (sx, sy, -0.425), (0.08, 0.10, 0.03), mats.bezel, bevel=0.008)
+    cyl("stick_boot", (sx, sy, -0.40), 0.020, 0.03, mats.seal, rot=(0, 0, 0))
+    cyl("stick", (sx, sy, -0.37), 0.013, 0.06, mats.grip, rot=(0, 0, 0))
+    box("stick_grip", (sx, sy + 0.005, -0.31), (0.040, 0.050, 0.085), mats.grip, rot=(-10, 0, 0), bevel=0.016)
+    cyl("stick_hat", (sx, sy - 0.005, -0.262), 0.006, 0.010, mats.knob, rot=(0, 0, 0))
 
 
 def floods():
@@ -395,11 +403,34 @@ def lamp_layout(lights):
 
 
 PRESENT_SCALE = 2.0  # as tools/f35i/bc.py: the game draws the cockpit-view model at the Present scale
-BC_CUT = 0.05  # m behind the eye: where f35i_bc.gltf's side rails start (bc.py: -CUT + 0.05)
+# f35i_bc.gltf's right side rail (tools/f35i/bc.py: its path about the eye, aft to fore; the left one mirrored) and how
+# much wider and taller the 3D cockpit's rail is to sheathe it (build rail_3d).
+BC_RAIL = ((0.42, -1.1, -0.20), (0.46, -0.6, -0.23), (0.47, -0.05, -0.23))
+RAIL_GROW = 0.003
 # The gear handle turns about a pivot GEAR_PIVOT m behind the face through the slot's travel (set_gear's 22 mm either
 # side of its centre at the knob).
 GEAR_PIVOT = 0.06
 GEAR_DEG = math.degrees(math.atan2(0.022, 0.046 + GEAR_PIVOT))
+# The side-stick tilts STICK_DEG at full deflection about its boot's top (the real stick barely moves: fractions of an
+# inch, docs/f35i.md §4.5; the angle inferred). The throttle slides along its rail (a linear track): its arm at idle
+# THROTTLE_AFT m behind the render's place (military power), past the afterburner detent (0.75) THROTTLE_AB m ahead
+# of it.
+STICK_PIVOT_Z = -0.39
+STICK_DEG = 3.0
+THROTTLE_AFT, THROTTLE_AB = 0.18, 0.04
+# By day each colour glows by itself × the sun's × DAY_FILL (cockpit3d.gd), so the panel reads as light and neutral as
+# the panel render (lit by its whole sky; the game's sky ambient alone left it dark and blue).
+DAY_FILL = 0.9
+# At night the atlas's flood × NIGHT_ATLAS: its texels at ATLAS_GAIN under a 1 / ATLAS_GAIN factor came out darker than
+# the same paint as a plain colour (the colours multiply in sRGB, cockpit3d.gd), measured against the night render.
+NIGHT_ATLAS = 2.6
+# The baked look (bake_atlas): the base colour atlas and the roughness map's size (px). The atlas is stored ATLAS_GAIN
+# times as light (linear) and its material's base colour factor 1 / ATLAS_GAIN: the dark paint (sRGB 0.2) in the
+# game's 5-6-5 bit compression (S3TC) came out speckled green and purple.
+ATLAS_PX, ROUGH_PX = 2048, 512
+ATLAS_GAIN = 8.0
+# The ambient occlusion in the atlas: rays up to AO_DIST m (real size), fully occluded texels kept at AO_FLOOR.
+AO_DIST, AO_FLOOR, AO_SAMPLES = 0.12, 0.3, 64
 
 
 def screen_quad(name, x, z, w, h, depth, mat):
@@ -416,16 +447,22 @@ def screen_quad(name, x, z, w, h, depth, mat):
     return o
 
 
+# The tub's boxes bevelled: the wear's rubbed edges follow the vertices' pointiness, and a plain box's 8 corners spread
+# them over whole faces (the footwell came out light grey).
+TUB_BEVEL = 0.004
+
+
 def tub(mats):
     """The 3D cockpit's tub under the panel and consoles (the panel render never sees it; f35i_bc.gltf has nothing
     ahead of the eye): the floor, the footwell's front, the walls down to the floor, the seat's front with the
     ejection handle's yellow loop (§4.1)."""
     box = kit.box
-    box("tub_floor", (0, 0.20, -0.92), (0.90, 1.30, 0.02), mats.seal, bevel=0)
-    box("tub_front", (0, 0.80, -0.70), (0.80, 0.02, 0.44), mats.panel, bevel=0)
+    box("tub_floor", (0, 0.20, -0.92), (0.90, 1.30, 0.02), mats.seal, bevel=TUB_BEVEL)
+    box("tub_front", (0, 0.80, -0.70), (0.80, 0.02, 0.44), mats.panel, bevel=TUB_BEVEL)
     for s in (-1, 1):
-        box(f"tub_wall{s}", (s * 0.47, 0.20, -0.72), (0.03, 1.30, 0.40), mats.panel, bevel=0)
-        box(f"tub_console_side{s}", (s * 0.305, 0.215, -0.70), (0.02, 1.18, 0.44), mats.panel, bevel=0)  # to the front
+        box(f"tub_wall{s}", (s * 0.47, 0.20, -0.72), (0.03, 1.30, 0.40), mats.panel, bevel=TUB_BEVEL)
+        box(f"tub_console_side{s}", (s * 0.305, 0.215, -0.70), (0.02, 1.18, 0.44), mats.panel,  # to the front
+            bevel=TUB_BEVEL)
     box("seat_pan", (0, -0.25, -0.62), (0.42, 0.40, 0.08), mats.grip, bevel=0.02)
     box("seat_front", (0, -0.06, -0.78), (0.42, 0.04, 0.26), mats.grip, bevel=0.01)
     for s in (-1, 1):
@@ -433,87 +470,177 @@ def tub(mats):
     box("seat_handle_bar", (0, -0.035, -0.67), (0.135, 0.012, 0.015), mats.yellow, bevel=0.003)
 
 
-def trim_aft(objs, y0):
-    """Drop the faces of `objs` aft of y = y0 (cut there first): f35i_bc.gltf draws what is behind."""
-    kit.bisect(objs, lambda c: True, (0, y0, 0), (0, 1, 0))
+def bake_atlas(objs, baked):
+    """The panel render's look on `objs` (their materials `baked`: the wear's mottled colour and roughness, the rubbed
+    edges) baked in Cycles into one base colour atlas and one roughness map over a shared Smart UV Project, and one
+    material `cockpit_baked` in their place. The colour carries the ambient occlusion (AO_DIST, AO_FLOOR) of the whole
+    cockpit: the corners, round the bezels and switches, under the glareshield, in the render's soft light. The grain
+    (a sub-mm bump, under a texel) and the clear coat are left out."""
+    sc = kit.scene()
+    sc.render.engine = 'CYCLES'
+    sc.cycles.device = 'CPU'
+    sc.cycles.samples = 4
+    sc.render.bake.margin = 4
+    kit.deselect()
     for o in objs:
-        bm = bmesh.new()
-        bm.from_mesh(o.data)
-        bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.calc_center_median().y < y0], context='FACES')
-        bm.to_mesh(o.data)
-        bm.free()
+        while o.data.uv_layers:
+            o.data.uv_layers.remove(o.data.uv_layers[0])
+        o.data.uv_layers.new(name="UVMap")
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = objs[0]
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=0.002)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    col = bpy.data.images.new("cockpit_colour", ATLAS_PX, ATLAS_PX)
+    rough = bpy.data.images.new("cockpit_rough", ROUGH_PX, ROUGH_PX, is_data=True)
+    ao = bpy.data.images.new("cockpit_ao", ATLAS_PX, ATLAS_PX, is_data=True)
+    if sc.world is None:
+        sc.world = bpy.data.worlds.new("bake")
+    sc.world.light_settings.distance = AO_DIST / PRESENT_SCALE  # the model is at half size here
+    nodes = []
+    for m in baked:
+        n = m.node_tree.nodes.new("ShaderNodeTexImage")
+        m.node_tree.nodes.active = n
+        nodes.append(n)
+    for img, kind, extra in ((ao, 'AO', {}), (col, 'DIFFUSE', {"pass_filter": {'COLOR'}}), (rough, 'ROUGHNESS', {})):
+        for n in nodes:
+            n.image = img
+        sc.cycles.samples = AO_SAMPLES if img is ao else 4
+        bpy.ops.object.bake(type=kind, **extra)
+        if img is col:
+            px = np.array(img.pixels[:], dtype=np.float32).reshape(-1, 4)
+            occ = np.array(ao.pixels[:], dtype=np.float32).reshape(-1, 4)[:, :1]
+            c = px[:, :3]
+            lin = np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4) * ATLAS_GAIN
+            lin *= AO_FLOOR + (1.0 - AO_FLOOR) * occ
+            px[:, :3] = np.where(lin <= 0.0031308, lin * 12.92, 1.055 * np.minimum(lin, 1.0) ** (1 / 2.4) - 0.055)
+            img.pixels.foreach_set(px.ravel())
+        img.pack()
+    m = bpy.data.materials.new("cockpit_baked")
+    m.use_nodes = True
+    nt = m.node_tree
+    b = nt.nodes["Principled BSDF"]
+    t = nt.nodes.new("ShaderNodeTexImage")
+    t.image = col
+    nt.links.new(t.outputs["Color"], b.inputs["Base Color"])
+    r = nt.nodes.new("ShaderNodeTexImage")
+    r.image = rough
+    sep = nt.nodes.new("ShaderNodeSeparateColor")
+    nt.links.new(r.outputs["Color"], sep.inputs["Color"])
+    nt.links.new(sep.outputs["Green"], b.inputs["Roughness"])
+    b.inputs["Metallic"].default_value = 0.0
+    for o in objs:
+        o.data.materials.clear()
+        o.data.materials.append(m)
 
 
 def export_glb(out, eye_g):
     """The 3D cockpit (game/cockpit/cockpit3d.gd): build() with plain colours, the tub, the screens as flat quads
     `PCD` (the display's glass) and `ESIS` (the standby display), the lamp lenses as their own nodes
-    `lamp_<key>_0` and the gear handle `gear_handle` (its lamp `lamp_gear_transit_0` on it) turning about its pivot;
-    everything else one mesh. In the cockpit-view model's frame: the eye at eye_g (glTF: +Y up, -Z nose), half size
-    about it."""
-    mats = Mats(flat=True)
-    build(mats)
+    `lamp_<key>_0`, the gear handle `gear_handle` (its lamp `lamp_gear_transit_0` on it) turning about its pivot, the
+    side-stick `side_stick` tilting about its boot and the throttle `throttle` sliding on its rail; everything else
+    one mesh. The large surfaces (panel, glareshield, bezels, canopy frame, seals, grips, the tub) carry the render's
+    look baked into textures (bake_atlas), the rest plain colours; written with KTX2 textures (tools/plane/glb_ktx2.py,
+    needs `basisu`). In the cockpit-view model's frame: the eye at eye_g (glTF: +Y up, -Z nose), half size about it."""
+    # The plain colours first (their names unsuffixed: cockpit3d.gd reads `label`), then the render's (its wear nodes
+    # baked), the plain ones in place of the rest after the bake.
+    flat = Mats(flat=True)
+    mats = Mats()
+    build(mats, rail_3d=True)
     gear = gear_handle(mats)
     set_gear(gear, 0.5)
     tub(mats)
     for n in ("pcd_glass", "esis_glass"):  # the quads take their front faces' places
         bpy.data.objects.remove(bpy.data.objects[n])
-    pcd = screen_quad("PCD", 0, PCD_TOP - PCD[1] / 2, PCD[0], PCD[1], GLASS_D, mats.glass)
+    pcd = screen_quad("PCD", 0, PCD_TOP - PCD[1] / 2, PCD[0], PCD[1], GLASS_D, flat.glass)
     ex, ez, ew, eh = ESIS
-    esis = screen_quad("ESIS", ex, ez, ew, eh, 0.0245, mats.screen)
+    esis = screen_quad("ESIS", ex, ez, ew, eh, 0.0245, flat.screen)
     objs = [o for o in kit.scene().objects if o.type == 'MESH']
     kit.deselect()
     for o in objs:  # the bevels applied (a join keeps only the active object's modifiers)
         o.select_set(True)
     bpy.context.view_layer.objects.active = objs[0]
     bpy.ops.object.convert(target='MESH')
-    # The canopy rails, seals and bolts aft of where f35i_bc.gltf's own rails begin.
-    for o in [o for o in objs if o.name.startswith("rail_bolt") and o.matrix_world.translation.y < -BC_CUT]:
-        objs.remove(o)
-        bpy.data.objects.remove(o)
-    trim_aft([o for o in objs if o.name.startswith(("canopy_rail", "canopy_seal"))], -BC_CUT)
     eye = Vector((eye_g[0], -eye_g[2], eye_g[1]))  # Blender: Z up, +Y nose
     k = Matrix.Translation(eye) @ Matrix.Scale(1.0 / PRESENT_SCALE, 4)
     pivot = k @ Vector(on_face(GEAR_X, GEAR_Z, -GEAR_PIVOT))
+    stick_pivot = k @ Vector((*STICK, STICK_PIVOT_Z))
     for o in objs:
         o.matrix_world = k @ o.matrix_world
     kit.bake_transforms(objs)
+    baked = [mats.panel, mats.rubber, mats.bezel, mats.frame, mats.grip, mats.seal]
+    bake_atlas([o for o in objs if o.data.materials and o.data.materials[0] in baked], baked)
+    swap = {getattr(mats, a): getattr(flat, a) for a in vars(mats) if a != "lens"}
+    swap.update({mats.lens[key]: flat.lens[key] for key in mats.lens})
+    for o in objs:
+        for i, m in enumerate(o.data.materials):
+            o.data.materials[i] = swap.get(m, m)
     named = {"PCD": pcd, "ESIS": esis, "lamp_master_caution_0": bpy.data.objects["LIGHT000_lens"],
              "lamp_eng_fire_0": bpy.data.objects["LIGHT001_lens"], "lamp_gear_transit_0": gear[3]}
     handle = kit.join(gear[:3], "gear_handle")
-    for o in list(named.values()) + [handle]:  # the origin on the node's centre (the handle's on its pivot)
+    stick = kit.join([bpy.data.objects[n] for n in ("stick", "stick_grip", "stick_hat")], "side_stick")
+    throttle = kit.join([bpy.data.objects[n] for n in ("throttle_arm", "throttle_grip")], "throttle")
+    moving = [handle, stick, throttle]
+    for o in list(named.values()) + moving:  # the origin on the node's centre (the handle's, the stick's on its pivot)
         vs = [v.co for v in o.data.vertices]
-        at = pivot if o is handle else (Vector(map(min, *vs)) + Vector(map(max, *vs))) / 2
+        at = {handle: pivot, stick: stick_pivot}.get(o, (Vector(map(min, *vs)) + Vector(map(max, *vs))) / 2)
         o.data.transform(Matrix.Translation(-at))
         o.location = at
     for name, o in named.items():
         o.name = o.data.name = name
     root = bpy.data.objects.new("f35i_cockpit3d", None)
     kit.scene().collection.objects.link(root)
-    keep = set(named.values()) | {handle}
+    keep = set(named.values()) | set(moving)
     body = kit.join([o for o in kit.scene().objects if o.type == 'MESH' and o not in keep], "f35i_cockpit3d_body")
-    for o in [body, handle] + list(named.values()):
+    for o in [body] + moving + list(named.values()):
         o.parent = root
     lamp = named["lamp_gear_transit_0"]
     lamp.parent = handle
     lamp.location = lamp.location - pivot
     for o in kit.scene().objects:
         o.select_set(True)
-    bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', export_yup=True, use_selection=True,
-                              export_apply=True, export_lights=False, export_cameras=False)
+    tmp = out + ".png.glb"
+    bpy.ops.export_scene.gltf(filepath=tmp, export_format='GLB', export_yup=True, use_selection=True,
+                              export_apply=True, export_lights=False, export_cameras=False, export_image_format='AUTO')
+    doc, blob = glb_ktx2.read_glb(tmp)
+    for m in doc["materials"]:
+        if m["name"] == "cockpit_baked":
+            m["pbrMetallicRoughness"]["baseColorFactor"] = [1 / ATLAS_GAIN] * 3 + [1.0]
+    glb_ktx2.write_glb(tmp, doc, [bytes(blob[v.get("byteOffset", 0):v.get("byteOffset", 0) + v["byteLength"]])
+                                  for v in doc["bufferViews"]])
+    glb_ktx2.convert(tmp, out, uastc_all=True)  # ETC1S speckled the dark atlas green and blue
+    os.remove(tmp)
 
     def lens(key):
         return [round(c, 3) for c in
-                mats.lens[key].node_tree.nodes["Principled BSDF"].inputs["Emission Color"].default_value[:3]]
-    # At night (cockpit3d.gd) every plain colour × night_flood (the render's floodlights, floods()) and the labels'
+                flat.lens[key].node_tree.nodes["Principled BSDF"].inputs["Emission Color"].default_value[:3]]
+    # At night (cockpit3d.gd) every colour (the atlas's texels too) × night_flood (the render's floodlights, floods())
+    # and the labels'
     # night_glow (their backlight, Mats.night).
     meta = {"source": "ours, tools/f35i/cockpit3d.py --glb", "eye": [round(v, 5) for v in eye_g],
-            "night_flood": [0.25, 0.27, 0.3], "night_glow": {"label": [0.18, 0.6, 0.25]},
+            "day_fill": DAY_FILL, "night_flood": [0.25, 0.27, 0.3], "night_atlas": NIGHT_ATLAS,
+            "night_glow": {"label": [0.18, 0.6, 0.25]},
             "lamps": {"lamp_master_caution_0": {"key": "master_caution", "hide": False, "colour": lens("LIGHT000")},
                       "lamp_eng_fire_0": {"key": "eng_fire", "hide": False, "colour": lens("LIGHT001")},
                       "lamp_gear_transit_0": {"key": "gear_transit", "hide": False, "colour": lens("gear")}},
             # Up at -GEAR_DEG, down at +GEAR_DEG about the x axis through the pivot (the node's origin).
-            "animations": {"gear_handle": [{"prop": "controls/gear/gear-down", "centre": [0, 0, 0], "axis": [1, 0, 0],
-                                            "factor": round(2 * GEAR_DEG, 3), "offset": round(-GEAR_DEG, 3)}]}}
+            "animations": {
+                "gear_handle": [{"prop": "controls/gear/gear-down", "centre": [0, 0, 0], "axis": [1, 0, 0],
+                                 "factor": round(2 * GEAR_DEG, 3), "offset": round(-GEAR_DEG, 3)}],
+                # A pull (FlightGear's elevator -1) tilts the grip aft (+z), right (aileron +) to +x, about the
+                # pivot (its origin).
+                "side_stick": [{"prop": "controls/flight/elevator", "centre": [0, 0, 0], "axis": [-1, 0, 0],
+                                "factor": STICK_DEG, "offset": 0.0},
+                               {"prop": "controls/flight/aileron", "centre": [0, 0, 0], "axis": [0, 0, -1],
+                                "factor": STICK_DEG, "offset": 0.0}],
+                # Slid forward (-z) by the throttle (0..1: 0.74 military, from 0.75 the afterburner), in the model's
+                # half-size metres.
+                "throttle": [{"type": "translate", "prop": "controls/engines/engine/throttle-movement",
+                              "axis": [0, 0, -1],
+                              "table": [[0.0, -THROTTLE_AFT / PRESENT_SCALE], [0.74, 0.0],
+                                        [0.75, THROTTLE_AB * 0.6 / PRESENT_SCALE],
+                                        [1.0, THROTTLE_AB / PRESENT_SCALE]]}]}}
     json.dump(meta, open(os.path.splitext(out)[0] + ".json", "w"), indent=1)
     tris = sum(len(p.vertices) - 2 for o in kit.scene().objects if o.type == 'MESH' for p in o.data.polygons)
     print("COCKPIT3D", out, "triangles", tris, "bytes", os.path.getsize(out), "materials", len(body.data.materials))

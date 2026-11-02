@@ -40,8 +40,8 @@ func run() -> void:
 
 ## The F-35I's (ours, f35i.glb): in its cockpit-view model, the panoramic display ahead and below the eye, drawn
 ## into a SubViewport on its glass, the standby display into its own; the helmet HUD unmasked over the whole view;
-## the wide view; a tap on the first portal's header opens its MENU grid; the master caution lamp and the gear
-## handle follow the cockpit; the plain colours take the fill light.
+## the wide view; a tap on the first portal's header opens its MENU grid; the master caution lamp, the gear
+## handle, the side-stick and the throttle follow the cockpit; the colours take the fill light.
 func _f35i() -> void:
 	settings().f35i_slot = 1
 	settings().cockpit_3d = "3d"
@@ -104,10 +104,36 @@ func _f35i() -> void:
 		c3._process(0.0)
 		turned.append(handle.transform.basis.get_euler().x)
 	check(turned[0] < -0.1 and turned[1] > 0.1, "F-35I 3D: the gear handle up and down (%s rad)" % [turned])
-	# The labels: dark by day, glowing at night.
+	# The side-stick tilts with the flight model's stick (3°: right to +x, pulled aft to +z); the throttle slides
+	# forward (-z) from idle to afterburner, a step at the detent.
+	var stick := c3.find_child("side_stick", true, false) as Node3D
+	var tilt := []
+	for v in [Vector2.ZERO, Vector2(1, 0), Vector2(0, 1)]:
+		c3.controls = {"stick_x": v.x, "stick_y": v.y}
+		c3._process(0.0)
+		tilt.append(stick.transform.basis.get_euler() if stick != null else Vector3.ZERO)
+	check(
+		tilt[0].length() < 0.001 and tilt[1].z < -0.04 and tilt[2].x > 0.04,
+		"F-35I 3D: the side-stick tilts with stick_x / stick_y (%s rad)" % [tilt]
+	)
+	var thr := c3.find_child("throttle", true, false) as Node3D
+	var slid := []
+	for t in [0.0, 0.74, 0.75, 1.0]:
+		c.state.throttle = t
+		c3._process(0.0)
+		slid.append(thr.position.z if thr != null else 0.0)
+	check(
+		slid[0] - slid[1] > 0.05 and slid[1] - slid[2] > 0.005 and slid[2] > slid[3],
+		"F-35I 3D: the throttle slides forward with the throttle, past the afterburner detent (z %s)" % [slid]
+	)
+	c3.controls = {}
+	# By day every colour lit by the sun's fill (the baked atlas among them), at night by the flood, the labels glowing.
 	var day: bool = c3._night_mats.size() > 5
+	var atlas := false
 	for m: BaseMaterial3D in c3._night_mats:
-		day = day and m.emission == Color.BLACK
+		day = day and m.emission.r > 0.0
+		atlas = atlas or m.albedo_texture != null
+	check(atlas, "F-35I 3D: the panel's baked texture atlas")
 	var night: bool = c.night
 	c.night = true
 	c3._lighting()
@@ -115,7 +141,7 @@ func _f35i() -> void:
 	for m: BaseMaterial3D in c3._night_mats:
 		lit = lit and m.emission.g > (0.5 if m.resource_name == "label" else 0.0)
 	c.night = night
-	check(day and lit, "F-35I 3D: the plain colours unlit by day, flood-lit at night, the labels glowing")
+	check(day and lit, "F-35I 3D: the colours sun-filled by day, flood-lit at night, the labels glowing")
 	tv.queue_free()
 	await frames(2)
 	settings().f35i_slot = -1

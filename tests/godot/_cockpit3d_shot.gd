@@ -175,7 +175,9 @@ func _seen_at(n: Node3D, s: Vector2) -> Vector2:
 
 
 ## C3D_JET=f35i: the F-35I's (by day; C3D_HOUR=22 its night scene): ahead, down at the panoramic display, left, right,
-## back, and the gear panel with the lamps lit; the SubViewports' GPU time.
+## both again with the throttle in afterburner and the stick full right and pulled (_moved), back, back left, the left
+## canopy rail where it runs on over the cockpit-view model's (rail), and the gear panel with the lamps lit; the
+## SubViewports' GPU time.
 func _f35i(hour: float) -> void:
 	var spec: Array = (COCKPITS.cockpit_f35i_night if hour >= 20.0 else COCKPITS.cockpit_f35i_day).duplicate()
 	await _cockpit_scene("f35i", spec)
@@ -185,10 +187,36 @@ func _f35i(hour: float) -> void:
 		vps = {"PCD": c.pcd.get_parent(), "ESIS": tv.cockpit_3d.esis.get_parent()}
 	for name in vps:
 		RenderingServer.viewport_set_measure_render_time(vps[name].get_viewport_rid(), true)
-	for v in [["down", 0.0, -20.0], ["left", -80.0, -30.0], ["right", 80.0, -30.0], ["back", 150.0, 0.0]]:
+	# The side views with the controls moved: the throttle in afterburner, the stick full right and pulled (the state
+	# written each frame between the flight's write and the 3D cockpit's read, as _gauges).
+	var src := GDScript.new()
+	src.source_code = (
+		"extends Node\nvar c: Control\nvar c3: Node3D\nvar on := false\n\nfunc _process(_d):\n"
+		+ "\tif on:\n\t\tc.state.throttle = 1.0\n\t\tif c3 != null:\n"
+		+ "\t\t\tc3.controls = {'stick_x': 1.0, 'stick_y': 1.0}\n"
+	)
+	src.reload()
+	var forcer := Node.new()
+	forcer.set_script(src)
+	forcer.c = c
+	forcer.c3 = tv.cockpit_3d
+	forcer.process_priority = 5
+	tv.add_child(forcer)
+	for v in [
+		["down", 0.0, -20.0],
+		["left", -80.0, -30.0],
+		["right", 80.0, -30.0],
+		["left_moved", -80.0, -30.0],
+		["right_moved", 80.0, -30.0],
+		["back", 150.0, 0.0],
+		["back_left", -150.0, -5.0],
+		["rail", -105.0, -25.0]
+	]:
+		forcer.on = v[0].ends_with("_moved")
 		tv.views.snap = Vector2(deg_to_rad(v[1]), deg_to_rad(v[2]))
 		await _settle()
 		await _shot("f35i_" + v[0], 0.0)
+	forcer.queue_free()
 	c.indicators[0] = true
 	c.indicators[1] = true
 	tv.gear_down = true
