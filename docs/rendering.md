@@ -454,19 +454,43 @@ They parse on low-priority pool tasks, which leave the decode tasks and the menu
   windowed. Measured 2026-10-28: a script that queues 6 low-priority tasks and quits hung 10 of 10 runs, 0 of 10 when
   it waited for them; a test that starts `Img.prefetch` on the F-16, F-15 and F-4 cockpit art and quits hung 16 of 16
   runs before this change, 0 of 36 after.
-- **Wayland at exit.** A real-render run on Linux can still hang for good after its last line, in Godot's own
-  Wayland shutdown (Godot 4.7.2, unchanged on master 2026-10-29). `WaylandThread::destroy`
+- **Wayland at exit.** A real-render run on Linux could hang for good after its last line, in Godot's own Wayland
+  shutdown (Godot 4.7.2, unchanged on master 2026-10-29). `WaylandThread::destroy`
   (platform/linuxbsd/wayland/wayland_thread.cpp) sets `thread_done`, sends a `wl_display_roundtrip` to wake the
   "Wayland Events" thread, then joins it. That thread checks `thread_done` only after its `poll(…, -1)` returns. When
   it is still dispatching events at that moment, the main thread's roundtrip reads the reply itself, and the events
   thread then polls a socket that gets no more data. Stack taken 2026-10-29 (gdb, Godot's dynamic symbols): the main
   thread in `memdelete<DisplayServer>` → `~DisplayServerWayland` → `Thread::wait_to_finish`, "Wayland Events" in
   `poll`, every pool worker idle. Seen in 2 of 11 runs of the F-16I guide batch (`external`, `tsd_gps`, `mfd_radar`,
-  `dash_9x`), 0 of 4 under gdb, never headless; the game's code plays no part in it. `tools/godot_window.sh` does not
-  avoid it: the project's driver is `wayland`, and with `--display-driver x11` under Xvfb the Intel Vulkan driver
-  finds no present queue ("None of the devices supports both graphics and present queues"), so Godot falls back to
-  the desktop's Wayland compositor. `tools/guide_shots.sh` stops a process 30 s after its RESULT and keeps its
-  pictures.
+  `dash_9x`), 4 of about 12 runs of `_showcase_shot.gd` (2026-10-28), 2 of 6 runs of `_preload_bench.gd`
+  (2026-11-01), never headless; the game's code plays no part in it.
+  `tools/godot_window.sh` does not avoid it: the project's driver is `wayland`, and with `--display-driver x11` under
+  Xvfb the Intel Vulkan driver finds no present queue ("None of the devices supports both graphics and present
+  queues"), so Godot falls back to the desktop's Wayland compositor.
+
+  The workaround (2026-11-01, `crates/iaf-godot/src/exit_wake.rs`): at the extension's last deinit stage (Scene,
+  after the main loop and the pool, before Godot deletes its display server) a thread starts when a "Wayland Events"
+  thread runs. After 1 s it sends that thread SIGURG every 250 ms (a handler that does nothing) until the thread is
+  gone, for at most 30 s. The signal makes `poll` return `EINTR`; the thread then sees `thread_done` and ends, and the
+  join returns. A `poll` interrupted before `thread_done` reads no events and polls again. A clean exit has joined the
+  events thread within the first second and gets no signal.
+
+  Tests, 2026-11-01/02 (Iris Xe, xvfb-run on the Wayland desktop):
+  - The race itself is rare under test: 1 hang in 37 runs of `_preload_bench.gd` (mission 311, 12 under gdb, 12
+    plain, 13 through `godot_window.sh` at 2560 × 1440), the one hang in the last group. Its core was lost: a
+    background job ignores SIGQUIT, so the stop signal did nothing (SIGABRT dumps a core).
+  - Made deterministic with an `LD_PRELOAD` shim: once a marker file exists, the "Wayland Events" thread's `poll`
+    waits on a pipe that never gets data, the end state of the race. A script that writes the marker and quits hung
+    2 of 2 runs before the workaround. The core's stack (debuginfod symbols): the main thread in `Main::cleanup` →
+    `finalize_display` → `~DisplayServerWayland` → `_delete_window` → `RenderingDevice::screen_free` →
+    `_swap_chain_release` → the Intel Vulkan driver's `wl_display_roundtrip_queue` → `wl_display_read_events`,
+    waiting in `pthread_cond_wait` for the other reader; "Wayland Events" in `poll` (`_poll_events_thread`,
+    wayland_thread.cpp:3854). The swapchain's release is a second place where the main thread depends on the events
+    thread. With the workaround the same script exited 4 of 4 runs.
+  - With the workaround, 10 runs of `_preload_bench.gd` through `godot_window.sh` (2560 × 1440): 10 exited
+    cleanly (the natural rate is too low for these 10 to prove it; the shim test does).
+
+  `tools/guide_shots.sh` still stops a process 30 s after its RESULT and keeps its pictures.
 - **The menus.** The preload's terrain runs 2 decode tasks (the flight's 4). A Fly while the flight scene or its
   first frame's art is still loading waits over menu frames (`ready_to_fly`), not in one frame.
 

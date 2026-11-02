@@ -7,6 +7,8 @@ mod bases;
 mod bombs;
 mod city_lights;
 mod emf;
+#[cfg(target_os = "linux")]
+mod exit_wake;
 mod f16_mfd;
 mod fctrl;
 mod flight;
@@ -47,6 +49,14 @@ unsafe impl ExtensionLibrary for IafExtension {
                 let frames: Vec<&str> = bt.lines().filter(|l| !l.ends_with("<unknown>")).collect();
                 godot_error!("[panic backtrace]\n{}", frames.join("\n"));
             }));
+        }
+    }
+
+    fn on_stage_deinit(_stage: InitStage) {
+        // The extension's last stage; Godot deletes its display server after it (exit_wake.rs).
+        #[cfg(target_os = "linux")]
+        if _stage == InitStage::Scene {
+            exit_wake::start();
         }
     }
 }

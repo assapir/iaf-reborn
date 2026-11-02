@@ -138,17 +138,14 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
   stays, spread over the start's frames (tried 2026-11-01, dropped). rendering.md §1.6.
 - **Exit**: Godot hung for good after a run's last line when a low-priority pool task was still queued at the quit
   (a Godot 4.7.2 bug; rendering.md §1.5 "Pool tasks at exit"). Fixed 2026-10-28: every pool task is waited for
-  before the quit. A second kind, in real-render runs (`_cockpit_show_shot.gd`, `_guide_shots.gd`) on Wayland: a race
-  in Godot's own Wayland shutdown, the main thread joining a "Wayland Events" thread stuck in `poll` (stack taken
-  2026-10-29; rendering.md §1.5 "Wayland at exit"); 2 of 11 runs of the F-16I guide batch. Open: an engine bug,
-  not fixed upstream; the guide shots stop such a process 30 s after its RESULT.
+  before the quit. A second kind, in real-render runs on Wayland (also under xvfb-run, where Godot still opens on
+  Wayland): a race in Godot's own Wayland shutdown leaves its "Wayland Events" thread in `poll` while the main thread
+  waits for it (stacks taken 2026-10-29 and 2026-11-01; rendering.md §1.5 "Wayland at exit"). Worked around
+  2026-11-01: from the extension's last deinit stage a thread interrupts that `poll` with a signal until the thread
+  ends (`exit_wake.rs`). The engine bug itself is open upstream.
 - **Scenery trees**: a forest is an even stand, a pine in every 10 m canopy cell of 4 m or more; the real Carmel and
   Galilee are a mosaic of pine, oak maquis and open scrub (needs the cell data rebuilt, scenery.md §3.2 "The hills'
   look"). The near pine model still reads as a fir up close.
-- **Exit, under xvfb**: on 2026-10-28 `_showcase_shot.gd` hung after `RESULT PASS` in 4 of about 12 runs of the hills
-  scenes (Carmel forest), killed by a timeout; its Xvfb then stayed behind holding the GPU lock's file. No stack
-  taken (the run watched with gdb exited cleanly). Likely the Wayland exit race above (inferred): under xvfb-run
-  Godot still opens on Wayland, as Vulkan cannot present on Xvfb (rendering.md §1.5 "Wayland at exit"); open.
 - **City lights** (rendering.md §5.1): Turkey's Hatay strip and Saudi Arabia's corner of the theatre have no
   building source (dark); from above the cloud layer the towns show only faintly through it. Roads Detailed (rendering.md §1.8) draws the
   roads, their lane markings at Israel's out-of-town sizes (the median's double white line on dual carriageways) and
