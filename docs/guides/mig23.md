@@ -268,8 +268,8 @@ call the tower.
 
 ![Final approach: the К and Г bars](shots/mig23/landing.png)
 
-1. **«К»** (course): the vertical ILS (instrument landing system) bar, the runway's centreline.
-2. **«Г»** (glide): the horizontal bar, the glide path[^n003e].
+1. **«К»** (course) at the top of the vertical ILS (instrument landing system) bar: the runway's centreline.
+2. **«Г»** (glide) at the left end of the horizontal bar: the glide path[^n003e].
 3. **Fixed cross**.
 
 **Example**: 4 km short of the runway at about 700 ft the К bar lies on the runway's centreline. Steer toward the К

@@ -276,7 +276,7 @@ third: inside 3,000 ft. Put the pipper on the MiG and hold **Tab** for a 1 s bur
 
 ![STRF in a 20° dive at 2,177 ft](shots/cfir/hud_strf.png)
 
-1. **Strafe pipper** (a dot in a 20 mr circle): where the rounds hit. The target sits under it here.
+1. **Strafe pipper** (a dot in a 20 mr circle): where the rounds hit. The target sits just above the dot here, inside the circle.
 2. **Flight path marker**.
 3. **Mode**: `STRF`.
 4. **Altitude**: 2,177 ft above sea level, about 1,970 ft above this ground.
@@ -326,7 +326,7 @@ guide you to the nearest airbase's runway.
    line and on a 5° glide path. It drops when you are high.
 4. **ILS localizer line**: through the HUD's centre here: you are on the runway's centre line.
 5. **Steering bug** under the heading: the waypoint lies ahead.
-6. **Waypoint marker**: waypoint 1, ahead on the runway.
+6. **Waypoint marker**: waypoint 1, 6.8 NM ahead (`D6.8`), beyond the runway.
 7. **Airspeed**: 141 kt.
 8. **Altitude**: about 900 ft.
 

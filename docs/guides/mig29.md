@@ -207,11 +207,11 @@ target: **Shift+arrows** (free look) or **F3** (padlock); **Space** fires.
 ![The Щель-3УМ helmet sight on a MiG-21 45° left](shots/mig29/helmet.png)
 
 1. **«ШЛЕМ»** (helmet): the helmet sight is aiming.
-2. **Seeker diamond** on the target the seeker tracks.
+2. **Seeker diamond**: where the seeker looks, here just under the MiG it tracks.
 3. **Aiming cross** on your line of sight. «ПР» flashes above it when the missile can fire; an X shows when the
    target is outside the seeker's limits (±60° in azimuth, +60 / −14°).
 
-**Example**: the MiG-21 flies away 2,000 m off, 45° left of the nose. Look at it: the seeker diamond settles on the
+**Example**: the MiG-21 flies away 2,000 m off, 45° left of the nose. Look at it: the seeker diamond follows the
 MiG and «ПР» flashes. Fire without turning the jet.
 
 ---
@@ -293,8 +293,9 @@ per interval; the stores page sets it).
 2. **Mode name**: ОПТ ЗЕМЛЯ (optical, ground).
 3. **Aircraft cross**: the fall line runs from it to the pipper.
 
-**Example**: two MK-83s, a 45° dive at 428 kt (220 m/s), 800 m (2,600 ft) above the ground. Steer so that the target
-slides down the fall line, and release when it reaches the pipper.
+**Example**: two MK-83s, a 45° dive at 220 m/s (428 kt) true airspeed, 760 km/h indicated on the HUD, 800 m
+(2,600 ft) above the ground. Steer so that the target slides down the fall line, and release when it reaches the
+pipper.
 
 ---
 
@@ -310,7 +311,7 @@ call the tower.
 3. **Steering circle**.
 4. **Radar height** in metres.
 
-**Example**: 261 km/h (141 kt), about 200 m (650 ft) above the ground, 4 km short of the runway. The ILS (instrument
+**Example**: 261 km/h (141 kt), about 200 m (650 ft) above the ground, 3.4 km from the waypoint. The ILS (instrument
 landing system) bars cross near the aircraft cross: steer toward the vertical bar, climb or descend toward the
 horizontal one, and bring the speed up to about 160 kt.
 

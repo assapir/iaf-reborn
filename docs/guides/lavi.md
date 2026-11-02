@@ -286,7 +286,7 @@ DEFA; the game gives it the 20 mm gun with the game's own round count (its real 
 ![STRF in a 20° dive](shots/lavi/hud_strf.png)
 
 1. **Strafe pipper** (a dot in a 12 mr circle): where the rounds hit.
-2. **Gun cross**: the gun line, the reference while strafing.
+2. **Gun cross**: the gun line, the reference while strafing. In this dive it sits over the heading box.
 3. **Mode**: `STRF`.
 4. **Radar altitude**: 1,969 ft.
 
@@ -356,7 +356,7 @@ The ILS (instrument landing system) needles ride the flight path marker: fly the
 3. **ILS localizer needle**: through the marker here: you are on the runway's centre line.
 4. **AoA** in degrees: `AOA 5.0`.
 5. **Radar altitude**: about 700 ft above the ground.
-6. **Steerpoint diamond**: steerpoint 1, ahead on the runway.
+6. **Steerpoint diamond**: steerpoint 1, 6.8 NM ahead, beyond the runway.
 7. **Airspeed**: 141 kt.
 8. **Heading**: 270°.
 
