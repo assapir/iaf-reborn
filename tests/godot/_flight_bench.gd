@@ -7,10 +7,11 @@
 # 150:250:20,1500:250:20,6000:300:20). BENCH_BEST=1: the best graphics (every Graphics slider / switch up, MSAA 4× +
 # FXAA, terrain close up, atmospheric sky, the modern imagery layers where converted: mapi2015 in Israel, sentinel2
 # outside). BENCH_OFF=a,b: switch parts off to see their cost: terrain (streaming), terrain_draw (the nodes hidden),
-# cockpit, runtime, ai, weapons, effects, trails, overlay, sounds, scene (the whole flight scene's _process), mfd, hud.
-# BENCH_SPIKES=1 prints every frame over 12 ms. BENCH_AT=x,y starts the legs over that engine point (metres; e.g. a
-# dense town with Scenery on: 332520,586500). BENCH_HOUR=h sets the clock (e.g. 22 for night). Each leg also prints the
-# video memory in use at its end. BENCH_SETTLE=s waits that long more before each leg.
+# cockpit, runtime, ai, weapons, effects, trails, overlay, sounds, scene (the whole flight scene's _process), mfd, hud,
+# backlight (the 3D cockpit's backlit labels at night). BENCH_SPIKES=1 prints every frame over 12 ms. BENCH_AT=x,y
+# starts the legs over that engine point (metres; e.g. a dense town with Scenery on: 332520,586500). BENCH_HOUR=h sets
+# the clock (e.g. 22 for night) and the cockpit's night by it. Each leg also prints the video memory in use at its end.
+# BENCH_SETTLE=s waits that long more before each leg.
 extends "res://../tests/godot/base.gd"
 
 
@@ -52,6 +53,8 @@ func run() -> void:
 	if OS.get_environment("BENCH_HOUR") != "":
 		tv.runtime.misc["0x460"] = float(OS.get_environment("BENCH_HOUR")) * 3600.0 - tv.runtime.now
 		tv._tod_t = -INF
+		# The cockpit's night is decided once at the mission's start (terrain_view.gd _update_time_of_day): again here.
+		tv.cockpit.night = preload("res://terrain/time_of_day.gd").cockpit_night(tv.time_of_day())
 	print("layers: ", tv.terrain.layers)
 	tv.frozen = true
 	tv.fm_stopped = true
@@ -62,6 +65,9 @@ func run() -> void:
 				tv.terrain.set_process(false)
 			"terrain_draw":
 				tv.terrain.visible = false
+			"backlight":  # the 3D cockpit's backlit labels' pass at night (cockpit3d.gd _setup_backlight)
+				tv.cockpit_3d._backlight_on(false)
+				tv.cockpit_3d._backlights.clear()
 			"cockpit":
 				tv.cockpit.visible = false
 				tv.cockpit.process_mode = Node.PROCESS_MODE_DISABLED

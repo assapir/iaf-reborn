@@ -161,6 +161,12 @@ const FLOOD := Color(0.45, 0.34, 0.18)
 const FLOOD_ENERGY := 0.9
 const BACKLIGHT := Color(0.476, 0.9, 0.161)
 const BACKLIGHT_ENERGY := 0.7
+## The MFDs' brightness at the cockpit's night (ours, as a pilot turns the BRT rocker down): at full brightness the
+## map pages' light grey land (the TSD's, the Sufa's HSD's) glared in the dark cockpit.
+const MFD_NIGHT := 0.3
+## The original TSD page's near-white land darkened by this much at night (Color.darkened; the Sufa's HSD map is
+## darkened by 0.62 at all hours, f16_mfd.gd): turned down alone it still read as a light grey slab.
+const MAP_NIGHT := 0.65
 ## The materials left out of the fill (by their texture in the material's name): the tub's floor, walls and pedal area,
 ## the air vents, the stick's grip: no panel, and the fill showed the floor's speckle.
 const UNLIT := ["floor", "pedaladj", "base-color", "airvent", "rear-left", "marked-iron", "stick-color", "tranbg"]
@@ -307,6 +313,9 @@ func _lighting() -> void:
 	_sun_split()
 	var c := Color.BLACK
 	_backlight_on(cockpit.night)
+	for e in _screens:  # the MFDs turned down at night (MFD_NIGHT), their map fill darker (MAP_NIGHT)
+		(e[2].material_override as StandardMaterial3D).emission_energy_multiplier = MFD_NIGHT if cockpit.night else 1.0
+		e[0].map_dim = MAP_NIGHT if cockpit.night else 0.0
 	if cockpit.night:
 		c = FLOOD * FLOOD_ENERGY
 	elif _sun != null:
@@ -665,6 +674,9 @@ func _setup_instruments(model: Node3D) -> void:
 		var mats := _own_materials(mi)
 		for m in mats:
 			m.emission_enabled = true
+			# Its texture × its colour (FlightGear's emission). Godot's default adds the two: the colour (white on the
+			# AoA indexer) lit the whole face white (until 2026-11-02).
+			m.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY
 			m.emission_texture = m.albedo_texture
 			m.emission = Color(c[0], c[1], c[2])
 		_lamps.get_or_add(rec.key, []).append([mi, bool(rec.hide), mats])

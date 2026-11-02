@@ -403,7 +403,7 @@ func hsd() -> void:
 				pts.append(to_scope(w, HSD_OWN, mpp))
 			for piece in Geometry2D.intersect_polygons(pts, clip):
 				if piece.size() >= 3 and not Geometry2D.triangulate_polygon(piece).is_empty():
-					ci.draw_colored_polygon(piece, Color(piece_src.color).darkened(0.62))
+					ci.draw_colored_polygon(piece, Color(piece_src.color).darkened(maxf(0.62, m.map_dim)))
 	label(1, "DEP")
 	label(5, "CNTL")
 	stepper("%d" % int(nm))

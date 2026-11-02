@@ -509,8 +509,11 @@ occlusion, 1.8 MB; built by
   photos[^f16-photos]). Under every knob's and throttle button's UV footprint the sheets' light grey texels are
   darkened to a fifth (the white index lines and labels kept; a footprint crossing the sheet's edge wraps round it),
   the three big knobs are black and the guards dark grey; the Block 50 AUDIO 1 and UHF panels are flat in
-  FlightGear, their knobs painted light grey on the sheet (`panels-B50-left_console.png`): that whole sheet's light
-  grey is darkened the same way (`KNOBS_PAINTED`). The stick's boot (`F-16-FS.ac` `Grommet`, untextured white) is
+  FlightGear, their knobs painted light grey on the sheet (`panels-B50-left_console.png`): that sheet's round light
+  grey areas are darkened the same way (`KNOBS_PAINTED`). An area filling more than 90 % of its bounding box is a
+  square or a card, not a knob (`KNOB_PAINT_SQUARE`: the UHF channel card, the AUX COMM channel windows, the small grey
+  squares), and the ANTI-G panel's TEST button is a push button (`KNOB_PAINT_NOT`): these keep their paint (until
+  2026-11-02 the whole sheet's light grey was darkened, these too). The stick's boot (`F-16-FS.ac` `Grommet`, untextured white) is
   black rubber as the pedals.
 * **The canopy sills** (2026-11-02). FlightGear's sill is the tub's border strip under the canopy frame's skirt, and
   the detailed F-16's cut model drew the frame's skirt flat gunship grey (`aircraft_model.gd` `F16_FRAME_COLOUR`):
@@ -642,13 +645,16 @@ occlusion, 1.8 MB; built by
   | FLCS, TO/LDG CONFIG | `better` `flcs`, `to_ldg_config` (as the 2D panel's warning lamps) |
   | ENGINE | damage flag 2 or 22 (engine cut out, permanent engine damage; inferred) |
   | HYD/OIL PRESS | damage flag 18 (hydraulics; inferred) |
-  | AoA indexer (left of the HUD) | `better` `aoa_index`: 1 the slow chevron, 2 the donut, 3 the fast chevron |
+  | AoA indexer (left of the HUD) | `better` `aoa_index`: 1 the slow chevron (red), 2 the donut (green), 3 the fast chevron (yellow) |
   | AR/NWS (right of the HUD) | `better` `ar_nws` (on the ground) |
   | the three gear lamps | that leg down and locked (`gear_legs[i]` = 2: nose, left, right) |
   | the gear handle's red light | a leg not where the handle is (in transit, or held by gear damage) |
   | LAUNCH (RWR threat panel) | an active RWR entry with its launch flag, blinking at 300 ms as the 2D RWR symbols |
 
-  The 3D cockpit lights them whatever the Better cockpit items say (it is an opt-in of its own). CANOPY, DBU ON,
+  A lit lamp glows by its sheet × its FlightGear emission colour (`EMISSION_OP_MULTIPLY`). Until 2026-11-02 Godot's
+  default added the two: the AoA indexer's white emission lit its whole face white, a white square at the foot of the
+  left HUD post, by day and at night. The 3D cockpit lights them whatever the Better cockpit items say (it is an
+  opt-in of its own). CANOPY, DBU ON,
   TF FAIL and the other lamps stay dark: the game has no state for them.
 * **Displays**, each a SubViewport whose texture lights its screen (emissive, as the MFDs; `cockpit3d_display.gd`):
   * the RWR azimuth indicator (256 px): the 2D panel's RWR symbols (`cockpit.gd` `draw_rwr_symbols`, the F-16
@@ -684,8 +690,12 @@ occlusion, 1.8 MB; built by
   is × the texel's alpha (its clear texels stay dark); it follows a scrolled part's texture (the AoA tape's
   `uv1_offset`). The pass is hung on only at night.
   Until 2026-11-02 the backlight's colour was added to the flood over every texel: the whole panel, the gauges' faces
-  and the ADI ball turned green. The lamps (lit by their state), the MFDs, the RWR scope, EHSI and DED (self-lit
-  screens) and the HUD are as by day. Cost (`_flight_bench.gd`, Iris Xe, 1920×1080, `BENCH_SET=cockpit_3d=3d`,
+  and the ADI ball turned green. The lamps (lit by their state), the RWR scope, EHSI and DED (self-lit screens) are
+  as by day. The MFDs are turned down to 0.3 of their day brightness (`MFD_NIGHT`, ours, as a pilot turns the BRT
+  rocker down), and the original TSD page's map fill is darkened by 0.65 (`MAP_NIGHT`; `mfd.gd` `map_dim`, the
+  Sufa's HSD map by at least as much as its 0.62 by day): at full brightness the map pages' light grey land glared in
+  the dark cockpit, and turned down alone the TSD's near-white land still read as a light grey slab. The Real HUD's greens are no darker than the fifth HUD colour at night (`hud.gd` `REAL_NIGHT_GREEN`,
+  real-hud.md). Cost (`_flight_bench.gd`, Iris Xe, 1920×1080, `BENCH_SET=cockpit_3d=3d`,
   2026-11-01): GPU +0.3 ms at 150 m, +0.2 ms at 1,500 m by day, none at night; the backlit labels' pass: rendering.md
   §3.2.
 * **The sun's shadows** (2026-11-02; `cockpit3d.gd` `_sun_split`): the scene's sun (`terrain_view.tscn` `Sun`, four

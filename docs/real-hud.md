@@ -14,6 +14,12 @@ Key facts:
 - [What ours draws (status)](#what-ours-draws-status) lists, per jet, what the code draws and what it leaves out.
 - [IFF](#iff-identification-friend-or-foe) says how each real jet shows a friend, with a proposed build.
 
+Colour: the HUD's (H cycles the original's eleven, the darkest green first), unless a display sets its own (the
+F-35's helmet, the DASH). At the cockpit's night (`cockpit.night`, the rule that darkens the panel; 2D and 3D) the
+greens are no darker than the fifth, 0, 136, 0 (`hud.gd` `REAL_NIGHT_GREEN`, ours, 2026-11-02): the darkest, the
+run's first, all but vanished against the night sky, where a real HUD's brightness follows the scene. The original
+HUD keeps the colour H set.
+
 Sources are footnotes; a simulator source says so in its footnote. "Inferred" marks our own reconstruction (from
 the era and the maker, recorded in docs/deviations.md); "open" marks what no source gives.
 

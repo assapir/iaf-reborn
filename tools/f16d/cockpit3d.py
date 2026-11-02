@@ -373,9 +373,40 @@ KNOB_WHITE = (0.75, 0.85)
 KNOB_GROW = 4  # texels
 # The left console's radio panels (UHF, AUDIO 1) are flat in places, their knobs painted on the sheets in light grey:
 # on these sheets the grey (unsaturated) light grey areas at least 2 · KNOB_PAINT_MIN + 1 texels across (the painted
-# knobs, not the labels' anti-aliased edges) are darkened too.
+# knobs, not the labels' anti-aliased edges) are darkened too. Only the round ones: an area filling more than
+# KNOB_PAINT_SQUARE of its bounding box is a square or a card (the UHF channel card, the AUX COMM channel windows, the
+# small grey squares), not a knob; nor the ANTI-G panel's TEST button (KNOB_PAINT_NOT: x0, y0, x1, y1, texels from the
+# sheet's top left), a round push button (2026-11-02: both were darkened before).
 KNOBS_PAINTED = ("panels-B50-left_console.png", "panels-MLU-left_console.png")
 KNOB_PAINT_MIN = 2
+KNOB_PAINT_SQUARE = 0.9
+KNOB_PAINT_NOT = ((110, 625, 182, 697),)
+
+
+def round_areas(m):
+    """The 4-connected areas of `m` that are not rectangles (KNOB_PAINT_SQUARE) nor in KNOB_PAINT_NOT."""
+    h, w = m.shape
+    for x0, y0, x1, y1 in KNOB_PAINT_NOT:
+        m[h - 1 - y1:h - y0, x0:x1 + 1] = False  # Blender's rows run up from the bottom
+    seen = np.zeros_like(m)
+    out = np.zeros_like(m)
+    for y, x in zip(*np.nonzero(m)):
+        if seen[y, x]:
+            continue
+        seen[y, x] = True
+        area, todo = [], [(y, x)]
+        while todo:
+            cy, cx = todo.pop()
+            area.append((cy, cx))
+            for ny, nx in ((cy + 1, cx), (cy - 1, cx), (cy, cx + 1), (cy, cx - 1)):
+                if 0 <= ny < h and 0 <= nx < w and m[ny, nx] and not seen[ny, nx]:
+                    seen[ny, nx] = True
+                    todo.append((ny, nx))
+        a = np.array(area)
+        box = (np.ptp(a[:, 0]) + 1) * (np.ptp(a[:, 1]) + 1)
+        if len(a) <= KNOB_PAINT_SQUARE * box:
+            out[a[:, 0], a[:, 1]] = True
+    return out
 
 
 def is_knob(part, name):
@@ -429,7 +460,7 @@ def darken_knobs(b):
         rgb = px.reshape(img.size[1], img.size[0], img.channels)[..., :3]
         lum = rgb @ np.array([0.3, 0.59, 0.11], np.float32)
         grey = (lum > KNOB_GREY[0]) & (lum < KNOB_WHITE[1]) & (rgb.max(-1) - rgb.min(-1) < 0.12)
-        painted = grow(grow(grey, KNOB_PAINT_MIN, np.logical_and), KNOB_PAINT_MIN + 1, np.logical_or)
+        painted = round_areas(grow(grow(grey, KNOB_PAINT_MIN, np.logical_and), KNOB_PAINT_MIN + 1, np.logical_or))
         masks[img] = masks.get(img, np.zeros_like(grey)) | painted
     for img, m in masks.items():
         m = grow(m, KNOB_GROW, np.logical_or)  # past the edges, as the sheet's mipmaps blur it seen from afar

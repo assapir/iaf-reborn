@@ -106,6 +106,9 @@ func _bezel() -> float:
 ## Ours, the 3D cockpit (cockpit3d.gd): the page is drawn into its 3D screen's SubViewport at this many viewport px per
 ## MFD px, the page filling it (0: on the 2D panel).
 var screen_px := 0.0
+## Ours, the 3D cockpit at night (cockpit3d.gd MAP_NIGHT): the TSD's map fill darkened by this much (Color.darkened; 0
+## on the 2D panel).
+var map_dim := 0.0
 
 
 ## Screen px per MFD px.
@@ -1170,7 +1173,7 @@ func _draw_tsd() -> void:
 			for piece in Geometry2D.intersect_polygons(pts, clip):
 				# Skip slivers the clipper leaves (they don't triangulate).
 				if piece.size() >= 3 and not Geometry2D.triangulate_polygon(piece).is_empty():
-					_polygon(piece, poly.color)
+					_polygon(piece, poly.color.darkened(map_dim))
 	# Fixed symbology: range circle r=22, ownship, outer ring r=44 with SCL.
 	_circle(Vector2(65, 85), 22)
 	_clip = Rect2(10, 10, 112, 112)  # the region (10,10)–(122,122)

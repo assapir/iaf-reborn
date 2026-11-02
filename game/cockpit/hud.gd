@@ -228,11 +228,22 @@ func _field() -> Rect2:
 
 
 ## The colour every symbol draws in: the Real HUD frame's own colour (the F-35 helmet's and the DASH's green) when it
-## sets one, so the ILS, weapon and BORE symbols drawn over it match; else the HUD's colour (H cycles it).
+## sets one, so the ILS, weapon and BORE symbols drawn over it match; else the HUD's colour (H cycles it). Ours, the
+## Real HUD at the cockpit's night: its greens no darker than REAL_NIGHT_GREEN (the run's first colour, the darkest,
+## all but vanished against the night sky; a real HUD's brightness follows the scene).
 func _hc() -> Color:
 	var real := real_hud()
 	var c = real.get("colour")
-	return c if c != null else cockpit.hud_colour()
+	if c != null:
+		return c
+	var h: Color = cockpit.hud_colour()
+	if cockpit.night and not real.is_empty() and h.r == 0.0 and h.g < REAL_NIGHT_GREEN.g:
+		return REAL_NIGHT_GREEN
+	return h
+
+
+## The Real HUD's darkest green at night (cockpit.gd HUD_COLOURS' fifth).
+const REAL_NIGHT_GREEN := Color8(0, 0x88, 0)
 
 
 func _pt(p: Vector2) -> Vector2:

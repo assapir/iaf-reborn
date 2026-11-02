@@ -1273,7 +1273,21 @@ F-16, the GPU bench lock held), `BENCH_SET=cockpit_3d=3d` against the 2D panel, 
   totals (they vary by ±30 MB run to run; the glb is 0.2 MB larger). The backlit labels' pass is drawn only at the
   cockpit's night; a run at 22:00 (`BENCH_HOUR=22`) showed no cost against the previous commit (10.7 against 11.1 ms
   at 150 m), but the bench sets the clock after the mission's start, where the cockpit's night is decided, so that
-  pass's own cost is open.
+  pass's own cost was open then (measured below).
+- **The backlit labels' pass at night** (2026-11-02; cockpit.md "Light"): `_flight_bench.gd` now sets the cockpit's
+  night by `BENCH_HOUR` (before, the clock moved after the mission's start had decided it, so a 22:00 run drew the
+  cockpit as by day), and `BENCH_OFF=backlight` takes the pass off. Mission 311 at 22:00, `BENCH_SET=cockpit_3d=3d`,
+  Iris Xe, 1920×1080, the GPU bench lock held, the pass on and off alternated, two runs each; set 1 before the night
+  fixes of the same day, set 2 after them (another session's work loaded the machine, load average 11: the runs vary
+  by 1 to 2 ms):
+
+  | leg | set 1 on | set 1 off | set 2 on | set 2 off |
+  |---|---|---|---|---|
+  | 150 m, 250 m/s | 10.7 / 11.6 ms | 11.7 / 11.5 ms | 12.9 / 12.6 ms | 12.7 / 13.5 ms |
+  | 1,500 m | 13.0 / 14.9 ms | 13.8 / 13.8 ms | 16.2 / 16.7 ms | 15.6 / 15.4 ms |
+
+  No GPU cost to measure: on minus off is −0.5 and −0.4 ms at 150 m, +0.1 and +0.9 ms at 1,500 m, inside the runs'
+  spread. The pass adds 67 draw calls (594 against 527 at 150 m) and about 40 k triangles (467 k against 428 k).
 
 ## 4. Time of day (built: game/terrain/time_of_day.gd)
 
