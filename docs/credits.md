@@ -139,6 +139,10 @@ recordings (public domain); their texts and voices: `iaf-2026/data/sounds/voices
 licence decision (iaf-2026/docs/sound.md §5). The lines the sim's setup wizard (item A3) and its credits roll need:
 iaf-2026/docs/sound.md §6.
 
+The sim's flight data (`tools/iaf-2026/fm0.py`, iaf-2026/docs/flight-model.md) comes from NASA TP-1538[^tp1538], a
+work of the U.S. Government (public domain; no credit required, named anyway), and from the public figures with their
+sources in docs/real-aircraft.md, docs/f16i.md, docs/f15i.md and docs/f35i.md.
+
 ## Testing
 
 * `tests/godot/test_credits.gd` checks:
@@ -167,3 +171,5 @@ iaf-2026/docs/sound.md §6.
 [^ghsl]: European Commission, GHSL Data Package 2023, "Terms of Use" (in each GHS-BUILT-H tile's zip).
 [^chm]: Lang et al. (2023), "A high-resolution canopy height model of the Earth", Nature Ecology & Evolution; data
     and licence: https://langnico.github.io/globalcanopyheight/
+[^tp1538]: L. T. Nguyen et al., NASA TP-1538 (1979), "Simulator Study of Stall/Post-Stall Characteristics of a Fighter
+    Airplane With Relaxed Longitudinal Static Stability": https://ntrs.nasa.gov/citations/19800005879

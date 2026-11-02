@@ -240,8 +240,10 @@ const REAL: &[Real] = &[
         empty_lb: 19_100.0,
         // F-16D internal fuel 870.4 US gal (the C 1,053.1; f-16.net) ≈ 5,800 lb of JP-8 (the C ~7,000 lb).
         fuel_lb: Some(5_800.0),
-        // 19,330 lbf full AB in the original → ~29,000 lbf (F110-GE-100 SL static): scale the whole table.
-        thrust: Thrust::Scale(1.5),
+        // ~29,000 lbf full AB (F110-GE-100 SL static): the original's 19,330.4 lbf × 1.5, written as the absolute value
+        // (bit for bit the same scale on the original data) so the row also fits the IAF 2026 own section
+        // (iaf-2026/docs/flight-model.md).
+        thrust: Thrust::StaticAb(28_995.6),
         // No transonic drag rise in the original: tuned to Mach 1.2 at SL / ~1.9 at 40k ft.
         wave_drag: 0.02,
         // FLCS roll response: time constant ~0.3 s → ~900 deg/s² to start and stop the roll

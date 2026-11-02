@@ -4,7 +4,8 @@
 //! deviations are for review. Rows without a public reference print "-". `IAF_JET=SU22` runs one type.
 //!
 //! `cargo test --release -p iaf-flight --test validation -- --nocapture`
-//! Needs the extracted game data (`assets/install`, or `IAF_INSTALL`).
+//! Needs the extracted game data (`assets/install`, or `IAF_INSTALL`; the sim's own data: `IAF_INSTALL=assets/converted/own`,
+//! iaf-2026/docs/flight-model.md).
 
 use std::path::PathBuf;
 
@@ -480,7 +481,13 @@ fn flyable_jets_against_public_data() {
 }
 
 fn report(dir: &std::path::Path, r: &Ref, set: DataSet) {
-    let (params, envelope) = iaf_flight::load_with(dir, r.aircraft, set).unwrap();
+    // The sim's own data (`IAF_INSTALL=…/converted/own`) holds only its jets' sections: it skips the others. Any other
+    // install must load every type.
+    let own = dir.ends_with("converted/own");
+    let (params, envelope) = match iaf_flight::load_with(dir, r.aircraft, set) {
+        Err(e) if own && e.starts_with("no [") => return println!("\n {} ({set:?} data set): skipped, {e}", r.name),
+        loaded => loaded.unwrap(),
+    };
     let v = r.speed_kt;
     let at = |item: &str| -> &'static str {
         Box::leak(
