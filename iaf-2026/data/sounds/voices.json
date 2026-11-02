@@ -1,0 +1,826 @@
+{
+  "about": "IAF 2026's voices: every speech clip of iaf-2026/data/sounds (Piper TTS through tools/iaf-2026/radio_voice.py --set), the tower's phrase particles and templates (compiled by iaf-sim own into phraseparticalsdata.trx / phrasetemplates.trx, the format game/audio/radio.gd reads, docs/radio.md §1), and the Hebrew lines waiting for a voice. mode: intercom (Betty: band-pass and soft clip), radio (plus hiss and squelch), particle (radio band and hiss level, no squelch: the parts of one transmission).",
+  "voices": {
+    "betty": {
+      "model": "en_US-kristin-medium",
+      "url": "https://huggingface.co/rhasspy/piper-voices/tree/main/en/en_US/kristin/medium",
+      "licence": "Piper model MIT; dataset LibriVox recordings, public domain",
+      "use": "Betty, the cockpit voice warnings (intercom)"
+    },
+    "tower": {
+      "model": "en_US-john-medium",
+      "url": "https://huggingface.co/rhasspy/piper-voices/tree/main/en/en_US/john/medium",
+      "licence": "Piper model MIT; dataset LibriVox recordings, public domain",
+      "use": "the tower (radio)"
+    },
+    "pilot": {
+      "model": "en_US-norman-medium",
+      "url": "https://huggingface.co/rhasspy/piper-voices/tree/main/en/en_US/norman/medium",
+      "licence": "Piper model MIT; dataset LibriVox recordings, public domain",
+      "use": "the player, wingmen and other pilots (radio)"
+    }
+  },
+  "clips": [
+    {
+      "file": "voc_bbetty_pull_up.wav",
+      "voice": "betty",
+      "say": "Pull up. Pull up.",
+      "mode": "intercom"
+    },
+    {
+      "file": "voc_bbetty_altitude.wav",
+      "voice": "betty",
+      "say": "Altitude. Altitude.",
+      "mode": "intercom"
+    },
+    {
+      "file": "voc_bbetty_warning.wav",
+      "voice": "betty",
+      "say": "Warning. Warning.",
+      "mode": "intercom",
+      "note": "the VMS's call for a fire or an engine failure"
+    },
+    {
+      "file": "voc_bbetty_caution.wav",
+      "voice": "betty",
+      "say": "Caution. Caution.",
+      "mode": "intercom"
+    },
+    {
+      "file": "voc_bbetty_bingo.wav",
+      "voice": "betty",
+      "say": "Bingo. Bingo.",
+      "mode": "intercom",
+      "note": "the VMS's fuel call"
+    },
+    {
+      "file": "voc_bbetty_lock.wav",
+      "voice": "betty",
+      "say": "Lock.",
+      "mode": "intercom",
+      "note": "no caller yet"
+    },
+    {
+      "file": "voc_bbetty_chaff_flare.wav",
+      "voice": "betty",
+      "say": "Chaff, flare.",
+      "mode": "intercom",
+      "note": "no caller yet"
+    },
+    {
+      "file": "voc_bbetty_low.wav",
+      "voice": "betty",
+      "say": "Low.",
+      "mode": "intercom",
+      "note": "chaff / flare low; no caller yet"
+    },
+    {
+      "file": "voc_bbetty_out.wav",
+      "voice": "betty",
+      "say": "Out.",
+      "mode": "intercom",
+      "note": "chaff / flare out; no caller yet"
+    },
+    {
+      "file": "voc_bbetty_counter.wav",
+      "voice": "betty",
+      "say": "Counter.",
+      "mode": "intercom",
+      "note": "no caller yet"
+    },
+    {
+      "file": "voc_bbetty_jammer.wav",
+      "voice": "betty",
+      "say": "Jammer.",
+      "mode": "intercom",
+      "note": "no caller yet"
+    },
+    {
+      "file": "voc_bbetty_data.wav",
+      "voice": "betty",
+      "say": "Data.",
+      "mode": "intercom",
+      "note": "no caller yet"
+    },
+    {
+      "file": "voc_bbetty_iff.wav",
+      "voice": "betty",
+      "say": "I F F.",
+      "mode": "intercom",
+      "note": "no caller yet"
+    },
+    {
+      "file": "voc_wingman_eject.wav",
+      "voice": "pilot",
+      "say": "Eject eject eject!",
+      "mode": "radio"
+    },
+    {
+      "file": "voc_target_say_friendly_hit.wav",
+      "voice": "pilot",
+      "say": "Check fire, check fire, you are shooting at friendlies!",
+      "mode": "radio"
+    },
+    {
+      "file": "voc_wingman_say_friendly_hit.wav",
+      "voice": "pilot",
+      "say": "Lead, check your fire, that was a friendly!",
+      "mode": "radio"
+    },
+    {
+      "file": "voc_tower_say_friendly_hit.wav",
+      "voice": "tower",
+      "say": "Cease fire, cease fire, you are hitting friendly forces.",
+      "mode": "radio"
+    },
+    {
+      "file": "endworld.wav",
+      "voice": "tower",
+      "say": "Warning, you are leaving the training area, turn back.",
+      "mode": "radio",
+      "note": "the map edge (terrain_view.gd plays EndWorld.wav)"
+    },
+    {
+      "file": "twr_alpha.wav",
+      "voice": "tower",
+      "say": "Alpha",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_bravo.wav",
+      "voice": "tower",
+      "say": "Bravo",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_charlie.wav",
+      "voice": "tower",
+      "say": "Charlie",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_delta.wav",
+      "voice": "tower",
+      "say": "Delta",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_morning.wav",
+      "voice": "tower",
+      "say": "good morning",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_afternoon.wav",
+      "voice": "tower",
+      "say": "good afternoon",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_evening.wav",
+      "voice": "tower",
+      "say": "good evening",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_wind10.wav",
+      "voice": "tower",
+      "say": "wind one zero knots",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_wind15.wav",
+      "voice": "tower",
+      "say": "wind one five knots",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_wind20.wav",
+      "voice": "tower",
+      "say": "wind two zero knots",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_start.wav",
+      "voice": "tower",
+      "say": "cleared to start",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_taxi_rwy.wav",
+      "voice": "tower",
+      "say": "taxi to runway",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_lineup_rwy.wav",
+      "voice": "tower",
+      "say": "line up runway",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_hold_pos.wav",
+      "voice": "tower",
+      "say": "hold position",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_takeoff.wav",
+      "voice": "tower",
+      "say": "cleared for take-off",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_proceed_rwy.wav",
+      "voice": "tower",
+      "say": "proceed to runway",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_land_rwy.wav",
+      "voice": "tower",
+      "say": "cleared to land runway",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_go_around.wav",
+      "voice": "tower",
+      "say": "go around, runway not clear",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_taxi_park.wav",
+      "voice": "tower",
+      "say": "welcome back, taxi to parking",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_gear_not_down.wav",
+      "voice": "tower",
+      "say": "check gear down",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_wind_calm.wav",
+      "voice": "tower",
+      "say": "wind calm",
+      "mode": "particle"
+    },
+    {
+      "file": "acft_roger.wav",
+      "voice": "pilot",
+      "say": "Roger.",
+      "mode": "particle"
+    },
+    {
+      "file": "num001.wav",
+      "voice": "tower",
+      "say": "zero one",
+      "mode": "particle"
+    },
+    {
+      "file": "num002.wav",
+      "voice": "tower",
+      "say": "zero two",
+      "mode": "particle"
+    },
+    {
+      "file": "num003.wav",
+      "voice": "tower",
+      "say": "zero three",
+      "mode": "particle"
+    },
+    {
+      "file": "num004.wav",
+      "voice": "tower",
+      "say": "zero four",
+      "mode": "particle"
+    },
+    {
+      "file": "num005.wav",
+      "voice": "tower",
+      "say": "zero five",
+      "mode": "particle"
+    },
+    {
+      "file": "num006.wav",
+      "voice": "tower",
+      "say": "zero six",
+      "mode": "particle"
+    },
+    {
+      "file": "num007.wav",
+      "voice": "tower",
+      "say": "zero seven",
+      "mode": "particle"
+    },
+    {
+      "file": "num008.wav",
+      "voice": "tower",
+      "say": "zero eight",
+      "mode": "particle"
+    },
+    {
+      "file": "num009.wav",
+      "voice": "tower",
+      "say": "zero nine",
+      "mode": "particle"
+    },
+    {
+      "file": "num010.wav",
+      "voice": "tower",
+      "say": "one zero",
+      "mode": "particle"
+    },
+    {
+      "file": "num011.wav",
+      "voice": "tower",
+      "say": "one one",
+      "mode": "particle"
+    },
+    {
+      "file": "num012.wav",
+      "voice": "tower",
+      "say": "one two",
+      "mode": "particle"
+    },
+    {
+      "file": "num013.wav",
+      "voice": "tower",
+      "say": "one three",
+      "mode": "particle"
+    },
+    {
+      "file": "num014.wav",
+      "voice": "tower",
+      "say": "one four",
+      "mode": "particle"
+    },
+    {
+      "file": "num015.wav",
+      "voice": "tower",
+      "say": "one five",
+      "mode": "particle"
+    },
+    {
+      "file": "num016.wav",
+      "voice": "tower",
+      "say": "one six",
+      "mode": "particle"
+    },
+    {
+      "file": "num017.wav",
+      "voice": "tower",
+      "say": "one seven",
+      "mode": "particle"
+    },
+    {
+      "file": "num018.wav",
+      "voice": "tower",
+      "say": "one eight",
+      "mode": "particle"
+    },
+    {
+      "file": "num019.wav",
+      "voice": "tower",
+      "say": "one nine",
+      "mode": "particle"
+    },
+    {
+      "file": "num020.wav",
+      "voice": "tower",
+      "say": "two zero",
+      "mode": "particle"
+    },
+    {
+      "file": "num021.wav",
+      "voice": "tower",
+      "say": "two one",
+      "mode": "particle"
+    },
+    {
+      "file": "num022.wav",
+      "voice": "tower",
+      "say": "two two",
+      "mode": "particle"
+    },
+    {
+      "file": "num023.wav",
+      "voice": "tower",
+      "say": "two three",
+      "mode": "particle"
+    },
+    {
+      "file": "num024.wav",
+      "voice": "tower",
+      "say": "two four",
+      "mode": "particle"
+    },
+    {
+      "file": "num025.wav",
+      "voice": "tower",
+      "say": "two five",
+      "mode": "particle"
+    },
+    {
+      "file": "num026.wav",
+      "voice": "tower",
+      "say": "two six",
+      "mode": "particle"
+    },
+    {
+      "file": "num027.wav",
+      "voice": "tower",
+      "say": "two seven",
+      "mode": "particle"
+    },
+    {
+      "file": "num028.wav",
+      "voice": "tower",
+      "say": "two eight",
+      "mode": "particle"
+    },
+    {
+      "file": "num029.wav",
+      "voice": "tower",
+      "say": "two nine",
+      "mode": "particle"
+    },
+    {
+      "file": "num030.wav",
+      "voice": "tower",
+      "say": "three zero",
+      "mode": "particle"
+    },
+    {
+      "file": "num031.wav",
+      "voice": "tower",
+      "say": "three one",
+      "mode": "particle"
+    },
+    {
+      "file": "num032.wav",
+      "voice": "tower",
+      "say": "three two",
+      "mode": "particle"
+    },
+    {
+      "file": "num033.wav",
+      "voice": "tower",
+      "say": "three three",
+      "mode": "particle"
+    },
+    {
+      "file": "num034.wav",
+      "voice": "tower",
+      "say": "three four",
+      "mode": "particle"
+    },
+    {
+      "file": "num035.wav",
+      "voice": "tower",
+      "say": "three five",
+      "mode": "particle"
+    },
+    {
+      "file": "num036.wav",
+      "voice": "tower",
+      "say": "three six",
+      "mode": "particle"
+    },
+    {
+      "file": "rwyl.wav",
+      "voice": "tower",
+      "say": "left",
+      "mode": "particle"
+    },
+    {
+      "file": "rwyr.wav",
+      "voice": "tower",
+      "say": "right",
+      "mode": "particle"
+    },
+    {
+      "file": "rwyc.wav",
+      "voice": "tower",
+      "say": "center",
+      "mode": "particle"
+    }
+  ],
+  "particles": {
+    ",": {
+      "file": "twr_pause.wav",
+      "text": ","
+    },
+    "ALPHA_T": {
+      "file": "twr_alpha.wav",
+      "text": "Alpha"
+    },
+    "BRAVO_T": {
+      "file": "twr_bravo.wav",
+      "text": "Bravo"
+    },
+    "CHARLIE_T": {
+      "file": "twr_charlie.wav",
+      "text": "Charlie"
+    },
+    "DELTA_T": {
+      "file": "twr_delta.wav",
+      "text": "Delta"
+    },
+    "MORNING": {
+      "file": "twr_morning.wav",
+      "text": "good morning"
+    },
+    "AFTERNOON": {
+      "file": "twr_afternoon.wav",
+      "text": "good afternoon"
+    },
+    "EVENING": {
+      "file": "twr_evening.wav",
+      "text": "good evening"
+    },
+    "WI_KNOTS10": {
+      "file": "twr_wind10.wav",
+      "text": "wind 10 knots"
+    },
+    "WI_KNOTS15": {
+      "file": "twr_wind15.wav",
+      "text": "wind 15 knots"
+    },
+    "WI_KNOTS20": {
+      "file": "twr_wind20.wav",
+      "text": "wind 20 knots"
+    },
+    "START": {
+      "file": "twr_start.wav",
+      "text": "cleared to start"
+    },
+    "TAXI_RWY": {
+      "file": "twr_taxi_rwy.wav",
+      "text": "taxi to runway"
+    },
+    "LINEUP_RWY": {
+      "file": "twr_lineup_rwy.wav",
+      "text": "line up runway"
+    },
+    "HOLD_POS": {
+      "file": "twr_hold_pos.wav",
+      "text": "hold position"
+    },
+    "TAKEOFF": {
+      "file": "twr_takeoff.wav",
+      "text": "cleared for take-off"
+    },
+    "PROCEED_RWY": {
+      "file": "twr_proceed_rwy.wav",
+      "text": "proceed to runway"
+    },
+    "LAND_RWY": {
+      "file": "twr_land_rwy.wav",
+      "text": "cleared to land runway"
+    },
+    "GO_AROUND": {
+      "file": "twr_go_around.wav",
+      "text": "go around, runway not clear"
+    },
+    "TAXI_PARK": {
+      "file": "twr_taxi_park.wav",
+      "text": "welcome back, taxi to parking"
+    },
+    "GEAR_NOT_DOWN": {
+      "file": "twr_gear_not_down.wav",
+      "text": "check gear down"
+    },
+    "WIND_CALM": {
+      "file": "twr_wind_calm.wav",
+      "text": "wind calm"
+    },
+    "ROGER": {
+      "file": "acft_roger.wav",
+      "text": "roger"
+    },
+    "1": {
+      "file": "num001.wav",
+      "text": "1"
+    },
+    "2": {
+      "file": "num002.wav",
+      "text": "2"
+    },
+    "3": {
+      "file": "num003.wav",
+      "text": "3"
+    },
+    "4": {
+      "file": "num004.wav",
+      "text": "4"
+    },
+    "5": {
+      "file": "num005.wav",
+      "text": "5"
+    },
+    "6": {
+      "file": "num006.wav",
+      "text": "6"
+    },
+    "7": {
+      "file": "num007.wav",
+      "text": "7"
+    },
+    "8": {
+      "file": "num008.wav",
+      "text": "8"
+    },
+    "9": {
+      "file": "num009.wav",
+      "text": "9"
+    },
+    "10": {
+      "file": "num010.wav",
+      "text": "10"
+    },
+    "11": {
+      "file": "num011.wav",
+      "text": "11"
+    },
+    "12": {
+      "file": "num012.wav",
+      "text": "12"
+    },
+    "13": {
+      "file": "num013.wav",
+      "text": "13"
+    },
+    "14": {
+      "file": "num014.wav",
+      "text": "14"
+    },
+    "15": {
+      "file": "num015.wav",
+      "text": "15"
+    },
+    "16": {
+      "file": "num016.wav",
+      "text": "16"
+    },
+    "17": {
+      "file": "num017.wav",
+      "text": "17"
+    },
+    "18": {
+      "file": "num018.wav",
+      "text": "18"
+    },
+    "19": {
+      "file": "num019.wav",
+      "text": "19"
+    },
+    "20": {
+      "file": "num020.wav",
+      "text": "20"
+    },
+    "21": {
+      "file": "num021.wav",
+      "text": "21"
+    },
+    "22": {
+      "file": "num022.wav",
+      "text": "22"
+    },
+    "23": {
+      "file": "num023.wav",
+      "text": "23"
+    },
+    "24": {
+      "file": "num024.wav",
+      "text": "24"
+    },
+    "25": {
+      "file": "num025.wav",
+      "text": "25"
+    },
+    "26": {
+      "file": "num026.wav",
+      "text": "26"
+    },
+    "27": {
+      "file": "num027.wav",
+      "text": "27"
+    },
+    "28": {
+      "file": "num028.wav",
+      "text": "28"
+    },
+    "29": {
+      "file": "num029.wav",
+      "text": "29"
+    },
+    "30": {
+      "file": "num030.wav",
+      "text": "30"
+    },
+    "31": {
+      "file": "num031.wav",
+      "text": "31"
+    },
+    "32": {
+      "file": "num032.wav",
+      "text": "32"
+    },
+    "33": {
+      "file": "num033.wav",
+      "text": "33"
+    },
+    "34": {
+      "file": "num034.wav",
+      "text": "34"
+    },
+    "35": {
+      "file": "num035.wav",
+      "text": "35"
+    },
+    "36": {
+      "file": "num036.wav",
+      "text": "36"
+    },
+    "RWY_L": {
+      "file": "rwyl.wav",
+      "text": "left"
+    },
+    "RWY_R": {
+      "file": "rwyr.wav",
+      "text": "right"
+    },
+    "RWY_C": {
+      "file": "rwyc.wav",
+      "text": "center"
+    }
+  },
+  "templates": {
+    "ACFT_CLEAR_TO_START": "%S1 , START",
+    "ACFT_TAXI_TO_RUNWAY": "%S1 , %S2 , TAXI_RWY %D1",
+    "ACFT_CLEAR_TO_LINEUP": "%S1 , LINEUP_RWY %D1 , %S2",
+    "ACFT_CLEAR_TO_LINEUP_NW": "%S1 , LINEUP_RWY %D1 , WIND_CALM",
+    "ACFT_HOLD_POS": "%S1 , HOLD_POS",
+    "ACFT_CLEAR_TO_TAKEOFF": "%S1 , TAKEOFF",
+    "ACFT_PROCEED_TO_RUNWAY": "%S1 , PROCEED_RWY %D1",
+    "ACFT_CLEAR_TO_LAND": "%S1 , LAND_RWY %D1 , %S2",
+    "ACFT_CLEAR_TO_LAND_NW": "%S1 , LAND_RWY %D1 , WIND_CALM",
+    "ACFT_GO_AROUND_RUNWAY": "%S1 , GO_AROUND",
+    "ACFT_TAXI_TO_PARK": "%S1 , TAXI_PARK",
+    "ACFT_GEARS_NOT_OPEN": "%S1 , GEAR_NOT_DOWN",
+    "ACFT_ROGER": "ROGER"
+  },
+  "he": {
+    "voice": "he_IL-saspeech-medium (pending: its dataset's licence is non-commercial; the user decides)",
+    "lines": [
+      {
+        "file": "he/twr_takeoff_ramon.wav",
+        "text": "סופה אחת, מגדל רמון, מסלול שתיים חמש ימני, רוח שקטה, מאושר להמראה.",
+        "ipa": "sufˈa aχˈat, migdˈal ʁamˈon, maslˈul ʃtˈajim χˈameʃ jemanˈi, ʁˈuaχ ʃketˈa, meuʃˈaʁ lehamʁaˈa."
+      },
+      {
+        "file": "he/twr_start.wav",
+        "text": "מאושר להתניע.",
+        "ipa": "meuʃˈaʁ lehatnˈia."
+      },
+      {
+        "file": "he/twr_taxi_rwy.wav",
+        "text": "הסע למסלול",
+        "ipa": "hasˈa lamaslˈul"
+      },
+      {
+        "file": "he/twr_lineup_rwy.wav",
+        "text": "היכנס למסלול",
+        "ipa": "hikanˈes lamaslˈul"
+      },
+      {
+        "file": "he/twr_hold_pos.wav",
+        "text": "המתן במקום",
+        "ipa": "hamtˈen bamakˈom"
+      },
+      {
+        "file": "he/twr_takeoff.wav",
+        "text": "מאושר להמראה",
+        "ipa": "meuʃˈaʁ lehamʁaˈa"
+      },
+      {
+        "file": "he/twr_wind_calm.wav",
+        "text": "רוח שקטה",
+        "ipa": "ʁˈuaχ ʃketˈa"
+      },
+      {
+        "file": "he/acft_roger.wav",
+        "text": "רוג'ר",
+        "ipa": "ʁˈodʒeʁ"
+      },
+      {
+        "file": "he/voc_bbetty_pull_up.wav",
+        "text": "משוך למעלה. משוך למעלה.",
+        "ipa": "meʃˈoχ lemˈala. meʃˈoχ lemˈala."
+      }
+    ],
+    "note": "Not rendered: the Hebrew voice waits for the user's licence decision (iaf-2026/docs/sound.md §5). The Hebrew numbers and the rest of the tower set follow the English particles when it is decided."
+  }
+}

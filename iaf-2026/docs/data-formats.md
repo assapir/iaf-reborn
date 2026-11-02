@@ -9,13 +9,14 @@ IAF 2026 keeps its units, weapons and missions as readable JSON under `iaf-2026/
 reader changes. This document gives each format, one full example and the compiled output.
 
 ```sh
-cargo run -p iaf-tools --bin iaf-sim -- all [iaf-2026/data] [assets]   # or db / missions alone
+cargo run -p iaf-tools --bin iaf-sim -- all [iaf-2026/data] [assets]   # or db / missions / own alone
 ```
 
 | step | reads | writes (under `assets/`) |
 |---|---|---|
 | `iaf-sim db` | `data/db/units/*.json`, `data/db/weapons/*.json` | `converted/missions/sim.bdb.json`; the key `"sim.bdb"` of `converted/objects/objects.json` (the other keys stay); `converted/own/resource/weaponsmotion/weapons.ibx` |
 | `iaf-sim missions` | `data/missions/*.json`, the units | `converted/iaf-2026/missions/<id>.json`, `converted/iaf-2026/missions/missionlist.json` (menu id → `[<id>]`) |
+| `iaf-sim own` | `data/sounds/soundprop.json`, `data/sounds/voices.json`, `data/sounds/*.wav`, `data/keys.json` | `converted/own/resource/soundfiles/` (`soundprop.trx`, `phrasetemplates.trx`, `phraseparticalsdata.trx`, the clips; other files there are removed), `converted/own/keys.json` ([sound.md](sound.md)) |
 
 Nothing is read from `assets/install` or the exe. The base positions come from
 `crates/iaf-flight/data/real_runways.csv` (OpenStreetMap runways) and the georeference's control points

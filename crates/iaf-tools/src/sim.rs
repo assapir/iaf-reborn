@@ -6,11 +6,14 @@
 //!   `converted/own/resource/weaponsmotion/weapons.ibx` (`[WEAPONnnn]` by type, the shape `weapon_db.gd` reads; the
 //!   game reads it once A1's `install_dir()` switch points there);
 //! - `missions`: `missions/*.json` → `converted/iaf-2026/missions/<id>.json` + `missionlist.json`, built with the
-//!   mission editor's builders (`mission_edit`), `bdb: "sim.bdb"`.
+//!   mission editor's builders (`mission_edit`), `bdb: "sim.bdb"`;
+//! - `own`: `sounds/soundprop.json` and its clips → `converted/own/resource/soundfiles/` (`soundprop.trx`, the
+//!   columns `sound_table.gd` reads), `keys.json` → `converted/own/keys.json` (the shape `key_table.gd` reads).
 //!
-//! Nothing is read from the install or the exe: every figure comes from the data files, each with its source.
+//! Nothing is read from the install or the exe: every figure comes from the data files, each with its source; every
+//! clip from an open licence or our own tones (`iaf-2026/data/sounds/SOURCES.md`).
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::path::Path;
 use std::sync::atomic::AtomicBool;
 
@@ -33,6 +36,10 @@ pub const IBX_FILE: &str = "converted/own/resource/weaponsmotion/weapons.ibx";
 /// The sim's missions: their own folder, beside the original's `converted/missions` (whose readers and tests take
 /// every file there as an original mission).
 pub const MISSIONS_DIR: &str = "converted/iaf-2026/missions";
+/// The sim's sound table and clips (the original's `resource/soundfiles` layout, docs/sound.md §1).
+pub const SOUNDS_DIR: &str = "converted/own/resource/soundfiles";
+/// The sim's key table (the shape of `iaf-convert keys`' `converted/keys.json`, read by `key_table.gd`).
+pub const KEYS_FILE: &str = "converted/own/keys.json";
 
 // --- The readable → hex mapping ------------------------------------------------------------------------------------
 
@@ -668,6 +675,310 @@ pub fn missions(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
     Ok(())
 }
 
+// --- own: sounds and keys -------------------------------------------------------------------------------------------
+
+/// The sound format the game's table plays (`AudioStreamWAV.load_from_file`): PCM WAV, 16-bit, mono, 22050 Hz.
+const SOUND_RATE: u32 = 22050;
+
+/// The length in seconds of a PCM 16-bit mono WAV at SOUND_RATE, or why it is not one.
+pub fn wav_seconds(bytes: &[u8]) -> Result<f64> {
+    ensure!(bytes.len() >= 12 && &bytes[..4] == b"RIFF" && &bytes[8..12] == b"WAVE", "not a RIFF WAVE file");
+    let (mut fmt, mut data, mut at) = (None, None, 12);
+    while at + 8 <= bytes.len() {
+        let len = u32::from_le_bytes(bytes[at + 4..at + 8].try_into()?) as usize;
+        let body = bytes.get(at + 8..at + 8 + len).context("a chunk runs past the end")?;
+        match &bytes[at..at + 4] {
+            b"fmt " => fmt = Some(body),
+            b"data" => data = Some(body),
+            _ => {}
+        }
+        at += 8 + len + (len & 1);
+    }
+    let fmt = fmt.filter(|f| f.len() >= 16).context("no fmt chunk")?;
+    let u16_at = |i: usize| u16::from_le_bytes([fmt[i], fmt[i + 1]]);
+    let rate = u32::from_le_bytes(fmt[4..8].try_into()?);
+    ensure!(u16_at(0) == 1 && u16_at(2) == 1 && u16_at(14) == 16, "not PCM 16-bit mono");
+    ensure!(rate == SOUND_RATE, "{rate} Hz, not {SOUND_RATE}");
+    let data = data.filter(|d| !d.is_empty()).context("no samples")?;
+    Ok(data.len() as f64 / 2.0 / f64::from(rate))
+}
+
+/// The readable sound table (`sounds/soundprop.json`) as SoundProp.trx's tab-separated rows (docs/sound.md §1:
+/// code, sub 1, sub 2, category, resident, cyclic, 3d, channel, # random files, inside / outside volume, 3d min / max
+/// distance, file). `own` checks the clips.
+pub fn compile_soundprop(table: &Value) -> Result<String> {
+    let mut out = String::from("; IAF 2026's sound table, compiled by iaf-sim own from iaf-2026/data/sounds.\n");
+    let (mut keys, rows) = (HashSet::new(), table["rows"].as_array().context("soundprop: no \"rows\"")?);
+    for r in rows {
+        let s = |k: &str| r[k].as_str().with_context(|| format!("soundprop {r}: \"{k}\" must be a string"));
+        let n = |k: &str| r[k].as_f64().with_context(|| format!("soundprop {r}: \"{k}\" must be a number"));
+        let yn = |k: &str| r[k].as_bool().map(|b| if b { "Y" } else { "N" }).context(format!("soundprop {r}: \"{k}\""));
+        let (code, sub) = (s("code")?, r["sub"].as_str().unwrap_or("None"));
+        ensure!(keys.insert(format!("{code}/{sub}")), "soundprop: {code} / {sub} twice");
+        let category = match s("category")? {
+            "engine" => "E",
+            "effect" => "F",
+            "speech" => "V",
+            c => bail!("soundprop {code}: category \"{c}\" is not engine / effect / speech"),
+        };
+        let play = match s("play")? {
+            "loop" => "C",
+            "once" => "O",
+            "periodic" => "T",
+            p => bail!("soundprop {code}: play \"{p}\" is not loop / once / periodic"),
+        };
+        let file = s("file")?;
+        let cols = [
+            code.to_string(),
+            sub.to_string(),
+            "None".into(),
+            category.into(),
+            yn("resident")?.into(),
+            play.into(),
+            yn("3d")?.into(),
+            (n("channel")? as i64).to_string(),
+            "0".into(),
+            n("volume_in")?.to_string(),
+            n("volume_out")?.to_string(),
+            format!("{:.1}", n("min_m")?),
+            format!("{:.1}", n("max_m")?),
+            file.into(),
+        ];
+        out += &(cols.join("\t") + "\n");
+    }
+    Ok(out)
+}
+
+/// DirectInput scancodes by our key names (the PC set-1 scancodes DirectInput uses; the names are ours): exactly the
+/// keys `key_table.gd`'s `DIK_TO_KEY` can press (a test keeps the two in step).
+const KEY_CODES: &[(&str, u32)] = &[
+    ("Esc", 0x01),
+    ("1", 0x02),
+    ("2", 0x03),
+    ("3", 0x04),
+    ("4", 0x05),
+    ("5", 0x06),
+    ("6", 0x07),
+    ("7", 0x08),
+    ("8", 0x09),
+    ("9", 0x0a),
+    ("0", 0x0b),
+    ("-", 0x0c),
+    ("=", 0x0d),
+    ("Backspace", 0x0e),
+    ("Tab", 0x0f),
+    ("Q", 0x10),
+    ("W", 0x11),
+    ("E", 0x12),
+    ("R", 0x13),
+    ("T", 0x14),
+    ("Y", 0x15),
+    ("U", 0x16),
+    ("I", 0x17),
+    ("O", 0x18),
+    ("P", 0x19),
+    ("[", 0x1a),
+    ("]", 0x1b),
+    ("Return", 0x1c),
+    ("A", 0x1e),
+    ("S", 0x1f),
+    ("D", 0x20),
+    ("F", 0x21),
+    ("G", 0x22),
+    ("H", 0x23),
+    ("J", 0x24),
+    ("K", 0x25),
+    ("L", 0x26),
+    (";", 0x27),
+    ("'", 0x28),
+    ("~", 0x29),
+    ("\\", 0x2b),
+    ("Z", 0x2c),
+    ("X", 0x2d),
+    ("C", 0x2e),
+    ("V", 0x2f),
+    ("B", 0x30),
+    ("N", 0x31),
+    ("M", 0x32),
+    (",", 0x33),
+    (".", 0x34),
+    ("/", 0x35),
+    ("Numpad *", 0x37),
+    ("Space", 0x39),
+    ("Caps Lock", 0x3a),
+    ("F1", 0x3b),
+    ("F2", 0x3c),
+    ("F3", 0x3d),
+    ("F4", 0x3e),
+    ("F5", 0x3f),
+    ("F6", 0x40),
+    ("F7", 0x41),
+    ("F8", 0x42),
+    ("F9", 0x43),
+    ("F10", 0x44),
+    ("Num Lock", 0x45),
+    ("Scroll Lock", 0x46),
+    ("Numpad 7", 0x47),
+    ("Numpad 8", 0x48),
+    ("Numpad 9", 0x49),
+    ("Numpad -", 0x4a),
+    ("Numpad 4", 0x4b),
+    ("Numpad 5", 0x4c),
+    ("Numpad 6", 0x4d),
+    ("Numpad +", 0x4e),
+    ("Numpad 1", 0x4f),
+    ("Numpad 2", 0x50),
+    ("Numpad 3", 0x51),
+    ("Numpad 0", 0x52),
+    ("Decimal", 0x53),
+    ("F11", 0x57),
+    ("F12", 0x58),
+    ("F13", 0x64),
+    ("F14", 0x65),
+    ("F15", 0x66),
+    ("Numpad Enter", 0x9c),
+    ("Numpad /", 0xb5),
+    ("SysRQ", 0xb7),
+    ("Home", 0xc7),
+    ("Up", 0xc8),
+    ("Page Up", 0xc9),
+    ("Left", 0xcb),
+    ("Right", 0xcd),
+    ("End", 0xcf),
+    ("Down", 0xd0),
+    ("Page Down", 0xd1),
+    ("Insert", 0xd2),
+    ("Delete", 0xd3),
+    ("Apps", 0xdd),
+];
+
+/// The modifier bits of a key (docs/controls.md §1) and the prefix the Controls page shows.
+const MODIFIERS: &[(u32, &str)] = &[(0x11, "Ctrl + "), (0x22, "Shift + "), (0x44, "Alt + "), (0x88, "Win + ")];
+
+/// The readable key table (`keys.json`: label {en, he}, key "Ctrl + Q", joystick, press, release, shown) in the
+/// shape of `iaf-convert keys`' output (records with dik / modifiers / label / label_he, key_names, modifiers,
+/// button_format), so `key_table.gd` reads it unchanged.
+pub fn compile_keys(src: &Value) -> Result<Value> {
+    let (mut records, mut bound) = (vec![], HashSet::new());
+    for (i, r) in src["records"].as_array().context("keys: no \"records\"")?.iter().enumerate() {
+        ensure!(r["index"] == i, "keys: record {i} holds index {}", r["index"]);
+        let mut key = r["key"].as_str().with_context(|| format!("keys {i}: \"key\" must be a string"))?;
+        let mut modifiers = 0;
+        if let Some(&(bits, prefix)) = MODIFIERS.iter().find(|m| key.starts_with(m.1)) {
+            (modifiers, key) = (bits, &key[prefix.len()..]);
+        }
+        let dik = match key {
+            "" => 0,
+            k => {
+                KEY_CODES.iter().find(|c| c.0 == k).map(|c| c.1).with_context(|| format!("keys {i}: no key \"{k}\""))?
+            }
+        };
+        // An unlisted record may have no label: key_table.gd's "all keys" list leaves those out (records 115 / 116,
+        // docs/controls.md §3).
+        let shown = r["shown"].as_bool().with_context(|| format!("keys {i}: \"shown\""))?;
+        let label = |l: &str| -> Result<Value> {
+            let t = r["label"][l].as_str().filter(|t| !t.is_empty() || !shown);
+            Ok(t.with_context(|| format!("keys {i}: no \"{l}\" label"))?.into())
+        };
+        let triple = |k: &str| -> Result<Value> {
+            let a = r[k].as_array().filter(|a| a.len() == 3 && a.iter().all(Value::is_i64));
+            Ok(a.with_context(|| format!("keys {i}: \"{k}\" must be three whole numbers"))?.clone().into())
+        };
+        records.push(json!({
+            "index": i,
+            "label": label("en")?,
+            "label_he": label("he")?,
+            "press": triple("press")?,
+            "release": triple("release")?,
+            "dik": dik,
+            "modifiers": modifiers,
+            "joystick": r["joystick"].as_i64().with_context(|| format!("keys {i}: \"joystick\""))?,
+            "shown": shown,
+        }));
+        ensure!(dik == 0 || bound.insert((dik, modifiers)), "keys {i}: \"{}\" is bound twice", r["key"]);
+    }
+    let names: Map<String, Value> = KEY_CODES.iter().map(|&(n, c)| (c.to_string(), n.into())).collect();
+    let modifiers: Vec<Value> =
+        MODIFIERS.iter().map(|&(bits, prefix)| json!({"bits": bits, "prefix": prefix})).collect();
+    Ok(json!({
+        "source": "IAF 2026's own key table, compiled by iaf-sim own from iaf-2026/data/keys.json",
+        "records": records,
+        "key_names": names,
+        "modifiers": modifiers,
+        "button_format": "Button %d",
+    }))
+}
+
+/// The radio's phrase files from `sounds/voices.json` (docs/radio.md §1, the shape `radio.gd` reads):
+/// `phrasetemplates.trx` (`NAME token…`) and `phraseparticalsdata.trx` (`KEY file text…`), and the particles' files.
+pub fn compile_radio(voices: &Value) -> Result<(String, String, Vec<String>)> {
+    let head = "; IAF 2026's radio phrases, compiled by iaf-sim own from iaf-2026/data/sounds/voices.json.\n";
+    let (mut templates, mut particles, mut files) = (head.to_string(), head.to_string(), vec![]);
+    let parts = voices["particles"].as_object().context("voices: no \"particles\"")?;
+    for (name, t) in voices["templates"].as_object().context("voices: no \"templates\"")? {
+        let t = t.as_str().with_context(|| format!("voices: template {name} must be a string"))?;
+        for tok in t.split_whitespace().filter(|t| !t.starts_with('%')) {
+            ensure!(parts.contains_key(tok), "voices: template {name} names no particle \"{tok}\"");
+        }
+        templates += &format!("{name}\t{t}\n");
+    }
+    for (key, p) in parts {
+        let file = p["file"].as_str().with_context(|| format!("voices: particle {key} has no file"))?;
+        let text = p["text"].as_str().with_context(|| format!("voices: particle {key} has no text"))?;
+        particles += &format!("{key}\t{file}\t{text}\n");
+        files.push(file.to_string());
+    }
+    Ok((templates, particles, files))
+}
+
+/// `iaf-sim own`: `<data>/sounds` → `<assets>/SOUNDS_DIR`: `soundprop.trx`, the radio's phrase files, and every clip
+/// they name or the shared code opens by name (soundprop.json `by_name`), each checked once; any other file in that
+/// folder is removed (`sound_table.gd` lists the whole folder). `<data>/keys.json` → `<assets>/KEYS_FILE`.
+pub fn own(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
+    check(cancel)?;
+    let read = |p: &Path| -> Result<Value> {
+        serde_json::from_str(&std::fs::read_to_string(p).with_context(|| p.display().to_string())?)
+            .with_context(|| p.display().to_string())
+    };
+    let (sounds, out) = (data.join("sounds"), assets.join(SOUNDS_DIR));
+    let table = read(&sounds.join("soundprop.json"))?;
+    let trx = compile_soundprop(&table)?;
+    let (templates, particles, part_files) = compile_radio(&read(&sounds.join("voices.json"))?)?;
+    let names = |k: &str| table[k].as_array().into_iter().flatten().filter_map(|v| v.as_str().map(String::from));
+    let rows = table["rows"].as_array().into_iter().flatten().filter_map(|r| r["file"].as_str().map(String::from));
+    let files: BTreeSet<String> = rows.chain(names("by_name")).chain(part_files).collect();
+    std::fs::create_dir_all(&out).with_context(|| out.display().to_string())?;
+    for f in &files {
+        check(cancel)?;
+        let src = sounds.join(f);
+        let bytes = std::fs::read(&src).with_context(|| src.display().to_string())?;
+        wav_seconds(&bytes).with_context(|| src.display().to_string())?;
+        std::fs::write(out.join(f), bytes).with_context(|| out.join(f).display().to_string())?;
+    }
+    let trx_files =
+        [("soundprop.trx", &trx), ("phrasetemplates.trx", &templates), ("phraseparticalsdata.trx", &particles)];
+    for (name, text) in trx_files {
+        write(&out.join(name), text)?;
+    }
+    for e in std::fs::read_dir(&out)? {
+        let name = e?.file_name().to_string_lossy().into_owned();
+        if !files.contains(&name) && !trx_files.iter().any(|t| t.0 == name) {
+            std::fs::remove_file(out.join(&name)).with_context(|| out.join(&name).display().to_string())?;
+        }
+    }
+    let keys = compile_keys(&read(&data.join("keys.json"))?)?;
+    write(&assets.join(KEYS_FILE), &serde_json::to_string_pretty(&keys)?)?;
+    log!(
+        pr,
+        "own: {} sound rows, {} clips -> {}; keys -> {}",
+        trx.lines().count() - 1,
+        files.len(),
+        out.display(),
+        assets.join(KEYS_FILE).display()
+    );
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -866,5 +1177,185 @@ mod tests {
         for (rec, name, key) in FIELDS {
             assert!(seen.insert((rec, name)) && key.starts_with("0x"), "{rec}.{name}");
         }
+    }
+
+    /// A temporary assets root, removed when dropped (also after a failed assert: the clips are ~3 MB).
+    struct TempRoot(std::path::PathBuf);
+
+    impl Drop for TempRoot {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    /// `iaf-sim own`: every sound row's clip exists and parses as the game's format, every code the shared flight
+    /// code plays has a row, every file it opens by name is there, the radio's templates name only particles with a
+    /// clip, a stale clip is removed, and the key table compiles to the 117 records `key_table.gd` reads.
+    #[test]
+    fn own_sounds_and_keys_compile() {
+        let root = TempRoot(std::env::temp_dir().join(format!("iaf-sim-own-{}", std::process::id())));
+        let sounds = root.0.join(SOUNDS_DIR);
+        std::fs::create_dir_all(&sounds).unwrap();
+        std::fs::write(sounds.join("stale.wav"), b"x").unwrap();
+        own(&data(), &root.0, &Stdout, &AtomicBool::new(false)).unwrap();
+        assert!(!sounds.join("stale.wav").exists());
+        let clip = |f: &str| wav_seconds(&std::fs::read(sounds.join(f.to_lowercase())).unwrap()).unwrap();
+        let trx = std::fs::read_to_string(sounds.join("soundprop.trx")).unwrap();
+        let rows: Vec<Vec<&str>> =
+            trx.lines().filter(|l| !l.starts_with(';')).map(|l| l.split('\t').collect()).collect();
+        for r in &rows {
+            assert_eq!(r.len(), 14, "{r:?}");
+            assert!(clip(r[13]) > 0.05, "{}", r[13]);
+        }
+        // The codes game/ plays by code (flight_sounds.gd, player_weapons.gd, player_damage.gd, rwr.gd, combat.gd,
+        // damage_model.gd); BTY_MISS, BTY_OVER_G and BTY_SPIN have no row on purpose (the F-16 VMS has no such voice).
+        for key in [
+            "SFX_LANDING/None",
+            "SFX_START_ENGINE/None",
+            "SFX_DRY_THRUST/None",
+            "SFX_AFTERBURNER_THRUST/None",
+            "SFX_BUTTON/None",
+            "SFX_LANDING_GEAR/None",
+            "SFX_FLAPS/None",
+            "SFX_SPEED_BREAKES/None",
+            "SFX_SPEED_BREAKES_LOOP/None",
+            "SFX_AIRCRAFT_FIRED_WEAPON/OST_GUNBULLET",
+            "SFX_ENTITY_FIRED_WEAPON/OST_GUNBULLET",
+            "SFX_AIRCRAFT_FIRED_WEAPON/OST_RADARMISSILE",
+            "SFX_AIRCRAFT_FIRED_WEAPON/OST_BOMB",
+            "SFX_OBJECT_SPECIFIC/OST_HEATMISSILE",
+            "SFX_OBJECT_SPECIFIC/OST_BOMB",
+            "SFX_WEAPON_EXPLODED/OST_BOMB",
+            "SFX_WEAPON_EXPLODED/OST_ROCKET",
+            "SFX_WEAPON_EXPLODED/OST_GUNBULLET",
+            "SFX_WEAPON_HIT_TARGET/None",
+            "SFX_SPLASH/None",
+            "SFX_AIRCRAFT_EXPLODED/None",
+            "SFX_AIRCRAFT_DAMAGED/DAMAGED_ELECTRICITY",
+            "SFX_AIRCRAFT_DAMAGED/DAMAGED_GUN_BULLETS",
+            "SFX_AIRCRAFT_DAMAGED/DAMAGED_MISSILE_HIT",
+            "SFX_IR_SEEK/None",
+            "SFX_IR_LOCK/None",
+            "SFX_WARNING/WRN_MASTER",
+            "SFX_WARNING/WRN_NEW_GUY",
+            "SFX_WARNING/WRN_MISSILE_LAUNCH",
+            "SFX_WARNING/WRN_AOA",
+            "SFX_TOUCHDOWN/None",
+            "SFX_SCREECH/None",
+            "SFX_FIRE_EXTINGUISHER/None",
+            "VOC_BBETTY/BTY_ALT",
+            "VOC_BBETTY/BTY_PULL_UP",
+            "VOC_BBETTY/BTY_CAUTION",
+            "VOC_BBETTY/BTY_FIRE",
+            "VOC_BBETTY/BTY_ENGINE",
+            "VOC_BBETTY/BTY_FUEL",
+            "VOC_WINGMAN/WINGMAN_EJECT_EJECT",
+            "VOC_TARGET_SAY_FRIENDLY_HIT/None",
+            "VOC_WINGMAN_SAY_FRIENDLY_HIT/None",
+            "VOC_TOWER_SAY_FRIENDLY_HIT/None",
+        ] {
+            assert!(rows.iter().any(|r| format!("{}/{}", r[0], r[1]) == key), "no row {key}");
+        }
+        // The files the shared code opens by name: g_effects.gd (cock_g_02; cock_bty_over is silent on purpose),
+        // terrain_view.gd (EndWorld) and radio.gd (KCH2, its phrase files).
+        for f in ["cock_g_02.wav", "EndWorld.wav", "KCH2.WAV"] {
+            assert!(clip(f) > 0.05, "{f}");
+        }
+        let particles = std::fs::read_to_string(sounds.join("phraseparticalsdata.trx")).unwrap();
+        let keys_of: HashSet<&str> = particles
+            .lines()
+            .filter(|l| !l.starts_with(';'))
+            .map(|l| {
+                let c: Vec<&str> = l.split('\t').collect();
+                assert!(clip(c[1]) > 0.0, "{l}");
+                c[0]
+            })
+            .collect();
+        let templates = std::fs::read_to_string(sounds.join("phrasetemplates.trx")).unwrap();
+        for t in [
+            "ACFT_TAXI_TO_RUNWAY",
+            "ACFT_CLEAR_TO_LINEUP",
+            "ACFT_CLEAR_TO_LINEUP_NW",
+            "ACFT_HOLD_POS",
+            "ACFT_CLEAR_TO_TAKEOFF",
+            "ACFT_ROGER",
+        ] {
+            assert!(templates.lines().any(|l| l.starts_with(&format!("{t}\t"))), "no template {t}");
+        }
+        // radio.gd's arguments: the callsign, greeting and wind keys, every runway number, the letters.
+        let numbers: Vec<String> = (1..=36).map(|n| n.to_string()).collect();
+        let args = ["ALPHA_T", "MORNING", "AFTERNOON", "EVENING", "WI_KNOTS10", "WI_KNOTS15", "WI_KNOTS20", "RWY_L"];
+        for k in args.iter().copied().chain(["RWY_R", "RWY_C", ","]).chain(numbers.iter().map(String::as_str)) {
+            assert!(keys_of.contains(k), "no particle {k}");
+        }
+        let keys: Value = serde_json::from_str(&std::fs::read_to_string(root.0.join(KEYS_FILE)).unwrap()).unwrap();
+        let recs = keys["records"].as_array().unwrap();
+        assert_eq!(recs.len(), 117);
+        for r in recs {
+            let labelled = r["label"].as_str().is_some_and(|l| !l.is_empty());
+            assert!(labelled || r["shown"] == false, "{r}");
+            let dik = r["dik"].as_u64().unwrap();
+            assert!(dik == 0 || keys["key_names"][dik.to_string()].is_string(), "{r}");
+        }
+        // Records 115 / 116 stay out of the "all keys" list (no label), as in the original (docs/controls.md §3).
+        assert_eq!((recs[115]["label"].as_str(), recs[116]["label"].as_str()), (Some(""), Some("")));
+        // Record 1 quits on Ctrl + Q (docs/controls.md §3).
+        assert_eq!((recs[1]["dik"].as_u64(), recs[1]["modifiers"].as_u64()), (Some(0x10), Some(0x11)));
+    }
+
+    /// Two records on one key, or a shown record without a label, are refused.
+    #[test]
+    fn a_key_bound_twice_is_refused() {
+        let rec = |i: usize, key: &str, en: &str, shown: bool| {
+            json!({"index": i, "label": {"en": en, "he": en}, "key": key, "joystick": -1, "press": [1, 0, 0],
+                "release": [0, 0, 0], "shown": shown})
+        };
+        assert!(compile_keys(&json!({"records": [rec(0, "Ctrl + Q", "a", true), rec(1, "Q", "b", true)]})).is_ok());
+        let twice = json!({"records": [rec(0, "Ctrl + Q", "a", true), rec(1, "Ctrl + Q", "b", true)]});
+        assert!(compile_keys(&twice).is_err());
+        assert!(compile_keys(&json!({"records": [rec(0, "Q", "", true)]})).is_err());
+        assert!(compile_keys(&json!({"records": [rec(0, "Q", "", false)]})).is_ok());
+    }
+
+    /// KEY_CODES holds exactly the scancodes key_table.gd's DIK_TO_KEY can press (a key it cannot press would compile
+    /// and never fire).
+    #[test]
+    fn the_key_names_are_the_keys_the_reader_presses() {
+        let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let gd = ["game", "shared", "iaf-reborn"]
+            .iter()
+            .find_map(|d| std::fs::read_to_string(repo.join(d).join("controls/key_table.gd")).ok())
+            .expect("key_table.gd");
+        let body = &gd[gd.find("const DIK_TO_KEY").unwrap()..];
+        let body = &body[..body.find("\n}").unwrap()];
+        let reader: BTreeSet<u32> = body
+            .lines()
+            .filter_map(|l| l.trim().strip_prefix("0x"))
+            .map(|l| u32::from_str_radix(&l[..l.find(':').unwrap()], 16).unwrap())
+            .collect();
+        let ours: BTreeSet<u32> = KEY_CODES.iter().map(|c| c.1).collect();
+        assert_eq!(ours, reader);
+        assert_eq!(ours.len(), KEY_CODES.len(), "a scancode named twice");
+    }
+
+    #[test]
+    fn a_clip_in_another_format_is_refused() {
+        let wav = |fmt: u16, ch: u16, rate: u32, bits: u16| {
+            let mut b = b"RIFF\0\0\0\0WAVEfmt \x10\0\0\0".to_vec();
+            for v in [fmt, ch] {
+                b.extend(v.to_le_bytes());
+            }
+            b.extend(rate.to_le_bytes());
+            b.extend((rate * 2).to_le_bytes());
+            b.extend(2u16.to_le_bytes());
+            b.extend(bits.to_le_bytes());
+            b.extend(b"data\x04\0\0\0\0\0\0\0");
+            b
+        };
+        assert!(wav_seconds(&wav(1, 1, 22050, 16)).is_ok());
+        assert!(wav_seconds(&wav(1, 2, 22050, 16)).is_err());
+        assert!(wav_seconds(&wav(1, 1, 44100, 16)).is_err());
+        assert!(wav_seconds(&wav(3, 1, 22050, 32)).is_err());
+        assert!(wav_seconds(b"OggS").is_err());
     }
 }

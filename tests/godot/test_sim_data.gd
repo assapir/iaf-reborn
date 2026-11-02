@@ -6,7 +6,8 @@
 # It compiles the data first with the release binary target/release/iaf-sim (tools/test.sh builds it; NEEDS DATA
 # without it). That writes only IAF 2026's own output into the shared assets/ (iaf-2026/docs/data-formats.md):
 # converted/missions/sim.bdb.json, the "sim.bdb" key of converted/objects/objects.json, the own weapons.ibx under
-# converted/own/ and converted/iaf-2026/missions/.
+# converted/own/, converted/iaf-2026/missions/, and (iaf-sim own) about 6 MB of sound clips with their tables in
+# converted/own/resource/soundfiles/ and the key table converted/own/keys.json.
 extends "res://../tests/godot/base.gd"
 
 const MISSIONS := "converted/iaf-2026/missions"

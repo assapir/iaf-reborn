@@ -1,10 +1,11 @@
 //! IAF 2026's data compilers (iaf-2026/docs/data-formats.md):
 //!
-//! `iaf-sim <db|missions|all> [data-dir (iaf-2026/data)] [assets-dir (assets)]`
+//! `iaf-sim <db|missions|own|all> [data-dir (iaf-2026/data)] [assets-dir (assets)]`
 //!
 //! - `db`: the units and weapons → `converted/missions/sim.bdb.json`, `converted/objects/objects.json` ("sim.bdb"),
 //!   `converted/own/resource/weaponsmotion/weapons.ibx`;
-//! - `missions`: the missions → `converted/iaf-2026/missions/<id>.json` + `missionlist.json`.
+//! - `missions`: the missions → `converted/iaf-2026/missions/<id>.json` + `missionlist.json`;
+//! - `own`: the sound table and clips → `converted/own/resource/soundfiles/`, the key table → `converted/own/keys.json`.
 
 use std::path::Path;
 use std::sync::atomic::AtomicBool;
@@ -21,10 +22,12 @@ fn main() -> Result<()> {
     match args.first().map(String::as_str) {
         Some("db") => sim::db(data, assets, &Stdout, &cancel),
         Some("missions") => sim::missions(data, assets, &Stdout, &cancel),
+        Some("own") => sim::own(data, assets, &Stdout, &cancel),
         Some("all") => {
             sim::db(data, assets, &Stdout, &cancel)?;
-            sim::missions(data, assets, &Stdout, &cancel)
+            sim::missions(data, assets, &Stdout, &cancel)?;
+            sim::own(data, assets, &Stdout, &cancel)
         }
-        _ => bail!("usage: iaf-sim <db|missions|all> [data-dir (iaf-2026/data)] [assets-dir (assets)]"),
+        _ => bail!("usage: iaf-sim <db|missions|own|all> [data-dir (iaf-2026/data)] [assets-dir (assets)]"),
     }
 }

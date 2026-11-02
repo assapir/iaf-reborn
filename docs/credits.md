@@ -126,6 +126,16 @@ the mission files, and OurAirports' runway widths and field elevations (public d
 (item A3) lists them on its Attributions page. Every other figure of the data files is a cited fact with its source in
 the file.
 
+The sim's sound clips (`iaf-2026/data/sounds/`, made by `tools/iaf-2026/sounds.py`) are CC0 recordings from
+freesound.org[^freesound] and tones we computed. CC0 asks for no credit; we name every author anyway: ikbenraar,
+TiesWijnen, pillwave, 77Pacer, nuckan, qubodup, Seidhepriest, Jetrod, craigsmith (the USC Gold / Red / Sunset
+Editorial libraries), LilMati, Rudmer_Rotteveel, pushkin, xkeril, elliott.klein, DeqstersLab, RutgerMuller,
+SoundDesignForYou and tranzfusion. Each clip's source page, licence and processing: `iaf-2026/data/sounds/SOURCES.md`.
+The sim's voices are Piper text to speech[^piper] (MIT) in the voices kristin, john and norman, trained on LibriVox
+recordings (public domain); their texts and voices: `iaf-2026/data/sounds/voices.json`. The Hebrew voice waits for a
+licence decision (iaf-2026/docs/sound.md §5). The lines the sim's setup wizard (item A3) and its credits roll need:
+iaf-2026/docs/sound.md §6.
+
 ## Testing
 
 * `tests/godot/test_credits.gd` checks:
@@ -148,6 +158,8 @@ the file.
 
 [^acg-licence]: ambientCG licence, https://docs.ambientcg.com/license/ (read 2026-10-22).
 [^osm]: OpenStreetMap, "Copyright and License": https://www.openstreetmap.org/copyright
+[^piper]: Piper voices (rhasspy/piper-voices), each voice's MODEL_CARD names its dataset: https://huggingface.co/rhasspy/piper-voices
+[^freesound]: Freesound, the sounds' pages (CC0 1.0, https://creativecommons.org/publicdomain/zero/1.0/): https://freesound.org
 [^ms]: Microsoft, Global ML Building Footprints, "License": https://github.com/microsoft/GlobalMLBuildingFootprints
 [^ghsl]: European Commission, GHSL Data Package 2023, "Terms of Use" (in each GHS-BUILT-H tile's zip).
 [^chm]: Lang et al. (2023), "A high-resolution canopy height model of the Earth", Nature Ecology & Evolution; data
