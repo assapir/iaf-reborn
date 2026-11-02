@@ -6,7 +6,8 @@
 # too). C3D_JET=f35i: the F-35I's instead (_f35i). C3D_ONLY=panel takes only the lamps and displays: the master caution
 # and fire lamps lit, the gear down, an emitter and a launching one on the RWR scope; looking down at the panel, at the
 # RWR scope and at the gear panel. C3D_ONLY=hud: only ahead, looking up 8° (the HUD's frame against the sky) and ahead
-# zoomed in to the true size. C3D_HUD=original: the original HUD (default the Real HUD).
+# zoomed in to the true size. C3D_HUD=original: the original HUD (default the Real HUD). C3D_ALL=1: every graphics
+# option at its best (_showcase_shot.gd AFTER), as a player with everything on sees it.
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOW_OUT=$PWD/.shots/c3d -- \
 #     --log-file /tmp/c3d.log --resolution 1920x1080 --path game -s ../tests/godot/_cockpit3d_shot.gd
 extends "res://../tests/godot/_cockpit_show_shot.gd"
@@ -30,6 +31,9 @@ func run() -> void:
 	DirAccess.make_dir_recursive_absolute(out)
 	var two_d := OS.get_environment("C3D_LOOK") == "2d"
 	look = "2d" if two_d else "3d"
+	if OS.get_environment("C3D_ALL") == "1":  # every graphics option at its best (_showcase_shot.gd AFTER): as played
+		for k in AFTER:
+			settings().set(k, AFTER[k])
 	settings().show_info = false
 	settings().cockpit_3d = "original" if two_d else "3d"
 	settings().hud_style = OS.get_environment("C3D_HUD") if OS.get_environment("C3D_HUD") != "" else "real"
