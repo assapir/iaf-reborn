@@ -444,7 +444,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     (base 59,734 lb, max 81,000 lb);
   - the TSD calls the selected F-15 "F-15I"; the info line shows RAAM; the Jet list's F15 button reads F-15I (Hebrew
     רעם); the Reference screen's F-15 guide is guides/f15i.md;
-  - the livery: the inner fins' black bands painted out and the nose numbers blue, as the photos show (f15i.md §7).
+  - the Real HUD (Extras HUD on Real) is the F-15E's, not the F-15A/C's (TO 1F-15E-1, labelled F-15E: the F-15I's
+    own HUD software is open; real-hud.md "F-15E (F-15I Ra'am)"), and the Real view fits its 28° × 21° field;
+  - the livery: the inner fins' black bands painted out and the nose numbers blue, as the photos show, and the
+    camouflage in flat paint (FS 3xxxx colours; f15i.md §7).
   - Stores, gun, wingtips, eye and wheel height come from the original's helpers. The detailed model brings its own
     hinge lines, its afterburner position at its nozzle's exit, and closed gear doors shown while the gear is up.
   - The detailed F-16s sit 3.0° nose up on their wheels, as the real jet does (its nose oleo at its static

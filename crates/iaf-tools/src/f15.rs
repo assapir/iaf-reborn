@@ -734,6 +734,7 @@ pub fn build(src: &Path, orig: &Path, out: &Path, raam: bool) -> Result<Stats> {
         helpers,
         &images,
         "FlightGear F-15C: Enrique Laso, Richard Harrison, GeneB (GPL-2.0-only)",
+        raam,
     )?;
     if let Some(d) = out.parent() {
         std::fs::create_dir_all(d)?;
@@ -1022,6 +1023,11 @@ const ERASE_I: &[[u32; 4]] = &[[1580, 374, 1712, 418], [1440, 683, 1612, 729]];
 const NOSE_NUMBERS: &[[u32; 4]] = &[[870, 1958, 934, 1992], [1100, 1958, 1160, 1994]];
 const NOSE_BLUE: [f32; 3] = [52.0, 80.0, 102.0];
 
+/// The F-15I's camouflage is flat paint (69 Squadron's FS 30219 / 33531 / 36375: a first digit 3 is flat in FS 595;
+/// docs/f15i.md §7): metallic 0, roughness 0.9 (inferred) in place of the semi-gloss 0.1 / 0.6, whose sky reflection
+/// greyed the camouflage on a render (measured 2026-11-02, aircraft-models.md §6.7).
+const FLAT_PAINT: (f32, f32) = (0.0, 0.9);
+
 /// The F-15I's livery: FlightGear's "IAF 235-69 SQ HAMMERS" with [`ERASE_I`] painted out and the nose numbers in
 /// blue: each pixel of a number's box as far from the box's grey towards [`NOSE_BLUE`] as it is darker than the grey.
 fn livery_i(src: &Path) -> Result<RgbaImage> {
@@ -1261,7 +1267,8 @@ fn paint(img: &mut RgbaImage, skin: &[Skin]) -> Result<()> {
 
 /// The binary glTF: the body as the root mesh `f15` (at `root`, the original's), the parts and helpers under it
 /// (every position in the root's frame).
-/// `images`: each texture's name (the triangles' `Mat::texture`), its file's bytes and MIME type.
+/// `images`: each texture's name (the triangles' `Mat::texture`), its file's bytes and MIME type. `flat`: the livery
+/// texture's surfaces in flat paint ([`FLAT_PAINT`]), else every surface semi-gloss.
 pub(crate) fn write_glb(
     body: Node,
     root: V,
@@ -1269,6 +1276,7 @@ pub(crate) fn write_glb(
     helpers: Vec<(String, V)>,
     images_in: &[(&'static str, Vec<u8>, &'static str)],
     copyright: &str,
+    flat: bool,
 ) -> Result<Vec<u8>> {
     let mut bin: Vec<u8> = Vec::new();
     let (mut views, mut accessors, mut meshes, mut nodes) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
@@ -1381,10 +1389,11 @@ pub(crate) fn write_glb(
         .map(|(i, m)| {
             let c = m.rgba.map(|v| v as f32 / 255.0);
             let lin = |v: f32| if v <= 0.04045 { v / 12.92 } else { ((v + 0.055) / 1.055).powf(2.4) };
+            let (metal, rough) = if flat && m.texture == "livery" { FLAT_PAINT } else { (0.1, 0.6) };
             let mut pbr = json!({
                 "baseColorFactor": [lin(c[0]), lin(c[1]), lin(c[2]), c[3]],
-                "metallicFactor": 0.1,
-                "roughnessFactor": 0.6
+                "metallicFactor": metal,
+                "roughnessFactor": rough
             });
             if !m.texture.is_empty() {
                 pbr["baseColorTexture"] = json!({"index": tex_index[m.texture]});

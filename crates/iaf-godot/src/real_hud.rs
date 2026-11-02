@@ -91,7 +91,7 @@ impl IafRealHud {
     /// One frame. `field` the symbology field (Rect2, HUD px from the HUD centre); `i` {cockpit (the cockpit dir), time, off_boresight, head_heading, head_view, head_rel ([az, el]),
     /// kcas, ground_kt, tas_ms, alt_ft, agl_ft (null), vs_fpm, heading, pitch, roll, mach, g, aoa, gear_down, fuel_lbs, bingo_lbs, fpm
     /// (null), boresight, gun_cross, horizon, px_per_deg, radar_mode, ils (the ILS bars' [x, y] or null), steerpoint ({number, bearing, dist_m, eta_s, at} or {}),
-    /// target ({range_m, closure, at, aspect} or {}), dlz ([max, min] or []), weapons {hud_mode, selected, srm, mrm, seeker,
+    /// target ({range_m, closure, at, aspect} or {}), dlz ([max, min] or []), weapons {hud_mode, name, selected, srm, mrm, seeker,
     /// lcos, pipper, steering, circle, shoot, delay (the delayed CCIP's time to go, or null), delay_at
     /// (the target under its pipper), designated, gps ({pre, at, range, rmin, rmax, in_range, tmr} or {}), hobs ({cone, at (the seeker's target or null), loal} or {})}}. Returns {field, outer, colour (Color or null), sight (no HUD), mrm_inside (the MRM dot in the drawn circle, or null)}.
     #[func]
@@ -148,6 +148,7 @@ impl IafRealHud {
             }),
             weapons: Weapons {
                 hud_mode: wn("hud_mode") as i64,
+                name: get::<GString>(&w, "name").unwrap_or_default().to_string(),
                 selected: wn("selected") as i64,
                 srm: wn("srm") as i64,
                 mrm: wn("mrm") as i64,

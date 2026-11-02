@@ -8,6 +8,7 @@
 //! - `kfir`: the Kfir C7's (Elbit System 82; layout a reconstruction).
 //! - `lavi`: the Lavi's wide-angle HUD (its symbology is not public: a reconstruction).
 //! - `f15`: the F-15A/C HUD (TO 1F-15A-1, NADC 1976): moving tapes, no digital boxes.
+//! - `f15e`: the F-15E HUD (TO 1F-15E-1), the F-15I Ra'am's (its definition's `hud`): digital windows.
 //! - `f35`: the F-35's helmet display (the forward "virtual HUD"; LM slides and flight-test video).
 //! - `sights`: the F-4E's AN/ASG-26 LCOSS and the Mirage IIICJ's CSF gyro gunsight (no HUD: a reticle only).
 //! - `mig23`: the MiG-23ML's АСП-17МЛ sight (radar / IRST data on the sight; no flight data; a reconstruction).
@@ -15,6 +16,7 @@
 
 mod dash;
 mod f15;
+mod f15e;
 mod f16;
 mod f35;
 mod k2000;
@@ -44,6 +46,8 @@ pub enum Jet {
     #[default]
     F16,
     F15,
+    /// The F-15E's HUD, the F-15I Ra'am's (its aircraft definition's `hud`: "f15e").
+    F15E,
     F35,
     /// The F-4E's optical sight.
     Phantom,
@@ -71,6 +75,8 @@ impl Jet {
             .and_then(|(_, a)| a.hud.as_deref());
         if def == Some("f35") {
             Jet::F35
+        } else if d == "f15e" {
+            Jet::F15E
         } else if d.ends_with("f15") {
             Jet::F15
         } else if d.ends_with("phantom") {
@@ -99,6 +105,7 @@ impl Jet {
     pub fn fov_deg(self) -> Option<(f64, f64)> {
         match self {
             Jet::F16 => Some((20.0, 13.5)),
+            Jet::F15E => Some((28.0, 21.0)),
             Jet::MiG29 => Some((13.0, 18.0)),
             Jet::Lavi | Jet::Kurnass2000 => Some((30.0, 18.0)),
             Jet::F15 | Jet::Kfir | Jet::MiG23 | Jet::Phantom | Jet::Mirage => Some((17.8, 12.0)),
@@ -240,6 +247,8 @@ pub struct Steerpoint {
 pub struct Weapons {
     /// The original's HUD mode: 0 NAV, 1 SRM, 2 MRM, 3 A-A gun, 4 A-G gun, 5 bombs, 6 laser bombs, 7 TV, 8 HARM.
     pub hud_mode: i64,
+    /// The selected store's name ("AMRAAM", "AIM-9L", "PYTH-5", …).
+    pub name: String,
     /// Rounds of the selected store; the SRM and MRM rounds aboard.
     pub selected: i64,
     pub srm: i64,
@@ -398,12 +407,16 @@ impl RealHud {
 
     fn jet_frame(&mut self, f: Field, i: &Input) -> Frame {
         match i.jet {
-            Jet::F16 | Jet::F15 if i.off_boresight => dash::frame(i),
+            Jet::F16 | Jet::F15 | Jet::F15E if i.off_boresight => dash::frame(i),
             Jet::MiG29 if i.off_boresight => mig29::helmet(i),
             Jet::F16 => f16::frame(f, i, self.max_g),
             Jet::F15 => {
                 self.gs_captured = f15::gs_capture(i, self.gs_captured);
                 f15::frame(f, i, self.gs_captured)
+            }
+            Jet::F15E => {
+                self.gs_captured = f15::gs_capture(i, self.gs_captured);
+                f15e::frame(f, i, self.gs_captured)
             }
             Jet::F35 => f35::frame(f, i, self.max_g),
             Jet::Phantom => sights::lcoss(i),
@@ -427,7 +440,7 @@ fn mrm_circle(i: &Input) -> Option<(P, f64)> {
     match i.jet {
         Jet::F16 => Some((add(i.gun_cross, (0.0, i.deg(6.0))), i.mr(56.0) * k(0.3))),
         Jet::F35 => Some((add(i.boresight, (0.0, i.deg(4.0))), i.mr(40.0) * k(0.4))),
-        Jet::F15 | Jet::Kurnass2000 => Some(((0.0, 0.0), i.mr(60.0) * k(0.3))),
+        Jet::F15 | Jet::F15E | Jet::Kurnass2000 => Some(((0.0, 0.0), i.mr(60.0) * k(0.3))),
         Jet::Lavi => Some(((0.0, 0.0), i.mr(50.0) * k(0.3))),
         _ => None,
     }
@@ -444,12 +457,13 @@ fn ticks(v: f64, step: f64, k: f64, half: f64, up: bool) -> impl Iterator<Item =
 }
 
 /// The ±90° symbols: none (the rungs), the F-16's star / earth ([R], the MIL-STD-1787 convention) or the F-15's
-/// ⊖ "90" / ⊗ (TO 1F-15A-1).
+/// ⊖ "90" / ⊗ (TO 1F-15A-1) or the F-15E's ○ / ⊗ (TO 1F-15E-1 p. 1-70).
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Zenith {
     None,
     StarEarth,
     F15,
+    F15E,
 }
 
 /// How the ladder's rungs look.
@@ -473,6 +487,8 @@ struct LadderStyle {
     top_band: f64,
     /// What replaces the ±90° rungs.
     zenith: Zenith,
+    /// Tabs at the horizon line's outer ends pointing to the ground (F-15E).
+    horizon_tabs: bool,
 }
 
 /// The conformal pitch ladder: rung e sits e degrees up from the level point ahead, rolled with the jet, slid along
@@ -505,7 +521,11 @@ fn ladder(p: &mut Vec<Prim>, i: &Input, fpm: P, f: Field, s: LadderStyle) {
         }
         if deg == 0 {
             for side in [-1.0, 1.0] {
-                p.push(line(at(side * s.horizon_gap, v), at(side * (s.horizon_gap + s.horizon_len), v)));
+                let end = at(side * (s.horizon_gap + s.horizon_len), v);
+                p.push(line(at(side * s.horizon_gap, v), end));
+                if s.horizon_tabs {
+                    p.push(line(end, (end.0 - s.tip * ev.0, end.1 - s.tip * ev.1)));
+                }
             }
             continue;
         }
@@ -549,6 +569,7 @@ fn zenith_nadir(p: &mut Vec<Prim>, (x, y): P, r: f64, zenith: bool, style: Zenit
             p.push(line((x - r, y), (x + r, y)));
             p.push(line((x, y - r), (x, y + r)));
         }
+        (Zenith::F15E, true) => {}
         (_, true) => {
             p.push(line((x - r, y), (x + r, y)));
             p.push(text((x + r + 4.0, y + 3.0), "90", Align::Left));
@@ -671,7 +692,8 @@ fn pipper(p: &mut Vec<Prim>, c: P, dot: f64, ring: f64) {
 
 /// A vertical launch-zone / range scale: 0 at the bottom, the radar range (10 / 20 / 40 / 80 NM, the smallest above
 /// Rmax and the range) at the top; Rmax / Rmin ticks; the target's range caret with the closure (kt) left of it.
-fn dlz_scale(p: &mut Vec<Prim>, x: f64, y0: f64, half: f64, t: Target, z: Dlz) {
+/// Returns the scale's top (NM).
+fn dlz_scale(p: &mut Vec<Prim>, x: f64, y0: f64, half: f64, t: Target, z: Dlz) -> f64 {
     const SCALES_NM: [f64; 4] = [10.0, 20.0, 40.0, 80.0];
     let top_nm = SCALES_NM.iter().copied().find(|&n| n * NM > z.max.max(t.range_m)).unwrap_or(80.0);
     let y = |m: f64| y0 + half - (m / (top_nm * NM)).clamp(0.0, 1.0) * 2.0 * half;
@@ -684,6 +706,7 @@ fn dlz_scale(p: &mut Vec<Prim>, x: f64, y0: f64, half: f64, t: Target, z: Dlz) {
     p.push(line((x, r), (x - 3.0, r - 2.0)));
     p.push(line((x, r), (x - 3.0, r + 2.0)));
     p.push(text((x - 5.0, r + 3.0), format!("{}>", (t.closure * MS_TO_KT / 10.0).round() as i64 * 10), Align::Right));
+    top_nm
 }
 
 /// A GPS bomb's cues (ours after the F-16's JDAM symbology, docs/real-hud.md "GPS bombs"; the layout is inferred from
@@ -941,6 +964,7 @@ mod tests {
     #[test]
     fn cockpits_pick_their_display() {
         assert_eq!(Jet::of_cockpit("converted/cockpits/f15"), Jet::F15);
+        assert_eq!(Jet::of_cockpit("f15e"), Jet::F15E);
         assert_eq!(Jet::of_cockpit("converted/cockpits/lavi"), Jet::Lavi);
         assert_eq!(Jet::of_cockpit("res://extra/planes/f35i/cockpit"), Jet::F35);
         assert_eq!(Jet::of_cockpit("converted/cockpits/phantom"), Jet::Phantom);

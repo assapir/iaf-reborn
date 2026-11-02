@@ -412,7 +412,9 @@ func focal_length() -> float:
 		var t: float = h.get("TopBorder", 70)
 		# The whole dir: the F-35I's ends in ".../f35i/cockpit", which alone would read as the F-16's.
 		var glass := Rect2(-l, -t, l + float(h.get("RightBorder", 98)), t + float(h.get("BottomBorder", 70)))
-		var k: float = ClassDB.class_call_static("IafRealHud", "real_view_px_per_deg", cockpit_dir, glass)
+		var k: float = ClassDB.class_call_static(
+			"IafRealHud", "real_view_px_per_deg", Settings.real_hud_dir(cockpit_dir), glass
+		)
 		if k > 0.0:
 			return lerpf(k / tan(deg_to_rad(1.0)) * ui_scale(), f0, away)
 	return f0

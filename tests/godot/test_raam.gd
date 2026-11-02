@@ -1,7 +1,8 @@
 # The Extras switch "F-15 version" on Ra'am (docs/f15i.md): every F-15 (type 110), the player's and the AI's, flies the
 # F-15I row (22,665 lb internal fuel), gets the APG-70I's 104 km and the F-15E's 500 rounds, and its Arming lists the
 # Python 5, the GBU-31(V)3 and the SPICE 1000 whatever Extras "Weapons" says; the TSD, the info line and the Reference
-# name it. A SPICE 1000 released in PRE 45 km from its target, 9,000 m up, glides to it and destroys the unit there.
+# name it; its Real HUD is the F-15E's. A SPICE 1000 released in PRE 45 km from its target, 9,000 m up, glides to it
+# and destroys the unit there.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path game -s ../tests/godot/test_raam.gd
 extends "res://../tests/godot/base.gd"
 
@@ -21,6 +22,11 @@ func run() -> void:
 	check(combat.sensor_nm(110) == 30.8, "AI F-15I sensor: 30.8 NM")
 	check(combat.sensor_nm(100) == 40.0, "AI F-16 sensor unchanged: 40 NM")
 	check(load("res://menu/tsd.gd").unit_label({"type": 110, "cls": 2, "name": ""}) == "F-15I", "TSD names it F-15I")
+	check(settings().real_hud_dir("converted/cockpits/f15") == "f15e", "the Real HUD is the F-15E's")
+	check(
+		ClassDB.class_call_static("IafRealHud", "real_view_px_per_deg", "f15e", Rect2(-98, -60, 196, 130)) < 6.0,
+		"the Real view fits the F-15E's 28° × 21° field"
+	)
 	# The Arming list: the Ra'am's own modern weapons with Extras "Weapons" on Original, on its stations.
 	settings().modern_weapons = false
 	var mw = mission_weapons.create(231)
@@ -100,6 +106,7 @@ func run() -> void:
 	check(burn > 300.0, "it burns the -229s' afterburner fuel: %.0f kg in 30 s" % burn)
 	_spice(tv)
 	settings().f15_variant = "baz"
+	check(settings().real_hud_dir("converted/cockpits/f15") == "converted/cockpits/f15", "Baz: the F-15A/C Real HUD")
 
 
 ## PRE, the briefing's target 45 km ahead, 9,000 m up at 250 m/s: in the SPICE's LAR (a JDAM's is far short); the

@@ -58,6 +58,7 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
             bottom_band: 3.0 * ROW,
             top_band: 22.0,
             zenith: Zenith::None,
+            horizon_tabs: false,
         };
         ladder(p, i, fpm, f, style);
         marker(p, fpm, i.mr(6.0), i.mr(8.0), i.mr(4.0));

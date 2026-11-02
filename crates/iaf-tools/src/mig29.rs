@@ -388,6 +388,7 @@ pub fn build(src: &Path, orig: &Path, out: &Path) -> Result<Stats> {
         helpers,
         &images,
         "FlightGear MiG-29 9-12: Enrique Laso Leon, Sergey Salov (GPL-3.0)",
+        false,
     )?;
     if let Some(d) = out.parent() {
         std::fs::create_dir_all(d)?;

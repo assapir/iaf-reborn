@@ -13,6 +13,7 @@
   "engine_spool": [3.0, 5.0, 0.0, 0.9],
   "model": "converted/models/f15/f15i.glb",
   "guide": "f15i",
+  "hud": "f15e",
   "radar": { "km": 104.0, "ai_nm": 30.8 },
   "gun_rounds": 500,
   "weapons": {
@@ -34,6 +35,7 @@
     "engine_spool": "F100-PW-229, F-15E: idle -> maximum afterburner in less than 4 s (USAF fact sheet), the afterburner's first segment lighting just above idle in a snap acceleration (TO 1F-15E-1): idle -> military 3.0 s as the F100-PW-220 (NASA TM-4320, inferred for the -229), light-off 0, fill 0.9 s (inferred); docs/f15i.md §1",
     "model": "every F-15's model, with Models on Original too, when setup made it (under assets/, as the F-15C)",
     "guide": "the pilot guide, docs/guides/f15i.md",
+    "hud": "the Real HUD: the F-15E's (TO 1F-15E-1 figs. 1-22 / 1-23; the F-15I's own software is open; docs/real-hud.md \"F-15E\")",
     "radar": "no row of its own: the F-15's mode table (row 0; no source gives the APG-70's modes a ratio to the APG-63's)",
     "radar.km": "AN/APG-70I: fighter-sized targets at 56 NM = 104 km (Aviation Week 2010, via Wikipedia; docs/f15i.md §2)",
     "radar.ai_nm": "the AI's sensor range: the 40 NM of every AI jet x 104 / 135 (the APG-70I's km against the F-15's Real 135 km), as the Sufa's 40 x 1.3",

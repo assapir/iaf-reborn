@@ -608,7 +608,7 @@ func real_hud() -> Dictionary:
 	if hobs.get("pos") != null:
 		hobs.at = _hud_point(hobs.pos, true)
 	_real_in = {
-		"cockpit": cockpit.cockpit_dir,
+		"cockpit": Settings.real_hud_dir(String(cockpit.cockpit_dir)),
 		"time": st.get("time", 0.0),
 		"off_boresight": helmet and cockpit.dash(),
 		"head_view": (centre - _c) / _s,
@@ -647,6 +647,7 @@ func real_hud() -> Dictionary:
 		"weapons":
 		{
 			"hud_mode": mode,
+			"name": wp.get("name", ""),
 			"selected": wp.get("total", 0),
 			"srm": wp.get("srm", 0),
 			"mrm": wp.get("mrm", 0),

@@ -34,6 +34,7 @@ Terms used throughout:
 | F-16C/D (Barak) | `f16` | F-16 Block 30/40/50 HUD | dash-34 manual[^dash34] |
 | Lavi | `lavi` | Hughes wide-angle diffractive HUD, Elbit integrated display system; symbology not public | hardware[^deurenberg]; layout inferred (a 1980s US / Israeli wide-angle HUD with its own layout) |
 | F-15A/C (Baz) | `f15` | F-15A/C HUD (moving tapes, no digital boxes) | TO 1F-15A-1[^f15-1] + NADC 1976[^nadc] |
+| F-15I (Ra'am) | `f15` with Extras "F-15 version" on Ra'am | F-15E HUD (digital windows) | TO 1F-15E-1[^f15e-1]; the F-15I's own software is open |
 | F-4E (Kurnass) | `phantom` | AN/ASG-26 lead-computing optical sight (no HUD) | a simulator manual paraphrasing the T.O.[^heatblur-lcoss] |
 | F-4E 2000 (Kurnass 2000) | `f4-2000` | Kaiser / El-Op wide-angle holographic HUD, Elbit ACE-3; symbology not public | inferred: its own (MIL-STD-1787 style) |
 | Kfir C2/C7 | `cfir` | El-Op HUD with the Elbit System 82 / WDNS-341; layout not public | modes[^flight1983][^wt-kfir], layout inferred |
@@ -216,6 +217,70 @@ Symbology:
   arc[^f15-1]; 1,000 ft per tick (simulator manual only[^bms-f15]).
 - A-G: no CCIP. A bomb fall line runs from the velocity vector to a target square, with a pull-up bracket and a
   release cue[^f15-1].
+
+## F-15E (F-15I Ra'am)
+
+With Extras "F-15 version" on Ra'am the F-15's Real HUD is the F-15E's: the F-15I's aircraft definition says so
+(`hud`: "f15e"; `Settings.real_hud_dir` passes it to `IafRealHud` in place of the cockpit folder). The F-15I's own HUD
+software is open; the F-15E's is used and labelled F-15E (docs/f15i.md §10, decision 2). Built 2026-11-02 in
+`real_hud/f15e.rs`.
+
+Source: TO 1F-15E-1 (1990, change 2 of 1991), "Head-Up Display (HUD)" pp. 1-68 to 1-81[^f15e-1]: the HUD symbols
+(fig. 1-22), the HUD windows of every master mode (fig. 1-23 sheet 1) and which window and symbol each mode shows
+(sheets 2 to 7). The scan's page images were read at full resolution; every figure used is legible. The A-A symbols
+(TD box, ASE circle, shoot cue, gun reticle) are in TO 1F-15E-34-1-1, which is not public: open.
+
+Field of view: 21° tall by 28° wide (p. 1-68), the Real view's field (below).
+
+Symbology (from the sources):
+- Digital windows in place of the F-15A/C's tapes. Left: window 1 the calibrated airspeed in a box, window 2 the AoA
+  (`α 10.2`) under it; lower left window 5 (gun rounds `700`; the missile count `M4A` / `S4L`: M or S, the count, the
+  type in priority, A AIM-120A, F / M AIM-7F / M, J / P / L / M the AIM-9s), window 6 the Mach (`0.900`, gear up),
+  window 7 current g on the left and maximum allowable g on the right (`-4.5  9.0G`, gear up). Right: window 13 the
+  barometric altitude in a box, window 14 the vertical velocity (`VV`, NAV gear down), 14A the radar altitude
+  (`R1500`, selected on the UFC); lower right window 17 the steering mode and destination (`NAV`, `TCN`, `ILSN`,
+  `GT`), 18 the range with its source (`R` radar, `G` A-G, `N` nav, `T` TACAN; 0.1 NM), 19 the times (`35 SEC` MRM time
+  to go, `1:15 TIMPCT` time to impact, `10:15 TREL` time to release, `01:30:15` nav time to go), 20 the course set,
+  the target aspect (`17L`, `T`, `H`) or the A-G delivery mode (`CDIP`, `AUTO`, `GUN`, `GUIDED`, …) with the height
+  above target sensor (`LAS`, `AGR`, `RALT`, `BARO`).
+- Heading scale: on top, 30° shown, two-digit labels in tens of degrees, the command heading marker on it; limited,
+  the command heading's digits at the scale's end (window 12A).
+- Flight path pitch ladder on the velocity vector: 5° rungs to ±85°, bent toward the horizon by half their angle,
+  dive rungs dashed, tabs toward the horizon, numbers at both ends; the horizon line longer, its end tabs toward the
+  ground; zenith a circle, nadir a circle with an X (p. 1-70).
+- Velocity vector, ghost velocity vector (caged), aircraft waterline symbol (NAV and the A-A missile modes), gun cross
+  2° above the waterline with Master Arm on.
+- Radar altimeter thermometer at the right edge (fig. 1-22): 0 to 500 ft with 100 ft ticks, 500 to 1,500 ft
+  compressed (labels 5, 10, 15), the bar filled to the radar altitude; NAV and A-G.
+- Bank scale at the bottom (NAV): ticks at 0, 10, 20, 30, 45 and 60°, 0° and 45° double width, 30° and 60° double
+  length.
+- A-A: the range scale right of centre (window 10 its scale at the top, 11 half the scale at its middle, 12 the
+  closure at the range caret), Rmin and Rmax ticks, the ASE circle.
+- A-G: the reticle, a 50 mil circle with a 2 mil pipper, at the computed impact point (CDIP), on the velocity vector
+  (AUTO) or on the weapon's boresight (an EO guided weapon); the reticle range bar inside the circle (0 to 12,000 ft on
+  the first turn); the A-G target designator diamond; the break X when diving more than 3° and a 4 g pull-out
+  reached in 2 s would end below 200 ft of radar altitude (p. 1-71).
+
+Ours (what `f15e.rs` draws):
+- Places: fig. 1-23 sheet 1 is a schematic drawing; ours keeps every window on its side and in its order, as
+  fractions of the cockpit's HUD field from its centre, with rows 9 px apart (the HUD font is larger against the glass
+  than the real HUD's; inferred). The heading scale is 90 px wide (the figure's would put its labels 3 px apart at
+  the game's font; inferred).
+- Drawn: windows 1, 2, 5, 6, 7, 13, 14, 14A (outside A-A: the UFC selection taken as on), 17 (`NAV n`, `ILSN n`),
+  18, 19 (nav time to go, `TREL` for the delayed CDIP, `TIMPCT` for a released GPS bomb), 20 (aspect; `GUN`, `CDIP`,
+  `GUIDED`, `PRE` / `VIS` for a GPS bomb, with `RALT` or `BARO`); the heading scale with the command heading marker
+  on the steerpoint's bearing; the ladder and velocity vector; the waterline symbol; the gun cross; the radar
+  altimeter thermometer; the bank scale (pointer: inferred, the F-16's sense); the A-A range scale with windows 10 to
+  12; the A-G reticle and the target diamond; the break X (ours: one second at the present sink stands for the 2 s g
+  onset).
+- Inferred where the -34 holds the symbol (marked F-15A/C in the code): the TD box, the ASE circle and steering dot
+  (60 mr, on the HUD centre), the SRM seeker circle, `SHOOT` under the ASE circle, the LCOS gunsight (the F-15A/C's),
+  the ILS bank and pitch steering bars (the F-15A/C's flight director).
+- Allowable g: 9.0 (the game has no overload warning system; the F-15I's +9 g limit, inferred).
+- The missile letter: none for the Python 3 / 4 / 5 and the AIM-9X (the manual lists none; open).
+- Not drawn: windows 3, 4, 8, 9, 15, 16, 21 (terrain following, IN CMD, alignment, PDT altitude, training: the game
+  has none), 2A (true / ground speed: off unless selected on the UFC), the ghost velocity vector (no caging), command
+  velocity, the laser cue, the reticle range bar (the game gives the HUD no A-G slant range), the MRM time to go.
 
 ## F-4E Kurnass: AN/ASG-26 LCOSS (no HUD)
 
@@ -660,6 +725,7 @@ Extras → "Real HUD view": Original (1998) / Real field of view. It acts with H
 | Jet | IFOV across × up | Basis |
 |---|---|---|
 | F-16C/D | 20° × 13.5° (25° total, cut 10.5° below its centre) | the wide-angle conventional HUD of the Block 25 / 30 F-16C/D[^roch-f16cd]; dash-34[^dash34fov] |
+| F-15I (F-15E HUD) | 28° × 21° | TO 1F-15E-1 p. 1-68[^f15e-1] |
 | Lavi, Kurnass 2000 | 30° × 18° | inferred: a wide-angle diffractive HUD of the time (the F-16 LANTIRN HUD's 30° × 18°[^roch-lantirn][^fisher85]) |
 | MiG-29 9.12 | 13° × 18° | ИЛС-31 at 600 mm from the eye, a simulator manual[^ea29] |
 | F-15A/C, Kfir, MiG-23ML, F-4E, Mirage IIICJ | 17.8° × 12° | open: inferred from a typical single-combiner refractive HUD[^avhandbook-hud] |
@@ -752,6 +818,7 @@ its scale. The original HUD keeps the original layout.
     the 0.6° band or the ILS display (inferred: the manual gives no release). The bars sit off the aircraft symbol by
     the game's ILS deviations, 12 px per degree (inferred: the manual gives no scale). The original's ILS lines are
     not drawn on this HUD.
+- F-15I (`f15e.rs`): the F-15E HUD, everything in "Ours" of its section above.
 - Kfir (`kfir.rs`), Kurnass 2000 (`k2000.rs`), MiG-23 (`mig23.rs`), MiG-29 (`mig29.rs`): everything in "Ours" of
   their sections above; what those sections mark "not drawn" stays out.
 - Lavi (`lavi.rs`): everything in its section above, with the bank scale and the ILS needles (the original's ILS
@@ -765,7 +832,7 @@ its scale. The original HUD keeps the original layout.
   larger reticles (the sizes are the real ones).
 - F-35 (`f35.rs`): the forward virtual HUD and the off-boresight head set; the gun / A-G graphics are the F-16's
   (reconstruction).
-- DASH (`dash.rs`): in the F-16 / F-15 cockpits only (the MiG-29 has its Щель-3УМ); the Lavi and Kurnass 2000 keep
+- DASH (`dash.rs`): in the F-16 / F-15 cockpits only (the F-15I's too) (the MiG-29 has its Щель-3УМ); the Lavi and Kurnass 2000 keep
   the original's helmet display, the MiG-23 draws none (no helmet sight); the Kfir, F-4E and Mirage cockpits have no
   helmet display (`[HUD] Dash` 0), so their sight pans away with the glass.
   - When: looking aside with the Real HUD on (the original's dash condition: the panel panned ≥ 250 px aside or
@@ -798,6 +865,9 @@ its scale. The original HUD keeps the original layout.
 [^f15-1]: TO 1F-15A-1, F-15A/B/C/D flight manual (15 Jan 1984): "Navigation Head-Up Displays" pp. 1-65ff, figs. 1-14
     (NAV HUD) and 1-15 (ILS HUD); fig. 1-2 sheets 1–2 pp. 1-5 / 1-6 (interrogate button / coolie), pp. 1-80/81
     (interrogator set): https://archive.org/details/f-15-manual
+[^f15e-1]: USAF, TO 1F-15E-1, *Flight Manual, USAF Series F-15E Aircraft*, 15 August 1990, change 2 of 15 March
+    1991: "Head-Up Display (HUD)" pp. 1-68 to 1-81, fig. 1-22 "HUD Symbols", fig. 1-23 "HUD Format" sheets 1 to 7:
+    https://archive.org/details/f-15-e
 [^nadc]: NADC-75267-40, "Head-Up Display Symbology" (1976), DTIC ADA022655: per-aircraft HUD symbology tables and
     figures: https://archive.org/details/DTIC_ADA022655
 [^twz-f15]: The War Zone, F-15C pilot account (ASE circle, steering dot, TD box):

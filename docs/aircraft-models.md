@@ -634,7 +634,7 @@ the same FlightGear files as the F-15C plus two (`livery.IAF.jpg`, `f15-interior
 | source | the Zaretto F-15 above (§6), GPL-2.0-only, the F-15D / F-15E parts of the same `f15c.ac` |
 | triangles | 60 400 (the F-15C's 42 400 with the two-seat canopy, conformal tanks and their pylons, the rear cockpit and a second pilot) |
 | file size | 4.1 MB |
-| livery | FlightGear's "IAF 235-69 SQ HAMMERS": 69 Squadron's three-tone desert camouflage over light grey, tail number 269 on the fins and the nose, the eagle's head on the outer fins, IAF roundels on the nose and wings; the inner fins' black bands painted out and the nose numbers recoloured blue, as photos of 227, 232 and 259 show (`f15::livery_i`, f15i.md §7) |
+| livery | FlightGear's "IAF 235-69 SQ HAMMERS": 69 Squadron's three-tone desert camouflage over light grey, tail number 269 on the fins and the nose, the eagle's head on the outer fins, IAF roundels on the nose and wings; the inner fins' black bands painted out and the nose numbers recoloured blue, as photos of 227, 232 and 259 show (`f15::livery_i`, f15i.md §7); flat paint (metallic 0, roughness 0.9; the F-15C keeps 0.1 / 0.6), as the FS colours are (`f15::FLAT_PAINT`) |
 | crew | two pilots on ACES II seats, front and rear cockpit tubs (the rear one at f15c.xml's "Backseater" offset) |
 
 Everything else is the F-15C's conversion (§6.1): the same scale (0.982), helpers, hinges, gear doors, pylons and
@@ -661,8 +661,14 @@ pylons, F100-PW-229 engines, a desert camouflage of sand, tan and green over lig
 outer fins. What differs on ours (open):
 
 - the F-15E's larger main wheels and bulged gear doors are not modelled (FlightGear's F-15C gear);
-- FlightGear's livery is a fan's painting: its camouflage pattern and the wing roundels' places are not checked
-  against a photo of 269;
+- FlightGear's livery is a fan's painting (jet 235's pattern, by its name). Checked 2026-11-02 against the one free
+  photo of 269 (right side, 2001, flat light): the radome, the tan swath along the canopy rail, the sand round the
+  roundel and the nose number agree; the blotches' fine edges are not readable there and differ from jet to jet
+  (f15i.md §7). The wing roundels' places: not checked;
+- the camouflage looked washed out on renders: measured on a render against 234's sunlit photo (2026-11-02, f15i.md
+  §7), the semi-gloss material reflected the sky over the warm colours (the sand's blue / red 0.97 against 0.81 on the
+  photo). The livery is flat paint now (sand blue / red 0.94; the blotches stand apart). The rest of the cool cast is
+  the scene's sky light (open);
 - the rear cockpit's instrument panel is dark grey (its textures are SGI `.rgb` files, as the front's);
 - the cockpit view and the HUD stay the F-15C's; the rear seat's cockpit view is open.
 
