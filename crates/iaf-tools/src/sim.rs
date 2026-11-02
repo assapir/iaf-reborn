@@ -25,6 +25,7 @@ use crate::georef::Georef;
 use crate::log;
 use crate::mission_edit;
 use crate::progress::{Progress, check};
+use crate::training;
 
 /// The compiled object database's name: missions name it in `bdb`, the object index keys its models by it and
 /// `weapon_db.gd` finds that key through the bdb's `_file`.
@@ -445,7 +446,7 @@ pub fn skeleton() -> Value {
 }
 
 /// A point of a mission file in the engine frame: (x east, y north) from its "lat" / "lon".
-fn place(geo: &Georef, p: &Value, what: &str) -> Result<[f64; 2]> {
+pub(crate) fn place(geo: &Georef, p: &Value, what: &str) -> Result<[f64; 2]> {
     let (lat, lon) = (p["lat"].as_f64(), p["lon"].as_f64());
     let (Some(lat), Some(lon)) = (lat, lon) else { bail!("{what}: \"lat\" and \"lon\" must be numbers") };
     Ok(geo.geo_to_engine(lon, lat))
@@ -504,6 +505,9 @@ fn texts(f: &File, k: &str) -> Result<Value> {
 /// One compiled mission file from a readable one.
 pub fn compile_mission(f: &File, db: &Db, geo: &Georef, runways: &[RealRunway]) -> Result<Value> {
     check_sources(f, &MISSION_FIGURES)?;
+    // The training rules (iaf-2026/docs/training.md): they parse, and each figure has its source.
+    training::rules(&f.v).with_context(|| f.name.clone())?;
+    check_sources(f, &training::FIGURES)?;
     // Each flight and placed unit names its own sources (the mission's footnotes serve them).
     for (list, figures) in
         [("flights", &FLIGHT_FIGURES[..]), ("targets", &PLACED_FIGURES), ("sam_sites", &PLACED_FIGURES)]
@@ -642,7 +646,7 @@ pub fn compile_mission(f: &File, db: &Db, geo: &Georef, runways: &[RealRunway]) 
     // (mission_runtime.gd move_with_bases).
     m["frame"] = json!("real");
     m["sim"] = json!({"title": texts(f, "title")?, "briefing": texts(f, "briefing")?, "win": f.v["win"],
-        "lose": f.v["lose"], "menu_id": int(f, "menu_id")?, "runway": f.v["runway"]});
+        "lose": f.v["lose"], "menu_id": int(f, "menu_id")?, "runway": f.v["runway"], "training": f.v["training"]});
     if let Some(note) = f.v["note"].as_str() {
         m["sim"]["note"] = json!(note);
     }
@@ -1158,6 +1162,27 @@ mod tests {
         assert!((h - 67.0).abs() < 5.0, "{h}");
         assert!(x < 302000.0, "{x}");
         assert!(runway_start(&rows, "Ramon", "12").is_err());
+    }
+
+    /// The training rules are checked: a training figure without a source and an unknown kind are refused, and
+    /// every take-off mission's runway is an end of its base's airbase file.
+    #[test]
+    fn training_rules_are_checked() {
+        let (db, geo, rw) = (Db::read(&data()).unwrap(), Georef::load().unwrap(), real_runways());
+        assert!(compile_mission(&ramon(json!({})), &db, &geo, &rw).is_ok());
+        let mut unsourced = ramon(json!({}));
+        unsourced.v["sources"].as_object_mut().unwrap().remove("training.time_budget_s");
+        let e = compile_mission(&unsourced, &db, &geo, &rw).unwrap_err().to_string();
+        assert!(e.contains("\"training.time_budget_s\" has no source"), "{e}");
+        let unknown = ramon(json!({"training": {"kind": "landing", "time_budget_s": 60}}));
+        assert!(compile_mission(&unknown, &db, &geo, &rw).is_err());
+        let airbases: Vec<Value> = read_dir(&data().join("airbases")).unwrap().into_iter().map(|f| f.v).collect();
+        for f in read_dir(&data().join("missions")).unwrap() {
+            if let Some(r) = f.v["runway"].as_str() {
+                let base = training::airbase_of(&f.v, &airbases).unwrap();
+                training::runway(base, r, &geo).unwrap_or_else(|e| panic!("{}: {e}", f.name));
+            }
+        }
     }
 
     #[test]

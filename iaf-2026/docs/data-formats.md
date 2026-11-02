@@ -205,6 +205,7 @@ Example, `iaf-2026/data/db/weapons/aim-9m.json`:
 | `route` | the player's waypoints: `lat`, `lon`, `alt_m`, and `speed_kmh` or `t_s`. The compiled waypoint holds the planned arrival time in sim seconds (docs/ai.md §7.2): `t_s`, else the time from the flight's start along the legs at each point's speed. No route gives set_flight's one point 20 km ahead |
 | `runway` | the runway the mission's tower clears (kept in `sim` for item E3) |
 | `note` | a caveat the compiler prints and keeps in `sim` (Nevatim's: no game base yet) |
+| `training` | the pass / fail rules ([training.md](training.md) §3), kept in `sim`: `kind` (`"startup"` or `"takeoff"`), `time_budget_s`; a take-off also `heading_tolerance_deg`, `empty_kg` and `takeoff_kt` (`[[kg, kt], …]`, rising in kg) and needs `runway`. The compiler parses them and wants a source for each figure (`"training.time_budget_s"` …) |
 | `flights` | Bravo..Delta: `unit`, `count`, `start` {`lat`, `lon`, `heading`, `alt_m`}, `route` |
 | `targets`, `sam_sites` | placed units: `unit`, `name`, `side` (default red), `lat`, `lon`, `alt_m`, `heading`, optional `route` [{`lat`, `lon`}, at least two] and `speed_kmh`; a target takes role 1, a SAM site role 2 |
 
@@ -222,7 +223,7 @@ The first six missions, two per MVP base (plan.md, MVP): start-up (`<base>_start
 at Ramon (Sufa, menu 2011 / 2012), Ramat David (Barak, 2021 / 2022) and Nevatim (F-35I, 2031 / 2032). Each jet
 stands parked at the centre of an OpenStreetMap apron by the runways until item B2 gives the bases' real parking
 spots. The take-off route is one point 10 km beyond the runway's far end, 900 m above the field. Their pass rules
-come with item E3. Nevatim is not one of the game's bases (iaf.ibx) until item B2: it has no tower, lineup or
+are in `training` ([training.md](training.md)). Nevatim is not one of the game's bases (iaf.ibx) until item B2: it has no tower, lineup or
 start rule, its jet stands at the real apron's place on the original terrain, and its take-off briefing promises no
 tower calls; both Nevatim files say so in `note`.
 

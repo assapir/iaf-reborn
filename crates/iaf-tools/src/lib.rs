@@ -36,6 +36,7 @@ pub mod sim;
 pub mod smooth;
 pub mod terrain;
 pub mod thirdparty;
+pub mod training;
 pub use iaf_formats::terrain_types;
 pub mod upscale;
 

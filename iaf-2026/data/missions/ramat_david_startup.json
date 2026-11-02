@@ -22,14 +22,16 @@
     "start.lat": "osm-apron",
     "start.lon": "osm-apron",
     "start.heading": "inferred",
-    "start.elevation_m": "oa"
+    "start.elevation_m": "oa",
+    "training.time_budget_s": "inferred"
   },
   "notes": {
     "time": "the MVP's conditions: day (plan.md, MVP)",
     "wind_kt": "the MVP's conditions: calm (plan.md, MVP)",
     "wind_from": "calm: no direction",
     "start": "the centre of an apron by the runways until B2 gives the base's real parking spots",
-    "start.heading": "facing the nearest runway"
+    "start.heading": "facing the nearest runway",
+    "training.time_budget_s": "two minutes from the mission's start: one start command (plan.md, start-up) and the engine's wind-up, with time to find the command"
   },
   "footnotes": {
     "osm-apron": "OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright: aeroway=apron way 1328724315 (its centre, Overpass API, 2026-11-02), https://www.openstreetmap.org/way/1328724315",
@@ -52,5 +54,9 @@
   "lose": {
     "en": "Mission - failed. Better try again.",
     "he": "המשימה נכשלה. נסה שוב."
+  },
+  "training": {
+    "kind": "startup",
+    "time_budget_s": 120
   }
 }

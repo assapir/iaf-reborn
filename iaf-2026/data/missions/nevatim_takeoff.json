@@ -23,7 +23,11 @@
     "start.lon": "osm-apron",
     "start.heading": "inferred",
     "start.elevation_m": "oa",
-    "route": "inferred"
+    "route": "inferred",
+    "training.empty_kg": "w-f35-spec, inferred",
+    "training.takeoff_kt": "wn-f35",
+    "training.time_budget_s": "inferred",
+    "training.heading_tolerance_deg": "inferred"
   },
   "notes": {
     "time": "the MVP's conditions: day (plan.md, MVP)",
@@ -31,11 +35,17 @@
     "wind_from": "calm: no direction",
     "start": "the centre of an apron by the runways until B2 gives the base's real parking spots",
     "start.heading": "facing the nearest runway",
-    "route": "the departure point: 10 km beyond runway 26L's far end on its heading, 900 m above the field"
+    "route": "the departure point: 10 km beyond runway 26L's far end on its heading, 900 m above the field",
+    "training.empty_kg": "the F-35A's empty weight; the F-35I's is not published (inferred the same)",
+    "training.takeoff_kt": "one figure for every weight: no public table by weight",
+    "training.time_budget_s": "fifteen minutes from the mission's start for the start-up, the tower calls, the taxi and the take-off",
+    "training.heading_tolerance_deg": "the climb-out on the runway heading within 10 degrees"
   },
   "footnotes": {
     "osm-apron": "OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright: aeroway=apron way 1089049617 (its centre, Overpass API, 2026-11-02), https://www.openstreetmap.org/way/1089049617",
-    "oa": "OurAirports, airports.csv (public domain; LLNV elevation 1330 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+    "oa": "OurAirports, airports.csv (public domain; LLNV elevation 1330 ft), https://davidmegginson.github.io/ourairports-data/airports.csv",
+    "wn-f35": "WION, \"How does the F-35 fighter jet stand out in take-off speed\" (minimum lift-off speed about 165 kt; weak), https://www.wionews.com/photos/how-does-the-f-35-fighter-jet-stand-out-in-takeoff-speed-and-design-here-s-its-minimum-lift-off-speed-1752767093279",
+    "w-f35-spec": "Wikipedia, \"Lockheed Martin F-35 Lightning II\", Specifications (F-35A): empty weight 29,300 lb (13,290 kg), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II"
   },
   "id": "nevatim_takeoff",
   "menu_id": 2032,
@@ -64,5 +74,17 @@
       "speed_kmh": 600
     }
   ],
-  "note": "Nevatim has no game base until item B2: no tower, lineup or start rule; the jet stands at the real apron's place on the original terrain."
+  "note": "Nevatim has no game base until item B2: no tower, lineup or start rule; the jet stands at the real apron's place on the original terrain.",
+  "training": {
+    "kind": "takeoff",
+    "time_budget_s": 900,
+    "heading_tolerance_deg": 10,
+    "empty_kg": 13290,
+    "takeoff_kt": [
+      [
+        13290,
+        165
+      ]
+    ]
+  }
 }

@@ -23,7 +23,11 @@
     "start.lon": "osm-apron",
     "start.heading": "inferred",
     "start.elevation_m": "oa",
-    "route": "inferred"
+    "route": "inferred",
+    "training.empty_kg": "w-f16-spec, inferred",
+    "training.takeoff_kt": "bms-told",
+    "training.time_budget_s": "inferred",
+    "training.heading_tolerance_deg": "inferred"
   },
   "notes": {
     "time": "the MVP's conditions: day (plan.md, MVP)",
@@ -31,11 +35,17 @@
     "wind_from": "calm: no direction",
     "start": "the centre of an apron by the runways until B2 gives the base's real parking spots",
     "start.heading": "facing the nearest runway",
-    "route": "the departure point: 10 km beyond runway 25R's far end on its heading, 900 m above the field"
+    "route": "the departure point: 10 km beyond runway 25R's far end on its heading, 900 m above the field",
+    "training.empty_kg": "the F-16C Block 50 / 52's empty weight; the Sufa's and the Barak's are not published (inferred the same)",
+    "training.takeoff_kt": "70 kt + 3 kt per 1000 lb at 20,000 lb (9,072 kg) and 48,000 lb (21,772 kg), linear between",
+    "training.time_budget_s": "fifteen minutes from the mission's start for the start-up, the tower calls, the taxi and the take-off",
+    "training.heading_tolerance_deg": "the climb-out on the runway heading within 10 degrees"
   },
   "footnotes": {
     "osm-apron": "OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright: aeroway=apron way 1496591869 (its centre, Overpass API, 2026-11-02), https://www.openstreetmap.org/way/1496591869",
-    "oa": "OurAirports, airports.csv (public domain; LLRM elevation 2126 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+    "oa": "OurAirports, airports.csv (public domain; LLRM elevation 2126 ft), https://davidmegginson.github.io/ourairports-data/airports.csv",
+    "bms-told": "Falcon BMS forum, \"Rotation speed\" (the F-16's take-off speed: 70 kt plus 3 kt per 1000 lb of gross weight, a pilot's rule from the -1's charts; a forum post, weak), https://forum.falcon-bms.com/post/314659",
+    "w-f16-spec": "Wikipedia, \"General Dynamics F-16 Fighting Falcon\", Specifications (F-16C Block 50 / 52): empty weight 18,900 lb (8,573 kg), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon"
   },
   "id": "ramon_takeoff",
   "menu_id": 2012,
@@ -63,5 +73,21 @@
       "alt_m": 1548,
       "speed_kmh": 600
     }
-  ]
+  ],
+  "training": {
+    "kind": "takeoff",
+    "time_budget_s": 900,
+    "heading_tolerance_deg": 10,
+    "empty_kg": 8573,
+    "takeoff_kt": [
+      [
+        9072,
+        130
+      ],
+      [
+        21772,
+        214
+      ]
+    ]
+  }
 }

@@ -1,0 +1,42 @@
+//! IAF 2026's training scoring (iaf-2026/docs/training.md):
+//!
+//! `iaf-training score <flight.jsonl> <mission.json> [airbases-dir] [--json <out.json>]`
+//!
+//! Scores a flight recording against a training mission's rules and prints the debrief's English summary; `--json`
+//! also writes the debrief record (English and Hebrew strings keyed by id). The airbases folder defaults to
+//! `../airbases` beside the mission file's folder (`iaf-2026/data/airbases` for `iaf-2026/data/missions/<id>.json`).
+
+use std::path::{Path, PathBuf};
+
+use anyhow::{Context, Result, bail, ensure};
+use iaf_tools::{georef::Georef, sim, training};
+
+const USAGE: &str = "usage: iaf-training score <flight.jsonl> <mission.json> [airbases-dir] [--json <out.json>]";
+
+fn main() -> Result<()> {
+    let mut args: Vec<String> = std::env::args().skip(1).collect();
+    let out = match args.iter().position(|a| a == "--json") {
+        Some(i) if i + 1 < args.len() => Some(args.drain(i..i + 2).nth(1).unwrap_or_default()),
+        Some(_) => bail!("--json needs a file\n{USAGE}"),
+        None => None,
+    };
+    let (Some("score"), Some(flight), Some(mission)) = (args.first().map(String::as_str), args.get(1), args.get(2))
+    else {
+        bail!("{USAGE}");
+    };
+    let dir = match args.get(3) {
+        Some(d) => PathBuf::from(d),
+        None => Path::new(mission).parent().unwrap_or(Path::new(".")).join("../airbases"),
+    };
+    ensure!(dir.is_dir(), "no airbases folder {} (give it as the third argument)", dir.display());
+    let read = |p: &str| std::fs::read_to_string(p).with_context(|| p.to_string());
+    let f = training::parse_flight(&read(flight)?).with_context(|| flight.clone())?;
+    let m = serde_json::from_str(&read(mission)?).with_context(|| mission.clone())?;
+    let airbases: Vec<_> = sim::read_dir(&dir)?.into_iter().map(|f| f.v).collect();
+    let d = training::score(&f, &m, &airbases, &Georef::load()?)?;
+    print!("{}", d.summary());
+    if let Some(p) = out {
+        std::fs::write(&p, serde_json::to_string_pretty(&d.to_json())? + "\n").with_context(|| p)?;
+    }
+    Ok(())
+}
