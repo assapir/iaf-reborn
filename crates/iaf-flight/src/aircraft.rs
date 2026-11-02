@@ -302,6 +302,9 @@ pub struct ApView {
     pub gear_speed_wait: bool,
     /// Stick-centre line (P+0x144, P+0x180, P+0x184): centre g = V < v ? a·V + b : 1.
     pub stick_centre: [f32; 3],
+    /// Airborne lift per commanded g: the flaps' share below 125 m/s and Better physics' ground effect, which the
+    /// flight model adds on top of the stick's g ([`Aircraft::lift_factor`]).
+    pub lift_factor: f32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -2602,7 +2605,16 @@ impl Aircraft {
             ground_height: self.ground_height,
             gear_speed_wait: p.gear_speed_wait,
             stick_centre: [self.stick_centre_v, self.stick_centre_a, self.stick_centre_b],
+            lift_factor: self.lift_factor(t, speed),
         }
+    }
+
+    /// [`ApView::lift_factor`]: the airborne lift over the stick's g, as `lift_fn` adds the flaps (`5b4470`) and
+    /// `aero_update` Better physics' ground effect.
+    fn lift_factor(&self, t: f64, v: f32) -> f32 {
+        let flaps = if v < 125.0 { self.params.flaps_lift_coef * self.flaps.sample(t) * FLAPS_K } else { 0.0 };
+        let ge = if self.better.ground_effect { self.ground_effect_lift(self.axes[2].sample(t).0 as f32) } else { 1.0 };
+        (1.0 + flaps) * ge
     }
 
     /// `5b5070` Vmin(alt, g) of the envelope.

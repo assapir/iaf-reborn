@@ -137,10 +137,12 @@ approach and the float before touchdown steer to the centreline with a damped la
   landing check's crash, in every run. The F-15 and the Lavi arrived 5–6° nose down, a crash with Easy landing off.
   (The players' report, "the autopilot crashes as the brakes come out", was World scale Real's CH5: see
   [world-scale.md](world-scale.md) §4.3.)
-  - Ours: the flare asks for the flight path that sinks at the wheels' height / 2 s + 1.5 m/s. At landing speeds the
-    pitch law holds a path a few degrees shallower than its target: its 1 g stick is not the flight model's 1 g
-    there. So the flare adds the summed error (0.5/s, at most 3.4°, down only; `Landing::flare`). The sum is kept
-    after the touch.
+  - Ours: the flare asks for the sink of the wheels' height / 2 s + 1.5 m/s. It sets the stick itself, not through
+    the pitch law: the vertical acceleration 2/s × the sink's error plus that error summed (0.5/s², at most
+    3 m/s²), as a load factor on the flight path and bank, divided by the lift the flight model adds on top of the
+    stick's g (`ApView::lift_factor`: the flaps below 125 m/s, Better physics' ground effect), then the stick for
+    that g (`inv_g`). With the 2 s profile the 2/s gain is critically damped. The sum is kept after the touch
+    (`Landing::flare`).
   - FinalApproach hands over to StopPlane at the original's radius around the lineup or, for the player, once the
     wheels are below the flare's height for the jet's sink (2 s × (sink − 1.5 m/s)), whichever comes first.
   - For the player, StopPlane counts as "rolling" once the wheels touch, not on the original's test (flight-path
@@ -163,20 +165,38 @@ approach and the float before touchdown steer to the centreline with a damped la
     not either: the jet is at its AoA limit from FinalApproach on, at 0.14–0.26 throttle, then idle. Better physics'
     ground effect is small at the true wing height (×1.04 lift at the Kurnass's 2.74 m). Taken at the wheels' height
     (a clearance of 0, as the other 312 tests fly) it is ×1.9 near the runway, and the jet floats 1–3 m there.
-  - Now (the changes above: the early hand-over, the sum down only and kept after the touch, the ground law on the
-    wheels): the same 48 Kurnass runs bounce at most 0.21 m off the first touch and touch at up to 2.4 m/s, at
-    178–187 kt on Real data. With 31.4 t and every switch: at most 0.21 m and 1.5 m/s, 181–183 kt. Every other
-    jet (both data sets, 20 / 60 / 120 Hz, the aligned final on or off, the Better physics switches on or off, its
-    true-size clearance): at most 0.38 m (before: up to 3.3 m) and 1.9 m/s. Before the first touch the flare can
-    still float up by up to 1.6 m (the Kurnass on Original data with 31.4 t) and 1.2 m (the Mirage on Real data).
-  - Result: touchdown at 150–187 kt, 0.1–2.4 m/s sink, nose 4–15° up, every flyable jet, both data sets, every
-    Physics option, at 20, 60 and 120 Hz. In the tests the wheels touch 170–550 m past the lineup and the jet stops
-    1–2.2 km down the runway.
+  - Then (c966359: the early hand-over, the pitch law's target with its sum down only and kept after the touch, the
+    ground law on the wheels): the same 48 Kurnass runs bounced at most 0.21 m off the first touch and touched at
+    up to 2.4 m/s; every other jet at most 0.38 m (before: up to 3.3 m) and 1.9 m/s. Before the first touch the
+    flare still floated up by up to 1.6 m (the Kurnass on Original data with 31.4 t) and 1.2 m (the Mirage on Real
+    data), 18 of the 216 runs by more than 0.3 m.
+  - The float (2026-11-02): the pitch law flies the flight path through the lift ramp, which follows a new g at
+    `G_Rate` × 1–100 % (0.36 at 90 m/s), so the jet's g lags the stick by most of a second. The law's 1 g stick is
+    also short of the lift: below 125 m/s the flight model adds the flaps' share on top of the stick's g, and
+    Better physics adds ground effect. Near the runway the jet arrested its sink with its path still rising 2–3°/s,
+    and the sum needed 2 s to learn the bias: the Kurnass on Original data at 31.4 t rose 1.5 m at 15° AoA. Tried
+    and dropped (each over the 216-run sweep): a faster sum (0.5 → 2/s), a proportional term on the path error, a
+    push when climbing, the height predicted 0.3–1 s ahead, a lead on the path rate, and the vertical speed the
+    lift ramp still adds. Each left floats of 0.5–1.5 m, or cut them below 0.3 m and bounced 1–3 m or touched at
+    3–5 m/s. The direct stick (above) commands the vertical acceleration itself, so only the ramp's lag is left.
+  - Now: in all 216 runs (every flyable jet, both data sets, 20 / 60 / 120 Hz, the aligned final on or off, every
+    Better physics switch on or off, the true-size clearance; the Kurnass at 19.2 t and 31.4 t) the wheels never
+    rise before the first touch (0.00 m), bounce at most 0.03 m off it and touch at 0.5–1.4 m/s. The same at a
+    clearance of 0 (the ground effect ×1.9 at the wheels): at most 0.04 m and 1.3 m/s. The jets touch 5–15 kt
+    faster than with the float, as they no longer bleed speed above the runway: the Kurnass 2000 on Real data at
+    185–193 kt, the Mirage on Real data at 180–184 kt.
+  - Result: touchdown at 158–193 kt, 0.5–1.4 m/s sink, nose 6–14° up, 180–310 m past the lineup, every flyable jet,
+    both data sets, every Physics option, at 20, 60 and 120 Hz. The jet stops 0.8–2.3 km down the runway.
   - Tests: `player_landing_312_flares_every_jet` (Easy landing off; with the flare off the F-16 still floats and
-    stalls onto the runway at 11.6 m/s, 2.6° nose down, which the original's limits pass);
+    stalls onto the runway at 10.3 m/s, 0.7° nose down, which the original's limits pass);
     `player_landing_312_heavy_kurnass_stays_down` (the Kurnass 2000, Real data, 31.4 t, every Better physics switch,
-    World scale Real's clearance and final, 20 / 60 / 120 Hz; before: 0.6, 9.8 and 1.7 m off the first touch). The
-    landings with the flare fail a bounce over 1 m after the first touch.
+    World scale Real's final, 20 / 60 / 120 Hz; before c966359: 0.6, 9.8 and 1.7 m off the first touch). The 312
+    jets fly their model's true-size gear clearance, as the game sets it (before: 0, the wing at the wheels' height).
+    Every flyable jet's model has the `height` helper the game reads it from: the 1998 models, the detailed F-16
+    and F-15, the Sufa's, the Ra'am's and the F-35I's. Only the helicopters' models (CH-53, Mi-8, Mi-24,
+    UH-60) lack one; they take the host's fallback of 0 and never fly the player's flare. The landings with the flare fail when the
+    wheels rise more than 0.3 m in StopPlane, before or after the first touch (with c966359's flare: 0.31 m, the
+    F-4 in `player_landing_312_flares_every_jet`).
 - **The circuit off the original** (ours, the same switches as the flare, `Autopilot::player_flare`):
   - ChangeHeading2PtAcu (CH2–CH5) is done when |e| ≤ its tolerance and the roll ≤ 0.2° (signed) on two ticks. The
     F-4 Real with every Better physics switch, at 60 Hz, rolled out of CH2 holding 0.4° of right bank with |e| within

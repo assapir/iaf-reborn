@@ -840,8 +840,6 @@ fn player_landing_312_heavy_kurnass_stays_down() {
         ac.better = iaf_flight::aircraft::BetterPhysics::all();
         let m = ac.state().mass_kg;
         ac.set_stores(31400.0 - m, 0.0, 0.0);
-        ac.gear_clearance = 2.74;
-        ac.true_clearance = Some(2.74);
         let (vz, pitch, x, stop) = landing_312_at(&inst, ac, "F-4", true, true, dt);
         println!("{:.0} Hz: touchdown sink {:.1} m/s, nose {pitch:.1}°, at x {x:.0}; stop {stop:?}", 1.0 / dt, -vz);
         assert!(vz > -3.0 && pitch > 0.0, "a flared touchdown (sink {:.1} m/s, nose {pitch:.1}°)", -vz);
@@ -850,14 +848,31 @@ fn player_landing_312_heavy_kurnass_stays_down() {
     }
 }
 
-/// The player's jet at 312's start (2000 m, heading 270°, east of Ramat David).
+/// The player's jet at 312's start (2000 m, heading 270°, east of Ramat David), with its model's gear clearance at
+/// true size (World scale Real's), as the game sets it.
 fn jet_312(inst: &Path, name: &str, set: DataSet) -> Aircraft {
-    jet_with(inst, name, set, Vec3::new(366755.0, 602361.0, 2000.0), 270.0, true)
+    let mut ac = jet_with(inst, name, set, Vec3::new(366755.0, 602361.0, 2000.0), 270.0, true);
+    let c = true_clearance(inst, name);
+    ac.gear_clearance = c;
+    ac.true_clearance = Some(c);
+    ac
+}
+
+/// The jet model's `height` helper (m below the origin) at true size: the converted 1998 models, the F-35I's own.
+/// The Sufa's f16i.glb keeps the F-16's helper (1.69 m).
+fn true_clearance(inst: &Path, name: &str) -> f32 {
+    let model = iaf_flight::data_set::find_type(name).expect("a flown type").model;
+    let model = if model == "f16i" { "f16" } else { model };
+    let dirs =
+        [inst.join("../converted/planes"), PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../game/extra/planes")];
+    let path = dirs.iter().map(|d| d.join(model).join("aircraft.json")).find(|p| p.is_file()).expect("aircraft.json");
+    let desc: serde_json::Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+    -desc["height"].as_f64().expect("a height helper") as f32
 }
 
 /// 312's circuit for the player's jet `ac` (Easy landing off): the touchdown's vz, pitch (°) and x, and where the
-/// autopilot key came (the stop). Panics on a crash, and with the flare on, on a bounce: the wheels more than 1 m up
-/// after the first touch.
+/// autopilot key came (the stop). Panics on a crash, and with the flare on, on a float or a bounce: the wheels rising
+/// more than 0.3 m in StopPlane, before or after the first touch.
 fn landing_312(inst: &Path, ac: Aircraft, name: &str, flare: bool) -> (f32, f32, f64, Option<f64>) {
     landing_312_at(inst, ac, name, flare, false, DT)
 }
@@ -884,7 +899,7 @@ fn landing_312_at(
     ap.route = vec![Waypoint { x: 351083.0, y: 602383.0, z: 1500.0, t: 60.0, action: 7 }];
     ap.player_mode(&mut ac, 2, 0);
     let mut touch = None;
-    let mut bounce = 0.0f64;
+    let mut low = f64::MAX;
     for _ in 0..(900.0 / dt) as usize {
         ac.ground_height = z;
         ac.ap_landing = ap.stage().starts_with("landing");
@@ -896,9 +911,15 @@ fn landing_312_at(
         if touch.is_none() && s.on_ground {
             touch = Some((before.velocity[2], before.pitch.to_degrees(), s.position[0]));
         }
-        if touch.is_some() {
-            bounce = bounce.max(s.position[2] - (z + ac.gear_clearance) as f64);
-            assert!(!flare || bounce < 1.0, "{name}: bounced {bounce:.1} m off the first touch");
+        if flare && ap.stage() == "landing step 14" {
+            let h = s.position[2] - (z + ac.gear_clearance) as f64;
+            low = low.min(h);
+            assert!(
+                h - low < 0.3,
+                "{name}: the wheels rose {:.2} m in the flare (touched: {})",
+                h - low,
+                touch.is_some()
+            );
         }
         if o.ap_key {
             let (vz, pitch, x) = touch.expect("touchdown");

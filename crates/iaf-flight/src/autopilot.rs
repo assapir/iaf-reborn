@@ -6,7 +6,7 @@
 //! Frame: ENU metres (x east, y north, z up) of the aircraft; headings clockwise from north.
 
 use crate::airbase::{Airbase, TaxiPt};
-use crate::aircraft::{Aircraft, ApView, Controls, sign, unit};
+use crate::aircraft::{Aircraft, ApView, Controls, G, sign, unit};
 use crate::vec3::Vec3;
 use iaf_formats::ini::Section;
 use std::f32::consts::PI;
@@ -129,13 +129,15 @@ const V_NO_ETA: f32 = 275.0;
 const C130: u32 = 225;
 const PASS_R: f64 = 1852.0;
 /// Ours, the player's StopPlane flare ([`Landing::flare`]): the sink it asks for is the wheels' height over
-/// `FLARE_TAU` (s) plus `FLARE_SINK` (m/s); `FLARE_KI` (1/s) sums the flight path's error into a downward
-/// correction of at most `FLARE_I_MAX` (rad). FinalApproach hands over to it once the wheels are below that
-/// profile's height for the jet's sink.
+/// `FLARE_TAU` (s) plus `FLARE_SINK` (m/s). It asks for the vertical acceleration `FLARE_KV` (1/s) × the sink's
+/// error, which with `FLARE_TAU` = 2 / `FLARE_KV` is critically damped, plus that error summed at `FLARE_KI`
+/// (1/s²), at most `FLARE_I_MAX` (m/s²). FinalApproach hands over to it once the wheels are below the profile's
+/// height for the jet's sink.
 const FLARE_TAU: f32 = 2.0;
 const FLARE_SINK: f32 = 1.5;
+const FLARE_KV: f32 = 2.0;
 const FLARE_KI: f32 = 0.5;
-const FLARE_I_MAX: f32 = 0.06;
+const FLARE_I_MAX: f32 = 3.0;
 
 /// Terrain height (m) at a world point (x, y), supplied by the host.
 pub type Ground<'a> = &'a dyn Fn(f64, f64) -> f32;
@@ -1394,7 +1396,7 @@ struct Landing {
     align: bool,
     /// `Autopilot::player_flare`.
     flare: bool,
-    /// The player's flare: the flight-path correction (rad) summed from its error ([`Landing::flare`]).
+    /// The player's flare: the vertical acceleration (m/s²) summed from the sink's error ([`Landing::flare`]).
     flare_i: f32,
     /// The player's flare: the wheels have touched (a bounce flares to [`FLARE_SINK`] only).
     touched: bool,
@@ -2529,27 +2531,31 @@ impl Landing {
             // The original holds the flight path level (pitch 0): the jet floats at idle until it stalls and drops
             // onto the runway nose first. The player's autopilot off the original flares onto it instead
             // (docs/autopilot.md §2.3).
-            let t = if flare { self.flare(v) } else { 0.0 };
-            let y = l.pitch(t);
+            let y = if flare { self.flare(l) } else { l.pitch(0.0) };
             let x = l.roll(if self.align { self.align_bank(l) } else { 0.0 });
             l.stick(y, x);
         }
         Leaf::Run
     }
 
-    /// Ours, the player's flare (docs/autopilot.md §2.3): the flight path that sinks at the wheels' height over
-    /// [`FLARE_TAU`] plus [`FLARE_SINK`]. The pitch law (`5ca010`) holds that path a few degrees shallow at landing
-    /// speeds (its 1 g stick is not the flight model's there), so the error is summed in, once per StopPlane tick
-    /// (0.2 s).
-    fn flare(&mut self, v: &ApView) -> f32 {
+    /// Ours, the player's flare (docs/autopilot.md §2.3): the stick for the g that brings the sink to the wheels'
+    /// height over [`FLARE_TAU`] plus [`FLARE_SINK`], once per StopPlane tick (0.2 s). The g is divided by the lift
+    /// the flight model adds on top of the stick's (flaps, ground effect). The original's pitch law (`5ca010`)
+    /// holds a flight path through a lagging lift ramp with a 1 g stick short of that lift, and its flare floated
+    /// up to 1.6 m before the touch.
+    fn flare(&mut self, l: &Laws) -> f32 {
+        let v = l.v;
         // After a bounce the height term would dive the jet back at the runway (the Kurnass 2000 Real with 312's
         // load bounced to 16 m at 185 kt, then hit nose 9° down): it holds the small sink instead.
         let h = if self.touched { 0.0 } else { wheels_height(v).max(0.0) };
-        let want = -((h / FLARE_TAU + FLARE_SINK) / v.speed.max(1.0)).min(1.0).asin();
-        // Down only: the law's bias is always shallow. While the jet lags the profile the error points up, and an
-        // upward sum left it pulling at the touch (the Kurnass 2000: 1.7° up there, then a balloon).
-        self.flare_i = (self.flare_i + (want - v.att.pitch) * 0.2 * FLARE_KI).clamp(-FLARE_I_MAX, 0.0);
-        want + self.flare_i
+        let vz = v.vel[2] as f32;
+        let e = -(h / FLARE_TAU + FLARE_SINK) - vz;
+        self.flare_i = (self.flare_i + e * 0.2 * FLARE_KI).clamp(-FLARE_I_MAX, FLARE_I_MAX);
+        let a = FLARE_KV * e + self.flare_i;
+        // The load factor for that vertical acceleration on the flight path, at the bank.
+        let cos_path = (1.0 - (vz / v.speed.max(1.0)).powi(2)).max(0.0).sqrt();
+        let n = (G + a) / (G * cos_path * v.att.roll.cos().max(0.2));
+        l.inv_g(n / v.lift_factor.max(0.1)).clamp(-1.0, 1.0)
     }
 
     /// World scale Real only (docs/world-scale.md §4.3): the bank that holds the centreline through the lineup at
