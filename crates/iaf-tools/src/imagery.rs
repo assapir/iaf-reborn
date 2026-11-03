@@ -334,19 +334,19 @@ pub trait Imagery: Sync {
 
 /// An ENVI file written by `gdal_translate -of ENVI -co INTERLEAVE=BIP`: size, bands, GDAL data type
 /// code, upper-left corner of the upper-left pixel, pixel size, raw samples.
-struct Envi {
-    w: usize,
-    h: usize,
-    bands: usize,
-    dtype: String,
-    ulx: f64,
-    uly: f64,
-    dx: f64,
-    dy: f64,
-    raw: Vec<u8>,
+pub(crate) struct Envi {
+    pub w: usize,
+    pub h: usize,
+    pub bands: usize,
+    pub dtype: String,
+    pub ulx: f64,
+    pub uly: f64,
+    pub dx: f64,
+    pub dy: f64,
+    pub raw: Vec<u8>,
 }
 
-fn read_envi(bin: &Path) -> Result<Envi> {
+pub(crate) fn read_envi(bin: &Path) -> Result<Envi> {
     let hdr = std::fs::read_to_string(bin.with_extension("hdr"))?;
     let field = |k: &str| -> Option<String> {
         hdr.lines()
@@ -459,7 +459,7 @@ const DARK_BLEND: f64 = 4000.0;
 
 /// The levels at grid point (e, n): the sheets' levels weighted by how far inside each one the
 /// point lies (½ on a border, 1 from DARK_BLEND / 2 inside, 0 from DARK_BLEND / 2 outside).
-fn levels_at(levels: &[([f64; 4], [f32; 4])], e: f64, n: f64) -> Option<[f32; 4]> {
+pub(crate) fn levels_at(levels: &[([f64; 4], [f32; 4])], e: f64, n: f64) -> Option<[f32; 4]> {
     let (mut sum, mut wsum) = ([0f32; 4], 0f32);
     for (b, lv) in levels {
         let inside = (e - b[0]).min(b[2] - e).min(n - b[1]).min(b[3] - n);
@@ -500,6 +500,11 @@ pub fn sheet_levels(rgb: &[u8]) -> [f32; 4] {
     [lo[0], lo[1], lo[2], hi.max(lo[0].max(lo[1]).max(lo[2]) + 32.0)]
 }
 
+/// A photo pixel through its sheet's levels (`sheet_levels`, blended by `levels_at`) and the display gamma.
+pub(crate) fn photo_levels(rgb: [f32; 3], lv: [f32; 4]) -> [f32; 3] {
+    [0, 1, 2].map(|c| (((rgb[c] - lv[c]) / (lv[3] - lv[c])).max(0.0).powf(1.0 / PHOTO_GAMMA) * WHITE).min(255.0))
+}
+
 impl Photo {
     pub fn read_envi(bin: &Path, project: fn(f64, f64) -> [f64; 2]) -> Result<Self> {
         let e = read_envi(bin)?;
@@ -529,8 +534,7 @@ impl Imagery for Photo {
         let mut rgb = [0, 1, 2].map(|k| lerp4(a[k] as f32, b[k] as f32, c[k] as f32, d[k] as f32, fx, fy));
         let (e, n) = (self.ulx + x * self.res, self.uly - y * self.res);
         if let Some(lv) = levels_at(&self.levels, e, n) {
-            rgb = [0, 1, 2]
-                .map(|c| (((rgb[c] - lv[c]) / (lv[3] - lv[c])).max(0.0).powf(1.0 / PHOTO_GAMMA) * WHITE).min(255.0));
+            rgb = photo_levels(rgb, lv);
         }
         Px { rgb, water: is_photo_water(rgb), nodata }
     }

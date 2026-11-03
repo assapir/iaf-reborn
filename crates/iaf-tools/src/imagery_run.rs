@@ -48,15 +48,15 @@ pub const MAPI2015: Spec = Spec {
 };
 
 /// One Survey of Israel sheet: a GeoTIFF inside a downloaded ZIP.
-struct Sheet {
+pub(crate) struct Sheet {
     /// "<zip>/<tif inside>", the sheet's identity in the resume marks.
-    name: String,
+    pub(crate) name: String,
     /// The GDAL path (`/vsizip/…`).
-    gdal: String,
+    pub(crate) gdal: String,
     /// Israeli TM Grid extent (e0, n0, e1, n1), metres.
-    bbox: [f64; 4],
+    pub(crate) bbox: [f64; 4],
     /// Levels: per-band dark, white (`imagery::sheet_levels`).
-    levels: [f32; 4],
+    pub(crate) levels: [f32; 4],
 }
 
 /// What a source needs per unit.
@@ -100,7 +100,7 @@ fn overlap(a: &[f64; 4], b: &[f64; 4]) -> f64 {
 }
 
 /// The WorldCover 1°×1° tiles (name → bytes) in the latitude bands N<lat0>..N<lat1> (S3 listing).
-fn list_tiles(lat0: i32, lat1: i32) -> Result<BTreeMap<String, u64>> {
+pub(crate) fn list_tiles(lat0: i32, lat1: i32) -> Result<BTreeMap<String, u64>> {
     let mut out = BTreeMap::new();
     for lat in lat0..=lat1 {
         let url = format!("{BUCKET}/?list-type=2&prefix={PREFIX}/N{lat:02}/");
@@ -122,7 +122,7 @@ fn list_tiles(lat0: i32, lat1: i32) -> Result<BTreeMap<String, u64>> {
 }
 
 /// The tile's 1° box (lon0, lat0, lon1, lat1) from its name ("N30E032" = 30..31 N, 32..33 E).
-fn tile_box(name: &str) -> Option<[f64; 4]> {
+pub(crate) fn tile_box(name: &str) -> Option<[f64; 4]> {
     let lat: f64 = name.get(1..3)?.parse().ok()?;
     let lon: f64 = name.get(4..7)?.parse().ok()?;
     let lat = if name.starts_with('S') { -lat } else { lat };
@@ -130,11 +130,11 @@ fn tile_box(name: &str) -> Option<[f64; 4]> {
     Some([lon, lat, lon + 1.0, lat + 1.0])
 }
 
-fn tile_url(name: &str) -> String {
+pub(crate) fn tile_url(name: &str) -> String {
     format!("{BUCKET}/{PREFIX}/{}/ESA_WorldCover_10m_2021_v200_{name}_S2RGBNIR.tif", &name[..3])
 }
 
-fn gdal_output(cmd: &str, args: &[&str]) -> Result<String> {
+pub(crate) fn gdal_output(cmd: &str, args: &[&str]) -> Result<String> {
     let o = Command::new(cmd)
         .args(args)
         .env("CPL_VSIL_CURL_ALLOWED_EXTENSIONS", ".tif,.vrt")
@@ -162,14 +162,19 @@ fn gdal_output(cmd: &str, args: &[&str]) -> Result<String> {
     Ok(String::from_utf8_lossy(&o.stdout).into_owned())
 }
 
-fn gdal(cmd: &str, args: &[&str]) -> Result<()> {
+pub(crate) fn gdal(cmd: &str, args: &[&str]) -> Result<()> {
     gdal_output(cmd, args).map(|_| ())
 }
 
 /// The complete sheet ZIPs in `dir` (`*.zip`; a browser's `*.part` / `*.crdownload` are still downloading)
 /// and the GeoTIFFs in them with their Israeli TM Grid extents. The extents are cached in `<work>/sheets.tsv`
 /// (per ZIP name, size and time; `gdalinfo` on a sheet in a ZIP takes a second or two).
-fn list_sheets(dir: &Path, work: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<(Vec<Sheet>, Vec<PathBuf>)> {
+pub(crate) fn list_sheets(
+    dir: &Path,
+    work: &Path,
+    pr: &dyn Progress,
+    cancel: &AtomicBool,
+) -> Result<(Vec<Sheet>, Vec<PathBuf>)> {
     let mut zips: Vec<PathBuf> = std::fs::read_dir(dir)
         .with_context(|| format!("{}: no sheets (iaf-imagery fetch-mapi2015)", dir.display()))?
         .filter_map(|e| e.ok().map(|e| e.path()))

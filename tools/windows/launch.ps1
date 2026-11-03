@@ -2,7 +2,7 @@
 # iafjets.ps1, mission-editor.ps1, iaf2026.ps1 and iaf2026-setup.ps1 call this with their mode). Builds the game's
 # extension, imports the Godot project on a fresh clone, then starts the setup wizard (setup), the game (game; without
 # game data: the wizard), the mission editor (editor), IAF 2026 (sim; without its data: sim-setup; until its front end,
-# item E2, its M0 probe) or IAF 2026's data build (sim-setup: iaf-sim all, until its wizard, item A3). The arguments
+# item E2, its M0 probe) or IAF 2026's data build (sim-setup: iaf-sim all and terrain, until its wizard, item A3). The arguments
 # after the mode go to the game, e.g. .\iafjets.ps1 --mission 311. IAF_SCENE=res://... starts that scene instead of the
 # main menu. ASCII only: Windows PowerShell 5.1 reads a script without a BOM as ANSI. No param() block: PowerShell would
 # bind game arguments such as -m or -- to its parameters.
@@ -80,6 +80,9 @@ try {
 		Native { cargo build --release -p iaf-tools --bin iaf-sim }
 		if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 		Native { & target\release\iaf-sim.exe all iaf-2026\data assets }
+		if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+		# The terrain (iaf-2026/docs/terrain.md): GDAL, downloads, about two hours the first time; resumes.
+		Native { & target\release\iaf-sim.exe terrain assets }
 		exit $LASTEXITCODE
 	}
 	# Godot's import (as tools/godot_import.sh): on a fresh clone (Godot loads iaf.gdextension only once an import has

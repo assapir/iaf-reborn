@@ -47,6 +47,11 @@ func own_dir() -> String:
 	return assets_dir().path_join("converted/own")
 
 
+## IAF 2026's theatre: UTM 36N at 1:1 from open data (`iaf-sim terrain`, iaf-2026/docs/terrain.md).
+func theatre_dir() -> String:
+	return "converted/terrain/israel"
+
+
 func keys_file() -> String:
 	return own_dir().path_join("keys.json")
 

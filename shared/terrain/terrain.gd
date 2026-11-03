@@ -13,8 +13,11 @@
 #   Godot x = X − origin.x,  Godot z = −(Y − origin.y),  Godot y = metres above sea level.
 extends Node3D
 
-## Under assets/.
-@export var data_dir := "converted/terrain/theatre"
+## Under assets/; empty: Settings.theatre_dir() (the original's converted map.ptt, IAF 2026's own theatre in the sim).
+@export var data_dir := ""
+## The theatre has its own frame (meta.json "crs", IAF 2026's UTM theatre): the 1998 frame's extras stay off (the
+## imagery layers, terraintype.dat, World scale Real's base move).
+var own_frame := false
 ## Quads per node side of the nodes coarser than GEOM_MIN_LEVEL (finer nodes have one vertex per
 ## level-6 height texel, which draws the triangle-interpolated surface of height_at() exactly).
 @export var far_quads := 32
@@ -137,10 +140,15 @@ var _prepared := false
 
 func prepare() -> void:
 	_prepared = true
+	if data_dir == "":
+		data_dir = Settings.theatre_dir()
 	dir = Settings.assets_dir().path_join(data_dir)
 	meta = Settings.load_json(dir.path_join("meta.json"))
 	if meta.is_empty():
 		return
+	own_frame = meta.has("crs")
+	if own_frame:
+		set_layers([])
 	m_per_unit = float(meta.get("units_to_metres", 1.0))
 	_span0 = float(meta.node_pixels)
 	_theatre = PackedFloat64Array(meta.theatre)
@@ -163,7 +171,8 @@ func prepare() -> void:
 					_add_colour_node(n)
 	for l in _root_level + 1:
 		_meshes.append(_grid_mesh(_span_m(l), _quads(l)))
-	_load_terrain_types(Settings.own_dir().path_join("terraintype.dat"))
+	if not own_frame:
+		_load_terrain_types(Settings.own_dir().path_join("terraintype.dat"))
 
 
 func _ready() -> void:
@@ -183,10 +192,11 @@ func _ready() -> void:
 			"y_shift": meta.get("y_shift", 0)
 		}
 	)
-	_bases_moved = Settings.sync_bases()
+	_bases_moved = not own_frame and Settings.sync_bases()
 	if _bases_moved:
 		_add_insets()
-	IafSurface.load(Settings.own_dir().path_join("terraintype.dat"))
+	# An own frame has no surface types yet: all land (IafSurface without a file).
+	IafSurface.load("" if own_frame else Settings.own_dir().path_join("terraintype.dat"))
 	_bake_bounds = IafBases.bounds() if _bases_moved else PackedFloat64Array()
 	if _bases_moved:
 		_fill_sources()

@@ -824,6 +824,14 @@ func fm_section(_type: int) -> String:
 	return ""
 
 
+## The theatre terrain.gd streams, under assets/: the original's map.ptt converted (`iaf-terrain theatre`). The
+## environment variable IAF_THEATRE=<name> takes converted/terrain/<name> instead, e.g. IAF 2026's UTM theatre
+## "israel" in the original game (iaf-2026/docs/terrain.md §6); the sim's own in its project (sim_settings.gd).
+func theatre_dir() -> String:
+	var t := OS.get_environment("IAF_THEATRE")
+	return "converted/terrain".path_join(t if t != "" else "theatre")
+
+
 ## The key table (key_table.gd): assets/converted/keys.json, converted from the exe by `iaf-convert keys`.
 func keys_file() -> String:
 	return assets_dir().path_join("converted/keys.json")

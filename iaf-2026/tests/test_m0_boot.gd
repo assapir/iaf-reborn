@@ -90,8 +90,21 @@ func run() -> void:
 			float(meta.get("units_to_metres", 0.0)) == 1.0,
 			"terrain: 1:1 (units_to_metres %s)" % meta.get("units_to_metres")
 		)
-		# The flight on the sim's terrain is not wired yet: B1's terrain hook adds these checks.
-		check(false, "heights readable, no 2D panel in flight: not probed yet [B1, E1]")
+		# A free flight over the theatre's centre (terrain_view at mission -1): the heights stream in and hold the jet.
+		var tv: Node = await start_mission(-1)
+		check(tv.terrain.data_dir == TERRAIN, "terrain: the flight streams %s" % tv.terrain.data_dir)
+		await fly(tv, 5.0)
+		var w: Vector3 = tv.player_world()
+		var h = tv.terrain.height_at(tv.rig.position)
+		check(
+			h != null and IafHeights.height(w) != null,
+			"terrain: heights readable at (%.0f, %.0f): %s m" % [w.x, w.y, h]
+		)
+		check(
+			h != null and w.z > float(h),
+			"free flight: %.0f m above the ground after 5 s" % (w.z - float(h if h else 0.0))
+		)
+		need("no 2D panel in flight: the 3D cockpit alone [E1]")
 	if failures == 0 and needs > 0:
 		print("NEEDS DATA: %d checks wait for data (above)" % needs)
 		await _quit(2)

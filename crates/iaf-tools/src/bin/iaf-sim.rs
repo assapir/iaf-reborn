@@ -1,18 +1,51 @@
 //! IAF 2026's data compilers (iaf-2026/docs/data-formats.md):
 //!
 //! `iaf-sim <db|missions|own|all> [data-dir (iaf-2026/data)] [assets-dir (assets)]`
+//! `iaf-sim terrain [assets-dir (assets)] [--box E0 N0 E1 N1] [--out <dir>] [--threads N]`
 //!
 //! - `db`: the units and weapons → `converted/missions/sim.bdb.json`, `converted/objects/objects.json` ("sim.bdb"),
 //!   `converted/own/resource/weaponsmotion/weapons.ibx`;
 //! - `missions`: the missions → `converted/iaf-2026/missions/<id>.json` + `missionlist.json`;
-//! - `own`: the sound table and clips → `converted/own/resource/soundfiles/`, the key table → `converted/own/keys.json`.
+//! - `own`: the sound table and clips → `converted/own/resource/soundfiles/`, the key table → `converted/own/keys.json`;
+//! - `terrain`: the theatre (iaf-2026/docs/terrain.md) → `converted/terrain/israel/` (`--out`: another folder),
+//!   over the UTM 36N box `--box` (default `sim_terrain::BOX`).
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
 use iaf_tools::progress::Stdout;
-use iaf_tools::sim;
+use iaf_tools::{sim, sim_terrain};
+
+fn terrain(args: &[String], cancel: &AtomicBool) -> Result<()> {
+    let mut assets = PathBuf::from("assets");
+    let (mut area, mut out, mut threads) = (sim_terrain::BOX, None, iaf_tools::terrain::default_threads());
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        let mut val = || it.next().with_context(|| format!("{a}: value missing"));
+        match a.as_str() {
+            "--box" => {
+                for v in &mut area {
+                    *v = val()?.parse()?;
+                }
+            }
+            "--out" => out = Some(PathBuf::from(val()?)),
+            "--threads" => threads = val()?.parse()?,
+            _ if !a.starts_with("--") => assets = PathBuf::from(a),
+            _ => bail!("unknown option {a}"),
+        }
+    }
+    let run = sim_terrain::Run {
+        out: out.unwrap_or_else(|| assets.join("converted/terrain/israel")),
+        dem_cache: assets.join("source/dem"),
+        sheets: assets.join("source/imagery/mapi2015"),
+        airbases: PathBuf::from("iaf-2026/data/airbases"),
+        area,
+        detail: sim_terrain::DETAIL,
+        threads,
+    };
+    sim_terrain::terrain(&run, &Stdout, cancel)
+}
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -23,11 +56,15 @@ fn main() -> Result<()> {
         Some("db") => sim::db(data, assets, &Stdout, &cancel),
         Some("missions") => sim::missions(data, assets, &Stdout, &cancel),
         Some("own") => sim::own(data, assets, &Stdout, &cancel),
+        Some("terrain") => terrain(&args[1..], &cancel),
         Some("all") => {
             sim::db(data, assets, &Stdout, &cancel)?;
             sim::missions(data, assets, &Stdout, &cancel)?;
             sim::own(data, assets, &Stdout, &cancel)
         }
-        _ => bail!("usage: iaf-sim <db|missions|own|all> [data-dir (iaf-2026/data)] [assets-dir (assets)]"),
+        _ => bail!(
+            "usage: iaf-sim <db|missions|own|all> [data-dir (iaf-2026/data)] [assets-dir (assets)]\n       \
+             iaf-sim terrain [assets-dir (assets)] [--box E0 N0 E1 N1] [--out <dir>] [--threads N]"
+        ),
     }
 }

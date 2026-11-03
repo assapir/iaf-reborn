@@ -8,3 +8,5 @@ echo "IAF 2026's setup wizard comes with item A3; building the sim's data from t
 cargo build --release -p iaf-godot
 cargo build --release -p iaf-tools --bin iaf-sim
 target/release/iaf-sim all iaf-2026/data assets
+# The terrain (iaf-2026/docs/terrain.md): GDAL, downloads, about two hours the first time; a rerun resumes.
+target/release/iaf-sim terrain assets

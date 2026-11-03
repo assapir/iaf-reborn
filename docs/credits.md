@@ -138,6 +138,13 @@ The sim's voices are Piper text to speech[^piper] (MIT) in the voices kristin, j
 recordings (public domain); their texts and voices: `iaf-2026/data/sounds/voices.json`. The Hebrew voice waits for a
 licence decision (iaf-2026/docs/sound.md §5). The lines the sim's setup wizard (item A3) and its credits roll need:
 iaf-2026/docs/sound.md §6.
+The sim's terrain (`iaf-sim terrain`, iaf-2026/docs/terrain.md) is converted from the Copernicus DEM GLO-30
+(Copernicus WorldDEM-30 licence[^cop-dem]), the ESA WorldCover 2021 Sentinel-2 composite (CC BY 4.0) and the Survey of
+Israel 2015 photo (data.gov.il). The DEM's licence asks for two lines verbatim, which the sim's setup wizard (item A3)
+and credits roll show with the imagery's: "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus
+Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved" and "The
+organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of
+the Copernicus WorldDEM-30". They are also in the theatre's `meta.json` (`attribution`, `notice`) and iaf-2026/docs/terrain.md §5.
 
 The sim's flight data (`tools/iaf-2026/fm0.py`, iaf-2026/docs/flight-model.md) comes from NASA TP-1538[^tp1538], a
 work of the U.S. Government (public domain; no credit required, named anyway), and from the public figures with their
@@ -176,3 +183,4 @@ simulation package) served as the candidate checked against the scan (iaf-2026/d
     and licence: https://langnico.github.io/globalcanopyheight/
 [^tp1538]: L. T. Nguyen et al., NASA TP-1538 (1979), "Simulator Study of Stall/Post-Stall Characteristics of a Fighter
     Airplane With Relaxed Longitudinal Static Stability": https://ntrs.nasa.gov/citations/19800005879
+[^cop-dem]: "Licence for the use of the Copernicus WorldDEM-30", Article 6: https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/DEM/resources/license/License-COPDEM-30.pdf
