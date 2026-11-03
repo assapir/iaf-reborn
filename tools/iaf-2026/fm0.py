@@ -268,7 +268,9 @@ F15 = Jet(
 
 
 def section(j, keys):
-    out = [f"[{j.section}]", f"; {j.name} -- IAF 2026 FM-0, sources in iaf-2026/docs/flight-model.md"]
+    out = [f"[{j.section}]", f"; {j.name} -- IAF 2026 FM-0, sources in iaf-2026/docs/flight-model.md",
+           "Model = 6dof\t; the sim flies its own 6-DoF (crates/iaf-flight/src/sixdof, iaf-2026/docs/flight-model.md §9); "
+           "the keys below serve its instruments, the autopilot's envelope and the original model as a fallback"]
     for key, value, src in keys:
         out.append(f"{key} = {value}\t; {src}")
     names = ["MinMachMinAlt", "MinMachMaxAlt", "MaxMachMinAlt", "MaxMachMaxAlt"]

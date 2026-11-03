@@ -334,12 +334,12 @@ dropped exact-military fit (§3) climbed 17,900 ft/min at 450 kt from 4,000 ft.
 * The AI types (MiGs, transports): the own `bd.ibx` holds the four jets only, so another AI aircraft fails to load on
   the own data (the threat set is item D1 / D2).
 
-## 9. C2: the own 6-DoF, stages (a) and (b)
+## 9. C2: the own 6-DoF
 
 Stage (a) of item C2 is the core of the sim's own six-degrees-of-freedom model: TP-1538's aerodynamic tables, the
 report's coefficient build-up and a quaternion rigid body, with trim tests (§9.1–9.5). Stage (b) adds the engines,
-the gear and the four jets' data (§9.7–9.10). Nothing in the game calls it yet: stage (c) puts it behind `IafFlight`
-(§9.6). The original game's model and its tests are
+the gear and the four jets' data (§9.7–9.10). Stage (c) adds the control system and puts it behind `IafFlight`: the
+sim's jets fly it (§9.6, §9.11–9.14). The original game's model and its tests are
 unchanged.
 
 ```sh
@@ -473,16 +473,23 @@ report prints the tables without it); the flap schedule without its lag filters 
 step of 1/120 s; the inertia, chord and weights in SI from the report's U.S. values (its own SI values are these,
 rounded).
 
-### 9.6 Stage (c)
+### 9.6 Stage (c), and what is open
 
-Stage (b) is done (§9.7–9.10). Stage (c): `enum Fm { Original, SixDof }` inside `IafFlight`, chosen by `Model=6dof`
-in the own section; the flight control system of appendix A (g command, α limiter at 25°, roll-rate command to 308
-deg/s, the actuators' lags and limits, the flap schedule's filters, the take-off rotation); the state mapped to the
-game's ENU frame ((east, north, up) = (y, x, −z) of NED) and to `State` / `ApView`; the throttle lever mapped to
-figure 66(b)'s travel and the stick to the surfaces' signs (§9.2: a right stick is −δa); fuel burn and the mass
-falling with it; Mach effects on the aerodynamics and the thrust above Mach 1.0; the validation rows again on the
-6-DoF; `_flight_bench.gd` no slower than FM-0. Stevens & Lewis's roll and turn results and TP-1538 Table V's roll
-times (90° in 2.6 s, 180° in 3.8 s with control system A) become tests once the control system exists.
+Stage (c) is done (§9.11–9.15): the control system, the switch, the state in the game's frame, fuel burn, Mach effects
+(inferred) with the wave drag fit to the published top speeds, the validation rows on the 6-DoF, the frame-cost
+budget, a real flight. Open:
+* **A sourced drag rise**: the wave drag is a fit to public performance, not a sourced table (§9.15); a public F-16
+  drag-rise and high-Mach thrust table replaces it when one turns up.
+* **The g onset at high speed**: the TP-1538 control system's integrator is slow at high q̄: a full pull at 550 kt
+  reaches 8.4 g in 6 s (the real F-16 9 g); TP-1538's system is a low-speed study system.
+* **The take-off roll**: 1,813 ft with the control system's rotation, still −24 % against the F-16A SAC (§9.10).
+* **The flaps**: TP-1538 has no trailing-edge flap data; the flap lever does nothing.
+* **The autopilot's taxi pivot**: the 6-DoF turns on the spot (`SixDof::set_pivot`, inferred). The autopilot's level
+  hold and its g commands are tested on the 6-DoF (`crates/iaf-flight/tests/fm.rs`); its landing and taxi laws are
+  untried there.
+* **Not modelled, logged once when the game asks** (`IafFlight`): the drag chute and the systems damage. Also not
+  modelled: wind gusts (the steady wind is), ground effect, Better physics' options (they belong to the original
+  model); Stevens & Lewis's turn trims (the book's tables were not available).
 
 ### 9.7 The engines (stage (b))
 
@@ -576,6 +583,170 @@ stabilator at 150 kt; stage (c)'s control system flies the real technique. Until
 ±20 % and is ignored with the reason (`cargo test -p iaf-flight --test sixdof -- --ignored` shows the miss), and a
 separate test pins today's 1,759 ft so a change that moves the roll shows up; that pin checks nothing against a
 source.
+
+### 9.11 The control system (stage (c))
+
+`sixdof/fcs.rs` is TP-1538's control system A, read off appendix A's text and its block diagrams (figures 62–65,
+printed pp. 210–217), stepped with the rigid body (at most 1/120 s):
+* **Pitch** (figure 62): the stick force through a 60/(s + 60) prefilter and figure 62(e)'s gradient gives an
+  incremental g command, limited to +8 g and to figure 62(b)'s negative limit (−1 to −4 g by q̄); 8.3/(s + 8.3);
+  feedback of washed-out pitch rate (0.334), filtered (an − 1) and the α limiter (0.322 g/deg above 15° with
+  pitch-rate lead, 1 g/deg more above 20.4°: appendix A's "0.322 g/deg between 15° and 20.4° and 1.322 g/deg above"),
+  shaped by (3s + 12)/(s + 12); the loop gain 1.5 × figure 62(d)'s q̄ schedule into a proportional and an integral
+  path (5 and 5/s, ±25° each), plus 0.5 × α for the artificial stability; the actuator 20.2/(s + 20.2), 60 deg/s,
+  ±25°. Figure 63's maximum commandable g by α follows from the limiter.
+* **Roll** (figure 64): figure 64(b)'s gradient (up to 308 deg/s), 10/(s + 10), against the filtered roll rate,
+  × 0.12 to the ailerons (±21.5°, 80 deg/s, 20.2/(s + 20.2)); above α 29° the spin prevention drives them against the
+  yaw rate (8.34).
+* **Yaw** (figure 65): figure 65(b)'s pedal gradient (±30°), faded out between α 20° and 30°; the stability-axis yaw
+  damper (r − p α, (3s + 15)/(s + 15), 1.5 s/(s + 1), × 0.5) and lateral acceleration (19.32); the aileron-rudder
+  interconnect 0.075 α minus figure 65(a)'s q̄/ps term; above α 29° 0.75 × yaw rate; 120 deg/s, ±30°.
+* **Leading-edge flap** (appendix A): 1.38 α through (2s + 7.25)/(s + 7.25) − 9.05 q̄/ps + 1.45, a 0.136 s lag, 25
+  deg/s, 0–25°.
+
+Left out or inferred: the roll command's rate-limiting branches and the roll-rate notch filter (structural), the
+differential tail (the δa = 20° tables are taken as the whole roll control), the trims; the integrator held at zero
+with weight on the wheels (the F-16's switch; TP-1538 flies no ground phase); the full stick = the gradients' ends
+(180 N pull, 80 N push, 75 N lateral, 480 N pedal); the speed brake opening at 30 deg/s. Signs (§9.2, the
+`control_signs` test): a right stick rolls right through −δa, a right pedal yaws right through −δr.
+
+The game's controls map onto it: the stick (pull positive) is the g command, the throttle lever (0.74 military) is
+figure 66(b)'s travel (military at 77 %), the rudder is the pedal and, on the ground, the nose-wheel steering; the
+brake key is the wheel brakes on the ground and the speed brake in the air; the gear lever moves the gear in 3 s.
+
+### 9.12 The flight (stage (c))
+
+`sixdof/flight.rs` (`SixDof`) is one flight: the jet, its control system, engines, gear, fuel and mass. `fm.rs`
+(`Fm { Original, SixDof }`) holds either model behind `IafFlight`; `Fm::start` takes the 6-DoF when the type's
+`bd.ibx` section has `Model = 6dof` (`tools/iaf-2026/fm0.py` writes it into the sim's two sections) and the 6-DoF has
+the jet (`jets::by_type`: F-16 → Barak, F-16I → Sufa, F-35I → Adir, F-15I → Ra'am). The original game's sections have
+no `Model` key: `crates/iaf-flight/tests/fm.rs` checks every original type on both data sets flies the original model, bit for bit as
+before. The autopilot drives either through the `autopilot::Host` trait (the `Aircraft` calls it made before, unchanged).
+
+* **Frames.** NED inside, the game's ENU outside: (east, north, up) = (y, x, −z). `State` and `ApView` as the original
+  gives them (position, velocity, body axes, Euler angles, α, β, g, Mach, RPM 60–100 % with the spool, afterburner
+  stages, thrust, fuel, mass); the autopilot's attitude is the flight path's, as the original's.
+* **Starts.** In the air: a level trim at the start's speed (α and stabilator from the 1 g balance, the engine's power
+  from the drag), the control system settled on it. On the ground: gear down, brakes on, set on its struts at the first
+  terrain height the game passes.
+* **Fuel.** Fuel flow = thrust × TSFC (military's up to military, blending to maximum's over the afterburner range:
+  F100-PW-229 0.76 / 1.94, F110-GE-100 0.64 / 2.05, F135 0.79 / 2.0 lb/lbf/h, the REAL rows' fuel flows over the
+  ratings), never below the idle flow (military's TSFC × the static idle thrust × the density ratio, inferred); the
+  mass and the inertia fall with the fuel (fuel and stores at the c.g., inferred). The game's stores add their mass,
+  and their drag index as ΔCD (as the original adds it). Drop tanks fill at the start and the jettison sets the fuel
+  and its maximum, as `Aircraft::set_fuel_capacity` / `set_fuel`. A dead engine gives no thrust.
+* **Mach** (inferred: TP-1538 is low-speed data and no public F-16 table covers high Mach): the normal force × the
+  lift-curve slope's Mach factor of a wing of the jet's aspect ratio (DATCOM's subsonic 2πA / (2 + √(4 + A²(1 − M²)))
+  relative to Mach 0, up to Mach 1.0; Ackeret's 4 / √(M² − 1) from Mach 1.4; linear between); the wave drag rising
+  from 0 at Mach 0.9 to w at Mach 1.2, then w × (M / 1.2)^k, fit per jet (§9.15); the gear's ΔCD 0.02 (FM-0's);
+  thrust above Mach 1.0 the line through Table VI's Mach 0.8 and 1.0 carried to Mach 2.0, held beyond.
+* **The control system's limits**: each jet's g limits (the F-16s and the Adir +9 / −3, the Ra'am +8.1 / −2). The
+  autopilot reads the stick as linear in g (its `ApView`: 1 g at the centre, MaxG / MinG at the ends); while an
+  autopilot loop flies, the 6-DoF takes the stick as that g command instead of figure 62(e)'s gradient.
+* **Wind**: the mission's wind (`set_wind`, the original's vector) moves the air: the aerodynamics see the velocity
+  through the air (no gusts).
+* **The ground.** A gear-down touchdown sinking slower than 3 m/s with the wings within 15° and the nose between −5°
+  and 20° counts as a landing; faster is a sink-rate crash, banked or nose-down a landing crash, nose-up a tail strike;
+  the c.g. within 0.5 m of the runway, or the belly with the gear up, a crash (all inferred). As the original's: water
+  under the wheels and rough ground above 25.7 m/s are crashes, a touchdown on more than 10° of slope a landing crash,
+  scenery under the jet (a roof, a tree top) a crash at any speed; "no crashes" and "invulnerable" pass everything.
+
+### 9.13 Stage (c) results
+
+`cargo test -p iaf-flight --test sixdof -- --nocapture` (2026-11-03):
+
+| test | the model | source | tolerance | verdict |
+|---|---|---|---|---|
+| neutral stick, Barak, 350 kt, 10,000 ft, 60 s (the control system's 1 g hold) | +16 m, 1.00 g | (design) | 60 m | ok |
+| full pull at 550 kt, Barak | 8.45 g peak in 6 s | figure 62(a): at most 8 g incremental | above 8, below 9.3 g | ok |
+| full pull at 200 kt, Barak | α peaks at 26.6° | figure 63, appendix A: the limiter holds about 25° | ±3° | ok |
+| roll from 1 g at α 25°, 30,000 ft, full stick (TP-1538's jet, at 186 kt, α 24.7°) | 90° in 2.32 s, 180° in 3.63 s | TP-1538 Table V, control system A: 2.6 s, 3.8 s | ±30 % | ok (−11 %, −4 %) |
+| fuel flow, Sufa, military, sea level | 13,492 lb/h | 13,500 lb/h (the F-16I REAL row) | 3 % | ok |
+| take-off roll through the control system (TP-1538's jet, 29,253 lb, rotation at 150 kt to 12°) | 1,813 ft, lift-off at 166 kt | 2,380 ft (SAC) | ±20 % | **fails: −24 %**; still ignored |
+
+**Tested and corrected (2026-11-03): two test setups.** The g test was first written as "9 ± 0.5 g at 450 kt"; there a
+9 g pull needs α ≈ 21°, the α limiter takes 2 g away and the jet pulls 7.6 g, which is figure 63's design: the test
+moved to 550 kt and states the limit. The roll test first trimmed by a pilot loop that settled at α 21–28° (roll times
+from 1.9 to 3.5 s as α varied); it now starts from the computed 1 g trim at α 25° with the stick that holds it (figure
+62(e) at 7.82 g, 0.78 of the pull).
+
+**The validation rows on the 6-DoF** (`cargo test --release -p iaf-flight --test validation sixdof -- --nocapture`;
+the same public figures as §5; "ok" inside, "close" within 10 %, "OFF" further; not tuned):
+
+| test | Barak | Sufa | Adir | Ra'am |
+|---|---|---|---|---|
+| thrust SL static, military / full AB | 17,110 / 29,000 lbf ok / ok | 17,800 / 29,160 ok / ok | 28,000 / 43,000 ok / ok | 35,600 / 58,320 ok / ok |
+| 1 g stall at the α limit, SL | 132 kt ok | 143 kt close | 147 kt **OFF** (120–125) | 143 kt close (155 KCAS) |
+| neutral stick, 60 s, 10,000 ft, military | +818 ft, to 643 kt **OFF** | +1,066 ft **OFF** | +1,164 ft **OFF** | +1,063 ft **OFF** |
+| max level speed, SL | 785 kt, Mach 1.19 ok (1.2) | Mach 1.19 ok | 750 kt, Mach 1.14 close (700 kt) | Mach 1.19 (-) |
+| max level speed, 40,000 ft | Mach 1.99 ok (2.0) | Mach 1.99 ok (1.89–2.05) | Mach 1.60 ok (1.6) | Mach 1.99 ok (2.0) |
+| max roll rate, roll 0 → 90° at 350 kt | 218 deg/s close, 0.80 s **OFF** (0.5) | 218 close, 0.83 s **OFF** | 200 (-), 0.92 s (-) | 181 (-), 0.98 s (-) |
+| instantaneous turn, 420 kt, 10,000 ft | 21.4 deg/s at 7.7 g ok | 20.3 at 7.0 g ok | 20.0 at 6.7 g (-) | 19.2 at 6.8 g (-) |
+| climb (Ps), SL, full AB | 57,456 ft/min close | 47,572 (-) | 40,149 (-) | 46,583 (-) |
+| fuel flow military / full AB, SL | 10,911 / 63,618 lb/h ok / ok | 13,484 / 59,947 ok / ok | 22,066 / 89,458 ok / ok | 26,968 / 119,775 ok / ok |
+
+Why the OFF rows are OFF: the "neutral stick" row holds 1 g (the control system's design), so the height follows
+the speed: at military the jets accelerate from 350 kt to 630–640 kt (the wave drag starts at Mach 0.9; no public
+figure for the military top speed at 10,000 ft). The Adir's stall: TP-1538's lift curve on the F-35's wing area
+(inferred) at 47,550 lb. The roll: TP-1538's roll command reaches 308 deg/s only at full stick force and its filters
+slow the onset; the Block 40's FLCS is faster (open).
+
+**The frame cost**: a budget, not parity (the orchestrator's decision of 2026-11-03): at most 20 µs per jet per 1/60 s
+frame on this laptop (i7-1185G7), release build, enforced by `frame_cost_within_budget` in
+`crates/iaf-flight/tests/fm.rs` (the median of 9 runs of 2,000 frames, so a busy machine's spikes do not count;
+`cargo test --release -p iaf-flight --test fm`). Measured 2026-11-03 under the bench lock with other sessions' work
+running: the 6-DoF 4.1 µs, FM-0 1.2 µs (two RK4 steps of four force evaluations and one control-system step per frame;
+the atmosphere and the airframe built once per substep and frame). `tests/godot/_flight_bench.gd` stops the flight
+model (`fm_stopped`) and measures the rendering; it flies the original data, which never reaches the 6-DoF.
+
+### 9.14 A real flight on the 6-DoF
+
+The sim has no flying scene of its own yet (no terrain or missions: items B1, E2), so the flight ran as FM-0's did
+(§7): the original game's scene (`--path iaf-reborn`, headless, `IAF_DEFAULT_SETTINGS=1`) with `IAF_ASSETS_DIR`
+pointing at an overlay whose `install/resource/md` is the sim's own data, whose `[F-16]` section says `Model = 6dof`.
+Mission 311 at Ramat David with Extras "F-16 version" = Sufa: the 6-DoF Sufa with the mission's stores (45,210 lb).
+A scratch script flew it (`tv.scripted_stick` and the throttle, gear and brakes; the stick is the control system's g
+command); the numbers are from its prints and the blackbox. 2026-11-03, on the fitted wave drag (§9.15):
+
+| item | flight | public figure / test |
+|---|---|---|
+| lift-off | 174 kt, 17.0 s, 656 m (2,153 ft) of roll at full AB, rotation at 150 kt to 12° | FM-0's flight 169 kt, 2,150 ft (§7); F-16I open |
+| top speed, full AB, 4,000 ft MSL (a second run) | 742 kt, Mach 1.14, at 123 s | ~Mach 1.2 at low level: close (−5 %; the fit is at its reference weight, clean; this jet carries 45,210 lb with stores) |
+| level 450 kt at 4,000 ft | throttle 0.40 (below military) | (no public figure) |
+| instantaneous turn, from 450 kt, 80° bank, full pull | 17.5 deg/s at 5.3 g, at 386 kt | the F-16I REAL row's ~20.9 deg/s at 7.8 g (22,000 lb, clean; uncertain): this jet carries 45,210 lb |
+| climb, 450 kt, full AB, 30 s from 4,000 ft | 11,870 ft/min | (no public figure at this weight) |
+| approach and touchdown | gear down at 260 kt, a 3° approach at 200 kt, touchdown at 195 kt sinking 482 ft/min (2.5 m/s) | the touchdown checks (3 m/s, inferred) pass |
+| the rollout | a rough-ground crash: the script lands on the start point's line, and mission 311 starts on a taxiway whose approach end is rough ground (the original's rule: rough ground above 25.7 m/s) | open: a scripted landing on Ramat David's runway |
+
+Before the ground-surface checks (commit 417993a6), the same approach ended in a landing: touchdown at 196 kt sinking
+481 ft/min, stopped in 1,377 m (4,517 ft) on the brakes in 30 s (1 landing counted).
+
+Pictures (in the session's scratchpad, for the "IAF 2026 Progress" page): the flight's timeline
+(`tools/flight_timeline.py`: take-off, the turn, the climb, the approach and the touchdown), the earlier landing's,
+the top-speed run's, Cm(α) at three stabilator settings against TP-1538's two trims, and the Table V roll against
+TP-1538's times.
+
+### 9.15 The wave drag: fit to public performance
+
+**Not a sourced table** (the orchestrator's decision of 2026-11-03, within "real data only, inferred labelled"): no
+public F-16 drag-rise table was found, and TP-1538's low-speed data with the 1998 Real rows' wave drag gave the Sufa
+Mach 1.86 at 4,000 ft. Each jet's wave drag is two numbers, fit so its level top speed at its reference weight, full
+afterburner, meets its published figures: ΔCD rises from 0 at Mach 0.9 to w at Mach 1.2 (the 1998 Real rows' shape),
+then w × (M / 1.2)^k (`fit_wave_drag` in `crates/iaf-flight/tests/sixdof.rs`, ignored; the top speed is
+`flight::top_speed`, the first speed where full-afterburner thrust no longer meets the level-trim drag). w comes from
+the sea-level figure (only w acts below Mach 1.2), k from the 40,000 ft one. The Adir's sea-level 700 kt is the
+F-35A's placard (inferred), not a thrust limit, and the Ra'am has no sea-level figure: both take the Barak's k and w
+from 40,000 ft. A sourced table replaces the fit when one turns up.
+
+| jet | w | k | fit to | top speed, sea level | top speed, 40,000 ft |
+|---|---|---|---|---|---|
+| F-16D Barak (and TP-1538's F-16) | 0.0509 | 0.195 | Mach 1.2 SL, 2.0 at 40,000 ft (tests/validation.rs REFS) | Mach 1.20 | Mach 2.00 |
+| F-16I Sufa | 0.0513 | 0.212 | Mach 1.2 SL, 2.0 at 40,000 ft (the F-16's; Block 50/52 1.89–2.05) | Mach 1.20 | Mach 2.00 |
+| F-35I Adir | 0.0682 | 0.195 (the Barak's) | Mach 1.6 at 40,000 ft | Mach 1.14 (700 kt placard: not fitted) | Mach 1.60 |
+| F-15I Ra'am | 0.0509 | 0.195 (the Barak's) | Mach 2.0 at 40,000 ft (F-15E with CFTs, secondary) | Mach 1.20 | Mach 2.00 |
+
+`top_speeds_meet_the_published_figures` pins these within 5 %. The validation rows fly the same jets to their top
+speeds (§9.13): within 1 % of the fit.
 
 [^tp1538]: L. T. Nguyen, M. E. Ogburn, W. P. Gilbert, K. S. Kibler, P. W. Brown, P. L. Deal, "Simulator Study of
     Stall/Post-Stall Characteristics of a Fighter Airplane With Relaxed Longitudinal Static Stability", NASA

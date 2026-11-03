@@ -32,8 +32,9 @@ const T_MAX: [[f64; 6]; 5] = [
 ];
 
 /// A Table VI value (lbf) at `mach`, `alt_ft`: bilinear; below Mach 0.2 the line through Mach 0.2 and 0.4 carried
-/// to Mach 0, above Mach 1.0 the Mach 1.0 value; above 50,000 ft the 50,000 ft value × the density ratio (all three
-/// inferred: the table's range ends there).
+/// to Mach 0, above Mach 1.0 the line through Mach 0.8 and 1.0 carried to Mach 2.0 (the ram rise continued) and held
+/// beyond; above 50,000 ft the 50,000 ft value × the density ratio (all three inferred: the table's range ends
+/// there).
 fn table(t: &[[f64; 6]; 5], mach: f64, alt_ft: f64) -> f64 {
     let at_alt = |row: &[f64; 6]| {
         if alt_ft >= ALT_FT[5] {
@@ -45,7 +46,7 @@ fn table(t: &[[f64; 6]; 5], mach: f64, alt_ft: f64) -> f64 {
         let f = (a - ALT_FT[j]) / 10_000.0;
         row[j] * (1.0 - f) + row[j + 1] * f
     };
-    let m = mach.clamp(0.0, 1.0);
+    let m = mach.clamp(0.0, 2.0);
     let i = if m < 0.4 { 0 } else { (((m - 0.2) / 0.2) as usize).min(3) };
     let f = (m - MACH[i]) / 0.2;
     at_alt(&t[i]) * (1.0 - f) + at_alt(&t[i + 1]) * f
@@ -69,12 +70,22 @@ pub fn power_command(throttle: f64) -> f64 {
     if t <= 0.77 { 64.94 * t } else { 217.38 * t - 117.38 }
 }
 
+/// The throttle travel whose commanded power is `power` (the inverse of [`power_command`]).
+pub fn travel_for(power: f64) -> f64 {
+    let p = power.clamp(0.0, 100.0);
+    if p <= 50.0 { p / 64.94 } else { (p + 117.38) / 217.38 }
+}
+
 /// Figure 66's own idle → military time, s: from idle to 95 % of the way to military thrust (the moment public
 /// spool times are taken at, docs/flight-model.md §10.2), throttle snapped to military. Computed by the
 /// `figure_66_spool_time` test.
 pub const FIG66_IDLE_MIL: f64 = 4.093;
 /// Figure 66's idle → maximum time, s: to 95 % of maximum power (P3 = 95), throttle snapped to maximum.
 pub const FIG66_IDLE_MAX: f64 = 4.777;
+
+/// The F100-PW-229's thrust-specific fuel consumption, military 0.76 and maximum 1.94 lb/(lbf·h): the F-16I REAL
+/// row's fuel flows over its thrust (`data_set.rs`, inferred there).
+pub const TSFC_F100: (f64, f64) = (0.76, 1.94);
 
 /// One engine type.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -88,6 +99,8 @@ pub struct EngineSpec {
     pub time_scale: f64,
     /// Angular momentum of the rotors at military, kg·m²/s (the gyroscopic term; scaled by the spool speed).
     pub h_mil: f64,
+    /// Thrust-specific fuel consumption at military and at maximum, lb/(lbf·h).
+    pub tsfc: (f64, f64),
 }
 
 /// Table VI's sea-level static (Mach 0) military and maximum thrust, lbf.
@@ -98,7 +111,7 @@ fn static_sl() -> (f64, f64) {
 impl EngineSpec {
     /// An engine rated `mil_lbf` / `max_lbf` (sea-level static) that spools idle → military in `idle_mil_s`. Its
     /// rotors' momentum is TP-1538's 160 slug-ft²/s × the military thrust's scale (inferred).
-    pub fn rated(name: &'static str, mil_lbf: f64, max_lbf: f64, idle_mil_s: f64) -> EngineSpec {
+    pub fn rated(name: &'static str, mil_lbf: f64, max_lbf: f64, idle_mil_s: f64, tsfc: (f64, f64)) -> EngineSpec {
         let (mil, max) = static_sl();
         let mil_scale = mil_lbf / mil;
         EngineSpec {
@@ -107,6 +120,7 @@ impl EngineSpec {
             max_scale: max_lbf / max,
             time_scale: idle_mil_s / FIG66_IDLE_MIL,
             h_mil: 160.0 * SLUG_FT2 * mil_scale,
+            tsfc,
         }
     }
 
@@ -119,6 +133,7 @@ impl EngineSpec {
             max_scale: 1.0,
             time_scale: 1.0,
             h_mil: 160.0 * SLUG_FT2,
+            tsfc: TSFC_F100,
         }
     }
 }
@@ -168,6 +183,17 @@ impl Engine {
         lbf * LBF
     }
 
+    /// Fuel flow, kg/s, at `thrust_n` (this engine's) at `alt_m`: military's TSFC up to military, blending to
+    /// maximum's over the afterburner range; never below the idle flow, military's TSFC × the sea-level static idle
+    /// thrust (Table VI carried to Mach 0, scaled) × the density ratio (inferred: an engine burns fuel at idle, where
+    /// the net thrust at speed is near zero or below).
+    pub fn fuel_flow(&self, spec: &EngineSpec, thrust_n: f64, alt_m: f64) -> f64 {
+        let k = ((self.power - 50.0) / 50.0).clamp(0.0, 1.0);
+        let tsfc = spec.tsfc.0 + (spec.tsfc.1 - spec.tsfc.0) * k;
+        let idle = table(&T_IDLE, 0.0, 0.0) * spec.mil_scale * spec.tsfc.0 * air(alt_m as f32).rho as f64 / 1.225;
+        ((thrust_n.max(0.0) / LBF * tsfc).max(idle) / 3600.0) * crate::units::LB
+    }
+
     /// The rotors' angular momentum, kg·m²/s: the military value × the spool speed, 60 % at idle to 100 % at
     /// military (the 1998 gauge's line, docs/flight-model.md §10.2; inferred), held above military.
     pub fn angular_momentum(&self, spec: &EngineSpec) -> f64 {
@@ -197,7 +223,7 @@ mod tests {
         let t = time_to(&EngineSpec::tp1538(), 1.0, 95.0);
         assert!((t - FIG66_IDLE_MAX).abs() < 1e-3, "{t}");
         // A scaled engine takes its own time.
-        let e = EngineSpec::rated("x", 17_800.0, 29_160.0, 3.0);
+        let e = EngineSpec::rated("x", 17_800.0, 29_160.0, 3.0, TSFC_F100);
         assert!((time_to(&e, 0.77, 47.5) - 3.0).abs() < 2e-3);
     }
 
@@ -205,7 +231,7 @@ mod tests {
     fn long_and_bad_frames() {
         // A 0.25 s frame into the afterburner range (the F100-PW-229's 6.8/s) lands on the target without a swing;
         // a NaN or negative frame changes nothing; a 30 s frame is a 0.25 s one.
-        let spec = EngineSpec::rated("x", 17_800.0, 29_160.0, 3.0);
+        let spec = EngineSpec::rated("x", 17_800.0, 29_160.0, 3.0, TSFC_F100);
         let mut e = Engine { power: 50.0 };
         let mut last = e.power;
         for _ in 0..40 {
@@ -226,10 +252,23 @@ mod tests {
     }
 
     #[test]
+    fn idle_burns_fuel() {
+        // At idle and speed the net thrust is below zero; the engine still burns its idle flow.
+        let spec = EngineSpec::rated("x", 17_800.0, 29_160.0, 3.0, TSFC_F100);
+        let e = Engine::default();
+        let t = e.thrust(&spec, 0.9, 0.0);
+        assert!(t < 0.0);
+        let pph = e.fuel_flow(&spec, t, 0.0) * 3600.0 / crate::units::LB;
+        assert!((pph - 1_210.0 * spec.mil_scale * 0.76).abs() < 1.0, "{pph}");
+    }
+
+    #[test]
     fn gearing_and_table() {
         assert!((power_command(0.77) - 50.0).abs() < 0.01 && (power_command(1.0) - 100.0).abs() < 1e-9);
         assert!((table(&T_MAX, 0.6, 20_000.0) - 13_760.0).abs() < 1e-9);
-        assert!((table(&T_MIL, 1.5, 0.0) - 11_680.0).abs() < 1e-9);
+        // Above Mach 1.0 the 0.8–1.0 line, to Mach 2.0.
+        assert!((table(&T_MIL, 1.2, 0.0) - (11_680.0 + (11_680.0 - 12_390.0))).abs() < 1e-9);
+        assert!((table(&T_MIL, 3.0, 0.0) - table(&T_MIL, 2.0, 0.0)).abs() < 1e-9);
         // Mach 0: the line through Mach 0.2 and 0.4.
         assert!((table(&T_MAX, 0.0, 0.0) - 20_140.0).abs() < 1e-9);
     }

@@ -6,6 +6,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **B1, the terrain (2026-11-03):** `iaf-sim terrain` builds the sim's theatre `converted/terrain/israel/` from open
   data (GLO-30, Sentinel-2, the Survey of Israel), UTM 36N at 1:1 ([terrain.md](terrain.md)); the sim streams it
   (`theatre_dir()`); the M0 probe flies 5 s over it and checks the heights.
+- **C2 stage (c), the 6-DoF flies the sim's jets (2026-11-03):** TP-1538's control system (g command, α limiter, roll
+  and yaw), `Fm { Original, SixDof }` behind `IafFlight` chosen by `Model = 6dof` in the own data (the original game's
+  data never reaches it, tested), fuel burn, Mach effects (inferred), the validation rows on the 6-DoF, a real Sufa
+  flight in mission 311 ([flight-model.md](flight-model.md) §9.11–9.14).
 - **C2 stage (b), engines, gear, the jets' data (2026-11-03):** TP-1538's engine model scaled to the F110-GE-100,
   F100-PW-229 and F135; a three-strut gear with brakes, steering and a braked stand; the four jets' mass, inertia and
   geometry; tests against the ratings, the spool times, a take-off roll and a stop ([flight-model.md](flight-model.md)
@@ -32,8 +36,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   their rows in [plan.md](plan.md).
 
 ## Open
-- **The 6-DoF flies nothing yet (C2 stage (c)):** the `IafFlight` switch (`Model=6dof`), the flight control system,
-  fuel burn, Mach effects, the validation rows and the bench ([flight-model.md](flight-model.md) §9.6).
+- **The 6-DoF's wave drag is a fit (C2):** fit to each jet's published top speeds, not a sourced table; open: a public
+  F-16 drag rise, the high-speed g onset, the take-off roll, the flaps ([flight-model.md](flight-model.md) §9.6).
 - **No screen yet:** `./iaf2026` runs the M0 probe until the front end (item E2, its main scene `main.tscn`); the sim's
   `Settings` still has the original's `front_end_scene()` / `front_end_overlay()` (E2 overrides them).
 - **No wizard yet:** `./iaf2026-setup` runs `iaf-sim all` from the command line until item A3.

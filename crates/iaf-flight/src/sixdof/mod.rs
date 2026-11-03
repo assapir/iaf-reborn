@@ -11,6 +11,8 @@
 pub mod aero;
 pub mod body;
 pub mod engine;
+pub mod fcs;
+pub mod flight;
 pub mod gear;
 pub mod jets;
 pub mod tables;

@@ -190,6 +190,36 @@ pub fn coefficients(f: &Flow, s: &Surfaces, af: &Airframe) -> Coeffs {
     Coeffs { cx, cy, cz, cl, cm, cn }
 }
 
+/// Compressibility on TP-1538's low-speed data (inferred: the report's tables are low-speed wind-tunnel data, and no
+/// public F-16 table covers high Mach). The normal force grows with the lift-curve slope's Mach factor of a wing of
+/// aspect ratio `ar` (DATCOM's subsonic formula, 2πA / (2 + √(4 + A²(1 − M²))), relative to Mach 0, to Mach 1.0;
+/// Ackeret's supersonic 4 / √(M² − 1) from Mach 1.4; linear between). The drag gains the wave drag `(w, k)`: ΔCD
+/// rising from 0 at Mach 0.9 to `w` at Mach 1.2 (the 1998 Real rows' shape), then `w` × (M / 1.2)^`k` (each jet's
+/// `w` and `k` fit to its published top speeds, `jets.rs`). `alpha` in deg.
+pub fn compressibility(c: &mut Coeffs, mach: f64, alpha: f64, ar: f64, (w, kw): (f64, f64)) {
+    let slope = |m: f64| {
+        if m <= 1.0 {
+            2.0 * std::f64::consts::PI * ar / (2.0 + (4.0 + ar * ar * (1.0 - m * m)).sqrt())
+        } else {
+            4.0 / (m * m - 1.0).sqrt()
+        }
+    };
+    let m = mach.max(0.0);
+    let s = if m <= 1.0 || m >= 1.4 { slope(m) } else { slope(1.0) + (slope(1.4) - slope(1.0)) * (m - 1.0) / 0.4 };
+    let k = s / slope(0.0);
+    // The normal force CN = −CZ cos… : scale the force normal to the body x axis and leave the axial force.
+    c.cz *= k;
+    let wave = if m <= 1.2 { w * ((m - 0.9) / 0.3).clamp(0.0, 1.0) } else { w * (m / 1.2).powf(kw) };
+    add_drag(c, wave, alpha);
+}
+
+/// Adds a drag coefficient `cd` (along the air flow, α in deg) to the body-axis coefficients.
+pub fn add_drag(c: &mut Coeffs, cd: f64, alpha: f64) {
+    let (sa, ca) = alpha.to_radians().sin_cos();
+    c.cx -= cd * ca;
+    c.cz -= cd * sa;
+}
+
 /// Body-axis aerodynamic force (N) and moment (N·m) at dynamic pressure `qbar` (Pa).
 pub fn force_moment(c: &Coeffs, qbar: f64, af: &Airframe) -> (Vec3, Vec3) {
     let qs = qbar * af.s;

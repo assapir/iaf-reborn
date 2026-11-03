@@ -60,6 +60,9 @@ pub struct Params {
     pub map_center_stick: f32,
     pub over_g_thresh: f32,
     pub envelope_file: String,
+    /// `Model = 6dof`: the IAF 2026 sim's own sections fly its 6-DoF (`crate::fm`); the original game's sections
+    /// have no `Model` key.
+    pub model_6dof: bool,
     /// Transonic wave-drag rise (not in the original model; used by the real data set):
     /// ΔCD grows linearly from Mach 0.9 to `wave_drag` at Mach 1.2 and stays there.
     pub wave_drag: f32,
@@ -198,6 +201,7 @@ impl Params {
             map_center_stick: f("MapCenterStick", 0.0),
             over_g_thresh: f("OverGThresh", 6.7),
             envelope_file: s.get("FlightEnvelopeFile").unwrap_or("").to_string(),
+            model_6dof: s.get("Model").is_some_and(|m| m.trim().eq_ignore_ascii_case("6dof")),
             wave_drag: 0.0,
             chute_cd: 0.0,
             dry_thrust: 1.0,

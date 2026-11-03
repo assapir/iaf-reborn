@@ -10,6 +10,7 @@ pub mod base_move;
 pub mod channels;
 pub mod data_set;
 pub mod envelope;
+pub mod fm;
 pub mod instruments;
 pub mod params;
 pub mod sixdof;

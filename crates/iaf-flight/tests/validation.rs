@@ -730,3 +730,234 @@ fn report(dir: &std::path::Path, r: &Ref, set: DataSet) {
         println!(" {:<36} {:<44} {:<46} {}", r.item, r.iaf, r.real, r.verdict);
     }
 }
+
+// --- The IAF 2026 sim's 6-DoF (iaf-2026/docs/flight-model.md §9.13) ----------------------------------------------
+
+/// A 6-DoF flight of `jet` at `alt_ft`, `speed_kt` (level trim), or standing on a runway at sea level (`speed_kt` 0).
+fn sixdof(jet: iaf_flight::sixdof::jets::Jet, alt_ft: f32, speed_kt: f32) -> iaf_flight::sixdof::flight::SixDof {
+    let ini = iaf_formats::ini::Ini::parse(b"[X]\nMaxRollRate=308\n");
+    let params = iaf_flight::Params::from_section(ini.section("X").unwrap());
+    let airborne = speed_kt > 0.0;
+    let st = iaf_flight::Start {
+        position: Vec3::new(0.0, 0.0, (alt_ft / FT) as f64),
+        pitch: 0.0,
+        roll: 0.0,
+        heading: 0.0,
+        velocity: Vec3::new(0.0, (speed_kt / KT) as f64, 0.0),
+        airborne,
+        engine_on: true,
+    };
+    let mut f = iaf_flight::sixdof::flight::SixDof::start(params, iaf_flight::Envelope::parse(b""), jet, st);
+    if !airborne {
+        f.set_ground_height(0.0);
+    }
+    f
+}
+
+/// Flies `seconds` in 1/60 s frames with the controls `ctl` gives per frame.
+fn fly6(f: &mut iaf_flight::sixdof::flight::SixDof, seconds: f32, mut ctl: impl FnMut(&State) -> Controls) -> State {
+    for _ in 0..(seconds * 60.0).round() as usize {
+        let c = ctl(&f.state());
+        f.set_controls(c);
+        f.step(1.0 / 60.0);
+    }
+    f.state()
+}
+
+/// A pilot holding `alt_m`: pitch command from the height and climb-rate errors (the stick is a g command).
+fn hold_alt(s: &State, alt_m: f64) -> f32 {
+    let dz = (alt_m - s.position[2]) as f32;
+    (0.004 * dz - 0.03 * s.velocity[2]).clamp(-0.5, 0.5)
+}
+
+#[test]
+fn sixdof_jets_against_public_data() {
+    // The same public figures as `flyable_jets_against_public_data` (REFS), flown on the 6-DoF with its own jet data
+    // (no game data needed). Prints the table; only NaN fails. OFF rows are reported, not tuned.
+    let only = std::env::var("IAF_JET").ok();
+    for r in REFS {
+        let Some(jet) = iaf_flight::sixdof::jets::by_type(r.aircraft) else { continue };
+        if r.aircraft == "F-15" || only.as_deref().is_some_and(|o| !o.eq_ignore_ascii_case(r.aircraft)) {
+            continue;
+        }
+        let v = r.speed_kt;
+        let mut rows = Vec::new();
+        let mil = Controls { throttle: 0.74, ..Default::default() };
+        let ab = Controls { throttle: 1.0, ..Default::default() };
+        let empty = (jet.airframe.mass / 0.453_592_37) as f32 - jet.fuel_lb as f32;
+        rows.push(Row {
+            item: "empty weight",
+            iaf: format!("{empty:.0} lb"),
+            real: label(r.empty),
+            verdict: verdict(empty, r.empty),
+        });
+        let fuel = jet.fuel_lb as f32;
+        rows.push(Row {
+            item: "internal fuel",
+            iaf: format!("{fuel:.0} lb"),
+            real: label(r.fuel),
+            verdict: verdict(fuel, r.fuel),
+        });
+        let static_t = |p: f64| {
+            (iaf_flight::sixdof::engine::Engine { power: p }.thrust(&jet.engine, 0.0, 0.0) * jet.engines as f64
+                / iaf_flight::sixdof::LBF) as f32
+        };
+        let (t_mil, t_ab) = (static_t(50.0), static_t(100.0));
+        rows.push(Row {
+            item: "thrust SL static, military",
+            iaf: format!("{t_mil:.0} lbf"),
+            real: label(r.thrust_mil),
+            verdict: verdict(t_mil, r.thrust_mil),
+        });
+        rows.push(Row {
+            item: "thrust SL static, full AB",
+            iaf: format!("{t_ab:.0} lbf"),
+            real: label(r.thrust_ab),
+            verdict: verdict(t_ab, r.thrust_ab),
+        });
+
+        // 1 g stall: the slowest speed at sea level where the stick that holds the α limiter's 25° (0.78 of the
+        // pull, iaf-2026/docs/flight-model.md §9.13) still gives 1 g.
+        let holds = |kt: f32| {
+            fly6(&mut sixdof(jet, 0.0, kt), 1.0, |_| Controls { stick_y: 0.78, throttle: 1.0, ..mil }).g > 0.95
+        };
+        let (mut lo, mut hi) = (60.0f32, 250.0f32);
+        for _ in 0..20 {
+            let mid = 0.5 * (lo + hi);
+            if holds(mid) { hi = mid } else { lo = mid }
+        }
+        rows.push(Row {
+            item: "1 g stall speed, SL (α limit)",
+            iaf: format!("{hi:.0} kt"),
+            real: label(r.stall),
+            verdict: verdict(hi, r.stall),
+        });
+
+        // Level hold: neutral stick, military, 60 s at 10,000 ft.
+        let mut f = sixdof(jet, 10000.0, v);
+        let s0 = f.state();
+        let s = fly6(&mut f, 60.0, |_| mil);
+        let dz = (s.position[2] - s0.position[2]) as f32 * FT;
+        rows.push(Row {
+            item: "neutral stick, 60 s @10k ft",
+            iaf: format!("alt change {dz:+.0} ft, {:.0} kt", s.speed * KT),
+            real: "holds altitude (1 g hold)",
+            verdict: if dz.abs() < 300.0 { "ok" } else { "OFF" },
+        });
+
+        // Maximum level speed, full AB, the pilot holding the height, 600 s or the fuel.
+        for (alt, rf) in [(0.0, r.vmax_sl), (r.hi_alt_ft, r.vmax_hi)] {
+            let mut f = sixdof(jet, alt.max(500.0), r.vmax_start_kt);
+            let h = f.state().position[2];
+            let mut best = f.state();
+            for _ in 0..600 {
+                let s = fly6(&mut f, 1.0, |s| Controls { stick_y: hold_alt(s, h), ..ab });
+                assert!(s.speed.is_finite());
+                if s.speed > best.speed {
+                    best = s;
+                }
+                if s.fuel_kg <= 0.0 || s.crashed.is_some() {
+                    break;
+                }
+            }
+            let mach = best.speed / air(best.position[2] as f32).sound;
+            rows.push(Row {
+                item: if alt == 0.0 { "max level speed, SL" } else { "max level speed, high" },
+                iaf: format!(
+                    "{:.0} kt (Mach {mach:.2}) at {:.0} ft after {:.0} s",
+                    best.speed * KT,
+                    best.position[2] as f32 * FT,
+                    best.time
+                ),
+                real: label(rf),
+                verdict: verdict(best.speed * KT, rf),
+            });
+        }
+
+        // Roll: full stick, v @ 10,000 ft: time to 90°, peak rate.
+        let mut f = sixdof(jet, 10000.0, v);
+        let (mut t90, mut peak, mut last) = (f32::NAN, 0.0f32, f.state().roll);
+        for i in 1..=180 {
+            let s = fly6(&mut f, 1.0 / 60.0, |_| Controls { stick_x: 1.0, ..mil });
+            peak = peak.max(((s.roll - last).rem_euclid(std::f32::consts::TAU)).to_degrees() * 60.0);
+            last = s.roll;
+            if t90.is_nan() && s.roll.to_degrees() >= 90.0 {
+                t90 = i as f32 / 60.0;
+            }
+        }
+        rows.push(Row {
+            item: "max roll rate",
+            iaf: format!("{peak:.0} deg/s"),
+            real: label(r.roll_rate),
+            verdict: verdict(peak, r.roll_rate),
+        });
+        rows.push(Row {
+            item: "roll 0→90°, @10k ft",
+            iaf: format!("{t90:.2} s"),
+            real: label(r.roll90),
+            verdict: verdict(t90, r.roll90),
+        });
+
+        // Instantaneous turn: v + 70 kt @ 10,000 ft, ~80° bank held, full pull; heading rate over 2..3 s.
+        let mut f = sixdof(jet, 10000.0, v + 70.0);
+        let bank = |pull: f32| {
+            move |s: &State| Controls {
+                stick_x: ((80.0 - s.roll.to_degrees()) / 40.0).clamp(-1.0, 1.0),
+                stick_y: pull,
+                ..mil
+            }
+        };
+        fly6(&mut f, 3.0, bank(0.0));
+        let a = fly6(&mut f, 2.0, bank(1.0));
+        let b = fly6(&mut f, 1.0, bank(1.0));
+        let turn = ((b.heading - a.heading).rem_euclid(std::f32::consts::TAU)).to_degrees();
+        rows.push(Row {
+            item: "instantaneous turn, v+70 kt @10k ft",
+            iaf: format!("{turn:.1} deg/s at {:.1} g", b.g),
+            real: label(r.turn),
+            verdict: verdict(turn, r.turn),
+        });
+
+        // Specific excess power: SL, v, full AB, neutral stick (1 g), over 1 s once the afterburner is lit.
+        let mut f = sixdof(jet, 500.0 / FT, v);
+        let h = f.state().position[2];
+        fly6(&mut f, 5.0, |s| Controls { stick_y: hold_alt(s, h), ..ab });
+        let s = f.state();
+        let s2 = fly6(&mut f, 1.0, |_| ab);
+        let ps = (s2.speed * s2.speed - s.speed * s.speed) / (2.0 * 9.806) + (s2.position[2] - s.position[2]) as f32;
+        rows.push(Row {
+            item: "climb (Ps), ~SL, full AB",
+            iaf: format!("{:.0} ft/min at {:.0} kt", ps * FT * 60.0, s.speed * KT),
+            real: label(r.climb),
+            verdict: verdict(ps * FT * 60.0, r.climb),
+        });
+
+        // Fuel flow at sea level, standing (brakes, then rolling at military and above).
+        let ff = |thr: f32| {
+            let mut f = sixdof(jet, 0.0, 0.0);
+            let c = Controls { throttle: thr, gear_down: true, ..Default::default() };
+            let a = fly6(&mut f, 8.0, |_| c);
+            let b = fly6(&mut f, 2.0, |_| c);
+            (a.fuel_kg - b.fuel_kg) / 2.0 / 0.45359 * 3600.0
+        };
+        let (f_mil, f_ab) = (ff(0.74), ff(1.0));
+        rows.push(Row {
+            item: "fuel flow military, SL",
+            iaf: format!("{f_mil:.0} lb/h"),
+            real: label(r.ff_mil),
+            verdict: verdict(f_mil, r.ff_mil),
+        });
+        rows.push(Row {
+            item: "fuel flow full AB, SL",
+            iaf: format!("{f_ab:.0} lb/h"),
+            real: label(r.ff_ab),
+            verdict: verdict(f_ab, r.ff_ab),
+        });
+
+        println!("\n {} [{} → 6-DoF {}] vs public references", r.name, r.aircraft, jet.name);
+        println!(" {:<36} {:<44} {:<46}", "test", "6-DoF", "real aircraft (approx., public sources)");
+        for row in &rows {
+            println!(" {:<36} {:<44} {:<46} {}", row.item, row.iaf, row.real, row.verdict);
+        }
+    }
+}

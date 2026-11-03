@@ -1,16 +1,18 @@
-//! `IafFlight`: the original flight model exposed to GDScript.
+//! `IafFlight`: the flight model exposed to GDScript: the original's, or the IAF 2026 sim's 6-DoF when the flight
+//! data asks for it (`iaf_flight::fm::Fm`).
 //!
 //! Godot frame: X east, Y up, Z south (−north), metres — the same frame as the terrain.
 
 use godot::prelude::*;
 use iaf_flight::airbase::Airbase;
-use iaf_flight::autopilot::{self, Autopilot, Leader, Waypoint};
+use iaf_flight::autopilot::{self, Autopilot, Host, Leader, Waypoint};
+use iaf_flight::fm::Fm;
 use iaf_flight::{Aircraft, Controls, Start, Vec3};
 
 #[derive(GodotClass)]
 #[class(init, base = RefCounted)]
 pub struct IafFlight {
-    aircraft: Option<Aircraft>,
+    aircraft: Option<Fm>,
     /// The AI's autopilot (docs/ai.md), in the FM's frame: world minus `origin`.
     ap: Option<Autopilot>,
     origin: (f64, f64),
@@ -22,6 +24,16 @@ pub struct IafFlight {
     turn_slip: iaf_flight::instruments::TurnSlip,
     /// The MiG-29 AoA / g meter's max-g memory (iaf_flight::instruments::g_memory); reset by `start`.
     g_max: f32,
+}
+
+/// Logs once per feature that the IAF 2026 6-DoF does not model it (iaf-2026/docs/flight-model.md §9.6).
+fn sixdof_lacks(what: &'static str) {
+    static SEEN: std::sync::Mutex<Vec<&'static str>> = std::sync::Mutex::new(Vec::new());
+    let mut seen = SEEN.lock().unwrap_or_else(|e| e.into_inner());
+    if !seen.contains(&what) {
+        seen.push(what);
+        godot_warn!("IafFlight: the 6-DoF does not model {what} yet (iaf-2026/docs/flight-model.md §9.6)");
+    }
 }
 
 /// Godot scene position → the FM's ENU frame.
@@ -77,7 +89,7 @@ impl IafFlight {
                     airborne,
                     engine_on,
                 };
-                self.aircraft = Some(Aircraft::start(params, envelope, st));
+                self.aircraft = Some(Fm::start(name, params, envelope, st));
                 self.g_max = 0.0;
                 GString::new()
             }
@@ -118,7 +130,7 @@ impl IafFlight {
     /// Ours (Devices "Throttle rocker" = Roll trim): the rocker −1..1 held for `dt` s moves the roll trim.
     #[func]
     fn trim_roll(&mut self, rocker: f64, dt: f64) {
-        if let Some(ac) = &mut self.aircraft {
+        if let Some(ac) = self.aircraft.as_mut().and_then(Fm::original) {
             ac.trim_roll(rocker as f32, dt as f32);
         }
     }
@@ -150,7 +162,10 @@ impl IafFlight {
     /// (stick, spin).
     #[func]
     fn set_damage(&mut self, flags: VarArray, twin: bool) {
-        if let Some(ac) = &mut self.aircraft {
+        if matches!(self.aircraft, Some(Fm::SixDof(_))) {
+            sixdof_lacks("the systems damage");
+        }
+        if let Some(ac) = self.aircraft.as_mut().and_then(Fm::original) {
             let mask = (0..flags.len().min(25))
                 .filter(|&i| flags.get(i).is_some_and(|v| v.booleanize()))
                 .fold(0u32, |m, i| m | 1 << i);
@@ -162,22 +177,24 @@ impl IafFlight {
     #[func]
     fn set_ground_height(&mut self, height: f64) {
         if let Some(ac) = &mut self.aircraft {
-            ac.ground_height = height as f32;
+            ac.set_ground_height(height as f32);
         }
     }
 
     /// The ground height passed in is scenery (a roof or a tree top, docs/scenery.md §4): meeting it is a crash.
     #[func]
     fn set_ground_obstacle(&mut self, on: bool) {
-        if let Some(ac) = &mut self.aircraft {
-            ac.ground_obstacle = on;
+        match self.aircraft.as_mut() {
+            Some(Fm::Original(ac)) => ac.ground_obstacle = on,
+            Some(Fm::SixDof(s)) => s.ground_obstacle = on,
+            None => {}
         }
     }
 
     /// Height of the aircraft origin above its wheels (the model's `height` helper).
     #[func]
     fn set_gear_clearance(&mut self, metres: f64) {
-        if let Some(ac) = &mut self.aircraft {
+        if let Some(ac) = self.aircraft.as_mut().and_then(Fm::original) {
             ac.gear_clearance = metres as f32;
         }
     }
@@ -186,8 +203,10 @@ impl IafFlight {
     /// (docs/flight-model.md §10).
     #[func]
     fn set_wind(&mut self, knots: f64, from_deg: f64) {
-        if let Some(ac) = &mut self.aircraft {
-            ac.set_wind(knots as f32, from_deg as f32);
+        match self.aircraft.as_mut() {
+            Some(Fm::Original(ac)) => ac.set_wind(knots as f32, from_deg as f32),
+            Some(Fm::SixDof(s)) => s.set_wind(knots as f32, from_deg as f32),
+            None => {}
         }
     }
 
@@ -195,7 +214,7 @@ impl IafFlight {
     /// physics is the same in both world scales (docs/flight-model.md §10).
     #[func]
     fn set_true_gear_clearance(&mut self, metres: f64) {
-        if let Some(ac) = &mut self.aircraft {
+        if let Some(ac) = self.aircraft.as_mut().and_then(Fm::original) {
             ac.true_clearance = Some(metres as f32);
         }
     }
@@ -205,24 +224,30 @@ impl IafFlight {
     /// runway, rough ground, map edge; docs/flight-model.md §15.6.2).
     #[func]
     fn set_ground_surface(&mut self, normal_z: f64, flags: i64) {
-        if let Some(ac) = &mut self.aircraft {
-            ac.ground_normal_z = normal_z as f32;
-            ac.ground_flags = Some(flags as u32);
+        match self.aircraft.as_mut() {
+            Some(Fm::Original(ac)) => {
+                ac.ground_normal_z = normal_z as f32;
+                ac.ground_flags = Some(flags as u32);
+            }
+            Some(Fm::SixDof(s)) => s.set_ground_surface(normal_z as f32, flags as u32),
+            None => {}
         }
     }
 
     /// Drag chute deployed (Shift+B on the ground): its drag under the Real data set (`Params::chute_cd`).
     #[func]
     fn set_drag_chute(&mut self, on: bool) {
-        if let Some(ac) = &mut self.aircraft {
-            ac.drag_chute = on;
+        match self.aircraft.as_mut() {
+            Some(Fm::Original(ac)) => ac.drag_chute = on,
+            Some(Fm::SixDof(_)) => sixdof_lacks("the drag chute"),
+            None => {}
         }
     }
 
     /// "Better physics" option: opt-in fixes of original quirks (docs/flight-model.md §10, §15.11).
     #[func]
     fn set_better_physics(&mut self, on: bool) {
-        if let Some(ac) = &mut self.aircraft {
+        if let Some(ac) = self.aircraft.as_mut().and_then(Fm::original) {
             ac.set_better_physics(on);
         }
     }
@@ -231,7 +256,7 @@ impl IafFlight {
     /// after `start`. Returns false for an unknown id.
     #[func]
     fn set_better_option(&mut self, name: GString, on: bool) -> bool {
-        self.aircraft.as_mut().is_some_and(|ac| ac.set_better_option(&name.to_string(), on))
+        self.aircraft.as_mut().and_then(Fm::original).is_some_and(|ac| ac.set_better_option(&name.to_string(), on))
     }
 
     /// The ids of the "better physics" options (stable snake_case, menu order).
@@ -244,14 +269,14 @@ impl IafFlight {
     /// No crashes, Unlimited fuel.
     #[func]
     fn set_no_stalls(&mut self, on: bool) {
-        if let Some(ac) = &mut self.aircraft {
+        if let Some(ac) = self.aircraft.as_mut().and_then(Fm::original) {
             ac.no_stalls = on;
         }
     }
 
     #[func]
     fn set_no_spins(&mut self, on: bool) {
-        if let Some(ac) = &mut self.aircraft {
+        if let Some(ac) = self.aircraft.as_mut().and_then(Fm::original) {
             ac.no_spins = on;
         }
     }
@@ -259,36 +284,40 @@ impl IafFlight {
     /// The player's autopilot is flying the landing (see `Aircraft::ap_landing`).
     #[func]
     fn set_ap_landing(&mut self, on: bool) {
-        if let Some(ac) = &mut self.aircraft {
+        if let Some(ac) = self.aircraft.as_mut().and_then(Fm::original) {
             ac.ap_landing = on;
         }
     }
 
     #[func]
     fn set_easy_landing(&mut self, on: bool) {
-        if let Some(ac) = &mut self.aircraft {
+        if let Some(ac) = self.aircraft.as_mut().and_then(Fm::original) {
             ac.easy_landing = on;
         }
     }
 
     #[func]
     fn set_invulnerable(&mut self, on: bool) {
-        if let Some(ac) = &mut self.aircraft {
-            ac.invulnerable = on;
+        match self.aircraft.as_mut() {
+            Some(Fm::Original(ac)) => ac.invulnerable = on,
+            Some(Fm::SixDof(s)) => s.no_crashes |= on,
+            None => {}
         }
     }
 
     #[func]
     fn set_no_crashes(&mut self, on: bool) {
-        if let Some(ac) = &mut self.aircraft {
-            ac.no_crashes = on;
+        match self.aircraft.as_mut() {
+            Some(Fm::Original(ac)) => ac.no_crashes = on,
+            Some(Fm::SixDof(s)) => s.no_crashes = on,
+            None => {}
         }
     }
 
     #[func]
     fn set_unlimited_fuel(&mut self, on: bool) {
         if let Some(ac) = &mut self.aircraft {
-            ac.unlimited_fuel = on;
+            ac.set_unlimited_fuel(on);
         }
     }
 
@@ -305,7 +334,7 @@ impl IafFlight {
     /// `set_stores`. A change takes effect at once (an aero update) with the switch on and the jet airborne.
     #[func]
     fn set_stores_moment(&mut self, kg_m: f64) {
-        if let Some(ac) = &mut self.aircraft {
+        if let Some(ac) = self.aircraft.as_mut().and_then(Fm::original) {
             ac.set_stores_moment(kg_m as f32);
         }
     }
@@ -331,7 +360,7 @@ impl IafFlight {
     #[func]
     fn set_engine_on(&mut self, on: bool) {
         if let Some(ac) = &mut self.aircraft {
-            ac.set_engine(on);
+            ac.set_engine_on(on);
         }
     }
 
@@ -340,7 +369,7 @@ impl IafFlight {
     /// An AI jet: the FM's AI "team" test (not on the player's side) and the Preferences AI level (0..2).
     #[func]
     fn set_ai(&mut self, team: bool, level: i64) {
-        if let Some(ac) = &mut self.aircraft {
+        if let Some(ac) = self.aircraft.as_mut().and_then(Fm::original) {
             ac.ai_team = team;
             ac.ai_level = level.clamp(0, 2) as u8;
         }
@@ -349,7 +378,7 @@ impl IafFlight {
     /// The AI jet's damage is ≤ 0.1 (crash immunity).
     #[func]
     fn set_ai_damage(&mut self, low: bool) {
-        if let Some(ac) = &mut self.aircraft {
+        if let Some(ac) = self.aircraft.as_mut().and_then(Fm::original) {
             ac.ai_low_damage = low;
         }
     }
@@ -357,7 +386,7 @@ impl IafFlight {
     /// Current fuel flow, kg/s.
     #[func]
     fn fuel_flow(&self) -> f64 {
-        self.aircraft.as_ref().map_or(0.0, |ac| ac.fuel_flow as f64)
+        self.aircraft.as_ref().map_or(0.0, |ac| ac.fuel_flow() as f64)
     }
 
     /// Creates the autopilot: `[Autopilot]` of bd.ibx and the airbases of iaf.ibx; world coordinates (X east,
@@ -614,11 +643,11 @@ impl IafFlight {
         let s = ac.state();
         let i = instruments::instruments(
             &s,
-            ac.ground_height,
-            ac.gear_clearance,
+            ac.ground_height(),
+            ac.gear_clearance(),
             ac.internal_fuel_kg(),
             ac.fuel_capacity_kg(),
-            ac.params.ias_low_speed_fix,
+            ac.params().ias_low_speed_fix,
             dmg,
         );
         let rpm = s.rpm * 0.01;
@@ -632,7 +661,7 @@ impl IafFlight {
             .collect();
         d.set("nozzle_oil", &PackedFloat32Array::from(no.as_slice()));
         d.set("fuel_fill_total", i.fuel_fill_total);
-        d.set("fuel_flow_pph", ac.fuel_flow * 3600.0 / 0.45359);
+        d.set("fuel_flow_pph", ac.fuel_flow() * 3600.0 / 0.45359);
         let v = Vec3::new(s.velocity[0] as f64, s.velocity[1] as f64, s.velocity[2] as f64);
         self.turn_slip.update(s.time, v, s.forward, s.right, s.up);
         d.set("yaw_rate_dps", self.turn_slip.yaw_rate_dps);
@@ -663,15 +692,15 @@ impl IafFlight {
         let flags: Vec<bool> = damage.iter_shared().map(|v| v.booleanize()).collect();
         let i = instruments::instruments(
             &s,
-            ac.ground_height,
-            ac.gear_clearance,
+            ac.ground_height(),
+            ac.gear_clearance(),
             ac.internal_fuel_kg(),
             ac.fuel_capacity_kg(),
-            ac.params.ias_low_speed_fix,
+            ac.params().ias_low_speed_fix,
             Default::default(),
         );
         let w = instruments::warnings(s.on_ground, s.position[2] as f32 * 3.281, i.ias_kt, i.vs_fpm, s.gear, &flags);
-        d.set("aoa_index", instruments::aoa_indexer(ac.params.type_code, s.alpha.to_degrees()) as i64);
+        d.set("aoa_index", instruments::aoa_indexer(ac.params().type_code, s.alpha.to_degrees()) as i64);
         d.set("flcs", w.flcs);
         d.set("to_ldg_config", w.to_ldg_config);
         d.set("ar_nws", w.ar_nws);
@@ -713,7 +742,7 @@ impl IafFlight {
         d.set("heading", s.heading.to_degrees());
         d.set("aoa", s.alpha.to_degrees());
         d.set("g", s.g);
-        d.set("g_limit", ac.params.max_g_m1 + 1.0); // the flight data's MaxG (the F-15I row's +8.1)
+        d.set("g_limit", ac.params().max_g_m1 + 1.0); // the flight data's MaxG (the F-15I row's +8.1)
         d.set("rpm", s.rpm / 100.0);
         d.set("throttle", s.throttle);
         d.set("afterburner", s.afterburner as i64);
@@ -750,8 +779,8 @@ impl IafFlight {
         d.set("flaps", c.flaps);
         d.set("gear_down", c.gear_down);
         d.set("brakes", c.brakes);
-        d.set("engine_on", ac.engine_on);
-        d.set("vortex", ac.vortex);
+        d.set("engine_on", ac.engine_on());
+        d.set("vortex", ac.vortex());
         d
     }
 }

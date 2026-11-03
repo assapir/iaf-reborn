@@ -7,6 +7,57 @@
 
 use crate::airbase::{Airbase, TaxiPt};
 use crate::aircraft::{Aircraft, ApView, Controls, G, sign, unit};
+
+/// What the autopilot reads from and does to a flight model: the original's [`Aircraft`], or the IAF 2026 sim's
+/// 6-DoF ([`crate::sixdof::flight::SixDof`]).
+pub trait Host {
+    fn ap_view(&self) -> ApView;
+    /// Vmin(alt, g) of the flight data's envelope, m/s.
+    fn vmin(&self, alt: f32, g: f32) -> f32;
+    fn controls(&self) -> Controls;
+    fn set_controls(&mut self, c: Controls);
+    /// While a loop flies, the roll trim is left out (`Aircraft::stores_trim`).
+    fn set_stores_trim(&mut self, on: bool);
+    fn set_ai_since(&mut self, t: f64);
+    fn set_ai_mode(&mut self, mode: u8);
+    /// The taxi re-placement at rest (`5a4d40`) and the pivot turn (motion 0x16).
+    fn replace_on_ground(&mut self, x: f64, y: f64, heading: f32);
+    fn set_pivot(&mut self, target: Option<f32>);
+    fn engine_off(&mut self);
+}
+
+impl Host for Aircraft {
+    fn ap_view(&self) -> ApView {
+        Aircraft::ap_view(self)
+    }
+    fn vmin(&self, alt: f32, g: f32) -> f32 {
+        Aircraft::vmin(self, alt, g)
+    }
+    fn controls(&self) -> Controls {
+        Aircraft::controls(self)
+    }
+    fn set_controls(&mut self, c: Controls) {
+        Aircraft::set_controls(self, c)
+    }
+    fn set_stores_trim(&mut self, on: bool) {
+        self.stores_trim = on;
+    }
+    fn set_ai_since(&mut self, t: f64) {
+        self.ai_since = t;
+    }
+    fn set_ai_mode(&mut self, mode: u8) {
+        self.ai_mode = mode;
+    }
+    fn replace_on_ground(&mut self, x: f64, y: f64, heading: f32) {
+        Aircraft::replace_on_ground(self, x, y, heading)
+    }
+    fn set_pivot(&mut self, target: Option<f32>) {
+        Aircraft::set_pivot(self, target)
+    }
+    fn engine_off(&mut self) {
+        Aircraft::engine_off(self)
+    }
+}
 use crate::vec3::Vec3;
 use iaf_formats::ini::Section;
 use std::f32::consts::PI;
@@ -1646,16 +1697,16 @@ impl Autopilot {
     }
 
     /// `setMode` (`5a8410`): an identical command is ignored; else the loop starts (first tick after 0.5 s).
-    pub fn set_mode(&mut self, ac: &mut Aircraft, mode: u8) {
+    pub fn set_mode(&mut self, ac: &mut impl Host, mode: u8) {
         if mode == self.mode {
             return;
         }
         let now = ac.ap_view().t;
         if self.mode == 0 && mode != 0 {
-            ac.ai_since = now;
+            ac.set_ai_since(now);
         }
         self.mode = mode;
-        ac.ai_mode = mode;
+        ac.set_ai_mode(mode);
         self.watch = true;
         self.period = 0.5;
         self.next_tick = now + 0.5;
@@ -1744,7 +1795,7 @@ impl Autopilot {
     /// (`5c82c0`), 2 NAV to route waypoint `wp` (`5c7bc0`: Fly2WayPt with its ETA), or GoHomeCL (`5c7d80`) when
     /// that waypoint's action is 7 (land). The FM mode stays 0: the jet keeps the player's rules. The loop
     /// starts on the next ring tick (0.5 s, `5c9a90`).
-    pub fn player_mode(&mut self, ac: &mut Aircraft, mode: u8, wp: usize) {
+    pub fn player_mode(&mut self, ac: &mut impl Host, mode: u8, wp: usize) {
         let v = ac.ap_view();
         self.lp = match (mode, self.route.get(wp)) {
             (1, _) => Loop::Level { keep: None },
@@ -1753,7 +1804,7 @@ impl Autopilot {
             // 5c7bc0 without a route starts the loop uninitialised (UNCERTAIN): nothing flies.
             _ => Loop::None,
         };
-        ac.stores_trim = !matches!(self.lp, Loop::None);
+        ac.set_stores_trim(!matches!(self.lp, Loop::None));
         self.watch = true;
         self.period = 0.5;
         self.next_tick = v.t + 0.5;
@@ -1765,10 +1816,10 @@ impl Autopilot {
     }
 
     /// Runs the loop's ring tick when due, applies its outputs to the aircraft and returns them.
-    pub fn step(&mut self, ac: &mut Aircraft, ground: Ground) -> Out {
+    pub fn step(&mut self, ac: &mut impl Host, ground: Ground) -> Out {
         // Better physics "Asymmetric stores" (ours): a running loop trims the stores' roll; its roll laws are
         // P-only and would otherwise hold a steady bank against it (docs/autopilot.md §2.5).
-        ac.stores_trim = !matches!(self.lp, Loop::None);
+        ac.set_stores_trim(!matches!(self.lp, Loop::None));
         if matches!(self.lp, Loop::None) {
             return Out::default();
         }
@@ -1947,7 +1998,7 @@ impl Autopilot {
         out
     }
 
-    fn apply(&self, ac: &mut Aircraft, o: Out) {
+    fn apply(&self, ac: &mut impl Host, o: Out) {
         if let Some((x, y, h)) = o.replace {
             ac.replace_on_ground(x, y, h);
         }
