@@ -10,6 +10,8 @@ pub const LB: f64 = 0.453_592_37;
 pub const SLUG: f64 = 14.593_902_937;
 /// Slug-ft² to kg·m².
 pub const SLUG_FT2: f64 = SLUG * FT * FT;
+/// Pound-force to newtons.
+pub const LBF: f64 = LB * G;
 /// Standard gravity, m/s².
 pub const G: f64 = 9.806_65;
 

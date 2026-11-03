@@ -3,6 +3,10 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **C2 stage (b), engines, gear, the jets' data (2026-11-03):** TP-1538's engine model scaled to the F110-GE-100,
+  F100-PW-229 and F135; a three-strut gear with brakes, steering and a braked stand; the four jets' mass, inertia and
+  geometry; tests against the ratings, the spool times, a take-off roll and a stop ([flight-model.md](flight-model.md)
+  §9.7–9.10). The take-off roll is 26 % short of the F-16A's SAC figure (open).
 - **C2 stage (a), the 6-DoF's core (2026-11-03):** `crates/iaf-flight/src/sixdof/`: NASA TP-1538's aerodynamic
   tables checked value by value against the scan, appendix B's coefficient build-up, a quaternion rigid body; the
   trim tests match the report's trims and Stevens & Lewis's ([flight-model.md](flight-model.md) §9). Nothing calls
@@ -25,9 +29,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   their rows in [plan.md](plan.md).
 
 ## Open
-- **The 6-DoF flies nothing yet (C2 stages (b) and (c)):** (b) the engines and the gear; (c) the `IafFlight` switch
-  (`Model=6dof`), the flight control system, Mach effects, the validation rows and the bench
-  ([flight-model.md](flight-model.md) §9.6).
+- **The 6-DoF flies nothing yet (C2 stage (c)):** the `IafFlight` switch (`Model=6dof`), the flight control system,
+  fuel burn, Mach effects, the validation rows and the bench ([flight-model.md](flight-model.md) §9.6).
 - **No screen yet:** `./iaf2026` runs the M0 probe until the front end (item E2, its main scene `main.tscn`); the sim's
   `Settings` still has the original's `front_end_scene()` / `front_end_overlay()` (E2 overrides them).
 - **No wizard yet:** `./iaf2026-setup` runs `iaf-sim all` from the command line until item A3.

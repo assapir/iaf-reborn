@@ -10,9 +10,12 @@
 
 pub mod aero;
 pub mod body;
+pub mod engine;
+pub mod gear;
+pub mod jets;
 pub mod tables;
 
 pub use aero::{Coeffs, Flow, Surfaces, coefficients};
 pub use body::{Airframe, Body, Quat};
 
-pub use crate::units::{FT, G, LB, SLUG_FT2};
+pub use crate::units::{FT, G, LB, LBF, SLUG_FT2};
