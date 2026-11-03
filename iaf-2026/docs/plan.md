@@ -68,6 +68,7 @@ here, dated.
 - The F-15C Baz joins the sim's jets at Tel Nof (data to add; not urgent; item [D3](#d3-f-15c-baz-at-tel-nof)).
 - Status pages link item codes to their definitions.
 - Voices use a neutral American English.
+- A sim item is done only when its row in [shared.md](shared.md) says built in reborn or carries a dated reason; the orchestrator checks it in every review.
 - Learn from the reborn game's solved problems before building new; the ground look is the first case (item [B4](#b4-ground-look-parity)).
 
 ## MVP: what "done" means

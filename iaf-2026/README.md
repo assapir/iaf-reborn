@@ -2,7 +2,7 @@
 
 IAF 2026 is a modern-day Israeli Air Force flight sim. It runs on this repo's engine, beside the original game, and
 reads only our own or openly licensed data: nothing from the original game's CDs. The plan, the decisions and the
-work items are in [plan.md](docs/plan.md); what works today is in [status.md](docs/status.md).
+work items are in [plan.md](docs/plan.md); what the sim gives the original game is in [shared.md](docs/shared.md); what works today is in [status.md](docs/status.md).
 
 ## Run it
 From the repo root:

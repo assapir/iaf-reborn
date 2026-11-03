@@ -18,6 +18,8 @@ rendering (modern material maps); RWR = radar warning receiver; SAM = surface-to
 situation display (map).
 
 ## Later
+What IAF 2026 builds and each reborn switch it becomes: [shared.md](../iaf-2026/docs/shared.md).
+
 Graphics options (models, cockpit, DEM, water, effects, vegetation, lighting, upscaling), with measured costs and a
 ranked order: [graphics-research.md](graphics-research.md).
 
