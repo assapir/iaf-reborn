@@ -18,7 +18,7 @@ tools/setup-cli.sh [--patch v1.1.exe] "/path/to/Jane's IAF.iso"   # one-time: ex
 ./iafjets [-- --mission 311]                                  # builds the iaf-godot extension (release) and starts the game
 ./mission-editor                                              # the mission editor (docs/mission-editor.md), same build as ./iafjets
 ./iaf2026-setup                                               # IAF 2026's data (iaf-sim all) into assets/ (its wizard: item A3)
-./iaf2026 [-- --mission 2012]                                 # IAF 2026 (iaf-2026/docs/README.md); the M0 probe (or one mission) until its front end (E2)
+./iaf2026 [-- --mission 2012]                                 # IAF 2026 (iaf-2026/README.md); the M0 probe (or one mission) until its front end (E2)
 cargo test -q --workspace                                     # Rust tests (data/python3-dependent ones skip with a message)
 cargo test -q -p iaf-flight --test validation <name>          # one Rust test
 tools/test.sh                                                 # everything: cargo tests, tests/godot + iaf-2026/tests headless, gdparse
@@ -91,7 +91,7 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
   `res://../assets/converted/...` and `Settings.install_dir()` (`assets/install`); the readers of the install's
   resource layout (flight model, sounds, weapons' motion, iaf.ibx, terraintype.dat) take `Settings.own_dir()` (the
   install in the original game), the key table `Settings.keys_file()`.
-- `iaf-2026/` — IAF 2026, the modern sim on own data only (`iaf-2026/docs/README.md`): its Godot project with
+- `iaf-2026/` — IAF 2026, the modern sim on own data only (`iaf-2026/README.md`): its Godot project with
   autoload `Settings = res://sim_settings.gd` (`install_dir()` a path that does not exist, `own_dir()` =
   `assets/converted/own`, the 1998-only switches fixed), `data/` (authored data, compiled by `iaf-sim`), `tests/`,
   `docs/`.

@@ -55,7 +55,7 @@ def headings(path: Path) -> tuple[set, set]:
 def main() -> int:
     args = [a for a in sys.argv[1:] if a != "--fun"]
     files = [Path(f).resolve() for f in args] or sorted(
-        [ROOT / "README.md", ROOT / "CLAUDE.md", *ROOT.glob("docs/**/*.md"), *ROOT.glob("iaf-2026/docs/**/*.md")])
+        [ROOT / "README.md", ROOT / "CLAUDE.md", *ROOT.glob("docs/**/*.md"), ROOT / "iaf-2026/README.md", *ROOT.glob("iaf-2026/docs/**/*.md")])
     funs = set(re.findall(r"\bFUN_([0-9a-f]{8})\b", DECOMPILE.read_text(errors="replace"))) if "--fun" in sys.argv and DECOMPILE.exists() else None
     cache = {}
 

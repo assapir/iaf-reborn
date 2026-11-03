@@ -2,7 +2,7 @@
 
 IAF 2026 is a modern-day Israeli Air Force flight sim. It runs on this repo's engine, beside the original game, and
 reads only our own or openly licensed data: nothing from the original game's CDs. The plan, the decisions and the
-work items are in [plan.md](plan.md); what works today is in [status.md](status.md).
+work items are in [plan.md](docs/plan.md); what works today is in [status.md](docs/status.md).
 
 ## Run it
 From the repo root:
@@ -26,7 +26,7 @@ The M0 probe (`iaf-2026/tests/test_m0_boot.gd`) prints a `PASS`, `FAIL` or `NEED
 - for the Sufa (Ramon), the Barak (Ramat David) and the F-35I (Nevatim): the start-up mission's object database,
   the jet's aircraft definition, the weapons' motion table, the 3D cockpit model and the flight model started from
   `converted/own/resource/md`;
-- the terrain `converted/terrain/israel/meta.json` at 1:1 ([terrain.md](terrain.md)), then a free flight of 5 s over
+- the terrain `converted/terrain/israel/meta.json` at 1:1 ([terrain.md](docs/terrain.md)), then a free flight of 5 s over
   it: the heights at the jet are readable and below it; the 3D-only cockpit in flight (item E1).
 
 It prints `RESULT PASS` only when every check passes. A check whose data is not built yet prints `NEEDS DATA` with the
@@ -39,7 +39,7 @@ that as a failure.
 | `iaf-2026/` | the sim's Godot project: `project.godot` ("IAF 2026", its own `user://`), `iaf.gdextension` (the same Rust extension as the original game) |
 | `iaf-2026/shared` | a link to the repo's `shared/` (the engine code both projects use; on Windows a junction made by `tools/windows/links.ps1`) |
 | `iaf-2026/sim_settings.gd` | the `Settings` autoload: the shared settings with the sim's data roots and profile |
-| `iaf-2026/data/` | the authored data: units, weapons, missions, airbases, sounds, keys ([data-formats.md](data-formats.md), [sound.md](sound.md), [airbases.md](airbases.md)) |
+| `iaf-2026/data/` | the authored data: units, weapons, missions, airbases, sounds, keys ([data-formats.md](docs/data-formats.md), [sound.md](docs/sound.md), [airbases.md](docs/airbases.md)) |
 | `iaf-2026/tests/` | the sim's headless tests (they extend `tests/godot/base.gd`) |
 | `iaf-2026/docs/` | the sim's docs and research |
 | `assets/converted/own/` | the sim's compiled data in the original's resource layout: `resource/md`, `resource/soundfiles`, `resource/weaponsmotion`, `keys.json`, `iaf.ibx`, `terraintype.dat` (`iaf-sim airbases`) |
@@ -58,7 +58,7 @@ paths; the original game's `shared/settings.gd` answers with the install's.
 | `theatre_dir()`: the terrain `terrain.gd` streams | `converted/terrain/theatre` (`IAF_THEATRE=<name>`: `converted/terrain/<name>`) | `converted/terrain/israel` |
 | `airbases_file()`: the runways, taxi lines and masks (Detailed airbases, the tower's wind turn) | `converted/terrain/airbases.json` | the theatre's own: `converted/terrain/israel/airbases.json` |
 
-The bases are `own_dir()`'s `iaf.ibx` (`iaf-sim airbases`, [airbases.md](airbases.md) §9) at their real places,
+The bases are `own_dir()`'s `iaf.ibx` (`iaf-sim airbases`, [airbases.md](docs/airbases.md) §9) at their real places,
 so the sim never moves them: its `sync_bases()` sets up no World scale Real move. The tower's wind turn
 (`IafBases.set_wind`) takes their runways from `Settings.airbases_file()`, the theatre's own `airbases.json`
 (`converted/terrain/israel/airbases.json`; the original game's `converted/terrain/airbases.json`).

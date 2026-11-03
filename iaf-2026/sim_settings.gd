@@ -1,4 +1,4 @@
-# IAF 2026's Settings (autoload, iaf-2026/docs/README.md): the shared settings with the sim's data roots and profile.
+# IAF 2026's Settings (autoload, iaf-2026/README.md): the shared settings with the sim's data roots and profile.
 # The sim reads its own data only: the readers of the original game's resource layout take converted/own (the same
 # layout, compiled by iaf-sim), and the install is a path that does not exist, so a shared reader that still reaches
 # for the original's files finds nothing. The 1998-only switches are fixed (PROFILE).

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds what changed (the Rust extension, the same one ./iafjets loads) and starts IAF 2026 (iaf-2026/docs/README.md).
+# Builds what changed (the Rust extension, the same one ./iafjets loads) and starts IAF 2026 (iaf-2026/README.md).
 # Without the sim's data it starts its setup (./iaf2026-setup). Extra arguments go to the sim (after --).
 # Until its front end (item E2) the sim has no screen: this runs the M0 probe (iaf-2026/tests/test_m0_boot.gd), or with
 # `-- --mission <id>` one mission (iaf-2026/flight/fly.gd).

@@ -164,11 +164,11 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
   the railways (ballast, sleepers, rails) near the camera; town sizes not used.
 - **Imagery**: SPOT 5 outside Israel not started.
 - **IAF 2026 data** (iaf-2026/docs/data-formats.md): no setup step runs `iaf-sim` yet (the sim's wizard, IAF 2026
-  items A1 / A3; `tools/test.sh` builds it for its test); the game reads the own `weapons.ibx` and sets the F-16
-  switch from a unit's `"airframe"` only from A1; Nevatim is not one of the game's bases (iaf.ibx) until item B2, so
+  items [A1](../iaf-2026/docs/plan.md#a1-the-project-skeleton), the project skeleton, and [A3](../iaf-2026/docs/plan.md#a3-the-setup-wizard), the setup wizard; `tools/test.sh` builds it for its test); the game reads the own `weapons.ibx` and sets the F-16
+  switch from a unit's `"airframe"` only from [A1](../iaf-2026/docs/plan.md#a1-the-project-skeleton); Nevatim is not one of the game's bases (iaf.ibx) until item [B2](../iaf-2026/docs/plan.md#b2-the-airbases), the airbases, so
   its two missions have no tower, lineup or start rule (their files say so, `note`); the jets stand at OSM apron
-  centres until B2b compiles the bases (the layouts and parking spots are in `iaf-2026/data/airbases/`, the spots
-  and Nevatim's tower await the user's approval; the other towers are open); red flights and the threat units wait for the user's yes on the set (D2).
+  centres until [B2b](../iaf-2026/docs/plan.md#b2-the-airbases), the airbase compiler, compiles the bases (the layouts and parking spots are in `iaf-2026/data/airbases/`, the spots
+  and Nevatim's tower await the user's approval; the other towers are open); red flights and the threat units wait for the user's yes on the set ([D2](../iaf-2026/docs/plan.md#d2-units-and-weapons), units and weapons).
 - **Multiplayer**: not started (missions 511–516, 777), with its RWR network messages. Research and discussion:
   [multiplayer.md](multiplayer.md).
 

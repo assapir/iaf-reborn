@@ -55,6 +55,21 @@ here, dated.
 | parking spots | A7 approved. |
 | review pages | Pictures on the review pages enlarge on click. |
 
+## Rules (the user, 3 November 2026)
+
+- Every enhancement is shared by both games, never sim-only.
+- Technical docs follow the ISO plain-language rule, KISS and doclint, and never say what does not exist.
+- Pictures go into the md docs; the artifact pages are not the record.
+- Whatever can be done in Rust is done in Rust.
+- JSON the game reads is compact (no pretty-printing); authored data may be readable.
+- Data that changes in the game (pilot log, debriefs) is a candidate for sqlite through a Rust crate (decision pending).
+- Audio ships compressed (ogg), not WAV.
+- Agents and sessions remove their worktree and its `target/` as soon as the branch is merged.
+- The F-15C Baz joins the sim's jets at Tel Nof (data to add; not urgent; item [D3](#d3-f-15c-baz-at-tel-nof)).
+- Status pages link item codes to their definitions.
+- Voices use a neutral American English.
+- Learn from the reborn game's solved problems before building new; the ground look is the first case (item [B4](#b4-ground-look-parity)).
+
 ## MVP: what "done" means
 `./iaf2026` (repo root) starts from the shared `assets/` root, reads nothing under `assets/install/` and no
 file converted from the ISO, on all three platforms, and:
@@ -139,26 +154,107 @@ file converted from the ISO, on all three platforms, and:
   `enum Fm { Original, SixDof }` in `IafFlight`, same `State` / `Controls` / `ApView`; `Model=6dof` in the own section.
 - **Avionics:** nothing replaced for the MVP; the modern rows (`radar.rs` F16I / F35I, `real_hud/`, `f16_mfd.rs`,
   `pcd`, `gps.rs`) are already ours. Later own modules sit behind the same `Iaf*` classes by the same enum dispatch.
-- **Docs:** `iaf-2026/docs/` (README, threats.md, data-formats.md, flight-model.md, status.md); `tools/doclint.py`
+- **Docs:** `iaf-2026/README.md` and `iaf-2026/docs/` (threats.md, data-formats.md, flight-model.md, status.md); `tools/doclint.py`
   gets `iaf-2026/docs/**` and the path root.
 
 ## Phases and work items
-| # | item | size | blocks on |
-|---|---|---|---|
-| A0 | **the split**: `game/` → `iaf-reborn/` + `shared/`, the 6 menu couplings cut, every `res://` path, tool and doc rewritten by a script, the suite green before and after; one squash commit in a quiet window | M | the two sessions' leashed items merged |
-| A1 | `iaf-2026/` skeleton: the `shared` link + junction script, `sim_settings.gd`, `install_dir()` in `shared/settings.gd`, the root launchers `./iaf2026` and `./iaf2026-setup` (+ .ps1), `tools/test.sh` loop over `iaf-2026/tests`, `gdparse` on both, the M0 probe (NEEDS DATA today). **Done (2026-11-02, branch wt/iaf-2026-core):** as listed, plus `own_dir()` and `keys_file()` in `shared/settings.gd` and the sim's `set_jet()` (the F-16 switch from the unit's `"airframe"`); the two leftovers closed (2026-11-03, branch wt/iaf-2026-own): the player's flight-model type from the sim's table (`Settings.fm_section`), `IafBases` on `own_dir()`'s `iaf.ibx` (no bases until B2b); until E2 `./iaf2026` runs the M0 probe and until A3 `./iaf2026-setup` runs `iaf-sim all` ([status.md](status.md)) | M | A0 |
-| A2 | `iaf-sim` bin: step graph on `iaf_setup::run`, `own` assembly, `db` and `missions` compilers. **Shipped (2026-11-02):** the readable formats ([data-formats.md](data-formats.md)), `iaf-sim db` (`sim.bdb.json`, the `"sim.bdb"` key of `objects.json`, own `weapons.ibx`, read by the game once A1's `install_dir()` hook lands; the jets' `"airframe"` key, from which A1 sets the F-16 switch) and `iaf-sim missions` (`converted/iaf-2026/missions/`, not `converted/missions/`: data-formats.md §7, accepted 2026-11-02), the Sufa / Barak / F-35I units, the gun / chaff / flare and the AIM-9M / MK-84 bases, the start-up and take-off missions at Ramon, Ramat David and Nevatim (Nevatim added to real_runways.csv), `test_sim_data.gd`. **Open:** the step graph and wizard wiring (after A1), red flights and threat units (after the user's yes, D2), the units' own models, real parking spots (B2) | M | A1 |
-| A3 | **IAF 2026 setup wizard** (`iaf-2026/setup/`): new pages and options, no Jane's mentions, reuse the `IafSetup` bridge and progress / cancel pattern of `game/setup`; Attributions page; Hebrew and English | L | A2 |
-| B1 | `iaf-sim terrain`: GLO-30 heights, Sentinel-2 + Survey of Israel colour, UTM frame. **Done (2026-11-03, branch wt/iaf-2026-terrain):** `iaf-sim terrain` writes `converted/terrain/israel/` (UTM 36N at 1:1, 347 × 511 km around the four bases, 2 m Survey / 8 m Sentinel-2 over Israel, 32 m beyond, GLO-30 heights at 64 m; [terrain.md](terrain.md)), `Settings.theatre_dir()` (the sim's theatre; `IAF_THEATRE` in the original game), the M0 probe's in-flight height check. **Open:** surface types (B2b), the other censored sites in the Survey photo | L | — |
-| B2 | airbases Ramon, Hatzerim, Nevatim, Ramat David from OSM: layouts, masks, `iaf.ibx`, `terraintype.dat` runway / water planes; scenery step freed from original missions. **B2a data done (2026-11-02), compile waits for B1:** the four layouts in lat / lon (`iaf-2026/data/airbases/`, [airbases.md](airbases.md), `tools/iaf-2026/osm_airbase.py`), the parking spots and Nevatim's tower placed by eye (for approval), the 2026 squadrons. **B2b done (2026-11-03):** `iaf-sim airbases` compiles the four bases into the UTM theatre: `airbases.json` + paved masks from the OSM polygons (Detailed airbases draws them), an own `iaf.ibx` (tower, lineup, taxi paths on the OSM taxiway graph, parking spots), an own `terraintype.dat` (runways, the sea), the missions on the parking spots at the terrain's height; the M0 probe parks each jet ([airbases.md](airbases.md) §9). **Open:** the towers of Ramon, Hatzerim and Ramat David, inland water, the scenery step freed from the original missions | L | B1 |
-| C1 | FM-0 data for Sufa, Barak, F-35I (and the F-15I row). **Done (branch wt/iaf-2026-fm0, 2026-11-02):** `tools/iaf-2026/fm0.py` writes the own `bd.ibx` (`[F-16]` the Barak and the base of the Sufa and F-35I, `[F-15]` the F-15I) and envelopes from NASA TP-1538 (thrust table fitted to the model's 2 × 2 table, bounded at zero at 20 km; joint idle / military fit) and the REAL rows' public figures, every key sourced ([flight-model.md](flight-model.md)); the F-16 REAL row's thrust written as an absolute value (same on the 1998 data); validation on the own data: weights, static thrust, fuel flow, stall, ceiling, roll, turn, climb in range or close; top speed at 40,000 ft OFF for every jet (Sufa, F-35I, F-15I low; Barak high); a real Sufa flight on the own data through `IAF_ASSETS_DIR`. **Open:** the sim's own install path (A1), the thrust table and the REAL rows' 1998-shaped fits (C2), `[Autopilot]`, LimitAlphaVisual and the 1998 handling gains (the user) | M | — |
-| C2 | 6-DoF module + TP-1538 trim tests + validation rows. **Stage (a) done (branch wt/iaf-2026-sixdof, 2026-11-03):** `crates/iaf-flight/src/sixdof/`: all of TP-1538 Table III transcribed from the scan (every value checked against the page), appendix B's coefficient build-up, a quaternion rigid body with RK4 at ≤ 1/120 s; `tests/sixdof.rs`: the report's trims (66° at full nose up, the deep stall at 60°, static margin −4 %) and Stevens & Lewis's 502 ft/s trim within their tolerances ([flight-model.md](flight-model.md) §9). **Stage (b) done (branch wt/iaf-2026-sixdof-b, 2026-11-03):** TP-1538's engine model scaled per engine, the gear, the four jets' data, tests against the ratings, spool times, a take-off roll (26 % short of the F-16A SAC: open) and a stop (§9.7–9.10). **Stage (c) done (branch wt/iaf-2026-sixdof-c, 2026-11-03):** TP-1538's control system, `Fm { Original, SixDof }` behind `IafFlight` by `Model = 6dof` (the original game never reaches it, tested), fuel, Mach effects (inferred), Table V's roll times within 11 %, the validation rows on the 6-DoF, the frame cost, a real Sufa flight (§9.11–9.14). **Decided 2026-11-03 (the orchestrator):** the wave drag fit to each jet's published top speeds, labelled, pinned within 5 % (§9.15); the frame cost a budget, not parity: at most 20 µs per jet per frame on this laptop, enforced by `frame_cost_within_budget` (4.1 µs measured). **Open:** a sourced drag rise, the high-speed g onset, the take-off roll (−24 % against the SAC), flaps (§9.6) | XL | C1 |
-| D1 | `iaf-2026/docs/threats.md`: the 2026 threat and weapon set, sources, model sources and licences | M | — |
-| D2 | unit / weapon DB, own `weapons.ibx`, models for the DB's units (after the MVP: combat missions). **Drafts (branch wt/iaf-2026-threats, 2026-11-03), pending the user's decision:** threats.md §6's set as 12 unit and 10 weapon records in `iaf-2026/data/db/drafts/`, which `iaf-sim db` skips; approval = move the file and drop its `status` (data-formats.md §11); the compiler's SAM / AAA / radar classes and missile kinds ([threat-records.md](threat-records.md)). **Open:** the user's decision, the open figures, the damage scale for ground units, own flight-model rows for the MiG-29 and F-14A, the models, the missions | L | D1, A2 |
-| E1 | own cockpit dirs, HUD font hook, keys, sound table + CC0 clips, TTS Betty / tower / AWACS with radio filter. **Sounds, voices and keys (E1b, branch wt/iaf-2026-sounds, 2026-11-02):** the CC0 sound set, the English Betty and tower voices through the radio filter, the radio phrase files and the own key table, compiled by `iaf-sim own` ([sound.md](sound.md)). **Open:** the Hebrew voice (the user decides on its licence), AWACS and wingman phrases, the run-time squelch, a human listening pass (the reader hooks: done in A1) | L | A1 |
-| E2 | front end `main.tscn`: jets with home bases, mission list, preferences (the carried-over Graphics / Physics / Devices toggles), debrief page, pilot log; disabled screens; **Hebrew and English with RTL / BiDi layouts from the first screen** (the string table, the font, the mirrored containers, a screenshot pair per screen) | M | A1 |
-| E3 | training mission 1 (start engine, real timings, cockpit alive) and 2 (radio menu, tower TTS, taxi, takeoff), pass / fail rules, debrief numbers. **E3a scoring done (2026-11-02):** the rules as data in the missions' `training`, the scorer `iaf-training score` over a flight recording with the debrief record in English and Hebrew ([training.md](training.md)). **E3b core done (2026-11-03, branch wt/iaf-2026-training2):** the jet parked cold, one start command running the real start sequence's timings on the 6-DoF (the F-16's JFS, the F-35I's IPP and 90 s self test; sources and the inferred steps in [training.md](training.md) §7) with the screens, the HUD and the lamps coming alive; the numbered radio menu (Ctrl+T, English and Hebrew labels) with the English TTS tower of every own base; the recorder's version 2 (`rpm`, `avionics`, `radio` events); `IafTraining` scoring at the mission's end, the debrief record in `user://debriefs/`, the pilot log; `./iaf2026 -- --mission <id>`; `test_mvp.gd` flies both missions for the Sufa, the Barak and the F-35I to a Pass. **Open:** the debrief page and the front end (E2), the Hebrew voice (the user), the pilot's own request voice, the starter's sound, the checklist card (after the MVP) | L | A2, B2, C1, E1, E2 |
-| F | the probe `test_mvp.gd` passes for Sufa, Barak, F-35I on Linux / macOS / Windows | — | all above except C2, D2 |
+Each item has a heading, so status pages and docs can link to its code (`#a0-the-split`).
+
+### A0 the split
+
+**the split**: `game/` → `iaf-reborn/` + `shared/`, the 6 menu couplings cut, every `res://` path, tool and doc rewritten by a script, the suite green before and after; one squash commit in a quiet window
+
+Size: M. Blocks on: the two sessions' leashed items merged.
+
+### A1 the project skeleton
+
+`iaf-2026/` skeleton: the `shared` link + junction script, `sim_settings.gd`, `install_dir()` in `shared/settings.gd`, the root launchers `./iaf2026` and `./iaf2026-setup` (+ .ps1), `tools/test.sh` loop over `iaf-2026/tests`, `gdparse` on both, the M0 probe (NEEDS DATA today). **Done (2026-11-02, branch wt/iaf-2026-core):** as listed, plus `own_dir()` and `keys_file()` in `shared/settings.gd` and the sim's `set_jet()` (the F-16 switch from the unit's `"airframe"`); the two leftovers closed (2026-11-03, branch wt/iaf-2026-own): the player's flight-model type from the sim's table (`Settings.fm_section`), `IafBases` on `own_dir()`'s `iaf.ibx` (no bases until B2b); until E2 `./iaf2026` runs the M0 probe and until A3 `./iaf2026-setup` runs `iaf-sim all` ([status.md](status.md))
+
+Size: M. Blocks on: A0.
+
+### A2 the iaf-sim compilers
+
+`iaf-sim` bin: step graph on `iaf_setup::run`, `own` assembly, `db` and `missions` compilers. **Shipped (2026-11-02):** the readable formats ([data-formats.md](data-formats.md)), `iaf-sim db` (`sim.bdb.json`, the `"sim.bdb"` key of `objects.json`, own `weapons.ibx`, read by the game once A1's `install_dir()` hook lands; the jets' `"airframe"` key, from which A1 sets the F-16 switch) and `iaf-sim missions` (`converted/iaf-2026/missions/`, not `converted/missions/`: data-formats.md §7, accepted 2026-11-02), the Sufa / Barak / F-35I units, the gun / chaff / flare and the AIM-9M / MK-84 bases, the start-up and take-off missions at Ramon, Ramat David and Nevatim (Nevatim added to real_runways.csv), `test_sim_data.gd`. **Open:** the step graph and wizard wiring (after A1), red flights and threat units (after the user's yes, D2), the units' own models, real parking spots (B2)
+
+Size: M. Blocks on: A1.
+
+### A3 the setup wizard
+
+**IAF 2026 setup wizard** (`iaf-2026/setup/`): new pages and options, no Jane's mentions, reuse the `IafSetup` bridge and progress / cancel pattern of `game/setup`; Attributions page; Hebrew and English
+
+Size: L. Blocks on: A2.
+
+### B1 the terrain
+
+`iaf-sim terrain`: GLO-30 heights, Sentinel-2 + Survey of Israel colour, UTM frame. **Done (2026-11-03, branch wt/iaf-2026-terrain):** `iaf-sim terrain` writes `converted/terrain/israel/` (UTM 36N at 1:1, 347 × 511 km around the four bases, 2 m Survey / 8 m Sentinel-2 over Israel, 32 m beyond, GLO-30 heights at 64 m; [terrain.md](terrain.md)), `Settings.theatre_dir()` (the sim's theatre; `IAF_THEATRE` in the original game), the M0 probe's in-flight height check. **Open:** surface types (B2b), the other censored sites in the Survey photo
+
+Size: L. Blocks on: —.
+
+### B2 the airbases
+
+airbases Ramon, Hatzerim, Nevatim, Ramat David from OSM: layouts, masks, `iaf.ibx`, `terraintype.dat` runway / water planes; scenery step freed from original missions. **B2a data done (2026-11-02), compile waits for B1:** the four layouts in lat / lon (`iaf-2026/data/airbases/`, [airbases.md](airbases.md), `tools/iaf-2026/osm_airbase.py`), the parking spots and Nevatim's tower placed by eye (for approval), the 2026 squadrons. **B2b done (2026-11-03):** `iaf-sim airbases` compiles the four bases into the UTM theatre: `airbases.json` + paved masks from the OSM polygons (Detailed airbases draws them), an own `iaf.ibx` (tower, lineup, taxi paths on the OSM taxiway graph, parking spots), an own `terraintype.dat` (runways, the sea), the missions on the parking spots at the terrain's height; the M0 probe parks each jet ([airbases.md](airbases.md) §9). **Open:** the towers of Ramon, Hatzerim and Ramat David, inland water, the scenery step freed from the original missions
+
+Size: L. Blocks on: B1.
+
+### B4 ground look parity
+
+the sim's terrain takes the reborn game's modern-colour Survey layer, ground textures and scenery. **Open.**
+
+Size: M. Blocks on: B1.
+
+### C1 FM-0 data
+
+FM-0 data for Sufa, Barak, F-35I (and the F-15I row). **Done (branch wt/iaf-2026-fm0, 2026-11-02):** `tools/iaf-2026/fm0.py` writes the own `bd.ibx` (`[F-16]` the Barak and the base of the Sufa and F-35I, `[F-15]` the F-15I) and envelopes from NASA TP-1538 (thrust table fitted to the model's 2 × 2 table, bounded at zero at 20 km; joint idle / military fit) and the REAL rows' public figures, every key sourced ([flight-model.md](flight-model.md)); the F-16 REAL row's thrust written as an absolute value (same on the 1998 data); validation on the own data: weights, static thrust, fuel flow, stall, ceiling, roll, turn, climb in range or close; top speed at 40,000 ft OFF for every jet (Sufa, F-35I, F-15I low; Barak high); a real Sufa flight on the own data through `IAF_ASSETS_DIR`. **Open:** the sim's own install path (A1), the thrust table and the REAL rows' 1998-shaped fits (C2), `[Autopilot]`, LimitAlphaVisual and the 1998 handling gains (the user)
+
+Size: M. Blocks on: —.
+
+### C2 the 6-DoF
+
+6-DoF module + TP-1538 trim tests + validation rows. **Stage (a) done (branch wt/iaf-2026-sixdof, 2026-11-03):** `crates/iaf-flight/src/sixdof/`: all of TP-1538 Table III transcribed from the scan (every value checked against the page), appendix B's coefficient build-up, a quaternion rigid body with RK4 at ≤ 1/120 s; `tests/sixdof.rs`: the report's trims (66° at full nose up, the deep stall at 60°, static margin −4 %) and Stevens & Lewis's 502 ft/s trim within their tolerances ([flight-model.md](flight-model.md) §9). **Stage (b) done (branch wt/iaf-2026-sixdof-b, 2026-11-03):** TP-1538's engine model scaled per engine, the gear, the four jets' data, tests against the ratings, spool times, a take-off roll (26 % short of the F-16A SAC: open) and a stop (§9.7–9.10). **Stage (c) done (branch wt/iaf-2026-sixdof-c, 2026-11-03):** TP-1538's control system, `Fm { Original, SixDof }` behind `IafFlight` by `Model = 6dof` (the original game never reaches it, tested), fuel, Mach effects (inferred), Table V's roll times within 11 %, the validation rows on the 6-DoF, the frame cost, a real Sufa flight (§9.11–9.14). **Decided 2026-11-03 (the orchestrator):** the wave drag fit to each jet's published top speeds, labelled, pinned within 5 % (§9.15); the frame cost a budget, not parity: at most 20 µs per jet per frame on this laptop, enforced by `frame_cost_within_budget` (4.1 µs measured). **Open:** a sourced drag rise, the high-speed g onset, the take-off roll (−24 % against the SAC), flaps (§9.6)
+
+Size: XL. Blocks on: C1.
+
+### D1 the threats research
+
+`iaf-2026/docs/threats.md`: the 2026 threat and weapon set, sources, model sources and licences
+
+Size: M. Blocks on: —.
+
+### D2 units and weapons
+
+unit / weapon DB, own `weapons.ibx`, models for the DB's units (after the MVP: combat missions). **Drafts (branch wt/iaf-2026-threats, 2026-11-03), pending the user's decision:** threats.md §6's set as 12 unit and 10 weapon records in `iaf-2026/data/db/drafts/`, which `iaf-sim db` skips; approval = move the file and drop its `status` (data-formats.md §11); the compiler's SAM / AAA / radar classes and missile kinds ([threat-records.md](threat-records.md)). **Open:** the user's decision, the open figures, the damage scale for ground units, own flight-model rows for the MiG-29 and F-14A, the models, the missions
+
+Size: L. Blocks on: D1, A2.
+
+### D3 F-15C Baz at Tel Nof
+
+the F-15C Baz joins the sim's jets at Tel Nof (data to add). **Open, not urgent.**
+
+Size: S. Blocks on: C1, B2.
+
+### E1 cockpit data, sounds and voices
+
+own cockpit dirs, HUD font hook, keys, sound table + CC0 clips, TTS Betty / tower / AWACS with radio filter. **Sounds, voices and keys (E1b, branch wt/iaf-2026-sounds, 2026-11-02):** the CC0 sound set, the English Betty and tower voices through the radio filter, the radio phrase files and the own key table, compiled by `iaf-sim own` ([sound.md](sound.md)). **Open:** the Hebrew voice (the user decides on its licence), AWACS and wingman phrases, the run-time squelch, a human listening pass (the reader hooks: done in A1)
+
+Size: L. Blocks on: A1.
+
+### E2 the front end
+
+front end `main.tscn`: jets with home bases, mission list, preferences (the carried-over Graphics / Physics / Devices toggles), debrief page, pilot log; disabled screens; **Hebrew and English with RTL / BiDi layouts from the first screen** (the string table, the font, the mirrored containers, a screenshot pair per screen)
+
+Size: M. Blocks on: A1.
+
+### E3 the training missions
+
+training mission 1 (start engine, real timings, cockpit alive) and 2 (radio menu, tower TTS, taxi, takeoff), pass / fail rules, debrief numbers. **E3a scoring done (2026-11-02):** the rules as data in the missions' `training`, the scorer `iaf-training score` over a flight recording with the debrief record in English and Hebrew ([training.md](training.md)). **E3b core done (2026-11-03, branch wt/iaf-2026-training2):** the jet parked cold, one start command running the real start sequence's timings on the 6-DoF (the F-16's JFS, the F-35I's IPP and 90 s self test; sources and the inferred steps in [training.md](training.md) §7) with the screens, the HUD and the lamps coming alive; the numbered radio menu (Ctrl+T, English and Hebrew labels) with the English TTS tower of every own base; the recorder's version 2 (`rpm`, `avionics`, `radio` events); `IafTraining` scoring at the mission's end, the debrief record in `user://debriefs/`, the pilot log; `./iaf2026 -- --mission <id>`; `test_mvp.gd` flies both missions for the Sufa, the Barak and the F-35I to a Pass. **Open:** the debrief page and the front end (E2), the Hebrew voice (the user), the pilot's own request voice, the starter's sound, the checklist card (after the MVP)
+
+Size: L. Blocks on: A2, B2, C1, E1, E2.
+
+### F the probe
+
+the probe `test_mvp.gd` passes for Sufa, Barak, F-35I on Linux / macOS / Windows
+
+Size: —. Blocks on: all above except C2, D2.
 
 ## How the work runs
 Every item is executed by a subagent or another session; the orchestrator writes the briefs, reviews the merges
