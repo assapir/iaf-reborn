@@ -39,8 +39,21 @@ here, dated.
 | physics | **real by default**; a toggle exists only where we have an own alternative (e.g. an easy-flight aid of our own, unlimited fuel, no damage). **No off switch for anything that replaced original data or logic** (6-DoF, real weapon data, Real HUD, real MFDs, spool, 3D cockpit, 1:1): "off" would mean the 1998 version, which does not exist in the sim |
 | options | **all the toggles the game gained** carry over where relevant: Graphics → MORE (clouds Volumetric, rain, night vision, shadows, water, scenery, roads, ground textures, city lights, upscaling / FSR 2 / MetalFX), Physics, Devices, Extras that still apply; the 1998-only ones (Jet versions, original cockpit, world scale) do not exist |
 | platforms | Linux, macOS, Windows from day one |
-| languages | **Hebrew and English from day one, RTL / BiDi done right**: every screen of the sim (front end, wizard, radio menu, debrief, subtitles, checklist card, preferences) has both; Godot's TextServer Advanced for BiDi shaping, mirrored layouts in Hebrew, an OFL font with Hebrew glyphs (e.g. Noto Sans Hebrew), strings in one table per language as `game/menu/strings_he.json` does today; the pilot guides in both languages |
+| languages | **Hebrew and English from day one, RTL / BiDi done right**: every screen of the sim (front end, wizard, radio menu, debrief, subtitles, checklist card, preferences) has both; Godot's TextServer Advanced for BiDi shaping, mirrored layouts in Hebrew, an OFL font with Hebrew glyphs (e.g. Noto Sans Hebrew), strings in one table per language as `game/menu/strings_he.json` does today; the pilot guides in both languages; gender-neutral forms always |
 | done | the leash (memory `leash-other-sessions`): code + tests + docs + guide text and pictures + the item's pictures on the "IAF 2026 Progress" page + credits + the session's own quality checks (code review pass, screenshot critique against the real reference, one real run) + queue line rewritten |
+
+## Decisions of 3 November 2026 (the user's approvals)
+
+| topic | decision |
+|---|---|
+| name | "IAF 2026" stays; it may be renamed later. |
+| fonts | UI: Heebo. HUD: as close to the real jet's HUD font as a licence allows (search in progress). |
+| Hebrew wording | Formal register, always gender-neutral forms; the infinitive "לטוס" for Fly. Bases as "כנף N" (Hebrew Wikipedia's wing numbers): Ramon כנף 25, Hatzerim כנף 6, Nevatim כנף 28, Ramat David כנף 1. Attributions קרדיט; Install התקנה; Preferences הגדרות; Pilot log יומן טיסות. |
+| look | Less futuristic: friendly but military. Colours from the IAF: the jets' schemes, the uniforms and the flag. Backgrounds never pure black. The language is a Settings option, never a menu toggle. Hebrew screens are mirrored for every control kind: dropdown, toggle, slider, list. |
+| debrief | Reads like a real debrief: "Plane flown", "From", "Time", "Mission", "Result", then the numbers, then remarks. |
+| voices | English only for now; the Hebrew voice is rethought later because Piper's only Hebrew voice (SASPEECH) is non-commercial. Betty sounds like the real one: intense and clipped. The TTS flows between words: whole phrases are rendered in one pass, not concatenated particles. |
+| parking spots | A7 approved. |
+| review pages | Pictures on the review pages enlarge on click. |
 
 ## MVP: what "done" means
 `./iaf2026` (repo root) starts from the shared `assets/` root, reads nothing under `assets/install/` and no
