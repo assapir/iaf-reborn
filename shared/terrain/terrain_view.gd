@@ -140,7 +140,10 @@ const BLACKBOX_COLUMNS := [
 	"ap_stage",
 	"fps"
 ]
+## Version 2 of the recorder (IAF 2026, Settings.blackbox_version) adds these columns: the RPM and the avionics.
+const BLACKBOX_V2 := ["rpm", "avionics"]
 var _log: FileAccess
+var _log_version := 1  # Settings.blackbox_version(), read when the log opens
 var _log_next := 0.0
 var _log_t := 0.0
 var _log_air := false
@@ -258,6 +261,9 @@ var player_flight_number := 0
 var sounds: Node
 ## The radio (shared/audio/radio.gd, docs/radio.md).
 var radio: Node
+## The project's own part of the flight (Settings.flight_addon: IAF 2026's training run, its radio menu); null in the
+## original game.
+var addon: Node
 var effects: Node3D
 var player_damage: RefCounted
 ## The cloud layer (shared/terrain/cloud_layer.gd); null with Graphics TEXTURED SKY off.
@@ -363,6 +369,10 @@ func _ready() -> void:
 	radio = preload("res://shared/audio/radio.gd").new()
 	radio.host = self
 	add_child(radio)
+	# The project's own part of the flight (IAF 2026's training run and radio menu); none in the original game.
+	addon = Settings.flight_addon(self)
+	if addon != null:
+		add_child(addon)
 	if not await _next_frame():
 		return
 	# OBJECT DETAIL (docs/front-end.md §12.4): the level the model loader and the LOD switch use.
@@ -2160,7 +2170,7 @@ func screenshot() -> String:
 	if img == null or img.is_empty():
 		return ""
 	DirAccess.make_dir_recursive_absolute(dir)
-	var stem := "IafJets-%s" % Time.get_datetime_string_from_system().replace("T", "_").replace(":", "-")
+	var stem := "IafJets-%s" % Settings.file_stamp()
 	var path := dir.path_join(stem + ".png")
 	var n := 1
 	while FileAccess.file_exists(path):
@@ -2183,13 +2193,9 @@ func _record(st: Dictionary, delta: float) -> void:
 			old.sort()  # the names sort by time
 			for f in old.slice(0, maxi(0, old.size() - Settings.BLACKBOX_KEEP + 1)):
 				DirAccess.remove_absolute(Settings.BLACKBOX_DIR.path_join(f))
-			path = Settings.BLACKBOX_DIR.path_join(
-				(
-					"flight-%s-m%d.jsonl"
-					% [Time.get_datetime_string_from_system().replace("T", "_").replace(":", "-"), mission_id]
-				)
-			)
+			path = Settings.BLACKBOX_DIR.path_join("flight-%s-m%d.jsonl" % [Settings.file_stamp(), mission_id])
 		_log = FileAccess.open(path, FileAccess.WRITE)
+		_log_version = Settings.blackbox_version()
 		if _log == null:
 			return
 		if blackbox_path == "":
@@ -2201,25 +2207,24 @@ func _record(st: Dictionary, delta: float) -> void:
 			settings[section] = {}
 			for k in cfg.get_section_keys(section):
 				settings[section][k] = cfg.get_value(section, k)
-		_log.store_line(
-			JSON.stringify(
-				{
-					"blackbox": 1,
-					"date": Time.get_datetime_string_from_system(),
-					"mission": mission_id,
-					"flight": Settings.player_flight,
-					"type": int(player.get("type", -1)),
-					"jet": player.get("fm_section", ""),
-					"pilot": Settings.pilot_callsign,
-					"loadouts": Settings.arm_loadouts,
-					"route": route.map(func(w): return {"name": w.name, "x": w.world.x, "y": w.world.y}),
-					"threats": _log_threats(),
-					"origin": [terrain.world_origin.x, terrain.world_origin.y],
-					"settings": settings,
-					"columns": BLACKBOX_COLUMNS
-				}
-			)
-		)
+		var head := {
+			"blackbox": _log_version,
+			"date": Time.get_datetime_string_from_system(),
+			"mission": mission_id,
+			"flight": Settings.player_flight,
+			"type": int(player.get("type", -1)),
+			"jet": player.get("fm_section", ""),
+			"pilot": Settings.pilot_callsign,
+			"loadouts": Settings.arm_loadouts,
+			"route": route.map(func(w): return {"name": w.name, "x": w.world.x, "y": w.world.y}),
+			"threats": _log_threats(),
+			"origin": [terrain.world_origin.x, terrain.world_origin.y],
+			"settings": settings,
+			"columns": BLACKBOX_COLUMNS + (BLACKBOX_V2 if _log_version >= 2 else [])
+		}
+		if _log_version >= 2:
+			head["name"] = String(Settings.airframe(int(player.get("type", -1))).get("name", ""))  # e.g. "F-16I Sufa"
+		_log.store_line(JSON.stringify(head))
 	_log_st = st
 	var air := not bool(st.on_ground)
 	if air != _log_air:
@@ -2245,34 +2250,41 @@ func _record(st: Dictionary, delta: float) -> void:
 	var ground = terrain.height_at(rig.position)
 	_log.store_line(
 		JSON.stringify(
-			[
-				_r(_log_t, 0.01),
-				_r(rig.position.x, 0.1),
-				_r(rig.position.z, 0.1),
-				_r(rig.position.y, 0.1),
-				_r(rig.position.y - ground, 0.1) if ground != null else null,
-				_r(float(st.get("vs_fpm", 0.0)) * 0.3048 / 60.0, 0.01),
-				_r(st.speed_kt, 0.1),
-				_r(st.get("mach", 0.0), 0.01),
-				_r(st.get("aoa", 0.0), 0.1),
-				_r(st.get("g", 1.0), 0.01),
-				_r(st.heading, 0.1),
-				_r(st.pitch, 0.1),
-				_r(st.roll, 0.1),
-				st.on_ground,
-				st.get("engine_on", true),
-				_r(throttle, 0.01),
-				brakes,
-				gear_down,
-				_r(flaps, 0.01),
-				_r(stick.x, 0.01),
-				_r(stick.y, 0.01),
-				_r(rudder, 0.01),
-				_r(st.get("internal_fuel_kg", 0.0), 1.0),
-				_log_ap,
-				String(flight.ap_stage()),
-				Engine.get_frames_per_second()
-			]
+			(
+				[
+					_r(_log_t, 0.01),
+					_r(rig.position.x, 0.1),
+					_r(rig.position.z, 0.1),
+					_r(rig.position.y, 0.1),
+					_r(rig.position.y - ground, 0.1) if ground != null else null,
+					_r(float(st.get("vs_fpm", 0.0)) * 0.3048 / 60.0, 0.01),
+					_r(st.speed_kt, 0.1),
+					_r(st.get("mach", 0.0), 0.01),
+					_r(st.get("aoa", 0.0), 0.1),
+					_r(st.get("g", 1.0), 0.01),
+					_r(st.heading, 0.1),
+					_r(st.pitch, 0.1),
+					_r(st.roll, 0.1),
+					st.on_ground,
+					st.get("engine_on", true),
+					_r(throttle, 0.01),
+					brakes,
+					gear_down,
+					_r(flaps, 0.01),
+					_r(stick.x, 0.01),
+					_r(stick.y, 0.01),
+					_r(rudder, 0.01),
+					_r(st.get("internal_fuel_kg", 0.0), 1.0),
+					_log_ap,
+					String(flight.ap_stage()),
+					Engine.get_frames_per_second()
+				]
+				+ (
+					[_r(float(st.get("rpm", 0.0)) * 100.0, 0.1), bool(st.get("avionics", true))]
+					if _log_version >= 2
+					else []
+				)
+			)
 		)
 	)
 	_log.flush()
@@ -2356,10 +2368,12 @@ func blackbox_event(e: Dictionary) -> void:
 	_log_event(_log_st, e)
 
 
-## Any throttle command starts the engine (FUN_0059f7d0 sets S+0x1d0), even at idle.
+## Any throttle command starts the engine (FUN_0059f7d0 sets S+0x1d0), even at idle; not in IAF 2026, whose start is
+## its own command (Settings.throttle_starts_engine, iaf-2026/docs/training.md §7).
 func _throttle_event() -> void:
 	if flight != null:
-		flight.set_engine_on(true)
+		if Settings.throttle_starts_engine():
+			flight.set_engine_on(true)
 		# The event reaches the flight model at once (several keys in one frame add up, §15.8).
 		flight.set_controls(stick, rudder, throttle, flaps, gear_down, brakes)
 
@@ -2427,6 +2441,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		var rel: int = keys.find_key(keys.key_of_event(event), Settings.key_bindings)
 		if rel >= 0:
 			_release_command(keys.records[rel].release)
+	elif event is InputEventKey and event.pressed and addon != null and addon.key(event):
+		return  # the project's flight add-on took it (IAF 2026's radio menu, Settings.flight_addon)
 	elif event is InputEventKey and event.pressed:
 		if event.echo:
 			# Held PgUp / PgDn keep sliding the panel (our keys); other repeats do nothing.
@@ -2621,6 +2637,11 @@ func _command(cmd: Array) -> bool:
 			cockpit.hud_colour_index = (cockpit.hud_colour_index + 1) % 11
 		134:
 			_quit_key()
+		200:
+			# IAF 2026's "start engine" (its own keys.json; no original record sends it): the 6-DoF's start sequence
+			# (iaf-2026/docs/training.md §7). The original model ignores it.
+			if flight != null:
+				flight.start_engine()
 		_:
 			return false
 	return true
@@ -3513,6 +3534,7 @@ func _process(delta: float) -> void:
 		for k in ins:
 			cockpit.state[k] = ins[k]
 		cockpit.state["better"] = flight.better_instruments(player_damage.flags if player_damage != null else [])
+		cockpit.power = int(st.get("power", 2))  # the 6-DoF's ground start (IAF 2026); always 2 in the original game
 		_record(st, delta)
 		if not frozen and not waiting_for_ground:
 			_sim_time += delta

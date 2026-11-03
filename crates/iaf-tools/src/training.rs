@@ -400,6 +400,17 @@ pub fn score(flight: &Flight, mission: &Value, airbases: &[Value]) -> Result<Deb
     Ok(d)
 }
 
+/// Scores the recording at `flight` against the readable mission file `mission` with the airbase files in `airbases`
+/// (the CLI `iaf-training score` and the game's `IafTraining`).
+pub fn score_files(flight: &std::path::Path, mission: &std::path::Path, airbases: &std::path::Path) -> Result<Debrief> {
+    ensure!(airbases.is_dir(), "no airbases folder {} (give it as the third argument)", airbases.display());
+    let read = |p: &std::path::Path| std::fs::read_to_string(p).with_context(|| p.display().to_string());
+    let f = parse_flight(&read(flight)?).with_context(|| flight.display().to_string())?;
+    let m: Value = serde_json::from_str(&read(mission)?).with_context(|| mission.display().to_string())?;
+    let bases: Vec<_> = sim::read_dir(airbases)?.into_iter().map(|f| f.v).collect();
+    score(&f, &m, &bases)
+}
+
 /// Throttle movements: the runs of samples in which the lever moves.
 fn throttle_moves(s: &[Sample]) -> f64 {
     let mut moving = false;

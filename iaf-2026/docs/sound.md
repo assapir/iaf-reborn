@@ -134,13 +134,14 @@ Saying each warning twice is inferred. Betty is level with the original's Betty 
 wording. The templates are the ones `radio.gd` calls (`ACFT_TAXI_TO_RUNWAY`, `ACFT_CLEAR_TO_LINEUP` / `_NW`,
 `ACFT_HOLD_POS`, `ACFT_CLEAR_TO_TAKEOFF`, `ACFT_PROCEED_TO_RUNWAY`, `ACFT_CLEAR_TO_LAND` / `_NW`,
 `ACFT_GO_AROUND_RUNWAY`, `ACFT_TAXI_TO_PARK`, `ACFT_GEARS_NOT_OPEN`, `ACFT_ROGER`) plus `ACFT_CLEAR_TO_START` for
-item E3's start-up request. Example: `ACFT_TAXI_TO_RUNWAY` = `%S1 , %S2 , TAXI_RWY %D1` → "Alpha, good morning, taxi
+the radio menu's start-up request (item E3b, [training.md](training.md) §8: the menu's three requests use
+`ACFT_CLEAR_TO_START`, `ACFT_TAXI_TO_RUNWAY`, `ACFT_CLEAR_TO_LINEUP` / `_NW`, `ACFT_HOLD_POS`, `ACFT_CLEAR_TO_TAKEOFF`). Example: `ACFT_TAXI_TO_RUNWAY` = `%S1 , %S2 , TAXI_RWY %D1` → "Alpha, good morning, taxi
 to runway 25 right". The particles cover the callsigns Alpha–Delta, the greetings, the winds 10 / 15 / 20 kt, every
 runway number 1–36 (spoken digit by digit, "two five") and the letters `RWY_L` / `RWY_R` / `RWY_C`.
 
 ## 4. Keys
-`data/keys.json` holds the 117 commands of docs/controls.md §3 with our own English and Hebrew labels, the default
-key as text ("Ctrl + Q"), the joystick button, the press / release commands and `shown`. `iaf-sim own` compiles it to
+`data/keys.json` holds 118 commands: the 117 of docs/controls.md §3 and our own Start engine (Ctrl+E, command 200:
+[training.md](training.md) §7), each with our own English and Hebrew labels, the default key as text ("Ctrl + Q"), the joystick button, the press / release commands and `shown`. `iaf-sim own` compiles it to
 the shape of `iaf-convert keys`' output (records with `dik` / `modifiers` / `label` / `label_he`, `key_names`,
 `modifiers`, `button_format`). It refuses:
 - a key name outside our scancode table, which holds exactly the keys `key_table.gd` can press (a test reads the
@@ -182,14 +183,17 @@ The setup wizard (item A3) and the credits roll live outside this branch's folde
 - The Hebrew voice (§5).
 - The AWACS, wingman-command, waypoint and flight-report phrases (`radio.gd`'s other templates have no particles yet,
   so they are silent).
-- The squelch at run time: a tower phrase is a chain of particles without squelch; item E3's radio menu plays
-  `kch2.wav` around it or adds the clicks.
+- The squelch at run time: a tower phrase is a chain of particles without squelch; the radio menu (item E3b,
+  [training.md](training.md) §8) plays the phrase as it is.
+- The pilot's requests (start-up, taxi, take-off) are printed only: no pilot phrase for them yet.
+- The engine start (training.md §7) plays the engine clip pitched by the RPM from the crank on; the JFS's / IPP's own
+  whine and the light-off have no clip.
 - One engine sound set for all three jets (one clip per code in the shared table).
 
 ## 8. Checks
 - `cargo test -p iaf-tools --lib sim::`: every row's clip and every particle's clip exists and is a 22050 Hz 16-bit
   mono WAV; every code the shared code plays has a row and every file it opens by name exists; the templates `radio.gd`
-  calls exist and name only particles; a stale file is removed; the key table has 117 records, labels where shown, no
+  calls exist and name only particles; a stale file is removed; the key table has 118 records, labels where shown, no
   key bound twice, and only keys the reader can press.
 - Godot's `AudioStreamWAV.load_from_file` loaded every clip of the compiled tables (2026-11-02).
 

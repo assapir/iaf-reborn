@@ -372,6 +372,10 @@ a time (kept quirk).
 - Airborne / landed: the AI autopilot's TakeoffCL / StopPlaneCL flags (`ap_airborne`, `ap_landed`) in
   `ai_flights.gd`; the player's autopilot landing in `controls/autopilot.gd`. Crashed / kill: posted by
   `mission_runtime.gd` `_set_damage` (`4a9e70`).
+- IAF 2026 only (the original game is unchanged): the towers are every section of the sim's own iaf.ibx
+  (`Settings.tower_bases`; empty here, so the ten names above with the first four talking); its radio menu
+  (`radio.request`, `menu`, `runway`) answers start-up / taxi / take-off requests and keeps the tower quiet on the
+  ground otherwise (iaf-2026/docs/training.md §8).
 
 ## UNCERTAIN
 - The phrase channel queues, because the parts of one phrase must follow each other. Whether a new phrase waits for

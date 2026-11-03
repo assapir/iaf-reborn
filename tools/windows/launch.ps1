@@ -105,7 +105,13 @@ try {
 	}
 
 	$godotArgs = @('--path', $project)
-	if ($mode -eq 'sim' -and -not (Test-Path 'iaf-2026\main.tscn')) {
+	$noFrontEnd = $mode -eq 'sim' -and -not (Test-Path 'iaf-2026\main.tscn')
+	if ($noFrontEnd -and $gameArgs -contains '--mission') {
+		# One mission without the front end (iaf-2026/flight/fly.gd), until item E2.
+		& $godot @godotArgs 'res://flight/fly.tscn' '--' @gameArgs
+		exit $LASTEXITCODE
+	}
+	if ($noFrontEnd) {
 		Write-Host "IAF 2026's front end comes with item E2; the M0 probe meanwhile:"
 		$env:IAF_DEFAULT_SETTINGS = '1'
 		Native { & $console --headless --audio-driver Dummy --path iaf-2026 -s ../iaf-2026/tests/test_m0_boot.gd --log-file ([IO.Path]::GetTempFileName()) }

@@ -1344,7 +1344,7 @@ mod tests {
 
     /// `iaf-sim own`: every sound row's clip exists and parses as the game's format, every code the shared flight
     /// code plays has a row, every file it opens by name is there, the radio's templates name only particles with a
-    /// clip, a stale clip is removed, and the key table compiles to the 117 records `key_table.gd` reads.
+    /// clip, a stale clip is removed, and the key table compiles to the 118 records `key_table.gd` reads (the 117 of docs/controls.md and Start engine).
     #[test]
     fn own_sounds_and_keys_compile() {
         let root = TempRoot(std::env::temp_dir().join(format!("iaf-sim-own-{}", std::process::id())));
@@ -1444,7 +1444,7 @@ mod tests {
         }
         let keys: Value = serde_json::from_str(&std::fs::read_to_string(root.0.join(KEYS_FILE)).unwrap()).unwrap();
         let recs = keys["records"].as_array().unwrap();
-        assert_eq!(recs.len(), 117);
+        assert_eq!(recs.len(), 118);
         for r in recs {
             let labelled = r["label"].as_str().is_some_and(|l| !l.is_empty());
             assert!(labelled || r["shown"] == false, "{r}");

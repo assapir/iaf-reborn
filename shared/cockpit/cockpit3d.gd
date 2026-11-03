@@ -56,6 +56,8 @@ var esis: Control
 var _sun: DirectionalLight3D  # _lighting
 var _lit_mats := []
 var _lit := Color(-1, -1, -1)  # the fill colour set
+var _screen_mats := []  # every screen's material (_screen_viewport)
+var _power_shown := 2  # the cockpit.power the screens show (_lighting)
 var _split := -1.0  # the scene's first shadow split (_sun_split)
 
 
@@ -312,8 +314,18 @@ func _lighting() -> void:
 	_sun_split()
 	var c := Color.BLACK
 	_backlight_on(cockpit.night)
+	# Unpowered (cockpit.power below 2: IAF 2026's cold jet) every screen is dark; written when the power changes (the
+	# MFDs below, as every frame, with their night level).
+	var on: float = 1.0 if cockpit.power == 2 else 0.0
+	if cockpit.power != _power_shown:
+		_power_shown = cockpit.power
+		for m: StandardMaterial3D in _screen_mats:
+			if not _screens.any(func(e): return e[2].material_override == m):
+				m.emission_energy_multiplier = on
 	for e in _screens:  # the MFDs turned down at night (MFD_NIGHT), their map fill darker (MAP_NIGHT)
-		(e[2].material_override as StandardMaterial3D).emission_energy_multiplier = MFD_NIGHT if cockpit.night else 1.0
+		(e[2].material_override as StandardMaterial3D).emission_energy_multiplier = (
+			(MFD_NIGHT if cockpit.night else 1.0) * on
+		)
 		e[0].map_dim = Mfd.MAP_NIGHT if cockpit.night else 0.0
 	if cockpit.night:
 		c = FLOOD * FLOOD_ENERGY
@@ -408,6 +420,7 @@ func _screen_viewport(screen: MeshInstance3D, px: Vector2i) -> SubViewport:
 	mat.emission_texture = vp.get_texture()
 	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
 	screen.material_override = mat
+	_screen_mats.append(mat)
 	return vp
 
 
@@ -715,7 +728,7 @@ func _attach_display(screen: MeshInstance3D, kind: int, px: Vector2i) -> void:
 
 func _update_instruments() -> void:
 	for key in _lamps:
-		var on := _lamp_on(key)
+		var on: bool = cockpit.power >= 1 and _lamp_on(key)
 		lamps_lit[key] = on
 		for l in _lamps[key]:
 			if l[1]:

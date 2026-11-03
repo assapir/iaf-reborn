@@ -6,6 +6,7 @@ use super::aero::{Flow, Surfaces, add_drag, coefficients, compressibility, force
 use super::body::{Airframe, Body};
 use super::engine::{Engine, EngineSpec, FIG66_IDLE_MAX, FIG66_IDLE_MIL, TSFC_F100};
 use super::gear::{Anchors, Gear, TYRES, Wheels};
+use super::start::{IPP, JFS, StartSpec};
 use crate::Vec3;
 use crate::atmosphere::air;
 use crate::units::{FT, G, LB};
@@ -30,6 +31,8 @@ pub struct Jet {
     pub wave_drag: (f64, f64),
     /// Maximum and minimum load factor, g (the REAL rows: the F-16's +9 / −3, the F-15E's +8.1 / −2).
     pub g_limits: (f64, f64),
+    /// The ground start's sequence ([`super::start`]).
+    pub start: StartSpec,
 }
 
 /// TP-1538's F-16 (Table I) scaled to `weight_lb`, span `span_ft`, area `area_ft2`: the inertia × the mass ratio
@@ -90,6 +93,7 @@ pub fn tp1538() -> Jet {
         // The Barak's fit (inferred: the same airframe).
         wave_drag: (0.0509, 0.195),
         g_limits: (9.0, -3.0),
+        start: JFS,
     }
 }
 
@@ -108,6 +112,7 @@ pub fn all() -> [Jet; 4] {
             // Fit: Mach 1.2 at sea level, 2.0 at 40,000 ft (the F-16's public figures, tests/validation.rs REFS).
             wave_drag: (0.0509, 0.195),
             g_limits: (9.0, -3.0),
+            start: JFS,
         },
         // F-16I Sufa: 20,500 lb + 8,850 lb (the F-16I REAL row).
         Jet {
@@ -121,6 +126,7 @@ pub fn all() -> [Jet; 4] {
             // Fit: Mach 1.2 at sea level, 2.0 at 40,000 ft (the F-16's; Block 50/52 1.89 sustained to 2.05).
             wave_drag: (0.0513, 0.212),
             g_limits: (9.0, -3.0),
+            start: JFS,
         },
         // F-35I Adir: 29,300 lb + 18,250 lb, wing 460 ft² (the F-35I REAL row), span 35 ft (Lockheed Martin);
         // wheelbase 19.75 ft, track 14.24 ft (Mason, Virginia Tech, F-35A data).
@@ -136,6 +142,7 @@ pub fn all() -> [Jet; 4] {
             // placard (inferred), not fitted: Mach 1.14 there.
             wave_drag: (0.0682, 0.195),
             g_limits: (9.0, -3.0),
+            start: IPP,
         },
         // F-15I Ra'am: 37,000 lb + 22,665 lb, wing 608 ft², span 42.8 ft (the F-15I REAL row, TO 1F-15E-1, USAF);
         // wheelbase 17.78 ft (the F-15 row, SAC), track 9 ft (TO 1F-15E-1, docs/f15i.md).
@@ -150,6 +157,7 @@ pub fn all() -> [Jet; 4] {
             // Fit: about Mach 2.0 at 40,000 ft with CFTs (F-15E, secondary), with the Barak's k (no sea-level figure).
             wave_drag: (0.0509, 0.195),
             g_limits: (8.1, -2.0),
+            start: JFS,
         },
     ]
 }

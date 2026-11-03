@@ -35,7 +35,8 @@ const MSG_TEMPLATES := {
 	6: "ACFT_CLEAR_TO_LAND",
 	8: "ACFT_GO_AROUND_RUNWAY",
 	9: "ACFT_TAXI_TO_PARK",
-	10: "ACFT_GEARS_NOT_OPEN"
+	10: "ACFT_GEARS_NOT_OPEN",
+	12: "ACFT_CLEAR_TO_START",  # ours: IAF 2026's start-up request (request)
 }
 const CLICK := 0xb  # 551c20 case 0xb: KCH2.WAV, no text
 const NO_MSG := 0xb
@@ -76,6 +77,15 @@ var now := 0.0
 var templates := {}  # NAME -> PackedStringArray of tokens
 var particles := {}  # KEY -> [wav, text]
 var bases: Array = []  # [{tower: Vector3, lineup: Vector3, rwy: int, hangars: [Vector2]}; World scale Real: + hdg]
+## How many of the first bases have a talking tower: the original's four (TOWER_BASES), or every base of the project's
+## own iaf.ibx (Settings.tower_bases).
+var tower_count := TOWER_BASES
+## Ours, IAF 2026's radio menu (iaf-2026/docs/training.md §8): the tower answers the player's requests (request) and
+## does not talk on its own on the ground; `runway` is the designator the tower of base `runway_base` (its iaf.ibx
+## section, the mission's base) gives ("25R"; "" = from RunwayNumber).
+var menu := false
+var runway := ""
+var runway_base := ""
 ## For tests: every phrase said, {template, text, wavs}; every waypoint report posted, [unit name, waypoint].
 var said: Array = []
 var posted: Array = []
@@ -310,7 +320,12 @@ func callsign(ent: Dictionary) -> String:
 
 func _load_bases(path: String) -> void:
 	var sections := Settings.load_ibx(path)
-	for name in BASES:
+	var names: Array = Settings.tower_bases(sections)
+	if names.is_empty():
+		names = BASES
+	else:
+		tower_count = names.size()
+	for name in names:
 		var s: Dictionary = sections.get(name, {})
 		var f := func(k: String) -> float: return float(s.get(k, "0"))
 		var hangars := []
@@ -375,15 +390,19 @@ func _tick() -> void:
 
 ## FUN_0054fbf0: the first base whose tower is within 18.54 km (2-D); none: timer 4 s, state 2.
 func _find_base() -> void:
-	var p := _pos()
-	base = -1
+	base = base_at(_pos())
+	if base < 0:
+		_timer(4.0)
+		state = 2
+
+
+## The first base whose tower is within TOWER_RANGE (2-D) of `p`, −1 none.
+func base_at(p: Vector3) -> int:
 	for i in bases.size():
 		var t: Vector3 = bases[i].tower
 		if Vector2(p.x - t.x, p.y - t.y).length() < TOWER_RANGE:
-			base = i
-			return
-	_timer(4.0)
-	state = 2
+			return i
+	return -1
 
 
 ## The runway heading wrapped to (−180, 180] (550850).
@@ -408,8 +427,8 @@ static func _in_zone(b: Dictionary, zone: Array, p: Vector3, ro: float) -> bool:
 ## FUN_005504e0 / FUN_00550240: the player inside the zone and lined up within 45° of the runway (the difference
 ## of the two headings in (−180, 180], not wrapped); runway_clear = no other stopped aircraft in it (not the
 ## player's leader or wingman). The runway check computes runway_clear only when aligned.
-func _zone_check(zone: Array, clear_always: bool) -> bool:
-	var b: Dictionary = bases[base]
+func _zone_check(zone: Array, clear_always: bool, at := -1) -> bool:
+	var b: Dictionary = bases[at if at >= 0 else base]
 	var aligned := absi(int(_rwy_heading(b) - wrapf(float(_st().heading), -180.0, 180.0))) <= ALIGN_DEG
 	if not (aligned or clear_always):
 		return false
@@ -450,7 +469,7 @@ func _ground() -> void:
 		return
 	var b: Dictionary = bases[base]
 	var p := _pos()
-	if landed:
+	if landed or menu:
 		return
 	var h := _hangar_near(b, p)
 	if h >= 0 and Vector2(p.x, p.y).distance_to(b.hangars[h]) < AT_HANGAR:
@@ -514,14 +533,43 @@ func _approach() -> void:
 
 ## Ctrl+T (command 107, FUN_0054fb40).
 func contact_tower() -> void:
-	if base >= 0 and base < TOWER_BASES and state == 2:
+	if base >= 0 and base < tower_count and state == 2:
 		_timer(1.0)
 		_say(5)
 		state = 3
-	elif base == -1 or base >= TOWER_BASES:
+	elif base == -1 or base >= tower_count:
 		_say(CLICK)
 		_timer(4.0)
 		state = 2
+
+
+## Ours, IAF 2026's radio menu (iaf-2026/docs/training.md §8): the player asks the tower of the base within
+## TOWER_RANGE for "startup", "taxi" or "takeoff"; the tower state machine (base, state, last) is left as it is.
+## Start-up is always cleared; taxi once the engine runs (else hold position); take-off by _ground's rule: lined up in
+## the lineup zone "cleared for take-off", between LINEUP_FAR and LINEUP_NEAR of the lineup point "line up" with the
+## runway clear (else hold position), elsewhere hold position. Near no talking tower: the click. Returns the answer
+## (expand's {template, text, wavs}; template "KCH2": the click).
+func request(kind: String) -> Dictionary:
+	var at := base_at(_pos())
+	if at < 0 or at >= tower_count:
+		var click := {"template": "KCH2", "text": "", "wavs": ["KCH2.WAV"]}
+		said.append(click)
+		play_wav("KCH2.WAV")
+		return click
+	var code := 3
+	match kind:
+		"startup":
+			code = 12
+		"taxi":
+			code = 0 if bool(_st().get("engine_on", false)) else 3
+		"takeoff":
+			var b: Dictionary = bases[at]
+			var d := Vector2(_pos().x, _pos().y).distance_to(Vector2(b.lineup.x, b.lineup.y))
+			if _zone_check(LINEUP_ZONE, true, at):
+				code = 4
+			elif d < LINEUP_NEAR and d > LINEUP_FAR and runway_clear:
+				code = 1
+	return _speak(at, code)
 
 
 ## FUN_00551c20: a tower message on the current base, then the pilot's "Roger"; sets the last message.
@@ -531,12 +579,20 @@ func _say(code: int) -> void:
 		said.append({"template": "KCH2", "text": "", "wavs": ["KCH2.WAV"]})
 		play_wav("KCH2.WAV")
 		return
-	var b: Dictionary = bases[base]
+	_speak(base, code)
+
+
+## Tower message `code` of base `at` and the pilot's "Roger" (551c20's speech); returns the message (say's).
+func _speak(at: int, code: int) -> Dictionary:
+	var b: Dictionary = bases[at]
 	var cs := _tower_callsign()
 	var rwy: Variant = int(b.rwy) / 10
 	if b.letter != "":
 		rwy = "%d%s" % [rwy, b.letter]
+	if runway != "" and b.name == runway_base:
+		rwy = runway
 	var t: String = MSG_TEMPLATES[code]
+	var p := {}
 	match code:
 		0:
 			var hour := int(float(_misc("0x460", 0.0)) + now) / 3600
@@ -545,17 +601,18 @@ func _say(code: int) -> void:
 				greet = "AFTERNOON"
 			elif hour >= 17 and hour < 22:
 				greet = "EVENING"
-			say(t, [cs, greet], [rwy])
+			p = say(t, [cs, greet], [rwy])
 		1, 6:
 			if wind != 0:
-				say(t, [cs, "WI_KNOTS%02d" % wind], [rwy])
+				p = say(t, [cs, "WI_KNOTS%02d" % wind], [rwy])
 			else:
-				say(t + "_NW", [cs], [rwy])
+				p = say(t + "_NW", [cs], [rwy])
 		5:
-			say(t, [cs], [rwy])
+			p = say(t, [cs], [rwy])
 		_:
-			say(t, [cs])
+			p = say(t, [cs])
 	say("ACFT_ROGER", [], [], false)
+	return p
 
 
 # --- wingman commands (§3) ----------------------------------------------------------------------

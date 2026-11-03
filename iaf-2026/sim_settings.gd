@@ -95,6 +95,26 @@ func airframe_def(id: String) -> Dictionary:
 	return _sim_airframes[id]
 
 
+## The sim's part of the flight scene: the radio menu and the training run (flight/sim_flight.gd).
+func flight_addon(host: Node) -> Node:
+	return load("res://flight/sim_flight.gd").create(host)
+
+
+## The recorder with the RPM and avionics columns (docs/blackbox.schema.json version 2).
+func blackbox_version() -> int:
+	return 2
+
+
+## The engine starts by the Start engine command only (iaf-2026/docs/training.md §7).
+func throttle_starts_engine() -> bool:
+	return false
+
+
+## Every base of the own iaf.ibx has a talking tower (iaf-2026/docs/airbases.md §9), in the file's order.
+func tower_bases(sections: Dictionary) -> Array:
+	return sections.keys().filter(func(k): return k != "")
+
+
 ## The sim's strings are its own: Hebrew needs no pack.
 func hebrew_available() -> bool:
 	return true

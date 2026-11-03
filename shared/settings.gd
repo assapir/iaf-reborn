@@ -824,6 +824,34 @@ func fm_section(_type: int) -> String:
 	return ""
 
 
+## Now as a file name's stamp: YYYY-MM-DD_HH-MM-SS, local (the recordings, the screenshots, IAF 2026's debriefs).
+func file_stamp() -> String:
+	return Time.get_datetime_string_from_system().replace("T", "_").replace(":", "-")
+
+
+## The project's own node in the flight scene (terrain_view.gd `addon`, its child): null in the original game. IAF
+## 2026's runs its training missions and its radio menu (iaf-2026/sim_settings.gd). `host` is the flight scene.
+func flight_addon(_host: Node) -> Node:
+	return null
+
+
+## The flight recorder's format (docs/blackbox.schema.json `blackbox`): 1 here; IAF 2026's 2 adds the RPM and avionics
+## columns (terrain_view.gd blackbox_columns).
+func blackbox_version() -> int:
+	return 1
+
+
+## Any throttle command starts the engine (the original's rule, FUN_0059f7d0); IAF 2026's start is its own command.
+func throttle_starts_engine() -> bool:
+	return true
+
+
+## The talking towers' iaf.ibx sections (radio.gd), from the file's `sections`: [] for the original game's ten bases
+## (radio.gd BASES, the first four talking). IAF 2026's: every base of its own iaf.ibx.
+func tower_bases(_sections: Dictionary) -> Array:
+	return []
+
+
 ## The theatre terrain.gd streams, under assets/: the original's map.ptt converted (`iaf-terrain theatre`). The
 ## environment variable IAF_THEATRE=<name> takes converted/terrain/<name> instead, e.g. IAF 2026's UTM theatre
 ## "israel" in the original game (iaf-2026/docs/terrain.md §6); the sim's own in its project (sim_settings.gd).

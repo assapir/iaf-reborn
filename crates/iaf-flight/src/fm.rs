@@ -138,6 +138,37 @@ impl Fm {
         }
     }
 
+    /// The "start engine" command (the 6-DoF's start sequence); the original model starts by any throttle command.
+    pub fn start_engine(&mut self) {
+        if let Fm::SixDof(s) = self {
+            s.start_engine();
+        }
+    }
+
+    /// The electrical power (0 none, 1 the battery, 2 the displays up): the original model's is always up.
+    pub fn power(&self) -> u8 {
+        match self {
+            Fm::Original(_) => 2,
+            Fm::SixDof(s) => s.power(),
+        }
+    }
+
+    /// The avionics up: always in the original model.
+    pub fn avionics(&self) -> bool {
+        match self {
+            Fm::Original(_) => true,
+            Fm::SixDof(s) => s.avionics(),
+        }
+    }
+
+    /// The start sequence's step: "" in the original model.
+    pub fn start_phase(&self) -> &'static str {
+        match self {
+            Fm::Original(_) => "",
+            Fm::SixDof(s) => s.start_phase(),
+        }
+    }
+
     pub fn set_fuel(&mut self, kg: f32) {
         match self {
             Fm::Original(a) => a.set_fuel(kg),

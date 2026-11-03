@@ -15,6 +15,7 @@ pub mod fcs;
 pub mod flight;
 pub mod gear;
 pub mod jets;
+pub mod start;
 pub mod tables;
 
 pub use aero::{Coeffs, Flow, Surfaces, coefficients};

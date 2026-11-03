@@ -151,6 +151,9 @@ var dir := ""
 ## Night (FUN_0052df40, applied once at load in the original): the panel and the HUD glass are darkened by the [PANEL]
 ## Night*Scale shifts, the lights bitmap by [LIGHTSON]'s (R >>= shift per channel of the 16-bit art: ×2^−shift here).
 var night := false
+## The electrical power (the flight model's `power`): 0 none, 1 the battery (the lamps), 2 the displays and the HUD up.
+## Always 2 in the original game; IAF 2026's cold jet starts at 0 (iaf-2026/docs/training.md §7).
+var power := 2
 
 
 func _night_mod(section: String) -> Color:
@@ -603,10 +606,11 @@ func _process(delta: float) -> void:
 	_lag_dt = delta
 	panel_shift = move_toward(panel_shift, panel_target, PANEL_SLIDE_SPEED * delta)
 	position = (view_shift if three_d() else head_pan() * ui_scale()) if view_mode == 0 else Vector2.ZERO
-	hud.visible = view_mode != 2
+	hud.visible = view_mode != 2 and power == 2
 	for m in mfds + [pcd, _pcd_sheen]:
 		if m != null:
-			m.visible = view_mode == 0 and (pcd == null or m not in mfds)  # the PCD's portal nodes keep the pages only
+			# The PCD's portal nodes keep the pages only; unpowered, the screens stay dark (their black ground).
+			m.visible = view_mode == 0 and (pcd == null or m not in mfds) and power == 2
 	_update_compasses()
 	_update_instruments()
 	_update_hud_mask()

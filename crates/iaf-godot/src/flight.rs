@@ -364,6 +364,15 @@ impl IafFlight {
         }
     }
 
+    /// IAF 2026's "start engine" command (its keys.json, command 200): the 6-DoF runs its jet's start sequence
+    /// (iaf-2026/docs/training.md §7); nothing on the original model.
+    #[func]
+    fn start_engine(&mut self) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.start_engine();
+        }
+    }
+
     // --- AI (docs/ai.md) ------------------------------------------------------------------------------
 
     /// An AI jet: the FM's AI "team" test (not on the player's side) and the Preferences AI level (0..2).
@@ -780,6 +789,13 @@ impl IafFlight {
         d.set("gear_down", c.gear_down);
         d.set("brakes", c.brakes);
         d.set("engine_on", ac.engine_on());
+        // The 6-DoF's ground start (iaf-2026/docs/training.md §7): power 0 none / 1 battery / 2 displays up, the
+        // avionics up, the sequence's step. Absent for the original model (readers default to 2, true).
+        if ac.original_ref().is_none() {
+            d.set("power", ac.power() as i64);
+            d.set("avionics", ac.avionics());
+            d.set("start_phase", ac.start_phase());
+        }
         d.set("vortex", ac.vortex());
         d
     }

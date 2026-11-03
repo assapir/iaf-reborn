@@ -3,6 +3,12 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **E3b, the training missions in the game (2026-11-03):** `./iaf2026 -- --mission 2011` (… 2032) flies a start-up or
+  take-off mission without the front end: parked cold, the start command (Ctrl+E) runs the jet's start sequence on
+  the 6-DoF, the screens and the HUD come alive at the real moments; the radio menu (Ctrl+T, 1–3) asks the base's
+  tower for start-up, taxi and take-off and the English TTS tower answers; at the end the flight is scored, the
+  debrief record written to `user://debriefs/` and the attempt to the pilot log ([training.md](training.md) §7–§10).
+  `iaf-2026/tests/test_mvp.gd` flies both missions for the Sufa, the Barak and the F-35I to a Pass.
 - **B2b, the airbases in the game (2026-11-03):** `iaf-sim airbases` compiles Ramon, Ramat David, Hatzerim and
   Nevatim into the theatre: `airbases.json` and paved masks (Detailed airbases), an own `iaf.ibx` and
   `terraintype.dat` ([airbases.md](airbases.md) §9); the missions start on the bases' parking spots; the M0 probe
@@ -42,7 +48,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 ## Open
 - **The 6-DoF's wave drag is a fit (C2):** fit to each jet's published top speeds, not a sourced table; open: a public
   F-16 drag rise, the high-speed g onset, the take-off roll, the flaps ([flight-model.md](flight-model.md) §9.6).
-- **No screen yet:** `./iaf2026` runs the M0 probe until the front end (item E2, its main scene `main.tscn`); the sim's
+- **E3b's open points** ([training.md](training.md) §6): the debrief page (E2), the Hebrew voice (the user), the
+  pilot's request voice and the starter's sound (sound.md §7); the 6-DoF's short take-off roll.
+- **No screen yet:** `./iaf2026` runs the M0 probe (or with `-- --mission <id>` one mission) until the front end (item E2, its main scene `main.tscn`); the sim's
   `Settings` still has the original's `front_end_scene()` / `front_end_overlay()` (E2 overrides them).
 - **No wizard yet:** `./iaf2026-setup` runs `iaf-sim all` from the command line until item A3.
 - **The probe's 3D-only cockpit check** (no 2D panel in flight) prints NEEDS DATA until E1.

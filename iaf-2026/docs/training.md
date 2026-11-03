@@ -5,8 +5,10 @@ engine frame = the game's world metres (X east, Y north, [../../docs/georef.md](
 declared runway begins ([airbases.md](airbases.md) §4); "inferred" = our own reasoning; "open" = no source found.
 
 The scoring core (item E3a, plan.md) reads a recorded flight and a training mission and says pass or fail, with the
-debrief's numbers. It is pure Rust and runs on recorded flights today; the in-game flow (the start command, the radio
-menu, the debrief page) is item E3b / E2.
+debrief's numbers. It is pure Rust. Since item E3b (2026-11-03) the game runs both training missions without the front
+end: the jet parked cold, one start command (§7), the radio menu and the tower (§8), scoring at the mission's end with
+the debrief record and the pilot log (§9), and a probe that flies both missions for each jet (§10). The debrief page
+is item E2.
 
 ```sh
 cargo run -p iaf-tools --bin iaf-training -- score <flight.jsonl> iaf-2026/data/missions/ramon_takeoff.json [airbases-dir] [--json debrief.json]
@@ -56,12 +58,14 @@ reference speed is a debrief number only; no rule fails on it.
 - The engine started (the recorder's `engine` column turns true), and
 - the engine at idle and the avionics up within `time_budget_s` of the flight's start.
 
-The recorder has no RPM or avionics column yet. Until it does:
-- **idle** = the engine start + 4 s: the model's ground start winds the RPM up from 0 at 15 %/s to the 60 % idle
-  ([../../docs/flight-model.md](../../docs/flight-model.md) §10.2). With an `rpm` column the scorer takes the first
-  sample at 60 % or more instead;
-- **avionics up** = idle (inferred: once the F-16's engine is self-sustaining, at about 52 % RPM, below idle, it
-  drives the main and standby generators[^f16net]). With an `avionics` column the scorer takes its first true sample.
+IAF 2026's recorder (version 2, §9) has an `rpm` and an `avionics` column, and the scorer reads them:
+- **idle** = the first sample with the engine running at 60 % RPM or more (the 6-DoF's idle, §7);
+- **avionics up** = the first sample whose `avionics` is true.
+
+A recording without those columns (version 1, the original game's recorder) is scored from the model instead: idle
+= the engine start + 4 s (the original model's ground start winds the RPM up from 0 at 15 %/s to the 60 % idle,
+[../../docs/flight-model.md](../../docs/flight-model.md) §10.2), avionics up = idle (inferred: once the F-16's engine
+is self-sustaining, at about 52 % RPM, it drives the main and standby generators[^f16net]); the debrief notes both.
 
 ### 3.2 Take-off: pass
 All of:
@@ -115,16 +119,98 @@ flights as JSONL. `cargo test -p iaf-tools --test training_cli`: the CLI from an
 airbases folder and a `--json` without a file. `sim::tests::training_rules_are_checked`: a training figure without a source and an unknown kind
 are refused, and every take-off mission's runway is an end of its base's airbase file.
 
-## 6. Open until E3b
-- The recorder's columns for RPM and avionics power, and `radio` events (the tower calls); the scorer reads them
-  once they exist.
-- Scoring at run time (an `iaf-godot` class over `training::score`) and the debrief page (E2).
+## 6. Open
+- The debrief page (E2) and the checklist card (after the MVP, plan.md "start-up").
 - The F-16I's, F-16D's and F-35I's own empty weights and take-off speeds by weight (open).
 - A start-up fault model (hot / hung start): none in the flight model.
 - The roll's start and rotation thresholds checked against a real flight of each mission by the user.
+- The 6-DoF's take-off roll is short (flight-model.md §9.6): the probe's Sufa lifts off after about 465 m at 180 kt.
+
+## 7. The start in the game
+The sim's jet starts parked cold: on its spot (airbases.md §9), engine off, no RPM, no electrical power, every screen,
+the HUD and the lamps dark (`cockpit.power` 0). The throttle starts nothing (`Settings.throttle_starts_engine`, false
+in the sim; in the original game any throttle command starts the engine at once, as before, on either flight model).
+One command, **Start engine** (Ctrl+E, record 117 of the sim's own `keys.json`, command 200, `IafFlight.start_engine`),
+runs the jet's start sequence
+(`crates/iaf-flight/src/sixdof/start.rs`), which the flight model steps every frame:
+
+| step | F-16I Sufa, F-16D Barak (JFS) | F-35I Adir (IPP) | source |
+|---|---|---|---|
+| the command | battery on: the lamps and engine gauges live (`power` 1) | the same | inferred |
+| starter | the JFS cranks the engine at once | the IPP runs 10 s, then cranks | F-35: three selections, battery, IPP, engine[^ayton]; the 10 s inferred |
+| crank | 0 → 20 % RPM in 15 s | the same | 20 %: the throttle to idle at 20 % RPM minimum[^chk]; the 15 s inferred |
+| light-off | 5 s after the fuel on | the same | inferred (open: no light-off time found in a primary source) |
+| to idle | 20 → 60 % in 15 s, then the engine runs (thrust, fuel flow) | the same | 60 %: the 6-DoF's idle (flight-model.md §9.7); the 15 s inferred |
+| main generator | at 52 % RPM: the engine self-sustaining, the JFS off | — | about 52 %[^f16net], the JFS cut at 50–54 %[^jfs50] |
+| displays and HUD up (`power` 2) | 3 s after the generator | 3 s after the IPP runs | the 3 s warm-up inferred |
+| avionics up (`avionics`) | with the displays | 90 s after the command | F-35: "after 90 seconds … ready"[^ayton] |
+| sum | idle and avionics at 35 s | displays 13 s, idle 45 s, avionics 90 s | |
+| engine stopped (`set_engine_on(false)`, the ejection) | no RPM; the power as it was; a new command starts from the beginning | the same | inferred |
+
+The F-15I's (no mission flies it yet) is the F-16's (inferred). The F-35I's engine steps are the F-16's: no public
+figure (inferred). The sound is the engine clip of E1b (`SFX_START_ENGINE`) pitched by the RPM from the crank on
+(`flight_sounds.gd`, unchanged); the starter's own whine has no clip (sound.md §7). The probe measures 37 s to idle
+for the F-16s and 47 s / 92 s for the F-35I (the recorder samples 10 times a second; the scene takes a few frames).
+
+## 8. The radio menu and the tower
+The **Call the tower** key (Ctrl+T) opens a numbered list over the view; 1–4 pick, any other key closes it:
+
+| # | English | Hebrew | the tower answers |
+|---|---|---|---|
+| 1 | Request start-up | בקשת התנעה | "Alpha, cleared to start" (`ACFT_CLEAR_TO_START`) |
+| 2 | Request taxi | בקשת הסעה | with the engine running: "Alpha, good morning, taxi to runway 25 right" (`ACFT_TAXI_TO_RUNWAY`); else "hold position" |
+| 3 | Request take-off | בקשת המראה | the original tower's rule on the ground (docs/radio.md §2 `ground()`): lined up in the lineup zone: "cleared for take-off"; 200–400 m from the lineup point with the runway clear: "line up runway 25 right, wind calm"; else "hold position" |
+| 4 | Contact tower (landing) | קריאה למגדל (נחיתה) | the original's Ctrl+T (docs/radio.md §2): "proceed to runway …" in the air |
+
+The pilot's call is printed ("Ramon tower, Alpha, request taxi"), the tower's answer printed and spoken by the English
+TTS tower of E1b (sound.md §3), then the pilot's "Roger". The Hebrew labels show in Hebrew (right to left, a system
+font with Hebrew letters until E2's own); the Hebrew voice waits for the user's licence decision (sound.md §5). The
+tower is the base within 18.54 km: every base of the own `iaf.ibx` talks (Ramon, Ramat David, Hatzerim, Nevatim;
+`Settings.tower_bases`); the mission's base's tower names the mission's runway (`"runway"`), the others their own. A request leaves the tower's
+state machine as it is. In the menu the tower no longer talks on
+its own on the ground (the original game's tower is unchanged). Each pick is a `radio` event in the recording (§9),
+which the debrief counts as `tower_calls`. The scorer has no rule on the calls (a take-off without them still passes).
+
+Taxi: the jet taxis on the base's taxiways to the lineup (the probe follows the own `iaf.ibx`'s taxi path). The
+take-off passes by §3.2.
+
+## 9. Scoring in the game, the debrief record and the pilot log
+`iaf-2026/flight/sim_flight.gd` (the sim's part of the flight scene, `Settings.flight_addon`) scores a mission whose
+compiled file has `sim.training`:
+- a start-up once the engine idles with the avionics up, a take-off once airborne with the gear up (then every 3 s
+  until it passes), either at a crash or 5 s past its time budget;
+- `IafTraining.score(recording, mission, airbases)` (crates/iaf-godot/src/training.rs) runs `training::score_files`
+  on the recording so far, the readable mission `iaf-2026/data/missions/<id>.json` and the airbase files;
+- the debrief record (§4, plus `flight`: the recording's path, `date`) goes to `user://debriefs/debrief-<date>-<id>.json`;
+- the attempt goes to the pilot log `user://pilots/<pilot id>.json` (the default pilot 14 until E2's pilot list) in the
+  original game's shape (`iaf-reborn/menu/pilots.gd`): `{"missions": [{"id": <menu id>, "attempts": [{"result": 1 | 0,
+  "mult": 1.0, "bonus": 0, "kills": [], "losses": [], "debrief": <file>, "date": …}]}]}`, newest mission first;
+- the result and its numbers show over the view (in the game's language) until the debrief page (E2).
+
+Scoring needs the recorder (Extras, on by default): with it off the flight is not scored (a warning in the log). Tests
+record beside the debrief, in a temporary folder. The recorder's version 2 (`Settings.blackbox_version`, [data-formats.md](data-formats.md) §13) adds `rpm`
+(%) and `avionics`.
+
+`tools/flight_timeline.py <recording> --debrief <debrief.json> [--html f.html]` shows the debrief with the flight's
+timeline (the radio calls, the lift-off) and the start's steps from the RPM column.
+
+## 10. The probe and a real run
+`iaf-2026/tests/test_mvp.gd` (item F's probe, started here) flies both missions for the Sufa (Ramon), the Barak
+(Ramat David) and the F-35I (Nevatim) headless with scripted inputs at 6× time: the start-up (cold, the throttle
+starts nothing, the start command, the columns, the debrief file, the pilot log) and the take-off (the three radio
+calls and their answers, a taxi along the base's taxi path to the lineup, the roll on the centreline, the rotation,
+gear up), each ending in Pass. `-- --jet f16i` / `-- --only startup` narrow it. Item F adds the front end, Hebrew, the
+temp-root run and the other platforms.
+
+`./iaf2026 -- --mission <id>` flies one mission without the front end (`iaf-2026/flight/fly.gd`): 2011 / 2012 Ramon
+start-up / take-off, 2021 / 2022 Ramat David, 2031 / 2032 Nevatim.
+`iaf-2026/tests/_training_shot.gd` takes the pictures in a real render (its header).
 
 [^w-f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", Specifications (F-16C Block 50 / 52): empty weight 18,900 lb (8,573 kg), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon
 [^w-f35]: Wikipedia, "Lockheed Martin F-35 Lightning II", Specifications (F-35A): empty weight 29,300 lb (13,290 kg), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II
 [^bms]: Falcon BMS forum, "Rotation speed" (the take-off speed 70 kt plus 3 kt per 1000 lb of gross weight; rotate at 170 kt with an air-to-air load, 180 kt heavy), https://forum.falcon-bms.com/post/314659
 [^wn]: WION, the F-35's minimum lift-off speed about 165 kt (weak), https://www.wionews.com/photos/how-does-the-f-35-fighter-jet-stand-out-in-takeoff-speed-and-design-here-s-its-minimum-lift-off-speed-1752767093279
+[^ayton]: Mark Ayton, "Blue Sky OPS", AIR International, 26 April 2012, quoted on F-16.net, "Engine start up procedure" (three switch selections: battery, IPP, engine; "After 90 seconds, if there are no problems, the aircraft declares itself ready for flight"), https://www.f-16.net/forum/viewtopic.php?p=317934
+[^chk]: F-16 checklist (sim community, after the T.O. checklist; weak): "THROTTLE – Advance to IDLE (20% RPM Min)", https://www.scribd.com/document/38303072/Checklist-Main
+[^jfs50]: F-16.net forum, "JFS and avionics question" (the flight manual: "As the engine accelerates through 50 % rpm, a sensor causes the JFS to shut down automatically"; about 50 % on a P&W and 54 % on a GE engine), https://www.f-16.net/forum/viewtopic.php?p=13518
 [^f16net]: F-16.net forum, "Main PWR on the F-16", Davis83, 7 December 2010 (the engine self-sustaining at about 52 % RPM, the JFS disengaged, the engine driving the hydraulic pumps and the main and standby generators), https://www.f-16.net/forum/viewtopic.php?p=186672

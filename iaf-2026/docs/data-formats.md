@@ -481,6 +481,32 @@ and the iaf.ibx reads back through the flight model's reader; terraintype.dat fl
 beside it land, and the sea as sea; the sea joined to the edge only. In the sim, the M0 probe flies each jet's
 start-up (iaf-2026/tests/test_m0_boot.gd).
 
+## 13. What a training flight writes (item E3b)
+The game writes these at run time, under its `user://` folder (Linux: `~/.local/share/godot/app_userdata/IAF 2026/`;
+tests: a temporary folder). [training.md](training.md) §9 tells when.
+
+**The recording**, `user://flights/flight-<date>-m<menu id>.jsonl`:
+the flight recorder's JSON Lines ([../../docs/blackbox.schema.json](../../docs/blackbox.schema.json)) at **version 2**:
+the header's `"blackbox": 2`, its `"name"` (the jet's, e.g. "F-16I Sufa"; `"jet"` is the flight-model section) and two
+more columns after the original's 26:
+
+| column | type | meaning |
+|---|---|---|
+| `rpm` | number | engine RPM, %, 0.1 steps (0 cold; 60 at idle; 100 at military) |
+| `avionics` | boolean | the avionics up (the start sequence's last step, training.md §7) |
+
+and the event `radio`: `{"t", "event": "radio", "call": <"startup", "taxi" or "takeoff">, "answer": <the tower's
+template, "KCH2" when no tower answers>, "text": <its words>}`. The original game keeps version 1 (no change).
+
+**The debrief record**, `user://debriefs/debrief-<date>-<mission id>.json`: [training.md](training.md) §4's record
+(`mission`, `kind`, `pass`, `reasons`, `items`, `strings` in English and Hebrew) plus `flight` (the recording's
+absolute path) and `date` (local, `YYYY-MM-DDTHH:MM:SS`).
+
+**The pilot log**, `user://pilots/<pilot id>.json` (14 until the front end's pilot list), the original game's shape
+(`iaf-reborn/menu/pilots.gd`): `{"missions": [{"id": <menu id>, "attempts": [{"result": 1 pass / 0 fail, "mult": 1.0,
+"bonus": 0, "kills": [], "losses": [], "debrief": <the debrief file>, "date": …}]}]}`, the newest mission first. The
+original game's reader takes the same fields (it reads `kills` / `losses` as its 37 counts: empty here).
+
 [^osm]: OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright (runway and apron ways via the Overpass API, 2026-10-20 and 2026-11-02).
 [^oa]: OurAirports, runways.csv and airports.csv (public domain), https://davidmegginson.github.io/ourairports-data/
 [^w-f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon

@@ -8,8 +8,8 @@
 
 use std::path::{Path, PathBuf};
 
-use anyhow::{Context, Result, bail, ensure};
-use iaf_tools::{sim, training};
+use anyhow::{Context, Result, bail};
+use iaf_tools::training;
 
 const USAGE: &str = "usage: iaf-training score <flight.jsonl> <mission.json> [airbases-dir] [--json <out.json>]";
 
@@ -28,12 +28,7 @@ fn main() -> Result<()> {
         Some(d) => PathBuf::from(d),
         None => Path::new(mission).parent().unwrap_or(Path::new(".")).join("../airbases"),
     };
-    ensure!(dir.is_dir(), "no airbases folder {} (give it as the third argument)", dir.display());
-    let read = |p: &str| std::fs::read_to_string(p).with_context(|| p.to_string());
-    let f = training::parse_flight(&read(flight)?).with_context(|| flight.clone())?;
-    let m = serde_json::from_str(&read(mission)?).with_context(|| mission.clone())?;
-    let airbases: Vec<_> = sim::read_dir(&dir)?.into_iter().map(|f| f.v).collect();
-    let d = training::score(&f, &m, &airbases)?;
+    let d = training::score_files(Path::new(flight), Path::new(mission), &dir)?;
     print!("{}", d.summary());
     if let Some(p) = out {
         std::fs::write(&p, serde_json::to_string_pretty(&d.to_json())? + "\n").with_context(|| p)?;

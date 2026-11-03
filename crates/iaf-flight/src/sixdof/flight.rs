@@ -8,6 +8,7 @@ use super::engine::Engine;
 use super::fcs::{Fcs, Pilot, Sensors};
 use super::gear::Anchors;
 use super::jets::{self, Jet};
+use super::start::{Phase, Start as Sequence};
 use crate::aircraft::{ApView, Controls, Crash, Euler, Start, State};
 use crate::atmosphere::air;
 use crate::units::{G, LB};
@@ -61,6 +62,8 @@ pub struct SixDof {
     pub ground_height: f32,
     pub gear_clearance: f32,
     pub engine_on: bool,
+    /// The ground start ([`SixDof::start_engine`]); a running engine's is [`Sequence::running`].
+    start_seq: Sequence,
     gear: f32,
     /// Specific force along the body axes, g (from the last step).
     accel_g: Vec3,
@@ -121,6 +124,7 @@ impl SixDof {
             ground_height: 0.0,
             gear_clearance: jet.gear.struts[0].pos.z as f32,
             engine_on: st.engine_on || st.airborne,
+            start_seq: if st.engine_on || st.airborne { Sequence::running() } else { Sequence::default() },
             gear: 0.0,
             accel_g: Vec3::new(0.0, 0.0, -1.0),
             acc: Vec3::ZERO,
@@ -208,8 +212,39 @@ impl SixDof {
         }
     }
 
+    /// The engine on or off at once (the original's meaning: any throttle command starts it, the ejection stops it),
+    /// the electrical power unchanged. IAF 2026's start goes through [`SixDof::start_engine`] instead.
     pub fn set_engine_on(&mut self, on: bool) {
         self.engine_on = on;
+        if on {
+            self.start_seq = Sequence::running();
+        }
+    }
+
+    /// The "start engine" command: a cold engine runs its jet's start sequence ([`super::start`]); it runs (gives
+    /// thrust) once the sequence reaches idle.
+    pub fn start_engine(&mut self) {
+        if !self.engine_on {
+            if self.start_seq.phase == Phase::Running {
+                self.start_seq.shutdown(); // stopped since its last start: from the beginning
+            }
+            self.start_seq.begin();
+        }
+    }
+
+    /// The electrical power: 0 none, 1 the battery, 2 the displays up ([`Sequence::power`]).
+    pub fn power(&self) -> u8 {
+        self.start_seq.power(&self.jet.start)
+    }
+
+    /// The avionics up ([`Sequence::avionics`]).
+    pub fn avionics(&self) -> bool {
+        self.start_seq.avionics(&self.jet.start)
+    }
+
+    /// The start sequence's step ("off", "starter", "crank", "light-off", "accel", "running").
+    pub fn start_phase(&self) -> &'static str {
+        self.start_seq.phase.name()
     }
 
     /// Motion 0x18, as `Aircraft::set_fuel`: the fuel and its maximum := `kg` (the tank jettison).
@@ -275,6 +310,9 @@ impl SixDof {
         let n = (dt / MAX_STEP).ceil().max(1.0);
         // The mass and the rotors' momentum change slowly: once per frame.
         let af = self.airframe();
+        if self.start_seq.step(&self.jet.start, dt) {
+            self.engine_on = true; // the sequence reached idle
+        }
         for _ in 0..n as usize {
             self.substep(dt / n, &af);
             if self.crashed.is_some() {
@@ -438,7 +476,12 @@ impl SixDof {
             alpha: alpha as f32,
             beta: b.beta() as f32,
             g: g as f32,
-            rpm: if self.engine_on { (60.0 + 40.0 * (power / 50.0).min(1.0)) as f32 } else { 0.0 },
+            rpm: if self.engine_on {
+                (60.0 + 40.0 * (power / 50.0).min(1.0)) as f32
+            } else {
+                // A start in progress; a stopped engine (its sequence long done) shows none.
+                if self.start_seq.phase == Phase::Running { 0.0 } else { self.start_seq.rpm as f32 }
+            },
             throttle: self.controls.throttle,
             afterburner: if power > 75.0 {
                 2

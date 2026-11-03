@@ -13,12 +13,13 @@
       "type": "object",
       "required": ["blackbox", "date", "mission", "jet", "settings", "columns"],
       "properties": {
-        "blackbox": { "const": 1, "description": "Format version." },
+        "blackbox": { "enum": [1, 2], "description": "Format version: 1 the original game; 2 IAF 2026 (Settings.blackbox_version), whose rows add rpm and avionics (iaf-2026/docs/data-formats.md §13)." },
         "date": { "type": "string", "description": "Local start time, YYYY-MM-DDTHH:MM:SS." },
         "mission": { "type": "integer", "description": "Mission id (-1: free flight)." },
         "flight": { "type": "integer", "description": "The player's flight in the mission (Settings.player_flight)." },
         "type": { "type": "integer", "description": "The jet's type code: 100 F-16, 110 F-15, 120 F-4E, 130 Kfir, 140 Lavi, 190 Mirage, 200 Kurnass 2000, 1000 F-35I." },
         "jet": { "type": "string", "description": "Flight-model section, e.g. \"F-16\" (the F-4E and the Kurnass 2000 share \"F-4\", as in the original)." },
+        "name": { "type": "string", "description": "Version 2 only: the jet's name from its aircraft definition, e.g. \"F-16I Sufa\" (jet is the flight-model section)." },
         "pilot": { "type": "string", "description": "Pilot callsign." },
         "loadouts": { "type": "object", "description": "Settings.arm_loadouts: the arming screen's choices." },
         "route": {
@@ -79,7 +80,9 @@
         { "type": "number", "description": "fuel_kg: internal fuel." },
         { "type": "integer", "description": "ap_mode: the player's autopilot, 0 off, 1 level, 2 NAV." },
         { "type": "string", "description": "ap_stage: the autopilot's control loop (\"none\" when off)." },
-        { "type": "number", "description": "fps: frames per second." }
+        { "type": "number", "description": "fps: frames per second." },
+        { "type": "number", "description": "rpm: engine RPM, % (version 2 only)." },
+        { "type": "boolean", "description": "avionics: the avionics up (version 2 only; the 6-DoF's start sequence)." }
       ],
       "items": false
     },
@@ -88,8 +91,8 @@
       "required": ["t", "event"],
       "properties": {
         "t": { "type": "number", "description": "Flight time, s." },
-        "event": { "enum": ["lift-off", "touchdown", "crash", "autopilot", "mission", "message", "weapon", "lock", "unlock", "launch", "hit", "system", "kill", "shot_down", "in_sight", "masked", "seeker"],
-          "description": "weapon: master mode / selected store changed; lock / unlock: a unit's sensor or radar locks / drops the jet (its RWR lock); launch: a missile at the jet; hit: a counted hit on the jet; system: the system that hit broke; kill: the player destroyed a unit; shot_down: the jet is fatally hit; in_sight / masked: an armed enemy within its engage / sensor range gains / loses terrain line of sight to the jet (checked once a second); seeker: the IR missile seeker's tone or target changed (SRM HUD mode)." },
+        "event": { "enum": ["lift-off", "touchdown", "crash", "autopilot", "mission", "message", "weapon", "lock", "unlock", "launch", "hit", "system", "kill", "shot_down", "in_sight", "masked", "seeker", "radio"],
+          "description": "radio (version 2): a radio-menu call and the tower's answer (call, answer, text); weapon: master mode / selected store changed; lock / unlock: a unit's sensor or radar locks / drops the jet (its RWR lock); launch: a missile at the jet; hit: a counted hit on the jet; system: the system that hit broke; kill: the player destroyed a unit; shot_down: the jet is fatally hit; in_sight / masked: an armed enemy within its engage / sensor range gains / loses terrain line of sight to the jet (checked once a second); seeker: the IR missile seeker's tone or target changed (SRM HUD mode)." },
         "key": { "type": "string", "description": "The unit (mission entity key) the event is about: lock / unlock / launch / hit / system (the shooter), kill (the destroyed unit), shot_down (the killer), in_sight / masked (the site), seeker (the seeker's target)." },
         "unit": { "type": "string", "description": "That unit's name in the mission." },
         "dist_m": { "type": "number", "description": "That unit's distance to the jet, m." },
@@ -107,13 +110,15 @@
         "store": { "type": "string", "description": "weapon: the selected store's name." },
         "id": { "type": "integer", "description": "mission: the mission event's id (bdb 0x1e)." },
         "name": { "type": "string", "description": "mission: the event's name in the mission file (bdb 0x384, e.g. \"Go around\")." },
-        "text": { "type": "string", "description": "message: a subtitle line as the mission or the radio printed it; system: the system's console text (e.g. \"After burner damage\")." },
+        "text": { "type": "string", "description": "message: a subtitle line as the mission or the radio printed it; radio: the tower's words; system: the system's console text (e.g. \"After burner damage\")." },
         "sink_ms": { "type": "number", "description": "touchdown: the last airborne sink rate, m/s (the landing check's limit: 40 original, 4 with Physics > Real landing limits, x2 with Easy landing)." },
         "reason": { "type": "string", "description": "crash: the flight model's reason (e.g. \"sink rate\", \"tail strike\")." },
         "mode": { "enum": ["off", "level", "nav"], "description": "autopilot: the new mode." },
         "agl_m": { "type": ["number", "null"], "description": "Height above the terrain at the event, m." },
         "speed_kt": { "type": "number", "description": "True airspeed at the event, kt." },
-        "pitch": { "type": "number", "description": "Pitch at the event, degrees." }
+        "pitch": { "type": "number", "description": "Pitch at the event, degrees." },
+        "call": { "enum": ["startup", "taxi", "takeoff"], "description": "radio: the player's request." },
+        "answer": { "type": "string", "description": "radio: the tower's phrase template (KCH2: no tower, a click)." }
       }
     }
   }

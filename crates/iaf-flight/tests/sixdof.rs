@@ -656,3 +656,28 @@ fn fit_wave_drag() {
         );
     }
 }
+
+#[test]
+fn a_cold_jet_starts_by_its_start_command() {
+    // Stopped on the ground (its systems still up): no RPM; the start command runs the sequence from the beginning
+    // (iaf-2026/docs/training.md §7): the Sufa idles after 35 s with its displays up, braked in place.
+    // set_engine_on keeps the original's meaning: on / off at once, the power unchanged.
+    let mut f = flight(jets::all()[1], 0.0, 0.0, false);
+    f.engine_off();
+    let c = f.controls();
+    fly_for(&mut f, 1.0, |_| c);
+    assert!(!f.engine_on && f.state().rpm == 0.0 && f.power() == 2 && f.start_phase() == "running");
+    f.start_engine();
+    fly_for(&mut f, 20.0, |_| c);
+    let s = f.state();
+    assert!(!f.engine_on && (20.0..30.0).contains(&s.rpm) && f.power() == 1, "{} {}", s.rpm, f.power());
+    fly_for(&mut f, 16.0, |_| c);
+    let s = f.state();
+    assert!(f.engine_on && s.rpm == 60.0 && f.power() == 2 && f.avionics(), "{} {}", s.rpm, f.power());
+    assert!(s.speed < 0.5, "braked: {} m/s", s.speed);
+    f.set_engine_on(false);
+    fly_for(&mut f, 1.0, |_| c);
+    assert!(!f.engine_on && f.power() == 2 && f.state().rpm == 0.0);
+    f.set_engine_on(true);
+    assert!(f.engine_on && f.power() == 2 && f.avionics());
+}

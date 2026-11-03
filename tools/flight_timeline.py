@@ -74,6 +74,9 @@ def describe(e):
             return f"{who}{weapon} has line of sight to you{dist}"
         case "masked":
             return f"masked from {who}{dist}"
+        case "radio":
+            said = f": \"{e['text']}\"" if e.get("text") else " (no tower: a click)"
+            return f"radio: you {e.get('call')}, tower {e.get('answer')}{said}"
         case "seeker":
             if not e.get("key"):
                 return f"IR seeker {e.get('tone')} ({e.get('weapon', '?')}), no target"
@@ -113,6 +116,11 @@ def summary(head, rows, events):
             leg = legs[i]
             agl = f"{leg['agl'] * 3.281:.0f} ft" if leg["agl"] != math.inf else "-"
             out.append(f"  {names[i]} -> {names[i + 1]}: {km(leg['off'])} off, lowest {agl}")
+    if rows and "rpm" in rows[0]:
+        # IAF 2026's recorder (version 2): the ground start's steps from the RPM and avionics columns.
+        first = lambda f: next((f"{r['t']:.1f} s" for r in rows if f(r)), "never")
+        out.append(f"Start: light-off RPM (20 %) {first(lambda r: r['rpm'] >= 20)}, idle {first(lambda r: r['engine'])},"
+                   f" avionics up {first(lambda r: r.get('avionics'))}")
     engaged = {}
     for e in events:
         if e["event"] in ("lock", "launch", "hit") and e.get("unit"):
@@ -136,7 +144,20 @@ def timeline(events):
     return lines
 
 
-def write_html(path, head, rows, events):
+def debrief_lines(d, lang="en"):
+    """An IAF 2026 debrief record (iaf-2026/docs/training.md §4) as lines: the result, the reasons, the numbers."""
+    s = d.get("strings", {}).get(lang, {})
+    out = [f"{s.get(d.get('kind'), d.get('kind'))}: {s.get('pass' if d.get('pass') else 'fail')}"]
+    out += [f"  {s.get(r, r)}" for r in d.get("reasons", [])]
+    for it in d.get("items", []):
+        v = it.get("value")
+        v = int(v) if isinstance(v, float) and v.is_integer() else v
+        shown = s.get(it.get("note"), "") if v is None else f"{v} {it.get('unit', '')}".strip()
+        out.append(f"  {s.get(it['id'], it['id'])}: {shown}")
+    return out
+
+
+def write_html(path, head, rows, events, debrief=None):
     w, h = 1000, 220
     t1 = max([r["t"] for r in rows] + [1.0])
     top = max([r["agl_m"] or 0 for r in rows] + [100.0])
@@ -146,7 +167,9 @@ def write_html(path, head, rows, events):
         for e in events if e["event"] in ("lock", "launch", "hit", "crash", "shot_down"))
     items = "".join(f"<li>{html.escape(l)}</li>" for l in timeline(events))
     summ = "".join(f"<li>{html.escape(l)}</li>" for l in summary(head, rows, events))
-    title = f"Flight {head.get('date', '')}, mission {head.get('mission')}, {head.get('jet', '')}"
+    deb = "".join(f"<li>{html.escape(l)}</li>" for l in debrief_lines(debrief)) if debrief else ""
+    deb = f"<h2>Debrief</h2><ul>{deb}</ul>" if deb else ""
+    title = f"Flight {head.get('date', '')}, mission {head.get('mission')}, {head.get('name') or head.get('jet', '')}"
     with open(path, "w") as f:
         f.write(f"""<!doctype html><meta charset="utf-8"><title>{html.escape(title)}</title>
 <style>body{{font:14px system-ui;margin:16px;max-width:1040px}} svg{{background:#f4f4f4;width:100%}}
@@ -155,21 +178,29 @@ polyline{{fill:none;stroke:#246;stroke-width:1.5}} line{{stroke-width:1}} .lock{
 <h1>{html.escape(title)}</h1><p>Height above the terrain (max {top * 3.281:.0f} ft) over {t1:.0f} s; lines: lock (amber),
 launch (orange), hit (red), crash (black).</p>
 <svg viewBox="0 0 {w} {h}" preserveAspectRatio="none"><polyline points="{pts}"/>{marks}</svg>
-<h2>Summary</h2><ul>{summ}</ul><h2>Timeline</h2><ul>{items}</ul>""")
+{deb}<h2>Summary</h2><ul>{summ}</ul><h2>Timeline</h2><ul>{items}</ul>""")
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("recording")
     ap.add_argument("--html", help="also write a self-contained HTML timeline with the height profile")
+    ap.add_argument("--debrief", help="an IAF 2026 debrief record (user://debriefs/*.json) shown with the flight")
     a = ap.parse_args()
     head, rows, events = load(a.recording)
-    print(f"Flight {head.get('date', '')}: mission {head.get('mission')}, {head.get('jet', '')}, pilot {head.get('pilot', '')}")
+    debrief = None
+    if a.debrief:
+        with open(a.debrief) as f:
+            debrief = json.load(f)
+        print("\n".join(debrief_lines(debrief)))
+        print()
+    jet = head.get("name") or head.get("jet", "")
+    print(f"Flight {head.get('date', '')}: mission {head.get('mission')}, {jet}, pilot {head.get('pilot', '')}")
     print("\n".join(timeline(events)))
     print()
     print("\n".join(summary(head, rows, events)))
     if a.html:
-        write_html(a.html, head, rows, events)
+        write_html(a.html, head, rows, events, debrief)
         print(f"\nHTML: {a.html}")
 
 

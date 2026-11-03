@@ -32,6 +32,7 @@ mod setup;
 mod sight;
 mod stores;
 mod surface;
+mod training;
 mod world;
 
 struct IafExtension;

@@ -62,7 +62,7 @@ func run() -> void:
 			not objects.is_empty(),
 			"%s: %s's bdb %s holds %d objects" % [jet, JETS[id][1], m.get("bdb"), objects.size()]
 		)
-		var unit: Dictionary = objects.get(int(mr.player_flight(m, 1).get("entity", {}).get("0x2c6", -1)), {})
+		var unit: Dictionary = mr.player_unit(m)
 		var type := int(unit.get("0x5b4", -1))
 		s.set_jet(String(unit.get("airframe", "")))
 		check(
@@ -132,9 +132,7 @@ func bases() -> void:
 			spots["%s %s" % [b.name, p.unit]] = p
 	for id in JETS:
 		var m: Dictionary = s.load_json(a.path_join(MISSIONS).path_join(JETS[id][1] + ".json"))
-		var unit: Dictionary = mr.bdb_objects(mr.load_bdb(m)).get(
-			int(mr.player_flight(m, 1).get("entity", {}).get("0x2c6", -1)), {}
-		)
+		var unit: Dictionary = mr.player_unit(m)
 		var section: String = BASE_SECTION[JETS[id][1].get_slice("_startup", 0)]
 		var spot: Dictionary = spots.get("%s %s" % [section, unit.get("0x514", "")], {})
 		s.set_jet(String(unit.get("airframe", "")))

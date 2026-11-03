@@ -217,6 +217,12 @@ static func flight_slots(mission: Dictionary) -> Dictionary:
 ## take-off). `wanted` = the flight (0x3f2 = 1..4, Alpha..Delta) picked on the TSD (Fly makes that flight's leader the
 ## player object, FUN_005045b0 -> FUN_004d31f0); 0 or a flight without a leader = the default. Returns
 ## {flight (the formation's 0x3f2), entity} or {} when there is none.
+## The bdb object of `mission`'s player unit (flight 1's leader, its entity type 0x2c6); {} for none.
+static func player_unit(mission: Dictionary) -> Dictionary:
+	var e: Dictionary = player_flight(mission, 1).get("entity", {})
+	return bdb_objects(load_bdb(mission)).get(int(e.get("0x2c6", -1)), {})
+
+
 static func player_flight(mission: Dictionary, wanted := 0) -> Dictionary:
 	var by_id := spawned(mission)
 	var leader := func(f: Dictionary) -> Dictionary:

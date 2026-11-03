@@ -180,7 +180,8 @@ base move: its bases stand at their real places already (`sim_settings.gd sync_b
 Open: the towers of Ramon, Hatzerim and Ramat David (their reference points stand in); the sea is the only water
 (the Dead Sea and the Sea of Galilee read as land); one hub per base where every parking spot meets the taxiways (the
 AI of a second spot at Hatzerim taxis from the first spot's hub); the radio's tower list (`radio.gd BASES`) holds
-the original's ten names, so Hatzerim and Nevatim have no talking tower yet (item E3b).
+the original's ten names, so Hatzerim and Nevatim had no talking tower; since item E3b every base of the own
+`iaf.ibx` talks (`Settings.tower_bases`, [training.md](training.md) §8).
 
 [^osm]: OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright (Overpass API, 2026-11-02)
 [^oa]: OurAirports, airports.csv and runways.csv (public domain), https://davidmegginson.github.io/ourairports-data/
