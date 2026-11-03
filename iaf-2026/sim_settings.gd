@@ -18,7 +18,6 @@ const PROFILE := {
 const PLANES := "res://data/planes"
 
 var _sim_airframes := {}
-var _said_no_bases := false
 
 
 func _ready() -> void:
@@ -69,14 +68,11 @@ func fm_section(type: int) -> String:
 	return t
 
 
-## World scale Real's base moves read the own iaf.ibx, which item B2b compiles: until it exists the sim flies with no
-## base moved, said once in the log (the shared warning stays for data missing from a layout that has an iaf.ibx).
+## The sim's bases stand at their real places already (its frame is 1:1, iaf-2026/docs/terrain.md): World scale
+## Real's base move is the original game's and never runs here (the extension's moves cleared).
 func sync_bases() -> bool:
-	if FileAccess.file_exists(own_dir().path_join("iaf.ibx")):
-		return super()
-	if not _said_no_bases:
-		_said_no_bases = true
-		print("no own iaf.ibx yet (%s, item B2b): no base moves" % own_dir())
+	if ClassDB.class_exists("IafBases") and IafBases.active():
+		IafBases.setup(false, assets_dir(), own_dir())
 	return false
 
 

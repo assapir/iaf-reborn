@@ -79,10 +79,10 @@ try {
 		Write-Host "IAF 2026's setup wizard comes with item A3; building the sim's data from the command line (iaf-sim all)..."
 		Native { cargo build --release -p iaf-tools --bin iaf-sim }
 		if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-		Native { & target\release\iaf-sim.exe all iaf-2026\data assets }
-		if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-		# The terrain (iaf-2026/docs/terrain.md): GDAL, downloads, about two hours the first time; resumes.
+		# The terrain first (iaf-2026/docs/terrain.md): GDAL, downloads, about two hours the first time; resumes.
 		Native { & target\release\iaf-sim.exe terrain assets }
+		if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+		Native { & target\release\iaf-sim.exe all iaf-2026\data assets }
 		exit $LASTEXITCODE
 	}
 	# Godot's import (as tools/godot_import.sh): on a fresh clone (Godot loads iaf.gdextension only once an import has

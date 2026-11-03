@@ -29,9 +29,22 @@ pub struct Airbase {
     pub from_hangar_turn: Vec<TaxiPt>,
 }
 
-/// The sections, in the TowersManager's record order.
-pub const SECTIONS: [&str; 10] =
-    ["Ramon", "David", "TelNof", "Refidim", "Inshas", "Damescuss", "Kuzeir", "Bley", "Ryak", "Aman"];
+/// The sections, in the TowersManager's record order; IAF 2026's own iaf.ibx adds Hatzerim and Nevatim after them
+/// (iaf-2026/docs/data-formats.md §12). The original's file has neither, so the original game reads the same ten.
+pub const SECTIONS: [&str; 12] = [
+    "Ramon",
+    "David",
+    "TelNof",
+    "Refidim",
+    "Inshas",
+    "Damescuss",
+    "Kuzeir",
+    "Bley",
+    "Ryak",
+    "Aman",
+    "Hatzerim",
+    "Nevatim",
+];
 
 /// `h = fmod(deg, 360); if h > 180: h −= 360; rad`.
 fn hdg(deg: f32) -> f32 {
@@ -115,7 +128,19 @@ fn bearing(dx: f32, dy: f32) -> f32 {
     dx.atan2(dy)
 }
 
+/// A runway whose middle lies farther than this from a base's lineup point is another frame's (m): the original game
+/// flown over IAF 2026's theatre reads the install's iaf.ibx (1998 frame) beside the theatre's UTM airbases.json.
+pub const SAME_BASE_M: f32 = 10_000.0;
+
 impl Airbase {
+    /// `ends` when they are this base's runway in this frame (its middle within SAME_BASE_M of the lineup), else None.
+    pub fn own_runway(&self, ends: Option<[[f32; 2]; 2]>) -> Option<[[f32; 2]; 2]> {
+        ends.filter(|e| {
+            let m = [(e[0][0] + e[1][0]) / 2.0, (e[0][1] + e[1][1]) / 2.0];
+            (m[0] - self.lineup[0]).hypot(m[1] - self.lineup[1]) <= SAME_BASE_M
+        })
+    }
+
     /// The base flown from the main runway's other end (Better physics "Wind and turbulence", docs/autopilot.md §2.4),
     /// in the game's frame. `ends`: the main runway's ends (airbases.json's first runway); None: `DEFAULT_RUNWAY_M`
     /// ahead of the lineup.
@@ -231,6 +256,17 @@ mod tests {
         assert_eq!(b[0].lineup, [356483.0, 602383.0, 63.0]);
         assert_eq!(b[0].runway_deg, 270.0);
         assert!((b[0].from_taxi[0].hdg + 90f32.to_radians()).abs() < 1e-6);
+    }
+
+    /// A runway from another frame (UTM ends against a 1998-frame lineup) is not the base's: the default length then.
+    #[test]
+    fn a_runway_from_another_frame_is_not_the_bases() {
+        let b = Airbase { lineup: [317547.0, 411215.0, 580.0], ..Default::default() };
+        let near = [[317646.0, 411290.0], [314963.0, 409018.0]];
+        let utm = [[658000.0, 3405500.0], [660700.0, 3406700.0]];
+        assert_eq!(b.own_runway(Some(near)), Some(near));
+        assert_eq!(b.own_runway(Some(utm)), None);
+        assert_eq!(b.own_runway(None), None);
     }
 
     fn base(rn: f32) -> Airbase {

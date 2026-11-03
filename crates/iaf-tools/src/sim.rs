@@ -18,13 +18,12 @@ use std::path::Path;
 use std::sync::atomic::AtomicBool;
 
 use anyhow::{Context, Result, bail, ensure};
-use iaf_flight::base_move::{RealRunway, real_runways};
 use serde_json::{Map, Value, json};
 
-use crate::georef::Georef;
 use crate::log;
 use crate::mission_edit;
 use crate::progress::{Progress, check};
+use crate::sim_bases::{self, Base, Ground};
 use crate::training;
 
 pub use crate::sim_files::{BDB, BDB_FILE};
@@ -134,10 +133,6 @@ const THREAT_FIGURES: &[&str] =
 /// (iaf-2026/docs/data-formats.md §11).
 pub const DRAFTS: &str = "db/drafts";
 const LB_PER_KG: f64 = 1.0 / 0.45359;
-/// The jet's lineup point this far into the runway from its threshold (m; inferred: a jet's length and a margin).
-const LINEUP_IN_M: f64 = 100.0;
-/// The bearing step (m) that turns a true heading into the engine frame's.
-const HEADING_STEP_M: f64 = 100.0;
 
 fn side(name: &str) -> Result<i64> {
     SIDES.iter().find(|t| t.0 == name).map(|t| t.1).with_context(|| format!("unknown side \"{name}\""))
@@ -463,41 +458,21 @@ pub fn skeleton() -> Value {
     })
 }
 
-/// A point of a mission file in the engine frame: (x east, y north) from its "lat" / "lon".
-pub(crate) fn place(geo: &Georef, p: &Value, what: &str) -> Result<[f64; 2]> {
+/// A point of a mission file in the sim's frame: UTM 36N (x east, y north) from its "lat" / "lon"
+/// (iaf-2026/docs/terrain.md §2).
+pub(crate) fn place(p: &Value, what: &str) -> Result<[f64; 2]> {
     let (lat, lon) = (p["lat"].as_f64(), p["lon"].as_f64());
     let (Some(lat), Some(lon)) = (lat, lon) else { bail!("{what}: \"lat\" and \"lon\" must be numbers") };
-    Ok(geo.geo_to_engine(lon, lat))
+    Ok(sim_bases::utm36n(lon, lat))
 }
 
-/// A true heading at (lat, lon) as the engine frame's compass heading (the georeference's warp turns it a little).
-fn engine_heading(geo: &Georef, lat: f64, lon: f64, heading: f64) -> f64 {
-    let a = geo.geo_to_engine(lon, lat);
-    let r = heading.to_radians();
-    let (dlat, dlon) =
-        (r.cos() * HEADING_STEP_M / 111_320.0, r.sin() * HEADING_STEP_M / (111_320.0 * lat.to_radians().cos()));
-    let b = geo.geo_to_engine(lon + dlon, lat + dlat);
-    (b[0] - a[0]).atan2(b[1] - a[1]).to_degrees().rem_euclid(360.0)
-}
-
-/// The runway end of `base` (the `real` column of real_runways.csv without " AB") whose take-off heading has
-/// `number` ("25R": 250° magnetic): (x, y, engine heading) of the lineup point LINEUP_IN_M in from that end.
-fn runway_start(rows: &[RealRunway], base: &str, number: &str) -> Result<[f64; 3]> {
-    let digits: String = number.chars().take_while(char::is_ascii_digit).collect();
-    let n: f64 = digits.parse().with_context(|| format!("runway \"{number}\" has no number"))?;
-    let row = rows
-        .iter()
-        .find(|r| r.designator.split('/').any(|d| d == number))
-        .with_context(|| format!("{base}: no runway {number} in real_runways.csv"))?;
-    // The end to start from: the one whose heading down the runway is nearer 10 · n (magnetic; the declination
-    // is a few degrees, real_runways.py).
-    let hdg = |p: [f64; 2], q: [f64; 2]| (q[0] - p[0]).atan2(q[1] - p[1]).to_degrees().rem_euclid(360.0);
-    let off = |h: f64| (h - 10.0 * n + 540.0).rem_euclid(360.0) - 180.0;
-    let (from, to) =
-        if off(hdg(row.a, row.b)).abs() < off(hdg(row.b, row.a)).abs() { (row.a, row.b) } else { (row.b, row.a) };
-    let h = hdg(from, to);
-    let r = h.to_radians();
-    Ok([from[0] + LINEUP_IN_M * r.sin(), from[1] + LINEUP_IN_M * r.cos(), h])
+/// The lineup point of `base`'s runway end `number` ("25R"): (x, y, grid heading), LINEUP_IN_M past the declared
+/// runway's start (iaf-2026/docs/airbases.md §4).
+fn runway_start(base: &Base, number: &str) -> Result<[f64; 3]> {
+    let (ri, k) = base.end(number).with_context(|| format!("{}: no runway end {number}", base.name_en))?;
+    let r = &base.runways[ri];
+    let [x, y] = r.lineup(k);
+    Ok([x, y, r.heading(k)])
 }
 
 /// A flight's route with points; without one set_flight gives the flight its one point 20 km ahead.
@@ -521,7 +496,14 @@ fn texts(f: &File, k: &str) -> Result<Value> {
 }
 
 /// One compiled mission file from a readable one.
-pub fn compile_mission(f: &File, db: &Db, geo: &Georef, runways: &[RealRunway]) -> Result<Value> {
+/// `bases`: the four airbases (sim_bases::load); `ground`: the theatre's height at a point, None without it (the
+/// start's `elevation_m` then stands).
+pub fn compile_mission(
+    f: &File,
+    db: &Db,
+    bases: &[Base],
+    ground: &mut dyn FnMut(f64, f64) -> Option<f64>,
+) -> Result<Value> {
     check_sources(f, &MISSION_FIGURES)?;
     // The training rules (iaf-2026/docs/training.md): they parse, and each figure has its source.
     training::rules(&f.v).with_context(|| f.name.clone())?;
@@ -552,28 +534,42 @@ pub fn compile_mission(f: &File, db: &Db, geo: &Georef, runways: &[RealRunway]) 
     // The player's flight (Alpha): the start, its unit and its route.
     let start = &f.v["start"];
     let unit = db.unit(start["unit"].as_str().unwrap_or("")).with_context(|| f.name.clone())?;
-    let elev = start["elevation_m"].as_f64().with_context(|| format!("{}: start needs \"elevation_m\"", f.name))?;
+    let base_name = start["base"].as_str().with_context(|| format!("{}: start needs \"base\"", f.name))?;
+    let base =
+        sim_bases::by_name(bases, base_name).with_context(|| format!("{}: no airbase \"{base_name}\"", f.name))?;
     let [x, y, h] = match start["at"].as_str() {
-        Some("runway") => {
-            let base = start["base"].as_str().with_context(|| format!("{}: a runway start needs \"base\"", f.name))?;
-            // real_runways.csv's real name ("Ramat David AB").
-            let rows: Vec<RealRunway> = runways.iter().filter(|r| r.real == format!("{base} AB")).cloned().collect();
-            ensure!(!rows.is_empty(), "{}: no base \"{base} AB\" in real_runways.csv", f.name);
-            runway_start(&rows, base, start["runway"].as_str().unwrap_or(""))?
+        Some("runway") => runway_start(base, start["runway"].as_str().unwrap_or("")).with_context(|| f.name.clone())?,
+        // A parking start without its own place takes the base's spot for its unit (data/airbases, §10).
+        Some("parking") if start["lat"].is_null() => {
+            let unit = start["unit"].as_str().unwrap_or("");
+            let p = base.parking.iter().find(|p| p.unit == unit);
+            let p = p.with_context(|| format!("{}: {} has no parking spot for {unit}", f.name, base.name_en))?;
+            [p.at[0], p.at[1], p.heading]
         }
         Some("parking") => {
-            let [x, y] = place(geo, start, &f.name)?;
+            let [x, y] = place(start, &f.name)?;
             let hdg = start["heading"].as_f64().with_context(|| format!("{}: parking needs \"heading\"", f.name))?;
-            [x, y, engine_heading(geo, start["lat"].as_f64().unwrap_or(0.0), start["lon"].as_f64().unwrap_or(0.0), hdg)]
+            [
+                x,
+                y,
+                sim_bases::grid_heading(
+                    start["lon"].as_f64().unwrap_or(0.0),
+                    start["lat"].as_f64().unwrap_or(0.0),
+                    hdg,
+                ),
+            ]
         }
         _ => bail!("{}: start \"at\" must be \"parking\" or \"runway\"", f.name),
     };
+    // The start's altitude: the theatre's ground there (as the game's height_at), else the field elevation given.
+    let given = start["elevation_m"].as_f64().with_context(|| format!("{}: start needs \"elevation_m\"", f.name))?;
+    let elev = ground(x, y).map_or(given, |g| (g * 10.0).round() / 10.0);
     // A waypoint's fourth value is its planned arrival time in sim seconds (docs/ai.md §7.2): its own "t_s", else the
     // time from the flight's start along the legs (3-D) at each point's "speed_kmh".
     let route = |r: &Value, from: [f64; 3]| -> Result<Vec<Value>> {
         let (mut out, mut at, mut t) = (vec![], from, 0.0);
         for p in r.as_array().into_iter().flatten() {
-            let [px, py] = place(geo, p, &f.name)?;
+            let [px, py] = place(p, &f.name)?;
             let alt = p["alt_m"].as_f64().unwrap_or(1000.0);
             let leg = ((px - at[0]).powi(2) + (py - at[1]).powi(2) + (alt - at[2]).powi(2)).sqrt();
             t = match p["t_s"].as_f64() {
@@ -604,11 +600,10 @@ pub fn compile_mission(f: &File, db: &Db, geo: &Georef, runways: &[RealRunway]) 
     for (k, fl) in flights.iter().enumerate() {
         let u = db.unit(fl["unit"].as_str().unwrap_or("")).with_context(|| f.name.clone())?;
         let at = &fl["start"];
-        let [fx, fy] = place(geo, at, &f.name)?;
-        let fh = engine_heading(
-            geo,
-            at["lat"].as_f64().unwrap_or(0.0),
+        let [fx, fy] = place(at, &f.name)?;
+        let fh = sim_bases::grid_heading(
             at["lon"].as_f64().unwrap_or(0.0),
+            at["lat"].as_f64().unwrap_or(0.0),
             at["heading"].as_f64().unwrap_or(0.0),
         );
         let mut spec = json!({"type": int(u, "number")?, "count": fl["count"].as_i64().unwrap_or(2),
@@ -623,7 +618,7 @@ pub fn compile_mission(f: &File, db: &Db, geo: &Georef, runways: &[RealRunway]) 
     for (list, default_side, role) in [("targets", "red", mission_edit::TARGET), ("sam_sites", "red", 2)] {
         for (k, t) in f.v[list].as_array().into_iter().flatten().enumerate() {
             let u = db.unit(t["unit"].as_str().unwrap_or("")).with_context(|| f.name.clone())?;
-            let [tx, ty] = place(geo, t, &f.name)?;
+            let [tx, ty] = place(t, &f.name)?;
             let mut fields = Map::new();
             for (key, v) in [
                 (hex("entity", "name"), json!(t["name"].as_str().map_or(format!("{list} {}", k + 1), String::from))),
@@ -635,10 +630,9 @@ pub fn compile_mission(f: &File, db: &Db, geo: &Georef, runways: &[RealRunway]) 
                 (
                     hex("entity", "heading"),
                     json!(
-                        engine_heading(
-                            geo,
-                            t["lat"].as_f64().unwrap_or(0.0),
+                        sim_bases::grid_heading(
                             t["lon"].as_f64().unwrap_or(0.0),
+                            t["lat"].as_f64().unwrap_or(0.0),
                             t["heading"].as_f64().unwrap_or(0.0)
                         )
                         .round()
@@ -653,7 +647,7 @@ pub fn compile_mission(f: &File, db: &Db, geo: &Georef, runways: &[RealRunway]) 
             if let Some(r) = t["route"].as_array().filter(|r| !r.is_empty()) {
                 ensure!(r.len() >= 2, "{}: {list}[{k}]: a ground route needs at least two points", f.name);
                 let pts: Vec<[f64; 3]> =
-                    r.iter().map(|p| place(geo, p, &f.name).map(|[a, b]| [a, b, 0.0])).collect::<Result<_>>()?;
+                    r.iter().map(|p| place(p, &f.name).map(|[a, b]| [a, b, 0.0])).collect::<Result<_>>()?;
                 m = mission_edit::set_route(m, &[eid], &pts, t["speed_kmh"].as_f64().unwrap_or(30.0), true);
             }
         }
@@ -675,7 +669,12 @@ pub fn compile_mission(f: &File, db: &Db, geo: &Georef, runways: &[RealRunway]) 
 /// menu id → [id]).
 pub fn missions(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     let db = Db::read(data)?;
-    let (geo, runways) = (Georef::load()?, real_runways());
+    let bases = sim_bases::load(&data.join("airbases"))?;
+    let mut ground = Ground::open(&assets.join("converted/terrain/israel"));
+    if ground.is_none() {
+        pr.warn("missions: no theatre (iaf-sim terrain): the starts take the files' elevation_m");
+    }
+    let mut height = |x: f64, y: f64| ground.as_mut().and_then(|g| g.at(x, y));
     let out = assets.join(MISSIONS_DIR);
     let mut list = Map::new();
     let files = read_dir(&data.join("missions"))?;
@@ -683,7 +682,7 @@ pub fn missions(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
     for f in &files {
         check(cancel)?;
         ensure!(ids.insert(text(f, "id")?.to_lowercase()), "{}: mission id {} is taken", f.name, f.v["id"]);
-        let m = compile_mission(f, &db, &geo, &runways)?;
+        let m = compile_mission(f, &db, &bases, &mut height)?;
         if let Some(note) = m["sim"]["note"].as_str() {
             pr.warn(&format!("missions: {}: {note}", m["name"].as_str().unwrap_or("")));
         }
@@ -1081,32 +1080,32 @@ mod tests {
     }
 
     #[test]
-    fn placed_units_take_the_engine_frames_heading() {
-        let (db, geo) = (Db::read(&data()).unwrap(), Georef::load().unwrap());
+    fn placed_units_take_the_grid_heading() {
+        let (db, bases) = (Db::read(&data()).unwrap(), sim_bases::load(&data().join("airbases")).unwrap());
         let src = json!({"lat": "inferred", "lon": "inferred", "heading": "inferred"});
         let t = json!({"unit": "f16d", "name": "T", "lat": 30.9, "lon": 34.8, "heading": 90, "sources": src});
-        let m = compile_mission(&ramon(json!({"targets": [t]})), &db, &geo, &real_runways()).unwrap();
+        let m = compile_mission(&ramon(json!({"targets": [t]})), &db, &bases, &mut |_, _| None).unwrap();
         let e = m["entities"]["items"].as_array().unwrap().iter().find(|e| e["0x2bc"] == "T").unwrap().clone();
-        assert_eq!(e["0x302"].as_f64().unwrap(), engine_heading(&geo, 30.9, 34.8, 90.0).round());
+        assert_eq!(e["0x302"].as_f64().unwrap(), sim_bases::grid_heading(34.8, 30.9, 90.0).round());
         assert_eq!(e["0x32a"], mission_edit::TARGET);
         // A ground route of one point is refused (set_route needs two).
         let mut one = t.clone();
         one["route"] = json!([{"lat": 30.9, "lon": 34.81}]);
         one["sources"]["route"] = json!("inferred");
-        let e = compile_mission(&ramon(json!({"targets": [one]})), &db, &geo, &real_runways()).unwrap_err();
+        let e = compile_mission(&ramon(json!({"targets": [one]})), &db, &bases, &mut |_, _| None).unwrap_err();
         assert!(e.to_string().contains("at least two points"), "{e}");
         // Its figures need sources as the mission's do.
         let bare = json!({"unit": "f16d", "name": "T", "lat": 30.9, "lon": 34.8, "heading": 90});
-        let e = compile_mission(&ramon(json!({"targets": [bare]})), &db, &geo, &real_runways()).unwrap_err();
+        let e = compile_mission(&ramon(json!({"targets": [bare]})), &db, &bases, &mut |_, _| None).unwrap_err();
         assert!(e.to_string().contains("targets[0]: \"lat\" has no source"), "{e}");
     }
 
     #[test]
     fn only_the_players_jet_must_survive() {
-        let (db, geo) = (Db::read(&data()).unwrap(), Georef::load().unwrap());
+        let (db, bases) = (Db::read(&data()).unwrap(), sim_bases::load(&data().join("airbases")).unwrap());
         let mut f = ramon(json!({}));
         f.v["start"]["count"] = json!(2);
-        let m = compile_mission(&f, &db, &geo, &real_runways()).unwrap();
+        let m = compile_mission(&f, &db, &bases, &mut |_, _| None).unwrap();
         let c = mission_edit::conditions(&m, &Value::Null);
         assert_eq!(c["keep_alive"], json!([{"id": 1, "name": "Player1"}]), "{c}");
     }
@@ -1114,14 +1113,14 @@ mod tests {
     /// A flight without a route (none or empty) gets set_flight's default point, as Alpha does.
     #[test]
     fn a_flight_without_a_route_gets_the_default_point() {
-        let (db, geo) = (Db::read(&data()).unwrap(), Georef::load().unwrap());
+        let (db, bases) = (Db::read(&data()).unwrap(), sim_bases::load(&data().join("airbases")).unwrap());
         let src = json!({"start.lat": "inferred", "start.lon": "inferred", "start.heading": "inferred"});
         let fl = |r: Value| {
             json!({"unit": "f16d", "start": {"lat": 30.9, "lon": 34.8, "heading": 0}, "route": r,
             "sources": src})
         };
         let f = ramon(json!({"flights": [fl(json!([])), fl(Value::Null)], "route": []}));
-        let m = compile_mission(&f, &db, &geo, &real_runways()).unwrap();
+        let m = compile_mission(&f, &db, &bases, &mut |_, _| None).unwrap();
         for fm in m["formations"]["items"].as_array().unwrap().iter().filter(|f| f["0x14"] == 0) {
             assert_eq!(fm["points"].as_array().unwrap().len(), 1, "{}", fm["0x3e8"]);
         }
@@ -1129,11 +1128,11 @@ mod tests {
 
     #[test]
     fn clashes_are_refused() {
-        let (db, geo) = (Db::read(&data()).unwrap(), Georef::load().unwrap());
+        let (db, bases) = (Db::read(&data()).unwrap(), sim_bases::load(&data().join("airbases")).unwrap());
         let src = json!({"start.lat": "inferred", "start.lon": "inferred", "start.heading": "inferred"});
         let fl =
             json!({"unit": "f16d", "start": {"lat": 30.9, "lon": 34.8, "heading": 0}, "route": [], "sources": src});
-        let m = compile_mission(&ramon(json!({"flights": [fl, fl, fl, fl]})), &db, &geo, &real_runways());
+        let m = compile_mission(&ramon(json!({"flights": [fl, fl, fl, fl]})), &db, &bases, &mut |_, _| None);
         assert!(m.unwrap_err().to_string().contains("4 flights"));
         let mut db = Db::read(&data()).unwrap();
         let twin = File { name: "twin".into(), v: db.weapon("aim-9m").unwrap().v.clone() };
@@ -1142,6 +1141,11 @@ mod tests {
         let root = db_copy("dup", |_| vec![]);
         let dir = &root.0;
         std::fs::create_dir_all(dir.join("missions")).unwrap();
+        std::fs::create_dir_all(dir.join("airbases")).unwrap();
+        for e in std::fs::read_dir(data().join("airbases")).unwrap() {
+            let p = e.unwrap().path();
+            std::fs::copy(&p, dir.join("airbases").join(p.file_name().unwrap())).unwrap();
+        }
         let mut a = ramon(json!({})).v;
         std::fs::write(dir.join("missions/a.json"), a.to_string()).unwrap();
         a["menu_id"] = json!(9999);
@@ -1255,34 +1259,57 @@ mod tests {
 
     #[test]
     fn a_runway_start_takes_the_end_its_number_names() {
-        let rows: Vec<RealRunway> = real_runways().into_iter().filter(|r| r.base == "Ramon").collect();
+        let bases = sim_bases::load(&data().join("airbases")).unwrap();
+        let ramon = sim_bases::by_name(&bases, "Ramon").unwrap();
         // 07L/25R: 25R takes off toward the west-south-west, from the east end.
-        let [x, _, h] = runway_start(&rows, "Ramon", "25R").unwrap();
-        assert!((h - 247.0).abs() < 5.0, "{h}");
-        assert!(x > 303000.0, "{x}");
-        let [x, _, h] = runway_start(&rows, "Ramon", "07L").unwrap();
-        assert!((h - 67.0).abs() < 5.0, "{h}");
-        assert!(x < 302000.0, "{x}");
-        assert!(runway_start(&rows, "Ramon", "12").is_err());
+        let [x25, _, h] = runway_start(ramon, "25R").unwrap();
+        assert!((h - 246.0).abs() < 3.0, "{h}");
+        let [x07, _, h] = runway_start(ramon, "07L").unwrap();
+        assert!((h - 66.0).abs() < 3.0, "{h}");
+        assert!(x25 > x07 + 2000.0, "25R starts from the east end: {x25} vs {x07}");
+        assert!(runway_start(ramon, "12").is_err());
+    }
+
+    /// A parking start without its own place stands on its base's spot for its unit, at the theatre's ground there.
+    #[test]
+    fn a_parking_start_takes_the_bases_spot() {
+        let (db, bases) = (Db::read(&data()).unwrap(), sim_bases::load(&data().join("airbases")).unwrap());
+        let mut f = ramon(json!({}));
+        for k in ["lat", "lon", "heading"] {
+            f.v["start"].as_object_mut().unwrap().remove(k);
+        }
+        let m = compile_mission(&f, &db, &bases, &mut |_, _| Some(643.27)).unwrap();
+        let e = &m["entities"]["items"][0];
+        let spot = &sim_bases::by_name(&bases, "Ramon").unwrap().parking[0];
+        assert_eq!(
+            (e["0x2e4"].as_f64().unwrap(), e["0x2ee"].as_f64().unwrap()),
+            (spot.at[0].round(), spot.at[1].round())
+        );
+        assert_eq!(e["0x302"].as_f64().unwrap(), spot.heading.round());
+        assert_eq!(e["0x2f8"].as_f64().unwrap(), 643.3, "the ground's height");
+        f.v["start"]["unit"] = json!("f35i");
+        assert!(
+            compile_mission(&f, &db, &bases, &mut |_, _| None).unwrap_err().to_string().contains("no parking spot")
+        );
     }
 
     /// The training rules are checked: a training figure without a source and an unknown kind are refused, and
     /// every take-off mission's runway is an end of its base's airbase file.
     #[test]
     fn training_rules_are_checked() {
-        let (db, geo, rw) = (Db::read(&data()).unwrap(), Georef::load().unwrap(), real_runways());
-        assert!(compile_mission(&ramon(json!({})), &db, &geo, &rw).is_ok());
+        let (db, bases) = (Db::read(&data()).unwrap(), sim_bases::load(&data().join("airbases")).unwrap());
+        assert!(compile_mission(&ramon(json!({})), &db, &bases, &mut |_, _| None).is_ok());
         let mut unsourced = ramon(json!({}));
         unsourced.v["sources"].as_object_mut().unwrap().remove("training.time_budget_s");
-        let e = compile_mission(&unsourced, &db, &geo, &rw).unwrap_err().to_string();
+        let e = compile_mission(&unsourced, &db, &bases, &mut |_, _| None).unwrap_err().to_string();
         assert!(e.contains("\"training.time_budget_s\" has no source"), "{e}");
         let unknown = ramon(json!({"training": {"kind": "landing", "time_budget_s": 60}}));
-        assert!(compile_mission(&unknown, &db, &geo, &rw).is_err());
+        assert!(compile_mission(&unknown, &db, &bases, &mut |_, _| None).is_err());
         let airbases: Vec<Value> = read_dir(&data().join("airbases")).unwrap().into_iter().map(|f| f.v).collect();
         for f in read_dir(&data().join("missions")).unwrap() {
             if let Some(r) = f.v["runway"].as_str() {
                 let base = training::airbase_of(&f.v, &airbases).unwrap();
-                training::runway(base, r, &geo).unwrap_or_else(|e| panic!("{}: {e}", f.name));
+                training::runway(base, r).unwrap_or_else(|e| panic!("{}: {e}", f.name));
             }
         }
     }

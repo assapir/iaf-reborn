@@ -6,8 +6,8 @@ shelter; S2 = Sentinel-2 (the ESA satellite pictures); "inferred" = our own reas
 
 This page holds the four airbases of IAF 2026 (plan.md item B2a): Ramon, Hatzerim, Nevatim and Ramat David. Their
 layouts are in `iaf-2026/data/airbases/<icao>.json`, in WGS-84 latitude / longitude and true headings (the format:
-[data-formats.md](data-formats.md) §10). The compile into the game's frame (`airbases.json`, `iaf.ibx`, paved masks)
-is item B2b; it waits for the terrain frame of item B1. Research date: 2026-11-02.
+[data-formats.md](data-formats.md) §10). `iaf-sim airbases` compiles them into the sim's frame (item B2b, §9).
+Research date: 2026-11-02.
 
 ```sh
 python3 -I tools/iaf-2026/osm_airbase.py [--refetch] [ICAO ...]      # fetch (cached) + write the four files
@@ -98,7 +98,7 @@ each is a judgement call.
 | base | point | where | lat, lon, heading |
 |---|---|---|---|
 | Ramon | Sufa parking | the centre of the paved pad by 07R/25L's western link (OSM apron 1496591869, the start-up mission's spot today), nose along the pad toward the runway | 30.7699350, 34.6594868, 335° |
-| Hatzerim | F-15I parking | the south end of the western of two sunshade rows by the parallel taxiway (OSM apron 1157437942), nose to its exit | 31.2405172, 34.6614984, 195° |
+| Hatzerim | F-15I parking | near the south end of the western of two sunshade rows by the parallel taxiway, on the row's middle (OSM apron 1157437942; moved 27 m west onto the row on 2026-11-03, when B2b's check found the first spot 6.5 m off the apron), nose to its exit | 31.2405172, 34.6612147, 195° |
 | Hatzerim | Sufa parking | the same in the eastern row (OSM apron 1157437936) | 31.2401938, 34.6624651, 195° |
 | Nevatim | F-35I parking | the east end of the middle lane of the apron north of 08R/26L (OSM apron 1089049618, paved in the 2021 picture, bare in 2015), nose along the lane to the apron's west exit | 31.2086757, 35.0264028, 256° |
 | Nevatim | tower | the compound midfield between 08L/26R and 08R/26L (2015 photo) | 31.2058009, 35.0125383 |
@@ -149,6 +149,38 @@ The `lights` list is empty at all four bases; OurAirports' Hatzerim 15/33 is des
   every runway has two ends with a place and a heading and a width, every source names a footnote, "inferred" or
   "open".
 - The pictures, §6.
+
+## 9. In the game
+
+`iaf-sim airbases` (item B2b, `crates/iaf-tools/src/sim_bases.rs`; run by `iaf-sim all` once the terrain is built)
+puts the four bases into the sim's frame, UTM 36N at 1:1 ([terrain.md](terrain.md) §2), in the shapes the shared
+code reads ([data-formats.md](data-formats.md) §12):
+- `converted/terrain/israel/airbases.json` and a paved-surface mask per base: Graphics → MORE → Airbases Detailed
+  draws the real runways (numbers, letters, thresholds), the taxi lines and the aprons from them;
+- `converted/own/iaf.ibx`: tower, lineup and take-off heading, the AI's taxi paths and the parking spots, read by the
+  flight model (the start rule, the AI's ground control) and the radio;
+- `converted/own/terraintype.dat`: runway and sea flags for the flight model and the water shader.
+
+| base | section | take-off | lineup (UTM 36N) | taxi points out / in | tower |
+|---|---|---|---|---|---|
+| Ramon | `Ramon` | 25R, 246° | 660,563, 3,406,637 | 12 / 5 | the reference point (open) |
+| Ramat David | `David` | 27, 265° | 705,360, 3,616,494 | 6 / 9 | the reference point (open) |
+| Hatzerim | `Hatzerim` | 28L, 284° | 659,817, 3,455,824 | 6 / 16 | the reference point (open) |
+| Nevatim | `Nevatim` | 26L, 256° | 693,191, 3,454,815 | 10 / 9 | §5 |
+
+The take-off ends and the lineup rule are inferred (data-formats.md §12). The missions start on the parking spots of
+§5 at the terrain's ground height and their runway starts on these lineup points.
+
+What the flight takes from them (the M0 probe, `iaf-2026/tests/test_m0_boot.gd`, 2026-11-03): each MVP jet's start-up
+mission parks it on its base's spot (within 1 m), with its wheels on the terrain (1.7–1.9 m above the ground height:
+the gear), as a ground start, and the flight model finds the base (within 5 km and 15 m of the tower). The sim has no
+base move: its bases stand at their real places already (`sim_settings.gd sync_bases`). The tower's wind turn
+(Better physics) mirrors the take-off lineup to the runway's other end as in the original game.
+
+Open: the towers of Ramon, Hatzerim and Ramat David (their reference points stand in); the sea is the only water
+(the Dead Sea and the Sea of Galilee read as land); one hub per base where every parking spot meets the taxiways (the
+AI of a second spot at Hatzerim taxis from the first spot's hub); the radio's tower list (`radio.gd BASES`) holds
+the original's ten names, so Hatzerim and Nevatim have no talking tower yet (item E3b).
 
 [^osm]: OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright (Overpass API, 2026-11-02)
 [^oa]: OurAirports, airports.csv and runways.csv (public domain), https://davidmegginson.github.io/ourairports-data/

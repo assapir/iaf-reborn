@@ -7,13 +7,12 @@
 //!   the mission's runway, with no runway excursion, within the time budget.
 //!
 //! Positions: the recorder logs scene metres (x east, z south) from the terrain's origin; the scorer turns them into
-//! the engine frame (origin.x + x, origin.y − z) and the airbase file's runway ends into the same frame with the
-//! georeference the mission compiler uses (`sim.rs`), so headings compare with the recorded ones directly.
+//! the engine frame (origin.x + x, origin.y − z) and the airbase file's runway ends into the same frame, UTM 36N, as
+//! the mission compiler places them (`sim.rs place`), so headings compare with the recorded ones directly.
 
 use anyhow::{Context, Result, bail, ensure};
 use serde_json::{Map, Value, json};
 
-use crate::georef::Georef;
 use crate::sim;
 
 /// The flight model's ground start: the RPM winds up from 0 at 15 %/s to the 60 % idle (docs/flight-model.md
@@ -275,13 +274,13 @@ pub fn airbase_of<'a>(mission: &Value, airbases: &'a [Value]) -> Result<&'a Valu
 }
 
 /// The runway end `designator` ("25R") of `airbase`, in the engine frame.
-pub fn runway(airbase: &Value, designator: &str, geo: &Georef) -> Result<Runway> {
+pub fn runway(airbase: &Value, designator: &str) -> Result<Runway> {
     for r in airbase["runways"].as_array().into_iter().flatten() {
         let ends = r["ends"].as_array().context("runway without \"ends\"")?;
         let Some(i) = ends.iter().position(|e| e["designator"].as_str() == Some(designator)) else { continue };
         let (a, b) = (&ends[i], &ends[1 - i]);
         let what = format!("runway {designator}");
-        let (from, to) = (sim::place(geo, a, &what)?, sim::place(geo, b, &what)?);
+        let (from, to) = (sim::place(a, &what)?, sim::place(b, &what)?);
         let length_m = (to[0] - from[0]).hypot(to[1] - from[1]);
         ensure!(length_m > 0.0, "runway {designator}: both ends at one place");
         let dir = [(to[0] - from[0]) / length_m, (to[1] - from[1]) / length_m];
@@ -385,13 +384,13 @@ impl Debrief {
 
 /// Scores `flight` against the readable mission `mission` (its `"training"` rules); `airbases` are the airbase
 /// files (`iaf-2026/data/airbases/*.json`), read for a take-off.
-pub fn score(flight: &Flight, mission: &Value, airbases: &[Value], geo: &Georef) -> Result<Debrief> {
+pub fn score(flight: &Flight, mission: &Value, airbases: &[Value]) -> Result<Debrief> {
     let id = mission["id"].as_str().unwrap_or("?").to_string();
     ensure!(!flight.samples.is_empty(), "the recording has no samples");
     let mut d = match rules(mission)?.with_context(|| format!("{id}: no \"training\" rules"))? {
         Rules::Startup { time_budget_s } => startup(flight, id, time_budget_s),
         Rules::Takeoff { time_budget_s, heading_tolerance_deg, empty_kg, takeoff_kt } => {
-            let rw = runway(airbase_of(mission, airbases)?, mission["runway"].as_str().unwrap_or(""), geo)?;
+            let rw = runway(airbase_of(mission, airbases)?, mission["runway"].as_str().unwrap_or(""))?;
             takeoff(flight, id, &rw, time_budget_s, heading_tolerance_deg, empty_kg, &takeoff_kt)
         }
     };
@@ -622,8 +621,7 @@ mod tests {
     /// the right, the pitch rising from `rotate_kt`, lift-off at 165 kt, a 30 s climb with the gear up after 3 s
     /// (or never).
     fn takeoff(o: Opts) -> (String, Runway) {
-        let rw = runway(airbase_of(&mission("ramon_takeoff"), &airbases()).unwrap(), "25R", &Georef::load().unwrap())
-            .unwrap();
+        let rw = runway(airbase_of(&mission("ramon_takeoff"), &airbases()).unwrap(), "25R").unwrap();
         let right = [rw.dir[1], -rw.dir[0]];
         let at =
             |s: f64, d: f64| [rw.from[0] + s * rw.dir[0] + d * right[0], rw.from[1] + s * rw.dir[1] + d * right[1]];
@@ -688,7 +686,7 @@ mod tests {
     }
 
     fn scored(text: &str, id: &str) -> Debrief {
-        let d = score(&parse_flight(text).unwrap(), &mission(id), &airbases(), &Georef::load().unwrap()).unwrap();
+        let d = score(&parse_flight(text).unwrap(), &mission(id), &airbases()).unwrap();
         println!("{}", d.summary());
         d
     }
@@ -777,7 +775,7 @@ mod tests {
     #[test]
     fn a_flight_without_samples_is_refused() {
         let empty = Flight::default();
-        assert!(score(&empty, &mission("ramon_startup"), &[], &Georef::load().unwrap()).is_err());
+        assert!(score(&empty, &mission("ramon_startup"), &[]).is_err());
     }
 
     #[test]
@@ -824,7 +822,7 @@ mod tests {
         assert_eq!(value(&d, "throttle_moves"), 3.0);
         let mut m = mission("ramon_startup");
         m["training"]["time_budget_s"] = json!(10);
-        let late = score(&parse_flight(&text).unwrap(), &m, &[], &Georef::load().unwrap()).unwrap();
+        let late = score(&parse_flight(&text).unwrap(), &m, &[]).unwrap();
         assert_eq!(late.reasons, ["over_time"]);
         let cold: Vec<Sample> = samples.iter().map(|s| Sample { engine: false, ..s.clone() }).collect();
         assert_eq!(scored(&jsonl(&cold), "ramon_startup").reasons, ["no_start"]);

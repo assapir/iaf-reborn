@@ -1,6 +1,7 @@
 # IAF 2026 reads its own flight-model type and base data (iaf-2026/docs/plan.md, item A1's leftovers): the player's
 # jet takes its flight-model type from the sim's table (Settings.fm_section -> IafFlight.fm_type), not the converted
-# descriptor, and the base moves and the tower's wind turn read own_dir()'s iaf.ibx: none until B2b writes one. The
+# descriptor; the bases are own_dir()'s iaf.ibx at their real places (no base move) and the tower's wind turn takes the
+# theatre's own airbases.json (B2b). The
 # original game's Settings (shared/settings.gd) in the same process keeps the converted descriptor's type and the
 # install's iaf.ibx.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-2026 \
@@ -31,26 +32,48 @@ func run() -> void:
 		)
 		check(err == "", "sim: the Sufa starts from the own bd.ibx (%s)" % err)
 
-	# The bases: the sim's own iaf.ibx, none until B2b writes one. The test changes the extension's process-wide
-	# moves: it restores what Settings sets up at the end.
+	# The bases: the sim's own iaf.ibx at their real places, so no base move; the tower's wind turn takes the theatre's
+	# own airbases.json (B2b). The test changes the extension's process-wide state: it restores it at the end.
 	var was_active: bool = IafBases.active()
+	check(not s.sync_bases() and not IafBases.active(), "sim: no base move (the frame is real)")
 	var own_ibx := FileAccess.file_exists(s.own_dir().path_join("iaf.ibx"))
-	check(IafBases.setup(true, a, s.own_dir()) == own_ibx, "sim: bases from the own iaf.ibx (exists: %s)" % own_ibx)
-	check(IafBases.active() == own_ibx, "sim: the bases move only with an own iaf.ibx")
-	if not own_ibx:
-		check(not s.sync_bases(), "sim: Settings sets up no base moves")
-		var turned := IafBases.set_wind(40.0, 0.0, a, s.own_dir()) + IafBases.set_wind(40.0, 180.0, a, s.own_dir())
+	var abf: String = s.airbases_file()
+	check(not own_ibx or abf.contains("/israel/"), "sim: the theatre's own airbases.json (%s)" % abf)
+	if own_ibx:
+		var turned := IafBases.set_wind(40.0, 66.0, abf, s.own_dir())
+		check(turned.has("Ramon"), "sim: a wind from 066° turns Ramon's 25R (%s)" % turned)
+		var iw: PackedFloat64Array = IafBases.into_wind("Ramon")
+		var ramon: Dictionary = {}
+		for b in s.load_json(abf).get("bases", []):
+			if b.name == "Ramon":
+				ramon = b
+		# The tower mirrors 25R's lineup about the runway's middle: as far from the west end as it was from the east
+		# (Airbase::reversed), so it lies 07L's runway-start difference from 07L's own lineup.
+		var rw: Dictionary = ramon.get("runways", [{}])[0]
+		var other: Array = rw.get("lineups", [[0, 0]])[0]
+		var off := absf(float(rw.get("thresholds", [0, 0])[1]) - float(rw.get("thresholds", [0, 0])[0]))
+		check(
+			(
+				iw.size() == 4
+				and absf(Vector2(iw[0], iw[1]).distance_to(Vector2(other[0], other[1])) - off) < 1.0
+				and iw[3] == 66.0
+			),
+			"sim: Ramon then lines up on 07L (%s; 07L's lineup %s, %.0f m apart by the starts)" % [iw, other, off]
+		)
+	else:
+		var turned := IafBases.set_wind(40.0, 0.0, abf, s.own_dir()) + IafBases.set_wind(40.0, 180.0, abf, s.own_dir())
 		check(turned.is_empty(), "sim: no base for the tower to turn (%s)" % turned)
 
 	# The original game: the install's bases.
 	check(orig.own_dir() == a.path_join("install"), "original: own_dir() is the install")
 	if FileAccess.file_exists(orig.own_dir().path_join("iaf.ibx")):
 		check(IafBases.setup(true, a, orig.own_dir()) and IafBases.active(), "original: the install's bases move")
+		var oab: String = orig.airbases_file()
 		var turned := (
-			IafBases.set_wind(40.0, 0.0, a, orig.own_dir()) + IafBases.set_wind(40.0, 180.0, a, orig.own_dir())
+			IafBases.set_wind(40.0, 0.0, oab, orig.own_dir()) + IafBases.set_wind(40.0, 180.0, oab, orig.own_dir())
 		)
 		check(not turned.is_empty(), "original: the tower turns the install's bases (%s)" % turned)
-	IafBases.set_wind(0.0, 0.0, a, s.own_dir())
+	IafBases.set_wind(0.0, 0.0, s.airbases_file(), s.own_dir())
 	IafBases.setup(false, a, s.own_dir())
 	s._bases_for = ""
 	s.sync_bases()

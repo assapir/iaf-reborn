@@ -2,8 +2,9 @@
 # ground, terrain.gdshader draws a procedural runway, taxiway and apron surface with markings over the nearest base's
 # paved surface. The runways (ends, width, designation numbers), the AI's taxi paths and the paved-surface mask come
 # from the 1998 art and iaf.ibx (`iaf-terrain airbases` → assets/converted/terrain/airbases.json, crates/iaf-tools
-# airbases.rs). Rendering only: the flight model's runway surface stays terraintype.dat's (World scale Real cuts both
-# to the real runway's width: IafBases.moved_mask, docs/world-scale.md §3.3).
+# airbases.rs); in IAF 2026 from OpenStreetMap (`iaf-sim airbases` → the theatre's own airbases.json,
+# Settings.airbases_file()). Rendering only: the flight model's runway surface stays terraintype.dat's (World scale
+# Real cuts both to the real runway's width: IafBases.moved_mask, docs/world-scale.md §3.3).
 extends RefCounted
 
 ## The nearest base within this distance of the camera (m, to its runways' middle) is drawn.
@@ -31,7 +32,7 @@ static func bases() -> Array:
 	if not _loaded or moved != _loaded_moved:
 		_loaded = true
 		_loaded_moved = moved
-		var j: Dictionary = Settings.load_json(Settings.assets_dir().path_join("converted/terrain/airbases.json"))
+		var j: Dictionary = Settings.load_json(Settings.airbases_file())
 		_bases = j.get("bases", [])
 		if _bases.is_empty():
 			push_warning("airbases.json missing: run tools/setup-cli.sh (Airbases = Detailed draws nothing)")

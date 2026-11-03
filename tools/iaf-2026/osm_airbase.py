@@ -71,7 +71,7 @@ PLACED = {
     "LLRM": {"parking": {"f16i": (30.769935, 34.6594868, 335)}, "tower": None},
     # The south ends of the two sunshade rows by the parallel taxiway (OSM aprons 1157437942, 1157437936), nose to
     # their exit; which squadron uses which row is open.
-    "LLHB": {"parking": {"f15i": (31.2405172, 34.6614984, 195), "f16i": (31.2401938, 34.6624651, 195)},
+    "LLHB": {"parking": {"f15i": (31.2405172, 34.6612147, 195), "f16i": (31.2401938, 34.6624651, 195)},
              "tower": None},
     # The east end of the middle lane of the apron north of 08R/26L (OSM apron 1089049618, paved by 2021), nose
     # along the lane to the apron's west exit. Tower: the compound between 08L/26R and 08R/26L midfield (2015 photo).

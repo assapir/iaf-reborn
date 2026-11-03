@@ -41,11 +41,11 @@ that as a failure.
 | `iaf-2026/data/` | the authored data: units, weapons, missions, airbases, sounds, keys ([data-formats.md](data-formats.md), [sound.md](sound.md), [airbases.md](airbases.md)) |
 | `iaf-2026/tests/` | the sim's headless tests (they extend `tests/godot/base.gd`) |
 | `iaf-2026/docs/` | the sim's docs and research |
-| `assets/converted/own/` | the sim's compiled data in the original's resource layout: `resource/md`, `resource/soundfiles`, `resource/weaponsmotion`, `keys.json` (later `iaf.ibx`, `terraintype.dat`) |
+| `assets/converted/own/` | the sim's compiled data in the original's resource layout: `resource/md`, `resource/soundfiles`, `resource/weaponsmotion`, `keys.json`, `iaf.ibx`, `terraintype.dat` (`iaf-sim airbases`) |
 | `assets/converted/iaf-2026/missions/` | the compiled training missions |
 
 ## How the sim reads its data
-The shared code reads its files through five `Settings` calls. The sim's `sim_settings.gd` answers them with its own
+The shared code reads its files through six `Settings` calls. The sim's `sim_settings.gd` answers them with its own
 paths; the original game's `shared/settings.gd` answers with the install's.
 
 | call | original game | IAF 2026 |
@@ -55,11 +55,12 @@ paths; the original game's `shared/settings.gd` answers with the install's.
 | `keys_file()` | `assets/converted/keys.json` | `assets/converted/own/keys.json` |
 | `fm_section(type)`: the player's flight-model type (`PlayerAircraft.profile`) | "": the converted aircraft descriptor's `fm_section` | by type code on the own `bd.ibx` (`IafFlight.fm_type`, `iaf_flight::fm_name_in`): 100 `F-16`, 110 `F-15`, 1000 `F-35I`; a code whose section the own `bd.ibx` lacks flies as the `F-16` (a warning) |
 | `theatre_dir()`: the terrain `terrain.gd` streams | `converted/terrain/theatre` (`IAF_THEATRE=<name>`: `converted/terrain/<name>`) | `converted/terrain/israel` |
+| `airbases_file()`: the runways, taxi lines and masks (Detailed airbases, the tower's wind turn) | `converted/terrain/airbases.json` | the theatre's own: `converted/terrain/israel/airbases.json` |
 
-The base move and the tower's wind turn (`IafBases.setup` / `set_wind`, World scale Real) take `own_dir()`'s
-`iaf.ibx` from the caller. The sim has no own `iaf.ibx` until item B2b compiles one, so it flies with no base
-moved and no runway turned into the wind; it never reads the install's bases. Until then the sim's
-`sync_bases()` skips the setup and logs that once.
+The bases are `own_dir()`'s `iaf.ibx` (`iaf-sim airbases`, [airbases.md](airbases.md) §9) at their real places,
+so the sim never moves them: its `sync_bases()` sets up no World scale Real move. The tower's wind turn
+(`IafBases.set_wind`) takes their runways from `Settings.airbases_file()`, the theatre's own `airbases.json`
+(`converted/terrain/israel/airbases.json`; the original game's `converted/terrain/airbases.json`).
 
 The sim's settings also fix the switches that pick between the 1998 game and our replacements (3D cockpit, detailed
 models, world scale Real, flight and weapon data Real, the F-15I): the sim has no preferences row for them.

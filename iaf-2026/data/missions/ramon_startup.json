@@ -7,9 +7,6 @@
     "unit": "f16i",
     "base": "Ramon",
     "at": "parking",
-    "lat": 30.7699701,
-    "lon": 34.6595291,
-    "heading": 337,
     "elevation_m": 648
   },
   "flights": [],
@@ -19,9 +16,6 @@
     "time": "inferred",
     "wind_kt": "inferred",
     "wind_from": "inferred",
-    "start.lat": "osm-apron",
-    "start.lon": "osm-apron",
-    "start.heading": "inferred",
     "start.elevation_m": "oa",
     "training.time_budget_s": "inferred"
   },
@@ -29,12 +23,10 @@
     "time": "the MVP's conditions: day (plan.md, MVP)",
     "wind_kt": "the MVP's conditions: calm (plan.md, MVP)",
     "wind_from": "calm: no direction",
-    "start": "the centre of an apron by the runways until B2 gives the base's real parking spots",
-    "start.heading": "facing the nearest runway",
+    "start": "the base's parking spot for the unit (iaf-2026/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
     "training.time_budget_s": "two minutes from the mission's start: one start command (plan.md, start-up) and the engine's wind-up, with time to find the command"
   },
   "footnotes": {
-    "osm-apron": "OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright: aeroway=apron way 1496591869 (its centre, Overpass API, 2026-11-02), https://www.openstreetmap.org/way/1496591869",
     "oa": "OurAirports, airports.csv (public domain; LLRM elevation 2126 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
   },
   "id": "ramon_startup",

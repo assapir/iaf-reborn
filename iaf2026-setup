@@ -7,6 +7,7 @@ command -v cargo >/dev/null || { echo "IAF 2026 needs Rust (cargo): rustup.rs" >
 echo "IAF 2026's setup wizard comes with item A3; building the sim's data from the command line (iaf-sim all)…"
 cargo build --release -p iaf-godot
 cargo build --release -p iaf-tools --bin iaf-sim
-target/release/iaf-sim all iaf-2026/data assets
-# The terrain (iaf-2026/docs/terrain.md): GDAL, downloads, about two hours the first time; a rerun resumes.
+# The terrain first (iaf-2026/docs/terrain.md): GDAL, downloads, about two hours the first time; a rerun resumes or
+# ends at once. Then the data, the airbases on the terrain and the missions on the bases.
 target/release/iaf-sim terrain assets
+target/release/iaf-sim all iaf-2026/data assets

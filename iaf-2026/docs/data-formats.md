@@ -2,25 +2,26 @@
 
 **Terms:** bdb = the object database the missions name (a converted `.bdb`, docs/formats/mis.md §4); hex key = a
 field name of the converted JSON (`"0x514"`); Present record = a model entry of the bdb; engine frame = the game's
-world metres (X east, Y north, docs/georef.md); "inferred" = our own reasoning; "open" = no source found.
+world metres (X east, Y north); the sim's is UTM 36N itself ([terrain.md](terrain.md) §2); "inferred" = our own reasoning; "open" = no source found.
 
 IAF 2026 keeps its units, weapons and missions as readable JSON under `iaf-2026/data/`. The compiler `iaf-sim`
 (`crates/iaf-tools/src/sim.rs`, bin `iaf-sim`) turns them into the files the shared readers already read, so no
 reader changes. This document gives each format, one full example and the compiled output.
 
 ```sh
-cargo run -p iaf-tools --bin iaf-sim -- all [iaf-2026/data] [assets]   # or db / missions / own alone
+cargo run -p iaf-tools --bin iaf-sim -- all [iaf-2026/data] [assets]   # or db / own / airbases / missions alone
 ```
 
 | step | reads | writes (under `assets/`) |
 |---|---|---|
 | `iaf-sim db` | `data/db/units/*.json`, `data/db/weapons/*.json` (not the drafts in `data/db/drafts/`, §11) | `converted/missions/sim.bdb.json`; the key `"sim.bdb"` of `converted/objects/objects.json` (the other keys stay); `converted/own/resource/weaponsmotion/weapons.ibx` |
 | `iaf-sim missions` | `data/missions/*.json`, the units | `converted/iaf-2026/missions/<id>.json`, `converted/iaf-2026/missions/missionlist.json` (menu id → `[<id>]`) |
+| `iaf-sim airbases` | `data/airbases/*.json`, the terrain's heights (`converted/terrain/israel/`) | `converted/terrain/israel/airbases.json` and `airbases/<base>.png`, `converted/own/iaf.ibx`, `converted/own/terraintype.dat` (§12) |
 | `iaf-sim own` | `data/sounds/soundprop.json`, `data/sounds/voices.json`, `data/sounds/*.wav`, `data/keys.json` | `converted/own/resource/soundfiles/` (`soundprop.trx`, `phrasetemplates.trx`, `phraseparticalsdata.trx`, the clips; other files there are removed), `converted/own/keys.json` ([sound.md](sound.md)) |
 
-Nothing is read from `assets/install` or the exe. The base positions come from
-`crates/iaf-flight/data/real_runways.csv` (OpenStreetMap runways) and the georeference's control points
-(`crates/iaf-tools/data/georef_points.json`), both in the repo.
+`iaf-sim all` runs db, own, airbases (once the terrain is built: `iaf-sim terrain`) and missions. Nothing is read
+from `assets/install` or the exe. Places are the airbase files' (§10) and the missions' own lat / lon, projected to
+UTM 36N.
 
 ## 1. Rules every file follows
 - **Sources.** Every figure has an entry in `sources`, by field name (a nested one by a dotted name:
@@ -204,10 +205,10 @@ Example, `iaf-2026/data/db/weapons/aim-9m.json`:
 | `menu_id` | the key in the compiled `missionlist.json`; ours from 2000 |
 | `title`, `briefing`, `win`, `lose` | `{"en", "he"}`; the English title and win / lose texts fill the misc header, all four go to the compiled file's own `sim` key |
 | `category`, `time`, `wind_kt`, `wind_from` | the misc header: category, start time `HH:MM`, wind |
-| `start` | the player's flight (Alpha): `unit`, `count` (1 or 2), `base` (real_runways.csv's real name without " AB"), `elevation_m`, and `at`: `"parking"` with `lat`, `lon`, `heading` (true), or `"runway"` with `runway` (a designator end, "25R") |
+| `start` | the player's flight (Alpha): `unit`, `count` (1 or 2), `base` (the airbase file's English name without " Airbase": "Ramon", "Ramat David", "Hatzerim", "Nevatim"), `elevation_m` (the altitude when the terrain is not built), and `at`: `"parking"` (the base's parking spot for `unit`, §10; or a spot of its own with `lat`, `lon`, `heading` true), or `"runway"` with `runway` (a designator end, "25R") |
 | `route` | the player's waypoints: `lat`, `lon`, `alt_m`, and `speed_kmh` or `t_s`. The compiled waypoint holds the planned arrival time in sim seconds (docs/ai.md §7.2): `t_s`, else the time from the flight's start along the legs at each point's speed. No route gives set_flight's one point 20 km ahead |
 | `runway` | the runway the mission's tower clears (kept in `sim` for item E3) |
-| `note` | a caveat the compiler prints and keeps in `sim` (Nevatim's: no game base yet) |
+| `note` | a caveat the compiler prints and keeps in `sim` |
 | `training` | the pass / fail rules ([training.md](training.md) §3), kept in `sim`: `kind` (`"startup"` or `"takeoff"`), `time_budget_s`; a take-off also `heading_tolerance_deg`, `empty_kg` and `takeoff_kt` (`[[kg, kt], …]`, rising in kg) and needs `runway`. The compiler parses them and wants a source for each figure (`"training.time_budget_s"` …) |
 | `flights` | Bravo..Delta: `unit`, `count`, `start` {`lat`, `lon`, `heading`, `alt_m`}, `route` |
 | `targets`, `sam_sites` | placed units: `unit`, `name`, `side` (default red), `lat`, `lon`, `alt_m`, `heading`, optional `route` [{`lat`, `lon`}, at least two] and `speed_kmh`; a target takes role 1, a SAM site role 2 |
@@ -215,20 +216,18 @@ Example, `iaf-2026/data/db/weapons/aim-9m.json`:
 How a mission compiles (`sim.rs compile_mission`): an empty mission with the seven parts (`skeleton`), then the
 mission editor's builders: `blank`, `set_flight` for Alpha (Player1 at the start, role 0 "must survive") and the
 other flights, `add_entity` and `set_role` for the placed units, `set_route` for their routes. A lat / lon becomes
-engine metres through the georeference, and a true heading the engine frame's. The compiled file holds `"frame": "real"`: its
-units stand at the real bases already, so World scale Real's base move (`mission_runtime.gd move_with_bases`) leaves
-it as it is. A runway start stands
-100 m in from the threshold (inferred), on the runway's heading.
+UTM 36N metres (`sim_bases::utm36n`), and a true heading the grid's. The start's altitude is the terrain's ground at
+the start (`sim_bases::Ground`, as the game's `height_at`), `elevation_m` without a terrain. The compiled file holds
+`"frame": "real"`: its units stand at the real bases already, so no base move touches it. A runway start stands on
+the lineup point of that runway end (§12: 100 m past the declared runway's start, inferred), on the runway's heading.
 
 Red flights (`set_red_flight`) wait for the threat set: that builder starts a flight at one of the 1998 game's bases.
 
 The first six missions, two per MVP base (plan.md, MVP): start-up (`<base>_startup`) and take-off (`<base>_takeoff`)
 at Ramon (Sufa, menu 2011 / 2012), Ramat David (Barak, 2021 / 2022) and Nevatim (F-35I, 2031 / 2032). Each jet
-stands parked at the centre of an OpenStreetMap apron by the runways until item B2 gives the bases' real parking
-spots. The take-off route is one point 10 km beyond the runway's far end, 900 m above the field. Their pass rules
-are in `training` ([training.md](training.md)). Nevatim is not one of the game's bases (iaf.ibx) until item B2: it has no tower, lineup or
-start rule, its jet stands at the real apron's place on the original terrain, and its take-off briefing promises no
-tower calls; both Nevatim files say so in `note`.
+stands on its base's parking spot for its unit (B2b, 2026-11-03; [airbases.md](airbases.md) §5). The take-off route is
+one point 10 km beyond the runway's far end, 900 m above the field. Their pass rules are in `training`
+([training.md](training.md)).
 
 Example, `iaf-2026/data/missions/ramon_takeoff.json`:
 ```json
@@ -329,22 +328,23 @@ rule assumes), a 20 mm hit does 100 (three hits destroy a fighter), an AIM-9M hi
 - `tests/godot/test_sim_data.gd`: runs `target/release/iaf-sim all` itself (`tools/test.sh` builds it; NEEDS DATA
   without it), which writes only the sim's own output into the shared `assets/`; then every compiled mission and sim.bdb through `MissionRuntime`, `PlayerAircraft.object_for` and
   `weapon_db.gd` (with the AIM-9X and GBU-31 built on our bases), each jet's `"airframe"`, every weapon's motion
-  section through `weapon_db.gd`'s ibx reader, and the Ramon start-up flown to the jet standing on the ground.
-- Further unit tests in `sim.rs`: only the player's jet must survive, placed units take the engine frame's heading,
+  section through `weapon_db.gd`'s ibx reader, and the Ramat David start-up loaded into a flight (flown on the
+  sim's own terrain and bases by the M0 probe, §12).
+- Further unit tests in `sim.rs`: only the player's jet must survive, placed units take the grid heading, a parking
+  start takes its base's spot at the terrain's height,
   duplicate ids / too many flights / two weapons on one ibx section are refused, the original's converters skip
   `sim.bdb.json`; in `scenery.rs`: the fingerprint is the same with and without the sim's output.
 
 ## 9. Sources of the first data
 Each data file holds its own footnotes. The ones the first data uses:
-- the runways (real_runways.csv) and the parking aprons: OpenStreetMap[^osm]; runway widths and field elevations:
-  OurAirports[^oa];
+- the bases (`data/airbases/`, §10): OpenStreetMap[^osm]; runway widths and field elevations: OurAirports[^oa];
 - the jets' spans and the F-35I's gun: Wikipedia[^w-f16][^w-f35]; the F-16's 511 rounds: General Dynamics OTS[^gdots];
 - the M61A1's muzzle velocity[^m61], the AIM-9M[^ds-aim9][^f16net] and the Mk 84[^mk84].
 
 ## 10. Airbases: `data/airbases/<icao>.json`
 
-Written by `tools/iaf-2026/osm_airbase.py` from OpenStreetMap and OurAirports ([airbases.md](airbases.md)); not
-compiled yet (item B2b, after the terrain frame of B1). Places are WGS-84 `lat` / `lon`, headings true degrees,
+Written by `tools/iaf-2026/osm_airbase.py` from OpenStreetMap and OurAirports ([airbases.md](airbases.md)); compiled
+by `iaf-sim airbases` into the theatre's frame (§12). Places are WGS-84 `lat` / `lon`, headings true degrees,
 lengths metres; a polygon or polyline is a list of `[lat, lon]`. Every item names its source as §1 asks: `"source"`
 (one for the item) or `"sources"` (by field), each a footnote name of the file, `"inferred"` or `"open"`; an OSM
 item also holds `"osm"`, its element (`"way/188475529"`).
@@ -420,6 +420,66 @@ A draft is a unit or weapon record that waits for the user's decision. It sits i
 
 The first drafts are the threat set of [threats.md](threats.md) §6, listed with their figures and open points in
 [threat-records.md](threat-records.md) (item D2, 2026-11-03).
+
+## 12. The compiled airbases (`iaf-sim airbases`)
+
+`crates/iaf-tools/src/sim_bases.rs` turns the four files of §10 into the three shapes the shared readers take. Every
+place is UTM 36N metres (the theatre's world X / Y), every heading the grid's (clockwise from grid north; the true
+heading turned by the meridian convergence, about 1° over Israel). Each base has an iaf.ibx section name, which is
+also its `airbases.json` name: Ramon `Ramon`, Ramat David `David` (the original's names for these two), Hatzerim
+`Hatzerim`, Nevatim `Nevatim` (appended to `iaf_flight::airbase::SECTIONS`; the original's file has neither, so the
+original game reads the same ten bases as before).
+
+**Take-off end and lineup (inferred).** Each base takes off from one runway end: Ramon 25R, Ramat David 27, Nevatim
+26L (the missions' runways), Hatzerim 28L (its longest runway, into the prevailing westerly wind). A lineup point lies
+on the centreline 100 m past the declared runway's start (`runway_start_m`, airbases.md §4) of its end.
+
+**`converted/own/iaf.ibx`**: one section per base, the keys `iaf_flight::airbase::Airbase::from_section` and the
+radio (`radio.gd _load_bases`) read; no other section (the readers of `[Scenario]`, `[Debrief]` and the others take
+their defaults without one). Nothing in it comes from the original's file: its keys were read there to learn the names.
+
+| key | meaning (ours) |
+|---|---|
+| `TowerLocX`, `TowerLocY`, `TowerLocZ` | the tower; its ground height. Only Nevatim's tower is known (airbases.md §5): the others take the base's reference point (OurAirports, inferred). The flight model calls a start at the base when it lies within 5 km and 15 m (height) of it |
+| `LineupLocX`, `LineupLocY`, `LineupLocZ` | the take-off end's lineup point; its ground height. A start within 100 m of it starts with the engine running |
+| `RunwayNumber` | the take-off grid heading, whole degrees (the reader truncates; written rounded) |
+| `TaxiWayPtsFrom`, `FromTaxiPtX<i>`, `FromTaxiPtY<i>`, `FromTaxiPtHdg<i>` | departure: from the hub (below) along the taxiways to the take-off end's runway start, then the lineup; each point's heading is its leg's |
+| `TaxiWayPtsTo`, `ToTaxiPtX<i>`, `ToTaxiPtY<i>`, `ToTaxiPtHdg<i>` | arrival: from 100 m past the other end's runway start (where a jet that landed rolls out) along the taxiways to the hub |
+| `HangarsNum`, `HangarPtX<i>`, `HangarPtY<i>`, `HangarPtHdg<i>` | the parking spots (§10 `parking`, in the file's order), the nose's heading |
+| `ToHangarTurnPt…<i>`, `FromHangarTurnPt…<i>` | the hub: the taxiway point nearest the first spot, where every spot joins the paths; headings toward the spot / along the departure's first leg |
+
+The taxi paths follow the shortest way on the OSM taxiway network (Dijkstra; ways joined where they share a point,
+and along each runway between the taxiway points that lie on it: at Ramat David the taxiways meet only through the
+runways), thinned to the points that turn by more than 8 m (Ramer–Douglas–Peucker).
+
+**`converted/terrain/israel/airbases.json`**: `{"bases": [...]}` in the shape `iaf-terrain airbases` writes for the
+original (`airbases.gd`, `airbase_lights.gd`, the tower's wind turn), found through `Settings.airbases_file()`:
+`name`, `lineup`, `runway_deg`, `runways` (the take-off runway first: `ends`, `width`, `heading` from ends[0], `length`,
+`numbers`, `letters`, `thresholds` = the declared runway's start from each end; ours also `designators` and `lineups`
+per end), `taxi` (the OSM taxiway centrelines), `mask` {`file` (under `converted/terrain`), `origin` (north-west
+corner), `px_m` 2, `w`, `h`}; ours also `icao`, `tower` and `parking` [{`unit`, `at`, `heading`}].
+
+**The masks** (`israel/airbases/<name>.png`, 2 m pixels over the base's outline and runways plus 300 m): red = paved
+(runways and stopways at the runway's width, taxiways at their OSM width or 23 m, aprons and shelters), green =
+concrete (aprons and shelters, blurred over one pixel), blue = the distance to the nearest taxiway centreline,
+0–10 m → 0–255 (the taxi line).
+
+**`converted/own/terraintype.dat`**: the surface flags' BSP tree (iaf_formats::terrain_types, docs/formats/ptt.md
+"Terrain types") over the theatre: sea (0x4) where the 64 m height grid is 0 m and joined to the theatre's edge
+(GLO-30's sea surface; the Dead Sea and the Sea of Galilee lie below sea level and stay land: inland water is
+open), runways (0x10, the original's runway flag) on each runway's rectangle at its width, land (0x1) elsewhere.
+1.4 MB. GLO-30's missing tiles (open sea) are 0 m in the terrain's height nodes, so they count as sea; a cell outside
+every height node counts as land.
+
+The run takes about 5 s and peaks at 107 MB (measured 2026-11-03): the sea grid is one byte per 64 m cell (43 MB)
+plus the sea itself (43 MB), filled breadth first; the height nodes are dropped once the sweep has passed them, and
+the masks are written into the image's bytes.
+
+Checks (`cargo test -p iaf-tools --lib sim_bases`): the projection against GDAL; every lineup point on its runway's
+centreline 100 m past the start; every parking spot on an apron; the departure path joins every spot to the lineup
+and the iaf.ibx reads back through the flight model's reader; terraintype.dat flags a runway's centre as runway,
+beside it land, and the sea as sea; the sea joined to the edge only. In the sim, the M0 probe flies each jet's
+start-up (iaf-2026/tests/test_m0_boot.gd).
 
 [^osm]: OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright (runway and apron ways via the Overpass API, 2026-10-20 and 2026-11-02).
 [^oa]: OurAirports, runways.csv and airports.csv (public domain), https://davidmegginson.github.io/ourairports-data/

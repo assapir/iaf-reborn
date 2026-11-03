@@ -263,9 +263,9 @@ fn insets(moves: &BaseMoves, meta: Meta, theatre: &Path, out: &Path) -> std::io:
     Ok(done)
 }
 
-/// airbases.json's main runway (its first, through the lineup point) per base: its two ends, game frame.
-fn main_runways(assets: &Path) -> Vec<(String, [[f32; 2]; 2])> {
-    let path = assets.join("converted/terrain/airbases.json");
+/// The main runway (the first, through the lineup point) of every base of `path` (an airbases.json,
+/// Settings.airbases_file()): its two ends, world frame.
+fn main_runways(path: &Path) -> Vec<(String, [[f32; 2]; 2])> {
     let j: serde_json::Value =
         std::fs::read_to_string(path).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default();
     let f = |v: &serde_json::Value| v.as_f64().unwrap_or(0.0) as f32;
@@ -306,19 +306,20 @@ impl IafBases {
     /// Better physics "Wind and turbulence" (docs/autopilot.md §2.4): the tower turns each base whose main runway
     /// (its true heading: the real one when moved) has the wind `knots` from `from_deg` behind it (`wind_reverses`)
     /// to the runway's other end; 0 knots (the switch off, calm, NO WIND, training) turns none. The bases are `own`'s
-    /// iaf.ibx (as `setup`). Call after `setup`. Returns the names of the bases turned.
+    /// iaf.ibx (as `setup`), their runways `airbases` (the airbases.json of Settings.airbases_file()). Call after
+    /// `setup`. Returns the names of the bases turned.
     #[func]
-    fn set_wind(knots: f64, from_deg: f64, assets: GString, own: GString) -> PackedStringArray {
+    fn set_wind(knots: f64, from_deg: f64, airbases: GString, own: GString) -> PackedStringArray {
         let mut out = Vec::new();
         if knots > 0.0 {
-            let assets = Path::new(&assets.to_string()).to_path_buf();
             let ibx = read_bases(Path::new(&own.to_string())).unwrap_or_default();
-            let ends = main_runways(&assets);
+            let ends = main_runways(Path::new(&airbases.to_string()));
             let moves = MOVES.read().unwrap();
             for b in ibx {
                 let true_deg = moves.as_ref().and_then(|m| m.get(&b.name)).map_or(b.runway_deg, |m| m.heading as f32);
                 if wind_reverses(true_deg, knots as f32, from_deg as f32) {
-                    let e = ends.iter().find(|(n, _)| *n == b.name).map(|(_, e)| *e);
+                    // Only a runway of this frame (the original game over IAF 2026's theatre mixes two).
+                    let e = b.own_runway(ends.iter().find(|(n, _)| *n == b.name).map(|(_, e)| *e));
                     let r = b.reversed(e);
                     out.push((b, r));
                 }

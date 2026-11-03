@@ -3,6 +3,10 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **B2b, the airbases in the game (2026-11-03):** `iaf-sim airbases` compiles Ramon, Ramat David, Hatzerim and
+  Nevatim into the theatre: `airbases.json` and paved masks (Detailed airbases), an own `iaf.ibx` and
+  `terraintype.dat` ([airbases.md](airbases.md) §9); the missions start on the bases' parking spots; the M0 probe
+  parks each jet on its spot, on the ground, at a base the flight model finds.
 - **B1, the terrain (2026-11-03):** `iaf-sim terrain` builds the sim's theatre `converted/terrain/israel/` from open
   data (GLO-30, Sentinel-2, the Survey of Israel), UTM 36N at 1:1 ([terrain.md](terrain.md)); the sim streams it
   (`theatre_dir()`); the M0 probe flies 5 s over it and checks the heights.
@@ -42,6 +46,6 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   `Settings` still has the original's `front_end_scene()` / `front_end_overlay()` (E2 overrides them).
 - **No wizard yet:** `./iaf2026-setup` runs `iaf-sim all` from the command line until item A3.
 - **The probe's 3D-only cockpit check** (no 2D panel in flight) prints NEEDS DATA until E1.
-- **No own `iaf.ibx` and `terraintype.dat` yet (B2b):** the base move, the tower's wind turn and the radio's bases
-  read `own_dir()`'s `iaf.ibx`, so the sim has no bases until B2b writes one; the terrain's `terraintype.dat` too.
-  The temp-root run of item F finds any read of the original's data still left.
+- **The airbases' open points** ([airbases.md](airbases.md) §9): the towers of Ramon, Hatzerim and Ramat David (their
+  reference points stand in), inland water, one taxi hub per base. The temp-root run of item F finds any read of the
+  original's data still left.

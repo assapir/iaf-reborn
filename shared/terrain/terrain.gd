@@ -16,7 +16,8 @@ extends Node3D
 ## Under assets/; empty: Settings.theatre_dir() (the original's converted map.ptt, IAF 2026's own theatre in the sim).
 @export var data_dir := ""
 ## The theatre has its own frame (meta.json "crs", IAF 2026's UTM theatre): the 1998 frame's extras stay off (the
-## imagery layers, terraintype.dat, World scale Real's base move).
+## imagery layers, World scale Real's base move, and the install's terraintype.dat: its surface types come from
+## `surface_types_file()`).
 var own_frame := false
 ## Quads per node side of the nodes coarser than GEOM_MIN_LEVEL (finer nodes have one vertex per
 ## level-6 height texel, which draws the triangle-interpolated surface of height_at() exactly).
@@ -171,8 +172,22 @@ func prepare() -> void:
 					_add_colour_node(n)
 	for l in _root_level + 1:
 		_meshes.append(_grid_mesh(_span_m(l), _quads(l)))
-	if not own_frame:
-		_load_terrain_types(Settings.own_dir().path_join("terraintype.dat"))
+	var types := surface_types_file()
+	if types != "":
+		_load_terrain_types(types)
+
+
+## terraintype.dat of this theatre: own_dir()'s (the install's in the original game, IAF 2026's own in the sim); ""
+## (all ground is land) for an own-frame theatre flown in the original game (the install's file is the 1998 frame's)
+## or before `iaf-sim airbases` wrote the sim's.
+func surface_types_file() -> String:
+	if own_frame and Settings.own_dir() == Settings.install_dir():
+		return ""
+	var f := Settings.own_dir().path_join("terraintype.dat")
+	if own_frame and not FileAccess.file_exists(f):
+		push_warning("terrain: no %s yet (iaf-sim airbases): all ground is land" % f)
+		return ""
+	return f
 
 
 func _ready() -> void:
@@ -195,8 +210,7 @@ func _ready() -> void:
 	_bases_moved = not own_frame and Settings.sync_bases()
 	if _bases_moved:
 		_add_insets()
-	# An own frame has no surface types yet: all land (IafSurface without a file).
-	IafSurface.load("" if own_frame else Settings.own_dir().path_join("terraintype.dat"))
+	IafSurface.load(surface_types_file())
 	_bake_bounds = IafBases.bounds() if _bases_moved else PackedFloat64Array()
 	if _bases_moved:
 		_fill_sources()

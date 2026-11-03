@@ -9,7 +9,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail, ensure};
-use iaf_tools::{georef::Georef, sim, training};
+use iaf_tools::{sim, training};
 
 const USAGE: &str = "usage: iaf-training score <flight.jsonl> <mission.json> [airbases-dir] [--json <out.json>]";
 
@@ -33,7 +33,7 @@ fn main() -> Result<()> {
     let f = training::parse_flight(&read(flight)?).with_context(|| flight.clone())?;
     let m = serde_json::from_str(&read(mission)?).with_context(|| mission.clone())?;
     let airbases: Vec<_> = sim::read_dir(&dir)?.into_iter().map(|f| f.v).collect();
-    let d = training::score(&f, &m, &airbases, &Georef::load()?)?;
+    let d = training::score(&f, &m, &airbases)?;
     print!("{}", d.summary());
     if let Some(p) = out {
         std::fs::write(&p, serde_json::to_string_pretty(&d.to_json())? + "\n").with_context(|| p)?;

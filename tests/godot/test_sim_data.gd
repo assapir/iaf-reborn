@@ -1,8 +1,9 @@
 # IAF 2026's compiled data (iaf-sim, iaf-2026/docs/data-formats.md) through the shared readers, unchanged: every
 # compiled mission and its object database (sim.bdb) load as the game reads them (MissionRuntime, PlayerAircraft,
-# weapon_db.gd with the modern weapons on our bases), the own weapons.ibx parses, and the Ramat David start-up flies
-# from its parking spot in World scale Real as the mission editor's Fly runs a mission
-# (Settings.mission_files_override).
+# weapon_db.gd with the modern weapons on our bases), the own weapons.ibx parses, and the Ramat David start-up loads
+# into a flight as the mission editor's Fly runs a mission (Settings.mission_files_override). Its places are the sim's
+# UTM frame (iaf-2026/docs/terrain.md), so the flight streams the sim's theatre (IAF_THEATRE=israel, set by the test;
+# NEEDS DATA without it); the M0 probe (iaf-2026/tests/test_m0_boot.gd) flies it on the sim's own bases.
 # It compiles the data first with the release binary target/release/iaf-sim (tools/test.sh builds it; NEEDS DATA
 # without it). That writes only IAF 2026's own output into the shared assets/ (iaf-2026/docs/data-formats.md):
 # converted/missions/sim.bdb.json, the "sim.bdb" key of converted/objects/objects.json, the own weapons.ibx under
@@ -12,7 +13,7 @@ extends "res://../tests/godot/base.gd"
 
 const MISSIONS := "converted/iaf-2026/missions"
 const IBX := "converted/own/resource/weaponsmotion/weapons.ibx"
-## The mission flown: Ramat David's apron lies in the zone World scale Real moves the original's base over (7 km).
+## The mission loaded.
 const FLY := "ramat_david_startup"
 
 
@@ -52,8 +53,6 @@ func run() -> void:
 		)
 		check(not PA.object_for(int(obj.get("0x5b4", -1)), bdb, false).is_empty(), "%s: its jet object" % name)
 		check(MR.flight_slots(m).has(1), "%s: flight slot 1" % name)
-		if name.begins_with("nevatim"):  # no game base there until B2: the file says so
-			check(String(m.get("sim", {}).get("note", "")).contains("B2"), "%s: its no-base note" % name)
 		if first.is_empty() or name == FLY:
 			first = {"name": name, "id": int(id), "data": m, "bdb": bdb}
 	var db = Db.create(first.bdb, false)
@@ -76,13 +75,15 @@ func run() -> void:
 			gun = s
 	check(float(String(gun.get("_velocityJump", "0"))) == 1030.0, "own weapons.ibx: the gun's muzzle velocity 1030")
 
-	# Fly Ramat David's start-up from its parking spot, in World scale Real: the
-	# compiled file is in the real frame already ("frame": "real"), so the base move leaves it where it is.
+	# Load Ramat David's start-up: the compiled file is in the real frame ("frame": "real"), so no base move touches
+	# its start.
 	var start: Dictionary = MR.player_flight(first.data, 1).entity
-	settings().world_scale = "real"
-	settings().sync_bases()
-	var moved: PackedFloat64Array = settings().base_moved(float(start["0x2e4"]), float(start["0x2ee"]))
-	check(not moved.is_empty(), "World scale Real moves the original's Ramat David over the apron: %s" % [moved])
+	check(String(first.data.get("frame", "")) == "real", "the compiled mission is in the real frame")
+	if not FileAccess.file_exists(a.path_join("converted/terrain/israel/meta.json")):
+		print("NEEDS DATA: the sim's theatre (iaf-sim terrain)")
+		await _quit(2)
+		await create_timer(3600, true, false, true).timeout
+	OS.set_environment("IAF_THEATRE", "israel")
 	settings().mission_files_override = [{"name": first.name, "data": first.data}]
 	var tv: Node = await start_mission(first.id)
 	check(String(tv.mission_bdb.get("_file", "")) == "sim.bdb", "flight: the mission's bdb is sim.bdb")
@@ -93,5 +94,5 @@ func run() -> void:
 		["0x2e4", "0x2ee", "0x2f8", "0x302"].all(func(k): return float(e[k]) == float(start[k])),
 		"flight: the start is the compiled one (%s, %s, %s m, %s°)" % [e["0x2e4"], e["0x2ee"], e["0x2f8"], e["0x302"]]
 	)
-	check(tv.flight.state().on_ground, "flight: the jet stands on the ground")
 	settings().mission_files_override = []
+	OS.unset_environment("IAF_THEATRE")

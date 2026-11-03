@@ -674,7 +674,7 @@ func runway_wind(id: int, misc: Dictionary) -> Array:
 	_flight_wind_id = id
 	var kt := 0.0 if flight_wind.is_empty() or no_wind or id in TRAINING_MISSIONS else float(flight_wind[0])
 	if ClassDB.class_exists("IafBases"):
-		IafBases.set_wind(kt, float(flight_wind[1]) if kt > 0.0 else 0.0, assets_dir(), own_dir())
+		IafBases.set_wind(kt, float(flight_wind[1]) if kt > 0.0 else 0.0, airbases_file(), own_dir())
 	return flight_wind
 
 
@@ -703,7 +703,7 @@ func clear_runway_wind() -> void:
 	flight_weather = ""
 	_flight_weather_for = ""
 	if ClassDB.class_exists("IafBases"):
-		IafBases.set_wind(0.0, 0.0, assets_dir(), own_dir())
+		IafBases.set_wind(0.0, 0.0, airbases_file(), own_dir())
 
 
 ## World scale Real: every airbase at its real place (docs/world-scale.md §3.3). Sets up the extension's base moves
@@ -830,6 +830,13 @@ func fm_section(_type: int) -> String:
 func theatre_dir() -> String:
 	var t := OS.get_environment("IAF_THEATRE")
 	return "converted/terrain".path_join(t if t != "" else "theatre")
+
+
+## The airbases' runways, taxi lines and paved masks (airbases.gd, the tower's wind turn): the theatre's own
+## `airbases.json` when it has one (IAF 2026's, `iaf-sim airbases`), else the original's converted one.
+func airbases_file() -> String:
+	var own := assets_dir().path_join(theatre_dir()).path_join("airbases.json")
+	return own if FileAccess.file_exists(own) else assets_dir().path_join("converted/terrain/airbases.json")
 
 
 ## The key table (key_table.gd): assets/converted/keys.json, converted from the exe by `iaf-convert keys`.
