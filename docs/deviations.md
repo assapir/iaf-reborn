@@ -510,6 +510,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - New content: the data and the wall textures (ambientCG, CC0) are third-party, downloaded by setup; the tree
     models, the facades (wall colours, windows, shutters, loggias, AC units) and the roof clutter (solar water
     heaters, tanks, stair heads) are our own.
+  - Far towns (Graphics → MORE, under Scenery; default Full, every building to the scenery's 4.5 km): Light draws a
+    dense town's buildings beyond the near model's 2.5 km only when they are 15 m tall or 1000 m² and up, for less
+    GPU time over large towns (scenery.md §3.1). An IAF 2026 enhancement (iaf-2026/docs/shared.md).
 - **Particle effects** (ours, docs/rendering.md §6). Rendering only; the default is Original (the soft billboards and the
   trail ribbons).
   - Detailed: explosions, smoke and missile trails are GPU particles. Each original spawn keeps its time, place,

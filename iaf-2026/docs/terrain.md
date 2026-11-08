@@ -238,8 +238,65 @@ the terrain data; the pictures (`pale500` in the progress page's B1 section) set
   made-up ground shows (open: no list of them).
 - **Survey and Sentinel-2 look**: the per-sheet colour match leaves the 2 m photo crisper and a little lighter than
   the 8 m nodes around it; the step shows at an airbase outline and at the coverage's edge.
-- **Surface types**: the theatre has no `terraintype.dat` yet (water, runways): B2b.
 - **Heights at 64 m**: §3.
+
+## 11. Inland water
+
+`iaf-sim airbases` writes the sim's `terraintype.dat` ([data-formats.md](data-formats.md) §12). Besides the sea and
+the runways it flags inland water (0x2) on its 64 m grid: OpenStreetMap's standing water[^osm], cut from the extracts
+the road layer reads (Israel and Palestine, Lebanon, Syria, Jordan, Egypt; [scenery.md](scenery.md) §1). A body is
+kept when it is:
+
+- a lake, reservoir, pond, lagoon or salt pond: a `natural=water`, `landuse=reservoir` or `landuse=salt_pond` polygon
+  whose `water` tag names standing water (a river's, stream's or canal's polygon is its bed, and stays land);
+- there all year: not tagged `intermittent` or `seasonal` (the desert's salt pans, dry in the satellite's pictures,
+  such as the 148 km² sabkha east of Ma'an);
+- 10 ha or more (`WATER_MIN_M2`, about 24 grid cells; inferred: a smaller body is a cell or two).
+
+Its islands (inner rings) stay land, and the sea's flag wins where both are. The polygons are also saved beside the
+theatre (`water.json`): the scenery keeps its trees and buildings off them ([scenery.md](scenery.md) §4).
+
+Measured 2026-11-03: 316 bodies, 1,144 km²; the cut takes about 40 s of the step's 47 s.
+
+The flight model takes both waters as water (`SURFACE_WATER` 0x6), and the water shader (Preferences "Water",
+docs/rendering.md §1.3) draws waves on the photo's blue-green pixels inside them. The heights are the DEM's: GLO-30
+edits each lake to one flat surface, and the step logs that surface's median for the lakes over 50 km²:
+
+| Water body | Area (OSM) | Surface in the DEM | Published level |
+|---|---|---|---|
+| The Dead Sea (northern basin) | 602 km² | −427.0 m | −427.8 m in January 2013[^ds2013]; −439.78 m in 2025, falling more than 1 m a year[^ds2025] |
+| The Sea of Galilee | 168 km² | −214.5 m | between −215 and −209 m with the rain; the lower red line −213.2 m, the record low −214.87 m (November 2001)[^kin] |
+| The Dead Sea Works' evaporation pans (Israel) | 59 and 76 km² | −390 m, −391 m | open |
+| The Arab Potash Company's evaporation pans (Jordan) | 101 km² | −395 m | open |
+
+The DEM's surfaces are those of its radar passes (2011–2015, inferred from the levels: the Dead Sea's −427 m matches
+early 2013). The Dead Sea has fallen about 13 m since, so the theatre's lake lies 13 m above today's; its shore is the
+OSM polygon of 2026, smaller than the DEM's flat surface, so the exposed seabed between them is land at −427 m
+(open: lowering the lake to today's level).
+
+## 12. The coastline
+
+OpenStreetMap's coastline (`natural=coastline`)[^osm] is the sea's one boundary near the shore (2026-11-08,
+`crates/iaf-tools/src/sim_coast.rs`). Its ways keep the land on their left and the water on their right (the OSM
+rule); within 300 m of them (`COAST_REACH_M`) that side decides, farther out the DEM's 0 m cells joined to the edge
+do (`sea_cells`):
+
+- **The colour**: with the Survey, the 2 m photo gives way to Sentinel-2 on the coastline's water side, and near the
+  coast its near-white pixels (all bands 235 or more: the sheets' white no-data with its JPEG noise) are left out
+  too. Before, the sea mask (the DEM's 0 m cells) and the photo disagreed along the shore, and the sheets' white
+  border showed as white patches off Tel Aviv and Ashdod (a Mac run, 2026-11-08). The Survey units the coastline
+  crosses have their own marks (`survey_2m_shore`), so they ran again once; the theatre's `built_from` holds the
+  extracts' hashes.
+- **The surface flags**: `terraintype.dat`'s sea follows the coastline to 16 m (`COAST_LEAF_M`) within its reach; the
+  flight model's water test and the water shader's mask (96 m texels, docs/rendering.md §1.3) read it.
+
+The extracts are the ones the inland water is cut from (§11), downloaded by `iaf-sim terrain` (with the Survey) and
+`iaf-sim airbases` when missing. Where an extract has no coastline (Saudi Arabia's shore of the Gulf of Aqaba is in
+none of them) the DEM decides.
+
+Check: `cargo test -p iaf-tools --lib sim_coast` (the sides, a corner, the reach) and `sim_terrain::tests::
+the_shore_follows_the_coastline` (data: 50 points along the coastline from Tel Aviv to Ashdod, 20 m seaward sea and no
+near-white pixel, 20 m landward land; skipped on a theatre built before the coastline).
 
 [^dem]: ESA, "Copernicus DEM: Product Handbook" and the collection description, https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM
 [^dem-licence]: "Licence for the use of the Copernicus WorldDEM-30", Article 6, read 2026-11-02, https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/DEM/resources/license/License-COPDEM-30.pdf
@@ -247,3 +304,9 @@ the terrain data; the pictures (`pale500` in the progress page's B1 section) set
 [^wc]: ESA WorldCover 2021 Sentinel-2 RGBNIR composite, "Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium" (CC BY 4.0), https://esa-worldcover.org
 [^soi]: Survey of Israel, orthophoto 2015, 2 m, via data.gov.il (docs/imagery-sources.md §2.1)
 [^osm]: OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright
+[^ds2013]: The Jerusalem Post, "Despite winter storms Dead Sea water level continues to fall" (the Water Authority's
+    Hydrological Service: 427.82 m below sea level in early January), https://www.jpost.com/Enviro-Tech/Despite-winter-storms-Dead-Sea-water-level-continues-to-fall-337432
+[^ds2025]: Wikipedia, "Dead Sea" (read 2026-11-03: "As of 2025, the lake's surface is 439.78 metres below sea level"),
+    https://en.wikipedia.org/wiki/Dead_Sea
+[^kin]: Wikipedia, "Sea of Galilee" (read 2026-11-03: the level between 215 and 209 m below sea level, the red lines
+    208.9 and 213.2 m, the lowest level since 1969 in November 2001), https://en.wikipedia.org/wiki/Sea_of_Galilee

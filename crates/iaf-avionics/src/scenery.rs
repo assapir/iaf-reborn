@@ -924,12 +924,27 @@ impl Builder<'_> {
 }
 
 /// Which buildings a mesh holds: Scenery On's near model, Detailed's near model (the same, plus the street in front
-/// of each wall for the facades' occlusion), or the far model.
+/// of each wall for the facades' occlusion), the far model, or the light far model (Graphics → MORE "Far towns"
+/// Light: in a dense cell only the tall or large buildings, `far_light_keeps`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Model {
     Far,
+    FarLight,
     Near,
     Detailed,
+}
+
+/// The light far model's rule (docs/scenery.md §3.1): a cell of DENSE_CELL buildings or more (a town's centre) keeps
+/// in its far mesh only the buildings of FAR_MIN_HEIGHT m or FAR_MIN_AREA m² and up: its skyline and its halls. A
+/// sparser cell keeps every building. Inferred from Tel Aviv's and Beersheba's cells: 3,400–5,000 buildings in the
+/// centre's cells; 27 % of Tel Aviv's and 9 % of Beersheba's at 15 m or more.
+pub const DENSE_CELL: usize = 2000;
+pub const FAR_MIN_HEIGHT: f32 = 15.0;
+pub const FAR_MIN_AREA: f64 = 1000.0;
+
+/// Whether the light far model keeps building `b` of `cell`.
+pub fn far_light_keeps(cell: &Cell, b: &Building) -> bool {
+    cell.buildings.len() < DENSE_CELL || b.height >= FAR_MIN_HEIGHT || area(&b.points) >= FAR_MIN_AREA
 }
 
 /// A cell's buildings as one mesh: near = walls, a flat roof with a parapet (gabled / dome roofs as tagged), far = bare
@@ -956,7 +971,7 @@ pub fn mesh_chunks(
     tile: f64,
     max_vertices: usize,
 ) -> Option<Vec<Mesh>> {
-    let near = model != Model::Far;
+    let near = matches!(model, Model::Near | Model::Detailed);
     let tile_of = |b: &Building| {
         let c = b.centroid();
         (((origin[1] - f64::from(c[1])) / tile).floor() as i64, ((f64::from(c[0]) - origin[0]) / tile).floor() as i64)
@@ -978,7 +993,7 @@ pub fn mesh_chunks(
     let mut last_tile = None;
     for k in order {
         let b = &cell.buildings[k];
-        if b.points.len() < 3 {
+        if b.points.len() < 3 || (model == Model::FarLight && !far_light_keeps(cell, b)) {
             continue;
         }
         let t = tile_of(b);
@@ -1519,6 +1534,24 @@ mod tests {
         assert_eq!(roof_rows(&cell, [0.0, 0.0], FLAT).unwrap(), rows, "seeded");
         let tiles = roof_tiles(&cell, [0.0, 0.0], 500.0, FLAT).unwrap();
         assert_eq!(tiles.iter().map(|t| t.1.len()).sum::<usize>(), all.len() * 16);
+    }
+
+    /// The light far model: a dense cell keeps its tower and its hall in the far mesh, not its houses; a sparse cell
+    /// and the plain far model keep everything; the near model is the same either way.
+    #[test]
+    fn light_far_model_keeps_a_dense_cells_skyline() {
+        let verts = |c: &Cell, m: Model| mesh(c, [0.0, 0.0], m, false, FLAT).unwrap().vertex.len();
+        let one = verts(&Cell { buildings: vec![house(0.0, 0.0, 10.0, 6.0, Roof::Flat)], trees: vec![] }, Model::Far);
+        let mut dense: Vec<Building> = (0..DENSE_CELL)
+            .map(|k| house((k % 50) as f32 * 30.0, (k / 50) as f32 * 30.0, 10.0, 6.0, Roof::Flat))
+            .collect();
+        dense.push(house(2000.0, 0.0, 10.0, 40.0, Roof::Flat)); // a tower
+        dense.push(house(2000.0, 500.0, 60.0, 8.0, Roof::Flat)); // a hall of 1800 m²
+        let dense = Cell { buildings: dense, trees: vec![] };
+        assert_eq!(verts(&dense, Model::FarLight), 2 * one, "the tower and the hall");
+        assert_eq!(verts(&dense, Model::Far), (DENSE_CELL + 2) * one);
+        let sparse = Cell { buildings: dense.buildings[..10].to_vec(), trees: vec![] };
+        assert_eq!(verts(&sparse, Model::FarLight), verts(&sparse, Model::Far));
     }
 
     #[test]

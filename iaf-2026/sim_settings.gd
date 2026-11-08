@@ -34,6 +34,8 @@ const PROFILE := {
 	"flight_data": "real",
 	"weapon_data": "real",
 	"f15_variant": "raam",
+	# Its towns are denser over the whole theatre (iaf-2026/docs/scenery.md §6).
+	"scenery_far": "light",
 }
 ## No aids (the user, 2026-11-08): the original's Gameplay page's switches, all off (easy_landing's default is on).
 ## Applied with PROFILE; never logged (has_setting): the sim has no such switch.
@@ -243,6 +245,21 @@ func own_dir() -> String:
 ## Modern IAF's theatre: UTM 36N at 1:1 from open data (`iaf-sim terrain`, iaf-2026/docs/terrain.md).
 func theatre_dir() -> String:
 	return "converted/terrain/israel"
+
+
+## The scenery and the road layer of the theatre, in its frame, under assets/converted (`iaf-sim scenery`,
+## iaf-2026/docs/scenery.md).
+func scenery_dir() -> String:
+	return "terrain/israel/scenery"
+
+
+func roads_dir() -> String:
+	return "terrain/israel/roads"
+
+
+## The theatre's ground is its own photo everywhere: the scenery stands on all of it.
+func scenery_everywhere() -> bool:
+	return true
 
 
 func keys_file() -> String:

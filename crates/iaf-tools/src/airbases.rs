@@ -17,7 +17,7 @@ use crate::progress::{par_map, par_map_all};
 
 /// Engine metres (X east, Y north) → terrain units (x east, y south).
 pub fn units(x: f64, y: f64) -> [f64; 2] {
-    [(x + 166850.0) / UNITS_TO_METRES, (1043780.0 - y) / UNITS_TO_METRES]
+    iaf_avionics::frame::GAME.units(x, y)
 }
 
 /// The footprint raster's level: its cells are that level's pixels (4 units, ≈ 5 m).

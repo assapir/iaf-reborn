@@ -220,10 +220,10 @@ fn way_f32(r: &Roads, w: u32) -> Vec<[f32; 2]> {
     r.way_index(w).iter().map(|&i| r.points[i as usize]).collect()
 }
 
-/// The roads per block (`iaf_avionics::roads::block_of`): each way cut where it crosses a block's edge, at a point on
-/// the edge both pieces hold.
-pub fn split_blocks(r: &Roads) -> BTreeMap<(i32, i32), Roads> {
-    let s = BLOCK_UNITS * crate::georef::UNITS_TO_METRES;
+/// The roads per block of `frame` (a level-3 node, `iaf_avionics::frame::Frame::node_of`): each way cut where it crosses a block's
+/// edge, at a point on the edge both pieces hold.
+pub fn split_blocks(r: &Roads, frame: Frame) -> BTreeMap<(i32, i32), Roads> {
+    let s = frame.span(BLOCK_LEVEL) * frame.m_per_unit;
     let mut lines: BTreeMap<(i32, i32), Vec<Line>> = BTreeMap::new();
     for w in 0..r.ways.len() as u32 {
         let pts = way_f32(r, w);
@@ -231,9 +231,9 @@ pub fn split_blocks(r: &Roads) -> BTreeMap<(i32, i32), Roads> {
         let mut cur_block = None;
         for seg in pts.windows(2) {
             let (a, b) = ([seg[0][0] as f64, seg[0][1] as f64], [seg[1][0] as f64, seg[1][1] as f64]);
-            // The edges crossed: x = k·s − 166850 and y = 1043780 − k·s.
+            // The edges crossed: x = k·s + x_shift and y = y_shift − k·s.
             let mut ts: Vec<f64> = Vec::new();
-            for (axis, off, sign) in [(0, 166850.0, 1.0), (1, 1043780.0, -1.0)] {
+            for (axis, off, sign) in [(0, -frame.x_shift, 1.0), (1, frame.y_shift, -1.0)] {
                 let (u0, u1) = ((sign * a[axis] + off) / s, (sign * b[axis] + off) / s);
                 for k in (u0.min(u1).floor() as i64 + 1)..=(u0.max(u1).ceil() as i64 - 1) {
                     ts.push((k as f64 - u0) / (u1 - u0));
@@ -246,7 +246,8 @@ pub fn split_blocks(r: &Roads) -> BTreeMap<(i32, i32), Roads> {
                 let at = |t: f64| [a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])];
                 let q = if t >= 1.0 { seg[1] } else { at(t).map(|v| v as f32) };
                 let m = at((t0 + t) * 0.5);
-                let blk = block_of(m);
+                let blk = frame.node_of(BLOCK_LEVEL, m);
+                let blk = (blk.0 as i32, blk.1 as i32);
                 if cur_block.is_some_and(|c| c != blk) {
                     let last = *cur.last().unwrap();
                     lines
@@ -282,7 +283,7 @@ pub struct Summary {
 
 /// The extracts to read, in order: Israel and Palestine (the scenery's, required), then each other country
 /// downloaded (`thirdparty::ROADS`, optional).
-fn inputs(assets: &Path) -> Result<Vec<(&'static thirdparty::Download, PathBuf)>> {
+pub(crate) fn inputs(assets: &Path) -> Result<Vec<(&'static thirdparty::Download, PathBuf)>> {
     let osm = thirdparty::SCENERY.iter().find(|d| d.file.starts_with("israel-and-palestine")).context("no OSM")?;
     let src = assets.join("source/scenery");
     if !thirdparty::file_done(&src, osm) {
@@ -353,20 +354,64 @@ pub fn clip(w: &mut RawWay, geo: [f64; 4]) {
 /// The road file (module doc) into `assets/converted/roads`: up to date when its manifest says it was made from the
 /// same extracts and rules. Needs GDAL's ogr2ogr and the Israel and Palestine extract.
 pub fn build(assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary> {
-    let started = std::time::Instant::now();
     let inputs = inputs(assets)?;
     let out = assets.join("converted/roads");
-    let manifest_p = out.join("manifest.json");
     let made = made_from(assets, &inputs);
-    if let Ok(m) = std::fs::read(&manifest_p).map(|b| serde_json::from_slice::<Value>(&b).unwrap_or(Value::Null))
-        && m["made_from"] == made.as_str()
-    {
+    if up_to_date(&out, &made) {
         return Ok(Summary { up_to_date: true, ..Summary::default() });
     }
-    std::fs::create_dir_all(&out)?;
     let georef = Georef::load()?;
     let theatre = Theatre::load(&assets.join("converted/terrain/theatre"))?;
     let box_geo = theatre_geo(&georef, theatre.rect);
+    let install = assets.join("install");
+    let rules = Rules::load(&install, false, &theatre)?;
+    let moves = base_moves(&install, &assets.join("converted/terrain"));
+    let ring = iaf_flight::base_move::RING;
+    // The open land: off the airbases and World scale Real's sites, on land.
+    let open = |p: [f64; 2]| {
+        let t = airbases::units(p[0], p[1]);
+        rules.ground_open(t[0], t[1]) && !moves.bases.iter().any(|b| b.in_old(p, 0.0) || b.to_game(p, ring).is_some())
+    };
+    let to_engine = |lon: f64, lat: f64| georef.geo_to_engine(lon, lat);
+    let t = Target { out, frame: GAME, box_geo, to_engine: &to_engine, open: &open, made };
+    make(&t, &inputs, pr, cancel)
+}
+
+/// Whether `out`'s manifest says it was made from `made`.
+pub(crate) fn up_to_date(out: &Path, made: &str) -> bool {
+    std::fs::read(out.join("manifest.json"))
+        .ok()
+        .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
+        .is_some_and(|m| m["made_from"] == made)
+}
+
+/// Where and in which frame `make` writes a road layer: the 1998 game's (`build`) or Modern IAF's theatre
+/// (`sim_scenery`).
+pub(crate) struct Target<'a> {
+    pub out: PathBuf,
+    /// The frame the blocks are cut in; another than the 1998 game's is written into the manifest ("frame").
+    pub frame: Frame,
+    /// The theatre's box [lon0, lat0, lon1, lat1]: the ways are cut to it.
+    pub box_geo: [f64; 4],
+    /// (lon, lat) → engine metres (the warp is made over the ways' box on this).
+    pub to_engine: &'a (dyn Fn(f64, f64) -> [f64; 2] + Sync),
+    /// True on the game's open land (engine metres): a way piece elsewhere is kept with `FLAG_OFF_GROUND`.
+    pub open: &'a (dyn Fn([f64; 2]) -> bool + Sync),
+    /// The manifest's `made_from`.
+    pub made: String,
+}
+
+/// The road layer of the extracts `inputs` into `t.out`.
+pub(crate) fn make(
+    t: &Target,
+    inputs: &[(&thirdparty::Download, PathBuf)],
+    pr: &dyn Progress,
+    cancel: &AtomicBool,
+) -> Result<Summary> {
+    let started = std::time::Instant::now();
+    let out = &t.out;
+    let box_geo = t.box_geo;
+    std::fs::create_dir_all(out)?;
     let list = HIGHWAYS.iter().flat_map(|h| [format!("'{h}'"), format!("'{h}_link'")]).collect::<Vec<_>>().join(",");
     let lines = out.join("osm-lines.geojsonl");
     // A way in two extracts (they overlap at the borders) is kept once: the copy with the most points.
@@ -376,7 +421,7 @@ pub fn build(assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Su
         let t0 = std::time::Instant::now();
         let _ = std::fs::remove_file(&lines);
         let mut cmd = Command::new("ogr2ogr");
-        cmd.env("CPL_TMPDIR", &out)
+        cmd.env("CPL_TMPDIR", out)
             .args(["-f", "GeoJSONSeq", "-where", &format!("highway IN ({list}) OR railway = 'rail'")])
             .args(["-select", "osm_id,highway,railway,other_tags", "-spat"])
             .args(box_geo.map(|v| v.to_string()))
@@ -408,7 +453,7 @@ pub fn build(assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Su
         pr.fraction(0.6 * (k + 1) as f32 / inputs.len() as f32);
     }
 
-    // The warp over the ways' box; the open land: off the airbases and World scale Real's sites, on land.
+    // The warp over the ways' box.
     let geo =
         ways.iter().flat_map(|w| w.parts.iter().flatten()).fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, p| {
             [b[0].min(p[0]), b[1].min(p[1]), b[2].max(p[0]), b[3].max(p[1])]
@@ -416,17 +461,9 @@ pub fn build(assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Su
     if geo[0] > geo[2] {
         bail!("no road in the extracts");
     }
-    let warp = Warp::new(&georef, [geo[0] - 0.01, geo[1] - 0.01, geo[2] + 0.01, geo[3] + 0.01], 0.005);
-    let install = assets.join("install");
-    let rules = Rules::load(&install, false, &theatre)?;
-    let moves = base_moves(&install, &assets.join("converted/terrain"));
-    let ring = iaf_flight::base_move::RING;
-    let open = |p: [f64; 2]| {
-        let t = airbases::units(p[0], p[1]);
-        rules.ground_open(t[0], t[1]) && !moves.bases.iter().any(|b| b.in_old(p, 0.0) || b.to_game(p, ring).is_some())
-    };
+    let warp = Warp::new(t.to_engine, [geo[0] - 0.01, geo[1] - 0.01, geo[2] + 0.01, geo[3] + 0.01], 0.005);
     check(cancel)?;
-    let roads = convert(&ways, &|lon, lat| warp.at(lon, lat), &open);
+    let roads = convert(&ways, &|lon, lat| warp.at(lon, lat), t.open);
     pr.fraction(0.8);
     let main = Roads::from_lines(
         (0..roads.ways.len() as u32)
@@ -444,7 +481,7 @@ pub fn build(assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Su
         std::fs::remove_dir_all(&l3)?;
     }
     std::fs::create_dir_all(&l3)?;
-    let blocks = split_blocks(&roads);
+    let blocks = split_blocks(&roads, t.frame);
     let mut s = Summary { points: roads.points.len(), bytes: main_data.len() as u64, ..Summary::default() };
     for ((i, j), b) in &blocks {
         let data = b.encode();
@@ -459,10 +496,10 @@ pub fn build(assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Su
     }
     let by_class: serde_json::Map<String, Value> =
         CLASS_NAMES.iter().zip(s.ways).map(|(n, c)| (n.to_string(), json!(c))).collect();
-    let manifest = json!({
+    let mut manifest = json!({
         "name": "roads",
         "version": ROADS_VERSION,
-        "made_from": made,
+        "made_from": t.made,
         "attribution": [format!(
             "© OpenStreetMap contributors (openstreetmap.org/copyright), roads: Geofabrik extracts of 2026-01-01 ({})",
             inputs.iter().map(|(d, _)| country(d.file)).collect::<Vec<_>>().join(", ")
@@ -473,7 +510,16 @@ pub fn build(assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Su
         "blocks": s.blocks,
         "ways": by_class,
     });
-    std::fs::write(&manifest_p, serde_json::to_string_pretty(&manifest)? + "\n")?;
+    // The original game's manifest as it always was (pretty); another frame's compact, with its frame.
+    let text = if t.frame == GAME {
+        serde_json::to_string_pretty(&manifest)?
+    } else {
+        let f = t.frame;
+        manifest["frame"] = json!({"x_shift": f.x_shift, "y_shift": f.y_shift, "units_to_metres": f.m_per_unit,
+            "node_pixels": f.node_pixels});
+        serde_json::to_string(&manifest)?
+    };
+    std::fs::write(out.join("manifest.json"), text + "\n")?;
     log!(
         pr,
         "roads: {} ways ({}), {} points; main.bin {:.1} MB, {} blocks (largest {:.1} MB), {:.1} MB in all, in {}",
@@ -501,11 +547,11 @@ mod tests {
 
     #[test]
     fn blocks_cut_at_their_edges() {
-        let e = block_rect(100, 300);
+        let e = GAME.node_rect(BLOCK_LEVEL, 100, 300);
         let (y, x0, x1) = ((e[1] + e[3]) * 0.5, e[0] + 100.0, e[2] + 2000.0);
         let way = Way { osm_id: 1, first: 0, count: 0, class: CLASS_PRIMARY, flags: 0, layer: 0, width: 8.0 };
         let r = Roads::from_lines([(way, &[[x0 as f32, y as f32], [x1 as f32, y as f32]][..])]);
-        let b = split_blocks(&r);
+        let b = split_blocks(&r, GAME);
         assert_eq!(b.keys().copied().collect::<Vec<_>>(), [(100, 300), (101, 300)]);
         let (w, east) = (&b[&(100, 300)], &b[&(101, 300)]);
         let edge = w.points[w.way_index(0)[1] as usize];

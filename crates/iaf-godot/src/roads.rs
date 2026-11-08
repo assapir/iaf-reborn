@@ -16,9 +16,10 @@ use iaf_avionics::roads::*;
 /// A block range: its first and last block.
 type Blocks = ((i32, i32), (i32, i32));
 
-#[derive(Default)]
 struct Store {
     dir: PathBuf,
+    /// The frame the blocks are cut in (`manifest.json` "frame"; the 1998 game's without it).
+    frame: Frame,
     main: Option<Arc<Roads>>,
     /// Blocks read (None: no file there), oldest first in `order`.
     blocks: HashMap<(i32, i32), Option<Arc<Roads>>>,
@@ -42,6 +43,16 @@ static STORE: Mutex<Option<Store>> = Mutex::new(None);
 /// The blocks with a file, once the layer is open (the city lights' road lamps beyond their own blocks).
 pub(crate) fn block_keys() -> Vec<(i32, i32)> {
     STORE.lock().unwrap().as_ref().map(|s| s.keys.clone()).unwrap_or_default()
+}
+
+/// The block (level-3 node) holding an engine point.
+fn block_at(f: Frame, p: [f64; 2]) -> (i32, i32) {
+    let (i, j) = f.node_of(BLOCK_LEVEL, p);
+    (i as i32, j as i32)
+}
+
+fn frame() -> Frame {
+    STORE.lock().unwrap().as_ref().map_or(GAME, |s| s.frame)
 }
 
 fn main() -> Option<Arc<Roads>> {
@@ -75,7 +86,8 @@ pub(crate) fn block(i: i32, j: i32) -> Option<Arc<Roads>> {
 /// The blocks meeting the rect, read as needed.
 fn blocks(min: [f64; 2], max: [f64; 2]) -> Vec<Arc<Roads>> {
     // Block j grows southwards: the rect's north edge is the least j.
-    let (a, b) = (block_of([min[0], max[1]]), block_of([max[0], min[1]]));
+    let f = frame();
+    let (a, b) = (block_at(f, [min[0], max[1]]), block_at(f, [max[0], min[1]]));
     (a.1..=b.1).flat_map(|j| (a.0..=b.0).filter_map(move |i| block(i, j))).collect()
 }
 
@@ -114,7 +126,8 @@ fn graph_for(min: [f64; 2], max: [f64; 2], max_class: u8) -> Option<Arc<Roads>> 
     if max_class <= MAIN_CLASS {
         return main();
     }
-    let (a, b) = (block_of([min[0], max[1]]), block_of([max[0], min[1]]));
+    let f = frame();
+    let (a, b) = (block_at(f, [min[0], max[1]]), block_at(f, [max[0], min[1]]));
     if ((b.0 - a.0 + 1) * (b.1 - a.1 + 1)) as usize > MAX_ROUTE_BLOCKS {
         return None;
     }
@@ -174,7 +187,27 @@ impl IafRoads {
                 Some((i.parse().ok()?, j.parse().ok()?))
             })
             .collect();
-        *g = Some(Store { dir, main: Some(Arc::new(main)), keys, ..Default::default() });
+        // Modern IAF's road layer is cut in its theatre's frame (iaf-2026/docs/scenery.md).
+        let m: serde_json::Value = std::fs::read(dir.join("manifest.json"))
+            .ok()
+            .and_then(|b| serde_json::from_slice(&b).ok())
+            .unwrap_or_default();
+        let f = &m["frame"];
+        let frame = match (f["x_shift"].as_f64(), f["y_shift"].as_f64(), f["units_to_metres"].as_f64()) {
+            (Some(x_shift), Some(y_shift), Some(m_per_unit)) => {
+                Frame { x_shift, y_shift, m_per_unit, node_pixels: f["node_pixels"].as_f64().unwrap_or(1024.0) }
+            }
+            _ => GAME,
+        };
+        *g = Some(Store {
+            dir,
+            frame,
+            main: Some(Arc::new(main)),
+            blocks: HashMap::new(),
+            order: VecDeque::new(),
+            merged: None,
+            keys,
+        });
         true
     }
 

@@ -161,7 +161,19 @@ code reads ([data-formats.md](data-formats.md) §12):
   the sim does not have, so it drew no runway, taxiway or apron (the Mac run of 2026-11-08);
 - `converted/own/iaf.ibx`: tower, lineup and take-off heading, the AI's taxi paths and the parking spots, read by the
   flight model (the start rule, the AI's ground control) and the radio;
-- `converted/own/terraintype.dat`: runway and sea flags for the flight model and the water shader.
+- `converted/own/terraintype.dat`: runway, sea and inland-water flags for the flight model and the water shader
+  (inland water since item B3, [terrain.md](terrain.md) §11); since 2026-11-08 the taxiways, aprons and shelters'
+  pads and the AI's taxi paths from every spot (23 m wide) too, as paved ground without the runway flag: before, only the runways' rectangles were paved, so a jet
+  taxiing off its spot faster than 25.7 m/s (50 kt) crashed on "rough ground" (the original's rule; a Mac run's log).
+- the taxiway signs in `airbases.json` (2026-11-08): at each taxiway's runway-holding position, 90 m from the
+  runway's centreline (ICAO Annex 14 Table 3-2, code 4 instrument runway), a mandatory sign (white on red) with the
+  runway's designations, the threshold on the taxiing jet's left first ("25R-07L"); before each junction of three or
+  more taxiways, 40 m back on every arriving taxiway (inferred), a direction sign (black on yellow) with one board
+  per other branch that leads to a runway: an arrow for the turn (to 45°) and the designator of the end nearer where
+  that branch joins the runway. Each sign stands on the jet's left, 12 m past the taxiway's edge (Annex 14 Table 5-5).
+  OpenStreetMap names none of these taxiways (no `ref`), so there are no location signs (yellow on black).
+  `sign_boards.gd board()` builds them (a 0.9 m face, the lettering in the sim's display font), `airbases.gd` stands
+  the nearest base's signs on the ground; nothing of the original's sign models.
 
 | base | section | take-off | lineup (UTM 36N) | taxi points out / in | tower |
 |---|---|---|---|---|---|
@@ -174,7 +186,7 @@ The take-off ends and the lineup rule are inferred (data-formats.md §12). The m
 §5 at the terrain's ground height and their runway starts on these lineup points.
 
 What the flight takes from them (the M0 probe, `iaf-2026/tests/test_m0_boot.gd`, 2026-11-03): each MVP jet's start-up
-mission parks it on its base's spot (within 1 m), with its wheels on the terrain (1.7–1.9 m above the ground height:
+mission parks it on its base's spot (within 1 m) on paved ground (since 2026-11-08), with its wheels on the terrain (1.7–1.9 m above the ground height:
 the gear), as a ground start, and the flight model finds the base (within 5 km and 15 m of the tower). The sim has no
 base move: its bases stand at their real places already (`sim_settings.gd sync_bases`). The tower's wind turn
 (Better physics) mirrors the take-off lineup to the runway's other end as in the original game.
@@ -186,8 +198,8 @@ base move: its bases stand at their real places already (`sim_settings.gd sync_b
 `iaf-2026/tests/test_sim_look.gd` checks it: no look switch of the sim holds the 1998 value, and at Ramon's spot the
 first frames draw Ramon's runways and its paved mask.
 
-Open: the towers of Ramon, Hatzerim and Ramat David (their reference points stand in); the sea is the only water
-(the Dead Sea and the Sea of Galilee read as land); one hub per base where every parking spot meets the taxiways (the
+Open: the towers of Ramon, Hatzerim and Ramat David (their reference points stand in); the taxiways' names (no
+location signs until a source names them); one hub per base where every parking spot meets the taxiways (the
 AI of a second spot at Hatzerim taxis from the first spot's hub); the radio's tower list (`radio.gd BASES`) holds
 the original's ten names, so Hatzerim and Nevatim had no talking tower; since item E3b every base of the own
 `iaf.ibx` talks (`Settings.tower_bases`, [training.md](training.md) §8).

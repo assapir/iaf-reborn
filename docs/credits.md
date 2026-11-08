@@ -153,6 +153,9 @@ and credits roll show with the imagery's: "produced using Copernicus WorldDEM-30
 Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved" and "The
 organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of
 the Copernicus WorldDEM-30". They are also in the theatre's `meta.json` (`attribution`, `notice`) and iaf-2026/docs/terrain.md §5.
+The sim's scenery, roads and inland water (`iaf-sim scenery`, `iaf-sim airbases`; iaf-2026/docs/scenery.md) come from
+the same downloads as the original game's scenery above (OpenStreetMap, Microsoft's footprints, GHS-BUILT-H, ETH's
+canopy), with the same credit lines in their manifests' `attribution`.
 
 The sim's flight data (`tools/iaf-2026/fm0.py`, iaf-2026/docs/flight-model.md) comes from NASA TP-1538[^tp1538], a
 work of the U.S. Government (public domain; no credit required, named anyway), and from the public figures with their

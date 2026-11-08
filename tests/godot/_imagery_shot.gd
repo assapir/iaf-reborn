@@ -4,7 +4,10 @@
 #   IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/shots SHOT_NAME=rishon godot --path iaf-reborn --resolution 1920x1080 \
 #       -s ../tests/godot/_imagery_shot.gd -- --at X Y ALT HDG PITCH --freeze
 # SHOT_ORBIT="yaw,pitch,dist" draws from the external view instead of the cockpit. SHOT_SCENERY=on: with Scenery
-# (docs/scenery.md).
+# (docs/scenery.md). SHOT_SET=key=value,...: other settings (e.g. ground_roads=detailed,night_lights=detailed).
+# SHOT_HIDE_JET=1: the player's jet hidden (pictures for the docs).
+# SHOT_HOUR=h: the clock of a free flight (no mission; e.g. 22 for the city lights).
+# IAF 2026's theatre (iaf-2026/docs/scenery.md): --path iaf-2026, SHOT_LAYERS=sim (its ground is its own), UTM metres.
 extends "res://../tests/godot/base.gd"
 
 
@@ -18,6 +21,14 @@ func run() -> void:
 	var orbit := OS.get_environment("SHOT_ORBIT").split(",", false)
 	if OS.get_environment("SHOT_SCENERY") != "":
 		settings().scenery = OS.get_environment("SHOT_SCENERY")
+	for kv in OS.get_environment("SHOT_SET").split(",", false):
+		var p := kv.split("=")
+		if p.size() != 2 or not p[0] in settings():
+			push_error("SHOT_SET: %s is not key=value of a setting" % kv)
+			continue
+		var cur = settings().get(p[0])
+		var v = int(p[1]) if cur is int else (float(p[1]) if cur is float else p[1])
+		settings().set(p[0], (p[1] == "true") if cur is bool else v)
 	for layer in layers:
 		settings().imagery_israel = layer
 		change_scene_to_file("res://shared/terrain/terrain_view.tscn")
@@ -26,6 +37,11 @@ func run() -> void:
 		while tv == null or tv.get("flight") == null or tv.waiting_for_ground:
 			await process_frame
 			tv = current_scene
+		if OS.get_environment("SHOT_HIDE_JET") == "1" and tv.aircraft != null:
+			tv.aircraft.visible = false
+		if OS.get_environment("SHOT_HOUR") != "" and tv.runtime == null:
+			tv._sim_time = float(OS.get_environment("SHOT_HOUR")) * 3600.0 - 39600.0
+			tv._tod_t = -INF
 		if orbit.size() == 3:
 			tv.in_cockpit = false
 			tv.views.orbit_heading = deg_to_rad(float(orbit[0])) - PI

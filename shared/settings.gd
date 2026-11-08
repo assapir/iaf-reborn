@@ -123,6 +123,7 @@ const PREFS := {
 		"ground_textures",
 		"ground_roads",
 		"scenery",
+		"scenery_far",
 		"cd_launcher",
 		"wheel_scroll",
 		"better_cockpit",
@@ -297,6 +298,10 @@ var ground_roads := "original"
 ## Survey 2 m photo) or "detailed" (the same with the facades, the streets' occlusion and the roof clutter, §3.3);
 ## only with setup's scenery and a Survey 2 m layer as the Israel imagery, else it stays off.
 var scenery := "off"
+## Far towns (ours, Graphics → MORE; docs/scenery.md §3.1): "full" (every building to the scenery's far end) or
+## "light" (beyond the near model's 2.5 km a dense town keeps its tall and large buildings only: cheaper, the low
+## houses show from 2.5 km in).
+var scenery_far := "full"
 ## CD launcher (ours, Extras page; docs/front-end.md §18.1): the CD's autorun poster (Jauto.exe) before the main menu.
 var cd_launcher := false
 ## Mouse wheel (ours, Extras page; docs/front-end.md §12.9): "regular" (wheel down scrolls down) or "natural"
@@ -492,7 +497,7 @@ func changed_settings() -> Dictionary:
 
 
 ## True for a setting this game has: the logs (changed_settings, the recorder) print only those. The original game:
-## every one; IAF 2026 answers for its own (sim_settings.gd).
+## every one; Modern IAF answers for its own (sim_settings.gd).
 func has_setting(_key: String) -> bool:
 	return true
 
@@ -607,7 +612,12 @@ func read_config(cfg: ConfigFile) -> void:
 	var survey := imagery_israel in ["mapi2015", "mapi2015_modern"]
 	if scenery not in ["off", "on", "detailed"]:
 		scenery = "off"
-	if scenery != "off" and not (survey and load("res://shared/terrain/scenery.gd").available()):
+	if scenery_far not in ["full", "light"]:
+		scenery_far = "full"
+	if (
+		scenery != "off"
+		and not ((survey or scenery_everywhere()) and load("res://shared/terrain/scenery.gd").available())
+	):
 		scenery = "off"
 
 
@@ -860,7 +870,7 @@ func converted(rel: String) -> String:
 
 
 ## True when the file `rel` under assets/converted exists: the availability probes ask here (ground_roads.gd), so
-## IAF 2026's answer for the original's data is a quiet false, never a refused read.
+## Modern IAF's answer for the original's data is a quiet false, never a refused read.
 func has_converted(rel: String) -> bool:
 	return FileAccess.file_exists(converted(rel))
 
@@ -954,6 +964,23 @@ func tower_bases(_sections: Dictionary) -> Array:
 func theatre_dir() -> String:
 	var t := OS.get_environment("IAF_THEATRE")
 	return "converted/terrain".path_join(t if t != "" else "theatre")
+
+
+## The scenery's folder under assets/converted (terrain/scenery.gd, docs/scenery.md): the original's; Modern IAF's
+## beside its theatre, in its frame (iaf-2026/docs/scenery.md).
+func scenery_dir() -> String:
+	return "scenery"
+
+
+## The road layer's folder under assets/converted (terrain/ground_roads.gd, docs/scenery.md §6).
+func roads_dir() -> String:
+	return "roads"
+
+
+## The scenery stands wherever it has cells, whatever the imagery shown: Modern IAF (its theatre's ground is its own
+## photo). The original game shows it over a Survey 2 m layer only (docs/scenery.md §3).
+func scenery_everywhere() -> bool:
+	return false
 
 
 ## The airbases' runways, taxi lines and paved masks (airbases.gd, the tower's wind turn): the theatre's own

@@ -295,7 +295,7 @@ fn textures(dir: &Path, base: &str, pr: &dyn Progress, cancel: &AtomicBool) -> R
 }
 
 /// True when `url`'s server answers: any answer will do (no -f); no connection is offline.
-fn reachable(url: &str) -> bool {
+pub(crate) fn reachable(url: &str) -> bool {
     Command::new("curl")
         .args(["-sI", "--max-time", "15", url])
         .stdout(Stdio::null())
@@ -321,7 +321,7 @@ fn f15(a: &Path, probe: &str, pr: &dyn Progress, cancel: &AtomicBool) -> Result<
 const F15_PROBE: &str = "https://raw.githubusercontent.com/";
 
 /// Answers when the scenery's sources can be downloaded (Geofabrik, the largest).
-const SCENERY_PROBE: &str = "https://download.geofabrik.de/";
+pub(crate) const SCENERY_PROBE: &str = "https://download.geofabrik.de/";
 
 /// The scenery's sources the chosen kinds need (`list`, from iaf_tools::thirdparty::SCENERY) into `dir`: up to date
 /// when every file is there; skipped (Scenery then stays off in the game) when `probe` cannot be reached.

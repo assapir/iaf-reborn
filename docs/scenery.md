@@ -12,7 +12,8 @@ Cyprus over the Sentinel-2 layer), and the road layer of the whole theatre (§6)
 - Nothing stands at an original place: the sea, the airbases, the kept target insets, the missions' units and their
   routes, World scale Real's base sites. No tree stands on a road, a railway, a runway, a taxiway or an apron.
 - Related docs: the photo layer in docs/imagery.md §8; the warp into the game frame in docs/georef.md; the cell
-  format in `crates/iaf-avionics/src/scenery.rs`.
+  format in `crates/iaf-avionics/src/scenery.rs`; IAF 2026 makes the same scenery in its own frame with this code
+  (`scenery::Frame`, iaf-2026/docs/scenery.md).
 
 Terms used below:
 
@@ -280,7 +281,8 @@ Measured on this machine (Intel laptop, 8 threads, 2026-10-30), both kinds:
 
 ## 3. Rendering and the switch
 
-- **The switch:** Graphics → MORE → Scenery (Off / On / Detailed, default Off), under Imagery Israel.
+- **The switch:** Graphics → MORE → Scenery (Off / On / Detailed, default Off), under Imagery Israel; under it Far
+  towns (Full / Light, default Full, §3.1).
   - On: the buildings and trees as below. Detailed: the same, with the facades, occlusion, roof clutter and distance
     fade of §3.3, at a higher cost.
   - On and Detailed are greyed until setup has made the scenery; Detailed's place reads "Not downloaded".
@@ -322,6 +324,16 @@ Measured on this machine (Intel laptop, 8 threads, 2026-10-30), both kinds:
 - The flight starts once the near cells are drawn.
 
 ### 3.1 Cost
+
+**Far towns = Light** (`iaf_avionics::scenery::Model::FarLight`, `far_light_keeps`): in a cell of `DENSE_CELL`
+(2,000) buildings or more, the far mesh (2.5–4.5 km) holds only the buildings of `FAR_MIN_HEIGHT` (15 m) or
+`FAR_MIN_AREA` (1,000 m²) and up: the town's skyline and its halls. The low houses show from 2.5 km in, where the near
+model takes over; a sparser cell keeps every building. Inferred from the theatre's dense cells: 3,400–5,000
+buildings in Tel Aviv's and Beersheba's centre cells, 27 % and 9 % of them 15 m or taller. Full, the default, keeps
+every building. IAF 2026 picks Light (iaf-2026/docs/scenery.md §6 measures both). The counts are the sim's cells
+(2,048 m on a side, 4.19 km²); the original game's cells are 2,048 terrain units of 1.241 m (2,542 m, 6.46 km²), so
+there the same 2,000 buildings mean a sparser town (310 a km² against 477) and Light thins a little more of a town's
+edge (inferred).
 
 Intel Iris Xe (TigerLake GT2) laptop, 2560 × 1440, 2026-10-23, the machine idle: `tests/godot/_flight_bench.gd`
 with `BENCH_BEST=1` (mission 311, Ramat David), the Survey 2 m layer on, two runs each, Scenery Off then On; the
@@ -679,6 +691,11 @@ docs/mission-editor.md §5.2.1), and Graphics → MORE "Roads" Detailed draws it
 lamps along the lit roads at night (docs/rendering.md §1.8, §5.1). The game does without it (an older setup): no
 road shows, and routes stay straight.
 
+The other countries' extracts are shared with IAF 2026 (`assets/source/roads/`): its airbases step downloads
+Lebanon's, Syria's, Jordan's and Egypt's for the coastline and the inland water (iaf-2026/docs/terrain.md §11, §12).
+When the original game's setup had left one of them out (each is optional here), the road layer's stamp finds it
+there on the next run, and the layer is made again with that country's roads.
+
 ### 6.1 How it is made
 
 `iaf_tools::roads::build` (`iaf-scenery roads assets`; `iaf-scenery build` and setup's `scenery` step make it too):
@@ -739,7 +756,7 @@ Y north), no height. `max_class` keeps that class and the more important ones; u
 
 | Call | Answer |
 |---|---|
-| `open(dir)` | reads `main.bin`; false without it |
+| `open(dir)` | reads `main.bin` and the manifest's `frame` (the terrain frame the blocks are cut in: IAF 2026's UTM theatre, iaf-2026/docs/scenery.md; the 1998 frame without it); false without `main.bin` |
 | `roads_in_rect(min, max, max_class)` | the ways whose box meets the rect, as dictionaries: `points`, `class`, `link`, `width`, `bridge`, `tunnel`, `layer`, `paved`, `oneway`, `lit` (1, 0, −1 unknown), `off_ground`, `osm_id` |
 | `segments(min_class, max_class)` | `main.bin`'s segments as point pairs (the map's line meshes) |
 | `nearest(p, max_class)` | the nearest road point within 10 km (railways left out): `point`, `distance`, `class`, `osm_id` |

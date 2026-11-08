@@ -95,6 +95,9 @@ pub struct Run {
     pub sheets: PathBuf,
     /// The airbases' layouts (`iaf-2026/data/airbases`): Sentinel-2 replaces the Survey photo inside their outlines.
     pub airbases: PathBuf,
+    /// The assets folder whose `source/scenery` and `source/roads` hold the OpenStreetMap extracts (`sim_coast`): with
+    /// the Survey, its coastline is where the photo gives way to the sea.
+    pub osm: PathBuf,
     pub area: [f64; 4],
     pub detail: [f64; 4],
     pub threads: usize,
@@ -509,6 +512,9 @@ fn sentinel_unit(
 /// the airbases' outlines (UTM).
 struct Survey<'a> {
     vrt: &'a str,
+    /// OpenStreetMap's coastline: on its water side the photo gives way to Sentinel-2 (the sheets' white no-data and
+    /// the sea's JPEG noise never show).
+    coast: &'a crate::sim_coast::Coast,
     levels: Vec<([f64; 4], [f32; 4])>,
     scales: Vec<([f64; 4], [f32; 4])>,
     offsets: Vec<([f64; 4], [f32; 4])>,
@@ -521,6 +527,9 @@ const BASE_COVER_M: f64 = 160.0;
 const BASE_FEATHER_M: f64 = 160.0;
 /// The mask's cell: the fade spans 16 of them, and a 2 m raster per unit would cost 2 × 268 MB per worker.
 const BASE_CELL_M: f64 = 10.0;
+/// A Survey pixel this bright in every band near the coast is the sheets' no-data (white, JPEG-noisy), not ground
+/// (inferred from the sheets' borders off Tel Aviv: 240–255).
+const NEAR_WHITE: u8 = 235;
 
 /// Where Sentinel-2 replaces the Survey around the bases, on a BASE_CELL_M grid over a UTM rect and its margin.
 struct BaseMask {
@@ -730,11 +739,21 @@ fn survey_unit(sv: &Survey, f: &Frame, unit: Key, itm: [[f64; 2]; 4], work: &Pat
         let r = |a: usize| itm[2][a] + (itm[3][a] - itm[2][a]) * u;
         [l(0) + (r(0) - l(0)) * v, l(1) + (r(1) - l(1)) * v]
     };
+    let shore = sv.coast.touches(rect);
     let weight = |i: usize| {
-        let base = bases
-            .as_ref()
-            .map_or(0.0, |b| b.at(rect[0] + ((i % n) as f64 + 0.5) * px, rect[3] - ((i / n) as f64 + 0.5) * px));
-        f32::from(e.raw[i * 4 + 3]) / 255.0 * (1.0 - base)
+        let p = [rect[0] + ((i % n) as f64 + 0.5) * px, rect[3] - ((i / n) as f64 + 0.5) * px];
+        let base = bases.as_ref().map_or(0.0, |b| b.at(p[0], p[1]));
+        let a = f32::from(e.raw[i * 4 + 3]) / 255.0 * (1.0 - base);
+        // At the shore: none of the photo on the coastline's water side, nor its near-white (the sheets' no-data
+        // with JPEG noise) beyond the coastline's reach.
+        if shore && a > 0.0 {
+            match sv.coast.sea(p) {
+                Some(true) => return 0.0,
+                None if e.raw[i * 4..i * 4 + 3].iter().all(|&c| c >= NEAR_WHITE) => return 0.0,
+                _ => {}
+            }
+        }
+        a
     };
     let m = NODE_PIXELS as usize;
     for sj in 0..1u32 << d {
@@ -831,10 +850,61 @@ pub fn stamp(r: &Run) -> serde_json::Value {
         })
         .unwrap_or_default();
     bases.sort();
-    serde_json::json!({ "box": r.area, "detail": r.detail, "survey_zips": zips, "airbases": bases })
+    // With the Survey, the coastline's extracts (the photo is cut to it).
+    let osm = if zips.is_empty() {
+        Vec::new()
+    } else {
+        crate::sim_coast::extracts_stamp(crate::sim_bases::theatre_geo(r.area))
+    };
+    serde_json::json!({ "box": r.area, "detail": r.detail, "survey_zips": zips, "airbases": bases, "osm": osm })
 }
 
 /// `meta.json` (the shape `terrain::theatre` writes) with the georeference, the sources and the run's stamp.
+/// A theatre's `meta.json` as the sim's steps read it (`iaf-sim airbases`, `iaf-sim scenery`): its frame
+/// (`iaf_avionics::frame`), its rect in world metres [E0, N0, E1, N1], its colour nodes per level and the file's bytes.
+pub struct Meta {
+    pub frame: iaf_avionics::frame::Frame,
+    pub rect: [f64; 4],
+    pub nodes: std::collections::HashMap<u32, BTreeSet<(u32, u32)>>,
+    pub crs: String,
+    pub bytes: Vec<u8>,
+}
+
+impl Meta {
+    pub fn load(dir: &Path) -> Result<Self> {
+        let p = dir.join("meta.json");
+        let bytes = std::fs::read(&p).with_context(|| format!("{}: no theatre (iaf-sim terrain)", p.display()))?;
+        let m: serde_json::Value = serde_json::from_slice(&bytes).with_context(|| format!("{}", p.display()))?;
+        let f = |k: &str| m[k].as_f64().with_context(|| format!("{}: no {k}", p.display()));
+        let frame = iaf_avionics::frame::Frame {
+            x_shift: f("x_shift")?,
+            y_shift: f("y_shift")?,
+            m_per_unit: f("units_to_metres")?,
+            node_pixels: f("node_pixels")?,
+        };
+        let t: Vec<f64> = (0..4).filter_map(|k| m["theatre"][k].as_f64()).collect();
+        if t.len() != 4 || t[2] <= t[0] || t[3] <= t[1] {
+            bail!("{}: no theatre size", p.display());
+        }
+        let (a, b) = (frame.engine(t[0], t[3]), frame.engine(t[2], t[1]));
+        let nodes = m["nodes"]
+            .as_object()
+            .into_iter()
+            .flatten()
+            .filter_map(|(l, v)| {
+                let set = v
+                    .as_array()?
+                    .iter()
+                    .filter_map(|ij| Some((ij[0].as_u64()? as u32, ij[1].as_u64()? as u32)))
+                    .collect();
+                Some((l.parse().ok()?, set))
+            })
+            .collect();
+        let crs = m["crs"].as_str().unwrap_or("").to_string();
+        Ok(Meta { frame, rect: [a[0], a[1], b[0], b[1]], nodes, crs, bytes })
+    }
+}
+
 fn write_meta(f: &Frame, out: &Path, built_from: serde_json::Value) -> Result<()> {
     let mut nodes = serde_json::Map::new();
     for l in 0..=ROOT_LEVEL {
@@ -1094,17 +1164,25 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
             crate::progress::duration(t0.elapsed())
         );
         let bases = base_outlines(&r.airbases)?;
+        let pbfs = crate::sim_coast::fetch_extracts(&r.osm, geo, pr, cancel)?;
+        let coast = crate::sim_coast::Coast::load(&pbfs, geo, &work)?;
         let sv = Survey {
             vrt: utf8(&vrt)?,
+            coast: &coast,
             levels: sheets.iter().map(|s| (s.bbox, s.levels)).collect(),
             scales: sheets.iter().zip(&gains).map(|(s, g)| (s.bbox, g.0)).collect(),
             offsets: sheets.iter().zip(&gains).map(|(s, g)| (s.bbox, g.1)).collect(),
             bases: &bases,
         };
-        units("survey_2m", &keys, &work, r.threads, &part(3), cancel, |k| {
+        // The units the coastline crosses have their own marks: they ran again once when the photo was first cut to
+        // it (2026-11-08).
+        let (shore, inland): (Vec<Key>, Vec<Key>) = keys.iter().partition(|&&k| coast.touches(f.utm(k)));
+        let run = |k: Key| {
             let (_, c, _) = list.iter().find(|u| u.0 == k).context("unit")?;
             survey_unit(&sv, &f, k, *c, &work, out)
-        })?;
+        };
+        units("survey_2m", &inland, &work, r.threads, &part(3), cancel, run)?;
+        units("survey_2m_shore", &shore, &work, r.threads, &part(3), cancel, run)?;
         parents(out, 2, Some(3), r.threads, cancel)?;
     } else {
         log!(pr, "{}: no sheet ZIPs, no 2 m nodes", r.sheets.display());
@@ -1320,6 +1398,82 @@ mod tests {
         assert!((g[0][1] - 30.72).abs() < 0.1, "{:?}", g[0]);
     }
 
+    /// The shore between Tel Aviv and Ashdod in a built theatre (data: `IAF_ASSETS` or the repo's assets, with the
+    /// Survey and the coastline cut, else skipped): at 50 points along OpenStreetMap's coastline, 20 m seaward is sea
+    /// in terraintype.dat and no near-white pixel in the 2 m colour, 20 m landward is land.
+    #[test]
+    fn the_shore_follows_the_coastline() {
+        let assets = std::env::var("IAF_ASSETS")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets"));
+        let th = assets.join("converted/terrain/israel");
+        let meta: serde_json::Value =
+            std::fs::read(th.join("meta.json")).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default();
+        let tt = std::fs::read(assets.join("converted/own/terraintype.dat")).ok();
+        if meta["built_from"]["osm"].as_array().is_none_or(|a| a.is_empty()) || tt.is_none() {
+            eprintln!("skip: no theatre cut to the coastline in {} (iaf-sim terrain with the Survey)", th.display());
+            return;
+        }
+        let tt = iaf_formats::terrain_types::TerrainTypes::parse(&tt.unwrap()).unwrap();
+        let rect = Meta::load(&th).unwrap().rect;
+        let f = Frame::new(rect).unwrap();
+        // Tel Aviv's north (Tel Baruch) to Ashdod's port.
+        let geo = [34.6, 31.8, 34.82, 32.13];
+        let pbf = assets.join("source/scenery").join(crate::sim_coast::osm_extract().file);
+        let work = std::env::temp_dir().join(format!("iaf-shore-{}", std::process::id()));
+        let coast = crate::sim_coast::Coast::load(&[pbf], geo, &work).unwrap();
+        let _ = std::fs::remove_dir_all(&work);
+        let (s0, s1) = (crate::sim_bases::utm36n(34.6, 31.8), crate::sim_bases::utm36n(34.82, 32.13));
+        let segs: Vec<[[f64; 2]; 2]> = coast
+            .segments()
+            .iter()
+            .copied()
+            .filter(|s| (s0[1]..s1[1]).contains(&s[0][1]) && crate::sim_coast::len(s) > 30.0)
+            .collect();
+        // The points of a plain shore: 20 m off the segment on each side, each on its own side of the whole coastline
+        // and no other coastline within 15 m (a pier, a breakwater or a marina narrower than the 16 m leaves).
+        let pairs: Vec<([f64; 2], [f64; 2])> = segs
+            .iter()
+            .map(|s| {
+                let m = [(s[0][0] + s[1][0]) / 2.0, (s[0][1] + s[1][1]) / 2.0];
+                let l = crate::sim_coast::len(s);
+                let d = [(s[1][0] - s[0][0]) / l, (s[1][1] - s[0][1]) / l];
+                // The water on the way's right.
+                ([m[0] + d[1] * 20.0, m[1] - d[0] * 20.0], [m[0] - d[1] * 20.0, m[1] + d[0] * 20.0])
+            })
+            .filter(|(sea, land)| {
+                coast.sea(*sea) == Some(true)
+                    && coast.sea(*land) == Some(false)
+                    && !coast.near(*sea, 15.0)
+                    && !coast.near(*land, 15.0)
+            })
+            .collect();
+        assert!(pairs.len() >= 50, "{} shore points", pairs.len());
+        let mut tiles: std::collections::HashMap<Key, image::RgbImage> = Default::default();
+        let mut white_checked = 0;
+        for k in 0..50 {
+            let (sea, land) = pairs[k * pairs.len() / 50];
+            assert_eq!(tt.at(sea[0], sea[1]) & 0x4, 0x4, "{sea:?}: 20 m seaward is not sea");
+            assert!(
+                iaf_formats::terrain_types::TerrainTypes::is_land(tt.at(land[0], land[1])),
+                "{land:?}: 20 m inland ({:#x})",
+                tt.at(land[0], land[1])
+            );
+            let key = (1, ((sea[0] - f.e0) / 2048.0) as u32, ((f.n1 - sea[1]) / 2048.0) as u32);
+            if let std::collections::hash_map::Entry::Vacant(e) = tiles.entry(key) {
+                match image::open(colour_path(&th, key)) {
+                    Ok(i) => e.insert(i.to_rgb8()),
+                    Err(_) => continue,
+                };
+            }
+            let r = f.utm(key);
+            let px = tiles[&key].get_pixel(((sea[0] - r[0]) / 2.0) as u32, ((r[3] - sea[1]) / 2.0) as u32);
+            assert!(px.0.iter().any(|&c| c < NEAR_WHITE), "{sea:?}: a white pixel at sea {px:?}");
+            white_checked += 1;
+        }
+        assert!(white_checked >= 25, "{white_checked} points with a 2 m colour node");
+    }
+
     /// A finished run is stamped in meta.json; the same inputs again return before any work (no network).
     #[test]
     fn a_finished_run_is_not_redone() {
@@ -1331,6 +1485,7 @@ mod tests {
             sheet_index: out.join("sheets.tsv"),
             sheets: out.join("sheets"),
             airbases: out.join("airbases"),
+            osm: out.clone(),
             area: [500_000.0, 3_400_000.0, 500_000.0 + 1024.0, 3_400_000.0 + 1024.0],
             detail: DETAIL,
             threads: 1,

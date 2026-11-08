@@ -7,6 +7,8 @@
 # Real cuts both to the real runway's width: IafBases.moved_mask, docs/world-scale.md §3.3).
 extends RefCounted
 
+const SignBoards := preload("res://shared/terrain/sign_boards.gd")
+
 ## The nearest base within this distance of the camera (m, to its runways' middle) is drawn.
 const RANGE := 15000.0
 ## The taxi lines' half width (m): the original 0.3 m line; World scale Real 1 m, to be seen from the cockpit over the
@@ -22,6 +24,11 @@ static var _loaded_moved := false
 static var _current := -1
 static var _origin := Vector2(INF, INF)
 static var _on := false
+## The nearest base's taxiway signs (Modern IAF's airbases.json `signs`, sign_boards.gd board()): their node under the
+## terrain, the base and origin they were placed for, and the signs still waiting for the ground's height.
+static var _signs: Node3D
+static var _signs_key := ""
+static var _signs_waiting := []
 
 
 ## The bases (airbases.json's list; [] when it was not converted).
@@ -69,7 +76,7 @@ static func apply() -> void:
 
 ## Per frame with the camera's position: the nearest base's surface to the shader.
 static func update_view(cam: Vector3, terrain: Node) -> void:
-	if not _on or terrain == null:
+	if terrain == null or (not _on and not _has_signs()):
 		return
 	var o: Vector2 = terrain.world_origin
 	var here := o + Vector2(cam.x, -cam.z)
@@ -80,6 +87,9 @@ static func update_view(cam: Vector3, terrain: Node) -> void:
 		if d < best_d:
 			best_d = d
 			best = i
+	_update_signs(best, o, terrain)
+	if not _on:
+		return
 	if best == _current and o == _origin:
 		return
 	_current = best
@@ -141,3 +151,40 @@ static func _select(b: Dictionary, o: Vector2) -> void:
 ## Engine metres [X, Y] → Godot (x, z) relative to the world origin.
 static func _godot(p: Array, o: Vector2) -> Vector2:
 	return Vector2(float(p[0]) - o.x, -(float(p[1]) - o.y))
+
+
+static func _has_signs() -> bool:
+	return bases().any(func(b): return not b.get("signs", []).is_empty())
+
+
+## The signs of base `best` (−1: none) under `terrain`, placed again when the base or the world origin changes; each
+## stands on the ground once its height is loaded.
+static func _update_signs(best: int, o: Vector2, terrain: Node) -> void:
+	var key := "%d %s %s" % [best, o, terrain.get_instance_id()]
+	if key != _signs_key:
+		_signs_key = key
+		if is_instance_valid(_signs):
+			_signs.queue_free()
+		_signs = null
+		_signs_waiting = []
+		if best >= 0 and not _bases[best].get("signs", []).is_empty():
+			_signs = Node3D.new()
+			_signs.name = "TaxiSigns"
+			terrain.add_child(_signs)
+			_signs_waiting = _bases[best].signs.duplicate()
+	if _signs_waiting.is_empty() or not is_instance_valid(_signs):
+		return
+	var left := []
+	for s: Dictionary in _signs_waiting:
+		var p := _godot(s.at, o)
+		var h = terrain.height_at(Vector3(p.x, 0, p.y))
+		if h == null:
+			left.append(s)
+			continue
+		var n := SignBoards.board(s.panels)
+		var f := deg_to_rad(float(s.facing))
+		n.position = Vector3(p.x, float(h), p.y)
+		# Local +Z (the face) along the grid heading `facing`: Godot (sin, 0, −cos).
+		n.rotation.y = atan2(sin(f), -cos(f))
+		_signs.add_child(n)
+	_signs_waiting = left

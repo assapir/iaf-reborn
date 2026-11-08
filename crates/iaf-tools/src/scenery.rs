@@ -26,16 +26,17 @@ use image::RgbImage;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
-use crate::georef::{Georef, UNITS_TO_METRES};
+use crate::georef::Georef;
 use crate::imagery::{Cache, Rules, Theatre};
 use crate::progress::{Progress, check, par_map, par_map_all, utf8};
 use crate::thirdparty::{self, Download, SCENERY, SCENERY_THEATRE};
-use crate::{airbases, log};
+use crate::{airbases, log, sim_bases};
+pub use iaf_avionics::frame::{Frame, GAME};
 
 /// The generator's version: part of the release, so a change to the rules below makes new ids.
 pub const GENERATOR: u32 = 7;
 /// A level-1 node's side in terrain units (1024 pixels of 2 units).
-const NODE_UNITS: f64 = 2048.0;
+const NODE_UNITS: f64 = 2.0 * GAME.node_pixels;
 const PIXEL_UNITS: f64 = 2.0;
 /// The photo test: blocks of this many pixels (40 m) whose mean difference to the 1998 rendition is above `PHOTO_DIFF`
 /// (0..255 per channel) show the photo.
@@ -53,8 +54,8 @@ pub const LEVEL_M: f32 = 3.0;
 const CANOPY_MIN_M: u8 = 4;
 /// In mapped orchards (`AREA_ORCHARD`) a lower canopy counts: citrus, avocado and olive groves are 2–4 m. Fields keep
 /// `CANOPY_MIN_M`: the canopy map reads about 2 m over crops.
-const ORCHARD_CANOPY_MIN_M: u8 = 2;
-const CANOPY_STEP: f64 = 0.0001;
+pub(crate) const ORCHARD_CANOPY_MIN_M: u8 = 2;
+pub(crate) const CANOPY_STEP: f64 = 0.0001;
 const ROW_STEP_M: f64 = 6.0;
 const TREE_DEFAULT_M: f32 = 8.0;
 const ROW_DEFAULT_M: f32 = 10.0;
@@ -71,22 +72,22 @@ const ROAD_CROSS_M: f64 = 0.5;
 /// How far (m) a road or apron reaches past a node's edge into its list: a footprint may reach into the next node.
 const ROAD_NODE_PAD_M: f64 = 50.0;
 
-/// Terrain units → engine metres (X east, Y north).
-fn engine(tx: f64, ty: f64) -> [f64; 2] {
-    [tx * UNITS_TO_METRES - 166850.0, 1043780.0 - ty * UNITS_TO_METRES]
+/// The level-1 node holding an engine point in `frame` (`iaf_avionics::frame`: the 1998 game's, or Modern IAF's UTM
+/// theatre); a point west or north of the theatre counts in its first column / row, as the original always did
+/// (`build_cell` drops a footprint whose centre is outside its node).
+pub fn node_of(frame: Frame, p: [f64; 2]) -> (u32, u32) {
+    let (i, j) = frame.node_of(1, p);
+    (i.max(0) as u32, j.max(0) as u32)
 }
 
-/// The engine-metre rect [x0, y0, x1, y1] (y0 south) of level-1 node (i, j).
+/// Level-1 node (i, j)'s engine rect in `frame`.
+pub fn rect_in(frame: Frame, i: u32, j: u32) -> [f64; 4] {
+    frame.node_rect(1, i64::from(i), i64::from(j))
+}
+
+/// The 1998 game's level-1 node rect.
 pub fn node_rect(i: u32, j: u32) -> [f64; 4] {
-    let a = engine(i as f64 * NODE_UNITS, (j + 1) as f64 * NODE_UNITS);
-    let b = engine((i + 1) as f64 * NODE_UNITS, j as f64 * NODE_UNITS);
-    [a[0], a[1], b[0], b[1]]
-}
-
-/// The level-1 node holding an engine point.
-fn node_of(p: [f64; 2]) -> (u32, u32) {
-    let [tx, ty] = airbases::units(p[0], p[1]);
-    ((tx / NODE_UNITS).floor().max(0.0) as u32, (ty / NODE_UNITS).floor().max(0.0) as u32)
+    rect_in(GAME, i, j)
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -97,14 +98,14 @@ fn signed_area(p: &[[f64; 2]]) -> f64 {
     (0..n).map(|i| p[i][0] * p[(i + 1) % n][1] - p[(i + 1) % n][0] * p[i][1]).sum::<f64>() * 0.5
 }
 
-fn centroid(p: &[[f64; 2]]) -> [f64; 2] {
+pub(crate) fn centroid(p: &[[f64; 2]]) -> [f64; 2] {
     let n = p.len().max(1) as f64;
     let s = p.iter().fold([0.0, 0.0], |s, q| [s[0] + q[0], s[1] + q[1]]);
     [s[0] / n, s[1] / n]
 }
 
 /// Even-odd point in polygon.
-fn contains(p: &[[f64; 2]], q: [f64; 2]) -> bool {
+pub(crate) fn contains(p: &[[f64; 2]], q: [f64; 2]) -> bool {
     let mut inside = false;
     let mut j = p.len().wrapping_sub(1);
     for i in 0..p.len() {
@@ -333,7 +334,7 @@ pub fn fill_lights(
         *have.entry(cell(f.geo)).or_default() += 1;
     }
     let ((c0, r1), (c1, r0)) = (cell([g[0], g[1]]), cell([g[2], g[3]]));
-    let rect = node_rect(n.key.0, n.key.1);
+    let rect = n.rect;
     let mut out = Vec::new();
     for r in r0.max(0)..=r1.min(heights.h as i64 - 1) {
         for c in c0.max(0)..=c1.min(heights.w as i64 - 1) {
@@ -406,6 +407,8 @@ impl Canopy {
 #[derive(Clone, Debug, Default)]
 pub struct NodeIn {
     pub key: (u32, u32),
+    /// The node's engine rect (`Frame::node_rect`).
+    pub rect: [f64; 4],
     pub osm: Vec<Footprint>,
     pub ms: Vec<Footprint>,
     pub areas: Vec<Area>,
@@ -446,9 +449,14 @@ pub fn default_height(area: f64) -> f32 {
     }
 }
 
-fn building_ok(f: &Footprint, env: &Env) -> bool {
+/// A footprint the node keeps: its centre inside the node (one beyond the theatre's west or north edge is gathered into
+/// the first column / row, `node_of`), 6–200 000 m², every corner and the centre open, clear of the units.
+fn building_ok(f: &Footprint, rect: [f64; 4], env: &Env) -> bool {
     let a = signed_area(&f.pts);
-    (6.0..=200_000.0).contains(&a)
+    let c = centroid(&f.pts);
+    (rect[0]..rect[2]).contains(&c[0])
+        && (rect[1]..rect[3]).contains(&c[1])
+        && (6.0..=200_000.0).contains(&a)
         && f.pts.iter().chain([&centroid(&f.pts)]).all(|&p| (env.open)(p))
         && !env.clears.iter().any(|c| c.hits_building(&f.pts))
 }
@@ -456,7 +464,7 @@ fn building_ok(f: &Footprint, env: &Env) -> bool {
 /// One node's cell: OpenStreetMap's buildings, then Microsoft's whose centre is in no OpenStreetMap footprint; then the
 /// mapped trees and one tree per canopy cell of `CANOPY_MIN_M` or more; nothing where `env` says no.
 pub fn build_cell(n: &NodeIn, env: &Env) -> Cell {
-    let rect = node_rect(n.key.0, n.key.1);
+    let rect = n.rect;
     let seed = [n.key.0 as u64, n.key.1 as u64];
     let mut osm_b = Buckets::new(rect, 32.0);
     for (k, f) in n.osm.iter().enumerate() {
@@ -483,7 +491,7 @@ pub fn build_cell(n: &NodeIn, env: &Env) -> Cell {
         .osm
         .iter()
         .chain(n.ms.iter().filter(|f| !in_osm(centroid(&f.pts)) && ms_ok(f)))
-        .filter(|f| building_ok(f, env))
+        .filter(|f| building_ok(f, rect, env))
         .collect();
     let mut cell = Cell::default();
     let mut kept = Buckets::new(rect, 32.0);
@@ -954,12 +962,13 @@ pub struct Warp {
 }
 
 impl Warp {
-    pub fn new(g: &Georef, geo: [f64; 4], step: f64) -> Self {
+    /// The grid over `geo` [lon0, lat0, lon1, lat1] of `to_engine` (the georeference's exact inverse, or UTM 36N).
+    pub fn new(to_engine: &(dyn Fn(f64, f64) -> [f64; 2] + Sync), geo: [f64; 4], step: f64) -> Self {
         let w = ((geo[2] - geo[0]) / step).ceil() as usize + 2;
         let h = ((geo[3] - geo[1]) / step).ceil() as usize + 2;
         let rows: Vec<usize> = (0..h).collect();
         let xy = par_map_all(&rows, |&r| {
-            (0..w).map(|c| g.geo_to_engine(geo[0] + c as f64 * step, geo[1] + r as f64 * step)).collect::<Vec<_>>()
+            (0..w).map(|c| to_engine(geo[0] + c as f64 * step, geo[1] + r as f64 * step)).collect::<Vec<_>>()
         })
         .concat();
         Warp { lon0: geo[0], lat0: geo[1], step, w, h, xy }
@@ -978,7 +987,14 @@ impl Warp {
 
 /// A single-band raster warped by gdalwarp into WGS84 over `geo` [lon0, lat0, lon1, lat1] at `w` × `h`, read back
 /// raw (ENVI, little-endian).
-fn gdal_warp(srcs: &[String], geo: [f64; 4], w: usize, h: usize, resampling: &str, out: &Path) -> Result<Vec<u8>> {
+pub(crate) fn gdal_warp(
+    srcs: &[String],
+    geo: [f64; 4],
+    w: usize,
+    h: usize,
+    resampling: &str,
+    out: &Path,
+) -> Result<Vec<u8>> {
     let mut cmd = Command::new("gdalwarp");
     cmd.args(["-q", "-overwrite", "-t_srs", "EPSG:4326", "-r", resampling, "-of", "ENVI", "-te"])
         .args(geo.map(|v| format!("{v:.7}")))
@@ -1023,7 +1039,7 @@ pub struct Heights {
 
 impl Heights {
     const STEP: f64 = 0.001;
-    fn at(&self, g: [f64; 2]) -> Option<f32> {
+    pub(crate) fn at(&self, g: [f64; 2]) -> Option<f32> {
         let c = ((g[0] - self.geo[0]) / Self::STEP).floor();
         let r = ((self.geo[3] - g[1]) / Self::STEP).floor();
         if c < 0.0 || r < 0.0 || c >= self.w as f64 || r >= self.h as f64 {
@@ -1050,6 +1066,7 @@ fn outer_rings(g: &Value) -> Vec<Vec<[f64; 2]>> {
 
 /// The nodes' inputs being gathered.
 struct Gather<'a> {
+    frame: Frame,
     warp: &'a Warp,
     nodes: BTreeMap<(u32, u32), NodeIn>,
     geo: [f64; 4],
@@ -1070,15 +1087,15 @@ impl Gather<'_> {
     }
 
     fn building(&mut self, f: Footprint) {
-        if let Some(n) = self.nodes.get_mut(&node_of(centroid(&f.pts))) {
+        if let Some(n) = self.nodes.get_mut(&node_of(self.frame, centroid(&f.pts))) {
             if f.source == SOURCE_OSM { n.osm.push(f) } else { n.ms.push(f) }
         }
     }
 
     fn area(&mut self, a: Area) {
         let b = bbox(&a.pts);
-        let (i0, j1) = node_of([b[0], b[1]]);
-        let (i1, j0) = node_of([b[2], b[3]]);
+        let (i0, j1) = node_of(self.frame, [b[0], b[1]]);
+        let (i1, j0) = node_of(self.frame, [b[2], b[3]]);
         for j in j0..=j1 {
             for i in i0..=i1 {
                 if let Some(n) = self.nodes.get_mut(&(i, j)) {
@@ -1091,8 +1108,8 @@ impl Gather<'_> {
     /// The nodes whose rect, grown by ROAD_NODE_PAD_M, meets the box.
     fn nodes_in(&mut self, b: [f64; 4]) -> impl Iterator<Item = &mut NodeIn> {
         let pad = ROAD_NODE_PAD_M;
-        let (i0, j1) = node_of([b[0] - pad, b[1] - pad]);
-        let (i1, j0) = node_of([b[2] + pad, b[3] + pad]);
+        let (i0, j1) = node_of(self.frame, [b[0] - pad, b[1] - pad]);
+        let (i1, j0) = node_of(self.frame, [b[2] + pad, b[3] + pad]);
         self.nodes.range_mut((i0, j0)..=(i1, j1)).filter(move |(k, _)| k.1 >= j0 && k.1 <= j1).map(|(_, n)| n)
     }
 
@@ -1109,7 +1126,7 @@ impl Gather<'_> {
     }
 
     fn tree(&mut self, t: MappedTree) {
-        if let Some(n) = self.nodes.get_mut(&node_of(t.p)) {
+        if let Some(n) = self.nodes.get_mut(&node_of(self.frame, t.p)) {
             n.trees.push(t);
         }
     }
@@ -1421,11 +1438,11 @@ pub fn coverage(imagery: &Path) -> Result<Vec<(u32, u32)>> {
 }
 
 /// The WGS84 box [lon0, lat0, lon1, lat1] of a node (its corners and edge midpoints through the warp), padded.
-fn node_geo(g: &Georef, k: (u32, u32), pad: f64) -> [f64; 4] {
-    let r = node_rect(k.0, k.1);
+fn node_geo(frame: Frame, to_geo: &dyn Fn(f64, f64) -> [f64; 2], k: (u32, u32), pad: f64) -> [f64; 4] {
+    let r = rect_in(frame, k.0, k.1);
     let pts: Vec<[f64; 2]> = [0.0, 0.5, 1.0]
         .iter()
-        .flat_map(|&fx| [0.0, 0.5, 1.0].map(|fy| g.engine_to_geo(r[0] + fx * (r[2] - r[0]), r[1] + fy * (r[3] - r[1]))))
+        .flat_map(|&fx| [0.0, 0.5, 1.0].map(|fy| to_geo(r[0] + fx * (r[2] - r[0]), r[1] + fy * (r[3] - r[1]))))
         .collect();
     let b = bbox(&pts);
     [b[0] - pad, b[1] - pad, b[2] + pad, b[3] + pad]
@@ -1445,7 +1462,7 @@ pub fn quadkeys(assets: &Path) -> Result<BTreeSet<String>> {
     let g = Georef::load()?;
     let mut out = BTreeSet::new();
     for k in coverage(&assets.join("converted/imagery"))? {
-        let b = node_geo(&g, k, 0.0);
+        let b = node_geo(GAME, &|x, y| g.engine_to_geo(x, y), k, 0.0);
         for p in [[b[0], b[1]], [b[2], b[1]], [b[0], b[3]], [b[2], b[3]]] {
             out.insert(quadkey(p[0], p[1], 9));
         }
@@ -1528,7 +1545,7 @@ fn without_sim(bytes: Vec<u8>) -> Vec<u8> {
 }
 
 /// The clearances that reach within 50 m of the engine rect.
-fn clears_near(all: &[Clear], rect: [f64; 4]) -> Vec<Clear> {
+pub(crate) fn clears_near(all: &[Clear], rect: [f64; 4]) -> Vec<Clear> {
     all.iter()
         .filter(|c| {
             let b = c.bbox();
@@ -1539,7 +1556,7 @@ fn clears_near(all: &[Clear], rect: [f64; 4]) -> Vec<Clear> {
 }
 
 /// The downloaded inputs of the list, or an error naming the first missing one.
-fn input(dir: &Path, d: &Download) -> Result<PathBuf> {
+pub(crate) fn input(dir: &Path, d: &Download) -> Result<PathBuf> {
     if !thirdparty::file_done(dir, d) {
         bail!("{} is not downloaded (setup step scenery-fetch)", d.file);
     }
@@ -1575,7 +1592,7 @@ pub fn build(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary>
     let files: Vec<PathBuf> = kinds.downloads().iter().map(|d| input(&src, d)).collect::<Result<_>>()?;
     std::fs::create_dir_all(&work)?;
     log!(pr, "scenery ({}): {} nodes of the Survey 2 m layer", kinds.name(), keys.len());
-    let Sources { warp, nodes, node_geos, heights, chm } = sources(&keys, kinds, &files, &work, pr, cancel)?;
+    let Sources { warp, nodes, node_geos, heights, chm } = sources(GAME, &keys, kinds, &files, &work, pr, cancel)?;
 
     // The places nothing may stand.
     let install = a.join("install");
@@ -1729,17 +1746,18 @@ pub fn build(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary>
 }
 
 /// The sources gathered per node (`sources`).
-struct Sources {
-    warp: Warp,
-    nodes: BTreeMap<(u32, u32), NodeIn>,
-    node_geos: Vec<[f64; 4]>,
-    heights: Heights,
-    chm: Option<String>,
+pub(crate) struct Sources {
+    pub warp: Warp,
+    pub nodes: BTreeMap<(u32, u32), NodeIn>,
+    pub node_geos: Vec<[f64; 4]>,
+    pub heights: Heights,
+    pub chm: Option<String>,
 }
 
 /// The warp over the nodes `keys`, every source the kinds need cut to them and gathered per node, the building
 /// heights and the canopy (trees).
-fn sources(
+pub(crate) fn sources(
+    frame: Frame,
     keys: &[(u32, u32)],
     kinds: Kinds,
     files: &[PathBuf],
@@ -1747,25 +1765,34 @@ fn sources(
     pr: &dyn Progress,
     cancel: &AtomicBool,
 ) -> Result<Sources> {
-    let geo_f = Georef::load()?;
+    // The projection: the georeference's for the 1998 frame, UTM 36N's for Modern IAF's.
+    let georef = if frame == GAME { Some(Georef::load()?) } else { None };
+    let to_engine =
+        |lon: f64, lat: f64| georef.as_ref().map_or_else(|| sim_bases::utm36n(lon, lat), |g| g.geo_to_engine(lon, lat));
+    let to_geo =
+        |x: f64, y: f64| georef.as_ref().map_or_else(|| sim_bases::utm36n_geo(x, y), |g| g.engine_to_geo(x, y));
     let pick = |pre: &str| -> Vec<PathBuf> {
         files.iter().filter(|p| p.file_name().is_some_and(|n| n.to_string_lossy().starts_with(pre))).cloned().collect()
     };
 
     // The warp over the coverage.
-    let node_geos: Vec<[f64; 4]> = par_map_all(keys, |&k| node_geo(&geo_f, k, 0.0005));
+    let node_geos: Vec<[f64; 4]> = par_map_all(keys, |&k| node_geo(frame, &to_geo, k, 0.0005));
     let geo = node_geos.iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, g| {
         [b[0].min(g[0]), b[1].min(g[1]), b[2].max(g[2]), b[3].max(g[3])]
     });
     let geo = [geo[0] - 0.01, geo[1] - 0.01, geo[2] + 0.01, geo[3] + 0.01];
-    let warp = Warp::new(&geo_f, geo, 0.005);
+    let warp = Warp::new(&to_engine, geo, 0.005);
     pr.fraction(0.02);
 
     // The sources, gathered per node.
     let nodes = {
         let mut g = Gather {
+            frame,
             warp: &warp,
-            nodes: keys.iter().map(|&k| (k, NodeIn { key: k, ..NodeIn::default() })).collect(),
+            nodes: keys
+                .iter()
+                .map(|&k| (k, NodeIn { key: k, rect: rect_in(frame, k.0, k.1), ..NodeIn::default() }))
+                .collect(),
             geo,
         };
         // Israel and Palestine's extract; with the other countries' (the theatre's cells), each in a work folder of
@@ -1861,7 +1888,7 @@ pub fn build_lights(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<S
     let work = a.join("converted/scenery/.work");
     std::fs::create_dir_all(&work)?;
     log!(pr, "city lights: {} nodes of the Survey 2 m layer", keys.len());
-    let Sources { warp, nodes, heights, .. } = sources(&keys, kinds, &files, &work, pr, cancel)?;
+    let Sources { warp, nodes, heights, .. } = sources(GAME, &keys, kinds, &files, &work, pr, cancel)?;
     let units = airbases::mission_units(&a.join("converted/missions"));
     let lineups = airbases::ibx_lineups(&std::fs::read(install.join("iaf.ibx")).unwrap_or_default());
     let all_clears =
@@ -1924,10 +1951,10 @@ pub fn build_lights(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<S
 const THEATRE_VERSION: u32 = 4;
 /// The theatre's canopy grid (degrees, about 20 m): one tree per four of the Survey layer's cells, the tallest. On the
 /// 10 m grid the theatre held 348 M trees (5.6 GB, 2026-10-30): the Nile delta's groves and Cyprus' forests.
-const THEATRE_CANOPY_STEP: f64 = 0.0002;
+pub(crate) const THEATRE_CANOPY_STEP: f64 = 0.0002;
 /// The theatre's cells are made in blocks of this many level-1 nodes a side (a level-5 node, about 40 km): one canopy
 /// warp and one set of ground images per block.
-const THEATRE_BLOCK: u32 = 16;
+pub(crate) const THEATRE_BLOCK: u32 = 16;
 /// The level of the ground images the theatre's roof colours come from: the Sentinel-2 layer's (9.9 m a pixel).
 const GROUND_LEVEL: u32 = 3;
 
@@ -2033,7 +2060,7 @@ pub fn build_theatre(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<
         extra.len(),
         roads.len() + 1
     );
-    let Sources { warp, nodes, node_geos, heights, chm } = sources(&keys, r.kinds, &files, &work, pr, cancel)?;
+    let Sources { warp, nodes, node_geos, heights, chm } = sources(GAME, &keys, r.kinds, &files, &work, pr, cancel)?;
     let geos: HashMap<(u32, u32), [f64; 4]> = keys.iter().copied().zip(node_geos).collect();
 
     let rules = Rules::load(&install, false, &theatre)?;
@@ -2238,7 +2265,7 @@ pub fn build_theatre(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<
 }
 
 /// The canopy tiles (ETH's 10 m, already the cell grid's size) under one VRT; 255 is ETH's no-data.
-fn canopy_vrt(tiles: &[PathBuf], work: &Path) -> Result<String> {
+pub(crate) fn canopy_vrt(tiles: &[PathBuf], work: &Path) -> Result<String> {
     let vrt = work.join("canopy.vrt");
     let mut cmd = Command::new("gdalbuildvrt");
     cmd.args(["-q", "-overwrite", "-srcnodata", "255", "-vrtnodata", "0"]).arg(&vrt).args(tiles);
@@ -2268,7 +2295,7 @@ fn photo_mask(layer: &RgbImage, orig: Option<&RgbImage>) -> Vec<bool> {
 
 /// The per-channel median of the pixels whose centres are inside the polygon (pixel coordinates); the pixel under
 /// its centre when none is.
-fn median_inside(img: &RgbImage, q: &[[f64; 2]]) -> [u8; 3] {
+pub(crate) fn median_inside(img: &RgbImage, q: &[[f64; 2]]) -> [u8; 3] {
     let (w, h) = (img.width() as i64, img.height() as i64);
     let b = bbox(q);
     let mut s: [Vec<u8>; 3] = Default::default();
@@ -2368,6 +2395,7 @@ mod tests {
         ghs.geo = [35.2, 31.0];
         let n = NodeIn {
             key: KEY,
+            rect: node_rect(KEY.0, KEY.1),
             osm: vec![tall, ghs, square(at(500.0, 100.0), 5.0, SOURCE_OSM)],
             // Inside an OSM footprint (dropped), clear of it (kept), on a unit (dropped), off the photo (dropped).
             ms: vec![
@@ -2392,6 +2420,9 @@ mod tests {
         assert_eq!(c.buildings[0].roof_1998, [1, 2, 3]);
         assert_eq!(c.trees.len(), 1);
         assert_eq!(c.trees[0].kind, TreeKind::Palm);
+        // A footprint gathered into the node but centred outside it (beyond the theatre's edge) stands nowhere.
+        let off = NodeIn { osm: vec![square(at(-300.0, 100.0), 10.0, SOURCE_OSM)], ms: vec![], ..n.clone() };
+        assert_eq!(cell(&off, &[], &|_| true).buildings.len(), 0);
     }
 
     #[test]
@@ -2438,6 +2469,7 @@ mod tests {
         }
         let n = NodeIn {
             key: KEY,
+            rect: node_rect(KEY.0, KEY.1),
             osm: vec![square(at(250.0, 250.0), 30.0, SOURCE_OSM)],
             areas: vec![Area {
                 kind: AREA_FOREST,
@@ -2470,6 +2502,7 @@ mod tests {
         assert!(road_half_width("motorway", "", &other_tags(r#""tunnel"=>"yes""#)).is_none());
         let n = NodeIn {
             key: KEY,
+            rect: node_rect(KEY.0, KEY.1),
             // An OSM building across the road (mapped: kept); Microsoft's across the road, on the runway's edge, on
             // the apron (dropped) and beside the road (kept).
             osm: vec![square(at(300.0, 500.0), 8.0, SOURCE_OSM)],
@@ -2511,7 +2544,7 @@ mod tests {
         assert_eq!(p.v[0], block.v[y0 * block.w + x0]);
         assert_eq!(p.v[p.w * 3 + 7], block.v[(y0 + 3) * block.w + x0 + 7]);
 
-        let mut n = NodeIn { key: KEY, ..NodeIn::default() };
+        let mut n = NodeIn { key: KEY, rect: node_rect(KEY.0, KEY.1), ..NodeIn::default() };
         let c = [origin()[0] + 500.0, origin()[1] + 500.0];
         n.osm = vec![square(c, 5.0, SOURCE_OSM), square(c, 5.0, SOURCE_OSM), square(c, 6.0, SOURCE_OSM)];
         let t = MappedTree { p: c, kind: None, height: 8.0 };
@@ -2531,7 +2564,7 @@ mod tests {
         v[6] = 4.0;
         let heights = Heights { geo: [34.0, 32.0, 34.004, 32.004], w: 4, h: 4, v };
         let g = [34.0, 32.0, 34.004, 32.004];
-        let mut n = NodeIn { key: KEY, ..NodeIn::default() };
+        let mut n = NodeIn { key: KEY, rect: node_rect(KEY.0, KEY.1), ..NodeIn::default() };
         let fill = fill_lights(&n, &heights, g, &warp, &|_| true);
         assert_eq!(fill.len(), FILL_PER_CELL, "the town square filled, the village left alone");
         assert!(fill.iter().all(|b| b.height == 12.0 && b.points.len() == 4));

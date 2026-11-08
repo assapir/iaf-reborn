@@ -14,7 +14,7 @@ use std::collections::{BinaryHeap, HashMap};
 use std::path::Path;
 use std::sync::atomic::AtomicBool;
 
-use anyhow::{Context, Result, bail, ensure};
+use anyhow::{Context, Result, ensure};
 use serde_json::{Value, json};
 
 use crate::log;
@@ -37,10 +37,21 @@ const MASK_MARGIN_M: f64 = 300.0;
 const TAXI_FIELD_M: f64 = 10.0;
 /// terraintype.dat flags (iaf_formats::terrain_types; the original's runway leaves are 0x10 alone).
 const LAND: i32 = 0x1;
+const INLAND_WATER: i32 = 0x2;
 const SEA: i32 = 0x4;
 const RUNWAY: i32 = 0x10;
+/// The bases' taxiways, aprons and shelters' pads: no flag (not LAND, so not the rough ground that destroys a jet
+/// rolling over 25.7 m/s; not RUNWAY, which the runways alone carry).
+const PAVED: i32 = 0x0;
+/// The paved surface's cell in terraintype.dat (m; four mask pixels, a cell paved when any of its pixels is: a 23 m
+/// taxiway is three or four cells, its edge up to a cell wider; 4 m cells made the file 200,000 nodes larger).
+const PAVED_CELL_M: f64 = 8.0;
 /// The water raster's cell (m): the DEM's height texel.
 const WATER_CELL_M: f64 = 64.0;
+/// The smallest sea or land part along the coastline in terraintype.dat (m): a point 20 m off the coastline is always
+/// on its side (a leaf's half diagonal is 11 m); 8 m made the file 37 MB, 16 m about half (inferred: the water
+/// shader's mask is 96 m).
+const COAST_LEAF_M: f64 = 16.0;
 
 // --- UTM 36N --------------------------------------------------------------------------------------------------------
 
@@ -69,6 +80,21 @@ pub fn utm36n(lon: f64, lat: f64) -> [f64; 2] {
         eta += a * (k * xi1).cos() * (k * eta1).sinh();
     }
     [500_000.0 + 0.9996 * a * eta, 0.9996 * a * xi]
+}
+
+/// UTM zone 36N (easting, northing) → WGS84 (lon, lat): `utm36n` inverted by Newton steps (a few, to well under a
+/// millimetre).
+pub fn utm36n_geo(e: f64, n: f64) -> [f64; 2] {
+    let lat = n / 110_900.0;
+    let mut g = [33.0 + (e - 500_000.0) / (111_320.0 * lat.to_radians().cos()), lat];
+    for _ in 0..5 {
+        let (p, d) = (utm36n(g[0], g[1]), 1e-6);
+        let (px, py) = (utm36n(g[0] + d, g[1]), utm36n(g[0], g[1] + d));
+        let (a, b, c, k) = ((px[0] - p[0]) / d, (py[0] - p[0]) / d, (px[1] - p[1]) / d, (py[1] - p[1]) / d);
+        let (r0, r1, det) = (e - p[0], n - p[1], a * k - b * c);
+        g = [g[0] + (k * r0 - b * r1) / det, g[1] + (a * r1 - c * r0) / det];
+    }
+    g
 }
 
 /// A true heading at (lat, lon) as the frame's grid heading (clockwise from grid north; the grid turns by the
@@ -417,6 +443,191 @@ pub fn routes(b: &Base) -> Result<Routes> {
     Ok(Routes { hub: g.pts[hub], from: simplify(&from, 8.0), to: simplify(&to, 8.0) })
 }
 
+// --- taxiway signs --------------------------------------------------------------------------------------------------
+
+/// A runway-holding sign's distance from the runway's centreline (m; ICAO Annex 14 Table 3-2: 90 m for a code 4
+/// instrument runway, the bases' class).
+const HOLD_M: f64 = 90.0;
+/// A direction sign's distance before its junction (m; inferred: the boards stand before the turn, ICAO Annex 14
+/// 5.4.3.30 and the Aerodrome Design Manual's 30–60 m).
+const DIRECTION_BACK_M: f64 = 40.0;
+/// A sign's offset from the taxiway's edge (m; Annex 14 Table 5-5: 11–21 m from the edge for code D–F taxiways).
+const SIGN_EDGE_M: f64 = 12.0;
+
+/// One board of a sign: `style` "mandatory" (white on red: a runway-holding position's runway designations, the
+/// threshold on the left first) or "direction" (black on yellow: a runway designator and its arrow, `arrow` the turn
+/// in degrees, positive to the right, 0 straight on).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Panel {
+    pub style: &'static str,
+    pub text: String,
+    pub arrow: Option<f64>,
+}
+
+/// A taxiway sign at `at` (UTM 36N) on the taxiing jet's left, its face looking along `facing` (grid degrees: the
+/// way toward the jet that reads it), its boards left to right.
+#[derive(Debug, Clone)]
+pub struct Sign {
+    pub at: [f64; 2],
+    pub facing: f64,
+    pub panels: Vec<Panel>,
+}
+
+fn grid_deg(d: [f64; 2]) -> f64 {
+    d[0].atan2(d[1]).to_degrees().rem_euclid(360.0)
+}
+
+fn unit(a: [f64; 2], b: [f64; 2]) -> [f64; 2] {
+    let l = dist(a, b).max(1e-9);
+    [(b[0] - a[0]) / l, (b[1] - a[1]) / l]
+}
+
+/// The sign beside a jet at `p` taxiing along the unit `d`, facing it: SIGN_EDGE_M past the taxiway's edge on its
+/// left, else farther out, else on its right (Annex 14 5.4.1.4), the first place off the paved surface (`paved`);
+/// None when all are paved.
+fn sign_at(p: [f64; 2], d: [f64; 2], half: f64, panels: Vec<Panel>, paved: &dyn Fn([f64; 2]) -> bool) -> Option<Sign> {
+    let facing = grid_deg([-d[0], -d[1]]);
+    [1.0, -1.0]
+        .iter()
+        .flat_map(|side| [0.0, 8.0, 18.0].map(|more| side * (half + SIGN_EDGE_M + more)))
+        .map(|off| [p[0] - d[1] * off, p[1] + d[0] * off])
+        // The board's ends too (a 3 m sign).
+        .find(|q| [-2.0, 0.0, 2.0].iter().all(|k| !paved([q[0] + d[1] * k, q[1] - d[0] * k])))
+        .map(|at| Sign { at, facing, panels })
+}
+
+/// The base's taxiway signs (ICAO Annex 14 §5.4): a runway-holding sign (mandatory) where each taxiway comes within
+/// HOLD_M of a runway's centreline, and at each junction of three or more taxiways a direction sign before it on each
+/// arriving taxiway, one board per other branch that leads to a runway (the designator of the end nearer where it
+/// joins: the take-off away from it). OpenStreetMap names none of the bases' taxiways, so no location sign.
+pub fn signs(b: &Base) -> Vec<Sign> {
+    let g = Graph::new(&b.taxiways, &[]);
+    let m = mask(b);
+    let paved = |q: [f64; 2]| {
+        let (x, y) = ((q[0] - m.origin[0]) / MASK_PX_M, (m.origin[1] - q[1]) / MASK_PX_M);
+        x >= 0.0 && y >= 0.0 && (x as usize) < m.w && (y as usize) < m.h && m.img.get_pixel(x as u32, y as u32)[0] >= 64
+    };
+    let half = |p: [f64; 2]| {
+        b.taxiways
+            .iter()
+            .filter(|(l, _)| l.windows(2).any(|s| seg_dist(p, s[0], s[1]) < 1.0))
+            .map(|(_, w)| w / 2.0)
+            .fold(TAXIWAY_WIDTH_M / 2.0, f64::max)
+    };
+    let on_runway = |p: [f64; 2]| b.runways.iter().position(|r| r.dist(p) <= r.width / 2.0 + 5.0);
+    let mut out: Vec<Sign> = Vec::new();
+    // Holding: walking each taxiway toward a runway, the point where it comes within HOLD_M of the centreline.
+    for (l, w) in &b.taxiways {
+        for line in [l.clone(), l.iter().rev().copied().collect::<Vec<_>>()] {
+            for s in line.windows(2) {
+                let Some(ri) = b.runways.iter().position(|r| r.dist(s[0]) > HOLD_M && r.dist(s[1]) <= HOLD_M) else {
+                    continue;
+                };
+                let r = &b.runways[ri];
+                // The crossing: bisect the segment.
+                let (mut lo, mut hi) = (0.0, 1.0);
+                for _ in 0..30 {
+                    let m = (lo + hi) / 2.0;
+                    let p = [s[0][0] + (s[1][0] - s[0][0]) * m, s[0][1] + (s[1][1] - s[0][1]) * m];
+                    if r.dist(p) > HOLD_M { lo = m } else { hi = m }
+                }
+                let p = [s[0][0] + (s[1][0] - s[0][0]) * lo, s[0][1] + (s[1][1] - s[0][1]) * lo];
+                let d = unit(s[0], s[1]);
+                // The threshold on the jet's left first (left of d: d × (e − p) > 0).
+                let left = |k: usize| {
+                    let e = r.ends[k];
+                    d[0] * (e[1] - p[1]) - d[1] * (e[0] - p[0]) > 0.0
+                };
+                let k = if left(0) { 0 } else { 1 };
+                let text = format!("{}-{}", r.designators[k], r.designators[1 - k]);
+                if out.iter().any(|o| dist(o.at, p) < 60.0 && o.panels[0].text == text) {
+                    continue;
+                }
+                out.extend(sign_at(p, d, w / 2.0, vec![Panel { style: "mandatory", text, arrow: None }], &paved));
+            }
+        }
+    }
+    // The runway each branch leads to: from `next`, never back through `from`, the nearest point on a runway.
+    let leads_to = |from: usize, next: usize| -> Option<String> {
+        let mut best = vec![f64::INFINITY; g.pts.len()];
+        let mut heap = BinaryHeap::new();
+        best[next] = dist(g.pts[from], g.pts[next]);
+        heap.push(std::cmp::Reverse((best[next].to_bits(), next)));
+        while let Some(std::cmp::Reverse((d, k))) = heap.pop() {
+            let d = f64::from_bits(d);
+            if d > best[k] {
+                continue;
+            }
+            if let Some(ri) = on_runway(g.pts[k]) {
+                let r = &b.runways[ri];
+                let e = if dist(g.pts[k], r.ends[0]) < dist(g.pts[k], r.ends[1]) { 0 } else { 1 };
+                return Some(r.designators[e].clone());
+            }
+            for &(n, w) in &g.adj[k] {
+                if n != from && d + w < best[n] {
+                    best[n] = d + w;
+                    heap.push(std::cmp::Reverse(((d + w).to_bits(), n)));
+                }
+            }
+        }
+        None
+    };
+    // The point DIRECTION_BACK_M back from the junction `j` along the branch through `n` (bends followed), and the
+    // way a jet taxis there toward `j`; None when the branch ends sooner.
+    let back = |j: usize, n: usize| -> Option<([f64; 2], [f64; 2])> {
+        let (mut prev, mut cur, mut left) = (j, n, DIRECTION_BACK_M);
+        loop {
+            let seg = dist(g.pts[prev], g.pts[cur]);
+            if seg >= left {
+                let d = unit(g.pts[cur], g.pts[prev]);
+                return Some(([g.pts[prev][0] - d[0] * left, g.pts[prev][1] - d[1] * left], d));
+            }
+            left -= seg;
+            let nexts: Vec<usize> = g.adj[cur].iter().map(|a| a.0).filter(|&a| a != prev).collect();
+            if nexts.len() != 1 {
+                return None;
+            }
+            (prev, cur) = (cur, nexts[0]);
+        }
+    };
+    for j in 0..g.pts.len() {
+        let mut branches: Vec<usize> = g.adj[j].iter().map(|a| a.0).collect();
+        branches.sort();
+        branches.dedup();
+        if branches.len() < 3 || on_runway(g.pts[j]).is_some() {
+            continue;
+        }
+        let dests: Vec<(usize, Option<String>)> = branches.iter().map(|&n| (n, leads_to(j, n))).collect();
+        for &arrive in &branches {
+            let Some((p, d)) = back(j, arrive) else { continue };
+            if on_runway(p).is_some() {
+                continue;
+            }
+            let mut panels: Vec<Panel> = dests
+                .iter()
+                .filter(|(n, t)| *n != arrive && t.is_some())
+                .map(|(n, t)| {
+                    let o = unit(g.pts[j], g.pts[*n]);
+                    // The turn from d to o, positive right (clockwise), to 45° steps.
+                    let turn = (d[0] * o[1] - d[1] * o[0]).atan2(d[0] * o[0] + d[1] * o[1]).to_degrees();
+                    Panel {
+                        style: "direction",
+                        text: t.clone().unwrap_or_default(),
+                        arrow: Some((-turn / 45.0).round() * 45.0 + 0.0),
+                    }
+                })
+                .collect();
+            // Left to right, as the turns; one board per runway and turn.
+            panels.sort_by(|a, b| a.arrow.unwrap_or(0.0).total_cmp(&b.arrow.unwrap_or(0.0)).then(a.text.cmp(&b.text)));
+            panels.dedup();
+            if !panels.is_empty() {
+                out.extend(sign_at(p, d, half(p), panels, &paved));
+            }
+        }
+    }
+    out
+}
+
 // --- heights --------------------------------------------------------------------------------------------------------
 
 /// The theatre's ground heights (its level-6 height nodes, sampled as the game's height_at), loaded per node.
@@ -529,7 +740,7 @@ pub fn mask(b: &Base) -> Mask {
         stroke(px, l, wd / 2.0, true);
     }
     for p in b.aprons.iter().chain(&b.shelters) {
-        fill_spans(w, h, origin, MASK_PX_M, p, |y, x0, x1| {
+        fill_spans(w, h, origin, MASK_PX_M, &[p], |y, x0, x1| {
             for x in x0..x1 {
                 px[(y * w + x) * 3] = 255;
                 px[(y * w + x) * 3 + 1] = 255;
@@ -564,26 +775,32 @@ fn box3(px: &mut [u8], w: usize, h: usize, c: usize, n: usize) {
 /// Sets to 1 the pixels whose centre lies inside `poly` (even-odd), on a grid of `cell` m whose north-west corner is
 /// `origin` (rows run south).
 pub fn fill_polygon(m: &mut [f32], w: usize, h: usize, origin: [f64; 2], cell: f64, poly: &[[f64; 2]]) {
-    fill_spans(w, h, origin, cell, poly, |y, x0, x1| m[y * w + x0..y * w + x1].fill(1.0));
+    fill_spans(w, h, origin, cell, &[poly], |y, x0, x1| m[y * w + x0..y * w + x1].fill(1.0));
 }
 
-/// Calls `span(y, x0, x1)` for each row's run of pixels whose centre lies inside `poly` (even-odd), on a grid of `cell`
-/// m whose north-west corner is `origin` (rows run south).
+/// Calls `span(y, x0, x1)` for each row's run of pixels whose centre lies inside the rings (even-odd over all of
+/// them: a hole is a ring inside another), over the rows of their box.
 pub fn fill_spans(
     w: usize,
     h: usize,
     origin: [f64; 2],
     cell: f64,
-    poly: &[[f64; 2]],
+    rings: &[&[[f64; 2]]],
     mut span: impl FnMut(usize, usize, usize),
 ) {
-    for y in 0..h {
+    let (lo, hi) =
+        rings.iter().flat_map(|r| r.iter()).fold((f64::MAX, f64::MIN), |(l, u), p| (l.min(p[1]), u.max(p[1])));
+    let y0 = (((origin[1] - hi) / cell - 0.5).floor().max(0.0) as usize).min(h);
+    let y1 = (((origin[1] - lo) / cell + 0.5).ceil().max(0.0) as usize).min(h);
+    for y in y0..y1 {
         let northing = origin[1] - (y as f64 + 0.5) * cell;
         let mut xs = Vec::new();
-        for k in 0..poly.len() {
-            let (a, b) = (poly[k], poly[(k + 1) % poly.len()]);
-            if (a[1] > northing) != (b[1] > northing) {
-                xs.push(a[0] + (northing - a[1]) / (b[1] - a[1]) * (b[0] - a[0]));
+        for poly in rings {
+            for k in 0..poly.len() {
+                let (a, b) = (poly[k], poly[(k + 1) % poly.len()]);
+                if (a[1] > northing) != (b[1] > northing) {
+                    xs.push(a[0] + (northing - a[1]) / (b[1] - a[1]) * (b[0] - a[0]));
+                }
             }
         }
         xs.sort_by(f64::total_cmp);
@@ -627,20 +844,27 @@ fn write_node(n: &Node, out: &mut Vec<u8>) {
     }
 }
 
-/// child0 where x < v (world metres).
+/// child0 where x < v (world metres); one leaf when both sides are the same leaf.
 fn split_x(v: f64, west: Node, east: Node) -> Node {
-    Node::Split([1.0, 0.0, v + SHIFT[0]], Box::new(west), Box::new(east))
+    split([1.0, 0.0, v + SHIFT[0]], west, east)
 }
 
-/// child0 where y < v (world metres).
+/// child0 where y < v (world metres); one leaf when both sides are the same leaf.
 fn split_y(v: f64, south: Node, north: Node) -> Node {
-    Node::Split([0.0, 1.0, v + SHIFT[1]], Box::new(south), Box::new(north))
+    split([0.0, 1.0, v + SHIFT[1]], south, north)
 }
 
-/// The runways' rectangles (each a convex quad: centreline ends ± half the width) over the land leaf, as nested
-/// half-plane tests; a point outside one goes on to the next.
-fn runway_chain(rects: &[[[f64; 2]; 4]]) -> Node {
-    let Some((q, rest)) = rects.split_first() else { return Node::Leaf(LAND) };
+fn split(p: [f64; 3], c0: Node, c1: Node) -> Node {
+    match (&c0, &c1) {
+        (Node::Leaf(a), Node::Leaf(b)) if a == b => c0,
+        _ => Node::Split(p, Box::new(c0), Box::new(c1)),
+    }
+}
+
+/// The runways' rectangles (each a convex quad: centreline ends ± half the width) over the `ground` leaf (LAND or
+/// PAVED), as nested half-plane tests; a point outside one goes on to the next.
+fn runway_chain(rects: &[[[f64; 2]; 4]], ground: i32) -> Node {
+    let Some((q, rest)) = rects.split_first() else { return Node::Leaf(ground) };
     let mut n = Node::Leaf(RUNWAY);
     // Each edge a→b of the counter-clockwise quad: inside is to its left.
     for k in (0..4).rev() {
@@ -648,65 +872,82 @@ fn runway_chain(rects: &[[[f64; 2]; 4]]) -> Node {
         // left of a→b: (b−a) × (p−a) > 0 ⇔ −dy·x + dx·y > −dy·ax + dx·ay; child0 (<) is outside.
         let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
         let c = -dy * (a[0] + SHIFT[0]) + dx * (a[1] + SHIFT[1]);
-        n = Node::Split([-dy, dx, c], Box::new(runway_chain(rest)), Box::new(n));
+        n = Node::Split([-dy, dx, c], Box::new(runway_chain(rest, ground)), Box::new(n));
     }
     n
 }
 
-/// The sea cells of a theatre (`sea[j * nx + i]`, WATER_CELL_M squares from the north-west corner; rows run south).
-pub struct SeaGrid<'a> {
+/// The water of a theatre per WATER_CELL_M square (`cells[j * nx + i]` from the north-west corner, rows run south):
+/// 0 land, else its terraintype.dat flag (SEA or INLAND_WATER).
+pub struct WaterGrid<'a> {
     nx: usize,
     ny: usize,
-    sea: &'a [bool],
+    cells: &'a [u8],
 }
 
-impl<'a> SeaGrid<'a> {
-    pub fn new(nx: usize, ny: usize, sea: &'a [bool]) -> Self {
-        Self { nx, ny, sea }
+impl<'a> WaterGrid<'a> {
+    pub fn new(nx: usize, ny: usize, cells: &'a [u8]) -> Self {
+        Self { nx, ny, cells }
     }
-    /// The block [i0, i1) × [j0, j1) when all of it is sea (Some(true)) or all land (Some(false)); None when mixed.
-    /// The scan stops at the first cell that differs, so the tree's build reads each cell about once per level.
-    fn uniform(&self, i0: usize, i1: usize, j0: usize, j1: usize) -> Option<bool> {
-        let first = self.sea[j0 * self.nx + i0];
-        (j0..j1).all(|j| self.sea[j * self.nx + i0..j * self.nx + i1].iter().all(|&c| c == first)).then_some(first)
+    /// The block [i0, i1) × [j0, j1)'s value when all of it has one; None when mixed. The scan stops at the first
+    /// cell that differs, so the tree's build reads each cell about once per level.
+    fn uniform(&self, i0: usize, i1: usize, j0: usize, j1: usize) -> Option<u8> {
+        let first = self.cells[j0 * self.nx + i0];
+        (j0..j1).all(|j| self.cells[j * self.nx + i0..j * self.nx + i1].iter().all(|&c| c == first)).then_some(first)
     }
 }
 
-/// The surface tree over the theatre rect `r` (E0, N0, E1, N1): the sea as a quadtree of axis splits, the runways in
-/// the land blocks they touch.
-fn surface_tree(r: [f64; 4], sea: &SeaGrid, rects: &[[[f64; 2]; 4]]) -> Node {
+/// The surface tree over the theatre rect `r` (E0, N0, E1, N1): the water as a quadtree of axis splits, the runways
+/// in the land blocks they touch.
+fn surface_tree(r: [f64; 4], s: &Surface, rects: &[[[f64; 2]; 4]]) -> Node {
+    struct Ctx<'a> {
+        w: &'a WaterGrid<'a>,
+        paved: &'a [Paved],
+        coast: &'a crate::sim_coast::Coast,
+        rects: &'a [[[f64; 2]; 4]],
+        r: [f64; 4],
+    }
+    // A land or sea block near the coastline: split down to COAST_LEAF_M where the coastline crosses it, each part
+    // the sea or land by its side.
+    fn shore(b: [f64; 4], grid: u8, c: &Ctx) -> Node {
+        let leaf = |sea: bool| if sea { Node::Leaf(SEA) } else { land_tree(b, c.paved, c.rects) };
+        let m = [(b[0] + b[2]) / 2.0, (b[1] + b[3]) / 2.0];
+        let (w, h) = (b[2] - b[0], b[3] - b[1]);
+        let Some(side) = c.coast.sea(m) else { return leaf(grid == SEA as u8) };
+        if w.max(h) <= COAST_LEAF_M || !c.coast.near(m, 0.5 * w.hypot(h)) {
+            return leaf(side);
+        }
+        if w >= h {
+            split_x(m[0], shore([b[0], b[1], m[0], b[3]], grid, c), shore([m[0], b[1], b[2], b[3]], grid, c))
+        } else {
+            split_y(m[1], shore([b[0], b[1], b[2], m[1]], grid, c), shore([b[0], m[1], b[2], b[3]], grid, c))
+        }
+    }
     // Cells [i0, i1) × [j0, j1): one leaf when uniform, else split the longer side.
-    fn build(i0: usize, i1: usize, j0: usize, j1: usize, sea: &SeaGrid, rects: &[[[f64; 2]; 4]], r: [f64; 4]) -> Node {
+    fn build(i0: usize, i1: usize, j0: usize, j1: usize, c: &Ctx) -> Node {
+        let Ctx { w, paved, coast, rects, r } = *c;
         let cx = |i: usize| (r[0] + i as f64 * WATER_CELL_M).min(r[2]);
         let cy = |j: usize| (r[3] - j as f64 * WATER_CELL_M).max(r[1]);
-        let u = sea.uniform(i0, i1, j0, j1);
-        if u == Some(true) {
-            return Node::Leaf(SEA);
-        }
-        if u == Some(false) {
-            let (x0, x1, y0, y1) = (cx(i0), cx(i1), cy(j1), cy(j0));
-            let near: Vec<_> = rects
-                .iter()
-                .filter(|q| {
-                    let bx = q.iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, p| {
-                        [b[0].min(p[0]), b[1].min(p[1]), b[2].max(p[0]), b[3].max(p[1])]
-                    });
-                    bx[0] < x1 && x0 < bx[2] && bx[1] < y1 && y0 < bx[3]
-                })
-                .copied()
-                .collect();
-            return runway_chain(&near);
-        }
-        if i1 - i0 >= j1 - j0 {
-            let m = (i0 + i1) / 2;
-            split_x(cx(m), build(i0, m, j0, j1, sea, rects, r), build(m, i1, j0, j1, sea, rects, r))
-        } else {
-            let m = (j0 + j1) / 2;
-            // Rows run south: j ≥ m is the south part.
-            split_y(cy(m), build(i0, i1, m, j1, sea, rects, r), build(i0, i1, j0, m, sea, rects, r))
+        let b = [cx(i0), cy(j1), cx(i1), cy(j0)];
+        let g = w.uniform(i0, i1, j0, j1);
+        // A uniform land or sea block the coastline reaches: split to 8 × 8 cells, then along the coastline.
+        let shore_side = g.is_some_and(|g| g == 0 || g == SEA as u8) && coast.touches(b);
+        match g {
+            Some(g) if shore_side && (i1 - i0) * (j1 - j0) <= 64 => shore(b, g, c),
+            Some(0) if !shore_side => land_tree(b, paved, rects),
+            Some(f) if !shore_side => Node::Leaf(f as i32),
+            _ if i1 - i0 >= j1 - j0 && i1 - i0 > 1 => {
+                let m = (i0 + i1) / 2;
+                split_x(cx(m), build(i0, m, j0, j1, c), build(m, i1, j0, j1, c))
+            }
+            _ => {
+                let m = (j0 + j1) / 2;
+                // Rows run south: j ≥ m is the south part.
+                split_y(cy(m), build(i0, i1, m, j1, c), build(i0, i1, j0, m, c))
+            }
         }
     }
-    build(0, sea.nx, 0, sea.ny, sea, rects, r)
+    build(0, s.water.nx, 0, s.water.ny, &Ctx { w: s.water, paved: s.paved, coast: s.coast, rects, r })
 }
 
 /// A runway's rectangle, counter-clockwise.
@@ -717,17 +958,190 @@ fn rect(r: &Runway) -> [[f64; 2]; 4] {
     [[a[0] - n[0], a[1] - n[1]], [b[0] - n[0], b[1] - n[1]], [b[0] + n[0], b[1] + n[1]], [a[0] + n[0], a[1] + n[1]]]
 }
 
-/// terraintype.dat's bytes for the theatre rect `r`.
-pub fn terraintype(r: [f64; 4], sea: &SeaGrid, runways: &[&Runway]) -> Vec<u8> {
+/// What terraintype.dat is made of besides the runways: the water per WATER_CELL_M cell, the coastline (the sea's
+/// boundary within its reach, to COAST_LEAF_M) and the bases' paved surface.
+pub struct Surface<'a> {
+    pub water: &'a WaterGrid<'a>,
+    pub coast: &'a crate::sim_coast::Coast,
+    pub paved: &'a [Paved],
+}
+
+/// terraintype.dat's bytes for the theatre rect `r`: the water (the coastline's side near it), the bases' paved
+/// surface (PAVED) and the runways (RUNWAY).
+pub fn terraintype(r: [f64; 4], s: &Surface, runways: &[&Runway]) -> Vec<u8> {
     let rects: Vec<_> = runways.iter().map(|r| rect(r)).collect();
     let mut out = Vec::new();
-    write_node(&surface_tree(r, sea, &rects), &mut out);
+    write_node(&surface_tree(r, s, &rects), &mut out);
     out
 }
 
+/// A base's paved surface (runways, stopways, taxiways, aprons, shelters' pads) on a PAVED_CELL_M grid from its mask:
+/// a cell is paved when any of its mask pixels is half covered or more. Rows run south from `origin` (north-west).
+pub struct Paved {
+    origin: [f64; 2],
+    nx: usize,
+    ny: usize,
+    cells: Vec<bool>,
+}
+
+impl Paved {
+    pub fn new(m: &Mask) -> Self {
+        let k = (PAVED_CELL_M / MASK_PX_M) as usize;
+        let (nx, ny) = (m.w.div_ceil(k), m.h.div_ceil(k));
+        let mut cells = vec![false; nx * ny];
+        for (x, y, p) in m.img.enumerate_pixels() {
+            if p[0] >= 128 {
+                cells[y as usize / k * nx + x as usize / k] = true;
+            }
+        }
+        Self { origin: m.origin, nx, ny, cells }
+    }
+
+    /// The mask's paved surface and the AI's taxi paths of `rt` from every parking spot of `b` (each spot to the hub,
+    /// the hub to the lineup, the landing roll's end to the hub) at TAXIWAY_WIDTH_M: where OpenStreetMap maps no
+    /// taxiway along a computed path (Hatzerim's Sufa spot to its hub, 140 m of sand), the jet still rolls on paved
+    /// ground.
+    pub fn with_paths(m: &Mask, b: &Base, rt: &Routes) -> Self {
+        let mut p = Self::new(m);
+        let half = TAXIWAY_WIDTH_M / 2.0;
+        let mut lines: Vec<Vec<[f64; 2]>> = b.parking.iter().map(|s| vec![s.at, rt.hub]).collect();
+        lines.push(rt.from.clone());
+        lines.push(rt.to.clone());
+        for l in &lines {
+            for s in l.windows(2) {
+                let (lo, hi) = (
+                    [s[0][0].min(s[1][0]) - half, s[0][1].min(s[1][1]) - half],
+                    [s[0][0].max(s[1][0]) + half, s[0][1].max(s[1][1]) + half],
+                );
+                let (i0, i1, j0, j1) = p.range([lo[0], lo[1], hi[0], hi[1]]);
+                for j in j0.saturating_sub(1)..(j1 + 1).min(p.ny) {
+                    for i in i0.saturating_sub(1)..(i1 + 1).min(p.nx) {
+                        let c = [p.x(i) + PAVED_CELL_M / 2.0, p.y(j) - PAVED_CELL_M / 2.0];
+                        if seg_dist(c, s[0], s[1]) <= half {
+                            p.cells[j * p.nx + i] = true;
+                        }
+                    }
+                }
+            }
+        }
+        p
+    }
+
+    /// The grid's cells [i0, i1) × [j0, j1) that meet the world rect `b` (W, S, E, N), clamped; empty when outside. A
+    /// cell cut by the rect's edge is in it, so each side of a cut through the grid keeps its part of the cell.
+    fn range(&self, b: [f64; 4]) -> (usize, usize, usize, usize) {
+        let at = |v: f64, n: usize| (v.max(0.0) as usize).min(n);
+        let (x0, x1) = ((b[0] - self.origin[0]) / PAVED_CELL_M, (b[2] - self.origin[0]) / PAVED_CELL_M);
+        let (y0, y1) = ((self.origin[1] - b[3]) / PAVED_CELL_M, (self.origin[1] - b[1]) / PAVED_CELL_M);
+        (at(x0.floor(), self.nx), at(x1.ceil(), self.nx), at(y0.floor(), self.ny), at(y1.ceil(), self.ny))
+    }
+
+    fn x(&self, i: usize) -> f64 {
+        self.origin[0] + i as f64 * PAVED_CELL_M
+    }
+
+    fn y(&self, j: usize) -> f64 {
+        self.origin[1] - j as f64 * PAVED_CELL_M
+    }
+}
+
+/// The runways' rectangles that meet the world rect `b` (W, S, E, N), or the one that holds all of it.
+enum Near {
+    Some(Vec<[[f64; 2]; 4]>),
+    Inside,
+}
+
+fn runways_near(rects: &[[[f64; 2]; 4]], b: [f64; 4]) -> Near {
+    let corners = [[b[0], b[1]], [b[2], b[1]], [b[2], b[3]], [b[0], b[3]]];
+    let mut out = Vec::new();
+    for q in rects {
+        // Left of a→b (inside the counter-clockwise quad) for each edge.
+        let side = |k: usize, p: [f64; 2]| {
+            let (a, e) = (q[k], q[(k + 1) % 4]);
+            (e[0] - a[0]) * (p[1] - a[1]) - (e[1] - a[1]) * (p[0] - a[0])
+        };
+        if corners.iter().all(|&c| (0..4).all(|k| side(k, c) >= 0.0)) {
+            return Near::Inside;
+        }
+        // Separated: the box beside the quad's box, or wholly outside one of its edges.
+        let bx = q.iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, p| {
+            [b[0].min(p[0]), b[1].min(p[1]), b[2].max(p[0]), b[3].max(p[1])]
+        });
+        let apart = !(bx[0] < b[2] && b[0] < bx[2] && bx[1] < b[3] && b[1] < bx[3])
+            || (0..4).any(|k| corners.iter().all(|&c| side(k, c) < 0.0));
+        if !apart {
+            out.push(*q);
+        }
+    }
+    Near::Some(out)
+}
+
+/// A land block `b` (W, S, E, N): LAND, with the bases' paved cells in it as PAVED leaves (a quadtree on their grid)
+/// and the runways over both.
+fn land_tree(b: [f64; 4], paved: &[Paved], rects: &[[[f64; 2]; 4]]) -> Node {
+    let hits: Vec<&Paved> = paved
+        .iter()
+        .filter(|p| {
+            let (i0, i1, j0, j1) = p.range(b);
+            i0 < i1 && j0 < j1
+        })
+        .collect();
+    let leaf = |g: i32| match runways_near(rects, b) {
+        Near::Inside => Node::Leaf(RUNWAY),
+        Near::Some(near) => runway_chain(&near, g),
+    };
+    let Some(p) = hits.first() else { return leaf(LAND) };
+    let (i0, i1, j0, j1) = p.range(b);
+    let (x0, x1, y0, y1) = (p.x(i0), p.x(i1), p.y(j1), p.y(j0));
+    // Off the grid's part (or another base's grid in the block): cut it off first.
+    if b[0] < x0 - 0.01 {
+        return split_x(
+            x0,
+            land_tree([b[0], b[1], x0, b[3]], paved, rects),
+            land_tree([x0, b[1], b[2], b[3]], paved, rects),
+        );
+    }
+    if x1 < b[2] - 0.01 {
+        return split_x(
+            x1,
+            land_tree([b[0], b[1], x1, b[3]], paved, rects),
+            land_tree([x1, b[1], b[2], b[3]], paved, rects),
+        );
+    }
+    if b[1] < y0 - 0.01 {
+        return split_y(
+            y0,
+            land_tree([b[0], b[1], b[2], y0], paved, rects),
+            land_tree([b[0], y0, b[2], b[3]], paved, rects),
+        );
+    }
+    if y1 < b[3] - 0.01 {
+        return split_y(
+            y1,
+            land_tree([b[0], b[1], b[2], y1], paved, rects),
+            land_tree([b[0], y1, b[2], b[3]], paved, rects),
+        );
+    }
+    let n = (j0..j1).map(|j| p.cells[j * p.nx + i0..j * p.nx + i1].iter().filter(|&&c| c).count()).sum::<usize>();
+    if n == 0 {
+        return leaf(LAND);
+    }
+    if n == (i1 - i0) * (j1 - j0) {
+        return leaf(PAVED);
+    }
+    if i1 - i0 >= j1 - j0 {
+        let xm = p.x((i0 + i1) / 2);
+        split_x(xm, land_tree([b[0], b[1], xm, b[3]], paved, rects), land_tree([xm, b[1], b[2], b[3]], paved, rects))
+    } else {
+        // Rows run south: the row m's north edge.
+        let ym = p.y((j0 + j1) / 2);
+        split_y(ym, land_tree([b[0], b[1], b[2], ym], paved, rects), land_tree([b[0], ym, b[2], b[3]], paved, rects))
+    }
+}
+
 /// The sea on the theatre's WATER_CELL_M grid: the cells at 0 m (`zero`: GLO-30's sea surface; its missing tiles
-/// are 0 m in the terrain's height nodes too) joined to the theatre's edge, so the Dead Sea and the Sea of Galilee below
-/// sea level stay land (open: inland water). A breadth-first fill, cells marked as they are queued: the queue holds
+/// are 0 m in the terrain's height nodes too) joined to the theatre's edge, so a lake below or above sea level is not
+/// sea (the inland water is OpenStreetMap's, `water_polygons`). A breadth-first fill, cells marked as they are queued: the queue holds
 /// the fill's front (a few thousand cells), not the sea.
 pub fn sea_cells(nx: usize, ny: usize, zero: &[bool]) -> Vec<bool> {
     let mut sea = vec![false; nx * ny];
@@ -839,6 +1253,7 @@ pub fn airbases(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
     let mut ibx = String::from(
         "; Modern IAF's airbases (iaf-sim airbases; iaf-2026/docs/data-formats.md §12). World metres: UTM 36N.\n\n",
     );
+    let mut paved = Vec::new();
     for b in &bases {
         check(cancel)?;
         let rt = routes(b)?;
@@ -847,6 +1262,7 @@ pub fn airbases(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
         let m = mask(b);
         let file = format!("israel/airbases/{}.png", b.section.to_lowercase());
         m.img.save(assets.join("converted/terrain").join(&file))?;
+        paved.push(Paved::with_paths(&m, b, &rt));
         // The take-off runway first (the tower's wind turn takes airbases.json's first runway).
         let mut order: Vec<usize> = (0..b.runways.len()).collect();
         order.sort_by_key(|&i| i != b.main.0);
@@ -869,6 +1285,10 @@ pub fn airbases(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
             "taxi": b.taxiways.iter().map(|(l, _)| l.iter().map(|p| pt(*p)).collect::<Vec<_>>()).collect::<Vec<_>>(),
             "parking": b.parking.iter().map(|p| json!({"unit": p.unit, "at": pt(p.at), "heading": p.heading.round()})).collect::<Vec<_>>(),
             "tower": pt(b.tower_or_reference()),
+            "signs": signs(b).iter().map(|s| json!({
+                "at": pt(s.at), "facing": s.facing.round(),
+                "panels": s.panels.iter().map(|p| json!({"style": p.style, "text": p.text, "arrow": p.arrow})).collect::<Vec<_>>(),
+            })).collect::<Vec<_>>(),
             "mask": {"file": file, "origin": pt(m.origin), "px_m": MASK_PX_M, "w": m.w, "h": m.h},
         }));
         log!(
@@ -883,17 +1303,11 @@ pub fn airbases(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
             b.parking.len()
         );
     }
-    std::fs::write(theatre.join("airbases.json"), serde_json::to_string_pretty(&json!({ "bases": list }))?)?;
+    std::fs::write(theatre.join("airbases.json"), serde_json::to_string(&json!({ "bases": list }))?)?;
     std::fs::write(own.join("iaf.ibx"), ibx)?;
-    // The surface: the sea from the DEM's 0 m cells joined to the edge, the runways.
-    let meta: Value = serde_json::from_slice(&std::fs::read(theatre.join("meta.json"))?)?;
-    let (e0, n1) = (meta["x_shift"].as_f64().unwrap_or(0.0), meta["y_shift"].as_f64().unwrap_or(0.0));
-    let t = &meta["theatre"];
-    let (w, h) = (t[2].as_f64().unwrap_or(0.0), t[3].as_f64().unwrap_or(0.0));
-    if w <= 0.0 || h <= 0.0 {
-        bail!("{}: no theatre size", theatre.display());
-    }
-    let r = [e0, n1 - h, e0 + w, n1];
+    // The surface: the sea from the DEM's 0 m cells joined to the edge, the bases' paved surface, the runways.
+    let r = crate::sim_terrain::Meta::load(&theatre)?.rect;
+    let (e0, n1, w, h) = (r[0], r[3], r[2] - r[0], r[3] - r[1]);
     let (nx, ny) = ((w / WATER_CELL_M).ceil() as usize, (h / WATER_CELL_M).ceil() as usize);
     // One bool per cell (43 M at 64 m: 43 MB), then the sea's 43 MB; a cell without a height node is land.
     let mut zero = vec![false; nx * ny];
@@ -908,18 +1322,277 @@ pub fn airbases(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
     drop(ground);
     let sea = sea_cells(nx, ny, &zero);
     drop(zero);
+    let mut cells: Vec<u8> = sea.iter().map(|&s| if s { SEA as u8 } else { 0 }).collect();
+    drop(sea);
+    // The OpenStreetMap extracts (downloaded when missing): the coastline decides the sea near it (the DEM's 0 m cells
+    // farther out), as it cuts the Survey photo (iaf-2026/docs/terrain.md §12).
+    let geo = theatre_geo(r);
+    let pbfs = crate::sim_coast::fetch_extracts(assets, geo, pr, cancel)?;
+    let coast = crate::sim_coast::Coast::load(&pbfs, geo, &theatre.join(".work"))?;
+    for j in 0..ny {
+        for i in 0..nx {
+            let c = [e0 + (i as f64 + 0.5) * WATER_CELL_M, n1 - (j as f64 + 0.5) * WATER_CELL_M];
+            if let Some(s) = coast.sea(c) {
+                cells[j * nx + i] = if s { SEA as u8 } else { 0 };
+            }
+        }
+    }
+    // The inland water: OpenStreetMap's lakes and reservoirs (the sea keeps its flag where both are).
+    let water = water_polygons(&pbfs, geo, &theatre.join(".work"))?;
+    // The polygons themselves for the scenery (a tree tests them, not the 64 m grid: iaf-2026/docs/scenery.md §4).
+    save_water(&theatre.join(WATER_FILE), &water)?;
+    let mut inland = vec![false; nx * ny];
+    for wb in &water {
+        let rings: Vec<&[[f64; 2]]> = wb.rings.iter().map(Vec::as_slice).collect();
+        fill_spans(nx, ny, [e0, n1], WATER_CELL_M, &rings, |y, x0, x1| inland[y * nx + x0..y * nx + x1].fill(true));
+    }
+    for (c, w) in cells.iter_mut().zip(&inland) {
+        if *w && *c == 0 {
+            *c = INLAND_WATER as u8;
+        }
+    }
+    drop(inland);
+    // The large lakes' surface as the DEM has it (iaf-2026/docs/terrain.md "Inland water").
+    if let Some(mut g) = Ground::open(&theatre) {
+        for wb in water.iter().filter(|w| w.area >= LEVEL_REPORT_M2) {
+            if let Some(level) = wb.dem_level(&mut g) {
+                log!(pr, "inland water: {} ({:.0} km²) at {level:.1} m (the DEM's median)", wb.name, wb.area / 1e6);
+            }
+        }
+    }
     let rws: Vec<&Runway> = bases.iter().flat_map(|b| b.runways.iter()).collect();
-    let dat = terraintype(r, &SeaGrid::new(nx, ny, &sea), &rws);
+    let dat = terraintype(r, &Surface { water: &WaterGrid::new(nx, ny, &cells), coast: &coast, paved: &paved }, &rws);
     std::fs::write(own.join("terraintype.dat"), &dat)?;
+    let km2 = |f: i32| cells.iter().filter(|c| **c as i32 == f).count() as f64 * WATER_CELL_M * WATER_CELL_M / 1e6;
     log!(
         pr,
-        "airbases: {} bases -> {}, iaf.ibx, terraintype.dat ({} KB, {:.0} km² of sea)",
+        "airbases: {} bases -> {}, iaf.ibx, terraintype.dat ({} KB, {:.0} km² of sea, {:.0} km² of inland water in {} bodies)",
         bases.len(),
         theatre.join("airbases.json").display(),
         dat.len() / 1024,
-        sea.iter().filter(|s| **s).count() as f64 * WATER_CELL_M * WATER_CELL_M / 1e6
+        km2(SEA),
+        km2(INLAND_WATER),
+        water.len()
     );
     Ok(())
+}
+
+// --- inland water ---------------------------------------------------------------------------------------------------
+
+/// The smallest water body kept (m²): 10 ha, about 24 of the 64 m cells (a smaller one shows as a cell or two;
+/// inferred). The lakes from this size up get their DEM level logged.
+const WATER_MIN_M2: f64 = 100_000.0;
+const LEVEL_REPORT_M2: f64 = 50_000_000.0;
+/// OpenStreetMap `water` values that are not standing water: a river's outline is its bed.
+const NOT_STANDING: [&str; 5] = ["river", "stream", "canal", "ditch", "drain"];
+
+/// A lake, reservoir or salt pond of OpenStreetMap: its rings in UTM 36N (the first the outer one, the rest islands)
+/// and its area (m², islands out).
+#[derive(Debug)]
+pub struct Water {
+    pub id: String,
+    pub name: String,
+    pub rings: Vec<Vec<[f64; 2]>>,
+    pub area: f64,
+}
+
+fn ring_area(r: &[[f64; 2]]) -> f64 {
+    let n = r.len();
+    ((0..n).map(|i| r[i][0] * r[(i + 1) % n][1] - r[(i + 1) % n][0] * r[i][1]).sum::<f64>() * 0.5).abs()
+}
+
+impl Water {
+    /// The median ground height (m) over a 500 m grid inside the outer ring; None without a sample.
+    fn dem_level(&self, g: &mut Ground) -> Option<f64> {
+        let o = &self.rings[0];
+        let b = o.iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, p| {
+            [b[0].min(p[0]), b[1].min(p[1]), b[2].max(p[0]), b[3].max(p[1])]
+        });
+        let mut v = Vec::new();
+        let mut y = b[1] + 250.0;
+        while y < b[3] {
+            let mut x = b[0] + 250.0;
+            while x < b[2] {
+                let inside = self.rings.iter().filter(|r| crate::scenery::contains(r, [x, y])).count() % 2 == 1;
+                if let Some(h) = g.at(x, y).filter(|_| inside) {
+                    v.push(h);
+                }
+                x += 500.0;
+            }
+            y += 500.0;
+        }
+        v.sort_by(f64::total_cmp);
+        v.get(v.len() / 2).copied()
+    }
+}
+
+/// The standing water of one GeoJSON feature (ogr2ogr's `multipolygons`, lon / lat): one `Water` per polygon of
+/// WATER_MIN_M2 or more; none for a river, stream or canal outline, nor for water that is there only part of the year
+/// (`intermittent` or `seasonal`: the desert's salt pans, dry in the satellite's pictures).
+pub fn water_from(v: &Value) -> Vec<Water> {
+    let p = &v["properties"];
+    let tags = crate::scenery::other_tags(p["other_tags"].as_str().unwrap_or(""));
+    let yes = |k: &str| tags.get(k).is_some_and(|v| v == "yes");
+    if tags.get("water").is_some_and(|w| NOT_STANDING.contains(&w.as_str())) || yes("intermittent") || yes("seasonal") {
+        return Vec::new();
+    }
+    let id = p["osm_id"].as_str().or(p["osm_way_id"].as_str()).unwrap_or("").to_string();
+    let name = tags.get("name:en").map_or(p["name"].as_str().unwrap_or(""), String::as_str).to_string();
+    let ring = |r: &Value| -> Vec<[f64; 2]> {
+        r.as_array().into_iter().flatten().filter_map(|q| Some(utm36n(q[0].as_f64()?, q[1].as_f64()?))).collect()
+    };
+    let g = &v["geometry"];
+    let polys: Vec<&Value> = match g["type"].as_str() {
+        Some("Polygon") => vec![&g["coordinates"]],
+        Some("MultiPolygon") => g["coordinates"].as_array().into_iter().flatten().collect(),
+        _ => Vec::new(),
+    };
+    polys
+        .into_iter()
+        .filter_map(|poly| {
+            let rings: Vec<Vec<[f64; 2]>> = poly.as_array()?.iter().map(ring).filter(|r| r.len() >= 3).collect();
+            let area = ring_area(rings.first()?) - rings[1..].iter().map(|r| ring_area(r)).sum::<f64>();
+            (area >= WATER_MIN_M2).then(|| Water { id: id.clone(), name: name.clone(), rings, area })
+        })
+        .collect()
+}
+
+/// The inland water's polygons beside the theatre (`save_water`): `{"bodies": [{"name", "rings": [[[x, y], ...], ...]}]}`,
+/// UTM metres to 0.1 m, the first ring the outer one.
+pub const WATER_FILE: &str = "water.json";
+
+pub fn save_water(path: &Path, water: &[Water]) -> Result<()> {
+    let r1 = |v: f64| (v * 10.0).round() / 10.0;
+    let bodies: Vec<Value> = water
+        .iter()
+        .map(|w| {
+            let rings: Vec<Vec<[f64; 2]>> = w.rings.iter().map(|r| r.iter().map(|p| p.map(r1)).collect()).collect();
+            json!({"name": w.name, "rings": rings})
+        })
+        .collect();
+    std::fs::write(path, serde_json::to_string(&json!({ "bodies": bodies }))?)?;
+    Ok(())
+}
+
+/// The inland water's polygons as `save_water` wrote them, for point tests: each body's rings, its box and a 1 km
+/// grid of the bodies whose box meets each square.
+/// A body's rings (the first the outer one).
+pub type Rings = Vec<Vec<[f64; 2]>>;
+
+#[derive(Default)]
+pub struct WaterIndex {
+    bodies: Vec<(Rings, [f64; 4])>,
+    grid: HashMap<(i64, i64), Vec<u32>>,
+}
+
+const WATER_INDEX_M: f64 = 1000.0;
+
+impl WaterIndex {
+    /// The file's bodies; empty without it.
+    pub fn load(path: &Path) -> Result<Self> {
+        let Ok(b) = std::fs::read(path) else { return Ok(Self::default()) };
+        let v: Value = serde_json::from_slice(&b).with_context(|| format!("{}", path.display()))?;
+        let rings = |w: &Value| -> Rings {
+            w["rings"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .map(|r| {
+                    r.as_array().into_iter().flatten().filter_map(|p| Some([p[0].as_f64()?, p[1].as_f64()?])).collect()
+                })
+                .collect()
+        };
+        Ok(Self::new(v["bodies"].as_array().into_iter().flatten().map(rings).filter(|r| !r.is_empty()).collect()))
+    }
+
+    pub fn new(bodies: Vec<Rings>) -> Self {
+        let mut ix = Self::default();
+        for (k, rings) in bodies.into_iter().enumerate() {
+            let b = rings[0].iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, p| {
+                [b[0].min(p[0]), b[1].min(p[1]), b[2].max(p[0]), b[3].max(p[1])]
+            });
+            let c = |v: f64| (v / WATER_INDEX_M).floor() as i64;
+            for j in c(b[1])..=c(b[3]) {
+                for i in c(b[0])..=c(b[2]) {
+                    ix.grid.entry((i, j)).or_default().push(k as u32);
+                }
+            }
+            ix.bodies.push((rings, b));
+        }
+        ix
+    }
+
+    /// Whether the point (UTM metres) lies within `r` m of a body's box.
+    pub fn near(&self, p: [f64; 2], r: f64) -> bool {
+        let c = |v: f64| (v / WATER_INDEX_M).floor() as i64;
+        (c(p[1] - r)..=c(p[1] + r)).any(|j| {
+            (c(p[0] - r)..=c(p[0] + r)).any(|i| {
+                self.grid.get(&(i, j)).into_iter().flatten().any(|&k| {
+                    let b = self.bodies[k as usize].1;
+                    p[0] >= b[0] - r && p[0] <= b[2] + r && p[1] >= b[1] - r && p[1] <= b[3] + r
+                })
+            })
+        })
+    }
+
+    /// Whether the point (UTM metres) lies in a body (an island is land).
+    pub fn contains(&self, p: [f64; 2]) -> bool {
+        let key = ((p[0] / WATER_INDEX_M).floor() as i64, (p[1] / WATER_INDEX_M).floor() as i64);
+        self.grid.get(&key).into_iter().flatten().any(|&k| {
+            let (rings, b) = &self.bodies[k as usize];
+            p[0] >= b[0]
+                && p[0] <= b[2]
+                && p[1] >= b[1]
+                && p[1] <= b[3]
+                && rings.iter().filter(|r| crate::scenery::contains(r, p)).count() % 2 == 1
+        })
+    }
+}
+
+/// The theatre rect's box [lon0, lat0, lon1, lat1] (its edges through `utm36n_geo`).
+pub fn theatre_geo(r: [f64; 4]) -> [f64; 4] {
+    let mut b = [f64::MAX, f64::MAX, f64::MIN, f64::MIN];
+    for k in 0..=16 {
+        let f = k as f64 / 16.0;
+        let (x, y) = (r[0] + f * (r[2] - r[0]), r[1] + f * (r[3] - r[1]));
+        for [e, n] in [[x, r[1]], [x, r[3]], [r[0], y], [r[2], y]] {
+            let p = utm36n_geo(e, n);
+            b = [b[0].min(p[0]), b[1].min(p[1]), b[2].max(p[0]), b[3].max(p[1])];
+        }
+    }
+    b
+}
+
+/// OpenStreetMap's standing water over the box `geo` (lon / lat) from the extracts `pbfs` (`sim_coast::fetch_extracts`): `natural=water`, `landuse=reservoir` and
+/// `landuse=salt_pond` polygons of WATER_MIN_M2 or more (`water_from`), a body in two extracts kept once. ogr2ogr writes
+/// each cut into `work`.
+pub fn water_polygons(pbfs: &[std::path::PathBuf], geo: [f64; 4], work: &Path) -> Result<Vec<Water>> {
+    std::fs::create_dir_all(work)?;
+    let out = work.join("water.geojsonl");
+    let mut all = Vec::new();
+    for pbf in pbfs {
+        let _ = std::fs::remove_file(&out);
+        let mut cmd = std::process::Command::new("ogr2ogr");
+        cmd.args(["-f", "GeoJSONSeq", "-where", "natural = 'water' OR landuse IN ('reservoir','salt_pond')"])
+            .args(["-select", "osm_id,osm_way_id,name,other_tags", "-spat"])
+            .args(geo.map(|v| v.to_string()))
+            .arg(&out)
+            .arg(pbf)
+            .arg("multipolygons");
+        crate::scenery::run(cmd)?;
+        all.extend(crate::scenery::geojsonl(&out)?.flat_map(|v| water_from(&v)));
+    }
+    let _ = std::fs::remove_file(&out);
+    Ok(drop_twin_waters(all))
+}
+
+/// The bodies minus the second copy of one that two extracts both hold (they overlap at the borders): the same outer
+/// ring, point for point. A multipolygon's members are different rings and all stay.
+pub fn drop_twin_waters(all: Vec<Water>) -> Vec<Water> {
+    let mut seen = std::collections::HashSet::new();
+    all.into_iter()
+        .filter(|w| seen.insert(w.rings[0].iter().map(|p| p.map(f64::to_bits)).collect::<Vec<_>>()))
+        .collect()
 }
 
 #[cfg(test)]
@@ -944,6 +1617,14 @@ mod tests {
         ] {
             let [x, y] = utm36n(lon, lat);
             assert!((x - e).abs() < 0.01 && (y - n).abs() < 0.01, "{lon} {lat}: {x} {y}");
+            let g = utm36n_geo(e, n);
+            assert!((g[0] - lon).abs() < 1e-8 && (g[1] - lat).abs() < 1e-8, "inverse of {e} {n}: {g:?}");
+        }
+        // The theatre's far corners (iaf-2026/docs/terrain.md §2) round-trip too.
+        for (e, n) in [(507_904.0, 3_255_296.0), (855_040.0, 3_766_272.0)] {
+            let g = utm36n_geo(e, n);
+            let p = utm36n(g[0], g[1]);
+            assert!((p[0] - e).abs() < 0.001 && (p[1] - n).abs() < 0.001, "{e} {n}: {p:?}");
         }
     }
 
@@ -967,6 +1648,134 @@ mod tests {
             }
             let (ri, k) = b.main;
             assert_eq!(b.runways[ri].designators[k], main_ends()[b.section.as_str()]);
+        }
+    }
+
+    /// terraintype.dat's paved surface: every parking spot (on its apron) and the departure's taxi path from the first
+    /// spot to the take-off lineup (each 2 m) are not rough ground (no crash rolling over 25.7 m/s), the lineup is
+    /// RUNWAY, and the ground 40 m beside the taxi path is paved exactly where the mask is (at Ramon at least a quarter
+    /// of it sand, LAND).
+    #[test]
+    fn terraintype_paves_the_taxiways_and_aprons() {
+        for b in load(&data()).unwrap() {
+            let m = mask(&b);
+            let p0 = b.parking[0].at;
+            let (e0, n1) = ((p0[0] / 64.0).floor() * 64.0 - 6400.0, (p0[1] / 64.0).floor() * 64.0 + 6400.0);
+            let r = [e0, n1 - 12_800.0, e0 + 12_800.0, n1];
+            let cells = vec![0u8; 200 * 200];
+            let rws: Vec<&Runway> = b.runways.iter().collect();
+            let dat = terraintype(
+                r,
+                &Surface {
+                    water: &WaterGrid::new(200, 200, &cells),
+                    coast: &Default::default(),
+                    paved: &[Paved::with_paths(&m, &b, &routes(&b).unwrap())],
+                },
+                &rws,
+            );
+            let t = iaf_formats::terrain_types::TerrainTypes::parse(&dat).unwrap();
+            let rough = |p: [f64; 2]| t.at(p[0], p[1]) as u32 & iaf_flight::aircraft::SURFACE_ROUGH != 0;
+            let rt = routes(&b).unwrap();
+            for p in &b.parking {
+                assert!(!rough(p.at), "{} {}: the parking spot is rough ground", b.icao, p.unit);
+                // Every spot reaches the lineup on pavement: to the hub, then the departure.
+                let path: Vec<[f64; 2]> = [p.at, rt.hub].into_iter().chain(rt.from.iter().copied()).collect();
+                for s in path.windows(2) {
+                    let d = dist(s[0], s[1]);
+                    for k in 0..=(d / 2.0) as usize {
+                        let f = (k as f64 * 2.0 / d.max(1e-9)).min(1.0);
+                        let q = [s[0][0] + (s[1][0] - s[0][0]) * f, s[0][1] + (s[1][1] - s[0][1]) * f];
+                        assert!(!rough(q), "{} {}: its taxi path at {q:?} is rough ground", b.icao, p.unit);
+                    }
+                }
+            }
+            let path: Vec<[f64; 2]> = std::iter::once(b.parking[0].at).chain(rt.from.iter().copied()).collect();
+            let (mut beside, mut sand) = (0, 0);
+            for s in path.windows(2) {
+                let (d, n) = (dist(s[0], s[1]), [s[1][0] - s[0][0], s[1][1] - s[0][1]]);
+                for k in 0..=(d / 2.0) as usize {
+                    let f = (k as f64 * 2.0 / d).min(1.0);
+                    let p = [s[0][0] + n[0] * f, s[0][1] + n[1] * f];
+                    assert!(!rough(p), "{}: the taxi path at {p:?} is rough ground", b.icao);
+                    if k % 25 == 12 {
+                        for side in [-1.0, 1.0] {
+                            let q = [p[0] - n[1] / d * 40.0 * side, p[1] + n[0] / d * 40.0 * side];
+                            let (x, y) = ((q[0] - m.origin[0]) / MASK_PX_M, (m.origin[1] - q[1]) / MASK_PX_M);
+                            // The mask within 10 m of q (a paved cell of 8 m reaches past the edge): skip the edges.
+                            let px: Vec<bool> = (-5..=5)
+                                .flat_map(|dy| (-5..=5).map(move |dx| (dx, dy)))
+                                .map(|(dx, dy)| {
+                                    m.img.get_pixel((x as i64 + dx) as u32, (y as i64 + dy) as u32)[0] >= 128
+                                })
+                                .collect();
+                            if px.iter().all(|&v| v) {
+                                assert!(!rough(q), "{}: paved {q:?} is rough", b.icao);
+                            } else if px.iter().all(|&v| !v) {
+                                assert_eq!(t.at(q[0], q[1]), LAND, "{}: sand {q:?} is not LAND", b.icao);
+                                sand += 1;
+                            }
+                            beside += 1;
+                        }
+                    }
+                }
+            }
+            let (ri, k) = b.main;
+            let l = b.runways[ri].lineup(k);
+            assert_eq!(t.at(l[0], l[1]), RUNWAY, "{}: the lineup", b.icao);
+            if b.section == "Ramon" {
+                assert!(sand * 4 >= beside, "Ramon: {sand} of {beside} points beside the taxi path on sand");
+            }
+        }
+    }
+
+    /// A land block cut off the paved grid's lines (the 64 m water grid's blocks) keeps its part of a paved cell.
+    #[test]
+    fn a_cut_through_a_paved_cell_keeps_it_paved() {
+        let p = Paved { origin: [1000.0, 2064.0], nx: 8, ny: 8, cells: vec![true; 64] };
+        for b in [[1000.0, 2000.0, 1003.0, 2064.0], [1003.0, 2000.0, 1061.0, 2064.0], [1061.0, 2000.0, 1064.0, 2064.0]]
+        {
+            let mut out = Vec::new();
+            write_node(&land_tree(b, std::slice::from_ref(&p), &[]), &mut out);
+            let t = iaf_formats::terrain_types::TerrainTypes::parse(&out).unwrap();
+            let x = (b[0] + b[2]) / 2.0;
+            assert_eq!(t.at(x, 2032.0), PAVED, "the block {b:?} at x = {x}");
+        }
+    }
+
+    /// The taxiway signs: Ramon's taxi path from its spot to 25R's lineup passes (within 60 m) a sign naming 25R, a
+    /// runway-holding one among them; every sign stands off the paved surface, beside a taxiway, facing it.
+    #[test]
+    fn signs_guide_the_taxi_to_the_runway() {
+        for b in load(&data()).unwrap() {
+            let all = signs(&b);
+            assert!(!all.is_empty(), "{}: no sign", b.icao);
+            let m = mask(&b);
+            for s in &all {
+                let (x, y) = ((s.at[0] - m.origin[0]) / MASK_PX_M, (m.origin[1] - s.at[1]) / MASK_PX_M);
+                let r = m.img.get_pixel(x as u32, y as u32)[0];
+                assert!(r < 128, "{} sign {:?} {:?} on the paved surface", b.icao, s.at, s.panels);
+                let near =
+                    b.taxiways.iter().any(|(l, w)| l.windows(2).any(|t| seg_dist(s.at, t[0], t[1]) < w / 2.0 + 45.0));
+                assert!(near, "{} sign {:?}: no taxiway near", b.icao, s.at);
+            }
+            if b.section != "Ramon" {
+                continue;
+            }
+            let rt = routes(&b).unwrap();
+            let path: Vec<[f64; 2]> = std::iter::once(b.parking[0].at).chain(rt.from.iter().copied()).collect();
+            let passed: Vec<&Sign> = all
+                .iter()
+                .filter(|s| path.windows(2).any(|t| seg_dist(s.at, t[0], t[1]) < 60.0))
+                .filter(|s| s.panels.iter().any(|p| p.text.split('-').any(|t| t == "25R")))
+                .collect();
+            assert!(
+                passed.iter().any(|s| s.panels[0].style == "mandatory"),
+                "Ramon: no holding sign for 25R: {passed:?}"
+            );
+            assert!(
+                passed.iter().any(|s| s.panels[0].style == "direction"),
+                "Ramon: no direction sign to 25R: {passed:?}"
+            );
         }
     }
 
@@ -1020,16 +1829,40 @@ mod tests {
         }
     }
 
-    /// terraintype.dat flags a runway's centre RUNWAY, the sea SEA and other ground LAND, through the reader.
+    /// terraintype.dat flags a runway's centre RUNWAY, the sea SEA, a lake INLAND_WATER and other ground LAND, through
+    /// the reader; the flight model and the water shader take both waters as water. Near a coastline its side decides
+    /// (to COAST_LEAF_M), farther out the grid.
     #[test]
-    fn terraintype_flags_runways_and_sea() {
+    fn terraintype_flags_runways_sea_and_lakes() {
         let bases = load(&data()).unwrap();
         let rws: Vec<&Runway> = bases.iter().flat_map(|b| b.runways.iter()).collect();
-        // A 64 km box from Ramon's east: the west 16 km sea.
+        // A 64 km box from Ramon's east: the west 16 km sea; a lake 6.4 km square in the north-east.
         let r = [600_000.0, 3_380_000.0, 664_000.0, 3_444_000.0];
-        let sea: Vec<bool> = (0..1000 * 1000).map(|k| k % 1000 < 250).collect();
-        let t = iaf_formats::terrain_types::TerrainTypes::parse(&terraintype(r, &SeaGrid::new(1000, 1000, &sea), &rws))
-            .unwrap();
+        let mut cells: Vec<u8> = (0..1000 * 1000).map(|k| if k % 1000 < 250 { SEA as u8 } else { 0 }).collect();
+        // Rows 100..200 (north of 3,431,200 N), columns 800..900 (east of 651,200 E): the lake; an island in its middle.
+        let ring =
+            |x0: f64, y0: f64, side: f64| vec![[x0, y0], [x0 + side, y0], [x0 + side, y0 + side], [x0, y0 + side]];
+        let w = Water {
+            id: "1".into(),
+            name: "lake".into(),
+            rings: vec![ring(651_200.0, 3_424_800.0, 6400.0), ring(654_000.0, 3_427_600.0, 800.0)],
+            area: 0.0,
+        };
+        let rings: Vec<&[[f64; 2]]> = w.rings.iter().map(Vec::as_slice).collect();
+        fill_spans(1000, 1000, [r[0], r[3]], 64.0, &rings, |y, x0, x1| {
+            cells[y * 1000 + x0..y * 1000 + x1].fill(INLAND_WATER as u8)
+        });
+        // A coastline 30 m east of the grid's sea edge (x = 616,000), running south: the sea to its west.
+        let coast = crate::sim_coast::Coast::new(&[vec![[616_030.0, 3_420_000.0], [616_030.0, 3_400_000.0]]]);
+        let s = Surface { water: &WaterGrid::new(1000, 1000, &cells), coast: &coast, paved: &[] };
+        let t = iaf_formats::terrain_types::TerrainTypes::parse(&terraintype(r, &s, &rws)).unwrap();
+        assert_eq!(t.at(616_020.0, 3_410_000.0), SEA, "10 m west of the coastline");
+        assert_eq!(t.at(616_040.0, 3_410_000.0), LAND, "10 m east of it");
+        assert_eq!(t.at(615_900.0, 3_430_000.0), SEA, "beyond its reach: the grid");
+        assert_eq!(t.at(652_000.0, 3_430_000.0), INLAND_WATER, "the lake");
+        assert!(iaf_formats::terrain_types::TerrainTypes::is_water(t.at(652_000.0, 3_430_000.0)));
+        assert_eq!(t.at(654_400.0, 3_428_000.0), LAND, "its island");
+        assert_eq!(t.at(650_000.0, 3_430_000.0), LAND, "west of it");
         let ramon = &bases[0];
         for rw in &ramon.runways {
             let c = rw.at(0, rw.length() / 2.0);
@@ -1039,6 +1872,65 @@ mod tests {
         }
         assert_eq!(t.at(605_000.0, 3_400_000.0), SEA);
         assert_eq!(t.at(640_000.0, 3_400_000.0), LAND);
+    }
+
+    /// OpenStreetMap's standing water: a lake with an island (its area without it); a river's outline, a seasonal salt
+    /// pan and a pond under WATER_MIN_M2 left out; each polygon of a multipolygon one body.
+    #[test]
+    fn water_polygons_from_osm() {
+        // 0.012° squares near the Sea of Galilee; an island of 0.0012°.
+        let sq = |lon: f64, lat: f64, d: f64| {
+            json!([[lon, lat], [lon + d, lat], [lon + d, lat + d], [lon, lat + d], [lon, lat]])
+        };
+        let f = |tags: &str, geometry: Value| json!({"properties": {"osm_id": "7", "name": "Kinneret", "other_tags": tags}, "geometry": geometry});
+        let lake = f(
+            "\"water\"=>\"lake\"",
+            json!({"type": "Polygon", "coordinates": [sq(35.55, 32.8, 0.012), sq(35.555, 32.805, 0.0012)]}),
+        );
+        let w = water_from(&lake);
+        assert_eq!(w.len(), 1);
+        assert_eq!((w[0].name.as_str(), w[0].rings.len()), ("Kinneret", 2));
+        // 1123 m × 1331 m less the island's 112 m × 133 m.
+        assert!((w[0].area - 1.48e6).abs() < 1.0e4, "{}", w[0].area);
+        for tags in ["\"water\"=>\"river\"", "\"intermittent\"=>\"yes\",\"water\"=>\"lake\""] {
+            let g = json!({"type": "Polygon", "coordinates": [sq(35.55, 32.8, 0.012)]});
+            assert!(water_from(&f(tags, g)).is_empty(), "{tags}");
+        }
+        let ponds = f(
+            "",
+            json!({"type": "MultiPolygon", "coordinates": [[sq(35.5, 32.5, 0.012)], [sq(35.6, 32.5, 0.012)], [sq(35.7, 32.5, 0.001)]]}),
+        );
+        assert_eq!(water_from(&ponds).len(), 2, "the 100 m pond is under the limit");
+        // Two same-sized evaporation pans of one relation stay two; the same relation from a second extract is one copy.
+        let pans = f(
+            "",
+            json!({"type": "MultiPolygon", "coordinates": [[sq(35.40, 31.10, 0.012)], [sq(35.42, 31.10, 0.012)]]}),
+        );
+        let twice: Vec<Water> = water_from(&pans).into_iter().chain(water_from(&pans)).collect();
+        assert_eq!(twice.len(), 4);
+        let kept = drop_twin_waters(twice);
+        assert_eq!(kept.len(), 2, "both members, once each");
+        assert_ne!(kept[0].rings[0], kept[1].rings[0]);
+    }
+
+    /// The saved polygons read back for the scenery's point test: in the lake, on its island, beside it.
+    #[test]
+    fn water_index_reads_the_saved_polygons() {
+        let sq = |x: f64, y: f64, d: f64| vec![[x, y], [x + d, y], [x + d, y + d], [x, y + d]];
+        let w = Water {
+            id: "1".into(),
+            name: "lake".into(),
+            rings: vec![sq(0.0, 0.0, 3000.0), sq(1000.0, 1000.0, 500.0)],
+            area: 0.0,
+        };
+        let p = std::env::temp_dir().join(format!("iaf-water-{}.json", std::process::id()));
+        save_water(&p, &[w]).unwrap();
+        let ix = WaterIndex::load(&p).unwrap();
+        std::fs::remove_file(&p).unwrap();
+        assert!(ix.contains([2500.0, 2500.0]), "in the lake");
+        assert!(!ix.contains([1200.0, 1200.0]), "on its island");
+        assert!(!ix.contains([3100.0, 100.0]), "beside it");
+        assert!(!WaterIndex::load(Path::new("/nonexistent/water.json")).unwrap().contains([1.0, 1.0]));
     }
 
     #[test]

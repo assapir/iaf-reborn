@@ -99,7 +99,7 @@ func run() -> void:
 	w.show_page(2)
 	check(w.next_button.text == "התקנה" and not w.next_button.disabled, "Install waits for the button")
 	check(
-		w.rows.keys() == ["sim-terrain", "sim-db", "sim-fm", "sim-own", "sim-airbases", "sim-missions"],
+		w.rows.keys() == ["sim-terrain", "sim-db", "sim-fm", "sim-own", "sim-airbases", "sim-missions", "sim-scenery"],
 		"the sim's steps in order"
 	)
 	var t := Time.get_ticks_msec()

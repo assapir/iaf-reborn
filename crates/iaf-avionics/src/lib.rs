@@ -7,6 +7,7 @@ pub mod city_lights;
 pub mod eo;
 pub mod f16_mfd;
 pub mod fctrl;
+pub mod frame;
 pub mod gaaf;
 pub mod gps;
 pub mod guided;

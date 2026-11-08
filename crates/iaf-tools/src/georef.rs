@@ -13,7 +13,7 @@ use anyhow::{Context, Result, bail};
 const DATA: &str = include_str!("../data/georef_points.json");
 
 /// Terrain units → metres in the engine frame (map.ptt `PlaneScalePR`).
-pub const UNITS_TO_METRES: f64 = 1.2411389;
+pub const UNITS_TO_METRES: f64 = iaf_avionics::frame::GAME.m_per_unit;
 /// Spline inputs are terrain units / SCALE (one level-6 node = 1) for a well-conditioned system.
 const SCALE: f64 = 65536.0;
 

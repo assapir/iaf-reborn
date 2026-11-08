@@ -10,7 +10,6 @@
 # ray) are IafScenery's.
 extends Node3D
 
-const DIR := "scenery"
 ## Buildings are drawn to RANGE (m). Cells are loaded within RANGE + AHEAD of the focus (horizontal, to the cell's
 ## square), so a cell is made and uploaded before it comes into view (1.5 km: 6 s at 250 m/s), and freed beyond
 ## RANGE + KEEP.
@@ -76,7 +75,7 @@ const FOLIAGE := [
 const FOLIAGE_NEAR := 250.0
 const TREES_BAND := 50.0
 
-## The folder holding DIR ("" = Settings.assets_dir(); tests point it elsewhere).
+## The folder holding converted/<Settings.scenery_dir()> ("" = Settings.assets_dir(); tests point it elsewhere).
 static var base_dir := ""
 ## Detailed night lights at night: the windows lit (terrain_view.gd _night_detailed).
 static var night := false
@@ -116,7 +115,9 @@ var _materials: Array[ShaderMaterial] = []
 
 
 static func dir() -> String:
-	return base_dir.path_join("converted").path_join(DIR) if base_dir != "" else Settings.converted(DIR)
+	if base_dir != "":
+		return base_dir.path_join("converted").path_join(Settings.scenery_dir())
+	return Settings.converted(Settings.scenery_dir())
 
 
 static func manifest() -> Dictionary:
@@ -125,8 +126,8 @@ static func manifest() -> Dictionary:
 
 ## Setup made the scenery and the game can read it.
 static func available() -> bool:
-	if base_dir == "" and not Settings.has_converted(DIR.path_join("manifest.json")):
-		return false  # a probe, not a read (IAF 2026's gate)
+	if base_dir == "" and not Settings.has_converted(Settings.scenery_dir().path_join("manifest.json")):
+		return false  # a probe, not a read (Modern IAF's gate)
 	return not manifest().is_empty()
 
 
@@ -135,9 +136,14 @@ static func survey(id: String) -> bool:
 	return id in ["mapi2015", "mapi2015_modern"]
 
 
-## The render guard: Scenery on, the files there and a Survey 2 m layer among the terrain's `layers`.
+## The render guard: Scenery on, the files there and a Survey 2 m layer among the terrain's `layers` (Modern IAF: any
+## ground, Settings.scenery_everywhere).
 static func wanted(layers: Array) -> bool:
-	return Settings.scenery != "off" and available() and layers.any(func(l): return survey(String(l)))
+	return (
+		Settings.scenery != "off"
+		and available()
+		and (Settings.scenery_everywhere() or layers.any(func(l): return survey(String(l))))
+	)
 
 
 ## Scenery = Detailed: the facades, the streets' occlusion and the roof clutter (docs/scenery.md §3.3).
@@ -145,10 +151,13 @@ static func detailed() -> bool:
 	return Settings.scenery == "detailed"
 
 
-## The cells (Vector2i -> true): the level-1 nodes of the Survey layer `id` (scenery stands only over its photo).
+## The cells (Vector2i -> true): the level-1 nodes of the Survey layer `id` (scenery stands only over its photo; none
+## for "").
 ## Setup writes a file only for the nodes with a building or tree; the others read as "none" once.
 static func cells_for(id: String) -> Dictionary:
 	var out := {}
+	if id == "":
+		return out  # no Survey layer shown (Modern IAF: its cells are the theatre's)
 	for ij in ImageryLayers.manifest(id).get("nodes", {}).get("1", []):
 		out[Vector2i(int(ij[0]), int(ij[1]))] = true
 	return out
@@ -954,7 +963,8 @@ func _build_some(fp: Vector3) -> void:
 	waiting.sort()
 	for t in waiting.slice(0, maxi(0, MAX_JOBS - preparing)):
 		_cells[t[1]].state = "preparing"
-		IafScenery.prepare(t[1].x, t[1].y, modern_outside if _outside.has(t[1]) else modern, detailed())
+		var m := modern_outside if _outside.has(t[1]) else modern
+		IafScenery.prepare(t[1].x, t[1].y, m, detailed(), Settings.scenery_far == "light")
 
 
 ## A made cell's node and material; its pieces follow (_upload).

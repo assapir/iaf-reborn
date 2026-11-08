@@ -79,7 +79,7 @@ pub fn compile_map(map: &Value) -> Result<(Value, image::GrayImage)> {
             }
             ops.push(op(flat(&engine.iter().map(|&e| to_map(e)).collect::<Vec<_>>()), brush));
             let (w, h) = (ISR.0 as usize, ISR.1 as usize);
-            fill_spans(w, h, [BOX[0], BOX[3]], ISR_M, &engine, |y, x0, x1| {
+            fill_spans(w, h, [BOX[0], BOX[3]], ISR_M, &[&engine], |y, x0, x1| {
                 for x in x0..x1 {
                     isr.put_pixel(x as u32, y as u32, image::Luma([radar as u8]));
                 }

@@ -68,6 +68,7 @@ const STEPS: &[&str] = &["crates/iaf-setup/src/bodies.rs"];
 
 /// The sim's compilers (`iaf_tools::sim`, `sim_bases`, `sim_cockpit`) and every module they reach.
 const SIM: &[&str] = &[
+    "crates/iaf-tools/src/sim_coast.rs",
     "crates/iaf-formats/src/xfile.rs",
     "crates/iaf-formats/src/model.rs",
     "crates/iaf-tools/src/aircraft.rs",
@@ -92,9 +93,16 @@ const SIM: &[&str] = &[
     "crates/iaf-tools/src/sim_files.rs",
     "crates/iaf-tools/src/mission_edit.rs",
     "crates/iaf-tools/src/training.rs",
+    "crates/iaf-tools/src/roads.rs",
+    "crates/iaf-tools/src/scenery.rs",
 ];
 /// Modern IAF's terrain (`iaf_tools::sim_terrain`) and every module it reaches.
 const SIM_TERRAIN: &[&str] = &[
+    "crates/iaf-tools/src/roads.rs",
+    "crates/iaf-tools/src/sim_files.rs",
+    "crates/iaf-tools/src/scenery.rs",
+    "crates/iaf-tools/src/sim_bases.rs",
+    "crates/iaf-tools/src/sim_coast.rs",
     "crates/iaf-tools/src/itm.rs",
     "crates/iaf-formats/src/lzo.rs",
     "crates/iaf-formats/src/ptt.rs",
@@ -156,6 +164,7 @@ pub(crate) const STEP_SOURCES: &[(&str, &[&[&str]])] = &[
     ("sim-own", &[BASE, SIM]),
     ("sim-airbases", &[BASE, SIM]),
     ("sim-missions", &[BASE, SIM]),
+    ("sim-scenery", &[BASE, SIM, &["crates/iaf-tools/src/sim_scenery.rs"]]),
     // The script is the step's input (its lines in the stamp); the call is in sim.rs.
     ("sim-fm", &[&["crates/iaf-setup/src/sim.rs"]]),
 ];
@@ -319,7 +328,8 @@ pub(crate) fn of(step: &Step, ctx: &Ctx) -> Result<Option<Stamp>> {
 }
 
 /// The stamp of one of Modern IAF's steps (`sim::sim_plan`), in `converted/iaf-2026/`: the code, the authored data it
-/// reads; for the terrain, what `iaf-sim terrain` itself compares (the box and the Survey sheets' names and sizes).
+/// reads; for the terrain, what `iaf-sim terrain` itself compares (the box and the Survey sheets' names and sizes); for
+/// the airbases, the OpenStreetMap extracts' hashes.
 pub(crate) fn sim_of(step: &Step, ctx: &SimCtx) -> Result<Option<Stamp>> {
     let (a, data) = (&ctx.assets, ctx.data());
     let (out, inputs): (PathBuf, Vec<PathBuf>) = match step.id {
@@ -336,6 +346,7 @@ pub(crate) fn sim_of(step: &Step, ctx: &SimCtx) -> Result<Option<Stamp>> {
         ),
         "sim-airbases" => (a.join("converted/own/iaf.ibx"), vec![data.join("airbases")]),
         "sim-fm" => (a.join("converted/own/resource/md/bd.ibx"), vec![ctx.repo.join(crate::sim::FM0)]),
+        "sim-scenery" => (a.join(THEATRE).join("scenery/manifest.json"), vec![data.join("airbases")]),
         "sim-missions" => {
             (a.join("converted/iaf-2026/missions"), vec![data.join("missions"), data.join("db"), data.join("airbases")])
         }
@@ -344,6 +355,13 @@ pub(crate) fn sim_of(step: &Step, ctx: &SimCtx) -> Result<Option<Stamp>> {
     let mut text = format!("iaf-setup {:016x}\nstep {}\n", code(step.id, SOURCES), step.id);
     if step.id == "sim-terrain" {
         text += &format!("built_from {}\n", iaf_tools::sim_terrain::stamp(&ctx.terrain()));
+    }
+    if step.id == "sim-airbases" {
+        // The OpenStreetMap extracts the coastline and the inland water are cut from, by their pinned hashes (one that
+        // cannot be downloaded fails the step).
+        for l in iaf_tools::sim_coast::extracts_stamp(iaf_tools::sim_bases::theatre_geo(ctx.terrain().area)) {
+            text += &format!("osm {l}\n");
+        }
     }
     for p in &inputs {
         // The repo's path is not part of what the data is.
@@ -464,6 +482,11 @@ mod tests {
                 "sim-db" | "sim-own" | "sim-airbases" | "sim-missions" => {
                     &["crates/iaf-tools/src/sim.rs", "crates/iaf-tools/src/sim_bases.rs"]
                 }
+                "sim-scenery" => &[
+                    "crates/iaf-tools/src/sim_scenery.rs",
+                    "crates/iaf-tools/src/scenery.rs",
+                    "crates/iaf-tools/src/roads.rs",
+                ],
                 _ => &["crates/iaf-tools/src/convert.rs"],
             }
         };

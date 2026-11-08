@@ -3,6 +3,11 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **[B2b](plan.md#b2-the-airbases) / [B3](plan.md#b3-scenery-roads-and-inland-water), the bases' ground and the shore (2026-11-08):** the taxiways and aprons
+  are paved for the flight model (no rough-ground crash taxiing out), taxiway signs at the holding points and
+  junctions ([airbases.md](airbases.md) §9), the sea follows OpenStreetMap's coastline in the photo and the surface
+  flags ([terrain.md](terrain.md) §12), the airbases step downloads the extracts its water needs, and the wizard has
+  an optional scenery step ([setup.md](setup.md) §3).
 - **The Mac play test's findings (2026-11-08, [plan.md](plan.md#f-the-probe) F):** the mission card, the radio lines
   in the sim's band wholly in the game's language, the key hint; the pause menu centred at any size in Hebrew;
   Preferences as sections on their own screens with no aid or realism row and the aids off; Home on every start;
@@ -33,6 +38,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the airbases, the units and weapons, the sounds and voices and the training missions as a step graph with stamps (a
   second run is all up to date), in English and Hebrew ([setup.md](setup.md)). Its look is Godot's default theme until
   the user's next round.
+- **[B3](plan.md#b3-scenery-roads-and-inland-water), scenery and inland water (2026-11-03):** `iaf-sim scenery` builds the original's buildings, trees, road
+  layer and city lights in the sim's UTM theatre from the shared open-data cache ([scenery.md](scenery.md)); the sim
+  shows them over its own ground when Scenery is on; `iaf-sim airbases` flags the Dead Sea, the Sea of Galilee, the
+  evaporation pans and the reservoirs as inland water ([terrain.md](terrain.md) §11).
 - **[E3b](plan.md#e3-the-training-missions), the training missions in the game (2026-11-03):** `./modern-iaf -- --mission 2011` (… 2032) flies a start-up or
   take-off mission without the front end: parked cold, the start command (Ctrl+E) runs the jet's start sequence on
   the 6-DoF, the screens and the HUD come alive at the real moments; the radio menu (Ctrl+T, 1–3) asks the base's
@@ -85,6 +94,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   throttle or pedals as a second device is listed but not read); a joystick plugged in during a flight takes its map's
   buttons at the next flight or when the Preferences close; the hat's diagonals press two look commands, the last one
   wins; maps for more sticks than the Hotas X; the Hotas X's button choice is ours, untried on the stick.
+- **[B3](plan.md#b3-scenery-roads-and-inland-water)'s open points** ([scenery.md](scenery.md) §9).
 - **The 6-DoF's wave drag is a fit ([C2](plan.md#c2-the-6-dof), the 6-DoF):** fit to each jet's published top speeds, not a sourced table; open: a public
   F-16 drag rise, the high-speed g onset, the take-off roll, the flaps ([flight-model.md](flight-model.md) §9.6).
 - **[E3b](plan.md#e3-the-training-missions)'s open points** ([training.md](training.md) §6): the Hebrew voice (the user), the
@@ -95,5 +105,5 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   gender-neutral ones).
 - **The probe's 3D-only cockpit check** (no 2D panel in flight) prints NEEDS DATA until [E1](plan.md#e1-cockpit-data-sounds-and-voices), the cockpit data.
 - **The airbases' open points** ([airbases.md](airbases.md) §9): the towers of Ramon, Hatzerim and Ramat David (their
-  reference points stand in), inland water, one taxi hub per base. The temp-root run of item F finds any read of the
+  reference points stand in), one taxi hub per base. The temp-root run of item F finds any read of the
   original's data still left.

@@ -71,25 +71,9 @@ pub struct Nearest {
 
 /// The classes `main.bin` holds: motorway to secondary.
 pub const MAIN_CLASS: u8 = CLASS_SECONDARY;
-/// A block's side in terrain units (a level-3 node) and the engine frame's terrain units (docs/georef.md):
-/// X = tx · UNITS_TO_METRES − X0, Y = Y0 − ty · UNITS_TO_METRES.
-pub const BLOCK_UNITS: f64 = 8192.0;
-const UNITS_TO_METRES: f64 = 1.2411389;
-const X0: f64 = 166850.0;
-const Y0: f64 = 1043780.0;
-
-/// The block holding an engine point (i east, j south).
-pub fn block_of(p: [f64; 2]) -> (i32, i32) {
-    let tx = (p[0] + X0) / UNITS_TO_METRES;
-    let ty = (Y0 - p[1]) / UNITS_TO_METRES;
-    ((tx / BLOCK_UNITS).floor() as i32, (ty / BLOCK_UNITS).floor() as i32)
-}
-
-/// Block (i, j)'s engine rect [x0, y0, x1, y1] (y0 south).
-pub fn block_rect(i: i32, j: i32) -> [f64; 4] {
-    let s = BLOCK_UNITS * UNITS_TO_METRES;
-    [i as f64 * s - X0, Y0 - (j + 1) as f64 * s, (i + 1) as f64 * s - X0, Y0 - j as f64 * s]
-}
+/// A block is a level-3 node of the terrain (`crate::frame::Frame`, the theatre's frame).
+pub const BLOCK_LEVEL: u32 = 3;
+pub use crate::frame::{Frame, GAME};
 
 /// A way's attributes and its points (`Roads::from_lines`).
 pub type Line = (Way, Vec<[f32; 2]>);
@@ -817,9 +801,6 @@ mod tests {
 
     #[test]
     fn blocks_and_merge() {
-        let r = block_rect(20, 30);
-        assert_eq!(block_of([r[0] + 1.0, r[3] - 1.0]), (20, 30));
-        assert_eq!(block_of([r[2] + 1.0, r[1] - 1.0]), (21, 31));
         // Two halves of the west–east road in two files meet at (0, 0): merged, one vertex, routable.
         let west = Roads::from_lines([(way(CLASS_PRIMARY, 0), &[[-1000.0f32, 0.0], [0.0, 0.0]][..])]);
         let east = Roads::from_lines([(way(CLASS_PRIMARY, 0), &[[0.0f32, 0.0], [0.0, 0.0], [1000.0, 0.0]][..])]);

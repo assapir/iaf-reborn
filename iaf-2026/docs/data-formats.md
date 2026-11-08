@@ -459,7 +459,10 @@ original (`airbases.gd`, `airbase_lights.gd`, the tower's wind turn), found thro
 `name`, `lineup`, `runway_deg`, `runways` (the take-off runway first: `ends`, `width`, `heading` from ends[0], `length`,
 `numbers`, `letters`, `thresholds` = the declared runway's start from each end; ours also `designators` and `lineups`
 per end), `taxi` (the OSM taxiway centrelines), `mask` {`file` (under `converted/terrain`), `origin` (north-west
-corner), `px_m` 2, `w`, `h`}; ours also `icao`, `tower` and `parking` [{`unit`, `at`, `heading`}].
+corner), `px_m` 2, `w`, `h`}; ours also `icao`, `tower`, `parking` [{`unit`, `at`, `heading`}] and `signs`
+[{`at`, `facing` (grid degrees: the way the face looks, toward the taxiing jet), `panels` [{`style` "mandatory" or
+"direction", `text`, `arrow` (the turn in degrees, positive right; null on a mandatory board)}, left to right]}]: the
+taxiway signs ([airbases.md](airbases.md) §9).
 
 **The masks** (`israel/airbases/<name>.png`, 2 m pixels over the base's outline and runways plus 300 m): red = paved
 (runways and stopways at the runway's width, taxiways at their OSM width or 23 m, aprons and shelters), green =
@@ -468,19 +471,33 @@ concrete (aprons and shelters, blurred over one pixel), blue = the distance to t
 
 **`converted/own/terraintype.dat`**: the surface flags' BSP tree (iaf_formats::terrain_types, docs/formats/ptt.md
 "Terrain types") over the theatre: sea (0x4) where the 64 m height grid is 0 m and joined to the theatre's edge
-(GLO-30's sea surface; the Dead Sea and the Sea of Galilee lie below sea level and stay land: inland water is
-open), runways (0x10, the original's runway flag) on each runway's rectangle at its width, land (0x1) elsewhere.
-1.4 MB. GLO-30's missing tiles (open sea) are 0 m in the terrain's height nodes, so they count as sea; a cell outside
-every height node counts as land.
+(GLO-30's sea surface), within 300 m of OpenStreetMap's coastline its water side to 16 m ([terrain.md](terrain.md)
+§12); inland water (0x2) inside OpenStreetMap's lakes, reservoirs and salt ponds of 10 ha or more
+([terrain.md](terrain.md) §11); runways (0x10, the original's runway flag) on each runway's rectangle at its width;
+the rest of each base's paved surface (taxiways, aprons, shelters' pads, stopways: the mask's red at half or more, on
+an 8 m grid, a cell paved when any of its pixels is; and the AI's taxi paths from every parking spot, 23 m wide, where
+OpenStreetMap maps no taxiway along them, as the 140 m from Hatzerim's Sufa spot to its hub) with no flag (0x0: not land, so not the rough ground that
+destroys a jet rolling faster than 25.7 m/s; not runway, which the runways alone carry); land (0x1) elsewhere. Two
+equal sibling leaves are written as one. 13.4 MB, 429,000 nodes (the reader stops at a million; 3.7 MB before the
+coastline and the paved surface). GLO-30's missing tiles (open sea) are 0 m in the terrain's height nodes, so they
+count as sea; a cell outside every height node counts as land.
 
-The run takes about 5 s and peaks at 107 MB (measured 2026-11-03): the sea grid is one byte per 64 m cell (43 MB)
-plus the sea itself (43 MB), filled breadth first; the height nodes are dropped once the sweep has passed them, and
+The coastline and the inland water are cut from the OpenStreetMap extracts `sim_coast::water_extracts` lists (Israel and Palestine's
+in `assets/source/scenery/`, the neighbours' whose country meets the theatre in `assets/source/roads/`: Lebanon,
+Syria, Jordan, Egypt; 450 MB, the files `iaf-sim scenery` reads too); the step downloads any that is missing, and one
+that cannot be downloaded fails the step. The wizard's stamp of the step holds each extract's pinned SHA-256.
+
+The run takes about 47 s with the extracts there (40 s of it ogr2ogr cutting the water from them) and peaks at about 150 MB (measured 2026-11-03): the zero grid is one byte per 64 m cell
+(43 MB), then the sea (43 MB, filled breadth first), the water classes (43 MB) and the inland cells (43 MB); the height nodes are dropped once the sweep has passed them, and
 the masks are written into the image's bytes.
 
 Checks (`cargo test -p iaf-tools --lib sim_bases`): the projection against GDAL; every lineup point on its runway's
 centreline 100 m past the start; every parking spot on an apron; the departure path joins every spot to the lineup
 and the iaf.ibx reads back through the flight model's reader; terraintype.dat flags a runway's centre as runway,
-beside it land, and the sea as sea; the sea joined to the edge only. In the sim, the M0 probe flies each jet's
+beside it land, every parking spot and each spot's path to the lineup (each 2 m) as not rough ground and the
+ground 40 m beside the path as the mask has it; every base has taxiway signs off the paved surface, and Ramon's path
+to 25R passes a holding and a direction sign naming 25R; the sea as sea, a lake as inland water and its island as land; the water polygons' filters (a river,
+a seasonal salt pan and a small pond left out); the sea joined to the edge only. In the sim, the M0 probe flies each jet's
 start-up (iaf-2026/tests/test_m0_boot.gd).
 
 ## 13. What a training flight writes (item E3b)
@@ -541,6 +558,15 @@ Aviv, Katzrin and Majdal Shams as Israel, old Quneitra and Amman as neighbours, 
 areas, Ariel and Ma'ale Adumim as Area C, the Mediterranean and the Sea of Galilee as water; the GM picture through
 `MAPFRAME` is lit on land and dark at sea; each layout has its sections; a stale file and folder go; a `"Shared"`
 cockpit or one naming panel art is refused).
+
+## 15. The scenery and roads (`iaf-sim scenery`)
+
+`crates/iaf-tools/src/sim_scenery.rs` writes the original's scenery and road formats in the theatre's frame:
+`converted/terrain/israel/scenery/` (`L1/s_<i>_<j>.bin` and `lights/L1/s_<i>_<j>.bin` in `iaf_avionics::scenery`'s
+cell format: f32 UTM metres; `manifest.json` with `frame` "EPSG:32636"; `theatre.json` listing the cells under
+`israel`) and `converted/terrain/israel/roads/` (`iaf_avionics::roads`' format; its `manifest.json` adds `frame`
+{`x_shift`, `y_shift`, `units_to_metres`}: the theatre's, which cuts the `L3` blocks). What, why and where:
+[scenery.md](scenery.md).
 
 [^osm]: OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright (runway and apron ways via the Overpass API, 2026-10-20 and 2026-11-02).
 [^oa]: OurAirports, runways.csv and airports.csv (public domain), https://davidmegginson.github.io/ourairports-data/

@@ -3,6 +3,8 @@
 # whose board has its two digits cleared with the board's own yellow (the clean strip between the left arrow and the
 # digits, stretched over them) and the label drawn in black at the digits' height in the game's menu font (Gill Sans
 # Condensed, the install's resource/menu/fnt/cr1.ttf). The arrows stay.
+# Modern IAF's bases have no sign models: board() builds a sign of airbases.json's `signs` (iaf-sim airbases, ICAO
+# Annex 14 colours) with the Settings.display_font("ui") lettering (iaf-2026/docs/airbases.md §9).
 extends RefCounted
 
 const ModelDetail := preload("res://shared/util/model_detail.gd")
@@ -18,8 +20,25 @@ const SPACING := 0.12
 const FONT := "menu/cr1.ttf"
 const SIZE := 1024
 
+## A built sign's face: its height, the gap under it (m; Annex 14 Table 5-5: a face of 0.8–1.1 m on code D–F
+## taxiways, the top at most 1.1 m above the ground; inferred: 0.9 m and 0.2 m), the legend's height and a character's
+## advance (m), the arrow's length.
+const FACE_H := 0.9
+const LIFT := 0.2
+const LEGEND_H := 0.45
+const CHAR_W := 0.34
+const ARROW_W := 0.6
+## A board's colours by style: [background, legend] (Annex 14 5.4.1: mandatory white on red, direction black on yellow,
+## location yellow on black).
+const STYLES := {
+	"mandatory": [Color(0.72, 0.05, 0.05), Color(0.95, 0.95, 0.95)],
+	"direction": [Color(0.95, 0.75, 0.05), Color(0.03, 0.03, 0.03)],
+	"location": [Color(0.03, 0.03, 0.03), Color(0.95, 0.75, 0.05)],
+}
+
 static var _font: FontFile
 static var _textures := {}
+static var _materials := {}
 
 
 ## Re-letters the sign `node` showing board `n` to `label` ("25L"): each surface takes a copy of its material with the
@@ -128,3 +147,109 @@ static func glyph(c: String) -> Image:
 	g.convert(Image.FORMAT_RGBA8)
 	var used := g.get_used_rect()
 	return g.get_region(used) if used.size.x > 0 else null
+
+
+## A taxiway sign of `panels` ([{style, text, arrow}], left to right; `arrow` the turn in degrees, positive right, or
+## null): a dark frame on two legs with one coloured board per panel, its face toward local +Z, the ground at y = 0.
+static func board(panels: Array) -> Node3D:
+	var root := Node3D.new()
+	root.name = "Sign"
+	var widths: Array[float] = []
+	var total := 0.0
+	for p: Dictionary in panels:
+		var w := 0.3 + CHAR_W * String(p.get("text", "")).length() + (ARROW_W if p.get("arrow") != null else 0.0)
+		widths.append(w)
+		total += w
+	var frame := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = Vector3(total + 0.1, FACE_H + 0.1, 0.25)
+	frame.mesh = box
+	frame.material_override = _material(Color(0.08, 0.08, 0.08))
+	frame.position.y = LIFT + FACE_H * 0.5
+	root.add_child(frame)
+	for x in [-0.35 * total, 0.35 * total]:
+		var leg := MeshInstance3D.new()
+		var lb := BoxMesh.new()
+		lb.size = Vector3(0.08, LIFT + 0.05, 0.08)
+		leg.mesh = lb
+		leg.material_override = frame.material_override
+		leg.position = Vector3(x, (LIFT + 0.05) * 0.5, 0)
+		root.add_child(leg)
+	var x0 := -total * 0.5
+	for i in panels.size():
+		var p: Dictionary = panels[i]
+		var colours: Array = STYLES.get(String(p.get("style", "")), STYLES.direction)
+		var face := MeshInstance3D.new()
+		var q := QuadMesh.new()
+		q.size = Vector2(widths[i] - 0.04, FACE_H - 0.04)
+		face.mesh = q
+		face.material_override = _material(colours[0])
+		face.position = Vector3(x0 + widths[i] * 0.5, LIFT + FACE_H * 0.5, 0.126)
+		root.add_child(face)
+		var arrow = p.get("arrow")
+		var text_x := x0 + widths[i] * 0.5
+		if arrow != null:
+			# The arrow on the side it points to (straight on: before the designator, Annex 14 5.4.3.32).
+			var right := float(arrow) > 0.0
+			var ax := x0 + (widths[i] - 0.15 - ARROW_W * 0.5 if right else 0.15 + ARROW_W * 0.5)
+			text_x += -ARROW_W * 0.5 if right else ARROW_W * 0.5
+			var a := MeshInstance3D.new()
+			a.mesh = _arrow_mesh()
+			a.material_override = _material(colours[1])
+			a.position = Vector3(ax, LIFT + FACE_H * 0.5, 0.128)
+			a.rotation.z = -deg_to_rad(float(arrow))
+			root.add_child(a)
+		var label := Label3D.new()
+		label.text = String(p.get("text", ""))
+		label.font = Settings.display_font("ui")
+		label.font_size = 128
+		label.pixel_size = LEGEND_H / 128.0 * 1.3
+		label.modulate = colours[1]
+		label.outline_size = 0
+		label.shaded = true
+		label.double_sided = false
+		label.position = Vector3(text_x, LIFT + FACE_H * 0.5, 0.13)
+		root.add_child(label)
+		x0 += widths[i]
+	return root
+
+
+## An arrow LEGEND_H long pointing up (+Y), centred, in the XY plane facing +Z.
+static func _arrow_mesh() -> ArrayMesh:
+	var h := LEGEND_H
+	var pts := PackedVector2Array(
+		[
+			Vector2(0, h * 0.5),
+			Vector2(-h * 0.35, h * 0.1),
+			Vector2(-h * 0.1, h * 0.1),
+			Vector2(-h * 0.1, -h * 0.5),
+			Vector2(h * 0.1, -h * 0.5),
+			Vector2(h * 0.1, h * 0.1),
+			Vector2(h * 0.35, h * 0.1),
+		]
+	)
+	var idx := Geometry2D.triangulate_polygon(pts)
+	var verts := PackedVector3Array()
+	for k in idx:
+		verts.append(Vector3(pts[k].x, pts[k].y, 0))
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	var normals := PackedVector3Array()
+	normals.resize(verts.size())
+	normals.fill(Vector3.BACK)
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	var m := ArrayMesh.new()
+	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return m
+
+
+static func _material(c: Color) -> StandardMaterial3D:
+	var key := c.to_html()
+	if not _materials.has(key):
+		var m := StandardMaterial3D.new()
+		m.albedo_color = c
+		m.roughness = 0.8
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		_materials[key] = m
+	return _materials[key]

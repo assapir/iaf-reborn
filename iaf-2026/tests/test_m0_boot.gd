@@ -133,8 +133,8 @@ func run() -> void:
 
 
 ## Each jet's start-up mission on the sim's airbases (B2b, iaf-2026/docs/airbases.md "In the game"): parked on its
-## base's spot for its unit, on the ground with the terrain under the wheels, and at a base of the own iaf.ibx (the
-## flight model's start rule: within 5 km and 15 m of its tower).
+## base's spot for its unit on paved ground, on the ground with the terrain under the wheels, and at a base of the own
+## iaf.ibx (the flight model's start rule: within 5 km and 15 m of its tower).
 func bases() -> void:
 	var s := settings()
 	var a: String = s.assets_dir()
@@ -158,9 +158,18 @@ func bases() -> void:
 		await fly(tv, 2.0)
 		var w: Vector3 = tv.player_world()
 		var at := Vector2(float(spot.get("at", [0, 0])[0]), float(spot.get("at", [0, 0])[1]))
+		# On paved ground (the own terraintype.dat: neither rough ground nor water), so taxiing out is no crash.
+		var surface: int = tv.terrain.surface_at(tv.rig.position)
+		var paved: bool = (
+			FileAccess.file_exists(s.own_dir().path_join("terraintype.dat"))
+			and surface & (tv.terrain.SURFACE_ROUGH | tv.terrain.SURFACE_WATER) == 0
+		)
 		check(
-			not spot.is_empty() and Vector2(w.x, w.y).distance_to(at) < 3.0,
-			"%s: parked at %s's spot (%.0f, %.0f; the spot %s)" % [JETS[id][0], section, w.x, w.y, at]
+			not spot.is_empty() and Vector2(w.x, w.y).distance_to(at) < 3.0 and paved,
+			(
+				"%s: parked at %s's spot (%.0f, %.0f; the spot %s), on paved ground (surface 0x%x)"
+				% [JETS[id][0], section, w.x, w.y, at, surface]
+			)
 		)
 		var g = tv.terrain.height_at(tv.rig.position)
 		check(

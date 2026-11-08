@@ -17,7 +17,7 @@ that stopped resumes where it stopped.
 |---|---|---|---|---|
 | Rust (cargo) | builds the extension the wizard runs in | rustup.rs (Arch: `sudo pacman -S rustup`) | `brew install rustup`, then `$(brew --prefix rustup)/bin/rustup default stable` | `winget install Rustlang.Rustup` |
 | Godot 4.7 | runs the wizard | godotengine.org (Arch: `sudo pacman -S godot`) | `brew install godot` | `winget install GodotEngine.GodotEngine` |
-| GDAL | reads and reprojects the heights and the imagery | `sudo apt install gdal-bin` (Arch: `sudo pacman -S gdal`) | `brew install gdal` | the GISInternals installer (`winget install GISInternals.GDAL`) |
+| GDAL | reads and reprojects the heights and the imagery; cuts the inland water and the scenery from OpenStreetMap (`ogr2ogr`) | `sudo apt install gdal-bin` (Arch: `sudo pacman -S gdal`) | `brew install gdal` | the GISInternals installer (`winget install GISInternals.GDAL`) |
 | curl | downloads the height tiles | `sudo apt install curl` | in macOS | in Windows 10 and later |
 | Python 3 | writes the jets' flight data (`tools/iaf-2026/fm0.py`) | `sudo apt install python3` | `brew install python` | `winget install Python.Python.3.14` |
 | disk | the data (§4) | | | |
@@ -88,6 +88,7 @@ dependency graph as the original game's setup: independent steps run at once, a 
 | `sim-own` | `iaf-sim own`: the sounds, the voices and the keys ([sound.md](sound.md)) | — |
 | `sim-airbases` | `iaf-sim airbases`: the four bases on the terrain ([airbases.md](airbases.md) §9) | `sim-terrain` |
 | `sim-missions` | `iaf-sim missions`: the training missions on the bases ([training.md](training.md)) | `sim-airbases`, `sim-db` |
+| `sim-scenery` (optional) | `iaf-sim scenery`: the buildings, trees, roads and city lights ([scenery.md](scenery.md)); skipped without GDAL's `ogr2ogr`, or offline with a file still to download; the sim flies without it | `sim-airbases` |
 
 The same steps from a terminal, from the repo root (no stamps: each command runs; the terrain still ends at once when
 its `built_from` is unchanged):
@@ -122,7 +123,7 @@ Sentinel-2 column 8 November 2026 (§7).
 |---|---|---|
 | download, once | GLO-30: 627 MB, kept in `assets/source/dem/`; the Sentinel-2 tiles: 11.4 GB, kept in `assets/source/imagery/sentinel2/` ([terrain.md](terrain.md) §1.1) | the same; the Survey's sheets must be there already (17 GB) |
 | theatre on disk | 469 MB (levels 3–11) | 3.57 GB |
-| the other steps | about 20 MB | about 20 MB |
+| the other steps | about 20 MB, and the OpenStreetMap extracts the airbases' inland water is cut from: 450 MB, kept in `assets/source/scenery/` and `assets/source/roads/` (the scenery reads them too) | the same |
 | disk use in all | about 12.5 GB | about 15.6 GB |
 | time | the first run about 17 min: the tiles' download about 14 min (11.4 GB at 13.8 MB/s), Sentinel-2 at 32 m and 8 m about 2 min, the coarser levels about 1 min, the DEM's 2 min beside them; a later run a few minutes (inferred from §7 and [terrain.md](terrain.md) §7 until measured) | 1 h 42 min |
 

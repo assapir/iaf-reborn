@@ -91,6 +91,7 @@ that as a failure.
 | `iaf-2026/docs/` | the sim's docs and research |
 | `assets/converted/own/` | the sim's compiled data in the original's resource layout: `resource/md`, `resource/soundfiles`, `resource/weaponsmotion`, `keys.json`, `iaf.ibx`, `terraintype.dat` (`iaf-sim airbases`) |
 | `assets/converted/iaf-2026/missions/` | the compiled training missions |
+| `assets/converted/terrain/israel/` | the theatre ([terrain.md](docs/terrain.md)), its airbases, its scenery and road layer (`scenery/`, `roads/`, [scenery.md](docs/scenery.md)) |
 
 ## How the sim reads its data
 The shared code reads its files through the `Settings` calls below. The sim's `sim_settings.gd` answers them with its
@@ -114,6 +115,8 @@ own paths; the original game's `shared/settings.gd` answers with the install's.
 | `default_bdb()`: the object database a jet's default load falls back on | `default6_1.bdb` | `sim.bdb` |
 | `loading_screen_scene()`: the flight's loading screen | `shared/terrain/loading_screen.gd` (the menu art) | `flight/loading_screen.gd` ([front-end.md](docs/front-end.md)) |
 | `original_art()`: the effects' sprites (flares, chaff, trails, afterburner, the gun's muzzle flash) | true | false: a soft dot (`Img.soft_dot()`) |
+| `scenery_dir()`, `roads_dir()`: the buildings and trees, the road layer ([scenery.md](docs/scenery.md)) | `scenery`, `roads` (under `assets/converted`, read through `converted()`) | the theatre's own: `terrain/israel/scenery`, `terrain/israel/roads` |
+| `scenery_everywhere()`: the scenery stands whatever the imagery | false: over a Survey 2 m layer only | true: the theatre's ground is its own photo |
 
 The bases are `own_dir()`'s `iaf.ibx` (`iaf-sim airbases`, [airbases.md](docs/airbases.md) §9) at their real places,
 so the sim never moves them: its `sync_bases()` sets up no World scale Real move. The tower's wind turn

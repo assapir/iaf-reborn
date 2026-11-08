@@ -18,7 +18,9 @@ const S2_GB := 11.4
 const KEEP_FREE_GB := 5.0
 const THEATRE_S2_GB := 0.47
 const THEATRE_SURVEY_GB := 3.57
-const OTHER_GB := 0.02
+## The rest: the compiled data (0.02) and the OpenStreetMap extracts the coastline and the inland water are cut from
+## (0.45: Israel and Palestine, Lebanon, Syria, Jordan, Egypt; iaf_tools::sim_coast::water_extracts), downloaded once.
+const OTHER_GB := 0.47
 const TIME_S2_MIN := 17
 const TIME_SURVEY_MIN := 102
 ## Every source the sim is built from, with its licence line as the licence asks for it (the Copernicus lines
@@ -54,12 +56,26 @@ const CREDITS := [
 		"for_osm",
 		[
 			(
-				"Airbase and runway data © OpenStreetMap contributors, available under the Open Database Licence "
-				+ "(ODbL) 1.0: openstreetmap.org/copyright"
+				"Airbase, runway, coastline, inland water, building and road data © OpenStreetMap contributors, available under "
+				+ "the Open Database Licence (ODbL) 1.0: openstreetmap.org/copyright; Geofabrik extracts (Israel and "
+				+ "Palestine, Lebanon, Syria, Jordan, Egypt)"
 			)
 		]
 	],
 	["OurAirports", "for_ourairports", ["OurAirports data (public domain), ourairports.com"]],
+	[
+		"Microsoft Global ML Building Footprints",
+		"for_scenery",
+		[
+			"Microsoft Global ML Building Footprints (CDLA-Permissive-2.0), github.com/microsoft/GlobalMLBuildingFootprints"
+		]
+	],
+	["GHS-BUILT-H R2023A", "for_scenery", ["GHS-BUILT-H R2023A, European Commission, Joint Research Centre (JRC)"]],
+	[
+		"Global Canopy Height 2020",
+		"for_trees",
+		["Global Canopy Height 2020, Lang, Jetz, Schindler, Wegner; ETH Zürich EcoVision Lab (CC BY 4.0)"]
+	],
 	[
 		"freesound.org",
 		"for_sounds",

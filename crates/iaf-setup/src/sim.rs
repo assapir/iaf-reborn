@@ -7,7 +7,7 @@ use std::sync::atomic::AtomicBool;
 
 use anyhow::{Context, Result};
 use iaf_tools::progress::Progress;
-use iaf_tools::{sim, sim_bases, sim_terrain};
+use iaf_tools::{sim, sim_bases, sim_scenery, sim_terrain};
 
 use crate::{Events, Outcome, Redo, State, Step, stamp};
 
@@ -41,6 +41,7 @@ impl SimCtx {
             sheet_index: self.assets.join("converted/imagery/.work/mapi2015/sheets.tsv"),
             sheets: if self.inputs.survey { survey_dir(&self.assets) } else { PathBuf::new() },
             airbases: self.data().join("airbases"),
+            osm: self.assets.clone(),
             area: sim_terrain::BOX,
             detail: sim_terrain::DETAIL,
             threads: iaf_tools::progress::threads(),
@@ -81,6 +82,13 @@ pub fn sim_plan(inputs: &SimInputs) -> Vec<Step> {
     add("sim-own", "sounds, voices and keys", &[]);
     add("sim-airbases", "airbases: Ramon, Hatzerim, Nevatim, Ramat David", &["sim-terrain"]);
     add("sim-missions", "training missions", &["sim-airbases", "sim-db"]);
+    // Optional: the sim flies without it (no GDAL, offline).
+    v.push(Step {
+        id: "sim-scenery",
+        title: "scenery: buildings, trees, roads and city lights (OpenStreetMap, Microsoft footprints, GHS-BUILT-H, ETH canopy)",
+        required: false,
+        after: vec!["sim-airbases"],
+    });
     v
 }
 
@@ -117,9 +125,25 @@ fn exec(step: &Step, ctx: &SimCtx, redo: bool, pr: &dyn Progress, cancel: &Atomi
         "sim-airbases" => sim_bases::airbases(&data, assets, pr, cancel)?,
         "sim-missions" => sim::missions(&data, assets, pr, cancel)?,
         "sim-fm" => fm0(ctx, pr)?,
+        "sim-scenery" => return scenery(&data, assets, pr, cancel),
         id => anyhow::bail!("unknown step {id}"),
     }
     Ok(Outcome::Done)
+}
+
+/// The scenery and road layer (`iaf-sim scenery`, iaf-2026/docs/scenery.md): skipped without GDAL, or offline with a
+/// file to download.
+fn scenery(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
+    if !crate::tools().gdal {
+        return Ok(Outcome::Skipped("GDAL is needed (gdalwarp, ogr2ogr)".into()));
+    }
+    match sim_scenery::scenery(data, assets, pr, cancel) {
+        Ok(s) => Ok(if s.up_to_date { Outcome::UpToDate } else { Outcome::Done }),
+        Err(_) if !crate::steps::reachable(crate::steps::SCENERY_PROBE) => Ok(Outcome::Skipped(
+            "the scenery's sources cannot be reached (offline?): Scenery stays off; run setup again online".into(),
+        )),
+        Err(e) => Err(e),
+    }
 }
 
 /// Makes `iaf-sim terrain` build the theatre in `out` again (a redo): its `meta.json` (whose `built_from` would say
@@ -174,6 +198,8 @@ mod tests {
         assert_eq!(after("sim-airbases"), ["sim-terrain"]);
         assert_eq!(after("sim-missions"), ["sim-airbases", "sim-db"]);
         assert!(after("sim-fm").is_empty());
+        assert_eq!(after("sim-scenery"), ["sim-airbases"]);
+        assert!(!p.iter().find(|s| s.id == "sim-scenery").unwrap().required);
         assert!(sim_plan(&SimInputs { survey: true })[0].title.contains("Survey"));
     }
 
@@ -215,6 +241,7 @@ mod tests {
             "converted/own/keys.json",
             "converted/own/iaf.ibx",
             "converted/own/resource/md/bd.ibx",
+            "converted/terrain/israel/scenery/manifest.json",
         ] {
             std::fs::create_dir_all(dir.join(f).parent().unwrap()).unwrap();
             std::fs::write(dir.join(f), "").unwrap();
@@ -230,7 +257,7 @@ mod tests {
         let up: Vec<_> = sim_preview(&steps, &survey).into_iter().filter(|p| !p.1).map(|p| p.0).collect();
         assert_eq!(
             up,
-            ["sim-terrain", "sim-airbases", "sim-missions"],
+            ["sim-terrain", "sim-airbases", "sim-missions", "sim-scenery"],
             "the Survey redoes the terrain and what is on it"
         );
         let _ = std::fs::remove_dir_all(&dir);

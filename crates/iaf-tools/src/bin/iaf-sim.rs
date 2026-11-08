@@ -1,6 +1,6 @@
 //! Modern IAF's data compilers (iaf-2026/docs/data-formats.md):
 //!
-//! `iaf-sim <db|missions|own|airbases|all> [data-dir (iaf-2026/data)] [assets-dir (assets)]`
+//! `iaf-sim <db|missions|own|airbases|scenery|all> [data-dir (iaf-2026/data)] [assets-dir (assets)]`
 //! `iaf-sim terrain [assets-dir (assets)] [--box E0 N0 E1 N1] [--out <dir>] [--threads N]`
 //!
 //! - `db`: the units and weapons → `converted/missions/sim.bdb.json`, `converted/objects/objects.json` ("sim.bdb"),
@@ -9,7 +9,10 @@
 //! - `airbases`: the four bases into the theatre's frame (iaf-2026/docs/airbases.md "In the game") →
 //!   `converted/terrain/israel/airbases.json` + masks, `converted/own/iaf.ibx`, `converted/own/terraintype.dat`; needs
 //!   the terrain;
-//! - `all`: db, own, airbases (when the terrain is built), missions;
+//! - `scenery`: the buildings, trees, roads and city lights' stand-ins in the theatre's frame (iaf-2026/docs/scenery.md)
+//!   → `converted/terrain/israel/scenery/`, `converted/terrain/israel/roads/`; needs the terrain, the airbases' step
+//!   and GDAL; downloads only what `assets/source/scenery` and `assets/source/roads` lack;
+//! - `all`: db, own, airbases and scenery (when the terrain is built; the scenery optional), missions;
 //! - `own`: the sound table and clips → `converted/own/resource/soundfiles/`, the key table → `converted/own/keys.json`,
 //!   each jet's cockpit display data → `converted/own/cockpits/<jet>/`, the F-16's aircraft descriptor from the repo's
 //!   own model → `converted/own/planes/` (run it from the repo root);
@@ -21,7 +24,7 @@ use std::sync::atomic::AtomicBool;
 
 use anyhow::{Context, Result, bail};
 use iaf_tools::progress::Stdout;
-use iaf_tools::{sim, sim_bases, sim_terrain};
+use iaf_tools::{sim, sim_bases, sim_scenery, sim_terrain};
 
 fn terrain(args: &[String], cancel: &AtomicBool) -> Result<()> {
     let mut assets = PathBuf::from("assets");
@@ -48,6 +51,7 @@ fn terrain(args: &[String], cancel: &AtomicBool) -> Result<()> {
         sheet_index: assets.join("converted/imagery/.work/mapi2015/sheets.tsv"),
         sheets: assets.join("source/imagery/mapi2015"),
         airbases: PathBuf::from("iaf-2026/data/airbases"),
+        osm: assets.clone(),
         area,
         detail: sim_terrain::DETAIL,
         threads,
@@ -66,19 +70,28 @@ fn main() -> Result<()> {
         Some("own") => sim::own(data, Path::new("."), assets, &Stdout, &cancel),
         Some("airbases") => sim_bases::airbases(data, assets, &Stdout, &cancel),
         Some("terrain") => terrain(&args[1..], &cancel),
+        Some("scenery") => sim_scenery::scenery(data, assets, &Stdout, &cancel).map(|s| {
+            if s.up_to_date {
+                println!("scenery: up to date");
+            }
+        }),
         Some("all") => {
             sim::db(data, assets, &Stdout, &cancel)?;
             sim::own(data, Path::new("."), assets, &Stdout, &cancel)?;
             // The bases need the terrain's heights; the missions then stand on its ground.
             if assets.join("converted/terrain/israel/meta.json").is_file() {
                 sim_bases::airbases(data, assets, &Stdout, &cancel)?;
+                // Optional: the sim flies without it (no GDAL, offline).
+                if let Err(e) = sim_scenery::scenery(data, assets, &Stdout, &cancel) {
+                    eprintln!("scenery: skipped: {e:#}");
+                }
             } else {
                 eprintln!("airbases: no terrain yet (iaf-sim terrain): skipped");
             }
             sim::missions(data, assets, &Stdout, &cancel)
         }
         _ => bail!(
-            "usage: iaf-sim <db|missions|own|airbases|all> [data-dir (iaf-2026/data)] [assets-dir (assets)]\n       \
+            "usage: iaf-sim <db|missions|own|airbases|scenery|all> [data-dir (iaf-2026/data)] [assets-dir (assets)]\n       \
              iaf-sim terrain [assets-dir (assets)] [--box E0 N0 E1 N1] [--out <dir>] [--threads N]"
         ),
     }
