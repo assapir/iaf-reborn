@@ -125,6 +125,17 @@ const CREDITS := [
 		["Copyright 2014 The Heebo Project Authors (github.com/OdedEzer/heebo), SIL Open Font License 1.1"]
 	],
 	[
+		"Hershey Fonts",
+		"for_hud_font",
+		[
+			(
+				"The Hershey Fonts were originally created by Dr. A. V. Hershey while working at the U. S. National "
+				+ "Bureau of Standards"
+			),
+			"The format of the Font data in this distribution was originally created by James Hurt, Cognition, Inc.",
+		]
+	],
+	[
 		"Wikimedia Commons",
 		"for_photos",
 		[

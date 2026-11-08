@@ -19,8 +19,8 @@
 # from the centre)} assigned as by clicks, `gps_armed` the station whose row is armed; "arm": the Arming screen of the
 # mission's flight of type `arm_type` (default 110), `loadout`'s weapon ids on its stations, the list's tab `arm_tab`),
 # place ({"unit_prefix": "mig23" | "ground_unit": true, "ahead_m": N} puts that unit N m ahead (`bearing_deg` right of
-# the nose, `elevation_deg` above it; an air unit flying away at `vel_ms`), in the air at the jet's height / on the
-# ground), actions (in order; the
+# the nose, `elevation_deg` above it; an air unit flying away at `vel_ms`, negative toward the jet, and facing that
+# way), in the air at the jet's height / on the ground), actions (in order; the
 # frozen starts advance a scripted sim time, the others real time: "lock" radar lock on the placed unit, "on_impact"
 # the placed unit onto the bomb's predicted impact, "station:N" the A-A store / gun on station N, "ag:N" the A-G store
 # on station N, "flir" / "tv" the camera on the placed unit (FLIR with the laser), "emitter" the placed unit's radar
@@ -424,6 +424,8 @@ func _put(p: Dictionary) -> void:
 			return
 		target.path = null
 		target.vel = fwd * float(p.get("vel_ms", 0.0))  # flying away from the jet (a rear-aspect seeker's tone)
+		if target.vel != Vector3.ZERO:  # facing its way: the model and the radar's track (radar.gd) take the heading
+			target.heading = rad_to_deg(atan2(target.vel.x, target.vel.y))
 		target.world = o.pos + fwd * d
 		tv.mission_entity_moved(target)
 		for ent in tv.runtime.entities.values():

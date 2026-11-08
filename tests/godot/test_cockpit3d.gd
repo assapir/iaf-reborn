@@ -300,6 +300,23 @@ func _instruments(tv: Node, c: Control, c3: Node3D, variant: String) -> void:
 		c3.lamps_lit.gear_nose == (int(legs[0]) == 2) and c3.lamps_lit.gear_right == (int(legs[2]) == 2),
 		"%s 3D: the gear lamps show the legs %s" % [variant, legs]
 	)
+	# An unlit lamp in view reads unlit: its lit-painted sheet (the gear lamps' green, the handle's red) darkened. The
+	# gear up and locked: the three gear lamps and the handle's light off.
+	var gear: Array = [tv.gear_down, tv.gear_legs]
+	tv.gear_down = false
+	tv.gear_legs = [0, 0, 0]
+	await frames(2)
+	var unlit := []
+	for key in c3._lamps:
+		for l in c3._lamps[key]:
+			if not l[1] and not c3.lamps_lit[key]:
+				unlit.append_array(l[2].map(func(m): return [key, (m as BaseMaterial3D).albedo_color.v]))
+	check(
+		unlit.size() >= 5 and unlit.all(func(e): return e[1] < 0.5),
+		"%s 3D: the unlit lamps in view read dark %s" % [variant, unlit]
+	)
+	tv.gear_down = gear[0]
+	tv.gear_legs = gear[1]
 	var idx := int(c.state.better.get("aoa_index", 0))
 	check(
 		c3.lamps_lit.aoa_on_speed == (idx == 2) and c3.lamps_lit.aoa_fast == (idx == 3),

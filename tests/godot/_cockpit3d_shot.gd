@@ -9,7 +9,10 @@
 # RWR scope and at the gear panel. C3D_ONLY=hud: only ahead, looking up 8° (the HUD's frame against the sky) and ahead
 # zoomed in to the true size. C3D_HUD=original: the original HUD (default the Real HUD). C3D_ALL=1: every graphics
 # option at its best (_showcase_shot.gd AFTER), as a player with everything on sees it. C3D_SIM=1: Modern IAF's cockpits
-# (iaf-2026/sim_settings.gd on its own cockpit dirs, `iaf-sim own`'s, test_cockpit_no_panel.gd), files named sim.
+# (iaf-2026/sim_settings.gd on its own cockpit dirs, `iaf-sim own`'s, test_cockpit_no_panel.gd), files named sim; run
+# it with --path iaf-2026 (the sim's strings and fonts) and it flies over the sim's theatre (_sim_spec).
+# C3D_SET=key=value,…: Settings for the run (as _cockpit_show_shot.gd's SHOW_SET), e.g.
+# C3D_SET=briefing_map=modern,real_mfds=real for the Extras' OpenStreetMap map and real MFDs.
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOW_OUT=$PWD/.shots/c3d -- \
 #     --log-file /tmp/c3d.log --resolution 1920x1080 --path iaf-reborn -s ../tests/godot/_cockpit3d_shot.gd
 extends "res://../tests/godot/_cockpit_show_shot.gd"
@@ -43,6 +46,9 @@ func run() -> void:
 	if OS.get_environment("C3D_ALL") == "1":  # every graphics option at its best (_showcase_shot.gd AFTER): as played
 		for k in AFTER:
 			settings().set(k, AFTER[k])
+	for kv in OS.get_environment("C3D_SET").split(",", false):  # key=value Settings (as SHOW_SET)
+		var p := kv.split("=")
+		settings().set(p[0], str_to_var(p[1]) if str_to_var(p[1]) != null else p[1])
 	settings().show_info = false
 	settings().cockpit_3d = "original" if two_d else "3d"
 	settings().hud_style = OS.get_environment("C3D_HUD") if OS.get_environment("C3D_HUD") != "" else "real"
@@ -54,6 +60,7 @@ func run() -> void:
 		settings().f16_variant = variant
 		var spec: Array = COCKPITS.cockpit_f16_day.duplicate()
 		spec[2] = hour
+		_sim_spec(spec)
 		await _cockpit_scene("f16_" + variant, spec)
 		if OS.get_environment("C3D_ONLY") == "panel":
 			await _panel(variant)
@@ -76,6 +83,17 @@ func run() -> void:
 		else:
 			await _target(variant)
 	settings().jet_id = -1
+
+
+## C3D_SIM=1: a free flight (the sim has none of the original's missions) over its own theatre, in UTM metres:
+## 1,500 m over the Negev west of Beersheba, heading 60° toward the city and Nevatim, at C3D_HOUR.
+func _sim_spec(spec: Array) -> void:
+	if look == "sim":
+		spec[2] = float(OS.get_environment("C3D_HOUR")) if OS.get_environment("C3D_HOUR") != "" else 10.5
+		spec[1] = -1  # a free flight: its clock sets the cockpit's night (terrain_view.gd _update_time_of_day)
+		spec[3] = [655000.0, 3445000.0]
+		spec[4] = 1500.0
+		spec[5] = 60.0
 
 
 ## A ground unit 8 km ahead, about 11° under the nose: the Real HUD over it.
@@ -198,6 +216,7 @@ func _seen_at(n: Node3D, s: Vector2) -> Vector2:
 ## SubViewports' GPU time.
 func _f35i(hour: float) -> void:
 	var spec: Array = (COCKPITS.cockpit_f35i_night if hour >= 20.0 else COCKPITS.cockpit_f35i_day).duplicate()
+	_sim_spec(spec)
 	await _cockpit_scene("f35i", spec)
 	var c: Control = tv.cockpit
 	var vps := {}

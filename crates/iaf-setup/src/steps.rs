@@ -151,6 +151,12 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
         "airbases" => {
             terrain::airbases(&install, &conv.join("terrain/theatre"), &conv.join("terrain"), None, pr, cancel)?
         }
+        "extras" => {
+            let out = conv.join("extras/cockpit");
+            let isr = install.join("resource/cockpits/isr.bmp");
+            let data = ctx.repo.join("iaf-2026/data");
+            iaf_tools::sim_cockpit::extras(&data, &out, Some(&isr), pr, cancel).map(|_| ())?
+        }
         "icon" => convert::icon(&install, &conv.join("icon.png"), pr, cancel)?,
         "launcher" => child(launcher(ctx), pr, cancel)?,
         "sentinel2" | "mapi2015" => return imagery(step, ctx, pr, cancel),

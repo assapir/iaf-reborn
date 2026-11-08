@@ -135,7 +135,11 @@ the TSD map and the radar's ground-map picture are made from OpenStreetMap (© O
 Bank's Areas A, B and C and Hebron's H1 (the areas mapped in OSM from geomolg.ps) and the Gaza Strip, and the large
 lakes, via `tools/iaf-2026/cockpit_displays.py`. The RWR glyph sheet and the ADI ball are our own drawing (their SVG
 sources in `tools/iaf-2026/cockpit/`). The line the sim's wizard and credits roll need: "TSD map © OpenStreetMap
-contributors, available under the Open Database Licence (ODbL) 1.0: openstreetmap.org/copyright".
+contributors, available under the Open Database Licence (ODbL) 1.0: openstreetmap.org/copyright". The original game
+takes the same map with Briefing map on Modern (setup's `extras` step, docs/front-end.md §8 "Modern map"): its setup
+wizard's Attributions list "Modern TSD map (Extras: Briefing map Modern): © OpenStreetMap contributors (ODbL 1.0)",
+and its credits roll (`iaf-reborn/menu/credits_ours.json`) "Modern TSD Map: Map data © OpenStreetMap contributors
+(openstreetmap.org/copyright), ODbL 1.0".
 
 The sim's sound clips (`iaf-2026/data/sounds/`, made by `tools/iaf-2026/sounds.py`) are CC0 recordings from
 freesound.org[^freesound] and tones we computed. CC0 asks for no credit; we name every author anyway: ikbenraar,
@@ -168,8 +172,14 @@ simulation package) served as the candidate checked against the scan (iaf-2026/d
 
 The sim's screens (its setup wizard first) use Heebo, `iaf-2026/data/fonts/Heebo-VariableFont_wght.ttf`, "Copyright
 2014 The Heebo Project Authors (https://github.com/OdedEzer/heebo)", under the SIL Open Font License 1.1
-(`iaf-2026/data/fonts/OFL.txt`), from Google Fonts[^heebo]. The wizard's Attributions page names it. Until the user picks the
-HUD face (Approvals A9), Heebo is also the sim's HUD and display font.
+(`iaf-2026/data/fonts/OFL.txt`), from Google Fonts[^heebo]. The wizard's Attributions page names it.
+
+The sim's HUD, MFDs and panoramic display use Hershey's Roman Simplex stroke font (the user's choice, Approvals A9),
+`iaf-2026/data/fonts/HersheySimplex.ttf`, which `tools/iaf-2026/hershey_font.py` strokes into outlines from Kamal
+Mostafa's `futural.jhf`[^hershey] (`tools/iaf-2026/fonts/`). Its terms ask for two acknowledgements, kept with the data
+(`iaf-2026/data/fonts/HERSHEY.txt`) and on the wizard's Attributions page and the credits: "The Hershey Fonts were
+originally created by Dr. A. V. Hershey while working at the U. S. National Bureau of Standards" and "The format of
+the Font data in this distribution was originally created by James Hurt, Cognition, Inc."
 
 ## Modern IAF's photos
 
@@ -213,5 +223,6 @@ credits it in its footer; the front end's Attributions screen and the setup wiza
 [^c-adir]: Wikimedia Commons, "IAF-F-35I-2016-12-13.jpg": https://commons.wikimedia.org/wiki/File:IAF-F-35I-2016-12-13.jpg
 [^c-sufa2]: Wikimedia Commons, "IAF-F-16I-Sufa--Independence-Day-2017-Tel-Nof-IZE-182.jpg": https://commons.wikimedia.org/wiki/File:IAF-F-16I-Sufa--Independence-Day-2017-Tel-Nof-IZE-182.jpg
 [^c-barak]: Wikimedia Commons, "F-16D--Our-IDF-2018-IZE-239.jpg": https://commons.wikimedia.org/wiki/File:F-16D--Our-IDF-2018-IZE-239.jpg
+[^hershey]: hershey-fonts, Kamal Mostafa (`hershey-fonts/futural.jhf` and the Hershey Fonts licence in `COPYING`): https://github.com/kamalmostafa/hershey-fonts
 [^heebo]: Google Fonts, Heebo (`ofl/heebo/Heebo[wght].ttf` and `OFL.txt`): https://github.com/google/fonts/tree/main/ofl/heebo
 [^cop-dem]: "Licence for the use of the Copernicus WorldDEM-30", Article 6: https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/DEM/resources/license/License-COPDEM-30.pdf

@@ -396,10 +396,14 @@ func select_flight(n: int) -> void:
 
 
 func _map(name: String) -> Dictionary:
-	if not _map_cache.has(name):
-		var path: String = fe.dir.path_join("emf/%s.json" % name)
-		_map_cache[name] = Settings.load_json(path)
-	return _map_cache[name]
+	var path: String = fe.dir.path_join("emf/%s.json" % name)
+	# Ours: Briefing map on Modern draws the OpenStreetMap map (Settings.cockpit_extra; the 1967 / 1973 maps stay).
+	var modern := Settings.cockpit_extra("", "tsd.json") if name == "82" else ""
+	if modern != "":
+		path = modern
+	if not _map_cache.has(path):
+		_map_cache[path] = Settings.load_json(path)
+	return _map_cache[path]
 
 
 func _process(_delta: float) -> void:

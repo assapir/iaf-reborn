@@ -435,6 +435,22 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
       2026-10-29): reading `main.bin` and making the meshes about 70 ms once (3.1 M points); a frame 3.0 / 5.8 ms
       with the roads, 3.2 / 6.2 ms without, at zoom 1 / 12: within the noise. Test: `tests/godot/test_modern_map.gd` (with the road layer: the
       map's segments, a motorway / trunk route Tel Aviv – Jerusalem of 59 km, the streets around Tel Aviv).
+      Modern also draws Modern IAF's OpenStreetMap map in place of `82.emf` (not the 1967 / 1973 maps): every land,
+      Israel with the Golan to the 1974 line, the West Bank's Area C apart from the Palestinian Authority's Areas A
+      and B, Gaza in the PA's grey, and the large lakes, in the original's colours (iaf-2026/docs/cockpit.md §8 "TSD
+      map"). Setup's `extras` step compiles it from `iaf-2026/data/planes/_shared/cockpit/tsd_map.json` into the
+      1998 frame through the georeference (`sim_cockpit::extras`, `Frame::original`) as
+      `assets/converted/extras/cockpit/tsd.json` (82.emf's frame) and `map.json` (the cockpit map.emf's frame, whose
+      v carries the factor 1.0071394); `tsd.gd _map` reads `tsd.json`, and the cockpit's TSD / HSD map and the
+      radar's ground-map picture (`isr.png`: the map's land and water over the original `isr.bmp`'s terrain, each
+      land pixel the original's brightness) read the same folder (`Settings.cockpit_extra`, docs/mfd.md §9). The
+      data covers the whole 1998 frame (29.5–38.5° E, 26.85–36.75° N). Without the folder the original map shows.
+      Test: `tests/godot/test_tsd_map_fill.gd`.
+
+      ![The front-end TSD with Briefing map Original and Modern](img/tsd_modern.jpg)
+
+      Left Original, right Modern; the whole theatre above, Israel two zoom steps in below. Made by
+      `tests/godot/_tsd_modern_shot.gd`.
   * Polygons fill as GDI fills a `PolyPolygon`: all rings of a record are one region under its fill mode, ALTERNATE
     (even-odd) or WINDING (non-zero; 752 of the 1008 polygons in `82.emf`). The rings cross themselves and overlap.
     `menu/tsd_map.gd` gets the triangles from `IafEmf.fill_triangles` (`iaf_formats::emf::fill_triangles`, a sweep

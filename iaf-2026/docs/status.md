@@ -97,9 +97,14 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **The M0 probe (2026-11-02):** passes the no-install check, the profile, the key and sound tables, and for each jet
   the mission's object database, the aircraft definition, the motion table, the 3D cockpit model and the flight
   model's start from the own `bd.ibx` (item [C1](plan.md#c1-fm-0-data)'s FM-0 data; `NEEDS DATA` without that file). With the terrain built
-  ([B1](plan.md#b1-the-terrain), the terrain) it flies 5 s over it and checks the heights; the 3D-only cockpit check waits for [E1](plan.md#e1-cockpit-data-sounds-and-voices), the cockpit data.
+  ([B1](plan.md#b1-the-terrain), the terrain) it flies 5 s over it and checks the heights. On every flight it makes (the free flight, each jet's start-up) the
+  3D-only cockpit check (2026-11-08): the cockpit dir the sim's own, no panel, lamp, HUD glass or ADI art loaded, the
+  3D cockpit up ([cockpit.md](cockpit.md)).
 - [A2](plan.md#a2-the-iaf-sim-compilers) (the data compilers), [B2a](plan.md#b2-the-airbases) (the airbases' layouts), [E1b](plan.md#e1-cockpit-data-sounds-and-voices) (sounds, voices, keys), [E3a](plan.md#e3-the-training-missions) (the training scoring): see
   their rows in [plan.md](plan.md).
+- **[E1a](plan.md#e1-cockpit-data-sounds-and-voices), the HUD and display font (2026-11-08):** Hershey's Roman Simplex stroke font
+  on the HUD, the MFDs, the small screens and the F-35I's panoramic display ([cockpit.md](cockpit.md) §5); each jet's
+  cockpit by day and at night in [cockpit.md](cockpit.md) §6.
 - The setup wizard's headings use Heebo's weights since 2026-11-08 (the font axis is set by its tag number; a "wght"
   string key had left every weight at the regular).
 
@@ -117,7 +122,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   name); the debrief sheet and the pilot log in the original game ([shared.md](shared.md)); the missions'
   own Hebrew briefings in `iaf-2026/data/missions/` still use the masculine imperative (the front end shows its own
   gender-neutral ones).
-- **The probe's 3D-only cockpit check** (no 2D panel in flight) prints NEEDS DATA until [E1](plan.md#e1-cockpit-data-sounds-and-voices), the cockpit data.
+- **[Floating origin / camera-relative cockpit](plan.md#floating-origin--camera-relative-cockpit)**: open; the 3D
+  cockpit's screens hold their depth out to 100 km from the flight's start (the F-35I's depth pull).
 - **The airbases' open points** ([airbases.md](airbases.md) §9): the towers of Ramon, Hatzerim and Ramat David (their
   reference points stand in), one taxi hub per base. The temp-root run of item F finds any read of the
   original's data still left.

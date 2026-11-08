@@ -72,6 +72,10 @@ fn main() -> Result<()> {
         [_, "keys", install, packs, out] => convert::keys(p(install), p(packs), p(out), pr, cancel),
         [_, "icon", install, out] => convert::icon(p(install), p(out), pr, cancel),
         [_, "cockpit", install, name, out] => convert::cockpit(p(install), name, p(out), &opts, pr, cancel),
+        [_, "extras", data, out] => iaf_tools::sim_cockpit::extras(p(data), p(out), None, pr, cancel).map(|_| ()),
+        [_, "extras", data, out, isr] => {
+            iaf_tools::sim_cockpit::extras(p(data), p(out), Some(p(isr)), pr, cancel).map(|_| ())
+        }
         [_, "arm-extra", menu_img, arm_dir, out] => convert::arm_extra(p(menu_img), p(arm_dir), p(out), pr, cancel),
         [_, "f15-detailed", assets] => iaf_tools::f15::setup(p(assets), pr, cancel).map(|_| ()),
         [_, "mig29-detailed", src, orig, out] => iaf_tools::mig29::setup(p(src), p(orig), p(out), pr, cancel),
@@ -79,7 +83,7 @@ fn main() -> Result<()> {
         [_, "plane-checklist", code] => plane_checklist(code, Path::new(".")),
         [_, "plane-checklist", code, repo] => plane_checklist(code, Path::new(repo)),
         _ => bail!(
-            "usage: iaf-convert [--upscale] [--smooth] model <file.x|file.xfr> <out-dir>\n       iaf-convert [--upscale] [--smooth] aircraft <install-dir> <missions-dir> <out-dir>\n       iaf-convert [--upscale] cockpit <install-dir> <cockpit> <out-dir>\n       iaf-convert [--upscale] menu <install-dir> <out-dir> [--pack <pack-dir>]\n       iaf-convert [--upscale] briefings <install-dir> <packs-dir> <out-dir>\n       iaf-convert keys <install-dir> <packs-dir> <out.json>\n       iaf-convert plane-describe <model.gltf> <out-dir> [--type N] [--section NAME] [--label L]\n       iaf-convert plane-checklist <type> [repo-dir]"
+            "usage: iaf-convert [--upscale] [--smooth] model <file.x|file.xfr> <out-dir>\n       iaf-convert [--upscale] [--smooth] aircraft <install-dir> <missions-dir> <out-dir>\n       iaf-convert [--upscale] cockpit <install-dir> <cockpit> <out-dir>\n       iaf-convert [--upscale] menu <install-dir> <out-dir> [--pack <pack-dir>]\n       iaf-convert [--upscale] briefings <install-dir> <packs-dir> <out-dir>\n       iaf-convert keys <install-dir> <packs-dir> <out.json>\n       iaf-convert extras <iaf-2026/data> <out-dir> [<isr.bmp>]\n       iaf-convert plane-describe <model.gltf> <out-dir> [--type N] [--section NAME] [--label L]\n       iaf-convert plane-checklist <type> [repo-dir]"
         ),
     }
 }

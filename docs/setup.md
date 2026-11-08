@@ -47,6 +47,7 @@ and each step uses every core inside.
 | `aircraft`, `objects` | missions | `assets/converted/planes`, `objects` |
 | `airbases` | theatre | `assets/converted/terrain/airbases.json`, `airbases/` |
 | `launcher` | icon | the desktop launcher (`tools/install-launcher.sh`) |
+| `extras` | the install | `assets/converted/extras/cockpit`: Modern IAF's TSD map and ground-map picture compiled into the 1998 frame (the picture's terrain from the install's `isr.bmp`), its RWR symbols and ADI ball, for the Extras options (docs/deviations.md §2: Briefing map Modern, MFDs (F-16) Real); no stamp, it runs each time (about a second) |
 | `textures` | | `assets/thirdparty/ambientcg`: the CC0 textures of Ground textures and Model detail (≈ 250 MB download; docs/rendering.md §1.4, §9) |
 | `models` | aircraft | `assets/source/f15` (the FlightGear F-15's files, ≈ 20 MB download, GPL-2.0-only), `assets/converted/models/f15/f15c.glb`, the detailed F-15, and `f15i.glb`, the F-15I Ra'am, with its front view `f15i_arm.png`, which `arm` composes (docs/aircraft-models.md §6, §6.7) |
 | `sentinel2`, `mapi2015-fetch`, `mapi2015` | airbases | `assets/converted/imagery` |

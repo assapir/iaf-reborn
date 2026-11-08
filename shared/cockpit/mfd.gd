@@ -959,7 +959,9 @@ func _draw_rwr() -> void:
 		_text(Vector2(101, 3), "Mal")
 	else:
 		_rec(["rwr", cockpit.rwr.size()])
-		cockpit.draw_rwr_symbols(self, Vector2(66, 66) * _k, 56.0, _k, _rwr_symbol if crisp else Callable())
+		# The crisp symbols cut the original rwrsymb.bmp; an Extras sheet (Settings.cockpit_extra) draws as the texture.
+		var own := Settings.cockpit_extra(Settings.cockpit_folder(cockpit.cockpit_dir), "rwrsymb.png") == ""
+		cockpit.draw_rwr_symbols(self, Vector2(66, 66) * _k, 56.0, _k, _rwr_symbol if crisp and own else Callable())
 
 
 ## Artificial horizon bars (FUN_00533620): centre (66,66), rolled, 1 px per degree of pitch.
@@ -1172,10 +1174,13 @@ func _draw_tsd() -> void:
 		return Vector2(65 + (ex * cos_h - ny * sin_h) / k, 85 - (ex * sin_h + ny * cos_h) / k)
 	var clip := PackedVector2Array([Vector2(10, 10), Vector2(122, 10), Vector2(122, 122), Vector2(10, 122)])
 	if tsd_options[2]:
+		# to_mfd as one transform per frame, applied natively (pcd_formats.gd scope_xform): the OpenStreetMap map's some
+		# 10,000 points took 21 ms a call point by point (Briefing map Modern, measured 2026-11-08).
+		var x := Vector2(cos_h, -sin_h) / k
+		var y := Vector2(-sin_h, -cos_h) / k
+		var xf := Transform2D(x, y, Vector2(65, 85) - x * own.x - y * own.y)
 		for poly in cockpit.tsd_map:
-			var pts := PackedVector2Array()
-			for w in poly.points:
-				pts.append(to_mfd.call(w))
+			var pts: PackedVector2Array = xf * (poly.points as PackedVector2Array)
 			for piece in Geometry2D.intersect_polygons(pts, clip):
 				# Skip slivers the clipper leaves (they don't triangulate).
 				if piece.size() >= 3 and not Geometry2D.triangulate_polygon(piece).is_empty():

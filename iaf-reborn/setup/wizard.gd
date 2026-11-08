@@ -698,6 +698,10 @@ func _page_welcome() -> Control:
 				"Ground textures and Model detail: materials from [url=https://ambientcg.com]ambientCG[/url] "
 				+ "([url=https://creativecommons.org/publicdomain/zero/1.0/]CC0 1.0[/url]), downloaded by setup\n"
 			)
+			+ (
+				"Modern TSD map (Extras: Briefing map Modern): © [url=https://www.openstreetmap.org/copyright]"
+				+ "OpenStreetMap[/url] contributors (ODbL 1.0)\n"
+			)
 			+ "Survey of Israel imagery: © Survey of Israel 2015, via [url=https://data.gov.il]data.gov.il[/url]\n"
 			+ (
 				"Scenery and roads: © [url=https://www.openstreetmap.org/copyright]OpenStreetMap[/url] contributors "

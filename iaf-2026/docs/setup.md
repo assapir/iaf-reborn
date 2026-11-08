@@ -156,8 +156,8 @@ built the terrain before keeps), the Survey choice:
 | first | all six steps: `sim-terrain` found its `built_from` unchanged and ended at once; the units and weapons, the flight data, the sounds and keys, the airbases and the missions were built | 16 s |
 | second | none: all six up to date | 0.5 s |
 
-The M0 probe on that root: 41 PASS, 0 FAIL, the one NEEDS DATA it also prints on the full root (item E1's cockpit
-check). A terrain built from nothing takes the times of §4.
+The M0 probe on that root: 41 PASS, 0 FAIL, and one NEEDS DATA, the cockpit check of that day (item E1's; since
+2026-11-08 it is a PASS / FAIL check). A terrain built from nothing takes the times of §4.
 
 ## 7. Fresh-root run (2026-11-08)
 

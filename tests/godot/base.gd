@@ -214,6 +214,8 @@ func airborne_case(tv, hardpoints: Array):
 
 ## A live ground unit (every other unit hidden).
 func _ground_unit(tv) -> Dictionary:
+	if tv.runtime == null:  # a flight with no mission (the sim's cockpit shots)
+		return {}
 	for e in tv.runtime.entities.values():
 		if not e.player and e.node != null and int(e.get("klass", -1)) in [8, 9, 10] and int(e.get("state", 1)) == 1:
 			for f in tv.runtime.entities.values():

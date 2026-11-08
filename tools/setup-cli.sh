@@ -345,6 +345,13 @@ j_airbases() {
 	./target/release/iaf-terrain airbases assets/install assets/converted/terrain/theatre assets/converted/terrain
 }
 
+# The Extras' copy of Modern IAF's cockpit display data in the 1998 frame (docs/deviations.md: Briefing map Modern,
+# MFDs (F-16) Real).
+j_extras() {
+	step "extras: the OpenStreetMap TSD map, RWR symbols and ADI ball of Modern IAF's data (Extras options)"
+	./target/release/iaf-convert extras iaf-2026/data assets/converted/extras/cockpit assets/install/resource/cockpits/isr.bmp
+}
+
 j_godot() {
 	step "Godot extension (flight model)"
 	cargo build --release -p iaf-godot
@@ -369,7 +376,7 @@ j_models() {  # optional: a failure (offline) only leaves the F-15 Original with
 }
 
 for j in fonts cockpits hebrew briefings reference menu menu_he arm keys missions aircraft objects theatre airbases \
-	godot icon textures models; do
+	extras godot icon textures models; do
 	job "$j" "j_$j"
 done
 wait_jobs

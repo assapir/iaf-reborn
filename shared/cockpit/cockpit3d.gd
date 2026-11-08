@@ -684,6 +684,11 @@ const BLINK_MS := 300
 ## Lamp key -> [[node, hide (shown only when lit), its surfaces' materials]]; what they showed (tests).
 var _lamps := {}
 var lamps_lit := {}
+## An always-shown lamp's material drawn lit (FlightGear's sheet paints the F-16's gear lamps lit green, the gear
+## handle's light is plain red; the F-35I's own lenses are dark): material -> its lit albedo, darkened by LAMP_OFF
+## while the lamp is off (an unlit lens; inferred).
+var _lamp_albedo := {}
+const LAMP_OFF := 0.7
 ## [node, records, its surfaces' materials] per scrolled texture.
 var _scrolls := []
 ## Display node name -> the Display drawing it.
@@ -708,6 +713,8 @@ func _setup_instruments(model: Node3D) -> void:
 			m.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY
 			m.emission_texture = m.albedo_texture
 			m.emission = Color(c[0], c[1], c[2])
+			if not rec.hide and m.albedo_color.v > 0.5:
+				_lamp_albedo[m] = m.albedo_color
 		_lamps.get_or_add(rec.key, []).append([mi, bool(rec.hide), mats])
 	var textures: Dictionary = meta.get("textures", {})
 	for name in textures:
@@ -752,6 +759,8 @@ func _update_instruments() -> void:
 				l[0].visible = on
 			for m in l[2]:
 				m.emission_energy_multiplier = 1.0 if on else 0.0
+				if _lamp_albedo.has(m):
+					m.albedo_color = _lamp_albedo[m] if on else _lamp_albedo[m].darkened(LAMP_OFF)
 	var ils := _ils_live()
 	for e in _shown:
 		e[0].visible = ils if e[1] == "ils" else true

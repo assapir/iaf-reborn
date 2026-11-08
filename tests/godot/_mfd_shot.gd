@@ -7,6 +7,10 @@
 # MFD_LOOK=sufa|barak|original: the F-16's real formats' cases (docs/mfd.md §9: the Sufa in colour, the Barak with
 # MFDs on Real; original: the Barak with MFDs on Original, to compare), each the whole cockpit
 # (mfd_real_<look>_<case>.png, both MFDs) and its Left MFD cropped.
+# MFD_LOOK=extras: the Barak over Tel Aviv heading east, TSD left and MAP right (radar GM), the whole cockpit as
+# mfd_extras_<state>.png: off (Briefing map Original, MFDs Original), modern (Briefing map Modern: the OpenStreetMap
+# TSD map and ground-map picture), real (Modern and MFDs Real: the HSD, Modern IAF's RWR symbols and ADI ball;
+# docs/deviations.md §2) and sufa (Modern on the Sufa: the colour HSD over the OpenStreetMap map).
 extends "res://../tests/godot/base.gd"
 
 ## [name, page, radar mode, cockpit].
@@ -53,6 +57,9 @@ func run() -> void:
 	await frames(2)
 	c.remove_child(c.hud)  # the HUD would read a full weapons snapshot; only the MFDs are shown
 	var own := Vector2(200000, 600000)
+	if look == "extras":
+		await _extras_shots(c, dir)
+		return
 	if look != "":
 		await _real_shots(c, own, look, dir)
 		return
@@ -109,6 +116,40 @@ func _real_shots(c: Control, own: Vector2, look: String, dir: String) -> void:
 		var r := Rect2i(c.mfds[0].get_global_rect()).intersection(Rect2i(Vector2i.ZERO, img.get_size()))
 		img.get_region(r).save_png(dir.path_join("mfd_real_%s_%s_left.png" % [look, k[0]]))
 		print("real %s %s" % [look, k[0]])
+	settings().real_mfds = "original"
+	settings().f16_variant = "barak"
+	print("RESULT PASS")
+
+
+func _extras_shots(c: Control, dir: String) -> void:
+	var states := [
+		["off", "original", "original", "barak"],
+		["modern", "modern", "original", "barak"],
+		["real", "modern", "real", "barak"],
+		["sufa", "modern", "original", "sufa"]
+	]
+	for st in states:
+		settings().briefing_map = st[1]
+		settings().real_mfds = st[2]
+		settings().f16_variant = st[3]
+		c.load_cockpit("converted/cockpits/f16")  # the map and the art are read at load
+		c.zoom = 1.0
+		c.panel_target = 1.0
+		c.panel_shift = 1.0
+		_fill(c, Vector2(314336, 544152), 8)
+		c.state.heading = 90.0
+		c.state.pitch = 8.0
+		c.state.roll = -20.0
+		c.mfds[0].page = 3
+		c.mfds[1].page = 2
+		c.mfds[1].mouse = Vector2(80, 60)
+		await frames(6)
+		await RenderingServer.frame_post_draw
+		var img: Image = root.get_viewport().get_texture().get_image()
+		img.convert(Image.FORMAT_RGB8)
+		img.save_png(dir.path_join("mfd_extras_%s.png" % st[0]))
+		print("extras %s" % st[0])
+	settings().briefing_map = "original"
 	settings().real_mfds = "original"
 	settings().f16_variant = "barak"
 	print("RESULT PASS")

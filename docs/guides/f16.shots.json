@@ -2702,7 +2702,7 @@
  },
  {
   "name": "mfd_fcr_sms",
-  "caption": "FCR locked on a MiG-23 8 NM ahead; the SMS on the AMRAAMs",
+  "caption": "FCR locked on a MiG-23 12 NM ahead, closing; the SMS on the AMRAAMs",
   "mission": 231,
   "jet": -1,
   "settings": {
@@ -2780,7 +2780,8 @@
   ],
   "place": {
    "unit_prefix": "mig23",
-   "ahead_m": 15000
+   "ahead_m": 22000,
+   "vel_ms": -250
   },
   "actions": [
    "lock",

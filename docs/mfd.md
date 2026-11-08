@@ -907,6 +907,30 @@ inverse box, as on the Block 50 M4 tape (a simulator manual); the MLU M1 keeps t
 The real formats draw their own vectors and text at the screen's resolution, with or without Better cockpit's
 crisp pages. Test: tests/godot/test_f16_mfd.gd. Pictures: tests/godot/_mfd_shot.gd with `MFD_LOOK=sufa|barak`.
 
+### Modern IAF's RWR symbols and ADI ball
+
+With the real formats (MFDs (F-16) on Real, and the Sufa always) the F-16's panel also takes Modern IAF's RWR glyph
+sheet and ADI ball (iaf-2026/docs/cockpit.md §8 "RWR symbols", "ADI ball"): the panel's RWR scope ([PANELRWR],
+`cockpit.gd draw_rwr_symbols`) draws its symbols from `assets/converted/extras/cockpit/rwrsymb.png`, and the attitude
+ball ([LENHORIZON], `lens_adi.gdshader`) is `adi.png` there in place of `F16adi.bmp`. Setup's `extras` step copies
+both from `iaf-2026/data/planes/_shared/cockpit/`; `Settings.cockpit_extra` picks them (`cockpit.gd _file_in`).
+Without the folder the original art shows. Other jets keep theirs. With Briefing map on Modern, the TSD / HSD map
+and the radar's ground-map picture come from the same folder (front-end.md §8 "Modern map"); the picture keeps the
+original's terrain inside OpenStreetMap's coast. The TSD page (`mfd.gd _draw_tsd`) and the HSD (`f16_mfd.gd hsd`)
+move the map by one transform per frame, applied natively to each outline (as the F-35I's TSD, `pcd_formats.gd
+scope_xform`): with the OpenStreetMap map (213 outlines, about 10,000 points) a TSD page took 21 ms per call point by
+point and takes 9 ms, the Sufa's colour HSD 27 ms and 17 ms (a real render on this laptop's Iris Xe, 2026-11-08; the
+rest is the outlines' clipping and filling); the pictures are the same to the pixel. Test:
+tests/godot/test_tsd_map_fill.gd.
+
+![The F-16 panel: all off; Briefing map Modern; Modern and MFDs Real; the Sufa](img/f16_extras.jpg)
+
+Top left: every option off. Top right: Briefing map on Modern, the TSD page from OpenStreetMap and the MAP picture
+with its coast over the original's terrain.
+Bottom left: Modern and MFDs (F-16) on Real, Modern IAF's RWR symbols (top left dial) and ADI ball (the Barak's HSD
+draws no map). Bottom right: the Sufa with Modern, its colour HSD over the OpenStreetMap map. Made by
+`tests/godot/_mfd_shot.gd` with `MFD_LOOK=extras`.
+
 ## Open questions
 - Unreferenced tiles (132,132) "Debug", (132,264) LAS, (132,396) TWS, (0,528): leftovers?
 - Straight-ahead vertical pan (+0x568) → exact on-screen MFD y.

@@ -198,6 +198,23 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   ≈ 37 km from the real cities. Ours, with Modern (`briefing_map`): the eight labelled cities' dots and labels at
   their real places on the TSD / briefing / mission editor map, and today's motorways, trunk, primary and secondary
   roads from OpenStreetMap by zoom (setup's road layer, scenery.md §6; front-end.md §8 "Modern map").
+- **Briefing map Modern: the OpenStreetMap map.** Original: the 1998 map (`82.emf`) on the TSD, briefing and
+  mission editor map and in the cockpit's TSD / HSD map, and the original `isr.bmp` as the radar's ground-map picture.
+  Ours, with Modern (`briefing_map`): Modern IAF's OpenStreetMap map in their place, compiled into the 1998 frame by
+  setup's `extras` step (`assets/converted/extras/cockpit/`: `tsd.json` for the front end, `map.json` and `isr.png` for the cockpit): every land, Israel with the Golan to
+  the 1974 line, the West Bank's Area C apart from the Palestinian Authority's Areas A and B, Gaza in the PA's grey,
+  the large lakes, in the original's colours; the ground-map picture with OpenStreetMap's coast and lakes over the
+  original `isr.bmp`'s terrain (each land pixel the original's brightness, the water dark); the 1967 / 1973 maps stay (front-end.md §8 "Modern map",
+  iaf-2026/docs/cockpit.md §8 "TSD map").
+- **MFDs (F-16) Real: Modern IAF's RWR symbols.** Original: the F-16's RWR scope draws the original `rwrsymb.bmp`
+  glyphs. Ours, with Real (`real_mfds`; the Sufa always): Modern IAF's RWR glyph sheet
+  (`assets/converted/extras/cockpit/rwrsymb.png`, our own drawing: green stroke glyphs, the SAMs as their numbers, the
+  fighters' numbers under the hat; iaf-2026/docs/cockpit.md §8 "RWR symbols") on the panel's RWR scope (mfd.md §9
+  "Modern IAF's RWR symbols and ADI ball"). Other jets keep the original.
+- **MFDs (F-16) Real: Modern IAF's ADI ball.** Original: the F-16's attitude ball ([LENHORIZON]) is the original
+  `F16adi.bmp` (blue sky, brown ground). Ours, with Real (`real_mfds`; the Sufa always): Modern IAF's ball
+  (`assets/converted/extras/cockpit/adi.png`, our own drawing: grey sky over black ground, a pitch line every 10°,
+  numbered every 30°; iaf-2026/docs/cockpit.md §8 "ADI ball"; mfd.md §9). Other jets keep the original.
 - **HARM targets (Original / Real).** Original: the HARM page lists its sensor's own scan (the radar classes within
   20 NM in the ±15° cone, emitting or not, friendlies too, best 15). Ours, with Real (saved value "rwr"): the page lists the RWR's active
   emitters inside that cone and the hostile scanned sites without a brain (never on the RWR: they never lock; counted

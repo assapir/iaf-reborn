@@ -321,13 +321,15 @@ var better_mc := false
 ## RWR: Real (ours, Extras page; docs/rwr.md §7): the RWR also shows the SAM / AAA radars searching the jet.
 var rwr_search := false
 ## Briefing map (ours, Extras page; docs/front-end.md "Modern map"): "original" (the 1998 map) or "modern" (the
-## cities at their real places on the TSD / briefing / mission editor map; menu/tsd_map.gd).
+## cities at their real places on the TSD / briefing / mission editor map, menu/tsd_map.gd; the OpenStreetMap map
+## there and on the cockpit's TSD and ground map, `cockpit_extra`).
 var briefing_map := "original"
 ## Bomb release (ours, Extras page; docs/weapons.md §9.10): "original" (one store per ripple tick, FUN_0053b680's
 ## station order) or "real" (the real stores management: SGL / PAIRS, the quantity in release pulses).
 var bomb_release := "original"
 ## MFDs (ours, Extras page; docs/mfd.md §9): "original" (the 1998 pages) or "real" (the F-16D Barak's real head-down
-## formats, in green). The F-16I Sufa always draws them, in colour (`real_mfd`).
+## formats, in green; with them Modern IAF's RWR symbols and ADI ball, `cockpit_extra`). The F-16I Sufa always draws
+## them, in colour (`real_mfd`).
 var real_mfds := "original"
 ## Cockpit (ours, Extras page; docs/cockpit.md "3D cockpit"): "original" (the 1998 2D panel) or "3d" (a 3D cockpit
 ## with our live displays and HUD, cockpit/cockpit3d.gd): the FlightGear F-16's front cockpit for the Barak and the
@@ -808,6 +810,23 @@ func real_mfd(cockpit: String) -> String:
 	if own != "":
 		return own
 	return "green" if real_mfds == "real" else ""
+
+
+## Ours: the original game's Extras copy of a cockpit file (converted/extras/cockpit, made by setup's extras step from
+## Modern IAF's display data; docs/deviations.md), in place of the cockpit `folder`'s own `name`; "" = its own. Briefing
+## map on Modern: the OpenStreetMap TSD map and its ground-map picture (map.json, isr.png) on every jet, and the
+## front-end TSD's (tsd.json, menu/tsd.gd). The F-16's
+## real MFDs (`real_mfd`): its RWR symbols (rwrsymb.png) and ADI ball (f16adi.png, the [LENHORIZON] ball).
+func cockpit_extra(folder: String, name: String) -> String:
+	var own := ""
+	if name in ["map.json", "tsd.json", "isr.png"] and briefing_map == "modern":
+		own = name
+	elif name in ["rwrsymb.png", "f16adi.png"] and real_mfd(folder) != "":
+		own = "adi.png" if name == "f16adi.png" else name
+	if own == "":
+		return ""
+	var path := converted("extras/cockpit").path_join(own)
+	return path if FileAccess.file_exists(path) else ""
 
 
 ## Scroll steps for a wheel or trackpad pan event (ours, the original has no wheel): +1 = one step down, -1 = up,

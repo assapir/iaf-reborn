@@ -276,12 +276,14 @@ const EXTRAS := [
 	["better_mc", "Mission Creator", [["Original", false], ["Better", true]]],
 	# Ours: the RWR also shows the radars searching the jet, lost behind terrain (weapons/rwr.gd, docs/rwr.md §7).
 	["rwr_search", "RWR", [["Original", false], ["Real", true]]],
-	# Ours: the cities at their real places on the TSD / briefing map (menu/tsd_map.gd, docs/front-end.md "Modern map").
+	# Ours: the cities at their real places on the TSD / briefing map (menu/tsd_map.gd, docs/front-end.md "Modern map"),
+	# Modern IAF's OpenStreetMap map there and in the cockpit (Settings.cockpit_extra).
 	["briefing_map", "Briefing map", [["Original (1998)", "original"], ["Modern", "modern"]]],
 	# Ours: the real stores management's release (SGL / PAIRS, release pulses; weapons/player_weapons.gd,
 	# docs/weapons.md §9.10).
 	["bomb_release", "Bomb release", [["Original", "original"], ["Real", "real"]]],
-	# Ours: the F-16D Barak's real head-down formats (cockpit/f16_mfd.gd, docs/mfd.md §9); the Sufa always has them.
+	# Ours: the F-16D Barak's real head-down formats (cockpit/f16_mfd.gd, docs/mfd.md §9), with Modern IAF's RWR symbols
+	# and ADI ball (Settings.cockpit_extra); the Sufa always has them.
 	["real_mfds", "MFDs (F-16)", [["Original (1998)", "original"], ["Real", "real"]]],
 	# Ours: a 3D cockpit in place of the 2D panel, today the F-16's (Barak and Sufa) from the FlightGear F-16 and the
 	# F-35I's (cockpit/cockpit3d.gd, the aircraft definition's cockpit_3d; docs/cockpit.md "3D cockpit"); other jets

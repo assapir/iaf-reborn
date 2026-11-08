@@ -32,25 +32,29 @@ lights and the lit labels at night); the panel's night art is not used.
 `iaf-2026/sim_settings.gd` (the sim's `Settings` autoload, README.md):
 - `PROFILE` holds `cockpit_3d` = `"3d"`, `hud_style` = `"real"` (the Real HUD) and `real_mfds` = `"real"`, set at
   start and again over any settings file. The sim has no row for them (plan.md "options", "physics").
-- `airframe_def(id)` gives the Sufa (`f16i`), the Barak (`f16`) and the F-35I (`f35i`) the sim's cockpit dir as
-  their `cockpit` (§4). The flight scene's first cockpit is the F-16's from the same key (`cockpit.gd`
+- `airframe_def(id)` gives each of the sim's planes (the Sufa `f16i`, the Barak `f16`, the F-35I `f35i`) its cockpit
+  dir as its `cockpit` (§4). The flight scene's first cockpit is the F-16's from the same key (`cockpit.gd`
   `default_dir`), so the original's F-16 cockpit is never loaded.
 - The F-35I's panoramic display is on whenever its cockpit dir's `cockpit.json` has its `[PCD]` section.
 
 ## 4. The cockpit dirs
 `iaf-sim own` compiles each jet's display data from `iaf-2026/data/planes/_shared/cockpit/` (every jet's) and
-`iaf-2026/data/planes/<id>/cockpit/` (its own) into its cockpit dir under
-`assets/` (`sim_settings.gd` `own_cockpits`, `COCKPITS`):
+`iaf-2026/data/planes/<unit>/cockpit/` (its own) into its cockpit dir `<unit>` under `assets/` (`sim_settings.gd`
+`own_cockpits`). The sim reads the link from the planes' definitions (`sim_settings.gd` `_planes`): the unit
+`iaf-2026/data/db/units/<unit>.json` names its aircraft definition (`"airframe"`), and a unit with a cockpit folder is
+a plane the sim flies:
 
-| jet | cockpit dir |
-|---|---|
-| Sufa | `converted/own/cockpits/f16i` |
-| Barak | `converted/own/cockpits/f16d` |
-| F-35I | `converted/own/cockpits/f35i` |
+| jet | unit | aircraft definition | family | cockpit dir |
+|---|---|---|---|---|
+| Sufa | `f16i` | `f16i` | `f16` | `converted/own/cockpits/f16i` |
+| Barak | `f16d` | `f16` | `f16` | `converted/own/cockpits/f16d` |
+| F-35I | `f35i` | `f35i` | `f35i` | `converted/own/cockpits/f35i` |
 
 The shared cockpit tables (the HUD's, the real MFD formats, the 3D cockpit's F-16 check, the gauges) key a cockpit on
 `Settings.cockpit_folder(dir)`: in the original game the dir's name (`f16`, `phantom` …). The sim's
-`cockpit_folder` answers `f16` for the Sufa's and the Barak's dirs, so they draw as the F-16's.
+`cockpit_folder` answers the plane's family: its aircraft definition's `base` (`shared/extra/planes/<id>/airframe.json`),
+else its id. The Sufa (base `f16`) and the Barak (the `f16` definition itself) answer `f16`, so they draw as the
+F-16's.
 Each dir holds, in the shapes `shared/cockpit/cockpit.gd` reads (docs/cockpit.md), only our own files:
 - `cockpit.json`: the layout the 3D cockpit reads (below);
 - `rwrsymb.png` (the RWR symbols), `map.json` (the TSD map in the EMF-JSON shape `IafEmf` fills), `isr.png` (the
@@ -101,20 +105,74 @@ display's strip, `pcd.gd` `FAB_H`), scale 142 / 132 (an MFD page across its port
 ## 5. The HUD and display fonts
 `Settings.hud_font_path(name)` gives the file of every HUD and display raster font (`hud`, `mfd`, `key`), and
 `Settings.display_font(style)` the real display formats' text font (`mono`: the F-16's MFD formats and the 3D
-cockpit's small screens; `narrow`: the F-35I's panoramic and standby displays). The original game returns its
-converted `.fnt` and the installed system fonts; the sim keeps both until the user approves an openly licensed font
-(plan.md, Approvals A1), then its Settings return that font.
+cockpit's small screens; `narrow`: the F-35I's panoramic and standby displays; `hud`: the Real HUD's texts; `ui`: the
+sim's own screens). The original game returns its converted `.fnt` and the installed system fonts.
+
+The sim's fonts (the user's decision, 2026-11-03):
+- **UI text: Heebo** (Oded Ezer, SIL Open Font License 1.1[^heebo]), version 3.100, the variable font
+  (weights 100–900) from Google Fonts' repository: `iaf-2026/data/fonts/Heebo-VariableFont_wght.ttf` (122,012 bytes)
+  with its licence `OFL.txt`. Heebo has Hebrew and Latin letters. The sim's Settings make it the default font of every
+  Control (`ThemeDB`'s default theme), so the sim's screens use it unless they set their own.
+- **HUD, MFD and PCD text: Hershey Simplex** (the user's choice, Approvals A9: our own stroke font if easy, else
+  Hershey's; Hershey's was the shorter way). The Roman Simplex stroke font Dr. A. V. Hershey drew at the U. S.
+  National Bureau of Standards (1967), from Kamal Mostafa's `futural.jhf`[^hershey] (`tools/iaf-2026/fonts/`), is
+  stroked into outlines by `python3 -I tools/iaf-2026/hershey_font.py`: each segment a bar and each vertex a round
+  dot, 2 units wide (about a tenth of the capitals' 21), into `iaf-2026/data/fonts/HersheySimplex.ttf` (95 glyphs,
+  ASCII 32–126, 45 KB). `sim_settings.gd` `HUD_FONT` names it; `hud_font_path` returns it for every name and
+  `display_font` for every style but `ui`: the HUD's strokes thin, the displays' emboldened (as the original's bold
+  system fonts). A one-stroke-width line of even weight, as a real HUD's cursive writing (inferred from HUD photos).
+  The original game keeps its converted `.fnt`.
+
+![Hershey Simplex: the HUD's characters](img/hershey_simplex.png)
+
+The credit lines the sim's setup wizard (Attributions) and its credits roll show: "Heebo font by Oded Ezer, © 2014 The
+Heebo Project Authors, SIL Open Font License 1.1"; for Hershey, the two acknowledgements its terms ask for
+(`iaf-2026/data/fonts/HERSHEY.txt`, [docs/credits.md](../../docs/credits.md) "Modern IAF's font").
 
 ## 6. Tests and pictures
 - `tests/godot/test_cockpit_no_panel.gd`: the profile on the sim's own cockpit dirs (`iaf-sim own`'s), the Sufa, the
   Barak and the F-35I: no panel art loaded, every display file from the sim's dir, the 3D cockpit in the jet's own
-  model, the MFDs or PCD drawing into their screens, the HUD and the RWR scope drawn, an F-key snap turning the head.
-- `tests/godot/_cockpit3d_shot.gd` with `C3D_SIM=1`: the same in a real render (ahead, left, right, down, back and
-  more; `C3D_HOUR=22` the night; `C3D_JET=f35i` the F-35I).
+  model, the MFDs or PCD drawing into their screens, the HUD and the RWR scope drawn, an F-key snap turning the head,
+  Hershey Simplex (`HUD_FONT`) on the HUD's texts and the screens.
+- `tests/godot/_cockpit3d_shot.gd` with `C3D_SIM=1`, run with `--path iaf-2026`: the same in a real render, a free
+  flight 1,500 m over the Negev west of Beersheba heading 060° (ahead, left, right, down, back and more;
+  `C3D_HOUR=22` the night; `C3D_JET=f35i` the F-35I).
+
+### 6.1 The pictures (2026-11-09)
+
+Each picture: ahead, left (80° left, 30° down), right; back, down (25° down; the F-35I's 20°). The sim's key hint
+strip ("Esc Pause menu") is part of the view.
+
+![The Sufa by day](pictures/cockpit/sufa_day.jpg)
+![The Sufa at 22:00](pictures/cockpit/sufa_night.jpg)
+![The Barak by day](pictures/cockpit/barak_day.jpg)
+![The Barak at 22:00](pictures/cockpit/barak_night.jpg)
+![The F-35I by day](pictures/cockpit/f35i_day.jpg)
+![The F-35I at 22:00](pictures/cockpit/f35i_night.jpg)
+
+What each view shows, against the cockpit photos the docs use (docs/f16i.md, docs/f35i.md, docs/cockpit.md
+"3D cockpit"):
+- **Ahead (the F-16s):** the HUD's symbology in Hershey Simplex on the combiner, both MFDs live, the ICP, the DED and
+  the RWR scope; no 2D art. As the photos: the frame, the ICP over the two MFDs. By day the HUD's green is the
+  original's darkest (the Real HUD's day colour, the same as the original game's 3D cockpit); at night it is lifted
+  and the flood light and backlit labels are on.
+- **Left and right (the F-16s):** the side consoles under the canopy sill, the DASH helmet's cue and its numbers on
+  the canopy. As the photos' consoles; the panels are FlightGear's flat sheet (no depth in the knobs).
+- **Back (the F-16s):** the seat's headrest, the rear cockpit's helmet, the wing with the AIM-9Ms on 9, 8 and 7, the
+  canopy frame.
+- **Down (the F-16s):** the whole front panel, the gear panel left of the centre pedestal and the side-stick on the right console. The standby ADI ball is
+  the model's.
+- **The F-35I:** the panoramic display's four portals (TSD, radar, stores, threat display), the helmet's symbology
+  over the whole view (its thin green over bright sand is faint, as a real helmet display by day), the side consoles
+  with the stick and throttle, the standby display. The back view's seat is a plain block (f35i.md §4.5).
+
+The displays' maps and the RWR glyphs against their references (the RWR sheet beside the 1998 one, docs/rwr.md §4;
+the TSD map's reference picture in §8):
+
+![The Sufa's colour HSD with the OSM map (the Dead Sea ahead), the Barak's green HSD (no map, as the Block 40's), the F-35I's TSD (the coast and borders as lines)](pictures/cockpit/maps.jpg)
+![The RWR glyphs: the 1998 sheet and ours, slot by slot](pictures/cockpit/rwr_glyphs.png)
 
 ## 7. Open
-- The HUD and display font: waits for the user's approval (Approvals A1); then the sim's Settings override
-  `hud_font_path` and `display_font`.
 - The F-16s' HUD field (§4) is sized to fit the 3D combiners, smaller than the real HUDs' 20° × 13.5°.
 - The gun cross's place under the boresight (inferred).
 
@@ -129,9 +187,9 @@ cockpit folders: the map is OpenStreetMap data, the art is our own drawing. The 
 
 | file (compiled) | read by | what it is | jets | size |
 |---|---|---|---|---|
-| `rwrsymb.png` | `cockpit.gd draw_rwr_symbols` (the RWR scope) | the RWR glyph sheet: 17 slots of 10 × 10 at scale 4 (40 × 680), green on transparent | all three | 3 KB |
+| `rwrsymb.png` | `cockpit.gd draw_rwr_symbols` (the RWR scope) | the RWR glyph sheet: 17 slots of 10 × 10 at scale 4 (40 × 680), green on transparent | the F-16s' RWR scope; the F-35I's copy is not read (its threat display, `pcd_formats.gd` TWD, writes the same codes as text in the display font) | 3 KB |
 | `adi.png` | `cockpit.gd _draw_adi`, `lens_adi.gdshader` ([LENHORIZON]) | the attitude ball, 128 × 128 at scale 4 (512 × 512) | all three (the F-35I's layout has no [LENHORIZON], so it never reads it) | 8 KB |
-| `map.json` | `cockpit.gd _load_tsd_map` → the HSD (`f16_mfd.gd`), the TSD page (`mfd.gd`), the PCD's TSD (`pcd_formats.gd`) | the TSD map's polygons (EMF-JSON) in the sim's UTM frame | all three | 91 KB |
+| `map.json` | `cockpit.gd _load_tsd_map` → the HSD (`f16_mfd.gd`), the TSD page (`mfd.gd`), the PCD's TSD (`pcd_formats.gd`) | the TSD map's polygons (EMF-JSON) in the sim's UTM frame | all three | 186 KB |
 | `isr.png` | `mfd.gd _isr` (the GM picture under the radar's MAP mode) | land lit, water black, 640 × 832 at 640 m a pixel; its frame is the layout's `MAPFRAME`, which `iaf-sim own` adds | all three | 7 KB |
 | `mfds.png` | `mfd.gd _blit` (the 1998 pages' tiles, range and compass sprites), `hud.gd` (the 5 × 5 font, the gun pipper) | the MFD atlas, 264 × 924 at scale 4 (1056 × 3696) | all three | 50 KB |
 | `cockpit.json` | `cockpit.gd load_cockpit` | the layout (§4) | all three | 1 KB |
@@ -184,9 +242,15 @@ own ADI ball in the model; this file serves a cockpit layout with a [LENHORIZON]
 ### TSD map
 
 The original's map shows the sea and lakes navy, Israel light grey and every other land dark grey. Ours keeps those
-colours and adds two greys for the West Bank and Gaza, with OpenStreetMap's geography[^osm] over the sim's theatre
-(the UTM 36N box `sim_terrain::BOX`, [terrain.md](terrain.md) §2; cut at its lon / lat bounds, 33.05–36.9° E,
-29.35–34.07° N). Each point is in UTM 36N, the sim's world X / Y.
+colours and adds two greys for the West Bank and Gaza, with OpenStreetMap's geography[^osm]. The data covers both
+theatres: the sim's (the UTM 36N box `sim_terrain::BOX`, [terrain.md](terrain.md) §2; 33.08–36.84° E, 29.38–34.04° N)
+and the 1998 game's map frame (29.65–38.35° E, 26.99–36.62° N through the georeference), cut at 29.5–38.5° E,
+26.85–36.75° N. In the sim each point is in UTM 36N, the sim's world X / Y, and each outline is cut at the box
+(`compile_map`), so the map ends with its background where the terrain ends. The original game takes the same map as an
+Extras option (Briefing map on Modern, docs/front-end.md §8 "Modern map"): setup's `extras` step compiles it into the
+1998 frame (`sim_cockpit::extras`, `Frame::original`), and copies the RWR sheet and the ADI ball for its F-16's real
+MFDs (docs/mfd.md §9). Its GM picture takes the terrain from the original's `isr.bmp` (the same 640 × 832 frame): each
+land pixel of ours the original's green, the channel the GM page shows; each water pixel dark.
 
 ![The TSD map: the original's, ours before the West Bank layers, ours now; the lower row over Israel](img/tsd_map.jpg)
 
@@ -223,8 +287,8 @@ not, golan has updated borders". So:
 
 Every ring is simplified to about 150 m (under one MFD pixel at the HSD's shortest range, inferred). Islands and lakes
 under 2 km² are left out, and the PA's patches under 0.3 km² (about 4 HSD pixels across at its shortest range,
-inferred; 59 patches, 8 km² in all). The result: land 2 rings (426 points), Israel 1 (726), Area C 1 (417), the PA's
-areas 164 (2766), lakes 3 (280); the data file 93 KB, map.json 91 KB. The GM picture (`isr.png`) is the same polygons:
+inferred; 59 patches, 8 km² in all). The result: land 29 rings (3694 points), Israel 1 (724), Area C 1 (417), the
+PA's areas 164 (2766), lakes 17 (2468); the data file 201 KB, map.json 186 KB (the original game's copy 176 KB). The GM picture (`isr.png`) is the same polygons:
 every land at 150 of 255 (the PA's areas too), water 0.
 
 Made by `python3 -I tools/iaf-2026/cockpit_displays.py map [--refetch]` (a generic user agent; the boundary
@@ -242,7 +306,8 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
 
 - `mfd.gd crisp_sprite` reads the RWR glyphs from the install's `rwrsymb.bmp` (Better cockpit "crisp MFD", the 1998
   pages only); the sim does not use it.
-- The GM picture has no relief or cities: flat land.
+- The sim's GM picture: every land at one brightness; its relief and cities are open (the original game's copy takes
+  the original's shading, §8 "TSD map").
 - The F-35I's threat symbols.
 - Rivers are not drawn; the Suez Canal shows only where the land polygons leave it open (a thin line).
 
@@ -252,3 +317,6 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
 [^osm]: OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright (the relations Israel 1473946 v345, Area A 3791783 v84, Area B 3791784 v105, Area C 3791785 v182, Hebron H1 7391021 v15, the Gaza Strip 1473938 v101 via the OSM API, fetched 2026-11-03; the lakes via the Overpass API, OSM data of 2026-11-02; the land polygons fetched 2026-11-03).
 [^osmdata]: OpenStreetMap Data, "Land polygons" (simplified, EPSG:3857; derived from OSM, ODbL 1.0):
     https://osmdata.openstreetmap.de/data/land-polygons.html
+
+[^hershey]: hershey-fonts, Kamal Mostafa (`futural.jhf`; the Hershey Fonts licence in `COPYING`): https://github.com/kamalmostafa/hershey-fonts
+[^heebo]: Heebo, Google Fonts' repository `ofl/heebo` (version 3.100, from github.com/OdedEzer/heebo at 76c7d53; OFL.txt): https://github.com/google/fonts/tree/main/ofl/heebo

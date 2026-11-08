@@ -38,14 +38,17 @@ func run() -> void:
 	settings().set_script(original)
 
 
-## Turns the Settings node `s` into the sim's (its PROFILE and cockpit dirs under `cockpits`), but for its data roots:
-## the flight runs on the original's data (the sim's own is not built for mission 231), the cockpit on the sim's dirs.
+## Turns the Settings node `s` into the sim's (its PROFILE and cockpit dirs under `cockpits`), but for its data roots
+## and its gate on the original's converted data (converted()): the flight runs on the original's data (the sim's own
+## is not built for mission 231), the cockpit on the sim's dirs.
 static func use_sim_settings(s: Node, cockpits: String) -> void:
 	var src := GDScript.new()
 	src.source_code = (
 		'extends "%s"\n\nfunc install_dir() -> String:\n\treturn assets_dir().path_join("install")\n\n' % SIM_SETTINGS
 		+ "func own_dir() -> String:\n\treturn install_dir()\n\nfunc keys_file() -> String:\n"
-		+ '\treturn assets_dir().path_join("converted/keys.json")\n'
+		+ '\treturn assets_dir().path_join("converted/keys.json")\n\n'
+		+ "func converted(rel: String) -> String:\n"
+		+ '\treturn assets_dir().path_join("converted").path_join(rel.trim_prefix("converted/"))\n'
 	)
 	src.reload()
 	s.set_script(src)
@@ -78,12 +81,12 @@ func _common(tv: Node, name: String) -> bool:
 	)
 	check(bcs.is_empty(), "%s: the original's cockpit-view model not loaded %s" % [name, bcs])
 	check(c.hud.visible and c.hud.size.x > 0.0, "%s: the HUD drawn" % name)
-	# The sim's display font (sim_settings.gd HUD_FONT, Heebo until Approvals A9) on the HUD's texts and the screens.
+	# The sim's display font (sim_settings.gd HUD_FONT: Hershey Simplex, Approvals A9) on the HUD's texts and the screens.
 	var fonts: Array = [c.hud._arial, load("res://shared/cockpit/cockpit3d_display.gd")._font]
 	fonts.append(c.pcd.font if c.pcd != null else load("res://shared/cockpit/f16_mfd.gd")._font)
 	var names: Array = fonts.map(func(f): return f.get_font_name() if f != null else "")
 	check(
-		names.all(func(n): return n == "Heebo"),
+		names.all(func(n): return n == "Hershey Simplex"),
 		"%s: the sim's display font on the HUD and the screens %s" % [name, names]
 	)
 	tv.views.snap_key(90)

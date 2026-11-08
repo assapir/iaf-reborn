@@ -598,7 +598,7 @@ readers take; anything there that it did not write (files and folders) is remove
 
 | file in the data | compiled to | rule |
 |---|---|---|
-| `tsd_map.json` | `map.json`, `isr.png` | the polygons in longitude / latitude become the EMF-JSON shape `cockpit.gd _load_tsd_map` reads (a background rectangle over the frame, then one `polygon` op per ring, `brush` = the layer's colour); the background rectangle covers the theatre's box (`sim_terrain::BOX`); each point to UTM 36N (`sim_bases::utm36n`; the sim's world X / Y, [terrain.md](terrain.md) §2) and the TSD frame `u = (X + 166850) / 819200 · 1.0071394`, `v = (1043816 − Y) / 1064960 · 1.0071394` (`cockpit.gd` turns it back into X / Y). The same rings fill `isr.png` (640 × 832 at 640 m a pixel from the box's north-west corner; the GM picture `mfd.gd _isr` reads) at each layer's `radar` brightness |
+| `tsd_map.json` | `map.json`, `isr.png` | the polygons in longitude / latitude become the EMF-JSON shape `cockpit.gd _load_tsd_map` reads (a background rectangle over the frame, then one `polygon` op per ring, `brush` = the layer's colour); the background rectangle covers the theatre's box (`sim_terrain::BOX`); each point to UTM 36N (`sim_bases::utm36n`; the sim's world X / Y, [terrain.md](terrain.md) §2) and the TSD frame `u = (X + 166850) / 819200 · 1.0071394`, `v = (1043816 − Y) / 1064960 · 1.0071394` (`cockpit.gd` turns it back into X / Y). The same rings fill `isr.png` (640 × 832 at 640 m a pixel from the box's north-west corner; the GM picture `mfd.gd _isr` reads) at each layer's `radar` brightness. The original game's copy (`iaf-convert extras`, setup's `extras` step, into `assets/converted/extras/cockpit/`) compiles the same file into the 1998 frame: the background over the whole map frame, each point through the georeference, `isr.png` as the original's (1280 m a pixel, its default MAPFRAME), and `tsd.json`, the same map in the front-end TSD's frame (82.emf's: v without the factor 1.0071394); docs/front-end.md §8 "Modern map" |
 | `rwrsymb.png` | copied | 17 glyphs of 10 × 10 times the scale (40 × 680 at 4); required |
 | `adi.png` | copied | the ball, 128 × 128 times the scale (512 × 512) |
 | `mfds.png` | copied | the MFD atlas, 264 × 924 times the scale (1056 × 3696); required |
@@ -621,6 +621,10 @@ Aviv, Katzrin and Majdal Shams as Israel, old Quneitra and Amman as neighbours, 
 areas, Ariel and Ma'ale Adumim as Area C, the Mediterranean and the Sea of Galilee as water; the GM picture through
 `MAPFRAME` is lit on land and dark at sea; each layout has its sections; a stale file and folder go; a `"Shared"`
 cockpit or one naming panel art is refused).
+
+The HUD and display font is read where it lies, not compiled: `data/fonts/HersheySimplex.ttf` (`sim_settings.gd`
+`HUD_FONT`), made by `python3 -I tools/iaf-2026/hershey_font.py` from `tools/iaf-2026/fonts/futural.jhf`
+([cockpit.md](cockpit.md) §5).
 
 ## 15. The scenery and roads (`iaf-sim scenery`)
 

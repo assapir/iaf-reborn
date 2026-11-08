@@ -708,7 +708,10 @@ occlusion, 1.8 MB; built by
 
   A lit lamp glows by its sheet × its FlightGear emission colour (`EMISSION_OP_MULTIPLY`). Until 2026-11-02 Godot's
   default added the two: the AoA indexer's white emission lit its whole face white, a white square at the foot of the
-  left HUD post, by day and at night. The 3D cockpit lights them whatever the Better cockpit items say (it is an
+  left HUD post, by day and at night. An unlit lamp that stays in view (the gear lamps, the gear handle's light,
+  LAUNCH) shows its sheet darkened by `LAMP_OFF` (70 %, inferred: an unlit lens): FlightGear's sheet paints the gear
+  lamps lit green and the handle's light is plain red, so until 2026-11-03 they read lit with the gear up or on a
+  cold jet. The 3D cockpit lights them whatever the Better cockpit items say (it is an
   opt-in of its own). CANOPY, DBU ON,
   TF FAIL and the other lamps stay dark: the game has no state for them.
 * **Displays**, each a SubViewport whose texture lights its screen (emissive, as the MFDs; `cockpit3d_display.gd`):

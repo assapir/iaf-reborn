@@ -40,9 +40,11 @@ ISRAEL = 1473946  # OSM relation: Israel, boundary=administrative, admin_level=2
 # The West Bank's Oslo II areas (boundary=administrative, admin_level=6, source geomolg.ps), Hebron's H1 (the PA's
 # part of the city, outside Area A) and the Gaza Strip (admin_level=4 of the Palestinian Territories, 1703814).
 AREA_A, AREA_B, AREA_C, HEBRON_H1, GAZA = 3791783, 3791784, 3791785, 7391021, 1473938
-# The sim's theatre (crates/iaf-tools/src/sim_terrain.rs BOX, UTM 36N E 507,904..855,040, N 3,255,296..3,766,272): its
-# edges' lon / lat bounds (gdaltransform EPSG:32636 -> EPSG:4326: 33.081..36.842, 29.377..34.037) and a margin.
-WEST, SOUTH, EAST, NORTH = 33.05, 29.35, 36.9, 34.07
+# Both theatres with a margin: the sim's (crates/iaf-tools/src/sim_terrain.rs BOX, UTM 36N E 507,904..855,040,
+# N 3,255,296..3,766,272; gdaltransform EPSG:32636 -> EPSG:4326: 33.081..36.842, 29.377..34.037) and the 1998 game's
+# map.emf frame, which the original game's Extras copy covers (sim_cockpit.rs Frame::original; through the
+# georeference: 29.654..38.348, 26.995..36.619).
+WEST, SOUTH, EAST, NORTH = 29.5, 26.85, 38.5, 36.75
 LAKE_KM2 = 15.0  # smaller lakes are below a TSD pixel at the shortest range (inferred)
 SIMPLIFY_DEG = 0.0015  # about 150 m: under one MFD pixel at the HSD's shortest range (inferred)
 # The fills, in paint order: the original TSD map's colours (sea and lakes navy, the neighbours dark grey, Israel light
@@ -170,7 +172,7 @@ def build_map(refetch):
     # Lakes in two steps (one query with their geometry times out): every lake's bounds, then the geometry of those
     # whose bounds could hold LAKE_KM2.
     lakes_q = (
-        '[out:json][timeout:300][bbox:%s];nwr["natural"="water"]["water"~"^(lake|lagoon|reservoir|salt_lake)$"];' % bbox
+        '[out:json][timeout:300][bbox:%s];wr["natural"="water"]["water"~"^(lake|lagoon|reservoir|salt_lake)$"];' % bbox
     )
     bounds = json.load(open(cached("lake_bounds.json", lambda: overpass(lakes_q + "out ids bb;"), refetch)))
 

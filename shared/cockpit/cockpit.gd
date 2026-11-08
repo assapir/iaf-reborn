@@ -260,13 +260,17 @@ func _add_tex(key: String, file: String, mipmaps := false) -> void:
 		tex[key] = t
 
 
-## A cockpit file: the cockpit's own, else (an extra plane's cockpit, `"Shared": "<converted cockpit>"`) the
-## converted cockpit's it borrows the original art from (the MFD atlas, RWR symbols, TSD map, ADI ball).
+## A cockpit file: an Extras option's copy (Settings.cockpit_extra), else the cockpit's own, else (an extra plane's
+## cockpit, `"Shared": "<converted cockpit>"`) the converted cockpit's it borrows the original art from (the MFD
+## atlas, RWR symbols, TSD map, ADI ball).
 func _file(name: String) -> String:
 	return _file_in(dir, layout, name)
 
 
 static func _file_in(d: String, lay: Dictionary, name: String) -> String:
+	var extra: String = Settings.cockpit_extra(Settings.cockpit_folder(d), name)
+	if extra != "":
+		return extra
 	var own := d.path_join(name)
 	if FileAccess.file_exists(own) or not lay.has("Shared"):
 		return own

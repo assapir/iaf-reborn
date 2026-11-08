@@ -109,6 +109,12 @@ pub fn plan(inputs: &Inputs) -> Vec<Step> {
     add("objects", "mission object models", true, &["missions"]);
     add("theatre", "terrain: every level and inset of map.ptt as a node quadtree", true, &[base]);
     add("airbases", "airbases: runways, taxi paths and paved surface", true, &["theatre"]);
+    add(
+        "extras",
+        "extras: the OpenStreetMap TSD map, RWR symbols and ADI ball of Modern IAF's data (Extras options)",
+        true,
+        &[base],
+    );
     add("icon", "icon (the original icon from iafjets.exe)", true, &[base]);
     add("launcher", "desktop launcher", false, &["icon"]);
     add(
@@ -478,6 +484,7 @@ mod tests {
                 "objects",
                 "theatre",
                 "airbases",
+                "extras",
                 "icon",
                 "launcher",
                 "textures",
@@ -558,6 +565,7 @@ mod tests {
             ("terrain: colour tiles", &["bc1"]),
             ("airbases:", &["airbases"]),
             ("Godot extension", &["cli"]),
+            ("extras:", &["extras"]),
             ("icon and desktop launcher", &["icon", "launcher"]),
             ("textures: ambientCG", &["textures"]),
             ("detailed F-15", &["models"]),

@@ -54,18 +54,14 @@ const NO_AIDS := {
 }
 ## The sim's front end script (front_end_overlay, has_setting).
 const FRONT_END := "res://menu/front_end.gd"
-## The sim's own planes data (merged over an aircraft definition, airframe_def).
-const PLANES := "res://data/planes"
-## Each flyable jet's cockpit dir (its definition's `cockpit`) under own_cockpits: the displays' data `iaf-sim own`
-## compiles, no panel art (iaf-2026/docs/cockpit.md §4). The F-16s' read as the F-16's (cockpit_folder).
-const COCKPITS := {"f16": "f16d", "f16i": "f16i", "f35i": "f35i"}
-const F16_COCKPITS := ["f16d", "f16i"]
+## The sim's own planes data (under iaf-2026/: merged over an aircraft definition, airframe_def; the cockpit folders).
+const PLANES := "data/planes"
 ## The sim's display and UI font (the user's choice, 2026-11-03): Heebo (SIL OFL 1.1, data/fonts/OFL.txt), a variable
 ## font (wght 100-900). iaf-2026/docs/cockpit.md §5.
 const UI_FONT := "data/fonts/Heebo-VariableFont_wght.ttf"
-## PLACEHOLDER: the HUD / MFD / PCD face, Heebo until the user picks the real-looking one (Approvals A9): change it
-## here.
-const HUD_FONT := UI_FONT
+## The HUD / MFD / PCD face (Approvals A9: a stroke font): Hershey's Roman Simplex as a TTF
+## (tools/iaf-2026/hershey_font.py; the notice in data/fonts/HERSHEY.txt). iaf-2026/docs/cockpit.md §5.
+const HUD_FONT := "data/fonts/HersheySimplex.ttf"
 ## The only parts of assets/converted the sim reads (converted()): its compiled data, its terrain, its missions and
 ## object database, and objects.json (its "sim.bdb" key; iaf-2026/README.md "How the sim reads its data").
 ## The joystick's axis roles in the order of joy_axes (x, y, throttle, rudder, the rocker; iaf_tools::devices ROLES).
@@ -80,6 +76,7 @@ var rejected: PackedStringArray = []
 ## The cockpit dirs' root: under assets/ (relative) or absolute (a test's).
 var own_cockpits := "converted/own/cockpits"
 var _sim_airframes := {}
+var _sim_planes := {}  # _planes()'s
 ## The plane the pilot picked on the front end: its unit id (f16i, f16d, f35i; settings.cfg [sim] jet); "" before the
 ## first pick.
 var sim_jet := ""
@@ -376,20 +373,37 @@ func set_jet(airframe_id: String) -> void:
 	f16_variant = "sufa" if airframe_id == "f16i" else "barak"
 
 
-## The shared definition with the sim's own file (res://data/planes/<id>.json) merged over it, key by key, and the
-## jet's cockpit dir (COCKPITS).
+## The shared definition with the sim's own file (data/planes/<id>.json) merged over it, key by key, and the
+## jet's cockpit dir (_planes).
 func airframe_def(id: String) -> Dictionary:
-	var own := load_json(PLANES.path_join(id + ".json"))
-	if own.is_empty() and not COCKPITS.has(id):
+	var own := load_json(_sim_file(PLANES).path_join(id + ".json"))
+	if own.is_empty() and not _planes().has(id):
 		return super(id)
 	if not _sim_airframes.has(id):
 		var d: Dictionary = super(id).duplicate(true)
 		d.merge(own, true)
-		if COCKPITS.has(id):
-			d.cockpit = own_cockpits.path_join(COCKPITS[id])
+		if _planes().has(id):
+			d.cockpit = own_cockpits.path_join(_planes()[id].unit)
 		d.make_read_only()
 		_sim_airframes[id] = d
 	return _sim_airframes[id]
+
+
+## The sim's flyable planes by aircraft definition id, read once from their definitions: {id: {unit, family}}. A plane
+## is a unit (data/db/units/<unit>.json, its "airframe" the id) with a cockpit folder (data/planes/<unit>/cockpit/),
+## which `iaf-sim own` compiles into own_cockpits/<unit>, the jet's cockpit dir (iaf-2026/docs/cockpit.md §4). Its
+## family is its aircraft definition's base (shared/extra/planes/<id>/airframe.json "base"), else the id: the name the
+## shared cockpit tables key it on (cockpit_folder; the Sufa's and the Barak's "f16").
+func _planes() -> Dictionary:
+	if _sim_planes.is_empty():
+		var units := _sim_file("data/db/units")
+		for f in DirAccess.get_files_at(units):
+			var u := load_json(units.path_join(f))
+			var id := String(u.get("airframe", ""))
+			if id != "" and DirAccess.dir_exists_absolute(_sim_file(PLANES).path_join(u.id).path_join("cockpit")):
+				var shared := load_json("res://shared/extra/planes".path_join(id).path_join("airframe.json"))
+				_sim_planes[id] = {"unit": String(u.id), "family": String(shared.get("base", id))}
+	return _sim_planes
 
 
 ## The sim's part of the flight scene: the radio menu and the training run (flight/sim_flight.gd).
@@ -417,11 +431,13 @@ func tower_bases(sections: Dictionary) -> Array:
 	return sections.keys().filter(func(k): return k != "")
 
 
-## The Sufa's and the Barak's cockpit dirs key the shared cockpit tables as the F-16's ("f16": its HUD, the real MFD
-## formats, the 3D cockpit).
+## A sim cockpit dir keys the shared cockpit tables by its plane's family (_planes): the Sufa's and the Barak's as the
+## F-16's ("f16": its HUD, the real MFD formats, the 3D cockpit).
 func cockpit_folder(dir: String) -> String:
-	if dir.get_base_dir() == own_cockpits and dir.get_file() in F16_COCKPITS:
-		return "f16"
+	if dir.get_base_dir() == own_cockpits:
+		for p in _planes().values():
+			if p.unit == dir.get_file():
+				return p.family
 	return super(dir)
 
 
@@ -430,24 +446,27 @@ func hud_font_path(_name: String) -> String:
 	return _sim_file(HUD_FONT)
 
 
-## HUD_FONT on the HUD and the displays, UI_FONT ("ui") on the sim's screens: weight 600 on the displays (as the
-## original's bold system fonts), 400 on the HUD and the screens.
+## HUD_FONT on the HUD and the displays, UI_FONT ("ui") on the sim's screens (weight 400): the displays' strokes
+## emboldened (as the original's bold system fonts), the HUD's thin.
 func display_font(style: String) -> Font:
 	if not _fonts.has(style):
 		var f := FontFile.new()
 		f.load_dynamic_font(_sim_file(UI_FONT if style == "ui" else HUD_FONT))
 		var v := FontVariation.new()
 		v.base_font = f
-		var wght := TextServerManager.get_primary_interface().name_to_tag("wght")
-		v.variation_opentype = {wght: 400 if style in ["ui", "hud"] else 600}
+		if style == "ui":
+			v.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): 400}
+		elif style != "hud":
+			v.variation_embolden = 0.4
 		_fonts[style] = v
 	return _fonts[style]
 
 
 ## The absolute path of the sim's file `rel` (under iaf-2026/): its folder is res:// in its own project and
-## res://../iaf-2026 when a test of the original's project loads this script.
+## res://../iaf-2026 when a test of the original's project loads this script (which globalize_path and DirAccess do
+## not resolve: joined to the project's folder by hand).
 func _sim_file(rel: String) -> String:
-	return ProjectSettings.globalize_path(_sim_res(rel))
+	return ProjectSettings.globalize_path("res://").path_join(_sim_res(rel).trim_prefix("res://")).simplify_path()
 
 
 ## The res:// path of the sim's file `rel`, from either project (as _sim_file).
@@ -456,6 +475,11 @@ func _sim_res(rel: String) -> String:
 	while s.resource_path == "":  # a test's subclass made at run time
 		s = s.get_base_script()
 	return s.resource_path.get_base_dir().path_join(rel)
+
+
+## The sim's cockpit dirs hold its own display data (the original game's Extras copy is in the 1998 frame).
+func cockpit_extra(_folder: String, _name: String) -> String:
+	return ""
 
 
 ## The sim's strings are its own: Hebrew needs no pack.

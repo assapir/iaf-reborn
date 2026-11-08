@@ -96,7 +96,7 @@ func run() -> void:
 	var meta: Dictionary = s.load_json(a.path_join(TERRAIN).path_join("meta.json"))
 	if meta.is_empty():
 		need("terrain: %s/meta.json missing [B1]" % TERRAIN)
-		need("heights readable, no 2D panel in flight: they fly on the terrain [B1, E1]")
+		need("heights readable, no 2D panel in flight: they fly on the terrain [B1]")
 	else:
 		check(
 			float(meta.get("units_to_metres", 0.0)) == 1.0,
@@ -116,7 +116,7 @@ func run() -> void:
 			h != null and w.z > float(h),
 			"free flight: %.0f m above the ground after 5 s" % (w.z - float(h if h else 0.0))
 		)
-		need("no 2D panel in flight: the 3D cockpit alone [E1]")
+		no_panel(tv, "free flight")
 		await bases()
 	var asked: PackedStringArray = s.rejected
 	check(
@@ -177,6 +177,22 @@ func bases() -> void:
 			"%s: the wheels on the ground (%.1f m, the terrain %s m)" % [JETS[id][0], w.z, g]
 		)
 		check(tv.flight != null and tv.flight.state().on_ground, "%s: a ground start" % JETS[id][0])
+		no_panel(tv, JETS[id][0])
 		var e: Dictionary = tv.mission_entity
 		var rule: Vector2i = IafFlight.start_rule(s.own_dir(), float(e["0x2e4"]), float(e["0x2ee"]), float(e["0x2f8"]))
 		check(rule.x == 1, "%s: the flight model finds the base (%s)" % [JETS[id][0], section])
+
+
+## The flight's cockpit is the 3D one alone (iaf-2026/docs/cockpit.md): its dir the sim's own, no panel, lamp, HUD
+## glass or ADI art loaded, the 3D cockpit up.
+func no_panel(tv: Node, what: String) -> void:
+	var c: Control = tv.cockpit
+	var art: Array = c.tex.keys().filter(func(k): return k in ["PANEL", "LIGHTS", "HUD", "LENHORIZON"])
+	var own: String = settings().assets_dir().path_join(settings().own_cockpits)
+	check(
+		c.dir.begins_with(own) and art.is_empty() and tv.cockpit_3d != null and c.three_d(),
+		(
+			"%s: no 2D panel in flight (cockpit dir %s, panel art %s, 3D cockpit %s)"
+			% [what, c.dir, art, tv.cockpit_3d != null and c.three_d()]
+		)
+	)
