@@ -839,6 +839,15 @@ its scale. The original HUD keeps the original layout.
 - Lavi (`lavi.rs`): everything in its section above, with the bank scale and the ILS needles (the original's ILS
   lines are not drawn on this HUD). Not drawn: a VVI.
 - The other Real HUDs (F-16, Kfir, Kurnass 2000, MiGs, F-35) keep the original's ILS lines over them.
+- ILS lines in Modern IAF (`Settings.hud_subpixel()`, on only in `iaf-2026/sim_settings.gd`; 2026-11-09, the Mac play
+  test's finding 24): the lines sit at the exact 12 px per degree of deviation. The original game's rule (hud.gd
+  `ils_lines`, `FUN_005309a0`) holds them at whole HUD pixels, 1/12° steps; on the 3D cockpit's HUD glass zoomed to
+  the true size one HUD pixel is about 5.5 screen pixels, so each step was a visible jump. The original game keeps
+  the steps. The Real HUDs' own ILS cues (F-15, F-15E, Lavi) take the same positions. Same frame on Ramon's final
+  (0.41° / 1.04°: 4 / 12 HUD px whole, 4.92 / 12.53 exact), before and after (`iaf-2026/tests/_ils_shot.gd`):
+
+  ![Before: the ILS lines at whole HUD pixels](../iaf-2026/docs/pictures/cockpit/ils_bars_before.jpg)
+  ![After: the ILS lines at the exact deviation](../iaf-2026/docs/pictures/cockpit/ils_bars_after.jpg)
 - F-4E / Mirage (`sights.rs`): the reticles as specified (ours: the reticle rides the LCOS / CCIP pipper).
 - Reticle pen (F-4E, Mirage, MiG-23; `hud.gd` `real_reticle`, 2026-10-26): these sights are a few thin lines at their
   real angular size (the F-4E's outer ring 50 mr, about 2.9°), drawn at the HUD's 0.6 px pen they all but vanished

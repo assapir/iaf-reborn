@@ -254,6 +254,7 @@ func _call(tv: Node, n: int) -> String:
 func takeoff(id: String) -> void:
 	var jet: String = JETS[id][0]
 	var tv := await _start(JETS[id][1] + "_takeoff")
+	_ils_bars(tv, jet)
 	var a := await _call(tv, 1)
 	check(a == "ACFT_CLEAR_TO_START", "%s take-off: start-up request -> %s" % [jet, a])
 	_press(tv, KEY_E, true)
@@ -283,6 +284,32 @@ func takeoff(id: String) -> void:
 	_check_files(tv, jet)
 	tv.scripted_stick = null
 	tv.scripted_rudder = null
+
+
+## The HUD's ILS bars glide (the Mac play test's finding 24): 0.04° apart moves them under one HUD pixel, where the
+## original game's whole-pixel rule (test_real_hud) holds them still.
+func _ils_bars(tv: Node, jet: String) -> void:
+	var hud = tv.cockpit.hud
+	var gear: bool = tv.cockpit.gear_handle_down
+	var ils = tv.cockpit.state.get("ils")
+	tv.cockpit.gear_handle_down = true
+	var at := []
+	for dev in [Vector2(0.5, -1.0), Vector2(0.54, -1.04)]:
+		tv.cockpit.state["ils"] = dev
+		hud._real_frame = -1
+		hud.real_hud()
+		at.append(hud._real_in.get("ils"))
+	var d: Vector2 = at[1] - at[0] if at[0] != null and at[1] != null else Vector2.ZERO
+	check(
+		d.length() > 0.1 and absf(d.x) < 1.0 and absf(d.y) < 1.0,
+		"%s: the ILS bars move %s HUD px for 0.04° (sub-pixel, no whole-pixel step)" % [jet, d]
+	)
+	tv.cockpit.gear_handle_down = gear
+	if ils != null:
+		tv.cockpit.state["ils"] = ils
+	else:
+		tv.cockpit.state.erase("ils")
+	hud._real_frame = -1
 
 
 ## The heading error to `p` from the jet, degrees (−180, 180]; positive: `p` to the right.

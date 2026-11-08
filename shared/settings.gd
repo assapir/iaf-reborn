@@ -1020,6 +1020,12 @@ func scenery_everywhere() -> bool:
 	return false
 
 
+## The HUD's moving lines at sub-pixel positions: Modern IAF (whole-pixel steps jump on its wide 3D HUD glass). The
+## original game draws the ILS lines at whole HUD pixels, 1/12° steps (hud.gd ils_lines, FUN_005309a0).
+func hud_subpixel() -> bool:
+	return false
+
+
 ## The airbases' runways, taxi lines and paved masks (airbases.gd, the tower's wind turn): the theatre's own
 ## `airbases.json` when it has one (Modern IAF's, `iaf-sim airbases`), else the original's converted one.
 func airbases_file() -> String:

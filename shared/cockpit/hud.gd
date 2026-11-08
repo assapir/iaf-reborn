@@ -210,7 +210,7 @@ func _draw() -> void:
 
 ## The ILS deviation lines (FUN_005309a0).
 func _draw_ils(st: Dictionary, w: float) -> void:
-	var il := ils_lines(st.get("ils", Vector2.ZERO), _field())
+	var il := ils_lines(st.get("ils", Vector2.ZERO), _field(), not Settings.hud_subpixel())
 	var hx: float = 16
 	_ln(self, Vector2(-hx, il.y), Vector2(hx, il.y), w)
 	_ln(self, Vector2(-hx, il.y - 1), Vector2(-hx, il.y + 2), w)
@@ -655,7 +655,12 @@ func real_hud() -> Dictionary:
 		"px_per_deg": px_deg / _s,
 		"radar_mode": int(rd.get("mode", 0)),
 		# null until the flight state has an ILS reading (a made-up zero would read as on the glide slope).
-		"ils": ils_lines(st.ils, _field()) if mode == 0 and cockpit.gear_handle_down and st.has("ils") else null,
+		"ils":
+		(
+			ils_lines(st.ils, _field(), not Settings.hud_subpixel())
+			if mode == 0 and cockpit.gear_handle_down and st.has("ils")
+			else null
+		),
 		"steerpoint": steer,
 		"target": target,
 		"dlz": rd.get("dlz", []) if not target.is_empty() else [],
@@ -1040,10 +1045,11 @@ static func text_block(
 ## The ILS lines (FUN_005309a0, scale 1) from the deviations (°, x localizer, y glideslope; S+0x1030 / 0x1034):
 ## the localizer's x = −trunc(−12·loc), the glideslope's y = −trunc(−12·gs) from the HUD centre, each held 1 px
 ## inside the field `f` (original pixels from the centre). Both lines are 32 px long, centred on the HUD centre's
-## other coordinate, with 3 px end ticks.
-static func ils_lines(dev: Vector2, f: Rect2) -> Vector2:
-	var x := float(-int(-12.0 * dev.x))
-	var y := float(-int(-12.0 * dev.y))
+## other coordinate, with 3 px end ticks. `whole` false (Modern IAF, Settings.hud_subpixel): the exact 12·deg, so
+## the lines glide in place of 1/12° steps.
+static func ils_lines(dev: Vector2, f: Rect2, whole := true) -> Vector2:
+	var x := float(-int(-12.0 * dev.x)) if whole else 12.0 * dev.x
+	var y := float(-int(-12.0 * dev.y)) if whole else 12.0 * dev.y
 	return Vector2(clampf(x, f.position.x + 1, f.end.x - 1), clampf(y, f.position.y + 1, f.end.y - 1))
 
 

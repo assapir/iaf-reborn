@@ -278,6 +278,12 @@ func scenery_everywhere() -> bool:
 	return true
 
 
+## The ILS lines glide: the original's whole-pixel steps (1/12°) jump on the 3D cockpit's wide HUD glass (the Mac
+## play test's finding 24).
+func hud_subpixel() -> bool:
+	return true
+
+
 func keys_file() -> String:
 	var laptop := own_dir().path_join("keys_laptop.json")
 	return laptop if laptop_keys and FileAccess.file_exists(laptop) else own_dir().path_join("keys.json")

@@ -30,6 +30,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   longer asks for the install's `menu/joy` ([front-end.md](front-end.md) §9). On macOS the keys start from the
   laptop map, no numpad: the rudder on Z / X, the snap views on Alt + 1–9 (§9.1). `test_devices.gd`, the M0 probe
   with a fake joystick.
+- **The ILS bars glide (2026-11-09, the Mac play test's finding 24):** the HUD's ILS lines sit at the exact
+  deviation instead of the original's whole-pixel steps, which jumped about 5.5 screen pixels at a time on the 3D
+  HUD glass ([real-hud.md](../../docs/real-hud.md#what-ours-draws-status)). `test_mvp.gd` checks all three jets.
 - **The F-16s' loadout (2026-11-08, the Mac play test):** the Sufa and the Barak fly with an AIM-9M on the wingtip
   rails and on stations 2 / 8 and 3 / 7 and a 370 US gal tank on each inboard pylon, so the look back shows the stores
   instead of a bare rail and pylons ([data-formats.md](data-formats.md) §3). The Python and AIM-120 records (the

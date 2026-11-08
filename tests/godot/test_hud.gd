@@ -292,6 +292,11 @@ func _traced(tv) -> void:
 		"2° high: the glide slope 24 px below the centre; low: above"
 	)
 	check(Hud.ils_lines(Vector2(0.05, 0.0), f) == Vector2.ZERO, "truncated to whole pixels")
+	check(
+		Hud.ils_lines(Vector2(0.05, -0.1), f, false).is_equal_approx(Vector2(0.6, -1.2)),
+		"Modern IAF's (whole false): the exact 12 px per degree, no whole-pixel steps"
+	)
+	check(not settings().hud_subpixel(), "the original game keeps the whole-pixel ILS lines")
 
 	# Gun pipper (FUN_00530040): held inside the field (bottom − 2 px); the range arc r NM · π, under 1.95 NM, over 3°.
 	var hf := Rect2(0, 0, 139, 135)

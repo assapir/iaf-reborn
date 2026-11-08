@@ -99,13 +99,15 @@ func run() -> void:
 	hud._real_frame = -1
 	hud.real_hud()
 	var none_first: bool = hud._real_in.get("ils", 0) == null
-	tv.cockpit.state["ils"] = Vector2(0.5, -1.0)
+	tv.cockpit.state["ils"] = Vector2(0.54, -1.04)
 	hud._real_frame = -1
 	hud.real_hud()
 	check(
 		none_first and hud._real_in.ils != null,
 		"no ILS reading: none for the Real HUD, then the bars (mode %d, %s)" % [hud._mode(), str(hud._real_in.ils)]
 	)
+	# The original game's whole-pixel rule (FUN_005309a0): 6.48 / −12.48 px stand at 6 / −12 (Modern IAF glides).
+	check(hud._real_in.ils == Vector2(6, -12), "the ILS bars at whole HUD pixels (%s)" % str(hud._real_in.ils))
 	tv.cockpit.gear_handle_down = gear
 	if ils != null:
 		tv.cockpit.state["ils"] = ils
