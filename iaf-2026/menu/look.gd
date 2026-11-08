@@ -29,6 +29,7 @@ const TIGHT := {"Jet": 0.2, "H1": 0.1, "Name": 0.1}
 const TYPES := [
 	["Mark", "Label", 800, 28, TEXT],
 	["Crumb", "Label", 400, 22, MUTED],
+	["CrumbLink", "Button", 400, 22, MUTED],
 	["CrumbOn", "Label", 500, 22, TEXT],
 	["Muted", "Label", 400, R, MUTED],
 	["Small", "Label", 400, 19, MUTED],
@@ -60,7 +61,6 @@ const TYPES := [
 	["Primary", "Button", 600, 24, NAVY],
 	["Fly", "Button", 600, 36, NAVY],
 	["Secondary", "Button", 600, 24, TEXT],
-	["Tab", "Button", 500, 24, TEXT],
 	["Card", "Button", 400, R, TEXT],
 ]
 
@@ -113,11 +113,12 @@ static func make() -> Theme:
 	menu_on.bg_color = Color(ACCENT, 0.16)
 	_button(t, "Menu", flat, menu_on, menu_on)
 	t.set_constant("align_to_largest_stylebox", "Menu", 1)
-	var tab := box(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 0, Vector2(28, 16))
-	var tab_on := box(Color("262d3b"), ACCENT, 0, 0, Vector2(28, 16))
-	tab_on.border_width_right = 4
-	_button(t, "Tab", tab, tab_on, tab_on)
-	t.set_stylebox("pressed", "Tab", tab_on)
+	# A breadcrumb that opens its screen: the muted text, brighter with a faint accent under the pointer or the focus.
+	var crumb := box(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 5, Vector2(8, 4))
+	var crumb_on := box(Color(ACCENT, 0.16), Color(0, 0, 0, 0), 0, 5, Vector2(8, 4))
+	_button(t, "CrumbLink", crumb, crumb_on, box(Color(0, 0, 0, 0), ACCENT, 2, 5, Vector2(8, 4)))
+	for k in ["font_hover_color", "font_focus_color", "font_pressed_color", "font_hover_pressed_color"]:
+		t.set_color(k, "CrumbLink", TEXT)
 	var card := box(PANEL, LINE, 1, 6, Vector2.ZERO)
 	_button(t, "Card", card, box(Color("2c313a"), EDGE, 1, 6, Vector2.ZERO), box(PANEL, ACCENT, 4, 6, Vector2.ZERO))
 	t.set_stylebox("pressed", "Card", box(PANEL, ACCENT, 4, 6, Vector2.ZERO))

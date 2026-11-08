@@ -138,7 +138,8 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 		if not _start(p, install, plane):
 			continue
 		_attach(p, Settings.model_scale(float(pr.get("0x65e", 10.0))), bool(p._state.on_ground_start))
-	print("AI aircraft: %d flying" % pilots.size())
+	if not pilots.is_empty() or Settings.has_setting("ai_level"):  # a game with AI (not IAF 2026's training)
+		print("AI aircraft: %d flying" % pilots.size())
 	combat = Combat.new()
 	add_child(combat)
 	combat.setup(host, self, bdb)

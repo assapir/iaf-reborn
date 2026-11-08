@@ -50,8 +50,7 @@ large screen by its UI scale (the containers stretch; nothing has a fixed page s
    "Redo every step" runs the steps that are up to date too; for the terrain that is a full rebuild (its finished
    units' marks are dropped). Back from Install forgets the finished run, so other choices can be installed; a
    language change keeps it.
-4. **Done**: how to start the sim, the commands for one training mission (start-up, take-off) from Ramon, Ramat
-   David and Nevatim, and how to run setup again.
+4. **Done**: one line, how to start the sim (`./modern-iaf`).
 
 The **Attributions** open from Welcome as a modal dialog over the page (Close or Esc closes it; it scrolls): every
 source with its licence line: the Copernicus DEM's two lines word for word ([terrain.md](terrain.md) §5), ESA

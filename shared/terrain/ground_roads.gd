@@ -32,7 +32,7 @@ static func dir() -> String:
 
 ## Setup made the road layer.
 static func available() -> bool:
-	return FileAccess.file_exists(dir().path_join("main.bin"))
+	return Settings.has_converted("roads/main.bin")
 
 
 ## Roads = Detailed with the road layer (opened once per process).

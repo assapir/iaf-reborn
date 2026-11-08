@@ -476,18 +476,33 @@ func _log_startup() -> void:
 
 
 ## The preferences that differ from the defaults, {key: value}, plus the Physics switches on (`physics`) and the
-## Better cockpit items off (`cockpit_off`).
+## Better cockpit items off (`cockpit_off`); only the settings the game has (has_setting).
 func changed_settings() -> Dictionary:
 	var out := {}
 	for key in _defaults:
-		if get(key) != _defaults[key]:
+		if get(key) != _defaults[key] and has_setting(key):
 			out[key] = get(key)
 	var on := better.keys().filter(func(id): return better[id])
-	if not on.is_empty():
+	if not on.is_empty() and has_setting("better"):
 		out["physics"] = on
 	var off := cockpit_items.keys().filter(func(id): return not cockpit_items[id])
-	if not off.is_empty():
+	if not off.is_empty() and has_setting("cockpit_items"):
 		out["cockpit_off"] = off
+	return out
+
+
+## True for a setting this game has: the logs (changed_settings, the recorder) print only those. The original game:
+## every one; IAF 2026 answers for its own (sim_settings.gd).
+func has_setting(_key: String) -> bool:
+	return true
+
+
+## {key: value} of `keys` this game has (has_setting).
+func settings_of(keys: Array) -> Dictionary:
+	var out := {}
+	for k in keys:
+		if has_setting(k):
+			out[k] = get(k)
 	return out
 
 
@@ -842,6 +857,12 @@ func assets_dir() -> String:
 ## assets-relative paths, e.g. an aircraft definition's "cockpit"). The original game: assets/converted/<rel>.
 func converted(rel: String) -> String:
 	return assets_dir().path_join("converted").path_join(rel.trim_prefix("converted/"))
+
+
+## True when the file `rel` under assets/converted exists: the availability probes ask here (ground_roads.gd), so
+## IAF 2026's answer for the original's data is a quiet false, never a refused read.
+func has_converted(rel: String) -> bool:
+	return FileAccess.file_exists(converted(rel))
 
 
 ## True where the 1998 game's effects art is there to draw (the flares', chaff's, trails', afterburner's and gun's

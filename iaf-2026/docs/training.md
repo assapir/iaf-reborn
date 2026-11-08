@@ -120,13 +120,16 @@ airbases folder and a `--json` without a file. `sim::tests::training_rules_are_c
 are refused, and every take-off mission's runway is an end of its base's airbase file.
 
 ## 6. Open
-- The checklist card (after the MVP, plan.md "start-up").
+- The checklist card (after the MVP, plan.md "start-up"); the mission card of §7 holds the objective and the keys only.
 - The F-16I's, F-16D's and F-35I's own empty weights and take-off speeds by weight (open).
 - A start-up fault model (hot / hung start): none in the flight model.
 - The roll's start and rotation thresholds checked against a real flight of each mission by the user.
 - The 6-DoF's take-off roll is short (flight-model.md §9.6): the probe's Sufa lifts off after about 465 m at 180 kt.
 
 ## 7. The start in the game
+The flight opens with the mission card ([front-end.md](front-end.md) §8): the objective and the keys that matter,
+the flight frozen until it closes, so reading it costs nothing of the time budget. H opens it again.
+
 The sim's jet starts parked cold: on its spot (airbases.md §9), engine off, no RPM, no electrical power, every screen,
 the HUD and the lamps dark (`cockpit.power` 0). The throttle starts nothing (`Settings.throttle_starts_engine`, false
 in the sim; in the original game any throttle command starts the engine at once, as before, on either flight model).
@@ -163,8 +166,12 @@ The **Call the tower** key (Ctrl+T) opens a numbered list over the view; 1–4 p
 | 4 | Contact tower (landing) | קריאה למגדל (נחיתה) | the original's Ctrl+T (docs/radio.md §2): "proceed to runway …" in the air |
 
 The pilot's call is printed ("Ramon tower, Alpha, request taxi"), the tower's answer printed and spoken by the English
-TTS tower of E1b (sound.md §3), then the pilot's "Roger". The Hebrew labels show in Hebrew (right to left, in the sim's
-Heebo font); the Hebrew voice waits for the user's licence decision (sound.md §5). The
+TTS tower of E1b (sound.md §3), then the pilot's "Roger". The lines show in the sim's band over the flight
+([front-end.md](front-end.md) §8), wholly in the game's language: in Hebrew the pilot's call ("מגדל רמון, Alpha,
+בקשת הסעה") and the tower's answer from each phrase particle's Hebrew text (`text_he` in
+`iaf-2026/data/sounds/voices.json`, compiled into `phraseparticles_he.trx`: "Alpha, בוקר טוב, הסעה למסלול 25 ימני");
+only the callsigns and the runway numbers stay Latin and digits. The voice stays English until the Hebrew voice's
+licence is decided (sound.md §5). The
 tower is the base within 18.54 km: every base of the own `iaf.ibx` talks (Ramon, Ramat David, Hatzerim, Nevatim;
 `Settings.tower_bases`); the mission's base's tower names the mission's runway (`"runway"`), the others their own. A request leaves the tower's
 state machine as it is. In the menu the tower no longer talks on

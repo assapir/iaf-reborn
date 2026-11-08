@@ -3,6 +3,10 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The Mac play test's findings (2026-11-08, [plan.md](plan.md#f-the-probe) F):** the mission card, the radio lines
+  in the sim's band wholly in the game's language, the key hint; the pause menu centred at any size in Hebrew;
+  Preferences as sections on their own screens with no aid or realism row and the aids off; Home on every start;
+  clickable breadcrumbs ([front-end.md](front-end.md) §1, §8). `test_flight_ui.gd`, `test_front_end.gd`.
 - **The sim's own look (2026-11-08, the Mac run):** the look switches whose 1998 value draws art the sim does not
   have are fixed to ours in `PROFILE`: Detailed airbases (the runways, taxiways and aprons were missing), the
   atmospheric sky, water, night lights, effects, the conformal ladder; the CC0 ground and model textures when setup

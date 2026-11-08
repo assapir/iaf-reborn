@@ -17,17 +17,24 @@ Heebo font and the Israeli Air Force flag's colours.
 
 | screen | what it does | English | Hebrew |
 |---|---|---|---|
-| Home | the jet, its base, Fly, the log summary (flights, flight time, the last result), the menu | ![Home](pictures/front-end/home_en.webp) | ![Home, Hebrew](pictures/front-end/home_he.webp) |
+| Home | the jet, its base, Fly, the log summary (flights, flight time, the last result), the menu; before the first pick only the sim's name, Choose a plane and the menu | ![Home](pictures/front-end/home_en.webp) | ![Home, Hebrew](pictures/front-end/home_he.webp) |
 | Pick a plane | the Sufa (Ramon), the Barak (Ramat David) and the Adir (Nevatim); the pick sets the jet everywhere | ![Pick a plane](pictures/front-end/plane_en.webp) | ![Pick a plane, Hebrew](pictures/front-end/plane_he.webp) |
 | Training | the programme: its missions with their last result and the progress | ![Training](pictures/front-end/training_en.webp) | ![Training, Hebrew](pictures/front-end/training_he.webp) |
 | Pick a mission | the missions beside the picked one's briefing: runway, time, wind, time allowed, when it passes; Fly | ![Pick a mission](pictures/front-end/mission_en.webp) | ![Pick a mission, Hebrew](pictures/front-end/mission_he.webp) |
-| Preferences | the settings as controls: dropdown, switch, slider, radio list; the groups Graphics, Language, Sound, Devices, Physics | ![Preferences](pictures/front-end/prefs_en.webp) | ![Preferences, Hebrew](pictures/front-end/prefs_he.webp) |
+| Preferences | the sections Graphics, Language, Sound and Devices, each on its own screen with its settings as controls: dropdown, switch, slider, radio list | ![Preferences](pictures/front-end/prefs_en.webp) | ![Preferences, Hebrew](pictures/front-end/prefs_he.webp) |
 | Debrief | the record as a sheet: Plane flown, From, Time, Mission, Result, the numbers, Remarks; Back to missions, Fly again | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
 | Pilot log | every attempt, newest first; a row opens its debrief | ![Pilot log](pictures/front-end/log_en.webp) | ![Pilot log, Hebrew](pictures/front-end/log_he.webp) |
 | Attributions | the setup wizard's list of sources and licences, the jet photos with them | ![Attributions](pictures/front-end/credits_en.webp) | ![Attributions, Hebrew](pictures/front-end/credits_he.webp) |
 
-Over a flight, Esc opens the pause menu: Continue the flight, Preferences, End the flight. Ending a scored flight opens
+Over a flight, Esc opens the pause menu: Continue the flight, Preferences, End the flight. It is laid out on the
+front end's canvas scaled to the window and centred by a container, so it sits in the middle at any window size and in
+either language (the Mac run of 2026-11-08: in Hebrew in a 2560 × 1440 window the overlay mirrored its own position
+by its unscaled width and sat off the right edge, its buttons' labels outside the screen). Ending a scored flight opens
 its debrief; a flight that was not scored goes back to Home.
+
+| the Hebrew pause menu before the fix (2026-11-08) | after |
+|---|---|
+| ![The pause menu shifted left, the dim cut off at the right](pictures/front-end/pause_he_before.webp) | ![The pause menu centred](pictures/front-end/pause_he.webp) |
 
 | screen | English | Hebrew |
 |---|---|---|
@@ -35,13 +42,23 @@ its debrief; a flight that was not scored goes back to Home.
 | the debrief of that flight | ![Debrief after a flight](pictures/front-end/flown_debrief_en.webp) | ![Debrief after a flight, Hebrew](pictures/front-end/flown_debrief_he.webp) |
 
 Keys: Enter picks the focused control, Esc goes one screen back (Home has no back), the arrow keys and Tab move the
-focus. The bottom bar shows the keys of each screen.
+focus. The bottom bar shows the keys of each screen. Every breadcrumb in the top bar but the current one opens its
+screen (a jet's name: its Training); the picks are kept.
+
+| screen | English | Hebrew |
+|---|---|---|
+| Home before the first pick | ![Home: Choose a plane](pictures/front-end/home_first_en.webp) | ![Home: Choose a plane, Hebrew](pictures/front-end/home_first_he.webp) |
+| Preferences: the sections | ![Preferences](pictures/front-end/prefs_en.webp) | ![Preferences, Hebrew](pictures/front-end/prefs_he.webp) |
+| Preferences: Graphics | ![Graphics](pictures/front-end/prefs_graphics_en.webp) | ![Graphics, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
+| Preferences: Sound | ![Sound](pictures/front-end/prefs_sound_en.webp) | ![Sound, Hebrew](pictures/front-end/prefs_sound_he.webp) |
+| Preferences: Devices | ![Devices](pictures/front-end/prefs_devices_en.webp) | ![Devices, Hebrew](pictures/front-end/prefs_devices_he.webp) |
+| Preferences: Language | ![Language](pictures/front-end/prefs_language_en.webp) | ![Language, Hebrew](pictures/front-end/prefs_language_he.webp) |
 
 ## 2. The flow
 
 Home → Fly → Training → Open → Pick a mission → Fly → the flight → the debrief → Home. Change plane on Home opens Pick a
-plane. Until a plane is picked, Pick a plane opens in place of Home, Training and Pick a mission; its Continue (off
-until a pick) goes to Training, and Esc stays on it.
+plane. Every start opens Home; until a plane is picked Home offers Choose a plane, and Pick a plane opens in place of
+Training and Pick a mission. Pick a plane's Continue (off until a pick) goes to Training, Esc back to Home.
 
 - **The plane:** a card press stores the unit (`Settings.sim_jet`: `f16i`, `f16d` or `f35i`; `settings.cfg` section
   `[sim]`, key `jet`) and sets the F-16 switch (`Settings.set_jet`).
@@ -86,9 +103,12 @@ centreline in the roll.
 - **Strings:** `iaf-2026/menu/strings_en.json` and `strings_he.json`, formal and gender-neutral (infinitives: לטוס,
   להתניע, לבקש). The Language row switches every string at once. The mission briefings are the front end's own,
   by mission kind, with the mission's runway and time allowed in them.
-- **Preferences:** realism has no switch (plan.md "physics"); the Physics group holds the aids the sim has (unlimited
-  fuel, no damage, no crashes, no G effects). Ground textures and Roads are greyed until setup's optional downloads
-  exist; Volumetric clouds without a RenderingDevice.
+- **Preferences:** one screen per section, so a section can grow. Realism and aids have no switch (plan.md "physics";
+  the user, 2026-11-08): the sim's `PROFILE` (`iaf-2026/sim_settings.gd`) fixes the original Gameplay page's aids off
+  (easy landing, unlimited fuel, no damage, no crashes, no G effects…) and the look switches to the sim's own
+  (Detailed airbases, water, night lights; the ground textures, roads and scenery whenever their data exist), so
+  none of them is a row. The weather is the mission's (no Rain row). Volumetric clouds are greyed without a
+  RenderingDevice.
 
 ## 5. The photos
 
@@ -104,7 +124,12 @@ and in [../../docs/credits.md](../../docs/credits.md) "Modern IAF's photos". The
   and Attributions. With `-- --fly` it also flies Ramon's start-up from the mission screen to a pass, opens the pause
   menu, ends the flight and finds that flight's debrief. Run in a real render through `tools/godot_window.sh` it is
   the real run (`SHOT_DIR=<dir>` saves the two pictures of §1's second table).
+  It also checks the first start (Home, Choose a plane, the picker, back to Home with the jet), the breadcrumbs, each
+  Preferences section on its own screen with no aid, realism or weather row and no read of the original's data, the
+  sim's settings (no aid on, the log dumps naming only the sim's settings), F1–F4 opening no pause menu, and the
+  pause menu inside viewports of 1920 × 1080, 2560 × 1440 and 1280 × 800 in both languages.
 - `iaf-2026/tests/_front_end_shot.gd` takes §1's pictures at 1920 × 1080 (its header).
+- `iaf-2026/tests/test_flight_ui.gd` checks §8 in both languages.
 
 ## 7. The loading screen
 
@@ -127,3 +152,25 @@ In Hebrew the page is mirrored: the bar fills from the inline start, the right.
 | ![The loading screen: "Take-off from Ramon", "Wing 25, Ramon", the bar at 60 %](pictures/front-end/loading_en.webp) | ![The loading screen in Hebrew: "המראה מרמון", "כנף 25 רמון", the bar filling from the right](pictures/front-end/loading_he.webp) |
 
 `iaf-2026/tests/_loading_shot.gd` takes these pictures (its header).
+
+## 8. Over the flight: the mission card, the radio lines, the key hint
+
+The sim draws its own text over the flight in the front end's look (`iaf-2026/flight/flight_ui.gd`, Heebo, look.gd's
+palette, on the 1080-high canvas scaled to the window), mirrored in Hebrew; the original game's console and panels
+stay the original's (`terrain_view.gd _on_subtitle` hands each line to the flight add-on when it has a `subtitle()`).
+
+- **The mission card** opens at a training mission's start: the mission's title, its objective with the keys as
+  bound ("Ctrl + T"; "Cmd + T" on macOS) and the runway, and the keys that matter with their labels, from the
+  compiled mission's `sim.card` ([data-formats.md](data-formats.md) §5; a default per mission kind). The flight is
+  frozen while it is open. Space, Enter, Esc or a click close it; H (the key table's Mission card, record 118; the HUD
+  colour moved to Shift + H) opens it again. Scripted runs (`IAF_DEFAULT_SETTINGS=1`) start with it closed.
+- **The radio lines and messages** show in a strip centred at the top, over the sky rather than the cockpit's panel,
+  the newest at the bottom, three at most, each for 8 s, wholly in the game's language ([training.md](training.md)
+  §8).
+- **The panel** at the inline-start top holds the radio menu (Ctrl+T) and the training result.
+- **The key hint** at the bottom: the Mission card key and Esc's pause menu.
+
+| | English | Hebrew |
+|---|---|---|
+| the take-off's card | ![The mission card of Take-off from Ramon](pictures/front-end/card_en.webp) | ![The mission card in Hebrew](pictures/front-end/card_he.webp) |
+| the strip and the hint, after a tower call | ![A tower call in the band](pictures/front-end/band_en.webp) | ![A tower call in Hebrew](pictures/front-end/band_he.webp) |

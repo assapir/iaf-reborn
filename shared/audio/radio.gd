@@ -76,6 +76,8 @@ var host: Node
 var now := 0.0
 var templates := {}  # NAME -> PackedStringArray of tokens
 var particles := {}  # KEY -> [wav, text]
+## Ours (IAF 2026): KEY -> the particle's Hebrew subtitle (phraseparticles_he.trx, iaf-sim own); empty in the original.
+var particles_he := {}
 var bases: Array = []  # [{tower: Vector3, lineup: Vector3, rwy: int, hangars: [Vector2]}; World scale Real: + hdg]
 ## How many of the first bases have a talking tower: the original's four (TOWER_BASES), or every base of the project's
 ## own iaf.ibx (Settings.tower_bases).
@@ -117,6 +119,14 @@ func _ready() -> void:
 	var dir: String = Settings.own_dir().path_join(SOUND_DIR)
 	_load_templates(dir.path_join("phrasetemplates.trx"))
 	_load_particles(dir.path_join("phraseparticalsdata.trx"))
+	for line in FileAccess.get_file_as_string(dir.path_join("phraseparticles_he.trx")).split("\n"):
+		var cols := line.split("\t")
+		if cols.size() == 2 and not line.begins_with(";"):
+			particles_he[cols[0].to_upper()] = cols[1].strip_edges()
+	if not particles_he.is_empty():
+		for k in LETTER_HE:
+			if not particles_he.has(k):
+				particles_he[k] = LETTER_HE[k]
 	_load_bases(Settings.own_dir().path_join("iaf.ibx"))
 
 
@@ -155,12 +165,15 @@ func _load_particles(path: String) -> void:
 ## rwyl / rwyr / rwyc (shared/extra/tower_numbers).
 const LETTERS := {"L": "RWY_L", "R": "RWY_R", "C": "RWY_C"}
 const LETTER_PARTS := {"RWY_L": ["RwyL", "left"], "RWY_R": ["RwyR", "right"], "RWY_C": ["RwyC", "center"]}
+## Their Hebrew subtitles, where the Hebrew table (particles_he) has none of its own.
+const LETTER_HE := {"RWY_L": "שמאלי", "RWY_R": "ימני", "RWY_C": "מרכזי"}
 
 
 ## FUN_004c66a0: the template's tokens with %Sn / %Dn from the arguments, each key's wav and text; the text
 ## joins the parts with a blank, except before "," and at the start, where the part's first letter is upper-cased.
 func expand(template: String, strings: Array = [], ints: Array = []) -> Dictionary:
 	var text := ""
+	var text_he := ""
 	var wavs: Array[String] = []
 	var count := 0
 	var toks: Array = []  # [token, key]
@@ -191,9 +204,13 @@ func expand(template: String, strings: Array = [], ints: Array = []) -> Dictiona
 		elif t != "":
 			t = t[0].to_upper() + t.substr(1)
 		text += t
+		if not particles_he.is_empty():
+			text_he += ("" if count == 0 or tok == "," else " ") + String(particles_he.get(key.to_upper(), part[1]))
 		wavs.append(String(part[0]))
 		count += 1
-	return {"template": template, "text": text, "wavs": wavs}
+	# The subtitle in the game's language: the voice stays English (IAF 2026's Hebrew subtitles, phraseparticles_he).
+	var shown := text_he if Settings.language == "he" and text_he != "" else text
+	return {"template": template, "text": text, "wavs": wavs, "shown": shown}
 
 
 ## A phrase printed (FUN_0044a060) and spoken (FUN_004c5750); `print_it` false: spoken only.
@@ -201,7 +218,7 @@ func say(template: String, strings: Array = [], ints: Array = [], print_it := tr
 	var p := expand(template, strings, ints)
 	said.append(p)
 	if print_it and p.text != "" and host != null and host.has_method("_on_subtitle"):
-		host._on_subtitle(p.text)
+		host._on_subtitle(p.shown)
 	for w in p.wavs:
 		play_wav(w)
 	return p

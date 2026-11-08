@@ -125,6 +125,8 @@ static func manifest() -> Dictionary:
 
 ## Setup made the scenery and the game can read it.
 static func available() -> bool:
+	if base_dir == "" and not Settings.has_converted(DIR.path_join("manifest.json")):
+		return false  # a probe, not a read (IAF 2026's gate)
 	return not manifest().is_empty()
 
 

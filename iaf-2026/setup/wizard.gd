@@ -477,16 +477,6 @@ func _page_done() -> Control:
 	var win := OS.get_name() == "Windows"
 	_text(v, s("how_start"), "Muted")
 	_code(v, ".\\modern-iaf.ps1" if win else "./modern-iaf")
-	_text(v, s("mission_cmd"), "Muted")
-	var run := ".\\modern-iaf.ps1 --mission" if win else "./modern-iaf -- --mission"
-	for m in [["mission_start", "2011 / 2021 / 2031"], ["mission_takeoff", "2012 / 2022 / 2032"]]:
-		var h := HBoxContainer.new()
-		h.add_theme_constant_override("separation", 16)
-		v.add_child(h)
-		_label(h, s(m[0]), "Muted").custom_minimum_size.x = 80
-		_code(h, "%s %s" % [run, m[1]])
-	_text(v, s("again"), "Note")
-	_code(v, ".\\modern-iaf-setup.ps1" if win else "./modern-iaf-setup")
 	return v
 
 

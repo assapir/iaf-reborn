@@ -10,7 +10,8 @@ extends "res://shared/settings.gd"
 ## textured sky: its cloud layer is the original's art (Clouds Volumetric, ours, stays a choice). The look switches
 ## whose "original" is the 1998 art the sim does not have are ours too: the airbases (the sim's own runways, taxiways
 ## and aprons, airbases_file()), the sky, the water, the night lights, the effects (2026-11-08: "original" airbases
-## drew no taxiway or apron in the sim). The ground and model textures follow setup's download (_apply_profile).
+## drew no taxiway or apron in the sim). The ground and model textures, the roads and the scenery follow their data
+## (_apply_profile). No aids: the original Gameplay page's switches are off (the user, 2026-11-08).
 const PROFILE := {
 	"airbases": "detailed",
 	"sky": "atmospheric",
@@ -22,6 +23,8 @@ const PROFILE := {
 	"hud_ladder": "conformal",
 	"bomb_release": "real",
 	"briefing_map": "modern",
+	# The weather is the mission's (no Rain row): "off" until a mission brings its own.
+	"rain": "off",
 	"cockpit_3d": "3d",
 	"textured_sky": false,
 	"hud_style": "real",
@@ -32,6 +35,23 @@ const PROFILE := {
 	"weapon_data": "real",
 	"f15_variant": "raam",
 }
+## No aids (the user, 2026-11-08): the original's Gameplay page's switches, all off (easy_landing's default is on).
+## Applied with PROFILE; never logged (has_setting): the sim has no such switch.
+const NO_AIDS := {
+	"no_wind": false,
+	"no_blackouts": false,
+	"no_spins": false,
+	"no_stalls": false,
+	"easy_landing": false,
+	"easy_aiming": false,
+	"no_malfunctions": false,
+	"invulnerable": false,
+	"no_crashes": false,
+	"unlimited_ammo": false,
+	"unlimited_fuel": false,
+}
+## The sim's front end script (front_end_overlay, has_setting).
+const FRONT_END := "res://menu/front_end.gd"
 ## The sim's own planes data (merged over an aircraft definition, airframe_def).
 const PLANES := "res://data/planes"
 ## Each flyable jet's cockpit dir (its definition's `cockpit`) under own_cockpits: the displays' data `iaf-sim own`
@@ -60,6 +80,7 @@ var sim_jet := ""
 ## The debrief record the last flight wrote (flight/sim_flight.gd), for the front end to open when the flight ends.
 var flown_debrief := ""
 var _fonts := {}  # display_font's, by style
+var _keys: Array = []  # has_setting's
 
 
 func _ready() -> void:
@@ -87,7 +108,7 @@ func front_end_scene() -> String:
 
 ## Over the frozen flight: the pause menu (Esc) or the Preferences.
 func front_end_overlay() -> Control:
-	return load("res://menu/front_end.gd").new()
+	return load(FRONT_END).new()
 
 
 ## Where the debrief records go: user://debriefs, or a temporary folder in isolated runs (tests).
@@ -104,10 +125,26 @@ func pilot_log_file() -> String:
 func _apply_profile() -> void:
 	for key in PROFILE:
 		set(key, PROFILE[key])
+	for key in NO_AIDS:
+		set(key, NO_AIDS[key])
 	# The CC0 textures setup downloads (assets/thirdparty/ambientcg): ours whenever they are there.
 	var ground: GDScript = load("res://shared/terrain/ground_textures.gd")
 	ground_textures = "ambientcg" if ground.available() else "original"
 	model_detail = "ambientcg" if load("res://shared/util/model_detail.gd").available() else "original"
+	# The roads and the scenery: the sim's own once it has them (today the original's, behind the gate).
+	ground_roads = "detailed" if load("res://shared/terrain/ground_roads.gd").available() else "original"
+	scenery = "on" if load("res://shared/terrain/scenery.gd").available() else "off"
+
+
+## The settings the sim has, for the logs: its profile, its Preferences rows (menu/front_end.gd PREFS) and the
+## recorder; the rest of the shared settings mean nothing here.
+func has_setting(key: String) -> bool:
+	if _keys.is_empty():
+		_keys = PROFILE.keys() + ["blackbox", "show_info", "ground_textures", "model_detail", "ground_roads", "scenery"]
+		for g in load(FRONT_END).PREFS:
+			for row in g[1]:
+				_keys.append(row[0])
+	return key in _keys
 
 
 ## A path that does not exist: the sim reads nothing of the original game's install.
@@ -125,6 +162,15 @@ func converted(rel: String) -> String:
 			return super(rel)
 	_refuse("converted/" + rel)
 	return install_dir().path_join("converted").path_join(rel)
+
+
+## Only the sim's own data exists for it: false for the rest, without a refusal (a probe, not a read).
+func has_converted(rel: String) -> bool:
+	rel = rel.trim_prefix("converted/")
+	for own in OWN_CONVERTED:
+		if rel.begins_with(own) or rel == own.trim_suffix("/"):
+			return super(rel)
+	return false
 
 
 ## The gate on the original game's install: every read refused (_refuse), the answer a path that does not exist

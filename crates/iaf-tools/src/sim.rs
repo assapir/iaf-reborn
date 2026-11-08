@@ -500,6 +500,40 @@ fn texts(f: &File, k: &str) -> Result<Value> {
     Ok(f.v[k].clone())
 }
 
+/// The mission card shown at a training mission's start (iaf-2026/docs/front-end.md §8): the readable mission's
+/// own `card` ({"objective": {"en", "he"}, "keys": [record index of the sim's keys.json…]}), else its kind's. In the
+/// objective, `{key:N}` stands for record N's key as bound (the game fills it in, "Cmd" on macOS) and `{runway}` for
+/// the mission's runway.
+fn card(f: &File) -> Result<Value> {
+    if !f.v["card"].is_null() {
+        texts(&File { name: f.name.clone(), v: f.v["card"].clone() }, "objective")?;
+        let keys = f.v["card"]["keys"].as_array().filter(|k| k.iter().all(|i| i.as_u64().is_some_and(|i| i < 119)));
+        ensure!(keys.is_some(), "{}: \"card.keys\" must list key records (0..118)", f.name);
+        return Ok(f.v["card"].clone());
+    }
+    // Start engine 117, Call the tower 47, Mission card 118; the throttle 7 (idle), 16 / 15 (± 5 %), 12 (MIL); the
+    // wheel brakes 22, the rudder (nose wheel) 37 / 38, the stick 24..27, the gear 20.
+    Ok(match f.v["training"]["kind"].as_str() {
+        Some("startup") => json!({
+            "objective": {
+                "en": "Start the engine with {key:117}. The mission passes once the engine idles with the avionics up.",
+                "he": "התנעת המנוע: {key:117}. המשימה עוברת כשהמנוע בסרק והאוויוניקה פועלת.",
+            },
+            "keys": [117, 118],
+        }),
+        Some("takeoff") => json!({
+            "objective": {
+                "en": "Call the tower with {key:47} and pick 1, 2, 3 in turn: start-up, taxi, take-off. Start the \
+                       engine with {key:117}, taxi to runway {runway}, line up and take off on its heading; gear up.",
+                "he": "קריאה למגדל: {key:47}, ואז 1, 2, 3 לפי הסדר: התנעה, הסעה, המראה. התנעת המנוע: \
+                       {key:117}, הסעה למסלול {runway}, כניסה למסלול והמראה בכיוונו; איסוף כן הנסע.",
+            },
+            "keys": [47, 117, 7, 16, 15, 12, 22, 37, 38, 24, 25, 20, 118],
+        }),
+        _ => Value::Null,
+    })
+}
+
 /// One compiled mission file from a readable one.
 /// `bases`: the four airbases (sim_bases::load); `ground`: the theatre's height at a point, None without it (the
 /// start's `elevation_m` then stands).
@@ -664,7 +698,7 @@ pub fn compile_mission(
     m["frame"] = json!("real");
     m["sim"] = json!({"title": texts(f, "title")?, "briefing": texts(f, "briefing")?, "win": f.v["win"],
         "lose": f.v["lose"], "menu_id": int(f, "menu_id")?, "runway": f.v["runway"], "training": f.v["training"],
-        "base": base_name});
+        "base": base_name, "card": card(f)?});
     if let Some(note) = f.v["note"].as_str() {
         m["sim"]["note"] = json!(note);
     }
@@ -937,10 +971,20 @@ pub fn compile_keys(src: &Value) -> Result<Value> {
 }
 
 /// The radio's phrase files from `sounds/voices.json` (docs/radio.md §1, the shape `radio.gd` reads):
-/// `phrasetemplates.trx` (`NAME token…`) and `phraseparticalsdata.trx` (`KEY file text…`), and the particles' files.
-pub fn compile_radio(voices: &Value) -> Result<(String, String, Vec<String>)> {
+/// `phrasetemplates.trx` (`NAME token…`), `phraseparticalsdata.trx` (`KEY file text…`), `phraseparticles_he.trx`
+/// (`KEY text_he`: the Hebrew subtitles), and the particles' files.
+pub struct Radio {
+    pub templates: String,
+    pub particles: String,
+    pub particles_he: String,
+    pub files: Vec<String>,
+}
+
+/// Compiles the radio's files from `voices` (each particle needs its `text_he`).
+pub fn compile_radio(voices: &Value) -> Result<Radio> {
     let head = "; Modern IAF's radio phrases, compiled by iaf-sim own from iaf-2026/data/sounds/voices.json.\n";
     let (mut templates, mut particles, mut files) = (head.to_string(), head.to_string(), vec![]);
+    let mut particles_he = head.to_string();
     let parts = voices["particles"].as_object().context("voices: no \"particles\"")?;
     for (name, t) in voices["templates"].as_object().context("voices: no \"templates\"")? {
         let t = t.as_str().with_context(|| format!("voices: template {name} must be a string"))?;
@@ -952,10 +996,12 @@ pub fn compile_radio(voices: &Value) -> Result<(String, String, Vec<String>)> {
     for (key, p) in parts {
         let file = p["file"].as_str().with_context(|| format!("voices: particle {key} has no file"))?;
         let text = p["text"].as_str().with_context(|| format!("voices: particle {key} has no text"))?;
+        let he = p["text_he"].as_str().with_context(|| format!("voices: particle {key} has no text_he"))?;
         particles += &format!("{key}\t{file}\t{text}\n");
+        particles_he += &format!("{key}\t{he}\n");
         files.push(file.to_string());
     }
-    Ok((templates, particles, files))
+    Ok(Radio { templates, particles, particles_he, files })
 }
 
 /// `iaf-sim own`: `<data>/sounds` → `<assets>/SOUNDS_DIR`: `soundprop.trx`, the radio's phrase files, and every clip
@@ -971,10 +1017,10 @@ pub fn own(data: &Path, repo: &Path, assets: &Path, pr: &dyn Progress, cancel: &
     let (sounds, out) = (data.join("sounds"), assets.join(SOUNDS_DIR));
     let table = read(&sounds.join("soundprop.json"))?;
     let trx = compile_soundprop(&table)?;
-    let (templates, particles, part_files) = compile_radio(&read(&sounds.join("voices.json"))?)?;
+    let radio = compile_radio(&read(&sounds.join("voices.json"))?)?;
     let names = |k: &str| table[k].as_array().into_iter().flatten().filter_map(|v| v.as_str().map(String::from));
     let rows = table["rows"].as_array().into_iter().flatten().filter_map(|r| r["file"].as_str().map(String::from));
-    let files: BTreeSet<String> = rows.chain(names("by_name")).chain(part_files).collect();
+    let files: BTreeSet<String> = rows.chain(names("by_name")).chain(radio.files.clone()).collect();
     std::fs::create_dir_all(&out).with_context(|| out.display().to_string())?;
     for f in &files {
         check(cancel)?;
@@ -983,8 +1029,12 @@ pub fn own(data: &Path, repo: &Path, assets: &Path, pr: &dyn Progress, cancel: &
         wav_seconds(&bytes).with_context(|| src.display().to_string())?;
         std::fs::write(out.join(f), bytes).with_context(|| out.join(f).display().to_string())?;
     }
-    let trx_files =
-        [("soundprop.trx", &trx), ("phrasetemplates.trx", &templates), ("phraseparticalsdata.trx", &particles)];
+    let trx_files = [
+        ("soundprop.trx", &trx),
+        ("phrasetemplates.trx", &radio.templates),
+        ("phraseparticalsdata.trx", &radio.particles),
+        ("phraseparticles_he.trx", &radio.particles_he),
+    ];
     for (name, text) in trx_files {
         write(&out.join(name), text)?;
     }
@@ -1345,6 +1395,22 @@ mod tests {
     }
 
     #[test]
+    fn every_training_mission_has_a_card() {
+        let (db, bases) = (Db::read(&data()).unwrap(), sim_bases::load(&data().join("airbases")).unwrap());
+        let m = compile_mission(&ramon(json!({})), &db, &bases, &mut |_, _| None).unwrap();
+        let card = &m["sim"]["card"];
+        assert!(card["objective"]["he"].as_str().unwrap().contains("{key:"), "{card}");
+        assert!(!card["keys"].as_array().unwrap().is_empty());
+        let own = json!({"card": {"objective": {"en": "Go", "he": "סע"}, "keys": [117]}});
+        let m = compile_mission(&ramon(own), &db, &bases, &mut |_, _| None).unwrap();
+        assert_eq!(m["sim"]["card"]["objective"]["en"], "Go");
+        let bad = ramon(json!({"card": {"objective": {"en": "Go"}, "keys": [117]}}));
+        assert!(compile_mission(&bad, &db, &bases, &mut |_, _| None).is_err(), "a card needs both languages");
+        let bad = ramon(json!({"card": {"objective": {"en": "Go", "he": "סע"}, "keys": [500]}}));
+        assert!(compile_mission(&bad, &db, &bases, &mut |_, _| None).is_err(), "a card's keys are records");
+    }
+
+    #[test]
     fn a_figure_without_a_source_is_refused() {
         let f = |v: Value| File { name: "t".into(), v };
         let ok = f(json!({"kg": 1, "sources": {"kg": "mk84"}, "footnotes": {"mk84": "x"}}));
@@ -1374,7 +1440,7 @@ mod tests {
 
     /// `iaf-sim own`: every sound row's clip exists and parses as the game's format, every code the shared flight
     /// code plays has a row, every file it opens by name is there, the radio's templates name only particles with a
-    /// clip, a stale clip is removed, and the key table compiles to the 118 records `key_table.gd` reads (the 117 of docs/controls.md and Start engine).
+    /// clip, a stale clip is removed, and the key table compiles to the 119 records `key_table.gd` reads (the 117 of docs/controls.md, Start engine and Mission card).
     #[test]
     fn own_sounds_and_keys_compile() {
         let root = TempRoot(std::env::temp_dir().join(format!("iaf-sim-own-{}", std::process::id())));
@@ -1466,6 +1532,12 @@ mod tests {
                 c[0]
             })
             .collect();
+        // The Hebrew subtitles: one line per particle, the tower's words in Hebrew.
+        let he = std::fs::read_to_string(sounds.join("phraseparticles_he.trx")).unwrap();
+        let he_keys: HashSet<&str> =
+            he.lines().filter(|l| !l.starts_with(';')).map(|l| l.split('\t').next().unwrap()).collect();
+        assert_eq!(he_keys, keys_of, "a Hebrew line per particle");
+        assert!(he.contains("TAKEOFF\tאישור המראה"), "{he}");
         let templates = std::fs::read_to_string(sounds.join("phrasetemplates.trx")).unwrap();
         for t in [
             "ACFT_TAXI_TO_RUNWAY",
@@ -1485,7 +1557,7 @@ mod tests {
         }
         let keys: Value = serde_json::from_str(&std::fs::read_to_string(root.0.join(KEYS_FILE)).unwrap()).unwrap();
         let recs = keys["records"].as_array().unwrap();
-        assert_eq!(recs.len(), 118);
+        assert_eq!(recs.len(), 119);
         for r in recs {
             let labelled = r["label"].as_str().is_some_and(|l| !l.is_empty());
             assert!(labelled || r["shown"] == false, "{r}");

@@ -1,5 +1,6 @@
 # Modern IAF's part of the flight scene (Settings.flight_addon, a child of terrain_view.gd): the radio menu and the
 # training run (iaf-2026/docs/training.md §7–§9).
+# - The text over the flight in the sim's own look (flight_ui.gd): the mission card (H), the radio lines, the panel.
 # - The radio menu: the "Call the tower" key (Ctrl+T, command 107) opens a numbered list; 1–4 pick a request (start-up,
 #   taxi, take-off, contact the tower for landing), any other key closes it. The tower answers by TTS (radio.gd
 #   request), each call a `radio` event in the recording.
@@ -8,7 +9,7 @@
 extends Node
 
 const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
-const WizardTheme := preload("../setup/wizard_theme.gd")  # relative: a test of the original's project loads it too
+const FlightUi := preload("flight_ui.gd")
 ## The menu's lines: [request id, English, Hebrew] (radio.gd request; "landing": its Ctrl+T contact_tower).
 const ITEMS := [
 	["startup", "Request start-up", "בקשת התנעה"],
@@ -17,8 +18,14 @@ const ITEMS := [
 	["landing", "Contact tower (landing)", "קריאה למגדל (נחיתה)"],
 ]
 const TITLE := {"en": "Radio: %s tower", "he": "קשר: מגדל %s"}
-## The pilot's call, printed (no pilot voice for it yet: sound.md §7).
-const CALLS := {"startup": "request start-up", "taxi": "request taxi", "takeoff": "ready for take-off"}
+## The pilot's call, printed in the game's language (no pilot voice for it yet: sound.md §7).
+const CALLS := {
+	"startup": ["request start-up", "בקשת התנעה"],
+	"taxi": ["request taxi", "בקשת הסעה"],
+	"takeoff": ["ready for take-off", "בקשת המראה"],
+}
+## The call's address: "Ramon tower" / "מגדל רמון".
+const TOWER := {"en": "%s tower", "he": "מגדל %s"}
 ## The bases' names by their iaf.ibx section (the own iaf.ibx, sim_bases::BASES).
 const BASE_NAMES := {
 	"Ramon": ["Ramon", "רמון"],
@@ -34,8 +41,9 @@ const PAST_BUDGET := 5.0
 
 var host: Node
 var open := false
-var _panel: PanelContainer
-var _label: Label
+## The text over the flight: the mission card, the band of radio lines, the panel, the key hint (flight_ui.gd).
+var ui: Control
+var _sim := {}
 ## The training mission: its readable file's name (res://data/missions/<name>.json) and rules; {} for a flight without.
 var mission_name := ""
 var rules := {}
@@ -62,6 +70,7 @@ func _ready() -> void:
 	var files: Array = MissionRuntime.mission_files(host.mission_id)
 	if not files.is_empty():
 		var sim: Dictionary = files[0].data.get("sim", {})
+		_sim = sim
 		var rwy = sim.get("runway")
 		host.radio.runway = rwy if rwy is String else ""
 		# The runway is the mission's base's (its readable file's start.base, an English base name).
@@ -77,7 +86,14 @@ func _ready() -> void:
 	elif not rules.is_empty() and host.blackbox_path == "" and Settings.isolated():
 		# Tests record beside the debrief (the player's flights folder untouched).
 		host.blackbox_path = _dir().path_join("flight-%s-%s.jsonl" % [Settings.file_stamp(), mission_name])
-	_build_menu()
+	var layer := CanvasLayer.new()
+	layer.layer = 16
+	add_child(layer)
+	ui = FlightUi.new(host)
+	layer.add_child(ui)
+	# The card opens at the start; scripted runs (IAF_DEFAULT_SETTINGS) fly on without it.
+	if not Settings.isolated():
+		ui.open_card.call_deferred(_sim)
 
 
 func _dir() -> String:
@@ -93,24 +109,6 @@ func _dir() -> String:
 
 func _he() -> bool:
 	return Settings.language == "he"
-
-
-func _build_menu() -> void:
-	var layer := CanvasLayer.new()
-	layer.layer = 16
-	add_child(layer)
-	_panel = PanelContainer.new()
-	_panel.position = Vector2(24, 96)
-	var box := StyleBoxFlat.new()
-	box.bg_color = Color(0, 0, 0, 0.6)
-	box.set_content_margin_all(12)
-	_panel.add_theme_stylebox_override("panel", box)
-	_label = Label.new()
-	_label.add_theme_font_size_override("font_size", 22)
-	_label.add_theme_color_override("font_color", Color(0.85, 1.0, 0.85))
-	_panel.add_child(_label)
-	_panel.visible = false
-	layer.add_child(_panel)
 
 
 ## The menu's text in the game's language.
@@ -132,22 +130,16 @@ func _tower_name() -> String:
 	return names[1 if _he() else 0]
 
 
-## The label's font: the sim's Heebo (Latin and Hebrew glyphs), as the front end's.
-func _font() -> void:
-	if _label.has_theme_font_override("font"):
-		return
-	var font := FontFile.new()
-	font.load_dynamic_font(ProjectSettings.globalize_path(WizardTheme.FONT))
-	_label.add_theme_font_override("font", font)
-
-
 func set_open(on: bool) -> void:
 	open = on
-	_font()
-	_label.text = menu_text()
-	_label.text_direction = Control.TEXT_DIRECTION_RTL if _he() else Control.TEXT_DIRECTION_LTR
-	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if _he() else HORIZONTAL_ALIGNMENT_LEFT
-	_panel.visible = on
+	ui.show_panel(menu_text() if on else "")
+
+
+## A radio line or a message (terrain_view.gd _on_subtitle): the band of the sim's own text, not the original's
+## console.
+func subtitle(text: String) -> void:
+	if ui != null:
+		ui.subtitle(text)
 
 
 ## A key press (terrain_view.gd before its key table): the "Call the tower" key opens / closes the menu; while it is
@@ -156,6 +148,9 @@ func key(event: InputEventKey) -> bool:
 	if event.echo or event.keycode in [KEY_CTRL, KEY_SHIFT, KEY_ALT, KEY_META]:
 		return open and event.echo  # a lone modifier is part of the next key (Ctrl+T closes the menu)
 	var rec: int = host.keys.find_key(host.keys.key_of_event(event), Settings.key_bindings)
+	if rec >= 0 and int(host.keys.records[rec].press[0]) == 201:
+		ui.open_card(_sim)  # the Mission card key (keys.json record 118); the card closes itself
+		return true
 	if rec >= 0 and int(host.keys.records[rec].press[0]) == 107:
 		set_open(not open)
 		return true
@@ -180,7 +175,8 @@ func pick(id: String) -> String:
 		r.contact_tower()
 		return ""
 	var cs: String = r.formation_name(r._player_ent())
-	host._on_subtitle("%s tower, %s, %s" % [_tower_name(), cs, CALLS[id]])
+	var tower: String = (TOWER.he if _he() else TOWER.en) % _tower_name()
+	host._on_subtitle("%s, %s, %s" % [tower, cs, CALLS[id][1 if _he() else 0]])
 	var p: Dictionary = r.request(id)
 	host._log_event(host._log_st, {"event": "radio", "call": id, "answer": p.template, "text": p.text})
 	return String(p.template)
@@ -297,8 +293,5 @@ func _show_result(d: Dictionary, s: Dictionary) -> void:
 		var num := str(int(v)) if v != null and float(v) == roundf(float(v)) else str(v)
 		var shown := String(s.get(it.get("note", ""), "")) if v == null else "%s %s" % [num, String(it.unit)]
 		lines.append("%s: %s" % [String(s.get(it.id, it.id)), shown.strip_edges()])
-	_font()
-	_label.text = "\n".join(lines)
-	_label.text_direction = Control.TEXT_DIRECTION_RTL if _he() else Control.TEXT_DIRECTION_LTR
-	_panel.visible = true
+	ui.show_panel("\n".join(lines))
 	open = false

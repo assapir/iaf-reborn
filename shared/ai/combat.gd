@@ -188,7 +188,8 @@ func setup(h: Node, flights: Node, bdb: Dictionary) -> void:
 			u.brain.reset(rt.now)
 		u.next_scan = rt.now + randf() * SCAN_PERIOD  # staggered: not every unit's scan in one frame
 		units[ent.key] = u
-	print("Ground units armed: %d" % units.size())
+	if not units.is_empty() or Settings.has_setting("ai_level"):  # a game with AI (not IAF 2026's training)
+		print("Ground units armed: %d" % units.size())
 
 
 ## The weapon database and the bdb objects by id (for the jets handed over in flight).

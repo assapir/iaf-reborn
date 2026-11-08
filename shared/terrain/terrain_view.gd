@@ -1652,6 +1652,9 @@ func _on_subtitle(text: String) -> void:
 		return
 	_log_event(_log_st, {"event": "message", "text": t})
 	t = t[0].to_upper() + t.substr(1)
+	if addon != null and addon.has_method("subtitle"):
+		addon.subtitle(t)  # the project's own text over the flight (IAF 2026's band, Settings.flight_addon)
+		return
 	while t.length() >= 40:
 		var cut := t.substr(0, 40).rfind(" ")
 		if cut <= 0:
@@ -1918,33 +1921,32 @@ func _crash_report(reason: String) -> void:
 	var e := {"event": "crash", "reason": reason}
 	if not st.is_empty():
 		var ground = scene_ground(st.position)
-		e.merge(
-			{
-				"type": int(player.get("type", 0)),
-				"vs_ms": snappedf(st.vs_fpm / 196.85, 0.1),
-				"roll": snappedf(st.roll, 0.1),
-				"aoa": snappedf(st.aoa, 0.1),
-				"on_ground": st.on_ground,
-				"gear": snappedf(st.gear, 0.01),
-				"flaps": snappedf(st.flaps, 0.01),
-				"brakes": st.brakes,
-				"throttle": snappedf(st.throttle, 0.01),
-				"surface": terrain.surface_at(st.position),
-				"slope_nz": snappedf(_ground_normal_z(st.position), 0.001),
-				"ap_mode": autopilot.mode if autopilot != null else 0,
-				"ap_stage": String(flight.ap_stage()),
-				"settings":
+		# The game's own settings only (has_setting: IAF 2026 has no easy landing, no Better physics).
+		var logged: Dictionary = Settings.settings_of(
+			["flight_data", "world_scale", "easy_landing", "f16_variant", "f15_variant", "airbases", "scenery"]
+		)
+		if Settings.has_setting("better"):
+			logged["better"] = Settings.better.keys().filter(func(k): return Settings.better[k])
+		(
+			e
+			. merge(
 				{
-					"flight_data": Settings.flight_data,
-					"world_scale": Settings.world_scale,
-					"easy_landing": Settings.easy_landing,
-					"f16_variant": Settings.f16_variant,
-					"f15_variant": Settings.f15_variant,
-					"airbases": Settings.airbases,
-					"scenery": Settings.scenery,
-					"better": Settings.better.keys().filter(func(k): return Settings.better[k]),
-				},
-			}
+					"type": int(player.get("type", 0)),
+					"vs_ms": snappedf(st.vs_fpm / 196.85, 0.1),
+					"roll": snappedf(st.roll, 0.1),
+					"aoa": snappedf(st.aoa, 0.1),
+					"on_ground": st.on_ground,
+					"gear": snappedf(st.gear, 0.01),
+					"flaps": snappedf(st.flaps, 0.01),
+					"brakes": st.brakes,
+					"throttle": snappedf(st.throttle, 0.01),
+					"surface": terrain.surface_at(st.position),
+					"slope_nz": snappedf(_ground_normal_z(st.position), 0.001),
+					"ap_mode": autopilot.mode if autopilot != null else 0,
+					"ap_stage": String(flight.ap_stage()),
+					"settings": logged,
+				}
+			)
 		)
 		if ground != null:
 			e["agl_m"] = snappedf(st.position.y - ground, 0.1)
@@ -2208,7 +2210,8 @@ func _record(st: Dictionary, delta: float) -> void:
 		for section in cfg.get_sections():
 			settings[section] = {}
 			for k in cfg.get_section_keys(section):
-				settings[section][k] = cfg.get_value(section, k)
+				if section == "sim" or Settings.has_setting(k):  # the game's own settings only (IAF 2026's)
+					settings[section][k] = cfg.get_value(section, k)
 		var head := {
 			"blackbox": _log_version,
 			"date": Time.get_datetime_string_from_system(),

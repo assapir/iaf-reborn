@@ -9,8 +9,6 @@ extends Control
 const Look := preload("res://menu/look.gd")
 const Fly := preload("res://flight/fly.gd")
 const Wizard := preload("res://setup/wizard.gd")
-const GroundTextures := preload("res://shared/terrain/ground_textures.gd")
-const GroundRoads := preload("res://shared/terrain/ground_roads.gd")
 const SoundBuses := preload("res://shared/audio/sound_buses.gd")
 
 const PHOTOS := "res://data/photos"
@@ -35,7 +33,7 @@ const PHOTO_CREDITS := {
 }
 ## The Preferences: [group, [[setting, control, choices]]]. Controls: "dropdown" / "radio" ([[label key, value]]; a
 ## label without a string is shown as written), "switch" (choices: [off value, on value], default [false, true]),
-## "slider" (0..1). Realism has no switch here (plan.md "physics"): the Physics group holds the aids only.
+## "slider" (0..1). Realism and aids have no switch (plan.md "physics"; sim_settings.gd PROFILE).
 const PREFS := [
 	[
 		"graphics",
@@ -53,11 +51,6 @@ const PREFS := [
 			["shadows", "switch", []],
 			["terrain_detail", "slider", []],
 			["clouds", "radio", [["clouds_flat", "original"], ["clouds_volumetric", "volumetric"]]],
-			["rain", "radio", [["off", "off"], ["rain_light", "light"], ["rain_heavy", "heavy"]]],
-			["night_lights", "switch", ["original", "detailed"]],
-			["water", "switch", []],
-			["ground_textures", "switch", ["original", "ambientcg"]],
-			["ground_roads", "switch", ["original", "detailed"]],
 			["fullscreen", "switch", []],
 			["vsync", "switch", []],
 		]
@@ -81,24 +74,25 @@ const PREFS := [
 			["stick_response", "radio", [["linear", "linear"], ["soft", "soft"]]],
 		]
 	],
-	[
-		"physics",
-		[
-			["unlimited_fuel", "switch", []],
-			["invulnerable", "switch", []],
-			["no_crashes", "switch", []],
-			["no_blackouts", "switch", []],
-		]
-	],
 ]
+## The screen each breadcrumb opens (_header).
+const CRUMB_PAGES := {
+	"home": "home",
+	"plane": "plane",
+	"training": "training",
+	"preferences": "prefs",
+	"pilot_log": "log",
+	"credits": "credits"
+}
 ## The screens that show the picked jet: Pick a plane opens in their place before the first pick.
-const NEEDS_JET := ["home", "training", "mission"]
+const NEEDS_JET := ["training", "mission"]
 ## Esc on each screen goes here ("" = nothing on Home).
 const BACK := {
 	"plane": "home",
 	"training": "home",
 	"mission": "training",
 	"prefs": "home",
+	"prefs_section": "prefs",
 	"debrief": "home",
 	"log": "home",
 	"credits": "home",
@@ -115,8 +109,8 @@ var missions: Array = []
 var mission_i := 0
 var record := {}
 var record_file := ""
-var prefs_scroll: ScrollContainer
-var _groups := {}
+## The Preferences section shown (prefs_section).
+var pref_group := ""
 var _focus: Control
 static var _textures := {}
 static var _themes := {}
@@ -145,7 +139,7 @@ func _ready() -> void:
 		Settings.flown_debrief = ""
 		if open_debrief(f):
 			return
-	show_page("plane" if jet().is_empty() else "home")
+	show_page("home")
 
 
 ## `-- --mission <id>`: flies that mission at once (true when it starts).
@@ -197,10 +191,13 @@ func show_page(p: String) -> void:
 	setup_strings = Settings.load_json("res://setup/strings_%s.json" % lang)
 	if not _themes.has(he()):
 		_themes[he()] = Look.make()
-		_mirror_tabs(_themes[he()])
 	theme = _themes[he()]
 	_attempts = []
-	layout_direction = Control.LAYOUT_DIRECTION_RTL if he() else Control.LAYOUT_DIRECTION_LTR
+	var dir := Control.LAYOUT_DIRECTION_RTL if he() else Control.LAYOUT_DIRECTION_LTR
+	# Over a flight the overlay itself stays left to right: a right-to-left control under a CanvasLayer mirrors its own
+	# position by its unscaled width (_fit_overlay), which pushed the pause menu off the screen. Its children carry
+	# the direction instead (below).
+	layout_direction = dir if flight == null else Control.LAYOUT_DIRECTION_LTR
 	if flight == null:
 		get_window().title = str(setup_strings.get("name", ""))
 	for c in get_children():
@@ -209,7 +206,7 @@ func show_page(p: String) -> void:
 	_focus = null
 	if flight != null:
 		var dim := ColorRect.new()
-		dim.color = Color(Look.BG, 0.94 if p == "prefs" else 0.7)
+		dim.color = Color(Look.BG, 0.94 if p.begins_with("prefs") else 0.7)
 		add_child(dim)
 		dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	else:
@@ -221,15 +218,11 @@ func show_page(p: String) -> void:
 		missions = jet_missions(jet().unit)
 		mission_i = clampi(mission_i, 0, maxi(missions.size() - 1, 0))
 	call("_page_" + p)
+	if flight != null:
+		for c in get_children():
+			c.layout_direction = dir
 	if _focus != null:
 		_grab.call_deferred(_focus)
-
-
-## The tabs' rail sits on the inline-start side (the right in Hebrew).
-func _mirror_tabs(t: Theme) -> void:
-	var on: StyleBoxFlat = t.get_stylebox("pressed", "Tab")
-	on.border_width_left = 0 if he() else 4
-	on.border_width_right = 4 if he() else 0
 
 
 ## The top bar: the name and where you are (`crumbs`, the last one current), the pilot with the jet.
@@ -247,9 +240,15 @@ func _header(crumbs: Array) -> void:
 	for i in crumbs.size():
 		if i > 0:
 			_label(h, "·", "Crumb").size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		var c := _label(
-			h, s(crumbs[i]) if strings.has(crumbs[i]) else crumbs[i], "CrumbOn" if i == crumbs.size() - 1 else "Crumb"
-		)
+		var t: String = s(crumbs[i]) if strings.has(crumbs[i]) else crumbs[i]
+		# Every crumb but the current one opens its screen (a jet's name: its Training).
+		var to: String = CRUMB_PAGES.get(crumbs[i], "training")
+		var c: Control
+		if i == crumbs.size() - 1:
+			c = _label(h, t, "CrumbOn")
+		else:
+			c = _button(h, t, "CrumbLink", show_page.bind(to))
+			c.name = "Crumb_" + to
 		c.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_spacer(h)
 	var who := VBoxContainer.new()
@@ -343,7 +342,8 @@ func _credit(files: Array) -> String:
 
 func _page_home() -> void:
 	var j := jet()
-	var air: String = JET_PHOTOS[j.name][0]
+	# Before the first pick: the first jet's photo, the sim's name and one action, Choose a plane.
+	var air: String = JET_PHOTOS[j.name if not j.is_empty() else JETS[0].name][0]
 	# The photo on the inline-end two thirds, fading into the background toward the column.
 	var ph := _photo(self, air)
 	ph.anchor_left = 0.32
@@ -374,19 +374,48 @@ func _page_home() -> void:
 	col.offset_left = 0
 	col.offset_right = 0
 	var name_box := _vbox(col, 0)
-	var code := _label(name_box, j.code, "Code")
-	code.text_direction = Control.TEXT_DIRECTION_LTR
-	_label(name_box, s(j.name), "Jet")
-	_label(name_box, s("base_" + j.base), "Big")
-	var fly := _button(col, s("fly"), "Fly", func(): show_page("training"))
-	fly.name = "Fly"
-	fly.custom_minimum_size = Vector2(258, 86)
-	fly.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	_focus = fly
-	# The log summary.
+	if j.is_empty():
+		_label(name_box, str(setup_strings.get("name", "")), "Jet").add_theme_font_size_override("font_size", 84)
+		var choose := _button(col, s("choose_plane"), "Fly", func(): show_page("plane"))
+		choose.name = "ChoosePlane"
+		choose.custom_minimum_size = Vector2(258, 86)
+		choose.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		_focus = choose
+	else:
+		var code := _label(name_box, j.code, "Code")
+		code.text_direction = Control.TEXT_DIRECTION_LTR
+		_label(name_box, s(j.name), "Jet")
+		_label(name_box, s("base_" + j.base), "Big")
+		var fly := _button(col, s("fly"), "Fly", func(): show_page("training"))
+		fly.name = "Fly"
+		fly.custom_minimum_size = Vector2(258, 86)
+		fly.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		_focus = fly
+	_home_log(col)
+	var menu := _vbox(col, 0)
+	_rule(menu, Look.LINE)
+	var items := [
+		["change_plane", func(): show_page("plane")],
+		["pilot_log", func(): show_page("log")],
+		["preferences", func(): show_page("prefs")],
+		["credits", func(): show_page("credits")],
+		["quit", func(): Settings.quit()],
+	]
+	for item in items.slice(1 if j.is_empty() else 0):
+		var b := _button(menu, s(item[0]), "Menu", item[1])
+		b.name = item[0]
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		_rule(menu, Look.LINE)
+	_footer([["Enter", "select"]], _credit([air]))
+
+
+## Home's log summary: the flights, the flight time and the last result (none before the first flight).
+func _home_log(col: Control) -> void:
+	var att := attempts()
+	if att.is_empty():
+		return
 	var log := _vbox(col, 6)
 	_label(log, s("pilot_log"), "H3")
-	var att := attempts()
 	var stats := _hbox(log, 46)
 	var total := 0.0
 	for a in att:
@@ -397,25 +426,10 @@ func _page_home() -> void:
 		v.text_direction = Control.TEXT_DIRECTION_LTR
 		var l := _label(one, s(st[1]), "Muted")
 		l.size_flags_vertical = Control.SIZE_SHRINK_END
-	if not att.is_empty():
-		var last: Dictionary = att[-1]
-		var row := _hbox(log, 16)
-		_label(row, s("last") % mission_title(int(last.id)), "Row").size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		_chip(row, s("pass" if int(last.result) == 1 else "fail"), int(last.result) == 1)
-	var menu := _vbox(col, 0)
-	_rule(menu, Look.LINE)
-	for item in [
-		["change_plane", func(): show_page("plane")],
-		["pilot_log", func(): show_page("log")],
-		["preferences", func(): show_page("prefs")],
-		["credits", func(): show_page("credits")],
-		["quit", func(): Settings.quit()],
-	]:
-		var b := _button(menu, s(item[0]), "Menu", item[1])
-		b.name = item[0]
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		_rule(menu, Look.LINE)
-	_footer([["Enter", "select"]], _credit([air]))
+	var last: Dictionary = att[-1]
+	var row := _hbox(log, 16)
+	_label(row, s("last") % mission_title(int(last.id)), "Row").size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_chip(row, s("pass" if int(last.result) == 1 else "fail"), int(last.result) == 1)
 
 
 # --- Pick a plane -----------------------------------------------------------------------------------------------------
@@ -654,52 +668,64 @@ func fly_mission(m: Dictionary) -> void:
 # --- Preferences ------------------------------------------------------------------------------------------------------
 
 
+## Preferences: the sections, each opening its own screen (_page_prefs_section).
 func _page_prefs() -> void:
 	if flight == null:
 		_header(["home", "preferences"])
-	var v := _vbox(_body(96, 112 if flight == null else 60), 40)
+	var v := _vbox(_body(96, 112 if flight == null else 60), 30)
 	_title(v, s("preferences"), "")
-	var h := _hbox(v, 96)
-	h.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var nav := _vbox(h, 0)
-	nav.custom_minimum_size.x = 384
-	var group := ButtonGroup.new()
-	prefs_scroll = ScrollContainer.new()
-	prefs_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	prefs_scroll.custom_minimum_size.x = 1075
-	h.add_child(prefs_scroll)
+	for g in PREFS:
+		var b := Button.new()
+		b.name = "Section_" + g[0]
+		b.theme_type_variation = "Card"
+		b.custom_minimum_size = Vector2(900, 120)
+		b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		v.add_child(b)
+		var col := _vbox(_margin(b, 30, 20), 4)
+		col.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_label(col, s(g[0]), "Strong").add_theme_font_size_override("font_size", 27)
+		var names := []
+		for row in g[1]:
+			names.append(s(row[0]))
+		_label(col, ", ".join(names), "Muted").text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		for c in b.find_children("*", "Control", true, false):
+			c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.pressed.connect(_open_section.bind(g[0]))
+		if g[0] == pref_group or _focus == null:
+			_focus = b
+	_footer([["Esc", "back"], ["Enter", "select"]])
+
+
+func _open_section(group: String) -> void:
+	pref_group = group
+	show_page("prefs_section")
+
+
+## One section of the Preferences (pref_group): its rows, scrolled when they outgrow the screen.
+func _page_prefs_section() -> void:
+	if flight == null:
+		_header(["home", "preferences", pref_group])
+	var v := _vbox(_body(96, 112 if flight == null else 60), 30)
+	_title(v, s(pref_group), "")
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.custom_minimum_size.x = 1180
+	scroll.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	v.add_child(scroll)
 	# Room for the scroll bar on either side, so no control sits under it in either direction.
-	var bm := _margin(prefs_scroll, 32, 0)
+	var bm := _margin(scroll, 32, 0)
 	bm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var body := _vbox(bm, 0)
-	_groups = {}
 	for g in PREFS:
-		var tab := Button.new()
-		tab.name = "Tab_" + g[0]
-		tab.text = s(g[0])
-		tab.theme_type_variation = "Tab"
-		tab.toggle_mode = true
-		tab.button_group = group
-		tab.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		tab.button_pressed = g == PREFS[0]
-		tab.pressed.connect(func(): _scroll_to(g[0]))
-		nav.add_child(tab)
-		var head := _margin(body, 0, 0)
-		head.add_theme_constant_override("margin_top", 0 if g == PREFS[0] else 40)
-		_groups[g[0]] = head
-		var hv := _vbox(head, 12)
-		_label(hv, s(g[0]), "Strong").add_theme_font_size_override("font_size", 31)
-		_rule(hv, Look.LINE)
-		for row in g[1]:
-			_pref_row(body, row)
-	_focus = nav.get_child(0)
-	var acts: Array = []
-	_footer([["Esc", "back"], ["Enter", "select"]], "", acts)
-
-
-func _scroll_to(group: String) -> void:
-	var head: Control = _groups[group]
-	prefs_scroll.scroll_vertical = int(head.position.y)
+		if g[0] == pref_group:
+			for row in g[1]:
+				_pref_row(body, row)
+	for c in body.find_children("*", "Control", true, false):
+		if (c as Control).focus_mode != Control.FOCUS_NONE:
+			_focus = c
+			break
+	_footer([["Esc", "back"], ["Enter", "select"]])
 
 
 ## One preference: its name and note at the inline start, its control at the inline end.
@@ -737,7 +763,6 @@ func _pref_row(parent: Control, row: Array) -> void:
 			var c := CheckButton.new()
 			c.name = "Control"
 			c.button_pressed = value == vals[1]
-			c.disabled = _unavailable(key)
 			c.toggled.connect(
 				func(on):
 					label.text = s("on") if on else s("off")
@@ -775,15 +800,6 @@ func _pref_row(parent: Control, row: Array) -> void:
 				r.pressed.connect(_set_pref.bind(key, c[1]))
 				rv.add_child(r)
 	_rule(parent, Look.LINE)
-
-
-## Settings the sim cannot use without setup's optional downloads stay off.
-func _unavailable(key: String) -> bool:
-	if key == "ground_textures":
-		return not GroundTextures.available()
-	if key == "ground_roads":
-		return not GroundRoads.available()
-	return false
 
 
 func _set_pref(key: String, value: Variant) -> void:
@@ -1115,10 +1131,14 @@ func _page_credits() -> void:
 
 
 func _page_pause() -> void:
+	# Centred by a container, so it stays centred whatever its labels and the view measure (a preset's offsets are
+	# fixed at the size it had then).
+	var center := CenterContainer.new()
+	add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var panel := PanelContainer.new()
 	panel.name = "Pause"
-	add_child(panel)
-	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	center.add_child(panel)
 	panel.custom_minimum_size = Vector2(560, 0)
 	var v := _vbox(_margin(panel, 48, 40), 22)
 	_label(v, str(setup_strings.get("name", "")), "Mark")
@@ -1129,8 +1149,6 @@ func _page_pause() -> void:
 	_button(v, s("preferences"), "Secondary", func(): show_page("prefs")).name = "PausePrefs"
 	var end := _button(v, s("end_flight"), "Secondary", func(): flight._end_flight(true))
 	end.name = "EndFlight"
-	panel.reset_size.call_deferred()
-	panel.set_anchors_and_offsets_preset.call_deferred(Control.PRESET_CENTER)
 
 
 # --- keys -------------------------------------------------------------------------------------------------------------
@@ -1146,15 +1164,15 @@ func _unhandled_input(event: InputEvent) -> void:
 ## Esc: the screen before this one; over a flight, back to the flight (the Preferences apply then).
 func back() -> void:
 	if flight != null:
-		if page == "prefs" and screen != "pref":
+		if page == "prefs_section":
+			show_page("prefs")
+		elif page == "prefs" and screen != "pref":
 			flight._apply_preferences()
 			show_page("pause")
 		else:
 			flight.close_front_end()
 		return
 	var to: String = BACK.get(page, "")
-	if page == "plane" and jet().is_empty():
-		return
 	if to != "":
 		show_page(to)
 

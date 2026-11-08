@@ -168,6 +168,11 @@ IPA) puts the stress on the last syllable of almost every word ("mˈigdal" for m
 without diacritics in the text; hand-written IPA fixes it, so every Hebrew line carries its IPA. A sample tower call
 was made with it for the user's approval (not in the repo).
 
+
+The subtitles do not wait: every tower particle has its Hebrew text (`text_he`, gender-neutral: "אישור המראה",
+"הסעה למסלול", "המתנה במקום"), compiled by `iaf-sim own` into `phraseparticles_he.trx`. In Hebrew `radio.gd` prints
+the phrase from those while it plays the English clips ([training.md](training.md) §8).
+
 ## 6. Credits the sim's wizard and credits roll need
 The setup wizard (item A3) and the credits roll live outside this branch's folders; they need these lines (also in
 [docs/credits.md](../../docs/credits.md)):

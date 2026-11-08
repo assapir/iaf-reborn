@@ -11,9 +11,11 @@ From the repo root:
 ```sh
 ./modern-iaf-setup     # the setup wizard: builds the sim's data into assets/ (docs/setup.md)
 ./modern-iaf           # builds the extension and starts the sim: its front end, Home (docs/front-end.md)
-./modern-iaf -- --mission 2012   # flies one mission at once, then shows its debrief (2011 / 2012 Ramon, 2021 / 2022 Ramat David, 2031 / 2032 Nevatim; training.md §10)
 IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-2026 -s ../iaf-2026/tests/test_m0_boot.gd --log-file <temp>
 ```
+
+Developers: `./modern-iaf -- --mission <id>` flies one mission at once, then shows its debrief (2011 / 2012 Ramon,
+2021 / 2022 Ramat David, 2031 / 2032 Nevatim; [training.md](docs/training.md) §10).
 
 On Windows: `.\modern-iaf-setup.ps1` and `.\modern-iaf.ps1`. The old names `./iaf2026` and `./iaf2026-setup` (+ `.ps1`) still
 work: they say the new name and start it.
@@ -31,7 +33,7 @@ work: they say the new name and start it.
 
    ```sh
    ./modern-iaf-setup               # the setup wizard: builds the sim's data into assets/
-   ./modern-iaf [-- --mission 2012] # Modern IAF: the front end; --mission flies one mission, then its debrief
+   ./modern-iaf                     # Modern IAF
    ```
 
    The wizard's window opens after the build. Choose the language, then Next, Next, Install, and wait for Done.

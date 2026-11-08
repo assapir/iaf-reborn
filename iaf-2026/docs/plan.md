@@ -104,6 +104,7 @@ Rules that hold:
 | topic | decision |
 |---|---|
 | name | **Modern IAF** in English, **הזרוע הארוכה** in Hebrew: two titles, neither a translation of the other (as the original was Jane's IAF / כוכב כחול); no tagline. The window title, the wizard, the setup's texts and log, the launchers' messages and the docs carry it. The launchers are `./modern-iaf` and `./modern-iaf-setup` (+ `.ps1` twins); `./iaf2026` and `./iaf2026-setup` (+ `.ps1`) stay as two-line forwarders that print the new name and start it, so old habits and older docs keep working. Every source comment and string a human reads says "Modern IAF" (the terrain download's User-Agent too), and the setup log is `assets/logs/modern-iaf-setup-<stamp>.log`. The folder `iaf-2026/`, the crate and bin names (`iaf-sim`), the test file names, `converted/iaf-2026/`, `tools/iaf-2026/` and the item codes stay unchanged: code identifiers the player never sees, and renaming them would move the user's built data and every link in the docs. Dated history lines (the Done notes, the decisions of 2 November) keep the names of their day. The `user://` folder follows `config/name` ("Modern IAF"); no records existed under the old name, so nothing moves. |
+| aids | **No aids in Preferences** (unlimited fuel, no damage, any cheat): the physics row's toggles are dropped; aids, if ever, belong to a training mission's own options. Preferences has one screen per section (Graphics, Sound, Devices, Language), so each can grow. |
 
 ## Rules (the user, 3 November 2026)
 
@@ -311,6 +312,22 @@ Size: L. Blocks on: A2, B2, C1, E1, E2.
 ### F the probe
 
 the probe `test_mvp.gd` passes for Sufa, Barak, F-35I on Linux / macOS / Windows. Part of the proof: the M0 probe's "no original game data read, converted or install" (item [A4](#a4-the-gate)) passes on the same machine, so the flights use the sim's own data only
+
+**The first Mac play test (the user, 2026-11-08, mission 2011 on an M4 Pro, 1920 × 1080 window on a 2560 × 1440
+screen), branch wt/iaf-2026-mac1:**
+- No taxiway or apron: the sim's `PROFILE` left Detailed airbases at the 1998 value, which draws nothing in the sim.
+  Fixed, with every look switch whose 1998 value draws art the sim lacks ([airbases.md](airbases.md) §9).
+- "No idea how to do anything": the mission card at the start, a key hint line, the radio lines in the sim's own
+  band in the game's language ([front-end.md](front-end.md) §8).
+- The pause menu off the right edge with its labels outside the screen: the Hebrew overlay mirrored its position by
+  its unscaled width; fixed and tested at three sizes in both languages. F1–F4 only switch views (checked).
+- Preferences: one screen per section; no Physics / aids, no Rain row; the aids off in `PROFILE` (`easy_landing` was
+  on); the Roads row and the probes no longer trip the A4 gate; the logs name only the sim's settings and drop the AI
+  lines a training flight has no use for.
+- Home opens on every start (Choose a plane before the first pick); the breadcrumbs open their screens; the wizard's
+  Done page says only `./modern-iaf`.
+- The point of view (too close to the HUD): measured the same as the original game's 3D cockpit (75° across, 5.5°
+  down, the eye 0.475 m behind the Sufa's combiner); the default view's change went to its own session.
 
 Size: —. Blocks on: all above except C2, D2.
 

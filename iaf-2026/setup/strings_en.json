@@ -79,9 +79,5 @@
 	"step_sim-missions": "Training missions",
 	"set_up": "Modern IAF is set up.",
 	"not_set_up": "Setup did not finish: %s",
-	"how_start": "To start Modern IAF:",
-	"mission_start": "Start-up",
-	"mission_takeoff": "Take-off",
-	"mission_cmd": "One mission directly (Ramon, Ramat David, Nevatim):",
-	"again": "To run setup again (the finished steps are kept):"
+	"how_start": "To start Modern IAF:"
 }

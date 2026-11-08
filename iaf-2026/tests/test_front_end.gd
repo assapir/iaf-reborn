@@ -20,24 +20,109 @@ func run() -> void:
 	if not FileAccess.file_exists(s.assets_dir().path_join("converted/iaf-2026/missions/missionlist.json")):
 		print("NEEDS DATA: this test reads the sim's compiled missions (./modern-iaf-setup)")
 		return
+	# The sim has no aids (the user, 2026-11-08): every switch of the original's Gameplay page off.
+	for k in [
+		"no_wind",
+		"no_blackouts",
+		"no_spins",
+		"no_stalls",
+		"easy_landing",
+		"easy_aiming",
+		"no_malfunctions",
+		"invulnerable",
+		"no_crashes",
+		"unlimited_ammo",
+		"unlimited_fuel"
+	]:
+		check(s.get(k) == false, "settings: no aid on (%s = %s)" % [k, s.get(k)])
+		check(not s.has_setting(k), "settings: the logs name no aid (%s)" % k)
+	# The start-up log's dump (settings.gd _log_startup) names only the sim's settings.
+	var dump: Dictionary = s.changed_settings()
+	check(dump.keys().all(func(k): return s.has_setting(k)), "settings: the log dump is the sim's own (%s)" % [dump])
+	for k in ["airbases", "language", "shadows", "cockpit_3d"]:
+		check(s.has_setting(k), "settings: the sim has %s" % k)
 	var file := fixture(s)
 	s.sim_jet = ""
 	change_scene_to_file("res://main.tscn")
 	await frames(3)
 	var fe: Control = current_scene
-	check(fe.page == "plane", "a first start opens Pick a plane")
-	check(fe.find_child("Continue", true, false).disabled, "first start: Continue waits for a pick")
+	check(fe.page == "home", "a first start opens Home")
+	check(fe.find_child("Fly", true, false) == null, "first start: no Fly before a plane")
+	check(fe.find_child("change_plane", true, false) == null, "first start: no Change plane before a plane")
+	var choose: Button = fe.find_child("ChoosePlane", true, false)
+	check(choose != null and choose.text == "Choose a plane", "first start: Home's one action is Choose a plane")
+	choose.pressed.emit()
+	await frames(2)
+	check(fe.page == "plane" and fe.find_child("Continue", true, false).disabled, "Choose a plane opens the picker")
+	(fe.find_child("sufa", true, false) as Button).pressed.emit()
+	await frames(2)
 	key(fe, KEY_ESCAPE)
 	await frames(2)
-	check(fe.page == "plane", "first start: Esc stays on Pick a plane")
-	fe.show_page("home")
-	check(fe.page == "plane", "first start: Home needs a plane, so Pick a plane opens")
+	check(fe.page == "home" and fe.find_child("Fly", true, false) != null, "back to Home with the jet: Fly is there")
+	s.sim_jet = ""
 	for lang in ["en", "he"]:
 		s.language = lang
 		await walk(fe, file, lang)
 	s.language = "en"
+	await crumbs(fe)
 	await prefs(fe)
+	await overlay_fits()
 	await fly_once(fe)
+
+
+## The breadcrumbs open their screens and keep the picks; the current one is no button.
+func crumbs(fe: Control) -> void:
+	var s := settings()
+	s.sim_jet = "f16i"
+	fe.mission_i = 1
+	fe.show_page("mission")
+	await frames(2)
+	check(fe.find_child("Crumb_mission", true, false) == null, "crumbs: the current screen is no button")
+	var home: Button = fe.find_child("Crumb_home", true, false)
+	check(home != null and home.focus_mode != Control.FOCUS_NONE, "crumbs: Home is a button the keys reach")
+	home.pressed.emit()
+	await frames(2)
+	check(fe.page == "home", "crumbs: Home from the mission screen opens Home")
+	fe.show_page("mission")
+	await frames(2)
+	check(fe.mission_i == 1 and s.sim_jet == "f16i", "crumbs: the plane and the picked mission kept")
+	(fe.find_child("Crumb_training", true, false) as Button).pressed.emit()
+	await frames(2)
+	check(fe.page == "training", "crumbs: the jet's crumb opens its Training")
+
+
+## The pause menu over a flight in viewports of several sizes, both languages: on its first frame the panel lies
+## inside the viewport with its labels (the Mac's 2026-11-08 Hebrew pause menu sat off the right edge).
+func overlay_fits() -> void:
+	var s := settings()
+	for lang in ["en", "he"]:
+		s.language = lang
+		for vs in [Vector2i(1920, 1080), Vector2i(2560, 1440), Vector2i(1280, 800)]:
+			var vp := SubViewport.new()
+			vp.size = vs
+			get_root().add_child(vp)
+			var layer := CanvasLayer.new()
+			vp.add_child(layer)
+			var o: Control = load("res://menu/front_end.gd").new()
+			o.flight = Node.new()
+			o.screen = "flytsd"
+			layer.add_child(o)
+			await frames(1)
+			var panel: Control = o.find_child("Pause", true, false)
+			var r := panel.get_global_rect() if panel != null else Rect2()
+			var view := Rect2(Vector2.ZERO, Vector2(vs))
+			var dim: Control = o.get_child(0)
+			check(
+				r.size.x > 0 and view.encloses(r) and absf(r.get_center().x - vs.x / 2.0) < 2.0,
+				"overlay %s %s: the pause menu centred inside the view (%s)" % [lang, vs, r]
+			)
+			check(view.is_equal_approx(dim.get_global_rect()), "overlay %s %s: the dim covers the view" % [lang, vs])
+			var resume: Button = o.find_child("Resume", true, false)
+			check(resume != null and resume.text != "", "overlay %s %s: the buttons are labelled" % [lang, vs])
+			o.flight.free()
+			vp.queue_free()
+			await frames(1)
+	s.language = "en"
 
 
 func fly_once(fe: Control) -> void:
@@ -50,6 +135,16 @@ func fly_once(fe: Control) -> void:
 		await process_frame
 		tv = current_scene
 	check(tv.mission_id == 2011, "fly: Ramon's start-up loads")
+	for k in [KEY_F1, KEY_F2, KEY_F3, KEY_F4]:
+		var f := _key_event(k)
+		tv._unhandled_input(f)
+		f = f.duplicate()
+		f.pressed = false
+		tv._unhandled_input(f)
+	await frames(2)
+	check(tv.fe_overlay == null, "fly: F1–F4 only switch views (no pause menu)")
+	tv._unhandled_input(_key_event(KEY_F1))
+	check(tv.in_cockpit, "fly: F1 is the cockpit")
 	Engine.time_scale = 6.0
 	var e := InputEventKey.new()
 	e.keycode = KEY_E
@@ -68,7 +163,15 @@ func fly_once(fe: Control) -> void:
 	check(pause != null and pause.page == "pause" and _has(pause, "Paused"), "fly: Esc opens the pause menu")
 	pause.find_child("PausePrefs", true, false).pressed.emit()
 	await frames(2)
-	check(pause.page == "prefs" and pause.find_child("Pref_shadows", true, false) != null, "fly: pause, Preferences")
+	check(
+		pause.page == "prefs" and pause.find_child("Section_graphics", true, false) != null, "fly: pause, Preferences"
+	)
+	(pause.find_child("Section_graphics", true, false) as Button).pressed.emit()
+	await frames(2)
+	check(pause.find_child("Pref_shadows", true, false) != null, "fly: pause, Preferences, Graphics")
+	key(pause, KEY_ESCAPE)
+	await frames(2)
+	check(pause.page == "prefs", "fly: Esc from Graphics back to the sections")
 	key(pause, KEY_ESCAPE)
 	await frames(2)
 	check(pause.page == "pause" and tv.fe_overlay == pause, "fly: Esc from Preferences back to the pause menu")
@@ -243,39 +346,58 @@ func walk(fe: Control, file: String, lang: String) -> void:
 
 func prefs(fe: Control) -> void:
 	var s := settings()
+	var refused: int = s.rejected.size()
 	fe.show_page("prefs")
 	await frames(2)
+	var sections := ["graphics", "language", "sound", "devices"]
+	for g in sections:
+		check(fe.find_child("Section_" + g, true, false) != null, "prefs: the %s section on the list" % g)
+	check(fe.find_child("Section_physics", true, false) == null, "prefs: no Physics section (no aids)")
+	check(fe.find_child("Pref_shadows", true, false) == null, "prefs: the list holds no rows")
+	# Each section on its own screen, Esc back to the list.
+	var rows := {}
+	for g in sections:
+		(fe.find_child("Section_" + g, true, false) as Button).pressed.emit()
+		await frames(2)
+		check(fe.page == "prefs_section" and fe.pref_group == g, "prefs: %s opens its own screen" % g)
+		for c in fe.find_children("Pref_*", "", true, false):
+			rows[String(c.name).trim_prefix("Pref_")] = g
+		if g == "graphics":
+			var aa: OptionButton = fe.find_child("Pref_antialiasing", true, false).find_child("Control", true, false)
+			check(aa.get_item_text(aa.selected).begins_with("MSAA 4×"), "prefs: antialiasing is a dropdown at MSAA 4×")
+			var sh: CheckButton = fe.find_child("Pref_shadows", true, false).find_child("Control", true, false)
+			sh.button_pressed = false
+			check(s.shadows == false, "prefs: the shadows switch sets the setting")
+			sh.button_pressed = true
+		key(fe, KEY_ESCAPE)
+		await frames(2)
+		check(fe.page == "prefs", "prefs: Esc from %s back to the list" % g)
+	check(s.rejected.size() == refused, "prefs: the screens read none of the original's data (%s)" % [s.rejected])
+	for k in ["antialiasing", "upscaling", "shadows", "terrain_detail", "clouds", "fullscreen", "vsync"]:
+		check(rows.get(k) == "graphics", "prefs: Graphics has %s" % k)
+	for k in ["engine_volume", "sfx_volume", "speech_volume", "mute"]:
+		check(rows.get(k) == "sound", "prefs: Sound has %s" % k)
+	for k in ["flight_controls", "rudder", "throttle", "stick_response"]:
+		check(rows.get(k) == "devices", "prefs: Devices has %s" % k)
+	check(rows.get("language") == "language", "prefs: Language has the language")
 	for k in [
-		"antialiasing",
-		"shadows",
-		"terrain_detail",
-		"clouds",
-		"rain",
-		"night_lights",
-		"language",
-		"flight_controls",
-		"unlimited_fuel"
+		"flight_data", "unlimited_fuel", "invulnerable", "no_crashes", "no_blackouts", "rain", "water", "ground_roads"
 	]:
-		check(fe.find_child("Pref_" + k, true, false) != null, "prefs: the %s row" % k)
-	check(fe.find_child("Pref_flight_data", true, false) == null, "prefs: no realism switch (flight data)")
-	var aa: OptionButton = fe.find_child("Pref_antialiasing", true, false).find_child("Control", true, false)
-	check(aa.get_item_text(aa.selected).begins_with("MSAA 4×"), "prefs: antialiasing is a dropdown at MSAA 4×")
-	var sh: CheckButton = fe.find_child("Pref_shadows", true, false).find_child("Control", true, false)
-	sh.button_pressed = false
-	check(s.shadows == false, "prefs: the shadows switch sets the setting")
-	sh.button_pressed = true
+		check(not rows.has(k), "prefs: no %s row (no realism switch, no aid, nothing the profile fixes)" % k)
+	(fe.find_child("Section_language", true, false) as Button).pressed.emit()
+	await frames(2)
 	var lang: OptionButton = fe.find_child("Pref_language", true, false).find_child("Control", true, false)
 	lang.select(1)
 	lang.item_selected.emit(1)
 	await frames(2)
-	check(
-		s.language == "he" and fe.is_layout_rtl() and _has(fe, "הגדרות"), "prefs: Hebrew switches every string at once"
-	)
+	check(s.language == "he" and fe.is_layout_rtl() and _has(fe, "שפה"), "prefs: Hebrew switches every string at once")
 	lang = fe.find_child("Pref_language", true, false).find_child("Control", true, false)
 	lang.select(0)
 	lang.item_selected.emit(0)
 	await frames(2)
-	check(s.language == "en" and not fe.is_layout_rtl() and _has(fe, "Preferences"), "prefs: and back to English")
+	check(s.language == "en" and not fe.is_layout_rtl() and _has(fe, "Language"), "prefs: and back to English")
+	key(fe, KEY_ESCAPE)
+	await frames(2)
 
 
 ## Writes a pilot log with two passes and the take-off's debrief record (the scorer's shape, training.md §4).
@@ -398,3 +520,11 @@ func _has(root: Node, t: String) -> bool:
 
 func _has_part(root: Node, t: String) -> bool:
 	return _labels(root).any(func(x): return t in x)
+
+
+func _key_event(k: Key) -> InputEventKey:
+	var e := InputEventKey.new()
+	e.keycode = k
+	e.physical_keycode = k
+	e.pressed = true
+	return e

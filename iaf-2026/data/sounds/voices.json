@@ -1,5 +1,5 @@
 {
-  "about": "Modern IAF's voices: every speech clip of iaf-2026/data/sounds (Piper TTS through tools/iaf-2026/radio_voice.py --set), the tower's phrase particles and templates (compiled by iaf-sim own into phraseparticalsdata.trx / phrasetemplates.trx, the format shared/audio/radio.gd reads, docs/radio.md §1), and the Hebrew lines waiting for a voice. mode: intercom (Betty: band-pass and soft clip), radio (plus hiss and squelch), particle (radio band and hiss level, no squelch: the parts of one transmission).",
+  "about": "Modern IAF's voices: every speech clip of iaf-2026/data/sounds (Piper TTS through tools/iaf-2026/radio_voice.py --set), the tower's phrase particles and templates (compiled by iaf-sim own into phraseparticalsdata.trx / phrasetemplates.trx, and each particle's Hebrew subtitle text_he into phraseparticles_he.trx, the format shared/audio/radio.gd reads, docs/radio.md §1), and the Hebrew lines waiting for a voice. mode: intercom (Betty: band-pass and soft clip), radio (plus hiss and squelch), particle (radio band and hiss level, no squelch: the parts of one transmission).",
   "voices": {
     "betty": {
       "model": "en_US-kristin-medium",
@@ -510,251 +510,313 @@
   "particles": {
     ",": {
       "file": "twr_pause.wav",
-      "text": ","
+      "text": ",",
+      "text_he": ","
     },
     "ALPHA_T": {
       "file": "twr_alpha.wav",
-      "text": "Alpha"
+      "text": "Alpha",
+      "text_he": "Alpha"
     },
     "BRAVO_T": {
       "file": "twr_bravo.wav",
-      "text": "Bravo"
+      "text": "Bravo",
+      "text_he": "Bravo"
     },
     "CHARLIE_T": {
       "file": "twr_charlie.wav",
-      "text": "Charlie"
+      "text": "Charlie",
+      "text_he": "Charlie"
     },
     "DELTA_T": {
       "file": "twr_delta.wav",
-      "text": "Delta"
+      "text": "Delta",
+      "text_he": "Delta"
     },
     "MORNING": {
       "file": "twr_morning.wav",
-      "text": "good morning"
+      "text": "good morning",
+      "text_he": "בוקר טוב"
     },
     "AFTERNOON": {
       "file": "twr_afternoon.wav",
-      "text": "good afternoon"
+      "text": "good afternoon",
+      "text_he": "צהריים טובים"
     },
     "EVENING": {
       "file": "twr_evening.wav",
-      "text": "good evening"
+      "text": "good evening",
+      "text_he": "ערב טוב"
     },
     "WI_KNOTS10": {
       "file": "twr_wind10.wav",
-      "text": "wind 10 knots"
+      "text": "wind 10 knots",
+      "text_he": "רוח 10 קשר"
     },
     "WI_KNOTS15": {
       "file": "twr_wind15.wav",
-      "text": "wind 15 knots"
+      "text": "wind 15 knots",
+      "text_he": "רוח 15 קשר"
     },
     "WI_KNOTS20": {
       "file": "twr_wind20.wav",
-      "text": "wind 20 knots"
+      "text": "wind 20 knots",
+      "text_he": "רוח 20 קשר"
     },
     "START": {
       "file": "twr_start.wav",
-      "text": "cleared to start"
+      "text": "cleared to start",
+      "text_he": "אישור התנעה"
     },
     "TAXI_RWY": {
       "file": "twr_taxi_rwy.wav",
-      "text": "taxi to runway"
+      "text": "taxi to runway",
+      "text_he": "הסעה למסלול"
     },
     "LINEUP_RWY": {
       "file": "twr_lineup_rwy.wav",
-      "text": "line up runway"
+      "text": "line up runway",
+      "text_he": "כניסה למסלול"
     },
     "HOLD_POS": {
       "file": "twr_hold_pos.wav",
-      "text": "hold position"
+      "text": "hold position",
+      "text_he": "המתנה במקום"
     },
     "TAKEOFF": {
       "file": "twr_takeoff.wav",
-      "text": "cleared for take-off"
+      "text": "cleared for take-off",
+      "text_he": "אישור המראה"
     },
     "PROCEED_RWY": {
       "file": "twr_proceed_rwy.wav",
-      "text": "proceed to runway"
+      "text": "proceed to runway",
+      "text_he": "התקדמות למסלול"
     },
     "LAND_RWY": {
       "file": "twr_land_rwy.wav",
-      "text": "cleared to land runway"
+      "text": "cleared to land runway",
+      "text_he": "אישור נחיתה במסלול"
     },
     "GO_AROUND": {
       "file": "twr_go_around.wav",
-      "text": "go around, runway not clear"
+      "text": "go around, runway not clear",
+      "text_he": "סיבוב נוסף, המסלול אינו פנוי"
     },
     "TAXI_PARK": {
       "file": "twr_taxi_park.wav",
-      "text": "welcome back, taxi to parking"
+      "text": "welcome back, taxi to parking",
+      "text_he": "ברוכים השבים, הסעה לחנייה"
     },
     "GEAR_NOT_DOWN": {
       "file": "twr_gear_not_down.wav",
-      "text": "check gear down"
+      "text": "check gear down",
+      "text_he": "בדיקת כן נסע למטה"
     },
     "WIND_CALM": {
       "file": "twr_wind_calm.wav",
-      "text": "wind calm"
+      "text": "wind calm",
+      "text_he": "רוח שקטה"
     },
     "ROGER": {
       "file": "acft_roger.wav",
-      "text": "roger"
+      "text": "roger",
+      "text_he": "רוג'ר"
     },
     "1": {
       "file": "num001.wav",
-      "text": "1"
+      "text": "1",
+      "text_he": "1"
     },
     "2": {
       "file": "num002.wav",
-      "text": "2"
+      "text": "2",
+      "text_he": "2"
     },
     "3": {
       "file": "num003.wav",
-      "text": "3"
+      "text": "3",
+      "text_he": "3"
     },
     "4": {
       "file": "num004.wav",
-      "text": "4"
+      "text": "4",
+      "text_he": "4"
     },
     "5": {
       "file": "num005.wav",
-      "text": "5"
+      "text": "5",
+      "text_he": "5"
     },
     "6": {
       "file": "num006.wav",
-      "text": "6"
+      "text": "6",
+      "text_he": "6"
     },
     "7": {
       "file": "num007.wav",
-      "text": "7"
+      "text": "7",
+      "text_he": "7"
     },
     "8": {
       "file": "num008.wav",
-      "text": "8"
+      "text": "8",
+      "text_he": "8"
     },
     "9": {
       "file": "num009.wav",
-      "text": "9"
+      "text": "9",
+      "text_he": "9"
     },
     "10": {
       "file": "num010.wav",
-      "text": "10"
+      "text": "10",
+      "text_he": "10"
     },
     "11": {
       "file": "num011.wav",
-      "text": "11"
+      "text": "11",
+      "text_he": "11"
     },
     "12": {
       "file": "num012.wav",
-      "text": "12"
+      "text": "12",
+      "text_he": "12"
     },
     "13": {
       "file": "num013.wav",
-      "text": "13"
+      "text": "13",
+      "text_he": "13"
     },
     "14": {
       "file": "num014.wav",
-      "text": "14"
+      "text": "14",
+      "text_he": "14"
     },
     "15": {
       "file": "num015.wav",
-      "text": "15"
+      "text": "15",
+      "text_he": "15"
     },
     "16": {
       "file": "num016.wav",
-      "text": "16"
+      "text": "16",
+      "text_he": "16"
     },
     "17": {
       "file": "num017.wav",
-      "text": "17"
+      "text": "17",
+      "text_he": "17"
     },
     "18": {
       "file": "num018.wav",
-      "text": "18"
+      "text": "18",
+      "text_he": "18"
     },
     "19": {
       "file": "num019.wav",
-      "text": "19"
+      "text": "19",
+      "text_he": "19"
     },
     "20": {
       "file": "num020.wav",
-      "text": "20"
+      "text": "20",
+      "text_he": "20"
     },
     "21": {
       "file": "num021.wav",
-      "text": "21"
+      "text": "21",
+      "text_he": "21"
     },
     "22": {
       "file": "num022.wav",
-      "text": "22"
+      "text": "22",
+      "text_he": "22"
     },
     "23": {
       "file": "num023.wav",
-      "text": "23"
+      "text": "23",
+      "text_he": "23"
     },
     "24": {
       "file": "num024.wav",
-      "text": "24"
+      "text": "24",
+      "text_he": "24"
     },
     "25": {
       "file": "num025.wav",
-      "text": "25"
+      "text": "25",
+      "text_he": "25"
     },
     "26": {
       "file": "num026.wav",
-      "text": "26"
+      "text": "26",
+      "text_he": "26"
     },
     "27": {
       "file": "num027.wav",
-      "text": "27"
+      "text": "27",
+      "text_he": "27"
     },
     "28": {
       "file": "num028.wav",
-      "text": "28"
+      "text": "28",
+      "text_he": "28"
     },
     "29": {
       "file": "num029.wav",
-      "text": "29"
+      "text": "29",
+      "text_he": "29"
     },
     "30": {
       "file": "num030.wav",
-      "text": "30"
+      "text": "30",
+      "text_he": "30"
     },
     "31": {
       "file": "num031.wav",
-      "text": "31"
+      "text": "31",
+      "text_he": "31"
     },
     "32": {
       "file": "num032.wav",
-      "text": "32"
+      "text": "32",
+      "text_he": "32"
     },
     "33": {
       "file": "num033.wav",
-      "text": "33"
+      "text": "33",
+      "text_he": "33"
     },
     "34": {
       "file": "num034.wav",
-      "text": "34"
+      "text": "34",
+      "text_he": "34"
     },
     "35": {
       "file": "num035.wav",
-      "text": "35"
+      "text": "35",
+      "text_he": "35"
     },
     "36": {
       "file": "num036.wav",
-      "text": "36"
+      "text": "36",
+      "text_he": "36"
     },
     "RWY_L": {
       "file": "rwyl.wav",
-      "text": "left"
+      "text": "left",
+      "text_he": "שמאלי"
     },
     "RWY_R": {
       "file": "rwyr.wav",
-      "text": "right"
+      "text": "right",
+      "text_he": "ימני"
     },
     "RWY_C": {
       "file": "rwyc.wav",
-      "text": "center"
+      "text": "center",
+      "text_he": "מרכזי"
     }
   },
   "templates": {
