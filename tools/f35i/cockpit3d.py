@@ -286,8 +286,10 @@ def build(mats, rail_3d=False):
     cyl("stick_hat", (sx, sy - 0.005, -0.262), 0.006, 0.010, mats.knob, rot=(0, 0, 0))
 
 
-# The night floodlights' colour: warm white (incandescent floods), as the panel's flood in the F-16's 3D cockpit.
-FLOOD_RGB = (1.0, 0.86, 0.66)
+# The night floodlights' colour: a neutral, slightly cool white (white is one of MIL-STD-3009's NVIS cockpit lighting
+# colours, docs/f35i.md §4.2; the F-35's own tint is open, this one inferred), so the grey panels read grey. Until
+# 2026-11-08 warm white (1.0, 0.86, 0.66), as the F-16's incandescent floods: the grey tub looked brown.
+FLOOD_RGB = (0.92, 0.96, 1.0)
 
 
 def floods():
@@ -451,7 +453,7 @@ THROTTLE_AFT, THROTTLE_AB = 0.18, 0.04
 # By day each colour glows by itself × the sun's × DAY_FILL (cockpit3d.gd), so the panel reads as light and neutral as
 # the panel render (lit by its whole sky; the game's sky ambient alone left it dark and blue).
 DAY_FILL = 0.9
-# At night each colour glows by itself × FLOOD_RGB × NIGHT_FLOOD (cockpit3d.gd): the floodlights' warm white, as light
+# At night each colour glows by itself × FLOOD_RGB × NIGHT_FLOOD (cockpit3d.gd): the floodlights' white, as light
 # as the night render's panel under them, dim (until 2026-11-02 a faint blue 0.25-0.3 that left the panel nearly black;
 # × 0.75 lit it as light as by day).
 NIGHT_FLOOD = float(os.environ.get("NIGHT_FLOOD", "0.4"))

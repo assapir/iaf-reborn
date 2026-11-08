@@ -542,7 +542,18 @@ occlusion, 1.8 MB; built by
     with a screw head every 10 cm (sizes inferred from the photos), ending with the border 0.42 m behind the eye;
   * with the 3D cockpit the canopy frame is dark grey inside (`F16_FRAME_INSIDE`), as an F-16's frame is seen from
     the seat and with the canopy open[^f16-photos].
-  The look back (the seat, the canopy bow and the frame behind it) keeps the cut model's shapes, the frame now dark.
+  The look back (the seat, the canopy bow and the frame behind it) is the cut model's (aircraft-models.md §1.4), the
+  frame now dark. Since 2026-11-08 the front seat's headrest, the pitot tubes beside it, the parachute container
+  and the back structure round them are FlightGear's at full detail, the rear pilot's helmet (seen over the front
+  headrest) is subdivided and smooth, and the canopy bow is a smooth arch (`tools/f16/base.py` `SEAT_SEEN`,
+  `PILOT_WHOLE`, `REAR_SMOOTH`, `smooth_bow`). Before, the seat was decimated to 30 % as a whole, the helmet to 10 %
+  and the bow had a section every 6–8°: from the eye a faceted grey wedge, a faceted dome over it and a polygonal
+  black hoop. It costs 4.7 k triangles per jet (Barak 51.5 k → 56.2 k, Sufa 52.9 k → 57.6 k): the front seat
+  4.0 k → 6.2 k, the helmets and visors 2.2 k, the canopy frame 0.6 k → 0.9 k. The real two-seater's bow is a narrow, smooth black arch behind
+  the front headrest, the ACES II headrest a padded box with a pitot tube on each side[^f16-back]. Barak, looking
+  back left (150°), before and after:
+
+  ![F-16D Barak's 3D cockpit looking back left, before and after](img/f16_lookback.jpg)
 * **The panel paint lifted** (`cockpit3d.py` `lift_paint`, `PAINT_FLOOR`, 2026-11-02). FlightGear paints the
   consoles' lighting plates #101010 and the panels #232323 to #2D2D2D: 0.5 to 2.6 % reflectance, darker than any
   paint, so the game drew them black. The photos[^f16-photos] show dark grey plates and a grey panel (FS 36118
@@ -778,7 +789,7 @@ occlusion, 1.8 MB; built by
     `day_fill` besides the scene's light, so the panel reads as light and neutral as its render; the scene's light
     alone left it dark and sky-blue (2026-11-02). The F-16's fill (0.8, the plain colours alone) had made them twice
     as light as the render (2026-11-01). At night each glows by its colour × `night_flood` (the render's
-    warm white floodlights, `FLOOD_RGB` × 0.4; the atlas × `night_atlas` more; until 2026-11-02 a faint blue 0.25–0.3
+    neutral white floodlights, `FLOOD_RGB` × 0.4; the atlas × `night_atlas` more; until 2026-11-02 a faint blue 0.25–0.3
     that left the panel nearly black) and the labels by `night_glow` (their green backlight); the F-16's
     night colour × each colour, tried first, turned the whole panel olive (2026-11-01).
   * 43.5 k triangles, 6 materials in one mesh plus the named parts, 3.0 MB.
@@ -1543,6 +1554,12 @@ pressurisation: based on earlier fighters' systems, which hold a 5.0 psi differe
     <https://forum.dcs.world/topic/212149-default-fov>
 [^aces-seat]: Falcon BMS forum, "Cockpit ergonomics check" (the F-16's seat "adjustable so that the pilot is in the correct position or as near to the design eye as possible").
     <https://forum.falcon-bms.com/post/382417>
+[^f16-back]: Wikimedia Commons: MKFI, "F-16B Denmark (ET 612) Tour de Sky 2014-08-10 03.JPG", public domain (the
+    two-seat canopy side on: the bow and both headrests),
+    <https://commons.wikimedia.org/wiki/File:F-16B_Denmark_(ET_612)_Tour_de_Sky_2014-08-10_03.JPG>; Tech. Sgt. Matt
+    Hecht (US Air National Guard), "Chilled out 140123-Z-NI803-001.jpg", public domain (an F-16 head on: the ACES II
+    headrest and its pitot tubes through the canopy),
+    <https://commons.wikimedia.org/wiki/File:Chilled_out_140123-Z-NI803-001.jpg>.
 [^f16-photos]: Wikimedia Commons, F-16 cockpit photos (study only): `File:F-16C_cockpit_m02006112700032.jpg` (US Air Force,
     public domain), `File:F16_ohjaamo.jpg` (CC BY 3.0), `File:F-16_Cockpit_(J-513)_(9685714751).jpg` (CC BY 2.0).
     <https://commons.wikimedia.org/wiki/Category:F-16_Fighting_Falcon_cockpits>

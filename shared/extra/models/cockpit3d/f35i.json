@@ -7,9 +7,9 @@
  ],
  "day_fill": 0.9,
  "night_flood": [
-  0.4,
-  0.344,
-  0.264
+  0.368,
+  0.384,
+  0.4
  ],
  "night_atlas": 2.6,
  "night_glow": {

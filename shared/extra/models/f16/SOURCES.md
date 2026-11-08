@@ -59,7 +59,10 @@ Made by `tools/f16/rig.py ... barak`: the F-16 base (`tools/f16/base.py`) with t
 4. Placed on the original game model's frame: the wing on the original's wing, the pylons moved onto the
    original's stations (each touching its station), the oleos compressed so the wheels touch where the original's do.
 5. The moving parts joined, named and hinged as the game expects; closed gear-door copies added.
-6. The cockpit tub, seat and pilot meshes decimated.
+6. The cockpit tub, seat and pilot meshes decimated; the front seat's headrest, pitot tubes, parachute container and
+   back structure and both pilots' helmet and visor kept whole, the rear pilot's helmet subdivided once and smooth;
+   the canopy's centre bow rebuilt as a smooth arch (a new box-section sweep made by the script on the hoop's outer
+   edge).
 7. New maps made from the livery: a panel-line normal map, an occlusion map baked from the model, roughness and
    metallic.
 8. The livery's wing roundels set as on IAF F-16s. The livery has one roundel above the left wing near the tip and

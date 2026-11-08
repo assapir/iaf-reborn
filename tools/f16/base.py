@@ -228,6 +228,64 @@ def canopy_bow(body):
         if any(i in hoop for i in p.vertices):  # its foot too, down to the sill
             p.material_index = len(frame.materials) - 1
     frame.update()
+    smooth_bow(frame, hoop, len(frame.materials) - 1)
+
+
+# The bow's arch made smooth (2026-11-08): FlightGear's hoop has a section every 6-8° (8 a side), which from the seat
+# looking back read as a faceted black polygon. smooth_bow puts in its place a box section swept through BOW_SEGS
+# steps: its outer face on the hoop's outer edge (the convex hull of its sections about the canopy's axis at
+# BOW_AXIS_Z, interpolated by angle), BOW_T m deep inward (inferred; the photos show a narrow bow), BOW_D along the
+# jet as before. The hoop's feet (the faces down to the sill) stay.
+BOW_SEGS, BOW_T, BOW_AXIS_Z = 48, 0.03, 0.45
+
+
+def smooth_bow(frame, hoop, mat):
+    def polar(c):
+        return math.atan2(c.x, c.z - BOW_AXIS_Z), math.hypot(c.x, c.z - BOW_AXIS_Z)
+
+    pts = sorted({(round(v.co.x, 4), round(v.co.z, 4)) for v in frame.vertices if v.index in hoop})
+    hull = []  # the upper chain of the convex hull (x ascending): the arch's outer edge
+    for p in pts:
+        while len(hull) > 1 and ((hull[-1][0] - hull[-2][0]) * (p[1] - hull[-2][1]) -
+                                 (hull[-1][1] - hull[-2][1]) * (p[0] - hull[-2][0])) >= 0:
+            hull.pop()
+        hull.append(p)
+    th, r = zip(*sorted(polar(Vector((x, 0, z))) for x, z in hull))
+    bm = bmesh.new()
+    bm.from_mesh(frame)
+    bm.verts.ensure_lookup_table()
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if all(v.index in hoop for v in f.verts)], context='FACES')
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context='VERTS')
+    ys = (BOW_Y + BOW_D / 2, BOW_Y - BOW_D / 2)
+    ang = np.linspace(th[0], th[-1], BOW_SEGS + 1)
+    ro = np.interp(ang, th, r)
+
+    def at(a, rad, y):
+        return bm.verts.new((rad * math.sin(a), y, BOW_AXIS_Z + rad * math.cos(a)))
+
+    def face(vs, out):  # a face of the bow facing `out`
+        f = bm.faces.new(vs)
+        f.material_index = mat
+        f.normal_update()
+        if f.normal.dot(out) < 0:
+            f.normal_flip()
+        return f
+
+    # Four strips, each with its own vertices (smooth along the arch, sharp at the section's corners): outer, inner,
+    # front, back (r offset, y of each edge, the side they face); then the end caps.
+    for (r0, y0), (r1, y1), side in (((0, ys[1]), (0, ys[0]), 1), ((-BOW_T, ys[0]), (-BOW_T, ys[1]), -1),
+                                     ((-BOW_T, ys[0]), (0, ys[0]), 0), ((0, ys[1]), (-BOW_T, ys[1]), 0)):
+        rows = [(at(a, ro[i] + r0, y0), at(a, ro[i] + r1, y1)) for i, a in enumerate(ang)]
+        for i, ((a0, b0), (a1, b1)) in enumerate(zip(rows, rows[1:])):
+            a = (ang[i] + ang[i + 1]) / 2
+            out = Vector((side * math.sin(a), y0 - BOW_Y if side == 0 else 0, side * math.cos(a)))
+            face((a0, b0, b1, a1), out).smooth = True
+    for i, j in ((0, 1), (-1, -2)):
+        q = [at(ang[i], ro[i] + dr, y) for dr, y in ((0, ys[0]), (0, ys[1]), (-BOW_T, ys[1]), (-BOW_T, ys[0]))]
+        face(q, Vector((math.sin(ang[i]) - math.sin(ang[j]), 0, math.cos(ang[i]) - math.cos(ang[j]))))
+    bm.to_mesh(frame)
+    bm.free()
+    frame.update()
 
 
 def lower_fin(body):
@@ -515,17 +573,42 @@ def dorsal_spine(body, vents):
         print("raised", name, round(dz, 3), "m")
 
 
-def cockpit(prefix, shift):
-    """FlightGear's cockpit tub, ACES II seat and pilot (decimated), shifted `shift` along y."""
+# The ACES II seat's parts the front pilot sees looking back (the headrest, the pitot tubes beside it, the parachute
+# container and the back structure round them), kept at full detail in the front seat (2026-11-08): decimated with
+# the rest they were faceted wedges a hand's width from the eye. The rest of the seat, and the rear seat, stay at 0.3.
+SEAT_SEEN = {"head-rest", "pitot-tubes", "main-chute-container", "main-chute-extractor", "back-structure",
+             "rocket-catapult"}
+# The pilots' helmet and visor are kept whole too: the rear pilot's helmet shows over the front headrest, and at the
+# pilot's 0.1 it was a faceted dark dome. FlightGear's own helmet is coarse (220 faces, its outline polygonal at a
+# metre), so the rear pilot's is subdivided once and shaded smooth (REAR_SMOOTH; the front pilot is hidden from the
+# seat, and seen from outside the helmet is a few pixels).
+PILOT_WHOLE = {"helmet", "L-visor"}
+REAR_SMOOTH = {"helmet"}
+
+
+def decimated(path, prefix, name, ratio, whole, smooth=()):
+    """An AC3D file's objects joined as `name`: those named in `whole` as they are (those also in `smooth` subdivided
+    once and shaded smooth), the rest decimated to `ratio`."""
+    parts = kit.import_ac(os.path.join(M, path), prefix=prefix)
+    rest = kit.join([o for part, o in parts.items() if part not in whole], name)
+    kit.decimate(rest, ratio)
+    for part in smooth:
+        o = parts[part]
+        o.modifiers.new("subdiv", 'SUBSURF').levels = 1
+        bpy.context.view_layer.objects.active = o
+        bpy.ops.object.modifier_apply(modifier="subdiv")
+        o.data.shade_smooth()
+    return kit.join([rest] + [o for part, o in parts.items() if part in whole], name)
+
+
+def cockpit(prefix, shift, seen=(), smooth=()):
+    """FlightGear's cockpit tub, ACES II seat and pilot (decimated; the seat's parts named in `seen` and the pilot's
+    PILOT_WHOLE kept whole, those in `smooth` subdivided), shifted `shift` along y."""
     tub = kit.join(list(kit.import_ac(os.path.join(M, "Cockpit/Main/cockpit.ac"), prefix=prefix + "tub_").values()),
                    prefix + "tub")
-    seat = kit.join(list(kit.import_ac(os.path.join(M, "Cockpit/chair/chair.ac"), prefix=prefix + "seat_").values()),
-                    prefix + "seat")
-    pilot = kit.join(list(kit.import_ac(os.path.join(M, "pilot_externalview.ac"), prefix=prefix + "pil_").values()),
-                     prefix + "pilot")
+    seat = decimated("Cockpit/chair/chair.ac", prefix + "seat_", prefix + "seat", 0.3, seen)
+    pilot = decimated("pilot_externalview.ac", prefix + "pil_", prefix + "pilot", 0.1, PILOT_WHOLE, smooth)
     kit.decimate(tub, 0.5)
-    kit.decimate(seat, 0.3)
-    kit.decimate(pilot, 0.1)
     for o in (tub, seat, pilot):
         o.data.transform(Matrix.Translation((0, shift, 0)))
     return tub, kit.join([seat, pilot], prefix + "crew")
@@ -547,10 +630,10 @@ def build(variant):
     body["CLStation"].data.materials.clear()
     body["CLStation"].data.materials.append(kit.material("pylon_grey", (0.42, 0.44, 0.45), roughness=0.55))
     lower_fin(body)
-    tub_f, crew_f = cockpit("front_", 0.0)
+    tub_f, crew_f = cockpit("front_", 0.0, SEAT_SEEN)
     two_seat(list(body.values()) + [tub_f])
     canopy_bow(body)
-    tub_r, crew_r = cockpit("rear_", -SEAT_GAP)
+    tub_r, crew_r = cockpit("rear_", -SEAT_GAP, smooth=REAR_SMOOTH)
     everything = [o for o in kit.scene().objects if o.type == 'MESH']
     transform(everything, Matrix.Translation(SHIFT))
     fit_pylons(body, helpers, root_at)

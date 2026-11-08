@@ -24,7 +24,7 @@ them. Plans for more jets and stores: [graphics-research.md](graphics-research.m
 | item | value |
 |---|---|
 | source | FlightGear F-16 (`github.com/NikolaiVChr/f16`), GPL-2.0-or-later; credits and changes in `shared/extra/models/f16/SOURCES.md` |
-| triangles | 51 400 (original: 7 200); runtime LODs cut far jets to a fraction |
+| triangles | 56 200 (original: 7 200; 51 500 until 2026-11-08, before the full-detail headrest, helmets and smooth canopy bow, §1.4); runtime LODs cut far jets to a fraction |
 | textures | livery, occlusion / roughness / metallic and normal maps at 2048²; the nozzle, cockpit, seat and pilot textures at 512 px or less; KTX2 inside the glb (about 110 MB in video memory as RGBA8) |
 | file size | 3.8 MB |
 | livery | IAF desert camouflage, 101 Squadron, tail 547 (FlightGear's own livery and pattern) in the Barak's colours measured on photographs: faded tan, sand and grey-green down to the strakes, light grey below, camouflaged stabilator tops; IAF wing roundels: one above each wing, one under each wing |
@@ -122,6 +122,12 @@ Tried and dropped (2026-10-29):
 - **The bow colour on the faces wholly in the hoop only.** Result: its foot, the faces down to the sill rail, kept
   the livery. The faces touching the hoop take the bow's colour.
 
+`smooth_bow` (2026-11-08) then replaces the hoop's arch with a smooth one: a box section swept through 48 steps
+(`BOW_SEGS`), its outer face on the hoop's outer edge (the convex hull of its sections about the canopy's axis,
+interpolated by angle), 3 cm deep inward (`BOW_T`, inferred: the photos show a narrow bow) and 0.07 m along the jet
+as before; the hoop's feet stay. FlightGear's hoop has a section every 6–8°, and from the front seat looking back it
+read as a faceted black polygon (cockpit.md "3D cockpit").
+
 #### The colours against photographs (2026-10-29)
 
 FlightGear's livery has an IAF pattern, but its pale green renders light blue (it is nearly its grey) and its
@@ -153,7 +159,7 @@ unchanged. `util/gltf.gd` `detailed()` returns it for `f16_h.gltf` whenever the 
 
 | item | value |
 |---|---|
-| triangles | 52 950: the F-16D's plus the CFTs (352 faces), the nozzle (16 × 13 faces), the seven nose fairings and the four tail-box fairings |
+| triangles | 57 550: the F-16D's plus the CFTs (352 faces), the nozzle (16 × 13 faces), the seven nose fairings and the four tail-box fairings |
 | textures | as the F-16D's; the livery repainted by the Sufa layer (`sufa.py` `livery`) |
 | file size | 4.0 MB (KTX2) |
 
@@ -239,7 +245,10 @@ version on Barak it stays the original's `f16_bc`.
 - **Left out**: the front pilot's body (the crew mesh's surfaces after the first `F16_SEAT_SURFACES`, the ACES II
   seat's; tools/f16/base.py `cockpit` joins seat then pilot), the canopy glass (from inside it fogs the whole view; the original hides
   the canopy there too), the gear legs and the open gear doors. The closed doors show.
-- **Kept**: the front seat with its headrest 0.56 m behind the eye, the canopy frame and rails, the rear tub with its
+- **Kept**: the front seat with its headrest 0.56 m behind the eye (its headrest, pitot tubes, parachute container
+  and back structure at FlightGear's full detail, `SEAT_SEEN`; the rest of both seats decimated to 30 %; both
+  pilots' helmet and visor whole, `PILOT_WHOLE`, the rear pilot's helmet subdivided once and smooth, `REAR_SMOOTH`;
+  the rest of the pilots 10 %), the canopy frame and rails, the rear tub with its
   seat and pilot, the spine, wings, tail and the stores on their stations.
 - **Materials**: FlightGear gives the seat and tub roughness 0.5, which shone with sky-blue glare; the cockpit
   model's copies are matte (roughness 0.9, specular 0.2). FlightGear maps the canopy frame into the livery, so on
