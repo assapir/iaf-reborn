@@ -3,6 +3,7 @@
 Modern IAF (in Hebrew: הזרוע הארוכה) is a modern-day Israeli Air Force flight sim. It runs on this repo's engine, beside the original game, and
 reads only our own or openly licensed data: nothing from the original game's CDs. The plan, the decisions and the
 work items are in [plan.md](docs/plan.md); what the sim gives the original game is in [shared.md](docs/shared.md); what works today is in [status.md](docs/status.md).
+The order of the work is in [plan.md, Priorities](docs/plan.md#priorities-the-user-8-november-2026).
 
 ## Run it
 From the repo root:

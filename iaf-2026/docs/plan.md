@@ -12,6 +12,50 @@ weapons) is an overlay on a 1998 type code, record or height field, with a silen
 document holds the decisions, the MVP, the architecture, the work items and the checks. Every later decision is added
 here, dated.
 
+## Priorities (the user, 8 November 2026)
+
+8 November 2026. The work runs in this order.
+
+**P1. The sim plays well on the user's Mac.** His play test sets the order. The findings of the first Mac run
+(8 November 2026), in order:
+
+1. The airbase is visible and paved: runways, taxiways and aprons are drawn (the profile forced Detailed airbases off)
+   and flagged as paved.
+2. The pilot knows what to do: a mission card with the objective and the keys, key hints, a Keys screen, and
+   "Mission complete" on screen before the debrief.
+3. A real first mission: the start-up checklist by keys, with its checklist card (F-16 and F-35I).
+4. Honest scoring and a short debrief: a crash or leaving the pavement fails the mission; the debrief shows only the
+   mission's goals.
+5. Clean screens: Preferences as a list of sections, each its own screen, with no aids anywhere; the default view at
+   the design eye point; the pause overlay laid out right on the first frame; F1–F4 only for views; the sim's own log
+   lines and settings; the wizard's Done page and the README pointing at `./iaf2026`; the roads probe ([F](#f-the-probe)) not tripping the
+   gate.
+
+Then the look, one step at a time, each with before / after pictures. The reference is the user's screenshot of Epic
+Fury IAF: an F-16 3D cockpit over Shoham, with dense varied buildings and trees, olive / tan ground, a gradient sky
+with soft clouds and horizon haze, a crisp stroke-font HUD, bright displays and town labels. The steps:
+
+1. The city, roads and trees (the scenery branch, B3).
+2. The ground's colours and textures ([B4](#b4-ground-look-parity)).
+3. The sky, haze and exposure (a new item).
+4. The HUD stroke font (A9) and the display brightness ([E1a](#e1-cockpit-data-sounds-and-voices)).
+5. Town labels over the view.
+
+**P2. Sound.** Betty like the real one; fluent American tower voices (Kokoro); audio as ogg.
+
+**P3. The shared rows and the housekeeping.** The rows for reborn in [shared.md](shared.md); compact JSON; the F-15C
+data ([D3](#d3-f-15c-baz-at-tel-nof)); the sqlite design; CI.
+
+**P4. Combat.** The records and models of the approved threat set; the first strike mission.
+
+Rules that hold:
+
+- P1 comes before anything else.
+- One merge at a time, each shown to the user.
+- Nothing visible ships without the user's approval.
+- Opus agents build and review.
+- The orchestrator only reads reports, merges and keeps the list.
+
 ## Decisions (the user, 2026-11-02)
 | topic | decision |
 |---|---|
