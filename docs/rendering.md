@@ -50,7 +50,10 @@ treats three kinds of ground:
 - **Coloured ground** (chroma ≥ 0.05: fields, scrub, soil):
   - Patches (noise tile 420 m, ≈ 40 m features, plus the 9 m clumps) move the colour toward a deeper, more saturated
     version of itself (c²/luminance: growth, wet soil) or toward a paler, drier one (a fifth desaturated × 1.2, its
-    hue kept; until 2026-10-28 half-desaturated × 1.3, which turned pale rock and soil white).
+    hue kept; until 2026-10-28 half-desaturated × 1.3, which turned pale rock and soil white). Their strength is the
+    global `terrain_patches`, each project's own value in its `project.godot`: 1 in the original game, 0 in Modern
+    IAF, whose 2 m photo shows its own ground (there the deeper colour turned the pale desert into an orange speckle;
+    iaf-2026/docs/terrain.md §13).
   - A grain follows (16 m tile, ≈ 1.6 m features, ± ≈ 15 %), with normal detail from the noise's normal map at the
     grain's scale.
 - **Grey ground** (asphalt, concrete, rock): a faint grain only (± ≈ 4 %) and a fifth of the normal detail, so runways

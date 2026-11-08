@@ -1177,21 +1177,23 @@ fn land_tree(b: [f64; 4], paved: &[Paved], rects: &[[[f64; 2]; 4]]) -> Node {
 /// sea (the inland water is OpenStreetMap's, `water_polygons`). A breadth-first fill, cells marked as they are queued: the queue holds
 /// the fill's front (a few thousand cells), not the sea.
 pub fn sea_cells(nx: usize, ny: usize, zero: &[bool]) -> Vec<bool> {
+    let edge = (0..nx).flat_map(|i| [i, (ny - 1) * nx + i]).chain((0..ny).flat_map(|j| [j * nx, j * nx + nx - 1]));
+    flood(nx, ny, zero, edge)
+}
+
+/// The cells of an `nx` × `ny` grid that `pass` lets through and that join a cell of `seeds` (one that `pass` lets
+/// through) by their sides.
+pub fn flood(nx: usize, ny: usize, pass: &[bool], seeds: impl IntoIterator<Item = usize>) -> Vec<bool> {
     let mut sea = vec![false; nx * ny];
     let mut queue = std::collections::VecDeque::new();
     let push = |k: usize, sea: &mut Vec<bool>, queue: &mut std::collections::VecDeque<u32>| {
-        if zero[k] && !sea[k] {
+        if pass[k] && !sea[k] {
             sea[k] = true;
             queue.push_back(k as u32);
         }
     };
-    for i in 0..nx {
-        push(i, &mut sea, &mut queue);
-        push((ny - 1) * nx + i, &mut sea, &mut queue);
-    }
-    for j in 0..ny {
-        push(j * nx, &mut sea, &mut queue);
-        push(j * nx + nx - 1, &mut sea, &mut queue);
+    for k in seeds {
+        push(k, &mut sea, &mut queue);
     }
     while let Some(k) = queue.pop_front() {
         let k = k as usize;

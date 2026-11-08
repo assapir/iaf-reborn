@@ -29,6 +29,10 @@ uniform vec3 sea_colour = vec3(0.035, 0.059, 0.302);
 // (the generated sea, and inland water from terraintype.dat). Airbases (terraintype.dat) count their tinted
 // aprons as grey. All of it fades out by 1.5 km, so the colours from afar stay the imagery's own.
 global uniform float terrain_detail;
+// The close up's colour patches: 1 in the original game; 0 in Modern IAF, whose 2 m photo has its own ground detail
+// (the patches' deeper colour turned the pale desert into an orange speckle; iaf-2026/docs/terrain.md §13). The value is
+// each project's own (project.godot's shader globals).
+global uniform float terrain_patches;
 global uniform sampler2D terrain_detail_tex : filter_linear_mipmap_anisotropic, repeat_enable;
 global uniform sampler2D terrain_detail_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
 // terraintype.dat around the camera (render_options.gd): R = water, G = airbase; rect = (x0, z0, 1 / side).
@@ -574,8 +578,8 @@ void fragment() {
 				float n1 = texture(terrain_detail_tex, rot1 * p / 420.0).r - 0.5;
 				float n3 = (texture(terrain_detail_tex, p / 16.0).r - 0.5) * (1.0 - tg);
 				// Coloured ground: the patches go toward a deeper, more saturated version of the photo's colour (growth)
-				// or a paler, drier one; then the grain.
-				float patch = clamp(3.0 * n1 + 3.0 * n2, -1.0, 1.0);
+				// or a paler, drier one (terrain_patches of them); then the grain.
+				float patch = clamp(3.0 * n1 + 3.0 * n2, -1.0, 1.0) * terrain_patches;
 				vec3 deep = c * c / max(lum, 0.01);
 				// Drier: paler and a little less saturated, keeping its hue (halving the chroma turned pale rock
 				// and soil white).

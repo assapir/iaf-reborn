@@ -169,20 +169,29 @@ In the repo (2026-11-08, Scenery On, 1920 × 1080 scaled to 1200 px; the pose af
 | Where | Picture |
 |---|---|
 | Ramon, on the taxiway north of the Sufa's spot: the hold sign "07R-25L" 39 m ahead, a direction sign beyond (cockpit, `658872 3405362 648 334`) | ![Ramon: a hold sign from the taxiway](pictures/scenery/ramon_signs.webp) |
-| The shore south of Tel Aviv toward Ashdod, 800 m (`662200 3542000 800 202`, `SHOT_ORBIT=180,25,400`) | ![The shore south of Tel Aviv](pictures/scenery/shore.webp) |
+| The shore south of Tel Aviv toward Ashdod, 800 m (`662200 3542000 800 202`, `SHOT_ORBIT=180,25,400`; before: [shore_before.webp](pictures/scenery/shore_before.webp)) | ![The shore south of Tel Aviv](pictures/scenery/shore.webp) |
 | Beersheba from 1,000 m, day (`668500 3455500 1000 20`, `SHOT_ORBIT=180,15,200`) | ![Beersheba by day](pictures/scenery/beersheba_day.webp) |
 | The same at 22:00 (`SHOT_HOUR=22`) | ![Beersheba at night](pictures/scenery/beersheba_night.webp) |
-| Tel Aviv from 1,000 m, day, looking north along the coast (`667500 3548000 1000 15`, `SHOT_ORBIT=180,15,200`) | ![Tel Aviv by day](pictures/scenery/telaviv_day.webp) |
-| The Dead Sea shore at Ein Bokek, 280 m over the water, looking north (`725300 3451300 -150 345`, `SHOT_ORBIT=180,20,300`) | ![The Dead Sea shore at Ein Bokek](pictures/scenery/deadsea_shore.webp) |
+| Tel Aviv from 1,000 m, day, looking north along the coast (`667500 3548000 1000 15`, `SHOT_ORBIT=180,15,200`; before: [telaviv_day_before.webp](pictures/scenery/telaviv_day_before.webp)) | ![Tel Aviv by day](pictures/scenery/telaviv_day.webp) |
+| The Dead Sea shore at Ein Bokek, 280 m over the water, looking north (`725300 3451300 -150 345`, `SHOT_ORBIT=180,20,300`; before: [deadsea_shore_before.webp](pictures/scenery/deadsea_shore_before.webp)) | ![The Dead Sea shore at Ein Bokek](pictures/scenery/deadsea_shore.webp) |
 
-Seen in them: the signs stand beside the taxiway, legible at 40 m. The beach is clean, with no white edge. Offshore
-the sea shows two blues, the lighter ending in steps (straight edges at right angles) against the darker (§9).
-Beersheba's blocks, towers and the river bed match the photo; at 22:00 the town is a dusk blue with its lights.
-Tel Aviv's towers stand along the Ayalon and in the centre, the low blocks between them follow the streets. Wrong in
-it: a white four-sided patch lies on the sea off the old port, the sea's two blues meet in steps (§9), and every
-building is one grey, with no roof colour seen from 1,000 m. At Ein Bokek the hotels, the palms along the beach and
-the pan's dikes sit where the photo has them, and no tree stands in the pan. Wrong in it: the ground near the camera
-shows a coarse orange speckle (the ground detail texture over the photo), and the road is a flat grey band.
+Seen in them: the signs stand beside the taxiway, legible at 40 m. The beach is clean, with no white edge, and the
+sea is one surface out to the horizon. Beersheba's blocks, towers and the river bed match the photo; at 22:00 the town
+is a dusk blue with its lights. Tel Aviv's towers stand along the Ayalon and in the centre, the low blocks between
+them follow the streets. Wrong in it: every building is one grey, with no roof colour seen from 1,000 m. At Ein Bokek
+the hotels, the palms along the beach and the pan's dikes sit where the photo has them, and no tree stands in the
+pan. Wrong in it: the road is a flat grey band.
+
+Fixed on 2026-11-08 (the "before" pictures above):
+
+- **The white patch on the sea off Tel Aviv** (off Herzliya, in fact): the Survey sheets' white no-data in a theatre
+  built before the photo was cut to the coastline ([terrain.md](terrain.md) §12).
+- **The sea's two blues in steps**: two seams. The 2 m photo's lighter sea beyond the coastline's 300 m reach ended at
+  the sheets' straight edges; now the sea is Sentinel-2's from the beach out. And Sentinel-2's sea, whose pixels end
+  in straight blocks offshore, met a darker fill; the fill is now the composite's own open-sea tone
+  ([terrain.md](terrain.md) §3, §12).
+- **The orange speckle near the camera at Ein Bokek**: the shared Terrain close up's colour patches, which turn pale
+  ground orange; the sim draws its grain and relief only ([terrain.md](terrain.md) §13).
 
 ## 8. Checks
 
@@ -208,11 +217,10 @@ shows a coarse orange speckle (the ground detail texture over the photo), and th
 - **Unit clearances**: when the sim has ground units (§4).
 - **The rest of the theatre in the byte check**: `build_theatre` with `--near` stopped on PROJ's "moll: Invalid
   latitude" on main and on the branch alike (§8).
-- **The shore's sea**: offshore the sea shows two blues, the lighter ending in steps against the darker (§7,
-  [terrain.md](terrain.md) §12); which layers meet there, and one sea colour, are open.
 - **Pictures in the repo**: Ramon from 500 m, Tel Aviv at night, Tel Aviv with Far towns Full and Light, and the
   Graphics → MORE page with the Far towns row.
-- **Tel Aviv's sea patch**: a white four-sided patch on the sea off the old port (§7); its source is open.
+- **The open sea's faint line**: one texel wide where Sentinel-2's pixels end offshore, seen low over the water
+  ([terrain.md](terrain.md) §3).
 - **Walls' colour**: the original's wall shading greys a desert town (§7); the sim may want its own.
 - **The bases' buildings**: the hangars and shelters are the airbases' models' (item B2's open points).
 - **Kinds**: the sim makes both buildings and trees; one row turns both on (Preferences → Graphics → "Buildings and

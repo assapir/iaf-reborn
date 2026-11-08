@@ -90,8 +90,12 @@ E and 29.38–34.04° N: the Sinai's north, Jordan to Amman's east, Lebanon to B
 | 5–11 | everywhere | their children |
 | heights 6–11 (64 m … 2 km) | everywhere | GLO-30 averaged to a 64 m grid (the level-6 texel), point-sampled for the coarser levels |
 
-The open sea has no Sentinel-2 pixels away from the coast: it takes one colour (`SEA`, the composite's open-sea tone
-near Ashdod, inferred by eye) at the DEM's 0 m.
+The open sea has no Sentinel-2 pixels away from the coast: it takes one colour (`SEA`, RGB 53, 72, 82) at the DEM's
+0 m. That is the composite's own open-sea tone where its pixels end, measured 2026-11-08 at five places off Tel Aviv
+and Ashdod (50–56, 69–76, 81–83). Until then the fill was 30, 52, 78, a darker navy picked by eye, and the composite's
+edge, which runs in straight blocks, showed as steps between two blues. `iaf-sim terrain` repaints the old fill in a
+theatre built before (`repaint_sea`, once; the stamp's "sea" holds the colour). Left: a faint line one texel wide where the composite's pixels end (its edge texels, blended by the resampling and
+JPEG), seen only low over the water.
 
 The renderer draws the ground with one vertex per height texel at levels 0–2, so the drawn surface is GLO-30 at 64 m
 (the original's level 6 was 79 m). Finer heights (a level-5 height level, 32 m) are possible later: the shape allows any
@@ -281,19 +285,33 @@ OpenStreetMap's coastline (`natural=coastline`)[^osm] is the sea's one boundary 
 rule); within 300 m of them (`COAST_REACH_M`) that side decides, farther out the DEM's 0 m cells joined to the edge
 do (`sea_cells`):
 
-- **The colour**: with the Survey, the 2 m photo gives way to Sentinel-2 on the coastline's water side, and near the
-  coast its near-white pixels (all bands 235 or more: the sheets' white no-data with its JPEG noise) are left out
-  too. Before, the sea mask (the DEM's 0 m cells) and the photo disagreed along the shore, and the sheets' white
-  border showed as white patches off Tel Aviv and Ashdod (a Mac run, 2026-11-08). The Survey units the coastline
-  crosses have their own marks (`survey_2m_shore`), so they ran again once; the theatre's `built_from` holds the
-  extracts' hashes.
+- **The colour**: with the Survey, the sea is Sentinel-2's from the beach out. The 2 m photo gives way to it on the
+  coastline's water side, and beyond the coastline's reach wherever the 8 m Sentinel-2 nodes show open water joined
+  to that side (`ShoreSea`: `imagery::is_photo_water`, a fill from the coastline's water cells, so an inland pond
+  keeps the photo). Near the coast the photo's near-white pixels (all bands 235 or more: the sheets' white no-data
+  with its JPEG noise) are left out too. The Survey units the coastline comes near have their own marks
+  (`survey_2m_sea`), so they run again once; the theatre's `built_from` holds the extracts' hashes and the rule
+  ("shore": 2).
+  - Before the coastline (a Mac run, 2026-11-08), the sheets' white border showed as white patches off Tel Aviv and
+    Ashdod. With the coastline alone, the photo still covered the sea beyond its 300 m reach: its levelled sea is a
+    lighter grey-blue than Sentinel-2's and ends at the sheets' straight edges, so offshore two blues met in steps.
+  - Measured on this machine's theatre (2026-11-08): it was built on 2026-11-03, before the coastline, so its
+    `.work` had no shore marks. The white four-sided patch off Herzliya in the Tel Aviv picture (node L1 78/100–101,
+    about 668.4–668.8 km E) was the sheets' no-data, 255 in every band after the levels; Sentinel-2's node there is
+    clean sea. The light blocks offshore were the photo's sea. Both are gone after the rule above.
+  - Tried and dropped (2026-11-08): the sea beyond the reach from Sentinel-2's own bands (near-infrared below green)
+    warped per unit from the composite's tiles. It worked the same, but it reads the tiles again, and a theatre whose
+    tile cache was cleared then downloads (or streams) 9.4 GB. The 8 m nodes the run wrote already hold the same
+    water.
 - **The surface flags**: `terraintype.dat`'s sea follows the coastline to 16 m (`COAST_LEAF_M`) within its reach; the
   flight model's water test and the water shader's mask (96 m texels, docs/rendering.md §1.3) read it.
 
-The shore south of Tel Aviv from 800 m (2026-11-08; [scenery.md](scenery.md) §7): a clean beach; offshore two blues
-meet in steps (open, [scenery.md](scenery.md) §9).
+The shore south of Tel Aviv from 800 m (2026-11-08; [scenery.md](scenery.md) §7), before and after: the teal near
+the beach met the old navy fill in a straight-edged step; after, the sea is Sentinel-2's out to the fill of its tone.
 
-![The shore south of Tel Aviv from 800 m](pictures/scenery/shore.webp)
+| Before | After |
+|---|---|
+| ![The shore before: two blues in a step](pictures/scenery/shore_before.webp) | ![The shore after: one sea](pictures/scenery/shore.webp) |
 
 The extracts are the ones the inland water is cut from (§11), downloaded by `iaf-sim terrain` (with the Survey) and
 `iaf-sim airbases` when missing. Where an extract has no coastline (Saudi Arabia's shore of the Gulf of Aqaba is in
@@ -301,7 +319,20 @@ none of them) the DEM decides.
 
 Check: `cargo test -p iaf-tools --lib sim_coast` (the sides, a corner, the reach) and `sim_terrain::tests::
 the_shore_follows_the_coastline` (data: 50 points along the coastline from Tel Aviv to Ashdod, 20 m seaward sea and no
-near-white pixel, 20 m landward land; skipped on a theatre built before the coastline).
+near-white pixel, 20 m landward land, 1 km seaward the 2 m colour equal to the 8 m Sentinel-2 node's where that shows
+water, at 25 points or more; skipped on a theatre built before the coastline).
+
+## 13. The ground close up
+
+The shared Terrain close up (docs/rendering.md §1.1, on in the sim's profile) adds a grain and normal detail near the
+camera, and in the original game also colour patches: about 40 m and 9 m, toward a deeper, more saturated version of
+the ground's colour or a paler one. The sim keeps the grain and the normal detail and draws no patches (the shader
+global `terrain_patches` is 0 in `iaf-2026/project.godot`, 1 in the original game's).
+
+Measured 2026-11-08 at Ein Bokek, 300 m behind the jet over the Dead Sea shore (the same pose as [scenery.md](scenery.md)
+§7): the coarse orange speckle on the pale marl near the camera went away with the close up off, and with the patches
+off alone; with the grain off alone it stayed. The deeper colour (c² / luminance) of a pale beige is orange, and the
+2 m photo needs no made-up patches. The original game's picture at the same settings is unchanged, pixel for pixel.
 
 [^dem]: ESA, "Copernicus DEM: Product Handbook" and the collection description, https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM
 [^dem-licence]: "Licence for the use of the Copernicus WorldDEM-30", Article 6, read 2026-11-02, https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/DEM/resources/license/License-COPDEM-30.pdf

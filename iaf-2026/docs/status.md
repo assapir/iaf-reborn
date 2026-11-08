@@ -3,6 +3,12 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **[B3](plan.md#b3-scenery-roads-and-inland-water), the sea and the shore's ground (2026-11-08):** the sea is one
+  surface: Sentinel-2's from the beach out, with no Survey photo (its white no-data patch, its lighter blocks) beyond
+  the coastline, and the open sea's fill in the composite's own tone, so its edge no longer shows as steps
+  ([terrain.md](terrain.md) §3, §12). Near the camera the ground keeps the close up's grain and relief without its
+  colour patches, which had speckled the pale desert orange ([terrain.md](terrain.md) §13). Pictures before and after
+  in [scenery.md](scenery.md) §7. `sim_terrain::tests::the_shore_follows_the_coastline`.
 - **[B2b](plan.md#b2-the-airbases) / [B3](plan.md#b3-scenery-roads-and-inland-water), the bases' ground and the shore (2026-11-08):** the taxiways and aprons
   are paved for the flight model (no rough-ground crash taxiing out), taxiway signs at the holding points and
   junctions ([airbases.md](airbases.md) §9), the sea follows OpenStreetMap's coastline in the photo and the surface

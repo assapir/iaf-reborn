@@ -40,8 +40,12 @@ const SEA_LEVEL_RAW: f64 = 5000.0;
 const HEIGHT_SCALE: f64 = 10.0;
 const JPEG_QUALITY: u8 = 88;
 /// The Sentinel-2 composite has no pixels over open sea away from the coast: this colour fills them (the
-/// composite's own open-sea tone near Ashdod, iaf-2026/docs/terrain.md §3).
-const SEA: [u8; 3] = [30, 52, 78];
+/// composite's own open-sea tone at the edge of its pixels off Tel Aviv and Ashdod, measured 2026-11-08,
+/// iaf-2026/docs/terrain.md §3).
+const SEA: [u8; 3] = [53, 72, 82];
+/// The fill before 2026-11-08, darker than the composite's sea (its edge showed as steps): `repaint_sea` turns it into
+/// SEA in a theatre built with it.
+const OLD_SEA: [u8; 3] = [30, 52, 78];
 const DEM_URL: &str = "https://copernicus-dem-30m.s3.amazonaws.com";
 const USER_AGENT: &str = "iaf-reborn Modern IAF terrain setup (curl)";
 pub const ATTRIBUTION: [&str; 3] = [
@@ -462,6 +466,34 @@ fn parents(out: &Path, level: u32, fallback: Option<u32>, threads: usize, cancel
     par(&ps, threads, cancel, |&p| save(&compose_parent(out, p, fallback)?, &colour_path(out, p)))
 }
 
+/// Every colour node's OLD_SEA pixels (within JPEG's noise) made SEA, once per theatre (its mark in `work`).
+fn repaint_sea(out: &Path, work: &Path, threads: usize, cancel: &AtomicBool) -> Result<()> {
+    let mark = work.join(format!("done_sea_{}_{}_{}", SEA[0], SEA[1], SEA[2]));
+    if mark.exists() {
+        return Ok(());
+    }
+    let mut nodes = Vec::new();
+    for l in 1..=ROOT_LEVEL {
+        nodes.extend(written(out, l)?);
+    }
+    par(&nodes, threads, cancel, |&k| {
+        let mut img = image::open(colour_path(out, k))?.to_rgb8();
+        let mut changed = false;
+        for p in img.pixels_mut() {
+            if p.0.iter().zip(OLD_SEA).all(|(&v, o)| v.abs_diff(o) <= 8) {
+                p.0 = SEA;
+                changed = true;
+            }
+        }
+        if changed {
+            save(&img, &colour_path(out, k))?;
+        }
+        Ok(())
+    })?;
+    std::fs::write(mark, "")?;
+    Ok(())
+}
+
 /// A unit's mark: its nodes are written (a run after a failure skips it).
 fn done(work: &Path, what: &str, k: Key) -> PathBuf {
     work.join(format!("done_{what}_{}_{}_{}", k.0, k.1, k.2))
@@ -598,6 +630,58 @@ impl BaseMask {
         let v = |x: usize, y: usize| self.data[y * self.w + x];
         let top = v(x0, y0) + (v(x1, y0) - v(x0, y0)) * fx;
         top + (v(x0, y1) + (v(x1, y1) - v(x0, y1)) * fx - top) * fy
+    }
+}
+
+/// The sea over a shore unit on its 8 m Sentinel-2 nodes' grid (level 3, written before the Survey): within the
+/// coastline's reach its water side; beyond it the nodes' open water (`imagery::is_photo_water`) joined by its sides to
+/// that. So the sea is Sentinel-2's from the beach to the open sea, and an inland pond keeps the photo.
+struct ShoreSea {
+    e0: f64,
+    n1: f64,
+    cell: f64,
+    w: usize,
+    sea: Vec<bool>,
+}
+
+impl ShoreSea {
+    fn new(coast: &crate::sim_coast::Coast, f: &Frame, unit: Key, out: &Path) -> Result<Self> {
+        let d = unit.0 - 3;
+        let (m, rect) = (NODE_PIXELS as usize, f.utm(unit));
+        let w = m << d;
+        let cell = (rect[2] - rect[0]) / w as f64;
+        let mut pass = vec![false; w * w];
+        for sj in 0..1u32 << d {
+            for si in 0..1u32 << d {
+                let Ok(img) = image::open(colour_path(out, (3, (unit.1 << d) + si, (unit.2 << d) + sj))) else {
+                    continue;
+                };
+                for (x, y, p) in img.to_rgb8().enumerate_pixels() {
+                    let k = (sj as usize * m + y as usize) * w + si as usize * m + x as usize;
+                    pass[k] = imagery::is_photo_water(p.0.map(f32::from));
+                }
+            }
+        }
+        let centre = |k: usize| [rect[0] + ((k % w) as f64 + 0.5) * cell, rect[3] - ((k / w) as f64 + 0.5) * cell];
+        let mut seeds = Vec::new();
+        for (k, v) in pass.iter_mut().enumerate() {
+            match coast.sea(centre(k)) {
+                Some(true) => {
+                    *v = true;
+                    seeds.push(k);
+                }
+                Some(false) => *v = false,
+                None => {}
+            }
+        }
+        Ok(Self { e0: rect[0], n1: rect[3], cell, w, sea: crate::sim_bases::flood(w, w, &pass, seeds) })
+    }
+
+    /// Whether UTM (e, n) is sea.
+    fn at(&self, e: f64, n: f64) -> bool {
+        let x = (((e - self.e0) / self.cell).max(0.0) as usize).min(self.w - 1);
+        let y = (((self.n1 - n) / self.cell).max(0.0) as usize).min(self.w - 1);
+        self.sea[y * self.w + x]
     }
 }
 
@@ -739,17 +823,17 @@ fn survey_unit(sv: &Survey, f: &Frame, unit: Key, itm: [[f64; 2]; 4], work: &Pat
         let r = |a: usize| itm[2][a] + (itm[3][a] - itm[2][a]) * u;
         [l(0) + (r(0) - l(0)) * v, l(1) + (r(1) - l(1)) * v]
     };
-    let shore = sv.coast.touches(rect);
+    let shore = if sv.coast.touches(rect) { Some(ShoreSea::new(sv.coast, f, unit, out)?) } else { None };
     let weight = |i: usize| {
         let p = [rect[0] + ((i % n) as f64 + 0.5) * px, rect[3] - ((i / n) as f64 + 0.5) * px];
         let base = bases.as_ref().map_or(0.0, |b| b.at(p[0], p[1]));
         let a = f32::from(e.raw[i * 4 + 3]) / 255.0 * (1.0 - base);
-        // At the shore: none of the photo on the coastline's water side, nor its near-white (the sheets' no-data
-        // with JPEG noise) beyond the coastline's reach.
-        if shore && a > 0.0 {
+        // At the shore: none of the photo on the sea (the coastline's water side, beyond its reach Sentinel-2's water
+        // joined to it), nor its near-white (the sheets' no-data with JPEG noise) beyond the coastline's reach.
+        if let Some(sea) = shore.as_ref().filter(|_| a > 0.0) {
             match sv.coast.sea(p) {
                 Some(true) => return 0.0,
-                None if e.raw[i * 4..i * 4 + 3].iter().all(|&c| c >= NEAR_WHITE) => return 0.0,
+                None if sea.at(p[0], p[1]) || e.raw[i * 4..i * 4 + 3].iter().all(|&c| c >= NEAR_WHITE) => return 0.0,
                 _ => {}
             }
         }
@@ -760,9 +844,11 @@ fn survey_unit(sv: &Survey, f: &Frame, unit: Key, itm: [[f64; 2]; 4], work: &Pat
         for si in 0..1u32 << d {
             let k = (1, (unit.1 << d) + si, (unit.2 << d) + sj);
             let (ox, oy) = (si as usize * m, sj as usize * m);
+            // A node written before with the photo is written again (as Sentinel-2 when none of the photo is left).
             if k.1 * 2048 >= f.w
                 || k.2 * 2048 >= f.h
-                || (0..m).all(|y| (0..m).all(|x| weight((oy + y) * n + ox + x) == 0.0))
+                || (!colour_path(out, k).exists()
+                    && (0..m).all(|y| (0..m).all(|x| weight((oy + y) * n + ox + x) == 0.0)))
             {
                 continue;
             }
@@ -856,7 +942,11 @@ pub fn stamp(r: &Run) -> serde_json::Value {
     } else {
         crate::sim_coast::extracts_stamp(crate::sim_bases::theatre_geo(r.area))
     };
-    serde_json::json!({ "box": r.area, "detail": r.detail, "survey_zips": zips, "airbases": bases, "osm": osm })
+    // With the Survey, its rule at the shore: 2 = the sea beyond the coastline's reach is Sentinel-2's too. "sea": the
+    // open sea's fill.
+    let shore = if zips.is_empty() { 0 } else { 2 };
+    serde_json::json!({ "box": r.area, "detail": r.detail, "survey_zips": zips, "airbases": bases, "osm": osm,
+        "shore": shore, "sea": SEA })
 }
 
 /// `meta.json` (the shape `terrain::theatre` writes) with the georeference, the sources and the run's stamp.
@@ -1174,15 +1264,15 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
             offsets: sheets.iter().zip(&gains).map(|(s, g)| (s.bbox, g.1)).collect(),
             bases: &bases,
         };
-        // The units the coastline crosses have their own marks: they ran again once when the photo was first cut to
-        // it (2026-11-08).
+        // The units the coastline comes near have their own marks: they run again once when the photo's sea rule
+        // changes (cut to the coastline, then the sea beyond its reach Sentinel-2's; 2026-11-08).
         let (shore, inland): (Vec<Key>, Vec<Key>) = keys.iter().partition(|&&k| coast.touches(f.utm(k)));
         let run = |k: Key| {
             let (_, c, _) = list.iter().find(|u| u.0 == k).context("unit")?;
             survey_unit(&sv, &f, k, *c, &work, out)
         };
         units("survey_2m", &inland, &work, r.threads, &part(3), cancel, run)?;
-        units("survey_2m_shore", &shore, &work, r.threads, &part(3), cancel, run)?;
+        units("survey_2m_sea", &shore, &work, r.threads, &part(3), cancel, run)?;
         parents(out, 2, Some(3), r.threads, cancel)?;
     } else {
         log!(pr, "{}: no sheet ZIPs, no 2 m nodes", r.sheets.display());
@@ -1225,6 +1315,11 @@ pub fn terrain(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     let (heights, colour) =
         both(cancel, |stop| heights(r, &f, geo, &work, pr, stop), |stop| colour(r, &f, geo, &work, pr, stop))?;
 
+    // A theatre finished with the old fill (its stamp has no "sea"); a fresh one has only SEA, and the composite's own
+    // pixels near OLD_SEA stay.
+    if old["built_from"].is_object() && old["built_from"]["sea"].is_null() {
+        repaint_sea(out, &work, r.threads, cancel)?;
+    }
     // The coarser levels from their children (level 4 exists in the detail area only, so the 32 m level-5 nodes
     // stay the source's).
     for l in 4..=ROOT_LEVEL {
@@ -1400,7 +1495,8 @@ mod tests {
 
     /// The shore between Tel Aviv and Ashdod in a built theatre (data: `IAF_ASSETS` or the repo's assets, with the
     /// Survey and the coastline cut, else skipped): at 50 points along OpenStreetMap's coastline, 20 m seaward is sea
-    /// in terraintype.dat and no near-white pixel in the 2 m colour, 20 m landward is land.
+    /// in terraintype.dat and no near-white pixel in the 2 m colour, 20 m landward is land; 1 km seaward (beyond the
+    /// coastline's reach), where Sentinel-2 shows water, the 2 m colour is Sentinel-2's (its 8 m node's), not the photo's.
     #[test]
     fn the_shore_follows_the_coastline() {
         let assets = std::env::var("IAF_ASSETS")
@@ -1450,7 +1546,7 @@ mod tests {
             .collect();
         assert!(pairs.len() >= 50, "{} shore points", pairs.len());
         let mut tiles: std::collections::HashMap<Key, image::RgbImage> = Default::default();
-        let mut white_checked = 0;
+        let (mut white_checked, mut open_checked) = (0, 0);
         for k in 0..50 {
             let (sea, land) = pairs[k * pairs.len() / 50];
             assert_eq!(tt.at(sea[0], sea[1]) & 0x4, 0x4, "{sea:?}: 20 m seaward is not sea");
@@ -1470,8 +1566,32 @@ mod tests {
             let px = tiles[&key].get_pixel(((sea[0] - r[0]) / 2.0) as u32, ((r[3] - sea[1]) / 2.0) as u32);
             assert!(px.0.iter().any(|&c| c < NEAR_WHITE), "{sea:?}: a white pixel at sea {px:?}");
             white_checked += 1;
+            // 1 km out: the 2 m node (if any) shows its 8 m Sentinel-2 ancestor, as far as JPEG lets (mean of 5 × 5).
+            let off = [sea[0] + (sea[0] - land[0]) * 25.0, sea[1] + (sea[1] - land[1]) * 25.0];
+            let key = (1, ((off[0] - f.e0) / 2048.0) as u32, ((f.n1 - off[1]) / 2048.0) as u32);
+            let r = f.utm(key);
+            let (x, y) = (((off[0] - r[0]) / 2.0) as u32, ((r[3] - off[1]) / 2.0) as u32);
+            if let (Ok(a), Ok(b)) = (image::open(colour_path(&th, key)), ancestor_crop(&th, key, 3)) {
+                let a = a.to_rgb8();
+                let mean = |i: &image::RgbImage| {
+                    let mut m = [0f32; 3];
+                    for (dx, dy) in (0..25).map(|k| (k % 5, k / 5)) {
+                        let p = i.get_pixel((x + dx).clamp(2, 1021) - 2, (y + dy).clamp(2, 1021) - 2);
+                        (0..3).for_each(|c| m[c] += f32::from(p.0[c]) / 25.0);
+                    }
+                    m
+                };
+                let (ma, mb) = (mean(&a), mean(&b));
+                open_checked += usize::from(imagery::is_photo_water(mb));
+                // A bend or a port may put land there: only Sentinel-2's water counts.
+                assert!(
+                    !imagery::is_photo_water(mb) || (0..3).all(|c| (ma[c] - mb[c]).abs() < 12.0),
+                    "{off:?}: the sea {ma:?}, Sentinel-2 {mb:?}"
+                );
+            }
         }
         assert!(white_checked >= 25, "{white_checked} points with a 2 m colour node");
+        assert!(open_checked >= 25, "{open_checked} points with open water 1 km out");
     }
 
     /// A finished run is stamped in meta.json; the same inputs again return before any work (no network).
