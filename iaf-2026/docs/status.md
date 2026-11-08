@@ -3,6 +3,10 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The sim's own look (2026-11-08, the Mac run):** the look switches whose 1998 value draws art the sim does not
+  have are fixed to ours in `PROFILE`: Detailed airbases (the runways, taxiways and aprons were missing), the
+  atmospheric sky, water, night lights, effects, the conformal ladder; the CC0 ground and model textures when setup
+  downloaded them ([airbases.md](airbases.md) §9). `test_sim_look.gd`.
 - **[E2](plan.md#e2-the-front-end), the front end (2026-11-08):** `./iaf2026` opens Home; Pick a plane, Training, Pick a mission, Fly,
   the flight, its debrief sheet, the Pilot log, Preferences and Attributions, in English and Hebrew (mirrored), in the
   round-3 look ([front-end.md](front-end.md)). Esc over a flight opens the pause menu. `test_front_end.gd`.

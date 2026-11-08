@@ -63,7 +63,7 @@ The M0 probe (`iaf-2026/tests/test_m0_boot.gd`) prints a `PASS`, `FAIL` or `NEED
 
 - the sim reads no install (`Settings.install_dir()` does not exist) and reads its own data from
   `assets/converted/own`;
-- the 1998-only switches hold the sim's values (`PROFILE` in `iaf-2026/sim_settings.gd`);
+- the 1998-only switches and the look switches hold the sim's values (`PROFILE` in `iaf-2026/sim_settings.gd`);
 - the key table and the sound table hold rows;
 - for the Sufa (Ramon), the Barak (Ramat David) and the F-35I (Nevatim): the start-up mission's object database,
   the jet's aircraft definition, the weapons' motion table, the 3D cockpit model and the flight model started from

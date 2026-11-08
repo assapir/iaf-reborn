@@ -155,8 +155,10 @@ The `lights` list is empty at all four bases; OurAirports' Hatzerim 15/33 is des
 `iaf-sim airbases` (item B2b, `crates/iaf-tools/src/sim_bases.rs`; run by `iaf-sim all` once the terrain is built)
 puts the four bases into the sim's frame, UTM 36N at 1:1 ([terrain.md](terrain.md) §2), in the shapes the shared
 code reads ([data-formats.md](data-formats.md) §12):
-- `converted/terrain/israel/airbases.json` and a paved-surface mask per base: Graphics → MORE → Airbases Detailed
-  draws the real runways (numbers, letters, thresholds), the taxi lines and the aprons from them;
+- `converted/terrain/israel/airbases.json` and a paved-surface mask per base: Detailed airbases draws the real
+  runways (numbers, letters, thresholds), the taxi lines and the aprons from them. The sim always draws them
+  (`airbases` = `"detailed"` in `PROFILE`, `iaf-2026/sim_settings.gd`): its "original" would be the 1998 art, which
+  the sim does not have, so it drew no runway, taxiway or apron (the Mac run of 2026-11-08);
 - `converted/own/iaf.ibx`: tower, lineup and take-off heading, the AI's taxi paths and the parking spots, read by the
   flight model (the start rule, the AI's ground control) and the radio;
 - `converted/own/terraintype.dat`: runway and sea flags for the flight model and the water shader.
@@ -176,6 +178,13 @@ mission parks it on its base's spot (within 1 m), with its wheels on the terrain
 the gear), as a ground start, and the flight model finds the base (within 5 km and 15 m of the tower). The sim has no
 base move: its bases stand at their real places already (`sim_settings.gd sync_bases`). The tower's wind turn
 (Better physics) mirrors the take-off lineup to the runway's other end as in the original game.
+
+| at Ramon's parking spot, from the chase view, with the 1998 switch (2026-11-08) | with the sim's own airbases |
+|---|---|
+| ![The Sufa parked on bare sand: no apron, no taxiway](pictures/airbases/ramon_spot_before.webp) | ![The Sufa on the concrete apron, the taxiway and the runway beyond](pictures/airbases/ramon_spot_after.webp) |
+
+`iaf-2026/tests/test_sim_look.gd` checks it: no look switch of the sim holds the 1998 value, and at Ramon's spot the
+first frames draw Ramon's runways and its paved mask.
 
 Open: the towers of Ramon, Hatzerim and Ramat David (their reference points stand in); the sea is the only water
 (the Dead Sea and the Sea of Galilee read as land); one hub per base where every parking spot meets the taxiways (the

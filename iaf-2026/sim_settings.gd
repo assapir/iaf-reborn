@@ -7,8 +7,21 @@ extends "res://shared/settings.gd"
 ## The switches between the 1998 game and our replacements, fixed to ours (no preferences row in the sim; plan.md
 ## "physics", "options"). The F-16 switch follows the jet flown (set_jet). The cockpit (iaf-2026/docs/cockpit.md): the
 ## 3D cockpit, the Real HUD and the real MFD formats (the Sufa's in colour by its definition, the Barak's green). No
-## textured sky: its cloud layer is the original's art (Clouds Volumetric, ours, stays a choice).
+## textured sky: its cloud layer is the original's art (Clouds Volumetric, ours, stays a choice). The look switches
+## whose "original" is the 1998 art the sim does not have are ours too: the airbases (the sim's own runways, taxiways
+## and aprons, airbases_file()), the sky, the water, the night lights, the effects (2026-11-08: "original" airbases
+## drew no taxiway or apron in the sim). The ground and model textures follow setup's download (_apply_profile).
 const PROFILE := {
+	"airbases": "detailed",
+	"sky": "atmospheric",
+	"terrain_closeup": true,
+	"water": true,
+	"night_lights": "detailed",
+	"particle_effects": true,
+	"rolling_wheels": true,
+	"hud_ladder": "conformal",
+	"bomb_release": "real",
+	"briefing_map": "modern",
 	"cockpit_3d": "3d",
 	"textured_sky": false,
 	"hud_style": "real",
@@ -91,6 +104,10 @@ func pilot_log_file() -> String:
 func _apply_profile() -> void:
 	for key in PROFILE:
 		set(key, PROFILE[key])
+	# The CC0 textures setup downloads (assets/thirdparty/ambientcg): ours whenever they are there.
+	var ground: GDScript = load("res://shared/terrain/ground_textures.gd")
+	ground_textures = "ambientcg" if ground.available() else "original"
+	model_detail = "ambientcg" if load("res://shared/util/model_detail.gd").available() else "original"
 
 
 ## A path that does not exist: the sim reads nothing of the original game's install.
