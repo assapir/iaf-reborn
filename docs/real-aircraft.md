@@ -207,7 +207,7 @@ neither has one it keeps the F-15C row's, marked open. The values and their sour
 | thrust | 58,320 lbf full AB (2 × 29,160), military ratio 17,800 / 29,160 | F-15I's own engines |
 | empty weight | 37,000 lb (operating weight with the CFTs) | F-15E (TO 1F-15E-1) |
 | internal fuel | 22,665 lb (12,915 + the CFTs' 2 × 4,875), one pool | F-15E |
-| max weight | 81,000 lb | F-15E |
+| max weight | 81,000 lb | F-15E; the IAF's F-15I page: 36,750 kg (81,020 lb) |
 | ceiling | 60,000 ft | F-15E (USAF fact sheet) |
 | fuel flow | 113,100 lb/h full AB, 27,000 lb/h military | -229 TSFC (inferred) |
 | stall floor | 155 kt: power off, flaps up, at full fuel (59,665 lb) | F-15E (TO fig. A1-6) |
@@ -215,7 +215,7 @@ neither has one it keeps the F-15C row's, marked open. The values and their sour
 | g | +8.1 / −2.0: OWS inoperative, with CFTs, at the operating weight | F-15E (TO fig. 5-7) |
 | wave drag | 0.04, fitted to Mach 2.0 at 40,000 ft with the CFTs (with CD0 0.040) | F-15E (secondary) |
 | spool (better physics) | idle → military 3.0 s, light-off 0, fill 0.9 s: idle → maximum AB 3.9 s | F-15E (USAF fact sheet, TO); the split inferred |
-| as the F-15C row | 20 km thrust × 2.4 (the -229's lapse: open, below), NWS ±45° / 17.78 ft, the original's roll rate | open |
+| as the F-15C row | 20 km thrust × 2.4 (the -229's lapse: open, below), NWS ±45° / 17.78 ft, the original's roll rate | open (searched again 2026-11-08, f15i.md §9) |
 
 The validation run (`IAF_JET=F-15I`) gives Mach 1.98 at 40,000 ft and Mach 1.16 (765 kt) at sea level (Mach 2.00 and
 771 kt before the CFTs' drag number raised CD0, 2026-11-02). The F-15C row's wave drag (0.016) gave Mach 2.39 and 1.36,

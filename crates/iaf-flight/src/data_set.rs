@@ -458,12 +458,13 @@ const REAL: &[Real] = &[
     Real {
         aircraft: "F-15I",
         base: Some("F-15"),
-        // Not set, as on the F-15C row: the roll rate stays the original F-15 section's (the F-15I's is open).
+        // Not set, as on the F-15C row: the roll rate stays the original F-15 section's (the F-15I's is open, searched
+        // again 2026-11-08).
         // F-15E: operating weight with CFTs 37,000 lb (TO 1F-15E-1, crew included, to the nearest 500 lb).
         empty_lb: 37_000.0,
         // F-15E: 12,915 lb internal (Wikipedia, citing the TO) + 2 x 4,875 lb in the CFTs (TO p. A9-4), one pool.
         fuel_lb: Some(22_665.0),
-        // F-15E: 81,000 lb for flight, ground and landing (TO 1F-15E-1, USAF fact sheet).
+        // F-15E: 81,000 lb for flight, ground and landing (TO 1F-15E-1, USAF fact sheet); the IAF's F-15I page: 36,750 kg.
         max_lb: Some(81_000.0),
         // F-15I's own engines: 2 x F100-PW-229, 29,160 lbf with afterburner, 17,800 lbf military each (Pratt & Whitney).
         thrust: Thrust::StaticAb(58_320.0),

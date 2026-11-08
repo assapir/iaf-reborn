@@ -190,8 +190,9 @@ Python 5: docs/f16i.md §5; the F-16I has carried the SDB since August 2015 (107
   body 4.04 m, 4,000–5,000 lb, 306 kg of tritonal[^gbu28wp]. The game's record weighs Kopp's 2,130 kg and fills
   FAS's and Kopp's 286 kg. Its guidance is the game's laser bomb (type 650, docs/weapons.md §9.8): with the FLIR pod's
   laser on it flies to the designated point, else to the ripple's aim. The F-15 cannot carry the game's FLIR pod (the
-  F-15E's LANTIRN pods hang on their own intake pylons, not on a game station), so on the Ra'am the GBU-28 falls on
-  the ripple aim (CCIP), guided there by the laser-bomb motion; a designation for it is open. The GPS-aided versions
+  F-15E's LANTIRN pods hang on their own intake pylons, not on a game station); the Ra'am has a built-in targeting pod
+  instead (`flir` in its definition, 2026-11-08), as Israel bought the Sharpshooter targeting pod for its
+  F-15Is[^awst96], so it designates for its GBU-28 (docs/f15i.md §3). The GPS-aided versions
   (EGBU-28/B, EGBU-28C/B with the BLU-122[^gbu28kopp][^gbu28wp]) are not modelled: no source says Israel has them.
 - **Accuracy**: a JDAM with GPS has a 5 m CEP[^jdam] (13 m official, about 10 m in use[^dsjdam]), the GBU-39 1 m[^sdb];
   the game's bomb lands on its aim (not modelled).
@@ -199,7 +200,8 @@ Python 5: docs/f16i.md §5; the F-16I has carried the SDB since August 2015 (107
   - **What it is**: Rafael's kit for 1,000 lb bodies (Mk 83, BLU-110, I-1000, RAP-1000), with "unique deployable
     wings that substantially increase its range"[^spicebro]. Weight: "a 1,000-pound-class bomb"[^twzspice]; the record
     takes 453 kg, Wikipedia's 1,000 lb figure[^wpspice] (the exact
-    weight with the kit is open). Blast: the MK-83's (a Mk 83 body, inferred).
+    weight with the kit is open; searched again 2026-11-08: "about 500 kg" in one article, which may be the 1,000 lb
+    class rounded, docs/f15i.md §9). Blast: the MK-83's (a Mk 83 body, inferred).
   - **Range**: 100 km, from Rafael's SPICE 1000 / 2000 page as Wikipedia cites it[^wpspice]; The War Zone gives a
     "manufacturer-stated range of approximately 125 kilometers"[^twzspice]; the older brochure "over 60 km" for the
     family[^spicebro]. The record takes 100 km. The release conditions are not published: from 40,000 ft at Mach 0.9,
@@ -243,14 +245,16 @@ always has its own, whatever the switch. Research of 29 October 2026.
 | GBU-39 | yes: USAF F-16 (Block 30/40/50 integration, 8 on BRU-61 racks)[^ar39] | no source (the F-15E's) | no source | no source | no source | no source | yes: F-35A internal, RNLAF and RAAF[^raaf39] |
 | SPICE1 | open: IAF F-16C/D since 2017[^spice1000][^twzspice], no source for its stations | yes: IAF Baz, "each carrying a pair" (an OSINT post), a photo of a Baz with a SPICE pair on the underwing pylons[^twzspice] | no source | no source | no source | no source | open: integration announced 2026[^spice35][^twzspice] |
 
-**F-15I Ra'am** (its definition's `weapons.loads`, docs/f15i.md §3; searched 2 November 2026):
+**F-15I Ra'am** (its definition's `weapons.loads`, docs/f15i.md §3; searched 2 November 2026, again 8 November 2026:
+docs/f15i.md §9):
 - **GBU-28**: yes. Israel ordered "100 advanced GBU-28 bombs", "designed for use by F-15 warplanes used by Israel"
   (2005)[^globes05]; "The IAF is also equipping its F-15I squadron with the GBU-28 2.2-ton hard target penetrator
   bomb" (2010)[^globes10]; the IAF's "US-supplied 5,000-pound class GBU-28 series" (2026)[^fpri26]. Station: no source
   for the F-15E or F-15I. The F-15E's CFT racks are "stressed for up to 1000 lb" (outer) and "2000 lb" (inner fore and
   aft)[^kopp85], too little for it, so the game puts it on the wing pylons B / H and the centreline E (inferred; the
   2003 USAF photo of an F-15E releasing one[^gbu28photo] shows it leaving from under the fuselage: the centreline or
-  the far wing, a side view cannot tell).
+  the far wing, a side view cannot tell). Since 2026-11-08 the Ra'am's built-in targeting pod designates for it
+  (§1.6).
 - **GBU-39**: yes. "Israel will shortly bring the GBU-39 bomb into operational use with the F-15I "Thunder"
   squadron" (2010)[^globes10]; "footage released by the IDF also shows SDB-armed BRU-61/As being loaded onto F-15I
   Ra'am aircraft",
@@ -263,7 +267,10 @@ always has its own, whatever the switch. Research of 29 October 2026.
   "F-15I AIM-9X", IAF AIM-9X photos, later US notices for Israel). Not offered.
 - **GBU-38**: open. Israel bought 4,000 JDAM kits for the Mk 82 in 2015[^fr1536]; the Ra'am carries JDAMs (the IAF's
   JDAM jets "include, among others, Baz, Ra'am, Sufa"[^fpri26]) but no source names the 500 lb GBU-38 on the F-15I
-  (searched: F-15I GBU-38 / Mk 82 JDAM photos 2023–2025). Not offered.
+  (searched: F-15I GBU-38 / Mk 82 JDAM photos 2023–2025; on 2026-11-08 the US notices of 2012, 2024 and 2025 for
+  GBU-38 kits and of 2025 for GBU-32 kits, none naming a jet). Not offered, nor the GBU-32.
+- **AMRAAM**: Israel bought the AIM-120C-7 (2015)[^fr1536] and the AIM-120C-8 (2024, 2025); no notice names a jet
+  (docs/f15i.md §9). The game's AMRAAM record stays: no source gives either version's range.
 - **GBU-31 (Mk 84 body)**: the IAF uses "GBU-31(V)1/B and GBU-31(V)3/B" and the F-15I carries "seven GBU-31 series
   weapons"[^fpri26]: offered on the F-15I since 2026-11-02 (the user's decision), on the BLU109's seven stations
   B, C, D, E, F, G, H (inferred), as is the seventh BLU109 on the centreline.
@@ -546,6 +553,8 @@ Each real value lands in one field or rule of the original model:
     https://en.wikipedia.org/wiki/GBU-28
 [^gbu28photo]: USAF, Tech. Sgt. M. Ammons, an F-15E of the 492nd Fighter Squadron releasing a GBU-28 over the Utah
     Test and Training Range, 5 August 2003, https://commons.wikimedia.org/wiki/File:F-15E_gbu-28_release.jpg
+[^awst96]: Aviation Week, "Israel receives first F-15 LANTIRN pod", 11 October 1996 (the LANTIRN navigation pod and
+    the Sharpshooter targeting pod for Israel's F-15Is): https://aviationweek.com/israel-receives-first-f-15-lantirn-pod
 [^globes05]: Globes, "Pentagon: We'll sell bunker bombs to Israel", 27 April 2005,
     https://en.globes.co.il/en/article-908453
 [^globes10]: R. Dagoni, Globes, "US to upgrade Israel Air Force precision munitions", 4 May 2010,

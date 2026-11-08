@@ -445,6 +445,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     (`BLU109`) and the GBU-31 (Mk 84), each on seven stations 2–8 (wing pylons, the CFT stations and the centreline),
     the GBU-28 (2 / 5 / 8), the GBU-39 (four to a rack on 2, 4, 5, 6, 8) and the SPICE 1000 (`SPICE1`, wing pylons
     2 / 8), whatever Extras "Weapons" says; the original's items stay;
+  - targeting pod: a built-in one (the Sharpshooter Israel bought for its F-15Is; f15i.md §3), so a laser bomb brings
+    up the FLIR page and the laser guides the GBU-28; the original's F-15 has no pod;
   - engine: with Better physics' engine spool, the -229's own times (under 4 s idle to maximum afterburner), not the
     -220's;
   - the Arming screen shows its own front-view art with the conformal tanks (rendered by setup) and the Ra'am's weights

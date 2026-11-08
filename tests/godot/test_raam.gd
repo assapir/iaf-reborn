@@ -1,8 +1,8 @@
 # The Extras switch "F-15 version" on Ra'am (docs/f15i.md): every F-15 (type 110), the player's and the AI's, flies the
 # F-15I row (22,665 lb internal fuel), gets the APG-70I's 104 km and the F-15E's 500 rounds, and its Arming lists the
 # Python 5, the GBU-31(V)3 and the SPICE 1000 whatever Extras "Weapons" says; the TSD, the info line and the Reference
-# name it; its Real HUD is the F-15E's. A SPICE 1000 released in PRE 45 km from its target, 9,000 m up, glides to it
-# and destroys the unit there.
+# name it; its Real HUD is the F-15E's; its built-in targeting pod gives the FLIR and the laser. A SPICE 1000 released
+# in PRE 45 km from its target, 9,000 m up, glides to it and destroys the unit there.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-reborn -s ../tests/godot/test_raam.gd
 extends "res://../tests/godot/base.gd"
 
@@ -81,6 +81,7 @@ func run() -> void:
 	var fuel: float = tv.flight.state().internal_fuel_kg
 	check(absf(fuel - RAAM_FUEL_KG) < 1.0, "player F-15I: internal fuel %.0f kg" % fuel)
 	check(tv._modes_text().contains("RAAM"), "info line: %s" % tv._modes_text())
+	check(tv.weapons.flir_pod, "the targeting pod (Sharpshooter): the FLIR page and the laser for the GBU-28")
 	for p in tv.ai.pilots.filter(func(p): return int(p.ent.type_code) == 110):
 		var f: float = p.flight.state().internal_fuel_kg
 		check(absf(f - RAAM_FUEL_KG) < 1.0, "AI %s F-15I: internal fuel %.0f kg" % [p.ent.name, f])
@@ -110,6 +111,7 @@ func run() -> void:
 	_spice(tv)
 	settings().f15_variant = "baz"
 	check(settings().airframe(110).get("hud", "") == "", "Baz: the F-15A/C Real HUD (its cockpit's)")
+	check(not settings().airframe(110).get("flir", false), "Baz: no built-in targeting pod")
 
 
 ## PRE, the briefing's target 45 km ahead, 9,000 m up at 250 m/s: in the SPICE's LAR (a JDAM's is far short); the
