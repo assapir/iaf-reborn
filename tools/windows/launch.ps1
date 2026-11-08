@@ -2,7 +2,7 @@
 # iafjets.ps1, mission-editor.ps1, iaf2026.ps1 and iaf2026-setup.ps1 call this with their mode). Builds the game's
 # extension, imports the Godot project on a fresh clone, then starts the setup wizard (setup), the game (game; without
 # game data: the wizard), the mission editor (editor), IAF 2026 (sim; without its data: sim-setup; until its front end,
-# item E2, its M0 probe) or IAF 2026's data build (sim-setup: iaf-sim all and terrain, until its wizard, item A3). The arguments
+# item E2, its M0 probe) or IAF 2026's setup wizard (sim-setup). The arguments
 # after the mode go to the game, e.g. .\iafjets.ps1 --mission 311. IAF_SCENE=res://... starts that scene instead of the
 # main menu. ASCII only: Windows PowerShell 5.1 reads a script without a BOM as ANSI. No param() block: PowerShell would
 # bind game arguments such as -m or -- to its parameters.
@@ -52,8 +52,8 @@ try {
 		Write-Host 'No game data yet: starting the setup wizard.'
 		$mode = 'setup'
 	}
-	if ($mode -eq 'sim' -and -not (Test-Path 'assets\converted\own')) {
-		Write-Host 'No IAF 2026 data yet: building it.'
+	if ($mode -eq 'sim' -and -not (Test-Path 'assets\converted\iaf-2026\missions')) {
+		Write-Host 'No IAF 2026 data yet: starting its setup wizard.'
 		$mode = 'sim-setup'
 	}
 	if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
@@ -75,16 +75,6 @@ try {
 	if ($mode -eq 'setup') { Write-Host "building the game's extension (the first time takes a few minutes)..." }
 	Native { cargo build --release -p iaf-godot }
 	if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-	if ($mode -eq 'sim-setup') {
-		Write-Host "IAF 2026's setup wizard comes with item A3; building the sim's data from the command line (iaf-sim all)..."
-		Native { cargo build --release -p iaf-tools --bin iaf-sim }
-		if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-		# The terrain first (iaf-2026/docs/terrain.md): GDAL, downloads, about two hours the first time; resumes.
-		Native { & target\release\iaf-sim.exe terrain assets }
-		if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-		Native { & target\release\iaf-sim.exe all iaf-2026\data assets }
-		exit $LASTEXITCODE
-	}
 	# Godot's import (as tools/godot_import.sh): on a fresh clone (Godot loads iaf.gdextension only once an import has
 	# listed it in .godot/extension_list.cfg) and after a pull that brought new or changed shaders or textures (an
 	# .import file or its source newer than the last import, <project>\.godot\.iaf_imported).
@@ -120,10 +110,11 @@ try {
 	switch ($mode) {
 		'sim' { $godotArgs += 'res://main.tscn' }
 		'setup' { $godotArgs += @('--resolution', '1200x820', 'res://setup/wizard.tscn') }
+		'sim-setup' { $godotArgs += @('--resolution', '1100x720', 'res://setup/wizard.tscn') }
 		'editor' { $godotArgs += 'res://editor/mission_editor.tscn' }
 		default { if ($env:IAF_SCENE) { $godotArgs += $env:IAF_SCENE } }
 	}
-	if ($mode -ne 'setup') { $godotArgs += @('--') + $gameArgs }
+	if ($mode -notin 'setup', 'sim-setup') { $godotArgs += @('--') + $gameArgs }
 	& $godot @godotArgs
 } finally {
 	Pop-Location

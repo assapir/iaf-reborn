@@ -114,12 +114,33 @@ pub struct Tools {
     pub gdal: bool,
     /// curl (the Survey sheets).
     pub curl: bool,
-    /// python3 (the guide PDFs).
+    /// A Python 3 that runs ([`python`]; the guide PDFs, IAF 2026's flight data).
     pub python3: bool,
     /// firefox (the Survey sheets' token, the guide PDFs).
     pub firefox: bool,
     /// A display (the guides' pictures are real renders).
     pub display: bool,
+}
+
+/// The command that runs Python 3 here (program and its first arguments): the first of `python3`, `python`,
+/// `py -3` whose `--version` answers "Python 3." (Windows' `python3` without Python installed is the Store's alias, a
+/// stub that only fails with 9009); `None` without one.
+pub fn python() -> Option<Vec<&'static str>> {
+    let tries: [&[&'static str]; 3] = if cfg!(windows) {
+        [&["python"], &["py", "-3"], &["python3"]]
+    } else {
+        [&["python3"], &["python"], &["py", "-3"]]
+    };
+    tries.into_iter().find_map(|c| {
+        let o = std::process::Command::new(c[0]).args(&c[1..]).arg("--version").output().ok()?;
+        let out = format!("{}{}", String::from_utf8_lossy(&o.stdout), String::from_utf8_lossy(&o.stderr));
+        (o.status.success() && is_python3(&out)).then(|| c.to_vec())
+    })
+}
+
+/// `--version`'s answer names a Python 3 ("Python 3.12.1"; Python 2 printed it on stderr, the Store stub nothing).
+fn is_python3(version: &str) -> bool {
+    version.trim_start().starts_with("Python 3.")
 }
 
 fn on_path(name: &str) -> bool {
@@ -171,7 +192,7 @@ pub fn tools() -> Tools {
     Tools {
         gdal: on_path("gdal_translate") && on_path("gdalbuildvrt"),
         curl: on_path("curl"),
-        python3: on_path("python3"),
+        python3: python().is_some(),
         firefox: on_path("firefox") || firefox_installed(),
         display: env("DISPLAY") || env("WAYLAND_DISPLAY") || desktop(),
     }
@@ -222,6 +243,16 @@ pub fn scan(dir: &Path) -> Vec<(&'static str, std::path::PathBuf)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The Store stub prints nothing; Python 2 printed "Python 2.7.18"; a real one "Python 3.12.1".
+    #[test]
+    fn only_a_python_3_counts() {
+        assert!(is_python3("Python 3.12.1\n") && is_python3(" Python 3.9.0"));
+        assert!(!is_python3("") && !is_python3("Python 2.7.18") && !is_python3("Python was not found; run without"));
+        if on_path("python3") {
+            assert!(python().is_some(), "python3 is on PATH here");
+        }
+    }
 
     /// A pack two folders down is found; a zip that is no pack and a hidden folder are not looked at.
     #[test]

@@ -789,9 +789,10 @@ fn units(
     })
 }
 
-/// What a finished run was built from (`meta.json` "built_from"): the box, the detail area and the sheet ZIPs (name
-/// and size). A run whose inputs are the same as the stamp's has nothing to do.
-fn stamp(r: &Run) -> serde_json::Value {
+/// What a finished run was built from (`meta.json` "built_from"): the box, the detail area, the sheet ZIPs (name and
+/// size) and the airbases' layouts (name and a hash of the content: their outlines mask the Survey photo). A run whose
+/// inputs are the same as the stamp's has nothing to do.
+pub fn stamp(r: &Run) -> serde_json::Value {
     let mut zips: Vec<String> = std::fs::read_dir(&r.sheets)
         .map(|d| {
             d.filter_map(|e| e.ok())
@@ -801,7 +802,22 @@ fn stamp(r: &Run) -> serde_json::Value {
         })
         .unwrap_or_default();
     zips.sort();
-    serde_json::json!({ "box": r.area, "detail": r.detail, "survey_zips": zips })
+    let mut bases: Vec<String> = std::fs::read_dir(&r.airbases)
+        .map(|d| {
+            d.filter_map(|e| e.ok())
+                .filter(|e| e.path().extension().is_some_and(|x| x == "json"))
+                .map(|e| {
+                    let h = std::fs::read(e.path())
+                        .unwrap_or_default()
+                        .iter()
+                        .fold(0xcbf29ce484222325u64, |h, b| (h ^ u64::from(*b)).wrapping_mul(0x100000001b3));
+                    format!("{} {h:016x}", e.file_name().to_string_lossy())
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    bases.sort();
+    serde_json::json!({ "box": r.area, "detail": r.detail, "survey_zips": zips, "airbases": bases })
 }
 
 /// `meta.json` (the shape `terrain::theatre` writes) with the georeference, the sources and the run's stamp.

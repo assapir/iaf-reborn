@@ -1,5 +1,6 @@
-//! `IafSetup`: the setup pipeline (`iaf_setup`, docs/setup.md) for the wizard (`iaf-reborn/setup/wizard.gd`). `start` runs
-//! the plan on its own thread; the wizard calls `poll` every frame for the steps' states, fractions and new log lines.
+//! `IafSetup`: the setup pipeline (`iaf_setup`, docs/setup.md) for the wizards (`iaf-reborn/setup/wizard.gd`, IAF
+//! 2026's `iaf-2026/setup/wizard.gd`). `start` (`sim_start`) runs the plan on its own thread; the wizard calls `poll`
+//! every frame for the steps' states, fractions and new log lines.
 //! Inputs travel as setup.json's JSON text (`iaf_setup::to_json` / `from_json`).
 
 use std::io::Write;
@@ -8,7 +9,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use godot::prelude::*;
-use iaf_setup::{CdKind, Ctx, Events, State, Step};
+use iaf_setup::{CdKind, Ctx, Events, SimCtx, SimInputs, State, Step};
 use iaf_tools::progress::Progress;
 
 struct Row {
@@ -181,6 +182,7 @@ impl IafSetup {
     /// Starts a background job (gdext objects can only be called on the main thread, so the slow checks run here);
     /// `result(job)` gives its answer. `job` is a kind, optionally with `#<anything>` after it:
     /// - "preview" [assets, repo, inputs JSON]: {step id: true when a run would find it up to date} (reads the inputs);
+    /// - "sim_preview" [assets, repo, survey "1" | "0"]: the same for IAF 2026's steps;
     /// - "scan" [folder]: {"english" | "hebrew" | "patch" | "brief" | "menu": path} found in it (`iaf_setup::scan`);
     /// - "stale" [assets, layer ids…]: the imagery units older rules made, -1 when it cannot tell (e.g. offline).
     #[func]
@@ -206,6 +208,14 @@ impl IafSetup {
                             guides: None,
                         };
                         iaf_setup::preview(&steps, &ctx)
+                            .into_iter()
+                            .map(|(id, up)| (id.to_string(), serde_json::Value::Bool(up)))
+                            .collect()
+                    }
+                    ("sim_preview", [assets, repo, survey]) => {
+                        let inputs = SimInputs { survey: survey == "1" };
+                        let ctx = SimCtx { assets: assets.into(), repo: repo.into(), inputs };
+                        iaf_setup::sim_preview(&iaf_setup::sim_plan(&inputs), &ctx)
                             .into_iter()
                             .map(|(id, up)| (id.to_string(), serde_json::Value::Bool(up)))
                             .collect()
@@ -249,7 +259,7 @@ impl IafSetup {
         only: PackedStringArray,
         log_file: GString,
     ) -> GString {
-        if self.shared.lock().unwrap().rows.iter().any(|r| r.state == "running") {
+        if self.running() {
             return "setup is running".into();
         }
         let i = match inputs(&inputs_json) {
@@ -266,55 +276,53 @@ impl IafSetup {
         if !only.is_empty() {
             steps = iaf_setup::only(&steps, &only.iter().map(String::as_str).collect::<Vec<_>>());
         }
-        *self.shared.lock().unwrap() = Shared {
-            rows: steps
-                .iter()
-                .map(|s| Row {
-                    id: s.id,
-                    title: s.title,
-                    required: s.required,
-                    state: "waiting",
-                    detail: String::new(),
-                    fraction: 0.0,
-                })
-                .collect(),
-            ..Default::default()
-        };
-        let log_file = PathBuf::from(log_file.to_string());
-        let file = (!log_file.as_os_str().is_empty())
-            .then(|| {
-                std::fs::create_dir_all(log_file.parent()?).ok()?;
-                let mut f = std::fs::File::create(&log_file).ok()?;
-                let _ = writeln!(f, "setup: {inputs_json}\nredo: {redo:?}, only: {only:?}");
-                Some(Mutex::new(f))
-            })
-            .flatten();
-        self.cancel = Arc::new(AtomicBool::new(false));
-        let (shared, cancel) = (self.shared.clone(), self.cancel.clone());
-        std::thread::spawn(move || {
-            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                let guides = |pr: &dyn Progress, c: &AtomicBool| iaf_setup::script_guides(&repo, pr, c);
-                let prefix = format!("{}/", assets.display());
-                let ctx = Ctx { assets, repo: repo.clone(), inputs: i, xdg_data_home: None, guides: Some(&guides) };
-                iaf_setup::run(
-                    &steps,
-                    &ctx,
-                    &|id| redo.iter().any(|r| r == "*" || r == id),
-                    &Sink(shared.clone(), prefix, file),
-                    &cancel,
-                )
-            }));
-            let mut sh = shared.lock().unwrap();
-            sh.error = match result {
-                Err(_) => "setup stopped: an internal error (panic)".into(),
-                Ok(states) => states
-                    .iter()
-                    .filter(|(_, s)| matches!(s, State::Failed(_) | State::Blocked | State::Cancelled))
-                    .map(|(id, s)| format!("{id}: {}", state_name(s).0))
-                    .collect::<Vec<_>>()
-                    .join(", "),
-            };
-            sh.done = true;
+        let header = format!("setup: {inputs_json}\nredo: {redo:?}, only: {only:?}");
+        let prefix = format!("{}/", assets.display());
+        self.launch(steps.clone(), &header, log_file, prefix, move |sink, cancel| {
+            let guides = |pr: &dyn Progress, c: &AtomicBool| iaf_setup::script_guides(&repo, pr, c);
+            let ctx = Ctx { assets, repo: repo.clone(), inputs: i, xdg_data_home: None, guides: Some(&guides) };
+            iaf_setup::run(&steps, &ctx, &|id| redo.iter().any(|r| r == "*" || r == id), sink, cancel)
+        });
+        GString::new()
+    }
+
+    /// IAF 2026's plan (`iaf_setup::sim_plan`): [{id, title, required}].
+    #[func]
+    fn sim_plan(survey: bool) -> VarArray {
+        iaf_setup::sim_plan(&SimInputs { survey })
+            .iter()
+            .map(|s| vdict! { "id" => s.id, "title" => s.title, "required" => s.required }.to_variant())
+            .collect()
+    }
+
+    /// The Survey of Israel sheet ZIPs already under `assets` (IAF 2026's Survey choice needs them).
+    #[func]
+    fn survey_sheets(assets: GString) -> i64 {
+        iaf_setup::survey_sheets(&PathBuf::from(assets.to_string())) as i64
+    }
+
+    /// Starts IAF 2026's setup (`iaf_setup::sim_run`) on its own thread, as `start` does the original's; `poll` and
+    /// `cancel` serve both.
+    #[func]
+    fn sim_start(
+        &mut self,
+        assets: GString,
+        repo: GString,
+        survey: bool,
+        redo: PackedStringArray,
+        log_file: GString,
+    ) -> GString {
+        if self.running() {
+            return "setup is running".into();
+        }
+        let redo: Vec<String> = redo.as_slice().iter().map(|s| s.to_string()).collect();
+        let inputs = SimInputs { survey };
+        let steps = iaf_setup::sim_plan(&inputs);
+        let ctx = SimCtx { assets: PathBuf::from(assets.to_string()), repo: PathBuf::from(repo.to_string()), inputs };
+        let header = format!("IAF 2026 setup: survey {survey}\nredo: {redo:?}");
+        let prefix = format!("{}/", ctx.assets.display());
+        self.launch(steps.clone(), &header, log_file, prefix, move |sink, cancel| {
+            iaf_setup::sim_run(&steps, &ctx, &|id| redo.iter().any(|r| r == "*" || r == id), sink, cancel)
         });
         GString::new()
     }
@@ -339,5 +347,62 @@ impl IafSetup {
     #[func]
     fn cancel(&self) {
         self.cancel.store(true, Ordering::Relaxed);
+    }
+}
+
+impl IafSetup {
+    fn running(&self) -> bool {
+        self.shared.lock().unwrap().rows.iter().any(|r| r.state == "running")
+    }
+
+    /// Runs `body` on its own thread with fresh rows for `steps`, the log also to `log_file` (after `header`).
+    fn launch(
+        &mut self,
+        steps: Vec<Step>,
+        header: &str,
+        log_file: GString,
+        prefix: String,
+        body: impl FnOnce(&Sink, &AtomicBool) -> Vec<(&'static str, State)> + Send + 'static,
+    ) {
+        *self.shared.lock().unwrap() = Shared {
+            rows: steps
+                .iter()
+                .map(|s| Row {
+                    id: s.id,
+                    title: s.title,
+                    required: s.required,
+                    state: "waiting",
+                    detail: String::new(),
+                    fraction: 0.0,
+                })
+                .collect(),
+            ..Default::default()
+        };
+        let log_file = PathBuf::from(log_file.to_string());
+        let file = (!log_file.as_os_str().is_empty())
+            .then(|| {
+                std::fs::create_dir_all(log_file.parent()?).ok()?;
+                let mut f = std::fs::File::create(&log_file).ok()?;
+                let _ = writeln!(f, "{header}");
+                Some(Mutex::new(f))
+            })
+            .flatten();
+        self.cancel = Arc::new(AtomicBool::new(false));
+        let (shared, cancel) = (self.shared.clone(), self.cancel.clone());
+        std::thread::spawn(move || {
+            let sink = Sink(shared.clone(), prefix, file);
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| body(&sink, &cancel)));
+            let mut sh = shared.lock().unwrap();
+            sh.error = match result {
+                Err(_) => "setup stopped: an internal error (panic)".into(),
+                Ok(states) => states
+                    .iter()
+                    .filter(|(_, s)| matches!(s, State::Failed(_) | State::Blocked | State::Cancelled))
+                    .map(|(id, s)| format!("{id}: {}", state_name(s).0))
+                    .collect::<Vec<_>>()
+                    .join(", "),
+            };
+            sh.done = true;
+        });
     }
 }

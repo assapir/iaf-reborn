@@ -8,7 +8,7 @@ work items are in [plan.md](docs/plan.md); what the sim gives the original game 
 From the repo root:
 
 ```sh
-./iaf2026-setup     # builds the sim's data into assets/ (iaf-sim all, iaf-sim terrain); its setup wizard comes with item A3
+./iaf2026-setup     # the setup wizard: builds the sim's data into assets/ (docs/setup.md)
 ./iaf2026           # builds the extension and starts the sim; until its front end (item E2): the M0 probe
 ./iaf2026 -- --mission 2012   # one mission without the front end (2011 / 2012 Ramon, 2021 / 2022 Ramat David, 2031 / 2032 Nevatim; training.md §10)
 IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-2026 -s ../iaf-2026/tests/test_m0_boot.gd --log-file <temp>

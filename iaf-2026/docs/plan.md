@@ -181,7 +181,7 @@ Size: M. Blocks on: A1.
 
 ### A3 the setup wizard
 
-**IAF 2026 setup wizard** (`iaf-2026/setup/`): new pages and options, no Jane's mentions, reuse the `IafSetup` bridge and progress / cancel pattern of `game/setup`; Attributions page; Hebrew and English
+**IAF 2026 setup wizard** (`iaf-2026/setup/`): new pages and options, no Jane's mentions, reuse the `IafSetup` bridge and progress / cancel pattern of `game/setup`; Attributions page; Hebrew and English. **Done (2026-11-03, branch wt/iaf-2026-wizard):** `./iaf2026-setup` (and `./iaf2026` without the sim's data) opens the wizard: Welcome (language, what it builds, sizes and times, the GDAL / curl / disk check), Imagery and airbases (Sentinel-2, or with the Survey of Israel when its sheets are there), Attributions (the Copernicus lines word for word), Install (progress per step, cancel, resume), Done; English and mirrored Hebrew in Heebo; the look in one file (Godot's default theme until the user's round 3); the steps `iaf_setup::sim_plan` / `sim_run` with stamps; `test_setup_wizard.gd`; a real run ([setup.md](setup.md)). **Open:** the look (round 3)
 
 Size: L. Blocks on: A2.
 

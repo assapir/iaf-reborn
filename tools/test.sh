@@ -31,7 +31,10 @@ done
 # IAF 2026's tests in its own project; NEEDS DATA (the sim's data not built yet, iaf-2026/docs/status.md) is no failure.
 for t in iaf-2026/tests/test_*.gd; do
 	echo "== $t"
-	out=$(IAF_DEFAULT_SETTINGS=1 timeout 300 godot --log-file "$logs/2026-$(basename "$t" .gd).log" --headless --audio-driver Dummy --path iaf-2026 -s "../$t" 2>&1)
+	# Its setup wizard's test, as the original's: an empty scratch folder for assets/.
+	env=()
+	[[ $t == */test_setup_wizard.gd ]] && env=(IAF_ASSETS_DIR="$(mktemp -d "$logs/wizard-assets.XXXXXX")")
+	out=$(env "${env[@]}" IAF_DEFAULT_SETTINGS=1 timeout 300 godot --log-file "$logs/2026-$(basename "$t" .gd).log" --headless --audio-driver Dummy --path iaf-2026 -s "../$t" 2>&1)
 	rc=$?
 	echo "$out" | grep -E "^(PASS|FAIL|RESULT|NEEDS DATA)|SCRIPT ERROR"
 	[[ $rc == 124 ]] && { echo "FAIL timeout (300 s); last output:"; echo "$out" | tail -15; }

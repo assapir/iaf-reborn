@@ -153,6 +153,12 @@ aerodynamic tables, transcribed from the report's scan; the University of Minnes
 simulation package) served as the candidate checked against the scan (iaf-2026/docs/flight-model.md §9.1). The
 6-DoF's F-35I gear geometry is from W. H. Mason's F-35A data (Virginia Tech), iaf-2026/docs/flight-model.md §9.9.
 
+## IAF 2026's font
+
+The sim's screens (its setup wizard first) use Heebo, `iaf-2026/data/fonts/Heebo-VariableFont_wght.ttf`, "Copyright
+2014 The Heebo Project Authors (https://github.com/OdedEzer/heebo)", under the SIL Open Font License 1.1
+(`iaf-2026/data/fonts/OFL.txt`), from Google Fonts[^heebo]. The wizard's Attributions page names it.
+
 ## Testing
 
 * `tests/godot/test_credits.gd` checks:
@@ -183,4 +189,5 @@ simulation package) served as the candidate checked against the scan (iaf-2026/d
     and licence: https://langnico.github.io/globalcanopyheight/
 [^tp1538]: L. T. Nguyen et al., NASA TP-1538 (1979), "Simulator Study of Stall/Post-Stall Characteristics of a Fighter
     Airplane With Relaxed Longitudinal Static Stability": https://ntrs.nasa.gov/citations/19800005879
+[^heebo]: Google Fonts, Heebo (`ofl/heebo/Heebo[wght].ttf` and `OFL.txt`): https://github.com/google/fonts/tree/main/ofl/heebo
 [^cop-dem]: "Licence for the use of the Copernicus WorldDEM-30", Article 6: https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/DEM/resources/license/License-COPDEM-30.pdf

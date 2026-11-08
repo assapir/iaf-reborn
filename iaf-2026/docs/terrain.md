@@ -15,7 +15,7 @@ cargo build --release -p iaf-tools --bin iaf-sim
 target/release/iaf-sim terrain [assets] [--box E0 N0 E1 N1] [--out DIR] [--threads N]   # needs GDAL and curl
 ```
 
-`./iaf2026-setup` runs it after `iaf-sim all`. A run resumes: finished work units are marked in `<out>/.work/`, and
+The setup wizard runs it as its first step ([setup.md](setup.md)). A run resumes: finished work units are marked in `<out>/.work/`, and
 the DEM tiles stay in `assets/source/dem/`. A finished run is stamped in `meta.json` (`built_from`: the box, the
 detail area and the sheet ZIPs' names and sizes); a run with the same inputs ends at once ("up to date"). To build
 again, delete `meta.json` (and `.work/done_*` for the units to redo).

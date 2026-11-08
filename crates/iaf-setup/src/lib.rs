@@ -16,11 +16,13 @@ use iaf_tools::progress::Progress;
 mod bodies;
 mod checks;
 mod saved;
+mod sim;
 mod stamp;
 mod steps;
 
-pub use checks::{CdKind, PackInfo, Tools, check_cd, check_pack, check_patch, scan, tools};
+pub use checks::{CdKind, PackInfo, Tools, check_cd, check_pack, check_patch, python, scan, tools};
 pub use saved::{from_json, inputs_file, load_inputs, save_inputs, to_json};
+pub use sim::{SimCtx, SimInputs, sim_plan, sim_preview, sim_run, survey_sheets};
 pub use steps::{COCKPITS, KEPT, OUTPUTS, disk_bytes, imagery_stale, script_guides, uninstall};
 
 /// The Hebrew content: the Hebrew retail CD (everything translated), or the preflight.us packs.
@@ -286,11 +288,16 @@ pub type Redo<'a> = dyn Fn(&str) -> bool + Sync + 'a;
 /// Which steps of `steps` (in plan order) a run would find up to date, as `run` decides it (without `redo`). Reads
 /// the inputs to checksum them, so it takes as long as the stamps do (about a second with the CD images).
 pub fn preview(steps: &[Step], ctx: &Ctx) -> Vec<(&'static str, bool)> {
+    preview_with(steps, &|step| stamp::of(step, ctx))
+}
+
+/// `preview` with the stamps of `stamp`.
+pub(crate) fn preview_with(steps: &[Step], stamp: &StampFn) -> Vec<(&'static str, bool)> {
     let mut texts: HashMap<&'static str, String> = HashMap::new();
     steps
         .iter()
         .map(|step| {
-            let Ok(Some(mut s)) = stamp::of(step, ctx) else {
+            let Ok(Some(mut s)) = stamp(step) else {
                 texts.insert(step.id, "ran".into());
                 return (step.id, false);
             };

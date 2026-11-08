@@ -1,13 +1,5 @@
 #!/usr/bin/env bash
-# IAF 2026's setup: builds the sim's data into assets/ (iaf-sim, iaf-2026/docs/data-formats.md) and the extension.
-# Its wizard comes with item A3; until then this runs the compilers from the command line.
-set -euo pipefail
-cd "$(dirname "$0")"
-command -v cargo >/dev/null || { echo "IAF 2026 needs Rust (cargo): rustup.rs" >&2; exit 1; }
-echo "IAF 2026's setup wizard comes with item A3; building the sim's data from the command line (iaf-sim all)…"
-cargo build --release -p iaf-godot
-cargo build --release -p iaf-tools --bin iaf-sim
-# The terrain first (iaf-2026/docs/terrain.md): GDAL, downloads, about two hours the first time; a rerun resumes or
-# ends at once. Then the data, the airbases on the terrain and the missions on the bases.
-target/release/iaf-sim terrain assets
-target/release/iaf-sim all iaf-2026/data assets
+# IAF 2026's setup wizard (iaf-2026/docs/setup.md): checks for Rust (cargo) and Godot, builds the extension, then opens
+# the wizard's window (tools/launch-wizard.sh), which builds the sim's data into assets/. Run it again at any time:
+# the finished steps are kept. `iaf-sim all` / `iaf-sim terrain` are the scripted way.
+exec "$(dirname "$0")/tools/launch-wizard.sh" iaf-2026 "IAF 2026 — Setup" 1100x720

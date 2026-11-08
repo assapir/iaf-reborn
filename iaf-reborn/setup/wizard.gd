@@ -6,6 +6,8 @@
 # Opened by ./setup, by ./iafjets without game data, and by startup.gd when assets/converted is missing.
 extends Control
 
+const WizardUtil := preload("res://shared/util/wizard_util.gd")
+
 const TITLE := "Jane's IAF (reborn) — Setup"
 const PAGES := ["Welcome", "Requirements", "Your CD", "Optional", "Extras", "Summary", "Install", "Done"]
 ## Sizes on disk (GB), measured with du on the developer's Linux laptop (2026-10-22) unless said: the install,
@@ -136,7 +138,9 @@ func _ready() -> void:
 	var icon := Image.load_from_file(ProjectSettings.globalize_path("res://setup/icon.png"))
 	if icon != null:
 		DisplayServer.set_icon(icon)
-	_resize_window.call_deferred()
+	# The window: 1200×820 times the UI scale, centred (./setup starts it at 1200×820); the game it starts at the end
+	# applies its own Window setting again.
+	(func(): WizardUtil.resize_window(self, Vector2i(1200, 820))).call_deferred()
 	assets = Settings.assets_dir()
 	repo = ProjectSettings.globalize_path("res://").path_join("..").simplify_path()
 	tools = IafSetup.tools()
@@ -350,32 +354,6 @@ func _browse(row: Dictionary, label: String, filters: PackedStringArray) -> void
 	d.popup_centered(Vector2i(900, 600))
 
 
-## The wizard's window: 1200×820 times the UI scale, centred (asked once it shows; ./setup starts it at 1200×820).
-## Always a framed window, even with the game's Window: Full screen (Settings applies it at start-up): a full-screen
-## wizard has no title bar to close it by. The game it starts at the end applies the setting again.
-func _resize_window() -> void:
-	await get_tree().process_frame
-	var win := get_window()
-	if DisplayServer.get_name() == "headless":
-		return
-	# The project's 1920×1080 window is larger than most work areas, so the desktop maximizes it: back to a window.
-	if win.mode != Window.MODE_WINDOWED:
-		win.mode = Window.MODE_WINDOWED
-		await get_tree().process_frame
-	var screen := DisplayServer.screen_get_usable_rect(win.current_screen)
-	# HiDPI and large screens: the UI grows with the screen (the OS scale, or the height against 1080), in steps of
-	# 0.25, as long as the window still fits the work area.
-	var grow := maxf(DisplayServer.screen_get_scale(win.current_screen), screen.size.y / 1080.0)
-	var fit := minf(screen.size.x / 1200.0, screen.size.y / 820.0) * 0.95
-	win.content_scale_factor = maxf(1.0, floorf(minf(grow, fit) * 4.0) / 4.0)
-	var want := Vector2i(
-		mini(int(1200 * win.content_scale_factor), screen.size.x),
-		mini(int(820 * win.content_scale_factor), screen.size.y)
-	)
-	DisplayServer.window_set_size(want, win.get_window_id())
-	DisplayServer.window_set_position(screen.position + (screen.size - want) / 2, win.get_window_id())
-
-
 ## Lines stay readable in a wide window: the content is at most CONTENT_W wide, centred.
 const CONTENT_W := 1100
 
@@ -479,7 +457,7 @@ func _fill_requirements() -> void:
 		RenderingServer.get_current_rendering_driver_name(), RenderingServer.get_current_rendering_driver_name()
 	)
 	var headless := DisplayServer.get_name() == "headless"
-	var free_gb := _free_gb()
+	var free_gb := WizardUtil.free_gb(assets)
 	var free_text := ("%.1f GB free" % free_gb) if free_gb >= 0 else "free space unknown"
 	var imagery_gb: float = SURVEY_GB[0] + SURVEY_GB[1] + SENTINEL_GB
 	# [required, here, component, why it is needed, status when here, how to get it when missing]
@@ -596,18 +574,6 @@ func _fill_requirements() -> void:
 				var y := bottom + grid.get_theme_constant("v_separation") / 2.0
 				grid.draw_line(Vector2(0, y), Vector2(grid.size.x, y), Color(DIM, 0.35))
 	)
-
-
-## Free space where assets/ is (or would be), GB; -1 when unknown.
-func _free_gb() -> float:
-	var dir := assets
-	while dir != "" and not DirAccess.dir_exists_absolute(dir):
-		var up := dir.get_base_dir()
-		if up == dir:
-			break
-		dir = up
-	var d := DirAccess.open(dir)
-	return d.get_space_left() / 1e9 if d != null else -1.0
 
 
 func _page_welcome() -> Control:
@@ -1043,7 +1009,7 @@ func _expected() -> Dictionary:
 		# The sizes are estimates: a part with most of it on disk is done, not a sliver short.
 		new += 0.0 if p[2] >= DONE_SHARE * p[0] else p[0] - p[2]
 		downloads += p[1]
-	return {"total": _here("") + new, "downloads": downloads, "new": new, "free": _free_gb()}
+	return {"total": _here("") + new, "downloads": downloads, "new": new, "free": WizardUtil.free_gb(assets)}
 
 
 ## "about 24 GB" / "about 1.2 GB".
@@ -1424,7 +1390,7 @@ func _fill_rows(steps: Array, keep: bool) -> void:
 			r.started = r.get("started", Time.get_ticks_msec())
 			var t: float = (Time.get_ticks_msec() - int(r.started)) / 1000.0
 			if t > 30.0 and f > 0.02:
-				r.state.text = "%s, %s left" % [r.state.text, duration(t * (1.0 - f) / f)]
+				r.state.text = "%s, %s left" % [r.state.text, WizardUtil.duration(t * (1.0 - f) / f)]
 		r.state.tooltip_text = s.get("detail", "")
 		r.state.add_theme_color_override(
 			"font_color",
@@ -1524,16 +1490,6 @@ func _process(_delta: float) -> void:
 			log_view.visible = true
 			log_button.text = "Hide the log"
 	_update()
-
-
-## A duration as the setup logs write it (iaf_tools::progress::duration), rounded up to the minute past one.
-static func duration(sec: float) -> String:
-	var s := int(round(sec))
-	if s < 60:
-		return "%d s" % s
-	if s < 3600:
-		return "%d min" % ceili(s / 60.0)
-	return "%d h %02d min" % [s / 3600, s % 3600 / 60]
 
 
 ## Shows the log's last lines.

@@ -188,7 +188,8 @@ Their output goes to the step's log.
 
 ## The wizard
 
-`./setup` checks for Rust (cargo) and Godot 4.7 first. A missing one opens a dialog (zenity or kdialog on Linux,
+`./setup` (through `tools/launch-wizard.sh`, which IAF 2026's `./iaf2026-setup` shares) checks for Rust (cargo) and
+Godot 4.7 first. A missing one opens a dialog (zenity or kdialog on Linux,
 osascript on macOS, else the terminal) with the install command. Then it builds the game's extension and opens the
 wizard (`iaf-reborn/setup/wizard.tscn`). `./iafjets` starts `./setup` when there is no game data, and so does the game's
 start-up when `assets/converted` is missing. The desktop launcher "Jane's IAF (reborn) — Setup" runs it too.

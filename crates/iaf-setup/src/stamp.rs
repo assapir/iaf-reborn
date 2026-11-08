@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 
+use crate::sim::{SimCtx, THEATRE};
 use crate::{Ctx, Hebrew, Step};
 
 include!(concat!(env!("OUT_DIR"), "/sources.rs"));
@@ -65,6 +66,37 @@ const TERRAIN: &[&str] = &[
 /// The bodies of extract, patch, hebrew and arm in this crate (their one-line calls in steps.rs do not count).
 const STEPS: &[&str] = &["crates/iaf-setup/src/bodies.rs"];
 
+/// IAF 2026's compilers (`iaf_tools::sim`, `sim_bases`) and every module they reach.
+const SIM: &[&str] = &[
+    "crates/iaf-formats/src/xfile.rs",
+    "crates/iaf-formats/src/model.rs",
+    "crates/iaf-tools/src/aircraft.rs",
+    "crates/iaf-tools/src/mission_year.rs",
+    "crates/iaf-tools/src/mission_events.rs",
+    "crates/iaf-formats/src/mcr.rs",
+    "crates/iaf-formats/src/ini.rs",
+    "crates/iaf-tools/src/mission_creator.rs",
+    "crates/iaf-tools/src/sim.rs",
+    "crates/iaf-tools/src/sim_bases.rs",
+    "crates/iaf-tools/src/sim_files.rs",
+    "crates/iaf-tools/src/mission_edit.rs",
+    "crates/iaf-tools/src/training.rs",
+];
+/// IAF 2026's terrain (`iaf_tools::sim_terrain`) and every module it reaches.
+const SIM_TERRAIN: &[&str] = &[
+    "crates/iaf-tools/src/itm.rs",
+    "crates/iaf-formats/src/lzo.rs",
+    "crates/iaf-formats/src/ptt.rs",
+    "crates/iaf-formats/src/ini.rs",
+    "crates/iaf-tools/src/airbases.rs",
+    "crates/iaf-tools/data/georef_points.json",
+    "crates/iaf-tools/src/georef.rs",
+    "crates/iaf-tools/src/sim_terrain.rs",
+    "crates/iaf-tools/src/imagery.rs",
+    "crates/iaf-tools/src/imagery_run.rs",
+    "Cargo.lock:image",
+];
+
 /// The sources (files, folders, `Cargo.lock:<crate>`) that decide each stamped step's output, as groups. A new step
 /// with a stamp gets a row (the tests check every stamped step has one and that each row holds every module its
 /// files reach).
@@ -107,6 +139,13 @@ pub(crate) const STEP_SOURCES: &[(&str, &[&[&str]])] = &[
             ],
         ],
     ),
+    ("sim-terrain", &[BASE, SIM_TERRAIN]),
+    ("sim-db", &[BASE, SIM]),
+    ("sim-own", &[BASE, SIM]),
+    ("sim-airbases", &[BASE, SIM]),
+    ("sim-missions", &[BASE, SIM]),
+    // The script is the step's input (its lines in the stamp); the call is in sim.rs.
+    ("sim-fm", &[&["crates/iaf-setup/src/sim.rs"]]),
 ];
 
 /// One `code <path> <hash>` line per source file of step `id` (from `sources`, the build's `SOURCES`), a folder's
@@ -182,6 +221,28 @@ fn crc_file(p: &Path) -> Result<u32> {
     }
 }
 
+/// [`describe`] with each path relative to `base` and with `/` between its parts (the same stamp on every system and
+/// in every checkout).
+pub(crate) fn describe_under(p: &Path, base: &Path) -> Result<String> {
+    let rel = |f: &Path| f.strip_prefix(base).unwrap_or(f).to_string_lossy().replace('\\', "/");
+    let files = if p.is_dir() {
+        let mut v = iaf_tools::walk_files(p)?;
+        v.sort();
+        v
+    } else {
+        vec![p.to_path_buf()]
+    };
+    let mut s = String::new();
+    for f in files {
+        s += &if f.is_file() {
+            format!("input {} {} {:08x}\n", rel(&f), std::fs::metadata(&f)?.len(), crc_file(&f)?)
+        } else {
+            format!("input {} missing\n", rel(&f))
+        };
+    }
+    Ok(s)
+}
+
 /// One line per file of `p` (a file, or every file under a folder): path, size, CRC-32.
 pub(crate) fn describe(p: &Path) -> Result<String> {
     if p.is_dir() {
@@ -245,6 +306,33 @@ pub(crate) fn of(step: &Step, ctx: &Ctx) -> Result<Option<Stamp>> {
     Ok(Some(Stamp { path: stamp, text, output: out }))
 }
 
+/// The stamp of one of IAF 2026's steps (`sim::sim_plan`), in `converted/iaf-2026/`: the code, the authored data it
+/// reads; for the terrain, what `iaf-sim terrain` itself compares (the box and the Survey sheets' names and sizes).
+pub(crate) fn sim_of(step: &Step, ctx: &SimCtx) -> Result<Option<Stamp>> {
+    let (a, data) = (&ctx.assets, ctx.data());
+    let (out, inputs): (PathBuf, Vec<PathBuf>) = match step.id {
+        "sim-terrain" => (a.join(THEATRE).join("meta.json"), vec![data.join("airbases")]),
+        "sim-db" => (a.join("converted/missions/sim.bdb.json"), vec![data.join("db")]),
+        "sim-own" => (a.join("converted/own/keys.json"), vec![data.join("sounds"), data.join("keys.json")]),
+        "sim-airbases" => (a.join("converted/own/iaf.ibx"), vec![data.join("airbases")]),
+        "sim-fm" => (a.join("converted/own/resource/md/bd.ibx"), vec![ctx.repo.join(crate::sim::FM0)]),
+        "sim-missions" => {
+            (a.join("converted/iaf-2026/missions"), vec![data.join("missions"), data.join("db"), data.join("airbases")])
+        }
+        _ => return Ok(None),
+    };
+    let mut text = format!("iaf-setup {:016x}\nstep {}\n", code(step.id, SOURCES), step.id);
+    if step.id == "sim-terrain" {
+        text += &format!("built_from {}\n", iaf_tools::sim_terrain::stamp(&ctx.terrain()));
+    }
+    for p in &inputs {
+        // The repo's path is not part of what the data is.
+        text += &describe_under(p, &ctx.repo)?;
+    }
+    let stamp = a.join("converted/iaf-2026").join(format!("{}.stamp", step.id));
+    Ok(Some(Stamp { path: stamp, text, output: Some(out) }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -268,8 +356,11 @@ mod tests {
         };
         let ctx =
             Ctx { assets: dir.clone(), repo: dir.clone(), inputs: inputs.clone(), xdg_data_home: None, guides: None };
-        let stamped: BTreeSet<&str> =
+        let mut stamped: BTreeSet<&str> =
             crate::plan(&inputs).iter().filter(|s| of(s, &ctx).unwrap().is_some()).map(|s| s.id).collect();
+        let sim = SimCtx { assets: dir.clone(), repo: dir.clone(), inputs: Default::default() };
+        stamped
+            .extend(crate::sim_plan(&sim.inputs).iter().filter(|s| sim_of(s, &sim).unwrap().is_some()).map(|s| s.id));
         let rows: BTreeSet<&str> = STEP_SOURCES.iter().map(|(s, _)| *s).collect();
         assert_eq!(stamped, rows, "a row per stamped step, none for others");
         for id in rows {
@@ -348,6 +439,11 @@ mod tests {
                 "theatre" | "airbases" => &["crates/iaf-tools/src/terrain.rs"],
                 "models" => &["crates/iaf-tools/src/f15.rs"],
                 "launcher" => &["tools/install-launcher.sh"],
+                "sim-terrain" => &["crates/iaf-tools/src/sim_terrain.rs"],
+                "sim-fm" => &["crates/iaf-setup/src/sim.rs"],
+                "sim-db" | "sim-own" | "sim-airbases" | "sim-missions" => {
+                    &["crates/iaf-tools/src/sim.rs", "crates/iaf-tools/src/sim_bases.rs"]
+                }
                 _ => &["crates/iaf-tools/src/convert.rs"],
             }
         };
@@ -385,5 +481,17 @@ mod tests {
         let steps = "crates/iaf-setup/src/steps.rs";
         assert!(STEP_SOURCES.iter().all(|(id, _)| !differs(id, steps)), "steps.rs: the calls only");
         assert!(differs("extract", "crates/iaf-setup/src/bodies.rs"));
+    }
+
+    /// A sim stamp names its inputs relative to the repo, whatever the checkout's path.
+    #[test]
+    fn sim_inputs_are_relative() {
+        let dir = std::env::temp_dir().join(format!("iaf-stamp-rel-{}", std::process::id()));
+        std::fs::create_dir_all(dir.join("iaf-2026/data/db")).unwrap();
+        std::fs::write(dir.join("iaf-2026/data/db/a.json"), "{}").unwrap();
+        let t = describe_under(&dir.join("iaf-2026/data/db"), &dir).unwrap();
+        assert!(t.starts_with("input iaf-2026/data/db/a.json 2 "), "{t}");
+        assert!(describe_under(&dir.join("nothing"), &dir).unwrap().contains("input nothing missing"));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

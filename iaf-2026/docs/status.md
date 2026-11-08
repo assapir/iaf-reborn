@@ -3,6 +3,10 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **[A3](plan.md#a3-the-setup-wizard), the setup wizard (2026-11-03):** `./iaf2026-setup` opens the wizard; it builds the terrain,
+  the airbases, the units and weapons, the sounds and voices and the training missions as a step graph with stamps (a
+  second run is all up to date), in English and Hebrew ([setup.md](setup.md)). Its look is Godot's default theme until
+  the user's next round.
 - **[E3b](plan.md#e3-the-training-missions), the training missions in the game (2026-11-03):** `./iaf2026 -- --mission 2011` (… 2032) flies a start-up or
   take-off mission without the front end: parked cold, the start command (Ctrl+E) runs the jet's start sequence on
   the 6-DoF, the screens and the HUD come alive at the real moments; the radio menu (Ctrl+T, 1–3) asks the base's
@@ -52,7 +56,6 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   pilot's request voice and the starter's sound (sound.md §7); the 6-DoF's short take-off roll.
 - **No screen yet:** `./iaf2026` runs the M0 probe (or with `-- --mission <id>` one mission) until the front end (item [E2](plan.md#e2-the-front-end), the front end, its main scene `main.tscn`); the sim's
   `Settings` still has the original's `front_end_scene()` / `front_end_overlay()` ([E2](plan.md#e2-the-front-end) overrides them).
-- **No wizard yet:** `./iaf2026-setup` runs `iaf-sim all` from the command line until item [A3](plan.md#a3-the-setup-wizard), the setup wizard.
 - **The probe's 3D-only cockpit check** (no 2D panel in flight) prints NEEDS DATA until [E1](plan.md#e1-cockpit-data-sounds-and-voices), the cockpit data.
 - **The airbases' open points** ([airbases.md](airbases.md) §9): the towers of Ramon, Hatzerim and Ramat David (their
   reference points stand in), inland water, one taxi hub per base. The temp-root run of item F finds any read of the
