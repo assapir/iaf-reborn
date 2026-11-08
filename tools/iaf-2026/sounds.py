@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""IAF 2026's sound set (iaf-2026/docs/sound.md): the clips of iaf-2026/data/sounds/, made from openly licensed
+"""Modern IAF's sound set (iaf-2026/docs/sound.md): the clips of iaf-2026/data/sounds/, made from openly licensed
 recordings and our own synthesised tones, and that folder's SOURCES.md.
 
 Every clip: 22050 Hz, 16-bit, mono WAV (what the game's sound table plays, docs/sound.md §1), named by its sound
@@ -196,7 +196,7 @@ def main():
         rows.append(f"| `{name}.wav` | [{title}]({url}) | {user} | {lic} | {how} |")
     for name, (what, fn, level, loop) in TONES.items():
         wavfile.write(os.path.join(OUT, name + ".wav"), SR, finish(fn(), level, "as-is" if loop else "once"))
-        rows.append(f"| `{name}.wav` | {what} | IAF 2026 (computed by this script) | {CC0} | "
+        rows.append(f"| `{name}.wav` | {what} | Modern IAF (computed by this script) | {CC0} | "
                     f"{'loop, ' if loop else ''}{'' if level is None else f'{level} dB vrms'} |")
     with open(os.path.join(OUT, "voices.json"), encoding="utf-8") as f:
         v = json.load(f)
@@ -218,7 +218,7 @@ radio click) and `twr_pause` (0.2 s of radio hiss) are computed.
 |---|---|---|---|
 """
 
-SOURCES_HEAD = """# IAF 2026 sound clips: sources
+SOURCES_HEAD = """# Modern IAF sound clips: sources
 
 Every clip in this folder, where it comes from, its author and licence, and how it was made. The table is written
 by `tools/iaf-2026/sounds.py`, which also makes the clips (see its header for the processing: the cut, fades or

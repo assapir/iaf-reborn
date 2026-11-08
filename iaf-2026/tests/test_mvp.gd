@@ -1,4 +1,4 @@
-# The MVP probe (iaf-2026/docs/plan.md, item F; started by item E3b): IAF 2026's two training missions flown headless
+# The MVP probe (iaf-2026/docs/plan.md, item F; started by item E3b): Modern IAF's two training missions flown headless
 # for each MVP jet (the Sufa at Ramon, the Barak at Ramat David, the F-35I at Nevatim) with scripted inputs, each
 # ending in a Pass from the run-time scoring (iaf-2026/docs/training.md §7–§9):
 # - start-up: parked cold (no RPM, no power), the throttle starts nothing, the start command runs the sequence, the
@@ -38,7 +38,7 @@ var fly_gd: GDScript
 func require_data() -> void:
 	if DirAccess.dir_exists_absolute(settings().own_dir().path_join("resource")):
 		return
-	print("NEEDS DATA: IAF 2026's own data (./iaf2026-setup)")
+	print("NEEDS DATA: Modern IAF's own data (./iaf2026-setup)")
 	await _quit(2)
 	await create_timer(3600, true, false, true).timeout
 

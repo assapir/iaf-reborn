@@ -1,4 +1,4 @@
-# Real-render pictures of IAF 2026's setup wizard, every page in English and Hebrew (iaf-2026/docs/setup.md):
+# Real-render pictures of Modern IAF's setup wizard, every page in English and Hebrew (iaf-2026/docs/setup.md):
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/wiz -- --log-file /tmp/wiz.log --path iaf-2026 \
 #     --resolution 1100x720 -s ../iaf-2026/tests/_setup_wizard_shot.gd
 # Writes SHOT_DIR/<page>_<lang>.png and attributions_<lang>.png (the dialog over Welcome). The Install page shows

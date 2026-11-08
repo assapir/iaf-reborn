@@ -235,7 +235,7 @@ lat/lon and in engine metres through the georeference ([georef.md](georef.md)). 
 45 m (Bir Gifgafa's main runway and two other ways; confirmed by the user). Bley = Marj Ruhayyil (inferred, §1.2).
 Designator: the OSM `ref` (e.g. "07L/25R", magnetic), else OurAirports' (Marj Ruhayyil 06L/24R, the northern and
 wider way, and 06R/24L), else from the magnetic heading with a declination of 5° E (Inshas, Rayak, one Bir Gifgafa
-way; inferred[^wmm]). The table also holds IAF 2026's Nevatim (its two runways with an OSM `ref`, 08L/26R and
+way; inferred[^wmm]). The table also holds Modern IAF's Nevatim (its two runways with an OSM `ref`, 08L/26R and
 08R/26L, OurAirports' 147 ft widths; read 2026-11-02) for the sim's missions (iaf-2026/docs/data-formats.md); World
 scale Real takes only the ten bases' rows, by name.
 

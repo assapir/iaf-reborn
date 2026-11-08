@@ -836,7 +836,7 @@ pub fn airbases(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
     let pt = |p: [f64; 2]| json!([r1(p[0]), r1(p[1])]);
     let mut list = Vec::new();
     let mut ibx = String::from(
-        "; IAF 2026's airbases (iaf-sim airbases; iaf-2026/docs/data-formats.md §12). World metres: UTM 36N.\n\n",
+        "; Modern IAF's airbases (iaf-sim airbases; iaf-2026/docs/data-formats.md §12). World metres: UTM 36N.\n\n",
     );
     for b in &bases {
         check(cancel)?;

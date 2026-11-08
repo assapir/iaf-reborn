@@ -1,4 +1,4 @@
-# IAF 2026's setup wizard (iaf-2026/setup/wizard.gd, iaf-2026/docs/setup.md) on an empty scratch assets folder:
+# Modern IAF's setup wizard (iaf-2026/setup/wizard.gd, iaf-2026/docs/setup.md) on an empty scratch assets folder:
 #   IAF_ASSETS_DIR=<empty dir> IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-2026 \
 #     -s ../iaf-2026/tests/test_setup_wizard.gd --log-file <temp>
 # The four pages in order, in English and in Hebrew (mirrored); the Survey choice off without sheets; the
@@ -29,7 +29,7 @@ func run() -> void:
 	await frames(5)
 	var w: Control = current_scene
 	check(w != null and w.PAGES[w.page] == "welcome", "the wizard opens on Welcome")
-	check(get_root().title == "IAF 2026 — Setup", "the window title")
+	check(get_root().title == "Modern IAF — Setup", "the window title")
 	var tools: Dictionary = IafSetup.tools()
 	check(w.req_ok == (tools.gdal and tools.curl and tools.python3), "Next waits for GDAL, curl, python3 (%s)" % tools)
 	check(w.next_button.disabled != w.req_ok, "Next follows the requirements")
@@ -125,7 +125,7 @@ func run() -> void:
 		w.page == 2 and w.rows["sim-missions"].state.text == "done" and w.next_button.text == "Next",
 		"a finished run survives the language change"
 	)
-	check(w.done_label.text == "IAF 2026 is set up.", "Done says so")
+	check(w.done_label.text == "Modern IAF is set up.", "Done says so")
 	w._on_back()
 	check(w.page == 1 and not w.finished, "Back from Install forgets the run")
 	w.show_page(2)

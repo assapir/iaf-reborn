@@ -1,4 +1,4 @@
-# IAF 2026 reads its own flight-model type and base data (iaf-2026/docs/plan.md, item A1's leftovers): the player's
+# Modern IAF reads its own flight-model type and base data (iaf-2026/docs/plan.md, item A1's leftovers): the player's
 # jet takes its flight-model type from the sim's table (Settings.fm_section -> IafFlight.fm_type), not the converted
 # descriptor; the bases are own_dir()'s iaf.ibx at their real places (no base move) and the tower's wind turn takes the
 # theatre's own airbases.json (B2b). The

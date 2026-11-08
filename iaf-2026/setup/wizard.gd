@@ -1,4 +1,4 @@
-# IAF 2026's setup wizard (iaf-2026/docs/setup.md): builds the sim's data under assets/ through IafSetup's sim_start
+# Modern IAF's setup wizard (iaf-2026/docs/setup.md): builds the sim's data under assets/ through IafSetup's sim_start
 # (crates/iaf-godot/src/setup.rs, iaf_setup::sim_run: the iaf-sim steps with their stamps). Pages: Welcome (language,
 # what it builds, sizes, the requirements, the Attributions button) → Imagery → Install → Done; the Attributions open
 # as a modal dialog over the page. English and Hebrew (strings_<lang>.json, Settings.language); in Hebrew every
@@ -9,7 +9,7 @@ extends Control
 const WizardTheme := preload("res://setup/wizard_theme.gd")
 const WizardUtil := preload("res://shared/util/wizard_util.gd")
 
-const TITLE := "IAF 2026"
+const TITLE := "Modern IAF"
 const PAGES := ["welcome", "imagery", "install", "done"]
 const DEM_GB := 0.627
 const THEATRE_S2_GB := 0.45
@@ -18,7 +18,7 @@ const OTHER_GB := 0.02
 const TIME_S2_MIN := 26
 const TIME_SURVEY_MIN := 102
 ## Every source the sim is built from, with its licence line as the licence asks for it (the Copernicus lines
-## verbatim, terrain.md §5; sound.md §6; docs/credits.md "IAF 2026 data"): [name, strings key of its use, lines].
+## verbatim, terrain.md §5; sound.md §6; docs/credits.md "Modern IAF data"): [name, strings key of its use, lines].
 const CREDITS := [
 	[
 		"Copernicus DEM GLO-30",
@@ -203,8 +203,7 @@ func _build() -> void:
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 14)
 	v.add_child(top)
-	var name_label := _label(top, TITLE, "Title")
-	name_label.text_direction = Control.TEXT_DIRECTION_LTR
+	_label(top, s("name"), "Title")
 	_label(top, s("setup"), "Muted")
 	var gap := Control.new()
 	gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""IAF 2026's voices: Piper TTS through the radio filter (iaf-2026/docs/sound.md §2).
+"""Modern IAF's voices: Piper TTS through the radio filter (iaf-2026/docs/sound.md §2).
 
 The chain, in order, on 22050 Hz mono (the game's speech format, docs/radio.md §1):
   1. pre-emphasis (x[n] - 0.9 x[n-1]): a headset mic's presence lift; the TTS's spectrum centre is ~0.5 kHz;

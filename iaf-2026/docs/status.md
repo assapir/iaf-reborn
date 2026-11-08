@@ -1,4 +1,4 @@
-# IAF 2026: status
+# Modern IAF: status
 
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 

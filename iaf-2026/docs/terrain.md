@@ -1,4 +1,4 @@
-# IAF 2026: the terrain
+# Modern IAF: the terrain
 
 **Terms:** DEM = digital elevation model (the ground's heights); GLO-30 = the Copernicus DEM at 30 m; S2 =
 Sentinel-2 (the ESA satellite pictures); UTM 36N = Universal Transverse Mercator zone 36 north (EPSG:32636); ITM =
@@ -110,7 +110,7 @@ With the imagery's lines ("Contains modified Copernicus Sentinel data (2021) pro
 ESA WorldCover project 2021 (CC BY 4.0)"; "© Survey of Israel 2015, via data.gov.il") they are `ATTRIBUTION` and
 `DEM_LIABILITY` in `crates/iaf-tools/src/sim_terrain.rs` and in the theatre's `meta.json`. The sim's setup wizard
 (item A3) lists them on its Attributions page and the credits roll shows them; [docs/credits.md](../../docs/credits.md)
-"IAF 2026 data" names them.
+"Modern IAF data" names them.
 
 ## 6. Flying it in the original game
 

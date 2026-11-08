@@ -1,4 +1,4 @@
-# IAF 2026's part of the flight scene (Settings.flight_addon, a child of terrain_view.gd): the radio menu and the
+# Modern IAF's part of the flight scene (Settings.flight_addon, a child of terrain_view.gd): the radio menu and the
 # training run (iaf-2026/docs/training.md §7–§9).
 # - The radio menu: the "Call the tower" key (Ctrl+T, command 107) opens a numbered list; 1–4 pick a request (start-up,
 #   taxi, take-off, contact the tower for landing), any other key closes it. The tower answers by TTS (radio.gd

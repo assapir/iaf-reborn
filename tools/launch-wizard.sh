@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Opens a setup wizard: ./setup (the original game, docs/setup.md) and ./iaf2026-setup (IAF 2026,
+# Opens a setup wizard: ./setup (the original game, docs/setup.md) and ./iaf2026-setup (Modern IAF,
 # iaf-2026/docs/setup.md) call it. Checks for Rust (cargo) and Godot 4.7, builds the extension, imports the project
 # when it needs it (tools/godot_import.sh), then starts the project's res://setup/wizard.tscn.
 #   tools/launch-wizard.sh <project folder> <window title> <resolution, e.g. 1200x820>

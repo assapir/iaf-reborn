@@ -1,4 +1,4 @@
-# IAF 2026 training: pass / fail rules and the debrief
+# Modern IAF training: pass / fail rules and the debrief
 
 **Terms:** blackbox = the flight recorder's JSON Lines file ([../../docs/blackbox.schema.json](../../docs/blackbox.schema.json));
 engine frame = the game's world metres (X east, Y north, [../../docs/georef.md](../../docs/georef.md)); runway start = where the
@@ -58,7 +58,7 @@ reference speed is a debrief number only; no rule fails on it.
 - The engine started (the recorder's `engine` column turns true), and
 - the engine at idle and the avionics up within `time_budget_s` of the flight's start.
 
-IAF 2026's recorder (version 2, §9) has an `rpm` and an `avionics` column, and the scorer reads them:
+Modern IAF's recorder (version 2, §9) has an `rpm` and an `avionics` column, and the scorer reads them:
 - **idle** = the first sample with the engine running at 60 % RPM or more (the 6-DoF's idle, §7);
 - **avionics up** = the first sample whose `avionics` is true.
 

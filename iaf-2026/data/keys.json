@@ -1,5 +1,5 @@
 {
-  "about": "IAF 2026's key table: the 117 commands of docs/controls.md §3 with our own labels, and our own 118th, Start engine (command 200, iaf-2026/docs/training.md §7); compiled by iaf-sim own into assets/converted/own/keys.json (the shape shared/controls/key_table.gd reads).",
+  "about": "Modern IAF's key table: the 117 commands of docs/controls.md §3 with our own labels, and our own 118th, Start engine (command 200, iaf-2026/docs/training.md §7); compiled by iaf-sim own into assets/converted/own/keys.json (the shape shared/controls/key_table.gd reads).",
   "records": [
     {"index": 0, "label": {"en": "Toggle map / cockpit", "he": "החלפה בין מפה לתא טייס"}, "key": "Esc", "joystick": -1, "press": [122, 0, 0], "release": [0, 0, 0], "shown": true},
     {"index": 1, "label": {"en": "Leave mission", "he": "יציאה מהמשימה"}, "key": "Ctrl + Q", "joystick": -1, "press": [134, 3, 0], "release": [0, 0, 0], "shown": true},

@@ -5,7 +5,7 @@ line of sight; IR = infrared; MANPADS = man-portable air-defence system; SAM = s
 semi-active radar homing; TEL / TELAR = launcher vehicle (with its own radar); "inferred" = our own reasoning;
 "open" = no source found.
 
-Research of 2 November 2026 for IAF 2026 (plan.md, item D1). It picks the opposing units the first combat missions
+Research of 2 November 2026 for Modern IAF (plan.md, item D1). It picks the opposing units the first combat missions
 need: SAMs, AAA, fighters, air-to-air missiles and strike targets, with the figures the unit / weapon database
 (item D2) takes, and an open-licence model source for each. Every figure is from a public source; numbers that
 Iran or its allies publish about their own weapons are marked as claims.

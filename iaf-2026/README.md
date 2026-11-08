@@ -1,6 +1,6 @@
-# IAF 2026
+# Modern IAF
 
-IAF 2026 is a modern-day Israeli Air Force flight sim. It runs on this repo's engine, beside the original game, and
+Modern IAF (in Hebrew: הזרוע הארוכה) is a modern-day Israeli Air Force flight sim. It runs on this repo's engine, beside the original game, and
 reads only our own or openly licensed data: nothing from the original game's CDs. The plan, the decisions and the
 work items are in [plan.md](docs/plan.md); what the sim gives the original game is in [shared.md](docs/shared.md); what works today is in [status.md](docs/status.md).
 
@@ -36,7 +36,7 @@ that as a failure.
 ## Folders
 | folder | holds |
 |---|---|
-| `iaf-2026/` | the sim's Godot project: `project.godot` ("IAF 2026", its own `user://`), `iaf.gdextension` (the same Rust extension as the original game) |
+| `iaf-2026/` | the sim's Godot project: `project.godot` ("Modern IAF", its own `user://`), `iaf.gdextension` (the same Rust extension as the original game) |
 | `iaf-2026/shared` | a link to the repo's `shared/` (the engine code both projects use; on Windows a junction made by `tools/windows/links.ps1`) |
 | `iaf-2026/sim_settings.gd` | the `Settings` autoload: the shared settings with the sim's data roots and profile |
 | `iaf-2026/data/` | the authored data: units, weapons, missions, airbases, sounds, keys ([data-formats.md](docs/data-formats.md), [sound.md](docs/sound.md), [airbases.md](docs/airbases.md)) |
@@ -49,7 +49,7 @@ that as a failure.
 The shared code reads its files through six `Settings` calls. The sim's `sim_settings.gd` answers them with its own
 paths; the original game's `shared/settings.gd` answers with the install's.
 
-| call | original game | IAF 2026 |
+| call | original game | Modern IAF |
 |---|---|---|
 | `install_dir()` | `assets/install` | `assets/iaf-2026-reads-no-install` (does not exist) |
 | `own_dir()`: flight model, sounds, radio phrases, weapons' motion, `iaf.ibx`, `terraintype.dat` | `assets/install` | `assets/converted/own` |

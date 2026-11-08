@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""IAF 2026's airbase layouts from OpenStreetMap (iaf-2026/docs/airbases.md).
+"""Modern IAF's airbase layouts from OpenStreetMap (iaf-2026/docs/airbases.md).
 
 Fetches each base's aeroway features from the Overpass API (one query per base; the raw answer is cached in
 assets/source/osm/airbases/<icao>.json) and OurAirports' airports / runways tables (cached in

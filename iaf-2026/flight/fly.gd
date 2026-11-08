@@ -1,4 +1,4 @@
-# Starts one of IAF 2026's missions without the front end (until item E2): `./iaf2026 -- --mission <id>` with the
+# Starts one of Modern IAF's missions without the front end (until item E2): `./iaf2026 -- --mission <id>` with the
 # menu id (2011 Ramon start-up, 2012 Ramon take-off, 2021 / 2022 Ramat David, 2031 / 2032 Nevatim; terrain_view.gd
 # reads the same argument as the mission id). The mission comes from converted/iaf-2026/missions (iaf-sim missions),
 # the jet from its player unit (Settings.set_jet), then the flight scene.
@@ -18,7 +18,7 @@ func _ready() -> void:
 	if list.has(want):
 		id = int(want)
 	if id < 0:
-		push_error("no IAF 2026 mission %s in %s" % [want, dir])
+		push_error("no Modern IAF mission %s in %s" % [want, dir])
 		get_tree().quit(1)
 		return
 	var name := String(list[str(id)][0])

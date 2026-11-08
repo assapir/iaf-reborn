@@ -1,4 +1,4 @@
-# IAF 2026 sound clips: sources
+# Modern IAF sound clips: sources
 
 Every clip in this folder, where it comes from, its author and licence, and how it was made. The table is written
 by `tools/iaf-2026/sounds.py`, which also makes the clips (see its header for the processing: the cut, fades or
@@ -38,13 +38,13 @@ The rows that use each clip: [soundprop.json](soundprop.json).
 | `sfx_fire_extinguisher.wav` | [Fire Extinguisher](https://freesound.org/people/tranzfusion/sounds/642961/) | tranzfusion | CC0 1.0 | 0-1.2 s (the first burst), -17 dB vrms |
 | `sfx_door_open.wav` | [R02-48-Jet Fighter Canopy Closing](https://freesound.org/people/craigsmith/sounds/479492/) | craigsmith | CC0 1.0 | 0-4 s (the canopy motor's first 4 s), -18 dB vrms |
 | `sfx_door_close.wav` | [R02-48-Jet Fighter Canopy Closing](https://freesound.org/people/craigsmith/sounds/479492/) | craigsmith | CC0 1.0 | 12.75-17 s (the run to the lock, 12.75-17 s), -18 dB vrms |
-| `sfx_landing.wav` | engine off: 0.1 s of silence | IAF 2026 (computed by this script) | CC0 1.0 | loop,  |
-| `sfx_ir_seek.wav` | IR seeker search growl: 400 Hz, level wobble below 30 Hz | IAF 2026 (computed by this script) | CC0 1.0 | loop, -18 dB vrms |
-| `sfx_ir_lock.wav` | IR seeker lock tone: 1000 Hz, light wobble | IAF 2026 (computed by this script) | CC0 1.0 | loop, -16 dB vrms |
-| `sfx_warning_wrn_aoa.wav` | AoA warning: 1600 Hz, 4 beeps a second | IAF 2026 (computed by this script) | CC0 1.0 | loop, -24 dB vrms |
-| `sfx_warning_wrn_new_guy.wav` | RWR new emitter: three 60 ms beeps at 1200 Hz | IAF 2026 (computed by this script) | CC0 1.0 | -24 dB vrms |
-| `sfx_warning_wrn_missile_launch.wav` | RWR launch warning: 1024 / 1536 Hz alternating 8 times a second | IAF 2026 (computed by this script) | CC0 1.0 | loop, -20 dB vrms |
-| `sfx_warning_wrn_master.wav` | master warning: two 150 ms beeps at 800 Hz | IAF 2026 (computed by this script) | CC0 1.0 | -20 dB vrms |
+| `sfx_landing.wav` | engine off: 0.1 s of silence | Modern IAF (computed by this script) | CC0 1.0 | loop,  |
+| `sfx_ir_seek.wav` | IR seeker search growl: 400 Hz, level wobble below 30 Hz | Modern IAF (computed by this script) | CC0 1.0 | loop, -18 dB vrms |
+| `sfx_ir_lock.wav` | IR seeker lock tone: 1000 Hz, light wobble | Modern IAF (computed by this script) | CC0 1.0 | loop, -16 dB vrms |
+| `sfx_warning_wrn_aoa.wav` | AoA warning: 1600 Hz, 4 beeps a second | Modern IAF (computed by this script) | CC0 1.0 | loop, -24 dB vrms |
+| `sfx_warning_wrn_new_guy.wav` | RWR new emitter: three 60 ms beeps at 1200 Hz | Modern IAF (computed by this script) | CC0 1.0 | -24 dB vrms |
+| `sfx_warning_wrn_missile_launch.wav` | RWR launch warning: 1024 / 1536 Hz alternating 8 times a second | Modern IAF (computed by this script) | CC0 1.0 | loop, -20 dB vrms |
+| `sfx_warning_wrn_master.wav` | master warning: two 150 ms beeps at 800 Hz | Modern IAF (computed by this script) | CC0 1.0 | -20 dB vrms |
 
 ## Voices
 

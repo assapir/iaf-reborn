@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""IAF 2026 FM-0: the sim's own flight data for the existing flight model (iaf-2026/docs/flight-model.md).
+"""Modern IAF FM-0: the sim's own flight data for the existing flight model (iaf-2026/docs/flight-model.md).
 
 Writes `bd.ibx` ([F-16] and [F-15]) and their envelope files (`f16.dat`, `f15.dat`) into
 assets/converted/own/resource/md/, in the shapes `iaf_flight::load` reads (docs/flight-model.md §1 and §3). Every
@@ -268,7 +268,7 @@ F15 = Jet(
 
 
 def section(j, keys):
-    out = [f"[{j.section}]", f"; {j.name} -- IAF 2026 FM-0, sources in iaf-2026/docs/flight-model.md",
+    out = [f"[{j.section}]", f"; {j.name} -- Modern IAF FM-0, sources in iaf-2026/docs/flight-model.md",
            "Model = 6dof\t; the sim flies its own 6-DoF (crates/iaf-flight/src/sixdof, iaf-2026/docs/flight-model.md §9); "
            "the keys below serve its instruments, the autopilot's envelope and the original model as a fallback"]
     for key, value, src in keys:
@@ -342,7 +342,7 @@ def bd_ibx():
     ] + common(F15, 200, "inferred: the middle of 180-220 deg/s (docs/real-aircraft.md; open)", 670,
                "inferred: the F-16 row's 0.3 s roll time constant", (8.1, -2.0),
                "F-15E with CFTs, OWS off, TO 1F-15E-1 fig. 5-7 (data_set.rs REAL F-15I)")
-    lines = ["; IAF 2026 FM-0 flight data, written by tools/iaf-2026/fm0.py from NASA TP-1538 and public figures",
+    lines = ["; Modern IAF FM-0 flight data, written by tools/iaf-2026/fm0.py from NASA TP-1538 and public figures",
              "; (iaf-2026/docs/flight-model.md). Units: lb, ft, deg.", ""]
     lines += section(F16, f16) + [""] + section(F15, f15)
     return "\r\n".join(lines) + "\r\n"

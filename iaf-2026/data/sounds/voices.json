@@ -1,5 +1,5 @@
 {
-  "about": "IAF 2026's voices: every speech clip of iaf-2026/data/sounds (Piper TTS through tools/iaf-2026/radio_voice.py --set), the tower's phrase particles and templates (compiled by iaf-sim own into phraseparticalsdata.trx / phrasetemplates.trx, the format shared/audio/radio.gd reads, docs/radio.md §1), and the Hebrew lines waiting for a voice. mode: intercom (Betty: band-pass and soft clip), radio (plus hiss and squelch), particle (radio band and hiss level, no squelch: the parts of one transmission).",
+  "about": "Modern IAF's voices: every speech clip of iaf-2026/data/sounds (Piper TTS through tools/iaf-2026/radio_voice.py --set), the tower's phrase particles and templates (compiled by iaf-sim own into phraseparticalsdata.trx / phrasetemplates.trx, the format shared/audio/radio.gd reads, docs/radio.md §1), and the Hebrew lines waiting for a voice. mode: intercom (Betty: band-pass and soft clip), radio (plus hiss and squelch), particle (radio band and hiss level, no squelch: the parts of one transmission).",
   "voices": {
     "betty": {
       "model": "en_US-kristin-medium",

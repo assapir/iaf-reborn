@@ -1,4 +1,4 @@
-# IAF 2026 flight model, step FM-0: own data for the existing model
+# Modern IAF flight model, step FM-0: own data for the existing model
 
 **Terms:** FM = flight model; FM-0 = this step: our own data in the 1998 model's file formats, read by today's
 `crates/iaf-flight`; 6-DoF = the own six-degrees-of-freedom model (item C2, later); AB = afterburner; CD0 = drag

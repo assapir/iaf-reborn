@@ -319,7 +319,7 @@ impl IafSetup {
         let inputs = SimInputs { survey };
         let steps = iaf_setup::sim_plan(&inputs);
         let ctx = SimCtx { assets: PathBuf::from(assets.to_string()), repo: PathBuf::from(repo.to_string()), inputs };
-        let header = format!("IAF 2026 setup: survey {survey}\nredo: {redo:?}");
+        let header = format!("Modern IAF setup: survey {survey}\nredo: {redo:?}");
         let prefix = format!("{}/", ctx.assets.display());
         self.launch(steps.clone(), &header, log_file, prefix, move |sink, cancel| {
             iaf_setup::sim_run(&steps, &ctx, &|id| redo.iter().any(|r| r == "*" || r == id), sink, cancel)

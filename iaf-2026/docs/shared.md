@@ -1,4 +1,4 @@
-# What IAF 2026 gives the original game
+# What Modern IAF gives the original game
 
 Every enhancement the sim builds is also offered to the reborn game (the original 1998 game on this engine) as an
 opt-in Preferences row; the original stays the default ([plan.md](plan.md) Rules). This page is the ledger: one row per
@@ -13,7 +13,7 @@ tactical situation display (map); TTS = text to speech.
 
 | enhancement | sim item | reborn switch | status | notes |
 |---|---|---|---|---|
-| Open-data terrain in the UTM frame (Copernicus GLO-30 heights, Sentinel-2 colour, Survey of Israel photo) | [B1](plan.md#b1-the-terrain) | Extras → World scale Real + "Terrain: Open data (Copernicus / Sentinel-2)"; the roadmap's [Modern DEM](../../docs/roadmap.md#later) | partly built | the developer switch `IAF_THEATRE=israel` streams the theatre ([deviations.md](../../docs/deviations.md) "IAF 2026's theatre in the original game"); the Extras row and missions at the real positions are to do |
+| Open-data terrain in the UTM frame (Copernicus GLO-30 heights, Sentinel-2 colour, Survey of Israel photo) | [B1](plan.md#b1-the-terrain) | Extras → World scale Real + "Terrain: Open data (Copernicus / Sentinel-2)"; the roadmap's [Modern DEM](../../docs/roadmap.md#later) | partly built | the developer switch `IAF_THEATRE=israel` streams the theatre ([deviations.md](../../docs/deviations.md) "Modern IAF's theatre in the original game"); the Extras row and missions at the real positions are to do |
 | Airbases from OSM: Ramon, Ramat David, Hatzerim, Nevatim with real runways, taxiways, shelters, tower, parking spots | [B2](plan.md#b2-the-airbases) | Extras → "More airbases" (roadmap [More airbases](../../docs/roadmap.md#later)) | partly built | `Settings.airbases_file()` already makes Detailed airbases draw a theatre's own bases; the picker for the home base and the bases in the 1998 frame are to do |
 | Terrain types, runway and sea planes (`terraintype.dat`) in the real frame | [B2](plan.md#b2-the-airbases) | rides on the open-data terrain row | to do | needs the terrain row first |
 | Scenery, roads and lakes in the real frame | [B4](plan.md#b4-ground-look-parity), [B2](plan.md#b2-the-airbases) | rides on the open-data terrain row | partly built | reborn already has today's main roads (roadmap [A modern TSD map](../../docs/roadmap.md#later)); lakes and the scenery step are to do |

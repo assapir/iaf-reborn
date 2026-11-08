@@ -1,10 +1,10 @@
-# IAF 2026: the airbases
+# Modern IAF: the airbases
 
 **Terms:** OSM = OpenStreetMap; ODbL = the Open Database Licence (OSM's); OurAirports = the public-domain airport
 tables at ourairports.com; lineup point = where a jet stands on the runway before take-off; HAS = hardened aircraft
 shelter; S2 = Sentinel-2 (the ESA satellite pictures); "inferred" = our own reasoning; "open" = no source found.
 
-This page holds the four airbases of IAF 2026 (plan.md item B2a): Ramon, Hatzerim, Nevatim and Ramat David. Their
+This page holds the four airbases of Modern IAF (plan.md item B2a): Ramon, Hatzerim, Nevatim and Ramat David. Their
 layouts are in `iaf-2026/data/airbases/<icao>.json`, in WGS-84 latitude / longitude and true headings (the format:
 [data-formats.md](data-formats.md) §10). `iaf-sim airbases` compiles them into the sim's frame (item B2b, §9).
 Research date: 2026-11-02.

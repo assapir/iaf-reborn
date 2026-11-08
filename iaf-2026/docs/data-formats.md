@@ -1,10 +1,10 @@
-# IAF 2026 data formats
+# Modern IAF data formats
 
 **Terms:** bdb = the object database the missions name (a converted `.bdb`, docs/formats/mis.md §4); hex key = a
 field name of the converted JSON (`"0x514"`); Present record = a model entry of the bdb; engine frame = the game's
 world metres (X east, Y north); the sim's is UTM 36N itself ([terrain.md](terrain.md) §2); "inferred" = our own reasoning; "open" = no source found.
 
-IAF 2026 keeps its units, weapons and missions as readable JSON under `iaf-2026/data/`. The compiler `iaf-sim`
+Modern IAF keeps its units, weapons and missions as readable JSON under `iaf-2026/data/`. The compiler `iaf-sim`
 (`crates/iaf-tools/src/sim.rs`, bin `iaf-sim`) turns them into the files the shared readers already read, so no
 reader changes. This document gives each format, one full example and the compiled output.
 
@@ -482,7 +482,7 @@ beside it land, and the sea as sea; the sea joined to the edge only. In the sim,
 start-up (iaf-2026/tests/test_m0_boot.gd).
 
 ## 13. What a training flight writes (item E3b)
-The game writes these at run time, under its `user://` folder (Linux: `~/.local/share/godot/app_userdata/IAF 2026/`;
+The game writes these at run time, under its `user://` folder (Linux: `~/.local/share/godot/app_userdata/Modern IAF/`;
 tests: a temporary folder). [training.md](training.md) §9 tells when.
 
 **The recording**, `user://flights/flight-<date>-m<menu id>.jsonl`:

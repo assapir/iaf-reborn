@@ -362,7 +362,7 @@ pub fn compile_db(db: &Db) -> Result<(Value, Map<String, Value>, String)> {
 /// `weapons.ibx`: one `[WEAPONnnn]` section per weapon, `type` = generation · 1000 + sub type, then its motion; the
 /// first weapon of each sub type also as the sub type's default section (generation 0: `weapon_db.gd motion_for`).
 fn ibx(db: &Db) -> Result<String> {
-    let mut out = String::from("; IAF 2026's weapon motion, compiled by iaf-sim db from iaf-2026/data/db/weapons.\n");
+    let mut out = String::from("; Modern IAF's weapon motion, compiled by iaf-sim db from iaf-2026/data/db/weapons.\n");
     let mut sections: BTreeMap<i64, (&str, &Map<String, Value>)> = BTreeMap::new();
     let mut defaults = BTreeMap::new();
     for w in &db.weapons {
@@ -728,7 +728,7 @@ pub fn wav_seconds(bytes: &[u8]) -> Result<f64> {
 /// code, sub 1, sub 2, category, resident, cyclic, 3d, channel, # random files, inside / outside volume, 3d min / max
 /// distance, file). `own` checks the clips.
 pub fn compile_soundprop(table: &Value) -> Result<String> {
-    let mut out = String::from("; IAF 2026's sound table, compiled by iaf-sim own from iaf-2026/data/sounds.\n");
+    let mut out = String::from("; Modern IAF's sound table, compiled by iaf-sim own from iaf-2026/data/sounds.\n");
     let (mut keys, rows) = (HashSet::new(), table["rows"].as_array().context("soundprop: no \"rows\"")?);
     for r in rows {
         let s = |k: &str| r[k].as_str().with_context(|| format!("soundprop {r}: \"{k}\" must be a string"));
@@ -922,7 +922,7 @@ pub fn compile_keys(src: &Value) -> Result<Value> {
     let modifiers: Vec<Value> =
         MODIFIERS.iter().map(|&(bits, prefix)| json!({"bits": bits, "prefix": prefix})).collect();
     Ok(json!({
-        "source": "IAF 2026's own key table, compiled by iaf-sim own from iaf-2026/data/keys.json",
+        "source": "Modern IAF's own key table, compiled by iaf-sim own from iaf-2026/data/keys.json",
         "records": records,
         "key_names": names,
         "modifiers": modifiers,
@@ -933,7 +933,7 @@ pub fn compile_keys(src: &Value) -> Result<Value> {
 /// The radio's phrase files from `sounds/voices.json` (docs/radio.md §1, the shape `radio.gd` reads):
 /// `phrasetemplates.trx` (`NAME token…`) and `phraseparticalsdata.trx` (`KEY file text…`), and the particles' files.
 pub fn compile_radio(voices: &Value) -> Result<(String, String, Vec<String>)> {
-    let head = "; IAF 2026's radio phrases, compiled by iaf-sim own from iaf-2026/data/sounds/voices.json.\n";
+    let head = "; Modern IAF's radio phrases, compiled by iaf-sim own from iaf-2026/data/sounds/voices.json.\n";
     let (mut templates, mut particles, mut files) = (head.to_string(), head.to_string(), vec![]);
     let parts = voices["particles"].as_object().context("voices: no \"particles\"")?;
     for (name, t) in voices["templates"].as_object().context("voices: no \"templates\"")? {

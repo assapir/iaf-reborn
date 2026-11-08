@@ -1,4 +1,4 @@
-# The M0 probe (iaf-2026/docs/plan.md, item A1): IAF 2026 boots on its own data. The sim reads no install, its
+# The M0 probe (iaf-2026/docs/plan.md, item A1): Modern IAF boots on its own data. The sim reads no install, its
 # profile is fixed, and for each MVP jet (the Sufa at Ramon, the Barak at Ramat David, the F-35I at Nevatim) the
 # flight model starts from converted/own/resource/md, the 3D cockpit is there, the sound, motion and key tables and
 # the mission's bdb hold rows; then the terrain (converted/terrain/israel). A check whose data is not built yet
@@ -27,7 +27,7 @@ var mr: GDScript
 func require_data() -> void:
 	if DirAccess.dir_exists_absolute(settings().own_dir()):
 		return
-	print("NEEDS DATA: IAF 2026's own data (./iaf-2026-setup)")
+	print("NEEDS DATA: Modern IAF's own data (./iaf-2026-setup)")
 	await _quit(2)
 	await create_timer(3600, true, false, true).timeout
 

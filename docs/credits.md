@@ -118,7 +118,7 @@ The road layer (docs/scenery.md §6) and the rest of the theatre's scenery (§1.
 `attribution` too: OpenStreetMap with the extracts used. ODbL and CC BY ask for the credit. The files and their
 checksums are `SCENERY`, `SCENERY_THEATRE` and `ROADS` in `crates/iaf-tools/src/thirdparty.rs`.
 
-## IAF 2026 data
+## Modern IAF data
 
 The sim's data compiler (`iaf-sim`, iaf-2026/docs/data-formats.md) uses open data kept in the repo: OpenStreetMap
 runway and apron ways (© OpenStreetMap contributors, ODbL 1.0[^osm]) in `crates/iaf-flight/data/real_runways.csv` and
@@ -153,7 +153,7 @@ aerodynamic tables, transcribed from the report's scan; the University of Minnes
 simulation package) served as the candidate checked against the scan (iaf-2026/docs/flight-model.md §9.1). The
 6-DoF's F-35I gear geometry is from W. H. Mason's F-35A data (Virginia Tech), iaf-2026/docs/flight-model.md §9.9.
 
-## IAF 2026's font
+## Modern IAF's font
 
 The sim's screens (its setup wizard first) use Heebo, `iaf-2026/data/fonts/Heebo-VariableFont_wght.ttf`, "Copyright
 2014 The Heebo Project Authors (https://github.com/OdedEzer/heebo)", under the SIL Open Font License 1.1

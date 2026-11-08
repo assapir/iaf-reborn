@@ -1,4 +1,4 @@
-# Dev helper (not run by tools/test.sh): IAF 2026's training missions in a real render (item E3b): the Sufa's cold
+# Dev helper (not run by tools/test.sh): Modern IAF's training missions in a real render (item E3b): the Sufa's cold
 # cockpit at Ramon, the engine at idle with the displays up, the radio menu (English, then Hebrew), the take-off seen
 # from the chase view. The flying is test_mvp.gd's (start command, radio calls, taxi, roll).
 #   flock -o ~/.cache/iaf-gpu-bench.lock timeout -k 10 600 tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 \

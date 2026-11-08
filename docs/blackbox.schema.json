@@ -13,7 +13,7 @@
       "type": "object",
       "required": ["blackbox", "date", "mission", "jet", "settings", "columns"],
       "properties": {
-        "blackbox": { "enum": [1, 2], "description": "Format version: 1 the original game; 2 IAF 2026 (Settings.blackbox_version), whose rows add rpm and avionics (iaf-2026/docs/data-formats.md §13)." },
+        "blackbox": { "enum": [1, 2], "description": "Format version: 1 the original game; 2 Modern IAF (Settings.blackbox_version), whose rows add rpm and avionics (iaf-2026/docs/data-formats.md §13)." },
         "date": { "type": "string", "description": "Local start time, YYYY-MM-DDTHH:MM:SS." },
         "mission": { "type": "integer", "description": "Mission id (-1: free flight)." },
         "flight": { "type": "integer", "description": "The player's flight in the mission (Settings.player_flight)." },

@@ -584,13 +584,13 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 screen gets a **PILOT GUIDE** button and view, with an Open PDF link when the guide's PDF was made — front-end.md
 §14, reference.gd.
 
-**IAF 2026's theatre in the original game** (ours, a developer switch: the environment variable
+**Modern IAF's theatre in the original game** (ours, a developer switch: the environment variable
 `IAF_THEATRE=<name>`; no Extras row): `Settings.theatre_dir()` streams `converted/terrain/<name>` instead of the
-converted map.ptt. Original: the 1998 theatre. Ours, with the switch: e.g. IAF 2026's UTM theatre `israel` (built by
+converted map.ptt. Original: the 1998 theatre. Ours, with the switch: e.g. Modern IAF's UTM theatre `israel` (built by
 `iaf-sim terrain`), for screenshots and checks of the sim's terrain; a theatre with its own frame (`crs` in its
 `meta.json`) turns off the imagery layers, `terraintype.dat` (all ground is land) and World scale Real's base move,
 and missions still start at their 1998 positions, so it is flown free with `--at` — iaf-2026/docs/terrain.md §6. Such a
-theatre's own `airbases.json` (`Settings.airbases_file()`) is what Detailed airbases then draws: IAF 2026's real
+theatre's own `airbases.json` (`Settings.airbases_file()`) is what Detailed airbases then draws: Modern IAF's real
 bases.
 
 **Mission editor** (ours, a separate tool: `./mission-editor`; no Extras row): forks an original mission into

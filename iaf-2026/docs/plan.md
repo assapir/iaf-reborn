@@ -1,11 +1,11 @@
-# IAF 2026: the plan
+# Modern IAF: the plan
 
 **Terms:** AB = afterburner; BiDi = bidirectional text; CC0 / CC BY = open licences for free reuse (public domain /
 with credit); DEM = digital elevation model (terrain heights); FM = flight model; 6-DoF = six degrees of freedom; MFD =
 multi-function display; OSM = OpenStreetMap; PCD = panoramic cockpit display (the F-35I's screen); RTL = right to
 left; TTS = text to speech; MVP = the first playable version; "leash" = the done rules below.
 
-2 November 2026. IAF 2026 is a modern-day Israeli Air Force sim that uses only our own or openly licensed data. It is
+2 November 2026. Modern IAF is a modern-day Israeli Air Force sim that uses only our own or openly licensed data. It is
 built on this repo's engine and runs beside the original game. An inventory of 2026-11-02 found that nothing runs
 without the original ISO yet: every own piece so far (Sufa, F-15I, F-35I, own imagery, 3D cockpits, Real HUDs, modern
 weapons) is an overlay on a 1998 type code, record or height field, with a silent fallback to the original data. This
@@ -15,7 +15,7 @@ here, dated.
 ## Decisions (the user, 2026-11-02)
 | topic | decision |
 |---|---|
-| name | **IAF 2026**: folder `iaf-2026/`, window title and wizard "IAF 2026" |
+| name | **IAF 2026**: folder `iaf-2026/`, window title and wizard "IAF 2026" (renamed on 8 November 2026, below) |
 | launchers | all at the repo root, beside today's `./iafjets`, `./setup`, `./mission-editor`: `./iaf2026` and `./iaf2026-setup` (+ `.ps1` twins); same build step (`cargo build --release -p iaf-godot`). Named without the dash because a file cannot share the `iaf-2026/` folder's name (2026-11-02) |
 | assets | **one `assets/` root, fully mixed**: the sim's built data lives in the same `converted/` tree beside the original's under its own names (e.g. `converted/terrain/israel/`, `converted/missions/iaf-2026/`, `converted/own/` for the mirrored `resource/` layout); the models, imagery, scenery, roads and textures already there are used by both; downloads shared in `assets/source/` and `assets/thirdparty/`. The sim never reads `assets/install/` |
 | home | this repo, **three folders**: `shared/` (the engine GDScript, scenes, shaders, own models), `iaf-reborn/` (today's `game/`: the original game's front end, 2D cockpits, setup wizard, editor, viewer) and `iaf-2026/` (the sim); the Rust crates stay in `crates/` shared by both; no new repo |
@@ -46,7 +46,7 @@ here, dated.
 
 | topic | decision |
 |---|---|
-| name | "IAF 2026" stays; it may be renamed later. |
+| name | "IAF 2026" stays; it may be renamed later. Superseded by the decision of 8 November 2026 (below). |
 | fonts | UI: Heebo. HUD: as close to the real jet's HUD font as a licence allows (search in progress). |
 | Hebrew wording | Formal register, always gender-neutral forms; the infinitive "לטוס" for Fly. Bases as "כנף N" (Hebrew Wikipedia's wing numbers): Ramon כנף 25, Hatzerim כנף 6, Nevatim כנף 28, Ramat David כנף 1. Attributions קרדיט; Install התקנה; Preferences הגדרות; Pilot log יומן טיסות. CPU threads are תרדים, never תהליכונים (the user, 2026-11-08). |
 | look | Less futuristic: friendly but military. Colours from the IAF: the jets' schemes, the uniforms and the flag. Backgrounds never pure black. The language is a Settings option, never a menu toggle. Hebrew screens are mirrored for every control kind: dropdown, toggle, slider, list. |
@@ -54,6 +54,12 @@ here, dated.
 | voices | English only for now; the Hebrew voice is rethought later because Piper's only Hebrew voice (SASPEECH) is non-commercial. Betty sounds like the real one: intense and clipped. The TTS flows between words: whole phrases are rendered in one pass, not concatenated particles. |
 | parking spots | A7 approved. |
 | review pages | Pictures on the review pages enlarge on click. |
+
+## Decisions of 8 November 2026
+
+| topic | decision |
+|---|---|
+| name | **Modern IAF** in English, **הזרוע הארוכה** in Hebrew: two titles, neither a translation of the other (as the original was Jane's IAF / כוכב כחול); no tagline. The window title, the wizard, the setup's texts and log, the launchers' messages and the docs carry it. The folder `iaf-2026/`, the launchers `./iaf2026` / `./iaf2026-setup` (+ `.ps1` twins), the crate and bin names (`iaf-sim`), the test names, `converted/iaf-2026/` and the item codes stay unchanged as code identifiers. The `user://` folder follows `config/name` ("Modern IAF"); no records existed under the old name, so nothing moves. |
 
 ## Rules (the user, 3 November 2026)
 
@@ -182,7 +188,7 @@ Size: M. Blocks on: A1.
 
 ### A3 the setup wizard
 
-**IAF 2026 setup wizard** (`iaf-2026/setup/`): new pages and options, no Jane's mentions, reuse the `IafSetup` bridge and progress / cancel pattern of `game/setup`; Attributions page; Hebrew and English. **Done (2026-11-03, branch wt/iaf-2026-wizard):** `./iaf2026-setup` (and `./iaf2026` without the sim's data) opens the wizard: Welcome (language, what it builds, sizes and times, the GDAL / curl / disk check, the Attributions button: a modal with the Copernicus lines word for word, since 2026-11-08), Imagery (Sentinel-2, or with the Survey of Israel when its sheets are there), Install (progress per step, cancel, resume), Done; English and mirrored Hebrew in Heebo; the look in one file (Godot's default theme until the user's round 3); the steps `iaf_setup::sim_plan` / `sim_run` with stamps; `test_setup_wizard.gd`; a real run ([setup.md](setup.md)). **Open:** the look (round 3)
+**Modern IAF setup wizard** (`iaf-2026/setup/`): new pages and options, no Jane's mentions, reuse the `IafSetup` bridge and progress / cancel pattern of `game/setup`; Attributions page; Hebrew and English. **Done (2026-11-03, branch wt/iaf-2026-wizard):** `./iaf2026-setup` (and `./iaf2026` without the sim's data) opens the wizard: Welcome (language, what it builds, sizes and times, the GDAL / curl / disk check, the Attributions button: a modal with the Copernicus lines word for word, since 2026-11-08), Imagery (Sentinel-2, or with the Survey of Israel when its sheets are there), Install (progress per step, cancel, resume), Done; English and mirrored Hebrew in Heebo; the look in one file (Godot's default theme until the user's round 3); the steps `iaf_setup::sim_plan` / `sim_run` with stamps; `test_setup_wizard.gd`; a real run ([setup.md](setup.md)). **Open:** the look (round 3)
 
 Size: L. Blocks on: A2.
 

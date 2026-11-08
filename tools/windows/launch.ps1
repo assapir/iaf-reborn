@@ -1,8 +1,8 @@
 # Windows: what ./setup, ./iafjets, ./mission-editor, ./iaf2026 and ./iaf2026-setup do on Linux and macOS (setup.ps1,
 # iafjets.ps1, mission-editor.ps1, iaf2026.ps1 and iaf2026-setup.ps1 call this with their mode). Builds the game's
 # extension, imports the Godot project on a fresh clone, then starts the setup wizard (setup), the game (game; without
-# game data: the wizard), the mission editor (editor), IAF 2026 (sim; without its data: sim-setup; until its front end,
-# item E2, its M0 probe) or IAF 2026's setup wizard (sim-setup). The arguments
+# game data: the wizard), the mission editor (editor), Modern IAF (sim; without its data: sim-setup; until its front end,
+# item E2, its M0 probe) or Modern IAF's setup wizard (sim-setup). The arguments
 # after the mode go to the game, e.g. .\iafjets.ps1 --mission 311. IAF_SCENE=res://... starts that scene instead of the
 # main menu. ASCII only: Windows PowerShell 5.1 reads a script without a BOM as ANSI. No param() block: PowerShell would
 # bind game arguments such as -m or -- to its parameters.
@@ -13,7 +13,7 @@ Push-Location (Resolve-Path "$PSScriptRoot\..\..")
 try {
 	function Tell([string]$msg) {
 		Add-Type -AssemblyName PresentationFramework
-		$title = if ($project -eq 'iaf-2026') { 'IAF 2026' } else { "Jane's IAF (reborn)" }
+		$title = if ($project -eq 'iaf-2026') { 'Modern IAF' } else { "Jane's IAF (reborn)" }
 		[void][System.Windows.MessageBox]::Show($msg, "$title $([char]0x2014) Setup", 'OK', 'Warning')
 		throw $msg
 	}
@@ -53,7 +53,7 @@ try {
 		$mode = 'setup'
 	}
 	if ($mode -eq 'sim' -and -not (Test-Path 'assets\converted\iaf-2026\missions')) {
-		Write-Host 'No IAF 2026 data yet: starting its setup wizard.'
+		Write-Host 'No Modern IAF data yet: starting its setup wizard.'
 		$mode = 'sim-setup'
 	}
 	if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
@@ -102,7 +102,7 @@ try {
 		exit $LASTEXITCODE
 	}
 	if ($noFrontEnd) {
-		Write-Host "IAF 2026's front end comes with item E2; the M0 probe meanwhile:"
+		Write-Host "Modern IAF's front end comes with item E2; the M0 probe meanwhile:"
 		$env:IAF_DEFAULT_SETTINGS = '1'
 		Native { & $console --headless --audio-driver Dummy --path iaf-2026 -s ../iaf-2026/tests/test_m0_boot.gd --log-file ([IO.Path]::GetTempFileName()) }
 		exit $LASTEXITCODE

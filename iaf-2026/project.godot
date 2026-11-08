@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="IAF 2026"
+config/name="Modern IAF"
 config/description="A modern-day Israeli Air Force sim on our own and openly licensed data"
 config/features=PackedStringArray("4.7", "Forward Plus")
 boot_splash/bg_color=Color(0, 0, 0, 1)

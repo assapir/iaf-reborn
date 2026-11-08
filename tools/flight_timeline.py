@@ -117,7 +117,7 @@ def summary(head, rows, events):
             agl = f"{leg['agl'] * 3.281:.0f} ft" if leg["agl"] != math.inf else "-"
             out.append(f"  {names[i]} -> {names[i + 1]}: {km(leg['off'])} off, lowest {agl}")
     if rows and "rpm" in rows[0]:
-        # IAF 2026's recorder (version 2): the ground start's steps from the RPM and avionics columns.
+        # Modern IAF's recorder (version 2): the ground start's steps from the RPM and avionics columns.
         first = lambda f: next((f"{r['t']:.1f} s" for r in rows if f(r)), "never")
         out.append(f"Start: light-off RPM (20 %) {first(lambda r: r['rpm'] >= 20)}, idle {first(lambda r: r['engine'])},"
                    f" avionics up {first(lambda r: r.get('avionics'))}")
@@ -145,7 +145,7 @@ def timeline(events):
 
 
 def debrief_lines(d, lang="en"):
-    """An IAF 2026 debrief record (iaf-2026/docs/training.md §4) as lines: the result, the reasons, the numbers."""
+    """A Modern IAF debrief record (iaf-2026/docs/training.md §4) as lines: the result, the reasons, the numbers."""
     s = d.get("strings", {}).get(lang, {})
     out = [f"{s.get(d.get('kind'), d.get('kind'))}: {s.get('pass' if d.get('pass') else 'fail')}"]
     out += [f"  {s.get(r, r)}" for r in d.get("reasons", [])]
@@ -185,7 +185,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("recording")
     ap.add_argument("--html", help="also write a self-contained HTML timeline with the height profile")
-    ap.add_argument("--debrief", help="an IAF 2026 debrief record (user://debriefs/*.json) shown with the flight")
+    ap.add_argument("--debrief", help="a Modern IAF debrief record (user://debriefs/*.json) shown with the flight")
     a = ap.parse_args()
     head, rows, events = load(a.recording)
     debrief = None

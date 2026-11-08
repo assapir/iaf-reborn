@@ -30,7 +30,7 @@ The Godot projects `iaf-reborn/` and `iaf-2026/` reach the engine folders in `sh
 committed link. `launch.ps1` runs it before every start; after a clone, run it by hand before starting Godot directly.
 
 `.\iafjets.ps1 --mission 311` passes its arguments to the game, as `./iafjets -- --mission 311` does;
-`.\mission-editor.ps1` starts the mission editor. `.\iaf2026.ps1` and `.\iaf2026-setup.ps1` start IAF 2026 and its
+`.\mission-editor.ps1` starts the mission editor. `.\iaf2026.ps1` and `.\iaf2026-setup.ps1` start Modern IAF and its
 setup wizard (iaf-2026/docs/setup.md). All five run `tools/windows/launch.ps1`.
 
 `tools\windows\setup-cli.ps1` is the scripted setup. It runs the wizard's pipeline through `iaf-setup`, so it takes

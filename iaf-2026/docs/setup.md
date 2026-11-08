@@ -1,4 +1,4 @@
-# IAF 2026: the setup wizard
+# Modern IAF: the setup wizard
 
 The setup wizard builds the sim's data into `assets/`: the terrain, the airbases, the units and weapons, the jets'
 flight data, the sounds and voices and the training missions. It is item [A3](plan.md#a3-the-setup-wizard). Start it from the repo root:
