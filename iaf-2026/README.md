@@ -9,8 +9,8 @@ From the repo root:
 
 ```sh
 ./iaf2026-setup     # the setup wizard: builds the sim's data into assets/ (docs/setup.md)
-./iaf2026           # builds the extension and starts the sim; until its front end (item E2): the M0 probe
-./iaf2026 -- --mission 2012   # one mission without the front end (2011 / 2012 Ramon, 2021 / 2022 Ramat David, 2031 / 2032 Nevatim; training.md §10)
+./iaf2026           # builds the extension and starts the sim: its front end, Home (docs/front-end.md)
+./iaf2026 -- --mission 2012   # flies one mission at once, then shows its debrief (2011 / 2012 Ramon, 2021 / 2022 Ramat David, 2031 / 2032 Nevatim; training.md §10)
 IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-2026 -s ../iaf-2026/tests/test_m0_boot.gd --log-file <temp>
 ```
 
@@ -38,6 +38,7 @@ that as a failure.
 |---|---|
 | `iaf-2026/` | the sim's Godot project: `project.godot` ("Modern IAF", its own `user://`), `iaf.gdextension` (the same Rust extension as the original game) |
 | `iaf-2026/shared` | a link to the repo's `shared/` (the engine code both projects use; on Windows a junction made by `tools/windows/links.ps1`) |
+| `iaf-2026/main.tscn`, `iaf-2026/menu/` | the front end: the main scene, its screens, strings and look ([front-end.md](docs/front-end.md)) |
 | `iaf-2026/sim_settings.gd` | the `Settings` autoload: the shared settings with the sim's data roots and profile |
 | `iaf-2026/data/` | the authored data: units, weapons, missions, airbases, sounds, keys ([data-formats.md](docs/data-formats.md), [sound.md](docs/sound.md), [airbases.md](docs/airbases.md)) |
 | `iaf-2026/tests/` | the sim's headless tests (they extend `tests/godot/base.gd`) |

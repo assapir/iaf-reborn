@@ -1,8 +1,8 @@
 # Windows: what ./setup, ./iafjets, ./mission-editor, ./iaf2026 and ./iaf2026-setup do on Linux and macOS (setup.ps1,
 # iafjets.ps1, mission-editor.ps1, iaf2026.ps1 and iaf2026-setup.ps1 call this with their mode). Builds the game's
 # extension, imports the Godot project on a fresh clone, then starts the setup wizard (setup), the game (game; without
-# game data: the wizard), the mission editor (editor), Modern IAF (sim; without its data: sim-setup; until its front end,
-# item E2, its M0 probe) or Modern IAF's setup wizard (sim-setup). The arguments
+# game data: the wizard), the mission editor (editor), Modern IAF (sim; without its data: sim-setup) or Modern IAF's setup
+# wizard (sim-setup). The arguments
 # after the mode go to the game, e.g. .\iafjets.ps1 --mission 311. IAF_SCENE=res://... starts that scene instead of the
 # main menu. ASCII only: Windows PowerShell 5.1 reads a script without a BOM as ANSI. No param() block: PowerShell would
 # bind game arguments such as -m or -- to its parameters.
@@ -95,18 +95,6 @@ try {
 	}
 
 	$godotArgs = @('--path', $project)
-	$noFrontEnd = $mode -eq 'sim' -and -not (Test-Path 'iaf-2026\main.tscn')
-	if ($noFrontEnd -and $gameArgs -contains '--mission') {
-		# One mission without the front end (iaf-2026/flight/fly.gd), until item E2.
-		& $godot @godotArgs 'res://flight/fly.tscn' '--' @gameArgs
-		exit $LASTEXITCODE
-	}
-	if ($noFrontEnd) {
-		Write-Host "Modern IAF's front end comes with item E2; the M0 probe meanwhile:"
-		$env:IAF_DEFAULT_SETTINGS = '1'
-		Native { & $console --headless --audio-driver Dummy --path iaf-2026 -s ../iaf-2026/tests/test_m0_boot.gd --log-file ([IO.Path]::GetTempFileName()) }
-		exit $LASTEXITCODE
-	}
 	switch ($mode) {
 		'sim' { $godotArgs += 'res://main.tscn' }
 		'setup' { $godotArgs += @('--resolution', '1200x820', 'res://setup/wizard.tscn') }

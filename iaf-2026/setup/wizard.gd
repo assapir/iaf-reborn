@@ -104,6 +104,15 @@ const CREDITS := [
 		"for_font",
 		["Copyright 2014 The Heebo Project Authors (github.com/OdedEzer/heebo), SIL Open Font License 1.1"]
 	],
+	[
+		"Wikimedia Commons",
+		"for_photos",
+		[
+			"F-16I Sufa 407 and F-35I Adir in flight: Major Ofer, Israeli Air Force, CC BY 4.0",
+			"F-16I Sufa 851 at Tel Nof: MathKnight and Zachi Evenor, CC BY 4.0",
+			"F-16D Barak 034: Zachi Evenor and MathKnight, CC BY 2.0",
+		]
+	],
 ]
 var setup := IafSetup.new()
 var assets := ""

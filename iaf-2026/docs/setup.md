@@ -53,7 +53,8 @@ The **Attributions** open from Welcome as a modal dialog over the page (Close or
 source with its licence line: the Copernicus DEM's two lines word for word ([terrain.md](terrain.md) §5), ESA
 WorldCover's Sentinel-2 line, the Survey of Israel, OpenStreetMap (ODbL), OurAirports, the freesound authors
 ([sound.md](sound.md) §6), Piper and its voices, the FlightGear F-16 (GPL), the F-35I model (CC BY 4.0), NASA
-TP-1538, the Heebo font (OFL). The licence lines stay in English in the Hebrew dialog.
+TP-1538, the Heebo font (OFL), the front end's jet photos (Wikimedia Commons, CC BY). The licence lines stay in
+English in the Hebrew dialog.
 
 The pages say only what the user decides or must know ([plan.md](plan.md) Rules).
 

@@ -36,7 +36,8 @@ static func make() -> Theme:
 static func _weight(base: Font, w: int) -> FontVariation:
 	var f := FontVariation.new()
 	f.base_font = base
-	f.variation_opentype = {"wght": w}
+	# By the axis' tag number: a "wght" string key leaves the variable font at its default weight.
+	f.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): w}
 	return f
 
 

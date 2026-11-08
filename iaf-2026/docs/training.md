@@ -7,8 +7,8 @@ declared runway begins ([airbases.md](airbases.md) §4); "inferred" = our own re
 The scoring core (item E3a, plan.md) reads a recorded flight and a training mission and says pass or fail, with the
 debrief's numbers. It is pure Rust. Since item E3b (2026-11-03) the game runs both training missions without the front
 end: the jet parked cold, one start command (§7), the radio menu and the tower (§8), scoring at the mission's end with
-the debrief record and the pilot log (§9), and a probe that flies both missions for each jet (§10). The debrief page
-is item E2.
+the debrief record and the pilot log (§9), and a probe that flies both missions for each jet (§10). The front end
+(item E2, [front-end.md](front-end.md)) shows the record as its debrief sheet.
 
 ```sh
 cargo run -p iaf-tools --bin iaf-training -- score <flight.jsonl> iaf-2026/data/missions/ramon_takeoff.json [airbases-dir] [--json debrief.json]
@@ -120,7 +120,7 @@ airbases folder and a `--json` without a file. `sim::tests::training_rules_are_c
 are refused, and every take-off mission's runway is an end of its base's airbase file.
 
 ## 6. Open
-- The debrief page (E2) and the checklist card (after the MVP, plan.md "start-up").
+- The checklist card (after the MVP, plan.md "start-up").
 - The F-16I's, F-16D's and F-35I's own empty weights and take-off speeds by weight (open).
 - A start-up fault model (hot / hung start): none in the flight model.
 - The roll's start and rotation thresholds checked against a real flight of each mission by the user.
@@ -163,8 +163,8 @@ The **Call the tower** key (Ctrl+T) opens a numbered list over the view; 1–4 p
 | 4 | Contact tower (landing) | קריאה למגדל (נחיתה) | the original's Ctrl+T (docs/radio.md §2): "proceed to runway …" in the air |
 
 The pilot's call is printed ("Ramon tower, Alpha, request taxi"), the tower's answer printed and spoken by the English
-TTS tower of E1b (sound.md §3), then the pilot's "Roger". The Hebrew labels show in Hebrew (right to left, a system
-font with Hebrew letters until E2's own); the Hebrew voice waits for the user's licence decision (sound.md §5). The
+TTS tower of E1b (sound.md §3), then the pilot's "Roger". The Hebrew labels show in Hebrew (right to left, in the sim's
+Heebo font); the Hebrew voice waits for the user's licence decision (sound.md §5). The
 tower is the base within 18.54 km: every base of the own `iaf.ibx` talks (Ramon, Ramat David, Hatzerim, Nevatim;
 `Settings.tower_bases`); the mission's base's tower names the mission's runway (`"runway"`), the others their own. A request leaves the tower's
 state machine as it is. In the menu the tower no longer talks on
@@ -181,11 +181,13 @@ compiled file has `sim.training`:
   until it passes), either at a crash or 5 s past its time budget;
 - `IafTraining.score(recording, mission, airbases)` (crates/iaf-godot/src/training.rs) runs `training::score_files`
   on the recording so far, the readable mission `iaf-2026/data/missions/<id>.json` and the airbase files;
-- the debrief record (§4, plus `flight`: the recording's path, `date`) goes to `user://debriefs/debrief-<date>-<id>.json`;
+- the debrief record (§4, plus `flight`: the recording's path, `date`: the end, `elapsed_s`: the flight's length) goes
+  to `user://debriefs/debrief-<date>-<id>.json`, compact, and `Settings.flown_debrief` names it for the front end;
 - the attempt goes to the pilot log `user://pilots/<pilot id>.json` (the default pilot 14 until E2's pilot list) in the
   original game's shape (`iaf-reborn/menu/pilots.gd`): `{"missions": [{"id": <menu id>, "attempts": [{"result": 1 | 0,
   "mult": 1.0, "bonus": 0, "kills": [], "losses": [], "debrief": <file>, "date": …}]}]}`, newest mission first;
-- the result and its numbers show over the view (in the game's language) until the debrief page (E2).
+- the result and its numbers show over the view (in the game's language); ending the flight (Esc → End the flight, or
+  Ctrl+Q → Debrief) opens the front end's debrief sheet.
 
 Scoring needs the recorder (Extras, on by default): with it off the flight is not scored (a warning in the log). Tests
 record beside the debrief, in a temporary folder. The recorder's version 2 (`Settings.blackbox_version`, [data-formats.md](data-formats.md) §13) adds `rpm`
@@ -202,7 +204,7 @@ calls and their answers, a taxi along the base's taxi path to the lineup, the ro
 gear up), each ending in Pass. `-- --jet f16i` / `-- --only startup` narrow it. Item F adds the front end, Hebrew, the
 temp-root run and the other platforms.
 
-`./iaf2026 -- --mission <id>` flies one mission without the front end (`iaf-2026/flight/fly.gd`): 2011 / 2012 Ramon
+`./iaf2026 -- --mission <id>` flies one mission at once (`iaf-2026/flight/fly.gd`), then shows its debrief: 2011 / 2012 Ramon
 start-up / take-off, 2021 / 2022 Ramat David, 2031 / 2032 Nevatim.
 `iaf-2026/tests/_training_shot.gd` takes the pictures in a real render (its header).
 

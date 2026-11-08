@@ -159,6 +159,14 @@ The sim's screens (its setup wizard first) use Heebo, `iaf-2026/data/fonts/Heebo
 2014 The Heebo Project Authors (https://github.com/OdedEzer/heebo)", under the SIL Open Font License 1.1
 (`iaf-2026/data/fonts/OFL.txt`), from Google Fonts[^heebo]. The wizard's Attributions page names it.
 
+## Modern IAF's photos
+
+The sim's front end (iaf-2026/docs/front-end.md) shows four Wikimedia Commons photos of the jets, downscaled, in
+`iaf-2026/data/photos/` (`SOURCES.md` there lists each page): F-16I Sufa 407 and F-35I Adir in flight by Major Ofer,
+Israeli Air Force (CC BY 4.0)[^c-sufa][^c-adir]; F-16I Sufa 851 at Tel Nof by MathKnight and Zachi Evenor (CC BY
+4.0)[^c-sufa2]; F-16D Barak 034 by Zachi Evenor and MathKnight (CC BY 2.0)[^c-barak]. Each screen that shows one
+credits it in its footer; the front end's Attributions screen and the setup wizard's list name all four.
+
 ## Testing
 
 * `tests/godot/test_credits.gd` checks:
@@ -189,5 +197,9 @@ The sim's screens (its setup wizard first) use Heebo, `iaf-2026/data/fonts/Heebo
     and licence: https://langnico.github.io/globalcanopyheight/
 [^tp1538]: L. T. Nguyen et al., NASA TP-1538 (1979), "Simulator Study of Stall/Post-Stall Characteristics of a Fighter
     Airplane With Relaxed Longitudinal Static Stability": https://ntrs.nasa.gov/citations/19800005879
+[^c-sufa]: Wikimedia Commons, "IAF-F-16I-2016-12-13.jpg": https://commons.wikimedia.org/wiki/File:IAF-F-16I-2016-12-13.jpg
+[^c-adir]: Wikimedia Commons, "IAF-F-35I-2016-12-13.jpg": https://commons.wikimedia.org/wiki/File:IAF-F-35I-2016-12-13.jpg
+[^c-sufa2]: Wikimedia Commons, "IAF-F-16I-Sufa--Independence-Day-2017-Tel-Nof-IZE-182.jpg": https://commons.wikimedia.org/wiki/File:IAF-F-16I-Sufa--Independence-Day-2017-Tel-Nof-IZE-182.jpg
+[^c-barak]: Wikimedia Commons, "F-16D--Our-IDF-2018-IZE-239.jpg": https://commons.wikimedia.org/wiki/File:F-16D--Our-IDF-2018-IZE-239.jpg
 [^heebo]: Google Fonts, Heebo (`ofl/heebo/Heebo[wght].ttf` and `OFL.txt`): https://github.com/google/fonts/tree/main/ofl/heebo
 [^cop-dem]: "Licence for the use of the Copernicus WorldDEM-30", Article 6: https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/DEM/resources/license/License-COPDEM-30.pdf

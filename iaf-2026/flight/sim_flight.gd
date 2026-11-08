@@ -8,6 +8,7 @@
 extends Node
 
 const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
+const WizardTheme := preload("res://setup/wizard_theme.gd")
 ## The menu's lines: [request id, English, Hebrew] (radio.gd request; "landing": its Ctrl+T contact_tower).
 const ITEMS := [
 	["startup", "Request start-up", "בקשת התנעה"],
@@ -82,7 +83,7 @@ func _ready() -> void:
 func _dir() -> String:
 	var d := out_dir
 	if d == "":
-		d = OS.get_temp_dir().path_join("iaf2026-debriefs") if Settings.isolated() else "user://debriefs"
+		d = Settings.debriefs_dir()
 	DirAccess.make_dir_recursive_absolute(d)
 	return d
 
@@ -131,12 +132,12 @@ func _tower_name() -> String:
 	return names[1 if _he() else 0]
 
 
-## The label's system font: one with Hebrew glyphs in Hebrew (a font that lacks them spaced the fallback's letters
-## apart, 2026-11-03); the sim's own OFL font comes with its front end (item E2).
+## The label's font: the sim's Heebo (Latin and Hebrew glyphs), as the front end's.
 func _font() -> void:
-	var font := SystemFont.new()
-	var he := ["Noto Sans Hebrew", "Arial", "DejaVu Sans"]
-	font.font_names = PackedStringArray(he if _he() else ["Noto Sans", "Arial", "DejaVu Sans"])
+	if _label.has_theme_font_override("font"):
+		return
+	var font := FontFile.new()
+	font.load_dynamic_font(ProjectSettings.globalize_path(WizardTheme.FONT))
 	_label.add_theme_font_override("font", font)
 
 
@@ -235,10 +236,12 @@ func _finish(d: Dictionary) -> void:
 	result = d
 	d["flight"] = ProjectSettings.globalize_path(host._log.get_path_absolute())
 	d["date"] = Time.get_datetime_string_from_system()
+	d["elapsed_s"] = snappedf(float(host._log_t), 0.1)
 	debrief_file = _dir().path_join("debrief-%s-%s.json" % [Settings.file_stamp(), mission_name])
 	var f := FileAccess.open(debrief_file, FileAccess.WRITE)
 	if f != null:
-		f.store_string(JSON.stringify(d, "  ") + "\n")
+		f.store_string(JSON.stringify(d))
+	Settings.flown_debrief = debrief_file
 	_pilot_log(d)
 	var en: Dictionary = d.get("strings", {}).get("en", {})
 	print("training %s: %s %s" % [mission_name, "PASS" if d["pass"] else "FAIL", d.get("reasons", [])])
@@ -250,11 +253,10 @@ func _finish(d: Dictionary) -> void:
 ## = {missions: [{id, attempts: [{result, mult, bonus, kills, losses}]}]}, newest mission first), plus the debrief
 ## file and the date; the pilot is Settings.pilot_id, else the default pilot 14.
 func _pilot_log(d: Dictionary) -> void:
-	var dir := out_dir
-	if dir == "":
-		dir = _dir().path_join("pilots") if Settings.isolated() else "user://pilots"
-	DirAccess.make_dir_recursive_absolute(dir)
-	var path := dir.path_join("%d.json" % (Settings.pilot_id if Settings.pilot_id >= 0 else 14))
+	var path := Settings.pilot_log_file()
+	if out_dir != "":
+		path = out_dir.path_join(path.get_file())
+	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
 	var missions: Array = Settings.load_json(path).get("missions", [])
 	var id := int(host.mission_id)
 	var entry: Dictionary = {}
@@ -281,10 +283,11 @@ func _pilot_log(d: Dictionary) -> void:
 	)
 	var f := FileAccess.open(path, FileAccess.WRITE)
 	if f != null:
-		f.store_string(JSON.stringify({"missions": missions}, "  ") + "\n")
+		f.store_string(JSON.stringify({"missions": missions}))
 
 
-## The result over the flight until the debrief page (item E2): pass / fail, the reasons and the numbers.
+## The result over the flight until the flight ends and the front end opens its debrief: pass / fail, the reasons
+## and the numbers.
 func _show_result(d: Dictionary, s: Dictionary) -> void:
 	var lines := [String(s.get("pass" if d["pass"] else "fail", ""))]
 	for r in d.get("reasons", []):

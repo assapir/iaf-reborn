@@ -18,6 +18,11 @@ const PROFILE := {
 const PLANES := "res://data/planes"
 
 var _sim_airframes := {}
+## The plane the pilot picked on the front end: its unit id (f16i, f16d, f35i; settings.cfg [sim] jet); "" before the
+## first pick.
+var sim_jet := ""
+## The debrief record the last flight wrote (flight/sim_flight.gd), for the front end to open when the flight ends.
+var flown_debrief := ""
 
 
 func _ready() -> void:
@@ -27,7 +32,35 @@ func _ready() -> void:
 
 func read_config(cfg: ConfigFile) -> void:
 	super(cfg)
+	sim_jet = str(cfg.get_value("sim", "jet", ""))
 	_apply_profile()
+
+
+func write_config(values := {}) -> ConfigFile:
+	var cfg := super(values)
+	cfg.set_value("sim", "jet", sim_jet)
+	return cfg
+
+
+## The sim's front end (menu/front_end.gd, iaf-2026/docs/front-end.md): where the game starts and a flight ends.
+func front_end_scene() -> String:
+	return "res://main.tscn"
+
+
+## Over the frozen flight: the pause menu (Esc) or the Preferences.
+func front_end_overlay() -> Control:
+	return load("res://menu/front_end.gd").new()
+
+
+## Where the debrief records go: user://debriefs, or a temporary folder in isolated runs (tests).
+func debriefs_dir() -> String:
+	return OS.get_temp_dir().path_join("iaf2026-debriefs") if isolated() else "user://debriefs"
+
+
+## The pilot log (training.md §9): the original game's pilot record shape, the default pilot 14.
+func pilot_log_file() -> String:
+	var dir := debriefs_dir().path_join("pilots") if isolated() else "user://pilots"
+	return dir.path_join("%d.json" % (pilot_id if pilot_id >= 0 else 14))
 
 
 func _apply_profile() -> void:

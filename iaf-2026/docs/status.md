@@ -3,6 +3,9 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **[E2](plan.md#e2-the-front-end), the front end (2026-11-08):** `./iaf2026` opens Home; Pick a plane, Training, Pick a mission, Fly,
+  the flight, its debrief sheet, the Pilot log, Preferences and Attributions, in English and Hebrew (mirrored), in the
+  round-3 look ([front-end.md](front-end.md)). Esc over a flight opens the pause menu. `test_front_end.gd`.
 - **[A3](plan.md#a3-the-setup-wizard), the setup wizard (2026-11-03):** `./iaf2026-setup` opens the wizard; it builds the terrain,
   the airbases, the units and weapons, the sounds and voices and the training missions as a step graph with stamps (a
   second run is all up to date), in English and Hebrew ([setup.md](setup.md)). Its look is Godot's default theme until
@@ -48,14 +51,18 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   ([B1](plan.md#b1-the-terrain), the terrain) it flies 5 s over it and checks the heights; the 3D-only cockpit check waits for [E1](plan.md#e1-cockpit-data-sounds-and-voices), the cockpit data.
 - [A2](plan.md#a2-the-iaf-sim-compilers) (the data compilers), [B2a](plan.md#b2-the-airbases) (the airbases' layouts), [E1b](plan.md#e1-cockpit-data-sounds-and-voices) (sounds, voices, keys), [E3a](plan.md#e3-the-training-missions) (the training scoring): see
   their rows in [plan.md](plan.md).
+- The setup wizard's headings use Heebo's weights since 2026-11-08 (the font axis is set by its tag number; a "wght"
+  string key had left every weight at the regular).
 
 ## Open
 - **The 6-DoF's wave drag is a fit ([C2](plan.md#c2-the-6-dof), the 6-DoF):** fit to each jet's published top speeds, not a sourced table; open: a public
   F-16 drag rise, the high-speed g onset, the take-off roll, the flaps ([flight-model.md](flight-model.md) §9.6).
-- **[E3b](plan.md#e3-the-training-missions)'s open points** ([training.md](training.md) §6): the debrief page ([E2](plan.md#e2-the-front-end), the front end), the Hebrew voice (the user), the
+- **[E3b](plan.md#e3-the-training-missions)'s open points** ([training.md](training.md) §6): the Hebrew voice (the user), the
   pilot's request voice and the starter's sound (sound.md §7); the 6-DoF's short take-off roll.
-- **No screen yet:** `./iaf2026` runs the M0 probe (or with `-- --mission <id>` one mission) until the front end (item [E2](plan.md#e2-the-front-end), the front end, its main scene `main.tscn`); the sim's
-  `Settings` still has the original's `front_end_scene()` / `front_end_overlay()` ([E2](plan.md#e2-the-front-end) overrides them).
+- **[E2](plan.md#e2-the-front-end)'s open points** ([front-end.md](front-end.md)): a pilot list (the name is the computer's user
+  name); the debrief sheet and the pilot log in the original game ([shared.md](shared.md)); the missions'
+  own Hebrew briefings in `iaf-2026/data/missions/` still use the masculine imperative (the front end shows its own
+  gender-neutral ones).
 - **The probe's 3D-only cockpit check** (no 2D panel in flight) prints NEEDS DATA until [E1](plan.md#e1-cockpit-data-sounds-and-voices), the cockpit data.
 - **The airbases' open points** ([airbases.md](airbases.md) §9): the towers of Ramon, Hatzerim and Ramat David (their
   reference points stand in), inland water, one taxi hub per base. The temp-root run of item F finds any read of the

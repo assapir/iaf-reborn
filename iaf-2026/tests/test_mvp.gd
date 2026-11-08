@@ -5,8 +5,8 @@
 #   displays come up, the engine idles; the recorder's RPM / avionics columns; the debrief record and the pilot log;
 # - take-off: the radio menu's three requests answered by the base's tower, a taxi along the base's taxi path
 #   (the own iaf.ibx) to the lineup, the roll, the rotation, gear up on the runway heading.
-# Still open for item F: the front end's part (E2), Hebrew, the run on a root that holds only the sim's files, macOS
-# and Windows.
+# The front end's part is test_front_end.gd (with `-- --fly` it flies a mission through the screens). Still open for
+# item F: the run on a root that holds only the sim's files, macOS and Windows.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-2026 \
 #     -s ../iaf-2026/tests/test_mvp.gd --log-file <temp> [-- --jet f16i] [-- --only startup|takeoff]
 extends "res://../tests/godot/base.gd"
