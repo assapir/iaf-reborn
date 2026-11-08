@@ -4,7 +4,7 @@
   "name": "AIM-9M",
   "kind": "ir_missile",
   "generation": 3,
-  "model": "",
+  "model": "weapons/aim9/aim9_m.gltf",
   "kg": 86,
   "power": 400,
   "blast_m": 9,
@@ -32,6 +32,7 @@
     "motion._timeConstOrientation": "inferred"
   },
   "notes": {
+    "model": "the original's file name, which Models: Detailed draws as our AIM-9 (shared/util/gltf.gd STORES: shared/extra/models/stores/aim9.glb); the sim has no install, so nothing else draws it",
     "number": "ours; modern_weapons.gd finds its base by the name",
     "name": "the base of the AIM-9X (modern_weapons.gd RECORDS)",
     "generation": "the third generation (weapons.ibx's generations: 1983-1995)",

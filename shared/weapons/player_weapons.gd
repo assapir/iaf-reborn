@@ -2618,7 +2618,9 @@ static func _instance(path: String, allow_detailed := true) -> Node3D:
 	if model == null:
 		return null
 	var n: Node3D = Gltf.instance(model)
-	var orig = Gltf.object(path, false) if allow_detailed and Gltf.detailed(path) != "" else null
+	var orig = (
+		Gltf.object(path, false) if allow_detailed and Gltf.detailed(path) != "" and _has_original(path) else null
+	)
 	if orig != null:
 		for g: GeometryInstance3D in n.find_children("*", "GeometryInstance3D", true, false):
 			g.visibility_range_end = STORE_LOD_M
@@ -2705,8 +2707,18 @@ static func _rack(st: Dictionary, nodes: Array) -> Node3D:
 	return rack
 
 
+## The original store model of `path` is there (the 1998 game's install; Modern IAF has none): a quiet probe.
+static func _has_original(path: String) -> bool:
+	return Settings.has_converted("objects".path_join(Gltf.STAND_INS.get(path, path)))
+
+
 ## The store model's `pilon` helper (glTF, the sum of its and its parents' translations), or null.
 static func _pilon_of(path: String) -> Variant:
+	if not _has_original(path):
+		# Modern IAF draws only our detailed stores: they are fitted onto the original's frame (tools/stores/build.gd),
+		# where the AIM-9's pilon is the origin (inferred the same for the rest).
+		# ponytail: the origin for every store; store each original's pilon with our model if one sits elsewhere.
+		return Vector3.ZERO if Gltf.detailed(path) != "" else null
 	var d := Settings.load_json(Gltf.objects_path(path))
 	var nodes: Array = d.get("nodes", [])
 	var parent := {}

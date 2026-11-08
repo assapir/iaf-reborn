@@ -144,6 +144,8 @@ func _apply_profile() -> void:
 		set(key, PROFILE[key])
 	for key in NO_AIDS:
 		set(key, NO_AIDS[key])
+	# The stores in kg (data-formats.md §3): without it a tank-370's 2470 lb would load as 2470 kg of fuel.
+	better["fix_stores_weight"] = true
 	# The CC0 textures setup downloads (assets/thirdparty/ambientcg): ours whenever they are there.
 	var ground: GDScript = load("res://shared/terrain/ground_textures.gd")
 	ground_textures = "ambientcg" if ground.available() else "original"

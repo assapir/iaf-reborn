@@ -43,6 +43,31 @@ pub const KEYS_LAPTOP_FILE: &str = "converted/own/keys_laptop.json";
 pub const PLANES_DIR: &str = "converted/own/planes";
 /// The sim's F-16 model (the Barak's; the Sufa's f16i.glb has the same frames), from which `own` describes the F-16.
 pub const F16_GLB: &str = "shared/extra/models/f16/f16d.glb";
+/// The F-16's stations the sim's loadout hangs stores on (glTF metres on our model), each where its store's origin
+/// goes: a store with no original model hangs by its own origin (player_weapons.gd `_pilon_of`). The model's own
+/// helpers are the original's, which put the AIM-9 about a missile diameter above and outboard of our rails and the
+/// tank's top inside the wing (iaf-2026/docs/data-formats.md §3, side and front views).
+///   - 1 and 9 (StationA, StationI): under the launcher rails (x 4.62 to 4.795 m out, y −0.138 to 0.127 m, z 1.17 to
+///     3.54 m in f16d.glb and f16i.glb), the AIM-9's axis one body radius (63.5 mm) below the rail, on its middle (the
+///     hang under the rail inferred from the F-16's LAU-129);
+///   - 2 and 8 (StationB, StationH), 3 and 7 (StationC, StationG): under the outboard and middle pylons (x ±3.97 and
+///     ±2.98 m, bottoms y −0.322 and −0.392 m, z 1.89 to 3.10 and 0.71 to 3.12 m), the AIM-9's axis one body radius
+///     below the pylon's bottom, on its middle (inferred, as at the rails);
+///   - 4 and 6 (StationD, StationF): under the inboard pylons (x ±1.73 m, bottom y −0.341 m, z −0.18 to 2.23 m), the
+///     370 US gal tank's top (0.328 m above its origin in stores/f16ftk.glb) on the pylon's bottom.
+///
+/// ponytail: one origin per station, right for the AIM-9 and the tank; a store of another shape there needs its own
+/// hang offset.
+const F16_SIM_STATIONS: [(&str, [f64; 3]); 8] = [
+    ("StationA", [-4.7075, -0.2015, 2.35]),
+    ("StationB", [-3.974, -0.3855, 2.496]),
+    ("StationC", [-2.986, -0.4555, 1.912]),
+    ("StationD", [-1.735, -0.669, 1.023]),
+    ("StationF", [1.726, -0.669, 1.023]),
+    ("StationG", [2.977, -0.4555, 1.912]),
+    ("StationH", [3.965, -0.3855, 2.496]),
+    ("StationI", [4.7115, -0.2015, 2.347]),
+];
 
 // --- The readable → hex mapping ------------------------------------------------------------------------------------
 
@@ -112,6 +137,7 @@ const KINDS: &[(&str, i64, &str, i64)] = &[
     ("semi_radar_missile", 610, "Semi radar missile", -1),
     ("ir_sam", 620, "Heat sam", -1),
     ("radar_sam", 630, "Radar sam", -1),
+    ("tank", 660, "Shell", -1),
 ];
 const SIDES: &[(&str, i64)] = &[("blue", 1), ("red", 2)];
 /// Pylon stations A..I are stations 0..8 (CArmament, docs/formats/mis.md "CArmament").
@@ -1127,7 +1153,10 @@ fn planes(repo: &Path, assets: &Path) -> Result<()> {
         label: "F-16".into(),
         type_code: 100,
     };
-    let d = crate::aircraft::describe_glb(&bytes, "f16", "f16_h.gltf", F16_GLB, &[jet])?;
+    let mut d = crate::aircraft::describe_glb(&bytes, "f16", "f16_h.gltf", F16_GLB, &[jet])?;
+    for (station, p) in F16_SIM_STATIONS {
+        d["stations"][station] = json!(p);
+    }
     let out = assets.join(PLANES_DIR);
     write(&out.join("f16/aircraft.json"), &serde_json::to_string(&d)?)?;
     let index = json!({"f16": {"model": "f16/f16_h.gltf", "descriptor": "f16/aircraft.json", "type": 100,
@@ -1539,6 +1568,7 @@ mod tests {
             f16["parts"]["LdgF"]["axis"].is_array() && f16["stations"]["StationE"].is_array() && f16["gun"].is_array()
         );
         assert_eq!(f16["engines"]["pairs"], 1);
+        assert_eq!(f16["stations"]["StationA"], json!(F16_SIM_STATIONS[0].1));
         let clip = |f: &str| wav_seconds(&std::fs::read(sounds.join(f.to_lowercase())).unwrap()).unwrap();
         let trx = std::fs::read_to_string(sounds.join("soundprop.trx")).unwrap();
         let rows: Vec<Vec<&str>> =

@@ -1,0 +1,32 @@
+{
+  "id": "tank-370",
+  "number": 6,
+  "name": "2470LB",
+  "kind": "tank",
+  "generation": 0,
+  "model": "weapons/f16ftk/f16ftk_m.gltf",
+  "kg": 1120,
+  "power": 0,
+  "blast_m": 0,
+  "drag": 0,
+  "motion": {},
+  "sources": {
+    "kg": "f16net-tanks, inferred",
+    "power": "inferred",
+    "blast_m": "inferred",
+    "drag": "open"
+  },
+  "notes": {
+    "name": "the fuel it holds in pounds, as the original's tanks are named (2700LB): a name with LB is a tank, its weight the fuel (stores.rs is_tank)",
+    "model": "the original's file name, which Models: Detailed draws as our 370 US gal tank (shared/extra/models/stores/f16ftk.glb, FlightGear's 370G.ac)",
+    "kg": "the fuel of a full tank: 370 US gal (1400.6 l) of JP-8 at 0.80 kg/l (inferred density), 1120 kg (2470 lb); the tank's own 443 lb (201 kg) empty is not counted, as the original counts a tank's weight as fuel only",
+    "size": "18 1/4 ft (5.56 m) long, 26 1/2 in (0.673 m) across (f16net-tanks); our model's size is the original's 2700LB tank's (aircraft-models.md §5)",
+    "power": "a tank does no damage",
+    "blast_m": "a tank does no damage",
+    "drag": "carriage drag: none until a source gives one",
+    "motion": "the reader's defaults (a jettisoned tank falls ballistic)"
+  },
+  "footnotes": {
+    "f16net-tanks": "F-16.net, \"Luke F-16 jettisons fuel tanks, lands safely\" (18 1/4 ft long, 26 1/2 in in diameter, 443 lb empty, 370 gallons), https://www.f-16.net/f-16-news-article2018.html"
+  }
+}

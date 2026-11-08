@@ -46,7 +46,7 @@ reader takes them.
 |---|---|---|---|
 | unit | `id`, `category` (from `class`), `label`, `brain`, `radius_m`, `strength`, `collider`, `class`, `type` | `0x514`, `0x51e`, `0x528`, `0x532`, `0x564`, `0x56e`, `0x58c`, `0x5aa`, `0x5b4` | class `fighter` 0x1c "Controlled aircraft", `radar_sam` 8 "Radar sam", `ir_sam` 9 "Infra red sam", `aaa` 10 "Gundish", `ground_radar` 11 "Ground radar" |
 | unit (model) | `id`, `model`, `scale` | Present `0x640`, `0x64a`, `0x65e`; the unit's `0x53c` = its number | — |
-| weapon | `name`, `kind`, `model`, `drag`, `power`, `blast_m`, `kg` (→ pounds), `generation`, type (from `kind`) | `0x708`, `0x712`, `0x730`, `0x73a`, `0x744`, `0x74e`, `0x758`, `0x762`, `0x780` | `gun` 565, `chaff` 540, `flare` 550, `ir_missile` 570, `bomb` 500, `radar_missile` 600, `semi_radar_missile` 610, `ir_sam` 620, `radar_sam` 630 |
+| weapon | `name`, `kind`, `model`, `drag`, `power`, `blast_m`, `kg` (→ pounds), `generation`, type (from `kind`) | `0x708`, `0x712`, `0x730`, `0x73a`, `0x744`, `0x74e`, `0x758`, `0x762`, `0x780` | `gun` 565, `chaff` 540, `flare` 550, `ir_missile` 570, `bomb` 500, `radar_missile` 600, `semi_radar_missile` 610, `ir_sam` 620, `radar_sam` 630, `tank` 660 |
 | mission | `title.en`, `time`, `wind_kt`, `wind_from`, `win.en`, `lose.en`, `category` | misc `0x44c`, `0x460`, `0x46a`, `0x474`, `0x47e`, `0x492`, `0x4d8` | — |
 | placed unit | name, unit, side, x, y, `alt_m`, `heading` | `0x2bc`, `0x2c6`, `0x2d0`, `0x2e4`, `0x2ee`, `0x2f8`, `0x302` | side `blue` 1, `red` 2 |
 
@@ -64,14 +64,57 @@ A unit record holds what a mission needs of a unit. A flyable jet's behaviour st
 | `radius_m` | the unit's radius; the blast rules take half of it (docs/damage.md §2.1) |
 | `strength` | hit points on our damage scale (§6) |
 | `loadout` | weapon id → count for the gun, chaff and flare stations (9–11); a unit with an `airframe` must give its gun rounds, the count the sim's gun fires down to empty ([weapons.md](weapons.md) §1) |
-| `pylons` | station `A`..`I` → `{"weapon", "count"}` (none on the MVP jets) |
+| `pylons` | station `A`..`I` → `{"weapon", "count"}` (the F-16s: an AIM-9M on A, B, C, G, H and I, a 370 US gal tank on D and F) |
 | `range_km`, `min_range_km`, `ceiling_m`, `floor_m`, `speed_ms`, `mach`, `radar_km`, `g_limit`, `warhead_kg` | the threat set's figures (threats.md §6), checked for sources. `radar_km`, the unit's sensor reach, is compiled unhexed as `"radar_km"` into its Objects row, and the AI takes it before the type code's range (`combat.gd` `sensor_nm`); no shared reader takes the others yet |
 | `status` | only in a draft: `"pending the user's decision"` (§11) |
 
 The three MVP jets: the Sufa (`f16i`, number 1, type 100), the Barak (`f16d`, 2, type 100) and the F-35I (`f35i`,
 3, type 1000). The Sufa and the Barak share the F-16's type code, which the shared code keys the F-16 family on;
-their aircraft definitions tell them apart. `airframe::id_for(100, …)` picks `f16` or `f16i` by the F-16 switch alone, so the sim's settings set that switch from the player's Objects row's `"airframe"`: `Settings.set_jet(airframe)` in `iaf-2026/sim_settings.gd` (item A1, 2026-11-02). They carry the gun, chaff and flare and no pylon stores. Their `model`
+their aircraft definitions tell them apart. `airframe::id_for(100, …)` picks `f16` or `f16i` by the F-16 switch alone, so the sim's settings set that switch from the player's Objects row's `"airframe"`: `Settings.set_jet(airframe)` in `iaf-2026/sim_settings.gd` (item A1, 2026-11-02). They carry the gun, chaff and flare; the F-35I carries no pylon stores. Their `model`
 is empty: the player's jet is drawn from its aircraft definition, and the sim's own model index comes later.
+
+**The F-16s' loadout (2026-11-08).** The Sufa and the Barak carry an AIM-9M on each wingtip rail, stations 1 and 9
+(`pylons` A and I), an AIM-9M on each underwing missile station, 2 / 8 (B, H) and 3 / 7 (C, G), and a 370 US gal tank
+on each wing's inboard pylon, stations 4 and 6 (D and F). The F-16's two
+wingtip rails carry its short-range missiles[^w-f16], and the Sufa's two wingtip missiles are standard[^mf-f16i]. The
+Sufa's usual missile is the Python 5[^aft-f16i]; the sim has no Python 5 record yet, so the AIM-9M stands in (inferred).
+The F-16 carries AIM-9s and AIM-120s on 2 / 8 and 3 / 7, one
+each[^f16net-aim9][^f16net-aim120]. The sim has records of neither the Python nor the AIM-120, so the AIM-9M stands in
+on both: for the Python on 2 / 8, for the AIM-120 on 3 / 7 (stand-ins; which missile the IAF hangs on which station is
+inferred). The F-16 carries two 370 US gal wing tanks[^f16net-tanks], and the Sufa's stores include them[^ipms-f16i]; that they fly
+on most training flights is inferred. No other underwing stores. The F-35I stays clean.
+
+The tank (`data/db/weapons/tank-370.json`, kind `tank`: type 660, "Shell") is named for the fuel it holds in pounds,
+`2470LB`, as the original's tanks are (`2700LB`): a weapon whose name holds LB is a tank, and its weight is fuel
+(`stores.rs` `is_tank`). 370 US gal (1400.6 l) of JP-8 at 0.80 kg/l (the density inferred) is 1120 kg, its `kg`. The
+tank's own 443 lb (201 kg) empty weight, 18¼ ft (5.56 m) length and 26½ in (0.673 m) diameter[^f16net-tanks] are
+recorded in its notes; the stores code counts a tank's weight as fuel only, as the original does. The sim
+always runs with the stores weight fix (`sim_settings.gd` `_apply_profile`), so a store's weight and a tank's fuel
+count in kg: each tank adds 1120 kg of fuel, not the original's pounds number as kg (2470). Its drag is open (0).
+
+The AIM-9M's and the tank's `model` are the original's file names (`weapons/aim9/aim9_m.gltf`,
+`weapons/f16ftk/f16ftk_m.gltf`), which Models: Detailed draws as ours (`shared/extra/models/stores/aim9.glb`,
+`f16ftk.glb`, FlightGear's AIM-9 and 370G tank, aircraft-models.md §5). Without the install a store hangs by its own
+origin (`player_weapons.gd` `_pilon_of`). The sim's F-16 descriptor (`iaf-sim own`) puts the four stations where those
+origins go on our model (`sim.rs` `F16_SIM_STATIONS`): the model's own helpers are the original's, which held the
+AIM-9 about a missile diameter above and outboard of our rails and the tank's top inside the wing.
+
+- Stations 1 and 9: under the launcher rails, the AIM-9's axis one body radius below the rail, on its middle (the hang
+  under the rail inferred from the F-16's LAU-129).
+- Stations 2 / 8 and 3 / 7: the AIM-9's axis one body radius below the pylon's bottom, on its middle (inferred, as
+  at the rails).
+- Stations 4 and 6: the tank's top on the inboard pylon's bottom, on the pylon's middle.
+
+Outside, the left wingtip, station 3 and the left tank (left to right), from the front and from the side:
+
+![The AIM-9M under the wingtip rail, the AIM-9M under the middle pylon and the tank under the inboard pylon, front and side views](pictures/loadout/f16_stores_outside.jpg)
+
+The Mac play test (2026-11-08) showed the bare rail as a beige block and the bare middle pylon (station 3 / 7) as a hard
+edge from the cockpit. Looking back right from the Sufa's 3D cockpit at Ramon:
+
+| Before: the empty wingtip rail and pylons | After: the AIM-9Ms on the rail and pylons, the tank under the wing |
+|---|---|
+| ![The Sufa's right wing seen from the cockpit, its wingtip rail empty](pictures/loadout/sufa_look_back_before.jpg) | ![The same view with AIM-9Ms on the wingtip rail and the two outer pylons and the tank beside the fuselage](pictures/loadout/sufa_look_back_after.jpg) |
 
 Example, `iaf-2026/data/db/units/f16i.json`:
 ```json
@@ -88,7 +131,16 @@ Example, `iaf-2026/data/db/units/f16i.json`:
   "radius_m": 4.98,
   "strength": 300,
   "loadout": { "20mm": 511, "chaff": 60, "flare": 60 },
-  "pylons": {},
+  "pylons": {
+    "A": { "weapon": "aim-9m", "count": 1 },
+    "B": { "weapon": "aim-9m", "count": 1 },
+    "C": { "weapon": "aim-9m", "count": 1 },
+    "D": { "weapon": "tank-370", "count": 1 },
+    "F": { "weapon": "tank-370", "count": 1 },
+    "G": { "weapon": "aim-9m", "count": 1 },
+    "H": { "weapon": "aim-9m", "count": 1 },
+    "I": { "weapon": "aim-9m", "count": 1 }
+  },
   "sources": {
     "type": "inferred",
     "scale": "inferred",
@@ -96,7 +148,8 @@ Example, `iaf-2026/data/db/units/f16i.json`:
     "strength": "inferred",
     "loadout.20mm": "gdots-f16",
     "loadout.chaff": "open",
-    "loadout.flare": "open"
+    "loadout.flare": "open",
+    "pylons": "w-f16, mf-f16i, aft-f16i, ipms-f16i, inferred, f16net-aim9, f16net-aim120"
   },
   "notes": {
     "type": "the F-16's type code, the one the shared code keys the F-16 family on; the airframe definition f16i makes it the Sufa",
@@ -106,11 +159,17 @@ Example, `iaf-2026/data/db/units/f16i.json`:
     "strength": "our damage scale's fighter (iaf-2026/docs/data-formats.md, damage scale)",
     "loadout.20mm": "M61A1, 511 rounds (the F-16's; the two-seat Sufa's count is not published, inferred the same)",
     "loadout.chaff": "no public count found; 60 held until one is",
-    "loadout.flare": "no public count found; 60 held until one is"
+    "loadout.flare": "no public count found; 60 held until one is",
+    "pylons": "an AIM-9M on each wingtip rail (stations 1 and 9, A and I): the F-16's wingtip rails carry its short-range missiles; the Sufa's two wingtip missiles are standard (mf-f16i), its usual one the Python 5 (aft-f16i), which the sim has no record of yet, so the AIM-9M stands in (inferred); a 370 US gal tank on each wing's inboard station (stations 4 and 6, D and F; the Sufa's options list two 370 gal wing tanks, ipms-f16i), carried on most flights (inferred); no other underwing stores in training (inferred); an AIM-9M on each underwing missile station, 2 / 8 (B, H) and 3 / 7 (C, G): the F-16 carries AIM-9s and AIM-120s there (f16net-aim9, f16net-aim120); on 2 / 8 the AIM-9M stands in for the IAF's Python (aft-f16i on the Sufa, inferred on the Barak), on 3 / 7 for an AIM-120, which the sim has no record of yet (stand-ins, inferred)"
   },
   "footnotes": {
     "w-f16": "Wikipedia, \"General Dynamics F-16 Fighting Falcon\" (span 32 ft 8 in, 9.96 m), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon",
-    "gdots-f16": "General Dynamics OTS, \"F-16 20mm Gatling gun system\" (511 rounds), https://www.gd-ots.com/wp-content/uploads/2017/11/F-16.pdf"
+    "gdots-f16": "General Dynamics OTS, \"F-16 20mm Gatling gun system\" (511 rounds), https://www.gd-ots.com/wp-content/uploads/2017/11/F-16.pdf",
+    "mf-f16i": "MilitaryFactory, \"Lockheed F-16I Sufa (Storm)\" (2 x short-range air-to-air missiles on wingtip launchers), https://www.militaryfactory.com/aircraft/detail.php?aircraft_id=2191",
+    "ipms-f16i": "IPMS USA, \"F-16I Sufa Part 1\" (the Sufa's stores: 2 x 370 gallon wing tanks, 2 x 600 gallon wing tanks), https://reviews.ipmsusa.org/review/f-16i-sufa-part-1",
+    "aft-f16i": "Airforce Technology, \"F-16I Soufa Multirole Fighter, Israel\" (equipped with the Rafael Python 5), https://www.airforce-technology.com/projects/f-16i-soufa/",
+    "f16net-aim9": "F-16.net, \"AIM-9 Sidewinder\" (stations 1 and 9, 2 and 8, 3 and 7; one missile each), https://www.f-16.net/f-16_armament_article1.html",
+    "f16net-aim120": "F-16.net, \"AIM-120 AMRAAM\" (stations 1 and 9, 2 and 8, 3 and 7; one missile each), https://www.f-16.net/f-16_armament_article3.html"
   }
 }
 ```
@@ -581,3 +640,9 @@ cell format: f32 UTM metres; `manifest.json` with `frame` "EPSG:32636"; `theatre
 [^ds-aim9]: designation-systems.net, "Raytheon AIM-9 Sidewinder", https://www.designation-systems.net/dusrm/m-9.html
 [^f16net]: F-16.net, "AIM-9 Sidewinder", https://www.f-16.net/f-16_armament_article1.html
 [^mk84]: Wikipedia, "Mark 84 bomb", https://en.wikipedia.org/wiki/Mark_84_bomb
+[^mf-f16i]: MilitaryFactory, "Lockheed F-16I Sufa (Storm)" (2 x short-range air-to-air missiles on wingtip launchers), https://www.militaryfactory.com/aircraft/detail.php?aircraft_id=2191
+[^aft-f16i]: Airforce Technology, "F-16I Soufa Multirole Fighter, Israel" (equipped with the Rafael Python 5), https://www.airforce-technology.com/projects/f-16i-soufa/
+[^f16net-tanks]: F-16.net, "Luke F-16 jettisons fuel tanks, lands safely" (two 370 gallon tanks, 18¼ ft long, 26½ in in diameter, 443 lb empty), https://www.f-16.net/f-16-news-article2018.html
+[^ipms-f16i]: IPMS USA, "F-16I Sufa Part 1" (the Sufa's stores: 2 x 370 gallon wing tanks, 2 x 600 gallon wing tanks), https://reviews.ipmsusa.org/review/f-16i-sufa-part-1
+[^f16net-aim9]: F-16.net, "AIM-9 Sidewinder" (stations 1 and 9, 2 and 8, 3 and 7; one missile each), https://www.f-16.net/f-16_armament_article1.html
+[^f16net-aim120]: F-16.net, "AIM-120 AMRAAM" (stations 1 and 9, 2 and 8, 3 and 7; one missile each), https://www.f-16.net/f-16_armament_article3.html

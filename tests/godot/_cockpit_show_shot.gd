@@ -83,7 +83,8 @@ func _cockpit_scene(name: String, s: Array) -> void:
 	tv = await start_mission(s[1])
 	tv.text_messages = false
 	tv.cockpit.subtitles = [] as Array[String]
-	tv.runtime.misc["0x460"] = s[2] * 3600.0 - tv.runtime.now
+	if tv.runtime != null:  # Modern IAF (C3D_SIM=1) runs no mission script runtime: its mission's own time stays
+		tv.runtime.misc["0x460"] = s[2] * 3600.0 - tv.runtime.now
 	tv._tod_t = -INF
 	tv._tod_cockpit_set = false  # the cockpit's night by the clock set here (it is taken once, at the start)
 	if s[7] == "missile":
