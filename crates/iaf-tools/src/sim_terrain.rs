@@ -20,7 +20,7 @@ use image::RgbImage;
 use image::imageops::{FilterType, resize};
 
 use crate::imagery::{self, read_envi};
-use crate::imagery_run::{gdal, list_sheets, list_tiles, tile_box, tile_url};
+use crate::imagery_run::{BUCKET, gdal, list_sheets, list_tiles, tile_box, tile_sources};
 use crate::log;
 use crate::progress::{Progress, check, utf8};
 
@@ -86,6 +86,11 @@ pub struct Run {
     pub out: PathBuf,
     /// The DEM tile cache (`assets/source/dem`).
     pub dem_cache: PathBuf,
+    /// The WorldCover tile cache shared with the original game (`assets/source/imagery/sentinel2`, imagery_run::S2_CACHE).
+    pub s2_cache: PathBuf,
+    /// The original game's measured sheet extents and levels (`converted/imagery/.work/mapi2015/sheets.tsv`): a
+    /// first run starts from them (each line is checked against its ZIP's size and date) instead of measuring again.
+    pub sheet_index: PathBuf,
     /// The Survey of Israel sheet ZIPs (`assets/source/imagery/mapi2015`); none there = no 2 m nodes.
     pub sheets: PathBuf,
     /// The airbases' layouts (`iaf-2026/data/airbases`): Sentinel-2 replaces the Survey photo inside their outlines.
@@ -213,62 +218,72 @@ fn no_tile(code: &str, body: &str) -> bool {
     code == "404" || (code == "403" && body.contains("NoSuchKey"))
 }
 
-/// The GLO-30 tiles over `geo` in the cache, fetched once each (a `.none` mark for a cell with no tile: open sea).
-fn fetch_dem(cache: &Path, geo: [f64; 4], pr: &dyn Progress, cancel: &AtomicBool) -> Result<Vec<PathBuf>> {
+/// The GLO-30 tiles over `geo` in the cache, fetched once each (a `.none` mark for a cell with no tile: open sea),
+/// and the line saying what was reused and fetched.
+fn fetch_dem(cache: &Path, geo: [f64; 4], pr: &dyn Progress, cancel: &AtomicBool) -> Result<(Vec<PathBuf>, String)> {
     std::fs::create_dir_all(cache)?;
-    let mut tiles = Vec::new();
+    let (mut tiles, mut reused, mut fetched, mut sea) = (Vec::new(), 0u64, 0u64, 0);
+    let mb = |p: &Path| std::fs::metadata(p).map_or(0, |m| m.len());
     for lat in geo[1].floor() as i32..=geo[3].floor() as i32 {
         for lon in geo[0].floor() as i32..=geo[2].floor() as i32 {
             check(cancel)?;
             let name = dem_tile(lat, lon);
             let (tif, none) = (cache.join(format!("{name}.tif")), cache.join(format!("{name}.none")));
             if tif.exists() {
+                reused += mb(&tif);
                 tiles.push(tif);
                 continue;
             }
             if none.exists() {
+                sea += 1;
                 continue;
             }
             let part = cache.join(format!("{name}.part"));
             let url = format!("{DEM_URL}/{name}/{name}.tif");
-            let o = Command::new("curl")
-                .args([
-                    "-sS",
-                    "-L",
-                    "-m",
-                    "600",
-                    "--retry",
-                    "4",
-                    "--retry-all-errors",
-                    "-A",
-                    USER_AGENT,
-                    "-w",
-                    "%{http_code}",
-                    "-o",
-                    utf8(&part)?,
-                    &url,
-                ])
-                .output()
+            let mut child = Command::new("curl")
+                .args(["-sS", "-L", "-A", USER_AGENT])
+                .args(crate::thirdparty::CURL_PATIENCE)
+                .args(["-w", "%{http_code}", "-o", utf8(&part)?, &url])
+                .stdout(Stdio::piped())
+                .spawn()
                 .context("running curl")?;
-            let code = String::from_utf8_lossy(&o.stdout).trim().to_string();
+            // The answer is a few bytes: the pipe never fills while curl runs.
+            let mut out = child.stdout.take().context("curl's stdout")?;
+            let status = crate::thirdparty::wait_curl(child, &part, &|| cancel.load(Ordering::Relaxed), &|| {})?;
+            let mut code = String::new();
+            std::io::Read::read_to_string(&mut out, &mut code)?;
+            let code = code.trim().to_string();
             match code.as_str() {
+                // A 200 cut short (a stall) is not a tile: only a clean exit renames the part.
+                "200" if !status.success() => {
+                    let _ = std::fs::remove_file(&part);
+                    bail!("{url}: {}; run again", crate::thirdparty::curl_error(status));
+                }
                 "200" => {
                     std::fs::rename(&part, &tif)?;
-                    log!(pr, "  DEM {name}: {:.0} MB", std::fs::metadata(&tif)?.len() as f64 / 1e6);
+                    fetched += mb(&tif);
+                    log!(pr, "  DEM {name}: fetched {:.0} MB", mb(&tif) as f64 / 1e6);
                     tiles.push(tif);
                 }
                 _ if no_tile(&code, &std::fs::read_to_string(&part).unwrap_or_default()) => {
                     let _ = std::fs::remove_file(&part);
+                    sea += 1;
                     std::fs::write(&none, "no GLO-30 tile (open sea)\n")?;
                 }
-                _ => bail!("{url}: HTTP {code} {}", String::from_utf8_lossy(&o.stderr)),
+                _ => bail!("{url}: HTTP {code} ({})", crate::thirdparty::curl_error(status)),
             }
         }
     }
     if tiles.is_empty() {
         bail!("no GLO-30 tile over {geo:?}");
     }
-    Ok(tiles)
+    let line = format!(
+        "{} tiles, reused {:.0} MB, fetched {:.0} MB ({sea} open-sea cells)",
+        tiles.len(),
+        reused as f64 / 1e6,
+        fetched as f64 / 1e6
+    );
+    Ok((tiles, line))
 }
 
 /// gdalwarp of `src` to the UTM rect `te` at `size` pixels into ENVI (band-interleaved by pixel) at `bin`.
@@ -343,7 +358,12 @@ fn write_heights(f: &Frame, g: &HeightGrid, out: &Path, threads: usize, cancel: 
 }
 
 /// Runs `f` on every item on `threads` workers; stops at the first error or a cancel.
-fn par<T: Sync>(items: &[T], threads: usize, cancel: &AtomicBool, f: impl Fn(&T) -> Result<()> + Sync) -> Result<()> {
+pub(crate) fn par<T: Sync>(
+    items: &[T],
+    threads: usize,
+    cancel: &AtomicBool,
+    f: impl Fn(&T) -> Result<()> + Sync,
+) -> Result<()> {
     let next = AtomicUsize::new(0);
     // Set by the first worker that fails: the others stop at their next item.
     let stop = AtomicBool::new(false);
@@ -849,48 +869,82 @@ fn write_meta(f: &Frame, out: &Path, built_from: serde_json::Value) -> Result<()
     Ok(())
 }
 
-/// `iaf-sim terrain`: see the module doc. Resumable: finished units are marked in `<out>/.work`.
-pub fn terrain(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
+/// The original's sheet measurements as this run's start (`list_sheets` checks each line against its ZIP), when the
+/// run has none yet.
+fn seed_sheets(work: &Path, index: &Path, pr: &dyn Progress) -> Result<()> {
+    if !work.join("sheets.tsv").exists() && index.is_file() {
+        std::fs::copy(index, work.join("sheets.tsv"))?;
+        log!(pr, "survey: the sheet measurements reused from {}", index.display());
+    }
+    Ok(())
+}
+
+/// Runs `a` on a thread beside `b`, both with a stop flag that `cancel` or the first failure sets; returns the first
+/// failure (not the other branch's "cancelled" that followed it), else both results.
+fn both<A: Send, B>(
+    cancel: &AtomicBool,
+    a: impl FnOnce(&AtomicBool) -> Result<A> + Send,
+    b: impl FnOnce(&AtomicBool) -> Result<B>,
+) -> Result<(A, B)> {
+    let (stop, done) = (AtomicBool::new(false), AtomicBool::new(false));
+    // Which branch failed first: 0 none, 1 a, 2 b.
+    let first = std::sync::atomic::AtomicU8::new(0);
+    let fail = |who: u8| {
+        let _ = first.compare_exchange(0, who, Ordering::SeqCst, Ordering::SeqCst);
+        stop.store(true, Ordering::SeqCst);
+    };
+    let (ra, rb) = std::thread::scope(|s| {
+        s.spawn(|| {
+            while !done.load(Ordering::Relaxed) {
+                if cancel.load(Ordering::Relaxed) {
+                    stop.store(true, Ordering::Relaxed);
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+        });
+        let ha = s.spawn(|| a(&stop).inspect_err(|_| fail(1)));
+        let rb = b(&stop).inspect_err(|_| fail(2));
+        let ra = ha.join().unwrap_or_else(|_| Err(anyhow::anyhow!("a branch panicked")));
+        done.store(true, Ordering::Relaxed);
+        (ra, rb)
+    });
+    match (ra, rb) {
+        (Ok(a), Ok(b)) => Ok((a, b)),
+        (Err(e), Ok(_)) | (Ok(_), Err(e)) => Err(e),
+        (Err(ea), Err(eb)) => Err(if first.load(Ordering::SeqCst) == 2 { eb } else { ea }),
+    }
+}
+
+/// The heights branch: the GLO-30 tiles (cache first), the 64 m grid, the height nodes; returns what it reused.
+fn heights(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<String> {
     let t0 = std::time::Instant::now();
-    let f = Frame::new(r.area)?;
-    let (out, work) = (r.out.as_path(), r.out.join(".work"));
-    let built_from = stamp(r);
-    let old: serde_json::Value =
-        std::fs::read(out.join("meta.json")).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default();
-    if old["built_from"] == built_from {
-        log!(pr, "{}: up to date (same box, detail area and sheets)", out.display());
-        return Ok(());
-    }
-    std::fs::create_dir_all(&work)?;
-    for l in 0..=ROOT_LEVEL {
-        std::fs::create_dir_all(out.join(format!("L{l}")))?;
-    }
-    let geo = geo_bbox(r.area)?;
-    log!(
-        pr,
-        "theatre {} × {} km, lon {:.2}–{:.2}, lat {:.2}–{:.2}",
-        f.w / 1000,
-        f.h / 1000,
-        geo[0],
-        geo[2],
-        geo[1],
-        geo[3]
-    );
+    log!(pr, "heights: GLO-30 tiles from {}", r.dem_cache.display());
+    let (tiles, line) = fetch_dem(&r.dem_cache, geo, pr, cancel)?;
+    log!(pr, "heights: DEM {line}");
+    let grid = dem_grid(&tiles, r.area, work)?;
+    // Half the workers: the colour branch runs beside it.
+    write_heights(f, &grid, &r.out, (r.threads / 2).max(1), cancel)?;
+    log!(pr, "heights: done ({})", crate::progress::duration(t0.elapsed()));
+    Ok(line)
+}
 
-    // Heights.
-    let tiles = fetch_dem(&r.dem_cache, geo, pr, cancel)?;
-    let grid = dem_grid(&tiles, r.area, &work)?;
-    write_heights(&f, &grid, out, r.threads, cancel)?;
-    drop(grid);
-    log!(pr, "heights: {} GLO-30 tiles ({})", tiles.len(), crate::progress::duration(t0.elapsed()));
-
-    // Sentinel-2: one VRT over the WorldCover tiles (range reads; their overviews serve the 32 m nodes).
-    let names = list_tiles(geo[1].floor() as i32, geo[3].floor() as i32)?;
-    let urls: Vec<String> = names
+/// The colour branch: Sentinel-2 from the shared tile cache (the missing tiles fetched into it), its 32 m and 8 m
+/// nodes, then the Survey sheets over them; returns what it reused.
+fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<String> {
+    let t0 = std::time::Instant::now();
+    let (out, work) = (r.out.as_path(), work.to_path_buf());
+    let f = *f;
+    // Sentinel-2: one VRT over the WorldCover tiles (their overviews serve the 32 m nodes).
+    log!(pr, "sentinel-2: WorldCover tiles from {}", r.s2_cache.display());
+    let tiles = list_tiles(&r.s2_cache, BUCKET, geo[1].floor() as i32, geo[3].floor() as i32)?;
+    let names: Vec<String> = tiles
         .keys()
         .filter(|n| tile_box(n).is_some_and(|b| b[0] < geo[2] && geo[0] < b[2] && b[1] < geo[3] && geo[1] < b[3]))
-        .map(|n| format!("/vsicurl/{}", tile_url(n)))
+        .cloned()
         .collect();
+    let (paths, s2_line) = tile_sources(&r.s2_cache, BUCKET, &tiles, &names, 3, pr, cancel)?;
+    log!(pr, "sentinel-2: {s2_line} ({})", crate::progress::duration(t0.elapsed()));
+    let urls: Vec<String> = paths.into_values().collect();
     let s2 = work.join("s2.vrt");
     let mut a = vec!["-q", "-overwrite", utf8(&s2)?];
     a.extend(urls.iter().map(String::as_str));
@@ -910,6 +964,7 @@ pub fn terrain(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
         .map(|d| d.filter_map(|e| e.ok()).any(|e| e.path().extension().is_some_and(|x| x.eq_ignore_ascii_case("zip"))))
         .unwrap_or(false);
     if has_zips {
+        seed_sheets(&work, &r.sheet_index, pr)?;
         let (sheets, _) = list_sheets(&r.sheets, &work, pr, cancel)?;
         let vrt = work.join("soi.vrt");
         let mut a = vec!["-q", "-overwrite", "-a_srs", "EPSG:2039", "-allow_projection_difference"];
@@ -965,6 +1020,43 @@ pub fn terrain(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     } else {
         log!(pr, "{}: no sheet ZIPs, no 2 m nodes", r.sheets.display());
     }
+    let survey = if has_zips { "the Survey sheets local" } else { "no Survey sheets" };
+    Ok(format!("Sentinel-2 {s2_line}; {survey} ({})", crate::progress::duration(t0.elapsed())))
+}
+
+/// `iaf-sim terrain`: see the module doc. Resumable: finished units are marked in `<out>/.work`.
+pub fn terrain(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
+    let t0 = std::time::Instant::now();
+    let f = Frame::new(r.area)?;
+    let (out, work) = (r.out.as_path(), r.out.join(".work"));
+    let built_from = stamp(r);
+    let old: serde_json::Value =
+        std::fs::read(out.join("meta.json")).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default();
+    if old["built_from"] == built_from {
+        log!(pr, "{}: up to date (same box, detail area and sheets)", out.display());
+        return Ok(());
+    }
+    std::fs::create_dir_all(&work)?;
+    for l in 0..=ROOT_LEVEL {
+        std::fs::create_dir_all(out.join(format!("L{l}")))?;
+    }
+    let geo = geo_bbox(r.area)?;
+    log!(
+        pr,
+        "theatre {} × {} km, lon {:.2}–{:.2}, lat {:.2}–{:.2}",
+        f.w / 1000,
+        f.h / 1000,
+        geo[0],
+        geo[2],
+        geo[1],
+        geo[3]
+    );
+
+    // Two branches at once: the heights (DEM download, warp, height nodes; minutes) and the colour (Sentinel-2 tiles,
+    // its nodes, the Survey over them; the long one). At most 4 transfers: the DEM's one by one, the tiles' 3 at once.
+    // A failure in either stops the other at its next check.
+    let (heights, colour) =
+        both(cancel, |stop| heights(r, &f, geo, &work, pr, stop), |stop| colour(r, &f, geo, &work, pr, stop))?;
 
     // The coarser levels from their children (level 4 exists in the detail area only, so the 32 m level-5 nodes
     // stay the source's).
@@ -989,6 +1081,7 @@ pub fn terrain(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
         crate::progress::duration(t0.elapsed()),
         out.display()
     );
+    log!(pr, "terrain done in {}: DEM {heights}; {colour}", crate::progress::duration(t0.elapsed()));
     Ok(())
 }
 
@@ -1043,6 +1136,44 @@ mod tests {
         assert!(BaseMask::new(&strip, [30_000.0, 0.0, 32_000.0, 1000.0]).is_none(), "far from it");
     }
 
+    /// A failing branch stops the other at its next check, and its own error is the one returned.
+    #[test]
+    fn a_failing_branch_stops_the_other() {
+        let t0 = std::time::Instant::now();
+        let r = both(
+            &AtomicBool::new(false),
+            |_| -> Result<()> { bail!("no DEM") },
+            |stop| -> Result<()> {
+                for _ in 0..600 {
+                    check(stop)?;
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                }
+                Ok(())
+            },
+        );
+        assert_eq!(r.unwrap_err().to_string(), "no DEM");
+        assert!(t0.elapsed() < std::time::Duration::from_secs(3), "the long branch stopped");
+        let ok = both(&AtomicBool::new(false), |_| Ok(1), |_| Ok(2)).unwrap();
+        assert_eq!(ok, (1, 2));
+    }
+
+    /// The original's sheet measurements start a run that has none, never replace a run's own.
+    #[test]
+    fn the_sheet_index_seeds_a_new_run() {
+        let d = tmp("seed");
+        let (work, index) = (d.join("work"), d.join("index.tsv"));
+        std::fs::create_dir_all(&work).unwrap();
+        seed_sheets(&work, &index, &crate::progress::Stdout).unwrap();
+        assert!(!work.join("sheets.tsv").exists(), "no index, nothing");
+        std::fs::write(&index, "original\n").unwrap();
+        seed_sheets(&work, &index, &crate::progress::Stdout).unwrap();
+        assert_eq!(std::fs::read_to_string(work.join("sheets.tsv")).unwrap(), "original\n");
+        std::fs::write(work.join("sheets.tsv"), "own\n").unwrap();
+        seed_sheets(&work, &index, &crate::progress::Stdout).unwrap();
+        assert_eq!(std::fs::read_to_string(work.join("sheets.tsv")).unwrap(), "own\n");
+        std::fs::remove_dir_all(&d).unwrap();
+    }
+
     /// One failing item stops the other workers at their next item.
     #[test]
     fn par_stops_after_a_failure() {
@@ -1077,6 +1208,8 @@ mod tests {
         let run = Run {
             out: out.clone(),
             dem_cache: out.join("dem"),
+            s2_cache: out.join("s2"),
+            sheet_index: out.join("sheets.tsv"),
             sheets: out.join("sheets"),
             airbases: out.join("airbases"),
             area: [500_000.0, 3_400_000.0, 500_000.0 + 1024.0, 3_400_000.0 + 1024.0],

@@ -1404,6 +1404,32 @@ pub fn fetch_files(list: &[Download], dir: &Path, pr: &dyn Progress, cancel: &At
     Ok(fetched.into_inner())
 }
 
+/// Waits for a curl writing `part`, calling `tick` every 250 ms; `stop` kills it ("cancelled", the part kept for the
+/// next run to resume). A server that cannot resume (curl 33) loses the part, so the next run starts it again.
+pub(crate) fn wait_curl(
+    mut child: std::process::Child,
+    part: &Path,
+    stop: &dyn Fn() -> bool,
+    tick: &dyn Fn(),
+) -> Result<std::process::ExitStatus> {
+    let status = loop {
+        if let Some(s) = child.try_wait()? {
+            break s;
+        }
+        if stop() {
+            let _ = child.kill();
+            let _ = child.wait();
+            bail!("cancelled");
+        }
+        tick();
+        std::thread::sleep(std::time::Duration::from_millis(250));
+    };
+    if status.code() == Some(33) {
+        let _ = std::fs::remove_file(part);
+    }
+    Ok(status)
+}
+
 /// curl's patience with a slow or broken connection: a transfer under 1 kB/s for 60 s is a stall, and any failure
 /// (a reset connection, curl 56, too) is tried again, resuming where it stopped when `-C -` is given.
 pub const CURL_PATIENCE: [&str; 9] =
@@ -1441,7 +1467,7 @@ fn fetch_file(d: &Download, dir: &Path, slot: &AtomicU64, stop: &dyn Fn() -> boo
     // A file already there (copied in by hand) only needs its check.
     let got = !(p.is_file() && sha256_file(&p)? == d.sha256);
     if got {
-        let mut child = Command::new("curl")
+        let child = Command::new("curl")
             .args(["-fsSL", "-C", "-"])
             .args(CURL_PATIENCE)
             .arg("-o")
@@ -1449,24 +1475,10 @@ fn fetch_file(d: &Download, dir: &Path, slot: &AtomicU64, stop: &dyn Fn() -> boo
             .arg(d.url)
             .spawn()
             .context("running curl")?;
-        let status = loop {
-            if let Some(s) = child.try_wait()? {
-                break s;
-            }
-            if stop() {
-                // The part is kept: the next run resumes it.
-                let _ = child.kill();
-                let _ = child.wait();
-                bail!("cancelled");
-            }
-            slot.store(std::fs::metadata(&part).map_or(0, |m| m.len()), Ordering::Relaxed);
-            std::thread::sleep(std::time::Duration::from_millis(250));
-        };
+        let status = wait_curl(child, &part, stop, &|| {
+            slot.store(std::fs::metadata(&part).map_or(0, |m| m.len()), Ordering::Relaxed)
+        })?;
         if !status.success() {
-            // The part is kept: the next run resumes it. A server that cannot resume (curl 33) starts it again.
-            if status.code() == Some(33) {
-                let _ = std::fs::remove_file(&part);
-            }
             bail!("{}: download failed ({}); run setup again to resume it", d.file, curl_error(status));
         }
         let sum = sha256_file(&part)?;

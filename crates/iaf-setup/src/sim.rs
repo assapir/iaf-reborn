@@ -37,6 +37,8 @@ impl SimCtx {
         sim_terrain::Run {
             out: self.assets.join(THEATRE),
             dem_cache: self.assets.join("source/dem"),
+            s2_cache: self.assets.join(iaf_tools::imagery_run::S2_CACHE),
+            sheet_index: self.assets.join("converted/imagery/.work/mapi2015/sheets.tsv"),
             sheets: if self.inputs.survey { survey_dir(&self.assets) } else { PathBuf::new() },
             airbases: self.data().join("airbases"),
             area: sim_terrain::BOX,

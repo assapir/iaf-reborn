@@ -23,6 +23,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **[B1](plan.md#b1-the-terrain), the terrain (2026-11-03):** `iaf-sim terrain` builds the sim's theatre `converted/terrain/israel/` from open
   data (GLO-30, Sentinel-2, the Survey of Israel), UTM 36N at 1:1 ([terrain.md](terrain.md)); the sim streams it
   (`theatre_dir()`); the M0 probe flies 5 s over it and checks the heights.
+  Every download is shared with the original game in `assets/source/` (the WorldCover tiles in
+  `source/imagery/sentinel2/`, also read by `iaf-imagery sentinel2`; the DEM in `source/dem/`): a complete cache
+  builds with no network; the heights and the colour build at the same time ([terrain.md](terrain.md) §1.1, §4).
 - **[C2](plan.md#c2-the-6-dof) stage (c), the 6-DoF flies the sim's jets (2026-11-03):** TP-1538's control system (g command, α limiter, roll
   and yaw), `Fm { Original, SixDof }` behind `IafFlight` chosen by `Model = 6dof` in the own data (the original game's
   data never reaches it, tested), fuel burn, Mach effects (inferred), the validation rows on the 6-DoF, a real Sufa

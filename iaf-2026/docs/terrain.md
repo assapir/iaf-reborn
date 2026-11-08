@@ -15,8 +15,9 @@ cargo build --release -p iaf-tools --bin iaf-sim
 target/release/iaf-sim terrain [assets] [--box E0 N0 E1 N1] [--out DIR] [--threads N]   # needs GDAL and curl
 ```
 
-The setup wizard runs it as its first step ([setup.md](setup.md)). A run resumes: finished work units are marked in `<out>/.work/`, and
-the DEM tiles stay in `assets/source/dem/`. A finished run is stamped in `meta.json` (`built_from`: the box, the
+The setup wizard runs it as its first step ([setup.md](setup.md)). A run resumes: finished work units are marked in
+`<out>/.work/`, and every download stays in `assets/source/` (§1.1), so a second build, or the original game's
+imagery setup, reads it from there. A finished run is stamped in `meta.json` (`built_from`: the box, the
 detail area and the sheet ZIPs' names and sizes); a run with the same inputs ends at once ("up to date"). To build
 again, delete `meta.json` (and `.work/done_*` for the units to redo).
 
@@ -25,9 +26,31 @@ again, delete `meta.json` (and `.work/done_*` for the units to redo).
 | what | source | licence | how it is read |
 |---|---|---|---|
 | heights | Copernicus DEM GLO-30[^dem] | Copernicus WorldDEM-30 licence[^dem-licence]: free use, the notices of §5 | 1° tiles (Cloud-Optimised GeoTIFF) from the public AWS bucket `copernicus-dem-30m`[^dem-aws], downloaded once into `assets/source/dem/` (a `.none` mark for a cell with no tile: open sea) |
-| colour, whole box | ESA WorldCover 2021 Sentinel-2 RGBNIR composite, 10 m[^wc] | CC BY 4.0 | GDAL range reads from the WorldCover bucket, as `iaf-imagery sentinel2` (docs/imagery.md); its overviews serve the 32 m nodes |
+| colour, whole box | ESA WorldCover 2021 Sentinel-2 RGBNIR composite, 10 m[^wc] | CC BY 4.0 | the 1° tiles (Cloud-Optimised GeoTIFF) in `assets/source/imagery/sentinel2/`, shared with `iaf-imagery sentinel2` (docs/imagery.md §2); the missing ones downloaded there first; their overviews serve the 32 m nodes |
 | colour, Israel | Survey of Israel orthophoto 2015, 2 m[^soi] | data.gov.il open licence | the sheet ZIPs already in `assets/source/imagery/mapi2015/` (`iaf-imagery fetch-mapi2015`); nothing is downloaded for this step |
 | airbase outlines | OpenStreetMap, the four bases' `boundary` in `iaf-2026/data/airbases/` ([airbases.md](airbases.md))[^osm] | ODbL 1.0 | §4 |
+
+### 1.1 The download cache
+
+Every source is read from `assets/source/` first; only what is missing goes over the network, into the same folder
+under the same name, so the next run of either game finds it. The log says per source what was reused and what
+was fetched (MB).
+
+| what | where | name | complete when |
+|---|---|---|---|
+| GLO-30 tiles | `assets/source/dem/` | `Copernicus_DSM_COG_10_N31_00_E034_00_DEM.tif`, or `….none` for an open-sea cell | the file is there (renamed from `.part` only after curl ended cleanly with HTTP 200) |
+| WorldCover tile list | `assets/source/imagery/sentinel2/` | `listing_N31.tsv` (tile, bytes) per latitude band | the file is there: it is written whole (a `.tmp` renamed) and only from an answer that lists tiles on one page; an empty or first-page answer is refused and asked again next run |
+| WorldCover tiles | `assets/source/imagery/sentinel2/` | the bucket's own: `ESA_WorldCover_10m_2021_v200_N31E034_S2RGBNIR.tif` | its size is the listed one (a `.part` resumes; a `.lock` beside it lets one run at a time write it, so both games can build at once) |
+| Survey sheets | `assets/source/imagery/mapi2015/` | `<sheet>.zip`, the original's (`iaf-imagery fetch-mapi2015`) | never downloaded here |
+| Survey sheet measurements (extent, levels) | `assets/converted/imagery/.work/mapi2015/sheets.tsv`, the original's | copied into `.work/` on a first run; a line counts when its ZIP's size and date match | measuring 102 sheets takes about 13 min |
+| airbase outlines | `iaf-2026/data/airbases/` (in the repo) | | never downloaded here |
+
+A complete cache means no network at all. A tile download must leave 5 GB free on the disk
+(`imagery_run::S2_KEEP_FREE`); a tile with no room is read over the network as before (`/vsicurl/`, range reads)
+and the log warns. The free space is measured once per run (with `df`; Windows has none, so there is no check
+there): if another job fills the disk meanwhile, the download stops with "disk full: free space and run again". The sim's theatre needs 21 WorldCover tiles, 11.4 GB; the original's whole `sentinel2` layer
+up to about 28 GB. The original game's imagery setup uses the same cache (docs/imagery.md §2), and an uninstall keeps
+it (`iaf_setup::KEPT` holds `source/imagery`).
 
 GLO-30 is a surface model: its heights include buildings and trees, above the EGM2008 geoid (≈ mean sea level)[^dem].
 Nothing is read from `assets/install`.
@@ -76,12 +99,18 @@ The renderer draws the ground with one vertex per height texel at levels 0–2, 
 
 ## 4. The pipeline
 
+Steps 2 and 3–4 run at the same time on two branches: the heights (half the workers) and the colour. A failure in
+one stops the other at its next check, and Cancel stops a download within a second. At most 4 downloads run at once
+(the DEM tiles one by one, the WorldCover tiles 3 at once), all with the setup's stall rule (`thirdparty::CURL_PATIENCE`:
+under 1 kB/s for 60 s is a stall, 5 retries, a `.part` resumes). Step 5 waits for both branches. The log names
+each step (`heights:`, `sentinel-2:`, `survey:`) and ends with one summary line (`terrain done in …`).
+
 1. **Box**: its lon / lat extent through `gdaltransform`.
 2. **Heights**: the GLO-30 tiles over the extent (curl, `-A "iaf-reborn IAF 2026 terrain setup (curl)"`, 4 retries;
    only a missing key, 404 or 403 with `NoSuchKey`, marks a cell as open sea), one VRT,
    one `gdalwarp` to the 64 m UTM grid (average, nodata = 0 m), then the `h_<i>_<j>.png` nodes of levels 6–11 (R = high
    byte, G = low byte, 1025² with the neighbour's first row and column, as `terrain::theatre`).
-3. **Sentinel-2**: one VRT over the WorldCover tiles in the extent. Work units: level-7 nodes for the 32 m nodes,
+3. **Sentinel-2**: the WorldCover tiles in the extent from the cache (§1.1), one VRT over them. Work units: level-7 nodes for the 32 m nodes,
    level-5 nodes for the 8 m nodes; each is one `gdalwarp` to UTM, then `imagery::tone` (the WorldCover layer's
    modern colours) per pixel.
 4. **Survey of Israel**: one VRT over the sheets (EPSG:2039, white = no data). Work units: level-4 nodes (16.4 km,
@@ -137,6 +166,26 @@ Measured on this Linux laptop (8 threads, `nice -n 15`, 4 workers), 2026-11-03.
 |---|---|---|---|
 | 60 km box around Ramon (`--box 628736 3375104 690176 3436544`) | 2 tiles, 72 MB | 302 MB (L1 816 nodes, L2 206, L3 64) | 9 min (heights 14 s, 8 m nodes 1 min, colour match 4 min, Survey 4 min) |
 | the theatre (§2) | 21 tiles, 627 MB (the other 3 cells are open sea) | 3.57 GB: L1 7,266 nodes, L2 1,894, L3 1,320, L4 336, L5 176, L6 48 colour + 48 height, L7–L11 19 + 19 | 1 h 42 min: DEM 2 min, Sentinel-2 21 min (32 m 9 units, 8 m 84 units; network-bound), colour match of 102 sheets 7 min, Survey 166 units 68 min, coarser levels and `meta.json` 3 min |
+
+**With the shared cache (2026-11-08)**, on a 10 km box around Ramon (`--box 654336 3400960 664576 3411200`,
+1 DEM tile, 1 WorldCover tile, 5 sheets, 52 files), `nice -n 15`, 4 workers; the outputs of all three runs are
+byte-identical (every `L*` file and `meta.json` compared):
+
+| run | time | peak memory (the process and its GDAL children) |
+|---|---|---|
+| before (streaming, the sheets measured again) | 31 min 18 s: 8 m node 35 s, measuring all 102 sheets and the colour match 30 min | 1.23 GB |
+| after, cold (the tile fetched into the cache, 666 MB in 2 min 25 s; the sheet measurements reused) | 4 min 44 s: 8 m node 4 s, colour match 4 min 25 s | 1.23 GB |
+| after, warm, network blocked (`https_proxy` / `GDAL_HTTP_PROXY` on a closed port) | succeeded with no network and the same bytes; 1 h 02 min, the machine at a load of 20–39 from other jobs (the colour match 39 min, cold 4 min 25 s), so the time is not comparable: the DEM and the tile steps took 0 s, the 8 m node 1 min 7 s | 1.26 GB |
+
+The peak stays the colour-match and Survey workers' (4 GDAL warps at once); the heights branch adds the DEM grid
+(about 170 MB for the whole theatre) while it runs.
+
+The whole theatre was not rebuilt for this change (it would download 11.4 GB of tiles; this laptop had 15 GB free).
+Estimated from the step times above: cold, the DEM (2 min) runs beside the tile downloads (11.4 GB, about 25–40 min
+at the 4.6 MB/s measured per transfer, 3 at once) and the 8 m / 32 m nodes then read local files (4 s per 8 m unit
+instead of 35 s streamed); warm, no download at all and Sentinel-2 drops from 21 min to about 6 min, so the build is
+about 1 h 25 min, the Survey's 68 min dominating (estimate). Measuring the sheets (13 min) is reused from the
+original's `sheets.tsv` when the original built its Survey layer.
 
 The full build ran in three goes (a reset connection during the DEM download and two colour-match bugs, fixed in
 the same change); the times above add up the parts. The disk had 23 GB free before and needs the output plus the DEM

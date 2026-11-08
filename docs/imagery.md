@@ -38,8 +38,15 @@ The tool converts a source in seven steps:
    one pixel the layer may replace (§3). The tool first prints the number of units, the download estimate
    (WorldCover tile bytes × overlap) and the output size.
 2. **Fetch** per unit: the unit's lon/lat box (through the georef warp, plus a margin) is cut out of the WorldCover
-   1°×1° COGs on the public S3 bucket by **HTTP range reads** (`gdalbuildvrt` + `gdal_translate` over `/vsicurl/`).
-   Only the needed overviews / blocks are read; no mirror is kept. The S3 listing API (`curl`) lists the tiles.
+   1°×1° COGs (`gdalbuildvrt` + `gdal_translate`). The tiles live in `assets/source/imagery/sentinel2/` under the
+   bucket's file names, shared with IAF 2026's `iaf-sim terrain` (iaf-2026/docs/terrain.md §1.1): a tile the units to
+   convert need and the folder lacks is downloaded there whole first (curl, the setup's stall rule, 4 at once). A
+   tile with no room on the disk (a download must leave 5 GB free) is read over the network by **HTTP range reads**
+   (`/vsicurl/`) as before. The S3 listing API (`curl`) lists the tiles once per latitude band (`listing_N<lat>.tsv`
+   in the same folder, written whole and only from a complete answer); a listed band needs no network. The free
+   space is measured once per run with `df`; Windows has no `df`, so there the tiles download with no room check.
+   The sim's output was compared byte for byte before and after this cache (iaf-2026/docs/terrain.md §7); this
+   layer's was not measured again (inferred the same: GDAL reads the same tile bytes, locally instead of by range).
 3. **Warp**, per layer node (level 3: 1024², 9.9 m/px; `mapi2015`: level 1, 2.5 m/px):
    - the spline `iaf_tools::georef` gives (lon, lat) every 32 px;
    - from that, the source's pixel position (lon/lat directly, or the Israeli TM Grid via `iaf_tools::itm`),

@@ -14,7 +14,7 @@ use crate::log;
 use crate::progress::{Progress, check, utf8};
 use anyhow::{Context, Result, bail};
 
-const BUCKET: &str = "https://esa-worldcover-s2.s3.eu-central-1.amazonaws.com";
+pub(crate) const BUCKET: &str = "https://esa-worldcover-s2.s3.eu-central-1.amazonaws.com";
 const PREFIX: &str = "rgbnir/2021";
 const JPEG_QUALITY: u8 = 88;
 
@@ -61,8 +61,15 @@ pub(crate) struct Sheet {
 
 /// What a source needs per unit.
 enum Prep {
-    Sentinel { tiles: BTreeMap<String, u64> },
-    Mapi { sheets: Vec<Sheet>, zips: Vec<PathBuf> },
+    /// The tiles (name → bytes) and, once fetched, their GDAL paths (`tile_sources`).
+    Sentinel {
+        tiles: BTreeMap<String, u64>,
+        paths: BTreeMap<String, String>,
+    },
+    Mapi {
+        sheets: Vec<Sheet>,
+        zips: Vec<PathBuf>,
+    },
 }
 
 /// A work unit: its node, lon / lat box, and (mapi2015) its padded Israeli TM window and the sheets in it.
@@ -99,26 +106,186 @@ fn overlap(a: &[f64; 4], b: &[f64; 4]) -> f64 {
     ((a[2].min(b[2]) - a[0].max(b[0])).max(0.0)) * ((a[3].min(b[3]) - a[1].max(b[1])).max(0.0))
 }
 
-/// The WorldCover 1°×1° tiles (name → bytes) in the latitude bands N<lat0>..N<lat1> (S3 listing).
-pub(crate) fn list_tiles(lat0: i32, lat1: i32) -> Result<BTreeMap<String, u64>> {
+/// The WorldCover tiles' download folder under `assets/`, shared by both games (docs/imagery.md §2): the tiles under
+/// the bucket's file names, one listing per latitude band (`listing_N30.tsv`).
+pub const S2_CACHE: &str = "source/imagery/sentinel2";
+/// The free disk a tile download must leave (bytes); a tile with no room is read over the network as before.
+// ponytail: one fixed margin; a setting if a user wants the whole 28 GB mirror on a nearly full disk.
+const S2_KEEP_FREE: u64 = 5_000_000_000;
+const USER_AGENT: &str = "iaf-reborn imagery setup (curl)";
+
+/// The WorldCover 1°×1° tiles (name → bytes) in the latitude bands N<lat0>..N<lat1>: the S3 listing, kept in `cache`
+/// per band, so a listed band needs no network.
+pub(crate) fn list_tiles(cache: &Path, bucket: &str, lat0: i32, lat1: i32) -> Result<BTreeMap<String, u64>> {
     let mut out = BTreeMap::new();
     for lat in lat0..=lat1 {
-        let url = format!("{BUCKET}/?list-type=2&prefix={PREFIX}/N{lat:02}/");
-        let o = Command::new("curl").args(["-sf", "-m", "60", &url]).output().context("running curl")?;
-        if !o.status.success() {
-            bail!("listing {url} failed");
-        }
-        let xml = String::from_utf8_lossy(&o.stdout);
-        for c in xml.split("<Contents>").skip(1) {
-            let tag =
-                |t: &str| c.split(&format!("<{t}>")).nth(1).and_then(|s| s.split('<').next()).unwrap_or("").to_string();
-            let key = tag("Key");
-            if let Some(name) = key.rsplit('/').next().and_then(|f| f.split('_').nth(5)) {
-                out.insert(name.to_string(), tag("Size").parse().unwrap_or(0));
+        let mark = cache.join(format!("listing_N{lat:02}.tsv"));
+        let text = match std::fs::read_to_string(&mark) {
+            Ok(t) => t,
+            Err(_) => {
+                let url = format!("{bucket}/?list-type=2&prefix={PREFIX}/N{lat:02}/");
+                let o = Command::new("curl").args(["-sf", "-m", "60", &url]).output().context("running curl")?;
+                if !o.status.success() {
+                    bail!("listing {url} failed ({})", crate::thirdparty::curl_error(o.status));
+                }
+                let t = parse_listing(&String::from_utf8_lossy(&o.stdout)).with_context(|| format!("listing {url}"))?;
+                // Written whole or not at all: a listing in the cache is trusted from then on.
+                std::fs::create_dir_all(cache)?;
+                let tmp = mark.with_extension("tmp");
+                std::fs::write(&tmp, &t)?;
+                std::fs::rename(&tmp, &mark)?;
+                t
+            }
+        };
+        for l in text.lines() {
+            if let Some((n, b)) = l.split_once('\t') {
+                out.insert(n.to_string(), b.parse().unwrap_or(0));
             }
         }
     }
     Ok(out)
+}
+
+/// An S3 listing (ListObjectsV2 XML) as `tile\tbytes` lines; refused when it lists nothing or only a first page,
+/// so a broken answer is never cached. Empty files are left out.
+fn parse_listing(xml: &str) -> Result<String> {
+    if !xml.contains("<Contents>") || xml.contains("<IsTruncated>true") {
+        bail!("an empty or incomplete answer");
+    }
+    let mut t = String::new();
+    for c in xml.split("<Contents>").skip(1) {
+        let tag =
+            |t: &str| c.split(&format!("<{t}>")).nth(1).and_then(|s| s.split('<').next()).unwrap_or("").to_string();
+        let key = tag("Key");
+        let size = tag("Size").parse::<u64>().unwrap_or(0);
+        if let Some(name) = key.rsplit('/').next().and_then(|f| f.split('_').nth(5))
+            && size > 0
+        {
+            t += &format!("{name}\t{size}\n");
+        }
+    }
+    Ok(t)
+}
+
+/// The tile's file name, in the bucket and in the cache.
+fn tile_file(name: &str) -> String {
+    format!("ESA_WorldCover_10m_2021_v200_{name}_S2RGBNIR.tif")
+}
+
+/// Free bytes on the disk holding `dir` (`df -Pk`; None where there is no df).
+fn free_bytes(dir: &Path) -> Option<u64> {
+    let o = Command::new("df").arg("-Pk").arg(dir).output().ok()?;
+    let text = String::from_utf8_lossy(&o.stdout);
+    text.lines().last()?.split_whitespace().nth(3)?.parse::<u64>().ok().map(|k| k * 1024)
+}
+
+/// `url` into `dest` through `<dest>.part` (resumed), checked against `bytes` (0: unknown); curl's stall rule, `cancel`
+/// stops it. `<dest>.lock` keeps two runs (both games, or two threads) from writing one part: the second waits and then
+/// finds the file whole.
+pub(crate) fn curl_to(url: &str, dest: &Path, bytes: u64, user_agent: &str, cancel: &AtomicBool) -> Result<()> {
+    let whole = || std::fs::metadata(dest).is_ok_and(|m| bytes == 0 || m.len() == bytes);
+    let lock = std::fs::File::create(dest.with_extension("lock"))?;
+    lock.lock()?;
+    if whole() {
+        return Ok(());
+    }
+    let part = dest.with_extension("part");
+    let have = std::fs::metadata(&part).map_or(0, |m| m.len());
+    if bytes > 0 && have > bytes {
+        std::fs::remove_file(&part)?;
+    }
+    if bytes == 0 || have != bytes {
+        let child = Command::new("curl")
+            .args(["-sS", "-f", "-L", "-C", "-", "-A", user_agent])
+            .args(crate::thirdparty::CURL_PATIENCE)
+            .args(["-o", utf8(&part)?, url])
+            .spawn()
+            .context("running curl")?;
+        let s = crate::thirdparty::wait_curl(child, &part, &|| cancel.load(Ordering::Relaxed), &|| {})?;
+        if s.code() == Some(23) {
+            bail!("{}: disk full (curl could not write): free space and run again", part.display());
+        }
+        if !s.success() {
+            bail!("{url}: {}; run again to resume it", crate::thirdparty::curl_error(s));
+        }
+    }
+    let got = std::fs::metadata(&part)?.len();
+    if bytes > 0 && got != bytes {
+        let _ = std::fs::remove_file(&part);
+        bail!("{url}: {got} bytes, want {bytes}");
+    }
+    std::fs::rename(&part, dest)?;
+    Ok(())
+}
+
+/// The tiles `names` of `tiles` as GDAL paths: the file in `cache` when it is there whole, else downloaded into it
+/// first (`jobs` at once); a tile with no room on the disk (`S2_KEEP_FREE`) is read over the network (`/vsicurl/`).
+/// Also returns the line saying what was reused and fetched.
+pub(crate) fn tile_sources(
+    cache: &Path,
+    bucket: &str,
+    tiles: &BTreeMap<String, u64>,
+    names: &[String],
+    jobs: usize,
+    pr: &dyn Progress,
+    cancel: &AtomicBool,
+) -> Result<(BTreeMap<String, String>, String)> {
+    std::fs::create_dir_all(cache)?;
+    let size = |n: &str| tiles.get(n).copied().unwrap_or(0);
+    let path = |n: &str| cache.join(tile_file(n));
+    let whole = |n: &str| std::fs::metadata(path(n)).is_ok_and(|m| size(n) > 0 && m.len() == size(n));
+    let (reused, missing): (Vec<&String>, Vec<&String>) = names.iter().partition(|n| whole(n));
+    // ponytail: the room is measured once per run; another job filling the disk meanwhile ends in curl's "disk full".
+    // Without df (Windows) there is no room check (docs/imagery.md §2).
+    let mut room = free_bytes(cache).map_or(u64::MAX, |f| f.saturating_sub(S2_KEEP_FREE));
+    let (mut fetch, mut stream) = (Vec::new(), Vec::new());
+    for n in missing {
+        let need = size(n).saturating_sub(std::fs::metadata(path(n).with_extension("part")).map_or(0, |m| m.len()));
+        if need <= room {
+            room -= need;
+            fetch.push(n.clone());
+        } else {
+            stream.push(n.clone());
+        }
+    }
+    let gb = |v: &[&String]| v.iter().map(|n| size(n)).sum::<u64>() as f64 / 1e9;
+    let fetch_refs: Vec<&String> = fetch.iter().collect();
+    let stream_refs: Vec<&String> = stream.iter().collect();
+    log!(
+        pr,
+        "  {} tiles: {} reused ({:.2} GB), {} to fetch ({:.2} GB) into {}",
+        names.len(),
+        reused.len(),
+        gb(&reused),
+        fetch.len(),
+        gb(&fetch_refs),
+        cache.display()
+    );
+    if !stream.is_empty() {
+        pr.warn(&format!(
+            "  {} tiles ({:.2} GB) read over the network: no room to keep them (under {} GB free would be left)",
+            stream.len(),
+            gb(&stream_refs),
+            S2_KEEP_FREE / 1_000_000_000
+        ));
+    }
+    crate::sim_terrain::par(&fetch, jobs, cancel, |n| {
+        curl_to(&tile_url(bucket, n), &path(n), size(n), USER_AGENT, cancel)?;
+        log!(pr, "  {n}: fetched {:.0} MB", size(n) as f64 / 1e6);
+        Ok(())
+    })?;
+    let mut out = BTreeMap::new();
+    for n in names {
+        let p =
+            if stream.contains(n) { format!("/vsicurl/{}", tile_url(bucket, n)) } else { utf8(&path(n))?.to_string() };
+        out.insert(n.clone(), p);
+    }
+    let mut line = format!("{} tiles, {} reused ({:.2} GB)", names.len(), reused.len(), gb(&reused));
+    line += &format!(", {} fetched ({:.2} GB)", fetch.len(), gb(&fetch_refs));
+    if !stream.is_empty() {
+        line += &format!(", {} streamed ({:.2} GB)", stream.len(), gb(&stream_refs));
+    }
+    Ok((out, line))
 }
 
 /// The tile's 1° box (lon0, lat0, lon1, lat1) from its name ("N30E032" = 30..31 N, 32..33 E).
@@ -130,8 +297,8 @@ pub(crate) fn tile_box(name: &str) -> Option<[f64; 4]> {
     Some([lon, lat, lon + 1.0, lat + 1.0])
 }
 
-pub(crate) fn tile_url(name: &str) -> String {
-    format!("{BUCKET}/{PREFIX}/{}/ESA_WorldCover_10m_2021_v200_{name}_S2RGBNIR.tif", &name[..3])
+pub(crate) fn tile_url(bucket: &str, name: &str) -> String {
+    format!("{bucket}/{PREFIX}/{}/{}", &name[..3], tile_file(name))
 }
 
 pub(crate) fn gdal_output(cmd: &str, args: &[&str]) -> Result<String> {
@@ -315,6 +482,8 @@ pub struct Run {
     pub out: PathBuf,
     /// mapi2015: the folder of downloaded sheet ZIPs.
     pub sheets: PathBuf,
+    /// sentinel2: the WorldCover tile cache (`assets/` + [`S2_CACHE`]).
+    pub s2_cache: PathBuf,
     /// Only the units overlapping lon0, lat0, lon1, lat1.
     pub area: Option<[f64; 4]>,
     /// Only the estimate.
@@ -371,7 +540,7 @@ pub fn run(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Estimate> 
     let work = if spec.id == "sentinel2" { out.join(".work") } else { out.join(".work").join(spec.id) };
     std::fs::create_dir_all(&work)?;
     let mut prep = match spec.id {
-        "sentinel2" => Prep::Sentinel { tiles: BTreeMap::new() },
+        "sentinel2" => Prep::Sentinel { tiles: BTreeMap::new(), paths: BTreeMap::new() },
         _ => {
             let (sheets, zips) = list_sheets(sheets_dir, &work, pr, cancel)?;
             Prep::Mapi { sheets, zips }
@@ -420,11 +589,11 @@ pub fn run(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Estimate> 
     let per_unit = 1usize << (2 * (spec.unit_level - spec.layer_level));
     let mut est = Estimate { units: units.len(), max_nodes: units.len() * per_unit, ..Default::default() };
     match &mut prep {
-        Prep::Sentinel { tiles } => {
+        Prep::Sentinel { tiles, .. } => {
             // Every band a padded unit window can touch.
             let lat0 = units.iter().map(|u| (u.geo[1] - 0.05).floor() as i32).min().unwrap_or(0);
             let lat1 = units.iter().map(|u| (u.geo[3] + 0.05).floor() as i32).max().unwrap_or(-1);
-            *tiles = list_tiles(lat0, lat1)?;
+            *tiles = list_tiles(&r.s2_cache, BUCKET, lat0, lat1)?;
             let mut download = 0.0;
             for u in &units {
                 for (name, &bytes) in tiles.iter() {
@@ -483,6 +652,24 @@ pub fn run(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Estimate> 
     est.to_convert = unmarked + est.again.len();
     if dry {
         return Ok(est);
+    }
+    // The tiles the units to convert read, from the shared cache (fetched there when missing).
+    if let Prep::Sentinel { tiles, paths } = &mut prep {
+        let names: Vec<String> = tiles
+            .keys()
+            .filter(|n| {
+                units.iter().any(|u| {
+                    let b = u.geo;
+                    unit_done(&work, u).is_err()
+                        && tile_box(n)
+                            .is_some_and(|tb| overlap(&[b[0] - 0.01, b[1] - 0.01, b[2] + 0.01, b[3] + 0.01], &tb) > 0.0)
+                })
+            })
+            .cloned()
+            .collect();
+        let (p, line) = tile_sources(&r.s2_cache, BUCKET, tiles, &names, threads, pr, cancel)?;
+        log!(pr, "Sentinel-2: {line}");
+        *paths = p;
     }
     for layer in spec.layers {
         for l in 0..=ROOT_LEVEL {
@@ -637,14 +824,14 @@ fn convert_unit(job: &Job, u: &Unit, cache: &mut Cache) -> Result<Vec<Key>> {
     let bin = tmp.with_extension("bin");
     (vrt_s, bin_s) = (utf8(&vrt_unit)?.to_string(), utf8(&bin)?.to_string());
     let src: Box<dyn Imagery> = match prep {
-        Prep::Sentinel { tiles } => {
+        Prep::Sentinel { paths, .. } => {
             let b = u.geo;
             let pad = 0.01;
             let bb = [b[0] - pad, b[1] - pad, b[2] + pad, b[3] + pad];
-            let urls: Vec<String> = tiles
-                .keys()
-                .filter(|n| tile_box(n).is_some_and(|tb| overlap(&bb, &tb) > 0.0))
-                .map(|n| format!("/vsicurl/{}", tile_url(n)))
+            let urls: Vec<String> = paths
+                .iter()
+                .filter(|(n, _)| tile_box(n).is_some_and(|tb| overlap(&bb, &tb) > 0.0))
+                .map(|(_, p)| p.clone())
                 .collect();
             if urls.is_empty() {
                 return Ok(Vec::new());
@@ -811,6 +998,92 @@ fn write_manifest(prep: &Prep, dir: &Path, layer: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A bucket nothing answers on: any network call fails.
+    const OFFLINE: &str = "http://127.0.0.1:9";
+
+    fn tmp(name: &str) -> PathBuf {
+        let d = std::env::temp_dir().join(format!("iaf-s2-cache-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        d
+    }
+
+    /// A complete cache (listing and whole tiles) is read with no network at all.
+    #[test]
+    fn a_complete_cache_needs_no_network() {
+        let c = tmp("complete");
+        std::fs::write(c.join("listing_N30.tsv"), "N30E034\t5\nN30E035\t3\n").unwrap();
+        std::fs::write(c.join(tile_file("N30E034")), "12345").unwrap();
+        std::fs::write(c.join(tile_file("N30E035")), "123").unwrap();
+        let tiles = list_tiles(&c, OFFLINE, 30, 30).unwrap();
+        assert_eq!(tiles.len(), 2);
+        let names: Vec<String> = tiles.keys().cloned().collect();
+        let (paths, line) =
+            tile_sources(&c, OFFLINE, &tiles, &names, 2, &crate::progress::Stdout, &AtomicBool::new(false)).unwrap();
+        assert_eq!(paths["N30E034"], c.join(tile_file("N30E034")).to_str().unwrap());
+        assert!(line.contains("2 reused") && line.contains("0 fetched"), "{line}");
+        assert!(list_tiles(&c, OFFLINE, 31, 31).is_err(), "an unlisted band goes to the network");
+        std::fs::remove_dir_all(&c).unwrap();
+    }
+
+    /// A listing that lists nothing, or only its first page, is refused (never cached); empty files are left out.
+    #[test]
+    fn a_broken_listing_is_refused() {
+        let item = |k: &str, n: u64| {
+            format!(
+                "<Contents><Key>rgbnir/2021/N30/ESA_WorldCover_10m_2021_v200_{k}_S2RGBNIR.tif</Key><Size>{n}</Size></Contents>"
+            )
+        };
+        let ok = format!(
+            "<ListBucketResult><IsTruncated>false</IsTruncated>{}{}</ListBucketResult>",
+            item("N30E034", 9),
+            item("N30E035", 0)
+        );
+        assert_eq!(parse_listing(&ok).unwrap(), "N30E034\t9\n");
+        assert!(parse_listing("<ListBucketResult><IsTruncated>false</IsTruncated></ListBucketResult>").is_err());
+        assert!(parse_listing("").is_err(), "a cut answer");
+        assert!(parse_listing(&ok.replace("<IsTruncated>false", "<IsTruncated>true")).is_err(), "a first page");
+    }
+
+    /// Two downloads of one tile at once (both games): the lock makes the second find the first's whole file.
+    #[test]
+    fn two_downloads_of_one_tile_share_it() {
+        let (c, bucket) = (tmp("lock"), tmp("lock-bucket"));
+        let body = vec![7u8; 3_000_000];
+        std::fs::write(bucket.join("t.tif"), &body).unwrap();
+        let (url, dest) = (format!("file://{}/t.tif", bucket.display()), c.join("t.tif"));
+        std::thread::scope(|s| {
+            for _ in 0..2 {
+                s.spawn(|| curl_to(&url, &dest, body.len() as u64, "test", &AtomicBool::new(false)).unwrap());
+            }
+        });
+        assert_eq!(std::fs::read(&dest).unwrap(), body);
+        assert!(!dest.with_extension("part").exists());
+        std::fs::remove_dir_all(&c).unwrap();
+        std::fs::remove_dir_all(&bucket).unwrap();
+    }
+
+    /// A missing or truncated tile is fetched into the cache under the bucket's file name (a file:// bucket here).
+    #[test]
+    fn a_missing_tile_is_fetched_into_the_cache() {
+        let (c, bucket) = (tmp("fetch"), tmp("bucket"));
+        let src = bucket.join(PREFIX).join("N30");
+        std::fs::create_dir_all(&src).unwrap();
+        std::fs::write(src.join(tile_file("N30E034")), "abcdef").unwrap();
+        std::fs::write(src.join(tile_file("N30E035")), "xyz").unwrap();
+        std::fs::write(c.join(tile_file("N30E035")), "x").unwrap();
+        let tiles = BTreeMap::from([("N30E034".to_string(), 6), ("N30E035".to_string(), 3)]);
+        let names: Vec<String> = tiles.keys().cloned().collect();
+        let url = format!("file://{}", bucket.display());
+        let (paths, line) =
+            tile_sources(&c, &url, &tiles, &names, 2, &crate::progress::Stdout, &AtomicBool::new(false)).unwrap();
+        assert_eq!(std::fs::read(c.join(tile_file("N30E034"))).unwrap(), b"abcdef");
+        assert_eq!(std::fs::read(c.join(tile_file("N30E035"))).unwrap(), b"xyz", "the truncated one again");
+        assert!(!paths["N30E035"].starts_with("/vsicurl/") && line.contains("2 fetched"), "{line}");
+        std::fs::remove_dir_all(&c).unwrap();
+        std::fs::remove_dir_all(&bucket).unwrap();
+    }
 
     fn unit(rules: &str, on_base: bool) -> Unit {
         Unit {

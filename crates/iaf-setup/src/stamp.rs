@@ -94,6 +94,7 @@ const SIM_TERRAIN: &[&str] = &[
     "crates/iaf-tools/src/sim_terrain.rs",
     "crates/iaf-tools/src/imagery.rs",
     "crates/iaf-tools/src/imagery_run.rs",
+    "crates/iaf-tools/src/thirdparty.rs",
     "Cargo.lock:image",
 ];
 

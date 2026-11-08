@@ -42,6 +42,8 @@ fn terrain(args: &[String], cancel: &AtomicBool) -> Result<()> {
     let run = sim_terrain::Run {
         out: out.unwrap_or_else(|| assets.join("converted/terrain/israel")),
         dem_cache: assets.join("source/dem"),
+        s2_cache: assets.join(iaf_tools::imagery_run::S2_CACHE),
+        sheet_index: assets.join("converted/imagery/.work/mapi2015/sheets.tsv"),
         sheets: assets.join("source/imagery/mapi2015"),
         airbases: PathBuf::from("iaf-2026/data/airbases"),
         area,

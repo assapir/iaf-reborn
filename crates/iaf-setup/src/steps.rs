@@ -393,6 +393,7 @@ fn imagery_job(ctx: &Ctx, spec: &'static imagery_run::Spec, dry_run: bool) -> Ru
         theatre: a.join("converted/terrain/theatre"),
         out: a.join("converted/imagery"),
         sheets: a.join("source/imagery/mapi2015"),
+        s2_cache: a.join(iaf_tools::imagery_run::S2_CACHE),
         area: None,
         dry_run,
         stale: false,

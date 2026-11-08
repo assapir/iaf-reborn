@@ -145,6 +145,7 @@ fn main() -> Result<()> {
         theatre: theatre.into(),
         out: out.into(),
         sheets,
+        s2_cache: Path::new(install).join("..").join(iaf_tools::imagery_run::S2_CACHE),
         area,
         dry_run: dry,
         stale,
