@@ -48,6 +48,7 @@ pub const MAPI2015: Spec = Spec {
 };
 
 /// One Survey of Israel sheet: a GeoTIFF inside a downloaded ZIP.
+#[derive(Clone)]
 pub(crate) struct Sheet {
     /// "<zip>/<tif inside>", the sheet's identity in the resume marks.
     pub(crate) name: String,

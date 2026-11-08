@@ -113,10 +113,13 @@ each step (`heights:`, `sentinel-2:`, `survey:`) and ends with one summary line 
 3. **Sentinel-2**: the WorldCover tiles in the extent from the cache (§1.1), one VRT over them. Work units: level-7 nodes for the 32 m nodes,
    level-5 nodes for the 8 m nodes; each is one `gdalwarp` to UTM, then `imagery::tone` (the WorldCover layer's
    modern colours) per pixel.
-4. **Survey of Israel**: one VRT over the sheets (EPSG:2039, white = no data). Work units: level-4 nodes (16.4 km,
-   8192² px at 2 m). Per pixel: the sheet's levels (`imagery::sheet_levels`, haze and exposure, blended across sheet
-   borders), then the sheet's colour match to Sentinel-2 (a scale and offset per band from both images' mean and
-   spread over the sheet at 40 m, cached in `.work/gains.tsv`), laid over the 8 m node upsampled.
+4. **Survey of Israel**: one VRT over the sheets within 2 km of a work unit (EPSG:2039, white = no data), kept as
+   `.work/soi.vrt` and reused while its stamp (`soi.vrt.stamp`: gdalbuildvrt's options, each sheet's full GDAL path,
+   its ZIP's size and modification time) is the same. A ZIP replaced by one of the same size and modification time
+   keeps the old VRT, as it keeps its line in `sheets.tsv`; delete `.work/soi.vrt` then. Work units: level-4 nodes
+   (16.4 km, 8192² px at 2 m). Per pixel: the sheet's levels (`imagery::sheet_levels`, haze and exposure, blended
+   across sheet borders), then the sheet's colour match to Sentinel-2 (a scale and offset per band from both images'
+   mean and spread over the sheet at 40 m, cached in `.work/gains.tsv`), laid over the 8 m node upsampled.
    - **Airbases**: the published Survey photo paints the military bases over with made-up ground (checked at Ramon:
      no runway in sheet SVT). Inside the four bases' OSM outlines and 160 m beyond, with the Survey fading back in
      over the next 160 m, the 8 m Sentinel-2 node shows instead (a 10 m mask: the outline rasterised, grown by 240 m,
@@ -176,6 +179,18 @@ byte-identical (every `L*` file and `meta.json` compared):
 | before (streaming, the sheets measured again) | 31 min 18 s: 8 m node 35 s, measuring all 102 sheets and the colour match 30 min | 1.23 GB |
 | after, cold (the tile fetched into the cache, 666 MB in 2 min 25 s; the sheet measurements reused) | 4 min 44 s: 8 m node 4 s, colour match 4 min 25 s | 1.23 GB |
 | after, warm, network blocked (`https_proxy` / `GDAL_HTTP_PROXY` on a closed port) | succeeded with no network and the same bytes; 1 h 02 min, the machine at a load of 20–39 from other jobs (the colour match 39 min, cold 4 min 25 s), so the time is not comparable: the DEM and the tile steps took 0 s, the 8 m node 1 min 7 s | 1.26 GB |
+
+**The Survey VRT over the nearby sheets only, kept (2026-11-08)**, the same 10 km box, `nice -n 15`, 4 workers, the
+DEM and WorldCover tile cached and the sheet measurements reused; "warm" is a second run with `.work/` kept and
+`meta.json` removed (a rebuild after an input changed). The VRT used to cover all 102 sheets, opening each inside its
+ZIP (about 2 min 30 s on this laptop at a load of 5); now it covers the sheets within 2 km of a work unit (5 sheets
+here) and is reused while its stamp is the same. Both builds' outputs are byte-identical (all 53 files, `L*` and
+`meta.json`, compared):
+
+| run | before | after |
+|---|---|---|
+| cold (a new output folder) | 3 min 09 s (VRT and colour match 2 min 47 s, Survey unit 19 s) | 58 s (VRT and colour match 34 s, Survey unit 22 s) |
+| warm (`.work/` kept) | 2 min 47 s (the VRT 2 min 28 s) | 3 s (the VRT reused) |
 
 The peak stays the colour-match and Survey workers' (4 GDAL warps at once); the heights branch adds the DEM grid
 (about 170 MB for the whole theatre) while it runs.

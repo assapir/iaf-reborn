@@ -20,7 +20,7 @@ use image::RgbImage;
 use image::imageops::{FilterType, resize};
 
 use crate::imagery::{self, read_envi};
-use crate::imagery_run::{BUCKET, gdal, list_sheets, list_tiles, tile_box, tile_sources, tile_whole};
+use crate::imagery_run::{BUCKET, Sheet, gdal, list_sheets, list_tiles, tile_box, tile_sources, tile_whole};
 use crate::log;
 use crate::progress::{Part, Progress, check, utf8};
 
@@ -612,13 +612,7 @@ fn dilate(m: &mut [f32], w: usize, h: usize, r: usize) {
 /// Per sheet: the scale and offset per band that give its levelled photo Sentinel-2's mean and spread (over the
 /// sheet's dry land at 40 m, both on the sheet's grid; the scale clamped to 0.5–2); cached in `<work>/gains.tsv`.
 /// A gain alone (the means' ratio) came out at 1.4–2 and burnt the bright desert white (2026-11-03).
-fn sheet_gains(
-    sheets: &[crate::imagery_run::Sheet],
-    s2: &str,
-    work: &Path,
-    threads: usize,
-    cancel: &AtomicBool,
-) -> Result<Vec<Gain>> {
+fn sheet_gains(sheets: &[Sheet], s2: &str, work: &Path, threads: usize, cancel: &AtomicBool) -> Result<Vec<Gain>> {
     let cache = work.join("gains.tsv");
     let mut text = std::fs::read_to_string(&cache).unwrap_or_default();
     let todo: Vec<usize> = (0..sheets.len()).filter(|&k| cached_gain(&text, &sheets[k].name).is_none()).collect();
@@ -869,6 +863,49 @@ fn write_meta(f: &Frame, out: &Path, built_from: serde_json::Value) -> Result<()
     Ok(())
 }
 
+/// The sheets that reach within `pad` metres of any of the Israeli TM boxes, in their order.
+fn near(sheets: &[Sheet], boxes: &[[f64; 4]], pad: f64) -> Vec<Sheet> {
+    let touches = |s: &Sheet, b: &[f64; 4]| {
+        s.bbox[0] < b[2] + pad && b[0] - pad < s.bbox[2] && s.bbox[1] < b[3] + pad && b[1] - pad < s.bbox[3]
+    };
+    sheets.iter().filter(|s| boxes.iter().any(|b| touches(s, b))).cloned().collect()
+}
+
+/// The VRT over the given sheets, `<work>/soi.vrt`. Building it opens every sheet inside its ZIP, so it is kept
+/// with a stamp (`soi.vrt.stamp`) and reused while the stamp is the same. With no sheets there is no VRT (no unit
+/// reads it).
+fn soi_vrt(sheets: &[Sheet], dir: &Path, work: &Path, pr: &dyn Progress) -> Result<PathBuf> {
+    let (vrt, stamp_file) = (work.join("soi.vrt"), work.join("soi.vrt.stamp"));
+    if sheets.is_empty() {
+        return Ok(vrt);
+    }
+    let mut a = vec!["-q", "-overwrite", "-a_srs", "EPSG:2039", "-allow_projection_difference"];
+    a.extend(["-b", "1", "-b", "2", "-b", "3", "-srcnodata", "255 255 255", utf8(&vrt)?]);
+    let stamp = vrt_stamp(&a, sheets, dir)?;
+    if vrt.is_file() && std::fs::read_to_string(&stamp_file).is_ok_and(|s| s == stamp) {
+        log!(pr, "survey: the VRT over {} sheets reused", sheets.len());
+        return Ok(vrt);
+    }
+    let _ = std::fs::remove_file(&stamp_file);
+    a.extend(sheets.iter().map(|s| s.gdal.as_str()));
+    gdal("gdalbuildvrt", &a)?;
+    std::fs::write(&stamp_file, stamp)?;
+    Ok(vrt)
+}
+
+/// `soi_vrt`'s stamp: gdalbuildvrt's options, then per sheet its GDAL path (`/vsizip/<absolute ZIP>/<tif>`) and its
+/// ZIP's size and modification time (seconds); the ZIP is `dir/<the sheet name's first part>`.
+fn vrt_stamp(opts: &[&str], sheets: &[Sheet], dir: &Path) -> Result<String> {
+    let mut s = opts.join(" ") + "\n";
+    for sh in sheets {
+        let zip = dir.join(sh.name.split('/').next().unwrap_or_default());
+        let m = std::fs::metadata(&zip).with_context(|| format!("{}", zip.display()))?;
+        let t = m.modified()?.duration_since(std::time::UNIX_EPOCH)?.as_secs();
+        s += &format!("{}\t{}\t{t}\n", sh.gdal, m.len());
+    }
+    Ok(s)
+}
+
 /// The original's sheet measurements as this run's start (`list_sheets` checks each line against its ZIP), when the
 /// run has none yet.
 fn seed_sheets(work: &Path, index: &Path, pr: &dyn Progress) -> Result<()> {
@@ -1025,11 +1062,6 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
     if has_zips {
         seed_sheets(&work, &r.sheet_index, pr)?;
         let (sheets, _) = list_sheets(&r.sheets, &work, pr, cancel)?;
-        let vrt = work.join("soi.vrt");
-        let mut a = vec!["-q", "-overwrite", "-a_srs", "EPSG:2039", "-allow_projection_difference"];
-        a.extend(["-b", "1", "-b", "2", "-b", "3", "-srcnodata", "255 255 255", utf8(&vrt)?]);
-        a.extend(sheets.iter().map(|s| s.gdal.as_str()));
-        gdal("gdalbuildvrt", &a)?;
         let u4: Vec<Key> = f.nodes(4).into_iter().filter(|&k| fine(k)).collect();
         let corners: Vec<[f64; 2]> = u4
             .iter()
@@ -1039,9 +1071,6 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
             })
             .collect();
         let itm = transform("EPSG:32636", "EPSG:2039", &corners)?;
-        let overlap = |s: &crate::imagery_run::Sheet, b: &[f64; 4], pad: f64| {
-            s.bbox[0] < b[2] + pad && b[0] - pad < s.bbox[2] && s.bbox[1] < b[3] + pad && b[1] - pad < s.bbox[3]
-        };
         // Units with a sheet: (key, ITM corners, ITM bounding box).
         let mut list = Vec::new();
         for (n, &k) in u4.iter().enumerate() {
@@ -1049,13 +1078,14 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
             let b = c.iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, p| {
                 [b[0].min(p[0]), b[1].min(p[1]), b[2].max(p[0]), b[3].max(p[1])]
             });
-            if sheets.iter().any(|s| overlap(s, &b, 0.0)) {
+            if !near(&sheets, &[b], 0.0).is_empty() {
                 list.push((k, c, b));
             }
         }
         let keys: Vec<Key> = list.iter().map(|u| u.0).collect();
         // The sheets whose levels reach a unit (their blend spans DARK_BLEND / 2 = 2 km beyond a sheet).
-        let sheets: Vec<_> = sheets.into_iter().filter(|s| list.iter().any(|u| overlap(s, &u.2, 2000.0))).collect();
+        let sheets = near(&sheets, &list.iter().map(|u| u.2).collect::<Vec<_>>(), 2000.0);
+        let vrt = soi_vrt(&sheets, &r.sheets, &work, pr)?;
         let gains = sheet_gains(&sheets, s2, &work, r.threads, cancel)?;
         log!(
             pr,
@@ -1395,6 +1425,53 @@ mod tests {
             let got = f64::from(g.data[y * g.w + x]);
             assert!((got - want).abs() < 1.0, "({x}, {y}): {got} vs {want}");
         }
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    fn sheet(name: &str, bbox: [f64; 4]) -> Sheet {
+        Sheet { name: name.into(), gdal: String::new(), bbox, levels: [0.0; 4] }
+    }
+
+    /// A sheet beyond the pad is left out; one that crosses the padded box's edge is kept.
+    #[test]
+    fn sheets_near_the_box() {
+        let b = [100_000.0, 500_000.0, 110_000.0, 510_000.0];
+        let all = [
+            sheet("far.zip/a.tif", [113_000.0, 500_000.0, 120_000.0, 510_000.0]),
+            sheet("edge.zip/b.tif", [111_000.0, 505_000.0, 121_000.0, 515_000.0]),
+            sheet("in.zip/c.tif", [101_000.0, 501_000.0, 102_000.0, 502_000.0]),
+        ];
+        let names = |v: Vec<Sheet>| v.into_iter().map(|s| s.name).collect::<Vec<_>>();
+        assert_eq!(names(near(&all, &[b], 2000.0)), ["edge.zip/b.tif", "in.zip/c.tif"]);
+        assert_eq!(names(near(&all, &[b], 0.0)), ["in.zip/c.tif"]);
+    }
+
+    /// The VRT's stamp is the same for the same sheets and options, and changes with a ZIP's size or time, a sheet
+    /// added or removed, another path for the same sheet name, or other options.
+    #[test]
+    fn vrt_stamp_tracks_the_zips() {
+        let dir = tmp("vrt-stamp");
+        let t = std::time::UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_000);
+        let touch = |name: &str, bytes: &[u8], t: std::time::SystemTime| {
+            std::fs::write(dir.join(name), bytes).unwrap();
+            std::fs::File::options().write(true).open(dir.join(name)).unwrap().set_modified(t).unwrap();
+        };
+        touch("a.zip", b"1234", t);
+        touch("b.zip", b"5678", t);
+        let at = |name: &str, root: &str| Sheet { gdal: format!("/vsizip/{root}/{name}"), ..sheet(name, [0.0; 4]) };
+        let (a, b) = (at("a.zip/a.tif", "/x"), at("b.zip/b.tif", "/x"));
+        let opts = ["-q", "-b", "1"];
+        let stamp = |s: &[Sheet]| vrt_stamp(&opts, s, &dir).unwrap();
+        let s0 = stamp(std::slice::from_ref(&a));
+        assert_eq!(stamp(std::slice::from_ref(&a)), s0, "unchanged: reused");
+        assert_ne!(stamp(&[a.clone(), b.clone()]), s0, "a sheet added");
+        assert_ne!(stamp(&[a.clone(), b.clone()]), stamp(std::slice::from_ref(&b)), "a sheet removed");
+        assert_ne!(stamp(&[at("a.zip/a.tif", "/moved")]), s0, "the same sheet at another path");
+        assert_ne!(vrt_stamp(&["-q"], std::slice::from_ref(&a), &dir).unwrap(), s0, "other options");
+        touch("a.zip", b"1234", t + std::time::Duration::from_secs(60));
+        assert_ne!(stamp(std::slice::from_ref(&a)), s0, "a new modification time");
+        touch("a.zip", b"12345", t);
+        assert_ne!(stamp(&[a]), s0, "a new size");
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }
