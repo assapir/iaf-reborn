@@ -177,6 +177,9 @@ stay the original's (`terrain_view.gd _on_subtitle` hands each line to the fligh
 - **The panel** at the inline-start top holds the radio menu (Ctrl+T) and the training result.
 - **The key hint** at the bottom: the Mission card key and Esc's pause menu.
 
+A language switched over the flight (Esc → Preferences → Language) applies at once to the key hint, the panel and
+the start-up checklist card ([training.md](training.md) §7.1); a radio line already shown stays in its language.
+
 | | English | Hebrew |
 |---|---|---|
 | the take-off's card | ![The mission card of Take-off from Ramon](pictures/front-end/card_en.webp) | ![The mission card in Hebrew](pictures/front-end/card_he.webp) |

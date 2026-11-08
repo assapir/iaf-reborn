@@ -7,7 +7,11 @@
 #   LINE_S seconds (terrain_view.gd _on_subtitle hands them to the flight add-on instead of the original's console);
 # - a panel at the inline-start top for the radio menu and the training result (flight/sim_flight.gd);
 # - one key hint line at the bottom: the Mission card key and Esc's pause menu.
+# All of it follows the game's language, also when the pause menu's Preferences switch it mid-flight.
 extends Control
+
+## The game's language changed over the flight (Esc → Preferences).
+signal language_changed
 
 const Look := preload("../menu/look.gd")
 const CANVAS_H := 1080.0
@@ -25,6 +29,7 @@ var panel_label: Label
 var _band: VBoxContainer
 var _lines: Array = []  # [Label, shown at (ms)]
 var _froze := false
+var _lang := ""
 
 
 func _init(h: Node) -> void:
@@ -44,10 +49,8 @@ func s(key: String) -> String:
 
 func _ready() -> void:
 	theme = Look.make()
-	strings = Settings.load_json("res://menu/strings_%s.json" % ("he" if he() else "en"))
 	_fit()
 	get_viewport().size_changed.connect(_fit)
-	var dir := Control.LAYOUT_DIRECTION_RTL if he() else Control.LAYOUT_DIRECTION_LTR
 	# The band: a strip centred at the top, over the sky rather than the cockpit's panel.
 	_band = VBoxContainer.new()
 	_band.name = "Band"
@@ -61,20 +64,35 @@ func _ready() -> void:
 	panel.name = "Panel"
 	panel.add_theme_stylebox_override("panel", Look.box(Color(Look.BG, 0.88), Look.LINE, 1, 8, Vector2(28, 20)))
 	add_child(panel)
-	panel.position = Vector2(48, 40)
 	panel_label = Label.new()
 	panel_label.add_theme_font_size_override("font_size", 24)
 	panel.add_child(panel_label)
 	panel.visible = false
+	_apply_language()
+
+
+## The strings, the key hint and the mirroring in the game's language; again when the pause menu's Preferences
+## switch it (_process), then `language_changed` for the add-on's own text.
+func _apply_language() -> void:
+	_lang = Settings.language
+	strings = Settings.load_json("res://menu/strings_%s.json" % ("he" if he() else "en"))
+	var old := get_node_or_null("Hint")
+	if old != null:
+		remove_child(old)
+		old.queue_free()
 	_hint()
-	for c in get_children():
+	var dir := Control.LAYOUT_DIRECTION_RTL if he() else Control.LAYOUT_DIRECTION_LTR
+	for c in [_band, panel, get_node("Hint")]:  # not the add-on's own (an RTL child here mirrors its anchors)
 		c.layout_direction = dir
+	# A control under this LTR root mirrors by its own anchors: the panel to the right edge in Hebrew.
+	panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT if he() else Control.PRESET_TOP_LEFT)
+	panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN if he() else Control.GROW_DIRECTION_END
 	if he():
-		# A control under this LTR root mirrors by its own anchors: the panel to the right edge.
-		panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 		panel.offset_right = -48
-		panel.offset_top = 40
+	else:
+		panel.offset_left = 48
+	panel.offset_top = 40
+	language_changed.emit()
 
 
 ## The front end's canvas, scaled to the window's height (the original's sizes stay the flight's).
@@ -163,6 +181,8 @@ func band_texts() -> Array:
 
 
 func _process(_delta: float) -> void:
+	if Settings.language != _lang:
+		_apply_language()
 	var now := Time.get_ticks_msec()
 	while not _lines.is_empty() and now - int(_lines[0][1]) > LINE_S * 1000.0:
 		_lines.pop_front()[0].queue_free()

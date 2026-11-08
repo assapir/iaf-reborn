@@ -408,10 +408,16 @@ func _build_card() -> void:
 	_card.name = "Checklist"
 	_card.add_theme_stylebox_override("panel", Look.box(Look.PAPER, Look.RULE, 1, 5, Vector2(24, 18)))
 	_card.custom_minimum_size.x = 520
-	# At the inline-end top (the left in Hebrew): the radio menu's panel holds the inline-start top (flight_ui.gd).
 	ui.add_child(_card)
+	_place_card()
+	ui.language_changed.connect(_place_card)
+
+
+## At the inline-end top (the left in Hebrew): the radio menu's panel holds the inline-start top (flight_ui.gd).
+func _place_card() -> void:
 	if _he():
 		_card.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+		_card.grow_horizontal = Control.GROW_DIRECTION_END
 		_card.offset_left = 24
 	else:
 		_card.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)

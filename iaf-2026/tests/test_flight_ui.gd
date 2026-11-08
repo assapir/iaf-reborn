@@ -20,7 +20,16 @@ func run() -> void:
 		var tv := await _start(2012)
 		var sim_flight: Node = tv.addon
 		var ui: Control = sim_flight.ui
-		check(ui.find_child("Hint", true, false) != null, "%s: the key hint line" % lang)
+		var hint: Control = ui.find_child("Hint", true, false)
+		var pause_text := "תפריט השהיה" if lang == "he" else "Pause menu"
+		check(hint != null and pause_text in _labels(hint), "%s: the key hint line in the game's language" % lang)
+		if lang == "en":
+			s.language = "he"  # as the pause menu's Preferences switch it over the flight
+			await frames(2)
+			hint = ui.find_child("Hint", true, false)
+			check("תפריט השהיה" in _labels(hint), "en → he over the flight: the key hint in Hebrew")
+			s.language = "en"
+			await frames(2)
 		ui.open_card(sim_flight._sim)
 		await frames(1)
 		var card: Control = ui.card
