@@ -509,19 +509,20 @@ fn texts(f: &File, k: &str) -> Result<Value> {
 fn card(f: &File) -> Result<Value> {
     if !f.v["card"].is_null() {
         texts(&File { name: f.name.clone(), v: f.v["card"].clone() }, "objective")?;
-        let keys = f.v["card"]["keys"].as_array().filter(|k| k.iter().all(|i| i.as_u64().is_some_and(|i| i < 119)));
-        ensure!(keys.is_some(), "{}: \"card.keys\" must list key records (0..118)", f.name);
+        let keys = f.v["card"]["keys"].as_array().filter(|k| k.iter().all(|i| i.as_u64().is_some_and(|i| i < 125)));
+        ensure!(keys.is_some(), "{}: \"card.keys\" must list key records (0..124)", f.name);
         return Ok(f.v["card"].clone());
     }
-    // Start engine 117, Call the tower 47, Mission card 118; the throttle 7 (idle), 16 / 15 (± 5 %), 12 (MIL); the
+    // Start engine 117, Call the tower 47, Mission card 118, the start-up checklist 119..124; the throttle 7 (idle), 16 / 15 (± 5 %), 12 (MIL); the
     // wheel brakes 22, the rudder (nose wheel) 37 / 38, the stick 24..27, the gear 20.
     Ok(match f.v["training"]["kind"].as_str() {
         Some("startup") => json!({
             "objective": {
-                "en": "Start the engine with {key:117}. The mission passes once the engine idles with the avionics up.",
-                "he": "התנעת המנוע: {key:117}. המשימה עוברת כשהמנוע בסרק והאוויוניקה פועלת.",
+                "en": "Run the start-up checklist on its card step by step, from {key:119}. The mission passes once the \
+                       engine idles with the avionics up.",
+                "he": "ביצוע רשימת ההתנעה שבכרטיס שלב אחר שלב, החל מ־{key:119}. המשימה עוברת כשהמנוע בסרק והאוויוניקה פועלת.",
             },
-            "keys": [117, 118],
+            "keys": [119, 120, 121, 122, 123, 124, 118],
         }),
         Some("takeoff") => json!({
             "objective": {
@@ -1384,8 +1385,8 @@ mod tests {
         );
     }
 
-    /// The training rules are checked: a training figure without a source and an unknown kind are refused, and
-    /// every take-off mission's runway is an end of its base's airbase file.
+    /// The training rules are checked: a training figure without a source, an unknown kind and an unknown goal are
+    /// refused, and every take-off mission's runway is an end of its base's airbase file.
     #[test]
     fn training_rules_are_checked() {
         let (db, bases) = (Db::read(&data()).unwrap(), sim_bases::load(&data().join("airbases")).unwrap());
@@ -1394,8 +1395,14 @@ mod tests {
         unsourced.v["sources"].as_object_mut().unwrap().remove("training.time_budget_s");
         let e = compile_mission(&unsourced, &db, &bases, &mut |_, _| None).unwrap_err().to_string();
         assert!(e.contains("\"training.time_budget_s\" has no source"), "{e}");
-        let unknown = ramon(json!({"training": {"kind": "landing", "time_budget_s": 60}}));
-        assert!(compile_mission(&unknown, &db, &bases, &mut |_, _| None).is_err());
+        let unknown =
+            ramon(json!({"training": {"kind": "landing", "time_budget_s": 60, "end_hold_s": 5, "goals": []}}));
+        let e = compile_mission(&unknown, &db, &bases, &mut |_, _| None).unwrap_err();
+        assert!(format!("{e:#}").contains("\"kind\""), "{e:#}");
+        let goal =
+            ramon(json!({"training": {"kind": "startup", "time_budget_s": 60, "end_hold_s": 5, "goals": ["fps"]}}));
+        let e = compile_mission(&goal, &db, &bases, &mut |_, _| None).unwrap_err();
+        assert!(format!("{e:#}").contains("\"fps\" is no debrief item"), "{e:#}");
         let airbases: Vec<Value> = read_dir(&data().join("airbases")).unwrap().into_iter().map(|f| f.v).collect();
         for f in read_dir(&data().join("missions")).unwrap() {
             if let Some(r) = f.v["runway"].as_str() {
@@ -1451,7 +1458,8 @@ mod tests {
 
     /// `iaf-sim own`: every sound row's clip exists and parses as the game's format, every code the shared flight
     /// code plays has a row, every file it opens by name is there, the radio's templates name only particles with a
-    /// clip, a stale clip is removed, and the key table compiles to the 119 records `key_table.gd` reads (the 117 of docs/controls.md, Start engine and Mission card).
+    /// clip, a stale clip is removed, and the key table compiles to the 125 records `key_table.gd` reads (the 117 of
+    /// docs/controls.md, Start engine, Mission card and the six start-up checklist steps).
     #[test]
     fn own_sounds_and_keys_compile() {
         let root = TempRoot(std::env::temp_dir().join(format!("iaf-sim-own-{}", std::process::id())));
@@ -1568,7 +1576,7 @@ mod tests {
         }
         let keys: Value = serde_json::from_str(&std::fs::read_to_string(root.0.join(KEYS_FILE)).unwrap()).unwrap();
         let recs = keys["records"].as_array().unwrap();
-        assert_eq!(recs.len(), 119);
+        assert_eq!(recs.len(), 125);
         for r in recs {
             let labelled = r["label"].as_str().is_some_and(|l| !l.is_empty());
             assert!(labelled || r["shown"] == false, "{r}");
@@ -1583,7 +1591,7 @@ mod tests {
         let lap: Value =
             serde_json::from_str(&std::fs::read_to_string(root.0.join(KEYS_LAPTOP_FILE)).unwrap()).unwrap();
         let lrecs = lap["records"].as_array().unwrap();
-        assert_eq!((lrecs.len(), lrecs[37]["dik"].as_u64(), lrecs[38]["dik"].as_u64()), (119, Some(0x2c), Some(0x2d)));
+        assert_eq!((lrecs.len(), lrecs[37]["dik"].as_u64(), lrecs[38]["dik"].as_u64()), (125, Some(0x2c), Some(0x2d)));
         for r in lrecs {
             let dik = r["dik"].as_u64().unwrap();
             assert!(!matches!(dik, 0x37 | 0x47..=0x53 | 0x9c | 0xb5), "{r}");

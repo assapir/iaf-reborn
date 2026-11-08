@@ -182,6 +182,12 @@ code reads ([data-formats.md](data-formats.md) §12):
 | Hatzerim | `Hatzerim` | 28L, 284° | 659,817, 3,455,824 | 6 / 16 | the reference point (open) |
 | Nevatim | `Nevatim` | 26L, 256° | 693,191, 3,454,815 | 10 / 9 | §5 |
 
+The training missions fail a jet on the ground off the pavement (training.md §3.0); `sim_bases::Base::paved` tests
+the same shapes as the mask. `sim_bases::tests::the_departure_is_paved` checks every metre of the departure from each
+parking spot at Ramon, Ramat David and Nevatim. At Hatzerim the Sufa spot's first leg to the taxiways crosses about
+140 m that OSM does not mark paved (2026-11-08; open: an apron missing in OSM, or the spot to move; no mission flies
+from Hatzerim yet).
+
 The take-off ends and the lineup rule are inferred (data-formats.md §12). The missions start on the parking spots of
 §5 at the terrain's ground height and their runway starts on these lineup points.
 

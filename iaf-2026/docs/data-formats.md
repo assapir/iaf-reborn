@@ -210,8 +210,8 @@ Example, `iaf-2026/data/db/weapons/aim-9m.json`:
 | `route` | the player's waypoints: `lat`, `lon`, `alt_m`, and `speed_kmh` or `t_s`. The compiled waypoint holds the planned arrival time in sim seconds (docs/ai.md §7.2): `t_s`, else the time from the flight's start along the legs at each point's speed. No route gives set_flight's one point 20 km ahead |
 | `runway` | the runway the mission's tower clears (kept in `sim` for item E3) |
 | `note` | a caveat the compiler prints and keeps in `sim` |
-| `training` | the pass / fail rules ([training.md](training.md) §3), kept in `sim`: `kind` (`"startup"` or `"takeoff"`), `time_budget_s`; a take-off also `heading_tolerance_deg`, `empty_kg` and `takeoff_kt` (`[[kg, kt], …]`, rising in kg) and needs `runway`. The compiler parses them and wants a source for each figure (`"training.time_budget_s"` …) |
-| `card` | optional, the mission card shown at the flight's start ([front-end.md](front-end.md) §8): `objective` `{"en", "he"}`, one line each, and `keys`, the key records that matter (indexes into `data/keys.json`, 0–118), shown in that order with their labels and keys as bound. In the objective `{key:N}` stands for record N's key ("Cmd" on macOS) and `{runway}` for `runway`. Without it the compiler writes its kind's: start-up `[117, 118]` (Start engine, Mission card), take-off `[47, 117, 7, 16, 15, 12, 22, 37, 38, 24, 25, 20, 118]` (the tower, the start, the throttle, the brakes, the rudder, the stick, the gear). Compiled into `sim.card`; a card without both languages or with a key outside the table is refused |
+| `training` | the pass / fail rules ([training.md](training.md) §3), kept in `sim`: `kind` (`"startup"` or `"takeoff"`), `time_budget_s`, `end_hold_s` (the mission ends this long after its goal), `goals` (the debrief items the sheet shows, in order; ids of `training::ITEMS`, refused otherwise); a start-up by keys `checklist` (`[{"step", "key", "en", "he"}]`: the steps in order, ids of `training::STEPS`, with the key and the card's line in both languages; training.md §7.1); a take-off also `heading_tolerance_deg`, `empty_kg` and `takeoff_kt` (`[[kg, kt], …]`, rising in kg) and needs `runway`. The compiler parses them and wants a source for each figure (`"training.time_budget_s"` …) |
+| `card` | optional, the mission card shown at the flight's start ([front-end.md](front-end.md) §8): `objective` `{"en", "he"}`, one line each, and `keys`, the key records that matter (indexes into `data/keys.json`, 0–124), shown in that order with their labels and keys as bound. In the objective `{key:N}` stands for record N's key ("Cmd" on macOS) and `{runway}` for `runway`. Without it the compiler writes its kind's: start-up `[119, 120, 121, 122, 123, 124, 118]` (the six checklist steps, Mission card), take-off `[47, 117, 7, 16, 15, 12, 22, 37, 38, 24, 25, 20, 118]` (the tower, the start, the throttle, the brakes, the rudder, the stick, the gear). Compiled into `sim.card`; a card without both languages or with a key outside the table is refused |
 | `flights` | Bravo..Delta: `unit`, `count`, `start` {`lat`, `lon`, `heading`, `alt_m`}, `route` |
 | `targets`, `sam_sites` | placed units: `unit`, `name`, `side` (default red), `lat`, `lon`, `alt_m`, `heading`, optional `route` [{`lat`, `lon`}, at least two] and `speed_kmh`; a target takes role 1, a SAM site role 2 |
 
@@ -515,10 +515,14 @@ more columns after the original's 26:
 | `avionics` | boolean | the avionics up (the start sequence's last step, training.md §7) |
 
 and the event `radio`: `{"t", "event": "radio", "call": <"startup", "taxi" or "takeoff">, "answer": <the tower's
-template, "KCH2" when no tower answers>, "text": <its words>}`. The original game keeps version 1 (no change).
+template, "KCH2" when no tower answers>, "text": <its words>}`; in a training mission the event `surface`:
+`{"t", "event": "surface", "paved": false}` when the jet on the ground leaves the base's pavement (training.md §3.0);
+the event `checklist`: `{"t", "event": "checklist", "step": <id>, "fault": <id, when refused>}` for each start-up
+checklist key; and the event `eject`: `{"t", "event": "eject", "short": <below the seat's low limit>}` when the pilot ejects.
+The original game keeps version 1 (no change).
 
 **The debrief record**, `user://debriefs/debrief-<date>-<mission id>.json`: [training.md](training.md) §4's record
-(`mission`, `kind`, `pass`, `reasons`, `items`, `strings` in English and Hebrew) plus `flight` (the recording's
+(`mission`, `kind`, `pass`, `reasons`, `items` (each with an optional `text`), `goals`, `strings` in English and Hebrew) plus `flight` (the recording's
 absolute path) and `date` (local, `YYYY-MM-DDTHH:MM:SS`).
 
 **The pilot log**, `user://pilots/<pilot id>.json` (14 until the front end's pilot list), the original game's shape

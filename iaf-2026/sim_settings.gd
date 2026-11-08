@@ -388,6 +388,11 @@ func throttle_starts_engine() -> bool:
 	return false
 
 
+## An ejection ends the sortie (training.md §3.0): the sounds and the radio stop, the view stays outside.
+func eject_ends_sortie() -> bool:
+	return true
+
+
 ## Every base of the own iaf.ibx has a talking tower (iaf-2026/docs/airbases.md §9), in the file's order.
 func tower_bases(sections: Dictionary) -> Array:
 	return sections.keys().filter(func(k): return k != "")

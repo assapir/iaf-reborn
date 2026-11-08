@@ -44,6 +44,8 @@ Each figure has a source in the mission's `sources` (`"training.time_budget_s"` 
 |---|---|---|---|---|
 | `kind` | `"startup"` | `"takeoff"` | — | — |
 | `time_budget_s` | idle with avionics up by then | airborne, gear up, on heading by then | 120 s / 900 s | inferred |
+| `end_hold_s` | the mission ends this long after its goal | the same | 5 s | inferred: time to see the result before the debrief |
+| `goals` | the debrief items the sheet shows, in order (§4) | the same | `[]` / `["runway", "liftoff_speed", "reference_speed", "max_centreline_offset", "tower_calls"]` | — (not a figure) |
 | `heading_tolerance_deg` | — | ± from the runway heading | 10° | inferred |
 | `empty_kg` | — | gross weight = this + the recorded fuel | F-16: 8,573 kg; F-35I: 13,290 kg | F-16C Block 50 / 52[^w-f16]; F-35A[^w-f35]; the IAF jets' own weights inferred the same |
 | `takeoff_kt` | — | reference take-off speed by gross weight: `[[kg, kt], …]`, linear between, held at the ends | F-16: [[9072, 130], [21772, 214]]; F-35I: [[13290, 165]] | F-16: 70 kt + 3 kt per 1000 lb[^bms]; F-35: about 165 kt[^wn] |
@@ -54,9 +56,30 @@ manual gives the F-16's or the F-35's take-off speeds by weight (open). Checked 
 180 kt heavy[^bms]) lie 10–20 kt above it, as the rotation 10–15 kt before the take-off speed implies (inferred). The
 reference speed is a debrief number only; no rule fails on it.
 
+### 3.0 Every mission: fail at once
+Since 2026-11-08 (the user's Mac play test: a crash in the start-up still passed) any of these ends a training
+mission at once as a Fail, with its reason first in the debrief:
+
+| reason | the recording's event | the game's live check (`Watch::check`, `IafTraining.check`) |
+|---|---|---|
+| `ejected` | `eject` | the pilot ejected |
+| `crash` | `crash` | the jet crashed |
+| `damage` | `hit` (any damage to the jet) | the player's unit's damage above 0 |
+| `off_pavement` | `surface` with `paved` false | on the ground with the jet's centre off the base's pavement |
+
+The pavement is the mission's base from its airbase file (`sim_bases::Base::paved`), the same shapes the paved
+mask is drawn from ([data-formats.md](data-formats.md) §12): within half the width of a runway's, stopway's or
+taxiway's centreline (a taxiway without an OSM width: 23 m), or inside an apron or a shelter's pad, with a 5 m
+margin past every edge (`PAVEMENT_MARGIN_M`, inferred: OSM draws centrelines and outlines, not the paved fillets
+where a taxiway meets a runway or turns; the probe's Sufa, cutting a corner onto runway 07R at Ramon, passed its edge
+by 0.05 m). The jet's centre is checked, not each wheel (inferred: a centre off the edge puts a main wheel off it; a wheel-by-wheel check would
+fail a jet on the OSM shapes' rough edges). The live check writes the `surface` event, so the recording carries the
+reason.
+
 ### 3.1 Start-up: pass
-- The engine started (the recorder's `engine` column turns true), and
-- the engine at idle and the avionics up within `time_budget_s` of the flight's start.
+- The engine started (the recorder's `engine` column turns true),
+- the engine at idle and the avionics up within `time_budget_s` of the flight's start, and
+- nothing failed (§3.0) to the mission's end: `end_hold_s` after the goal, or when the player ends the flight.
 
 Modern IAF's recorder (version 2, §9) has an `rpm` and an `avionics` column, and the scorer reads them:
 - **idle** = the first sample with the engine running at 60 % RPM or more (the 6-DoF's idle, §7);
@@ -69,7 +92,7 @@ is self-sustaining, at about 52 % RPM, it drives the main and standby generators
 
 ### 3.2 Take-off: pass
 All of:
-- no `crash` event;
+- nothing failed (§3.0) to the mission's end;
 - a lift-off (the first sample off the ground after one on it that stays off it for 1 s, or to the recording's end; inferred);
 - the roll started on the mission's runway (inside its length and width) and ran toward the far end;
 - every sample of the roll stayed on the runway (else: excursion);
@@ -82,13 +105,23 @@ heading is the heading at that stop, or, in a rolling take-off, where the roll p
 with the pitch 2° above the roll's first sample (inferred). "On the runway" is the jet's centre within half the
 runway's width of the centreline (inferred).
 
-Fail reasons, in the order checked: `no_start`, `over_time` (start-up); `crash`, `no_liftoff`, `wrong_runway`,
-`excursion`, `gear_down`, `over_time`, `off_heading` (take-off).
+Fail reasons, in the order checked: the §3.0 reason first (the earliest event); then `no_start`, `not_done` (the
+engine never at idle with the avionics up), `over_time` (start-up); `no_liftoff`, `wrong_runway`, `excursion`,
+`gear_down`, `over_time`, `off_heading` (take-off; after a §3.0 fail the climb-out is not judged).
 
 ## 4. The debrief record
 `Debrief::to_json` (`iaf-training score … --json`): `mission`, `kind`, `pass`, `reasons` (ids), `items` (each `id`,
-`value` rounded to 0.1 or null, `unit`, optional `note` id) and `strings` `{"en": {id: text}, "he": {id: text}}`
-with every id the record names. The CLI prints the English summary.
+`value` rounded to 0.1 or null, `unit`, optional `text` (a name in place of the value) and `note` id), `goals` (the
+rules' `goals`) and `strings` `{"en": {id: text}, "he": {id: text}}` with every id the record names. The CLI prints
+the English summary.
+
+The record keeps every item; the debrief sheet ([front-end.md](front-end.md)) shows only the `goals` (the user,
+2026-11-08: "no one cares how long it took to start or how many times I moved the throttle unless it is a goal"):
+
+| mission | the sheet shows |
+|---|---|
+| start-up | pass / fail and the reason (no goals) |
+| take-off | the runway used, the lift-off speed and the reference speed, the max offset from the centreline, the tower calls |
 
 | id | unit | meaning |
 |---|---|---|
@@ -97,6 +130,7 @@ with every id the record names. The CLI prints the English summary.
 | `throttle_moves` | — | runs of samples in which the lever moves more than 0.005 |
 | `faults` | — | note `none_modelled`: the flight model has no hot or hung start |
 | `taxi_time` | s | from the first sample above 1 kt to the roll's start |
+| `runway` | — | `text`: the runway end the roll ran on ("25R"), from the base's runways; note `not_reached` off every runway |
 | `lineup_heading_error` | deg | the lineup heading (§3.2) − the runway's |
 | `roll_start_from_runway_start` | m | along the centreline from the runway start (100 m from the lineup point) |
 | `roll_length` | m | the roll's start to the lift-off, along the centreline |
@@ -105,19 +139,20 @@ with every id the record names. The CLI prints the English summary.
 | `gross_weight`, `reference_speed` | kg, kt | `empty_kg` + fuel at the lift-off; `takeoff_kt` at that weight |
 | `gear_up_height`, `gear_up_time` | m, s | the first airborne sample with the gear up: height above the terrain, time after the lift-off |
 | `roll_heading_deviation`, `max_centreline_offset` | deg, m | the largest over the roll |
-| `tower_calls` | — | the `radio` events; note `not_recorded` while there are none |
+| `tower_calls` | — | the `radio` events |
 | `cut_lines` | — | only when the recording's last line was cut off mid-write (the game stopped while writing) and skipped; a bad line elsewhere refuses the recording |
 
 ## 5. Checks
 `cargo test -p iaf-tools --lib training`: three synthetic take-offs from Ramon 25R built in the test (a clean one, a
-gear-down climb-out, a runway excursion; also a rolling take-off, a one-sample glitch off the ground while
-taxiing, a rotation on the lift-off sample, a recording cut mid-line at its end), a synthetic start-up (pass, over the budget, never started), and the
+gear-down climb-out, a runway excursion, a crash on the roll (fails at once, the crash first), damage, the wheels
+off the pavement (the live check: the parking spot and the lineup paved, 200 m beside the runway not); also a rolling take-off, a one-sample glitch off the ground while
+taxiing, a rotation on the lift-off sample, a recording cut mid-line at its end), a synthetic start-up (a pass at its end with no goals, a crash with the crash first, over the budget, never started), and the
 newest real recording in the flights folder (`user://flights`: `~/.local/share/godot/app_userdata/iaf-reborn/flights`
 on Linux, `~/Library/Application Support/Godot/app_userdata/iaf-reborn/flights` on macOS, or `IAF_FLIGHTS`) scored
 against Ramon's take-off, skipped with a message when there is none. `IAF_TRAINING_WRITE=<dir>` keeps the synthetic
 flights as JSONL. `cargo test -p iaf-tools --test training_cli`: the CLI from another working folder, a missing
 airbases folder and a `--json` without a file. `sim::tests::training_rules_are_checked`: a training figure without a source and an unknown kind
-are refused, and every take-off mission's runway is an end of its base's airbase file.
+are refused, an unknown goal is refused, and every take-off mission's runway is an end of its base's airbase file.
 
 ## 6. Open
 - The checklist card (after the MVP, plan.md "start-up"); the mission card of §7 holds the objective and the keys only.
@@ -133,8 +168,9 @@ the flight frozen until it closes, so reading it costs nothing of the time budge
 The sim's jet starts parked cold: on its spot (airbases.md §9), engine off, no RPM, no electrical power, every screen,
 the HUD and the lamps dark (`cockpit.power` 0). The throttle starts nothing (`Settings.throttle_starts_engine`, false
 in the sim; in the original game any throttle command starts the engine at once, as before, on either flight model).
-One command, **Start engine** (Ctrl+E, record 117 of the sim's own `keys.json`, command 200, `IafFlight.start_engine`),
-runs the jet's start sequence
+The start-up checklist by keys (§7.1) runs the jet's start sequence step by step; one command, **Start engine**
+(Ctrl+E, record 117 of the sim's own `keys.json`, command 200, `IafFlight.start_engine`, a hidden developer shortcut
+since 2026-11-08: not in the key list), runs it all at once
 (`crates/iaf-flight/src/sixdof/start.rs`), which the flight model steps every frame:
 
 | step | F-16I Sufa, F-16D Barak (JFS) | F-35I Adir (IPP) | source |
@@ -154,6 +190,46 @@ The F-15I's (no mission flies it yet) is the F-16's (inferred). The F-35I's engi
 figure (inferred). The sound is the engine clip of E1b (`SFX_START_ENGINE`) pitched by the RPM from the crank on
 (`flight_sounds.gd`, unchanged); the starter's own whine has no clip (sound.md §7). The probe measures 37 s to idle
 for the F-16s and 47 s / 92 s for the F-35I (the recorder samples 10 times a second; the scene takes a few frames).
+
+### 7.1 The start-up checklist by keys
+Since 2026-11-08 (the user: "the first mission, which is just one click, is pointless") the start-up mission is the
+real start by keys, step by step. A card at the top right (the top left in Hebrew) ticks the steps in order and says the next one, in English
+and Hebrew; each step is a key of the sim's own `keys.json` (records 119–124, commands 210–215, the card naming each
+key as bound, Cmd for Ctrl on macOS; `iaf-sim own` refuses a key bound twice). The flight model takes each step
+(`Start::press` in `crates/iaf-flight/src/sixdof/start.rs`, `IafFlight.start_step`); a step out of order has its
+consequence and returns a fault, which ends the mission at once as a Fail with that fault first (§3.0).
+
+| # | F-16I Sufa, F-16D Barak | key | timing | out of order | source |
+|---|---|---|---|---|---|
+| 1 | Main power: MAIN (the battery on) | Ctrl+B | at once | — | the checklist's order[^chk] |
+| 2 | JFS: START 2 | Ctrl+J | cranks the engine to 20 % RPM in 15 s, then holds there | before main power: nothing runs, `no_power` | [^chk]; the 15 s inferred |
+| 3 | Throttle: IDLE at 20 % RPM | Ctrl+I | light-off 5 s later, idle 15 s after it; the main generator at 52 %, the JFS off | below 20 %: a hot start, the engine shut down, `hot_start`; no rotation: no light-off, `no_rotation`; never: the JFS holds at 20 % | 20 % minimum[^chk]; 52 %[^f16net]; the times inferred |
+| 4 | Avionics power: ON, after the generators | Ctrl+A | the displays and the HUD 3 s later | before the generators: no power, `avionics_early` | inferred (the avionics go on after the engine start in the checklist[^chk]) |
+| 5 | INS: stored-heading alignment | Ctrl+N | aligned 90 s later: the avionics up | without avionics power: `ins_no_power` | 90 s[^ins] (a full alignment takes about 8 minutes[^ins]) |
+| 6 | Canopy: close and lock | Ctrl+K | at once | any time | [^chk] |
+
+| # | F-35I Adir | key | timing | out of order | source |
+|---|---|---|---|---|---|
+| 1 | Battery: ON | Ctrl+B | at once | — | battery, IPP, engine[^ayton] |
+| 2 | IPP: START | Ctrl+J | runs 10 s, then holds | before the battery: `no_power` | [^ayton]; the 10 s inferred |
+| 3 | Engine: START | Ctrl+I | cranks, lights and runs to idle by itself (the F-16's figures); the displays on the IPP's power | before the IPP: `no_ipp`; before the IPP is up to speed: `ipp_not_ready` | [^ayton]; inferred |
+| 4 | Canopy: close and lock | Ctrl+K | at once | any time | inferred |
+
+The avionics of the F-35I report ready 90 s after the battery[^ayton]. The mission passes when every step is done
+(`skip_<step>` names a step never taken), the engine idles and the avionics are up within the time budget (5 min,
+inferred), and nothing failed, at its end. The steps and their card lines are mission data (`training.checklist`,
+[data-formats.md](data-formats.md) §5); each key press is a `checklist` event in the recording (`step`, and `fault`
+when it was refused). The take-off missions still start cold: the same keys start the jet there, without a card.
+
+| the card | English | Hebrew |
+|---|---|---|
+| at the start | ![Checklist card at the start](pictures/training/card_start_en.webp) | ![Checklist card at the start, Hebrew](pictures/training/card_start_he.webp) |
+| mid-sequence | ![Checklist card, mid-sequence](pictures/training/card_mid_en.webp) | ![Checklist card, mid-sequence, Hebrew](pictures/training/card_mid_he.webp) |
+| done: "Mission complete" | ![Checklist done](pictures/training/card_done_en.webp) | ![Checklist done, Hebrew](pictures/training/card_done_he.webp) |
+| the JFS before the main power: Fail | ![Checklist fault](pictures/training/card_fault_en.webp) | ![Checklist fault, Hebrew](pictures/training/card_fault_he.webp) |
+
+`iaf-2026/tests/_checklist_shot.gd` takes these pictures in a real render (its header); the docs keep them 1200 px
+wide.
 
 ## 8. The radio menu and the tower
 The **Call the tower** key (Ctrl+T) opens a numbered list over the view; 1–4 pick, any other key closes it:
@@ -182,19 +258,30 @@ Taxi: the jet taxis on the base's taxiways to the lineup (the probe follows the 
 take-off passes by §3.2.
 
 ## 9. Scoring in the game, the debrief record and the pilot log
-`iaf-2026/flight/sim_flight.gd` (the sim's part of the flight scene, `Settings.flight_addon`) scores a mission whose
-compiled file has `sim.training`:
-- a start-up once the engine idles with the avionics up, a take-off once airborne with the gear up (then every 3 s
-  until it passes), either at a crash or 5 s past its time budget;
-- `IafTraining.score(recording, mission, airbases)` (crates/iaf-godot/src/training.rs) runs `training::score_files`
-  on the recording so far, the readable mission `iaf-2026/data/missions/<id>.json` and the airbase files;
+`iaf-2026/flight/sim_flight.gd` (the sim's part of the flight scene, `Settings.flight_addon`) runs a mission whose
+compiled file has `sim.training` with an `IafTraining` (crates/iaf-godot/src/training.rs) opened on the readable
+mission `iaf-2026/data/missions/<id>.json` and the airbase files:
+- every frame `IafTraining.check` (§3.0) decides whether the mission failed; on a fail the mission ends at once
+  (off the pavement: a `surface` event first);
+- a start-up is scored once the engine idles with the avionics up, a take-off once airborne with the gear up (then
+  every 3 s until it passes); a pass holds `end_hold_s` (`IafTraining.end_hold_s`), then the mission ends and is
+  scored again; 5 s past its time budget it ends as scored;
+- the player ending the flight first (Esc → End the flight, Ctrl+Q) ends the mission there, scored as it stands;
+- at the goal a banner in the front end's look (navy, Heebo) says "Mission complete" / "המשימה הושלמה"; a fail
+  shows "Fail" with the reason that ended it; 5 s later (real time; a pass: when its hold ends) the flight ends into
+  the debrief;
+- an ejection ends the sortie (`Settings.eject_ends_sortie`, the sim only): every sound and the radio stop at once
+  (`flight_sounds.gd silence`, no radio menu), the view stays outside on the seat and the jet at any height (no
+  FlyTSD), the recording gets an `eject` event and the mission fails with `ejected` first. The original game's
+  ejection runs as before (tests/godot/test_eject.gd);
+- `IafTraining.score(recording, mission, airbases)` runs `training::score_files` on the recording so far, with the
+  live check's reason first;
 - the debrief record (§4, plus `flight`: the recording's path, `date`: the end, `elapsed_s`: the flight's length) goes
   to `user://debriefs/debrief-<date>-<id>.json`, compact, and `Settings.flown_debrief` names it for the front end;
 - the attempt goes to the pilot log `user://pilots/<pilot id>.json` (the default pilot 14 until E2's pilot list) in the
   original game's shape (`iaf-reborn/menu/pilots.gd`): `{"missions": [{"id": <menu id>, "attempts": [{"result": 1 | 0,
   "mult": 1.0, "bonus": 0, "kills": [], "losses": [], "debrief": <file>, "date": …}]}]}`, newest mission first;
-- the result and its numbers show over the view (in the game's language); ending the flight (Esc → End the flight, or
-  Ctrl+Q → Debrief) opens the front end's debrief sheet.
+- ending the flight opens the front end's debrief sheet.
 
 Scoring needs the recorder (Extras, on by default): with it off the flight is not scored (a warning in the log). Tests
 record beside the debrief, in a temporary folder. The recorder's version 2 (`Settings.blackbox_version`, [data-formats.md](data-formats.md) §13) adds `rpm`
@@ -206,15 +293,19 @@ timeline (the radio calls, the lift-off) and the start's steps from the RPM colu
 ## 10. The probe and a real run
 `iaf-2026/tests/test_mvp.gd` (item F's probe, started here) flies both missions for the Sufa (Ramon), the Barak
 (Ramat David) and the F-35I (Nevatim) headless with scripted inputs at 6× time: the start-up (cold, the throttle
-starts nothing, the start command, the columns, the debrief file, the pilot log) and the take-off (the three radio
-calls and their answers, a taxi along the base's taxi path to the lineup, the roll on the centreline, the rotation,
-gear up), each ending in Pass. `-- --jet f16i` / `-- --only startup` narrow it. Item F adds the front end, Hebrew, the
+starts nothing, the checklist by its keys, the columns, the debrief file, the pilot log; the JFS before the main
+power fails at once) and the take-off (the three radio
+calls and their answers, a taxi along the base's taxi path to the lineup (on the taxi line, slowing to 2.5 m/s
+through each turn: off the pavement fails, §3.0), the roll on the centreline, the rotation,
+gear up, the debrief's goals), each ending in Pass, and a crash in the Sufa's start-up ending it at once in a Fail
+with the crash first. `-- --jet f16i` / `-- --only startup` narrow it. Item F adds the front end, Hebrew, the
 temp-root run and the other platforms.
 
 `./modern-iaf -- --mission <id>` flies one mission at once (`iaf-2026/flight/fly.gd`), then shows its debrief: 2011 / 2012 Ramon
 start-up / take-off, 2021 / 2022 Ramat David, 2031 / 2032 Nevatim.
 `iaf-2026/tests/_training_shot.gd` takes the pictures in a real render (its header).
 
+[^ins]: F-16.net forum, "INS alignment time and time to takeoff from cold start" (a normal alignment about 8 minutes, a stored-heading alignment about 90 s), https://www.f-16.net/forum/viewtopic.php?p=7943; Eagle Dynamics forum, "What is the difference between stored INS align and normal INS align in the F-16C Viper", https://forum.dcs.world/topic/267433-what-is-the-difference-between-stored-ins-align-and-normal-ins-align-in-the-f-16c-viper (both weak: forums)
 [^w-f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", Specifications (F-16C Block 50 / 52): empty weight 18,900 lb (8,573 kg), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon
 [^w-f35]: Wikipedia, "Lockheed Martin F-35 Lightning II", Specifications (F-35A): empty weight 29,300 lb (13,290 kg), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II
 [^bms]: Falcon BMS forum, "Rotation speed" (the take-off speed 70 kt plus 3 kt per 1000 lb of gross weight; rotate at 170 kt with an air-to-air load, 180 kt heavy), https://forum.falcon-bms.com/post/314659

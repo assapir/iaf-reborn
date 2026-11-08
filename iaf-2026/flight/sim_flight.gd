@@ -4,12 +4,18 @@
 # - The radio menu: the "Call the tower" key (Ctrl+T, command 107) opens a numbered list; 1–4 pick a request (start-up,
 #   taxi, take-off, contact the tower for landing), any other key closes it. The tower answers by TTS (radio.gd
 #   request), each call a `radio` event in the recording.
-# - A training mission (the compiled mission's `sim.training`): at its end the recording is scored by IafTraining
-#   (crates/iaf-tools training.rs), the debrief record written to user://debriefs/ and the attempt to the pilot log.
+# - A training mission (the compiled mission's `sim.training`): IafTraining (crates/iaf-tools training.rs) checks each
+#   frame for a fail (a crash, damage, the wheels off the pavement) and ends the mission at once on one; else the
+#   mission ends its hold after the goal, or when the player ends the flight. At its end the recording is scored by
+#   IafTraining, the debrief record written to user://debriefs/ and the attempt to the pilot log.
 extends Node
 
 const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
 const FlightUi := preload("flight_ui.gd")
+const WizardTheme := preload("../setup/wizard_theme.gd")  # relative: a test of the original's project loads it too
+const Look := preload("../menu/look.gd")
+## The banner at the goal (training.md §9); a fail shows the record's "Fail" and its reason.
+const COMPLETE := {"en": "Mission complete", "he": "המשימה הושלמה"}
 ## The menu's lines: [request id, English, Hebrew] (radio.gd request; "landing": its Ctrl+T contact_tower).
 const ITEMS := [
 	["startup", "Request start-up", "בקשת התנעה"],
@@ -34,7 +40,8 @@ const BASE_NAMES := {
 	"Nevatim": ["Nevatim", "נבטים"],
 }
 ## A take-off is scored once airborne with the gear up (every SCORE_EVERY s until it passes), a start-up once the
-## engine idles with the avionics up; either at a crash or this long past its time budget.
+## engine idles with the avionics up; either this long past its time budget. A pass ends the mission after the rules'
+## hold (IafTraining.end_hold_s).
 # ponytail: each score re-reads the whole recording (O(length)); a scorer fed sample by sample if it shows.
 const SCORE_EVERY := 3.0
 const PAST_BUDGET := 5.0
@@ -55,6 +62,26 @@ var debrief_file := ""
 var out_dir := ""
 var _next_score := 0.0
 var _ready_at := INF
+## The training run's IafTraining (its live check and scorer), its fail reason ("" while none) and when it passed.
+var trainer: RefCounted
+var _why := ""
+var _pass_at := INF
+## When the flight ends into the debrief (ms, real time), once the mission ended; the banner over the view.
+var _end_ms := INF
+var _banner: PanelContainer
+## The start-up checklist (the readable mission's training.checklist: [{step, key, en, he}]), the steps done (ids),
+## a step's fault waiting for the live check, the last fault shown, and the card.
+var checklist: Array = []
+var done: Array = []
+var _fault := ""
+var _fault_shown := ""
+var _card: PanelContainer
+const CARD_TITLE := {"en": "START-UP CHECKLIST", "he": "רשימת התנעה"}
+const CARD_NEXT := {"en": "Next: %s", "he": "הבא: %s"}
+const CARD_DONE := {"en": "All steps done.", "he": "כל השלבים בוצעו."}
+const STEP_IDS := ["main_power", "starter", "engine", "avionics", "ins", "canopy"]
+## The checklist's first key record (iaf-2026/data/keys.json, records 119–124: STEP_IDS in order; commands 210–215).
+const CHECK_KEY := 119
 const RECORDED_S := 0.25
 
 
@@ -79,8 +106,16 @@ func _ready() -> void:
 		for sec in BASE_NAMES:
 			if BASE_NAMES[sec][0] == base_en:
 				host.radio.runway_base = sec
-		rules = sim.get("training", {})
+		# The rules from the readable mission, as IafTraining reads them (the compiled sim.training only says it is one).
+		rules = readable.get("training", {}) if sim.has("training") else {}
 		mission_name = String(files[0].name) if not rules.is_empty() else ""
+		checklist = readable.get("training", {}).get("checklist", [])
+	if not rules.is_empty():
+		trainer = ClassDB.instantiate("IafTraining")
+		var err: String = trainer.open(_readable(), ProjectSettings.globalize_path("res://data/airbases"))
+		if err != "":
+			push_warning("training: %s" % err)
+			rules = {}
 	if not rules.is_empty() and not Settings.blackbox:
 		push_warning("training: the recorder is off (Extras), so this flight cannot be scored")
 	elif not rules.is_empty() and host.blackbox_path == "" and Settings.isolated():
@@ -94,6 +129,8 @@ func _ready() -> void:
 	# The card opens at the start; scripted runs (IAF_DEFAULT_SETTINGS) fly on without it.
 	if not Settings.isolated():
 		ui.open_card.call_deferred(_sim)
+	if not checklist.is_empty():
+		_build_card()
 
 
 func _dir() -> String:
@@ -145,6 +182,8 @@ func subtitle(text: String) -> void:
 ## A key press (terrain_view.gd before its key table): the "Call the tower" key opens / closes the menu; while it is
 ## open 1–4 pick and any other key closes it. True when taken.
 func key(event: InputEventKey) -> bool:
+	if host.ejected:
+		return false  # the sortie ended: no radio
 	if event.echo or event.keycode in [KEY_CTRL, KEY_SHIFT, KEY_ALT, KEY_META]:
 		return open and event.echo  # a lone modifier is part of the next key (Ctrl+T closes the menu)
 	var rec: int = host.keys.find_key(host.keys.key_of_event(event), Settings.key_bindings)
@@ -186,21 +225,49 @@ func pick(id: String) -> String:
 
 
 func _process(_delta: float) -> void:
+	if not result.is_empty() and Time.get_ticks_msec() >= _end_ms:
+		_end_ms = INF
+		host._end_flight(true)  # into the debrief (Settings.flown_debrief)
 	if rules.is_empty() or not result.is_empty() or host.flight == null or host.get("_log") == null:
 		return
 	var t: float = host._log_t
-	if t < _next_score:
-		return
 	var st: Dictionary = host._log_st  # this frame's flight state (terrain_view.gd _record)
 	if st.is_empty():
+		return
+	# A fail ends the mission at once (IafTraining decides; the wheels off the pavement go into the recording).
+	if _why == "":
+		var o: Vector2 = host.terrain.world_origin
+		var p: Vector3 = host.rig.position
+		var ent: Dictionary = host.runtime.player_entity() if host.runtime != null else {}
+		_why = (
+			trainer
+			. check(
+				{
+					"on_ground": bool(st.on_ground),
+					"x": o.x + p.x,
+					"y": o.y - p.z,
+					"crashed": host.crashed,
+					"damage": float(ent.get("damage", 0.0)),
+					"ejected": host.ejected,
+					"fault": _fault,
+				}
+			)
+		)
+		if _why == "off_pavement":
+			host._log_event(st, {"event": "surface", "paved": false})
+	if _why != "" or t - _pass_at >= trainer.end_hold_s():
+		_end_now(t)
+		return
+	if t < _next_score or _pass_at < INF:
 		return
 	var budget := float(rules.get("time_budget_s", 900.0))
 	var ready := false
 	if String(rules.get("kind", "")) == "startup":
 		ready = bool(st.get("engine_on", false)) and bool(st.get("avionics", false))
+		ready = ready and done.size() >= checklist.size()  # every checklist step taken
 	else:
 		ready = not bool(st.on_ground) and not host.gear_down
-	if not (ready or host.crashed or t > budget + PAST_BUDGET):
+	if not (ready or t > budget + PAST_BUDGET):
 		_ready_at = INF
 		return
 	# Scored once the recorder has written a sample of it (10 a second).
@@ -212,9 +279,35 @@ func _process(_delta: float) -> void:
 	if d.has("error"):
 		push_warning("training: %s" % d.error)
 		return
-	# A take-off not yet on its heading may still pass: scored again next second, until its budget.
-	if bool(d.get("pass", false)) or host.crashed or t > budget + PAST_BUDGET or String(rules.kind) == "startup":
+	# A pass holds; a take-off not yet on its heading may still pass: scored again, until its budget.
+	if bool(d.get("pass", false)):
+		_pass_at = t
+		_show_banner(COMPLETE.he if _he() else COMPLETE.en, "")
+	elif t > budget + PAST_BUDGET or String(rules.kind) == "startup":
 		_finish(d)
+
+
+## The mission ends now: scored and finished (retried every SCORE_EVERY s if it cannot be scored).
+func _end_now(t: float) -> void:
+	if t < _next_score:
+		return
+	_next_score = t + SCORE_EVERY
+	var d := score()
+	if d.has("error"):
+		push_warning("training: %s" % d.error)
+	else:
+		_finish(d)
+
+
+## The player ended the flight before the mission's end: scored as it stands.
+func _exit_tree() -> void:
+	if not rules.is_empty() and result.is_empty() and host.get("_log") != null:
+		_next_score = 0.0
+		_end_now(0.0)
+
+
+func _readable() -> String:
+	return ProjectSettings.globalize_path("res://data/missions/%s.json" % mission_name)
 
 
 ## The recording so far against the mission's rules (IafTraining, the readable mission and the airbases of
@@ -222,9 +315,7 @@ func _process(_delta: float) -> void:
 func score() -> Dictionary:
 	host._log.flush()
 	var flight: String = ProjectSettings.globalize_path(host._log.get_path_absolute())
-	var m := ProjectSettings.globalize_path("res://data/missions/%s.json" % mission_name)
-	var bases := ProjectSettings.globalize_path("res://data/airbases")
-	var d = JSON.parse_string(IafTraining.score(flight, m, bases))
+	var d = JSON.parse_string(trainer.score(flight, _readable(), ProjectSettings.globalize_path("res://data/airbases")))
 	return d if d is Dictionary else {"error": "no debrief"}
 
 
@@ -242,7 +333,15 @@ func _finish(d: Dictionary) -> void:
 	var en: Dictionary = d.get("strings", {}).get("en", {})
 	print("training %s: %s %s" % [mission_name, "PASS" if d["pass"] else "FAIL", d.get("reasons", [])])
 	host._log_event(host._log_st, {"event": "mission", "name": "training " + ("pass" if d["pass"] else "fail")})
-	_show_result(d, d.get("strings", {}).get("he" if _he() else "en", en))
+	var s: Dictionary = d.get("strings", {}).get("he" if _he() else "en", en)
+	# A pass ends after its hold (already run); a fail shows its reason that long first.
+	var hold: float = 0.0 if d["pass"] else trainer.end_hold_s()
+	_end_ms = Time.get_ticks_msec() + hold * 1000.0
+	if d["pass"]:
+		_show_banner(COMPLETE.he if _he() else COMPLETE.en, "")
+	else:
+		var why: Array = d.get("reasons", [])
+		_show_banner(String(s.get("fail", "")), String(s.get(why[0], why[0])) if not why.is_empty() else "")
 
 
 ## The attempt in the pilot log, the shape of the original game's pilot records (iaf-reborn/menu/pilots.gd: <id>.json
@@ -282,16 +381,117 @@ func _pilot_log(d: Dictionary) -> void:
 		f.store_string(JSON.stringify({"missions": missions}))
 
 
-## The result over the flight until the flight ends and the front end opens its debrief: pass / fail, the reasons
-## and the numbers.
-func _show_result(d: Dictionary, s: Dictionary) -> void:
-	var lines := [String(s.get("pass" if d["pass"] else "fail", ""))]
-	for r in d.get("reasons", []):
-		lines.append(String(s.get(r, r)))
-	for it in d.get("items", []):
-		var v = it.get("value")
-		var num := str(int(v)) if v != null and float(v) == roundf(float(v)) else str(v)
-		var shown := String(s.get(it.get("note", ""), "")) if v == null else "%s %s" % [num, String(it.unit)]
-		lines.append("%s: %s" % [String(s.get(it.id, it.id)), shown.strip_edges()])
-	ui.show_panel("\n".join(lines))
+# --- the start-up checklist (training.md §7.1) ------------------------------------------------------------------
+
+
+## A checklist key (commands 210–215 → STEP_IDS[i]): the flight model takes the step (IafFlight.start_step decides
+## its consequence and fault); the recording gets it; the card ticks it or shows the fault.
+func start_step(i: int) -> void:
+	if i < 0 or i >= STEP_IDS.size() or host.flight == null or not result.is_empty():
+		return
+	var id: String = STEP_IDS[i]
+	var fault: String = host.flight.start_step(id)
+	var e := {"event": "checklist", "step": id}
+	if fault != "":
+		e["fault"] = fault
+		_fault = fault
+		_fault_shown = fault
+	elif not id in done:
+		done.append(id)
+	host._log_event(host._log_st, e)
+	if _card != null:
+		_fill_card()
+
+
+func _build_card() -> void:
+	_card = PanelContainer.new()
+	_card.name = "Checklist"
+	_card.add_theme_stylebox_override("panel", Look.box(Look.PAPER, Look.RULE, 1, 5, Vector2(24, 18)))
+	_card.custom_minimum_size.x = 520
+	# At the inline-end top (the left in Hebrew): the radio menu's panel holds the inline-start top (flight_ui.gd).
+	ui.add_child(_card)
+	if _he():
+		_card.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+		_card.offset_left = 24
+	else:
+		_card.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+		_card.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		_card.offset_right = -24
+	_card.offset_top = 96
+	_fill_card()
+
+
+## A label of the card.
+func _card_line(parent: Node, text: String, size: int, colour: Color) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", colour)
+	l.text_direction = Control.TEXT_DIRECTION_RTL if _he() else Control.TEXT_DIRECTION_LTR
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if _he() else HORIZONTAL_ALIGNMENT_LEFT
+	parent.add_child(l)
+	return l
+
+
+## The card: the title, each step with its key (ticked when done, the next one marked), the next step or the fault.
+func _fill_card() -> void:
+	for c in _card.get_children():
+		c.queue_free()
+	var lang := "he" if _he() else "en"
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	_card.add_child(v)
+	_card_line(v, CARD_TITLE[lang], 22, Look.NAVY)
+	var next := ""
+	for i in checklist.size():
+		var c: Dictionary = checklist[i]
+		var is_done := String(c.step) in done
+		var is_next := not is_done and next == ""
+		if is_next:
+			next = String(c[lang])
+		var row := HBoxContainer.new()
+		row.layout_direction = Control.LAYOUT_DIRECTION_RTL if _he() else Control.LAYOUT_DIRECTION_LTR
+		row.add_theme_constant_override("separation", 16)
+		v.add_child(row)
+		var mark := "✓" if is_done else ("▶" if is_next else "·")
+		var colour: Color = Look.INK_MUTED if is_done else (Look.NAVY if is_next else Look.INK)
+		var l := _card_line(row, "%s  %d. %s" % [mark, i + 1, c[lang]], 20, colour)
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var k: String = ui.key_name(CHECK_KEY + STEP_IDS.find(String(c.step)))  # as bound, Cmd on macOS
+		_card_line(row, k, 18, Look.INK_MUTED).text_direction = Control.TEXT_DIRECTION_LTR
+	_card_line(v, CARD_NEXT[lang] % next if next != "" else CARD_DONE[lang], 20, Look.NAVY)
+	if _fault_shown != "":
+		_card_line(v, String(trainer.text(_fault_shown, lang)), 20, Color("b3261e")).autowrap_mode = (
+			TextServer.AUTOWRAP_WORD_SMART
+		)
+
+
+## The banner over the view in the front end's look (navy, Heebo) until the flight ends into the debrief: "Mission
+## complete", or "Fail" with the reason that ended it.
+func _show_banner(title: String, reason: String) -> void:
+	if _banner != null:
+		_banner.queue_free()
+	var font := FontFile.new()
+	font.load_dynamic_font(ProjectSettings.globalize_path(WizardTheme.FONT))
+	_banner = PanelContainer.new()
+	_banner.name = "Banner"
+	_banner.add_theme_stylebox_override("panel", Look.box(Look.NAVY, Look.ACCENT, 3, 5, Vector2(48, 24)))
+	_banner.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	_banner.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_banner.position.y = 160
+	var v := VBoxContainer.new()
+	_banner.add_child(v)
+	for line in [[title, 48, Color.WHITE], [reason, 26, Look.ACCENT_TEXT]]:
+		if line[0] == "":
+			continue
+		var l := Label.new()
+		l.text = line[0]
+		l.add_theme_font_override("font", font)
+		l.add_theme_font_size_override("font_size", line[1])
+		l.add_theme_color_override("font_color", line[2])
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.text_direction = Control.TEXT_DIRECTION_RTL if _he() else Control.TEXT_DIRECTION_LTR
+		v.add_child(l)
+	ui.add_child(_banner)
+	ui.show_panel("")
 	open = false

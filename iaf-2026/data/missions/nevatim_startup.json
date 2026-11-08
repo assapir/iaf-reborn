@@ -17,14 +17,17 @@
     "wind_kt": "inferred",
     "wind_from": "inferred",
     "start.elevation_m": "oa",
-    "training.time_budget_s": "inferred"
+    "training.time_budget_s": "inferred",
+    "training.end_hold_s": "inferred"
   },
   "notes": {
     "time": "the MVP's conditions: day (plan.md, MVP)",
     "wind_kt": "the MVP's conditions: calm (plan.md, MVP)",
     "wind_from": "calm: no direction",
     "start": "the base's parking spot for the unit (iaf-2026/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
-    "training.time_budget_s": "two minutes from the mission's start: one start command (plan.md, start-up) and the engine's wind-up, with time to find the command"
+    "training.time_budget_s": "five minutes from the mission's start: the checklist by keys, the engine's wind-up and the INS stored-heading alignment (90 s) or the F-35's 90 s self test, with time to read the card",
+    "training.end_hold_s": "the mission ends 5 s after its goal: time to see the result before the debrief",
+    "training.checklist": "the start-up checklist by keys (training.md §7.1): the F-16's after the T.O. checklist's order, the F-35's battery, IPP, engine (AIR International, 2012)"
   },
   "footnotes": {
     "oa": "OurAirports, airports.csv (public domain; LLNV elevation 1330 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
@@ -49,6 +52,34 @@
   },
   "training": {
     "kind": "startup",
-    "time_budget_s": 120
+    "time_budget_s": 300,
+    "end_hold_s": 5,
+    "goals": [],
+    "checklist": [
+      {
+        "step": "main_power",
+        "key": "Ctrl+B",
+        "en": "Battery: ON",
+        "he": "מצבר: ON"
+      },
+      {
+        "step": "starter",
+        "key": "Ctrl+J",
+        "en": "IPP: START (10 s)",
+        "he": "IPP: START (10 שנ׳)"
+      },
+      {
+        "step": "engine",
+        "key": "Ctrl+I",
+        "en": "Engine: START",
+        "he": "מנוע: START"
+      },
+      {
+        "step": "canopy",
+        "key": "Ctrl+K",
+        "en": "Canopy: close and lock",
+        "he": "חופה: סגירה ונעילה"
+      }
+    ]
   }
 }

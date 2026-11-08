@@ -47,7 +47,13 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the 6-DoF, the screens and the HUD come alive at the real moments; the radio menu (Ctrl+T, 1–3) asks the base's
   tower for start-up, taxi and take-off and the English TTS tower answers; at the end the flight is scored, the
   debrief record written to `user://debriefs/` and the attempt to the pilot log ([training.md](training.md) §7–§10).
-  `iaf-2026/tests/test_mvp.gd` flies both missions for the Sufa, the Barak and the F-35I to a Pass.
+  `iaf-2026/tests/test_mvp.gd` flies both missions for the Sufa, the Barak and the F-35I to a Pass. Since 2026-11-08
+  a crash, any damage or the wheels off the pavement fail a mission at once with that reason first; a pass ends 5 s
+  after the goal or when the player ends the flight; the debrief sheet shows only the mission's goals
+  ([training.md](training.md) §3.0, §4). A banner says "Mission complete" or the Fail and its reason, then the flight
+  ends into the debrief; an ejection ends the sortie: silent, outside view, Fail "ejected" (§9). The start-up
+  mission is the real start by keys: the F-16's six-step checklist and the F-35I's battery, IPP, engine, canopy, on
+  a card in both languages; a step out of order has its consequence (a hot start, no power) and fails (§7.1).
 - **[B2b](plan.md#b2-the-airbases), the airbases in the game (2026-11-03):** `iaf-sim airbases` compiles Ramon, Ramat David, Hatzerim and
   Nevatim into the theatre: `airbases.json` and paved masks (Detailed airbases), an own `iaf.ibx` and
   `terraintype.dat` ([airbases.md](airbases.md) §9); the missions start on the bases' parking spots; the M0 probe

@@ -120,6 +120,17 @@ static func create_engine(view_host: Node, flight, ent: Dictionary) -> Node:
 	return n
 
 
+## Every sound stopped for good (`silence`, Settings.eject_ends_sortie): nothing plays any more.
+var silenced := false
+
+
+func silence() -> void:
+	silenced = true
+	for c in get_children():
+		if c is AudioStreamPlayer or c is AudioStreamPlayer3D:
+			c.stop()
+
+
 func _ready() -> void:
 	SoundBuses.apply()
 	betty = has_betty(type_code)
@@ -132,6 +143,8 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	if silenced:
+		return
 	if engine_flight != null:
 		_engine_only()
 		return
@@ -420,6 +433,8 @@ func play_eject() -> Node:
 ## volume, no table volume (quirk kept: e.g. the touchdown and screech follow the speech slider);
 ## channel 101 is the phrase channel of the mission voices.
 func play(code: String, sub1 := "None") -> Node:
+	if silenced:
+		return null
 	var r: Dictionary = table.row(code, sub1) if table != null else {}
 	if r.is_empty():
 		return null
@@ -457,6 +472,8 @@ func play(code: String, sub1 := "None") -> Node:
 ## radio phrase, FUN_004c5750 → FUN_005448b0): speech volume, not 3-D, queued behind the sound on channel 101
 ## (docs/radio.md §1). Null when the file is not shipped (silent, as in the original).
 func play_phrase_wav(file: String) -> Node:
+	if silenced:
+		return null
 	var name := file.to_lower()
 	if not "." in name:
 		name += ".wav"

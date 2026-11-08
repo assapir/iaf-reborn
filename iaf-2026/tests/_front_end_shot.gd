@@ -3,10 +3,11 @@
 #     -s ../iaf-2026/tests/_front_end_shot.gd
 # Writes SHOT_DIR/<screen>_<lang>.png (home_first_*: before a plane is picked; prefs_<section>_*) at 1920×1080 (the
 # front end in a viewport of that size, whatever the window's) with the sample pilot log and debrief of
-# test_front_end.gd.
+# test_front_end.gd, and a start-up that crashed
+# (debrief_fail).
 extends "res://../tests/godot/base.gd"
 
-const SCREENS := ["home", "plane", "training", "mission", "prefs", "debrief", "log", "credits"]
+const SCREENS := ["home", "plane", "training", "mission", "prefs", "debrief", "debrief_fail", "log", "credits"]
 
 
 func run() -> void:
@@ -15,6 +16,19 @@ func run() -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
 	var s := settings()
 	var file: String = load("res://tests/test_front_end.gd").fixture(s)
+	var fail := file.get_base_dir().path_join("debrief-20261102-093000-ramon_startup.json")
+	var crash := {
+		"mission": "ramon_startup",
+		"kind": "startup",
+		"pass": false,
+		"reasons": ["crash"],
+		"items": [{"id": "time_to_idle", "value": 37.2, "unit": "s"}],
+		"goals": [],
+		"strings": {"en": {"crash": "The jet crashed."}, "he": {"crash": "המטוס התרסק."}},
+		"date": "2026-11-02T09:32:00",
+		"elapsed_s": 95.0,
+	}
+	FileAccess.open(fail, FileAccess.WRITE).store_string(JSON.stringify(crash))
 	s.sim_jet = "f16i"
 	var vp := SubViewport.new()
 	vp.size = Vector2i(1920, 1080)
@@ -40,6 +54,8 @@ func run() -> void:
 		for p in SCREENS:
 			if p == "debrief":
 				fe.open_debrief(file)
+			elif p == "debrief_fail":
+				fe.open_debrief(fail)
 			else:
 				fe.mission_i = 1
 				fe.show_page(p)

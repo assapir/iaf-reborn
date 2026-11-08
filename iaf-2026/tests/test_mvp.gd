@@ -1,10 +1,13 @@
 # The MVP probe (iaf-2026/docs/plan.md, item F; started by item E3b): Modern IAF's two training missions flown headless
 # for each MVP jet (the Sufa at Ramon, the Barak at Ramat David, the F-35I at Nevatim) with scripted inputs, each
 # ending in a Pass from the run-time scoring (iaf-2026/docs/training.md §7–§9):
-# - start-up: parked cold (no RPM, no power), the throttle starts nothing, the start command runs the sequence, the
-#   displays come up, the engine idles; the recorder's RPM / avionics columns; the debrief record and the pilot log;
+# - start-up: parked cold (no RPM, no power), the throttle starts nothing, the checklist by its keys (the F-16's
+#   six steps, the F-35I's four) runs the sequence, the displays come up, the engine idles; a step out of order
+#   fails; the recorder's RPM / avionics columns; the debrief record and the pilot log;
 # - take-off: the radio menu's three requests answered by the base's tower, a taxi along the base's taxi path
-#   (the own iaf.ibx) to the lineup, the roll, the rotation, gear up on the runway heading.
+#   (the own iaf.ibx) to the lineup, the roll, the rotation, gear up on the runway heading; the debrief's goals;
+# - a crash (the Sufa's start-up): the mission ends at once in a Fail with the crash first;
+# - an ejection (the Sufa's take-off): no sound or radio afterwards, the debrief's reason "ejected", the eject event.
 # The front end's part is test_front_end.gd (with `-- --fly` it flies a mission through the screens). Still open for
 # item F: the run on a root that holds only the sim's files, macOS and Windows.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-2026 \
@@ -20,11 +23,13 @@ const JETS := {
 }
 ## The probe's clock: the sim runs this much faster than the frames (time compression, as the C key).
 const TIME_SCALE := 6.0
-## The taxi: speed (m/s), slower within TURN_M of a turn; a point is passed within REACH_M.
+## The taxi: speed (m/s), slower within TURN_M of a turn; a point is passed within REACH_M; the jet steers to a point
+## LOOK_M ahead on the leg (it follows the taxi line: off the pavement fails the mission, training.md §3.0).
 const TAXI_MS := 10.0
-const TURN_MS := 4.0
-const TURN_M := 40.0
-const REACH_M := 12.0
+const TURN_MS := 2.5
+const TURN_M := 70.0
+const REACH_M := 6.0
+const LOOK_M := 12.0
 ## The take-off: rotation speed (kt) per jet (about the mission's reference speed less 10 kt: training.md §3), the
 ## climb's pitch.
 const ROTATE_KT := {"f16i": 155.0, "f16": 140.0, "f35i": 160.0}
@@ -58,6 +63,10 @@ func run() -> void:
 			await startup(id)
 		if only != "startup":
 			await takeoff(id)
+	if only == "" and jet in ["", "f16i"]:
+		await crash()
+		await eject()
+		await wrong_order()
 	Engine.time_scale = 1.0
 
 
@@ -122,13 +131,7 @@ func startup(id: String) -> void:
 	await fly(tv, 2.0)
 	check(not tv.flight.state().engine_on, "%s: the throttle starts nothing" % jet)
 	tv.throttle = 0.0
-	_press(tv, KEY_E, true)  # Start engine (Ctrl+E, the own keys.json)
-	await fly(tv, 5.0)
-	st = tv.flight.state()
-	check(
-		st.start_phase != "off" and int(st.power) >= 1,
-		"%s: the start runs (%s, power %s)" % [jet, st.start_phase, st.power]
-	)
+	await _checklist(tv, id == "f35i")
 	var ok := await _until(tv, func(): return not tv.addon.result.is_empty(), 150.0)
 	var d: Dictionary = tv.addon.result
 	check(ok and bool(d.get("pass", false)), "%s: start-up scored %s %s" % [jet, d.get("pass"), d.get("reasons")])
@@ -146,6 +149,84 @@ func startup(id: String) -> void:
 	st = tv.flight.state()
 	check(tv.cockpit.power == 2 and float(st.rpm) >= 0.6, "%s: idle with the displays up" % jet)
 	_check_files(tv, jet)
+
+
+## A crash during the start-up: the run time ends the mission at once (IafTraining's live check).
+func crash() -> void:
+	var tv := await _start("ramon_startup")
+	await fly(tv, 1.0)
+	tv._on_crashed("test")
+	await frames(3)
+	var d: Dictionary = tv.addon.result
+	check(
+		not d.is_empty() and not bool(d.get("pass", true)) and d.get("reasons", [""])[0] == "crash",
+		"a crash ends the start-up at once: %s %s" % [d.get("pass"), d.get("reasons")]
+	)
+
+
+## An ejection in the take-off: the sortie ends (Settings.eject_ends_sortie): silent, Fail "ejected" first.
+func eject() -> void:
+	var tv := await _start("ramon_takeoff")
+	await fly(tv, 1.0)
+	tv._eject()
+	var said: int = tv.radio.said.size()
+	var played: int = tv.sounds.played.size()
+	await _call(tv, 1)
+	await fly(tv, 1.0)
+	check(
+		tv.sounds.silenced and tv.radio.said.size() == said and tv.sounds.played.size() == played,
+		(
+			"after the ejection no radio call or sound plays (%d said, %d played)"
+			% [tv.radio.said.size() - said, tv.sounds.played.size() - played]
+		)
+	)
+	var d: Dictionary = tv.addon.result
+	check(
+		not d.is_empty() and d.get("reasons", [""])[0] == "ejected",
+		"an ejection ends the take-off: %s %s" % [d.get("pass"), d.get("reasons")]
+	)
+	var rec := FileAccess.get_file_as_string(String(d.get("flight", "")))
+	check(rec.contains('"event":"eject"'), "the recording holds the eject event")
+
+
+## The start-up checklist by its keys (commands 210–215, training.md §7.1), each when its moment comes; the card
+## ticks each step.
+func _checklist(tv: Node, f35: bool) -> void:
+	var step := func(n: int) -> void: tv._command([209 + n, 0, 0])
+	var rpm := func() -> float: return float(tv.flight.state().rpm)
+	step.call(1)  # main power / battery
+	await fly(tv, 1.0)
+	step.call(2)  # JFS / IPP
+	if f35:
+		await fly(tv, 11.0)  # the IPP up to speed
+		step.call(3)  # engine start
+	else:
+		await _until(tv, func(): return rpm.call() >= 0.2, 60.0)
+		step.call(3)  # throttle to idle at 20 %
+		await _until(tv, func(): return rpm.call() >= 0.55, 60.0)  # the generators on line
+		step.call(4)  # avionics power
+		step.call(5)  # INS stored-heading alignment
+	step.call(6)  # canopy
+	var st: Dictionary = tv.flight.state()
+	check(
+		tv.addon.done.size() == tv.addon.checklist.size() and tv.addon._fault_shown == "",
+		(
+			"the checklist: %d of %d steps, no fault (%s, power %s)"
+			% [tv.addon.done.size(), tv.addon.checklist.size(), st.start_phase, st.power]
+		)
+	)
+
+
+## A step out of order: the JFS before the main power ends the start-up at once, its fault first.
+func wrong_order() -> void:
+	var tv := await _start("ramon_startup")
+	tv._command([211, 0, 0])
+	await frames(3)
+	var d: Dictionary = tv.addon.result
+	check(
+		not d.is_empty() and d.get("reasons", [""])[0] == "no_power" and tv.flight.state().start_phase == "off",
+		"the JFS without main power: nothing runs, the start-up fails: %s" % [d.get("reasons")]
+	)
 
 
 func _check_files(tv: Node, jet: String) -> void:
@@ -194,6 +275,8 @@ func takeoff(id: String) -> void:
 	var ok := await _until(tv, func(): return not tv.addon.result.is_empty(), 120.0)
 	var d: Dictionary = tv.addon.result
 	check(ok and bool(d.get("pass", false)), "%s: take-off scored %s %s" % [jet, d.get("pass"), d.get("reasons")])
+	var goals := ["runway", "liftoff_speed", "reference_speed", "max_centreline_offset", "tower_calls"]
+	check(d.get("goals", []) == goals, "%s: the debrief's goals %s" % [jet, d.get("goals")])
 	for it in d.get("items", []):
 		if it.id in ["taxi_time", "roll_length", "liftoff_speed", "gear_up_height", "tower_calls"]:
 			print("  %s %s %s" % [it.id, it.get("value"), it.get("unit", "")])
@@ -214,22 +297,31 @@ func _drive(tv: Node, err: float, target_ms: float) -> void:
 	tv.scripted_rudder = clampf(err / 25.0, -1.0, 1.0)
 	var v: float = tv.flight.state().speed
 	tv.throttle = clampf((target_ms - v) * 0.08, 0.0, 0.6)
-	tv.brakes = v > target_ms + 2.0
+	tv.brakes = v > target_ms + 0.5
 
 
 func _taxi(tv: Node, path: Array, hdg: float) -> bool:
 	var i := 0
 	var t0: float = tv._sim_time
+	var w0: Vector3 = tv.player_world()
+	var from := Vector2(w0.x, w0.y)
 	while i < path.size():
 		if tv._sim_time - t0 > 900.0:
 			return false
 		var w: Vector3 = tv.player_world()
-		var d := Vector2(w.x, w.y).distance_to(path[i])
+		var at := Vector2(w.x, w.y)
+		var d := at.distance_to(path[i])
 		if d < REACH_M or (i == path.size() - 1 and d < 25.0):
+			from = path[i]
 			i += 1
 			continue
 		var turn := d < TURN_M and i + 1 < path.size()
-		_drive(tv, _bearing_err(tv, path[i]), TURN_MS if turn or i == path.size() - 1 else TAXI_MS)
+		var leg: Vector2 = path[i] - from
+		var along := clampf((at - from).dot(leg.normalized()), 0.0, leg.length())
+		var aim: Vector2 = from + leg.normalized() * minf(along + LOOK_M, leg.length())
+		var err := _bearing_err(tv, aim)
+		# Slow through a turn until the nose is on the new leg.
+		_drive(tv, err, TURN_MS if turn or absf(err) > 15.0 or i == path.size() - 1 else TAXI_MS)
 		await process_frame
 	# Stopped on the lineup, then turned onto the runway heading, as a pilot lines up.
 	var c: Vector2 = path[-1]

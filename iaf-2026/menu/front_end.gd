@@ -914,17 +914,24 @@ func _page_debrief() -> void:
 			val.name = "Field_" + c[0]
 			if c[0] == "f_time":
 				val.text_direction = Control.TEXT_DIRECTION_LTR
-	# The numbers in two columns.
-	_spacer_px(inner, 22)
-	_label(inner, s("numbers"), "PaperHead")
-	_rule(inner, Look.INK, 2)
-	var cols := _hbox(inner, 62)
-	cols.name = "Numbers"
-	var shown: Array = record.get("items", []).filter(func(it): return it.get("value") != null)
+	# The mission's goals (the record's `goals`; a record from before them: every number) in two columns.
 	var lang := "he" if he() else "en"
 	var names: Dictionary = record.get("strings", {}).get(lang, {})
+	var all: Array = record.get("items", [])
+	var goals: Array = record.get("goals", all.map(func(it): return it.id))
+	var shown := []
+	for g in goals:
+		for it in all:
+			if it.id == g and (it.get("value") != null or it.has("text")):
+				shown.append(it)
 	var half := ceili(shown.size() / 2.0)
-	for c in 2:
+	if not shown.is_empty():
+		_spacer_px(inner, 22)
+		_label(inner, s("numbers"), "PaperHead")
+		_rule(inner, Look.INK, 2)
+	var cols := _hbox(inner, 62)
+	cols.name = "Numbers"
+	for c in 2 if not shown.is_empty() else 0:
 		var col := _vbox(cols, 0)
 		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		for it in shown.slice(c * half, (c + 1) * half):
@@ -936,13 +943,15 @@ func _page_debrief() -> void:
 				Control.TEXT_DIRECTION_LTR if he() and str(it.unit) in ["deg", ""] else Control.TEXT_DIRECTION_AUTO
 			)
 			_rule(col, Look.RULE)
-	# Remarks: why it failed, then what the numbers say.
+	# Remarks: why it failed (the reason that ended it first), or that it passed; the lift-off against the reference.
 	_spacer_px(inner, 22)
 	_label(inner, s("remarks"), "PaperHead")
 	_rule(inner, Look.INK, 2)
 	var lines := []
 	for r in record.get("reasons", []):
 		lines.append(str(names.get(r, r)))
+	if record.get("pass", false) and strings.has("done_" + str(record.get("kind", ""))):
+		lines.append(s("done_" + str(record.kind)))
 	lines.append_array(remarks())
 	var rem := _vbox(inner, 0)
 	rem.name = "Remarks"
@@ -959,20 +968,16 @@ func _page_debrief() -> void:
 	_footer([["Esc", "back"]], "", [back, again])
 
 
-## The remarks the numbers give: the lift-off speed against the reference for the weight, the roll on the centreline.
+## The remark the goals give: the lift-off speed against the reference.
 func remarks() -> Array:
 	var it := {}
 	for i in record.get("items", []):
 		if i.get("value") != null:
 			it[i.id] = i
-	var out := []
-	if it.has("liftoff_speed") and it.has("reference_speed") and it.has("gross_weight"):
-		var d := float(it.liftoff_speed.value) - float(it.reference_speed.value)
-		var kt := value_text({"value": absf(d), "unit": "kt"})
-		out.append(s("remark_above" if d >= 0 else "remark_below") % [kt, value_text(it.gross_weight)])
-	if it.has("max_centreline_offset"):
-		out.append(s("remark_centreline") % value_text(it.max_centreline_offset))
-	return out
+	if not (it.has("liftoff_speed") and it.has("reference_speed")):
+		return []
+	var d := float(it.liftoff_speed.value) - float(it.reference_speed.value)
+	return [s("remark_above" if d >= 0 else "remark_below") % value_text({"value": absf(d), "unit": "kt"})]
 
 
 ## Back to missions: the flown mission's jet and the mission itself picked.
@@ -1019,8 +1024,10 @@ func debrief_time(m: Dictionary) -> String:
 	return out
 
 
-## A debrief value with its unit: thousands grouped, seconds as m:ss past a minute.
+## A debrief value with its unit: thousands grouped, seconds as m:ss past a minute; a name (the runway) as it is.
 func value_text(it: Dictionary) -> String:
+	if it.has("text"):
+		return str(it.text)
 	var v := float(it.value)
 	var unit := str(it.unit)
 	if unit == "s" and v >= 60.0:

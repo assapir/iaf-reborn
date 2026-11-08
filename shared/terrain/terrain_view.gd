@@ -2647,6 +2647,11 @@ func _command(cmd: Array) -> bool:
 			# (iaf-2026/docs/training.md §7). The original model ignores it.
 			if flight != null:
 				flight.start_engine()
+		210, 211, 212, 213, 214, 215:
+			# Modern IAF's start-up checklist steps (its own keys.json; iaf-2026/docs/training.md §7.1): the flight add-on
+			# passes them to the flight model and ticks its card.
+			if addon != null and addon.has_method("start_step"):
+				addon.start_step(int(cmd[0]) - 210)
 		_:
 			return false
 	return true
@@ -3851,6 +3856,11 @@ func _eject() -> void:
 		aircraft.ejected = true
 	if runtime != null:
 		runtime.player_ejected()
+	if Settings.eject_ends_sortie():
+		# IAF 2026: the sortie ends here; the training run (Settings.flight_addon) ends the mission on the event.
+		sounds.silence()
+		_log_event(_log_st, {"event": "eject", "short": eject_short})
+		eject_short = false  # the view stays outside on the seat and the jet (no FlyTSD)
 	if eject_short:
 		if aircraft != null:
 			aircraft.canopy_gone = true

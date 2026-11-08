@@ -232,6 +232,14 @@ impl SixDof {
         }
     }
 
+    /// One start-up checklist step by its key ([`Sequence::press`]); a running engine takes none.
+    pub fn start_step(&mut self, step: &str) -> Result<(), &'static str> {
+        if self.engine_on && step != "avionics" && step != "ins" {
+            return Ok(());
+        }
+        self.start_seq.press(&self.jet.start, step)
+    }
+
     /// The electrical power: 0 none, 1 the battery, 2 the displays up ([`Sequence::power`]).
     pub fn power(&self) -> u8 {
         self.start_seq.power(&self.jet.start)

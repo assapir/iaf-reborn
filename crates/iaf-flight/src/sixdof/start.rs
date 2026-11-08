@@ -3,6 +3,12 @@
 //! cranks the engine to the light-off RPM, the throttle goes to idle, the fuel lights, the engine accelerates to idle;
 //! the main generator comes on line on the way and the displays and the avionics come up after it. Sources and the
 //! inferred figures: training.md §7.
+//!
+//! The start-up mission flies the same sequence step by step by keys (`Start::press`, training.md §7.1): the F-16's
+//! checklist (main power, JFS, throttle to idle at 20 %, avionics power after the generators, INS stored-heading
+//! alignment, canopy) and the F-35I's (battery, IPP, engine start, canopy). A step out of order has the real
+//! consequence (no power for the starter, a hot start that stops the engine, a switch that does nothing) and is
+//! returned as a fault for the debrief.
 
 /// The 6-DoF's idle RPM, % (its gauge's line, iaf-2026/docs/flight-model.md §9.7).
 pub const IDLE_RPM: f64 = 60.0;
@@ -30,6 +36,10 @@ pub struct StartSpec {
     pub warmup_s: f64,
     /// The avionics report ready this long after the command at the earliest (the F-35's self test), s.
     pub ready_s: f64,
+    /// By keys: the engine start runs on its own once commanded (the F-35's): no throttle step, no avionics switches.
+    pub fadec: bool,
+    /// By keys: the INS stored-heading alignment, s (0: none to fly).
+    pub ins_align_s: f64,
 }
 
 /// The F-16's (the Sufa, the Barak; the F-15I's inferred the same): the JFS cranks the engine to 20 % in 15 s, the
@@ -46,13 +56,22 @@ pub const JFS: StartSpec = StartSpec {
     displays_on_starter: false,
     warmup_s: 3.0,
     ready_s: 0.0,
+    fadec: false,
+    ins_align_s: 90.0,
 };
 
 /// The F-35I's: battery, the IPP (10 s to run, inferred), the engine start button; the displays on the IPP's power;
 /// the aircraft declares itself ready 90 s after the start (AIR International, 2012). The engine's own steps are the
 /// F-16's (inferred: none published).
-pub const IPP: StartSpec =
-    StartSpec { starter: "IPP", starter_s: 10.0, displays_on_starter: true, ready_s: 90.0, ..JFS };
+pub const IPP: StartSpec = StartSpec {
+    starter: "IPP",
+    starter_s: 10.0,
+    displays_on_starter: true,
+    ready_s: 90.0,
+    fadec: true,
+    ins_align_s: 0.0,
+    ..JFS
+};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Phase {
@@ -97,6 +116,13 @@ pub struct Start {
     displays_at: Option<f64>,
     /// The command was given (the battery is on).
     commanded: bool,
+    /// Flown by keys (`press`): the steps wait for their keys.
+    manual: bool,
+    /// By keys: the fuel on (the F-16's throttle to idle; the F-35's engine start).
+    fuel_on: bool,
+    /// By keys: the F-16's avionics power switched on, and the INS alignment's start (s since the command).
+    avionics_at: Option<f64>,
+    ins_at: Option<f64>,
 }
 
 impl Start {
@@ -134,10 +160,13 @@ impl Start {
         self.t += dt;
         self.phase_t += dt;
         match self.phase {
-            Phase::Starter if self.phase_t >= s.starter_s => self.next(Phase::Crank),
+            // By keys the F-35's IPP runs until the engine start, the F-16's JFS holds at light-off for the throttle.
+            Phase::Starter if self.phase_t >= s.starter_s && !(self.manual && s.fadec && !self.fuel_on) => {
+                self.next(Phase::Crank)
+            }
             Phase::Crank => {
                 self.rpm = (self.rpm + s.crank_rate * dt).min(s.lightoff_rpm);
-                if self.rpm >= s.lightoff_rpm {
+                if self.rpm >= s.lightoff_rpm && (!self.manual || self.fuel_on) {
                     self.next(Phase::LightOff);
                 }
             }
@@ -163,9 +192,14 @@ impl Start {
         self.phase_t = 0.0;
     }
 
-    /// The electrical power: 0 none (cold), 1 the battery (lamps, engine gauges), 2 the displays up.
+    /// The electrical power: 0 none (cold), 1 the battery (lamps, engine gauges), 2 the displays up (by keys, the
+    /// F-16's also after its avionics power switch).
     pub fn power(&self, s: &StartSpec) -> u8 {
-        match self.displays_at {
+        let up = match self.displays_at {
+            Some(at) if self.manual && !s.fadec => self.avionics_at.map(|a| a.max(at)),
+            d => d,
+        };
+        match up {
             Some(at) if self.t >= at + s.warmup_s => 2,
             _ if self.commanded => 1,
             _ => 0,
@@ -174,7 +208,51 @@ impl Start {
 
     /// The avionics up: the displays up and, for a jet with a self test, its time passed.
     pub fn avionics(&self, s: &StartSpec) -> bool {
-        self.power(s) == 2 && self.t >= s.ready_s
+        let aligned = !self.manual || s.ins_align_s <= 0.0 || self.ins_at.is_some_and(|a| self.t >= a + s.ins_align_s);
+        self.power(s) == 2 && self.t >= s.ready_s && aligned
+    }
+
+    /// One checklist step by its key (training.md §7.1): "main_power", "starter", "engine", "avionics", "ins",
+    /// "canopy". Err: the fault of a step out of order, with its consequence applied (the switch does nothing; a hot
+    /// start stops the engine).
+    pub fn press(&mut self, s: &StartSpec, step: &str) -> Result<(), &'static str> {
+        if self.phase == Phase::Running && !self.manual {
+            return Ok(()); // an engine already running (an airborne start, Ctrl+E)
+        }
+        match step {
+            "main_power" => {
+                if !self.commanded {
+                    *self = Start { commanded: true, manual: true, ..Start::default() };
+                }
+            }
+            "starter" if !self.commanded => return Err("no_power"),
+            "starter" => {
+                if self.phase == Phase::Off {
+                    self.phase = Phase::Starter;
+                    self.phase_t = 0.0;
+                }
+            }
+            "engine" if s.fadec => match self.phase {
+                Phase::Off => return Err("no_ipp"),
+                Phase::Starter if self.phase_t < s.starter_s => return Err("ipp_not_ready"),
+                _ => self.fuel_on = true,
+            },
+            "engine" => match self.phase {
+                Phase::Off => return Err("no_rotation"),
+                // Fuel below the light-off RPM: a hot start; the engine is shut down (the battery stays on).
+                Phase::Starter | Phase::Crank if self.rpm < s.lightoff_rpm => {
+                    *self = Start { commanded: true, manual: true, ..Start::default() };
+                    return Err("hot_start");
+                }
+                _ => self.fuel_on = true,
+            },
+            "avionics" if self.displays_at.is_none() => return Err("avionics_early"),
+            "avionics" => self.avionics_at = self.avionics_at.or(Some(self.t)),
+            "ins" if self.avionics_at.is_none() => return Err("ins_no_power"),
+            "ins" => self.ins_at = self.ins_at.or(Some(self.t)),
+            _ => {}
+        }
+        Ok(())
     }
 }
 
@@ -213,6 +291,66 @@ mod tests {
         assert!((idle - 45.0).abs() < 0.2, "idle at {idle}");
         assert!((disp - 13.0).abs() < 0.2, "displays at {disp}");
         assert!((av - 90.0).abs() < 0.1, "avionics at {av}");
+    }
+
+    /// Presses `steps` at 30 Hz, each `gap` s after the last; the faults, and the time the avionics came up.
+    fn keys(s: &StartSpec, steps: &[(&str, f64)]) -> (Vec<&'static str>, Option<f64>) {
+        let (mut st, mut faults, mut t, mut av) = (Start::default(), vec![], 0.0, None);
+        for (step, gap) in steps {
+            let until = t + gap;
+            while t < until {
+                st.step(s, 1.0 / 30.0);
+                t += 1.0 / 30.0;
+            }
+            if let Err(f) = st.press(s, step) {
+                faults.push(f);
+            }
+        }
+        while t < 300.0 {
+            st.step(s, 1.0 / 30.0);
+            t += 1.0 / 30.0;
+            av = av.or(st.avionics(s).then_some(t));
+        }
+        (faults, av)
+    }
+
+    #[test]
+    fn the_f16_checklist_in_order_brings_everything_up() {
+        let order = [("main_power", 1.0), ("starter", 2.0), ("engine", 16.0), ("avionics", 25.0), ("ins", 2.0)];
+        let (faults, av) = keys(&JFS, &order);
+        assert!(faults.is_empty(), "{faults:?}");
+        // The INS aligned 90 s after its knob (at 46 s).
+        assert!((av.unwrap() - 136.0).abs() < 0.2, "{av:?}");
+    }
+
+    #[test]
+    fn the_f16_checklist_out_of_order_has_its_consequence() {
+        // The JFS without main power: nothing runs.
+        assert_eq!(keys(&JFS, &[("starter", 1.0)]), (vec!["no_power"], None));
+        // The throttle to idle at 5 % RPM: a hot start, the engine stopped.
+        let mut st = Start::default();
+        st.press(&JFS, "main_power").unwrap();
+        st.press(&JFS, "starter").unwrap();
+        for _ in 0..100 {
+            st.step(&JFS, 0.05);
+        }
+        assert_eq!(st.press(&JFS, "engine"), Err("hot_start"));
+        assert_eq!((st.phase, st.rpm, st.power(&JFS)), (Phase::Off, 0.0, 1));
+        // The avionics before the generators, the INS before the avionics: the switch does nothing.
+        let early = [("main_power", 1.0), ("avionics", 1.0), ("ins", 1.0), ("starter", 1.0), ("engine", 16.0)];
+        assert_eq!(keys(&JFS, &early), (vec!["avionics_early", "ins_no_power"], None));
+        // The throttle never to idle: the JFS holds the engine at 20 %, no light-off.
+        let (_, av) = keys(&JFS, &[("main_power", 1.0), ("starter", 1.0)]);
+        assert_eq!(av, None);
+    }
+
+    #[test]
+    fn the_f35_ipp_sequence() {
+        let (faults, av) = keys(&IPP, &[("main_power", 1.0), ("starter", 1.0), ("engine", 11.0)]);
+        assert!(faults.is_empty(), "{faults:?}");
+        assert!((av.unwrap() - 92.0).abs() < 0.2, "the self test 90 s after the battery: {av:?}");
+        assert_eq!(keys(&IPP, &[("main_power", 1.0), ("engine", 1.0)]).0, ["no_ipp"]);
+        assert_eq!(keys(&IPP, &[("main_power", 1.0), ("starter", 1.0), ("engine", 2.0)]).0, ["ipp_not_ready"]);
     }
 
     #[test]

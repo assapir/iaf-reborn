@@ -216,6 +216,8 @@ func expand(template: String, strings: Array = [], ints: Array = []) -> Dictiona
 ## A phrase printed (FUN_0044a060) and spoken (FUN_004c5750); `print_it` false: spoken only.
 func say(template: String, strings: Array = [], ints: Array = [], print_it := true) -> Dictionary:
 	var p := expand(template, strings, ints)
+	if host != null and host.get("sounds") is Object and host.sounds.get("silenced") == true:
+		return p  # the sortie ended (an ejection in IAF 2026): no more radio
 	said.append(p)
 	if print_it and p.text != "" and host != null and host.has_method("_on_subtitle"):
 		host._on_subtitle(p.shown)

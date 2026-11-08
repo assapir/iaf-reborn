@@ -2,9 +2,13 @@
 //! docs/blackbox.schema.json) scored against a training mission (`iaf-2026/data/missions/<id>.json`, its
 //! `"training"` rules) into a debrief record with English and Hebrew strings keyed by id.
 //!
+//! - every mission: a crash, any damage or the wheels off the pavement fails it at once (the recorder's `crash`, `hit`
+//!   and `surface` events; the game's live check is `Watch`);
 //! - start-up (`"kind": "startup"`): pass when the engine reaches idle with the avionics up within the time budget;
 //! - take-off (`"kind": "takeoff"`): pass when airborne with the gear up on the runway heading ± the tolerance, from
 //!   the mission's runway, with no runway excursion, within the time budget.
+//!
+//! The record keeps every number; the rules' `goals` name the few the debrief sheet shows.
 //!
 //! Positions: the recorder logs scene metres (x east, z south) from the terrain's origin; the scorer turns them into
 //! the engine frame (origin.x + x, origin.y − z) and the airbase file's runway ends into the same frame, UTM 36N, as
@@ -14,6 +18,7 @@ use anyhow::{Context, Result, bail, ensure};
 use serde_json::{Map, Value, json};
 
 use crate::sim;
+use crate::sim_bases::{self, Base};
 
 /// The flight model's ground start: the RPM winds up from 0 at 15 %/s to the 60 % idle (docs/flight-model.md
 /// §10.2), so idle comes 4 s after the engine starts. Used while the recorder has no RPM column.
@@ -29,6 +34,9 @@ const LIFTOFF_HOLD_S: f64 = 1.0;
 const ROTATION_PITCH_DEG: f64 = 2.0;
 /// A throttle step smaller than this between two samples is noise, not a movement.
 const THROTTLE_STEP: f64 = 0.005;
+/// The wheels count as on the pavement this far past its edges (inferred: OSM draws centrelines and outlines, not the
+/// paved fillets where a taxiway meets a runway or a turn, and its positions are good to a few metres).
+pub const PAVEMENT_MARGIN_M: f64 = 5.0;
 
 // --- Strings ----------------------------------------------------------------------------------------------------------
 
@@ -42,12 +50,43 @@ const STRINGS: &[(&str, &str, &str)] = &[
     ("no_start", "The engine never started.", "המנוע לא הותנע."),
     ("over_time", "Not done within the time budget.", "לא הושלם בזמן שהוקצב."),
     ("no_liftoff", "The jet never left the ground.", "המטוס לא המריא."),
+    ("ejected", "The pilot ejected.", "בוצע מילוט מהמטוס."),
     ("crash", "The jet crashed.", "המטוס התרסק."),
+    ("damage", "The jet was damaged.", "המטוס נפגע."),
+    ("off_pavement", "The jet left the pavement.", "המטוס ירד מהמשטח הסלול."),
+    ("not_done", "The engine never reached idle with the avionics up.", "המנוע לא הגיע לסרק עם אוויוניקה פועלת."),
+    // The start-up checklist's faults (iaf_flight start.rs `press`) and skipped steps.
+    ("no_power", "The starter had no power: the main power was off.", "למתנע לא היה מתח: המתח הראשי היה כבוי."),
+    (
+        "hot_start",
+        "Hot start: the throttle went to idle below 20 % RPM; the engine was shut down.",
+        "התנעה חמה: המצערת הועברה לסרק מתחת ל־20% סל״ד; המנוע כובה.",
+    ),
+    (
+        "no_rotation",
+        "No light-off: the throttle went to idle with the engine not turning.",
+        "אין הצתה: המצערת הועברה לסרק כשהמנוע לא הסתובב.",
+    ),
+    ("no_ipp", "Engine start without the IPP running.", "התנעת מנוע בלי שה־IPP פועל."),
+    ("ipp_not_ready", "Engine start before the IPP was up to speed.", "התנעת מנוע לפני שה־IPP הגיע למהירות."),
+    (
+        "avionics_early",
+        "Avionics power on before the generators: no power for them.",
+        "מתח אוויוניקה הופעל לפני הגנרטורים: לא היה להם מתח.",
+    ),
+    ("ins_no_power", "INS alignment without avionics power.", "יישור הניווט האינרציאלי ללא מתח אוויוניקה."),
+    ("skip_main_power", "Skipped: main power.", "דילוג: מתח ראשי."),
+    ("skip_starter", "Skipped: the starter.", "דילוג: המתנע."),
+    ("skip_engine", "Skipped: the engine start.", "דילוג: התנעת המנוע."),
+    ("skip_avionics", "Skipped: avionics power.", "דילוג: מתח אוויוניקה."),
+    ("skip_ins", "Skipped: INS alignment.", "דילוג: יישור הניווט האינרציאלי."),
+    ("skip_canopy", "Skipped: the canopy.", "דילוג: החופה."),
     ("wrong_runway", "The take-off was not from the assigned runway.", "ההמראה לא הייתה מהמסלול שהוקצה."),
     ("excursion", "The jet left the runway during the take-off roll.", "המטוס יצא מהמסלול בזמן ריצת ההמראה."),
     ("gear_down", "The gear was never raised.", "כן הנסע לא נאסף."),
     ("off_heading", "Not on the runway heading with the gear up.", "לא בכיוון המסלול עם כן נסע אסוף."),
     // Debrief items.
+    ("runway", "Runway", "מסלול"),
     ("time_to_idle", "Time to idle", "זמן עד סרק"),
     ("time_to_avionics", "Time to avionics up", "זמן עד הפעלת האוויוניקה"),
     ("throttle_moves", "Throttle movements", "הזזות מצערת"),
@@ -69,7 +108,6 @@ const STRINGS: &[(&str, &str, &str)] = &[
     ("cut_lines", "Lines cut off at the recording's end, skipped", "שורות קטועות בסוף ההקלטה, שדולגו"),
     // Notes in place of a value.
     ("none_modelled", "none modelled", "לא ממודל"),
-    ("not_recorded", "not recorded yet", "עוד לא מוקלט"),
     ("from_spool", "from the engine start and the model's wind-up", "מהתנעת המנוע וזמן ההאצה של המודל"),
     ("with_idle", "with the engine at idle: no avionics column", "עם המנוע בסרק: אין עמודת אוויוניקה"),
     ("not_reached", "not reached", "לא הושג"),
@@ -83,18 +121,53 @@ fn en(id: &str) -> &'static str {
 
 /// A training mission's pass / fail rules (the mission file's `"training"`, iaf-2026/docs/data-formats.md §5).
 #[derive(Debug, Clone, PartialEq)]
-pub enum Rules {
-    Startup {
-        time_budget_s: f64,
-    },
+pub struct Rules {
+    pub kind: Kind,
+    pub time_budget_s: f64,
+    /// The mission ends this long after its goal is reached.
+    pub end_hold_s: f64,
+    /// The debrief items the sheet shows, in order (ids of ITEMS).
+    pub goals: Vec<String>,
+    /// A start-up by keys: its checklist's step ids, in order (training.md §7.1); empty: none.
+    pub checklist: Vec<&'static str>,
+}
+
+/// Every step a start-up checklist may name (iaf_flight start.rs `Start::press`).
+pub const STEPS: [&str; 6] = ["main_power", "starter", "engine", "avionics", "ins", "canopy"];
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Kind {
+    Startup,
     Takeoff {
-        time_budget_s: f64,
         heading_tolerance_deg: f64,
         empty_kg: f64,
         /// (gross weight kg, reference take-off speed kt), by weight; interpolated, held at the ends.
         takeoff_kt: Vec<[f64; 2]>,
     },
 }
+
+/// Every debrief item id a mission's `goals` may name.
+pub const ITEMS: [&str; 19] = [
+    "time_to_idle",
+    "time_to_avionics",
+    "throttle_moves",
+    "faults",
+    "taxi_time",
+    "lineup_heading_error",
+    "runway",
+    "roll_start_from_runway_start",
+    "roll_length",
+    "runway_left",
+    "rotation_speed",
+    "liftoff_speed",
+    "reference_speed",
+    "gross_weight",
+    "gear_up_height",
+    "gear_up_time",
+    "roll_heading_deviation",
+    "max_centreline_offset",
+    "tower_calls",
+];
 
 /// The rules of a readable mission file, or None for a mission without `"training"`.
 pub fn rules(mission: &Value) -> Result<Option<Rules>> {
@@ -107,8 +180,17 @@ pub fn rules(mission: &Value) -> Result<Option<Rules>> {
         ensure!(v >= 0.0, "training: \"{k}\" must not be negative");
         Ok(v)
     };
-    Ok(Some(match t["kind"].as_str() {
-        Some("startup") => Rules::Startup { time_budget_s: num("time_budget_s")? },
+    let goals: Vec<String> = t["goals"]
+        .as_array()
+        .context("training: \"goals\" must be a list of debrief item ids")?
+        .iter()
+        .map(|g| match g.as_str() {
+            Some(id) if ITEMS.contains(&id) => Ok(id.to_string()),
+            _ => bail!("training: \"goals\": {g} is no debrief item"),
+        })
+        .collect::<Result<_>>()?;
+    let kind = match t["kind"].as_str() {
+        Some("startup") => Kind::Startup,
         Some("takeoff") => {
             let takeoff_kt: Vec<[f64; 2]> = t["takeoff_kt"]
                 .as_array()
@@ -122,20 +204,38 @@ pub fn rules(mission: &Value) -> Result<Option<Rules>> {
             ensure!(!takeoff_kt.is_empty(), "training: \"takeoff_kt\" is empty");
             ensure!(takeoff_kt.windows(2).all(|w| w[0][0] < w[1][0]), "training: \"takeoff_kt\" must rise in kg");
             ensure!(mission["runway"].is_string(), "training: a take-off mission needs \"runway\"");
-            Rules::Takeoff {
-                time_budget_s: num("time_budget_s")?,
+            Kind::Takeoff {
                 heading_tolerance_deg: num("heading_tolerance_deg")?,
                 empty_kg: num("empty_kg")?,
                 takeoff_kt,
             }
         }
         k => bail!("training: \"kind\" must be \"startup\" or \"takeoff\", not {k:?}"),
-    }))
+    };
+    let checklist = t["checklist"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|c| {
+            let id = c["step"].as_str().unwrap_or("");
+            ensure!(
+                c["en"].is_string() && c["he"].is_string(),
+                "training: checklist step {id:?} needs \"en\" and \"he\""
+            );
+            STEPS.iter().find(|s| **s == id).copied().with_context(|| format!("training: {c} is no checklist step"))
+        })
+        .collect::<Result<_>>()?;
+    Ok(Some(Rules { kind, time_budget_s: num("time_budget_s")?, end_hold_s: num("end_hold_s")?, goals, checklist }))
 }
 
 /// The rules' figures, each needing a source in the mission file (data-formats.md §1).
-pub const FIGURES: [&str; 4] =
-    ["training.time_budget_s", "training.heading_tolerance_deg", "training.empty_kg", "training.takeoff_kt"];
+pub const FIGURES: [&str; 5] = [
+    "training.time_budget_s",
+    "training.end_hold_s",
+    "training.heading_tolerance_deg",
+    "training.empty_kg",
+    "training.takeoff_kt",
+];
 
 fn interpolate(table: &[[f64; 2]], x: f64) -> f64 {
     let i = table.partition_point(|p| p[0] <= x);
@@ -310,16 +410,18 @@ fn angle(a: f64, b: f64) -> f64 {
 pub struct Item {
     pub id: &'static str,
     pub value: Option<f64>,
+    /// A value that is a name (the runway used, "25R").
+    pub text: Option<String>,
     pub unit: &'static str,
     pub note: Option<&'static str>,
 }
 
 fn item(id: &'static str, value: Option<f64>, unit: &'static str) -> Item {
-    Item { id, value, unit, note: value.is_none().then_some("not_reached") }
+    Item { id, value, text: None, unit, note: value.is_none().then_some("not_reached") }
 }
 
 fn noted(id: &'static str, value: Option<f64>, unit: &'static str, note: &'static str) -> Item {
-    Item { id, value, unit, note: Some(note) }
+    Item { id, value, text: None, unit, note: Some(note) }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -330,6 +432,8 @@ pub struct Debrief {
     /// Fail reason ids, in the order checked.
     pub reasons: Vec<&'static str>,
     pub items: Vec<Item>,
+    /// The items the sheet shows (the rules' `goals`).
+    pub goals: Vec<String>,
 }
 
 impl Debrief {
@@ -352,13 +456,24 @@ impl Debrief {
             "reasons": self.reasons,
             "items": self.items.iter().map(|i| {
                 let mut v = json!({"id": i.id, "value": i.value.map(|v| (v * 10.0).round() / 10.0), "unit": i.unit});
+                if let Some(t) = &i.text {
+                    v["text"] = json!(t);
+                }
                 if let Some(n) = i.note {
                     v["note"] = json!(n);
                 }
                 v
             }).collect::<Vec<_>>(),
+            "goals": self.goals,
             "strings": {"en": strings(0), "he": strings(1)},
         })
+    }
+
+    /// Fails the debrief with `reason` first (the game's live check, `Watch`, ended the mission on it).
+    pub fn fail_first(&mut self, reason: &'static str) {
+        self.reasons.retain(|r| *r != reason);
+        self.reasons.insert(0, reason);
+        self.pass = false;
     }
 
     /// The English text summary.
@@ -368,7 +483,7 @@ impl Debrief {
             out += &format!("  - {}\n", en(r));
         }
         for i in &self.items {
-            let v = i.value.map(|v| format!("{v:.1} {}", i.unit).trim_end().to_string());
+            let v = i.text.clone().or(i.value.map(|v| format!("{v:.1} {}", i.unit).trim_end().to_string()));
             let line = match (v, i.note) {
                 (Some(v), Some(n)) => format!("{v} ({})", en(n)),
                 (Some(v), None) => v,
@@ -387,17 +502,113 @@ impl Debrief {
 pub fn score(flight: &Flight, mission: &Value, airbases: &[Value]) -> Result<Debrief> {
     let id = mission["id"].as_str().unwrap_or("?").to_string();
     ensure!(!flight.samples.is_empty(), "the recording has no samples");
-    let mut d = match rules(mission)?.with_context(|| format!("{id}: no \"training\" rules"))? {
-        Rules::Startup { time_budget_s } => startup(flight, id, time_budget_s),
-        Rules::Takeoff { time_budget_s, heading_tolerance_deg, empty_kg, takeoff_kt } => {
-            let rw = runway(airbase_of(mission, airbases)?, mission["runway"].as_str().unwrap_or(""))?;
-            takeoff(flight, id, &rw, time_budget_s, heading_tolerance_deg, empty_kg, &takeoff_kt)
+    let r = rules(mission)?.with_context(|| format!("{id}: no \"training\" rules"))?;
+    let failed = hard_fail(&flight.events);
+    let mut d = match &r.kind {
+        Kind::Startup => {
+            let mut d = startup(flight, id, r.time_budget_s);
+            // A checklist step never done (its event without a fault) fails it.
+            let done = |step: &str| {
+                flight.events.iter().any(|e| e["event"] == "checklist" && e["step"] == step && e["fault"].is_null())
+            };
+            for step in r.checklist.iter().filter(|s| !done(s)) {
+                d.reasons.push(string_id(&format!("skip_{step}")).unwrap_or("not_done"));
+            }
+            d.pass = d.reasons.is_empty();
+            d
+        }
+        Kind::Takeoff { heading_tolerance_deg, empty_kg, takeoff_kt } => {
+            let airbase = airbase_of(mission, airbases)?;
+            let rw = runway(airbase, mission["runway"].as_str().unwrap_or(""))?;
+            let base = sim_bases::base(airbase, &format!("{id}: start.base"))?;
+            let t =
+                Takeoff { rw: &rw, base: &base, tolerance: *heading_tolerance_deg, empty_kg: *empty_kg, takeoff_kt };
+            takeoff(flight, id, &t, r.time_budget_s, failed.is_some())
         }
     };
+    d.goals = r.goals;
+    if let Some(reason) = failed {
+        d.fail_first(reason);
+    }
     if flight.cut_lines > 0 {
         d.items.push(item("cut_lines", Some(flight.cut_lines as f64), ""));
     }
     Ok(d)
+}
+
+/// The first event that fails any training mission at once: `crash`; a `hit` on the jet ("damage"); a `surface`
+/// event with the wheels off the pavement ("off_pavement").
+pub fn hard_fail(events: &[Value]) -> Option<&'static str> {
+    events.iter().find_map(|e| match e["event"].as_str() {
+        Some("eject") => Some("ejected"),
+        Some("crash") => Some("crash"),
+        Some("hit") => Some("damage"),
+        Some("surface") if e["paved"] == false => Some("off_pavement"),
+        Some("checklist") => e["fault"].as_str().and_then(string_id),
+        _ => None,
+    })
+}
+
+/// One frame of a training run for `Watch::check`.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Now {
+    pub on_ground: bool,
+    pub x: f64,
+    pub y: f64,
+    pub crashed: bool,
+    pub damage: f64,
+    pub ejected: bool,
+    /// A start-up checklist step's fault this frame (a string id), or None.
+    pub fault: Option<&'static str>,
+}
+
+/// The string `id` in `lang` ("en" / "he"), "" when unknown.
+pub fn text(id: &str, lang: &str) -> &'static str {
+    STRINGS.iter().find(|s| s.0 == id).map_or("", |s| if lang == "he" { s.2 } else { s.1 })
+}
+
+/// The string id `id` names ('static), or None.
+pub fn string_id(id: &str) -> Option<&'static str> {
+    STRINGS.iter().find(|s| s.0 == id).map(|s| s.0)
+}
+
+/// The game's live check of a training run (IafTraining): the same fail rules as `hard_fail`, on the frame's state.
+pub struct Watch {
+    pub rules: Rules,
+    /// The mission's base (its pavement).
+    pub base: Base,
+}
+
+impl Watch {
+    /// The rules of the readable mission file `mission` and its base from the airbase files in `airbases`.
+    pub fn open(mission: &std::path::Path, airbases: &std::path::Path) -> Result<Watch> {
+        let m: Value =
+            serde_json::from_str(&std::fs::read_to_string(mission).with_context(|| mission.display().to_string())?)
+                .with_context(|| mission.display().to_string())?;
+        let bases: Vec<_> = sim::read_dir(airbases)?.into_iter().map(|f| f.v).collect();
+        let rules = rules(&m)?.with_context(|| format!("{}: no \"training\" rules", mission.display()))?;
+        let base = sim_bases::base(airbase_of(&m, &bases)?, &mission.display().to_string())?;
+        Ok(Watch { rules, base })
+    }
+
+    /// The fail reason of this moment, or None: ejected, crashed, any damage (0..1), or on the ground off the
+    /// pavement at the jet's centre (`x`, `y` in the engine frame).
+    pub fn check(&self, s: &Now) -> Option<&'static str> {
+        let Now { on_ground, x, y, crashed, damage, ejected, .. } = *s;
+        if ejected {
+            Some("ejected")
+        } else if s.fault.is_some() {
+            s.fault
+        } else if crashed {
+            Some("crash")
+        } else if damage > 0.0 {
+            Some("damage")
+        } else if on_ground && !self.base.paved([x, y], PAVEMENT_MARGIN_M) {
+            Some("off_pavement")
+        } else {
+            None
+        }
+    }
 }
 
 /// Scores the recording at `flight` against the readable mission file `mission` with the airbase files in `airbases`
@@ -435,10 +646,11 @@ fn startup(f: &Flight, mission: String, budget: f64) -> Debrief {
     let has_avionics = s.iter().any(|x| x.avionics.is_some());
     let avionics = if has_avionics { s.iter().find(|x| x.avionics == Some(true)).map(|x| x.t - t0) } else { idle };
     let mut reasons = vec![];
-    if !s.iter().any(|x| x.engine) {
-        reasons.push("no_start");
-    } else if idle.zip(avionics).is_none_or(|(i, a)| i.max(a) > budget) {
-        reasons.push("over_time");
+    match idle.zip(avionics) {
+        _ if !s.iter().any(|x| x.engine) => reasons.push("no_start"),
+        None => reasons.push("not_done"),
+        Some((i, a)) if i.max(a) > budget => reasons.push("over_time"),
+        Some(_) => {}
     }
     // The model's figure is noted when the recording has no column of its own.
     let idle_item = match (has_rpm, idle) {
@@ -460,31 +672,35 @@ fn startup(f: &Flight, mission: String, budget: f64) -> Debrief {
             item("throttle_moves", Some(throttle_moves(s)), ""),
             noted("faults", None, "", "none_modelled"),
         ],
+        goals: vec![],
     }
 }
 
-fn takeoff(
-    f: &Flight,
-    mission: String,
-    rw: &Runway,
-    budget: f64,
+/// A take-off mission's runway, base and figures.
+struct Takeoff<'a> {
+    rw: &'a Runway,
+    base: &'a Base,
     tolerance: f64,
     empty_kg: f64,
-    takeoff_kt: &[[f64; 2]],
-) -> Debrief {
+    takeoff_kt: &'a [[f64; 2]],
+}
+
+/// The runway end the roll from `a` toward `b` ran on ("25R"), or None off every runway of the base.
+fn runway_used(base: &Base, a: [f64; 2], b: [f64; 2]) -> Option<String> {
+    let heading = (b[0] - a[0]).atan2(b[1] - a[1]).to_degrees();
+    let r = base.runways.iter().find(|r| r.dist(a) <= r.width / 2.0)?;
+    let k = usize::from(angle(r.heading(0), heading).abs() > 90.0);
+    Some(r.designators[k].clone())
+}
+
+/// `ended`: a hard fail (`hard_fail`) ended the mission, so the climb-out is not judged.
+fn takeoff(f: &Flight, mission: String, t: &Takeoff, budget: f64, ended: bool) -> Debrief {
+    let (rw, tolerance) = (t.rw, t.tolerance);
     let s = &f.samples;
     let t0 = s[0].t;
-    let crash = f.events.iter().any(|e| e["event"] == "crash");
     let radio = f.events.iter().filter(|e| e["event"] == "radio").count();
-    let tower = if radio > 0 {
-        item("tower_calls", Some(radio as f64), "")
-    } else {
-        noted("tower_calls", None, "", "not_recorded")
-    };
+    let tower = item("tower_calls", Some(radio as f64), "");
     let mut reasons = vec![];
-    if crash {
-        reasons.push("crash");
-    }
     // The lift-off: the first sample off the ground after one on it that starts LIFTOFF_HOLD_S airborne (or stays
     // airborne to the recording's end), so a one-sample glitch on the ground is not one.
     let held = |i: usize| {
@@ -494,7 +710,7 @@ fn takeoff(
     let lift = (1..s.len()).find(|&i| s[i - 1].on_ground && !s[i].on_ground && held(i));
     let Some(lift) = lift else {
         reasons.push("no_liftoff");
-        return Debrief { mission, kind: "takeoff", pass: false, reasons, items: vec![tower] };
+        return Debrief { mission, kind: "takeoff", pass: false, reasons, items: vec![tower], goals: vec![] };
     };
     // The roll: the slowest sample on the runway (the latest of equals) between the jet's entry onto the runway and
     // its last sample below ROLL_START_KT before the lift-off: the stop on the lineup point, or the entry of a rolling
@@ -520,7 +736,7 @@ fn takeoff(
     let gear_up = s[lift..].iter().find(|x| !x.gear && !x.on_ground);
     // The first airborne sample with the gear up on the runway heading; the earliest, so the budget is checked on it.
     let climb = s[lift..].iter().find(|x| !x.on_ground && !x.gear && angle(x.heading, rw.heading).abs() <= tolerance);
-    if !crash {
+    if !ended {
         match climb {
             None if gear_up.is_none() => reasons.push("gear_down"),
             None => reasons.push("off_heading"),
@@ -528,25 +744,27 @@ fn takeoff(
             Some(_) => {}
         }
     }
-    let gross = empty_kg + s[lift].fuel_kg;
+    let gross = t.empty_kg + s[lift].fuel_kg;
+    let used = runway_used(t.base, [s[roll].x, s[roll].y], [s[lift].x, s[lift].y]);
     let max = |g: &dyn Fn(&Sample) -> f64| rolls.iter().map(g).fold(0.0, f64::max);
     let items = vec![
         item("taxi_time", Some(s[roll].t - s[moved].t), "s"),
         item("lineup_heading_error", Some(angle(s[lineup].heading, rw.heading)), "deg"),
+        Item { id: "runway", value: None, note: used.is_none().then_some("not_reached"), text: used, unit: "" },
         item("roll_start_from_runway_start", Some(s_roll - rw.start_m), "m"),
         item("roll_length", Some(s_lift - s_roll), "m"),
         item("runway_left", Some(rw.length_m - rw.far_start_m - s_lift), "m"),
         item("rotation_speed", rot, "kt"),
         item("liftoff_speed", Some(s[lift].speed_kt), "kt"),
         item("gross_weight", Some(gross), "kg"),
-        item("reference_speed", Some(interpolate(takeoff_kt, gross)), "kt"),
+        item("reference_speed", Some(interpolate(t.takeoff_kt, gross)), "kt"),
         item("gear_up_height", gear_up.and_then(|x| x.agl_m), "m"),
         item("gear_up_time", gear_up.map(|x| x.t - s[lift].t), "s"),
         item("roll_heading_deviation", Some(max(&|x| angle(x.heading, rw.heading).abs())), "deg"),
         item("max_centreline_offset", Some(max(&|x| rw.local(x.x, x.y).1.abs())), "m"),
         tower,
     ];
-    Debrief { mission, kind: "takeoff", pass: reasons.is_empty(), reasons, items }
+    Debrief { mission, kind: "takeoff", pass: reasons.is_empty(), reasons, items, goals: vec![] }
 }
 
 #[cfg(test)]
@@ -737,7 +955,103 @@ mod tests {
             }
         }
         assert_eq!(j["strings"]["en"]["tower_calls"], "Tower calls");
-        assert_eq!(j["items"].as_array().unwrap().last().unwrap()["note"], "not_recorded");
+        assert_eq!(value(&d, "tower_calls"), 0.0);
+        let runway = d.items.iter().find(|i| i.id == "runway").unwrap();
+        assert_eq!(runway.text.as_deref(), Some("25R"));
+        // The sheet's goals: the rules' list, each an item of the record.
+        assert_eq!(
+            j["goals"],
+            json!(["runway", "liftoff_speed", "reference_speed", "max_centreline_offset", "tower_calls"])
+        );
+        for g in j["goals"].as_array().unwrap() {
+            assert!(d.items.iter().any(|i| i.id == g), "{g}");
+        }
+    }
+
+    /// A recording with `events` (JSON objects) appended.
+    fn with(text: &str, events: &[Value]) -> String {
+        events.iter().fold(text.to_string(), |t, e| t + &format!("{e}\n"))
+    }
+
+    #[test]
+    fn a_crashed_takeoff_fails_at_once_with_the_crash_first() {
+        // A crash on the roll, before any lift-off.
+        let text = with(&takeoff(CLEAN).0, &[json!({"t": 75.0, "event": "crash", "reason": "tail strike"})]);
+        let d = scored(&text, "ramon_takeoff");
+        assert!(!d.pass);
+        assert_eq!(d.reasons[0], "crash");
+        assert!(!d.reasons.contains(&"gear_down"), "{:?}", d.reasons);
+    }
+
+    #[test]
+    fn an_ejection_fails_with_its_reason_first() {
+        let text = with(&takeoff(CLEAN).0, &[json!({"t": 40.0, "event": "eject", "short": true})]);
+        assert_eq!(scored(&text, "ramon_takeoff").reasons, ["ejected"]);
+    }
+
+    #[test]
+    fn damage_fails() {
+        let text = with(&takeoff(CLEAN).0, &[json!({"t": 80.0, "event": "hit", "kind": "gun", "damage": 0.1})]);
+        assert_eq!(scored(&text, "ramon_takeoff").reasons, ["damage"]);
+    }
+
+    #[test]
+    fn leaving_the_pavement_fails() {
+        let text = with(&takeoff(CLEAN).0, &[json!({"t": 30.0, "event": "surface", "paved": false})]);
+        assert_eq!(scored(&text, "ramon_takeoff").reasons, ["off_pavement"]);
+        // The live check: the parking spot and the lineup point paved, 200 m beside the runway not.
+        let data = data();
+        let w = Watch::open(&data.join("missions/ramon_takeoff.json"), &data.join("airbases")).unwrap();
+        let rw = runway(airbase_of(&mission("ramon_takeoff"), &airbases()).unwrap(), "25R").unwrap();
+        let at =
+            |s: f64, d: f64| [rw.from[0] + s * rw.dir[0] + d * rw.dir[1], rw.from[1] + s * rw.dir[1] - d * rw.dir[0]];
+        let [x, y] = at(rw.start_m + 100.0, 0.0);
+        assert_eq!(
+            w.check(&Now { on_ground: true, x, y, crashed: false, damage: 0.0, ejected: false, fault: None }),
+            None
+        );
+        let spot = w.base.parking[0].at;
+        assert_eq!(
+            w.check(&Now {
+                on_ground: true,
+                x: spot[0],
+                y: spot[1],
+                crashed: false,
+                damage: 0.0,
+                ejected: false,
+                fault: None
+            }),
+            None
+        );
+        let [x, y] = at(1000.0, 200.0);
+        assert_eq!(
+            w.check(&Now { on_ground: true, x, y, crashed: false, damage: 0.0, ejected: false, fault: None }),
+            Some("off_pavement")
+        );
+        assert_eq!(
+            w.check(&Now { on_ground: false, x, y, crashed: false, damage: 0.0, ejected: false, fault: None }),
+            None,
+            "airborne"
+        );
+        assert_eq!(
+            w.check(&Now {
+                on_ground: true,
+                x: spot[0],
+                y: spot[1],
+                crashed: false,
+                damage: 0.2,
+                ejected: false,
+                fault: None
+            }),
+            Some("damage")
+        );
+        assert_eq!(
+            w.check(&Now { on_ground: true, x, y, crashed: true, damage: 0.0, ejected: false, fault: None }),
+            Some("crash")
+        );
+        let out = Now { on_ground: false, x, y, ejected: true, ..Default::default() };
+        assert_eq!(w.check(&out), Some("ejected"));
+        assert_eq!(w.rules.end_hold_s, 5.0);
     }
 
     /// A rolling take-off: from a stop 450 m off the runway the jet accelerates without stopping; the roll starts
@@ -825,18 +1139,31 @@ mod tests {
                 Sample { t, engine: t >= 20.0, throttle, on_ground: true, gear: true, ..Default::default() }
             })
             .collect();
-        let text = jsonl(&samples);
+        let steps: Vec<Value> = STEPS.iter().map(|s| json!({"t": 20.0, "event": "checklist", "step": s})).collect();
+        let bare = jsonl(&samples);
+        let text = with(&bare, &steps);
         keep("startup.jsonl", &text);
+        // The checklist not flown: each step skipped.
+        let skipped = scored(&bare, "ramon_startup");
+        assert_eq!(skipped.reasons[0], "skip_main_power");
+        assert_eq!(skipped.reasons.len(), 6);
+        // A hot start fails it first.
+        let hot = json!({"t": 21.0, "event": "checklist", "step": "engine", "fault": "hot_start"});
+        assert_eq!(scored(&with(&text, &[hot]), "ramon_startup").reasons, ["hot_start"]);
         let d = scored(&text, "ramon_startup");
-        assert!(d.pass);
+        assert!(d.pass, "a clean start-up passes at its end");
+        assert!(d.goals.is_empty(), "the start-up's sheet: pass / fail and the reason");
         assert!((value(&d, "time_to_idle") - 24.0).abs() < 1e-9);
+        // A crash fails it with the crash first, even with the engine at idle.
+        let crashed = scored(&with(&text, &[json!({"t": 50.0, "event": "crash"})]), "ramon_startup");
+        assert_eq!(crashed.reasons, ["crash"]);
         assert_eq!(value(&d, "throttle_moves"), 3.0);
         let mut m = mission("ramon_startup");
         m["training"]["time_budget_s"] = json!(10);
         let late = score(&parse_flight(&text).unwrap(), &m, &[]).unwrap();
         assert_eq!(late.reasons, ["over_time"]);
         let cold: Vec<Sample> = samples.iter().map(|s| Sample { engine: false, ..s.clone() }).collect();
-        assert_eq!(scored(&jsonl(&cold), "ramon_startup").reasons, ["no_start"]);
+        assert_eq!(scored(&with(&jsonl(&cold), &steps), "ramon_startup").reasons, ["no_start"]);
     }
 
     /// The newest recording in the player's flights folder (user://flights, docs/blackbox.schema.json) scores

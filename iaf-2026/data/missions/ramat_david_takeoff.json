@@ -21,7 +21,8 @@
     "training.empty_kg": "w-f16-spec, inferred",
     "training.takeoff_kt": "bms-told",
     "training.time_budget_s": "inferred",
-    "training.heading_tolerance_deg": "inferred"
+    "training.heading_tolerance_deg": "inferred",
+    "training.end_hold_s": "inferred"
   },
   "notes": {
     "time": "the MVP's conditions: day (plan.md, MVP)",
@@ -32,7 +33,8 @@
     "training.empty_kg": "the F-16C Block 50 / 52's empty weight; the Sufa's and the Barak's are not published (inferred the same)",
     "training.takeoff_kt": "70 kt + 3 kt per 1000 lb at 20,000 lb (9,072 kg) and 48,000 lb (21,772 kg), linear between",
     "training.time_budget_s": "fifteen minutes from the mission's start for the start-up, the tower calls, the taxi and the take-off",
-    "training.heading_tolerance_deg": "the climb-out on the runway heading within 10 degrees"
+    "training.heading_tolerance_deg": "the climb-out on the runway heading within 10 degrees",
+    "training.end_hold_s": "the mission ends 5 s after its goal: time to see the result before the debrief"
   },
   "footnotes": {
     "oa": "OurAirports, airports.csv (public domain; LLRD elevation 185 ft), https://davidmegginson.github.io/ourairports-data/airports.csv",
@@ -80,6 +82,14 @@
         21772,
         214
       ]
+    ],
+    "end_hold_s": 5,
+    "goals": [
+      "runway",
+      "liftoff_speed",
+      "reference_speed",
+      "max_centreline_offset",
+      "tower_calls"
     ]
   }
 }

@@ -145,6 +145,14 @@ impl Fm {
         }
     }
 
+    /// One start-up checklist step by its key (the 6-DoF's, IAF 2026's start-up mission); the original model none.
+    pub fn start_step(&mut self, step: &str) -> Result<(), &'static str> {
+        match self {
+            Fm::SixDof(s) => s.start_step(step),
+            Fm::Original(_) => Ok(()),
+        }
+    }
+
     /// The electrical power (0 none, 1 the battery, 2 the displays up): the original model's is always up.
     pub fn power(&self) -> u8 {
         match self {

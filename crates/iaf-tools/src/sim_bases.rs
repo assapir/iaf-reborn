@@ -167,7 +167,7 @@ impl Runway {
         (digits.parse().unwrap_or(0), d[digits.len()..].to_string())
     }
     /// Distance from p to the centreline segment.
-    fn dist(&self, p: [f64; 2]) -> f64 {
+    pub fn dist(&self, p: [f64; 2]) -> f64 {
         seg_dist(p, self.ends[0], self.ends[1])
     }
 }
@@ -214,19 +214,52 @@ impl Base {
     pub fn tower_or_reference(&self) -> [f64; 2] {
         self.tower.unwrap_or(self.reference)
     }
+    /// Paved at p, `margin` m past the edges: the mask's paved coverage (`mask`) as a test: within half the width of
+    /// a runway's, stopway's or taxiway's centreline, or inside an apron or a shelter's pad.
+    pub fn paved(&self, p: [f64; 2], margin: f64) -> bool {
+        let near = |l: &[[f64; 2]], half: f64| l.windows(2).any(|s| seg_dist(p, s[0], s[1]) <= half + margin);
+        let widest = self.runways.iter().map(|r| r.width).fold(0.0, f64::max);
+        self.runways.iter().any(|r| r.dist(p) <= r.width / 2.0 + margin)
+            || self.stopways.iter().any(|s| near(s, widest / 2.0))
+            || self.taxiways.iter().any(|(l, w)| near(l, w / 2.0))
+            || self
+                .aprons
+                .iter()
+                .chain(&self.shelters)
+                .any(|poly| inside(poly, p) || near(&[poly, &poly[..1]].concat(), 0.0))
+    }
+}
+
+/// p inside `poly` (even-odd).
+fn inside(poly: &[[f64; 2]], p: [f64; 2]) -> bool {
+    let mut odd = false;
+    for k in 0..poly.len() {
+        let (a, b) = (poly[k], poly[(k + 1) % poly.len()]);
+        if (a[1] > p[1]) != (b[1] > p[1]) && p[0] < a[0] + (p[1] - a[1]) / (b[1] - a[1]) * (b[0] - a[0]) {
+            odd = !odd;
+        }
+    }
+    odd
 }
 
 /// The four bases from `<dir>/<icao>.json`, in BASES' order.
 pub fn load(dir: &Path) -> Result<Vec<Base>> {
     BASES
         .iter()
-        .map(|(icao, section, main)| load_base(&dir.join(format!("{}.json", icao.to_lowercase())), section, main))
+        .map(|(icao, ..)| {
+            let path = dir.join(format!("{}.json", icao.to_lowercase()));
+            let v: Value =
+                serde_json::from_slice(&std::fs::read(&path).with_context(|| format!("{}", path.display()))?)?;
+            base(&v, &path.display().to_string())
+        })
         .collect()
 }
 
-fn load_base(path: &Path, section: &str, main: &str) -> Result<Base> {
-    let v: Value = serde_json::from_slice(&std::fs::read(path).with_context(|| format!("{}", path.display()))?)?;
-    let what = path.display().to_string();
+/// One base of BASES from its airbase file `v` (`what` names it in errors).
+pub fn base(v: &Value, what: &str) -> Result<Base> {
+    let icao = v["icao"].as_str().unwrap_or("");
+    let (_, section, main) =
+        BASES.iter().find(|b| b.0 == icao).with_context(|| format!("{what}: {icao:?} is none of the four bases"))?;
     let mut runways = Vec::new();
     for r in v["runways"].as_array().with_context(|| format!("{what}: no runways"))? {
         let e = r["ends"]
@@ -1825,6 +1858,35 @@ mod tests {
             for t in &a.from_hangar_turn {
                 assert_eq!(t.hdg, a.from_taxi[0].hdg, "{}: the turn point's heading", b.icao);
                 assert!(t.hdg != 0.0, "{}", b.icao);
+            }
+        }
+    }
+
+    /// The departure taxi (each parking spot → the hub → the taxi path → the lineup) runs on the pavement (`paved`
+    /// with the training missions' margin): every metre of it, at the bases the training missions fly from
+    /// (Hatzerim's Sufa spot joins the taxiways across 140 m that OSM does not mark paved: airbases.md §9).
+    #[test]
+    fn the_departure_is_paved() {
+        for b in load(&data()).unwrap().into_iter().filter(|b| b.icao != "LLHB") {
+            let rt = routes(&b).unwrap();
+            for spot in &b.parking {
+                let mut path = vec![spot.at];
+                path.extend(&rt.from);
+                for w in path.windows(2) {
+                    let n = dist(w[0], w[1]).ceil() as usize;
+                    for i in 0..=n {
+                        let f = i as f64 / n.max(1) as f64;
+                        let p = [w[0][0] + (w[1][0] - w[0][0]) * f, w[0][1] + (w[1][1] - w[0][1]) * f];
+                        assert!(
+                            b.paved(p, crate::training::PAVEMENT_MARGIN_M),
+                            "{} {}: {p:?} on the leg {:?} → {:?} is off the pavement",
+                            b.icao,
+                            spot.unit,
+                            w[0],
+                            w[1]
+                        );
+                    }
+                }
             }
         }
     }

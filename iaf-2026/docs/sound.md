@@ -140,8 +140,9 @@ to runway 25 right". The particles cover the callsigns Alpha–Delta, the greeti
 runway number 1–36 (spoken digit by digit, "two five") and the letters `RWY_L` / `RWY_R` / `RWY_C`.
 
 ## 4. Keys
-`data/keys.json` holds 118 commands: the 117 of docs/controls.md §3 and our own Start engine (Ctrl+E, command 200:
-[training.md](training.md) §7), each with our own English and Hebrew labels, the default key as text ("Ctrl + Q"), the joystick button, the press / release commands and `shown`. `iaf-sim own` compiles it to
+`data/keys.json` holds 125 commands: the 117 of docs/controls.md §3, our own Start engine (Ctrl+E, command 200, a
+hidden developer shortcut: [training.md](training.md) §7), Mission card (H, command 201) and the six start-up checklist steps (Ctrl+B, J, I, A, N,
+K; commands 210–215: training.md §7.1), each with our own English and Hebrew labels, the default key as text ("Ctrl + Q"), the joystick button, the press / release commands and `shown`. `iaf-sim own` compiles it to
 the shape of `iaf-convert keys`' output (records with `dik` / `modifiers` / `label` / `label_he`, `key_names`,
 `modifiers`, `button_format`). It refuses:
 - a key name outside our scancode table, which holds exactly the keys `key_table.gd` can press (a test reads the

@@ -21,7 +21,8 @@
     "training.empty_kg": "w-f35-spec, inferred",
     "training.takeoff_kt": "wn-f35",
     "training.time_budget_s": "inferred",
-    "training.heading_tolerance_deg": "inferred"
+    "training.heading_tolerance_deg": "inferred",
+    "training.end_hold_s": "inferred"
   },
   "notes": {
     "time": "the MVP's conditions: day (plan.md, MVP)",
@@ -32,7 +33,8 @@
     "training.empty_kg": "the F-35A's empty weight; the F-35I's is not published (inferred the same)",
     "training.takeoff_kt": "one figure for every weight: no public table by weight",
     "training.time_budget_s": "fifteen minutes from the mission's start for the start-up, the tower calls, the taxi and the take-off",
-    "training.heading_tolerance_deg": "the climb-out on the runway heading within 10 degrees"
+    "training.heading_tolerance_deg": "the climb-out on the runway heading within 10 degrees",
+    "training.end_hold_s": "the mission ends 5 s after its goal: time to see the result before the debrief"
   },
   "footnotes": {
     "oa": "OurAirports, airports.csv (public domain; LLNV elevation 1330 ft), https://davidmegginson.github.io/ourairports-data/airports.csv",
@@ -76,6 +78,14 @@
         13290,
         165
       ]
+    ],
+    "end_hold_s": 5,
+    "goals": [
+      "runway",
+      "liftoff_speed",
+      "reference_speed",
+      "max_centreline_offset",
+      "tower_calls"
     ]
   }
 }

@@ -952,6 +952,12 @@ func throttle_starts_engine() -> bool:
 	return true
 
 
+## An ejection ends the sortie at once: every sound and the radio stop, the view stays outside, an `eject` event is
+## recorded (IAF 2026, iaf-2026/docs/training.md §3.0); the original game's ejection sequence runs as it is.
+func eject_ends_sortie() -> bool:
+	return false
+
+
 ## The talking towers' iaf.ibx sections (radio.gd), from the file's `sections`: [] for the original game's ten bases
 ## (radio.gd BASES, the first four talking). Modern IAF's: every base of its own iaf.ibx.
 func tower_bases(_sections: Dictionary) -> Array:

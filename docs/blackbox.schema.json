@@ -91,8 +91,8 @@
       "required": ["t", "event"],
       "properties": {
         "t": { "type": "number", "description": "Flight time, s." },
-        "event": { "enum": ["lift-off", "touchdown", "crash", "autopilot", "mission", "message", "weapon", "lock", "unlock", "launch", "hit", "system", "kill", "shot_down", "in_sight", "masked", "seeker", "radio"],
-          "description": "radio (version 2): a radio-menu call and the tower's answer (call, answer, text); weapon: master mode / selected store changed; lock / unlock: a unit's sensor or radar locks / drops the jet (its RWR lock); launch: a missile at the jet; hit: a counted hit on the jet; system: the system that hit broke; kill: the player destroyed a unit; shot_down: the jet is fatally hit; in_sight / masked: an armed enemy within its engage / sensor range gains / loses terrain line of sight to the jet (checked once a second); seeker: the IR missile seeker's tone or target changed (SRM HUD mode)." },
+        "event": { "enum": ["lift-off", "touchdown", "crash", "autopilot", "mission", "message", "weapon", "lock", "unlock", "launch", "hit", "system", "kill", "shot_down", "in_sight", "masked", "seeker", "radio", "surface", "eject", "checklist"],
+          "description": "checklist (version 2, IAF 2026's start-up): a checklist key (step; fault when the flight model refused it); eject (version 2, IAF 2026): the pilot ejected; the sortie ends (short: below the seat's low limit); surface (version 2, IAF 2026's training missions): the jet on the ground left the pavement (paved false; training.md §3); radio (version 2): a radio-menu call and the tower's answer (call, answer, text); weapon: master mode / selected store changed; lock / unlock: a unit's sensor or radar locks / drops the jet (its RWR lock); launch: a missile at the jet; hit: a counted hit on the jet; system: the system that hit broke; kill: the player destroyed a unit; shot_down: the jet is fatally hit; in_sight / masked: an armed enemy within its engage / sensor range gains / loses terrain line of sight to the jet (checked once a second); seeker: the IR missile seeker's tone or target changed (SRM HUD mode)." },
         "key": { "type": "string", "description": "The unit (mission entity key) the event is about: lock / unlock / launch / hit / system (the shooter), kill (the destroyed unit), shot_down (the killer), in_sight / masked (the site), seeker (the seeker's target)." },
         "unit": { "type": "string", "description": "That unit's name in the mission." },
         "dist_m": { "type": "number", "description": "That unit's distance to the jet, m." },
@@ -118,7 +118,11 @@
         "speed_kt": { "type": "number", "description": "True airspeed at the event, kt." },
         "pitch": { "type": "number", "description": "Pitch at the event, degrees." },
         "call": { "enum": ["startup", "taxi", "takeoff"], "description": "radio: the player's request." },
-        "answer": { "type": "string", "description": "radio: the tower's phrase template (KCH2: no tower, a click)." }
+        "answer": { "type": "string", "description": "radio: the tower's phrase template (KCH2: no tower, a click)." },
+        "step": { "type": "string", "description": "checklist: the step (main_power, starter, engine, avionics, ins, canopy)." },
+        "fault": { "type": "string", "description": "checklist: the fault of a step out of order (e.g. hot_start, no_power)." },
+        "short": { "type": "boolean", "description": "eject: below the original's short-ejection limit (in IAF 2026 the seat flies anyway)." },
+        "paved": { "type": "boolean", "description": "surface: the jet's centre on the base's pavement (a runway, stopway, taxiway, apron or shelter pad)." }
       }
     }
   }

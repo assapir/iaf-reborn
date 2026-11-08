@@ -22,15 +22,19 @@ Heebo font and the Israeli Air Force flag's colours.
 | Training | the programme: its missions with their last result and the progress | ![Training](pictures/front-end/training_en.webp) | ![Training, Hebrew](pictures/front-end/training_he.webp) |
 | Pick a mission | the missions beside the picked one's briefing: runway, time, wind, time allowed, when it passes; Fly | ![Pick a mission](pictures/front-end/mission_en.webp) | ![Pick a mission, Hebrew](pictures/front-end/mission_he.webp) |
 | Preferences | the sections Graphics, Language, Sound and Devices, each on its own screen with its settings as controls: dropdown, switch, slider, radio list | ![Preferences](pictures/front-end/prefs_en.webp) | ![Preferences, Hebrew](pictures/front-end/prefs_he.webp) |
-| Debrief | the record as a sheet: Plane flown, From, Time, Mission, Result, the numbers, Remarks; Back to missions, Fly again | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
+| Debrief | the record as a sheet: Plane flown, From, Time, Mission, Result, the mission's goals (a take-off: runway, lift-off and reference speed, centreline offset, tower calls; a start-up: none), Remarks (the fail reason first, or that it passed; the lift-off against the reference); Back to missions, Fly again | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
 | Pilot log | every attempt, newest first; a row opens its debrief | ![Pilot log](pictures/front-end/log_en.webp) | ![Pilot log, Hebrew](pictures/front-end/log_he.webp) |
 | Attributions | the setup wizard's list of sources and licences, the jet photos with them | ![Attributions](pictures/front-end/credits_en.webp) | ![Attributions, Hebrew](pictures/front-end/credits_he.webp) |
+
+At a training mission's end a banner over the view says "Mission complete" (or "Fail" and the reason); about 5 s
+later the flight ends into its debrief ([training.md](training.md) §9).
 
 Over a flight, Esc opens the pause menu: Continue the flight, Preferences, End the flight. It is laid out on the
 front end's canvas scaled to the window and centred by a container, so it sits in the middle at any window size and in
 either language (the Mac run of 2026-11-08: in Hebrew in a 2560 × 1440 window the overlay mirrored its own position
-by its unscaled width and sat off the right edge, its buttons' labels outside the screen). Ending a scored flight opens
-its debrief; a flight that was not scored goes back to Home.
+by its unscaled width and sat off the right edge, its buttons' labels outside the screen). Ending a training flight
+scores it as it stands and opens its debrief; a flight that was not scored goes back to Home. The sheet shows only
+the record's `goals` ([training.md](training.md) §4); every other number stays in the record file.
 
 | the Hebrew pause menu before the fix (2026-11-08) | after |
 |---|---|
@@ -39,6 +43,7 @@ its debrief; a flight that was not scored goes back to Home.
 | screen | English | Hebrew |
 |---|---|---|
 | the pause menu over the flight | ![Pause menu](pictures/front-end/pause_en.webp) | ![Pause menu, Hebrew](pictures/front-end/pause_he.webp) |
+| a failed debrief (a start-up that crashed) | ![Failed debrief](pictures/front-end/debrief_fail_en.webp) | ![Failed debrief, Hebrew](pictures/front-end/debrief_fail_he.webp) |
 | the debrief of that flight | ![Debrief after a flight](pictures/front-end/flown_debrief_en.webp) | ![Debrief after a flight, Hebrew](pictures/front-end/flown_debrief_he.webp) |
 
 Keys: Enter picks the focused control, Esc goes one screen back (Home has no back), the arrow keys and Tab move the
@@ -128,7 +133,7 @@ and in [../../docs/credits.md](../../docs/credits.md) "Modern IAF's photos". The
   Preferences section on its own screen with no aid, realism or weather row and no read of the original's data, the
   sim's settings (no aid on, the log dumps naming only the sim's settings), F1–F4 opening no pause menu, and the
   pause menu inside viewports of 1920 × 1080, 2560 × 1440 and 1280 × 800 in both languages.
-- `iaf-2026/tests/_front_end_shot.gd` takes §1's pictures at 1920 × 1080 (its header).
+- `iaf-2026/tests/_front_end_shot.gd` takes §1's pictures at 1920 × 1080 (its header), and the failed debrief.
 - `iaf-2026/tests/test_flight_ui.gd` checks §8 in both languages.
 
 ## 7. The loading screen

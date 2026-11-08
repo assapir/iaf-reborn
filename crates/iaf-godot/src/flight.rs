@@ -373,6 +373,14 @@ impl IafFlight {
         }
     }
 
+    /// Modern IAF's start-up checklist step by its key (commands 210–215, iaf-2026/docs/training.md §7.1):
+    /// "main_power", "starter", "engine", "avionics", "ins", "canopy". The fault id of a step out of order, "" else.
+    #[func]
+    fn start_step(&mut self, step: GString) -> GString {
+        let r = self.aircraft.as_mut().map_or(Ok(()), |ac| ac.start_step(&step.to_string()));
+        GString::from(r.err().unwrap_or(""))
+    }
+
     // --- AI (docs/ai.md) ------------------------------------------------------------------------------
 
     /// An AI jet: the FM's AI "team" test (not on the player's side) and the Preferences AI level (0..2).

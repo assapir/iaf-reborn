@@ -146,13 +146,13 @@ func fly_once(fe: Control) -> void:
 	tv._unhandled_input(_key_event(KEY_F1))
 	check(tv.in_cockpit, "fly: F1 is the cockpit")
 	Engine.time_scale = 6.0
-	var e := InputEventKey.new()
-	e.keycode = KEY_E
-	e.physical_keycode = KEY_E
-	e.ctrl_pressed = true
-	e.pressed = true
-	tv._unhandled_input(e)
+	# The start-up checklist by its keys (training.md §7.1), each at its moment.
 	var t0 := Time.get_ticks_msec()
+	for step in [1, 2, 3, 4, 5, 6]:
+		var rpm := {3: 0.2, 4: 0.55}.get(step, 0.0) as float
+		while float(tv.flight.state().rpm) < rpm and Time.get_ticks_msec() - t0 < 60000:
+			await process_frame
+		tv._command([209 + step, 0, 0])
 	while tv.addon.result.is_empty() and Time.get_ticks_msec() - t0 < 120000:
 		await process_frame
 	Engine.time_scale = 1.0
@@ -188,8 +188,8 @@ func fly_once(fe: Control) -> void:
 		back.page == "debrief" and str(back.record.get("mission", "")) == "ramon_startup",
 		"fly: the flight's end opens its debrief"
 	)
-	check(_has(back, "Time to idle"), "fly: the debrief lists the start-up's numbers")
-	check(not _has_part(back, "none modelled"), "fly: no remark for a value the model lacks")
+	check(not _has(back, "Time to idle"), "fly: the start-up's debrief shows no numbers (no goals)")
+	check(_has(back, "The engine at idle with the avionics up. Nothing failed."), "fly: the start-up's pass remark")
 	if shot != "":
 		await _shots(back, shot, "flown_debrief")
 	key(back, KEY_ESCAPE)
@@ -274,8 +274,9 @@ func walk(fe: Control, file: String, lang: String) -> void:
 			"הערות",
 			"F-16I סופה",
 			"כנף 25 · רמון, מסלול 25R",
-			"1,140 מ׳",
-			"5:12 דק׳",
+			"מסלול",
+			"25R",
+			"3.1 מ׳",
 			"172 קשר"
 		]
 		if he
@@ -289,8 +290,9 @@ func walk(fe: Control, file: String, lang: String) -> void:
 			"REMARKS",
 			"F-16I Sufa",
 			"Wing 25 · Ramon, runway 25R",
-			"1,140 m",
-			"5:12 min",
+			"Runway",
+			"25R",
+			"3.1 m",
 			"172 kt",
 			"PASS"
 		]
@@ -298,11 +300,17 @@ func walk(fe: Control, file: String, lang: String) -> void:
 		check(_has(fe, t), "%s: debrief: %s" % [lang, t])
 	check(_has(fe, "2.11.2026 · 08:00–08:11" if he else "2 Nov 2026 · 08:00–08:11"), "%s: debrief: the time" % lang)
 	for t in (
-		["הניתוק ב־13 קשר מעל המהירות המומלצת ל־13,420 ק״ג.", "ריצת ההמראה נשמרה עד 3.1 מ׳ מקו המרכז."]
+		["הניתוק ב־13 קשר מעל המהירות המומלצת.", "המטוס באוויר עם כן נסע אסוף, בכיוון המסלול. לא נרשם כשל."]
 		if he
-		else ["Lift-off 13 kt above the reference speed for 13,420 kg.", "The roll held the centreline within 3.1 m."]
+		else [
+			"Lift-off 13 kt above the reference speed.",
+			"Airborne with the gear up on the runway heading. Nothing failed."
+		]
 	):
 		check(_has(fe, t), "%s: debrief remark: %s" % [lang, t])
+	# Only the goals: the other numbers stay in the record.
+	for t in ["1,140 מ׳", "5:12 דק׳", "13,420 ק״ג"] if he else ["1,140 m", "5:12 min", "13,420 kg"]:
+		check(not _has(fe, t), "%s: debrief: no %s (not a goal)" % [lang, t])
 	fe.find_child("BackMissions", true, false).pressed.emit()
 	await frames(2)
 	check(fe.page == "mission" and fe.mission_i == 1, "%s: Back to missions picks the flown take-off" % lang)
@@ -441,7 +449,8 @@ static func fixture(s: Node) -> String:
 			"gear_up_time": "Gear-up time after lift-off",
 			"roll_heading_deviation": "Heading deviation during the roll",
 			"max_centreline_offset": "Max offset from the centreline",
-			"tower_calls": "Tower calls"
+			"tower_calls": "Tower calls",
+			"runway": "Runway"
 		},
 		"he":
 		{
@@ -460,7 +469,8 @@ static func fixture(s: Node) -> String:
 			"gear_up_time": "זמן איסוף כן הנסע מהניתוק",
 			"roll_heading_deviation": "סטיית כיוון בזמן ריצת ההמראה",
 			"max_centreline_offset": "סטייה מרבית מקו המרכז",
-			"tower_calls": "קריאות למגדל"
+			"tower_calls": "קריאות למגדל",
+			"runway": "מסלול"
 		},
 	}
 	var rec := {
@@ -468,7 +478,12 @@ static func fixture(s: Node) -> String:
 		"kind": "takeoff",
 		"pass": true,
 		"reasons": [],
-		"items": items.map(func(i): return {"id": i[0], "value": i[1], "unit": i[2]}),
+		"items":
+		(
+			[{"id": "runway", "value": null, "text": "25R", "unit": ""}]
+			+ items.map(func(i): return {"id": i[0], "value": i[1], "unit": i[2]})
+		),
+		"goals": ["runway", "liftoff_speed", "reference_speed", "max_centreline_offset", "tower_calls"],
 		"strings": names,
 		"date": "2026-11-02T08:11:00",
 		"elapsed_s": 660.0,
