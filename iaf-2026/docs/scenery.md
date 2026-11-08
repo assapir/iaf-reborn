@@ -149,7 +149,7 @@ so the far ring is about half the scenery's GPU cost there.
 Real-render pictures (`tests/godot/_imagery_shot.gd` in the sim: `SHOT_LAYERS=sim`, `SHOT_SET`, `SHOT_HOUR`,
 `SHOT_HIDE_JET`), each compared with the theatre's own Survey / Sentinel-2 tiles of the same place: Ramon from 500 m,
 Beersheba and Tel Aviv from 1,000 m, the Dead Sea shore at Ein Bokek, Tel Aviv at night with the city lights, and the
-same with every graphics option on. The pictures themselves are not in the repo yet (§9). Seen 2026-11-03:
+same with every graphics option on. Seen 2026-11-03:
 
 - The buildings stand on the photo's: from above (Beersheba, 300 m) the blocks fill the photo's footprints and the
   streets stay clear; the river bed, the park and the industrial zone sit where the satellite shows them.
@@ -162,6 +162,20 @@ same with every graphics option on. The pictures themselves are not in the repo 
   yet.
 - At 22:00 the sky and the ground stay a dusk blue; the window and street lights show over the whole city (the shared
   night look).
+
+In the repo (2026-11-08, Scenery On, 1920 × 1080 scaled to 1200 px; the pose after each, `--at` in UTM metres with
+`--freeze`):
+
+| Where | Picture |
+|---|---|
+| Ramon, on the taxiway north of the Sufa's spot: the hold sign "07R-25L" 39 m ahead, a direction sign beyond (cockpit, `658872 3405362 648 334`) | ![Ramon: a hold sign from the taxiway](pictures/scenery/ramon_signs.webp) |
+| The shore south of Tel Aviv toward Ashdod, 800 m (`662200 3542000 800 202`, `SHOT_ORBIT=180,25,400`) | ![The shore south of Tel Aviv](pictures/scenery/shore.webp) |
+| Beersheba from 1,000 m, day (`668500 3455500 1000 20`, `SHOT_ORBIT=180,15,200`) | ![Beersheba by day](pictures/scenery/beersheba_day.webp) |
+| The same at 22:00 (`SHOT_HOUR=22`) | ![Beersheba at night](pictures/scenery/beersheba_night.webp) |
+
+Seen in them: the signs stand beside the taxiway, legible at 40 m. The beach is clean, with no white edge. Offshore
+the sea shows two blues, the lighter ending in steps (straight edges at right angles) against the darker (§9).
+Beersheba's blocks, towers and the river bed match the photo; at 22:00 the town is a dusk blue with its lights.
 
 ## 8. Checks
 
@@ -187,12 +201,11 @@ same with every graphics option on. The pictures themselves are not in the repo 
 - **Unit clearances**: when the sim has ground units (§4).
 - **The rest of the theatre in the byte check**: `build_theatre` with `--near` stopped on PROJ's "moll: Invalid
   latitude" on main and on the branch alike (§8).
-- **Pictures of the signs and the shore**: the free-flight shot helper (`tests/godot/_imagery_shot.gd`) no longer
-  starts in the sim (its 2D cockpit draws with no panel, 2026-11-08); the shore's "before / after" for
-  [terrain.md](terrain.md) §12 and a sign from the taxiing jet wait for it.
-- **Pictures in the repo**: the shots of §7 again with the jet hidden, Tel Aviv with Far towns Full and Light, the
-  Graphics → MORE page with the Far towns row, and a look at the Dead Sea pan with the last photo test.
+- **The shore's sea**: offshore the sea shows two blues, the lighter ending in steps against the darker (§7,
+  [terrain.md](terrain.md) §12); which layers meet there, and one sea colour, are open.
+- **Pictures in the repo**: Ramon from 500 m, Tel Aviv by day and at night, Tel Aviv with Far towns Full and Light,
+  the Graphics → MORE page with the Far towns row, and a look at the Dead Sea pan with the last photo test.
 - **Walls' colour**: the original's wall shading greys a desert town (§7); the sim may want its own.
 - **The bases' buildings**: the hangars and shelters are the airbases' models' (item B2's open points).
-- **Kinds**: the sim makes both buildings and trees; a choice comes with its setup wizard (item A3) and its graphics
-  page (item E2). Until then Scenery is Off by default in the sim, as in the original game.
+- **Kinds**: the sim makes both buildings and trees; one row turns both on (Preferences → Graphics → "Buildings and
+  trees", [front-end.md](front-end.md) §4); a choice between them is open.

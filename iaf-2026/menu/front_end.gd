@@ -12,6 +12,7 @@ const Wizard := preload("res://setup/wizard.gd")
 const SoundBuses := preload("res://shared/audio/sound_buses.gd")
 const KeysScreen := preload("res://menu/keys_screen.gd")
 const JoystickScreen := preload("res://menu/joystick_screen.gd")
+const Scenery := preload("res://shared/terrain/scenery.gd")
 
 const PHOTOS := "res://data/photos"
 ## The canvas the screens lay out on: the window shows it scaled to its height (Look's sizes are its pixels).
@@ -54,6 +55,7 @@ const PREFS := [
 			["shadows", "switch", []],
 			["terrain_detail", "slider", []],
 			["clouds", "radio", [["clouds_flat", "original"], ["clouds_volumetric", "volumetric"]]],
+			["scenery", "radio", [["off", "off"], ["on", "on"], ["scenery_detailed", "detailed"]]],
 			["fullscreen", "switch", []],
 			["vsync", "switch", []],
 		]
@@ -747,6 +749,11 @@ func _pref_row(parent: Control, row: Array) -> void:
 	_label(t, s(key), "Strong").add_theme_font_size_override("font_size", 25)
 	if strings.has(key + "_note"):
 		_label(t, s(key + "_note"), "Small")
+	# Scenery only with setup's scenery step (Scenery.available); greyed without it.
+	var off := key == "scenery" and not Scenery.available()
+	if off:
+		_label(t, s("scenery_missing"), "Small")
+		m.modulate.a = 0.5
 	var ctl := _hbox(h, 20)
 	ctl.custom_minimum_size.x = 420
 	ctl.alignment = BoxContainer.ALIGNMENT_END
@@ -806,7 +813,9 @@ func _pref_row(parent: Control, row: Array) -> void:
 				r.text = s(c[0])
 				r.button_group = g
 				r.button_pressed = c[1] == value
-				r.disabled = key == "clouds" and c[1] == "volumetric" and RenderingServer.get_rendering_device() == null
+				r.disabled = (
+					off or key == "clouds" and c[1] == "volumetric" and RenderingServer.get_rendering_device() == null
+				)
 				r.add_theme_font_size_override("font_size", 24)
 				r.pressed.connect(_set_pref.bind(key, c[1]))
 				rv.add_child(r)

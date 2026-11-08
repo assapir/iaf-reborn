@@ -111,9 +111,11 @@ centreline in the roll.
 - **Preferences:** one screen per section, so a section can grow. Realism and aids have no switch (plan.md "physics";
   the user, 2026-11-08): the sim's `PROFILE` (`iaf-2026/sim_settings.gd`) fixes the original Gameplay page's aids off
   (easy landing, unlimited fuel, no damage, no crashes, no G effects…) and the look switches to the sim's own
-  (Detailed airbases, water, night lights; the ground textures, roads and scenery whenever their data exist), so
+  (Detailed airbases, water, night lights; the ground textures and roads whenever their data exist), so
   none of them is a row. The weather is the mission's (no Rain row). Volumetric clouds are greyed without a
-  RenderingDevice.
+  RenderingDevice. Graphics → "Buildings and trees" is the shared Scenery setting (Off / On / Detailed, On by
+  default, [scenery.md](scenery.md) §6); without setup's optional scenery step it is greyed at Off, with a note
+  naming that step.
 
 ## 5. The photos
 

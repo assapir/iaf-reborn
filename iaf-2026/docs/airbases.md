@@ -173,7 +173,10 @@ code reads ([data-formats.md](data-formats.md) §12):
   that branch joins the runway. Each sign stands on the jet's left, 12 m past the taxiway's edge (Annex 14 Table 5-5).
   OpenStreetMap names none of these taxiways (no `ref`), so there are no location signs (yellow on black).
   `sign_boards.gd board()` builds them (a 0.9 m face, the lettering in the sim's display font), `airbases.gd` stands
-  the nearest base's signs on the ground; nothing of the original's sign models.
+  the nearest base's signs on the ground; nothing of the original's sign models. Ramon's hold sign "07R-25L" from
+  the taxiway, 39 m ahead ([scenery.md](scenery.md) §7):
+
+  ![Ramon: a hold sign from the taxiway](pictures/scenery/ramon_signs.webp)
 
 | base | section | take-off | lineup (UTM 36N) | taxi points out / in | tower |
 |---|---|---|---|---|---|

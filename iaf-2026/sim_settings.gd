@@ -94,6 +94,11 @@ var devices_path := ""
 var laptop_keys := OS.get_name() == "macOS"
 
 
+func _init() -> void:
+	super()
+	scenery = "on"  # the sim's default (the DEFAULT button's too)
+
+
 func _ready() -> void:
 	super()
 	_apply_profile()
@@ -143,16 +148,18 @@ func _apply_profile() -> void:
 	var ground: GDScript = load("res://shared/terrain/ground_textures.gd")
 	ground_textures = "ambientcg" if ground.available() else "original"
 	model_detail = "ambientcg" if load("res://shared/util/model_detail.gd").available() else "original"
-	# The roads and the scenery: the sim's own once it has them (today the original's, behind the gate).
+	# The roads: the sim's own once it has them. The scenery is the player's (Preferences → Graphics, On by default,
+	# _init), Off without setup's files.
 	ground_roads = "detailed" if load("res://shared/terrain/ground_roads.gd").available() else "original"
-	scenery = "on" if load("res://shared/terrain/scenery.gd").available() else "off"
+	if not load("res://shared/terrain/scenery.gd").available():
+		scenery = "off"
 
 
 ## The settings the sim has, for the logs: its profile, its Preferences rows (menu/front_end.gd PREFS) and the
 ## recorder; the rest of the shared settings mean nothing here.
 func has_setting(key: String) -> bool:
 	if _keys.is_empty():
-		_keys = PROFILE.keys() + ["blackbox", "show_info", "ground_textures", "model_detail", "ground_roads", "scenery"]
+		_keys = PROFILE.keys() + ["blackbox", "show_info", "ground_textures", "model_detail", "ground_roads"]
 		for g in load(FRONT_END).PREFS:
 			for row in g[1]:
 				_keys.append(row[0])

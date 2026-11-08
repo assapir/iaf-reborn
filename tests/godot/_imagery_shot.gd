@@ -3,8 +3,9 @@
 # frames (vsync off). Pose with terrain_view's user args (engine metres; `iaf-terrain game <points> lat lon`):
 #   IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/shots SHOT_NAME=rishon godot --path iaf-reborn --resolution 1920x1080 \
 #       -s ../tests/godot/_imagery_shot.gd -- --at X Y ALT HDG PITCH --freeze
-# SHOT_ORBIT="yaw,pitch,dist" draws from the external view instead of the cockpit. SHOT_SCENERY=on: with Scenery
-# (docs/scenery.md). SHOT_SET=key=value,...: other settings (e.g. ground_roads=detailed,night_lights=detailed).
+# SHOT_ORBIT="yaw,pitch,dist" draws from the external view instead of the cockpit (yaw 180: looking along the
+# heading). SHOT_SCENERY=on: with Scenery (docs/scenery.md). SHOT_SET=key=value,...: other settings (e.g.
+# ground_roads=detailed,night_lights=detailed; show_info=false for the docs).
 # SHOT_HIDE_JET=1: the player's jet hidden (pictures for the docs).
 # SHOT_HOUR=h: the clock of a free flight (no mission; e.g. 22 for the city lights).
 # IAF 2026's theatre (iaf-2026/docs/scenery.md): --path iaf-2026, SHOT_LAYERS=sim (its ground is its own), UTM metres.
@@ -30,7 +31,8 @@ func run() -> void:
 		var v = int(p[1]) if cur is int else (float(p[1]) if cur is float else p[1])
 		settings().set(p[0], (p[1] == "true") if cur is bool else v)
 	for layer in layers:
-		settings().imagery_israel = layer
+		if layer != "sim":  # the sim's ground is its own: no imagery setting (a "sim" layer would be refused)
+			settings().imagery_israel = layer
 		change_scene_to_file("res://shared/terrain/terrain_view.tscn")
 		await frames(2)
 		var tv: Node = null
@@ -38,7 +40,10 @@ func run() -> void:
 			await process_frame
 			tv = current_scene
 		if OS.get_environment("SHOT_HIDE_JET") == "1" and tv.aircraft != null:
-			tv.aircraft.visible = false
+			# Its children: the view shows the aircraft node again every frame outside the cockpit.
+			for c in tv.aircraft.get_children():
+				if c is Node3D:
+					c.visible = false
 		if OS.get_environment("SHOT_HOUR") != "" and tv.runtime == null:
 			tv._sim_time = float(OS.get_environment("SHOT_HOUR")) * 3600.0 - 39600.0
 			tv._tod_t = -INF
@@ -62,4 +67,5 @@ func run() -> void:
 		var path := dir.path_join("%s_%s.png" % [OS.get_environment("SHOT_NAME"), layer])
 		root.get_viewport().get_texture().get_image().save_png(path)
 		print("SHOT %-16s %6.1f fps  layers %s  %s" % [layer, fps, tv.terrain.layers, path])
-	settings().imagery_israel = "original"
+	if layers[0] != "sim":
+		settings().imagery_israel = "original"

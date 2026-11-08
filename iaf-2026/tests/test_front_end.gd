@@ -377,11 +377,18 @@ func prefs(fe: Control) -> void:
 			sh.button_pressed = false
 			check(s.shadows == false, "prefs: the shadows switch sets the setting")
 			sh.button_pressed = true
+			var sc: Control = fe.find_child("Pref_scenery", true, false)
+			var radios := sc.find_children("*", "CheckBox", true, false)
+			var have: bool = load("res://shared/terrain/scenery.gd").available()
+			check(
+				radios.size() == 3 and radios.all(func(r): return r.disabled != have),
+				"prefs: Scenery Off / On / Detailed, greyed only without setup's scenery (%s)" % have
+			)
 		key(fe, KEY_ESCAPE)
 		await frames(2)
 		check(fe.page == "prefs", "prefs: Esc from %s back to the list" % g)
 	check(s.rejected.size() == refused, "prefs: the screens read none of the original's data (%s)" % [s.rejected])
-	for k in ["antialiasing", "upscaling", "shadows", "terrain_detail", "clouds", "fullscreen", "vsync"]:
+	for k in ["antialiasing", "upscaling", "shadows", "terrain_detail", "clouds", "scenery", "fullscreen", "vsync"]:
 		check(rows.get(k) == "graphics", "prefs: Graphics has %s" % k)
 	for k in ["engine_volume", "sfx_volume", "speech_volume", "mute"]:
 		check(rows.get(k) == "sound", "prefs: Sound has %s" % k)

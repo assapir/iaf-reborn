@@ -290,6 +290,11 @@ do (`sea_cells`):
 - **The surface flags**: `terraintype.dat`'s sea follows the coastline to 16 m (`COAST_LEAF_M`) within its reach; the
   flight model's water test and the water shader's mask (96 m texels, docs/rendering.md §1.3) read it.
 
+The shore south of Tel Aviv from 800 m (2026-11-08; [scenery.md](scenery.md) §7): a clean beach; offshore two blues
+meet in steps (open, [scenery.md](scenery.md) §9).
+
+![The shore south of Tel Aviv from 800 m](pictures/scenery/shore.webp)
+
 The extracts are the ones the inland water is cut from (§11), downloaded by `iaf-sim terrain` (with the Survey) and
 `iaf-sim airbases` when missing. Where an extract has no coastline (Saudi Arabia's shore of the Gulf of Aqaba is in
 none of them) the DEM decides.
