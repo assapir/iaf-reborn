@@ -575,8 +575,10 @@ occlusion, 1.8 MB; built by
   (`F16_CONSOLE_AFT`, `F16_CONSOLE_BELOW`: interior triangles inside the tub's width, 0.3 m and more under the eye).
   Its frame is the cut model's, so it sits at the eye and scales (Present scale ×2) and leans with it.
 * **The view**: the 2D cockpit keeps the original's projection (50° across 640 px, above). The 3D cockpit opens
-  wide: 75° across the screen (`cockpit.gd` `VIEW_3D_WIDE_DEG`), so the HUD and the upper panel show looking ahead.
-  DCS's F-16C opens at about 78° and zooms 60–114°[^dcs-fov]; ours is inferred from it. The zoom keys
+  wide: 85° across the screen (`cockpit.gd` `VIEW_3D_WIDE_DEG`), so the HUD and the whole front panel show looking
+  ahead. DCS's F-16C opens at about 78° and zooms 60–114°[^dcs-fov]. 75° tried and dropped (2026-11-08): the HUD's
+  frame filled the middle and the MFDs were cut at the screen's bottom; 85° and 90° were rendered beside a web game's
+  F-16 and the user picked 85°. The zoom keys
   (+ / −) and the mouse wheel narrow it, in 8 steps (`zoom`, `ZOOM_MIN`..`ZOOM_MAX`, evenly in the focal length's
   ratio, `view_3d_focal`), to the view at its true size, fully zoomed in. Its focal length is the viewing distance in
   screen pixels (`true_scale_focal`): f = 0.6 m (`VIEW_DISTANCE_M`, inferred: a desk monitor or a laptop at arm's
@@ -584,12 +586,15 @@ occlusion, 1.8 MB; built by
   inch × the viewport's px per window px. On a 15.6 in 1080p laptop (141 dpi) that is 3,330 px: 32° across the screen;
   at 96 dpi 2,268 px, 46°. The true size alone as the default, tried and dropped (2026-11-01): looking ahead it showed
   only the HUD's frame, no panel.
-  The camera keeps the original's 5.5° look-down; its centre is the screen's middle (`panel_top` there: no panel
+  The camera looks 12° down with the head ahead (`VIEW_3D_LOOK_DOWN_DEG`; the original's 5.5° kept the eye on the
+  horizon and the panel low on the screen, dropped 2026-11-08). A seated eye rests about 15° under the horizontal
+  (inferred); the eye stays at the F-16's height, the panel's top about 15° under the nose, the F-16's quoted
+  over-the-nose view[^f16-nose]. Its centre is the screen's middle (`panel_top` there: no panel
   art). The HUD's layout scales with the focal length (`ui_scale` = it / 686.2 px), so the HUD keeps its place on
   the world; with the head turned the HUD moves with the nose's place on the screen (`view_shift`) instead of the 2D
   panel's pan. Extras "Real HUD view" has nothing to fit and is ignored.
 * **Free look** reaches 60° down (`views.gd` `pitch_min`, the original's −12° otherwise), and the camera's pitch is
-  the head's less 5.5° without the original's floor (`FUN_00585270`: 0.1·(|yaw| − 90°), so −9° looking ahead), so the
+  the head's less 12° without the original's floor (`FUN_00585270`: 0.1·(|yaw| − 90°), so −9° looking ahead), so the
   pilot can look down at the MFDs and consoles. The F-key and Numpad snap views (docs/views.md §2) set the head's yaw
   and pitch the same way, so in the 3D cockpit they are head poses: the camera turns, no panel pans.
 * **A cockpit dir with no panel art** (Modern IAF; `tests/godot/test_cockpit_no_panel.gd`): a
@@ -1597,3 +1602,5 @@ pressurisation: based on earlier fighters' systems, which hold a 5.0 psi differe
 [^f16-photos]: Wikimedia Commons, F-16 cockpit photos (study only): `File:F-16C_cockpit_m02006112700032.jpg` (US Air Force,
     public domain), `File:F16_ohjaamo.jpg` (CC BY 3.0), `File:F-16_Cockpit_(J-513)_(9685714751).jpg` (CC BY 2.0).
     <https://commons.wikimedia.org/wiki/Category:F-16_Fighting_Falcon_cockpits>
+[^f16-nose]: "a 40° look-down over the side and about 15° over the nose", migflug.com (secondary; no Lockheed figure
+    found), https://migflug.com/afterburner/f-16-more-comfortable-than-airliner-pilot/

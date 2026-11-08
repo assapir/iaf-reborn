@@ -2104,7 +2104,7 @@ func _apply_view() -> void:
 	var h: Vector2 = views.head_angles()
 	var pitch: float = cockpit.view_pitch(h)
 	if cockpit.three_d():  # ours, the 3D cockpit: the head looks down at its panel (free look's pitch_min)
-		pitch = h.y - deg_to_rad(cockpit.VIEW_LOOK_DOWN_DEG)
+		pitch = h.y - deg_to_rad(cockpit.VIEW_3D_LOOK_DOWN_DEG)
 	camera.rotation = Vector3(pitch, -h.x, 0)
 	# Cockpit eye ≥ 1 m above the terrain (0x610e14).
 	var g = scene_ground(rig.global_position)
@@ -2965,7 +2965,7 @@ func _snap_command(p1: int, p2: int) -> void:
 	if views.cockpit_like() or views.snap != null:
 		if fatal_hit or ejected:
 			return
-		views.snap_key(p1)
+		views.snap_key(p1, p2)
 		return
 	var cmd: int = {8: 26, 2: 27, 6: 23, 4: 24}.get(absi(p2), 0)
 	if cmd != 0:

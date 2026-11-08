@@ -437,8 +437,12 @@ func focal_length() -> float:
 
 
 ## Ours, the 3D cockpit's widest view (zoom at ZOOM_MIN, the default): this many degrees across the viewport, so the
-## HUD and the upper panel show looking ahead (inferred from DCS's F-16C: about 78° by default, docs/cockpit.md).
-const VIEW_3D_WIDE_DEG := 75.0
+## HUD and the whole front panel show looking ahead (the user's pick of 2026-11-08 from 75 / 85 / 90°; DCS's F-16C
+## shows about 78°, docs/cockpit.md).
+const VIEW_3D_WIDE_DEG := 85.0
+## Ours, the 3D cockpit's look-down with the head straight ahead (the original's VIEW_LOOK_DOWN_DEG is 5.5°): a
+## seated eye rests about 15° below the horizontal (inferred), and 12° shows the MFDs and gauges whole.
+const VIEW_3D_LOOK_DOWN_DEG := 12.0
 
 
 ## The 3D cockpit's focal length (px): the zoom keys / wheel (zoom, ZOOM_MIN..ZOOM_MAX) step from the wide view

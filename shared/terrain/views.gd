@@ -233,8 +233,18 @@ func pan(cmd: int, down: bool) -> void:
 			_pan_rate.y = PAN_RATE * sign
 
 
-## Event 22 in a cockpit-like view: snap `angle` (slot 2, instant) or −1 = release (back to slot 0).
-func snap_key(angle: int) -> void:
+## Ours, the 3D cockpit: hat down / Numpad 2 (the 180° snap with digit 2) looks down at the panel instead of back (the
+## user, 2026-11-08); F2 (digit 0) still looks back. With the 12° look-down the camera is 32° below the nose, the whole
+## front panel in view.
+const SNAP_DOWN_3D := Vector2(0, -0.3490659)  # −20°
+
+
+## Event 22 in a cockpit-like view: snap `angle` (slot 2, instant) or −1 = release (back to slot 0); `digit` its
+## numpad digit (F2: 0).
+func snap_key(angle: int, digit := 2) -> void:
+	if angle == 180 and digit == 2 and pitch_min == HEAD_PITCH_MIN_3D:
+		snap = SNAP_DOWN_3D
+		return
 	snap = SNAPS.get(angle) if angle >= 0 else null
 
 

@@ -23,7 +23,7 @@ Day and night are the 3D cockpit's own lighting (docs/cockpit.md "3D cockpit": t
 lights and the lit labels at night); the panel's night art is not used.
 
 ## 2. The views
-- **Ahead:** the 3D cockpit's wide view (75° across the screen), zoomed in by + / − and the mouse wheel.
+- **Ahead:** the 3D cockpit's wide view (85° across the screen, the head 12° down: the whole front panel in view), zoomed in by + / − and the mouse wheel.
 - **Free look:** the pan keys, the hat and the mouse turn the head, down to 60° (the panel and consoles).
 - **The F-key and Numpad snap views** (F2 back, Numpad 1–9; docs/views.md §2) are head poses: the head turns to the
   snap's yaw and pitch while the key is held, and the 3D cockpit turns with it. No 2D panel pans.
@@ -71,7 +71,7 @@ layout that borrows (`"Shared"`) or names art. The units:
 
 | key | F-16s | F-35I | what it is |
 |---|---|---|---|
-| `BorePositionY` | 16 | 16 | the boresight: the nose, which the 3D camera sees 5.5° over the view's centre (`VIEW_LOOK_DOWN_DEG`): 686.2 · tan 5.5° = 66 px, less the 50; with the head ahead the 3D cockpit's `view_shift` is then zero |
+| `BorePositionY` | 16 | 16 | the boresight: the nose, which the 3D camera sees 5.5° over the view's centre (`VIEW_LOOK_DOWN_DEG`): 686.2 · tan 5.5° = 66 px, less the 50; the 3D cockpit looks 12° down (`VIEW_3D_LOOK_DOWN_DEG`), so `view_shift` puts the HUD on the nose |
 | `GunRetPositionY` | 11 | 11 | the gun cross, 5 px (0.4°) under the boresight (inferred, as the F-35I's 2D cockpit) |
 | `CenterY` | −26 | 16 | the HUD's centre: the F-16s' 3.5° (42 px) under the boresight, the middle of their field; the F-35I's on the boresight |
 | `LeftBorder`, `RightBorder` | 72 | 250 | the field's half width: the F-16s' ±6°, the F-35I's ±20° (its helmet's 40° field) |

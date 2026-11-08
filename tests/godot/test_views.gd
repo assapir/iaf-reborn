@@ -22,6 +22,15 @@ func press(tv: Node, k: Key, ctrl := false, shift := false, down := true) -> voi
 
 
 func run() -> void:
+	# --- the 180° snap (hat down, Numpad 2): back in the original's cockpit, down at the panel in the 3D one ---
+	var v = load("res://shared/terrain/views.gd").new()
+	v.snap_key(180)
+	check(v.snap == v.SNAPS[180], "2D cockpit: hat down looks back")
+	v.pitch_min = v.HEAD_PITCH_MIN_3D
+	v.snap_key(180)
+	check(v.snap == v.SNAP_DOWN_3D, "3D cockpit: hat down looks down at the panel")
+	v.snap_key(180, 0)
+	check(v.snap == v.SNAPS[180], "3D cockpit: F2 still looks back")
 	var tv = await start_mission(311)
 	await frames(5)
 	# --- pause ---

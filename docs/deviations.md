@@ -185,7 +185,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   the original (`FUN_0052df40` darkens only the panel, its lights and the HUD glass).
 - **Cockpit (Original 2D / 3D).** Original: the jets' 1998 2D panel art and the original's projection (50° across
   640 px). Ours, with 3D (`cockpit_3d`, read at mission load): the F-16 (Barak and Sufa) flies with a real-time 3D
-  front cockpit built from the FlightGear F-16's (cockpit.md "3D cockpit"): a 75° view that the zoom narrows to its true size (the screen's
+  front cockpit built from the FlightGear F-16's (cockpit.md "3D cockpit"): an 85° view looking 12° down (hat down / Numpad 2 look down at the panel, F2 still back) that the zoom narrows to its true size (the screen's
   size and a 0.6 m viewing distance) from the same eye; free look down to 60° (the original's 12°); the MFDs show the
   same pages on the 3D screens; the HUD draws as before, cut to the combiner glass's outline; the needles FlightGear
   animates move with the cockpit state, its lamps light from it, the RWR scope, EHSI, DED and pilot fault list draw
