@@ -221,6 +221,15 @@ func to_scope(w: Vector2, centre: Vector2, m_per_px: float) -> Vector2:
 	return centre + Vector2(ex * cos(h) - ny * sin(h), -(ex * sin(h) + ny * cos(h))) / m_per_px
 
 
+## to_scope() as one transform, for many points at once (`scope_xform(...) * points`, native).
+func scope_xform(centre: Vector2, m_per_px: float) -> Transform2D:
+	var h := heading_rad()
+	var x := Vector2(cos(h), -sin(h)) / m_per_px
+	var y := Vector2(-sin(h), -cos(h)) / m_per_px
+	var o := own_world()
+	return Transform2D(x, y, centre - x * o.x - y * o.y)
+
+
 func track_kind(c: Dictionary) -> String:
 	return "hostile" if bool(c.get("hostile", true)) else "friend"
 
@@ -238,10 +247,11 @@ func tsd(r: Rect2, range_nm: float, show_map := true) -> void:
 	var clip := PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)])
 	if show_map:
 		# The map's outlines (grey), cut at the portal's edge (the cut itself not drawn).
+		# One transform per frame, applied natively: the own TSD map (OpenStreetMap) holds some 10,000 points, which
+		# point by point took 64 ms a frame (measured 2026-11-08) and slowed the F-35I's flight.
+		var xf := scope_xform(c, mpp)
 		for p in cockpit.tsd_map:
-			var pts := PackedVector2Array()
-			for w in p.points:
-				pts.append(to_scope(w, c, mpp))
+			var pts: PackedVector2Array = xf * (p.points as PackedVector2Array)
 			if pts.size() > 0:
 				pts.append(pts[0])
 			for seg in Geometry2D.intersect_polyline_with_polygon(pts, clip):

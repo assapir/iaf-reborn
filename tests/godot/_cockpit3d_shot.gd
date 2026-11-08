@@ -8,7 +8,8 @@
 # and fire lamps lit, the gear down, an emitter and a launching one on the RWR scope; looking down at the panel, at the
 # RWR scope and at the gear panel. C3D_ONLY=hud: only ahead, looking up 8° (the HUD's frame against the sky) and ahead
 # zoomed in to the true size. C3D_HUD=original: the original HUD (default the Real HUD). C3D_ALL=1: every graphics
-# option at its best (_showcase_shot.gd AFTER), as a player with everything on sees it.
+# option at its best (_showcase_shot.gd AFTER), as a player with everything on sees it. C3D_SIM=1: IAF 2026's cockpits
+# (iaf-2026/sim_settings.gd on its own cockpit dirs, `iaf-sim own`'s, test_cockpit_no_panel.gd), files named sim.
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOW_OUT=$PWD/.shots/c3d -- \
 #     --log-file /tmp/c3d.log --resolution 1920x1080 --path iaf-reborn -s ../tests/godot/_cockpit3d_shot.gd
 extends "res://../tests/godot/_cockpit_show_shot.gd"
@@ -34,8 +35,11 @@ func run() -> void:
 		return
 	out = OS.get_environment("SHOW_OUT")
 	DirAccess.make_dir_recursive_absolute(out)
+	if OS.get_environment("C3D_SIM") == "1":  # first: the new script starts from its defaults
+		var t: GDScript = load("res://../tests/godot/test_cockpit_no_panel.gd")
+		t.use_sim_settings(settings(), settings().assets_dir().path_join("converted/own/cockpits"))
 	var two_d := OS.get_environment("C3D_LOOK") == "2d"
-	look = "2d" if two_d else "3d"
+	look = "sim" if OS.get_environment("C3D_SIM") == "1" else ("2d" if two_d else "3d")
 	if OS.get_environment("C3D_ALL") == "1":  # every graphics option at its best (_showcase_shot.gd AFTER): as played
 		for k in AFTER:
 			settings().set(k, AFTER[k])

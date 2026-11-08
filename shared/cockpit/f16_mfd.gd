@@ -63,7 +63,8 @@ const FAULTS := [
 	[[19, 21], "ELEC FAIL", "caution"]
 ]
 
-static var _font: SystemFont
+static var _font: Font
+static var _font_of: Script  # the Settings script that gave _font (a test swaps it)
 var m: Control  # the MFD node (mfd.gd)
 ## The SMS shows its inventory (OSB 4 INV) instead of the selected weapon's page.
 var sms_inv := false
@@ -72,12 +73,9 @@ var used := {}
 
 
 func _init(mfd: Control) -> void:
-	if _font == null:
-		_font = SystemFont.new()
-		_font.font_names = PackedStringArray(
-			["DejaVu Sans Mono", "Liberation Mono", "Menlo", "Consolas", "Courier New"]
-		)
-		_font.font_weight = 600
+	if _font_of != Settings.get_script():
+		_font = Settings.display_font("mono")
+		_font_of = Settings.get_script()
 	super(mfd, mfd.cockpit, _font)
 	m = mfd
 

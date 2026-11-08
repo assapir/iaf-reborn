@@ -43,7 +43,8 @@ const FAULTS := [
 ]
 const ROSE := ["N", "3", "6", "E", "12", "15", "S", "21", "24", "W", "30", "33"]
 
-static var _font: SystemFont
+static var _font: Font
+static var _font_of: Script  # the Settings script that gave _font (a test swaps it)
 var cockpit: Control
 var kind := Kind.RWR
 ## What the last draw showed (tests): the RWR symbols' count, the DED's lines, the EHSI's range (NM, -1 none).
@@ -54,12 +55,9 @@ func _init(c: Control, k: Kind, px: Vector2i) -> void:
 	cockpit = c
 	kind = k
 	size = px
-	if _font == null:
-		_font = SystemFont.new()
-		_font.font_names = PackedStringArray(
-			["DejaVu Sans Mono", "Liberation Mono", "Menlo", "Consolas", "Courier New"]
-		)
-		_font.font_weight = 600
+	if _font_of != Settings.get_script():
+		_font = Settings.display_font("mono")
+		_font_of = Settings.get_script()
 
 
 func _process(_delta: float) -> void:

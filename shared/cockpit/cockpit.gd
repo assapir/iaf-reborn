@@ -41,7 +41,7 @@ static func hud_colour() -> Color:
 	return HUD_COLOURS[hud_colour_index]
 
 
-## The cockpit the scene loads at once (terrain_preload.gd decodes its art ahead).
+## The cockpit the scene loads at once (terrain_preload.gd decodes its art ahead): the F-16's (default_dir).
 const DEFAULT_DIR := "converted/cockpits/f16"
 ## Under assets/.
 @export var cockpit_dir := DEFAULT_DIR
@@ -176,7 +176,13 @@ func real_hud_key() -> String:
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	load_cockpit(cockpit_dir)
+	load_cockpit(default_dir() if cockpit_dir == DEFAULT_DIR else cockpit_dir)
+
+
+## The F-16's cockpit: its aircraft definition's `cockpit` where it names one (IAF 2026's, which has no panel art),
+## else the original's (DEFAULT_DIR).
+static func default_dir() -> String:
+	return Settings.airframe(100).get("cockpit", DEFAULT_DIR)
 
 
 ## Loads the cockpit `rel` (e.g. "converted/cockpits/f4-2000"): layout, art, TSD map and MFDs. A second call
@@ -193,8 +199,8 @@ func load_cockpit(rel: String) -> void:
 	_pcd_sheen = null
 	tex.clear()
 	tsd_map.clear()
-	# An extra plane's cockpit lives in the repo (res://shared/extra/..., docs/adding-a-plane.md §4).
-	dir = cockpit_dir if cockpit_dir.begins_with("res://") else Settings.assets_dir().path_join(cockpit_dir)
+	# An extra plane's cockpit lives in the repo (res://shared/extra/..., docs/adding-a-plane.md §4); a test's anywhere.
+	dir = cockpit_dir if cockpit_dir.is_absolute_path() else Settings.converted(cockpit_dir)
 	layout = Settings.load_json(dir.path_join("cockpit.json"))
 	if layout.is_empty():
 		push_error("cockpit: %s/cockpit.json not found — run iaf-convert cockpit" % dir)
@@ -239,7 +245,7 @@ static func _art(d: String, lay: Dictionary) -> Array:
 static func prefetch_art(rels: Array) -> void:
 	var uses := {}
 	for rel in rels:
-		var d: String = rel if rel.begins_with("res://") else Settings.assets_dir().path_join(rel)
+		var d: String = rel if rel.is_absolute_path() else Settings.converted(rel)
 		for a in _art(d, Settings.load_json(d.path_join("cockpit.json"))):
 			uses[[a[1], a[2]]] = int(uses.get([a[1], a[2]], 0)) + 1
 	for k in uses:
@@ -264,7 +270,7 @@ static func _file_in(d: String, lay: Dictionary, name: String) -> String:
 	var own := d.path_join(name)
 	if FileAccess.file_exists(own) or not lay.has("Shared"):
 		return own
-	return Settings.assets_dir().path_join("converted/cockpits").path_join(String(lay.Shared)).path_join(name)
+	return Settings.converted("cockpits".path_join(String(lay.Shared)).path_join(name))
 
 
 ## map.emf points (normalised to its 12601 x 16383 frame) -> world (FUN_00531a50 inverse), in the
@@ -664,7 +670,7 @@ var compasses: Array = []
 func _update_compasses() -> void:
 	var on := view_mode == 0 and not three_d() and Settings.better_cockpit_on("turning_compass")
 	if on and compasses.is_empty():
-		for spec in Compass.instruments(cockpit_dir.get_file()):
+		for spec in Compass.instruments(Settings.cockpit_folder(cockpit_dir)):
 			var n := Compass.new()
 			n.setup(self, spec)
 			add_child(n)
@@ -692,7 +698,7 @@ var better_instruments: Control
 
 func _update_instruments() -> void:
 	if better_instruments == null:
-		var specs: Array = Instruments.instruments(cockpit_dir.get_file())
+		var specs: Array = Instruments.instruments(Settings.cockpit_folder(cockpit_dir))
 		if specs.is_empty() or not Settings.better_cockpit:
 			return
 		better_instruments = Instruments.new()

@@ -129,6 +129,14 @@ Open Database Licence (ODbL) 1.0: openstreetmap.org/copyright". The sim's own se
 (item A3) lists them on its Attributions page. Every other figure of the data files is a cited fact with its source in
 the file.
 
+The sim's cockpit display data (`iaf-2026/data/planes/_shared/cockpit/`, iaf-2026/docs/cockpit.md "Display data"):
+the TSD map and the radar's ground-map picture are made from OpenStreetMap (© OpenStreetMap contributors, ODbL
+1.0[^osm]): OSM's simplified land polygons from osmdata.openstreetmap.de, the boundary relations of Israel, the West
+Bank's Areas A, B and C and Hebron's H1 (the areas mapped in OSM from geomolg.ps) and the Gaza Strip, and the large
+lakes, via `tools/iaf-2026/cockpit_displays.py`. The RWR glyph sheet and the ADI ball are our own drawing (their SVG
+sources in `tools/iaf-2026/cockpit/`). The line the sim's wizard and credits roll need: "TSD map © OpenStreetMap
+contributors, available under the Open Database Licence (ODbL) 1.0: openstreetmap.org/copyright".
+
 The sim's sound clips (`iaf-2026/data/sounds/`, made by `tools/iaf-2026/sounds.py`) are CC0 recordings from
 freesound.org[^freesound] and tones we computed. CC0 asks for no credit; we name every author anyway: ikbenraar,
 TiesWijnen, pillwave, 77Pacer, nuckan, qubodup, Seidhepriest, Jetrod, craigsmith (the USC Gold / Red / Sunset
@@ -157,7 +165,8 @@ simulation package) served as the candidate checked against the scan (iaf-2026/d
 
 The sim's screens (its setup wizard first) use Heebo, `iaf-2026/data/fonts/Heebo-VariableFont_wght.ttf`, "Copyright
 2014 The Heebo Project Authors (https://github.com/OdedEzer/heebo)", under the SIL Open Font License 1.1
-(`iaf-2026/data/fonts/OFL.txt`), from Google Fonts[^heebo]. The wizard's Attributions page names it.
+(`iaf-2026/data/fonts/OFL.txt`), from Google Fonts[^heebo]. The wizard's Attributions page names it. Until the user picks the
+HUD face (Approvals A9), Heebo is also the sim's HUD and display font.
 
 ## Modern IAF's photos
 

@@ -54,7 +54,6 @@ var formation_of := {}  # entity key -> its formation's flight (0x3f2, formation
 ## converted by `iaf-convert missions`): [{name, data}] in that order, data {} for a missing file;
 ## [] when the id is not listed. The mission editor's Fly gives the whole list (Settings.mission_files_override).
 static func mission_files(id: int) -> Array:
-	var dir := Settings.assets_dir().path_join("converted/missions")
 	var out := []
 	var moved := Settings.sync_bases()
 	# The Mission Creator's (docs/front-end.md §19.3), built on FLY; the mission editor's Fly (Settings.fly_edited).
@@ -67,8 +66,10 @@ static func mission_files(id: int) -> Array:
 				move_with_bases(data)
 			out.append({"name": String(f.name), "data": data})
 		return out
-	for name in Settings.load_json(dir.path_join("missionlist.json")).get(str(id), []):
-		var data := Settings.load_json(dir.path_join(String(name) + ".json"))
+	for name in Settings.load_json(Settings.converted(Settings.missions_folder().path_join("missionlist.json"))).get(
+		str(id), []
+	):
+		var data := Settings.load_json(Settings.converted(Settings.missions_folder().path_join(String(name) + ".json")))
 		_into_wind(id, data, out.is_empty())
 		if moved:
 			move_with_bases(data)
@@ -135,7 +136,7 @@ static func move_with_bases(m: Dictionary) -> void:
 ## object defaults' stores too.
 static func load_bdb(mission: Dictionary) -> Dictionary:
 	var name := String(mission.get("bdb", "")).to_lower()
-	var bdb := Settings.load_json(Settings.assets_dir().path_join("converted/missions").path_join(name + ".json"))
+	var bdb := Settings.load_json(Settings.converted("missions".path_join(name + ".json")))
 	var kept: Array = mission.get("weapon_types", [])
 	if not kept.is_empty() and bdb.has("weapons"):
 		bdb.weapons.items = bdb.weapons.items.filter(func(w): return float(w.get("0x780", -1)) in kept)

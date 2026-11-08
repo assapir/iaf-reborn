@@ -4,7 +4,6 @@
 # the jet from its player unit (Settings.set_jet), then the flight scene.
 extends Node
 
-const MISSIONS := "converted/iaf-2026/missions"
 const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
 
 
@@ -18,7 +17,7 @@ func _ready() -> void:
 
 ## Loads mission `id` (its menu id) and changes to the flight scene; false when the compiled missions lack it.
 static func start(id: int) -> bool:
-	var dir := Settings.assets_dir().path_join(MISSIONS)
+	var dir: String = Settings.converted(Settings.missions_folder())
 	var list := Settings.load_json(dir.path_join("missionlist.json"))
 	if not list.has(str(id)):
 		push_error("no Modern IAF mission %d in %s" % [id, dir])

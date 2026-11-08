@@ -270,6 +270,33 @@ pub fn describe(model: &Model, folder: &str, gltf: &str, source: &str, objects: 
     })
 }
 
+/// [`describe`] for a model of ours in glTF binary (`.glb`, e.g. Modern IAF's F-16, `iaf-sim own`). The model must be
+/// flat, as the original frame files are: every part, station and helper a direct child of the scene's root node, placed
+/// by its translation alone (the root's own transform and any rotation or scale are not read). The translations are
+/// glTF's, mirrored back to the X file's Z for `describe`. An index that names no node is an error.
+pub fn describe_glb(glb: &[u8], folder: &str, gltf: &str, source: &str, objects: &[DbObject]) -> anyhow::Result<Value> {
+    use anyhow::Context;
+    anyhow::ensure!(glb.len() > 20 && &glb[0..4] == b"glTF" && &glb[16..20] == b"JSON", "not a glTF binary");
+    let n = u32::from_le_bytes(glb[12..16].try_into()?) as usize;
+    let j: Value = serde_json::from_slice(glb.get(20..20 + n).context("glb: short JSON chunk")?)?;
+    let nodes = j["nodes"].as_array().context("glb: no nodes")?;
+    let node = |i: &Value| -> anyhow::Result<&Value> {
+        i.as_u64().and_then(|i| nodes.get(i as usize)).with_context(|| format!("glb: no node {i}"))
+    };
+    let frame = |i: &Value| -> anyhow::Result<Frame> {
+        let nd = node(i)?;
+        let t = |k: usize| nd["translation"][k].as_f64().unwrap_or(0.0) as f32;
+        let mut transform = [1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.];
+        transform[12..15].copy_from_slice(&[t(0), t(1), -t(2)]);
+        Ok(Frame { name: nd["name"].as_str().unwrap_or_default().into(), transform, meshes: vec![], children: vec![] })
+    };
+    let root_i = &j["scenes"][j["scene"].as_u64().unwrap_or(0) as usize]["nodes"][0];
+    let mut root = frame(root_i)?;
+    let kids = node(root_i)?["children"].as_array().cloned().unwrap_or_default();
+    root.children = kids.iter().map(frame).collect::<anyhow::Result<_>>()?;
+    Ok(describe(&Model { frames: vec![root] }, folder, gltf, source, objects))
+}
+
 /// Every converted object database of a missions folder (`<missions>/*.bdb.json`), as
 /// (file stem, e.g. `iaf`, JSON).
 pub fn read_bdbs(missions: &std::path::Path) -> anyhow::Result<Vec<(String, Value)>> {
@@ -318,6 +345,17 @@ pub fn db_objects(bdb: &Value) -> std::collections::HashMap<String, Vec<DbObject
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_glb_index_without_its_node_is_an_error() {
+        let json = br#"{"scenes":[{"nodes":[0]}],"nodes":[{"name":"f16","children":[0,7]}]}"#;
+        let mut glb = b"glTF\x02\0\0\0\0\0\0\0".to_vec();
+        glb.extend((json.len() as u32).to_le_bytes());
+        glb.extend(b"JSON");
+        glb.extend(json);
+        let e = describe_glb(&glb, "f16", "f16_h.gltf", "test", &[]).unwrap_err();
+        assert!(e.to_string().contains("no node 7"), "{e}");
+    }
 
     #[test]
     fn names_and_helpers() {

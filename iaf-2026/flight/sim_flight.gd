@@ -8,7 +8,7 @@
 extends Node
 
 const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
-const WizardTheme := preload("res://setup/wizard_theme.gd")
+const WizardTheme := preload("../setup/wizard_theme.gd")  # relative: a test of the original's project loads it too
 ## The menu's lines: [request id, English, Hebrew] (radio.gd request; "landing": its Ctrl+T contact_tower).
 const ITEMS := [
 	["startup", "Request start-up", "בקשת התנעה"],
@@ -253,7 +253,7 @@ func _finish(d: Dictionary) -> void:
 ## = {missions: [{id, attempts: [{result, mult, bonus, kills, losses}]}]}, newest mission first), plus the debrief
 ## file and the date; the pilot is Settings.pilot_id, else the default pilot 14.
 func _pilot_log(d: Dictionary) -> void:
-	var path := Settings.pilot_log_file()
+	var path: String = Settings.pilot_log_file()
 	if out_dir != "":
 		path = out_dir.path_join(path.get_file())
 	DirAccess.make_dir_recursive_absolute(path.get_base_dir())

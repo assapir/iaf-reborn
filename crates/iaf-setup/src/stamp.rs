@@ -66,7 +66,7 @@ const TERRAIN: &[&str] = &[
 /// The bodies of extract, patch, hebrew and arm in this crate (their one-line calls in steps.rs do not count).
 const STEPS: &[&str] = &["crates/iaf-setup/src/bodies.rs"];
 
-/// IAF 2026's compilers (`iaf_tools::sim`, `sim_bases`) and every module they reach.
+/// The sim's compilers (`iaf_tools::sim`, `sim_bases`, `sim_cockpit`) and every module they reach.
 const SIM: &[&str] = &[
     "crates/iaf-formats/src/xfile.rs",
     "crates/iaf-formats/src/model.rs",
@@ -78,6 +78,17 @@ const SIM: &[&str] = &[
     "crates/iaf-tools/src/mission_creator.rs",
     "crates/iaf-tools/src/sim.rs",
     "crates/iaf-tools/src/sim_bases.rs",
+    "crates/iaf-tools/src/sim_cockpit.rs",
+    "crates/iaf-tools/src/thirdparty.rs",
+    "crates/iaf-tools/src/itm.rs",
+    "crates/iaf-tools/src/imagery_run.rs",
+    "crates/iaf-formats/src/lzo.rs",
+    "crates/iaf-formats/src/ptt.rs",
+    "crates/iaf-tools/src/airbases.rs",
+    "crates/iaf-tools/data/georef_points.json",
+    "crates/iaf-tools/src/georef.rs",
+    "crates/iaf-tools/src/imagery.rs",
+    "crates/iaf-tools/src/sim_terrain.rs",
     "crates/iaf-tools/src/sim_files.rs",
     "crates/iaf-tools/src/mission_edit.rs",
     "crates/iaf-tools/src/training.rs",
@@ -314,7 +325,15 @@ pub(crate) fn sim_of(step: &Step, ctx: &SimCtx) -> Result<Option<Stamp>> {
     let (out, inputs): (PathBuf, Vec<PathBuf>) = match step.id {
         "sim-terrain" => (a.join(THEATRE).join("meta.json"), vec![data.join("airbases")]),
         "sim-db" => (a.join("converted/missions/sim.bdb.json"), vec![data.join("db")]),
-        "sim-own" => (a.join("converted/own/keys.json"), vec![data.join("sounds"), data.join("keys.json")]),
+        "sim-own" => (
+            a.join("converted/own/keys.json"),
+            vec![
+                data.join("sounds"),
+                data.join("keys.json"),
+                data.join("planes"),
+                ctx.repo.join(iaf_tools::sim::F16_GLB),
+            ],
+        ),
         "sim-airbases" => (a.join("converted/own/iaf.ibx"), vec![data.join("airbases")]),
         "sim-fm" => (a.join("converted/own/resource/md/bd.ibx"), vec![ctx.repo.join(crate::sim::FM0)]),
         "sim-missions" => {

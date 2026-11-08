@@ -18,7 +18,7 @@ cargo run -p iaf-tools --bin iaf-sim -- all [iaf-2026/data] [assets]   # or db /
 | `iaf-sim missions` | `data/missions/*.json`, the units | `converted/iaf-2026/missions/<id>.json`, `converted/iaf-2026/missions/missionlist.json` (menu id → `[<id>]`) |
 | `iaf-sim airbases` | `data/airbases/*.json`, the terrain's heights (`converted/terrain/israel/`) | `converted/terrain/israel/airbases.json` and `airbases/<base>.png`, `converted/own/iaf.ibx`, `converted/own/terraintype.dat` (§12) |
 | `iaf-sim terrain` | `data/airbases/*.json` (the outlines); `source/dem/` (GLO-30), `source/imagery/sentinel2/` (WorldCover tiles and listings, shared with the original game's imagery setup), `source/imagery/mapi2015/` (the Survey sheets); what is missing in the first two is downloaded into them ([terrain.md](terrain.md) §1.1) | `converted/terrain/israel/` (`L<l>/c_*.jpg`, `L<l>/h_*.png`, `meta.json`, `.work/`) |
-| `iaf-sim own` | `data/sounds/soundprop.json`, `data/sounds/voices.json`, `data/sounds/*.wav`, `data/keys.json` | `converted/own/resource/soundfiles/` (`soundprop.trx`, `phrasetemplates.trx`, `phraseparticalsdata.trx`, the clips; other files there are removed), `converted/own/keys.json` ([sound.md](sound.md)) |
+| `iaf-sim own` | `data/sounds/soundprop.json`, `data/sounds/voices.json`, `data/sounds/*.wav`, `data/keys.json`, `data/planes/_shared/cockpit/`, `data/planes/<jet>/cockpit/` | `converted/own/resource/soundfiles/` (`soundprop.trx`, `phrasetemplates.trx`, `phraseparticalsdata.trx`, the clips; other files there are removed), `converted/own/keys.json` ([sound.md](sound.md)), `converted/own/planes/` (the F-16's aircraft descriptor from our model, `shared/extra/models/f16/f16d.glb`), `converted/own/cockpits/<jet>/` (§14) |
 
 `iaf-sim all` runs db, own, airbases (once the terrain is built: `iaf-sim terrain`) and missions. Nothing is read
 from `assets/install` or the exe. Places are the airbase files' (§10) and the missions' own lat / lon, projected to
@@ -507,6 +507,39 @@ absolute path) and `date` (local, `YYYY-MM-DDTHH:MM:SS`).
 (`iaf-reborn/menu/pilots.gd`): `{"missions": [{"id": <menu id>, "attempts": [{"result": 1 pass / 0 fail, "mult": 1.0,
 "bonus": 0, "kills": [], "losses": [], "debrief": <the debrief file>, "date": …}]}]}`, the newest mission first. The
 original game's reader takes the same fields (it reads `kills` / `losses` as its 37 counts: empty here).
+
+## 14. Cockpit display data: `data/planes/_shared/cockpit/`, `data/planes/<jet>/cockpit/`
+The data the 3D cockpit's screens draw ([cockpit.md](cockpit.md) §8): `_shared/cockpit/` holds every jet's files
+(`tsd_map.json`, `rwrsymb.png`, `mfds.png`, `adi.png`), one folder per jet (`f16i`, `f16d`, `f35i`) its own
+(`cockpit.json`); a jet's file of the same name replaces the shared one. `iaf-sim own`
+(`crates/iaf-tools/src/sim_cockpit.rs`) writes both to `converted/own/cockpits/<jet>/`, the cockpit dir the shared
+readers take; anything there that it did not write (files and folders) is removed.
+
+| file in the data | compiled to | rule |
+|---|---|---|
+| `tsd_map.json` | `map.json`, `isr.png` | the polygons in longitude / latitude become the EMF-JSON shape `cockpit.gd _load_tsd_map` reads (a background rectangle over the frame, then one `polygon` op per ring, `brush` = the layer's colour); the background rectangle covers the theatre's box (`sim_terrain::BOX`); each point to UTM 36N (`sim_bases::utm36n`; the sim's world X / Y, [terrain.md](terrain.md) §2) and the TSD frame `u = (X + 166850) / 819200 · 1.0071394`, `v = (1043816 − Y) / 1064960 · 1.0071394` (`cockpit.gd` turns it back into X / Y). The same rings fill `isr.png` (640 × 832 at 640 m a pixel from the box's north-west corner; the GM picture `mfd.gd _isr` reads) at each layer's `radar` brightness |
+| `rwrsymb.png` | copied | 17 glyphs of 10 × 10 times the scale (40 × 680 at 4); required |
+| `adi.png` | copied | the ball, 128 × 128 times the scale (512 × 512) |
+| `mfds.png` | copied | the MFD atlas, 264 × 924 times the scale (1056 × 3696); required |
+| `cockpit.json` | copied, with `MAPFRAME` | the layout ([cockpit.md](cockpit.md) §4); required. `iaf-sim own` adds `"MAPFRAME"` {`left`, `top`, `right`, `bottom`}: `isr.png`'s frame in the terms of the original's cockpits.ibx [MAPFRAME] (`mfd.gd isr_px`: col = (X + 166828 − left) / (right − left) · 640, row = (top − (Y + 21164)) / (top − bottom) · 832), so left = E0 + 166828, top = N1 + 21164, 640 m a pixel. Refused with a `"Shared"` key (an own cockpit borrows nothing) or a section naming art (`FileName`, `NightFileName`). Its `image_scale` must match the art's |
+| other `.json`, `.png`, `.webp` | copied | |
+
+`tsd_map.json`:
+
+| key | meaning |
+|---|---|
+| `background`, `background_radar` | the frame's fill (the sea, navy) and its GM brightness (0) |
+| `layers` | in paint order: `name`, `brush` [r, g, b], `radar` (0..255), `rings` (each `[[lon, lat], …]`, the outer ring only; a hole is a later layer painted over it). Ours: `land`, `israel`, `area_c`, `pa`, `lakes` ([cockpit.md](cockpit.md) §8) |
+| `source`, `license`, `_doc` | where it came from: OpenStreetMap, ODbL 1.0[^osm] |
+
+The PNGs and the map are made by `tools/iaf-2026/cockpit_displays.py` (`art`: the SVG sources in
+`tools/iaf-2026/cockpit/`, `map`) into `_shared/cockpit/`; the data folders hold no source. `cockpit.json` is written
+by hand. Check: `cargo test -p iaf-tools --lib sim_cockpit::` (every jet compiles from the shared folder and its own,
+the files have the readers' shapes; read back as `cockpit.gd` does, the map paints places at their UTM metres: Tel
+Aviv, Katzrin and Majdal Shams as Israel, old Quneitra and Amman as neighbours, Ramallah and Gaza City as the PA's
+areas, Ariel and Ma'ale Adumim as Area C, the Mediterranean and the Sea of Galilee as water; the GM picture through
+`MAPFRAME` is lit on land and dark at sea; each layout has its sections; a stale file and folder go; a `"Shared"`
+cockpit or one naming panel art is refused).
 
 [^osm]: OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright (runway and apron ways via the Overpass API, 2026-10-20 and 2026-11-02).
 [^oa]: OurAirports, runways.csv and airports.csv (public domain), https://davidmegginson.github.io/ourairports-data/

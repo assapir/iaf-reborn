@@ -95,7 +95,7 @@ func card_image() -> Image:
 	var r: float = spec.r
 	var folder: String = cockpit.dir
 	if spec.has("from"):
-		folder = Settings.assets_dir().path_join("converted/cockpits").path_join(spec.from[0])
+		folder = Settings.converted("cockpits".path_join(spec.from[0]))
 		a = float(Settings.load_json(folder.path_join("cockpit.json")).get("image_scale", 1))
 		centre = spec.from[1]
 		r = spec.from[2]

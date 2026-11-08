@@ -320,7 +320,7 @@ func _ready() -> void:
 	terrain.view_range = camera.far
 	_loading = CanvasLayer.new()
 	_loading.layer = 20
-	_loading.add_child(preload("res://shared/terrain/loading_screen.gd").new())
+	_loading.add_child(load(Settings.loading_screen_scene()).new())
 	add_child(_loading)
 	_fps_before = Engine.max_fps
 	if _fps_before == 0 or _fps_before > LOADING_FPS:
@@ -626,7 +626,7 @@ func _setup_views(args: PackedStringArray) -> void:
 func _setup_weapons() -> void:
 	var bdb := mission_bdb
 	if bdb.is_empty():
-		bdb = Settings.load_json(Settings.assets_dir().path_join("converted/missions/default6_1.bdb.json"))
+		bdb = Settings.load_json(Settings.converted("missions/%s.json" % Settings.default_bdb()))
 	var obj := mission_object
 	if obj.is_empty() or int(obj.get("0x5b4", -1)) != player.type:
 		# Another jet picked on the Jet list (or an unflyable mission jet): the player's type and its load.
@@ -984,7 +984,6 @@ func _parse_ahead() -> void:
 func _spawn_mission_objects() -> void:
 	if mission_id < 0:
 		return
-	var base := Settings.assets_dir().path_join("converted")
 	var files: Array = (
 		MissionRuntime.mission_files(mission_id).map(func(f): return f.data).filter(func(m): return not m.is_empty())
 	)
@@ -992,7 +991,7 @@ func _spawn_mission_objects() -> void:
 		return
 	var bdb := MissionRuntime.load_bdb(files[0])
 	var objs := MissionRuntime.bdb_objects(bdb)
-	var paths: Dictionary = Settings.load_json(base.path_join("objects/objects.json")).get(
+	var paths: Dictionary = Settings.load_json(Settings.converted("objects/objects.json")).get(
 		String(files[0].bdb).to_lower(), {}
 	)
 	# Present record 0x65e: the model's uniform scale (FUN_00593b60, default 10.0 before version 5), applied by
@@ -1982,18 +1981,21 @@ func _spawn_player() -> void:
 	rig.add_child(aircraft)
 	# Seen from the cockpit (FUN_004d9d70 → FUN_004da060: display slot 4 = model [8], the *_BC.X, with the crew's
 	# cockpit flag set so pilot and canopy stay hidden): same frame and Present scale as the jet model.
-	var bc = Gltf.object("controllableplanes/%s/%s_bc.gltf" % [player.plane, player.plane])
+	# Ours, the 3D cockpit (Extras "Cockpit": 3D): the F-16's hung in the detailed F-16's cut model, Models Original
+	# too; that model's own tub ahead of the seat makes way for it. The original's model is then not loaded (IAF 2026
+	# has none).
+	var c3d_model: String = Cockpit3d.model_for(player.type)
+	var three_d: bool = Cockpit3d.in_cut_model(player.type, player.cockpit_dir)
+	# Ours first: an extra plane's (the F-35I's, tools/f35i/bc.py), which no install has.
 	var extra: String = AircraftModel.EXTRA_DIR.path_join(player.plane).path_join(player.plane + "_bc.gltf")
-	if bc == null and FileAccess.file_exists(extra):
-		bc = Gltf.open(extra)  # ours: an extra plane's (the F-35I's, tools/f35i/bc.py)
+	var own := not three_d and FileAccess.file_exists(extra)
+	var bc = null if three_d or own else Gltf.object("controllableplanes/%s/%s_bc.gltf" % [player.plane, player.plane])
+	if own:
+		bc = Gltf.open(extra)
 		# Its seat head box and canopy frame sit closer to the eye than the originals' parts: a nearer near plane.
 		camera.near = 0.1
 	# Ours: the detailed F-16 (Models: Detailed, or the Sufa) gives its own seat, tub and canopy, cut at its seat's eye.
 	var hd := Gltf.detailed(str(aircraft.desc.get("model", "")))
-	# Ours, the 3D cockpit (Extras "Cockpit": 3D): the F-16's hung in the detailed F-16's cut model, Models Original
-	# too; that model's own tub ahead of the seat makes way for it.
-	var c3d_model: String = Cockpit3d.model_for(player.type)
-	var three_d: bool = c3d_model != "" and player.cockpit_dir.get_file() == "f16"
 	if three_d and hd == "":
 		hd = Gltf.DETAILED["f16_h.gltf"]
 	if hd != "" and hd in [Gltf.DETAILED["f16_h.gltf"], Gltf.variant_model("f16_h.gltf")]:
@@ -2044,9 +2046,9 @@ func _player_model_scale() -> float:
 	var bdb: Dictionary = (
 		MissionRuntime.load_bdb(files[0])
 		if not files.is_empty()
-		else Settings.load_json(Settings.assets_dir().path_join("converted/missions/default6_1.bdb.json"))
+		else Settings.load_json(Settings.converted("missions/%s.json" % Settings.default_bdb()))
 	)
-	for db in [bdb, Settings.load_json(Settings.assets_dir().path_join("converted/missions/default6_1.bdb.json"))]:
+	for db in [bdb, Settings.load_json(Settings.converted("missions/%s.json" % Settings.default_bdb()))]:
 		var o := _player_object(db, false)
 		if o.is_empty():
 			continue
@@ -3949,7 +3951,7 @@ static func chute_swing(pc: Dictionary, t: float) -> void:
 
 ## The seat (pilot on chair) and the parachuter models from the converted objects (Pilot\ejectA, ejectB).
 func _load_eject_model(name: String) -> Node3D:
-	var model = Gltf.open(Settings.assets_dir().path_join("converted/objects/pilot/%s/%s.gltf" % [name, name]))
+	var model = Gltf.open(Settings.converted("objects/pilot/%s/%s.gltf" % [name, name]))
 	if model == null:
 		return null
 	var node: Node3D = Gltf.instance(model)

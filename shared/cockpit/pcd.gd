@@ -47,12 +47,7 @@ func setup(c: Control, l: int) -> void:
 	layer = l
 	mouse_filter = Control.MOUSE_FILTER_PASS if l == 0 else Control.MOUSE_FILTER_IGNORE
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var sf := SystemFont.new()
-	sf.font_names = PackedStringArray(
-		["Arial Narrow", "Liberation Sans Narrow", "DejaVu Sans Condensed", "Arial", "Liberation Sans"]
-	)
-	sf.font_weight = 600
-	font = sf
+	font = Settings.display_font("narrow")
 	fmt = Formats.new(self, c, font)
 
 

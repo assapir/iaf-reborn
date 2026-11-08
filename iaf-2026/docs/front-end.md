@@ -105,3 +105,25 @@ and in [../../docs/credits.md](../../docs/credits.md) "Modern IAF's photos". The
   menu, ends the flight and finds that flight's debrief. Run in a real render through `tools/godot_window.sh` it is
   the real run (`SHOT_DIR=<dir>` saves the two pictures of §1's second table).
 - `iaf-2026/tests/_front_end_shot.gd` takes §1's pictures at 1920 × 1080 (its header).
+
+## 7. The loading screen
+
+While a flight waits for its ground, the sim shows its own loading screen, `iaf-2026/flight/loading_screen.gd`. The
+flight scene asks `Settings.loading_screen_scene()` for it; the original game keeps its menu-art screen
+(`shared/terrain/loading_screen.gd`). It reads nothing of the original game's art.
+
+The screen is one panel in the front end's look (§4, `iaf-2026/menu/look.gd`). It shows:
+
+- the mission's title in the sim's language (the compiled mission's `sim.title`; without a mission, the sim's name);
+- its base as the wing and the base's name ("Wing 25, Ramon", "כנף 25 רמון"), from the compiled mission's `sim.base`
+  (`iaf-sim missions`);
+- a progress bar, fed by the flight as the original's screen is (`terrain.gd` `ground_progress()`, smoothed, never
+  going back).
+
+In Hebrew the page is mirrored: the bar fills from the inline start, the right.
+
+| English | Hebrew |
+|---|---|
+| ![The loading screen: "Take-off from Ramon", "Wing 25, Ramon", the bar at 60 %](pictures/front-end/loading_en.webp) | ![The loading screen in Hebrew: "המראה מרמון", "כנף 25 רמון", the bar filling from the right](pictures/front-end/loading_he.webp) |
+
+`iaf-2026/tests/_loading_shot.gd` takes these pictures (its header).

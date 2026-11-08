@@ -411,7 +411,7 @@ static func _dial_on(d: Dictionary) -> bool:
 
 ## The records dials_by_label and the dial items take off their dials in the cockpit `c` ([] while off).
 static func replaced(c: Control) -> Array:
-	var spec: Dictionary = DIALS.get(c.cockpit_dir.get_file().to_lower(), {})
+	var spec: Dictionary = DIALS.get(Settings.cockpit_folder(c.cockpit_dir).to_lower(), {})
 	var out: Array = spec.get("replaces", []).duplicate() if Settings.better_cockpit_on("dials_by_label") else []
 	for d in spec.get("dials", []):
 		if d.has("item") and _dial_on(d):
@@ -421,7 +421,7 @@ static func replaced(c: Control) -> Array:
 
 ## metric_gauges on in the cockpit `c` (its faces metric).
 static func metric(c: Control) -> bool:
-	return Settings.better_cockpit_on("metric_gauges") and METRIC.has(c.cockpit_dir.get_file().to_lower())
+	return Settings.better_cockpit_on("metric_gauges") and METRIC.has(Settings.cockpit_folder(c.cockpit_dir).to_lower())
 
 
 ## The altimeter's value: ft, or m with metric_gauges (one turn per 1000 either way).
@@ -432,7 +432,7 @@ static func altitude(c: Control) -> float:
 ## The dial needles of the cockpit `c` this frame (dials_by_label's and the dial items'; [] while off): per dial
 ## {dial, centre, r, angle (rad, clockwise from 12 o'clock), style}.
 static func dial_needles(c: Control) -> Array:
-	var spec: Dictionary = DIALS.get(c.cockpit_dir.get_file().to_lower(), {})
+	var spec: Dictionary = DIALS.get(Settings.cockpit_folder(c.cockpit_dir).to_lower(), {})
 	var dials: Array = spec.get("dials", []).filter(_dial_on)
 	if dials.is_empty():
 		return []
@@ -469,7 +469,7 @@ static func dial_needles(c: Control) -> Array:
 static func covered_flags(c: Control) -> Array:
 	var valid: bool = c.state.get("better", {}).get("radalt_valid", false)
 	var out := []
-	for d in DIALS.get(c.cockpit_dir.get_file().to_lower(), {}).get("dials", []):
+	for d in DIALS.get(Settings.cockpit_folder(c.cockpit_dir).to_lower(), {}).get("dials", []):
 		if d.has("flag") and valid and _dial_on(d):
 			out.append(d.flag)
 	return out
@@ -478,7 +478,9 @@ static func covered_flags(c: Control) -> Array:
 ## radar_alt's danger-height warning in the cockpit `c` (flight_sounds.gd plays Betty "altitude" with it): true
 ## below the index, false above, null where the item does not apply.
 static func radalt_danger(c: Control) -> Variant:
-	if not (Settings.better_cockpit_on("radar_alt") and RADALT_LAMPS.has(c.cockpit_dir.get_file().to_lower())):
+	if not (
+		Settings.better_cockpit_on("radar_alt") and RADALT_LAMPS.has(Settings.cockpit_folder(c.cockpit_dir).to_lower())
+	):
 		return null
 	return bool(c.state.get("better", {}).get("radalt_danger", false))
 
@@ -487,7 +489,7 @@ static func radalt_danger(c: Control) -> Variant:
 static func pnp_live(c: Control) -> bool:
 	return (
 		Settings.better_cockpit_on("pnp_bars")
-		and PNP.has(c.cockpit_dir.get_file().to_lower())
+		and PNP.has(Settings.cockpit_folder(c.cockpit_dir).to_lower())
 		and int(c.weapons.get("hud_mode", 0)) == 0
 		and c.gear_handle_down
 	)
@@ -496,7 +498,7 @@ static func pnp_live(c: Control) -> bool:
 ## spo15: the SPO-15 lamps of the cockpit `c` this frame (IafRwr.spo15 from the RWR's cockpit copy), {} while off;
 ## all dark with RWR damage (flag 14), as the panel RWR.
 static func spo15(c: Control) -> Dictionary:
-	if not (Settings.better_cockpit_on("spo15") and SPO15.has(c.cockpit_dir.get_file().to_lower())):
+	if not (Settings.better_cockpit_on("spo15") and SPO15.has(Settings.cockpit_folder(c.cockpit_dir).to_lower())):
 		return {}
 	if c.damage_flags.size() > 14 and c.damage_flags[14]:
 		return {"sectors": 0, "power": 0, "lock": false, "launch": false, "types": 0}
@@ -591,7 +593,7 @@ static func clock_hands(tod: float) -> Array:
 
 ## Draws the Better fuel counter and panel clock of the cockpit `c` (cockpit.gd, in its _draw).
 static func draw(c: Control, s: float) -> void:
-	var folder: String = c.cockpit_dir.get_file().to_lower()
+	var folder: String = Settings.cockpit_folder(c.cockpit_dir).to_lower()
 	# The radar altimeter's red flag window: the flag drops out of sight (the face's black) while the height is valid.
 	for r in covered_flags(c):
 		c.draw_rect(Rect2(c.panel_to_screen(r.position.x, r.position.y), r.size * s), Color8(6, 6, 8))

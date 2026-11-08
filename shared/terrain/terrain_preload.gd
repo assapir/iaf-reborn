@@ -99,8 +99,8 @@ static func prefetch_flight(id: int, flight := 0) -> void:
 	# The flight's OBJECT DETAIL level (terrain_view.gd), so the parses set their materials for it.
 	gltf.object_level = gltf.detail_level(float(Settings.object_detail))
 	var Cockpit: GDScript = load("res://shared/cockpit/cockpit.gd")
-	load("res://shared/terrain/loading_screen.gd").prefetch()
-	var default_cockpit: String = Cockpit.DEFAULT_DIR
+	load(Settings.loading_screen_scene()).prefetch()
+	var default_cockpit: String = Cockpit.default_dir()
 	var files: Array = MissionRuntime.mission_files(id) if id >= 0 else []
 	var obj := {}
 	var models := []
@@ -138,10 +138,17 @@ static func prefetch_flight(id: int, flight := 0) -> void:
 	var d: Dictionary = aircraft_model.load_descriptor(p.plane)
 	if not d.is_empty():
 		models.push_front(_jet_model(p.plane, d))
-	# The cockpit-view model: the install's, else an extra plane's (terrain_view.gd _build).
-	var bc: String = gltf.objects_path("controllableplanes/%s/%s_bc.gltf" % [p.plane, p.plane])
+	# The cockpit-view model: an extra plane's, else the install's (terrain_view.gd _spawn_player); none in the F-16's
+	# 3D cockpit (the detailed F-16's cut model).
 	var extra_bc: String = aircraft_model.EXTRA_DIR.path_join(p.plane).path_join(p.plane + "_bc.gltf")
-	models.push_front(bc if FileAccess.file_exists(bc) or not FileAccess.file_exists(extra_bc) else extra_bc)
+	if not _script("res://shared/cockpit/cockpit3d.gd").in_cut_model(jet, p.cockpit_dir):
+		models.push_front(
+			(
+				extra_bc
+				if FileAccess.file_exists(extra_bc)
+				else gltf.objects_path("controllableplanes/%s/%s_bc.gltf" % [p.plane, p.plane])
+			)
+		)
 	# An extra plane's borrowed parts (the F-35I's pilot): the original's file itself, also with a detailed stand-in.
 	var borrowed: Array = aircraft_model.borrowed_models(d) if not d.is_empty() else []
 	gltf.drop_ahead(models + borrowed)  # the last choice's
@@ -168,7 +175,7 @@ static func mission_models(files: Array, bdb: Dictionary) -> Array:
 	for pr in bdb.get("present", {}).get("items", []):
 		present[int(pr.get("0x1e", -1))] = pr
 	var planes: Dictionary = aircraft_model.index()
-	var paths: Dictionary = Settings.load_json(Settings.assets_dir().path_join("converted/objects/objects.json")).get(
+	var paths: Dictionary = Settings.load_json(Settings.converted("objects/objects.json")).get(
 		String(files[0].data.get("bdb", "")).to_lower(), {}
 	)
 	for f in files:
@@ -217,11 +224,7 @@ static func ready_to_fly() -> bool:
 ## Detailed, else its own.
 static func _jet_model(plane: String, d: Dictionary) -> String:
 	var hd: String = _script("res://shared/util/gltf.gd").detailed(String(d.model))
-	return (
-		hd
-		if hd != ""
-		else _script("res://shared/aircraft/aircraft_model.gd")._planes_dir(plane).path_join(plane).path_join(d.model)
-	)
+	return hd if hd != "" else _script("res://shared/aircraft/aircraft_model.gd").plane_file(plane, d.model)
 
 
 ## The flight scene: preload_scene()'s (waiting for it if still loading), else loaded here.

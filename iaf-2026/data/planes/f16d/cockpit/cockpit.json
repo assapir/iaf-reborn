@@ -1,0 +1,26 @@
+{
+ "_doc": "IAF 2026's F-16 layout for the 3D cockpit (ours; iaf-2026/docs/cockpit.md \u00a74): no panel art. Rows and columns in the layout's px (the original 640 x 480 screen's, 686.2 px focal length); [HUD] rows count up from the panel's top, which with no panel sits 50 px over the view's centre.",
+ "image_scale": 4,
+ "HUD": {
+  "BorePositionY": 16,
+  "GunRetPositionY": 11,
+  "CenterY": -26,
+  "LeftBorder": 72,
+  "RightBorder": 72,
+  "TopBorder": 66,
+  "BottomBorder": 67,
+  "Dash": 1
+ },
+ "MFD": {
+  "LeftActive": 1,
+  "LeftOffsetX": 0,
+  "LeftOffsetY": 0,
+  "RightActive": 1,
+  "RightOffsetX": 0,
+  "RightOffsetY": 0,
+  "MiddleActive": 0
+ },
+ "PANELRWR": {
+  "Active": 1
+ }
+}

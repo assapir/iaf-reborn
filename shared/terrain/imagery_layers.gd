@@ -4,7 +4,7 @@
 # the 1998 map.ptt imagery and always available.
 extends RefCounted
 
-const DIR := "converted/imagery"
+const DIR := "imagery"
 ## Per region (Settings key): [id, label] in drop-down order. Sources not converted (or not
 ## implemented yet) are listed greyed out.
 const REGIONS := {
@@ -18,7 +18,7 @@ const REGION_LABELS := {"imagery_israel": "Imagery Israel", "imagery_outside": "
 
 
 static func layer_dir(id: String) -> String:
-	return Settings.assets_dir().path_join(DIR).path_join(id)
+	return Settings.converted(DIR.path_join(id))
 
 
 static func manifest(id: String) -> Dictionary:

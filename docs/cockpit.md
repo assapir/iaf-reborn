@@ -590,7 +590,28 @@ occlusion, 1.8 MB; built by
   panel's pan. Extras "Real HUD view" has nothing to fit and is ignored.
 * **Free look** reaches 60° down (`views.gd` `pitch_min`, the original's −12° otherwise), and the camera's pitch is
   the head's less 5.5° without the original's floor (`FUN_00585270`: 0.1·(|yaw| − 90°), so −9° looking ahead), so the
-  pilot can look down at the MFDs and consoles.
+  pilot can look down at the MFDs and consoles. The F-key and Numpad snap views (docs/views.md §2) set the head's yaw
+  and pitch the same way, so in the 3D cockpit they are head poses: the camera turns, no panel pans.
+* **A cockpit dir with no panel art** (Modern IAF; `tests/godot/test_cockpit_no_panel.gd`): a
+  `cockpit.json` without the art's `FileName` keys loads no panel bitmap, lamps, HUD glass, tapes or ADI ball, and
+  with the 3D cockpit on nothing else needs them: the 3D cockpit draws the MFDs, the HUD, the RWR scope and the
+  panoramic display from the layout and the displays' data (`mfds.png`, `rwrsymb.png`, `map.json`). Four hooks keep
+  the original's files out of such a jet's flight, each a no-op in the original game:
+  * the cockpit tables (the HUD's, the real MFD formats, the gauges, the 3D cockpit's F-16 check) key a cockpit on
+    `Settings.cockpit_folder(dir)`, the dir's name (`f16` …); Modern IAF's Settings map its own dirs to the family's;
+  * the cockpit the scene loads first is the F-16's aircraft definition's `cockpit` where it names one
+    (`cockpit.gd` `default_dir`; else `converted/cockpits/f16`);
+  * in the F-16's 3D cockpit (`cockpit3d.gd` `in_cut_model`) the original's cockpit-view model (`f16_bc`), which the
+    cut model replaces, is neither loaded nor parsed ahead (`terrain_view.gd` `_spawn_player`, `terrain_preload.gd`);
+  * a cockpit dir may be an absolute path (a test's), as well as one under `assets/` or `res://`.
+* **The HUD and display fonts**: `Settings.hud_font_path(name)` names the raster font file `hud.gd`
+  `load_original_font` loads (`hud`, `mfd`, `key`): in the original game the converted `.fnt`, unchanged; a `.ttf`
+  or `.otf` there (Modern IAF's) loads as an outline font.
+  `Settings.display_font(style)` gives the real display formats' text font: `mono` for the F-16's MFD formats and the
+  3D cockpit's small screens (`f16_mfd.gd`, `cockpit3d_display.gd`), `narrow` for the F-35I's panoramic and standby
+  displays (`pcd.gd`), `hud` for the Real HUD's texts (`hud.gd` `_gdi`). In the original game the installed system
+  fonts as before (DejaVu Sans Mono … ; Arial Narrow …; bold; the Real HUD's Arial). The screens keep the font of the
+  Settings script that made it (a test that swaps the script gets the new one).
 * **MFDs**: each MFD node (`mfd.gd`) is moved into a 512 px SubViewport whose texture lights its 3D screen
   (`MFD_L` / `MFD_R`, emissive). They draw the same pages as on the 2D panel, the original pages or the real F-16
   formats (the Sufa's colour, MFDs Real's green). `mfd.gd` `screen_px` sets their scale there.
@@ -774,6 +795,19 @@ occlusion, 1.8 MB; built by
     glass has its own, matte (`cockpit3d.gd` `_matte`: roughness 0.7, specular 0.12), so the display reads black by
     day as a powered display under its anti-reflective coating; at roughness 0.25 it mirrored the sky and read navy.
   * `ESIS`: the standby display, a second `pcd.gd` (layer 2) in its own 283 × 249 px SubViewport.
+  * **The screens in front of their cases** (`cockpit3d.gd` `SCREEN_PULL`, `cockpit3d_screen.gdshader`, 2026-11-03):
+    both screens draw 2.5 % of their distance nearer the eye along the eye's own ray: the same pixels, a nearer
+    depth; they cast no shadow (the pull would move it in the light's view).
+    - **The cause** (fixed): the standby display stood 0.5 mm over its case's front face at the Present scale, and
+      0.25 mm at World scale Real 1:1 (`tools/f35i/cockpit3d.py`: the screen quad at 24.5 mm, the case's face at
+      24 mm, half size in the model). The world's coordinates are 32-bit floats about the flight's start
+      (`terrain_view.gd` `world_origin`): 17 km out they round to 2 mm steps, so each vertex lands up to 1 mm off and
+      the case won the depth test. In the test scene (mission 231, 20 km from the start) the display drew black by
+      day with World scale Real and flickered in Original; the night scene starts elsewhere (mission 311) and showed
+      it. A real render, the screen lifted along its normal: hidden at 1.0 mm, shown at 1.5 mm.
+    - **The fix**: the pull, 9.6 mm at the standby display at 1:1, keeps both screens ahead of their cases out to
+      100 km from the start, where the step is 7.8 mm (`test_cockpit3d.gd` checks it). Farther out every vertex of the
+      3D cockpit rounds to centimetres; a floating world origin is the whole fix (open).
   * The lamps (`f35i.json` `lamps`): master caution, engine fire and the gear handle's red light in transit, by the
     rules of the F-16's above. The gear light means a leg not locked where the handle points (inferred, as the F-16's
     handle light; no F-35 source found); off, it is dark red paint. The gear handle (`gear_handle`) turns ±9.6° about a pivot behind the panel, up or

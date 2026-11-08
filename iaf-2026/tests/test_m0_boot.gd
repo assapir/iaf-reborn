@@ -110,6 +110,11 @@ func run() -> void:
 		)
 		need("no 2D panel in flight: the 3D cockpit alone [E1]")
 		await bases()
+	var asked: PackedStringArray = s.rejected
+	check(
+		asked.is_empty(),
+		"no original converted data read (%d refused%s)" % [asked.size(), ": " + ", ".join(asked) if asked else ""]
+	)
 	if failures == 0 and needs > 0:
 		print("NEEDS DATA: %d checks wait for data (above)" % needs)
 		await _quit(2)

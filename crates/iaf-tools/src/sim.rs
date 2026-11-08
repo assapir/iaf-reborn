@@ -36,6 +36,11 @@ pub const MISSIONS_DIR: &str = "converted/iaf-2026/missions";
 pub const SOUNDS_DIR: &str = "converted/own/resource/soundfiles";
 /// The sim's key table (the shape of `iaf-convert keys`' `converted/keys.json`, read by `key_table.gd`).
 pub const KEYS_FILE: &str = "converted/own/keys.json";
+/// The sim's aircraft descriptors (aircraft_model.gd through `Settings.planes_folder()`): `<plane>/aircraft.json` and the
+/// index `aircraft.json`, under the assets root.
+pub const PLANES_DIR: &str = "converted/own/planes";
+/// The sim's F-16 model (the Barak's; the Sufa's f16i.glb has the same frames), from which `own` describes the F-16.
+pub const F16_GLB: &str = "shared/extra/models/f16/f16d.glb";
 
 // --- The readable → hex mapping ------------------------------------------------------------------------------------
 
@@ -658,7 +663,8 @@ pub fn compile_mission(
     // (mission_runtime.gd move_with_bases).
     m["frame"] = json!("real");
     m["sim"] = json!({"title": texts(f, "title")?, "briefing": texts(f, "briefing")?, "win": f.v["win"],
-        "lose": f.v["lose"], "menu_id": int(f, "menu_id")?, "runway": f.v["runway"], "training": f.v["training"]});
+        "lose": f.v["lose"], "menu_id": int(f, "menu_id")?, "runway": f.v["runway"], "training": f.v["training"],
+        "base": base_name});
     if let Some(note) = f.v["note"].as_str() {
         m["sim"]["note"] = json!(note);
     }
@@ -954,8 +960,9 @@ pub fn compile_radio(voices: &Value) -> Result<(String, String, Vec<String>)> {
 
 /// `iaf-sim own`: `<data>/sounds` → `<assets>/SOUNDS_DIR`: `soundprop.trx`, the radio's phrase files, and every clip
 /// they name or the shared code opens by name (soundprop.json `by_name`), each checked once; any other file in that
-/// folder is removed (`sound_table.gd` lists the whole folder). `<data>/keys.json` → `<assets>/KEYS_FILE`.
-pub fn own(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
+/// folder is removed (`sound_table.gd` lists the whole folder). `<data>/keys.json` → `<assets>/KEYS_FILE`. Every
+/// `<data>/planes/<jet>/cockpit/` → `<assets>/sim_cockpit::COCKPITS_DIR/<jet>/` (sim_cockpit.rs).
+pub fn own(data: &Path, repo: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     check(cancel)?;
     let read = |p: &Path| -> Result<Value> {
         serde_json::from_str(&std::fs::read_to_string(p).with_context(|| p.display().to_string())?)
@@ -989,6 +996,8 @@ pub fn own(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -
     }
     let keys = compile_keys(&read(&data.join("keys.json"))?)?;
     write(&assets.join(KEYS_FILE), &serde_json::to_string_pretty(&keys)?)?;
+    planes(repo, assets)?;
+    crate::sim_cockpit::cockpits(data, assets, pr, cancel)?;
     log!(
         pr,
         "own: {} sound rows, {} clips -> {}; keys -> {}",
@@ -998,6 +1007,26 @@ pub fn own(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -
         assets.join(KEYS_FILE).display()
     );
     Ok(())
+}
+
+/// The F-16's descriptor from our model's frames ([`F16_GLB`] under the repo `repo`), never the original's
+/// converted one: the parts' hinges, the stations, the gun and the nozzle (aircraft::describe_glb). `model` names the
+/// original file the detailed-model tables key on (gltf.gd DETAILED, IafAirframe.model_for), which the sim always swaps.
+fn planes(repo: &Path, assets: &Path) -> Result<()> {
+    let glb = repo.join(F16_GLB);
+    let bytes = std::fs::read(&glb).with_context(|| glb.display().to_string())?;
+    let jet = crate::aircraft::DbObject {
+        name: "f16".into(),
+        class: "Controlled aircraft".into(),
+        label: "F-16".into(),
+        type_code: 100,
+    };
+    let d = crate::aircraft::describe_glb(&bytes, "f16", "f16_h.gltf", F16_GLB, &[jet])?;
+    let out = assets.join(PLANES_DIR);
+    write(&out.join("f16/aircraft.json"), &serde_json::to_string(&d)?)?;
+    let index = json!({"f16": {"model": "f16/f16_h.gltf", "descriptor": "f16/aircraft.json", "type": 100,
+        "label": "F-16", "group": "controllableplanes"}});
+    write(&out.join("aircraft.json"), &serde_json::to_string(&index)?)
 }
 
 #[cfg(test)]
@@ -1088,6 +1117,7 @@ mod tests {
         let e = m["entities"]["items"].as_array().unwrap().iter().find(|e| e["0x2bc"] == "T").unwrap().clone();
         assert_eq!(e["0x302"].as_f64().unwrap(), sim_bases::grid_heading(34.8, 30.9, 90.0).round());
         assert_eq!(e["0x32a"], mission_edit::TARGET);
+        assert_eq!(m["sim"]["base"], "Ramon", "the loading screen's base");
         // A ground route of one point is refused (set_route needs two).
         let mut one = t.clone();
         one["route"] = json!([{"lat": 30.9, "lon": 34.81}]);
@@ -1351,8 +1381,19 @@ mod tests {
         let sounds = root.0.join(SOUNDS_DIR);
         std::fs::create_dir_all(&sounds).unwrap();
         std::fs::write(sounds.join("stale.wav"), b"x").unwrap();
-        own(&data(), &root.0, &Stdout, &AtomicBool::new(false)).unwrap();
+        own(&data(), &data().join("../.."), &root.0, &Stdout, &AtomicBool::new(false)).unwrap();
         assert!(!sounds.join("stale.wav").exists());
+        // The F-16's descriptor from our model: its hinges, stations and gun, the type, no original source.
+        let f16: Value =
+            serde_json::from_slice(&std::fs::read(root.0.join(PLANES_DIR).join("f16/aircraft.json")).unwrap()).unwrap();
+        assert_eq!(
+            (f16["type"].as_i64(), f16["fm_section"].as_str(), f16["source"].as_str()),
+            (Some(100), Some("F-16"), Some(F16_GLB))
+        );
+        assert!(
+            f16["parts"]["LdgF"]["axis"].is_array() && f16["stations"]["StationE"].is_array() && f16["gun"].is_array()
+        );
+        assert_eq!(f16["engines"]["pairs"], 1);
         let clip = |f: &str| wav_seconds(&std::fs::read(sounds.join(f.to_lowercase())).unwrap()).unwrap();
         let trx = std::fs::read_to_string(sounds.join("soundprop.trx")).unwrap();
         let rows: Vec<Vec<&str>> =

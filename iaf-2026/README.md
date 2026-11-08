@@ -28,6 +28,7 @@ The M0 probe (`iaf-2026/tests/test_m0_boot.gd`) prints a `PASS`, `FAIL` or `NEED
   `converted/own/resource/md`;
 - the terrain `converted/terrain/israel/meta.json` at 1:1 ([terrain.md](docs/terrain.md)), then a free flight of 5 s over
   it: the heights at the jet are readable and below it; the 3D-only cockpit in flight (item E1).
+- no reader asked for the original game's converted data during the probe's flights (`Settings.converted()`, item A4).
 
 It prints `RESULT PASS` only when every check passes. A check whose data is not built yet prints `NEEDS DATA` with the
 work item that builds it, and the probe then ends with `NEEDS DATA` (exit code 2); `tools/test.sh` does not count
@@ -47,8 +48,8 @@ that as a failure.
 | `assets/converted/iaf-2026/missions/` | the compiled training missions |
 
 ## How the sim reads its data
-The shared code reads its files through six `Settings` calls. The sim's `sim_settings.gd` answers them with its own
-paths; the original game's `shared/settings.gd` answers with the install's.
+The shared code reads its files through the `Settings` calls below. The sim's `sim_settings.gd` answers them with its
+own paths; the original game's `shared/settings.gd` answers with the install's.
 
 | call | original game | Modern IAF |
 |---|---|---|
@@ -58,14 +59,26 @@ paths; the original game's `shared/settings.gd` answers with the install's.
 | `fm_section(type)`: the player's flight-model type (`PlayerAircraft.profile`) | "": the converted aircraft descriptor's `fm_section` | by type code on the own `bd.ibx` (`IafFlight.fm_type`, `iaf_flight::fm_name_in`): 100 `F-16`, 110 `F-15`, 1000 `F-35I`; a code whose section the own `bd.ibx` lacks flies as the `F-16` (a warning) |
 | `theatre_dir()`: the terrain `terrain.gd` streams | `converted/terrain/theatre` (`IAF_THEATRE=<name>`: `converted/terrain/<name>`) | `converted/terrain/israel` |
 | `airbases_file()`: the runways, taxi lines and masks (Detailed airbases, the tower's wind turn) | `converted/terrain/airbases.json` | the theatre's own: `converted/terrain/israel/airbases.json` |
+| `converted(rel)`: every path under `assets/converted` a shared script reads | `assets/converted/<rel>` | the same for `own/`, `terrain/israel/`, `iaf-2026/`, `missions/sim.bdb.json` and `objects/objects.json`; any other path is refused: a path that does not exist, an error naming the caller, counted in `rejected` |
+| `planes_folder()`: the aircraft descriptors | `converted/planes` | `converted/own/planes` (the F-16's from our model, `iaf-sim own`) |
+| `missions_folder()`: the menu missions and `missionlist.json` | `converted/missions` | `converted/iaf-2026/missions` |
+| `default_bdb()`: the object database a jet's default load falls back on | `default6_1.bdb` | `sim.bdb` |
+| `loading_screen_scene()`: the flight's loading screen | `shared/terrain/loading_screen.gd` (the menu art) | `flight/loading_screen.gd` ([front-end.md](docs/front-end.md)) |
+| `original_art()`: the effects' sprites (flares, chaff, trails, afterburner) | true | false: a soft dot (`Img.soft_dot()`) |
 
 The bases are `own_dir()`'s `iaf.ibx` (`iaf-sim airbases`, [airbases.md](docs/airbases.md) §9) at their real places,
 so the sim never moves them: its `sync_bases()` sets up no World scale Real move. The tower's wind turn
 (`IafBases.set_wind`) takes their runways from `Settings.airbases_file()`, the theatre's own `airbases.json`
 (`converted/terrain/israel/airbases.json`; the original game's `converted/terrain/airbases.json`).
 
+The gate is checked twice: `iaf-2026/tests/test_converted_gate.gd` fails on a `"converted/"` string in a shared script
+outside its short list, and the M0 probe's line "no original converted data read" fails when any reader asked for a
+refused path during its flights. The sim shows no in-flight message texts (`msgs()`: the original's `msgs.trx` is
+not the sim's) until its own message table.
+
 The sim's settings also fix the switches that pick between the 1998 game and our replacements (3D cockpit, detailed
-models, world scale Real, flight and weapon data Real, the F-15I): the sim has no preferences row for them.
+models, world scale Real, flight and weapon data Real, the F-15I, no textured sky): the sim has no preferences row for
+them.
 `Settings.set_jet(airframe)` sets the F-16 switch from the jet flown: `f16i` flies as the Sufa, `f16` as the Barak.
 `airframe_def(id)` merges the sim's own `res://data/planes/<id>.json` over the shared aircraft definition, where one
 exists.

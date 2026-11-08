@@ -113,7 +113,7 @@ fn exec(step: &Step, ctx: &SimCtx, redo: bool, pr: &dyn Progress, cancel: &Atomi
             sim_terrain::terrain(&run, pr, cancel)?
         }
         "sim-db" => sim::db(&data, assets, pr, cancel)?,
-        "sim-own" => sim::own(&data, assets, pr, cancel)?,
+        "sim-own" => sim::own(&data, &ctx.repo, assets, pr, cancel)?,
         "sim-airbases" => sim_bases::airbases(&data, assets, pr, cancel)?,
         "sim-missions" => sim::missions(&data, assets, pr, cancel)?,
         "sim-fm" => fm0(ctx, pr)?,

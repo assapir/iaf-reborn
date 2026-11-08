@@ -269,7 +269,7 @@ static func _armed(load: Array, entity: Dictionary, n: int) -> Array:
 ## as attach_stores and _build_visuals open them), for flight number `n`: parsed ahead on the mission screens
 ## (terrain_preload.gd prefetch_flight).
 static func store_models(entity: Dictionary, object: Dictionary, bdb: Dictionary, n: int) -> Array:
-	var objects: Dictionary = Settings.load_json(Settings.assets_dir().path_join("converted/objects/objects.json"))
+	var objects: Dictionary = Settings.load_json(Settings.converted("objects/objects.json"))
 	var paths: Dictionary = objects.get(
 		String(bdb.get("_file", "default6_1.bdb")).to_lower(), objects.get("default6_1.bdb", {})
 	)

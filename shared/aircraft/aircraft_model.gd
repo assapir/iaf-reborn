@@ -93,12 +93,11 @@ var _time := 0.0
 ## Loads `<planes>/<plane>/aircraft.json` and its glTF. `type` < 0 takes the descriptor's type.
 ## `on_ground`: the ground-start ramps (gear down, full flaps, speed brake open; FUN_005a5820).
 static func create(plane: String, type := -1, on_ground := false) -> Node3D:
-	var dir := _planes_dir(plane).path_join(plane)
 	var d: Dictionary = load_descriptor(plane)
 	if d.is_empty():
 		return null
 	var hd: String = Gltf.detailed(String(d.model))
-	var model = Gltf.model(hd if hd != "" else dir.path_join(d.model))
+	var model = Gltf.model(hd if hd != "" else plane_file(plane, d.model))
 	if model == null:
 		return null
 	var node: Node3D = Gltf.instance(model)
@@ -244,7 +243,7 @@ static func detailed_cockpit(path: String, whole := false) -> Array:
 
 
 static func load_descriptor(plane: String) -> Dictionary:
-	return Settings.load_json(_planes_dir(plane).path_join(plane).path_join("aircraft.json"))
+	return Settings.load_json(plane_file(plane, "aircraft.json"))
 
 
 ## Planes the original does not have (docs/adding-a-plane.md §2.4): tracked in the repo, one folder per
@@ -255,7 +254,7 @@ const EXTRA_DIR := "res://shared/extra/planes"
 ## Every aircraft: the install's (the converter's index) and the extra planes: plane folder -> {model, type,
 ## label, …}.
 static func index() -> Dictionary:
-	var idx: Dictionary = Settings.load_json(_planes_dir().path_join("aircraft.json"))
+	var idx: Dictionary = Settings.load_json(Settings.converted(Settings.planes_folder().path_join("aircraft.json")))
 	for plane in DirAccess.get_directories_at(EXTRA_DIR):
 		var d: Dictionary = load_descriptor(plane)
 		if not d.is_empty():
@@ -321,13 +320,14 @@ static func _borrowed_model(src: Dictionary) -> String:
 	var sd := load_descriptor(String(src.plane))
 	if sd.is_empty():
 		return ""
-	return _planes_dir(String(src.plane)).path_join(String(src.plane)).path_join(sd.model)
+	return plane_file(String(src.plane), sd.model)
 
 
-static func _planes_dir(plane := "") -> String:
-	if plane != "" and FileAccess.file_exists(EXTRA_DIR.path_join(plane).path_join("aircraft.json")):
-		return EXTRA_DIR
-	return Settings.assets_dir().path_join("converted/planes")
+## The file `rel` of plane folder `plane`: an extra plane's in the repo (EXTRA_DIR), else the converted original's.
+static func plane_file(plane: String, rel: String) -> String:
+	if FileAccess.file_exists(EXTRA_DIR.path_join(plane).path_join("aircraft.json")):
+		return EXTRA_DIR.path_join(plane).path_join(rel)
+	return Settings.converted(Settings.planes_folder().path_join(plane).path_join(rel))
 
 
 func setup(gltf_scene: Node3D, descriptor: Dictionary, type := -1, on_ground := false) -> void:

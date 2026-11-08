@@ -1,0 +1,56 @@
+{
+ "_doc": "IAF 2026's F-35I layout for the 3D cockpit (ours; iaf-2026/docs/cockpit.md \u00a74): no panel art. [HUD] in the layout's px as the F-16's; [PCD] and [MFD] Portals in the display's px, 28.4 per inch of its glass.",
+ "image_scale": 4,
+ "HUD": {
+  "BorePositionY": 16,
+  "GunRetPositionY": 11,
+  "CenterY": 16,
+  "LeftBorder": 250,
+  "RightBorder": 250,
+  "TopBorder": 184,
+  "BottomBorder": 184,
+  "Dash": 1
+ },
+ "MFD": {
+  "Portals": [
+   [
+    0,
+    26,
+    1.0758,
+    3
+   ],
+   [
+    142,
+    26,
+    1.0758,
+    2
+   ],
+   [
+    284,
+    26,
+    1.0758,
+    1
+   ],
+   [
+    426,
+    26,
+    1.0758,
+    7
+   ]
+  ]
+ },
+ "PCD": {
+  "Rect": [
+   0,
+   0,
+   568,
+   227
+  ],
+  "Esis": [
+   321,
+   250,
+   94,
+   74
+  ]
+ }
+}

@@ -101,9 +101,7 @@ func _process(delta: float) -> void:
 			continue
 		e.state = 1
 		var b: Dictionary = e.b
-		var path := Settings.assets_dir().path_join("converted/terrain").path_join(
-			String(b.get("mask", {}).get("file", ""))
-		)
+		var path := Settings.converted("terrain".path_join(String(b.get("mask", {}).get("file", ""))))
 		e.task = WorkerThreadPool.add_task(func(): _built.call_deferred(i, masts(b, path)))
 
 

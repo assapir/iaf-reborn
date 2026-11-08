@@ -35,6 +35,12 @@ const SCREEN_PX := 512
 const PCD_PX := 3.0
 ## A click this close to a push button's centre (MFD px) presses it.
 const OSB_REACH := 12.0
+## The F-35I's screens (_matte): drawn this fraction of their distance nearer the eye. The world's coordinates are
+## 32-bit floats about the flight's start, rounded to 7.8 mm steps 100 km out; the standby display stands 0.5 mm over
+## its case (0.25 mm at World scale Real 1:1), 0.38 m from the eye at 1:1: 2.5 % (9.6 mm) keeps it ahead to there
+## (docs/cockpit.md "3D cockpit").
+const SCREEN_PULL := 0.025
+const SCREEN_SHADER := preload("res://shared/cockpit/cockpit3d_screen.gdshader")
 
 var cockpit: Control
 var camera: Camera3D
@@ -66,6 +72,12 @@ var _split := -1.0  # the scene's first shadow split (_sun_split)
 static func model_for(type_code: int) -> String:
 	var path: String = Settings.airframe(type_code).get("cockpit_3d", "")
 	return path if Settings.cockpit_3d == "3d" and path != "" and FileAccess.file_exists(path) else ""
+
+
+## True when the jet of type `type_code` with the cockpit `cockpit_dir` flies the F-16's 3D cockpit, hung in the
+## detailed F-16's cut model in place of the original's cockpit-view model (terrain_view.gd _spawn_player).
+static func in_cut_model(type_code: int, cockpit_dir: String) -> bool:
+	return model_for(type_code) != "" and Settings.cockpit_folder(cockpit_dir) == "f16"
 
 
 ## The 3D cockpit of a jet of type `type_code` (model_for) under this node; the cockpit's MFDs (or its panoramic
@@ -425,11 +437,16 @@ func _screen_viewport(screen: MeshInstance3D, px: Vector2i) -> SubViewport:
 
 
 ## The F-35I's displays: a matte anti-reflective glass, black by day (at roughness 0.25 the glass mirrored the sky and
-## its black read navy), a faint broad sheen left.
+## its black read navy), a faint broad sheen left (cockpit3d_screen.gdshader: roughness 0.7, specular 0.12). Drawn
+## SCREEN_PULL of their distance nearer the eye along its ray, so their cases never win the depth test (the shader); no
+## shadow: the pull would move it.
 func _matte(screen: MeshInstance3D) -> void:
-	var mat := screen.material_override as StandardMaterial3D
-	mat.roughness = 0.7
-	mat.metallic_specular = 0.12
+	var mat := ShaderMaterial.new()
+	mat.shader = SCREEN_SHADER
+	mat.set_shader_parameter("screen", (screen.material_override as StandardMaterial3D).emission_texture)
+	mat.set_shader_parameter("pull", SCREEN_PULL)
+	screen.material_override = mat
+	screen.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 ## The screen's UV frame (its quad: local = origin + u · U + v · V), for the clicks and the buttons' places:

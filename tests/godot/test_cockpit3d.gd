@@ -64,15 +64,26 @@ func _f35i() -> void:
 	var pcd: Control = c.pcd
 	var vp = pcd.get_parent()
 	check(
-		vp is SubViewport and pcd.screen_px > 0.0 and screen.material_override.emission_texture == vp.get_texture(),
+		vp is SubViewport and pcd.screen_px > 0.0 and _screen_tex(screen) == vp.get_texture(),
 		"F-35I 3D: the panoramic display draws into its glass's SubViewport (%s)" % [vp.size if vp is Viewport else vp]
 	)
 	check(c.mfds.all(func(m): return not m.visible), "F-35I 3D: the portals' MFD nodes hidden (they keep the pages)")
 	var esis := c3.find_child("ESIS", true, false) as MeshInstance3D
 	check(
-		c3.esis != null and esis.material_override.emission_texture == c3.esis.get_parent().get_texture(),
+		c3.esis != null and _screen_tex(esis) == c3.esis.get_parent().get_texture(),
 		"F-35I 3D: the standby display draws into its own SubViewport"
 	)
+	# The screens drawn nearer the eye than their cases by more than the world's float step 100 km from its origin
+	# (7.8 mm): the standby display, 0.25 mm over its case at 1:1, lost to it by day 20 km out (cockpit3d.gd SCREEN_PULL).
+	var at_1_1: float = tv.camera.global_position.distance_to(esis.global_position) / esis.global_basis.get_scale().x
+	for mi: MeshInstance3D in [screen, esis]:
+		var pull: float = (
+			mi.material_override.get_shader_parameter("pull") if mi.material_override is ShaderMaterial else 0.0
+		)
+		check(
+			pull * at_1_1 > 0.0078 and mi.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF,
+			"F-35I 3D: %s drawn %.1f mm nearer than its case, no shadow" % [mi.name, pull * at_1_1 * 1000.0]
+		)
 	check(c3._glass == null and c.hud.visible, "F-35I 3D: no combiner, the helmet HUD drawn")
 	check((c.hud_clip as PackedVector2Array).size() == 4, "F-35I 3D: the HUD over the whole view")
 	var w: float = c.get_viewport_rect().size.x
@@ -432,3 +443,9 @@ func _real_hud_points(hud: Control) -> Array:
 				if box.size.y > 0.0:
 					pts.append_array([box.position, box.end])
 	return pts
+
+
+## The texture a 3D screen shows: its material's emission (the F-35I's screen shader's `screen`).
+static func _screen_tex(mi: MeshInstance3D) -> Texture2D:
+	var m := mi.material_override
+	return m.get_shader_parameter("screen") if m is ShaderMaterial else (m as StandardMaterial3D).emission_texture

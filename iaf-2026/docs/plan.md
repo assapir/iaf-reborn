@@ -192,6 +192,12 @@ Size: M. Blocks on: A1.
 
 Size: L. Blocks on: A2.
 
+### A4 the gate
+
+One `Settings` call for every path under `assets/converted` a shared script reads, `converted(rel)`: the original game answers `assets/converted/<rel>` as before; the sim lets through only its own data (`own/`, `terrain/israel/`, `iaf-2026/`, `missions/sim.bdb.json`, `objects/objects.json`) and refuses the rest loudly (a path that does not exist, an error naming the caller, a count). **Done (2026-11-08, branch wt/iaf-2026-gate):** every `"converted/..."` path in `shared/` goes through it; `test_converted_gate.gd` scans `shared/**/*.gd` for the string outside its short list; the M0 probe's line "no original converted data read" (0 refused). The leaks the probe found, each fixed: the loading screen's menu art (the sim's own screen, [front-end.md](front-end.md)), the F-16's cockpit, HUD font and display fonts (the E1a hooks `cockpit_folder`, `Cockpit.default_dir`, `hud_font_path`, `display_font` from wt/iaf-2026-cockpit b06b379b and wt/e1a-font 5611028d), the aircraft descriptors and their index (`planes_folder()`: the F-16's from our model, `iaf-sim own`), the menu missions' list (`missions_folder()`), the default object database (`default_bdb()`), the effects' sprites (`original_art()`: a soft dot), the cloud layer's art (no textured sky in the sim), the F-35I's cockpit-view model looked up in the install first, the original's in-flight messages (`msgs()`). **Open:** the sim's own effects art and message table; `converted/roads` in the front end's Preferences (the scenery branch's own roads); the original store models once a sim jet carries stores. **Follow-ups (listed 2026-11-08, from the review):** count the sim's `install_dir()` reads as the gate counts converted ones (`mfd.gd:276`, `fs_mfd.gd:42`, `player_aircraft.gd:111`, `mission_runtime.gd:1239`, `mission_weapons.gd:309`, `joystick.gd:351`, `time_of_day.gd:18`, `player_weapons.gd:2786`); the sim's object keys in its own `own/objects.json` in place of `objects/objects.json`'s `"sim.bdb"` key; the TSD map's one transform per frame in `f16_mfd.gd:400` and `mfd.gd:1175` as in `pcd_formats.gd` (the cockpit session)
+
+Size: S. Blocks on: A1.
+
 ### B1 the terrain
 
 `iaf-sim terrain`: GLO-30 heights, Sentinel-2 + Survey of Israel colour, UTM frame. **Done (2026-11-03, branch wt/iaf-2026-terrain):** `iaf-sim terrain` writes `converted/terrain/israel/` (UTM 36N at 1:1, 347 × 511 km around the four bases, 2 m Survey / 8 m Sentinel-2 over Israel, 32 m beyond, GLO-30 heights at 64 m; [terrain.md](terrain.md)), `Settings.theatre_dir()` (the sim's theatre; `IAF_THEATRE` in the original game), the M0 probe's in-flight height check. **Open:** surface types (B2b), the other censored sites in the Survey photo
@@ -242,7 +248,7 @@ Size: S. Blocks on: C1, B2.
 
 ### E1 cockpit data, sounds and voices
 
-own cockpit dirs, HUD font hook, keys, sound table + CC0 clips, TTS Betty / tower / AWACS with radio filter. **Sounds, voices and keys (E1b, branch wt/iaf-2026-sounds, 2026-11-02):** the CC0 sound set, the English Betty and tower voices through the radio filter, the radio phrase files and the own key table, compiled by `iaf-sim own` ([sound.md](sound.md)). **Open:** the Hebrew voice (the user decides on its licence), AWACS and wingman phrases, the run-time squelch, a human listening pass (the reader hooks: done in A1)
+own cockpit dirs, HUD font hook, keys, sound table + CC0 clips, TTS Betty / tower / AWACS with radio filter. **Sounds, voices and keys (E1b, branch wt/iaf-2026-sounds, 2026-11-02):** the CC0 sound set, the English Betty and tower voices through the radio filter, the radio phrase files and the own key table, compiled by `iaf-sim own` ([sound.md](sound.md)). **Cockpit code (E1a, 2026-11-02):** the 3D cockpit runs from a cockpit dir with no panel art (no panel bitmap, lamps or original cockpit-view model; the F-key views are head poses), the `Settings.hud_font_path()` and `Settings.cockpit_folder()` hooks, the cockpit profile in `iaf-2026/sim_settings.gd` (Real HUD, real MFDs; the cockpit dirs `converted/own/cockpits/<jet>`), `test_cockpit_no_panel.gd` ([cockpit.md](cockpit.md)). **Open:** the Hebrew voice (the user decides on its licence), AWACS and wingman phrases, the run-time squelch, a human listening pass (the reader hooks: done in A1); the HUD and display font (Approvals A1; the hooks `hud_font_path` and `display_font` are in). **Display data (E1a, 2026-11-03):** each jet's own `cockpit.json` (written for the 3D cockpit), RWR symbols, TSD map, GM picture, ADI ball and MFD atlas, nothing of the ISO's ([cockpit.md](cockpit.md) §4, §8; data-formats.md §14)
 
 Size: L. Blocks on: A1.
 
@@ -260,7 +266,7 @@ Size: L. Blocks on: A2, B2, C1, E1, E2.
 
 ### F the probe
 
-the probe `test_mvp.gd` passes for Sufa, Barak, F-35I on Linux / macOS / Windows
+the probe `test_mvp.gd` passes for Sufa, Barak, F-35I on Linux / macOS / Windows. Part of the proof: the M0 probe's "no original converted data read" (item [A4](#a4-the-gate)) passes on the same machine, so the flights use the sim's own data only
 
 Size: —. Blocks on: all above except C2, D2.
 
@@ -293,5 +299,6 @@ The orchestrator reviews each merge against the "done" table before the next ass
 - B1 / B2: `iaf-sim terrain` on a 60 km box around Ramon; the probe's terrain checks; one real-render shot over each base via `tools/godot_window.sh`, compared with the satellite picture.
 - C1: `IAF_INSTALL=assets/converted/own cargo test -p iaf-flight --test validation` within the public ranges for the three jets. C2: `tests/sixdof.rs` trim points from TP-1538; `_flight_bench.gd` no slower than FM-0.
 - A3: the wizard from an `assets/` root without the sim's files to a flyable sim on the Linux laptop and the Mac, and again on a root that also holds the original game (nothing of the original's touched); Windows by the user.
+- A4: `test_converted_gate.gd`; the M0 probe's "no original converted data read" line; the original game's suite unchanged (the same paths).
 - E3 / F: `test_mvp.gd` headless per jet; one real flight of each mission by the user; the debrief page's numbers checked against the flight recorder.
 - Always: the `game/` suite green after every merge; `docs/deviations.md` untouched (nothing in `game/` behaves differently).

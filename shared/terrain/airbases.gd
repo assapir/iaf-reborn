@@ -93,7 +93,7 @@ static func update_view(cam: Vector3, terrain: Node) -> void:
 ## The base's mask and data textures (Godot X east, Z south, relative to the flight's world origin).
 static func _select(b: Dictionary, o: Vector2) -> void:
 	var m: Dictionary = b.mask
-	var img := Image.load_from_file(Settings.assets_dir().path_join("converted/terrain").path_join(m.file))
+	var img := Image.load_from_file(Settings.converted("terrain".path_join(m.file)))
 	# World scale Real: the 1998 runways' paved part beyond the real width is ground (as for the flight model).
 	var cut := IafBases.moved_mask(String(b.name)) if b.has("mask_affine") else PackedByteArray()
 	if img != null and not img.is_empty() and cut.size() == 3 * img.get_width() * img.get_height():

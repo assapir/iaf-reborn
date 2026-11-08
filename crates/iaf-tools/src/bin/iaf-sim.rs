@@ -10,7 +10,9 @@
 //!   `converted/terrain/israel/airbases.json` + masks, `converted/own/iaf.ibx`, `converted/own/terraintype.dat`; needs
 //!   the terrain;
 //! - `all`: db, own, airbases (when the terrain is built), missions;
-//! - `own`: the sound table and clips → `converted/own/resource/soundfiles/`, the key table → `converted/own/keys.json`;
+//! - `own`: the sound table and clips → `converted/own/resource/soundfiles/`, the key table → `converted/own/keys.json`,
+//!   each jet's cockpit display data → `converted/own/cockpits/<jet>/`, the F-16's aircraft descriptor from the repo's
+//!   own model → `converted/own/planes/` (run it from the repo root);
 //! - `terrain`: the theatre (iaf-2026/docs/terrain.md) → `converted/terrain/israel/` (`--out`: another folder),
 //!   over the UTM 36N box `--box` (default `sim_terrain::BOX`).
 
@@ -61,12 +63,12 @@ fn main() -> Result<()> {
     match args.first().map(String::as_str) {
         Some("db") => sim::db(data, assets, &Stdout, &cancel),
         Some("missions") => sim::missions(data, assets, &Stdout, &cancel),
-        Some("own") => sim::own(data, assets, &Stdout, &cancel),
+        Some("own") => sim::own(data, Path::new("."), assets, &Stdout, &cancel),
         Some("airbases") => sim_bases::airbases(data, assets, &Stdout, &cancel),
         Some("terrain") => terrain(&args[1..], &cancel),
         Some("all") => {
             sim::db(data, assets, &Stdout, &cancel)?;
-            sim::own(data, assets, &Stdout, &cancel)?;
+            sim::own(data, Path::new("."), assets, &Stdout, &cancel)?;
             // The bases need the terrain's heights; the missions then stand on its ground.
             if assets.join("converted/terrain/israel/meta.json").is_file() {
                 sim_bases::airbases(data, assets, &Stdout, &cancel)?;

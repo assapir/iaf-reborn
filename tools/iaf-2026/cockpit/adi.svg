@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<!-- IAF 2026's ADI ball (tools/iaf-2026/cockpit_displays.py art; iaf-2026/docs/cockpit.md): the texture
+     lens_adi.gdshader samples, 4x. Rows wrap through 360 deg of pitch, the horizon at y 248, +90 at y 120,
+     -90 at y 376, +-180 at y 504. Grey sky, black ground, a pitch line every 10 deg, numbered every 30. -->
+<rect x="0" y="0" width="512" height="248.00" fill="#8f9497"/>
+<rect x="0" y="248.00" width="512" height="256.00" fill="#141414"/>
+<rect x="0" y="504.00" width="512" height="8.00" fill="#8f9497"/>
+<rect x="0" y="245.00" width="512" height="6" fill="#f2f2f2"/>
+<rect x="234" y="488.28" width="44" height="3" fill="#f0f0f0"/>
+<rect x="234" y="474.06" width="44" height="3" fill="#f0f0f0"/>
+<rect x="216" y="459.83" width="80" height="3" fill="#f0f0f0"/>
+<text x="202" y="467.33" font-family="DejaVu Sans, sans-serif" font-weight="bold" font-size="16" fill="#f0f0f0" text-anchor="middle">3</text>
+<text x="310" y="467.33" font-family="DejaVu Sans, sans-serif" font-weight="bold" font-size="16" fill="#f0f0f0" text-anchor="middle">3</text>
+<rect x="234" y="445.61" width="44" height="3" fill="#f0f0f0"/>
+<rect x="234" y="431.39" width="44" height="3" fill="#f0f0f0"/>
+<rect x="216" y="417.17" width="80" height="3" fill="#f0f0f0"/>
+<text x="202" y="424.67" font-family="DejaVu Sans, sans-serif" font-weight="bold" font-size="16" fill="#f0f0f0" text-anchor="middle">6</text>
+<text x="310" y="424.67" font-family="DejaVu Sans, sans-serif" font-weight="bold" font-size="16" fill="#f0f0f0" text-anchor="middle">6</text>
+<rect x="234" y="402.94" width="44" height="3" fill="#f0f0f0"/>
+<rect x="234" y="388.72" width="44" height="3" fill="#f0f0f0"/>
+<circle cx="256" cy="376.00" r="9" fill="none" stroke="#f0f0f0" stroke-width="3"/>
+<path d="M249.6 369.60 L262.4 382.40 M262.4 369.60 L249.6 382.40" stroke="#f0f0f0" stroke-width="3"/>
+<rect x="234" y="360.28" width="44" height="3" fill="#f0f0f0"/>
+<rect x="234" y="346.06" width="44" height="3" fill="#f0f0f0"/>
+<rect x="216" y="331.83" width="80" height="3" fill="#f0f0f0"/>
+<text x="202" y="339.33" font-family="DejaVu Sans, sans-serif" font-weight="bold" font-size="16" fill="#f0f0f0" text-anchor="middle">6</text>
+<text x="310" y="339.33" font-family="DejaVu Sans, sans-serif" font-weight="bold" font-size="16" fill="#f0f0f0" text-anchor="middle">6</text>
+<rect x="234" y="317.61" width="44" height="3" fill="#f0f0f0"/>
+<rect x="234" y="303.39" width="44" height="3" fill="#f0f0f0"/>
+<rect x="216" y="289.17" width="80" height="3" fill="#f0f0f0"/>
+<text x="202" y="296.67" font-family="DejaVu Sans, sans-serif" font-weight="bold" font-size="16" fill="#f0f0f0" text-anchor="middle">3</text>
+<text x="310" y="296.67" font-family="DejaVu Sans, sans-serif" font-weight="bold" font-size="16" fill="#f0f0f0" text-anchor="middle">3</text>
+<rect x="234" y="274.94" width="44" height="3" fill="#f0f0f0"/>
+<rect x="234" y="260.72" width="44" height="3" fill="#f0f0f0"/>
+<rect x="234" y="232.28" width="44" height="3" fill="#101010"/>
+<rect x="234" y="218.06" width="44" height="3" fill="#101010"/>
+<rect x="216" y="203.83" width="80" height="3" fill="#101010"/>
+<text x="202" y="211.33" font-family="DejaVu Sans, sans-serif" font-weight="bold" font-size="16" fill="#101010" text-anchor="middle">3</text>
+<text x="310" y="211.33" font-family="DejaVu Sans, sans-serif" font-weight="bold" font-size="16" fill="#101010" text-anchor="middle">3</text>
+<rect x="234" y="189.61" width="44" height="3" fill="#101010"/>
+<rect x="234" y="175.39" width="44" height="3" fill="#101010"/>
+<rect x="216" y="161.17" width="80" height="3" fill="#101010"/>
+<text x="202" y="168.67" font-family="DejaVu Sans, sans-serif" font-weight="bold" font-size="16" fill="#101010" text-anchor="middle">6</text>
+<text x="310" y="168.67" font-family="DejaVu Sans, sans-serif" font-weight="bold" font-size="16" fill="#101010" text-anchor="middle">6</text>
+<rect x="234" y="146.94" width="44" height="3" fill="#101010"/>
+<rect x="234" y="132.72" width="44" height="3" fill="#101010"/>
+<circle cx="256" cy="120.00" r="9" fill="none" stroke="#101010" stroke-width="3"/>
+<rect x="234" y="104.28" width="44" height="3" fill="#101010"/>
+<rect x="234" y="90.06" width="44" height="3" fill="#101010"/>
+<rect x="216" y="75.83" width="80" height="3" fill="#101010"/>
+<text x="202" y="83.33" font-family="DejaVu Sans, sans-serif" font-weight="bold" font-size="16" fill="#101010" text-anchor="middle">6</text>
+<text x="310" y="83.33" font-family="DejaVu Sans, sans-serif" font-weight="bold" font-size="16" fill="#101010" text-anchor="middle">6</text>
+<rect x="234" y="61.61" width="44" height="3" fill="#101010"/>
+<rect x="234" y="47.39" width="44" height="3" fill="#101010"/>
+<rect x="216" y="33.17" width="80" height="3" fill="#101010"/>
+<text x="202" y="40.67" font-family="DejaVu Sans, sans-serif" font-weight="bold" font-size="16" fill="#101010" text-anchor="middle">3</text>
+<text x="310" y="40.67" font-family="DejaVu Sans, sans-serif" font-weight="bold" font-size="16" fill="#101010" text-anchor="middle">3</text>
+<rect x="234" y="18.94" width="44" height="3" fill="#101010"/>
+<rect x="234" y="4.72" width="44" height="3" fill="#101010"/>
+</svg>

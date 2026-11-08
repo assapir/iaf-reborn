@@ -14,7 +14,6 @@ const GroundRoads := preload("res://shared/terrain/ground_roads.gd")
 const SoundBuses := preload("res://shared/audio/sound_buses.gd")
 
 const PHOTOS := "res://data/photos"
-const MISSIONS := "converted/iaf-2026/missions"
 ## The canvas the screens lay out on: the window shows it scaled to its height (Look's sizes are its pixels).
 const CANVAS := Vector2i(1920, 1080)
 ## The planes the sim flies, each from its home base (strings <name>, base_<base>).
@@ -1166,7 +1165,7 @@ func back() -> void:
 ## The jet's training missions: the compiled list (iaf-sim missions) read from their readable files
 ## (res://data/missions), the player's unit `unit`, by menu id.
 func jet_missions(unit: String) -> Array:
-	var list := Settings.load_json(Settings.assets_dir().path_join(MISSIONS).path_join("missionlist.json"))
+	var list := Settings.load_json(Settings.converted(Settings.missions_folder().path_join("missionlist.json")))
 	var out := []
 	for id in list:
 		var m := Settings.load_json("res://data/missions/%s.json" % str(list[id][0]))
@@ -1181,7 +1180,7 @@ func mission_by_name(name: String) -> Dictionary:
 
 
 func mission_by_id(id: int) -> Dictionary:
-	var list := Settings.load_json(Settings.assets_dir().path_join(MISSIONS).path_join("missionlist.json"))
+	var list := Settings.load_json(Settings.converted(Settings.missions_folder().path_join("missionlist.json")))
 	return mission_by_name(str(list[str(id)][0])) if list.has(str(id)) else {}
 
 

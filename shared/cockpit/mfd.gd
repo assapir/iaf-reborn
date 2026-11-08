@@ -133,7 +133,7 @@ func _process(_delta: float) -> void:
 	)
 	size = Vector2.ONE * (SIZE + 2 * b) * s
 	_under.size = size
-	real_look = Settings.real_mfd(cockpit.cockpit_dir.get_file()) if _bezel() > 0.0 else ""
+	real_look = Settings.real_mfd(Settings.cockpit_folder(cockpit.cockpit_dir)) if _bezel() > 0.0 else ""
 	if real_look != "":
 		_follow_real()
 	var want := Settings.better_cockpit_on("crisp_mfd") and real_look == ""  # the real formats draw their own vectors
@@ -681,15 +681,15 @@ func _draw_gmt(r: Dictionary, nm: float) -> void:
 
 ## isr.bmp (640 × 832) georeference, cockpits.ibx [MAPFRAME] (shared by every cockpit; FUN_005226e0):
 ## col = (X + 166828 − left) / (right − left) · 640, row = (top − (Y + 21164)) / (top − bottom) · 832
-## (FUN_00535ea0 @53608b), i.e. 1280 m per isr pixel.
+## (FUN_00535ea0 @53608b), i.e. 1280 m per isr pixel. A cockpit layout's own "MAPFRAME" replaces it (the sim's:
+## its theatre in UTM, iaf-2026/docs/cockpit.md §8).
 const MAPFRAME := {"left": 0.0, "top": 1064960.0, "bottom": 0.0, "right": 819200.0}
 const ISR_SIZE := Vector2(640, 832)
 ## The MAP window (15,15)–(116,109): 101 × 94 px, 94 px = R NM (FUN_0053b0a0 pass 1).
 const MAP_WINDOW := Rect2(15, 15, 101, 94)
 
 
-static func isr_px(w: Vector2) -> Vector2:
-	var f: Dictionary = MAPFRAME
+static func isr_px(w: Vector2, f: Dictionary = MAPFRAME) -> Vector2:
 	return Vector2(
 		(w.x + 166828.0 - f.left) / (f.right - f.left) * ISR_SIZE.x,
 		(f.top - (w.y + 21164.0)) / (f.top - f.bottom) * ISR_SIZE.y
@@ -724,18 +724,18 @@ func _draw_map_picture(r: Dictionary, nm: float) -> void:
 	if t == null:
 		return
 	var f := _map_frame(r)
-	for piece in map_picture(f.centre, f.hdg, nm, f.img):
+	for piece in map_picture(f.centre, f.hdg, nm, f.img, cockpit.layout.get("MAPFRAME", MAPFRAME)):
 		_under.draw_colored_polygon(piece.points, Color(0, 1, 0), piece.uvs, t)
 
 
 ## The MAP picture's polygons in the window: [{points (MFD px), uvs (0..1 of isr.bmp)}] for the centre
 ## (world X / Y) shown at MFD px `img`, heading-up for `hdg` (rad), range `nm`. isr px q of MFD px p:
 ## q = q0 + S·(dx·C − dy·S', dx·S' + dy·C), (dx, dy) = p − img.
-static func map_picture(centre: Vector2, hdg: float, nm: float, img: Vector2) -> Array:
-	var s: float = nm * 1853.0 * ISR_SIZE.y / ((MAPFRAME.top - MAPFRAME.bottom) * 94.0)
+static func map_picture(centre: Vector2, hdg: float, nm: float, img: Vector2, frame: Dictionary = MAPFRAME) -> Array:
+	var s: float = nm * 1853.0 * ISR_SIZE.y / ((frame.top - frame.bottom) * 94.0)
 	var cos_h := cos(hdg)
 	var sin_h := sin(hdg)
-	var q0 := isr_px(centre)
+	var q0 := isr_px(centre, frame)
 	var corners := PackedVector2Array()
 	for q in [Vector2.ZERO, Vector2(ISR_SIZE.x, 0), ISR_SIZE, Vector2(0, ISR_SIZE.y)]:
 		var d: Vector2 = (q - q0) / s

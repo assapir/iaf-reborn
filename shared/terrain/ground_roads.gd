@@ -27,7 +27,7 @@ static var _origin := Vector2(INF, INF)
 
 
 static func dir() -> String:
-	return Settings.assets_dir().path_join("converted/roads")
+	return Settings.converted("roads")
 
 
 ## Setup made the road layer.

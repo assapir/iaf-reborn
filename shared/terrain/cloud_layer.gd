@@ -157,7 +157,7 @@ static func prefetch() -> void:
 
 
 static func path(i: int) -> String:
-	return Settings.assets_dir().path_join("converted/objects/cloud256_%d.png" % i)
+	return Settings.converted("objects/cloud256_%d.png" % i)
 
 
 func _ready() -> void:

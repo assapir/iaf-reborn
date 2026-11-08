@@ -156,6 +156,11 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
   waits for it (stacks taken 2026-10-29 and 2026-11-01; rendering.md §1.5 "Wayland at exit"). Worked around
   2026-11-01: from the extension's last deinit stage a thread interrupts that `poll` with a signal until the thread
   ends (`exit_wake.rs`). The engine bug itself is open upstream.
+- **3D cockpit far from the start**: the world's coordinates are 32-bit floats about the flight's start, so the 3D
+  cockpit's vertices round to 2 mm steps 17 km out and to centimetres past 130 km. The F-35I's standby display drew
+  black by day there (World scale Real, mission 231): its screen lost the depth test to its case 0.25 mm behind.
+  Fixed 2026-11-03: the F-35I's screens draw 2.5 % of their distance nearer the eye, enough to 100 km (cockpit.md "3D
+  cockpit", the F-35I's). Open: a floating world origin for the rest.
 - **Scenery trees**: a forest is an even stand, a pine in every 10 m canopy cell of 4 m or more; the real Carmel and
   Galilee are a mosaic of pine, oak maquis and open scrub (needs the cell data rebuilt, scenery.md §3.2 "The hills'
   look"). The near pine model still reads as a fir up close.

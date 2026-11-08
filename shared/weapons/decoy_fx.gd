@@ -103,7 +103,9 @@ func _ready() -> void:
 
 ## The converted sprite (assets/converted/objects, 4× Lanczos), else the install's original.
 static func _texture(png: String, original: String) -> Texture2D:
-	var path := Settings.assets_dir().path_join("converted/objects").path_join(png)
+	if not Settings.original_art():
+		return Img.soft_dot()
+	var path := Settings.converted("objects".path_join(png))
 	if not FileAccess.file_exists(path):
 		path = Settings.install_dir().path_join("resource/3dobjects").path_join(original)
 	return Img.load_texture(path, true)
@@ -111,8 +113,10 @@ static func _texture(png: String, original: String) -> Texture2D:
 
 ## The flare and chaff art decoded on worker threads ahead of the flight (terrain_preload.gd).
 static func prefetch() -> void:
+	if not Settings.original_art():
+		return
 	for f in ["missflr.png", "chaff.png"]:
-		Img.prefetch(Settings.assets_dir().path_join("converted/objects").path_join(f), true)
+		Img.prefetch(Settings.converted("objects".path_join(f)), true)
 
 
 ## Advances to sim time `now`: `decoys` = the decoys released ({type, end, r: {t0, ...}}; those ended since

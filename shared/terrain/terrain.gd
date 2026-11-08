@@ -143,7 +143,7 @@ func prepare() -> void:
 	_prepared = true
 	if data_dir == "":
 		data_dir = Settings.theatre_dir()
-	dir = Settings.assets_dir().path_join(data_dir)
+	dir = Settings.converted(data_dir)
 	meta = Settings.load_json(dir.path_join("meta.json"))
 	if meta.is_empty():
 		return

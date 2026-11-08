@@ -47,7 +47,7 @@ func setup(msg: int, button_names: Array) -> void:
 	_font = Gdi.arial(WEIGHT)
 	_layout()
 	_sfx = AudioStreamPlayer.new()
-	var dir := Settings.assets_dir().path_join("converted/menu_he" if Settings.language == "he" else "converted/menu")
+	var dir := Settings.converted("menu_he" if Settings.language == "he" else "menu")
 	var wav := dir.path_join("wav/buttonin.wav")
 	if FileAccess.file_exists(wav):
 		_sfx.stream = AudioStreamWAV.load_from_file(wav)

@@ -73,12 +73,12 @@ static var _flame_shader: Shader
 
 
 static func _path() -> String:
-	return Settings.assets_dir().path_join("converted/planes/afterburn.png")
+	return Settings.converted("planes/afterburn.png")
 
 
 ## The flame's art decoded on a worker thread ahead of the flight (terrain_preload.gd).
 static func prefetch() -> void:
-	if _tex == null:
+	if _tex == null and Settings.original_art():
 		Img.prefetch(_path())
 
 
@@ -91,7 +91,7 @@ func _init() -> void:
 	_material = ShaderMaterial.new()
 	_material.shader = _flame_shader
 	if _tex == null:
-		_tex = Img.load_texture(_path())
+		_tex = Img.load_texture(_path()) if Settings.original_art() else Img.soft_dot()
 	if _tex != null:
 		_material.set_shader_parameter("tex", _tex)
 	else:

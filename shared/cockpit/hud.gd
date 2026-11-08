@@ -37,7 +37,7 @@ var hud_font: FontFile
 var outer: Control
 var cut: Control  # outer's clipping parent (ours, the Real HUD)
 ## Arial h10 w5 (renderer +0x57c, the GDI texts) and its horizontal squeeze to the 5 px average width.
-var _arial: SystemFont
+var _arial: Font
 var _arial_squeeze := 1.0
 ## The 5x5 sprite font (FUN_00525890, mfds.bmp; recoloured to the HUD colour, FUN_0052d680): per glyph x
 ## the lit pixels.
@@ -96,10 +96,13 @@ func _process(_delta: float) -> void:
 			cut.size = Vector2(cockpit.size.x, cockpit.panel_top() if real else cockpit.size.y)
 
 
-## Loads an original raster font converted by `iaf-convert fonts` (BMFont), scalable.
+## Loads a HUD / display raster font (BMFont, Settings.hud_font_path: the original's converted by `iaf-convert fonts`),
+## scalable; a .ttf / .otf there (IAF 2026's) as an outline font.
 static func load_original_font(name: String) -> FontFile:
-	var path := Settings.assets_dir().path_join("converted/fonts/%s.fnt" % name)
+	var path: String = Settings.hud_font_path(name)
 	var f := FontFile.new()
+	if path.get_extension() != "fnt":
+		return f if f.load_dynamic_font(path) == OK else null
 	if f.load_bitmap_font(path) != OK:
 		return null
 	f.fixed_size_scale_mode = TextServer.FIXED_SIZE_SCALE_ENABLED
@@ -349,7 +352,7 @@ func _gdi(ci: CanvasItem, p: Vector2, text: String, right := false, colour = nul
 func _gdi_size() -> int:
 	var em := 10.0 / 1.15
 	if _arial == null:
-		_arial = Img.arial()
+		_arial = Settings.display_font("hud")
 		var avg := (
 			(
 				_arial
@@ -539,7 +542,7 @@ func real_hud() -> Dictionary:
 	var helmet: bool = ClassDB.class_call_static("IafRealHud", "helmet_only", dir) or real_dash(dir)
 	if cockpit.dash() and not helmet:
 		# The MiG-23ML has no helmet sight: looking aside its sight (on the glass) pans away and nothing is drawn.
-		if dir.get_file() == "mig23":
+		if Settings.cockpit_folder(dir) == "mig23":
 			return {"field": [], "outer": [], "colour": null, "sight": true}
 		return {}
 	var fr := Engine.get_process_frames()
@@ -694,14 +697,14 @@ func real_mrm_inside() -> Variant:
 ## The Real HUDs (keys: cockpit.real_hud_key) with a Real helmet sight: the IAF F-16C/D's and F-15C/D's Elbit DASH
 ## (the Ra'am's F-15E HUD too), the MiG-29's Щель-3УМ.
 static func real_dash(dir: String) -> bool:
-	return dir.get_file() in ["f16", "f15", "f15e", "mig29"]
+	return Settings.cockpit_folder(dir) in ["f16", "f15", "f15e", "mig29"]
 
 
 ## The jets whose Real HUD is a reticle-only gunsight (the F-4E's LCOSS, the Mirage's CSF, the MiG-23's АСП-17МЛ): a
 ## few thin lines at their real angular size, drawn with a pen RETICLE_PEN times the HUD's so they stand out against a
 ## bright sky (about 1 mr wide at the Real view's scale, a reflector reticle's line; inferred).
 static func real_reticle(dir: String) -> bool:
-	return dir.get_file() in ["phantom", "mirage", "mig23"]
+	return Settings.cockpit_folder(dir) in ["phantom", "mirage", "mig23"]
 
 
 const RETICLE_PEN := 1.8
@@ -710,7 +713,7 @@ const RETICLE_PEN := 1.8
 ## The Real HUDs that draw their own ILS (the F-15's flight director, the F-15E's, the Lavi's needles;
 ## docs/real-hud.md): the original's ILS lines are not drawn over them.
 static func real_ils(dir: String) -> bool:
-	return dir.get_file() in ["f15", "f15e", "lavi"]
+	return Settings.cockpit_folder(dir) in ["f15", "f15e", "lavi"]
 
 
 ## A world point (X east, Y north, Z up) in HUD pixels from the HUD centre; behind the eye: null, or with `far` a
@@ -1062,7 +1065,7 @@ func _project(dir: Vector3) -> Vector2:
 func gun_cross() -> Vector2:
 	var h: Dictionary = cockpit.layout.get("HUD", {})
 	var y: float = h.get("GunRetPositionY", h.get("BorePositionY", 135))
-	if GUN_RET_V10.get(cockpit.cockpit_dir.get_file(), -1.0) == y:
+	if GUN_RET_V10.get(Settings.cockpit_folder(cockpit.cockpit_dir), -1.0) == y:
 		y += GUN_RET_V11_SHIFT
 	return Vector2(cockpit.size.x / 2, cockpit.view_y(cockpit.panel_top() - y * cockpit.ui_scale()))
 

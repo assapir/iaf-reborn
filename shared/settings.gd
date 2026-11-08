@@ -430,7 +430,7 @@ func _ready() -> void:
 
 ## The original icon (setup: iaf-convert icon) for compositors / desktops that take the window icon.
 func _set_icon() -> void:
-	var icon := assets_dir().path_join("converted/icon.png")
+	var icon := converted("icon.png")
 	if FileAccess.file_exists(icon):
 		DisplayServer.set_icon(Image.load_from_file(icon))
 
@@ -766,6 +766,13 @@ func airframe_def(id: String) -> Dictionary:
 	return _airframes[id]
 
 
+## The name the cockpit tables key a cockpit dir (or a Real HUD key) on: the F-16's "f16", the F-4E's "phantom" … (the
+## HUD's, MFD's and gauges' tables, the 3D cockpit's F-16 check): the dir's own name. IAF 2026's Settings map its own
+## dirs to the family's (iaf-2026/docs/cockpit.md §4).
+func cockpit_folder(dir: String) -> String:
+	return dir.get_file()
+
+
 ## The F-16's real MFD formats (docs/mfd.md §9): its aircraft definition's mfd ("colour" on the Sufa, always), "green"
 ## on the Barak with MFDs on Real, "" the original pages. `cockpit` is the cockpit's directory name (the F-16's is
 ## "f16").
@@ -795,7 +802,32 @@ func wheel_steps(event: InputEvent) -> int:
 ## True when the Hebrew packs are installed and converted (menus: assets/converted/menu_he;
 ## see docs/packs.md).
 func hebrew_available() -> bool:
-	return DirAccess.dir_exists_absolute(assets_dir().path_join("converted/menu_he"))
+	return DirAccess.dir_exists_absolute(converted("menu_he"))
+
+
+## The file of the HUD's and displays' raster font `name` ("hud", "mfd", "key"; hud.gd load_original_font): the
+## original's, converted by `iaf-convert fonts`. IAF 2026's Settings return its own (iaf-2026/docs/cockpit.md §5).
+func hud_font_path(name: String) -> String:
+	return converted("fonts/%s.fnt" % name)
+
+
+## The vector font of the real display formats' text: "mono" the F-16's MFD formats and its 3D cockpit's small screens
+## (f16_mfd.gd, cockpit3d_display.gd), "narrow" the F-35I's panoramic and standby displays (pcd.gd), "hud" the Real
+## HUD's texts (hud.gd _gdi). Here the installed system fonts, bold (the Real HUD's: the GDI's Arial); IAF 2026's
+## Settings return its own (iaf-2026/docs/cockpit.md §5).
+func display_font(style: String) -> Font:
+	if style == "hud":
+		return load("res://shared/util/img.gd").arial()
+	var f := SystemFont.new()
+	f.font_names = (
+		PackedStringArray(
+			["Arial Narrow", "Liberation Sans Narrow", "DejaVu Sans Condensed", "Arial", "Liberation Sans"]
+		)
+		if style == "narrow"
+		else PackedStringArray(["DejaVu Sans Mono", "Liberation Mono", "Menlo", "Consolas", "Courier New"])
+	)
+	f.font_weight = 600
+	return f
 
 
 ## The assets folder: <repo>/assets, or $IAF_ASSETS_DIR (tests: the setup wizard on a scratch folder).
@@ -803,6 +835,42 @@ func assets_dir() -> String:
 	if OS.get_environment("IAF_ASSETS_DIR") != "":
 		return OS.get_environment("IAF_ASSETS_DIR")
 	return ProjectSettings.globalize_path("res://").path_join("../assets").simplify_path()
+
+
+## The path of `rel` under assets/converted: every shared reader of converted data asks here, so IAF 2026's answer
+## (iaf-2026/sim_settings.gd) lets through only its own data. A leading "converted/" is taken off (the data's own
+## assets-relative paths, e.g. an aircraft definition's "cockpit"). The original game: assets/converted/<rel>.
+func converted(rel: String) -> String:
+	return assets_dir().path_join("converted").path_join(rel.trim_prefix("converted/"))
+
+
+## True where the 1998 game's converted effects art is there to draw (the flares', chaff's, trails' and afterburner's
+## sprites): the original game. IAF 2026 draws them with Img.soft_dot() until its own art comes.
+func original_art() -> bool:
+	return true
+
+
+## The folders under assets/converted holding the aircraft descriptors (aircraft_model.gd: `<plane>/aircraft.json` and
+## the index `aircraft.json`) and the menu missions (mission_runtime.gd: `missionlist.json` and the missions): the
+## original's converted ones; IAF 2026's own (sim_settings.gd).
+func planes_folder() -> String:
+	return "planes"
+
+
+func missions_folder() -> String:
+	return "missions"
+
+
+## The object database a mission without its own falls back on (the player type's default load and model scale):
+## the original's default6_1.bdb; IAF 2026's sim.bdb.
+func default_bdb() -> String:
+	return "default6_1.bdb"
+
+
+## The script of the flight's loading screen (terrain_view.gd; a Control with `progress` 0..1 and a static
+## prefetch()): the original's menu art; IAF 2026's own (iaf-2026/flight/loading_screen.gd).
+func loading_screen_scene() -> String:
+	return "res://shared/terrain/loading_screen.gd"
 
 
 ## The original game's install (the ISO's files, setup's extract step): assets/install.
@@ -863,20 +931,20 @@ func theatre_dir() -> String:
 ## The airbases' runways, taxi lines and paved masks (airbases.gd, the tower's wind turn): the theatre's own
 ## `airbases.json` when it has one (IAF 2026's, `iaf-sim airbases`), else the original's converted one.
 func airbases_file() -> String:
-	var own := assets_dir().path_join(theatre_dir()).path_join("airbases.json")
-	return own if FileAccess.file_exists(own) else assets_dir().path_join("converted/terrain/airbases.json")
+	var own := converted(theatre_dir().path_join("airbases.json"))
+	return own if FileAccess.file_exists(own) else converted("terrain/airbases.json")
 
 
 ## The key table (key_table.gd): assets/converted/keys.json, converted from the exe by `iaf-convert keys`.
 func keys_file() -> String:
-	return assets_dir().path_join("converted/keys.json")
+	return converted("keys.json")
 
 
 ## txt/msgs.trx lines for the current language. In Hebrew, a line the Hebrew pack leaves in English (the
 ## preflight.us menu pack keeps all of msgs.trx English) takes our Hebrew (iaf-reborn/menu/strings_he.json "msgs").
 func msgs() -> PackedStringArray:
 	var he := language == "he"
-	var dir := assets_dir().path_join("converted/menu_he" if he else "converted/menu")
+	var dir := converted("menu_he" if he else "menu")
 	var lines: PackedStringArray = String(load_json(dir.path_join("strings.json")).get("msgs", "")).split("\n")
 	if he:
 		var tr: Dictionary = load_json("res://menu/strings_he.json").get("msgs", {})

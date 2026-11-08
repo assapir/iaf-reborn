@@ -567,8 +567,9 @@ pub fn fill_polygon(m: &mut [f32], w: usize, h: usize, origin: [f64; 2], cell: f
     fill_spans(w, h, origin, cell, poly, |y, x0, x1| m[y * w + x0..y * w + x1].fill(1.0));
 }
 
-/// Calls `span(y, x0, x1)` for each row's run of pixels whose centre lies inside `poly` (even-odd).
-fn fill_spans(
+/// Calls `span(y, x0, x1)` for each row's run of pixels whose centre lies inside `poly` (even-odd), on a grid of `cell`
+/// m whose north-west corner is `origin` (rows run south).
+pub fn fill_spans(
     w: usize,
     h: usize,
     origin: [f64; 2],

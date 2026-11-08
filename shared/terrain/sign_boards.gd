@@ -15,7 +15,7 @@ const DIGITS_X := Vector2i(106, 297)
 const CLEAN_X := Vector2i(106, 126)
 ## The label's spacing between glyphs, in digit heights.
 const SPACING := 0.12
-const FONT := "converted/menu/cr1.ttf"
+const FONT := "menu/cr1.ttf"
 const SIZE := 1024
 
 static var _font: FontFile
@@ -103,7 +103,7 @@ static func relettered(src: Image, n: int, label: String) -> Image:
 ## the glyph.
 static func glyph(c: String) -> Image:
 	if _font == null:
-		var path := Settings.assets_dir().path_join(FONT)
+		var path := Settings.converted(FONT)
 		if not FileAccess.file_exists(path):
 			return null
 		_font = FontFile.new()

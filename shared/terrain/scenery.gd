@@ -10,7 +10,7 @@
 # ray) are IafScenery's.
 extends Node3D
 
-const DIR := "converted/scenery"
+const DIR := "scenery"
 ## Buildings are drawn to RANGE (m). Cells are loaded within RANGE + AHEAD of the focus (horizontal, to the cell's
 ## square), so a cell is made and uploaded before it comes into view (1.5 km: 6 s at 250 m/s), and freed beyond
 ## RANGE + KEEP.
@@ -116,7 +116,7 @@ var _materials: Array[ShaderMaterial] = []
 
 
 static func dir() -> String:
-	return (base_dir if base_dir != "" else Settings.assets_dir()).path_join(DIR)
+	return base_dir.path_join("converted").path_join(DIR) if base_dir != "" else Settings.converted(DIR)
 
 
 static func manifest() -> Dictionary:

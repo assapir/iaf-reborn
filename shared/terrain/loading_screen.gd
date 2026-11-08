@@ -62,7 +62,7 @@ const ART := ["img/back.png", "img/mis/wait.png", "img/mis/pbback.png", "img/mis
 
 
 static func _dir() -> String:
-	return Settings.assets_dir().path_join("converted/menu_he" if Settings.language == "he" else "converted/menu")
+	return Settings.converted("menu_he" if Settings.language == "he" else "menu")
 
 
 ## Decodes the art on worker threads ahead of the flight (terrain_preload.gd): ~170 ms of the flight scene's first

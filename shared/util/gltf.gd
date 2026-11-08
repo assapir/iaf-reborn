@@ -252,7 +252,7 @@ static func object(path: String, allow_detailed := true) -> Variant:
 ## The full path of a converted object model (path under converted/objects); a model of ours the install lacks
 ## (STAND_INS) gives the original model standing in for it.
 static func objects_path(path: String) -> String:
-	return _settings().assets_dir().path_join("converted/objects").path_join(STAND_INS.get(path, path))
+	return _settings().converted("objects".path_join(STAND_INS.get(path, path)))
 
 
 ## The modern weapons' stores (ours, shared/weapons/modern_weapons.gd): model paths no install has, drawn as the
@@ -289,7 +289,7 @@ static func _settings() -> Node:
 ## Each model falls back on the original on its own (the F-15 also when setup could not download its sources).
 const DETAILED := {
 	"f16_h.gltf": "res://shared/extra/models/f16/f16d.glb",
-	"f15_h.gltf": "converted/models/f15/f15c.glb",
+	"f15_h.gltf": "models/f15/f15c.glb",
 	"mig29_h.gltf": MIG29_DIR + "mig29.glb",
 }
 ## The MiG-29's folder: its PNG textures are compressed at the parse, as the stores'.
@@ -351,7 +351,7 @@ static func detailed(path: String) -> String:
 		return ""
 	var hd: String = DETAILED.get(f, STORES_DIR + STORES[f] + ".glb" if STORES.has(f) else "")
 	if hd != "" and not hd.begins_with("res://"):
-		hd = _settings().assets_dir().path_join(hd)
+		hd = _settings().converted(hd)
 	return hd if hd != "" and FileAccess.file_exists(hd) else ""
 
 
@@ -370,7 +370,7 @@ static func detailed_stores() -> Array:
 static func variant_model(file: String) -> String:
 	var s := _settings()
 	var own: String = ClassDB.class_call_static("IafAirframe", "model_for", file, s.f16_variant, s.f15_variant)
-	return own if own == "" or own.begins_with("res://") else s.assets_dir().path_join(own)
+	return own if own == "" or own.begins_with("res://") else s.converted(own)
 
 
 ## The aircraft definitions' models (IafAirframe.models), read when the script loads: is_detailed runs on workers.

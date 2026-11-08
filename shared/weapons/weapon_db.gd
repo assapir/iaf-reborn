@@ -20,7 +20,7 @@ static func create(bdb: Dictionary, real_data := false) -> RefCounted:
 	var db = load("res://shared/weapons/weapon_db.gd").new()
 	db.real = real_data
 	db._load_ibx(Settings.own_dir().path_join(IBX))
-	var models: Dictionary = Settings.load_json(Settings.assets_dir().path_join("converted/objects/objects.json"))
+	var models: Dictionary = Settings.load_json(Settings.converted("objects/objects.json"))
 	var paths: Dictionary = models.get(
 		String(bdb.get("_file", "default6_1.bdb")).to_lower(), models.get("default6_1.bdb", {})
 	)

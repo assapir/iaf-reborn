@@ -2,6 +2,19 @@
 extends RefCounted
 
 
+## A soft white dot fading to clear at its rim: IAF 2026's stand-in for the original effects sprites
+## (Settings.original_art()).
+static func soft_dot() -> Texture2D:
+	var g := Gradient.new()
+	g.colors = PackedColorArray([Color.WHITE, Color(1, 1, 1, 0)])
+	var t := GradientTexture2D.new()
+	t.gradient = g
+	t.fill = GradientTexture2D.FILL_RADIAL
+	t.fill_from = Vector2(0.5, 0.5)
+	t.fill_to = Vector2(0.5, 0.0)
+	return t
+
+
 ## An image file as a texture (with mipmaps when asked); null when the file is missing.
 static func load_texture(path: String, mipmaps := false) -> ImageTexture:
 	var img := _take(path, mipmaps)

@@ -3,7 +3,7 @@
 # to the window), so every length follows the screen height: R, the body text, is 1.9 % of it.
 extends RefCounted
 
-const WizardTheme := preload("res://setup/wizard_theme.gd")
+const WizardTheme := preload("../setup/wizard_theme.gd")  # relative: a test of the original's project loads it too
 
 const BG := Color("1d2025")
 const PANEL := Color("262a31")

@@ -39,7 +39,7 @@ static func jet_type(id: int) -> int:
 static func object_for(type: int, bdb: Dictionary, fallback := true) -> Dictionary:
 	var dbs := [bdb]
 	if fallback:
-		dbs.append(Settings.load_json(Settings.assets_dir().path_join("converted/missions/default6_1.bdb.json")))
+		dbs.append(Settings.load_json(Settings.converted("missions/%s.json" % Settings.default_bdb())))
 	for want in [type] if type != F35I else [FALLBACK]:
 		for db in dbs:
 			for o in db.get("objects", {}).get("items", []):
