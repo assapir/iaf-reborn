@@ -9,7 +9,7 @@
 //! Colour: ESA WorldCover's Sentinel-2 composite (range reads; 8 m nodes over the detail area, 32 m elsewhere) and
 //! the Survey of Israel 2 m sheets already downloaded (2 m nodes). GDAL does every reprojection.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -20,9 +20,9 @@ use image::RgbImage;
 use image::imageops::{FilterType, resize};
 
 use crate::imagery::{self, read_envi};
-use crate::imagery_run::{BUCKET, gdal, list_sheets, list_tiles, tile_box, tile_sources};
+use crate::imagery_run::{BUCKET, gdal, list_sheets, list_tiles, tile_box, tile_sources, tile_whole};
 use crate::log;
-use crate::progress::{Progress, check, utf8};
+use crate::progress::{Part, Progress, check, utf8};
 
 /// The theatre in UTM 36N metres (E0, N0, E1, N1): Ramon, Hatzerim, Nevatim and Ramat David with ≥ 150 km around
 /// them, the corners on multiples of 1024 m (iaf-2026/docs/terrain.md §2).
@@ -915,6 +915,58 @@ fn both<A: Send, B>(
     }
 }
 
+/// The Sentinel-2 tiles' download rate (bytes/s): 3 transfers at the 4.6 MB/s measured per transfer (terrain.md §7).
+// ponytail: one fixed rate; another line speed makes the time left wrong during the download only. Tiles streamed for
+// want of disk room are counted as a download too: the bar then jumps to the 32 m part.
+const FETCH_RATE: f64 = 13.8e6;
+/// The colour branch's other parts' seconds on the developer's laptop: Sentinel-2 at 32 m and at 8 m from the cached
+/// tiles (inferred: the streamed run's 191 s and 557 s (setup.md §7) times 4 s / 35 s, a cached 8 m unit against a
+/// streamed one, terrain.md §7), the Survey's 2 m, the coarser levels after both branches. The heights run beside
+/// the colour and end before it, except with every tile cached and the DEM to download (a pause of about a minute).
+const S2_32M_S: f64 = 22.0;
+const S2_8M_S: f64 = 64.0;
+const SURVEY_S: f64 = 4500.0;
+const LEVELS_S: f64 = 60.0;
+
+/// Where each part of the terrain step's bar ends: part i is `ends[i]..ends[i + 1]` (0 the Sentinel-2 download of
+/// `fetch` bytes, 1 the 32 m nodes, 2 the 8 m nodes, 3 the Survey's 2 m when `survey`); the coarser levels fill the
+/// rest. By expected seconds, so the fraction grows evenly with time and the wizard's time left holds steady.
+fn part_ends(fetch: u64, survey: bool) -> [f32; 5] {
+    let secs = [fetch as f64 / FETCH_RATE, S2_32M_S, S2_8M_S, if survey { SURVEY_S } else { 0.0 }];
+    let total = secs.iter().sum::<f64>() + LEVELS_S;
+    let mut ends = [0.0; 5];
+    for i in 0..4 {
+        ends[i + 1] = ends[i] + (secs[i] / total) as f32;
+    }
+    ends
+}
+
+/// The bytes of the theatre's Sentinel-2 tiles already whole in `cache` (the setup wizard's disk check): only the
+/// listings already cached count (no network); 0 without them or without GDAL.
+pub fn s2_cached_bytes(cache: &Path) -> u64 {
+    geo_bbox(BOX).map_or(0, |geo| cached_in(cache, geo))
+}
+
+/// [`s2_cached_bytes`] over the lon / lat box `geo`.
+fn cached_in(cache: &Path, geo: [f64; 4]) -> u64 {
+    let mut sum = 0;
+    for lat in geo[1].floor() as i32..=geo[3].floor() as i32 {
+        let Ok(t) = std::fs::read_to_string(cache.join(format!("listing_N{lat:02}.tsv"))) else { continue };
+        let tiles: BTreeMap<String, u64> = t
+            .lines()
+            .filter_map(|l| l.split_once('\t'))
+            .map(|(n, b)| (n.to_string(), b.parse().unwrap_or(0)))
+            .collect();
+        for (n, b) in &tiles {
+            let inside = tile_box(n).is_some_and(|x| x[0] < geo[2] && geo[0] < x[2] && x[1] < geo[3] && geo[1] < x[3]);
+            if inside && tile_whole(cache, &tiles, n) {
+                sum += b;
+            }
+        }
+    }
+    sum
+}
+
 /// The heights branch: the GLO-30 tiles (cache first), the 64 m grid, the height nodes; returns what it reused.
 fn heights(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<String> {
     let t0 = std::time::Instant::now();
@@ -942,7 +994,16 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
         .filter(|n| tile_box(n).is_some_and(|b| b[0] < geo[2] && geo[0] < b[2] && b[1] < geo[3] && geo[1] < b[3]))
         .cloned()
         .collect();
-    let (paths, s2_line) = tile_sources(&r.s2_cache, BUCKET, &tiles, &names, 3, pr, cancel)?;
+    // One bar over the colour branch, the longer of the two (the heights run beside it): its parts by their expected
+    // seconds (`part_ends`).
+    let has_zips = std::fs::read_dir(&r.sheets)
+        .map(|d| d.filter_map(|e| e.ok()).any(|e| e.path().extension().is_some_and(|x| x.eq_ignore_ascii_case("zip"))))
+        .unwrap_or(false);
+    let fetch: u64 =
+        names.iter().filter(|n| !tile_whole(&r.s2_cache, &tiles, n)).map(|n| tiles.get(n).copied().unwrap_or(0)).sum();
+    let ends = part_ends(fetch, has_zips);
+    let part = |i: usize| Part { pr, from: ends[i], to: ends[i + 1] };
+    let (paths, s2_line) = tile_sources(&r.s2_cache, BUCKET, &tiles, &names, 3, &part(0), cancel)?;
     log!(pr, "sentinel-2: {s2_line} ({})", crate::progress::duration(t0.elapsed()));
     let urls: Vec<String> = paths.into_values().collect();
     let s2 = work.join("s2.vrt");
@@ -955,14 +1016,12 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
     let coarse = |k: Key| inside(k) && !detail5.contains(&k);
     let fine = |k: Key| inside(k) && detail5.contains(&(5, k.1 >> (5 - k.0), k.2 >> (5 - k.0)));
     let u7: Vec<Key> = f.nodes(7).into_iter().filter(|u| f.nodes_in(5, f.utm(*u)).into_iter().any(coarse)).collect();
-    units("s2_32m", &u7, &work, r.threads, pr, cancel, |u| sentinel_unit(s2, &f, u, 5, &coarse, &work, out))?;
+    let s2_32 = |u| sentinel_unit(s2, &f, u, 5, &coarse, &work, out);
+    units("s2_32m", &u7, &work, r.threads, &part(1), cancel, s2_32)?;
     let u5: Vec<Key> = detail5.iter().copied().collect();
-    units("s2_8m", &u5, &work, r.threads, pr, cancel, |u| sentinel_unit(s2, &f, u, 3, &fine, &work, out))?;
+    units("s2_8m", &u5, &work, r.threads, &part(2), cancel, |u| sentinel_unit(s2, &f, u, 3, &fine, &work, out))?;
 
     // The Survey of Israel 2 m sheets already downloaded.
-    let has_zips = std::fs::read_dir(&r.sheets)
-        .map(|d| d.filter_map(|e| e.ok()).any(|e| e.path().extension().is_some_and(|x| x.eq_ignore_ascii_case("zip"))))
-        .unwrap_or(false);
     if has_zips {
         seed_sheets(&work, &r.sheet_index, pr)?;
         let (sheets, _) = list_sheets(&r.sheets, &work, pr, cancel)?;
@@ -1012,7 +1071,7 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
             offsets: sheets.iter().zip(&gains).map(|(s, g)| (s.bbox, g.1)).collect(),
             bases: &bases,
         };
-        units("survey_2m", &keys, &work, r.threads, pr, cancel, |k| {
+        units("survey_2m", &keys, &work, r.threads, &part(3), cancel, |k| {
             let (_, c, _) = list.iter().find(|u| u.0 == k).context("unit")?;
             survey_unit(&sv, &f, k, *c, &work, out)
         })?;
@@ -1094,6 +1153,36 @@ mod tests {
         let _ = std::fs::remove_dir_all(&d);
         std::fs::create_dir_all(&d).unwrap();
         d
+    }
+
+    /// The bar's parts follow their expected seconds: in order, inside 0..1, the download's share from its bytes.
+    #[test]
+    fn part_ends_follow_the_seconds() {
+        for (fetch, survey) in [(0, false), (11_400_000_000, false), (0, true), (11_400_000_000, true)] {
+            let e = part_ends(fetch, survey);
+            assert_eq!(e[0], 0.0);
+            assert!(e.windows(2).all(|w| w[0] <= w[1]) && e[4] < 1.0, "{e:?}");
+            let total = fetch as f64 / FETCH_RATE + S2_32M_S + S2_8M_S + if survey { SURVEY_S } else { 0.0 } + LEVELS_S;
+            // Each part's share is its seconds' share: the 8 m nodes, e.g.
+            assert!(((e[3] - e[2]) as f64 - S2_8M_S / total).abs() < 1e-6);
+        }
+        assert_eq!(part_ends(0, false)[1], 0.0, "a complete cache: no download part");
+        let dl = 11.4e9 / FETCH_RATE;
+        assert!((part_ends(11_400_000_000, false)[1] as f64 - dl / (dl + 146.0)).abs() < 1e-6, "the download's share");
+        assert_eq!(part_ends(0, false)[4], part_ends(0, false)[3], "no Survey: no 2 m part");
+    }
+
+    /// The cached bytes count whole tiles inside the box from cached listings only.
+    #[test]
+    fn cached_tiles_inside_the_box() {
+        let c = tmp("s2cached");
+        std::fs::write(c.join("listing_N30.tsv"), "N30E034\t5\nN30E035\t3\nN30E040\t7\n").unwrap();
+        let file = |n: &str| c.join(format!("ESA_WorldCover_10m_2021_v200_{n}_S2RGBNIR.tif"));
+        std::fs::write(file("N30E034"), "12345").unwrap(); // whole
+        std::fs::write(file("N30E035"), "1").unwrap(); // partial
+        std::fs::write(file("N30E040"), "1234567").unwrap(); // whole, outside the box
+        assert_eq!(cached_in(&c, [34.2, 30.1, 35.9, 31.5]), 5);
+        assert_eq!(cached_in(&c.join("none"), [34.2, 30.1, 35.9, 31.5]), 0, "no listing: nothing cached");
     }
 
     #[test]

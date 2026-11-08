@@ -61,6 +61,22 @@ func run() -> void:
 	Engine.time_scale = 1.0
 
 
+## The flights' records folder goes with the run, passed or failed (base.gd's quit comes through here).
+func _quit(code: int) -> void:
+	if out.get_file().begins_with("iaf2026-mvp-"):
+		_remove(out)
+	await super(code)
+
+
+## Deletes the folder `dir` and everything in it.
+func _remove(dir: String) -> void:
+	for d in DirAccess.get_directories_at(dir):
+		_remove(dir.path_join(d))
+	for f in DirAccess.get_files_at(dir):
+		DirAccess.remove_absolute(dir.path_join(f))
+	DirAccess.remove_absolute(dir)
+
+
 func _start(name: String) -> Node:
 	var s := settings()
 	var m: Dictionary = s.load_json(s.assets_dir().path_join(MISSIONS).path_join(name + ".json"))

@@ -4,12 +4,12 @@
 # It opens the front end (iaf-2026/main.tscn); `-- --mission <id>` flies that mission at once, then shows its debrief.
 set -euo pipefail
 cd "$(dirname "$0")"
-[[ -d assets/converted/iaf-2026/missions ]] || { echo "No Modern IAF data yet: starting its setup (./iaf2026-setup)." >&2; exec ./iaf2026-setup; }
+[[ -d ${IAF_ASSETS_DIR:-assets}/converted/iaf-2026/missions ]] || { echo "No Modern IAF data yet: starting its setup (./iaf2026-setup)." >&2; exec ./iaf2026-setup; }
+title="Modern IAF"
+who="Modern IAF"
+# shellcheck source=tools/launch-checks.sh
+source tools/launch-checks.sh
 cargo build --release -p iaf-godot
-godot=${GODOT:-godot}
-if ! command -v "$godot" >/dev/null && [[ -x /Applications/Godot.app/Contents/MacOS/Godot ]]; then
-	godot=/Applications/Godot.app/Contents/MacOS/Godot
-fi
 tools/godot_import.sh "$godot" iaf-2026
 [[ $(uname) == Darwin ]] && export SDL_JOYSTICK_MFI=${SDL_JOYSTICK_MFI:-0}
 exec "$godot" --path iaf-2026 res://main.tscn -- "$@"

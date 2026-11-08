@@ -5,13 +5,13 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Mutex;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 
 use crate::georef::Georef;
 use crate::imagery::{self, Cache, Imagery, Key, Photo, ROOT_LEVEL, Rules, Source, Theatre};
 use crate::itm;
 use crate::log;
-use crate::progress::{Progress, check, utf8};
+use crate::progress::{Part, Progress, check, utf8};
 use anyhow::{Context, Result, bail};
 
 pub(crate) const BUCKET: &str = "https://esa-worldcover-s2.s3.eu-central-1.amazonaws.com";
@@ -233,8 +233,7 @@ pub(crate) fn tile_sources(
     std::fs::create_dir_all(cache)?;
     let size = |n: &str| tiles.get(n).copied().unwrap_or(0);
     let path = |n: &str| cache.join(tile_file(n));
-    let whole = |n: &str| std::fs::metadata(path(n)).is_ok_and(|m| size(n) > 0 && m.len() == size(n));
-    let (reused, missing): (Vec<&String>, Vec<&String>) = names.iter().partition(|n| whole(n));
+    let (reused, missing): (Vec<&String>, Vec<&String>) = names.iter().partition(|n| tile_whole(cache, tiles, n));
     // ponytail: the room is measured once per run; another job filling the disk meanwhile ends in curl's "disk full".
     // Without df (Windows) there is no room check (docs/imagery.md §2).
     let mut room = free_bytes(cache).map_or(u64::MAX, |f| f.saturating_sub(S2_KEEP_FREE));
@@ -269,9 +268,12 @@ pub(crate) fn tile_sources(
             S2_KEEP_FREE / 1_000_000_000
         ));
     }
+    // The bar: the bytes fetched of those to fetch.
+    let (total, done) = (fetch.iter().map(|n| size(n)).sum::<u64>().max(1), AtomicU64::new(0));
     crate::sim_terrain::par(&fetch, jobs, cancel, |n| {
         curl_to(&tile_url(bucket, n), &path(n), size(n), USER_AGENT, cancel)?;
         log!(pr, "  {n}: fetched {:.0} MB", size(n) as f64 / 1e6);
+        pr.fraction((done.fetch_add(size(n), Ordering::Relaxed) + size(n)) as f32 / total as f32);
         Ok(())
     })?;
     let mut out = BTreeMap::new();
@@ -286,6 +288,12 @@ pub(crate) fn tile_sources(
         line += &format!(", {} streamed ({:.2} GB)", stream.len(), gb(&stream_refs));
     }
     Ok((out, line))
+}
+
+/// The tile `n` is in the cache whole (its listed size).
+pub(crate) fn tile_whole(cache: &Path, tiles: &BTreeMap<String, u64>, n: &str) -> bool {
+    let size = tiles.get(n).copied().unwrap_or(0);
+    std::fs::metadata(cache.join(tile_file(n))).is_ok_and(|m| size > 0 && m.len() == size)
 }
 
 /// The tile's 1° box (lon0, lat0, lon1, lat1) from its name ("N30E032" = 30..31 N, 32..33 E).
@@ -667,7 +675,10 @@ pub fn run(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Estimate> 
             })
             .cloned()
             .collect();
-        let (p, line) = tile_sources(&r.s2_cache, BUCKET, tiles, &names, threads, pr, cancel)?;
+        // This step's bar is its units' 0..1 (below), as before the tile cache: a part from 0 to 0 holds the bar at 0
+        // through the download (the tiles' lines still go to the log).
+        let quiet = Part { pr, from: 0.0, to: 0.0 };
+        let (p, line) = tile_sources(&r.s2_cache, BUCKET, tiles, &names, threads, &quiet, cancel)?;
         log!(pr, "Sentinel-2: {line}");
         *paths = p;
     }

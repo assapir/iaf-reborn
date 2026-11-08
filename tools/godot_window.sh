@@ -31,7 +31,7 @@ else
 	# Godot hung at quit can't hold ~/.cache/iaf-gpu-bench.lock after a `timeout` killed this script (2026-10-29: an
 	# orphaned Godot, then its Xvfb, stalled every session's renders), and they run in their own process group, which
 	# is killed when this script ends or is told to stop.
-	for fd in /proc/$$/fd/*; do
+	for fd in "/proc/$$/fd/"*; do
 		fd=${fd##*/}
 		((fd > 2 && fd != 255)) && eval "exec $fd>&-"
 	done 2>/dev/null || true

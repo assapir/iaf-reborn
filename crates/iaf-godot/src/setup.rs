@@ -295,6 +295,13 @@ impl IafSetup {
             .collect()
     }
 
+    /// The bytes of the sim's Sentinel-2 tiles already cached under `assets` (the wizard's disk check).
+    #[func]
+    fn sim_s2_cached(assets: GString) -> i64 {
+        let cache = PathBuf::from(assets.to_string()).join(iaf_tools::imagery_run::S2_CACHE);
+        iaf_tools::sim_terrain::s2_cached_bytes(&cache) as i64
+    }
+
     /// The Survey of Israel sheet ZIPs already under `assets` (IAF 2026's Survey choice needs them).
     #[func]
     fn survey_sheets(assets: GString) -> i64 {

@@ -12,10 +12,14 @@ const WizardUtil := preload("res://shared/util/wizard_util.gd")
 const TITLE := "Modern IAF"
 const PAGES := ["welcome", "imagery", "install", "done"]
 const DEM_GB := 0.627
-const THEATRE_S2_GB := 0.45
+## The Sentinel-2 / WorldCover tiles over the theatre, downloaded once into assets/source/imagery/sentinel2.
+const S2_GB := 11.4
+## The free space the tiles' download leaves (iaf_tools::imagery_run::S2_KEEP_FREE): a tile past it is read online.
+const KEEP_FREE_GB := 5.0
+const THEATRE_S2_GB := 0.47
 const THEATRE_SURVEY_GB := 3.57
 const OTHER_GB := 0.02
-const TIME_S2_MIN := 26
+const TIME_S2_MIN := 17
 const TIME_SURVEY_MIN := 102
 ## Every source the sim is built from, with its licence line as the licence asks for it (the Copernicus lines
 ## verbatim, terrain.md §5; sound.md §6; docs/credits.md "Modern IAF data"): [name, strings key of its use, lines].
@@ -122,6 +126,8 @@ var strings := {}
 var page := 0
 var survey := false
 var sheets := 0
+## The GB of the sim's Sentinel-2 tiles already in the cache (IafSetup.sim_s2_cached).
+var s2_cached := 0.0
 var running := false
 var finished := false
 var failed := ""
@@ -161,6 +167,7 @@ func _ready() -> void:
 	repo = ProjectSettings.globalize_path("res://").path_join("..").simplify_path()
 	tools = IafSetup.tools()
 	sheets = IafSetup.survey_sheets(assets)
+	s2_cached = IafSetup.sim_s2_cached(assets) / 1e9
 	survey = sheets > 0
 	_build()
 	show_page(0)
@@ -330,12 +337,12 @@ func _page_welcome() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
 	v.add_child(row)
-	var dl := "%.0f MB" % (DEM_GB * 1000)
-	var disk := "%s – %s" % [_gb(DEM_GB + THEATRE_S2_GB + OTHER_GB), _gb(DEM_GB + THEATRE_SURVEY_GB + OTHER_GB)]
+	var dl := _gb(DEM_GB + S2_GB)
+	var kept := DEM_GB + S2_GB + OTHER_GB
+	var disk := "%s – %s" % [_gb(kept + THEATRE_S2_GB), _gb(kept + THEATRE_SURVEY_GB)]
 	var time := "%s – %s" % [_duration(TIME_S2_MIN * 60), _duration(TIME_SURVEY_MIN * 60)]
-	for box in [
-		[s("download"), dl, s("download_note")], [s("disk"), disk, s("disk_note")], [s("time"), time, s("time_note")]
-	]:
+	var dl_note := s("download_note") % [_gb(DEM_GB), _gb(S2_GB)]
+	for box in [[s("download"), dl, dl_note], [s("disk"), disk, s("disk_note")], [s("time"), time, s("time_note")]]:
 		var c := _vbox(4)
 		_label(c, box[0], "Muted")
 		_label(c, box[1], "Readout")
@@ -355,16 +362,23 @@ func _page_welcome() -> Control:
 	if not req_ok:
 		_text(req, hint, "Note")
 	var free := WizardUtil.free_gb(assets)
-	# The space the imagery choice needs (the Survey is chosen at the start when its sheets are there).
+	# The space the imagery choice needs (the Survey is chosen at the start when its sheets are there), and the
+	# Sentinel-2 tiles still to download; tiles with no room are read online (docs/imagery.md §2).
 	var need := DEM_GB + (THEATRE_SURVEY_GB if survey else THEATRE_S2_GB) + OTHER_GB
-	if free >= 0:
-		var enough := free >= need
-		var t := (s("free") % _gb(free)) if enough else (s("free_low") % [_gb(free), _gb(need)])
-		_text(req, t, "Note")
-		req_ok = req_ok and enough
+	var tiles := maxf(S2_GB - s2_cached, 0.0)
 	var credits_row := HBoxContainer.new()
+	credits_row.add_theme_constant_override("separation", 14)
 	v.add_child(credits_row)
 	_button(credits_row, s("credits"), func(): credits_dialog.popup_centered(Vector2i(900, 560))).name = "Credits"
+	if free >= 0:
+		var t := (s("free") % _gb(free)) if free >= need else (s("free_low") % [_gb(free), _gb(need + tiles)])
+		_text(req, t, "Note")
+		req_ok = req_ok and free >= need
+		if free >= need and tiles > 0 and free < need + tiles + KEEP_FREE_GB:
+			var online := _text(
+				credits_row, s("free_online") % _gb(minf(need + tiles + KEEP_FREE_GB - free, tiles)), "Note"
+			)
+			online.name = "Online"
 	return v
 
 
@@ -663,9 +677,11 @@ func _show_result() -> void:
 		log_button.text = s("hide_log")
 
 
-## "1.1 GB" / "620 MB".
+## "1.1 GB" / "620 MB": one left-to-right piece (a Unicode isolate, a no-break space), so a Hebrew line keeps the number
+## before its unit and on one line.
 static func _gb(x: float) -> String:
-	return ("%.0f MB" % (x * 1000)) if x < 1.0 else ("%.1f GB" % x)
+	var t := ("%.0f\u00a0MB" % (x * 1000)) if x < 1.0 else ("%.1f\u00a0GB" % x)
+	return "\u2066" + t + "\u2069"
 
 
 ## A duration in the wizard's language.

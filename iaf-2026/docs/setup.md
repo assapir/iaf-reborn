@@ -15,17 +15,21 @@ that stopped resumes where it stopped.
 
 | need | why | Linux | macOS | Windows |
 |---|---|---|---|---|
-| Rust (cargo) | builds the extension the wizard runs in | rustup.rs (Arch: `sudo pacman -S rustup`) | `brew install rustup` | `winget install Rustlang.Rustup` |
+| Rust (cargo) | builds the extension the wizard runs in | rustup.rs (Arch: `sudo pacman -S rustup`) | `brew install rustup`, then `$(brew --prefix rustup)/bin/rustup default stable` | `winget install Rustlang.Rustup` |
 | Godot 4.7 | runs the wizard | godotengine.org (Arch: `sudo pacman -S godot`) | `brew install godot` | `winget install GodotEngine.GodotEngine` |
 | GDAL | reads and reprojects the heights and the imagery | `sudo apt install gdal-bin` (Arch: `sudo pacman -S gdal`) | `brew install gdal` | the GISInternals installer (`winget install GISInternals.GDAL`) |
-| curl | downloads the height tiles | `sudo apt install curl` | `brew install curl` | in Windows 10 and later |
+| curl | downloads the height tiles | `sudo apt install curl` | in macOS | in Windows 10 and later |
 | Python 3 | writes the jets' flight data (`tools/iaf-2026/fm0.py`) | `sudo apt install python3` | `brew install python` | `winget install Python.Python.3.14` |
 | disk | the data (§4) | | | |
 
-The launcher (`tools/launch-wizard.sh`, which the original game's `./setup` uses too) checks Rust and Godot and says
-how to install a missing one. The wizard's first page checks GDAL, curl, Python 3 and the free disk space for the
+The launcher (`tools/launch-wizard.sh`, which the original game's `./setup` uses too) and `./iaf2026` check Rust and
+Godot 4.7 and say how to install a missing one (`tools/launch-checks.sh`). On macOS they add Homebrew's folders to
+the PATH when `cargo` or `godot` is not on it (a start from a shell without Homebrew's setup). The wizard's first page checks GDAL, curl, Python 3 and the free disk space for the
 imagery chosen at the start (the Survey's when its sheets are there); Next waits until they are there, and the page
-names the install command for the system it runs on. Python 3 is the first of `python3`, `python` and `py -3` (on
+names the install command for the system it runs on. The Sentinel-2 tiles still to download (11.4 GB less those
+already in `assets/source/imagery/sentinel2/`, `IafSetup.sim_s2_cached`) count too: when they would leave less
+than 5 GB free, the page says how much of them is read online during the build instead of kept (docs/imagery.md §2),
+and Next does not wait for that. Python 3 is the first of `python3`, `python` and `py -3` (on
 Windows `python` first) whose `--version` answers "Python 3." (`iaf_setup::python`): Windows' `python3` without Python
 installed is the Store's alias, which only fails.
 
@@ -86,6 +90,21 @@ dependency graph as the original game's setup: independent steps run at once, a 
 | `sim-airbases` | `iaf-sim airbases`: the four bases on the terrain ([airbases.md](airbases.md) §9) | `sim-terrain` |
 | `sim-missions` | `iaf-sim missions`: the training missions on the bases ([training.md](training.md)) | `sim-airbases`, `sim-db` |
 
+The same steps from a terminal, from the repo root (no stamps: each command runs; the terrain still ends at once when
+its `built_from` is unchanged):
+
+```sh
+cargo build --release -p iaf-tools --bin iaf-sim
+target/release/iaf-sim terrain
+python3 -I tools/iaf-2026/fm0.py --out assets/converted/own/resource/md
+target/release/iaf-sim all
+```
+
+The terrain step's progress bar follows the colour branch, the longer of its two (the heights run beside it): the
+Sentinel-2 tiles' download by the bytes still to fetch (at 13.8 MB/s), then the 32 m nodes, the 8 m nodes and the
+Survey's 2 m when chosen, each by its expected seconds (`part_ends` in `sim_terrain.rs`), so the wizard's time left
+holds steady through the step.
+
 Each step keeps a stamp, `assets/converted/iaf-2026/<step>.stamp`: the fingerprint of the code that makes its output
 (`stamp::STEP_SOURCES`), the authored data or script it reads (each file's size and CRC-32) and the
 stamps of the steps it waits for; paths are relative to the repo, so a stamp is the same in every checkout and on every
@@ -97,15 +116,16 @@ units and DEM tiles.
 
 ## 4. Sizes and times
 
-Measured on the developer's Linux laptop (Intel i7-1185G7, 8 threads), 3 November 2026 ([terrain.md](terrain.md) §7).
+Measured on the developer's Linux laptop (Intel i7-1185G7, 8 threads), 3 November 2026 ([terrain.md](terrain.md) §7); the
+Sentinel-2 column 8 November 2026 (§7).
 
 | | Sentinel-2 everywhere | plus the Survey of Israel |
 |---|---|---|
-| download | GLO-30: 627 MB, kept in `assets/source/dem/`; Sentinel-2 is read over the network, not kept | the same; the Survey's sheets must be there already (17 GB) |
-| theatre on disk | about 450 MB (levels 3–11) | 3.57 GB |
+| download, once | GLO-30: 627 MB, kept in `assets/source/dem/`; the Sentinel-2 tiles: 11.4 GB, kept in `assets/source/imagery/sentinel2/` ([terrain.md](terrain.md) §1.1) | the same; the Survey's sheets must be there already (17 GB) |
+| theatre on disk | 469 MB (levels 3–11) | 3.57 GB |
 | the other steps | about 20 MB | about 20 MB |
-| disk use in all | about 1.1 GB | about 4.2 GB |
-| time | about 26 min (DEM 2 min, Sentinel-2 21 min, the coarser levels 3 min; inferred from the parts of the full run) | 1 h 42 min |
+| disk use in all | about 12.5 GB | about 15.6 GB |
+| time | the first run about 17 min: the tiles' download about 14 min (11.4 GB at 13.8 MB/s), Sentinel-2 at 32 m and 8 m about 2 min, the coarser levels about 1 min, the DEM's 2 min beside them; a later run a few minutes (inferred from §7 and [terrain.md](terrain.md) §7 until measured) | 1 h 42 min |
 
 The other five steps take seconds together. The first page shows these figures.
 
@@ -123,7 +143,7 @@ The other five steps take seconds together. The first page shows these figures.
   scratch folder.
 - The pictures: `tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=<dir> -- --log-file <log> --path iaf-2026
   --resolution 1100x720 -s ../iaf-2026/tests/_setup_wizard_shot.gd`.
-- A real run, 3 November 2026: §6.
+- A real run, 3 November 2026: §6; a run from nothing, 8 November 2026: §7.
 
 ## 6. A real run
 
@@ -139,7 +159,54 @@ built the terrain before keeps), the Survey choice:
 The M0 probe on that root: 41 PASS, 0 FAIL, the one NEEDS DATA it also prints on the full root (item E1's cockpit
 check). A terrain built from nothing takes the times of §4.
 
-## 7. Open
+## 7. Fresh-root run (2026-11-08)
+
+The path a new Mac user takes ([README](../README.md) "Run it on a Mac"), on this laptop, from a new worktree (its
+first build and first import) whose `assets/` was an empty folder with only `source/dem/` linked in (the GLO-30
+tiles: their 2 min download skipped), Sentinel-2 everywhere.
+
+| step | time |
+|---|---|
+| `cargo build --release -p iaf-godot`, from nothing (the first part of `./iaf2026-setup`) | 6 min 32 s |
+| Godot's first import of `iaf-2026/` (`tools/godot_import.sh`) | 12 s |
+| the wizard's Install, all six steps (driven headless: Next, Next, Install) | 14 min 8 s |
+| … of which `sim-terrain`: heights 15 s, Sentinel-2 at 32 m 3 min 11 s, at 8 m 9 min 17 s, the coarser levels 1 min | 13 min 45 s |
+| … and `sim-db`, `sim-fm`, `sim-own` (beside the terrain), then `sim-airbases`, `sim-missions` | seconds |
+| the wizard again: all six up to date | 2 s |
+| the same steps from a terminal (§3): the terrain up to date, the rest rebuilt | 16 s |
+
+This run read Sentinel-2 online, tile by tile as the nodes needed it: the machine's network traffic during the
+Install was 8.3 GB (the laptop's whole traffic). Setup has since kept the tiles (main d7cf6757): the 21 tiles over the
+theatre, 11.4 GB, are downloaded once into `assets/source/imagery/sentinel2/`, and a run with all of them there uses
+no network ([terrain.md](terrain.md) §1.1). The root then held the theatre (469 MB) and the sim's own files (8 MB).
+
+On that root:
+
+| run | result |
+|---|---|
+| the M0 probe | 41 PASS, 0 FAIL, the one NEEDS DATA of item E1 (no 2D panel in flight) |
+| `iaf-2026/tests/test_front_end.gd` (Home to a mission, a `--mission` flight to its debrief) | 126 PASS, `RESULT PASS` |
+| `iaf-2026/tests/test_mvp.gd` (both missions for the three jets, to their debriefs) | 57 PASS, `RESULT PASS`, 3 min 39 s |
+| `./iaf2026` (Home) and `./iaf2026 -- --mission 2011` and `2012`, real render, 75 s each | the screen and both missions start; no script error |
+
+What a fresh machine hit, and what was fixed on branch `wt/iaf-2026-freshroot`:
+
+- The wizard's time left jumped (2 min, then 38 min) because the terrain's progress restarted at each part: one bar
+  over the parts now, each part by its expected seconds, the tiles' download by its bytes (§3).
+- The scripted way named `iaf-sim terrain` and `iaf-sim all` only; the flight data (`fm0.py`) is a step of its own (§3).
+- §4 and the first page said 26 min and 450 MB for Sentinel-2 everywhere: measured 16 min (with the DEM download)
+  and 469 MB.
+- The first page's Download named the heights only: it names the Sentinel-2 tiles' one download too (11.4 GB),
+  and the disk use counts them. In Hebrew a size in a sentence showed its unit first ("MB 627"): each size is now one
+  left-to-right piece.
+- `./iaf2026` looked for the sim's data under `assets/` only, not under `IAF_ASSETS_DIR` as the game does.
+- macOS: Homebrew's rustup puts `cargo` in `opt/rustup/bin`, off the PATH; the launchers add it (§1).
+
+Each flight on that root also logged two errors, `converted/fonts/hud.fnt` and `converted/cockpits/f16/cockpit.json`
+not found: the shared HUD and 2D cockpit looked for the original game's converted files. Item
+[A4](plan.md#a4-the-gate), the gate, has since closed both (the sim's own HUD font and cockpit data).
+
+## 8. Open
 
 - Switching from the Survey choice back to Sentinel-2 everywhere leaves the Survey's 2 m tiles in the theatre (the
   terrain step writes the tiles it makes and does not delete others).

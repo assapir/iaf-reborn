@@ -17,6 +17,47 @@ IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-2026 -s 
 On Windows: `.\iaf2026-setup.ps1` and `.\iaf2026.ps1`. The launchers are named without the dash because a file
 cannot share the `iaf-2026/` folder's name.
 
+## Run it on a Mac
+1. Get the code: `git pull` in your clone (or `git clone` the repo).
+2. Install the tools with Homebrew, once:
+
+   ```sh
+   brew install rustup godot gdal python
+   "$(brew --prefix rustup)/bin/rustup" default stable
+   ```
+
+3. From the repo root:
+
+   ```sh
+   ./iaf2026-setup               # the setup wizard: builds the sim's data into assets/
+   ./iaf2026 [-- --mission 2012] # Modern IAF: the front end; --mission flies one mission, then its debrief
+   ```
+
+   The wizard's window opens after the build. Choose the language, then Next, Next, Install, and wait for Done.
+
+What setup downloads, once (a later run reuses the files):
+
+| what | size | kept in |
+|---|---|---|
+| the Copernicus GLO-30 heights | 0.6 GB | `assets/source/dem/` |
+| ESA WorldCover's Sentinel-2 colour tiles | 11.4 GB | `assets/source/imagery/sentinel2/` |
+
+To skip both downloads, copy `assets/source/dem/` and `assets/source/imagery/sentinel2/` from a computer that ran
+`./iaf2026-setup` into the same places in your clone. With every tile there, setup uses no network. The original
+game's setup writes no `dem/` folder, and its `sentinel2/` may hold only some of the 21 tiles; setup downloads the
+missing ones.
+
+How long each step takes on the developer's Linux laptop (8 threads), measured 8 November 2026 ([setup.md](docs/setup.md)
+§7); the Install's times with the tile cache are inferred until measured:
+
+| step | time |
+|---|---|
+| the first build of the extension (inside `./iaf2026-setup`) | 6.5 min |
+| Godot's first import | 12 s |
+| the wizard's Install, the first time | about 17 min: the downloads about 14 min (at 14 MB/s), the building about 3 min (inferred) |
+| the wizard's Install again | a few minutes, no download (inferred) |
+| a later `./iaf2026` (build up to date) | seconds |
+
 The M0 probe (`iaf-2026/tests/test_m0_boot.gd`) prints a `PASS`, `FAIL` or `NEEDS DATA` line per check:
 
 - the sim reads no install (`Settings.install_dir()` does not exist) and reads its own data from

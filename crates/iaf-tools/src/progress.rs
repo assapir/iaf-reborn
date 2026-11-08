@@ -29,6 +29,25 @@ impl Progress for Stdout {
     }
 }
 
+/// A part of a longer piece of work: its fractions 0..1 become `from..to` of the whole; the lines pass through.
+pub struct Part<'a> {
+    pub pr: &'a dyn Progress,
+    pub from: f32,
+    pub to: f32,
+}
+
+impl Progress for Part<'_> {
+    fn log(&self, line: &str) {
+        self.pr.log(line);
+    }
+    fn warn(&self, line: &str) {
+        self.pr.warn(line);
+    }
+    fn fraction(&self, f: f32) {
+        self.pr.fraction(self.from + (self.to - self.from) * f);
+    }
+}
+
 /// `p.log(&format!(…))`.
 #[macro_export]
 macro_rules! log {

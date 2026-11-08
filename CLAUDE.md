@@ -18,7 +18,7 @@ tools/setup-cli.sh [--patch v1.1.exe] "/path/to/Jane's IAF.iso"   # one-time: ex
 ./iafjets [-- --mission 311]                                  # builds the iaf-godot extension (release) and starts the game
 ./mission-editor                                              # the mission editor (docs/mission-editor.md), same build as ./iafjets
 ./iaf2026-setup                                               # Modern IAF's setup wizard (iaf-2026/docs/setup.md): its data into assets/
-./iaf2026 [-- --mission 2012]                                 # Modern IAF (iaf-2026/README.md); the M0 probe (or one mission) until its front end (E2)
+./iaf2026 [-- --mission 2012]                                 # Modern IAF: the front end; --mission flies one mission, then its debrief
 cargo test -q --workspace                                     # Rust tests (data/python3-dependent ones skip with a message)
 cargo test -q -p iaf-flight --test validation <name>          # one Rust test
 tools/test.sh                                                 # everything: cargo tests, tests/godot + iaf-2026/tests headless, gdparse
