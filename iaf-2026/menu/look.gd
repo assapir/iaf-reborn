@@ -128,6 +128,9 @@ static func make() -> Theme:
 	t.set_stylebox("hover", "OptionButton", box(Color("323741"), EDGE, 1, 5, Vector2(22, 10)))
 	t.set_stylebox("focus", "OptionButton", box(Color(0, 0, 0, 0), ACCENT, 2, 5, Vector2(22, 10)))
 	t.set_stylebox("pressed", "OptionButton", box(Color("323741"), ACCENT, 1, 5, Vector2(22, 10)))
+	# Right to left (Hebrew) the dropdown draws its *_mirrored boxes: the same ones, or Godot's default plain box shows.
+	for k in ["normal", "hover", "pressed"]:
+		t.set_stylebox(k + "_mirrored", "OptionButton", t.get_stylebox(k, "OptionButton"))
 	for k in ["CheckButton", "CheckBox"]:
 		t.set_stylebox("focus", k, box(Color(0, 0, 0, 0), ACCENT, 2, 5, Vector2(6, 4)))
 	# The toggle (on: the knob at the inline end, in the accent) and the radio circles, drawn at the canvas' size.

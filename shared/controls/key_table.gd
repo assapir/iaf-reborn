@@ -135,7 +135,7 @@ func _load(path: String) -> void:
 	if not FileAccess.file_exists(path):
 		push_error("key table missing (%s): run tools/setup-cli.sh" % path)
 		return
-	var d := Settings.load_json(path)
+	var d := Settings.key_table_data(path)
 	if d.is_empty():
 		return
 	records = d.records

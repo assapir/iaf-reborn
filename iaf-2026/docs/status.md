@@ -7,6 +7,15 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   in the sim's band wholly in the game's language, the key hint; the pause menu centred at any size in Hebrew;
   Preferences as sections on their own screens with no aid or realism row and the aids off; Home on every start;
   clickable breadcrumbs ([front-end.md](front-end.md) §1, §8). `test_flight_ui.gd`, `test_front_end.gd`.
+- **Keys and Joystick (P1, 2026-11-08, the Mac run's "keys / joystick mapping"):** Preferences → Devices opens a
+  Keys screen (every command the sim has, by group; click and press to rebind, Cmd on macOS, conflicts with Swap /
+  Use it here, Default, Reset all) and a Joystick screen (the devices, each axis' role with a live bar, Invert and a
+  dead zone, the buttons and hat bound by pressing them, Reset all), in English and Hebrew. One compact store,
+  `user://devices.json`, read, written and merged by Rust (`IafDevices`); the flight reads the merged key table and
+  the axes. The Thrustmaster Hotas X has its own default map (`iaf-2026/data/devices/`), and a joystick connecting no
+  longer asks for the install's `menu/joy` ([front-end.md](front-end.md) §9). On macOS the keys start from the
+  laptop map, no numpad: the rudder on Z / X, the snap views on Alt + 1–9 (§9.1). `test_devices.gd`, the M0 probe
+  with a fake joystick.
 - **The sim's own look (2026-11-08, the Mac run):** the look switches whose 1998 value draws art the sim does not
   have are fixed to ours in `PROFILE`: Detailed airbases (the runways, taxiways and aprons were missing), the
   atmospheric sky, water, night lights, effects, the conformal ladder; the CC0 ground and model textures when setup
@@ -72,6 +81,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   string key had left every weight at the regular).
 
 ## Open
+- **Keys and Joystick's open points** ([front-end.md](front-end.md) §9): one joystick flies (the first; a separate
+  throttle or pedals as a second device is listed but not read); a joystick plugged in during a flight takes its map's
+  buttons at the next flight or when the Preferences close; the hat's diagonals press two look commands, the last one
+  wins; maps for more sticks than the Hotas X; the Hotas X's button choice is ours, untried on the stick.
 - **The 6-DoF's wave drag is a fit ([C2](plan.md#c2-the-6-dof), the 6-DoF):** fit to each jet's published top speeds, not a sourced table; open: a public
   F-16 drag rise, the high-speed g onset, the take-off roll, the flaps ([flight-model.md](flight-model.md) §9.6).
 - **[E3b](plan.md#e3-the-training-missions)'s open points** ([training.md](training.md) §6): the Hebrew voice (the user), the

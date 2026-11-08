@@ -25,7 +25,7 @@ lights and the lit labels at night); the panel's night art is not used.
 ## 2. The views
 - **Ahead:** the 3D cockpit's wide view (85° across the screen, the head 12° down: the whole front panel in view), zoomed in by + / − and the mouse wheel.
 - **Free look:** the pan keys, the hat and the mouse turn the head, down to 60° (the panel and consoles).
-- **The F-key and Numpad snap views** (F2 back, Numpad 1–9; docs/views.md §2) are head poses: the head turns to the
+- **The F-key and Numpad snap views** (F2 back, Numpad 1–9, Alt + 1–9 in the laptop map of front-end.md §9.1; docs/views.md §2) are head poses: the head turns to the
   snap's yaw and pitch while the key is held, and the 3D cockpit turns with it. No 2D panel pans.
 
 ## 3. The profile

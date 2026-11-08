@@ -40,7 +40,14 @@ const POV := {
 	31500: [315, 7],
 	0xffff: [-1, 5]
 }
-const JOY_DIR := "resource/menu/joy"
+## Ours (Modern IAF's Joystick screen, iaf-2026/docs/front-end.md §9): per axis of Settings.joy_axes (x, y, throttle,
+## rudder, rocker) [invert, dead zone]; empty (the original game) = no invert and the dead zones above. A joy_axes entry
+## of −1 is no axis: it reads the centre and its Devices choice does nothing.
+var tune: Array = []
+## Ours (the sim): the hat's directions are buttons HAT_BUTTON + 0..3 (up, right, down, left) for the key table, and
+## send no POV snap views.
+var hat_buttons := false
+const HAT_BUTTON := 32
 ## Ours: an unknown stick (no SDL gamepad mapping) reports its buttons by raw index and its hat as the D-pad
 ## buttons 11..14, so a 12th..15th button is the same event as a hat direction. Such a stick gets a mapping:
 ## buttons 0..10 keep their index, 11..16 move to 15..20 (misc1, paddles, touchpad), the hat stays on 11..14;
@@ -101,15 +108,52 @@ func device() -> int:
 ## The Devices page choices act only with a joystick (this+0x18..0x20 "device has the axis" &&
 ## this+0x24..0x2c the choice, FUN_004df4e0). Godot cannot tell a missing axis: a device has all four.
 func stick_used() -> bool:
-	return device() >= 0 and Settings.flight_controls == 1
+	return device() >= 0 and Settings.flight_controls == 1 and (_axis_no(0) >= 0 or _axis_no(1) >= 0)
+
+
+## Stick axis k (0 x, 1 y) driven by the joystick; the original = stick_used().
+func stick_axis_used(k: int) -> bool:
+	return stick_used() and _axis_no(k) >= 0
+
+
+## Ours (Modern IAF's role None, iaf-2026/docs/front-end.md §9.2): one stick axis on the joystick, the other on its
+## keys. Never in the original game (its joy_axes always name an axis).
+func stick_mixed() -> bool:
+	return stick_used() and (_axis_no(0) < 0 or _axis_no(1) < 0)
 
 
 func throttle_used() -> bool:
-	return device() >= 0 and Settings.throttle == 1
+	return device() >= 0 and Settings.throttle == 1 and _axis_no(2) >= 0
 
 
 func rudder_used() -> bool:
-	return device() >= 0 and Settings.rudder == 1
+	return device() >= 0 and Settings.rudder == 1 and _axis_no(3) >= 0
+
+
+## The Godot axis of Settings.joy_axes entry r (x, y, throttle, rudder, rocker), −1 = none.
+func _axis_no(r: int) -> int:
+	if r == 4:
+		return Settings.joy_axes[4] if Settings.joy_axes.size() > 4 else ROCKER_AXIS
+	return int(Settings.joy_axes[r]) if Settings.joy_axes.size() >= 4 else r
+
+
+## Axis r of device d (−1..1), inverted when `tune` says; the centre when r has no axis.
+func _read(d: int, r: int) -> float:
+	var i := _axis_no(r)
+	if i < 0:
+		return 0.0
+	var v := axis(d, i)
+	return -v if tune.size() > r and tune[r][0] else v
+
+
+## Axis r's dead zone: `tune`'s, else `dz` (the original's).
+func _dz(r: int, dz: float) -> float:
+	return float(tune[r][1]) if tune.size() > r else dz
+
+
+## A value after invert and dead zone as the poller shapes it (the Joystick screen's live bars).
+static func tuned(v: float, invert: bool, dz: float) -> float:
+	return _dead(-v if invert else v, dz)
 
 
 ## FUN_004e0f40: the throttle axis (0..100) while used, else −1 (the autopilot's re-sync, docs/autopilot.md).
@@ -121,10 +165,9 @@ func throttle_axis() -> int:
 ## (half rocker = a quarter of the rate) and full rocker at the full rate.
 func rocker() -> float:
 	var d := device()
-	if not has_fifth_axis():
+	if not has_fifth_axis() or _axis_no(4) < 0:
 		return 0.0
-	var i: int = Settings.joy_axes[4] if Settings.joy_axes.size() > 4 else ROCKER_AXIS
-	var v := axis(d, i)
+	var v := _read(d, 4)
 	if not Settings.rocker_trim:
 		return 0.0
 	if not rocker_moved:
@@ -133,7 +176,7 @@ func rocker() -> float:
 		if v == rocker_first:
 			return 0.0
 		rocker_moved = true
-	var r := _dead(v, ROCKER_DEAD_ZONE)
+	var r := _dead(v, _dz(4, ROCKER_DEAD_ZONE))
 	return r * absf(r)
 
 
@@ -147,8 +190,10 @@ func has_fifth_axis() -> bool:
 ## RPM ± 5 and the throttle presets (5, 6, 9) with the throttle, the rudder keys (10) with the rudder.
 func drops_key(id: int) -> bool:
 	match id:
-		2, 3:
-			return stick_used()
+		2:
+			return stick_axis_used(0)
+		3:
+			return stick_axis_used(1)
 		5, 6, 9:
 			return throttle_used()
 		10:
@@ -183,7 +228,7 @@ func _process(_delta: float) -> void:
 ## POV, not buttons, as DirectInput reports it).
 func physical_button(b: int) -> int:
 	if b >= JOY_BUTTON_DPAD_UP and b <= JOY_BUTTON_DPAD_RIGHT:
-		return -1
+		return HAT_BUTTON + HAT.find(b) if hat_buttons else -1
 	if remapped and b >= JOY_BUTTON_MISC1 and b <= JOY_BUTTON_TOUCHPAD:
 		return b - 4
 	return b
@@ -201,8 +246,7 @@ func raw_throttle() -> int:
 	var d := device()
 	if d < 0:
 		return -1
-	var ax: Array = Settings.joy_axes if Settings.joy_axes.size() >= 4 else [0, 1, 2, 3]
-	return 100 - _lin(axis(d, ax[2]), 100)
+	return 100 - _lin(_read(d, 2), 100)
 
 
 ## Ours (Extras "Throttle detent = MIL", off = −1): the lever's detent `d` maps to MIL (74, the "6" key) — the
@@ -226,32 +270,31 @@ func poll() -> Array:
 	var d := device()
 	if d < 0:
 		return []
-	var ax: Array = Settings.joy_axes if Settings.joy_axes.size() >= 4 else [0, 1, 2, 3]
 	var out := []
 	var soft: bool = Settings.stick_response == "soft"
 	if Settings.flight_controls == 1:
 		# MulDiv(lX, 200, max − min) − 100 and MulDiv(lY, −200, max − min) + 100 (@4df6b8, 4df770).
-		var x := _lin(stick_curve(axis(d, ax[0]), soft), 200) - 100
+		var x := _lin(stick_curve(_read(d, 0), soft, _dz(0, -1.0)), 200) - 100
 		if x != last_x:
 			last_x = x
 			out.append([1, last_x, last_y])
-		var y := 100 - _lin(stick_curve(axis(d, ax[1]), soft), 200)
+		var y := 100 - _lin(stick_curve(_read(d, 1), soft, _dz(1, -1.0)), 200)
 		if y != last_y:
 			last_y = y
 			out.append([1, last_x, last_y])
-	if Settings.throttle == 1:
+	if throttle_used():
 		# MulDiv(lZ, −100, max − min) + 100 (@4df825): lever forward (axis −1) = 100.
 		var t := detent_map(raw_throttle(), Settings.throttle_detent)
 		if t != last_throttle:
 			last_throttle = t
 			out.append([9, last_throttle, 0])
-	if Settings.rudder == 1:
+	if rudder_used():
 		# MulDiv(lRz, 200, max − min) − 100 (@4df8d7).
-		var r := _lin(_dead(axis(d, ax[3]), SOFT_DEAD_ZONE if soft else DEAD_ZONE), 200) - 100
+		var r := _lin(_dead(_read(d, 3), _dz(3, SOFT_DEAD_ZONE if soft else DEAD_ZONE)), 200) - 100
 		if r != last_rudder:
 			last_rudder = r
 			out.append([10, last_rudder, 0])
-	if Settings.flight_controls == 1:
+	if Settings.flight_controls == 1 and not hat_buttons:
 		var pov := _pov(d)
 		if pov != _pov_last:
 			if _pov_sent:
@@ -278,11 +321,12 @@ static func _dead(v: float, dz := DEAD_ZONE) -> float:
 	return 0.0 if a <= dz else signf(v) * (a - dz) / (1.0 - dz)
 
 
-## A stick axis (−1..1) after the dead zone: the original's linear one, or ours soft (SOFT_DEAD_ZONE + expo).
-static func stick_curve(v: float, soft: bool) -> float:
+## A stick axis (−1..1) after the dead zone: the original's linear one, or ours soft (SOFT_DEAD_ZONE + expo); `dz` ≥ 0
+## replaces the dead zone (the Joystick screen's, `tune`).
+static func stick_curve(v: float, soft: bool, dz := -1.0) -> float:
 	if not soft:
-		return _dead(v)
-	var u := _dead(v, SOFT_DEAD_ZONE)
+		return _dead(v, DEAD_ZONE if dz < 0 else dz)
+	var u := _dead(v, SOFT_DEAD_ZONE if dz < 0 else dz)
 	return (1.0 - SOFT_EXPO) * u + SOFT_EXPO * u * u * u
 
 
@@ -342,13 +386,16 @@ func _connected(d: int) -> void:
 		)
 	)
 	_load_joy_map(name)
+	Settings.joystick_connected(name)
 
 
 ## FUN_004e1590 (`<install>\Joy\*.JOY`): the first file whose first line is part of the device's product
 ## name sets the default table's buttons: all none, then line k (0-based after the name) = record n − 1 (n
 ## in 1..117; 0 = no record) on button k.
 func _load_joy_map(name: String) -> void:
-	var dir := Settings.install(JOY_DIR)
+	var dir := Settings.joy_maps_dir()
+	if not DirAccess.dir_exists_absolute(dir):
+		return
 	var files := Array(DirAccess.get_files_at(dir)).filter(func(f): return f.to_lower().ends_with(".joy"))
 	files.sort()
 	for f in files:

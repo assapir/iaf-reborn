@@ -66,6 +66,10 @@ const UI_FONT := "data/fonts/Heebo-VariableFont_wght.ttf"
 const HUD_FONT := UI_FONT
 ## The only parts of assets/converted the sim reads (converted()): its compiled data, its terrain, its missions and
 ## object database, and objects.json (its "sim.bdb" key; iaf-2026/README.md "How the sim reads its data").
+## The joystick's axis roles in the order of joy_axes (x, y, throttle, rudder, the rocker; iaf_tools::devices ROLES).
+const JOY_ROLES := ["roll", "pitch", "throttle", "rudder", "trim"]
+## The known joysticks' default maps (iaf-2026/docs/front-end.md §9.3).
+const DEVICE_MAPS := "data/devices"
 const OWN_CONVERTED := ["own/", "terrain/israel/", "iaf-2026/", "missions/sim.bdb.json", "objects/objects.json"]
 
 ## The original game's paths refused since the start (converted(), install()): the M0 probe fails on any.
@@ -81,11 +85,17 @@ var sim_jet := ""
 var flown_debrief := ""
 var _fonts := {}  # display_font's, by style
 var _keys: Array = []  # has_setting's
+## The player's keys, buttons and axes (devices_file); a test sets its own.
+var devices_path := ""
+## The laptop key map (front-end.md §9.1: no numpad keys), picked on a platform without a numpad: macOS. A Mac with a
+## full keyboard gets it too; its player can put any command on the numpad on the Keys screen. A test sets it.
+var laptop_keys := OS.get_name() == "macOS"
 
 
 func _ready() -> void:
 	super()
 	_apply_profile()
+	apply_devices.call_deferred()  # after the Joystick autoload is in the tree
 	ThemeDB.get_default_theme().default_font = display_font("ui")  # every Control's text unless it sets its own
 
 
@@ -236,7 +246,71 @@ func theatre_dir() -> String:
 
 
 func keys_file() -> String:
-	return own_dir().path_join("keys.json")
+	var laptop := own_dir().path_join("keys_laptop.json")
+	return laptop if laptop_keys and FileAccess.file_exists(laptop) else own_dir().path_join("keys.json")
+
+
+## The player's device store (iaf_tools::devices, front-end.md §9): user://devices.json; in isolated runs (tests) a
+## temporary file of this process, so no run reads another's, or `devices_path` when set.
+func devices_file() -> String:
+	if devices_path != "":
+		return devices_path
+	if isolated():
+		return OS.get_temp_dir().path_join("iaf2026-devices-%d.json" % OS.get_process_id())
+	return ProjectSettings.globalize_path("user://devices.json")
+
+
+## The connected joystick's device map (DEVICE_MAPS), "" = none.
+func devices_map() -> String:
+	var js := _joystick()
+	if js == null or not ClassDB.class_exists("IafDevices") or js.device() < 0:
+		return ""
+	return IafDevices.find_map(joy_maps_dir(), Input.get_joy_name(js.device()))
+
+
+## The key table the flight reads: the sim's own with the device map's buttons and the player's keys and buttons.
+func key_table_data(path: String) -> Dictionary:
+	if not ClassDB.class_exists("IafDevices"):
+		return super(path)
+	var d = JSON.parse_string(IafDevices.keys(ProjectSettings.globalize_path(path), devices_file(), devices_map()))
+	return d if d is Dictionary else {}
+
+
+## The sim's own maps (JSON, DEVICE_MAPS): the shared reader finds no .joy there, so it reads no install.
+func joy_maps_dir() -> String:
+	return _sim_file(DEVICE_MAPS)
+
+
+func joystick_connected(_name: String) -> void:
+	apply_devices()
+
+
+## The store's axes to the joystick: joy_axes, the invert and dead zone of each (Joystick.tune), the trim rocker on
+## while the trim role has an axis; the hat as buttons (Joystick.hat_buttons).
+func apply_devices() -> void:
+	var js := _joystick()
+	if js == null or not ClassDB.class_exists("IafDevices"):
+		return
+	var a = JSON.parse_string(IafDevices.axes(devices_file(), devices_map(), stick_response == "soft"))
+	if not a is Dictionary:
+		return
+	joy_axes = []
+	js.tune = []
+	for r in JOY_ROLES:
+		joy_axes.append(int(a[r].axis))
+		js.tune.append([bool(a[r].invert), float(a[r].dead)])
+	rocker_trim = joy_axes[4] >= 0
+	js.hat_buttons = true
+
+
+func save() -> void:
+	apply_devices()  # the dead zones follow Stick response
+	super()
+
+
+func _joystick() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null("Joystick") if tree != null else null
 
 
 ## The flight-model name by type code on the sim's own bd.ibx (IafFlight.fm_type, iaf_flight::fm_name_in: 100 F-16,

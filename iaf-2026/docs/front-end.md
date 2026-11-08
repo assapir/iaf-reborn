@@ -174,3 +174,149 @@ stay the original's (`terrain_view.gd _on_subtitle` hands each line to the fligh
 |---|---|---|
 | the take-off's card | ![The mission card of Take-off from Ramon](pictures/front-end/card_en.webp) | ![The mission card in Hebrew](pictures/front-end/card_he.webp) |
 | the strip and the hint, after a tower call | ![A tower call in the band](pictures/front-end/band_en.webp) | ![A tower call in Hebrew](pictures/front-end/band_he.webp) |
+
+## 9. Keys and Joystick
+
+Preferences → Devices has two rows that open their own screens: **Keys** and **Joystick**. Esc on either goes back to
+the Devices section. Both read and write one file, the device store (§9.4). A change applies at once: the front end's
+next flight reads it, and over a flight the Preferences apply it when they close.
+
+### 9.1 Keys
+
+The screen lists every command of the sim's key table (`iaf-2026/data/keys.json`) that has a `group`, in five groups:
+Flight, Weapons, Sensors and displays, Views, General. The tabs on the inline-start side scroll to each group. A row
+shows the command and its key; on macOS a key with Ctrl shows as Cmd (`key_table.gd`, docs/controls.md §2). The
+table's records without a group are the commands the sim lacks (the chat, the wingman orders, the debug keys, the
+screen capture): no row.
+
+- **Rebind:** click a row, and its key reads "Press a key…". The next key with its one modifier (Ctrl / Cmd, Shift,
+  Alt) becomes the command's key. Esc cancels; a lone modifier waits for the key.
+- **Conflict:** a key another command already has opens a line under the row: "K already runs “Pitch up”." Its
+  choices: **Swap** (the other command takes this one's old key), **Use it here** (the other command has no key then),
+  **Cancel**. The check covers every record of the table, listed or not, since the flight runs the first record bound
+  to a key.
+- **Default** shows on a changed row and puts that command back to the table's key. **Reset all** in the bottom bar
+  puts every key back.
+
+**The laptop map.** A laptop has no numpad, so on macOS the sim starts from the laptop map: the same table with the
+keys of `keys.json`'s `laptop` column (compiled into `converted/own/keys_laptop.json`; `Settings.laptop_keys`). A Mac
+with a full keyboard gets it too; Rebind puts any command back on the numpad. Default and Reset all go back to the
+laptop map there. The commands it moves:
+
+| Command | Key | Laptop map |
+|---|---|---|
+| Rudder left / right | Numpad 0 / Decimal | Z / X |
+| Weapon page full screen | Z | Shift + Z |
+| Extinguish engine fire | X | Shift + X |
+| Look back-left, back, back-right | Numpad 1, 2, 3 | Alt + 1, 2, 3 |
+| Look left, forward, right | Numpad 4, 5, 6 | Alt + 4, 5, 6 |
+| Look front-left, up, front-right | Numpad 7, 8, 9 | Alt + 7, 8, 9 |
+| Free look (numpad) | Shift + Numpad 8, 2, 4, 6 | none: Shift + the arrows |
+| Zoom (numpad) | Numpad − / + | none: − / = |
+
+The key table has no trim command (the trim is the joystick's rocker), so trim needs no laptop key.
+
+| | English | Hebrew |
+|---|---|---|
+| Pitch up rebound to K | ![The Keys screen: the Flight group, Pitch up on K with its Default](pictures/front-end/keys_en.jpg) | ![The Keys screen in Hebrew, mirrored](pictures/front-end/keys_he.jpg) |
+| K pressed for Pitch down | ![The conflict line under Pitch down: Swap, Use it here, Cancel](pictures/front-end/keys_conflict_en.jpg) | ![The conflict line in Hebrew](pictures/front-end/keys_conflict_he.jpg) |
+
+### 9.2 Joystick
+
+- **Devices:** every connected joystick by name. The first one flies the jet ("Flies the jet"); the others are listed
+  only. Without one the screen says so.
+- **Axes:** the six axes Godot reports (fewer when the device's USB descriptor says so, `Joystick.axis_count`). Each
+  row has a live bar, the axis' role, Invert and a dead zone (0–50 %). The roles: Roll, Pitch, Throttle, Rudder, Roll
+  trim (the throttle rocker, docs/controls.md §5.2), None. A role sits on one axis: giving it to another axis leaves
+  the old one with None. The bar shows the axis after its role's invert and dead zone, so the dead zone is visible
+  as the bar's still centre. The throttle has no centre and no dead zone.
+- **Buttons:** the Keys screen's list with the joystick's buttons. Click a row, then press a button or a hat
+  direction. Conflicts, Default and Reset all work as on the Keys screen. The hat's four directions count as buttons
+  (Hat up, Hat right, Hat down, Hat left); by default they are the four look keys (up, right, back, left).
+- **Reset all** puts the buttons and the axes back to the defaults.
+
+The Joystick screen has no rows for the Devices group's choices (Flight controls, Rudder, Throttle, Stick response):
+they stay in the Preferences. A role with no axis leaves its keys working, as Keyboard does: with Roll on None and
+Pitch on an axis, the roll keys roll the jet while the stick pitches it (`Joystick.stick_mixed`).
+
+| English | Hebrew |
+|---|---|
+| ![The Joystick screen: the Hotas X flies the jet, six axes with their bars, roles, Invert and dead zones](pictures/front-end/joystick_en.jpg) | ![The Joystick screen in Hebrew: mirrored, the bars still fill left to right](pictures/front-end/joystick_he.jpg) |
+
+In Hebrew the screens are mirrored; the key names and the device name run left to right, and the axis bars keep the
+stick's own direction (right is right). The dropdowns draw the same box both ways: right to left Godot draws an
+OptionButton's `*_mirrored` boxes, so `look.gd` sets them to the left-to-right ones.
+
+### 9.3 Device maps
+
+A known joystick gets its own defaults from a device map in `iaf-2026/data/devices/` (JSON): `match` (a part of the
+device's name, case ignored), `axes` (role → Godot axis) and `buttons` (key-table record → button, the hat 32–35). The
+map replaces the table's whole button column for that device: a record it leaves out has no button. The first map
+whose `match` is in the name wins (file-name order); a device with no map takes the table's own buttons and axes 0–4.
+
+| file | device | axes | buttons |
+|---|---|---|---|
+| `hotas_x.json` | Thrustmaster T.Flight Hotas X | roll 0, pitch 1, throttle 2, rudder 3 (the twist), roll trim 4 (the rocker, 5-axis mode) | 1 gun, 2 release, 3 next target, 4 flares, 5 chaff, 6 master mode, 7 radar mode, 8 drop lock, 9 gear, 10 flaps, 11 wheel brakes, 12 autopilot; the hat: the look keys |
+
+The Hotas X's axes are the ones docs/controls.md §5.2 found on that stick. The button choice is ours (inferred: the
+trigger fires the gun, the buttons next to it release and pick targets).
+
+### 9.4 The device store
+
+The store is `user://devices.json`, written compact and only with what differs from the defaults:
+
+```json
+{"keys":{"24":37},"buttons":{"64":5},"axes":{"pitch":{"axis":3,"invert":true,"dead":0.1},"rudder":{"axis":-1}}}
+```
+
+- `keys`: record → key, DIK | modifiers << 16 as `key_table.gd` stores it (0 = no key).
+- `buttons`: record → the joystick's 0-based button, 32–35 the hat, −1 = none.
+- `axes`: role (`roll`, `pitch`, `throttle`, `rudder`, `trim`) → `axis` (−1 = none), `invert`, `dead` (0–0.9). An
+  absent field is the default: the device map's axis (else 0–4 in role order), no invert, and the dead zone of
+  `joystick.gd` (25 % on the stick and the rudder, 5 % with Stick response Soft centre, 10 % on the rocker). A dead
+  zone outside 0–0.9 in a hand-edited file reads as its nearest end.
+
+A missing or corrupt file reads as an empty store: every default.
+
+Tests and pictures use a temporary file (`Settings.devices_path`, or in isolated runs a file of the process in the
+temporary folder, so no run reads another's).
+
+The logic is Rust's: `iaf_tools::devices` (unit tests in the same file) behind `IafDevices`
+(`crates/iaf-godot/src/devices.rs`):
+
+| function | does |
+|---|---|
+| `find_map(dir, name)` | the device map for a joystick's name, "" = none |
+| `keys(table, store, map)` | the key table with the map's buttons and the store's keys and buttons in it, each record with `default_key` and `default_joystick` |
+| `conflict(table, store, map, record, column, value)` | the other record bound to `value` in `column` ("key" / "button"), −1 = none |
+| `bind(table, store, map, record, column, value)` | binds and writes; the entry goes when it is the default again |
+| `reset(store, record, column)` | one record (−1: every record) back to its default |
+| `reset_joystick(store)` | every button and axis back |
+| `axes(store, map, soft)` | every role's axis, invert and dead zone |
+| `set_axis(store, map, role, axis, invert, dead, soft)` | sets a role; a role on that axis gives it up |
+
+How the flight reads it:
+
+- **Keys and buttons:** the flight's key table is `KeyTable.load_table()`, whose contents come from
+  `Settings.key_table_data()`. The original game returns the file as it is; the sim returns `IafDevices.keys` over
+  its own table, the connected joystick's map and the store. The flight loads it at its start and again when the
+  Preferences close over it (`terrain_view.gd _apply_preferences`).
+- **Axes:** `Settings.apply_devices()` (at start, on every Preferences save, when a joystick connects) sets
+  `Settings.joy_axes` to the roles' axes, `Joystick.tune` to their invert and dead zone, Roll trim on while the trim
+  role has an axis, and `Joystick.hat_buttons` (the hat as buttons 32–35 in place of the original's snap views).
+  `joystick.gd` reads them each poll. The original game leaves `tune` empty and `hat_buttons` off, so its joystick is
+  unchanged (`tests/godot/test_joystick.gd`, `test_controls.gd`, `test_keyboard_stick.gd`).
+- **The maps' folder:** `Settings.joy_maps_dir()`: the original game's `menu/joy` in the install (its `.joy` files),
+  the sim's `iaf-2026/data/devices`, where the shared `.joy` reader finds none and so reads no install. A missing
+  folder is skipped.
+
+### 9.5 Checks
+
+- `iaf-2026/tests/test_devices.gd`: the Devices rows open both screens in English and Hebrew; Pitch up bound to K by a
+  synthetic key reaches the flight's key table; K for Pitch down shows the conflict, Swap trades them; Esc cancels;
+  Default and Reset all; with a fake joystick, axis 4 given the pitch inverted with a 10 % dead zone drives the
+  poller's stick y (+100 at +1, 0 inside the dead zone, +50 at 0.55); a button and the hat bound by pressing them;
+  the Hotas X's map; with `Settings.laptop_keys` on, the laptop map: the rudder on Z / X, no key on two records, no
+  numpad key, a stored key wins over it. `iaf-sim own`'s unit test checks the laptop table compiles the same way.
+- `iaf-2026/tests/test_m0_boot.gd` connects a fake joystick: the probe's gate line stays at 0 refused paths.
+- `iaf-2026/tests/_devices_shot.gd` takes §9's pictures (its header).

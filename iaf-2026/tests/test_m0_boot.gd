@@ -1,8 +1,9 @@
 # The M0 probe (iaf-2026/docs/plan.md, item A1): Modern IAF boots on its own data. The sim reads no install, its
 # profile is fixed, and for each MVP jet (the Sufa at Ramon, the Barak at Ramat David, the F-35I at Nevatim) the
 # flight model starts from converted/own/resource/md, the 3D cockpit is there, the sound, motion and key tables and
-# the mission's bdb hold rows; then the terrain (converted/terrain/israel). A check whose data is not built yet
-# prints NEEDS DATA (the item that builds it in brackets); RESULT PASS only when every check passes.
+# the mission's bdb hold rows; a joystick connecting reads no install; then the terrain (converted/terrain/israel). A
+# check whose data is not built yet prints NEEDS DATA (the item that builds it in brackets); RESULT PASS only when every
+# check passes.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-2026 \
 #     -s ../iaf-2026/tests/test_m0_boot.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -45,6 +46,13 @@ func run() -> void:
 	check(s.own_dir() == a.path_join("converted/own"), "own data: %s" % s.own_dir())
 	for key in s.PROFILE:
 		check(s.get(key) == s.PROFILE[key], "profile: %s = %s" % [key, s.get(key)])
+	# A joystick connects (a fake one): its maps come from the sim's data/devices, never the install's menu/joy.
+	var js: Node = root.get_node("Joystick")
+	js.fake_devices = [0]
+	await frames(2)
+	check(js.device() == 0, "a joystick connected (fake device 0)")
+	js.fake_devices = []
+	await frames(2)
 	mr = load("res://shared/mission/mission_runtime.gd")
 	var keys = load("res://shared/controls/key_table.gd").load_table()
 	check(keys.records.size() > 0, "key table %s: %d records" % [s.keys_file(), keys.records.size()])

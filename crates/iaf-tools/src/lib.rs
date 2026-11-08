@@ -4,6 +4,7 @@ pub mod airbases;
 pub mod aircraft;
 pub mod bc1;
 pub mod convert;
+pub mod devices;
 pub mod exe;
 pub mod extract;
 pub mod f15;

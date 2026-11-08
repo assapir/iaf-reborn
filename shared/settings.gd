@@ -968,6 +968,22 @@ func keys_file() -> String:
 	return converted("keys.json")
 
 
+## The key table's contents (key_table.gd _load): the file at `path` as it is. Modern IAF merges the player's keys and
+## buttons into it.
+func key_table_data(path: String) -> Dictionary:
+	return load_json(path)
+
+
+## The folder of the joystick maps (joystick.gd _load_joy_map, the original's menu/joy/*.joy).
+func joy_maps_dir() -> String:
+	return install("resource/menu/joy")
+
+
+## A joystick named `name` connected (joystick.gd _connected): nothing here; Modern IAF picks its device map.
+func joystick_connected(_name: String) -> void:
+	pass
+
+
 ## txt/msgs.trx lines for the current language. In Hebrew, a line the Hebrew pack leaves in English (the
 ## preflight.us menu pack keeps all of msgs.trx English) takes our Hebrew (iaf-reborn/menu/strings_he.json "msgs").
 func msgs() -> PackedStringArray:

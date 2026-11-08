@@ -36,6 +36,8 @@ pub const MISSIONS_DIR: &str = "converted/iaf-2026/missions";
 pub const SOUNDS_DIR: &str = "converted/own/resource/soundfiles";
 /// The sim's key table (the shape of `iaf-convert keys`' `converted/keys.json`, read by `key_table.gd`).
 pub const KEYS_FILE: &str = "converted/own/keys.json";
+/// The same table with the laptop map's keys (`keys.json`'s `laptop` column; iaf-2026/docs/front-end.md §9.1).
+pub const KEYS_LAPTOP_FILE: &str = "converted/own/keys_laptop.json";
 /// The sim's aircraft descriptors (aircraft_model.gd through `Settings.planes_folder()`): `<plane>/aircraft.json` and the
 /// index `aircraft.json`, under the assets root.
 pub const PLANES_DIR: &str = "converted/own/planes";
@@ -916,14 +918,16 @@ const KEY_CODES: &[(&str, u32)] = &[
 /// The modifier bits of a key (docs/controls.md §1) and the prefix the Controls page shows.
 const MODIFIERS: &[(u32, &str)] = &[(0x11, "Ctrl + "), (0x22, "Shift + "), (0x44, "Alt + "), (0x88, "Win + ")];
 
-/// The readable key table (`keys.json`: label {en, he}, key "Ctrl + Q", joystick, press, release, shown) in the
+/// The readable key table (`keys.json`: label {en, he}, key "Ctrl + Q", joystick, press, release, shown, group) in the
 /// shape of `iaf-convert keys`' output (records with dik / modifiers / label / label_he, key_names, modifiers,
-/// button_format), so `key_table.gd` reads it unchanged.
-pub fn compile_keys(src: &Value) -> Result<Value> {
+/// button_format), so `key_table.gd` reads it unchanged; `laptop`: a record's `laptop` key, when it has one, in place
+/// of its `key`.
+pub fn compile_keys(src: &Value, laptop: bool) -> Result<Value> {
     let (mut records, mut bound) = (vec![], HashSet::new());
     for (i, r) in src["records"].as_array().context("keys: no \"records\"")?.iter().enumerate() {
         ensure!(r["index"] == i, "keys: record {i} holds index {}", r["index"]);
-        let mut key = r["key"].as_str().with_context(|| format!("keys {i}: \"key\" must be a string"))?;
+        let col = if laptop && r.get("laptop").is_some() { "laptop" } else { "key" };
+        let mut key = r[col].as_str().with_context(|| format!("keys {i}: \"{col}\" must be a string"))?;
         let mut modifiers = 0;
         if let Some(&(bits, prefix)) = MODIFIERS.iter().find(|m| key.starts_with(m.1)) {
             (modifiers, key) = (bits, &key[prefix.len()..]);
@@ -945,7 +949,7 @@ pub fn compile_keys(src: &Value) -> Result<Value> {
             let a = r[k].as_array().filter(|a| a.len() == 3 && a.iter().all(Value::is_i64));
             Ok(a.with_context(|| format!("keys {i}: \"{k}\" must be three whole numbers"))?.clone().into())
         };
-        records.push(json!({
+        let mut rec = json!({
             "index": i,
             "label": label("en")?,
             "label_he": label("he")?,
@@ -955,8 +959,13 @@ pub fn compile_keys(src: &Value) -> Result<Value> {
             "modifiers": modifiers,
             "joystick": r["joystick"].as_i64().with_context(|| format!("keys {i}: \"joystick\""))?,
             "shown": shown,
-        }));
-        ensure!(dik == 0 || bound.insert((dik, modifiers)), "keys {i}: \"{}\" is bound twice", r["key"]);
+        });
+        // The Keys screen's part (iaf-2026/docs/front-end.md §9); a record without one is not listed there.
+        if let Some(g) = r.get("group") {
+            rec["group"] = g.as_str().with_context(|| format!("keys {i}: \"group\" must be a string"))?.into();
+        }
+        records.push(rec);
+        ensure!(dik == 0 || bound.insert((dik, modifiers)), "keys {i}: \"{}\" is bound twice", r[col]);
     }
     let names: Map<String, Value> = KEY_CODES.iter().map(|&(n, c)| (c.to_string(), n.into())).collect();
     let modifiers: Vec<Value> =
@@ -1006,7 +1015,7 @@ pub fn compile_radio(voices: &Value) -> Result<Radio> {
 
 /// `iaf-sim own`: `<data>/sounds` → `<assets>/SOUNDS_DIR`: `soundprop.trx`, the radio's phrase files, and every clip
 /// they name or the shared code opens by name (soundprop.json `by_name`), each checked once; any other file in that
-/// folder is removed (`sound_table.gd` lists the whole folder). `<data>/keys.json` → `<assets>/KEYS_FILE`. Every
+/// folder is removed (`sound_table.gd` lists the whole folder). `<data>/keys.json` → `<assets>/KEYS_FILE` and, with its laptop column, `KEYS_LAPTOP_FILE`. Every
 /// `<data>/planes/<jet>/cockpit/` → `<assets>/sim_cockpit::COCKPITS_DIR/<jet>/` (sim_cockpit.rs).
 pub fn own(data: &Path, repo: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     check(cancel)?;
@@ -1044,8 +1053,10 @@ pub fn own(data: &Path, repo: &Path, assets: &Path, pr: &dyn Progress, cancel: &
             std::fs::remove_file(out.join(&name)).with_context(|| out.join(&name).display().to_string())?;
         }
     }
-    let keys = compile_keys(&read(&data.join("keys.json"))?)?;
+    let src = read(&data.join("keys.json"))?;
+    let keys = compile_keys(&src, false)?;
     write(&assets.join(KEYS_FILE), &serde_json::to_string_pretty(&keys)?)?;
+    write(&assets.join(KEYS_LAPTOP_FILE), &serde_json::to_string_pretty(&compile_keys(&src, true)?)?)?;
     planes(repo, assets)?;
     crate::sim_cockpit::cockpits(data, assets, pr, cancel)?;
     log!(
@@ -1568,6 +1579,15 @@ mod tests {
         assert_eq!((recs[115]["label"].as_str(), recs[116]["label"].as_str()), (Some(""), Some("")));
         // Record 1 quits on Ctrl + Q (docs/controls.md §3).
         assert_eq!((recs[1]["dik"].as_u64(), recs[1]["modifiers"].as_u64()), (Some(0x10), Some(0x11)));
+        // The laptop map: the rudder on Z / X (records 37 / 38), no numpad key (front-end.md §9.1).
+        let lap: Value =
+            serde_json::from_str(&std::fs::read_to_string(root.0.join(KEYS_LAPTOP_FILE)).unwrap()).unwrap();
+        let lrecs = lap["records"].as_array().unwrap();
+        assert_eq!((lrecs.len(), lrecs[37]["dik"].as_u64(), lrecs[38]["dik"].as_u64()), (119, Some(0x2c), Some(0x2d)));
+        for r in lrecs {
+            let dik = r["dik"].as_u64().unwrap();
+            assert!(!matches!(dik, 0x37 | 0x47..=0x53 | 0x9c | 0xb5), "{r}");
+        }
     }
 
     /// Two records on one key, or a shown record without a label, are refused.
@@ -1577,11 +1597,17 @@ mod tests {
             json!({"index": i, "label": {"en": en, "he": en}, "key": key, "joystick": -1, "press": [1, 0, 0],
                 "release": [0, 0, 0], "shown": shown})
         };
-        assert!(compile_keys(&json!({"records": [rec(0, "Ctrl + Q", "a", true), rec(1, "Q", "b", true)]})).is_ok());
+        assert!(
+            compile_keys(&json!({"records": [rec(0, "Ctrl + Q", "a", true), rec(1, "Q", "b", true)]}), false).is_ok()
+        );
         let twice = json!({"records": [rec(0, "Ctrl + Q", "a", true), rec(1, "Ctrl + Q", "b", true)]});
-        assert!(compile_keys(&twice).is_err());
-        assert!(compile_keys(&json!({"records": [rec(0, "Q", "", true)]})).is_err());
-        assert!(compile_keys(&json!({"records": [rec(0, "Q", "", false)]})).is_ok());
+        assert!(compile_keys(&twice, false).is_err());
+        assert!(compile_keys(&json!({"records": [rec(0, "Q", "", true)]}), false).is_err());
+        assert!(compile_keys(&json!({"records": [rec(0, "Q", "", false)]}), false).is_ok());
+        // The laptop column is checked the same way: its key may not be another record's.
+        let mut lap = json!({"records": [rec(0, "Numpad 0", "a", true), rec(1, "Z", "b", true)]});
+        lap["records"][0]["laptop"] = "Z".into();
+        assert!(compile_keys(&lap, false).is_ok() && compile_keys(&lap, true).is_err());
     }
 
     /// KEY_CODES holds exactly the scancodes key_table.gd's DIK_TO_KEY can press (a key it cannot press would compile

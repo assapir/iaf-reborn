@@ -22,7 +22,9 @@ here, dated.
 1. The airbase is visible and paved: runways, taxiways and aprons are drawn (the profile forced Detailed airbases off)
    and flagged as paved.
 2. The pilot knows what to do: a mission card with the objective and the keys, key hints, a Keys screen, and
-   "Mission complete" on screen before the debrief.
+   "Mission complete" on screen before the debrief. **Keys and Joystick screens done (2026-11-08, branch
+   wt/iaf-2026-devices):** Preferences → Devices → Keys and Joystick, the store and its merge in Rust
+   ([front-end.md](front-end.md) §8).
 3. A real first mission: the start-up checklist by keys, with its checklist card (F-16 and F-35I).
 4. Honest scoring and a short debrief: a crash or leaving the pavement fails the mission; the debrief shows only the
    mission's goals.

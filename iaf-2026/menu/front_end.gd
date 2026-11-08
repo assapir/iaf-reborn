@@ -10,6 +10,8 @@ const Look := preload("res://menu/look.gd")
 const Fly := preload("res://flight/fly.gd")
 const Wizard := preload("res://setup/wizard.gd")
 const SoundBuses := preload("res://shared/audio/sound_buses.gd")
+const KeysScreen := preload("res://menu/keys_screen.gd")
+const JoystickScreen := preload("res://menu/joystick_screen.gd")
 
 const PHOTOS := "res://data/photos"
 ## The canvas the screens lay out on: the window shows it scaled to its height (Look's sizes are its pixels).
@@ -33,7 +35,8 @@ const PHOTO_CREDITS := {
 }
 ## The Preferences: [group, [[setting, control, choices]]]. Controls: "dropdown" / "radio" ([[label key, value]]; a
 ## label without a string is shown as written), "switch" (choices: [off value, on value], default [false, true]),
-## "slider" (0..1). Realism and aids have no switch (plan.md "physics"; sim_settings.gd PROFILE).
+## "slider" (0..1), "page" (a button that opens that screen: keys_screen → keys). Realism and aids have no switch
+## (plan.md "physics"; sim_settings.gd PROFILE).
 const PREFS := [
 	[
 		"graphics",
@@ -72,6 +75,8 @@ const PREFS := [
 			["rudder", "radio", [["pedals", 1], ["keyboard", 0]]],
 			["throttle", "radio", [["lever", 1], ["keyboard", 0]]],
 			["stick_response", "radio", [["linear", "linear"], ["soft", "soft"]]],
+			["keys_screen", "page", []],
+			["joystick_screen", "page", []],
 		]
 	],
 ]
@@ -81,6 +86,7 @@ const CRUMB_PAGES := {
 	"plane": "plane",
 	"training": "training",
 	"preferences": "prefs",
+	"devices": "prefs_section",  # the Keys and Joystick screens' crumb: their section
 	"pilot_log": "log",
 	"credits": "credits"
 }
@@ -96,6 +102,8 @@ const BACK := {
 	"debrief": "home",
 	"log": "home",
 	"credits": "home",
+	"keys": "prefs_section",
+	"joystick": "prefs_section",
 }
 
 ## Over a flight: terrain_view.gd sets these before adding the overlay ("flytsd": the pause menu, "pref").
@@ -206,7 +214,7 @@ func show_page(p: String) -> void:
 	_focus = null
 	if flight != null:
 		var dim := ColorRect.new()
-		dim.color = Color(Look.BG, 0.94 if p.begins_with("prefs") else 0.7)
+		dim.color = Color(Look.BG, 0.94 if p.begins_with("prefs") or p in ["keys", "joystick"] else 0.7)
 		add_child(dim)
 		dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	else:
@@ -786,6 +794,9 @@ func _pref_row(parent: Control, row: Array) -> void:
 					pct.text = "%d%%" % roundi(x * 100)
 					_set_pref(key, x)
 			)
+		"page":
+			var b := _button(ctl, s("change"), "Secondary", show_page.bind(key.trim_suffix("_screen")))
+			b.name = "Control"
 		"radio":
 			var rv := _vbox(ctl, 4)
 			rv.name = "Control"
@@ -800,6 +811,15 @@ func _pref_row(parent: Control, row: Array) -> void:
 				r.pressed.connect(_set_pref.bind(key, c[1]))
 				rv.add_child(r)
 	_rule(parent, Look.LINE)
+
+
+## Preferences → Devices → Keys and Joystick (iaf-2026/docs/front-end.md §9).
+func _page_keys() -> void:
+	KeysScreen.page(self)
+
+
+func _page_joystick() -> void:
+	JoystickScreen.page(self)
 
 
 func _set_pref(key: String, value: Variant) -> void:
@@ -1164,7 +1184,9 @@ func _unhandled_input(event: InputEvent) -> void:
 ## Esc: the screen before this one; over a flight, back to the flight (the Preferences apply then).
 func back() -> void:
 	if flight != null:
-		if page == "prefs_section":
+		if page in ["keys", "joystick"]:
+			show_page("prefs_section")
+		elif page == "prefs_section":
 			show_page("prefs")
 		elif page == "prefs" and screen != "pref":
 			flight._apply_preferences()

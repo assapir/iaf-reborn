@@ -3287,6 +3287,7 @@ func close_front_end() -> void:
 
 ## Preferences the flight reads while flying (the in-flight page has no Gameplay tab).
 func _apply_preferences() -> void:
+	keys = KeyTable.load_table()  # the Keys / Joystick screens' changes (Modern IAF; the original's table is the same)
 	SoundBuses.apply()
 	apply_render_options()
 	_tod_t = -INF  # the sun, sky and SHADOWS again
@@ -3743,6 +3744,12 @@ func _joy_event(e: Array) -> void:
 	match int(e[0]):
 		1:
 			var v := Vector2(e[1], -e[2]) * 0.01
+			if Joystick.stick_mixed():  # the axis with no role keeps its keys' value
+				var kb: Vector2 = autopilot.kb_stick if autopilot != null else stick
+				if Joystick.stick_axis_used(0):
+					v.y = kb.y
+				else:
+					v.x = kb.x
 			if autopilot == null or autopilot.stick_event(v, false):
 				stick = v
 		9:
@@ -3777,6 +3784,11 @@ func _apply_held(_i: int, cmd: Array) -> void:
 			if autopilot != null:
 				autopilot.rudder_event(rudder)
 			return
+	if int(cmd[0]) in [2, 3] and Joystick.stick_mixed():  # the other axis stays the joystick's
+		if Joystick.stick_axis_used(0):
+			kb.x = Joystick.last_x * 0.01
+		else:
+			kb.y = -Joystick.last_y * 0.01
 	if autopilot == null or autopilot.stick_event(kb):
 		stick = kb
 
