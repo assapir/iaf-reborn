@@ -348,7 +348,7 @@ func _connected(d: int) -> void:
 ## name sets the default table's buttons: all none, then line k (0-based after the name) = record n − 1 (n
 ## in 1..117; 0 = no record) on button k.
 func _load_joy_map(name: String) -> void:
-	var dir := Settings.install_dir().path_join(JOY_DIR)
+	var dir := Settings.install(JOY_DIR)
 	var files := Array(DirAccess.get_files_at(dir)).filter(func(f): return f.to_lower().ends_with(".joy"))
 	files.sort()
 	for f in files:

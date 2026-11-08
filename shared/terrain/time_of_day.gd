@@ -15,7 +15,7 @@ static func _load() -> void:
 	if not _rows.is_empty():
 		return
 	var settings: Node = Engine.get_main_loop().root.get_node("Settings")
-	var path: String = settings.install_dir().path_join(TCS)
+	var path: String = settings.own_dir().path_join(TCS)
 	if not FileAccess.file_exists(path):
 		return
 	for line in FileAccess.get_file_as_string(path).split("\n"):

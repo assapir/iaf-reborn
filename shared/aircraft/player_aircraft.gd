@@ -81,12 +81,13 @@ static func profile(type: int) -> Dictionary:
 	var fm := Settings.fm_section(type)
 	if fm == "":
 		fm = String(AircraftModel.load_descriptor(plane).get("fm_section", "F-16"))
+	var airframe: Dictionary = Settings.airframe(type)
 	return {
 		"type": type,
 		"plane": plane,
 		"fm_section": fm,
 		# Ours (in the repo): the aircraft definition's; the others the converted cockpits.ibx ones.
-		"cockpit_dir": Settings.airframe(type).get("cockpit", "converted/cockpits/" + cockpit_folder(type)),
+		"cockpit_dir": airframe.cockpit if airframe.has("cockpit") else "converted/cockpits/" + cockpit_folder(type),
 		"twin": type in TWIN
 	}
 
@@ -108,7 +109,7 @@ static func plane_for(type: int) -> String:
 ## cockpits.ibx `Cockpit00k = <dir>` for the type's index, lower-cased as converted.
 static func cockpit_folder(type: int) -> String:
 	var k: int = COCKPIT.get(type, 1)
-	var ibx := Settings.load_ibx(Settings.install_dir().path_join("resource/cockpits/cockpits.ibx"))
+	var ibx := Settings.load_ibx(Settings.install("resource/cockpits/cockpits.ibx"))
 	for section in ibx.values():
 		for key in section:
 			if key.to_lower() == "cockpit%03d" % k:

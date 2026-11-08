@@ -1,9 +1,11 @@
-# The gate on converted data (iaf-2026/docs/plan.md, item A4): every script builds its assets/converted paths through
-# Settings.converted(), so the sim's answer (sim_settings.gd) sees each one. The scan reads shared/**/*.gd and
-# iaf-2026/**/*.gd (its tests excepted: they check the files themselves) and fails on a line holding a "converted/"
-# string or an `assets_dir().path_join(` that ALLOWED does not list word for word. The gate itself: the sim lets its
-# own data through, refuses the original's with a path that does not exist and counts it; the original game's answer
-# is assets/converted/<rel> as before.
+# The gates on the original game's data (iaf-2026/docs/plan.md, item A4): every script builds its assets/converted
+# paths through Settings.converted() and its install paths through Settings.install(), so the sim's answers
+# (sim_settings.gd) see each one. The scan reads shared/**/*.gd and iaf-2026/**/*.gd (its tests excepted: they check
+# the files themselves) and fails on a line holding a "converted/" string or an `assets_dir().path_join(` that ALLOWED
+# does not list word for word, and on a line calling install_dir() that INSTALL_ALLOWED does not list. The gates
+# themselves: the sim lets its own converted data through, refuses the original's converted data and every install
+# path with a path that does not exist and counts each; the original game's answers are assets/converted/<rel> and
+# assets/install/<rel> as before.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-2026 \
 #     -s ../iaf-2026/tests/test_converted_gate.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -27,25 +29,40 @@ const ALLOWED := {
 	[
 		'return assets_dir().path_join("iaf-2026-reads-no-install")',
 		'rel = rel.trim_prefix("converted/")',
-		'"Modern IAF reads none of the original\'s converted data: converted/%s asked by %s:%s %s()"',
+		'_refuse("converted/" + rel)',
 		'return "converted/terrain/israel"',
 		'var own_cockpits := "converted/own/cockpits"',
 	],
 	# Cockpit names (assets-relative ids, compared and keyed on); their paths go through converted().
 	"res://shared/cockpit/cockpit.gd": ['const DEFAULT_DIR := "converted/cockpits/f16"'],
 	"res://shared/aircraft/player_aircraft.gd":
-	['"cockpit_dir": Settings.airframe(type).get("cockpit", "converted/cockpits/" + cockpit_folder(type)),'],
+	['"cockpit_dir": airframe.cockpit if airframe.has("cockpit") else "converted/cockpits/" + cockpit_folder(type),'],
 	# They read the folder off a path converted() built; they build none.
 	"res://shared/util/model_detail.gd":
 	['var rel := path.trim_prefix(assets).trim_prefix("/").trim_prefix("converted/")'],
 	"res://shared/util/gltf.gd": ['return path.contains("/converted/models/")'],
 }
+## The lines (stripped) that may call install_dir(), by file: the install gate (install()) and the original's
+## own_dir() in settings.gd, the sim's answers, and a comparison that reads nothing (terrain.gd).
+const INSTALL_ALLOWED := {
+	"res://shared/settings.gd":
+	["func install_dir() -> String:", "return install_dir().path_join(rel)", "return install_dir()"],
+	"res://sim_settings.gd":
+	[
+		"func install_dir() -> String:",
+		'return install_dir().path_join("converted").path_join(rel)',
+		"return install_dir().path_join(rel)",
+	],
+	"res://shared/terrain/terrain.gd": ["if own_frame and Settings.own_dir() == Settings.install_dir():"],
+}
 
 var _literal := RegEx.create_from_string('"[^"\\n]*converted/[^"\\n]*"|assets_dir\\(\\)\\.path_join\\(')
+var _install := RegEx.create_from_string("install_dir\\(\\)")
 
 
 func run() -> void:
 	var leaks := []
+	var install_leaks := []
 	var seen := {}
 	for root in ROOTS:
 		for f in _scripts(root):
@@ -53,20 +70,29 @@ func run() -> void:
 				continue
 			seen[f] = true
 			var allowed: Array = ALLOWED.get(f, [])
+			var install_allowed: Array = INSTALL_ALLOWED.get(f, [])
 			for line in FileAccess.get_file_as_string(f).split("\n"):
 				var code := line.strip_edges()
-				if not code.begins_with("#") and _literal.search(code) != null and not code in allowed:
+				if code.begins_with("#"):
+					continue
+				if _literal.search(code) != null and not code in allowed:
 					leaks.append("%s: %s" % [f, code])
-	for l in leaks:
+				if _install.search(code) != null and not code in install_allowed:
+					install_leaks.append("%s: %s" % [f, code])
+	for l in leaks + install_leaks:
 		print("  leak: " + l)
 	check(seen.size() > 80, "scanned %d scripts (shared/ and the sim's own)" % seen.size())
 	check(leaks.is_empty(), "every converted path goes through Settings.converted() (%d leaks)" % leaks.size())
+	check(
+		install_leaks.is_empty(), "every install path goes through Settings.install() (%d leaks)" % install_leaks.size()
+	)
 
 	var s := settings()
 	var a: String = s.assets_dir()
 	var orig: Node = load("res://shared/settings.gd").new()
 	check(orig.converted("menu/img/back.png") == a.path_join("converted/menu/img/back.png"), "original: menu art")
 	check(orig.converted("converted/cockpits/f16") == a.path_join("converted/cockpits/f16"), "original: a cockpit id")
+	check(orig.install("defcolorset.tcs") == a.path_join("install/defcolorset.tcs"), "original: an install file")
 	orig.free()
 	var before: int = s.rejected.size()
 	for own in [
@@ -82,7 +108,13 @@ func run() -> void:
 	for theirs in ["menu/img/back.png", "missions/default6_1.bdb.json", "cockpits/f16", "objects/pilot/a/a.gltf"]:
 		var p: String = s.converted(theirs)
 		check(not FileAccess.file_exists(p) and not DirAccess.dir_exists_absolute(p), "sim: %s refused" % theirs)
-	check(s.rejected.size() == before + 4, "sim: each refusal counted")
+	for theirs in ["defcolorset.tcs", "resource/menu/joy"]:
+		var p: String = s.install(theirs)
+		check(
+			not FileAccess.file_exists(p) and not DirAccess.dir_exists_absolute(p), "sim: install/%s refused" % theirs
+		)
+	check(s.rejected.size() == before + 6, "sim: each refusal counted")
+	check(s.rejected[before + 4] == "install/defcolorset.tcs", "sim: an install refusal named as install/<rel>")
 	s.rejected.resize(before)
 
 

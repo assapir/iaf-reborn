@@ -844,8 +844,8 @@ func converted(rel: String) -> String:
 	return assets_dir().path_join("converted").path_join(rel.trim_prefix("converted/"))
 
 
-## True where the 1998 game's converted effects art is there to draw (the flares', chaff's, trails' and afterburner's
-## sprites): the original game. IAF 2026 draws them with Img.soft_dot() until its own art comes.
+## True where the 1998 game's effects art is there to draw (the flares', chaff's, trails', afterburner's and gun's
+## muzzle-flash sprites): the original game. IAF 2026 draws them with Img.soft_dot() until its own art comes.
 func original_art() -> bool:
 	return true
 
@@ -878,9 +878,16 @@ func install_dir() -> String:
 	return assets_dir().path_join("install")
 
 
-## The root of the resource layout the flight model, the sounds, the weapons' motion, iaf.ibx and terraintype.dat are
-## read from (resource/md, resource/soundfiles, resource/weaponsmotion…): the install here; IAF 2026's own copy of
-## that layout in its project (iaf-2026/sim_settings.gd).
+## The path of `rel` under the install: every shared reader of the install asks here, so IAF 2026's answer
+## (iaf-2026/sim_settings.gd) refuses it. The original game: assets/install/<rel>.
+func install(rel: String) -> String:
+	return install_dir().path_join(rel)
+
+
+## The root of the resource layout the flight model, the sounds, the weapons' motion, iaf.ibx, terraintype.dat, the
+## time of day's colours (defcolorset.tcs) and the missions' score file are read from (resource/md,
+## resource/soundfiles, resource/weaponsmotion, resource/missions/scores.ibx…): the install here; IAF 2026's own
+## copy of that layout in its project (iaf-2026/sim_settings.gd).
 func own_dir() -> String:
 	return install_dir()
 

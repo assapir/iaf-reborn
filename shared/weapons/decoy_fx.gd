@@ -107,7 +107,7 @@ static func _texture(png: String, original: String) -> Texture2D:
 		return Img.soft_dot()
 	var path := Settings.converted("objects".path_join(png))
 	if not FileAccess.file_exists(path):
-		path = Settings.install_dir().path_join("resource/3dobjects").path_join(original)
+		path = Settings.install("resource/3dobjects".path_join(original))
 	return Img.load_texture(path, true)
 
 

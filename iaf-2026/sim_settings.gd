@@ -35,7 +35,7 @@ const HUD_FONT := UI_FONT
 ## object database, and objects.json (its "sim.bdb" key; iaf-2026/README.md "How the sim reads its data").
 const OWN_CONVERTED := ["own/", "terrain/israel/", "iaf-2026/", "missions/sim.bdb.json", "objects/objects.json"]
 
-## The converted paths refused since the start (converted()): the M0 probe fails on any.
+## The original game's paths refused since the start (converted(), install()): the M0 probe fails on any.
 var rejected: PackedStringArray = []
 
 ## The cockpit dirs' root: under assets/ (relative) or absolute (a test's).
@@ -99,23 +99,37 @@ func install_dir() -> String:
 
 
 ## The gate on the original game's converted data: `rel` under assets/converted when it is the sim's own
-## (OWN_CONVERTED), else a path that does not exist, counted in `rejected` with an error naming the caller, so a
-## shared reader that still reaches for the original's files fails loudly.
+## (OWN_CONVERTED), else a path that does not exist, refused (_refuse), so a shared reader that still reaches for the
+## original's files fails loudly.
 func converted(rel: String) -> String:
 	rel = rel.trim_prefix("converted/")
 	for own in OWN_CONVERTED:
 		if rel.begins_with(own) or rel == own.trim_suffix("/"):
 			return super(rel)
-	rejected.append(rel)
-	var stack := get_stack()
-	var caller: Dictionary = stack[1] if stack.size() > 1 else {}
-	push_error(
-		(
-			"Modern IAF reads none of the original's converted data: converted/%s asked by %s:%s %s()"
-			% [rel, caller.get("source", "?"), caller.get("line", "?"), caller.get("function", "?")]
-		)
-	)
+	_refuse("converted/" + rel)
 	return install_dir().path_join("converted").path_join(rel)
+
+
+## The gate on the original game's install: every read refused (_refuse), the answer a path that does not exist
+## (the readers then take their no-file case).
+func install(rel: String) -> String:
+	_refuse("install/" + rel)
+	return install_dir().path_join(rel)
+
+
+## A refused read: counted in `rejected` (as converted/<rel> or install/<rel>), an error naming the caller the first
+## time a path is asked.
+func _refuse(what: String) -> void:
+	if not what in rejected:
+		var stack := get_stack()
+		var caller: Dictionary = stack[2] if stack.size() > 2 else {}
+		push_error(
+			(
+				"Modern IAF reads none of the original game's data: %s asked by %s:%s %s()"
+				% [what, caller.get("source", "?"), caller.get("line", "?"), caller.get("function", "?")]
+			)
+		)
+	rejected.append(what)
 
 
 ## The sim draws its effects without the original's sprites (Img.soft_dot) until its own art comes.

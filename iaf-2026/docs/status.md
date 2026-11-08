@@ -6,10 +6,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **[E2](plan.md#e2-the-front-end), the front end (2026-11-08):** `./iaf2026` opens Home; Pick a plane, Training, Pick a mission, Fly,
   the flight, its debrief sheet, the Pilot log, Preferences and Attributions, in English and Hebrew (mirrored), in the
   round-3 look ([front-end.md](front-end.md)). Esc over a flight opens the pause menu. `test_front_end.gd`.
-- **[A4](plan.md#a4-the-gate), the gate on the original's converted data (2026-11-08):** every path under `assets/converted`
-  a shared script reads goes through `Settings.converted()`; the sim refuses everything but its own data and the M0
-  probe fails on any refusal (0 today). The sim's own loading screen in English and Hebrew ([front-end.md](front-end.md) §7).
-  The effects (flares, chaff, trails, afterburner) draw a soft dot and the flight shows no message texts until the
+- **[A4](plan.md#a4-the-gate), the gates on the original's converted data and install (2026-11-08):** every path under
+  `assets/converted` a shared script reads goes through `Settings.converted()`, every path under the install through
+  `Settings.install()`; the sim refuses everything but its own converted data and the M0 probe fails on any refusal
+  (0 today). The sim's own loading screen in English and Hebrew ([front-end.md](front-end.md) §7).
+  The effects (flares, chaff, trails, afterburner, the gun's muzzle flash) draw a soft dot and the flight shows no message texts until the
   sim's own art and messages.
 - **[A3](plan.md#a3-the-setup-wizard), the setup wizard (2026-11-03):** `./iaf2026-setup` opens the wizard; it builds the terrain,
   the airbases, the units and weapons, the sounds and voices and the training missions as a step graph with stamps (a

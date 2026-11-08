@@ -1234,9 +1234,9 @@ func mc_headline(by_kills: bool) -> Array:
 
 
 ## MissBonus from the score file (iaf.ibx [Scenario] ScoreFile = Resource\Missions\Scores.ibx,
-## FUN_0059add0): the mission's bonus, 0 when not listed.
+## FUN_0059add0) in own_dir()'s layout, as iaf.ibx: the mission's bonus, 0 when not listed (or no file).
 static func mission_bonus(id: int) -> int:
-	var ibx := Settings.load_ibx(Settings.install_dir().path_join("resource/missions/scores.ibx"))
+	var ibx := Settings.load_ibx(Settings.own_dir().path_join("resource/missions/scores.ibx"))
 	for section in ibx:
 		if section.to_lower() == "missbonus" and ibx[section].has(str(id)):
 			return ibx[section][str(id)].to_int()

@@ -273,7 +273,7 @@ static func crisp_sprite(file: String, src: Rect2) -> Texture2D:
 		return _sprites[key]
 	if not _art.has(file):
 		var img := Image.new()
-		var path: String = Settings.install_dir().path_join("resource/cockpits").path_join(file)
+		var path: String = Settings.install("resource/cockpits".path_join(file))
 		var ok := FileAccess.file_exists(path) and img.load_bmp_from_buffer(FileAccess.get_file_as_bytes(path)) == OK
 		if ok:
 			img.convert(Image.FORMAT_RGBA8)
