@@ -881,6 +881,18 @@ func original_art() -> bool:
 	return true
 
 
+## True where the object database's counts are the real ones already (Modern IAF's, from its unit records): Weapon
+## data Real keeps them rather than its per-type tables (real_weapons.gd gun_rounds). The original's bdb: false.
+func real_bdb() -> bool:
+	return false
+
+
+## True where the player's jet starts with its master arm safe (player_weapons.gd master_arm; Modern IAF). The original
+## has no master arm: false.
+func starts_safe() -> bool:
+	return false
+
+
 ## The folders under assets/converted holding the aircraft descriptors (aircraft_model.gd: `<plane>/aircraft.json` and
 ## the index `aircraft.json`) and the menu missions (mission_runtime.gd: `missionlist.json` and the missions): the
 ## original's converted ones; Modern IAF's own (sim_settings.gd).

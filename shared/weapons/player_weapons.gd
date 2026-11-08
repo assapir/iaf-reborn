@@ -27,9 +27,15 @@ const Terrain := preload("res://shared/terrain/terrain.gd")
 const FlightSounds := preload("res://shared/audio/flight_sounds.gd")
 const Gltf := preload("res://shared/util/gltf.gd")
 const MissileFx := preload("res://shared/mission/missile_fx.gd")
+const Img := preload("res://shared/util/img.gd")
 
 ## The gun's shot timer period (DAT_0082f4e8 = 0.2 s, sim time).
 const GUN_PERIOD := 0.2
+## Ours: the tracer streak's length (m) for a gun round with no model (_tracer), about a frame's flight at 60 fps, and
+## its head's screen size (a fixed-size billboard's quad: about 15 px at 1080 lines), which shows the round
+## end on.
+const TRACER_M := 18.0
+const TRACER_DOT := 0.03
 ## Stores are drawn within 9000 m of the camera (0x638a08).
 const STORES_DRAW_DIST := 9000.0
 ## Weapon bays (ours, the F-35I): a bay station's release waits for its doors to open (0.5 s); they stay open
@@ -99,6 +105,9 @@ var hud_mode: int:
 var _modes = ClassDB.instantiate("IafModes")
 ## ctl+0x970: Safety off (the cheat; firing with the gear handle down).
 var safety_off := false
+## Ours: the master arm; safe, no gun or store fires (gun_trigger, fire_selected). The original has none, so it stays
+## armed; Modern IAF starts safe (Settings.starts_safe) and the Master arm key (command 202) toggles it.
+var master_arm := true
 ## FUN_0044fe30's break X: ctl+0x818, the DLZ min it compares the lock's range with (kept between updates), and the
 ## next update time of its 1 s timer (ctl+0x820).
 var _break_min := 0.0
@@ -156,6 +165,7 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	stores.player = true
 	stores.weight_fix = bool(Settings.better.get("fix_stores_weight", false))
 	stores.unlimited = Settings.unlimited_ammo
+	master_arm = not Settings.starts_safe()
 	var load: Array = _given_load if not _given_load.is_empty() else _arm(Stores.loadout(entity, object), entity)
 	stores.setup(load, db, desc, _pilon_of, jet_type)
 	# The selection starts on a loaded station: the first loaded pylon, else the gun. On an empty station '[' never
@@ -766,6 +776,8 @@ func _weapons_down() -> bool:
 ## Space (event 0x40): HUD mode 1..8; the gear handle down only with Safety off and the gun; not
 ## with weapon systems damage (flag 20).
 func fire_selected() -> void:
+	if not master_arm:
+		return
 	if not ClassDB.class_call_static(
 		"IafRelease",
 		"space_allowed",
@@ -907,7 +919,7 @@ func gun_key() -> void:
 
 ## FUN_004579f0: the first round at once, then the 0.2 s timer and the gun sound loop.
 func gun_trigger() -> bool:
-	if _weapons_down() or _flag(DMG_GUN) or firing:
+	if not master_arm or _weapons_down() or _flag(DMG_GUN) or firing:
 		return false
 	firing = true
 	if stores.station(9).is_empty():
@@ -2722,7 +2734,7 @@ func _build_visuals() -> void:
 	var gunsh := String(stores.station(9).get("w", {}).get("model_path", ""))
 	_round_scale = float(stores.station(9).get("w", {}).get("scale", 1.0))
 	for i in gun.pool.size():
-		var n := _instance(gunsh)
+		var n := _instance(gunsh) if gunsh != "" else _tracer()
 		if n == null:
 			break
 		n.visible = false
@@ -2781,24 +2793,68 @@ func _update_store_nodes() -> void:
 
 
 ## FUN_00411d90: two crossed quads along the gun line, gunFire.tga, 0.85–1.15 long × 0.6 wide
-## (s = 1 m: the original's scale UNCERTAIN), redrawn with a new length every frame while firing.
+## (s = 1 m: the original's scale UNCERTAIN), redrawn with a new length every frame while firing. The art is the
+## resource layout's (Settings.own_dir): the install's in the original, our own in Modern IAF (iaf-sim own).
 func _muzzle_flash() -> Node3D:
-	var path := Settings.install("resource/3dobjects/gunfire.tga") if Settings.original_art() else ""
+	var root := _crossed_quads(_effect_art("gunfire.tga"), Vector2(0.6, 1.0))
+	if root.get_child(0).material_override.albedo_texture == null and not Settings.original_art():
+		root.get_child(0).material_override.albedo_texture = Img.soft_dot()
+	return root
+
+
+## Ours: a gun round with no model (Modern IAF's gun record names none) draws as a tracer: the resource layout's
+## tracer.tga on two crossed quads TRACER_M long behind the round (child 0; _update_visuals shortens it near the
+## muzzle) and a glowing head the same size on screen at any distance (child 1). Blended, not added, so it shows over
+## the daylit ground and sky. Null without the art.
+func _tracer() -> Node3D:
+	var tex := _effect_art("tracer.tga")
+	if tex == null:
+		return null
+	var streak := _crossed_quads(tex, Vector2(0.4, TRACER_M), BaseMaterial3D.BLEND_MODE_MIX)
+	for mi in streak.get_children():
+		mi.position.z = TRACER_M / 2.0  # the tail behind the head (−z is the flight direction)
+	var head := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = Vector2(TRACER_DOT, TRACER_DOT)
+	head.mesh = q
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	mat.fixed_size = true
+	mat.albedo_texture = Img.soft_dot()
+	mat.albedo_color = Color(1.0, 0.55, 0.15)
+	head.material_override = mat
+	var root := Node3D.new()
+	root.add_child(streak)
+	root.add_child(head)
+	root.set_meta("tracer", true)
+	return root
+
+
+## An effect image of the resource layout's 3dobjects folder as a texture; null when missing.
+static func _effect_art(file: String) -> Texture2D:
+	var path := Settings.own_dir().path_join("resource/3dobjects").path_join(file)
 	var img := Image.load_from_file(path) if FileAccess.file_exists(path) else null
+	return ImageTexture.create_from_image(img) if img != null else null
+
+
+## Two quads `size` (width, length) crossed along −z (the length points forward: horizontal, then turned 90° about z),
+## one unshaded material with `tex`, added (the original's flash) or blended.
+static func _crossed_quads(tex: Texture2D, size: Vector2, blend := BaseMaterial3D.BLEND_MODE_ADD) -> Node3D:
 	var root := Node3D.new()
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	mat.blend_mode = blend
+	if blend == BaseMaterial3D.BLEND_MODE_MIX:
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mat.no_depth_test = false
 	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
-	if img != null:
-		mat.albedo_texture = ImageTexture.create_from_image(img)
-	elif not Settings.original_art():
-		mat.albedo_texture = preload("res://shared/util/img.gd").soft_dot()
+	mat.albedo_texture = tex
 	for k in 2:
 		var q := QuadMesh.new()
-		q.size = Vector2(0.6, 1.0)
+		q.size = size
 		var mi := MeshInstance3D.new()
 		mi.mesh = q
 		mi.material_override = mat
@@ -2822,6 +2878,9 @@ func _update_visuals() -> void:
 			n.basis = Basis.looking_at(du, Vector3.UP if absf(du.y) < 0.99 else Vector3.RIGHT).scaled(
 				Vector3.ONE * _round_scale
 			)
+			if n.has_meta("tracer"):  # no longer than the way flown: the tail never reaches back past the muzzle
+				var flown := clampf((now - float(r.t0)) * float(r.s) / TRACER_M, 0.02, 1.0)
+				n.get_child(0).scale = Vector3(1, 1, flown)
 	if _flash != null:
 		_flash.visible = firing
 		if firing:

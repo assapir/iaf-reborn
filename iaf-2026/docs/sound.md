@@ -140,9 +140,10 @@ to runway 25 right". The particles cover the callsigns Alpha–Delta, the greeti
 runway number 1–36 (spoken digit by digit, "two five") and the letters `RWY_L` / `RWY_R` / `RWY_C`.
 
 ## 4. Keys
-`data/keys.json` holds 125 commands: the 117 of docs/controls.md §3, our own Start engine (Ctrl+E, command 200, a
-hidden developer shortcut: [training.md](training.md) §7), Mission card (H, command 201) and the six start-up checklist steps (Ctrl+B, J, I, A, N,
-K; commands 210–215: training.md §7.1), each with our own English and Hebrew labels, the default key as text ("Ctrl + Q"), the joystick button, the press / release commands and `shown`. `iaf-sim own` compiles it to
+`data/keys.json` holds 126 commands: the 117 of docs/controls.md §3, our own Start engine (Ctrl+E, command 200, a
+hidden developer shortcut: [training.md](training.md) §7), Mission card (H, command 201: [front-end.md](front-end.md)
+§8), the six start-up checklist steps (Ctrl+B, J, I, A, N, K; commands 210–215: training.md §7.1) and Master arm
+(Shift+A, command 202: [weapons.md](weapons.md) §3), each with our own English and Hebrew labels, the default key as text ("Ctrl + Q"), the joystick button, the press / release commands and `shown`. `iaf-sim own` compiles it to
 the shape of `iaf-convert keys`' output (records with `dik` / `modifiers` / `label` / `label_he`, `key_names`,
 `modifiers`, `button_format`). It refuses:
 - a key name outside our scancode table, which holds exactly the keys `key_table.gd` can press (a test reads the
@@ -199,7 +200,7 @@ The setup wizard (item A3) and the credits roll live outside this branch's folde
 ## 8. Checks
 - `cargo test -p iaf-tools --lib sim::`: every row's clip and every particle's clip exists and is a 22050 Hz 16-bit
   mono WAV; every code the shared code plays has a row and every file it opens by name exists; the templates `radio.gd`
-  calls exist and name only particles; a stale file is removed; the key table has 118 records, labels where shown, no
+  calls exist and name only particles; a stale file is removed; the key table has 120 records, labels where shown, no
   key bound twice, and only keys the reader can press.
 - Godot's `AudioStreamWAV.load_from_file` loaded every clip of the compiled tables (2026-11-02).
 

@@ -150,8 +150,11 @@ static func apply(db: RefCounted) -> void:
 			w["real"] = true
 
 
-## The real gun rounds of a jet (bdb object type code), or -1 = keep the original count.
+## The real gun rounds of a jet (bdb object type code), or -1 = keep the bdb's count (always where the bdb's counts
+## are real: Settings.real_bdb).
 static func gun_rounds(type_code: int) -> int:
+	if Settings.real_bdb():
+		return -1
 	if JET_GUNS.has(type_code):
 		return int(JET_GUNS[type_code].rounds)
 	return int(Settings.airframe(type_code).get("gun_rounds", GUN_ROUNDS.get(type_code, -1)))

@@ -13,7 +13,12 @@ Key facts:
   - `W` = its weapon system, `ctl+0xf0`.
   - `C` = the station container, `ctl+0xfc` (= `W+0xc`).
   - `S` = the flight-model state.
-- There is no master arm and no "out of ammo" message or sound.
+- There is no master arm and no "out of ammo" message or sound. Ours: `player_weapons.gd` `master_arm` holds the gun
+  and Space while safe; the original starts armed and no key of its table toggles it (Modern IAF starts safe:
+  iaf-2026/docs/weapons.md §3).
+- A gun record without a model draws its rounds as tracer streaks of the resource layout's `tracer.tga` (ours; only
+  Modern IAF's gun record has none, iaf-2026/docs/weapons.md §2). The muzzle flash's `gunfire.tga` is read from
+  `Settings.own_dir()` (the install here).
 - AI units have no ECM (only a unit with a controller jams: docs/ai.md §13). The AI's weapons are in
   `shared/ai/combat.gd` (docs/ai.md §13–14).
 

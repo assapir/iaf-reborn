@@ -212,6 +212,16 @@ func original_art() -> bool:
 	return false
 
 
+## The sim's bdb holds each jet's real gun rounds (its unit record's loadout, iaf-2026/docs/weapons.md §1).
+func real_bdb() -> bool:
+	return true
+
+
+## Every flight starts with the master arm safe (iaf-2026/docs/weapons.md §3).
+func starts_safe() -> bool:
+	return true
+
+
 ## The sim's aircraft descriptors (`iaf-sim own`: the F-16's from our model) and its compiled missions.
 func planes_folder() -> String:
 	return "own/planes"

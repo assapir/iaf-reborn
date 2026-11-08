@@ -2647,6 +2647,12 @@ func _command(cmd: Array) -> bool:
 			# (iaf-2026/docs/training.md §7). The original model ignores it.
 			if flight != null:
 				flight.start_engine()
+		202:
+			# Modern IAF's "master arm" (its own keys.json; no original record sends it): safe <-> armed
+			# (player_weapons.gd master_arm, iaf-2026/docs/weapons.md §3).
+			if weapons != null:
+				weapons.master_arm = not weapons.master_arm
+				_on_subtitle("Master arm" if weapons.master_arm else "Master safe")
 		210, 211, 212, 213, 214, 215:
 			# Modern IAF's start-up checklist steps (its own keys.json; iaf-2026/docs/training.md §7.1): the flight add-on
 			# passes them to the flight model and ticks its card.

@@ -311,6 +311,13 @@ pub fn compile_db(db: &Db) -> Result<(Value, Map<String, Value>, String)> {
             hard[2 * station as usize] = int(w, "number")?;
             hard[2 * station as usize + 1] = count.as_i64().with_context(|| format!("{}: loadout.{wid}", u.name))?;
         }
+        // A flyable jet's gun rounds are the record's (loadout.<gun>): the sim's gun counts them down to empty, so a
+        // jet without a count is refused rather than flying with no gun or an endless one.
+        ensure!(
+            u.v["airframe"].is_null() || hard[2 * 9 + 1] > 0,
+            "{}: a flyable jet needs its gun rounds (\"loadout\": {{\"<gun id>\": rounds}})",
+            u.name
+        );
         for (st, p) in u.v["pylons"].as_object().into_iter().flatten() {
             let i = PYLONS.find(st.as_str()).filter(|_| st.len() == 1);
             let i = i.with_context(|| format!("{}: pylon \"{st}\" is not A..I", u.name))?;
@@ -509,8 +516,8 @@ fn texts(f: &File, k: &str) -> Result<Value> {
 fn card(f: &File) -> Result<Value> {
     if !f.v["card"].is_null() {
         texts(&File { name: f.name.clone(), v: f.v["card"].clone() }, "objective")?;
-        let keys = f.v["card"]["keys"].as_array().filter(|k| k.iter().all(|i| i.as_u64().is_some_and(|i| i < 125)));
-        ensure!(keys.is_some(), "{}: \"card.keys\" must list key records (0..124)", f.name);
+        let keys = f.v["card"]["keys"].as_array().filter(|k| k.iter().all(|i| i.as_u64().is_some_and(|i| i < 126)));
+        ensure!(keys.is_some(), "{}: \"card.keys\" must list key records (0..125)", f.name);
         return Ok(f.v["card"].clone());
     }
     // Start engine 117, Call the tower 47, Mission card 118, the start-up checklist 119..124; the throttle 7 (idle), 16 / 15 (± 5 %), 12 (MIL); the
@@ -1059,6 +1066,7 @@ pub fn own(data: &Path, repo: &Path, assets: &Path, pr: &dyn Progress, cancel: &
     write(&assets.join(KEYS_FILE), &serde_json::to_string_pretty(&keys)?)?;
     write(&assets.join(KEYS_LAPTOP_FILE), &serde_json::to_string_pretty(&compile_keys(&src, true)?)?)?;
     planes(repo, assets)?;
+    gun_art(assets)?;
     crate::sim_cockpit::cockpits(data, assets, pr, cancel)?;
     log!(
         pr,
@@ -1068,6 +1076,42 @@ pub fn own(data: &Path, repo: &Path, assets: &Path, pr: &dyn Progress, cancel: &
         out.display(),
         assets.join(KEYS_FILE).display()
     );
+    Ok(())
+}
+
+/// The sim's effects art in the original's layout (`resource/3dobjects`, where the original keeps gunfire.tga).
+pub const ART_DIR: &str = "converted/own/resource/3dobjects";
+
+/// Our own gun art, drawn here from formulas (no source image): `gunfire.tga`, the muzzle flash on the original's two
+/// crossed quads (player_weapons.gd `_muzzle_flash`: the top edge points forward, the muzzle at the centre), a flame
+/// white-hot at the muzzle tapering forward to an orange tip; `tracer.tga`, a round's streak (`_tracer`: the top edge
+/// is the head), a hot head fading to a red-orange tail. The alpha carries the shape (the flash's material adds by it,
+/// the tracer's blends).
+fn gun_art(assets: &Path) -> Result<()> {
+    let hot = [1.0, 0.95, 0.75];
+    let pixel = |c: [f32; 3], edge: [f32; 3], k: f32| {
+        let k = k.clamp(0.0, 1.0);
+        let mix = |i: usize| edge[i] + (c[i] - edge[i]) * k * k;
+        image::Rgba([mix(0), mix(1), mix(2), k].map(|v| (v * 255.0).round() as u8))
+    };
+    // x across (−1..1), d along the gun line: 1 the flame's tip, 0 the muzzle, −1 behind it.
+    let flash = image::RgbaImage::from_fn(64, 128, |x, y| {
+        let (u, d) = ((x as f32 + 0.5) / 32.0 - 1.0, 1.0 - (y as f32 + 0.5) / 64.0);
+        let w = if d >= 0.0 { 0.9 * (1.0 - d).powf(0.7) } else { 0.6 * (1.0 + 4.0 * d) };
+        let k = if w > 0.0 { (1.0 - (u / w).powi(2)).max(0.0) * (1.0 - 0.6 * d.max(0.0)) } else { 0.0 };
+        pixel(hot, [1.0, 0.45, 0.1], k)
+    });
+    // x across (−1..1), v along the streak: 0 the head, 1 the tail.
+    let tracer = image::RgbaImage::from_fn(16, 128, |x, y| {
+        let (u, v) = ((x as f32 + 0.5) / 8.0 - 1.0, (y as f32 + 0.5) / 128.0);
+        let along = (v / 0.04).min(1.0) * (1.0 - v).powf(1.5);
+        pixel(hot, [1.0, 0.35, 0.1], along * (-(u / 0.45).powi(2)).exp())
+    });
+    let dir = assets.join(ART_DIR);
+    std::fs::create_dir_all(&dir).with_context(|| dir.display().to_string())?;
+    for (name, img) in [("gunfire.tga", flash), ("tracer.tga", tracer)] {
+        img.save(dir.join(name)).with_context(|| dir.join(name).display().to_string())?;
+    }
     Ok(())
 }
 
@@ -1337,6 +1381,21 @@ mod tests {
         assert!(compile_db(&db).unwrap_err().to_string().contains("weight"));
     }
 
+    /// Each flyable jet's gun rounds are its record's (station 9's count in the bdb), and a jet without one is refused.
+    #[test]
+    fn a_flyable_jet_needs_its_gun_rounds() {
+        let mut db = Db::read(&data()).unwrap();
+        let (bdb, _, _) = compile_db(&db).unwrap();
+        let rounds = |id: &str| {
+            let rows = bdb["objects"]["items"].as_array().unwrap();
+            let row = rows.iter().find(|r| r[hex("unit", "id")] == id).unwrap();
+            row["armament"]["hardpoints"][19].as_i64().unwrap()
+        };
+        assert_eq!((rounds("f16i"), rounds("f16d"), rounds("f35i")), (511, 511, 180));
+        db.units.iter_mut().find(|u| u.v["id"] == "f16i").unwrap().v["loadout"] = json!({"chaff": 60, "flare": 60});
+        assert!(compile_db(&db).unwrap_err().to_string().contains("gun rounds"));
+    }
+
     /// The original's converters (`iaf-convert aircraft` / `objects`) skip the sim's object database.
     #[test]
     fn the_converters_skip_the_sims_bdb() {
@@ -1458,8 +1517,9 @@ mod tests {
 
     /// `iaf-sim own`: every sound row's clip exists and parses as the game's format, every code the shared flight
     /// code plays has a row, every file it opens by name is there, the radio's templates name only particles with a
-    /// clip, a stale clip is removed, and the key table compiles to the 125 records `key_table.gd` reads (the 117 of
-    /// docs/controls.md, Start engine, Mission card and the six start-up checklist steps).
+    /// clip, a stale clip is removed, the key table compiles to the 126 records `key_table.gd` reads (the 117 of
+    /// docs/controls.md, Start engine, Mission card, the six start-up checklist steps and Master arm), and the gun art
+    /// is there.
     #[test]
     fn own_sounds_and_keys_compile() {
         let root = TempRoot(std::env::temp_dir().join(format!("iaf-sim-own-{}", std::process::id())));
@@ -1576,7 +1636,7 @@ mod tests {
         }
         let keys: Value = serde_json::from_str(&std::fs::read_to_string(root.0.join(KEYS_FILE)).unwrap()).unwrap();
         let recs = keys["records"].as_array().unwrap();
-        assert_eq!(recs.len(), 125);
+        assert_eq!(recs.len(), 126);
         for r in recs {
             let labelled = r["label"].as_str().is_some_and(|l| !l.is_empty());
             assert!(labelled || r["shown"] == false, "{r}");
@@ -1585,13 +1645,18 @@ mod tests {
         }
         // Records 115 / 116 stay out of the "all keys" list (no label), as in the original (docs/controls.md §3).
         assert_eq!((recs[115]["label"].as_str(), recs[116]["label"].as_str()), (Some(""), Some("")));
+        // Our gun art (gun_art): the flash white-hot at the muzzle (the centre), clear at the corners; the tracer's head.
+        let art = |f: &str| image::open(root.0.join(ART_DIR).join(f)).unwrap().to_rgba8();
+        let (flash, tracer) = (art("gunfire.tga"), art("tracer.tga"));
+        assert!(flash.get_pixel(32, 66)[3] > 200 && flash.get_pixel(0, 0)[3] == 0);
+        assert!(tracer.get_pixel(8, 8)[3] > 200 && tracer.get_pixel(8, 127)[3] < 10);
         // Record 1 quits on Ctrl + Q (docs/controls.md §3).
         assert_eq!((recs[1]["dik"].as_u64(), recs[1]["modifiers"].as_u64()), (Some(0x10), Some(0x11)));
         // The laptop map: the rudder on Z / X (records 37 / 38), no numpad key (front-end.md §9.1).
         let lap: Value =
             serde_json::from_str(&std::fs::read_to_string(root.0.join(KEYS_LAPTOP_FILE)).unwrap()).unwrap();
         let lrecs = lap["records"].as_array().unwrap();
-        assert_eq!((lrecs.len(), lrecs[37]["dik"].as_u64(), lrecs[38]["dik"].as_u64()), (125, Some(0x2c), Some(0x2d)));
+        assert_eq!((lrecs.len(), lrecs[37]["dik"].as_u64(), lrecs[38]["dik"].as_u64()), (126, Some(0x2c), Some(0x2d)));
         for r in lrecs {
             let dik = r["dik"].as_u64().unwrap();
             assert!(!matches!(dik, 0x37 | 0x47..=0x53 | 0x9c | 0xb5), "{r}");

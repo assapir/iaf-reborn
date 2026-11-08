@@ -63,7 +63,7 @@ A unit record holds what a mission needs of a unit. A flyable jet's behaviour st
 | `model`, `scale` | the model under `assets/converted/objects/` (empty: none) and its drawn scale (1 = true size) |
 | `radius_m` | the unit's radius; the blast rules take half of it (docs/damage.md §2.1) |
 | `strength` | hit points on our damage scale (§6) |
-| `loadout` | weapon id → count for the gun, chaff and flare stations (9–11) |
+| `loadout` | weapon id → count for the gun, chaff and flare stations (9–11); a unit with an `airframe` must give its gun rounds, the count the sim's gun fires down to empty ([weapons.md](weapons.md) §1) |
 | `pylons` | station `A`..`I` → `{"weapon", "count"}` (none on the MVP jets) |
 | `range_km`, `min_range_km`, `ceiling_m`, `floor_m`, `speed_ms`, `mach`, `radar_km`, `g_limit`, `warhead_kg` | the threat set's figures (threats.md §6), checked for sources. `radar_km`, the unit's sensor reach, is compiled unhexed as `"radar_km"` into its Objects row, and the AI takes it before the type code's range (`combat.gd` `sensor_nm`); no shared reader takes the others yet |
 | `status` | only in a draft: `"pending the user's decision"` (§11) |

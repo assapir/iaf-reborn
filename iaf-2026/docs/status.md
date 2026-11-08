@@ -8,6 +8,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   junctions ([airbases.md](airbases.md) §9), the sea follows OpenStreetMap's coastline in the photo and the surface
   flags ([terrain.md](terrain.md) §12), the airbases step downloads the extracts its water needs, and the wizard has
   an optional scenery step ([setup.md](setup.md) §3).
+- **The gun (2026-11-08, the Mac play test):** the rounds are the unit record's (Sufa and Barak 511, F-35I 180) and
+  run out; our own muzzle flash and tracers; every flight starts with the master arm safe, Shift+A arms
+  ([weapons.md](weapons.md)). `test_sim_gun.gd`.
 - **The Mac play test's findings (2026-11-08, [plan.md](plan.md#f-the-probe) F):** the mission card, the radio lines
   in the sim's band wholly in the game's language, the key hint; the pause menu centred at any size in Hebrew;
   Preferences as sections on their own screens with no aid or realism row and the aids off; Home on every start;
@@ -32,7 +35,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   `assets/converted` a shared script reads goes through `Settings.converted()`, every path under the install through
   `Settings.install()`; the sim refuses everything but its own converted data and the M0 probe fails on any refusal
   (0 today). The sim's own loading screen in English and Hebrew ([front-end.md](front-end.md) §7).
-  The effects (flares, chaff, trails, afterburner, the gun's muzzle flash) draw a soft dot and the flight shows no message texts until the
+  The effects (flares, chaff, trails, afterburner) draw a soft dot and the flight shows no message texts until the
   sim's own art and messages.
 - **[A3](plan.md#a3-the-setup-wizard), the setup wizard (2026-11-03):** `./modern-iaf-setup` opens the wizard; it builds the terrain,
   the airbases, the units and weapons, the sounds and voices and the training missions as a step graph with stamps (a
