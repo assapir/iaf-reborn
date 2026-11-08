@@ -20,7 +20,7 @@ that stopped resumes where it stopped.
 | GDAL | reads and reprojects the heights and the imagery | `sudo apt install gdal-bin` (Arch: `sudo pacman -S gdal`) | `brew install gdal` | the GISInternals installer (`winget install GISInternals.GDAL`) |
 | curl | downloads the height tiles | `sudo apt install curl` | `brew install curl` | in Windows 10 and later |
 | Python 3 | writes the jets' flight data (`tools/iaf-2026/fm0.py`) | `sudo apt install python3` | `brew install python` | `winget install Python.Python.3.14` |
-| disk | the data (§3) | | | |
+| disk | the data (§4) | | | |
 
 The launcher (`tools/launch-wizard.sh`, which the original game's `./setup` uses too) checks Rust and Godot and says
 how to install a missing one. The wizard's first page checks GDAL, curl, Python 3 and the free disk space for the
@@ -35,31 +35,33 @@ Each page in English and in Hebrew. The language is the sim's `Settings.language
 saved; a Hebrew page is mirrored, every control included (`layout_direction` right to left). The window fills a
 large screen by its UI scale (the containers stretch; nothing has a fixed page size).
 
-1. **Welcome**: the language; what setup downloads and builds; the download, the disk use and the time (§3); the
-   requirements.
-2. **Imagery and airbases**: Sentinel-2 everywhere, or Sentinel-2 plus the Survey of Israel 2 m photo over Israel.
-   The Survey choice needs the 79 sheet ZIPs (data.gov.il, 17 GB) in `assets/source/imagery/mapi2015/`; without
-   them the page says so and keeps Sentinel-2. The four airbases ("Wing 25, Ramon", "Wing 1, Ramat David", "Wing 28,
-   Nevatim", "Wing 6, Hatzerim"; in Hebrew "כנף 25 רמון", "כנף 1 רמת דוד", "כנף 28 נבטים", "כנף 6 חצרים") with each
-   one's jet; all four are built.
-3. **Attributions**: every source with its licence line: the Copernicus DEM's two lines word for word
-   ([terrain.md](terrain.md) §5), ESA WorldCover's Sentinel-2 line, the Survey of Israel, OpenStreetMap (ODbL),
-   OurAirports, the freesound authors ([sound.md](sound.md) §6), Piper and its voices, the FlightGear F-16 (GPL), the
-   F-35I model (CC BY 4.0), NASA TP-1538, the Heebo font (OFL). The licence lines stay in English on the Hebrew page.
-4. **Install**: one row per step with its progress bar and state. Before a run the rows say which steps are up to
+1. **Welcome**: the language; what setup downloads and builds; the download, the disk use and the time (§4); the
+   requirements; the **Attributions** button ("קרדיט").
+2. **Imagery**: Sentinel-2 everywhere, or Sentinel-2 plus the Survey of Israel 2 m photo over Israel, each with its
+   disk use and time. The Survey choice needs the 79 sheet ZIPs (data.gov.il, 17 GB) in
+   `assets/source/imagery/mapi2015/`; without them the page says so and keeps Sentinel-2.
+3. **Install**: one row per step with its progress bar and state. Before a run the rows say which steps are up to
    date (a background check); during a run a long step shows the time left. Back becomes Cancel: the running steps
    stop at their next item. "Show the log" opens the log; the whole run is also in `assets/logs/iaf2026-setup-<date>-<time>.log`.
    "Redo every step" runs the steps that are up to date too; for the terrain that is a full rebuild (its finished
    units' marks are dropped). Back from Install forgets the finished run, so other choices can be installed; a
    language change keeps it.
-5. **Done**: how to start the sim and the two training missions (start-up, take-off) from Ramon, Ramat David and
-   Nevatim.
+4. **Done**: how to start the sim, the commands for one training mission (start-up, take-off) from Ramon, Ramat
+   David and Nevatim, and how to run setup again.
+
+The **Attributions** open from Welcome as a modal dialog over the page (Close or Esc closes it; it scrolls): every
+source with its licence line: the Copernicus DEM's two lines word for word ([terrain.md](terrain.md) §5), ESA
+WorldCover's Sentinel-2 line, the Survey of Israel, OpenStreetMap (ODbL), OurAirports, the freesound authors
+([sound.md](sound.md) §6), Piper and its voices, the FlightGear F-16 (GPL), the F-35I model (CC BY 4.0), NASA
+TP-1538, the Heebo font (OFL). The licence lines stay in English in the Hebrew dialog.
+
+The pages say only what the user decides or must know ([plan.md](plan.md) Rules).
 
 | page | English | Hebrew |
 |---|---|---|
 | Welcome | ![Welcome](pictures/setup/welcome_en.webp) | ![Welcome, Hebrew](pictures/setup/welcome_he.webp) |
-| Imagery and airbases | ![Choices](pictures/setup/choices_en.webp) | ![Choices, Hebrew](pictures/setup/choices_he.webp) |
-| Attributions | ![Attributions](pictures/setup/credits_en.webp) | ![Attributions, Hebrew](pictures/setup/credits_he.webp) |
+| Attributions (over Welcome) | ![Attributions](pictures/setup/attributions_en.webp) | ![Attributions, Hebrew](pictures/setup/attributions_he.webp) |
+| Imagery | ![Imagery](pictures/setup/imagery_en.webp) | ![Imagery, Hebrew](pictures/setup/imagery_he.webp) |
 | Install | ![Install](pictures/setup/install_en.webp) | ![Install, Hebrew](pictures/setup/install_he.webp) |
 | Done | ![Done](pictures/setup/done_en.webp) | ![Done, Hebrew](pictures/setup/done_he.webp) |
 
@@ -112,8 +114,9 @@ The other five steps take seconds together. The first page shows these figures.
   terrain, the airbases and the missions again, a changed airbase outline the terrain), a terrain redo drops its
   marks, inputs relative to the repo, only a real Python 3 counts; every sim step's source row holds every module its
   code reaches.
-- `iaf-2026/tests/test_setup_wizard.gd` (headless, `IAF_ASSETS_DIR` at an empty folder): the pages in order in both
-  languages, the mirrored layout, the approved Hebrew words, the Copernicus lines word for word, every attribution,
+- `iaf-2026/tests/test_setup_wizard.gd` (headless, `IAF_ASSETS_DIR` at an empty folder): the four pages in order in
+  both languages, the mirrored layout, the approved Hebrew words, the Attributions dialog (opens from Welcome,
+  mirrored, the Copernicus lines word for word, every attribution, closes with Esc and with Close),
   no other game named, the Survey choice off without sheets, the Install rows and their preview, abandoned preview
   checks fetched, a finished run kept through a language change and forgotten by Back. `tools/test.sh` gives it a
   scratch folder.

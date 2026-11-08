@@ -1,11 +1,12 @@
 # IAF 2026's setup wizard (iaf-2026/setup/wizard.gd, iaf-2026/docs/setup.md) on an empty scratch assets folder:
 #   IAF_ASSETS_DIR=<empty dir> IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-2026 \
 #     -s ../iaf-2026/tests/test_setup_wizard.gd --log-file <temp>
-# The pages in order, in English and in Hebrew (mirrored); the Survey choice off without sheets; the attributions'
-# exact Copernicus lines; the Install page's rows from the sim's plan and their preview; no other game named on any
-# page; abandoned preview checks are fetched; a finished run survives a language change, and Back from Install forgets
-# it. It runs no step (the real run: iaf-2026/docs/setup.md "Checks"). It needs IAF_ASSETS_DIR (tools/test.sh gives
-# it a scratch folder): without it the first check fails and nothing else runs.
+# The four pages in order, in English and in Hebrew (mirrored); the Survey choice off without sheets; the
+# Attributions dialog from Welcome (opens, mirrored, the exact Copernicus lines, closes with Esc and with Close); the
+# Install page's rows from the sim's plan and their preview; no other game named on any page; abandoned preview
+# checks are fetched; a finished run survives a language change, and Back from Install forgets it. It runs no step
+# (the real run: iaf-2026/docs/setup.md "Checks"). It needs IAF_ASSETS_DIR (tools/test.sh gives it a scratch
+# folder): without it the first check fails and nothing else runs.
 extends "res://../tests/godot/base.gd"
 
 ## The Copernicus WorldDEM-30 licence's lines (b) and (c), word for word (iaf-2026/docs/terrain.md §5).
@@ -46,6 +47,7 @@ func run() -> void:
 			"%s: stays on Welcome, the picker shows it" % lang
 		)
 		check(w.next_button.text == ("הבא" if lang == "he" else "Next"), "%s: Next's label" % lang)
+		check(w.PAGES.size() == 4, "%s: four pages" % lang)
 		var all_text := ""
 		for p in w.PAGES.size():
 			w.show_page(p)
@@ -53,16 +55,37 @@ func run() -> void:
 			all_text += _texts(w)
 		for banned in ["Jane", "1998", "iafjets", "reborn"]:
 			check(not banned.to_lower() in all_text.to_lower(), "%s: no page names %s" % [lang, banned])
-		check(LINE_B in all_text, "%s: Copernicus line (b) verbatim" % lang)
-		check(LINE_C in all_text, "%s: Copernicus line (c) verbatim" % lang)
+		# The Attributions: a modal dialog from Welcome's button.
+		w.show_page(0)
+		var d: AcceptDialog = w.credits_dialog
+		check(not d.visible, "%s: the Attributions are closed at first" % lang)
+		var b: Button = w.find_child("Credits", true, false)
+		check(b != null and b.text == ("קרדיט" if lang == "he" else "Attributions"), "%s: the button" % lang)
+		b.pressed.emit()
+		await frames(2)
+		check(d.visible and d.exclusive, "%s: the button opens the modal" % lang)
+		check(d.is_layout_rtl() == (lang == "he"), "%s: the modal's direction" % lang)
+		var credits := _texts(d)
+		check(LINE_B in credits, "%s: Copernicus line (b) verbatim" % lang)
+		check(LINE_C in credits, "%s: Copernicus line (c) verbatim" % lang)
 		for name in [
 			"OpenStreetMap", "Sentinel", "Survey of Israel", "Piper", "FlightGear", "TP-1538", "Heebo", "ikbenraar"
 		]:
-			check(name in all_text, "%s: the attributions name %s" % [lang, name])
+			check(name in credits, "%s: the attributions name %s" % [lang, name])
+		var esc := InputEventKey.new()
+		esc.keycode = KEY_ESCAPE
+		esc.physical_keycode = KEY_ESCAPE
+		esc.pressed = true
+		get_root().push_input(esc)
+		await frames(2)
+		check(not d.visible, "%s: Esc closes the modal" % lang)
+		b.pressed.emit()
+		await frames(2)
+		d.get_ok_button().pressed.emit()
+		await frames(2)
+		check(not d.visible and d.get_ok_button().text == ("סגירה" if lang == "he" else "Close"), "%s: Close" % lang)
 		if lang == "he":
-			for word in [
-				"התקנה", "הקודם", "סיום", "קרדיט", "כנף 25 רמון", "כנף 6 חצרים", "כנף 28 נבטים", "כנף 1 רמת דוד"
-			]:
+			for word in ["התקנה", "הקודם", "סיום", "תצלומי לוויין"]:
 				check(word in all_text, "he: the approved wording %s" % word)
 	check((w.theme.default_font as FontVariation).base_font.get_font_name() == "Heebo", "the Heebo font is loaded")
 	w.show_page(1)
@@ -73,7 +96,7 @@ func run() -> void:
 	check(w.s2_check.button_pressed, "Sentinel-2 everywhere is chosen")
 	w._on_back()
 	check(w.page == 0, "Back goes to Welcome")
-	w.show_page(3)
+	w.show_page(2)
 	check(w.next_button.text == "התקנה" and not w.next_button.disabled, "Install waits for the button")
 	check(
 		w.rows.keys() == ["sim-terrain", "sim-db", "sim-fm", "sim-own", "sim-airbases", "sim-missions"],
@@ -93,17 +116,19 @@ func run() -> void:
 	# A finished run (as IafSetup.poll ends one), then the language changes: Install and Done still show it.
 	w.finished = true
 	w.failed = ""
-	w.last_steps = IafSetup.sim_plan(false).map(func(st): return {"id": st.id, "title": st.title, "state": "done", "fraction": 1.0})
+	w.last_steps = IafSetup.sim_plan(false).map(
+		func(st): return {"id": st.id, "title": st.title, "state": "done", "fraction": 1.0}
+	)
 	w._show_result()
 	w.set_language("en")
 	check(
-		w.page == 3 and w.rows["sim-missions"].state.text == "done" and w.next_button.text == "Next",
+		w.page == 2 and w.rows["sim-missions"].state.text == "done" and w.next_button.text == "Next",
 		"a finished run survives the language change"
 	)
 	check(w.done_label.text == "IAF 2026 is set up.", "Done says so")
 	w._on_back()
-	check(w.page == 2 and not w.finished, "Back from Install forgets the run")
-	w.show_page(3)
+	check(w.page == 1 and not w.finished, "Back from Install forgets the run")
+	w.show_page(2)
 	check(
 		w.next_button.text == "Install" and w.rows["sim-missions"].state.text != "done",
 		"changed choices can be installed"

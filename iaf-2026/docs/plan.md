@@ -59,6 +59,7 @@ here, dated.
 
 - Every enhancement is shared by both games, never sim-only.
 - Technical docs follow the ISO plain-language rule, KISS and doclint, and never say what does not exist.
+- UI text and docs never state the obvious or describe what is not a choice; a page says only what the user decides or must know (the user, 8 November 2026).
 - Pictures go into the md docs; the artifact pages are not the record.
 - Whatever can be done in Rust is done in Rust.
 - JSON the game reads is compact (no pretty-printing); authored data may be readable.
@@ -181,7 +182,7 @@ Size: M. Blocks on: A1.
 
 ### A3 the setup wizard
 
-**IAF 2026 setup wizard** (`iaf-2026/setup/`): new pages and options, no Jane's mentions, reuse the `IafSetup` bridge and progress / cancel pattern of `game/setup`; Attributions page; Hebrew and English. **Done (2026-11-03, branch wt/iaf-2026-wizard):** `./iaf2026-setup` (and `./iaf2026` without the sim's data) opens the wizard: Welcome (language, what it builds, sizes and times, the GDAL / curl / disk check), Imagery and airbases (Sentinel-2, or with the Survey of Israel when its sheets are there), Attributions (the Copernicus lines word for word), Install (progress per step, cancel, resume), Done; English and mirrored Hebrew in Heebo; the look in one file (Godot's default theme until the user's round 3); the steps `iaf_setup::sim_plan` / `sim_run` with stamps; `test_setup_wizard.gd`; a real run ([setup.md](setup.md)). **Open:** the look (round 3)
+**IAF 2026 setup wizard** (`iaf-2026/setup/`): new pages and options, no Jane's mentions, reuse the `IafSetup` bridge and progress / cancel pattern of `game/setup`; Attributions page; Hebrew and English. **Done (2026-11-03, branch wt/iaf-2026-wizard):** `./iaf2026-setup` (and `./iaf2026` without the sim's data) opens the wizard: Welcome (language, what it builds, sizes and times, the GDAL / curl / disk check, the Attributions button: a modal with the Copernicus lines word for word, since 2026-11-08), Imagery (Sentinel-2, or with the Survey of Israel when its sheets are there), Install (progress per step, cancel, resume), Done; English and mirrored Hebrew in Heebo; the look in one file (Godot's default theme until the user's round 3); the steps `iaf_setup::sim_plan` / `sim_run` with stamps; `test_setup_wizard.gd`; a real run ([setup.md](setup.md)). **Open:** the look (round 3)
 
 Size: L. Blocks on: A2.
 

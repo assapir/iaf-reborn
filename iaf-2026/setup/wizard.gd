@@ -1,24 +1,22 @@
 # IAF 2026's setup wizard (iaf-2026/docs/setup.md): builds the sim's data under assets/ through IafSetup's sim_start
 # (crates/iaf-godot/src/setup.rs, iaf_setup::sim_run: the iaf-sim steps with their stamps). Pages: Welcome (language,
-# what it builds, sizes, the GDAL check) → Choices (imagery, airbases) → Attributions → Install → Done. English and
-# Hebrew (strings_<lang>.json, Settings.language); in Hebrew every control is mirrored (layout_direction RTL). The look
-# is wizard_theme.gd alone (Godot's default dark theme with Heebo). Opened by ./iaf2026-setup and by ./iaf2026 without
-# the sim's data.
+# what it builds, sizes, the requirements, the Attributions button) → Imagery → Install → Done; the Attributions open
+# as a modal dialog over the page. English and Hebrew (strings_<lang>.json, Settings.language); in Hebrew every
+# control is mirrored (layout_direction RTL). The look is wizard_theme.gd alone (Godot's default dark theme with
+# Heebo). Opened by ./iaf2026-setup and by ./iaf2026 without the sim's data.
 extends Control
 
 const WizardTheme := preload("res://setup/wizard_theme.gd")
 const WizardUtil := preload("res://shared/util/wizard_util.gd")
 
 const TITLE := "IAF 2026"
-const PAGES := ["welcome", "choices", "credits", "install", "done"]
+const PAGES := ["welcome", "imagery", "install", "done"]
 const DEM_GB := 0.627
 const THEATRE_S2_GB := 0.45
 const THEATRE_SURVEY_GB := 3.57
 const OTHER_GB := 0.02
 const TIME_S2_MIN := 26
 const TIME_SURVEY_MIN := 102
-## Ramon, Ramat David, Nevatim, Hatzerim (iaf-2026/data/airbases), with the jet each is home to (strings jet_<id>).
-const BASES := ["ramon", "ramat_david", "nevatim", "hatzerim"]
 ## Every source the sim is built from, with its licence line as the licence asks for it (the Copernicus lines
 ## verbatim, terrain.md §5; sound.md §6; docs/credits.md "IAF 2026 data"): [name, strings key of its use, lines].
 const CREDITS := [
@@ -136,6 +134,8 @@ var req_ok := false
 var s2_check: CheckBox
 var survey_check: CheckBox
 var install_note: Label
+## The Attributions, a modal dialog opened from Welcome (Esc or Close closes it).
+var credits_dialog: AcceptDialog
 var redo_check: CheckBox
 var rows_box: VBoxContainer
 var rows := {}
@@ -227,7 +227,7 @@ func _build() -> void:
 	var body := MarginContainer.new()
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(body)
-	for f in [_page_welcome, _page_choices, _page_credits, _page_install, _page_done]:
+	for f in [_page_welcome, _page_imagery, _page_install, _page_done]:
 		var p: Control = f.call()
 		# Every page scrolls in the body, so the footer stays in the window; Install scrolls its own step list.
 		if p.name != "Install":
@@ -257,6 +257,8 @@ func _build() -> void:
 			log_button.text = s("hide_log") if log_view.visible else s("show_log")
 	)
 	next_button = _button(foot, "", _on_next)
+	credits_dialog = _credits_dialog()
+	add_child(credits_dialog)
 
 
 ## A label in one of the theme's text kinds (wizard_theme.gd: "", "Title", "Heading", "Muted", "Note", "Readout",
@@ -331,17 +333,17 @@ func _page_welcome() -> Control:
 		_label(c, box[1], "Readout")
 		_text(c, box[2], "Note")
 		_card(row, c).size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	# What this computer needs: GDAL and curl, and the space.
+	# What this computer needs: GDAL, curl, Python 3 and the space.
 	var req := _vbox(4)
 	req.name = "Requirements"
 	_label(req, s("needs"), "Muted")
 	_card(row, req).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var hint := s({"macOS": "hint_mac", "Windows": "hint_windows"}.get(OS.get_name(), "hint_linux"))
 	req_ok = true
-	for t in [["gdal", "gdal_why"], ["curl", "curl_why"], ["python3", "python_why"]]:
+	for t in [["gdal", "GDAL"], ["curl", "curl"], ["python3", "Python 3"]]:
 		var here: bool = tools.get(t[0], false)
 		req_ok = req_ok and here
-		_text(req, "%s: %s" % [s(t[1]), s("found") if here else s("missing")], "Note")
+		_text(req, "%s: %s" % [t[1], s("found") if here else s("missing")], "Note")
 	if not req_ok:
 		_text(req, hint, "Note")
 	var free := WizardUtil.free_gb(assets)
@@ -352,45 +354,27 @@ func _page_welcome() -> Control:
 		var t := (s("free") % _gb(free)) if enough else (s("free_low") % [_gb(free), _gb(need)])
 		_text(req, t, "Note")
 		req_ok = req_ok and enough
+	var credits_row := HBoxContainer.new()
+	v.add_child(credits_row)
+	_button(credits_row, s("credits"), func(): credits_dialog.popup_centered(Vector2i(900, 560))).name = "Credits"
 	return v
 
 
-func _page_choices() -> Control:
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 28)
-	var left := _vbox(8)
-	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.size_flags_stretch_ratio = 3
-	h.add_child(left)
-	_label(left, s("imagery"), "Heading")
+func _page_imagery() -> Control:
+	var v := _vbox(8)
 	var group := ButtonGroup.new()
-	s2_check = _choice(left, group, s("s2"), s("s2_note") % [_gb(THEATRE_S2_GB), _duration(TIME_S2_MIN * 60)], true)
+	s2_check = _choice(v, group, s("s2"), s("s2_note") % [_gb(THEATRE_S2_GB), _duration(TIME_S2_MIN * 60)], true)
 	var note := (
 		(s("survey_note") % [sheets, _gb(THEATRE_SURVEY_GB), _duration(TIME_SURVEY_MIN * 60)])
 		if sheets > 0
 		else s("survey_needs") % "assets/source/imagery/mapi2015"
 	)
-	survey_check = _choice(left, group, s("survey"), note, sheets > 0)
+	survey_check = _choice(v, group, s("survey"), note, sheets > 0)
 	survey_check.button_pressed = survey
 	s2_check.button_pressed = not survey
 	for c in [s2_check, survey_check]:
 		c.toggled.connect(func(_on): _on_choice())
-	var right := _vbox(8)
-	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right.size_flags_stretch_ratio = 2
-	h.add_child(right)
-	_label(right, s("bases"), "Heading")
-	var list := _vbox(6)
-	_card(right, list)
-	# Every base is built; a base's jet under its name (Hatzerim has none in the sim).
-	for b in BASES:
-		var item := _vbox(0)
-		list.add_child(item)
-		_label(item, s("base_" + b))
-		if strings.has("jet_" + b):
-			_label(item, s("jet_" + b), "Note")
-	_text(right, s("bases_note"), "Note")
-	return h
+	return v
 
 
 ## An imagery choice: a radio button in a card with its note.
@@ -411,9 +395,20 @@ func _on_choice() -> void:
 	survey = survey_check.button_pressed and not survey_check.disabled
 
 
-func _page_credits() -> Control:
+## The Attributions dialog: every source and its licence lines, scrolling; mirrored in Hebrew.
+func _credits_dialog() -> AcceptDialog:
+	var d := AcceptDialog.new()
+	d.name = "Attributions"
+	d.title = s("credits")
+	d.ok_button_text = s("close")
+	d.exclusive = true
+	d.set_layout_direction(Window.LAYOUT_DIRECTION_RTL if Settings.language == "he" else Window.LAYOUT_DIRECTION_LTR)
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	d.add_child(scroll)
 	var v := _vbox(8)
-	_text(v, s("credits_intro"), "Muted")
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(v)
 	for c in CREDITS:
 		var box := _vbox(2)
 		var head := HBoxContainer.new()
@@ -427,7 +422,7 @@ func _page_credits() -> Control:
 			var l := _text(box, line, "Note")
 			l.text_direction = Control.TEXT_DIRECTION_LTR
 		_card(v, box)
-	return v
+	return d
 
 
 func _page_install() -> Control:
@@ -460,16 +455,13 @@ func _page_done() -> Control:
 	var win := OS.get_name() == "Windows"
 	_text(v, s("how_start"), "Muted")
 	_code(v, ".\\iaf2026.ps1" if win else "./iaf2026")
-	_text(v, s("missions"), "Muted")
-	for k in ["mission_start", "mission_takeoff"]:
-		_card(v, _label(null, s(k)))
 	_text(v, s("mission_cmd"), "Muted")
 	var run := ".\\iaf2026.ps1 --mission" if win else "./iaf2026 -- --mission"
 	for m in [["mission_start", "2011 / 2021 / 2031"], ["mission_takeoff", "2012 / 2022 / 2032"]]:
 		var h := HBoxContainer.new()
 		h.add_theme_constant_override("separation", 16)
 		v.add_child(h)
-		_label(h, s(m[0]).get_slice(":", 0), "Muted").custom_minimum_size.x = 80
+		_label(h, s(m[0]), "Muted").custom_minimum_size.x = 80
 		_code(h, "%s %s" % [run, m[1]])
 	_text(v, s("again"), "Note")
 	_code(v, ".\\iaf2026-setup.ps1" if win else "./iaf2026-setup")
@@ -499,11 +491,11 @@ func show_page(n: int) -> void:
 	title_label.text = s("page_" + PAGES[page])
 	page_label.text = "%d / %d" % [page + 1, PAGES.size()]
 	lang_pick.get_parent().visible = page == 0
-	if PAGES[page] == "choices":
+	if PAGES[page] == "imagery":
 		_on_choice()
 	if PAGES[page] == "install" and not running and not finished:
 		_fill_rows(IafSetup.sim_plan(survey))
-		install_note.text = s("ready")
+		_note("")
 		_preview()
 	_update()
 
@@ -529,7 +521,7 @@ func _update() -> void:
 func _on_back() -> void:
 	if running:
 		setup.cancel()
-		install_note.text = s("cancelling")
+		_note(s("cancelling"))
 		return
 	# Leaving Install forgets the last run: changed choices can be installed.
 	if PAGES[page] == "install":
@@ -549,6 +541,12 @@ func _on_next() -> void:
 			get_tree().quit()
 		_:
 			show_page(page + 1)
+
+
+## The Install page's status line, hidden while it is empty.
+func _note(t: String) -> void:
+	install_note.text = t
+	install_note.visible = t != ""
 
 
 func _fill_rows(steps: Array) -> void:
@@ -615,11 +613,11 @@ func start_install() -> void:
 	var redo := PackedStringArray(["*"] if redo_check.button_pressed else [])
 	var err: String = setup.sim_start(assets, repo, survey, redo, log_file)
 	if err != "":
-		install_note.text = s("not_started") % err
+		_note(s("not_started") % err)
 		return
 	running = true
 	log_view.text = "%s\n" % log_file
-	install_note.text = s("installing")
+	_note(s("installing"))
 	_update()
 
 
@@ -650,9 +648,7 @@ func _process(_delta: float) -> void:
 func _show_result() -> void:
 	_fill_rows(last_steps)
 	var up: int = last_steps.filter(func(st): return st.state == "up_to_date").size()
-	install_note.text = (
-		(s("stopped") % [failed, log_file]) if failed != "" else s("finished") % [last_steps.size() - up, up]
-	)
+	_note((s("stopped") % [failed, log_file]) if failed != "" else s("finished") % [last_steps.size() - up, up])
 	done_label.text = s("set_up") if failed == "" else s("not_set_up") % failed
 	if failed != "":
 		log_view.visible = true
