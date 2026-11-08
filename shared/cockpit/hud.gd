@@ -97,7 +97,7 @@ func _process(_delta: float) -> void:
 
 
 ## Loads a HUD / display raster font (BMFont, Settings.hud_font_path: the original's converted by `iaf-convert fonts`),
-## scalable; a .ttf / .otf there (IAF 2026's) as an outline font.
+## scalable; a .ttf / .otf there (Modern IAF's) as an outline font.
 static func load_original_font(name: String) -> FontFile:
 	var path: String = Settings.hud_font_path(name)
 	var f := FontFile.new()

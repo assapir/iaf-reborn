@@ -326,7 +326,7 @@ func _lighting() -> void:
 	_sun_split()
 	var c := Color.BLACK
 	_backlight_on(cockpit.night)
-	# Unpowered (cockpit.power below 2: IAF 2026's cold jet) every screen is dark; written when the power changes (the
+	# Unpowered (cockpit.power below 2: Modern IAF's cold jet) every screen is dark; written when the power changes (the
 	# MFDs below, as every frame, with their night level).
 	var on: float = 1.0 if cockpit.power == 2 else 0.0
 	if cockpit.power != _power_shown:

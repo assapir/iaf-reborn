@@ -182,7 +182,7 @@ impl IafSetup {
     /// Starts a background job (gdext objects can only be called on the main thread, so the slow checks run here);
     /// `result(job)` gives its answer. `job` is a kind, optionally with `#<anything>` after it:
     /// - "preview" [assets, repo, inputs JSON]: {step id: true when a run would find it up to date} (reads the inputs);
-    /// - "sim_preview" [assets, repo, survey "1" | "0"]: the same for IAF 2026's steps;
+    /// - "sim_preview" [assets, repo, survey "1" | "0"]: the same for Modern IAF's steps;
     /// - "scan" [folder]: {"english" | "hebrew" | "patch" | "brief" | "menu": path} found in it (`iaf_setup::scan`);
     /// - "stale" [assets, layer ids…]: the imagery units older rules made, -1 when it cannot tell (e.g. offline).
     #[func]
@@ -286,7 +286,7 @@ impl IafSetup {
         GString::new()
     }
 
-    /// IAF 2026's plan (`iaf_setup::sim_plan`): [{id, title, required}].
+    /// Modern IAF's plan (`iaf_setup::sim_plan`): [{id, title, required}].
     #[func]
     fn sim_plan(survey: bool) -> VarArray {
         iaf_setup::sim_plan(&SimInputs { survey })
@@ -302,13 +302,13 @@ impl IafSetup {
         iaf_tools::sim_terrain::s2_cached_bytes(&cache) as i64
     }
 
-    /// The Survey of Israel sheet ZIPs already under `assets` (IAF 2026's Survey choice needs them).
+    /// The Survey of Israel sheet ZIPs already under `assets` (Modern IAF's Survey choice needs them).
     #[func]
     fn survey_sheets(assets: GString) -> i64 {
         iaf_setup::survey_sheets(&PathBuf::from(assets.to_string())) as i64
     }
 
-    /// Starts IAF 2026's setup (`iaf_setup::sim_run`) on its own thread, as `start` does the original's; `poll` and
+    /// Starts Modern IAF's setup (`iaf_setup::sim_run`) on its own thread, as `start` does the original's; `poll` and
     /// `cancel` serve both.
     #[func]
     fn sim_start(

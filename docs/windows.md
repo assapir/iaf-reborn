@@ -30,7 +30,7 @@ The Godot projects `iaf-reborn/` and `iaf-2026/` reach the engine folders in `sh
 committed link. `launch.ps1` runs it before every start; after a clone, run it by hand before starting Godot directly.
 
 `.\iafjets.ps1 --mission 311` passes its arguments to the game, as `./iafjets -- --mission 311` does;
-`.\mission-editor.ps1` starts the mission editor. `.\iaf2026.ps1` and `.\iaf2026-setup.ps1` start Modern IAF and its
+`.\mission-editor.ps1` starts the mission editor. `.\modern-iaf.ps1` and `.\modern-iaf-setup.ps1` start Modern IAF and its
 setup wizard (iaf-2026/docs/setup.md). All five run `tools/windows/launch.ps1`.
 
 `tools\windows\setup-cli.ps1` is the scripted setup. It runs the wizard's pipeline through `iaf-setup`, so it takes
@@ -85,7 +85,7 @@ em dash in one breaks its parsing.
 
 | area | Windows | Linux |
 |---|---|---|
-| scripts | `.\setup.ps1`, `.\iafjets.ps1`, `.\mission-editor.ps1`, `.\iaf2026.ps1`, `.\iaf2026-setup.ps1` | `./setup`, `./iafjets`, `./mission-editor`, `./iaf2026`, `./iaf2026-setup` |
+| scripts | `.\setup.ps1`, `.\iafjets.ps1`, `.\mission-editor.ps1`, `.\modern-iaf.ps1`, `.\modern-iaf-setup.ps1` | `./setup`, `./iafjets`, `./mission-editor`, `./modern-iaf`, `./modern-iaf-setup` |
 | launcher | setup adds "Jane's IAF (reborn)" and its Setup to the Start Menu (`tools/windows/install-launcher.ps1`) | setup installs a `.desktop` file |
 | fonts | Arial ships with Windows | Liberation Sans is the fallback for Arial |
 | user data | `%APPDATA%\Godot\app_userdata\iaf-reborn\` | `~/.local/share/godot/app_userdata/iaf-reborn/` |

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Runs every test: Rust unit/validation tests, the headless Godot tests in tests/godot (the original game) and
-# iaf-2026/tests (IAF 2026), then gdparse on both projects.
+# iaf-2026/tests (Modern IAF), then gdparse on both projects.
 # Needs the converted assets (tools/setup-cli.sh). Tests never touch the player's settings
 # (IAF_DEFAULT_SETTINGS=1) and open no window.
 set -uo pipefail
@@ -13,7 +13,7 @@ python3 -I tests/test_flight_timeline.py || fail=1
 echo "== cargo test"
 cargo test -q --workspace 2>&1 | grep -E "test result|FAILED|panicked" || fail=1
 cargo build -q --release -p iaf-godot || fail=1
-# test_sim_data.gd compiles IAF 2026's data with it.
+# test_sim_data.gd compiles Modern IAF's data with it.
 cargo build -q --release -p iaf-tools --bin iaf-sim || fail=1
 for t in tests/godot/test_*.gd; do
 	echo "== $t"
@@ -28,7 +28,7 @@ for t in tests/godot/test_*.gd; do
 	echo "$out" | grep -q "RESULT PASS" || fail=1
 	echo "$out" | grep -q "SCRIPT ERROR" && { echo "FAIL script errors"; fail=1; }
 done
-# IAF 2026's tests in its own project; NEEDS DATA (the sim's data not built yet, iaf-2026/docs/status.md) is no failure.
+# Modern IAF's tests in its own project; NEEDS DATA (the sim's data not built yet, iaf-2026/docs/status.md) is no failure.
 for t in iaf-2026/tests/test_*.gd; do
 	echo "== $t"
 	# Its setup wizard's test, as the original's: an empty scratch folder for assets/.

@@ -1,6 +1,2 @@
 #!/usr/bin/env bash
-# Modern IAF's setup wizard (iaf-2026/docs/setup.md): checks for Rust (cargo) and Godot, builds the extension, then opens
-# the wizard's window (tools/launch-wizard.sh), which builds the sim's data into assets/. Run it again at any time:
-# the finished steps are kept. The scripted way (iaf-2026/docs/setup.md §3): `iaf-sim terrain`,
-# `python3 -I tools/iaf-2026/fm0.py --out assets/converted/own/resource/md`, then `iaf-sim all`.
-exec "$(dirname "$0")/tools/launch-wizard.sh" iaf-2026 "Modern IAF — Setup" 1100x720
+echo "./iaf2026-setup is now ./modern-iaf-setup" >&2; exec "$(dirname "$0")/modern-iaf-setup" "$@"

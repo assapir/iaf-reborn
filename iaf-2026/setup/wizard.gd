@@ -3,7 +3,7 @@
 # what it builds, sizes, the requirements, the Attributions button) → Imagery → Install → Done; the Attributions open
 # as a modal dialog over the page. English and Hebrew (strings_<lang>.json, Settings.language); in Hebrew every
 # control is mirrored (layout_direction RTL). The look is wizard_theme.gd alone (Godot's default dark theme with
-# Heebo). Opened by ./iaf2026-setup and by ./iaf2026 without the sim's data.
+# Heebo). Opened by ./modern-iaf-setup and by ./modern-iaf without the sim's data.
 extends Control
 
 const WizardTheme := preload("res://setup/wizard_theme.gd")
@@ -161,7 +161,7 @@ var done_label: Label
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	get_window().title = "%s — %s" % [TITLE, "Setup"]
-	# The window: 1100×720 times the UI scale, centred (./iaf2026-setup starts it at 1100×720).
+	# The window: 1100×720 times the UI scale, centred (./modern-iaf-setup starts it at 1100×720).
 	(func(): WizardUtil.resize_window(self, Vector2i(1100, 720))).call_deferred()
 	assets = Settings.assets_dir()
 	repo = ProjectSettings.globalize_path("res://").path_join("..").simplify_path()
@@ -476,9 +476,9 @@ func _page_done() -> Control:
 	done_label = _text(v, "", "Heading")
 	var win := OS.get_name() == "Windows"
 	_text(v, s("how_start"), "Muted")
-	_code(v, ".\\iaf2026.ps1" if win else "./iaf2026")
+	_code(v, ".\\modern-iaf.ps1" if win else "./modern-iaf")
 	_text(v, s("mission_cmd"), "Muted")
-	var run := ".\\iaf2026.ps1 --mission" if win else "./iaf2026 -- --mission"
+	var run := ".\\modern-iaf.ps1 --mission" if win else "./modern-iaf -- --mission"
 	for m in [["mission_start", "2011 / 2021 / 2031"], ["mission_takeoff", "2012 / 2022 / 2032"]]:
 		var h := HBoxContainer.new()
 		h.add_theme_constant_override("separation", 16)
@@ -486,7 +486,7 @@ func _page_done() -> Control:
 		_label(h, s(m[0]), "Muted").custom_minimum_size.x = 80
 		_code(h, "%s %s" % [run, m[1]])
 	_text(v, s("again"), "Note")
-	_code(v, ".\\iaf2026-setup.ps1" if win else "./iaf2026-setup")
+	_code(v, ".\\modern-iaf-setup.ps1" if win else "./modern-iaf-setup")
 	return v
 
 
@@ -631,7 +631,7 @@ func start_install() -> void:
 	failed = ""
 	finished = false
 	var stamp := Time.get_datetime_string_from_system().replace(":", "").replace("T", "-")
-	log_file = assets.path_join("logs/iaf2026-setup-%s.log" % stamp)
+	log_file = assets.path_join("logs/modern-iaf-setup-%s.log" % stamp)
 	var redo := PackedStringArray(["*"] if redo_check.button_pressed else [])
 	var err: String = setup.sim_start(assets, repo, survey, redo, log_file)
 	if err != "":

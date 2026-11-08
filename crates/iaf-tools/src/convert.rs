@@ -1232,7 +1232,7 @@ pub fn icon(install: &Path, out: &Path, pr: &dyn Progress, cancel: &AtomicBool) 
     Ok(())
 }
 
-/// The keys of the index file `path` that `index` does not hold (another tool's: IAF 2026's "sim.bdb", written by
+/// The keys of the index file `path` that `index` does not hold (another tool's: Modern IAF's "sim.bdb", written by
 /// `iaf-sim db`) kept in `index`; a missing file keeps none, any other read error fails.
 fn keep_others(path: &Path, index: &mut serde_json::Map<String, serde_json::Value>) -> Result<()> {
     let old: serde_json::Map<String, serde_json::Value> = match std::fs::read_to_string(path) {
@@ -1248,7 +1248,7 @@ fn keep_others(path: &Path, index: &mut serde_json::Map<String, serde_json::Valu
 
 #[cfg(test)]
 mod tests {
-    /// Rerunning `iaf-convert objects` keeps the index keys it did not write (IAF 2026's "sim.bdb").
+    /// Rerunning `iaf-convert objects` keeps the index keys it did not write (Modern IAF's "sim.bdb").
     #[test]
     fn objects_index_keeps_other_tools_keys() {
         let dir = std::env::temp_dir().join(format!("iaf-objects-keep-{}", std::process::id()));

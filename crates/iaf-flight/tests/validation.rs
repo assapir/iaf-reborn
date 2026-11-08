@@ -731,7 +731,7 @@ fn report(dir: &std::path::Path, r: &Ref, set: DataSet) {
     }
 }
 
-// --- The IAF 2026 sim's 6-DoF (iaf-2026/docs/flight-model.md §9.13) ----------------------------------------------
+// --- The Modern IAF sim's 6-DoF (iaf-2026/docs/flight-model.md §9.13) ----------------------------------------------
 
 /// A 6-DoF flight of `jet` at `alt_ft`, `speed_kt` (level trim), or standing on a runway at sea level (`speed_kt` 0).
 fn sixdof(jet: iaf_flight::sixdof::jets::Jet, alt_ft: f32, speed_kt: f32) -> iaf_flight::sixdof::flight::SixDof {

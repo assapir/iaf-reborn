@@ -1,4 +1,4 @@
-//! The IAF 2026 6-DoF's aerodynamics (NASA TP-1538's tables) against the trim points published for them
+//! The Modern IAF 6-DoF's aerodynamics (NASA TP-1538's tables) against the trim points published for them
 //! (iaf-2026/docs/flight-model.md §9.4): the report's own statements about its pitching moment (text p. 19,
 //! figure 10) and the Stevens & Lewis F-16 model's wings-level trim, which uses a reduced set of the same
 //! wind-tunnel data. `cargo test -p iaf-flight --test sixdof -- --nocapture` prints the results.

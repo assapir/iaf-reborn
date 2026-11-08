@@ -213,7 +213,7 @@ impl SixDof {
     }
 
     /// The engine on or off at once (the original's meaning: any throttle command starts it, the ejection stops it),
-    /// the electrical power unchanged. IAF 2026's start goes through [`SixDof::start_engine`] instead.
+    /// the electrical power unchanged. Modern IAF's start goes through [`SixDof::start_engine`] instead.
     pub fn set_engine_on(&mut self, on: bool) {
         self.engine_on = on;
         if on {

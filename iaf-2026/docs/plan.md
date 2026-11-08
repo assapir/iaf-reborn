@@ -28,7 +28,7 @@ here, dated.
    mission's goals.
 5. Clean screens: Preferences as a list of sections, each its own screen, with no aids anywhere; the default view at
    the design eye point; the pause overlay laid out right on the first frame; F1–F4 only for views; the sim's own log
-   lines and settings; the wizard's Done page and the README pointing at `./iaf2026`; the roads probe ([F](#f-the-probe)) not tripping the
+   lines and settings; the wizard's Done page and the README pointing at `./modern-iaf`; the roads probe ([F](#f-the-probe)) not tripping the
    gate.
 
 Then the look, one step at a time, each with before / after pictures. The reference is the user's screenshot of Epic
@@ -60,7 +60,7 @@ Rules that hold:
 | topic | decision |
 |---|---|
 | name | **IAF 2026**: folder `iaf-2026/`, window title and wizard "IAF 2026" (renamed on 8 November 2026, below) |
-| launchers | all at the repo root, beside today's `./iafjets`, `./setup`, `./mission-editor`: `./iaf2026` and `./iaf2026-setup` (+ `.ps1` twins); same build step (`cargo build --release -p iaf-godot`). Named without the dash because a file cannot share the `iaf-2026/` folder's name (2026-11-02) |
+| launchers | all at the repo root, beside today's `./iafjets`, `./setup`, `./mission-editor`: `./iaf2026` and `./iaf2026-setup` (+ `.ps1` twins); same build step (`cargo build --release -p iaf-godot`). Named without the dash because a file cannot share the `iaf-2026/` folder's name (2026-11-02). Renamed `./modern-iaf` and `./modern-iaf-setup` on 8 November 2026 (below) |
 | assets | **one `assets/` root, fully mixed**: the sim's built data lives in the same `converted/` tree beside the original's under its own names (e.g. `converted/terrain/israel/`, `converted/missions/iaf-2026/`, `converted/own/` for the mirrored `resource/` layout); the models, imagery, scenery, roads and textures already there are used by both; downloads shared in `assets/source/` and `assets/thirdparty/`. The sim never reads `assets/install/` |
 | home | this repo, **three folders**: `shared/` (the engine GDScript, scenes, shaders, own models), `iaf-reborn/` (today's `game/`: the original game's front end, 2D cockpits, setup wizard, editor, viewer) and `iaf-2026/` (the sim); the Rust crates stay in `crates/` shared by both; no new repo |
 | progress | a new artifact page **"IAF 2026 Progress"**: every item's pictures (the real-render shots, cockpit and external, all settings on) go there in the item's section before the item counts as done |
@@ -103,7 +103,7 @@ Rules that hold:
 
 | topic | decision |
 |---|---|
-| name | **Modern IAF** in English, **הזרוע הארוכה** in Hebrew: two titles, neither a translation of the other (as the original was Jane's IAF / כוכב כחול); no tagline. The window title, the wizard, the setup's texts and log, the launchers' messages and the docs carry it. The folder `iaf-2026/`, the launchers `./iaf2026` / `./iaf2026-setup` (+ `.ps1` twins), the crate and bin names (`iaf-sim`), the test names, `converted/iaf-2026/` and the item codes stay unchanged as code identifiers. The `user://` folder follows `config/name` ("Modern IAF"); no records existed under the old name, so nothing moves. |
+| name | **Modern IAF** in English, **הזרוע הארוכה** in Hebrew: two titles, neither a translation of the other (as the original was Jane's IAF / כוכב כחול); no tagline. The window title, the wizard, the setup's texts and log, the launchers' messages and the docs carry it. The launchers are `./modern-iaf` and `./modern-iaf-setup` (+ `.ps1` twins); `./iaf2026` and `./iaf2026-setup` (+ `.ps1`) stay as two-line forwarders that print the new name and start it, so old habits and older docs keep working. Every source comment and string a human reads says "Modern IAF" (the terrain download's User-Agent too), and the setup log is `assets/logs/modern-iaf-setup-<stamp>.log`. The folder `iaf-2026/`, the crate and bin names (`iaf-sim`), the test file names, `converted/iaf-2026/`, `tools/iaf-2026/` and the item codes stay unchanged: code identifiers the player never sees, and renaming them would move the user's built data and every link in the docs. Dated history lines (the Done notes, the decisions of 2 November) keep the names of their day. The `user://` folder follows `config/name` ("Modern IAF"); no records existed under the old name, so nothing moves. |
 
 ## Rules (the user, 3 November 2026)
 
@@ -123,7 +123,7 @@ Rules that hold:
 - Learn from the reborn game's solved problems before building new; the ground look is the first case (item [B4](#b4-ground-look-parity)).
 
 ## MVP: what "done" means
-`./iaf2026` (repo root) starts from the shared `assets/` root, reads nothing under `assets/install/` and no
+`./modern-iaf` (repo root) starts from the shared `assets/` root, reads nothing under `assets/install/` and no
 file converted from the ISO, on all three platforms, and:
 1. The wizard has built the data: DEM, imagery, four airbases, models, sounds, voices; progress and attributions shown.
 2. The front end offers the three jets, each with its home base, and the two training missions; the other screens

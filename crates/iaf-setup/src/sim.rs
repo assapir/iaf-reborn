@@ -1,4 +1,4 @@
-//! IAF 2026's setup steps (iaf-2026/docs/setup.md): the `iaf-sim` compilers as a plan for [`run_graph`], with stamps
+//! Modern IAF's setup steps (iaf-2026/docs/setup.md): the `iaf-sim` compilers as a plan for [`run_graph`], with stamps
 //! like the original game's steps. The terrain first (heights and imagery, downloads), the airbases on it, the
 //! missions on the bases; the database and the sounds beside them.
 

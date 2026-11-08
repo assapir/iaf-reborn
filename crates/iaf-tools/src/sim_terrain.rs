@@ -1,4 +1,4 @@
-//! `iaf-sim terrain` (iaf-2026/docs/terrain.md): IAF 2026's theatre from open data, in the shape `terrain::theatre`
+//! `iaf-sim terrain` (iaf-2026/docs/terrain.md): Modern IAF's theatre from open data, in the shape `terrain::theatre`
 //! writes (docs/formats/ptt.md "Converted layout": colour nodes `L<l>/c_<i>_<j>.jpg`, 16-bit height nodes
 //! `L<l>/h_<i>_<j>.png` for the levels 6–11, `meta.json`), so `shared/terrain/terrain.gd` and `IafHeights` read it
 //! unchanged.
@@ -43,7 +43,7 @@ const JPEG_QUALITY: u8 = 88;
 /// composite's own open-sea tone near Ashdod, iaf-2026/docs/terrain.md §3).
 const SEA: [u8; 3] = [30, 52, 78];
 const DEM_URL: &str = "https://copernicus-dem-30m.s3.amazonaws.com";
-const USER_AGENT: &str = "iaf-reborn IAF 2026 terrain setup (curl)";
+const USER_AGENT: &str = "iaf-reborn Modern IAF terrain setup (curl)";
 pub const ATTRIBUTION: [&str; 3] = [
     "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved",
     "Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium; ESA WorldCover project 2021 (CC BY 4.0)",

@@ -767,7 +767,7 @@ func airframe_def(id: String) -> Dictionary:
 
 
 ## The name the cockpit tables key a cockpit dir (or a Real HUD key) on: the F-16's "f16", the F-4E's "phantom" … (the
-## HUD's, MFD's and gauges' tables, the 3D cockpit's F-16 check): the dir's own name. IAF 2026's Settings map its own
+## HUD's, MFD's and gauges' tables, the 3D cockpit's F-16 check): the dir's own name. Modern IAF's Settings map its own
 ## dirs to the family's (iaf-2026/docs/cockpit.md §4).
 func cockpit_folder(dir: String) -> String:
 	return dir.get_file()
@@ -806,14 +806,14 @@ func hebrew_available() -> bool:
 
 
 ## The file of the HUD's and displays' raster font `name` ("hud", "mfd", "key"; hud.gd load_original_font): the
-## original's, converted by `iaf-convert fonts`. IAF 2026's Settings return its own (iaf-2026/docs/cockpit.md §5).
+## original's, converted by `iaf-convert fonts`. Modern IAF's Settings return its own (iaf-2026/docs/cockpit.md §5).
 func hud_font_path(name: String) -> String:
 	return converted("fonts/%s.fnt" % name)
 
 
 ## The vector font of the real display formats' text: "mono" the F-16's MFD formats and its 3D cockpit's small screens
 ## (f16_mfd.gd, cockpit3d_display.gd), "narrow" the F-35I's panoramic and standby displays (pcd.gd), "hud" the Real
-## HUD's texts (hud.gd _gdi). Here the installed system fonts, bold (the Real HUD's: the GDI's Arial); IAF 2026's
+## HUD's texts (hud.gd _gdi). Here the installed system fonts, bold (the Real HUD's: the GDI's Arial); Modern IAF's
 ## Settings return its own (iaf-2026/docs/cockpit.md §5).
 func display_font(style: String) -> Font:
 	if style == "hud":
@@ -837,7 +837,7 @@ func assets_dir() -> String:
 	return ProjectSettings.globalize_path("res://").path_join("../assets").simplify_path()
 
 
-## The path of `rel` under assets/converted: every shared reader of converted data asks here, so IAF 2026's answer
+## The path of `rel` under assets/converted: every shared reader of converted data asks here, so Modern IAF's answer
 ## (iaf-2026/sim_settings.gd) lets through only its own data. A leading "converted/" is taken off (the data's own
 ## assets-relative paths, e.g. an aircraft definition's "cockpit"). The original game: assets/converted/<rel>.
 func converted(rel: String) -> String:
@@ -845,14 +845,14 @@ func converted(rel: String) -> String:
 
 
 ## True where the 1998 game's effects art is there to draw (the flares', chaff's, trails', afterburner's and gun's
-## muzzle-flash sprites): the original game. IAF 2026 draws them with Img.soft_dot() until its own art comes.
+## muzzle-flash sprites): the original game. Modern IAF draws them with Img.soft_dot() until its own art comes.
 func original_art() -> bool:
 	return true
 
 
 ## The folders under assets/converted holding the aircraft descriptors (aircraft_model.gd: `<plane>/aircraft.json` and
 ## the index `aircraft.json`) and the menu missions (mission_runtime.gd: `missionlist.json` and the missions): the
-## original's converted ones; IAF 2026's own (sim_settings.gd).
+## original's converted ones; Modern IAF's own (sim_settings.gd).
 func planes_folder() -> String:
 	return "planes"
 
@@ -862,13 +862,13 @@ func missions_folder() -> String:
 
 
 ## The object database a mission without its own falls back on (the player type's default load and model scale):
-## the original's default6_1.bdb; IAF 2026's sim.bdb.
+## the original's default6_1.bdb; Modern IAF's sim.bdb.
 func default_bdb() -> String:
 	return "default6_1.bdb"
 
 
 ## The script of the flight's loading screen (terrain_view.gd; a Control with `progress` 0..1 and a static
-## prefetch()): the original's menu art; IAF 2026's own (iaf-2026/flight/loading_screen.gd).
+## prefetch()): the original's menu art; Modern IAF's own (iaf-2026/flight/loading_screen.gd).
 func loading_screen_scene() -> String:
 	return "res://shared/terrain/loading_screen.gd"
 
@@ -878,7 +878,7 @@ func install_dir() -> String:
 	return assets_dir().path_join("install")
 
 
-## The path of `rel` under the install: every shared reader of the install asks here, so IAF 2026's answer
+## The path of `rel` under the install: every shared reader of the install asks here, so Modern IAF's answer
 ## (iaf-2026/sim_settings.gd) refuses it. The original game: assets/install/<rel>.
 func install(rel: String) -> String:
 	return install_dir().path_join(rel)
@@ -886,20 +886,20 @@ func install(rel: String) -> String:
 
 ## The root of the resource layout the flight model, the sounds, the weapons' motion, iaf.ibx, terraintype.dat, the
 ## time of day's colours (defcolorset.tcs) and the missions' score file are read from (resource/md,
-## resource/soundfiles, resource/weaponsmotion, resource/missions/scores.ibx…): the install here; IAF 2026's own
+## resource/soundfiles, resource/weaponsmotion, resource/missions/scores.ibx…): the install here; Modern IAF's own
 ## copy of that layout in its project (iaf-2026/sim_settings.gd).
 func own_dir() -> String:
 	return install_dir()
 
 
 ## The flight-model name the player's jet `type` flies (PlayerAircraft.profile, IafFlight.start's section); "" = the
-## converted aircraft descriptor's `fm_section` (the original game). IAF 2026 answers from its own data
+## converted aircraft descriptor's `fm_section` (the original game). Modern IAF answers from its own data
 ## (iaf-2026/sim_settings.gd).
 func fm_section(_type: int) -> String:
 	return ""
 
 
-## Now as a file name's stamp: YYYY-MM-DD_HH-MM-SS, local (the recordings, the screenshots, IAF 2026's debriefs).
+## Now as a file name's stamp: YYYY-MM-DD_HH-MM-SS, local (the recordings, the screenshots, Modern IAF's debriefs).
 func file_stamp() -> String:
 	return Time.get_datetime_string_from_system().replace("T", "_").replace(":", "-")
 
@@ -910,25 +910,25 @@ func flight_addon(_host: Node) -> Node:
 	return null
 
 
-## The flight recorder's format (docs/blackbox.schema.json `blackbox`): 1 here; IAF 2026's 2 adds the RPM and avionics
+## The flight recorder's format (docs/blackbox.schema.json `blackbox`): 1 here; Modern IAF's 2 adds the RPM and avionics
 ## columns (terrain_view.gd blackbox_columns).
 func blackbox_version() -> int:
 	return 1
 
 
-## Any throttle command starts the engine (the original's rule, FUN_0059f7d0); IAF 2026's start is its own command.
+## Any throttle command starts the engine (the original's rule, FUN_0059f7d0); Modern IAF's start is its own command.
 func throttle_starts_engine() -> bool:
 	return true
 
 
 ## The talking towers' iaf.ibx sections (radio.gd), from the file's `sections`: [] for the original game's ten bases
-## (radio.gd BASES, the first four talking). IAF 2026's: every base of its own iaf.ibx.
+## (radio.gd BASES, the first four talking). Modern IAF's: every base of its own iaf.ibx.
 func tower_bases(_sections: Dictionary) -> Array:
 	return []
 
 
 ## The theatre terrain.gd streams, under assets/: the original's map.ptt converted (`iaf-terrain theatre`). The
-## environment variable IAF_THEATRE=<name> takes converted/terrain/<name> instead, e.g. IAF 2026's UTM theatre
+## environment variable IAF_THEATRE=<name> takes converted/terrain/<name> instead, e.g. Modern IAF's UTM theatre
 ## "israel" in the original game (iaf-2026/docs/terrain.md §6); the sim's own in its project (sim_settings.gd).
 func theatre_dir() -> String:
 	var t := OS.get_environment("IAF_THEATRE")
@@ -936,7 +936,7 @@ func theatre_dir() -> String:
 
 
 ## The airbases' runways, taxi lines and paved masks (airbases.gd, the tower's wind turn): the theatre's own
-## `airbases.json` when it has one (IAF 2026's, `iaf-sim airbases`), else the original's converted one.
+## `airbases.json` when it has one (Modern IAF's, `iaf-sim airbases`), else the original's converted one.
 func airbases_file() -> String:
 	var own := converted(theatre_dir().path_join("airbases.json"))
 	return own if FileAccess.file_exists(own) else converted("terrain/airbases.json")

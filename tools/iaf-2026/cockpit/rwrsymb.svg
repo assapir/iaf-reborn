@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="40" height="680" viewBox="0 0 40 680">
-<!-- IAF 2026's RWR glyph sheet (tools/iaf-2026/cockpit_displays.py art; iaf-2026/docs/cockpit.md):
+<!-- Modern IAF's RWR glyph sheet (tools/iaf-2026/cockpit_displays.py art; iaf-2026/docs/cockpit.md):
      17 slots of 40 x 40 px top to bottom in docs/rwr.md's order; green strokes on transparent. -->
 <g fill="none" stroke="#00e000" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
 <path d="M12.67 9.00 L27.33 9.00 L27.33 20.00 L12.67 20.00 L12.67 31.00 L27.33 31.00"/>

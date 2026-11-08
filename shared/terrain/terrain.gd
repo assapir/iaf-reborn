@@ -13,9 +13,9 @@
 #   Godot x = X − origin.x,  Godot z = −(Y − origin.y),  Godot y = metres above sea level.
 extends Node3D
 
-## Under assets/; empty: Settings.theatre_dir() (the original's converted map.ptt, IAF 2026's own theatre in the sim).
+## Under assets/; empty: Settings.theatre_dir() (the original's converted map.ptt, Modern IAF's own theatre in the sim).
 @export var data_dir := ""
-## The theatre has its own frame (meta.json "crs", IAF 2026's UTM theatre): the 1998 frame's extras stay off (the
+## The theatre has its own frame (meta.json "crs", Modern IAF's UTM theatre): the 1998 frame's extras stay off (the
 ## imagery layers, World scale Real's base move, and the install's terraintype.dat: its surface types come from
 ## `surface_types_file()`).
 var own_frame := false
@@ -177,7 +177,7 @@ func prepare() -> void:
 		_load_terrain_types(types)
 
 
-## terraintype.dat of this theatre: own_dir()'s (the install's in the original game, IAF 2026's own in the sim); ""
+## terraintype.dat of this theatre: own_dir()'s (the install's in the original game, Modern IAF's own in the sim); ""
 ## (all ground is land) for an own-frame theatre flown in the original game (the install's file is the 1998 frame's)
 ## or before `iaf-sim airbases` wrote the sim's.
 func surface_types_file() -> String:

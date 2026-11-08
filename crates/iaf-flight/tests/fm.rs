@@ -1,4 +1,4 @@
-//! The flight-model choice (`iaf_flight::fm`): the original game's data never reaches the IAF 2026 6-DoF, and its
+//! The flight-model choice (`iaf_flight::fm`): the original game's data never reaches the Modern IAF 6-DoF, and its
 //! flights through `Fm` are the original model's to the bit.
 
 use std::path::PathBuf;

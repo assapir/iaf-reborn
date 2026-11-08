@@ -204,7 +204,7 @@ calls and their answers, a taxi along the base's taxi path to the lineup, the ro
 gear up), each ending in Pass. `-- --jet f16i` / `-- --only startup` narrow it. Item F adds the front end, Hebrew, the
 temp-root run and the other platforms.
 
-`./iaf2026 -- --mission <id>` flies one mission at once (`iaf-2026/flight/fly.gd`), then shows its debrief: 2011 / 2012 Ramon
+`./modern-iaf -- --mission <id>` flies one mission at once (`iaf-2026/flight/fly.gd`), then shows its debrief: 2011 / 2012 Ramon
 start-up / take-off, 2021 / 2022 Ramat David, 2031 / 2032 Nevatim.
 `iaf-2026/tests/_training_shot.gd` takes the pictures in a real render (its header).
 

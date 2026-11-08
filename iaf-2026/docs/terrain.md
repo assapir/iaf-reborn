@@ -106,7 +106,7 @@ under 1 kB/s for 60 s is a stall, 5 retries, a `.part` resumes). Step 5 waits fo
 each step (`heights:`, `sentinel-2:`, `survey:`) and ends with one summary line (`terrain done in …`).
 
 1. **Box**: its lon / lat extent through `gdaltransform`.
-2. **Heights**: the GLO-30 tiles over the extent (curl, `-A "iaf-reborn IAF 2026 terrain setup (curl)"`, 4 retries;
+2. **Heights**: the GLO-30 tiles over the extent (curl, `-A "iaf-reborn Modern IAF terrain setup (curl)"`, 4 retries;
    only a missing key, 404 or 403 with `NoSuchKey`, marks a cell as open sea), one VRT,
    one `gdalwarp` to the 64 m UTM grid (average, nodata = 0 m), then the `h_<i>_<j>.png` nodes of levels 6–11 (R = high
    byte, G = low byte, 1025² with the neighbour's first row and column, as `terrain::theatre`).

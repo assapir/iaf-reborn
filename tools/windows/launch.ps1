@@ -1,5 +1,5 @@
-# Windows: what ./setup, ./iafjets, ./mission-editor, ./iaf2026 and ./iaf2026-setup do on Linux and macOS (setup.ps1,
-# iafjets.ps1, mission-editor.ps1, iaf2026.ps1 and iaf2026-setup.ps1 call this with their mode). Builds the game's
+# Windows: what ./setup, ./iafjets, ./mission-editor, ./modern-iaf and ./modern-iaf-setup do on Linux and macOS (setup.ps1,
+# iafjets.ps1, mission-editor.ps1, modern-iaf.ps1 and modern-iaf-setup.ps1 call this with their mode). Builds the game's
 # extension, imports the Godot project on a fresh clone, then starts the setup wizard (setup), the game (game; without
 # game data: the wizard), the mission editor (editor), Modern IAF (sim; without its data: sim-setup) or Modern IAF's setup
 # wizard (sim-setup). The arguments

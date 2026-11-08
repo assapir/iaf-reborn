@@ -2,7 +2,7 @@
 extends RefCounted
 
 
-## A soft white dot fading to clear at its rim: IAF 2026's stand-in for the original effects sprites
+## A soft white dot fading to clear at its rim: Modern IAF's stand-in for the original effects sprites
 ## (Settings.original_art()).
 static func soft_dot() -> Texture2D:
 	var g := Gradient.new()

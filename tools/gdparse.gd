@@ -8,7 +8,7 @@ extends SceneTree
 func _initialize() -> void:
 	await process_frame  # the autoloads exist from the first frame on (tests/godot/base.gd)
 	var bad := _walk("res://")
-	# The original game's tests (tests/godot) run in its project; IAF 2026's are its own res://tests. DirAccess does
+	# The original game's tests (tests/godot) run in its project; Modern IAF's are its own res://tests. DirAccess does
 	# not list res://.. paths: the tests' folder by its file system path, each loaded as res://../.
 	if ProjectSettings.get_setting("application/config/name") == "iaf-reborn":
 		for f in DirAccess.get_files_at(ProjectSettings.globalize_path("res://").path_join("../tests/godot")):

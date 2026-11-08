@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-<!-- IAF 2026's ADI ball (tools/iaf-2026/cockpit_displays.py art; iaf-2026/docs/cockpit.md): the texture
+<!-- Modern IAF's ADI ball (tools/iaf-2026/cockpit_displays.py art; iaf-2026/docs/cockpit.md): the texture
      lens_adi.gdshader samples, 4x. Rows wrap through 360 deg of pitch, the horizon at y 248, +90 at y 120,
      -90 at y 376, +-180 at y 504. Grey sky, black ground, a pitch line every 10 deg, numbered every 30. -->
 <rect x="0" y="0" width="512" height="248.00" fill="#8f9497"/>

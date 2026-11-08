@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""IAF 2026's own cockpit display data (iaf-2026/docs/cockpit.md "Display data"), for every jet's
+"""Modern IAF's own cockpit display data (iaf-2026/docs/cockpit.md "Display data"), for every jet's
 iaf-2026/data/planes/_shared/cockpit/ (every jet's) and <jet>/cockpit/ (its own), which `iaf-sim own` compiles into
 each jet's cockpit dir the shared readers take.
 
@@ -313,7 +313,7 @@ def rwr_svg():
     parts = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">'
         % (s, s * len(SLOTS), s, s * len(SLOTS)),
-        "<!-- IAF 2026's RWR glyph sheet (tools/iaf-2026/cockpit_displays.py art; iaf-2026/docs/cockpit.md):",
+        "<!-- Modern IAF's RWR glyph sheet (tools/iaf-2026/cockpit_displays.py art; iaf-2026/docs/cockpit.md):",
         "     17 slots of 40 x 40 px top to bottom in docs/rwr.md's order; green strokes on transparent. -->",
         '<g fill="none" stroke="%s" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">' % GREEN,
     ]
@@ -336,7 +336,7 @@ def adi_svg():
     sky, ground = "#8f9497", "#141414"  # the F-16 ADI's grey over black (inferred from cockpit photos)
     o = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">',
-        "<!-- IAF 2026's ADI ball (tools/iaf-2026/cockpit_displays.py art; iaf-2026/docs/cockpit.md): the texture",
+        "<!-- Modern IAF's ADI ball (tools/iaf-2026/cockpit_displays.py art; iaf-2026/docs/cockpit.md): the texture",
         "     lens_adi.gdshader samples, 4x. Rows wrap through 360 deg of pitch, the horizon at y 248, +90 at y 120,",
         "     -90 at y 376, +-180 at y 504. Grey sky, black ground, a pitch line every 10 deg, numbered every 30. -->",
         '<rect x="0" y="0" width="512" height="%.2f" fill="%s"/>' % (row(0), sky),
@@ -501,7 +501,7 @@ def mfds_svg():
     o = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 264 924" '
         'shape-rendering="crispEdges">' % (264 * s, 924 * s),
-        "<!-- IAF 2026's MFD atlas (tools/iaf-2026/cockpit_displays.py art; iaf-2026/docs/cockpit.md): the original",
+        "<!-- Modern IAF's MFD atlas (tools/iaf-2026/cockpit_displays.py art; iaf-2026/docs/cockpit.md): the original",
         "     mfds.bmp's layout (docs/mfd.md §1), 264 x 924 units drawn at 4x; transparent outside the tiles. -->",
     ]
     o += _tile(0, 0)  # NAV, damage, MENU and the other text pages

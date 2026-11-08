@@ -8,7 +8,7 @@
 use crate::airbase::{Airbase, TaxiPt};
 use crate::aircraft::{Aircraft, ApView, Controls, G, sign, unit};
 
-/// What the autopilot reads from and does to a flight model: the original's [`Aircraft`], or the IAF 2026 sim's
+/// What the autopilot reads from and does to a flight model: the original's [`Aircraft`], or the Modern IAF sim's
 /// 6-DoF ([`crate::sixdof::flight::SixDof`]).
 pub trait Host {
     fn ap_view(&self) -> ApView;

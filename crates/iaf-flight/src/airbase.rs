@@ -29,7 +29,7 @@ pub struct Airbase {
     pub from_hangar_turn: Vec<TaxiPt>,
 }
 
-/// The sections, in the TowersManager's record order; IAF 2026's own iaf.ibx adds Hatzerim and Nevatim after them
+/// The sections, in the TowersManager's record order; Modern IAF's own iaf.ibx adds Hatzerim and Nevatim after them
 /// (iaf-2026/docs/data-formats.md §12). The original's file has neither, so the original game reads the same ten.
 pub const SECTIONS: [&str; 12] = [
     "Ramon",
@@ -129,7 +129,7 @@ fn bearing(dx: f32, dy: f32) -> f32 {
 }
 
 /// A runway whose middle lies farther than this from a base's lineup point is another frame's (m): the original game
-/// flown over IAF 2026's theatre reads the install's iaf.ibx (1998 frame) beside the theatre's UTM airbases.json.
+/// flown over Modern IAF's theatre reads the install's iaf.ibx (1998 frame) beside the theatre's UTM airbases.json.
 pub const SAME_BASE_M: f32 = 10_000.0;
 
 impl Airbase {

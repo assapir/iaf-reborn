@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Runs Godot's import when a project (default iaf-reborn; iaf-2026 for ./iaf2026) needs it, before the game or setup
-# starts (./iafjets, ./setup, setup-cli.sh, ./iaf2026):
+# Runs Godot's import when a project (default iaf-reborn; iaf-2026 for ./modern-iaf) needs it, before the game or setup
+# starts (./iafjets, ./setup, setup-cli.sh, ./modern-iaf):
 #   - a fresh clone (no <project>/.godot/extension_list.cfg): Godot loads iaf.gdextension only once an import has listed it;
 #   - a pull that brought new or changed imported files (a shader, a texture): their .import file or the file itself
 #     is newer than the last import (<project>/.godot/.iaf_imported). Without it the game finds no imported copy

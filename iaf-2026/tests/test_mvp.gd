@@ -34,11 +34,11 @@ var out := ""
 var fly_gd: GDScript
 
 
-## The sim's own data (./iaf2026-setup), not the original's install.
+## The sim's own data (./modern-iaf-setup), not the original's install.
 func require_data() -> void:
 	if DirAccess.dir_exists_absolute(settings().own_dir().path_join("resource")):
 		return
-	print("NEEDS DATA: Modern IAF's own data (./iaf2026-setup)")
+	print("NEEDS DATA: Modern IAF's own data (./modern-iaf-setup)")
 	await _quit(2)
 	await create_timer(3600, true, false, true).timeout
 
@@ -46,7 +46,7 @@ func require_data() -> void:
 func run() -> void:
 	await require_data()
 	fly_gd = load("res://flight/fly.gd")
-	out = OS.get_temp_dir().path_join("iaf2026-mvp-%d" % OS.get_process_id())
+	out = OS.get_temp_dir().path_join("modern-iaf-mvp-%d" % OS.get_process_id())
 	DirAccess.make_dir_recursive_absolute(out)
 	var args := OS.get_cmdline_user_args()
 	var only := args[args.find("--only") + 1] if args.has("--only") else ""
@@ -63,7 +63,7 @@ func run() -> void:
 
 ## The flights' records folder goes with the run, passed or failed (base.gd's quit comes through here).
 func _quit(code: int) -> void:
-	if out.get_file().begins_with("iaf2026-mvp-"):
+	if out.get_file().begins_with("modern-iaf-mvp-"):
 		_remove(out)
 	await super(code)
 

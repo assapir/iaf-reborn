@@ -1,4 +1,4 @@
-# IAF 2026 cockpit
+# Modern IAF cockpit
 
 **Terms:** ADI = attitude director indicator (the attitude ball); GM = the radar's ground-map mode; HSD = the F-16's
 horizontal situation display; MFD = multi-function display; ODbL = the Open Database Licence (OpenStreetMap's);

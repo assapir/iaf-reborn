@@ -4,13 +4,13 @@
 on (the left / right in English, the right / left in Hebrew); debrief record = the scorer's JSON for one flight
 ([training.md](training.md) §4); pilot log = the record of every attempt ([training.md](training.md) §9).
 
-The front end (item [E2](plan.md#e2-the-front-end)) is the sim's main scene, `iaf-2026/main.tscn`. `./iaf2026` opens it.
+The front end (item [E2](plan.md#e2-the-front-end)) is the sim's main scene, `iaf-2026/main.tscn`. `./modern-iaf` opens it.
 It builds the round-3 design the user approved on 3 November 2026: one screen per step, in Hebrew and English, with the
 Heebo font and the Israeli Air Force flag's colours.
 
 ```sh
-./iaf2026                     # Home (Pick a plane on the first start)
-./iaf2026 -- --mission 2011   # flies that mission at once, then shows its debrief
+./modern-iaf                     # Home (Pick a plane on the first start)
+./modern-iaf -- --mission 2011   # flies that mission at once, then shows its debrief
 ```
 
 ## 1. The screens
@@ -58,8 +58,8 @@ until a pick) goes to Training, and Esc stays on it.
 
 | what | where | written by |
 |---|---|---|
-| debrief records | `user://debriefs/debrief-<stamp>-<mission>.json` (tests: `<temp>/iaf2026-debriefs/`) | `sim_flight.gd` at the scoring: the scorer's record plus `flight`, `date` (the end, local time) and `elapsed_s` (the flight's length, s) |
-| the pilot log | `user://pilots/14.json` (tests: `<temp>/iaf2026-debriefs/pilots/`), `Settings.pilot_log_file()` | `sim_flight.gd`, the original game's pilot record shape |
+| debrief records | `user://debriefs/debrief-<stamp>-<mission>.json` (tests: `<temp>/modern-iaf-debriefs/`) | `sim_flight.gd` at the scoring: the scorer's record plus `flight`, `date` (the end, local time) and `elapsed_s` (the flight's length, s) |
+| the pilot log | `user://pilots/14.json` (tests: `<temp>/modern-iaf-debriefs/pilots/`), `Settings.pilot_log_file()` | `sim_flight.gd`, the original game's pilot record shape |
 | the picked jet | `user://settings.cfg` `[sim] jet` | the front end |
 | the jet photos | `iaf-2026/data/photos/` (§5) | — |
 

@@ -92,7 +92,7 @@ func front_end_overlay() -> Control:
 
 ## Where the debrief records go: user://debriefs, or a temporary folder in isolated runs (tests).
 func debriefs_dir() -> String:
-	return OS.get_temp_dir().path_join("iaf2026-debriefs") if isolated() else "user://debriefs"
+	return OS.get_temp_dir().path_join("modern-iaf-debriefs") if isolated() else "user://debriefs"
 
 
 ## The pilot log (training.md §9): the original game's pilot record shape, the default pilot 14.

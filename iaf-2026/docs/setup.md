@@ -4,10 +4,10 @@ The setup wizard builds the sim's data into `assets/`: the terrain, the airbases
 flight data, the sounds and voices and the training missions. It is item [A3](plan.md#a3-the-setup-wizard). Start it from the repo root:
 
 ```sh
-./iaf2026-setup        # Windows: .\iaf2026-setup.ps1
+./modern-iaf-setup        # Windows: .\modern-iaf-setup.ps1
 ```
 
-`./iaf2026` starts it too while the sim's data is missing (no `assets/converted/iaf-2026/missions/`, the last step's
+`./modern-iaf` starts it too while the sim's data is missing (no `assets/converted/iaf-2026/missions/`, the last step's
 output). Run it again at any time: a step whose inputs did not change is "up to date" and is skipped, and a run
 that stopped resumes where it stopped.
 
@@ -22,7 +22,7 @@ that stopped resumes where it stopped.
 | Python 3 | writes the jets' flight data (`tools/iaf-2026/fm0.py`) | `sudo apt install python3` | `brew install python` | `winget install Python.Python.3.14` |
 | disk | the data (§4) | | | |
 
-The launcher (`tools/launch-wizard.sh`, which the original game's `./setup` uses too) and `./iaf2026` check Rust and
+The launcher (`tools/launch-wizard.sh`, which the original game's `./setup` uses too) and `./modern-iaf` check Rust and
 Godot 4.7 and say how to install a missing one (`tools/launch-checks.sh`). On macOS they add Homebrew's folders to
 the PATH when `cargo` or `godot` is not on it (a start from a shell without Homebrew's setup). The wizard's first page checks GDAL, curl, Python 3 and the free disk space for the
 imagery chosen at the start (the Survey's when its sheets are there); Next waits until they are there, and the page
@@ -46,7 +46,7 @@ large screen by its UI scale (the containers stretch; nothing has a fixed page s
    `assets/source/imagery/mapi2015/`; without them the page says so and keeps Sentinel-2.
 3. **Install**: one row per step with its progress bar and state. Before a run the rows say which steps are up to
    date (a background check); during a run a long step shows the time left. Back becomes Cancel: the running steps
-   stop at their next item. "Show the log" opens the log; the whole run is also in `assets/logs/iaf2026-setup-<date>-<time>.log`.
+   stop at their next item. "Show the log" opens the log; the whole run is also in `assets/logs/modern-iaf-setup-<date>-<time>.log`.
    "Redo every step" runs the steps that are up to date too; for the terrain that is a full rebuild (its finished
    units' marks are dropped). Back from Install forgets the finished run, so other choices can be installed; a
    language change keeps it.
@@ -167,7 +167,7 @@ tiles: their 2 min download skipped), Sentinel-2 everywhere.
 
 | step | time |
 |---|---|
-| `cargo build --release -p iaf-godot`, from nothing (the first part of `./iaf2026-setup`) | 6 min 32 s |
+| `cargo build --release -p iaf-godot`, from nothing (the first part of `./modern-iaf-setup`) | 6 min 32 s |
 | Godot's first import of `iaf-2026/` (`tools/godot_import.sh`) | 12 s |
 | the wizard's Install, all six steps (driven headless: Next, Next, Install) | 14 min 8 s |
 | … of which `sim-terrain`: heights 15 s, Sentinel-2 at 32 m 3 min 11 s, at 8 m 9 min 17 s, the coarser levels 1 min | 13 min 45 s |
@@ -187,7 +187,7 @@ On that root:
 | the M0 probe | 41 PASS, 0 FAIL, the one NEEDS DATA of item E1 (no 2D panel in flight) |
 | `iaf-2026/tests/test_front_end.gd` (Home to a mission, a `--mission` flight to its debrief) | 126 PASS, `RESULT PASS` |
 | `iaf-2026/tests/test_mvp.gd` (both missions for the three jets, to their debriefs) | 57 PASS, `RESULT PASS`, 3 min 39 s |
-| `./iaf2026` (Home) and `./iaf2026 -- --mission 2011` and `2012`, real render, 75 s each | the screen and both missions start; no script error |
+| `./modern-iaf` (Home) and `./modern-iaf -- --mission 2011` and `2012`, real render, 75 s each | the screen and both missions start; no script error |
 
 What a fresh machine hit, and what was fixed on branch `wt/iaf-2026-freshroot`:
 
@@ -199,7 +199,7 @@ What a fresh machine hit, and what was fixed on branch `wt/iaf-2026-freshroot`:
 - The first page's Download named the heights only: it names the Sentinel-2 tiles' one download too (11.4 GB),
   and the disk use counts them. In Hebrew a size in a sentence showed its unit first ("MB 627"): each size is now one
   left-to-right piece.
-- `./iaf2026` looked for the sim's data under `assets/` only, not under `IAF_ASSETS_DIR` as the game does.
+- `./modern-iaf` looked for the sim's data under `assets/` only, not under `IAF_ASSETS_DIR` as the game does.
 - macOS: Homebrew's rustup puts `cargo` in `opt/rustup/bin`, off the PATH; the launchers add it (§1).
 
 Each flight on that root also logged two errors, `converted/fonts/hud.fnt` and `converted/cockpits/f16/cockpit.json`

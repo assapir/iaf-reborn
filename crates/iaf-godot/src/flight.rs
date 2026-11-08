@@ -1,4 +1,4 @@
-//! `IafFlight`: the flight model exposed to GDScript: the original's, or the IAF 2026 sim's 6-DoF when the flight
+//! `IafFlight`: the flight model exposed to GDScript: the original's, or the Modern IAF sim's 6-DoF when the flight
 //! data asks for it (`iaf_flight::fm::Fm`).
 //!
 //! Godot frame: X east, Y up, Z south (−north), metres — the same frame as the terrain.
@@ -26,7 +26,7 @@ pub struct IafFlight {
     g_max: f32,
 }
 
-/// Logs once per feature that the IAF 2026 6-DoF does not model it (iaf-2026/docs/flight-model.md §9.6).
+/// Logs once per feature that the Modern IAF 6-DoF does not model it (iaf-2026/docs/flight-model.md §9.6).
 fn sixdof_lacks(what: &'static str) {
     static SEEN: std::sync::Mutex<Vec<&'static str>> = std::sync::Mutex::new(Vec::new());
     let mut seen = SEEN.lock().unwrap_or_else(|e| e.into_inner());
@@ -98,7 +98,7 @@ impl IafFlight {
     }
 
     /// The flight-model name `start` takes for a bdb type code on the data in `install` (`iaf_flight::fm_name_in`,
-    /// the Real or Original set): "F-16", "F-15", "F-35I"…; "" when that bd.ibx has no section for it. IAF 2026's
+    /// the Real or Original set): "F-16", "F-15", "F-35I"…; "" when that bd.ibx has no section for it. Modern IAF's
     /// player jets (Settings.fm_section in iaf-2026/sim_settings.gd).
     #[func]
     fn fm_type(install: GString, type_code: i64, real_data: bool) -> GString {
@@ -364,7 +364,7 @@ impl IafFlight {
         }
     }
 
-    /// IAF 2026's "start engine" command (its keys.json, command 200): the 6-DoF runs its jet's start sequence
+    /// Modern IAF's "start engine" command (its keys.json, command 200): the 6-DoF runs its jet's start sequence
     /// (iaf-2026/docs/training.md §7); nothing on the original model.
     #[func]
     fn start_engine(&mut self) {

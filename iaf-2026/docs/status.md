@@ -7,7 +7,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   have are fixed to ours in `PROFILE`: Detailed airbases (the runways, taxiways and aprons were missing), the
   atmospheric sky, water, night lights, effects, the conformal ladder; the CC0 ground and model textures when setup
   downloaded them ([airbases.md](airbases.md) §9). `test_sim_look.gd`.
-- **[E2](plan.md#e2-the-front-end), the front end (2026-11-08):** `./iaf2026` opens Home; Pick a plane, Training, Pick a mission, Fly,
+- **[E2](plan.md#e2-the-front-end), the front end (2026-11-08):** `./modern-iaf` opens Home; Pick a plane, Training, Pick a mission, Fly,
   the flight, its debrief sheet, the Pilot log, Preferences and Attributions, in English and Hebrew (mirrored), in the
   round-3 look ([front-end.md](front-end.md)). Esc over a flight opens the pause menu. `test_front_end.gd`.
 - **[A4](plan.md#a4-the-gate), the gates on the original's converted data and install (2026-11-08):** every path under
@@ -16,11 +16,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   (0 today). The sim's own loading screen in English and Hebrew ([front-end.md](front-end.md) §7).
   The effects (flares, chaff, trails, afterburner, the gun's muzzle flash) draw a soft dot and the flight shows no message texts until the
   sim's own art and messages.
-- **[A3](plan.md#a3-the-setup-wizard), the setup wizard (2026-11-03):** `./iaf2026-setup` opens the wizard; it builds the terrain,
+- **[A3](plan.md#a3-the-setup-wizard), the setup wizard (2026-11-03):** `./modern-iaf-setup` opens the wizard; it builds the terrain,
   the airbases, the units and weapons, the sounds and voices and the training missions as a step graph with stamps (a
   second run is all up to date), in English and Hebrew ([setup.md](setup.md)). Its look is Godot's default theme until
   the user's next round.
-- **[E3b](plan.md#e3-the-training-missions), the training missions in the game (2026-11-03):** `./iaf2026 -- --mission 2011` (… 2032) flies a start-up or
+- **[E3b](plan.md#e3-the-training-missions), the training missions in the game (2026-11-03):** `./modern-iaf -- --mission 2011` (… 2032) flies a start-up or
   take-off mission without the front end: parked cold, the start command (Ctrl+E) runs the jet's start sequence on
   the 6-DoF, the screens and the HUD come alive at the real moments; the radio menu (Ctrl+T, 1–3) asks the base's
   tower for start-up, taxi and take-off and the English TTS tower answers; at the end the flight is scored, the
@@ -53,7 +53,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   approved ([threat-records.md](threat-records.md)).
 - **[A1](plan.md#a1-the-project-skeleton), the project (2026-11-02):** the `iaf-2026/` Godot project with its `shared` link, `sim_settings.gd`, the
   `install_dir()` / `own_dir()` / `keys_file()` calls in the shared code (the original game reads the same files as
-  before), the launchers `./iaf2026` and `./iaf2026-setup` (+ `.ps1`), `tools/test.sh` over `iaf-2026/tests` and
+  before), the launchers `./modern-iaf` and `./modern-iaf-setup` (+ `.ps1`), `tools/test.sh` over `iaf-2026/tests` and
   gdparse on both projects, the M0 probe.
 - **Own sources for the flight-model type and the bases (2026-11-03):** the player's jet takes its flight-model type
   from the sim's table (`Settings.fm_section`), not the converted descriptor; `IafBases` reads `own_dir()`'s

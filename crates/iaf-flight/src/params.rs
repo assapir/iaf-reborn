@@ -60,7 +60,7 @@ pub struct Params {
     pub map_center_stick: f32,
     pub over_g_thresh: f32,
     pub envelope_file: String,
-    /// `Model = 6dof`: the IAF 2026 sim's own sections fly its 6-DoF (`crate::fm`); the original game's sections
+    /// `Model = 6dof`: the Modern IAF sim's own sections fly its 6-DoF (`crate::fm`); the original game's sections
     /// have no `Model` key.
     pub model_6dof: bool,
     /// Transonic wave-drag rise (not in the original model; used by the real data set):

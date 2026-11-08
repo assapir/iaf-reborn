@@ -1,4 +1,4 @@
-//! IAF 2026's training scoring (iaf-2026/docs/training.md): a recorded flight (the blackbox JSONL,
+//! Modern IAF's training scoring (iaf-2026/docs/training.md): a recorded flight (the blackbox JSONL,
 //! docs/blackbox.schema.json) scored against a training mission (`iaf-2026/data/missions/<id>.json`, its
 //! `"training"` rules) into a debrief record with English and Hebrew strings keyed by id.
 //!

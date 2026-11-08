@@ -1,4 +1,4 @@
-//! IAF 2026's data compilers (iaf-2026/docs/data-formats.md):
+//! Modern IAF's data compilers (iaf-2026/docs/data-formats.md):
 //!
 //! `iaf-sim <db|missions|own|airbases|all> [data-dir (iaf-2026/data)] [assets-dir (assets)]`
 //! `iaf-sim terrain [assets-dir (assets)] [--box E0 N0 E1 N1] [--out <dir>] [--threads N]`

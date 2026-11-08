@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1056" height="3696" viewBox="0 0 264 924" shape-rendering="crispEdges">
-<!-- IAF 2026's MFD atlas (tools/iaf-2026/cockpit_displays.py art; iaf-2026/docs/cockpit.md): the original
+<!-- Modern IAF's MFD atlas (tools/iaf-2026/cockpit_displays.py art; iaf-2026/docs/cockpit.md): the original
      mfds.bmp's layout (docs/mfd.md §1), 264 x 924 units drawn at 4x; transparent outside the tiles. -->
 <path d="M9 0 h114 a9 9 0 0 1 9 9 v114 a9 9 0 0 1 -9 9 h-114 a9 9 0 0 1 -9 -9 v-114 a9 9 0 0 1 9 -9 Z " fill="#000" fill-rule="evenodd"/>
 <rect x="13" y="124" width="1" height="1" fill="#00ff00"/>

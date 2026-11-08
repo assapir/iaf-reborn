@@ -1,4 +1,4 @@
-# The real runways of the ten iaf.ibx airbases (docs/world-scale.md §3.3) and IAF 2026's Nevatim, from
+# The real runways of the ten iaf.ibx airbases (docs/world-scale.md §3.3) and Modern IAF's Nevatim, from
 # tools/real_runways.py.
 # Data (c) OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright
 # (aeroway=runway ways via the Overpass API, 2026-10-20; Nevatim's 2026-11-02). x / y: the way's ends in engine metres

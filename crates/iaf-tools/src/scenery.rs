@@ -1491,7 +1491,7 @@ fn made_from(r: &Run, keys: &[(u32, u32)]) -> String {
 /// leave it out).
 pub(crate) fn converted_inputs(h: &mut Sha256, a: &Path, objects: bool) {
     let c = a.join("converted");
-    // IAF 2026's object database (iaf-sim) lies beside the original's and changes no scenery.
+    // Modern IAF's object database (iaf-sim) lies beside the original's and changes no scenery.
     let sim = Path::new(crate::sim_files::BDB_FILE).file_name();
     let mut files: Vec<PathBuf> = crate::walk_files(&c.join("missions"))
         .unwrap_or_default()
@@ -1517,7 +1517,7 @@ pub(crate) fn converted_inputs(h: &mut Sha256, a: &Path, objects: bool) {
     }
 }
 
-/// `objects.json`'s bytes without IAF 2026's key (iaf-sim's `"sim.bdb"`): re-serialised as `iaf-convert objects`
+/// `objects.json`'s bytes without Modern IAF's key (iaf-sim's `"sim.bdb"`): re-serialised as `iaf-convert objects`
 /// writes it (pretty, keys sorted), which gives back the original's bytes; any other file as it is.
 fn without_sim(bytes: Vec<u8>) -> Vec<u8> {
     let Ok(mut m) = serde_json::from_slice::<serde_json::Map<String, serde_json::Value>>(&bytes) else { return bytes };
@@ -2309,7 +2309,7 @@ mod tests {
             converted_inputs(&mut h, &a, true);
             h.finalize()
         };
-        // IAF 2026's output (iaf-sim) leaves the fingerprint as it is: its bdb, and its key in objects.json.
+        // Modern IAF's output (iaf-sim) leaves the fingerprint as it is: its bdb, and its key in objects.json.
         std::fs::create_dir_all(c.join("objects")).unwrap();
         let index = serde_json::json!({"default6_1.bdb": {"1": "a/b.gltf", "10": "c.gltf"}});
         std::fs::write(c.join("objects/objects.json"), serde_json::to_string_pretty(&index).unwrap()).unwrap();
@@ -2318,7 +2318,7 @@ mod tests {
         let mut with = index.clone();
         with["sim.bdb"] = serde_json::json!({"3": "f16i.gltf"});
         std::fs::write(c.join("objects/objects.json"), serde_json::to_string_pretty(&with).unwrap()).unwrap();
-        assert_eq!(fp(), first, "IAF 2026's output");
+        assert_eq!(fp(), first, "Modern IAF's output");
         std::fs::write(c.join("missions.stamp"), "iaf-setup 1234").unwrap();
         assert_eq!(fp(), first, "a stamp alone");
         std::fs::write(c.join("missions/m.json"), "{\"a\":1}").unwrap();

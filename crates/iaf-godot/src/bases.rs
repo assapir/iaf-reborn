@@ -33,7 +33,7 @@ pub fn map_airbases(bases: &mut [Airbase]) {
     }
 }
 
-/// `own`'s iaf.ibx bases (Settings.own_dir(): the install in the original game, IAF 2026's own layout); None without
+/// `own`'s iaf.ibx bases (Settings.own_dir(): the install in the original game, Modern IAF's own layout); None without
 /// that file.
 fn read_bases(own: &Path) -> Option<Vec<Airbase>> {
     std::fs::read(own.join("iaf.ibx")).ok().map(|b| Airbase::load_all(&b))
@@ -288,7 +288,7 @@ pub struct IafBases {}
 #[godot_api]
 impl IafBases {
     /// Real (`on`): the moves from `own`'s iaf.ibx (Settings.own_dir(): the install in the original game, the sim's
-    /// own layout in IAF 2026) and `assets` (airbases.json and its masks, the level-6 heights); Original: none. False
+    /// own layout in Modern IAF) and `assets` (airbases.json and its masks, the level-6 heights); Original: none. False
     /// when on but the data is missing (then none).
     #[func]
     fn setup(on: bool, assets: GString, own: GString) -> bool {
@@ -318,7 +318,7 @@ impl IafBases {
             for b in ibx {
                 let true_deg = moves.as_ref().and_then(|m| m.get(&b.name)).map_or(b.runway_deg, |m| m.heading as f32);
                 if wind_reverses(true_deg, knots as f32, from_deg as f32) {
-                    // Only a runway of this frame (the original game over IAF 2026's theatre mixes two).
+                    // Only a runway of this frame (the original game over Modern IAF's theatre mixes two).
                     let e = b.own_runway(ends.iter().find(|(n, _)| *n == b.name).map(|(_, e)| *e));
                     let r = b.reversed(e);
                     out.push((b, r));
@@ -591,7 +591,7 @@ mod tests {
     use super::*;
 
     /// The bases come from the caller's iaf.ibx only: the install's in the original game, none from a folder without
-    /// one (IAF 2026's own layout until B2b writes its iaf.ibx).
+    /// one (Modern IAF's own layout until B2b writes its iaf.ibx).
     #[test]
     fn bases_from_the_own_layout() {
         let assets = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets");

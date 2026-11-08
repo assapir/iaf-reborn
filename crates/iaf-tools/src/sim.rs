@@ -1,4 +1,4 @@
-//! IAF 2026's data compilers (`iaf-sim`, iaf-2026/docs/data-formats.md): the readable unit, weapon and mission files
+//! Modern IAF's data compilers (`iaf-sim`, iaf-2026/docs/data-formats.md): the readable unit, weapon and mission files
 //! under `iaf-2026/data/` compiled into the shapes the shared readers consume today, with no reader change:
 //! - `db`: `db/units/*.json` and `db/weapons/*.json` → `converted/missions/sim.bdb.json` (the parts and hex keys of a
 //!   converted `.bdb`, docs/formats/mis.md §4), its models under the key `"sim.bdb"` of

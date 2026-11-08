@@ -11,7 +11,7 @@ pub struct Air {
     pub sound: f32,
     /// Temperature, K.
     pub temperature: f32,
-    /// Static pressure, Pa (the original keeps kgf/m²; × standard gravity). Read by the IAF 2026 6-DoF only.
+    /// Static pressure, Pa (the original keeps kgf/m²; × standard gravity). Read by the Modern IAF 6-DoF only.
     pub pressure: f32,
 }
 

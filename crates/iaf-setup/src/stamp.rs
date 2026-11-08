@@ -93,7 +93,7 @@ const SIM: &[&str] = &[
     "crates/iaf-tools/src/mission_edit.rs",
     "crates/iaf-tools/src/training.rs",
 ];
-/// IAF 2026's terrain (`iaf_tools::sim_terrain`) and every module it reaches.
+/// Modern IAF's terrain (`iaf_tools::sim_terrain`) and every module it reaches.
 const SIM_TERRAIN: &[&str] = &[
     "crates/iaf-tools/src/itm.rs",
     "crates/iaf-formats/src/lzo.rs",
@@ -318,7 +318,7 @@ pub(crate) fn of(step: &Step, ctx: &Ctx) -> Result<Option<Stamp>> {
     Ok(Some(Stamp { path: stamp, text, output: out }))
 }
 
-/// The stamp of one of IAF 2026's steps (`sim::sim_plan`), in `converted/iaf-2026/`: the code, the authored data it
+/// The stamp of one of Modern IAF's steps (`sim::sim_plan`), in `converted/iaf-2026/`: the code, the authored data it
 /// reads; for the terrain, what `iaf-sim terrain` itself compares (the box and the Survey sheets' names and sizes).
 pub(crate) fn sim_of(step: &Step, ctx: &SimCtx) -> Result<Option<Stamp>> {
     let (a, data) = (&ctx.assets, ctx.data());

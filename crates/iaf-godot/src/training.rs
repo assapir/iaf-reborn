@@ -1,4 +1,4 @@
-//! `IafTraining`: IAF 2026's training scorer (`iaf_tools::training`, iaf-2026/docs/training.md) for the game, run at a
+//! `IafTraining`: Modern IAF's training scorer (`iaf_tools::training`, iaf-2026/docs/training.md) for the game, run at a
 //! training mission's end on the flight's recording.
 
 use godot::prelude::*;

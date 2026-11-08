@@ -1,4 +1,4 @@
-//! IAF 2026's training scoring (iaf-2026/docs/training.md):
+//! Modern IAF's training scoring (iaf-2026/docs/training.md):
 //!
 //! `iaf-training score <flight.jsonl> <mission.json> [airbases-dir] [--json <out.json>]`
 //!

@@ -1,4 +1,4 @@
-//! The flight model a flight flies: the original game's ([`Aircraft`]) or the IAF 2026 sim's 6-DoF ([`SixDof`]),
+//! The flight model a flight flies: the original game's ([`Aircraft`]) or the Modern IAF sim's 6-DoF ([`SixDof`]),
 //! chosen by the flight data. A `bd.ibx` section with `Model = 6dof` flies the 6-DoF; the original game's sections
 //! have no `Model` key, so it never reaches it (iaf-2026/docs/flight-model.md §9.12).
 

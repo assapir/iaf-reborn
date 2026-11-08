@@ -1019,7 +1019,7 @@ mod tests {
     #[test]
     fn the_table_holds_every_base() {
         let t = real_runways();
-        // The original game's ten bases (IAF 2026's Hatzerim and Nevatim never move).
+        // The original game's ten bases (Modern IAF's Hatzerim and Nevatim never move).
         for b in &crate::airbase::SECTIONS[..10] {
             assert!(t.iter().any(|r| r.base == *b), "{b}");
         }

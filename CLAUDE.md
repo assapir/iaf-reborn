@@ -17,8 +17,8 @@ Run from the repo root.
 tools/setup-cli.sh [--patch v1.1.exe] "/path/to/Jane's IAF.iso"   # one-time: extract + convert everything into assets/
 ./iafjets [-- --mission 311]                                  # builds the iaf-godot extension (release) and starts the game
 ./mission-editor                                              # the mission editor (docs/mission-editor.md), same build as ./iafjets
-./iaf2026-setup                                               # Modern IAF's setup wizard (iaf-2026/docs/setup.md): its data into assets/
-./iaf2026 [-- --mission 2012]                                 # Modern IAF: the front end; --mission flies one mission, then its debrief
+./modern-iaf-setup                                               # Modern IAF's setup wizard (iaf-2026/docs/setup.md): its data into assets/
+./modern-iaf [-- --mission 2012]                                 # Modern IAF: the front end; --mission flies one mission, then its debrief
 cargo test -q --workspace                                     # Rust tests (data/python3-dependent ones skip with a message)
 cargo test -q -p iaf-flight --test validation <name>          # one Rust test
 tools/test.sh                                                 # everything: cargo tests, tests/godot + iaf-2026/tests headless, gdparse
@@ -33,7 +33,7 @@ tools/guide_shots.sh [jet] && python3 -I tools/guide_pdf.py   # pilot guides' pi
 python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded flight (blackbox) as a timeline + summary
 ```
 
-- Windows (docs/windows.md): `.\setup.ps1`, `.\iafjets.ps1 [--mission 311]`, `.\mission-editor.ps1`, `.\iaf2026.ps1`, `.\iaf2026-setup.ps1`,
+- Windows (docs/windows.md): `.\setup.ps1`, `.\iafjets.ps1 [--mission 311]`, `.\mission-editor.ps1`, `.\modern-iaf.ps1`, `.\modern-iaf-setup.ps1`,
   `tools\windows\setup-cli.ps1` (iaf-setup's options); no bash, so `tools/*.sh` do not run. Keep the clone LF
   (`git config core.autocrlf false`; gdformat writes CRLF there) and the .ps1 files ASCII.
 - Run every scripted Godot test or capture with `IAF_DEFAULT_SETTINGS=1`. This keeps the user's `settings.cfg`
@@ -43,7 +43,7 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
 - A Godot test passes only if it prints `RESULT PASS` and prints zero `SCRIPT ERROR` lines.
 - Godot tests need the converted assets, so they run locally only (no hosted CI).
 - On a fresh clone Godot's import folder (`.godot` in `iaf-reborn/`, `iaf-2026/`) is missing. Run `godot --headless --path iaf-reborn --import` (and
-  `--path iaf-2026`) once, or the extension won't load (`./iafjets` and `./iaf2026` do this for you).
+  `--path iaf-2026`) once, or the extension won't load (`./iafjets` and `./modern-iaf` do this for you).
 - `tests/godot/_*_shot.gd` are real-render screenshot helpers (usage in each header). `tools/test.sh` skips them.
 - Run every real-render Godot process (screenshots, benches) through `tools/godot_window.sh VAR=value … -- <godot args>`:
   on macOS it renders as a hidden app that never takes the user's focus. Plain `godot` without `--headless` opens a

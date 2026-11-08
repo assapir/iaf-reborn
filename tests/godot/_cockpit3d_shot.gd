@@ -8,7 +8,7 @@
 # and fire lamps lit, the gear down, an emitter and a launching one on the RWR scope; looking down at the panel, at the
 # RWR scope and at the gear panel. C3D_ONLY=hud: only ahead, looking up 8° (the HUD's frame against the sky) and ahead
 # zoomed in to the true size. C3D_HUD=original: the original HUD (default the Real HUD). C3D_ALL=1: every graphics
-# option at its best (_showcase_shot.gd AFTER), as a player with everything on sees it. C3D_SIM=1: IAF 2026's cockpits
+# option at its best (_showcase_shot.gd AFTER), as a player with everything on sees it. C3D_SIM=1: Modern IAF's cockpits
 # (iaf-2026/sim_settings.gd on its own cockpit dirs, `iaf-sim own`'s, test_cockpit_no_panel.gd), files named sim.
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOW_OUT=$PWD/.shots/c3d -- \
 #     --log-file /tmp/c3d.log --resolution 1920x1080 --path iaf-reborn -s ../tests/godot/_cockpit3d_shot.gd

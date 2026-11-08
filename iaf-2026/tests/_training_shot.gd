@@ -32,7 +32,7 @@ func run() -> void:
 	shots = OS.get_environment("SHOW_OUT")
 	DirAccess.make_dir_recursive_absolute(shots)
 	fly_gd = load("res://flight/fly.gd")
-	out = OS.get_temp_dir().path_join("iaf2026-shots-%d" % OS.get_process_id())
+	out = OS.get_temp_dir().path_join("modern-iaf-shots-%d" % OS.get_process_id())
 	settings().show_info = false
 	if OS.get_environment("SHOW_ALL") == "1":
 		for k in ALL:

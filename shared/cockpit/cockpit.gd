@@ -152,7 +152,7 @@ var dir := ""
 ## Night*Scale shifts, the lights bitmap by [LIGHTSON]'s (R >>= shift per channel of the 16-bit art: ×2^−shift here).
 var night := false
 ## The electrical power (the flight model's `power`): 0 none, 1 the battery (the lamps), 2 the displays and the HUD up.
-## Always 2 in the original game; IAF 2026's cold jet starts at 0 (iaf-2026/docs/training.md §7).
+## Always 2 in the original game; Modern IAF's cold jet starts at 0 (iaf-2026/docs/training.md §7).
 var power := 2
 
 
@@ -179,7 +179,7 @@ func _ready() -> void:
 	load_cockpit(default_dir() if cockpit_dir == DEFAULT_DIR else cockpit_dir)
 
 
-## The F-16's cockpit: its aircraft definition's `cockpit` where it names one (IAF 2026's, which has no panel art),
+## The F-16's cockpit: its aircraft definition's `cockpit` where it names one (Modern IAF's, which has no panel art),
 ## else the original's (DEFAULT_DIR).
 static func default_dir() -> String:
 	return Settings.airframe(100).get("cockpit", DEFAULT_DIR)

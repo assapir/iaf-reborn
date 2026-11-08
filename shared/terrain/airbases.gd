@@ -2,7 +2,7 @@
 # ground, terrain.gdshader draws a procedural runway, taxiway and apron surface with markings over the nearest base's
 # paved surface. The runways (ends, width, designation numbers), the AI's taxi paths and the paved-surface mask come
 # from the 1998 art and iaf.ibx (`iaf-terrain airbases` → assets/converted/terrain/airbases.json, crates/iaf-tools
-# airbases.rs); in IAF 2026 from OpenStreetMap (`iaf-sim airbases` → the theatre's own airbases.json,
+# airbases.rs); in Modern IAF from OpenStreetMap (`iaf-sim airbases` → the theatre's own airbases.json,
 # Settings.airbases_file()). Rendering only: the flight model's runway surface stays terraintype.dat's (World scale
 # Real cuts both to the real runway's width: IafBases.moved_mask, docs/world-scale.md §3.3).
 extends RefCounted

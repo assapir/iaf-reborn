@@ -140,7 +140,7 @@ const BLACKBOX_COLUMNS := [
 	"ap_stage",
 	"fps"
 ]
-## Version 2 of the recorder (IAF 2026, Settings.blackbox_version) adds these columns: the RPM and the avionics.
+## Version 2 of the recorder (Modern IAF, Settings.blackbox_version) adds these columns: the RPM and the avionics.
 const BLACKBOX_V2 := ["rpm", "avionics"]
 var _log: FileAccess
 var _log_version := 1  # Settings.blackbox_version(), read when the log opens
@@ -261,7 +261,7 @@ var player_flight_number := 0
 var sounds: Node
 ## The radio (shared/audio/radio.gd, docs/radio.md).
 var radio: Node
-## The project's own part of the flight (Settings.flight_addon: IAF 2026's training run, its radio menu); null in the
+## The project's own part of the flight (Settings.flight_addon: Modern IAF's training run, its radio menu); null in the
 ## original game.
 var addon: Node
 var effects: Node3D
@@ -369,7 +369,7 @@ func _ready() -> void:
 	radio = preload("res://shared/audio/radio.gd").new()
 	radio.host = self
 	add_child(radio)
-	# The project's own part of the flight (IAF 2026's training run and radio menu); none in the original game.
+	# The project's own part of the flight (Modern IAF's training run and radio menu); none in the original game.
 	addon = Settings.flight_addon(self)
 	if addon != null:
 		add_child(addon)
@@ -1982,7 +1982,7 @@ func _spawn_player() -> void:
 	# Seen from the cockpit (FUN_004d9d70 → FUN_004da060: display slot 4 = model [8], the *_BC.X, with the crew's
 	# cockpit flag set so pilot and canopy stay hidden): same frame and Present scale as the jet model.
 	# Ours, the 3D cockpit (Extras "Cockpit": 3D): the F-16's hung in the detailed F-16's cut model, Models Original
-	# too; that model's own tub ahead of the seat makes way for it. The original's model is then not loaded (IAF 2026
+	# too; that model's own tub ahead of the seat makes way for it. The original's model is then not loaded (Modern IAF
 	# has none).
 	var c3d_model: String = Cockpit3d.model_for(player.type)
 	var three_d: bool = Cockpit3d.in_cut_model(player.type, player.cockpit_dir)
@@ -2370,7 +2370,7 @@ func blackbox_event(e: Dictionary) -> void:
 	_log_event(_log_st, e)
 
 
-## Any throttle command starts the engine (FUN_0059f7d0 sets S+0x1d0), even at idle; not in IAF 2026, whose start is
+## Any throttle command starts the engine (FUN_0059f7d0 sets S+0x1d0), even at idle; not in Modern IAF, whose start is
 ## its own command (Settings.throttle_starts_engine, iaf-2026/docs/training.md §7).
 func _throttle_event() -> void:
 	if flight != null:
@@ -2444,7 +2444,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if rel >= 0:
 			_release_command(keys.records[rel].release)
 	elif event is InputEventKey and event.pressed and addon != null and addon.key(event):
-		return  # the project's flight add-on took it (IAF 2026's radio menu, Settings.flight_addon)
+		return  # the project's flight add-on took it (Modern IAF's radio menu, Settings.flight_addon)
 	elif event is InputEventKey and event.pressed:
 		if event.echo:
 			# Held PgUp / PgDn keep sliding the panel (our keys); other repeats do nothing.
@@ -2640,7 +2640,7 @@ func _command(cmd: Array) -> bool:
 		134:
 			_quit_key()
 		200:
-			# IAF 2026's "start engine" (its own keys.json; no original record sends it): the 6-DoF's start sequence
+			# Modern IAF's "start engine" (its own keys.json; no original record sends it): the 6-DoF's start sequence
 			# (iaf-2026/docs/training.md §7). The original model ignores it.
 			if flight != null:
 				flight.start_engine()
@@ -3536,7 +3536,7 @@ func _process(delta: float) -> void:
 		for k in ins:
 			cockpit.state[k] = ins[k]
 		cockpit.state["better"] = flight.better_instruments(player_damage.flags if player_damage != null else [])
-		cockpit.power = int(st.get("power", 2))  # the 6-DoF's ground start (IAF 2026); always 2 in the original game
+		cockpit.power = int(st.get("power", 2))  # the 6-DoF's ground start (Modern IAF); always 2 in the original game
 		_record(st, delta)
 		if not frozen and not waiting_for_ground:
 			_sim_time += delta

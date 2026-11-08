@@ -29,7 +29,7 @@ const ORIGINAL := {
 func run() -> void:
 	var s := settings()
 	if not FileAccess.file_exists(s.assets_dir().path_join("converted/iaf-2026/missions/missionlist.json")):
-		print("NEEDS DATA: this test reads the sim's compiled missions (./iaf2026-setup)")
+		print("NEEDS DATA: this test reads the sim's compiled missions (./modern-iaf-setup)")
 		return
 	for k in ORIGINAL:
 		check(s.get(k) != ORIGINAL[k], "settings: %s is the sim's own (%s)" % [k, s.get(k)])

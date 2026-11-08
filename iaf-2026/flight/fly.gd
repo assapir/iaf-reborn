@@ -1,4 +1,4 @@
-# Starts one of Modern IAF's missions: the front end's Fly (menu/front_end.gd), and `./iaf2026 -- --mission <id>` with
+# Starts a Modern IAF mission: the front end's Fly (menu/front_end.gd), and `./modern-iaf -- --mission <id>` with
 # the menu id (2011 Ramon start-up, 2012 Ramon take-off, 2021 / 2022 Ramat David, 2031 / 2032 Nevatim; terrain_view.gd
 # reads the same argument as the mission id). The mission comes from converted/iaf-2026/missions (iaf-sim missions),
 # the jet from its player unit (Settings.set_jet), then the flight scene.
