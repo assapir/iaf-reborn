@@ -67,8 +67,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   at 14 %; the 3D cockpit's SYM wheel sets the day level (hover, wheel, drag; kept in the settings file) and
   Shift + H steps it, on the general clickable-control layer `cockpit3d_controls.gd` ([cockpit.md](cockpit.md)
   §5.1). The F-35I's HMD BRT knob turns the same level, its MFD BRT knob the displays' brightness (kept in the
-  settings file too). `test_hud.gd`, `test_mvp.gd` `_knob`. Open: the F-35I's helmet does not follow the level
-  (waits for `wt/hud-f35i-edge`), the DAY / AUTO / NIGHT switch.
+  settings file too); the F-35I's helmet display lights as the HUD does, in P43 at that level. `test_hud.gd`,
+  `test_mvp.gd` `_knob`. The Sufa's combiner has a thin light edge down each side. Open: the DAY / AUTO / NIGHT
+  switch.
 - **The start-up switches (2026-11-09):** the F-16s' start-up checklist by the mouse in the 3D cockpit: MAIN PWR, the
   JFS switch, the throttle, the AVIONIC POWER switches, the INS knob (their own nodes of `f16.glb`, each turning to its
   on position) and the canopy handle (a hit area), each sending its key's command; the card names each switch and its

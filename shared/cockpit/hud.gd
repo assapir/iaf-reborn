@@ -739,6 +739,10 @@ func real_hud() -> Dictionary:
 		}
 	}
 	_real = _real_hud.frame(_field(), _real_in)
+	# hud_daylight: the helmet displays (the F-35I's HMDS, the DASH) light like the HUD, in P43 at its level (no
+	# source gives the HMDS's own hue; docs/real-hud.md "Modern IAF's HUD light").
+	if _glow and _real.colour != null and not _real.sight:
+		_real.colour = p43(Settings.hud_brightness, cockpit.daylight)
 	return _real
 
 

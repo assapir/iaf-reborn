@@ -137,7 +137,8 @@ the sources and the values):
 - the HUD in the P43 green, 40 / 255 / 50, at the day level by day, falling to the night floor (136 / 255 of it) as
   the sun sets;
 - the symbols added to the scene's light (blend_add), a faint halo under each, a 0.08° stroke;
-- the combiner glass 14 % opaque in a faint cool magenta. The glass's edge line needs a rebuild of `f16.glb`: open;
+- the combiner glass 14 % opaque in a faint cool magenta; the Sufa's plate with a thin light edge down each side
+  (`f16.glb`, [docs/cockpit.md](../../docs/cockpit.md) "3D cockpit");
 - the day level is the cockpit's SYM wheel (below), kept in the sim's settings file like a knob's position, with no
   Preferences row (the user, 2026-11-09: "the HUD colour should be adjustable like in the plane, not in
   Preferences!"); Shift + H ("Step HUD brightness", `data/keys.json` record 46, the laptop map the same) steps it in
@@ -164,10 +165,10 @@ clicks. The start-up switches are on the same layer (§5.2). The DAY / AUTO BRT 
 
 The F-35I: the HMD BRT knob on its pedestal (`f35i.glb` node `HMD_BRT`, `f35i_controls.json`) works as the SYM
 wheel: the same command `[123, ±25, 0]`, the same steps, and it turns with `Settings.hud_brightness` (100° of travel,
-the index up at 50 %; inferred). The helmet keeps its own green at every level until the helmet follows the level
-(the parked branch `wt/hud-f35i-edge`): open. The MFD BRT knob beside it (`MFD_BRT`) turns the displays' brightness,
-`Settings.mfd_brightness` (10–100 %, saved as the HUD's level; ours, command `[216, ±25, 0]`, no key): the PCD, the
-standby display and the MFDs of the 3D cockpit, the F-16s' too (their own BRT rockers are not bound).
+the index up at 50 %; inferred). The helmet's symbols follow the level in the P43 green, as the HUD (§5.1). The MFD
+BRT knob beside it (`MFD_BRT`) turns the displays' brightness, `Settings.mfd_brightness` (10–100 %, saved as the
+HUD's level; ours, command `[216, ±25, 0]`, no key): the PCD, the standby display and the MFDs of the 3D cockpit, the
+F-16s' too (their own BRT rockers are not bound).
 
 The Sufa on Ramon's ILS final, a real render (`iaf-2026/tests/_sym_wheel_shot.gd`): the pointer over the wheel, then
 the wheel turned down 24 notches (100 % to 40 %) and the pointer moved away.
@@ -178,11 +179,17 @@ the wheel turned down 24 notches (100 % to 40 %) and the pointer moved away.
 
 ![The HUD at full, then at 40 % after the wheel turned down](pictures/cockpit/sym_wheel_hud.jpg)
 
-The F-35I's helmet keeps its own green. The Sufa at the look study's Shoham pose (HDG 100, 240 m), before and after,
-16:58 and 22:00:
+The Sufa at the look study's Shoham pose (HDG 100, 240 m), before and after, 16:58 and 22:00:
 
 ![The HUD at 16:58: before and after](pictures/cockpit/hud_light_day.jpg)
 ![The HUD at 22:00: before and after](pictures/cockpit/hud_light_night.jpg)
+
+The F-35I has no HUD: its helmet display carries the symbology. It follows the same rules (2026-11-09): the P43
+green at the same level, the night floor, Shift + H and the slider. No source gives the helmet display's own hue, so
+it takes the F-16's P43 ([docs/real-hud.md](../../docs/real-hud.md#modern-iafs-hud-light)). The F-35I over the Negev
+(`_cockpit3d_shot.gd`, C3D_SIM=1 C3D_JET=f35i, looking up 8°), before and after, by day and at 22:00:
+
+![The F-35I's helmet display: before (its own green) and after (P43), by day and at night](pictures/cockpit/hud_light_f35i.jpg)
 
 `tests/godot/test_hud.gd` checks the colours (the P43 green by day, the floor at night, the original game's darkest
 green at its start); `iaf-2026/tests/test_mvp.gd` `_hud_light` checks them in the sim's cockpit with the key's steps,

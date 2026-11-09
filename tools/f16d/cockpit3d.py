@@ -769,6 +769,40 @@ def hud_posts(b, mat):
         print("hud_posts %s: glass +-%.3f m, its foot at %.3f m" % (part, half, foot))
 
 
+# The wide-angle combiner's sides lit (hud_wide_edges, 2026-11-09): the F-16I's plate shows a thin light line down
+# each side, its cut edge catching the light, and none along its top (the HUDS photo). A strip EDGE_W (m) wide inside
+# each side of the image glass (HUDImage2, the plate's whole width after hud_wide_glass), EDGE_OUT toward the eye so
+# it draws over the glass, in `hud_edge_light` (inferred width and tint).
+EDGE_W, EDGE_OUT = 0.0025, 0.0006
+
+
+def hud_wide_edges(b, mat):
+    objs = {o.name.split("/", 1)[1]: o for o in b.parts.get("HUDc", [])}
+    glass = objs.get("HUDImage2")
+    if glass is None:
+        return
+    vs = [v.co.copy() for v in glass.data.vertices]
+    half = max(abs(v.x) for v in vs)
+    n = glass.data.polygons[0].normal.copy() if glass.data.polygons else Vector((0, -1, 0))
+    if n.y > 0:
+        n = -n  # toward the pilot
+    for s in (-1, 1):
+        side = [v for v in vs if v.x * s > 0.8 * half]
+        lo, hi = min(side, key=lambda v: v.z), max(side, key=lambda v: v.z)
+        u = (hi - lo).normalized().cross(n).normalized()
+        if u.x * s > 0:
+            u = -u  # inward
+        verts = [p + n * EDGE_OUT for p in (lo, hi, hi + u * EDGE_W, lo + u * EDGE_W)]
+        me = bpy.data.meshes.new("HUDc/edge_" + "LR"[s > 0])
+        me.from_pydata(verts, [], [(0, 1, 2, 3)])
+        me.uv_layers.new(name=glass.data.uv_layers[0].name if glass.data.uv_layers else "UVMap")
+        me.materials.append(mat)
+        o = bpy.data.objects.new(me.name, me)
+        kit.scene().collection.objects.link(o)
+        b.parts["HUDc"].append(o)
+    print("hud_wide_edges: %.1f mm strips at +-%.3f m" % (EDGE_W * 1000, half))
+
+
 # The glareshield's aft top edge rounded (coaming, 2026-11-02): FlightGear's glareshield (`Tub/poly`) meets its aft face
 # at a hard edge, a straight line across the view under the HUD. The F-16's is a moulded coaming with a rounded lip
 # (the HUDS photo). That edge is bevelled COAMING_R (m) in COAMING_SEGMENTS and shaded smooth: the hood's edges sharper
@@ -1007,6 +1041,11 @@ def main():
         elif part not in ("HUDImage2", "HUDImage2.back"):  # all but the glass
             for i in range(len(o.data.materials)):
                 o.data.materials[i] = hud_black
+    # The wide-angle plate's sides: a thin light edge (the glass's cut edge catching the light, the HUDS photo).
+    hud_edge_light = kit.material("hud_edge_light", (0.8, 0.84, 0.82), roughness=0.1, alpha=0.6)
+    hud_edge_light.use_backface_culling = False
+    hud_wide_edges(b, hud_edge_light)
+    everything = [o for o in kit.scene().objects if o.type == 'MESH']
     # The Block 50 combiner's thick top edge (HUDedge, opaque light grey in hud.ac): the glass's edge, as the
     # wide-angle plate's (an F-16C seen from the pilot's seat: a thin frame at the sides, the glass's top free).
     for o in b.parts.get("HUDa", []):

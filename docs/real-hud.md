@@ -413,7 +413,8 @@ horizon / heading[^aloni].
 
 The F-35I shows its flight data in the Gen III helmet display: green, 40° × 30°. Looking forward, it shows an
 aircraft-stabilised "virtual HUD"[^lm-slides][^twz-f35]. The symbols the game adds over it (the ILS lines, the weapon
-symbols, the radar's BORE cross) are green too, as over the DASH (`hud.gd` `_hc`).
+symbols, the radar's BORE cross) are green too, as over the DASH (`hud.gd` `_hc`). In Modern IAF that green is the
+HUD's P43 at the player's brightness ([Modern IAF's HUD light](#modern-iafs-hud-light)).
 
 Sources: Lockheed Martin "The F-35 Cockpit" slides[^lm-slides]; US Navy flight-test helmet video[^twz-f35]; the Collins
 datasheet[^collins]; Aviation Today 2010 / 2015[^avtoday]; Code One[^codeone-sight]; SLDinfo[^sldinfo]; National
@@ -902,10 +903,16 @@ and its 0.6 px pen. The study behind it: the look study's cockpit proposal, find
   glow, small to the eye (inferred).
 - **Combiner glass.** 14 % opaque in a faint cool magenta (0.62 / 0.56 / 0.72) with specular 0.8, so it is slightly
   darker than the sky and reflects a little of it (`cockpit3d.gd`; the green its coating reflects is missing from
-  what passes through, inferred). The original game's glass stays 7 %. The glass's edge line needs a rebuild of
-  `f16.glb` (`tools/f16d/cockpit3d.py` `hud_edge`): open.
-- **Unchanged:** the F-35I's helmet and the DASH keep their own green (a Real HUD frame's own colour comes first).
-  The sprite font's ladder labels and the original HUD's weapon symbols draw no halo (the sim draws the Real HUD).
+  what passes through, inferred). The original game's glass stays 7 %. The Sufa's wide-angle plate has a thin
+  light edge down each side, its top free (2026-11-09, `tools/f16d/cockpit3d.py` `hud_wide_edges`; docs/cockpit.md
+  "3D cockpit"); it is part of `f16.glb`, so the original game's 3D cockpit shows it too.
+- **Helmet displays.** The F-35I's Gen III helmet display and the DASH light the same way (2026-11-09): their frame's
+  own green (0.45 / 1.0 / 0.55 in `real_hud/f35.rs`, `dash.rs`) becomes the P43 green at the same level and night
+  floor, stepped by Shift + H and set by the slider (`hud.gd` `real_hud()`). The F-35 helmet shows green monochrome
+  symbology[^avtoday]; no source gives its display's wavelength, so it takes the F-16's P43 (inferred). The
+  original game keeps the frames' own green.
+- **Unchanged:** the sprite font's ladder labels and the original HUD's weapon symbols draw no halo (the sim draws the
+  Real HUD).
 - **Cost on the Iris Xe:** none measurable. The Shoham pose, 180 frames, vsync off, the light off and on alternated:
   36.5 / 46.6 fps off, 46.6 / 39.4 fps on, inside the runs' own spread.
 
@@ -913,6 +920,10 @@ Before and after at the look study's Shoham pose (HDG 100, 240 m), 16:58 and 22:
 
 ![The HUD at 16:58: before (the darkest green over the scene) and after (P43, added, with the halo)](../iaf-2026/docs/pictures/cockpit/hud_light_day.jpg)
 ![The HUD at 22:00: before and after (the night floor)](../iaf-2026/docs/pictures/cockpit/hud_light_night.jpg)
+
+The F-35I's helmet display over the Negev, before and after, by day and at 22:00:
+
+![The F-35I's helmet display by day and at night, in P43](../iaf-2026/docs/pictures/cockpit/hud_light_f35i.jpg)
 
 [^dash34]: T.O. GR1F-16CJ-34-1-1, Hellenic AF F-16C/D Block 50 avionics and weapons delivery (dash-34), 1997: HUD
     chapter pp. 1-158..1-183 (fig. 1-115 "HUD Window and Scale Positions"), A-A gun pp. 403-411, A-A missiles

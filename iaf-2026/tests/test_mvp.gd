@@ -536,15 +536,16 @@ func _hud_light(tv: Node, jet: String) -> void:
 	settings().hud_brightness = 1.0
 	cp.daylight = 1.0
 	var own = cp.hud.real_hud().get("colour")
-	if own != null:
-		# The F-35I: its helmet display keeps its own green, and it has no combiner.
-		check(cp.hud._hc() == own, "%s: the helmet keeps its own green (%s)" % [jet, own])
-	else:
-		check(cp.hud._hc() == Color8(40, 255, 50), "%s: the HUD by day in the P43 green (%s)" % [jet, cp.hud._hc()])
-		cp.daylight = 0.0
-		var k := 136.0 / 255.0
-		var floor_c := Color(40.0 / 255.0 * k, k, 50.0 / 255.0 * k)
-		check(cp.hud._hc().is_equal_approx(floor_c), "%s: at night at the floor (%s)" % [jet, cp.hud._hc()])
+	# The F-35I's helmet display (own != null) lights as the HUD does (docs/real-hud.md "Modern IAF's HUD light").
+	check(_hud_c(cp) == Color8(40, 255, 50), "%s: the HUD by day in the P43 green (%s)" % [jet, _hud_c(cp)])
+	cp.daylight = 0.0
+	var k := 136.0 / 255.0
+	var floor_c := Color(40.0 / 255.0 * k, k, 50.0 / 255.0 * k)
+	check(_hud_c(cp).is_equal_approx(floor_c), "%s: at night at the floor (%s)" % [jet, _hud_c(cp)])
+	settings().hud_brightness = 0.25
+	cp.daylight = 1.0
+	check(_hud_c(cp).is_equal_approx(Color8(40, 255, 50) * Color(0.25, 0.25, 0.25)), "%s: dimmed by the level" % jet)
+	settings().hud_brightness = 1.0
 	cp.daylight = 1.0
 	tv._command([123, 0, 0])
 	check(settings().hud_brightness == 0.125, "%s: the HUD key from full to the dimmest eighth" % jet)
@@ -617,6 +618,12 @@ static func _click(at: Vector2, button: MouseButton, pressed: bool) -> InputEven
 	e.button_index = button
 	e.pressed = pressed
 	return e
+
+
+## The HUD's colour this moment (the Real HUD's frame made anew: it is kept for the frame).
+static func _hud_c(cp) -> Color:
+	cp.hud._real_frame = -1
+	return cp.hud._hc()
 
 
 ## The heading error to `p` from the jet, degrees (−180, 180]; positive: `p` to the right.
