@@ -45,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
-      - run: cargo test --workspace
+      - run: cargo test --workspace --no-fail-fast
 
   godot:
     strategy:
@@ -75,6 +75,9 @@ jobs:
       - run: godot --headless --path iaf-reborn --import
       - name: Parse-check every script
         run: godot --headless --path iaf-reborn -s ../tools/gdparse.gd --log-file "$RUNNER_TEMP/gdparse.log"
+      - run: godot --headless --path iaf-2026 --import
+      - name: Parse-check every script (Modern IAF)
+        run: godot --headless --path iaf-2026 -s ../tools/gdparse.gd --log-file "$RUNNER_TEMP/gdparse-2026.log"
       - if: runner.os == 'macOS' # for timeout (gtimeout)
         run: command -v gtimeout || brew install coreutils
       # The Godot tests that pass without game data (docs/ci.md); required.
@@ -82,10 +85,10 @@ jobs:
         run: >-
           tools/ci_godot_tests.sh tests/godot/test_console.gd tests/godot/test_f35i_model.gd
           tests/godot/test_g_effects.gd tests/godot/test_mission_events.gd tests/godot/test_scenery.gd
-          tests/godot/test_setup_wizard.gd
+          tests/godot/test_setup_wizard.gd iaf-2026/tests/test_converted_gate.gd iaf-2026/tests/test_setup_wizard.gd
 
-  # Informational, on main, by hand, nightly and for a push whose message holds [sweep]: every Godot test without
-  # game data. Its failures never fail the workflow.
+  # Informational, on main, by hand, nightly and for a push whose message holds [sweep]: every Godot test
+  # (tests/godot/ and iaf-2026/tests/) without game data. Its failures never fail the workflow.
   godot-sweep:
     needs: godot
     if: >-
@@ -109,6 +112,7 @@ jobs:
           path: target/release
       - run: tools/ci_install_godot.sh
       - run: godot --headless --path iaf-reborn --import
+      - run: godot --headless --path iaf-2026 --import
       - if: runner.os == 'macOS' # for timeout (gtimeout)
         run: command -v gtimeout || brew install coreutils
       - run: tools/ci_godot_tests.sh

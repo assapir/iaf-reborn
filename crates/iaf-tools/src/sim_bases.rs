@@ -33,6 +33,10 @@ pub const BASES: [(&str, &str, &str); 5] = [
 /// The lineup point this far down the centreline from the declared runway start (m; the missions' runway start,
 /// iaf-2026/docs/data-formats.md §5; inferred: a jet's length and a margin).
 pub const LINEUP_IN_M: f64 = 100.0;
+/// The wheels count as on the pavement this far past its edges, in the training missions (`training.rs`) (inferred:
+/// OSM draws centrelines and outlines, not the paved fillets where a taxiway meets a runway or a turn, and its
+/// positions are good to a few metres).
+pub const PAVEMENT_MARGIN_M: f64 = 5.0;
 /// A taxiway without an OSM width (m; inferred: the usual 23 m of a fighter base's taxiway, ICAO code D–E).
 const TAXIWAY_WIDTH_M: f64 = 23.0;
 /// Mask pixel (m) and the margin around a base's outline.
@@ -1888,7 +1892,7 @@ mod tests {
                         let f = i as f64 / n.max(1) as f64;
                         let p = [w[0][0] + (w[1][0] - w[0][0]) * f, w[0][1] + (w[1][1] - w[0][1]) * f];
                         assert!(
-                            b.paved(p, crate::training::PAVEMENT_MARGIN_M),
+                            b.paved(p, PAVEMENT_MARGIN_M),
                             "{} {}: {p:?} on the leg {:?} → {:?} is off the pavement",
                             b.icao,
                             spot.unit,

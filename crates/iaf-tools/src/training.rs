@@ -34,9 +34,6 @@ const LIFTOFF_HOLD_S: f64 = 1.0;
 const ROTATION_PITCH_DEG: f64 = 2.0;
 /// A throttle step smaller than this between two samples is noise, not a movement.
 const THROTTLE_STEP: f64 = 0.005;
-/// The wheels count as on the pavement this far past its edges (inferred: OSM draws centrelines and outlines, not the
-/// paved fillets where a taxiway meets a runway or a turn, and its positions are good to a few metres).
-pub const PAVEMENT_MARGIN_M: f64 = 5.0;
 
 // --- Strings ----------------------------------------------------------------------------------------------------------
 
@@ -603,7 +600,7 @@ impl Watch {
             Some("crash")
         } else if damage > 0.0 {
             Some("damage")
-        } else if on_ground && !self.base.paved([x, y], PAVEMENT_MARGIN_M) {
+        } else if on_ground && !self.base.paved([x, y], sim_bases::PAVEMENT_MARGIN_M) {
             Some("off_pavement")
         } else {
             None

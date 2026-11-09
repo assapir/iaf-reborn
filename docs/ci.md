@@ -11,8 +11,8 @@ that need data skip themselves with a message.
 | Job | Runs on | Time limit | What it does |
 |---|---|---|---|
 | lint | Linux | 15 min | `cargo fmt --all --check`, clippy with warnings as errors, gdformat (`--line-length 120`) and gdlint on every tracked `.gd` file, `tools/doclint.py`, `tests/test_flight_timeline.py` |
-| rust | Linux, macOS (arm64), Windows | 15 min | `cargo test --workspace` |
-| godot | Linux, macOS (arm64), Windows | 15 min | builds the extension (`cargo build --release -p iaf-godot`), installs the official Godot 4.7.2 build (`tools/ci_install_godot.sh`), imports the project, parse-checks every script (`tools/gdparse.gd`) and runs the 6 Godot tests that pass without data |
+| rust | Linux, macOS (arm64), Windows | 15 min | `cargo test --workspace --no-fail-fast` (every crate runs, all failures in one log) |
+| godot | Linux, macOS (arm64), Windows | 15 min | builds the extension (`cargo build --release -p iaf-godot`), installs the official Godot 4.7.2 build (`tools/ci_install_godot.sh`), imports both projects (`iaf-reborn`, `iaf-2026`), parse-checks every script of each (`tools/gdparse.gd`) and runs the 8 Godot tests that pass without data |
 | godot-sweep | Linux, macOS (arm64), Windows | 20 min | on `main`, by hand (Run workflow), nightly at 03:17 UTC, and for a push whose commit message holds `[sweep]`: every Godot test without data (below); informational |
 
 Lint runs once, on Linux. The other systems run only what differs per system: the build, the tests, the Godot import
@@ -23,13 +23,15 @@ artifact for 7 days. The godot-sweep job uses that artifact instead of building 
 
 ## Godot tests without data
 
-`tools/ci_godot_tests.sh [tests…]` runs the given tests (default: every `tests/godot/test_*.gd`) headless: six at a
-time, 60 seconds each, with `IAF_DEFAULT_SETTINGS=1` and the log in the runner's temp folder. The job log shows each
+`tools/ci_godot_tests.sh [tests…]` runs the given tests (default: every `tests/godot/test_*.gd` and
+`iaf-2026/tests/test_*.gd`) headless, each in its own project (`iaf-2026/tests/` in `iaf-2026`, named `sim_<test>`
+in the results): six at a time, 60 seconds each, with `IAF_DEFAULT_SETTINGS=1` and the log in the runner's temp folder. The job log shows each
 result as it comes. The run's summary page shows the counts and a table: pass, fail, needs-data or timeout per test.
 It exits 1 unless every test passes.
 
 - The godot job runs the tests that pass without data: `test_console`, `test_f35i_model`, `test_g_effects`,
-  `test_mission_events`, `test_scenery`, `test_setup_wizard`. They are required. A test that passes without data
+  `test_mission_events`, `test_scenery`, `test_setup_wizard`, and Modern IAF's `test_converted_gate` and
+  `test_setup_wizard`. They are required. A test that passes without data
   can join this list in `.github/workflows/ci.yml`.
 - The godot-sweep job runs them all. It keeps each test's output as a 7-day artifact. Its failures do not fail the
   workflow.
@@ -38,7 +40,8 @@ It exits 1 unless every test passes.
 not count). `require_data()` in `tests/godot/base.gd` prints `NEEDS DATA` and quits at once when
 `assets/converted/keys.json` or `assets/install` is missing; with the data it returns at once. `start_mission` calls
 it, and so do the tests that read data directly, just before their first read. A new test that reads data calls
-`await require_data()` there too.
+`await require_data()` there too. Modern IAF's tests that read the sim's own data override it to check
+`Settings.own_dir()` instead (`test_sim_gun`, `test_own_sources`).
 
 On macOS the script runs under the system's bash 3.2 and uses coreutils' `gtimeout`, which the jobs install with
 Homebrew when missing.

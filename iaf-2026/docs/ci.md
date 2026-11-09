@@ -4,7 +4,7 @@
 sim's built theatre and downloads); "inferred" = our own reasoning.
 
 This page says what of Modern IAF can run in CI with no assets, on Linux, macOS and Windows, and recommends what
-to add. It is research: no workflow changes with it. The repo's workflow today is
+to add. The recommendation (§5) is in the workflow since 2026-11-09 (§6). The repo's workflow today is
 [.github/workflows/ci.yml](../../.github/workflows/ci.yml), described in [docs/ci.md](../../docs/ci.md).
 
 ## 1. What the workflow runs today
@@ -63,6 +63,20 @@ It printed `gdparse: 0 scripts failed` with no `SCRIPT ERROR` and exit code 0, a
 3. Add `iaf-2026/tests/` to the godot-sweep job (informational), and move each test that passes with no assets into
    the godot job's required list, as `docs/ci.md` does for `tests/godot/`.
 4. Keep the flights (`test_m0_boot.gd`, `test_mvp.gd`) local: they need the built theatre.
+
+## 6. Applied
+
+On 2026-11-09 the workflow took §5's points 1 to 3, on all three systems: the runners are free for this public
+repository, and the added import and parse step costs about a minute per system.
+
+- The rust job runs `cargo test --workspace --no-fail-fast`. With `assets/` moved aside every Rust test passes
+  locally; the one failure CI showed was iaf-setup's stamp test (the terrain's row reached `training.rs` through a
+  constant), not missing data.
+- The godot job imports `iaf-2026` and parse-checks it. `iaf-reborn` passes the same check with no assets.
+- With no assets, locally: `test_converted_gate` and `test_setup_wizard` pass and are required;
+  `test_devices`, `test_flight_ui`, `test_front_end` and `test_sim_look` print `NEEDS DATA` and pass without
+  checking anything; `test_m0_boot`, `test_mvp`, `test_sim_gun` and `test_own_sources` print `NEEDS DATA`. The
+  sweep runs them all.
 
 [^godot-rel]: Godot Engine, releases on GitHub (`Godot_v4.7.2-stable_linux.x86_64.zip`, `macos.universal.zip`, `win64.exe.zip`), https://github.com/godotengine/godot/releases
 [^gh-runners]: GitHub Docs, "GitHub-hosted runners reference" (standard runners free and unlimited on public repositories; ubuntu-latest: 4 processors, 16 GB RAM, 14 GB SSD), https://docs.github.com/en/actions/reference/runners/github-hosted-runners
