@@ -52,6 +52,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   bright by day and dimmed to a night floor as the sun sets, with a faint halo, a 0.08° stroke and the combiner glass
   at 14 %; Preferences → Graphics "HUD brightness" sets the day level and Shift + H steps it
   ([cockpit.md](cockpit.md) §5.1). `test_hud.gd`, `test_mvp.gd`. Open: the glass's edge line (an `f16.glb` rebuild).
+- **The cockpit holds still (2026-11-09, the Mac play test's finding 25):** far from the flight's start the whole
+  cockpit jumped against the eye (32-bit floats: 3.1 mm steps 30 km out, 4.4 mm at 60 km). The sim draws the cockpit
+  in its own world about the origin and lays it over the flight's view ([cockpit.md](cockpit.md) §6.2): it no longer
+  moves against the eye at any distance; about +4 to +5 ms GPU a frame on the Iris Xe. `test_sim_look.gd`.
 - **The ILS bars glide (2026-11-09, the Mac play test's finding 24):** the HUD's ILS lines sit at the exact
   deviation instead of the original's whole-pixel steps, which jumped about 5.5 screen pixels at a time on the 3D
   HUD glass ([real-hud.md](../../docs/real-hud.md#what-ours-draws-status)). `test_mvp.gd` checks all three jets.

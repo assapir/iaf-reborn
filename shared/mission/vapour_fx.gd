@@ -303,7 +303,7 @@ func update(model: Node3D, state: Dictionary) -> void:
 	var low := 1.0 - smoothstep(300.0, 2500.0, alt)
 	j.k_cone = _ease(j.k_cone, low * smoothstep(0.86, 0.95, mach) * (1.0 - smoothstep(1.03, 1.2, mach)), dt, 0.3)
 	j.k_wing = _ease(j.k_wing, humid * smoothstep(5.0, 8.0, g) * smoothstep(0.55, 0.8, mach), dt, 0.3)
-	var at := frame.global_transform
+	var at: Transform3D = state.get("frame_xf", frame.global_transform)  # own_bc in its own world: terrain_view.gd
 	var b := at.basis.orthonormalized()
 	for i in j.tips.size():
 		var tr: Array = j.trails[i]

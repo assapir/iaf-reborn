@@ -284,6 +284,12 @@ func scenery_everywhere() -> bool:
 	return true
 
 
+## The cockpit in its own world about the origin: steady at any distance from the flight's start (the Mac play test's
+## finding 25: 3.1 mm jumps 30 km out, 4.4 mm at 60 km; cockpit_origin.gd).
+func cockpit_at_origin() -> bool:
+	return true
+
+
 ## The ILS lines glide: the original's whole-pixel steps (1/12°) jump on the 3D cockpit's wide HUD glass (the Mac
 ## play test's finding 24).
 func hud_subpixel() -> bool:

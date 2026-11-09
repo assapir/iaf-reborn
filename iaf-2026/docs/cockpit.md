@@ -195,6 +195,53 @@ the TSD map's reference picture in §8):
 ![The Sufa's colour HSD with the OSM map (the Dead Sea ahead), the Barak's green HSD (no map, as the Block 40's), the F-35I's TSD (the coast and borders as lines)](pictures/cockpit/maps.jpg)
 ![The RWR glyphs: the 1998 sheet and ours, slot by slot](pictures/cockpit/rwr_glyphs.png)
 
+### 6.2 The cockpit at the origin (2026-11-09, the Mac play test's finding 25)
+
+The flight's world is in 32-bit floats about the flight's start (`terrain_view.gd` `world_origin`), so far from the
+start every vertex of the cockpit rounds to the step of the jet's position, which the eye 0.5–1 m away sees: the whole
+cockpit jumped against the eye ("the entire cockpit shakes", the user on the Mac). The sim draws the cockpit-view
+model (with the 3D cockpit, the HUD glass, the stores and the lights on it) in its own world about the origin
+(`shared/cockpit/cockpit_origin.gd`, `Settings.cockpit_at_origin()`; the original game keeps it in the flight's world):
+- a SubViewport the size of the screen draws that world through a camera that copies the flight camera's place and
+  turn in the rig (the head look, the ground clamp), its projection (`cockpit.gd`'s frustum with its offset) and the
+  rig's attitude, so the world's directions are the same in both and the sun needs no turning;
+- that world's sun copies the flight's direction, colour and energy every frame (one shadow map over 8 m: the canopy
+  frame, the HUD and the seat on the panel); its environment copies the flight's once a second (the sky's ambient
+  light) without fog, tonemap or glow;
+- its picture, linear and untonemapped with its alpha, is laid over the flight's 3D view by a full-screen quad drawn
+  last in that view (`cockpit_composite.gdshader`), so the flight's auto exposure, tonemap and anti-aliasing apply to
+  the cockpit as before, and the clouds, rain and effects stay outside the canopy; the 2D layers (the HUD symbology,
+  the night vision goggles) lie over both as before; the quad is on the clouds' layer, which the EO sensor's camera
+  leaves out, so the TV picture on the MFD shows no cockpit;
+- the HUD's clip and the screens' clicks project through that world's camera (`cockpit3d.gd` `camera`), the wingtip
+  vapour takes the cockpit's place in the flight's world (`terrain_view.gd` `vapour_state`).
+
+The lights of the flight's world (flares, the muzzle flash, airbase lamps) do not reach the cockpit (inferred: the
+cockpit is lit by the sun, the sky and its own flood and panel lights).
+
+Measured by `iaf-2026/tests/_cockpit_shake_probe.gd` (a real render of mission 2012 at 1920 × 1080 on the Iris Xe,
+the flight model stopped, the rig moved 0.5 mm a frame D km from the start, 40 frames; the pixel change is the mean
+grey-level change between successive frames):
+
+| D | camera ↔ cockpit moved, before / after | panel pixel change per frame, median / max, before | after |
+|---|---|---|---|
+| 0 | 0.25 mm / 0 | 0.47 / 1.99 | 0 / 0.49 |
+| 15 km | 1.1 mm / 0 | 1.14 / 6.8 | 0 / 0.004 |
+| 30 km | 3.1 mm / 0 | 0 / 10.5 | 0 / 0.004 |
+| 60 km | 4.4 mm / 0 | 0 / 15.5 | 0 / 0.011 |
+
+The worst frame-to-frame change 60 km out, 8× brighter (left: in the flight's world, the cockpit jumps as one piece;
+right: in its own world, the cockpit black; what changes there is a terrain tile loading and the info line), and the
+view there in both (the same frame):
+
+![The worst frame step 60 km out, before and after](pictures/cockpit/origin_step_60km.jpg)
+![The view 60 km out, before and after](pictures/cockpit/origin_view_60km.jpg)
+
+**Cost** (the same probe, the GPU time each viewport takes, 120 frames at the start): before, the flight's viewport
+18.8–19.4 ms; after, the flight's 14.3–15.9 ms and the cockpit's 7.7–8.9 ms, so about +4 to +5 ms a frame on the
+Iris Xe. Of the cockpit's, MSAA 4× (as the flight's) is about 3.2 ms, its shadow 1.5 ms, the sky's ambient 1 ms
+(each measured off once). Kept: MSAA for the panel's printed labels (open: FXAA in the cockpit's viewport instead).
+
 ## 7. Open
 - The F-16s' HUD field (§4) is sized to fit the 3D combiners, smaller than the real HUDs' 20° × 13.5°.
 - The gun cross's place under the boresight (inferred).

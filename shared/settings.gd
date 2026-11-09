@@ -1045,6 +1045,13 @@ func scenery_everywhere() -> bool:
 	return false
 
 
+## The cockpit-view model drawn in its own world about the origin (cockpit_origin.gd): Modern IAF, whose flights go
+## hundreds of km from their start, where the flight's float32 world rounds the cockpit to millimetres against the eye.
+## The original game draws it in the flight's world (its jet stays within the 1998 theatre's few tens of km).
+func cockpit_at_origin() -> bool:
+	return false
+
+
 ## The HUD's moving lines at sub-pixel positions: Modern IAF (whole-pixel steps jump on its wide 3D HUD glass). The
 ## original game draws the ILS lines at whole HUD pixels, 1/12° steps (hud.gd ils_lines, FUN_005309a0).
 func hud_subpixel() -> bool:

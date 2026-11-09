@@ -1228,6 +1228,9 @@ sentinel2 imagery, at 1920×1080:
 
 ### 3.2 The 3D cockpit (Extras "Cockpit": 3D; cockpit.md "3D cockpit")
 
+Modern IAF draws the cockpit in a second viewport about the origin (iaf-2026/docs/cockpit.md §6.2: steady far from
+the flight's start): about +4 to +5 ms GPU a frame on the Iris Xe over the numbers below. The original game does not.
+
 `tests/godot/_flight_bench.gd` at 1920×1080 on the Iris Xe (2026-11-01, Settings at their defaults, mission 311's
 F-16, the GPU bench lock held), `BENCH_SET=cockpit_3d=3d` against the 2D panel, and the 2D panel with Models Detailed
 (the detailed F-16 the 3D cockpit hangs in):

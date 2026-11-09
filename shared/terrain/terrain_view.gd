@@ -70,6 +70,8 @@ var aircraft: Node3D
 var own_bc: Node3D
 ## Ours, the 3D cockpit (cockpit3d.gd) in own_bc; null with the 2D panel.
 var cockpit_3d: Node3D
+## Ours (Modern IAF, Settings.cockpit_at_origin()): own_bc's world about the origin (cockpit_origin.gd); null otherwise.
+var cockpit_origin: CockpitOrigin
 ## Ours: the detailed cockpit model's eye (its front seat's, AircraftModel.detailed_cockpit), null with the original's.
 var _own_eye = null
 ## Ours, detailed cockpit model: looking back the head rises and leans forward by up to this (m: +y up, −z forward),
@@ -241,6 +243,7 @@ const PlayerAircraft := preload("res://shared/aircraft/player_aircraft.gd")
 const AircraftModel := preload("res://shared/aircraft/aircraft_model.gd")
 const Cockpit3d := preload("res://shared/cockpit/cockpit3d.gd")
 const Hud := preload("res://shared/cockpit/hud.gd")
+const CockpitOrigin := preload("res://shared/cockpit/cockpit_origin.gd")
 const FlightSounds := preload("res://shared/audio/flight_sounds.gd")
 const SoundBuses := preload("res://shared/audio/sound_buses.gd")
 const PlayerDamage := preload("res://shared/mission/player_damage.gd")
@@ -2021,11 +2024,18 @@ func _spawn_player() -> void:
 			own_bc.position = -Vector3(e[0], e[1], e[2]) * aircraft.scale
 	if own_bc != null:
 		own_bc.visible = false
-		rig.add_child(own_bc)
+		# Modern IAF: the cockpit drawn in its own world about the origin (cockpit_origin.gd), steady far from the start.
+		if Settings.cockpit_at_origin() and cockpit_origin == null:
+			cockpit_origin = CockpitOrigin.new()
+			cockpit_origin.setup(camera, rig, $Sun, $WorldEnvironment)
+			add_child(cockpit_origin)
+		(cockpit_origin.rig if cockpit_origin != null else rig).add_child(own_bc)
+		if cockpit_origin != null:
+			cockpit_origin.show_with(own_bc)
 		if c3d_model != "":
 			cockpit_3d = Cockpit3d.new()
 			own_bc.add_child(cockpit_3d)
-			if not cockpit_3d.setup(cockpit, camera, player.type):
+			if not cockpit_3d.setup(cockpit, cockpit_origin.camera if cockpit_origin != null else camera, player.type):
 				cockpit_3d.queue_free()
 				cockpit_3d = null
 		# Ours: a cockpit-view model's canopy frame (`*_bc_frame`, the F-35I's bc.py) goes when the 3D cockpit draws its
@@ -2041,7 +2051,12 @@ func _spawn_player() -> void:
 ## The player's flight state for vapour_fx.gd: in the cockpit views with "frame", the drawn cockpit model (own_bc,
 ## larger than the jet model and placed by the eye), so the condensation leaves the wingtips seen.
 func vapour_state(st: Dictionary) -> Dictionary:
-	return st.merged({"frame": own_bc}) if own_bc != null and own_bc.visible else st
+	if own_bc == null or not own_bc.visible:
+		return st
+	if cockpit_origin == null:
+		return st.merged({"frame": own_bc})
+	# In its own world (cockpit_origin.gd) the cockpit's place in the flight's world is the rig's times its own.
+	return st.merged({"frame": own_bc, "frame_xf": rig.global_transform * own_bc.transform})
 
 
 ## Present scale (0x65e) of the player's type's bdb object in the mission's database (default6_1 otherwise).

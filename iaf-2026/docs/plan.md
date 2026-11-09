@@ -355,7 +355,16 @@ over 300 frames), the ILS (smooth, 1.4e-5° localizer steps on the final; `airba
 `ils_is_smooth_on_a_straight_approach`). The terrain and far objects show no shake: their f32 step is tiny against
 their distance from the eye.
 
-Size: M (open, not started). The first shared engine item after P1.
+**Done for the sim (2026-11-09, branch wt/iaf-2026-cockpit-origin):** the cockpit-view model drawn in its own world
+about the origin and laid over the flight's 3D view before its tonemap ([cockpit.md](cockpit.md) §6.2,
+`shared/cockpit/cockpit_origin.gd`, `Settings.cockpit_at_origin()`). The probe after: the camera ↔ cockpit transform
+does not move (0 at every distance), the panel's pixel change per frame 0.004 at 30 km and 0.011 at 60 km (from 10.5
+and 15.5). Cost on the Iris Xe: about +4 to +5 ms GPU a frame (the second viewport). The original game is unchanged
+(its jet stays within the 1998 theatre). **Open:** a floating origin for the rest of the world (nothing else measured
+shakes: the terrain and far objects' step is tiny against their distance), the F-35I's screen pull
+(`cockpit3d_screen.gdshader`) which the sim no longer needs, FXAA in place of MSAA in the cockpit's viewport (3.2 ms). With TAA or a temporal upscaler the cockpit's picture gives the flight's view no motion vectors: its edges may smear in a turn (not yet seen in a real render).
+
+Size: M.
 
 ### E3 the training missions
 

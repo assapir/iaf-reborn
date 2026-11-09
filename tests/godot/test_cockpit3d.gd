@@ -51,6 +51,10 @@ func _f35i() -> void:
 	var c: Control = tv.cockpit
 	var c3 = tv.cockpit_3d
 	check(c3 != null and c3.get_parent() == tv.own_bc, "F-35I 3D: the cockpit model in the cockpit-view model")
+	check(
+		tv.cockpit_origin == null and tv.own_bc.get_parent() == tv.rig,
+		"the original game: the cockpit in the flight's world (no cockpit_origin.gd)"
+	)
 	if c3 == null:
 		settings().f35i_slot = -1
 		return
