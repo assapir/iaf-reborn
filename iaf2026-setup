@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-echo "./iaf2026-setup is now ./modern-iaf-setup" >&2; exec "$(dirname "$0")/modern-iaf-setup" "$@"

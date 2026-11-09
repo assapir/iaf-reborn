@@ -17,8 +17,7 @@ IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-2026 -s 
 Developers: `./modern-iaf -- --mission <id>` flies one mission at once, then shows its debrief (2011 / 2012 Ramon,
 2021 / 2022 Ramat David, 2031 / 2032 Nevatim; [training.md](docs/training.md) §10).
 
-On Windows: `.\modern-iaf-setup.ps1` and `.\modern-iaf.ps1`. The old names `./iaf2026` and `./iaf2026-setup` (+ `.ps1`) still
-work: they say the new name and start it.
+On Windows: `.\modern-iaf-setup.ps1` and `.\modern-iaf.ps1`.
 
 ## Run it on a Mac
 1. Get the code: `git pull` in your clone (or `git clone` the repo).
