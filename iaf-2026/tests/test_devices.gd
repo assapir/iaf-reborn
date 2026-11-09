@@ -67,10 +67,15 @@ func run() -> void:
 	for lang in ["en", "he"]:
 		s.language = lang
 		fe.pref_group = "devices"
-		fe.show_page("prefs_section")
+		fe.show_page("prefs")
 		await frames(2)
 		var open: Button = fe.find_child("Pref_keys_screen", true, false).find_child("Control", true, false)
 		check(open != null and fe.find_child("Pref_joystick_screen", true, false) != null, "%s: Devices rows" % lang)
+		var joy: Control = fe.find_child("Pref_joystick_screen", true, false)
+		check(
+			joy.modulate.a < 1.0 and joy.find_child("Control", true, false).disabled and _has(joy, fe.s("joy_none")),
+			"%s: no joystick: the Joystick row greyed and says so" % lang
+		)
 		open.pressed.emit()
 		await frames(2)
 		check(fe.page == "keys", "%s: Change opens the Keys screen" % lang)
@@ -96,7 +101,8 @@ func keys(fe: Control) -> void:
 	var listed := 0
 	for g in ks.GROUPS:
 		listed += ks.records_of(g).size()
-	check(listed == 101, "keys: 101 commands listed (%d)" % listed)
+	check(listed == 107, "keys: 107 commands listed (%d)" % listed)
+	check(ks.GROUPS.all(func(g): return not ks.records_of(g).has(121)), "keys: no Ctrl+I idle (record 121 empty)")
 	check(ks._rows[PITCH_UP].chip.text == "Up", "Pitch up shows Up (%s)" % ks._rows[PITCH_UP].chip.text)
 	# Bind: click the row, press K.
 	ks._rows[PITCH_UP].row.pressed.emit()
@@ -140,7 +146,15 @@ func joystick(fe: Control) -> void:
 	var s := settings()
 	var js: Node = root.get_node("Joystick")
 	js.fake_devices = [0]
-	await frames(2)
+	fe.pref_group = "devices"
+	fe.show_page("prefs")
+	Input.joy_connection_changed.emit(0, true)
+	await frames(3)
+	var joy: Control = fe.find_child("Pref_joystick_screen", true, false)
+	check(
+		joy.modulate.a == 1.0 and not joy.find_child("Control", true, false).disabled,
+		"a joystick plugged in: the Joystick row comes alive"
+	)
 	fe.show_page("joystick")
 	await frames(2)
 	var scr: Node = fe.get_node("Joystick")
@@ -228,3 +242,10 @@ func laptop() -> void:
 	)
 	IafDevices.reset(s.devices_file(), -1, "key")
 	s.laptop_keys = OS.get_name() == "macOS"
+
+
+func _has(n: Node, text: String) -> bool:
+	for l in n.find_children("*", "Label", true, false):
+		if (l as Label).text == text:
+			return true
+	return false

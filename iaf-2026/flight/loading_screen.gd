@@ -10,12 +10,30 @@ const Look := preload("../menu/look.gd")
 const CANVAS_H := 1080.0
 ## Smoothing of the shown progress (per second, exponential), as the original's.
 const SMOOTH := 8.0
+## The flight's loading phases in order (terrain_view.gd _loading_step), each with its share of the bar [from, to]:
+## the build over five frames, then the wait for the ground at full detail, the mission's models and the views'
+## shaders. The shares follow a measured start (front-end.md §7: Ramon's start-up, 2026-11-09).
+const STEPS := {
+	"cockpit": [0.0, 0.01],
+	"scenery": [0.01, 0.11],
+	"effects": [0.11, 0.16],
+	"flight_model": [0.16, 0.17],
+	"jet": [0.17, 0.52],
+	"terrain": [0.52, 0.78],
+	"models": [0.78, 0.8],
+	"views": [0.8, 1.0],
+}
 
-## Progress 0..1 (set by the flight every frame).
+## Progress 0..1 (set by the flight every frame; the steps' take its place once the first arrives).
 var progress := 0.0
+## The phase under way (STEPS) and its name on the screen.
+var current := ""
 var _target := 0.0
 var _bar: ProgressBar
 var _page: Control
+var _step_label: Label
+var _strings := {}
+var _t0 := Time.get_ticks_msec()
 
 
 ## Nothing to decode ahead (terrain_preload.gd calls the loading screen's prefetch()).
@@ -46,6 +64,7 @@ func _ready() -> void:
 	var files: Array = Settings.mission_files_override
 	var sim: Dictionary = files[0].data.get("sim", {}) if not files.is_empty() else {}
 	var strings := Settings.load_json(_dir().path_join("../menu/strings_%s.json" % ("he" if he else "en")))
+	_strings = strings
 	var base := String(sim.get("base", ""))
 	# Without a mission: the sim's name (the setup wizard's strings, "name").
 	var sim_name: String = (
@@ -60,6 +79,10 @@ func _ready() -> void:
 	_bar.max_value = 1.0
 	_bar.step = 0.0
 	box.add_child(_bar)
+	_step_label = _label(box, "Muted", "")
+	_step_label.name = "Step"
+	if current != "":
+		_step_label.text = str(_strings.get("loading_" + current, ""))
 	_fit()
 	get_viewport().size_changed.connect(_fit)
 
@@ -77,12 +100,27 @@ func _dir() -> String:
 	return (get_script() as Script).resource_path.get_base_dir()
 
 
-func _label(box: Control, variation: String, text: String) -> void:
+func _label(box: Control, variation: String, text: String) -> Label:
 	var l := Label.new()
 	l.theme_type_variation = variation
 	l.text = text
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(l)
+	return l
+
+
+## The flight's loading phase `name` (STEPS), `done` 0..1 of it: its name under the bar, the bar at its share. Each
+## new phase is logged with the time since the screen opened.
+func step(name: String, done := 0.0) -> void:
+	if not STEPS.has(name):
+		return
+	if name != current:
+		current = name
+		print("loading: %s at %d ms" % [name, Time.get_ticks_msec() - _t0])
+		if _step_label != null:
+			_step_label.text = str(_strings.get("loading_" + name, ""))
+	var span: Array = STEPS[name]
+	progress = lerpf(span[0], span[1], clampf(done, 0.0, 1.0))
 
 
 func _process(delta: float) -> void:

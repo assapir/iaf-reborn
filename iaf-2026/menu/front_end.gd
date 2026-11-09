@@ -10,6 +10,7 @@ const Look := preload("res://menu/look.gd")
 const Fly := preload("res://flight/fly.gd")
 const Wizard := preload("res://setup/wizard.gd")
 const SoundBuses := preload("res://shared/audio/sound_buses.gd")
+const SoundTable := preload("res://shared/audio/sound_table.gd")
 const KeysScreen := preload("res://menu/keys_screen.gd")
 const JoystickScreen := preload("res://menu/joystick_screen.gd")
 const Scenery := preload("res://shared/terrain/scenery.gd")
@@ -17,6 +18,13 @@ const Scenery := preload("res://shared/terrain/scenery.gd")
 const PHOTOS := "res://data/photos"
 ## The canvas the screens lay out on: the window shows it scaled to its height (Look's sizes are its pixels).
 const CANVAS := Vector2i(1920, 1080)
+## Each Sound slider's sample, a clip of its class from the sim's own sounds (SoundTable: [code, sub code] or a file)
+## on that slider's bus: the engine, the master caution tone, a tower call.
+const SAMPLES := {
+	"engine_volume": [["SFX_START_ENGINE", "None"], SoundBuses.ENGINE],
+	"sfx_volume": [["SFX_WARNING", "WRN_MASTER"], SoundBuses.SFX],
+	"speech_volume": ["twr_takeoff.wav", SoundBuses.SPEECH],
+}
 ## The planes the sim flies, each from its home base (strings <name>, base_<base>; the squadron: data/airbases).
 const JETS := [
 	{"unit": "f16i", "airframe": "f16i", "name": "sufa", "code": "F-16I", "base": "ramon", "icao": "llrm"},
@@ -89,8 +97,9 @@ const CRUMB_PAGES := {
 	"plane": "plane",
 	"training": "training",
 	"preferences": "prefs",
-	"devices": "prefs_section",  # the Keys and Joystick screens' crumb: their section
+	"devices": "prefs",  # the Keys and Joystick screens' crumb: the Preferences on their section
 	"pilot_log": "log",
+	"pilot": "pilot",
 	"credits": "credits"
 }
 ## The screens that show the picked jet: Pick a plane opens in their place before the first pick.
@@ -101,12 +110,12 @@ const BACK := {
 	"training": "plane",
 	"mission": "training",
 	"prefs": "home",
-	"prefs_section": "prefs",
 	"debrief": "home",
 	"log": "home",
 	"credits": "home",
-	"keys": "prefs_section",
-	"joystick": "prefs_section",
+	"pilot": "home",
+	"keys": "prefs",
+	"joystick": "prefs",
 }
 
 ## Over a flight: terrain_view.gd sets these before adding the overlay ("flytsd": the pause menu, "pref").
@@ -120,18 +129,25 @@ var missions: Array = []
 var mission_i := 0
 var record := {}
 var record_sortie := 0
-## The Preferences section shown (prefs_section).
+## The Preferences section shown beside the list (_page_prefs).
 var pref_group := ""
 var _focus: Control
+## The Sound sliders' sample player and the sound table it reads (made at the first slider move).
+var _sample: AudioStreamPlayer
+var _sounds: RefCounted
 static var _textures := {}
 static var _themes := {}
 ## The records store's view, read once per page: the sorties (Pilot log) and the summary (Home, Training).
 var _sorties = null
 var _summary = null
+## The pilot's profile (IafPilotLog.pilot: name, nickname, picture), read once per page; the pictures' textures.
+var _profile = null
+static var _pictures := {}
 static var _args_done := false
 
 
 func _ready() -> void:
+	Input.joy_connection_changed.connect(_on_joy_connection)
 	if flight != null:
 		process_mode = Node.PROCESS_MODE_ALWAYS
 		_fit_overlay()
@@ -211,10 +227,11 @@ func show_page(p: String) -> void:
 	strings = Settings.load_json("res://menu/strings_%s.json" % lang)
 	setup_strings = Settings.load_json("res://setup/strings_%s.json" % lang)
 	if not _themes.has(he()):
-		_themes[he()] = Look.make()
+		_themes[he()] = Look.make(he())
 	theme = _themes[he()]
 	_sorties = null
 	_summary = null
+	_profile = null
 	var dir := Control.LAYOUT_DIRECTION_RTL if he() else Control.LAYOUT_DIRECTION_LTR
 	# Over a flight the overlay itself stays left to right: a right-to-left control under a CanvasLayer mirrors its own
 	# position by its unscaled width (_fit_overlay), which pushed the pause menu off the screen. Its children carry
@@ -277,10 +294,23 @@ func _header(crumbs: Array) -> void:
 	who.add_theme_constant_override("separation", -4)
 	who.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	h.add_child(who)
-	_label(who, pilot_name(), "Strong")
+	# The pilot's nickname; on Home it opens the Pilot screen.
+	var who_name: Control
+	if page == "home":
+		who_name = _button(who, pilot_name(), "PilotLink", show_page.bind("pilot"))
+		who_name.size_flags_horizontal = Control.SIZE_SHRINK_END
+	else:
+		who_name = _label(who, pilot_name(), "Strong")
+	who_name.name = "PilotName"
 	var j := jet()
 	if not j.is_empty() and page != "home":
 		_label(who, "%s · %s" % [s(j.name), s("base_short_" + j.base)], "Muted")
+	# The picture in its 3:4 frame, else the initials in a disc.
+	var pic := picture()
+	if pic != null:
+		var fr := _picture_frame(h, Vector2(42, 56))
+		fr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		return
 	var av := PanelContainer.new()
 	av.add_theme_stylebox_override("panel", Look.box(Look.ACCENT, Look.ACCENT, 0, 26, Vector2.ZERO))
 	av.custom_minimum_size = Vector2(52, 52)
@@ -680,50 +710,40 @@ func fly_mission(m: Dictionary) -> void:
 # --- Preferences ------------------------------------------------------------------------------------------------------
 
 
-## Preferences: the sections, each opening its own screen (_page_prefs_section).
+## Preferences: the sections listed at the inline start, the picked one's rows beside them on the same screen
+## (pref_group; the first section until one is picked), its pane scrolled over its full height.
 func _page_prefs() -> void:
 	if flight == null:
 		_header(["home", "preferences"])
+	if PREFS.all(func(g): return g[0] != pref_group):
+		pref_group = PREFS[0][0]
 	var v := _vbox(_body(96, 112 if flight == null else 60), 30)
 	_title(v, s("preferences"), "")
+	var h := _hbox(v, 64)
+	h.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var nav := _vbox(h, 4)
+	nav.custom_minimum_size.x = 384
+	var group := ButtonGroup.new()
 	for g in PREFS:
-		var b := Button.new()
-		b.name = "Section_" + g[0]
-		b.theme_type_variation = "Card"
-		b.custom_minimum_size = Vector2(900, 120)
-		b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		v.add_child(b)
-		var col := _vbox(_margin(b, 30, 20), 4)
-		col.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		_label(col, s(g[0]), "Strong").add_theme_font_size_override("font_size", 27)
-		var names := []
-		for row in g[1]:
-			names.append(s(row[0]))
-		_label(col, ", ".join(names), "Muted").text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		for c in b.find_children("*", "Control", true, false):
-			c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		b.pressed.connect(_open_section.bind(g[0]))
-		if g[0] == pref_group or _focus == null:
-			_focus = b
-
-
-func _open_section(group: String) -> void:
-	pref_group = group
-	show_page("prefs_section")
-
-
-## One section of the Preferences (pref_group): its rows, scrolled when they outgrow the screen.
-func _page_prefs_section() -> void:
-	if flight == null:
-		_header(["home", "preferences", pref_group])
-	var v := _vbox(_body(96, 112 if flight == null else 60), 30)
-	_title(v, s(pref_group), "")
+		var tab := Button.new()
+		tab.name = "Section_" + g[0]
+		tab.text = s(g[0])
+		tab.theme_type_variation = "Tab"
+		tab.toggle_mode = true
+		tab.button_group = group
+		tab.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		tab.button_pressed = g[0] == pref_group
+		tab.pressed.connect(_open_section.bind(g[0]))
+		nav.add_child(tab)
+		if g[0] == pref_group:
+			_focus = tab
 	var scroll := ScrollContainer.new()
+	scroll.name = "SectionPane"
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.custom_minimum_size.x = 1180
 	scroll.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	v.add_child(scroll)
+	h.add_child(scroll)
 	# Room for the scroll bar on either side, so no control sits under it in either direction.
 	var bm := _margin(scroll, 32, 0)
 	bm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -732,13 +752,14 @@ func _page_prefs_section() -> void:
 		if g[0] == pref_group:
 			for row in g[1]:
 				_pref_row(body, row)
-	for c in body.find_children("*", "Control", true, false):
-		if (c as Control).focus_mode != Control.FOCUS_NONE:
-			_focus = c
-			break
 
 
-## One preference: its name and note at the inline start, its control at the inline end.
+func _open_section(group: String) -> void:
+	pref_group = group
+	show_page("prefs")
+
+
+## One preference: its name at the inline start (a line why when it is greyed), its control at the inline end.
 func _pref_row(parent: Control, row: Array) -> void:
 	var key: String = row[0]
 	var m := _margin(parent, 0, 14)
@@ -747,12 +768,17 @@ func _pref_row(parent: Control, row: Array) -> void:
 	var t := _vbox(h, 0)
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_label(t, s(key), "Strong").add_theme_font_size_override("font_size", 25)
-	if strings.has(key + "_note"):
-		_label(t, s(key + "_note"), "Small")
 	# Scenery only with setup's scenery step (Scenery.available); greyed without it.
-	var off := key == "scenery" and not Scenery.available()
+	# Greyed with its why: Scenery without setup's scenery step (Scenery.available), the Joystick screen with no
+	# joystick connected (it comes alive when one is plugged in, _on_joy_connection).
+	var why := ""
+	if key == "scenery" and not Scenery.available():
+		why = "scenery_missing"
+	elif key == "joystick_screen" and Joystick.device() < 0:
+		why = "joy_none"
+	var off := why != ""
 	if off:
-		_label(t, s("scenery_missing"), "Small")
+		_label(t, s(why), "Small")
 		m.modulate.a = 0.5
 	var ctl := _hbox(h, 20)
 	ctl.custom_minimum_size.x = 420
@@ -804,6 +830,7 @@ func _pref_row(parent: Control, row: Array) -> void:
 		"page":
 			var b := _button(ctl, s("change"), "Secondary", show_page.bind(key.trim_suffix("_screen")))
 			b.name = "Control"
+			b.disabled = off
 		"radio":
 			var rv := _vbox(ctl, 4)
 			rv.name = "Control"
@@ -822,6 +849,12 @@ func _pref_row(parent: Control, row: Array) -> void:
 	_rule(parent, Look.LINE)
 
 
+## A joystick plugged in or out: the Devices section again, its Joystick row greyed or alive.
+func _on_joy_connection(_device: int, _connected: bool) -> void:
+	if page == "prefs" and pref_group == "devices":
+		show_page.call_deferred("prefs")
+
+
 ## Preferences → Devices → Keys and Joystick (iaf-2026/docs/front-end.md §9).
 func _page_keys() -> void:
 	KeysScreen.page(self)
@@ -836,9 +869,146 @@ func _set_pref(key: String, value: Variant) -> void:
 	Settings.save()
 	if key in ["engine_volume", "sfx_volume", "speech_volume", "mute"]:
 		SoundBuses.apply()
+	if SAMPLES.has(key):
+		play_sample(key)
 	if key == "language":
 		# Every string switches at once: the screen again in the new language.
 		show_page(page)
+
+
+## A Sound slider moved: its sample at the new level (its bus' volume). A sample already playing keeps on and
+## follows the slider; another slider's starts in its place.
+func play_sample(key: String) -> void:
+	if _sounds == null:
+		_sounds = SoundTable.load_table()
+	var spec: Array = SAMPLES[key]
+	var clip = spec[0]
+	var st: AudioStreamWAV = (
+		_sounds.stream_file(clip) if clip is String else _sounds.stream(_sounds.row(clip[0], clip[1]))
+	)
+	if st == null:
+		return
+	if not is_instance_valid(_sample):
+		_sample = AudioStreamPlayer.new()
+		_sample.name = "Sample"
+		add_child(_sample)
+	if _sample.playing and _sample.stream == st:
+		return
+	_sample.stream = st
+	_sample.bus = spec[1]
+	_sample.play()
+
+
+# --- Pilot ------------------------------------------------------------------------------------------------------------
+
+
+## The Pilot screen (Home → the pilot's name): the picture in a service ID photo's fixed 3:4 frame, the name and the
+## nickname (the one every screen's top bar shows), stored in the records (IafPilotLog) as they are typed.
+func _page_pilot() -> void:
+	_header(["home", "pilot"])
+	var v := _vbox(_body(), 30)
+	_title(v, s("pilot"), "")
+	var h := _hbox(v, 72)
+	var col := _vbox(h, 20)
+	var fr := _picture_frame(col, Vector2(300, 400))
+	fr.name = "Picture"
+	if picture() == null:
+		var ini := _label(fr, initials(pilot_name()), "Jet")
+		ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		ini.add_theme_color_override("font_color", Look.MUTED)
+	var pick := _button(col, s("choose_picture"), "Secondary", choose_picture)
+	pick.name = "ChoosePicture"
+	var f := _vbox(h, 12)
+	f.custom_minimum_size.x = 640
+	for field in ["name", "nickname"]:
+		_label(f, s("pilot_" + field), "Strong").add_theme_font_size_override("font_size", 25)
+		var e := LineEdit.new()
+		e.name = "Field_" + field
+		e.text = str(profile().get(field, ""))
+		e.placeholder_text = pilot_name() if field == "nickname" else ""
+		e.max_length = 40
+		e.custom_minimum_size = Vector2(640, 58)
+		e.text_changed.connect(func(_t): _save_pilot())
+		f.add_child(e)
+		if _focus == null:
+			_focus = e
+		_spacer_px(f, 12)
+	_text(f, s("nickname_note"), "Muted")
+
+
+func _save_pilot() -> void:
+	var name_edit: LineEdit = find_child("Field_name", true, false)
+	var nick_edit: LineEdit = find_child("Field_nickname", true, false)
+	IafPilotLog.set_pilot(Settings.records_db(), Settings.pilot(), name_edit.text, nick_edit.text)
+	_profile = null
+	var who: Control = find_child("PilotName", true, false)
+	if who != null:
+		who.set("text", pilot_name())
+
+
+## Choose a picture: the system's file dialog where there is one.
+func choose_picture() -> void:
+	var d := FileDialog.new()
+	d.name = "PictureDialog"
+	d.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	d.access = FileDialog.ACCESS_FILESYSTEM
+	d.filters = PackedStringArray(["*.png, *.jpg, *.jpeg, *.webp ; " + s("pictures")])
+	d.use_native_dialog = true
+	d.file_selected.connect(set_picture)
+	d.canceled.connect(d.queue_free)
+	add_child(d)
+	d.popup_centered_ratio(0.6)
+
+
+## The file at `path` as the pilot's picture: copied beside the records, then the screen again. False when it is
+## no picture.
+func set_picture(path: String) -> bool:
+	if path.get_extension().to_lower() not in ["png", "jpg", "jpeg", "webp"] or Image.load_from_file(path) == null:
+		return false
+	var to: String = IafPilotLog.set_picture(Settings.records_db(), Settings.pilot(), path)
+	_pictures.erase(to)
+	show_page(page)
+	return to != ""
+
+
+## The pilot's profile ({name, nickname, picture}; empty strings before the Pilot screen).
+func profile() -> Dictionary:
+	if _profile == null:
+		var d = JSON.parse_string(IafPilotLog.pilot(Settings.records_db(), Settings.pilot()))
+		_profile = d if d is Dictionary else {}
+	return _profile
+
+
+## The pilot's picture, null without one.
+func picture() -> Texture2D:
+	var path := str(profile().get("picture", ""))
+	if path == "":
+		return null
+	if not _pictures.has(path):
+		var img := Image.load_from_file(path) if FileAccess.file_exists(path) else null
+		_pictures[path] = ImageTexture.create_from_image(img) if img != null else null
+	return _pictures[path]
+
+
+## A service ID photo's frame of `size` (3:4): the picture cropped to fill it, square corners, a thin edge.
+func _picture_frame(parent: Node, size: Vector2) -> PanelContainer:
+	var fr := PanelContainer.new()
+	fr.add_theme_stylebox_override("panel", Look.box(Look.PANEL, Look.EDGE, 1, 0, Vector2(2, 2)))
+	fr.custom_minimum_size = size
+	fr.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	fr.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	parent.add_child(fr)
+	var tex := picture()
+	if tex != null:
+		var r := TextureRect.new()
+		r.texture = tex
+		r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		r.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		r.clip_contents = true
+		r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		fr.add_child(r)
+	return fr
 
 
 # --- Debrief ----------------------------------------------------------------------------------------------------------
@@ -1190,8 +1360,6 @@ func _unhandled_input(event: InputEvent) -> void:
 func back() -> void:
 	if flight != null:
 		if page in ["keys", "joystick"]:
-			show_page("prefs_section")
-		elif page == "prefs_section":
 			show_page("prefs")
 		elif page == "prefs" and screen != "pref":
 			flight._apply_preferences()
@@ -1283,10 +1451,14 @@ func best_time(m: Dictionary) -> float:
 	return float(summary().get("missions", {}).get(str(int(m.menu_id)), {}).get("best_s", 0.0))
 
 
-## The pilot's name: the computer's user name (Settings.pilot_name when set: the pictures' sample pilot).
+## The pilot's name as every screen shows it: the nickname, else the name (the Pilot screen), else the computer's user
+## name (Settings.pilot_name when set: the pictures' sample pilot).
 func pilot_name() -> String:
 	if Settings.pilot_name != "":
 		return Settings.pilot_name
+	for k in ["nickname", "name"]:
+		if str(profile().get(k, "")) != "":
+			return str(profile()[k])
 	var user := OS.get_environment("USER")
 	if user == "":
 		user = OS.get_environment("USERNAME")

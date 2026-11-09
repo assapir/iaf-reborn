@@ -1,5 +1,6 @@
 # Dev helper (not run by tools/test.sh): Modern IAF's loading screen (flight/loading_screen.gd) in a real render, for
-# the Ramon take-off mission at 60 %, in English and in Hebrew: SHOW_OUT/loading_en.png, loading_he.png.
+# the Ramon take-off mission in the ground's step at half of it, in English and in Hebrew: SHOW_OUT/loading_en.png,
+# loading_he.png.
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOW_OUT=<dir> -- --log-file <temp> --resolution 1280x720 \
 #     --path iaf-2026 -s ../iaf-2026/tests/_loading_shot.gd
 extends "res://../tests/godot/base.gd"
@@ -21,7 +22,7 @@ func run() -> void:
 		s.language = lang
 		var screen: Control = load(s.loading_screen_scene()).new()
 		root.add_child(screen)
-		screen.progress = 0.6
+		screen.step("terrain", 0.5)
 		await frames(90)
 		var img := root.get_viewport().get_texture().get_image()
 		img.save_png(out.path_join("loading_%s.png" % lang))

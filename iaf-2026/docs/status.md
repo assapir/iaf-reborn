@@ -37,7 +37,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   ([weapons.md](weapons.md)). `test_sim_gun.gd`.
 - **The Mac play test's findings (2026-11-08, [plan.md](plan.md#f-the-probe) F):** the mission card, the radio lines
   in the sim's band wholly in the game's language, the key hint; the pause menu centred at any size in Hebrew;
-  Preferences as sections on their own screens with no aid or realism row and the aids off; Home on every start;
+  Preferences without an aid or realism row and the aids off; Home on every start;
   clickable breadcrumbs ([front-end.md](front-end.md) §1, §8). `test_flight_ui.gd`, `test_front_end.gd`.
 - **Keys and Joystick (P1, 2026-11-08, the Mac run's "keys / joystick mapping"):** Preferences → Devices opens a
   Keys screen (every command the sim has, by group; click and press to rebind, Cmd on macOS, conflicts with Swap /
@@ -48,6 +48,13 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   longer asks for the install's `menu/joy` ([front-end.md](front-end.md) §9). On macOS the keys start from the
   laptop map, no numpad: the rudder on Z / X, the snap views on Alt + 1–9 (§9.1). `test_devices.gd`, the M0 probe
   with a fake joystick.
+- **The play test's polish (2026-11-09):** the Preferences back to the side layout (the sections listed, the picked
+  one beside them, no line under an option); a Sound slider plays a sample of its class; Devices → Joystick greyed
+  until a stick is plugged in; the Pilot screen (name, nickname shown on every screen, a 3:4 ID photo; records schema
+  version 2); the loading bar follows the flight's real loading steps, named under it; the throttle up from OFF is the
+  start-up's idle step (Ctrl+I gone); no drag-chute warning per flight ([front-end.md](front-end.md) §1, §4, §7, §9.2;
+  [training.md](training.md) §7.1). `test_front_end.gd`, `test_devices.gd`, `test_mvp.gd`, the pilot_log unit tests.
+  Open: the jet does not shut down when the throttle goes back to OFF.
 - **The HUD's light (2026-11-09, Approvals A10):** the F-16s' HUD in the P43 green, added to the scene's light,
   bright by day and dimmed to a night floor as the sun sets, with a faint halo, a 0.08° stroke and the combiner glass
   at 14 %; Preferences → Graphics "HUD brightness" sets the day level and Shift + H steps it

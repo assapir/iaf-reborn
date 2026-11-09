@@ -282,21 +282,24 @@ func eject() -> void:
 	check(rec.contains('"event":"eject"'), "the recording holds the eject event")
 
 
-## The start-up checklist by its keys (commands 210–215, training.md §7.1), each when its moment comes; the card
-## ticks each step.
+## The start-up checklist by its keys (commands 210–215, training.md §7.1) and the throttle up from OFF for the idle
+## step, each when its moment comes; the card ticks each step.
 func _checklist(tv: Node, f35: bool) -> void:
 	var step := func(n: int) -> void: tv._command([209 + n, 0, 0])
 	var rpm := func() -> float: return float(tv.flight.state().rpm)
 	step.call(1)  # main power / battery
 	await fly(tv, 1.0)
 	step.call(2)  # JFS / IPP
+	# The engine step has no key: the throttle up from OFF (the throttle-up key here) is it.
+	var throttle_up := func() -> void: tv._command([5, 0, 0])
 	if f35:
 		await fly(tv, 11.0)  # the IPP up to speed
-		step.call(3)  # engine start
+		throttle_up.call()  # throttle to idle: the engine starts
+		await fly(tv, 0.5)  # the flight takes the throttle's move on its next frame
 	else:
 		await _until(tv, func(): return rpm.call() >= 0.2, 60.0)
 		check(tv.sounds._jfs != null and tv.sounds._jfs.playing, "the JFS whine during the crank")
-		step.call(3)  # throttle to idle at 20 %
+		throttle_up.call()  # throttle to idle at 20 %
 		await _until(tv, func(): return rpm.call() >= 0.55, 60.0)  # the generators on line
 		step.call(4)  # avionics power
 		step.call(5)  # INS stored-heading alignment

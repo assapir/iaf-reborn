@@ -17,7 +17,8 @@ use std::path::Path;
 pub const DEFAULT_PILOT: i64 = 14;
 
 /// The migrations, in order: entry `i` takes the schema from version `i` to `i + 1`.
-const MIGRATIONS: &[&str] = &["CREATE TABLE pilots (id INTEGER PRIMARY KEY);
+const MIGRATIONS: &[&str] = &[
+    "CREATE TABLE pilots (id INTEGER PRIMARY KEY);
      CREATE TABLE sorties (
        id INTEGER PRIMARY KEY AUTOINCREMENT,
        pilot INTEGER NOT NULL REFERENCES pilots(id),
@@ -28,7 +29,13 @@ const MIGRATIONS: &[&str] = &["CREATE TABLE pilots (id INTEGER PRIMARY KEY);
        elapsed_s REAL NOT NULL,
        debrief TEXT
      );
-     CREATE INDEX sorties_pilot ON sorties (pilot, date);"];
+     CREATE INDEX sorties_pilot ON sorties (pilot, date);",
+    // 1 → 2: the pilot's profile (the Pilot screen): the name, the nickname shown everywhere, the picture's file
+    // (relative to the database's folder, "" = none).
+    "ALTER TABLE pilots ADD COLUMN name TEXT NOT NULL DEFAULT '';
+     ALTER TABLE pilots ADD COLUMN nickname TEXT NOT NULL DEFAULT '';
+     ALTER TABLE pilots ADD COLUMN picture TEXT NOT NULL DEFAULT '';",
+];
 
 /// The schema version this build writes.
 pub const SCHEMA_VERSION: i64 = MIGRATIONS.len() as i64;
@@ -58,7 +65,7 @@ impl Sortie {
 /// Opens the database at `db` (made with its folder when missing) at this build's schema, importing the JSON records
 /// beside it on its first open. A database from a newer build is refused.
 pub fn open(db: &Path) -> Result<Connection> {
-    let dir = db.parent().filter(|d| !d.as_os_str().is_empty()).unwrap_or(Path::new("."));
+    let dir = folder(db);
     fs::create_dir_all(dir).with_context(|| format!("records folder {}", dir.display()))?;
     let mut c = Connection::open(db).with_context(|| format!("records {}", db.display()))?;
     c.pragma_update(None, "foreign_keys", true)?;
@@ -182,6 +189,63 @@ pub fn summary(c: &Connection, pilot: i64) -> Result<Value> {
     }))
 }
 
+/// The folder of the pilots' pictures beside the database.
+const PICTURES: &str = "pictures";
+
+/// The pilot's profile: `name`, `nickname` and `picture` (the picture file's absolute path, "" = none); empty
+/// strings for a pilot never stored.
+pub fn pilot(c: &Connection, db: &Path, pilot: i64) -> Result<Value> {
+    let row: Option<(String, String, String)> = c
+        .query_row("SELECT name, nickname, picture FROM pilots WHERE id = ?1", [pilot], |r| {
+            Ok((r.get(0)?, r.get(1)?, r.get(2)?))
+        })
+        .optional()?;
+    let (name, nickname, picture) = row.unwrap_or_default();
+    let picture = if picture.is_empty() { picture } else { folder(db).join(picture).to_string_lossy().into_owned() };
+    Ok(json!({"name": name, "nickname": nickname, "picture": picture}))
+}
+
+/// Stores the pilot's name and nickname (the pilot made when new).
+pub fn set_pilot(c: &Connection, pilot: i64, name: &str, nickname: &str) -> Result<()> {
+    c.execute(
+        "INSERT INTO pilots (id, name, nickname) VALUES (?1, ?2, ?3)
+         ON CONFLICT (id) DO UPDATE SET name = excluded.name, nickname = excluded.nickname",
+        params![pilot, name.trim(), nickname.trim()],
+    )?;
+    Ok(())
+}
+
+/// Copies the picture file `src` to `pictures/pilot-<id>.<its extension>` beside the database and stores that path
+/// (the pilot's earlier picture removed); an empty `src` removes the picture. Its absolute path ("" = none).
+pub fn set_picture(c: &Connection, db: &Path, pilot: i64, src: &Path) -> Result<String> {
+    let dir = folder(db);
+    let old: Option<String> =
+        c.query_row("SELECT picture FROM pilots WHERE id = ?1", [pilot], |r| r.get(0)).optional()?;
+    let mut rel = String::new();
+    if !src.as_os_str().is_empty() {
+        let ext = src.extension().and_then(|e| e.to_str()).unwrap_or("png").to_lowercase();
+        rel = format!("{PICTURES}/pilot-{pilot}.{ext}");
+        fs::create_dir_all(dir.join(PICTURES))?;
+        let to = dir.join(&rel);
+        // The stored copy picked again: copying a file onto itself would empty it.
+        if fs::canonicalize(src).ok() != fs::canonicalize(&to).ok() || !to.exists() {
+            fs::copy(src, &to).with_context(|| format!("picture {}", src.display()))?;
+        }
+    }
+    if let Some(old) = old.filter(|o| !o.is_empty() && *o != rel) {
+        let _ = fs::remove_file(dir.join(old));
+    }
+    c.execute(
+        "INSERT INTO pilots (id, picture) VALUES (?1, ?2) ON CONFLICT (id) DO UPDATE SET picture = excluded.picture",
+        params![pilot, rel],
+    )?;
+    Ok(if rel.is_empty() { rel } else { dir.join(rel).to_string_lossy().into_owned() })
+}
+
+fn folder(db: &Path) -> &Path {
+    db.parent().filter(|d| !d.as_os_str().is_empty()).unwrap_or(Path::new("."))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -235,6 +299,57 @@ mod tests {
         assert_eq!(sum["last"], json!({"mission_id": 2012, "result": 1}));
         assert_eq!(sum["missions"]["2012"], json!({"status": 1, "best_s": 660.0}));
         assert_eq!(summary(&c, 99).unwrap()["last"], Value::Null);
+        fs::remove_dir_all(&d).unwrap();
+    }
+
+    #[test]
+    fn pilot_profile_round_trip() {
+        let d = temp("profile");
+        let db = d.join("modern-iaf.sqlite");
+        let c = open(&db).unwrap();
+        assert_eq!(pilot(&c, &db, DEFAULT_PILOT).unwrap(), json!({"name": "", "nickname": "", "picture": ""}));
+        set_pilot(&c, DEFAULT_PILOT, " Noa Golan ", "Viper").unwrap();
+        let src = d.join("me.JPG");
+        fs::write(&src, b"jpeg").unwrap();
+        let to = set_picture(&c, &db, DEFAULT_PILOT, &src).unwrap();
+        assert_eq!(fs::read(&to).unwrap(), b"jpeg");
+        assert_eq!(
+            pilot(&c, &db, DEFAULT_PILOT).unwrap(),
+            json!({"name": "Noa Golan", "nickname": "Viper", "picture": to})
+        );
+        // Another picture replaces the file; the name stays.
+        let png = d.join("me.png");
+        fs::write(&png, b"png").unwrap();
+        let to2 = set_picture(&c, &db, DEFAULT_PILOT, &png).unwrap();
+        assert!(!Path::new(&to).exists() && Path::new(&to2).exists());
+        assert_eq!(pilot(&c, &db, DEFAULT_PILOT).unwrap()["name"], "Noa Golan");
+        // The stored copy picked again keeps its bytes.
+        assert_eq!(set_picture(&c, &db, DEFAULT_PILOT, Path::new(&to2)).unwrap(), to2);
+        assert_eq!(fs::read(&to2).unwrap(), b"png");
+        // No picture: the file goes.
+        assert_eq!(set_picture(&c, &db, DEFAULT_PILOT, Path::new("")).unwrap(), "");
+        assert!(!Path::new(&to2).exists() && pilot(&c, &db, DEFAULT_PILOT).unwrap()["picture"] == "");
+        // A pilot made by a sortie has an empty profile.
+        log_sortie(&c, 3, 2011, &rec("ramon_startup", true, "2026-11-02T07:00:00", 50.0)).unwrap();
+        assert_eq!(pilot(&c, &db, 3).unwrap()["nickname"], "");
+        fs::remove_dir_all(&d).unwrap();
+    }
+
+    /// A version-1 file (before the profile) gains the profile's columns, its pilots and sorties kept.
+    #[test]
+    fn version_1_migrates_to_the_profile() {
+        let d = temp("v1");
+        let db = d.join("modern-iaf.sqlite");
+        let c = Connection::open(&db).unwrap();
+        c.execute_batch(MIGRATIONS[0]).unwrap();
+        c.pragma_update(None, "user_version", 1).unwrap();
+        insert(&c, DEFAULT_PILOT, 2011, "2026-11-02T07:52:00", 1, None).unwrap();
+        drop(c);
+        let c = open(&db).unwrap();
+        assert_eq!(c.pragma_query_value(None, "user_version", |r| r.get::<_, i64>(0)).unwrap(), SCHEMA_VERSION);
+        assert_eq!(sorties(&c, DEFAULT_PILOT).unwrap().len(), 1);
+        set_pilot(&c, DEFAULT_PILOT, "Noa", "").unwrap();
+        assert_eq!(pilot(&c, &db, DEFAULT_PILOT).unwrap()["name"], "Noa");
         fs::remove_dir_all(&d).unwrap();
     }
 

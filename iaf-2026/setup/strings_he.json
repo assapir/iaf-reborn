@@ -68,7 +68,7 @@
 	"state_running": "פועל",
 	"state_up_to_date": "מעודכן",
 	"state_done": "הסתיים",
-	"state_skipped": "דולג",
+	"state_skipped": "הושמט",
 	"state_failed": "נכשל",
 	"state_blocked": "לא רץ",
 	"state_cancelled": "בוטל",

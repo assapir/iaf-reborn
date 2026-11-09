@@ -21,8 +21,9 @@ Heebo font and the Israeli Air Force flag's colours.
 | Pick a plane | the Sufa (Ramon, 253 Squadron), the Barak (Ramat David, 109 Squadron) and the Adir (Nevatim, 140 Squadron) in one row, each card with its code, name, base and squadron (airbases.md §3); the pick sets the jet everywhere and stays highlighted on the next visit | ![Pick a plane](pictures/front-end/plane_en.webp) | ![Pick a plane, Hebrew](pictures/front-end/plane_he.webp) |
 | Training | the programme: its missions with their last result and the progress | ![Training](pictures/front-end/training_en.webp) | ![Training, Hebrew](pictures/front-end/training_he.webp) |
 | Pick a mission | the missions beside the picked one's briefing: runway, time, wind, time allowed, when it passes; Fly | ![Pick a mission](pictures/front-end/mission_en.webp) | ![Pick a mission, Hebrew](pictures/front-end/mission_he.webp) |
-| Preferences | the sections Graphics, Language, Sound and Devices, each on its own screen with its settings as controls: dropdown, switch, slider, radio list | ![Preferences](pictures/front-end/prefs_en.webp) | ![Preferences, Hebrew](pictures/front-end/prefs_he.webp) |
+| Preferences | the sections Graphics, Language, Sound and Devices listed at the inline start; the picked one's settings open beside them as controls: dropdown, switch, slider, radio list | ![Preferences](pictures/front-end/prefs_graphics_en.webp) | ![Preferences, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
 | Debrief | the record as a sheet: Plane flown, From, Time, Mission, Result, the mission's goals (a take-off: runway, lift-off and reference speed, centreline offset, tower calls; a start-up: none), Remarks (the fail reason first, or that it passed; the lift-off against the reference); Back to missions, Fly again | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
+| Pilot | Home → the pilot's name: the picture in a service ID photo's fixed 3:4 frame (Choose a picture… opens the system's file dialog), the name and the nickname, stored as they are typed | ![Pilot](pictures/front-end/pilot_en.webp) | ![Pilot, Hebrew](pictures/front-end/pilot_he.webp) |
 | Pilot log | every attempt, newest first; a row opens its debrief | ![Pilot log](pictures/front-end/log_en.webp) | ![Pilot log, Hebrew](pictures/front-end/log_he.webp) |
 | Attributions | the setup wizard's list of sources and licences, the jet photos with them | ![Attributions](pictures/front-end/credits_en.webp) | ![Attributions, Hebrew](pictures/front-end/credits_he.webp) |
 
@@ -53,7 +54,6 @@ screen (a jet's name: its Training); the picks are kept.
 
 | screen | English | Hebrew |
 |---|---|---|
-| Preferences: the sections | ![Preferences](pictures/front-end/prefs_en.webp) | ![Preferences, Hebrew](pictures/front-end/prefs_he.webp) |
 | Preferences: Graphics | ![Graphics](pictures/front-end/prefs_graphics_en.webp) | ![Graphics, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
 | Preferences: Sound | ![Sound](pictures/front-end/prefs_sound_en.webp) | ![Sound, Hebrew](pictures/front-end/prefs_sound_he.webp) |
 | Preferences: Devices | ![Devices](pictures/front-end/prefs_devices_en.webp) | ![Devices, Hebrew](pictures/front-end/prefs_devices_he.webp) |
@@ -90,9 +90,16 @@ the photos' height into strips.
 | the picked jet | `user://settings.cfg` `[sim] jet` | the front end |
 | the jet photos | `iaf-2026/data/photos/` (§5) | — |
 
+The pilot's profile (the Pilot screen) is in the records database's `pilots` row ([storage.md](storage.md) §5): the
+name, the nickname and the picture, a copy of the chosen file in `pictures/` beside the database. Every screen's top
+bar shows the nickname, else the name, else the computer's user name; with a picture, the picture in a small 3:4
+frame in place of the initials' disc. The picture keeps square corners and no round mask, as a service ID photo; it is
+cropped to fill the frame.
+
 The debrief's number is its sortie's id, the sortie's place among all stored flights, oldest first. Home's flights
 and flight time and Training's status and best time are `IafPilotLog.summary`'s. Its Time is the day, then the mission's clock from its start (the mission's `time`) to the start plus
-`elapsed_s`. The pilot's name is the computer's user name. The Remarks are the record's fail reasons, then what its
+`elapsed_s`. The pilot's name is the profile's nickname or name, else the computer's user name. The Remarks are
+the record's fail reasons, then what its
 numbers say: the lift-off speed against the reference speed for the weight, and the largest offset from the
 centreline in the roll.
 
@@ -113,7 +120,13 @@ centreline in the roll.
 - **Strings:** `iaf-2026/menu/strings_en.json` and `strings_he.json`, formal and gender-neutral (infinitives: לטוס,
   להתניע, לבקש). The Language row switches every string at once. The mission briefings are the front end's own,
   by mission kind, with the mission's runway and time allowed in them.
-- **Preferences:** one screen per section, so a section can grow. Realism and aids have no switch (plan.md "physics";
+- **Preferences:** one screen: the sections listed at the inline start, the picked one's rows beside them (Graphics
+  until one is picked; the user, 2026-11-09, of the screen per section: "I liked it more before"). The section's pane
+  scrolls over its full height, its scroll bar running from its top to its bottom. A row shows its name and its
+  control, no line under it; a greyed row says why (Scenery without its setup step, §4). Over a flight Esc on the
+  Preferences goes back to the pause menu; the Keys and Joystick screens go back to the Preferences on Devices. Tried
+  2026-11-08 and dropped 2026-11-09: one screen per section, the list as cards with the rows' names under each
+  section. Realism and aids have no switch (plan.md "physics";
   the user, 2026-11-08): the sim's `PROFILE` (`iaf-2026/sim_settings.gd`) fixes the original Gameplay page's aids off
   (easy landing, unlimited fuel, no damage, no crashes, no G effects…) and the look switches to the sim's own
   (Detailed airbases, water, night lights; the ground textures and roads whenever their data exist), so
@@ -123,6 +136,11 @@ centreline in the roll.
   naming that step. Graphics → "HUD brightness" (a slider, 100 % by default; `Settings.hud_brightness`, stored in
   the sim's settings) sets the HUD's day level; the HUD dims itself at night, and the HUD key (Shift + H, "Step HUD
   brightness") steps the same value in eighths in flight ([cockpit.md](cockpit.md) §5.1).
+- **Sound samples:** moving a Sound slider plays a short clip of its class at the new level, on that slider's bus, from
+  the sim's own clips (`converted/own/resource/soundfiles`, `SoundTable`): Engine the engine
+  (`SFX_START_ENGINE`), Effects the master caution tone (`SFX_WARNING` `WRN_MASTER`, the effects' class), Radio
+  voices a tower call (`twr_takeoff.wav`). Betty's calls ride the Radio voices bus too, so the tower call stands for
+  them. A sample still playing follows the slider; another slider's starts in its place.
 
 ## 5. The photos
 
@@ -140,9 +158,13 @@ and in [../../docs/credits.md](../../docs/credits.md) "Modern IAF's photos". The
   the real run (`SHOT_DIR=<dir>` saves the two pictures of §1's second table).
   It also checks the first start (Home's Missions, the picker, Continue to Training, Esc back through the picker to a
   Home with no jet), Home's Pilot log entry opening the Pilot log, the breadcrumbs, each
-  Preferences section on its own screen with no aid, realism or weather row and no read of the original's data, the
+  Preferences section opening beside the list on the same screen (its pane over 700 px high, on the inline-end side),
+  no line under an option, no aid, realism or weather row and no read of the original's data, the
   sim's settings (no aid on, the log dumps naming only the sim's settings), F1–F4 opening no pause menu, and the
-  pause menu inside viewports of 1920 × 1080, 2560 × 1440 and 1280 × 800 in both languages.
+  pause menu inside viewports of 1920 × 1080, 2560 × 1440 and 1280 × 800 in both languages, and the Pilot screen in
+  both languages: Home's pilot name opens it, the nickname typed shows in the top bar at once and on the Pilot log,
+  the name and nickname stored, a file that is no picture refused, a picture copied beside the records into its 3:4
+  frame.
 - `iaf-2026/tests/_front_end_shot.gd` takes §1's pictures at 1920 × 1080 (its header), and the failed debrief.
 - `iaf-2026/tests/test_flight_ui.gd` checks §8 in both languages.
 
@@ -157,14 +179,32 @@ The screen is one panel in the front end's look (§4, `iaf-2026/menu/look.gd`). 
 - the mission's title in the sim's language (the compiled mission's `sim.title`; without a mission, the sim's name);
 - its base as the wing and the base's name ("Wing 25, Ramon", "כנף 25 רמון"), from the compiled mission's `sim.base`
   (`iaf-sim missions`);
-- a progress bar, fed by the flight as the original's screen is (`terrain.gd` `ground_progress()`, smoothed, never
-  going back).
+- a progress bar and, under it, the loading step under way. The flight names each real phase of its start
+  (`terrain_view.gd _loading_step` → the screen's `step(name, done)`); the bar takes each phase's share (`STEPS`),
+  smoothed and never going back. The original game's screen shows the ground's progress alone, as before.
+
+| step | what loads | share of the bar | measured |
+|---|---|---|---|
+| The jet and its cockpit | the start, the player's jet and its cockpit, the ground preloaded by the front end handed over | 0–1 % | 0.02 s |
+| Buildings, trees and sounds | the models' detail textures, the scenery's materials drawn once, the sounds, the radio, the training run | 1–11 % | 2.1 s |
+| Effects and damage | explosions, smoke trails, the systems damage | 11–16 % | 1.1 s |
+| The flight model | the flight overlay, the flight model's start | 16–17 % | 0.2 s |
+| The jet on the ground, its weapons and views | the jet placed, the views, the weapons | 17–52 % | 7.6 s |
+| The ground around the base | the terrain near the jet at full detail (`ground_progress()`) | 52–78 % | 5.8 s |
+| The mission's models | the mission's models parsed ahead | 78–80 % | none left |
+| The views | the external view drawn once for its shaders, the last scenery | 80–100 % | 4.9 s |
+
+The shares follow one measured start on the development laptop (Intel Iris Xe, a real window, 2026-11-09): Ramon's
+start-up from Fly.start to the flight, 21.8 s, its steps logged as above. Before, the bar sat at 0 % through the build
+(the flight fed it only once the build was done) and then jumped with the ground.
+
+Each new step is logged with its time since the screen opened (`loading: terrain at 11081 ms`).
 
 In Hebrew the page is mirrored: the bar fills from the inline start, the right.
 
 | English | Hebrew |
 |---|---|
-| ![The loading screen: "Take-off from Ramon", "Wing 25, Ramon", the bar at 60 %](pictures/front-end/loading_en.webp) | ![The loading screen in Hebrew: "המראה מרמון", "כנף 25 רמון", the bar filling from the right](pictures/front-end/loading_he.webp) |
+| ![The loading screen: "Take-off from Ramon", "Wing 25, Ramon", the bar in the ground's step, "The ground around the base" under it](pictures/front-end/loading_en.webp) | ![The loading screen in Hebrew: "המראה מרמון", "כנף 25 רמון", the bar filling from the right, "הקרקע סביב הבסיס" under it](pictures/front-end/loading_he.webp) |
 
 `iaf-2026/tests/_loading_shot.gd` takes these pictures (its header).
 
@@ -196,7 +236,7 @@ the start-up checklist card ([training.md](training.md) §7.1); a radio line alr
 ## 9. Keys and Joystick
 
 Preferences → Devices has two rows that open their own screens: **Keys** and **Joystick**. Esc on either goes back to
-the Devices section. Both read and write one file, the device store (§9.4). A change applies at once: the front end's
+the Preferences on Devices. Both read and write one file, the device store (§9.4). A change applies at once: the front end's
 next flight reads it, and over a flight the Preferences apply it when they close.
 
 ### 9.1 Keys
@@ -240,6 +280,10 @@ The key table has no trim command (the trim is the joystick's rocker), so trim n
 | K pressed for Pitch down | ![The conflict line under Pitch down: Swap, Use it here, Cancel](pictures/front-end/keys_conflict_en.jpg) | ![The conflict line in Hebrew](pictures/front-end/keys_conflict_he.jpg) |
 
 ### 9.2 Joystick
+
+With no joystick connected the Devices section's Joystick row is greyed, its Change off, and it says "No joystick
+connected."; it comes alive when one is plugged in (`Input.joy_connection_changed` builds the section again). Tests see
+only their fake joysticks (`Joystick.device()`).
 
 - **Devices:** every connected joystick by name. The first one flies the jet ("Flies the jet"); the others are listed
   only. Without one the screen says so.

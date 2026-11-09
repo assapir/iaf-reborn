@@ -546,7 +546,7 @@ fn card(f: &File) -> Result<Value> {
         ensure!(keys.is_some(), "{}: \"card.keys\" must list key records (0..125)", f.name);
         return Ok(f.v["card"].clone());
     }
-    // Start engine 117, Call the tower 47, Mission card 118, the start-up checklist 119..124; the throttle 7 (idle), 16 / 15 (± 5 %), 12 (MIL); the
+    // Start engine 117, Call the tower 47, Mission card 118, the start-up checklist 119..124 (121 empty: the throttle up from OFF is its idle step); the throttle 7 (idle), 16 / 15 (± 5 %), 12 (MIL); the
     // wheel brakes 22, the rudder (nose wheel) 37 / 38, the stick 24..27, the gear 20.
     Ok(match f.v["training"]["kind"].as_str() {
         Some("startup") => json!({
@@ -555,7 +555,7 @@ fn card(f: &File) -> Result<Value> {
                        engine idles with the avionics up.",
                 "he": "ביצוע רשימת ההתנעה שבכרטיס שלב אחר שלב, החל מ־{key:119}. המשימה עוברת כשהמנוע בסרק והאוויוניקה פועלת.",
             },
-            "keys": [119, 120, 121, 122, 123, 124, 118],
+            "keys": [119, 120, 16, 122, 123, 124, 118],
         }),
         Some("takeoff") => json!({
             "objective": {

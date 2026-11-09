@@ -194,16 +194,23 @@ for the F-16s and 47 s / 92 s for the F-35I (the recorder samples 10 times a sec
 ### 7.1 The start-up checklist by keys
 Since 2026-11-08 (the user: "the first mission, which is just one click, is pointless") the start-up mission is the
 real start by keys, step by step. A card at the top right (the top left in Hebrew) ticks the steps in order and says the next one, in English
-and Hebrew; each step is a key of the sim's own `keys.json` (records 119–124, commands 210–215, the card naming each
+and Hebrew; each step but the idle is a key of the sim's own `keys.json` (records 119–124, commands 210–215, the card naming each
 key as bound, Cmd for Ctrl on macOS; `iaf-sim own` refuses a key bound twice). The flight model takes each step
 (`Start::press` in `crates/iaf-flight/src/sixdof/start.rs`, `IafFlight.start_step`); a step out of order has its
 consequence and returns a fault, which ends the mission at once as a Fail with that fault first (§3.0).
+
+The idle step has no key (the user, 2026-11-09): moving the throttle up from OFF, by its keys or the axis, is the step,
+as the real throttle's idle-cutoff detent, once the starter step (JFS / IPP) is done (before it the throttle moves
+alone and starts nothing). OFF is the throttle's bottom (2 % allowed for a lever's noise); a lever already up goes to OFF first. The card names the throttle-up key (record 16) on that line;
+record 121 stays an empty slot of `keys.json`, and the Keys screen lists no command for it. The step reaches the flight
+model and the recording as the key did (`sim_flight.gd _throttle_step`), so the scorer reads the same `checklist`
+event. The jet does not shut down when the throttle goes back to OFF (open).
 
 | # | F-16I Sufa, F-16D Barak | key | timing | out of order | source |
 |---|---|---|---|---|---|
 | 1 | Main power: MAIN (the battery on) | Ctrl+B | at once | — | the checklist's order[^chk] |
 | 2 | JFS: START 2 | Ctrl+J | cranks the engine to 20 % RPM in 15 s, then holds there | before main power: nothing runs, `no_power` | [^chk]; the 15 s inferred |
-| 3 | Throttle: IDLE at 20 % RPM | Ctrl+I | light-off 5 s later, idle 15 s after it; the main generator at 52 %, the JFS off | below 20 %: a hot start, the engine shut down, `hot_start`; no rotation: no light-off, `no_rotation`; never: the JFS holds at 20 % | 20 % minimum[^chk]; 52 %[^f16net]; the times inferred |
+| 3 | Throttle to idle at 20 % RPM | the throttle up from OFF | light-off 5 s later, idle 15 s after it; the main generator at 52 %, the JFS off | below 20 %: a hot start, the engine shut down, `hot_start`; no rotation: no light-off, `no_rotation`; never: the JFS holds at 20 % | 20 % minimum[^chk]; 52 %[^f16net]; the times inferred |
 | 4 | Avionics power: ON, after the generators | Ctrl+A | the displays and the HUD 3 s later | before the generators: no power, `avionics_early` | inferred (the avionics go on after the engine start in the checklist[^chk]) |
 | 5 | INS: stored-heading alignment | Ctrl+N | aligned 90 s later: the avionics up | without avionics power: `ins_no_power` | 90 s[^ins] (a full alignment takes about 8 minutes[^ins]) |
 | 6 | Canopy: close and lock | Ctrl+K | at once | any time | [^chk] |
@@ -212,7 +219,7 @@ consequence and returns a fault, which ends the mission at once as a Fail with t
 |---|---|---|---|---|---|
 | 1 | Battery: ON | Ctrl+B | at once | — | battery, IPP, engine[^ayton] |
 | 2 | IPP: START | Ctrl+J | runs 10 s, then holds | before the battery: `no_power` | [^ayton]; the 10 s inferred |
-| 3 | Engine: START | Ctrl+I | cranks, lights and runs to idle by itself (the F-16's figures); the displays on the IPP's power | before the IPP: `no_ipp`; before the IPP is up to speed: `ipp_not_ready` | [^ayton]; inferred |
+| 3 | Throttle to idle: the engine starts | the throttle up from OFF | cranks, lights and runs to idle by itself (the F-16's figures); the displays on the IPP's power | before the IPP: `no_ipp`; before the IPP is up to speed: `ipp_not_ready` | [^ayton]; inferred |
 | 4 | Canopy: close and lock | Ctrl+K | at once | any time | inferred |
 
 The avionics of the F-35I report ready 90 s after the battery[^ayton]. The mission passes when every step is done

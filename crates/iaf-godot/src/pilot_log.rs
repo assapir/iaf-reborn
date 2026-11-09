@@ -57,6 +57,30 @@ impl IafPilotLog {
         text(with(&db, |c| pilot_log::summary(c, pilot)))
     }
 
+    /// The pilot's profile as JSON: {name, nickname, picture (the picture file's absolute path, "" = none)}.
+    #[func]
+    fn pilot(db: GString, pilot: i64) -> GString {
+        text(with(&db, |c| pilot_log::pilot(c, Path::new(&db.to_string()), pilot)))
+    }
+
+    /// Stores the pilot's name and nickname; false when it could not.
+    #[func]
+    fn set_pilot(db: GString, pilot: i64, name: GString, nickname: GString) -> bool {
+        with(&db, |c| pilot_log::set_pilot(c, pilot, &name.to_string(), &nickname.to_string())).is_some()
+    }
+
+    /// Copies the picture file at `src` (an absolute path) beside the records and stores it as the pilot's: the
+    /// copy's absolute path, "" when it could not. An empty `src` removes the picture.
+    #[func]
+    fn set_picture(db: GString, pilot: i64, src: GString) -> GString {
+        let path = Path::new(&db.to_string()).to_path_buf();
+        GString::from(
+            with(&db, |c| pilot_log::set_picture(c, &path, pilot, Path::new(&src.to_string())))
+                .unwrap_or_default()
+                .as_str(),
+        )
+    }
+
     /// Sortie `id`'s debrief record as JSON, "" when it has none.
     #[func]
     fn debrief(db: GString, id: i64) -> GString {

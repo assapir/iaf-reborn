@@ -40,6 +40,8 @@ pub struct Airframe {
     pub mfd: Option<String>,
     /// The fly-by-wire flight controls: the roll-rate command and the deep stall in place of the spin (aircraft.rs).
     pub fly_by_wire: Option<bool>,
+    /// A drag chute (`false`: none, so the flight never asks the flight model for one; terrain_view.gd).
+    pub drag_chute: Option<bool>,
     /// The engine's spool times in seconds, `[idle_mil, mil_idle, ab_light, ab_fill]` (spool.rs `Spool`).
     pub engine_spool: Option<[f32; 4]>,
     /// Physics "Flight model" on 6-DoF flies this jet on Modern IAF's 6-DoF (`data_set::sixdof`, docs/deviations.md
@@ -275,7 +277,7 @@ mod tests {
 
     /// With every switch off a 1998 jet's definition holds no value its type-code tables decide, so the game reads
     /// exactly the 1998 values; only what the original has no table for (the model file it is, the 3D cockpit and
-    /// its HUD).
+    /// its HUD) and `drag_chute: false`, as the 1998 F-16 (its model has no `Parach` part, docs/part-animation.md).
     #[test]
     fn switches_off_give_the_1998_values() {
         let off = Switches { f16: "barak", f15: "baz" };
@@ -285,7 +287,9 @@ mod tests {
             let a = a.as_object().unwrap();
             let keys: Vec<&str> = a.keys().map(String::as_str).collect();
             assert!(
-                keys.iter().all(|k| ["name", "doc", "notes", "original_model", "hud_3d", "cockpit_3d"].contains(k)),
+                keys.iter().all(|k| {
+                    ["name", "doc", "notes", "original_model", "hud_3d", "cockpit_3d", "drag_chute"].contains(k)
+                }),
                 "{code}: {keys:?}"
             );
         }

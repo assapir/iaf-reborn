@@ -29,7 +29,7 @@ func run() -> void:
 	await _both(tv, "card_mid")
 	Engine.time_scale = TIME_SCALE
 	await _until(tv, func(): return float(tv.flight.state().rpm) >= 0.2, 60.0)
-	tv._command([212, 0, 0])
+	tv._command([5, 0, 0])  # the throttle up from OFF: the idle step
 	await _until(tv, func(): return float(tv.flight.state().rpm) >= 0.55, 60.0)
 	for c in [213, 214, 215]:
 		tv._command([c, 0, 0])

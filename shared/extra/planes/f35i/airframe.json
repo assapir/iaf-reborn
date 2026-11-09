@@ -24,7 +24,9 @@
     "modern": "always",
     "loads": { "1001": [1, "AI"], "1003": [1, "BCGH"], "1005": [1, "BCGH"], "1007": [4, "CG"] }
   },
+  "drag_chute": false,
   "notes": {
+    "drag_chute": "no F-16 or F-35 has a drag chute: the flight never asks the flight model for one",
     "sixdof": "Physics Flight model on 6-DoF: Modern IAF's 6-DoF from its own data (iaf-2026/docs/flight-model.md §9; docs/deviations.md §2)",
     "radar.row": "iaf_avionics::radar::F35I, the AN/APG-81's row",
     "radar.km": "AN/APG-81, multiple-target track beyond 80 NM (U, docs/f35i.md)",

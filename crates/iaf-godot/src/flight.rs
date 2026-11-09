@@ -32,7 +32,7 @@ fn sixdof_lacks(what: &'static str) {
     let mut seen = SEEN.lock().unwrap_or_else(|e| e.into_inner());
     if !seen.contains(&what) {
         seen.push(what);
-        godot_warn!("IafFlight: the 6-DoF does not model {what} yet (iaf-2026/docs/flight-model.md §9.6)");
+        godot_print!("IafFlight: the 6-DoF does not model {what} yet (iaf-2026/docs/flight-model.md §9.6)");
     }
 }
 

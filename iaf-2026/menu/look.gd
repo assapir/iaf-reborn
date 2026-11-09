@@ -30,6 +30,7 @@ const TYPES := [
 	["Mark", "Label", 800, 28, TEXT],
 	["Crumb", "Label", 400, 22, MUTED],
 	["CrumbLink", "Button", 400, 22, MUTED],
+	["PilotLink", "Button", 600, 22, TEXT],
 	["CrumbOn", "Label", 500, 22, TEXT],
 	["Muted", "Label", 400, R, MUTED],
 	["Small", "Label", 400, 19, MUTED],
@@ -62,10 +63,12 @@ const TYPES := [
 	["Fly", "Button", 600, 36, NAVY],
 	["Secondary", "Button", 600, 24, TEXT],
 	["Card", "Button", 400, R, TEXT],
+	["Tab", "Button", 500, 24, TEXT],
 ]
 
 
-static func make() -> Theme:
+## `rtl`: the Tab's accent bar on the left, the side facing its pane in Hebrew.
+static func make(rtl := false) -> Theme:
 	var heebo := FontFile.new()
 	heebo.load_dynamic_font(ProjectSettings.globalize_path(WizardTheme.FONT))
 	var t := Theme.new()
@@ -113,12 +116,29 @@ static func make() -> Theme:
 	menu_on.bg_color = Color(ACCENT, 0.16)
 	_button(t, "Menu", flat, menu_on, menu_on)
 	t.set_constant("align_to_largest_stylebox", "Menu", 1)
+	# A list's tab (the Preferences' sections, the Keys screen's groups): the picked one lit, its bar facing the pane.
+	var tab := box(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 0, Vector2(28, 16))
+	var tab_on := box(Color("262d3b"), ACCENT, 0, 0, Vector2(28, 16))
+	if rtl:
+		tab_on.border_width_left = 4
+	else:
+		tab_on.border_width_right = 4
+	_button(t, "Tab", tab, tab_on, tab_on)
+	t.set_stylebox("pressed", "Tab", tab_on)
 	# A breadcrumb that opens its screen: the muted text, brighter with a faint accent under the pointer or the focus.
 	var crumb := box(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 5, Vector2(8, 4))
 	var crumb_on := box(Color(ACCENT, 0.16), Color(0, 0, 0, 0), 0, 5, Vector2(8, 4))
 	_button(t, "CrumbLink", crumb, crumb_on, box(Color(0, 0, 0, 0), ACCENT, 2, 5, Vector2(8, 4)))
 	for k in ["font_hover_color", "font_focus_color", "font_pressed_color", "font_hover_pressed_color"]:
 		t.set_color(k, "CrumbLink", TEXT)
+	# The pilot's name on Home, which opens the Pilot screen: a crumb's look in the name's weight.
+	_button(t, "PilotLink", crumb, crumb_on, box(Color(0, 0, 0, 0), ACCENT, 2, 5, Vector2(8, 4)))
+	# A text field (the Pilot screen's name and nickname): the dropdown's box.
+	t.set_stylebox("normal", "LineEdit", box(Color("2a2f37"), EDGE, 1, 5, Vector2(18, 10)))
+	t.set_stylebox("focus", "LineEdit", box(Color(0, 0, 0, 0), ACCENT, 2, 5, Vector2(18, 10)))
+	t.set_color("font_color", "LineEdit", TEXT)
+	t.set_color("caret_color", "LineEdit", ACCENT)
+	t.set_font_size("font_size", "LineEdit", 24)
 	var card := box(PANEL, LINE, 1, 6, Vector2.ZERO)
 	_button(t, "Card", card, box(Color("2c313a"), EDGE, 1, 6, Vector2.ZERO), box(PANEL, ACCENT, 4, 6, Vector2.ZERO))
 	t.set_stylebox("pressed", "Card", box(PANEL, ACCENT, 4, 6, Vector2.ZERO))

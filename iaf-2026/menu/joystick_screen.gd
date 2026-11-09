@@ -51,7 +51,7 @@ static func page(front_end: Control) -> Node:
 	front_end._focus = nav.get_child(0)
 	var reset: Button = front_end._action(front_end.s("reset_all"), "Secondary", me.reset_all)
 	reset.name = "ResetAll"
-	front_end._footer([["Esc", "back"], ["Enter", "select"]], "", [reset])
+	front_end._footer("", [reset])
 	return me
 
 

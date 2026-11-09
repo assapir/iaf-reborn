@@ -493,7 +493,9 @@ budget, a real flight. Open:
 * **The autopilot's taxi pivot**: the 6-DoF turns on the spot (`SixDof::set_pivot`, inferred). The autopilot's level
   hold and its g commands are tested on the 6-DoF (`crates/iaf-flight/tests/fm.rs`); its landing and taxi laws are
   untried there.
-* **Not modelled, logged once when the game asks** (`IafFlight`): the drag chute and the systems damage. Also not
+* **Not modelled, one plain log line per run when the game asks** (`IafFlight`, no warning): the drag chute and the
+  systems damage. No F-16 or F-35 has a drag chute: their definitions say `"drag_chute": false`, so the flight never
+  asks for one (`terrain_view.gd`). Also not
   modelled: wind gusts (the steady wind is), ground effect, Better physics' options (they belong to the original
   model); Stevens & Lewis's turn trims (the book's tables were not available).
 

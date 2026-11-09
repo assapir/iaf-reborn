@@ -101,6 +101,7 @@ var _fps_before := 0
 ## Mission models (paths for Gltf.object) parsed ahead on worker threads while the loading screen is up and finished
 ## here (_parse_ahead), so the spawn after it finds them ready; null until the first frame starts them.
 var _parse_queue = null
+var _parse_total := 0
 ## The menu mission flown (--mission, else the one picked in the menus); -1 = free flight.
 var mission_id := -1
 var mission_name := ""
@@ -329,6 +330,7 @@ func _ready() -> void:
 	_fps_before = Engine.max_fps
 	if _fps_before == 0 or _fps_before > LOADING_FPS:
 		Engine.max_fps = LOADING_FPS
+	_loading_step("cockpit")
 	chase.fov = 60.0
 	var args := OS.get_cmdline_user_args()
 	_choose_start(args)
@@ -339,6 +341,7 @@ func _ready() -> void:
 	# The rest of the flight is built over the next five frames, so the loading screen shows first and no frame is long
 	# (~0.85 s in one otherwise). Meanwhile only the terrain and the loading screen run (_hold).
 	_hold(true)
+	_loading_step("scenery")
 	if not await _next_frame(true):
 		return
 	# Model detail (docs/rendering.md §9): its textures (preloaded by the front end) and shaders drawn once behind the
@@ -377,6 +380,7 @@ func _ready() -> void:
 	addon = Settings.flight_addon(self)
 	if addon != null:
 		add_child(addon)
+	_loading_step("effects")
 	if not await _next_frame():
 		return
 	# OBJECT DETAIL (docs/front-end.md §12.4): the level the model loader and the LOD switch use.
@@ -399,6 +403,7 @@ func _ready() -> void:
 	player_damage.twin = player.twin
 	cockpit.damage_flags = player_damage.flags
 	cockpit.waypoints = route
+	_loading_step("flight_model")
 	if not await _next_frame():
 		return
 	var ol := CanvasLayer.new()
@@ -410,6 +415,7 @@ func _ready() -> void:
 	ol.add_child(overlay)
 	_start_flight()
 	_apply_view()
+	_loading_step("jet")
 	if not await _next_frame():
 		return
 	_spawn_player()
@@ -436,6 +442,13 @@ func _ready() -> void:
 
 var _start_external := false
 var _orbit_arg := -1
+
+
+## The loading phase now under way, for a loading screen that names its steps (Modern IAF's, iaf-2026/docs/front-end.md
+## §7: `step(name, done 0..1)`); the original's screen shows the ground's progress alone.
+func _loading_step(step: String, done := 0.0) -> void:
+	if _loading != null and _loading.get_child(0).has_method("step"):
+		_loading.get_child(0).step(step, done)
 
 
 ## While _ready builds the flight over frames: this node and its children wait (the cockpit hidden), but for the
@@ -977,6 +990,7 @@ const PARSE_FINISH_MS := 12
 func _parse_ahead() -> void:
 	if _parse_queue == null:
 		_parse_queue = TerrainPreload.mission_models(_start_files, mission_bdb)
+		_parse_total = _parse_queue.size()
 		Gltf.parse_ahead(_parse_queue)
 	var t0 := Time.get_ticks_msec()
 	for p in _parse_queue.filter(func(q): return Gltf.parsed_ahead(q)):
@@ -3487,6 +3501,12 @@ func _process(delta: float) -> void:
 		# loading screen).
 		if _loading != null:
 			_loading.get_child(0).progress = terrain.ground_progress()
+			if not terrain.ground_ready():
+				_loading_step("terrain", terrain.ground_progress())
+			elif _parse_queue != null and not _parse_queue.is_empty():
+				_loading_step("models", 1.0 - _parse_queue.size() / float(maxi(_parse_total, 1)))
+			else:
+				_loading_step("views", 0.5)
 		if waiting_for_ground:
 			_parse_ahead()
 			_warm_views()
@@ -3608,7 +3628,9 @@ func _process(delta: float) -> void:
 			var fs: Dictionary = flight.state()
 			if drag_chute == 1 and fs.on_ground:
 				drag_chute = 2
-			flight.set_drag_chute(drag_chute == 2)
+			# A jet whose definition has no chute (every F-16 and F-35) never asks the flight model for one.
+			if Settings.airframe(player.type).get("drag_chute", true):
+				flight.set_drag_chute(drag_chute == 2)
 			# The stick as the flight model took it (hydraulics / flight control damage scale it, 59f3d0).
 			for k in ["gear", "on_ground", "afterburner", "rpm", "stick_x", "stick_y"]:
 				parts_in[k] = fs[k]

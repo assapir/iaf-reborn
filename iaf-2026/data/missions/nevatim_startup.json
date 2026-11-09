@@ -70,9 +70,9 @@
       },
       {
         "step": "engine",
-        "key": "Ctrl+I",
-        "en": "Engine: START",
-        "he": "מנוע: START"
+        "key": "throttle up from OFF",
+        "en": "Throttle to idle: the engine starts",
+        "he": "מצערת לסרק: המנוע מותנע"
       },
       {
         "step": "canopy",

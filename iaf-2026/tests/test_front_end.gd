@@ -75,8 +75,56 @@ func run() -> void:
 	s.language = "en"
 	await crumbs(fe)
 	await prefs(fe)
+	for lang in ["en", "he"]:
+		s.language = lang
+		await pilot(fe, lang)
+	s.language = "en"
 	await overlay_fits()
 	await fly_once(fe)
+
+
+## The Pilot screen from the pilot's name on Home: the nickname typed shows in the top bar at once and on every screen,
+## the name and nickname are stored, a picture is copied beside the records into a 3:4 frame; all put back after.
+func pilot(fe: Control, lang: String) -> void:
+	var s := settings()
+	var db: String = s.records_db()
+	fe.show_page("home")
+	await frames(2)
+	var link: Button = fe.find_child("PilotName", true, false)
+	check(link != null, "%s: Home: the pilot's name is a button" % lang)
+	link.pressed.emit()
+	await frames(2)
+	check(fe.page == "pilot" and fe.is_layout_rtl() == (lang == "he"), "%s: the name opens the Pilot screen" % lang)
+	var nick: LineEdit = fe.find_child("Field_nickname", true, false)
+	var name_edit: LineEdit = fe.find_child("Field_name", true, false)
+	name_edit.text = "Noa Golan"
+	name_edit.text_changed.emit(name_edit.text)
+	nick.text = "Viper"
+	nick.text_changed.emit(nick.text)
+	await frames(1)
+	check(fe.find_child("PilotName", true, false).text == "Viper", "%s: the nickname in the top bar at once" % lang)
+	var p = JSON.parse_string(IafPilotLog.pilot(db, s.pilot()))
+	check(p is Dictionary and p.name == "Noa Golan" and p.nickname == "Viper", "%s: stored: %s" % [lang, p])
+	var png := OS.get_temp_dir().path_join("iaf2026-test-pilot-%d.png" % OS.get_process_id())
+	Image.create(30, 40, false, Image.FORMAT_RGB8).save_png(png)
+	check(not fe.set_picture(db), "%s: a file that is no picture is refused" % lang)
+	check(fe.set_picture(png), "%s: the picture is taken" % lang)
+	await frames(2)
+	p = JSON.parse_string(IafPilotLog.pilot(db, s.pilot()))
+	check(FileAccess.file_exists(str(p.picture)) and p.picture != png, "%s: copied beside the records" % lang)
+	var fr: Control = fe.find_child("Picture", true, false)
+	check(
+		fr != null and is_equal_approx(fr.size.x / fr.size.y, 0.75) and fr.find_child("*", true, false) is TextureRect,
+		"%s: the picture in its 3:4 frame (%s)" % [lang, fr.size if fr != null else null]
+	)
+	fe.show_page("log")
+	await frames(2)
+	check(_has(fe, "Viper"), "%s: the Pilot log's top bar shows the nickname" % lang)
+	key(fe, KEY_ESCAPE)
+	await frames(2)
+	IafPilotLog.set_pilot(db, s.pilot(), "", "")
+	IafPilotLog.set_picture(db, s.pilot(), "")
+	DirAccess.remove_absolute(png)
 
 
 ## The breadcrumbs open their screens and keep the picks; the current one is no button.
@@ -178,9 +226,6 @@ func fly_once(fe: Control) -> void:
 	(pause.find_child("Section_graphics", true, false) as Button).pressed.emit()
 	await frames(2)
 	check(pause.find_child("Pref_shadows", true, false) != null, "fly: pause, Preferences, Graphics")
-	key(pause, KEY_ESCAPE)
-	await frames(2)
-	check(pause.page == "prefs", "fly: Esc from Graphics back to the sections")
 	key(pause, KEY_ESCAPE)
 	await frames(2)
 	check(pause.page == "pause" and tv.fe_overlay == pause, "fly: Esc from Preferences back to the pause menu")
@@ -385,13 +430,26 @@ func prefs(fe: Control) -> void:
 	for g in sections:
 		check(fe.find_child("Section_" + g, true, false) != null, "prefs: the %s section on the list" % g)
 	check(fe.find_child("Section_physics", true, false) == null, "prefs: no Physics section (no aids)")
-	check(fe.find_child("Pref_shadows", true, false) == null, "prefs: the list holds no rows")
-	# Each section on its own screen, Esc back to the list.
+	# Each section opens beside the list on the same screen, its rows only, no line under an option.
 	var rows := {}
 	for g in sections:
 		(fe.find_child("Section_" + g, true, false) as Button).pressed.emit()
 		await frames(2)
-		check(fe.page == "prefs_section" and fe.pref_group == g, "prefs: %s opens its own screen" % g)
+		var tab: Button = fe.find_child("Section_" + g, true, false)
+		check(
+			fe.page == "prefs" and fe.pref_group == g and tab.button_pressed, "prefs: %s opens beside the sections" % g
+		)
+		var pane: ScrollContainer = fe.find_child("SectionPane", true, false)
+		var after: bool = pane != null and pane.global_position.x > tab.global_position.x
+		check(
+			pane != null and pane.size.y > 700 and after == (not fe.is_layout_rtl()),
+			"prefs: %s's pane beside the list, %d px high" % [g, pane.size.y if pane != null else 0]
+		)
+		for k in fe.find_children("Pref_*", "", true, false):
+			var notes: Array = k.find_children("*", "Label", true, false).filter(
+				func(l): return l.theme_type_variation == "Small"
+			)
+			check(notes.is_empty() or k.modulate.a < 1.0, "prefs: no line under %s but a greyed row's why" % k.name)
 		for c in fe.find_children("Pref_*", "", true, false):
 			rows[String(c.name).trim_prefix("Pref_")] = g
 		if g == "graphics":
@@ -408,9 +466,6 @@ func prefs(fe: Control) -> void:
 				radios.size() == 3 and radios.all(func(r): return r.disabled != have),
 				"prefs: Scenery Off / On / Detailed, greyed only without setup's scenery (%s)" % have
 			)
-		key(fe, KEY_ESCAPE)
-		await frames(2)
-		check(fe.page == "prefs", "prefs: Esc from %s back to the list" % g)
 	check(s.rejected.size() == refused, "prefs: the screens read none of the original's data (%s)" % [s.rejected])
 	for k in ["antialiasing", "upscaling", "shadows", "terrain_detail", "clouds", "scenery", "fullscreen", "vsync"]:
 		check(rows.get(k) == "graphics", "prefs: Graphics has %s" % k)

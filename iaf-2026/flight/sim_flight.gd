@@ -81,6 +81,12 @@ const CARD_DONE := {"en": "All steps done.", "he": "כל השלבים בוצעו
 const STEP_IDS := ["main_power", "starter", "engine", "avionics", "ins", "canopy"]
 ## The checklist's first key record (iaf-2026/data/keys.json, records 119–124: STEP_IDS in order; commands 210–215).
 const CHECK_KEY := 119
+## The engine step has no key: the throttle moved up from OFF is it, as the real idle-cutoff detent (training.md
+## §7.1). The card names the throttle-up key (record 16); OFF is the throttle's bottom, a lever's noise allowed.
+const THROTTLE_UP_KEY := 16
+const THROTTLE_OFF := 0.02
+## The throttle last frame (-1 before the first: a lever already up at the start is no step).
+var _throttle_was := -1.0
 const RECORDED_S := 0.25
 
 
@@ -227,6 +233,7 @@ func _process(_delta: float) -> void:
 	if not result.is_empty() and Time.get_ticks_msec() >= _end_ms:
 		_end_ms = INF
 		host._end_flight(true)  # into the debrief (Settings.flown_sortie)
+	_throttle_step()
 	if rules.is_empty() or not result.is_empty() or host.flight == null or host.get("_log") == null:
 		return
 	var t: float = host._log_t
@@ -364,6 +371,20 @@ func start_step(i: int) -> void:
 		_fill_card()
 
 
+## The throttle up from OFF (its keys or the axis) takes the checklist's engine step once the starter step (JFS / IPP)
+## is done; before it the throttle moves alone.
+func _throttle_step() -> void:
+	var thr := float(host.throttle)
+	var up := _throttle_was >= 0.0 and _throttle_was <= THROTTLE_OFF and thr > THROTTLE_OFF
+	_throttle_was = thr
+	if up and "starter" in done and "engine" in _steps():
+		start_step(STEP_IDS.find("engine"))
+
+
+func _steps() -> Array:
+	return checklist.map(func(c): return String(c.step))
+
+
 func _build_card() -> void:
 	_card = PanelContainer.new()
 	_card.name = "Checklist"
@@ -424,7 +445,8 @@ func _fill_card() -> void:
 		var colour: Color = Look.INK_MUTED if is_done else (Look.NAVY if is_next else Look.INK)
 		var l := _card_line(row, "%s  %d. %s" % [mark, i + 1, c[lang]], 20, colour)
 		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var k: String = ui.key_name(CHECK_KEY + STEP_IDS.find(String(c.step)))  # as bound, Cmd on macOS
+		var rec := THROTTLE_UP_KEY if c.step == "engine" else CHECK_KEY + STEP_IDS.find(String(c.step))
+		var k: String = ui.key_name(rec)  # as bound, Cmd on macOS
 		_card_line(row, k, 18, Look.INK_MUTED).text_direction = Control.TEXT_DIRECTION_LTR
 	_card_line(v, CARD_NEXT[lang] % next if next != "" else CARD_DONE[lang], 20, Look.NAVY)
 	if _fault_shown != "":

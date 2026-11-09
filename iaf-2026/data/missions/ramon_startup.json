@@ -70,9 +70,9 @@
       },
       {
         "step": "engine",
-        "key": "Ctrl+I",
-        "en": "Throttle: IDLE at 20 % RPM",
-        "he": "מצערת: סרק ב־20% סל״ד"
+        "key": "throttle up from OFF",
+        "en": "Throttle to idle at 20 % RPM",
+        "he": "מצערת לסרק ב־20% סל״ד"
       },
       {
         "step": "avionics",
