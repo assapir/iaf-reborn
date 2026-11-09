@@ -746,9 +746,16 @@ occlusion, 1.8 MB; built by
   blue ambient). The panels', consoles' and instruments' materials also glow by their own texture × a colour, a flat
   fill (not the lamps; the tub's floor, walls and pedal area, the air vents and the stick, `UNLIT`, at `TUB_FILL` 0.4
   of it, where the full fill showed the floor texture's speckle; until 2026-11-02 at none, and the footwell under the
-  panel, which the sun does not reach, was a black void; they take no backlight at night): by day the sun's colour × 1.0 × its energy (`FILL`; 1.3 on FlightGear's
+  panel, which the sun does not reach, was a black void; they take no backlight at night): by day the sun's colour × 1.6 × its energy (`FILL`; 1.3 on FlightGear's
   near-black paint before it was lifted, 0.8 before the baked occlusion, which takes about a quarter of it on
-  average), so the labels read and dusk dims it. At the cockpit's night
+  average, 1.0 until 2026-11-09), so the labels read and dusk dims it. At 1.0 the panel face under the glareshield
+  measured sRGB 9–14 by day: black, its labels floating (the user: "very black"). At 1.6 it is about 25 and the side
+  walls about 55, as a web F-16 shows them, dark grey with the surface and screws seen; 2.0 (33) washed out the
+  keypad's grey keys and turned the gauges' black faces grey. Tried 1.0, 1.5, 2.0 and 3.0. Before (1.0) and after (1.6), by day:
+
+  ![The F-16's 3D panel by day at fill 1.0, near black, and at 1.6, dark grey](img/f16_day_fill.jpg)
+
+  At the cockpit's night
   (`cockpit.night`, the rule that darkens the 2D panel, `time_of_day.gd` `cockpit_night`, set at the mission's start)
   the colour is FlightGear's flood light (`panel-standard.eff` `lightmap-color` 0.45, 0.34, 0.18; ×0.9) on everything,
   and the labels are backlit (`_setup_backlight`, `cockpit3d_backlight.gdshader`, 2026-11-02): each lit part is drawn

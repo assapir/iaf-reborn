@@ -171,9 +171,12 @@ func _materials(model: Node3D, path: String, barak_jet: bool) -> void:
 ## backlight's colour was added to the flood over every texel: the whole panel, the gauges' faces and the ADI ball
 ## turned green.
 ## The fill by day (× the sun's colour and energy): 1.3 on FlightGear's near-black paint; 1.0 since the sheets' paint
-## was lifted (tools/f16d/cockpit3d.py PAINT_FLOOR, 2026-11-02). The sun itself lights what it reaches through the
-## canopy, its shadows sharp in the cockpit (_sun_split).
-const FILL := 1.0
+## was lifted (tools/f16d/cockpit3d.py PAINT_FLOOR, 2026-11-02); 1.6 since 2026-11-09 (the user: "very black"): at 1.0
+## the panel face under the glareshield came out at sRGB 9-14, black with its labels floating; at 1.6 about 25 and
+## the side walls about 55, as a web F-16 and the photos show it (dark grey, its surface and screws seen); at 2.0 the
+## keypad's grey keys washed out and the gauges' black faces turned grey. The sun itself lights what it reaches through
+## the canopy, its shadows sharp in the cockpit (_sun_split).
+const FILL := 1.6
 ## The sun's first shadow split while the cockpit is drawn (m at the model's scale; the scene's is 40 m): the
 ## glareshield's, the HUD's, the stick's and the canopy sills' shadows sharp on the panel, the consoles and the floor.
 const SPLIT_M := 4.0
