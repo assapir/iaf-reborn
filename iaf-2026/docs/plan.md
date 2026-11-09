@@ -332,7 +332,30 @@ display and standby display 2.5 % of their distance nearer the eye: the same pix
 - Anything nearer the eye than a screen by less than 2.5 % of its distance (about 1 cm at the standby display) draws
   behind the screen (inferred).
 
-Size: M (open, not started).
+**Measured (2026-11-09, branch wt/iaf-2026-ils): this is the user's "the entire cockpit shakes"** (the Mac, 60 Hz).
+`iaf-2026/tests/_cockpit_shake_probe.gd` (real render, mission 2012, the flight model stopped, the rig moved 0.5 mm a
+frame at D m from the flight's start):
+
+| D | camera ↔ cockpit transform moved | cockpit pixel change per frame, median / max |
+|---|---|---|
+| 0 | 0.25 mm | 0.24 / 0.93 |
+| 4 km | 0.32 mm | 0.48 / 1.09 |
+| 15 km | 1.1 mm | 0.58 / 3.4 |
+| 30 km | 3.1 mm | 0 / 5.5 |
+| 60 km | 4.4 mm | 0 / 8.1 |
+
+From 30 km the cockpit stands still for frames, then jumps a few mm against the eye as one piece (median 0, max
+5.5–8.1 grey levels averaged over the lower half of the view). The same rounding already shows on the CPU side: the
+camera and the cockpit hang under the same rig, in the same `_process`, yet their relative transform moves by the f32
+step of the rig's position. Ruled out by measurement: the frame pacing (the flight model steps in `_process` by the
+frame's delta, no physics tick, the rig and camera set the same frame: at a fixed 60 fps the camera's per-frame step
+is smooth to 0.5 mm on the take-off roll and a steady series in the climb, no stale frame), the 6-DoF's noise on the gear (0.15 mm, 0.005°),
+the UTM numbers (the scene is already about the start: at the Ramon spot the camera is at (0, 645.67, 0), 0.0 m step
+over 300 frames), the ILS (smooth, 1.4e-5° localizer steps on the final; `airbase.rs`
+`ils_is_smooth_on_a_straight_approach`). The terrain and far objects show no shake: their f32 step is tiny against
+their distance from the eye.
+
+Size: M (open, not started). The first shared engine item after P1.
 
 ### E3 the training missions
 

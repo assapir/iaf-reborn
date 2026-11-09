@@ -292,6 +292,37 @@ mod tests {
         assert!((loc.to_degrees() + 19.0).abs() < 1e-3 && (gs.to_degrees() - 5.0).abs() < 1e-3, "{loc} {gs}");
     }
 
+    /// A straight 3° approach from 5 NM to 500 m at 75 m/s, 60 frames a second: the deviations change smoothly, on
+    /// the original game's Ramon (1998 frame) and the sim's (UTM 36N). Max frame-to-frame step 0.01°. The positions
+    /// are about the flight's start (a spot 2 km off the lineup), as `IafFlight.ap_setup` takes them: in raw UTM, f32
+    /// holds the 3.4 M m northing in 0.25 m steps and the step reaches 0.023° near the runway (measured 2026-11-08).
+    #[test]
+    fn ils_is_smooth_on_a_straight_approach() {
+        for (lineup, rn) in [([317547.0, 411215.0, 580.0], 230.0), ([660563.2, 3406637.2, 633.1], 246.0)] {
+            let origin = [lineup[0] as f64 - 1500.0, lineup[1] as f64 - 1400.0];
+            let local = [(lineup[0] as f64 - origin[0]) as f32, (lineup[1] as f64 - origin[1]) as f32, lineup[2]];
+            let b = [Airbase { lineup: local, runway_deg: rn, ..Default::default() }];
+            let back = ((rn as f64) + 180.0).to_radians();
+            let (dt, v, start) = (1.0 / 60.0, 75.0, 9260.0);
+            let (mut prev, mut max_step): (Option<(f32, f32)>, f32) = (None, 0.0);
+            let mut d = start;
+            while d > 500.0 {
+                let p = [
+                    (local[0] as f64 + d * back.sin()) as f32,
+                    (local[1] as f64 + d * back.cos()) as f32,
+                    (lineup[2] as f64 + d * 3f64.to_radians().tan()) as f32,
+                ];
+                let (loc, gs) = ils(&b, p).unwrap();
+                if let Some((l, g)) = prev {
+                    max_step = max_step.max((loc - l).abs().to_degrees()).max((gs - g).abs().to_degrees());
+                }
+                prev = Some((loc, gs));
+                d -= v * dt;
+            }
+            assert!(max_step < 0.01, "{lineup:?}: max step {max_step}°");
+        }
+    }
+
     #[test]
     fn ils_uses_the_nearest_lineup_in_2d() {
         let mut far = base(270.0);
