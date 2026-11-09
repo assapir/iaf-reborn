@@ -36,7 +36,8 @@ pub const OUTPUTS: &[&str] = &[
 /// What the setup keeps on an uninstall unless asked: the imported packs (the pack zips may be gone) and the
 /// downloads (imagery: hours and tens of GB to fetch again; the scenery's and the F-15's sources; the third-party
 /// textures).
-pub const KEPT: &[&str] = &["packs", "source/imagery", "source/scenery", "source/roads", "source/f15", "thirdparty"];
+pub const KEPT: &[&str] =
+    &["packs", "source/imagery", "source/scenery", "source/roads", "source/f15", "source/ambientcg", "thirdparty"];
 
 /// Removes the setup's outputs ([`OUTPUTS`]) from `assets`, and with `everything` the [`KEPT`] ones too; a
 /// missing one is fine.
@@ -160,7 +161,10 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
         "icon" => convert::icon(&install, &conv.join("icon.png"), pr, cancel)?,
         "launcher" => child(launcher(ctx), pr, cancel)?,
         "sentinel2" | "mapi2015" => return imagery(step, ctx, pr, cancel),
-        "textures" => return textures(&a.join("thirdparty/ambientcg"), thirdparty::AMBIENTCG, pr, cancel),
+        "textures" => {
+            let src = a.join(thirdparty::AMBIENTCG_SOURCE);
+            return textures(&src, &a.join("thirdparty/ambientcg"), thirdparty::AMBIENTCG, pr, cancel);
+        }
         "scenery-fetch" => {
             let list = ctx.inputs.scenery_kinds.downloads();
             let scenery = scenery_fetch(&list, &a.join("source/scenery"), SCENERY_PROBE, pr, cancel)?;
@@ -280,18 +284,19 @@ fn imagery_layers_in(cfg: &str) -> Option<Vec<String>> {
     seen.then_some(out)
 }
 
-fn textures(dir: &Path, base: &str, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
+fn textures(src: &Path, dir: &Path, base: &str, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
     let all = || thirdparty::LISTS.iter().flat_map(|(_, l)| l.iter());
     if all().all(|m| thirdparty::is_done(dir, m)) && foliage::is_done(dir) {
         return Ok(Outcome::UpToDate);
     }
-    if !reachable(base) {
+    // Every zip still to pack kept in `src`: no network at all.
+    if !all().all(|m| thirdparty::is_done(dir, m) || thirdparty::zip_kept(src, m)) && !reachable(base) {
         return Ok(Outcome::Skipped(
             "ambientcg.com cannot be reached (offline?): Ground textures and Model detail stay Original, scenery trees plain; run setup again online".into(),
         ));
     }
     for (name, list) in thirdparty::LISTS {
-        thirdparty::fetch(name, list, base, dir, pr, cancel)?;
+        thirdparty::fetch(name, list, base, src, dir, pr, cancel)?;
     }
     if !foliage::is_done(dir) {
         pr.log("composing the scenery trees' foliage");
@@ -489,7 +494,7 @@ mod textures_tests {
     #[test]
     fn textures_skip_offline() {
         let dir = std::env::temp_dir().join(format!("iaf-setup-textures-{}", std::process::id()));
-        let r = textures(&dir, "http://127.0.0.1:9/", &Quiet, &AtomicBool::new(false)).unwrap();
+        let r = textures(&dir.join("src"), &dir, "http://127.0.0.1:9/", &Quiet, &AtomicBool::new(false)).unwrap();
         assert!(matches!(r, Outcome::Skipped(ref w) if w.contains("Original")));
         assert!(!dir.exists(), "nothing written");
         let list = thirdparty::SCENERY;

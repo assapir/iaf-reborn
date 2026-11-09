@@ -26,7 +26,7 @@ again, delete `meta.json` (and `.work/done_*` for the units to redo).
 | what | source | licence | how it is read |
 |---|---|---|---|
 | heights | Copernicus DEM GLO-30[^dem] | Copernicus WorldDEM-30 licence[^dem-licence]: free use, the notices of §5 | 1° tiles (Cloud-Optimised GeoTIFF, one band, about 40 MB) from the public AWS bucket `copernicus-dem-30m`[^dem-aws], downloaded once into `assets/source/dem/` (a `.none` mark for a cell with no tile: open sea) by the shared fetcher `imagery_run::fetch_dem` |
-| colour, whole box | ESA WorldCover 2021 Sentinel-2 RGBNIR composite, 10 m[^wc] | CC BY 4.0 | the 1° tiles (Cloud-Optimised GeoTIFF) in `assets/source/imagery/sentinel2/`, shared with `iaf-imagery sentinel2` (docs/imagery.md §2); four bands (red, green, blue, near infrared: the colour and the water test), 10 m, about 650 MB per tile. The 14 tiles under the 8 m nodes are downloaded whole there first (8.28 GB); the 7 read only at 32 m (west of 34° E: N29–N31 E033; north of 34° N: N34 E033–E036, 2.34 GB whole) are read over the network from their 20 m overview, by range reads of the theatre's part only, unless the cache already holds them whole |
+| colour, whole box | ESA WorldCover 2021 Sentinel-2 RGBNIR composite, 10 m[^wc] | CC BY 4.0 | the 1° tiles (Cloud-Optimised GeoTIFF) in `assets/source/imagery/sentinel2/`, shared with `iaf-imagery sentinel2` (docs/imagery.md §2); four bands (red, green, blue, near infrared: the colour and the water test), 10 m, about 650 MB per tile. The 14 tiles under the 8 m nodes are downloaded whole there first (8.28 GB); the 7 read only at 32 m (west of 34° E: N29–N31 E033; north of 34° N: N34 E033–E036, 2.34 GB whole) are never downloaded whole: on the first build the theatre's window of each tile's 20 m overview is cut over the network (range reads) into `<tile>_20m.tif` beside them (about 0.34 GB for the 7, estimated 2026-11-09 from a local cut of N31E034; its `.ok` mark names the window), and every later build reads that file with no network; a tile the cache holds whole is used as it is |
 | colour, Israel | Survey of Israel orthophoto 2015, 2 m[^soi] | data.gov.il open licence | the sheet ZIPs already in `assets/source/imagery/mapi2015/` (`iaf-imagery fetch-mapi2015`); nothing is downloaded for this step |
 | airbase outlines | OpenStreetMap, the four bases' `boundary` in `iaf-2026/data/airbases/` ([airbases.md](airbases.md))[^osm] | ODbL 1.0 | §4 |
 
@@ -45,8 +45,11 @@ was fetched (MB).
 | Survey sheet measurements (extent, levels) | `assets/converted/imagery/.work/mapi2015/sheets.tsv`, the original's | copied into `.work/` on a first run; a line counts when its ZIP's size and date match | measuring 102 sheets takes about 13 min |
 | airbase outlines | `iaf-2026/data/airbases/` (in the repo) | | never downloaded here |
 
-A complete cache needs the network only for the 7 edge tiles read at 20 m (none when the cache holds them whole);
-without the network the build stops with "not readable over the network; run again when online". A tile download must leave 5 GB free on the disk
+A complete cache (the whole tiles, the edge tiles' 20 m extracts) needs no network. The 32 m nodes read every tile
+at 20 m through one VRT (`s2_20m.vrt`): a whole tile through its first overview, an edge tile's extract as it is;
+the pixels are the same as the 20 m overview read over the network before (checked 2026-11-09 on N31E034 / N32E034:
+the 32 m warp identical, byte for byte). Without the network, cutting a missing extract stops the build with "the
+20 m extract (offline? run again when online)". A tile download must leave 5 GB free on the disk
 (`imagery_run::S2_KEEP_FREE`); a tile with no room is read over the network as before (`/vsicurl/`, range reads)
 and the log warns. The free space is measured once per run (with `df`; Windows has none, so there is no check
 there): if another job fills the disk meanwhile, the download stops with "disk full: free space and run again". The sim's theatre reads 21 WorldCover tiles (10.62 GB whole) and downloads 14 of them (8.28 GB, 2026-11-09; before, all 21); the original's whole `sentinel2` layer
@@ -83,7 +86,7 @@ The box meets 21 WorldCover tiles. Seven lie outside the 8 m nodes and are read 
 by sampling the box every 1.7 km): N29E033 (the Sinai west of 34° E in the box's south-west corner, about 3 % of the
 theatre), N30E033 and N31E033 (the Sinai's north and the sea off it), and N34E033–N34E036 (a strip 4 km deep along
 the north edge; N34E036 meets the box only in a 58 m sliver at its north-east). They stay in the box: the 150 km
-around each base is the theatre's rule; they cost range reads of their 20 m overview, not a download (§1).
+around each base is the theatre's rule; they cost one cut of their 20 m overview's window, kept (§1), not a download of the whole tile.
 
 ## 3. Detail by area
 
@@ -123,7 +126,7 @@ left" over the tiles still to fetch, a DEM tile's MB so far; the colour match lo
    only a missing key, 404 or 403 with `NoSuchKey`, marks a cell as open sea), one VRT,
    one `gdalwarp` to the 64 m UTM grid (average, nodata = 0 m), then the `h_<i>_<j>.png` nodes of levels 6–11 (R = high
    byte, G = low byte, 1025² with the neighbour's first row and column, as `terrain::theatre`).
-3. **Sentinel-2**: the WorldCover tiles in the extent from the cache (§1.1), one VRT over them. Work units: level-7 nodes for the 32 m nodes,
+3. **Sentinel-2**: the WorldCover tiles in the extent from the cache (§1.1): a VRT over the 10 m tiles for the 8 m nodes, one at 20 m (the tiles' first overviews and the edge tiles' extracts) for the 32 m nodes. Work units: level-7 nodes for the 32 m nodes,
    level-5 nodes for the 8 m nodes; each is one `gdalwarp` to UTM, then `imagery::tone` (the WorldCover layer's
    modern colours) per pixel.
 4. **Survey of Israel**: one VRT over the sheets within 2 km of a work unit (EPSG:2039, white = no data), kept as

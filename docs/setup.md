@@ -48,7 +48,7 @@ and each step uses every core inside.
 | `airbases` | theatre | `assets/converted/terrain/airbases.json`, `airbases/` |
 | `launcher` | icon | the desktop launcher (`tools/install-launcher.sh`) |
 | `extras` | the install | `assets/converted/extras/cockpit`: Modern IAF's TSD map and ground-map picture compiled into the 1998 frame (the picture's terrain from the install's `isr.bmp`), its RWR symbols and ADI ball, for the Extras options (docs/deviations.md §2: Briefing map Modern, MFDs (F-16) Real); no stamp, it runs each time (about a second) |
-| `textures` | | `assets/thirdparty/ambientcg`: the CC0 textures of Ground textures and Model detail (≈ 250 MB download; docs/rendering.md §1.4, §9) |
+| `textures` | | `assets/source/ambientcg`: the zips; `assets/thirdparty/ambientcg`: the CC0 textures of Ground textures and Model detail (≈ 250 MB download; docs/rendering.md §1.4, §9) |
 | `models` | aircraft | `assets/source/f15` (the FlightGear F-15's files, ≈ 20 MB download, GPL-2.0-only), `assets/converted/models/f15/f15c.glb`, the detailed F-15, and `f15i.glb`, the F-15I Ra'am, with its front view `f15i_arm.png`, which `arm` composes (docs/aircraft-models.md §6, §6.7) |
 | `sentinel2`, `mapi2015-fetch`, `mapi2015` | airbases | `assets/converted/imagery` |
 | `scenery-fetch` | | `assets/source/scenery`: the sources the chosen kinds need (both 520 MB, buildings 373 MB, trees 267 MB); `assets/source/roads`: the other countries' road extracts (366 MB, each optional; docs/scenery.md §1.1) |
@@ -61,9 +61,10 @@ that wait for it do not run. `launcher`, `textures`, `models`, the imagery, `bc1
 the optional steps that wait for them. A required step waits for an optional one to end, not to succeed: `arm` runs
 after a failed or offline `models` and leaves only the F-15I's art out.
 
-`textures` (`iaf_tools::thirdparty`, CLI `iaf-textures`) fetches each material of `thirdparty::LISTS` with curl,
-checks its zip against the pinned SHA-256 and packs its maps. A material done before is kept, so the step is up to
-date without the network. When ambientcg.com cannot be reached the step is skipped with a note, and Graphics → MORE →
+`textures` (`iaf_tools::thirdparty`, CLI `iaf-textures`) fetches each material of `thirdparty::LISTS` with curl
+into `assets/source/ambientcg` (kept under the zip's own name), checks the zip against the pinned SHA-256 and packs
+its maps. A material done before is kept, so the step is up to date without the network; new packing code packs
+again from the kept zips. When ambientcg.com cannot be reached the step is skipped with a note, and Graphics → MORE →
 Ground textures and Model detail stay Original. A checksum mismatch (the file on ambientCG changed) fails the step and leaves nothing
 behind.
 
@@ -106,6 +107,11 @@ Each step writes a stamp next to its output (`<output>.stamp`). The stamp lists:
 When a step's stamp is the same as last time and its output is still there, the step is "up to date" and does not
 run. A changed input therefore redoes its step and the steps after it, and nothing else. `--redo-all` runs every
 step anyway.
+
+Downloads are kept by their source file name under `assets/source` and are never fetched again because the code
+changed. A stamp holds code, inputs and the stamps before it, never a download: a fetch is up to date when its file is there under that name and its size or pinned hash matches. New code
+runs the conversion again from the kept files (`crates/iaf-setup/tests/no_refetch.rs` checks this for both games'
+fetchers with a `curl` and a `gdal_translate` that fail on any call).
 
 Running setup again is how you add or redo things. The last run's inputs are kept in `assets/setup.json` (the wizard
 fills its pages from them; the CLI uses them when no ISO is given, plus the options given). Add an extra, for example
@@ -164,8 +170,8 @@ parts, so they started from zero again (a user's log: 124 MB at 0.1 MB/s).
 The CD launcher's UNINSTALL button (Extras → CD launcher, docs/front-end.md §18.1) asks first, then removes what the
 setup wrote under `assets/` (`iaf_setup::OUTPUTS`): `install`, `v1.0`, `v1.1`, `patch`, `converted`,
 `packs-none`, `hebrew-cd`, `hebrew-cd-pick`, the stamps and `setup.json`. The imported packs (`packs`), the imagery
-downloads (`source/imagery`), the scenery's, the roads' and the F-15's sources (`source/scenery`, `source/roads`, `source/f15`; `iaf_setup::KEPT`) and the ambientCG textures
-(`thirdparty`) stay unless the box "Also remove the imported Hebrew packs and the
+downloads (`source/imagery`), the scenery's, the roads' and the F-15's sources (`source/scenery`, `source/roads`, `source/f15`; `iaf_setup::KEPT`) and the ambientCG zips and textures
+(`source/ambientcg`, `thirdparty`) stay unless the box "Also remove the imported Hebrew packs and the
 downloaded imagery" is ticked: getting them back needs the pack zips and hours of downloads. Everything else under
 `assets/` stays, and so do the pilots, settings and logs in the user folder, the repo and the built extension. The
 game then quits; `./setup` installs again. The launcher's INSTALL button opens the setup wizard.

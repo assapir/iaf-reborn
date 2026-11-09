@@ -279,7 +279,8 @@ How the shader uses them:
 
 Files and loading:
 
-- Setup (`iaf_tools::thirdparty`, `iaf-textures`) downloads `<id>_2K-JPG.zip` for each material, checks it against a
+- Setup (`iaf_tools::thirdparty`, `iaf-textures`) downloads `<id>_2K-JPG.zip` for each material into
+  `assets/source/ambientcg` (kept, so new packing code packs again without a download), checks it against a
   pinned SHA-256, and keeps the colour, normal (OpenGL) and roughness maps in `assets/thirdparty/ambientcg/<id>/`.
   It packs them at 1024² with every mip level, compressed as the GPU reads them (texpresso, cluster fit): `albedo.bc1`
   (BC1 / DXT1, RGB: the linear colour over its mean, halved) and `nr.bc3` (BC3 / DXT5: R roughness, G normal Y, B the brightness detail Model detail reads (§9),

@@ -20,7 +20,7 @@ use image::RgbImage;
 use image::imageops::{FilterType, resize};
 
 use crate::imagery::{self, read_envi};
-use crate::imagery_run::{BUCKET, Sheet, gdal, list_sheets, list_tiles, tile_box, tile_sources, tile_whole};
+use crate::imagery_run::{BUCKET, Edges, Sheet, gdal, list_sheets, list_tiles, tile_box, tile_sources, tile_whole};
 use crate::log;
 use crate::progress::{Part, Progress, check, utf8};
 
@@ -1152,26 +1152,46 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
         fine.iter().filter(|n| !tile_whole(&r.s2_cache, &tiles, n)).map(|n| tiles.get(n).copied().unwrap_or(0)).sum();
     let ends = part_ends(fetch, has_zips);
     let part = |i: usize| Part { pr, from: ends[i], to: ends[i + 1] };
-    let (paths, s2_line) = tile_sources(&r.s2_cache, BUCKET, &tiles, &names, &coarse, &part(0), cancel)?;
+    // The edge tiles' window: the theatre's level-5 nodes (the last row and column reach past its box), a little
+    // wider for the resampling.
+    let span5 = f64::from(NODE_PIXELS << 5);
+    let (w5, h5) = ((f64::from(f.w) / span5).ceil() * span5, (f64::from(f.h) / span5).ceil() * span5);
+    let g = geo_bbox([f.e0, f.n1 - h5, f.e0 + w5, f.n1])?;
+    let edges = Edges { names: &coarse, window: [g[0] - 0.01, g[1] - 0.01, g[2] + 0.01, g[3] + 0.01] };
+    let (paths, s2_line) = tile_sources(&r.s2_cache, BUCKET, &tiles, &names, &edges, &part(0), cancel)?;
     log!(pr, "sentinel-2: {s2_line} ({})", crate::progress::duration(t0.elapsed()));
     let urls: Vec<String> = paths.into_values().collect();
+    // The 8 m nodes read the 10 m tiles; the 32 m nodes read every tile at 20 m: each 10 m tile through its first
+    // overview (a one-line VRT), each edge tile's kept 20 m extract as it is (the same pixels).
+    let (full, edge): (Vec<&String>, Vec<&String>) = urls.iter().partition(|u| !u.ends_with("_20m.tif"));
     let s2 = work.join("s2.vrt");
     let mut a = vec!["-q", "-overwrite", utf8(&s2)?];
-    a.extend(urls.iter().map(String::as_str));
+    a.extend(full.iter().map(|u| u.as_str()));
     gdal("gdalbuildvrt", &a)?;
     // gdalbuildvrt skips a source it cannot open with only a warning: a tile read online while offline would turn
     // into sea in the finished nodes.
     let text = std::fs::read_to_string(&s2)?;
-    if let Some(u) = urls.iter().find(|u| u.starts_with("/vsicurl/") && !text.contains(u.as_str())) {
+    if let Some(u) = full.iter().find(|u| u.starts_with("/vsicurl/") && !text.contains(u.as_str())) {
         bail!("{u}: not readable over the network; run again when online");
     }
-    let s2 = utf8(&s2)?;
+    let mut ovr = Vec::new();
+    for (k, u) in full.iter().enumerate() {
+        let v = work.join(format!("s2_20m_{k}.vrt"));
+        gdal("gdal_translate", &["-q", "-of", "VRT", "-oo", "OVERVIEW_LEVEL=0", u.as_str(), utf8(&v)?])?;
+        ovr.push(utf8(&v)?.to_string());
+    }
+    ovr.extend(edge.iter().map(|u| u.to_string()));
+    let s2_20 = work.join("s2_20m.vrt");
+    let mut a = vec!["-q", "-overwrite", "-resolution", "highest", utf8(&s2_20)?];
+    a.extend(ovr.iter().map(String::as_str));
+    gdal("gdalbuildvrt", &a)?;
+    let (s2, s2_20) = (utf8(&s2)?, utf8(&s2_20)?);
     let detail5: BTreeSet<Key> = f.nodes_in(5, r.detail).into_iter().collect();
     let inside = |k: Key| (k.1 << k.0) * NODE_PIXELS < f.w && (k.2 << k.0) * NODE_PIXELS < f.h;
     let coarse = |k: Key| inside(k) && !detail5.contains(&k);
     let fine = |k: Key| inside(k) && detail5.contains(&(5, k.1 >> (5 - k.0), k.2 >> (5 - k.0)));
     let u7: Vec<Key> = f.nodes(7).into_iter().filter(|u| f.nodes_in(5, f.utm(*u)).into_iter().any(coarse)).collect();
-    let s2_32 = |u| sentinel_unit(s2, &f, u, 5, &coarse, &work, out);
+    let s2_32 = |u| sentinel_unit(s2_20, &f, u, 5, &coarse, &work, out);
     units("s2_32m", &u7, &work, r.threads, &part(1), cancel, s2_32)?;
     let u5: Vec<Key> = detail5.iter().copied().collect();
     units("s2_8m", &u5, &work, r.threads, &part(2), cancel, |u| sentinel_unit(s2, &f, u, 3, &fine, &work, out))?;

@@ -1319,8 +1319,13 @@ pub const ROADS: &[Download] = &[
 
 /// True when `<dir>/<file>.ok` records the pinned checksum (downloaded and checked before) and the file is there.
 pub fn file_done(dir: &Path, d: &Download) -> bool {
-    std::fs::read_to_string(dir.join(format!("{}.ok", d.file))).is_ok_and(|t| t.lines().next() == Some(d.sha256))
-        && dir.join(d.file).is_file()
+    kept(dir, d.file, d.sha256)
+}
+
+/// True when `<dir>/<file>.ok` records `sha256` and the file is there: a download kept by its own name.
+fn kept(dir: &Path, file: &str, sha256: &str) -> bool {
+    std::fs::read_to_string(dir.join(format!("{file}.ok"))).is_ok_and(|t| t.lines().next() == Some(sha256))
+        && dir.join(file).is_file()
 }
 
 /// The day (YYYY-MM-DD, UTC) `fetch_files` checked the file, from its `.ok` mark.
@@ -1496,7 +1501,8 @@ fn fetch_file(d: &Download, dir: &Path, slot: &AtomicU64, stop: &dyn Fn() -> boo
 pub const AMBIENTCG: &str = "https://ambientcg.com/get?file=";
 /// The packed maps' side (texels).
 pub const SIDE: u32 = 1024;
-/// The packing's version: `material.json` records it, and a material packed by another version is fetched again.
+/// The packing's version: `material.json` records it, and a material packed by another version is packed again from
+/// its kept zip.
 pub const PACK: u32 = 4;
 
 /// The lowercase hex SHA-256 of a file.
@@ -1521,12 +1527,26 @@ pub fn is_done(dir: &Path, m: &Material) -> bool {
         .is_some_and(|v| v["sha256"] == m.sha256 && v["pack"] == PACK && dir.join(m.id).join("nr.bc3").is_file())
 }
 
-/// Every material of `list` into `dir` (fetched from `base`, e.g. [`AMBIENTCG`], with the zip's name appended; curl,
-/// so `file://` works too), then `<dir>/<name>.json`. Materials already done are kept. Returns how many it fetched.
+/// The folder under `assets/` that keeps the ambientCG zips by their own names (`<id>_2K-JPG.zip`).
+pub const AMBIENTCG_SOURCE: &str = "source/ambientcg";
+
+/// The zip of `m` is kept in `src` ([`AMBIENTCG_SOURCE`]): packing it needs no network.
+pub fn zip_kept(src: &Path, m: &Material) -> bool {
+    kept(src, &zip_name(m), m.sha256)
+}
+
+fn zip_name(m: &Material) -> String {
+    format!("{}_2K-JPG.zip", m.id)
+}
+
+/// Every material of `list` packed into `dir`, then `<dir>/<name>.json`. Each zip is kept in `src` by its own name and
+/// fetched from `base` (e.g. [`AMBIENTCG`], with the zip's name appended; curl, so `file://` works too) only when it
+/// is not there. Materials already done are kept. Returns how many it packed.
 pub fn fetch(
     name: &str,
     list: &[Material],
     base: &str,
+    src: &Path,
     dir: &Path,
     pr: &dyn Progress,
     cancel: &AtomicBool,
@@ -1538,13 +1558,13 @@ pub fn fetch(
     for (k, m) in list.iter().enumerate() {
         check(cancel)?;
         if !is_done(dir, m) {
-            got += fetch_one(m, base, dir, pr)?;
+            got += fetch_one(m, base, src, dir, pr)?;
             n += 1;
             // The sizes are not pinned: the rate, and the time left by the materials still to come.
             let secs = t0.elapsed().as_secs_f64();
             let left = std::time::Duration::from_secs_f64(secs / n as f64 * (todo - n) as f64);
             pr.log(&format!(
-                "{n} of {todo} downloaded, {:.0} MB, {:.1} MB/s, about {} left",
+                "{n} of {todo} packed, {:.0} MB downloaded, {:.1} MB/s, about {} left",
                 got as f64 / 1e6,
                 got as f64 / 1e6 / secs.max(0.001),
                 crate::progress::duration(left)
@@ -1557,32 +1577,51 @@ pub fn fetch(
     Ok(n)
 }
 
-/// One material: its zip's size (bytes).
-fn fetch_one(m: &Material, base: &str, dir: &Path, pr: &dyn Progress) -> Result<u64> {
-    let zip_name = format!("{}_2K-JPG.zip", m.id);
-    let part = dir.join(format!("{zip_name}.part"));
-    pr.log(&format!("{}: downloading {zip_name}", m.id));
-    let status = Command::new("curl")
-        .arg("-fsSL")
-        .args(CURL_PATIENCE)
-        .arg("-o")
-        .arg(&part)
-        .arg(format!("{base}{zip_name}"))
-        .status()
-        .context("running curl")?;
-    let r = (|| -> Result<()> {
-        if !status.success() {
-            bail!("{}: download failed ({}); run setup again", m.id, curl_error(status));
+/// One material: its zip from `src` (downloaded into it first when it is not there), packed into `dir`; the bytes
+/// downloaded.
+fn fetch_one(m: &Material, base: &str, src: &Path, dir: &Path, pr: &dyn Progress) -> Result<u64> {
+    let zip_name = zip_name(m);
+    let (zip, ok) = (src.join(&zip_name), src.join(format!("{zip_name}.ok")));
+    let mut bytes = 0;
+    if !zip_kept(src, m) {
+        // A zip already there (copied in by hand) only needs its check.
+        if !(zip.is_file() && sha256_file(&zip)? == m.sha256) {
+            std::fs::create_dir_all(src)?;
+            let part = src.join(format!("{zip_name}.part"));
+            pr.log(&format!("{}: downloading {zip_name}", m.id));
+            let status = Command::new("curl")
+                .arg("-fsSL")
+                .args(CURL_PATIENCE)
+                .arg("-o")
+                .arg(&part)
+                .arg(format!("{base}{zip_name}"))
+                .status()
+                .context("running curl")?;
+            let r = (|| -> Result<()> {
+                if !status.success() {
+                    bail!("{}: download failed ({}); run setup again", m.id, curl_error(status));
+                }
+                let sum = sha256_file(&part)?;
+                if sum != m.sha256 {
+                    bail!(
+                        "{}: checksum mismatch (got {sum}, pinned {}): the file on ambientCG changed",
+                        m.id,
+                        m.sha256
+                    );
+                }
+                Ok(())
+            })();
+            if let Err(e) = r {
+                let _ = std::fs::remove_file(&part);
+                return Err(e);
+            }
+            bytes = std::fs::metadata(&part)?.len();
+            std::fs::rename(&part, &zip)?;
         }
-        let sum = sha256_file(&part)?;
-        if sum != m.sha256 {
-            bail!("{}: checksum mismatch (got {sum}, pinned {}): the file on ambientCG changed", m.id, m.sha256);
-        }
-        unpack(m, &part, &dir.join(m.id))
-    })();
-    let bytes = std::fs::metadata(&part).map_or(0, |f| f.len());
-    let _ = std::fs::remove_file(&part);
-    r.map(|()| bytes)
+        std::fs::write(&ok, format!("{}\n{}\n", m.sha256, today()))?;
+    }
+    unpack(m, &zip, &dir.join(m.id))?;
+    Ok(bytes)
 }
 
 /// The zip's colour, normal and roughness maps into `out`, packed (module doc).
@@ -1742,21 +1781,43 @@ mod tests {
         let (d, zp) = fake_zip("sum");
         let sum = sha256_file(&zp).unwrap();
         let base = format!("file://{}/", zp.parent().unwrap().display());
-        let out = d.join("out");
+        let (kept, out) = (d.join("source"), d.join("out"));
+        let no = AtomicBool::new(false);
         let bad = [Material { id: "Fake001", sha256: "00", size_m: 2.0, used_for: "test" }];
-        let e = fetch("test", &bad, &base, &out, &Stdout, &AtomicBool::new(false)).unwrap_err();
+        let e = fetch("test", &bad, &base, &kept, &out, &Stdout, &no).unwrap_err();
         assert!(format!("{e:#}").contains("checksum mismatch"), "{e:#}");
-        assert!(!out.join("Fake001/material.json").exists() && !out.join("Fake001_2K-JPG.zip.part").exists());
+        assert!(!out.join("Fake001/material.json").exists() && !kept.join("Fake001_2K-JPG.zip.part").exists());
 
         let sum: &'static str = Box::leak(sum.into_boxed_str());
         let good = [Material { id: "Fake001", sha256: sum, size_m: 2.0, used_for: "test" }];
-        assert_eq!(fetch("test", &good, &base, &out, &Stdout, &AtomicBool::new(false)).unwrap(), 1);
+        assert_eq!(fetch("test", &good, &base, &kept, &out, &Stdout, &no).unwrap(), 1);
         let nr = std::fs::read(out.join("Fake001/nr.bc3")).unwrap();
         assert_eq!(nr.len(), (0..=10).map(|k| 16 * ((SIDE as usize >> k).div_ceil(4)).pow(2)).sum::<usize>());
         assert!(out.join("Fake001/Fake001_2K-JPG_Color.jpg").is_file() && out.join("test.json").is_file());
+        assert!(zip_kept(&kept, &good[0]), "the zip kept by its own name");
         // Done before: kept, nothing fetched (the source may be gone).
         std::fs::remove_file(&zp).unwrap();
-        assert_eq!(fetch("test", &good, &base, &out, &Stdout, &AtomicBool::new(false)).unwrap(), 0);
+        assert_eq!(fetch("test", &good, &base, &kept, &out, &Stdout, &no).unwrap(), 0);
+        std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    /// New packing code (another `PACK`) packs the material again from its kept zip: no download, no connection
+    /// (the server here is a port nothing answers on).
+    #[test]
+    fn a_new_pack_reuses_the_kept_zip() {
+        let (d, zp) = fake_zip("repack");
+        let sum: &'static str = Box::leak(sha256_file(&zp).unwrap().into_boxed_str());
+        let m = [Material { id: "Fake001", sha256: sum, size_m: 2.0, used_for: "test" }];
+        let (kept, out, no) = (d.join("source"), d.join("out"), AtomicBool::new(false));
+        std::fs::create_dir_all(&kept).unwrap();
+        std::fs::copy(&zp, kept.join("Fake001_2K-JPG.zip")).unwrap();
+        std::fs::create_dir_all(out.join("Fake001")).unwrap();
+        std::fs::write(out.join("Fake001/nr.bc3"), "old").unwrap();
+        let old = json!({ "sha256": sum, "pack": PACK - 1 });
+        std::fs::write(out.join("Fake001/material.json"), old.to_string()).unwrap();
+        assert!(!is_done(&out, &m[0]));
+        assert_eq!(fetch("test", &m, "http://127.0.0.1:9/", &kept, &out, &Stdout, &no).unwrap(), 1);
+        assert!(is_done(&out, &m[0]) && zip_kept(&kept, &m[0]));
         std::fs::remove_dir_all(&d).unwrap();
     }
 

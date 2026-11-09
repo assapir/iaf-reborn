@@ -110,6 +110,11 @@ changed base outline runs the terrain and what stands on it again. A theatre bui
 its `built_from` (3 November 2026) runs once more: its finished units' marks make that a matter of minutes. Inside a step the terrain resumes by its own marks (`.work/`): a cancelled or failed run keeps its finished
 units and DEM tiles.
 
+Downloads are kept by their source file name under `assets/source` and are never fetched again because the code
+changed. The stamps cover the compilers only: the GLO-30 tiles, the Sentinel-2 tiles and their listings, the Survey sheets and the OpenStreetMap extracts are found by name in
+`assets/source/` (a whole Sentinel-2 tile there is used as it is, edge tiles too; an edge tile not on disk is cut
+once into its kept 20 m extract, `<tile>_20m.tif`, [terrain.md](terrain.md) §1.1).
+
 ## 4. Sizes and times
 
 Measured on the developer's Linux laptop (Intel i7-1185G7, 8 threads), 3 November 2026 ([terrain.md](terrain.md) §7); the
@@ -117,7 +122,7 @@ Sentinel-2 column 8 November 2026 (§7).
 
 | | Sentinel-2 everywhere | plus the Survey of Israel |
 |---|---|---|
-| download, once | GLO-30: 627 MB, kept in `assets/source/dem/`; the Sentinel-2 tiles: 11.4 GB, kept in `assets/source/imagery/sentinel2/` ([terrain.md](terrain.md) §1.1) | the same; the Survey's sheets must be there already (17 GB) |
+| download, once | GLO-30: 627 MB, kept in `assets/source/dem/`; the Sentinel-2 tiles: 11.4 GB, kept in `assets/source/imagery/sentinel2/`, with the edge tiles' 20 m extracts (about 0.34 GB, estimated) ([terrain.md](terrain.md) §1.1) | the same; the Survey's sheets must be there already (17 GB) |
 | theatre on disk | 469 MB (levels 3–11) | 3.57 GB |
 | the other steps | about 20 MB, and the OpenStreetMap extracts the airbases' inland water is cut from: 450 MB, kept in `assets/source/scenery/` and `assets/source/roads/` (the scenery reads them too) | the same |
 | disk use in all | about 12.5 GB | about 15.6 GB |
@@ -131,6 +136,8 @@ The other five steps take seconds together. The first page shows these figures.
   terrain, the airbases and the missions again, a changed airbase outline the terrain), a terrain redo drops its
   marks, inputs relative to the repo; every sim step's source row holds every module its
   code reaches.
+- `cargo test -p iaf-setup --test no_refetch`: with every source in `assets/source` (the edge tiles' 20 m extracts
+  too), both games' fetchers make no `curl` or `gdal_translate` call (fakes on the PATH record any).
 - `iaf-2026/tests/test_setup_wizard.gd` (headless, `IAF_ASSETS_DIR` at an empty folder): the four pages in order in
   both languages, the mirrored layout, the approved Hebrew words, the Attributions dialog (opens from Welcome,
   mirrored, the Copernicus lines word for word, every attribution, closes with Esc and with Close),

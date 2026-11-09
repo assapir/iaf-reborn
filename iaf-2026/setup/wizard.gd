@@ -13,7 +13,7 @@ const TITLE := "Modern IAF"
 const PAGES := ["welcome", "imagery", "install", "done"]
 const DEM_GB := 0.627
 ## The Sentinel-2 / WorldCover tiles under the 8 m nodes (14 of the theatre's 21), downloaded once into
-## assets/source/imagery/sentinel2; the other 7 are read at 20 m over the network (iaf-2026/docs/terrain.md §1.1).
+## assets/source/imagery/sentinel2; the other 7 are cut once into kept 20 m extracts (iaf-2026/docs/terrain.md §1.1).
 const S2_GB := 8.28
 ## The free space the tiles' download leaves (iaf_tools::imagery_run::S2_KEEP_FREE): a tile past it is read online.
 const KEEP_FREE_GB := 5.0

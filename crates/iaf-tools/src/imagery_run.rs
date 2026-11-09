@@ -14,7 +14,8 @@ use crate::log;
 use crate::progress::{Part, Progress, check, utf8};
 use anyhow::{Context, Result, bail};
 
-pub(crate) const BUCKET: &str = "https://esa-worldcover-s2.s3.eu-central-1.amazonaws.com";
+/// The WorldCover bucket the Sentinel-2 tiles come from.
+pub const BUCKET: &str = "https://esa-worldcover-s2.s3.eu-central-1.amazonaws.com";
 const PREFIX: &str = "rgbnir/2021";
 const JPEG_QUALITY: u8 = 88;
 
@@ -119,7 +120,7 @@ const S2_JOBS: usize = 3;
 
 /// The WorldCover 1°×1° tiles (name → bytes) in the latitude bands N<lat0>..N<lat1>: the S3 listing, kept in `cache`
 /// per band, so a listed band needs no network.
-pub(crate) fn list_tiles(cache: &Path, bucket: &str, lat0: i32, lat1: i32) -> Result<BTreeMap<String, u64>> {
+pub fn list_tiles(cache: &Path, bucket: &str, lat0: i32, lat1: i32) -> Result<BTreeMap<String, u64>> {
     let mut out = BTreeMap::new();
     for lat in lat0..=lat1 {
         let mark = cache.join(format!("listing_N{lat:02}.tsv"));
@@ -232,15 +233,15 @@ pub(crate) fn curl_to(
 
 /// The tiles `names` of `tiles` as GDAL paths: the file in `cache` when it is there whole, else downloaded into it
 /// first (`S2_JOBS` at once); a tile with no room on the disk (`S2_KEEP_FREE`) is read over the network (`/vsicurl/`).
-/// A tile in `coarse` is read only through its overviews (20 m and coarser): one not in the cache is read over the
-/// network too, by range reads of the overview alone (about a quarter of the tile, and only the part needed), never
-/// downloaded whole. Also returns the line saying what was reused and fetched.
-pub(crate) fn tile_sources(
+/// An edge tile (in `edges`) is read only at 20 m: one not in the cache whole is never downloaded whole; its 20 m
+/// extract over the edges' window is cut once from the network ([`edge_file`]) and kept, so a later run reads it with
+/// no network. Also returns the line saying what was reused and fetched.
+pub fn tile_sources(
     cache: &Path,
     bucket: &str,
     tiles: &BTreeMap<String, u64>,
     names: &[String],
-    coarse: &[String],
+    edges: &Edges,
     pr: &dyn Progress,
     cancel: &AtomicBool,
 ) -> Result<(BTreeMap<String, String>, String)> {
@@ -253,7 +254,7 @@ pub(crate) fn tile_sources(
     let mut room = free_bytes(cache).map_or(u64::MAX, |f| f.saturating_sub(S2_KEEP_FREE));
     let (mut fetch, mut stream, mut overview) = (Vec::new(), Vec::new(), Vec::new());
     for n in missing {
-        if coarse.contains(n) {
+        if edges.names.contains(n) {
             overview.push(n.clone());
             continue;
         }
@@ -320,10 +321,25 @@ pub(crate) fn tile_sources(
         report();
         Ok(())
     })?;
+    // The edge tiles: their kept 20 m extracts, the missing ones cut now.
+    let (mut kept, mut cut) = (0, 0);
+    for n in &overview {
+        check(cancel)?;
+        let w = edge_window(n, edges.window);
+        if edge_kept(cache, n, w) {
+            kept += 1;
+        } else {
+            cut_edge(cache, bucket, n, w)?;
+            log!(pr, "  {n}: 20 m extract cut, {:.0} MB", std::fs::metadata(edge_file(cache, n))?.len() as f64 / 1e6);
+            cut += 1;
+        }
+    }
     let mut out = BTreeMap::new();
     for n in names {
-        let p = if stream.contains(n) || overview.contains(n) {
+        let p = if stream.contains(n) {
             format!("/vsicurl/{}", tile_url(bucket, n))
+        } else if overview.contains(n) {
+            utf8(&edge_file(cache, n))?.to_string()
         } else {
             utf8(&path(n))?.to_string()
         };
@@ -335,9 +351,68 @@ pub(crate) fn tile_sources(
         line += &format!(", {} streamed ({:.2} GB)", stream.len(), gb(&stream_refs));
     }
     if !overview.is_empty() {
-        line += &format!(", {} read at 20 m over the network", overview.len());
+        line += &format!(", edge tiles at 20 m: {kept} kept, {cut} cut from the network");
     }
     Ok((out, line))
+}
+
+/// The tiles read only at 20 m (the theatre's edge tiles, outside its 8 m nodes) and the window (lon / lat) they
+/// are read over.
+pub struct Edges<'a> {
+    pub names: &'a [String],
+    pub window: [f64; 4],
+}
+
+/// No edge tiles: every tile at 10 m.
+pub const NO_EDGES: Edges = Edges { names: &[], window: [0.0; 4] };
+
+/// The kept 20 m extract of edge tile `n` (the tile's own name with `_20m`); its `.ok` mark names the window (lon /
+/// lat) it was cut to.
+pub fn edge_file(cache: &Path, n: &str) -> PathBuf {
+    cache.join(tile_file(n).replace(".tif", "_20m.tif"))
+}
+
+/// The part of `window` on tile `n`.
+fn edge_window(n: &str, window: [f64; 4]) -> [f64; 4] {
+    let b = tile_box(n).unwrap_or(window);
+    [b[0].max(window[0]), b[1].max(window[1]), b[2].min(window[2]), b[3].min(window[3])]
+}
+
+/// The extract of `n` is there and was cut to a window holding `w`.
+fn edge_kept(cache: &Path, n: &str, w: [f64; 4]) -> bool {
+    let p = edge_file(cache, n);
+    let had: Vec<f64> = std::fs::read_to_string(p.with_extension("ok"))
+        .unwrap_or_default()
+        .split_whitespace()
+        .filter_map(|v| v.parse().ok())
+        .collect();
+    let e = 1e-9;
+    p.is_file()
+        && had.len() == 4
+        && had[0] <= w[0] + e
+        && had[1] <= w[1] + e
+        && had[2] >= w[2] - e
+        && had[3] >= w[3] - e
+}
+
+/// Cuts the 20 m extract of edge tile `n` over `w` from the bucket: the tile's first overview (the pixels the 32 m
+/// nodes read, on the tile's own grid), range reads of that window alone.
+fn cut_edge(cache: &Path, bucket: &str, n: &str, w: [f64; 4]) -> Result<()> {
+    let dest = edge_file(cache, n);
+    let part = dest.with_extension("part");
+    let src = format!("/vsicurl/{}", tile_url(bucket, n));
+    let win = w.map(|v| v.to_string());
+    let co = ["-of", "COG", "-co", "COMPRESS=DEFLATE", "-co", "PREDICTOR=2"];
+    let mut a = vec!["-q", "-oo", "OVERVIEW_LEVEL=0", "-projwin", &win[0], &win[3], &win[2], &win[1]];
+    a.extend(co);
+    a.extend([src.as_str(), utf8(&part)?]);
+    if let Err(e) = gdal("gdal_translate", &a) {
+        let _ = std::fs::remove_file(&part);
+        return Err(e.context(format!("{n}: the 20 m extract (offline? run again when online)")));
+    }
+    std::fs::rename(&part, &dest)?;
+    std::fs::write(dest.with_extension("ok"), format!("{} {} {} {}\n", w[0], w[1], w[2], w[3]))?;
+    Ok(())
 }
 
 /// The Copernicus GLO-30 DEM's tile cache under `assets/` (the sim's heights; any open-data terrain reads it too).
@@ -359,7 +434,7 @@ fn no_tile(code: &str, body: &str) -> bool {
 
 /// The GLO-30 tiles over `geo` in the cache, fetched once each (a `.none` mark for a cell with no tile: open sea),
 /// and the line saying what was reused and fetched.
-pub(crate) fn fetch_dem(
+pub fn fetch_dem(
     cache: &Path,
     geo: [f64; 4],
     pr: &dyn Progress,
@@ -843,7 +918,7 @@ pub fn run(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Estimate> 
         // This step's bar is its units' 0..1 (below), as before the tile cache: a part from 0 to 0 holds the bar at 0
         // through the download (the tiles' lines still go to the log).
         let quiet = Part { pr, from: 0.0, to: 0.0 };
-        let (p, line) = tile_sources(&r.s2_cache, BUCKET, tiles, &names, &[], &quiet, cancel)?;
+        let (p, line) = tile_sources(&r.s2_cache, BUCKET, tiles, &names, &NO_EDGES, &quiet, cancel)?;
         log!(pr, "Sentinel-2: {line}");
         *paths = p;
     }
@@ -1196,27 +1271,34 @@ mod tests {
         assert_eq!(tiles.len(), 2);
         let names: Vec<String> = tiles.keys().cloned().collect();
         let (paths, line) =
-            tile_sources(&c, OFFLINE, &tiles, &names, &[], &crate::progress::Stdout, &AtomicBool::new(false)).unwrap();
+            tile_sources(&c, OFFLINE, &tiles, &names, &NO_EDGES, &crate::progress::Stdout, &AtomicBool::new(false))
+                .unwrap();
         assert_eq!(paths["N30E034"], c.join(tile_file("N30E034")).to_str().unwrap());
         assert!(line.contains("2 reused") && line.contains("0 fetched"), "{line}");
         assert!(list_tiles(&c, OFFLINE, 31, 31).is_err(), "an unlisted band goes to the network");
         std::fs::remove_dir_all(&c).unwrap();
     }
 
-    /// A coarse tile is never downloaded: the cache's whole copy (e.g. one the other game fetched) is read, else its
-    /// overview over the network.
+    /// An edge tile is never downloaded whole: the cache's whole copy (e.g. one the other game fetched) is read, else
+    /// its kept 20 m extract when it covers the window; one still to cut needs the network (none here: an error).
     #[test]
-    fn a_coarse_tile_is_read_not_downloaded() {
+    fn an_edge_tile_is_read_from_disk() {
         let c = tmp("coarse");
         std::fs::write(c.join(tile_file("N30E034")), "12345").unwrap();
+        std::fs::write(edge_file(&c, "N30E033"), "20m").unwrap();
         let tiles = BTreeMap::from([("N30E033".to_string(), 9), ("N30E034".to_string(), 5)]);
         let names: Vec<String> = tiles.keys().cloned().collect();
-        let (paths, line) =
-            tile_sources(&c, OFFLINE, &tiles, &names, &names, &crate::progress::Stdout, &AtomicBool::new(false))
-                .unwrap();
+        let no = AtomicBool::new(false);
+        let go = |window| {
+            let edges = Edges { names: &names, window };
+            tile_sources(&c, OFFLINE, &tiles, &names, &edges, &crate::progress::Stdout, &no)
+        };
+        std::fs::write(edge_file(&c, "N30E033").with_extension("ok"), "33.5 30 34 30.5\n").unwrap();
+        let (paths, line) = go([33.5, 30.0, 34.5, 30.5]).unwrap();
         assert_eq!(paths["N30E034"], c.join(tile_file("N30E034")).to_str().unwrap(), "the cached copy");
-        assert!(paths["N30E033"].starts_with("/vsicurl/http://127.0.0.1:9/"), "{}", paths["N30E033"]);
-        assert!(!c.join(tile_file("N30E033")).exists() && line.contains("1 read at 20 m"), "{line}");
+        assert_eq!(paths["N30E033"], edge_file(&c, "N30E033").to_str().unwrap(), "the kept extract");
+        assert!(!c.join(tile_file("N30E033")).exists() && line.contains("1 kept, 0 cut"), "{line}");
+        assert!(go([33.2, 30.0, 34.5, 30.5]).is_err(), "a wider window cuts it again (from the network)");
         std::fs::remove_dir_all(&c).unwrap();
     }
 
@@ -1270,7 +1352,8 @@ mod tests {
         let names: Vec<String> = tiles.keys().cloned().collect();
         let url = format!("file://{}", bucket.display());
         let (paths, line) =
-            tile_sources(&c, &url, &tiles, &names, &[], &crate::progress::Stdout, &AtomicBool::new(false)).unwrap();
+            tile_sources(&c, &url, &tiles, &names, &NO_EDGES, &crate::progress::Stdout, &AtomicBool::new(false))
+                .unwrap();
         assert_eq!(std::fs::read(c.join(tile_file("N30E034"))).unwrap(), b"abcdef");
         assert_eq!(std::fs::read(c.join(tile_file("N30E035"))).unwrap(), b"xyz", "the truncated one again");
         assert!(!paths["N30E035"].starts_with("/vsicurl/") && line.contains("2 fetched"), "{line}");
