@@ -72,6 +72,7 @@ const CREDITS := [
 		]
 	],
 	["GHS-BUILT-H R2023A", "for_scenery", ["GHS-BUILT-H R2023A, European Commission, Joint Research Centre (JRC)"]],
+	["ambientCG", "for_textures", ["Ground, model and tree materials from ambientCG (ambientcg.com), CC0 1.0"]],
 	[
 		"Global Canopy Height 2020",
 		"for_trees",

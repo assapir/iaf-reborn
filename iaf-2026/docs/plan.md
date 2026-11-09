@@ -265,7 +265,12 @@ Size: M. Blocks on: B1, B2.
 
 ### B4 ground look parity
 
-the sim's terrain takes the reborn game's modern-colour Survey layer, ground textures and scenery. **Open.**
+the sim's terrain takes the reborn game's modern-colour Survey layer, ground textures and scenery. **Done (branch
+wt/iaf-2026-b4, 2026-11-09):** picture pairs against the original game and the RGB of sand, field, town and sea
+([terrain.md](terrain.md) §9.1); the look study's proposals 1 and 6: Colour grading Natural (shared, an Extras row
+off by default in the original game, on in the sim's profile), the close up's patches in tone only, the ground
+textures farther out as the land cover's material and a macro tint, the sim's own `sim-textures` setup step.
+**Open:** class data for the land cover (OpenStreetMap land use; §13.1), the Levant haze's colour over the sea.
 
 Size: M. Blocks on: B1.
 

@@ -17,6 +17,13 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   48); the wind follows the dynamic pressure; the canopy closes at its checklist step; the touchdown is an airplane
   tyre skid with a thump, not a bicycle squeal ([sound.md](sound.md) §1.3–§1.8). The original game keeps its rules.
   `test_mvp.gd`, the original's `test_sounds.gd`.
+- **[B4](plan.md#b4-ground-look-parity), the ground as good as the original game's (2026-11-09):** the pale,
+  washed-out desert (sand 208 / 192 / 171) now reads tan with its relief (177 / 152 / 120): Colour grading Natural
+  takes the photo toward a real ground's reflectance, with a little contrast and saturation after the tone mapper
+  (docs/rendering.md §1.9). The close up's patches are back in tone only, the ground textures hold farther out by the
+  photo's land cover, a macro tint breaks the photo's repeats, and the sim's setup fetches the ambientCG textures
+  itself. Pictures beside the original game's in [terrain.md](terrain.md) §9.1. `test_sim_look.gd`, the original's
+  `test_terrain.gd` (its picture unchanged with the rows off).
 - **The afterburner sounds like an F-16's (2026-11-09, the Mac play test's finding 27):** measured against an F-16
   hush-house run and take-offs, the burner now rises over 1.5 s with a low thump at light-off, dies away over 1.3 s
   at the cut, sits 6 dB over the dry engine, and is a real RNLAF F-16's roar with no pulse and no pitch shift

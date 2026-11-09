@@ -163,10 +163,7 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
         "icon" => convert::icon(&install, &conv.join("icon.png"), pr, cancel)?,
         "launcher" => child(launcher(ctx), pr, cancel)?,
         "sentinel2" | "mapi2015" => return imagery(step, ctx, pr, cancel),
-        "textures" => {
-            let src = a.join(thirdparty::AMBIENTCG_SOURCE);
-            return textures(&src, &a.join("thirdparty/ambientcg"), thirdparty::AMBIENTCG, pr, cancel);
-        }
+        "textures" => return textures_into(a, pr, cancel),
         "scenery-fetch" => {
             let list = ctx.inputs.scenery_kinds.downloads();
             let scenery = scenery_fetch(&list, &a.join("source/scenery"), SCENERY_PROBE, pr, cancel)?;
@@ -284,6 +281,13 @@ fn imagery_layers_in(cfg: &str) -> Option<Vec<String>> {
         }
     }
     seen.then_some(out)
+}
+
+/// The textures step of both games (the original's "textures", the sim's "sim-textures"): ambientCG's zips kept in
+/// `assets`/source/ambientcg, packed into `assets`/thirdparty/ambientcg.
+pub(crate) fn textures_into(assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
+    let src = assets.join(thirdparty::AMBIENTCG_SOURCE);
+    textures(&src, &assets.join("thirdparty/ambientcg"), thirdparty::AMBIENTCG, pr, cancel)
 }
 
 fn textures(src: &Path, dir: &Path, base: &str, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {

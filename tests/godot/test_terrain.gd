@@ -26,6 +26,32 @@ func drop(t: Node3D) -> void:
 	await frames(2)
 
 
+## The original's defaults leave the picture as before the Colour grading and Ground textures rows (docs/rendering.md
+## §1.9, §1.4): no albedo knee, no far layer or macro tint, the patches' hue as before, the Environment's adjustments
+## and the auto-exposure's target the scene's own.
+func _check_grading_off(tv: Node) -> void:
+	var ro: GDScript = load("res://shared/terrain/render_options.gd")
+	var env: Environment = tv.get_node("WorldEnvironment").environment
+	# terrain_view.tscn's Environment sets no adjustments: Godot's defaults.
+	var scene_env := Environment.new()
+	check(ro.terrain_grade == 0.0 and ro.ground_tex == 0.0, "defaults: no grading, no ground textures")
+	check(
+		ProjectSettings.get_setting("shader_globals/terrain_patch_hue").value == 1.0,
+		"the close up's patches keep their hue in the original game"
+	)
+	check(
+		(
+			env.adjustment_enabled == scene_env.adjustment_enabled
+			and env.adjustment_contrast == scene_env.adjustment_contrast
+			and env.adjustment_saturation == scene_env.adjustment_saturation
+			and env.adjustment_brightness == scene_env.adjustment_brightness
+		),
+		"defaults: the Environment's adjustments are the scene's"
+	)
+	var attrs: CameraAttributes = tv.get_viewport().find_world_3d().camera_attributes
+	check(attrs == null or attrs.auto_exposure_scale == ro.EXPOSURE_REF, "defaults: the exposure target as before")
+
+
 func run() -> void:
 	await require_data()
 	# The flight scene: the loading screen is up and the simulation holds until the ground is ready.
@@ -64,6 +90,7 @@ func run() -> void:
 	var h = tv.terrain.height_at(tv.rig.position)
 	check(h != null and absf(h - 63.7) < 2.0, "Ramat David runway height %s m (takeoff.mis: 63 m)" % h)
 	_check_precompressed(tv.terrain)
+	_check_grading_off(tv)
 	tv.queue_free()
 	await frames(5)
 

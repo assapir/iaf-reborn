@@ -248,8 +248,130 @@ the light of the shared terrain shader turn bright sand toward the sky's grey-wh
 renders even paler. That belongs to the renderer's look (`shared/terrain/terrain.gdshader`, the sky and fog), not to
 the terrain data; the pictures (`pale500` in the progress page's B1 section) set the three side by side.
 
+### 9.1 Against the original game (B4, 2026-11-09)
+
+Picture pairs at the same place and hour (11:00), 1920 × 994, `tests/godot/_imagery_shot.gd` with Scenery On, the
+jet hidden, the external view (`SHOT_ORBIT`). The original game flies its best look: Imagery Israel Survey 2 m modern,
+outside Sentinel-2 modern, Ground textures ambientCG, Terrain close up, Sky Atmospheric, Water, Roads, Airbases,
+Night lights, Models Detailed, Model detail ambientCG. The sim flies its profile (Sky Levant). The poses (sim UTM 36N
+metres; the original's engine metres from `iaf-terrain game`):
+
+- Tel Aviv, 500 m, looking north along the coast: `667500 3548000 500 15`, orbit `180,15,200`.
+- The Negev south-west of Ramon, ≈ 500 m above the ground: `654000 3400000 1250 20`, orbit `180,15,150`.
+- Fields in the Jezreel Valley, ≈ 100 m: `712043 3611416 160 20`, orbit `180,10,150`.
+
+Mean sRGB of the same boxes (sand: the Negev's lower 400 rows; field: the valley's rows 580–930; town: Tel Aviv's
+centre, rows 580–910; sea: Tel Aviv's 300 × 150 px offshore):
+
+| | sand | field | town | sea |
+|---|---|---|---|---|
+| the original game | 114 / 114 / 113 | 118 / 103 / 102 | 124 / 131 / 145 | 79 / 115 / 164 |
+| the sim before | 208 / 192 / 171 | 155 / 125 / 95 | 159 / 151 / 139 | 86 / 106 / 118 |
+| the sim after | 176 / 151 / 119 | 131 / 95 / 61 | 168 / 158 / 142 | 74 / 97 / 114 |
+
+The sim's sand stays lighter than the original's: that is the Survey sheet's grey, not a target. The field's
+luminance is within 5 % of the original's (102 against 106), the town 22 % lighter (158 against 130: the 3D
+buildings' walls, not the ground), the sea 14 % darker (95 against 111).
+
+Sharpness and local contrast of the same pictures, on rows 560–930 in luminance: the variance of the Laplacian (fine
+edges) and the mean standard deviation within 32 px windows (local contrast):
+
+| | Tel Aviv | the Negev | the fields | Ein Bokek |
+|---|---|---|---|---|
+| the original game | 3,337 / 54.9 | 76.7 / 9.11 | 168 / 9.62 | — |
+| the sim before | 338 / 18.9 | 12.0 / 2.63 | 243 / 11.3 | 146 / 7.77 |
+| the sim, first grade (by the pixel's luminance) | 364 / 20.6 | 4.8 / 1.67 | 199 / 10.7 | — |
+| the sim after | 674 / 27.9 | 73.2 / 7.66 | 325 / 15.2 | 286 / 15.1 |
+
+Why the sim's ground was soft, measured on 2026-11-09:
+
+- **The photo itself**: both games read the Survey 2 m photo at 2 m (the sim's level 1, the original's level 1 at
+  2.5 m), with the same filtering (the shared shader, 16× anisotropic with the close up). But the sim's colour match
+  to Sentinel-2 scales each sheet to the satellite's spread at 40 m: the Negev sheet MZR by 0.63 / 0.71 / 0.62
+  (`.work/gains.tsv`). Its tile under the Negev pose (L1 71 / 178) has a 32 px spread of 5.2 at a mean of 212; the
+  original's (L1 182 / 256) 9.9 at a mean of 87, so the wadis are five times fainter against the ground. The
+  shared shader now raises the photo's 4–32 m band in the sim by 2.5 (`terrain_photo_detail`, docs/rendering.md
+  §1.9). Open: a colour match that keeps the photo's own spread (§10).
+- **The first grade**: its knee by each pixel's own luminance flattened the bright ground's detail (the Negev's
+  Laplacian 12 → 4.8). It now divides by the neighbourhood's mean.
+- **The haze**: Sky Levant's haze lowers the Negev's Laplacian by about a third against Atmospheric (49 against 74
+  with the detail raised 2×; not changed here: the sky item's).
+- **Tel Aviv**: the sim draws the 3D buildings over the photo; the original game shows no scenery over the city's
+  centre (a kept target inset), so its picture is the photo with its dark shadows. With Scenery Off the sim's frame
+  measures 2,970 / 63.0, the original's level. The difference is the buildings' flat walls (the building colours
+  item), not the ground.
+- **Not a cause**: the ground textures' farther layer (Ein Bokek 285 with it, 285 without), the textures' mip bias
+  and filtering (the shared defaults in both games).
+- **Ein Bokek**: its pale marl's detail doubled (146 → 286): with the grade it leaves the tone mapper's shoulder, so
+  the photo's own mottle and the close up's patches show. With the patches at 0.4 it reads as a fine brown texture,
+  with no orange speckle (checked at full size).
+
+What differed, and what the sim does now:
+
+- **The Survey colour correction**: the original's "modern" layer is each sheet auto-levelled on its own
+  (docs/imagery.md §4); the sim's 2 m photo is colour-matched to Sentinel-2's 8 m nodes (§3). The sim keeps its own:
+  the original's Negev sheet renders grey (sand 114 / 114 / 113), the real chalk and loess are tan. Its "warm" fix
+  for those grey hills (`terrain_warm`) stays off in the sim, whose photo is already tan.
+- **Exposure and tone mapping**: the same shared scene and AgX tone mapper in both. The sim's tiles are brighter than
+  the original's layer, so the same light washed them out more: the photo is lit a second time, and AgX pulls bright
+  ground to grey-white. Fixed by Colour grading Natural in the sim's profile (docs/rendering.md §1.9): the albedo
+  toward a real reflectance, contrast 1.15 and saturation 1.1 after the tone mapper, the exposure target 0.6.
+- **The ground textures**: both draw them; the sim's own setup now fetches them (its optional step `sim-textures`,
+  [setup.md](setup.md)), where it relied on the original game's setup before. Farther out they now hold as the land
+  cover's material at 8 × size, and a macro tint varies the ground (docs/rendering.md §1.4; §13.1).
+- **The close-up grain**: the same in both (Terrain close up on).
+- **The patches**: off in the sim since 2026-11-08 (the orange speckle at Ein Bokek); now on in tone only (§13). The
+  speckle stays gone (the pictures below, checked at full size).
+- **The sea**: the sim's sea is Sentinel-2's, under the Levant sky's warm grey haze: grey-teal where the original's is
+  a deep blue. Open: the Levant haze's colour over water.
+- **Double lighting**: the albedo knee above. Dark ground (the fields) changes little; the bright desert most.
+
+| Original game | Sim before | Sim after |
+|---|---|---|
+| ![Tel Aviv, original](pictures/ground/telaviv_original.webp) | ![Tel Aviv, before](pictures/ground/telaviv_before.webp) | ![Tel Aviv, after](pictures/ground/telaviv_after.webp) |
+| ![The Negev, original](pictures/ground/negev_original.webp) | ![The Negev, before](pictures/ground/negev_before.webp) | ![The Negev, after](pictures/ground/negev_after.webp) |
+| ![Fields, original](pictures/ground/fields_original.webp) | ![Fields, before](pictures/ground/fields_before.webp) | ![Fields, after](pictures/ground/fields_after.webp) |
+
+The Dead Sea shore at Ein Bokek, the patches in tone only (`725300 3451300 -150 345`, orbit `180,20,300`):
+
+| Before | After |
+|---|---|
+| ![Ein Bokek before](pictures/ground/einbokek_before.webp) | ![Ein Bokek after](pictures/ground/einbokek_after.webp) |
+
+Cost on this laptop's Intel Iris Xe at 1920 × 1080, 2026-11-09, over the Jezreel fields at 100 m (the pose above),
+measured as the original's Ground textures were: `tests/godot/_airbase_shot.gd` with `SHOT_BENCH`, 12 pairs of 120
+frames switching one global in place, the median of the GPU time's differences (the machine was busy, so the whole
+frame's times scatter by ± 3 ms; the GPU medians hold):
+
+- Ground textures (`ground_tex`) on this branch: +1.05 ms GPU (quartiles +0.91 / +1.45); +1.20 ms in a second run
+  (+1.13 / +1.46). The same switch on main at
+  the same pose: −0.23 ms (−0.63 / +0.21): at 100 m the near textures do not resolve, so the +1.05 ms is the new far
+  layer and macro tint.
+- The albedo knee (`terrain_grade`): +0.08 ms GPU 500 m over the Negev (−0.03 / +0.12).
+- The photo's detail (`terrain_photo_detail`): +0.69 ms GPU 500 m over the Negev (+0.58 / +0.80). The contrast and saturation
+  adjustments are one more full-screen pass (estimated 0.1–0.2 ms; the bench does not switch it).
+- Video memory: no new textures (the far layer reads the same material arrays, the macro tint the close up's noise):
+  0 MB.
+
+The original game with the new rows off is unchanged. Two renders on main and two on this branch with the exposure
+fixed (Sky Original) over the Jezreel fields are identical pixel for pixel (0 px differ between any two; checked again
+after the photo's detail was added). At Tel Aviv the sea's waves and the trees move between any two runs, so no run
+there is exact: the branch differs from main by 27,456 and 41,889 px, main's own two runs by 21,461 (on land alone
+5,278 and 7,289 against main's 4,219; the largest change 28 levels). `test_terrain.gd` checks the parameters: with the defaults the knee and the ground textures are
+off, the patches keep their hue, the Environment's adjustments are Godot's defaults, and the exposure target is as
+before. With the Atmospheric sky the auto-exposure adapts by the frame's time, so two builds that run at different
+speeds differ by about 1.5 levels over the whole picture (measured: main against this branch, while two runs of one
+build agree within 0.1 level on average).
+
 ## 10. Open
 
+- **The colour match's spread** (the follow-up to §9.1): `sheet_gains` (`crates/iaf-tools/src/sim_terrain.rs`)
+  scales each Survey sheet's spread to Sentinel-2's at 40 m, which leaves the photo's local detail 0.6–0.7 as strong
+  in the Negev. The shader raises it back (`terrain_photo_detail` 2.5). The root fix is a match that keeps the
+  photo's own local spread (the means and the large-scale tone from Sentinel-2, the detail under ≈ 40 m the photo's),
+  with `terrain_photo_detail` back to 1. It changes the whole theatre's look, so it needs new pictures and approval,
+  and a rebuild of the theatre (CPU only, no download: `gains.tsv` measured again from the kept sources; long on a
+  Mac).
 - **Other censored sites**: the Survey photo also paints over military sites other than the four bases; there the
   made-up ground shows (open: no list of them).
 - **Survey and Sentinel-2 look**: the per-sheet colour match leaves the 2 m photo crisper and a little lighter than
@@ -345,6 +467,29 @@ Measured 2026-11-08 at Ein Bokek, 300 m behind the jet over the Dead Sea shore (
 §7): the coarse orange speckle on the pale marl near the camera went away with the close up off, and with the patches
 off alone; with the grain off alone it stayed. The deeper colour (c² / luminance) of a pale beige is orange, and the
 2 m photo needs no made-up patches. The original game's picture at the same settings is unchanged, pixel for pixel.
+
+Since 2026-11-09 the sim draws the patches again, in tone only: the global `terrain_patch_hue` is 0 in
+`iaf-2026/project.godot` (1 in the original game's), so a patch is the ground's own colour × 0.7 or × 1.2, never a
+deeper hue, at 0.4 of the original's strength (`terrain_patches` 0.4; 1 in the original game). With the colour grading
+the pale marl no longer sits in the tone mapper's shoulder, so full-strength patches read as a brown mottle at Ein
+Bokek from 300 m (measured 2026-11-09: 32 px luminance spread 16.3 at 1, 15.1 at 0.4).
+
+### 13.1 The land cover
+
+The ground textures (docs/rendering.md §1.4) pick a material per pixel: grass, sand, gravel, soil, rock, and in an
+airbase asphalt and concrete. The sim's sources were checked for land-cover classes on 2026-11-09:
+
+- `terraintype.dat` and `IafSurface`: only water (0x2, 0x4, island 0x8) and runways (0x10). No land cover.
+- ESA WorldCover: setup reads the Sentinel-2 RGBNIR composite, not the class map. Three of its tiles are on disk
+  (`assets/source/imagery/sentinel2`, 1.2 GB); the rest are read over the network. The theatre's tiles keep red,
+  green and blue only, so the near-infrared band (an NDVI) is not there at run time either. The class map would be a
+  new download (open).
+
+So the land cover is a proxy: the photo's colour, compared in ≈ sRGB. Green is grass, pale is sand, saturated brown
+is soil, the rest gravel, and the terrain's slope over ≈ 30° is rock. Since 2026-11-09 that choice also holds
+farther out, with the same material at 8 times its size, so a field reads as grass to a few hundred metres. The
+upgrade path is OpenStreetMap's land use (farmland, orchard, forest, scrub, residential) from the extract setup
+already downloads, rasterised beside the water flags (open).
 
 ## 14. The sky and the horizon haze
 

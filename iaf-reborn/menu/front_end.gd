@@ -99,6 +99,7 @@ const GRAPHICS_KEYS := [
 	"antialiasing",
 	"terrain_closeup",
 	"sky",
+	"colour_grading",
 	"upscaling",
 	"night_lights",
 	"night_vision",
@@ -236,6 +237,8 @@ const EXTRAS := [
 	["upscaling", "Upscaling", [["Native", "off"], ["Quality", "quality"], ["Balanced", "balanced"]]],
 	["terrain_closeup", "Terrain close up", [["Original", false], ["Detailed", true]]],
 	["sky", "Sky", [["Original", "original"], ["Atmospheric", "atmospheric"], ["Levant", "levant"]]],
+	# Ours: the photo's ground toward a real reflectance, graded (terrain/render_options.gd, rendering.md §1.9).
+	["colour_grading", "Colour grading", [["Original", "original"], ["Natural", "natural"]]],
 	["night_lights", "Night lights", [["Original", "original"], ["Detailed", "detailed"]]],
 	["night_vision", "Night vision (Shift+N)", [["Off", false], ["Goggles", true]]],
 	["water", "Water", [["Original", false], ["Detailed", true]]],

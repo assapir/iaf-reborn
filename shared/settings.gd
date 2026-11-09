@@ -109,6 +109,7 @@ const PREFS := {
 		"antialiasing",
 		"terrain_closeup",
 		"sky",
+		"colour_grading",
 		"upscaling",
 		"night_lights",
 		"water",
@@ -244,6 +245,10 @@ var rocker_trim := false
 var antialiasing := "msaa4"
 var terrain_closeup := false
 var sky := "original"
+## Colour grading (ours, Graphics → MORE; docs/rendering.md §1.9, terrain/render_options.gd): "original" (the photo
+## lit as it is) or "natural" (the photo's albedo toward a real ground's reflectance, a little contrast and saturation
+## after the tone mapper, the auto-exposure taken from the ground).
+var colour_grading := "original"
 ## Upscaling: "off" (native), "quality" (3D at 0.77 of the window) or "balanced" (0.67); MetalFX spatial on Metal, FSR 1
 ## on other drivers, or the temporal upscaler with anti-aliasing "temporal".
 var upscaling := "off"

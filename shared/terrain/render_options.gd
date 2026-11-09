@@ -37,6 +37,8 @@ static var terrain_water := 0.0
 ## Ground textures: 1 = the ambientCG textures near the camera (global `ground_tex`, terrain/ground_textures.gd),
 ## 0 = the original look (also when setup has not downloaded them).
 static var ground_tex := 0.0
+## Colour grading: the albedo knee given to the global `terrain_grade` (0 = off).
+static var terrain_grade := 0.0
 
 ## terraintype.dat around the camera for the close up and the water (global `terrain_surface`: R = water, G = airbase):
 ## SURF_N² texels of SURF_CELL m (24.6 km across), rasterised in Rust (IafSurface) once the camera is SURF_MOVE m from
@@ -90,6 +92,15 @@ static var haze_height := HAZE_HEIGHT
 const EXPOSURE_REF := 1.0
 const EXPOSURE_RANGE := 1.25
 
+## Colour grading "natural" (Settings.colour_grading, docs/rendering.md §1.9): the photo's albedo knee (global
+## `terrain_grade`, terrain.gdshader), the contrast and saturation after the tone mapper, and the auto-exposure's
+## target luminance (EXPOSURE_REF × GRADE_EXPOSURE: the graded ground is darker than the blue sky, so the exposure
+## follows the ground's mean).
+const GRADE := 3.0
+const GRADE_CONTRAST := 1.15
+const GRADE_SATURATION := 1.1
+const GRADE_EXPOSURE := 0.6
+
 ## Godot compiles each mesh's pipelines in the background when it enters the scene, for the sample count of this
 ## project setting (read every frame), not the viewport's. With TAA or the temporal upscaler (no MSAA) the 4× ones did
 ## not fit, so 23–28 pipelines compiled while drawing the flight's first frames. Kept at the 3D view's sample count
@@ -137,6 +148,10 @@ static func apply(vp: Viewport, env: Environment) -> void:
 		RenderingServer.global_shader_parameter_set("terrain_surface", null)
 		_surf_tex = null
 		_surf_img = null
+	var grade := Settings.colour_grading == "natural"
+	terrain_grade = GRADE if grade else 0.0
+	RenderingServer.global_shader_parameter_set("terrain_grade", terrain_grade)
+	_apply_grade(env, grade)
 	_apply_sky(env, Settings.sky, vp.find_world_3d().camera_attributes)
 
 
@@ -181,11 +196,12 @@ static func _apply_sky(env: Environment, sky_mode: String, attrs: CameraAttribut
 		env.set_meta("original_sky", o)
 	var orig: Dictionary = env.get_meta("original_sky")
 	if attrs != null:
+		var ref := EXPOSURE_REF * (GRADE_EXPOSURE if Settings.colour_grading == "natural" else 1.0)
 		attrs.auto_exposure_enabled = on
-		attrs.auto_exposure_scale = EXPOSURE_REF
+		attrs.auto_exposure_scale = ref
 		# Sensitivity (ISO) = luminance / 0.00125 (Godot's conversion at its ISO 100 exposure).
-		attrs.set("auto_exposure_min_sensitivity", EXPOSURE_REF / EXPOSURE_RANGE / 0.00125)
-		attrs.set("auto_exposure_max_sensitivity", EXPOSURE_REF * EXPOSURE_RANGE / 0.00125)
+		attrs.set("auto_exposure_min_sensitivity", ref / EXPOSURE_RANGE / 0.00125)
+		attrs.set("auto_exposure_max_sensitivity", ref * EXPOSURE_RANGE / 0.00125)
 	if not on:
 		for k in keys:
 			env.set(k, orig[k])
@@ -204,6 +220,20 @@ static func _apply_sky(env: Environment, sky_mode: String, attrs: CameraAttribut
 		for k in LEVANT:
 			mat.set_shader_parameter(k, LEVANT[k])
 		env.fog_aerial_perspective = LEVANT_AERIAL
+
+
+## Colour grading "natural": the Environment's adjustments after the tone mapper (GRADE_*); off: the scene's own.
+static func _apply_grade(env: Environment, on: bool) -> void:
+	if not env.has_meta("original_adjustments"):
+		env.set_meta(
+			"original_adjustments",
+			[env.adjustment_enabled, env.adjustment_contrast, env.adjustment_saturation, env.adjustment_brightness]
+		)
+	var o: Array = env.get_meta("original_adjustments")
+	env.adjustment_enabled = on or o[0]
+	env.adjustment_contrast = GRADE_CONTRAST if on else o[1]
+	env.adjustment_saturation = GRADE_SATURATION if on else o[2]
+	env.adjustment_brightness = 1.0 if on else o[3]
 
 
 ## Atmospheric sky: the ambient light's own colour, BOUNCE times the sun's light (`color`, `energy`) on level ground,

@@ -89,6 +89,13 @@ pub fn sim_plan(inputs: &SimInputs) -> Vec<Step> {
         required: false,
         after: vec!["sim-airbases"],
     });
+    // Optional: the ground textures, the model detail and the scenery trees' foliage (the original's "textures" step).
+    v.push(Step {
+        id: "sim-textures",
+        title: "textures: ambientCG CC0 materials for the ground, the models and the trees (download, about 310 MB)",
+        required: false,
+        after: vec![],
+    });
     v
 }
 
@@ -141,6 +148,7 @@ fn exec(step: &Step, ctx: &SimCtx, redo: bool, pr: &dyn Progress, cancel: &Atomi
         "sim-missions" => sim::missions(&data, assets, pr, cancel)?,
         "sim-fm" => sim_fm0::fm(assets, pr)?,
         "sim-scenery" => return scenery(&data, assets, pr, cancel),
+        "sim-textures" => return crate::steps::textures_into(assets, pr, cancel),
         id => anyhow::bail!("unknown step {id}"),
     }
     Ok(Outcome::Done)
@@ -190,6 +198,7 @@ mod tests {
         assert!(after("sim-fm").is_empty());
         assert_eq!(after("sim-scenery"), ["sim-airbases"]);
         assert!(!p.iter().find(|s| s.id == "sim-scenery").unwrap().required);
+        assert!(!p.iter().find(|s| s.id == "sim-textures").unwrap().required);
         assert!(sim_plan(&SimInputs { survey: true })[0].title.contains("Survey"));
     }
 
@@ -203,7 +212,8 @@ mod tests {
         std::fs::write(dir.join(THEATRE).join("meta.json"), "{}").unwrap();
         let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let ctx = SimCtx { assets: dir.clone(), repo: repo.clone(), inputs: SimInputs::default() };
-        let steps = sim_plan(&ctx.inputs);
+        // The textures step has no stamp (it checks its own files, as the original's does).
+        let steps: Vec<_> = sim_plan(&ctx.inputs).into_iter().filter(|s| s.id != "sim-textures").collect();
         struct Quiet;
         impl Events for Quiet {
             fn state(&self, _: &Step, _: &State) {}

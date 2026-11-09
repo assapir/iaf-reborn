@@ -132,7 +132,19 @@ terrain_warm={
 }
 terrain_patches={
 "type": "float",
+"value": 0.4
+}
+terrain_patch_hue={
+"type": "float",
 "value": 0.0
+}
+terrain_grade={
+"type": "float",
+"value": 0.0
+}
+terrain_photo_detail={
+"type": "float",
+"value": 2.5
 }
 city_glow_k={
 "type": "float",

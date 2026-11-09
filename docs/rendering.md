@@ -26,6 +26,7 @@ TAA = temporal anti-aliasing, FSR = AMD FidelityFX Super Resolution.
 | Upscaling | Native / Quality / Balanced | the 3D scene's render scale: Native 1.0; Quality 0.77; Balanced 0.67 of the window. With Anti-aliasing MSAA 4x / + FXAA / TAA a spatial upscaler scales it up: MetalFX spatial on Metal, FSR 1 on other drivers (`render_options.gd upscale_mode()`), and the Anti-aliasing row still applies. With Anti-aliasing FSR 2 the temporal upscaler does it (FSR 2.2, MetalFX temporal on Metal), at Native as anti-aliasing only (§1.7). The 2D cockpit, HUD and MFDs are canvas items, drawn after the upscale at the window's resolution. Godot lowers the texture mip bias by log2(scale). Spatial saves 0.6 ms (Quality) / 1.4 ms (Balanced) at 4K today, 4.6 / 6.3 ms with SSAO + SSIL; Balanced breaks one-pixel 3D lines into dots (docs/graphics-research.md §3.10) |
 | Terrain close up | Original / Detailed | 16× anisotropic filtering (default 4×) for the grazing view of the ground, and in `terrain.gdshader` detail that follows the imagery, with a weight k fading from 1 at 300 m to 0 at 1.5 km (§1.1) |
 | Sky | Original / Atmospheric / Levant | Original: our gradient sky (ProceduralSkyMaterial) with the fixed fog colour. Atmospheric (by day; at night the Original sky): `atmosphere.gdshader`, a clear-day sky computed from the sun's direction and the camera's altitude. The fog takes its colour from the sky (`fog_aerial_perspective` 1, `fog_sun_scatter` 0.1) and keeps its density (the original's fog distances). The ambient light is that sky's, and a bounded auto-exposure adapts the 3D view by at most 1.25× either way (§1.2). The cloud layer shows separate clouds (§1.2). Glow / bloom is off (it cost 3 ms). Levant: the Atmospheric sky toward a dusty Levant summer, a warm haze band low on the horizon (§1.2 "Sky Levant") |
+| Colour grading | Original / Natural | Natural: the imagery's albedo toward a real ground's reflectance (bright ground darkened most), a little contrast and saturation after the tone mapper, and with the Atmospheric sky an exposure target for the darker ground (§1.9). Modern IAF has it on |
 | Night lights | Original / Detailed | Original: the original's light points (§4). Detailed: glowing lights, the home airbases lit at night, the jets' navigation lights and strobe, stars, a moon and moonlight (§5), the towns' lights from the scenery's buildings (§5.1) |
 | Night vision (Shift+N) | Off / Goggles | Goggles: Shift+N in flight puts the night-vision goggles on and off: the 3D view turns into a green image-intensified picture, the cockpit stays as it is (§8) |
 | Water | Original / Detailed | in `terrain.gdshader`: waves, sun glint and the sky's reflection on the sea and on lakes (§1.3) |
@@ -36,7 +37,7 @@ TAA = temporal anti-aliasing, FSR = AMD FidelityFX Super Resolution.
 | Clouds | Original / Volumetric | Original: the 1998 flat cloud layer of Graphics TEXTURED SKY (§2). Volumetric: raymarched clouds in its place, fair-weather cumulus when dry and the rain's deck in the rain (§2.1). For strong GPUs; greyed out without a RenderingDevice (the Compatibility renderer) |
 | Rolling wheels | Original / Rolling | the wheels of a model with wheel frames turn as the jet rolls (today the F-35I; docs/part-animation.md §2.2) |
 | Airbases | Original / Detailed | in `terrain.gdshader`: near the ground, a procedural runway, taxiway and apron surface with ICAO markings over the nearest base's paved surface (§7); always on in World scale Real |
-| Ground textures | Original / ambientCG | in `terrain.gdshader`: near the camera, where they resolve, CC0 photo textures of asphalt, concrete, sand, gravel, grass, soil and rock, chosen per pixel from the imagery's colour (§1.4). Greyed out and not clickable ("Not downloaded") until setup has downloaded them; a saved ambientCG without them loads as Original |
+| Ground textures | Original / ambientCG | in `terrain.gdshader`: near the camera, where they resolve, CC0 photo textures of asphalt, concrete, sand, gravel, grass, soil and rock, chosen per pixel from the imagery's colour, the same material at 8× its size farther out, and a macro tint over all the ground (§1.4). Greyed out and not clickable ("Not downloaded") until setup has downloaded them; a saved ambientCG without them loads as Original |
 | Roads | Original / Detailed | in `terrain.gdshader`: within 1.5 km of the camera, OpenStreetMap's roads (setup's road layer, [scenery.md](scenery.md) §6) drawn on the ground where the imagery is too coarse to show them: asphalt or dirt, at the road's width, with lane markings and railways up close (§1.8). With Night lights Detailed, lamps along the lit roads too (§5.1). Greyed out ("Not downloaded") until setup has made the road layer |
 | Scenery | Off / On / Detailed | On: buildings and trees over the Survey of Israel 2 m photo, streamed with the ground (`terrain/scenery.gd`, `scenery.gdshader`; [scenery.md](scenery.md) §3). Detailed: the same with the facades (recessed windows, shutters, loggias, AC units), the streets' occlusion, the roof clutter and the far walls in the photo's colour (`scenery_detailed.gdshader`, `scenery_roof.gdshader`; scenery.md §3.3); it costs about 18 % more GPU time low over a town (scenery.md §3.3). The row sits under Imagery Israel. "On" and "Detailed" are greyed out until setup has made the scenery (Detailed's place reads "Not downloaded"), and while the Israel imagery picked on the page is not a Survey 2 m layer ("Needs Survey 2 m"); picking another Israel imagery turns it off. A saved On or Detailed without either loads as Off. Takes effect at the next flight |
 | Far towns | Full / Light | Full (default): every building to the scenery's far end (4.5 km). Light: beyond the near model's 2.5 km a dense town (a cell of 2,000 buildings or more) draws only its buildings of 15 m or 1,000 m² and up ([scenery.md](scenery.md) §3.1). The row sits under Scenery and is greyed out until setup has made the scenery. Takes effect for the cells made from then on |
@@ -51,9 +52,10 @@ treats three kinds of ground:
   - Patches (noise tile 420 m, ≈ 40 m features, plus the 9 m clumps) move the colour toward a deeper, more saturated
     version of itself (c²/luminance: growth, wet soil) or toward a paler, drier one (a fifth desaturated × 1.2, its
     hue kept; until 2026-10-28 half-desaturated × 1.3, which turned pale rock and soil white). Their strength is the
-    global `terrain_patches`, each project's own value in its `project.godot`: 1 in the original game, 0 in Modern
-    IAF, whose 2 m photo shows its own ground (there the deeper colour turned the pale desert into an orange speckle;
-    iaf-2026/docs/terrain.md §13).
+    global `terrain_patches` (1 in the original game, 0.4 in Modern IAF) and their hue the global `terrain_patch_hue`, each project's own value
+    in its `project.godot`: 1 in the original game; 0 in Modern IAF, where the patches keep the ground's own colour,
+    only darker (× 0.7) or lighter (× 1.2). There the deeper colour turned the 2 m photo's pale desert into an orange
+    speckle (iaf-2026/docs/terrain.md §13).
   - A grain follows (16 m tile, ≈ 1.6 m features, ± ≈ 15 %), with normal detail from the noise's normal map at the
     grain's scale.
 - **Grey ground** (asphalt, concrete, rock): a faint grain only (± ≈ 4 %) and a fifth of the normal detail, so runways
@@ -300,6 +302,13 @@ How the shader uses them:
   before, over the texture. The close up's own airbase layers are skipped there, so a pixel never samples both.
 - **Scale**: the textures repeat at their real size in world metres. The imagery's colour changes every few metres
   and breaks up the repeat.
+- **Farther out** (2026-11-09): the same land-cover layer at 8 times its size (`GT_FAR`; repeats of ≈ 20 m) takes
+  over from a 0.05–0.12 m footprint out to 0.6–1.5 m, colour only, at 0.4 of the strength (`GT_FAR_K`). A field keeps
+  its grass and a slope its rock to a few hundred metres, where the near textures no longer resolve. The land cover is
+  the photo's colour (above): no class data is on disk (iaf-2026/docs/terrain.md §13).
+- **Macro tint** (2026-11-09): the ground's colour varies by ±8 % (`GT_MACRO`) in tone and warmth over ≈ 300 m and
+  ≈ 1.2 km patches (the close up's noise texture at 3 km and 12 km), at every distance. It breaks the photo's repeats
+  and the flat areas of its sheets.
 
 Files and loading:
 
@@ -906,6 +915,38 @@ Open: two parallel ways running within a few degrees of north-east on the whole 
 rails or median lines break where the slots swap); the town sizes (0.1 m lines, 1 m dashes with 2 m gaps) are not
 used; within 1200 m of an airbase the roads are cut off the ground by the road layer (scenery.md §6.1), so the base's own
 access roads stay the imagery's.
+
+### 1.9 Colour grading (Graphics → MORE "Colour grading" Natural)
+
+The imagery is a photo: its colour already holds the sun's light. The terrain shader lights it again (the sun and
+the ambient light), and the AgX tone mapper then pulls bright ground toward grey-white. Over Modern IAF's tan desert
+(the tiles' sand 242 / 209 / 167) the picture showed pale cream at 198 / 182 / 163 (iaf-2026/docs/terrain.md §9).
+Natural grades the picture in three parts (`shared/terrain/render_options.gd`, `GRADE_*`):
+
+- **Albedo** (`terrain_grade`, the global the terrain shader reads; 0 = off): the imagery's colour c becomes
+  c / (1 + GRADE × m), m the luminance of the photo's ≈ 32 m mean (its colour four mip levels coarser), at the end of
+  the fragment, after the roads, airbases and ground textures. Bright ground darkens most, toward a real ground's
+  reflectance; dark ground changes little; the hue and saturation stay. One factor over a neighbourhood keeps its
+  local contrast: the first version, by the pixel's own luminance, flattened the Negev's wadis (its slope at sand is a
+  seventh; 2026-11-09, iaf-2026/docs/terrain.md §9.1).
+- **After the tone mapper**: the Environment's adjustments, contrast GRADE_CONTRAST and saturation GRADE_SATURATION,
+  over the whole 3D view.
+- **Exposure** (with the Atmospheric sky's auto-exposure, §1.2): the target luminance × GRADE_EXPOSURE, so the
+  darker ground does not raise the exposure back.
+
+Original (the default) leaves all three as before: the global is 0 and the Environment keeps its own adjustments.
+Modern IAF has Natural in its profile. The values were chosen on 2026-11-09 from six sets at four poses
+(iaf-2026/docs/terrain.md §9.1): GRADE 3.0, contrast 1.15, saturation 1.1, exposure 0.6. The knee costs +0.08 ms
+GPU on an Iris Xe 500 m over the Negev (in-place bench, quartiles −0.03 / +0.12). The adjustments' pass is estimated
+at 0.1–0.2 ms. No video memory.
+
+The photo's detail (the global `terrain_photo_detail`, each project's own value in `project.godot`): 1 in the
+original game, where the shader skips it; 2.5 in Modern IAF. The luminance of the band between the photo's ≈ 4 m and
+≈ 32 m means (one and four mip levels coarser than the pixel's own, so 2 and 16 times its footprint farther out) is raised by that factor, as a factor on the pixel's own colour
+(clamped to 0.25–2), so its chroma noise and its single-pixel grain stay; it fades in from 250 to 700 m from the
+camera, where the close up's own layers carry the detail. The sim needs it because its colour match to Sentinel-2
+scaled each Survey sheet to the satellite's spread (iaf-2026/docs/terrain.md §9.1; the root fix is open, §10). Cost: +0.69 ms GPU 500 m over the
+Negev (in-place bench, quartiles +0.58 / +0.80; the two extra samples of the photo, shared with the knee).
 
 ## 2. Cloud layer (Graphics TEXTURED SKY, docs/front-end.md §12.4)
 

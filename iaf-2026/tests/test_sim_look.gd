@@ -10,6 +10,7 @@ extends "res://../tests/godot/base.gd"
 const ORIGINAL := {
 	"airbases": "original",
 	"sky": "original",
+	"colour_grading": "original",
 	"terrain_closeup": false,
 	"water": false,
 	"night_lights": "original",
@@ -69,6 +70,7 @@ func run() -> void:
 			co._quad.layers == load("res://shared/terrain/volumetric_clouds.gd").LAYER,
 			"its picture on the main view's layer only (not the EO camera's)"
 		)
+	check(ro.terrain_grade > 0.0, "the colour grading is on (terrain_grade %.2f)" % ro.terrain_grade)
 	var i: int = bases._current
 	var b: Dictionary = bases.bases()[i] if i >= 0 else {}
 	check(String(b.get("name", "")) == "Ramon", "Ramon: the nearest base drawn (%s)" % b.get("name", "none"))

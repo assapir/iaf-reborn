@@ -15,6 +15,7 @@ extends "res://shared/settings.gd"
 const PROFILE := {
 	"airbases": "detailed",
 	"sky": "levant",
+	"colour_grading": "natural",
 	"terrain_closeup": true,
 	"water": true,
 	"night_lights": "detailed",

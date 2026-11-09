@@ -521,7 +521,14 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   close up's noise when that is on).
   - ambientCG: within 300 m of the camera, CC0 photo textures (asphalt, concrete, sand, gravel, grass, soil, rock)
     modulate the imagery's colour, with their normal and roughness. The imagery's colour picks the texture per pixel.
+  - Since 2026-11-09 also, with ambientCG: the same texture at 8 times its size farther out (colour only, to a
+    0.6–1.5 m pixel footprint), and a macro tint of ±8 % over ≈ 300 m and 1.2 km on all the ground (rendering.md
+    §1.4).
   - New content: the textures are third-party (ambientCG, CC0), downloaded by setup, not part of the 1998 game.
+- **Colour grading** (ours, Graphics → MORE, docs/rendering.md §1.9; 2026-11-09). Rendering only; the default is
+  Original (the photo lit as it is). Natural: the imagery's albedo toward a real ground's reflectance (bright ground
+  darkened most), a little contrast and saturation after the tone mapper, and with the Atmospheric sky an exposure
+  target for the darker ground. Modern IAF has it on.
 - **Roads** (ours, docs/rendering.md §1.8). Rendering only; the default is Original (the imagery's own roads).
   - Detailed: within 1.5 km of the camera, OpenStreetMap's roads drawn on the ground (asphalt or dirt, at the road's
     width) where the imagery is too coarse to show them; over the Survey 2 m photo only the narrow streets and tracks.

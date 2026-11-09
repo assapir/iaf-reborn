@@ -29,10 +29,28 @@ uniform vec3 sea_colour = vec3(0.035, 0.059, 0.302);
 // (the generated sea, and inland water from terraintype.dat). Airbases (terraintype.dat) count their tinted
 // aprons as grey. All of it fades out by 1.5 km, so the colours from afar stay the imagery's own.
 global uniform float terrain_detail;
-// The close up's colour patches: 1 in the original game; 0 in Modern IAF, whose 2 m photo has its own ground detail
-// (the patches' deeper colour turned the pale desert into an orange speckle; iaf-2026/docs/terrain.md §13). The value is
-// each project's own (project.godot's shader globals).
+// The close up's colour patches: their strength (terrain_patches: 1 in the original game, 0.4 in Modern IAF) and their
+// hue (terrain_patch_hue): 1 in the original game, toward a deeper, more saturated or a paler, drier version of the ground's colour; 0 in Modern IAF, its own
+// colour only darker or lighter (the deeper colour turned the 2 m photo's pale desert into an orange speckle;
+// iaf-2026/docs/terrain.md §13). The values are each project's own (project.godot's shader globals).
 global uniform float terrain_patches;
+global uniform float terrain_patch_hue;
+// Colour grading (Settings.colour_grading, render_options.gd, docs/rendering.md §1.9): 0 = off (the original look);
+// else the photo's albedo toward a real ground's reflectance, c / (1 + terrain_grade × the luminance of its ≈ 32 m
+// mean): the photo already holds the sun's light, so bright sand lit again washed out to grey-white under the tone
+// mapper. Hue and saturation stay; dark ground changes little.
+global uniform float terrain_grade;
+// The photo's local contrast (each project's own value, project.godot): 1 in the original game (unchanged); in Modern
+// IAF the photo's detail against its ≈ 32 m mean × terrain_photo_detail. The sim's colour match to Sentinel-2 scales
+// each Survey sheet to the satellite's spread (0.6–0.7 in the Negev), which flattened the 2 m photo's wadis and streets
+// (iaf-2026/docs/terrain.md §9.1).
+global uniform float terrain_photo_detail;
+// Ground textures (ground_tex > 0): a macro tint, the ground's colour ±GT_MACRO in tone and warmth over ≈ 300 m and
+// ≈ 1.2 km patches, which breaks the photo's repeats and its sheets' flat areas (iaf-2026/docs/terrain.md §13).
+const float GT_MACRO = 0.08;
+// The land-cover layer farther out (tfar): its size factor and strength.
+const float GT_FAR = 8.0;
+const float GT_FAR_K = 0.4;
 global uniform sampler2D terrain_detail_tex : filter_linear_mipmap_anisotropic, repeat_enable;
 global uniform sampler2D terrain_detail_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
 // terraintype.dat around the camera (render_options.gd): R = water, G = airbase; rect = (x0, z0, 1 / side).
@@ -222,6 +240,19 @@ void gt_sample(int l, vec2 p, vec2 dx, vec2 dy, out vec3 detail, out vec3 nr) {
 	detail = clamp(2.0 * textureGrad(ground_albedo, uv, dx * s, dy * s).rgb, vec3(0.3), vec3(2.0));
 	vec4 t = textureGrad(ground_nr, uv, dx * s, dy * s);
 	nr = vec3(t.a * 2.0 - 1.0, t.g * 2.0 - 1.0, t.r);
+}
+
+// Layers l1 and l2 (b2 = l2's share) at `p` (world metres over `scale`): detail and nr as gt_sample's, the second
+// layer only where it weighs a fifth or more (most pixels sample one).
+void gt_pair(int l1, int l2, float b2, vec2 p, vec2 dx, vec2 dy, float scale, out vec3 detail, out vec3 nr) {
+	gt_sample(l1, p / scale, dx / scale, dy / scale, detail, nr);
+	if (b2 > 0.2) {
+		vec3 d2, r2;
+		gt_sample(l2, p / scale, dx / scale, dy / scale, d2, r2);
+		float bl = (b2 - 0.2) / 0.6;
+		detail = mix(detail, d2, bl);
+		nr = mix(nr, r2, bl);
+	}
 }
 
 // A tangent normal (x along world X, y toward north) in view space about the surface normal n.
@@ -545,6 +576,33 @@ void fragment() {
 		kw *= smoothstep(60.0, 200.0, elev) * (1.0 - wm) * (1.0 - sea);
 		ALBEDO *= mix(vec3(1.0), WARM, kw);
 	}
+	// The photo's mean 4 mip levels coarser than the pixel's own (≈ 32 m near the camera; a bias, so 16 × the pixel's
+	// footprint farther out): the base of the detail gain and of the grade's knee.
+	float lum_mean = 0.0;
+	if (terrain_photo_detail != 1.0 || terrain_grade > 0.0) {
+		vec3 blur = texture(colour_tex, UV, 4.0).rgb;
+		lum_mean = dot(blur, vec3(0.2126, 0.7152, 0.0722));
+		if (terrain_photo_detail != 1.0) {
+			// In luminance only, so the photo's chroma noise is not raised with it; and only the band from ≈ 4 m (one
+			// mip level coarser) to the 32 m mean, so its pixel noise and JPEG blocks near the camera stay as they are:
+			// the wadis, field edges and streets gain, not the grain.
+			float l = dot(ALBEDO, vec3(0.2126, 0.7152, 0.0722));
+			float l_mid = dot(texture(colour_tex, UV, 1.0).rgb, vec3(0.2126, 0.7152, 0.0722));
+			// Near the camera (under ≈ 600 m) the close up's own layers carry the detail; there the photo's mottle,
+			// raised, read as noise (at Ein Bokek from 300 m).
+			// ponytail: compensates the sim's Survey colour match (sim_terrain.rs sheet_gains scales each sheet's spread to
+			// Sentinel-2's at 40 m). Root fix: a match that keeps the photo's local spread, then this goes back to 1
+			// (a theatre rebuild, no download; iaf-2026/docs/terrain.md §9.1).
+			float g = (terrain_photo_detail - 1.0) * (1.0 - sea) * (1.0 - wm) * smoothstep(250.0, 700.0, length(VERTEX));
+			ALBEDO *= clamp((l + (l_mid - lum_mean) * g) / max(l, 1e-4), 0.25, 2.0);
+		}
+	}
+	if (ground_tex > 0.0) {
+		mat2 rm = mat2(vec2(0.6, 0.8), vec2(-0.8, 0.6));
+		float m1 = textureGrad(terrain_detail_tex, rm * world_xz / 3000.0, rm * wdx / 3000.0, rm * wdy / 3000.0).r - 0.5;
+		float m2 = textureGrad(terrain_detail_tex, world_xz / 12000.0, wdx / 12000.0, wdy / 12000.0).r - 0.5;
+		ALBEDO *= 1.0 + GT_MACRO * (1.2 * m1 + 0.8 * m2) * vec3(1.15, 1.0, 0.8) * (1.0 - sea) * (1.0 - wm);
+	}
 	ROUGHNESS = 0.95;
 	float dist = length(VERTEX);
 	// Ground textures where they resolve: gm = the pixel's ground footprint (m, the geometric mean of its two axes, as
@@ -555,10 +613,14 @@ void fragment() {
 	float gm = sqrt(length(wdx) * length(wdy));
 	float tf = ground_tex * (1.0 - smoothstep(0.05, 0.12, gm));
 	float tg = ground_tex * (1.0 - smoothstep(0.03, 0.1, gm));
-	if (terrain_detail > 0.0 || tf > 0.0) {
+	// Farther, the same land-cover layer at GT_FAR times its size (repeats of ≈ 20 m) from a 0.05–0.12 m footprint
+	// out to 0.6–1.5 m, colour only: a field keeps its grass, a slope its rock, to a few hundred metres.
+	float tfar = ground_tex * smoothstep(0.05, 0.12, gm) * (1.0 - smoothstep(0.6, 1.5, gm));
+	if (terrain_detail > 0.0 || tf > 0.0 || tfar > 0.0) {
 		float k = terrain_detail * (1.0 - smoothstep(300.0, 1500.0, dist)) * (1.0 - sea);
 		float kt = tf * (1.0 - sea);
-		if (k > 0.0 || kt > 0.0) {
+		float kf = tfar * (1.0 - sea);
+		if (k > 0.0 || kt > 0.0 || kf > 0.0) {
 			vec3 c = ALBEDO;
 			vec2 st = texture(terrain_surface, (world_xz - terrain_surface_rect.xy) * terrain_surface_rect.z).rg;
 			float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
@@ -567,6 +629,7 @@ void fragment() {
 			float land = smoothstep(0.015, 0.05, chroma - 0.05 * st.g) * (1.0 - smoothstep(0.0, 0.03, c.b - max(c.r, c.g) - 0.1 * st.g));
 			k *= 1.0 - st.r;
 			kt *= 1.0 - st.r;
+			kf *= 1.0 - st.r;
 			// Three scales in world space (tiles of 420 / 90 / 16 m: patches of ≈ 40 m, clumps of ≈ 9 m, grain of
 			// ≈ 1.6 m), rotated against each other so the tiling does not line up; the noise is centred (mean 0.5),
 			// so its mipmaps fade to no change. The ground textures take the grain's place near the camera.
@@ -584,6 +647,10 @@ void fragment() {
 				// Drier: paler and a little less saturated, keeping its hue (halving the chroma turned pale rock
 				// and soil white).
 				vec3 dry = mix(vec3(lum), c, 0.8) * 1.2;
+				if (terrain_patch_hue < 1.0) {
+					deep = mix(c * 0.7, deep, terrain_patch_hue);
+					dry = mix(c * 1.2, dry, terrain_patch_hue);
+				}
 				vec3 lc = patch < 0.0 ? mix(c, deep, -0.8 * patch) : mix(c, dry, 0.5 * patch);
 				lc *= 1.0 + 1.3 * n3 + 0.5 * n2;
 				// Grey ground: a faint grain.
@@ -598,7 +665,7 @@ void fragment() {
 				NORMAL = normalize(mix(NORMAL, normalize(t * nd.x + b * nd.y + NORMAL * max(nd.z, 0.1)), k * mix(0.2, 1.0, land) * (1.0 - tg)));
 			}
 			// Under Detailed airbases the nearest base's pavement is drawn below (with its own textures).
-			if (kt > 0.0 && !(terrain_airbases > 0.0 && st.g * (1.0 - land) > 0.5)) {
+			if ((kt > 0.0 || kf > 0.0) && !(terrain_airbases > 0.0 && st.g * (1.0 - land) > 0.5)) {
 				// The layer weights from the photo's colour (compared in ≈ sRGB): in an airbase its grey is asphalt and
 				// its blue / purple tint concrete; elsewhere green is grass, pale sand, saturated brown soil, the rest
 				// gravel; slopes over ≈ 30° rock.
@@ -625,21 +692,21 @@ void fragment() {
 					if (i != l1 && w[i] > w[l2]) l2 = i;
 				}
 				float b2 = w[l2] / max(w[l1] + w[l2], 1e-4);
-				vec3 d1, r1, d2, r2;
-				gt_sample(l1, p, wdx, wdy, d1, r1);
-				// A second layer only where it weighs a fifth or more (most pixels sample one).
-				if (b2 > 0.2) {
-					gt_sample(l2, p, wdx, wdy, d2, r2);
-					float bl = (b2 - 0.2) / 0.6;
-					d1 = mix(d1, d2, bl);
-					r1 = mix(r1, r2, bl);
-				}
 				// Full strength on pavement and natural ground, less on grey ground outside an airbase (towns, roads);
 				// varied over ≈ 9 m clumps (the 90 m noise), so the repeat does not line up into a grid.
-				float ks = kt * mix(0.6, 1.0, max(land, ab)) * clamp(0.6 + 2.5 * n2, 0.25, 1.0);
-				ALBEDO *= mix(vec3(1.0), d1, ks);
-				NORMAL = normalize(mix(NORMAL, gt_normal(NORMAL, r1.xy, VIEW_MATRIX), ks));
-				ROUGHNESS = mix(ROUGHNESS, mix(0.8, 1.0, r1.z), ks);
+				float kv = mix(0.6, 1.0, max(land, ab)) * clamp(0.6 + 2.5 * n2, 0.25, 1.0);
+				vec3 d1, r1;
+				if (kt > 0.0) {
+					gt_pair(l1, l2, b2, p, wdx, wdy, 1.0, d1, r1);
+					float ks = kt * kv;
+					ALBEDO *= mix(vec3(1.0), d1, ks);
+					NORMAL = normalize(mix(NORMAL, gt_normal(NORMAL, r1.xy, VIEW_MATRIX), ks));
+					ROUGHNESS = mix(ROUGHNESS, mix(0.8, 1.0, r1.z), ks);
+				}
+				if (kf > 0.0) {
+					gt_pair(l1, l2, b2, p, wdx, wdy, GT_FAR, d1, r1);
+					ALBEDO *= mix(vec3(1.0), d1, kf * kv * GT_FAR_K);
+				}
 			}
 		}
 	}
@@ -858,6 +925,11 @@ void fragment() {
 	}
 	if (rain_wet > 0.0) {
 		wet_ground(ALBEDO, ROUGHNESS, SPECULAR, NORMAL, n_geo, world_xz, dist, wm, paved_k, VIEW_MATRIX);
+	}
+	if (terrain_grade > 0.0) {
+		// By the ≈ 32 m mean's luminance: one factor over a neighbourhood keeps the local contrast's ratios (by the
+		// pixel's own luminance the knee flattened the wadis: its slope at sand is a seventh).
+		ALBEDO /= 1.0 + terrain_grade * lum_mean;
 	}
 	if (city_glow_k > 0.0) {
 		// The haze over the dense lamp clusters (city_glow.gdshaderinc).

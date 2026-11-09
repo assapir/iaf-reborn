@@ -57,7 +57,8 @@ for each.
 Setup downloads these materials from ambientCG into `assets/thirdparty/ambientcg/<id>/` (the repo holds none). They
 are CC0 1.0 (public domain): "All ambientCG assets are provided under the Creative Commons CC0 1.0 Universal
 License"[^acg-licence]. CC0 asks for no credit; we give it anyway. One line names ambientCG in the setup wizard's Attributions and in the
-roll (`credits_ours.json`, "Ground Textures and Model Detail"). The list lives in one place:
+roll (`credits_ours.json`, "Ground Textures and Model Detail"). Modern IAF's setup downloads the same materials (its optional step "sim-textures",
+2026-11-09) and names ambientCG in its Attributions and its credits (`iaf-2026/setup/wizard.gd` `CREDITS`). The list lives in one place:
 `crates/iaf-tools/src/thirdparty.rs` (`GROUND_TEXTURES`, `MODEL_DETAIL`, `SCENERY_WALLS` and `TREE_TEXTURES`, with each
 zip's pinned SHA-256). Setup composes the scenery trees' foliage from the leaf sets' colour and opacity maps
 (`crates/iaf-tools/src/foliage.rs`).
