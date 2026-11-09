@@ -300,6 +300,7 @@ static func _building_material(damage: PackedByteArray) -> ShaderMaterial:
 	m.set_shader_parameter("walls", w)
 	m.set_shader_parameter("has_walls", w != null)
 	m.set_shader_parameter("night", night)
+	m.set_shader_parameter("palette_colours", Settings.building_palette)
 	m.set_shader_parameter("near_m", NEAR)
 	m.set_shader_parameter("far_m", RANGE)
 	m.set_shader_parameter("grow_m", GROW)

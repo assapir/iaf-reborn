@@ -282,7 +282,7 @@ Measured on this machine (Intel laptop, 8 threads, 2026-10-30), both kinds:
 ## 3. Rendering and the switch
 
 - **The switch:** Graphics → MORE → Scenery (Off / On / Detailed, default Off), under Imagery Israel; under it Far
-  towns (Full / Light, default Full, §3.1).
+  towns (Full / Light, default Full, §3.1) and Building colours (Photo / Palette, default Photo, §3.4).
   - On: the buildings and trees as below. Detailed: the same, with the facades, occlusion, roof clutter and distance
     fade of §3.3, at a higher cost.
   - On and Detailed are greyed until setup has made the scenery; Detailed's place reads "Not downloaded".
@@ -319,7 +319,8 @@ Measured on this machine (Intel laptop, 8 threads, 2026-10-30), both kinds:
   the scene lights it again, so roofs take 0.6 of it, at most 0.45 (linear albedo): a town is as bright as the photo
   under it. On: walls take 0.5 of the photo's colour lightened toward plaster, at most 0.45, with the ambientCG
   plaster, stone, concrete or corrugated-steel detail, a window grid (3 m levels, 3.2 m bays) and darker feet.
-  Detailed: the facades of §3.3 (`scenery_detailed.gdshader`). Damaged buildings are sooted. With Night lights =
+  Detailed: the facades of §3.3 (`scenery_detailed.gdshader`). Building colours = Palette changes the walls' and far
+  roofs' colours in both (§3.4). Damaged buildings are sooted. With Night lights =
   Detailed, some windows are lit at night.
 - The flight starts once the near cells are drawn.
 
@@ -504,7 +505,7 @@ texture.
     far one's tone; a dome keeps the photo's colour. Details under about two pixels fade out.
 - **Distance:** a window under about two pixels fades to the wall's average (no shimmer); from 700 m to 2.2 km the
   walls and roofs fade to the photo's colour at the building, so the far town keeps the photo's hues instead of
-  turning into uniform pale blocks.
+  turning into uniform pale blocks (Building colours = Palette: to their own colours, §3.4).
 - **Roof clutter** (`roof_rows` in crates/iaf-avionics/src/scenery.rs, the models in `scenery.gd roof_mesh`, drawn
   by `scenery_roof.gdshader`): on the near flat roofs of 30 m² and more, on a 2.4 × 2.8 m grid along the roof's
   longest edge, at least 1.4 m inside the parapet, seeded per building:
@@ -578,6 +579,31 @@ sky; and the colours were taken as linear, half again brighter than the walls.
 
 Open: the roof has no darker band along its parapet (the fragment does not know its distance to the edge); the
 heaters' shade does not follow the sun; the clay tiles show only on the few roofs the data tags as gabled.
+
+### 3.4 Building colours
+
+Graphics → MORE → Building colours, under Far towns: Photo (default) or Palette (Modern IAF's profile; the look
+study's proposal 2, 2026-11-09). Photo is the look of §3 and §3.3: On's walls take the photo's colour lightened toward
+plaster, and Detailed's walls fade to the photo's colour from 700 m to 2.2 km. The photo's colour is the roof's,
+mostly grey-brown, so from a few hundred metres every building reads grey or taupe.
+
+Palette (`palette_colours` in `shared/terrain/scenery_palette.gdshaderinc`, shared by On and Detailed):
+
+- **Walls:** every building keeps Detailed's palette colour (§3.3 "Wall colour", a hash of the building's index; the
+  far mesh carries the same index) at any distance, On too. Far away a Detailed wall fades to its own colour times
+  the windows' average (0.76), not to the photo's.
+- **Brightness:** plaster, stone and concrete are mixed 50 % toward cream (sRGB 0.93, 0.85, 0.72) and take 0.7 of
+  that colour, at most 0.7 (linear albedo), where Photo takes 0.5, at most 0.45; corrugated sheds keep Photo's. A low
+  sun lights the walls cream, not grey.
+- **Roofs:** the photo's colour, except far away (On; Detailed from 700 m, where the near material fades out):
+  - a light flat roof (the photo's brightness over Detailed's white-coating line) takes the white coating's average
+    in the photo's hue, halfway to the photo's brightness, as the near Detailed roof;
+  - a gabled roof takes clay with 30 % of the photo's colour. The mesh marks it (`iaf_avionics::scenery::GABLED`,
+    the roof colour's alpha 0.5) on the near and the far mesh, so the far mesh's flat top stays clay;
+  - a Detailed dome and the darker flat roofs keep the photo's colour.
+
+Cost: a few more shader instructions per building pixel, no new data; measured in
+[iaf-2026/docs/scenery.md](../iaf-2026/docs/scenery.md) §7.
 
 ## 4. Solid ground and hits
 

@@ -125,6 +125,7 @@ const PREFS := {
 		"ground_roads",
 		"scenery",
 		"scenery_far",
+		"building_palette",
 		"cd_launcher",
 		"wheel_scroll",
 		"better_cockpit",
@@ -307,6 +308,10 @@ var scenery := "off"
 ## "light" (beyond the near model's 2.5 km a dense town keeps its tall and large buildings only: cheaper, the low
 ## houses show from 2.5 km in).
 var scenery_far := "full"
+## Building colours (ours, Graphics → MORE; docs/scenery.md §3.4): false = Photo (the walls fade to the photo's colour
+## far away), true = Palette (every wall keeps its own palette colour, warmed toward cream and lit brighter, the light
+## flat and gabled roofs lifted out of the photo's grey).
+var building_palette := false
 ## CD launcher (ours, Extras page; docs/front-end.md §18.1): the CD's autorun poster (Jauto.exe) before the main menu.
 var cd_launcher := false
 ## Mouse wheel (ours, Extras page; docs/front-end.md §12.9): "regular" (wheel down scrolls down) or "natural"

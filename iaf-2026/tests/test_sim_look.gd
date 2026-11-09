@@ -23,6 +23,7 @@ const ORIGINAL := {
 	"world_scale": "original",
 	"bomb_release": "original",
 	"briefing_map": "original",
+	"building_palette": false,
 }
 
 

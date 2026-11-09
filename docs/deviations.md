@@ -545,6 +545,12 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - Far towns (Graphics → MORE, under Scenery; default Full, every building to the scenery's 4.5 km): Light draws a
     dense town's buildings beyond the near model's 2.5 km only when they are 15 m tall or 1000 m² and up, for less
     GPU time over large towns (scenery.md §3.1). An IAF 2026 enhancement (iaf-2026/docs/shared.md).
+  - Building colours (Graphics → MORE, under Far towns; default Photo, 2026-11-09, the look study's proposal 2;
+    Modern IAF's profile picks Palette): Palette keeps every wall in its own palette colour (Jerusalem stone, white
+    and beige plaster, grey concrete) at any distance, where Photo gives On's walls the photo's colour and fades
+    Detailed's to it from 700 m. It warms the walls toward cream and lights them brighter (gain 0.7, cap 0.7 for 0.5
+    and 0.45), so a low sun lights them cream; it gives On the same palette as Detailed; and it lifts the light flat
+    roofs (the white coating) and the gabled roofs (clay) out of the photo's grey far away (scenery.md §3.4).
 - **Particle effects** (ours, docs/rendering.md §6). Rendering only; the default is Original (the soft billboards and the
   trail ribbons).
   - Detailed: explosions, smoke and missile trails are GPU particles. Each original spawn keeps its time, place,

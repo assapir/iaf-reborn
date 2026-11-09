@@ -4,8 +4,8 @@
 //   UV2  = (building index in the cell, the building's height on walls / −1 on roofs);
 //   COLOR.rgb = the roof colour on the active Survey 2 m look (sRGB), lightened here toward plaster on walls;
 //   COLOR.a = the wall material / 255 (iaf_tools::thirdparty::SCENERY_WALLS: plaster, stone, concrete, corrugated).
-// The photo's colour already holds the sun's light, and the scene lights it again: roofs take ROOF_GAIN of it, walls
-// WALL_GAIN, both at most MAX_ALBEDO (linear), so a town reads as bright as the photo under it, not white.
+// The gains, the palette and the roofs' colour: scenery_palette.gdshaderinc (Building colours = Palette: the walls in
+// Detailed's palette, the light flat and gabled roofs lifted out of the photo's grey).
 // Walls: that colour times the ambientCG material's colour detail (its colour over its mean);
 // our window mask (a row per 3 m level, a column every 3.2 m); a ground AO gradient. Damaged buildings: sooted.
 shader_type spatial;
@@ -27,9 +27,6 @@ uniform sampler2D damage : filter_nearest;
 uniform bool night = false;
 #include "res://shared/terrain/city_glow.gdshaderinc"
 
-const float ROOF_GAIN = 0.6;
-const float WALL_GAIN = 0.5;
-const float MAX_ALBEDO = 0.45;
 const float LEVEL_M = 3.0;
 // The plaster the walls' colour lightens toward (sRGB), and how far.
 const vec3 PLASTER = vec3(0.86, 0.83, 0.76);
@@ -48,6 +45,8 @@ vec3 srgb_to_linear(vec3 c) {
 	return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c));
 }
 
+#include "res://shared/terrain/scenery_palette.gdshaderinc"
+
 void vertex() {
 	vec3 c = CUSTOM0.xyz;
 	float d = distance((MODEL_MATRIX * vec4(c, 1.0)).xyz, INV_VIEW_MATRIX[3].xyz);
@@ -63,15 +62,17 @@ void vertex() {
 void fragment() {
 	int b = int(v_building + 0.5);
 	float damaged = step(0.5 / 255.0, texelFetch(damage, ivec2(b % 256, b / 256), 0).r);
-	vec3 colour = srgb_to_linear(v_roof > 0.5 ? COLOR.rgb : mix(COLOR.rgb, PLASTER, PLASTER_MIX));
+	vec3 photo = srgb_to_linear(COLOR.rgb);
 	vec3 albedo;
 	float rough = 0.9;
 	float emit = 0.0;
 	if (v_roof > 0.5) {
-		albedo = min(colour * ROOF_GAIN, vec3(MAX_ALBEDO));
+		albedo = roof_far(photo, COLOR.a, hash(vec2(float(b), 7.7)));
 	} else {
 		int w = clamp(int(v_wall), 0, 3);
-		vec3 base = min(colour * WALL_GAIN, vec3(MAX_ALBEDO));
+		// Photo: the photo's colour lightened toward plaster; Palette: the building's own (as Detailed).
+		vec3 base = palette_colours ? wall_lit(w, wall_colour(w, float(b), photo))
+			: min(srgb_to_linear(mix(COLOR.rgb, PLASTER, PLASTER_MIX)) * WALL_GAIN, vec3(MAX_ALBEDO));
 		if (has_walls) {
 			base *= 2.0 * texture(walls, vec3(UV / wall_size[w], float(w))).rgb;
 		}

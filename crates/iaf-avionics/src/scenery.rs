@@ -652,7 +652,7 @@ pub struct Mesh {
     /// x = the building's index in the cell, y = the building's height (m) on walls, −1 on roofs.
     pub uv2: Vec<[f32; 2]>,
     /// rgb = the roof colour of the chosen look (on walls too: the shader fades the walls to it far away), a = the
-    /// wall material / 255.
+    /// wall material / 255 (roofs: 1 a Detailed dome, `GABLED` a gabled roof).
     pub color: Vec<[f32; 4]>,
     /// The building's centre at its base (mesh frame): the shader picks the model and raises the building by the
     /// building's own distance, not the mesh's. w on a near wall: the street in front of it (`street`), else 0.
@@ -668,6 +668,9 @@ const STREET_M: f64 = 40.0;
 const OPEN_STREET: f32 = 1000.0;
 /// CUSTOM0.w on the inner face of a Detailed parapet (scenery_detailed.gdshader draws it plain, a coping on top).
 const PARAPET_INSIDE: f32 = -1.0;
+/// A gabled roof's colour alpha (`Mesh::color`), on the near and far meshes.
+pub const GABLED: f32 = 0.5;
+
 /// The roof UVs' tile (m).
 const ROOF_TILE: f64 = 32.0;
 const DOME_RINGS: usize = 4;
@@ -1015,9 +1018,19 @@ pub fn mesh_chunks(
         bld.height = b.height;
         let material = f32::from(b.wall) / 255.0;
         bld.wall = [rgb[0], rgb[1], rgb[2], material];
-        // Detailed: a dome's alpha 1 keeps it in the photo's colour (scenery_detailed.gdshader), not clay tiles.
+        // Detailed: a dome's alpha 1 keeps it in the photo's colour (scenery_detailed.gdshader), not clay tiles. A
+        // roof the near mesh draws gabled has alpha GABLED on every model: Building colours = Palette colours it
+        // clay out to the far mesh's flat top (scenery_palette.gdshaderinc).
         let dome = b.roof == Roof::Dome && bld.streets.is_some();
-        bld.roof = [rgb[0], rgb[1], rgb[2], if dome { 1.0 } else { material }];
+        let gabled = b.roof == Roof::Gabled && pts.len() == 4;
+        let roof_a = if dome {
+            1.0
+        } else if gabled {
+            GABLED
+        } else {
+            material
+        };
+        bld.roof = [rgb[0], rgb[1], rgb[2], roof_a];
         bld.roof_frame = if bld.streets.is_some() {
             long_axis(&b.points).map(|u| (b.centroid().map(f64::from), u.map(f64::from)))
         } else {
@@ -1469,6 +1482,10 @@ mod tests {
         assert_eq!(roof[..3], [200.0 / 255.0, 100.0 / 255.0, 50.0 / 255.0]);
         assert_eq!(wall, roof);
         assert_eq!(far.uv2[0][1], 12.0);
+        // A gabled roof's alpha GABLED, on the far mesh's flat top too; its walls keep the material.
+        let far_gab = one(Roof::Gabled, false);
+        assert_eq!(far_gab.color.last().unwrap()[3], GABLED);
+        assert_eq!(far_gab.color[0][3], 1.0 / 255.0);
         // An open wall: CUSTOM0.w = OPEN_STREET on the near mesh, 0 on the far one.
         assert_eq!(near.custom0[0][3], OPEN_STREET);
         assert_eq!(far.custom0[0][3], 0.0);

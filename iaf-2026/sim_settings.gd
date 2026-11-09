@@ -36,6 +36,8 @@ const PROFILE := {
 	"f15_variant": "raam",
 	# Its towns are denser over the whole theatre (iaf-2026/docs/scenery.md §6).
 	"scenery_far": "light",
+	# The walls in their own colours at any distance (look study proposal 2, iaf-2026/docs/scenery.md §7).
+	"building_palette": true,
 }
 ## No aids (the user, 2026-11-08): the original's Gameplay page's switches, all off (easy_landing's default is on).
 ## Applied with PROFILE; never logged (has_setting): the sim has no such switch.

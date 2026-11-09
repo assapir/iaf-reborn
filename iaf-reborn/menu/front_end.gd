@@ -113,7 +113,8 @@ const GRAPHICS_KEYS := [
 	"ground_textures",
 	"ground_roads",
 	"scenery",
-	"scenery_far"
+	"scenery_far",
+	"building_palette"
 ]
 ## Ours on the debrief screen: EXPORT FLIGHT DATA at the content's top right, above the tab strip (content
 ## coordinates; the original's pages fill the rest).
@@ -313,6 +314,7 @@ func _extras_rows() -> Array:
 		if key == "imagery_israel":
 			rows.append(["scenery", "Scenery", [["Off", "off"], ["On", "on"], ["Detailed", "detailed"]]])
 			rows.append(["scenery_far", "Far towns", [["Full", "full"], ["Light", "light"]]])
+			rows.append(["building_palette", "Building colours", [["Photo", false], ["Palette", true]]])
 	# Ours: the preferences to / from a .cfg file (not a setting: a press opens the file dialog, _settings_file).
 	rows.append(["settings_file", "Settings file", [["Export", "export"], ["Import", "import"]]])
 	# Our graphics options show on the Graphics page's MORE view, the rest on Extras.
@@ -1732,7 +1734,7 @@ func _extras_items() -> Array:
 				available = GroundRoads.available()
 				if not available:
 					label = "Not downloaded"
-			elif opt[0] == "scenery_far":
+			elif opt[0] in ["scenery_far", "building_palette"]:
 				available = Scenery.available()
 			elif opt[0] == "scenery" and value != "off":
 				# Only over the Survey 2 m photo: the Israel imagery picked on this page (not saved yet).

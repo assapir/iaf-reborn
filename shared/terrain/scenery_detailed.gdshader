@@ -7,16 +7,15 @@
 //   CUSTOM0 = the building's centre at its base (mesh frame) and, on walls, the street in front of the wall:
 //     w = the facing building's height (m, whole) × 1024 + its distance (decimetres, at most 1000 = open);
 //     −1 on the parapet's inner face.
-// The photo's colour already holds the sun's light, and the scene lights it again: roofs take ROOF_GAIN of it, at most
-// MAX_ALBEDO (linear), so a town reads as bright as the photo under it, not white.
+// The gains, the palette and the far colours: scenery_palette.gdshaderinc.
 // Flat roofs: a material picked by the photo's brightness (bitumen, grey concrete or gravel, white coating) in the
-// photo's hue, with stains; pitched roofs: clay tiles. Both fade to the photo's colour with distance, as walls do.
+// photo's hue, with stains; pitched roofs: clay tiles. Both fade to their far colour with distance, as walls do.
 // Walls: a per-building colour from a palette of the material's (Jerusalem stone, white / beige plaster, grey
 // concrete), tinted by the photo, times the ambientCG material's colour detail (its colour over its mean); windows
 // (a row per level, a column per bay, each building its own sizes) recessed by parallax, with frames, roller
 // shutters, glass that reflects the sky (each pane tilted and rough by its own seed), streaks under the sills, AC
 // units; loggias on blocks of flats; occlusion at the foot and in narrow streets (AO: the ambient light only). Far
-// away the walls fade to the photo's colour. Damaged buildings: sooted.
+// away the walls fade to the photo's colour (Building colours = Palette: their own). Damaged buildings: sooted.
 shader_type spatial;
 render_mode cull_back;
 
@@ -35,10 +34,7 @@ uniform sampler2D damage : filter_nearest;
 // Detailed night lights at night: some windows lit.
 uniform bool night = false;
 
-const float ROOF_GAIN = 0.6;
-const float WALL_GAIN = 0.5;
-const float MAX_ALBEDO = 0.45;
-// The walls take the photo's colour from FADE_NEAR to FADE_FAR (m).
+// The walls and roofs take their far colour from FADE_NEAR to FADE_FAR (m).
 const float FADE_NEAR = 700.0;
 const float FADE_FAR = 2200.0;
 // Window recess and loggia depth (m).
@@ -77,33 +73,11 @@ float vnoise(vec2 p) {
 		f.y);
 }
 
-float luma(vec3 c) {
-	return dot(c, vec3(0.2126, 0.7152, 0.0722));
-}
-
 vec3 srgb_to_linear(vec3 c) {
 	return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c));
 }
 
-// A building's wall colour (sRGB): Jerusalem stone, white / beige / pale plaster, grey concrete blocks.
-vec3 palette(int w, float h) {
-	if (w == 1) {
-		return h < 0.4 ? vec3(0.86, 0.79, 0.64) : (h < 0.75 ? vec3(0.82, 0.73, 0.57) : vec3(0.89, 0.84, 0.72));
-	}
-	if (w == 2) {
-		return h < 0.45 ? vec3(0.66, 0.66, 0.64) : (h < 0.8 ? vec3(0.73, 0.72, 0.68) : vec3(0.70, 0.66, 0.6));
-	}
-	if (h < 0.35) {
-		return vec3(0.9, 0.89, 0.86);
-	}
-	if (h < 0.6) {
-		return vec3(0.87, 0.82, 0.72);
-	}
-	if (h < 0.8) {
-		return vec3(0.84, 0.77, 0.66);
-	}
-	return h < 0.92 ? vec3(0.8, 0.8, 0.77) : vec3(0.86, 0.76, 0.7);
-}
+#include "res://shared/terrain/scenery_palette.gdshaderinc"
 
 // 1 inside [a, b] of x, edges `aa` wide.
 float band(float x, float a, float b, float aa) {
@@ -144,15 +118,16 @@ void fragment() {
 	if (v_height < -0.5) {
 		vec3 far_c = min(photo * ROOF_GAIN, vec3(MAX_ALBEDO));
 		float fade = smoothstep(FADE_NEAR, FADE_FAR, v_dist);
-		albedo = far_c;
+		bool pitched = v_normal.y < 0.97;
+		float fb = float(b);
+		float hb = hash(vec2(fb, 7.7));
+		vec3 far_r = roof_far(photo, COLOR.a, hb);
+		albedo = far_r;
 		if (fade < 1.0 && COLOR.a < 0.99) {
 			// Flat roofs: metres along and across the building from its centre; pitched: world metres (X east, Z south;
 			// repeating every 4 km for the precision). And metres per pixel.
-			bool pitched = v_normal.y < 0.97;
-			float fb = float(b);
 			vec2 p = pitched ? fract(UV / 128.0) * 128.0 * ROOF_TILE : UV + fb * 17.3;
 			float aa = max(fwidth(p).x, fwidth(p).y);
-			float hb = hash(vec2(fb, 7.7));
 			// The photo's hue: its colour over its brightness, at half strength.
 			vec3 hue = mix(vec3(1.0), clamp(far_c / max(luma(far_c), 0.01), vec3(0.6), vec3(1.6)), 0.5);
 			// Stains: blotches of 4 m and 1 m (the small ones fade out under ~2 pixels).
@@ -205,14 +180,13 @@ void fragment() {
 				// Halfway to the photo's brightness, in its hue: the near roof keeps the far one's tone.
 				own *= hue * mix(1.0, luma(far_c) / mat_l, 0.5);
 			}
-			albedo = mix(own, far_c, fade);
+			albedo = mix(own, far_r, fade);
 		}
 	} else if (v_parapet > 0.5) {
 		// The parapet's inner face: plain wall colour, a light coping on top, grime and shade at its foot.
 		float fb = float(b);
 		int w = clamp(int(v_wall), 0, 3);
-		vec3 own = w == 3 ? photo : srgb_to_linear(palette(w, hash(vec2(fb, 1.7)))) * mix(1.0, 0.85, hash(vec2(fb, 5.3)));
-		vec3 base = min(mix(own, photo, 0.2) * WALL_GAIN, vec3(MAX_ALBEDO));
+		vec3 base = wall_lit(w, wall_colour(w, fb, photo));
 		float y = UV.y - (v_height - PARAPET);
 		albedo = base * mix(0.55, 1.0, smoothstep(0.0, 0.35, y)) * mix(1.0, 1.3, step(PARAPET - 0.1, y));
 		ao = mix(0.5, 1.0, smoothstep(0.0, 0.6, y));
@@ -222,8 +196,8 @@ void fragment() {
 		float h1 = hash(vec2(fb, 1.7));
 		float h2 = hash(vec2(fb, 5.3));
 		float h3 = hash(vec2(fb, 9.1));
-		vec3 own = w == 3 ? photo : srgb_to_linear(palette(w, h1)) * mix(1.0, 0.85, h2);
-		vec3 base = min(mix(own, photo, 0.2) * WALL_GAIN, vec3(MAX_ALBEDO));
+		vec3 base0 = wall_lit(w, wall_colour(w, fb, photo));
+		vec3 base = base0;
 		if (has_walls) {
 			base *= 2.0 * texture(walls, vec3(UV / wall_size[w], float(w))).rgb;
 		}
@@ -305,7 +279,7 @@ void fragment() {
 		vec3 face = mix(wall, inner, open * (1.0 - rail));
 		float recess = loggia && !closed ? open * (1.0 - rail) : 0.0;
 		float cope = rail_in * detail * band(f.y, rail_top - 0.1 / level, rail_top, aa);
-		face = mix(face, h4 < 0.55 ? min(base * 1.35, vec3(MAX_ALBEDO)) : vec3(0.05), cope);
+		face = mix(face, h4 < 0.55 ? min(base * 1.35, vec3(wall_cap(w))) : vec3(0.05), cope);
 		// Streaks under the sills (dust washed down), and an AC unit under some windows with its drip.
 		float under = (1.0 - step(lo.y, f.y)) * band(f.x, lo.x, hi.x, aa) * (loggia ? 0.0 : 1.0);
 		float streak = hash(vec2(floor(UV.x * 5.0), fb)) * f.y / max(lo.y, 0.01);
@@ -317,14 +291,14 @@ void fragment() {
 		face = mix(face, vec3(0.42, 0.42, 0.4) * (1.0 - 0.45 * grille), ac_box * detail);
 		face *= 1.0 - 0.35 * ac * band(f.x, acx - 0.42 / bay, acx + 0.42 / bay, aa)
 			* band(f.y, 0.0, 0.08 / level, aa) * detail;
-		// Far away: the windows' average, then the photo's colour.
+		// Far away: the windows' average, then the photo's colour (Building colours = Palette: the wall's own).
 		// A loggia keeps a darker cell while it is over a pixel.
 		face = mix(base * mix(loggia && !closed ? 0.6 : 0.8, 0.76, smoothstep(0.5, 1.0, aa)), face, detail);
 		// The parapet's coping: a lit edge at the top of the wall.
 		float fy = fwidth(UV.y);
-		face = mix(face, min(base * 1.3, vec3(MAX_ALBEDO)), smoothstep(v_height - 0.1 - fy, v_height - 0.1 + fy, UV.y));
+		face = mix(face, min(base * 1.3, vec3(wall_cap(w))), smoothstep(v_height - 0.1 - fy, v_height - 0.1 + fy, UV.y));
 		float fade = smoothstep(FADE_NEAR, FADE_FAR, v_dist);
-		albedo = mix(face, min(photo * WALL_GAIN, vec3(MAX_ALBEDO)), fade);
+		albedo = mix(face, palette_colours ? base0 * 0.76 : min(photo * WALL_GAIN, vec3(MAX_ALBEDO)), fade);
 		glass *= 1.0 - fade;
 		// Glass reflects the sky: each pane tilted and rough by its own seed.
 		rough = mix(0.9, 0.08 + 0.3 * h_win2, glass);

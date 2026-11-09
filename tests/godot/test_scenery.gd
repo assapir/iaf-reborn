@@ -146,6 +146,8 @@ func _stream(sc: GDScript, meta: Dictionary, c: Vector2i, mode: String) -> void:
 	var mat: ShaderMaterial = t.scenery._cells[c].mat
 	var shader: Shader = sc.DETAILED_SHADER if mode == "detailed" else sc.SHADER
 	check(mat.shader == shader, "%s: its building shader" % mode)
+	# Building colours (docs/scenery.md §3.4): Photo by default.
+	check(mat.get_shader_parameter("palette_colours") == settings().building_palette, "%s: building colours" % mode)
 	var roofs := node.get_children().filter(
 		func(n): return n is MultiMeshInstance3D and n.multimesh.mesh in sc._roof_meshes
 	)

@@ -200,6 +200,41 @@ them follow the streets. Wrong in it: every building is one grey, with no roof c
 the hotels, the palms along the beach and the pan's dikes sit where the photo has them, and no tree stands in the
 pan. Wrong in it: the road is a flat grey band.
 
+**Building colours: Palette** (2026-11-09, the look study's proposal 2; the sim's profile; docs/scenery.md §3.4).
+Before, every building read grey or taupe from a few hundred metres: the walls faded to the roof photo's grey-brown.
+Now each wall keeps its own palette colour, warmed toward cream and lit brighter, and the light flat and gabled roofs
+are lifted out of the photo's grey. Rendered with `tests/godot/_imagery_shot.gd` (`SHOT_LAYERS=sim`, all settings on:
+`SHOT_SET=antialiasing=msaa4_fxaa,shadows=true,terrain_detail=1.0,clouds=volumetric,scenery=detailed` plus
+`building_palette=false` / `true`), 1920 × 1080 scaled to 1200 px, at the look study's poses:
+
+| Where | Photo (before) | Palette (after) |
+|---|---|---|
+| Shoham, cockpit, 16:58 (`672750 3537452 240 100 0`, `SHOT_HOUR=16.97`) | ![Shoham, Photo](pictures/scenery/colours_shoham_photo.jpg) | ![Shoham, Palette](pictures/scenery/colours_shoham_palette.jpg) |
+| Beersheba, external, 500 m above the town, 11:00 (`668500 3455500 780 20 0`, `SHOT_ORBIT=180,15,200`) | ![Beersheba, Photo](pictures/scenery/colours_beersheba_photo.jpg) | ![Beersheba, Palette](pictures/scenery/colours_beersheba_palette.jpg) |
+
+Sampled colours (sRGB, 0–255; box means on sunlit walls, and the mean of every building pixel that changed):
+
+| | Photo | Palette | The reference (Epic Fury, beside Shoham) |
+|---|---|---|---|
+| Shoham, two near walls | (148, 145, 140), (143, 139, 132) | (169, 162, 152), (162, 155, 143) | lit (218, 198, 176), shaded (181, 160, 138) |
+| Shoham, every changed building pixel | (140, 132, 121) | (157, 149, 135) | |
+| Beersheba, three tower walls | (157, 141, 119), (166, 151, 130), (186, 171, 151) | (158, 146, 127), (173, 163, 147), (194, 183, 167) | |
+| Beersheba, every changed building pixel | (163, 148, 129) | (170, 161, 146) | |
+
+Seen: the walls are lighter by 10–20 levels and read as pale plaster and stone rather than taupe; the far town is
+light, with the tiled roofs reddish. Still apart from the reference: its lit walls are 40–50 levels brighter and
+warmer (blue about 0.8 of red against our 0.9). The rest of the gap is the scene's exposure and the sky's blue ambient
+light on the walls (the look study's proposal 1, another change), not the walls' albedo (inferred).
+
+Tried and dropped (2026-11-09): the palette alone at gain 0.65 and cap 0.65, without the warming toward cream. Its
+walls read cool grey (Beersheba's changed pixels (159, 152, 140), bluer than Photo's), so the walls are now mixed 50 %
+toward cream (sRGB 0.93, 0.85, 0.72) at gain 0.7, cap 0.7, concrete included.
+
+Cost: the Shoham pose, Detailed, Clouds Flat, `_imagery_shot.gd`'s 180-frame rate with vsync off, Photo and Palette
+interleaved three times each under the GPU lock, Intel Iris Xe, 1920 × 1080: Photo 35.4, 35.3, 35.4 fps (mean
+28.28 ms), Palette 35.2, 35.3, 35.2 fps (mean 28.38 ms): about +0.1 ms, the size of the measuring step (0.1 fps).
+No new data, 0 MB.
+
 Fixed on 2026-11-08 (the "before" pictures above):
 
 - **The white patch on the sea off Tel Aviv** (off Herzliya, in fact): the Survey sheets' white no-data in a theatre
