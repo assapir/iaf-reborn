@@ -296,6 +296,8 @@ func _checklist(tv: Node, f35: bool, click := false) -> void:
 	await _step(tv, 2, "IPP" if f35 else "JFS", click)  # JFS / IPP
 	if f35:
 		await fly(tv, 11.0)  # the IPP up to speed
+		if click:
+			await _lift_guard(tv, "ENG", "ENG_GUARD")
 		await _step(tv, 0, "ENG", click)  # the ENG switch (by key: the throttle up from OFF)
 		await fly(tv, 0.5)  # the flight takes the throttle's move on its next frame
 	else:
@@ -353,6 +355,25 @@ func _click_control(tv: Node, node: String) -> void:
 		check(not mi.transform.is_equal_approx(rest), "%s: the switch turned" % node)
 	hover.position = Vector2.ZERO
 	vp.push_input(hover)
+
+
+## The first click on a guarded switch `node` lifts its guard `guard` (a node of its own) and leaves the switch.
+func _lift_guard(tv: Node, node: String, guard: String) -> void:
+	var c3d = tv.cockpit_3d
+	var mi: MeshInstance3D = c3d.find_child(node, true, false) if c3d != null else null
+	var gi: Node3D = c3d.find_child(guard, true, false) if c3d != null else null
+	check(mi != null and gi != null, "the 3D cockpit's %s and its guard %s" % [node, guard])
+	if mi == null or gi == null:
+		return
+	var vp: Viewport = tv.get_viewport()
+	var at := await _aim(tv, func() -> Vector3: return mi.global_transform * mi.get_aabb().get_center(), 0.0)
+	var rest := mi.transform
+	var shut := gi.transform
+	vp.push_input(_click(at, MOUSE_BUTTON_LEFT, true))
+	vp.push_input(_click(at, MOUSE_BUTTON_LEFT, false))
+	await frames(2)
+	check(not gi.transform.is_equal_approx(shut), "%s: the first click lifts its guard" % node)
+	check(mi.transform.is_equal_approx(rest), "%s: the switch stays until the next click" % node)
 
 
 ## Each line of the start-up card has the switch's name and place under it (the mission's `where`).

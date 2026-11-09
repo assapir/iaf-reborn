@@ -64,6 +64,7 @@ const SWITCH_PROPS := [
 	"f35i/elec/batt",  # the F-35I's (tools/f35i/cockpit3d.py CONTROL_PROPS)
 	"f35i/engine/ipp",
 	"f35i/engine/eng",
+	"f35i/engine/eng-guard",
 	"f35i/canopy",
 ]
 ## The stick as the flight model holds it (terrain_view.gd's parts_in: stick_x, stick_y), for the stick's animation.

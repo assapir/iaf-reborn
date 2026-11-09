@@ -7,6 +7,8 @@
 #   - "click": sent on a left click (a switch);
 #   - "prop", "on", "off": the switch's FlightGear property (its animation in <model>.json) and its two positions,
 #     set by set_switch (cockpit3d.gd switches);
+#   - "guard": a guarded switch's guard property (its cover's animation): while it is 0 a click only lifts the cover
+#     (sets it to 1); the next click sends the switch's command, as the real guarded switch;
 #   - "turn": sent on the wheel (up as it is, down with p1 negated) and once per drag_px of a left drag (up: as it is);
 # through the key path (cockpit3d.gd `command`, terrain_view.gd _press), as the keys send them. Hovering a control
 # lights it.
@@ -77,7 +79,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	var r: Dictionary = hit[1]
 	match event.button_index:
 		MOUSE_BUTTON_LEFT:
-			if r.has("click"):
+			if r.has("guard") and float(get_parent().switches.get(r.guard, 0.0)) < 0.5:
+				get_parent().switches[r.guard] = 1.0  # the guard lifts; the switch moves on the next click
+			elif r.has("click"):
 				get_parent().command.call(r.click)
 			elif r.has("turn"):
 				_held = r
@@ -127,12 +131,15 @@ func at(pos: Vector2):
 	return best
 
 
-## The switches sending command `id` on a click put to their "on" (else "off") position.
+## The switches sending command `id` on a click put to their "on" (else "off") position; a guarded one put on has its
+## guard lifted.
 func set_switch(id: int, on: bool) -> void:
 	for e in _controls:
 		var r: Dictionary = e[1]
 		if r.has("prop") and int(r.get("click", [-1])[0]) == id:
 			get_parent().switches[r.prop] = float(r.on if on else r.off)
+			if on and r.has("guard"):  # thrown by its key or the throttle: its guard up too, not shut over the bat
+				get_parent().switches[r.guard] = 1.0
 
 
 ## A hit area of `box` [centre, size] (m, the model's frame): a box drawn clear, lit by the hover's overlay.

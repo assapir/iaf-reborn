@@ -155,7 +155,9 @@ In the 3D cockpit (Barak, Sufa):
 
 The layer is general (`shared/cockpit/cockpit3d_controls.gd`, behind `Settings.cockpit_controls()`, true in the sim,
 false in the original game): a cockpit's table `<model>_controls.json` beside its model binds a node to a `click`
-command (a switch) or a `turn` command (a knob: the wheel, a drag); a control's hit area is its mesh's box, and the
+command (a switch) or a `turn` command (a knob: the wheel, a drag); a guarded switch names its guard's property
+(`guard`): while the guard is closed a click only lifts it, the next sends the command (the F-35I's ENG switch,
+docs/f35i.md §4.5); a control's hit area is its mesh's box, and the
 pointer over it lays a warm glow on it (`material_overlay`). The pointer's moves reach the layer in `_input`, before
 the flight's full-view Controls take them, and `cockpit_origin.gd` passes them into the cockpit's own world with the
 clicks. The start-up switches are on the same layer (§5.2). The DAY / AUTO BRT / NIGHT switch is not bound: the HUD's AUTO-like dimming stays automatic.

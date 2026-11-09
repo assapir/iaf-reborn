@@ -3,7 +3,8 @@
 # the head turns to it, then SHOT_OUT/<node>_hover.png (the pointer over it, lit) and SHOT_OUT/<node>_on.png (clicked
 # through the input path: the step taken, the switch turned, the pointer moved away). Switches: SHOT_SWITCHES
 # (comma-separated nodes of f16_controls.json, default MAIN_PWR,JFS; the steps a switch needs before it are taken by
-# their keys' commands first). The view zoomed in (cockpit.ZOOM_MAX). SHOT_MISSION: another start-up mission (2031:
+# their keys' commands first; a guarded switch: also <node>_guard.png, its guard lifted by the first click). The view
+# zoomed in (cockpit.ZOOM_MAX). SHOT_MISSION: another start-up mission (2031:
 # the F-35I at Nevatim, its nodes of f35i_controls.json); a knob (a turn control) is only lit and clicked.
 #   flock -o ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_OUT=<dir> \
 #     -- --log-file <t> --resolution 1920x1080 --path iaf-2026 -s ../iaf-2026/tests/_switch_shot.gd
@@ -14,7 +15,10 @@ const BEFORE := {
 	"JFS": [[210, 0, 0]],
 	"INS": [[210, 0, 0], [211, 0, 0], [5, 0, 0], [213, 0, 0]],
 	"AVIONICS_MMC": [[210, 0, 0], [211, 0, 0], [5, 0, 0]],
+	"ENG": [[210, 0, 0]],  # the F-35I's: the battery, then the IPP up to speed (IPP_SPOOL_S)
 }
+## The F-35I's IPP before its ENG switch: on this long (sim s), as test_mvp's 11 s.
+const IPP_SPOOL_S := 11.0
 
 
 func run() -> void:
@@ -39,6 +43,11 @@ func run() -> void:
 				while float(tv.flight.state().rpm) < 0.55:
 					await process_frame
 				Engine.time_scale = 1.0
+		if node == "ENG":
+			tv._command([211, 0, 0])
+			Engine.time_scale = 8.0
+			await create_timer(IPP_SPOOL_S).timeout
+			Engine.time_scale = 1.0
 		await _shoot(tv, node)
 
 
@@ -55,13 +64,21 @@ func _shoot(tv: Node, node: String) -> void:
 	check(mi.material_overlay != null, "%s: the pointer over it lights it" % node)
 	await _save(node + "_hover")
 	var rest := mi.transform
-	for pressed in [true, false]:
-		var e := InputEventMouseButton.new()
-		e.position = at
-		e.button_index = MOUSE_BUTTON_LEFT
-		e.pressed = pressed
-		Input.parse_input_event(e)
-		await process_frame
+	# A guarded switch (its guard <node>_GUARD): the first click lifts the guard (SHOT_OUT/<node>_guard.png), the second
+	# moves the switch.
+	var guarded: bool = c3d.find_child(node + "_GUARD", true, false) != null
+	for n in 2 if guarded else 1:
+		if n == 1:
+			await frames(10)
+			check(mi.transform.is_equal_approx(rest), "%s: the first click lifts its guard, the switch stays" % node)
+			await _save(node + "_guard")
+		for pressed in [true, false]:
+			var e := InputEventMouseButton.new()
+			e.position = at
+			e.button_index = MOUSE_BUTTON_LEFT
+			e.pressed = pressed
+			Input.parse_input_event(e)
+			await process_frame
 	hover.position = Vector2.ZERO
 	Input.parse_input_event(hover)
 	await frames(10)

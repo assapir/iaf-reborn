@@ -228,6 +228,23 @@
     "factor": -100.0,
     "offset": 50.0
    }
+  ],
+  "ENG_GUARD": [
+   {
+    "prop": "f35i/engine/eng-guard",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1,
+     0,
+     0
+    ],
+    "factor": 110.0,
+    "offset": 0.0
+   }
   ]
  }
 }

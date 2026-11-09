@@ -923,6 +923,11 @@ CONTROL_PROPS = {"BATT": "f35i/elec/batt", "IPP": "f35i/engine/ipp", "ENG": "f35
                  "CANOPY": "f35i/canopy", "HMD_BRT": "f16/avionics/hud-sym",
                  "MFD_BRT": "instrumentation/mfd/brightness-norm"}
 TOGGLE_DEG = 40.0
+# The ENG switch's red guard (its cheeks and bar, GUARDS: node -> (the toggle's object, the guard's property)): its own
+# node hinged at its aft end, closed at 0 as modelled, at 1 flipped up and aft GUARD_DEG (a click lifts it before the
+# switch moves, cockpit3d_controls.gd "guard"; 2026-11-09).
+GUARDS = {"ENG_GUARD": ("csw_L0_2", "f35i/engine/eng-guard")}
+GUARD_DEG = 110.0
 KNOB_DEG = 100.0  # from OFF (upper left) to DAY (upper right) on the printed scale
 
 
@@ -980,6 +985,11 @@ def export_glb(out, eye_g):
         vs = [v.co for v in ref.data.vertices]
         at = (Vector(map(min, *vs)) + Vector(map(max, *vs))) / 2
         pivots[kit.join([bpy.data.objects[part + p] for p in parts], node)] = at
+    for node, (part, _prop) in GUARDS.items():  # a guard about its hinge: its aft end, at the bottom
+        g = kit.join([bpy.data.objects[part + s] for s in ("_guard-1", "_guard1", "_guardbar")], node)
+        vs = [v.co for v in g.data.vertices]
+        lo, hi = Vector(map(min, *vs)), Vector(map(max, *vs))
+        pivots[g] = Vector(((lo.x + hi.x) / 2, lo.y, lo.z))
     handle = kit.join(gear[:3], "gear_handle")
     stick = kit.join([o for o in kit.scene().objects if o.name.startswith("stickm_")], "side_stick")
     throttle = kit.join([o for o in kit.scene().objects if o.name.startswith("throttlem_")], "throttle")
@@ -1055,6 +1065,9 @@ def export_glb(out, eye_g):
         elif kind == "knob":
             meta["animations"][node] = [{"prop": CONTROL_PROPS[node], "centre": [0, 0, 0], "axis": n,
                                          "factor": -KNOB_DEG, "offset": KNOB_DEG / 2}]
+    for node, (_part, prop) in GUARDS.items():
+        meta["animations"][node] = [{"prop": prop, "centre": [0, 0, 0], "axis": [1, 0, 0], "factor": GUARD_DEG,
+                                     "offset": 0.0}]
     json.dump(meta, open(os.path.splitext(out)[0] + ".json", "w"), indent=1)
     tris = sum(len(p.vertices) - 2 for o in kit.scene().objects if o.type == 'MESH' for p in o.data.polygons)
     print("COCKPIT3D", out, "triangles", tris, "bytes", os.path.getsize(out), "materials", len(body.data.materials))
