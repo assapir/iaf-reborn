@@ -264,6 +264,43 @@ panel's BATT switch and the MFD BRT knob under the pointer.
 |---|---|
 | ![The F-35I's BATT switch lit under the pointer](pictures/cockpit/f35i_batt_hover.jpg) | ![The F-35I's MFD BRT knob lit under the pointer](pictures/cockpit/f35i_mfd_brt_hover.jpg) |
 
+### 5.3 The pilot's body (2026-11-09)
+
+The user (2026-11-09): "one can look on his own belly or something". At the head's lowest (60° down, the camera 72°
+with the 3D cockpit's own 12°) the Sufa's and the Barak's 3D cockpit showed the seat's well and a black slab where
+the pilot sits. A real F-16 pilot looking down sees the legs on the rudder pedals, the right hand on the side-stick
+and the left on the throttle.
+
+- **The body** is FlightGear's internal-view pilot, `Models/Pilots/pilot_internalview.ac`: FlightGear's pilot without
+  head, helmet and mask, made for the view from the seat (GPL-2.0-or-later, its 3D work by J Maverick 16;
+  `shared/extra/models/cockpit3d/SOURCES.md`). `tools/f16d/pilot.py` writes it as `f16_pilot.glb` in the 3D
+  cockpit's frame. FlightGear posed it on its own stick, throttle and pedals, which `f16.glb` places where FlightGear
+  does, so it sits as it comes. 17,090 triangles, 3.6 MB; the suit's sheet halved to 1024 × 2048, the harness sheet
+  2048 × 2048, both as JPEG (Basis Universal's blocks showed as blotches on the vest 0.2 m under the eye).
+- **The head bends forward looking down** (`terrain_view.gd` `LOOK_DOWN_LEAN`): from 25° to 60° of head pitch the eye
+  moves up to 0.2 m forward, toward the head's yaw (aside, never aft: looking back and down it would undo
+  `LOOK_BACK_LEAN`), and 0.06 m down, as a neck bends. Turned about the eye alone, at
+  60° down the eye stood over the body's neck opening and looked into the torso (a dark V filled the lower half;
+  the coordinator's review, 2026-11-09). Blender renders from the eye: 0.15 m forward still showed a sliver of it,
+  0.2 m none. Leaving out the vest and collar instead showed the inside of the torso through the neck opening.
+- **The pose is static**: the stick and throttle turn, the hands stay. The F-16's side-stick moves a few millimetres
+  (a force stick); the throttle's travel leaves the left glove beside the grip at full power (open).
+- **Where**: `cockpit3d.gd` hangs `<model>_pilot.glb` beside the model when `Settings.cockpit_pilot_body()` is true:
+  true in Modern IAF, false in the original game, whose 3D cockpit stays as it was (docs/cockpit.md "Looking down at
+  the pilot"). The body takes the footwell's dim fill (`UNLIT` `pilot_`) and casts no shadow. The cut model leaves
+  the rear cockpit's footwell out of the front seat's well (docs/aircraft-models.md §1.4): it stood out of the
+  pilot's lap.
+- **Cost** on the Iris Xe (1920 × 1080, `_cockpit3d_shot.gd` `C3D_ONLY=down`, the frame's GPU time with the body
+  shown and hidden, 60 frames each, both viewports): the frame takes 27–30 ms either way. With the head bent the
+  body fills most of the view, and per view it adds −0.5 to +2.0 ms, +1.3 ms on the mean of the six views (before
+  the bend −1.3 to +2.4 ms, +0.5 ms on the mean, within the run's noise). It draws only in the cockpit view.
+
+Looking down-left (40° left), down and down-right, at the head's lowest. Top row before, bottom row after. A real
+render, `tests/godot/_cockpit3d_shot.gd` with `C3D_SIM=1 C3D_ONLY=down`.
+
+![The Sufa looking down: before, the seat's well and a black slab; after, the pilot's legs, hands and vest](pictures/cockpit/lookdown_sufa.jpg)
+![The Barak looking down: before and after](pictures/cockpit/lookdown_barak.jpg)
+
 ## 6. Tests and pictures
 - `tests/godot/test_cockpit_no_panel.gd`: the profile on the sim's own cockpit dirs (`iaf-sim own`'s), the Sufa, the
   Barak and the F-35I: no panel art loaded, every display file from the sim's dir, the 3D cockpit in the jet's own

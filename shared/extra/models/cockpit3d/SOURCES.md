@@ -3,7 +3,7 @@
 `f35i.glb`, `f35i.json` (`tools/f35i/cockpit3d.py --glb`) and `f35i_controls.json` (hand-written; docs/f35i.md §4.5), the F-35I's, are our own.
 The rest of this file is the F-16's.
 
-`f16.glb`, `f16.json`, `f16_light.png` and `barak_panels.webp` are derived works of the FlightGear F-16 and are licensed under the
+`f16.glb`, `f16.json`, `f16_light.png`, `f16_pilot.glb` and `barak_panels.webp` are derived works of the FlightGear F-16 and are licensed under the
 **GNU GPL, version 2 or (at your option) any later version**, as their source is. This repository distributes them
 under GPL-3.0-or-later.
 
@@ -32,6 +32,7 @@ under GPL-3.0-or-later.
 | `Models/Cockpit/Instruments/*` (ASI, AoA, ADI, VSI, EHSI, fuel flow, standby ADI, compass) | the instruments |
 | `Models/Cockpit/Main/engine.*`, `misc.*`, `eyebrow_*.*`, `panels_mlu_*.*` | the engine gauges, the eyebrow lamp panels, the four consoles (decimated) |
 | `Models/Cockpit/Main/stick.xml`, `F-16-FS.ac`, `throttle.*`, `rudder_pedals.*` | the stick, throttle and pedals |
+| `Models/Pilots/pilot_internalview.ac`, `Tex_0004_1.jpg`, `Tex_0008_1.jpg` | the pilot's body in `f16_pilot.glb` (Modern IAF): legs, arms, gloves, harness and vest, no head |
 | `Models/Cockpit/Textures/*`, `Textures/Block-panels/blck50-panels1.png`, `blck40-panels1.png` | the textures; the Block 50 panel sheet in the model (the Sufa's), the Block 40 one in `barak_panels.webp` (the Barak's) |
 
 ## Changes
@@ -93,3 +94,6 @@ Made by `tools/f16d/cockpit3d.py` (re-runnable; docs/cockpit.md "3D cockpit"):
     (`*Guards*`) dark grey; the stick's boot (`F-16-FS.ac` `Grommet`) black.
 18. Ours (2026-11-02, `sills`): along each canopy sill a black seal tube and a dark grey rounded lip under it with a
     row of screw heads; the tub's side walls above the consoles (`COCKPIT`'s faces facing in) near black.
+19. The pilot's body (`f16_pilot.glb`, `tools/f16d/pilot.py`, 2026-11-09): FlightGear's internal-view pilot as it is
+    posed (its pose fits FlightGear's stick, throttle and pedals, which `f16.glb` places where FlightGear does), placed
+    as the cockpit; its materials matte (roughness 0.85), the suit's sheet halved to 1024 x 2048, both sheets as JPEG.

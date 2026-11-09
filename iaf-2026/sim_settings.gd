@@ -312,6 +312,12 @@ func cockpit_controls() -> bool:
 	return true
 
 
+## The pilot's legs and hands seen looking down in the 3D cockpit (the user, 2026-11-09: "one can look on his own
+## belly or something"; iaf-2026/docs/cockpit.md §5.3).
+func cockpit_pilot_body() -> bool:
+	return true
+
+
 ## The burner rises over 1.5 s with a thump and dies away (the Mac play test's finding 27, iaf-2026/docs/sound.md §1.2).
 func ab_sound_real() -> bool:
 	return true

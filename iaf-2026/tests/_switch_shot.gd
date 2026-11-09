@@ -45,7 +45,7 @@ func run() -> void:
 func _shoot(tv: Node, node: String) -> void:
 	var c3d = tv.cockpit_3d
 	var mi: MeshInstance3D = c3d.find_child(node, true, false)
-	var centre := mi.global_transform * mi.get_aabb().get_center()
+	var centre := func() -> Vector3: return mi.global_transform * mi.get_aabb().get_center()
 	var at := await _aim(tv, centre, 0.0)
 	print(node, " at ", at)
 	var hover := InputEventMouseMotion.new()
@@ -77,16 +77,16 @@ func _save(name: String) -> void:
 	get_root().get_texture().get_image().save_png(dir.path_join(name + ".png"))
 
 
-## The head turned until the point `p` (world) is straight ahead (camera.rotation = (pitch, −yaw): terrain_view.gd),
+## The head turned until the point `p()` (world) is straight ahead (camera.rotation = (pitch, −yaw): terrain_view.gd),
 ## then lifted by `up` (rad); the point on the screen.
-func _aim(tv: Node, p: Vector3, up: float) -> Vector2:
+func _aim(tv: Node, p: Callable, up: float) -> Vector2:
 	var cam: Camera3D = tv.cockpit_3d.camera
 	var h := Vector2.ZERO
-	for i in 4:
+	for i in 6:  # `p` asked anew each step: the head bends forward looking down (terrain_view.gd LOOK_DOWN_LEAN)
 		tv.views.snap = h
 		await frames(3)
-		var d: Vector3 = cam.global_transform.affine_inverse() * p
+		var d: Vector3 = cam.global_transform.affine_inverse() * p.call()
 		h += Vector2(-atan2(-d.x, -d.z), atan2(d.y, Vector2(d.x, d.z).length()))
 	tv.views.snap = h + Vector2(0.0, up)
 	await frames(3)
-	return cam.unproject_position(p)
+	return cam.unproject_position(p.call())

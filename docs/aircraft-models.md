@@ -239,12 +239,19 @@ version on Barak it stays the original's `f16_bc`.
   camera's near plane is 0.1 m (0.5 m otherwise), as the seat's sides and headrest are 0.2–0.4 m from the eye.
 - **Looking back** the head rises 0.1 m and leans 0.1 m forward (`terrain_view.gd` `LOOK_BACK_LEAN`, blended in
   from 90° to 150° of head yaw), as a pilot checking six looks over the headrest. From the seated eye the headrest
-  top is 0.05–0.08 m above the eye, so straight back the seat filled the view.
+  top is 0.05–0.08 m above the eye, so straight back the seat filled the view. With the pilot's body in the 3D cockpit (Modern IAF)
+  the head also bends forward looking down (`LOOK_DOWN_LEAN`, up to 0.2 m forward and 0.06 m down from 25° to 60°
+  of head pitch; iaf-2026/docs/cockpit.md §5.3).
 - **The cut**: as the original's cockpit model, it ends at the eye. Every triangle wholly ahead of the eye is left
   out, so the nose, the instrument panel and the front of the canopy never show over the cockpit art.
 - **Left out**: the front pilot's body (the crew mesh's surfaces after the first `F16_SEAT_SURFACES`, the ACES II
   seat's; tools/f16/base.py `cockpit` joins seat then pilot), the canopy glass (from inside it fogs the whole view; the original hides
-  the canopy there too), the gear legs and the open gear doors. The closed doors show.
+  the canopy there too), the gear legs and the open gear doors. The closed doors show. With the pilot's body in the
+  3D cockpit (Modern IAF, `Settings.cockpit_pilot_body()`, cockpit.md "Looking down at the pilot") also the
+  interior in the front seat's well: 0.36 m either side of the centre line (`F16_SEAT_HALF_WIDTH`; the seat is
+  0.25), from 0.2 m under the eye (`F16_LAP_BELOW`) down, to `F16_CONSOLE_AFT` behind it. The rear cockpit's
+  footwell runs on under the front seat (inferred from its place, 0.98 m aft with the rear tub), and it stood out
+  of the pilot's lap as a black slab.
 - **Kept**: the front seat with its headrest 0.56 m behind the eye (its headrest, pitot tubes, parachute container
   and back structure at FlightGear's full detail, `SEAT_SEEN`; the rest of both seats decimated to 30 %; both
   pilots' helmet and visor whole, `PILOT_WHOLE`, the rear pilot's helmet subdivided once and smooth, `REAR_SMOOTH`;

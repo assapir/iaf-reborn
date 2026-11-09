@@ -169,6 +169,10 @@ const F16_TUB_HALF_WIDTH := 0.63
 ## under it; the detailed F-16's interior there (its own consoles, which stood over FlightGear's) is left out.
 const F16_CONSOLE_AFT := 0.42
 const F16_CONSOLE_BELOW := 0.3
+## With the pilot's body in the 3D cockpit (Modern IAF): the seat's well, this wide either side of the centre line and
+## from this far under the eye, holds the pilot; the rear cockpit's interior there is left out.
+const F16_SEAT_HALF_WIDTH := 0.36
+const F16_LAP_BELOW := 0.2
 
 
 ## Ours (Models: Detailed, or the Sufa): the cockpit view's own jet from the detailed F-16 at `path` instead of the
@@ -193,6 +197,7 @@ static func detailed_cockpit(path: String, whole := false) -> Array:
 	frame.roughness = 0.85
 	frame.metallic_specular = 0.2
 	var matte := {}
+	var lap := whole and Settings.cockpit_pilot_body()
 	for mi: MeshInstance3D in node.find_children("*", "MeshInstance3D", true, false):
 		var xf: Transform3D = root.transform * mi.transform if mi.get_parent() == root else root.transform
 		var keep := F16_SEAT_SURFACES if mi.name == "pilot" else mi.mesh.get_surface_count()
@@ -220,7 +225,17 @@ static func detailed_cockpit(path: String, whole := false) -> Array:
 					and maxf(maxf(p0.y, p1.y), p2.y) < eye.y - F16_CONSOLE_BELOW
 					and minf(minf(p0.z, p1.z), p2.z) < eye.z + F16_CONSOLE_AFT
 				)
-				if not console and (behind or (whole and (not interior or beside))):
+				# With the pilot's body (Settings.cockpit_pilot_body): the rear cockpit's footwell, which runs on under the
+				# front seat, drops from the seat's well, where it stood out of the pilot's lap as a black slab.
+				var well := (
+					lap
+					and interior
+					and mi.name != "pilot"
+					and maxf(maxf(absf(p0.x), absf(p1.x)), absf(p2.x)) < F16_SEAT_HALF_WIDTH
+					and maxf(maxf(p0.y, p1.y), p2.y) < eye.y - F16_LAP_BELOW
+					and minf(minf(p0.z, p1.z), p2.z) < eye.z + F16_CONSOLE_AFT
+				)
+				if not console and not well and (behind or (whole and (not interior or beside))):
 					out.append_array([idx[t], idx[t + 1], idx[t + 2]])
 			if out.is_empty():
 				continue

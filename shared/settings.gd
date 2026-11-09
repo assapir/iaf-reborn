@@ -1101,6 +1101,13 @@ func cockpit_controls() -> bool:
 	return false
 
 
+## The pilot's body in the 3D cockpit (shared/cockpit/cockpit3d.gd, <model>_pilot.glb): looking down shows the legs on
+## the rudder pedals and the hands on the stick and throttle (iaf-2026/docs/cockpit.md §5.3). Modern IAF. The original
+## game's 3D cockpit shows no body: looking down sees the seat and the floor.
+func cockpit_pilot_body() -> bool:
+	return false
+
+
 ## The afterburner lights and cuts like the real F-16's (iaf-2026/docs/sound.md §1.2): Modern IAF. The original game
 ## swaps the engine loop at once (flight_sounds.gd _update_engine, FUN_004c3e00).
 func ab_sound_real() -> bool:

@@ -80,6 +80,12 @@ var _own_eye = null
 ## Ours, detailed cockpit model: looking back the head rises and leans forward by up to this (m: +y up, −z forward),
 ## as a pilot checking six looks over the headrest, not into it; blended in from 90° to 150° of head yaw.
 const LOOK_BACK_LEAN := Vector3(0, 0.1, -0.1)
+## Ours, with the pilot's body in the 3D cockpit (Settings.cockpit_pilot_body, Modern IAF): looking down the head bends
+## forward on the neck, so the eye moves forward (toward the head's yaw, never aft) and down by up to this, blended in
+## from 25° to 60° of head pitch. The eye then sees the chest and harness from above; turning about the eye alone, at
+## 60° down it looked into the body through its neck opening (the coordinator's review, 2026-11-09). 0.15 m left a
+## sliver of it, 0.2 m none (a Blender render from the eye).
+const LOOK_DOWN_LEAN := Vector3(0, -0.06, -0.2)
 ## FUN_0057f2a0 case 6 / 0x13 (F10 chase, F9 fly-by): {300, 700, 300, pitch 10°, ·, heading 2°}, scale 1.
 const CHASE_OFFS := [300.0, 700.0, 300.0, 0.1745329, 0.0, 0.0349066]
 ## The padlock target kept for F3 (ctl+0x804).
@@ -2144,7 +2150,12 @@ func _apply_view() -> void:
 		own_bc.visible = views.cockpit_drawn() and not jet_gone
 		if _own_eye != null:
 			var lean := smoothstep(PI / 2.0, PI * 5.0 / 6.0, absf(views.head_angles().x))
-			own_bc.position = -(_own_eye + LOOK_BACK_LEAN * lean) * aircraft.scale
+			var bend := Vector3.ZERO  # toward where the head looks
+			if cockpit_3d != null and Settings.cockpit_pilot_body():
+				var hd: Vector2 = views.head_angles()
+				bend = LOOK_DOWN_LEAN.rotated(Vector3.UP, -hd.x) * smoothstep(deg_to_rad(25.0), deg_to_rad(60.0), -hd.y)
+				bend.z = minf(bend.z, 0.0)  # forward and aside only: looking back and down it undid LOOK_BACK_LEAN
+			own_bc.position = -(_own_eye + LOOK_BACK_LEAN * lean + bend) * aircraft.scale
 	camera.current = inside
 	chase.current = not inside
 	# The original cockpit projection (docs/cockpit.md "3D view"): its focal length and projection

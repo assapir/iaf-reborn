@@ -1,16 +1,17 @@
 # Dev helper (not run by tools/test.sh): the F-16's 3D cockpit (Extras "Cockpit": 3D; docs/cockpit.md "3D cockpit") in a
 # real render, the Barak's and the Sufa's: straight ahead, looking up a little (8°), left, right, down at the MFDs (25°
 # down), into the footwell (55° down), at the left and right consoles (45° left / right, 50° down), the left sill (100°
-# left, 35° down) and back left (150°), and the Real HUD over a ground unit 8 km ahead. C3D_LOOK=2d takes
-# the same frames with the 2D panel (side by side). The scene is _cockpit_show_shot.gd's cockpit_f16_day (Settings at
-# their defaults, the switch set here); C3D_HOUR=22 the night (the mission then starts at night: pass `-- --hour 22`
-# too). C3D_JET=f35i: the F-35I's instead (_f35i). C3D_ONLY=panel takes only the lamps and displays: the master caution
-# and fire lamps lit, the gear down, an emitter and a launching one on the RWR scope; looking down at the panel, at the
-# RWR scope and at the gear panel. C3D_ONLY=hud: only ahead, looking up 8° (the HUD's frame against the sky) and ahead
-# zoomed in to the true size. C3D_HUD=original: the original HUD (default the Real HUD). C3D_ALL=1: every graphics
-# option at its best (_showcase_shot.gd AFTER), as a player with everything on sees it. C3D_SIM=1: Modern IAF's cockpits
-# (iaf-2026/sim_settings.gd on its own cockpit dirs, `iaf-sim own`'s, test_cockpit_no_panel.gd), files named sim; run
-# it with --path iaf-2026 (the sim's strings and fonts) and it flies over the sim's theatre (_sim_spec).
+# left, 35° down) and back left (150°), and the Real HUD over a ground unit 8 km ahead. C3D_LOOK=2d takes the same
+# frames with the 2D panel (side by side). The scene is _cockpit_show_shot.gd's cockpit_f16_day (Settings at their
+# defaults, the switch set here); C3D_HOUR=22 the night (the mission then starts at night: pass `-- --hour 22` too).
+# C3D_JET=f35i: the F-35I's instead (_f35i). C3D_ONLY=panel takes only the lamps and displays: the master caution and
+# fire lamps lit, the gear down, an emitter and a launching one on the RWR scope; looking down at the panel, at the RWR
+# scope and at the gear panel. C3D_ONLY=down: the head at its lowest (60° down, the camera 72°), straight, 40° left and
+# right, with the pilot's body's cost (_body_cost). C3D_ONLY=hud: only ahead, looking up 8° (the HUD's frame against the
+# sky) and ahead zoomed in to the true size. C3D_HUD=original: the original HUD (default the Real HUD). C3D_ALL=1: every
+# graphics option at its best (_showcase_shot.gd AFTER), as a player with everything on sees it. C3D_SIM=1: Modern IAF's
+# cockpits (iaf-2026/sim_settings.gd on its own cockpit dirs, `iaf-sim own`'s, test_cockpit_no_panel.gd), files named
+# sim; run it with --path iaf-2026 (the sim's strings and fonts) and it flies over the sim's theatre (_sim_spec).
 # C3D_SET=key=value,…: Settings for the run (as _cockpit_show_shot.gd's SHOW_SET), e.g.
 # C3D_SET=briefing_map=modern,real_mfds=real for the Extras' OpenStreetMap map and real MFDs.
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOW_OUT=$PWD/.shots/c3d -- \
@@ -65,6 +66,14 @@ func run() -> void:
 		if OS.get_environment("C3D_ONLY") == "panel":
 			await _panel(variant)
 			continue
+		if OS.get_environment("C3D_ONLY") == "down":  # the look-down at the free look's limit (views.gd pitch_min)
+			for h in [["lookdown", 0.0, -60.0], ["lookdown_l", -40.0, -60.0], ["lookdown_r", 40.0, -60.0]]:
+				tv.views.snap = Vector2(deg_to_rad(h[1]), deg_to_rad(h[2]))
+				await _settle()
+				await _shot("f16_%s_%s" % [variant, h[0]], 0.0)
+				await _body_cost(variant + " " + h[0])
+			tv.views.snap = null
+			continue
 		for h in HEADS.slice(1):
 			if OS.get_environment("C3D_ONLY") == "hud" and h[0] != "up":
 				continue
@@ -83,6 +92,29 @@ func run() -> void:
 		else:
 			await _target(variant)
 	settings().jet_id = -1
+
+
+## The pilot's body's GPU cost in this view (cockpit3d.gd, Settings.cockpit_pilot_body): the frame's GPU time (the
+## scene's and the cockpit's viewports) with the body shown and hidden, each the mean of 60 frames.
+func _body_cost(view: String) -> void:
+	var body := tv.cockpit_3d.find_child("f16_pilot", true, false) as Node3D
+	if body == null:
+		return
+	var vps := [tv.get_viewport().get_viewport_rid(), body.get_viewport().get_viewport_rid()]  # the scene, the cockpit's
+	for vp in vps:
+		RenderingServer.viewport_set_measure_render_time(vp, true)
+	var ms := []
+	for shown in [true, false, true, false]:
+		body.visible = shown
+		await frames(10)
+		var t := 0.0
+		for i in 60:
+			await frames(1)
+			for vp in vps:
+				t += RenderingServer.viewport_get_measured_render_time_gpu(vp)
+		ms.append(t / 60.0)
+	body.visible = true
+	print("BODY %s: GPU %.3f ms shown, %.3f ms hidden" % [view, (ms[0] + ms[2]) / 2.0, (ms[1] + ms[3]) / 2.0])
 
 
 ## C3D_SIM=1: a free flight (the sim has none of the original's missions) over its own theatre, in UTM metres:

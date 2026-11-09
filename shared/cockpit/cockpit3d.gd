@@ -115,6 +115,16 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 		return false
 	var n := Gltf.instance(m)
 	add_child(n)
+	# The pilot's body (<model>_pilot.glb, the F-16's: tools/f16d/pilot.py) in the model's frame, lit as the cockpit.
+	var body := path.get_basename() + "_pilot.glb"
+	if Settings.cockpit_pilot_body() and FileAccess.file_exists(body):
+		var pm = Gltf.open(body)
+		if pm != null:
+			var pilot := Gltf.instance(pm)
+			n.add_child(pilot)
+			# Casting, its rounded cloth shadowed itself in blotches (shadow acne at the sun's grazing angles).
+			for mi: MeshInstance3D in pilot.find_children("*", "MeshInstance3D", true, false):
+				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	meta = Settings.load_json(path.get_basename() + ".json")
 	_materials(n, path, Settings.airframe_id(type_code) == "f16")
 	var anims: Dictionary = meta.get("animations", {})
@@ -218,9 +228,12 @@ const BACKLIGHT_ENERGY := 0.7
 ## map pages' light grey land (the TSD's, the Sufa's HSD's) glared in the dark cockpit.
 const MFD_NIGHT := 0.3
 ## The materials under a dimmer fill (by their texture in the material's name): the tub's floor, walls and pedal area,
-## the air vents, the stick's grip: no panel. At the full fill the floor's speckle showed; with none (until 2026-11-02)
-## the footwell under the panel, which the sun does not reach, was a black void.
-const UNLIT := ["floor", "pedaladj", "base-color", "airvent", "rear-left", "marked-iron", "stick-color", "tranbg"]
+## the air vents, the stick's grip, the pilot's body (tools/f16d/pilot.py): no panel. At the full fill the floor's
+## speckle showed (and the flight suit glowed bright green); with none (until 2026-11-02) the footwell under the panel,
+## which the sun does not reach, was a black void.
+const UNLIT := [
+	"floor", "pedaladj", "base-color", "airvent", "rear-left", "marked-iron", "stick-color", "tranbg", "pilot_"
+]
 const TUB_FILL := 0.4
 ## The F-35I's colours (its baked atlas and plain colours) by <model>.json: by day each glows by its colour × the sun's
 ## × `day_fill` (the F-16's fill then, 1.3, made the dark grey paint twice as light as its panel render,

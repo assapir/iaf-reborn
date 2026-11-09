@@ -608,6 +608,12 @@ occlusion, 1.8 MB; built by
   the head's less 12° without the original's floor (`FUN_00585270`: 0.1·(|yaw| − 90°), so −9° looking ahead), so the
   pilot can look down at the MFDs and consoles. The F-key and Numpad snap views (docs/views.md §2) set the head's yaw
   and pitch the same way, so in the 3D cockpit they are head poses: the camera turns, no panel pans.
+* **Looking down at the pilot** (Modern IAF, `Settings.cockpit_pilot_body()`, 2026-11-09;
+  iaf-2026/docs/cockpit.md §5.3): at the head's lowest the camera looks 72° down. Modern IAF shows the pilot's body
+  there, FlightGear's internal-view pilot (`f16_pilot.glb`): the legs to the rudder pedals, the right hand on the
+  stick, the left on the throttle; the head bends forward over it (`LOOK_DOWN_LEAN`). The original game shows no
+  body: looking down it sees the seat's well, the cut model's seat and, standing in the well as a black slab, the
+  rear cockpit's footwell (open: for later).
 * **A cockpit dir with no panel art** (Modern IAF; `tests/godot/test_cockpit_no_panel.gd`): a
   `cockpit.json` without the art's `FileName` keys loads no panel bitmap, lamps, HUD glass, tapes or ADI ball, and
   with the 3D cockpit on nothing else needs them: the 3D cockpit draws the MFDs, the HUD, the RWR scope and the
