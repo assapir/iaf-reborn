@@ -62,6 +62,28 @@ const BOUNCE_SIN := 0.64
 ## Atmospheric sky: the haze's scale height (m; the shader's Mie scale height). The fog's density is the sea level's
 ## times the mean over the air below the camera, so from altitude the ground stays clear (haze_factor()).
 const HAZE_HEIGHT := 1500.0
+## Sky "levant" (docs/rendering.md §1.2, docs/deviations.md): the Atmospheric sky tuned toward a dusty Levant summer
+## (the look study's Epic Fury reference): the sky shader's values (a darker sky and a deeper blue up high, the haze in
+## a thinner layer with its own long path near the horizon, and its warm dust), the haze's scale height for
+## haze_factor() too.
+const LEVANT := {
+	"exposure": 0.6,
+	"air_depth": Vector3(0.025, 0.09, 0.5),
+	"max_air_mass": 4.0,
+	"haze_depth": 0.06,
+	"haze_height": 800.0,
+	"haze_mass": 40.0,
+	"dust": Vector3(5.5, 4.5, 2.8),
+}
+## Sky Levant: the haze over the ground takes this share of the sky's colour (aerial perspective; the Atmospheric
+## sky's: 1), the rest the fog's own colour, levant_fog(): Godot takes the sky's colour from its radiance blurred by
+## the distance, so a far hill's haze is the whole sky's average blue, whatever the horizon's colour.
+const LEVANT_AERIAL := 0.3
+## Sky Levant: the haze's own colour, LEVANT_FOG_GAIN × the ground's warm bounce (bounce()), so it dims and reddens
+## with the sun.
+const LEVANT_FOG_GAIN := 0.8
+## The haze's scale height in use: HAZE_HEIGHT, or LEVANT's.
+static var haze_height := HAZE_HEIGHT
 ## Atmospheric sky's auto-exposure: the 3D scene's mean luminance (Godot's: the mean of each pixel's brightest
 ## channel; ≈ 1 by day, the blue sky's) that keeps the exposure at 1, and the factor either way it may adapt by (to
 ## 1 / RANGE … RANGE). Godot's default speed (0.5: about 2 s) eases a glance from the sky to the ground in.
@@ -115,7 +137,7 @@ static func apply(vp: Viewport, env: Environment) -> void:
 		RenderingServer.global_shader_parameter_set("terrain_surface", null)
 		_surf_tex = null
 		_surf_img = null
-	_apply_sky(env, Settings.sky == "atmospheric", vp.find_world_3d().camera_attributes)
+	_apply_sky(env, Settings.sky, vp.find_world_3d().camera_attributes)
 
 
 ## The 3D scaling mode at `scale`: the temporal upscaler with anti-aliasing "temporal"; else bilinear at native and the
@@ -145,9 +167,12 @@ static func temporal_name() -> String:
 ## "Atmospheric": a physically based sky (terrain/atmosphere.gdshader: Rayleigh / Mie scattering with multiple
 ## scattering, the sun's disc and glare), the ambient light from that sky and the ground's bounce (SKY_*), the
 ## distance haze taken from it (aerial perspective, sun scatter), thinning with the camera's altitude (update_view),
-## and a bounded auto-exposure (EXPOSURE_*). No glow (bloom): 3 ms on an Iris Xe for little. Off: the gradient sky as
-## before.
-static func _apply_sky(env: Environment, on: bool, attrs: CameraAttributes) -> void:
+## and a bounded auto-exposure (EXPOSURE_*). No glow (bloom): 3 ms on an Iris Xe for little. "levant": the same with
+## LEVANT's values. "original": the gradient sky as before.
+static func _apply_sky(env: Environment, sky_mode: String, attrs: CameraAttributes) -> void:
+	var on := sky_mode != "original"
+	var levant := sky_mode == "levant"
+	haze_height = LEVANT.haze_height if levant else HAZE_HEIGHT
 	var keys := ["sky", "fog_aerial_perspective", "fog_sun_scatter", "ambient_light_sky_contribution", "fog_density"]
 	if not env.has_meta("original_sky"):
 		var o := {}
@@ -175,6 +200,10 @@ static func _apply_sky(env: Environment, on: bool, attrs: CameraAttributes) -> v
 	env.fog_aerial_perspective = 1.0
 	env.fog_sun_scatter = 0.1
 	env.ambient_light_sky_contribution = SKY_SHARE
+	if levant:
+		for k in LEVANT:
+			mat.set_shader_parameter(k, LEVANT[k])
+		env.fog_aerial_perspective = LEVANT_AERIAL
 
 
 ## Atmospheric sky: the ambient light's own colour, BOUNCE times the sun's light (`color`, `energy`) on level ground,
@@ -187,10 +216,18 @@ static func bounce(color: Color, energy: float, sin_elev: float) -> Color:
 	return c
 
 
-## The mean of the haze's density (exp(−h / HAZE_HEIGHT)) over the air from sea level up to `alt` m, over its sea
-## level's: 1 on the ground, 0.3 at 5000 m.
+## Sky Levant: the haze's own colour by day from the ground's bounce `b` (bounce(); terrain_view.gd sets the fog's
+## colour with it in place of the original's).
+static func levant_fog(b: Color) -> Color:
+	var c := b * LEVANT_FOG_GAIN
+	c.a = 1.0
+	return c
+
+
+## The mean of the haze's density (exp(−h / haze_height)) over the air from sea level up to `alt` m, over its sea
+## level's: 1 on the ground, 0.3 at 5000 m (Levant: 0.16).
 static func haze_factor(alt: float) -> float:
-	var x := maxf(alt, 1.0) / HAZE_HEIGHT
+	var x := maxf(alt, 1.0) / haze_height
 	return (1.0 - exp(-x)) / x
 
 

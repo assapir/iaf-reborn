@@ -281,6 +281,7 @@ var _tod_sun := {}
 var _tod_colors := {}
 var _tod_cockpit_set := false
 var _tod_atmo = null  # the sky RenderOptions applied (atmospheric or not), null = not yet
+var _levant_fog := Color(0, 0, 0, 0)  # Sky Levant by day: the haze's own colour (RenderOptions.levant_fog); a = 0: none
 ## The smoke trails (shared/mission/trails.gd); null with Graphics SMOKE TRAILS off.
 var trails: Node3D
 ## The player's jet was fatally hit (unit state 3, FUN_004a8100): controls gone, going down.
@@ -505,9 +506,9 @@ func apply_render_options() -> void:
 	Airbases.apply()
 	GroundRoads.apply()
 	if clouds != null:
-		clouds.set_atmospheric(Settings.sky == "atmospheric")
+		clouds.set_atmospheric(Settings.sky != "original")
 	_tod_t = -INF
-	_tod_atmo = Settings.sky == "atmospheric"
+	_tod_atmo = Settings.sky != "original"
 
 
 ## The time of day (s since midnight): the mission's start time (misc 0x460) + the mission clock; without a mission
@@ -543,7 +544,7 @@ func _update_time_of_day(cam: Camera3D) -> void:
 			DirectionalLight3D.SKY_MODE_LIGHT_ONLY if _tod_sun.night else DirectionalLight3D.SKY_MODE_LIGHT_AND_SKY
 		)
 		sun.shadow_enabled = Settings.shadows and _tod_sun.shadows
-		var atmo: bool = Settings.sky == "atmospheric" and not _tod_sun.night
+		var atmo: bool = Settings.sky != "original" and not _tod_sun.night
 		# Atmospheric: the ambient from that sky and the ground's bounce (render_options.gd); else the original's factor.
 		env.ambient_light_energy = RenderOptions.SKY_AMBIENT if atmo else float(_tod_sun.ambient) / 0.6
 		if NightLights.detailed():
@@ -554,18 +555,24 @@ func _update_time_of_day(cam: Camera3D) -> void:
 			clouds.set_tint(TimeOfDay.NIGHT_LIGHT if _tod_sun.night else Color.WHITE)
 		if atmo != _tod_atmo:
 			_tod_atmo = atmo
-			RenderOptions._apply_sky(env, atmo, get_world_3d().camera_attributes)
+			RenderOptions._apply_sky(env, Settings.sky if atmo else "original", get_world_3d().camera_attributes)
 			Weather.apply_env(env, sun)
+		_levant_fog = Color(0, 0, 0, 0)
 		if atmo:
 			var b := RenderOptions.bounce(sun.light_color, float(sun.get_meta("dry_energy", sun.light_energy)), -d.z)
 			Weather.set_dry_ambient(env, b)
+			if Settings.sky == "levant":
+				_levant_fog = RenderOptions.levant_fog(b)
 		var mat = env.sky.sky_material if env.sky != null else null
 		if mat is ProceduralSkyMaterial and not _tod_colors.is_empty():
 			mat.sky_top_color = Weather.fog_tint(_tod_colors.sky)  # the overcast in the rain
 	if cam == null or _tod_sun.is_empty():
 		return
 	var f: Vector3 = -cam.global_basis.z
-	var fog := Weather.fog_tint(TimeOfDay.fog(_tod_colors, rad_to_deg(atan2(f.x, -f.z)), float(_tod_sun.sun_az)))
+	var fog := _levant_fog
+	if fog.a == 0.0:
+		fog = TimeOfDay.fog(_tod_colors, rad_to_deg(atan2(f.x, -f.z)), float(_tod_sun.sun_az))
+	fog = Weather.fog_tint(fog)
 	env.fog_light_color = fog
 	# Writing the sky material re-renders the sky's radiance (the ambient light) that frame: ≈ 1–4 ms on an Iris Xe,
 	# so only when the colour changed by more than an 8-bit step (turning), not every frame.

@@ -44,6 +44,12 @@ func run() -> void:
 		tv = current_scene
 	await frames(2)
 	check(bases._on, "Ramon: the airbase surface is on")
+	# Sky Levant (docs/rendering.md §1.2): the Atmospheric sky with the dusty summer's values.
+	var env: Environment = tv.get_node("WorldEnvironment").environment
+	var sky_mat = env.sky.sky_material if env.sky != null else null
+	var ro: GDScript = load("res://shared/terrain/render_options.gd")
+	var haze = sky_mat.get_shader_parameter("haze_height") if sky_mat is ShaderMaterial else null
+	check(haze == ro.LEVANT.haze_height, "the sky is Levant's (haze height %s)" % haze)
 	# The cockpit in its own world about the origin (cockpit_origin.gd, the Mac play test's finding 25), its eye where
 	# the flight camera sits in the rig.
 	var co = tv.cockpit_origin

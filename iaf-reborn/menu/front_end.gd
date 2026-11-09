@@ -233,7 +233,7 @@ const EXTRAS := [
 	],
 	["upscaling", "Upscaling", [["Native", "off"], ["Quality", "quality"], ["Balanced", "balanced"]]],
 	["terrain_closeup", "Terrain close up", [["Original", false], ["Detailed", true]]],
-	["sky", "Sky", [["Original", "original"], ["Atmospheric", "atmospheric"]]],
+	["sky", "Sky", [["Original", "original"], ["Atmospheric", "atmospheric"], ["Levant", "levant"]]],
 	["night_lights", "Night lights", [["Original", "original"], ["Detailed", "detailed"]]],
 	["night_vision", "Night vision (Shift+N)", [["Off", false], ["Goggles", true]]],
 	["water", "Water", [["Original", false], ["Detailed", true]]],

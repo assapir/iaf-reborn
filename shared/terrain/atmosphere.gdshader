@@ -2,7 +2,7 @@
 // and the camera's altitude, plus a fitted multiple-scattering term (below). Single scattering in the form L = E · sun · [P_R(μ)·(1 − e^(−τ_R·m)) +
 // P_M(μ)·(1 − e^(−τ_M·m))], m the air mass along the view (Kasten-Young, capped), τ_R the air's (Rayleigh)
 // optical depth per channel and τ_M the haze's (Mie, Henyey-Greenstein phase), both thinning with altitude
-// (scale heights 8 km / 1.5 km). The τ_R are tuned, not the λ⁻⁴ values: single scattering alone gives a pale
+// (scale heights 8 km / haze_height 1.5 km). The τ_R are tuned, not the λ⁻⁴ values: single scattering alone gives a pale
 // cyan zenith and a white horizon 7× brighter, which the AgX tonemapper turns grey; these give the photographs'
 // deep blue zenith (≈ the gradient sky's top colour), a pale horizon ≈ 2–3× brighter, and a darker zenith at
 // altitude. Below the horizon the colour is the horizon's: the fog takes the sky's colour along the view
@@ -15,6 +15,12 @@ uniform float exposure = 1.3;
 uniform vec3 air_depth = vec3(0.045, 0.13, 0.6);
 uniform float haze_depth = 0.12;
 uniform float haze_g = 0.75;
+// The haze's scale height (m). Sky Levant (render_options.gd LEVANT) also gives the haze an air mass of its own, a
+// thin layer's long path near the horizon (1 / (sin e + 1 / haze_mass); 0: the air's), and dust: an isotropic term,
+// its colour per channel (warm: the dust takes the blue), which lays a warm band low on the horizon.
+uniform float haze_height = 1500.0;
+uniform float haze_mass = 0.0;
+uniform vec3 dust = vec3(0.0);
 // The air mass along the view is capped here (keeps the horizon pale blue, not white).
 uniform float max_air_mass = 6.0;
 // The sunlight's optical depths for its reddening (vertical, per channel), through its air mass beyond the
@@ -52,7 +58,7 @@ void sky() {
 	// fade to sea level's by 6° down.
 	float alt = altitude * (1.0 - smoothstep(0.0, -0.1, EYEDIR.y));
 	vec3 tau_air = air_depth * exp(-alt / 8000.0);
-	float tau_haze = haze_depth * exp(-alt / 1500.0);
+	float tau_haze = haze_depth * exp(-alt / haze_height);
 	// Away from a low sun the sky stays blue-grey (ozone's absorption of the orange light and the scattering near
 	// the camera, fitted): the path is shorter there.
 	float sun_path = (air_mass(s.y) - 1.0) * (1.0 - 0.6 * sqrt(v.y)) * (0.2 + 0.4 * (1.0 + mu));
@@ -64,7 +70,9 @@ void sky() {
 	float phase_air = 0.75 * (1.0 + mu * mu);
 	float phase_haze = 0.25 * (1.0 - g2) / pow(1.0 + g2 - 2.0 * haze_g * mu, 1.5);
 	vec3 ext = 1.0 - exp(-tau_air * m);
-	vec3 col = exposure * sun * (phase_air * ext + phase_haze * (1.0 - exp(-tau_haze * m)));
+	float mh = haze_mass > 0.0 ? 1.0 / (v.y + 1.0 / haze_mass) : m;
+	float ext_haze = 1.0 - exp(-tau_haze * mh);
+	vec3 col = exposure * sun * (phase_air * ext + (phase_haze + 0.25 * dust) * ext_haze);
 	// Multiple scattering: isotropic, from the light the air scatters on a slant path (air mass 2) and the
 	// atmosphere's lighting by the sun's height (a lower sun lights less of it); it fills the 90° band the Rayleigh
 	// phase leaves dark, and at sunset takes the reddened sun's colour (pink-violet away from the sun).

@@ -346,6 +346,37 @@ Measured 2026-11-08 at Ein Bokek, 300 m behind the jet over the Dead Sea shore (
 off alone; with the grain off alone it stayed. The deeper colour (c² / luminance) of a pale beige is orange, and the
 2 m photo needs no made-up patches. The original game's picture at the same settings is unchanged, pixel for pixel.
 
+## 14. The sky and the horizon haze
+
+The sim's profile flies the shared Sky row's Levant value (docs/rendering.md §1.2 "Sky Levant", 2026-11-09, the
+look study's proposal 4): the Atmospheric sky with a deeper blue up high, a warm haze band low on the horizon, and the
+far land's haze warm brown-grey in place of a cool blue-white. The original game keeps its own Sky row's default.
+
+Measured at the look study's Shoham pose (`--at 672750 3537452 240 100 0 --freeze`, heading 100°, the sim's defaults,
+`tests/godot/_imagery_shot.gd` with `SHOT_SCENERY=on`, 1920 × 994). Each value is the mean sRGB of a box: up high is
+500 × 30 px at the frame's top (about 28° above the horizon), above the horizon is 500 × 12 px just above it, and the
+haze band is 500 × 12 px over the far hills just below it. The reference (the study's Epic Fury picture, 1920 × 1089,
+mostly cloudy up high) is sampled in a blue gap at its top left, and in 300 px boxes above and below its horizon.
+
+| Hour | Up high, before → after | Above the horizon, before → after | Haze band, before → after |
+|---|---|---|---|
+| 07:00 | 182, 201, 218 → 154, 169, 196 | 180, 199, 215 → 193, 191, 199 | 142, 158, 185 → 139, 130, 127 |
+| 12:00 | 158, 192, 224 → 143, 164, 203 | 163, 195, 224 → 186, 190, 208 | 160, 168, 187 → 169, 157, 145 |
+| 16:58 | 169, 200, 227 → 148, 172, 208 | 177, 206, 228 → 188, 195, 213 | 155, 165, 187 → 159, 147, 138 |
+| Reference, 16:58 | 118, 127, 142 | 186, 190, 197 | 116, 112, 101 |
+
+The haze band turned from blue (blue 185–187) to warm grey (red above blue), and the sky above the horizon from blue
+to a pale, warm grey close to the reference's. The sky up high is deeper (blue over red 1.4 in place of 1.2–1.3).
+The reference's haze band is darker and browner: its ground is darker, and its sky is overcast up high (open: a
+darker haze would need the ground's colours too).
+
+| Hour | Before | After |
+|---|---|---|
+| 07:00 | ![07:00 before](pictures/sky/shoham_0700_before.jpg) | ![07:00 after](pictures/sky/shoham_0700_after.jpg) |
+| 12:00 | ![12:00 before](pictures/sky/shoham_1200_before.jpg) | ![12:00 after](pictures/sky/shoham_1200_after.jpg) |
+| 16:58 | ![16:58 before](pictures/sky/shoham_1658_before.jpg) | ![16:58 after](pictures/sky/shoham_1658_after.jpg) |
+
+
 [^dem]: ESA, "Copernicus DEM: Product Handbook" and the collection description, https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM
 [^dem-licence]: "Licence for the use of the Copernicus WorldDEM-30", Article 6, read 2026-11-02, https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/DEM/resources/license/License-COPDEM-30.pdf
 [^dem-aws]: Registry of Open Data on AWS, "Copernicus Digital Elevation Model (DEM)", https://registry.opendata.aws/copernicus-dem/

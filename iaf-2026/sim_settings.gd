@@ -14,7 +14,7 @@ extends "res://shared/settings.gd"
 ## (_apply_profile). No aids: the original Gameplay page's switches are off (the user, 2026-11-08).
 const PROFILE := {
 	"airbases": "detailed",
-	"sky": "atmospheric",
+	"sky": "levant",
 	"terrain_closeup": true,
 	"water": true,
 	"night_lights": "detailed",

@@ -25,7 +25,7 @@ TAA = temporal anti-aliasing, FSR = AMD FidelityFX Super Resolution.
 | Anti-aliasing | MSAA 4x / + FXAA / TAA / FSR 2 | MSAA 4x: viewport `msaa_3d` 4× (the project's setting since the start). + FXAA: also `screen_space_aa` FXAA, which softens the shader / texture edges that MSAA misses. TAA: `use_taa` in place of MSAA; it resolves sub-pixel shimmer over time (thin runway lines, distant wires), is a little softer and may ghost in fast rolls. FSR 2 (MetalFX on Metal): the temporal upscaler anti-aliases the 3D scene, in place of MSAA and TAA, at the Upscaling row's scale (§1.7) |
 | Upscaling | Native / Quality / Balanced | the 3D scene's render scale: Native 1.0; Quality 0.77; Balanced 0.67 of the window. With Anti-aliasing MSAA 4x / + FXAA / TAA a spatial upscaler scales it up: MetalFX spatial on Metal, FSR 1 on other drivers (`render_options.gd upscale_mode()`), and the Anti-aliasing row still applies. With Anti-aliasing FSR 2 the temporal upscaler does it (FSR 2.2, MetalFX temporal on Metal), at Native as anti-aliasing only (§1.7). The 2D cockpit, HUD and MFDs are canvas items, drawn after the upscale at the window's resolution. Godot lowers the texture mip bias by log2(scale). Spatial saves 0.6 ms (Quality) / 1.4 ms (Balanced) at 4K today, 4.6 / 6.3 ms with SSAO + SSIL; Balanced breaks one-pixel 3D lines into dots (docs/graphics-research.md §3.10) |
 | Terrain close up | Original / Detailed | 16× anisotropic filtering (default 4×) for the grazing view of the ground, and in `terrain.gdshader` detail that follows the imagery, with a weight k fading from 1 at 300 m to 0 at 1.5 km (§1.1) |
-| Sky | Original / Atmospheric | Original: our gradient sky (ProceduralSkyMaterial) with the fixed fog colour. Atmospheric (by day; at night the Original sky): `atmosphere.gdshader`, a clear-day sky computed from the sun's direction and the camera's altitude. The fog takes its colour from the sky (`fog_aerial_perspective` 1, `fog_sun_scatter` 0.1) and keeps its density (the original's fog distances). The ambient light is that sky's, and a bounded auto-exposure adapts the 3D view by at most 1.25× either way (§1.2). The cloud layer shows separate clouds (§1.2). Glow / bloom is off (it cost 3 ms) |
+| Sky | Original / Atmospheric / Levant | Original: our gradient sky (ProceduralSkyMaterial) with the fixed fog colour. Atmospheric (by day; at night the Original sky): `atmosphere.gdshader`, a clear-day sky computed from the sun's direction and the camera's altitude. The fog takes its colour from the sky (`fog_aerial_perspective` 1, `fog_sun_scatter` 0.1) and keeps its density (the original's fog distances). The ambient light is that sky's, and a bounded auto-exposure adapts the 3D view by at most 1.25× either way (§1.2). The cloud layer shows separate clouds (§1.2). Glow / bloom is off (it cost 3 ms). Levant: the Atmospheric sky toward a dusty Levant summer, a warm haze band low on the horizon (§1.2 "Sky Levant") |
 | Night lights | Original / Detailed | Original: the original's light points (§4). Detailed: glowing lights, the home airbases lit at night, the jets' navigation lights and strobe, stars, a moon and moonlight (§5), the towns' lights from the scenery's buildings (§5.1) |
 | Night vision (Shift+N) | Off / Goggles | Goggles: Shift+N in flight puts the night-vision goggles on and off: the 3D view turns into a green image-intensified picture, the cockpit stays as it is (§8) |
 | Water | Original / Detailed | in `terrain.gdshader`: waves, sun glint and the sky's reflection on the sea and on lakes (§1.3) |
@@ -181,6 +181,30 @@ sky follows `LIGHT0_DIRECTION`.
 
 The art pipeline stays 4× Lanczos everywhere; nothing uses AI upscaling. The canopy frame and the HUD (head-up
 display) are the 2D cockpit art, so the 3D anti-aliasing does not touch them.
+
+**Sky Levant** (2026-11-09; the Sky row's third value, Modern IAF's profile; the look study's proposal 4). The
+Atmospheric sky with `RenderOptions.LEVANT`'s shader values, toward a dusty Levant summer as in the study's Epic
+Fury reference (a deeper blue overhead, a warm brown-grey haze low on the horizon over the far hills):
+
+- the air's τ_R (0.025, 0.09, 0.5) in place of (0.045, 0.13, 0.6), the sky's `exposure` 0.6 in place of 1.3 and
+  the air mass capped at 4 in place of 6: a deeper blue up high and a less blue-white horizon (the auto-exposure
+  lifts the scene by at most 1.25×, so the sky stays darker than before against the ground; `exposure` 1.1 and 0.9, tried first, changed
+  nothing visible: the auto-exposure made up for them);
+- the haze thinner (τ_M 0.06) in a thinner layer (scale height `haze_height` 800 m, also `haze_factor`'s: 0.16 of
+  the fog's density at 5000 m), with an air mass of its own, `1 / (sin e + 1 / haze_mass)` (`haze_mass` 40: a thin
+  layer's long horizontal path), so its scattering grows steeply in the last few degrees above the horizon;
+- `dust` (5.5, 4.5, 2.8): an isotropic scattering term on that haze, `0.25 · dust · (1 − e^(−τ_M·m_h))`, warm
+  (the dust takes the blue), which lays a pale warm band low on the horizon in every azimuth (the Henyey-Greenstein
+  term alone glows only toward the sun);
+- the haze over the ground 0.3 of the sky's colour (`fog_aerial_perspective` `LEVANT_AERIAL` 0.3) and the rest the
+  fog's own colour, `RenderOptions.levant_fog()`: `LEVANT_FOG_GAIN` 0.8 × the ground's warm bounce (`bounce()`), so it
+  dims and reddens with the sun. `terrain_view.gd` sets it by day in place of the original's fog colours. Godot
+  takes the sky's colour for the fog from its radiance blurred by the distance, so with the sky's colour alone a far
+  hill's haze is the whole sky's average blue, whatever the horizon's colour (tried first, 2026-11-09: the dust term
+  warmed the horizon's band but left the far land (159, 165, 186)).
+
+All constants: no frame cost. Measured colours at the study's Shoham pose, before / after and the reference's:
+[iaf-2026/docs/terrain.md §14](../iaf-2026/docs/terrain.md#14-the-sky-and-the-horizon-haze).
 
 ### 1.3 Water
 

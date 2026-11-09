@@ -238,7 +238,7 @@ var rocker_trim := false
 ## anti-aliasing "msaa4" (as before) / "msaa4_fxaa" / "taa" (TAA instead of MSAA) / "temporal" (the temporal upscaler
 ## anti-aliases: FSR 2.2, MetalFX temporal on Metal; at the Upscaling row's scale); the terrain close up (detail
 ## texture, normal detail, 16× anisotropic filtering); the sky "original" (gradient) or "atmospheric" (physical
-## scattering, sun disc).
+## scattering, sun disc) or "levant" (the same, tuned toward a dusty Levant summer).
 var antialiasing := "msaa4"
 var terrain_closeup := false
 var sky := "original"

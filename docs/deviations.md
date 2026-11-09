@@ -417,6 +417,12 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     a low sun, darker where thick; rendering.md §2), dark blue-grey at night. The original's cloud texture choice (one of six per
     mission, Cloud256_5 nearly overcast) is kept. The sky follows the time of day's sun (rendering.md §4); at night
     the gradient sky is drawn.
+    Sky: Levant (2026-11-09, the look study's proposal 4; Modern IAF's profile picks it) = the Atmospheric sky tuned
+    toward a dusty Levant summer, as in the study's Epic Fury reference: a slightly deeper blue up high, the haze in
+    a thinner layer (scale height 800 m) with its own long path near the horizon and a warm dust term, so a pale
+    warm band lies low on the horizon, and the haze over the far land warm brown-grey (most of the fog's colour
+    from the ground's bounce in place of the original's blue fog colours). Constants only, no frame cost
+    (rendering.md §1.2 "Sky Levant").
 - **Upscaling** (ours, docs/rendering.md). Rendering only; the default is Native (the 3D scene at the window's
   resolution).
   - Quality renders the 3D scene at 0.77 of the window, Balanced at 0.67. MetalFX spatial scales it up (FSR 1 on
