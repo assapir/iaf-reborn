@@ -885,7 +885,7 @@
  },
  {
   "name": "cockpit3d_ahead",
-  "caption": "The 3D cockpit looking ahead: the HUD and the upper panel",
+  "caption": "The 3D cockpit looking ahead: the HUD and the whole front panel",
   "mission": 231,
   "jet": -1,
   "settings": {
