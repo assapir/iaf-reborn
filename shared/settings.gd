@@ -168,8 +168,9 @@ var speech_volume := 1.0
 ## Graphics page: the defaults the original's hardware detection gives a top-tier machine (FUN_00402510 /
 ## FUN_00402330; docs/deviations.md): TERRAIN DETAIL (det − 1) · 0.25 = 1.0 (the ctor's 0.75 before it).
 var terrain_detail := 1.0
-## The HUD symbols' day brightness, 0..1 (Modern IAF's Preferences → Graphics "HUD brightness", hud_daylight; the key
-## Change HUD colour steps it in eighths). The original game has no such row and never reads it.
+## The HUD symbols' day brightness, 0..1 (Modern IAF, hud_daylight): the F-16's SYM wheel (cockpit_controls) and the key
+## Change HUD colour set it; stored like a physical knob's position, with no Preferences row. The original game never
+## reads it.
 var hud_brightness := 1.0
 var object_detail := 1.0
 var visual_effects := 1.0
@@ -536,6 +537,7 @@ func settings_of(keys: Array) -> Dictionary:
 
 
 var _applied_fullscreen := false
+var _applied_vsync = null  # null: not applied yet
 
 
 ## The boot splash (project.godot: the English back0) follows the language: Godot reads override.cfg
@@ -570,7 +572,11 @@ func apply_display() -> void:
 			DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
 		)
 	# Off = uncapped: Mailbox (no tearing) where the platform offers it (Wayland has no Disabled mode),
-	# else Disabled.
+	# else Disabled. Only on a change too: setting the mode rebuilds the swapchain, and save() runs in flight
+	# (the SYM wheel's every step, Ctrl+F12).
+	if vsync == _applied_vsync:
+		return
+	_applied_vsync = vsync
 	if vsync:
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED)
 	elif DisplayServer.get_name() == "Wayland":
@@ -1081,6 +1087,13 @@ func hud_subpixel() -> bool:
 ## stroke, the combiner glass at 14 % with a cool tint; the HUD key steps the brightness. Modern IAF. The original game
 ## keeps its eleven colours from the darkest green (the global 0x82f4c4), drawn over the scene, and its 7 % glass.
 func hud_daylight() -> bool:
+	return false
+
+
+## The 3D cockpit's controls answer the mouse (shared/cockpit/cockpit3d_controls.gd, iaf-2026/docs/cockpit.md §5.1):
+## hovering one lights it, a click, a drag or the wheel works it through the key commands. Modern IAF. The original
+## game's 3D cockpit takes clicks on its MFD push buttons only.
+func cockpit_controls() -> bool:
 	return false
 
 

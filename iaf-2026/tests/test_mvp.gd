@@ -451,8 +451,56 @@ func _hud_light(tv: Node, jet: String) -> void:
 		own != null or glass != null and is_equal_approx(glass.material_override.albedo_color.a, 0.14),
 		"%s: the combiner glass at 14 %% (the F-35I: none)" % jet
 	)
+	_sym_wheel(tv, jet, own == null)
 	settings().hud_brightness = level
 	cp.daylight = light
+
+
+## The F-16s' SYM wheel (cockpit3d_controls.gd, f16_controls.json): hovering lights it, the mouse wheel and a drag on
+## it turn it through the HUD key's command, the HUD's level follows, the knob turns and the settings file keeps it.
+## The events go in at the window (the cockpit's own world: cockpit_origin.gd passes them on). The F-35I: no table,
+## no layer.
+func _sym_wheel(tv: Node, jet: String, f16: bool) -> void:
+	var c3d = tv.cockpit_3d
+	var layer = c3d.clickable if c3d != null else null
+	check((layer != null) == f16, "%s: the 3D cockpit's clickable controls (%s)" % [jet, layer])
+	if layer == null:
+		return
+	var knob: MeshInstance3D = c3d.find_child("SYM", true, false)
+	var vp: Viewport = tv.get_viewport()  # the window's: the events take the flight's own path to the cockpit
+	var at: Vector2 = c3d.camera.unproject_position(knob.global_transform * knob.get_aabb().get_center())
+	var hover := InputEventMouseMotion.new()
+	hover.position = at
+	vp.push_input(hover)
+	check(knob.material_overlay != null, "%s: hovering the SYM wheel lights it (at %s)" % [jet, at])
+	settings().hud_brightness = 0.5
+	c3d._process(0.0)
+	var rest := knob.transform.basis
+	vp.push_input(_click(at, MOUSE_BUTTON_WHEEL_UP, true))
+	check(is_equal_approx(settings().hud_brightness, 0.525), "%s: the wheel up on it: +2.5 %%" % jet)
+	vp.push_input(_click(at, MOUSE_BUTTON_LEFT, true))
+	var drag := InputEventMouseMotion.new()
+	drag.position = at
+	drag.relative = Vector2(0, -20)
+	drag.button_mask = MOUSE_BUTTON_MASK_LEFT
+	vp.push_input(drag)
+	vp.push_input(_click(at, MOUSE_BUTTON_LEFT, false))
+	check(is_equal_approx(settings().hud_brightness, 0.575), "%s: a 20 px drag up: two more steps" % jet)
+	c3d._process(0.0)
+	check(not knob.transform.basis.is_equal_approx(rest), "%s: the SYM wheel turned" % jet)
+	var kept := float(settings().write_config().get_value("graphics", "hud_brightness"))
+	check(kept == settings().hud_brightness, "%s: the settings file keeps the wheel's level (%s)" % [jet, kept])
+	hover.position = Vector2.ZERO
+	vp.push_input(hover)
+	check(knob.material_overlay == null, "%s: off the wheel, unlit" % jet)
+
+
+static func _click(at: Vector2, button: MouseButton, pressed: bool) -> InputEventMouseButton:
+	var e := InputEventMouseButton.new()
+	e.position = at
+	e.button_index = button
+	e.pressed = pressed
+	return e
 
 
 ## The heading error to `p` from the jet, degrees (−180, 180]; positive: `p` to the right.

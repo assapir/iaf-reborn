@@ -46,7 +46,9 @@ Made by `tools/f16d/cockpit3d.py` (re-runnable; docs/cockpit.md "3D cockpit"):
    black, its six round buttons kept whole, 2026-11-09); the consoles and the throttle (2026-11-02)
    their flat faces merged (a planar decimation within 3°), only their parts over 1,600 triangles decimated to 40 %.
 4. FlightGear's lamps and off flags hidden as on a powered jet with every lamp off; the needles FlightGear animates
-   and the game drives made separate nodes on their hinges, with FlightGear's value tables in `f16.json`.
+   and the game drives made separate nodes on their hinges, with FlightGear's value tables in `f16.json`. The ICP's SYM
+   wheel (2026-11-09) is one, the node `SYM`, the first of the clickable controls in `f16_controls.json` (ours: the
+   game's bindings, no FlightGear data).
 5. The DED's and PFD's canvas placeholders replaced by a dark screen (the game draws into them); the rudder pedals made black.
 6. Textures larger than 2048 px halved (none: the console sheets, 1024 x 2048, kept whole since 2026-11-02); all re-encoded as KTX2 (Basis Universal); the Block 40 panel sheet as WebP.
 7. An altimeter added (FlightGear's comes from FGData, outside the package): the ASI's mount and dial plate copied

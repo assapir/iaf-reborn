@@ -11,7 +11,9 @@
 #     (cockpit.hud_clip);
 #   - the HUD masked by no glass when the model has none (a helmet display);
 #   - the needles the model animates turn with the cockpit state, by the source's value mappings (<model>.json);
-#   - a click on an MFD's push button presses it (mfd.gd press), one on the panoramic display taps it (pcd.gd click).
+#   - a click on an MFD's push button presses it (mfd.gd press), one on the panoramic display taps it (pcd.gd click);
+#   - with Settings.cockpit_controls, the knobs and switches of <model>_controls.json answer the mouse
+#     (cockpit3d_controls.gd).
 extends Node3D
 
 const Gltf := preload("res://shared/util/gltf.gd")
@@ -44,6 +46,10 @@ const SCREEN_SHADER := preload("res://shared/cockpit/cockpit3d_screen.gdshader")
 
 var cockpit: Control
 var camera: Camera3D
+## The key path's command runner (terrain_view.gd _press): the clickable controls send through it.
+var command: Callable
+## The clickable controls' layer (cockpit3d_controls.gd), null without Settings.cockpit_controls or a table.
+var clickable: Node
 ## The stick as the flight model holds it (terrain_view.gd's parts_in: stick_x, stick_y), for the stick's animation.
 var controls := {}
 ## f16.json: the eye (FlightGear's pilot view) and the animated nodes' records.
@@ -136,7 +142,15 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 	cockpit.hud_clip = PackedVector2Array()
 	_setup_instruments(n)
 	_setup_light(n)
+	var table := path.get_basename() + "_controls.json"
+	if Settings.cockpit_controls() and FileAccess.file_exists(table):
+		clickable = Controls.new()
+		add_child(clickable)
+		clickable.setup(n, Settings.load_json(table))
 	return true
+
+
+const Controls := preload("res://shared/cockpit/cockpit3d_controls.gd")
 
 
 ## FlightGear's materials made matte (its ALS shading has little specular; ours at 0.5 greys the black parts under a
@@ -669,6 +683,8 @@ func _prop(p: String) -> float:
 			return -float(controls.get("stick_y", 0.0))  # FlightGear's elevator: + pushes (stick_y: + pulls)
 		"controls/flight/aileron":
 			return float(controls.get("stick_x", 0.0))
+		"f16/avionics/hud-sym":  # the SYM wheel (FlightGear's 0..1 symbology brightness)
+			return Settings.hud_brightness
 	if p.begins_with("consumables/fuel/total-fuel-lbs-"):
 		# The drum of that digit: the units' turning, the others stepping.
 		var k := float(p.get_slice("-", 3))

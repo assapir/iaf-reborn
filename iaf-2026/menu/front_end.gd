@@ -66,7 +66,6 @@ const PREFS := [
 			["clouds", "radio", [["clouds_flat", "original"], ["clouds_volumetric", "volumetric"]]],
 			["scenery", "radio", [["off", "off"], ["on", "on"], ["scenery_detailed", "detailed"]]],
 			["town_labels", "switch", []],
-			["hud_brightness", "slider", []],
 			["fullscreen", "switch", []],
 			["vsync", "switch", []],
 		]

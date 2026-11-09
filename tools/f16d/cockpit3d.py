@@ -71,7 +71,7 @@ NEEDLE_PROPS = {
     "instrumentation/slip-skid-ball/indicated-slip-skid", "instrumentation/nav[0]/gs-needle-deflection",
     "instrumentation/nav/heading-needle-deflection", "fdm/jsbsim/systems/hydraulics/sysa-psi",
     "fdm/jsbsim/systems/hydraulics/sysb-psi", "f16/cockpit/pressure-ft", "f16/cockpit/hydrazine-minutes",
-    "f16/cockpit/oxygen-liters-output", "f16/avionics/oxy-psi",
+    "f16/cockpit/oxygen-liters-output", "f16/avionics/oxy-psi", "f16/avionics/hud-sym",
 }
 # The texture scrolls (`textranslate`) the game drives: the AoA tape.
 TEX_PROPS = {"fdm/jsbsim/fcs/fly-by-wire/pitch/alpha-indicated"}
@@ -108,6 +108,9 @@ DECIMATE = {"ICP": 0.45, "F-16-FS": 0.5}
 # The ICP's four thumbwheels (SYM, BRT, RET DEPR, CONT; icp.ac's gears, 644 vertices each) are kept whole: collapsed
 # with the ICP their teeth broke into a flat comb (2026-11-09).
 ICP_WHEELS = {"ICP/sym", "ICP/brt", "ICP/depr_ret", "ICP/cont"}
+# The cockpit's clickable controls (shared/cockpit/cockpit3d_controls.gd, <out>_controls.json), each its own node by
+# (sub-model, object): the SYM wheel (the HUD's symbology brightness, turning on f16/avionics/hud-sym).
+CONTROLS = {("ICP", "sym"): "SYM"}
 # So are its six round buttons along the top (COM 1, COM 2, IFF, LIST, A-A, A-G): collapsed, their caps came out as
 # lumpy polygons with ragged rims (the user's review, 2026-11-09).
 ICP_ROUND = {"ICP/com1", "ICP/com2", "ICP/iff", "ICP/list", "ICP/a-a", "ICP/a-g"}
@@ -1062,6 +1065,8 @@ def main():
         lamps[name] = rec
     for o, name in b.displays.items():
         named[name] = o
+    for (part, n), name in CONTROLS.items():
+        named[name] = next(o for o in b.parts[part] if o.name == part + "/" + n)
     shown = {}
     for o, key in b.shown.items():
         named[o.name.split("/", 1)[1]] = o

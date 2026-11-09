@@ -64,8 +64,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   Open: the jet does not shut down when the throttle goes back to OFF.
 - **The HUD's light (2026-11-09, Approvals A10):** the F-16s' HUD in the P43 green, added to the scene's light,
   bright by day and dimmed to a night floor as the sun sets, with a faint halo, a 0.08° stroke and the combiner glass
-  at 14 %; Preferences → Graphics "HUD brightness" sets the day level and Shift + H steps it
-  ([cockpit.md](cockpit.md) §5.1). `test_hud.gd`, `test_mvp.gd`. Open: the glass's edge line (an `f16.glb` rebuild).
+  at 14 %; the 3D cockpit's SYM wheel sets the day level (hover, wheel, drag; kept in the settings file) and
+  Shift + H steps it, on the general clickable-control layer `cockpit3d_controls.gd` ([cockpit.md](cockpit.md)
+  §5.1). `test_hud.gd`, `test_mvp.gd` `_sym_wheel`. Open: the F-35I's HMD BRT knob (waits for `wt/hud-f35i-edge`),
+  the DAY / AUTO / NIGHT switch, the start-up switches.
 - **Town labels (2026-11-09, the look study's proposal 3):** each city's and town's name over the view within 25 km,
   in Hebrew or English with the language, Heebo; the 3D cockpit's panel and canopy frame hide them; Preferences →
   Graphics "Town labels", On by default ([scenery.md](scenery.md) §7, [../../docs/scenery.md](../../docs/scenery.md)

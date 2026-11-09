@@ -1554,7 +1554,24 @@
     ]
    }
   ],
-  "anim062": [
+  "SYM": [
+   {
+    "prop": "f16/avionics/hud-sym",
+    "factor": -240.0,
+    "offset": 240.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     1.0,
+     0.0,
+     -0.0
+    ]
+   }
+  ],
+  "anim063": [
    {
     "prop": "instrumentation/altimeter/indicated-altitude-ft",
     "factor": 0.36,

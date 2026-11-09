@@ -133,9 +133,8 @@ centreline in the roll.
   none of them is a row. The weather is the mission's (no Rain row). Volumetric clouds are greyed without a
   RenderingDevice. Graphics → "Buildings and trees" is the shared Scenery setting (Off / On / Detailed, On by
   default, [scenery.md](scenery.md) §6); without setup's optional scenery step it is greyed at Off, with a note
-  naming that step. Graphics → "HUD brightness" (a slider, 100 % by default; `Settings.hud_brightness`, stored in
-  the sim's settings) sets the HUD's day level; the HUD dims itself at night, and the HUD key (Shift + H, "Step HUD
-  brightness") steps the same value in eighths in flight ([cockpit.md](cockpit.md) §5.1).
+  naming that step. The HUD's brightness has no row: it is the cockpit's SYM wheel ([cockpit.md](cockpit.md) §5.1;
+  the mouse: §9.1).
 - **Sound samples:** moving a Sound slider plays a short clip of its class at the new level, on that slider's bus, from
   the sim's own clips (`converted/own/resource/soundfiles`, `SoundTable`): Engine the engine
   (`SFX_START_ENGINE`), Effects the master caution tone (`SFX_WARNING` `WRN_MASTER`, the effects' class), Radio
@@ -273,6 +272,11 @@ laptop map there. The commands it moves:
 | Zoom (numpad) | Numpad − / + | none: − / = |
 
 The key table has no trim command (the trim is the joystick's rocker), so trim needs no laptop key.
+
+**The mouse in the 3D cockpit.** The pointer works the cockpit's controls (`Settings.cockpit_controls()`,
+[cockpit.md](cockpit.md) §5.1): over a control it lights it, the wheel and a left drag turn a knob, a left click
+works a switch, each through the key's own command. Today the one control is the F-16s' SYM wheel, the HUD's
+brightness, which Shift + H also steps. Its position is kept in the sim's settings file, not in the device store.
 
 | | English | Hebrew |
 |---|---|---|

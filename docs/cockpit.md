@@ -633,7 +633,11 @@ occlusion, 1.8 MB; built by
   formats (the Sufa's colour, MFDs Real's green). `mfd.gd` `screen_px` sets their scale there.
 * **Push buttons**: a click on one of an MFD's 20 buttons presses it (`mfd.gd` `press`), numbered by place as the 2D
   bezel's (`osb_at`); their centres are in `f16.json` (the buttons themselves are drawn in the model's body). The ray is the inverse of the cockpit camera's projection: `Camera3D.project_ray_normal` missed
-  the frustum's offset by 8 cm at the MFD (tried 2026-10-30). Not drawn: a highlight. The other switches: later.
+  the frustum's offset by 8 cm at the MFD (tried 2026-10-30). Not drawn: a highlight.
+* **Knobs and switches** (Modern IAF, `Settings.cockpit_controls()`; the original game: none): `cockpit3d_controls.gd`
+  reads the cockpit's table `<model>_controls.json` (node -> `click` / `turn` key command): the pointer over a
+  control lights it, a click, the wheel or a drag sends its command through the key path. The F-16's: the SYM wheel
+  (iaf-2026/docs/cockpit.md §5.1).
 * **HUD mask, tried and dropped (2026-10-30):** a `clip_children` parent drawing the glass's outline. Its canvas
   group showed a stale copy of the 3D view in a rectangle over the screen while the DASH drew; the shader mask
   replaced it.

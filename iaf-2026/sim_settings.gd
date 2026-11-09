@@ -306,6 +306,12 @@ func hud_daylight() -> bool:
 	return true
 
 
+## The 3D cockpit's knobs and switches work with the mouse (the user, 2026-11-09: "the HUD colour should be adjustable
+## like in the plane, not in Preferences!"; iaf-2026/docs/cockpit.md §5.1).
+func cockpit_controls() -> bool:
+	return true
+
+
 ## The burner rises over 1.5 s with a thump and dies away (the Mac play test's finding 27, iaf-2026/docs/sound.md §1.2).
 func ab_sound_real() -> bool:
 	return true

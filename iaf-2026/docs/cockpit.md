@@ -138,9 +138,40 @@ the sources and the values):
   the sun sets;
 - the symbols added to the scene's light (blend_add), a faint halo under each, a 0.08° stroke;
 - the combiner glass 14 % opaque in a faint cool magenta. The glass's edge line needs a rebuild of `f16.glb`: open;
-- the day level is Preferences → Graphics "HUD brightness" ([front-end.md](front-end.md) §4), stored in the sim's
-  settings; Shift + H ("Step HUD brightness", `data/keys.json` record 46, the laptop map the same) steps it in
-  eighths in flight, as the real jet's SYM wheel.
+- the day level is the cockpit's SYM wheel (below), kept in the sim's settings file like a knob's position, with no
+  Preferences row (the user, 2026-11-09: "the HUD colour should be adjustable like in the plane, not in
+  Preferences!"); Shift + H ("Step HUD brightness", `data/keys.json` record 46, the laptop map the same) steps it in
+  eighths in flight and turns the wheel with it.
+
+**The SYM wheel.** On the F-16 the HUD's symbology brightness is the SYM wheel at the upper left of the ICP, under
+the HUD; the DAY / AUTO BRT / NIGHT switch sits on the HUD remote control panel on the right console[^fg-hud]
+[^hoggit-ip]. FlightGear's model has the wheel (`icp.xml` `sym`, a knob on `f16/avionics/hud-sym`, 240° of travel);
+`tools/f16d/cockpit3d.py` `CONTROLS` makes it the node `SYM` of `f16.glb`, turning with `Settings.hud_brightness`.
+In the 3D cockpit (Barak, Sufa):
+- the pointer over the wheel lights it;
+- the mouse wheel over it turns it 2.5 % a notch, a left drag 2.5 % per 10 px (up: brighter), as FlightGear's;
+- each step is the HUD key's command `[123, ±25, 0]` (p1: thousandths) through the key path (`terrain_view.gd`
+  `_press`), and the level is saved at once.
+
+The layer is general (`shared/cockpit/cockpit3d_controls.gd`, behind `Settings.cockpit_controls()`, true in the sim,
+false in the original game): a cockpit's table `<model>_controls.json` beside its model binds a node to a `click`
+command (a switch) or a `turn` command (a knob: the wheel, a drag); a control's hit area is its mesh's box, and the
+pointer over it lays a warm glow on it (`material_overlay`). The pointer's moves reach the layer in `_input`, before
+the flight's full-view Controls take them, and `cockpit_origin.gd` passes them into the cockpit's own world with the
+clicks. The start-up switches need only their nodes in the glb and a line each. The DAY / AUTO BRT / NIGHT switch is not bound: the HUD's AUTO-like dimming stays automatic.
+
+The F-35I: its pedestal has an HMD BRT knob (`tools/f35i/cockpit3d.py` `brt_knob0`), joined into the cockpit's body;
+Shift + H is its only HUD brightness control. Binding the knob waits for the helmet to follow the level (the parked
+branch `wt/hud-f35i-edge`): open.
+
+The Sufa on Ramon's ILS final, a real render (`iaf-2026/tests/_sym_wheel_shot.gd`): the pointer over the wheel, then
+the wheel turned down 24 notches (100 % to 40 %) and the pointer moved away.
+
+| Pointer over the SYM wheel | Turned down |
+|---|---|
+| ![The ICP's SYM wheel lit under the pointer](pictures/cockpit/sym_wheel_hover.jpg) | ![The SYM wheel turned down](pictures/cockpit/sym_wheel_turned.jpg) |
+
+![The HUD at full, then at 40 % after the wheel turned down](pictures/cockpit/sym_wheel_hud.jpg)
 
 The F-35I's helmet keeps its own green. The Sufa at the look study's Shoham pose (HDG 100, 240 m), before and after,
 16:58 and 22:00:
@@ -150,7 +181,8 @@ The F-35I's helmet keeps its own green. The Sufa at the look study's Shoham pose
 
 `tests/godot/test_hud.gd` checks the colours (the P43 green by day, the floor at night, the original game's darkest
 green at its start); `iaf-2026/tests/test_mvp.gd` `_hud_light` checks them in the sim's cockpit with the key's steps,
-the additive blend and the glass.
+the additive blend and the glass, and `_sym_wheel` hovers, scrolls and drags the wheel, checks the level, the
+wheel's turn and the stored level.
 
 ## 6. Tests and pictures
 - `tests/godot/test_cockpit_no_panel.gd`: the profile on the sim's own cockpit dirs (`iaf-sim own`'s), the Sufa, the
@@ -390,3 +422,6 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
 
 [^hershey]: hershey-fonts, Kamal Mostafa (`futural.jhf`; the Hershey Fonts licence in `COPYING`): https://github.com/kamalmostafa/hershey-fonts
 [^heebo]: Heebo, Google Fonts' repository `ofl/heebo` (version 3.100, from github.com/OdedEzer/heebo at 76c7d53; OFL.txt): https://github.com/google/fonts/tree/main/ofl/heebo
+[^fg-hud]: FlightGear F-16 wiki, "HUD": the Symbology Intensity wheel at the upper left of the ICP, the other HUD
+  controls on the HUD Remote Control Panel on the right console, DAY / AUTO BRT / NIGHT. https://github.com/NikolaiVChr/f16/wiki/HUD
+[^hoggit-ip]: Hoggit wiki, "Instrument Panel" (DCS F-16C): the ICP's SYM wheel sets the HUD's brightness. https://wiki.hoggitworld.com/view/Instrument_Panel

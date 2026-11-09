@@ -878,11 +878,21 @@ and its 0.6 px pen. The study behind it: the look study's cockpit proposal, find
 
 - **Colour.** The F-16's CRT displays use P43 phosphor, a narrow line at 543 nm[^dtic-p43]. Its nearest sRGB colour is
   40 / 255 / 50 (`hud.gd` `P43_GREEN`; inferred from the CIE 1931 chromaticity of 543 nm, just outside the gamut).
-- **Brightness.** The pilot sets the real HUD's brightness with the SYM wheel; AUTO follows the ambient
-  light[^hoggit-icp]. Ours: the green at `Settings.hud_brightness` (Preferences → Graphics "HUD brightness", 100 % by
-  default) by day, falling to the night floor 136 / 255 (`REAL_NIGHT_GREEN`'s, or the day level when dimmer) as the
+- **Brightness.** The pilot sets the real HUD's brightness with the SYM wheel at the upper left of the ICP; the
+  DAY / AUTO BRT / NIGHT switch on the HUD remote control panel (right console) picks the range, AUTO following the
+  ambient light[^hoggit-icp][^fg-hud-wiki]. Ours: the green at `Settings.hud_brightness` (the 3D cockpit's SYM wheel,
+  100 % by default, kept in the sim's settings file; no Preferences row) by day, falling to the night floor 136 / 255 (`REAL_NIGHT_GREEN`'s, or the day level when dimmer) as the
   sun sets: full with the sun 10° up or more, the floor at night (`hud.gd` `p43()`, `daylight()`; inferred). The HUD
-  key (Shift + H) steps the level in eighths, from full to the dimmest eighth and up again.
+  key (Shift + H) steps the level in eighths, from full to the dimmest eighth and up again, and the wheel turns with
+  it.
+- **The SYM wheel.** In the 3D cockpit (`Settings.cockpit_controls()`, `shared/cockpit/cockpit3d_controls.gd`) the
+  pointer over the ICP's wheel lights it; the mouse wheel or a left drag turns it 2.5 % a step, through the HUD key's
+  command (`[123, ±25, 0]`). The wheel is FlightGear's (`icp.xml` `sym`), the node `SYM` of `f16.glb`
+  (iaf-2026/docs/cockpit.md §5.1). The F-35I has Shift + H only (its HMD BRT knob is not bound: open).
+
+![The SYM wheel lit under the pointer](../iaf-2026/docs/pictures/cockpit/sym_wheel_hover.jpg)
+![The SYM wheel turned down 24 notches](../iaf-2026/docs/pictures/cockpit/sym_wheel_turned.jpg)
+![The HUD at full, then at 40 % after the wheel turned down](../iaf-2026/docs/pictures/cockpit/sym_wheel_hud.jpg)
 - **Blending.** The HUD and its outer layer draw through `hud_glass.gdshader` with `render_mode blend_add`
   (`cockpit.gd` `_additive_glass`): the symbols add light to the scene, as a combiner does, so over sunlit ground they
   can only brighten it. The original HUD's green, drawn over the scene, read darker than the ground behind it.
@@ -1058,6 +1068,8 @@ Before and after at the look study's Shoham pose (HDG 100, 240 m), 16:58 and 22:
     (<https://forum.dcs.world/topic/304597-cbu-105-hud-symbology-question>)
 [^dtic-p43]: Wright-Patterson AFB paper on display image quality: the F-16 C/D's MFD is a monochrome green P-43 CRT,
     peak 543 nm. DTIC ADP005791: https://apps.dtic.mil/sti/pdfs/ADP005791.pdf
+[^fg-hud-wiki]: FlightGear F-16 wiki, "HUD": the Symbology Intensity wheel at the upper left of the ICP; the other HUD
+    controls on the HUD Remote Control Panel, right console. https://github.com/NikolaiVChr/f16/wiki/HUD
 [^hoggit-icp]: Hoggit wiki, "Instrument Panel" (DCS F-16C): the HUD's DAY / AUTO / NIGHT symbology brightness,
     simulator documentation: https://wiki.hoggitworld.com/view/Instrument_Panel
 [^gcas-video]: "Auto-GCAS Saves Unconscious F-16 Pilot—Declassified USAF Footage", HUD video of an Arizona ANG F-16,

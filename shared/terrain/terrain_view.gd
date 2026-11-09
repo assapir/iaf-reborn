@@ -2066,6 +2066,7 @@ func _spawn_player() -> void:
 			cockpit_origin.show_with(own_bc)
 		if c3d_model != "":
 			cockpit_3d = Cockpit3d.new()
+			cockpit_3d.command = _press
 			own_bc.add_child(cockpit_3d)
 			if not cockpit_3d.setup(cockpit, cockpit_origin.camera if cockpit_origin != null else camera, player.type):
 				cockpit_3d.queue_free()
@@ -2690,9 +2691,18 @@ func _command(cmd: Array) -> bool:
 			SoundBuses.toggle_mute()
 		123:
 			# Change HUD color (event 0x7b): next of the 11 table colours. Modern IAF (Settings.hud_daylight): the next
-			# eighth of the HUD's brightness, as the real jet's SYM wheel, from the brightest to the dimmest.
+			# eighth of the HUD's brightness, from the brightest to the dimmest; ours, the 3D cockpit's SYM wheel
+			# (cockpit3d_controls.gd): p1 thousandths up or down. Kept in the settings file, as a knob stays turned.
 			if Settings.hud_daylight():
-				Settings.hud_brightness = (fposmod(roundf(Settings.hud_brightness * 8.0), 8.0) + 1.0) / 8.0
+				var b := Settings.hud_brightness
+				b = (
+					(fposmod(roundf(b * 8.0), 8.0) + 1.0) / 8.0
+					if p1 == 0
+					else clampf(b + p1 / 1000.0, Hud.MIN_LEVEL, 1.0)
+				)
+				if b != Settings.hud_brightness:
+					Settings.hud_brightness = b
+					Settings.save()
 			else:
 				cockpit.hud_colour_index = (cockpit.hud_colour_index + 1) % 11
 		134:

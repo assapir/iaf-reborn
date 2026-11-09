@@ -145,6 +145,14 @@ func _sync_env(env: Environment) -> void:
 		_cockpit_env.sky = _sky
 
 
+## The pointer's moves reach the cockpit before the flight's GUI takes them (cockpit3d_controls.gd: the hover, a drag).
+func _input(event: InputEvent) -> void:
+	if _quad.visible and event is InputEventMouseMotion:
+		viewport.push_input(event, true)
+		if viewport.is_input_handled():
+			get_viewport().set_input_as_handled()
+
+
 ## A click reaches the cockpit (cockpit3d.gd's screen buttons) as it reached it in the flight's world.
 func _unhandled_input(event: InputEvent) -> void:
 	if _quad.visible and event is InputEventMouseButton:
