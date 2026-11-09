@@ -529,7 +529,7 @@ func _knob(tv: Node, jet: String, node: String, key: String) -> void:
 		return
 	var knob: MeshInstance3D = c3d.find_child(node, true, false)
 	var vp: Viewport = tv.get_viewport()  # the window's: the events take the flight's own path to the cockpit
-	var at := await _aim(tv, knob.global_transform * knob.get_aabb().get_center(), 0.0)
+	var at := await _aim(tv, func() -> Vector3: return knob.global_transform * knob.get_aabb().get_center(), 0.0)
 	var hover := InputEventMouseMotion.new()
 	hover.position = at
 	vp.push_input(hover)
