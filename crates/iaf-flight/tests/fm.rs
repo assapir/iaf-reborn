@@ -73,10 +73,10 @@ fn model_key_picks_the_sixdof() {
 
 #[test]
 fn the_sims_own_data_flies_the_sixdof() {
-    // tools/iaf-2026/fm0.py's own sections carry Model = 6dof: the sim's four jets fly the 6-DoF.
+    // iaf-sim fm's own sections (iaf-tools sim_fm0.rs) carry Model = 6dof: the sim's four jets fly the 6-DoF.
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../assets/converted/own");
     if !dir.join("resource/md/bd.ibx").is_file() {
-        return println!("skipped: no assets/converted/own (tools/iaf-2026/fm0.py)");
+        return println!("skipped: no assets/converted/own (iaf-sim fm)");
     }
     for name in ["F-16", "F-16I", "F-35I", "F-15I"] {
         let (p, e) = iaf_flight::load_with(&dir, name, DataSet::Original).unwrap();

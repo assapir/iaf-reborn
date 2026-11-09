@@ -31,7 +31,7 @@ func run() -> void:
 	check(w != null and w.PAGES[w.page] == "welcome", "the wizard opens on Welcome")
 	check(get_root().title == "Modern IAF — Setup", "the window title")
 	var tools: Dictionary = IafSetup.tools()
-	check(w.req_ok == (tools.gdal and tools.curl and tools.python3), "Next waits for GDAL, curl, python3 (%s)" % tools)
+	check(w.req_ok == (tools.gdal and tools.curl), "Next waits for GDAL and curl (%s)" % tools)
 	check(w.next_button.disabled != w.req_ok, "Next follows the requirements")
 	check(w.find_child("Requirements", true, false) != null, "the requirements box")
 	for lang in ["en", "he"]:

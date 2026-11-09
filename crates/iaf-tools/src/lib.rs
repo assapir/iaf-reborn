@@ -38,6 +38,7 @@ pub mod sim_bases;
 pub mod sim_coast;
 pub mod sim_cockpit;
 pub mod sim_files;
+pub mod sim_fm0;
 pub mod sim_scenery;
 pub mod sim_terrain;
 pub mod smooth;

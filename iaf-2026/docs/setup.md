@@ -19,19 +19,16 @@ that stopped resumes where it stopped.
 | Godot 4.7 | runs the wizard | godotengine.org (Arch: `sudo pacman -S godot`) | `brew install godot` | `winget install GodotEngine.GodotEngine` |
 | GDAL | reads and reprojects the heights and the imagery; cuts the inland water and the scenery from OpenStreetMap (`ogr2ogr`) | `sudo apt install gdal-bin` (Arch: `sudo pacman -S gdal`) | `brew install gdal` | the GISInternals installer (`winget install GISInternals.GDAL`) |
 | curl | downloads the height tiles | `sudo apt install curl` | in macOS | in Windows 10 and later |
-| Python 3 | writes the jets' flight data (`tools/iaf-2026/fm0.py`) | `sudo apt install python3` | `brew install python` | `winget install Python.Python.3.14` |
 | disk | the data (§4) | | | |
 
 The launcher (`tools/launch-wizard.sh`, which the original game's `./setup` uses too) and `./modern-iaf` check Rust and
 Godot 4.7 and say how to install a missing one (`tools/launch-checks.sh`). On macOS they add Homebrew's folders to
-the PATH when `cargo` or `godot` is not on it (a start from a shell without Homebrew's setup). The wizard's first page checks GDAL, curl, Python 3 and the free disk space for the
+the PATH when `cargo` or `godot` is not on it (a start from a shell without Homebrew's setup). The wizard's first page checks GDAL, curl and the free disk space for the
 imagery chosen at the start (the Survey's when its sheets are there); Next waits until they are there, and the page
 names the install command for the system it runs on. The Sentinel-2 tiles still to download (11.4 GB less those
 already in `assets/source/imagery/sentinel2/`, `IafSetup.sim_s2_cached`) count too: when they would leave less
 than 5 GB free, the page says how much of them is read online during the build instead of kept (docs/imagery.md §2),
-and Next does not wait for that. Python 3 is the first of `python3`, `python` and `py -3` (on
-Windows `python` first) whose `--version` answers "Python 3." (`iaf_setup::python`): Windows' `python3` without Python
-installed is the Store's alias, which only fails.
+and Next does not wait for that.
 
 ## 2. The pages
 
@@ -84,7 +81,7 @@ dependency graph as the original game's setup: independent steps run at once, a 
 |---|---|---|
 | `sim-terrain` | `iaf-sim terrain`: GLO-30 heights, Sentinel-2 colour, the Survey 2 m photo when chosen ([terrain.md](terrain.md)) | — |
 | `sim-db` | `iaf-sim db`: the units and weapons ([data-formats.md](data-formats.md)) | — |
-| `sim-fm` | `tools/iaf-2026/fm0.py`: the jets' `bd.ibx` and envelopes ([flight-model.md](flight-model.md)) | — |
+| `sim-fm` | `iaf-sim fm` (`crates/iaf-tools/src/sim_fm0.rs`): the jets' `bd.ibx` and envelopes ([flight-model.md](flight-model.md)) | — |
 | `sim-own` | `iaf-sim own`: the sounds, the voices and the keys ([sound.md](sound.md)) | — |
 | `sim-airbases` | `iaf-sim airbases`: the four bases on the terrain ([airbases.md](airbases.md) §9) | `sim-terrain` |
 | `sim-missions` | `iaf-sim missions`: the training missions on the bases ([training.md](training.md)) | `sim-airbases`, `sim-db` |
@@ -96,8 +93,7 @@ its `built_from` is unchanged):
 ```sh
 cargo build --release -p iaf-tools --bin iaf-sim
 target/release/iaf-sim terrain
-python3 -I tools/iaf-2026/fm0.py --out assets/converted/own/resource/md
-target/release/iaf-sim all
+target/release/iaf-sim all            # db, own, fm, airbases, scenery, missions
 ```
 
 The terrain step's progress bar follows the colour branch, the longer of its two (the heights run beside it): the
@@ -106,7 +102,7 @@ Survey's 2 m when chosen, each by its expected seconds (`part_ends` in `sim_terr
 holds steady through the step.
 
 Each step keeps a stamp, `assets/converted/iaf-2026/<step>.stamp`: the fingerprint of the code that makes its output
-(`stamp::STEP_SOURCES`), the authored data or script it reads (each file's size and CRC-32) and the
+(`stamp::STEP_SOURCES`), the authored data it reads (each file's size and CRC-32) and the
 stamps of the steps it waits for; paths are relative to the repo, so a stamp is the same in every checkout and on every
 system. The terrain's stamp holds what `iaf-sim terrain` itself compares (the box, the detail area, the Survey sheets'
 names and sizes, the airbases' layouts, whose outlines mask the Survey photo), so a choice of the other imagery or a
@@ -133,7 +129,7 @@ The other five steps take seconds together. The first page shows these figures.
 
 - `cargo test -p iaf-setup`: the plan's order, the stamps (a second run is all up to date, the Survey choice runs the
   terrain, the airbases and the missions again, a changed airbase outline the terrain), a terrain redo drops its
-  marks, inputs relative to the repo, only a real Python 3 counts; every sim step's source row holds every module its
+  marks, inputs relative to the repo; every sim step's source row holds every module its
   code reaches.
 - `iaf-2026/tests/test_setup_wizard.gd` (headless, `IAF_ASSETS_DIR` at an empty folder): the four pages in order in
   both languages, the mirrored layout, the approved Hebrew words, the Attributions dialog (opens from Welcome,
@@ -193,7 +189,7 @@ What a fresh machine hit, and what was fixed on branch `wt/iaf-2026-freshroot`:
 
 - The wizard's time left jumped (2 min, then 38 min) because the terrain's progress restarted at each part: one bar
   over the parts now, each part by its expected seconds, the tiles' download by its bytes (§3).
-- The scripted way named `iaf-sim terrain` and `iaf-sim all` only; the flight data (`fm0.py`) is a step of its own (§3).
+- The scripted way named `iaf-sim terrain` and `iaf-sim all` only; the flight data (then `fm0.py`) was a step of its own (§3). Since 9 November 2026 `iaf-sim all` writes it too (`iaf-sim fm`).
 - §4 and the first page said 26 min and 450 MB for Sentinel-2 everywhere: measured 16 min (with the DEM download)
   and 469 MB.
 - The first page's Download named the heights only: it names the Sentinel-2 tiles' one download too (11.4 GB),

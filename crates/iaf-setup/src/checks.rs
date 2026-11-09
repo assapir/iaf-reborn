@@ -114,7 +114,7 @@ pub struct Tools {
     pub gdal: bool,
     /// curl (the Survey sheets).
     pub curl: bool,
-    /// A Python 3 that runs ([`python`]; the guide PDFs, Modern IAF's flight data).
+    /// A Python 3 that runs ([`python`]; the guide PDFs).
     pub python3: bool,
     /// firefox (the Survey sheets' token, the guide PDFs).
     pub firefox: bool,

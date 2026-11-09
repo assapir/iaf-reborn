@@ -25,7 +25,7 @@ work: they say the new name and start it.
 2. Install the tools with Homebrew, once:
 
    ```sh
-   brew install rustup godot gdal python
+   brew install rustup godot gdal
    "$(brew --prefix rustup)/bin/rustup" default stable
    ```
 

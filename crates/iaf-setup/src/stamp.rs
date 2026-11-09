@@ -165,8 +165,7 @@ pub(crate) const STEP_SOURCES: &[(&str, &[&[&str]])] = &[
     ("sim-airbases", &[BASE, SIM]),
     ("sim-missions", &[BASE, SIM]),
     ("sim-scenery", &[BASE, SIM, &["crates/iaf-tools/src/sim_scenery.rs"]]),
-    // The script is the step's input (its lines in the stamp); the call is in sim.rs.
-    ("sim-fm", &[&["crates/iaf-setup/src/sim.rs"]]),
+    ("sim-fm", &[&["crates/iaf-tools/src/sim_fm0.rs"]]),
 ];
 
 /// One `code <path> <hash>` line per source file of step `id` (from `sources`, the build's `SOURCES`), a folder's
@@ -345,7 +344,7 @@ pub(crate) fn sim_of(step: &Step, ctx: &SimCtx) -> Result<Option<Stamp>> {
             ],
         ),
         "sim-airbases" => (a.join("converted/own/iaf.ibx"), vec![data.join("airbases")]),
-        "sim-fm" => (a.join("converted/own/resource/md/bd.ibx"), vec![ctx.repo.join(crate::sim::FM0)]),
+        "sim-fm" => (a.join(iaf_tools::sim_fm0::MD_DIR).join("bd.ibx"), vec![]),
         "sim-scenery" => (a.join(THEATRE).join("scenery/manifest.json"), vec![data.join("airbases")]),
         "sim-missions" => {
             (a.join("converted/iaf-2026/missions"), vec![data.join("missions"), data.join("db"), data.join("airbases")])
@@ -478,7 +477,7 @@ mod tests {
                 "models" => &["crates/iaf-tools/src/f15.rs"],
                 "launcher" => &["tools/install-launcher.sh"],
                 "sim-terrain" => &["crates/iaf-tools/src/sim_terrain.rs"],
-                "sim-fm" => &["crates/iaf-setup/src/sim.rs"],
+                "sim-fm" => &["crates/iaf-tools/src/sim_fm0.rs"],
                 "sim-db" | "sim-own" | "sim-airbases" | "sim-missions" => {
                     &["crates/iaf-tools/src/sim.rs", "crates/iaf-tools/src/sim_bases.rs"]
                 }

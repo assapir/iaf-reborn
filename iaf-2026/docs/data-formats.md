@@ -9,7 +9,7 @@ Modern IAF keeps its units, weapons and missions as readable JSON under `iaf-202
 reader changes. This document gives each format, one full example and the compiled output.
 
 ```sh
-cargo run -p iaf-tools --bin iaf-sim -- all [iaf-2026/data] [assets]   # or db / own / airbases / missions alone
+cargo run -p iaf-tools --bin iaf-sim -- all [iaf-2026/data] [assets]   # or db / own / fm / airbases / missions alone
 ```
 
 | step | reads | writes (under `assets/`) |
@@ -19,8 +19,9 @@ cargo run -p iaf-tools --bin iaf-sim -- all [iaf-2026/data] [assets]   # or db /
 | `iaf-sim airbases` | `data/airbases/*.json`, the terrain's heights (`converted/terrain/israel/`) | `converted/terrain/israel/airbases.json` and `airbases/<base>.png`, `converted/own/iaf.ibx`, `converted/own/terraintype.dat` (§12) |
 | `iaf-sim terrain` | `data/airbases/*.json` (the outlines); `source/dem/` (GLO-30), `source/imagery/sentinel2/` (WorldCover tiles and listings, shared with the original game's imagery setup), `source/imagery/mapi2015/` (the Survey sheets); what is missing in the first two is downloaded into them ([terrain.md](terrain.md) §1.1) | `converted/terrain/israel/` (`L<l>/c_*.jpg`, `L<l>/h_*.png`, `meta.json`, `.work/`) |
 | `iaf-sim own` | `data/sounds/soundprop.json`, `data/sounds/voices.json`, `data/sounds/*.wav`, `data/keys.json`, `data/planes/_shared/cockpit/`, `data/planes/<jet>/cockpit/` | `converted/own/resource/soundfiles/` (`soundprop.trx`, `phrasetemplates.trx`, `phraseparticalsdata.trx`, the clips; other files there are removed), `converted/own/keys.json` ([sound.md](sound.md)), `converted/own/planes/` (the F-16's aircraft descriptor from our model, `shared/extra/models/f16/f16d.glb`), `converted/own/cockpits/<jet>/` (§14) |
+| `iaf-sim fm` | nothing: NASA TP-1538 and the public figures are in `crates/iaf-tools/src/sim_fm0.rs` | `converted/own/resource/md/bd.ibx`, `f16.dat`, `f15.dat` ([flight-model.md](flight-model.md)) |
 
-`iaf-sim all` runs db, own, airbases (once the terrain is built: `iaf-sim terrain`) and missions. Nothing is read
+`iaf-sim all` runs db, own, fm, airbases (once the terrain is built: `iaf-sim terrain`) and missions. Nothing is read
 from `assets/install` or the exe. Places are the airbase files' (§10) and the missions' own lat / lon, projected to
 UTM 36N.
 

@@ -7,7 +7,7 @@ use std::sync::atomic::AtomicBool;
 
 use anyhow::{Context, Result};
 use iaf_tools::progress::Progress;
-use iaf_tools::{sim, sim_bases, sim_scenery, sim_terrain};
+use iaf_tools::{sim, sim_bases, sim_fm0, sim_scenery, sim_terrain};
 
 use crate::{Events, Outcome, Redo, State, Step, stamp};
 
@@ -78,7 +78,7 @@ pub fn sim_plan(inputs: &SimInputs) -> Vec<Step> {
         &[],
     );
     add("sim-db", "units and weapons", &[]);
-    add("sim-fm", "flight data: the jets' bd.ibx and envelopes (tools/iaf-2026/fm0.py, python3)", &[]);
+    add("sim-fm", "flight data: the jets' bd.ibx and envelopes", &[]);
     add("sim-own", "sounds, voices and keys", &[]);
     add("sim-airbases", "airbases: Ramon, Hatzerim, Nevatim, Ramat David", &["sim-terrain"]);
     add("sim-missions", "training missions", &["sim-airbases", "sim-db"]);
@@ -124,7 +124,7 @@ fn exec(step: &Step, ctx: &SimCtx, redo: bool, pr: &dyn Progress, cancel: &Atomi
         "sim-own" => sim::own(&data, &ctx.repo, assets, pr, cancel)?,
         "sim-airbases" => sim_bases::airbases(&data, assets, pr, cancel)?,
         "sim-missions" => sim::missions(&data, assets, pr, cancel)?,
-        "sim-fm" => fm0(ctx, pr)?,
+        "sim-fm" => sim_fm0::fm(assets, pr)?,
         "sim-scenery" => return scenery(&data, assets, pr, cancel),
         id => anyhow::bail!("unknown step {id}"),
     }
@@ -160,31 +160,6 @@ fn forget_terrain(out: &Path) -> Result<()> {
     }
     Ok(())
 }
-
-/// The flight data (`converted/own/resource/md`): `tools/iaf-2026/fm0.py` (iaf-2026/docs/flight-model.md) by the
-/// Python 3 [`crate::python`] finds; its report lines into the log.
-fn fm0(ctx: &SimCtx, pr: &dyn Progress) -> Result<()> {
-    let script = ctx.repo.join(FM0);
-    let out = ctx.assets.join("converted/own/resource/md");
-    let py = crate::python().context("no Python 3 found (python3, python or py -3): install Python 3")?;
-    let o = std::process::Command::new(py[0])
-        .args(&py[1..])
-        .arg("-I")
-        .arg("-B")
-        .arg(&script)
-        .arg("--out")
-        .arg(&out)
-        .output()
-        .with_context(|| format!("running {}", py.join(" ")))?;
-    for line in String::from_utf8_lossy(&o.stdout).lines().chain(String::from_utf8_lossy(&o.stderr).lines()) {
-        pr.log(line);
-    }
-    anyhow::ensure!(o.status.success(), "{FM0} failed ({})", o.status);
-    Ok(())
-}
-
-/// The flight-data script, in the repo.
-pub(crate) const FM0: &str = "tools/iaf-2026/fm0.py";
 
 #[cfg(test)]
 mod tests {

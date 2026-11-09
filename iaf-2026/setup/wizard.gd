@@ -375,14 +375,14 @@ func _page_welcome() -> Control:
 		_label(c, box[1], "Readout")
 		_text(c, box[2], "Note")
 		_card(row, c).size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	# What this computer needs: GDAL, curl, Python 3 and the space.
+	# What this computer needs: GDAL, curl and the space.
 	var req := _vbox(4)
 	req.name = "Requirements"
 	_label(req, s("needs"), "Muted")
 	_card(row, req).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var hint := s({"macOS": "hint_mac", "Windows": "hint_windows"}.get(OS.get_name(), "hint_linux"))
 	req_ok = true
-	for t in [["gdal", "GDAL"], ["curl", "curl"], ["python3", "Python 3"]]:
+	for t in [["gdal", "GDAL"], ["curl", "curl"]]:
 		var here: bool = tools.get(t[0], false)
 		req_ok = req_ok and here
 		_text(req, "%s: %s" % [t[1], s("found") if here else s("missing")], "Note")

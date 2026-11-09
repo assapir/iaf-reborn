@@ -162,7 +162,7 @@ The sim's scenery, roads and inland water (`iaf-sim scenery`, `iaf-sim airbases`
 the same downloads as the original game's scenery above (OpenStreetMap, Microsoft's footprints, GHS-BUILT-H, ETH's
 canopy), with the same credit lines in their manifests' `attribution`.
 
-The sim's flight data (`tools/iaf-2026/fm0.py`, iaf-2026/docs/flight-model.md) comes from NASA TP-1538[^tp1538], a
+The sim's flight data (`crates/iaf-tools/src/sim_fm0.rs`, iaf-2026/docs/flight-model.md) comes from NASA TP-1538[^tp1538], a
 work of the U.S. Government (public domain; no credit required, named anyway), and from the public figures with their
 sources in docs/real-aircraft.md, docs/f16i.md, docs/f15i.md and docs/f35i.md. The sim's 6-DoF (`crates/iaf-flight/src/sixdof/`) holds TP-1538's
 aerodynamic tables, transcribed from the report's scan; the University of Minnesota's typed copy of them (its F-16

@@ -12,16 +12,22 @@ from the public figures already collected for the game's Real data set. The orig
 behaviour.
 
 ```sh
-python3 -I -B tools/iaf-2026/fm0.py                    # writes assets/converted/own/resource/md/{bd.ibx,f16.dat,f15.dat}
+cargo run --release -p iaf-tools --bin iaf-sim -- fm    # writes assets/converted/own/resource/md/{bd.ibx,f16.dat,f15.dat}
 IAF_INSTALL=$PWD/assets/converted/own cargo test --release -p iaf-flight --test validation -- --nocapture
 IAF_JET=F-16I IAF_INSTALL=$PWD/assets/converted/own cargo test --release -p iaf-flight --test validation -- --nocapture
 ```
 
 ## 1. How the sim's jets get their data
 
-`tools/iaf-2026/fm0.py` writes a `bd.ibx` with two sections and one envelope file each, in the formats of
+`iaf-sim fm` (`crates/iaf-tools/src/sim_fm0.rs`; the setup step `sim-fm`, and part of `iaf-sim all`) writes a
+`bd.ibx` with two sections and one envelope file each, in the formats of
 [docs/flight-model.md](../../docs/flight-model.md) §1 and §3. `iaf_flight::load` reads them unchanged. The file sets
 every key the loader reads, each with its source as a comment.
+
+The Rust module is the port of the first version, the Python script `fm0.py` (2026-11-02, removed), and
+writes the same bytes: its sums are Python's compensated `sum()`, its rounding ties to even. The test
+`sim_fm0::tests::output_is_fm0_py_byte_for_byte` holds the hashes of the script's last output (9 November 2026,
+Python 3.14.9). The files' comments still name the script, so the bytes stay the same.
 
 | sim jet | flies as (type, `data_set::TYPES`) | own section | on top: REAL row |
 |---|---|---|---|
@@ -67,7 +73,7 @@ Appendix B weights the lef increment by `(1 − δlef / 25)`: so the base tables
 | 15° | | | 0.10720 | −1.11200 |
 | 25° | | | 0.13000 | −1.65800 |
 
-Table VI, maximum thrust (lbf; idle and military in `fm0.py`):
+Table VI, maximum thrust (lbf; idle and military in `sim_fm0.rs`):
 
 | Mach | SL | 10,000 ft | 20,000 ft | 30,000 ft | 40,000 ft | 50,000 ft |
 |---|---|---|---|---|---|---|
@@ -153,7 +159,7 @@ The REAL rows then move the 1 g ceiling to the published service ceiling (50,000
 
 ## 4. Every key, with its source
 
-Both sections; `fm0.py` writes the same list with the source beside each value.
+Both sections; `sim_fm0.rs` writes the same list with the source beside each value.
 
 | key | `[F-16]` | `[F-15]` | source |
 |---|---|---|---|
@@ -618,7 +624,7 @@ brake key is the wheel brakes on the ground and the speed brake in the air; the 
 
 `sixdof/flight.rs` (`SixDof`) is one flight: the jet, its control system, engines, gear, fuel and mass. `fm.rs`
 (`Fm { Original, SixDof }`) holds either model behind `IafFlight`; `Fm::start` takes the 6-DoF when the type's
-`bd.ibx` section has `Model = 6dof` (`tools/iaf-2026/fm0.py` writes it into the sim's two sections) and the 6-DoF has
+`bd.ibx` section has `Model = 6dof` (`iaf-sim fm` writes it into the sim's two sections) and the 6-DoF has
 the jet (`jets::by_type`: F-16 → Barak, F-16I → Sufa, F-35I → Adir, F-15I → Ra'am). The original game's sections have
 no `Model` key: `crates/iaf-flight/tests/fm.rs` checks every original type on both data sets flies the original model, bit for bit as
 before. The autopilot drives either through the `autopilot::Host` trait (the `Aircraft` calls it made before, unchanged).
