@@ -158,7 +158,7 @@ false in the original game): a cockpit's table `<model>_controls.json` beside it
 command (a switch) or a `turn` command (a knob: the wheel, a drag); a control's hit area is its mesh's box, and the
 pointer over it lays a warm glow on it (`material_overlay`). The pointer's moves reach the layer in `_input`, before
 the flight's full-view Controls take them, and `cockpit_origin.gd` passes them into the cockpit's own world with the
-clicks. The start-up switches need only their nodes in the glb and a line each. The DAY / AUTO BRT / NIGHT switch is not bound: the HUD's AUTO-like dimming stays automatic.
+clicks. The start-up switches are on the same layer (§5.2). The DAY / AUTO BRT / NIGHT switch is not bound: the HUD's AUTO-like dimming stays automatic.
 
 The F-35I: its pedestal has an HMD BRT knob (`tools/f35i/cockpit3d.py` `brt_knob0`), joined into the cockpit's body;
 Shift + H is its only HUD brightness control. Binding the knob waits for the helmet to follow the level (the parked
@@ -183,6 +183,57 @@ The F-35I's helmet keeps its own green. The Sufa at the look study's Shoham pose
 green at its start); `iaf-2026/tests/test_mvp.gd` `_hud_light` checks them in the sim's cockpit with the key's steps,
 the additive blend and the glass, and `_sym_wheel` hovers, scrolls and drags the wheel, checks the level, the
 wheel's turn and the stored level.
+
+### 5.2 The start-up switches (2026-11-09)
+
+In the Sufa's and the Barak's 3D cockpit the start-up checklist ([training.md](training.md) §7.1) works with the
+mouse too: each step's switch is a control of `f16_controls.json`, and a left click on it sends the same command as
+its key. FlightGear models these switches as their own parts, so `tools/f16d/cockpit3d.py` `CONTROLS` makes each one a
+node of `f16.glb`, turning on FlightGear's property by FlightGear's mapping (`f16.json`). A switch's table row names
+that property and its two positions (`prop`, `on`, `off`); `cockpit3d_controls.gd` `set_switch` puts it there and
+`cockpit3d.gd` `switches` turns the node. The sim's flight add-on (`sim_flight.gd`) puts a cold jet's switches off at
+the start and each one on when its step is taken; a refused step leaves its switch off. A jet that starts with its
+engine running, and the original game, keep the switches as FlightGear models them.
+
+| step | control (node) | place on the jet | command | key | on / off (FlightGear's value) |
+|---|---|---|---|---|---|
+| 1 | MAIN PWR switch (`MAIN_PWR`) | ELEC panel, left console, beside the throttle[^bms-ramp][^fg-left] | `[210, 0, 0]` | Ctrl+B | MAIN (2) / OFF (0) |
+| 2 | JFS switch (`JFS`) | ENG & JET START panel, left console, aft[^bms-ramp][^fg-left] | `[211, 0, 0]` | Ctrl+J | START 2 (1) / OFF (0) |
+| 3 | throttle grip (`THROTTLE`) | the throttle, left console | `[5, 0, 0]` | Throttle up | the throttle's own animation: out of OFF |
+| 4 | MMC, ST STA, MFD, UFC switches (`AVIONICS_MMC`, `AVIONICS_ST_STA`, `AVIONICS_MFD`, `AVIONICS_UFC`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | `[213, 0, 0]` | Ctrl+A | ON (1) / OFF (0), all four |
+| 5 | INS knob (`INS`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | `[214, 0, 0]` | Ctrl+N | STOR HDG (1) / OFF (0) |
+| 6 | canopy handle (`CANOPY_HANDLE`, a hit area) | left side, aft of the left console, by the canopy switch[^dcs-canopy] | `[215, 0, 0]` | Ctrl+K | none |
+
+- **The canopy handle** has no part in FlightGear's model, so its row is a `box`: a 5 × 8 × 12 cm hit area in the
+  model's frame, drawn clear and lit only under the pointer. No geometry is added to the glb. Its exact place is
+  inferred: the sources put the handle on the left side, not where on it.
+- **INS: STOR HDG** is position 1, after OFF (FlightGear's knob: OFF 0, NORM 2, NAV 3; STOR HDG between them is
+  inferred).
+- **Not modelled:** the JFS switch stays at START 2 after the JFS stops (on the jet it springs back to OFF); a hot
+  start leaves the switches as FlightGear models them.
+- **The F-35I's console switches** join later: another session owns the F-35I cockpit now. Until then the F-35I's
+  checklist runs by its keys only, and its card shows no places.
+
+The checklist card names each switch and its place under the step's line, beside the key
+([training.md](training.md) §7.1; the mission's `training.checklist[].where`, [data-formats.md](data-formats.md) §5).
+
+- **The INS knob** sits on the right console aft of the eye, and from FlightGear's eye the right sill hides most of
+  it; the hit test still finds it (the pointer at its place lights and clicks it). Leaning the head over the console:
+  open.
+
+The Sufa parked cold at Ramon, a real render (`iaf-2026/tests/_switch_shot.gd`, the view zoomed in, the middle of
+the screen): the head turned to the switch, the pointer over it (a warm glow on the lever), then the switch clicked
+and the pointer moved away. The MAIN PWR lever goes from OFF over BATT to MAIN PWR; the JFS lever from OFF to
+START 2.
+
+| | Pointer over it | Clicked |
+|---|---|---|
+| MAIN PWR | ![The MAIN PWR switch at OFF, lit under the pointer](pictures/cockpit/main_pwr_hover.jpg) | ![The MAIN PWR switch at MAIN PWR](pictures/cockpit/main_pwr_on.jpg) |
+| JFS | ![The JFS switch at OFF, lit under the pointer](pictures/cockpit/jfs_hover.jpg) | ![The JFS switch at START 2](pictures/cockpit/jfs_on.jpg) |
+
+`iaf-2026/tests/test_mvp.gd` runs the Sufa's start-up by the mouse (`_click_control`: the head turned to each
+control, the pointer's move and click pushed into the window; each control lit, each switch turned, the card's
+places shown) and the Barak's and the F-35I's by the keys' commands; both pass.
 
 ## 6. Tests and pictures
 - `tests/godot/test_cockpit_no_panel.gd`: the profile on the sim's own cockpit dirs (`iaf-sim own`'s), the Sufa, the
@@ -424,4 +475,8 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
 [^heebo]: Heebo, Google Fonts' repository `ofl/heebo` (version 3.100, from github.com/OdedEzer/heebo at 76c7d53; OFL.txt): https://github.com/google/fonts/tree/main/ofl/heebo
 [^fg-hud]: FlightGear F-16 wiki, "HUD": the Symbology Intensity wheel at the upper left of the ICP, the other HUD
   controls on the HUD Remote Control Panel on the right console, DAY / AUTO BRT / NIGHT. https://github.com/NikolaiVChr/f16/wiki/HUD
+[^bms-ramp]: Falcon BMS forum, "Ramp start?", wedge (post 119008): "ELEC panel (Throttle; below)", "ENG & JET START panel (back – above EXT LIGHTING)", "AVIONICS POWER panel (stick)", "INS knob – ALIGN NORM" (weak: a sim community's checklist), https://forum.falcon-bms.com/post/119133
+[^fg-left]: FlightGear F-16 at ef4f192, `Models/Cockpit/Main/panels_mlu_left-console.xml`: `SW_MAIN_POWER` (knob on `fdm/jsbsim/elec/switches/main-pwr`, 0–2) and `SW_JET_FUEL` (knob on `f16/engine/jfs-start-switch`, −1–1; `Nasal/states_and_autostart.nas`: 1 is START 2), https://github.com/NikolaiVChr/f16
+[^fg-right]: FlightGear F-16 at ef4f192, `Models/Cockpit/Main/panels_mlu_right-console.xml`: `mmc-switch`, `st-sta-switch`, `mfd-switch`, `ufc-switch` (knobs on `f16/avionics/power-*`, 0–1) and `INS_knob` (`f16/avionics/ins-knob`; `states_and_autostart.nas`: 2 ALIGN NORM, 3 NAV), https://github.com/NikolaiVChr/f16
+[^dcs-canopy]: Eagle Dynamics forum, "Canopy won't lock if I open it and close" (DCS F-16C: the canopy switch on the left, where the canopy handle is; weak: a forum, read through a search summary), https://forum.dcs.world/topic/333905-canopy-wont-lock-if-i-open-it-and-close
 [^hoggit-ip]: Hoggit wiki, "Instrument Panel" (DCS F-16C): the ICP's SYM wheel sets the HUD's brightness. https://wiki.hoggitworld.com/view/Instrument_Panel

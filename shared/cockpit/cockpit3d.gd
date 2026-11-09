@@ -50,6 +50,18 @@ var camera: Camera3D
 var command: Callable
 ## The clickable controls' layer (cockpit3d_controls.gd), null without Settings.cockpit_controls or a table.
 var clickable: Node
+## The switches' FlightGear values (cockpit3d_controls.gd set_switch: Modern IAF's start-up); a switch of SWITCH_PROPS
+## not set stays as modelled.
+var switches := {}
+const SWITCH_PROPS := [
+	"fdm/jsbsim/elec/switches/main-pwr",
+	"f16/engine/jfs-start-switch",
+	"f16/avionics/power-mmc",
+	"f16/avionics/power-st-sta",
+	"f16/avionics/power-mfd",
+	"f16/avionics/power-ufc",
+	"f16/avionics/ins-knob",
+]
 ## The stick as the flight model holds it (terrain_view.gd's parts_in: stick_x, stick_y), for the stick's animation.
 var controls := {}
 ## f16.json: the eye (FlightGear's pilot view) and the animated nodes' records.
@@ -635,6 +647,8 @@ static func _v3(a: Array) -> Vector3:
 ## factor · value + offset, clamped.
 func _angle(r: Dictionary) -> float:
 	var x := _prop(r.prop)
+	if is_nan(x):
+		return 0.0  # a switch not set: as modelled
 	if r.has("table"):
 		var t: Array = r.table
 		if x <= t[0][0]:
@@ -685,6 +699,8 @@ func _prop(p: String) -> float:
 			return float(controls.get("stick_x", 0.0))
 		"f16/avionics/hud-sym":  # the SYM wheel (FlightGear's 0..1 symbology brightness)
 			return Settings.hud_brightness
+	if p in SWITCH_PROPS:
+		return float(switches.get(p, NAN))
 	if p.begins_with("consumables/fuel/total-fuel-lbs-"):
 		# The drum of that digit: the units' turning, the others stepping.
 		var k := float(p.get_slice("-", 3))

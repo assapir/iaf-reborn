@@ -68,8 +68,8 @@ var _pass_at := INF
 ## When the flight ends into the debrief (ms, real time), once the mission ended; the banner over the view.
 var _end_ms := INF
 var _banner: PanelContainer
-## The start-up checklist (the readable mission's training.checklist: [{step, key, en, he}]), the steps done (ids),
-## a step's fault waiting for the live check, the last fault shown, and the card.
+## The start-up checklist (the readable mission's training.checklist: [{step, key, en, he, where}]), the steps done
+## (ids), a step's fault waiting for the live check, the last fault shown, and the card.
 var checklist: Array = []
 var done: Array = []
 var _fault := ""
@@ -87,6 +87,8 @@ const THROTTLE_UP_KEY := 16
 const THROTTLE_OFF := 0.02
 ## The throttle last frame (-1 before the first: a lever already up at the start is no step).
 var _throttle_was := -1.0
+## The 3D cockpit's start-up switches put off for a cold start (_cold_switches), once.
+var _switches_off := false
 const RECORDED_S := 0.25
 
 
@@ -234,6 +236,7 @@ func _process(_delta: float) -> void:
 		_end_ms = INF
 		host._end_flight(true)  # into the debrief (Settings.flown_sortie)
 	_throttle_step()
+	_cold_switches()
 	if rules.is_empty() or not result.is_empty() or host.flight == null or host.get("_log") == null:
 		return
 	var t: float = host._log_t
@@ -364,11 +367,28 @@ func start_step(i: int) -> void:
 		_fault_shown = fault
 	elif not id in done:
 		done.append(id)
+		_switch(i, true)
 		if id == "canopy" and host.sounds != null:
 			host.sounds.play("SFX_DOOR_CLOSE")  # the canopy runs down and locks (iaf-2026/docs/sound.md §1.7)
 	host._log_event(host._log_st, e)
 	if _card != null:
 		_fill_card()
+
+
+## The 3D cockpit's switch of step `i` (its click command, 210 + i; cockpit3d_controls.gd set_switch) on or off.
+func _switch(i: int, on: bool) -> void:
+	var c3d = host.get("cockpit_3d")
+	if is_instance_valid(c3d) and c3d.clickable != null:
+		c3d.clickable.set_switch(210 + i, on)
+
+
+## A cold jet's switches start off (a hot one's stay as modelled).
+func _cold_switches() -> void:
+	if _switches_off or host.start_engine_on or not is_instance_valid(host.get("cockpit_3d")):
+		return
+	_switches_off = true
+	for i in STEP_IDS.size():
+		_switch(i, String(STEP_IDS[i]) in done)
 
 
 ## The throttle up from OFF (its keys or the axis) takes the checklist's engine step once the starter step (JFS / IPP)
@@ -388,6 +408,7 @@ func _steps() -> Array:
 func _build_card() -> void:
 	_card = PanelContainer.new()
 	_card.name = "Checklist"
+	_card.mouse_filter = Control.MOUSE_FILTER_IGNORE  # the clicks reach the 3D cockpit's switches under it
 	_card.add_theme_stylebox_override("panel", Look.box(Look.PAPER, Look.RULE, 1, 5, Vector2(24, 18)))
 	_card.custom_minimum_size.x = 520
 	ui.add_child(_card)
@@ -428,6 +449,7 @@ func _fill_card() -> void:
 	var lang := "he" if _he() else "en"
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 8)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_card.add_child(v)
 	_card_line(v, CARD_TITLE[lang], 22, Look.NAVY)
 	var next := ""
@@ -438,6 +460,7 @@ func _fill_card() -> void:
 		if is_next:
 			next = String(c[lang])
 		var row := HBoxContainer.new()
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.layout_direction = Control.LAYOUT_DIRECTION_RTL if _he() else Control.LAYOUT_DIRECTION_LTR
 		row.add_theme_constant_override("separation", 16)
 		v.add_child(row)
@@ -448,6 +471,8 @@ func _fill_card() -> void:
 		var rec := THROTTLE_UP_KEY if c.step == "engine" else CHECK_KEY + STEP_IDS.find(String(c.step))
 		var k: String = ui.key_name(rec)  # as bound, Cmd on macOS
 		_card_line(row, k, 18, Look.INK_MUTED).text_direction = Control.TEXT_DIRECTION_LTR
+		if c.has("where"):  # the switch's name and place, for the 3D cockpit's mouse (cockpit3d_controls.gd)
+			_card_line(v, "        " + String(c.where[lang]), 16, Look.INK_MUTED)
 	_card_line(v, CARD_NEXT[lang] % next if next != "" else CARD_DONE[lang], 20, Look.NAVY)
 	if _fault_shown != "":
 		_card_line(v, String(trainer.text(_fault_shown, lang)), 20, Color("b3261e")).autowrap_mode = (

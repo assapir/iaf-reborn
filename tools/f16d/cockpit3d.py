@@ -72,6 +72,9 @@ NEEDLE_PROPS = {
     "instrumentation/nav/heading-needle-deflection", "fdm/jsbsim/systems/hydraulics/sysa-psi",
     "fdm/jsbsim/systems/hydraulics/sysb-psi", "f16/cockpit/pressure-ft", "f16/cockpit/hydrazine-minutes",
     "f16/cockpit/oxygen-liters-output", "f16/avionics/oxy-psi", "f16/avionics/hud-sym",
+    # the start-up switches (CONTROLS), set by the sim's checklist (cockpit3d.gd `switches`)
+    "fdm/jsbsim/elec/switches/main-pwr", "f16/engine/jfs-start-switch", "f16/avionics/power-mmc",
+    "f16/avionics/power-st-sta", "f16/avionics/power-mfd", "f16/avionics/power-ufc", "f16/avionics/ins-knob",
 }
 # The texture scrolls (`textranslate`) the game drives: the AoA tape.
 TEX_PROPS = {"fdm/jsbsim/fcs/fly-by-wire/pitch/alpha-indicated"}
@@ -109,8 +112,21 @@ DECIMATE = {"ICP": 0.45, "F-16-FS": 0.5}
 # with the ICP their teeth broke into a flat comb (2026-11-09).
 ICP_WHEELS = {"ICP/sym", "ICP/brt", "ICP/depr_ret", "ICP/cont"}
 # The cockpit's clickable controls (shared/cockpit/cockpit3d_controls.gd, <out>_controls.json), each its own node by
-# (sub-model, object): the SYM wheel (the HUD's symbology brightness, turning on f16/avionics/hud-sym).
-CONTROLS = {("ICP", "sym"): "SYM"}
+# (sub-model, object): the SYM wheel (the HUD's symbology brightness, turning on f16/avionics/hud-sym); the start-up
+# checklist's switches (2026-11-09): MAIN PWR (ELEC panel) and the JFS switch (ENG & JET START panel) on the left
+# console, the AVIONIC POWER panel's MMC, ST STA, MFD and UFC switches and the INS knob on the right console, and the
+# throttle's grip.
+CONTROLS = {
+    ("ICP", "sym"): "SYM",
+    ("LeftConsole", "SW_MAIN_POWER"): "MAIN_PWR",
+    ("LeftConsole", "SW_JET_FUEL"): "JFS",
+    ("RightConsole", "mmc-switch"): "AVIONICS_MMC",
+    ("RightConsole", "st-sta-switch"): "AVIONICS_ST_STA",
+    ("RightConsole", "mfd-switch"): "AVIONICS_MFD",
+    ("RightConsole", "ufc-switch"): "AVIONICS_UFC",
+    ("RightConsole", "INS_knob"): "INS",
+    ("Throttle", "GRIP"): "THROTTLE",
+}
 # So are its six round buttons along the top (COM 1, COM 2, IFF, LIST, A-A, A-G): collapsed, their caps came out as
 # lumpy polygons with ragged rims (the user's review, 2026-11-09).
 ICP_ROUND = {"ICP/com1", "ICP/com2", "ICP/iff", "ICP/list", "ICP/a-a", "ICP/a-g"}
@@ -1066,7 +1082,11 @@ def main():
     for o, name in b.displays.items():
         named[name] = o
     for (part, n), name in CONTROLS.items():
-        named[name] = next(o for o in b.parts[part] if o.name == part + "/" + n)
+        found = [o for o in b.parts.get(part, []) if o.name == part + "/" + n]
+        if not found:
+            raise SystemExit("CONTROLS: no %s/%s; like it: %s" % (
+                part, n, [o.name for o in b.parts.get(part, []) if n.lower()[:4] in o.name.lower()]))
+        named[name] = found[0]
     shown = {}
     for o, key in b.shown.items():
         named[o.name.split("/", 1)[1]] = o

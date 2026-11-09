@@ -1,0 +1,90 @@
+# Dev helper (not run by tools/test.sh): the Sufa's start-up switches clicked with the mouse (iaf-2026/docs/cockpit.md
+# §5.2), a real render of mission 2011 (Start-up at Ramon, parked cold), from 2 s after the start. For each switch
+# the head turns to it, then SHOT_OUT/<node>_hover.png (the pointer over it, lit) and SHOT_OUT/<node>_on.png (clicked
+# through the input path: the step taken, the switch turned, the pointer moved away). Switches: SHOT_SWITCHES
+# (comma-separated nodes of f16_controls.json, default MAIN_PWR,JFS; the steps a switch needs before it are taken by
+# their keys' commands first). The view zoomed in (cockpit.ZOOM_MAX).
+#   flock -o ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_OUT=<dir> \
+#     -- --log-file <t> --resolution 1920x1080 --path iaf-2026 -s ../iaf-2026/tests/_switch_shot.gd
+extends "res://../tests/godot/base.gd"
+
+## A node -> the checklist steps (commands) taken before it, by their keys' commands.
+const BEFORE := {
+	"JFS": [[210, 0, 0]],
+	"INS": [[210, 0, 0], [211, 0, 0], [5, 0, 0], [213, 0, 0]],
+	"AVIONICS_MMC": [[210, 0, 0], [211, 0, 0], [5, 0, 0]],
+}
+
+
+func run() -> void:
+	settings().show_info = false
+	load("res://flight/fly.gd").start(2011)
+	var tv: Node = null
+	while tv == null or tv.get("flight") == null or tv.waiting_for_ground:
+		await process_frame
+		tv = current_scene
+	await create_timer(2.0).timeout
+	tv.cockpit.zoom = tv.cockpit.ZOOM_MAX
+	var nodes := OS.get_environment("SHOT_SWITCHES")
+	for node in (nodes if nodes != "" else "MAIN_PWR,JFS").split(","):
+		for cmd in BEFORE.get(node, []):
+			tv._command(cmd)
+			if cmd[0] == 211:  # the JFS up to 20 % before the throttle, the generators before the avionics
+				Engine.time_scale = 8.0
+				while float(tv.flight.state().rpm) < 0.2:
+					await process_frame
+			elif cmd[0] == 5:
+				while float(tv.flight.state().rpm) < 0.55:
+					await process_frame
+				Engine.time_scale = 1.0
+		await _shoot(tv, node)
+
+
+func _shoot(tv: Node, node: String) -> void:
+	var c3d = tv.cockpit_3d
+	var mi: MeshInstance3D = c3d.find_child(node, true, false)
+	var centre := mi.global_transform * mi.get_aabb().get_center()
+	var at := await _aim(tv, centre, 0.0)
+	print(node, " at ", at)
+	var hover := InputEventMouseMotion.new()
+	hover.position = at
+	Input.parse_input_event(hover)
+	await frames(10)
+	check(mi.material_overlay != null, "%s: the pointer over it lights it" % node)
+	await _save(node + "_hover")
+	var rest := mi.transform
+	for pressed in [true, false]:
+		var e := InputEventMouseButton.new()
+		e.position = at
+		e.button_index = MOUSE_BUTTON_LEFT
+		e.pressed = pressed
+		Input.parse_input_event(e)
+		await process_frame
+	hover.position = Vector2.ZERO
+	Input.parse_input_event(hover)
+	await frames(10)
+	if node != "CANOPY_HANDLE":  # a hit area: nothing turns
+		check(not mi.transform.is_equal_approx(rest), "%s: clicked, the switch turned" % node)
+	await _save(node + "_on")
+
+
+func _save(name: String) -> void:
+	await RenderingServer.frame_post_draw
+	var dir := OS.get_environment("SHOT_OUT")
+	DirAccess.make_dir_recursive_absolute(dir)
+	get_root().get_texture().get_image().save_png(dir.path_join(name + ".png"))
+
+
+## The head turned until the point `p` (world) is straight ahead (camera.rotation = (pitch, −yaw): terrain_view.gd),
+## then lifted by `up` (rad); the point on the screen.
+func _aim(tv: Node, p: Vector3, up: float) -> Vector2:
+	var cam: Camera3D = tv.cockpit_3d.camera
+	var h := Vector2.ZERO
+	for i in 4:
+		tv.views.snap = h
+		await frames(3)
+		var d: Vector3 = cam.global_transform.affine_inverse() * p
+		h += Vector2(-atan2(-d.x, -d.z), atan2(d.y, Vector2(d.x, d.z).length()))
+	tv.views.snap = h + Vector2(0.0, up)
+	await frames(3)
+	return cam.unproject_position(p)

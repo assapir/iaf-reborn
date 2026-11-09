@@ -60,37 +60,43 @@
         "step": "main_power",
         "key": "Ctrl+B",
         "en": "Main power: MAIN",
-        "he": "מתח ראשי: MAIN"
+        "he": "מתח ראשי: MAIN",
+        "where": {"en": "MAIN PWR switch: ELEC panel, left console, by the throttle", "he": "מתג MAIN PWR: לוח ELEC, הקונסולה השמאלית, ליד המצערת"}
       },
       {
         "step": "starter",
         "key": "Ctrl+J",
         "en": "JFS: START 2",
-        "he": "מתנע (JFS): START 2"
+        "he": "מתנע (JFS): START 2",
+        "where": {"en": "JFS switch: ENG & JET START panel, left console", "he": "מתג JFS: לוח ENG & JET START, הקונסולה השמאלית"}
       },
       {
         "step": "engine",
         "key": "throttle up from OFF",
         "en": "Throttle to idle at 20 % RPM",
-        "he": "מצערת לסרק ב־20% סל״ד"
+        "he": "מצערת לסרק ב־20% סל״ד",
+        "where": {"en": "Throttle grip, left console: click it out of OFF", "he": "ידית המצערת, משמאל: לחיצה מעבירה מ־OFF"}
       },
       {
         "step": "avionics",
         "key": "Ctrl+A",
         "en": "Avionics power: ON, after the generators",
-        "he": "מתח אוויוניקה: ON, אחרי הגנרטורים"
+        "he": "מתח אוויוניקה: ON, אחרי הגנרטורים",
+        "where": {"en": "MMC, ST STA, MFD, UFC switches: AVIONIC POWER panel, right console", "he": "מתגי MMC, ST STA, MFD, UFC: לוח AVIONIC POWER, הקונסולה הימנית"}
       },
       {
         "step": "ins",
         "key": "Ctrl+N",
         "en": "INS: STOR HDG alignment (90 s)",
-        "he": "INS: יישור STOR HDG (90 שנ׳)"
+        "he": "INS: יישור STOR HDG (90 שנ׳)",
+        "where": {"en": "INS knob: AVIONIC POWER panel, right console", "he": "בורר INS: לוח AVIONIC POWER, הקונסולה הימנית"}
       },
       {
         "step": "canopy",
         "key": "Ctrl+K",
         "en": "Canopy: close and lock",
-        "he": "חופה: סגירה ונעילה"
+        "he": "חופה: סגירה ונעילה",
+        "where": {"en": "Canopy handle: left canopy sill, aft", "he": "ידית החופה: שפת תא הטייס השמאלית, מאחור"}
       }
     ]
   }

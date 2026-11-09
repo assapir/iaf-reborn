@@ -134,7 +134,7 @@ func startup(id: String) -> void:
 	await fly(tv, 2.0)
 	check(not tv.flight.state().engine_on, "%s: the throttle starts nothing" % jet)
 	tv.throttle = 0.0
-	await _checklist(tv, id == "f35i")
+	await _checklist(tv, id == "f35i", id == "f16i")
 	var ok := await _until(tv, func(): return not tv.addon.result.is_empty(), 150.0)
 	var d: Dictionary = tv.addon.result
 	check(ok and bool(d.get("pass", false)), "%s: start-up scored %s %s" % [jet, d.get("pass"), d.get("reasons")])
@@ -283,13 +283,16 @@ func eject() -> void:
 
 
 ## The start-up checklist by its keys (commands 210–215, training.md §7.1) and the throttle up from OFF for the idle
-## step, each when its moment comes; the card ticks each step.
-func _checklist(tv: Node, f35: bool) -> void:
+## step, each when its moment comes; the card ticks each step. `click`: the same steps by the mouse on the 3D
+## cockpit's switches (f16_controls.json, cockpit3d_controls.gd), each switch turned to its on position.
+func _checklist(tv: Node, f35: bool, click := false) -> void:
 	var step := func(n: int) -> void: tv._command([209 + n, 0, 0])
 	var rpm := func() -> float: return float(tv.flight.state().rpm)
-	step.call(1)  # main power / battery
+	if click:
+		check(_card_places(tv), "the card names each step's switch and place")
+	await _step(tv, 1, "MAIN_PWR", click)  # main power / battery
 	await fly(tv, 1.0)
-	step.call(2)  # JFS / IPP
+	await _step(tv, 2, "JFS", click)  # JFS / IPP
 	# The engine step has no key: the throttle up from OFF (the throttle-up key here) is it.
 	var throttle_up := func() -> void: tv._command([5, 0, 0])
 	if f35:
@@ -299,11 +302,12 @@ func _checklist(tv: Node, f35: bool) -> void:
 	else:
 		await _until(tv, func(): return rpm.call() >= 0.2, 60.0)
 		check(tv.sounds._jfs != null and tv.sounds._jfs.playing, "the JFS whine during the crank")
-		throttle_up.call()  # throttle to idle at 20 %
+		await _step(tv, 0, "THROTTLE", click)  # throttle to idle at 20 %
 		await _until(tv, func(): return rpm.call() >= 0.55, 60.0)  # the generators on line
-		step.call(4)  # avionics power
-		step.call(5)  # INS stored-heading alignment
-	step.call(6)  # canopy
+		await _step(tv, 4, "AVIONICS_MMC", click)  # avionics power
+		await _step(tv, 5, "INS", click)  # INS stored-heading alignment
+	await _step(tv, 6, "CANOPY_HANDLE", click)  # canopy
+	tv.views.snap = null
 	check(tv.sounds.played.has("SFX_DOOR_CLOSE/None"), "the canopy step: the canopy closes")
 	if not f35:
 		await _until(tv, func(): return tv.sounds._jfs == null, 10.0)
@@ -316,6 +320,51 @@ func _checklist(tv: Node, f35: bool) -> void:
 			% [tv.addon.done.size(), tv.addon.checklist.size(), st.start_phase, st.power]
 		)
 	)
+
+
+## Checklist step `n` (0: the throttle up from OFF) by its key's command, or by a click on its control `node`.
+func _step(tv: Node, n: int, node: String, click: bool) -> void:
+	if click:
+		await _click_control(tv, node)
+	else:
+		tv._command([209 + n, 0, 0] if n > 0 else [5, 0, 0])
+
+
+## A left click on the 3D cockpit's control `node` (f16_controls.json), the head turned to it, as the window's mouse
+## events: hovering lights it, the click sends its command; a switch with a FlightGear property turns.
+func _click_control(tv: Node, node: String) -> void:
+	var c3d = tv.cockpit_3d
+	var mi: MeshInstance3D = c3d.find_child(node, true, false) if c3d != null else null
+	check(mi != null and c3d.clickable != null, "the 3D cockpit's control %s" % node)
+	if mi == null:
+		return
+	var vp: Viewport = tv.get_viewport()
+	var centre := func() -> Vector3: return mi.global_transform * mi.get_aabb().get_center()
+	var at := await _aim(tv, centre.call(), 0.0)
+	check(vp.get_visible_rect().has_point(at), "%s: the head turned to it, on the screen at %s" % [node, at])
+	var hover := InputEventMouseMotion.new()
+	hover.position = at
+	vp.push_input(hover)
+	check(mi.material_overlay != null, "%s: the pointer over it lights it (at %s)" % [node, at])
+	var rest := mi.transform
+	vp.push_input(_click(at, MOUSE_BUTTON_LEFT, true))
+	vp.push_input(_click(at, MOUSE_BUTTON_LEFT, false))
+	await frames(2)
+	if not node in ["THROTTLE", "CANOPY_HANDLE"]:  # the throttle moves with its own animation; the handle: a hit area
+		check(not mi.transform.is_equal_approx(rest), "%s: the switch turned" % node)
+	hover.position = Vector2.ZERO
+	vp.push_input(hover)
+
+
+## Each line of the start-up card has the switch's name and place under it (the mission's `where`).
+func _card_places(tv: Node) -> bool:
+	var texts := []
+	for l in tv.addon._card.find_children("*", "Label", true, false):
+		texts.append(l.text.strip_edges())
+	for c in tv.addon.checklist:
+		if not c.has("where") or not String(c.where.en) in texts:
+			return false
+	return true
 
 
 ## A step out of order: the JFS before the main power ends the start-up at once, its fault first.
@@ -589,3 +638,18 @@ func _roll(tv: Node, id: String, lineup: Vector2, hdg: float) -> void:
 
 func _drive_roll(tv: Node, err: float) -> void:
 	tv.scripted_rudder = clampf(err / 10.0, -1.0, 1.0)
+
+
+## The head turned until the point `p` (world) is straight ahead (camera.rotation = (pitch, −yaw): terrain_view.gd),
+## then lifted by `up` (rad); the point on the screen.
+func _aim(tv: Node, p: Vector3, up: float) -> Vector2:
+	var cam: Camera3D = tv.cockpit_3d.camera
+	var h := Vector2.ZERO
+	for i in 4:
+		tv.views.snap = h
+		await frames(3)
+		var d: Vector3 = cam.global_transform.affine_inverse() * p
+		h += Vector2(-atan2(-d.x, -d.z), atan2(d.y, Vector2(d.x, d.z).length()))
+	tv.views.snap = h + Vector2(0.0, up)
+	await frames(3)
+	return cam.unproject_position(p)

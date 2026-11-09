@@ -275,8 +275,11 @@ The key table has no trim command (the trim is the joystick's rocker), so trim n
 
 **The mouse in the 3D cockpit.** The pointer works the cockpit's controls (`Settings.cockpit_controls()`,
 [cockpit.md](cockpit.md) §5.1): over a control it lights it, the wheel and a left drag turn a knob, a left click
-works a switch, each through the key's own command. Today the one control is the F-16s' SYM wheel, the HUD's
-brightness, which Shift + H also steps. Its position is kept in the sim's settings file, not in the device store.
+works a switch, each through the key's own command. The F-16s' controls: the SYM wheel, the HUD's brightness, which
+Shift + H also steps (its position kept in the sim's settings file, not in the device store), and the start-up
+checklist's switches (MAIN PWR, JFS, the throttle, the AVIONIC POWER switches, the INS knob, the canopy handle;
+[cockpit.md](cockpit.md) §5.2). The checklist card names each step's switch and its place under its line, beside the
+key.
 
 | | English | Hebrew |
 |---|---|---|

@@ -1,8 +1,12 @@
 # Ours (Settings.cockpit_controls, Modern IAF; iaf-2026/docs/cockpit.md §5.1): the 3D cockpit's clickable controls. A
 # cockpit's table, <model>_controls.json beside its model, binds the model's nodes to key commands:
-#   {"<node>": {"click": [id, p1, p2], "turn": [id, p1, p2], "drag_px": 10}, ...}
-#   - the node: a mesh of the model (its box, grown by REACH, is the hit area);
+#   {"<node>": {"click": [id, p1, p2], "turn": [id, p1, p2], "drag_px": 10, "prop": "<FlightGear property>",
+#    "on": 2, "off": 0, "box": [x, y, z, w, h, d]}, ...}
+#   - the node: a mesh of the model (its box, grown by REACH, is the hit area); a part merged into the model's body
+#     has no node of its own: "box" (the model's frame, m: centre and size) is its hit area, unseen until hovered;
 #   - "click": sent on a left click (a switch);
+#   - "prop", "on", "off": the switch's FlightGear property (its animation in <model>.json) and its two positions,
+#     set by set_switch (cockpit3d.gd switches);
 #   - "turn": sent on the wheel (up as it is, down with p1 negated) and once per drag_px of a left drag (up: as it is);
 # through the key path (cockpit3d.gd `command`, terrain_view.gd _press), as the keys send them. Hovering a control
 # lights it.
@@ -23,9 +27,13 @@ var _light: StandardMaterial3D
 ## The controls of `table` found in `model`.
 func setup(model: Node3D, table: Dictionary) -> void:
 	for name in table:
+		var r: Dictionary = table[name]
 		var mi := model.find_child(name, true, false) as MeshInstance3D
+		if mi == null and r.has("box"):
+			mi = _area(name, r.box)
+			model.add_child(mi)
 		if mi != null:
-			_controls.append([mi, table[name]])
+			_controls.append([mi, r])
 	_light = StandardMaterial3D.new()
 	_light.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_light.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -99,7 +107,8 @@ func _live() -> bool:
 	return false
 
 
-## The control under the viewport point `pos`: [its mesh, its record], the nearest along the view; null when none.
+## The control under the viewport point `pos`: [its mesh, its record], of those whose box the view's ray crosses the
+## one whose centre lies nearest the ray (the boxes overlap: the throttle's grip over the ELEC panel); null when none.
 func at(pos: Vector2):
 	var ray: Array = get_parent()._ray(pos)
 	var best = null
@@ -107,13 +116,39 @@ func at(pos: Vector2):
 	for e in _controls:
 		var mi: MeshInstance3D = e[0]
 		var inv := mi.global_transform.affine_inverse()
-		var hit = mi.get_aabb().grow(REACH).intersects_ray(inv * ray[0], inv.basis * ray[1])
+		var box := mi.get_aabb()
+		var hit = box.grow(REACH).intersects_ray(inv * ray[0], inv.basis * ray[1])
 		if hit != null and mi.is_visible_in_tree():
-			var d: float = (mi.global_transform * hit).distance_to(ray[0])
+			var c: Vector3 = mi.global_transform * box.get_center() - ray[0]
+			var d: float = (c - c.project(ray[1])).length()
 			if d < best_d:
 				best_d = d
 				best = e
 	return best
+
+
+## The switches sending command `id` on a click put to their "on" (else "off") position.
+func set_switch(id: int, on: bool) -> void:
+	for e in _controls:
+		var r: Dictionary = e[1]
+		if r.has("prop") and int(r.get("click", [-1])[0]) == id:
+			get_parent().switches[r.prop] = float(r.on if on else r.off)
+
+
+## A hit area of `box` [centre, size] (m, the model's frame): a box drawn clear, lit by the hover's overlay.
+static func _area(name: String, box: Array) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.name = name
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(box[3], box[4], box[5])
+	mi.mesh = mesh
+	mi.position = Vector3(box[0], box[1], box[2])
+	var clear := StandardMaterial3D.new()
+	clear.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	clear.albedo_color = Color(0, 0, 0, 0)
+	mi.material_override = clear
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return mi
 
 
 func _turn(r: Dictionary, way: float) -> void:

@@ -637,7 +637,7 @@ occlusion, 1.8 MB; built by
 * **Knobs and switches** (Modern IAF, `Settings.cockpit_controls()`; the original game: none): `cockpit3d_controls.gd`
   reads the cockpit's table `<model>_controls.json` (node -> `click` / `turn` key command): the pointer over a
   control lights it, a click, the wheel or a drag sends its command through the key path. The F-16's: the SYM wheel
-  (iaf-2026/docs/cockpit.md §5.1).
+  and the start-up switches (iaf-2026/docs/cockpit.md §5.1, §5.2).
 * **HUD mask, tried and dropped (2026-10-30):** a `clip_children` parent drawing the glass's outline. Its canvas
   group showed a stale copy of the 3D view in a rectangle over the screen while the DASH drew; the shader mask
   replaced it.
