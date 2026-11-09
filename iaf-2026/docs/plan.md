@@ -223,7 +223,7 @@ Size: M. Blocks on: the two sessions' leashed items merged.
 
 ### A1 the project skeleton
 
-`iaf-2026/` skeleton: the `shared` link + junction script, `sim_settings.gd`, `install_dir()` in `shared/settings.gd`, the root launchers `./iaf2026` and `./iaf2026-setup` (+ .ps1), `tools/test.sh` loop over `iaf-2026/tests`, `gdparse` on both, the M0 probe (NEEDS DATA today). **Done (2026-11-02, branch wt/iaf-2026-core):** as listed, plus `own_dir()` and `keys_file()` in `shared/settings.gd` and the sim's `set_jet()` (the F-16 switch from the unit's `"airframe"`); the two leftovers closed (2026-11-03, branch wt/iaf-2026-own): the player's flight-model type from the sim's table (`Settings.fm_section`), `IafBases` on `own_dir()`'s `iaf.ibx` (no bases until B2b); until E2 `./iaf2026` runs the M0 probe and until A3 `./iaf2026-setup` runs `iaf-sim all` ([status.md](status.md))
+`iaf-2026/` skeleton: the `shared` link + junction script, `sim_settings.gd`, `install_dir()` in `shared/settings.gd`, the root launchers (today `./modern-iaf` and `./modern-iaf-setup` + .ps1, renamed 2026-11-08), `tools/test.sh` loop over `iaf-2026/tests`, `gdparse` on both, the M0 probe (NEEDS DATA today). **Done (2026-11-02, branch wt/iaf-2026-core):** as listed, plus `own_dir()` and `keys_file()` in `shared/settings.gd` and the sim's `set_jet()` (the F-16 switch from the unit's `"airframe"`); the two leftovers closed (2026-11-03, branch wt/iaf-2026-own): the player's flight-model type from the sim's table (`Settings.fm_section`), `IafBases` on `own_dir()`'s `iaf.ibx` (no bases until B2b); until E2 `./iaf2026` runs the M0 probe and until A3 `./iaf2026-setup` runs `iaf-sim all` ([status.md](status.md))
 
 Size: M. Blocks on: A0.
 

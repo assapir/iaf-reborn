@@ -55,7 +55,7 @@ func store() -> Dictionary:
 func run() -> void:
 	var s := settings()
 	if not FileAccess.file_exists(s.keys_file()):
-		print("NEEDS DATA: the sim's key table (./iaf2026-setup)")
+		print("NEEDS DATA: the sim's key table (./modern-iaf-setup)")
 		return
 	kt = load("res://shared/controls/key_table.gd")
 	s.devices_path = OS.get_temp_dir().path_join("iaf2026-test-devices-%d.json" % OS.get_process_id())

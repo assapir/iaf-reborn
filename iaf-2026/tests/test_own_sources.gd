@@ -9,11 +9,11 @@
 extends "res://../tests/godot/base.gd"
 
 
-## The sim's own bd.ibx (./iaf2026-setup), not the original's install.
+## The sim's own bd.ibx (./modern-iaf-setup), not the original's install.
 func require_data() -> void:
 	if FileAccess.file_exists(settings().own_dir().path_join("resource/md/bd.ibx")):
 		return
-	print("NEEDS DATA: Modern IAF's own data (./iaf2026-setup)")
+	print("NEEDS DATA: Modern IAF's own data (./modern-iaf-setup)")
 	await _quit(2)
 	await create_timer(3600, true, false, true).timeout
 
