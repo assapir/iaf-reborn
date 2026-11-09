@@ -63,6 +63,10 @@ func run() -> void:
 		fs.engine_code == "SFX_AFTERBURNER_THRUST" and is_equal_approx(fs.engine_pitch, 1.2),
 		"AB stage 2: burner at 1.2"
 	)
+	check(
+		not settings().ab_sound_real() and _count(fs, "SFX_AB_LIGHT/None") == 0 and not fs._tail.playing,
+		"the original's burner: swapped at once, no thump, no tail"
+	)
 	fs.queue_free()
 
 	# Levers, warnings, touchdown.

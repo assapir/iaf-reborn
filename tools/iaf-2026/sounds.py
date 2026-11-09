@@ -34,10 +34,10 @@ LIMIT = 0.89  # -1 dBFS
 
 # name: (freesound id, author, title, licence, start s, end s, level dB vrms, loop, note)
 CLIPS = {
-    "sfx_start_engine": (322178, "ikbenraar", "F16 fighter jet start up", CC0, 30.0, 33.0, -12, True,
+    "sfx_start_engine": (322178, "ikbenraar", "F16 fighter jet start up", CC0, 30.0, 33.0, -14, True,
                          "the F-16's steady idle, 30-33 s"),
-    "sfx_afterburner_thrust": (413312, "TiesWijnen", "Afterburner", CC0, 0.5, 3.0, -10, True,
-                               "the burner's steady first seconds"),
+    "sfx_afterburner_thrust": (343746, "Rudmer_Rotteveel", "2 Royal Dutch Airforce F-16 Fighting Falcons flyby", CC0,
+                               16.5, 19.5, -8, True, "the take-off roar's closest pass, the highs lifted, its level flattened"),
     "sfx_button": (423957, "pillwave", "Toggle Switch", CC0, 0.0, 0.4, -20, False, "whole"),
     "sfx_landing_gear": (425273, "77Pacer", "Landing Gear", CC0, 0.0, 4.0, -10, False, "whole"),
     "sfx_flaps": (425274, "77Pacer", "Airplane flaps,", CC0, 0.0, 2.5, -14, False, "first 2.5 s"),
@@ -136,6 +136,39 @@ TONES = {
 }
 
 
+def flatten(x, w=0.5):
+    """The level evened out: x over its RMS envelope smoothed over w s, so a loop cut from a pass does not pulse."""
+    n = int(w * SR)
+    env = np.sqrt(np.convolve(x * x, np.ones(n) / n, "same"))
+    return x / np.maximum(env, 1e-4 * env.max())
+
+
+def ab_roar(x, low_db=-12, high_db=16):
+    """The burner loop: the band below 150 Hz down low_db and above 1.5 kHz up high_db, so its spectrum sits between
+    the F-16 references' (iaf-2026/docs/sound.md §1.2; the recording was made far down the runway, where the air takes
+    the highs and the ground adds rumble: inferred), then flattened."""
+    lo = sosfiltfilt(butter(2, 150, fs=SR, output="sos"), x)
+    hi = sosfiltfilt(butter(2, 1500, "highpass", fs=SR, output="sos"), x)
+    return flatten(x + (10 ** (low_db / 20) - 1) * lo + (10 ** (high_db / 20) - 1) * hi)
+
+
+def ab_light(x):
+    """The light-off thump (iaf-2026/docs/sound.md §1.2): the roar below 150 Hz under a swell that peaks at 0.3 s and
+    dies by 1.2 s, the low-band overshoot the F-16's light-off shows over its steady burner."""
+    t = np.arange(int(1.2 * SR)) / SR
+    low = sosfiltfilt(butter(4, 150, fs=SR, output="sos"), x[: len(t)])
+    return low * (t / 0.3) * np.exp(1 - t / 0.3) * np.minimum(1, (1.2 - t) / 0.2)
+
+
+# name: (the CLIPS recording it is made from, what it is, function of that cut, level dB vrms)
+DERIVED = {
+    "sfx_ab_light": ("sfx_afterburner_thrust", "the light-off thump: the roar below 150 Hz under a 1.2 s swell",
+                     ab_light, -19),
+}
+# CLIPS processed before the fades and the level
+PROCESS = {"sfx_afterburner_thrust": ab_roar}
+
+
 def preview(dl, sid, user):
     """The HQ preview of freesound sound `sid`, downloaded once into its own folder dl/<sid>/."""
     d = os.path.join(dl, str(sid))
@@ -186,14 +219,21 @@ def finish(x, level, mode):
 
 def main():
     dl = sys.argv[1]
-    rows = []
+    rows, cuts = [], {}
     for name, (sid, user, title, lic, a, b, level, loop, note) in CLIPS.items():
         x = decode(preview(dl, sid, user))
         x = x[int(a * SR): int((b + (XFADE if loop else 0)) * SR)]
+        x = PROCESS.get(name, lambda y: y)(x)
+        cuts[name] = x
         wavfile.write(os.path.join(OUT, name + ".wav"), SR, finish(x, level, "loop" if loop else "once"))
         url = f"https://freesound.org/people/{user}/sounds/{sid}/"
         how = f"{a:g}-{b:g} s ({note}), {'loop, ' if loop else ''}{level} dB vrms"
         rows.append(f"| `{name}.wav` | [{title}]({url}) | {user} | {lic} | {how} |")
+    for name, (src, what, fn, level) in DERIVED.items():
+        wavfile.write(os.path.join(OUT, name + ".wav"), SR, finish(fn(cuts[src]), level, "once"))
+        sid, user, title, lic = CLIPS[src][:4]
+        url = f"https://freesound.org/people/{user}/sounds/{sid}/"
+        rows.append(f"| `{name}.wav` | [{title}]({url}) | {user} | {lic} | {what} (from `{src}`), {level} dB vrms |")
     for name, (what, fn, level, loop) in TONES.items():
         wavfile.write(os.path.join(OUT, name + ".wav"), SR, finish(fn(), level, "as-is" if loop else "once"))
         rows.append(f"| `{name}.wav` | {what} | Modern IAF (computed by this script) | {CC0} | "

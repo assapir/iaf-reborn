@@ -284,6 +284,11 @@ func hud_subpixel() -> bool:
 	return true
 
 
+## The burner rises over 1.5 s with a thump and dies away (the Mac play test's finding 27, iaf-2026/docs/sound.md §1.2).
+func ab_sound_real() -> bool:
+	return true
+
+
 func keys_file() -> String:
 	var laptop := own_dir().path_join("keys_laptop.json")
 	return laptop if laptop_keys and FileAccess.file_exists(laptop) else own_dir().path_join("keys.json")

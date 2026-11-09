@@ -36,6 +36,13 @@ const PITCH_INTR_PERCENT := 0.25
 const PITCH_INTR_SHIFT := 0.5
 const AB1_PITCH := 0.8
 const AB2_PITCH := 1.2
+## Modern IAF (Settings.ab_sound_real(), iaf-2026/docs/sound.md §1.2): the burner loop plays at its own pitch, rises
+## from AB_FLOOR_DB under its level over AB_RISE s with the SFX_AB_LIGHT thump, and dies away over AB_CUT s; the loop
+## swapped out fades on a second player (raised cosine).
+const AB_RISE := 1.5
+const AB_CUT := 1.3
+const AB_FLOOR_DB := -12.0
+const AB_CODES := ["SFX_DRY_THRUST", "SFX_AFTERBURNER_THRUST"]
 ## MCockpitSoundEvent repeat period (DAT_0082f468 = 4.0, initialiser @446c40).
 const BETTY_PERIOD := 4.0
 ## "Altitude" below 100 ft above the terrain with the gear handle up (FUN_0044fe30, 0x600aa8).
@@ -68,6 +75,14 @@ var engine_pitch := 1.0
 var _engine_last := 0.0  # param_1[10]: the last RPM or AB pitch the pitch was set from
 var _engine: AudioStreamPlayer3D
 var _engine_row := {}
+var _tail: AudioStreamPlayer3D  # the loop swapped out, fading (ab_sound_real)
+var _tail_row := {}
+var _tail_fade := [0.0, 1.0]  # its age and fade time, s
+var _rise := -1.0  # s since the light-off while the burner rises, else < 0
+var _rise_db := AB_FLOOR_DB  # the level the rise starts from, dB under the row's
+var _gain := 1.0  # the engine loop's ramp gain this frame
+var _tail_gain := 1.0  # the ramp gain the tail started from
+var _tail_ab := false  # the tail is the burner (a cut)
 ## Handles of the controller's loops / timers.
 var _speed_brake_loop: Node = null  # ctl+0x8cc
 var _aoa_loop: Node = null  # ctl+0x8c4
@@ -140,6 +155,10 @@ func _ready() -> void:
 	_engine.bus = SoundBuses.ENGINE
 	_setup_3d(_engine)
 	add_child(_engine)
+	_tail = AudioStreamPlayer3D.new()
+	_tail.bus = SoundBuses.ENGINE
+	_setup_3d(_tail)
+	add_child(_tail)
 
 
 func _process(_delta: float) -> void:
@@ -240,6 +259,7 @@ func _engine_only() -> void:
 	if st.is_empty() or st.get("crashed", false) or int(engine_ent.get("state", 0)) >= 5:
 		if engine_code != "":
 			_engine.stop()
+			_tail.stop()
 			engine_code = ""
 			_engine_row = {}
 		return
@@ -269,7 +289,27 @@ func _update_engine(stage: int, rpm: float, inside: bool) -> void:
 		if _engine_last != AB2_PITCH:
 			engine_pitch = AB2_PITCH
 			_engine_last = AB2_PITCH
-	if code != engine_code:
+	var real: bool = Settings.ab_sound_real()
+	var was_ab: bool = engine_code in AB_CODES
+	var is_ab: bool = code in AB_CODES
+	if real and is_ab:
+		engine_pitch = 1.0
+	if real and was_ab and is_ab:
+		# Stage 1 <-> 2: the same burner, no restart.
+		engine_code = code
+		_engine_row = table.row(code)
+	elif code != engine_code:
+		var at := 0.0
+		_rise_db = AB_FLOOR_DB
+		if real and is_ab and _tail.playing and _tail_ab:
+			# Re-lit while the cut's tail fades: the burner goes on from where the tail is, at its level.
+			at = _tail.get_playback_position()
+			_rise_db = clampf(linear_to_db(maxf(_tail_level(), 0.0001)), AB_FLOOR_DB, 0.0)
+		if real and was_ab != is_ab and _engine.playing:
+			_start_tail(AB_CUT if was_ab else AB_RISE)
+		_rise = 0.0 if real and is_ab else -1.0
+		if _rise == 0.0:
+			play("SFX_AB_LIGHT")
 		# A new code stops the slot's sound and starts the new one (FUN_004c42a0 + FUN_004c4ea0).
 		engine_code = code
 		_engine.stop()
@@ -280,10 +320,40 @@ func _update_engine(stage: int, rpm: float, inside: bool) -> void:
 			# SFX_LANDING (engine off) is landing.wav, 86 samples of near-silence; looped that short it
 			# becomes an audible tone here, so it is not played (silence, as intended; docs/deviations.md).
 			if code != "SFX_LANDING":
-				_engine.play()
+				_engine.play(at)
 			played.append(code + "/None")
 	_engine.pitch_scale = engine_pitch
-	_engine.set_meta("base_volume", _row_volume(_engine_row, inside))
+	var gain := 1.0
+	var dt := get_process_delta_time()
+	if _rise >= 0.0:
+		var k := smoothstep(0.0, AB_RISE, _rise)
+		gain = db_to_linear(_rise_db * (1.0 - k))
+		_rise = _rise + dt if k < 1.0 else -1.0
+	_gain = gain
+	_engine.set_meta("base_volume", _row_volume(_engine_row, inside) * gain)
+	if _tail.playing:
+		if _tail_fade[0] >= _tail_fade[1]:
+			_tail.stop()
+		else:
+			_tail.set_meta("base_volume", _row_volume(_tail_row, inside) * _tail_level())
+			_tail_fade[0] += dt
+
+
+## The tail's gain now: its start gain under a raised-cosine fade.
+func _tail_level() -> float:
+	return _tail_gain * 0.5 * (1.0 + cos(PI * minf(_tail_fade[0] / _tail_fade[1], 1.0)))
+
+
+## The loop playing goes on on the tail player from where it is and at its level, fading out over `fade` s.
+func _start_tail(fade: float) -> void:
+	_tail.stream = _engine.stream
+	_tail.pitch_scale = _engine.pitch_scale
+	_tail_row = _engine_row
+	_tail_ab = engine_code in AB_CODES
+	_tail_gain = _gain
+	_tail_fade = [0.0, fade]
+	_tail.set_meta("base_volume", _row_volume(_tail_row, _inside) * _tail_gain)
+	_tail.play(_engine.get_playback_position())
 
 
 # --- controller rules ---------------------------------------------------------------------------
@@ -407,6 +477,7 @@ func _touchdown(gear: float) -> void:
 func _crash() -> void:
 	_crashed = true
 	_engine.stop()
+	_tail.stop()
 	engine_code = ""
 	for h in [_speed_brake_loop, _aoa_loop]:
 		if h != null:
@@ -562,6 +633,8 @@ func _update_3d() -> void:
 	var list: Array = _players3d.duplicate()
 	if _engine != null and not _engine_row.is_empty():
 		list.append([_engine, _engine_row])
+	if _tail != null and _tail.playing:
+		list.append([_tail, _tail_row])
 	for e in list:
 		var p: AudioStreamPlayer3D = e[0]
 		if not is_instance_valid(p):

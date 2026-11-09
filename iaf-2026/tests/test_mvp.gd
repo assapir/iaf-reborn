@@ -6,6 +6,7 @@
 #   fails; the recorder's RPM / avionics columns; the debrief record and the pilot log;
 # - take-off: the radio menu's three requests answered by the base's tower, a taxi along the base's taxi path
 #   (the own iaf.ibx) to the lineup, the roll, the rotation, gear up on the runway heading; the debrief's goals;
+# - the afterburner's sound: the light-off's rise and thump, the cut's tail (no mission);
 # - a crash (the Sufa's start-up): the mission ends at once in a Fail with the crash first;
 # - an ejection (the Sufa's take-off): no sound or radio afterwards, the debrief's reason "ejected", the eject event.
 # The front end's part is test_front_end.gd (with `-- --fly` it flies a mission through the screens). Still open for
@@ -64,6 +65,7 @@ func run() -> void:
 		if only != "startup":
 			await takeoff(id)
 	if only == "" and jet in ["", "f16i"]:
+		await ab_sound()
 		await crash()
 		await eject()
 		await wrong_order()
@@ -152,6 +154,61 @@ func startup(id: String) -> void:
 
 
 ## A crash during the start-up: the run time ends the mission at once (IafTraining's live check).
+## The afterburner's sound (iaf-2026/docs/sound.md §1.2): the burner loop at its own pitch, rising from 12 dB down
+## with the light-off thump, no restart from stage 1 to 2, the cut's tail fading on the second player.
+func ab_sound() -> void:
+	var fs_script = load("res://shared/audio/flight_sounds.gd")
+	var fs = fs_script.create(null, 100)
+	root.add_child(fs)
+	var st := {"time": 0.0, "on_ground": false, "rpm": 1.0, "gear": 1.569, "crashed": false, "drag_x": 0.0}
+	var inp := {"gear_down": false, "flaps": 0.0, "flaps_state": 0, "brakes": false, "in_cockpit": true}
+	inp["agl_m"] = 3000.0
+	for stage in [0, 1]:
+		st["afterburner"] = stage
+		fs.update(st, inp)
+		await process_frame
+	var vol: float = fs._engine.get_meta("base_volume")
+	check(
+		settings().ab_sound_real() and fs.engine_code == "SFX_DRY_THRUST" and is_equal_approx(fs.engine_pitch, 1.0),
+		"the burner plays at its own pitch (%.2f)" % fs.engine_pitch
+	)
+	check(fs.played.has("SFX_AB_LIGHT/None"), "the light-off thump plays")
+	check(vol < 0.6 * 0.3 and fs._tail.playing, "the burner starts 12 dB down, the dry loop fades (%.3f)" % vol)
+	var stream = fs._engine.stream
+	st["afterburner"] = 2
+	for i in 3:
+		fs.update(st, inp)
+		await process_frame
+	check(
+		fs.engine_code == "SFX_AFTERBURNER_THRUST" and fs._engine.stream == stream and fs._engine.playing,
+		"stage 1 -> 2: the same loop, no restart"
+	)
+	var t0 := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 < 1700:
+		fs.update(st, inp)
+		await process_frame
+	vol = fs._engine.get_meta("base_volume")
+	check(is_equal_approx(vol, 0.6), "the burner at its level after 1.5 s (%.3f)" % vol)
+	st["afterburner"] = 0
+	fs.update(st, inp)
+	check(fs.engine_code == "SFX_START_ENGINE" and fs._tail.playing, "the cut: the dry loop, the burner's tail fading")
+	st["afterburner"] = 1
+	fs.update(st, inp)
+	vol = fs._engine.get_meta("base_volume")
+	check(vol > 0.5, "re-lit during the tail: the burner goes on at the tail's level (%.3f)" % vol)
+	fs.queue_free()
+	# A cut during the rise: the tail fades from the burner's level then, not from full.
+	fs = fs_script.create(null, 100)
+	root.add_child(fs)
+	for stage in [0, 1, 0]:
+		st["afterburner"] = stage
+		fs.update(st, inp)
+		await process_frame
+	vol = fs._tail.get_meta("base_volume")
+	check(vol < 0.6 * 0.3, "cut during the rise: the tail starts at the burner's level (%.3f)" % vol)
+	fs.queue_free()
+
+
 func crash() -> void:
 	var tv := await _start("ramon_startup")
 	await fly(tv, 1.0)

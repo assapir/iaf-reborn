@@ -3,6 +3,10 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The afterburner sounds like an F-16's (2026-11-09, the Mac play test's finding 27):** measured against an F-16
+  hush-house run and take-offs, the burner now rises over 1.5 s with a low thump at light-off, dies away over 1.3 s
+  at the cut, sits 6 dB over the dry engine, and is a real RNLAF F-16's roar with no pulse and no pitch shift
+  ([sound.md](sound.md) §1.2). The original game keeps its rule. `test_mvp.gd`, the original's `test_sounds.gd`.
 - **[B3](plan.md#b3-scenery-roads-and-inland-water), the sea and the shore's ground (2026-11-08):** the sea is one
   surface: Sentinel-2's from the beach out, with no Survey photo (its white no-data patch, its lighter blocks) beyond
   the coastline, and the open sea's fill in the composite's own tone, so its edge no longer shows as steps
@@ -118,6 +122,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   string key had left every weight at the regular).
 
 ## Open
+- **The afterburner's open points** ([sound.md](sound.md) §1.2): the light-off delay after the detent, the level in
+  the cockpit, FlightGear's F-16 sounds not compared, the F-35I's own burner.
 - **Keys and Joystick's open points** ([front-end.md](front-end.md) §9): one joystick flies (the first; a separate
   throttle or pedals as a second device is listed but not read); a joystick plugged in during a flight takes its map's
   buttons at the next flight or when the Preferences close; the hat's diagonals press two look commands, the last one

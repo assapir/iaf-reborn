@@ -25,19 +25,20 @@ The scripts' headers give the setup (a venv with `piper-tts==1.8.0`, numpy and s
 VOICES). Piper varies from run to run, so a new `--set` run gives slightly different clips.
 
 ## 1. The sound set
-One clip per sound code the shared flight code plays (docs/sound.md §3–§5): 29 CC0 recordings from freesound[^fs] and
-7 computed tones. Each clip's source, author, licence and cut: [SOURCES.md](../data/sounds/SOURCES.md).
+One clip per sound code the shared flight code plays (docs/sound.md §3–§5): 29 CC0 recordings from freesound[^fs], one
+clip made from one of them (the afterburner's light-off, §1.2) and 7 computed tones. Each clip's source, author, licence
+and cut: [SOURCES.md](../data/sounds/SOURCES.md).
 - **Format:** 22050 Hz, 16-bit, mono WAV, the format `sound_table.gd` plays; named by code
   (`sfx_weapon_exploded_ost_bomb.wav`). `iaf-sim own` refuses a clip in any other format.
 - **Processing** (`sounds.py`): the cut; 5 ms fade in and 50 ms fade out, or for a loop the last 0.25 s cross-faded
   into the start (equal power); the tail below −50 dB of the peak cut; the level set as vrms; a soft limit at −1 dBFS.
   The recordings are freesound's HQ previews (Ogg Vorbis, 44.1 / 48 kHz): the original files need a login.
-- **Rows** (`soundprop.json`, 112 rows): the columns of docs/sound.md §1 by name (`category` engine / effect /
+- **Rows** (`soundprop.json`, 113 rows): the columns of docs/sound.md §1 by name (`category` engine / effect /
   speech, `play` loop / once, `3d`, `min_m` / `max_m`, `volume_in` / `volume_out`, `channel`). The weapon sub codes
   share clips by kind: every missile one launch, flight loop and explosion; every bomb one release, fall loop and
-  explosion. `SFX_DRY_THRUST` and `SFX_AFTERBURNER_THRUST` share the AB loop (the shared code plays them at pitch 0.8
-  and 1.2). Our values (inferred): the engine at 0.6 in the cockpit, the gear and flaps at 0.75, explosions heard to
-  3 km.
+  explosion. `SFX_DRY_THRUST` and `SFX_AFTERBURNER_THRUST` (AB stages 1 and 2) share the AB loop, which the sim plays at
+  its own pitch (§1.2); `SFX_AB_LIGHT` is the sim's own row for the light-off. Our values (inferred): the engine at 0.6
+  in the cockpit, the gear and flaps at 0.75, explosions heard to 3 km.
 - **By name** (`soundprop.json` `by_name`): the files the shared code opens by name, not by code: `cock_g_02.wav`
   (the G strain, `g_effects.gd`), `endworld.wav` (the map edge, `terrain_view.gd`), `kch2.wav` (the radio click,
   `radio.gd`). `g_effects.gd`'s `cock_bty_over.wav` is left out: the VMS has no Over-G voice, so it stays silent.
@@ -54,7 +55,8 @@ original's clips of the same codes were measured for level only: ours are mostly
 | clip | s | vrms dB | peak dB | listen for |
 |---|---|---|---|---|
 | `cock_g_02` | 3.27 | -22.0 | -11.6 | a man's effort grunts for the G strain; check it does not sound comic |
-| `sfx_afterburner_thrust` | 2.50 | -10.1 | -1.0 | from a 6 s recording that fades: check the loop does not pulse every 2.5 s |
+| `sfx_ab_light` | 1.20 | -19.0 | -8.1 | the light-off thump under the rising burner (§1.2) |
+| `sfx_afterburner_thrust` | 3.00 | -8.3 | -1.0 | two RNLAF F-16s taking off, equalised and flattened (§1.2) |
 | `sfx_aircraft_exploded` | 2.34 | -11.3 | -1.0 | a DoD video blast |
 | `sfx_aircraft_fired_weapon_ost_bomb` | 0.40 | -14.4 | -1.3 | a metal clonk as the rack release |
 | `sfx_aircraft_fired_weapon_ost_flare` | 1.00 | -14.0 | -4.5 | a vintage flare gun; the shells falling to the floor may be in the cut |
@@ -76,7 +78,7 @@ original's clips of the same codes were measured for level only: ours are mostly
 | `sfx_speed_breakes` | 1.35 | -18.3 | -1.1 | a forklift's hydraulics: check it reads as an air brake |
 | `sfx_speed_breakes_loop` | 6.00 | -20.0 | -8.8 | KC-135 camera wind (also SFX_WIND): check it is not too hissy in the cockpit |
 | `sfx_splash` | 2.17 | -13.0 | -1.0 | a mix of CC0 splashes |
-| `sfx_start_engine` | 3.00 | -12.0 | -1.2 | a parked F-16's idle; check it still sounds right pitched up to 1.375 at full dry power |
+| `sfx_start_engine` | 3.00 | -14.0 | -2.4 | a parked F-16's idle; check it still sounds right pitched up to 1.375 at full dry power |
 | `sfx_touchdown` | 0.60 | -13.0 | -1.4 | a tyre chirp (bike / car brakes) |
 | `sfx_warning_wrn_aoa` | 1.00 | -24.0 | -20.9 | our beeps, 7 dB louder than the original's quiet tone |
 | `sfx_warning_wrn_master` | 0.45 | -20.0 | -16.9 | ours; the original had no file |
@@ -86,6 +88,68 @@ original's clips of the same codes were measured for level only: ours are mostly
 | `sfx_weapon_exploded_ost_gunbullet` | 0.45 | -12.5 | -1.1 | coins on a music stand pitched down (bullet hits) |
 | `sfx_weapon_exploded_ost_rocket` | 0.85 | -14.9 | -1.0 | a firework bang for rocket, chaff and flare bursts |
 | `sfx_weapon_hit_target` | 3.62 | -14.9 | -1.0 | a debris crash |
+
+### 1.2 The afterburner against a real F-16
+9 November 2026 (the Mac play test's finding 27: "is the AB start really sound like that?"). Measured with ffmpeg and
+numpy / scipy, not heard: spectrograms, 50 ms level envelopes and the time to 10 % and 90 % of each step, on three
+references:
+- an F-16 engine run with the afterburner in a hush house[^hush]: three light-offs and four cuts at close range (the
+  camera's microphone clips 14 % of the burner's samples, so its steps are a lower bound);
+- an F-16's afterburner take-off at Oshkosh 2021[^osh];
+- two RNLAF F-16s taking off at Leeuwarden, two CC0 recordings[^rr1][^rr2].
+
+The engine model behind the references is open (the F-16 flies the F100 or the F110). The two videos are references
+only: nothing of them ships, and their audio was deleted after the measurements. FlightGear's F-16 sounds were not
+compared (open).
+
+**When the sound changes.** The shared code swaps the engine loop when the flight model's afterburner stage changes
+(docs/sound.md §3): stage 1 (minimum burner) at the AB detent, stage 2 above 87.5 % throttle. The sim's 6-DoF
+engine ([flight-model.md](flight-model.md) §9.7) reports stage 1 once its power passes military and stage 2 at 75 %
+power, about 0.1 s later with the throttle at maximum, so the burner sounds as soon as the core is at military. The
+real engine's light-off delay after the detent is open: no reference shows the throttle.
+
+**What differed** (before = the sim until this change, after = now; `measure.py` in the review folder, below):
+
+| | references | before | after |
+|---|---|---|---|
+| light-off: the level's rise, onset to 90 % | 1.2–2.4 s (hush house) | 0.2 s | 1.3 s |
+| light-off: the rise | 11–15 dB (hush house), 14 dB (Oshkosh) | 3 dB | 6 dB |
+| light-off: the swell below 150 Hz over the steady burner | 1–3 dB, at 0.3–1 s | none (the loop's own 3 dB wobble) | 3.7 dB |
+| cut: the level's fall, onset to 90 % | 0.8–1.0 s | at once | 0.7 s |
+| cut: the fall | 12–15 dB | 2 dB | 6 dB |
+| the burner's power below 150 Hz / 150–1500 Hz / above 1.5 kHz | −13 / −1 / −9 dB (hush house), −17 / 0 / −16 dB (Leeuwarden), −2 / −6 / −10 dB (Oshkosh) | −2 / −5 / −13 dB | −10.5 / −1 / −11 dB |
+| the burner's spectral centroid | 700–800 Hz (Oshkosh 470 Hz) | 380 Hz | 510 Hz |
+| the loop | steady | a pulse every 2.1 s (a 2.5 s cut of a fading recording played at 1.2) | steady |
+
+- **The thump.** At light-off the hush house shows the burner rising over one to two seconds, with the band below
+  150 Hz swelling 1–3 dB over its steady level, not a sharp bang (inferred: the zones fill one after the other,
+  [flight-model.md](../../docs/flight-model.md) §10.2). The sim swapped loops in one frame with no swell.
+- **The rumble.** The old loop (a turbojet afterburner of unnamed type, played 3 semitones up) put most of its power
+  below 150 Hz: a boom. Two of the three references put it at 150–1500 Hz: a tearing roar. The Oshkosh video's power
+  below 150 Hz is likely wind on its microphone (inferred).
+- **The level against the dry engine.** Outside, the references jump 11–15 dB at light-off; the sim's burner was 2 dB
+  over its dry loop. The level in the cockpit is open (no recording).
+- **The cut's tail.** The references fall over about a second; the sim cut at once, with the old loop restarted.
+
+**What the sim does now** (`Settings.ab_sound_real()`, true in the sim, false in the original game, whose rule and
+clips are unchanged; `flight_sounds.gd`):
+- the burner loop is a cut of the Leeuwarden take-off[^rr1] at its closest pass, 16.5–19.5 s, the band below 150 Hz
+  down 12 dB and above 1.5 kHz up 16 dB (the recording was made far down the runway, where the air takes the highs
+  and the ground adds rumble: inferred), then flattened over 0.5 s so it does not pulse; played at its own pitch for
+  both stages, with no restart from stage 1 to stage 2;
+- at light-off the burner rises from 12 dB under its level over 1.5 s (smoothstep) while the dry loop fades out over
+  the same time, and `sfx_ab_light` plays: the burner's band below 150 Hz under a swell that peaks at 0.3 s and ends
+  at 1.2 s;
+- at the cut the dry loop starts at once and the burner fades out over 1.3 s (raised cosine) on a second player,
+  from the level it had (a cut during the rise fades from that lower level); lit again while that tail fades, the
+  burner goes on from the tail's place in the loop and rises from the tail's level;
+- the burner loop is set 6 dB over the dry loop (−8 and −14 dB vrms; the dry loop 2 dB quieter than before), a step
+  between the references' outside jump and no change (inferred, open for the cockpit).
+
+Before / after renders of the same throttle moves (dry at military, the burner at 3 s, the cut at 9 s), their
+spectrograms, the references beside them and the spectra are in the review folder
+(`~/.claude/iaf-2026-pages/sound/`, notes.md lists the files). Checks: `test_mvp.gd` (the sim's rule), the original's
+`test_sounds.gd` (its rule, no thump, no tail).
 
 ## 2. The radio filter
 `tools/iaf-2026/radio_voice.py` turns Piper's speech into a cockpit voice, on 22050 Hz mono:
@@ -178,7 +242,7 @@ the phrase from those while it plays the English clips ([training.md](training.m
 ## 6. Credits the sim's wizard and credits roll need
 The setup wizard (item A3) and the credits roll live outside this branch's folders; they need these lines (also in
 [docs/credits.md](../../docs/credits.md)):
-- **Sound effects** (freesound.org, CC0): ikbenraar, TiesWijnen, pillwave, 77Pacer, nuckan, qubodup, Seidhepriest,
+- **Sound effects** (freesound.org, CC0): ikbenraar, pillwave, 77Pacer, nuckan, qubodup, Seidhepriest,
   Jetrod, craigsmith (the USC Gold / Red / Sunset Editorial libraries), LilMati, Rudmer_Rotteveel, pushkin, xkeril,
   elliott.klein, DeqstersLab, RutgerMuller, SoundDesignForYou, tranzfusion.
 - **Voices:** Piper text to speech (MIT), the voices kristin, john and norman (LibriVox recordings, public domain).
@@ -196,6 +260,8 @@ The setup wizard (item A3) and the credits roll live outside this branch's folde
 - The engine start (training.md §7) plays the engine clip pitched by the RPM from the crank on; the JFS's / IPP's own
   whine and the light-off have no clip.
 - One engine sound set for all three jets (one clip per code in the shared table).
+- The afterburner (§1.2): the light-off delay after the detent, the level in the cockpit, a comparison with
+  FlightGear's F-16 sounds, and the F-35I's F135, which shares the F-16's burner.
 
 ## 8. Checks
 - `cargo test -p iaf-tools --lib sim::`: every row's clip and every particle's clip exists and is a 22050 Hz 16-bit
@@ -206,4 +272,8 @@ The setup wizard (item A3) and the credits roll live outside this branch's folde
 
 [^fs]: Freesound, each sound's page linked in SOURCES.md; CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/
 [^piper]: Piper voices (rhasspy/piper-voices), each voice's MODEL_CARD names its dataset: https://huggingface.co/rhasspy/piper-voices
+[^hush]: "F-16 Engine run with afterburner in hush house", YouTube (reference only): https://www.youtube.com/watch?v=IYQT__FP5_w
+[^osh]: "F-16 Fighting Falcon Afterburner Takeoff at Oshkosh 2021", YouTube (reference only): https://www.youtube.com/watch?v=itiPxCPupiA
+[^rr1]: Rudmer_Rotteveel, "2 Royal Dutch Airforce F-16 Fighting Falcons flyby", freesound, CC0 1.0: https://freesound.org/people/Rudmer_Rotteveel/sounds/343746/
+[^rr2]: Rudmer_Rotteveel, "2 RNLAF F-16 Fighting Falcons flyby (noisy/with birds)", freesound, CC0 1.0: https://freesound.org/people/Rudmer_Rotteveel/sounds/343747/
 [^saspeech]: OpenSLR, "SASPEECH" (SLR134), licence summary: https://www.openslr.org/134/

@@ -1026,6 +1026,12 @@ func hud_subpixel() -> bool:
 	return false
 
 
+## The afterburner lights and cuts like the real F-16's (iaf-2026/docs/sound.md §1.2): Modern IAF. The original game
+## swaps the engine loop at once (flight_sounds.gd _update_engine, FUN_004c3e00).
+func ab_sound_real() -> bool:
+	return false
+
+
 ## The airbases' runways, taxi lines and paved masks (airbases.gd, the tower's wind turn): the theatre's own
 ## `airbases.json` when it has one (Modern IAF's, `iaf-sim airbases`), else the original's converted one.
 func airbases_file() -> String:

@@ -143,9 +143,10 @@ and its credits roll (`iaf-reborn/menu/credits_ours.json`) "Modern TSD Map: Map 
 
 The sim's sound clips (`iaf-2026/data/sounds/`, made by `tools/iaf-2026/sounds.py`) are CC0 recordings from
 freesound.org[^freesound] and tones we computed. CC0 asks for no credit; we name every author anyway: ikbenraar,
-TiesWijnen, pillwave, 77Pacer, nuckan, qubodup, Seidhepriest, Jetrod, craigsmith (the USC Gold / Red / Sunset
-Editorial libraries), LilMati, Rudmer_Rotteveel, pushkin, xkeril, elliott.klein, DeqstersLab, RutgerMuller,
-SoundDesignForYou and tranzfusion. Each clip's source page, licence and processing: `iaf-2026/data/sounds/SOURCES.md`.
+pillwave, 77Pacer, nuckan, qubodup, Seidhepriest, Jetrod, craigsmith (the USC Gold / Red / Sunset Editorial libraries),
+LilMati, Rudmer_Rotteveel (also the afterburner and its light-off, from an RNLAF F-16 take-off), pushkin, xkeril,
+elliott.klein, DeqstersLab, RutgerMuller, SoundDesignForYou and tranzfusion. Each clip's source page, licence and
+processing: `iaf-2026/data/sounds/SOURCES.md`.
 The sim's voices are Piper text to speech[^piper] (MIT) in the voices kristin, john and norman, trained on LibriVox
 recordings (public domain); their texts and voices: `iaf-2026/data/sounds/voices.json`. The Hebrew voice waits for a
 licence decision (iaf-2026/docs/sound.md §5). The lines the sim's setup wizard (item A3) and its credits roll need:

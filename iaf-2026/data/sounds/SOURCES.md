@@ -9,8 +9,8 @@ The rows that use each clip: [soundprop.json](soundprop.json).
 
 | clip | source | author | licence | processing |
 |---|---|---|---|---|
-| `sfx_start_engine.wav` | [F16 fighter jet start up](https://freesound.org/people/ikbenraar/sounds/322178/) | ikbenraar | CC0 1.0 | 30-33 s (the F-16's steady idle, 30-33 s), loop, -12 dB vrms |
-| `sfx_afterburner_thrust.wav` | [Afterburner](https://freesound.org/people/TiesWijnen/sounds/413312/) | TiesWijnen | CC0 1.0 | 0.5-3 s (the burner's steady first seconds), loop, -10 dB vrms |
+| `sfx_start_engine.wav` | [F16 fighter jet start up](https://freesound.org/people/ikbenraar/sounds/322178/) | ikbenraar | CC0 1.0 | 30-33 s (the F-16's steady idle, 30-33 s), loop, -14 dB vrms |
+| `sfx_afterburner_thrust.wav` | [2 Royal Dutch Airforce F-16 Fighting Falcons flyby](https://freesound.org/people/Rudmer_Rotteveel/sounds/343746/) | Rudmer_Rotteveel | CC0 1.0 | 16.5-19.5 s (the take-off roar's closest pass, the highs lifted, its level flattened), loop, -8 dB vrms |
 | `sfx_button.wav` | [Toggle Switch](https://freesound.org/people/pillwave/sounds/423957/) | pillwave | CC0 1.0 | 0-0.4 s (whole), -20 dB vrms |
 | `sfx_landing_gear.wav` | [Landing Gear](https://freesound.org/people/77Pacer/sounds/425273/) | 77Pacer | CC0 1.0 | 0-4 s (whole), -10 dB vrms |
 | `sfx_flaps.wav` | [Airplane flaps,](https://freesound.org/people/77Pacer/sounds/425274/) | 77Pacer | CC0 1.0 | 0-2.5 s (first 2.5 s), -14 dB vrms |
@@ -38,6 +38,7 @@ The rows that use each clip: [soundprop.json](soundprop.json).
 | `sfx_fire_extinguisher.wav` | [Fire Extinguisher](https://freesound.org/people/tranzfusion/sounds/642961/) | tranzfusion | CC0 1.0 | 0-1.2 s (the first burst), -17 dB vrms |
 | `sfx_door_open.wav` | [R02-48-Jet Fighter Canopy Closing](https://freesound.org/people/craigsmith/sounds/479492/) | craigsmith | CC0 1.0 | 0-4 s (the canopy motor's first 4 s), -18 dB vrms |
 | `sfx_door_close.wav` | [R02-48-Jet Fighter Canopy Closing](https://freesound.org/people/craigsmith/sounds/479492/) | craigsmith | CC0 1.0 | 12.75-17 s (the run to the lock, 12.75-17 s), -18 dB vrms |
+| `sfx_ab_light.wav` | [2 Royal Dutch Airforce F-16 Fighting Falcons flyby](https://freesound.org/people/Rudmer_Rotteveel/sounds/343746/) | Rudmer_Rotteveel | CC0 1.0 | the light-off thump: the roar below 150 Hz under a 1.2 s swell (from `sfx_afterburner_thrust`), -19 dB vrms |
 | `sfx_landing.wav` | engine off: 0.1 s of silence | Modern IAF (computed by this script) | CC0 1.0 | loop,  |
 | `sfx_ir_seek.wav` | IR seeker search growl: 400 Hz, level wobble below 30 Hz | Modern IAF (computed by this script) | CC0 1.0 | loop, -18 dB vrms |
 | `sfx_ir_lock.wav` | IR seeker lock tone: 1000 Hz, light wobble | Modern IAF (computed by this script) | CC0 1.0 | loop, -16 dB vrms |
