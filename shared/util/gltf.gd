@@ -156,7 +156,7 @@ static func _image(state: GLTFState, im: Dictionary, dir: String) -> Image:
 static var _ahead_tasks := {}
 static var _ahead := {}
 static var _ahead_lock := Mutex.new()
-## Dropped parses still running (drop_ahead): full path -> task id; their results are discarded once done.
+## Dropped parses still running (drop_ahead): task id -> full path; their results are discarded once done.
 static var _stale := {}
 
 
@@ -188,12 +188,13 @@ static func drop_ahead(keep: Array = []) -> void:
 		kept[p] = true
 	for p in _ahead_tasks.keys():
 		if not kept.has(p):
-			_stale[p] = _ahead_tasks[p]
+			_stale[_ahead_tasks[p]] = p  # keyed by task: a path dropped twice keeps both tasks
 			_ahead_tasks.erase(p)
-	for p in _stale.keys():
-		if WorkerThreadPool.is_task_completed(_stale[p]):
-			WorkerThreadPool.wait_for_task_completion(_stale[p])
-			_stale.erase(p)
+	for t in _stale.keys():
+		if WorkerThreadPool.is_task_completed(t):
+			WorkerThreadPool.wait_for_task_completion(t)
+			var p: String = _stale[t]
+			_stale.erase(t)
 			if not _ahead_tasks.has(p):  # asked for again meanwhile: that task's result stays
 				_ahead_lock.lock()
 				_ahead.erase(p)
@@ -204,7 +205,7 @@ static func drop_ahead(keep: Array = []) -> void:
 ## pool task still queued at the quit hangs Godot 4.7.2's exit for good (docs/rendering.md §1.5, "Pool tasks at
 ## exit"), so every pool task the game posts is waited for before it.
 static func finish_ahead() -> void:
-	for t in _ahead_tasks.values() + _stale.values():
+	for t in _ahead_tasks.values() + _stale.keys():
 		WorkerThreadPool.wait_for_task_completion(t)
 	_ahead_tasks.clear()
 	_stale.clear()

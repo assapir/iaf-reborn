@@ -1186,6 +1186,7 @@ func _exit_tree() -> void:
 		["res://shared/util/img.gd", "finish_prefetch"],
 		["res://shared/util/model_detail.gd", "finish_packs"],
 		["res://shared/terrain/ground_textures.gd", "finish_preload"],
+		["res://shared/terrain/terrain_preload.gd", "finish_prepare"],
 	]:
 		load(f[0]).call(f[1])
 

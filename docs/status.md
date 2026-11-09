@@ -151,7 +151,8 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
   stays, spread over the start's frames (tried 2026-11-01, dropped). rendering.md §1.6.
 - **Exit**: Godot hung for good after a run's last line when a low-priority pool task was still queued at the quit
   (a Godot 4.7.2 bug; rendering.md §1.5 "Pool tasks at exit"). Fixed 2026-10-28: every pool task is waited for
-  before the quit. A second kind, in real-render runs on Wayland (also under xvfb-run, where Godot still opens on
+  before the quit; an audit on 2026-11-09 (rendering.md §1.5, its table) added the missing wait for the preload
+  terrain's set-up and kept every dropped glTF parse's task. A second kind, in real-render runs on Wayland (also under xvfb-run, where Godot still opens on
   Wayland): a race in Godot's own Wayland shutdown leaves its "Wayland Events" thread in `poll` while the main thread
   waits for it (stacks taken 2026-10-29 and 2026-11-01; rendering.md §1.5 "Wayland at exit"). Worked around
   2026-11-01: from the extension's last deinit stage a thread interrupts that `poll` with a signal until the thread

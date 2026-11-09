@@ -48,6 +48,13 @@ static var _prepare_task := -1
 static var _tree: SceneTree = null
 
 
+## Waits for a prepare() still running, without adding its terrain. At exit (Settings, see Gltf.finish_ahead).
+static func finish_prepare() -> void:
+	if _prepare_task >= 0:
+		WorkerThreadPool.wait_for_task_completion(_prepare_task)
+		_prepare_task = -1
+
+
 ## Waits for the terrain's prepare() and adds it (and its focus) to the tree.
 static func _enter_tree() -> void:
 	if _prepare_task < 0:

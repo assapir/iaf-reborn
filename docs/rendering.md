@@ -447,8 +447,9 @@ They parse on low-priority pool tasks, which leave the decode tasks and the menu
   drops what it did not take after its spawn. A parse not finished when the flight needs it is parsed there, not
   waited for behind the queue. At exit the game waits for the parses still running (`Gltf.finish_ahead`).
 - **Pool tasks at exit.** Every `WorkerThreadPool` task the game posts is waited for before the quit: the parses
-  ahead, the image prefetches (`Img.finish_prefetch`), the model detail packs (`ModelDetail.finish_packs`) and the
-  ground textures (`GroundTextures.finish_preload`) from `Settings._exit_tree`, the airbase lights' mast searches
+  ahead, the image prefetches (`Img.finish_prefetch`), the model detail packs (`ModelDetail.finish_packs`), the
+  ground textures (`GroundTextures.finish_preload`) and the preload terrain's set-up
+  (`TerrainPreload.finish_prepare`) from `Settings._exit_tree`, the airbase lights' mast searches
   from `AirbaseLights._exit_tree`; the terrain and scenery wait for theirs in their own `_exit_tree`. Reason: a
   low-priority task still queued at the quit hangs Godot 4.7.2's exit for good. Godot runs 2 low-priority tasks at a
   time (8 threads) and queues the rest. `WorkerThreadPool::exit_languages_threads` (core/object/worker_thread_pool.cpp)
@@ -458,6 +459,27 @@ They parse on low-priority pool tasks, which leave the decode tasks and the menu
   windowed. Measured 2026-10-28: a script that queues 6 low-priority tasks and quits hung 10 of 10 runs, 0 of 10 when
   it waited for them; a test that starts `Img.prefetch` on the F-16, F-15 and F-4 cockpit art and quits hung 16 of 16
   runs before this change, 0 of 36 after.
+
+  Audit of every pool task and thread in `shared/`, `iaf-reborn/` and `iaf-2026/`, 2026-11-09. Each call site keeps
+  its task id, and the waiter on the quit path waits for every id it kept:
+
+  | call site | what it does | waiter on the quit path |
+  |---|---|---|
+  | `shared/terrain/terrain_preload.gd:39` | the preload terrain's `prepare()` (node lists, meshes), one at a time | `TerrainPreload.finish_prepare` (`terrain_preload.gd:52`) from `settings.gd:1189`, new 2026-11-09 |
+  | `shared/terrain/ground_textures.gd:46` | the Ground textures' decode, one at a time | `GroundTextures.finish_preload` (`ground_textures.gd:50`) from `settings.gd:1188` |
+  | `shared/util/gltf.gd:175` | a model parsed ahead, one per file | `Gltf.finish_ahead` (`gltf.gd:207`) from `settings.gd:1185` |
+  | `shared/util/img.gd:41` | an image prefetch, one per file and mipmap choice | `Img.finish_prefetch` (`img.gd:50`) from `settings.gd:1186` |
+  | `shared/util/model_detail.gd:116`, `:153` | a Model detail pack, one per material | `ModelDetail.finish_packs` (`model_detail.gd:122`) from `settings.gd:1187`; `:153` waits itself at once |
+  | `shared/terrain/airbase_lights.gd:105` | an airbase's mast search, one per base | `AirbaseLights._exit_tree` (`airbase_lights.gd:109`) |
+  | `shared/terrain/terrain.gd:582` | the terrain's decode tasks, up to `max_jobs` | `Terrain._exit_tree` → `_stop_jobs` (`terrain.gd:922`, `:774`) |
+  | `shared/terrain/scenery.gd:901` | the scenery's cell reads, up to `MAX_JOBS` | `Scenery._exit_tree` → `_stop_jobs` (`scenery.gd:1113`, `:1104`) |
+
+  Two gaps were closed on 2026-11-09. The preload terrain's `prepare()` had no waiter: a quit from the mission
+  screens while it ran left it running. A parse ahead dropped twice for the same file while still running
+  (`Gltf.drop_ahead`) lost the first task's id, since `_stale` was keyed by the file; it is keyed by the task now.
+  The game posts pool tasks only with `add_task`. The one GDScript `Thread` is in the bench
+  `tests/godot/_stream_bench.gd`, which waits for it. The Rust threads (setup's pipeline, the scenery, roads and
+  city lights loaders) are plain OS threads outside the pool; the pool's exit waits for its own workers only.
 - **Wayland at exit.** A real-render run on Linux could hang for good after its last line, in Godot's own Wayland
   shutdown (Godot 4.7.2, unchanged on master 2026-10-29). `WaylandThread::destroy`
   (platform/linuxbsd/wayland/wayland_thread.cpp) sets `thread_done`, sends a `wl_display_roundtrip` to wake the
