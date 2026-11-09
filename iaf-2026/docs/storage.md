@@ -4,8 +4,8 @@
 `iaf-2026/data/`; records = the files the game writes while it runs, under `user://`; "inferred" = our own
 reasoning.
 
-This page weighs moving the sim's data from JSON files to SQLite. It is a design note: nothing here is built.
-The user's rule (plan.md, 3 November 2026) sets the frame: authored data stays JSON; data that changes in the game
+This page weighs moving the sim's data from JSON files to SQLite. Sections 1 to 4 are the design note; §5 is what
+was built from it (2026-11-09): the records are in SQLite, the compiled data stays JSON. The user's rule (plan.md, 3 November 2026) sets the frame: authored data stays JSON; data that changes in the game
 (the pilot log, the debriefs) is the candidate for SQLite through a Rust crate.
 
 ## 1. What the sim stores today
@@ -21,8 +21,8 @@ Measured 2026-11-09 on the development machine's `assets/` after `iaf-sim db` an
 | airbases | `converted/terrain/israel/airbases.json` | 132 KB | `iaf-sim airbases` | `shared/terrain/airbases.gd` |
 | theatre | `converted/terrain/israel/meta.json`, `water.json`, `scenery/theatre.json` | 99 KB, 821 KB, 177 KB | `iaf-sim terrain`, `airbases`, `scenery` | the terrain and scenery readers |
 | cockpit data | `converted/own/cockpits/` | 479 KB (JSON and pictures) | `iaf-sim own` | the cockpit code |
-| debriefs | `user://debriefs/debrief-<date>-<mission>.json` | one file per flight | `flight/sim_flight.gd` | the front end's Debrief sheet |
-| pilot log | `user://pilots/<id>.json` | one file, grows by one attempt per flight | `flight/sim_flight.gd` | the front end's Home and Pilot log |
+| debriefs | `user://debriefs/debrief-<date>-<mission>.json` (before §5) | one file per flight | `flight/sim_flight.gd` | the front end's Debrief sheet |
+| pilot log | `user://pilots/<id>.json` (before §5) | one file, grows by one attempt per flight | `flight/sim_flight.gd` | the front end's Home and Pilot log |
 | devices | `user://devices.json` | one small file, the user's overrides only | `iaf_tools::devices` (`IafDevices`) | the key table and the joystick reader |
 
 Every one of these is read whole, once, when its screen or the flight starts (`Settings.load_json`: open, parse,
@@ -68,3 +68,38 @@ is not a measurable part of a start (inferred: the seven compiled mission files 
 - **Keep the original game's pilot files as they are.** reborn's `iaf-reborn/menu/pilots.gd` reads the original's
   shape; the sim's records are its own and need not match it.
 - **`devices.json` stays JSON.** It is one small file of overrides, read once.
+
+## 5. What is built (2026-11-09)
+
+The records follow §4: one SQLite database, `user://modern-iaf.sqlite` (tests: `<temp>/modern-iaf-records/`, or
+the folder a test gives `sim_flight.gd`'s `out_dir`), owned by `crates/iaf-tools/src/pilot_log.rs`
+(`iaf_tools::pilot_log`) and reached from GDScript through one class, `IafPilotLog`
+(`crates/iaf-godot/src/pilot_log.rs`). It is a module of `iaf-tools` beside `training.rs` and `devices.rs`, not a
+crate of its own: it is one file, and `iaf-tools` already links `rusqlite`.
+
+| table | columns |
+|---|---|
+| `pilots` | `id` (14, the default pilot, until the front end's pilot list) |
+| `sorties` | `id` (autoincrement: the debrief's number), `pilot`, `mission_id` (the menu id), `mission` (the readable name), `date`, `result` (1 pass, 0 fail), `elapsed_s`, `debrief` (the whole record as JSON text, NULL when it was lost) |
+
+- **Schema version.** SQLite's `user_version`; `pilot_log::open` runs the missing migrations (`MIGRATIONS`, one SQL
+  batch per version) in one immediate transaction, so a second process waits and finds the schema made; a file at this build's
+  version is opened without a write. Each call opens the file and closes it when it returns (SQLite's busy timeout,
+  5 s, lets the game and a test share it). A file from a
+  newer build is refused (an error in the log; the screens show no flights).
+- **Import.** The step from version 0 (a new file) also reads the JSON records from before the database once: every
+  `pilots/<id>.json` in the database's folder and the debrief each attempt names, by file name in `debriefs/`. The
+  sorties go in oldest first; an attempt whose debrief file is gone keeps its result and date (its Pilot log row
+  cannot open). The import is part of the migration's transaction, so it runs once and never half. The JSON files
+  stay as they are: nothing is renamed or deleted, so a failed write cannot lose a record, and an older build still
+  reads its own files (inferred: the safer of the two choices).
+- **The calls.** `log_sortie(db, pilot, mission_id, debrief)` stores a flight (`sim_flight.gd` after
+  `IafTraining.score`) and answers its id (`Settings.flown_sortie`); `sorties(db, pilot)` answers the Pilot log's
+  rows; `summary(db, pilot)` answers Home's flights, flight time and last result and Training's status and best time
+  per mission; `debrief(db, id)` answers one record. The front end only displays what they answer.
+- **Reading a record outside the game.** `sqlite3 modern-iaf.sqlite "SELECT debrief FROM sorties WHERE id = 3" >
+  debrief.json` gives the file `tools/flight_timeline.py --debrief` takes.
+- **Check.** `cargo test -p iaf-tools --lib pilot_log` (the schema at its version, a newer one refused, a sortie round
+  trip with the summary, the JSON import run twice); `iaf-2026/tests/test_front_end.gd` (imported records on the
+  Debrief, Home, Training and Pilot log screens, then a flown sortie's debrief) and `test_mvp.gd` (each flight's
+  sortie and its pass in the summary).

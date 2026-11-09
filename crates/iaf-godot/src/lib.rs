@@ -22,6 +22,7 @@ mod mcr;
 mod missile;
 mod mission_edit;
 mod mission_intel;
+mod pilot_log;
 mod radar;
 mod real_hud;
 mod release;

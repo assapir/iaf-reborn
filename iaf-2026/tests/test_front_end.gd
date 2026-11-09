@@ -6,13 +6,13 @@
 # command, the scoring, Esc's pause menu over the flight, its Preferences and back, End the flight, that flight's
 # debrief, and Esc to Home with the mission's jet picked (the real run of front-end.md "Checks", also in a real render
 # through tools/godot_window.sh; SHOT_DIR=<dir> saves the pause menu and the debrief in both languages). The records
-# go to the isolated folders (Settings.debriefs_dir, a temporary folder).
+# go to the isolated records folder (Settings.records_dir, a temporary folder): the fixture writes the JSON records
+# from before the database there, and the store's first open imports them.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-2026 \
 #     -s ../iaf-2026/tests/test_front_end.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
 
 const STAMP := "20261102-080000"
-const FAIL_STAMP := "20261102-090000"
 
 
 func run() -> void:
@@ -41,7 +41,7 @@ func run() -> void:
 	check(dump.keys().all(func(k): return s.has_setting(k)), "settings: the log dump is the sim's own (%s)" % [dump])
 	for k in ["airbases", "language", "shadows", "cockpit_3d"]:
 		check(s.has_setting(k), "settings: the sim has %s" % k)
-	var file := fixture(s)
+	var ids := fixture(s)
 	s.sim_jet = ""
 	change_scene_to_file("res://main.tscn")
 	await frames(3)
@@ -62,7 +62,7 @@ func run() -> void:
 	s.sim_jet = ""
 	for lang in ["en", "he"]:
 		s.language = lang
-		await walk(fe, file, lang)
+		await walk(fe, ids, lang)
 	s.language = "en"
 	await crumbs(fe)
 	await prefs(fe)
@@ -208,7 +208,7 @@ func _shots(fe: Node, dir: String, name: String) -> void:
 	fe.show_page(fe.page)
 
 
-func walk(fe: Control, file: String, lang: String) -> void:
+func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	var he := lang == "he"
 	var s := settings()
 	fe.show_page("plane")
@@ -258,7 +258,7 @@ func walk(fe: Control, file: String, lang: String) -> void:
 	var pane: Control = fe.find_child("Briefing", true, false)
 	check((list.global_position.x > pane.global_position.x) == he, "%s: the list and the briefing mirror" % lang)
 	# The flight is skipped: the stored record comes back as the flight's.
-	s.flown_debrief = file
+	s.flown_sortie = ids.pass
 	fe.show_page("home")
 	fe._ready()
 	await frames(2)
@@ -314,7 +314,7 @@ func walk(fe: Control, file: String, lang: String) -> void:
 	fe.find_child("BackMissions", true, false).pressed.emit()
 	await frames(2)
 	check(fe.page == "mission" and fe.mission_i == 1, "%s: Back to missions picks the flown take-off" % lang)
-	fe.open_debrief(file)
+	fe.open_debrief(ids.pass)
 	await frames(2)
 	key(fe, KEY_ESCAPE)
 	await frames(2)
@@ -326,7 +326,7 @@ func walk(fe: Control, file: String, lang: String) -> void:
 	check(
 		_has(fe, "קרדיט" if he else "Attributions") and _has(fe, "יציאה" if he else "Quit"), "%s: home: the menu" % lang
 	)
-	check(_labels_of(fe, "Stat").has("2"), "%s: home: two flights" % lang)
+	check(_labels_of(fe, "Stat").has("3"), "%s: home: three flights" % lang)
 	var fly: Control = fe.find_child("Fly", true, false)
 	check((fly.global_position.x > 960) == he, "%s: home: the column on the inline start" % lang)
 	fe.show_page("log")
@@ -338,7 +338,7 @@ func walk(fe: Control, file: String, lang: String) -> void:
 	check(
 		fe.page == "debrief" and fe.record.get("mission") == "ramon_takeoff", "%s: a log row opens its debrief" % lang
 	)
-	fe.open_debrief(file.replace(STAMP, FAIL_STAMP))
+	fe.open_debrief(ids.fail)
 	await frames(2)
 	check(
 		_has(fe, "נכשל" if he else "FAIL") and _has(fe, "כן הנסע לא נאסף." if he else "The gear was never raised."),
@@ -415,13 +415,16 @@ func prefs(fe: Control) -> void:
 	await frames(2)
 
 
-## Writes a pilot log with two passes and the take-off's debrief record (the scorer's shape, training.md §4).
-static func fixture(s: Node) -> String:
-	var dir: String = s.debriefs_dir()
+## Writes the JSON records from before the database (storage.md §5): a pilot log with the start-up's pass, a failed
+## take-off and a passed one, with their debrief records (the scorer's shape, training.md §4), in a new records
+## folder; the store imports them on its first open. The take-off's sortie ids: {pass, fail}.
+static func fixture(s: Node) -> Dictionary:
+	var root: String = s.records_dir()
+	var dir := root.path_join("debriefs")
 	DirAccess.make_dir_recursive_absolute(dir)
+	DirAccess.remove_absolute(s.records_db())
 	for f in DirAccess.get_files_at(dir):
-		if f.begins_with("debrief-"):
-			DirAccess.remove_absolute(dir.path_join(f))
+		DirAccess.remove_absolute(dir.path_join(f))
 	var items := [
 		["taxi_time", 312, "s"],
 		["lineup_heading_error", 1.2, "deg"],
@@ -500,10 +503,12 @@ static func fixture(s: Node) -> String:
 	FileAccess.open(file, FileAccess.WRITE).store_string(JSON.stringify(rec))
 	var fail := rec.duplicate(true)
 	fail["pass"] = false
+	fail["date"] = "2026-11-02T08:05:00"
 	fail["reasons"] = ["gear_down"]
 	fail["strings"]["en"]["gear_down"] = "The gear was never raised."
 	fail["strings"]["he"]["gear_down"] = "כן הנסע לא נאסף."
-	FileAccess.open(file.replace(STAMP, FAIL_STAMP), FileAccess.WRITE).store_string(JSON.stringify(fail))
+	var failed := dir.path_join("debrief-20261102-075500-ramon_takeoff.json")
+	FileAccess.open(failed, FileAccess.WRITE).store_string(JSON.stringify(fail))
 	FileAccess.open(start, FileAccess.WRITE).store_string(
 		JSON.stringify(
 			{"mission": "ramon_startup", "pass": true, "items": [], "elapsed_s": 112.0, "date": "2026-11-02T07:52:00"}
@@ -512,14 +517,25 @@ static func fixture(s: Node) -> String:
 	var log := {
 		"missions":
 		[
-			{"id": 2012, "attempts": [{"result": 1, "debrief": file, "date": "2026-11-02T08:11:00"}]},
+			{
+				"id": 2012,
+				"attempts":
+				[
+					{"result": 0, "debrief": failed, "date": "2026-11-02T08:05:00"},
+					{"result": 1, "debrief": file, "date": "2026-11-02T08:11:00"},
+				]
+			},
 			{"id": 2011, "attempts": [{"result": 1, "debrief": start, "date": "2026-11-02T07:52:00"}]},
 		]
 	}
-	var path: String = s.pilot_log_file()
+	var path := root.path_join("pilots/14.json")
 	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
 	FileAccess.open(path, FileAccess.WRITE).store_string(JSON.stringify(log))
-	return file
+	var ids := {}
+	for a in JSON.parse_string(IafPilotLog.sorties(s.records_db(), s.pilot())):
+		if a.mission == "ramon_takeoff":
+			ids["pass" if int(a.result) == 1 else "fail"] = int(a.id)
+	return ids
 
 
 func _labels(root: Node) -> Array:

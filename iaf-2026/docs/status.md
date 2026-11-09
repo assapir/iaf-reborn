@@ -55,6 +55,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **[E2](plan.md#e2-the-front-end), the front end (2026-11-08):** `./modern-iaf` opens Home; Pick a plane, Training, Pick a mission, Fly,
   the flight, its debrief sheet, the Pilot log, Preferences and Attributions, in English and Hebrew (mirrored), in the
   round-3 look ([front-end.md](front-end.md)). Esc over a flight opens the pause menu. `test_front_end.gd`.
+- **The records in SQLite (2026-11-09):** the sorties and their debrief records are in `user://modern-iaf.sqlite`
+  (`iaf_tools::pilot_log`, `IafPilotLog`, a schema version and migrations); its first open imports the JSON records
+  from before it once and leaves them in place; Home, Training, the Debrief and the Pilot log read it
+  ([storage.md](storage.md) §5). `cargo test -p iaf-tools --lib pilot_log`, `test_front_end.gd`, `test_mvp.gd`.
 - **[A4](plan.md#a4-the-gate), the gates on the original's converted data and install (2026-11-08):** every path under
   `assets/converted` a shared script reads goes through `Settings.converted()`, every path under the install through
   `Settings.install()`; the sim refuses everything but its own converted data and the M0 probe fails on any refusal
@@ -74,7 +78,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   take-off mission without the front end: parked cold, the start command (Ctrl+E) runs the jet's start sequence on
   the 6-DoF, the screens and the HUD come alive at the real moments; the radio menu (Ctrl+T, 1–3) asks the base's
   tower for start-up, taxi and take-off and the English TTS tower answers; at the end the flight is scored, the
-  debrief record written to `user://debriefs/` and the attempt to the pilot log ([training.md](training.md) §7–§10).
+  sortie and its debrief record stored in the records database ([training.md](training.md) §7–§10).
   `iaf-2026/tests/test_mvp.gd` flies both missions for the Sufa, the Barak and the F-35I to a Pass. Since 2026-11-08
   a crash, any damage or the wheels off the pavement fail a mission at once with that reason first; a pass ends 5 s
   after the goal or when the player ends the flight; the debrief sheet shows only the mission's goals
@@ -131,8 +135,6 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 ## Open
 - **CI for the sim (2026-11-09):** [ci.md](ci.md) recommends parse-checking `iaf-2026/` in the godot job and adding
   `iaf-2026/tests/` to the sweep; the workflow is unchanged.
-- **SQLite for the records (2026-11-09, [plan.md](plan.md#rules-the-user-3-november-2026) rules):** the design in
-  [storage.md](storage.md) waits for the user's decision.
 - **[D3](plan.md#d3-f-15c-baz-at-tel-nof), the Baz is not flyable:** it has no 3D cockpit and no model of its own,
   so the front end does not offer it and no mission flies it; type 110 flies the F-15I's flight-model row. Tel Nof's
   apron is placed by eye ([airbases.md](airbases.md) §5).

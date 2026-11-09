@@ -380,7 +380,7 @@ rule assumes), a 20 mm hit does 100 (three hits destroy a fighter), an AIM-9M hi
   error stops the step. `iaf-convert objects` rewrites the original's keys and keeps the ones it did not write
   (`convert.rs keep_others`), so the two steps run in either order.
 - Every JSON file the sim writes is compact, on one line (plan.md: JSON the game reads is compact): `iaf-sim`'s
-  outputs, `user://devices.json`, the debriefs in `user://debriefs/` and the pilot log. `objects.json` keeps the
+  outputs, `user://devices.json` and each sortie's debrief record in the records database (§13). `objects.json` keeps the
   indented form `iaf-convert objects` gives it, so the original game's converted files and the scenery's
   fingerprint stay as they are. The files a person edits, under `iaf-2026/data/`, are indented. The tests
   `every_data_file_compiles_and_loads` and `own_sounds_and_keys_compile` (`sim.rs`) check every compiled `.json`.
@@ -586,14 +586,18 @@ the event `checklist`: `{"t", "event": "checklist", "step": <id>, "fault": <id, 
 checklist key; and the event `eject`: `{"t", "event": "eject", "short": <below the seat's low limit>}` when the pilot ejects.
 The original game keeps version 1 (no change).
 
-**The debrief record**, `user://debriefs/debrief-<date>-<mission id>.json`: [training.md](training.md) §4's record
-(`mission`, `kind`, `pass`, `reasons`, `items` (each with an optional `text`), `goals`, `strings` in English and Hebrew) plus `flight` (the recording's
-absolute path) and `date` (local, `YYYY-MM-DDTHH:MM:SS`).
+**The records database**, `user://modern-iaf.sqlite` ([storage.md](storage.md) §5, `iaf_tools::pilot_log`): the table
+`pilots` and one `sorties` row per scored flight (`id`, `pilot` (14 until the front end's pilot list), `mission_id`,
+`mission`, `date`, `result` 1 pass / 0 fail, `elapsed_s`, `debrief`), the schema version in `user_version`.
 
-**The pilot log**, `user://pilots/<pilot id>.json` (14 until the front end's pilot list), the original game's shape
-(`iaf-reborn/menu/pilots.gd`): `{"missions": [{"id": <menu id>, "attempts": [{"result": 1 pass / 0 fail, "mult": 1.0,
-"bonus": 0, "kills": [], "losses": [], "debrief": <the debrief file>, "date": …}]}]}`, the newest mission first. The
-original game's reader takes the same fields (it reads `kills` / `losses` as its 37 counts: empty here).
+**The debrief record**, a sortie's `debrief` column as JSON text: [training.md](training.md) §4's record (`mission`,
+`kind`, `pass`, `reasons`, `items` (each with an optional `text`), `goals`, `strings` in English and Hebrew) plus
+`flight` (the recording's absolute path), `date` (local, `YYYY-MM-DDTHH:MM:SS`) and `elapsed_s`.
+
+**The JSON records from before the database** (until 2026-11-09), read once by the database's first open and left in
+place: `user://debriefs/debrief-<date>-<mission id>.json` (one debrief record each) and `user://pilots/<pilot id>.json`
+in the original game's shape (`iaf-reborn/menu/pilots.gd`): `{"missions": [{"id": <menu id>, "attempts": [{"result":
+1 pass / 0 fail, "mult": 1.0, "bonus": 0, "kills": [], "losses": [], "debrief": <the debrief file>, "date": …}]}]}`.
 
 ## 14. Cockpit display data: `data/planes/_shared/cockpit/`, `data/planes/<jet>/cockpit/`
 The data the 3D cockpit's screens draw ([cockpit.md](cockpit.md) §8): `_shared/cockpit/` holds every jet's files

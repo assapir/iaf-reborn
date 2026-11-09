@@ -185,7 +185,10 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("recording")
     ap.add_argument("--html", help="also write a self-contained HTML timeline with the height profile")
-    ap.add_argument("--debrief", help="a Modern IAF debrief record (user://debriefs/*.json) shown with the flight")
+    ap.add_argument(
+        "--debrief",
+        help="a Modern IAF debrief record as a JSON file (out of the records database: iaf-2026/docs/storage.md §5)",
+    )
     a = ap.parse_args()
     head, rows, events = load(a.recording)
     debrief = None

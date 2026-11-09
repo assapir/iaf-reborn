@@ -276,24 +276,24 @@ mission `iaf-2026/data/missions/<id>.json` and the airbase files:
   ejection runs as before (tests/godot/test_eject.gd);
 - `IafTraining.score(recording, mission, airbases)` runs `training::score_files` on the recording so far, with the
   live check's reason first;
-- the debrief record (§4, plus `flight`: the recording's path, `date`: the end, `elapsed_s`: the flight's length) goes
-  to `user://debriefs/debrief-<date>-<id>.json`, compact, and `Settings.flown_debrief` names it for the front end;
-- the attempt goes to the pilot log `user://pilots/<pilot id>.json` (the default pilot 14 until E2's pilot list) in the
-  original game's shape (`iaf-reborn/menu/pilots.gd`): `{"missions": [{"id": <menu id>, "attempts": [{"result": 1 | 0,
-  "mult": 1.0, "bonus": 0, "kills": [], "losses": [], "debrief": <file>, "date": …}]}]}`, newest mission first;
+- the debrief record (§4, plus `flight`: the recording's path, `date`: the end, `elapsed_s`: the flight's length) is
+  stored as a sortie of the pilot (the default pilot 14 until E2's pilot list) in the records database
+  `user://modern-iaf.sqlite` (`IafPilotLog.log_sortie`, [storage.md](storage.md) §5), and `Settings.flown_sortie`
+  names it for the front end;
 - ending the flight opens the front end's debrief sheet.
 
 Scoring needs the recorder (Extras, on by default): with it off the flight is not scored (a warning in the log). Tests
-record beside the debrief, in a temporary folder. The recorder's version 2 (`Settings.blackbox_version`, [data-formats.md](data-formats.md) §13) adds `rpm`
+record beside the records database, in a temporary folder. The recorder's version 2 (`Settings.blackbox_version`, [data-formats.md](data-formats.md) §13) adds `rpm`
 (%) and `avionics`.
 
-`tools/flight_timeline.py <recording> --debrief <debrief.json> [--html f.html]` shows the debrief with the flight's
+`tools/flight_timeline.py <recording> --debrief <debrief.json> [--html f.html]` (a record out of the database:
+[storage.md](storage.md) §5) shows the debrief with the flight's
 timeline (the radio calls, the lift-off) and the start's steps from the RPM column.
 
 ## 10. The probe and a real run
 `iaf-2026/tests/test_mvp.gd` (item F's probe, started here) flies both missions for the Sufa (Ramon), the Barak
 (Ramat David) and the F-35I (Nevatim) headless with scripted inputs at 6× time: the start-up (cold, the throttle
-starts nothing, the checklist by its keys, the columns, the debrief file, the pilot log; the JFS before the main
+starts nothing, the checklist by its keys, the columns, the sortie's debrief, its pass in the pilot log; the JFS before the main
 power fails at once) and the take-off (the three radio
 calls and their answers, a taxi along the base's taxi path to the lineup (on the taxi line, slowing to 2.5 m/s
 through each turn: off the pavement fails, §3.0), the roll on the centreline, the rotation,

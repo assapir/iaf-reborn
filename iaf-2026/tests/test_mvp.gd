@@ -292,10 +292,15 @@ func _check_files(tv: Node, jet: String) -> void:
 		head is Dictionary and int(head.blackbox) == 2 and "rpm" in head.columns and "avionics" in head.columns,
 		"%s: the recording is version 2 with rpm / avionics" % jet
 	)
-	check(FileAccess.file_exists(tv.addon.debrief_file), "%s: debrief %s" % [jet, tv.addon.debrief_file.get_file()])
-	var log: Dictionary = settings().load_json(out.path_join("14.json"))
-	var m: Array = log.get("missions", []).filter(func(x): return int(x.id) == int(tv.mission_id))
-	check(not m.is_empty() and m[0].attempts[-1].result == 1, "%s: the pilot log holds the pass" % jet)
+	var db := out.path_join("modern-iaf.sqlite")
+	var d = JSON.parse_string(IafPilotLog.debrief(db, tv.addon.sortie))
+	check(
+		d is Dictionary and d.get("mission") == tv.addon.mission_name,
+		"%s: sortie %d's debrief" % [jet, tv.addon.sortie]
+	)
+	var sum = JSON.parse_string(IafPilotLog.summary(db, settings().pilot()))
+	var st = sum.missions.get(str(int(tv.mission_id)), {}).get("status") if sum is Dictionary else null
+	check(st != null and int(st) == 1, "%s: the pilot log holds the pass" % jet)
 
 
 ## The radio menu: Ctrl+T opens it, the number picks; the tower's answer.

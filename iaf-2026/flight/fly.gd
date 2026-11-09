@@ -32,7 +32,7 @@ static func start(id: int) -> bool:
 		Settings.save()
 	Settings.mission_files_override = [{"name": name, "data": m}]
 	Settings.mission_id = id
-	Settings.flown_debrief = ""
+	Settings.flown_sortie = 0
 	var tree := Engine.get_main_loop() as SceneTree
 	tree.change_scene_to_file.call_deferred("res://shared/terrain/terrain_view.tscn")
 	return true

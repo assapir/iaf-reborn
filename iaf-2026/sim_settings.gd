@@ -80,8 +80,9 @@ var _sim_planes := {}  # _planes()'s
 ## The plane the pilot picked on the front end: its unit id (f16i, f16d, f35i; settings.cfg [sim] jet); "" before the
 ## first pick.
 var sim_jet := ""
-## The debrief record the last flight wrote (flight/sim_flight.gd), for the front end to open when the flight ends.
-var flown_debrief := ""
+## The sortie the last flight stored (flight/sim_flight.gd), for the front end to open its debrief when the flight
+## ends; 0 = none.
+var flown_sortie := 0
 var _fonts := {}  # display_font's, by style
 var _keys: Array = []  # has_setting's
 ## The player's keys, buttons and axes (devices_file); a test sets its own.
@@ -125,15 +126,20 @@ func front_end_overlay() -> Control:
 	return load(FRONT_END).new()
 
 
-## Where the debrief records go: user://debriefs, or a temporary folder in isolated runs (tests).
-func debriefs_dir() -> String:
-	return OS.get_temp_dir().path_join("modern-iaf-debriefs") if isolated() else "user://debriefs"
+## The records' folder: user://, or a temporary folder in isolated runs (tests). The records database is in it and
+## the JSON records from before it (debriefs/, pilots/) that its first open imports (storage.md §5).
+func records_dir() -> String:
+	return OS.get_temp_dir().path_join("modern-iaf-records") if isolated() else "user://"
 
 
-## The pilot log (training.md §9): the original game's pilot record shape, the default pilot 14.
-func pilot_log_file() -> String:
-	var dir := debriefs_dir().path_join("pilots") if isolated() else "user://pilots"
-	return dir.path_join("%d.json" % (pilot_id if pilot_id >= 0 else 14))
+## The records database (IafPilotLog, storage.md §5), an absolute path.
+func records_db() -> String:
+	return ProjectSettings.globalize_path(records_dir().path_join("modern-iaf.sqlite"))
+
+
+## The pilot whose sorties the log holds: Settings.pilot_id, else the default pilot 14.
+func pilot() -> int:
+	return pilot_id if pilot_id >= 0 else IafPilotLog.default_pilot()
 
 
 func _apply_profile() -> void:

@@ -74,19 +74,18 @@ Training and Pick a mission. Pick a plane's Continue (off until a pick) goes to 
   Fly again on another jet's debrief) and changes to the flight scene.
 - **Back to missions** on a debrief opens that mission's jet with the flown mission picked.
 - **The flight's end:** the flight scene returns to `Settings.front_end_scene()` (`res://main.tscn`). When the flight
-  wrote a debrief record (`flight/sim_flight.gd` sets `Settings.flown_debrief`), the front end opens it.
+  stored a sortie (`flight/sim_flight.gd` sets `Settings.flown_sortie`), the front end opens its debrief.
 
 ## 3. The data it reads
 
 | what | where | written by |
 |---|---|---|
-| debrief records | `user://debriefs/debrief-<stamp>-<mission>.json` (tests: `<temp>/modern-iaf-debriefs/`) | `sim_flight.gd` at the scoring: the scorer's record plus `flight`, `date` (the end, local time) and `elapsed_s` (the flight's length, s) |
-| the pilot log | `user://pilots/14.json` (tests: `<temp>/modern-iaf-debriefs/pilots/`), `Settings.pilot_log_file()` | `sim_flight.gd`, the original game's pilot record shape |
+| the sorties and their debrief records | `user://modern-iaf.sqlite` (tests: `<temp>/modern-iaf-records/`), `Settings.records_db()`, read through `IafPilotLog` ([storage.md](storage.md) §5) | `sim_flight.gd` at the scoring: the scorer's record plus `flight`, `date` (the end, local time) and `elapsed_s` (the flight's length, s) |
 | the picked jet | `user://settings.cfg` `[sim] jet` | the front end |
 | the jet photos | `iaf-2026/data/photos/` (§5) | — |
 
-Both JSON files are written compact. The debrief's number is the record's place among the folder's records, oldest
-first. Its Time is the day, then the mission's clock from its start (the mission's `time`) to the start plus
+The debrief's number is its sortie's id, the sortie's place among all stored flights, oldest first. Home's flights,
+flight time and last result and Training's status and best time are `IafPilotLog.summary`'s. Its Time is the day, then the mission's clock from its start (the mission's `time`) to the start plus
 `elapsed_s`. The pilot's name is the computer's user name. The Remarks are the record's fail reasons, then what its
 numbers say: the lift-off speed against the reference speed for the weight, and the largest offset from the
 centreline in the roll.

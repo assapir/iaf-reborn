@@ -118,13 +118,15 @@ var setup_strings := {}
 var missions: Array = []
 var mission_i := 0
 var record := {}
-var record_file := ""
+var record_sortie := 0
 ## The Preferences section shown (prefs_section).
 var pref_group := ""
 var _focus: Control
 static var _textures := {}
 static var _themes := {}
-var _attempts: Array = []
+## The records store's view, read once per page: the sorties (Pilot log) and the summary (Home, Training).
+var _sorties = null
+var _summary = null
 static var _args_done := false
 
 
@@ -144,10 +146,10 @@ func _ready() -> void:
 		_args_done = true
 		if start_args(OS.get_cmdline_user_args()):
 			return
-	if Settings.flown_debrief != "":
-		var f := Settings.flown_debrief
-		Settings.flown_debrief = ""
-		if open_debrief(f):
+	if Settings.flown_sortie > 0:
+		var id := Settings.flown_sortie
+		Settings.flown_sortie = 0
+		if open_debrief(id):
 			return
 	show_page("home")
 
@@ -202,7 +204,8 @@ func show_page(p: String) -> void:
 	if not _themes.has(he()):
 		_themes[he()] = Look.make()
 	theme = _themes[he()]
-	_attempts = []
+	_sorties = null
+	_summary = null
 	var dir := Control.LAYOUT_DIRECTION_RTL if he() else Control.LAYOUT_DIRECTION_LTR
 	# Over a flight the overlay itself stays left to right: a right-to-left control under a CanvasLayer mirrors its own
 	# position by its unscaled width (_fit_overlay), which pushed the pause menu off the screen. Its children carry
@@ -421,24 +424,21 @@ func _page_home() -> void:
 
 ## Home's log summary: the flights, the flight time and the last result (none before the first flight).
 func _home_log(col: Control) -> void:
-	var att := attempts()
-	if att.is_empty():
+	var sum := summary()
+	if not sum.get("last") is Dictionary:
 		return
 	var log := _vbox(col, 6)
 	_label(log, s("pilot_log"), "H3")
 	var stats := _hbox(log, 46)
-	var total := 0.0
-	for a in att:
-		total += float(a.get("elapsed_s", 0.0))
-	for st in [[str(att.size()), "flights"], [clock(total), "flight_time"]]:
+	for st in [[str(int(sum.flights)), "flights"], [clock(float(sum.flight_time_s)), "flight_time"]]:
 		var one := _hbox(stats, 8)
 		var v := _label(one, st[0], "Stat")
 		v.text_direction = Control.TEXT_DIRECTION_LTR
 		var l := _label(one, s(st[1]), "Muted")
 		l.size_flags_vertical = Control.SIZE_SHRINK_END
-	var last: Dictionary = att[-1]
+	var last: Dictionary = sum.last
 	var row := _hbox(log, 16)
-	_label(row, s("last") % mission_title(int(last.id)), "Row").size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_label(row, s("last") % mission_title(int(last.mission_id)), "Row").size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_chip(row, s("pass" if int(last.result) == 1 else "fail"), int(last.result) == 1)
 
 
@@ -844,13 +844,13 @@ func _set_pref(key: String, value: Variant) -> void:
 # --- Debrief ----------------------------------------------------------------------------------------------------------
 
 
-## Opens the debrief record `file` (user://debriefs, training.md §4); false when it cannot be read.
-func open_debrief(file: String) -> bool:
-	var d := Settings.load_json(file)
-	if d.is_empty() or not d.has("items"):
+## Opens the debrief record of sortie `id` (the records database, training.md §4); false when it has none.
+func open_debrief(id: int) -> bool:
+	var d = JSON.parse_string(IafPilotLog.debrief(Settings.records_db(), id))
+	if not d is Dictionary or not d.has("items"):
 		return false
 	record = d
-	record_file = file
+	record_sortie = id
 	show_page("debrief")
 	return true
 
@@ -883,7 +883,7 @@ func _page_debrief() -> void:
 	var bh := _hbox(band, 0)
 	_label(bh, s("debrief_band"), "Band")
 	_spacer(bh)
-	_label(bh, s("number") % ("%04d" % debrief_number()), "Band")
+	_label(bh, s("number") % ("%04d" % record_sortie), "Band")
 	var inner := _vbox(_margin(v, 33, 22), 0)
 	# The fields: Plane flown, From, Time, Mission, Result.
 	var fields := _hbox(inner, 0)
@@ -1005,15 +1005,6 @@ func _pick_jet_quiet(j: Dictionary) -> void:
 	Settings.save()
 
 
-## The record's number: its place among the debriefs in the folder, oldest first.
-func debrief_number() -> int:
-	var files := Array(DirAccess.get_files_at(record_file.get_base_dir())).filter(
-		func(f): return f.begins_with("debrief-")
-	)
-	files.sort()
-	return files.find(record_file.get_file()) + 1
-
-
 ## The day and the mission clock from the start to the end: "2 Nov 2026 · 08:00–08:11" (Hebrew "2.11.2026 · …").
 func debrief_time(m: Dictionary) -> String:
 	var date := str(record.get("date", ""))
@@ -1072,7 +1063,7 @@ func _page_log() -> void:
 	_header(["home", "pilot_log"])
 	var v := _vbox(_body(), 26)
 	_title(v, s("pilot_log"), "")
-	var att := attempts()
+	var att := sorties()
 	if att.is_empty():
 		_label(v, s("no_flights"), "Sub")
 	var scroll := ScrollContainer.new()
@@ -1086,11 +1077,11 @@ func _page_log() -> void:
 		_log_row(list, [s("date"), s("mission"), s("plane_flown")], -1, null)
 	for i in range(att.size() - 1, -1, -1):
 		var a: Dictionary = att[i]
-		var m := mission_by_id(int(a.id))
+		var m := mission_by_id(int(a.mission_id))
 		var j := jet_of(m)
 		var cells := [
-			str(a.get("date", "")).replace("T", " ").left(16),
-			title_of(m) if not m.is_empty() else str(a.id),
+			str(a.date).replace("T", " ").left(16),
+			title_of(m) if not m.is_empty() else str(a.mission_id),
 			"%s %s" % [j.get("code", ""), s(j.get("name", ""))],
 		]
 		var b := _log_row(list, cells, int(a.result), a)
@@ -1107,9 +1098,9 @@ func _log_row(list: Control, cells: Array, result: int, a) -> Control:
 		var b := Button.new()
 		b.theme_type_variation = "Menu"
 		b.custom_minimum_size.y = 58
-		var file := str(a.get("debrief", ""))
-		b.disabled = not FileAccess.file_exists(file)
-		b.pressed.connect(func(): open_debrief(file))
+		var id := int(a.id)
+		b.disabled = not a.has_debrief
+		b.pressed.connect(func(): open_debrief(id))
 		list.add_child(b)
 		row = _margin(b, 20, 8)
 		row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -1262,20 +1253,21 @@ static func jet_of(m: Dictionary) -> Dictionary:
 	return {}
 
 
-## Every attempt in the pilot log, oldest first: {id, result, debrief, date, elapsed_s (from its debrief)}.
-func attempts() -> Array:
-	if not _attempts.is_empty():
-		return _attempts
-	var out := []
-	for m in Settings.load_json(Settings.pilot_log_file()).get("missions", []):
-		for a in m.get("attempts", []):
-			var e: Dictionary = a.duplicate()
-			e["id"] = int(m.id)
-			e["elapsed_s"] = float(Settings.load_json(str(a.get("debrief", ""))).get("elapsed_s", 0.0))
-			out.append(e)
-	out.sort_custom(func(a, b): return str(a.get("date", "")) < str(b.get("date", "")))
-	_attempts = out
-	return out
+## The pilot's sorties, oldest first (IafPilotLog.sorties: {id, mission_id, mission, date, result, elapsed_s,
+## has_debrief}).
+func sorties() -> Array:
+	if _sorties == null:
+		var a = JSON.parse_string(IafPilotLog.sorties(Settings.records_db(), Settings.pilot()))
+		_sorties = a if a is Array else []
+	return _sorties
+
+
+## The pilot log's summary (IafPilotLog.summary: flights, flight_time_s, last, missions by menu id).
+func summary() -> Dictionary:
+	if _summary == null:
+		var d = JSON.parse_string(IafPilotLog.summary(Settings.records_db(), Settings.pilot()))
+		_summary = d if d is Dictionary else {}
+	return _summary
 
 
 func _grab(c: Control) -> void:
@@ -1285,21 +1277,12 @@ func _grab(c: Control) -> void:
 
 ## The mission's last result: 1 pass, 0 fail, -1 not flown.
 func status(m: Dictionary) -> int:
-	var st := -1
-	for a in attempts():
-		if int(a.id) == int(m.menu_id):
-			st = int(a.result)
-	return st
+	return int(summary().get("missions", {}).get(str(int(m.menu_id)), {}).get("status", -1))
 
 
 ## The shortest passing flight of the mission, s (0 = none).
 func best_time(m: Dictionary) -> float:
-	var best := 0.0
-	for a in attempts():
-		var t := float(a.elapsed_s)
-		if int(a.id) == int(m.menu_id) and int(a.result) == 1 and t > 0 and (best == 0.0 or t < best):
-			best = t
-	return best
+	return float(summary().get("missions", {}).get(str(int(m.menu_id)), {}).get("best_s", 0.0))
 
 
 ## The pilot's name: the computer's user name (Settings.pilot_name when set: the pictures' sample pilot).

@@ -27,6 +27,7 @@ pub mod mission_year;
 pub mod modern_map;
 pub mod pack;
 pub mod patch;
+pub mod pilot_log;
 pub mod plane;
 pub mod progress;
 pub mod roads;

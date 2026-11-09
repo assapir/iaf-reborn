@@ -7,7 +7,7 @@
 # - A training mission (the compiled mission's `sim.training`): IafTraining (crates/iaf-tools training.rs) checks each
 #   frame for a fail (a crash, damage, the wheels off the pavement) and ends the mission at once on one; else the
 #   mission ends its hold after the goal, or when the player ends the flight. At its end the recording is scored by
-#   IafTraining, the debrief record written to user://debriefs/ and the attempt to the pilot log.
+#   IafTraining, the sortie and its debrief record stored in the records database (IafPilotLog).
 extends Node
 
 const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
@@ -54,11 +54,10 @@ var _sim := {}
 ## The training mission: its readable file's name (res://data/missions/<name>.json) and rules; {} for a flight without.
 var mission_name := ""
 var rules := {}
-## The debrief record once scored ({} before), and where it was written.
+## The debrief record once scored ({} before), and its sortie in the records database (0 before).
 var result := {}
-var debrief_file := ""
-## Tests: where the debrief, the pilot log and (isolated) the recording go; "" = user:// (or a temporary folder in
-## isolated runs).
+var sortie := 0
+## Tests: where the records database and (isolated) the recording go; "" = Settings.records_dir().
 var out_dir := ""
 var _next_score := 0.0
 var _ready_at := INF
@@ -136,7 +135,7 @@ func _ready() -> void:
 func _dir() -> String:
 	var d := out_dir
 	if d == "":
-		d = Settings.debriefs_dir()
+		d = Settings.records_dir()
 	DirAccess.make_dir_recursive_absolute(d)
 	return d
 
@@ -227,7 +226,7 @@ func pick(id: String) -> String:
 func _process(_delta: float) -> void:
 	if not result.is_empty() and Time.get_ticks_msec() >= _end_ms:
 		_end_ms = INF
-		host._end_flight(true)  # into the debrief (Settings.flown_debrief)
+		host._end_flight(true)  # into the debrief (Settings.flown_sortie)
 	if rules.is_empty() or not result.is_empty() or host.flight == null or host.get("_log") == null:
 		return
 	var t: float = host._log_t
@@ -324,12 +323,9 @@ func _finish(d: Dictionary) -> void:
 	d["flight"] = ProjectSettings.globalize_path(host._log.get_path_absolute())
 	d["date"] = Time.get_datetime_string_from_system()
 	d["elapsed_s"] = snappedf(float(host._log_t), 0.1)
-	debrief_file = _dir().path_join("debrief-%s-%s.json" % [Settings.file_stamp(), mission_name])
-	var f := FileAccess.open(debrief_file, FileAccess.WRITE)
-	if f != null:
-		f.store_string(JSON.stringify(d))
-	Settings.flown_debrief = debrief_file
-	_pilot_log(d)
+	var db: String = Settings.records_db() if out_dir == "" else _dir().path_join("modern-iaf.sqlite")
+	sortie = IafPilotLog.log_sortie(db, Settings.pilot(), int(host.mission_id), JSON.stringify(d))
+	Settings.flown_sortie = sortie
 	var en: Dictionary = d.get("strings", {}).get("en", {})
 	print("training %s: %s %s" % [mission_name, "PASS" if d["pass"] else "FAIL", d.get("reasons", [])])
 	host._log_event(host._log_st, {"event": "mission", "name": "training " + ("pass" if d["pass"] else "fail")})
@@ -342,43 +338,6 @@ func _finish(d: Dictionary) -> void:
 	else:
 		var why: Array = d.get("reasons", [])
 		_show_banner(String(s.get("fail", "")), String(s.get(why[0], why[0])) if not why.is_empty() else "")
-
-
-## The attempt in the pilot log, the shape of the original game's pilot records (iaf-reborn/menu/pilots.gd: <id>.json
-## = {missions: [{id, attempts: [{result, mult, bonus, kills, losses}]}]}, newest mission first), plus the debrief
-## file and the date; the pilot is Settings.pilot_id, else the default pilot 14.
-func _pilot_log(d: Dictionary) -> void:
-	var path: String = Settings.pilot_log_file()
-	if out_dir != "":
-		path = out_dir.path_join(path.get_file())
-	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
-	var missions: Array = Settings.load_json(path).get("missions", [])
-	var id := int(host.mission_id)
-	var entry: Dictionary = {}
-	for m in missions:
-		if int(m.id) == id:
-			entry = m
-	if entry.is_empty():
-		entry = {"id": id, "attempts": []}
-		missions.push_front(entry)
-	(
-		entry
-		. attempts
-		. append(
-			{
-				"result": 1 if d["pass"] else 0,
-				"mult": 1.0,
-				"bonus": 0,
-				"kills": [],
-				"losses": [],
-				"debrief": debrief_file,
-				"date": d.date,
-			}
-		)
-	)
-	var f := FileAccess.open(path, FileAccess.WRITE)
-	if f != null:
-		f.store_string(JSON.stringify({"missions": missions}))
 
 
 # --- the start-up checklist (training.md §7.1) ------------------------------------------------------------------
