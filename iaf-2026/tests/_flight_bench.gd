@@ -1,9 +1,11 @@
 # Dev helper (not run by tools/test.sh): tests/godot/_flight_bench.gd in the sim, from one of its compiled missions
 # (BENCH_SIM, default ramon_takeoff; converted/iaf-2026/missions) instead of an original's. The same BENCH_* variables;
-# BENCH_AT takes UTM metres (iaf-2026/docs/scenery.md §5, the scenery's cost over Ramon and Tel Aviv):
+# BENCH_AT takes UTM metres (iaf-2026/docs/scenery.md §5, the scenery's cost over Ramon and Tel Aviv). Keep
+# blackbox=false in BENCH_SET: with the recorder on, the training check ends the flight when the bench moves the jet
+# off the runway (scenery.md §6):
 #   flock -o ~/.cache/iaf-gpu-bench.lock timeout -k 10 600 tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 BENCH_BEST=1 \
-#     BENCH_AT=668000,3550689 BENCH_LEGS=500:150:15 BENCH_SET=scenery=on -- --log-file <temp> --display-driver x11 \
-#     --path iaf-2026 --resolution 2560x1440 -s ../iaf-2026/tests/_flight_bench.gd
+#     BENCH_AT=668000,3550689 BENCH_LEGS=500:150:15 BENCH_SET=scenery=on,blackbox=false -- --log-file <temp> \
+#     --display-driver x11 --path iaf-2026 --resolution 2560x1440 -s ../iaf-2026/tests/_flight_bench.gd
 extends "res://../tests/godot/_flight_bench.gd"
 
 
