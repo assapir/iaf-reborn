@@ -1605,14 +1605,15 @@ mod tests {
             assert!(clip(r[13]) > 0.05, "{}", r[13]);
         }
         // The codes iaf-reborn/ plays by code (flight_sounds.gd, player_weapons.gd, player_damage.gd, rwr.gd, combat.gd,
-        // damage_model.gd; SFX_AB_LIGHT in the sim only); BTY_MISS, BTY_OVER_G and BTY_SPIN have no row on purpose
-        // (the F-16 VMS has no such voice).
+        // damage_model.gd; SFX_AB_LIGHT and SFX_JFS in the sim only); BTY_MISS, BTY_OVER_G and BTY_SPIN have no row on
+        // purpose (the F-16 VMS has no such voice).
         for key in [
             "SFX_LANDING/None",
             "SFX_START_ENGINE/None",
             "SFX_DRY_THRUST/None",
             "SFX_AFTERBURNER_THRUST/None",
             "SFX_AB_LIGHT/None",
+            "SFX_JFS/None",
             "SFX_BUTTON/None",
             "SFX_LANDING_GEAR/None",
             "SFX_FLAPS/None",

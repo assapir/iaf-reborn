@@ -26,26 +26,26 @@ VOICES). Piper varies from run to run, so a new `--set` run gives slightly diffe
 
 ## 1. The sound set
 One clip per sound code the shared flight code plays (docs/sound.md §3–§5): 29 CC0 recordings from freesound[^fs], one
-clip made from one of them (the afterburner's light-off, §1.2) and 7 computed tones. Each clip's source, author, licence
+clip made from one of them (the afterburner's light-off, §1.2) and 8 computed tones (with the JFS whine, §1.4). Each clip's source, author, licence
 and cut: [SOURCES.md](../data/sounds/SOURCES.md).
 - **Format:** 22050 Hz, 16-bit, mono WAV, the format `sound_table.gd` plays; named by code
   (`sfx_weapon_exploded_ost_bomb.wav`). `iaf-sim own` refuses a clip in any other format.
 - **Processing** (`sounds.py`): the cut; 5 ms fade in and 50 ms fade out, or for a loop the last 0.25 s cross-faded
   into the start (equal power); the tail below −50 dB of the peak cut; the level set as vrms; a soft limit at −1 dBFS.
   The recordings are freesound's HQ previews (Ogg Vorbis, 44.1 / 48 kHz): the original files need a login.
-- **Rows** (`soundprop.json`, 113 rows): the columns of docs/sound.md §1 by name (`category` engine / effect /
+- **Rows** (`soundprop.json`, 114 rows): the columns of docs/sound.md §1 by name (`category` engine / effect /
   speech, `play` loop / once, `3d`, `min_m` / `max_m`, `volume_in` / `volume_out`, `channel`). The weapon sub codes
   share clips by kind: every missile one launch, flight loop and explosion; every bomb one release, fall loop and
   explosion. `SFX_DRY_THRUST` and `SFX_AFTERBURNER_THRUST` (AB stages 1 and 2) share the AB loop, which the sim plays at
-  its own pitch (§1.2); `SFX_AB_LIGHT` is the sim's own row for the light-off. Our values (inferred): the engine at 0.6
+  its own pitch (§1.2); `SFX_AB_LIGHT` is the sim's own row for the light-off, `SFX_JFS` for the JFS whine (§1.4). Our values (inferred): the engine at 0.6
   in the cockpit, the gear and flaps at 0.75, explosions heard to 3 km.
 - **By name** (`soundprop.json` `by_name`): the files the shared code opens by name, not by code: `cock_g_02.wav`
   (the G strain, `g_effects.gd`), `endworld.wav` (the map edge, `terrain_view.gd`), `kch2.wav` (the radio click,
   `radio.gd`). `g_effects.gd`'s `cock_bty_over.wav` is left out: the VMS has no Over-G voice, so it stays silent.
 - **Silent on purpose:** a code with no row plays nothing (`flight_sounds.gd play`): Betty's missile, Over-G and
   spin calls (§3).
-- **Not played yet:** `SFX_WIND` (shares the air-brake loop) and `SFX_DOOR_OPEN` / `SFX_DOOR_CLOSE` (the canopy)
-  have rows and clips but no caller.
+- **Not played yet:** `SFX_DOOR_OPEN` (the canopy opening) has a row and a clip but no caller. `SFX_WIND` (§1.6)
+  and `SFX_DOOR_CLOSE` (§1.7) play in the sim since 9 November 2026.
 
 ### 1.1 Listening notes
 Measured, not heard: a human listening pass at game volume is still open. Every clip below has no clipped sample,
@@ -60,14 +60,15 @@ original's clips of the same codes were measured for level only: ours are mostly
 | `sfx_aircraft_exploded` | 2.34 | -11.3 | -1.0 | a DoD video blast |
 | `sfx_aircraft_fired_weapon_ost_bomb` | 0.40 | -14.4 | -1.3 | a metal clonk as the rack release |
 | `sfx_aircraft_fired_weapon_ost_flare` | 1.00 | -14.0 | -4.5 | a vintage flare gun; the shells falling to the floor may be in the cut |
-| `sfx_aircraft_fired_weapon_ost_gunbullet` | 1.75 | -12.0 | -3.1 | M61A2 burst loop: check for a rhythm break at the seam |
+| `sfx_aircraft_fired_weapon_ost_gunbullet` | 1.09 | -12.0 | -2.9 | M61A2 burst loop at 100 rounds a second (§1.5): check for a rhythm break at the seam |
 | `sfx_aircraft_fired_weapon_ost_heatmissile` | 3.00 | -13.3 | -1.1 | a ground anti-tank launch standing in for an air-launched missile |
 | `sfx_button` | 0.35 | -20.0 | -2.5 | a guitar-pedal toggle; longer than the original's 30 ms click |
 | `sfx_door_close` | 4.25 | -18.0 | -2.7 | cut by the loudness envelope only; check the lock thump is in it |
-| `sfx_door_open` | 4.00 | -18.0 | -4.2 | cut by the loudness envelope only (USC vintage optical recording, noisy) |
+| `sfx_door_open` | 3.75 | -18.0 | -4.2 | the canopy motor's second run (§1.7; USC vintage optical recording, noisy) |
 | `sfx_entity_fired_weapon_ost_gunbullet` | 1.25 | -14.0 | -8.8 | Phalanx burst as the AI's gun and AAA |
 | `sfx_fire_extinguisher` | 1.20 | -17.2 | -1.2 | one burst of a real extinguisher |
 | `sfx_flaps` | 2.50 | -14.0 | -2.2 | 3 dB quieter than the original's; a steady motor, cut at 2.5 s with a fade |
+| `sfx_jfs` | 1.00 | -20.0 | -9.0 | our JFS whine (§1.4): check it does not sound like an organ |
 | `sfx_ir_lock` | 1.00 | -16.0 | -14.5 | our lock tone |
 | `sfx_ir_seek` | 1.00 | -18.0 | -15.4 | our growl; compare with a real AIM-9 tone |
 | `sfx_landing` | 0.10 | – | – | silence (engine off) |
@@ -79,7 +80,7 @@ original's clips of the same codes were measured for level only: ours are mostly
 | `sfx_speed_breakes_loop` | 6.00 | -20.0 | -8.8 | KC-135 camera wind (also SFX_WIND): check it is not too hissy in the cockpit |
 | `sfx_splash` | 2.17 | -13.0 | -1.0 | a mix of CC0 splashes |
 | `sfx_start_engine` | 3.00 | -14.0 | -2.4 | a parked F-16's idle; check it still sounds right pitched up to 1.375 at full dry power |
-| `sfx_touchdown` | 0.60 | -13.0 | -1.4 | a tyre chirp (bike / car brakes) |
+| `sfx_touchdown` | 0.45 | -13.0 | -2.4 | an airplane tyre skid with a 60 Hz thump (§1.8) |
 | `sfx_warning_wrn_aoa` | 1.00 | -24.0 | -20.9 | our beeps, 7 dB louder than the original's quiet tone |
 | `sfx_warning_wrn_master` | 0.45 | -20.0 | -16.9 | ours; the original had no file |
 | `sfx_warning_wrn_missile_launch` | 1.00 | -20.0 | -17.0 | our warble |
@@ -150,6 +151,74 @@ Before / after renders of the same throttle moves (dry at military, the burner a
 spectrograms, the references beside them and the spectra are in the review folder
 (`~/.claude/iaf-2026-pages/sound/`, notes.md lists the files). Checks: `test_mvp.gd` (the sim's rule), the original's
 `test_sounds.gd` (its rule, no thump, no tail).
+
+### 1.3 The core sounds against real references (Approvals item A12)
+9 November 2026. The same method as §1.2: each sound the sim plays, its clip, the code that plays it and its timing,
+measured against references with ffmpeg and numpy / scipy, not heard. The YouTube references are for comparison only:
+nothing of them ships, and their audio was deleted after the measurements. The fixes are the sim's alone: the shared
+code takes them through `Settings.core_sound_real()` (true in the sim, false in the original game, whose rule and
+clips are unchanged; `test_sounds.gd` checks that). Before / after renders, their spectrograms and the reference
+figures are in the review folder (`~/.claude/iaf-2026-pages/sound/core/`, notes.md lists the files).
+
+| sound | what differed (before) | the reference | now |
+|---|---|---|---|
+| the dry engine (§1.3) | the idle recording played 4.2 semitones up at idle (pitch 1.275) and 1.375 at military: 8 % from idle to military, at one level | an F-16's spool tone at 2.8 kHz at idle rises past 6 kHz on the run-up[^hush]: at least 2× | its own pitch at idle, 1.3 at military; 6 dB quieter at idle |
+| the start (§1.4) | from the first crank the idle loop at pitch 1.13–1.18, at full level; no JFS, no light-off | the JFS whine: partials at 2126, 3252, 4247, 5259, 6401 Hz, 20–30 dB over the broadband, rising from half that pitch over about 15 s[^start] | the JFS whine, the engine's pitch and level by its RPM, a light-off thump, the JFS winding down at the generators |
+| the gun (§1.5) | 48 rounds a second (the recording's own rate) | 105 rounds a second, two F-16 firing videos[^gun1][^gun2]; the M61A1 fires 6,000 a minute | 100 rounds a second |
+| the wind (§1.6) | silent (no caller) | open: the cockpit videos' sound is the intercom | the KC-135 wind loop, its amplitude as the dynamic pressure |
+| the canopy (§1.7) | silent (no caller); the opening clip was the library's spoken slate | — | the closing plays at the checklist's canopy step; the opening clip is the motor |
+| the touchdown (§1.8) | a bicycle brake's squeal: two tones at 1.6 and 3.3 kHz, 0.55 s | an airplane tyre skid (CC0[^skid]): broadband 0.2–4 kHz, 0.35 s | that skid with a 60 Hz thump under it, 0.45 s |
+| gear and flaps | the gear clip (a flight-sim recording) runs 3.5 s against the sim's 3 s gear travel; the flaps clip is a steady motor whine, its centroid at 3.8 kHz | open: no usable recording | unchanged (open) |
+| the tower's key clicks | not on main: they are on the unmerged branch `wt/iaf-2026-voices` | — | skipped |
+
+**The dry engine.** `flight_sounds.gd` plays `sfx_start_engine.wav` (a parked F-16's idle) below the burner. The
+original's rule pitches it as (RPM + 0.5) × 0.25 + 1 (FUN_004c3e00), so the sim's idle (60 % RPM) played at 1.275
+and military at 1.375. Now: pitch 1 at idle, rising linearly to 1.3 at military; the level 6 dB under the row's at
+idle, rising linearly in dB to the row's at military, so the burner's step over military (§1.2) stays 6 dB. The
+real spool tones rise at least 2× from idle (hush house[^hush]); a broadband loop pitched that far sounds like a
+cartoon, so 1.3 is a middle (inferred). The idle-to-military level step in the cockpit is open; 6 dB is inferred.
+
+### 1.4 The start
+The sim's start by keys (training.md §7.1): the JFS cranks the engine 0 → 20 % RPM in 15 s, the throttle to idle,
+the light-off 5 s later, 20 → 60 % in 15 s, the main generator at 52 %. Before, the engine loop started with the
+crank at pitch 1.13 and full level. Two F-16 start videos[^start][^kf16] show the JFS whine first: a set of
+partials, the strongest at 2126 Hz and 3252 Hz, rising from about half their pitch over 8–15 s, then steady while the
+engine spools. Now:
+- **The JFS:** `sfx_jfs.wav`, computed (`sounds.py` `jfs`): those five partials (and a weak 1063 Hz) at their
+  measured levels, wandering 0.3 % in speed, on 1/f noise above 300 Hz. It spools from half pitch over 10 s (between
+  the references' 8 and 15 s) while the start runs, and winds down over 3 s (the reference's fall takes 3–4 s[^start])
+  once the RPM reaches 52 %, the main generator on line[^f16net]: the generators coming on line are heard as the JFS
+  winding down (inferred). The F-35I's IPP plays the same whine (inferred).
+- **The engine:** below idle the loop's pitch is RPM / 60 % (at least 0.3) and its level falls as (RPM / 60 %)^1.5:
+  14 dB under idle at 20 % (inferred).
+- **The light-off:** `SFX_AB_LIGHT` (the burner's low thump, §1.2) 6 dB down as the engine lights (inferred: the
+  references' level rises about 6 dB over several seconds there, with no sharp bang).
+
+### 1.5 The gun
+`player_weapons.gd` loops `SFX_AIRCRAFT_FIRED_WEAPON` / `OST_GUNBULLET` from the first round to the trigger's
+release. The clip (Seidhepriest's M61A2 recording) repeats 48.4 times a second: half the M61A1's 6,000 rounds a
+minute. Two F-16 firing videos[^gun1][^gun2] buzz at 105 rounds a second. `sounds.py` `gun_rate` now finds each shot
+on the recording's envelope and lays it down every 220 samples (100.2 a second) under a Hann window two periods long
+(pitch-synchronous overlap-add): the shot keeps its sound, only the rate changes. The loop's cross-fade starts on a
+shot. Its centroid moved from 716 to 848 Hz (the references: 311–675 Hz). Open: the barrels' spin-up (about 0.4 s)
+and wind-down; the AI's gun (a Phalanx at 79 a second) is unchanged.
+
+### 1.6 The wind
+`SFX_WIND` had a row and no caller. Now, from 30 kt, the sim loops it (the KC-135 recording the air brake also uses)
+with its amplitude as the dynamic pressure, (KCAS / 450 kt)²: 12 dB under its row's level at 225 kt (inferred: the
+pressure under a turbulent boundary layer grows with the dynamic pressure). Open: the cockpit's own wind spectrum
+and level, and the air brake's loop over it.
+
+### 1.7 The canopy
+`SFX_DOOR_CLOSE` (craigsmith's USC recording of a jet's canopy closing, its 4 s motor run to the lock) now plays at
+the start-up checklist's canopy step (`sim_flight.gd`). `sfx_door_open.wav` was the recording's first 4 s, the
+library's spoken slate (speech formants every 0.3 s); it is now the motor's second run (21.25–25 s), still with no
+caller. Open: a real F-16 canopy's run time (the references could not separate it from the ground power).
+
+### 1.8 The touchdown
+`flight_sounds.gd` plays `SFX_TOUCHDOWN` when the wheels touch with the gear down. The clip was a bicycle tyre's
+squeal: two steady tones at 1.6 and 3.3 kHz for 0.55 s. Now it is craigsmith's USC airplane tyre skid[^skid]
+(0.15–0.6 s): broadband 0.2–4 kHz, 0.35 s, with a 60 Hz thump falling over 0.12 s under it, the struts (inferred).
 
 ## 2. The radio filter
 `tools/iaf-2026/radio_voice.py` turns Piper's speech into a cockpit voice, on 22050 Hz mono:
@@ -244,7 +313,7 @@ The setup wizard (item A3) and the credits roll live outside this branch's folde
 [docs/credits.md](../../docs/credits.md)):
 - **Sound effects** (freesound.org, CC0): ikbenraar, pillwave, 77Pacer, nuckan, qubodup, Seidhepriest,
   Jetrod, craigsmith (the USC Gold / Red / Sunset Editorial libraries), LilMati, Rudmer_Rotteveel, pushkin, xkeril,
-  elliott.klein, DeqstersLab, RutgerMuller, SoundDesignForYou, tranzfusion.
+  elliott.klein, DeqstersLab, SoundDesignForYou, tranzfusion.
 - **Voices:** Piper text to speech (MIT), the voices kristin, john and norman (LibriVox recordings, public domain).
 - **Hebrew voice:** only if option 1 of §5 is chosen: SASPEECH, © Kan, the Israeli Public Broadcasting Corporation,
   non-commercial licence.
@@ -257,8 +326,8 @@ The setup wizard (item A3) and the credits roll live outside this branch's folde
 - The squelch at run time: a tower phrase is a chain of particles without squelch; the radio menu (item E3b,
   [training.md](training.md) §8) plays the phrase as it is.
 - The pilot's requests (start-up, taxi, take-off) are printed only: no pilot phrase for them yet.
-- The engine start (training.md §7) plays the engine clip pitched by the RPM from the crank on; the JFS's / IPP's own
-  whine and the light-off have no clip.
+- The core sounds (§1.3–§1.8): the cockpit's idle-to-military step, the wind's real spectrum, the gun's spin-up, a
+  real canopy's run time, the gear and flaps clips against a real F-16, the F-35I's own IPP.
 - One engine sound set for all three jets (one clip per code in the shared table).
 - The afterburner (§1.2): the light-off delay after the detent, the level in the cockpit, a comparison with
   FlightGear's F-16 sounds, and the F-35I's F135, which shares the F-16's burner.
@@ -276,4 +345,10 @@ The setup wizard (item A3) and the credits roll live outside this branch's folde
 [^osh]: "F-16 Fighting Falcon Afterburner Takeoff at Oshkosh 2021", YouTube (reference only): https://www.youtube.com/watch?v=itiPxCPupiA
 [^rr1]: Rudmer_Rotteveel, "2 Royal Dutch Airforce F-16 Fighting Falcons flyby", freesound, CC0 1.0: https://freesound.org/people/Rudmer_Rotteveel/sounds/343746/
 [^rr2]: Rudmer_Rotteveel, "2 RNLAF F-16 Fighting Falcons flyby (noisy/with birds)", freesound, CC0 1.0: https://freesound.org/people/Rudmer_Rotteveel/sounds/343747/
+[^start]: "F16 Engine Start Sequence", YouTube (reference only): https://www.youtube.com/watch?v=dRa-Hm9D9bg
+[^kf16]: "Engine starting ROKAF KF-16C", YouTube (reference only): https://www.youtube.com/watch?v=FRoIYw2rMa0
+[^f16net]: F-16.net forum, "JFS and avionics question" (the flight manual: "As the engine accelerates through 50 % rpm, a sensor causes the JFS to shut down automatically"), https://www.f-16.net/forum/viewtopic.php?p=13518
+[^gun1]: "F-16 Fighting Falcon Firing 20 mm M61A1 six-barrel Gatling gun", YouTube (reference only): https://www.youtube.com/watch?v=kcBfNBZ1i-4
+[^gun2]: "F-16 Firing M61A1 Vulcan cannon", YouTube (reference only): https://www.youtube.com/watch?v=armF8r9fW9k
+[^skid]: craigsmith, "R02-24-Airplane Tire Skid.wav", freesound, CC0 1.0: https://freesound.org/people/craigsmith/sounds/479498/
 [^saspeech]: OpenSLR, "SASPEECH" (SLR134), licence summary: https://www.openslr.org/134/

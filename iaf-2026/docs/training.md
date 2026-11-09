@@ -187,8 +187,8 @@ since 2026-11-08: not in the key list), runs it all at once
 | engine stopped (`set_engine_on(false)`, the ejection) | no RPM; the power as it was; a new command starts from the beginning | the same | inferred |
 
 The F-15I's (no mission flies it yet) is the F-16's (inferred). The F-35I's engine steps are the F-16's: no public
-figure (inferred). The sound is the engine clip of E1b (`SFX_START_ENGINE`) pitched by the RPM from the crank on
-(`flight_sounds.gd`, unchanged); the starter's own whine has no clip (sound.md §7). The probe measures 37 s to idle
+figure (inferred). The sound: the JFS's (the IPP's) whine, the engine clip of E1b (`SFX_START_ENGINE`) with its
+pitch and level by the RPM, a light-off thump, and the JFS winding down at the generators ([sound.md](sound.md) §1.4). The probe measures 37 s to idle
 for the F-16s and 47 s / 92 s for the F-35I (the recorder samples 10 times a second; the scene takes a few frames).
 
 ### 7.1 The start-up checklist by keys

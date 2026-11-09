@@ -16,7 +16,7 @@ The rows that use each clip: [soundprop.json](soundprop.json).
 | `sfx_flaps.wav` | [Airplane flaps,](https://freesound.org/people/77Pacer/sounds/425274/) | 77Pacer | CC0 1.0 | 0-2.5 s (first 2.5 s), -14 dB vrms |
 | `sfx_speed_breakes.wav` | [hydraulics.wav](https://freesound.org/people/nuckan/sounds/212941/) | nuckan | CC0 1.0 | 0.25-1.6 s (the first hydraulic stroke), -18 dB vrms |
 | `sfx_speed_breakes_loop.wav` | [Jet Plane Wind Noise Loop of a KC-135 Stratotanker 1](https://freesound.org/people/qubodup/sounds/162417/) | qubodup | CC0 1.0 | 0-6.2 s (whole (US Government video, public domain)), loop, -20 dB vrms |
-| `sfx_aircraft_fired_weapon_ost_gunbullet.wav` | [M61A2 Minigun](https://freesound.org/people/Seidhepriest/sounds/611449/) | Seidhepriest | CC0 1.0 | 1-2.75 s (the steady burst), loop, -12 dB vrms |
+| `sfx_aircraft_fired_weapon_ost_gunbullet.wav` | [M61A2 Minigun](https://freesound.org/people/Seidhepriest/sounds/611449/) | Seidhepriest | CC0 1.0 | 0.75-3.25 s (the steady burst, its shots re-spaced to 100 a second), loop, -12 dB vrms |
 | `sfx_entity_fired_weapon_ost_gunbullet.wav` | [Navy MK 15 Phalanx CIWS Anti-Air Fast Burst](https://freesound.org/people/qubodup/sounds/163119/) | qubodup | CC0 1.0 | 0.25-1.5 s (the steady burst (US Government video, public domain)), loop, -14 dB vrms |
 | `sfx_aircraft_fired_weapon_ost_heatmissile.wav` | [Launching Anti-Tank Missiles](https://freesound.org/people/qubodup/sounds/184274/) | qubodup | CC0 1.0 | 10-13 s (the second launch (US Government video, public domain)), -13 dB vrms |
 | `sfx_aircraft_fired_weapon_ost_bomb.wav` | [clonk1.aiff](https://freesound.org/people/Jetrod/sounds/362506/) | Jetrod | CC0 1.0 | 0-0.4 s (whole), -14 dB vrms |
@@ -33,12 +33,13 @@ The rows that use each clip: [soundprop.json](soundprop.json).
 | `sfx_aircraft_damaged_damaged_gun_bullets.wav` | [S31-15 Shooting gallery; hitting metal targets](https://freesound.org/people/craigsmith/sounds/675951/) | craigsmith | CC0 1.0 | 1.5-2.5 s (the first hits), -14 dB vrms |
 | `sfx_aircraft_damaged_damaged_missile_hit.wav` | [Big falling debris (crash)](https://freesound.org/people/xkeril/sounds/703247/) | xkeril | CC0 1.0 | 0-2 s (the first 2 s), -9 dB vrms |
 | `cock_g_02.wav` | [Grunting effort pushing something.wav](https://freesound.org/people/DeqstersLab/sounds/680135/) | DeqstersLab | CC0 1.0 | 0-3.7 s (whole), -22 dB vrms |
-| `sfx_touchdown.wav` | [Tires Squeaking.aif](https://freesound.org/people/RutgerMuller/sounds/104026/) | RutgerMuller | CC0 1.0 | 0-0.6 s (the first chirp), -13 dB vrms |
+| `sfx_touchdown.wav` | [R02-24-Airplane Tire Skid.wav](https://freesound.org/people/craigsmith/sounds/479498/) | craigsmith | CC0 1.0 | 0.15-0.6 s (the skid, with a 60 Hz strut thump under it), -13 dB vrms |
 | `sfx_screech.wav` | [Scraping Metal Sheet in an Underpass](https://freesound.org/people/SoundDesignForYou/sounds/646698/) | SoundDesignForYou | CC0 1.0 | 0.25-3 s (the scrape), -16 dB vrms |
 | `sfx_fire_extinguisher.wav` | [Fire Extinguisher](https://freesound.org/people/tranzfusion/sounds/642961/) | tranzfusion | CC0 1.0 | 0-1.2 s (the first burst), -17 dB vrms |
-| `sfx_door_open.wav` | [R02-48-Jet Fighter Canopy Closing](https://freesound.org/people/craigsmith/sounds/479492/) | craigsmith | CC0 1.0 | 0-4 s (the canopy motor's first 4 s), -18 dB vrms |
+| `sfx_door_open.wav` | [R02-48-Jet Fighter Canopy Closing](https://freesound.org/people/craigsmith/sounds/479492/) | craigsmith | CC0 1.0 | 21.25-25 s (the canopy motor's second run, 21.25-25 s (0-6.5 s is the library's spoken slate)), -18 dB vrms |
 | `sfx_door_close.wav` | [R02-48-Jet Fighter Canopy Closing](https://freesound.org/people/craigsmith/sounds/479492/) | craigsmith | CC0 1.0 | 12.75-17 s (the run to the lock, 12.75-17 s), -18 dB vrms |
 | `sfx_ab_light.wav` | [2 Royal Dutch Airforce F-16 Fighting Falcons flyby](https://freesound.org/people/Rudmer_Rotteveel/sounds/343746/) | Rudmer_Rotteveel | CC0 1.0 | the light-off thump: the roar below 150 Hz under a 1.2 s swell (from `sfx_afterburner_thrust`), -19 dB vrms |
+| `sfx_jfs.wav` | the JFS whine: 2126 Hz and its partials, a 0.3 % wander, on 1/f air noise | Modern IAF (computed by this script) | CC0 1.0 | loop, -20 dB vrms |
 | `sfx_landing.wav` | engine off: 0.1 s of silence | Modern IAF (computed by this script) | CC0 1.0 | loop,  |
 | `sfx_ir_seek.wav` | IR seeker search growl: 400 Hz, level wobble below 30 Hz | Modern IAF (computed by this script) | CC0 1.0 | loop, -18 dB vrms |
 | `sfx_ir_lock.wav` | IR seeker lock tone: 1000 Hz, light wobble | Modern IAF (computed by this script) | CC0 1.0 | loop, -16 dB vrms |

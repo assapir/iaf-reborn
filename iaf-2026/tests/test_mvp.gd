@@ -66,6 +66,7 @@ func run() -> void:
 			await takeoff(id)
 	if only == "" and jet in ["", "f16i"]:
 		await ab_sound()
+		await core_sound()
 		await crash()
 		await eject()
 		await wrong_order()
@@ -157,7 +158,7 @@ func startup(id: String) -> void:
 ## The afterburner's sound (iaf-2026/docs/sound.md §1.2): the burner loop at its own pitch, rising from 12 dB down
 ## with the light-off thump, no restart from stage 1 to 2, the cut's tail fading on the second player.
 func ab_sound() -> void:
-	var fs_script = load("res://shared/audio/flight_sounds.gd")
+	var fs_script = _flight_sounds()
 	var fs = fs_script.create(null, 100)
 	root.add_child(fs)
 	var st := {"time": 0.0, "on_ground": false, "rpm": 1.0, "gear": 1.569, "crashed": false, "drag_x": 0.0}
@@ -206,6 +207,41 @@ func ab_sound() -> void:
 		await process_frame
 	vol = fs._tail.get_meta("base_volume")
 	check(vol < 0.6 * 0.3, "cut during the rise: the tail starts at the burner's level (%.3f)" % vol)
+	fs.queue_free()
+
+
+## flight_sounds.gd, loaded at run time (a preload compiles it before the autoloads exist).
+func _flight_sounds() -> GDScript:
+	return load("res://shared/audio/flight_sounds.gd")
+
+
+## The dry engine, the JFS and the wind (iaf-2026/docs/sound.md §1.3–§1.6): the idle loop at its own pitch at idle and
+## 6 dB down, 1.3 and full at military; the wind's level as the dynamic pressure.
+func core_sound() -> void:
+	var fs = _flight_sounds().create(null, 100)
+	root.add_child(fs)
+	var st := {"time": 0.0, "on_ground": true, "rpm": 0.6, "gear": 0.0, "crashed": false, "afterburner": 0}
+	var inp := {"gear_down": true, "flaps": 0.0, "flaps_state": 0, "brakes": false, "in_cockpit": true, "kcas": 0.0}
+	fs.update(st, inp)
+	var vol: float = fs._engine.get_meta("base_volume")
+	check(
+		settings().core_sound_real() and is_equal_approx(fs.engine_pitch, 1.0) and absf(vol - 0.6 * 0.501) < 0.01,
+		"idle: the loop at its own pitch, 6 dB down (%.2f, %.3f)" % [fs.engine_pitch, vol]
+	)
+	st["rpm"] = 1.0
+	fs.update(st, inp)
+	vol = fs._engine.get_meta("base_volume")
+	check(is_equal_approx(fs.engine_pitch, 1.3) and is_equal_approx(vol, 0.6), "military: pitch 1.3, full level")
+	st["rpm"] = 0.15
+	fs.update(st, inp)
+	check(is_equal_approx(fs.engine_pitch, 0.3) and fs._wind == null, "the crank: pitch 0.3; no wind standing")
+	st["rpm"] = 1.0
+	inp["kcas"] = 225.0
+	inp["gear_down"] = false
+	st["on_ground"] = false
+	fs.update(st, inp)
+	var w: float = fs._wind.get_meta("base_volume") if fs._wind != null else 0.0
+	check(absf(w - 0.25) < 0.01, "the wind at 225 kt: a quarter of its 450 kt level (%.3f)" % w)
 	fs.queue_free()
 
 
@@ -259,11 +295,16 @@ func _checklist(tv: Node, f35: bool) -> void:
 		step.call(3)  # engine start
 	else:
 		await _until(tv, func(): return rpm.call() >= 0.2, 60.0)
+		check(tv.sounds._jfs != null and tv.sounds._jfs.playing, "the JFS whine during the crank")
 		step.call(3)  # throttle to idle at 20 %
 		await _until(tv, func(): return rpm.call() >= 0.55, 60.0)  # the generators on line
 		step.call(4)  # avionics power
 		step.call(5)  # INS stored-heading alignment
 	step.call(6)  # canopy
+	check(tv.sounds.played.has("SFX_DOOR_CLOSE/None"), "the canopy step: the canopy closes")
+	if not f35:
+		await _until(tv, func(): return tv.sounds._jfs == null, 10.0)
+		check(tv.sounds._jfs == null, "the JFS wound down after the generators (RPM %.2f)" % rpm.call())
 	var st: Dictionary = tv.flight.state()
 	check(
 		tv.addon.done.size() == tv.addon.checklist.size() and tv.addon._fault_shown == "",

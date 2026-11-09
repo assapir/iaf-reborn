@@ -21,7 +21,7 @@ import urllib.request
 
 import numpy as np
 from scipy.io import wavfile
-from scipy.signal import butter, sosfiltfilt
+from scipy.signal import butter, find_peaks, sosfiltfilt
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(ROOT, "iaf-2026/data/sounds")
@@ -45,8 +45,8 @@ CLIPS = {
                           "the first hydraulic stroke"),
     "sfx_speed_breakes_loop": (162417, "qubodup", "Jet Plane Wind Noise Loop of a KC-135 Stratotanker 1", CC0,
                                0.0, 6.2, -20, True, "whole (US Government video, public domain)"),
-    "sfx_aircraft_fired_weapon_ost_gunbullet": (611449, "Seidhepriest", "M61A2 Minigun", CC0, 1.0, 2.75, -12, True,
-                                                "the steady burst"),
+    "sfx_aircraft_fired_weapon_ost_gunbullet": (611449, "Seidhepriest", "M61A2 Minigun", CC0, 0.75, 3.25, -12, True,
+                                                "the steady burst, its shots re-spaced to 100 a second"),
     "sfx_entity_fired_weapon_ost_gunbullet": (163119, "qubodup",
                                               "Navy MK 15 Phalanx CIWS Anti-Air Fast Burst", CC0, 0.25, 1.5, -14,
                                               True, "the steady burst (US Government video, public domain)"),
@@ -78,13 +78,14 @@ CLIPS = {
                                                  False, "the first 2 s"),
     "cock_g_02": (680135, "DeqstersLab", "Grunting effort pushing something.wav", CC0, 0.0, 3.7, -22, False,
                      "whole"),
-    "sfx_touchdown": (104026, "RutgerMuller", "Tires Squeaking.aif", CC0, 0.0, 0.6, -13, False, "the first chirp"),
+    "sfx_touchdown": (479498, "craigsmith", "R02-24-Airplane Tire Skid.wav", CC0, 0.15, 0.6, -13, False,
+                      "the skid, with a 60 Hz strut thump under it"),
     "sfx_screech": (646698, "SoundDesignForYou", "Scraping Metal Sheet in an Underpass", CC0, 0.25, 3.0, -16, False,
                     "the scrape"),
     "sfx_fire_extinguisher": (642961, "tranzfusion", "Fire Extinguisher", CC0, 0.0, 1.2, -17, False,
                               "the first burst"),
-    "sfx_door_open": (479492, "craigsmith", "R02-48-Jet Fighter Canopy Closing", CC0, 0.0, 4.0, -18, False,
-                      "the canopy motor's first 4 s"),
+    "sfx_door_open": (479492, "craigsmith", "R02-48-Jet Fighter Canopy Closing", CC0, 21.25, 25.0, -18, False,
+                      "the canopy motor's second run, 21.25-25 s (0-6.5 s is the library's spoken slate)"),
     "sfx_door_close": (479492, "craigsmith", "R02-48-Jet Fighter Canopy Closing", CC0, 12.75, 17.0, -18, False,
                        "the run to the lock, 12.75-17 s"),
 }
@@ -120,8 +121,27 @@ def warble(f1, f2, rate):
     return np.sin(2 * np.pi * np.where((t * rate) % 1 < 0.5, f1, f2) * (t % half))
 
 
+def jfs():
+    """The JFS whine (iaf-2026/docs/sound.md §1.4): the partials an F-16's JFS shows at its governed speed, 2126 Hz and
+    3252, 4247, 5259, 6401 Hz, each at its level over the broadband, wandering 0.3 % in speed, on circular noise
+    shaped 1/f above 300 Hz at the partials' level (the turbine's air rush; inferred). Whole cycles in 1 s and a
+    wander that ends where it starts: a seamless loop."""
+    t = np.arange(SR) / SR
+    rng = np.random.default_rng(7)
+    # a wander of about 0.3 % in speed: slow whole-Hz sines, so the loop stays seamless
+    wander = sum(np.sin(2 * np.pi * k * t + rng.random() * 6.3) / k for k in range(1, 8))
+    wander = 0.003 * wander / np.abs(wander).max()
+    x = sum(10 ** (db / 20) * tone(f, t, i + f * np.cumsum(wander) / SR * 2 * np.pi) for i, (f, db) in
+            enumerate(((2126, 0), (3252, -5), (4247, -12), (5259, -13), (6401, -14), (1063, -18))))
+    f = np.fft.rfftfreq(SR, 1 / SR)
+    mag = np.where(f > 300, 1 / np.maximum(f, 1), 0) ** 0.5
+    noise = np.fft.irfft(mag * np.exp(2j * np.pi * rng.random(len(f))), SR)
+    return x / vrms(x) + noise / vrms(noise)
+
+
 # name: (what it is, function, level dB vrms, loop)
 TONES = {
+    "sfx_jfs": ("the JFS whine: 2126 Hz and its partials, a 0.3 % wander, on 1/f air noise", jfs, -20, True),
     "sfx_landing": ("engine off: 0.1 s of silence", lambda: np.zeros(int(0.1 * SR)), None, True),
     "sfx_ir_seek": ("IR seeker search growl: 400 Hz, level wobble below 30 Hz", lambda: ir_growl(400, 0.6), -18, True),
     "sfx_ir_lock": ("IR seeker lock tone: 1000 Hz, light wobble", lambda: ir_growl(1000, 0.2), -16, True),
@@ -165,8 +185,35 @@ DERIVED = {
     "sfx_ab_light": ("sfx_afterburner_thrust", "the light-off thump: the roar below 150 Hz under a 1.2 s swell",
                      ab_light, -19),
 }
+
+
+def gun_rate(x, period=220):
+    """The M61's buzz at 100 rounds a second (iaf-2026/docs/sound.md §1.5): each shot of the recording (about 48 a
+    second) found on its envelope and laid down every `period` samples (220 at 22050 Hz: 100.2 a second) under a Hann
+    window two periods long (pitch-synchronous overlap-add), so the shot keeps its sound and only the rate changes."""
+    e = np.abs(sosfiltfilt(butter(2, 300, "highpass", fs=SR, output="sos"), x))
+    e = np.convolve(e, np.hanning(int(0.002 * SR)), "same")
+    peaks = find_peaks(e, distance=int(0.7 * SR / 48.4))[0]
+    w = np.hanning(2 * period)
+    y = np.zeros(len(peaks) * period + 2 * period)
+    for i, p in enumerate(peaks):
+        g = x[max(p - period, 0): p + period]
+        if len(g) == 2 * period:
+            y[i * period: i * period + 2 * period] += g * w
+    y = y[period: -period]
+    return y[: len(y) - (len(y) - int(XFADE * SR)) % period]  # the loop's cross-fade starts on a shot
+
+
+def touchdown(x):
+    """The tyre skid with the struts' thump under it: 60 Hz falling over 0.12 s (inferred)."""
+    t = np.arange(len(x)) / SR
+    thump = tone(60, t) * np.exp(-t / 0.04) * (t < 0.12)
+    return x / vrms(x) + 1.5 * thump
+
+
 # CLIPS processed before the fades and the level
-PROCESS = {"sfx_afterburner_thrust": ab_roar}
+PROCESS = {"sfx_afterburner_thrust": ab_roar, "sfx_aircraft_fired_weapon_ost_gunbullet": gun_rate,
+           "sfx_touchdown": touchdown}
 
 
 def preview(dl, sid, user):

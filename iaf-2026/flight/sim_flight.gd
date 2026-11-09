@@ -357,6 +357,8 @@ func start_step(i: int) -> void:
 		_fault_shown = fault
 	elif not id in done:
 		done.append(id)
+		if id == "canopy" and host.sounds != null:
+			host.sounds.play("SFX_DOOR_CLOSE")  # the canopy runs down and locks (iaf-2026/docs/sound.md §1.7)
 	host._log_event(host._log_st, e)
 	if _card != null:
 		_fill_card()

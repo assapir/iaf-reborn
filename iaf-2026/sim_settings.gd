@@ -295,6 +295,12 @@ func ab_sound_real() -> bool:
 	return true
 
 
+## The engine at its own pitch at idle and louder to military, the JFS whine and the wind (Approvals item A12,
+## iaf-2026/docs/sound.md §1.3–§1.6).
+func core_sound_real() -> bool:
+	return true
+
+
 func keys_file() -> String:
 	var laptop := own_dir().path_join("keys_laptop.json")
 	return laptop if laptop_keys and FileAccess.file_exists(laptop) else own_dir().path_join("keys.json")

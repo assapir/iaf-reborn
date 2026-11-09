@@ -1053,6 +1053,13 @@ func ab_sound_real() -> bool:
 	return false
 
 
+## The engine by its RPM, the JFS whine of the start and the wind (iaf-2026/docs/sound.md §1.3–§1.6): Modern IAF. The
+## original game pitches its one engine loop by the RPM at a fixed level and plays no starter or wind
+## (flight_sounds.gd _update_engine, FUN_004c3e00).
+func core_sound_real() -> bool:
+	return false
+
+
 ## The airbases' runways, taxi lines and paved masks (airbases.gd, the tower's wind turn): the theatre's own
 ## `airbases.json` when it has one (Modern IAF's, `iaf-sim airbases`), else the original's converted one.
 func airbases_file() -> String:

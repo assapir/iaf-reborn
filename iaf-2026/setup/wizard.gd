@@ -83,7 +83,7 @@ const CREDITS := [
 			(
 				"CC0 1.0. Authors: ikbenraar, pillwave, 77Pacer, nuckan, qubodup, Seidhepriest, Jetrod, "
 				+ "craigsmith (the USC Gold / Red / Sunset Editorial libraries), LilMati, Rudmer_Rotteveel, pushkin, "
-				+ "xkeril, elliott.klein, DeqstersLab, RutgerMuller, SoundDesignForYou, tranzfusion"
+				+ "xkeril, elliott.klein, DeqstersLab, SoundDesignForYou, tranzfusion"
 			)
 		]
 	],

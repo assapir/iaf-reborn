@@ -10,6 +10,13 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   `sim_bases::tests::the_departure_is_paved`.
 - **Compact JSON (2026-11-09, [plan.md](plan.md#rules-the-user-3-november-2026) rules):** every JSON file the
   sim writes is on one line ([data-formats.md](data-formats.md) §7).
+- **The core sounds against real references (2026-11-09, Approvals A12, branch `wt/iaf-2026-core-sound`):** the
+  dry engine plays its idle recording at its own pitch at idle (it was 4.2 semitones up) and rises to 1.3 and 6 dB at
+  military; the start plays a JFS whine (its partials measured on an F-16 start), the engine's pitch and level by its
+  RPM, a light-off thump and the JFS winding down at the generators; the gun buzzes at 100 rounds a second (it was
+  48); the wind follows the dynamic pressure; the canopy closes at its checklist step; the touchdown is an airplane
+  tyre skid with a thump, not a bicycle squeal ([sound.md](sound.md) §1.3–§1.8). The original game keeps its rules.
+  `test_mvp.gd`, the original's `test_sounds.gd`.
 - **The afterburner sounds like an F-16's (2026-11-09, the Mac play test's finding 27):** measured against an F-16
   hush-house run and take-offs, the burner now rises over 1.5 s with a low thump at light-off, dies away over 1.3 s
   at the cut, sits 6 dB over the dry engine, and is a real RNLAF F-16's roar with no pulse and no pitch shift
@@ -138,6 +145,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **[D3](plan.md#d3-f-15c-baz-at-tel-nof), the Baz is not flyable:** it has no 3D cockpit and no model of its own,
   so the front end does not offer it and no mission flies it; type 110 flies the F-15I's flight-model row. Tel Nof's
   apron is placed by eye ([airbases.md](airbases.md) §5).
+- **The core sounds' open points** ([sound.md](sound.md) §1.3–§1.8): the cockpit's idle-to-military step, the
+  wind's real spectrum, the gun's spin-up, a real canopy's run time, the gear and flaps clips against a real F-16, the
+  F-35I's own IPP, the tower's key clicks (on `wt/iaf-2026-voices`).
 - **The afterburner's open points** ([sound.md](sound.md) §1.2): the light-off delay after the detent, the level in
   the cockpit, FlightGear's F-16 sounds not compared, the F-35I's own burner.
 - **Keys and Joystick's open points** ([front-end.md](front-end.md) §9): one joystick flies (the first; a separate
@@ -151,7 +161,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **The 6-DoF's wave drag is a fit ([C2](plan.md#c2-the-6-dof), the 6-DoF):** fit to each jet's published top speeds, not a sourced table; open: a public
   F-16 drag rise, the high-speed g onset, the take-off roll, the flaps ([flight-model.md](flight-model.md) §9.6).
 - **[E3b](plan.md#e3-the-training-missions)'s open points** ([training.md](training.md) §6): the Hebrew voice (the user), the
-  pilot's request voice and the starter's sound (sound.md §7); the 6-DoF's short take-off roll.
+  pilot's request voice (sound.md §7); the 6-DoF's short take-off roll.
 - **[E2](plan.md#e2-the-front-end)'s open points** ([front-end.md](front-end.md)): a pilot list (the name is the computer's user
   name); the debrief sheet and the pilot log in the original game ([shared.md](shared.md)); the missions'
   own Hebrew briefings in `iaf-2026/data/missions/` still use the masculine imperative (the front end shows its own

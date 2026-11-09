@@ -67,6 +67,10 @@ func run() -> void:
 		not settings().ab_sound_real() and _count(fs, "SFX_AB_LIGHT/None") == 0 and not fs._tail.playing,
 		"the original's burner: swapped at once, no thump, no tail"
 	)
+	check(
+		not settings().core_sound_real() and fs._jfs == null and fs._wind == null,
+		"the original's engine: one loop by the RPM, no JFS, no wind"
+	)
 	fs.queue_free()
 
 	# Levers, warnings, touchdown.

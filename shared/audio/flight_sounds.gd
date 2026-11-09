@@ -43,6 +43,23 @@ const AB_RISE := 1.5
 const AB_CUT := 1.3
 const AB_FLOOR_DB := -12.0
 const AB_CODES := ["SFX_DRY_THRUST", "SFX_AFTERBURNER_THRUST"]
+## Modern IAF (Settings.core_sound_real(), iaf-2026/docs/sound.md §1.3–§1.6): the dry loop (a recorded idle) plays at
+## its own pitch at idle (DRY_IDLE_RPM) and DRY_MIL_PITCH at military, DRY_IDLE_DB under its level at idle; below idle
+## (the start) its pitch follows the RPM down to DRY_MIN_PITCH and its level falls as RPM^1.5. The JFS whine spools up
+## over JFS_SPOOL s from half its pitch while the start runs and winds down over JFS_STOP s once the RPM reaches
+## JFS_OFF_RPM (the main generator on line); the light-off plays SFX_AB_LIGHT LIGHT_OFF_DB under its level. The
+## wind loop's amplitude follows the dynamic pressure, (kcas / WIND_KT)^2, from WIND_MIN_KT.
+const DRY_IDLE_RPM := 0.6
+const DRY_MIL_PITCH := 1.3
+const DRY_MIN_PITCH := 0.3
+const DRY_IDLE_DB := -6.0
+const JFS_SPOOL := 10.0
+const JFS_STOP := 3.0
+const JFS_OFF_RPM := 0.52
+const JFS_PHASES := ["starter", "crank", "light-off", "accel"]
+const LIGHT_OFF_DB := -6.0
+const WIND_KT := 450.0
+const WIND_MIN_KT := 30.0
 ## MCockpitSoundEvent repeat period (DAT_0082f468 = 4.0, initialiser @446c40).
 const BETTY_PERIOD := 4.0
 ## "Altitude" below 100 ft above the terrain with the gear handle up (FUN_0044fe30, 0x600aa8).
@@ -83,6 +100,10 @@ var _rise_db := AB_FLOOR_DB  # the level the rise starts from, dB under the row'
 var _gain := 1.0  # the engine loop's ramp gain this frame
 var _tail_gain := 1.0  # the ramp gain the tail started from
 var _tail_ab := false  # the tail is the burner (a cut)
+var _jfs: Node = null  # the JFS whine's player (core_sound_real)
+var _jfs_spin := 0.0  # its spool, 0 stopped .. 1 at speed
+var _start_phase := ""  # the start's phase last frame
+var _wind: Node = null  # the wind loop's player (core_sound_real)
 ## Handles of the controller's loops / timers.
 var _speed_brake_loop: Node = null  # ctl+0x8cc
 var _aoa_loop: Node = null  # ctl+0x8c4
@@ -207,6 +228,9 @@ func update(st: Dictionary, inp: Dictionary) -> void:
 		_crash()
 		return
 	_update_engine(int(st.afterburner), float(st.rpm), inside)
+	if Settings.core_sound_real():
+		_jfs_update(String(st.get("start_phase", "")), float(st.rpm))
+		_wind_update(float(inp.get("kcas", 0.0)), inside)
 	# Levers: the host changes them only when the original accepts the command.
 	if _was.has("gear_down"):
 		if inp.gear_down != _was.gear_down:
@@ -289,6 +313,9 @@ func _update_engine(stage: int, rpm: float, inside: bool) -> void:
 		if _engine_last != AB2_PITCH:
 			engine_pitch = AB2_PITCH
 			_engine_last = AB2_PITCH
+	var core: bool = Settings.core_sound_real() and code == "SFX_START_ENGINE"
+	if core:
+		engine_pitch = _dry_pitch(rpm)
 	var real: bool = Settings.ab_sound_real()
 	var was_ab: bool = engine_code in AB_CODES
 	var is_ab: bool = code in AB_CODES
@@ -323,7 +350,7 @@ func _update_engine(stage: int, rpm: float, inside: bool) -> void:
 				_engine.play(at)
 			played.append(code + "/None")
 	_engine.pitch_scale = engine_pitch
-	var gain := 1.0
+	var gain := _dry_gain(rpm) if core else 1.0
 	var dt := get_process_delta_time()
 	if _rise >= 0.0:
 		var k := smoothstep(0.0, AB_RISE, _rise)
@@ -337,6 +364,61 @@ func _update_engine(stage: int, rpm: float, inside: bool) -> void:
 		else:
 			_tail.set_meta("base_volume", _row_volume(_tail_row, inside) * _tail_level())
 			_tail_fade[0] += dt
+
+
+## Modern IAF's dry loop by the RPM (fraction): its own pitch at idle, DRY_MIL_PITCH at military, the RPM's share
+## of idle below it.
+static func _dry_pitch(rpm: float) -> float:
+	if rpm < DRY_IDLE_RPM:
+		return maxf(rpm / DRY_IDLE_RPM, DRY_MIN_PITCH)
+	return lerpf(1.0, DRY_MIL_PITCH, minf((rpm - DRY_IDLE_RPM) / (1.0 - DRY_IDLE_RPM), 1.0))
+
+
+## Modern IAF's dry loop gain: DRY_IDLE_DB at idle, 1 at military, falling as RPM^1.5 below idle.
+static func _dry_gain(rpm: float) -> float:
+	var k := clampf((rpm - DRY_IDLE_RPM) / (1.0 - DRY_IDLE_RPM), 0.0, 1.0)
+	var g := db_to_linear(DRY_IDLE_DB * (1.0 - k))
+	return g * pow(clampf(rpm / DRY_IDLE_RPM, 0.0, 1.0), 1.5) if rpm < DRY_IDLE_RPM else g
+
+
+## The JFS whine (Modern IAF): spools up while the start runs below JFS_OFF_RPM, winds down after; pitch 0.5 → 1.
+## The light-off (the start's "accel" phase begins): the low thump.
+func _jfs_update(phase: String, rpm: float) -> void:
+	if phase == "accel" and _start_phase != "accel":
+		var p := play("SFX_AB_LIGHT")
+		if p != null:
+			p.set_meta("base_volume", float(p.get_meta("base_volume")) * db_to_linear(LIGHT_OFF_DB))
+	_start_phase = phase
+	var dt := get_process_delta_time()
+	var on: bool = phase in JFS_PHASES and rpm < JFS_OFF_RPM
+	_jfs_spin = clampf(_jfs_spin + (dt / JFS_SPOOL if on else -dt / JFS_STOP), 0.0, 1.0)
+	if _jfs_spin <= 0.0:
+		if _jfs != null:
+			_stop(_jfs)
+			_jfs = null
+		return
+	if _jfs == null:
+		_jfs = play("SFX_JFS")
+		if _jfs == null:
+			return
+	_jfs.pitch_scale = 0.5 + 0.5 * _jfs_spin
+	_jfs.set_meta("base_volume", _row_volume(table.row("SFX_JFS"), _inside) * smoothstep(0.0, 1.0, _jfs_spin))
+
+
+## The wind over the canopy (Modern IAF): the SFX_WIND loop, its amplitude as the dynamic pressure.
+func _wind_update(kcas: float, inside: bool) -> void:
+	if kcas < WIND_MIN_KT:
+		if _wind != null:
+			_stop(_wind)
+			_wind = null
+		return
+	if _wind == null:
+		_wind = play("SFX_WIND")
+		if _wind == null:
+			return
+	var vol := _row_volume(table.row("SFX_WIND"), inside) * pow(kcas / WIND_KT, 2.0)
+	_wind.set_meta("base_volume", vol)
+	_wind.volume_db = linear_to_db(maxf(vol, 0.0001))
 
 
 ## The tail's gain now: its start gain under a raised-cosine fade.
@@ -479,11 +561,13 @@ func _crash() -> void:
 	_engine.stop()
 	_tail.stop()
 	engine_code = ""
-	for h in [_speed_brake_loop, _aoa_loop]:
+	for h in [_speed_brake_loop, _aoa_loop, _jfs, _wind]:
 		if h != null:
 			_stop(h)
 	_speed_brake_loop = null
 	_aoa_loop = null
+	_jfs = null
+	_wind = null
 	_alt_timer = -1.0
 	_pull_timer = -1.0
 	play("SFX_AIRCRAFT_EXPLODED")
