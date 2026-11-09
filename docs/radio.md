@@ -375,7 +375,8 @@ a time (kept quirk).
 - Modern IAF only (the original game is unchanged): the towers are every section of the sim's own iaf.ibx
   (`Settings.tower_bases`; empty here, so the ten names above with the first four talking); its radio menu
   (`radio.request`, `menu`, `runway`) answers start-up / taxi / take-off requests and keeps the tower quiet on the
-  ground otherwise (iaf-2026/docs/training.md §8).
+  ground otherwise; the menu lists only the call that fits the moment (`IafTraining.radio_calls`,
+  iaf-2026/docs/training.md §8).
 - IAF 2026 only: joined particles. A particle key made of other keys joined by "+" (`ALPHA_T+,+HOLD_POS`) is one
   clip said in one breath; `Radio.joined_wavs()` plays, for each run of a phrase's keys, the longest run that has
   such a clip, else the keys one by one. The text stays the parts' texts. The original's particle file holds no

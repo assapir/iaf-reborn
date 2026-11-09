@@ -265,7 +265,8 @@ func eject() -> void:
 	tv._eject()
 	var said: int = tv.radio.said.size()
 	var played: int = tv.sounds.played.size()
-	await _call(tv, 1)
+	_press(tv, KEY_T, true)  # the radio menu and its first call
+	_press(tv, KEY_1)
 	await fly(tv, 1.0)
 	check(
 		tv.sounds.silenced and tv.radio.said.size() == said and tv.sounds.played.size() == played,
@@ -289,6 +290,7 @@ func eject() -> void:
 ## position; the F-35I's engine step by its ENG switch (command 212).
 func _checklist(tv: Node, f35: bool, click := false) -> void:
 	var rpm := func() -> float: return float(tv.flight.state().rpm)
+	check(_idle_row_key(tv) == "1", "the card's idle step names Throttle idle, the 1 key: %s" % _idle_row_key(tv))
 	if click:
 		check(_card_places(tv), "the card names each step's switch and place")
 	await _step(tv, 1, "BATT" if f35 else "MAIN_PWR", click)  # main power / battery
@@ -303,7 +305,10 @@ func _checklist(tv: Node, f35: bool, click := false) -> void:
 	else:
 		await _until(tv, func(): return rpm.call() >= 0.2, 60.0)
 		check(tv.sounds._jfs != null and tv.sounds._jfs.playing, "the JFS whine during the crank")
-		await _step(tv, 0, "THROTTLE", click)  # throttle to idle at 20 %
+		if click:
+			await _step(tv, 0, "THROTTLE", click)  # throttle to idle at 20 %
+		else:
+			_press(tv, KEY_1)  # Throttle idle: the throttle stays at OFF, the key takes the step
 		await _until(tv, func(): return rpm.call() >= 0.55, 60.0)  # the generators on line
 		await _step(tv, 4, "AVIONICS_MMC", click)  # avionics power
 		await _step(tv, 5, "INS", click)  # INS stored-heading alignment
@@ -376,6 +381,19 @@ func _lift_guard(tv: Node, node: String, guard: String) -> void:
 	check(mi.transform.is_equal_approx(rest), "%s: the switch stays until the next click" % node)
 
 
+## The key shown on the start-up card's idle (engine) line.
+func _idle_row_key(tv: Node) -> String:
+	var en := ""
+	for c in tv.addon.checklist:
+		if c.step == "engine":
+			en = String(c.en)
+	for row in tv.addon._card.find_children("*", "HBoxContainer", true, false):
+		var ls: Array = row.get_children()
+		if ls.size() >= 2 and en != "" and String(ls[0].text).ends_with(en):
+			return String(ls[1].text)
+	return "-"
+
+
 ## Each line of the start-up card has the switch's name and place under it (the mission's `where`).
 func _card_places(tv: Node) -> bool:
 	var texts := []
@@ -416,11 +434,12 @@ func _check_files(tv: Node, jet: String) -> void:
 	check(st != null and int(st) == 1, "%s: the pilot log holds the pass" % jet)
 
 
-## The radio menu: Ctrl+T opens it, the number picks; the tower's answer.
-func _call(tv: Node, n: int) -> String:
+## The radio menu: Ctrl+T opens it holding only call `id` (training.md §8), its number picks; the tower's answer.
+func _call(tv: Node, id: String) -> String:
 	_press(tv, KEY_T, true)
 	var shown: bool = tv.addon.open
-	_press(tv, KEY_1 + n - 1)
+	check(tv.addon.shown == [id], "the radio menu holds only %s: %s" % [id, tv.addon.shown])
+	_press(tv, KEY_1)
 	await fly(tv, 0.5)
 	var said: Array = tv.radio.said
 	return "%s%s" % ["" if shown else "(menu not shown) ", said[-2].template if said.size() >= 2 else "-"]
@@ -431,7 +450,7 @@ func takeoff(id: String) -> void:
 	var tv := await _start(JETS[id][1] + "_takeoff")
 	_ils_bars(tv, jet)
 	await _hud_light(tv, jet)
-	var a := await _call(tv, 1)
+	var a := await _call(tv, "startup")
 	check(a == "ACFT_CLEAR_TO_START", "%s take-off: start-up request -> %s" % [jet, a])
 	var pl: Array = tv.sounds.played
 	check(
@@ -440,7 +459,14 @@ func takeoff(id: String) -> void:
 	)
 	_press(tv, KEY_E, true)
 	check(await _until(tv, func(): return tv.flight.state().engine_on, 120.0), "%s: the engine idles" % jet)
-	a = await _call(tv, 2)
+	# At idle: no call until the avionics are up (the Sufa's can be up by the time the engine idles), then taxi.
+	var av: bool = tv.flight.state().avionics
+	check(
+		tv.addon.calls() == (["taxi"] if av else []),
+		"%s: idle, avionics %s: %s" % [jet, "up" if av else "not up", tv.addon.calls()]
+	)
+	check(await _until(tv, func(): return tv.flight.state().avionics, 120.0), "%s: the avionics up" % jet)
+	a = await _call(tv, "taxi")
 	check(a == "ACFT_TAXI_TO_RUNWAY", "%s: taxi request -> %s" % [jet, a])
 	var s: Dictionary = settings().load_ibx(settings().own_dir().path_join("iaf.ibx"))[JETS[id][2]]
 	var path: Array = []
@@ -449,9 +475,17 @@ func takeoff(id: String) -> void:
 	var hdg := float(s.RunwayNumber)
 	tv.brakes = false
 	tv.scripted_stick = Vector2.ZERO
+	# Short of the holding point: the menu holds no call, and take-off's old number (3) makes none.
+	var said: int = tv.radio.said.size()
+	_press(tv, KEY_T, true)
+	var none: bool = tv.addon.shown.is_empty()
+	_press(tv, KEY_3)
+	await fly(tv, 0.5)
+	check(none and tv.radio.said.size() == said, "%s: at the spot after taxi, no call and key 3 makes none" % jet)
+	check(tv.addon.pick("takeoff") == "", "%s: a take-off request short of the holding point is not made" % jet)
 	var taxied := await _taxi(tv, path, hdg)
 	check(taxied, "%s: taxied %d points to the lineup" % [jet, path.size()])
-	a = await _call(tv, 3)
+	a = await _call(tv, "takeoff")
 	check(a == "ACFT_CLEAR_TO_TAKEOFF", "%s: take-off request -> %s" % [jet, a])
 	await _roll(tv, id, path[-1], hdg)
 	var ok := await _until(tv, func(): return not tv.addon.result.is_empty(), 120.0)

@@ -608,6 +608,54 @@ impl Watch {
     }
 }
 
+/// At the holding point: no farther from the lineup point than the holding point plus this (m, inferred: a jet's
+/// length or two short of it).
+pub const HOLDING_POINT_MARGIN_M: f64 = 50.0;
+/// The holding point's distance to the lineup point where the base gives none (m): the own iaf.ibx's taxi-out paths
+/// end 86–101 m from it.
+pub const HOLDING_POINT_M: f64 = 100.0;
+
+/// The moment the radio menu offers its calls for (training.md §8, `radio_calls`).
+#[derive(Debug, Clone, Default)]
+pub struct RadioNow {
+    pub on_ground: bool,
+    /// The engine runs (at idle or above).
+    pub engine_on: bool,
+    pub avionics: bool,
+    /// 2-D distance from the jet to the near tower's lineup point, m (INFINITY near no tower).
+    pub lineup_m: f64,
+    /// The holding point's 2-D distance to that lineup point, m: the base's taxi-out path's last point before the
+    /// lineup (iaf.ibx FromTaxiPt n−2).
+    pub hold_m: f64,
+    /// The tower's answers so far (radio.gd's templates): `ACFT_CLEAR_TO_START`, `ACFT_TAXI_TO_RUNWAY`,
+    /// `ACFT_CLEAR_TO_TAKEOFF` mark a call approved.
+    pub answers: Vec<String>,
+    /// The flight started with the engine running on the ground (at the lineup point, terrain_view.gd's ground
+    /// start): taxi counts as approved.
+    pub hot: bool,
+}
+
+/// The radio menu's calls that fit the moment, in menu order: "startup" on the ground with the engine off; "taxi" on
+/// the ground with the engine running, the avionics up and taxi not yet (start-up approved or not: no dead end on the
+/// spot); "takeoff" at the holding
+/// point or past it (no farther from the lineup point than `hold_m` + HOLDING_POINT_MARGIN_M) with taxi approved and
+/// take-off not yet; "landing" in the air. A hot ground start has taxi approved.
+pub fn radio_calls(s: &RadioNow) -> Vec<&'static str> {
+    let got = |t: &str| s.answers.iter().any(|a| a == t);
+    let taxi = s.hot || got("ACFT_TAXI_TO_RUNWAY");
+    let takeoff = got("ACFT_CLEAR_TO_TAKEOFF");
+    let g = s.on_ground;
+    [
+        ("startup", g && !s.engine_on),
+        ("taxi", g && s.engine_on && s.avionics && !taxi),
+        ("takeoff", g && s.lineup_m <= s.hold_m + HOLDING_POINT_MARGIN_M && taxi && !takeoff),
+        ("landing", !g),
+    ]
+    .into_iter()
+    .filter_map(|(id, on)| on.then_some(id))
+    .collect()
+}
+
 /// Scores the recording at `flight` against the readable mission file `mission` with the airbase files in `airbases`
 /// (the CLI `iaf-training score` and the game's `IafTraining`).
 pub fn score_files(flight: &std::path::Path, mission: &std::path::Path, airbases: &std::path::Path) -> Result<Debrief> {
@@ -1116,6 +1164,38 @@ mod tests {
         let d = scored(&text, "ramon_takeoff");
         assert_eq!(d.reasons, ["excursion"]);
         assert!(value(&d, "max_centreline_offset") > 22.6);
+    }
+
+    #[test]
+    fn the_radio_menu_offers_only_the_call_that_fits() {
+        let answers = |a: &[&str]| a.iter().map(|s| s.to_string()).collect();
+        // Nevatim: the parking spot 337 m from the lineup point, the holding point 86 m.
+        let mut s = RadioNow { on_ground: true, lineup_m: 337.0, hold_m: 86.0, ..Default::default() };
+        assert_eq!(radio_calls(&s), ["startup"]);
+        s.answers = answers(&["ACFT_CLEAR_TO_START"]);
+        s.engine_on = true;
+        assert!(radio_calls(&s).is_empty(), "idle without the avionics: nothing");
+        s.avionics = true;
+        assert_eq!(radio_calls(&s), ["taxi"]);
+        s.answers = answers(&["ACFT_CLEAR_TO_START", "ACFT_TAXI_TO_RUNWAY"]);
+        assert!(radio_calls(&s).is_empty(), "taxiing, short of the holding point: nothing");
+        s.lineup_m = 158.0;
+        assert!(radio_calls(&s).is_empty(), "the taxi's last turns, short of the holding point: nothing");
+        s.lineup_m = 90.0;
+        assert_eq!(radio_calls(&s), ["takeoff"]);
+        s.lineup_m = 0.0;
+        assert_eq!(radio_calls(&s), ["takeoff"], "lined up: still take-off");
+        s.answers = vec![];
+        assert_eq!(radio_calls(&s), ["taxi"], "started without start-up approval: taxi still offered");
+        s.answers = answers(&["ACFT_CLEAR_TO_START"]);
+        assert_eq!(radio_calls(&s), ["taxi"], "at the holding point without taxi approved: no take-off");
+        s.answers = answers(&["ACFT_CLEAR_TO_START", "ACFT_TAXI_TO_RUNWAY", "ACFT_CLEAR_TO_TAKEOFF"]);
+        assert!(radio_calls(&s).is_empty());
+        s.on_ground = false;
+        assert_eq!(radio_calls(&s), ["landing"]);
+        // A hot ground start at the lineup point: take-off at once.
+        let hot = RadioNow { on_ground: true, engine_on: true, avionics: true, hot: true, ..Default::default() };
+        assert_eq!(radio_calls(&hot), ["takeoff"]);
     }
 
     #[test]

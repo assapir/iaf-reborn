@@ -546,7 +546,7 @@ fn card(f: &File) -> Result<Value> {
         ensure!(keys.is_some(), "{}: \"card.keys\" must list key records (0..125)", f.name);
         return Ok(f.v["card"].clone());
     }
-    // Start engine 117, Call the tower 47, Mission card 118, the start-up checklist 119..124 (121 empty: the throttle up from OFF is its idle step); the throttle 7 (idle), 16 / 15 (± 5 %), 12 (MIL); the
+    // Start engine 117, Call the tower 47, Mission card 118, the start-up checklist 119..124 (121 empty: the throttle up from OFF is its idle step, the card naming Throttle idle 7); the throttle 7 (idle), 16 / 15 (± 5 %), 12 (MIL); the
     // wheel brakes 22, the rudder (nose wheel) 37 / 38, the stick 24..27, the gear 20.
     Ok(match f.v["training"]["kind"].as_str() {
         Some("startup") => json!({
@@ -555,13 +555,13 @@ fn card(f: &File) -> Result<Value> {
                        engine idles with the avionics up.",
                 "he": "ביצוע רשימת ההתנעה שבכרטיס שלב אחר שלב, החל מ־{key:119}. המשימה עוברת כשהמנוע בסרק והאוויוניקה פועלת.",
             },
-            "keys": [119, 120, 16, 122, 123, 124, 118],
+            "keys": [119, 120, 7, 122, 123, 124, 118],
         }),
         Some("takeoff") => json!({
             "objective": {
-                "en": "Call the tower with {key:47} and pick 1, 2, 3 in turn: start-up, taxi, take-off. Start the \
+                "en": "Call the tower with {key:47} and pick the call it offers, in turn: start-up, taxi, take-off. Start the \
                        engine with {key:117}, taxi to runway {runway}, line up and take off on its heading; gear up.",
-                "he": "קריאה למגדל: {key:47}, ואז 1, 2, 3 לפי הסדר: התנעה, הסעה, המראה. התנעת המנוע: \
+                "he": "קריאה למגדל: {key:47}, ואז בחירת הקריאה המוצעת, לפי הסדר: התנעה, הסעה, המראה. התנעת המנוע: \
                        {key:117}, הסעה למסלול {runway}, כניסה למסלול והמראה בכיוונו; איסוף כן הנסע.",
             },
             "keys": [47, 117, 7, 16, 15, 12, 22, 37, 38, 24, 25, 20, 118],

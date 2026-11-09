@@ -66,11 +66,11 @@ func run() -> void:
 	await _shot("radio_menu_he")
 	settings().language = "en"
 	tv.addon.set_open(false)
-	await _call(tv, 1)
+	await _call(tv, "startup")
 	_press(tv, KEY_E, true)
 	Engine.time_scale = TIME_SCALE
-	await _until(tv, func(): return tv.flight.state().engine_on, 120.0)
-	await _call(tv, 2)
+	await _until(tv, func(): return tv.flight.state().avionics, 120.0)
+	await _call(tv, "taxi")
 	var s: Dictionary = settings().load_ibx(settings().own_dir().path_join("iaf.ibx"))["Ramon"]
 	var path: Array = []
 	for i in int(s.TaxiWayPtsFrom):
@@ -78,7 +78,7 @@ func run() -> void:
 	tv.brakes = false
 	tv.scripted_stick = Vector2.ZERO
 	await _taxi(tv, path, float(s.RunwayNumber))
-	await _call(tv, 3)
+	await _call(tv, "takeoff")
 	Engine.time_scale = 1.0
 	tv.views.snap = null
 	tv._command([28, 6, 0])  # F10: the chase view

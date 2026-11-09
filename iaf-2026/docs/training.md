@@ -201,7 +201,7 @@ consequence and returns a fault, which ends the mission at once as a Fail with t
 
 The idle step has no key (the user, 2026-11-09): moving the throttle up from OFF, by its keys or the axis, is the step,
 as the real throttle's idle-cutoff detent, once the starter step (JFS / IPP) is done (before it the throttle moves
-alone and starts nothing). OFF is the throttle's bottom (2 % allowed for a lever's noise); a lever already up goes to OFF first. The card names the throttle-up key (record 16) on that line;
+alone and starts nothing). OFF is the throttle's bottom (2 % allowed for a lever's noise); a lever already up goes to OFF first. The card names the Throttle idle key (record 7, the 1 key) on that line (the user, 2026-11-09: "we have 1 for throttle"); the axis, the 0 key (Throttle up 5 %) and the 1 key all make the step (the 1 key sets the throttle to idle, which is OFF, so the key itself takes the step at OFF);
 record 121 stays an empty slot of `keys.json`, and the Keys screen lists no command for it. The step reaches the flight
 model and the recording as the key did (`sim_flight.gd _throttle_step`), so the scorer reads the same `checklist`
 event. The jet does not shut down when the throttle goes back to OFF (open).
@@ -239,14 +239,22 @@ when it was refused). The take-off missions still start cold: the same keys star
 wide.
 
 ## 8. The radio menu and the tower
-The **Call the tower** key (Ctrl+T) opens a numbered list over the view; 1–4 pick, any other key closes it:
+The **Call the tower** key (Ctrl+T) opens a numbered list over the view of the calls that fit the moment; a listed
+call's number picks it, any other key closes the list. A call that does not fit is not listed, and no key makes it
+(since 2026-11-09, the user: the menu offers only the call that fits the moment):
 
-| # | English | Hebrew | the tower answers |
-|---|---|---|---|
-| 1 | Request start-up | בקשת התנעה | "Alpha, cleared to start" (`ACFT_CLEAR_TO_START`) |
-| 2 | Request taxi | בקשת הסעה | with the engine running: "Alpha, good morning, taxi to runway 25 right" (`ACFT_TAXI_TO_RUNWAY`); else "hold position" |
-| 3 | Request take-off | בקשת המראה | the original tower's rule on the ground (docs/radio.md §2 `ground()`): lined up in the lineup zone: "cleared for take-off"; 200–400 m from the lineup point with the runway clear: "line up runway 25 right, wind calm"; else "hold position" |
-| 4 | Contact tower (landing) | קריאה למגדל (נחיתה) | the original's Ctrl+T (docs/radio.md §2): "proceed to runway …" in the air |
+| call | English | Hebrew | listed when | the tower answers |
+|---|---|---|---|---|
+| start-up | Request start-up | בקשת התנעה | on the ground with the engine off | "Alpha, cleared to start" (`ACFT_CLEAR_TO_START`) |
+| taxi | Request taxi | בקשת הסעה | on the ground with the engine running and the avionics up, taxi not yet (also after a start without start-up approval) | with the engine running: "Alpha, good morning, taxi to runway 25 right" (`ACFT_TAXI_TO_RUNWAY`); else "hold position" |
+| take-off | Request take-off | בקשת המראה | on the ground at the holding point or past it (no farther from the lineup point than the holding point plus 50 m, inferred; the holding point is the base's taxi-out path's last point before the lineup, `iaf.ibx` `FromTaxiPt`) with taxi approved, take-off not yet | the original tower's rule on the ground (docs/radio.md §2 `ground()`): lined up in the lineup zone: "cleared for take-off"; 200–400 m from the lineup point with the runway clear: "line up runway 25 right, wind calm"; else "hold position" |
+| landing | Contact tower (landing) | קריאה למגדל (נחיתה) | in the air | the original's Ctrl+T (docs/radio.md §2): "proceed to runway …" in the air |
+
+A call is approved by the tower's answer named in its row; "hold position" or "line up" leaves the call listed to ask
+again. The rule is `training::radio_calls` (`crates/iaf-tools/src/training.rs`, `IafTraining.radio_calls`);
+`sim_flight.gd` lists its result. Between the calls (the engine starting, the taxi to the holding point) the list holds
+"No call fits now" ("אין קריאה מתאימה כעת"). A flight that starts on the ground with the engine running (at the
+lineup point) has taxi approved, so take-off is listed at once.
 
 The pilot's call is printed ("Ramon tower, Alpha, request taxi"), the tower's answer printed and spoken by the English
 TTS tower of E1b (sound.md §3), then the pilot's "Roger". The lines show in the sim's band over the flight

@@ -1,9 +1,9 @@
 # Modern IAF's part of the flight scene (Settings.flight_addon, a child of terrain_view.gd): the radio menu and the
 # training run (iaf-2026/docs/training.md §7–§9).
 # - The text over the flight in the sim's own look (flight_ui.gd): the mission card (H), the radio lines, the panel.
-# - The radio menu: the "Call the tower" key (Ctrl+T, command 107) opens a numbered list; 1–4 pick a request (start-up,
-#   taxi, take-off, contact the tower for landing), any other key closes it. The tower answers by TTS (radio.gd
-#   request), each call a `radio` event in the recording.
+# - The radio menu: the "Call the tower" key (Ctrl+T, command 107) opens a numbered list of the calls that fit the
+#   moment (IafTraining.radio_calls: start-up, taxi, take-off, contact the tower for landing); a number picks, any
+#   other key closes it. The tower answers by TTS (radio.gd request), each call a `radio` event in the recording.
 # - A training mission (the compiled mission's `sim.training`): IafTraining (crates/iaf-tools training.rs) checks each
 #   frame for a fail (a crash, damage, the wheels off the pavement) and ends the mission at once on one; else the
 #   mission ends its hold after the goal, or when the player ends the flight. At its end the recording is scored by
@@ -24,6 +24,8 @@ const ITEMS := [
 	["landing", "Contact tower (landing)", "קריאה למגדל (נחיתה)"],
 ]
 const TITLE := {"en": "Radio: %s tower", "he": "קשר: מגדל %s"}
+## The menu's line when no call fits now.
+const NO_CALL := {"en": "No call fits now", "he": "אין קריאה מתאימה כעת"}
 ## The pilot's call, printed in the game's language (no pilot voice for it yet: sound.md §7).
 const CALLS := {
 	"startup": ["request start-up", "בקשת התנעה"],
@@ -48,6 +50,10 @@ const PAST_BUDGET := 5.0
 
 var host: Node
 var open := false
+## The menu's calls as shown (ids), and the tower's answers so far (templates; approvals for IafTraining.radio_calls).
+var shown: Array = []
+var answers := PackedStringArray()
+var _hold_m := {}  # iaf.ibx section -> its holding point's distance to the lineup point (m), once read
 ## The text over the flight: the mission card, the band of radio lines, the panel, the key hint (flight_ui.gd).
 var ui: Control
 var _sim := {}
@@ -82,8 +88,9 @@ const STEP_IDS := ["main_power", "starter", "engine", "avionics", "ins", "canopy
 ## The checklist's first key record (iaf-2026/data/keys.json, records 119–124: STEP_IDS in order; commands 210–215).
 const CHECK_KEY := 119
 ## The engine step has no key: the throttle moved up from OFF is it, as the real idle-cutoff detent (training.md
-## §7.1). The card names the throttle-up key (record 16); OFF is the throttle's bottom, a lever's noise allowed.
-const THROTTLE_UP_KEY := 16
+## §7.1). The card names the Throttle idle key (record 7, the 1 key); OFF is the throttle's bottom, a lever's noise
+## allowed.
+const THROTTLE_IDLE_KEY := 7
 const THROTTLE_OFF := 0.02
 ## The throttle last frame (-1 before the first: a lever already up at the start is no step).
 var _throttle_was := -1.0
@@ -155,13 +162,51 @@ func _he() -> bool:
 	return Settings.language == "he"
 
 
-## The menu's text in the game's language.
+## The calls that fit now, in menu order (IafTraining.radio_calls, training.md §8).
+func calls() -> Array:
+	var r: Node = host.radio
+	var st: Dictionary = host.flight.state() if host.flight != null else {}
+	var now := {
+		"on_ground": bool(st.get("on_ground", true)),
+		"engine_on": bool(st.get("engine_on", false)),
+		"avionics": bool(st.get("avionics", false)),
+		"answers": answers,
+		"hot": host.start_engine_on and not host.start_airborne,
+	}
+	var p: Vector3 = r._pos()
+	var at: int = r.base_at(p)
+	if at >= 0 and at < r.tower_count:
+		var l := Vector2(r.bases[at].lineup.x, r.bases[at].lineup.y)
+		now["lineup_m"] = Vector2(p.x, p.y).distance_to(l)
+		var sec := String(r.bases[at].name)
+		if not _hold_m.has(sec):
+			_hold_m[sec] = _hold_of(sec, l)
+		if _hold_m[sec] != null:
+			now["hold_m"] = _hold_m[sec]
+	return Array(IafTraining.radio_calls(now))
+
+
+## The holding point of iaf.ibx section `sec`: its taxi-out path's last point before the lineup `l`; its distance to
+## `l` (m), null without a path.
+func _hold_of(sec: String, l: Vector2) -> Variant:
+	var s: Dictionary = Settings.load_ibx(Settings.own_dir().path_join("iaf.ibx")).get(sec, {})
+	var n := int(s.get("TaxiWayPtsFrom", 0))
+	if n < 2:
+		return null
+	return Vector2(float(s["FromTaxiPtX%d" % (n - 2)]), float(s["FromTaxiPtY%d" % (n - 2)])).distance_to(l)
+
+
+## The menu's text in the game's language: the title and the calls in `shown`, numbered.
 func menu_text() -> String:
 	var lang := 1 if not _he() else 2
 	var base := _tower_name()
 	var lines := [(TITLE.he if _he() else TITLE.en) % base]
-	for i in ITEMS.size():
-		lines.append("%d. %s" % [i + 1, ITEMS[i][lang]])
+	for i in shown.size():
+		for it in ITEMS:
+			if it[0] == shown[i]:
+				lines.append("%d. %s" % [i + 1, it[lang]])
+	if shown.is_empty():
+		lines.append(NO_CALL.he if _he() else NO_CALL.en)
 	return "\n".join(lines)
 
 
@@ -176,6 +221,7 @@ func _tower_name() -> String:
 
 func set_open(on: bool) -> void:
 	open = on
+	shown = calls() if on else []
 	ui.show_panel(menu_text() if on else "")
 
 
@@ -187,7 +233,7 @@ func subtitle(text: String) -> void:
 
 
 ## A key press (terrain_view.gd before its key table): the "Call the tower" key opens / closes the menu; while it is
-## open 1–4 pick and any other key closes it. True when taken.
+## open a shown call's number picks it and any other key closes it. True when taken.
 func key(event: InputEventKey) -> bool:
 	if host.ejected:
 		return false  # the sortie ended: no radio
@@ -201,6 +247,8 @@ func key(event: InputEventKey) -> bool:
 		set_open(not open)
 		return true
 	if not open:
+		if rec >= 0:
+			_idle_key(host.keys.records[rec].press)
 		return false
 	var k := event.keycode
 	var i := -1
@@ -208,14 +256,18 @@ func key(event: InputEventKey) -> bool:
 		i = k - KEY_1
 	elif k >= KEY_KP_1 and k <= KEY_KP_9:
 		i = k - KEY_KP_1
+	var ids := shown
 	set_open(false)
-	if i >= 0 and i < ITEMS.size():
-		pick(ITEMS[i][0])
+	if i >= 0 and i < ids.size():
+		pick(ids[i])
 	return true
 
 
-## One menu pick: the pilot's call printed, the tower's answer (radio.gd request), a `radio` event recorded.
+## One menu pick: the pilot's call printed, the tower's answer (radio.gd request), a `radio` event recorded. A call
+## that does not fit now (calls()) is not made: "".
 func pick(id: String) -> String:
+	if not id in calls():
+		return ""
 	var r: Node = host.radio
 	if id == "landing":
 		r.contact_tower()
@@ -224,6 +276,7 @@ func pick(id: String) -> String:
 	var tower: String = (TOWER.he if _he() else TOWER.en) % _tower_name()
 	host._on_subtitle("%s, %s, %s" % [tower, cs, CALLS[id][1 if _he() else 0]])
 	var p: Dictionary = r.request(id)
+	answers.append(String(p.template))
 	host._log_event(host._log_st, {"event": "radio", "call": id, "answer": p.template, "text": p.text})
 	return String(p.template)
 
@@ -401,6 +454,15 @@ func _throttle_step() -> void:
 		start_step(STEP_IDS.find("engine"))
 
 
+## The Throttle idle key (command 9 to OFF, record 7) leaves the throttle at OFF, so _throttle_step sees no move: the
+## key itself takes the engine step at OFF once the starter step is done (training.md §7.1).
+func _idle_key(cmd: Array) -> void:
+	if int(cmd[0]) != 9 or float(cmd[1]) * 0.01 > THROTTLE_OFF or Joystick.drops_key(9):
+		return
+	if float(host.throttle) <= THROTTLE_OFF and "starter" in done and not "engine" in done and "engine" in _steps():
+		start_step(STEP_IDS.find("engine"))
+
+
 func _steps() -> Array:
 	return checklist.map(func(c): return String(c.step))
 
@@ -468,7 +530,7 @@ func _fill_card() -> void:
 		var colour: Color = Look.INK_MUTED if is_done else (Look.NAVY if is_next else Look.INK)
 		var l := _card_line(row, "%s  %d. %s" % [mark, i + 1, c[lang]], 20, colour)
 		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var rec := THROTTLE_UP_KEY if c.step == "engine" else CHECK_KEY + STEP_IDS.find(String(c.step))
+		var rec := THROTTLE_IDLE_KEY if c.step == "engine" else CHECK_KEY + STEP_IDS.find(String(c.step))
 		var k: String = ui.key_name(rec)  # as bound, Cmd on macOS
 		_card_line(row, k, 18, Look.INK_MUTED).text_direction = Control.TEXT_DIRECTION_LTR
 		if c.has("where"):  # the switch's name and place, for the 3D cockpit's mouse (cockpit3d_controls.gd)

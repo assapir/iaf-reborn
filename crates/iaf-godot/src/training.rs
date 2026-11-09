@@ -56,6 +56,28 @@ impl IafTraining {
         GString::from(self.failed.unwrap_or(""))
     }
 
+    /// The radio menu's calls that fit now, in menu order ("startup", "taxi", "takeoff", "landing";
+    /// `training::radio_calls`): `now` = {on_ground, engine_on, avionics, lineup_m (to the near tower's lineup
+    /// point; absent near no tower), hold_m (its holding point's distance to it; absent: HOLDING_POINT_M), answers
+    /// (the tower's answer templates so far), hot (a ground start with the engine running)}.
+    #[func]
+    fn radio_calls(now: VarDictionary) -> PackedStringArray {
+        let b = |k: &str| now.get(k).and_then(|v| v.try_to::<bool>().ok()).unwrap_or(false);
+        let s = training::RadioNow {
+            on_ground: b("on_ground"),
+            engine_on: b("engine_on"),
+            avionics: b("avionics"),
+            hot: b("hot"),
+            lineup_m: now.get("lineup_m").and_then(|v| v.try_to::<f64>().ok()).unwrap_or(f64::INFINITY),
+            hold_m: now.get("hold_m").and_then(|v| v.try_to::<f64>().ok()).unwrap_or(training::HOLDING_POINT_M),
+            answers: now
+                .get("answers")
+                .and_then(|v| v.try_to::<PackedStringArray>().ok())
+                .map_or(vec![], |a| a.as_slice().iter().map(|s| s.to_string()).collect()),
+        };
+        training::radio_calls(&s).into_iter().map(GString::from).collect()
+    }
+
     /// The debrief string `id` in `lang` ("en" / "he"; a checklist fault for the card), "" when unknown.
     #[func]
     fn text(id: GString, lang: GString) -> GString {
