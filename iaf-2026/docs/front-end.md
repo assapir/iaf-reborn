@@ -17,8 +17,8 @@ Heebo font and the Israeli Air Force flag's colours.
 
 | screen | what it does | English | Hebrew |
 |---|---|---|---|
-| Home | the jet, its base, Fly, the log summary (flights, flight time, the last result), the menu; before the first pick only the sim's name, Choose a plane and the menu | ![Home](pictures/front-end/home_en.webp) | ![Home, Hebrew](pictures/front-end/home_he.webp) |
-| Pick a plane | the Sufa (Ramon), the Barak (Ramat David) and the Adir (Nevatim); the pick sets the jet everywhere | ![Pick a plane](pictures/front-end/plane_en.webp) | ![Pick a plane, Hebrew](pictures/front-end/plane_he.webp) |
+| Home | the sim's name, Missions, the menu: Pilot log (after the first flight with the flights and the flight time under it), Preferences, Attributions, Quit; the pilot's name in the top bar, no jet | ![Home](pictures/front-end/home_en.webp) | ![Home, Hebrew](pictures/front-end/home_he.webp) |
+| Pick a plane | the Sufa (Ramon, 253 Squadron), the Barak (Ramat David, 109 Squadron) and the Adir (Nevatim, 140 Squadron) in one row, each card with its code, name, base and squadron (airbases.md §3); the pick sets the jet everywhere and stays highlighted on the next visit | ![Pick a plane](pictures/front-end/plane_en.webp) | ![Pick a plane, Hebrew](pictures/front-end/plane_he.webp) |
 | Training | the programme: its missions with their last result and the progress | ![Training](pictures/front-end/training_en.webp) | ![Training, Hebrew](pictures/front-end/training_he.webp) |
 | Pick a mission | the missions beside the picked one's briefing: runway, time, wind, time allowed, when it passes; Fly | ![Pick a mission](pictures/front-end/mission_en.webp) | ![Pick a mission, Hebrew](pictures/front-end/mission_he.webp) |
 | Preferences | the sections Graphics, Language, Sound and Devices, each on its own screen with its settings as controls: dropdown, switch, slider, radio list | ![Preferences](pictures/front-end/prefs_en.webp) | ![Preferences, Hebrew](pictures/front-end/prefs_he.webp) |
@@ -43,16 +43,16 @@ the record's `goals` ([training.md](training.md) §4); every other number stays 
 | screen | English | Hebrew |
 |---|---|---|
 | the pause menu over the flight | ![Pause menu](pictures/front-end/pause_en.webp) | ![Pause menu, Hebrew](pictures/front-end/pause_he.webp) |
-| a failed debrief (a start-up that crashed) | ![Failed debrief](pictures/front-end/debrief_fail_en.webp) | ![Failed debrief, Hebrew](pictures/front-end/debrief_fail_he.webp) |
+| a failed debrief (a take-off with the gear never raised) | ![Failed debrief](pictures/front-end/debrief_fail_en.webp) | ![Failed debrief, Hebrew](pictures/front-end/debrief_fail_he.webp) |
 | the debrief of that flight | ![Debrief after a flight](pictures/front-end/flown_debrief_en.webp) | ![Debrief after a flight, Hebrew](pictures/front-end/flown_debrief_he.webp) |
 
 Keys: Enter picks the focused control, Esc goes one screen back (Home has no back), the arrow keys and Tab move the
-focus. The bottom bar shows the keys of each screen. Every breadcrumb in the top bar but the current one opens its
+focus. The bottom bar holds the photo credit and the screen's buttons; it shows no key hints (the user, 2026-11-09: "this is
+obvious and people will use mouse anyway"). Every breadcrumb in the top bar but the current one opens its
 screen (a jet's name: its Training); the picks are kept.
 
 | screen | English | Hebrew |
 |---|---|---|
-| Home before the first pick | ![Home: Choose a plane](pictures/front-end/home_first_en.webp) | ![Home: Choose a plane, Hebrew](pictures/front-end/home_first_he.webp) |
 | Preferences: the sections | ![Preferences](pictures/front-end/prefs_en.webp) | ![Preferences, Hebrew](pictures/front-end/prefs_he.webp) |
 | Preferences: Graphics | ![Graphics](pictures/front-end/prefs_graphics_en.webp) | ![Graphics, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
 | Preferences: Sound | ![Sound](pictures/front-end/prefs_sound_en.webp) | ![Sound, Hebrew](pictures/front-end/prefs_sound_he.webp) |
@@ -61,9 +61,15 @@ screen (a jet's name: its Training); the picks are kept.
 
 ## 2. The flow
 
-Home → Fly → Training → Open → Pick a mission → Fly → the flight → the debrief → Home. Change plane on Home opens Pick a
-plane. Every start opens Home; until a plane is picked Home offers Choose a plane, and Pick a plane opens in place of
-Training and Pick a mission. Pick a plane's Continue (off until a pick) goes to Training, Esc back to Home.
+Home → Missions → Pick a plane → Continue → Training → Open → Pick a mission → Fly → the flight → the debrief → Home.
+Every start opens Home, which shows no jet (the user, 2026-11-09: the plane is the second step). Pick a plane opens with
+the last pick highlighted; its Continue (off until a pick) goes to Training, Esc back to Home. Esc on Training goes back
+to Pick a plane. The breadcrumbs follow the same order: Home · Plane · the jet (its Training) · the mission screen.
+Training is the one programme; a campaign card takes its place beside it later.
+
+The plane cards stand in one row. Five jets (with the Ra'am and the Baz) fit across at 1920 × 1080 with the photos at
+their full height, each cropped narrower. Tested 2026-11-09 and dropped: a row of three and a row of two, which halved
+the photos' height into strips.
 
 - **The plane:** a card press stores the unit (`Settings.sim_jet`: `f16i`, `f16d` or `f35i`; `settings.cfg` section
   `[sim]`, key `jet`) and sets the F-16 switch (`Settings.set_jet`).
@@ -84,8 +90,8 @@ Training and Pick a mission. Pick a plane's Continue (off until a pick) goes to 
 | the picked jet | `user://settings.cfg` `[sim] jet` | the front end |
 | the jet photos | `iaf-2026/data/photos/` (§5) | — |
 
-The debrief's number is its sortie's id, the sortie's place among all stored flights, oldest first. Home's flights,
-flight time and last result and Training's status and best time are `IafPilotLog.summary`'s. Its Time is the day, then the mission's clock from its start (the mission's `time`) to the start plus
+The debrief's number is its sortie's id, the sortie's place among all stored flights, oldest first. Home's flights
+and flight time and Training's status and best time are `IafPilotLog.summary`'s. Its Time is the day, then the mission's clock from its start (the mission's `time`) to the start plus
 `elapsed_s`. The pilot's name is the computer's user name. The Remarks are the record's fail reasons, then what its
 numbers say: the lift-off speed against the reference speed for the weight, and the largest offset from the
 centreline in the roll.
@@ -132,7 +138,8 @@ and in [../../docs/credits.md](../../docs/credits.md) "Modern IAF's photos". The
   and Attributions. With `-- --fly` it also flies Ramon's start-up from the mission screen to a pass, opens the pause
   menu, ends the flight and finds that flight's debrief. Run in a real render through `tools/godot_window.sh` it is
   the real run (`SHOT_DIR=<dir>` saves the two pictures of §1's second table).
-  It also checks the first start (Home, Choose a plane, the picker, back to Home with the jet), the breadcrumbs, each
+  It also checks the first start (Home's Missions, the picker, Continue to Training, Esc back through the picker to a
+  Home with no jet), Home's Pilot log entry opening the Pilot log, the breadcrumbs, each
   Preferences section on its own screen with no aid, realism or weather row and no read of the original's data, the
   sim's settings (no aid on, the log dumps naming only the sim's settings), F1–F4 opening no pause menu, and the
   pause menu inside viewports of 1920 × 1080, 2560 × 1440 and 1280 × 800 in both languages.

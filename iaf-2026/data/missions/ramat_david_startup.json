@@ -84,7 +84,7 @@
         "step": "ins",
         "key": "Ctrl+N",
         "en": "INS: STOR HDG alignment (90 s)",
-        "he": "ניווט אינרציאלי: יישור STOR HDG (90 שנ׳)"
+        "he": "INS: יישור STOR HDG (90 שנ׳)"
       },
       {
         "step": "canopy",

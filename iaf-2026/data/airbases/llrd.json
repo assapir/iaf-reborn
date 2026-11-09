@@ -1410,6 +1410,17 @@
    "source": "inferred"
   }
  ],
+ "squadrons": [
+  {
+   "unit": "f16d",
+   "number": 109,
+   "name": {
+    "en": "The Valley",
+    "he": "העמק"
+   },
+   "source": "he_109"
+  }
+ ],
  "sources": {
   "name": "osm",
   "boundary": "osm",
@@ -1419,6 +1430,7 @@
  },
  "footnotes": {
   "osm": "OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright (Overpass API, data of 2026-11-02); each item's \"osm\" names its element: https://www.openstreetmap.org/<osm>",
-  "oa": "OurAirports, airports.csv and runways.csv (public domain), https://davidmegginson.github.io/ourairports-data/"
+  "oa": "OurAirports, airports.csv and runways.csv (public domain), https://davidmegginson.github.io/ourairports-data/",
+  "he_109": "Wikipedia, טייסת 109 (flies the two-seat F-16D Barak from Ramat David), https://he.wikipedia.org/wiki/טייסת_109"
  }
 }

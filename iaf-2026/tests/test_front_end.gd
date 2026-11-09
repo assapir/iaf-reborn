@@ -47,18 +47,27 @@ func run() -> void:
 	await frames(3)
 	var fe: Control = current_scene
 	check(fe.page == "home", "a first start opens Home")
-	check(fe.find_child("Fly", true, false) == null, "first start: no Fly before a plane")
-	check(fe.find_child("change_plane", true, false) == null, "first start: no Change plane before a plane")
-	var choose: Button = fe.find_child("ChoosePlane", true, false)
-	check(choose != null and choose.text == "Choose a plane", "first start: Home's one action is Choose a plane")
-	choose.pressed.emit()
+	var go: Button = fe.find_child("Missions", true, false)
+	check(go != null and go.text == "Missions", "first start: Home's action is Missions")
+	check(fe.find_child("change_plane", true, false) == null, "Home: no Change plane")
+	go.pressed.emit()
 	await frames(2)
-	check(fe.page == "plane" and fe.find_child("Continue", true, false).disabled, "Choose a plane opens the picker")
+	check(fe.page == "plane" and fe.find_child("Continue", true, false).disabled, "Missions opens the picker")
+	check(fe.find_child("Cards", true, false).get_child_count() == 3, "the picker: the three flyable jets")
 	(fe.find_child("sufa", true, false) as Button).pressed.emit()
 	await frames(2)
+	(fe.find_child("Continue", true, false) as Button).pressed.emit()
+	await frames(2)
+	check(fe.page == "training" and fe.find_child("Crumb_plane", true, false) != null, "Continue: Training after Plane")
 	key(fe, KEY_ESCAPE)
 	await frames(2)
-	check(fe.page == "home" and fe.find_child("Fly", true, false) != null, "back to Home with the jet: Fly is there")
+	check(
+		fe.page == "plane" and (fe.find_child("sufa", true, false) as Button).button_pressed,
+		"Esc: the picker, Sufa kept"
+	)
+	key(fe, KEY_ESCAPE)
+	await frames(2)
+	check(fe.page == "home" and not _has_part(fe, "Sufa"), "back to Home: no jet on Home")
 	s.sim_jet = ""
 	for lang in ["en", "he"]:
 		s.language = lang
@@ -194,7 +203,10 @@ func fly_once(fe: Control) -> void:
 		await _shots(back, shot, "flown_debrief")
 	key(back, KEY_ESCAPE)
 	await frames(2)
-	check(back.page == "home" and _has(back, "Sufa"), "fly: Esc from the debrief opens Home with the Sufa")
+	check(
+		back.page == "home" and settings().sim_jet == "f16i" and not _has_part(back, "Sufa"),
+		"fly: Esc from the debrief opens Home, the Sufa kept as the pick but not shown"
+	)
 
 
 ## Saves the screen in English and Hebrew as <name>_<lang>.png (the page rebuilt in each language).
@@ -226,6 +238,13 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 		else ["Sufa", "Barak", "Adir", "Wing 28 · Nevatim"]
 	):
 		check(_has(fe, t), "%s: plane: %s" % [lang, t])
+	for t in (
+		["טייסת 253 · הנגב", "טייסת 109 · העמק", "טייסת 140 · נשר הזהב"]
+		if he
+		else ["253 Squadron · Negev", "109 Squadron · The Valley", "140 Squadron · Golden Eagle"]
+	):
+		check(_has(fe, t), "%s: plane: the squadron %s" % [lang, t])
+	check(not _has_part(fe, "מושב" if he else "seat"), "%s: plane: no seat count" % lang)
 	var cards := fe.find_children("*", "Button", true, false).filter(func(b): return b.theme_type_variation == "Card")
 	check(cards.size() == 3, "%s: three plane cards" % lang)
 	# The cards run from the inline start: the Sufa's at the right in Hebrew.
@@ -320,17 +339,22 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	await frames(2)
 	check(fe.page == "home", "%s: Esc from the debrief: Home" % lang)
 	check(
-		_has(fe, "לטוס" if he else "Fly") and _has(fe, "יומן טיסות" if he else "Pilot log"),
-		"%s: home: Fly and the log" % lang
+		_has(fe, "משימות" if he else "Missions") and _has(fe, "יומן טיסות" if he else "Pilot log"),
+		"%s: home: Missions and the log" % lang
 	)
 	check(
 		_has(fe, "קרדיט" if he else "Attributions") and _has(fe, "יציאה" if he else "Quit"), "%s: home: the menu" % lang
 	)
 	check(_labels_of(fe, "Stat").has("3"), "%s: home: three flights" % lang)
-	var fly: Control = fe.find_child("Fly", true, false)
-	check((fly.global_position.x > 960) == he, "%s: home: the column on the inline start" % lang)
-	fe.show_page("log")
+	check(not _has_part(fe, "אחרונה" if he else "Last:"), "%s: home: no last-mission line" % lang)
+	check(not _has(fe, "בחירה" if he else "Select"), "%s: home: no key hints" % lang)
+	var train: Control = fe.find_child("Missions", true, false)
+	check((train.global_position.x > 960) == he, "%s: home: the column on the inline start" % lang)
+	var home_log: Button = fe.find_child("HomeLog", true, false)
+	check(home_log != null and home_log.size.y >= 80, "%s: home: the log summary is a button" % lang)
+	home_log.pressed.emit()
 	await frames(2)
+	check(fe.page == "log", "%s: home: the log summary opens the Pilot log" % lang)
 	check(_has(fe, "המראה מרמון" if he else "Take-off from Ramon"), "%s: log: the take-off" % lang)
 	var rows: Array = fe.find_child("Log", true, false).find_children("*", "Button", true, false)
 	rows[0].pressed.emit()

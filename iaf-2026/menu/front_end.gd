@@ -17,11 +17,11 @@ const Scenery := preload("res://shared/terrain/scenery.gd")
 const PHOTOS := "res://data/photos"
 ## The canvas the screens lay out on: the window shows it scaled to its height (Look's sizes are its pixels).
 const CANVAS := Vector2i(1920, 1080)
-## The planes the sim flies, each from its home base (strings <name>, base_<base>).
+## The planes the sim flies, each from its home base (strings <name>, base_<base>; the squadron: data/airbases).
 const JETS := [
-	{"unit": "f16i", "airframe": "f16i", "name": "sufa", "code": "F-16I", "base": "ramon", "seats": 2},
-	{"unit": "f16d", "airframe": "f16", "name": "barak", "code": "F-16D", "base": "ramat_david", "seats": 2},
-	{"unit": "f35i", "airframe": "f35i", "name": "adir", "code": "F-35I", "base": "nevatim", "seats": 1},
+	{"unit": "f16i", "airframe": "f16i", "name": "sufa", "code": "F-16I", "base": "ramon", "icao": "llrm"},
+	{"unit": "f16d", "airframe": "f16", "name": "barak", "code": "F-16D", "base": "ramat_david", "icao": "llrd"},
+	{"unit": "f35i", "airframe": "f35i", "name": "adir", "code": "F-35I", "base": "nevatim", "icao": "llnv"},
 ]
 ## Each jet's photos (data/photos): [in the air or its card, on the ground (the Training card and the briefing)].
 const JET_PHOTOS := {
@@ -98,7 +98,7 @@ const NEEDS_JET := ["training", "mission"]
 ## Esc on each screen goes here ("" = nothing on Home).
 const BACK := {
 	"plane": "home",
-	"training": "home",
+	"training": "plane",
 	"mission": "training",
 	"prefs": "home",
 	"prefs_section": "prefs",
@@ -181,6 +181,14 @@ func s(key: String) -> String:
 
 func he() -> bool:
 	return Settings.language == "he"
+
+
+## The jet's squadron at its base ({unit, number, name: {en, he}, source}; {} where the base file names none).
+func squadron(j: Dictionary) -> Dictionary:
+	for sq in Settings.load_json("res://data/airbases/%s.json" % j.icao).get("squadrons", []):
+		if sq.get("unit") == j.unit:
+			return sq
+	return {}
 
 
 ## The picked jet's row of JETS ({} before the first pick).
@@ -271,7 +279,7 @@ func _header(crumbs: Array) -> void:
 	h.add_child(who)
 	_label(who, pilot_name(), "Strong")
 	var j := jet()
-	if not j.is_empty():
+	if not j.is_empty() and page != "home":
 		_label(who, "%s · %s" % [s(j.name), s("base_short_" + j.base)], "Muted")
 	var av := PanelContainer.new()
 	av.add_theme_stylebox_override("panel", Look.box(Look.ACCENT, Look.ACCENT, 0, 26, Vector2.ZERO))
@@ -283,8 +291,10 @@ func _header(crumbs: Array) -> void:
 	ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 
 
-## The bottom bar: key hints [[key, string]], the photo credit, the screen's buttons.
-func _footer(keys: Array, credit := "", actions: Array = []) -> HBoxContainer:
+## The bottom bar: the photo credit and the screen's buttons (none when it has neither).
+func _footer(credit := "", actions: Array = []) -> void:
+	if credit == "" and actions.is_empty():
+		return
 	var shade := _shade(false)
 	shade.offset_top = -130
 	var bar := _margin(self, 67, 0)
@@ -292,16 +302,6 @@ func _footer(keys: Array, credit := "", actions: Array = []) -> HBoxContainer:
 	bar.offset_top = -97
 	var h := _hbox(bar, 40)
 	h.name = "Footer"
-	for k in keys:
-		var hint := _hbox(h, 10)
-		hint.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		var kbd := PanelContainer.new()
-		var kb := Look.box(Color(0, 0, 0, 0), Color("5a616c"), 1, 5, Vector2(9, 1))
-		kb.border_width_bottom = 3
-		kbd.add_theme_stylebox_override("panel", kb)
-		hint.add_child(kbd)
-		_label(kbd, k[0], "Key").text_direction = Control.TEXT_DIRECTION_LTR
-		_label(hint, s(k[1]), "Muted")
 	_spacer(h)
 	if credit != "":
 		var c := _label(h, credit, "Small")
@@ -310,7 +310,6 @@ func _footer(keys: Array, credit := "", actions: Array = []) -> HBoxContainer:
 	for a in actions:
 		h.add_child(a)
 		a.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	return h
 
 
 ## A fade from the bar's edge so the bars read over a photo.
@@ -355,9 +354,8 @@ func _credit(files: Array) -> String:
 
 
 func _page_home() -> void:
-	var j := jet()
-	# Before the first pick: the first jet's photo, the sim's name and one action, Choose a plane.
-	var air: String = JET_PHOTOS[j.name if not j.is_empty() else JETS[0].name][0]
+	# The first jet's photo whatever the pick: Home shows no jet.
+	var air: String = JET_PHOTOS[JETS[0].name][0]
 	# The photo on the inline-end two thirds, fading into the background toward the column.
 	var ph := _photo(self, air)
 	ph.anchor_left = 0.32
@@ -387,49 +385,44 @@ func _page_home() -> void:
 	col.anchor_bottom = 0.9
 	col.offset_left = 0
 	col.offset_right = 0
-	var name_box := _vbox(col, 0)
-	if j.is_empty():
-		_label(name_box, str(setup_strings.get("name", "")), "Jet").add_theme_font_size_override("font_size", 84)
-		var choose := _button(col, s("choose_plane"), "Fly", func(): show_page("plane"))
-		choose.name = "ChoosePlane"
-		choose.custom_minimum_size = Vector2(258, 86)
-		choose.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		_focus = choose
-	else:
-		var code := _label(name_box, j.code, "Code")
-		code.text_direction = Control.TEXT_DIRECTION_LTR
-		_label(name_box, s(j.name), "Jet")
-		_label(name_box, s("base_" + j.base), "Big")
-		var fly := _button(col, s("fly"), "Fly", func(): show_page("training"))
-		fly.name = "Fly"
-		fly.custom_minimum_size = Vector2(258, 86)
-		fly.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		_focus = fly
-	_home_log(col)
+	# No jet here: Missions opens Pick a plane, then the programme, then the mission.
+	_label(_vbox(col, 0), str(setup_strings.get("name", "")), "Jet").add_theme_font_size_override("font_size", 84)
+	var go := _button(col, s("missions"), "Fly", func(): show_page("plane"))
+	go.name = "Missions"
+	go.custom_minimum_size = Vector2(258, 86)
+	go.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_focus = go
 	var menu := _vbox(col, 0)
 	_rule(menu, Look.LINE)
+	var has_log := _home_log(menu)
+	if has_log:
+		_rule(menu, Look.LINE)
 	var items := [
-		["change_plane", func(): show_page("plane")],
 		["pilot_log", func(): show_page("log")],
 		["preferences", func(): show_page("prefs")],
 		["credits", func(): show_page("credits")],
 		["quit", func(): Settings.quit()],
 	]
-	for item in items.slice(1 if j.is_empty() else 0):
+	for item in items.slice(1 if has_log else 0):
 		var b := _button(menu, s(item[0]), "Menu", item[1])
 		b.name = item[0]
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		_rule(menu, Look.LINE)
-	_footer([["Enter", "select"]], _credit([air]))
+	_footer(_credit([air]))
 
 
-## Home's log summary: the flights, the flight time and the last result (none before the first flight).
-func _home_log(col: Control) -> void:
+## Home's log summary, a button to the Pilot log: the flights and the flight time (none before the first flight).
+func _home_log(col: Control) -> bool:
 	var sum := summary()
-	if not sum.get("last") is Dictionary:
-		return
-	var log := _vbox(col, 6)
-	_label(log, s("pilot_log"), "H3")
+	if int(sum.get("flights", 0)) == 0:
+		return false
+	var b := _button(col, "", "Menu", func(): show_page("log"))
+	b.name = "HomeLog"
+	var pad := _margin(b, 4, 12)
+	pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var log := _vbox(pad, 2)
+	# The entry's name as the other menu entries show theirs, the counts under it.
+	_label(log, s("pilot_log"), "Row").add_theme_font_size_override("font_size", 26)
 	var stats := _hbox(log, 46)
 	for st in [[str(int(sum.flights)), "flights"], [clock(float(sum.flight_time_s)), "flight_time"]]:
 		var one := _hbox(stats, 8)
@@ -437,10 +430,10 @@ func _home_log(col: Control) -> void:
 		v.text_direction = Control.TEXT_DIRECTION_LTR
 		var l := _label(one, s(st[1]), "Muted")
 		l.size_flags_vertical = Control.SIZE_SHRINK_END
-	var last: Dictionary = sum.last
-	var row := _hbox(log, 16)
-	_label(row, s("last") % mission_title(int(last.mission_id)), "Row").size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_chip(row, s("pass" if int(last.result) == 1 else "fail"), int(last.result) == 1)
+	for c in pad.find_children("*", "Control", true, false) + [pad]:
+		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.custom_minimum_size.y = pad.get_combined_minimum_size().y
+	return true
 
 
 # --- Pick a plane -----------------------------------------------------------------------------------------------------
@@ -450,7 +443,10 @@ func _page_plane() -> void:
 	_header(["home", "plane"])
 	var v := _vbox(_body(), 30)
 	_title(v, s("pick_plane"), "")
+	# One row of cards; five jets fit across at the photos' full height, each photo cropped narrower (the user,
+	# 2026-11-09, asked how the F-15I and F-15C will fit: a row of three and a row of two halved the photos' height).
 	var row := _hbox(v, 40)
+	row.name = "Cards"
 	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var group := ButtonGroup.new()
 	var files := []
@@ -485,14 +481,19 @@ func _page_plane() -> void:
 			badge.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 			bh.add_child(badge)
 			_label(badge, s("selected"), "Avatar")
-		var t := _margin(inner, 33, 26)
+		var t := _margin(inner, 24, 26)
 		t.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		var tv := _vbox(t, 2)
 		var code := _label(tv, j.code, "Code")
 		code.text_direction = Control.TEXT_DIRECTION_LTR
 		_label(tv, s(j.name), "Name")
 		_label(tv, s("base_" + j.base), "Big").add_theme_font_size_override("font_size", 27)
-		_label(tv, s("seats_%d" % j.seats), "Muted")
+		var sq := squadron(j)
+		if not sq.is_empty():
+			var sl := _label(
+				tv, s("squadron") % [int(sq.number), str(sq.name.get("he" if he() else "en", ""))], "Muted"
+			)
+			sl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # a long name wraps inside a narrow card
 		for c in inner.find_children("*", "Control", true, false):
 			c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -502,7 +503,7 @@ func _page_plane() -> void:
 	var go := _action(s("continue"), "Primary", func(): show_page("training"))
 	go.name = "Continue"
 	go.disabled = jet().is_empty()
-	_footer([["Esc", "back"], ["Enter", "select"]], _credit(files), [go])
+	_footer(_credit(files), [go])
 
 
 func _pick_jet(j: Dictionary) -> void:
@@ -518,7 +519,7 @@ func _pick_jet(j: Dictionary) -> void:
 
 func _page_training() -> void:
 	var j := jet()
-	_header(["home", j.name])
+	_header(["home", "plane", j.name])
 	var v := _vbox(_body(), 34)
 	_title(v, s("fly_jet") % s(j.name), s("base_" + j.base))
 	var card := PanelContainer.new()
@@ -561,7 +562,7 @@ func _page_training() -> void:
 	var ph := _photo(h, file)
 	ph.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	ph.size_flags_stretch_ratio = 0.92
-	_footer([["Esc", "back"], ["Enter", "select"]], _credit([file]))
+	_footer(_credit([file]))
 
 
 # --- Pick a mission ---------------------------------------------------------------------------------------------------
@@ -569,7 +570,7 @@ func _page_training() -> void:
 
 func _page_mission() -> void:
 	var j := jet()
-	_header(["home", j.name, "training"])
+	_header(["home", "plane", j.name, "training"])
 	var h := _hbox(_body(96, 112, 120), 96)
 	var left := _vbox(h, 30)
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -660,7 +661,7 @@ func _page_mission() -> void:
 	fly.custom_minimum_size = Vector2(214, 70)
 	fly.add_theme_font_size_override("font_size", 31)
 	fly.size_flags_horizontal = Control.SIZE_SHRINK_END
-	_footer([["Esc", "back"], ["Enter", "select"]], _credit([file]))
+	_footer(_credit([file]))
 
 
 func _pick_mission(i: int) -> void:
@@ -704,7 +705,6 @@ func _page_prefs() -> void:
 		b.pressed.connect(_open_section.bind(g[0]))
 		if g[0] == pref_group or _focus == null:
 			_focus = b
-	_footer([["Esc", "back"], ["Enter", "select"]])
 
 
 func _open_section(group: String) -> void:
@@ -736,7 +736,6 @@ func _page_prefs_section() -> void:
 		if (c as Control).focus_mode != Control.FOCUS_NONE:
 			_focus = c
 			break
-	_footer([["Esc", "back"], ["Enter", "select"]])
 
 
 ## One preference: its name and note at the inline start, its control at the inline end.
@@ -975,7 +974,7 @@ func _page_debrief() -> void:
 	again.name = "FlyAgain"
 	again.disabled = m.is_empty()
 	_focus = again
-	_footer([["Esc", "back"]], "", [back, again])
+	_footer("", [back, again])
 
 
 ## The remark the goals give: the lift-off speed against the reference.
@@ -1088,7 +1087,6 @@ func _page_log() -> void:
 		var b := _log_row(list, cells, int(a.result), a)
 		if _focus == null:
 			_focus = b
-	_footer([["Esc", "back"], ["Enter", "select"]])
 
 
 func _log_row(list: Control, cells: Array, result: int, a) -> Control:
@@ -1152,7 +1150,6 @@ func _page_credits() -> void:
 			var l := _text(box, line, "Small")
 			l.text_direction = Control.TEXT_DIRECTION_LTR
 		_rule(list, Look.LINE)
-	_footer([["Esc", "back"]])
 
 
 # --- Over a flight: the pause menu ------------------------------------------------------------------------------------

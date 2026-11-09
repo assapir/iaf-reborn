@@ -40,7 +40,7 @@
   },
   "briefing": {
     "en": "Your F-16I Sufa stands cold on the apron at Ramon. Start the engine and bring the avionics up.",
-    "he": "הסופה שלך עומד כבוי ברחבה ברמון. התנע את המנוע והעלה את מערכות האוויוניקה."
+    "he": "הסופה שלך עומדת כבויה ברחבה ברמון. התנע את המנוע והעלה את מערכות האוויוניקה."
   },
   "win": {
     "en": "Mission - successful. The engine is at idle and the avionics are up.",
@@ -84,7 +84,7 @@
         "step": "ins",
         "key": "Ctrl+N",
         "en": "INS: STOR HDG alignment (90 s)",
-        "he": "ניווט אינרציאלי: יישור STOR HDG (90 שנ׳)"
+        "he": "INS: יישור STOR HDG (90 שנ׳)"
       },
       {
         "step": "canopy",

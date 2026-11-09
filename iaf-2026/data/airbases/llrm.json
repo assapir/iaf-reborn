@@ -945,6 +945,17 @@
    "source": "inferred"
   }
  ],
+ "squadrons": [
+  {
+   "unit": "f16i",
+   "number": 253,
+   "name": {
+    "en": "Negev",
+    "he": "הנגב"
+   },
+   "source": "he_253"
+  }
+ ],
  "sources": {
   "name": "osm",
   "boundary": "osm",
@@ -954,6 +965,7 @@
  },
  "footnotes": {
   "osm": "OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright (Overpass API, data of 2026-07-24); each item's \"osm\" names its element: https://www.openstreetmap.org/<osm>",
-  "oa": "OurAirports, airports.csv and runways.csv (public domain), https://davidmegginson.github.io/ourairports-data/"
+  "oa": "OurAirports, airports.csv and runways.csv (public domain), https://davidmegginson.github.io/ourairports-data/",
+  "he_253": "Wikipedia, טייסת 253 (the IAF's first F-16I squadron, its first two jets landed at Ramon on 2004-02-19), https://he.wikipedia.org/wiki/טייסת_253"
  }
 }

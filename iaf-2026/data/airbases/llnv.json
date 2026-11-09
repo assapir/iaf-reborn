@@ -1275,6 +1275,17 @@
    "source": "inferred"
   }
  ],
+ "squadrons": [
+  {
+   "unit": "f35i",
+   "number": 140,
+   "name": {
+    "en": "Golden Eagle",
+    "he": "נשר הזהב"
+   },
+   "source": "en_140"
+  }
+ ],
  "sources": {
   "name": "osm",
   "boundary": "osm",
@@ -1283,6 +1294,7 @@
  },
  "footnotes": {
   "osm": "OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright (Overpass API, data of 2026-11-02); each item's \"osm\" names its element: https://www.openstreetmap.org/<osm>",
-  "oa": "OurAirports, airports.csv and runways.csv (public domain), https://davidmegginson.github.io/ourairports-data/"
+  "oa": "OurAirports, airports.csv and runways.csv (public domain), https://davidmegginson.github.io/ourairports-data/",
+  "en_140": "Wikipedia, 140 Squadron (Israel) (the IAF's first F-35I squadron, its first two jets in December 2016), https://en.wikipedia.org/wiki/140_Squadron_(Israel)"
  }
 }

@@ -88,6 +88,21 @@ PLACED = {
                          (31.8397814, 34.8122581)]]},
 }
 
+# The squadron the pilot flies with, per base: unit id -> (number, English name, Hebrew name, footnote key,
+# citation); iaf-2026/docs/front-end.md §1 (the plane cards).
+SQUADRONS = {
+    "LLRM": {"f16i": (253, "Negev", "הנגב", "he_253",
+                      "Wikipedia, טייסת 253 (the IAF's first F-16I squadron, its first two jets landed at Ramon on "
+                      "2004-02-19), https://he.wikipedia.org/wiki/טייסת_253")},
+    "LLRD": {"f16d": (109, "The Valley", "העמק", "he_109",
+                      "Wikipedia, טייסת 109 (flies the two-seat F-16D Barak from Ramat David), "
+                      "https://he.wikipedia.org/wiki/טייסת_109")},
+    "LLNV": {"f35i": (140, "Golden Eagle", "נשר הזהב", "en_140",
+                      "Wikipedia, 140 Squadron (Israel) (the IAF's first F-35I squadron, its first two jets in "
+                      "December 2016), https://en.wikipedia.org/wiki/140_Squadron_(Israel)")},
+}
+
+
 def get(url, data=None):
     req = urllib.request.Request(url, data=data, headers={"User-Agent": AGENT})
     with urllib.request.urlopen(req, timeout=240) as r:
@@ -347,6 +362,8 @@ def extract(icao, data, oa_airports, oa_runways):
         "lights": lights,
         "parking": [{"unit": u, "lat": p[0], "lon": p[1], "heading": p[2], "source": "inferred"}
                     for u, p in placed["parking"].items()],
+        **({"squadrons": [{"unit": u, "number": s[0], "name": {"en": s[1], "he": s[2]}, "source": s[3]}
+                          for u, s in SQUADRONS[icao].items()]} if icao in SQUADRONS else {}),
         "sources": {"name": "osm", "boundary": "osm", "elevation_m": "oa", "reference": "oa",
                     **({} if tower else {"tower": "open"})},
         "footnotes": {
@@ -354,6 +371,7 @@ def extract(icao, data, oa_airports, oa_runways):
                    "data of %s); each item's \"osm\" names its element: https://www.openstreetmap.org/<osm>"
                    % data["osm3s"]["timestamp_osm_base"][:10],
             "oa": "OurAirports, airports.csv and runways.csv (public domain), " + OA_URL,
+            **{s[3]: s[4] for s in SQUADRONS.get(icao, {}).values()},
         },
     }
 

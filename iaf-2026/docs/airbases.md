@@ -73,6 +73,12 @@ Corrections to the brief:
 - **Ramat David's** Barak squadrons are 101, 105 and 109. 101 and 105 moved there from Hatzor in June and August
   2021[^scramble101][^scramble105], announced in March 2021[^keyaero]. 117 flies the F-35I at Nevatim[^w-nv].
 
+The squadron the player flies with is in each base file's `squadrons` list (`unit`, `number`, `name` in English and
+Hebrew, `source`: a key of the file's `footnotes`), set in `SQUADRONS` in the script: at Ramon 253 "Negev" (הנגב), the
+IAF's first F-16I squadron[^he-253]; at Ramat David 109 "The Valley" (העמק), which flies the two-seat F-16D[^he-109];
+at Nevatim 140 "Golden Eagle" (נשר הזהב), the first F-35I squadron[^en-140]. Pick a plane's cards show them
+(front-end.md §1).
+
 The table holds the fighter squadrons, the ones the sim's jets fly with; the bases' helicopter, transport, tanker
 and UAV units are in the Wikipedia pages cited.
 
@@ -234,3 +240,6 @@ the original's ten names, so Hatzerim and Nevatim had no talking tower; since it
 [^keyaero]: Key.Aero, "Israel set to move two F-16 units to Ramat David", https://key.aero/index.php/article/israel-set-move-two-f-16-units-ramat-david
 [^scramble101]: Scramble, "Israeli Air Force squadron updates" (101 Squadron left Hatzor on 21 June 2021), https://www.scramble.nl/military-news/israeli-air-force-squadron-updates
 [^scramble105]: Scramble, "Final Baraks over Hatzor" (105 Squadron, 17 August 2021), https://scramble.nl/military-news/final-baraks-over-hatzor
+[^he-253]: Wikipedia (Hebrew), "טייסת 253", read 2026-11-09, https://he.wikipedia.org/wiki/טייסת_253
+[^he-109]: Wikipedia (Hebrew), "טייסת 109", read 2026-11-09, https://he.wikipedia.org/wiki/טייסת_109
+[^en-140]: Wikipedia, "140 Squadron (Israel)", read 2026-11-09, https://en.wikipedia.org/wiki/140_Squadron_(Israel)
