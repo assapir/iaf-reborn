@@ -105,6 +105,9 @@ TO_FRONT = {("adi", "ADI_turn-indicator"): 0.0035, ("adi", "ADI_glide-slope-inde
 # Triangles kept of each heavy part (FlightGear's counts; the research's Iris Xe budget, docs/graphics-research.md
 # §3.8): the ICP and the stick collapsed to this ratio, each object over 40 faces.
 DECIMATE = {"ICP": 0.45, "F-16-FS": 0.5}
+# The ICP's four thumbwheels (SYM, BRT, RET DEPR, CONT; icp.ac's gears, 644 vertices each) are kept whole: collapsed
+# with the ICP their teeth broke into a flat comb (2026-11-09).
+ICP_WHEELS = {"ICP/sym", "ICP/brt", "ICP/depr_ret", "ICP/cont"}
 # The consoles and the throttle, beside and below the eye (2026-11-02): FlightGear's flat faces merged first (a planar
 # dissolve within PLANAR_DEG, the UV seams, materials and sharp edges kept: the shape stays, the knobs' knurls and
 # bevels too), then only the objects still over HEAVY triangles collapsed to the part's ratio (the gear handle and its
@@ -946,7 +949,8 @@ def main():
     # parts are kept whole.
     decimate_turning = {"controls/gear/gear-down", "controls/engines/engine/throttle-movement"}
     for name, ratio in {**DECIMATE, **PLANAR}.items():
-        objs = [o for o in b.parts.get(name, []) if o not in b.anims or b.anims[o][0]["prop"] in decimate_turning]
+        objs = [o for o in b.parts.get(name, []) if o.name not in ICP_WHEELS
+                and (o not in b.anims or b.anims[o][0]["prop"] in decimate_turning)]
         before = tris(objs)
         for o in objs:
             if name in PLANAR and len(o.data.polygons) > 3:
@@ -1004,6 +1008,12 @@ def main():
             for i, m in enumerate(o.data.materials):
                 if m is not None and not any(t.type == 'TEX_IMAGE' for t in m.node_tree.nodes):
                     o.data.materials[i] = knob if n.startswith("SW_KNOB_") else guard
+    # The ICP's thumbwheels: icp.ac maps their teeth onto icp_wheels.png, white with thin dark stripes, so from the eye
+    # they read as white combs; the F-16's are black knurled wheels (the photos; the user's review, 2026-11-09).
+    for o in b.parts.get("ICP", []):
+        if o.name in ICP_WHEELS:
+            for i in range(len(o.data.materials)):
+                o.data.materials[i] = knob
     # The tub's top border under the canopy sills (`cockpit.ac` `cockpit_border`) is untextured light grey (0.16) in
     # the .ac: in the sun a pale slab along the sill, looking left or right. Near black as the sills' inside in the
     # photos, between the seal and the lighter lip (sills; 2026-11-02, dark grey 0.05 until the lip came).

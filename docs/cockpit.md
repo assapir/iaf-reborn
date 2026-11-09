@@ -426,6 +426,12 @@ occlusion, 1.8 MB; built by
   buttons each), ICP, DED, the small PFD, the RWR head, the instruments, the eyebrow lamp panels, the four consoles
   (their flat faces merged, only their heaviest parts decimated: "Knobs and throttle" below), throttle, stick and
   pedals.
+* The ICP's four thumbwheels (SYM, BRT, RET DEPR, CONT) are black knurled wheels, as on the jet (`ICP_WHEELS`).
+  FlightGear's are geared wheels whose teeth carry `icp_wheels.png`, white with thin dark stripes; decimated with the
+  rest of the ICP their teeth broke up, and from the eye they read as white combs. Since 2026-11-09 (the user's
+  review) they are kept whole in the knobs' black. Before and after, at 3× size:
+
+  ![The ICP's SYM and BRT wheels as white combs and as black wheels](img/f16_icp_wheels.jpg)
 * Two HUDs, one shown per jet: the Barak the Block 50's (`hud.xml`: two posts, a small combiner), the Sufa
   FlightGear's wide-angle HUD (`f16_war.xml`). An F-16I seen from the side shows one large combiner plate over a deep
   box (IDF Spokesperson's Unit, CC BY-SA 3.0, `File:Israeli_attacks_on_Yemen,_January_2025._XV.jpg` on Wikimedia
