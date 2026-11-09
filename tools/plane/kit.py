@@ -675,15 +675,16 @@ def arch(name, m, width, rise, y0, y1, z, thickness, steps=32):
     return o
 
 
-def sweep(name, m, profile, path, bevel=0.0, smooth=True):
+def sweep(name, m, profile, path, bevel=0.0, smooth=True, ref=(0, 0, 1)):
     """A closed `profile` [(u, v)] (metres; u across, v up) swept along `path` [(x, y, z)], capped: u stays level
-    (square to the path in plan), v leans with the path's climb. Rails, sills, hoods."""
+    (square to the path in plan), v leans with the path's climb. Rails, sills, hoods. `ref` is the up the profile
+    keeps square to (an arch in a vertical plane: (0, 1, 0), u then along its radius and v fore and aft)."""
     bm = bmesh.new()
     rings = []
     for i, p in enumerate(path):
         a, b = Vector(path[max(i - 1, 0)]), Vector(path[min(i + 1, len(path) - 1)])
         t = (b - a).normalized()
-        side = t.cross(Vector((0, 0, 1))).normalized()
+        side = t.cross(Vector(ref)).normalized()
         up = side.cross(t).normalized()
         rings.append([bm.verts.new(Vector(p) + side * u + up * v) for u, v in profile])
     n = len(profile)
@@ -708,6 +709,53 @@ def sweep(name, m, profile, path, bevel=0.0, smooth=True):
         bv.limit_method = 'ANGLE'
         bv.harden_normals = True
     return o
+
+
+def loft(name, m, rings, n=20, power=2.5):
+    """A smooth closed solid through horizontal `rings` [(x, y, z, rx, ry_front, ry_back)], bottom to top: each a
+    superellipse (`power` 2 an ellipse, higher squarer) of half-widths rx across and ry_front / ry_back ahead of and
+    behind its centre; capped. Grips, head boxes."""
+    bm = bmesh.new()
+    rings_v = []
+    for x, y, z, rx, ryf, ryb in rings:
+        ring = []
+        for k in range(n):
+            a = 2 * math.pi * k / n
+            c, s = math.cos(a), math.sin(a)
+            u = math.copysign(abs(c) ** (2 / power), c)
+            v = math.copysign(abs(s) ** (2 / power), s)
+            ring.append(bm.verts.new((x + rx * u, y + (ryf if v > 0 else ryb) * v, z)))
+        rings_v.append(ring)
+    for r0, r1 in zip(rings_v, rings_v[1:]):
+        for k in range(n):
+            bm.faces.new((r0[k], r0[(k + 1) % n], r1[(k + 1) % n], r1[k]))
+    bm.faces.new(list(reversed(rings_v[0])))
+    bm.faces.new(rings_v[-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    o = bpy.data.objects.new(name, me)
+    scene().collection.objects.link(o)
+    o.data.materials.append(m)
+    for poly in o.data.polygons:
+        poly.use_smooth = True
+    return o
+
+
+def loft_point(rings, z, a, out=0.0):
+    """The point on loft(rings)'s ellipse-ish surface at height `z` and angle `a` (rad: 0 = +x, pi/2 = ahead), `out`
+    m along its outward normal (horizontal), and that normal: where to stand a button on a grip."""
+    for r0, r1 in zip(rings, rings[1:]):
+        if r0[2] <= z <= r1[2]:
+            t = (z - r0[2]) / (r1[2] - r0[2])
+            x, y, _, rx, ryf, ryb = (p + (q - p) * t for p, q in zip(r0, r1))
+            break
+    else:
+        raise ValueError(f"z {z} outside the loft")
+    ry = ryf if math.sin(a) > 0 else ryb
+    nrm = Vector((math.cos(a) / rx, math.sin(a) / ry, 0)).normalized()
+    return Vector((x + rx * math.cos(a), y + ry * math.sin(a), z)) + nrm * out, nrm
 
 
 def rounded_rect(w, h, r, steps=4):
