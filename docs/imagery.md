@@ -40,7 +40,8 @@ The tool converts a source in seven steps:
 2. **Fetch** per unit: the unit's lon/lat box (through the georef warp, plus a margin) is cut out of the WorldCover
    1°×1° COGs (`gdalbuildvrt` + `gdal_translate`). The tiles live in `assets/source/imagery/sentinel2/` under the
    bucket's file names, shared with Modern IAF's `iaf-sim terrain` (iaf-2026/docs/terrain.md §1.1): a tile the units to
-   convert need and the folder lacks is downloaded there whole first (curl, the setup's stall rule, 4 at once). A
+   convert need and the folder lacks is downloaded there whole first (curl, the setup's stall rule, 3 at once, a
+   line every 15 s with the MB so far, a `.part` resumes). A
    tile with no room on the disk (a download must leave 5 GB free) is read over the network by **HTTP range reads**
    (`/vsicurl/`) as before. The S3 listing API (`curl`) lists the tiles once per latitude band (`listing_N<lat>.tsv`
    in the same folder, written whole and only from a complete answer); a listed band needs no network. The free

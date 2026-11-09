@@ -25,7 +25,7 @@ The launcher (`tools/launch-wizard.sh`, which the original game's `./setup` uses
 Godot 4.7 and say how to install a missing one (`tools/launch-checks.sh`). On macOS they add Homebrew's folders to
 the PATH when `cargo` or `godot` is not on it (a start from a shell without Homebrew's setup). The wizard's first page checks GDAL, curl and the free disk space for the
 imagery chosen at the start (the Survey's when its sheets are there); Next waits until they are there, and the page
-names the install command for the system it runs on. The Sentinel-2 tiles still to download (11.4 GB less those
+names the install command for the system it runs on. The Sentinel-2 tiles still to download (8.28 GB, the 14 tiles under the 8 m nodes, less those
 already in `assets/source/imagery/sentinel2/`, `IafSetup.sim_s2_cached`) count too: when they would leave less
 than 5 GB free, the page says how much of them is read online during the build instead of kept (docs/imagery.md §2),
 and Next does not wait for that.

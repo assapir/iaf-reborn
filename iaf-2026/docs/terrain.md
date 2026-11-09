@@ -25,8 +25,8 @@ again, delete `meta.json` (and `.work/done_*` for the units to redo).
 
 | what | source | licence | how it is read |
 |---|---|---|---|
-| heights | Copernicus DEM GLO-30[^dem] | Copernicus WorldDEM-30 licence[^dem-licence]: free use, the notices of §5 | 1° tiles (Cloud-Optimised GeoTIFF) from the public AWS bucket `copernicus-dem-30m`[^dem-aws], downloaded once into `assets/source/dem/` (a `.none` mark for a cell with no tile: open sea) |
-| colour, whole box | ESA WorldCover 2021 Sentinel-2 RGBNIR composite, 10 m[^wc] | CC BY 4.0 | the 1° tiles (Cloud-Optimised GeoTIFF) in `assets/source/imagery/sentinel2/`, shared with `iaf-imagery sentinel2` (docs/imagery.md §2); the missing ones downloaded there first; their overviews serve the 32 m nodes |
+| heights | Copernicus DEM GLO-30[^dem] | Copernicus WorldDEM-30 licence[^dem-licence]: free use, the notices of §5 | 1° tiles (Cloud-Optimised GeoTIFF, one band, about 40 MB) from the public AWS bucket `copernicus-dem-30m`[^dem-aws], downloaded once into `assets/source/dem/` (a `.none` mark for a cell with no tile: open sea) by the shared fetcher `imagery_run::fetch_dem` |
+| colour, whole box | ESA WorldCover 2021 Sentinel-2 RGBNIR composite, 10 m[^wc] | CC BY 4.0 | the 1° tiles (Cloud-Optimised GeoTIFF) in `assets/source/imagery/sentinel2/`, shared with `iaf-imagery sentinel2` (docs/imagery.md §2); four bands (red, green, blue, near infrared: the colour and the water test), 10 m, about 650 MB per tile. The 14 tiles under the 8 m nodes are downloaded whole there first (8.28 GB); the 7 read only at 32 m (west of 34° E: N29–N31 E033; north of 34° N: N34 E033–E036, 2.34 GB whole) are read over the network from their 20 m overview, by range reads of the theatre's part only, unless the cache already holds them whole |
 | colour, Israel | Survey of Israel orthophoto 2015, 2 m[^soi] | data.gov.il open licence | the sheet ZIPs already in `assets/source/imagery/mapi2015/` (`iaf-imagery fetch-mapi2015`); nothing is downloaded for this step |
 | airbase outlines | OpenStreetMap, the four bases' `boundary` in `iaf-2026/data/airbases/` ([airbases.md](airbases.md))[^osm] | ODbL 1.0 | §4 |
 
@@ -38,17 +38,18 @@ was fetched (MB).
 
 | what | where | name | complete when |
 |---|---|---|---|
-| GLO-30 tiles | `assets/source/dem/` | `Copernicus_DSM_COG_10_N31_00_E034_00_DEM.tif`, or `….none` for an open-sea cell | the file is there (renamed from `.part` only after curl ended cleanly with HTTP 200) |
+| GLO-30 tiles | `assets/source/dem/` | `Copernicus_DSM_COG_10_N31_00_E034_00_DEM.tif`, or `….none` for an open-sea cell | the file is there (renamed from `.part` only after curl ended cleanly with HTTP 200 or 206; a `.part` that begins as a TIFF resumes, any other is dropped) |
 | WorldCover tile list | `assets/source/imagery/sentinel2/` | `listing_N31.tsv` (tile, bytes) per latitude band | the file is there: it is written whole (a `.tmp` renamed) and only from an answer that lists tiles on one page; an empty or first-page answer is refused and asked again next run |
 | WorldCover tiles | `assets/source/imagery/sentinel2/` | the bucket's own: `ESA_WorldCover_10m_2021_v200_N31E034_S2RGBNIR.tif` | its size is the listed one (a `.part` resumes; a `.lock` beside it lets one run at a time write it, so both games can build at once) |
 | Survey sheets | `assets/source/imagery/mapi2015/` | `<sheet>.zip`, the original's (`iaf-imagery fetch-mapi2015`) | never downloaded here |
 | Survey sheet measurements (extent, levels) | `assets/converted/imagery/.work/mapi2015/sheets.tsv`, the original's | copied into `.work/` on a first run; a line counts when its ZIP's size and date match | measuring 102 sheets takes about 13 min |
 | airbase outlines | `iaf-2026/data/airbases/` (in the repo) | | never downloaded here |
 
-A complete cache means no network at all. A tile download must leave 5 GB free on the disk
+A complete cache needs the network only for the 7 edge tiles read at 20 m (none when the cache holds them whole);
+without the network the build stops with "not readable over the network; run again when online". A tile download must leave 5 GB free on the disk
 (`imagery_run::S2_KEEP_FREE`); a tile with no room is read over the network as before (`/vsicurl/`, range reads)
 and the log warns. The free space is measured once per run (with `df`; Windows has none, so there is no check
-there): if another job fills the disk meanwhile, the download stops with "disk full: free space and run again". The sim's theatre needs 21 WorldCover tiles, 11.4 GB; the original's whole `sentinel2` layer
+there): if another job fills the disk meanwhile, the download stops with "disk full: free space and run again". The sim's theatre reads 21 WorldCover tiles (10.62 GB whole) and downloads 14 of them (8.28 GB, 2026-11-09; before, all 21); the original's whole `sentinel2` layer
 up to about 28 GB. The original game's imagery setup uses the same cache (docs/imagery.md §2), and an uninstall keeps
 it (`iaf_setup::KEPT` holds `source/imagery`).
 
@@ -77,6 +78,12 @@ The theatre is the four bases with at least 150 km around each: Ramon (659,428 E
 3,456,728) set the west edge (−150.5 km), Ramon the south (−150.7 km), Ramat David (704,340, 3,616,248) the east
 (+150.7 km) and the north (+150.0 km); Nevatim (691,678, 3,454,398) lies inside all four. In lon / lat it spans about 33.08–36.84°
 E and 29.38–34.04° N: the Sinai's north, Jordan to Amman's east, Lebanon to Beirut, Syria to Damascus.
+
+The box meets 21 WorldCover tiles. Seven lie outside the 8 m nodes and are read at 32 m only (2026-11-09, measured
+by sampling the box every 1.7 km): N29E033 (the Sinai west of 34° E in the box's south-west corner, about 3 % of the
+theatre), N30E033 and N31E033 (the Sinai's north and the sea off it), and N34E033–N34E036 (a strip 4 km deep along
+the north edge; N34E036 meets the box only in a 58 m sliver at its north-east). They stay in the box: the 150 km
+around each base is the theatre's rule; they cost range reads of their 20 m overview, not a download (§1).
 
 ## 3. Detail by area
 
@@ -107,10 +114,12 @@ Steps 2 and 3–4 run at the same time on two branches: the heights (half the wo
 one stops the other at its next check, and Cancel stops a download within a second. At most 4 downloads run at once
 (the DEM tiles one by one, the WorldCover tiles 3 at once), all with the setup's stall rule (`thirdparty::CURL_PATIENCE`:
 under 1 kB/s for 60 s is a stall, 5 retries, a `.part` resumes). Step 5 waits for both branches. The log names
-each step (`heights:`, `sentinel-2:`, `survey:`) and ends with one summary line (`terrain done in …`).
+each step and sub-step (`heights:`, `sentinel-2:`, `survey:`, `levels:`) and ends with one summary line (`terrain
+done in …`). Every 15 s a download in progress adds a line: the WorldCover tiles' "downloaded X of Y MB, rate, time
+left" over the tiles still to fetch, a DEM tile's MB so far; the colour match logs every 10 sheets.
 
 1. **Box**: its lon / lat extent through `gdaltransform`.
-2. **Heights**: the GLO-30 tiles over the extent (curl, `-A "iaf-reborn Modern IAF terrain setup (curl)"`, 4 retries;
+2. **Heights**: the GLO-30 tiles over the extent (curl, `-A "iaf-reborn terrain setup (curl)"`, 4 retries;
    only a missing key, 404 or 403 with `NoSuchKey`, marks a cell as open sea), one VRT,
    one `gdalwarp` to the 64 m UTM grid (average, nodata = 0 m), then the `h_<i>_<j>.png` nodes of levels 6–11 (R = high
    byte, G = low byte, 1025² with the neighbour's first row and column, as `terrain::theatre`).

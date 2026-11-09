@@ -3,7 +3,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 
@@ -114,6 +114,8 @@ pub const S2_CACHE: &str = "source/imagery/sentinel2";
 // ponytail: one fixed margin; a setting if a user wants the whole 28 GB mirror on a nearly full disk.
 const S2_KEEP_FREE: u64 = 5_000_000_000;
 const USER_AGENT: &str = "iaf-reborn imagery setup (curl)";
+/// Tiles downloading at once (both games; 4.6 MB/s measured per transfer, iaf-2026/docs/terrain.md §7).
+const S2_JOBS: usize = 3;
 
 /// The WorldCover 1°×1° tiles (name → bytes) in the latitude bands N<lat0>..N<lat1>: the S3 listing, kept in `cache`
 /// per band, so a listed band needs no network.
@@ -181,9 +183,16 @@ fn free_bytes(dir: &Path) -> Option<u64> {
 }
 
 /// `url` into `dest` through `<dest>.part` (resumed), checked against `bytes` (0: unknown); curl's stall rule, `cancel`
-/// stops it. `<dest>.lock` keeps two runs (both games, or two threads) from writing one part: the second waits and then
-/// finds the file whole.
-pub(crate) fn curl_to(url: &str, dest: &Path, bytes: u64, user_agent: &str, cancel: &AtomicBool) -> Result<()> {
+/// stops it, `on_bytes` gets the part's size four times a second. `<dest>.lock` keeps two runs (both games, or two
+/// threads) from writing one part: the second waits and then finds the file whole.
+pub(crate) fn curl_to(
+    url: &str,
+    dest: &Path,
+    bytes: u64,
+    user_agent: &str,
+    cancel: &AtomicBool,
+    on_bytes: &dyn Fn(u64),
+) -> Result<()> {
     let whole = || std::fs::metadata(dest).is_ok_and(|m| bytes == 0 || m.len() == bytes);
     let lock = std::fs::File::create(dest.with_extension("lock"))?;
     lock.lock()?;
@@ -202,7 +211,9 @@ pub(crate) fn curl_to(url: &str, dest: &Path, bytes: u64, user_agent: &str, canc
             .args(["-o", utf8(&part)?, url])
             .spawn()
             .context("running curl")?;
-        let s = crate::thirdparty::wait_curl(child, &part, &|| cancel.load(Ordering::Relaxed), &|| {})?;
+        let s = crate::thirdparty::wait_curl(child, &part, &|| cancel.load(Ordering::Relaxed), &|| {
+            on_bytes(std::fs::metadata(&part).map_or(0, |m| m.len()))
+        })?;
         if s.code() == Some(23) {
             bail!("{}: disk full (curl could not write): free space and run again", part.display());
         }
@@ -220,14 +231,16 @@ pub(crate) fn curl_to(url: &str, dest: &Path, bytes: u64, user_agent: &str, canc
 }
 
 /// The tiles `names` of `tiles` as GDAL paths: the file in `cache` when it is there whole, else downloaded into it
-/// first (`jobs` at once); a tile with no room on the disk (`S2_KEEP_FREE`) is read over the network (`/vsicurl/`).
-/// Also returns the line saying what was reused and fetched.
+/// first (`S2_JOBS` at once); a tile with no room on the disk (`S2_KEEP_FREE`) is read over the network (`/vsicurl/`).
+/// A tile in `coarse` is read only through its overviews (20 m and coarser): one not in the cache is read over the
+/// network too, by range reads of the overview alone (about a quarter of the tile, and only the part needed), never
+/// downloaded whole. Also returns the line saying what was reused and fetched.
 pub(crate) fn tile_sources(
     cache: &Path,
     bucket: &str,
     tiles: &BTreeMap<String, u64>,
     names: &[String],
-    jobs: usize,
+    coarse: &[String],
     pr: &dyn Progress,
     cancel: &AtomicBool,
 ) -> Result<(BTreeMap<String, String>, String)> {
@@ -238,8 +251,12 @@ pub(crate) fn tile_sources(
     // ponytail: the room is measured once per run; another job filling the disk meanwhile ends in curl's "disk full".
     // Without df (Windows) there is no room check (docs/imagery.md §2).
     let mut room = free_bytes(cache).map_or(u64::MAX, |f| f.saturating_sub(S2_KEEP_FREE));
-    let (mut fetch, mut stream) = (Vec::new(), Vec::new());
+    let (mut fetch, mut stream, mut overview) = (Vec::new(), Vec::new(), Vec::new());
     for n in missing {
+        if coarse.contains(n) {
+            overview.push(n.clone());
+            continue;
+        }
         let need = size(n).saturating_sub(std::fs::metadata(path(n).with_extension("part")).map_or(0, |m| m.len()));
         if need <= room {
             room -= need;
@@ -269,18 +286,47 @@ pub(crate) fn tile_sources(
             S2_KEEP_FREE / 1_000_000_000
         ));
     }
-    // The bar: the bytes fetched of those to fetch.
-    let (total, done) = (fetch.iter().map(|n| size(n)).sum::<u64>().max(1), AtomicU64::new(0));
-    crate::sim_terrain::par(&fetch, jobs, cancel, |n| {
-        curl_to(&tile_url(bucket, n), &path(n), size(n), USER_AGENT, cancel)?;
+    // The bar and a line every FETCH_LOG_S seconds: the bytes on disk (whole tiles and the parts growing) of those to
+    // fetch, so a run of large tiles never looks stuck.
+    let total = fetch.iter().map(|n| size(n)).sum::<u64>().max(1);
+    let (done, parts) = (AtomicU64::new(0), Mutex::new(BTreeMap::<String, u64>::new()));
+    let kept: u64 =
+        fetch.iter().map(|n| std::fs::metadata(path(n).with_extension("part")).map_or(0, |m| m.len())).sum();
+    let (t0, last_log) = (std::time::Instant::now(), AtomicU64::new(0));
+    let report = || {
+        let now = done.load(Ordering::Relaxed) + parts.lock().map_or(0, |p| p.values().sum::<u64>());
+        pr.fraction(now as f32 / total as f32);
+        let (secs, last) = (t0.elapsed().as_secs(), last_log.load(Ordering::Relaxed));
+        if secs >= last + crate::thirdparty::FETCH_LOG_S
+            && last_log.compare_exchange(last, secs, Ordering::Relaxed, Ordering::Relaxed).is_ok()
+        {
+            let line = crate::progress::download_line(now, total, now.saturating_sub(kept), t0.elapsed().as_secs_f64());
+            log!(pr, "  Sentinel-2 tiles: {line}");
+        }
+    };
+    crate::sim_terrain::par(&fetch, S2_JOBS, cancel, |n| {
+        let on_bytes = |b: u64| {
+            if let Ok(mut p) = parts.lock() {
+                p.insert(n.clone(), b);
+            }
+            report();
+        };
+        curl_to(&tile_url(bucket, n), &path(n), size(n), USER_AGENT, cancel, &on_bytes)?;
+        if let Ok(mut p) = parts.lock() {
+            p.remove(n.as_str());
+        }
+        done.fetch_add(size(n), Ordering::Relaxed);
         log!(pr, "  {n}: fetched {:.0} MB", size(n) as f64 / 1e6);
-        pr.fraction((done.fetch_add(size(n), Ordering::Relaxed) + size(n)) as f32 / total as f32);
+        report();
         Ok(())
     })?;
     let mut out = BTreeMap::new();
     for n in names {
-        let p =
-            if stream.contains(n) { format!("/vsicurl/{}", tile_url(bucket, n)) } else { utf8(&path(n))?.to_string() };
+        let p = if stream.contains(n) || overview.contains(n) {
+            format!("/vsicurl/{}", tile_url(bucket, n))
+        } else {
+            utf8(&path(n))?.to_string()
+        };
         out.insert(n.clone(), p);
     }
     let mut line = format!("{} tiles, {} reused ({:.2} GB)", names.len(), reused.len(), gb(&reused));
@@ -288,7 +334,124 @@ pub(crate) fn tile_sources(
     if !stream.is_empty() {
         line += &format!(", {} streamed ({:.2} GB)", stream.len(), gb(&stream_refs));
     }
+    if !overview.is_empty() {
+        line += &format!(", {} read at 20 m over the network", overview.len());
+    }
     Ok((out, line))
+}
+
+/// The Copernicus GLO-30 DEM's tile cache under `assets/` (the sim's heights; any open-data terrain reads it too).
+pub const DEM_CACHE: &str = "source/dem";
+const DEM_URL: &str = "https://copernicus-dem-30m.s3.amazonaws.com";
+const DEM_USER_AGENT: &str = "iaf-reborn terrain setup (curl)";
+
+/// The GLO-30 tile name of the 1° cell whose south-west corner is (lat, lon).
+pub(crate) fn dem_tile(lat: i32, lon: i32) -> String {
+    let (ns, ew) = (if lat < 0 { 'S' } else { 'N' }, if lon < 0 { 'W' } else { 'E' });
+    format!("Copernicus_DSM_COG_10_{ns}{:02}_00_{ew}{:03}_00_DEM", lat.abs(), lon.abs())
+}
+
+/// The DEM bucket has no tile for the cell (open sea): S3 answers a missing key with 404, or with 403 and NoSuchKey
+/// in the body. Any other answer (a transient 403 too) must not mark the cell as sea for good.
+fn no_tile(code: &str, body: &str) -> bool {
+    code == "404" || (code == "403" && body.contains("NoSuchKey"))
+}
+
+/// The GLO-30 tiles over `geo` in the cache, fetched once each (a `.none` mark for a cell with no tile: open sea),
+/// and the line saying what was reused and fetched.
+pub(crate) fn fetch_dem(
+    cache: &Path,
+    geo: [f64; 4],
+    pr: &dyn Progress,
+    cancel: &AtomicBool,
+) -> Result<(Vec<PathBuf>, String)> {
+    std::fs::create_dir_all(cache)?;
+    let (mut tiles, mut reused, mut fetched, mut sea) = (Vec::new(), 0u64, 0u64, 0);
+    let mb = |p: &Path| std::fs::metadata(p).map_or(0, |m| m.len());
+    for lat in geo[1].floor() as i32..=geo[3].floor() as i32 {
+        for lon in geo[0].floor() as i32..=geo[2].floor() as i32 {
+            check(cancel)?;
+            let name = dem_tile(lat, lon);
+            let (tif, none) = (cache.join(format!("{name}.tif")), cache.join(format!("{name}.none")));
+            if tif.exists() {
+                reused += mb(&tif);
+                tiles.push(tif);
+                continue;
+            }
+            if none.exists() {
+                sea += 1;
+                continue;
+            }
+            let part = cache.join(format!("{name}.part"));
+            // A part left by a cut download resumes; one holding anything but a TIFF's start (an error page) is
+            // dropped first.
+            if !resumable(&part) {
+                let _ = std::fs::remove_file(&part);
+            }
+            let url = format!("{DEM_URL}/{name}/{name}.tif");
+            let mut child = Command::new("curl")
+                .args(["-sS", "-L", "-C", "-", "-A", DEM_USER_AGENT])
+                .args(crate::thirdparty::CURL_PATIENCE)
+                .args(["-w", "%{http_code}", "-o", utf8(&part)?, &url])
+                .stdout(Stdio::piped())
+                .spawn()
+                .context("running curl")?;
+            // The answer is a few bytes: the pipe never fills while curl runs.
+            let mut out = child.stdout.take().context("curl's stdout")?;
+            // A line every FETCH_LOG_S seconds, so the heights never look stuck.
+            let (t0, last_log) = (std::time::Instant::now(), std::sync::atomic::AtomicU64::new(0));
+            let tick = || {
+                let secs = t0.elapsed().as_secs();
+                if secs >= last_log.load(Ordering::Relaxed) + crate::thirdparty::FETCH_LOG_S {
+                    last_log.store(secs, Ordering::Relaxed);
+                    log!(pr, "  DEM {name}: {:.0} MB so far", mb(&part) as f64 / 1e6);
+                }
+            };
+            let status = crate::thirdparty::wait_curl(child, &part, &|| cancel.load(Ordering::Relaxed), &tick)?;
+            let mut code = String::new();
+            std::io::Read::read_to_string(&mut out, &mut code)?;
+            let code = code.trim().to_string();
+            match code.as_str() {
+                // A tile cut short (a stall) is not a tile: only a clean exit renames the part; the part stays for
+                // the next run to resume.
+                "200" | "206" if !status.success() => {
+                    bail!("{url}: {}; run again to resume it", crate::thirdparty::curl_error(status));
+                }
+                "200" | "206" => {
+                    std::fs::rename(&part, &tif)?;
+                    fetched += mb(&tif);
+                    log!(pr, "  DEM {name}: fetched {:.0} MB", mb(&tif) as f64 / 1e6);
+                    tiles.push(tif);
+                }
+                _ if no_tile(&code, &std::fs::read_to_string(&part).unwrap_or_default()) => {
+                    let _ = std::fs::remove_file(&part);
+                    sea += 1;
+                    std::fs::write(&none, "no GLO-30 tile (open sea)\n")?;
+                }
+                _ => {
+                    let _ = std::fs::remove_file(&part);
+                    bail!("{url}: HTTP {code} ({})", crate::thirdparty::curl_error(status))
+                }
+            }
+        }
+    }
+    if tiles.is_empty() {
+        bail!("no GLO-30 tile over {geo:?}");
+    }
+    let line = format!(
+        "{} tiles, reused {:.0} MB, fetched {:.0} MB ({sea} open-sea cells)",
+        tiles.len(),
+        reused as f64 / 1e6,
+        fetched as f64 / 1e6
+    );
+    Ok((tiles, line))
+}
+
+/// A DEM part a download can resume: it begins as a TIFF does (an error page written by an older run does not).
+fn resumable(part: &Path) -> bool {
+    let mut head = [0u8; 4];
+    std::fs::File::open(part).and_then(|mut f| std::io::Read::read_exact(&mut f, &mut head)).is_ok()
+        && (head == *b"II*\0" || head == *b"MM\0*")
 }
 
 /// The tile `n` is in the cache whole (its listed size).
@@ -387,6 +550,7 @@ pub(crate) fn list_sheets(
             })
             .collect();
         if found.is_empty() {
+            log!(pr, "  measuring {zname}");
             let names: Vec<String> =
                 match std::fs::File::open(&abs).map_err(anyhow::Error::from).and_then(|f| Ok(zip::ZipArchive::new(f)?))
                 {
@@ -679,7 +843,7 @@ pub fn run(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Estimate> 
         // This step's bar is its units' 0..1 (below), as before the tile cache: a part from 0 to 0 holds the bar at 0
         // through the download (the tiles' lines still go to the log).
         let quiet = Part { pr, from: 0.0, to: 0.0 };
-        let (p, line) = tile_sources(&r.s2_cache, BUCKET, tiles, &names, threads, &quiet, cancel)?;
+        let (p, line) = tile_sources(&r.s2_cache, BUCKET, tiles, &names, &[], &quiet, cancel)?;
         log!(pr, "Sentinel-2: {line}");
         *paths = p;
     }
@@ -1032,10 +1196,27 @@ mod tests {
         assert_eq!(tiles.len(), 2);
         let names: Vec<String> = tiles.keys().cloned().collect();
         let (paths, line) =
-            tile_sources(&c, OFFLINE, &tiles, &names, 2, &crate::progress::Stdout, &AtomicBool::new(false)).unwrap();
+            tile_sources(&c, OFFLINE, &tiles, &names, &[], &crate::progress::Stdout, &AtomicBool::new(false)).unwrap();
         assert_eq!(paths["N30E034"], c.join(tile_file("N30E034")).to_str().unwrap());
         assert!(line.contains("2 reused") && line.contains("0 fetched"), "{line}");
         assert!(list_tiles(&c, OFFLINE, 31, 31).is_err(), "an unlisted band goes to the network");
+        std::fs::remove_dir_all(&c).unwrap();
+    }
+
+    /// A coarse tile is never downloaded: the cache's whole copy (e.g. one the other game fetched) is read, else its
+    /// overview over the network.
+    #[test]
+    fn a_coarse_tile_is_read_not_downloaded() {
+        let c = tmp("coarse");
+        std::fs::write(c.join(tile_file("N30E034")), "12345").unwrap();
+        let tiles = BTreeMap::from([("N30E033".to_string(), 9), ("N30E034".to_string(), 5)]);
+        let names: Vec<String> = tiles.keys().cloned().collect();
+        let (paths, line) =
+            tile_sources(&c, OFFLINE, &tiles, &names, &names, &crate::progress::Stdout, &AtomicBool::new(false))
+                .unwrap();
+        assert_eq!(paths["N30E034"], c.join(tile_file("N30E034")).to_str().unwrap(), "the cached copy");
+        assert!(paths["N30E033"].starts_with("/vsicurl/http://127.0.0.1:9/"), "{}", paths["N30E033"]);
+        assert!(!c.join(tile_file("N30E033")).exists() && line.contains("1 read at 20 m"), "{line}");
         std::fs::remove_dir_all(&c).unwrap();
     }
 
@@ -1067,7 +1248,7 @@ mod tests {
         let (url, dest) = (format!("file://{}/t.tif", bucket.display()), c.join("t.tif"));
         std::thread::scope(|s| {
             for _ in 0..2 {
-                s.spawn(|| curl_to(&url, &dest, body.len() as u64, "test", &AtomicBool::new(false)).unwrap());
+                s.spawn(|| curl_to(&url, &dest, body.len() as u64, "test", &AtomicBool::new(false), &|_| {}).unwrap());
             }
         });
         assert_eq!(std::fs::read(&dest).unwrap(), body);
@@ -1089,12 +1270,60 @@ mod tests {
         let names: Vec<String> = tiles.keys().cloned().collect();
         let url = format!("file://{}", bucket.display());
         let (paths, line) =
-            tile_sources(&c, &url, &tiles, &names, 2, &crate::progress::Stdout, &AtomicBool::new(false)).unwrap();
+            tile_sources(&c, &url, &tiles, &names, &[], &crate::progress::Stdout, &AtomicBool::new(false)).unwrap();
         assert_eq!(std::fs::read(c.join(tile_file("N30E034"))).unwrap(), b"abcdef");
         assert_eq!(std::fs::read(c.join(tile_file("N30E035"))).unwrap(), b"xyz", "the truncated one again");
         assert!(!paths["N30E035"].starts_with("/vsicurl/") && line.contains("2 fetched"), "{line}");
         std::fs::remove_dir_all(&c).unwrap();
         std::fs::remove_dir_all(&bucket).unwrap();
+    }
+
+    /// A part left by a cut download resumes where it stopped (its bytes kept, the rest appended), and the bytes so
+    /// far reach `on_bytes`; a part longer than the listed size is dropped and fetched again.
+    #[test]
+    fn a_partial_tile_resumes() {
+        let (c, bucket) = (tmp("resume"), tmp("resume-bucket"));
+        std::fs::write(bucket.join("t.tif"), b"abcdefgh").unwrap();
+        let (url, dest) = (format!("file://{}/t.tif", bucket.display()), c.join("t.tif"));
+        let no = AtomicBool::new(false);
+        // "ABC": three bytes kept from a cut run (upper case, so a fresh fetch would show).
+        std::fs::write(dest.with_extension("part"), b"ABC").unwrap();
+        curl_to(&url, &dest, 8, "test", &no, &|_| {}).unwrap();
+        assert_eq!(std::fs::read(&dest).unwrap(), b"ABCdefgh");
+        std::fs::remove_file(&dest).unwrap();
+        std::fs::write(dest.with_extension("part"), b"too long a part").unwrap();
+        curl_to(&url, &dest, 8, "test", &no, &|_| {}).unwrap();
+        assert_eq!(std::fs::read(&dest).unwrap(), b"abcdefgh");
+        std::fs::remove_dir_all(&c).unwrap();
+        std::fs::remove_dir_all(&bucket).unwrap();
+    }
+
+    /// Only a part that starts as a TIFF resumes; an error page or a missing part starts afresh.
+    #[test]
+    fn a_dem_part_resumes_only_as_a_tiff() {
+        let d = tmp("dempart");
+        let part = d.join("t.part");
+        assert!(!resumable(&part), "no part");
+        std::fs::write(&part, b"II*\0abc").unwrap();
+        assert!(resumable(&part));
+        std::fs::write(&part, b"<?xml version").unwrap();
+        assert!(!resumable(&part), "an error page");
+        std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    #[test]
+    fn dem_tile_names() {
+        assert_eq!(dem_tile(31, 34), "Copernicus_DSM_COG_10_N31_00_E034_00_DEM");
+        assert_eq!(dem_tile(-1, -5), "Copernicus_DSM_COG_10_S01_00_W005_00_DEM");
+    }
+
+    /// Only a missing key marks a DEM cell as open sea.
+    #[test]
+    fn only_a_missing_key_is_sea() {
+        assert!(no_tile("404", ""));
+        assert!(no_tile("403", "<Error><Code>NoSuchKey</Code></Error>"));
+        assert!(!no_tile("403", "<Error><Code>AccessDenied</Code></Error>"), "a transient 403");
+        assert!(!no_tile("500", "NoSuchKey"));
     }
 
     fn unit(rules: &str, on_base: bool) -> Unit {

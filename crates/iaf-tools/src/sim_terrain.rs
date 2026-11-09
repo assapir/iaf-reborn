@@ -46,8 +46,6 @@ const SEA: [u8; 3] = [53, 72, 82];
 /// The fill before 2026-11-08, darker than the composite's sea (its edge showed as steps): `repaint_sea` turns it into
 /// SEA in a theatre built with it.
 const OLD_SEA: [u8; 3] = [30, 52, 78];
-const DEM_URL: &str = "https://copernicus-dem-30m.s3.amazonaws.com";
-const USER_AGENT: &str = "iaf-reborn Modern IAF terrain setup (curl)";
 pub const ATTRIBUTION: [&str; 3] = [
     "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved",
     "Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium; ESA WorldCover project 2021 (CC BY 4.0)",
@@ -168,12 +166,6 @@ impl HeightGrid {
     }
 }
 
-/// The GLO-30 tile name of the 1° cell whose south-west corner is (lat, lon).
-pub fn dem_tile(lat: i32, lon: i32) -> String {
-    let (ns, ew) = (if lat < 0 { 'S' } else { 'N' }, if lon < 0 { 'W' } else { 'E' });
-    format!("Copernicus_DSM_COG_10_{ns}{:02}_00_{ew}{:03}_00_DEM", lat.abs(), lon.abs())
-}
-
 /// Points through `gdaltransform` (x y in, x y out; EPSG:4326 as lon, lat).
 fn transform(from: &str, to: &str, pts: &[[f64; 2]]) -> Result<Vec<[f64; 2]>> {
     let mut c = Command::new("gdaltransform")
@@ -217,80 +209,6 @@ fn geo_bbox(r: [f64; 4]) -> Result<[f64; 4]> {
     Ok(g.iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, p| {
         [b[0].min(p[0]), b[1].min(p[1]), b[2].max(p[0]), b[3].max(p[1])]
     }))
-}
-
-/// The DEM bucket has no tile for the cell (open sea): S3 answers a missing key with 404, or with 403 and NoSuchKey
-/// in the body. Any other answer (a transient 403 too) must not mark the cell as sea for good.
-fn no_tile(code: &str, body: &str) -> bool {
-    code == "404" || (code == "403" && body.contains("NoSuchKey"))
-}
-
-/// The GLO-30 tiles over `geo` in the cache, fetched once each (a `.none` mark for a cell with no tile: open sea),
-/// and the line saying what was reused and fetched.
-fn fetch_dem(cache: &Path, geo: [f64; 4], pr: &dyn Progress, cancel: &AtomicBool) -> Result<(Vec<PathBuf>, String)> {
-    std::fs::create_dir_all(cache)?;
-    let (mut tiles, mut reused, mut fetched, mut sea) = (Vec::new(), 0u64, 0u64, 0);
-    let mb = |p: &Path| std::fs::metadata(p).map_or(0, |m| m.len());
-    for lat in geo[1].floor() as i32..=geo[3].floor() as i32 {
-        for lon in geo[0].floor() as i32..=geo[2].floor() as i32 {
-            check(cancel)?;
-            let name = dem_tile(lat, lon);
-            let (tif, none) = (cache.join(format!("{name}.tif")), cache.join(format!("{name}.none")));
-            if tif.exists() {
-                reused += mb(&tif);
-                tiles.push(tif);
-                continue;
-            }
-            if none.exists() {
-                sea += 1;
-                continue;
-            }
-            let part = cache.join(format!("{name}.part"));
-            let url = format!("{DEM_URL}/{name}/{name}.tif");
-            let mut child = Command::new("curl")
-                .args(["-sS", "-L", "-A", USER_AGENT])
-                .args(crate::thirdparty::CURL_PATIENCE)
-                .args(["-w", "%{http_code}", "-o", utf8(&part)?, &url])
-                .stdout(Stdio::piped())
-                .spawn()
-                .context("running curl")?;
-            // The answer is a few bytes: the pipe never fills while curl runs.
-            let mut out = child.stdout.take().context("curl's stdout")?;
-            let status = crate::thirdparty::wait_curl(child, &part, &|| cancel.load(Ordering::Relaxed), &|| {})?;
-            let mut code = String::new();
-            std::io::Read::read_to_string(&mut out, &mut code)?;
-            let code = code.trim().to_string();
-            match code.as_str() {
-                // A 200 cut short (a stall) is not a tile: only a clean exit renames the part.
-                "200" if !status.success() => {
-                    let _ = std::fs::remove_file(&part);
-                    bail!("{url}: {}; run again", crate::thirdparty::curl_error(status));
-                }
-                "200" => {
-                    std::fs::rename(&part, &tif)?;
-                    fetched += mb(&tif);
-                    log!(pr, "  DEM {name}: fetched {:.0} MB", mb(&tif) as f64 / 1e6);
-                    tiles.push(tif);
-                }
-                _ if no_tile(&code, &std::fs::read_to_string(&part).unwrap_or_default()) => {
-                    let _ = std::fs::remove_file(&part);
-                    sea += 1;
-                    std::fs::write(&none, "no GLO-30 tile (open sea)\n")?;
-                }
-                _ => bail!("{url}: HTTP {code} ({})", crate::thirdparty::curl_error(status)),
-            }
-        }
-    }
-    if tiles.is_empty() {
-        bail!("no GLO-30 tile over {geo:?}");
-    }
-    let line = format!(
-        "{} tiles, reused {:.0} MB, fetched {:.0} MB ({sea} open-sea cells)",
-        tiles.len(),
-        reused as f64 / 1e6,
-        fetched as f64 / 1e6
-    );
-    Ok((tiles, line))
 }
 
 /// gdalwarp of `src` to the UTM rect `te` at `size` pixels into ENVI (band-interleaved by pixel) at `bin`.
@@ -705,10 +623,18 @@ fn dilate(m: &mut [f32], w: usize, h: usize, r: usize) {
 /// Per sheet: the scale and offset per band that give its levelled photo Sentinel-2's mean and spread (over the
 /// sheet's dry land at 40 m, both on the sheet's grid; the scale clamped to 0.5–2); cached in `<work>/gains.tsv`.
 /// A gain alone (the means' ratio) came out at 1.4–2 and burnt the bright desert white (2026-11-03).
-fn sheet_gains(sheets: &[Sheet], s2: &str, work: &Path, threads: usize, cancel: &AtomicBool) -> Result<Vec<Gain>> {
+fn sheet_gains(
+    sheets: &[Sheet],
+    s2: &str,
+    work: &Path,
+    threads: usize,
+    pr: &dyn Progress,
+    cancel: &AtomicBool,
+) -> Result<Vec<Gain>> {
     let cache = work.join("gains.tsv");
     let mut text = std::fs::read_to_string(&cache).unwrap_or_default();
     let todo: Vec<usize> = (0..sheets.len()).filter(|&k| cached_gain(&text, &sheets[k].name).is_none()).collect();
+    log!(pr, "survey: the colour match, {} of {} sheets to measure", todo.len(), sheets.len());
     let found = std::sync::Mutex::new(Vec::new());
     par(&todo, threads, cancel, |&k| {
         let s = &sheets[k];
@@ -782,7 +708,11 @@ fn sheet_gains(sheets: &[Sheet], s2: &str, work: &Path, threads: usize, cancel: 
                 (g[c], g[3 + c]) = (k as f32, (ms - mp * k) as f32);
             }
         }
-        found.lock().map_err(|_| anyhow::anyhow!("worker panicked"))?.push((s.name.clone(), g));
+        let mut found = found.lock().map_err(|_| anyhow::anyhow!("worker panicked"))?;
+        found.push((s.name.clone(), g));
+        if found.len().is_multiple_of(10) {
+            log!(pr, "  colour match {}/{}", found.len(), todo.len());
+        }
         Ok(())
     })?;
     for (name, g) in found.into_inner().map_err(|_| anyhow::anyhow!("worker panicked"))? {
@@ -1138,10 +1068,31 @@ fn part_ends(fetch: u64, survey: bool) -> [f32; 5] {
     ends
 }
 
-/// The bytes of the theatre's Sentinel-2 tiles already whole in `cache` (the setup wizard's disk check): only the
-/// listings already cached count (no network); 0 without them or without GDAL.
+/// The listed tiles that meet the lon / lat box `geo`.
+fn tiles_in(tiles: &BTreeMap<String, u64>, geo: [f64; 4]) -> Vec<String> {
+    tiles
+        .keys()
+        .filter(|n| tile_box(n).is_some_and(|b| b[0] < geo[2] && geo[0] < b[2] && b[1] < geo[3] && geo[1] < b[3]))
+        .cloned()
+        .collect()
+}
+
+/// The UTM rect of the level-5 nodes the detail area touches (the 8 m nodes, at full Sentinel-2 resolution), inside
+/// the theatre.
+fn fine_area(f: &Frame, detail: [f64; 4]) -> [f64; 4] {
+    let (e1, n0) = (f.e0 + f64::from(f.w), f.n1 - f64::from(f.h));
+    let b =
+        f.nodes_in(5, detail).into_iter().map(|k| f.utm(k)).fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, u| {
+            [b[0].min(u[0]), b[1].min(u[1]), b[2].max(u[2]), b[3].max(u[3])]
+        });
+    [b[0].max(f.e0), b[1].max(n0), b[2].min(e1), b[3].min(f.n1)]
+}
+
+/// The bytes of the Sentinel-2 tiles the theatre downloads (those under the 8 m nodes) already whole in `cache` (the
+/// setup wizard's disk check): only the listings already cached count (no network); 0 without them or without GDAL.
 pub fn s2_cached_bytes(cache: &Path) -> u64 {
-    geo_bbox(BOX).map_or(0, |geo| cached_in(cache, geo))
+    let fine = Frame::new(BOX).map(|f| fine_area(&f, DETAIL));
+    fine.and_then(geo_bbox).map_or(0, |geo| cached_in(cache, geo))
 }
 
 /// [`s2_cached_bytes`] over the lon / lat box `geo`.
@@ -1168,9 +1119,11 @@ fn cached_in(cache: &Path, geo: [f64; 4]) -> u64 {
 fn heights(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<String> {
     let t0 = std::time::Instant::now();
     log!(pr, "heights: GLO-30 tiles from {}", r.dem_cache.display());
-    let (tiles, line) = fetch_dem(&r.dem_cache, geo, pr, cancel)?;
+    let (tiles, line) = crate::imagery_run::fetch_dem(&r.dem_cache, geo, pr, cancel)?;
     log!(pr, "heights: DEM {line}");
+    log!(pr, "heights: the 64 m grid from {} tiles", tiles.len());
     let grid = dem_grid(&tiles, r.area, work)?;
+    log!(pr, "heights: the height nodes");
     // Half the workers: the colour branch runs beside it.
     write_heights(f, &grid, &r.out, (r.threads / 2).max(1), cancel)?;
     log!(pr, "heights: done ({})", crate::progress::duration(t0.elapsed()));
@@ -1186,27 +1139,32 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
     // Sentinel-2: one VRT over the WorldCover tiles (their overviews serve the 32 m nodes).
     log!(pr, "sentinel-2: WorldCover tiles from {}", r.s2_cache.display());
     let tiles = list_tiles(&r.s2_cache, BUCKET, geo[1].floor() as i32, geo[3].floor() as i32)?;
-    let names: Vec<String> = tiles
-        .keys()
-        .filter(|n| tile_box(n).is_some_and(|b| b[0] < geo[2] && geo[0] < b[2] && b[1] < geo[3] && geo[1] < b[3]))
-        .cloned()
-        .collect();
+    let names = tiles_in(&tiles, geo);
+    // The tiles outside the 8 m nodes are read only at 32 m, from their 20 m overview: not downloaded whole.
+    let fine = tiles_in(&tiles, geo_bbox(fine_area(&f, r.detail))?);
+    let coarse: Vec<String> = names.iter().filter(|n| !fine.contains(n)).cloned().collect();
     // One bar over the colour branch, the longer of the two (the heights run beside it): its parts by their expected
     // seconds (`part_ends`).
     let has_zips = std::fs::read_dir(&r.sheets)
         .map(|d| d.filter_map(|e| e.ok()).any(|e| e.path().extension().is_some_and(|x| x.eq_ignore_ascii_case("zip"))))
         .unwrap_or(false);
     let fetch: u64 =
-        names.iter().filter(|n| !tile_whole(&r.s2_cache, &tiles, n)).map(|n| tiles.get(n).copied().unwrap_or(0)).sum();
+        fine.iter().filter(|n| !tile_whole(&r.s2_cache, &tiles, n)).map(|n| tiles.get(n).copied().unwrap_or(0)).sum();
     let ends = part_ends(fetch, has_zips);
     let part = |i: usize| Part { pr, from: ends[i], to: ends[i + 1] };
-    let (paths, s2_line) = tile_sources(&r.s2_cache, BUCKET, &tiles, &names, 3, &part(0), cancel)?;
+    let (paths, s2_line) = tile_sources(&r.s2_cache, BUCKET, &tiles, &names, &coarse, &part(0), cancel)?;
     log!(pr, "sentinel-2: {s2_line} ({})", crate::progress::duration(t0.elapsed()));
     let urls: Vec<String> = paths.into_values().collect();
     let s2 = work.join("s2.vrt");
     let mut a = vec!["-q", "-overwrite", utf8(&s2)?];
     a.extend(urls.iter().map(String::as_str));
     gdal("gdalbuildvrt", &a)?;
+    // gdalbuildvrt skips a source it cannot open with only a warning: a tile read online while offline would turn
+    // into sea in the finished nodes.
+    let text = std::fs::read_to_string(&s2)?;
+    if let Some(u) = urls.iter().find(|u| u.starts_with("/vsicurl/") && !text.contains(u.as_str())) {
+        bail!("{u}: not readable over the network; run again when online");
+    }
     let s2 = utf8(&s2)?;
     let detail5: BTreeSet<Key> = f.nodes_in(5, r.detail).into_iter().collect();
     let inside = |k: Key| (k.1 << k.0) * NODE_PIXELS < f.w && (k.2 << k.0) * NODE_PIXELS < f.h;
@@ -1221,6 +1179,7 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
     // The Survey of Israel 2 m sheets already downloaded.
     if has_zips {
         seed_sheets(&work, &r.sheet_index, pr)?;
+        log!(pr, "survey: the sheet ZIPs in {}", r.sheets.display());
         let (sheets, _) = list_sheets(&r.sheets, &work, pr, cancel)?;
         let u4: Vec<Key> = f.nodes(4).into_iter().filter(|&k| fine(k)).collect();
         let corners: Vec<[f64; 2]> = u4
@@ -1246,7 +1205,7 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
         // The sheets whose levels reach a unit (their blend spans DARK_BLEND / 2 = 2 km beyond a sheet).
         let sheets = near(&sheets, &list.iter().map(|u| u.2).collect::<Vec<_>>(), 2000.0);
         let vrt = soi_vrt(&sheets, &r.sheets, &work, pr)?;
-        let gains = sheet_gains(&sheets, s2, &work, r.threads, cancel)?;
+        let gains = sheet_gains(&sheets, s2, &work, r.threads, pr, cancel)?;
         log!(
             pr,
             "survey: {} sheets, colours matched to Sentinel-2 ({})",
@@ -1255,6 +1214,7 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
         );
         let bases = base_outlines(&r.airbases)?;
         let pbfs = crate::sim_coast::fetch_extracts(&r.osm, geo, pr, cancel)?;
+        log!(pr, "survey: the coastline from {} OpenStreetMap extracts", pbfs.len());
         let coast = crate::sim_coast::Coast::load(&pbfs, geo, &work)?;
         let sv = Survey {
             vrt: utf8(&vrt)?,
@@ -1322,6 +1282,7 @@ pub fn terrain(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     }
     // The coarser levels from their children (level 4 exists in the detail area only, so the 32 m level-5 nodes
     // stay the source's).
+    log!(pr, "levels: the coarser levels 4–{ROOT_LEVEL} from their children");
     for l in 4..=ROOT_LEVEL {
         parents(out, l, None, r.threads, cancel)?;
     }
@@ -1388,19 +1349,12 @@ mod tests {
         assert_eq!(cached_in(&c.join("none"), [34.2, 30.1, 35.9, 31.5]), 0, "no listing: nothing cached");
     }
 
+    /// The 8 m nodes' rect: the level-5 nodes over Israel, cut to the theatre (the tiles west of 34° E and north
+    /// of 34° N lie outside it).
     #[test]
-    fn dem_tile_names() {
-        assert_eq!(dem_tile(31, 34), "Copernicus_DSM_COG_10_N31_00_E034_00_DEM");
-        assert_eq!(dem_tile(-1, -5), "Copernicus_DSM_COG_10_S01_00_W005_00_DEM");
-    }
-
-    /// Only a missing key marks a DEM cell as open sea.
-    #[test]
-    fn only_a_missing_key_is_sea() {
-        assert!(no_tile("404", ""));
-        assert!(no_tile("403", "<Error><Code>NoSuchKey</Code></Error>"));
-        assert!(!no_tile("403", "<Error><Code>AccessDenied</Code></Error>"), "a transient 403");
-        assert!(!no_tile("500", "NoSuchKey"));
+    fn the_fine_area_is_the_detail_nodes() {
+        let f = Frame::new(BOX).unwrap();
+        assert_eq!(fine_area(&f, DETAIL), [606_208.0, 3_255_296.0, 802_816.0, 3_700_736.0]);
     }
 
     #[test]

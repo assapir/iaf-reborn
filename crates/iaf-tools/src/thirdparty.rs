@@ -1455,7 +1455,7 @@ pub fn curl_error(status: std::process::ExitStatus) -> String {
 
 /// Files downloading at once, and the seconds between `fetch_files`' progress lines.
 const FETCH_JOBS: usize = 4;
-const FETCH_LOG_S: u64 = 15;
+pub(crate) const FETCH_LOG_S: u64 = 15;
 
 /// One file of `fetch_files`: true when it was downloaded, false when it was there already. `slot` follows the bytes
 /// on disk; `stop` kills curl.
