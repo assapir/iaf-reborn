@@ -2,6 +2,8 @@
 # row parser FUN_004c82f0; docs/sound.md §1). One row per (sound code, sub code 1, sub code 2):
 #   category E/F/V/S, resident Y/N, cyclic C/O/T, 3d Y/N, logical channel, # random files,
 #   inside volume, outside volume, 3d min / max distance, raw file name (".wav" appended).
+# A clip is a WAV (the original's) or an Ogg Vorbis file (IAF 2026's); a name "x.wav" not shipped falls back to
+# "x.ogg", so the shared code's files opened by name (KCH2.WAV, EndWorld.wav, cock_g_02.wav) resolve in both.
 # Codes resolve to files case-insensitively (the install is lower-case); rows whose file is not
 # shipped (e.g. AircraftCrash, WrnSfxMissile) play nothing, as in the original.
 extends RefCounted
@@ -28,6 +30,10 @@ func _load() -> void:
 	if d != null:
 		for f in d.get_files():
 			_files[f.to_lower()] = dir.path_join(f)
+		for f in d.get_files():
+			var wav := f.get_basename().to_lower() + ".wav"
+			if f.to_lower().ends_with(".ogg") and not _files.has(wav):
+				_files[wav] = dir.path_join(f)
 	# The tower's runway numbers the install lacks (our TTS clips, docs/radio.md §1); the install's own win.
 	for f in DirAccess.get_files_at(OUR_NUMBERS):
 		if f.ends_with(".wav") and not _files.has(f):
@@ -72,8 +78,8 @@ func row(code: String, sub1 := "None") -> Dictionary:
 	return rows.get("%s/%s" % [code, sub1], {})
 
 
-## The wav stream of a row (cached), or null when the file is not shipped.
-func stream(r: Dictionary) -> AudioStreamWAV:
+## The stream of a row (cached), or null when the file is not shipped.
+func stream(r: Dictionary) -> AudioStream:
 	if r.is_empty():
 		return null
 	var name: String = String(r.file).to_lower()
@@ -82,12 +88,24 @@ func stream(r: Dictionary) -> AudioStreamWAV:
 	return stream_file(name)
 
 
-func stream_file(name: String) -> AudioStreamWAV:
+func stream_file(name: String) -> AudioStream:
 	var key := name.to_lower()
 	if _streams.has(key):
 		return _streams[key]
-	var s: AudioStreamWAV = null
+	var s: AudioStream = null
 	if _files.has(key):
-		s = AudioStreamWAV.load_from_file(_files[key])
+		s = open(_files[key])
 	_streams[key] = s
 	return s
+
+
+## The clip at `path`, a WAV or an Ogg Vorbis file by its extension; a missing "x.wav" falls back to "x.ogg".
+## Null when neither exists.
+static func open(path: String) -> AudioStream:
+	if not FileAccess.file_exists(path) and path.get_extension().to_lower() == "wav":
+		path = path.get_basename() + ".ogg"
+	if not FileAccess.file_exists(path):
+		return null
+	if path.get_extension().to_lower() == "ogg":
+		return AudioStreamOggVorbis.load_from_file(path)
+	return AudioStreamWAV.load_from_file(path)

@@ -323,6 +323,11 @@ func core_sound_real() -> bool:
 	return true
 
 
+## Each radio call opens with the press-to-talk click and closes with the squelch tail (iaf-2026/docs/sound.md §5.2).
+func radio_key_clicks() -> bool:
+	return true
+
+
 func keys_file() -> String:
 	var laptop := own_dir().path_join("keys_laptop.json")
 	return laptop if laptop_keys and FileAccess.file_exists(laptop) else own_dir().path_join("keys.json")

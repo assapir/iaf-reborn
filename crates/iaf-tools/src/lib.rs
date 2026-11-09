@@ -42,6 +42,7 @@ pub mod sim_files;
 pub mod sim_fm0;
 pub mod sim_scenery;
 pub mod sim_terrain;
+pub mod sim_voices;
 pub mod smooth;
 pub mod terrain;
 pub mod thirdparty;

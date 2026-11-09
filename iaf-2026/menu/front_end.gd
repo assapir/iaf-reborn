@@ -884,9 +884,7 @@ func play_sample(key: String) -> void:
 		_sounds = SoundTable.load_table()
 	var spec: Array = SAMPLES[key]
 	var clip = spec[0]
-	var st: AudioStreamWAV = (
-		_sounds.stream_file(clip) if clip is String else _sounds.stream(_sounds.row(clip[0], clip[1]))
-	)
+	var st: AudioStream = _sounds.stream_file(clip) if clip is String else _sounds.stream(_sounds.row(clip[0], clip[1]))
 	if st == null:
 		return
 	if not is_instance_valid(_sample):

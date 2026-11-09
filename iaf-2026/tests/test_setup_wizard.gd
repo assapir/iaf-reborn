@@ -70,7 +70,7 @@ func run() -> void:
 		check(LINE_B in credits, "%s: Copernicus line (b) verbatim" % lang)
 		check(LINE_C in credits, "%s: Copernicus line (c) verbatim" % lang)
 		for name in [
-			"OpenStreetMap", "Sentinel", "Survey of Israel", "Piper", "FlightGear", "TP-1538", "Heebo", "ikbenraar"
+			"OpenStreetMap", "Sentinel", "Survey of Israel", "Kokoro", "FlightGear", "TP-1538", "Heebo", "ikbenraar"
 		]:
 			check(name in credits, "%s: the attributions name %s" % [lang, name])
 		var esc := InputEventKey.new()

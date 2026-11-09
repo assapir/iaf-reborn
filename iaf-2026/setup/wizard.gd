@@ -90,12 +90,13 @@ const CREDITS := [
 		]
 	],
 	[
-		"Piper",
+		"Kokoro",
 		"for_voices",
 		[
 			(
-				"Piper text to speech (MIT); the voices kristin, john and norman, trained on LibriVox recordings "
-				+ "(public domain)"
+				"Kokoro-82M v1.0 by hexgrad (huggingface.co/hexgrad/Kokoro-82M), Apache-2.0, the model and its voices "
+				+ "af_heart, am_michael, am_puck and am_fenrir; trained on public-domain, permissively licensed and "
+				+ "synthetic speech and on two CC BY sets: Koniwa tnc (CC BY 3.0) and SIWIS (CC BY 4.0)"
 			)
 		]
 	],

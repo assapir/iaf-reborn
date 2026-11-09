@@ -148,10 +148,12 @@ pillwave, 77Pacer, nuckan, qubodup, Seidhepriest, Jetrod, craigsmith (the USC Go
 also the canopy and the touchdown's tyre skid), LilMati, Rudmer_Rotteveel (also the afterburner and its light-off, from
 an RNLAF F-16 take-off), pushkin, xkeril, elliott.klein, DeqstersLab, SoundDesignForYou and tranzfusion. The JFS
 whine is a tone we computed. Each clip's source page, licence and processing: `iaf-2026/data/sounds/SOURCES.md`.
-The sim's voices are Piper text to speech[^piper] (MIT) in the voices kristin, john and norman, trained on LibriVox
-recordings (public domain); their texts and voices: `iaf-2026/data/sounds/voices.json`. The Hebrew voice waits for a
-licence decision (iaf-2026/docs/sound.md §5). The lines the sim's setup wizard (item A3) and its credits roll need:
-iaf-2026/docs/sound.md §6.
+The sim's voices are Kokoro text to speech[^kokoro] (Kokoro-82M v1.0 by hexgrad, Apache-2.0; its voice packs ship in
+the same repository under the same licence) in the American voices af_heart, am_michael, am_puck and am_fenrir. Its
+training data is public-domain, permissively licensed and synthetic speech, plus two CC BY sets it names: Koniwa
+`tnc` (CC BY 3.0) and SIWIS (CC BY 4.0). Their texts and voices: `iaf-2026/data/sounds/voices.json`; made by
+`iaf-sim voices` (iaf-2026/docs/sound.md §5). The Hebrew voice waits for a licence decision (iaf-2026/docs/sound.md
+§5.4). The lines the sim's setup wizard (item A3) and its credits roll need: iaf-2026/docs/sound.md §6.
 The sim's terrain (`iaf-sim terrain`, iaf-2026/docs/terrain.md) is converted from the Copernicus DEM GLO-30
 (Copernicus WorldDEM-30 licence[^cop-dem]), the ESA WorldCover 2021 Sentinel-2 composite (CC BY 4.0) and the Survey of
 Israel 2015 photo (data.gov.il). The DEM's licence asks for two lines verbatim, which the sim's setup wizard (item A3)
@@ -213,7 +215,7 @@ credits it in its footer; the front end's Attributions screen and the setup wiza
 
 [^acg-licence]: ambientCG licence, https://docs.ambientcg.com/license/ (read 2026-10-22).
 [^osm]: OpenStreetMap, "Copyright and License": https://www.openstreetmap.org/copyright
-[^piper]: Piper voices (rhasspy/piper-voices), each voice's MODEL_CARD names its dataset: https://huggingface.co/rhasspy/piper-voices
+[^kokoro]: Kokoro-82M, model card (licence, training data, the CC BY sets) and VOICES.md: https://huggingface.co/hexgrad/Kokoro-82M
 [^freesound]: Freesound, the sounds' pages (CC0 1.0, https://creativecommons.org/publicdomain/zero/1.0/): https://freesound.org
 [^ms]: Microsoft, Global ML Building Footprints, "License": https://github.com/microsoft/GlobalMLBuildingFootprints
 [^ghsl]: European Commission, GHSL Data Package 2023, "Terms of Use" (in each GHS-BUILT-H tile's zip).

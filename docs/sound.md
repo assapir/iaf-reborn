@@ -23,6 +23,8 @@ Godot's resampler for pitch changes, and positional panning of the 3-D sounds. T
   markers and `*.bat`.
 * The exe reads it from `[Sound] SoundFilesPath` (default `.\SoundFiles\`) + `SoundProp.trx`.
 * Row parser: `FUN_004c82f0` (entry = 0xa4 bytes, defaults `FUN_004c8290`).
+* Port (`shared/audio/sound_table.gd`): a clip is a WAV (the install's) or Ogg Vorbis (IAF 2026's, by its
+  extension); a name "x.wav" that is not shipped opens "x.ogg", so the files the code opens by name play in both.
 
 | column | entry | parse |
 |---|---|---|

@@ -2,8 +2,8 @@
 """Modern IAF's sound set (iaf-2026/docs/sound.md): the clips of iaf-2026/data/sounds/, made from openly licensed
 recordings and our own synthesised tones, and that folder's SOURCES.md.
 
-Every clip: 22050 Hz, 16-bit, mono WAV (what the game's sound table plays, docs/sound.md §1), named by its sound
-code. A recording: cut [start, end] s out of the freesound HQ preview (the original files need a login; the preview
+Every clip: 22050 Hz mono Ogg Vorbis, quality 4 (what the sim ships; its sound table opens ogg, docs/sound.md §1),
+named by its sound code. A recording: cut [start, end] s out of the freesound HQ preview (the original files need a login; the preview
 is a 44.1 / 48 kHz Ogg Vorbis), the tail below -50 dB of the peak cut, fades 5 ms in / FADE_OUT s out, or for a loop the last XFADE s cross-faded into the
 start (equal power) so it repeats with no seam; then the voiced RMS (vrms, the samples above 2 % of the peak) set to
 the row's level and a soft limit at -1 dBFS. A tone: computed here (`TONES`), ours (CC0).
@@ -17,6 +17,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import urllib.request
 
 import numpy as np
@@ -264,6 +265,14 @@ def finish(x, level, mode):
     return np.round(x * 32767).astype(np.int16)
 
 
+def ogg(path, y):
+    """The clip as Ogg Vorbis, quality 4 (the format the sim ships, iaf-2026/docs/sound.md §1)."""
+    with tempfile.TemporaryDirectory() as d:
+        wavfile.write(os.path.join(d, "a.wav"), SR, np.round(np.clip(y, -1, 1) * 32767).astype(np.int16))
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", os.path.join(d, "a.wav"), "-c:a", "libvorbis", "-q:a", "4",
+                        path], check=True)
+
+
 def main():
     dl = sys.argv[1]
     rows, cuts = [], {}
@@ -272,18 +281,18 @@ def main():
         x = x[int(a * SR): int((b + (XFADE if loop else 0)) * SR)]
         x = PROCESS.get(name, lambda y: y)(x)
         cuts[name] = x
-        wavfile.write(os.path.join(OUT, name + ".wav"), SR, finish(x, level, "loop" if loop else "once"))
+        ogg(os.path.join(OUT, name + ".ogg"), finish(x, level, "loop" if loop else "once"))
         url = f"https://freesound.org/people/{user}/sounds/{sid}/"
         how = f"{a:g}-{b:g} s ({note}), {'loop, ' if loop else ''}{level} dB vrms"
-        rows.append(f"| `{name}.wav` | [{title}]({url}) | {user} | {lic} | {how} |")
+        rows.append(f"| `{name}.ogg` | [{title}]({url}) | {user} | {lic} | {how} |")
     for name, (src, what, fn, level) in DERIVED.items():
-        wavfile.write(os.path.join(OUT, name + ".wav"), SR, finish(fn(cuts[src]), level, "once"))
+        ogg(os.path.join(OUT, name + ".ogg"), finish(fn(cuts[src]), level, "once"))
         sid, user, title, lic = CLIPS[src][:4]
         url = f"https://freesound.org/people/{user}/sounds/{sid}/"
-        rows.append(f"| `{name}.wav` | [{title}]({url}) | {user} | {lic} | {what} (from `{src}`), {level} dB vrms |")
+        rows.append(f"| `{name}.ogg` | [{title}]({url}) | {user} | {lic} | {what} (from `{src}`), {level} dB vrms |")
     for name, (what, fn, level, loop) in TONES.items():
-        wavfile.write(os.path.join(OUT, name + ".wav"), SR, finish(fn(), level, "as-is" if loop else "once"))
-        rows.append(f"| `{name}.wav` | {what} | Modern IAF (computed by this script) | {CC0} | "
+        ogg(os.path.join(OUT, name + ".ogg"), finish(fn(), level, "as-is" if loop else "once"))
+        rows.append(f"| `{name}.ogg` | {what} | Modern IAF (computed by this script) | {CC0} | "
                     f"{'loop, ' if loop else ''}{'' if level is None else f'{level} dB vrms'} |")
     with open(os.path.join(OUT, "voices.json"), encoding="utf-8") as f:
         v = json.load(f)
@@ -296,12 +305,15 @@ def main():
 VOICES_HEAD = """
 ## Voices
 
-The speech clips (`voc_*`, `twr_*`, `num*`, `rwy*`, `acft_roger`, `endworld`, `kch2`) are Piper text to speech
-through the radio filter, made by `tools/iaf-2026/radio_voice.py --set voices.json`; their texts and voices are in
-[voices.json](voices.json). The Piper models are MIT licensed; each voice's training data is named below. `kch2` (the
-radio click) and `twr_pause` (0.2 s of radio hiss) are computed.
+The speech clips (`voc_*`, `twr_*`, `num*`, `rwy*`, `acft_roger`, `endworld`) are Kokoro text to speech through
+Betty's chain or the radio chain, made by `iaf-sim voices` (`crates/iaf-tools/src/sim_voices.rs`, Kokoro through
+`tools/iaf-2026/kokoro_tts.py`; iaf-2026/docs/sound.md §5); their texts and voices are in [voices.json](voices.json).
+Kokoro-82M v1.0 and its voice packs are Apache-2.0; its training data is public-domain, permissively licensed and
+synthetic speech plus two CC BY sets, Koniwa `tnc` (CC BY 3.0) and SIWIS (CC BY 4.0). `kch2` (the radio click),
+`key_on` / `key_off` (the press-to-talk click and the squelch tail around a call) and `twr_pause` (0.2 s of radio
+hiss) are computed.
 
-| voice | Piper model | licence | speaks |
+| voice | Kokoro voice | licence | speaks |
 |---|---|---|---|
 """
 
@@ -309,7 +321,7 @@ SOURCES_HEAD = """# Modern IAF sound clips: sources
 
 Every clip in this folder, where it comes from, its author and licence, and how it was made. The table is written
 by `tools/iaf-2026/sounds.py`, which also makes the clips (see its header for the processing: the cut, fades or
-loop cross-fade, the level as dB of the voiced RMS, a soft limit at -1 dBFS; 22050 Hz, 16-bit, mono WAV).
+loop cross-fade, the level as dB of the voiced RMS, a soft limit at -1 dBFS; 22050 Hz mono Ogg Vorbis, quality 4).
 The recordings are freesound's HQ previews (Ogg Vorbis, 44.1 / 48 kHz) of each sound; CC0 needs no credit, and we
 name every author anyway. "US Government video, public domain" is the uploader's statement of the recording's origin.
 The rows that use each clip: [soundprop.json](soundprop.json).

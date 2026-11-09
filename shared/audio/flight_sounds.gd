@@ -341,7 +341,7 @@ func _update_engine(stage: int, rpm: float, inside: bool) -> void:
 		engine_code = code
 		_engine.stop()
 		_engine_row = table.row(code)
-		var s: AudioStreamWAV = table.stream(_engine_row)
+		var s: AudioStream = table.stream(_engine_row)
 		_engine.stream = _looped(s) if s != null and _engine_row.cyclic else s
 		if s != null:
 			# SFX_LANDING (engine off) is landing.wav, 86 samples of near-silence; looped that short it
@@ -593,7 +593,7 @@ func play(code: String, sub1 := "None") -> Node:
 	var r: Dictionary = table.row(code, sub1) if table != null else {}
 	if r.is_empty():
 		return null
-	var s: AudioStreamWAV = table.stream(r)
+	var s: AudioStream = table.stream(r)
 	if s == null:
 		return null
 	played.append("%s/%s" % [code, sub1])
@@ -632,7 +632,7 @@ func play_phrase_wav(file: String) -> Node:
 	var name := file.to_lower()
 	if not "." in name:
 		name += ".wav"
-	var s: AudioStreamWAV = table.stream_file(name) if table != null else null
+	var s: AudioStream = table.stream_file(name) if table != null else null
 	if s == null:
 		return null
 	played.append(name)
@@ -693,7 +693,11 @@ func _stop(p: Node) -> void:
 		p.queue_free()
 
 
-func _looped(s: AudioStreamWAV) -> AudioStreamWAV:
+func _looped(s: AudioStream) -> AudioStream:
+	if s is AudioStreamOggVorbis:
+		var o: AudioStreamOggVorbis = s.duplicate()
+		o.loop = true
+		return o
 	var l: AudioStreamWAV = s.duplicate()
 	l.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	l.loop_begin = 0

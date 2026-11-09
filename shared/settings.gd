@@ -1110,6 +1110,12 @@ func core_sound_real() -> bool:
 	return false
 
 
+## A radio call is keyed: key_on.ogg before its clips and key_off.ogg after them (iaf-2026/docs/sound.md §5.2): Modern
+## IAF. The original game plays a phrase's particles alone (radio.gd say, FUN_004c5750).
+func radio_key_clicks() -> bool:
+	return false
+
+
 ## The airbases' runways, taxi lines and paved masks (airbases.gd, the tower's wind turn): the theatre's own
 ## `airbases.json` when it has one (Modern IAF's, `iaf-sim airbases`), else the original's converted one.
 func airbases_file() -> String:

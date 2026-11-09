@@ -58,6 +58,27 @@ func run() -> void:
 	check(keys.records.size() > 0, "key table %s: %d records" % [s.keys_file(), keys.records.size()])
 	var sounds = load("res://shared/audio/sound_table.gd").load_table()
 	check(sounds.rows.size() > 0, "sound table: %d rows" % sounds.rows.size())
+	# Every row's clip and every radio particle's clip opens (Ogg Vorbis, sound_table.gd open()), and the files the
+	# shared code opens by their .wav name fall back to the .ogg.
+	var bad: Array = []
+	for k in sounds.rows:
+		if sounds.stream(sounds.rows[k]) == null:
+			bad.append(sounds.rows[k].file)
+	var parts := FileAccess.get_file_as_string(s.own_dir().path_join("resource/soundfiles/phraseparticalsdata.trx"))
+	var n := 0
+	for line in parts.split("\n"):
+		var c := line.replace("\t", " ").split(" ", false)
+		if c.size() >= 2 and not line.begins_with(";"):
+			n += 1
+			if not sounds.stream_file(c[1]) is AudioStreamOggVorbis:
+				bad.append(c[1])
+	for f in ["cock_g_02.wav", "EndWorld.wav", "KCH2.WAV"]:
+		if sounds.stream_file(f) == null:
+			bad.append(f)
+	check(
+		bad.is_empty() and n > 100,
+		"sound clips: %d rows and %d particles open (failed: %s)" % [sounds.rows.size(), n, bad]
+	)
 	var PA = load("res://shared/aircraft/player_aircraft.gd")
 	var C3 = load("res://shared/cockpit/cockpit3d.gd")
 	var bd: String = s.own_dir().path_join("resource/md/bd.ibx")

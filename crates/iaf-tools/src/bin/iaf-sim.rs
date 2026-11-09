@@ -2,6 +2,7 @@
 //!
 //! `iaf-sim <db|missions|own|fm|airbases|scenery|all> [data-dir (iaf-2026/data)] [assets-dir (assets)]`
 //! `iaf-sim terrain [assets-dir (assets)] [--box E0 N0 E1 N1] [--out <dir>] [--threads N]`
+//! `iaf-sim voices [--only <part of a file name>]` / `iaf-sim voices --say <role> <mode> <text> <out.ogg>`
 //!
 //! - `db`: the units and weapons → `converted/missions/sim.bdb.json`, `converted/objects/objects.json` ("sim.bdb"),
 //!   `converted/own/resource/weaponsmotion/weapons.ibx`;
@@ -19,14 +20,17 @@
 //!   each jet's cockpit display data → `converted/own/cockpits/<jet>/`, the F-16's aircraft descriptor from the repo's
 //!   own model → `converted/own/planes/` (run it from the repo root);
 //! - `terrain`: the theatre (iaf-2026/docs/terrain.md) → `converted/terrain/israel/` (`--out`: another folder),
-//!   over the UTM 36N box `--box` (default `sim_terrain::BOX`).
+//!   over the UTM 36N box `--box` (default `sim_terrain::BOX`);
+//! - `voices`: Kokoro text to speech through Betty's chain or the radio chain (iaf-2026/docs/sound.md §5) →
+//!   the clips in `iaf-2026/data/sounds/`, then the sounds of `own` → `converted/own/resource/soundfiles/`; needs
+//!   ffmpeg and the Python of `tools/iaf-2026/kokoro_tts.py` (`IAF_KOKORO_PYTHON`); run it from the repo root.
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 
 use anyhow::{Context, Result, bail};
 use iaf_tools::progress::Stdout;
-use iaf_tools::{sim, sim_bases, sim_fm0, sim_scenery, sim_terrain};
+use iaf_tools::{sim, sim_bases, sim_fm0, sim_scenery, sim_terrain, sim_voices};
 
 fn terrain(args: &[String], cancel: &AtomicBool) -> Result<()> {
     let mut assets = PathBuf::from("assets");
@@ -63,6 +67,17 @@ fn terrain(args: &[String], cancel: &AtomicBool) -> Result<()> {
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.first().map(String::as_str) == Some("voices") {
+        let (data, repo) = (Path::new("iaf-2026/data"), Path::new("."));
+        return match &args[1..] {
+            [o, role, mode, text, out] if o == "--say" => sim_voices::say(data, repo, role, mode, text, Path::new(out)),
+            [o, only] if o == "--only" => {
+                sim_voices::voices(data, repo, Path::new("assets"), Some(only), &Stdout, &AtomicBool::new(false))
+            }
+            [] => sim_voices::voices(data, repo, Path::new("assets"), None, &Stdout, &AtomicBool::new(false)),
+            _ => bail!("usage: iaf-sim voices [--only <part of a file name>] | --say <role> <mode> <text> <out.ogg>"),
+        };
+    }
     let data = Path::new(args.get(1).map_or("iaf-2026/data", String::as_str));
     let assets = Path::new(args.get(2).map_or("assets", String::as_str));
     let cancel = AtomicBool::new(false);

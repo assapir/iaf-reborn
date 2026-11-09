@@ -174,7 +174,6 @@ const LETTER_HE := {"RWY_L": "שמאלי", "RWY_R": "ימני", "RWY_C": "מרכ
 func expand(template: String, strings: Array = [], ints: Array = []) -> Dictionary:
 	var text := ""
 	var text_he := ""
-	var wavs: Array[String] = []
 	var count := 0
 	var toks: Array = []  # [token, key]
 	for tok in templates.get(template, PackedStringArray()):
@@ -192,6 +191,7 @@ func expand(template: String, strings: Array = [], ints: Array = []) -> Dictiona
 		toks.append([tok, key])
 		if letter != "":
 			toks.append([letter, letter])
+	var keys: Array[String] = []
 	for tk in toks:
 		var tok: String = tk[0]
 		var key: String = tk[1]
@@ -206,11 +206,26 @@ func expand(template: String, strings: Array = [], ints: Array = []) -> Dictiona
 		text += t
 		if not particles_he.is_empty():
 			text_he += ("" if count == 0 or tok == "," else " ") + String(particles_he.get(key.to_upper(), part[1]))
-		wavs.append(String(part[0]))
+		keys.append(key.to_upper())
 		count += 1
-	# The subtitle in the game's language: the voice stays English (IAF 2026's Hebrew subtitles, phraseparticles_he).
+	# The subtitle in the game's language: the voice stays English (Modern IAF's Hebrew subtitles, phraseparticles_he).
 	var shown := text_he if Settings.language == "he" and text_he != "" else text
-	return {"template": template, "text": text, "wavs": wavs, "shown": shown}
+	return {"template": template, "text": text, "wavs": joined_wavs(keys), "shown": shown}
+
+
+## Ours (Modern IAF, iaf-2026/docs/sound.md §3): each key's clip, where the longest run of keys that has a joined
+## particle ("ALPHA_T+,+HOLD_POS", one clip said in one breath) plays that one clip instead. The original's particle
+## files hold no joined key, so its phrases play key by key.
+func joined_wavs(keys: Array[String]) -> Array[String]:
+	var wavs: Array[String] = []
+	var i := 0
+	while i < keys.size():
+		var j := keys.size()
+		while j > i + 1 and not particles.has("+".join(PackedStringArray(keys.slice(i, j)))):
+			j -= 1
+		wavs.append(String(particles["+".join(PackedStringArray(keys.slice(i, j)))][0]))
+		i = j
+	return wavs
 
 
 ## A phrase printed (FUN_0044a060) and spoken (FUN_004c5750); `print_it` false: spoken only.
@@ -221,7 +236,10 @@ func say(template: String, strings: Array = [], ints: Array = [], print_it := tr
 	said.append(p)
 	if print_it and p.text != "" and host != null and host.has_method("_on_subtitle"):
 		host._on_subtitle(p.shown)
-	for w in p.wavs:
+	var clips: Array = p.wavs
+	if Settings.radio_key_clicks() and not clips.is_empty():
+		clips = ["key_on.ogg"] + clips + ["key_off.ogg"]
+	for w in clips:
 		play_wav(w)
 	return p
 

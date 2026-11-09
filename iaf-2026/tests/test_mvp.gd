@@ -364,6 +364,11 @@ func takeoff(id: String) -> void:
 	_hud_light(tv, jet)
 	var a := await _call(tv, 1)
 	check(a == "ACFT_CLEAR_TO_START", "%s take-off: start-up request -> %s" % [jet, a])
+	var pl: Array = tv.sounds.played
+	check(
+		pl.has("key_on.ogg") and pl.rfind("key_on.ogg") < pl.rfind("key_off.ogg"),
+		"%s: the tower's answer is keyed: key_on.ogg, its clips, key_off.ogg (sound.md §5.2)" % jet
+	)
 	_press(tv, KEY_E, true)
 	check(await _until(tv, func(): return tv.flight.state().engine_on, 120.0), "%s: the engine idles" % jet)
 	a = await _call(tv, 2)

@@ -10,6 +10,7 @@
 extends Control
 
 const SoundBuses := preload("res://shared/audio/sound_buses.gd")
+const SoundTable := preload("res://shared/audio/sound_table.gd")
 
 var g := 1.0
 var over_g := false
@@ -59,9 +60,9 @@ func _process(delta: float) -> void:
 
 
 func _play(player: AudioStreamPlayer, file: String) -> void:
-	var path := Settings.own_dir().path_join("resource/soundfiles").path_join(file)
-	if FileAccess.file_exists(path):
-		player.stream = AudioStreamWAV.load_from_file(path)
+	var s: AudioStream = SoundTable.open(Settings.own_dir().path_join("resource/soundfiles").path_join(file))
+	if s != null:
+		player.stream = s
 		player.play()
 
 

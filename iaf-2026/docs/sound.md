@@ -12,24 +12,27 @@ licensed recording, a tone we computed or our TTS. The readers take these files 
 
 | what | authored in | made by | compiled to (under `assets/`) |
 |---|---|---|---|
-| sound effects | `data/sounds/*.wav`, `soundprop.json` | `tools/iaf-2026/sounds.py` | `converted/own/resource/soundfiles/soundprop.trx` + clips |
-| voices, radio phrases | `data/sounds/voices.json` | `tools/iaf-2026/radio_voice.py --set` | the same folder: `phrasetemplates.trx`, `phraseparticalsdata.trx` + clips |
+| sound effects | `data/sounds/*.ogg`, `soundprop.json` | `tools/iaf-2026/sounds.py` | `converted/own/resource/soundfiles/soundprop.trx` + clips |
+| voices, radio phrases | `data/sounds/voices.json` | `iaf-sim voices` (Kokoro, §5) | the same folder: `phrasetemplates.trx`, `phraseparticalsdata.trx` + clips |
 | keys | `data/keys.json` | by hand | `converted/own/keys.json` |
 
 ```sh
-cargo run -p iaf-tools --bin iaf-sim -- own        # or: all
+cargo run --release -p iaf-tools --bin iaf-sim -- own        # or: all
 VENV/bin/python -I tools/iaf-2026/sounds.py DL      # remakes the effects from the downloads in DL
-VENV/bin/python -I tools/iaf-2026/radio_voice.py --set iaf-2026/data/sounds/voices.json VOICES iaf-2026/data/sounds
+IAF_KOKORO_PYTHON=VENV/bin/python cargo run --release -p iaf-tools --bin iaf-sim -- voices   # remakes the voices (§5)
 ```
-The scripts' headers give the setup (a venv with `piper-tts==1.8.0`, numpy and scipy; ffmpeg; the Piper models in
-VOICES). Piper varies from run to run, so a new `--set` run gives slightly different clips.
+`sounds.py`'s header gives its setup (a venv with numpy and scipy; ffmpeg with libvorbis); `tools/iaf-2026/kokoro_tts.py`'s
+header gives Kokoro's (§5.3). A new `voices` run remakes every clip; Kokoro's output may differ slightly between
+machines and versions (inferred).
 
 ## 1. The sound set
 One clip per sound code the shared flight code plays (docs/sound.md §3–§5): 29 CC0 recordings from freesound[^fs], one
-clip made from one of them (the afterburner's light-off, §1.2) and 8 computed tones (with the JFS whine, §1.4). Each clip's source, author, licence
-and cut: [SOURCES.md](../data/sounds/SOURCES.md).
-- **Format:** 22050 Hz, 16-bit, mono WAV, the format `sound_table.gd` plays; named by code
-  (`sfx_weapon_exploded_ost_bomb.wav`). `iaf-sim own` refuses a clip in any other format.
+clip made from one of them (the afterburner's light-off, §1.2) and 8 computed tones (with the JFS whine, §1.4). Each clip's source, author, licence and cut: [SOURCES.md](../data/sounds/SOURCES.md).
+- **Format:** 22050 Hz mono Ogg Vorbis, quality 4 (about 45 kbit/s), named by code
+  (`sfx_weapon_exploded_ost_bomb.ogg`); since 3 November 2026 (item E1c), before that 16-bit WAV. `sound_table.gd`
+  opens a clip by its extension, and a name "x.wav" the code opens by name (`KCH2.WAV`, `EndWorld.wav`,
+  `cock_g_02.wav`) falls back to "x.ogg". `iaf-sim own` refuses a clip in any other format. The scripts write the
+  ogg directly; no WAV is kept in the repository.
 - **Processing** (`sounds.py`): the cut; 5 ms fade in and 50 ms fade out, or for a loop the last 0.25 s cross-faded
   into the start (equal power); the tail below −50 dB of the peak cut; the level set as vrms; a soft limit at −1 dBFS.
   The recordings are freesound's HQ previews (Ogg Vorbis, 44.1 / 48 kHz): the original files need a login.
@@ -41,7 +44,7 @@ and cut: [SOURCES.md](../data/sounds/SOURCES.md).
   in the cockpit, the gear and flaps at 0.75, explosions heard to 3 km.
 - **By name** (`soundprop.json` `by_name`): the files the shared code opens by name, not by code: `cock_g_02.wav`
   (the G strain, `g_effects.gd`), `endworld.wav` (the map edge, `terrain_view.gd`), `kch2.wav` (the radio click,
-  `radio.gd`). `g_effects.gd`'s `cock_bty_over.wav` is left out: the VMS has no Over-G voice, so it stays silent.
+  `radio.gd`), `key_on.ogg` and `key_off.ogg` (the keyed quiet around a radio call, §5.2). `g_effects.gd`'s `cock_bty_over.wav` is left out: the VMS has no Over-G voice, so it stays silent.
 - **Silent on purpose:** a code with no row plays nothing (`flight_sounds.gd play`): Betty's missile, Over-G and
   spin calls (§3).
 - **Not played yet:** `SFX_DOOR_OPEN` (the canopy opening) has a row and a clip but no caller. `SFX_WIND` (§1.6)
@@ -169,9 +172,9 @@ figures are in the review folder (`~/.claude/iaf-2026-pages/sound/core/`, notes.
 | the canopy (§1.7) | silent (no caller); the opening clip was the library's spoken slate | — | the closing plays at the checklist's canopy step; the opening clip is the motor |
 | the touchdown (§1.8) | a bicycle brake's squeal: two tones at 1.6 and 3.3 kHz, 0.55 s | an airplane tyre skid (CC0[^skid]): broadband 0.2–4 kHz, 0.35 s | that skid with a 60 Hz thump under it, 0.45 s |
 | gear and flaps | the gear clip (a flight-sim recording) runs 3.5 s against the sim's 3 s gear travel; the flaps clip is a steady motor whine, its centroid at 3.8 kHz | open: no usable recording | unchanged (open) |
-| the tower's key clicks | not on main: they are on the unmerged branch `wt/iaf-2026-voices` | — | skipped |
+| the tower's key clicks | none: a call's particles played alone | a tower frequency on a scanner[^mco] | the radio's keyed quiet, §5.2 |
 
-**The dry engine.** `flight_sounds.gd` plays `sfx_start_engine.wav` (a parked F-16's idle) below the burner. The
+**The dry engine.** `flight_sounds.gd` plays `sfx_start_engine.ogg` (a parked F-16's idle) below the burner. The
 original's rule pitches it as (RPM + 0.5) × 0.25 + 1 (FUN_004c3e00), so the sim's idle (60 % RPM) played at 1.275
 and military at 1.375. Now: pitch 1 at idle, rising linearly to 1.3 at military; the level 6 dB under the row's at
 idle, rising linearly in dB to the row's at military, so the burner's step over military (§1.2) stays 6 dB. The
@@ -184,7 +187,7 @@ the light-off 5 s later, 20 → 60 % in 15 s, the main generator at 52 %. Before
 crank at pitch 1.13 and full level. Two F-16 start videos[^start][^kf16] show the JFS whine first: a set of
 partials, the strongest at 2126 Hz and 3252 Hz, rising from about half their pitch over 8–15 s, then steady while the
 engine spools. Now:
-- **The JFS:** `sfx_jfs.wav`, computed (`sounds.py` `jfs`): those five partials (and a weak 1063 Hz) at their
+- **The JFS:** `sfx_jfs.ogg`, computed (`sounds.py` `jfs`): those five partials (and a weak 1063 Hz) at their
   measured levels, wandering 0.3 % in speed, on 1/f noise above 300 Hz. It spools from half pitch over 10 s (between
   the references' 8 and 15 s) while the start runs, and winds down over 3 s (the reference's fall takes 3–4 s[^start])
   once the RPM reaches 52 %, the main generator on line[^f16net]: the generators coming on line are heard as the JFS
@@ -211,7 +214,7 @@ and level, and the air brake's loop over it.
 
 ### 1.7 The canopy
 `SFX_DOOR_CLOSE` (craigsmith's USC recording of a jet's canopy closing, its 4 s motor run to the lock) now plays at
-the start-up checklist's canopy step (`sim_flight.gd`). `sfx_door_open.wav` was the recording's first 4 s, the
+the start-up checklist's canopy step (`sim_flight.gd`). `sfx_door_open.ogg` was the recording's first 4 s, the
 library's spoken slate (speech formants every 0.3 s); it is now the motor's second run (21.25–25 s), still with no
 caller. Open: a real F-16 canopy's run time (the references could not separate it from the ground power).
 
@@ -220,34 +223,39 @@ caller. Open: a real F-16 canopy's run time (the references could not separate i
 squeal: two steady tones at 1.6 and 3.3 kHz for 0.55 s. Now it is craigsmith's USC airplane tyre skid[^skid]
 (0.15–0.6 s): broadband 0.2–4 kHz, 0.35 s, with a 60 Hz thump falling over 0.12 s under it, the struts (inferred).
 
-## 2. The radio filter
-`tools/iaf-2026/radio_voice.py` turns Piper's speech into a cockpit voice, on 22050 Hz mono:
-1. pre-emphasis (x[n] − 0.9 x[n−1]), a headset microphone's presence lift;
-2. band-pass 300–3000 Hz (4th-order Butterworth, zero phase), the voice band of a radio;
-3. slight distortion: half the signal through tanh(2.5 x);
-4. level: vrms to −17.9 dB (0.127, the level of `shared/extra/tower_numbers`, which match the original speech), then a
-   soft limit at −2 dBFS;
-5. hiss: band-passed noise at −42 dB;
-6. squelch: a 2 ms key-up click and 40 ms of noise before the voice; a 120 ms noise tail and a click after it.
-
-| mode | steps | used for |
-|---|---|---|
-| `radio` | 1–6 | a whole transmission in one clip (friendly-fire calls, eject, map edge) |
-| `particle` | 1–5, trimmed tight | the tower's phrase parts, which `radio.gd` plays back to back |
-| `intercom` | 1–4 | Betty (the intercom has no squelch) |
-
-`kch2.wav` is the squelch alone and `twr_pause.wav` (the `,` particle) 0.2 s of hiss. All noise and clicks are
-computed and seeded. Each voice clip is the median-length of five Piper runs, which drops a run with a stray sound
-after the words; a particle is also cut at its first pause over 0.3 s. `--ipa` speaks IPA as written (§5).
+## 2. Earlier voice chains (2–8 November 2026, replaced)
+E1b (2 November) and E1c (3–8 November) made the voices with Piper text to speech and its `radio_voice.py`
+(removed on 9 November; in the history). The user's verdict of 3 November on them: Betty was not intense like the real
+one, the speech did not flow between words, the voices sounded British, and the clips were WAV. What was tried, the
+result, and why it was dropped:
+- E1b: Piper `en_US-kristin-medium` for Betty, "Pull up. Pull up." in one pass: 160–180 Hz, the pause between the
+  repeats left to Piper (0.15 s). Kristin stays at 160–200 Hz however far it is shifted.
+- E1c: Piper `en_US-ljspeech-high`, +3 semitones (rubberband), a presence and a nasal peak, 8:1 compression, each word
+  said twice 0.4 s apart; 253 Hz, −16 LUFS. Dropped for Kokoro (§5): a less synthetic voice, and its pace and
+  pause measured against the real calls (§5.1) are shorter.
+- E1c: Piper's en_US male voices `john` and `norman` for the tower and the pilot (`joe`, `mike`, `bryce`, `ryan`,
+  `hfc_male` and `libritts_r` dropped for their licence lineage). What sounded British in them is the LibriVox
+  readers' book narration, which Piper copies (inferred).
+- E1c: the tower's calls as whole sentences, heads and runways cut at the pause of a ";" found by its loudness (a
+  third of the runways cut wrong when the last pause was used: a stop's closure in "six" is a pause too). Kokoro gives
+  each word's time, so §5.2 cuts there.
 
 ## 3. The voices
-Three Piper voices[^piper], all trained on LibriVox recordings (public domain); the Piper models are MIT:
+Four Kokoro voices[^kokoro], all American English (Kokoro's `a` language); §5 gives the model, the chains and the
+licence:
 
-| role | Piper voice | speaks |
+| role | Kokoro voice, speed | speaks |
 |---|---|---|
-| Betty | `en_US-kristin-medium` | the VMS calls |
-| tower | `en_US-john-medium` | the tower's particles, the friendly-fire call, the map edge |
-| pilot | `en_US-norman-medium` | "Roger", eject, the friendly-fire calls of the target and the wingman |
+| Betty | `af_heart`, 1.3, +3 semitones | the VMS calls |
+| tower | `am_michael`, 1.1 | the tower's phrases, the friendly-fire call, the map edge |
+| pilot | `am_puck`, 1.1 | "Roger", eject, the friendly-fire calls of the target and the wingman |
+| AWACS | `am_fenrir`, 1.1 | nothing yet: `radio.gd`'s AWACS templates have no particles (§7) |
+
+**Choice** (9 November 2026; the user on 3 November: "less British", American or neutral voices). Kokoro's
+American voices graded best by its own VOICES.md[^kokoro]: `af_heart` (A) and `af_bella` (A−) among the women,
+`am_michael`, `am_puck` and `am_fenrir` (C+, the best men's grade) among the men. For Betty eleven female voices said
+"Pull up! Pull up!"; `af_heart` and `af_sarah` had the highest pitch (232 and 226 Hz), `af_heart` the higher grade.
+The tower and the pilot are two different men so a call and its answer are told apart; the AWACS a third.
 
 **Betty** follows the F-16 VMS, as [real-betty.md](../../docs/real-betty.md) §5 proposes for all three jets (the
 Sufa and the Barak are F-16s; the F-35I's set is open, so it takes the same):
@@ -260,7 +268,8 @@ Sufa and the Barak are F-16s; the F-35I's set is open, so it takes the same):
 | `BTY_MISS`, `BTY_OVER_G`, `BTY_SPIN` | nothing (no row) | not in the VMS list; the launch has the RWR tone |
 | `BTY_LOCK`, `BTY_CHAFF_FLARE`, `BTY_LOW`, `BTY_OUT`, `BTY_COUNTER`, `BTY_JAMMER`, `BTY_DATA`, `BTY_IFF` | the word | VMS; our sub codes, no caller yet |
 
-Saying each warning twice is inferred. Betty is level with the original's Betty (vrms −18.3 dB against about −17).
+Each warning is said twice, as in both reference recordings (§5.1). Betty is about 4 dB louder than the other speech
+(§8; the original's Betty is about −17 dB vrms).
 
 **The tower** speaks through the original's phrase engine (docs/radio.md §1): `iaf-sim own` writes
 `phrasetemplates.trx` and `phraseparticalsdata.trx` from `voices.json` (`templates`, `particles`), with our own
@@ -271,6 +280,29 @@ the radio menu's start-up request (item E3b, [training.md](training.md) §8: the
 `ACFT_CLEAR_TO_START`, `ACFT_TAXI_TO_RUNWAY`, `ACFT_CLEAR_TO_LINEUP` / `_NW`, `ACFT_HOLD_POS`, `ACFT_CLEAR_TO_TAKEOFF`). Example: `ACFT_TAXI_TO_RUNWAY` = `%S1 , %S2 , TAXI_RWY %D1` → "Alpha, good morning, taxi
 to runway 25 right". The particles cover the callsigns Alpha–Delta, the greetings, the winds 10 / 15 / 20 kt, every
 runway number 1–36 (spoken digit by digit, "two five") and the letters `RWY_L` / `RWY_R` / `RWY_C`.
+
+**Fluent phrases** (3 November 2026, item E1c; the user: the TTS is "not fluent between words"). E1b played a call
+as five to seven separate clips ("Alpha" "," "good morning" "," "taxi to runway" "two five" "right"), each said on
+its own. Since E1c a run of particles can be one clip, said in one breath: a joined particle, its key the parts'
+keys joined by "+" (`ALPHA_T+,+MORNING+,+TAXI_RWY`). `radio.gd` `joined_wavs()` plays the longest run of a call's
+keys that has a joined clip (docs/radio.md §5); the original game's particle files have none. Every combination as
+one clip would be 4 callsigns × 24 spoken runways (the 22 real ends of the four bases plus Ramon's 24 and Ramat
+David's 26, which RunwayNumber / 10 gives) × 12 runway calls (taxi × 3 greetings, line up and land × calm and 3 winds,
+proceed) + 24 calls without a runway = 1176 clips (about 150 MB as WAV). The set holds 108 joined or re-said clips
+instead (2.3 MB for every sim clip as ogg):
+
+| clips | count | said as |
+|---|---|---|
+| whole calls the training missions make | 12 | "Alpha, good morning, taxi to runway two five right." and "Alpha, line up runway two five right, wind calm." for the runway each mission's tower says (24, 25, 25R, 26, 26L, 27) |
+| calls without a runway | 24 | "Alpha, hold position.": 4 callsigns × start, hold, take-off, go around, taxi to parking, gear |
+| the head of a runway call | 24 | "Alpha, good morning, taxi to runway": 4 callsigns × taxi × 3 greetings, line up, proceed, land |
+| a runway | 48 | "two five" / "two six left": numbers 1–36 and the 12 lettered ends |
+
+A head is cut from the sentence "Alpha, good morning, taxi to runway; two seven." before the number, so it ends with
+the voice still rising; a runway from "Taxi to runway; two six left." after the ";". The cut is at Kokoro's own word
+timing (`kokoro_tts.py` reports the end of the word before the ";" and the start of the word after it; `sim_voices.rs`
+`cut()` keeps 30 ms past each). Any other call (a wind, another runway) plays a head, a runway and the wind's
+particles: two joins in place of six. In the sim every call is framed by `key_on.ogg` and `key_off.ogg` (§5.2).
 
 ## 4. Keys
 `data/keys.json` holds 126 commands: the 117 of docs/controls.md §3, our own Start engine (Ctrl+E, command 200, a
@@ -288,17 +320,94 @@ the shape of `iaf-convert keys`' output (records with `dik` / `modifiers` / `lab
 Records 108–114 (the original's cheats) are labelled by what they do (docs/controls.md §4), and records 92 / 93 by
 their press command (the doc's names for them look swapped).
 
-## 5. Hebrew: waiting for a decision
+## 5. The voices: Kokoro, Betty's chain and the radio chain
+9 November 2026 (item A5). `iaf-sim voices` (`crates/iaf-tools/src/sim_voices.rs`) makes every speech clip:
+1. Kokoro-82M v1.0[^kokoro] says each `voices.json` line in one pass (`tools/iaf-2026/kokoro_tts.py`, the only
+   Python step: Kokoro is a PyTorch model), in the role's voice and speed, as 24 kHz float;
+2. Rust trims it and runs Betty's chain (§5.1) or the radio chain (§5.2);
+3. ffmpeg writes it as 22050 Hz mono Ogg Vorbis, quality 4, into `iaf-2026/data/sounds/`, which ships the clips;
+4. `sim::own_sounds` compiles the sound folder into `assets/converted/own/resource/soundfiles/`, as `iaf-sim own`
+   (the wizard's "sounds, voices and keys" step) does.
+The set is 151 clips plus four computed ones (`kch2`, `key_on`, `key_off`, `twr_pause`); a full run takes about
+3 minutes on 4 CPU cores. `iaf-sim voices --only <name part>` remakes some clips; `iaf-sim voices --say <role>
+<mode> <text> <out.ogg>` makes one line (the approval samples).
+
+### 5.1 Betty
+The user on 3 November: Betty must be intense, like the real one. The F-16's voice is Erica Lane's[^wiki]. The real calls are a clipped, firm female voice,
+each warning said twice with a short gap. Two public recordings were measured (used for comparison only, never
+shipped; F0 by autocorrelation of the voiced 30 ms frames, words and gaps from 10 ms frames over 10 % of the
+loudest):
+- Boeing's 2016 video on the F/A-18's voice, Leslie Shook[^boeing]: "Pull up, pull up", "Roll right", "Bingo".
+- An upload of the F-16's VMS calls[^vms] (its source is not stated; "Altitude", "Pull up", "Warning", "Bingo").
+
+| call | measure | F/A-18 (Boeing) | F-16 VMS upload | ours |
+|---|---|---|---|---|
+| Pull up | one word / gap between the two | about 0.45 s / 0.10–0.17 s | 0.36–0.46 s / 0.08 s | 0.45 s / 0.22 s |
+| Pull up | F0 median | 350 Hz | 269 Hz | 269 Hz |
+| Altitude | one word | – | about 0.5 s | 0.53 s |
+| Warning, Bingo | F0 median | 262 Hz (Bingo) | 235, 223 Hz | 251, 256 Hz |
+| all | crest factor (peak over RMS) | 12–14 dB | 10–12 dB | 8–10 dB |
+
+Both recordings sit within about 230–1800 Hz (5–95 % of the energy; they are video soundtracks, so their band
+says little about the cockpit's). Our band is 250–4000 Hz, which keeps the words clear in engine noise (inferred).
+The chain (`BETTY`): Kokoro `af_heart` at speed 1.3 says the word once ("Pull up!"); ffmpeg rubberband raises it
+3 semitones with the formants kept; high-pass 250 Hz and low-pass 4 kHz (4th-order Butterworth); a presence peak
++5 dB at 2.5 kHz; an 8:1 compressor above −26 dB (2 ms attack, 60 ms release); the voiced RMS to −13 dB with a soft
+limit at −2 dBFS; the low-pass again on the limiter's harmonics; the word twice, 0.2 s apart. Kokoro's raw voice
+is 220–230 Hz, under both references, hence the 3 semitones. The 0.2 s gap lies between the F-16 upload's
+0.08 s ("Pull up") and 0.23–0.27 s ("Bingo"); the user's ear decides (§7). Before (E1c, §2) and after, "Pull up" twice, 0–6 kHz:
+
+![E1c's Piper Betty above and Kokoro's below, "Pull up" twice: the Kokoro calls are shorter, 0.2 s apart instead of 0.4 s, with stronger harmonics up to 4 kHz](img/betty_spectrogram.png)
+
+### 5.2 The radio chain
+The tower, the pilot and the AWACS (`RADIO`): pre-emphasis (x[n] − 0.9 x[n−1], a headset microphone's lift);
+light drive (30 % through tanh(2.5 x)); band-pass 300–3000 Hz (4th-order Butterworth each side); a 4:1 compressor
+above −24 dB (5 ms attack, 80 ms release); the voiced RMS to −17.9 dB (the level of `shared/extra/tower_numbers`,
+which match the original speech) with a soft limit at −2 dBFS; the band-pass again on the limiter's harmonics (8th
+order in all); band-passed hiss at −42 dB under the whole clip.
+
+A transmission plays like a receiver's squelch (9 November 2026; the user: "missing a bit of a quiet before / after
+like a real radio"). Measured on a scanner recording of Orlando's tower frequency[^mco] (minutes 5–10, 77 openings,
+70 with a voice; the squelch open where the voice band rises from the closed level, about 12 dB, to the carrier's,
+about 41 dB; a word is 30 ms or more 12 dB over the carrier, so the 10–20 ms key click is not a word):
+
+| | median | quartiles | 10–90 % |
+|---|---|---|---|
+| squelch open → voice | 60 ms | 10–120 ms | 10–150 ms |
+| voice → squelch closed | 150 ms | 95–230 ms | 70–300 ms |
+
+The keys (`KEY` in `sim_voices.rs`), each a computed, seeded clip:
+- `key_on.ogg`: 0.1 s of quiet, the press-to-talk click (2 ms of noise under a Hann window), 0.15 s of carrier hiss
+  at the clip's hiss level (the upper quartile's lead: a scanner's recording loses some of it, inferred);
+- `key_off.ogg`: 0.15 s of carrier hiss (the median tail), an 80 ms squelch burst falling away, the click, 0.2 s of
+  quiet.
+
+A `radio` clip (eject, the friendly-fire calls, the map edge) carries both. A tower call is several clips back to
+back, so they carry only the hiss and `radio.gd` `say()` plays `key_on.ogg` before them and `key_off.ogg` after them
+when `Settings.radio_key_clicks()` is true: in the sim; the original game plays its particles alone. `kch2.ogg` (the
+click when no tower answers) is the key-off; `twr_pause.ogg` (the "," particle) 0.2 s of hiss. All noise is
+computed and seeded.
+
+### 5.3 Setup and licences
+Kokoro runs only where the clips are made, never at the player's setup: the clips ship in the repository.
+- **Setup** (once, outside the repo): `python3 -m venv --system-site-packages VENV`, then `VENV/bin/pip install
+  "kokoro>=0.9.4" scipy num2words spacy phonemizer-fork espeakng-loader`, the system packages `espeak-ng` and ffmpeg
+  with libvorbis and rubberband. The model and voice packs download from Hugging Face into its cache on the first run
+  (about 330 MB); spaCy downloads `en_core_web_sm`.
+- **Licences**, checked on the model card and repository[^kokoro] on 9 November 2026: the model is Apache-2.0; the
+  voice packs (`voices/*.pt`) are files of the same repository, which declares Apache-2.0 and gives them no other
+  licence; the training data is public-domain, permissively licensed (Apache, MIT) and synthetic speech, plus two
+  CC BY sets the card names: Koniwa `tnc` (CC BY 3.0) and SIWIS (CC BY 4.0). The `kokoro` and `misaki` Python packages
+  are Apache-2.0; espeak-ng (GPL-3.0) runs only while the clips are made and is not shipped. The credit lines: §6.
+
+### 5.4 Hebrew: English only for now
 Piper's only Hebrew voice is `he_IL-saspeech-medium`. It is trained on SASPEECH[^saspeech], whose licence is custom
 and non-commercial: the recordings belong to the Israeli Public Broadcasting Corporation (Kan), the speaker is the
 journalist Shaul Amsterdamski, and broadcast use and anything that suggests Kan's endorsement are not allowed. That
-is not an open licence like the rest of the sim's data. The choice is the user's (2026-11-02, pending):
-1. ship SASPEECH clips under its non-commercial terms;
-2. English only for now;
-3. record Hebrew ourselves.
-
-Until then no Hebrew clip is rendered or committed. `voices.json` `he` holds the Hebrew lines' texts and IPA ready to
-render (`radio_voice.py --ipa`). Tested 2026-11-02: Piper's Hebrew phonemizer (Nakdimon diacritics, then rule-based
+is not an open licence like the rest of the sim's data. The options were: ship SASPEECH clips under its
+non-commercial terms, English only for now, or record Hebrew ourselves; the user chose English only for now
+(2026-11-03, plan.md). No Hebrew clip is rendered or committed. `voices.json` `he` holds the Hebrew lines' texts and IPA ready to
+render with a Hebrew voice. Kokoro has no Hebrew voice. Tested 2026-11-02: Piper's Hebrew phonemizer (Nakdimon diacritics, then rule-based
 IPA) puts the stress on the last syllable of almost every word ("mˈigdal" for migdˈal, "ʁuχˈa" for ʁˈuaχ), with or
 without diacritics in the text; hand-written IPA fixes it, so every Hebrew line carries its IPA. A sample tower call
 was made with it for the user's approval (not in the repo).
@@ -314,17 +423,20 @@ The setup wizard (item A3) and the credits roll live outside this branch's folde
 - **Sound effects** (freesound.org, CC0): ikbenraar, pillwave, 77Pacer, nuckan, qubodup, Seidhepriest,
   Jetrod, craigsmith (the USC Gold / Red / Sunset Editorial libraries), LilMati, Rudmer_Rotteveel, pushkin, xkeril,
   elliott.klein, DeqstersLab, SoundDesignForYou, tranzfusion.
-- **Voices:** Piper text to speech (MIT), the voices kristin, john and norman (LibriVox recordings, public domain).
+- **Voices:** Kokoro-82M v1.0 by hexgrad (Apache-2.0), the voices af_heart, am_michael, am_puck and am_fenrir;
+  trained on public-domain, permissively licensed and synthetic speech and on Koniwa tnc (CC BY 3.0) and SIWIS
+  (CC BY 4.0).
 - **Hebrew voice:** only if option 1 of §5 is chosen: SASPEECH, © Kan, the Israeli Public Broadcasting Corporation,
   non-commercial licence.
 
 ## 7. Open
-- A human listening pass at game volume (§1.1).
-- The Hebrew voice (§5).
+- A human listening pass at game volume (§1.1), and the user's verdict on the Kokoro voices and Betty's pace, pitch
+  and gap (§5.1; the clips on the approval page, item A5).
+- Loops as Ogg Vorbis: a looped ogg may click at its seam where the WAV did not (listen to the engine, the gun and the
+  air-brake wind).
+- The Hebrew voice (§5.4).
 - The AWACS, wingman-command, waypoint and flight-report phrases (`radio.gd`'s other templates have no particles yet,
-  so they are silent).
-- The squelch at run time: a tower phrase is a chain of particles without squelch; the radio menu (item E3b,
-  [training.md](training.md) §8) plays the phrase as it is.
+  so they are silent); the AWACS voice and chain are ready (§3, §5.2).
 - The pilot's requests (start-up, taxi, take-off) are printed only: no pilot phrase for them yet.
 - The core sounds (§1.3–§1.8): the cockpit's idle-to-military step, the wind's real spectrum, the gun's spin-up, a
   real canopy's run time, the gear and flaps clips against a real F-16, the F-35I's own IPP.
@@ -333,14 +445,27 @@ The setup wizard (item A3) and the credits roll live outside this branch's folde
   FlightGear's F-16 sounds, and the F-35I's F135, which shares the F-16's burner.
 
 ## 8. Checks
-- `cargo test -p iaf-tools --lib sim::`: every row's clip and every particle's clip exists and is a 22050 Hz 16-bit
-  mono WAV; every code the shared code plays has a row and every file it opens by name exists; the templates `radio.gd`
+- `cargo test -p iaf-tools --lib sim::`: every row's clip and every particle's clip exists and is a 22050 Hz mono
+  Ogg Vorbis file; every joined particle names particles, and the training missions' calls have their joined clips;
+  every code the shared code plays has a row and every file it opens by name exists; the templates `radio.gd`
   calls exist and name only particles; a stale file is removed; the key table has 120 records, labels where shown, no
   key bound twice, and only keys the reader can press.
-- Godot's `AudioStreamWAV.load_from_file` loaded every clip of the compiled tables (2026-11-02).
+- `iaf-2026/tests/test_m0_boot.gd`: every row's clip and every particle's clip of the compiled tables opens in Godot
+  as Ogg Vorbis, and `KCH2.WAV`, `EndWorld.wav`, `cock_g_02.wav` open their ogg (2026-11-03).
+- `cargo test -p iaf-tools --lib sim_voices`: the band-pass passes 1 kHz and cuts 100 Hz and 6 kHz by over 20 dB;
+  the compressor's ratio; Betty's level, peak and repeat; a radio clip is a phrase plus both keys; the keys' quiet, lead and tail.
+- Measured with ffmpeg's EBU R128 (a clip padded with 0.5 s of silence), 9 November 2026; no clip reaches full scale:
+
+| clips | count | integrated loudness | true peak |
+|---|---|---|---|
+| Betty | 13 | −16.7 … −14.3 LUFS | ≤ −2.8 dBTP |
+| whole calls and joined runs (phrase) | 36 | −19.6 … −18.6 LUFS | ≤ −1.7 dBTP |
+| heads of runway calls | 24 | −19.5 … −18.6 LUFS | ≤ −2.4 dBTP |
+| runways | 48 | −20.9 … −17.3 LUFS | ≤ −2.2 dBTP |
+| particles | 25 | −21.0 … −18.0 LUFS | ≤ −2.6 dBTP |
+| radio (eject, friendly fire, map edge) | 5 | −20.3 … −18.6 LUFS | ≤ −1.8 dBTP |
 
 [^fs]: Freesound, each sound's page linked in SOURCES.md; CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/
-[^piper]: Piper voices (rhasspy/piper-voices), each voice's MODEL_CARD names its dataset: https://huggingface.co/rhasspy/piper-voices
 [^hush]: "F-16 Engine run with afterburner in hush house", YouTube (reference only): https://www.youtube.com/watch?v=IYQT__FP5_w
 [^osh]: "F-16 Fighting Falcon Afterburner Takeoff at Oshkosh 2021", YouTube (reference only): https://www.youtube.com/watch?v=itiPxCPupiA
 [^rr1]: Rudmer_Rotteveel, "2 Royal Dutch Airforce F-16 Fighting Falcons flyby", freesound, CC0 1.0: https://freesound.org/people/Rudmer_Rotteveel/sounds/343746/
@@ -351,4 +476,10 @@ The setup wizard (item A3) and the credits roll live outside this branch's folde
 [^gun1]: "F-16 Fighting Falcon Firing 20 mm M61A1 six-barrel Gatling gun", YouTube (reference only): https://www.youtube.com/watch?v=kcBfNBZ1i-4
 [^gun2]: "F-16 Firing M61A1 Vulcan cannon", YouTube (reference only): https://www.youtube.com/watch?v=armF8r9fW9k
 [^skid]: craigsmith, "R02-24-Airplane Tire Skid.wav", freesound, CC0 1.0: https://freesound.org/people/craigsmith/sounds/479498/
+[^wiki]: Wikipedia, "Voice warning system" (Erica Lane, the F-16's voice; Edworthy et al. on pitch and urgency):
+    https://en.wikipedia.org/wiki/Voice_warning_system
+[^kokoro]: Kokoro-82M, model card (licence, training data, the CC BY sets) and VOICES.md (the voices' grades): https://huggingface.co/hexgrad/Kokoro-82M
+[^boeing]: Boeing, "“Bitchin’ Betty” Says Farewell: Beloved Voice Behind Boeing’s F/A-18 Super Hornet Retires", YouTube, 7 March 2016 (reference only): https://www.youtube.com/watch?v=yx7-yvXf6f8
+[^mco]: The Radio Bunker, "Orlando International Airport Air Traffic Control (ATC) Recording 9/4/23", YouTube, 4 September 2023, an unedited scanner recording (reference only): https://www.youtube.com/watch?v=fN27WatToP8
+[^vms]: Recep Yünce, "F-16 Voice Warning System & Alarms", YouTube, 18 June 2021 (reference only; the source of the recording is not stated): https://www.youtube.com/watch?v=LtyxrdLwVsU
 [^saspeech]: OpenSLR, "SASPEECH" (SLR134), licence summary: https://www.openslr.org/134/

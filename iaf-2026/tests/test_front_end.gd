@@ -471,6 +471,11 @@ func prefs(fe: Control) -> void:
 		check(rows.get(k) == "graphics", "prefs: Graphics has %s" % k)
 	for k in ["engine_volume", "sfx_volume", "speech_volume", "mute"]:
 		check(rows.get(k) == "sound", "prefs: Sound has %s" % k)
+	# The sim's clips are Ogg: each slider's sample plays (an AudioStreamWAV-typed slot raised a SCRIPT ERROR).
+	for k in ["engine_volume", "sfx_volume", "speech_volume"]:
+		fe.play_sample(k)
+		check(fe._sample.stream is AudioStreamOggVorbis, "prefs: the %s sample plays its Ogg clip" % k)
+	fe._sample.stop()
 	for k in ["flight_controls", "rudder", "throttle", "stick_response"]:
 		check(rows.get(k) == "devices", "prefs: Devices has %s" % k)
 	check(rows.get("language") == "language", "prefs: Language has the language")

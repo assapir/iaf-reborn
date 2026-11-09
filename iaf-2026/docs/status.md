@@ -169,6 +169,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **[E1a](plan.md#e1-cockpit-data-sounds-and-voices), the HUD and display font (2026-11-08):** Hershey's Roman Simplex stroke font
   on the HUD, the MFDs, the small screens and the F-35I's panoramic display ([cockpit.md](cockpit.md) §5); each jet's
   cockpit by day and at night in [cockpit.md](cockpit.md) §6.
+- **The voices (item A5, 2026-11-09, branch wt/iaf-2026-voices, waiting for the user's ear):** every speech clip is
+  Kokoro text to speech in American voices, made by `iaf-sim voices` as Ogg: Betty measured against two real
+  recordings (pace, pitch, repeat), the tower's calls in one breath, the radio chain with key clicks around each
+  call ([sound.md](sound.md) §5).
 - The setup wizard's headings use Heebo's weights since 2026-11-08 (the font axis is set by its tag number; a "wght"
   string key had left every weight at the regular).
 

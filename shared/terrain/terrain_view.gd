@@ -31,6 +31,7 @@ var looking := false
 ## The original key table with the player's rebinds (docs/controls.md) and its held records
 ## (press command 2 roll / 3 pitch / 10 rudder), polled every frame.
 const KeyTable := preload("res://shared/controls/key_table.gd")
+const SoundTable := preload("res://shared/audio/sound_table.gd")
 var keys: RefCounted = KeyTable.load_table()
 var _held_records: Array = []
 ## Joystick buttons down (the poller's held list, FUN_004e0a60 releases them): button → true.
@@ -1671,10 +1672,7 @@ func mission_play_wav(wav: String) -> void:
 	var name := wav.to_lower()
 	if not "." in name:
 		name += ".wav"
-	var path := Settings.own_dir().path_join("resource/soundfiles").path_join(name)
-	if not FileAccess.file_exists(path):
-		return
-	var stream := AudioStreamWAV.load_from_file(path)
+	var stream: AudioStream = SoundTable.open(Settings.own_dir().path_join("resource/soundfiles").path_join(name))
 	if stream != null:
 		_voice.stream = stream
 		_voice.play()

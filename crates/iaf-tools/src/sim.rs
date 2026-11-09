@@ -774,30 +774,24 @@ pub fn missions(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
 
 // --- own: sounds and keys -------------------------------------------------------------------------------------------
 
-/// The sound format the game's table plays (`AudioStreamWAV.load_from_file`): PCM WAV, 16-bit, mono, 22050 Hz.
-const SOUND_RATE: u32 = 22050;
+/// The sound format the sim ships (`sound_table.gd` opens it with `AudioStreamOggVorbis.load_from_file`): Ogg Vorbis,
+/// mono, 22050 Hz.
+pub const SOUND_RATE: u32 = 22050;
 
-/// The length in seconds of a PCM 16-bit mono WAV at SOUND_RATE, or why it is not one.
-pub fn wav_seconds(bytes: &[u8]) -> Result<f64> {
-    ensure!(bytes.len() >= 12 && &bytes[..4] == b"RIFF" && &bytes[8..12] == b"WAVE", "not a RIFF WAVE file");
-    let (mut fmt, mut data, mut at) = (None, None, 12);
-    while at + 8 <= bytes.len() {
-        let len = u32::from_le_bytes(bytes[at + 4..at + 8].try_into()?) as usize;
-        let body = bytes.get(at + 8..at + 8 + len).context("a chunk runs past the end")?;
-        match &bytes[at..at + 4] {
-            b"fmt " => fmt = Some(body),
-            b"data" => data = Some(body),
-            _ => {}
-        }
-        at += 8 + len + (len & 1);
-    }
-    let fmt = fmt.filter(|f| f.len() >= 16).context("no fmt chunk")?;
-    let u16_at = |i: usize| u16::from_le_bytes([fmt[i], fmt[i + 1]]);
-    let rate = u32::from_le_bytes(fmt[4..8].try_into()?);
-    ensure!(u16_at(0) == 1 && u16_at(2) == 1 && u16_at(14) == 16, "not PCM 16-bit mono");
+/// The length in seconds of an Ogg Vorbis mono clip at SOUND_RATE, or why it is not one: the first page's packet is
+/// the Vorbis identification header (type 1, "vorbis", version, channels, rate), the last page's granule position
+/// the sample count.
+pub fn ogg_seconds(bytes: &[u8]) -> Result<f64> {
+    ensure!(bytes.len() >= 58 && &bytes[..4] == b"OggS", "not an Ogg file");
+    let id = &bytes[28 + usize::from(bytes[26]) - 1..];
+    ensure!(id.len() >= 16 && &id[..7] == b"\x01vorbis", "not Ogg Vorbis");
+    let rate = u32::from_le_bytes(id[12..16].try_into()?);
+    ensure!(id[11] == 1, "{} channels, not mono", id[11]);
     ensure!(rate == SOUND_RATE, "{rate} Hz, not {SOUND_RATE}");
-    let data = data.filter(|d| !d.is_empty()).context("no samples")?;
-    Ok(data.len() as f64 / 2.0 / f64::from(rate))
+    let last = bytes.windows(4).rposition(|w| w == b"OggS").context("no page")?;
+    let granule = u64::from_le_bytes(bytes.get(last + 6..last + 14).context("a short last page")?.try_into()?);
+    ensure!(granule > 0, "no samples");
+    Ok(granule as f64 / f64::from(rate))
 }
 
 /// The readable sound table (`sounds/soundprop.json`) as SoundProp.trx's tab-separated rows (docs/sound.md §1:
@@ -1037,6 +1031,10 @@ pub fn compile_radio(voices: &Value) -> Result<Radio> {
         templates += &format!("{name}\t{t}\n");
     }
     for (key, p) in parts {
+        // A joined key ("ALPHA_T+,+HOLD_POS": one clip for that run of particles, radio.gd joined_wavs).
+        if let Some(k) = key.split('+').find(|k| key.contains('+') && !parts.contains_key(*k)) {
+            bail!("voices: joined particle {key} names no particle \"{k}\"");
+        }
         let file = p["file"].as_str().with_context(|| format!("voices: particle {key} has no file"))?;
         let text = p["text"].as_str().with_context(|| format!("voices: particle {key} has no text"))?;
         let he = p["text_he"].as_str().with_context(|| format!("voices: particle {key} has no text_he"))?;
@@ -1052,11 +1050,33 @@ pub fn compile_radio(voices: &Value) -> Result<Radio> {
 /// folder is removed (`sound_table.gd` lists the whole folder). `<data>/keys.json` → `<assets>/KEYS_FILE` and, with its laptop column, `KEYS_LAPTOP_FILE`. Every
 /// `<data>/planes/<jet>/cockpit/` → `<assets>/sim_cockpit::COCKPITS_DIR/<jet>/` (sim_cockpit.rs).
 pub fn own(data: &Path, repo: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
+    let (rows, clips) = own_sounds(data, assets, cancel)?;
+    let src = read_json(&data.join("keys.json"))?;
+    let keys = compile_keys(&src, false)?;
+    write(&assets.join(KEYS_FILE), &serde_json::to_string(&keys)?)?;
+    write(&assets.join(KEYS_LAPTOP_FILE), &serde_json::to_string(&compile_keys(&src, true)?)?)?;
+    planes(repo, assets)?;
+    gun_art(assets)?;
+    crate::sim_cockpit::cockpits(data, assets, pr, cancel)?;
+    log!(
+        pr,
+        "own: {rows} sound rows, {clips} clips -> {}; keys -> {}",
+        assets.join(SOUNDS_DIR).display(),
+        assets.join(KEYS_FILE).display()
+    );
+    Ok(())
+}
+
+fn read_json(p: &Path) -> Result<Value> {
+    serde_json::from_str(&std::fs::read_to_string(p).with_context(|| p.display().to_string())?)
+        .with_context(|| p.display().to_string())
+}
+
+/// `own`'s sounds alone (also `iaf-sim voices`'s last step): `<data>/sounds` → `<assets>/SOUNDS_DIR`; returns the
+/// sound rows and the clips copied.
+pub fn own_sounds(data: &Path, assets: &Path, cancel: &AtomicBool) -> Result<(usize, usize)> {
     check(cancel)?;
-    let read = |p: &Path| -> Result<Value> {
-        serde_json::from_str(&std::fs::read_to_string(p).with_context(|| p.display().to_string())?)
-            .with_context(|| p.display().to_string())
-    };
+    let read = read_json;
     let (sounds, out) = (data.join("sounds"), assets.join(SOUNDS_DIR));
     let table = read(&sounds.join("soundprop.json"))?;
     let trx = compile_soundprop(&table)?;
@@ -1069,7 +1089,7 @@ pub fn own(data: &Path, repo: &Path, assets: &Path, pr: &dyn Progress, cancel: &
         check(cancel)?;
         let src = sounds.join(f);
         let bytes = std::fs::read(&src).with_context(|| src.display().to_string())?;
-        wav_seconds(&bytes).with_context(|| src.display().to_string())?;
+        ogg_seconds(&bytes).with_context(|| src.display().to_string())?;
         std::fs::write(out.join(f), bytes).with_context(|| out.join(f).display().to_string())?;
     }
     let trx_files = [
@@ -1087,22 +1107,7 @@ pub fn own(data: &Path, repo: &Path, assets: &Path, pr: &dyn Progress, cancel: &
             std::fs::remove_file(out.join(&name)).with_context(|| out.join(&name).display().to_string())?;
         }
     }
-    let src = read(&data.join("keys.json"))?;
-    let keys = compile_keys(&src, false)?;
-    write(&assets.join(KEYS_FILE), &serde_json::to_string(&keys)?)?;
-    write(&assets.join(KEYS_LAPTOP_FILE), &serde_json::to_string(&compile_keys(&src, true)?)?)?;
-    planes(repo, assets)?;
-    gun_art(assets)?;
-    crate::sim_cockpit::cockpits(data, assets, pr, cancel)?;
-    log!(
-        pr,
-        "own: {} sound rows, {} clips -> {}; keys -> {}",
-        trx.lines().count() - 1,
-        files.len(),
-        out.display(),
-        assets.join(KEYS_FILE).display()
-    );
-    Ok(())
+    Ok((trx.lines().count() - 1, files.len()))
 }
 
 /// The sim's effects art in the original's layout (`resource/3dobjects`, where the original keeps gunfire.tga).
@@ -1580,10 +1585,10 @@ mod tests {
         let root = TempRoot(std::env::temp_dir().join(format!("iaf-sim-own-{}", std::process::id())));
         let sounds = root.0.join(SOUNDS_DIR);
         std::fs::create_dir_all(&sounds).unwrap();
-        std::fs::write(sounds.join("stale.wav"), b"x").unwrap();
+        std::fs::write(sounds.join("stale.ogg"), b"x").unwrap();
         own(&data(), &data().join("../.."), &root.0, &Stdout, &AtomicBool::new(false)).unwrap();
         assert_compact(&root.0);
-        assert!(!sounds.join("stale.wav").exists());
+        assert!(!sounds.join("stale.ogg").exists());
         // The F-16's descriptor from our model: its hinges, stations and gun, the type, no original source.
         let f16: Value =
             serde_json::from_slice(&std::fs::read(root.0.join(PLANES_DIR).join("f16/aircraft.json")).unwrap()).unwrap();
@@ -1596,7 +1601,7 @@ mod tests {
         );
         assert_eq!(f16["engines"]["pairs"], 1);
         assert_eq!(f16["stations"]["StationA"], json!(F16_SIM_STATIONS[0].1));
-        let clip = |f: &str| wav_seconds(&std::fs::read(sounds.join(f.to_lowercase())).unwrap()).unwrap();
+        let clip = |f: &str| ogg_seconds(&std::fs::read(sounds.join(f.to_lowercase())).unwrap()).unwrap();
         let trx = std::fs::read_to_string(sounds.join("soundprop.trx")).unwrap();
         let rows: Vec<Vec<&str>> =
             trx.lines().filter(|l| !l.starts_with(';')).map(|l| l.split('\t').collect()).collect();
@@ -1658,7 +1663,7 @@ mod tests {
         }
         // The files the shared code opens by name: g_effects.gd (cock_g_02; cock_bty_over is silent on purpose),
         // terrain_view.gd (EndWorld) and radio.gd (KCH2, its phrase files).
-        for f in ["cock_g_02.wav", "EndWorld.wav", "KCH2.WAV"] {
+        for f in ["cock_g_02.ogg", "EndWorld.ogg", "KCH2.ogg"] {
             assert!(clip(f) > 0.05, "{f}");
         }
         let particles = std::fs::read_to_string(sounds.join("phraseparticalsdata.trx")).unwrap();
@@ -1693,6 +1698,13 @@ mod tests {
         let args = ["ALPHA_T", "MORNING", "AFTERNOON", "EVENING", "WI_KNOTS10", "WI_KNOTS15", "WI_KNOTS20", "RWY_L"];
         for k in args.iter().copied().chain(["RWY_R", "RWY_C", ","]).chain(numbers.iter().map(String::as_str)) {
             assert!(keys_of.contains(k), "no particle {k}");
+        }
+        // The joined clips (iaf-2026/docs/sound.md §3): each part a particle; the training missions' calls covered.
+        for k in keys_of.iter().filter(|k| k.contains('+')) {
+            assert!(k.split('+').all(|p| keys_of.contains(p)), "{k}");
+        }
+        for k in ["ALPHA_T+,+START", "ALPHA_T+,+MORNING+,+TAXI_RWY", "ALPHA_T+,+LINEUP_RWY", "26+RWY_L", "25+RWY_R"] {
+            assert!(keys_of.contains(k), "no joined particle {k}");
         }
         let keys: Value = serde_json::from_str(&std::fs::read_to_string(root.0.join(KEYS_FILE)).unwrap()).unwrap();
         let recs = keys["records"].as_array().unwrap();
@@ -1766,23 +1778,24 @@ mod tests {
 
     #[test]
     fn a_clip_in_another_format_is_refused() {
-        let wav = |fmt: u16, ch: u16, rate: u32, bits: u16| {
-            let mut b = b"RIFF\0\0\0\0WAVEfmt \x10\0\0\0".to_vec();
-            for v in [fmt, ch] {
-                b.extend(v.to_le_bytes());
-            }
+        // One Ogg page holding the Vorbis identification header, and a last page with the granule position.
+        let ogg = |ch: u8, rate: u32| {
+            let mut b = b"OggS\0\x02".to_vec();
+            b.extend([0u8; 20]);
+            b.extend([1u8, 30]);
+            b.extend(b"\x01vorbis\0\0\0\0");
+            b.push(ch);
             b.extend(rate.to_le_bytes());
-            b.extend((rate * 2).to_le_bytes());
-            b.extend(2u16.to_le_bytes());
-            b.extend(bits.to_le_bytes());
-            b.extend(b"data\x04\0\0\0\0\0\0\0");
+            b.extend([0u8; 15]);
+            b.extend(b"OggS\0\x04");
+            b.extend(22050u64.to_le_bytes());
+            b.extend([0u8; 12]);
             b
         };
-        assert!(wav_seconds(&wav(1, 1, 22050, 16)).is_ok());
-        assert!(wav_seconds(&wav(1, 2, 22050, 16)).is_err());
-        assert!(wav_seconds(&wav(1, 1, 44100, 16)).is_err());
-        assert!(wav_seconds(&wav(3, 1, 22050, 32)).is_err());
-        assert!(wav_seconds(b"OggS").is_err());
+        assert_eq!(ogg_seconds(&ogg(1, 22050)).unwrap(), 1.0);
+        assert!(ogg_seconds(&ogg(2, 22050)).is_err());
+        assert!(ogg_seconds(&ogg(1, 44100)).is_err());
+        assert!(ogg_seconds(b"RIFF\0\0\0\0WAVE").is_err());
     }
 
     /// Every airbase layout (`airbases/*.json`, iaf-2026/docs/airbases.md) parses, and every runway has two ends

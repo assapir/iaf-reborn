@@ -254,7 +254,7 @@ TTS tower of E1b (sound.md §3), then the pilot's "Roger". The lines show in the
 בקשת הסעה") and the tower's answer from each phrase particle's Hebrew text (`text_he` in
 `iaf-2026/data/sounds/voices.json`, compiled into `phraseparticles_he.trx`: "Alpha, בוקר טוב, הסעה למסלול 25 ימני");
 only the callsigns and the runway numbers stay Latin and digits. The voice stays English until the Hebrew voice's
-licence is decided (sound.md §5). The
+licence is decided (sound.md §5.4). The
 tower is the base within 18.54 km: every base of the own `iaf.ibx` talks (Ramon, Ramat David, Hatzerim, Nevatim;
 `Settings.tower_bases`); the mission's base's tower names the mission's runway (`"runway"`), the others their own. A request leaves the tower's
 state machine as it is. In the menu the tower no longer talks on
