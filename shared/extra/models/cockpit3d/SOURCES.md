@@ -43,7 +43,7 @@ Made by `tools/f16d/cockpit3d.py` (re-runnable; docs/cockpit.md "3D cockpit"):
 2. The tub cut at the pilot's eye (the detailed F-16's own tub and seat draw the rest); its side walls and sill
    border (`COCKPIT`, `cockpit_border`) 0.42 m behind it (2026-11-02).
 3. The ICP and the stick decimated (about 45 % of their triangles kept; the ICP's four thumbwheels kept whole and
-   black, 2026-11-09); the consoles and the throttle (2026-11-02)
+   black, its six round buttons kept whole, 2026-11-09); the consoles and the throttle (2026-11-02)
    their flat faces merged (a planar decimation within 3°), only their parts over 1,600 triangles decimated to 40 %.
 4. FlightGear's lamps and off flags hidden as on a powered jet with every lamp off; the needles FlightGear animates
    and the game drives made separate nodes on their hinges, with FlightGear's value tables in `f16.json`.

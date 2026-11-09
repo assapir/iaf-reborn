@@ -432,6 +432,11 @@ occlusion, 1.8 MB; built by
   review) they are kept whole in the knobs' black. Before and after, at 3× size:
 
   ![The ICP's SYM and BRT wheels as white combs and as black wheels](img/f16_icp_wheels.jpg)
+* The ICP's six round buttons along the top (COM 1, COM 2, IFF, LIST, A-A, A-G) are kept whole too (`ICP_ROUND`):
+  decimated, their caps came out as lumpy polygons with ragged rims (the user's review, 2026-11-09). Before (top)
+  and after, at 4× size:
+
+  ![The ICP's top buttons as lumpy polygons and as round caps](img/f16_icp_buttons.jpg)
 * Two HUDs, one shown per jet: the Barak the Block 50's (`hud.xml`: two posts, a small combiner), the Sufa
   FlightGear's wide-angle HUD (`f16_war.xml`). An F-16I seen from the side shows one large combiner plate over a deep
   box (IDF Spokesperson's Unit, CC BY-SA 3.0, `File:Israeli_attacks_on_Yemen,_January_2025._XV.jpg` on Wikimedia
