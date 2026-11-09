@@ -74,7 +74,8 @@ const PREFS := {
 		"textured_sky",
 		"shadows",
 		"external_stores",
-		"vsync"
+		"vsync",
+		"hud_brightness"
 	],
 	"devices":
 	["flight_controls", "rudder", "throttle", "joy_axes", "throttle_detent", "stick_response", "rocker_trim"],
@@ -164,6 +165,9 @@ var speech_volume := 1.0
 ## Graphics page: the defaults the original's hardware detection gives a top-tier machine (FUN_00402510 /
 ## FUN_00402330; docs/deviations.md): TERRAIN DETAIL (det − 1) · 0.25 = 1.0 (the ctor's 0.75 before it).
 var terrain_detail := 1.0
+## The HUD symbols' day brightness, 0..1 (Modern IAF's Preferences → Graphics "HUD brightness", hud_daylight; the key
+## Change HUD colour steps it in eighths). The original game has no such row and never reads it.
+var hud_brightness := 1.0
 var object_detail := 1.0
 var visual_effects := 1.0
 var smoke_trails := true
@@ -1044,6 +1048,14 @@ func scenery_everywhere() -> bool:
 ## The HUD's moving lines at sub-pixel positions: Modern IAF (whole-pixel steps jump on its wide 3D HUD glass). The
 ## original game draws the ILS lines at whole HUD pixels, 1/12° steps (hud.gd ils_lines, FUN_005309a0).
 func hud_subpixel() -> bool:
+	return false
+
+
+## The HUD lit like a combiner (docs/real-hud.md "Modern IAF's HUD light"): the P43 phosphor's green at
+## hud_brightness by day down to a night floor as the sun sets, added to the scene's light, a faint halo, a 0.08°
+## stroke, the combiner glass at 14 % with a cool tint; the HUD key steps the brightness. Modern IAF. The original game
+## keeps its eleven colours from the darkest green (the global 0x82f4c4), drawn over the scene, and its 7 % glass.
+func hud_daylight() -> bool:
 	return false
 
 

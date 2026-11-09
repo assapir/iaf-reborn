@@ -105,6 +105,8 @@
 	"scenery": "Buildings and trees",
 	"scenery_detailed": "Detailed",
 	"scenery_missing": "Setup's optional step \"Buildings, trees and roads\" adds them.",
+	"hud_brightness": "HUD brightness",
+	"hud_brightness_note": "The level by day. At night the HUD dims by itself; in flight, Shift + H steps it.",
 	"fullscreen": "Full screen",
 	"vsync": "VSync",
 	"vsync_note": "Frames in step with the display: no tearing.",

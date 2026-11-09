@@ -61,6 +61,7 @@ var _real_in := {}
 
 
 func _ready() -> void:
+	_glow = Settings.hud_daylight()
 	clip_contents = true
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud_font = load_original_font("hud")
@@ -150,7 +151,7 @@ func _draw() -> void:
 	var st: Dictionary = cockpit.state
 	var font: Font = hud_font if hud_font != null else get_theme_default_font()
 	var fs := int(8 * s)
-	var w := maxf(1.0, 0.6 * s)
+	var w := _pen(s)
 	var gun: Vector2 = gun_cross() - position
 	_ladder_labels.clear()
 	_pipper_at = {}
@@ -239,6 +240,8 @@ func _hc() -> Color:
 	var c = real.get("colour")
 	if c != null:
 		return c
+	if _glow:
+		return p43(Settings.hud_brightness, cockpit.daylight)
 	var h: Color = cockpit.hud_colour()
 	if cockpit.night and not real.is_empty() and h.r == 0.0 and h.g < REAL_NIGHT_GREEN.g:
 		return REAL_NIGHT_GREEN
@@ -248,12 +251,57 @@ func _hc() -> Color:
 ## The Real HUD's darkest green at night (cockpit.gd HUD_COLOURS' fifth).
 const REAL_NIGHT_GREEN := Color8(0, 0x88, 0)
 
+# --- Modern IAF's HUD light (Settings.hud_daylight; docs/real-hud.md "Modern IAF's HUD light") ---------------------
+
+## The F-16's CRT phosphor, P43: a narrow line at 543 nm; its nearest sRGB colour (inferred from the CIE 1931
+## chromaticity of 543 nm, just outside the gamut beside the green primary).
+const P43_GREEN := Color8(40, 255, 50)
+## The night floor: the brightness the HUD falls to in the dark (REAL_NIGHT_GREEN's, 136 / 255), unless set dimmer.
+const NIGHT_LEVEL := 136.0 / 255.0
+## The dimmest level (the HUD key's first eighth): the Preferences slider's 0 still shows the symbols.
+const MIN_LEVEL := 0.125
+## The stroke: 0.08° (the F-16 HUD video's 1–2 px of 720 across about 30°, inferred) at the HUD's 12 px per degree.
+const PEN_DEG := 0.08
+## The halo drawn under every stroke: this many times its width at HALO_ALPHA (a collimated stroke's soft glow).
+const HALO_WIDE := 4.0
+const HALO_ALPHA := 0.22
+## True with hud_daylight: the halo, the pen and the colour.
+var _glow := false
+
+
+## The HUD's colour at `level` (0..1, Settings.hud_brightness) and `daylight` (0 night .. 1 day, daylight()): the P43
+## green at the level by day, falling to the night floor (or the level, if dimmer) in the dark, like the F-16's AUTO
+## brightness following the ambient light.
+static func p43(level: float, light: float) -> Color:
+	var day := clampf(level, MIN_LEVEL, 1.0)
+	var k := lerpf(minf(NIGHT_LEVEL, day), day, clampf(light, 0.0, 1.0))
+	return Color(P43_GREEN.r * k, P43_GREEN.g * k, P43_GREEN.b * k)
+
+
+## The scene's daylight for the HUD's brightness (0..1) from TimeOfDay.sun: 0 at night, rising with the sun to 1 at
+## 10° above the horizon (inferred: a photocell saturates once the sky is bright).
+static func daylight(sun: Dictionary) -> float:
+	if sun.is_empty() or sun.get("night", false):
+		return 0.0
+	return clampf(-float(sun.dir.z) / sin(deg_to_rad(10.0)), 0.0, 1.0)
+
+
+## The stroke width in px at ui scale `s`: the original's 0.6 px per HUD pixel, or PEN_DEG with hud_daylight.
+func _pen(s: float) -> float:
+	return maxf(1.0, (PEN_DEG * 12.0 if _glow else 0.6) * s)
+
+
+func _halo(c: Color) -> Color:
+	return Color(c, c.a * HALO_ALPHA)
+
 
 func _pt(p: Vector2) -> Vector2:
 	return _c + p * _s
 
 
 func _ln(ci: CanvasItem, a: Vector2, b: Vector2, w: float) -> void:
+	if _glow:
+		ci.draw_line(_pt(a), _pt(b), _halo(_hc()), w * HALO_WIDE, true)
 	ci.draw_line(_pt(a), _pt(b), _hc(), w)
 
 
@@ -261,6 +309,8 @@ func _poly(ci: CanvasItem, pts: Array, w: float) -> void:
 	var out := PackedVector2Array()
 	for p in pts:
 		out.append(_pt(p))
+	if _glow:
+		ci.draw_polyline(out, _halo(_hc()), w * HALO_WIDE, true)
 	ci.draw_polyline(out, _hc(), w)
 
 
@@ -343,9 +393,11 @@ func _gdi(ci: CanvasItem, p: Vector2, text: String, right := false, colour = nul
 	if box.size.y <= 0.0:
 		return
 	ci.draw_set_transform(Vector2(box.position.x, _pt(p).y), 0.0, Vector2(_arial_squeeze, 1.0))
-	ci.draw_string(
-		_arial, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, _gdi_size(), colour if colour != null else _hc()
-	)
+	var col: Color = colour if colour != null else _hc()
+	if _glow:
+		var o := roundi(_pen(_s) * (HALO_WIDE - 1.0))
+		ci.draw_string_outline(_arial, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, _gdi_size(), o, _halo(col))
+	ci.draw_string(_arial, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, _gdi_size(), col)
 	ci.draw_set_transform(Vector2.ZERO)
 
 
@@ -398,7 +450,7 @@ func _draw_outer() -> void:
 	if cockpit == null or cockpit.layout.is_empty() or not visible or hud_failed():
 		return
 	var st: Dictionary = cockpit.state
-	var w := maxf(1.0, 0.6 * _s)
+	var w := _pen(_s)
 	var f := _field()
 	var mode := _mode()
 	var dash: bool = cockpit.dash()
@@ -740,6 +792,8 @@ func _draw_prims(ci: CanvasItem, prims: Array, w: float, colour = null) -> void:
 	var col: Color = colour if colour != null else _hc()
 	if real_reticle(cockpit.real_hud_key()):
 		w *= RETICLE_PEN
+	if _glow:
+		_draw_halo(ci, prims, w, col)
 	for p in prims:
 		match p.k:
 			"line":
@@ -756,6 +810,21 @@ func _draw_prims(ci: CanvasItem, prims: Array, w: float, colour = null) -> void:
 				if int(p.align) == 1:
 					at.x += 2.5 * String(p.text).length()
 				_gdi(ci, at, p.text, int(p.align) != 0, col)
+
+
+## The halo under the Real HUD's lines, circles and arcs (hud_daylight; its texts get theirs in _gdi).
+func _draw_halo(ci: CanvasItem, prims: Array, w: float, col: Color) -> void:
+	var h := _halo(col)
+	var hw := w * HALO_WIDE
+	for p in prims:
+		match p.k:
+			"line":
+				ci.draw_line(_pt(p.a), _pt(p.b), h, hw, true)
+			"circle":
+				ci.draw_arc(_pt(p.c), float(p.r) * _s, 0, TAU, 32, h, hw, true)
+			"arc":
+				var a0: float = float(p.from) - PI / 2.0
+				ci.draw_arc(_pt(p.c), float(p.r) * _s, a0, a0 + float(p.sweep), 24, h, hw * 1.6, true)
 
 
 # --- traced values (original pixels; tests/godot/test_hud.gd) -----------------------------------------

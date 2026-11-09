@@ -290,6 +290,12 @@ func hud_subpixel() -> bool:
 	return true
 
 
+## The HUD adds bright P43 green light to the scene, dimmed at night, its brightness the player's (Approvals A10,
+## iaf-2026/docs/cockpit.md §5.1).
+func hud_daylight() -> bool:
+	return true
+
+
 ## The burner rises over 1.5 s with a thump and dies away (the Mac play test's finding 27, iaf-2026/docs/sound.md §1.2).
 func ab_sound_real() -> bool:
 	return true

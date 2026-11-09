@@ -358,6 +358,7 @@ func takeoff(id: String) -> void:
 	var jet: String = JETS[id][0]
 	var tv := await _start(JETS[id][1] + "_takeoff")
 	_ils_bars(tv, jet)
+	_hud_light(tv, jet)
 	var a := await _call(tv, 1)
 	check(a == "ACFT_CLEAR_TO_START", "%s take-off: start-up request -> %s" % [jet, a])
 	_press(tv, KEY_E, true)
@@ -413,6 +414,42 @@ func _ils_bars(tv: Node, jet: String) -> void:
 	else:
 		tv.cockpit.state.erase("ils")
 	hud._real_frame = -1
+
+
+## The HUD's light (Approvals A10, Settings.hud_daylight): the P43 green at the day level, the night floor in the
+## dark, the HUD key stepping the level in eighths, added to the scene, and the combiner glass at 14 %.
+func _hud_light(tv: Node, jet: String) -> void:
+	var cp = tv.cockpit
+	var level: float = settings().hud_brightness
+	var light: float = cp.daylight
+	settings().hud_brightness = 1.0
+	cp.daylight = 1.0
+	var own = cp.hud.real_hud().get("colour")
+	if own != null:
+		# The F-35I: its helmet display keeps its own green, and it has no combiner.
+		check(cp.hud._hc() == own, "%s: the helmet keeps its own green (%s)" % [jet, own])
+	else:
+		check(cp.hud._hc() == Color8(40, 255, 50), "%s: the HUD by day in the P43 green (%s)" % [jet, cp.hud._hc()])
+		cp.daylight = 0.0
+		var k := 136.0 / 255.0
+		var floor_c := Color(40.0 / 255.0 * k, k, 50.0 / 255.0 * k)
+		check(cp.hud._hc().is_equal_approx(floor_c), "%s: at night at the floor (%s)" % [jet, cp.hud._hc()])
+	cp.daylight = 1.0
+	tv._command([123, 0, 0])
+	check(settings().hud_brightness == 0.125, "%s: the HUD key from full to the dimmest eighth" % jet)
+	tv._command([123, 0, 0])
+	check(settings().hud_brightness == 0.25, "%s: the HUD key one eighth up" % jet)
+	check(
+		cp.hud.material != null and String(cp.hud.material.shader.code).contains("blend_add"),
+		"%s: the HUD adds its light to the scene" % jet
+	)
+	var glass = tv.cockpit_3d._glass if tv.cockpit_3d != null else null
+	check(
+		own != null or glass != null and is_equal_approx(glass.material_override.albedo_color.a, 0.14),
+		"%s: the combiner glass at 14 %% (the F-35I: none)" % jet
+	)
+	settings().hud_brightness = level
+	cp.daylight = light
 
 
 ## The heading error to `p` from the jet, degrees (−180, 180]; positive: `p` to the right.

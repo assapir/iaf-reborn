@@ -18,7 +18,8 @@ Colour: the HUD's (H cycles the original's eleven, the darkest green first), unl
 F-35's helmet, the DASH). At the cockpit's night (`cockpit.night`, the rule that darkens the panel; 2D and 3D) the
 greens are no darker than the fifth, 0, 136, 0 (`hud.gd` `REAL_NIGHT_GREEN`, ours, 2026-11-02): the darkest, the
 run's first, all but vanished against the night sky, where a real HUD's brightness follows the scene. The original
-HUD keeps the colour H set.
+HUD keeps the colour H set. Modern IAF draws its HUD in the P43 green, added to the scene's light
+([Modern IAF's HUD light](#modern-iafs-hud-light)).
 
 Sources are footnotes; a simulator source says so in its footnote. "Inferred" marks our own reconstruction (from
 the era and the maker, recorded in docs/deviations.md); "open" marks what no source gives.
@@ -869,6 +870,40 @@ its scale. The original HUD keeps the original layout.
   - Not drawn: a horizon, shoot cue, RWR (radar warning receiver) symbols, declutter. Blanking is implied: the helmet
     set shows only while looking aside.
 
+### Modern IAF's HUD light
+
+Modern IAF only (`Settings.hud_daylight()`, true in `iaf-2026/sim_settings.gd`, false in `shared/settings.gd`;
+Approvals A10, 2026-11-09). The original game keeps its eleven colours from the darkest green, drawn over the scene,
+and its 0.6 px pen. The study behind it: the look study's cockpit proposal, finding 1.
+
+- **Colour.** The F-16's CRT displays use P43 phosphor, a narrow line at 543 nm[^dtic-p43]. Its nearest sRGB colour is
+  40 / 255 / 50 (`hud.gd` `P43_GREEN`; inferred from the CIE 1931 chromaticity of 543 nm, just outside the gamut).
+- **Brightness.** The pilot sets the real HUD's brightness with the SYM wheel; AUTO follows the ambient
+  light[^hoggit-icp]. Ours: the green at `Settings.hud_brightness` (Preferences → Graphics "HUD brightness", 100 % by
+  default) by day, falling to the night floor 136 / 255 (`REAL_NIGHT_GREEN`'s, or the day level when dimmer) as the
+  sun sets: full with the sun 10° up or more, the floor at night (`hud.gd` `p43()`, `daylight()`; inferred). The HUD
+  key (Shift + H) steps the level in eighths, from full to the dimmest eighth and up again.
+- **Blending.** The HUD and its outer layer draw through `hud_glass.gdshader` with `render_mode blend_add`
+  (`cockpit.gd` `_additive_glass`): the symbols add light to the scene, as a combiner does, so over sunlit ground they
+  can only brighten it. The original HUD's green, drawn over the scene, read darker than the ground behind it.
+- **Stroke and halo.** The stroke is 0.08° (`PEN_DEG`, 0.96 px per HUD pixel: 1.5 px in an 85° view across 1,920 px;
+  inferred from an F-16 HUD video's[^gcas-video] 1–2 px of 720 across about 30°). Under every line, circle, arc and text of the
+  Real HUD lies a halo four times the stroke's width at 22 % (`HALO_WIDE`, `HALO_ALPHA`): a collimated stroke's soft
+  glow, small to the eye (inferred).
+- **Combiner glass.** 14 % opaque in a faint cool magenta (0.62 / 0.56 / 0.72) with specular 0.8, so it is slightly
+  darker than the sky and reflects a little of it (`cockpit3d.gd`; the green its coating reflects is missing from
+  what passes through, inferred). The original game's glass stays 7 %. The glass's edge line needs a rebuild of
+  `f16.glb` (`tools/f16d/cockpit3d.py` `hud_edge`): open.
+- **Unchanged:** the F-35I's helmet and the DASH keep their own green (a Real HUD frame's own colour comes first).
+  The sprite font's ladder labels and the original HUD's weapon symbols draw no halo (the sim draws the Real HUD).
+- **Cost on the Iris Xe:** none measurable. The Shoham pose, 180 frames, vsync off, the light off and on alternated:
+  36.5 / 46.6 fps off, 46.6 / 39.4 fps on, inside the runs' own spread.
+
+Before and after at the look study's Shoham pose (HDG 100, 240 m), 16:58 and 22:00, in the Sufa's 3D cockpit:
+
+![The HUD at 16:58: before (the darkest green over the scene) and after (P43, added, with the halo)](../iaf-2026/docs/pictures/cockpit/hud_light_day.jpg)
+![The HUD at 22:00: before and after (the night floor)](../iaf-2026/docs/pictures/cockpit/hud_light_night.jpg)
+
 [^dash34]: T.O. GR1F-16CJ-34-1-1, Hellenic AF F-16C/D Block 50 avionics and weapons delivery (dash-34), 1997: HUD
     chapter pp. 1-158..1-183 (fig. 1-115 "HUD Window and Scale Positions"), A-A gun pp. 403-411, A-A missiles
     pp. 413-423, A-G pp. 441-458: https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf
@@ -1021,3 +1056,10 @@ its scale. The original HUD keeps the original layout.
 [^dcs-tti]: DCS forum, "CBU-105 HUD symbology question" (2022), secondary: the F-16's HUD window for the JDAM, JSOW,
     WCMD and Paveway III shows the time to impact after the release
     (<https://forum.dcs.world/topic/304597-cbu-105-hud-symbology-question>)
+[^dtic-p43]: Wright-Patterson AFB paper on display image quality: the F-16 C/D's MFD is a monochrome green P-43 CRT,
+    peak 543 nm. DTIC ADP005791: https://apps.dtic.mil/sti/pdfs/ADP005791.pdf
+[^hoggit-icp]: Hoggit wiki, "Instrument Panel" (DCS F-16C): the HUD's DAY / AUTO / NIGHT symbology brightness,
+    simulator documentation: https://wiki.hoggitworld.com/view/Instrument_Panel
+[^gcas-video]: "Auto-GCAS Saves Unconscious F-16 Pilot—Declassified USAF Footage", HUD video of an Arizona ANG F-16,
+    2016, public domain (USAF), Wikimedia Commons:
+    https://commons.wikimedia.org/wiki/File:Auto-GCAS_Saves_Unconscious_F-16_Pilot%E2%80%94Declassified_USAF_Footage.webm

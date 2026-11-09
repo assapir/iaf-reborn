@@ -105,6 +105,8 @@
 	"scenery": "מבנים ועצים",
 	"scenery_detailed": "מפורט",
 	"scenery_missing": "השלב \"מבנים, עצים וכבישים\" בהתקנה מוסיף אותם.",
+	"hud_brightness": "בהירות ה־HUD",
+	"hud_brightness_note": "הרמה ביום. בלילה ה־HUD מתעמעם מעצמו; בטיסה Shift + H משנה אותה.",
 	"fullscreen": "מסך מלא",
 	"vsync": "סנכרון אנכי",
 	"vsync_note": "הפריימים מתואמים עם המסך: בלי קריעה.",

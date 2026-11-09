@@ -47,7 +47,7 @@
     {"index": 43, "group": "sensors", "label": {"en": "ECM jammer", "he": "משבש ECM"}, "key": "J", "joystick": -1, "press": [70, 0, 0], "release": [0, 0, 0], "shown": true},
     {"index": 44, "group": "sensors", "label": {"en": "Laser designator", "he": "מלהט לייזר"}, "key": "L", "joystick": -1, "press": [106, 0, 0], "release": [0, 0, 0], "shown": true},
     {"index": 45, "group": "sensors", "label": {"en": "Navigation mode", "he": "מצב ניווט"}, "key": "N", "joystick": -1, "press": [98, 0, 0], "release": [0, 0, 0], "shown": true},
-    {"index": 46, "group": "sensors", "label": {"en": "Cycle HUD colour", "he": "החלפת צבע HUD"}, "key": "Shift + H", "joystick": -1, "press": [123, 0, 0], "release": [0, 0, 0], "shown": true},
+    {"index": 46, "group": "sensors", "label": {"en": "Step HUD brightness", "he": "שינוי בהירות ה־HUD"}, "key": "Shift + H", "joystick": -1, "press": [123, 0, 0], "release": [0, 0, 0], "shown": true},
     {"index": 47, "group": "sim", "label": {"en": "Call the tower", "he": "קריאה למגדל הפיקוח"}, "key": "Ctrl + T", "joystick": -1, "press": [107, 0, 0], "release": [0, 0, 0], "shown": true},
     {"index": 48, "group": "sensors", "label": {"en": "Slew EO sensor up", "he": "הזזת חיישן EO למעלה"}, "key": "Ctrl + Up", "joystick": -1, "press": [140, 0, 100], "release": [140, 0, 0], "shown": false},
     {"index": 49, "group": "sensors", "label": {"en": "Slew EO sensor left", "he": "הזזת חיישן EO שמאלה"}, "key": "Ctrl + Left", "joystick": -1, "press": [139, -100, 0], "release": [139, 0, 0], "shown": false},

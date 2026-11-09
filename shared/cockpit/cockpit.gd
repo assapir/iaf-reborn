@@ -151,6 +151,9 @@ var dir := ""
 ## Night (FUN_0052df40, applied once at load in the original): the panel and the HUD glass are darkened by the [PANEL]
 ## Night*Scale shifts, the lights bitmap by [LIGHTSON]'s (R >>= shift per channel of the 16-bit art: ×2^−shift here).
 var night := false
+## Ours, Modern IAF's HUD light (Settings.hud_daylight): the scene's daylight, 0 night .. 1 day (hud.gd daylight(),
+## set by terrain_view.gd from the sun).
+var daylight := 1.0
 ## The electrical power (the flight model's `power`): 0 none, 1 the battery (the lamps), 2 the displays and the HUD up.
 ## Always 2 in the original game; Modern IAF's cold jet starts at 0 (iaf-2026/docs/training.md §7).
 var power := 2
@@ -647,9 +650,11 @@ func three_d() -> bool:
 
 
 ## The HUD and its outer layer drawn through hud_glass.gdshader with hud_clip's corners (everywhere while the helmet
-## display draws).
+## display draws). With Settings.hud_daylight always, and added to the scene's light (blend_add), as a combiner adds
+## its symbols' light: they can only brighten what is behind them.
 func _update_hud_mask() -> void:
-	if hud_clip == null:
+	var glow: bool = Settings.hud_daylight()
+	if hud_clip == null and not glow:
 		if _hud_mask != null:
 			for n in [hud, hud.outer]:
 				n.material = null
@@ -657,9 +662,12 @@ func _update_hud_mask() -> void:
 		return
 	if _hud_mask == null:
 		_hud_mask = ShaderMaterial.new()
-		_hud_mask.shader = preload("res://shared/cockpit/hud_glass.gdshader")
+		_hud_mask.shader = _additive_glass() if glow else HUD_GLASS
 		for n in [hud, hud.outer]:
 			n.material = _hud_mask
+	if hud_clip == null:
+		_hud_mask.set_shader_parameter("count", 0)
+		return
 	var view := get_viewport_rect().size
 	var pts := PackedVector2Array()
 	for p in hud_clip.slice(0, 16):
@@ -668,6 +676,19 @@ func _update_hud_mask() -> void:
 	_hud_mask.set_shader_parameter("count", 0 if dash() else (n if n >= 3 else -1))
 	pts.resize(16)
 	_hud_mask.set_shader_parameter("corners", pts)
+
+
+const HUD_GLASS := preload("res://shared/cockpit/hud_glass.gdshader")
+static var _additive: Shader
+
+
+## hud_glass.gdshader with render_mode blend_add (one shader source for both games).
+static func _additive_glass() -> Shader:
+	if _additive == null:
+		_additive = Shader.new()
+		var src: String = HUD_GLASS.code
+		_additive.code = src.replace("shader_type canvas_item;", "shader_type canvas_item;\nrender_mode blend_add;")
+	return _additive
 
 
 ## Ours, "Better cockpit" turning_compass (compass.gd): the panel compasses turn with the heading; made on first

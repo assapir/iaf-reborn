@@ -115,6 +115,12 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 		_glass_pts = _glass.mesh.get_faces()
 		var g := StandardMaterial3D.new()
 		g.albedo_color = Color(0.55, 0.75, 0.6, 0.07)
+		if Settings.hud_daylight():
+			# Ours, Modern IAF: the combiner seen from the seat, slightly darker than the sky around it, the green its
+			# coating reflects missing from what passes through (a faint cool magenta, inferred), and a little of the
+			# sky in it (docs/real-hud.md "Modern IAF's HUD light").
+			g.albedo_color = Color(0.62, 0.56, 0.72, 0.14)
+			g.metallic_specular = 0.8
 		g.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		g.roughness = 0.05
 		g.cull_mode = BaseMaterial3D.CULL_DISABLED

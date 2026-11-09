@@ -240,6 +240,7 @@ const DamageModel := preload("res://shared/mission/damage_model.gd")
 const PlayerAircraft := preload("res://shared/aircraft/player_aircraft.gd")
 const AircraftModel := preload("res://shared/aircraft/aircraft_model.gd")
 const Cockpit3d := preload("res://shared/cockpit/cockpit3d.gd")
+const Hud := preload("res://shared/cockpit/hud.gd")
 const FlightSounds := preload("res://shared/audio/flight_sounds.gd")
 const SoundBuses := preload("res://shared/audio/sound_buses.gd")
 const PlayerDamage := preload("res://shared/mission/player_damage.gd")
@@ -515,6 +516,7 @@ func _update_time_of_day(cam: Camera3D) -> void:
 	if absf(t - _tod_t) >= 1.0:
 		_tod_t = t
 		_tod_sun = TimeOfDay.sun(t)
+		cockpit.daylight = Hud.daylight(_tod_sun)
 		_tod_colors = TimeOfDay.colors(fposmod(t, 86400.0) / 60.0)
 		var sun := $Sun as DirectionalLight3D
 		var d: Vector3 = _tod_sun.dir
@@ -2640,8 +2642,12 @@ func _command(cmd: Array) -> bool:
 			# Mute sound toggle (0x4e3442): flips the Sound page's MUTE (shared/audio/sound_buses.gd).
 			SoundBuses.toggle_mute()
 		123:
-			# Change HUD color (event 0x7b): next of the 11 table colours.
-			cockpit.hud_colour_index = (cockpit.hud_colour_index + 1) % 11
+			# Change HUD color (event 0x7b): next of the 11 table colours. Modern IAF (Settings.hud_daylight): the next
+			# eighth of the HUD's brightness, as the real jet's SYM wheel, from the brightest to the dimmest.
+			if Settings.hud_daylight():
+				Settings.hud_brightness = (fposmod(roundf(Settings.hud_brightness * 8.0), 8.0) + 1.0) / 8.0
+			else:
+				cockpit.hud_colour_index = (cockpit.hud_colour_index + 1) % 11
 		134:
 			_quit_key()
 		200:

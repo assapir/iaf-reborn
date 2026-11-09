@@ -114,7 +114,9 @@ centreline in the roll.
   none of them is a row. The weather is the mission's (no Rain row). Volumetric clouds are greyed without a
   RenderingDevice. Graphics → "Buildings and trees" is the shared Scenery setting (Off / On / Detailed, On by
   default, [scenery.md](scenery.md) §6); without setup's optional scenery step it is greyed at Off, with a note
-  naming that step.
+  naming that step. Graphics → "HUD brightness" (a slider, 100 % by default; `Settings.hud_brightness`, stored in
+  the sim's settings) sets the HUD's day level; the HUD dims itself at night, and the HUD key (Shift + H, "Step HUD
+  brightness") steps the same value in eighths in flight ([cockpit.md](cockpit.md) §5.1).
 
 ## 5. The photos
 

@@ -56,6 +56,7 @@ const PREFS := [
 			["terrain_detail", "slider", []],
 			["clouds", "radio", [["clouds_flat", "original"], ["clouds_volumetric", "volumetric"]]],
 			["scenery", "radio", [["off", "off"], ["on", "on"], ["scenery_detailed", "detailed"]]],
+			["hud_brightness", "slider", []],
 			["fullscreen", "switch", []],
 			["vsync", "switch", []],
 		]

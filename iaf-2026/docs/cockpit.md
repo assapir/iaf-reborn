@@ -129,6 +129,29 @@ The credit lines the sim's setup wizard (Attributions) and its credits roll show
 Heebo Project Authors, SIL Open Font License 1.1"; for Hershey, the two acknowledgements its terms ask for
 (`iaf-2026/data/fonts/HERSHEY.txt`, [docs/credits.md](../../docs/credits.md) "Modern IAF's font").
 
+### 5.1 The HUD's light (2026-11-09)
+
+The user's approval (Approvals A10, proposal 7): "fix the green of the HUD, should be adjustable I think in real".
+`Settings.hud_daylight()` is true in the sim ([docs/real-hud.md](../../docs/real-hud.md#modern-iafs-hud-light) has
+the sources and the values):
+- the HUD in the P43 green, 40 / 255 / 50, at the day level by day, falling to the night floor (136 / 255 of it) as
+  the sun sets;
+- the symbols added to the scene's light (blend_add), a faint halo under each, a 0.08° stroke;
+- the combiner glass 14 % opaque in a faint cool magenta. The glass's edge line needs a rebuild of `f16.glb`: open;
+- the day level is Preferences → Graphics "HUD brightness" ([front-end.md](front-end.md) §4), stored in the sim's
+  settings; Shift + H ("Step HUD brightness", `data/keys.json` record 46, the laptop map the same) steps it in
+  eighths in flight, as the real jet's SYM wheel.
+
+The F-35I's helmet keeps its own green. The Sufa at the look study's Shoham pose (HDG 100, 240 m), before and after,
+16:58 and 22:00:
+
+![The HUD at 16:58: before and after](pictures/cockpit/hud_light_day.jpg)
+![The HUD at 22:00: before and after](pictures/cockpit/hud_light_night.jpg)
+
+`tests/godot/test_hud.gd` checks the colours (the P43 green by day, the floor at night, the original game's darkest
+green at its start); `iaf-2026/tests/test_mvp.gd` `_hud_light` checks them in the sim's cockpit with the key's steps,
+the additive blend and the glass.
+
 ## 6. Tests and pictures
 - `tests/godot/test_cockpit_no_panel.gd`: the profile on the sim's own cockpit dirs (`iaf-sim own`'s), the Sufa, the
   Barak and the F-35I: no panel art loaded, every display file from the sim's dir, the 3D cockpit in the jet's own
@@ -153,9 +176,9 @@ strip ("Esc Pause menu") is part of the view.
 What each view shows, against the cockpit photos the docs use (docs/f16i.md, docs/f35i.md, docs/cockpit.md
 "3D cockpit"):
 - **Ahead (the F-16s):** the HUD's symbology in Hershey Simplex on the combiner, both MFDs live, the ICP, the DED and
-  the RWR scope; no 2D art. As the photos: the frame, the ICP over the two MFDs. By day the HUD's green is the
-  original's darkest (the Real HUD's day colour, the same as the original game's 3D cockpit); at night it is lifted
-  and the flood light and backlit labels are on.
+  the RWR scope; no 2D art. As the photos: the frame, the ICP over the two MFDs. These pictures predate the
+  HUD's light (§5.1): by day the HUD's green is the original's darkest; at night it is lifted and the flood light
+  and backlit labels are on.
 - **Left and right (the F-16s):** the side consoles under the canopy sill, the DASH helmet's cue and its numbers on
   the canopy. As the photos' consoles; the panels are FlightGear's flat sheet (no depth in the knobs).
 - **Back (the F-16s):** the seat's headrest, the rear cockpit's helmet, the wing with the AIM-9Ms on 9, 8 and 7, the

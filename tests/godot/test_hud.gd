@@ -298,6 +298,29 @@ func _traced(tv) -> void:
 	)
 	check(not settings().hud_subpixel(), "the original game keeps the whole-pixel ILS lines")
 
+	# Modern IAF's HUD light (Settings.hud_daylight): the P43 green at the day level, the night floor in the dark; the
+	# original game keeps the darkest of its eleven colours at the start, drawn over the scene, at its 0.6 px pen.
+	check(Hud.p43(1.0, 1.0) == Color8(40, 255, 50), "Modern IAF by day: the P43 green, 40 / 255 / 50")
+	check(
+		Hud.p43(1.0, 0.0).is_equal_approx(
+			Color(40.0 / 255.0 * 136.0 / 255.0, 136.0 / 255.0, 50.0 / 255.0 * 136.0 / 255.0)
+		),
+		"at night: the floor, 136 / 255"
+	)
+	check(Hud.p43(0.25, 0.0).is_equal_approx(Hud.p43(0.25, 1.0)), "a level under the floor stays at night")
+	check(Hud.p43(0.0, 1.0).is_equal_approx(Hud.p43(0.125, 1.0)), "the dimmest level: an eighth")
+	var TimeOfDay = load("res://shared/terrain/time_of_day.gd")
+	check(
+		Hud.daylight(TimeOfDay.sun(16.97 * 3600.0)) == 1.0 and Hud.daylight(TimeOfDay.sun(22.0 * 3600.0)) == 0.0,
+		"daylight 1 at 16:58 (the sun 31° up), 0 at 22:00"
+	)
+	check(not settings().hud_daylight(), "the original game keeps its HUD colours")
+	check(
+		cp.hud_colour_index == 0 and cp.hud._hc() == Color8(0, 0x24, 0) and cp.hud._pen(2.0) == 0.6 * 2.0,
+		"the original game's HUD: the darkest green, 0 / 36 / 0, at 0.6 px per HUD pixel (%s)" % cp.hud._hc()
+	)
+	check(cp.hud.material == null, "the original 2D panel's HUD: no material (normal blending)")
+
 	# Gun pipper (FUN_00530040): held inside the field (bottom − 2 px); the range arc r NM · π, under 1.95 NM, over 3°.
 	var hf := Rect2(0, 0, 139, 135)
 	check(

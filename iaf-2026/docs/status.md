@@ -48,6 +48,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   longer asks for the install's `menu/joy` ([front-end.md](front-end.md) §9). On macOS the keys start from the
   laptop map, no numpad: the rudder on Z / X, the snap views on Alt + 1–9 (§9.1). `test_devices.gd`, the M0 probe
   with a fake joystick.
+- **The HUD's light (2026-11-09, Approvals A10):** the F-16s' HUD in the P43 green, added to the scene's light,
+  bright by day and dimmed to a night floor as the sun sets, with a faint halo, a 0.08° stroke and the combiner glass
+  at 14 %; Preferences → Graphics "HUD brightness" sets the day level and Shift + H steps it
+  ([cockpit.md](cockpit.md) §5.1). `test_hud.gd`, `test_mvp.gd`. Open: the glass's edge line (an `f16.glb` rebuild).
 - **The ILS bars glide (2026-11-09, the Mac play test's finding 24):** the HUD's ILS lines sit at the exact
   deviation instead of the original's whole-pixel steps, which jumped about 5.5 screen pixels at a time on the 3D
   HUD glass ([real-hud.md](../../docs/real-hud.md#what-ours-draws-status)). `test_mvp.gd` checks all three jets.
