@@ -16,15 +16,16 @@
 # tools/f35i/bc.py: half size about the descriptor's eye); export_glb() lists what it adds and names, <out>.json its
 # lamps and the gear handle's turn.
 #   blender -b --python tools/f35i/cockpit3d.py -- shared/extra/planes/f35i/cockpit \
-#       --glb shared/extra/models/cockpit3d/f35i.glb
+#       --glb shared/extra/models/cockpit3d/f35i.glb          (NO_BAKE=1: without the baked look, a quick look)
 import json
 import math
 import os
 import sys
 
+import bmesh
 import bpy
 import numpy as np
-from mathutils import Matrix, Vector
+from mathutils import Euler, Matrix, Vector
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "plane"))
 import glb_ktx2  # noqa: E402
@@ -97,6 +98,11 @@ class Mats:
         self.grip = m("grip", (0.028, 0.028, 0.030), roughness=0.75, grain=0.2, wear=0.4)
         # The grips' hats and buttons and the consoles' push buttons: a lighter satin black, so they read on the grips.
         self.hat = m("hat", (0.040, 0.041, 0.044), roughness=0.45, wear=0.3)
+        # The grips' hats and buttons, the stick's collar and the throttle's band: dark grey satin, as plain colours
+        # a little lighter than the baked grip (docs/f35i.md §4.2; until the review of 2026-11-09 light grey metal,
+        # as the mock-up's, which read as white pegs).
+        self.hatg = m("hat_grey", (0.010, 0.010, 0.011), roughness=0.55, wear=0.3)
+        self.boot = m("stick_boot", (0.005, 0.005, 0.006), roughness=0.92)  # the stick's black rubber boot
         self.metal = m("switch", (0.16, 0.16, 0.17), metallic=1.0, roughness=0.3)  # the toggles' bats
         self.red = m("guard_red", (0.40, 0.02, 0.015), roughness=0.5)  # a guarded switch's red cover
         self.yellow = m("stripe_yellow", (0.80, 0.55, 0.02), roughness=0.5)
@@ -264,12 +270,10 @@ def build(mats, rail_3d=False):
                   [(x - s * 0.012, y, z + 0.034) for x, y, z in rail])
         for i, p in enumerate(rail[2:-6:3]):
             screw_head(f"rail_bolt{s}_{i}", (p[0] - s * 0.0425, p[1], p[2] + 0.008), 0.0035, (0, -s * 90, 0), mats.alu)
-        box(f"console{s}", (s * 0.39, 0.10, -0.47), (0.17, 0.95, 0.10), mats.panel, bevel=0.012)
-        # The wall under the rail, in steps following it down to the tub (its wall from -0.52 m).
-        for i, (y0, y1) in enumerate(zip(np.arange(-0.55, 0.85, 0.1), np.arange(-0.45, 0.95, 0.1))):
-            top = min(z for x, y, z in rail if y0 - 0.06 <= y <= y1 + 0.06) - 0.03
-            box(f"wall{s}_{i}", (s * 0.47, (y0 + y1) / 2, (top - 0.53) / 2), (0.03, 0.1, top + 0.53), mats.panel,
-                bevel=0.004)
+        box(f"console{s}", (s * 0.39, 0.10, CZ - 0.055), (0.17, 0.95, 0.10), mats.panel, bevel=0.012)
+        # The wall under the rail: one smooth plate swept along it from beside the eye (bc.py's carries it on behind)
+        # down past the consoles (until 2026-11-09 fourteen stepped boxes, their seams showing looking aside).
+        kit.sweep(f"wall{s}", mats.panel, WALL_PROFILE, [p for p in rail if p[1] > -0.16])
     if rail_3d:  # the canopy's frame arch over the head, from rail to rail (bc.py's, on the lower rails)
         kit.sweep("canopy_arch", mats.rubber, ARCH_BAND, arch_path(), ref=(0, 1, 0))
     consoles(mats)
@@ -278,8 +282,9 @@ def build(mats, rail_3d=False):
 
 # The consoles' switch panels (docs/f35i.md §4.2): the real jet's side panels carry a mix of toggles, guarded toggles,
 # rotary knobs and push buttons with printed labels (the photos, §5); which switch sits where is inferred. CZ is the
-# panels' top; [x, y, w, h, (kind, dx, dy, label) per control].
-CZ = -0.415
+# panels' top (the consoles' top, at the hands' height, docs/f35i.md §4.1 "Eye position"; until 2026-11-09 -0.415, the
+# grips' palms at the shoulders); [x, y, w, h, (kind, dx, dy, label) per control].
+CZ = -0.57
 CONSOLE_PANELS = {
     "L0": (-0.39, 0.49, 0.145, 0.10, [("guard_red", -0.044, -0.01, "ENG"), ("toggle", 0.0, -0.01, "IPP"),
                                       ("push", 0.044, -0.01, "START")]),
@@ -354,87 +359,178 @@ def consoles(mats):
         top_label(name, text, x, y, mats)
     for text, y in (("IDLE", THROTTLE_XY[1] - THROTTLE_AFT), ("MIL", THROTTLE_XY[1]),
                     ("AB", THROTTLE_XY[1] + THROTTLE_AB)):  # inboard of the track
-        top_label("lbl_thr_" + text, text, -0.321, y, mats, size=0.0050, z=-0.42)
-        kit.box("thr_mark_" + text, (-0.3375, y, -0.4195), (0.0035, 0.0012, 0.001), mats.label, bevel=0)
+        top_label("lbl_thr_" + text, text, -0.321, y, mats, size=0.0050, z=CZ - 0.005)
+        kit.box("thr_mark_" + text, (-0.3375, y, CZ - 0.0045), (0.0035, 0.0012, 0.001), mats.label, bevel=0)
 
 
-def stub(name, base, nrm, r, h, m, verts=12):
-    """A cylinder (a button, a hat) along `nrm` from `base` on a grip, its inner quarter sunk in it."""
-    n = Vector(nrm).normalized()
-    rot = Vector((0, 0, 1)).rotation_difference(n).to_euler()
-    return kit.cyl(name, Vector(base) + n * h * 0.25, r, h, m, rot=[math.degrees(a) for a in rot], verts=verts)
-
-
-# The side-stick's grip (after the mock-up's, docs/f35i.md §4.2): a slim stem swelling at the palm, its head bending
-# forward over the fingers; rings (z, dx, dy, rx, ry ahead, ry behind) about STICK.
-STICK_RINGS = ((-0.392, 0, 0, 0.012, 0.012, 0.012), (-0.375, 0, 0, 0.015, 0.016, 0.018),
-               (-0.360, 0, 0.001, 0.018, 0.019, 0.025), (-0.340, -0.001, 0.003, 0.0195, 0.020, 0.028),
-               (-0.318, -0.001, 0.006, 0.019, 0.019, 0.026), (-0.298, -0.002, 0.009, 0.017, 0.018, 0.022),
-               (-0.282, -0.002, 0.012, 0.018, 0.022, 0.019), (-0.268, -0.003, 0.016, 0.020, 0.035, 0.018),
-               (-0.257, -0.003, 0.019, 0.019, 0.037, 0.016), (-0.249, -0.003, 0.020, 0.015, 0.031, 0.012),
-               (-0.244, -0.003, 0.021, 0.008, 0.018, 0.006), (-0.2425, -0.003, 0.021, 0.002, 0.004, 0.0015))
-# The throttle's grip (after the mock-up's): a broad body under the palm, a neck and a head with the thumb's hats;
-# rings as the stick's about its arm on the track, THROTTLE_XY at military power.
-THROTTLE_RINGS = ((-0.378, 0, 0, 0.018, 0.026, 0.026), (-0.366, 0, 0, 0.023, 0.038, 0.036),
-                  (-0.345, 0.001, 0.002, 0.026, 0.045, 0.040), (-0.322, 0.002, 0.003, 0.026, 0.045, 0.040),
-                  (-0.302, 0.003, 0.001, 0.023, 0.038, 0.034), (-0.290, 0.004, -0.003, 0.018, 0.026, 0.026),
-                  (-0.281, 0.005, -0.006, 0.0155, 0.020, 0.021), (-0.271, 0.006, -0.007, 0.016, 0.022, 0.021),
-                  (-0.262, 0.006, -0.007, 0.0175, 0.026, 0.020), (-0.254, 0.006, -0.007, 0.015, 0.022, 0.016),
-                  (-0.249, 0.006, -0.007, 0.009, 0.013, 0.009), (-0.2475, 0.006, -0.007, 0.002, 0.003, 0.002))
+# The side-stick's grip after the mock-up's (docs/f35i.md §4.2): about three times as tall as wide, a slim stem with a
+# small flare at its foot, swelling at the palm (behind) and the fingers (gentle grooves ahead), its head bulging
+# forward over the trigger; the whole leaning forward, the head more. Sections (s, lean, rx, ry ahead, ry behind, dx)
+# up a spine from the collar (grip()).
+STICK_GRIP = ((0.000, 6, 0.0125, 0.013, 0.013, 0), (0.005, 6, 0.0155, 0.016, 0.016, 0),
+              (0.014, 6, 0.0145, 0.0155, 0.017, 0), (0.030, 7, 0.0160, 0.0175, 0.021, 0),
+              (0.042, 7, 0.0170, 0.0160, 0.024, 0), (0.054, 8, 0.0180, 0.0180, 0.026, 0),
+              (0.066, 8, 0.0185, 0.0165, 0.026, 0), (0.078, 9, 0.0185, 0.0180, 0.024, 0),
+              (0.090, 11, 0.0180, 0.0175, 0.022, 0), (0.101, 16, 0.0190, 0.0250, 0.020, 0),
+              (0.112, 22, 0.0205, 0.0330, 0.0195, 0), (0.123, 28, 0.0205, 0.0350, 0.019, 0),
+              (0.132, 32, 0.0190, 0.0325, 0.017, 0), (0.138, 35, 0.0145, 0.0250, 0.0125, 0),
+              (0.1415, 36, 0.0070, 0.0120, 0.006, 0), (0.1425, 36, 0.0015, 0.0025, 0.0012, 0))
+# The throttle's grip after the mock-up's: a broad flat-sided body under the palm, reaching aft for the heel of the
+# hand, a narrow neck and a flared head leaning forward with the thumb's controls on top; sections as the stick's, up
+# from its post on the carriage.
+THROTTLE_GRIP = ((0.000, 12, 0.0170, 0.026, 0.040, 0, 4.0), (0.004, 12, 0.0200, 0.030, 0.045, 0, 4.5),
+                 (0.020, 14, 0.0215, 0.031, 0.047, 0, 4.5), (0.040, 16, 0.0215, 0.030, 0.045, 0, 4.5),
+                 (0.052, 18, 0.0205, 0.026, 0.036, 0, 4.0), (0.062, 21, 0.0185, 0.020, 0.025, 0, 3.0),
+                 (0.072, 25, 0.0160, 0.016, 0.018, 0), (0.083, 29, 0.0175, 0.022, 0.020, 0),
+                 (0.093, 32, 0.0195, 0.026, 0.022, 0), (0.101, 34, 0.0180, 0.024, 0.020, 0),
+                 (0.107, 35, 0.0120, 0.016, 0.013, 0), (0.110, 35, 0.0040, 0.005, 0.004, 0),
+                 (0.1105, 35, 0.0010, 0.0012, 0.001, 0))
 THROTTLE_XY = (-0.36, 0.30)
+STICK_FOOT = 0.047  # the grip's foot over the console top CZ: the housing's top, the collar and the bellows
 
 
-def grip(name, xy, rings, mats, power):
-    rings = [(xy[0] + dx, xy[1] + dy, z, rx, ryf, ryb) for z, dx, dy, rx, ryf, ryb in rings]
-    kit.loft(name, mats.grip, rings, n=24, power=power)
-    return rings
+def grip(name, base, sections, m, n=24, default_power=2.4, subdiv=1):
+    """A grip as a smooth solid round a bending spine: `sections` [(s, lean, rx, ryf, ryb, dx)] up from `base`
+    (x, y, z): s m along the spine, which leans `lean` deg forward there (its direction, integrated), each section a
+    superellipse square to it (rx across, ryf ahead, ryb behind; `dx` across offset; a seventh value its power, else
+    `default_power`). The ends close in small rings;
+    a subdivision level smooths it (no facets). Returns [(centre, up, fwd, rx, ryf, ryb)] for placing buttons."""
+    bm = bmesh.new()
+    frames, p, s0 = [], Vector(base), 0.0
+    for s, lean, rx, ryf, ryb, dx, *pw in sections:
+        t = math.radians(lean)
+        up, fwd = Vector((0, math.sin(t), math.cos(t))), Vector((0, math.cos(t), -math.sin(t)))
+        p = p + up * (s - s0)
+        s0 = s
+        frames.append((p + Vector((dx, 0, 0)), up, fwd, rx, ryf, ryb))
+    rings = []
+    for (c, up, fwd, rx, ryf, ryb), sec in zip(frames, sections):
+        ring = []
+        power = sec[6] if len(sec) > 6 else default_power
+        for k in range(n):
+            a = 2 * math.pi * k / n
+            u = math.copysign(abs(math.cos(a)) ** (2 / power), math.cos(a))
+            v = math.copysign(abs(math.sin(a)) ** (2 / power), math.sin(a))
+            ring.append(bm.verts.new(c + Vector((rx * u, 0, 0)) + fwd * ((ryf if v > 0 else ryb) * v)))
+        rings.append(ring)
+    for r0, r1 in zip(rings, rings[1:]):
+        for k in range(n):
+            bm.faces.new((r0[k], r0[(k + 1) % n], r1[(k + 1) % n], r1[k]))
+    bm.faces.new(list(reversed(rings[0])))
+    bm.faces.new(rings[-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    o = bpy.data.objects.new(name, me)
+    kit.scene().collection.objects.link(o)
+    o.data.materials.append(m)
+    for poly in o.data.polygons:
+        poly.use_smooth = True
+    if subdiv:
+        o.modifiers.new("subd", 'SUBSURF').levels = o.modifiers["subd"].render_levels = subdiv
+    return frames
+
+
+def on_grip(frames, s, a, out=0.0):
+    """The point on grip()'s surface at section index-fraction `s` (0 .. len - 1) and angle `a` (deg: 0 = +x, 90
+    ahead, 180 = -x, 270 behind), `out` m outward, and its outward normal."""
+    i = min(int(s), len(frames) - 2)
+    t = s - i
+    (c0, u0, f0, rx0, yf0, yb0), (c1, u1, f1, rx1, yf1, yb1) = frames[i], frames[i + 1]
+    c, fwd = c0.lerp(c1, t), f0.lerp(f1, t).normalized()
+    ahead = math.sin(math.radians(a)) > 0
+    rx, ry = rx0 + (rx1 - rx0) * t, (yf0 + (yf1 - yf0) * t) if ahead else (yb0 + (yb1 - yb0) * t)
+    ca, sa = math.cos(math.radians(a)), math.sin(math.radians(a))
+    nrm = (Vector((ca / rx, 0, 0)) + fwd * (sa / ry)).normalized()
+    return c + Vector((rx * ca, 0, 0)) + fwd * (ry * sa) + nrm * out, nrm
+
+
+def hat(name, c, nrm, r, mats, four_way=False):
+    """A hat switch or button on a grip at `c` along `nrm`: a dark boss, a dark satin cap with a domed top and, on a
+    four-way hat, a cross of ridges."""
+    n = Vector(nrm).normalized()
+    rot = [math.degrees(a) for a in Vector((0, 0, 1)).rotation_difference(n).to_euler()]
+    kit.cyl(name + "_boss", c + n * 0.0005, r * 1.35, 0.004, mats.knob, rot=rot, verts=16)
+    kit.cyl(name, c + n * 0.0035, r, 0.004, mats.hatg, rot=rot, verts=16)
+    screw_head(name + "_dome", c + n * 0.0055, r * 0.98, rot, mats.hatg)
+    if four_way:
+        for k, a in enumerate((0, 90)):
+            # Its Euler angles at creation (a quaternion set afterwards was lost in the export's bake, and the ridges
+            # stood up to 0.5 m from the grips until 2026-11-09).
+            q = Vector((0, 0, 1)).rotation_difference(n) @ Euler((0, 0, math.radians(a))).to_quaternion()
+            kit.box(f"{name}_ridge{k}", c + n * 0.0068, (r * 1.7, 0.0012, 0.0012), mats.hatg,
+                    rot=[math.degrees(e) for e in q.to_euler()], bevel=0)
 
 
 def hotas(mats):
-    """The side-stick on the right console's front and the throttle on its track on the left (docs/f35i.md §4.2):
-    contoured dark grips with their hats and buttons as small parts of their own. The moving parts are named stickm_*
-    and throttlem_* (export_glb joins them into side_stick and throttle)."""
+    """The side-stick on its housing at the right console's front and the throttle on its track on the left
+    (docs/f35i.md §4.2): smooth subdivided grips (grip()) in a worn matte black, their hats and buttons light grey
+    as the mock-up's. The moving parts are named stickm_* and throttlem_* (export_glb joins them into side_stick and
+    throttle)."""
     box, cyl = kit.box, kit.cyl
     sx, sy = STICK
-    box("stick_base", (sx, sy, -0.425), (0.085, 0.11, 0.03), mats.bezel, bevel=0.008)
+    # The housing: a raised black box at the console's front, bolted, with a dark metal collar and the black rubber
+    # boot's rings under the grip (the mock-up's are bare metal; until the review of 2026-11-09 chrome here).
+    box("stick_base", (sx, sy, CZ + 0.012), (0.085, 0.12, 0.036), mats.bezel, bevel=0.008)
     for i, (dx, dy) in enumerate(((-1, -1), (1, -1), (-1, 1), (1, 1))):
-        screw_head(f"stick_base_scr{i}", (sx + dx * 0.034, sy + dy * 0.047, -0.41), 0.0018, (0, 0, 0), mats.alu)
-    cyl("stick_collar", (sx, sy, -0.4085), 0.024, 0.003, mats.alu, rot=(0, 0, 0), verts=32)
-    for i, (r, z) in enumerate(((0.020, -0.4045), (0.0165, -0.4005), (0.019, -0.3965), (0.015, -0.3925))):
-        cyl(f"stick_boot{i}", (sx, sy, z), r, 0.0045, mats.seal, rot=(0, 0, 0), verts=24)  # the rubber bellows
-    st = grip("stickm_grip", STICK, STICK_RINGS, mats, 2.3)
-    hx, hy = sx - 0.003, sy + 0.017
-    cyl("stickm_trim", (hx, hy, -0.2435), 0.0048, 0.004, mats.hat, rot=(0, 0, 0), verts=16)  # the trim hat on top
-    cyl("stickm_trim_cap", (hx, hy, -0.2405), 0.0028, 0.003, mats.hat, rot=(0, 0, 0), verts=12)
-    for name, z, a, r, up in (("pickle", -0.250, 125, 0.0045, 1.2),  # the weapon release, top left ahead
-                              ("tms", -0.261, 165, 0.0042, 0.3),  # the thumb's hats on the head's left
-                              ("dms", -0.276, 182, 0.0036, 0.0),
-                              ("cms", -0.262, 15, 0.0036, 0.2)):  # and its right
-        p, nrm = kit.loft_point(st, z, math.radians(a))
-        stub(f"stickm_{name}", p, nrm + Vector((0, 0, up)), r, 0.008, mats.hat)
-    # The trigger hanging under the head's front, the paddle switch low on the grip's front.
-    box("stickm_trigger", (sx - 0.003, sy + 0.040, -0.286), (0.008, 0.005, 0.019), mats.hat, rot=(-12, 0, 0),
-        bevel=0.002)
-    box("stickm_paddle", (sx, sy + 0.029, -0.346), (0.012, 0.004, 0.022), mats.hat, rot=(22, 0, 0), bevel=0.0015)
+        screw_head(f"stick_base_scr{i}", (sx + dx * 0.034, sy + dy * 0.050, CZ + 0.030), 0.0018, (0, 0, 0), mats.alu)
+    cyl("stick_collar", (sx, sy, CZ + 0.0315), 0.022, 0.003, mats.hatg, rot=(0, 0, 0), verts=32)
+    for i, (r, dz) in enumerate(((0.0185, 0.035), (0.0155, 0.0385), (0.0175, 0.042), (0.0145, 0.0455))):
+        cyl(f"stick_boot{i}", (sx, sy, CZ + dz), r, 0.0036, mats.boot, rot=(0, 0, 0), verts=24)
+    st = grip("stickm_grip", (sx, sy, CZ + STICK_FOOT), STICK_GRIP, mats.grip, n=24, default_power=2.3)
+    top = len(STICK_GRIP) - 3  # the head's top section
+    c, up, fwd = st[top][0], st[top][1], st[top][2]
+    hat("stickm_trim", c + up * 0.0035 - fwd * 0.002, up, 0.0050, mats, four_way=True)  # the trim hat on top
+    for name, s, a, r, tilt, four in (("pickle", top - 1.0, 120, 0.0042, 0.9, False),  # weapon release, ahead left
+                                      ("tms", top - 2.0, 170, 0.0042, 0.5, True),  # the thumb's hats on the left
+                                      ("dms", top - 3.4, 185, 0.0036, 0.2, True),
+                                      ("cms", top - 1.6, 215, 0.0038, 0.5, True)):
+        p, nrm = on_grip(st, s, a)
+        hat(f"stickm_{name}", p, nrm + up * tilt, r, mats, four_way=four)
+    # The trigger: a curved blade under the head's front, in a lighter guard ring; the lever low behind.
+    p, _ = on_grip(st, 8.6, 90)
+    f8, u8 = st[8][2], st[8][1]
+    blade = [tuple(p + f8 * df - u8 * du) for df, du in ((-0.006, 0.0), (0.003, 0.003), (0.006, 0.011),
+                                                        (0.004, 0.019), (-0.005, 0.023))]
+    kit.sweep("stickm_trigger", mats.hatg, kit.rounded_rect(0.005, 0.013, 0.002), spline(blade, 12), ref=(1, 0, 0))
+    p, _ = on_grip(st, 3.0, 270)
+    lever = [tuple(p + st[3][2] * df - st[3][1] * du) for df, du in ((0.004, 0.0), (-0.006, 0.006),
+                                                                    (-0.009, 0.016))]
+    kit.sweep("stickm_paddle", mats.hatg, kit.rounded_rect(0.005, 0.016, 0.002), spline(lever, 8), ref=(1, 0, 0))
 
-    # The throttle: its track (a plate with a slot) and the grip on an arm riding in it.
+    # The throttle's track: a plate along the console with the slot and its two black brush seals, end stops, the
+    # friction knob aft of it; the grip rides on a carriage in the slot.
     tx, ty = THROTTLE_XY
-    box("throttle_rail", (tx, 0.22, -0.4165), (0.045, 0.32, 0.007), mats.bezel, bevel=0.002)
-    box("throttle_slot", (tx, 0.22, -0.4128), (0.008, 0.30, 0.0016), mats.seal, bevel=0)
-    box("throttlem_arm", (tx, ty - 0.005, -0.393), (0.016, 0.03, 0.05), mats.grip, bevel=0.004)
-    th = grip("throttlem_grip", THROTTLE_XY, THROTTLE_RINGS, mats, 2.6)
-    cyl("throttlem_slew", (tx + 0.006, ty - 0.008, -0.2485), 0.0055, 0.004, mats.hat, rot=(0, 0, 0), verts=16)
-    cyl("throttlem_slew_cap", (tx + 0.006, ty - 0.008, -0.2455), 0.0032, 0.003, mats.hat, rot=(0, 0, 0), verts=12)
-    for name, z, a, r, up in (("comm", -0.262, 90, 0.0042, 0.3),  # ahead on the head
-                              ("hat", -0.268, 15, 0.0045, 0.2),  # the thumb's 4-way hat, inboard
-                              ("boat", -0.300, 0, 0.0035, 0.0),
-                              ("cursor", -0.318, 80, 0.0040, 0.0),  # the fingers', on the front
-                              ("pinkie", -0.350, 95, 0.0040, 0.0),
-                              ("rear", -0.330, -60, 0.0035, 0.0)):
-        p, nrm = kit.loft_point(th, z, math.radians(a))
-        stub(f"throttlem_{name}", p, nrm + Vector((0, 0, up)), r, 0.008, mats.hat)
-    p, nrm = kit.loft_point(th, -0.330, math.pi)  # the speed brake's slide, outboard
-    box("throttlem_spdbrk", tuple(p), (0.006, 0.018, 0.007), mats.hat, bevel=0.0015)
+    y0, y1 = ty - THROTTLE_AFT - 0.03, ty + THROTTLE_AB + 0.03
+    ym, ly = (y0 + y1) / 2, y1 - y0
+    box("throttle_rail", (tx, ym, CZ + 0.002), (0.066, ly + 0.03, 0.008), mats.bezel, bevel=0.003)
+    box("throttle_slot", (tx, ym, CZ + 0.0062), (0.016, ly, 0.0012), mats.seal, bevel=0)
+    for s in (-1, 1):
+        box(f"throttle_brush{s}", (tx + s * 0.0055, ym, CZ + 0.0068), (0.005, ly, 0.0016), mats.seal, bevel=0.0006)
+        box(f"throttle_stop{s}", (tx, ym + s * (ly / 2 + 0.006), CZ + 0.0085), (0.024, 0.006, 0.006), mats.knob,
+            bevel=0.0015)
+    for i, (dx, dy) in enumerate(((-1, -1), (1, -1), (-1, 1), (1, 1))):
+        screw_head(f"throttle_rail_scr{i}", (tx + dx * 0.026, ym + dy * (ly / 2 + 0.008), CZ + 0.006), 0.0018,
+                   (0, 0, 0), mats.alu)
+    console_knob("throttle_friction", tx, y0 - 0.032, mats, r=0.007)  # aft of the track
+    box("throttlem_carriage", (tx, ty - 0.004, CZ + 0.014), (0.030, 0.055, 0.016), mats.bezel, bevel=0.005)
+    box("throttlem_post", (tx, ty, CZ + 0.032), (0.026, 0.028, 0.026), mats.knob, bevel=0.003)  # the square post
+    cyl("throttlem_band", (tx, ty, CZ + 0.0455), 0.0165, 0.004, mats.hatg, rot=(0, 0, 0), verts=24)
+    th = grip("throttlem_grip", (tx, ty, CZ + 0.046), THROTTLE_GRIP, mats.grip, n=24, default_power=2.6)
+    top = len(THROTTLE_GRIP) - 4
+    c, up, fwd = th[top][0], th[top][1], th[top][2]
+    hat("throttlem_slew", c + up * 0.003, up, 0.0055, mats)  # the thumb's slew control on top
+    for name, s, a, r, tilt, four in (("comm", top - 1.0, 90, 0.0042, 0.5, True),  # ahead on the head
+                                      ("hat", top - 1.0, 10, 0.0045, 0.3, True),  # the thumb's 4-way, inboard
+                                      ("boat", top - 2.2, 20, 0.0036, 0.0, False),
+                                      ("cursor", 3.6, 80, 0.0042, 0.0, True),  # the fingers', on the front
+                                      ("pinkie", 2.0, 95, 0.0040, 0.0, False),
+                                      ("rear", 3.0, 300, 0.0036, 0.0, False)):
+        p, nrm = on_grip(th, s, a)
+        hat(f"throttlem_{name}", p, nrm + up * tilt, r, mats, four_way=four)
+    p, nrm = on_grip(th, 3.0, 180)  # the speed brake's slide, outboard
+    box("throttlem_spdbrk", tuple(p + nrm * 0.002), (0.005, 0.020, 0.008), mats.hatg, bevel=0.0018)
 
 
 # The night floodlights' colour: a neutral, slightly cool white (white is one of MIL-STD-3009's NVIS cockpit lighting
@@ -448,8 +544,10 @@ def floods():
     out = []
     for name, loc, rot, size, watts in (("flood_panel", (0, 0.665, -0.14 - PANEL_DROP), (-60, 0, 0), (0.55, 0.02),
                                          FLOOD_W),
-                                        ("flood_l", (-0.43, 0.30, -0.25), (0, -40, 0), (0.05, 0.4), FLOOD_W * 0.15),
-                                        ("flood_r", (0.43, 0.30, -0.25), (0, 40, 0), (0.05, 0.4), FLOOD_W * 0.15)):
+                                        ("flood_l", (-0.43, 0.30, CZ + 0.165), (0, -40, 0), (0.05, 0.4),
+                                         FLOOD_W * 0.15),
+                                        ("flood_r", (0.43, 0.30, CZ + 0.165), (0, 40, 0), (0.05, 0.4),
+                                         FLOOD_W * 0.15)):
         light = bpy.data.lights.new(name, 'AREA')
         light.shape = 'RECTANGLE'
         light.size, light.size_y = size
@@ -587,10 +685,13 @@ RAIL = ((0.42, -1.1, -0.32), (0.46, -0.6, -0.35), (0.47, -0.05, -0.36), (0.47, 0
            (0.45, 0.9, -0.45), (0.42, 1.2, -0.51), (0.36, 1.5, -0.56), (0.26, 1.8, -0.60), (0.12, 2.0, -0.62))
 # The arch: a broad dark band (ARCH_BAND: 4.5 cm deep, 9 cm wide fore and aft, matte as the glareshield) standing on
 # the rails ARCH_Y behind the eye, leaning forward ARCH_LEAN to its top ARCH_TOP over the eye, as the photos from the
-# side show it (docs/f35i.md §4.1; the numbers inferred). Until 2026-11-09 a light grey 7 x 5 cm pipe upright 0.75 m
-# behind the eye. bc.py's is the same.
-ARCH_Y, ARCH_TOP, ARCH_LEAN = -0.42, 0.21, 0.28
+# side show it (docs/f35i.md §4.1; the numbers inferred). Its inner face keeps MIL-STD-1333B's 13 in (0.33 m) head
+# clearance round the eye (§4.1 "Eye position"; its top 0.21 m over the eye until 2026-11-09). Until 2026-11-09 a
+# light grey 7 x 5 cm pipe upright 0.75 m behind the eye. bc.py's is the same.
+ARCH_Y, ARCH_TOP, ARCH_LEAN = -0.42, 0.325, 0.28
 ARCH_BAND = kit.rounded_rect(0.045, 0.09, 0.014)
+# The cockpit's side wall under each rail (u across, v up from the rail's centre line): 3 cm thick, 0.40 m deep.
+WALL_PROFILE = [(u, v - 0.23) for u, v in kit.rounded_rect(0.03, 0.40, 0.004)]
 
 
 def arch_path(z0=-0.34, n=33):
@@ -612,7 +713,7 @@ GEAR_DEG = math.degrees(math.atan2(GEAR_TRAVEL, 0.046 + GEAR_PIVOT))
 # inch, docs/f35i.md §4.5; the angle inferred). The throttle slides along its rail (a linear track): its arm at idle
 # THROTTLE_AFT m behind the render's place (military power), past the afterburner detent (0.75) THROTTLE_AB m ahead
 # of it.
-STICK_PIVOT_Z = -0.39
+STICK_PIVOT_Z = CZ + STICK_FOOT - 0.01
 STICK_DEG = 3.0
 THROTTLE_AFT, THROTTLE_AB = 0.18, 0.04
 # By day each colour glows by itself × the sun's × DAY_FILL (cockpit3d.gd), so the panel reads as light and neutral as
@@ -651,27 +752,97 @@ def screen_quad(name, x, z, w, h, depth, mat):
 # The tub's boxes bevelled: the wear's rubbed edges follow the vertices' pointiness, and a plain box's 8 corners spread
 # them over whole faces (the footwell came out light grey).
 TUB_BEVEL = 0.004
+# The floor (heel rest), its rear end and the footwell's front wall (docs/f35i.md §4.1 "Eye position").
+FLOOR_Z, FLOOR_Y0, FOOTWELL_Y = -0.90, -0.45, 1.02
+# The seat reference point (y, z about the eye), the cushion's depth and its rise forward (deg); the pedals' place.
+SRP = (-0.12, -0.79)
+SEAT_DEPTH, PAN_DEG = 0.44, 6.0
+PEDAL_X, PEDAL_Y, PEDAL_Z, PEDAL_DEG = 0.17, 0.90, -0.79, 18.0
+PEDESTAL_HALF = 0.075  # the centre pedestal between the knees, under the panel's
+FACE_FOOT = (0.575, -0.61)  # the panel face's bottom edge (y, z)
+
+
+def pedals(mats):
+    """The rudder pedals in the footwell: each a plate leaning forward with a raised rim and a heel ledge, on an arm
+    from its housing in the front wall."""
+    box = kit.box
+    for s in (-1, 1):
+        x = s * PEDAL_X
+        box(f"pedal{s}", (x, PEDAL_Y, PEDAL_Z), (0.085, 0.016, 0.17), mats.grip, rot=(-PEDAL_DEG, 0, 0), bevel=0.005)
+        t = math.radians(PEDAL_DEG)
+        for k, dz in enumerate((0.075, -0.075)):  # the toe and heel rims
+            box(f"pedal_rim{s}_{k}", (x, PEDAL_Y - 0.012 + dz * math.sin(t), PEDAL_Z + dz * math.cos(t)),
+                (0.089, 0.014, 0.012), mats.bezel, rot=(-PEDAL_DEG, 0, 0), bevel=0.003)
+        for k, dz in enumerate((-0.04, 0.0, 0.04)):  # the tread ribs
+            box(f"pedal_rib{s}_{k}", (x, PEDAL_Y - 0.009 + dz * math.sin(t), PEDAL_Z + dz * math.cos(t)),
+                (0.07, 0.004, 0.006), mats.knob, rot=(-PEDAL_DEG, 0, 0), bevel=0.0015)
+        box(f"pedal_arm{s}", (x, (PEDAL_Y + FOOTWELL_Y) / 2 + 0.01, PEDAL_Z + 0.02), (0.03, FOOTWELL_Y - PEDAL_Y,
+                                                                                     0.03), mats.bezel, bevel=0.005)
+        box(f"pedal_box{s}", (x, FOOTWELL_Y - 0.03, PEDAL_Z + 0.02), (0.07, 0.05, 0.09), mats.panel, bevel=0.008)
+    # The pedals' adjustment crank between them, on the front wall.
+    kit.cyl("pedal_adj", (0, FOOTWELL_Y - 0.012, PEDAL_Z + 0.06), 0.018, 0.02, mats.knob, verts=24)
+
+
+def seat_bucket(mats):
+    """The US16E's bucket ahead of the seat reference point SRP: the cushion, the bucket's sides and front, and on
+    its front between the thighs the seat firing handle, a yellow and black striped loop on its black housing
+    (docs/f35i.md §4.1)."""
+    box = kit.box
+    y0, z0 = SRP
+    yf = y0 + SEAT_DEPTH
+    t = math.radians(PAN_DEG)
+    box("seat_pan", (0, y0 + SEAT_DEPTH / 2, z0 - 0.03 + SEAT_DEPTH / 2 * math.sin(t)), (0.40, SEAT_DEPTH, 0.06),
+        mats.rubber, rot=(PAN_DEG, 0, 0), bevel=0.02)
+    zt = z0 + SEAT_DEPTH * math.sin(t)  # the cushion's front top
+    h = zt - FLOOR_Z
+    for s in (-1, 1):
+        box(f"seat_side{s}", (s * 0.225, y0 + SEAT_DEPTH / 2 - 0.02, FLOOR_Z + (h + 0.06) / 2),
+            (0.03, SEAT_DEPTH + 0.04, h + 0.06), mats.frame, bevel=0.01)
+    box("seat_front", (0, yf + 0.005, FLOOR_Z + h / 2), (0.48, 0.03, h), mats.frame, bevel=0.01)
+    # The firing handle: a loop, taller than wide, standing up from its black fitting at the front of the cushion
+    # between the thighs, striped yellow and black; the yellow EGRESS placard beside it (the mock-up photo, §4.1).
+    fy, fz = yf - 0.015, zt + 0.004
+    kit.cyl("seat_handle_fit", (0, fy, fz + 0.008), 0.011, 0.022, mats.knob, rot=(0, 0, 0), verts=16)
+    lean = math.radians(15)
+    loop = []
+    for a in np.linspace(math.pi * 0.08, math.pi * 1.92, 49):  # both ends at the fitting, 12.4 cm tall
+        u, v = 0.038 * math.sin(a), 0.062 * (1 - math.cos(a))
+        loop.append((u, fy - v * math.sin(lean), fz + 0.018 + v * math.cos(lean)))
+    ring = [(0.0065 * math.cos(a), 0.0065 * math.sin(a)) for a in np.linspace(0, 2 * math.pi, 10, endpoint=False)]
+    for k in range(0, len(loop) - 2, 2):
+        kit.sweep(f"seat_handle{k}", mats.yellow if k // 2 % 2 == 0 else mats.knob, ring, loop[k:k + 3])
+    box("seat_egress", (-0.075, yf - 0.02, zt + 0.003), (0.07, 0.04, 0.003), mats.yellow, rot=(PAN_DEG, 0, 0),
+        bevel=0.001)
 
 
 def tub(mats):
     """The 3D cockpit's tub under the panel and consoles (the panel render never sees it; f35i_bc.gltf has nothing
-    ahead of the eye): the floor, the footwell's front, the walls down to the floor, the seat's front with the
-    ejection handle's yellow loop (§4.1)."""
+    ahead of the eye): the floor, the footwell's front, the walls down to the floor, the knee panels and the centre
+    pedestal between the knees, the rudder pedals, the seat's bucket with the firing handle (§4.1)."""
     box = kit.box
-    box("tub_floor", (0, 0.20, -0.92), (0.90, 1.30, 0.02), mats.floor, bevel=TUB_BEVEL)
-    box("tub_front", (0, 0.80, -0.70), (0.80, 0.02, 0.44), mats.panel, bevel=TUB_BEVEL)
+    ty, tz = (FLOOR_Y0 + FOOTWELL_Y) / 2, (FLOOR_Z + CZ) / 2
+    box("tub_floor", (0, ty, FLOOR_Z - 0.01), (0.90, FOOTWELL_Y - FLOOR_Y0, 0.02), mats.floor, bevel=TUB_BEVEL)
+    box("tub_front", (0, FOOTWELL_Y, (FLOOR_Z + FACE_FOOT[1]) / 2), (0.80, 0.02, FACE_FOOT[1] - FLOOR_Z + 0.1),
+        mats.panel, bevel=TUB_BEVEL)
     for s in (-1, 1):
-        box(f"tub_wall{s}", (s * 0.47, 0.20, -0.72), (0.03, 1.30, 0.40), mats.panel, bevel=TUB_BEVEL)
-        box(f"tub_console_side{s}", (s * 0.305, 0.215, -0.70), (0.02, 1.18, 0.44), mats.panel,  # to the front
+        box(f"tub_wall{s}", (s * 0.47, ty, tz), (0.03, FOOTWELL_Y - FLOOR_Y0, CZ - FLOOR_Z), mats.panel,
             bevel=TUB_BEVEL)
-    for s in (-1, 1):  # the rudder pedals at the footwell's front: a plate on an arm from the front wall
-        box(f"pedal{s}", (s * 0.13, 0.70, -0.80), (0.09, 0.02, 0.15), mats.grip, rot=(-15, 0, 0), bevel=0.006)
-        box(f"pedal_arm{s}", (s * 0.13, 0.75, -0.73), (0.025, 0.10, 0.025), mats.bezel, bevel=0.004)
-    box("seat_pan", (0, -0.25, -0.62), (0.42, 0.40, 0.08), mats.grip, bevel=0.02)
-    box("seat_front", (0, -0.06, -0.78), (0.42, 0.04, 0.26), mats.grip, bevel=0.01)
-    for s in (-1, 1):
-        box(f"seat_handle{s}", (s * 0.06, -0.035, -0.70), (0.015, 0.012, 0.06), mats.yellow, bevel=0.003)
-    box("seat_handle_bar", (0, -0.035, -0.67), (0.135, 0.012, 0.015), mats.yellow, bevel=0.003)
+        # The consoles' inner sides down to the floor, and the footwell's sides under the panel (the knee panels).
+        box(f"tub_console_side{s}", (s * 0.305, 0.10, tz - 0.03), (0.02, 0.95, CZ - FLOOR_Z - 0.06), mats.panel,
+            bevel=TUB_BEVEL)
+        box(f"knee_panel{s}", (s * 0.30, (FACE_FOOT[0] + FOOTWELL_Y) / 2, (FACE_FOOT[1] + FLOOR_Z) / 2),
+            (0.03, FOOTWELL_Y - FACE_FOOT[0], FACE_FOOT[1] - FLOOR_Z), mats.panel, bevel=TUB_BEVEL)
+    # The centre pedestal between the knees, from under the panel to the floor (the photos, §4.1), its rear face a
+    # bolted access plate (inferred).
+    py, pz = (FACE_FOOT[0] + 0.005 + FOOTWELL_Y) / 2, (FACE_FOOT[1] + 0.01 + FLOOR_Z) / 2
+    box("pedestal_low", (0, py, pz), (2 * PEDESTAL_HALF, FOOTWELL_Y - FACE_FOOT[0] - 0.005,
+                                      FACE_FOOT[1] + 0.01 - FLOOR_Z), mats.panel, bevel=TUB_BEVEL)
+    ay, az = FACE_FOOT[0] + 0.004, pz + 0.03
+    box("pedestal_plate", (0, ay - 0.002, az), (0.11, 0.004, 0.17), mats.bezel, bevel=0.002)
+    for i, (dx, dz) in enumerate(((-1, -1), (1, -1), (-1, 1), (1, 1))):
+        screw_head(f"pedestal_scr{i}", (dx * 0.046, ay - 0.004, az + dz * 0.075), 0.0018, (90, 0, 0), mats.alu)
+    pedals(mats)
+    seat_bucket(mats)
 
 
 def bake_atlas(objs, baked):
@@ -774,7 +945,8 @@ def export_glb(out, eye_g):
         o.matrix_world = k @ o.matrix_world
     kit.bake_transforms(objs)
     baked = [mats.panel, mats.rubber, mats.bezel, mats.frame, mats.grip, mats.seal, mats.floor]
-    bake_atlas([o for o in objs if o.data.materials and o.data.materials[0] in baked], baked)
+    if not os.environ.get("NO_BAKE"):  # NO_BAKE=1: plain colours only, a quick look (about a minute)
+        bake_atlas([o for o in objs if o.data.materials and o.data.materials[0] in baked], baked)
     swap = {getattr(mats, a): getattr(flat, a) for a in vars(mats) if a != "lens"}
     swap.update({mats.lens[key]: flat.lens[key] for key in mats.lens})
     for o in objs:

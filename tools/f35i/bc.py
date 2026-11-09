@@ -25,9 +25,13 @@ CUT = 0.10  # model m behind the eye: the cut (the panel art shows everything ah
 PRESENT_SCALE = 2.0
 SEAT_FLOOR = 0.40  # model m under the eye: the downloaded model's seat is cut away above it, inside the sills
 SEAT_HALF = 0.215  # model m either side (the sills 0.225 out; the skin outside them is kept)
+SILL, CANOPY_HALF, DECK_END = 0.17, 0.36, 1.13  # model m: the sills under the eye, the canopy's half width, its end
 SEAT_BACK = -0.60  # real m: the head box as modelled (its front 0.30 m behind the eye) moved back
+# The aft deck's centre line (real m about the eye): level behind the eye, then from under the seat's head box up to
+# the spine's front.
+DECK = ((0, -0.22, -0.45), (0, -0.80, -0.42), (0, -DECK_END * PRESENT_SCALE - 0.04, 0.02))
 # The canopy's frame arch, as cockpit3d.py's ARCH_Y, ARCH_TOP, ARCH_LEAN (real m about the eye).
-ARCH_Y, ARCH_TOP, ARCH_LEAN = -0.42, 0.21, 0.28
+ARCH_Y, ARCH_TOP, ARCH_LEAN = -0.42, 0.325, 0.28
 
 
 def seat(eye):
@@ -54,8 +58,9 @@ def seat(eye):
         out.append(kit.box(f"seat_rail{s}", (s * 0.145, -0.42, -0.26), (0.03, 0.05, 0.72), shell, bevel=0.006))
     for o in out:
         o.location += Vector((0, SEAT_BACK, 0))
-    # The back cushion from the 3D cockpit's seat pan (its rear 0.45 m behind the eye) back to the head box.
-    out.append(kit.box("seat_back", (0, -0.70, -0.60), (0.30, 0.50, 0.10), pad, bevel=0.02))
+    # The cushion from the 3D cockpit's seat pan (its rear at the seat reference point, cockpit3d.py SRP) back under
+    # the head box.
+    out.append(kit.box("seat_back", (0, -0.55, -0.80), (0.30, 0.80, 0.08), pad, bevel=0.02))
     kit.deselect()
     for o in out:
         o.location += eye
@@ -90,21 +95,24 @@ def main():
     kit.bisect([body], lambda c: True, (0, ycut, 0), (0, 1, 0))
     # The seat's box cut clean first (its faces are large: by their centres alone the cut left tall slivers standing
     # behind the rails until 2026-11-09).
-    near = lambda c: c.y > eye.y - 1.0 and abs(c.x) < 0.45  # noqa: E731
-    for co, no in (((0, 0, eye.z - SEAT_FLOOR), (0, 0, 1)), ((0, 0, eye.z - 0.15), (0, 0, 1)),
-                   ((0, eye.y - 0.8, 0), (0, 1, 0)), ((0.30, 0, 0), (1, 0, 0)), ((-0.30, 0, 0), (1, 0, 0)),
-                   ((SEAT_HALF, 0, 0), (1, 0, 0)), ((-SEAT_HALF, 0, 0), (1, 0, 0))):
+    near = lambda c: c.y > eye.y - DECK_END and abs(c.x) < CANOPY_HALF + 0.1  # noqa: E731
+    for co, no in (((0, 0, eye.z - SEAT_FLOOR), (0, 0, 1)), ((0, 0, eye.z - SILL), (0, 0, 1)),
+                   ((0, eye.y - DECK_END, 0), (0, 1, 0)), ((CANOPY_HALF, 0, 0), (1, 0, 0)),
+                   ((-CANOPY_HALF, 0, 0), (1, 0, 0)), ((SEAT_HALF, 0, 0), (1, 0, 0)), ((-SEAT_HALF, 0, 0), (1, 0, 0))):
         kit.bisect([body], near, co, no)
     # Ahead of the cut nothing is kept: the F-35's nose falls away under the glareshield (docs/f35i.md §4.1). Until
     # 2026-11-09 the fuselage ahead of the eye was an object of its own, f35i_bc_nose, seen over the glareshield.
-    # The downloaded model's seat goes too, down to SEAT_FLOOR under the eye (ours replaces it, seat() below): until
-    # 2026-11-09 its lower half stood behind the head as flat grey boxes with a slot.
+    # Under the canopy back to the spine (DECK_END) everything over the sills goes (CANOPY_HALF either side: the
+    # downloaded model's canopy frame and fairings stood there as grey blocks beside the rails until 2026-11-09), and
+    # inside the cockpit's walls (SEAT_HALF) everything down to SEAT_FLOOR: its seat and tub (ours replace them).
+    def dropped(f):
+        p = f.calc_center_median() - eye
+        return p.y > -CUT or (p.y > -DECK_END and (abs(p.x) < CANOPY_HALF and p.z > -SILL
+                                                     or abs(p.x) < SEAT_HALF and p.z > -SEAT_FLOOR))
+
     bm = bmesh.new()
     bm.from_mesh(body.data)
-    gone = [f for f in bm.faces if f.calc_center_median().y > ycut
-            or (f.calc_center_median().y > eye.y - 0.8
-                and (abs(f.calc_center_median().x) < 0.30 and f.calc_center_median().z > eye.z - 0.15
-                     or abs(f.calc_center_median().x) < SEAT_HALF and f.calc_center_median().z > eye.z - SEAT_FLOOR))]
+    gone = [f for f in bm.faces if dropped(f)]
     bmesh.ops.delete(bm, geom=gone, context='FACES')
     bm.to_mesh(body.data)
     bm.free()
@@ -113,15 +121,36 @@ def main():
     # panel's (cockpit3d.py RAIL); the arch is cockpit3d.py's (ARCH_*, which also draws it for the 3D cockpit).
     dark = kit.material("bc_frame", (0.055, 0.057, 0.062), roughness=0.5)
     band = kit.material("bc_arch", (0.013, 0.013, 0.015), roughness=0.9)  # the arch: matte, as the glareshield
+    # Ours too, in both cockpits (the body's): the side walls under the rails, as the 3D cockpit's (cockpit3d.py
+    # WALL_PROFILE), and the aft deck under the canopy behind the seat, rising to the spine (inferred: the photos
+    # show a dark deck there, docs/f35i.md §4.4).
+    paint = kit.material("bc_wall", (0.030, 0.032, 0.036), roughness=0.62)
+    inside = []
     for s in (-1, 1):
-        rail = [eye + Vector(p)
-                for p in ((s * 0.47, -CUT + 0.05, -0.36), (s * 0.46, -0.6, -0.35), (s * 0.42, -1.1, -0.32))]
+        rail = [eye + Vector(p) for p in ((s * 0.47, -CUT + 0.05, -0.36), (s * 0.46, -0.6, -0.35),
+                                          (s * 0.44, -1.1, -0.32), (s * 0.43, -DECK_END * PRESENT_SCALE, -0.30))]
         kit.sweep(f"rail{s}", dark, kit.rounded_rect(0.085, 0.060, 0.022), [tuple(p) for p in rail])
+        inside.append(kit.sweep(f"wall{s}", paint, [(u, v - 0.23) for u, v in kit.rounded_rect(0.03, 0.40, 0.004)],
+                                [tuple(p) for p in rail]))
+    deck = [(u, 0.09 * (1 - (u / 0.45) ** 2)) for u in np.linspace(0.45, -0.45, 13)] + [(-0.45, -0.05), (0.45, -0.05)]
+    # The deck dark matte, as the sills and consoles read (the wall paint took the sun light grey there), with the
+    # canopy actuator's fairing along its crown and a panel seam across it (inferred).
+    matte = kit.material("bc_deck", (0.012, 0.012, 0.014), roughness=0.92)
+    inside.append(kit.sweep("deck", matte, deck, [tuple(eye + Vector(p)) for p in DECK]))
+    inside.append(kit.sweep("deck_fairing", matte, [(u, v + 0.095) for u, v in kit.rounded_rect(0.11, 0.05, 0.02)],
+                            [tuple(eye + Vector(p)) for p in DECK[1:]]))
+    seam = kit.material("bc_seam", (0.004, 0.004, 0.005), roughness=0.9)
+    t = 0.45  # the seam's place along the ramp
+    p = Vector(DECK[1]).lerp(Vector(DECK[2]), t)
+    inside.append(kit.sweep("deck_seam", seam, [(0.003 * math.cos(a), 0.003 * math.sin(a)) for a in
+                                                 np.linspace(0, 2 * math.pi, 6, endpoint=False)],
+                            [tuple(eye + p + Vector((u, 0, 0.09 * (1 - (u / 0.45) ** 2) + 0.005)))
+                             for u in np.linspace(-0.44, 0.44, 13)], ref=(0, 1, 0)))
     arch = [tuple(eye + Vector((0.46 * math.sin(a), ARCH_Y + ARCH_LEAN * math.cos(a),
                                 -0.34 + (ARCH_TOP + 0.34) * math.cos(a))))
             for a in np.linspace(-math.pi / 2, math.pi / 2, 33)]
     kit.sweep("arch", band, kit.rounded_rect(0.045, 0.09, 0.014), arch, ref=(0, 1, 0))
-    seat_parts = seat(eye)
+    seat_parts = seat(eye) + inside
     # Modelled in real metres around the eye, like the panel art; the game draws the jet at the Present scale (2.0,
     # docs/adding-a-plane.md §2), so they shrink by half about the eye to come out real size.
     parts = [o for o in kit.scene().objects if o.type == 'MESH' and o is not body]
