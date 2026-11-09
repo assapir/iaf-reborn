@@ -25,9 +25,9 @@ IAF_JET=F-16I IAF_INSTALL=$PWD/assets/converted/own cargo test --release -p iaf-
 every key the loader reads, each with its source as a comment.
 
 The Rust module is the port of the first version, the Python script `fm0.py` (2026-11-02, removed), and
-writes the same bytes: its sums are Python's compensated `sum()`, its rounding ties to even. The test
-`sim_fm0::tests::output_is_fm0_py_byte_for_byte` holds the hashes of the script's last output (9 November 2026,
-Python 3.14.9). The files' comments still name the script, so the bytes stay the same.
+keeps its arithmetic: its sums are Python's compensated `sum()`, its rounding ties to even. Until commit 1c610001 the
+output equalled the script's last output (9 November 2026, Python 3.14.9) byte for byte. Since then the files'
+comments name `iaf-sim fm`. The test `sim_fm0::tests::output_matches_fixture` holds the SHA-256 of the output.
 
 | sim jet | flies as (type, `data_set::TYPES`) | own section | on top: REAL row |
 |---|---|---|---|

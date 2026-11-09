@@ -15,9 +15,8 @@
 //! "F-16", the Sufa "F-16I" and the F-35I "F-35I" (both on `[F-16]` with their REAL rows), the F-15I "F-15I" (on
 //! `[F-15]` with its REAL row).
 //!
-//! The port of the former `tools/iaf-2026/fm0.py`, byte for byte: its sums are Python's (Neumaier compensated, the
-//! [`psum`]), its rounding Python's (ties to even). The files' comments still name that script, so the bytes match
-//! its last output (the test's hashes).
+//! The port of the former `tools/iaf-2026/fm0.py`: its sums are Python's (Neumaier compensated, the [`psum`]), its
+//! rounding Python's (ties to even). The test's fixture hashes pin the output.
 
 use std::f64::consts::PI;
 use std::path::Path;
@@ -345,7 +344,7 @@ impl Jet {
         let s = &self.s;
         let mut lines = vec![
             "[Params]".to_string(),
-            format!("; {}: own envelope (tools/iaf-2026/fm0.py). Units are knots and feet.", s.name),
+            format!("; {}: own envelope (iaf-sim fm). Units are knots and feet.", s.name),
             "; Vmin = sqrt(2 g W / (rho S CL)),".into(),
             format!("; W = {:.0} lb (empty + internal fuel),", s.empty_lb + s.fuel_lb),
             format!("; CL {:.3} / {:.3} ({});", s.cl_max, s.cl_neg, s.cl_src),
@@ -397,7 +396,7 @@ fn section(j: &Jet, keys: &[(&str, String, String)]) -> Vec<String> {
             j.t_max[n], j.s.ab_lbf
         ));
     }
-    out.push(format!("FlightEnvelopeFile = {}\t; tools/iaf-2026/fm0.py", j.s.file));
+    out.push(format!("FlightEnvelopeFile = {}\t; iaf-sim fm", j.s.file));
     out
 }
 
@@ -547,7 +546,7 @@ fn bd_ibx(f16: &Jet, f15: &Jet, lift: &Lift) -> String {
     };
     b.extend(common(f15, &h15, lift));
     let mut lines = vec![
-        "; Modern IAF FM-0 flight data, written by tools/iaf-2026/fm0.py from NASA TP-1538 and public figures".into(),
+        "; Modern IAF FM-0 flight data, written by iaf-sim fm from NASA TP-1538 and public figures".into(),
         "; (iaf-2026/docs/flight-model.md). Units: lb, ft, deg.".into(),
         String::new(),
     ];
@@ -643,19 +642,20 @@ pub fn fm(assets: &Path, pr: &dyn Progress) -> Result<()> {
 mod tests {
     use sha2::{Digest, Sha256};
 
-    /// The SHA-256 of fm0.py's last output (Python 3.14.9, 2026-11-09), before the port replaced it.
-    const PYTHON: [(&str, &str); 3] = [
-        ("bd.ibx", "01aea38d5048d12d06bbe85026b9f50ccd2f84f203b7894396b3fb6b415b5774"),
-        ("f16.dat", "fe23458ec1428a67fc02493b7d26674324aaa296ed1ac6945d6e489b8912a831"),
-        ("f15.dat", "9861069d80712ce5c01b191efc6eabbdc6634b31e4199e6909d247511b288499"),
+    /// The SHA-256 of the output. Until commit 1c610001 the output equalled Python 3.14.9's output of the former
+    /// fm0.py byte for byte; then the files' comments changed from naming fm0.py to naming `iaf-sim fm`.
+    const FIXTURE: [(&str, &str); 3] = [
+        ("bd.ibx", "00d39709919ab37590765d51c068be706ca06f90ccf6eb42013b85517b5bb6e7"),
+        ("f16.dat", "7b9e749a72d6acdd600e44c16c73eedfd8b15a0606c4b956417eea7efce7b582"),
+        ("f15.dat", "7d38a9dc784f552cae638f22113a141bc490011ab6a0b92b6ab5df6579586837"),
     ];
 
     #[test]
-    fn output_is_fm0_py_byte_for_byte() {
+    fn output_matches_fixture() {
         let (files, _) = super::build();
         let got: Vec<_> = files.iter().map(|(n, b)| (*n, format!("{:x}", Sha256::digest(b)))).collect();
-        for ((name, want), (n, hash)) in PYTHON.iter().zip(&got) {
-            assert_eq!((name, *want), (n, hash.as_str()), "{name} differs from fm0.py's");
+        for ((name, want), (n, hash)) in FIXTURE.iter().zip(&got) {
+            assert_eq!((name, *want), (n, hash.as_str()), "{name} differs from the fixture");
         }
         // Both sections (the Barak, Sufa and F-35I fly [F-16], the F-15I [F-15]).
         let bd = String::from_utf8_lossy(&files[0].1);
