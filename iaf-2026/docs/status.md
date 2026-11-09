@@ -3,6 +3,13 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **[D3](plan.md#d3-f-15c-baz-at-tel-nof), the F-15C Baz's data and Tel Nof (2026-11-09):** the Baz's unit record
+  (`data/db/units/f15c.json`) compiles into the sim's bdb, and Tel Nof (LLEK, from OpenStreetMap and OurAirports) is
+  the fifth base `iaf-sim airbases` compiles, with a Baz parking spot and a paved taxi path to 33L
+  ([airbases.md](airbases.md)). `sim::tests::every_data_file_compiles_and_loads`,
+  `sim_bases::tests::the_departure_is_paved`.
+- **Compact JSON (2026-11-09, [plan.md](plan.md#rules-the-user-3-november-2026) rules):** every JSON file the
+  sim writes is on one line ([data-formats.md](data-formats.md) §7).
 - **The afterburner sounds like an F-16's (2026-11-09, the Mac play test's finding 27):** measured against an F-16
   hush-house run and take-offs, the burner now rises over 1.5 s with a low thump at light-off, dies away over 1.3 s
   at the cut, sits 6 dB over the dry engine, and is a real RNLAF F-16's roar with no pulse and no pitch shift
@@ -122,6 +129,13 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   string key had left every weight at the regular).
 
 ## Open
+- **CI for the sim (2026-11-09):** [ci.md](ci.md) recommends parse-checking `iaf-2026/` in the godot job and adding
+  `iaf-2026/tests/` to the sweep; the workflow is unchanged.
+- **SQLite for the records (2026-11-09, [plan.md](plan.md#rules-the-user-3-november-2026) rules):** the design in
+  [storage.md](storage.md) waits for the user's decision.
+- **[D3](plan.md#d3-f-15c-baz-at-tel-nof), the Baz is not flyable:** it has no 3D cockpit and no model of its own,
+  so the front end does not offer it and no mission flies it; type 110 flies the F-15I's flight-model row. Tel Nof's
+  apron is placed by eye ([airbases.md](airbases.md) §5).
 - **The afterburner's open points** ([sound.md](sound.md) §1.2): the light-off delay after the detent, the level in
   the cockpit, FlightGear's F-16 sounds not compared, the F-35I's own burner.
 - **Keys and Joystick's open points** ([front-end.md](front-end.md) §9): one joystick flies (the first; a separate

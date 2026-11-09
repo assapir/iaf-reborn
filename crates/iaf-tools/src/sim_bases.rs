@@ -1,4 +1,4 @@
-//! `iaf-sim airbases` (iaf-2026/docs/airbases.md §"In the game"): the four airbases of `iaf-2026/data/airbases/`
+//! `iaf-sim airbases` (iaf-2026/docs/airbases.md §"In the game"): the airbases of `iaf-2026/data/airbases/`
 //! (lat / lon, item B2a) compiled into the sim's UTM 36N frame (iaf-2026/docs/terrain.md §2), in the shapes the
 //! shared readers take:
 //! - `converted/terrain/israel/airbases.json` and one paved-surface mask per base (`airbases/<name>.png`), as
@@ -20,11 +20,16 @@ use serde_json::{Value, json};
 use crate::log;
 use crate::progress::{Progress, check};
 
-/// The bases' iaf.ibx sections (`iaf_flight::airbase::SECTIONS`: the original's Ramon and David, ours appended) and the
-/// runway end each takes off from (inferred: the missions' runways; Hatzerim's longest runway into the prevailing
-/// westerly wind).
-pub const BASES: [(&str, &str, &str); 4] =
-    [("LLRM", "Ramon", "25R"), ("LLRD", "David", "27"), ("LLHB", "Hatzerim", "28L"), ("LLNV", "Nevatim", "26L")];
+/// The bases' iaf.ibx sections in `iaf_flight::airbase::SECTIONS`' order (the original's Ramon, David and TelNof, ours
+/// appended) and the runway end each takes off from (inferred: the missions' runways; Hatzerim's longest runway and
+/// Tel Nof's 33L into the prevailing westerly wind).
+pub const BASES: [(&str, &str, &str); 5] = [
+    ("LLRM", "Ramon", "25R"),
+    ("LLRD", "David", "27"),
+    ("LLEK", "TelNof", "33L"),
+    ("LLHB", "Hatzerim", "28L"),
+    ("LLNV", "Nevatim", "26L"),
+];
 /// The lineup point this far down the centreline from the declared runway start (m; the missions' runway start,
 /// iaf-2026/docs/data-formats.md §5; inferred: a jet's length and a margin).
 pub const LINEUP_IN_M: f64 = 100.0;
@@ -210,7 +215,7 @@ impl Base {
             .enumerate()
             .find_map(|(i, r)| r.designators.iter().position(|d| d == designator).map(|k| (i, k)))
     }
-    /// The tower, else the reference point (three of the four towers are open in OSM, airbases.md §5).
+    /// The tower, else the reference point (most towers are open in OSM, airbases.md §5).
     pub fn tower_or_reference(&self) -> [f64; 2] {
         self.tower.unwrap_or(self.reference)
     }
@@ -242,7 +247,7 @@ fn inside(poly: &[[f64; 2]], p: [f64; 2]) -> bool {
     odd
 }
 
-/// The four bases from `<dir>/<icao>.json`, in BASES' order.
+/// The bases from `<dir>/<icao>.json`, in BASES' order.
 pub fn load(dir: &Path) -> Result<Vec<Base>> {
     BASES
         .iter()
@@ -259,7 +264,7 @@ pub fn load(dir: &Path) -> Result<Vec<Base>> {
 pub fn base(v: &Value, what: &str) -> Result<Base> {
     let icao = v["icao"].as_str().unwrap_or("");
     let (_, section, main) =
-        BASES.iter().find(|b| b.0 == icao).with_context(|| format!("{what}: {icao:?} is none of the four bases"))?;
+        BASES.iter().find(|b| b.0 == icao).with_context(|| format!("{what}: {icao:?} is none of the bases"))?;
     let mut runways = Vec::new();
     for r in v["runways"].as_array().with_context(|| format!("{what}: no runways"))? {
         let e = r["ends"]
@@ -1272,7 +1277,7 @@ fn ibx_section(b: &Base, rt: &Routes, z: &mut dyn FnMut([f64; 2]) -> f64) -> Str
 
 // --- the run --------------------------------------------------------------------------------------------------------
 
-/// `iaf-sim airbases`: the four bases into `<assets>/converted/terrain/israel/` (airbases.json, masks) and
+/// `iaf-sim airbases`: the bases into `<assets>/converted/terrain/israel/` (airbases.json, masks) and
 /// `<assets>/converted/own/` (iaf.ibx, terraintype.dat). Needs the theatre (`iaf-sim terrain`) for the heights.
 pub fn airbases(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     let bases = load(&data.join("airbases"))?;
@@ -1842,7 +1847,10 @@ mod tests {
             ibx += &ibx_section(b, &rt, &mut |_| b.elevation);
         }
         let read = iaf_flight::airbase::Airbase::load_all(ibx.as_bytes());
-        assert_eq!(read.iter().map(|a| a.name.as_str()).collect::<Vec<_>>(), ["Ramon", "David", "Hatzerim", "Nevatim"]);
+        assert_eq!(
+            read.iter().map(|a| a.name.as_str()).collect::<Vec<_>>(),
+            ["Ramon", "David", "TelNof", "Hatzerim", "Nevatim"]
+        );
         for (a, b) in read.iter().zip(&bases) {
             let (ri, k) = b.main;
             let l = b.runways[ri].lineup(k);

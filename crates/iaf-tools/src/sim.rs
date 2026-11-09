@@ -571,7 +571,7 @@ fn card(f: &File) -> Result<Value> {
 }
 
 /// One compiled mission file from a readable one.
-/// `bases`: the four airbases (sim_bases::load); `ground`: the theatre's height at a point, None without it (the
+/// `bases`: the airbases (sim_bases::load); `ground`: the theatre's height at a point, None without it (the
 /// start's `elevation_m` then stands).
 pub fn compile_mission(
     f: &File,
@@ -767,7 +767,7 @@ pub fn missions(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
         list.insert(key, json!([m["name"]]));
         write(&out.join(format!("{}.json", text(f, "id")?)), &serde_json::to_string(&m)?)?;
     }
-    write(&out.join("missionlist.json"), &serde_json::to_string_pretty(&list)?)?;
+    write(&out.join("missionlist.json"), &serde_json::to_string(&list)?)?;
     log!(pr, "missions: {} -> {}", files.len(), out.display());
     Ok(())
 }
@@ -1089,8 +1089,8 @@ pub fn own(data: &Path, repo: &Path, assets: &Path, pr: &dyn Progress, cancel: &
     }
     let src = read(&data.join("keys.json"))?;
     let keys = compile_keys(&src, false)?;
-    write(&assets.join(KEYS_FILE), &serde_json::to_string_pretty(&keys)?)?;
-    write(&assets.join(KEYS_LAPTOP_FILE), &serde_json::to_string_pretty(&compile_keys(&src, true)?)?)?;
+    write(&assets.join(KEYS_FILE), &serde_json::to_string(&keys)?)?;
+    write(&assets.join(KEYS_LAPTOP_FILE), &serde_json::to_string(&compile_keys(&src, true)?)?)?;
     planes(repo, assets)?;
     gun_art(assets)?;
     crate::sim_cockpit::cockpits(data, assets, pr, cancel)?;
@@ -1183,6 +1183,7 @@ mod tests {
         db(&data(), &dir, &Stdout, &cancel).unwrap();
         missions(&data(), &dir, &Stdout, &cancel).unwrap();
         let read = |p: &str| -> Value { serde_json::from_str(&std::fs::read_to_string(dir.join(p)).unwrap()).unwrap() };
+        assert_compact(&dir);
         let bdb = read(BDB_FILE);
         assert_eq!(bdb["_file"], BDB);
         let rows = |part: &str| -> Vec<Value> { bdb[part]["items"].as_array().unwrap().clone() };
@@ -1208,6 +1209,13 @@ mod tests {
         // The Sufa and the Barak (both type 100) tell their aircraft definitions apart.
         let airframe = |id: &str| rows("objects").iter().find(|o| o["0x514"] == id).unwrap()["airframe"].clone();
         assert_eq!((airframe("f16i"), airframe("f16d")), (json!("f16i"), json!("f16")));
+        // The F-15C Baz (item D3): the F-15's type code, the shared F-15C definition, the M61A1's 940 rounds.
+        let baz = rows("objects").into_iter().find(|o| o["0x514"] == "f15c").unwrap();
+        assert_eq!(
+            (baz["0x5aa"].as_i64(), baz["0x5b4"].as_i64(), baz["airframe"].as_str()),
+            (Some(0x1c), Some(110), Some("f15"))
+        );
+        assert_eq!(baz["armament"]["hardpoints"][2 * 9 + 1], 940);
         // The names the modern weapons base on (modern_weapons.gd RECORDS "base").
         let names: Vec<String> = rows("weapons").iter().map(|w| w["0x708"].as_str().unwrap().to_string()).collect();
         for n in ["AIM-9M", "MK-84", "20 MM"] {
@@ -1230,6 +1238,24 @@ mod tests {
             assert_eq!(c["keep_alive"].as_array().unwrap().len(), 1, "{}: the player must survive", m["name"]);
         }
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// Every `.json` under `dir` is compact (plan.md: JSON the game reads is compact), objects.json aside: it is
+    /// `iaf-convert objects`' file, written as the original game's converter writes it.
+    fn assert_compact(dir: &Path) {
+        let (mut todo, mut n) = (vec![dir.to_path_buf()], 0);
+        while let Some(d) = todo.pop() {
+            for p in std::fs::read_dir(&d).unwrap().map(|e| e.unwrap().path()) {
+                if p.is_dir() {
+                    todo.push(p);
+                } else if p.extension().is_some_and(|x| x == "json") && !p.ends_with(OBJECTS_FILE) {
+                    let text = std::fs::read_to_string(&p).unwrap();
+                    assert_eq!(text.trim_end().lines().count(), 1, "{} is not compact", p.display());
+                    n += 1;
+                }
+            }
+        }
+        assert!(n > 0, "no JSON under {}", dir.display());
     }
 
     /// A mission file from Ramon's start-up with `extra` on top.
@@ -1556,6 +1582,7 @@ mod tests {
         std::fs::create_dir_all(&sounds).unwrap();
         std::fs::write(sounds.join("stale.wav"), b"x").unwrap();
         own(&data(), &data().join("../.."), &root.0, &Stdout, &AtomicBool::new(false)).unwrap();
+        assert_compact(&root.0);
         assert!(!sounds.join("stale.wav").exists());
         // The F-16's descriptor from our model: its hinges, stations and gun, the type, no original source.
         let f16: Value =
@@ -1799,6 +1826,6 @@ mod tests {
                 }
             }
         }
-        assert_eq!(files.len(), 4, "Ramon, Hatzerim, Nevatim, Ramat David");
+        assert_eq!(files.len(), 5, "Ramon, Hatzerim, Nevatim, Ramat David, Tel Nof");
     }
 }

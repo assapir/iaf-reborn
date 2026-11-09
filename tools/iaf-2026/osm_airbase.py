@@ -42,6 +42,7 @@ AERODROMES = {
     "LLHB": (292211006, (31.212303, 34.6047645, 31.2676059, 34.7013454)),
     "LLNV": (292186859, (31.1718032, 34.9792587, 31.2241115, 35.0813775)),
     "LLRD": (292211011, (32.6537286, 35.1580837, 32.6782826, 35.202065)),
+    "LLEK": (292165446, (31.8187754, 34.803762, 31.8532476, 34.842448)),
 }
 
 QUERY = """[out:json][timeout:180][bbox:%s];
@@ -64,7 +65,7 @@ AS_TAXIWAY = {
 
 # Points OSM lacks, placed by eye on the overlay pictures (inferred; each a judgement call for the user,
 # iaf-2026/docs/airbases.md §5). parking: unit id -> (lat, lon, true heading of the nose). tower: (lat, lon), or None
-# where no picture shows it (open).
+# where no picture shows it (open). aprons (optional): rings of (lat, lon) where OSM maps no apron.
 PLACED = {
     # The centre of the paved pad by 07R/25L's western link (OSM apron 1496591869), nose along the pad toward the
     # runway; the shelters at the loop ends are too small for the 10 m picture.
@@ -79,6 +80,12 @@ PLACED = {
     # The free west part of the base's one OSM apron (1328724315, north of 09/27; its middle holds OSM buildings),
     # nose to the taxiway south of it.
     "LLRD": {"parking": {"f16d": (32.6679365, 35.1765842, 176)}, "tower": None},
+    # OSM maps no apron at Tel Nof: the pale paved pad west of 18/36's middle, at the end of the taxiway stub from
+    # the south-east, drawn by eye on the Sentinel-2 picture; the Baz stands in it, nose to the stub.
+    "LLEK": {"parking": {"f15c": (31.8387931, 34.8127868, 265)}, "tower": None,
+             "aprons": [[(31.8397814, 34.8122581), (31.8399611, 34.8137385), (31.8390627, 34.8142672),
+                         (31.8381643, 34.81395), (31.8381643, 34.8126811), (31.838838, 34.811465),
+                         (31.8397814, 34.8122581)]]},
 }
 
 def get(url, data=None):
@@ -333,7 +340,8 @@ def extract(icao, data, oa_airports, oa_runways):
         "stopways": [{"osm": osm_id(e), "points": pts(e), "source": "osm"} for e in lines("stopway")],
         "taxiways": taxiways,
         "holding_positions": [point(e) for e in tagged("holding_position") if e["type"] == "node"],
-        "aprons": [named(e, {"osm": osm_id(e), "polygon": ring(e), "source": "osm"}) for e in tagged("apron")],
+        "aprons": [named(e, {"osm": osm_id(e), "polygon": ring(e), "source": "osm"}) for e in tagged("apron")]
+        + [{"polygon": [r7(p) for p in a], "source": "inferred"} for a in placed.get("aprons", [])],
         "shelters": shelters,
         "tower": tower,
         "lights": lights,

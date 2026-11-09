@@ -4,13 +4,14 @@
 tables at ourairports.com; lineup point = where a jet stands on the runway before take-off; HAS = hardened aircraft
 shelter; S2 = Sentinel-2 (the ESA satellite pictures); "inferred" = our own reasoning; "open" = no source found.
 
-This page holds the four airbases of Modern IAF (plan.md item B2a): Ramon, Hatzerim, Nevatim and Ramat David. Their
+This page holds the airbases of Modern IAF: Ramon, Hatzerim, Nevatim and Ramat David (plan.md item B2a), and Tel Nof,
+the F-15C Baz's base (item D3). Their
 layouts are in `iaf-2026/data/airbases/<icao>.json`, in WGS-84 latitude / longitude and true headings (the format:
 [data-formats.md](data-formats.md) §10). `iaf-sim airbases` compiles them into the sim's frame (item B2b, §9).
 Research date: 2026-11-02.
 
 ```sh
-python3 -I tools/iaf-2026/osm_airbase.py [--refetch] [ICAO ...]      # fetch (cached) + write the four files
+python3 -I tools/iaf-2026/osm_airbase.py [--refetch] [ICAO ...]      # fetch (cached) + write the files
 python3 -I tools/iaf-2026/osm_airbase.py overlay OUT_DIR [ICAO ...]   # the check pictures (GDAL, ImageMagick)
 ```
 
@@ -38,10 +39,13 @@ Each item in a file names its source: `"osm": "way/…"` (the element, `https://
 | Hatzerim | LLHB | 221 m[^oa] | 10L/28R 2900 m (2423), 40 m; 10R/28L 3154 m (2943), 34 m; 10/28 1894 m, 30 m (OSM widths) | 3 runways, 89 taxiways, 9 aprons, 21 hangars, an F-15I and a Sufa spot |
 | Nevatim | LLNV | 405 m[^oa] (Wikipedia: 424 m[^w-nv]) | 08L/26R 3165 m (2600), 08R/26L 3949 m (3350), both 44.8 m[^oa]; 07/25 3904 m (Wikipedia: 3900[^w-nv]), width open | 3 runways, 34 taxiways, 16 aprons, 19 hangars, 11 shelters, the tower, an F-35I spot |
 | Ramat David | LLRD | 56 m[^oa] | 09/27 2928 m (2606), 44.2 m; 11/29 3148 m (2431), 35.1 m; 15/33 2943 m (2406), 45.7 m[^oa] | 3 runways, 52 taxiways, 1 apron, 15 hangars, 25 shelters, a Barak spot |
+| Tel Nof | LLEK | 59 m[^oa] | 15L/33R 3054 m (2387), 15R/33L 3206 m (2388), 18/36 3030 m (2402), each 45.7 m[^oa] | 3 runways, 26 taxiways, 1 apron placed by eye (§5), a Baz spot |
 
 Published lengths are OurAirports'; they agree with Wikipedia's within 20 m except Hatzerim (Wikipedia: 10R/28L
 2750 m, 10L/28R 2440 m[^w-hb]). Every displaced threshold is 0 in OurAirports. The ILS of every end is open
 (`"ils": null`).
+
+Wikipedia lists a fourth runway at Tel Nof, 09/27 (1830 m)[^w-ek]; OSM and OurAirports have none, so the file has none.
 
 Naming conflicts:
 - **Nevatim.** OSM names the runways 08L/26R, 08R/26L and 07/25, as Wikipedia does[^w-nv]. OurAirports calls OSM's
@@ -62,6 +66,7 @@ Naming conflicts:
 | | 102 "Flying Tiger" (the flight academy)[^w-hb] | M-346 Lavi |
 | Nevatim | 140 "Golden Eagle" (since December 2016), 116 "Lions of the South" (since November 2019), 117 "First Jet" (since July 2021, first for training)[^w-nv] | F-35I Adir |
 | Ramat David | 101 "First Fighter", 105 "Scorpion", 109 "The Valley"[^w-rd] | F-16C / F-16D Barak |
+| Tel Nof | 133 "Knights of the Twin Tail" (F-15 since 1976), 106 "Spearhead" (at Tel Nof since 1982)[^w-ek] | F-15C / D Baz (the F-15IA from 2031[^w-ek]) |
 
 Corrections to the brief:
 - **Hatzerim** also flies the Sufa (107 Squadron)[^w-hb], so its file holds a Sufa spot beside the F-15I's.
@@ -102,6 +107,8 @@ each is a judgement call.
 | Hatzerim | Sufa parking | the same in the eastern row (OSM apron 1157437936) | 31.2401938, 34.6624651, 195° |
 | Nevatim | F-35I parking | the east end of the middle lane of the apron north of 08R/26L (OSM apron 1089049618, paved in the 2021 picture, bare in 2015), nose along the lane to the apron's west exit | 31.2086757, 35.0264028, 256° |
 | Nevatim | tower | the compound midfield between 08L/26R and 08R/26L (2015 photo) | 31.2058009, 35.0125383 |
+| Tel Nof | apron | OSM maps no apron at Tel Nof: a ring round the pale paved pad west of 18/36's middle, out to the end of the taxiway stub from the south-east (Sentinel-2, 10 m: which squadron uses it, or whether it is an apron at all, is open) | 6 points, about 200 × 200 m |
+| Tel Nof | Baz parking | in that pad, about 100 m east of the stub's end, nose to the stub | 31.8387931, 34.8127868, 265° |
 | Ramat David | Barak parking | the free west part of the base's one OSM apron (1328724315, north of 09/27; its middle holds OSM buildings), nose to the taxiway south of it | 32.6679365, 35.1765842, 176° |
 
 Which squadron uses which apron or row is open at every base. Ramon's shelters at the ends of the loop taxiways (seen
@@ -141,7 +148,7 @@ What the pictures show (checked at full size, 2026-11-02):
 | tower | open | open | placed by eye | open |
 | PAPI, approach lights, ILS | open | open | open | open |
 
-The `lights` list is empty at all four bases; OurAirports' Hatzerim 15/33 is described in §2.
+The `lights` list is empty at every base; OurAirports' Hatzerim 15/33 is described in §2.
 
 ## 8. Checks
 
@@ -153,7 +160,7 @@ The `lights` list is empty at all four bases; OurAirports' Hatzerim 15/33 is des
 ## 9. In the game
 
 `iaf-sim airbases` (item B2b, `crates/iaf-tools/src/sim_bases.rs`; run by `iaf-sim all` once the terrain is built)
-puts the four bases into the sim's frame, UTM 36N at 1:1 ([terrain.md](terrain.md) §2), in the shapes the shared
+puts the bases into the sim's frame, UTM 36N at 1:1 ([terrain.md](terrain.md) §2), in the shapes the shared
 code reads ([data-formats.md](data-formats.md) §12):
 - `converted/terrain/israel/airbases.json` and a paved-surface mask per base: Detailed airbases draws the real
   runways (numbers, letters, thresholds), the taxi lines and the aprons from them. The sim always draws them
@@ -184,14 +191,17 @@ code reads ([data-formats.md](data-formats.md) §12):
 | Ramat David | `David` | 27, 265° | 705,360, 3,616,494 | 6 / 9 | the reference point (open) |
 | Hatzerim | `Hatzerim` | 28L, 284° | 659,817, 3,455,824 | 6 / 16 | the reference point (open) |
 | Nevatim | `Nevatim` | 26L, 256° | 693,191, 3,454,815 | 10 / 9 | §5 |
+| Tel Nof | `TelNof` | 33L, 330° | 673,422, 3,522,971 | 6 / 7 | the reference point (open) |
 
 The training missions fail a jet on the ground off the pavement (training.md §3.0); `sim_bases::Base::paved` tests
 the same shapes as the mask. `sim_bases::tests::the_departure_is_paved` checks every metre of the departure from each
-parking spot at Ramon, Ramat David and Nevatim. At Hatzerim the Sufa spot's first leg to the taxiways crosses about
+parking spot at Ramon, Ramat David, Nevatim and Tel Nof. At Hatzerim the Sufa spot's first leg to the taxiways crosses about
 140 m that OSM does not mark paved (2026-11-08; open: an apron missing in OSM, or the spot to move; no mission flies
 from Hatzerim yet).
 
-The take-off ends and the lineup rule are inferred (data-formats.md §12). The missions start on the parking spots of
+The take-off ends and the lineup rule are inferred (data-formats.md §12); Tel Nof's 33L, into the prevailing
+westerly wind, is inferred too. `iaf-sim terrain` and `iaf-sim scenery` read the bases' outlines, so a theatre built
+before Tel Nof's file was added takes its outline at their next run. The missions start on the parking spots of
 §5 at the terrain's ground height and their runway starts on these lineup points.
 
 What the flight takes from them (the M0 probe, `iaf-2026/tests/test_m0_boot.gd`, 2026-11-03): each MVP jet's start-up
@@ -220,6 +230,7 @@ the original's ten names, so Hatzerim and Nevatim had no talking tower; since it
 [^w-hb]: Wikipedia, "Hatzerim Airbase", read 2026-11-02, https://en.wikipedia.org/wiki/Hatzerim_Airbase
 [^w-nv]: Wikipedia, "Nevatim Airbase", read 2026-11-02, https://en.wikipedia.org/wiki/Nevatim_Airbase
 [^w-rd]: Wikipedia, "Ramat David Airbase", read 2026-11-02, https://en.wikipedia.org/wiki/Ramat_David_Airbase
+[^w-ek]: Wikipedia, "Tel Nof Airbase", read 2026-11-09, https://en.wikipedia.org/wiki/Tel_Nof_Airbase
 [^keyaero]: Key.Aero, "Israel set to move two F-16 units to Ramat David", https://key.aero/index.php/article/israel-set-move-two-f-16-units-ramat-david
 [^scramble101]: Scramble, "Israeli Air Force squadron updates" (101 Squadron left Hatzor on 21 June 2021), https://www.scramble.nl/military-news/israeli-air-force-squadron-updates
 [^scramble105]: Scramble, "Final Baraks over Hatzor" (105 Squadron, 17 August 2021), https://scramble.nl/military-news/final-baraks-over-hatzor

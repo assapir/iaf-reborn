@@ -46,7 +46,7 @@ with soft clouds and horizon haze, a crisp stroke-font HUD, bright displays and 
 **P2. Sound.** Betty like the real one; fluent American tower voices (Kokoro); audio as ogg.
 
 **P3. The shared rows and the housekeeping.** The rows for reborn in [shared.md](shared.md); compact JSON; the F-15C
-data ([D3](#d3-f-15c-baz-at-tel-nof)); the sqlite design; CI.
+data ([D3](#d3-f-15c-baz-at-tel-nof)); the sqlite design ([storage.md](storage.md), 2026-11-09: compiled data stays JSON, the pilot log and debriefs move to SQLite with the E2 logic move; the user decides); CI ([ci.md](ci.md), 2026-11-09: research, no workflow change yet).
 
 **P4. Combat.** The records and models of the approved threat set; the first strike mission.
 
@@ -116,7 +116,7 @@ Rules that hold:
 - Pictures go into the md docs; the artifact pages are not the record.
 - Whatever can be done in Rust is done in Rust.
 - JSON the game reads is compact (no pretty-printing); authored data may be readable.
-- Data that changes in the game (pilot log, debriefs) is a candidate for sqlite through a Rust crate (decision pending).
+- Data that changes in the game (pilot log, debriefs) is a candidate for sqlite through a Rust crate (decision pending; the design: [storage.md](storage.md)).
 - Audio ships compressed (ogg), not WAV.
 - Agents and sessions remove their worktree and its `target/` as soon as the branch is merged.
 - The F-15C Baz joins the sim's jets at Tel Nof (data to add; not urgent; item [D3](#d3-f-15c-baz-at-tel-nof)).
@@ -295,7 +295,7 @@ Size: L. Blocks on: D1, A2.
 
 ### D3 F-15C Baz at Tel Nof
 
-the F-15C Baz joins the sim's jets at Tel Nof (data to add). **Open, not urgent.**
+the F-15C Baz joins the sim's jets at Tel Nof. **Data (2026-11-09, branch wt/iaf-2026-rules):** the unit record `data/db/units/f15c.json` (type 110, the shared `f15` definition, the M61A1's 940 rounds, sourced) and Tel Nof's airbase file `data/airbases/llek.json` (OpenStreetMap, OurAirports; the apron and the Baz's spot placed by eye), compiled by `iaf-sim db` / `airbases` ([airbases.md](airbases.md)). **Not flyable yet:** no 3D cockpit and no model of its own, so the front end does not offer it and no mission flies it; type 110 flies the F-15I's flight-model row. **Open:** the cockpit, the model, the Baz's own flight-model row, the Tel Nof missions
 
 Size: S. Blocks on: C1, B2.
 

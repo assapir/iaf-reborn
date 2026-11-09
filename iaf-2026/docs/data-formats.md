@@ -378,6 +378,11 @@ rule assumes), a 20 mm hit does 100 (three hits destroy a fighter), an AIM-9M hi
 - `iaf-sim db` changes only the `"sim.bdb"` key of `objects.json`; a missing file starts empty, any other read
   error stops the step. `iaf-convert objects` rewrites the original's keys and keeps the ones it did not write
   (`convert.rs keep_others`), so the two steps run in either order.
+- Every JSON file the sim writes is compact, on one line (plan.md: JSON the game reads is compact): `iaf-sim`'s
+  outputs, `user://devices.json`, the debriefs in `user://debriefs/` and the pilot log. `objects.json` keeps the
+  indented form `iaf-convert objects` gives it, so the original game's converted files and the scenery's
+  fingerprint stay as they are. The files a person edits, under `iaf-2026/data/`, are indented. The tests
+  `every_data_file_compiles_and_loads` and `own_sounds_and_keys_compile` (`sim.rs`) check every compiled `.json`.
 
 ## 8. Checks
 - `cargo test -p iaf-tools --lib sim::`: every data file compiles and loads as the game reads it (each entity's unit
