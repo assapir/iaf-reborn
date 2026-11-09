@@ -115,7 +115,8 @@ const GRAPHICS_KEYS := [
 	"ground_roads",
 	"scenery",
 	"scenery_far",
-	"building_palette"
+	"building_palette",
+	"shadow_reach"
 ]
 ## Ours on the debrief screen: EXPORT FLIGHT DATA at the content's top right, above the tab strip (content
 ## coordinates; the original's pages fill the rest).
@@ -319,6 +320,8 @@ func _extras_rows() -> Array:
 			rows.append(["scenery", "Scenery", [["Off", "off"], ["On", "on"], ["Detailed", "detailed"]]])
 			rows.append(["scenery_far", "Far towns", [["Full", "full"], ["Light", "light"]]])
 			rows.append(["building_palette", "Building colours", [["Photo", false], ["Palette", true]]])
+	# Ours (docs/rendering.md §3.1): the sun's shadows to 2.5 km, the towns' near buildings casting them.
+	rows.append(["shadow_reach", "Shadow reach", [["Original", "original"], ["Far", "far"]]])
 	# Ours (docs/scenery.md §3.5): the towns' names over the view, from the places setup's scenery step writes.
 	rows.append(["town_labels", "Town labels", [["Off", false], ["On", true]]])
 	# Ours: the preferences to / from a .cfg file (not a setting: a press opens the file dialog, _settings_file).

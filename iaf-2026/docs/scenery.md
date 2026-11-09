@@ -255,6 +255,45 @@ Cost: the labels' per-frame work (the `_process` of `town_labels.gd`), timed ove
 runs, Intel Iris Xe: 0.068 ms (Shoham, Hebrew, 6 labels), 0.077 ms (English), 0.025 ms (Beersheba, 3 labels). The
 places in range are chosen again twice a second; the drawing is a few text draws. Data: `places.json`, 350 KB.
 
+**Wall shading and long shadows** (2026-11-09, the look study's proposal 5, approved as A10; docs/scenery.md §3.4,
+docs/rendering.md §3.1). Two changes:
+
+- **Wall shading**, always with the scenery (both games): a wall turned away from the sun takes less of the sky's
+  light. The term is Lambert-like: the wall's level normal against the sun's level direction (the global shader
+  parameter `scenery_sun`, set with the time of day), applied as the wall's ambient occlusion (`wall_shade()` in
+  `shared/terrain/scenery_palette.gdshaderinc`). The wall facing away from a low sun keeps 40 % of its sky light, a
+  side wall 70 %, a sunward wall all of it; at night nothing changes.
+- **Shadow reach Far** (the sim's Graphics row "Long shadows", on by default; the original's Graphics → MORE "Shadow
+  reach", Original by default): the sun's shadows reach 2.5 km from the camera instead of 400 m, with the splits at
+  40 m, 200 m and 750 m, and the near building model (to 2.5 km) casts shadows on the streets. Before, no building cast
+  a shadow: the photo under the town already holds its shadows.
+
+Rendered as the colours above (all settings on, `building_palette=true`), 1920 × 1080 scaled to 960 px; the Beersheba
+pictures are the town centre cut from the frame:
+
+| Where | Before | After (wall shading, Long shadows) |
+|---|---|---|
+| Shoham, cockpit, 16:58 (`672750 3537452 240 100 0`, `SHOT_HOUR=16.97`) | ![Shoham before](pictures/scenery/shadows_shoham_before.jpg) | ![Shoham after](pictures/scenery/shadows_shoham_after.jpg) |
+| Beersheba, external, 500 m above the town, 11:00 (`668500 3455500 780 20 0`, `SHOT_ORBIT=180,15,200`) | ![Beersheba before](pictures/scenery/shadows_beersheba_before.jpg) | ![Beersheba after](pictures/scenery/shadows_beersheba_after.jpg) |
+
+Seen: at Beersheba the towers and blocks now cast shadows north-north-west onto the streets and the lower roofs. At Shoham
+the change is small: the camera looks east with the sun behind it, so the walls it sees are sunlit or side walls and
+the shadows fall behind the blocks. In both frames 4–5 % of the town's pixels changed by more than 4 %; the frame's
+mean level fell by 1–1.5 levels. Wall shading alone changed under 0.1 % of the pixels by more than 2 %: the walls the
+cameras see at these hours face the sun, and the fog's light floors the shaded side.
+
+Cost (2026-11-09), Intel Iris Xe (TigerLake GT2), 2560 × 1440, `iaf-2026/tests/_flight_bench.gd` with `BENCH_BEST=1
+BENCH_AT=668000,3550689 BENCH_LEGS=500:150:15 BENCH_SET=scenery=on,blackbox=false` (Tel Aviv, 500 m), A and B
+interleaved under the GPU lock. Godot fell back to the Wayland window with vsync forced on, for both sides alike. The
+first run of each series was dropped: it ran about 8 ms faster with a cool GPU (28.2 and 32.7 ms).
+
+| Change | Off: frame (GPU) | On: frame (GPU) | Cost | Draw calls, primitives | Video memory |
+|---|---|---|---|---|---|
+| Wall shading (mission clock) | 36.04, 36.21, 35.88 ms (mean 36.04; GPU 27.29) | 36.27, 35.68, 36.07 ms (mean 36.01; GPU 26.90) | none measurable | the same | 0 MB |
+| Shadow reach Far (`BENCH_HOUR=11`) | 36.03, 36.01, 36.33 ms (mean 36.12; GPU 26.92) | 36.56, 36.45, 36.95 ms (mean 36.65; GPU 27.46) | +0.5 ms (1.5 %) | +40, +125 k | 0 MB (the 4096² atlas is the same) |
+
+Both fit the Iris Xe budget, so Far is on by default in the sim.
+
 Fixed on 2026-11-08 (the "before" pictures above):
 
 - **The white patch on the sea off Tel Aviv** (off Herzliya, in fact): the Survey sheets' white no-data in a theatre

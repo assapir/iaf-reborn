@@ -563,6 +563,12 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - Town labels (Extras; default Off, 2026-11-09, the look study's proposal 3; Modern IAF's Graphics row, On by
     default): each city's and town's name over the view at its place within 25 km, from OpenStreetMap's places, in the
     game's language, under the HUD and the panel (scenery.md §3.5). The original draws no place names in the view.
+  - Wall shading (2026-11-09, the look study's proposal 5; always with Scenery): a wall turned away from the sun takes
+    less of the sky's light, so a block's sunlit and shaded walls differ (scenery.md §3.4).
+  - Shadow reach (Graphics → MORE; default Original, 2026-11-09, the look study's proposal 5; Modern IAF's Graphics
+    row "Long shadows", on by default): Far draws the sun's shadows to 2.5 km instead of 400 m and lets the near
+    buildings cast them, so a town's blocks shade their streets (rendering.md §3.1). The original's shadow method
+    is not used either way; Original keeps our renderer's 400 m.
 - **Particle effects** (ours, docs/rendering.md §6). Rendering only; the default is Original (the soft billboards and the
   trail ribbons).
   - Detailed: explosions, smoke and missile trails are GPU particles. Each original spawn keeps its time, place,

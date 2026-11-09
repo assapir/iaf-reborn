@@ -128,6 +128,7 @@ const PREFS := {
 		"scenery",
 		"scenery_far",
 		"building_palette",
+		"shadow_reach",
 		"town_labels",
 		"cd_launcher",
 		"wheel_scroll",
@@ -323,6 +324,10 @@ var scenery_far := "full"
 ## far away), true = Palette (every wall keeps its own palette colour, warmed toward cream and lit brighter, the light
 ## flat and gabled roofs lifted out of the photo's grey).
 var building_palette := false
+## Shadow reach (ours, Graphics → MORE; docs/rendering.md §3.1): "original" (the sun's shadows to 400 m from the
+## camera) or "far" (to 2.5 km: the towns' buildings cast shadows on the streets below a flying jet; the first split
+## stays 40 m, the cockpit's own 4 m).
+var shadow_reach := "original"
 ## Town labels (ours, Extras page; docs/scenery.md §3.5, terrain/town_labels.gd): the towns' names over the view at
 ## their places. Needs the places setup's scenery step writes.
 var town_labels := false

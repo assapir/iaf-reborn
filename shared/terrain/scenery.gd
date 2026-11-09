@@ -1008,8 +1008,12 @@ func _upload(k: Vector2i) -> void:
 		mi.set_instance_shader_parameter("far_model", not near)
 		mi.visibility_range_begin = 0.0 if near else NEAR - TILE_REACH
 		mi.visibility_range_end = (NEAR if near else RANGE) + TILE_REACH
-		# The photo under it already holds the buildings' shadows.
-		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		# The photo under it already holds the buildings' shadows; Shadow reach Far: the near model casts them (the
+		# shaders pick the model by the main camera's distance, so the shadow pass draws the same buildings).
+		var cast := near and Settings.shadow_reach == "far"
+		mi.cast_shadow = (
+			GeometryInstance3D.SHADOW_CASTING_SETTING_ON if cast else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		)
 		c.node.add_child(mi)
 	elif piece.has("roofs"):
 		for tile in piece.roofs:

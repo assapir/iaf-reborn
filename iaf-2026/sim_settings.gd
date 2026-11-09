@@ -99,6 +99,7 @@ func _init() -> void:
 	super()
 	scenery = "on"  # the sim's default (the DEFAULT button's too)
 	town_labels = true  # the sim's default (look study proposal 3)
+	shadow_reach = "far"  # the sim's default (look study proposal 5)
 
 
 func _ready() -> void:

@@ -81,6 +81,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   in Hebrew or English with the language, Heebo; the 3D cockpit's panel and canopy frame hide them; Preferences →
   Graphics "Town labels", On by default ([scenery.md](scenery.md) §7, [../../docs/scenery.md](../../docs/scenery.md)
   §3.5). `test_town_labels.gd`, `test_sim_look.gd`.
+- **Wall shading and long shadows (2026-11-09, the look study's proposal 5):** the buildings' walls away from the sun
+  take less sky light, and Preferences → Graphics "Long shadows" (on by default) draws the sun's shadows to 2.5 km with
+  the near buildings casting them; +0.5 ms on the Iris Xe ([scenery.md](scenery.md) §7). `test_scenery.gd`. Open: at
+  the Shoham pose the change is small (the sun behind the camera), so the reference's shaded street sides are still
+  apart.
 - **The cockpit holds still (2026-11-09, the Mac play test's finding 25):** far from the flight's start the whole
   cockpit jumped against the eye (32-bit floats: 3.1 mm steps 30 km out, 4.4 mm at 60 km). The sim draws the cockpit
   in its own world about the origin and lays it over the flight's view ([cockpit.md](cockpit.md) §6.2): it no longer

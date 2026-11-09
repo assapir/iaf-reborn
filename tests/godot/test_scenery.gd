@@ -117,12 +117,15 @@ func run() -> void:
 		await frames(2)
 	Scenery.base_dir = ""
 	settings().scenery = "off"
+	settings().shadow_reach = "original"
 	settings().imagery_israel = "original"
 
 
 ## The cells around a focus over cell `c` streamed with Scenery = `mode`, then freed 30 km away.
 func _stream(sc: GDScript, meta: Dictionary, c: Vector2i, mode: String) -> void:
 	settings().scenery = mode
+	# Shadow reach (docs/rendering.md §3.1): Far with Detailed, so both ways are checked.
+	settings().shadow_reach = "far" if mode == "detailed" else "original"
 	var t: Node3D = _terrain.new()
 	var ids: Array[String] = ["mapi2015"]
 	t.set_layers(ids)
@@ -148,6 +151,11 @@ func _stream(sc: GDScript, meta: Dictionary, c: Vector2i, mode: String) -> void:
 	check(mat.shader == shader, "%s: its building shader" % mode)
 	# Building colours (docs/scenery.md §3.4): Photo by default.
 	check(mat.get_shader_parameter("palette_colours") == settings().building_palette, "%s: building colours" % mode)
+	var far_reach: bool = settings().shadow_reach == "far"
+	for mi in node.get_children().filter(func(n): return n is MeshInstance3D):
+		var near: bool = not mi.get_instance_shader_parameter("far_model")
+		var casts: bool = mi.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		check(casts == (near and far_reach), "%s: near %s mesh casts a shadow: %s" % [mode, near, casts])
 	var roofs := node.get_children().filter(
 		func(n): return n is MultiMeshInstance3D and n.multimesh.mesh in sc._roof_meshes
 	)

@@ -147,6 +147,10 @@ terrain_photo_detail={
 "type": "float",
 "value": 1.0
 }
+scenery_sun={
+"type": "vec3",
+"value": Vector3(0, 0, 0)
+}
 city_glow_k={
 "type": "float",
 "value": 0.0

@@ -8,6 +8,12 @@
 // roofs take the near roof's material: the white coating on a light flat roof, clay on a gabled one (alpha
 // iaf_avionics::scenery::GABLED, the far mesh too). Off (Photo): the walls fade to the photo's colour far away.
 uniform bool palette_colours = false;
+// The sun's side (terrain_view.gd _update_time_of_day): the toward-sun direction's level part (world), its length the
+// cosine of the sun's height; zero at night.
+global uniform vec3 scenery_sun;
+// A wall's sky light (AO: the ambient only) on its side away from the sun: a Lambert-like term of the wall's level
+// normal against the sun's level direction, 1 on the sunward side, 1 − WALL_SHADE on the side away from a low sun.
+const float WALL_SHADE = 0.6;
 
 const float ROOF_GAIN = 0.6;
 const float WALL_GAIN = 0.5;
@@ -19,6 +25,11 @@ const float CREAM_MIX = 0.5;
 // The near roofs' average materials (linear; scenery_detailed.gdshader): clay tiles, the white coating worn in patches.
 const vec3 CLAY = vec3(0.28, 0.11, 0.06);
 const vec3 COATING = vec3(0.36, 0.36, 0.345);
+
+// The wall's ambient factor for its world normal `n` (in vertex(): a wall is flat, its normal one per face).
+float wall_shade(vec3 n) {
+	return 1.0 - WALL_SHADE * 0.5 * (length(scenery_sun) - dot(normalize(vec3(n.x, 0.0, n.z) + 1e-5), scenery_sun));
+}
 
 float luma(vec3 c) {
 	return dot(c, vec3(0.2126, 0.7152, 0.0722));

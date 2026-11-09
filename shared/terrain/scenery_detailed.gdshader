@@ -52,6 +52,7 @@ varying flat float v_parapet;
 varying flat vec3 v_normal;
 varying float v_dist;
 varying vec3 v_tangent;
+varying float v_shade;
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -89,7 +90,7 @@ float band(float x, float a, float b, float aa) {
 
 void vertex() {
 	vec3 c = CUSTOM0.xyz;
-	float d = distance((MODEL_MATRIX * vec4(c, 1.0)).xyz, INV_VIEW_MATRIX[3].xyz);
+	float d = distance((MODEL_MATRIX * vec4(c, 1.0)).xyz, MAIN_CAM_INV_VIEW_MATRIX[3].xyz);
 	float g = far_model ? step(near_m, d) * (1.0 - smoothstep(far_m - grow_m, far_m, d)) : 1.0 - step(near_m, d);
 	// Shown: raised to g of its height; not shown: collapsed to its centre (no triangles to draw).
 	VERTEX = g > 0.001 ? vec3(VERTEX.x, c.y + (VERTEX.y - c.y) * g, VERTEX.z) : c;
@@ -100,6 +101,7 @@ void vertex() {
 	float s = CUSTOM0.w;
 	v_parapet = step(s, -0.5);
 	v_normal = NORMAL;
+	v_shade = wall_shade(mat3(MODEL_MATRIX) * NORMAL);
 	v_street = vec2(floor(s / 1024.0), mod(s, 1024.0) / 10.0);
 	v_dist = d;
 	// Walls are upright and their UV.x runs along them: the tangent is up × the outward normal (view space).
@@ -308,7 +310,7 @@ void fragment() {
 		float y = UV.y;
 		float block = atan(max(v_street.x - y, 0.0), max(v_street.y, 0.5));
 		ao = mix(1.0, 0.35, sin(block) * (1.0 - fade)) * mix(0.55, 1.0, smoothstep(0.0, 3.0, y));
-		ao *= mix(0.8, 1.0, fade) * (1.0 - 0.5 * recess * (1.0 - fade));
+		ao *= mix(0.8, 1.0, fade) * (1.0 - 0.5 * recess * (1.0 - fade)) * v_shade;  // the side away from the sun
 		albedo *= mix(0.7, 1.0, smoothstep(0.0, 1.2, y));
 		if (night) {
 			emit = vec3(1.0, 0.75, 0.45) * 0.6 * lit * (1.0 - damaged);

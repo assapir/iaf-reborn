@@ -329,6 +329,7 @@ func _ready() -> void:
 	Joystick.rocker_moved = false
 	# Graphics page SHADOWS (our renderer's sun shadows; the original's shadow method is not used).
 	($Sun as DirectionalLight3D).shadow_enabled = Settings.shadows
+	_shadow_reach()
 	for i in keys.size():
 		if int(keys.records[i].press[0]) in [2, 3, 10, 139, 140]:
 			_held_records.append(i)
@@ -537,6 +538,18 @@ func time_of_day() -> float:
 	return 39600.0 + _sim_time
 
 
+## Shadow reach Far (Settings.shadow_reach): the sun's shadows to 2.5 km, the splits at 40 m (the scene's first, the
+## 3D cockpit pulls it in: cockpit3d.gd _sun_split), 200 m and 750 m. Original keeps the scene's 400 m.
+func _shadow_reach() -> void:
+	if Settings.shadow_reach != "far":
+		return
+	var sun := $Sun as DirectionalLight3D
+	sun.directional_shadow_max_distance = 2500.0
+	sun.directional_shadow_split_1 = 40.0 / 2500.0
+	sun.directional_shadow_split_2 = 200.0 / 2500.0
+	sun.directional_shadow_split_3 = 750.0 / 2500.0
+
+
 ## The original's day / night (FUN_00407920, docs/rendering.md §4), refreshed once a sim second (the stream path
 ## refreshes after 60 s): the sun's direction and colour (no sun disc at night), the ambient factor, the gradient
 ## sky's colours from defcolorset.tcs, SHADOWS only 08:00–17:00; at night the atmospheric sky (Extras) gives way to
@@ -557,6 +570,10 @@ func _update_time_of_day(cam: Camera3D) -> void:
 		var d: Vector3 = _tod_sun.dir
 		var sd := Vector3(d.x, d.z, -d.y)
 		sun.basis = Basis.looking_at(sd, Vector3.UP if absf(sd.y) < 0.99 else Vector3.FORWARD)
+		# The scenery's walls away from the sun darker (scenery_palette.gdshaderinc wall_shade): toward the sun, level.
+		RenderingServer.global_shader_parameter_set(
+			"scenery_sun", Vector3.ZERO if _tod_sun.night else Vector3(-sd.x, 0.0, -sd.z)
+		)
 		sun.light_color = _tod_sun.color
 		sun.sky_mode = (
 			DirectionalLight3D.SKY_MODE_LIGHT_ONLY if _tod_sun.night else DirectionalLight3D.SKY_MODE_LIGHT_AND_SKY

@@ -89,6 +89,7 @@
 	"upscaling_quality": "Quality",
 	"upscaling_balanced": "Balanced",
 	"shadows": "Shadows",
+	"shadow_reach": "Long shadows",
 	"terrain_detail": "Terrain detail",
 	"clouds": "Clouds",
 	"clouds_flat": "Flat layer",

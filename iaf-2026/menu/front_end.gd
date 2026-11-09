@@ -62,6 +62,7 @@ const PREFS := [
 				[["upscaling_off", "off"], ["upscaling_quality", "quality"], ["upscaling_balanced", "balanced"]]
 			],
 			["shadows", "switch", []],
+			["shadow_reach", "switch", ["original", "far"]],
 			["terrain_detail", "slider", []],
 			["clouds", "radio", [["clouds_flat", "original"], ["clouds_volumetric", "volumetric"]]],
 			["scenery", "radio", [["off", "off"], ["on", "on"], ["scenery_detailed", "detailed"]]],

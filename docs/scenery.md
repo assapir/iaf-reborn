@@ -314,7 +314,8 @@ Measured on this machine (Intel laptop, 8 threads, 2026-10-30), both kinds:
 
   - with Scenery = Detailed, the roof clutter to 700 m, in 500 m tiles, one MultiMesh per tile and item (§3.3).
 
-  None of them casts a shadow: the photo under them already holds the buildings' shadows.
+  None of them casts a shadow: the photo under them already holds the buildings' shadows. With Graphics → MORE →
+  Shadow reach Far, the near building model (to 2.5 km) casts the sun's shadows (§3.4, docs/rendering.md §3.1).
 - **Shading:** `scenery.gdshader` colours roofs from the photo. The photo's colour already holds the sun's light and
   the scene lights it again, so roofs take 0.6 of it, at most 0.45 (linear albedo): a town is as bright as the photo
   under it. On: walls take 0.5 of the photo's colour lightened toward plaster, at most 0.45, with the ambientCG
@@ -604,6 +605,17 @@ Palette (`palette_colours` in `shared/terrain/scenery_palette.gdshaderinc`, shar
 
 Cost: a few more shader instructions per building pixel, no new data; measured in
 [iaf-2026/docs/scenery.md](../iaf-2026/docs/scenery.md) §7.
+
+**Wall shading** (2026-11-09, the look study's proposal 5; both Photo and Palette, On and Detailed): a wall turned
+away from the sun takes less of the sky's light, so a block's sunlit and shaded walls differ. `wall_shade()` in
+`scenery_palette.gdshaderinc` compares the wall's level normal with the sun's level direction (the global shader
+parameter `scenery_sun`, which `terrain_view.gd` sets with the time of day: the level part of the direction toward
+the sun, zero at night) and scales the wall's ambient occlusion: 1 − 0.6 × ½ (|s| − n·s). A wall facing away from a
+low sun keeps 40 % of its sky light, a side wall 70 %. It rides on Scenery, an Extra of its own, so it has no row. No
+measurable cost (iaf-2026/docs/scenery.md §7).
+
+**Shadow reach** (Graphics → MORE, Original by default): with Far the buildings cast shadows; see
+[rendering.md](rendering.md) §3.1.
 
 ### 3.5 Town labels
 

@@ -168,6 +168,13 @@ func _three_d(variant: String, pages_2d: Array) -> void:
 	var tv = await start_mission(231)
 	tv.views.set_cockpit(tv.views.COCKPIT)
 	await frames(5)
+	# Parked: the rig starts at the runway's height and stands on its gear after the flight model's first physics
+	# ticks; until then the eye's 1 m floor over the terrain (terrain_view.gd _apply_view) lifts the camera off the
+	# cockpit, and the combiner shows that much lower (a fast run checked before it, 2026-11-09).
+	for _i in 120:
+		if tv.camera.position == Vector3.ZERO:
+			break
+		await process_frame
 	var c: Control = tv.cockpit
 	var c3 = tv.cockpit_3d
 	check(c3 != null and c3.get_parent() == tv.own_bc, "%s 3D: the cockpit model in the cut cockpit model" % variant)

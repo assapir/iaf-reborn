@@ -1292,6 +1292,17 @@ sentinel2 imagery, at 1920×1080:
 
   The last two changes are not yet re-measured in a clean A/B on the Iris.
 
+**Shadow reach** (ours, Graphics → MORE → "Shadow reach"; Original by default; Modern IAF's Graphics row "Long
+shadows", on by default; 2026-11-09, the look study's proposal 5). Original keeps the scene's sun shadows: 400 m from
+the camera, splits at 10 / 25 / 55 % (40 m, 100 m, 220 m). Far (`terrain_view.gd` `_shadow_reach`) reaches 2.5 km,
+splits at 40 m, 200 m and 750 m, and lets the scenery's near building model cast shadows (scenery.md §3), so a town's
+blocks shade their streets seen from a flying jet. The first split stays 40 m; the 3D cockpit still pulls it in to
+4 m while it is drawn (`cockpit3d.gd` `_sun_split`, divided by the reach). The building shaders pick the near or far
+model by the main camera's distance (`MAIN_CAM_INV_VIEW_MATRIX`), so the shadow pass draws the same buildings as the
+view. Cost on the Iris Xe at 2560 × 1440 over Tel Aviv at 500 m, measured with vsync forced on (the GPU time agrees:
++0.54 ms): +0.5 ms a frame (1.5 %), +40 draw calls, +125 k primitives, no video memory (the 4096² atlas is the
+same); pictures and the runs in [iaf-2026/docs/scenery.md](../iaf-2026/docs/scenery.md) §7.
+
 ### 3.2 The 3D cockpit (Extras "Cockpit": 3D; cockpit.md "3D cockpit")
 
 Modern IAF draws the cockpit in a second viewport about the origin (iaf-2026/docs/cockpit.md §6.2: steady far from
