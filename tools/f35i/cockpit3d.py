@@ -283,11 +283,13 @@ def build(mats, rail_3d=False):
 # The consoles' switch panels (docs/f35i.md §4.2): the real jet's side panels carry a mix of toggles, guarded toggles,
 # rotary knobs and push buttons with printed labels (the photos, §5); which switch sits where is inferred. CZ is the
 # panels' top (the consoles' top, at the hands' height, docs/f35i.md §4.1 "Eye position"; until 2026-11-09 -0.415, the
-# grips' palms at the shoulders); [x, y, w, h, (kind, dx, dy, label) per control].
+# grips' palms at the shoulders); [x, y, w, h, (kind, dx, dy, label) per control]. The start-up's (2026-11-09): BATT,
+# IPP and ENG (the three selections of the real start, docs/f35i.md §4.5) with START on the forward left panel, in the
+# start's order, and CANOPY aft on the left console (L4); their places are inferred.
 CZ = -0.57
 CONSOLE_PANELS = {
-    "L0": (-0.39, 0.49, 0.145, 0.10, [("guard_red", -0.044, -0.01, "ENG"), ("toggle", 0.0, -0.01, "IPP"),
-                                      ("push", 0.044, -0.01, "START")]),
+    "L0": (-0.39, 0.49, 0.145, 0.10, [("toggle", -0.051, -0.01, "BATT"), ("toggle", -0.017, -0.01, "IPP"),
+                                      ("guard_red", 0.017, -0.01, "ENG"), ("push", 0.051, -0.01, "START")]),
     "L1": (-0.43, 0.235, 0.055, 0.30, [("toggle", 0.0, 0.09, "LDG LT"), ("toggle", 0.0, 0.0, "TAXI"),
                                        ("knob", 0.0, -0.10, "FORM")]),
     "L2": (-0.39, -0.03, 0.145, 0.12, [("guard", -0.044, -0.01, "DUMP"), ("knob", 0.0, -0.01, "FUEL"),
@@ -302,6 +304,7 @@ CONSOLE_PANELS = {
                                      ("toggle", 0.044, -0.01, "ANTI COLL")]),
     "R4": (0.39, -0.13, 0.145, 0.12, [("guard_red", -0.044, -0.01, "ZEROIZE"), ("push", 0.0, -0.01, "IFF"),
                                       ("push", 0.044, -0.01, "EMER")]),
+    "L4": (-0.39, -0.31, 0.145, 0.09, [("toggle", 0.0, -0.005, "CANOPY")]),
 }
 
 
@@ -910,13 +913,27 @@ def bake_atlas(objs, baked):
         o.data.materials.append(m)
 
 
+# The 3D cockpit's clickable controls (shared/cockpit/cockpit3d_controls.gd, f35i_controls.json beside the glb): node
+# -> (the build's object, kind); the switches' and knobs' properties (cockpit3d.gd _prop, SWITCH_PROPS): a switch is
+# on at 1, off at 0; the HMD knob turns with the HUD's brightness, the MFD knob with the displays'.
+CONTROLS = {"BATT": ("csw_L0_0", "toggle"), "IPP": ("csw_L0_1", "toggle"), "ENG": ("csw_L0_2", "toggle"),
+            "START": ("csw_L0_3", "push"), "CANOPY": ("csw_L4_0", "toggle"), "HMD_BRT": ("brt_knob0", "knob"),
+            "MFD_BRT": ("brt_knob1", "knob")}
+CONTROL_PROPS = {"BATT": "f35i/elec/batt", "IPP": "f35i/engine/ipp", "ENG": "f35i/engine/eng",
+                 "CANOPY": "f35i/canopy", "HMD_BRT": "f16/avionics/hud-sym",
+                 "MFD_BRT": "instrumentation/mfd/brightness-norm"}
+TOGGLE_DEG = 40.0
+KNOB_DEG = 100.0  # from OFF (upper left) to DAY (upper right) on the printed scale
+
+
 def export_glb(out, eye_g):
     """The 3D cockpit (shared/cockpit/cockpit3d.gd): build() with plain colours, the tub, the screens as flat quads
     `PCD` (the display's glass) and `ESIS` (the standby display), the lamp lenses as their own nodes
     `lamp_<key>_0`, the gear handle `gear_handle` (its lamp `lamp_gear_transit_0` on it) turning about its pivot, the
-    side-stick `side_stick` tilting about its boot and the throttle `throttle` sliding on its rail; everything else
-    one mesh. The large surfaces (panel, glareshield, bezels, canopy frame, seals, grips, the tub) carry the render's
-    look baked into textures (bake_atlas), the rest plain colours; written with KTX2 textures (tools/plane/glb_ktx2.py,
+    side-stick `side_stick` tilting about its boot and the throttle `throttle` sliding on its rail, the clickable
+    controls (CONTROLS) turning about their pivots; everything else one mesh. The large surfaces (panel, glareshield,
+    bezels, canopy frame, seals, grips, the tub) carry the render's look baked into textures (bake_atlas), the rest
+    plain colours; written with KTX2 textures (tools/plane/glb_ktx2.py,
     needs `basisu`). In the cockpit-view model's frame: the eye at eye_g (glTF: +Y up, -Z nose), half size about it."""
     # The plain colours first (their names unsuffixed: cockpit3d.gd reads `label`), then the render's (its wear nodes
     # baked), the plain ones in place of the rest after the bake.
@@ -954,13 +971,23 @@ def export_glb(out, eye_g):
             o.data.materials[i] = swap.get(m, m)
     named = {"PCD": pcd, "ESIS": esis, "lamp_master_caution_0": bpy.data.objects["LIGHT000_lens"],
              "lamp_eng_fire_0": bpy.data.objects["LIGHT001_lens"], "lamp_gear_transit_0": gear[3]}
+    # The clickable controls (CONTROLS), each its own node about its pivot: a toggle's bat and tip about its nut, a
+    # knob with its index about its axis, a push button's cap.
+    pivots = {}
+    for node, (part, kind) in CONTROLS.items():
+        parts = {"toggle": ("_bat", "_tip"), "knob": ("", "_index"), "push": ("",)}[kind]
+        ref = bpy.data.objects[part + ("_nut" if kind == "toggle" else "")]
+        vs = [v.co for v in ref.data.vertices]
+        at = (Vector(map(min, *vs)) + Vector(map(max, *vs))) / 2
+        pivots[kit.join([bpy.data.objects[part + p] for p in parts], node)] = at
     handle = kit.join(gear[:3], "gear_handle")
     stick = kit.join([o for o in kit.scene().objects if o.name.startswith("stickm_")], "side_stick")
     throttle = kit.join([o for o in kit.scene().objects if o.name.startswith("throttlem_")], "throttle")
-    moving = [handle, stick, throttle]
-    for o in list(named.values()) + moving:  # the origin on the node's centre (the handle's, the stick's on its pivot)
-        vs = [v.co for v in o.data.vertices]
-        at = {handle: pivot, stick: stick_pivot}.get(o, (Vector(map(min, *vs)) + Vector(map(max, *vs))) / 2)
+    moving = [handle, stick, throttle] + list(pivots)
+    pivots.update({handle: pivot, stick: stick_pivot})
+    for o in list(named.values()) + moving:  # the origin on the node's centre (the handle's, the stick's, the
+        vs = [v.co for v in o.data.vertices]  # controls' on their pivots)
+        at = pivots.get(o, (Vector(map(min, *vs)) + Vector(map(max, *vs))) / 2)
         o.data.transform(Matrix.Translation(-at))
         o.location = at
     for name, o in named.items():
@@ -1018,6 +1045,16 @@ def export_glb(out, eye_g):
                               "table": [[0.0, -THROTTLE_AFT / PRESENT_SCALE], [0.74, 0.0],
                                         [0.75, THROTTLE_AB * 0.6 / PRESENT_SCALE],
                                         [1.0, THROTTLE_AB / PRESENT_SCALE]]}]}}
+    # The switches: on (1) as modelled, leaning forward; off (0) TOGGLE_DEG aft about their nut (x). The knobs turn
+    # about the face's normal (toward the pilot), clockwise for brighter, over KNOB_DEG; at 0.5 the index stands up.
+    n = [0, round(math.sin(math.radians(TILT)), 5), round(math.cos(math.radians(TILT)), 5)]
+    for node, (part, kind) in CONTROLS.items():
+        if kind == "toggle":
+            meta["animations"][node] = [{"prop": CONTROL_PROPS[node], "centre": [0, 0, 0], "axis": [1, 0, 0],
+                                         "factor": -TOGGLE_DEG, "offset": TOGGLE_DEG}]
+        elif kind == "knob":
+            meta["animations"][node] = [{"prop": CONTROL_PROPS[node], "centre": [0, 0, 0], "axis": n,
+                                         "factor": -KNOB_DEG, "offset": KNOB_DEG / 2}]
     json.dump(meta, open(os.path.splitext(out)[0] + ".json", "w"), indent=1)
     tris = sum(len(p.vertices) - 2 for o in kit.scene().objects if o.type == 'MESH' for p in o.data.polygons)
     print("COCKPIT3D", out, "triangles", tris, "bytes", os.path.getsize(out), "materials", len(body.data.materials))

@@ -60,25 +60,29 @@
         "step": "main_power",
         "key": "Ctrl+B",
         "en": "Battery: ON",
-        "he": "מצבר: ON"
+        "he": "מצבר: ON",
+        "where": {"en": "BATT switch: start panel, left console, forward", "he": "מתג BATT: לוח ההתנעה, הקונסולה השמאלית, מלפנים"}
       },
       {
         "step": "starter",
         "key": "Ctrl+J",
         "en": "IPP: START (10 s)",
-        "he": "IPP: START (10 שנ׳)"
+        "he": "IPP: START (10 שנ׳)",
+        "where": {"en": "IPP switch: start panel, left console, forward", "he": "מתג IPP: לוח ההתנעה, הקונסולה השמאלית, מלפנים"}
       },
       {
         "step": "engine",
         "key": "throttle up from OFF",
         "en": "Throttle to idle: the engine starts",
-        "he": "מצערת לסרק: המנוע מותנע"
+        "he": "מצערת לסרק: המנוע מותנע",
+        "where": {"en": "ENG switch or START: start panel, left console; or the throttle grip out of OFF", "he": "מתג ENG או START: לוח ההתנעה, הקונסולה השמאלית; או ידית המצערת מ־OFF"}
       },
       {
         "step": "canopy",
         "key": "Ctrl+K",
         "en": "Canopy: close and lock",
-        "he": "חופה: סגירה ונעילה"
+        "he": "חופה: סגירה ונעילה",
+        "where": {"en": "CANOPY switch: left console, aft", "he": "מתג CANOPY: הקונסולה השמאלית, מאחור"}
       }
     ]
   }

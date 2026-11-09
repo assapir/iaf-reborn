@@ -1,6 +1,6 @@
 # The 3D cockpits: sources and licence
 
-`f35i.glb` and `f35i.json` (the F-35I's) are our own: `tools/f35i/cockpit3d.py --glb` (docs/f35i.md §4.5).
+`f35i.glb`, `f35i.json` (`tools/f35i/cockpit3d.py --glb`) and `f35i_controls.json` (hand-written; docs/f35i.md §4.5), the F-35I's, are our own.
 The rest of this file is the F-16's.
 
 `f16.glb`, `f16.json`, `f16_light.png` and `barak_panels.webp` are derived works of the FlightGear F-16 and are licensed under the

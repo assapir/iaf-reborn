@@ -160,9 +160,12 @@ pointer over it lays a warm glow on it (`material_overlay`). The pointer's moves
 the flight's full-view Controls take them, and `cockpit_origin.gd` passes them into the cockpit's own world with the
 clicks. The start-up switches are on the same layer (§5.2). The DAY / AUTO BRT / NIGHT switch is not bound: the HUD's AUTO-like dimming stays automatic.
 
-The F-35I: its pedestal has an HMD BRT knob (`tools/f35i/cockpit3d.py` `brt_knob0`), joined into the cockpit's body;
-Shift + H is its only HUD brightness control. Binding the knob waits for the helmet to follow the level (the parked
-branch `wt/hud-f35i-edge`): open.
+The F-35I: the HMD BRT knob on its pedestal (`f35i.glb` node `HMD_BRT`, `f35i_controls.json`) works as the SYM
+wheel: the same command `[123, ±25, 0]`, the same steps, and it turns with `Settings.hud_brightness` (100° of travel,
+the index up at 50 %; inferred). The helmet keeps its own green at every level until the helmet follows the level
+(the parked branch `wt/hud-f35i-edge`): open. The MFD BRT knob beside it (`MFD_BRT`) turns the displays' brightness,
+`Settings.mfd_brightness` (10–100 %, saved as the HUD's level; ours, command `[216, ±25, 0]`, no key): the PCD, the
+standby display and the MFDs of the 3D cockpit, the F-16s' too (their own BRT rockers are not bound).
 
 The Sufa on Ramon's ILS final, a real render (`iaf-2026/tests/_sym_wheel_shot.gd`): the pointer over the wheel, then
 the wheel turned down 24 notches (100 % to 40 %) and the pointer moved away.
@@ -181,8 +184,8 @@ The F-35I's helmet keeps its own green. The Sufa at the look study's Shoham pose
 
 `tests/godot/test_hud.gd` checks the colours (the P43 green by day, the floor at night, the original game's darkest
 green at its start); `iaf-2026/tests/test_mvp.gd` `_hud_light` checks them in the sim's cockpit with the key's steps,
-the additive blend and the glass, and `_sym_wheel` hovers, scrolls and drags the wheel, checks the level, the
-wheel's turn and the stored level.
+the additive blend and the glass, and `_knob` hovers, scrolls and drags the wheel (the F-35I's HMD and MFD BRT
+knobs), checks the level, the knob's turn and the stored level.
 
 ### 5.2 The start-up switches (2026-11-09)
 
@@ -211,8 +214,26 @@ engine running, and the original game, keep the switches as FlightGear models th
   inferred).
 - **Not modelled:** the JFS switch stays at START 2 after the JFS stops (on the jet it springs back to OFF); a hot
   start leaves the switches as FlightGear models them.
-- **The F-35I's console switches** join later: another session owns the F-35I cockpit now. Until then the F-35I's
-  checklist runs by its keys only, and its card shows no places.
+
+The F-35I's start-up works the same way on its own panels (`f35i_controls.json`). Its switches are our model's
+(`tools/f35i/cockpit3d.py` `CONTROLS`): bat toggles that lean forward when on and 40° aft when off, each turning on a
+property of ours (`f35i/...`) by `f35i.json`'s mapping. The real start is three switch selections, battery, IPP and
+engine[^ayton]; which panel holds them, and every place below, is inferred: the photos show the consoles' mix of
+switches, not readable labels ([../../docs/f35i.md](../../docs/f35i.md) §4.2).
+
+| step | control (node) | place in our cockpit | command | key | on / off |
+|---|---|---|---|---|---|
+| 1 | BATT switch (`BATT`) | start panel, left console, forward (first of four) | `[210, 0, 0]` | Ctrl+B | forward (1) / aft (0) |
+| 2 | IPP switch (`IPP`) | start panel, second | `[211, 0, 0]` | Ctrl+J | forward (1) / aft (0) |
+| 3 | ENG switch (`ENG`, under a red guard) | start panel, third | `[212, 0, 0]` | none | forward (1) / aft (0) |
+| 3 | START button (`START`) | start panel, fourth | `[212, 0, 0]` | none | a push button |
+| 3 | throttle (`throttle`) | the throttle, left console | `[5, 0, 0]` | Throttle up | the throttle's own animation |
+| 4 | CANOPY switch (`CANOPY`) | its own panel, left console, aft | `[215, 0, 0]` | Ctrl+K | forward (1) / aft (0) |
+
+- **The engine step** is the ENG switch as on the jet (command 212, which no key sends: the step's key stays the
+  throttle up from OFF, [training.md](training.md) §7.1); the throttle stays where it is, and the engine runs to idle
+  by itself. Moving the throttle up from OFF takes the same step.
+- **Not modelled:** the ENG switch's guard stays down (the bat passes under it); the START button does not move.
 
 The checklist card names each switch and its place under the step's line, beside the key
 ([training.md](training.md) §7.1; the mission's `training.checklist[].where`, [data-formats.md](data-formats.md) §5).
@@ -231,9 +252,17 @@ START 2.
 | MAIN PWR | ![The MAIN PWR switch at OFF, lit under the pointer](pictures/cockpit/main_pwr_hover.jpg) | ![The MAIN PWR switch at MAIN PWR](pictures/cockpit/main_pwr_on.jpg) |
 | JFS | ![The JFS switch at OFF, lit under the pointer](pictures/cockpit/jfs_hover.jpg) | ![The JFS switch at START 2](pictures/cockpit/jfs_on.jpg) |
 
-`iaf-2026/tests/test_mvp.gd` runs the Sufa's start-up by the mouse (`_click_control`: the head turned to each
-control, the pointer's move and click pushed into the window; each control lit, each switch turned, the card's
-places shown) and the Barak's and the F-35I's by the keys' commands; both pass.
+`iaf-2026/tests/test_mvp.gd` runs the Sufa's and the F-35I's start-up by the mouse (`_click_control`: the head
+turned to each control, the pointer's move and click pushed into the window; each control lit, each switch turned,
+the card's places shown) and the Barak's by the keys' commands; `_knob` hovers, scrolls and drags the SYM wheel and
+the F-35I's HMD and MFD knobs. All pass.
+
+The F-35I parked cold at Nevatim, a real render (`iaf-2026/tests/_switch_shot.gd` with `SHOT_MISSION=2031 SHOT_SWITCHES=BATT,MFD_BRT`): the start
+panel's BATT switch and the MFD BRT knob under the pointer.
+
+| BATT switch, pointer over it | MFD BRT knob, pointer over it |
+|---|---|
+| ![The F-35I's BATT switch lit under the pointer](pictures/cockpit/f35i_batt_hover.jpg) | ![The F-35I's MFD BRT knob lit under the pointer](pictures/cockpit/f35i_mfd_brt_hover.jpg) |
 
 ## 6. Tests and pictures
 - `tests/godot/test_cockpit_no_panel.gd`: the profile on the sim's own cockpit dirs (`iaf-sim own`'s), the Sufa, the
@@ -480,3 +509,4 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
 [^fg-right]: FlightGear F-16 at ef4f192, `Models/Cockpit/Main/panels_mlu_right-console.xml`: `mmc-switch`, `st-sta-switch`, `mfd-switch`, `ufc-switch` (knobs on `f16/avionics/power-*`, 0–1) and `INS_knob` (`f16/avionics/ins-knob`; `states_and_autostart.nas`: 2 ALIGN NORM, 3 NAV), https://github.com/NikolaiVChr/f16
 [^dcs-canopy]: Eagle Dynamics forum, "Canopy won't lock if I open it and close" (DCS F-16C: the canopy switch on the left, where the canopy handle is; weak: a forum, read through a search summary), https://forum.dcs.world/topic/333905-canopy-wont-lock-if-i-open-it-and-close
 [^hoggit-ip]: Hoggit wiki, "Instrument Panel" (DCS F-16C): the ICP's SYM wheel sets the HUD's brightness. https://wiki.hoggitworld.com/view/Instrument_Panel
+[^ayton]: Mark Ayton, "Blue Sky OPS", AIR International, 26 April 2012, quoted on F-16.net, "Engine start up procedure" (three switch selections: battery, IPP, engine), https://www.f-16.net/forum/viewtopic.php?p=317934

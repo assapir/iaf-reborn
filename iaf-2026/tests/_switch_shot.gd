@@ -3,7 +3,8 @@
 # the head turns to it, then SHOT_OUT/<node>_hover.png (the pointer over it, lit) and SHOT_OUT/<node>_on.png (clicked
 # through the input path: the step taken, the switch turned, the pointer moved away). Switches: SHOT_SWITCHES
 # (comma-separated nodes of f16_controls.json, default MAIN_PWR,JFS; the steps a switch needs before it are taken by
-# their keys' commands first). The view zoomed in (cockpit.ZOOM_MAX).
+# their keys' commands first). The view zoomed in (cockpit.ZOOM_MAX). SHOT_MISSION: another start-up mission (2031:
+# the F-35I at Nevatim, its nodes of f35i_controls.json); a knob (a turn control) is only lit and clicked.
 #   flock -o ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_OUT=<dir> \
 #     -- --log-file <t> --resolution 1920x1080 --path iaf-2026 -s ../iaf-2026/tests/_switch_shot.gd
 extends "res://../tests/godot/base.gd"
@@ -18,7 +19,8 @@ const BEFORE := {
 
 func run() -> void:
 	settings().show_info = false
-	load("res://flight/fly.gd").start(2011)
+	var mission := OS.get_environment("SHOT_MISSION")
+	load("res://flight/fly.gd").start(int(mission) if mission != "" else 2011)
 	var tv: Node = null
 	while tv == null or tv.get("flight") == null or tv.waiting_for_ground:
 		await process_frame
@@ -63,7 +65,7 @@ func _shoot(tv: Node, node: String) -> void:
 	hover.position = Vector2.ZERO
 	Input.parse_input_event(hover)
 	await frames(10)
-	if node != "CANOPY_HANDLE":  # a hit area: nothing turns
+	if not node in ["CANOPY_HANDLE", "HMD_BRT", "MFD_BRT"]:  # a hit area or a knob: a click turns nothing
 		check(not mi.transform.is_equal_approx(rest), "%s: clicked, the switch turned" % node)
 	await _save(node + "_on")
 

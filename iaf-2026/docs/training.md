@@ -219,7 +219,7 @@ event. The jet does not shut down when the throttle goes back to OFF (open).
 |---|---|---|---|---|---|
 | 1 | Battery: ON | Ctrl+B | at once | — | battery, IPP, engine[^ayton] |
 | 2 | IPP: START | Ctrl+J | runs 10 s, then holds | before the battery: `no_power` | [^ayton]; the 10 s inferred |
-| 3 | Throttle to idle: the engine starts | the throttle up from OFF | cranks, lights and runs to idle by itself (the F-16's figures); the displays on the IPP's power | before the IPP: `no_ipp`; before the IPP is up to speed: `ipp_not_ready` | [^ayton]; inferred |
+| 3 | Throttle to idle: the engine starts | the throttle up from OFF (in the 3D cockpit also the ENG switch or START, [cockpit.md](cockpit.md) §5.2) | cranks, lights and runs to idle by itself (the F-16's figures); the displays on the IPP's power | before the IPP: `no_ipp`; before the IPP is up to speed: `ipp_not_ready` | [^ayton]; inferred |
 | 4 | Canopy: close and lock | Ctrl+K | at once | any time | inferred |
 
 The avionics of the F-35I report ready 90 s after the battery[^ayton]. The mission passes when every step is done

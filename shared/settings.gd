@@ -75,7 +75,8 @@ const PREFS := {
 		"shadows",
 		"external_stores",
 		"vsync",
-		"hud_brightness"
+		"hud_brightness",
+		"mfd_brightness"
 	],
 	"devices":
 	["flight_controls", "rudder", "throttle", "joy_axes", "throttle_detent", "stick_response", "rocker_trim"],
@@ -172,6 +173,9 @@ var terrain_detail := 1.0
 ## Change HUD colour set it; stored like a physical knob's position, with no Preferences row. The original game never
 ## reads it.
 var hud_brightness := 1.0
+## The 3D cockpit's displays' brightness, 0.1..1 (Modern IAF, cockpit_controls): the F-35I's MFD BRT knob sets it
+## (command 216); stored like a physical knob's position, with no Preferences row. The original game never reads it.
+var mfd_brightness := 1.0
 var object_detail := 1.0
 var visual_effects := 1.0
 var smoke_trails := true

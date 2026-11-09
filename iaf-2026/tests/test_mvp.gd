@@ -2,8 +2,9 @@
 # for each MVP jet (the Sufa at Ramon, the Barak at Ramat David, the F-35I at Nevatim) with scripted inputs, each
 # ending in a Pass from the run-time scoring (iaf-2026/docs/training.md §7–§9):
 # - start-up: parked cold (no RPM, no power), the throttle starts nothing, the checklist by its keys (the F-16's
-#   six steps, the F-35I's four) runs the sequence, the displays come up, the engine idles; a step out of order
-#   fails; the recorder's RPM / avionics columns; the debrief record and the pilot log;
+#   six steps, the F-35I's four; the Sufa's and the F-35I's by clicks on the 3D cockpit's switches) runs the
+#   sequence, the displays come up, the engine idles; a step out of order fails; the recorder's RPM / avionics
+#   columns; the debrief record and the pilot log;
 # - take-off: the radio menu's three requests answered by the base's tower, a taxi along the base's taxi path
 #   (the own iaf.ibx) to the lineup, the roll, the rotation, gear up on the runway heading; the debrief's goals;
 # - the afterburner's sound: the light-off's rise and thump, the cut's tail (no mission);
@@ -134,7 +135,7 @@ func startup(id: String) -> void:
 	await fly(tv, 2.0)
 	check(not tv.flight.state().engine_on, "%s: the throttle starts nothing" % jet)
 	tv.throttle = 0.0
-	await _checklist(tv, id == "f35i", id == "f16i")
+	await _checklist(tv, id == "f35i", id in ["f16i", "f35i"])
 	var ok := await _until(tv, func(): return not tv.addon.result.is_empty(), 150.0)
 	var d: Dictionary = tv.addon.result
 	check(ok and bool(d.get("pass", false)), "%s: start-up scored %s %s" % [jet, d.get("pass"), d.get("reasons")])
@@ -284,20 +285,18 @@ func eject() -> void:
 
 ## The start-up checklist by its keys (commands 210–215, training.md §7.1) and the throttle up from OFF for the idle
 ## step, each when its moment comes; the card ticks each step. `click`: the same steps by the mouse on the 3D
-## cockpit's switches (f16_controls.json, cockpit3d_controls.gd), each switch turned to its on position.
+## cockpit's switches (f16_controls.json, f35i_controls.json, cockpit3d_controls.gd), each switch turned to its on
+## position; the F-35I's engine step by its ENG switch (command 212).
 func _checklist(tv: Node, f35: bool, click := false) -> void:
-	var step := func(n: int) -> void: tv._command([209 + n, 0, 0])
 	var rpm := func() -> float: return float(tv.flight.state().rpm)
 	if click:
 		check(_card_places(tv), "the card names each step's switch and place")
-	await _step(tv, 1, "MAIN_PWR", click)  # main power / battery
+	await _step(tv, 1, "BATT" if f35 else "MAIN_PWR", click)  # main power / battery
 	await fly(tv, 1.0)
-	await _step(tv, 2, "JFS", click)  # JFS / IPP
-	# The engine step has no key: the throttle up from OFF (the throttle-up key here) is it.
-	var throttle_up := func() -> void: tv._command([5, 0, 0])
+	await _step(tv, 2, "IPP" if f35 else "JFS", click)  # JFS / IPP
 	if f35:
 		await fly(tv, 11.0)  # the IPP up to speed
-		throttle_up.call()  # throttle to idle: the engine starts
+		await _step(tv, 0, "ENG", click)  # the ENG switch (by key: the throttle up from OFF)
 		await fly(tv, 0.5)  # the flight takes the throttle's move on its next frame
 	else:
 		await _until(tv, func(): return rpm.call() >= 0.2, 60.0)
@@ -306,7 +305,7 @@ func _checklist(tv: Node, f35: bool, click := false) -> void:
 		await _until(tv, func(): return rpm.call() >= 0.55, 60.0)  # the generators on line
 		await _step(tv, 4, "AVIONICS_MMC", click)  # avionics power
 		await _step(tv, 5, "INS", click)  # INS stored-heading alignment
-	await _step(tv, 6, "CANOPY_HANDLE", click)  # canopy
+	await _step(tv, 6, "CANOPY" if f35 else "CANOPY_HANDLE", click)  # canopy
 	tv.views.snap = null
 	check(tv.sounds.played.has("SFX_DOOR_CLOSE/None"), "the canopy step: the canopy closes")
 	if not f35:
@@ -410,7 +409,7 @@ func takeoff(id: String) -> void:
 	var jet: String = JETS[id][0]
 	var tv := await _start(JETS[id][1] + "_takeoff")
 	_ils_bars(tv, jet)
-	_hud_light(tv, jet)
+	await _hud_light(tv, jet)
 	var a := await _call(tv, 1)
 	check(a == "ACFT_CLEAR_TO_START", "%s take-off: start-up request -> %s" % [jet, a])
 	var pl: Array = tv.sounds.played
@@ -505,33 +504,41 @@ func _hud_light(tv: Node, jet: String) -> void:
 		own != null or glass != null and is_equal_approx(glass.material_override.albedo_color.a, 0.14),
 		"%s: the combiner glass at 14 %% (the F-35I: none)" % jet
 	)
-	_sym_wheel(tv, jet, own == null)
+	var mfd: float = settings().mfd_brightness
+	# The F-16s' SYM wheel; the F-35I's HMD and MFD BRT knobs on the pedestal (f35i_controls.json).
+	var knobs := (
+		{"SYM": "hud_brightness"} if own == null else {"HMD_BRT": "hud_brightness", "MFD_BRT": "mfd_brightness"}
+	)
+	for node in knobs:
+		await _knob(tv, jet, node, knobs[node])
+	tv.views.snap = null
 	settings().hud_brightness = level
+	settings().mfd_brightness = mfd
 	cp.daylight = light
 
 
-## The F-16s' SYM wheel (cockpit3d_controls.gd, f16_controls.json): hovering lights it, the mouse wheel and a drag on
-## it turn it through the HUD key's command, the HUD's level follows, the knob turns and the settings file keeps it.
-## The events go in at the window (the cockpit's own world: cockpit_origin.gd passes them on). The F-35I: no table,
-## no layer.
-func _sym_wheel(tv: Node, jet: String, f16: bool) -> void:
+## A brightness knob of the 3D cockpit (cockpit3d_controls.gd, <model>_controls.json), the head turned to it: hovering
+## lights it, the mouse wheel and a drag on it turn it through its command (the HUD key's; the F-35I's MFD knob 216),
+## the Settings level `key` follows, the knob turns and the settings file keeps it. The events go in at the window
+## (the cockpit's own world: cockpit_origin.gd passes them on).
+func _knob(tv: Node, jet: String, node: String, key: String) -> void:
 	var c3d = tv.cockpit_3d
 	var layer = c3d.clickable if c3d != null else null
-	check((layer != null) == f16, "%s: the 3D cockpit's clickable controls (%s)" % [jet, layer])
+	check(layer != null, "%s: the 3D cockpit's clickable controls (%s)" % [jet, layer])
 	if layer == null:
 		return
-	var knob: MeshInstance3D = c3d.find_child("SYM", true, false)
+	var knob: MeshInstance3D = c3d.find_child(node, true, false)
 	var vp: Viewport = tv.get_viewport()  # the window's: the events take the flight's own path to the cockpit
-	var at: Vector2 = c3d.camera.unproject_position(knob.global_transform * knob.get_aabb().get_center())
+	var at := await _aim(tv, knob.global_transform * knob.get_aabb().get_center(), 0.0)
 	var hover := InputEventMouseMotion.new()
 	hover.position = at
 	vp.push_input(hover)
-	check(knob.material_overlay != null, "%s: hovering the SYM wheel lights it (at %s)" % [jet, at])
-	settings().hud_brightness = 0.5
+	check(knob.material_overlay != null, "%s: hovering %s lights it (at %s)" % [jet, node, at])
+	settings().set(key, 0.5)
 	c3d._process(0.0)
 	var rest := knob.transform.basis
 	vp.push_input(_click(at, MOUSE_BUTTON_WHEEL_UP, true))
-	check(is_equal_approx(settings().hud_brightness, 0.525), "%s: the wheel up on it: +2.5 %%" % jet)
+	check(is_equal_approx(settings().get(key), 0.525), "%s: the wheel up on %s: +2.5 %%" % [jet, node])
 	vp.push_input(_click(at, MOUSE_BUTTON_LEFT, true))
 	var drag := InputEventMouseMotion.new()
 	drag.position = at
@@ -539,14 +546,14 @@ func _sym_wheel(tv: Node, jet: String, f16: bool) -> void:
 	drag.button_mask = MOUSE_BUTTON_MASK_LEFT
 	vp.push_input(drag)
 	vp.push_input(_click(at, MOUSE_BUTTON_LEFT, false))
-	check(is_equal_approx(settings().hud_brightness, 0.575), "%s: a 20 px drag up: two more steps" % jet)
+	check(is_equal_approx(settings().get(key), 0.575), "%s: a 20 px drag up on %s: two more steps" % [jet, node])
 	c3d._process(0.0)
-	check(not knob.transform.basis.is_equal_approx(rest), "%s: the SYM wheel turned" % jet)
-	var kept := float(settings().write_config().get_value("graphics", "hud_brightness"))
-	check(kept == settings().hud_brightness, "%s: the settings file keeps the wheel's level (%s)" % [jet, kept])
+	check(not knob.transform.basis.is_equal_approx(rest), "%s: %s turned" % [jet, node])
+	var kept := float(settings().write_config().get_value("graphics", key))
+	check(kept == settings().get(key), "%s: the settings file keeps %s's level (%s)" % [jet, node, kept])
 	hover.position = Vector2.ZERO
 	vp.push_input(hover)
-	check(knob.material_overlay == null, "%s: off the wheel, unlit" % jet)
+	check(knob.material_overlay == null, "%s: off %s, unlit" % [jet, node])
 
 
 static func _click(at: Vector2, button: MouseButton, pressed: bool) -> InputEventMouseButton:

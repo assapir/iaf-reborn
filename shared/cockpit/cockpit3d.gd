@@ -61,6 +61,10 @@ const SWITCH_PROPS := [
 	"f16/avionics/power-mfd",
 	"f16/avionics/power-ufc",
 	"f16/avionics/ins-knob",
+	"f35i/elec/batt",  # the F-35I's (tools/f35i/cockpit3d.py CONTROL_PROPS)
+	"f35i/engine/ipp",
+	"f35i/engine/eng",
+	"f35i/canopy",
 ]
 ## The stick as the flight model holds it (terrain_view.gd's parts_in: stick_x, stick_y), for the stick's animation.
 var controls := {}
@@ -81,7 +85,7 @@ var _sun: DirectionalLight3D  # _lighting
 var _lit_mats := []
 var _lit := Color(-1, -1, -1)  # the fill colour set
 var _screen_mats := []  # every screen's material (_screen_viewport)
-var _power_shown := 2  # the cockpit.power the screens show (_lighting)
+var _on_shown := 1.0  # the screens' level shown (_lighting): unpowered 0, else Settings.mfd_brightness
 var _split := -1.0  # the scene's first shadow split (_sun_split)
 
 
@@ -361,11 +365,12 @@ func _lighting() -> void:
 	_sun_split()
 	var c := Color.BLACK
 	_backlight_on(cockpit.night)
-	# Unpowered (cockpit.power below 2: Modern IAF's cold jet) every screen is dark; written when the power changes (the
-	# MFDs below, as every frame, with their night level).
-	var on: float = 1.0 if cockpit.power == 2 else 0.0
-	if cockpit.power != _power_shown:
-		_power_shown = cockpit.power
+	# Unpowered (cockpit.power below 2: Modern IAF's cold jet) every screen is dark, powered at the displays' brightness
+	# (Settings.mfd_brightness: the F-35I's MFD BRT knob); written when either changes (the MFDs below, as every
+	# frame, with their night level).
+	var on: float = Settings.mfd_brightness if cockpit.power == 2 else 0.0
+	if on != _on_shown:
+		_on_shown = on
 		for m: StandardMaterial3D in _screen_mats:
 			if not _screens.any(func(e): return e[2].material_override == m):
 				m.emission_energy_multiplier = on
@@ -699,6 +704,8 @@ func _prop(p: String) -> float:
 			return float(controls.get("stick_x", 0.0))
 		"f16/avionics/hud-sym":  # the SYM wheel (FlightGear's 0..1 symbology brightness)
 			return Settings.hud_brightness
+		"instrumentation/mfd/brightness-norm":  # ours: the F-35I's MFD BRT knob (command 216)
+			return Settings.mfd_brightness
 	if p in SWITCH_PROPS:
 		return float(switches.get(p, NAN))
 	if p.begins_with("consumables/fuel/total-fuel-lbs-"):

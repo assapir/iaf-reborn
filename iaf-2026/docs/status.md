@@ -66,14 +66,16 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   bright by day and dimmed to a night floor as the sun sets, with a faint halo, a 0.08° stroke and the combiner glass
   at 14 %; the 3D cockpit's SYM wheel sets the day level (hover, wheel, drag; kept in the settings file) and
   Shift + H steps it, on the general clickable-control layer `cockpit3d_controls.gd` ([cockpit.md](cockpit.md)
-  §5.1). `test_hud.gd`, `test_mvp.gd` `_sym_wheel`. Open: the F-35I's HMD BRT knob (waits for `wt/hud-f35i-edge`),
-  the DAY / AUTO / NIGHT switch.
+  §5.1). The F-35I's HMD BRT knob turns the same level, its MFD BRT knob the displays' brightness (kept in the
+  settings file too). `test_hud.gd`, `test_mvp.gd` `_knob`. Open: the F-35I's helmet does not follow the level
+  (waits for `wt/hud-f35i-edge`), the DAY / AUTO / NIGHT switch.
 - **The start-up switches (2026-11-09):** the F-16s' start-up checklist by the mouse in the 3D cockpit: MAIN PWR, the
   JFS switch, the throttle, the AVIONIC POWER switches, the INS knob (their own nodes of `f16.glb`, each turning to its
   on position) and the canopy handle (a hit area), each sending its key's command; the card names each switch and its
-  place ([cockpit.md](cockpit.md) §5.2). `test_mvp.gd` (the Sufa's start-up by clicks). Open: the F-35I's console
-  switches (its cockpit is another session's now), the JFS switch's spring back to OFF, the INS knob mostly hidden by
-  the right sill from the eye.
+  place ([cockpit.md](cockpit.md) §5.2). The F-35I's the same on its own panels: BATT, IPP, ENG (or START, or the
+  throttle) and CANOPY, new nodes of `f35i.glb` at inferred places. `test_mvp.gd` (the Sufa's and the F-35I's
+  start-up by clicks). Open: the JFS switch's spring back to OFF, the INS knob mostly hidden by the right sill from
+  the eye, the F-35I's ENG guard.
 - **Town labels (2026-11-09, the look study's proposal 3):** each city's and town's name over the view within 25 km,
   in Hebrew or English with the language, Heebo; the 3D cockpit's panel and canopy frame hide them; Preferences →
   Graphics "Town labels", On by default ([scenery.md](scenery.md) §7, [../../docs/scenery.md](../../docs/scenery.md)

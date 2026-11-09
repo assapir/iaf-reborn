@@ -2721,6 +2721,13 @@ func _command(cmd: Array) -> bool:
 			# passes them to the flight model and ticks its card.
 			if addon != null and addon.has_method("start_step"):
 				addon.start_step(int(cmd[0]) - 210)
+		216:
+			# Ours, Modern IAF: the 3D cockpit's displays' brightness (the F-35I's MFD BRT knob, cockpit3d_controls.gd;
+			# no key sends it): p1 thousandths up or down, kept in the settings file as the HUD's (123).
+			var m := clampf(Settings.mfd_brightness + p1 / 1000.0, 0.1, 1.0)
+			if m != Settings.mfd_brightness:
+				Settings.mfd_brightness = m
+				Settings.save()
 		_:
 			return false
 	return true

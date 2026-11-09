@@ -126,6 +126,108 @@
      ]
     ]
    }
+  ],
+  "BATT": [
+   {
+    "prop": "f35i/elec/batt",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1,
+     0,
+     0
+    ],
+    "factor": -40.0,
+    "offset": 40.0
+   }
+  ],
+  "IPP": [
+   {
+    "prop": "f35i/engine/ipp",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1,
+     0,
+     0
+    ],
+    "factor": -40.0,
+    "offset": 40.0
+   }
+  ],
+  "ENG": [
+   {
+    "prop": "f35i/engine/eng",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1,
+     0,
+     0
+    ],
+    "factor": -40.0,
+    "offset": 40.0
+   }
+  ],
+  "CANOPY": [
+   {
+    "prop": "f35i/canopy",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     1,
+     0,
+     0
+    ],
+    "factor": -40.0,
+    "offset": 40.0
+   }
+  ],
+  "HMD_BRT": [
+   {
+    "prop": "f16/avionics/hud-sym",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     0,
+     0.30902,
+     0.95106
+    ],
+    "factor": -100.0,
+    "offset": 50.0
+   }
+  ],
+  "MFD_BRT": [
+   {
+    "prop": "instrumentation/mfd/brightness-norm",
+    "centre": [
+     0,
+     0,
+     0
+    ],
+    "axis": [
+     0,
+     0.30902,
+     0.95106
+    ],
+    "factor": -100.0,
+    "offset": 50.0
+   }
   ]
  }
 }
