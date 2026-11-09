@@ -1804,13 +1804,15 @@ func _start_flight() -> void:
 			"engine_on": start_engine_on,
 			"real_data": real_data,
 			"f16_variant": Settings.f16_variant,
-			"f15_variant": Settings.f15_variant
+			"f15_variant": Settings.f15_variant,
+			"sixdof_data": Settings.sixdof_data()
 		}
 	)
 	if err != "":
 		push_error("flight model: " + err)
 		flight = null
 		return
+	print("Flight model: %s (%s)" % [flight.state().get("model", ""), player.fm_section])
 	_apply_player_prefs()
 	_setup_autopilot(install)
 

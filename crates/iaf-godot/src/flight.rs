@@ -56,7 +56,9 @@ impl IafFlight {
     /// and the engine running only if `engine_on`. `real_data` picks the corrected real-world data
     /// set (chosen before the flight); `f16_variant` / `f15_variant` (the Extras switches) pick the aircraft
     /// definition's flight-model type (`data_set::variant`: an F-16 as the F-16I on Sufa, docs/f16i.md), whatever the
-    /// data set. Returns an error string or "" on success.
+    /// data set. `sixdof_data` (Physics "Flight model" on 6-DoF, docs/deviations.md §2): Modern IAF's own data
+    /// folder, which a modern jet (`data_set::sixdof`) loads from in place of `install`, so its `Model = 6dof`
+    /// sections fly the 6-DoF; "" or a 1998 jet: `install`. Returns an error string or "" on success.
     #[func]
     fn start(
         &mut self,
@@ -77,8 +79,12 @@ impl IafFlight {
         let section = section.to_string();
         let text = |k: &str| flags.get(k).and_then(|v| v.try_to::<GString>().ok()).unwrap_or_default().to_string();
         let (f16, f15) = (text("f16_variant"), text("f15_variant"));
-        let name = iaf_flight::data_set::variant(&section, iaf_flight::airframe::Switches { f16: &f16, f15: &f15 });
-        match iaf_flight::load_in(std::path::Path::new(&install.to_string()), name, set, &mut blocks) {
+        let switches = iaf_flight::airframe::Switches { f16: &f16, f15: &f15 };
+        let name = iaf_flight::data_set::variant(&section, switches);
+        let own = text("sixdof_data");
+        let dir =
+            if !own.is_empty() && iaf_flight::data_set::sixdof(&section, switches) { own } else { install.to_string() };
+        match iaf_flight::load_in(std::path::Path::new(&dir), name, set, &mut blocks) {
             Ok((params, envelope)) => {
                 let st = Start {
                     position: to_enu(position),
@@ -805,6 +811,8 @@ impl IafFlight {
             d.set("start_phase", ac.start_phase());
         }
         d.set("vortex", ac.vortex());
+        // Which model flies (iaf_flight::fm::Fm): "original" or "6dof".
+        d.set("model", if ac.original_ref().is_some() { "original" } else { "6dof" });
         d
     }
 }

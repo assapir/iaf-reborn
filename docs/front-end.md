@@ -1463,9 +1463,12 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
     screen's EXPORT FLIGHT DATA (top right of the content, above the tab strip) saves this flight's file where the
     player picks. `python3 -I tools/flight_timeline.py <file> [--html out.html]` prints the timeline and, per leg of
     the route, how far off the leg and how low the jet flew, and the threats that engaged it.
-  * **Physics** (`Settings.BETTER`): one check per option, 23 (17 flight-model improvements, docs/flight-model.md
-    §10, then 6 fixes of original gameplay bugs, docs/deviations.md §2), rows of 20 px, 15 shown with the
-    scrollbar, All on / All off in the header; mirrored in Hebrew.
+  * **Physics**: first the row **Flight model (modern jets)** (`PHYSICS_FM`, an Extras row's 35 px: Original /
+    6-DoF (TP-1538), `Settings.flight_model`; the modern jets on Modern IAF's 6-DoF, docs/deviations.md §2; 6-DoF
+    reads "Not built", greyed, until `./modern-iaf-setup` has built the sim's data), then `Settings.BETTER`: one check
+    per option, 23 (17 flight-model improvements, docs/flight-model.md §10, then 6 fixes of original gameplay bugs,
+    docs/deviations.md §2), rows of 20 px from y 80, 13 shown with the scrollbar, All on / All off in the header
+    (they leave the flight-model row alone); mirrored in Hebrew.
   * **Behaviour:** the options go through the same working copy and "Save changes?" box. A language change reloads
     the menus on Yes.
 * **Mouse wheel** (ours; the original reads no wheel). One notch scrolls by the step of the scroll arrows, through

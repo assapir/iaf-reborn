@@ -174,11 +174,18 @@ const EXTRAS_LABEL := Rect2(42, 219, 62, 16)
 const EXTRAS_STEP := 44.0
 ## Our tabs below Gameplay, 44 px apart: [page, English button label].
 const OUR_TABS := [["Extras", "EXTRAS"], ["Physics", "PHYSICS"]]
-## Physics page (ours): one row per Settings.BETTER option, PHYSICS_ROWS at a time, with the Keyboard
-## page's scrollbar from the first row to the page bottom (mirrored to the left in Hebrew).
+## Physics page (ours): the flight-model row (PHYSICS_FM, an Extras row's 35 px from y 45), then one row per
+## Settings.BETTER option from PHYSICS_TOP, PHYSICS_ROWS at a time, with the Keyboard page's scrollbar from the first
+## check to the page bottom (mirrored to the left in Hebrew).
 const PHYSICS_ROW := 20.0
-const PHYSICS_ROWS := 15
-const PHYSICS_BAR := Rect2(422, 45, 11, 300)
+const PHYSICS_ROWS := 13
+const PHYSICS_TOP := 80.0
+const PHYSICS_BAR := Rect2(422, 80, 11, 265)
+## Ours (docs/deviations.md §2): the modern jets on Modern IAF's 6-DoF (Settings.sixdof_data); "Not built" without
+## the sim's data (Settings.sixdof_built).
+const PHYSICS_FM := [
+	"flight_model", "Flight model (modern jets)", [["Original", "original"], ["6-DoF (TP-1538)", "6dof"]]
+]
 ## Extras rows: the Gameplay page's 35 px, EXTRAS_ROWS at a time above DEFAULT (y 330), with the Physics /
 ## Keyboard scrollbar when there are more (mirrored to the left in Hebrew).
 const EXTRAS_ROW := 35.0
@@ -1823,10 +1830,21 @@ func _physics_items() -> Array:
 	var w := CONTENT.size.x
 	var ids: Array = Settings.BETTER.keys()
 	for i in range(phys_top, mini(ids.size(), phys_top + PHYSICS_ROWS)):
-		var r := Rect2(24, 45.0 + PHYSICS_ROW * (i - phys_top), PHYSICS_BAR.position.x - 24 - 8, PHYSICS_ROW)
+		var r := Rect2(24, PHYSICS_TOP + PHYSICS_ROW * (i - phys_top), PHYSICS_BAR.position.x - 24 - 8, PHYSICS_ROW)
 		if _he():
 			r.position.x = w - r.end.x
 		items.append({"rect": r, "key": ids[i], "label": Settings.BETTER[ids[i]]})
+	# The flight-model row: two choices in the Extras columns (x 164 / 285).
+	var built: bool = Settings.sixdof_built()
+	for j in 2:
+		var r := Rect2(164.0 + 121.0 * j, 45.0, 111.0 if j == 0 else 129.0, EXTRAS_ROW)
+		if _he():
+			r.position.x = w - r.end.x
+		var c: Array = PHYSICS_FM[2][j]
+		var ok: bool = j == 0 or built
+		items.append(
+			{"rect": r, "key": PHYSICS_FM[0], "value": c[1], "label": c[0] if ok else "Not built", "available": ok}
+		)
 	for j in 2:
 		var r := Rect2(w - 24 - 70 * (2 - j), 12, 64, 22)
 		if _he():
@@ -1870,10 +1888,17 @@ func _phys_scroll(to: int) -> void:
 func _draw_physics() -> void:
 	_draw_our_page("Better physics")
 	_draw_rule(45)
+	_draw_rule(PHYSICS_TOP)
+	var fm := Rect2(24, 49, 136, 20)
+	if _he():
+		fm.position.x = CONTENT.size.x - fm.end.x
+	_text_fit(Rect2(CONTENT.position + fm.position, fm.size), _art(PHYSICS_FM[1]), LIST_TITLE_PX, LIST_TITLE, font_art)
 	_draw_bar(CONTENT.position, _phys_bar(), phys_top, _phys_max_top())
 	for it in _physics_items():
 		var r: Rect2 = it.rect
-		if it.key == "all" or it.key == "none":
+		if it.has("value"):
+			_draw_option(r, it.label, pref_work.get(it.key) == it.value, 10, 4, it.available)
+		elif it.key == "all" or it.key == "none":
 			_text_line(
 				Rect2(CONTENT.position + r.position + Vector2(0, 3), r.size),
 				_art(it.label),
@@ -2010,7 +2035,10 @@ func _pref_press(q: Vector2) -> bool:
 			return true
 		for it in _physics_items():
 			if it.rect.has_point(q):
-				if it.key == "all" or it.key == "none":
+				if it.has("value"):
+					if it.available:
+						pref_work[it.key] = it.value
+				elif it.key == "all" or it.key == "none":
 					for id in Settings.BETTER:
 						pref_work.better[id] = it.key == "all"
 				else:

@@ -8,6 +8,7 @@
     "desc": "The most advanced stealth fighter in the world, able to strike unseen deep behind enemy lines."
   },
   "flyable": true,
+  "sixdof": true,
   "cockpit": "res://shared/extra/planes/f35i/cockpit",
   "hud": "f35",
   "cockpit_3d": "res://shared/extra/models/cockpit3d/f35i.glb",
@@ -24,6 +25,7 @@
     "loads": { "1001": [1, "AI"], "1003": [1, "BCGH"], "1005": [1, "BCGH"], "1007": [4, "CG"] }
   },
   "notes": {
+    "sixdof": "Physics Flight model on 6-DoF: Modern IAF's 6-DoF from its own data (iaf-2026/docs/flight-model.md §9; docs/deviations.md §2)",
     "radar.row": "iaf_avionics::radar::F35I, the AN/APG-81's row",
     "radar.km": "AN/APG-81, multiple-target track beyond 80 NM (U, docs/f35i.md)",
     "gun_rounds": "GAU-22/A 25 mm, 180 rounds (the 20 MM record stands in)",

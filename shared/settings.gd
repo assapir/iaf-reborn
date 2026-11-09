@@ -137,7 +137,8 @@ const PREFS := {
 		"modern_weapons",
 		"bomb_release",
 		"real_mfds",
-		"cockpit_3d"
+		"cockpit_3d",
+		"flight_model"
 	],
 }
 
@@ -336,6 +337,9 @@ var real_mfds := "original"
 ## Sufa, ours for the F-35I.
 ## Read at mission load.
 var cockpit_3d := "original"
+## Flight model (ours, Physics page; docs/deviations.md §2): "original" or "6dof": the player's modern jet (its
+## aircraft definition's `sixdof`) flies Modern IAF's 6-DoF from the sim's own data (sixdof_data). Read at mission load.
+var flight_model := "original"
 ## World scale (ours, Extras page; docs/world-scale.md): "original" (the models at their Present scale, ×2 for
 ## the jets) or "real" (true size, model_scale). Read at mission load.
 var world_scale := "original"
@@ -952,6 +956,23 @@ func install(rel: String) -> String:
 ## copy of that layout in its project (iaf-2026/sim_settings.gd).
 func own_dir() -> String:
 	return install_dir()
+
+
+## The folder IafFlight.start loads a modern jet's 6-DoF from (Physics "Flight model" on 6-DoF): Modern IAF's own
+## data (`iaf-sim fm`, assets/converted/own); "" with the row on Original, or when setup has not built that data (the
+## original model flies, with a log line). IafFlight picks the jets (data_set::sixdof).
+func sixdof_data() -> String:
+	if flight_model != "6dof":
+		return ""
+	if not sixdof_built():
+		print("Flight model 6-DoF: Modern IAF's data is not built (./modern-iaf-setup): the original model flies")
+		return ""
+	return converted("own")
+
+
+## Physics "Flight model" can choose 6-DoF: Modern IAF's own flight data is built.
+func sixdof_built() -> bool:
+	return has_converted("own/resource/md/bd.ibx")
 
 
 ## The flight-model name the player's jet `type` flies (PlayerAircraft.profile, IafFlight.start's section); "" = the

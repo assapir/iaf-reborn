@@ -108,6 +108,15 @@ pub fn variant<'a>(name: &'a str, s: crate::airframe::Switches) -> &'a str {
         .unwrap_or(name)
 }
 
+/// Physics "Flight model" on 6-DoF (ours, docs/deviations.md §2): true when the type `name` flies, with the Extras
+/// switches `s`, as an aircraft definition with `sixdof` (the F-16I Sufa, the F-15I Ra'am, the F-35I); false for every
+/// 1998 jet, whose bases hold no such field.
+pub fn sixdof(name: &str, s: crate::airframe::Switches) -> bool {
+    find_type(name)
+        .and_then(|t| crate::airframe::of_type(t.type_code.into(), s))
+        .is_some_and(|a| a.sixdof == Some(true))
+}
+
 /// The flight-model name a bdb type code (`veh+0xc54`) flies as: the original's section
 /// ([`crate::params::code_section`]: 100 the F-16, 110 the F-15…), else a type of ours without original data (1000
 /// the F-35I). The Extras switches then pick the variant ([`variant`]).
@@ -878,6 +887,19 @@ mod tests {
         assert_eq!(apply(DataSet::Original, "F-4", &p, &e).0.chute_cd, 0.0);
         let (r, _) = apply(DataSet::Real, "F-4", &p, &e);
         assert!((r.chute_cd - 0.63 * 18.68 / r.wing_area).abs() < 0.01, "{} (wing {} m²)", r.chute_cd, r.wing_area);
+    }
+
+    #[test]
+    fn sixdof_modern_jets_only() {
+        use crate::airframe::Switches;
+        let (on, off) = (Switches { f16: "sufa", f15: "raam" }, Switches::default());
+        for name in ["F-16", "F-15", "F-35I"] {
+            assert!(sixdof(name, on), "{name} as a modern jet");
+        }
+        assert!(sixdof("F-35I", off), "the F-35I is always modern");
+        for name in ["F-16", "F-15", "F-4", "F-4 2000", "Kfir", "MiG-29", "unknown"] {
+            assert!(!sixdof(name, off), "{name}: a 1998 jet keeps the original model");
+        }
     }
 
     #[test]

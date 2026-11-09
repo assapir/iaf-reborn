@@ -42,6 +42,9 @@ pub struct Airframe {
     pub fly_by_wire: Option<bool>,
     /// The engine's spool times in seconds, `[idle_mil, mil_idle, ab_light, ab_fill]` (spool.rs `Spool`).
     pub engine_spool: Option<[f32; 4]>,
+    /// Physics "Flight model" on 6-DoF flies this jet on Modern IAF's 6-DoF (`data_set::sixdof`, docs/deviations.md
+    /// §2); a jet without it keeps the original model.
+    pub sixdof: Option<bool>,
     /// The night-vision goggles' tube whatever the year (terrain_view.gd `TUBES`), its cockpit lit for them.
     pub goggles: Option<String>,
     pub guide: Option<String>,

@@ -139,6 +139,15 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 - **"Stores weight fix"**. Original: one store per station, pounds in the kg field, tank fuel = the pounds number as
   kg. Ours, with the switch: every store counts in the stores weight, in kg, and the fuel tanks' fuel in kg —
   weapons.md §2.5–2.6.
+- **Flight model (modern jets) (Original / 6-DoF (TP-1538))** (the page's top row, `Settings.flight_model`; Modern
+  IAF's item C2, [iaf-2026/docs/shared.md](../iaf-2026/docs/shared.md)). Original: every jet flies the 1998 flight
+  model. Ours, with 6-DoF: the player's modern jet (an aircraft definition with `"sixdof": true`: the F-16I Sufa, the
+  F-15I Ra'am, the F-35I; `iaf_flight::data_set::sixdof`) flies Modern IAF's own 6-DoF (NASA TP-1538's aerodynamics
+  and control system, iaf-2026/docs/flight-model.md §9) from the sim's data
+  (`assets/converted/own/resource/md/bd.ibx`, whose sections say `Model = 6dof`; `Settings.sixdof_data`). The 1998
+  jets, the AI's jets and the autopilot's bases keep the original game's data. Without the sim's data (built by
+  `./modern-iaf-setup`) the 6-DoF choice reads "Not built", greyed; a saved 6-DoF choice then flies the original model
+  and logs "Flight model 6-DoF: Modern IAF's data is not built". Each flight logs "Flight model: original|6dof".
 
 **Flight data = Real**
 - **RWR display.** Original: the display copies the first `count` slots without compacting, so an entry can vanish
