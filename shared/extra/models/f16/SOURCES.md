@@ -86,6 +86,9 @@ Made by `tools/f16/rig.py ... barak`: the F-16 base (`tools/f16/base.py`) with t
     pattern kept, its brown, sand and pale green made the faded tan, sand and grey-green, down to the strakes, its
     grey kept below; the stabilators' tops camouflaged. Colours measured, each tone against the sand in the same
     light, on F-16D 027 (Oren Rozen) and 601 (Itayba), the photographs of change 2. Used only as references.
+11. The wing pylons' open tops capped, and the wingtip rails and wing pylons given their own UVs on a free grey
+    part of the livery, painted a warm grey that renders as FS 36375, with the paint's material and occlusion (both
+    models; docs/aircraft-models.md §1.5).
 
 The model contains about 60 helper positions measured from the original game model (where the game hangs stores,
 draws the afterburner and puts the wheels). They are coordinates only. Every mesh and texture comes from the

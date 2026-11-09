@@ -394,6 +394,59 @@ def fit_pylons(body, helpers, root):
         print("pylon", pylon, "->", station, "moved", tuple(round(x, 3) for x in d))
 
 
+# The wingtip rails and the six wing pylons (ours, 2026-11-09): FlightGear maps each onto one spot of the livery (the
+# rails a tan strip, the pylons its grey margin), so on a clean jet they showed as flat, untextured blocks, and leaves
+# the pylons' tops open. store_paint caps them and lays every face out flat, at STORE_K px per m, on its own place in
+# STORE_ISLAND (a free grey rectangle of the livery, pixels from the top left), painted STORE_PAINT: the paint's
+# material, with the occlusion bake's shading. STORE_PAINT (sRGB) is a warm grey so that the rails and pylons, mostly
+# in the sky's blue light, render as FS 36375 light ghost grey (166, 173, 180): measured on the 3D cockpit's
+# look-back and outside renders, where FS 36375 itself rendered blue (104, 118, 142) (docs/aircraft-models.md §1.5).
+STORE_PARTS = ["WingTips"] + [p for p in PYLONS if p != "CLStation"]
+STORE_ISLAND, STORE_K = (1640, 1390, 2030, 1545), 36.0
+STORE_PAINT = (0.843, 0.824, 0.765)
+
+
+def store_paint(body):
+    x0, y0, x1, y1 = STORE_ISLAND
+    cx, cy, row_h = x0 + 2, y0 + 2, 0.0
+    for name in STORE_PARTS:
+        me = body[name].data
+        bm = bmesh.new()
+        bm.from_mesh(me)
+        caps = bmesh.ops.holes_fill(bm, edges=bm.edges)["faces"]
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        uv = bm.loops.layers.uv.active
+        for side in (-1, 1):  # WingTips holds both rails: each side its own place
+            faces = [f for f in bm.faces if (f.calc_center_median().x > 0) == (side > 0)]
+            if not faces:
+                continue
+            vs = [v.co for f in faces for v in f.verts]
+            lo = Vector([min(c[i] for c in vs) for i in range(3)])
+            ext = Vector([max(c[i] for c in vs) for i in range(3)]) - lo
+            # Rows: the faces looking +x, -x (along y, z), +z, -z (along y, x), then ±y (along x, z), side by side.
+            rows = [((0, 1), 1, 2, 0), ((0, -1), 1, 2, 0), ((2, 1), 1, 0, 0), ((2, -1), 1, 0, 0),
+                    ((1, 1), 0, 2, 0), ((1, -1), 0, 2, ext.x * STORE_K + 2)]
+            w = max(ext.y, 2 * ext.x) * STORE_K + 4
+            h = (3 * ext.z + 2 * ext.x) * STORE_K + 12
+            if cx + w > x1:
+                cx, cy, row_h = x0 + 2, cy + row_h, 0.0
+            assert cy + h <= y1, ("STORE_ISLAND full", name)
+            top = cy
+            for (axis, sign), a, b, dx in rows:
+                for f in faces:
+                    k = max(range(3), key=lambda i: abs(f.normal[i]))
+                    if k != axis or (f.normal[k] > 0) != (sign > 0):
+                        continue
+                    for lp in f.loops:
+                        c = lp.vert.co - lo
+                        lp[uv].uv = ((cx + dx + c[a] * STORE_K) / 2048, 1 - (top + c[b] * STORE_K) / 2048)
+                if (axis, sign) != (1, 1):
+                    top += ext[b] * STORE_K + 2
+            cx, row_h = cx + w, max(row_h, h)
+        bm.to_mesh(me)
+        print("store paint", name, "caps", len(caps))
+
+
 # The IAF dorsal spine (our frame, after SHIFT; y forward, z up). Its front (SP_Y0) is the glass's rear edge, an arch
 # 0.34 m wide whose top is SP_Z0, so the canopy runs on into it; it widens to 0.34 m (half-width) by y = -0.5, eases
 # down to SP_Z_TOP by SP_Y_LEVEL and runs level to its end over the nozzle (SP_Y_END), the lowered fin standing on
@@ -637,6 +690,7 @@ def build(variant):
     everything = [o for o in kit.scene().objects if o.type == 'MESH']
     transform(everything, Matrix.Translation(SHIFT))
     fit_pylons(body, helpers, root_at)
+    store_paint(body)
     # The afterburner (EngineL, EngineL1 its radius above) at our nozzle's exit, in place of the original's (its
     # nozzle ends 0.26 m further aft): the flame starts on the petals. Visual only.
     lo, hi = bounds(list(noz.values()))
@@ -985,6 +1039,8 @@ def materials(variant):
     livery = bpy.data.images.load(os.path.join(M, LIVERY))
     skin = [o for o in objs if any(m and m.name.startswith("ac_f16.png") for m in o.data.materials)]
     albedo = variant.livery(wing_roundels(spine_island(pixels(livery)), skin), skin)
+    x0, y0, x1, y1 = STORE_ISLAND  # after the layer's paint, which would recolour it
+    albedo[albedo.shape[0] - y1:albedo.shape[0] - y0, x0:x1, :3] = STORE_PAINT
     size = albedo.shape[0]
     ao = np.ones(albedo.shape[:2], dtype=np.float32) if FAST else bake_ao(skin, size)
     normal, groove = panel_maps(albedo)

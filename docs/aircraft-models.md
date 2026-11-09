@@ -24,9 +24,9 @@ them. Plans for more jets and stores: [graphics-research.md](graphics-research.m
 | item | value |
 |---|---|
 | source | FlightGear F-16 (`github.com/NikolaiVChr/f16`), GPL-2.0-or-later; credits and changes in `shared/extra/models/f16/SOURCES.md` |
-| triangles | 56 200 (original: 7 200; 51 500 until 2026-11-08, before the full-detail headrest, helmets and smooth canopy bow, §1.4); runtime LODs cut far jets to a fraction |
+| triangles | 56 240 (original: 7 200; 56 228 until 2026-11-09, before the pylons' caps, §1.5; 51 500 until 2026-11-08, before the full-detail headrest, helmets and smooth canopy bow, §1.4); runtime LODs cut far jets to a fraction |
 | textures | livery, occlusion / roughness / metallic and normal maps at 2048²; the nozzle, cockpit, seat and pilot textures at 512 px or less; KTX2 inside the glb (about 110 MB in video memory as RGBA8) |
-| file size | 3.8 MB |
+| file size | 4.03 MB (4.02 MB until 2026-11-09) |
 | livery | IAF desert camouflage, 101 Squadron, tail 547 (FlightGear's own livery and pattern) in the Barak's colours measured on photographs: faded tan, sand and grey-green down to the strakes, light grey below, camouflaged stabilator tops; IAF wing roundels: one above each wing, one under each wing |
 | crew | two pilots on two ACES II seats under a two-seat canopy: two transparencies on one narrow near-black bow just behind the front seat's headrest, both cockpits open under the glass |
 | IAF features | the dorsal spine of Israel's F-16D Block 30 / 40 ("Brakeet"): the avionics hump, level from the canopy's rear edge to a box under the fin that ends round just aft of the nozzle, 0.25 m under the canopy's top, with its three vents; the fin and rudder stand on it |
@@ -159,9 +159,9 @@ unchanged. `util/gltf.gd` `detailed()` returns it for `f16_h.gltf` whenever the 
 
 | item | value |
 |---|---|
-| triangles | 57 550: the F-16D's plus the CFTs (352 faces), the nozzle (16 × 13 faces), the seven nose fairings and the four tail-box fairings |
+| triangles | 57 580: the F-16D's plus the CFTs (352 faces), the nozzle (16 × 13 faces), the seven nose fairings and the four tail-box fairings |
 | textures | as the F-16D's; the livery repainted by the Sufa layer (`sufa.py` `livery`) |
-| file size | 4.0 MB (KTX2) |
+| file size | 4.15 MB (KTX2) |
 
 The camouflage: on every texel within `SUFA_BODY_X` (1 m) of the centre line (fuselage, CFTs, spine, tail box) the
 colour of the `SUFA_BLOTCHES` polygon its (y, z) lies in, sand outside them (`side_weights`, soft over 2 cm), both
@@ -265,6 +265,38 @@ seat matte while the outside jets' seat keeps its material; in mission 231
 Original keeps `f16_bc`, Detailed and the Sufa use the cut model). `tests/godot/_cockpit_show_shot.gd` scenes
 `cockpit_f16_back`, `cockpit_f16_rback` and `cockpit_f16_lback` take the look-back pictures.
 
+### 1.5 The wingtip rails and the pylons on a clean jet (2026-11-09)
+
+FlightGear maps its wingtip rails onto a tan strip of the livery and its six wing pylons onto one grey texel of
+the livery's margin. On a jet with no stores (a clean jet, or after its missiles are fired) they showed as flat,
+untextured blocks: a beige rail beside the camouflage, plain blue-grey plates under the wing. The pylons' tops were
+open. `store_paint` (tools/f16/base.py, §2 step 4) caps the pylons' tops (one face each; the rails have no
+holes) and lays every face of the rails and pylons out flat at 36 px per m on its own place of the livery
+(`STORE_ISLAND`, a free grey rectangle no other face uses). The build paints that place `STORE_PAINT` after the
+layer's paint, so the rails and pylons take the paint's material and the occlusion bake's shading on both jets.
+Stores still hang where they did; the centreline pylon keeps its own grey.
+
+The colour is FS 36375 light ghost grey, sRGB (166, 173, 180)[^fs36375], as rendered. The pylons of IAF F-16D 039
+in flight are a near-neutral grey, a little bluer than red (in that overcast photo's shade, 66 / 72 / 75)[^f16d039].
+Painted FS 36375 itself, the rails rendered a saturated blue-grey in the look-back (mean 104 / 118 / 142 over the
+rails' pixels): seen from the cockpit they lie mostly in the sky's blue light. `STORE_PAINT` is therefore a warm
+grey, sRGB (215, 210, 195), set from the renders' per-channel gain. A warmer try, (225, 211, 185), rendered
+neutral in the look-back (123 / 123 / 122) but beige in the sun outside (176 / 165 / 154), so it was dropped
+(2026-11-09). With (215, 210, 195) the rails' pixels render a light, near-neutral grey: in the four look-backs
+(both jets, left and right) means 110–127 / 117–131 / 131–141, a little cool in the shade as FS 36375 is; outside
+in the sun on the Sufa's left rail 170–175 / 167–170 / 171.
+
+Before (left) and after (right), with no stores, from the 3D cockpit looking back:
+
+![F-16D Barak looking back left from the 3D cockpit, before and after](img/f16_railcaps_back_barak.jpg)
+![F-16I Sufa looking back right from the 3D cockpit, before and after](img/f16_railcaps_back_sufa.jpg)
+
+From outside, side on and from behind the left wing:
+
+![F-16D Barak side on, before and after](img/f16_railcaps_side_barak.jpg)
+![F-16I Sufa side on, before and after](img/f16_railcaps_side_sufa.jpg)
+![F-16D Barak's left wingtip rail from behind, before and after](img/f16_railcaps_quarter_barak.jpg)
+
 ## 2. Rebuilding the F-16D
 
 You need Blender 4 or 5, `basisu` (`brew install basis_universal`), a FlightGear F-16 checkout and your converted
@@ -304,7 +336,9 @@ The steps:
    centre bow, takes out the single seater's bulkhead and opens the rear cockpit (`canopy_bow`, §1); adds the
    centreline pylon;
 3. moves it 1.05 m aft so its wing lies on the original's wing;
-4. moves each pylon onto the original's station and compresses the oleos so the wheels touch at `height`;
+4. moves each pylon onto the original's station and compresses the oleos so the wheels touch at `height`; caps the
+   wing pylons' open tops and lays the pylons and the wingtip rails out on their own place in the livery
+   (`store_paint`, §1.5);
 5. opens the main gear doors for LdgDr and closes the nose door for LdgDrUp;
 6. builds the IAF dorsal spine (`dorsal_spine`, constants `SP_*`): rounded-box sections every 0.1 m, lofted over
    the fuselage and flared into it. Its front is the canopy glass's rear edge, an arch 0.38 m wide whose top is
@@ -336,6 +370,7 @@ The steps:
    photographs of IAF F-16Ds (§1.2, "The colours against photographs"); its pale green is nearly its grey, so above the strakes (0.15 m) and on faces
    looking up both become the green, and underneath the grey stays FS 36375. The stabilators' tops, grey in the
    livery, get our camouflage pattern (`camo_weights`) in the same colours;
+   Then the pylons' and rails' place (`STORE_ISLAND`) is painted FS 36375, as the underside;
 10. makes the maps: occlusion baked in Cycles, a normal map from the livery's thin dark lines (panel lines, rivets),
    roughness from the lines and the occlusion, plus the layer's `MATTE`;
 11. exports the glb and re-encodes its textures as KTX2.
@@ -803,3 +838,8 @@ three pylons under each wing and the centre line tank between the engines. What 
 [^ak]: AK Interactive, Israeli Air Force colours (AK11752), product text: the air superiority grey scheme of FS 36320
     Dark Ghost Grey and FS 36375 Light Ghost Grey came with the F-15A/B at the end of 1976,
     https://ak-interactive.com/?p=256303
+[^fs36375]: Encycolorpedia, "Federal Standard 36375 / #a6adb4", https://encycolorpedia.com/a6adb4: RGB (166, 173,
+    180), AMS-STD 595 36375 Light Compass Ghost Gray.
+[^f16d039]: מינוזיג, "F-16 IAF Israel Independence Day flyover.jpg", Wikimedia Commons, CC BY-SA 4.0 (IAF F-16D 039
+    from below), https://commons.wikimedia.org/wiki/File:F-16_IAF_Israel_Independence_Day_flyover.jpg. Used only
+    as a reference.
