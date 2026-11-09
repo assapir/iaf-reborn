@@ -22,9 +22,11 @@ pub const COCKPITS: [&str; 9] = ["f16", "f15", "f4-2000", "phantom", "cfir", "la
 pub const OUTPUTS: &[&str] = &[
     "install",
     "install.stamp",
+    "install.secs",
     "v1.0",
     "v1.1",
     "v1.1.stamp",
+    "v1.1.secs",
     "patch",
     "converted",
     "packs-none",

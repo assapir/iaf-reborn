@@ -94,7 +94,8 @@ for top in ("assets/install", "assets/converted"):
     for d, dirs, files in os.walk(top, followlinks=True):
         unused = [f"assets/converted/{x}" for x in ("guides", "scenery", "roads", "models")]
         dirs[:] = sorted(x for x in dirs if not x.startswith(".") and os.path.join(d, x) not in unused)
-        for f in sorted(files):
+        # A step's .secs (its last run's seconds, the setup wizard's time left) changes every run: left out.
+        for f in sorted(x for x in files if not x.endswith(".secs")):
             # ponytail: path and size, not the time, so identical regenerated data keeps the pictures; a same-size
             # change goes unseen (--force).
             h.update(f"{d}/{f} {os.path.getsize(os.path.join(d, f))}\n".encode())

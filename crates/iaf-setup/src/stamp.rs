@@ -213,6 +213,11 @@ impl Stamp {
             _ => Ok(()),
         }
     }
+    /// Beside the stamp: the seconds the step's last run took (the setup wizard's "all steps" time left). Not part of
+    /// the stamp, so it never decides what runs.
+    pub fn secs_path(&self) -> PathBuf {
+        self.path.with_extension("secs")
+    }
     pub fn write(&self) -> Result<()> {
         if let Some(d) = self.path.parent() {
             std::fs::create_dir_all(d)?;
@@ -326,6 +331,11 @@ pub(crate) fn of(step: &Step, ctx: &Ctx) -> Result<Option<Stamp>> {
     Ok(Some(Stamp { path: stamp, text, output: out }))
 }
 
+/// Where Modern IAF's step `id` keeps its stamp.
+pub(crate) fn sim_stamp_path(assets: &Path, id: &str) -> PathBuf {
+    assets.join("converted/iaf-2026").join(format!("{id}.stamp"))
+}
+
 /// The stamp of one of Modern IAF's steps (`sim::sim_plan`), in `converted/iaf-2026/`: the code, the authored data it
 /// reads; for the terrain, what `iaf-sim terrain` itself compares (the box and the Survey sheets' names and sizes); for
 /// the airbases, the OpenStreetMap extracts' hashes.
@@ -366,8 +376,7 @@ pub(crate) fn sim_of(step: &Step, ctx: &SimCtx) -> Result<Option<Stamp>> {
         // The repo's path is not part of what the data is.
         text += &describe_under(p, &ctx.repo)?;
     }
-    let stamp = a.join("converted/iaf-2026").join(format!("{}.stamp", step.id));
-    Ok(Some(Stamp { path: stamp, text, output: Some(out) }))
+    Ok(Some(Stamp { path: sim_stamp_path(a, step.id), text, output: Some(out) }))
 }
 
 #[cfg(test)]

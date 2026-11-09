@@ -19,6 +19,8 @@ struct Row {
     state: &'static str,
     detail: String,
     fraction: f32,
+    /// Its measured seconds (`iaf_setup::Pace`).
+    expected: Option<f64>,
 }
 
 #[derive(Default)]
@@ -329,12 +331,18 @@ impl IafSetup {
         let header = format!("Modern IAF setup: survey {survey}\nredo: {redo:?}");
         let prefix = format!("{}/", ctx.assets.display());
         self.launch(steps.clone(), &header, log_file, prefix, move |sink, cancel| {
-            iaf_setup::sim_run(&steps, &ctx, &|id| redo.iter().any(|r| r == "*" || r == id), sink, cancel)
+            let redo = |id: &str| redo.iter().any(|r| r == "*" || r == id);
+            let expected = iaf_setup::sim_expected(&steps, &ctx, &redo);
+            for (r, e) in sink.0.lock().unwrap().rows.iter_mut().zip(expected) {
+                r.expected = e;
+            }
+            iaf_setup::sim_run(&steps, &ctx, &redo, sink, cancel)
         });
         GString::new()
     }
 
-    /// {steps: [{id, title, required, state, detail, fraction}], log: new lines since the last poll, done, error}.
+    /// {steps: [{id, title, required, state, detail, fraction}], log: new lines since the last poll, done, error, left:
+    /// all steps' seconds left from measured durations (-1: not measured), step, of: step `step` of `of` instead}.
     #[func]
     fn poll(&mut self) -> VarDictionary {
         let mut sh = self.shared.lock().unwrap();
@@ -346,8 +354,24 @@ impl IafSetup {
                     .to_variant()
             })
             .collect();
+        let paces: Vec<iaf_setup::Pace> = sh
+            .rows
+            .iter()
+            .map(|r| iaf_setup::Pace {
+                finished: !matches!(r.state, "waiting" | "running"),
+                fraction: r.fraction,
+                expected: r.expected,
+            })
+            .collect();
+        let (left, step, of) = match iaf_setup::time_left(&paces) {
+            iaf_setup::Left::Secs(s) => (s, 0, 0),
+            iaf_setup::Left::Step(n, m) => (-1.0, n as i64, m as i64),
+        };
         let log: PackedStringArray = sh.log.drain(..).map(|l| GString::from(l.as_str())).collect();
-        vdict! { "steps" => &steps, "log" => &log, "done" => sh.done, "error" => sh.error.as_str() }
+        vdict! {
+            "steps" => &steps, "log" => &log, "done" => sh.done, "error" => sh.error.as_str(),
+            "left" => left, "step" => step, "of" => of,
+        }
     }
 
     /// Stops the run: the running steps end at their next item.
@@ -381,6 +405,7 @@ impl IafSetup {
                     state: "waiting",
                     detail: String::new(),
                     fraction: 0.0,
+                    expected: None,
                 })
                 .collect(),
             ..Default::default()

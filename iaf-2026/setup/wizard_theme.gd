@@ -1,6 +1,6 @@
 # The setup wizard's look, all in one place (iaf-2026/docs/setup.md "Look"): Godot's default dark theme with the
 # Heebo font and a few type variations the pages use by name. A new look (the user's round 3) replaces only this
-# file: the pages ask for "Heading", "Muted", "Note", "Readout", "Code", "Card", never a colour or a size.
+# file: the pages ask for "Heading", "Muted", "Note", "Readout", "Card", "Primary", never a colour or a size.
 extends RefCounted
 
 const FONT := "res://data/fonts/Heebo-VariableFont_wght.ttf"
@@ -22,14 +22,25 @@ static func make() -> Theme:
 	_variation(t, "Muted", "Label", {"font_color": dim})
 	_variation(t, "Note", "Label", {"font_color": dim, "font_size": BASE_SIZE - 2})
 	_variation(t, "Readout", "Label", {"font": _weight(heebo, 600), "font_size": BASE_SIZE + 6})
-	# Commands and paths: a monospace system font (Heebo draws "--" as dashes).
-	var mono := SystemFont.new()
-	mono.font_names = PackedStringArray(["monospace", "Menlo", "Consolas"])
-	_variation(t, "Code", "Label", {"font": mono, "font_size": BASE_SIZE - 1})
 	t.set_type_variation("Card", "PanelContainer")
 	var card: StyleBox = ThemeDB.get_default_theme().get_stylebox("panel", "Panel").duplicate()
 	card.set_content_margin_all(10)
 	t.set_stylebox("panel", "Card", card)
+	# The page's main action (Done's Start the game): a button filled with the default theme's brightest text colour
+	# (white), dark bold text.
+	var d := ThemeDB.get_default_theme()
+	var accent := d.get_color("font_pressed_color", "Button")
+	t.set_type_variation("Primary", "Button")
+	var fills := {"normal": accent, "hover": accent.lightened(0.15), "pressed": accent.darkened(0.15)}
+	for state in fills:
+		var b: StyleBox = d.get_stylebox(state, "Button").duplicate()
+		if b is StyleBoxFlat:
+			b.bg_color = fills[state]
+		t.set_stylebox(state, "Primary", b)
+	var ink := Color(0.1, 0.12, 0.15)
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
+		t.set_color(c, "Primary", ink)
+	t.set_font("font", "Primary", _weight(heebo, 600))
 	return t
 
 

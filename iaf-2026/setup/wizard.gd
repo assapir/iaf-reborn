@@ -170,6 +170,8 @@ var title_label: Label
 var page_label: Label
 var back_button: Button
 var next_button: Button
+## The Done page's second button (Start the game is next_button).
+var close_button: Button
 var log_button: Button
 var pages: Array[Control] = []
 var lang_pick: OptionButton
@@ -177,6 +179,8 @@ var req_ok := false
 var s2_check: CheckBox
 var survey_check: CheckBox
 var install_note: Label
+## The whole run's time left, under the status line while it runs ("all steps", or the step count unmeasured).
+var total_label: Label
 ## The Attributions, a modal dialog opened from Welcome (Esc or Close closes it).
 var credits_dialog: AcceptDialog
 var redo_check: CheckBox
@@ -299,13 +303,15 @@ func _build() -> void:
 			log_view.visible = not log_view.visible
 			log_button.text = s("hide_log") if log_view.visible else s("show_log")
 	)
+	close_button = _button(foot, s("close"), func(): get_tree().quit())
+	close_button.name = "Close"
 	next_button = _button(foot, "", _on_next)
+	next_button.name = "Next"
 	credits_dialog = _credits_dialog()
 	add_child(credits_dialog)
 
 
-## A label in one of the theme's text kinds (wizard_theme.gd: "", "Title", "Heading", "Muted", "Note", "Readout",
-## "Code").
+## A label in one of the theme's text kinds (wizard_theme.gd: "", "Title", "Heading", "Muted", "Note", "Readout").
 func _label(parent: Control, t: String, kind := "") -> Label:
 	var l := Label.new()
 	l.text = t
@@ -320,13 +326,6 @@ func _text(parent: Control, t: String, kind := "") -> Label:
 	var l := _label(parent, t, kind)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	return l
-
-
-## A command or path: always left to right, also on a Hebrew page.
-func _code(parent: Control, t: String) -> Label:
-	var l := _text(parent, t, "Code")
-	l.text_direction = Control.TEXT_DIRECTION_LTR
 	return l
 
 
@@ -479,6 +478,9 @@ func _page_install() -> Control:
 	var v := _vbox(10)
 	v.name = "Install"
 	install_note = _text(v, "")
+	total_label = _text(v, "", "Muted")
+	total_label.name = "Total"
+	total_label.visible = false
 	redo_check = CheckBox.new()
 	redo_check.text = s("redo")
 	v.add_child(redo_check)
@@ -502,9 +504,6 @@ func _page_install() -> Control:
 func _page_done() -> Control:
 	var v := _vbox(8)
 	done_label = _text(v, "", "Heading")
-	var win := OS.get_name() == "Windows"
-	_text(v, s("how_start"), "Muted")
-	_code(v, ".\\modern-iaf.ps1" if win else "./modern-iaf")
 	return v
 
 
@@ -545,6 +544,8 @@ func _update() -> void:
 	back_button.visible = page > 0 and pg != "done"
 	back_button.text = s("cancel") if running else s("back")
 	log_button.visible = pg == "install"
+	close_button.visible = pg == "done"
+	total_label.visible = running
 	next_button.disabled = false
 	next_button.text = s("next")
 	match pg:
@@ -555,7 +556,8 @@ func _update() -> void:
 			next_button.disabled = running
 			redo_check.disabled = running
 		"done":
-			next_button.text = s("done")
+			next_button.text = s("start_game")
+	next_button.theme_type_variation = "Primary" if pg == "done" else ""
 
 
 func _on_back() -> void:
@@ -578,9 +580,27 @@ func _on_next() -> void:
 			else:
 				start_install()
 		"done":
-			get_tree().quit()
+			start_game()
 		_:
 			show_page(page + 1)
+
+
+## Opens the sim's front end in this process, as ./modern-iaf starts it: the project's own window (not the wizard's
+## 1100×720 at the UI scale), the player's display mode, the devices read from the keys setup just built.
+func start_game() -> void:
+	var win := get_window()
+	win.content_scale_factor = 1.0
+	if DisplayServer.get_name() != "headless":
+		win.mode = Window.MODE_FULLSCREEN if Settings.fullscreen else Window.MODE_MAXIMIZED
+	Settings.apply_devices()
+	get_tree().change_scene_to_file(Settings.front_end_scene())
+
+
+## The whole run's time left from IafSetup.poll: "all steps" from the measured durations, else the step count.
+func total_text(p: Dictionary) -> String:
+	if p.left >= 0.0:
+		return s("all_left") % _duration(p.left)
+	return s("step_of") % [p.step, p.of]
 
 
 ## The Install page's status line, hidden while it is empty.
@@ -672,6 +692,7 @@ func _process(_delta: float) -> void:
 		return
 	var p: Dictionary = setup.poll()
 	_fill_rows(p.steps)
+	total_label.text = total_text(p)
 	if p.log.size() > 0:
 		log_view.text += "\n".join(p.log) + "\n"
 		log_view.scroll_vertical = log_view.get_line_count()

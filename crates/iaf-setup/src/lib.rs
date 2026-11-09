@@ -22,7 +22,7 @@ mod steps;
 
 pub use checks::{CdKind, PackInfo, Tools, check_cd, check_pack, check_patch, python, scan, tools};
 pub use saved::{from_json, inputs_file, load_inputs, save_inputs, to_json};
-pub use sim::{SimCtx, SimInputs, sim_plan, sim_preview, sim_run, survey_sheets};
+pub use sim::{SimCtx, SimInputs, sim_expected, sim_plan, sim_preview, sim_run, survey_sheets};
 pub use steps::{COCKPITS, KEPT, OUTPUTS, disk_bytes, imagery_stale, script_guides, uninstall};
 
 /// The Hebrew content: the Hebrew retail CD (everything translated), or the preflight.us packs.
@@ -274,6 +274,35 @@ pub(crate) enum Outcome {
     Skipped(String),
 }
 
+/// One step of a running setup, for [`time_left`].
+pub struct Pace {
+    /// Ended (done, up to date, skipped, failed…).
+    pub finished: bool,
+    pub fraction: f32,
+    /// Its seconds as measured on an earlier run (0: up to date), `None` never measured.
+    pub expected: Option<f64>,
+}
+
+/// The whole run's time left (the wizard's "all steps").
+#[derive(Debug, PartialEq)]
+pub enum Left {
+    /// From the measured durations of the steps still to finish.
+    Secs(f64),
+    /// A step still to finish was never measured: step `.0` of `.1` instead of a guess.
+    Step(usize, usize),
+}
+
+/// [`Left`] for `steps`: each unfinished step's measured seconds times the part it has still to do.
+// ponytail: a plain sum, while independent steps run at once; the terrain step is nearly all of the time, so the
+// overlap is small. Upgrade: the longest path through the plan's graph.
+pub fn time_left(steps: &[Pace]) -> Left {
+    let open: Vec<&Pace> = steps.iter().filter(|p| !p.finished).collect();
+    match open.iter().map(|p| p.expected.map(|e| e * f64::from(1.0 - p.fraction))).sum::<Option<f64>>() {
+        Some(s) => Left::Secs(s),
+        None => Left::Step((steps.len() - open.len() + 1).min(steps.len()), steps.len()),
+    }
+}
+
 /// Runs `steps` (from `plan`) as a dependency graph: a step starts once every step it waits for is done or up to date;
 /// independent steps run at once; a required step waits for an optional one to end, not to succeed (an optional
 /// step's failure stops only itself and the optional steps after it). A step whose stamp matches is up to date unless `redo(id)` (redo all: `&|_| true`). A required step's failure
@@ -426,10 +455,17 @@ fn run_one(
         }
         s.clear()?;
     }
+    let t0 = std::time::Instant::now();
     match exec(step, pr)? {
         Outcome::Done => {
             if let Some(s) = &s {
                 s.write()?;
+                // Its measured duration, for the next run's time left (a failed write only costs the estimate);
+                // written then renamed, so a reader never sees half a number.
+                let (secs, tmp) = (s.secs_path(), s.secs_path().with_extension("secs.tmp"));
+                if std::fs::write(&tmp, format!("{:.0}\n", t0.elapsed().as_secs_f64())).is_ok() {
+                    let _ = std::fs::rename(&tmp, &secs);
+                }
                 record(&s.text);
             } else {
                 record("ran");
@@ -718,6 +754,17 @@ mod tests {
         assert_eq!(go(&he), ["arm", "briefings", "hebrew", "keys", "menu_he"]);
         assert!(go(&he).is_empty());
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn time_left_needs_every_open_step_measured() {
+        let p = |finished, fraction, expected| Pace { finished, fraction, expected };
+        assert_eq!(
+            time_left(&[p(true, 1.0, None), p(false, 0.5, Some(600.0)), p(false, 0.0, Some(0.0))]),
+            Left::Secs(300.0)
+        );
+        assert_eq!(time_left(&[p(true, 1.0, None), p(false, 0.5, Some(600.0)), p(false, 0.0, None)]), Left::Step(2, 3));
+        assert_eq!(time_left(&[p(true, 1.0, None)]), Left::Secs(0.0));
     }
 
     #[test]

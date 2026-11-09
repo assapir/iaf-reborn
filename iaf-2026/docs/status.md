@@ -90,7 +90,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **[A3](plan.md#a3-the-setup-wizard), the setup wizard (2026-11-03):** `./modern-iaf-setup` opens the wizard; it builds the terrain,
   the airbases, the units and weapons, the sounds and voices and the training missions as a step graph with stamps (a
   second run is all up to date), in English and Hebrew ([setup.md](setup.md)). Its look is Godot's default theme until
-  the user's next round.
+  the user's next round. Since 2026-11-09 Done's **Start the game** opens the front end in the same process
+  (Close quits), and Install shows "this step" in the running row and "all steps" from the durations measured on
+  earlier runs, or the step count before any run ([setup.md](setup.md) "Time left").
 - **[B3](plan.md#b3-scenery-roads-and-inland-water), scenery and inland water (2026-11-03):** `iaf-sim scenery` builds the original's buildings, trees, road
   layer and city lights in the sim's UTM theatre from the shared open-data cache ([scenery.md](scenery.md)); the sim
   shows them over its own ground when Scenery is on (Preferences → Graphics → "Buildings and trees": Off / On /

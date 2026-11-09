@@ -42,12 +42,35 @@ large screen by its UI scale (the containers stretch; nothing has a fixed page s
    disk use and time. The Survey choice needs the 79 sheet ZIPs (data.gov.il, 17 GB) in
    `assets/source/imagery/mapi2015/`; without them the page says so and keeps Sentinel-2.
 3. **Install**: one row per step with its progress bar and state. Before a run the rows say which steps are up to
-   date (a background check); during a run a long step shows the time left. Back becomes Cancel: the running steps
+   date (a background check); during a run the page shows two estimates (see "Time left" below). Back becomes Cancel: the running steps
    stop at their next item. "Show the log" opens the log; the whole run is also in `assets/logs/modern-iaf-setup-<date>-<time>.log`.
    "Redo every step" runs the steps that are up to date too; for the terrain that is a full rebuild (its finished
    units' marks are dropped). Back from Install forgets the finished run, so other choices can be installed; a
    language change keeps it.
-4. **Done**: one line, how to start the sim (`./modern-iaf`).
+4. **Done**: whether the sim is set up, with two buttons. **Start the game** ("להתחיל לשחק") opens the sim's front
+   end in the same process, as `./modern-iaf` starts it: the project's own window size (the wizard's 1100×720 at the
+   UI scale goes), the player's full-screen choice, the joystick and keys from the files the run just built
+   (`Settings.apply_devices()`), then `Settings.front_end_scene()`. The extension is built and the project imported
+   already, because the wizard runs in the same project. **Close** ("סגירה") quits.
+
+### Time left
+The Install page has two estimates, labelled so they are not mixed up:
+
+- **This step** ("שלב זה"), in a running step's row: the step's own progress against the time it has run so far.
+  The terrain step's bar weighs its parts by expected seconds (§3), so a slow download stretches the whole step's
+  estimate. The terrain step's log line "Sentinel-2 tiles: … about 9 min left" covers the download only.
+- **All steps** ("כל השלבים"), under the status line: the steps still to finish, each by the seconds its last
+  finished run took on this computer, times the part it still has to do. A step up to date counts 0. When a step
+  still to finish never ran here, the line shows the step count instead of a guess ("All steps: step 4 of 7").
+  Each step that finishes records its seconds in `assets/converted/iaf-2026/<step>.secs`, beside its stamp
+  (`iaf_setup::time_left`, `sim_expected`). The seconds are not part of the stamp, so they never decide what runs
+  or downloads. Steps that run at once are added up, so the estimate can be high when two long steps overlap.
+
+Why the Mac run (2026-11-09) showed "about 2:50 hours left" while the log said "about 9 min left": the 2:50 was
+the terrain row's estimate (there was no total yet). With the Survey chosen, the terrain bar gives the download
+about 9 % of the step (13.8 MB/s assumed, `part_ends`) and the Survey's 2 m 75 minutes. The download ran at
+5.3 MB/s, so the bar moved at less than half the assumed pace, and the row stretched the step's 80 minutes still to
+come to about 2:50 hours (inferred from `part_ends` and the log line). The 9 minutes were the download alone.
 
 The **Attributions** open from Welcome as a modal dialog over the page (Close or Esc closes it; it scrolls): every
 source with its licence line: the Copernicus DEM's two lines word for word ([terrain.md](terrain.md) §5), ESA
@@ -69,7 +92,7 @@ The pages say only what the user decides or must know ([plan.md](plan.md) Rules)
 ### Look
 The look is one file, `iaf-2026/setup/wizard_theme.gd`: Godot's default dark theme with Heebo
 (`iaf-2026/data/fonts/`, SIL OFL 1.1) and the text kinds the pages ask for by name ("Heading", "Muted", "Note",
-"Readout", "Code", "Card"). A new look replaces that file only. The strings are `iaf-2026/setup/strings_en.json` and
+"Readout", "Card", "Primary": Done's Start the game, a white button with dark bold text). A new look replaces that file only. The strings are `iaf-2026/setup/strings_en.json` and
 `strings_he.json` (formal, gender-neutral Hebrew).
 
 ## 3. The steps

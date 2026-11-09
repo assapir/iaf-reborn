@@ -4,7 +4,8 @@
 # The four pages in order, in English and in Hebrew (mirrored); the Survey choice off without sheets; the
 # Attributions dialog from Welcome (opens, mirrored, the exact Copernicus lines, closes with Esc and with Close); the
 # Install page's rows from the sim's plan and their preview; no other game named on any page; abandoned preview
-# checks are fetched; a finished run survives a language change, and Back from Install forgets it. It runs no step
+# checks are fetched; a finished run survives a language change, and Back from Install forgets it; the time left's two
+# forms; Done's Start the game opens the front end in the same process. It runs no step
 # (the real run: iaf-2026/docs/setup.md "Checks"). It needs IAF_ASSETS_DIR (tools/test.sh gives it a scratch
 # folder): without it the first check fails and nothing else runs.
 extends "res://../tests/godot/base.gd"
@@ -132,6 +133,30 @@ func run() -> void:
 	check(
 		w.next_button.text == "Install" and w.rows["sim-missions"].state.text != "done",
 		"changed choices can be installed"
+	)
+	# The whole run's time left (IafSetup.poll's left / step / of): unmeasured, the step count; measured, "all steps".
+	check(w.total_text({"left": -1.0, "step": 4, "of": 7}) == "All steps: step 4 of 7", "no measurement: step N of M")
+	check(w.total_text({"left": 600.0, "step": 0, "of": 0}) == "All steps: about 10 min left", "measured: all steps")
+	# Done: Start the game (primary) and Close; no instructions; Start opens the sim's front end in this process.
+	w.show_page(3)
+	for lang in ["he", "en"]:
+		w.set_language(lang)
+		await frames(1)
+		check(
+			w.next_button.text == ("להתחיל לשחק" if lang == "he" else "Start the game") and w.close_button.visible,
+			"%s: Done has Start the game and Close" % lang
+		)
+		check(w.close_button.text == ("סגירה" if lang == "he" else "Close"), "%s: Close's label" % lang)
+		check(
+			w.next_button.theme_type_variation == "Primary" and w.close_button.theme_type_variation == "",
+			"%s: Start the game is the primary button" % lang
+		)
+		check(not "modern-iaf" in _texts(w), "%s: no instructions to start it" % lang)
+	w.next_button.pressed.emit()
+	await frames(5)
+	check(
+		current_scene != null and current_scene.scene_file_path == get_root().get_node("Settings").front_end_scene(),
+		"Start opens the front end"
 	)
 
 

@@ -18,4 +18,6 @@ echo "building the game's extension (the first time takes a few minutes)…"
 cargo build --release -p iaf-godot
 # Godot's import on a fresh clone and after a pull with new shaders or textures (tools/godot_import.sh).
 tools/godot_import.sh "$godot" "$project"
+# As ./modern-iaf and ./iafjets: the wizard's Start the game opens the front end in this process (controls.md §5.2).
+[[ $(uname) == Darwin ]] && export SDL_JOYSTICK_MFI=${SDL_JOYSTICK_MFI:-0}
 exec "$godot" --path "$project" --resolution "$resolution" res://setup/wizard.tscn

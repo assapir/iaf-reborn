@@ -109,6 +109,21 @@ pub fn sim_preview(steps: &[Step], ctx: &SimCtx) -> Vec<(&'static str, bool)> {
     crate::preview_with(steps, &|s| stamp::sim_of(s, ctx))
 }
 
+/// Each step's expected seconds for a run of `steps` (the wizard's "all steps" time left): 0 when up to date and not
+/// redone, else the seconds its last finished run took (`Stamp::secs_path`), `None` when it never ran here.
+pub fn sim_expected(steps: &[Step], ctx: &SimCtx, redo: &Redo) -> Vec<Option<f64>> {
+    sim_preview(steps, ctx)
+        .into_iter()
+        .map(|(id, up)| {
+            if up && !redo(id) {
+                return Some(0.0);
+            }
+            let secs = stamp::sim_stamp_path(&ctx.assets, id).with_extension("secs");
+            std::fs::read_to_string(secs).ok()?.trim().parse().ok()
+        })
+        .collect()
+}
+
 /// Runs one step; `redo`: the player asked to run it although it is up to date.
 fn exec(step: &Step, ctx: &SimCtx, redo: bool, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
     let (data, assets) = (ctx.data(), ctx.assets.as_path());
@@ -224,6 +239,8 @@ mod tests {
         std::fs::create_dir_all(dir.join("converted/iaf-2026/missions")).unwrap();
         let st = go(&ctx);
         assert!(st.iter().all(|(_, s)| *s == State::UpToDate), "{st:?}");
+        assert!(sim_expected(&steps, &ctx, &|_| false).iter().all(|e| *e == Some(0.0)), "up to date: no time");
+        assert!(sim_expected(&steps, &ctx, &|_| true).iter().all(|e| e.is_some()), "each run's seconds were recorded");
         assert!(sim_preview(&steps, &ctx).iter().all(|(_, up)| *up));
         let survey = SimCtx { inputs: SimInputs { survey: true }, ..ctx };
         std::fs::create_dir_all(survey_dir(&dir)).unwrap();
