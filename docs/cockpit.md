@@ -794,8 +794,8 @@ occlusion, 1.8 MB; built by
     black (about a third of the switches and the parts of the left auxiliary console), mean 0.59 against 0.71.
 * **The F-35I's** (`shared/extra/models/cockpit3d/f35i.glb`, ours: `tools/f35i/cockpit3d.py --glb`, docs/f35i.md
   §4.5) hangs in its cockpit-view model (`f35i_bc.gltf`) the same way, half size about the eye as that model's own
-  parts, so the Present scale draws it at its real size. Ahead of the glareshield that model's `f35i_bc_nose`
-  (the jet's own fuselage and nose, docs/f35i.md §4.4) shows, as in the 2D cockpit. It reads:
+  parts, so the Present scale draws it at its real size. Past the glareshield the ground shows, no nose (docs/f35i.md
+  §4.1, §4.4), as in the 2D cockpit. It reads:
   * `PCD`: the panoramic display (`pcd.gd`, the node that draws it on the 2D panel) drawn into a 1,496 × 671 px
     SubViewport on the glass, 3 px per `[PCD]` panel px (`cockpit3d.gd` `PCD_PX`); the portals' hidden MFD nodes keep
     the pages as before. A click on the glass goes through the same ray to its px and taps it as on the 2D panel

@@ -190,8 +190,8 @@ def build(mats, rail_3d=False):
         ax = abs(x)
         z = -0.123 - 0.007 * (ax / 0.27) ** 2 if ax < 0.27 else -0.130 - 1.6 * (ax - 0.27) ** 2
         path.append((float(x), 0.684 - 0.15 * max(0.0, ax - 0.30) ** 2, z - PANEL_DROP))
-    # The section (u toward the pilot, v up): a rounded rear lip, the top falling steeply to the windscreen, so the
-    # nose ahead shows over it as over the airframe's own coaming.
+    # The section (u toward the pilot, v up): a rounded rear lip, the top falling steeply to the windscreen, as the
+    # airframe's own coaming; past it the ground shows (the nose is not drawn, bc.py).
     lip = [(0.0, -0.014), (0.006, -0.010), (0.008, -0.004), (0.006, 0.002), (0.0, 0.005), (-0.06, 0.0),
            (-0.14, -0.04), (-0.22, -0.10), (-0.22, -0.112), (-0.14, -0.052), (-0.06, -0.012)]
     kit.sweep("glareshield", mats.rubber, lip, path, bevel=0.003)
@@ -251,8 +251,10 @@ def build(mats, rail_3d=False):
     # The rails lie on f35i.gltf's own sills (RAIL): from behind the head (as bc.py's rails, which the 2D cockpit's
     # look-around shows) forward past the glareshield and down along the nose, converging to the canopy's front.
     # With `rail_3d` (the 3D cockpit) they and the arch stand in for the cockpit-view model's frame, which it hides.
+    # The 3D cockpit's rails end RAIL_3D_END points short, under the glareshield: past it they meet over the nose,
+    # which nothing draws there (bc.py), so their tips stood in the air (2026-11-09; the 2D art keeps them whole).
     for s in (-1, 1):
-        rail = spline([(s * x, y, z) for x, y, z in RAIL], 60)
+        rail = spline([(s * x, y, z) for x, y, z in (RAIL[:-RAIL_3D_END] if rail_3d else RAIL)], 60)
         kit.sweep(f"canopy_rail{s}", mats.frame, kit.rounded_rect(0.085, 0.060, 0.022), rail)
         kit.sweep(f"canopy_seal{s}", mats.seal, kit.rounded_rect(0.030, 0.014, 0.005),
                   [(x - s * 0.012, y, z + 0.034) for x, y, z in rail])
@@ -435,9 +437,11 @@ PRESENT_SCALE = 2.0  # as tools/f35i/bc.py: the game draws the cockpit-view mode
 RAIL = ((0.42, -1.1, -0.32), (0.46, -0.6, -0.35), (0.47, -0.05, -0.36), (0.47, 0.3, -0.37), (0.465, 0.6, -0.40),
            (0.45, 0.9, -0.45), (0.42, 1.2, -0.51), (0.36, 1.5, -0.56), (0.26, 1.8, -0.60), (0.12, 2.0, -0.62))
 ARCH_Y, ARCH_TOP = -0.75, 0.21
+RAIL_3D_END = 2  # its last two points (1.8, 2.0 m ahead) lie 17-18 deg under the eye, at the glareshield
 # The panel (everything placed on the face, on_face, the glareshield and its flood) sits PANEL_DROP m lower than first
-# modelled (until 2026-11-02, after the 2D cockpit's original layout): its glareshield 18 deg under the eye, below the
-# airframe's nose crest (13 deg) as f35i.gltf's own coaming (20 deg), so the nose shows over it.
+# modelled (until 2026-11-02, after the 2D cockpit's original layout): its glareshield 18 deg under the eye, as
+# f35i.gltf's own coaming (20 deg). Past it the ground shows: the nose is not drawn (bc.py; until 2026-11-09 the
+# airframe's crest, 13 deg under the eye, showed over it).
 PANEL_DROP = 0.10
 # The gear handle turns about a pivot GEAR_PIVOT m behind the face through the slot's travel (set_gear's GEAR_TRAVEL
 # either side of its centre at the knob).
