@@ -140,9 +140,27 @@ sim's towns: Far towns, below.
 **Far towns** (Graphics → MORE, both games; the sim's profile picks Light, the original game's default is Full):
 Light draws a dense cell's far ring (2.5–4.5 km) with its buildings of 15 m or 1,000 m² and up only
 (docs/scenery.md §3.1). Its look: beyond 2.5 km a dense town shows its towers and halls; the low blocks show from
-2.5 km in. Its cost is not measured yet (§9). A first look, taken with the machine busy (load 12, so the frame rates
-do not count): over Tel Aviv the GPU took 16.5 ms with Scenery Off, 25.6 ms On, and 21.3 ms with no far ring at all,
-so the far ring is about half the scenery's GPU cost there.
+2.5 km in. A first look, taken with the machine busy (load 12, so the frame rates do not count): over Tel Aviv the
+GPU took 16.5 ms with Scenery Off, 25.6 ms On, and 21.3 ms with no far ring at all.
+
+Far towns' cost, 2026-11-09, commit b4dc7a15: Intel Iris Xe (TigerLake GT2), 2560 × 1440,
+`iaf-2026/tests/_flight_bench.gd` from `ramon_takeoff` with `BENCH_BEST=1 BENCH_LEGS=500:150:15` and
+`BENCH_SET=scenery=off`, `scenery=on,scenery_far=light` or `scenery=on,scenery_far=full`, each with `blackbox=false`
+(with the recorder on, the training check ends the flight when the bench moves the jet off the runway). Three runs
+each under the shared GPU lock, interleaved, no other Godot, cargo or Blender running, load 1.1–1.9. Frame: the
+median of the three runs' average frame time (the bench prints the average); video memory: the highest of the three
+runs' values at the leg's end; "lost": the frame time added over Off.
+
+| Over (`BENCH_AT`, UTM) | Off | Light | Full | lost: Light, Full | GPU Off / Light / Full | primitives Off / Light / Full | video memory Off / Light / Full |
+|---|---|---|---|---|---|---|---|
+| Tel Aviv, the city centre (668000,3550689) | 22.45 ms | 25.83 ms | 26.38 ms | +15 %, +18 % | 21.7 / 24.9 / 25.0 ms | 593 k / 1,061 k / 1,067 k | 1,424 / 1,601 / 1,622 MB |
+| Beersheba (668500,3455500) | 22.24 ms | 25.68 ms | 26.46 ms | +15 %, +19 % | 21.7 / 25.1 / 25.7 ms | 594 k / 847 k / 890 k | 1,391 / 1,525 / 1,551 MB |
+
+Both modes cost more than the scenery's budget (docs/scenery.md §3.1: 7 %): Light about twice it, Full a little more.
+Light saves only 0.5–0.8 ms (2–3 %) against Full, and 20–30 MB: the cost is the near model's (the 2.5 km round the
+jet), not the far ring's (inferred). The first Tel Aviv Off run gave 17.36 ms, near the 2026-11-03 figure (17.6 ms,
+56.7 fps); the next five Off runs gave 21.9–22.5 ms, so the frame is likely the laptop's warm state (inferred), the
+same for every mode benched after it.
 
 ## 7. Pictures
 
@@ -212,8 +230,9 @@ Fixed on 2026-11-08 (the "before" pictures above):
 
 ## 9. Open
 
-- **Far towns' cost**: Ramon and Tel Aviv at 500 m with Off, On-Full and On-Light, two runs each under the GPU lock
-  on a quiet machine, are still to measure (§6).
+- **The scenery over a dense town costs twice its budget** (measured 2026-11-09, §6): 15 % with Far towns Light, 18–19 %
+  with Full, over Tel Aviv and Beersheba at 500 m (the budget: 7 %). Light saves 2–3 % only; a cheaper near model is
+  open.
 - **Unit clearances**: when the sim has ground units (§4).
 - **The rest of the theatre in the byte check**: `build_theatre` with `--near` stopped on PROJ's "moll: Invalid
   latitude" on main and on the branch alike (§8).
