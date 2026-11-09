@@ -45,6 +45,9 @@ func run() -> void:
 		tv = current_scene
 	await frames(2)
 	check(bases._on, "Ramon: the airbase surface is on")
+	# Town labels (look study proposal 3): on by default, drawn whenever setup wrote the places.
+	var labels: GDScript = load("res://shared/terrain/town_labels.gd")
+	check(s.town_labels and (tv.town_labels != null) == labels.available(), "town labels on by default")
 	# Sky Levant (docs/rendering.md §1.2): the Atmospheric sky with the dusty summer's values.
 	var env: Environment = tv.get_node("WorldEnvironment").environment
 	var sky_mat = env.sky.sky_material if env.sky != null else null

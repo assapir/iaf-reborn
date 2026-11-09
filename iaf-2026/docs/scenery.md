@@ -48,6 +48,7 @@ reference point lands 0.5 m or less from GDAL's UTM, the test's bound is 5 m).
 | `converted/terrain/israel/scenery/lights/L1/s_<i>_<j>.bin` | the city lights' stand-ins where a town's footprints are sparse (docs/rendering.md §5.1) |
 | `converted/terrain/israel/scenery/manifest.json` | `release`, `generator`, `kinds` (both), `made_from` (the stamp), `frame` ("EPSG:32636"), `attribution`, `licence`, the counts |
 | `converted/terrain/israel/scenery/theatre.json` | the cells under `israel`: `shared/terrain/scenery.gd` streams them whatever the imagery |
+| `converted/terrain/israel/places.json` | OpenStreetMap's cities, towns and villages with their English and Hebrew names, UTM 36N: the town labels (docs/scenery.md §3.5) and the briefing's map |
 | `converted/terrain/israel/roads/` | the road layer (docs/scenery.md §6): `main.bin`, `L3/r_<i>_<j>.bin`, `manifest.json` with `frame` |
 
 They lie beside the theatre because their node keys belong to its frame: a theatre built over another box has other
@@ -234,6 +235,25 @@ Cost: the Shoham pose, Detailed, Clouds Flat, `_imagery_shot.gd`'s 180-frame rat
 interleaved three times each under the GPU lock, Intel Iris Xe, 1920 × 1080: Photo 35.4, 35.3, 35.4 fps (mean
 28.28 ms), Palette 35.2, 35.3, 35.2 fps (mean 28.38 ms): about +0.1 ms, the size of the measuring step (0.1 fps).
 No new data, 0 MB.
+
+**Town labels** (2026-11-09, the look study's proposal 3; Preferences → Graphics "Town labels", On by default;
+docs/scenery.md §3.5). Each city's and town's name over the view within 25 km, in Hebrew or English with the language,
+as the reference's "שוהם". Rendered with `tests/godot/_imagery_shot.gd` (`SHOT_LAYERS=sim`, all settings on as above
+plus `town_labels=true` and `language=he` / `en`), 1920 × 1080 scaled to 1200 px:
+
+| Where | Picture |
+|---|---|
+| Shoham, cockpit, 16:58, Hebrew (`672750 3537452 240 100 0`, `SHOT_HOUR=16.97`) | ![Town labels at Shoham, Hebrew](pictures/scenery/labels_shoham_he.jpg) |
+| The same in English | ![Town labels at Shoham, English](pictures/scenery/labels_shoham_en.jpg) |
+| Beersheba, external, 500 m above the town, Hebrew (`668500 3455500 780 20 0`, `SHOT_ORBIT=180,15,200`) | ![Town labels over Beersheba](pictures/scenery/labels_beersheba_he.jpg) |
+
+Seen: Shoham's name sits on the horizon at the left, as in the reference; Lod, Ramla and Modi'in stand at their
+places. The canopy bow cuts Modi'in-Maccabim-Re'ut's label where it crosses it, and the HUD draws over the labels.
+Beersheba's name stands over the town centre; a dark edge keeps it legible on the light sand.
+
+Cost: the labels' per-frame work (the `_process` of `town_labels.gd`), timed over 200 calls at each pose in the same
+runs, Intel Iris Xe: 0.068 ms (Shoham, Hebrew, 6 labels), 0.077 ms (English), 0.025 ms (Beersheba, 3 labels). The
+places in range are chosen again twice a second; the drawing is a few text draws. Data: `places.json`, 350 KB.
 
 Fixed on 2026-11-08 (the "before" pictures above):
 

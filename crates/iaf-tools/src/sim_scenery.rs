@@ -36,6 +36,11 @@ pub const VERSION: u32 = 4;
 pub const THEATRE: &str = "converted/terrain/israel";
 pub const SCENERY_DIR: &str = "converted/terrain/israel/scenery";
 pub const ROADS_DIR: &str = "converted/terrain/israel/roads";
+/// The towns' names for the mission briefing's map (front-end.md §10) and the town labels over the view
+/// (docs/scenery.md §3.5), in the theatre's folder.
+pub const PLACES_FILE: &str = "converted/terrain/israel/places.json";
+/// The OpenStreetMap places kept (`place=*`), most important first.
+pub const PLACE_KINDS: [&str; 3] = ["city", "town", "village"];
 /// The colour levels a roof takes its colour from, finest first: the 2 m Survey, the 8 m and 32 m Sentinel-2 nodes.
 const COLOUR_LEVELS: [u32; 3] = [1, 3, 5];
 
@@ -65,6 +70,56 @@ fn tile_geo(file: &str) -> Option<[f64; 4]> {
     let lon = |x: f64| x / n * 360.0 - 180.0;
     let lat = |y: f64| (std::f64::consts::PI * (1.0 - 2.0 * y / n)).sinh().atan().to_degrees();
     Some([lon(x as f64), lat(y as f64 + 1.0), lon(x as f64 + 1.0), lat(y as f64)])
+}
+
+/// OpenStreetMap's places (`PLACE_KINDS`) in the box `geo` (lon / lat) of the extracts `pbfs` into `out`, compact
+/// JSON: `[{"kind", "en", "he", "x", "y"}]` (UTM 36N metres; `en` = `name:en`, else `name`; `he` = `name:he`, else
+/// `name`), a place in two extracts once. Answers how many.
+pub fn places(pbfs: &[PathBuf], geo: [f64; 4], out: &Path) -> Result<usize> {
+    places_in(pbfs, geo, &sim_bases::utm36n, out)
+}
+
+/// `places` with the position in the frame `to_engine` (lon, lat) -> (x, y) gives: the original's for its scenery step
+/// (scenery.rs `build`).
+pub fn places_in(
+    pbfs: &[PathBuf],
+    geo: [f64; 4],
+    to_engine: &dyn Fn(f64, f64) -> [f64; 2],
+    out: &Path,
+) -> Result<usize> {
+    let work = out.with_extension("geojsonl");
+    let mut seen = std::collections::HashSet::new();
+    let mut list = vec![];
+    let kinds = PLACE_KINDS.map(|k| format!("'{k}'")).join(",");
+    for pbf in pbfs {
+        let _ = std::fs::remove_file(&work);
+        let mut cmd = std::process::Command::new("ogr2ogr");
+        cmd.args(["-f", "GeoJSONSeq", "-where", &format!("place IN ({kinds})")])
+            .args(["-select", "osm_id,name,place,other_tags", "-spat"])
+            .args(geo.map(|v| v.to_string()))
+            .arg(&work)
+            .arg(pbf)
+            .arg("points");
+        scenery::run(cmd)?;
+        for v in scenery::geojsonl(&work)? {
+            let pr = &v["properties"];
+            let (Some(name), Some(kind)) = (pr["name"].as_str(), pr["place"].as_str()) else { continue };
+            let c = &v["geometry"]["coordinates"];
+            let (Some(lon), Some(lat)) = (c[0].as_f64(), c[1].as_f64()) else { continue };
+            if !seen.insert(pr["osm_id"].as_str().unwrap_or(name).to_string()) {
+                continue;
+            }
+            let tags = scenery::other_tags(pr["other_tags"].as_str().unwrap_or(""));
+            let [x, y] = to_engine(lon, lat);
+            let tag = |k: &str| tags.get(k).map_or(name, String::as_str).to_string();
+            list.push(
+                json!({"kind": kind, "en": tag("name:en"), "he": tag("name:he"), "x": x.round(), "y": y.round()}),
+            );
+        }
+    }
+    let _ = std::fs::remove_file(&work);
+    std::fs::write(out, serde_json::to_string(&list)?)?;
+    Ok(list.len())
 }
 
 /// The scenery's downloads (the original's `SCENERY` and `SCENERY_THEATRE`) whose tile meets the box `geo`.
@@ -184,6 +239,15 @@ pub fn scenery(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBoo
         list.iter().map(|d| (*d, src.as_path())).chain(road_files.iter().skip(1).copied()).collect();
     let (roads_out, out) = (assets.join(ROADS_DIR), assets.join(SCENERY_DIR));
     let mut s = Summary::default();
+    // The towns' names: from the road extracts, whenever the file is missing (the step's stamps leave it out) and
+    // every extract is there. Optional: a failure is logged and the step goes on.
+    if !assets.join(PLACES_FILE).is_file() && road_files.iter().all(|(d, dir)| thirdparty::file_done(dir, d)) {
+        let pbfs: Vec<PathBuf> = road_files.iter().map(|(d, dir)| dir.join(d.file)).collect();
+        match places(&pbfs, geo, &assets.join(PLACES_FILE)) {
+            Ok(n) => log!(pr, "places: {n} towns and villages"),
+            Err(e) => log!(pr, "places: not written ({e:#})"),
+        }
+    }
     if roads::up_to_date(&roads_out, &stamp("roads", &road_files, true))
         && roads::up_to_date(&out, &stamp("scenery", &scenery_files, true))
     {

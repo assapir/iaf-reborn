@@ -97,6 +97,7 @@ var laptop_keys := OS.get_name() == "macOS"
 func _init() -> void:
 	super()
 	scenery = "on"  # the sim's default (the DEFAULT button's too)
+	town_labels = true  # the sim's default (look study proposal 3)
 
 
 func _ready() -> void:

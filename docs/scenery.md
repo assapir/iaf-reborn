@@ -605,6 +605,30 @@ Palette (`palette_colours` in `shared/terrain/scenery_palette.gdshaderinc`, shar
 Cost: a few more shader instructions per building pixel, no new data; measured in
 [iaf-2026/docs/scenery.md](../iaf-2026/docs/scenery.md) §7.
 
+### 3.5 Town labels
+
+Extras → Town labels: Off (default) or On (Modern IAF: Preferences → Graphics, On by default; the look study's
+proposal 3, 2026-11-09). On draws each city's and town's name over the view at its place, as the Epic Fury reference
+does with "שוהם" beside Shoham (`shared/terrain/town_labels.gd`).
+
+- **Data:** `places.json` in the theatre's folder (`Settings.theatre_dir()`): `[{"kind", "en", "he", "x", "y"}]`,
+  OpenStreetMap's `place=city`, `town` and `village` points with `name:en` and `name:he` (else `name`), in the
+  theatre's frame. Setup's scenery step writes it whenever it is missing: the original game's
+  (`converted/terrain/theatre/places.json`, engine metres through the georeference, `scenery.rs` `build`) and Modern
+  IAF's (`converted/terrain/israel/places.json`, UTM 36N, `sim_scenery.rs` `places`). The labels take the cities and
+  towns (about 200 in the theatre); the villages are for the briefing's map.
+- **Drawing:** every frame the places within 25 km are projected through the camera and drawn in the UI font
+  (`Settings.display_font("ui")`: Heebo in Modern IAF, Arial or Liberation Sans here), in the game's language, white
+  with a dark edge, 17 px for a city and 14 px for a town at a 1080-pixel-high view. A label fades out from 15 to
+  25 km. A label that would overlap one already placed is left out: the cities first, then the nearer.
+- **What hides it:** the labels lie on a canvas layer under the cockpit's, so the HUD and the 2D panel draw over them;
+  a place under the 2D panel's top has no label. Modern IAF's 3D cockpit, drawn in its own world about the origin
+  (cockpit.md "Cockpit at the origin"), masks the labels by its picture's alpha: its panel and canopy frame hide
+  them, its glass lets them through. The original game's 3D cockpit (drawn in the flight's world) has no such picture:
+  with it on, the cockpit view shows no labels; the
+  external views do (open).
+- **Cost:** see [iaf-2026/docs/scenery.md](../iaf-2026/docs/scenery.md) §7.
+
 ## 4. Solid ground and hits
 
 Roofs and tree tops are ground. With Scenery off no cell is loaded, `top` is 0 everywhere and everything below works

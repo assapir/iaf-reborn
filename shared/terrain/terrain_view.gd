@@ -70,6 +70,8 @@ var aircraft: Node3D
 var own_bc: Node3D
 ## Ours, the 3D cockpit (cockpit3d.gd) in own_bc; null with the 2D panel.
 var cockpit_3d: Node3D
+## Ours, the town labels over the view (town_labels.gd); null with Settings.town_labels off.
+var town_labels: Control
 ## Ours (Modern IAF, Settings.cockpit_at_origin()): own_bc's world about the origin (cockpit_origin.gd); null otherwise.
 var cockpit_origin: CockpitOrigin
 ## Ours: the detailed cockpit model's eye (its front seat's, AircraftModel.detailed_cockpit), null with the original's.
@@ -243,6 +245,7 @@ const DamageModel := preload("res://shared/mission/damage_model.gd")
 const PlayerAircraft := preload("res://shared/aircraft/player_aircraft.gd")
 const AircraftModel := preload("res://shared/aircraft/aircraft_model.gd")
 const Cockpit3d := preload("res://shared/cockpit/cockpit3d.gd")
+const TownLabels := preload("res://shared/terrain/town_labels.gd")
 const Hud := preload("res://shared/cockpit/hud.gd")
 const CockpitOrigin := preload("res://shared/cockpit/cockpit_origin.gd")
 const FlightSounds := preload("res://shared/audio/flight_sounds.gd")
@@ -414,6 +417,14 @@ func _ready() -> void:
 	overlay = preload("res://shared/terrain/flight_overlay.gd").new()
 	overlay.host = self
 	ol.add_child(overlay)
+	# Ours (Settings.town_labels): the towns' names over the world, under the cockpit's layer (1) and its HUD.
+	if Settings.town_labels and TownLabels.available():
+		var tl := CanvasLayer.new()
+		tl.layer = 0
+		add_child(tl)
+		town_labels = TownLabels.new()
+		town_labels.host = self
+		tl.add_child(town_labels)
 	_start_flight()
 	_apply_view()
 	_loading_step("jet")

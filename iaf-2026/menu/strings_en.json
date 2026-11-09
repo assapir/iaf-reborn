@@ -96,6 +96,7 @@
 	"scenery": "Buildings and trees",
 	"scenery_detailed": "Detailed",
 	"scenery_missing": "Setup's optional step \"Buildings, trees and roads\" adds them.",
+	"town_labels": "Town labels",
 	"hud_brightness": "HUD brightness",
 	"fullscreen": "Full screen",
 	"vsync": "VSync",

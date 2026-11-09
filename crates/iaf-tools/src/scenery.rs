@@ -1572,6 +1572,28 @@ pub fn build(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Summary>
     let out = a.join("converted/scenery");
     let work = out.join(".work");
     let mut keys = coverage(&a.join("converted/imagery"))?;
+    // The towns' names for the town labels (docs/scenery.md §3.5), over the whole coverage, in the 1998 frame,
+    // whenever the file is missing (the manifest leaves it out) and the extracts are there. Optional: a failure is
+    // logged and the step goes on.
+    let places_p = a.join("converted/terrain/theatre/places.json");
+    let osm: Vec<Download> = r.kinds.downloads().into_iter().filter(|d| d.file.ends_with(".osm.pbf")).collect();
+    if !places_p.is_file() && !keys.is_empty() && !osm.is_empty() && osm.iter().all(|d| thirdparty::file_done(&src, d))
+    {
+        let pbfs: Vec<PathBuf> = osm.iter().map(|d| src.join(d.file)).collect();
+        let written = Georef::load().and_then(|georef| {
+            let geo = keys
+                .iter()
+                .map(|&k| node_geo(GAME, &|x, y| georef.engine_to_geo(x, y), k, 0.0))
+                .fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, g| {
+                    [b[0].min(g[0]), b[1].min(g[1]), b[2].max(g[2]), b[3].max(g[3])]
+                });
+            crate::sim_scenery::places_in(&pbfs, geo, &|lon, lat| georef.geo_to_engine(lon, lat), &places_p)
+        });
+        match written {
+            Ok(n) => log!(pr, "places: {n} towns and villages"),
+            Err(e) => log!(pr, "places: not written ({e:#})"),
+        }
+    }
     if let Some((c, km)) = r.near {
         keys.retain(|k| {
             let n = node_rect(k.0, k.1);

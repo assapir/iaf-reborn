@@ -551,6 +551,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     Detailed's to it from 700 m. It warms the walls toward cream and lights them brighter (gain 0.7, cap 0.7 for 0.5
     and 0.45), so a low sun lights them cream; it gives On the same palette as Detailed; and it lifts the light flat
     roofs (the white coating) and the gabled roofs (clay) out of the photo's grey far away (scenery.md §3.4).
+  - Town labels (Extras; default Off, 2026-11-09, the look study's proposal 3; Modern IAF's Graphics row, On by
+    default): each city's and town's name over the view at its place within 25 km, from OpenStreetMap's places, in the
+    game's language, under the HUD and the panel (scenery.md §3.5). The original draws no place names in the view.
 - **Particle effects** (ours, docs/rendering.md §6). Rendering only; the default is Original (the soft billboards and the
   trail ribbons).
   - Detailed: explosions, smoke and missile trails are GPU particles. Each original spawn keeps its time, place,

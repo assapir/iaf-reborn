@@ -164,6 +164,7 @@ const GroundRoads := preload("res://shared/terrain/ground_roads.gd")
 const ModelDetail := preload("res://shared/util/model_detail.gd")
 const RenderOptions := preload("res://shared/terrain/render_options.gd")
 const Scenery := preload("res://shared/terrain/scenery.gd")
+const TownLabels := preload("res://shared/terrain/town_labels.gd")
 const VolumetricClouds := preload("res://shared/terrain/volumetric_clouds.gd")
 
 ## Our own "Extras" tab (not in the original): directly below Gameplay at the panel's spacing
@@ -315,6 +316,8 @@ func _extras_rows() -> Array:
 			rows.append(["scenery", "Scenery", [["Off", "off"], ["On", "on"], ["Detailed", "detailed"]]])
 			rows.append(["scenery_far", "Far towns", [["Full", "full"], ["Light", "light"]]])
 			rows.append(["building_palette", "Building colours", [["Photo", false], ["Palette", true]]])
+	# Ours (docs/scenery.md §3.5): the towns' names over the view, from the places setup's scenery step writes.
+	rows.append(["town_labels", "Town labels", [["Off", false], ["On", true]]])
 	# Ours: the preferences to / from a .cfg file (not a setting: a press opens the file dialog, _settings_file).
 	rows.append(["settings_file", "Settings file", [["Export", "export"], ["Import", "import"]]])
 	# Our graphics options show on the Graphics page's MORE view, the rest on Extras.
@@ -1736,6 +1739,10 @@ func _extras_items() -> Array:
 					label = "Not downloaded"
 			elif opt[0] in ["scenery_far", "building_palette"]:
 				available = Scenery.available()
+			elif opt[0] == "town_labels" and value:
+				available = TownLabels.available()
+				if not available:
+					label = "Not downloaded"
 			elif opt[0] == "scenery" and value != "off":
 				# Only over the Survey 2 m photo: the Israel imagery picked on this page (not saved yet).
 				# The reason shows once, on Detailed (the widest column); On stays "On", greyed.

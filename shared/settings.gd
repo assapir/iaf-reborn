@@ -126,6 +126,7 @@ const PREFS := {
 		"scenery",
 		"scenery_far",
 		"building_palette",
+		"town_labels",
 		"cd_launcher",
 		"wheel_scroll",
 		"better_cockpit",
@@ -312,6 +313,9 @@ var scenery_far := "full"
 ## far away), true = Palette (every wall keeps its own palette colour, warmed toward cream and lit brighter, the light
 ## flat and gabled roofs lifted out of the photo's grey).
 var building_palette := false
+## Town labels (ours, Extras page; docs/scenery.md §3.5, terrain/town_labels.gd): the towns' names over the view at
+## their places. Needs the places setup's scenery step writes.
+var town_labels := false
 ## CD launcher (ours, Extras page; docs/front-end.md §18.1): the CD's autorun poster (Jauto.exe) before the main menu.
 var cd_launcher := false
 ## Mouse wheel (ours, Extras page; docs/front-end.md §12.9): "regular" (wheel down scrolls down) or "natural"
@@ -870,8 +874,8 @@ func hud_font_path(name: String) -> String:
 
 ## The vector font of the real display formats' text: "mono" the F-16's MFD formats and its 3D cockpit's small screens
 ## (f16_mfd.gd, cockpit3d_display.gd), "narrow" the F-35I's panoramic and standby displays (pcd.gd), "hud" the Real
-## HUD's texts (hud.gd _gdi). Here the installed system fonts, bold (the Real HUD's: the GDI's Arial); Modern IAF's
-## Settings return its own (iaf-2026/docs/cockpit.md §5).
+## HUD's texts (hud.gd _gdi), "ui" the lettering over the world (town_labels.gd). Here the installed system fonts,
+## bold (the Real HUD's: the GDI's Arial); Modern IAF's Settings return its own (iaf-2026/docs/cockpit.md §5).
 func display_font(style: String) -> Font:
 	if style == "hud":
 		return load("res://shared/util/img.gd").arial()
@@ -881,7 +885,11 @@ func display_font(style: String) -> Font:
 			["Arial Narrow", "Liberation Sans Narrow", "DejaVu Sans Condensed", "Arial", "Liberation Sans"]
 		)
 		if style == "narrow"
-		else PackedStringArray(["DejaVu Sans Mono", "Liberation Mono", "Menlo", "Consolas", "Courier New"])
+		else (
+			PackedStringArray(["Arial", "Liberation Sans", "DejaVu Sans", "Helvetica"])
+			if style == "ui"
+			else PackedStringArray(["DejaVu Sans Mono", "Liberation Mono", "Menlo", "Consolas", "Courier New"])
+		)
 	)
 	f.font_weight = 600
 	return f

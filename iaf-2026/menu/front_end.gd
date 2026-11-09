@@ -14,6 +14,7 @@ const SoundTable := preload("res://shared/audio/sound_table.gd")
 const KeysScreen := preload("res://menu/keys_screen.gd")
 const JoystickScreen := preload("res://menu/joystick_screen.gd")
 const Scenery := preload("res://shared/terrain/scenery.gd")
+const TownLabels := preload("res://shared/terrain/town_labels.gd")
 
 const PHOTOS := "res://data/photos"
 ## The canvas the screens lay out on: the window shows it scaled to its height (Look's sizes are its pixels).
@@ -64,6 +65,7 @@ const PREFS := [
 			["terrain_detail", "slider", []],
 			["clouds", "radio", [["clouds_flat", "original"], ["clouds_volumetric", "volumetric"]]],
 			["scenery", "radio", [["off", "off"], ["on", "on"], ["scenery_detailed", "detailed"]]],
+			["town_labels", "switch", []],
 			["hud_brightness", "slider", []],
 			["fullscreen", "switch", []],
 			["vsync", "switch", []],
@@ -769,10 +771,10 @@ func _pref_row(parent: Control, row: Array) -> void:
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_label(t, s(key), "Strong").add_theme_font_size_override("font_size", 25)
 	# Scenery only with setup's scenery step (Scenery.available); greyed without it.
-	# Greyed with its why: Scenery without setup's scenery step (Scenery.available), the Joystick screen with no
-	# joystick connected (it comes alive when one is plugged in, _on_joy_connection).
+	# Greyed with its why: Scenery and Town labels without setup's scenery step (their available()), the Joystick
+	# screen with no joystick connected (it comes alive when one is plugged in, _on_joy_connection).
 	var why := ""
-	if key == "scenery" and not Scenery.available():
+	if key == "scenery" and not Scenery.available() or key == "town_labels" and not TownLabels.available():
 		why = "scenery_missing"
 	elif key == "joystick_screen" and Joystick.device() < 0:
 		why = "joy_none"

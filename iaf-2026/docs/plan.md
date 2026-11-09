@@ -41,7 +41,7 @@ with soft clouds and horizon haze, a crisp stroke-font HUD, bright displays and 
 2. The ground's colours and textures ([B4](#b4-ground-look-parity)).
 3. The sky, haze and exposure (a new item).
 4. The HUD stroke font (A9, built: Hershey Simplex) and the display brightness ([E1a](#e1-cockpit-data-sounds-and-voices)).
-5. Town labels over the view.
+5. Town labels over the view (built 2026-11-09: [../../docs/scenery.md](../../docs/scenery.md) §3.5).
 
 **P2. Sound.** Betty like the real one; fluent American tower voices (Kokoro); audio as ogg.
 
