@@ -155,6 +155,7 @@ airbases folder and a `--json` without a file. `sim::tests::training_rules_are_c
 are refused, an unknown goal is refused, and every take-off mission's runway is an end of its base's airbase file.
 
 ## 6. Open
+- The flaperons' droop with the gear handle down: the 6-DoF has no trailing-edge flap.
 - The checklist card (after the MVP, plan.md "start-up"); the mission card of §7 holds the objective and the keys only.
 - The F-16I's, F-16D's and F-35I's own empty weights and take-off speeds by weight (open).
 - A start-up fault model (hot / hung start): none in the flight model.
@@ -222,6 +223,10 @@ event. The jet does not shut down when the throttle goes back to OFF (open).
 | 3 | Throttle to idle: the engine starts | the throttle up from OFF (in the 3D cockpit also the ENG switch or START, [cockpit.md](cockpit.md) §5.2) | cranks, lights and runs to idle by itself (the F-16's figures); the displays on the IPP's power | before the IPP: `no_ipp`; before the IPP is up to speed: `ipp_not_ready` | [^ayton]; inferred |
 | 4 | Canopy: close and lock | Ctrl+K | at once | any time | inferred |
 
+Each step's `wait` (mission data) says the state to wait for before the next step, in the table's figures (the JFS's
+20 % RPM, the idle with the main generator, the displays, the INS's 90 s; the IPP's 10 s); the checklist card and the
+briefing's How show it under the step ([front-end.md](front-end.md) §10).
+
 The avionics of the F-35I report ready 90 s after the battery[^ayton]. The mission passes when every step is done
 (`skip_<step>` names a step never taken), the engine idles and the avionics are up within the time budget (5 min,
 inferred), and nothing failed, at its end. The steps and their card lines are mission data (`training.checklist`,
@@ -268,6 +273,10 @@ tower is the base within 18.54 km: every base of the own `iaf.ibx` talks (Ramon,
 state machine as it is. In the menu the tower no longer talks on
 its own on the ground (the original game's tower is unchanged). Each pick is a `radio` event in the recording (§9),
 which the debrief counts as `tower_calls`. The scorer has no rule on the calls (a take-off without them still passes).
+
+A take-off mission's `training.steps` (mission data) lists the pilot's sequence for the briefing's How: each call
+on its own at its place (request start-up before the engine start, taxi once at idle with the avionics up, take-off
+from short of the runway), each with its key, the menu's pick and the answer to wait for (the table above).
 
 Taxi: the jet taxis on the base's taxiways to the lineup (the probe follows the own `iaf.ibx`'s taxi path). The
 take-off passes by §3.2.

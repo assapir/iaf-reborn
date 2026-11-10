@@ -35,8 +35,8 @@
   "id": "ramat_david_startup",
   "menu_id": 2021,
   "title": {
-    "en": "Start-up at Ramat David",
-    "he": "התנעה ברמת דוד"
+    "en": "Start-up",
+    "he": "התנעה"
   },
   "briefing": {
     "en": "Your F-16D Barak stands cold on the apron at Ramat David. Start the engine and bring the avionics up.",
@@ -68,28 +68,32 @@
         "key": "Ctrl+J",
         "en": "JFS: START 2",
         "he": "מתנע (JFS): START 2",
-        "where": {"en": "JFS switch: ENG & JET START panel, left console", "he": "מתג JFS: לוח ENG & JET START, הקונסולה השמאלית"}
+        "where": {"en": "JFS switch: ENG & JET START panel, left console", "he": "מתג JFS: לוח ENG & JET START, הקונסולה השמאלית"},
+        "wait": {"en": "then wait for 20 % RPM (about 15 s)", "he": "ואז המתנה ל־20% סל״ד (כ־15 שנ׳)"}
       },
       {
         "step": "engine",
         "key": "throttle up from OFF",
         "en": "Throttle to idle at 20 % RPM",
         "he": "מצערת לסרק ב־20% סל״ד",
-        "where": {"en": "Throttle grip, left console: click it out of OFF", "he": "ידית המצערת, משמאל: לחיצה מעבירה מ־OFF"}
+        "where": {"en": "Throttle grip, left console: click it out of OFF", "he": "ידית המצערת, משמאל: לחיצה מעבירה מ־OFF"},
+        "wait": {"en": "then wait for idle and the main generator (52 % RPM, about 20 s)", "he": "ואז המתנה לסרק ולגנרטור הראשי (52% סל״ד, כ־20 שנ׳)"}
       },
       {
         "step": "avionics",
         "key": "Ctrl+A",
         "en": "Avionics power: ON, after the generators",
         "he": "מתח אוויוניקה: ON, אחרי הגנרטורים",
-        "where": {"en": "MMC, ST STA, MFD, UFC switches: AVIONIC POWER panel, right console", "he": "מתגי MMC, ST STA, MFD, UFC: לוח AVIONIC POWER, הקונסולה הימנית"}
+        "where": {"en": "MMC, ST STA, MFD, UFC switches: AVIONIC POWER panel, right console", "he": "מתגי MMC, ST STA, MFD, UFC: לוח AVIONIC POWER, הקונסולה הימנית"},
+        "wait": {"en": "then wait for the displays and the HUD (3 s)", "he": "ואז המתנה לתצוגות ול־HUD (3 שנ׳)"}
       },
       {
         "step": "ins",
         "key": "Ctrl+N",
         "en": "INS: STOR HDG alignment (90 s)",
         "he": "INS: יישור STOR HDG (90 שנ׳)",
-        "where": {"en": "INS knob: AVIONIC POWER panel, right console", "he": "בורר INS: לוח AVIONIC POWER, הקונסולה הימנית"}
+        "where": {"en": "INS knob: AVIONIC POWER panel, right console", "he": "בורר INS: לוח AVIONIC POWER, הקונסולה הימנית"},
+        "wait": {"en": "then wait for the alignment (90 s)", "he": "ואז המתנה ליישור (90 שנ׳)"}
       },
       {
         "step": "canopy",

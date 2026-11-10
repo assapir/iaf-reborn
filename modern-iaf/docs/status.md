@@ -113,6 +113,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **[E2](plan.md#e2-the-front-end), the front end (2026-11-08):** `./start-modern-iaf` opens Home; Pick a plane, Training, Pick a mission, Fly,
   the flight, its debrief sheet, the Pilot log, Preferences and Attributions, in English and Hebrew (mirrored), in the
   round-3 look ([front-end.md](front-end.md)). Esc over a flight opens the pause menu. `test_front_end.gd`.
+- **The mission briefing (2026-11-09, awaiting the user's approval):** Pick a mission shows the picked mission's
+  objectives, steps with their keys, base, runway and heading, time and wind on a Briefing page; on a Map page one
+  zoomable map (the theatre's ground colour, roads, towns, the route, the whole airbase); on an Arming page each jet's
+  front view with its stores (the Adir's two AIM-120 in its bays, 2026-11-10), an inventory column of the stores it may
+  carry and the take-off weight; the subtitles name the tail number and squadron, no wing; the missions' titles are their kinds ([front-end.md](front-end.md) §10, `IafBriefing`). `test_front_end.gd`, `cargo test -p iaf-tools --lib briefing`.
 - **The records in SQLite (2026-11-09):** the sorties and their debrief records are in `user://modern-iaf.sqlite`
   (`iaf_tools::pilot_log`, `IafPilotLog`, a schema version and migrations); its first open imports the JSON records
   from before it once and leaves them in place; Home, Training, the Debrief and the Pilot log read it

@@ -20,9 +20,9 @@ The window opens plain in the front end's background colour (#1d2025, no Godot s
 | screen | what it does | English | Hebrew |
 |---|---|---|---|
 | Home | the sim's name, Missions, the menu: Pilot log (after the first flight with the flights and the flight time under it), Preferences, Attributions, Quit; the pilot's name in the top bar, no jet | ![Home](pictures/front-end/home_en.webp) | ![Home, Hebrew](pictures/front-end/home_he.webp) |
-| Pick a plane | the Sufa (Ramon, 253 Squadron), the Barak (Ramat David, 109 Squadron) and the Adir (Nevatim, 140 Squadron) in one row, each card with its code, name, base and squadron (airbases.md §3); the pick sets the jet everywhere and stays highlighted on the next visit | ![Pick a plane](pictures/front-end/plane_en.webp) | ![Pick a plane, Hebrew](pictures/front-end/plane_he.webp) |
+| Pick a plane | the Sufa (Ramon, 253 Squadron), the Barak (Ramat David, 109 Squadron) and the Adir (Nevatim, 140 Squadron) in one row, each card with its code, name, base and squadron (airbases.md §3), then the Ra'am (Hatzerim, 69 Squadron) and the Baz (Tel Nof, 133 Squadron) greyed; the pick sets the jet everywhere and stays highlighted on the next visit | ![Pick a plane](pictures/front-end/plane_en.webp) | ![Pick a plane, Hebrew](pictures/front-end/plane_he.webp) |
 | Training | the programme: its missions with their last result and the progress | ![Training](pictures/front-end/training_en.webp) | ![Training, Hebrew](pictures/front-end/training_he.webp) |
-| Pick a mission | the missions beside the picked one's briefing: runway, time, wind, time allowed, when it passes; Fly | ![Pick a mission](pictures/front-end/mission_en.webp) | ![Pick a mission, Hebrew](pictures/front-end/mission_he.webp) |
+| Pick a mission | the missions beside the picked one's briefing (§10) on three pages: Briefing (base, runway and heading, time, wind, time allowed, objectives, how), Map (one zoomable map) and Arming (the jet's front view with its stores, its weights); Fly | ![Pick a mission](pictures/front-end/mission_en.webp) | ![Pick a mission, Hebrew](pictures/front-end/mission_he.webp) |
 | Preferences | the sections Graphics, Language, Sound and Devices listed at the inline start; the picked one's settings open beside them as controls: dropdown, switch, slider, radio list | ![Preferences](pictures/front-end/prefs_graphics_en.webp) | ![Preferences, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
 | Debrief | the record as a sheet: Plane flown, From, Time, Mission, Result, the mission's goals (a take-off: runway, lift-off and reference speed, centreline offset, tower calls; a start-up: none), Remarks (the fail reason first, or that it passed; the lift-off against the reference); Back to missions, Fly again | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
 | Pilot | Home → the pilot's name: the picture in a service ID photo's fixed 3:4 frame (Choose a picture… opens the system's file dialog), the name and the nickname, stored as they are typed | ![Pilot](pictures/front-end/pilot_en.webp) | ![Pilot, Hebrew](pictures/front-end/pilot_he.webp) |
@@ -50,7 +50,8 @@ the record's `goals` ([training.md](training.md) §4); every other number stays 
 | the debrief of that flight | ![Debrief after a flight](pictures/front-end/flown_debrief_en.webp) | ![Debrief after a flight, Hebrew](pictures/front-end/flown_debrief_he.webp) |
 
 Keys: Enter picks the focused control, Esc goes one screen back (Home has no back), the arrow keys and Tab move the
-focus. The bottom bar holds the photo credit and the screen's buttons; it shows no key hints (the user, 2026-11-09: "this is
+focus. The bottom bar holds the photo credit (centred; a long one, the plane screen's five photos, wraps to a second
+line; "public domain" in Hebrew is "נחלת הכלל") and the screen's buttons; it shows no key hints (the user, 2026-11-09: "this is
 obvious and people will use mouse anyway"). Every breadcrumb in the top bar but the current one opens its
 screen (a jet's name: its Training); the picks are kept.
 
@@ -72,6 +73,11 @@ Training is the one programme; a campaign card takes its place beside it later.
 The plane cards stand in one row. Five jets (with the Ra'am and the Baz) fit across at 1920 × 1080 with the photos at
 their full height, each cropped narrower. Tested 2026-11-09 and dropped: a row of three and a row of two, which halved
 the photos' height into strips.
+
+The Ra'am (F-15I, `f15i`) and the Baz (F-15C, `f15c`) show after the three flyable jets, disabled until the sim flies
+them (the user, 2026-11-10): the card dimmed, its photo in grey, no click, no focus, no text on why. Each card shows
+its code, name, squadron and base like the others (`SOON` in `front_end.gd`; the squadrons in the Hatzerim and Tel Nof
+base files, airbases.md §3). Making one flyable moves its row from `SOON` to `JETS`.
 
 - **The plane:** a card press stores the unit (`Settings.sim_jet`: `f16i`, `f16d` or `f35i`; `settings.cfg` section
   `[sim]`, key `jet`) and sets the F-16 switch (`Settings.set_jet`).
@@ -120,8 +126,15 @@ centreline in the roll.
   The photos never flip (their tail numbers would read backwards); Home places its photo on the inline-end side. Latin
   codes (F-16I, 25R, 08:00) run left to right inside the Hebrew lines; "MSAA 4×" carries a left-to-right mark.
 - **Strings:** `modern-iaf/menu/strings_en.json` and `strings_he.json`, formal and gender-neutral (infinitives: לטוס,
-  להתניע, לבקש). The Language row switches every string at once. The mission briefings are the front end's own,
-  by mission kind, with the mission's runway and time allowed in them.
+  להתניע, לבקש). The Language row switches every string at once. The in-flight mission card's objective is the
+  compiled mission's (§8), the briefing's objectives and steps the rules' (§10). A training mission's title is its
+  kind ("Take-off", "המראה"; the missions' `title`, the user, 2026-11-09): the base is its own field everywhere it
+  shows (the briefing, the loading screen's second line, the debrief's From).
+- **The jet's subtitle** (the top bar, the plane cards, Training, Pick a mission, the briefing): its tail number, its
+  squadron and its base, "482 · 253 Squadron Negev · Ramon", "482 · טייסת 253 הנגב · רמון" (the user, 2026-11-09: the
+  wing is the base, so it is left out). The tail number is the unit record's `tail`, one real jet of the squadron
+  from a public photo ([data-formats.md](data-formats.md) §3); the squadron is its airbase file's
+  ([airbases.md](airbases.md) §3).
 - **Preferences:** one screen: the sections listed at the inline start, the picked one's rows beside them (Graphics
   until one is picked; the user, 2026-11-09, of the screen per section: "I liked it more before"). The section's pane
   scrolls over its full height, its scroll bar running from its top to its bottom. A row shows its name and its
@@ -145,7 +158,7 @@ centreline in the roll.
 
 ## 5. The photos
 
-Four Wikimedia Commons photos, downscaled, each credited in the footer of the screen that shows it, on Attributions
+Six Wikimedia Commons photos, downscaled, each credited in the footer of the screen that shows it, on Attributions
 and in [../../docs/credits.md](../../docs/credits.md) "Modern IAF's photos". The list with each page:
 `modern-iaf/data/photos/SOURCES.md`. Round 3's Barak photo was CC BY-SA; the front end uses a CC BY 2.0 one instead.
 
@@ -153,7 +166,8 @@ and in [../../docs/credits.md](../../docs/credits.md) "Modern IAF's photos". The
 
 - `modern-iaf/tests/test_front_end.gd` walks Home → Pick a plane → Training → Pick a mission → the debrief of a stored
   record → Home in English and Hebrew: the texts, the mirrored order of the cards, the mission list and the home
-  column, the layout direction; the plane pick; the Preferences' controls and the live language switch; the Pilot log
+  column, the layout direction; the plane pick; the Ra'am's and the Baz's cards with their squadrons, greyed and not
+  pickable; the Preferences' controls and the live language switch; the Pilot log
   and Attributions. With `-- --fly` it also flies Ramon's start-up from the mission screen to a pass, opens the pause
   menu, ends the flight and finds that flight's debrief. Run in a real render through `tools/godot_window.sh` it is
   the real run (`SHOT_DIR=<dir>` saves the two pictures of §1's second table).
@@ -166,6 +180,21 @@ and in [../../docs/credits.md](../../docs/credits.md) "Modern IAF's photos". The
   both languages: Home's pilot name opens it, the nickname typed shows in the top bar at once and on the Pilot log,
   the name and nickname stored, a file that is no picture refused, a picture copied beside the records into its 3:4
   frame.
+- The briefing (§10): the title as the kind, the time as "0800", the wind as "000° / 0 kt" ("קשר"), the take-off's
+  four objectives, its runway with the heading, its four steps in a four-column table, the three tabs mirrored and
+  the arrow keys between them; the six take-off steps (each tower call its own, with its pick and the answer to wait
+  for); the wind's figures left to right; the subtitle with the tail number and no wing; the Arming
+  page's own Sufa drawing with a slot per station (the wing slots in station order 9 to 1, apart; the tanks in the
+  second row straight under 4 and 6), each store's name as its tooltip, the title "Sufa · F-16I · 482" with the Latin
+  and digits isolated, no F-16C, the rounds, chaff, flares, fuel, take-off weight and maximum weight each a field,
+  centred, no credit on Briefing or Arming, the Map's credit at the footer's inline end, the Adir's own drawing; the start-up's steps with their switches and waits;
+  the map over the page with the screen's aspect, the ground colour, roads, Mitzpe Ramon, the airbase, taxi and
+  route, the credit; the wheel zooms around the pointer and the scale bar follows, a drag scrolls, a double click
+  resets, + zooms, an arrow scrolls the focused map (not the tabs), 0 resets; the page kept for the next mission; the
+  start-up's six checklist steps with their keys.
+- `cargo test -p iaf-tools --lib briefing`: the map of Ramon's take-off (the base, the taxi from the parking spot to
+  the lineup, the waypoint west-south-west of it, the aspect, the fills inside the map, the base's shapes, the towns
+  inside it only), of every start-up and take-off; the Sufa's and the F-35I's stores.
 - `modern-iaf/tests/_front_end_shot.gd` takes §1's pictures at 1920 × 1080 (its header), and the failed debrief.
 - `modern-iaf/tests/test_flight_ui.gd` checks §8 in both languages.
 
@@ -178,7 +207,7 @@ flight scene asks `Settings.loading_screen_scene()` for it; the original game ke
 The screen is one panel in the front end's look (§4, `modern-iaf/menu/look.gd`). It shows:
 
 - the mission's title in the sim's language (the compiled mission's `sim.title`; without a mission, the sim's name);
-- its base as the wing and the base's name ("Wing 25, Ramon", "כנף 25 רמון"), from the compiled mission's `sim.base`
+- its base's name ("Ramon", "רמון"; no wing: the wing is the base), from the compiled mission's `sim.base`
   (`iaf-sim missions`);
 - a progress bar and, under it, the loading step under way. The flight names each real phase of its start
   (`terrain_view.gd _loading_step` → the screen's `step(name, done)`); the bar takes each phase's share (`STEPS`),
@@ -205,7 +234,7 @@ In Hebrew the page is mirrored: the bar fills from the inline start, the right.
 
 | English | Hebrew |
 |---|---|
-| ![The loading screen: "Take-off from Ramon", "Wing 25, Ramon", the bar in the ground's step, "The ground around the base" under it](pictures/front-end/loading_en.webp) | ![The loading screen in Hebrew: "המראה מרמון", "כנף 25 רמון", the bar filling from the right, "הקרקע סביב הבסיס" under it](pictures/front-end/loading_he.webp) |
+| ![The loading screen: "Take-off", "Ramon", the bar in the ground's step, "The ground around the base" under it](pictures/front-end/loading_en.webp) | ![The loading screen in Hebrew: "המראה", "רמון", the bar filling from the right, "הקרקע סביב הבסיס" under it](pictures/front-end/loading_he.webp) |
 
 `modern-iaf/tests/_loading_shot.gd` takes these pictures (its header).
 
@@ -234,7 +263,7 @@ the start-up checklist card ([training.md](training.md) §7.1); a radio line alr
 
 | | English | Hebrew |
 |---|---|---|
-| the take-off's card (no key hint under it) | ![The mission card of Take-off from Ramon](pictures/front-end/card_en.webp) | ![The mission card in Hebrew](pictures/front-end/card_he.webp) |
+| the take-off's card (no key hint under it) | ![The mission card of Ramon's take-off](pictures/front-end/card_en.webp) | ![The mission card in Hebrew](pictures/front-end/card_he.webp) |
 | the strip after a tower call, the key hint still showing | ![A tower call in the band](pictures/front-end/band_en.webp) | ![A tower call in Hebrew](pictures/front-end/band_he.webp) |
 | 10 s into the flight: the key hint faded out | ![The take-off 10 s in, no key hint](pictures/front-end/flight10_en.webp) | ![The take-off 10 s in, Hebrew](pictures/front-end/flight10_he.webp) |
 
@@ -395,3 +424,120 @@ How the flight reads it:
   numpad key, a stored key wins over it. `iaf-sim own`'s unit test checks the laptop table compiles the same way.
 - `modern-iaf/tests/test_m0_boot.gd` connects a fake joystick: the probe's gate line stays at 0 refused paths.
 - `modern-iaf/tests/_devices_shot.gd` takes §9's pictures (its header).
+
+## 10. The mission briefing
+
+Selecting a mission on Pick a mission shows its briefing beside the list (the user, 2026-11-09: "briefing, with map,
+when selecting a mission"; his verdicts A14 the same day gave it its pages). Three tabs at its top, Briefing, Map and
+Arming (חימוש), switch the pages; so do the arrow keys (toward the inline end: the next page), except while the map has the
+focus. The page shown stays for the next mission picked. Fly / לטוס beside the tabs starts the mission from any page.
+
+**Briefing:**
+- **The heading:** the title (the mission's kind) and the jet's subtitle (§4).
+- **The facts:** the runway end and its true heading ("25R · 254°"; a take-off only), the time as military time
+  ("0800"), the wind as pilots read it, direction and speed ("250° / 8 kt", "250° / 8 קשר"; calm is "000° / 0 kt"),
+  from the mission's `wind_from` and `wind_kt`, the time allowed. Both languages keep the digits left to right.
+- **Objectives:** what the scorer judges ([training.md](training.md) §3), in the rules' figures: a start-up's engine
+  at idle and avionics up; a take-off from its runway and the climb-out with the gear up on the runway heading
+  (`heading_tolerance_deg`); then the time allowed and the at-once fails (§3.0).
+- **How:** the steps, each with the key as bound, the switch and its place, and the state to wait for (the user,
+  2026-11-09). A start-up's are its checklist (the rules' `checklist`, [training.md](training.md) §7.1): the line, its
+  `where` (the switch's name as the panel labels it and its panel) and its `wait` (the JFS's 20 % RPM, the idle with
+  the main generator, the INS's 90 s), the same data the in-flight checklist card shows. A take-off's are its
+  `steps` ([training.md](training.md) §8): each call to the tower on its own at its place (request start-up, start the
+  engine, request taxi once at idle with the avionics up, taxi short of the runway, request take-off), its key with
+  the menu's pick ("Ctrl + T, 2") and the tower's answer to wait for, then the take-off on the runway heading with the
+  gear up.
+- **The facts' figures:** each value's figures are a label of their own, left to right, and its unit a label beside
+  them, so "16,069 / 23,582 ק״ג", "000° / 0 קשר" and "25R · 247°" keep their order in a Hebrew line.
+
+**Map:** one map over the whole page, north up, that zooms and scrolls. The mouse wheel zooms around the pointer
+(1× to 32×, 1.25× a notch), a drag scrolls, a double click shows the whole map again; with the focus (a click on the
+map), + and − zoom, the arrows scroll and 0 resets. The view stays on the map. It draws:
+- the theatre's ground colour (its level-5 colour nodes, 32 m a pixel, [terrain.md](terrain.md) §3, resampled once
+  by `IafBriefing.ground`; without them the TSD map's polygons, `converted/own/cockpits/<jet>/map.json`,
+  [data-formats.md](data-formats.md) §14);
+- the main roads (motorway to secondary, the theatre's road layer `roads/main.bin`, [data-formats.md](data-formats.md)
+  §15) over a dark casing;
+- the towns' names in the game's language (OpenStreetMap's places, `places.json`; the villages only where fewer than
+  six towns and cities are in the map; a name that would cover an earlier label is left out);
+- the whole airbase as filled shapes: the aprons and the shelters' pads, the taxiways and the stopways at their
+  widths, the runways at their widths; zoomed in (from 0.15 px a metre) their dashed centrelines, the parking spots,
+  the runways' designators at their ends and the start spot's label;
+- the taxi from the parking spot to the lineup as a dashed line (the base's departure route, the one the sim's AI
+  taxis), the start, the route from the lineup through the mission's waypoints with an arrow, the runway end and its
+  heading beside the first leg, the base's label at the whole map's zoom.
+
+The whole map holds the runways, the start and the route with 6 km around them, at least 50 km across. A north arrow
+(true north: the map is UTM 36N's grid, about 1° off) and a scale bar (100 m to 50 km, the longest within a quarter
+of the width) follow the zoom. The map never mirrors; in Hebrew its north arrow and scale bar swap corners. Its
+credit, OpenStreetMap's, is in the footer on this page. Tested 2026-11-09 and dropped: the area beside a separate close-up of the
+base; one zoomable map shows both and leaves each the whole page (the user's A14, round 4).
+
+**Arming:** the jet's name, type and tail number ("Sufa · F-16I · 482"; the Latin and the digits in isolates, so
+Hebrew reads "סופה · F-16I · 482" in order), its front view in light lines traced from our own
+model (`modern-iaf/data/drawings/<jet>_front.png`: the Sufa from `f16i.glb` with its two seats, conformal tanks and
+spine, the Barak from `f16d.glb`, the Adir from `f35i.gltf`; `modern-iaf/tests/_jet_fronts.gd` renders each from the
+front with its surfaces coloured by their normals and traces the edges 2–3 px wide; `<jet>_front.json` places the
+stations, the model's hardpoints `F16_SIM_STATIONS` and the Adir's descriptor stations projected, its bay stations
+where the bays open under the fuselage), centred, as wide as the room left by the slots (at most 62 % of its width). Under the jet, one
+slot per station (after the original's Arming screen, [the original's front end](../../docs/front-end.md) §15: a box per station in station order,
+joined to its station by a line): a thin rounded frame, 88 × 80 px for every station of every jet, with the
+station's number on its top edge, the store's side view fitted by its longest side into one 76 × 24 px picture box
+(the same box for every store, so a drop tank and a missile take the same room; the user, 2026-11-10;
+`modern-iaf/data/stores/<weapon id>.png`, our store models rendered by `modern-iaf/tests/_store_pictures.gd`) and its
+short name under it on up to two lines ("AIM-9M", "370 gal drop tank", "בידון 370 גלון"; also the tooltip). An empty station shows its
+empty slot. The wing stations' slots form one row in station order, 9 to 1 left to right as the front view shows them;
+the inboard stations' (4, 5, 6: the drop tanks) a second row, each straight under its station. Each slot's leader runs
+straight up to its station, or up to the station's height and across to it, none crossing another
+(`menu/arming_drawing.gd`; each slot is a Control of its own, so a drop target per slot is a small step later). The
+drawing never mirrors: station 1, the left wing tip, is on the viewer's right. The stores are the unit record's fixed loadout (`pylons`,
+[data-formats.md](data-formats.md) §3; the Sufa and the Barak: an AIM-9M on 1, 2, 3, 7, 8 and 9, a 370 gal drop tank
+on 4 and 6; the Adir: an AIM-120 on 5 and 7). The Adir's eleven stations but 6: its bays' four (the record's
+`internal`) form the second row, side by side under the fuselage, each marked "internal" / "פנימי" on its bottom
+edge; the empty wing stations' slots the first row, three each side clear of the bay leaders; every leader runs straight
+from its slot's top to its station, a fan that crosses none.
+
+**The inventory:** a column on the drawing's block-end side (the right in English, the left in Hebrew), 150 px wide,
+headed "Available" / "זמין": the stores the jet may carry (the record's `inventory`), grouped under small headings
+air-to-air, air-to-ground and drop tanks (by the weapon's kind), each its picture in the slots' picture box, its caption and
+the record's count (none given yet, so none shown). Display only; each entry is one Control (`arming_drawing.gd`
+`Item`), so dragging it onto a slot is a small step later (the user, 2026-11-10). Under the drawing, centred: the gun's rounds, the chaff, the flares (`loadout`),
+the internal fuel (the 6-DoF jet's, `iaf_flight::sixdof::jets`), the take-off weight (the 6-DoF's empty weight +
+internal fuel + the stores' `kg`) and, a field of its own, the jet's maximum weight (the record's `max_takeoff_kg`; the
+Sufa: 16,069 kg and 23,582 kg). `IafBriefing.arming(unit, weapons)` answers the figures (`briefing::arming`).
+
+The footer carries a credit on the Map page only, OpenStreetMap's, at the footer's inline end (right in English, left
+in Hebrew) in 16 px type. The Arming drawing is our own render of our own models; the attribution those models need
+(the FlightGear F-16, GPL; andertan's F-35, CC BY 4.0) is in docs/credits.md, the setup wizard's Attributions and the
+credits roll.
+
+The geometry is Rust's: `iaf_tools::briefing` (`crates/iaf-tools/src/briefing.rs`) behind `IafBriefing.map(mission,
+airbases, map, aspect)` (`crates/iaf-godot/src/briefing.rs`) reads the readable mission, the airbase files and the
+compiled map, and answers the map in its own metres (x east, y south from its north-west
+corner):
+
+| key | meaning |
+|---|---|
+| `base`, `runway`, `heading` | the base's name, the take-off runway end and its true heading (null for a start-up) |
+| `north` | true north as a grid bearing (deg) |
+| `size`, `extent` | the map's width and height (m) and its box in the sim's frame, at the screen's aspect: the runways, the start and the route with 6 km around them, at least 50 km on the shorter side |
+| `fills` | the map's polygons cut to the map, in paint order: `color` and `tris` (triangles, `iaf_formats::emf::fill_triangles`, as `IafEmf`) |
+| `runways` | each `[x0, y0, x1, y1, width, designator 0, designator 1]` |
+| `taxiways`, `stopways`, `aprons`, `shelters`, `parking` | the base's paved shapes (`{w, pts}` for a taxiway) and spots |
+| `roads`, `places` | the map's main roads (`{class, pts}`) and towns (`{kind, en, he, at}`) |
+| `start`, `taxi`, `route` | the start; the taxi (the base's departure route, `sim_bases::routes`, when the runway is the base's take-off end); the lineup and the waypoints |
+
+`IafBriefing.ground(theatre, extent, width)` answers the area's ground colour as {w, h, rgb} (`briefing::ground`).
+`IafBriefing.arming(unit, weapons)` answers the Arming page's figures (`briefing::arming`).
+`modern-iaf/menu/briefing_map.gd` draws the maps. `modern-iaf/tests/_briefing_shot.gd` takes the pictures (its header).
+
+| | English | Hebrew |
+|---|---|---|
+| start-up at Ramon (2011) | ![The start-up's briefing](pictures/front-end/briefing_2011_en.webp) | ![The start-up's briefing in Hebrew](pictures/front-end/briefing_2011_he.webp) |
+| take-off from Ramon (2012) | ![The take-off's briefing](pictures/front-end/briefing_2012_en.webp) | ![The take-off's briefing in Hebrew](pictures/front-end/briefing_2012_he.webp) |
+| the take-off's Map page | ![The take-off's map](pictures/front-end/map_2012_en.webp) | ![The take-off's map in Hebrew](pictures/front-end/map_2012_he.webp) |
+| the map zoomed in on the start | ![The map zoomed in on Ramon](pictures/front-end/map_zoom_2012_en.webp) | ![The map zoomed in, Hebrew](pictures/front-end/map_zoom_2012_he.webp) |
+| the take-off's Arming page | ![The Sufa's front view with its stores](pictures/front-end/stores_2012_en.webp) | ![The Sufa's arming in Hebrew](pictures/front-end/stores_2012_he.webp) |
+| the Barak's Arming page (take-off from Ramat David) | ![The Barak's front view with its stores](pictures/front-end/stores_f16d_en.webp) | ![The Barak's arming in Hebrew](pictures/front-end/stores_f16d_he.webp) |
+| the Adir's Arming page (take-off from Nevatim) | ![The Adir's front view](pictures/front-end/stores_f35i_en.webp) | ![The Adir's arming in Hebrew](pictures/front-end/stores_f35i_he.webp) |

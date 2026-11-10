@@ -1,15 +1,14 @@
-# Modern IAF's front end (modern-iaf/docs/front-end.md), headless, in English and Hebrew: Home → Pick a plane → Training →
-# Pick a mission → (the flight skipped) → the Debrief of a stored record → Home; the texts each screen shows, the
-# mirrored layout in Hebrew, the plane pick (Settings.sim_jet, the F-16 switch), the Preferences' controls and the
-# live language switch both ways, the Pilot log (a row opens its debrief), a failed record's reasons and
-# Attributions. Then a `--mission` run on a profile without a picked plane: the mission flies at once, the start
-# command, the scoring, Esc's pause menu over the flight, its Preferences and back, End the flight, that flight's
-# debrief, and Esc to Home with the mission's jet picked (the real run of front-end.md "Checks", also in a real render
-# through tools/godot_window.sh; SHOT_DIR=<dir> saves the pause menu and the debrief in both languages). The records
-# go to the isolated records folder (Settings.records_dir, a temporary folder): the fixture writes the JSON records
-# from before the database there, and the store's first open imports them.
-#   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
-#     -s ../modern-iaf/tests/test_front_end.gd --log-file <temp>
+# Modern IAF's front end (modern-iaf/docs/front-end.md), headless, in English and Hebrew: Home → Pick a plane → Training
+# → Pick a mission → (the flight skipped) → the Debrief of a stored record → Home; the texts each screen shows, the
+# mirrored layout in Hebrew, the plane pick (Settings.sim_jet, the F-16 switch), the Preferences' controls and the live
+# language switch both ways, the Pilot log (a row opens its debrief), a failed record's reasons and Attributions. Then a
+# `--mission` run on a profile without a picked plane: the mission flies at once, the start command, the scoring, Esc's
+# pause menu over the flight, its Preferences and back, End the flight, that flight's debrief, and Esc to Home with the
+# mission's jet picked (the real run of front-end.md "Checks", also in a real render through tools/godot_window.sh;
+# SHOT_DIR=<dir> saves the pause menu and the debrief in both languages). The records go to the isolated records folder
+# (Settings.records_dir, a temporary folder): the fixture writes the JSON records from before the database there, and
+# the store's first open imports them.   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf
+# \     -s ../modern-iaf/tests/test_front_end.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
 
 const STAMP := "20261102-080000"
@@ -53,7 +52,7 @@ func run() -> void:
 	go.pressed.emit()
 	await frames(2)
 	check(fe.page == "plane" and fe.find_child("Continue", true, false).disabled, "Missions opens the picker")
-	check(fe.find_child("Cards", true, false).get_child_count() == 3, "the picker: the three flyable jets")
+	check(fe.find_child("Cards", true, false).get_child_count() == 5, "the picker: the three flyable jets, two greyed")
 	(fe.find_child("sufa", true, false) as Button).pressed.emit()
 	await frames(2)
 	(fe.find_child("Continue", true, false) as Button).pressed.emit()
@@ -277,21 +276,40 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	check(fe.is_layout_rtl() == he, "%s: mirrored layout flag" % lang)
 	check(_has(fe, "הזרוע הארוכה" if he else "Modern IAF"), "%s: the sim's name in the header" % lang)
 	check(_has(fe, "בחירת מטוס" if he else "Pick a plane"), "%s: plane: the title" % lang)
+	for t in ["סופה", "ברק", "אדיר"] if he else ["Sufa", "Barak", "Adir"]:
+		check(_has(fe, t), "%s: plane: %s" % [lang, t])
+	# The tail number, the squadron and the base (no wing: the wing is the base).
 	for t in (
-		["סופה", "ברק", "אדיר", "כנף 25 · רמון", "כנף 1 · רמת דוד", "כנף 28 · נבטים"]
+		["482 · טייסת 253 הנגב · רמון", "034 · טייסת 109 העמק · רמת דוד", "921 · טייסת 140 נשר הזהב · נבטים"]
 		if he
-		else ["Sufa", "Barak", "Adir", "Wing 28 · Nevatim"]
+		else [
+			"482 · 253 Squadron Negev · Ramon",
+			"034 · 109 Squadron The Valley · Ramat David",
+			"921 · 140 Squadron Golden Eagle · Nevatim"
+		]
 	):
 		check(_has(fe, t), "%s: plane: %s" % [lang, t])
-	for t in (
-		["טייסת 253 · הנגב", "טייסת 109 · העמק", "טייסת 140 · נשר הזהב"]
-		if he
-		else ["253 Squadron · Negev", "109 Squadron · The Valley", "140 Squadron · Golden Eagle"]
-	):
-		check(_has(fe, t), "%s: plane: the squadron %s" % [lang, t])
+	check(not _has_part(fe, "כנף" if he else "Wing"), "%s: plane: no wing" % lang)
 	check(not _has_part(fe, "מושב" if he else "seat"), "%s: plane: no seat count" % lang)
 	var cards := fe.find_children("*", "Button", true, false).filter(func(b): return b.theme_type_variation == "Card")
-	check(cards.size() == 3, "%s: three plane cards" % lang)
+	check(cards.size() == 5, "%s: five plane cards" % lang)
+	# The Ra'am and the Baz: shown with their squadrons, disabled (no pick, no focus, dimmed), no text on why.
+	for t in (
+		["רעם", "בז", "טייסת 69 הפטישים · חצרים", "טייסת 133 אבירי הזנב הכפול · תל נוף"]
+		if he
+		else ["Ra'am", "Baz", "69 Squadron The Hammers · Hatzerim", "133 Squadron Knights of the Twin Tail · Tel Nof"]
+	):
+		check(_has(fe, t), "%s: plane: %s" % [lang, t])
+	for n in ["raam", "baz"]:
+		var off: Button = fe.find_child(n, true, false)
+		check(
+			off.disabled and off.focus_mode == Control.FOCUS_NONE and off.modulate.a < 1.0 and not off.button_pressed,
+			"%s: the %s card greyed and not pickable" % [lang, n]
+		)
+	var picked: String = s.sim_jet
+	fe.find_child("raam", true, false).pressed.emit()  # no handler: a press picks nothing
+	await frames(2)
+	check(s.sim_jet == picked, "%s: the Ra'am card picks nothing" % lang)
 	# The cards run from the inline start: the Sufa's at the right in Hebrew.
 	var sufa: Control = fe.find_child("sufa", true, false)
 	var adir: Control = fe.find_child("adir", true, false)
@@ -308,19 +326,20 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	await frames(2)
 	check(fe.page == "training", "%s: Continue opens Training" % lang)
 	check(_has(fe, "לטוס בסופה" if he else "Fly the Sufa"), "%s: training: the title" % lang)
-	check(_has(fe, "1 · התנעה ברמון" if he else "1 · Start-up at Ramon"), "%s: training: mission 1" % lang)
+	check(_has(fe, "1 · התנעה" if he else "1 · Start-up"), "%s: training: mission 1" % lang)
 	check(_has(fe, "2 מתוך 2 עברו" if he else "2 of 2 passed"), "%s: training: the progress" % lang)
 	fe.find_child("Open", true, false).pressed.emit()
 	await frames(2)
 	check(fe.page == "mission" and fe.missions.size() == 2, "%s: Open lists the two missions" % lang)
 	fe.find_child("Mission2", true, false).pressed.emit()
 	await frames(2)
-	check(_has(fe, "המראה מרמון" if he else "Take-off from Ramon"), "%s: mission: the take-off picked" % lang)
+	check(_has(fe, "המראה" if he else "Take-off"), "%s: mission: the take-off picked" % lang)
 	check(_has_part(fe, "25R"), "%s: mission: the runway" % lang)
-	check(_has(fe, "15 דקות" if he else "15 min"), "%s: mission: the time allowed" % lang)
+	check(_has(fe, "15") and _has(fe, "דקות" if he else "min"), "%s: mission: the time allowed" % lang)
 	var list: Control = fe.find_child("Mission1", true, false)
 	var pane: Control = fe.find_child("Briefing", true, false)
 	check((list.global_position.x > pane.global_position.x) == he, "%s: the list and the briefing mirror" % lang)
+	await _briefing_checks(fe, lang)
 	# The flight is skipped: the stored record comes back as the flight's.
 	s.flown_sortie = ids.pass
 	fe.show_page("home")
@@ -337,7 +356,7 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 			"המספרים",
 			"הערות",
 			"F-16I סופה",
-			"כנף 25 · רמון, מסלול 25R",
+			"רמון, מסלול 25R",
 			"מסלול",
 			"25R",
 			"3.1 מ׳",
@@ -353,7 +372,7 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 			"THE NUMBERS",
 			"REMARKS",
 			"F-16I Sufa",
-			"Wing 25 · Ramon, runway 25R",
+			"Ramon, runway 25R",
 			"Runway",
 			"25R",
 			"3.1 m",
@@ -400,7 +419,7 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	home_log.pressed.emit()
 	await frames(2)
 	check(fe.page == "log", "%s: home: the log summary opens the Pilot log" % lang)
-	check(_has(fe, "המראה מרמון" if he else "Take-off from Ramon"), "%s: log: the take-off" % lang)
+	check(_has(fe, "המראה" if he else "Take-off"), "%s: log: the take-off" % lang)
 	var rows: Array = fe.find_child("Log", true, false).find_children("*", "Button", true, false)
 	rows[0].pressed.emit()
 	await frames(2)
@@ -634,6 +653,191 @@ func _labels(root: Node) -> Array:
 func _labels_of(root: Node, kind: String) -> Array:
 	var labels := root.find_children("*", "Label", true, false)
 	return labels.filter(func(n): return n.theme_type_variation == kind).map(func(n): return n.text)
+
+
+## The briefing (front-end.md §10) of the take-off picked, then of the start-up: the Briefing page (the title as the
+## kind, the time as military time, the wind as pilots read it, the objectives, the runway's heading, how: the steps
+## with their keys and a free fourth column), the Map page by its tab and by the arrow keys (one map that zooms around
+## the pointer, scrolls, resets, follows the keys, its scale bar with the zoom), the Arming page (the front view with
+## a slot per station with its store, the weights; the Map's credit), the subtitle, the steps with their
+## switches and waits, each tower call its own step, Fly.
+func _briefing_checks(fe: Control, lang: String) -> void:
+	var he := lang == "he"
+	fe.show_tab(0)
+	await frames(2)
+	var pane: Control = fe.find_child("Briefing", true, false)
+	check(_has(pane, "המראה" if he else "Take-off"), "%s: briefing: the title is the kind" % lang)
+	check(not _has_part(pane, "מרמון" if he else "from Ramon"), "%s: briefing: no base in the title" % lang)
+	check(_has(pane, "0800"), "%s: briefing: the time as military time" % lang)
+	check(
+		_has(pane, "000° / 0") and _has(pane, "קשר" if he else "kt"), "%s: briefing: the wind as pilots read it" % lang
+	)
+	var fact_labels: Array = pane.find_child("Facts", true, false).find_children("*", "Label", true, false)
+	var wind: Label = fact_labels.filter(func(l): return l.text == "000° / 0")[0]
+	check(wind.text_direction == Control.TEXT_DIRECTION_LTR, "%s: wind: the figures left to right" % lang)
+	check(fe.wind_text({"wind_from": 250, "wind_kt": 8}) == "250° / 8", "%s: wind" % lang)
+	var objs: Control = pane.find_child("Objectives", true, false)
+	check(objs.get_child_count() == 4 and _has_part(objs, "25R"), "%s: briefing: the take-off's objectives" % lang)
+	check(_has_part(pane, "25R · 247°"), "%s: briefing: the runway with its heading" % lang)
+	var steps: GridContainer = pane.find_child("Steps", true, false)
+	check(steps.columns == 4 and steps.get_child_count() == 6 * 4, "%s: briefing: the take-off's six steps" % lang)
+	check(not _has_part(steps, "מדפים" if he else "Flaps"), "%s: briefing: no flaps step" % lang)
+	# Each call to the tower its own step: start-up, taxi, take-off, with the menu's pick and the answer to wait for.
+	for k in ["Ctrl + T, 1", "Ctrl + T, 2", "Ctrl + T, 3"]:
+		check(_has(steps, k), "%s: briefing: the tower call %s" % [lang, k])
+	check(_has_part(steps, "מאושר להמריא" if he else "cleared for take-off"), "%s: briefing: the wait" % lang)
+	check(
+		_has(pane, "482 · טייסת 253 הנגב · רמון" if he else "482 · 253 Squadron Negev · Ramon"), "%s: subtitle" % lang
+	)
+	var credit: Label = fe.find_child("Credit", true, false)
+	check(credit != null and credit.text.strip_edges() == "", "%s: no credit on the Briefing page" % lang)
+	check(_has_part(steps, "מגדל" if he else "tower"), "%s: briefing: the tower step" % lang)
+	var tabs: Array = ["Briefing", "Map", "Arming"].map(func(t): return pane.find_child("Tab" + t, true, false))
+	check((tabs[0].global_position.x > tabs[2].global_position.x) == he, "%s: briefing: the tabs mirror" % lang)
+	check(not pane.find_child("PageMap", true, false).visible, "%s: briefing: the Briefing page first" % lang)
+	check(_has(pane, "חימוש" if he else "Arming"), "%s: arming: the tab's name" % lang)
+	tabs[2].pressed.emit()
+	await frames(3)
+	check(pane.find_child("PageArming", true, false).visible, "%s: arming: its tab opens the Arming page" % lang)
+	var drawing: Control = pane.find_child("Drawing", true, false)
+	check(drawing != null and drawing.picture != null, "%s: arming: our own Sufa's front view" % lang)
+	check(drawing.stations.size() == 8 and drawing.stores.size() == 8, "%s: arming: eight stations loaded" % lang)
+	var title: Label = pane.find_child("ArmingJet", true, false)
+	check(
+		title.text == "%s · \u2066F-16I\u2069 · \u2066482\u2069" % ("סופה" if he else "Sufa"),
+		"%s: arming: the jet's own name, the Latin and digits isolated (%s)" % [lang, title.text]
+	)
+	check(not _has_part(fe, "F-16C"), "%s: arming: no F-16C" % lang)
+	check(
+		(
+			drawing.stores[1] == ["aim-9m", "AIM-9M"]
+			and drawing.stores[4] == ["tank-370", "בידון 370 גלון" if he else "370 gal drop tank"]
+		),
+		"%s: arming: 1 an AIM-9M, 4 a drop tank" % lang
+	)
+	check(pane.find_child("Stores", true, false) == null, "%s: arming: the drawing, not the list" % lang)
+	var facts: Control = pane.find_child("ArmingFacts", true, false)
+	check(_has(facts, "511") and _has(facts, "60"), "%s: arming: the rounds, chaff and flares" % lang)
+	check(
+		_has(facts, "4,014") and _has(facts, "16,069") and _has(facts, "23,582"),
+		"%s: arming: fuel, the take-off weight and the maximum, each its own field" % lang
+	)
+	check(facts.alignment == BoxContainer.ALIGNMENT_CENTER, "%s: arming: the figures centred" % lang)
+	check(not _has_part(fe, "FlightGear"), "%s: arming: no credit for our own drawing" % lang)
+	check(drawing.store_picture("tank-370") != null, "%s: arming: the drop tank's picture" % lang)
+	await frames(2)
+	# A slot per station, the wing row in station order 9 to 1 left to right, the tanks straight under 4 and 6.
+	var sl: Dictionary = drawing.slots
+	check(sl.size() == 8 and sl["1"].tooltip_text == "AIM-9M", "%s: arming: a slot per station, the tooltip" % lang)
+	var xs: Array = ["9", "8", "7", "3", "2", "1"].map(func(n): return sl[n].position.x)
+	var ordered := true
+	for i in range(1, xs.size()):
+		ordered = ordered and xs[i] >= xs[i - 1] + sl["1"].size.x
+	check(ordered, "%s: arming: the wing slots in station order, apart (%s)" % [lang, xs])
+	for n in ["4", "6"]:
+		var lead: Array = drawing._leaders[n]
+		check(
+			absf(lead[0].x - lead[1].x) < 1.0 and sl[n].position.y > sl["1"].position.y,
+			"%s: arming: station %s's tank in the second row, straight under it" % [lang, n]
+		)
+	check(not _has_part(fe, "OpenStreetMap"), "%s: arming: no map credit" % lang)
+	var adir: Dictionary = fe.arming({"start": {"unit": "f35i"}})
+	check(
+		float(adir.stores_kg) == 2.0 * 161.5 and adir.internal == [4.0, 5.0, 7.0, 8.0] and fe.DRAWINGS.has("f35i"),
+		"%s: arming: the Adir's own drawing, two AIM-120 in its bays" % lang
+	)
+	var inv: Control = pane.find_child("Inventory", true, false)
+	check(
+		inv != null and inv.find_child("Itemaim-120", true, false) != null and inv.find_child("Itemmk-84", true, false),
+		"%s: arming: the Sufa's inventory column, each store one Control" % lang
+	)
+	var row: Control = pane.find_child("ArmingRow", true, false)
+	check(
+		(inv.global_position.x > drawing.global_position.x) == (lang == "en"),
+		"%s: arming: the inventory on the block-end side" % lang
+	)
+	check(row != null and inv.size.x >= 150, "%s: arming: the column its width" % lang)
+	tabs[1].pressed.emit()
+	await frames(3)
+	check(not pane.find_child("PageBriefing", true, false).visible, "%s: map: its tab opens the Map page" % lang)
+	var map: Control = pane.find_child("PageMap", true, false)
+	check(map.size.x > 900 and map.size.y > 500, "%s: map: the full panel (%s)" % [lang, map.size])
+	var d: Dictionary = map.data
+	check(absf(float(d.size[0]) / float(d.size[1]) - map.size.x / map.size.y) < 0.02, "%s: map: the aspect" % lang)
+	check(d.runways.size() >= 2 and d.route.size() == 4 and d.taxi.size() >= 4, "%s: map: runways, taxi, route" % lang)
+	check(d.aprons.size() > 0 and d.taxiways.size() > 0 and d.parking.size() > 0, "%s: map: the airbase" % lang)
+	check(map.base_label == ("רמון" if he else "Ramon"), "%s: map: the base" % lang)
+	check(d.get("texture") is Texture2D and d.roads.size() > 0, "%s: map: the ground colour and the roads" % lang)
+	var towns: Array = d.places.map(func(p): return p.he if he else p.en)
+	check(("מצפה רמון" if he else "Mitspe Ramon") in towns, "%s: map: Mitzpe Ramon (%s)" % [lang, towns])
+	check(fe.find_child("Footer", true, false) != null and _has_part(fe, "OpenStreetMap"), "%s: map: credit" % lang)
+	var foot: Control = fe.find_child("Footer", true, false)
+	check(foot.get_child(-1).name == "Credit", "%s: map: the credit at the footer's inline end" % lang)
+	# The wheel zooms around the pointer: the map point under it stays; the scale bar follows.
+	var at := map.size * Vector2(0.3, 0.6)
+	var under: Vector2 = map._xf().affine_inverse() * at
+	var scale0: int = map.scale_metres()
+	for n in 8:
+		var w := InputEventMouseButton.new()
+		w.button_index = MOUSE_BUTTON_WHEEL_UP
+		w.pressed = true
+		w.position = at
+		map._gui_input(w)
+	check(map.zoom > 5.0, "%s: map: the wheel zooms in (%.2f)" % [lang, map.zoom])
+	var still: Vector2 = map._xf() * under
+	check(still.distance_to(at) < 1.0, "%s: map: zoomed around the pointer (%s)" % [lang, still - at])
+	check(map.scale_metres() < scale0, "%s: map: the scale bar follows (%d m)" % [lang, map.scale_metres()])
+	# A drag scrolls; a double click resets.
+	var c0: Vector2 = map.center
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = at
+	map._gui_input(press)
+	var drag := InputEventMouseMotion.new()
+	drag.relative = Vector2(60, -40)
+	map._gui_input(drag)
+	var up := InputEventMouseButton.new()
+	up.button_index = MOUSE_BUTTON_LEFT
+	map._gui_input(up)
+	check(map.center.x < c0.x and map.center.y > c0.y, "%s: map: a drag scrolls" % lang)
+	press.double_click = true
+	map._gui_input(press)
+	check(is_equal_approx(map.zoom, 1.0), "%s: map: a double click resets" % lang)
+	# The keys: + zooms, an arrow scrolls (the map has the focus: the arrows stay off the tabs), 0 resets.
+	map.grab_focus()
+	map._gui_input(_key_event(KEY_EQUAL))
+	map._gui_input(_key_event(KEY_EQUAL))
+	var c1: Vector2 = map.center
+	map._gui_input(_key_event(KEY_RIGHT))
+	fe._input(_key_event(KEY_RIGHT))
+	check(map.zoom > 1.4 and map.center.x > c1.x, "%s: map: + zooms, an arrow scrolls" % lang)
+	check(fe.brief_tab == 1, "%s: map: the arrows scroll the focused map, not the tabs" % lang)
+	map._gui_input(_key_event(KEY_0))
+	check(is_equal_approx(map.zoom, 1.0), "%s: map: 0 resets" % lang)
+	map.release_focus()
+	# The arrow key toward the inline start goes back to Briefing; toward the end to Map.
+	fe._input(_key_event(KEY_RIGHT if he else KEY_LEFT))
+	check(fe.brief_tab == 0 and pane.find_child("PageBriefing", true, false).visible, "%s: arrow: Briefing" % lang)
+	fe._input(_key_event(KEY_LEFT if he else KEY_RIGHT))
+	check(fe.brief_tab == 1, "%s: arrow: Map" % lang)
+	fe.find_child("Mission1", true, false).pressed.emit()
+	await frames(2)
+	pane = fe.find_child("Briefing", true, false)
+	check(pane.find_child("PageMap", true, false).visible, "%s: the page kept for the next mission" % lang)
+	fe.show_tab(0)
+	steps = pane.find_child("Steps", true, false)
+	check(steps.get_child_count() == 6 * 4, "%s: briefing: the start-up's six checklist steps" % lang)
+	check(_has(steps, "Ctrl + B"), "%s: briefing: the checklist's keys as bound" % lang)
+	check(
+		_has(steps, fe.key_name(fe.SimFlight.THROTTLE_IDLE_KEY)), "%s: briefing: the idle step's key, the card's" % lang
+	)
+	check(_has_part(steps, "MAIN PWR") and _has_part(steps, "90"), "%s: briefing: the switch and the wait" % lang)
+	var m: Control = pane.find_child("PageMap", true, false)
+	check(m.runway_label == "", "%s: map: a start-up has no runway" % lang)
+	check(pane.find_child("Fly", true, false) != null, "%s: briefing: Fly" % lang)
+	fe.find_child("Mission2", true, false).pressed.emit()
+	await frames(2)
 
 
 func _has(root: Node, t: String) -> bool:

@@ -3,7 +3,8 @@
 #     -s ../modern-iaf/tests/_front_end_shot.gd
 # Writes SHOT_DIR/<screen>_<lang>.png (the Preferences: prefs_<section>_*) at 1920×1080 (the
 # front end in a viewport of that size, whatever the window's) with the sample pilot log and debrief of
-# test_front_end.gd (debrief_fail: its take-off with the gear never raised).
+# test_front_end.gd (debrief_fail: its take-off with the gear never raised). SHOT_ONLY=<screen> takes that screen
+# alone (e.g. SHOT_ONLY=plane).
 extends "res://../tests/godot/base.gd"
 
 const SCREENS := ["home", "plane", "training", "mission", "debrief", "debrief_fail", "log", "credits"]
@@ -13,6 +14,7 @@ func run() -> void:
 	var dir := OS.get_environment("SHOT_DIR")
 	check(dir != "", "SHOT_DIR is set")
 	DirAccess.make_dir_recursive_absolute(dir)
+	var only := OS.get_environment("SHOT_ONLY")
 	var s := settings()
 	var ids: Dictionary = load("res://tests/test_front_end.gd").fixture(s)
 	s.sim_jet = "f16i"
@@ -27,13 +29,13 @@ func run() -> void:
 		s.language = lang
 		s.pilot_name = "נועה גולן" if lang == "he" else "Noa Golan"
 		s.sim_jet = "f16i"
-		for g in ["graphics", "sound", "devices", "language"]:
+		for g in [] if only != "" else ["graphics", "sound", "devices", "language"]:
 			fe.pref_group = g
 			fe.show_page("prefs")
 			await frames(10)
 			var gp: String = dir.path_join("prefs_%s_%s.png" % [g, lang])
 			check(vp.get_texture().get_image().save_png(gp) == OK, "saved " + gp)
-		for p in SCREENS:
+		for p in [only] if only != "" else SCREENS:
 			if p == "debrief":
 				fe.open_debrief(ids.pass)
 			elif p == "debrief_fail":
@@ -44,7 +46,8 @@ func run() -> void:
 			await frames(10)
 			var path: String = dir.path_join("%s_%s.png" % [p, lang])
 			check(vp.get_texture().get_image().save_png(path) == OK, "saved " + path)
-		await _pilot(fe, vp, dir, lang)
+		if only == "":
+			await _pilot(fe, vp, dir, lang)
 	s.language = "en"
 	s.pilot_name = ""
 

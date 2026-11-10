@@ -44,8 +44,8 @@
   "id": "ramat_david_takeoff",
   "menu_id": 2022,
   "title": {
-    "en": "Take-off from Ramat David",
-    "he": "המראה מרמת דוד"
+    "en": "Take-off",
+    "he": "המראה"
   },
   "briefing": {
     "en": "Ask the tower for start-up, taxi and take-off, taxi to runway 27 and take off on its heading.",
@@ -70,6 +70,60 @@
   ],
   "training": {
     "kind": "takeoff",
+    "steps": [
+      {
+        "key": 47,
+        "pick": 1,
+        "en": "Call the tower: request start-up",
+        "he": "קריאה למגדל: בקשת התנעה",
+        "wait": {
+          "en": "wait for \"cleared to start\"",
+          "he": "המתנה ל\"מאושר להתניע\""
+        }
+      },
+      {
+        "key": 117,
+        "en": "Start the engine",
+        "he": "התנעת המנוע",
+        "wait": {
+          "en": "wait for idle with the avionics up",
+          "he": "המתנה לסרק ולאוויוניקה פועלת"
+        }
+      },
+      {
+        "key": 47,
+        "pick": 2,
+        "en": "Call the tower: request taxi",
+        "he": "קריאה למגדל: בקשת הסעה",
+        "wait": {
+          "en": "wait for \"taxi to runway {runway}\"",
+          "he": "המתנה ל\"הסעה למסלול {runway}\""
+        }
+      },
+      {
+        "en": "Taxi to runway {runway} and stop short of it",
+        "he": "הסעה למסלול {runway} ועצירה לפניו",
+        "wait": {
+          "en": "200–400 m before the lineup point",
+          "he": "200–400 מ׳ לפני נקודת הכניסה למסלול"
+        }
+      },
+      {
+        "key": 47,
+        "pick": 3,
+        "en": "Call the tower: request take-off",
+        "he": "קריאה למגדל: בקשת המראה",
+        "wait": {
+          "en": "wait for \"line up\", line up and ask again: wait for \"cleared for take-off\"",
+          "he": "המתנה ל\"כניסה למסלול\", כניסה למסלול ובקשה חוזרת: המתנה ל\"מאושר להמריא\""
+        }
+      },
+      {
+        "key": 20,
+        "en": "Take off on the runway heading, gear up (±{tolerance}°)",
+        "he": "המראה בכיוון המסלול, איסוף כן הנסע (±{tolerance}°)"
+      }
+    ],
     "time_budget_s": 900,
     "heading_tolerance_deg": 10,
     "empty_kg": 8573,

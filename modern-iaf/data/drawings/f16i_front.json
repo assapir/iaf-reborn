@@ -1,0 +1,39 @@
+{
+  "_doc": "Our own f16i model's front view (tests/_jet_fronts.gd): the image and the stations' places on it (px).",
+  "image": "f16i_front.png",
+  "px_per_m": 90.0,
+  "stations": {
+    "1": [
+      882.8,
+      338.6
+    ],
+    "2": [
+      816.8,
+      355.2
+    ],
+    "3": [
+      727.8,
+      361.5
+    ],
+    "4": [
+      615.1,
+      380.7
+    ],
+    "6": [
+      303.3,
+      380.7
+    ],
+    "7": [
+      190.6,
+      361.5
+    ],
+    "8": [
+      101.6,
+      355.2
+    ],
+    "9": [
+      34.4,
+      338.6
+    ]
+  }
+}

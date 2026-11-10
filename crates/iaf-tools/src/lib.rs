@@ -3,6 +3,7 @@
 pub mod airbases;
 pub mod aircraft;
 pub mod bc1;
+pub mod briefing;
 pub mod convert;
 pub mod devices;
 pub mod exe;

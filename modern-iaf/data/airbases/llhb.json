@@ -1942,6 +1942,17 @@
    "source": "inferred"
   }
  ],
+ "squadrons": [
+  {
+   "unit": "f15i",
+   "number": 69,
+   "name": {
+    "en": "The Hammers",
+    "he": "הפטישים"
+   },
+   "source": "he_69"
+  }
+ ],
  "sources": {
   "name": "osm",
   "boundary": "osm",
@@ -1951,6 +1962,7 @@
  },
  "footnotes": {
   "osm": "OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright (Overpass API, data of 2026-11-02); each item's \"osm\" names its element: https://www.openstreetmap.org/<osm>",
-  "oa": "OurAirports, airports.csv and runways.csv (public domain), https://davidmegginson.github.io/ourairports-data/"
+  "oa": "OurAirports, airports.csv and runways.csv (public domain), https://davidmegginson.github.io/ourairports-data/",
+  "he_69": "Wikipedia, טייסת 69 (\"טייסת הפטישים\", flies the F-15I Ra'am from Hatzerim), https://he.wikipedia.org/wiki/טייסת_69"
  }
 }

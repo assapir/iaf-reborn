@@ -1,0 +1,41 @@
+{
+  "id": "f15i",
+  "number": 5,
+  "name": "F-15I Ra'am",
+  "label": "F-15I",
+  "class": "fighter",
+  "type": 110,
+  "airframe": "f15i",
+  "model": "",
+  "scale": 1.0,
+  "radius_m": 6.52,
+  "strength": 300,
+  "loadout": {
+    "20mm": 500,
+    "chaff": 60,
+    "flare": 60
+  },
+  "pylons": {},
+  "sources": {
+    "type": "inferred",
+    "scale": "inferred",
+    "radius_m": "w-f15e",
+    "strength": "inferred",
+    "loadout.20mm": "w-f15e",
+    "loadout.chaff": "open",
+    "loadout.flare": "open"
+  },
+  "notes": {
+    "type": "the F-15's type code (110), the one the shared code keys the F-15 family on; the airframe definition f15i makes it the Ra'am",
+    "model": "none: the player's jet is drawn from its airframe definition (shared/extra/planes/f15i/airframe.json); the sim has no F-15 model or 3D cockpit of its own yet, so its front end shows the Ra'am's card greyed (front-end.md §1)",
+    "scale": "1: our models are built true size",
+    "radius_m": "half the span, 42 ft 9.6 in (13.04 m)",
+    "strength": "our damage scale's fighter (modern-iaf/docs/data-formats.md, damage scale)",
+    "loadout.20mm": "the F-15E's M61A1 20 mm with 500 rounds; the F-15I's own count is open",
+    "loadout.chaff": "no public count found; 60 held until one is",
+    "loadout.flare": "no public count found; 60 held until one is"
+  },
+  "footnotes": {
+    "w-f15e": "Wikipedia, \"McDonnell Douglas F-15E Strike Eagle\", Specifications (F-15E): span 42 ft 9.6 in, 1 × 20 mm M61A1 with 500 rounds, https://en.wikipedia.org/wiki/McDonnell_Douglas_F-15E_Strike_Eagle"
+  }
+}

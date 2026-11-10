@@ -145,6 +145,8 @@ const CREDITS := [
 			"F-16I Sufa 407 and F-35I Adir in flight: Major Ofer, Israeli Air Force, CC BY 4.0",
 			"F-16I Sufa 851 at Tel Nof: MathKnight and Zachi Evenor, CC BY 4.0",
 			"F-16D Barak 034: Zachi Evenor and MathKnight, CC BY 2.0",
+			"F-15I Ra'am of 69 Squadron in flight: Tech. Sgt. Kevin Gruenwald, U.S. Air Force, public domain",
+			"F-15C Baz 802 at Tel Nof: MathKnight and Zachi Evenor, CC BY 4.0",
 		]
 	],
 ]
@@ -587,8 +589,8 @@ func _on_next() -> void:
 			show_page(page + 1)
 
 
-## Opens the sim's front end in this process, as ./start-modern-iaf starts it: the project's own window (not the wizard's
-## 1100×720 at the UI scale), the player's display mode, the devices read from the keys setup just built.
+## Opens the sim's front end in this process, as ./start-modern-iaf starts it: the project's own window (not the
+## wizard's 1100×720 at the UI scale), the player's display mode, the devices read from the keys setup just built.
 func start_game() -> void:
 	var win := get_window()
 	win.content_scale_factor = 1.0

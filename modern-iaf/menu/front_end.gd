@@ -15,6 +15,9 @@ const KeysScreen := preload("res://menu/keys_screen.gd")
 const JoystickScreen := preload("res://menu/joystick_screen.gd")
 const Scenery := preload("res://shared/terrain/scenery.gd")
 const TownLabels := preload("res://shared/terrain/town_labels.gd")
+const KeyTable := preload("res://shared/controls/key_table.gd")
+const BriefingMap := preload("res://menu/briefing_map.gd")
+const ArmingDrawing := preload("res://menu/arming_drawing.gd")
 
 const PHOTOS := "res://data/photos"
 ## The canvas the screens lay out on: the window shows it scaled to its height (Look's sizes are its pixels).
@@ -26,15 +29,31 @@ const SAMPLES := {
 	"sfx_volume": [["SFX_WARNING", "WRN_MASTER"], SoundBuses.SFX],
 	"speech_volume": ["twr_takeoff.wav", SoundBuses.SPEECH],
 }
+## The flight's checklist card, whose key records the briefing's How names too (one source: STEP_IDS, CHECK_KEY,
+## THROTTLE_IDLE_KEY; training.md §7.1).
+const SimFlight := preload("res://flight/sim_flight.gd")
+## The briefing's pages, in tab order.
+const TABS := ["Briefing", "Map", "Arming"]
+## Each unit's front view in data/drawings, traced from its own model (tests/_jet_fronts.gd).
+const DRAWINGS := {"f16i": "f16i_front", "f16d": "f16d_front", "f35i": "f35i_front"}
 ## The planes the sim flies, each from its home base (strings <name>, base_<base>; the squadron: data/airbases).
 const JETS := [
 	{"unit": "f16i", "airframe": "f16i", "name": "sufa", "code": "F-16I", "base": "ramon", "icao": "llrm"},
 	{"unit": "f16d", "airframe": "f16", "name": "barak", "code": "F-16D", "base": "ramat_david", "icao": "llrd"},
 	{"unit": "f35i", "airframe": "f35i", "name": "adir", "code": "F-35I", "base": "nevatim", "icao": "llnv"},
 ]
+## The jets shown after them on Pick a plane, greyed and not pickable until the sim flies them (the user, 2026-11-10).
+const SOON := [
+	{"unit": "f15i", "name": "raam", "code": "F-15I", "base": "hatzerim", "icao": "llhb"},
+	{"unit": "f15c", "name": "baz", "code": "F-15C", "base": "tel_nof", "icao": "llek"},
+]
 ## Each jet's photos (data/photos): [in the air or its card, on the ground (the Training card and the briefing)].
 const JET_PHOTOS := {
-	"sufa": ["sufa.jpg", "sufa_ground.jpg"], "barak": ["barak.jpg", "barak.jpg"], "adir": ["adir.jpg", "adir.jpg"]
+	"sufa": ["sufa.jpg", "sufa_ground.jpg"],
+	"barak": ["barak.jpg", "barak.jpg"],
+	"adir": ["adir.jpg", "adir.jpg"],
+	"raam": ["raam.jpg"],
+	"baz": ["baz.jpg"],
 }
 ## Each photo's credit in the footer (data/photos/SOURCES.md): [English author, Hebrew author, licence].
 const PHOTO_CREDITS := {
@@ -42,6 +61,8 @@ const PHOTO_CREDITS := {
 	"sufa_ground.jpg": ["MathKnight and Zachi Evenor", "MathKnight וזכי אבנור", "CC BY 4.0"],
 	"barak.jpg": ["Zachi Evenor and MathKnight", "זכי אבנור ו־MathKnight", "CC BY 2.0"],
 	"adir.jpg": ["Major Ofer, Israeli Air Force", "רס״ן עופר, חיל האוויר", "CC BY 4.0"],
+	"raam.jpg": ["Tech. Sgt. Kevin Gruenwald, U.S. Air Force", "קווין גרונוולד, חיל האוויר האמריקאי", "public domain"],
+	"baz.jpg": ["MathKnight and Zachi Evenor", "MathKnight וזכי אבנור", "CC BY 4.0"],
 }
 ## The Preferences: [group, [[setting, control, choices]]]. Controls: "dropdown" / "radio" ([[label key, value]]; a
 ## label without a string is shown as written), "switch" (choices: [off value, on value], default [false, true]),
@@ -138,6 +159,10 @@ var _focus: Control
 var _sample: AudioStreamPlayer
 var _sounds: RefCounted
 static var _textures := {}
+## The sim's key table for the briefing's keys (KeyTable.load_table, loaded once).
+var _keys: RefCounted = null
+## The briefing's page shown: 0 Briefing, 1 Map.
+var brief_tab := 0
 static var _themes := {}
 ## The records store's view, read once per page: the sorties (Pilot log) and the summary (Home, Training).
 var _sorties = null
@@ -202,6 +227,22 @@ func he() -> bool:
 
 
 ## The jet's squadron at its base ({unit, number, name: {en, he}, source}; {} where the base file names none).
+## "482 · 253 Squadron Negev · Ramon": the jet's tail number (its unit record's `tail`), its squadron and its base (the
+## user, 2026-11-09: the wing is the base, so it is left out).
+func subtitle(j: Dictionary) -> String:
+	if j.is_empty():
+		return ""
+	var parts := []
+	var tail := str(Settings.load_json("res://data/db/units/%s.json" % j.unit).get("tail", ""))
+	if tail != "":
+		parts.append(tail)
+	var sq := squadron(j)
+	if not sq.is_empty():
+		parts.append(s("squadron") % [int(sq.number), str(sq.name.get("he" if he() else "en", ""))])
+	parts.append(s("base_" + j.base))
+	return " · ".join(parts)
+
+
 func squadron(j: Dictionary) -> Dictionary:
 	for sq in Settings.load_json("res://data/airbases/%s.json" % j.icao).get("squadrons", []):
 		if sq.get("unit") == j.unit:
@@ -306,7 +347,7 @@ func _header(crumbs: Array) -> void:
 	who_name.name = "PilotName"
 	var j := jet()
 	if not j.is_empty() and page != "home":
-		_label(who, "%s · %s" % [s(j.name), s("base_short_" + j.base)], "Muted")
+		_label(who, "%s · %s" % [s(j.name), subtitle(j)], "Muted")
 	# The picture in its 3:4 frame, else the initials in a disc.
 	var pic := picture()
 	if pic != null:
@@ -323,8 +364,9 @@ func _header(crumbs: Array) -> void:
 	ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 
 
-## The bottom bar: the photo credit and the screen's buttons (none when it has neither).
-func _footer(credit := "", actions: Array = []) -> void:
+## The bottom bar: the photo credit and the screen's buttons (none when it has neither); `at_end`: the credit at the
+## bar's inline end (right in English, left in Hebrew), smaller.
+func _footer(credit := "", actions: Array = [], at_end := false) -> void:
 	if credit == "" and actions.is_empty():
 		return
 	var shade := _shade(false)
@@ -337,8 +379,17 @@ func _footer(credit := "", actions: Array = []) -> void:
 	_spacer(h)
 	if credit != "":
 		var c := _label(h, credit, "Small")
+		c.name = "Credit"
 		c.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		_spacer(h)
+		if at_end:
+			c.add_theme_font_size_override("font_size", 16)
+		else:
+			# A long credit (the plane screen's five photos) wraps instead of pushing the buttons off the screen.
+			c.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			c.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			c.size_flags_stretch_ratio = 8.0
+			_spacer(h)
 	for a in actions:
 		h.add_child(a)
 		a.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -376,7 +427,8 @@ func _credit(files: Array) -> String:
 	var parts := []
 	for f in files:
 		var c: Array = PHOTO_CREDITS[f]
-		var line := "%s, %s" % [c[1] if he() else c[0], c[2]]
+		var lic: String = "נחלת הכלל" if he() and c[2] == "public domain" else c[2]
+		var line := "%s, %s" % [c[1] if he() else c[0], lic]
 		if line not in parts:
 			parts.append(line)
 	return s("photos" if parts.size() > 1 else "photo") % "; ".join(parts)
@@ -482,7 +534,8 @@ func _page_plane() -> void:
 	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var group := ButtonGroup.new()
 	var files := []
-	for j in JETS:
+	for j in JETS + SOON:
+		var soon: bool = j in SOON
 		var card := Button.new()
 		card.name = j.name
 		card.theme_type_variation = "Card"
@@ -490,7 +543,12 @@ func _page_plane() -> void:
 		card.button_group = group
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		card.button_pressed = j.unit == Settings.sim_jet
+		card.button_pressed = j.unit == Settings.sim_jet and not soon
+		# Not flyable yet: greyed and out of reach (no click, no focus), its photo in grey.
+		card.disabled = soon
+		if soon:
+			card.focus_mode = Control.FOCUS_NONE
+			card.modulate = Color(1, 1, 1, 0.45)
 		row.add_child(card)
 		var inner := _vbox(card, 0)
 		inner.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -503,6 +561,10 @@ func _page_plane() -> void:
 		var ph := _photo(inner, file)
 		ph.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		ph.size_flags_stretch_ratio = 2.1
+		if soon and ph.texture != null:
+			var grey := ph.texture.get_image()
+			grey.convert(Image.FORMAT_L8)
+			ph.texture = ImageTexture.create_from_image(grey)
 		if card.button_pressed:
 			var bm := _margin(ph, 20, 20)
 			bm.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -519,19 +581,16 @@ func _page_plane() -> void:
 		var code := _label(tv, j.code, "Code")
 		code.text_direction = Control.TEXT_DIRECTION_LTR
 		_label(tv, s(j.name), "Name")
-		_label(tv, s("base_" + j.base), "Big").add_theme_font_size_override("font_size", 27)
-		var sq := squadron(j)
-		if not sq.is_empty():
-			var sl := _label(
-				tv, s("squadron") % [int(sq.number), str(sq.name.get("he" if he() else "en", ""))], "Muted"
-			)
-			sl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # a long name wraps inside a narrow card
+		var sub := _label(tv, subtitle(j), "Big")
+		sub.add_theme_font_size_override("font_size", 25)
+		sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # a long name wraps inside a narrow card
 		for c in inner.find_children("*", "Control", true, false):
 			c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		card.pressed.connect(_pick_jet.bind(j))
-		if card.button_pressed or _focus == null:
-			_focus = card
+		if not soon:
+			card.pressed.connect(_pick_jet.bind(j))
+			if card.button_pressed or _focus == null:
+				_focus = card
 	var go := _action(s("continue"), "Primary", func(): show_page("training"))
 	go.name = "Continue"
 	go.disabled = jet().is_empty()
@@ -553,7 +612,7 @@ func _page_training() -> void:
 	var j := jet()
 	_header(["home", "plane", j.name])
 	var v := _vbox(_body(), 34)
-	_title(v, s("fly_jet") % s(j.name), s("base_" + j.base))
+	_title(v, s("fly_jet") % s(j.name), subtitle(j))
 	var card := PanelContainer.new()
 	card.custom_minimum_size.y = 560
 	v.add_child(card)
@@ -603,11 +662,10 @@ func _page_training() -> void:
 func _page_mission() -> void:
 	var j := jet()
 	_header(["home", "plane", j.name, "training"])
-	var h := _hbox(_body(96, 112, 120), 96)
+	var h := _hbox(_body(96, 112, 120), 48)
 	var left := _vbox(h, 30)
-	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.size_flags_stretch_ratio = 0.73
-	_title(left, s("training"), s("base_" + j.base))
+	left.custom_minimum_size.x = 500
+	_title(left, s("training"), subtitle(j))
 	var group := ButtonGroup.new()
 	for i in missions.size():
 		var m: Dictionary = missions[i]
@@ -643,57 +701,387 @@ func _page_mission() -> void:
 			_focus = b
 	if missions.is_empty():
 		return
-	var m: Dictionary = missions[mission_i]
+	_briefing(h, missions[mission_i])
+	_footer(" ", [], true)
+	show_tab(brief_tab)  # the footer's credit is the page's
+
+
+## The picked mission's briefing beside the list (front-end.md §10), three pages switched by the tabs at its top or
+## the arrow keys: Briefing (its title and base, the facts, the objectives the scorer judges, how: the steps with
+## their keys), Map (one zoomable map of the area down to the base) and Arming; Fly beside the tabs.
+func _briefing(parent: Control, m: Dictionary) -> void:
 	var pane := PanelContainer.new()
 	pane.name = "Briefing"
 	pane.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	h.add_child(pane)
-	var pv := _vbox(pane, 0)
-	var file: String = JET_PHOTOS[j.name][1]
-	var ph := _photo(pv, file)
-	ph.custom_minimum_size.y = 300
-	var b := _vbox(_margin(pv, 38, 34), 22)
-	b.get_parent().size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_label(b, s("mission_n") % [mission_i + 1, s("kind_" + kind(m))], "H3")
-	_label(b, title_of(m), "H2")
-	var brief := s("brief_" + kind(m))
-	if kind(m) == "takeoff":
-		brief = brief % str(m.get("runway", ""))
-	_text(b, brief, "Row")
-	var facts := _hbox(b, 50)
+	parent.add_child(pane)
+	var pv := _vbox(_margin(pane, 38, 26), 18)
+	var tabs := _hbox(pv, 8)
+	var group := ButtonGroup.new()
+	for i in TABS.size():
+		var t := Button.new()
+		t.name = "Tab" + TABS[i]
+		t.text = s("tab_" + TABS[i].to_lower())
+		t.theme_type_variation = "Menu"
+		t.toggle_mode = true
+		t.button_group = group
+		t.button_pressed = i == brief_tab
+		for k in ["normal", "hover", "focus", "pressed", "hover_pressed"]:
+			var on: bool = k in ["pressed", "hover_pressed"]
+			var st := Look.box(Color(0, 0, 0, 0), Look.ACCENT if on else Look.LINE, 0, 0, Vector2(18, 8))
+			st.border_width_bottom = 3 if on else (2 if k == "focus" else 0)
+			t.add_theme_stylebox_override(k, st)
+		t.pressed.connect(show_tab.bind(i))
+		tabs.add_child(t)
+	_spacer(tabs)
+	var fly := _button(tabs, s("fly"), "Primary", func(): fly_mission(m))
+	fly.name = "Fly"
+	fly.custom_minimum_size = Vector2(200, 56)
+	fly.add_theme_font_size_override("font_size", 29)
+	_rule(pv, Look.LINE)
+	var pages := Control.new()
+	pages.name = "Pages"
+	pages.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	pv.add_child(pages)
+	# The page scrolls when a mission's steps run longer than the panel.
+	var scroll := ScrollContainer.new()
+	scroll.name = "PageBriefing"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	pages.add_child(scroll)
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var b := _vbox(scroll, 12)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var tv := _hbox(b, 24)
+	_label(tv, title_of(m), "H2")
+	var base := str(m.get("start", {}).get("base", "")).to_lower().replace(" ", "_")
+	var sub := _label(tv, subtitle(jet_of(m)), "Sub")
+	sub.size_flags_vertical = Control.SIZE_SHRINK_END
+	var facts := _hbox(b, 44)
+	facts.name = "Facts"
 	var budget := s("minutes") % int(float(m.training.get("time_budget_s", 0)) / 60.0)
+	var heading = briefing_map(m, 1.0).get("heading") if m.get("runway") is String else null
 	var rows := []
-	if m.has("runway"):
-		rows.append(["runway", str(m.runway)])
-	rows.append(["time", str(m.get("time", ""))])
-	var wind := int(m.get("wind_kt", 0))
-	rows.append(["wind", s("calm") if wind == 0 else s("wind_fmt") % [int(m.get("wind_from", 0)), wind]])
-	rows.append(["time_allowed", budget])
+	if m.get("runway") is String:
+		rows.append(["runway", runway_text(m.runway, heading), ""])
+	rows.append(["time", military_time(str(m.get("time", ""))), ""])
+	rows.append(["wind", wind_text(m), s("kt")])
+	rows.append(["time_allowed", str(int(float(m.training.get("time_budget_s", 0)) / 60.0)), s("min")])
 	for f in rows:
 		var fv := _vbox(facts, 0)
 		_label(fv, s(f[0]), "Muted")
-		var val := _label(fv, f[1], "Fact")
-		if f[0] in ["runway", "time"]:
-			val.text_direction = Control.TEXT_DIRECTION_LTR
-	var pass_row := _hbox(b, 20)
-	var rule := ColorRect.new()
-	rule.color = Look.ACCENT
-	rule.custom_minimum_size.x = 4
-	pass_row.add_child(rule)
-	var pt := _vbox(pass_row, 2)
-	pt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_label(pt, s("pass_when"), "Muted")
-	var when := s("pass_startup") % budget
+		_fact(fv, f[1], f[2])
+	var ov := _vbox(b, 4)
+	_label(ov, s("objectives"), "Muted")
+	var objs := GridContainer.new()
+	objs.name = "Objectives"
+	objs.columns = 2
+	objs.add_theme_constant_override("h_separation", 40)
+	objs.add_theme_constant_override("v_separation", 2)
+	ov.add_child(objs)
+	for o in objectives(m, budget):
+		var row := _hbox(objs, 12)
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var dot := _label(row, "•", "Strong")
+		dot.add_theme_color_override("font_color", Look.ACCENT)
+		_text(row, o, "")
+	var sv := _vbox(b, 6)
+	_label(sv, s("how"), "Muted")
+	# The steps: number, the step, the key as bound, the switch and its place; the state to wait for under the step,
+	# or in the last column when the step has no switch (a call to the tower, the taxi).
+	var grid := GridContainer.new()
+	grid.name = "Steps"
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 16)
+	grid.add_theme_constant_override("v_separation", 3)
+	sv.add_child(grid)
+	var steps := briefing_steps(m)
+	for i in steps.size():
+		var st: Dictionary = steps[i]
+		var n := _label(grid, str(i + 1), "Strong")
+		n.add_theme_color_override("font_color", Look.ACCENT)
+		n.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		var sv2 := _vbox(grid, 0)
+		sv2.custom_minimum_size.x = 440
+		sv2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_text(sv2, st.text, "")
+		# The state to wait for: under the step when its switch's place fills the last column, else there.
+		var under: bool = st.where != ""
+		if st.wait != "" and under:
+			_text(sv2, st.wait, "Small").name = "Wait"
+		_keycap(grid, st.key).size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		var w := _text(grid, st.where if under else st.wait, "Small")
+		w.custom_minimum_size.x = 340
+		if not under and st.wait != "":
+			w.name = "Wait"
+	var map := BriefingMap.new()
+	map.name = "PageMap"
+	pages.add_child(map)
+	map.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	map.base_label = s("base_" + base)
+	map.runway_label = _ltr(runway_text(m.runway, heading)) if m.get("runway") is String else ""
+	map.km = s("km")
+	map.metres = s("m")
+	map.start_label = s("start_spot")
+	map.hebrew = he()
+	map.source = func(a: float) -> Dictionary: return briefing_map(m, a, true)
+	_arming_page(pages, m)
+	show_tab(brief_tab)
+
+
+## The Arming page: the jet's front view with a slot per station under it, each with its store's picture and name and
+## a leader to its station (arming_drawing.gd), and under it, centred, the gun's rounds, the chaff, the flares, the
+## internal fuel, the take-off weight and the maximum (IafBriefing.arming).
+func _arming_page(pages: Control, m: Dictionary) -> void:
+	var ap := _vbox(pages, 16)
+	ap.name = "PageArming"
+	ap.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var a := arming(m)
+	var j := jet_of(m)
+	# The jet's own name, type and tail number over its drawing: "Sufa · F-16I · 482", the Latin and the digits
+	# isolated so a Hebrew line keeps them in place.
+	var title := _label(
+		ap, " · ".join([s(j.get("name", "")), _ltr(str(j.get("code", ""))), _ltr(str(a.get("tail", "")))]), "H3"
+	)
+	title.name = "ArmingJet"
+	var by_station := {}
+	for x in a.get("stores", []):
+		for n in x.stations:
+			by_station[int(n)] = [str(x.weapon), s("store_" + str(x.weapon))]
+	# The drawing and, on its block-end side (the right in English, the left in Hebrew), the inventory column.
+	var row := _hbox(ap, 24)
+	row.name = "ArmingRow"
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var drawing := ArmingDrawing.new()
+	drawing.name = "Drawing"
+	drawing.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(drawing)
+	if drawing.load_drawing("res://data/drawings", DRAWINGS.get(str(j.get("unit", "")), "")):
+		drawing.stores = by_station
+		var inside = a.get("internal")
+		drawing.internal = inside.map(func(n): return str(int(n))) if inside is Array else []
+		drawing.internal_tag = s("internal")
+		drawing.make_slots()
+	_inventory(row, drawing, a.get("inventory", []))
+	_rule(ap, Look.LINE)
+	var facts := _hbox(ap, 44)
+	facts.name = "ArmingFacts"
+	facts.alignment = BoxContainer.ALIGNMENT_CENTER
+	var lo: Dictionary = a.get("loadout", {})
+	var rows := [
+		["rounds", str(int(lo.get("20mm", 0))), ""],
+		["chaff", str(int(lo.get("chaff", 0))), ""],
+		["flares", str(int(lo.get("flare", 0))), ""],
+	]
+	if a.get("fuel_kg") != null:
+		rows.append(["internal_fuel", kg_text(a.fuel_kg), s("kg")])
+	if a.get("takeoff_kg") != null:
+		rows.append(["takeoff_weight", kg_text(a.takeoff_kg), s("kg")])
+	if a.get("max_takeoff_kg") != null:
+		rows.append(["max_weight", kg_text(a.max_takeoff_kg), s("kg")])
+	for f in rows:
+		var fv := _vbox(facts, 0)
+		_label(fv, s(f[0]), "Muted")
+		_fact(fv, f[1], f[2])
+
+
+## The inventory column: the stores the jet may carry (the unit record's `inventory`), each its picture, caption and
+## count (arming_drawing.gd Item), grouped air-to-air, air-to-ground and drop tanks under a small heading each.
+func _inventory(parent: Control, drawing: Control, inv: Array) -> void:
+	var col := _vbox(parent, 6)
+	col.name = "Inventory"
+	col.custom_minimum_size.x = 150
+	_label(col, s("inventory"), "H3")
+	for g in ["air", "ground", "tank"]:
+		var items := inv.filter(func(e): return str(e.get("group", "")) == g)
+		if items.is_empty():
+			continue
+		var head := _label(col, s("inv_" + g), "Small")
+		head.add_theme_color_override("font_color", Look.ACCENT_TEXT)
+		for e in items:
+			var it := ArmingDrawing.Item.new()
+			it.setup(str(e.id), drawing.store_picture(str(e.id)), s("store_" + str(e.id)), e.get("count"))
+			col.add_child(it)
+
+
+## The unit's Arming figures (IafBriefing.arming of its record): {stores, loadout, fuel_kg, takeoff_kg, …}.
+func arming(m: Dictionary) -> Dictionary:
+	var unit := str(m.get("start", {}).get("unit", ""))
+	var a = JSON.parse_string(
+		IafBriefing.arming(
+			ProjectSettings.globalize_path("res://data/db/units/%s.json" % unit),
+			ProjectSettings.globalize_path("res://data/db/weapons")
+		)
+	)
+	return a if a is Dictionary else {}
+
+
+## "16,069": kilograms with a thousands separator.
+static func kg_text(v) -> String:
+	var t := str(int(v))
+	var out := ""
+	while t.length() > 3:
+		out = "," + t.right(3) + out
+		t = t.left(t.length() - 3)
+	return t + out
+
+
+## The briefing's page: 0 Briefing, 1 Map, 2 Arming (kept for the next mission picked); the footer's credit is the
+## Map's, OpenStreetMap's (the drawing is our own render of our own model: its credit is in docs/credits.md).
+func show_tab(i: int) -> void:
+	brief_tab = clampi(i, 0, TABS.size() - 1)
+	var pane := find_child("Briefing", true, false)
+	if pane == null:
+		return
+	for j in TABS.size():
+		pane.find_child("Page" + TABS[j], true, false).visible = j == brief_tab
+	pane.find_child("Tab" + TABS[brief_tab], true, false).button_pressed = true
+	var credit: Label = find_child("Credit", true, false)
+	if credit != null:
+		credit.text = s("map_credit") if brief_tab == 1 else ""
+
+
+## "0800": the mission's HH:MM as military time.
+static func military_time(hhmm: String) -> String:
+	return hhmm.replace(":", "")
+
+
+## "250° / 8": the wind as pilots read it, direction and speed (its unit beside it, `kt`), from the mission's
+## wind_from and wind_kt ("000° / 0" when calm).
+func wind_text(m: Dictionary) -> String:
+	return "%03d° / %d" % [int(m.get("wind_from", 0)), int(m.get("wind_kt", 0))]
+
+
+## A fact's value: its figures left to right (a label of their own, so "16,069 / 23,582" keeps its order inside a
+## Hebrew line) and its unit beside them at the inline end ("ק״ג" to their left in Hebrew).
+func _fact(parent: Control, figures: String, unit: String) -> HBoxContainer:
+	var h := _hbox(parent, 7)
+	h.name = "Fact"
+	_label(h, figures, "Fact").text_direction = Control.TEXT_DIRECTION_LTR
+	if unit != "":
+		_label(h, unit, "Fact")
+	return h
+
+
+## The objectives: what the scorer judges (training.md §3), in the rules' figures.
+func objectives(m: Dictionary, budget: String) -> Array:
+	var out := []
 	if kind(m) == "takeoff":
-		when = s("pass_takeoff") % [int(m.training.get("heading_tolerance_deg", 10)), budget]
-	_text(pt, when, "")
-	_spacer(b, true)
-	var fly := _button(b, s("fly"), "Primary", func(): fly_mission(m))
-	fly.name = "Fly"
-	fly.custom_minimum_size = Vector2(214, 70)
-	fly.add_theme_font_size_override("font_size", 31)
-	fly.size_flags_horizontal = Control.SIZE_SHRINK_END
-	_footer(_credit([file]))
+		out.append(s("obj_runway") % _ltr(str(m.get("runway", ""))))
+		out.append(s("obj_climb") % int(m.training.get("heading_tolerance_deg", 10)))
+	else:
+		out.append_array([s("obj_idle"), s("obj_avionics")])
+	out.append_array([s("obj_within") % budget, s("obj_safe")])
+	return out
+
+
+## IafBriefing's map of mission `m` at `aspect` (width / height), with `ground` the theatre's ground colour as
+## `texture`: {} when it cannot be made (the error logged).
+func briefing_map(m: Dictionary, aspect: float, ground := false) -> Dictionary:
+	var d = JSON.parse_string(
+		IafBriefing.map(
+			ProjectSettings.globalize_path("res://data/missions/%s.json" % str(m.get("id", ""))),
+			ProjectSettings.globalize_path("res://data/airbases"),
+			ProjectSettings.globalize_path(Settings.converted("own/cockpits/%s/map.json" % jet_of(m).get("unit", ""))),
+			ProjectSettings.globalize_path(Settings.converted("terrain/israel")),
+			aspect
+		)
+	)
+	if not d is Dictionary or d.has("error"):
+		push_warning("briefing map: %s" % (d.error if d is Dictionary else "no answer"))
+		return {}
+	if ground:
+		# The theatre's ground colour under the area, about a texel a screen pixel.
+		var g: Dictionary = IafBriefing.ground(
+			ProjectSettings.globalize_path(Settings.converted("terrain/israel")), PackedFloat64Array(d.extent), 1600
+		)
+		if not g.is_empty():
+			d.texture = ImageTexture.create_from_image(
+				Image.create_from_data(g.w, g.h, false, Image.FORMAT_RGB8, g.rgb)
+			)
+	return d
+
+
+## "25R · 254°": the runway end and its true heading (IafBriefing), left to right.
+func runway_text(runway: String, heading) -> String:
+	return runway if heading == null else s("runway_heading") % [runway, int(heading)]
+
+
+## The steps: a start-up's checklist (the rules' `checklist`, the flight's checklist card), a take-off's in the order
+## the scorer judges them; each [text, key].
+func briefing_steps(m: Dictionary) -> Array:
+	var lang := "he" if he() else "en"
+	var out := []
+	var tr: Dictionary = m.training
+	if kind(m) == "startup":
+		for c in tr.get("checklist", []):
+			var i := SimFlight.STEP_IDS.find(str(c.get("step")))
+			var rec: int = (
+				SimFlight.THROTTLE_IDLE_KEY if c.get("step") == "engine" else (SimFlight.CHECK_KEY + i if i >= 0 else 0)
+			)
+			(
+				out
+				. append(
+					{
+						"text": str(c.get(lang, "")),
+						"key": key_name(rec),
+						"where": str(c.get("where", {}).get(lang, "")),
+						"wait": str(c.get("wait", {}).get(lang, "")),
+					}
+				)
+			)
+		return out
+	# A take-off's steps (the rules' `steps`): each call to the tower on its own, with the menu's pick after the key.
+	var fill := func(t: String) -> String:
+		return t.replace("{runway}", _ltr(str(m.get("runway", "")))).replace(
+			"{tolerance}", str(int(tr.get("heading_tolerance_deg", 10)))
+		)
+	for c in tr.get("steps", []):
+		var key := key_name(int(c.get("key", 0)))
+		if c.has("pick") and key != "":
+			key += ", %d" % int(c.pick)
+		(
+			out
+			. append(
+				{
+					"text": fill.call(str(c.get(lang, ""))),
+					"key": key,
+					"where": "",
+					"wait": fill.call(str(c.get("wait", {}).get(lang, ""))),
+				}
+			)
+		)
+	return out
+
+
+## Key record `record` of the sim's key table as bound ("Cmd" for Ctrl on macOS).
+func key_name(record: int) -> String:
+	if _keys == null:
+		_keys = KeyTable.load_table()
+	if record <= 0 or record >= _keys.size():
+		return ""
+	return String(_keys.key_name(_keys.key_of(record, Settings.key_bindings)))
+
+
+## A key name or a designator kept whole and left to right inside a Hebrew line.
+static func _ltr(t: String) -> String:
+	return "\u2066%s\u2069" % t.replace(" ", "\u00a0")
+
+
+## A key cap (flight_ui.gd's), nothing for "".
+func _keycap(parent: Control, key: String) -> Control:
+	if key == "":
+		var none := Control.new()
+		parent.add_child(none)
+		return none
+	var cap := PanelContainer.new()
+	parent.add_child(cap)
+	var kb := Look.box(Color(Look.BG, 0.7), Color("5a616c"), 1, 5, Vector2(9, 1))
+	kb.border_width_bottom = 3
+	cap.add_theme_stylebox_override("panel", kb)
+	cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	cap.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	var l := _label(cap, key, "Key")
+	l.text_direction = Control.TEXT_DIRECTION_LTR
+	return cap
 
 
 func _pick_mission(i: int) -> void:
@@ -1347,6 +1735,19 @@ func _page_pause() -> void:
 
 
 # --- keys -------------------------------------------------------------------------------------------------------------
+
+
+## The arrow keys toward the inline end / start switch the briefing's pages (Briefing at the inline start).
+func _input(event: InputEvent) -> void:
+	if page != "mission" or not (event is InputEventKey and event.pressed):
+		return
+	var map := find_child("PageMap", true, false)
+	if map != null and map.has_focus():
+		return  # the map scrolls with the arrows
+	if event.keycode in [KEY_LEFT, KEY_RIGHT]:
+		var to_end: bool = (event.keycode == KEY_RIGHT) != he()
+		show_tab(brief_tab + (1 if to_end else -1))
+		get_viewport().set_input_as_handled()
 
 
 func _unhandled_input(event: InputEvent) -> void:

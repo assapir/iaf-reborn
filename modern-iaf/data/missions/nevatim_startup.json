@@ -35,8 +35,8 @@
   "id": "nevatim_startup",
   "menu_id": 2031,
   "title": {
-    "en": "Start-up at Nevatim",
-    "he": "התנעה בנבטים"
+    "en": "Start-up",
+    "he": "התנעה"
   },
   "briefing": {
     "en": "Your F-35I Adir stands cold on the apron at Nevatim. Start the engine and bring the avionics up.",
@@ -68,14 +68,16 @@
         "key": "Ctrl+J",
         "en": "IPP: START (10 s)",
         "he": "IPP: START (10 שנ׳)",
-        "where": {"en": "IPP switch: start panel, left console, forward", "he": "מתג IPP: לוח ההתנעה, הקונסולה השמאלית, מלפנים"}
+        "where": {"en": "IPP switch: start panel, left console, forward", "he": "מתג IPP: לוח ההתנעה, הקונסולה השמאלית, מלפנים"},
+        "wait": {"en": "then wait for the IPP to run up (10 s)", "he": "ואז המתנה להתייצבות ה־IPP (10 שנ׳)"}
       },
       {
         "step": "engine",
         "key": "throttle up from OFF",
         "en": "Throttle to idle: the engine starts",
         "he": "מצערת לסרק: המנוע מותנע",
-        "where": {"en": "ENG switch or START: start panel, left console; or the throttle grip out of OFF", "he": "מתג ENG או START: לוח ההתנעה, הקונסולה השמאלית; או ידית המצערת מ־OFF"}
+        "where": {"en": "ENG switch or START: start panel, left console; or the throttle grip out of OFF", "he": "מתג ENG או START: לוח ההתנעה, הקונסולה השמאלית; או ידית המצערת מ־OFF"},
+        "wait": {"en": "then wait for idle; the avionics report ready 90 s after the battery", "he": "ואז המתנה לסרק; האוויוניקה מוכנה 90 שנ׳ אחרי המצבר"}
       },
       {
         "step": "canopy",

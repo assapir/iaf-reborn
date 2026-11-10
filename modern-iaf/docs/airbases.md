@@ -76,8 +76,9 @@ Corrections to the brief:
 The squadron the player flies with is in each base file's `squadrons` list (`unit`, `number`, `name` in English and
 Hebrew, `source`: a key of the file's `footnotes`), set in `SQUADRONS` in the script: at Ramon 253 "Negev" (הנגב), the
 IAF's first F-16I squadron[^he-253]; at Ramat David 109 "The Valley" (העמק), which flies the two-seat F-16D[^he-109];
-at Nevatim 140 "Golden Eagle" (נשר הזהב), the first F-35I squadron[^en-140]. Pick a plane's cards show them
-(front-end.md §1).
+at Nevatim 140 "Golden Eagle" (נשר הזהב), the first F-35I squadron[^en-140]. The F-15s' squadrons, for their greyed
+cards: at Hatzerim 69 "The Hammers" (הפטישים), which flies the F-15I Ra'am[^he-69]; at Tel Nof 133 "Knights of the
+Twin Tail" (אבירי הזנב הכפול), which flies the F-15 Baz[^he-133]. Pick a plane's cards show them (front-end.md §1).
 
 The table holds the fighter squadrons, the ones the sim's jets fly with; the bases' helicopter, transport, tanker
 and UAV units are in the Wikipedia pages cited.
@@ -243,3 +244,5 @@ the original's ten names, so Hatzerim and Nevatim had no talking tower; since it
 [^he-253]: Wikipedia (Hebrew), "טייסת 253", read 2026-11-09, https://he.wikipedia.org/wiki/טייסת_253
 [^he-109]: Wikipedia (Hebrew), "טייסת 109", read 2026-11-09, https://he.wikipedia.org/wiki/טייסת_109
 [^en-140]: Wikipedia, "140 Squadron (Israel)", read 2026-11-09, https://en.wikipedia.org/wiki/140_Squadron_(Israel)
+[^he-69]: Wikipedia (Hebrew), "טייסת 69", read 2026-11-10, https://he.wikipedia.org/wiki/טייסת_69
+[^he-133]: Wikipedia (Hebrew), "טייסת 133", read 2026-11-10, https://he.wikipedia.org/wiki/טייסת_133

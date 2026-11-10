@@ -70,6 +70,11 @@ fn to_map(p: [f64; 2]) -> [f64; 2] {
     [(p[0] + X_SHIFT) / W * F, (H - Y_SHIFT - p[1]) / H * F]
 }
 
+/// The map frame → world metres (`to_map` inverted, as cockpit.gd `_load_tsd_map` reads map.json).
+pub fn from_map(p: [f64; 2]) -> [f64; 2] {
+    [p[0] / F * W - X_SHIFT, H - Y_SHIFT - p[1] / F * H]
+}
+
 /// The layout's `MAPFRAME` for isr.png, in the reader's terms (cockpits.ibx [MAPFRAME], mfd.gd `isr_px`: col =
 /// (X + 166828 − left) / (right − left) · 640, row = (top − (Y + 21164)) / (top − bottom) · 832).
 fn mapframe() -> Value {
@@ -131,7 +136,7 @@ pub fn compile_map(map: &Value, frame: &Frame) -> Result<(Value, image::GrayImag
 
 /// The part of `ring` inside the box [x0, y0, x1, y1] (Sutherland–Hodgman, one pass a side; a concave ring may keep
 /// zero-width seams along the box's edge, which fill nothing).
-fn clip_to(ring: Vec<[f64; 2]>, b: [f64; 4]) -> Vec<[f64; 2]> {
+pub(crate) fn clip_to(ring: Vec<[f64; 2]>, b: [f64; 4]) -> Vec<[f64; 2]> {
     [(0, b[0], 1.0), (0, b[2], -1.0), (1, b[1], 1.0), (1, b[3], -1.0)].iter().fold(ring, |poly, &(axis, edge, sign)| {
         let mut out = Vec::with_capacity(poly.len() + 4);
         for (i, a) in poly.iter().enumerate() {

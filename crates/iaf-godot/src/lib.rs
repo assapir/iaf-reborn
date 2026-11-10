@@ -6,6 +6,7 @@ mod airframe;
 mod autorun;
 mod bases;
 mod bombs;
+mod briefing;
 mod city_lights;
 mod cockpit_sound;
 mod devices;

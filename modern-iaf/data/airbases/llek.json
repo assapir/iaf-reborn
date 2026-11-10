@@ -542,6 +542,17 @@
    "source": "inferred"
   }
  ],
+ "squadrons": [
+  {
+   "unit": "f15c",
+   "number": 133,
+   "name": {
+    "en": "Knights of the Twin Tail",
+    "he": "אבירי הזנב הכפול"
+   },
+   "source": "he_133"
+  }
+ ],
  "sources": {
   "name": "osm",
   "boundary": "osm",
@@ -551,6 +562,7 @@
  },
  "footnotes": {
   "osm": "OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright (Overpass API, data of 2026-11-03); each item's \"osm\" names its element: https://www.openstreetmap.org/<osm>",
-  "oa": "OurAirports, airports.csv and runways.csv (public domain), https://davidmegginson.github.io/ourairports-data/"
+  "oa": "OurAirports, airports.csv and runways.csv (public domain), https://davidmegginson.github.io/ourairports-data/",
+  "he_133": "Wikipedia, טייסת 133 (\"אבירי הזנב הכפול\", flies the F-15 Baz from Tel Nof), https://he.wikipedia.org/wiki/טייסת_133"
  }
 }

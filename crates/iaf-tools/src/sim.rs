@@ -346,7 +346,7 @@ pub fn compile_db(db: &Db) -> Result<(Value, Map<String, Value>, String)> {
         }));
     }
     for u in &db.units {
-        check_sources(u, &["type", "scale", "radius_m", "strength", "loadout.*"])?;
+        check_sources(u, &["type", "scale", "radius_m", "strength", "tail", "max_takeoff_kg", "loadout.*"])?;
         check_sources(u, THREAT_FIGURES)?;
         let n = int(u, "number")?;
         let (class, category) = CLASSES

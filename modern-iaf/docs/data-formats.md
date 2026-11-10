@@ -64,14 +64,20 @@ A unit record holds what a mission needs of a unit. A flyable jet's behaviour st
 | `model`, `scale` | the model under `assets/converted/objects/` (empty: none) and its drawn scale (1 = true size) |
 | `radius_m` | the unit's radius; the blast rules take half of it (docs/damage.md §2.1) |
 | `strength` | hit points on our damage scale (§6) |
+| `tail` | a flyable jet's tail number: one real jet of its squadron from a public photo (the Sufa 482, the Barak 034, the Adir 921), shown in the front end's subtitle ([front-end.md](front-end.md) §4); needs a source |
+| `max_takeoff_kg` | a flyable jet's maximum take-off weight, against which the briefing's Arming page weighs the take-off ([front-end.md](front-end.md) §10); needs a source |
 | `loadout` | weapon id → count for the gun, chaff and flare stations (9–11); a unit with an `airframe` must give its gun rounds, the count the sim's gun fires down to empty ([weapons.md](weapons.md) §1) |
-| `pylons` | station `A`..`I` → `{"weapon", "count"}` (the F-16s: an AIM-9M on A, B, C, G, H and I, a 370 US gal tank on D and F) |
+| `pylons` | station `A`..`I` → `{"weapon", "count"}` (the F-16s: an AIM-9M on A, B, C, G, H and I, a 370 US gal tank on D and F; the F-35I: an AIM-120 on D and F) |
+| `stations` | only where the real jet's station numbers differ from A..I → 1..9 (the F-35I's eleven): real number → its pylon letter, `""` for a station the engine's nine pylons leave out; the briefing names the stations by these numbers |
+| `internal` | the real numbers of the stations inside the jet (the F-35I's bays: 4, 5, 7, 8); the briefing marks their slots "internal" |
+| `inventory` | the stores the briefing lists as the jet's: `{"weapon", "count", "as"}`, `count` only where a source gives one, `as` the picture's and caption's id when another record stands in (the F-35I's GBU-31 on the MK-84 record) |
 | `range_km`, `min_range_km`, `ceiling_m`, `floor_m`, `speed_ms`, `mach`, `radar_km`, `g_limit`, `warhead_kg` | the threat set's figures (threats.md §6), checked for sources. `radar_km`, the unit's sensor reach, is compiled unhexed as `"radar_km"` into its Objects row, and the AI takes it before the type code's range (`combat.gd` `sensor_nm`); no shared reader takes the others yet |
 | `status` | only in a draft: `"pending the user's decision"` (§11) |
 
 The three MVP jets: the Sufa (`f16i`, number 1, type 100), the Barak (`f16d`, 2, type 100) and the F-35I (`f35i`,
 3, type 1000). The Sufa and the Barak share the F-16's type code, which the shared code keys the F-16 family on;
-their aircraft definitions tell them apart. `airframe::id_for(100, …)` picks `f16` or `f16i` by the F-16 switch alone, so the sim's settings set that switch from the player's Objects row's `"airframe"`: `Settings.set_jet(airframe)` in `modern-iaf/sim_settings.gd` (item A1, 2026-11-02). They carry the gun, chaff and flare; the F-35I carries no pylon stores. Their `model`
+their aircraft definitions tell them apart. The F-15I (`f15i`, 5, type 110) has a record for the plane screen's
+Ra'am card, which is not flyable yet ([front-end.md](front-end.md)). `airframe::id_for(100, …)` picks `f16` or `f16i` by the F-16 switch alone, so the sim's settings set that switch from the player's Objects row's `"airframe"`: `Settings.set_jet(airframe)` in `modern-iaf/sim_settings.gd` (item A1, 2026-11-02). They carry the gun, chaff and flare; the F-35I carries no pylon stores. Their `model`
 is empty: the player's jet is drawn from its aircraft definition, and the sim's own model index comes later.
 
 **The F-16s' loadout (2026-11-08).** The Sufa and the Barak carry an AIM-9M on each wingtip rail, stations 1 and 9
@@ -83,7 +89,19 @@ The F-16 carries AIM-9s and AIM-120s on 2 / 8 and 3 / 7, one
 each[^f16net-aim9][^f16net-aim120]. The sim has records of neither the Python nor the AIM-120, so the AIM-9M stands in
 on both: for the Python on 2 / 8, for the AIM-120 on 3 / 7 (stand-ins; which missile the IAF hangs on which station is
 inferred). The F-16 carries two 370 US gal wing tanks[^f16net-tanks], and the Sufa's stores include them[^ipms-f16i]; that they fly
-on most training flights is inferred. No other underwing stores. The F-35I stays clean.
+on most training flights is inferred. No other underwing stores.
+
+**The F-35I's loadout (2026-11-10).** The F-35A has eleven stations, numbered from the left wing tip: 1 / 11 the
+outboard wing pylons, 2 / 10 and 3 / 9 the others, 6 the centreline, and four inside the two bays[^w-f35][^lm-f35a].
+Each bay's outboard station (4, 8) carries air-to-surface weapons up to 2,500 lb, the JDAM among them; its inboard
+station (5, 7) the AIM-120[^w-f35]. The training loadout is the defensive pair: an AIM-120 on 5 and 7 (`pylons` D and
+F, the letters `player_aircraft.gd` `f35i_object` and docs/f35i.md §3.1 give them), 4 and 8 empty, nothing outside (a
+stealthy jet's; inferred for the training). The record's `stations` maps the real numbers to the letters: the engine's
+armament holds nine pylon stations, so 2 and 10 have none. In the bays the missiles add no drag (their record's
+`drag` is 0) and their mass through the stores' weight, as the tanks' fuel does; the descriptor's `internal_stations`
+shows them only while the doors are open. Its `inventory` lists the AIM-120 and the GBU-31 (the MK-84 record stands
+in; `modern_weapons.gd` builds the GBU-31 on it); the F-16s' the AIM-9M (also standing in for the Python), the AIM-120,
+the MK-84[^w-f16] and the 370 US gal tank. No source gives a count, so none is listed.
 
 The tank (`data/db/weapons/tank-370.json`, kind `tank`: type 660, "Shell") is named for the fuel it holds in pounds,
 `2470LB`, as the original's tanks are (`2700LB`): a weapon whose name holds LB is a tank, and its weight is fuel
@@ -190,6 +208,10 @@ Example, `modern-iaf/data/db/units/f16i.json`:
 | `range_km`, `min_range_km`, `ceiling_m`, `floor_m`, `speed_ms`, `mach`, `g_limit`, `warhead_kg` | the weapon's own figures (range, altitudes, speed, g limit, warhead), checked for sources, not compiled |
 | `status` | only in a draft (§11) |
 
+The AIM-120 (`aim-120.json`, number 3, kind `radar_missile`) is the AIM-120C-7: 161.5 kg, 3.65 m, Mach 4, 90 km
+(the AIM-120C), a 20 kg warhead[^w-aim120]; its motion follows the R-27R draft's rule (the burn with which it flies
+its range). Its name is `"AIM-120"`, so `real_weapons.gd`'s figures for the original's `"AMRAAM"` leave it alone.
+
 Names and numbers the shared code relies on:
 - `"20 MM"` (number 25), `"Chaff"` (33) and `"Flare"` (34): `player_aircraft.gd` `f35i_object` loads these numbers,
   and `real_weapons.gd` keys the M61A1 on the name.
@@ -270,7 +292,7 @@ Example, `modern-iaf/data/db/weapons/aim-9m.json`:
 | `route` | the player's waypoints: `lat`, `lon`, `alt_m`, and `speed_kmh` or `t_s`. The compiled waypoint holds the planned arrival time in sim seconds (docs/ai.md §7.2): `t_s`, else the time from the flight's start along the legs at each point's speed. No route gives set_flight's one point 20 km ahead |
 | `runway` | the runway the mission's tower clears (kept in `sim` for item E3) |
 | `note` | a caveat the compiler prints and keeps in `sim` |
-| `training` | the pass / fail rules ([training.md](training.md) §3), kept in `sim`: `kind` (`"startup"` or `"takeoff"`), `time_budget_s`, `end_hold_s` (the mission ends this long after its goal), `goals` (the debrief items the sheet shows, in order; ids of `training::ITEMS`, refused otherwise); a start-up by keys `checklist` (`[{"step", "key", "en", "he", "where"}]`: the steps in order, ids of `training::STEPS`, with the key and the card's line in both languages; `where`, optional, `{"en", "he"}`: the step's switch and its place in the cockpit, shown under the line ([cockpit.md](cockpit.md) §5.2); training.md §7.1); a take-off also `heading_tolerance_deg`, `empty_kg` and `takeoff_kt` (`[[kg, kt], …]`, rising in kg) and needs `runway`. The compiler parses them and wants a source for each figure (`"training.time_budget_s"` …) |
+| `training` | the pass / fail rules ([training.md](training.md) §3), kept in `sim`: `kind` (`"startup"` or `"takeoff"`), `time_budget_s`, `end_hold_s` (the mission ends this long after its goal), `goals` (the debrief items the sheet shows, in order; ids of `training::ITEMS`, refused otherwise); a start-up by keys `checklist` (`[{"step", "key", "en", "he", "where"}]`: the steps in order, ids of `training::STEPS`, with the key and the card's line in both languages; `where`, optional, `{"en", "he"}`: the step's switch and its place in the cockpit, shown under the line ([cockpit.md](cockpit.md) §5.2); `wait`, optional, `{"en", "he"}`: the state to wait for before the next step; training.md §7.1); a take-off's `steps` (`[{"key", "pick", "en", "he", "wait"}]`: the briefing's How in order, `key` a record of `data/keys.json`, `pick` the radio menu's number after it, `{runway}` and `{tolerance}` filled in; training.md §8); a take-off also `heading_tolerance_deg`, `empty_kg` and `takeoff_kt` (`[[kg, kt], …]`, rising in kg) and needs `runway`. The compiler parses them and wants a source for each figure (`"training.time_budget_s"` …) |
 | `card` | optional, the mission card shown at the flight's start ([front-end.md](front-end.md) §8): `objective` `{"en", "he"}`, one line each, and `keys`, the key records that matter (indexes into `data/keys.json`, 0–124), shown in that order with their labels and keys as bound. In the objective `{key:N}` stands for record N's key ("Cmd" on macOS) and `{runway}` for `runway`. Without it the compiler writes its kind's: start-up `[119, 120, 7, 122, 123, 124, 118]` (the checklist's keys, Throttle idle for its idle step, Mission card), take-off `[47, 117, 7, 16, 15, 12, 22, 37, 38, 24, 25, 20, 118]` (the tower, the start, the throttle, the brakes, the rudder, the stick, the gear). Compiled into `sim.card`; a card without both languages or with a key outside the table is refused |
 | `flights` | Bravo..Delta: `unit`, `count`, `start` {`lat`, `lon`, `heading`, `alt_m`}, `route` |
 | `targets`, `sam_sites` | placed units: `unit`, `name`, `side` (default red), `lat`, `lon`, `alt_m`, `heading`, optional `route` [{`lat`, `lon`}, at least two] and `speed_kmh`; a target takes role 1, a SAM site role 2 |
@@ -329,8 +351,8 @@ Example, `modern-iaf/data/missions/ramon_takeoff.json`:
   "id": "ramon_takeoff",
   "menu_id": 2012,
   "title": {
-    "en": "Take-off from Ramon",
-    "he": "המראה מרמון"
+    "en": "Take-off",
+    "he": "המראה"
   },
   "briefing": {
     "en": "Ask the tower for start-up, taxi and take-off, taxi to runway 25R and take off on its heading.",
@@ -645,10 +667,18 @@ cell format: f32 UTM metres; `manifest.json` with `frame` "EPSG:32636"; `theatre
 {`x_shift`, `y_shift`, `units_to_metres`}: the theatre's, which cuts the `L3` blocks). What, why and where:
 [scenery.md](scenery.md).
 
+The same step writes `converted/terrain/israel/places.json` whenever it is missing (`sim_scenery::places`, outside
+the step's stamps): OpenStreetMap's `place=city`, `town` and `village` points in the theatre's box from the road
+extracts (ogr2ogr's `points` layer), compact: `[{"kind", "en", "he", "x", "y"}]` (`en` = `name:en`, else `name`;
+`he` = `name:he`, else `name`; UTM 36N metres), a place in two extracts once. The mission briefing's area map reads
+it ([front-end.md](front-end.md) §10).
+
 [^osm]: OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright (runway and apron ways via the Overpass API, 2026-10-20 and 2026-11-02).
 [^oa]: OurAirports, runways.csv and airports.csv (public domain), https://davidmegginson.github.io/ourairports-data/
 [^w-f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon
-[^w-f35]: Wikipedia, "Lockheed Martin F-35 Lightning II", https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II
+[^w-f35]: Wikipedia, "Lockheed Martin F-35 Lightning II" (specifications; Armament: two bays of two stations, the outboard air-to-surface up to 2,500 lb, the inboard the AIM-120; six external stations; read 2026-11-10), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II
+[^lm-f35a]: Lockheed Martin, "F-35A Conventional Takeoff and Landing Variant" (the station diagram), https://www.lockheedmartin.com/content/dam/lockheed-martin/aero/documents/F-35/f35A.pdf
+[^w-aim120]: Wikipedia, "AIM-120 AMRAAM" (AIM-120C-5/6/7: 356 lb, 161.5 kg; 12 ft, 3.65 m; 44 lb, 20 kg warhead; Mach 4; AIM-120C 49 nmi, 90 km; read 2026-11-10), https://en.wikipedia.org/wiki/AIM-120_AMRAAM
 [^gdots]: General Dynamics OTS, "F-16 20mm Gatling gun system", https://www.gd-ots.com/wp-content/uploads/2017/11/F-16.pdf
 [^m61]: Wikipedia, "M61 Vulcan", https://en.wikipedia.org/wiki/M61_Vulcan
 [^ds-aim9]: designation-systems.net, "Raytheon AIM-9 Sidewinder", https://www.designation-systems.net/dusrm/m-9.html

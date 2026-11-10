@@ -10,6 +10,8 @@
   "scale": 1.0,
   "radius_m": 4.98,
   "strength": 300,
+  "tail": "482",
+  "max_takeoff_kg": 23582,
   "loadout": { "20mm": 511, "chaff": 60, "flare": 60 },
   "pylons": {
     "A": { "weapon": "aim-9m", "count": 1 },
@@ -21,7 +23,10 @@
     "H": { "weapon": "aim-9m", "count": 1 },
     "I": { "weapon": "aim-9m", "count": 1 }
   },
+  "inventory": [{ "weapon": "aim-9m" }, { "weapon": "aim-120" }, { "weapon": "mk-84" }, { "weapon": "tank-370" }],
   "sources": {
+    "tail": "jp-482",
+    "max_takeoff_kg": "aft-f16i-mtow",
     "type": "inferred",
     "scale": "inferred",
     "radius_m": "w-f16",
@@ -29,9 +34,12 @@
     "loadout.20mm": "gdots-f16",
     "loadout.chaff": "open",
     "loadout.flare": "open",
-    "pylons": "w-f16, mf-f16i, aft-f16i, ipms-f16i, inferred, f16net-aim9, f16net-aim120"
+    "pylons": "w-f16, mf-f16i, aft-f16i, ipms-f16i, inferred, f16net-aim9, f16net-aim120",
+    "inventory": "f16net-aim9, f16net-aim120, f16net-tanks, w-f16-arm, inferred"
   },
   "notes": {
+    "tail": "F-16I Sufa 482 of 253 Squadron, Ramon, in a public photo (Iniochos 2022): one real jet of the squadron, the pilot's in the sim",
+    "max_takeoff_kg": "the F-16I's maximum take-off weight, 23,582 kg (about 52,000 lb), which its F100-PW-229 IPE allows",
     "type": "the F-16's type code, the one the shared code keys the F-16 family on; the airframe definition f16i makes it the Sufa",
     "model": "none: the player's jet is drawn from its airframe definition (shared/extra/planes/f16i/airframe.json)",
     "scale": "1: our models are built true size",
@@ -40,15 +48,20 @@
     "loadout.20mm": "M61A1, 511 rounds (the F-16's; the two-seat Sufa's count is not published, inferred the same)",
     "loadout.chaff": "no public count found; 60 held until one is",
     "loadout.flare": "no public count found; 60 held until one is",
-    "pylons": "an AIM-9M on each wingtip rail (stations 1 and 9, A and I): the F-16's wingtip rails carry its short-range missiles; the Sufa's two wingtip missiles are standard (mf-f16i), its usual one the Python 5 (aft-f16i), which the sim has no record of yet, so the AIM-9M stands in (inferred); a 370 US gal tank on each wing's inboard station (stations 4 and 6, D and F; the Sufa's options list two 370 gal wing tanks, ipms-f16i), carried on most flights (inferred); no other underwing stores in training (inferred); an AIM-9M on each underwing missile station, 2 / 8 (B, H) and 3 / 7 (C, G): the F-16 carries AIM-9s and AIM-120s there (f16net-aim9, f16net-aim120); on 2 / 8 the AIM-9M stands in for the IAF's Python (aft-f16i on the Sufa, inferred on the Barak), on 3 / 7 for an AIM-120, which the sim has no record of yet (stand-ins, inferred)"
+    "pylons": "an AIM-9M on each wingtip rail (stations 1 and 9, A and I): the F-16's wingtip rails carry its short-range missiles; the Sufa's two wingtip missiles are standard (mf-f16i), its usual one the Python 5 (aft-f16i), which the sim has no record of yet, so the AIM-9M stands in (inferred); a 370 US gal tank on each wing's inboard station (stations 4 and 6, D and F; the Sufa's options list two 370 gal wing tanks, ipms-f16i), carried on most flights (inferred); no other underwing stores in training (inferred); an AIM-9M on each underwing missile station, 2 / 8 (B, H) and 3 / 7 (C, G): the F-16 carries AIM-9s and AIM-120s there (f16net-aim9, f16net-aim120); on 2 / 8 the AIM-9M stands in for the IAF's Python (aft-f16i on the Sufa, inferred on the Barak), on 3 / 7 for an AIM-120, which the sim has no record of yet (stand-ins, inferred)",
+    "inventory": "the stores the briefing lists as the jet's: the AIM-9M (also the stand-in for the IAF's Python), the AIM-120, the MK-84 2,000 lb bomb and the 370 US gal drop tank; the sim's records of the F-16's stores; no counts published"
   },
   "footnotes": {
+    "aft-f16i-mtow": "Airforce Technology, \"F-16I Soufa Multirole Fighter, Israel\" (the F100-PW-229 increased performance engine allows a maximum take-off weight of 23,582 kg), https://www.airforce-technology.com/projects/f-16i-soufa/",
+    "jp-482": "JetPhotos, photo 11119107: F-16I Sufa 482 (msn YD-42) of \"The Negev Squadron\" (253) from Ramon at Andravida, Iniochos 2022, https://www.jetphotos.com/photo/11119107",
     "w-f16": "Wikipedia, \"General Dynamics F-16 Fighting Falcon\" (span 32 ft 8 in, 9.96 m), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon",
     "gdots-f16": "General Dynamics OTS, \"F-16 20mm Gatling gun system\" (511 rounds), https://www.gd-ots.com/wp-content/uploads/2017/11/F-16.pdf",
     "mf-f16i": "MilitaryFactory, \"Lockheed F-16I Sufa (Storm)\" (2 x short-range air-to-air missiles on wingtip launchers), https://www.militaryfactory.com/aircraft/detail.php?aircraft_id=2191",
     "ipms-f16i": "IPMS USA, \"F-16I Sufa Part 1\" (the Sufa's stores: 2 x 370 gallon wing tanks, 2 x 600 gallon wing tanks), https://reviews.ipmsusa.org/review/f-16i-sufa-part-1",
     "aft-f16i": "Airforce Technology, \"F-16I Soufa Multirole Fighter, Israel\" (equipped with the Rafael Python 5), https://www.airforce-technology.com/projects/f-16i-soufa/",
     "f16net-aim9": "F-16.net, \"AIM-9 Sidewinder\" (stations 1 and 9, 2 and 8, 3 and 7; one missile each), https://www.f-16.net/f-16_armament_article1.html",
-    "f16net-aim120": "F-16.net, \"AIM-120 AMRAAM\" (stations 1 and 9, 2 and 8, 3 and 7; one missile each), https://www.f-16.net/f-16_armament_article3.html"
+    "f16net-aim120": "F-16.net, \"AIM-120 AMRAAM\" (stations 1 and 9, 2 and 8, 3 and 7; one missile each), https://www.f-16.net/f-16_armament_article3.html",
+    "f16net-tanks": "F-16.net, \"Luke F-16 jettisons fuel tanks, lands safely\" (two 370 gallon tanks), https://www.f-16.net/f-16-news-article2018.html",
+    "w-f16-arm": "Wikipedia, \"General Dynamics F-16 Fighting Falcon\", specifications, armament (Mark 84 among the bombs), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon"
   }
 }

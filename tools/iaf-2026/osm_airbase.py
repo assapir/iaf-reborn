@@ -100,6 +100,13 @@ SQUADRONS = {
     "LLNV": {"f35i": (140, "Golden Eagle", "נשר הזהב", "en_140",
                       "Wikipedia, 140 Squadron (Israel) (the IAF's first F-35I squadron, its first two jets in "
                       "December 2016), https://en.wikipedia.org/wiki/140_Squadron_(Israel)")},
+    # The F-15s' squadrons: Pick a plane shows their cards greyed until the sim flies them (front-end.md §1).
+    "LLHB": {"f15i": (69, "The Hammers", "הפטישים", "he_69",
+                      "Wikipedia, טייסת 69 (\"טייסת הפטישים\", flies the F-15I Ra'am from Hatzerim), "
+                      "https://he.wikipedia.org/wiki/טייסת_69")},
+    "LLEK": {"f15c": (133, "Knights of the Twin Tail", "אבירי הזנב הכפול", "he_133",
+                      "Wikipedia, טייסת 133 (\"אבירי הזנב הכפול\", flies the F-15 Baz from Tel Nof), "
+                      "https://he.wikipedia.org/wiki/טייסת_133")},
 }
 
 

@@ -187,11 +187,18 @@ the Font data in this distribution was originally created by James Hurt, Cogniti
 
 ## Modern IAF's photos
 
-The sim's front end (modern-iaf/docs/front-end.md) shows four Wikimedia Commons photos of the jets, downscaled, in
+The sim's front end (modern-iaf/docs/front-end.md) shows six Wikimedia Commons photos of the jets, downscaled, in
 `modern-iaf/data/photos/` (`SOURCES.md` there lists each page): F-16I Sufa 407 and F-35I Adir in flight by Major Ofer,
 Israeli Air Force (CC BY 4.0)[^c-sufa][^c-adir]; F-16I Sufa 851 at Tel Nof by MathKnight and Zachi Evenor (CC BY
-4.0)[^c-sufa2]; F-16D Barak 034 by Zachi Evenor and MathKnight (CC BY 2.0)[^c-barak]. Each screen that shows one
-credits it in its footer; the front end's Attributions screen and the setup wizard's list name all four.
+4.0)[^c-sufa2]; F-16D Barak 034 by Zachi Evenor and MathKnight (CC BY 2.0)[^c-barak]; an F-15I Ra'am of 69 Squadron
+in flight by Tech. Sgt. Kevin Gruenwald, U.S. Air Force (public domain)[^c-raam]; F-15C Baz 802 at Tel Nof by
+MathKnight and Zachi Evenor (CC BY 4.0)[^c-baz]. Each screen that shows one credits it in its footer; the front end's
+Attributions screen and the setup wizard's list name all six.
+
+The briefing's Arming page draws each jet's front view and its stores' side views, traced and rendered from our own
+models (`modern-iaf/data/drawings/`, `modern-iaf/data/stores/`, `SOURCES.md` in each): the F-16s' from the FlightGear
+F-16 (GPL 2.0 or later), the F-35I's from andertan's model (CC BY 4.0), the stores from the FlightGear stores (GPL
+2.0 or later), each credited where its model is (§ Model credits, `credits_ours.json`) and in the page's footer.
 
 ## Testing
 
@@ -227,6 +234,8 @@ credits it in its footer; the front end's Attributions screen and the setup wiza
 [^c-adir]: Wikimedia Commons, "IAF-F-35I-2016-12-13.jpg": https://commons.wikimedia.org/wiki/File:IAF-F-35I-2016-12-13.jpg
 [^c-sufa2]: Wikimedia Commons, "IAF-F-16I-Sufa--Independence-Day-2017-Tel-Nof-IZE-182.jpg": https://commons.wikimedia.org/wiki/File:IAF-F-16I-Sufa--Independence-Day-2017-Tel-Nof-IZE-182.jpg
 [^c-barak]: Wikimedia Commons, "F-16D--Our-IDF-2018-IZE-239.jpg": https://commons.wikimedia.org/wiki/File:F-16D--Our-IDF-2018-IZE-239.jpg
+[^c-raam]: Wikimedia Commons, "F-15I Ra'am.jpg": https://commons.wikimedia.org/wiki/File:F-15I_Ra%27am.jpg
+[^c-baz]: Wikimedia Commons, "IAF-F-15C-Baz--Independence-Day-2017-Tel-Nof-IZE-084.jpg": https://commons.wikimedia.org/wiki/File:IAF-F-15C-Baz--Independence-Day-2017-Tel-Nof-IZE-084.jpg
 [^hershey]: hershey-fonts, Kamal Mostafa (`hershey-fonts/futural.jhf` and the Hershey Fonts licence in `COPYING`): https://github.com/kamalmostafa/hershey-fonts
 [^heebo]: Google Fonts, Heebo (`ofl/heebo/Heebo[wght].ttf` and `OFL.txt`): https://github.com/google/fonts/tree/main/ofl/heebo
 [^cop-dem]: "Licence for the use of the Copernicus WorldDEM-30", Article 6: https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/DEM/resources/license/License-COPDEM-30.pdf

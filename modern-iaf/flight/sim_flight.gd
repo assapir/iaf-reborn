@@ -74,8 +74,8 @@ var _pass_at := INF
 ## When the flight ends into the debrief (ms, real time), once the mission ended; the banner over the view.
 var _end_ms := INF
 var _banner: PanelContainer
-## The start-up checklist (the readable mission's training.checklist: [{step, key, en, he, where}]), the steps done
-## (ids), a step's fault waiting for the live check, the last fault shown, and the card.
+## The start-up checklist (the readable mission's training.checklist: [{step, key, en, he, where, wait}]), the
+## steps done (ids), a step's fault waiting for the live check, the last fault shown, and the card.
 var checklist: Array = []
 var done: Array = []
 var _fault := ""
@@ -535,6 +535,8 @@ func _fill_card() -> void:
 		_card_line(row, k, 18, Look.INK_MUTED).text_direction = Control.TEXT_DIRECTION_LTR
 		if c.has("where"):  # the switch's name and place, for the 3D cockpit's mouse (cockpit3d_controls.gd)
 			_card_line(v, "        " + String(c.where[lang]), 16, Look.INK_MUTED)
+		if c.has("wait"):  # the state to wait for before the next step (the briefing's How shows the same)
+			_card_line(v, "        " + String(c.wait[lang]), 16, Look.INK_MUTED)
 	_card_line(v, CARD_NEXT[lang] % next if next != "" else CARD_DONE[lang], 20, Look.NAVY)
 	if _fault_shown != "":
 		_card_line(v, String(trainer.text(_fault_shown, lang)), 20, Color("b3261e")).autowrap_mode = (

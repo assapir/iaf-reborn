@@ -45,7 +45,7 @@ func run() -> void:
 		)
 		check(texts.any(func(t): return "25R" in t), "%s: the objective names the runway" % lang)
 		check(card.find_child("Keys", true, false).get_child_count() == 13, "%s: the take-off's 13 keys" % lang)
-		var title := "המראה מרמון" if lang == "he" else "Take-off from Ramon"
+		var title := "המראה" if lang == "he" else "Take-off"
 		check(title in texts, "%s: the mission's title" % lang)
 		key(ui, KEY_SPACE)
 		await frames(1)

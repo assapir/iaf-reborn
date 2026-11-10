@@ -10,6 +10,8 @@
   "scale": 1.0,
   "radius_m": 4.98,
   "strength": 300,
+  "tail": "034",
+  "max_takeoff_kg": 19187,
   "loadout": {
     "20mm": 511,
     "chaff": 60,
@@ -49,7 +51,10 @@
       "count": 1
     }
   },
+  "inventory": [{ "weapon": "aim-9m" }, { "weapon": "aim-120" }, { "weapon": "mk-84" }, { "weapon": "tank-370" }],
   "sources": {
+    "tail": "ize-034",
+    "max_takeoff_kg": "f16net-b40",
     "type": "inferred",
     "scale": "inferred",
     "radius_m": "w-f16",
@@ -57,9 +62,12 @@
     "loadout.20mm": "gdots-f16",
     "loadout.chaff": "open",
     "loadout.flare": "open",
-    "pylons": "w-f16, f16net-tanks, inferred, f16net-aim9, f16net-aim120"
+    "pylons": "w-f16, f16net-tanks, inferred, f16net-aim9, f16net-aim120",
+    "inventory": "f16net-aim9, f16net-aim120, f16net-tanks, w-f16-arm, inferred"
   },
   "notes": {
+    "tail": "F-16D Barak 034 of 109 Squadron in a public photo (the front end's Barak photo): one real jet of the squadron, the pilot's in the sim",
+    "max_takeoff_kg": "the F-16C/D Block 40/42's maximum take-off weight, 42,300 lb (19,187 kg); the Barak is an F-16D Block 40",
     "type": "the F-16's type code; the airframe definition f16 is the Barak's",
     "model": "none: the player's jet is drawn from its airframe definition (shared/extra/planes/f16/airframe.json)",
     "scale": "1: our models are built true size",
@@ -68,13 +76,17 @@
     "loadout.20mm": "M61A1, 511 rounds (the F-16's; the two-seat Barak's count is not published, inferred the same)",
     "loadout.chaff": "no public count found; 60 held until one is",
     "loadout.flare": "no public count found; 60 held until one is",
-    "pylons": "an AIM-9M on each wingtip rail (stations 1 and 9, A and I): the F-16's wingtip rails carry its short-range missiles (w-f16); a 370 US gal tank on each wing's inboard station (stations 4 and 6, D and F; the F-16's wing tanks, f16net-tanks), carried on most flights (inferred); no other underwing stores in training (inferred); an AIM-9M on each underwing missile station, 2 / 8 (B, H) and 3 / 7 (C, G): the F-16 carries AIM-9s and AIM-120s there (f16net-aim9, f16net-aim120); on 2 / 8 the AIM-9M stands in for the IAF's Python (inferred), on 3 / 7 for an AIM-120, which the sim has no record of yet (stand-ins, inferred)"
+    "pylons": "an AIM-9M on each wingtip rail (stations 1 and 9, A and I): the F-16's wingtip rails carry its short-range missiles (w-f16); a 370 US gal tank on each wing's inboard station (stations 4 and 6, D and F; the F-16's wing tanks, f16net-tanks), carried on most flights (inferred); no other underwing stores in training (inferred); an AIM-9M on each underwing missile station, 2 / 8 (B, H) and 3 / 7 (C, G): the F-16 carries AIM-9s and AIM-120s there (f16net-aim9, f16net-aim120); on 2 / 8 the AIM-9M stands in for the IAF's Python (inferred), on 3 / 7 for an AIM-120, which the sim has no record of yet (stand-ins, inferred)",
+    "inventory": "the stores the briefing lists as the jet's: the AIM-9M (also the stand-in for the IAF's Python), the AIM-120, the MK-84 2,000 lb bomb and the 370 US gal drop tank; the sim's records of the F-16's stores; no counts published"
   },
   "footnotes": {
+    "f16net-b40": "F-16.net, \"F-16 Block 40/42\" (18,238 lb empty, 42,300 lb maximum takeoff), https://www.f-16.net/f-16_versions_article7.html",
+    "ize-034": "Wikimedia Commons, \"F-16D--Our-IDF-2018-IZE-239.jpg\" (F-16D Barak 034 of Squadron 109, \"Our IDF 70\" exhibition, 23 September 2018; Dr. Zachi Evenor and MathKnight, CC BY 2.0), https://commons.wikimedia.org/wiki/File:F-16D--Our-IDF-2018-IZE-239.jpg",
     "w-f16": "Wikipedia, \"General Dynamics F-16 Fighting Falcon\" (span 32 ft 8 in, 9.96 m), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon",
     "gdots-f16": "General Dynamics OTS, \"F-16 20mm Gatling gun system\" (511 rounds), https://www.gd-ots.com/wp-content/uploads/2017/11/F-16.pdf",
     "f16net-tanks": "F-16.net, \"Luke F-16 jettisons fuel tanks, lands safely\" (the F-16's two 370 gallon wing tanks), https://www.f-16.net/f-16-news-article2018.html",
     "f16net-aim9": "F-16.net, \"AIM-9 Sidewinder\" (stations 1 and 9, 2 and 8, 3 and 7; one missile each), https://www.f-16.net/f-16_armament_article1.html",
-    "f16net-aim120": "F-16.net, \"AIM-120 AMRAAM\" (stations 1 and 9, 2 and 8, 3 and 7; one missile each), https://www.f-16.net/f-16_armament_article3.html"
+    "f16net-aim120": "F-16.net, \"AIM-120 AMRAAM\" (stations 1 and 9, 2 and 8, 3 and 7; one missile each), https://www.f-16.net/f-16_armament_article3.html",
+    "w-f16-arm": "Wikipedia, \"General Dynamics F-16 Fighting Falcon\", specifications, armament (Mark 84 among the bombs), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon"
   }
 }
