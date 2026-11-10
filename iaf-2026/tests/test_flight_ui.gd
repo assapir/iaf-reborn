@@ -1,7 +1,8 @@
 # Modern IAF's text over the flight (flight/flight_ui.gd, iaf-2026/docs/front-end.md §8) in English and Hebrew: the
 # mission card (the title, the objective with the keys as bound, the keys' rows; the flight frozen while it is open;
 # Space closes it, the Mission card key opens it again), the radio lines in the sim's band (not the original's
-# console), entirely in the game's language but for callsigns and runway designators, and the key hint line.
+# console), entirely in the game's language but for callsigns and runway designators, and the key hint line (shown at
+# the start and briefly after the card closes, hidden while it is open, faded out after).
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path iaf-2026 \
 #     -s ../iaf-2026/tests/test_flight_ui.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -23,6 +24,7 @@ func run() -> void:
 		var hint: Control = ui.find_child("Hint", true, false)
 		var pause_text := "תפריט השהיה" if lang == "he" else "Pause menu"
 		check(hint != null and pause_text in _labels(hint), "%s: the key hint line in the game's language" % lang)
+		check(hint.visible and hint.modulate.a > 0.9, "%s: the key hint shows at the start" % lang)
 		if lang == "en":
 			s.language = "he"  # as the pause menu's Preferences switch it over the flight
 			await frames(2)
@@ -36,6 +38,7 @@ func run() -> void:
 		var texts := _labels(card)
 		var tower_key: String = ui.key_name(47).replace(" ", "\u00a0")
 		check(paused and card != null, "%s: the card is open and the flight frozen" % lang)
+		check(not ui.find_child("Hint", true, false).visible, "%s: no key hint while the card is open" % lang)
 		check(
 			texts.any(func(t): return tower_key in t and "{key:" not in t),
 			"%s: the objective names %s" % [lang, tower_key]
@@ -47,6 +50,7 @@ func run() -> void:
 		key(ui, KEY_SPACE)
 		await frames(1)
 		check(ui.card == null and not paused, "%s: Space closes the card and the flight runs" % lang)
+		check(ui.find_child("Hint", true, false).visible, "%s: the key hint shows again after the card closes" % lang)
 		var h := InputEventKey.new()
 		h.keycode = KEY_H
 		h.physical_keycode = KEY_H
@@ -56,6 +60,10 @@ func run() -> void:
 		check(ui.card != null, "%s: H opens the card again" % lang)
 		ui.close_card()
 		await frames(1)
+		if lang == "en":  # the hint fades out (real time: the start's 8 s at most)
+			await create_timer(ui.HINT_START_S + ui.HINT_FADE_S + 0.3, true, false, true).timeout
+			await frames(1)
+			check(not ui.find_child("Hint", true, false).visible, "en: the key hint faded out")
 		# The tower's answer and the pilot's call: in the band, in the game's language.
 		sim_flight.pick("startup")
 		await frames(2)

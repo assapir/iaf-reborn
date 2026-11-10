@@ -6,7 +6,8 @@
 # - the radio lines and the training messages: a strip centred at the top, the newest at the bottom, each for
 #   LINE_S seconds (terrain_view.gd _on_subtitle hands them to the flight add-on instead of the original's console);
 # - a panel at the inline-start top for the radio menu and the training result (flight/sim_flight.gd);
-# - one key hint line at the bottom: the Mission card key and Esc's pause menu.
+# - one key hint line at the bottom: the Mission card key and Esc's pause menu, shown for HINT_START_S at the start,
+#   HINT_AGAIN_S after a language change or the card's closing, then faded out; hidden while a card is open.
 # All of it follows the game's language, also when the pause menu's Preferences switch it mid-flight.
 extends Control
 
@@ -20,6 +21,11 @@ const LINE_S := 8.0
 const BAND_LINES := 3
 ## The sim's key records (iaf-2026/data/keys.json): the Mission card key.
 const CARD_KEY := 118
+## The key hint shows this long (s, real time) at the start, again after a language change or the card's closing,
+## and fades out over HINT_FADE_S.
+const HINT_START_S := 8.0
+const HINT_AGAIN_S := 4.0
+const HINT_FADE_S := 0.5
 
 var host: Node
 var strings := {}
@@ -30,6 +36,7 @@ var _band: VBoxContainer
 var _lines: Array = []  # [Label, shown at (ms)]
 var _froze := false
 var _lang := ""
+var _hint_until := 0  # ms
 
 
 func _init(h: Node) -> void:
@@ -69,6 +76,7 @@ func _ready() -> void:
 	panel.add_child(panel_label)
 	panel.visible = false
 	_apply_language()
+	_hint_until = Time.get_ticks_msec() + int(HINT_START_S * 1000.0)
 
 
 ## The strings, the key hint and the mirroring in the game's language; again when the pause menu's Preferences
@@ -92,6 +100,7 @@ func _apply_language() -> void:
 	else:
 		panel.offset_left = 48
 	panel.offset_top = 40
+	show_hint(HINT_AGAIN_S)
 	language_changed.emit()
 
 
@@ -112,6 +121,25 @@ func key_name(record: int) -> String:
 
 
 # --- the hint line ----------------------------------------------------------------------------------------------------
+
+
+## Shows the key hint for `secs` more (real time) unless it already shows longer.
+func show_hint(secs: float) -> void:
+	_hint_until = maxi(_hint_until, Time.get_ticks_msec() + int(secs * 1000.0))
+
+
+## The hint: shown until _hint_until, fading over the last HINT_FADE_S; hidden while the mission card or the
+## start-up checklist card (sim_flight.gd, "Checklist") is open.
+func _update_hint(now: int) -> void:
+	var pill := get_node_or_null("Hint") as Control
+	if pill == null:
+		return
+	var a := clampf((_hint_until - now) / (HINT_FADE_S * 1000.0), 0.0, 1.0)
+	var side := get_node_or_null("Checklist") as Control
+	if card != null or (side != null and side.visible):
+		a = 0.0
+	pill.modulate.a = a
+	pill.visible = a > 0.0
 
 
 func _hint() -> void:
@@ -186,6 +214,7 @@ func _process(_delta: float) -> void:
 	var now := Time.get_ticks_msec()
 	while not _lines.is_empty() and now - int(_lines[0][1]) > LINE_S * 1000.0:
 		_lines.pop_front()[0].queue_free()
+	_update_hint(now)
 
 
 # --- the panel (radio menu, training result) --------------------------------------------------------------------------
@@ -277,6 +306,7 @@ func close_card() -> void:
 		return
 	card.queue_free()
 	card = null
+	show_hint(HINT_AGAIN_S)  # the player learns the key that opens it again
 	if _froze:
 		_froze = false
 		host._freeze(false, true)

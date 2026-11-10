@@ -13,6 +13,8 @@ Heebo font and the Israeli Air Force flag's colours.
 ./modern-iaf -- --mission 2011   # flies that mission at once, then shows its debrief
 ```
 
+The window opens plain in the front end's background colour (#1d2025, no Godot splash image) until Home draws.
+
 ## 1. The screens
 
 | screen | what it does | English | Hebrew |
@@ -222,15 +224,19 @@ stay the original's (`terrain_view.gd _on_subtitle` hands each line to the fligh
   the newest at the bottom, three at most, each for 8 s, wholly in the game's language ([training.md](training.md)
   §8).
 - **The panel** at the inline-start top holds the radio menu (Ctrl+T) and the training result.
-- **The key hint** at the bottom: the Mission card key and Esc's pause menu.
+- **The key hint** at the bottom: the Mission card key and Esc's pause menu. It shows for the first 8 s of a flight,
+  for 4 s after a language change and for 4 s after the mission card closes (so the player learns the key that opens
+  it again), then fades out. It is hidden while the mission card or the start-up checklist card is open (the user,
+  2026-11-10: the hint stays out of the way of the narrative). The pause menu's own key hints are separate.
 
 A language switched over the flight (Esc → Preferences → Language) applies at once to the key hint, the panel and
 the start-up checklist card ([training.md](training.md) §7.1); a radio line already shown stays in its language.
 
 | | English | Hebrew |
 |---|---|---|
-| the take-off's card | ![The mission card of Take-off from Ramon](pictures/front-end/card_en.webp) | ![The mission card in Hebrew](pictures/front-end/card_he.webp) |
-| the strip and the hint, after a tower call | ![A tower call in the band](pictures/front-end/band_en.webp) | ![A tower call in Hebrew](pictures/front-end/band_he.webp) |
+| the take-off's card (no key hint under it) | ![The mission card of Take-off from Ramon](pictures/front-end/card_en.webp) | ![The mission card in Hebrew](pictures/front-end/card_he.webp) |
+| the strip after a tower call, the key hint still showing | ![A tower call in the band](pictures/front-end/band_en.webp) | ![A tower call in Hebrew](pictures/front-end/band_he.webp) |
+| 10 s into the flight: the key hint faded out | ![The take-off 10 s in, no key hint](pictures/front-end/flight10_en.webp) | ![The take-off 10 s in, Hebrew](pictures/front-end/flight10_he.webp) |
 
 ## 9. Keys and Joystick
 
