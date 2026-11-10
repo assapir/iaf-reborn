@@ -3,6 +3,13 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **A flight's start: no hang, faster, watched (2026-11-10, the Mac's P1 finding):** the mission card opened at the
+  start under the loading screen and froze the flight, so the loading never ended on a player's machine (every
+  scripted run skips the card); it now opens after the loading. The jet, the 3D cockpit and the pilot's body parse on
+  worker threads from the start; the jet, the cockpit and the weapons are each drawn first in their own frame, named
+  on the bar. Ramon's take-off from the flight scene: first start (no shader cache) 18.1 s, was 26–48 s; warm 4.4 s,
+  was 5.1 s ([front-end.md](front-end.md) §7). A watchdog opens the crash page (§11) when the loading stops; every log
+  line starts with its time ([../../docs/logs.md](../../docs/logs.md) §2). `test_start_watch.gd`.
 - **The folder `modern-iaf/` (2026-11-10, [plan.md](plan.md#decisions-of-10-november-2026)):** the code folder was `iaf-2026/`; the game
   launcher is `./start-modern-iaf` (+ `.ps1`). Built data in `assets/converted/iaf-2026` moves to `converted/modern-iaf` on the
   first run of a launcher, the wizard or `iaf-sim`, or by `tools/migrate_converted.sh` ([setup.md](setup.md)).
@@ -215,6 +222,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   string key had left every weight at the regular).
 
 ## Open
+- **A first start's shader compilation** (2026-11-10): 14 s of the 18 s first start here, about ten times that with
+  Metal on a Mac. Godot compiles a material's shaders when it is first drawn; the steps spread it over named frames,
+  but a frame cannot show progress inside it. Open: warming the flight's materials in the front end (Home, the
+  briefing) on the first start after an update.
 - **CI for the sim (2026-11-09):** [ci.md](ci.md) recommends parse-checking `modern-iaf/` in the godot job and adding
   `modern-iaf/tests/` to the sweep; the workflow is unchanged.
 - **[D3](plan.md#d3-f-15c-baz-at-tel-nof), the Baz is not flyable:** it has no 3D cockpit and no model of its own,

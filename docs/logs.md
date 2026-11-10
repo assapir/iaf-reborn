@@ -23,7 +23,7 @@ Godot writes everything the game prints, and every error and warning, with the s
   size and UI scale; this log's path and the assets folder; every setting changed from the default, the Physics
   switches on and the Better cockpit items off (`Settings.changed_settings()`).
 - **At a flight's start** (`terrain_view.gd`): the mission number and name, the player's entity and flight; the jet
-  (flight-model section, type code, model, cockpit) and the arming loadouts; the blackbox file.
+  (flight-model section, type code, model, cockpit) and the Arming screen's picks; the blackbox file.
 - **During the flight:** a crash with its reason, an ejection, a jump to another aircraft.
 - **At the flight's end:** the mission, debrief or exit, and the sim time flown.
 - **A stall:** a frame longer than 250 ms gets a `stall:` line with its length, the scene (in the menus, the screen)
@@ -32,6 +32,19 @@ Godot writes everything the game prints, and every error and warning, with the s
   before its first scene show the scene as `?`.
 - **A Rust panic** in the extension: godot-rust's error line (the message and its source file and line), then
   `[panic backtrace]` with the call stack by function name (the hook in `crates/iaf-godot/src/lib.rs`).
+
+- **The flight's loading** (`terrain_view.gd`): each step with its time since the loading screen opened
+  (`loading: terrain at 2250 ms`), each sub-step with its own time (`loading:   cockpit cut 213 ms`), the end
+  (`loading: done at 4199 ms`); the stores as loaded, per station (`stores: 1 AIM-9M x1, …`). Modern IAF's watchdog
+  adds `hang:` lines (modern-iaf/docs/front-end.md §7).
+
+**Modern IAF's log** (`shared/util/timed_log.gd`, since 2026-11-10) starts every line with the local wall-clock time,
+`HH:MM:SS.mmm`, so a stall shows as a gap. Its project turns Godot's own file log off and the sim writes the log
+itself, at the same path (`<user>/logs/godot.log`, `<user>` the "Modern IAF" folder) with the same rotation (the newest
+30). It misses only what Godot prints before the scripts load (Godot's first line and the GPU's line; the startup lines
+repeat both). Its own thread prints `hang: no frame for 30 s; loading step <step>, after <sub-step>` when the main
+thread draws no frame for 30 s. A scripted run (`IAF_DEFAULT_SETTINGS=1`, with `--log-file`) gets Godot's log there,
+without the times. The original game's log is unchanged.
 
 A test or tool run with `--log-file` writes its log there instead; the startup line still names the default path
 (Godot does not show scripts that argument).

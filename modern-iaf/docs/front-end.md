@@ -251,22 +251,48 @@ The screen is one panel in the front end's look (§4, `modern-iaf/menu/look.gd`)
   (`terrain_view.gd _loading_step` → the screen's `step(name, done)`); the bar takes each phase's share (`STEPS`),
   smoothed and never going back. The original game's screen shows the ground's progress alone, as before.
 
-| step | what loads | share of the bar | measured |
-|---|---|---|---|
-| The jet and its cockpit | the start, the player's jet and its cockpit, the ground preloaded by the front end handed over | 0–1 % | 0.02 s |
-| Buildings, trees and sounds | the models' detail textures, the scenery's materials drawn once, the sounds, the radio, the training run | 1–11 % | 2.1 s |
-| Effects and damage | explosions, smoke trails, the systems damage | 11–16 % | 1.1 s |
-| The flight model | the flight overlay, the flight model's start | 16–17 % | 0.2 s |
-| The jet on the ground, its weapons and views | the jet placed, the views, the weapons | 17–52 % | 7.6 s |
-| The ground around the base | the terrain near the jet at full detail (`ground_progress()`) | 52–78 % | 5.8 s |
-| The mission's models | the mission's models parsed ahead | 78–80 % | none left |
-| The views | the external view drawn once for its shaders, the last scenery | 80–100 % | 4.9 s |
+| step | what loads | share of the bar | first start | warm |
+|---|---|---|---|---|
+| The mission | the start, the player's jet chosen, its models (the jet, the 3D cockpit, the pilot's body, the stores, the mission's) handed to worker threads to parse (`TerrainPreload.prefetch_flight`) | 0–1 % | 0.3 s | 0.3 s |
+| Buildings, trees and sounds | the models' detail textures, the scenery's materials drawn once, the sounds, the radio, the training run | 1–5 % | 1.3 s | 1.1 s |
+| Effects and damage | explosions, smoke trails, the systems damage, drawn once | 5–15 % | 3.7 s | 0.3 s |
+| The flight model | the flight overlay, the flight model's start | 15–27 % | 1.6 s | 0.1 s |
+| The jet | the jet model, placed and drawn once | 27–32 % | 0.2 s | 0.2 s |
+| The cockpit | the cockpit cut from the jet model, the 3D cockpit and the pilot's body, drawn once | 32–38 % | 2.6 s | 0.6 s |
+| The weapons and the views | the views, the weapons and their stores, the cockpit and the HUD drawn once | 38–75 % | 4.1 s | 0.1 s |
+| The ground around the base | the terrain near the jet at full detail (`ground_progress()`) | 75–88 % | 4.3 s | 1.8 s |
+| The mission's models | the mission's models parsed ahead | 88–90 % | none left | none left |
+| The views | the external view drawn once for its shaders, the last scenery | 90–100 % | 0.3 s | 0.3 s |
+| **The start** | from the flight scene to the flight | | **18.1 s** | **4.4 s** |
 
-The shares follow one measured start on the development laptop (Intel Iris Xe, a real window, 2026-11-09): Ramon's
-start-up from Fly.start to the flight, 21.8 s, its steps logged as above. Before, the bar sat at 0 % through the build
-(the flight fed it only once the build was done) and then jumped with the ground.
+Measured on the development laptop (Intel Iris Xe, a real window, `--mission 2012`, 2026-11-10). "First start": a new
+`user://` (Godot's shader cache empty) with Mesa's cache off; "warm": the same again. Most of a first start is the
+graphics' shaders, compiled by Godot as each part is first drawn (behind the loading screen); Godot keeps them in
+`user://shader_cache` for the next start. Before this change the same start took 26–48 s first and 5.1 s warm: the jet,
+its cockpit and its weapons came in one frame (11.9 s on a first start, 3.4 s warm, the jet and 3D cockpit models parsed
+on the main thread), and the bar sat on "The jet on the ground, its weapons and views" through it. On a Mac (Metal)
+the shaders compile about ten times slower: the same frame took 134 s there.
 
-Each new step is logged with its time since the screen opened (`loading: terrain at 11081 ms`).
+The steps split the work so that each part's first drawing falls in its own frame: the bar moves between them and the
+step under it names the part being prepared. A frame longer than 2 s (shaders being compiled) adds a line under the
+step: "A first start after an update prepares the graphics for this computer once: it takes longer." A single frame
+cannot show progress inside it: the drawing of the screen waits for the same compilation.
+
+The log names every step with its time since the screen opened (`loading: terrain at 2250 ms`), every sub-step with its
+own time (`loading:   cockpit cut 213 ms`), and the end (`loading: done at 4199 ms`).
+
+**The watchdog.** The loading must end. The screen opens the crash page (§11) and logs `hang: the loading stopped at
+<step> (<why>); waiting for <what>` (the ground's share, the near nodes still blocked, the height under the jet, the
+scenery, the models left to parse, the views) when:
+- the flight is paused under it (only the player's own pause or menu may pause it);
+- its step and progress do not change for 30 s while frames still run.
+
+A main thread that draws no frame for 30 s gets `hang: no frame for 30 s; loading step <step>, after <sub-step>` from
+the log's own thread (docs/logs.md §2): the line names what never returned.
+
+On 2026-11-10 the mission card (§8) opened at the start under the loading screen and froze the flight, so the loading
+never ended (the user's Mac, any computer with the card on). The card now opens once the loading screen is gone.
+Scripted runs fly without the card; `modern-iaf/tests/test_start_watch.gd` turns it on and checks it.
 
 In Hebrew the page is mirrored: the bar fills from the inline start, the right.
 
@@ -579,3 +605,34 @@ corner):
 | the take-off's Arming page | ![The Sufa's front view with its stores](pictures/front-end/stores_2012_en.webp) | ![The Sufa's arming in Hebrew](pictures/front-end/stores_2012_he.webp) |
 | the Barak's Arming page (take-off from Ramat David) | ![The Barak's front view with its stores](pictures/front-end/stores_f16d_en.webp) | ![The Barak's arming in Hebrew](pictures/front-end/stores_f16d_he.webp) |
 | the Adir's Arming page (take-off from Nevatim) | ![The Adir's front view](pictures/front-end/stores_f35i_en.webp) | ![The Adir's arming in Hebrew](pictures/front-end/stores_f35i_he.webp) |
+
+## 11. The crash page
+
+Every failure the sim cannot go on from ends on one page, never in an empty world or a loading screen that never ends
+(the user, 2026-11-10: "every error is a crash"). `Settings.crash(what, step)` (`modern-iaf/sim_settings.gd`) opens
+it over everything, on its own canvas layer, and pauses the game under it. `modern-iaf/menu/crash_page.gd` draws it in
+the front end's look (§4), mirrored in Hebrew. It shows:
+
+- the title "Modern IAF stopped" ("הזרוע הארוכה נעצרה");
+- what failed, in one line;
+- the loading step it happened in, when it happened during a flight's start;
+- the log file's path (docs/logs.md);
+- **Report the problem on GitHub:** opens a new issue on `github.com/assapir/iaf-reborn` in the browser
+  (`OS.shell_open`). The title is the failure's line. The body holds the step, the build (the extension's commit, the
+  Godot version), the OS and its version, the GPU, its vendor, the renderer and the driver API, then the log's last 60
+  lines. The link stays within 8,000 characters: the log's oldest lines go first;
+- **Quit.**
+
+What opens it:
+
+| failure | where |
+|---|---|
+| any error (`push_error`, a script error, an engine error) while a flight starts | the timed log (`shared/util/timed_log.gd`) hands it to `Settings`; `Settings.loading_step` set from the flight scene's start to the end of its loading |
+| the loading stopped (paused under the screen, or no progress for 30 s) | the loading screen's watchdog (§7) |
+| a mission the compiled list lacks | `flight/fly.gd start` |
+| the terrain's `meta.json` missing | `shared/terrain/terrain.gd` |
+
+The original game keeps its behaviour: there `Settings.crash` does nothing more than the error already in the log.
+
+`modern-iaf/tests/test_start_watch.gd` opens it twice headless (a pause under the loading screen, a missing mission) and checks
+the issue link's title and body fields, its length cut, and both buttons.

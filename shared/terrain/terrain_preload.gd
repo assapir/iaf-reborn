@@ -158,6 +158,13 @@ static func prefetch_flight(id: int, flight := 0) -> void:
 		)
 	# An extra plane's borrowed parts (the F-35I's pilot): the original's file itself, also with a detailed stand-in.
 	var borrowed: Array = aircraft_model.borrowed_models(d) if not d.is_empty() else []
+	# The 3D cockpit and its pilot's body (cockpit3d.gd setup), opened as files.
+	var c3d: String = _script("res://shared/cockpit/cockpit3d.gd").model_for(jet)
+	if c3d != "":
+		borrowed.append(c3d)
+		var body := c3d.get_basename() + "_pilot.glb"
+		if Settings.cockpit_pilot_body() and FileAccess.file_exists(body):
+			borrowed.append(body)
 	gltf.drop_ahead(models + borrowed)  # the last choice's
 	gltf.parse_ahead(models)
 	for b in borrowed:

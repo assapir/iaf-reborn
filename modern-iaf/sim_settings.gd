@@ -75,6 +75,8 @@ const OWN_CONVERTED := ["own/", "terrain/israel/", "modern-iaf/", "missions/sim.
 
 ## The original game's paths refused since the start (converted(), install()): the M0 probe fails on any.
 var rejected: PackedStringArray = []
+## The mission card opens at a flight's start (flight/sim_flight.gd); scripted runs fly on without it, a test sets it.
+var card_at_start := not isolated()
 
 ## The cockpit dirs' root: under assets/ (relative) or absolute (a test's).
 var own_cockpits := "converted/own/cockpits"
@@ -195,6 +197,30 @@ func converted(rel: String) -> String:
 			return super(rel)
 	_refuse("converted/" + rel)
 	return install_dir().path_join("converted").path_join(rel)
+
+
+## The crash page (menu/crash_page.gd, modern-iaf/docs/front-end.md §11) over everything, the game paused under it;
+## once.
+var crashed := false
+
+
+func crash(what: String, step := "") -> void:
+	if crashed:
+		return
+	crashed = true
+	print("crash: %s%s" % [what, " (loading step %s)" % step if step != "" else ""])
+	var page: Control = load("res://menu/crash_page.gd").new()
+	page.what = what
+	page.step = step
+	page.log_path = timed_log.path if timed_log != null and timed_log.path != "" else "(--log-file)"
+	page.log_lines = timed_log.tail() if timed_log != null else ([] as Array[String])
+	var layer := CanvasLayer.new()
+	layer.name = "Crash"
+	layer.layer = 128
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	layer.add_child(page)
+	get_tree().root.add_child.call_deferred(layer)
+	get_tree().paused = true
 
 
 ## Only the sim's own data exists for it: false for the rest, without a refusal (a probe, not a read).

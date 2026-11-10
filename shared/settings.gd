@@ -440,6 +440,7 @@ func isolated() -> bool:
 
 
 func _init() -> void:
+	_install_log()
 	for id in BETTER:
 		better[id] = false
 	for id in BETTER_COCKPIT:
@@ -1228,6 +1229,48 @@ func wait_for_loads() -> void:
 		await get_tree().process_frame
 
 
+## The timed game log (util/timed_log.gd, docs/logs.md §2): installed when the project turns Godot's file log off
+## (Modern IAF); null otherwise (the original game's log is Godot's own).
+var timed_log: Logger
+## The flight's loading step under way ("step / sub-step", terrain_view.gd), "" outside a flight's start: the hang
+## line names it, and an error while it is set is a crash (crash()).
+var loading_step := "":
+	set(v):
+		loading_step = v
+		if timed_log != null:
+			timed_log.step = v
+
+## Once per run: a test's own Settings.new() installs none.
+static var _log_installed := false
+
+
+func _install_log() -> void:
+	if _log_installed or ProjectSettings.get_setting_with_override("debug/file_logging/enable_file_logging"):
+		return
+	_log_installed = true
+	timed_log = preload("res://shared/util/timed_log.gd").new()
+	# Scripted runs (IAF_DEFAULT_SETTINGS, always with --log-file, which Godot writes itself) leave the player's logs.
+	if not isolated():
+		timed_log.open(
+			ProjectSettings.get_setting("debug/file_logging/log_path", "user://logs/godot.log"),
+			ProjectSettings.get_setting("debug/file_logging/max_log_files", 5)
+		)
+	timed_log.on_error = _on_logged_error
+	OS.add_logger(timed_log)
+	timed_log.start_watch()
+
+
+func _on_logged_error(what: String) -> void:
+	if loading_step != "":
+		crash(what, loading_step)
+
+
+## A failure the game cannot go on from (`what` in one line, `step` the loading step it happened in). The original
+## game: the error in the log is all (unchanged); Modern IAF shows its crash page (sim_settings.gd).
+func crash(_what: String, _step := "") -> void:
+	pass
+
+
 ## A stall in the game log (docs/logs.md): a frame longer than STALL_MS gets a line with its length, the scene (the
 ## front end's screen) and the last mouse click, so a freeze reported from play shows what led to it.
 const STALL_MS := 250
@@ -1256,6 +1299,8 @@ func _process(_delta: float) -> void:
 			"stall: %d ms in %s; last click %s, %d ms before" % [now - _frame_at, where, _last_click, now - _click_at]
 		)
 	_frame_at = now
+	if timed_log != null:
+		timed_log.frame_at = now
 
 
 func _notification(what: int) -> void:
@@ -1275,6 +1320,9 @@ func _exit_tree() -> void:
 		["res://shared/terrain/terrain_preload.gd", "finish_prepare"],
 	]:
 		load(f[0]).call(f[1])
+	if timed_log != null:
+		timed_log.stop_watch()  # its thread joined before the quit
+		OS.remove_logger(timed_log)
 
 
 func _free_sounds() -> void:

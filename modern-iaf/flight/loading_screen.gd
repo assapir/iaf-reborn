@@ -11,18 +11,27 @@ const CANVAS_H := 1080.0
 ## Smoothing of the shown progress (per second, exponential), as the original's.
 const SMOOTH := 8.0
 ## The flight's loading phases in order (terrain_view.gd _loading_step), each with its share of the bar [from, to]:
-## the build over five frames, then the wait for the ground at full detail, the mission's models and the views'
-## shaders. The shares follow a measured start (front-end.md §7: Ramon's start-up, 2026-11-09).
+## the build over seven frames, then the wait for the ground at full detail, the mission's models and the views'
+## shaders. The shares follow a measured first start, its shaders compiled as each part is first drawn (front-end.md
+## §7: Ramon's take-off, 2026-11-10).
 const STEPS := {
 	"cockpit": [0.0, 0.01],
-	"scenery": [0.01, 0.11],
-	"effects": [0.11, 0.16],
-	"flight_model": [0.16, 0.17],
-	"jet": [0.17, 0.52],
-	"terrain": [0.52, 0.78],
-	"models": [0.78, 0.8],
-	"views": [0.8, 1.0],
+	"scenery": [0.01, 0.05],
+	"effects": [0.05, 0.15],
+	"flight_model": [0.15, 0.27],
+	"jet": [0.27, 0.32],
+	"jet_cockpit": [0.32, 0.38],
+	"jet_weapons": [0.38, 0.75],
+	"terrain": [0.75, 0.88],
+	"models": [0.88, 0.9],
+	"views": [0.9, 1.0],
 }
+## A frame this long (ms) means the graphics' shaders are being compiled (a first start, or after an update): the
+## screen then says so under the step.
+const SLOW_FRAME_MS := 2000
+## The watchdog: a loading that shows no progress for this long (ms, frames still running) is a crash (Settings.crash),
+## logged with what the flight waits for (terrain_view.gd loading_waits).
+const STUCK_MS := 30000
 
 ## Progress 0..1 (set by the flight every frame; the steps' take its place once the first arrives).
 var progress := 0.0
@@ -34,6 +43,11 @@ var _page: Control
 var _step_label: Label
 var _strings := {}
 var _t0 := Time.get_ticks_msec()
+var _frame_at := 0
+var _moved_at := Time.get_ticks_msec()
+var _last_seen := ""
+var _stuck := false
+var _slow: Label
 
 
 ## Nothing to decode ahead (terrain_preload.gd calls the loading screen's prefetch()).
@@ -42,6 +56,7 @@ static func prefetch() -> void:
 
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS  # the watchdog runs while the flight is paused too
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var he := Settings.language == "he"
@@ -81,6 +96,9 @@ func _ready() -> void:
 	box.add_child(_bar)
 	_step_label = _label(box, "Muted", "")
 	_step_label.name = "Step"
+	_slow = _label(box, "Muted", str(strings.get("loading_slow", "")))
+	_slow.name = "Slow"
+	_slow.visible = false
 	if current != "":
 		_step_label.text = str(_strings.get("loading_" + current, ""))
 	_fit()
@@ -126,3 +144,40 @@ func step(name: String, done := 0.0) -> void:
 func _process(delta: float) -> void:
 	_target = maxf(_target, clampf(progress, 0.0, 1.0))  # the peak: the bar never goes back, as the original's
 	_bar.value += (_target - _bar.value) * (1.0 - exp(-SMOOTH * delta))
+	var now := Time.get_ticks_msec()
+	var gap := now - _frame_at if _frame_at > 0 else 0
+	_frame_at = now
+	if gap > SLOW_FRAME_MS:
+		_slow.visible = true
+	# A long frame is work done (shaders compiled): the watchdog counts it as progress.
+	var seen := "%s %.4f" % [current, progress]
+	if seen != _last_seen or gap > SLOW_FRAME_MS:
+		_last_seen = seen
+		_moved_at = now
+	if not _stuck:
+		_watch(now)
+
+
+## The watchdog: a pause under this screen stops the loading for good (the mission card's freeze did, 2026-11-10; the
+## player's own pause, menu, front end and message box are theirs), and so does a step with no progress for STUCK_MS.
+## Either is logged with what the flight waits for and opens the crash page.
+func _watch(now: int) -> void:
+	var host := get_parent().get_parent() if get_parent() != null else null
+	# The player's own pause, in-flight menu, front end (Esc) or message box: theirs, no progress expected meanwhile.
+	var players: bool = (
+		host != null
+		and (
+			host.get("paused") or host.get("menu_open") or host.get("fe_overlay") != null or host.get("_msgbox") != null
+		)
+	)
+	if get_tree().paused and players:
+		_moved_at = now
+		return
+	var frozen: bool = get_tree().paused and host != null and host.get("waiting_for_ground") == true
+	if not frozen and now - _moved_at <= STUCK_MS:
+		return
+	_stuck = true
+	var waits: String = host.loading_waits() if host != null and host.has_method("loading_waits") else "?"
+	var why := "the flight paused under it" if frozen else "no progress for %d s" % (STUCK_MS / 1000)
+	print("hang: the loading stopped at %s (%s); waiting for %s" % [current, why, waits])
+	Settings.crash('The loading stopped at "%s" (%s): %s' % [current, why, waits], current)

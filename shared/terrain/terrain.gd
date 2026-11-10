@@ -195,6 +195,7 @@ func _ready() -> void:
 		prepare()
 	if meta.is_empty():
 		push_error("terrain: %s/meta.json not found — run tools/setup-cli.sh (iaf-terrain theatre)" % dir)
+		Settings.crash("The ground's data is missing: %s/meta.json" % dir)  # Modern IAF's crash page; the original: logged
 		return
 	IafHeights.set_meta(
 		{

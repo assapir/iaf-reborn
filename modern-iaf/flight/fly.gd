@@ -11,8 +11,7 @@ func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	var at := args.find("--mission")
 	var want := args[at + 1] if at >= 0 and at + 1 < args.size() else "2011"
-	if not start(int(want) if want.is_valid_int() else -1):
-		get_tree().quit(1)
+	start(int(want) if want.is_valid_int() else -1)  # a failure opens the crash page
 
 
 ## Loads mission `id` (its menu id) and changes to the flight scene; false when the compiled missions lack it.
@@ -20,7 +19,7 @@ static func start(id: int) -> bool:
 	var dir: String = Settings.converted(Settings.missions_folder())
 	var list := Settings.load_json(dir.path_join("missionlist.json"))
 	if not list.has(str(id)):
-		push_error("no Modern IAF mission %d in %s" % [id, dir])
+		Settings.crash("No Modern IAF mission %d in %s: run ./modern-iaf-setup" % [id, dir])
 		return false
 	var name := String(list[str(id)][0])
 	var m := Settings.load_json(dir.path_join(name + ".json"))

@@ -143,9 +143,10 @@ func _ready() -> void:
 	add_child(layer)
 	ui = FlightUi.new(host)
 	layer.add_child(ui)
-	# The card opens at the start; scripted runs (IAF_DEFAULT_SETTINGS) fly on without it.
-	if not Settings.isolated():
-		ui.open_card.call_deferred(_sim)
+	# The card opens at the start, once the loading screen is gone: it freezes the flight, which would stop the loading
+	# under the screen for good (the 2026-11-10 hang at "the jet"). Scripted runs (IAF_DEFAULT_SETTINGS) fly on without it.
+	if Settings.card_at_start:
+		_card_after_loading()
 	if not checklist.is_empty():
 		_build_card()
 
@@ -469,6 +470,13 @@ func _idle_key(cmd: Array) -> void:
 
 func _steps() -> Array:
 	return checklist.map(func(c): return String(c.step))
+
+
+func _card_after_loading() -> void:
+	while is_inside_tree() and host.waiting_for_ground:
+		await get_tree().process_frame
+	if is_inside_tree():
+		ui.open_card(_sim)
 
 
 func _build_card() -> void:

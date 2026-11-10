@@ -346,19 +346,29 @@ func _ready() -> void:
 	chase.fov = 60.0
 	var args := OS.get_cmdline_user_args()
 	_choose_start(args)
+	_lap("start")
 	_choose_player()
+	_lap("player")
+	# The jet's, its cockpit's and the mission's models parsed on worker threads meanwhile (done already when the front
+	# end preloaded this flight: Modern IAF's Fly does not).
+	TerrainPreload.prefetch_flight(mission_id, Settings.player_flight)
+	_lap("prefetch")
 	# The ground the front end preloaded around the start (briefing / TSD time).
 	TerrainPreload.hand_over(terrain)
+	_lap("ground hand-over")
 	_parse_ahead()  # the mission's models: those the mission screens did not parse start now, during the build
+	_lap("models queued")
 	# The rest of the flight is built over the next five frames, so the loading screen shows first and no frame is long
 	# (~0.85 s in one otherwise). Meanwhile only the terrain and the loading screen run (_hold).
 	_hold(true)
 	_loading_step("scenery")
 	if not await _next_frame(true):
 		return
+	_lap("frame")
 	# Model detail (docs/rendering.md §9): its textures (preloaded by the front end) and shaders drawn once behind the
 	# loading screen.
 	Gltf.ModelDetail.preload_packs()
+	_lap("detail packs")
 	for cam in [camera, chase]:
 		var w = Gltf.ModelDetail.warm_up(cam)
 		if w != null:
@@ -367,6 +377,7 @@ func _ready() -> void:
 		var sw = Scenery.warm_up(cam, terrain.layers)
 		if sw != null:
 			_warm_up.append(sw)
+	_lap("warm-up scenes")
 	if args.has("--external"):
 		_start_external = true
 	# Test poses: --orbit yaw pitch dist (degrees, metres), --gear.
@@ -381,9 +392,11 @@ func _ready() -> void:
 	g_effects = preload("res://shared/cockpit/g_effects.gd").new()
 	g_effects.disabled = Settings.no_blackouts
 	$CockpitLayer.add_child(g_effects)
+	_lap("g effects")
 	# In-flight sounds of your jet (shared/audio/flight_sounds.gd, docs/sound.md); polls this node.
 	sounds = FlightSounds.create(self, player.type)
 	add_child(sounds)
+	_lap("sounds")
 	# The radio (docs/radio.md): tower, wingman commands, waypoint / eject reports.
 	radio = preload("res://shared/audio/radio.gd").new()
 	radio.host = self
@@ -392,13 +405,16 @@ func _ready() -> void:
 	addon = Settings.flight_addon(self)
 	if addon != null:
 		add_child(addon)
+	_lap("radio, addon")
 	_loading_step("effects")
 	if not await _next_frame():
 		return
+	_lap("frame")
 	# OBJECT DETAIL (docs/front-end.md §12.4): the level the model loader and the LOD switch use.
 	Gltf.object_level = Gltf.detail_level(float(Settings.object_detail))
 	# Explosions, debris and smoke (docs/damage.md §6) and the player's systems damage (§5).
 	apply_render_options()
+	_lap("render options")
 	# SMOKE TRAILS (pref +0x48, FUN_004da090): missile / rocket trails with the motor glow, wingtip vortices.
 	if Settings.smoke_trails:
 		trails = preload("res://shared/mission/trails.gd").new()
@@ -407,6 +423,7 @@ func _ready() -> void:
 	effects.ground_at = scene_ground
 	add_child(effects)
 	_warm_up.append(effects.warm_up(camera))
+	_lap("effects")
 	if trails != null:
 		trails.gpu = effects.gpu
 	player_damage = PlayerDamage.new()
@@ -418,6 +435,7 @@ func _ready() -> void:
 	_loading_step("flight_model")
 	if not await _next_frame():
 		return
+	_lap("frame")
 	var ol := CanvasLayer.new()
 	ol.layer = 15
 	ol.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -433,14 +451,34 @@ func _ready() -> void:
 		town_labels = TownLabels.new()
 		town_labels.host = self
 		tl.add_child(town_labels)
+	_lap("overlay")
 	_start_flight()
+	_lap("flight model")
 	_apply_view()
+	_lap("view")
 	_loading_step("jet")
 	if not await _next_frame():
 		return
+	_lap("frame")
+	# The jet, its cockpit and its weapons each in a frame of its own: a first start compiles each one's shaders as it is
+	# first drawn (behind the loading screen), so the bar moves between them and names the one under way.
 	_spawn_player()
+	_loading_step("jet_cockpit")
+	if not await _next_frame():
+		return
+	_lap("frame")
+	_spawn_cockpit()
+	_lap("jet and cockpit")
+	_loading_step("jet_weapons")
+	if not await _next_frame():
+		return
+	_lap("frame")
 	_setup_views(args)
 	_setup_weapons()
+	_lap("weapons")
+	# The stores as loaded, per station (the line above names only the Arming screen's own picks).
+	var st: Dictionary = weapons.stores.stations
+	print("stores: %s" % ", ".join(st.keys().map(func(i): return "%d %s x%d" % [i, st[i].w.name, st[i].count])))
 	if flight != null and aircraft != null:
 		# The model's `height` helper: how far the wheels reach below the aircraft origin.
 		var h := aircraft.find_child("height", true, false) as Node3D
@@ -448,6 +486,7 @@ func _ready() -> void:
 		flight.set_true_gear_clearance(-h.position.y if h != null else 0.0)
 	if not await _next_frame():
 		return
+	_lap("frame")
 	_hold(false)
 	var shot := args.find("--screenshot")
 	if shot >= 0:
@@ -464,9 +503,47 @@ var _start_external := false
 var _orbit_arg := -1
 
 
-## The loading phase now under way, for a loading screen that names its steps (Modern IAF's, modern-iaf/docs/front-end.md
-## §7: `step(name, done 0..1)`); the original's screen shows the ground's progress alone.
+## The loading's sub-steps logged with their time (`loading:   jet and cockpit 812 ms`), the long ones found; the
+## watchdog's hang line (Settings.loading_step) names the last one done.
+func _lap(what: String) -> void:
+	if _loading == null:
+		return  # a jet switch in flight (_take_over)
+	var now := Time.get_ticks_msec()
+	print("loading:   %s %d ms" % [what, now - _lap_at])
+	_lap_at = now
+	Settings.loading_step = "%s, after %s" % [_step_name, what.strip_edges()]
+
+
+var _lap_at := Time.get_ticks_msec()
+var _build_at := Time.get_ticks_msec()
+var _step_name := ""
+
+
+## What the flight's start still waits for, for the loading watchdog's log line (modern-iaf/flight/loading_screen.gd).
+func loading_waits() -> String:
+	var g = terrain.height_at(rig.position)
+	return (
+		(
+			"tree paused %s, flight model %s, ground %.0f %% (%d near nodes blocked, height under the jet %s, scenery %s), "
+			% [
+				get_tree().paused,
+				flight != null,
+				100.0 * terrain.ground_progress(),
+				terrain._blocked_near,
+				"none" if g == null else "%.1f m" % g,
+				"none" if terrain.scenery == null else str(terrain.scenery.ground_ready()),
+			]
+		)
+		+ ("models to parse %d, views warmed %d" % [_parse_queue.size() if _parse_queue != null else -1, _views_warmed])
+	)
+
+
+## The loading phase now under way, for a loading screen that names its steps (Modern IAF's,
+## modern-iaf/docs/front-end.md §7: `step(name, done 0..1)`); the original's screen shows the ground's progress alone.
 func _loading_step(step: String, done := 0.0) -> void:
+	if step != _step_name and _loading != null:
+		_step_name = step
+		Settings.loading_step = step
 	if _loading != null and _loading.get_child(0).has_method("step"):
 		_loading.get_child(0).step(step, done)
 
@@ -988,7 +1065,7 @@ func _choose_player() -> void:
 		print("jet type %d is AI-only (as in the original): flying the %s" % [jet, player.fm_section])
 	print(
 		(
-			"jet: %s (type %d, model %s, cockpit %s), loadouts %s"
+			"jet: %s (type %d, model %s, cockpit %s), Arming picks %s"
 			% [player.fm_section, player.type, player.plane, player.cockpit_dir, Settings.arm_loadouts]
 		)
 	)
@@ -1797,6 +1874,7 @@ func _end_flight(debrief: bool, auto := "") -> void:
 
 
 func _exit_tree() -> void:
+	Settings.loading_step = ""
 	if Joystick.consumer == self:
 		Joystick.consumer = null
 	Settings.clear_runway_wind()  # the next flight picks its wind and runways again
@@ -2034,6 +2112,7 @@ func _ground_normal_z(p: Vector3) -> float:
 func _spawn_player() -> void:
 	# Generic aircraft model (docs/aircraft.md): the player's plane and type; ground-start ramps on the ground.
 	aircraft = AircraftModel.create(player.plane, player.type, not start_airborne)
+	_lap("jet model")
 	if aircraft == null:
 		return
 	# The original draws every model at its Present-record scale (0x65e, ×2 for the F-16), the player's jet
@@ -2041,6 +2120,12 @@ func _spawn_player() -> void:
 	aircraft.scale = Vector3.ONE * Settings.model_scale(_player_model_scale())  # true size in Real 1:1
 	# Your own jet rides on the rig; converted models face -Z like Godot, so no rotation needed.
 	rig.add_child(aircraft)
+
+
+## The cockpit seen from inside the player's jet (_spawn_player's aircraft): the cockpit-view model, the 3D cockpit.
+func _spawn_cockpit() -> void:
+	if aircraft == null:
+		return
 	# Seen from the cockpit (FUN_004d9d70 → FUN_004da060: display slot 4 = model [8], the *_BC.X, with the crew's
 	# cockpit flag set so pilot and canopy stay hidden): same frame and Present scale as the jet model.
 	# Ours, the 3D cockpit (Extras "Cockpit": 3D): the F-16's hung in the detailed F-16's cut model, Models Original
@@ -2062,6 +2147,7 @@ func _spawn_player() -> void:
 		hd = Gltf.DETAILED["f16_h.gltf"]
 	if hd != "" and hd in [Gltf.DETAILED["f16_h.gltf"], Gltf.variant_model("f16_h.gltf")]:
 		var cut: Array = AircraftModel.detailed_cockpit(hd, three_d)
+		_lap("cockpit cut")
 		own_bc = cut[0]
 		own_bc.scale = aircraft.scale
 		_own_eye = cut[1]
@@ -2085,6 +2171,7 @@ func _spawn_player() -> void:
 		(cockpit_origin.rig if cockpit_origin != null else rig).add_child(own_bc)
 		if cockpit_origin != null:
 			cockpit_origin.show_with(own_bc)
+		_lap("cockpit world")
 		if c3d_model != "":
 			cockpit_3d = Cockpit3d.new()
 			cockpit_3d.command = _press
@@ -2097,6 +2184,7 @@ func _spawn_player() -> void:
 		for frame: Node3D in own_bc.find_children("*_bc_frame", "Node3D", true, false):
 			frame.visible = cockpit_3d == null
 		# Ours (Night lights = Detailed): the wingtip / tail lights and the strobe on it too, at its own tips and fin top.
+		_lap("3D cockpit")
 		aircraft.attach_nav_lights(own_bc)
 	# The 3D cockpit's free look reaches down to its panel (views.gd pitch_min).
 	views.pitch_min = Views.HEAD_PITCH_MIN_3D if cockpit_3d != null else Views.HEAD_PITCH_MIN
@@ -3050,6 +3138,7 @@ func _take_over(target: Dictionary, old: Dictionary) -> void:
 	own_bc = null
 	_own_eye = null
 	_spawn_player()
+	_spawn_cockpit()
 	if aircraft != null:
 		var h := aircraft.find_child("height", true, false) as Node3D
 		flight.set_gear_clearance(-h.position.y * aircraft.scale.y if h != null else 0.0)
@@ -3583,6 +3672,8 @@ func _process(delta: float) -> void:
 			if _loading != null:
 				_loading.queue_free()
 				_loading = null
+			print("loading: done at %d ms" % (Time.get_ticks_msec() - _build_at))
+			Settings.loading_step = ""
 			for w in _warm_up:
 				w.queue_free()
 			_warm_up.clear()

@@ -20,6 +20,8 @@ boot_splash/bg_color=Color(0.113725, 0.12549, 0.145098, 1)
 
 [debug]
 
+file_logging/enable_file_logging=false
+file_logging/enable_file_logging.pc=false
 file_logging/max_log_files=30
 
 [audio]
