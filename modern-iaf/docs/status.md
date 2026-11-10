@@ -222,10 +222,14 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   string key had left every weight at the regular).
 
 ## Open
-- **A first start's shader compilation** (2026-11-10): 14 s of the 18 s first start here, about ten times that with
-  Metal on a Mac. Godot compiles a material's shaders when it is first drawn; the steps spread it over named frames,
-  but a frame cannot show progress inside it. Open: warming the flight's materials in the front end (Home, the
-  briefing) on the first start after an update.
+- **A first start's shader compilation** (2026-11-10): 14 s of the 18 s first start here; with Metal on a Mac it
+  takes about ten times as long. Godot compiles a material's shaders when the material is first drawn. The loading
+  steps spread this work over named frames, but a single frame cannot show progress while it compiles. Godot keeps the
+  compiled shaders across restarts (`user://shader_cache`, the driver's pipeline cache in `user://vulkan`): the next
+  start is the warm 4.4 s. A warm-up in the front end was weighed and not built (2026-11-10). The compilation blocks
+  the main thread wherever it runs, so the wait would move from the loading screen to a frozen menu; it would not get
+  shorter. What remains open: compiling shaders off the main thread, which needs Godot's export-time shader baking
+  (Godot 4.5+, for exported builds only).
 - **CI for the sim (2026-11-09):** [ci.md](ci.md) recommends parse-checking `modern-iaf/` in the godot job and adding
   `modern-iaf/tests/` to the sweep; the workflow is unchanged.
 - **[D3](plan.md#d3-f-15c-baz-at-tel-nof), the Baz is not flyable:** it has no 3D cockpit and no model of its own,
