@@ -97,6 +97,12 @@ impl IafPilotLog {
         with(&db, |c| pilot_log::reset(c, pilot)).is_some()
     }
 
+    /// Deletes the pilot with its sorties, debriefs, loadouts and picture; false when it could not.
+    #[func]
+    fn delete_pilot(db: GString, pilot: i64) -> bool {
+        with(&db, |c| pilot_log::delete_pilot(c, Path::new(&db.to_string()), pilot)).is_some()
+    }
+
     /// The pilots with a name as a JSON array of {id, name, nickname, picture}.
     #[func]
     fn pilots(db: GString) -> GString {

@@ -131,8 +131,10 @@ static func make(rtl := false) -> Theme:
 	_button(t, "CrumbLink", crumb, crumb_on, box(Color(0, 0, 0, 0), ACCENT, 2, 5, Vector2(8, 4)))
 	for k in ["font_hover_color", "font_focus_color", "font_pressed_color", "font_hover_pressed_color"]:
 		t.set_color(k, "CrumbLink", TEXT)
-	# The pilot's name on Home, which opens the Pilot screen: a crumb's look in the name's weight.
+	# The pilot on Home (the nickname, the name, the picture), which opens the Pilot screen: a crumb's look, deeper
+	# while pressed.
 	_button(t, "PilotLink", crumb, crumb_on, box(Color(0, 0, 0, 0), ACCENT, 2, 5, Vector2(8, 4)))
+	t.set_stylebox("pressed", "PilotLink", box(Color(ACCENT, 0.32), Color(0, 0, 0, 0), 0, 5, Vector2(8, 4)))
 	# A text field (the Pilot screen's name and nickname): the dropdown's box.
 	t.set_stylebox("normal", "LineEdit", box(Color("2a2f37"), EDGE, 1, 5, Vector2(18, 10)))
 	t.set_stylebox("focus", "LineEdit", box(Color(0, 0, 0, 0), ACCENT, 2, 5, Vector2(18, 10)))

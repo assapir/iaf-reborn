@@ -19,13 +19,13 @@ The window opens plain in the front end's background colour (#1d2025, no Godot s
 
 | screen | what it does | English | Hebrew |
 |---|---|---|---|
-| Home | the sim's name, Missions, the menu: Pilot log, Preferences, Attributions, Quit; the pilot's nickname in the top bar with the name under it, no counts, no jet | ![Home](pictures/front-end/home_en.webp) | ![Home, Hebrew](pictures/front-end/home_he.webp) |
+| Home | the sim's name, Missions, the menu: Pilot log, Preferences, Attributions, Quit; the pilot in the top bar (the nickname, the name under it, the picture) as one button that opens the Pilot screen, no counts, no jet | ![Home](pictures/front-end/home_en.webp) | ![Home, Hebrew](pictures/front-end/home_he.webp) |
 | Pick a plane | the Sufa (Ramon, 253 Squadron), the Barak (Ramat David, 109 Squadron) and the Adir (Nevatim, 140 Squadron) in one row, each card with its code, name, base and squadron (airbases.md §3), then the Ra'am (Hatzerim, 69 Squadron) and the Baz (Tel Nof, 133 Squadron) greyed; the pick sets the jet everywhere and stays highlighted on the next visit | ![Pick a plane](pictures/front-end/plane_en.webp) | ![Pick a plane, Hebrew](pictures/front-end/plane_he.webp) |
 | Training | the programme: its missions with their last result and the progress | ![Training](pictures/front-end/training_en.webp) | ![Training, Hebrew](pictures/front-end/training_he.webp) |
 | Pick a mission | the missions beside the picked one's briefing (§10) on three pages: Briefing (base, runway and heading, time, wind, time allowed, objectives, how), Map (one zoomable map) and Arming (the jet's front view with its stores, its weights); Fly | ![Pick a mission](pictures/front-end/mission_en.webp) | ![Pick a mission, Hebrew](pictures/front-end/mission_he.webp) |
 | Preferences | the sections Graphics, Language, Sound and Devices listed at the inline start; the picked one's settings open beside them as controls: dropdown, switch, slider, radio list | ![Preferences](pictures/front-end/prefs_graphics_en.webp) | ![Preferences, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
 | Debrief | the record as a sheet: Plane flown, From, Time, Mission, Result, the mission's goals (a take-off: runway, lift-off and reference speed, centreline offset, tower calls; a start-up: none), Remarks (the fail reason first, or that it passed; the lift-off against the reference); Back to missions, Fly again | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
-| Pilot | Home → the pilot's name: the picture in a service ID photo's fixed 3:4 frame (a click on it, or Choose a picture…, opens the system's file dialog), the name and the nickname, and the logbook (§3); the footer's Reset the log, Change pilot, Back and Save (§3) | ![Pilot](pictures/front-end/pilot_en.webp) | ![Pilot, Hebrew](pictures/front-end/pilot_he.webp) |
+| Pilot | Home → the pilot: the picture in a service ID photo's fixed 3:4 frame (a click on it, or Choose a picture…, opens the system's file dialog), the name and the nickname, and the logbook (§3); the footer's Reset the log, Delete profile, Change pilot, Back and Save (§3) | ![Pilot](pictures/front-end/pilot_en.webp) | ![Pilot, Hebrew](pictures/front-end/pilot_he.webp) |
 | Create your pilot | the first start, before Home: the Pilot screen with Save only (§3) | ![Create your pilot](pictures/front-end/pilot_first_en.webp) | ![Create your pilot, Hebrew](pictures/front-end/pilot_first_he.webp) |
 | Reset the log | the Pilot screen's Reset: a warning modal, then a second confirm (§3) | ![Reset the log](pictures/front-end/pilot_reset_en.webp) | ![Reset the log, Hebrew](pictures/front-end/pilot_reset_he.webp) |
 | Pilots | the Pilot screen's Change pilot: every pilot with a name, the active one marked Current; New pilot (§3) | ![Pilots](pictures/front-end/pilots_en.webp) | ![Pilots, Hebrew](pictures/front-end/pilots_he.webp) |
@@ -103,7 +103,8 @@ base files, airbases.md §3). Making one flyable moves its row from `SOON` to `J
 
 The pilot's profile (the Pilot screen) is in the records database's `pilots` row ([storage.md](storage.md) §5): the
 name, the nickname and the picture, a copy of the chosen file in `pictures/` beside the database. Every screen's top
-bar shows the nickname, else the name, else the computer's user name; with a picture, the picture in a small 3:4
+bar shows the nickname, else the name, else the computer's user name; on Home the nickname, the name under it and
+the picture are one button (hover, pressed and focus in the crumbs' look) that opens the Pilot screen; with a picture, the picture in a small 3:4
 frame in place of the initials' disc. The picture keeps square corners and no round mask, as a service ID photo; it is
 cropped to fill the frame.
 
@@ -121,6 +122,11 @@ cropped to fill the frame.
 - **Reset the log** (greyed with no flights) opens a modal, "Reset the pilot log?" / "לאפס את יומן הטיסות?", then a
   second one, "Reset for good?" / "לאפס סופית?"; each has Reset / לאפס and Cancel, Cancel focused and Esc closing it.
   Reset deletes the pilot's sorties and their debriefs; the name, nickname and picture stay.
+- **Delete profile** opens a modal, "Delete the profile?" / "למחוק את הפרופיל?", then "Delete for good?" /
+  "למחוק סופית?", each with Delete / למחוק and Cancel. Delete removes the pilot: its sorties and debriefs, its
+  loadouts, its profile and its picture file (`IafPilotLog.delete_pilot`). The pilot list opens next, or Create your
+  pilot when no other pilot is left.
+- **The fields** show only their labels and hints, no text on where the nickname shows.
 - **Several pilots.** Change pilot opens the pilot list: each pilot with a name (picture or initials, nickname, name),
   Current on the active one. A click makes that pilot active and opens Home; New pilot opens the Pilot screen empty,
   and its Save makes the pilot and makes it active. The active pilot is `Settings.pilot_id`, kept in `settings.cfg`

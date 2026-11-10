@@ -76,6 +76,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the logbook per plane on the Pilot screen, Home with the name and nickname only (records schema version 3, the
   sortie's plane) ([front-end.md](front-end.md) §1, §3; [storage.md](storage.md) §5). `test_front_end.gd`, the
   pilot_log unit tests.
+- **Home's pilot block and Delete profile (2026-11-10):** Home's nickname, name and picture are one button to the
+  Pilot screen; the Pilot screen keeps only the fields' labels and hints; Delete profile removes the pilot, its log
+  and its picture after two confirms ([front-end.md](front-end.md) §1, §3). `test_front_end.gd`, the pilot_log unit
+  tests.
   Open: the jet does not shut down when the throttle goes back to OFF.
 - **The HUD's light (2026-11-09, Approvals A10):** the F-16s' HUD in the P43 green, added to the scene's light,
   bright by day and dimmed to a night floor as the sun sets, with a faint halo, a 0.08° stroke and the combiner glass

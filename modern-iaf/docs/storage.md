@@ -98,7 +98,9 @@ crate of its own: it is one file, and `iaf-tools` already links `rusqlite`.
   rows; `summary(db, pilot)` answers the flights, flight time and last result and Training's status and best time
   per mission; `logbook(db, pilot, units)` answers the Pilot screen's logbook (per plane: `time_s`, `flights`,
   `passes`, `fails` and its `missions` with the same counts; `units`, {menu id: unit id}, places a sortie without its
-  plane); `reset(db, pilot)` deletes the pilot's sorties (the profile stays); `pilots(db)` lists the pilots with a
+  plane); `reset(db, pilot)` deletes the pilot's sorties (the profile stays); `delete_pilot(db, pilot)`
+  deletes the pilot: its sorties, its `loadouts` rows when that table exists, its row and its picture file;
+  `pilots(db)` lists the pilots with a
   name; `add_pilot(db, name, nickname)` makes one and answers its id; `debrief(db, id)` answers one record; `pilot(db, pilot)` answers the profile ({name, nickname,
   picture} with the picture's absolute path), `set_pilot(db, pilot, name, nickname)` stores the name and nickname, and
   `set_picture(db, pilot, src)` copies the picture file into `pictures/` beside the database (the pilot's earlier

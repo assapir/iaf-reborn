@@ -243,6 +243,29 @@ pub fn reset(c: &Connection, pilot: i64) -> Result<usize> {
     Ok(c.execute("DELETE FROM sorties WHERE pilot = ?1", [pilot])?)
 }
 
+/// Deletes the pilot (the Pilot screen's Delete profile): its sorties with their debriefs, its loadouts (when the
+/// records keep them), its row and its picture file.
+pub fn delete_pilot(c: &Connection, db: &Path, pilot: i64) -> Result<()> {
+    let picture: Option<String> =
+        c.query_row("SELECT picture FROM pilots WHERE id = ?1", [pilot], |r| r.get(0)).optional()?;
+    let loadouts: bool = c.query_row(
+        "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'loadouts')",
+        [],
+        |r| r.get(0),
+    )?;
+    let tx = c.unchecked_transaction()?;
+    tx.execute("DELETE FROM sorties WHERE pilot = ?1", [pilot])?;
+    if loadouts {
+        tx.execute("DELETE FROM loadouts WHERE pilot = ?1", [pilot])?;
+    }
+    tx.execute("DELETE FROM pilots WHERE id = ?1", [pilot])?;
+    tx.commit()?;
+    if let Some(p) = picture.filter(|p| !p.is_empty()) {
+        let _ = fs::remove_file(folder(db).join(p));
+    }
+    Ok(())
+}
+
 /// The pilots with a profile (a name), by id: each as `pilot` answers it plus `id`.
 pub fn pilots(c: &Connection, db: &Path) -> Result<Value> {
     let ids: Vec<i64> = c
@@ -552,6 +575,32 @@ mod tests {
         let c = open(&db).unwrap();
         assert_eq!(sorties(&c, DEFAULT_PILOT).unwrap().len(), 2);
         assert!(file.exists() && d.join("pilots/14.json").exists());
+        fs::remove_dir_all(&d).unwrap();
+    }
+
+    #[test]
+    fn delete_pilot_removes_its_sorties_loadouts_and_picture() {
+        let d = temp("delete");
+        let db = d.join("modern-iaf.sqlite");
+        let c = open(&db).unwrap();
+        let a = add_pilot(&c, "Dana Levi", "Viper").unwrap();
+        let b = add_pilot(&c, "Noa Cohen", "").unwrap();
+        log_sortie(&c, a, 2011, &rec("ramon_startup", true, "2026-11-02T07:52:00", 112.0)).unwrap();
+        log_sortie(&c, b, 2011, &rec("ramon_startup", false, "2026-11-02T08:00:00", 90.0)).unwrap();
+        let src = d.join("me.png");
+        fs::write(&src, b"png").unwrap();
+        let pic = set_picture(&c, &db, a, &src).unwrap();
+        c.execute_batch("CREATE TABLE loadouts (pilot INTEGER, jet TEXT)").unwrap();
+        c.execute("INSERT INTO loadouts VALUES (?1, 'f16i'), (?2, 'f16i')", [a, b]).unwrap();
+        delete_pilot(&c, &db, a).unwrap();
+        assert!(!Path::new(&pic).exists());
+        assert!(sorties(&c, a).unwrap().is_empty());
+        assert_eq!(sorties(&c, b).unwrap().len(), 1);
+        let left: i64 = c.query_row("SELECT COUNT(*) FROM loadouts", [], |r| r.get(0)).unwrap();
+        assert_eq!(left, 1);
+        let ids: Vec<i64> =
+            pilots(&c, &db).unwrap().as_array().unwrap().iter().map(|p| p["id"].as_i64().unwrap()).collect();
+        assert_eq!(ids, vec![b]);
         fs::remove_dir_all(&d).unwrap();
     }
 }

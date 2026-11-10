@@ -352,18 +352,24 @@ func _header(crumbs: Array) -> void:
 			c.name = "Crumb_" + to
 		c.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_spacer(h)
+	# On Home the pilot (the nickname, the name under it, the picture) is one button that opens the Pilot screen.
+	var block: Button = null
+	var host: Control = h
+	if page == "home":
+		block = _action("", "PilotLink", show_page.bind("pilot"))
+		block.name = "PilotBlock"
+		block.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		h.add_child(block)
+		var m := _margin(block, 12, 6)
+		m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		host = _hbox(m, 10)
 	var who := VBoxContainer.new()
 	who.add_theme_constant_override("separation", -4)
 	who.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	h.add_child(who)
-	# The pilot's nickname; on Home it opens the Pilot screen.
-	var who_name: Control
-	if page == "home":
-		who_name = _button(who, pilot_name(), "PilotLink", show_page.bind("pilot"))
-		who_name.size_flags_horizontal = Control.SIZE_SHRINK_END
-	else:
-		who_name = _label(who, pilot_name(), "Strong")
+	host.add_child(who)
+	var who_name := _label(who, pilot_name(), "Strong")
 	who_name.name = "PilotName"
+	who_name.size_flags_horizontal = Control.SIZE_SHRINK_END
 	var j := jet()
 	if page == "home":
 		# Home: the name under the nickname (the nickname alone when it is the only one).
@@ -377,17 +383,20 @@ func _header(crumbs: Array) -> void:
 	# The picture in its 3:4 frame, else the initials in a disc.
 	var pic := picture()
 	if pic != null:
-		var fr := _picture_frame(h, Vector2(42, 56), pic)
-		fr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		return
-	var av := PanelContainer.new()
-	av.add_theme_stylebox_override("panel", Look.box(Look.ACCENT, Look.ACCENT, 0, 26, Vector2.ZERO))
-	av.custom_minimum_size = Vector2(52, 52)
-	av.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	h.add_child(av)
-	var ini := _label(av, initials(pilot_name()), "Avatar")
-	ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_picture_frame(host, Vector2(42, 56), pic).size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	else:
+		var av := PanelContainer.new()
+		av.add_theme_stylebox_override("panel", Look.box(Look.ACCENT, Look.ACCENT, 0, 26, Vector2.ZERO))
+		av.custom_minimum_size = Vector2(52, 52)
+		av.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		host.add_child(av)
+		var ini := _label(av, initials(pilot_name()), "Avatar")
+		ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	if block != null:
+		for c in block.find_children("*", "Control", true, false):
+			c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		block.custom_minimum_size = host.get_parent().get_combined_minimum_size()
 
 
 ## The bottom bar: the photo credit and the screen's buttons (none when it has neither); `at_end`: the credit at the
@@ -1331,7 +1340,6 @@ func _page_pilot() -> void:
 		if _focus == null:
 			_focus = e
 		_spacer_px(f, 12)
-	_text(f, s("nickname_note"), "Muted")
 	if not creating and not first:
 		_logbook(h)
 	var back := _action(s("back"), "Secondary", pilot_back)
@@ -1348,9 +1356,11 @@ func _page_pilot() -> void:
 	var reset := _action(s("reset_log"), "Secondary", reset_log)
 	reset.name = "ResetLog"
 	reset.disabled = sorties().is_empty()
+	var del := _action(s("delete_profile"), "Secondary", delete_profile)
+	del.name = "DeleteProfile"
 	var other := _action(s("other_pilots"), "Secondary", pilot_back.bind("pilots"))
 	other.name = "OtherPilots"
-	_footer("", [reset, other, back, save])
+	_footer("", [reset, del, other, back, save])
 
 
 func _picture_click(e: InputEvent) -> void:
@@ -1447,6 +1457,23 @@ func reset_log() -> void:
 func _reset_now() -> void:
 	IafPilotLog.reset(Settings.records_db(), Settings.pilot())
 	show_page(page)
+
+
+## Delete profile: the pilot with its flights, debriefs and picture deleted after a warning and a second confirm; then
+## the pilot list, or Create your pilot when no other pilot is left.
+func delete_profile() -> void:
+	var sure := func(): modal(s("delete_sure_title"), s("delete_sure_text"), s("delete"), _delete_now)
+	modal(s("delete_title"), s("delete_text") % pilot_name(), s("delete"), sure)
+
+
+func _delete_now() -> void:
+	var db := Settings.records_db()
+	if not IafPilotLog.delete_pilot(db, Settings.pilot()):
+		return
+	_pictures.erase(str(profile().get("picture", "")))
+	draft = {"name": "", "nickname": "", "picture": ""}
+	var others = JSON.parse_string(IafPilotLog.pilots(db))
+	show_page("pilots" if others is Array and not others.is_empty() else "pilot")
 
 
 ## A breadcrumb: its screen; from the Pilot screen through Back's discard prompt.

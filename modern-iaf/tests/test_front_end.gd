@@ -142,11 +142,21 @@ func pilot(fe: Control, lang: String) -> void:
 	var db: String = s.records_db()
 	fe.show_page("home")
 	await frames(2)
-	var link: Button = fe.find_child("PilotName", true, false)
-	check(link != null, "%s: Home: the pilot's name is a button" % lang)
+	var link: Button = fe.find_child("PilotBlock", true, false)
+	check(
+		(
+			link != null
+			and link.focus_mode == Control.FOCUS_ALL
+			and link.find_child("PilotName", true, false) != null
+			and link.find_child("PilotName", true, false).mouse_filter == Control.MOUSE_FILTER_IGNORE
+		),
+		"%s: Home: the pilot block is one button" % lang
+	)
+	check(fe.find_child("nickname_note", true, false) == null, "%s: no note under the fields" % lang)
 	link.pressed.emit()
 	await frames(2)
-	check(fe.page == "pilot" and fe.is_layout_rtl() == (lang == "he"), "%s: the name opens the Pilot screen" % lang)
+	check(fe.page == "pilot" and fe.is_layout_rtl() == (lang == "he"), "%s: the block opens the Pilot screen" % lang)
+	check(not _has_part(fe, "בראש כל מסך" if he else "every screen"), "%s: Pilot: no note on where it shows" % lang)
 	var nick: LineEdit = fe.find_child("Field_nickname", true, false)
 	check(
 		nick.text == "" and nick.placeholder_text != fe.pilot_name(),
@@ -268,8 +278,26 @@ func switch_and_reset(fe: Control, lang: String) -> void:
 	check(JSON.parse_string(IafPilotLog.sorties(db, second)).is_empty(), "%s: Reset empties the log" % lang)
 	check(not JSON.parse_string(IafPilotLog.sorties(db, first)).is_empty(), "%s: the other pilot's log stays" % lang)
 	check(fe.find_child("Modal", true, false) == null and fe.page == "pilot", "%s: back on the Pilot screen" % lang)
-	(fe.find_child("OtherPilots", true, false) as Button).pressed.emit()
+	# Delete profile: the warning, the second confirm, then the pilot list without the pilot.
+	IafPilotLog.log_sortie(db, second, 2011, JSON.stringify({"mission": "ramon_startup", "pass": true}))
+	(fe.find_child("DeleteProfile", true, false) as Button).pressed.emit()
+	await frames(1)
+	check(_has(fe, "למחוק את הפרופיל?" if he else "Delete the profile?"), "%s: the delete's warning" % lang)
+	(fe.find_child("ModalOk", true, false) as Button).pressed.emit()
+	await frames(1)
+	check(_has(fe, "למחוק סופית?" if he else "Delete for good?"), "%s: the delete's second confirm" % lang)
+	check(JSON.parse_string(IafPilotLog.pilot(db, second)).name == "Dana", "%s: nothing deleted before it" % lang)
+	(fe.find_child("ModalOk", true, false) as Button).pressed.emit()
 	await frames(2)
+	check(
+		(
+			fe.page == "pilots"
+			and fe.find_child("Pilot_%d" % second, true, false) == null
+			and fe.find_child("Pilot_%d" % first, true, false) != null
+		),
+		"%s: Delete opens the pilot list without the pilot" % lang
+	)
+	check(JSON.parse_string(IafPilotLog.sorties(db, second)).is_empty(), "%s: its flights deleted" % lang)
 	(fe.find_child("Pilot_%d" % first, true, false) as Button).pressed.emit()
 	await frames(2)
 	check(
