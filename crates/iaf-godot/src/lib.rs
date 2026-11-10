@@ -7,6 +7,7 @@ mod autorun;
 mod bases;
 mod bombs;
 mod city_lights;
+mod cockpit_sound;
 mod devices;
 mod emf;
 #[cfg(target_os = "linux")]

@@ -219,6 +219,9 @@ The stall buffet and touchdown / off-runway rumble are DirectInput force-feedbac
   accepted lever changes; the host applies the original's lever rules.
 * **3-D sounds**: `AudioStreamPlayer3D` at the jet, gain = min / clamp(distance to the camera, min, max)
   (DirectSound rolloff 1), Godot panning, Doppler off. In the cockpit the listener sits at the jet.
+* **Buses**: a sound plays on its category's bus (`sound_buses.gd bus_for`). Modern IAF's cockpit sound model
+  (`Settings.cockpit_sound_model()`, false here) puts its outside sounds on low-passed buses of their own
+  (iaf-2026/docs/sound.md §1.9).
 * **Inside / outside volume**: ours follows the current view every frame. The original picks it when a sound
   starts; UNCERTAIN whether it updates running sounds.
 * **UNCERTAIN**:

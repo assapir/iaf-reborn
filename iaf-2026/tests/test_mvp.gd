@@ -16,6 +16,7 @@
 #     -s ../iaf-2026/tests/test_mvp.gd --log-file <temp> [-- --jet f16i] [-- --only startup|takeoff]
 extends "res://../tests/godot/base.gd"
 
+const SoundBuses := preload("res://shared/audio/sound_buses.gd")
 const MISSIONS := "converted/iaf-2026/missions"
 ## airframe id -> [the jet, its base's missions' prefix, its iaf.ibx section]
 const JETS := {
@@ -175,7 +176,7 @@ func ab_sound() -> void:
 		"the burner plays at its own pitch (%.2f)" % fs.engine_pitch
 	)
 	check(fs.played.has("SFX_AB_LIGHT/None"), "the light-off thump plays")
-	check(vol < 0.6 * 0.3 and fs._tail.playing, "the burner starts 12 dB down, the dry loop fades (%.3f)" % vol)
+	check(vol < 0.3 and fs._tail.playing, "the burner starts 12 dB down, the dry loop fades (%.3f)" % vol)
 	var stream = fs._engine.stream
 	st["afterburner"] = 2
 	for i in 3:
@@ -190,7 +191,7 @@ func ab_sound() -> void:
 		fs.update(st, inp)
 		await process_frame
 	vol = fs._engine.get_meta("base_volume")
-	check(is_equal_approx(vol, 0.6), "the burner at its level after 1.5 s (%.3f)" % vol)
+	check(is_equal_approx(vol, 1.0), "the burner at its level after 1.5 s (%.3f)" % vol)
 	st["afterburner"] = 0
 	fs.update(st, inp)
 	check(fs.engine_code == "SFX_START_ENGINE" and fs._tail.playing, "the cut: the dry loop, the burner's tail fading")
@@ -207,7 +208,7 @@ func ab_sound() -> void:
 		fs.update(st, inp)
 		await process_frame
 	vol = fs._tail.get_meta("base_volume")
-	check(vol < 0.6 * 0.3, "cut during the rise: the tail starts at the burner's level (%.3f)" % vol)
+	check(vol < 0.3, "cut during the rise: the tail starts at the burner's level (%.3f)" % vol)
 	fs.queue_free()
 
 
@@ -226,13 +227,13 @@ func core_sound() -> void:
 	fs.update(st, inp)
 	var vol: float = fs._engine.get_meta("base_volume")
 	check(
-		settings().core_sound_real() and is_equal_approx(fs.engine_pitch, 1.0) and absf(vol - 0.6 * 0.501) < 0.01,
+		settings().core_sound_real() and is_equal_approx(fs.engine_pitch, 1.0) and absf(vol - 0.501) < 0.01,
 		"idle: the loop at its own pitch, 6 dB down (%.2f, %.3f)" % [fs.engine_pitch, vol]
 	)
 	st["rpm"] = 1.0
 	fs.update(st, inp)
 	vol = fs._engine.get_meta("base_volume")
-	check(is_equal_approx(fs.engine_pitch, 1.3) and is_equal_approx(vol, 0.6), "military: pitch 1.3, full level")
+	check(is_equal_approx(fs.engine_pitch, 1.3) and is_equal_approx(vol, 1.0), "military: pitch 1.3, full level")
 	st["rpm"] = 0.15
 	fs.update(st, inp)
 	check(is_equal_approx(fs.engine_pitch, 0.3) and fs._wind == null, "the crank: pitch 0.3; no wind standing")
@@ -243,7 +244,61 @@ func core_sound() -> void:
 	fs.update(st, inp)
 	var w: float = fs._wind.get_meta("base_volume") if fs._wind != null else 0.0
 	check(absf(w - 0.25) < 0.01, "the wind at 225 kt: a quarter of its 450 kt level (%.3f)" % w)
+	inp["kcas"] = 700.0
+	fs.update(st, inp)
+	w = fs._wind.get_meta("base_volume") if fs._wind != null else 0.0
+	check(is_equal_approx(w, 1.0), "the wind at 700 kt: capped at its row's level (%.3f)" % w)
+	_cockpit_model(fs, st, inp)
 	fs.queue_free()
+
+
+## The cockpit sound model (iaf-2026/docs/sound.md §1.9): the outside classes on their canopy buses (a low-pass and the
+## class's level) from the cockpit, unmuffled from outside; the inside sounds on their category buses.
+func _cockpit_model(fs: Node, st: Dictionary, inp: Dictionary) -> void:
+	var t: RefCounted = fs.table
+	var buses := {}
+	for k in [["SFX_START_ENGINE", "None"], ["SFX_WIND", "None"], ["SFX_AIRCRAFT_FIRED_WEAPON", "OST_GUNBULLET"]]:
+		buses[k[0]] = SoundBuses.bus_for(t.row(k[0], k[1]))
+	var inside := [
+		SoundBuses.bus_for(t.row("VOC_BBETTY", "BTY_ALT")), SoundBuses.bus_for(t.row("SFX_WARNING", "WRN_AOA"))
+	]
+	check(
+		(
+			settings().cockpit_sound_model()
+			and fs._engine.bus == "IafCanopy_engine_IafEngine"
+			and buses.SFX_WIND == "IafCanopy_airframe_IafSfx"
+			and buses.SFX_AIRCRAFT_FIRED_WEAPON == "IafCanopy_weapons_IafSfx"
+			and inside == ["IafSpeech", "IafSfx"]
+		),
+		"the classes' buses: %s %s %s" % [fs._engine.bus, buses, inside]
+	)
+	var i := AudioServer.get_bus_index("IafCanopy_engine_IafEngine")
+	var lp = AudioServer.get_bus_effect(i, 0) if i >= 0 else null
+	check(
+		(
+			lp is AudioEffectLowPassFilter
+			and absf(lp.cutoff_hz - 166.0) < 2.0
+			and absf(AudioServer.get_bus_effect(i, 1).volume_db - 6.9) < 0.01
+			and AudioServer.get_bus_effect(i, 2) is AudioEffectHardLimiter
+			and not AudioServer.is_bus_bypassing_effects(i)
+		),
+		"from the cockpit: the low-pass at 166 Hz and the engine's level +6.9 dB"
+	)
+	var wi := AudioServer.get_bus_index("IafCanopy_weapons_IafSfx")
+	var wlp = AudioServer.get_bus_effect(wi, 0) if wi >= 0 else null
+	check(
+		wlp is AudioEffectLowPassFilter and is_equal_approx(wlp.cutoff_hz, 700.0),
+		"the gun's structure path: the low-pass at 700 Hz"
+	)
+	inp["in_cockpit"] = false
+	fs.update(st, inp)
+	check(
+		AudioServer.get_bus_volume_db(i) == 0.0 and AudioServer.is_bus_bypassing_effects(i),
+		"from outside: the engine unmuffled at its row's level"
+	)
+	inp["in_cockpit"] = true
+	fs.update(st, inp)
+	check(not AudioServer.is_bus_bypassing_effects(i), "back in the cockpit: muffled again")
 
 
 func crash() -> void:

@@ -71,6 +71,14 @@ func run() -> void:
 		not settings().core_sound_real() and fs._jfs == null and fs._wind == null,
 		"the original's engine: one loop by the RPM, no JFS, no wind"
 	)
+	check(
+		(
+			not settings().cockpit_sound_model()
+			and fs._engine.bus == "IafEngine"
+			and AudioServer.get_bus_index("IafCanopy_engine_IafEngine") < 0
+		),
+		"the original's buses: the category's, no canopy model"
+	)
 	fs.queue_free()
 
 	# Levers, warnings, touchdown.

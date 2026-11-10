@@ -48,7 +48,7 @@ const AB_CODES := ["SFX_DRY_THRUST", "SFX_AFTERBURNER_THRUST"]
 ## (the start) its pitch follows the RPM down to DRY_MIN_PITCH and its level falls as RPM^1.5. The JFS whine spools up
 ## over JFS_SPOOL s from half its pitch while the start runs and winds down over JFS_STOP s once the RPM reaches
 ## JFS_OFF_RPM (the main generator on line); the light-off plays SFX_AB_LIGHT LIGHT_OFF_DB under its level. The
-## wind loop's amplitude follows the dynamic pressure, (kcas / WIND_KT)^2, from WIND_MIN_KT.
+## wind loop's amplitude follows the dynamic pressure, (kcas / WIND_KT)^2, from WIND_MIN_KT, up to the row's level.
 const DRY_IDLE_RPM := 0.6
 const DRY_MIL_PITCH := 1.3
 const DRY_MIN_PITCH := 0.3
@@ -172,12 +172,14 @@ func _ready() -> void:
 	betty = has_betty(type_code)
 	_real_voice = real_voice(type_code)
 	table = SoundTable.load_table()
+	# The engine rows are all of one class: the engine's player takes the first's bus (sound_buses.gd bus_for).
+	var engine_bus := SoundBuses.bus_for(table.row("SFX_START_ENGINE"))
 	_engine = AudioStreamPlayer3D.new()
-	_engine.bus = SoundBuses.ENGINE
+	_engine.bus = engine_bus
 	_setup_3d(_engine)
 	add_child(_engine)
 	_tail = AudioStreamPlayer3D.new()
-	_tail.bus = SoundBuses.ENGINE
+	_tail.bus = engine_bus
 	_setup_3d(_tail)
 	add_child(_tail)
 
@@ -231,6 +233,7 @@ func update(st: Dictionary, inp: Dictionary) -> void:
 	if Settings.core_sound_real():
 		_jfs_update(String(st.get("start_phase", "")), float(st.rpm))
 		_wind_update(float(inp.get("kcas", 0.0)), inside)
+	SoundBuses.set_view(inside)
 	# Levers: the host changes them only when the original accepts the command.
 	if _was.has("gear_down"):
 		if inp.gear_down != _was.gear_down:
@@ -405,7 +408,7 @@ func _jfs_update(phase: String, rpm: float) -> void:
 	_jfs.set_meta("base_volume", _row_volume(table.row("SFX_JFS"), _inside) * smoothstep(0.0, 1.0, _jfs_spin))
 
 
-## The wind over the canopy (Modern IAF): the SFX_WIND loop, its amplitude as the dynamic pressure.
+## The wind over the canopy (Modern IAF): the SFX_WIND loop, its amplitude as the dynamic pressure, at most the row's.
 func _wind_update(kcas: float, inside: bool) -> void:
 	if kcas < WIND_MIN_KT:
 		if _wind != null:
@@ -416,7 +419,7 @@ func _wind_update(kcas: float, inside: bool) -> void:
 		_wind = play("SFX_WIND")
 		if _wind == null:
 			return
-	var vol := _row_volume(table.row("SFX_WIND"), inside) * pow(kcas / WIND_KT, 2.0)
+	var vol := _row_volume(table.row("SFX_WIND"), inside) * minf(pow(kcas / WIND_KT, 2.0), 1.0)
 	_wind.set_meta("base_volume", vol)
 	_wind.volume_db = linear_to_db(maxf(vol, 0.0001))
 
@@ -605,7 +608,7 @@ func play(code: String, sub1 := "None") -> Node:
 		p = p3
 	else:
 		p = AudioStreamPlayer.new()
-	p.bus = SoundBuses.BY_CATEGORY.get(r.category, SoundBuses.SFX) if resident else SoundBuses.SPEECH
+	p.bus = SoundBuses.bus_for(r) if resident else SoundBuses.SPEECH
 	p.stream = _looped(s) if resident and r.cyclic else s
 	var vol := _row_volume(r, _inside) if resident else 1.0
 	p.set_meta("base_volume", vol)
@@ -645,10 +648,12 @@ func play_phrase_wav(file: String) -> Node:
 	return p
 
 
+## The row's volume in the cockpit or outside. An outside class of the cockpit sound model takes its outside volume
+## both ways: its bus gives the cockpit's level (sound_buses.gd bus_for).
 func _row_volume(r: Dictionary, inside: bool) -> float:
 	if r.is_empty():
 		return 1.0
-	return r.vol_in if inside else r.vol_out
+	return r.vol_in if inside and SoundBuses.outside_class(r) == "" else r.vol_out
 
 
 ## A logical channel plays one sound at a time; a new one waits for the current (UNCERTAIN: queue

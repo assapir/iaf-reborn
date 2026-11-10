@@ -330,6 +330,12 @@ func core_sound_real() -> bool:
 	return true
 
 
+## The outside sounds through the canopy and the helmet from the cockpit, unmuffled from outside (Approvals item A13,
+## iaf-2026/docs/sound.md §1.9).
+func cockpit_sound_model() -> bool:
+	return true
+
+
 ## Each radio call opens with the press-to-talk click and closes with the squelch tail (iaf-2026/docs/sound.md §5.2).
 func radio_key_clicks() -> bool:
 	return true

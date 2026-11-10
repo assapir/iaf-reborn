@@ -1126,6 +1126,13 @@ func core_sound_real() -> bool:
 	return false
 
 
+## The cockpit sound model (iaf-2026/docs/sound.md §1.9): from the cockpit the outside sounds (engine, airframe,
+## weapons, the world) come through the canopy and the helmet, a low-pass and a level per class; the external views hear
+## them unmuffled. Modern IAF. The original game plays each row at its table's inside volume (sound_buses.gd bus_for).
+func cockpit_sound_model() -> bool:
+	return false
+
+
 ## A radio call is keyed: key_on.ogg before its clips and key_off.ogg after them (iaf-2026/docs/sound.md §5.2): Modern
 ## IAF. The original game plays a phrase's particles alone (radio.gd say, FUN_004c5750).
 func radio_key_clicks() -> bool:

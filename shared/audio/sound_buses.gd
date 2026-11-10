@@ -14,6 +14,63 @@ const SPEECH := "IafSpeech"
 const ALL := [ENGINE, SFX, SPEECH]
 ## soundprop category letter -> bus.
 const BY_CATEGORY := {"E": ENGINE, "F": SFX, "V": SPEECH, "S": SPEECH}
+## Modern IAF's cockpit sound model (Settings.cockpit_sound_model(), iaf-2026/docs/sound.md §1.9): a sound of an outside
+## class (IafCockpitSound.class_of) plays on CANOPY + class + its category bus, made on first use: a low-pass, the
+## class's level and a limiter from the cockpit, nothing from the external views (set_view), sent to the category bus.
+const CANOPY := "IafCanopy_"
+## The view the canopy buses follow: true = from the cockpit.
+static var _inside := true
+
+
+## The bus a table row plays on: its category's bus, or with the cockpit sound model and an outside class the canopy bus
+## of that class and category.
+static func bus_for(r: Dictionary) -> String:
+	var cat: String = BY_CATEGORY.get(r.get("category", ""), SFX)
+	var cls := outside_class(r)
+	if cls == "":
+		return cat
+	var name := CANOPY + cls + "_" + cat
+	if AudioServer.get_bus_index(name) < 0:
+		var i := AudioServer.bus_count
+		AudioServer.add_bus(i)
+		AudioServer.set_bus_name(i, name)
+		AudioServer.set_bus_send(i, cat)
+		var lp := AudioEffectLowPassFilter.new()
+		lp.cutoff_hz = ClassDB.class_call_static("IafCockpitSound", "lowpass_hz", cls)
+		lp.resonance = 0.5
+		lp.db = AudioEffectFilter.FILTER_6DB  # one biquad: 12 dB per octave
+		AudioServer.add_bus_effect(i, lp)
+		var amp := AudioEffectAmplify.new()
+		amp.volume_db = ClassDB.class_call_static("IafCockpitSound", "gain_db", cls)
+		AudioServer.add_bus_effect(i, amp)
+		# After the level (a bus's own volume comes after its effects): an own hit or explosion through it.
+		AudioServer.add_bus_effect(i, AudioEffectHardLimiter.new())
+		AudioServer.set_bus_bypass_effects(i, not _inside)
+	return name
+
+
+## A row's outside class ("engine", "airframe", "weapons", "world"; cached in the row), "" when it is inside or the
+## model is off.
+static func outside_class(r: Dictionary) -> String:
+	var s := _settings()
+	if s == null or not s.cockpit_sound_model():
+		return ""
+	if not r.has("cockpit_class"):
+		var c: String = ClassDB.class_call_static(
+			"IafCockpitSound", "class_of", r.get("code", ""), r.get("sub1", "None")
+		)
+		r["cockpit_class"] = "" if c == "inside" else c
+	return r.cockpit_class
+
+
+## The canopy buses follow the view: the low-pass and the class's level from the cockpit, unmuffled from outside.
+static func set_view(inside: bool) -> void:
+	if inside == _inside:
+		return
+	_inside = inside
+	for i in AudioServer.bus_count:
+		if AudioServer.get_bus_name(i).begins_with(CANOPY):
+			AudioServer.set_bus_bypass_effects(i, not _inside)
 
 
 ## Engine / effects / speech volumes and Mute from the Preferences (Settings autoload).

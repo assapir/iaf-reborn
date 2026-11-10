@@ -209,8 +209,9 @@ and wind-down; the AI's gun (a Phalanx at 79 a second) is unchanged.
 ### 1.6 The wind
 `SFX_WIND` had a row and no caller. Now, from 30 kt, the sim loops it (the KC-135 recording the air brake also uses)
 with its amplitude as the dynamic pressure, (KCAS / 450 kt)²: 12 dB under its row's level at 225 kt (inferred: the
-pressure under a turbulent boundary layer grows with the dynamic pressure). Open: the cockpit's own wind spectrum
-and level, and the air brake's loop over it.
+pressure under a turbulent boundary layer grows with the dynamic pressure). Since 9 November 2026 (A13) the amplitude
+stops at the row's level from 450 kt: without the cap it was 8 dB over at 700 kt. Open: the cockpit's own wind
+spectrum, and the air brake's loop over it. The cockpit's level: §1.9.
 
 ### 1.7 The canopy
 `SFX_DOOR_CLOSE` (craigsmith's USC recording of a jet's canopy closing, its 4 s motor run to the lock) now plays at
@@ -222,6 +223,84 @@ caller. Open: a real F-16 canopy's run time (the references could not separate i
 `flight_sounds.gd` plays `SFX_TOUCHDOWN` when the wheels touch with the gear down. The clip was a bicycle tyre's
 squeal: two steady tones at 1.6 and 3.3 kHz for 0.55 s. Now it is craigsmith's USC airplane tyre skid[^skid]
 (0.15–0.6 s): broadband 0.2–4 kHz, 0.35 s, with a 60 Hz thump falling over 0.12 s under it, the struts (inferred).
+
+### 1.9 The cockpit sound model (Approvals item A13)
+9 November 2026 (the user, after A12: the gun sounded too loud for inside the canopy). A pilot in a closed F-16
+cockpit hears two kinds of sound. The radio, Betty and the cockpit's tones come through the helmet's earphones. Every
+other sound comes from outside. It passes through the canopy and the helmet's ear cups, and those take away more of
+the highs than of the lows. The sim plays it that way when `Settings.cockpit_sound_model()` is true (in the sim; false
+in the original game, whose buses and volumes are unchanged; `test_sounds.gd` checks that).
+
+**What the sources say.**
+- Fighter cockpits are loud: 97–106 dB(A) in the cockpit and 83–100 dB(A) at the ear canal in flight, with the
+  helmets taking 10–21 dB(A) in flight as in the lab (Finnish Air Force pilots)[^kuronen]; 110 dB(A) in another
+  fighter cockpit[^cn]. The airflow over the canopy (its boundary layer) is a main source, which at high speed can
+  matter more than the engine[^kus]. Above 88 dB(A) noise interferes with speech in a cockpit[^ac20].
+- The HGU-55/P's ear cups (passive, the lab mean, ANSI S12.6 Method A)[^gentex]:
+
+| octave | 125 | 250 | 500 | 1k | 2k | 4k | 8k Hz |
+|---|---|---|---|---|---|---|---|
+| attenuation, dB | 17.8 | 18.9 | 25.1 | 37.5 | 42.2 | 53.0 | 52.2 |
+
+- The F-16A's canopy is one piece of polycarbonate about 0.75 in (19 mm) thick[^canopy]. No measured transmission loss
+  of it was found (open). Ours is the field-incidence mass law, 20·log10(f·m) − 47 dB with m = 22.9 kg/m², capped at
+  35 dB (inferred: above that the frame and the structure carry the sound around the glass): 22, 28, 34, 35, 35,
+  35 dB from 125 Hz to 4 kHz.
+
+**The model** (`iaf_flight::cockpit_sound`, its bridge `IafCockpitSound`, `sound_buses.gd`):
+- **The loss.** Canopy plus ear cups: 40, 47, 59, 73, 77, 88 dB from 125 Hz to 4 kHz. Its overall size does not
+  matter in a game's mix, only its shape: one low-pass, 12 dB per octave at 166 Hz with Q 0.5, fits the shape within
+  2.9 dB RMS from 125 Hz to 4 kHz (`lowpass_fit`; the clips are 22050 Hz, little energy above that). Godot plays it
+  as `AudioEffectLowPassFilter` with `db` = FILTER_6DB (Godot's one-biquad setting, 12 dB per octave) and resonance
+  0.5 (its Q).
+- **The classes.** Each sound code is in one class (`class_of`; unknown codes are world):
+
+| class | sounds | level from the cockpit | set by |
+|---|---|---|---|
+| inside | Betty, the radio and its key clicks, the warning and seeker tones, the switches, the G strain | unchanged | — |
+| engine | the engine loops, the burner and its light-off, the JFS | +6.9 dB | the dry loop at military 6 LU under the radio (−19 LUFS; inferred: speech over the noise) |
+| airframe | the wind, the air brake, the gear, the flaps, the canopy's motor, the touchdown, the screech, hits on the jet, the extinguisher | +10.4 dB | the wind at 450 kt as loud as the engine at military (inferred) |
+| weapons | the own gun, launches, releases, flares | −2.5 dB through a 700 Hz low-pass | the gun 5 dB over the engine and the wind at 450 kt (the reference below) |
+| world | explosions, the AI's guns and engines, the missiles in flight | +6.9 dB | the engine's path (the clips' outside levels are balanced already) |
+
+- **The weapons' path.** The M61 sits in the fuselage under and left of the pilot, so its sound comes mostly through
+  the structure, not the canopy. The weapons play through the same filter at 700 Hz (inferred), which keeps the gun's
+  buzz.
+
+  The levels are over 0 dB because the low-pass takes most of a clip's loudness. They were set by measuring the
+  clips through the low-pass with ffmpeg's EBU R128 (`render.py` in the review folder).
+- **The buses.** An outside sound plays on `IafCanopy_<class>_<category bus>`, made on first use: the low-pass, the
+  class's level (an amplify effect) and a hard limiter after it (an own hit or explosion through +7–10 dB would
+  clip; a bus's own volume comes after its effects, so the level is an effect), sent on to its category bus,
+  so the Preferences' volumes still apply. An outside row plays at its outside volume (`volume_out`) both ways: the
+  bus gives the cockpit's level, so the rows' inside volumes (the engine's 0.6) are not used.
+- **The view.** `flight_sounds.gd` tells `SoundBuses.set_view()` the view every frame. From an external view (chase,
+  F10, the outside cameras; `terrain_view.in_cockpit` false) the canopy buses bypass their effects at 0 dB: every
+  sound at its row's outside volume, unmuffled.
+
+**The gun against a cockpit recording.** The F-16 videos found carry the intercom (HUD tapes) or the outside (ground
+films). An F-15D back-seat video[^f15d] has the cockpit's own sound: two bursts of about 1 s at 101–102 rounds a
+second (the M61A1). Each rises over the 2 s before it by +4.8 and +3.1 dB broadband (RMS), +7.1 and +3.8 dB below
+600 Hz, +1.9 dB from 500 Hz to 4 kHz: the gun is a low buzz just over the noise. The sim's burst over the engine at
+military and the wind at 450 kt rose +5.7 dB, at full brightness. The first A13 render put the gun on the canopy's
+166 Hz curve at +1.1 dB: +4.1 dB broadband, but +0.7 dB from 300 Hz to 2 kHz and no 100 Hz line in the envelope. The
+broadband rise was the low rumble, and the user's verdict was "the gun can't be heard at all". Now, through 700 Hz at
+−2.5 dB, the burst rises +4.8 dB broadband (the reference's upper burst) and +4.3 dB from 100 Hz to 2 kHz (4th-order
+band-pass, where its buzz lives), with its 100 Hz line back. The F-15's gun is in the
+right wing root, the F-16's in the left strake behind the cockpit, so the F-16's may be louder (open). The video was
+used for measurement only; its audio was deleted after.
+
+**Before and after** (the review folder `~/.claude/iaf-2026-pages/sound/cockpit/`, notes.md lists the files):
+
+| render | before | after |
+|---|---|---|
+| the engine at idle / military | −23.5 / −18.5 LUFS | −28.1 / −25.0 LUFS, low-passed |
+| the gun over the engine and the wind at 450 kt, broadband / 100 Hz–2 kHz | +5.7 / +5.4 dB | +4.8 / +4.3 dB (first A13 render: +4.1 / +2.7, inaudible) |
+| the wind at 300 / 600 kt | −27.1 / −15.1 LUFS | −32.1 / −25.0 LUFS (capped) |
+| a radio call (−19.1 LUFS) over the engine at military and the wind at 300 kt | the noise 1.2 LU over the call | the call 5.2 LU over the noise |
+
+Open: the canopy's real transmission loss; the helmet in flight (the lab figures and the shape only); the cockpit's
+air-conditioning hiss (not played); the engine and wind levels by ear (the user's listening, A13).
 
 ## 2. Earlier voice chains (2–8 November 2026, replaced)
 E1b (2 November) and E1c (3–8 November) made the voices with Piper text to speech and its `radio_voice.py`
@@ -438,6 +517,8 @@ The setup wizard (item A3) and the credits roll live outside this branch's folde
 - The AWACS, wingman-command, waypoint and flight-report phrases (`radio.gd`'s other templates have no particles yet,
   so they are silent); the AWACS voice and chain are ready (§3, §5.2).
 - The pilot's requests (start-up, taxi, take-off) are printed only: no pilot phrase for them yet.
+- The cockpit sound model (§1.9): the canopy's real transmission loss, the helmet in flight, the air-conditioning
+  hiss, and the user's listening.
 - The core sounds (§1.3–§1.8): the cockpit's idle-to-military step, the wind's real spectrum, the gun's spin-up, a
   real canopy's run time, the gear and flaps clips against a real F-16, the F-35I's own IPP.
 - One engine sound set for all three jets (one clip per code in the shared table).
@@ -450,6 +531,10 @@ The setup wizard (item A3) and the credits roll live outside this branch's folde
   every code the shared code plays has a row and every file it opens by name exists; the templates `radio.gd`
   calls exist and name only particles; a stale file is removed; the key table has 120 records, labels where shown, no
   key bound twice, and only keys the reader can press.
+- `cargo test -p iaf-flight --lib cockpit_sound`: the classes, the mass law and the low-pass's fit, the levels.
+- `iaf-2026/tests/test_mvp.gd`: the classes' buses, the low-pass and the engine's level from the cockpit, unmuffled
+  from outside and muffled again back in the cockpit; the wind capped at 700 kt. The original's `test_sounds.gd`: the
+  model off, the category buses only.
 - `iaf-2026/tests/test_m0_boot.gd`: every row's clip and every particle's clip of the compiled tables opens in Godot
   as Ogg Vorbis, and `KCH2.WAV`, `EndWorld.wav`, `cock_g_02.wav` open their ogg (2026-11-03).
 - `cargo test -p iaf-tools --lib sim_voices`: the band-pass passes 1 kHz and cuts 100 Hz and 6 kHz by over 20 dB;
@@ -483,3 +568,17 @@ The setup wizard (item A3) and the credits roll live outside this branch's folde
 [^mco]: The Radio Bunker, "Orlando International Airport Air Traffic Control (ATC) Recording 9/4/23", YouTube, 4 September 2023, an unedited scanner recording (reference only): https://www.youtube.com/watch?v=fN27WatToP8
 [^vms]: Recep Yünce, "F-16 Voice Warning System & Alarms", YouTube, 18 June 2021 (reference only; the source of the recording is not stated): https://www.youtube.com/watch?v=LtyxrdLwVsU
 [^saspeech]: OpenSLR, "SASPEECH" (SLR134), licence summary: https://www.openslr.org/134/
+[^gentex]: Gentex Corporation, "ANR Technology for HGU-55/P" data sheet, rev. 2022-06-13 (passive attenuation mean and
+    standard deviation by octave, ANSI S12.6-2016 Method A): https://shop.gentexcorp.com/content/ANR_Technology_55P_Gentex_Data_Sheet.pdf
+[^kuronen]: P. Kuronen, "Military aviation noise: noise-induced hearing impairment and noise protection", University of
+    Oulu, 2004 (abstract): https://urn.fi/URN:ISBN:9514274261
+[^cn]: "Effect of fighter cockpit noise on pilot hearing" (Chinese), PubMed 11541270 (abstract: 110 dB(A) in the
+    cockpit): https://pubmed.ncbi.nlm.nih.gov/11541270/
+[^kus]: Kuş and Zafer, ICCFD12 (2024) paper 2-B-01, the boundary-layer noise of a Falcon-type canopy:
+    https://www.iccfd.org/iccfd12/assets/pdf/papers/ICCFD12_Paper_2-B-01.pdf
+[^ac20]: FAA, Advisory Circular AC 20-133, "Cockpit Noise and Speech Interference Between Crewmembers":
+    https://www.faa.gov/documentLibrary/media/Advisory_Circular/AC_20-133.pdf
+[^canopy]: DTIC ADA239984 (the F-16A's canopy: monolithic polycarbonate about three quarters of an inch thick):
+    https://apps.dtic.mil/sti/pdfs/ADA239984.pdf
+[^f15d]: Matt Dunn, "F 15D Incentive Flight Strafing 20MM", YouTube, 19 December 2015 (reference only; the bursts at
+    11:21 and 12:48): https://www.youtube.com/watch?v=5OxjiD3uaE8

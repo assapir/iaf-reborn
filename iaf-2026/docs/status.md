@@ -10,6 +10,12 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   `sim_bases::tests::the_departure_is_paved`.
 - **Compact JSON (2026-11-09, [plan.md](plan.md#rules-the-user-3-november-2026) rules):** every JSON file the
   sim writes is on one line ([data-formats.md](data-formats.md) §7).
+- **The cockpit sound model (2026-11-09, Approvals A13, branch `wt/iaf-2026-cockpit-sound`, waits for the user's
+  listening):** from the cockpit the outside sounds (engine, airframe, weapons, the world) come through the canopy and
+  the HGU-55/P's ear cups: a 166 Hz low-pass and a level per class; the radio, Betty and the tones are unchanged; the
+  external views hear everything unmuffled. The gun comes through the structure (a 700 Hz low-pass) and sits 5 dB
+  over the engine and the wind, as in a cockpit recording (it was 6 dB, unfiltered). The wind stops at its row's level from 450 kt ([sound.md](sound.md) §1.9). The original
+  game keeps its buses. `test_mvp.gd`, the original's `test_sounds.gd`.
 - **The core sounds against real references (2026-11-09, Approvals A12, branch `wt/iaf-2026-core-sound`):** the
   dry engine plays its idle recording at its own pitch at idle (it was 4.2 semitones up) and rises to 1.3 and 6 dB at
   military; the start plays a JFS whine (its partials measured on an F-16 start), the engine's pitch and level by its
@@ -199,6 +205,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **The core sounds' open points** ([sound.md](sound.md) §1.3–§1.8): the cockpit's idle-to-military step, the
   wind's real spectrum, the gun's spin-up, a real canopy's run time, the gear and flaps clips against a real F-16, the
   F-35I's own IPP, the tower's key clicks (on `wt/iaf-2026-voices`).
+- **The cockpit sound model's open points** ([sound.md](sound.md) §1.9): the canopy's measured transmission loss, the
+  helmet in flight, the air-conditioning hiss, the engine and wind levels by ear.
 - **The afterburner's open points** ([sound.md](sound.md) §1.2): the light-off delay after the detent, the level in
   the cockpit, FlightGear's F-16 sounds not compared, the F-35I's own burner.
 - **Keys and Joystick's open points** ([front-end.md](front-end.md) §9): one joystick flies (the first; a separate
