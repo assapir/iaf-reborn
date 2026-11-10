@@ -112,12 +112,15 @@ func _ready() -> void:
 func read_config(cfg: ConfigFile) -> void:
 	super(cfg)
 	sim_jet = str(cfg.get_value("sim", "jet", ""))
+	var pid = cfg.get_value("sim", "pilot", -1)
+	pilot_id = pid if pid is int else -1
 	_apply_profile()
 
 
 func write_config(values := {}) -> ConfigFile:
 	var cfg := super(values)
 	cfg.set_value("sim", "jet", sim_jet)
+	cfg.set_value("sim", "pilot", pilot_id)
 	return cfg
 
 
@@ -142,7 +145,8 @@ func records_db() -> String:
 	return ProjectSettings.globalize_path(records_dir().path_join("modern-iaf.sqlite"))
 
 
-## The pilot whose sorties the log holds: Settings.pilot_id, else the default pilot 14.
+## The active pilot, whose sorties the log holds: Settings.pilot_id (the front end's pilot list, settings.cfg [sim]
+## pilot), else the default pilot 14.
 func pilot() -> int:
 	return pilot_id if pilot_id >= 0 else IafPilotLog.default_pilot()
 
@@ -319,7 +323,8 @@ func cockpit_pilot_body() -> bool:
 	return true
 
 
-## The burner rises over 1.5 s with a thump and dies away (the Mac play test's finding 27, modern-iaf/docs/sound.md §1.2).
+## The burner rises over 1.5 s with a thump and dies away (the Mac play test's finding 27,
+## modern-iaf/docs/sound.md §1.2).
 func ab_sound_real() -> bool:
 	return true
 

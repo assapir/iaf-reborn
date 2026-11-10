@@ -60,6 +60,8 @@ var _sim := {}
 ## The training mission: its readable file's name (res://data/missions/<name>.json) and rules; {} for a flight without.
 var mission_name := ""
 var rules := {}
+## The jet the mission flies (its readable file's start.unit: f16i, f16d, f35i), stored with the sortie.
+var plane := ""
 ## The debrief record once scored ({} before), and its sortie in the records database (0 before).
 var result := {}
 var sortie := 0
@@ -117,6 +119,7 @@ func _ready() -> void:
 		# The runway is the mission's base's (its readable file's start.base, an English base name).
 		var readable := Settings.load_json("res://data/missions/%s.json" % files[0].name)
 		var base_en := String(readable.get("start", {}).get("base", ""))
+		plane = String(readable.get("start", {}).get("unit", ""))
 		for sec in BASE_NAMES:
 			if BASE_NAMES[sec][0] == base_en:
 				host.radio.runway_base = sec
@@ -386,6 +389,7 @@ func _finish(d: Dictionary) -> void:
 	d["flight"] = ProjectSettings.globalize_path(host._log.get_path_absolute())
 	d["date"] = Time.get_datetime_string_from_system()
 	d["elapsed_s"] = snappedf(float(host._log_t), 0.1)
+	d["plane"] = plane
 	var db: String = Settings.records_db() if out_dir == "" else _dir().path_join("modern-iaf.sqlite")
 	sortie = IafPilotLog.log_sortie(db, Settings.pilot(), int(host.mission_id), JSON.stringify(d))
 	Settings.flown_sortie = sortie

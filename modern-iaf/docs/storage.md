@@ -79,8 +79,8 @@ crate of its own: it is one file, and `iaf-tools` already links `rusqlite`.
 
 | table | columns |
 |---|---|
-| `pilots` | `id` (14, the default pilot, until the front end's pilot list); since version 2 the profile of the Pilot screen: `name`, `nickname` (the one every screen shows), `picture` (the picture file's path relative to the database's folder, `pictures/pilot-<id>.<ext>`; `''` = none) |
-| `sorties` | `id` (autoincrement: the debrief's number), `pilot`, `mission_id` (the menu id), `mission` (the readable name), `date`, `result` (1 pass, 0 fail), `elapsed_s`, `debrief` (the whole record as JSON text, NULL when it was lost) |
+| `pilots` | `id` (14, the default pilot; a new pilot from the front end's pilot list takes the next free id); since version 2 the profile of the Pilot screen: `name`, `nickname` (the one every screen shows), `picture` (the picture file's path relative to the database's folder, `pictures/pilot-<id>.<ext>`; `''` = none) |
+| `sorties` | `id` (autoincrement: the debrief's number), `pilot`, `mission_id` (the menu id), `mission` (the readable name), `date`, `result` (1 pass, 0 fail), `elapsed_s`, `debrief` (the whole record as JSON text, NULL when it was lost); since version 3 `plane` (the jet's unit id, `f16i`; `''` for a sortie stored before) |
 
 - **Schema version.** SQLite's `user_version`; `pilot_log::open` runs the missing migrations (`MIGRATIONS`, one SQL
   batch per version) in one immediate transaction, so a second process waits and finds the schema made; a file at this build's
@@ -95,16 +95,22 @@ crate of its own: it is one file, and `iaf-tools` already links `rusqlite`.
   reads its own files (inferred: the safer of the two choices).
 - **The calls.** `log_sortie(db, pilot, mission_id, debrief)` stores a flight (`sim_flight.gd` after
   `IafTraining.score`) and answers its id (`Settings.flown_sortie`); `sorties(db, pilot)` answers the Pilot log's
-  rows; `summary(db, pilot)` answers Home's flights, flight time and last result and Training's status and best time
-  per mission; `debrief(db, id)` answers one record; `pilot(db, pilot)` answers the profile ({name, nickname,
+  rows; `summary(db, pilot)` answers the flights, flight time and last result and Training's status and best time
+  per mission; `logbook(db, pilot, units)` answers the Pilot screen's logbook (per plane: `time_s`, `flights`,
+  `passes`, `fails` and its `missions` with the same counts; `units`, {menu id: unit id}, places a sortie without its
+  plane); `reset(db, pilot)` deletes the pilot's sorties (the profile stays); `pilots(db)` lists the pilots with a
+  name; `add_pilot(db, name, nickname)` makes one and answers its id; `debrief(db, id)` answers one record; `pilot(db, pilot)` answers the profile ({name, nickname,
   picture} with the picture's absolute path), `set_pilot(db, pilot, name, nickname)` stores the name and nickname, and
   `set_picture(db, pilot, src)` copies the picture file into `pictures/` beside the database (the pilot's earlier
   one removed; an empty `src` removes it) and stores its path. The front end only displays what they answer.
 - **Version 2** (2026-11-09) adds the profile's three columns to `pilots` (`ALTER TABLE … ADD COLUMN`, empty by
   default): a version-1 file keeps its pilots and sorties.
+- **Version 3** (2026-11-10) adds `sorties.plane`, filled from the debrief's `plane` where it has one;
+  `sim_flight.gd` writes the mission's unit as the debrief's `plane`.
 - **Reading a record outside the game.** `sqlite3 modern-iaf.sqlite "SELECT debrief FROM sorties WHERE id = 3" >
   debrief.json` gives the file `tools/flight_timeline.py --debrief` takes.
 - **Check.** `cargo test -p iaf-tools --lib pilot_log` (the schema at its version, a newer one refused, a sortie round
-  trip with the summary, the JSON import run twice, the profile and its picture round trip, a version-1 file migrated); `modern-iaf/tests/test_front_end.gd` (imported records on the
+  trip with the summary, the JSON import run twice, the profile and its picture round trip, a version-1 file migrated, the logbook per plane and Reset, the pilot list and
+  a new pilot, a version-2 file migrated); `modern-iaf/tests/test_front_end.gd` (imported records on the
   Debrief, Home, Training and Pilot log screens, then a flown sortie's debrief) and `test_mvp.gd` (each flight's
   sortie and its pass in the summary).

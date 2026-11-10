@@ -70,6 +70,12 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   version 2); the loading bar follows the flight's real loading steps, named under it; the throttle up from OFF is the
   start-up's idle step (Ctrl+I gone); no drag-chute warning per flight ([front-end.md](front-end.md) §1, §4, §7, §9.2;
   [training.md](training.md) §7.1). `test_front_end.gd`, `test_devices.gd`, `test_mvp.gd`, the pilot_log unit tests.
+- **The Pilot screen's findings (2026-11-10):** the nickname field editable (a hint in place of the name); Save and
+  Back (a discard prompt); the picture opens the file picker; Reset the log after a warning and a second confirm;
+  several pilots (a list, New pilot, the active one in `settings.cfg`); the first start makes the profile before Home;
+  the logbook per plane on the Pilot screen, Home with the name and nickname only (records schema version 3, the
+  sortie's plane) ([front-end.md](front-end.md) §1, §3; [storage.md](storage.md) §5). `test_front_end.gd`, the
+  pilot_log unit tests.
   Open: the jet does not shut down when the throttle goes back to OFF.
 - **The HUD's light (2026-11-09, Approvals A10):** the F-16s' HUD in the P43 green, added to the scene's light,
   bright by day and dimmed to a night floor as the sun sets, with a faint halo, a 0.08° stroke and the combiner glass

@@ -45,7 +45,7 @@ impl IafPilotLog {
     }
 
     /// The Pilot log's rows, oldest first, as a JSON array: {id, mission_id, mission, date, result, elapsed_s,
-    /// has_debrief}.
+    /// has_debrief, plane}.
     #[func]
     fn sorties(db: GString, pilot: i64) -> GString {
         text(with(&db, |c| Ok(Value::from_iter(pilot_log::sorties(c, pilot)?.iter().map(|s| s.to_json())))))
@@ -79,6 +79,34 @@ impl IafPilotLog {
                 .unwrap_or_default()
                 .as_str(),
         )
+    }
+
+    /// The Pilot screen's logbook as a JSON array, per plane: {plane, time_s, flights, passes, fails, missions: [{mission_id,
+    /// mission, time_s, flights, passes, fails}]}. `units`: JSON {<menu id>: <unit id>}, the plane of a sortie stored
+    /// without one.
+    #[func]
+    fn logbook(db: GString, pilot: i64, units: GString) -> GString {
+        let units = serde_json::from_str::<Value>(&units.to_string()).unwrap_or_default();
+        let units = units.as_object().cloned().unwrap_or_default();
+        text(with(&db, |c| pilot_log::logbook(c, pilot, &units)))
+    }
+
+    /// Deletes the pilot's sorties and debriefs (the profile stays); false when it could not.
+    #[func]
+    fn reset(db: GString, pilot: i64) -> bool {
+        with(&db, |c| pilot_log::reset(c, pilot)).is_some()
+    }
+
+    /// The pilots with a name as a JSON array of {id, name, nickname, picture}.
+    #[func]
+    fn pilots(db: GString) -> GString {
+        text(with(&db, |c| pilot_log::pilots(c, Path::new(&db.to_string()))))
+    }
+
+    /// Makes a new pilot: its id, 0 when it could not.
+    #[func]
+    fn add_pilot(db: GString, name: GString, nickname: GString) -> i64 {
+        with(&db, |c| pilot_log::add_pilot(c, &name.to_string(), &nickname.to_string())).unwrap_or(0)
     }
 
     /// Sortie `id`'s debrief record as JSON, "" when it has none.

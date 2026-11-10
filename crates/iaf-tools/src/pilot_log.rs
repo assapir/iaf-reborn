@@ -35,6 +35,10 @@ const MIGRATIONS: &[&str] = &[
     "ALTER TABLE pilots ADD COLUMN name TEXT NOT NULL DEFAULT '';
      ALTER TABLE pilots ADD COLUMN nickname TEXT NOT NULL DEFAULT '';
      ALTER TABLE pilots ADD COLUMN picture TEXT NOT NULL DEFAULT '';",
+    // 2 → 3: the plane each sortie flew (the jet's unit id, the logbook's grouping), from its debrief's `plane` where
+    // it has one; "" for the sorties before (the logbook takes their mission's jet).
+    "ALTER TABLE sorties ADD COLUMN plane TEXT NOT NULL DEFAULT '';
+     UPDATE sorties SET plane = COALESCE(json_extract(debrief, '$.plane'), '') WHERE json_valid(debrief);",
 ];
 
 /// The schema version this build writes.
@@ -53,12 +57,15 @@ pub struct Sortie {
     pub result: i64,
     pub elapsed_s: f64,
     pub has_debrief: bool,
+    /// The jet's unit id (`f16i`), "" for a sortie stored before schema version 3.
+    pub plane: String,
 }
 
 impl Sortie {
     pub fn to_json(&self) -> Value {
         json!({"id": self.id, "mission_id": self.mission_id, "mission": self.mission, "date": self.date,
-               "result": self.result, "elapsed_s": self.elapsed_s, "has_debrief": self.has_debrief})
+               "result": self.result, "elapsed_s": self.elapsed_s, "has_debrief": self.has_debrief,
+               "plane": self.plane})
     }
 }
 
@@ -124,16 +131,17 @@ fn insert(c: &Connection, pilot: i64, mission_id: i64, date: &str, result: i64, 
     c.execute("INSERT OR IGNORE INTO pilots (id) VALUES (?1)", [pilot])?;
     let mission = d.and_then(|d| d["mission"].as_str()).unwrap_or("");
     let elapsed = d.and_then(|d| d["elapsed_s"].as_f64()).unwrap_or(0.0);
+    let plane = d.and_then(|d| d["plane"].as_str()).unwrap_or("");
     c.execute(
-        "INSERT INTO sorties (pilot, mission_id, mission, date, result, elapsed_s, debrief)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-        params![pilot, mission_id, mission, date, result, elapsed, d.map(|d| d.to_string())],
+        "INSERT INTO sorties (pilot, mission_id, mission, date, result, elapsed_s, debrief, plane)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+        params![pilot, mission_id, mission, date, result, elapsed, d.map(|d| d.to_string()), plane],
     )?;
     Ok(c.last_insert_rowid())
 }
 
 /// Stores a flown sortie of mission `mission_id` (its menu id) with its debrief record (training.md §4 plus `date`,
-/// `elapsed_s`; `pass` gives the result). Its id.
+/// `elapsed_s` and `plane`, the jet's unit id; `pass` gives the result). Its id.
 pub fn log_sortie(c: &Connection, pilot: i64, mission_id: i64, debrief: &Value) -> Result<i64> {
     let date = debrief["date"].as_str().unwrap_or("");
     let result = i64::from(debrief["pass"].as_bool().unwrap_or(false));
@@ -143,7 +151,7 @@ pub fn log_sortie(c: &Connection, pilot: i64, mission_id: i64, debrief: &Value) 
 /// The pilot's sorties, oldest first.
 pub fn sorties(c: &Connection, pilot: i64) -> Result<Vec<Sortie>> {
     let mut q = c.prepare(
-        "SELECT id, mission_id, mission, date, result, elapsed_s, debrief IS NOT NULL FROM sorties
+        "SELECT id, mission_id, mission, date, result, elapsed_s, debrief IS NOT NULL, plane FROM sorties
          WHERE pilot = ?1 ORDER BY date, id",
     )?;
     let rows = q.query_map([pilot], |r| {
@@ -155,6 +163,7 @@ pub fn sorties(c: &Connection, pilot: i64) -> Result<Vec<Sortie>> {
             result: r.get(4)?,
             elapsed_s: r.get(5)?,
             has_debrief: r.get(6)?,
+            plane: r.get(7)?,
         })
     })?;
     Ok(rows.collect::<rusqlite::Result<_>>()?)
@@ -187,6 +196,72 @@ pub fn summary(c: &Connection, pilot: i64) -> Result<Value> {
         "last": all.last().map(|s| json!({"mission_id": s.mission_id, "result": s.result})),
         "missions": missions,
     }))
+}
+
+/// The Pilot screen's logbook: per plane flown, most hours first, `plane` (the unit id), `time_s`, `flights`, `passes`,
+/// `fails` and `missions` (per mission, by menu id: `mission_id`, `mission`, `flights`, `passes`, `fails`, `time_s`).
+/// A sortie stored without its plane (before schema version 3) counts for `units[<its menu id>]`, its mission's jet.
+pub fn logbook(c: &Connection, pilot: i64, units: &Map<String, Value>) -> Result<Value> {
+    fn add(v: &mut Value, s: &Sortie) {
+        v["time_s"] = json!(v["time_s"].as_f64().unwrap_or(0.0) + s.elapsed_s);
+        for k in ["flights", if s.result == 1 { "passes" } else { "fails" }] {
+            v[k] = json!(v[k].as_i64().unwrap_or(0) + 1);
+        }
+    }
+    let zero = json!({"time_s": 0.0, "flights": 0, "passes": 0, "fails": 0});
+    let mut planes = Map::new();
+    for s in sorties(c, pilot)? {
+        let unit = units.get(&s.mission_id.to_string()).and_then(Value::as_str).unwrap_or("");
+        let plane = if s.plane.is_empty() { unit } else { &s.plane };
+        let p = planes.entry(plane).or_insert_with(|| {
+            let mut p = zero.clone();
+            p["plane"] = json!(plane);
+            p["missions"] = json!({});
+            p
+        });
+        // Keyed by the zero-padded menu id, so the missions come out in menu order.
+        let m = p["missions"].as_object_mut().expect("missions").entry(format!("{:09}", s.mission_id));
+        let m = m.or_insert_with(|| {
+            let mut m = zero.clone();
+            m["mission_id"] = json!(s.mission_id);
+            m["mission"] = json!(s.mission);
+            m
+        });
+        add(m, &s);
+        add(p, &s);
+    }
+    let mut out: Vec<Value> = planes.into_values().collect();
+    for p in &mut out {
+        p["missions"] = Value::Array(p["missions"].as_object().into_iter().flat_map(|m| m.values().cloned()).collect());
+    }
+    out.sort_by(|a, b| b["time_s"].as_f64().partial_cmp(&a["time_s"].as_f64()).unwrap_or(std::cmp::Ordering::Equal));
+    Ok(Value::Array(out))
+}
+
+/// Deletes the pilot's sorties and their debriefs (the Pilot screen's Reset); the profile stays. How many went.
+pub fn reset(c: &Connection, pilot: i64) -> Result<usize> {
+    Ok(c.execute("DELETE FROM sorties WHERE pilot = ?1", [pilot])?)
+}
+
+/// The pilots with a profile (a name), by id: each as `pilot` answers it plus `id`.
+pub fn pilots(c: &Connection, db: &Path) -> Result<Value> {
+    let ids: Vec<i64> = c
+        .prepare("SELECT id FROM pilots WHERE name != '' ORDER BY id")?
+        .query_map([], |r| r.get(0))?
+        .collect::<rusqlite::Result<_>>()?;
+    let mut out = Vec::new();
+    for id in ids {
+        let mut p = pilot(c, db, id)?;
+        p["id"] = json!(id);
+        out.push(p);
+    }
+    Ok(Value::Array(out))
+}
+
+/// Makes a new pilot with `name` and `nickname`: its id (the next free one).
+pub fn add_pilot(c: &Connection, name: &str, nickname: &str) -> Result<i64> {
+    c.execute("INSERT INTO pilots (name, nickname) VALUES (?1, ?2)", params![name.trim(), nickname.trim()])?;
+    Ok(c.last_insert_rowid())
 }
 
 /// The folder of the pilots' pictures beside the database.
@@ -343,13 +418,111 @@ mod tests {
         let c = Connection::open(&db).unwrap();
         c.execute_batch(MIGRATIONS[0]).unwrap();
         c.pragma_update(None, "user_version", 1).unwrap();
-        insert(&c, DEFAULT_PILOT, 2011, "2026-11-02T07:52:00", 1, None).unwrap();
+        c.execute("INSERT INTO pilots (id) VALUES (14)", []).unwrap();
+        c.execute(
+            "INSERT INTO sorties (pilot, mission_id, mission, date, result, elapsed_s) VALUES (14, 2011, '', '', 1, 1.0)",
+            [],
+        )
+        .unwrap();
         drop(c);
         let c = open(&db).unwrap();
         assert_eq!(c.pragma_query_value(None, "user_version", |r| r.get::<_, i64>(0)).unwrap(), SCHEMA_VERSION);
         assert_eq!(sorties(&c, DEFAULT_PILOT).unwrap().len(), 1);
         set_pilot(&c, DEFAULT_PILOT, "Noa", "").unwrap();
         assert_eq!(pilot(&c, &db, DEFAULT_PILOT).unwrap()["name"], "Noa");
+        fs::remove_dir_all(&d).unwrap();
+    }
+
+    fn flown(mission: &str, pass: bool, date: &str, elapsed: f64, plane: &str) -> Value {
+        let mut r = rec(mission, pass, date, elapsed);
+        r["plane"] = json!(plane);
+        r
+    }
+
+    /// The logbook per plane, most hours first, its missions' passes and fails; a sortie without its plane counts
+    /// for its mission's jet. Reset empties the log, the profile kept.
+    #[test]
+    fn logbook_per_plane_and_reset() {
+        let d = temp("logbook");
+        let db = d.join("modern-iaf.sqlite");
+        let c = open(&db).unwrap();
+        set_pilot(&c, DEFAULT_PILOT, "Noa", "Viper").unwrap();
+        log_sortie(&c, DEFAULT_PILOT, 2012, &flown("ramon_takeoff", false, "2026-11-02T08:05:00", 300.0, "f16i"))
+            .unwrap();
+        log_sortie(&c, DEFAULT_PILOT, 2012, &flown("ramon_takeoff", true, "2026-11-02T08:11:00", 660.0, "f16i"))
+            .unwrap();
+        // Stored before the plane column: its mission's jet from `units`.
+        log_sortie(&c, DEFAULT_PILOT, 2011, &rec("ramon_startup", true, "2026-11-02T07:52:00", 112.0)).unwrap();
+        log_sortie(&c, DEFAULT_PILOT, 2031, &flown("nevatim_startup", true, "2026-11-03T09:00:00", 90.0, "f35i"))
+            .unwrap();
+        log_sortie(&c, 3, 2011, &flown("ramon_startup", true, "2026-11-02T07:00:00", 50.0, "f16i")).unwrap();
+        let units = json!({"2011": "f16i", "2031": "f35i"});
+        let book = logbook(&c, DEFAULT_PILOT, units.as_object().unwrap()).unwrap();
+        assert_eq!(
+            book,
+            json!([
+                {"plane": "f16i", "time_s": 1072.0, "flights": 3, "passes": 2, "fails": 1, "missions": [
+                    {"mission_id": 2011, "mission": "ramon_startup", "time_s": 112.0, "flights": 1, "passes": 1, "fails": 0},
+                    {"mission_id": 2012, "mission": "ramon_takeoff", "time_s": 960.0, "flights": 2, "passes": 1, "fails": 1},
+                ]},
+                {"plane": "f35i", "time_s": 90.0, "flights": 1, "passes": 1, "fails": 0, "missions": [
+                    {"mission_id": 2031, "mission": "nevatim_startup", "time_s": 90.0, "flights": 1, "passes": 1, "fails": 0},
+                ]},
+            ])
+        );
+        assert_eq!(sorties(&c, DEFAULT_PILOT).unwrap()[0].plane, "");
+        assert_eq!(reset(&c, DEFAULT_PILOT).unwrap(), 4);
+        assert_eq!(logbook(&c, DEFAULT_PILOT, &Map::new()).unwrap(), json!([]));
+        assert_eq!(summary(&c, DEFAULT_PILOT).unwrap()["flights"], 0);
+        assert_eq!(pilot(&c, &db, DEFAULT_PILOT).unwrap()["nickname"], "Viper");
+        // Another pilot's log stays.
+        assert_eq!(sorties(&c, 3).unwrap().len(), 1);
+        fs::remove_dir_all(&d).unwrap();
+    }
+
+    /// Only pilots with a name are listed; a new pilot takes the next free id.
+    #[test]
+    fn pilots_list_and_add() {
+        let d = temp("pilots");
+        let db = d.join("modern-iaf.sqlite");
+        let c = open(&db).unwrap();
+        assert_eq!(pilots(&c, &db).unwrap(), json!([]));
+        // A pilot made by a sortie has no profile yet.
+        log_sortie(&c, DEFAULT_PILOT, 2011, &rec("ramon_startup", true, "2026-11-02T07:00:00", 50.0)).unwrap();
+        assert_eq!(pilots(&c, &db).unwrap(), json!([]));
+        set_pilot(&c, DEFAULT_PILOT, "Noa", "Viper").unwrap();
+        let id = add_pilot(&c, " Dana ", "").unwrap();
+        assert_eq!(id, DEFAULT_PILOT + 1);
+        assert_eq!(
+            pilots(&c, &db).unwrap(),
+            json!([{"id": DEFAULT_PILOT, "name": "Noa", "nickname": "Viper", "picture": ""},
+                   {"id": id, "name": "Dana", "nickname": "", "picture": ""}])
+        );
+        fs::remove_dir_all(&d).unwrap();
+    }
+
+    /// A version-2 file gains the sorties' plane, from the debrief's `plane` where it has one.
+    #[test]
+    fn version_2_migrates_to_the_plane() {
+        let d = temp("v2");
+        let db = d.join("modern-iaf.sqlite");
+        let c = Connection::open(&db).unwrap();
+        c.execute_batch(MIGRATIONS[0]).unwrap();
+        c.execute_batch(MIGRATIONS[1]).unwrap();
+        c.pragma_update(None, "user_version", 2).unwrap();
+        c.execute("INSERT INTO pilots (id) VALUES (14)", []).unwrap();
+        for (d, mission) in [(Some(json!({"plane": "f35i"})), 2031), (Some(json!({})), 2011), (None, 2012)] {
+            c.execute(
+                "INSERT INTO sorties (pilot, mission_id, mission, date, result, elapsed_s, debrief)
+                 VALUES (14, ?1, '', '', 1, 1.0, ?2)",
+                params![mission, d.map(|d| d.to_string())],
+            )
+            .unwrap();
+        }
+        drop(c);
+        let c = open(&db).unwrap();
+        let planes: Vec<String> = sorties(&c, DEFAULT_PILOT).unwrap().into_iter().map(|s| s.plane).collect();
+        assert_eq!(planes, ["f35i", "", ""]);
         fs::remove_dir_all(&d).unwrap();
     }
 

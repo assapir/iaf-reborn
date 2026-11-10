@@ -45,7 +45,7 @@ func run() -> void:
 	change_scene_to_file("res://main.tscn")
 	await frames(3)
 	var fe: Control = current_scene
-	check(fe.page == "home", "a first start opens Home")
+	await first_start(fe)
 	var go: Button = fe.find_child("Missions", true, false)
 	check(go != null and go.text == "Missions", "first start: Home's action is Missions")
 	check(fe.find_child("change_plane", true, false) == null, "Home: no Change plane")
@@ -82,9 +82,62 @@ func run() -> void:
 	await fly_once(fe)
 
 
-## The Pilot screen from the pilot's name on Home: the nickname typed shows in the top bar at once and on every screen,
-## the name and nickname are stored, a picture is copied beside the records into a 3:4 frame; all put back after.
+## The first start (no profile stored): the Pilot screen makes one before Home, Save only with a name, Esc stays;
+## Save stores the name on the active pilot (its imported sorties kept) and opens Home.
+func first_start(fe: Control) -> void:
+	var s := settings()
+	check(fe.page == "pilot" and fe.first_start(), "a first start opens the Pilot screen to make the profile")
+	check(_has(fe, "Create your pilot") and fe.find_child("Missions", true, false) == null, "first start: no Home yet")
+	var save: Button = fe.find_child("Save", true, false)
+	check(save != null and save.disabled, "first start: Save waits for a name")
+	check(
+		fe.find_child("Back", true, false) == null and fe.find_child("ResetLog", true, false) == null,
+		"first start: Save only"
+	)
+	key(fe, KEY_ESCAPE)
+	await frames(1)
+	check(fe.page == "pilot", "first start: Esc stays")
+	var e: LineEdit = fe.find_child("Field_name", true, false)
+	await type_into(e, "Noa Golan")
+	check(not save.disabled and e.text == "Noa Golan", "first start: typed, Save on (%s)" % e.text)
+	save.pressed.emit()
+	await frames(2)
+	var p = JSON.parse_string(IafPilotLog.pilot(s.records_db(), s.pilot()))
+	check(fe.page == "home" and p.name == "Noa Golan", "first start: Save stores the name and opens Home")
+	check(s.pilot() == IafPilotLog.default_pilot(), "first start: the profile on the active pilot")
+	fe.show_page("home")
+	await frames(1)
+	check(fe.page == "home", "with a profile: Home")
+
+
+## Clicks LineEdit `e` and types `t` through the viewport, as a player does.
+func type_into(e: LineEdit, t: String) -> void:
+	var vp := e.get_viewport()
+	for down in [true, false]:
+		var m := InputEventMouseButton.new()
+		m.button_index = MOUSE_BUTTON_LEFT
+		m.pressed = down
+		m.position = e.get_global_rect().get_center()
+		vp.push_input(m, true)
+	await frames(1)
+	check(e.has_focus(), "%s: a click focuses it" % e.name)
+	e.select_all()
+	for ch in t:
+		for down in [true, false]:
+			var k := InputEventKey.new()
+			k.unicode = ch.unicode_at(0)
+			k.keycode = OS.find_keycode_from_string(ch.to_upper()) if ch != " " else KEY_SPACE
+			k.pressed = down
+			vp.push_input(k, true)
+	await frames(1)
+
+
+## The Pilot screen from the pilot's name on Home: the nickname typed, Back's discard prompt, Save to Home with the
+## nickname and the name in its top bar; the picture (the frame's click opens the picker) shown at once and copied
+## beside the records on Save; the logbook per plane; Change pilot: a new pilot made and active, a sortie of its own
+## reset after the warning and the second confirm, then the first pilot picked back.
 func pilot(fe: Control, lang: String) -> void:
+	var he := lang == "he"
 	var s := settings()
 	var db: String = s.records_db()
 	fe.show_page("home")
@@ -95,35 +148,134 @@ func pilot(fe: Control, lang: String) -> void:
 	await frames(2)
 	check(fe.page == "pilot" and fe.is_layout_rtl() == (lang == "he"), "%s: the name opens the Pilot screen" % lang)
 	var nick: LineEdit = fe.find_child("Field_nickname", true, false)
-	var name_edit: LineEdit = fe.find_child("Field_name", true, false)
-	name_edit.text = "Noa Golan"
-	name_edit.text_changed.emit(name_edit.text)
-	nick.text = "Viper"
-	nick.text_changed.emit(nick.text)
+	check(
+		nick.text == "" and nick.placeholder_text != fe.pilot_name(),
+		"%s: the nickname field: a hint, not the name" % lang
+	)
+	await type_into(nick, "Viper")
+	check(nick.text == "Viper", "%s: the nickname is typed in (%s)" % [lang, nick.text])
+	# The logbook: the Sufa's three imported sorties (their plane from the missions), the take-off's pass and fail.
+	var book: Control = fe.find_child("Logbook", true, false)
+	check(book != null and book.find_child("Plane_f16i", true, false) != null, "%s: the logbook's Sufa" % lang)
+	check(
+		(
+			_has(book, "F-16I סופה" if he else "F-16I Sufa")
+			and _has(book, "3 טיסות · 2 הצלחות · 1 כישלונות" if he else "3 flights · 2 passed · 1 failed")
+		),
+		"%s: the logbook's counts" % lang
+	)
+	check(
+		_has(book, "המראה" if he else "Take-off") and _has(book, "כישלונות 1" if he else "Failed 1"),
+		"%s: per mission" % lang
+	)
+	# Back with a change: the prompt; Keep editing keeps the draft.
+	fe.back()
 	await frames(1)
-	check(fe.find_child("PilotName", true, false).text == "Viper", "%s: the nickname in the top bar at once" % lang)
-	var p = JSON.parse_string(IafPilotLog.pilot(db, s.pilot()))
-	check(p is Dictionary and p.name == "Noa Golan" and p.nickname == "Viper", "%s: stored: %s" % [lang, p])
+	check(fe.find_child("Modal", true, false) != null and fe.page == "pilot", "%s: Back asks before discarding" % lang)
+	(fe.find_child("ModalCancel", true, false) as Button).pressed.emit()
+	await frames(1)
+	check(fe.find_child("Modal", true, false) == null and nick.text == "Viper", "%s: Keep editing keeps it" % lang)
+	# The picture: a click on the frame opens the picker; a picture shows at once, stored on Save.
+	var fr: Control = fe.find_child("Picture", true, false)
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	fr.gui_input.emit(click)
+	var dialog := fe.find_child("PictureDialog", true, false)
+	check(dialog != null, "%s: a click on the picture opens the file picker" % lang)
+	if dialog != null:
+		dialog.free()
 	var png := OS.get_temp_dir().path_join("iaf2026-test-pilot-%d.png" % OS.get_process_id())
 	Image.create(30, 40, false, Image.FORMAT_RGB8).save_png(png)
 	check(not fe.set_picture(db), "%s: a file that is no picture is refused" % lang)
 	check(fe.set_picture(png), "%s: the picture is taken" % lang)
 	await frames(2)
-	p = JSON.parse_string(IafPilotLog.pilot(db, s.pilot()))
-	check(FileAccess.file_exists(str(p.picture)) and p.picture != png, "%s: copied beside the records" % lang)
-	var fr: Control = fe.find_child("Picture", true, false)
+	fr = fe.find_child("Picture", true, false)
 	check(
 		fr != null and is_equal_approx(fr.size.x / fr.size.y, 0.75) and fr.find_child("*", true, false) is TextureRect,
 		"%s: the picture in its 3:4 frame (%s)" % [lang, fr.size if fr != null else null]
 	)
+	check(JSON.parse_string(IafPilotLog.pilot(db, s.pilot())).picture == "", "%s: not stored before Save" % lang)
+	(fe.find_child("Save", true, false) as Button).pressed.emit()
+	await frames(2)
+	var p = JSON.parse_string(IafPilotLog.pilot(db, s.pilot()))
+	check(fe.page == "home" and p.nickname == "Viper", "%s: Save stores and opens Home: %s" % [lang, p])
+	check(FileAccess.file_exists(str(p.picture)) and p.picture != png, "%s: copied beside the records" % lang)
+	check(fe.find_child("PilotName", true, false).text == "Viper", "%s: Home: the nickname" % lang)
+	var full: Label = fe.find_child("PilotFullName", true, false)
+	check(full != null and full.text == "Noa Golan", "%s: Home: the name under it" % lang)
 	fe.show_page("log")
 	await frames(2)
 	check(_has(fe, "Viper"), "%s: the Pilot log's top bar shows the nickname" % lang)
-	key(fe, KEY_ESCAPE)
-	await frames(2)
-	IafPilotLog.set_pilot(db, s.pilot(), "", "")
+	await switch_and_reset(fe, lang)
+	IafPilotLog.set_pilot(db, s.pilot(), "Noa Golan", "")
 	IafPilotLog.set_picture(db, s.pilot(), "")
 	DirAccess.remove_absolute(png)
+
+
+## Change pilot → New pilot → a second pilot made and active; a sortie of its own, Reset after two confirms; the
+## pilot list picks the first one back.
+func switch_and_reset(fe: Control, lang: String) -> void:
+	var he := lang == "he"
+	var s := settings()
+	var db: String = s.records_db()
+	var first: int = s.pilot()
+	fe.show_page("pilot")
+	await frames(2)
+	(fe.find_child("OtherPilots", true, false) as Button).pressed.emit()
+	await frames(2)
+	check(fe.page == "pilots" and fe.find_child("Pilot_%d" % first, true, false) != null, "%s: the pilot list" % lang)
+	check(_has(fe, "בשימוש" if he else "Current"), "%s: the list marks the active pilot" % lang)
+	(fe.find_child("NewPilot", true, false) as Button).pressed.emit()
+	await frames(2)
+	check(fe.page == "pilot" and fe.creating and _has(fe, "פרופיל חדש" if he else "New pilot"), "%s: New pilot" % lang)
+	check((fe.find_child("Field_name", true, false) as LineEdit).text == "", "%s: New pilot: empty" % lang)
+	await type_into(fe.find_child("Field_name", true, false), "Dana")
+	(fe.find_child("Save", true, false) as Button).pressed.emit()
+	await frames(2)
+	var second: int = s.pilot()
+	check(fe.page == "home" and second != first and fe.pilot_name() == "Dana", "%s: the new pilot active" % lang)
+	check(JSON.parse_string(IafPilotLog.sorties(db, second)).is_empty(), "%s: the new pilot's log is empty" % lang)
+	IafPilotLog.log_sortie(
+		db,
+		second,
+		2011,
+		JSON.stringify(
+			{
+				"mission": "ramon_startup",
+				"pass": true,
+				"date": "2026-11-10T09:00:00",
+				"elapsed_s": 60.0,
+				"plane": "f16i"
+			}
+		)
+	)
+	fe.show_page("pilot")
+	await frames(2)
+	var reset: Button = fe.find_child("ResetLog", true, false)
+	check(reset != null and not reset.disabled, "%s: Reset with a flight" % lang)
+	reset.pressed.emit()
+	await frames(1)
+	check(_has(fe, "לאפס את יומן הטיסות?" if he else "Reset the pilot log?"), "%s: the reset's warning" % lang)
+	var ok: Button = fe.find_child("ModalOk", true, false)
+	check(ok.text == ("לאפס" if he else "Reset"), "%s: the modal's Reset" % lang)
+	ok.pressed.emit()
+	await frames(1)
+	check(_has(fe, "לאפס סופית?" if he else "Reset for good?"), "%s: the second confirm" % lang)
+	check(JSON.parse_string(IafPilotLog.sorties(db, second)).size() == 1, "%s: nothing deleted before it" % lang)
+	(fe.find_child("ModalOk", true, false) as Button).pressed.emit()
+	await frames(2)
+	check(JSON.parse_string(IafPilotLog.sorties(db, second)).is_empty(), "%s: Reset empties the log" % lang)
+	check(not JSON.parse_string(IafPilotLog.sorties(db, first)).is_empty(), "%s: the other pilot's log stays" % lang)
+	check(fe.find_child("Modal", true, false) == null and fe.page == "pilot", "%s: back on the Pilot screen" % lang)
+	(fe.find_child("OtherPilots", true, false) as Button).pressed.emit()
+	await frames(2)
+	(fe.find_child("Pilot_%d" % first, true, false) as Button).pressed.emit()
+	await frames(2)
+	check(
+		fe.page == "home" and s.pilot() == first and fe.pilot_name() == "Viper",
+		"%s: the first pilot picked back" % lang
+	)
 
 
 ## The breadcrumbs open their screens and keep the picks; the current one is no button.
@@ -409,16 +561,14 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	check(
 		_has(fe, "קרדיט" if he else "Attributions") and _has(fe, "יציאה" if he else "Quit"), "%s: home: the menu" % lang
 	)
-	check(_labels_of(fe, "Stat").has("3"), "%s: home: three flights" % lang)
+	check(_labels_of(fe, "Stat").is_empty(), "%s: home: no flight counts" % lang)
 	check(not _has_part(fe, "אחרונה" if he else "Last:"), "%s: home: no last-mission line" % lang)
 	check(not _has(fe, "בחירה" if he else "Select"), "%s: home: no key hints" % lang)
 	var train: Control = fe.find_child("Missions", true, false)
 	check((train.global_position.x > 960) == he, "%s: home: the column on the inline start" % lang)
-	var home_log: Button = fe.find_child("HomeLog", true, false)
-	check(home_log != null and home_log.size.y >= 80, "%s: home: the log summary is a button" % lang)
-	home_log.pressed.emit()
+	(fe.find_child("pilot_log", true, false) as Button).pressed.emit()
 	await frames(2)
-	check(fe.page == "log", "%s: home: the log summary opens the Pilot log" % lang)
+	check(fe.page == "log", "%s: home: Pilot log opens the Pilot log" % lang)
 	check(_has(fe, "המראה" if he else "Take-off"), "%s: log: the take-off" % lang)
 	var rows: Array = fe.find_child("Log", true, false).find_children("*", "Button", true, false)
 	rows[0].pressed.emit()

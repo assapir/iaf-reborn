@@ -1,7 +1,7 @@
 # Real-render pictures of Modern IAF's front end, every screen in English and Hebrew (modern-iaf/docs/front-end.md):
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/fe -- --log-file /tmp/fe.log --path modern-iaf \
 #     -s ../modern-iaf/tests/_front_end_shot.gd
-# Writes SHOT_DIR/<screen>_<lang>.png (the Preferences: prefs_<section>_*) at 1920×1080 (the
+# Writes SHOT_DIR/<screen>_<lang>.png (the Preferences: prefs_<section>_*; the Pilot screens: _pilot) at 1920×1080 (the
 # front end in a viewport of that size, whatever the window's) with the sample pilot log and debrief of
 # test_front_end.gd (debrief_fail: its take-off with the gear never raised). SHOT_ONLY=<screen> takes that screen
 # alone (e.g. SHOT_ONLY=plane).
@@ -52,23 +52,42 @@ func run() -> void:
 	s.pilot_name = ""
 
 
-## The Pilot screen with a sample profile (a drawn silhouette as its picture), then the profile put back.
+## The Pilot screens with a sample profile (a drawn silhouette as its picture): the first start's (pilot_first), the
+## Pilot screen with the sample log's logbook (pilot), the Reset's warning (pilot_reset), the pilot list with a second
+## pilot (pilots) and Home with the name and nickname (home); then the profile put back.
 func _pilot(fe: Control, vp: SubViewport, dir: String, lang: String) -> void:
 	var s := settings()
 	var db: String = s.records_db()
 	s.pilot_name = ""
 	var he := lang == "he"
-	IafPilotLog.set_pilot(db, s.pilot(), "נועה גולן" if he else "Noa Golan", "נועה" if he else "Noa")
+	IafPilotLog.set_pilot(db, s.pilot(), "", "")
+	fe.show_page("home")
+	await _shot(vp, dir, "pilot_first_" + lang)
+	IafPilotLog.set_pilot(db, s.pilot(), "נועה גולן" if he else "Noa Golan", "עקרב" if he else "Viper")
 	var png := OS.get_temp_dir().path_join("iaf2026-shot-pilot-%d.png" % OS.get_process_id())
 	_silhouette().save_png(png)
+	IafPilotLog.set_picture(db, s.pilot(), png)
+	fe.show_page("credits")
 	fe.show_page("pilot")
-	fe.set_picture(png)
-	await frames(10)
-	var path: String = dir.path_join("pilot_%s.png" % lang)
-	check(vp.get_texture().get_image().save_png(path) == OK, "saved " + path)
+	await _shot(vp, dir, "pilot_" + lang)
+	fe.reset_log()
+	await _shot(vp, dir, "pilot_reset_" + lang)
+	fe.close_modal()
+	var other: int = IafPilotLog.add_pilot(db, "דנה לוי" if he else "Dana Levi", "")
+	fe.show_page("pilots")
+	await _shot(vp, dir, "pilots_" + lang)
+	fe.show_page("home")
+	await _shot(vp, dir, "home_" + lang)
+	IafPilotLog.set_pilot(db, other, "", "")
 	IafPilotLog.set_pilot(db, s.pilot(), "", "")
 	IafPilotLog.set_picture(db, s.pilot(), "")
 	DirAccess.remove_absolute(png)
+
+
+func _shot(vp: SubViewport, dir: String, name: String) -> void:
+	await frames(10)
+	var path: String = dir.path_join(name + ".png")
+	check(vp.get_texture().get_image().save_png(path) == OK, "saved " + path)
 
 
 ## A sample ID photo, 600 × 800: a head and shoulders in slate on a blue-grey ground.

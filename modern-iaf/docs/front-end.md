@@ -9,7 +9,7 @@ It builds the round-3 design the user approved on 3 November 2026: one screen pe
 Heebo font and the Israeli Air Force flag's colours.
 
 ```sh
-./start-modern-iaf                     # Home (Pick a plane on the first start)
+./start-modern-iaf                     # Home (the first start: the Pilot screen makes the profile first)
 ./start-modern-iaf -- --mission 2011   # flies that mission at once, then shows its debrief
 ```
 
@@ -19,13 +19,16 @@ The window opens plain in the front end's background colour (#1d2025, no Godot s
 
 | screen | what it does | English | Hebrew |
 |---|---|---|---|
-| Home | the sim's name, Missions, the menu: Pilot log (after the first flight with the flights and the flight time under it), Preferences, Attributions, Quit; the pilot's name in the top bar, no jet | ![Home](pictures/front-end/home_en.webp) | ![Home, Hebrew](pictures/front-end/home_he.webp) |
+| Home | the sim's name, Missions, the menu: Pilot log, Preferences, Attributions, Quit; the pilot's nickname in the top bar with the name under it, no counts, no jet | ![Home](pictures/front-end/home_en.webp) | ![Home, Hebrew](pictures/front-end/home_he.webp) |
 | Pick a plane | the Sufa (Ramon, 253 Squadron), the Barak (Ramat David, 109 Squadron) and the Adir (Nevatim, 140 Squadron) in one row, each card with its code, name, base and squadron (airbases.md §3), then the Ra'am (Hatzerim, 69 Squadron) and the Baz (Tel Nof, 133 Squadron) greyed; the pick sets the jet everywhere and stays highlighted on the next visit | ![Pick a plane](pictures/front-end/plane_en.webp) | ![Pick a plane, Hebrew](pictures/front-end/plane_he.webp) |
 | Training | the programme: its missions with their last result and the progress | ![Training](pictures/front-end/training_en.webp) | ![Training, Hebrew](pictures/front-end/training_he.webp) |
 | Pick a mission | the missions beside the picked one's briefing (§10) on three pages: Briefing (base, runway and heading, time, wind, time allowed, objectives, how), Map (one zoomable map) and Arming (the jet's front view with its stores, its weights); Fly | ![Pick a mission](pictures/front-end/mission_en.webp) | ![Pick a mission, Hebrew](pictures/front-end/mission_he.webp) |
 | Preferences | the sections Graphics, Language, Sound and Devices listed at the inline start; the picked one's settings open beside them as controls: dropdown, switch, slider, radio list | ![Preferences](pictures/front-end/prefs_graphics_en.webp) | ![Preferences, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
 | Debrief | the record as a sheet: Plane flown, From, Time, Mission, Result, the mission's goals (a take-off: runway, lift-off and reference speed, centreline offset, tower calls; a start-up: none), Remarks (the fail reason first, or that it passed; the lift-off against the reference); Back to missions, Fly again | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
-| Pilot | Home → the pilot's name: the picture in a service ID photo's fixed 3:4 frame (Choose a picture… opens the system's file dialog), the name and the nickname, stored as they are typed | ![Pilot](pictures/front-end/pilot_en.webp) | ![Pilot, Hebrew](pictures/front-end/pilot_he.webp) |
+| Pilot | Home → the pilot's name: the picture in a service ID photo's fixed 3:4 frame (a click on it, or Choose a picture…, opens the system's file dialog), the name and the nickname, and the logbook (§3); the footer's Reset the log, Change pilot, Back and Save (§3) | ![Pilot](pictures/front-end/pilot_en.webp) | ![Pilot, Hebrew](pictures/front-end/pilot_he.webp) |
+| Create your pilot | the first start, before Home: the Pilot screen with Save only (§3) | ![Create your pilot](pictures/front-end/pilot_first_en.webp) | ![Create your pilot, Hebrew](pictures/front-end/pilot_first_he.webp) |
+| Reset the log | the Pilot screen's Reset: a warning modal, then a second confirm (§3) | ![Reset the log](pictures/front-end/pilot_reset_en.webp) | ![Reset the log, Hebrew](pictures/front-end/pilot_reset_he.webp) |
+| Pilots | the Pilot screen's Change pilot: every pilot with a name, the active one marked Current; New pilot (§3) | ![Pilots](pictures/front-end/pilots_en.webp) | ![Pilots, Hebrew](pictures/front-end/pilots_he.webp) |
 | Pilot log | every attempt, newest first; a row opens its debrief | ![Pilot log](pictures/front-end/log_en.webp) | ![Pilot log, Hebrew](pictures/front-end/log_he.webp) |
 | Attributions | the setup wizard's list of sources and licences, the jet photos with them | ![Attributions](pictures/front-end/credits_en.webp) | ![Attributions, Hebrew](pictures/front-end/credits_he.webp) |
 
@@ -104,8 +107,32 @@ bar shows the nickname, else the name, else the computer's user name; with a pic
 frame in place of the initials' disc. The picture keeps square corners and no round mask, as a service ID photo; it is
 cropped to fill the frame.
 
-The debrief's number is its sortie's id, the sortie's place among all stored flights, oldest first. Home's flights
-and flight time and Training's status and best time are `IafPilotLog.summary`'s. Its Time is the day, then the mission's clock from its start (the mission's `time`) to the start plus
+**The Pilot screen** (2026-11-10, the user's findings on it):
+
+- **A draft until Save.** The name, the nickname and a newly chosen picture change nothing until Save (primary, at
+  the footer's end, greyed without a name), which stores them and opens Home; the picture file is copied beside the
+  database then. Back (and Esc) opens Home, after a modal "Discard the changes?" (Discard / Keep editing) when
+  something changed; Change pilot and the Home crumb ask the same. The empty fields show hints ("Full name", "For example: Viper"): the nickname field used to show
+  the pilot's name in grey, which read as text that no click could edit.
+- **The picture** opens the file dialog on a click, as Choose a picture… does.
+- **The logbook** beside the profile (`IafPilotLog.logbook`): per plane flown, most hours first, its flight time
+  (`clock`) and its flights, passes and fails, then each mission flown on it with its passes and fails. A sortie
+  stored before the records kept its plane counts for its mission's jet (the readable mission's `start.unit`).
+- **Reset the log** (greyed with no flights) opens a modal, "Reset the pilot log?" / "לאפס את יומן הטיסות?", then a
+  second one, "Reset for good?" / "לאפס סופית?"; each has Reset / לאפס and Cancel, Cancel focused and Esc closing it.
+  Reset deletes the pilot's sorties and their debriefs; the name, nickname and picture stay.
+- **Several pilots.** Change pilot opens the pilot list: each pilot with a name (picture or initials, nickname, name),
+  Current on the active one. A click makes that pilot active and opens Home; New pilot opens the Pilot screen empty,
+  and its Save makes the pilot and makes it active. The active pilot is `Settings.pilot_id`, kept in `settings.cfg`
+  `[sim] pilot` (the default pilot 14 before any pick).
+- **The first start.** While the active pilot has no name stored, Home's place is taken by the Pilot screen titled
+  "Create your pilot" with only Save (Esc stays); Save stores the profile on the active pilot, its imported sorties
+  kept, and opens Home. When the records hold other pilots with a name, the pilot list opens instead.
+- **The modal** is the sim's: the screen dimmed, a panel with the title, the text, the safe choice and the action;
+  mirrored in Hebrew. The Hebrew texts are in the infinitive, gender neutral.
+
+The debrief's number is its sortie's id, the sortie's place among all stored flights, oldest first. Training's status
+and best time are `IafPilotLog.summary`'s. Its Time is the day, then the mission's clock from its start (the mission's `time`) to the start plus
 `elapsed_s`. The pilot's name is the profile's nickname or name, else the computer's user name. The Remarks are
 the record's fail reasons, then what its
 numbers say: the lift-off speed against the reference speed for the weight, and the largest offset from the
@@ -171,15 +198,20 @@ and in [../../docs/credits.md](../../docs/credits.md) "Modern IAF's photos". The
   and Attributions. With `-- --fly` it also flies Ramon's start-up from the mission screen to a pass, opens the pause
   menu, ends the flight and finds that flight's debrief. Run in a real render through `tools/godot_window.sh` it is
   the real run (`SHOT_DIR=<dir>` saves the two pictures of §1's second table).
-  It also checks the first start (Home's Missions, the picker, Continue to Training, Esc back through the picker to a
+  It also checks the first start (the Pilot screen before Home, Save only with a name typed through real input
+  events, Esc staying, Save storing the name on the active pilot and opening Home; then Home's Missions, the picker, Continue to Training, Esc back through the picker to a
   Home with no jet), Home's Pilot log entry opening the Pilot log, the breadcrumbs, each
   Preferences section opening beside the list on the same screen (its pane over 700 px high, on the inline-end side),
   no line under an option, no aid, realism or weather row and no read of the original's data, the
   sim's settings (no aid on, the log dumps naming only the sim's settings), F1–F4 opening no pause menu, and the
   pause menu inside viewports of 1920 × 1080, 2560 × 1440 and 1280 × 800 in both languages, and the Pilot screen in
-  both languages: Home's pilot name opens it, the nickname typed shows in the top bar at once and on the Pilot log,
-  the name and nickname stored, a file that is no picture refused, a picture copied beside the records into its 3:4
-  frame.
+  both languages: Home's pilot name opens it, the nickname field shows a hint and takes a click and typed keys, the
+  logbook's Sufa with its counts and per-mission passes and fails, Back's discard prompt (Keep editing keeps the
+  draft), a click on the picture opening the file picker, a file that is no picture refused, a picture shown in its
+  3:4 frame and copied beside the records only on Save, Save opening Home with the nickname and the name under it;
+  then Change pilot: the list marking the active pilot, New pilot making a second pilot, active, with an empty log,
+  its sortie kept through Reset's first modal and deleted by the second (the other pilot's log kept), and the list
+  picking the first pilot back.
 - The briefing (§10): the title as the kind, the time as "0800", the wind as "000° / 0 kt" ("קשר"), the take-off's
   four objectives, its runway with the heading, its four steps in a four-column table, the three tabs mirrored and
   the arrow keys between them; the six take-off steps (each tower call its own, with its pick and the answer to wait

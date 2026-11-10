@@ -123,6 +123,7 @@ const CRUMB_PAGES := {
 	"devices": "prefs",  # the Keys and Joystick screens' crumb: the Preferences on their section
 	"pilot_log": "log",
 	"pilot": "pilot",
+	"pilots": "pilots",
 	"credits": "credits"
 }
 ## The screens that show the picked jet: Pick a plane opens in their place before the first pick.
@@ -137,6 +138,7 @@ const BACK := {
 	"log": "home",
 	"credits": "home",
 	"pilot": "home",
+	"pilots": "pilot",
 	"keys": "prefs",
 	"joystick": "prefs",
 }
@@ -170,6 +172,11 @@ var _summary = null
 ## The pilot's profile (IafPilotLog.pilot: name, nickname, picture), read once per page; the pictures' textures.
 var _profile = null
 static var _pictures := {}
+## The Pilot screen's draft, stored by Save: `name`, `nickname` and `picture` (a file just chosen, "" = the stored
+## one).
+var draft := {}
+## The Pilot screen makes a new pilot (New pilot on the pilot list) instead of editing the active one.
+var creating := false
 static var _args_done := false
 
 
@@ -265,6 +272,7 @@ func jet() -> Dictionary:
 func show_page(p: String) -> void:
 	if p in NEEDS_JET and jet().is_empty():
 		p = "plane"
+	var page_was := page
 	page = p
 	var lang := "he" if he() else "en"
 	strings = Settings.load_json("res://menu/strings_%s.json" % lang)
@@ -275,6 +283,12 @@ func show_page(p: String) -> void:
 	_sorties = null
 	_summary = null
 	_profile = null
+	# No profile yet (the first start): the Pilot screen makes it before Home, or the pilot list when the records hold
+	# other pilots (the pictures' sample pilot, Settings.pilot_name, has one).
+	if p == "home" and flight == null and first_start():
+		var others = JSON.parse_string(IafPilotLog.pilots(Settings.records_db()))
+		p = "pilots" if others is Array and not others.is_empty() else "pilot"
+		page = p
 	var dir := Control.LAYOUT_DIRECTION_RTL if he() else Control.LAYOUT_DIRECTION_LTR
 	# Over a flight the overlay itself stays left to right: a right-to-left control under a CanvasLayer mirrors its own
 	# position by its unscaled width (_fit_overlay), which pushed the pause menu off the screen. Its children carry
@@ -296,6 +310,11 @@ func show_page(p: String) -> void:
 		bg.color = Look.BG
 		add_child(bg)
 		bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if p != "pilot":
+		creating = false
+	elif page_was != "pilot":
+		var was := {} if creating else profile()
+		draft = {"name": str(was.get("name", "")), "nickname": str(was.get("nickname", "")), "picture": ""}
 	if not jet().is_empty():
 		missions = jet_missions(jet().unit)
 		mission_i = clampi(mission_i, 0, maxi(missions.size() - 1, 0))
@@ -329,7 +348,7 @@ func _header(crumbs: Array) -> void:
 		if i == crumbs.size() - 1:
 			c = _label(h, t, "CrumbOn")
 		else:
-			c = _button(h, t, "CrumbLink", show_page.bind(to))
+			c = _button(h, t, "CrumbLink", _crumb.bind(to))
 			c.name = "Crumb_" + to
 		c.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_spacer(h)
@@ -346,12 +365,19 @@ func _header(crumbs: Array) -> void:
 		who_name = _label(who, pilot_name(), "Strong")
 	who_name.name = "PilotName"
 	var j := jet()
-	if not j.is_empty() and page != "home":
+	if page == "home":
+		# Home: the name under the nickname (the nickname alone when it is the only one).
+		var full := str(profile().get("name", ""))
+		if Settings.pilot_name == "" and str(profile().get("nickname", "")) != "" and full != "":
+			var l := _label(who, full, "Muted")
+			l.name = "PilotFullName"
+			l.size_flags_horizontal = Control.SIZE_SHRINK_END
+	elif not j.is_empty():
 		_label(who, "%s · %s" % [s(j.name), subtitle(j)], "Muted")
 	# The picture in its 3:4 frame, else the initials in a disc.
 	var pic := picture()
 	if pic != null:
-		var fr := _picture_frame(h, Vector2(42, 56))
+		var fr := _picture_frame(h, Vector2(42, 56), pic)
 		fr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		return
 	var av := PanelContainer.new()
@@ -478,46 +504,18 @@ func _page_home() -> void:
 	_focus = go
 	var menu := _vbox(col, 0)
 	_rule(menu, Look.LINE)
-	var has_log := _home_log(menu)
-	if has_log:
-		_rule(menu, Look.LINE)
 	var items := [
 		["pilot_log", func(): show_page("log")],
 		["preferences", func(): show_page("prefs")],
 		["credits", func(): show_page("credits")],
 		["quit", func(): Settings.quit()],
 	]
-	for item in items.slice(1 if has_log else 0):
+	for item in items:
 		var b := _button(menu, s(item[0]), "Menu", item[1])
 		b.name = item[0]
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		_rule(menu, Look.LINE)
 	_footer(_credit([air]))
-
-
-## Home's log summary, a button to the Pilot log: the flights and the flight time (none before the first flight).
-func _home_log(col: Control) -> bool:
-	var sum := summary()
-	if int(sum.get("flights", 0)) == 0:
-		return false
-	var b := _button(col, "", "Menu", func(): show_page("log"))
-	b.name = "HomeLog"
-	var pad := _margin(b, 4, 12)
-	pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var log := _vbox(pad, 2)
-	# The entry's name as the other menu entries show theirs, the counts under it.
-	_label(log, s("pilot_log"), "Row").add_theme_font_size_override("font_size", 26)
-	var stats := _hbox(log, 46)
-	for st in [[str(int(sum.flights)), "flights"], [clock(float(sum.flight_time_s)), "flight_time"]]:
-		var one := _hbox(stats, 8)
-		var v := _label(one, st[0], "Stat")
-		v.text_direction = Control.TEXT_DIRECTION_LTR
-		var l := _label(one, s(st[1]), "Muted")
-		l.size_flags_vertical = Control.SIZE_SHRINK_END
-	for c in pad.find_children("*", "Control", true, false) + [pad]:
-		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	b.custom_minimum_size.y = pad.get_combined_minimum_size().y
-	return true
 
 
 # --- Pick a plane -----------------------------------------------------------------------------------------------------
@@ -1291,17 +1289,27 @@ func play_sample(key: String) -> void:
 
 
 ## The Pilot screen (Home → the pilot's name): the picture in a service ID photo's fixed 3:4 frame, the name and the
-## nickname (the one every screen's top bar shows), stored in the records (IafPilotLog) as they are typed.
+## nickname (the one every screen's top bar shows). The edits are a draft: Save stores them in the records
+## (IafPilotLog) and opens Home; Back leaves them, after a prompt when something changed.
 func _page_pilot() -> void:
-	_header(["home", "pilot"])
+	var first := not creating and first_start()
+	_header(["pilot"] if first else ["home", "pilot"])
 	var v := _vbox(_body(), 30)
-	_title(v, s("pilot"), "")
+	if first:
+		_title(v, s("first_pilot"), s("first_pilot_sub"))
+	else:
+		_title(v, s("new_pilot") if creating else s("pilot"), "")
 	var h := _hbox(v, 72)
 	var col := _vbox(h, 20)
-	var fr := _picture_frame(col, Vector2(300, 400))
+	var fr := _picture_frame(col, Vector2(300, 400), draft_picture())
 	fr.name = "Picture"
-	if picture() == null:
-		var ini := _label(fr, initials(pilot_name()), "Jet")
+	# The picture (or its placeholder) opens the file picker as the button does.
+	fr.mouse_filter = Control.MOUSE_FILTER_STOP
+	fr.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	fr.tooltip_text = s("choose_picture")
+	fr.gui_input.connect(_picture_click)
+	if draft_picture() == null:
+		var ini := _label(fr, initials(str(draft.name)), "Jet")
 		ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		ini.add_theme_color_override("font_color", Look.MUTED)
@@ -1313,26 +1321,222 @@ func _page_pilot() -> void:
 		_label(f, s("pilot_" + field), "Strong").add_theme_font_size_override("font_size", 25)
 		var e := LineEdit.new()
 		e.name = "Field_" + field
-		e.text = str(profile().get(field, ""))
-		e.placeholder_text = pilot_name() if field == "nickname" else ""
+		e.text = str(draft.get(field, ""))
+		# A hint, never the name: the name in grey read as the field's own text, which no click could edit.
+		e.placeholder_text = s("pilot_%s_hint" % field)
 		e.max_length = 40
 		e.custom_minimum_size = Vector2(640, 58)
-		e.text_changed.connect(func(_t): _save_pilot())
+		e.text_changed.connect(_edit.bind(field))
 		f.add_child(e)
 		if _focus == null:
 			_focus = e
 		_spacer_px(f, 12)
 	_text(f, s("nickname_note"), "Muted")
+	if not creating and not first:
+		_logbook(h)
+	var back := _action(s("back"), "Secondary", pilot_back)
+	back.name = "Back"
+	var save := _action(s("save"), "Primary", save_pilot)
+	save.name = "Save"
+	save.disabled = str(draft.name).strip_edges() == ""
+	if first:
+		_footer("", [save])
+		return
+	if creating:
+		_footer("", [back, save])
+		return
+	var reset := _action(s("reset_log"), "Secondary", reset_log)
+	reset.name = "ResetLog"
+	reset.disabled = sorties().is_empty()
+	var other := _action(s("other_pilots"), "Secondary", pilot_back.bind("pilots"))
+	other.name = "OtherPilots"
+	_footer("", [reset, other, back, save])
 
 
-func _save_pilot() -> void:
-	var name_edit: LineEdit = find_child("Field_name", true, false)
-	var nick_edit: LineEdit = find_child("Field_nickname", true, false)
-	IafPilotLog.set_pilot(Settings.records_db(), Settings.pilot(), name_edit.text, nick_edit.text)
-	_profile = null
-	var who: Control = find_child("PilotName", true, false)
-	if who != null:
-		who.set("text", pilot_name())
+func _picture_click(e: InputEvent) -> void:
+	if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+		choose_picture()
+
+
+## The logbook beside the profile: per plane flown (most hours first) its flight time and flights, and per mission
+## its passes and fails (IafPilotLog.logbook).
+func _logbook(parent: Control) -> void:
+	var book := _vbox(parent, 10)
+	book.name = "Logbook"
+	book.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_label(book, s("logbook"), "Strong").add_theme_font_size_override("font_size", 25)
+	var units := {}
+	var list := Settings.load_json(Settings.converted(Settings.missions_folder().path_join("missionlist.json")))
+	for id in list:
+		units[id] = str(mission_by_name(str(list[id][0])).get("start", {}).get("unit", ""))
+	var planes = JSON.parse_string(IafPilotLog.logbook(Settings.records_db(), Settings.pilot(), JSON.stringify(units)))
+	if not planes is Array or planes.is_empty():
+		_label(book, s("no_flights"), "Sub")
+		return
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size.y = 560
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	book.add_child(scroll)
+	var rows := _vbox(scroll, 6)
+	rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for pl in planes:
+		_rule(rows, Look.LINE)
+		var j := {}
+		for x in JETS:
+			if x.unit == str(pl.plane):
+				j = x
+		var head := _hbox(rows, 16)
+		head.name = "Plane_" + str(pl.plane)
+		var name := _label(head, "%s %s" % [j.code, s(j.name)] if not j.is_empty() else str(pl.plane), "Strong")
+		name.add_theme_font_size_override("font_size", 25)
+		_spacer(head)
+		var t := _label(head, clock(float(pl.time_s)), "Strong")
+		t.text_direction = Control.TEXT_DIRECTION_LTR
+		_label(head, s("flight_time"), "Muted")
+		_label(rows, s("logbook_flights") % [int(pl.flights), int(pl.passes), int(pl.fails)], "Muted")
+		for m in pl.missions:
+			var r := _hbox(rows, 12)
+			var mm := mission_by_id(int(m.mission_id))
+			var title := _label(r, title_of(mm) if not mm.is_empty() else str(m.mission), "Row")
+			title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			title.clip_text = true
+			_chip(r, s("passes_n") % int(m.passes), true)
+			_chip(r, s("fails_n") % int(m.fails), false)
+
+
+## A field typed in: the draft, and Save only with a name.
+func _edit(t: String, field: String) -> void:
+	draft[field] = t
+	var save: Button = find_child("Save", true, false)
+	if save != null:
+		save.disabled = str(draft.name).strip_edges() == ""
+
+
+## True when the draft differs from the stored profile (a new pilot's: empty).
+func pilot_changed() -> bool:
+	var was := {} if creating else profile()
+	for k in ["name", "nickname"]:
+		if str(draft.get(k, "")).strip_edges() != str(was.get(k, "")):
+			return true
+	return str(draft.get("picture", "")) != ""
+
+
+## Save: the draft into the records, then Home.
+func save_pilot() -> void:
+	if str(draft.name).strip_edges() == "":
+		return
+	var db := Settings.records_db()
+	if creating:
+		var id: int = IafPilotLog.add_pilot(db, draft.name, draft.nickname)
+		if id <= 0:
+			return
+		use_pilot(id)
+	else:
+		IafPilotLog.set_pilot(db, Settings.pilot(), draft.name, draft.nickname)
+	if draft.picture != "":
+		_pictures.erase(IafPilotLog.set_picture(db, Settings.pilot(), draft.picture))
+	show_page("home")
+
+
+## Reset: the pilot's flights and debriefs deleted after a warning and a second confirm (the profile stays).
+func reset_log() -> void:
+	var sure := func(): modal(s("reset_sure_title"), s("reset_sure_text"), s("reset"), _reset_now)
+	modal(s("reset_title"), s("reset_text") % pilot_name(), s("reset"), sure)
+
+
+func _reset_now() -> void:
+	IafPilotLog.reset(Settings.records_db(), Settings.pilot())
+	show_page(page)
+
+
+## A breadcrumb: its screen; from the Pilot screen through Back's discard prompt.
+func _crumb(to: String) -> void:
+	if page == "pilot":
+		pilot_back(to)
+	else:
+		show_page(to)
+
+
+## Back (and Esc): Home (a new pilot: the pilot list), or screen `to`, after a prompt to discard the changes when
+## there are any.
+func pilot_back(to := "") -> void:
+	if not creating and first_start():
+		return  # the first start: Save is the way on
+	if to == "":
+		to = "pilots" if creating else "home"
+	if pilot_changed():
+		modal(s("discard_title"), s("discard_text"), s("discard"), show_page.bind(to), s("keep_editing"))
+	else:
+		show_page(to)
+
+
+## The pilot list (the Pilot screen's Change pilot): every pilot with a name, the active one marked; a click makes
+## that pilot the active one (Settings.pilot_id, kept in settings.cfg) and opens Home. New pilot opens an empty
+## Pilot screen.
+func _page_pilots() -> void:
+	_header(["home", "pilot", "pilots"])
+	var v := _vbox(_body(), 26)
+	_title(v, s("pilots"), "")
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	v.add_child(scroll)
+	var list := _vbox(scroll, 0)
+	list.name = "Pilots"
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var all = JSON.parse_string(IafPilotLog.pilots(Settings.records_db()))
+	for p in all if all is Array else []:
+		var b := Button.new()
+		b.name = "Pilot_%d" % int(p.id)
+		b.theme_type_variation = "Menu"
+		b.pressed.connect(use_pilot.bind(int(p.id), true))
+		list.add_child(b)
+		var row := _hbox(_margin(b, 20, 10), 24)
+		row.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var tex := _texture(str(p.picture))
+		var fr := _picture_frame(row, Vector2(48, 64), tex)
+		if tex == null:
+			var ini := _label(fr, initials(str(p.name)), "Avatar")
+			ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			ini.add_theme_color_override("font_color", Look.MUTED)
+		var names := _vbox(row, 0)
+		names.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_label(names, str(p.nickname) if str(p.nickname) != "" else str(p.name), "Row")
+		if str(p.nickname) != "":
+			_label(names, str(p.name), "Muted")
+		if int(p.id) == Settings.pilot():
+			_chip(row, s("current"), true)
+			_focus = b
+		for c in b.find_children("*", "Control", true, false):
+			c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.custom_minimum_size.y = row.get_parent().get_combined_minimum_size().y
+		_rule(list, Look.LINE)
+	var back := _action(s("back"), "Secondary", show_page.bind("pilot"))
+	back.name = "Back"
+	var add := _action(s("new_pilot"), "Primary", new_pilot)
+	add.name = "NewPilot"
+	_footer("", [back, add])
+
+
+## The pilot `id` as the active one, kept in the settings; `home`: then Home.
+func use_pilot(id: int, home := false) -> void:
+	Settings.pilot_id = id
+	Settings.save()
+	if home:
+		show_page("home")
+
+
+## True when the active pilot has no profile yet (no name stored) and no sample pilot is set: the first start.
+func first_start() -> bool:
+	return Settings.pilot_name == "" and str(profile().get("name", "")) == ""
+
+
+## New pilot: the Pilot screen, empty, making a pilot on Save.
+func new_pilot() -> void:
+	creating = true
+	show_page("pilot")
 
 
 ## Choose a picture: the system's file dialog where there is one.
@@ -1349,15 +1553,63 @@ func choose_picture() -> void:
 	d.popup_centered_ratio(0.6)
 
 
-## The file at `path` as the pilot's picture: copied beside the records, then the screen again. False when it is
-## no picture.
+## The file at `path` as the draft's picture (copied beside the records on Save), then the screen again. False when
+## it is no picture.
 func set_picture(path: String) -> bool:
 	if path.get_extension().to_lower() not in ["png", "jpg", "jpeg", "webp"] or Image.load_from_file(path) == null:
 		return false
-	var to: String = IafPilotLog.set_picture(Settings.records_db(), Settings.pilot(), path)
-	_pictures.erase(to)
+	draft.picture = path
+	_pictures.erase(path)
 	show_page(page)
-	return to != ""
+	return true
+
+
+## The draft's picture: the one just chosen, else the stored one; null without one.
+func draft_picture() -> Texture2D:
+	return _texture(str(draft.get("picture", ""))) if str(draft.get("picture", "")) != "" else picture()
+
+
+## A modal over the screen: `title`, `text`, a button that closes it (Cancel, or `no`; focused, also Esc) and the
+## button `ok` that closes it and runs `on_ok`.
+func modal(title: String, text: String, ok: String, on_ok: Callable, no := "") -> void:
+	var dim := ColorRect.new()
+	dim.name = "Modal"
+	dim.color = Color(Look.BG, 0.8)
+	add_child(dim)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var center := CenterContainer.new()
+	dim.add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(760, 0)
+	center.add_child(panel)
+	var v := _vbox(_margin(panel, 48, 40), 22)
+	_label(v, title, "H2")
+	_text(v, text, "Row")
+	var h := _hbox(v, 20)
+	_spacer(h)
+	var cancel := _button(h, no if no != "" else s("cancel"), "Secondary", close_modal)
+	cancel.name = "ModalCancel"
+	var go := _button(
+		h,
+		ok,
+		"Primary",
+		func():
+			close_modal()
+			on_ok.call()
+	)
+	go.name = "ModalOk"
+	_grab.call_deferred(cancel)
+
+
+## Closes the modal (Cancel, Esc); false when none is open.
+func close_modal() -> bool:
+	var m := get_node_or_null("Modal")
+	if m == null:
+		return false
+	remove_child(m)
+	m.queue_free()
+	return true
 
 
 ## The pilot's profile ({name, nickname, picture}; empty strings before the Pilot screen).
@@ -1370,7 +1622,11 @@ func profile() -> Dictionary:
 
 ## The pilot's picture, null without one.
 func picture() -> Texture2D:
-	var path := str(profile().get("picture", ""))
+	return _texture(str(profile().get("picture", "")))
+
+
+## The picture file at `path` as a texture (read once), null for "" or a file that is no picture.
+func _texture(path: String) -> Texture2D:
 	if path == "":
 		return null
 	if not _pictures.has(path):
@@ -1380,14 +1636,13 @@ func picture() -> Texture2D:
 
 
 ## A service ID photo's frame of `size` (3:4): the picture cropped to fill it, square corners, a thin edge.
-func _picture_frame(parent: Node, size: Vector2) -> PanelContainer:
+func _picture_frame(parent: Node, size: Vector2, tex: Texture2D) -> PanelContainer:
 	var fr := PanelContainer.new()
 	fr.add_theme_stylebox_override("panel", Look.box(Look.PANEL, Look.EDGE, 1, 0, Vector2(2, 2)))
 	fr.custom_minimum_size = size
 	fr.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	fr.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	parent.add_child(fr)
-	var tex := picture()
 	if tex != null:
 		var r := TextureRect.new()
 		r.texture = tex
@@ -1754,7 +2009,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
 		return
 	get_viewport().set_input_as_handled()
-	back()
+	if not close_modal():
+		back()
 
 
 ## Esc: the screen before this one; over a flight, back to the flight (the Preferences apply then).
@@ -1767,6 +2023,9 @@ func back() -> void:
 			show_page("pause")
 		else:
 			flight.close_front_end()
+		return
+	if page == "pilot":
+		pilot_back()
 		return
 	var to: String = BACK.get(page, "")
 	if to != "":
