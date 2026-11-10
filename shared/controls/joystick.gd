@@ -40,7 +40,7 @@ const POV := {
 	31500: [315, 7],
 	0xffff: [-1, 5]
 }
-## Ours (Modern IAF's Joystick screen, iaf-2026/docs/front-end.md §9): per axis of Settings.joy_axes (x, y, throttle,
+## Ours (Modern IAF's Joystick screen, modern-iaf/docs/front-end.md §9): per axis of Settings.joy_axes (x, y, throttle,
 ## rudder, rocker) [invert, dead zone]; empty (the original game) = no invert and the dead zones above. A joy_axes entry
 ## of −1 is no axis: it reads the centre and its Devices choice does nothing.
 var tune: Array = []
@@ -116,7 +116,7 @@ func stick_axis_used(k: int) -> bool:
 	return stick_used() and _axis_no(k) >= 0
 
 
-## Ours (Modern IAF's role None, iaf-2026/docs/front-end.md §9.2): one stick axis on the joystick, the other on its
+## Ours (Modern IAF's role None, modern-iaf/docs/front-end.md §9.2): one stick axis on the joystick, the other on its
 ## keys. Never in the original game (its joy_axes always name an axis).
 func stick_mixed() -> bool:
 	return stick_used() and (_axis_no(0) < 0 or _axis_no(1) < 0)

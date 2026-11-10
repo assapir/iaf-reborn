@@ -32,7 +32,7 @@ global uniform float terrain_detail;
 // The close up's colour patches: their strength (terrain_patches: 1 in the original game, 0.4 in Modern IAF) and their
 // hue (terrain_patch_hue): 1 in the original game, toward a deeper, more saturated or a paler, drier version of the ground's colour; 0 in Modern IAF, its own
 // colour only darker or lighter (the deeper colour turned the 2 m photo's pale desert into an orange speckle;
-// iaf-2026/docs/terrain.md §13). The values are each project's own (project.godot's shader globals).
+// modern-iaf/docs/terrain.md §13). The values are each project's own (project.godot's shader globals).
 global uniform float terrain_patches;
 global uniform float terrain_patch_hue;
 // Colour grading (Settings.colour_grading, render_options.gd, docs/rendering.md §1.9): 0 = off (the original look);
@@ -43,10 +43,10 @@ global uniform float terrain_grade;
 // The photo's local contrast (each project's own value, project.godot): 1 in the original game (unchanged); in Modern
 // IAF the photo's detail against its ≈ 32 m mean × terrain_photo_detail. The sim's colour match to Sentinel-2 scales
 // each Survey sheet to the satellite's spread (0.6–0.7 in the Negev), which flattened the 2 m photo's wadis and streets
-// (iaf-2026/docs/terrain.md §9.1).
+// (modern-iaf/docs/terrain.md §9.1).
 global uniform float terrain_photo_detail;
 // Ground textures (ground_tex > 0): a macro tint, the ground's colour ±GT_MACRO in tone and warmth over ≈ 300 m and
-// ≈ 1.2 km patches, which breaks the photo's repeats and its sheets' flat areas (iaf-2026/docs/terrain.md §13).
+// ≈ 1.2 km patches, which breaks the photo's repeats and its sheets' flat areas (modern-iaf/docs/terrain.md §13).
 const float GT_MACRO = 0.08;
 // The land-cover layer farther out (tfar): its size factor and strength.
 const float GT_FAR = 8.0;
@@ -592,7 +592,7 @@ void fragment() {
 			// raised, read as noise (at Ein Bokek from 300 m).
 			// ponytail: compensates the sim's Survey colour match (sim_terrain.rs sheet_gains scales each sheet's spread to
 			// Sentinel-2's at 40 m). Root fix: a match that keeps the photo's local spread, then this goes back to 1
-			// (a theatre rebuild, no download; iaf-2026/docs/terrain.md §9.1).
+			// (a theatre rebuild, no download; modern-iaf/docs/terrain.md §9.1).
 			float g = (terrain_photo_detail - 1.0) * (1.0 - sea) * (1.0 - wm) * smoothstep(250.0, 700.0, length(VERTEX));
 			ALBEDO *= clamp((l + (l_mid - lum_mean) * g) / max(l, 1e-4), 0.25, 2.0);
 		}

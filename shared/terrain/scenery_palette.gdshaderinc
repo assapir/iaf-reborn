@@ -4,7 +4,7 @@
 // WALL_GAIN, both at most MAX_ALBEDO (linear), so a town reads as bright as the photo under it, not white.
 // palette_colours (Building colours = Palette, Settings.building_palette): every wall keeps its own palette colour at
 // any distance, plaster, stone and concrete warmed CREAM_MIX toward CREAM and lit at PALETTE_GAIN up to PALETTE_MAX
-// (a low sun lights them cream, as the Epic Fury reference's towns: iaf-2026/docs/scenery.md §7), and the far
+// (a low sun lights them cream, as the Epic Fury reference's towns: modern-iaf/docs/scenery.md §7), and the far
 // roofs take the near roof's material: the white coating on a light flat roof, clay on a gabled one (alpha
 // iaf_avionics::scenery::GABLED, the far mesh too). Off (Photo): the walls fade to the photo's colour far away.
 uniform bool palette_colours = false;

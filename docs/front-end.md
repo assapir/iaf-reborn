@@ -437,8 +437,8 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
       map's segments, a motorway / trunk route Tel Aviv – Jerusalem of 59 km, the streets around Tel Aviv).
       Modern also draws Modern IAF's OpenStreetMap map in place of `82.emf` (not the 1967 / 1973 maps): every land,
       Israel with the Golan to the 1974 line, the West Bank's Area C apart from the Palestinian Authority's Areas A
-      and B, Gaza in the PA's grey, and the large lakes, in the original's colours (iaf-2026/docs/cockpit.md §8 "TSD
-      map"). Setup's `extras` step compiles it from `iaf-2026/data/planes/_shared/cockpit/tsd_map.json` into the
+      and B, Gaza in the PA's grey, and the large lakes, in the original's colours (modern-iaf/docs/cockpit.md §8 "TSD
+      map"). Setup's `extras` step compiles it from `modern-iaf/data/planes/_shared/cockpit/tsd_map.json` into the
       1998 frame through the georeference (`sim_cockpit::extras`, `Frame::original`) as
       `assets/converted/extras/cockpit/tsd.json` (82.emf's frame) and `map.json` (the cockpit map.emf's frame, whose
       v carries the factor 1.0071394); `tsd.gd _map` reads `tsd.json`, and the cockpit's TSD / HSD map and the

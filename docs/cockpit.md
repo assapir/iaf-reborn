@@ -614,7 +614,7 @@ occlusion, 1.8 MB; built by
   pilot can look down at the MFDs and consoles. The F-key and Numpad snap views (docs/views.md §2) set the head's yaw
   and pitch the same way, so in the 3D cockpit they are head poses: the camera turns, no panel pans.
 * **Looking down at the pilot** (Modern IAF, `Settings.cockpit_pilot_body()`, 2026-11-09;
-  iaf-2026/docs/cockpit.md §5.3): at the head's lowest the camera looks 72° down. Modern IAF shows the pilot's body
+  modern-iaf/docs/cockpit.md §5.3): at the head's lowest the camera looks 72° down. Modern IAF shows the pilot's body
   there, FlightGear's internal-view pilot (`f16_pilot.glb`): the legs to the rudder pedals, the right hand on the
   stick, the left on the throttle; the head bends forward over it (`LOOK_DOWN_LEAN`). The original game shows no
   body: looking down it sees the seat's well, the cut model's seat and, standing in the well as a black slab, the
@@ -648,7 +648,7 @@ occlusion, 1.8 MB; built by
 * **Knobs and switches** (Modern IAF, `Settings.cockpit_controls()`; the original game: none): `cockpit3d_controls.gd`
   reads the cockpit's table `<model>_controls.json` (node -> `click` / `turn` key command): the pointer over a
   control lights it, a click, the wheel or a drag sends its command through the key path. The F-16's: the SYM wheel
-  and the start-up switches (iaf-2026/docs/cockpit.md §5.1, §5.2).
+  and the start-up switches (modern-iaf/docs/cockpit.md §5.1, §5.2).
 * **HUD mask, tried and dropped (2026-10-30):** a `clip_children` parent drawing the glass's outline. Its canvas
   group showed a stale copy of the 3D view in a rectangle over the screen while the DASH drew; the shader mask
   replaced it.

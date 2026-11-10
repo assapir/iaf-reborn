@@ -1,0 +1,54 @@
+{
+  "id": "f16i",
+  "number": 1,
+  "name": "F-16I Sufa",
+  "label": "F-16I",
+  "class": "fighter",
+  "type": 100,
+  "airframe": "f16i",
+  "model": "",
+  "scale": 1.0,
+  "radius_m": 4.98,
+  "strength": 300,
+  "loadout": { "20mm": 511, "chaff": 60, "flare": 60 },
+  "pylons": {
+    "A": { "weapon": "aim-9m", "count": 1 },
+    "B": { "weapon": "aim-9m", "count": 1 },
+    "C": { "weapon": "aim-9m", "count": 1 },
+    "D": { "weapon": "tank-370", "count": 1 },
+    "F": { "weapon": "tank-370", "count": 1 },
+    "G": { "weapon": "aim-9m", "count": 1 },
+    "H": { "weapon": "aim-9m", "count": 1 },
+    "I": { "weapon": "aim-9m", "count": 1 }
+  },
+  "sources": {
+    "type": "inferred",
+    "scale": "inferred",
+    "radius_m": "w-f16",
+    "strength": "inferred",
+    "loadout.20mm": "gdots-f16",
+    "loadout.chaff": "open",
+    "loadout.flare": "open",
+    "pylons": "w-f16, mf-f16i, aft-f16i, ipms-f16i, inferred, f16net-aim9, f16net-aim120"
+  },
+  "notes": {
+    "type": "the F-16's type code, the one the shared code keys the F-16 family on; the airframe definition f16i makes it the Sufa",
+    "model": "none: the player's jet is drawn from its airframe definition (shared/extra/planes/f16i/airframe.json)",
+    "scale": "1: our models are built true size",
+    "radius_m": "half the span over the wingtip rails, 9.96 m",
+    "strength": "our damage scale's fighter (modern-iaf/docs/data-formats.md, damage scale)",
+    "loadout.20mm": "M61A1, 511 rounds (the F-16's; the two-seat Sufa's count is not published, inferred the same)",
+    "loadout.chaff": "no public count found; 60 held until one is",
+    "loadout.flare": "no public count found; 60 held until one is",
+    "pylons": "an AIM-9M on each wingtip rail (stations 1 and 9, A and I): the F-16's wingtip rails carry its short-range missiles; the Sufa's two wingtip missiles are standard (mf-f16i), its usual one the Python 5 (aft-f16i), which the sim has no record of yet, so the AIM-9M stands in (inferred); a 370 US gal tank on each wing's inboard station (stations 4 and 6, D and F; the Sufa's options list two 370 gal wing tanks, ipms-f16i), carried on most flights (inferred); no other underwing stores in training (inferred); an AIM-9M on each underwing missile station, 2 / 8 (B, H) and 3 / 7 (C, G): the F-16 carries AIM-9s and AIM-120s there (f16net-aim9, f16net-aim120); on 2 / 8 the AIM-9M stands in for the IAF's Python (aft-f16i on the Sufa, inferred on the Barak), on 3 / 7 for an AIM-120, which the sim has no record of yet (stand-ins, inferred)"
+  },
+  "footnotes": {
+    "w-f16": "Wikipedia, \"General Dynamics F-16 Fighting Falcon\" (span 32 ft 8 in, 9.96 m), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon",
+    "gdots-f16": "General Dynamics OTS, \"F-16 20mm Gatling gun system\" (511 rounds), https://www.gd-ots.com/wp-content/uploads/2017/11/F-16.pdf",
+    "mf-f16i": "MilitaryFactory, \"Lockheed F-16I Sufa (Storm)\" (2 x short-range air-to-air missiles on wingtip launchers), https://www.militaryfactory.com/aircraft/detail.php?aircraft_id=2191",
+    "ipms-f16i": "IPMS USA, \"F-16I Sufa Part 1\" (the Sufa's stores: 2 x 370 gallon wing tanks, 2 x 600 gallon wing tanks), https://reviews.ipmsusa.org/review/f-16i-sufa-part-1",
+    "aft-f16i": "Airforce Technology, \"F-16I Soufa Multirole Fighter, Israel\" (equipped with the Rafael Python 5), https://www.airforce-technology.com/projects/f-16i-soufa/",
+    "f16net-aim9": "F-16.net, \"AIM-9 Sidewinder\" (stations 1 and 9, 2 and 8, 3 and 7; one missile each), https://www.f-16.net/f-16_armament_article1.html",
+    "f16net-aim120": "F-16.net, \"AIM-120 AMRAAM\" (stations 1 and 9, 2 and 8, 3 and 7; one missile each), https://www.f-16.net/f-16_armament_article3.html"
+  }
+}

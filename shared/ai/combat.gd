@@ -344,7 +344,7 @@ static func _weapon(ent: Dictionary, obj: Dictionary, db) -> Dictionary:
 ## Sensor range in nm by type code (FUN_004acae0, × 1854 m). Ours: an aircraft definition's radar.ai_nm: an F-16I
 ## Sufa's APG-68(V)9 sees 30 % further (docs/f16i.md §2), 52 NM; an F-15I Ra'am's APG-70I 104 / 135 of the F-15's
 ## Real range (docs/f15i.md §2), 30.8 NM. Ours: a unit's own reach `radar_km` (> 0; the sim's units, compiled from
-## their records, iaf-2026/docs/data-formats.md §3) before both; the original's units have none.
+## their records, modern-iaf/docs/data-formats.md §3) before both; the original's units have none.
 static func sensor_nm(type: int, radar_km := 0.0) -> float:
 	if radar_km > 0.0:
 		return radar_km * 1000.0 / NM

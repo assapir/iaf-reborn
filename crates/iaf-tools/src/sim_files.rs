@@ -1,4 +1,4 @@
-//! Where `iaf-sim db` writes the Modern IAF object database (iaf-2026/docs/data-formats.md), in a file of its own so the
+//! Where `iaf-sim db` writes the Modern IAF object database (modern-iaf/docs/data-formats.md), in a file of its own so the
 //! original game's converters (aircraft.rs, scenery.rs), which only skip these names, do not reach the sim compiler.
 
 /// The compiled object database's name: missions name it in `bdb`, the object index keys its models by it and

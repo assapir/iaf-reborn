@@ -1,4 +1,4 @@
-# Sourced by the launchers that build and start a Godot project (tools/launch-wizard.sh, ./modern-iaf): finds Rust (cargo)
+# Sourced by the launchers that build and start a Godot project (tools/launch-wizard.sh, ./start-modern-iaf): finds Rust (cargo)
 # and Godot 4.7, says how to install a missing one, and sets $godot. The caller sets $title (the dialog's title) and
 # $who (the sentence's subject, e.g. "Setup").
 # shellcheck shell=bash

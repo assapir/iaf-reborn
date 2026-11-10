@@ -236,7 +236,7 @@ lat/lon and in engine metres through the georeference ([georef.md](georef.md)). 
 Designator: the OSM `ref` (e.g. "07L/25R", magnetic), else OurAirports' (Marj Ruhayyil 06L/24R, the northern and
 wider way, and 06R/24L), else from the magnetic heading with a declination of 5° E (Inshas, Rayak, one Bir Gifgafa
 way; inferred[^wmm]). The table also holds Modern IAF's Nevatim (its two runways with an OSM `ref`, 08L/26R and
-08R/26L, OurAirports' 147 ft widths; read 2026-11-02) for the sim's missions (iaf-2026/docs/data-formats.md); World
+08R/26L, OurAirports' 147 ft widths; read 2026-11-02) for the sim's missions (modern-iaf/docs/data-formats.md); World
 scale Real takes only the ten bases' rows, by name.
 
 **The transform of a base** (`iaf_flight::base_move`, Rust): a similarity (move, turn, one scale k) set by the main

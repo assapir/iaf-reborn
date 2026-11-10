@@ -30,7 +30,7 @@ pub struct Airbase {
 }
 
 /// The sections, in the TowersManager's record order; Modern IAF's own iaf.ibx adds Hatzerim and Nevatim after them
-/// (iaf-2026/docs/data-formats.md §12). The original's file has neither, so the original game reads the same ten.
+/// (modern-iaf/docs/data-formats.md §12). The original's file has neither, so the original game reads the same ten.
 pub const SECTIONS: [&str; 12] = [
     "Ramon",
     "David",

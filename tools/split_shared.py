@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""A0, the split (iaf-2026/docs/plan.md "Three folders, one symlink each"): moves the Godot project game/ to
+"""A0, the split (modern-iaf/docs/plan.md "Three folders, one symlink each"): moves the Godot project game/ to
 iaf-reborn/, moves the engine folders out of it into shared/, links iaf-reborn/shared -> ../shared, then rewrites
 every path in the repo: res://<moved>/... -> res://shared/<moved>/..., game/<moved>/... -> shared/<moved>/...,
 any other game/... -> iaf-reborn/..., and `--path game` -> `--path iaf-reborn`. res://../assets paths and
@@ -20,7 +20,7 @@ MOVED_DIRS = ["aircraft", "ai", "audio", "cockpit", "controls", "extra", "missio
 MOVED_FILES = ["settings.gd", "settings.gd.uid", "default_bus_layout.tres"]
 MOVED = set(MOVED_DIRS + MOVED_FILES)
 # The plan describes the move itself (its `game/` is the folder before the split); this script names the old paths.
-SKIP = {"iaf-2026/docs/plan.md", "tools/split_shared.py"}
+SKIP = {"modern-iaf/docs/plan.md", "tools/split_shared.py"}
 TEXT_EXT = {".gd", ".tscn", ".tres", ".gdshader", ".gdshaderinc", ".gdextension", ".cfg", ".json", ".md", ".sh",
             ".py", ".rs", ".ps1", ".toml", ".yml", ".yaml", ".godot", ".import", ".glsl", ".txt"}
 TEXT_NAMES = {"iafjets", "mission-editor", "setup", ".gitignore", "gdlintrc"}

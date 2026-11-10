@@ -1,0 +1,89 @@
+{
+  "category": "training",
+  "time": "08:00",
+  "wind_kt": 0,
+  "wind_from": 0,
+  "start": {
+    "unit": "f35i",
+    "base": "Nevatim",
+    "at": "parking",
+    "elevation_m": 405
+  },
+  "flights": [],
+  "targets": [],
+  "sam_sites": [],
+  "sources": {
+    "time": "inferred",
+    "wind_kt": "inferred",
+    "wind_from": "inferred",
+    "start.elevation_m": "oa",
+    "training.time_budget_s": "inferred",
+    "training.end_hold_s": "inferred"
+  },
+  "notes": {
+    "time": "the MVP's conditions: day (plan.md, MVP)",
+    "wind_kt": "the MVP's conditions: calm (plan.md, MVP)",
+    "wind_from": "calm: no direction",
+    "start": "the base's parking spot for the unit (modern-iaf/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
+    "training.time_budget_s": "five minutes from the mission's start: the checklist by keys, the engine's wind-up and the INS stored-heading alignment (90 s) or the F-35's 90 s self test, with time to read the card",
+    "training.end_hold_s": "the mission ends 5 s after its goal: time to see the result before the debrief",
+    "training.checklist": "the start-up checklist by keys (training.md §7.1): the F-16's after the T.O. checklist's order, the F-35's battery, IPP, engine (AIR International, 2012)"
+  },
+  "footnotes": {
+    "oa": "OurAirports, airports.csv (public domain; LLNV elevation 1330 ft), https://davidmegginson.github.io/ourairports-data/airports.csv"
+  },
+  "id": "nevatim_startup",
+  "menu_id": 2031,
+  "title": {
+    "en": "Start-up at Nevatim",
+    "he": "התנעה בנבטים"
+  },
+  "briefing": {
+    "en": "Your F-35I Adir stands cold on the apron at Nevatim. Start the engine and bring the avionics up.",
+    "he": "האדיר שלך עומד כבוי ברחבה בנבטים. התנע את המנוע והעלה את מערכות האוויוניקה."
+  },
+  "win": {
+    "en": "Mission - successful. The engine is at idle and the avionics are up.",
+    "he": "המשימה הצליחה. המנוע בסרק והאוויוניקה פועלת."
+  },
+  "lose": {
+    "en": "Mission - failed. Better try again.",
+    "he": "המשימה נכשלה. נסה שוב."
+  },
+  "training": {
+    "kind": "startup",
+    "time_budget_s": 300,
+    "end_hold_s": 5,
+    "goals": [],
+    "checklist": [
+      {
+        "step": "main_power",
+        "key": "Ctrl+B",
+        "en": "Battery: ON",
+        "he": "מצבר: ON",
+        "where": {"en": "BATT switch: start panel, left console, forward", "he": "מתג BATT: לוח ההתנעה, הקונסולה השמאלית, מלפנים"}
+      },
+      {
+        "step": "starter",
+        "key": "Ctrl+J",
+        "en": "IPP: START (10 s)",
+        "he": "IPP: START (10 שנ׳)",
+        "where": {"en": "IPP switch: start panel, left console, forward", "he": "מתג IPP: לוח ההתנעה, הקונסולה השמאלית, מלפנים"}
+      },
+      {
+        "step": "engine",
+        "key": "throttle up from OFF",
+        "en": "Throttle to idle: the engine starts",
+        "he": "מצערת לסרק: המנוע מותנע",
+        "where": {"en": "ENG switch or START: start panel, left console; or the throttle grip out of OFF", "he": "מתג ENG או START: לוח ההתנעה, הקונסולה השמאלית; או ידית המצערת מ־OFF"}
+      },
+      {
+        "step": "canopy",
+        "key": "Ctrl+K",
+        "en": "Canopy: close and lock",
+        "he": "חופה: סגירה ונעילה",
+        "where": {"en": "CANOPY switch: left console, aft", "he": "מתג CANOPY: הקונסולה השמאלית, מאחור"}
+      }
+    ]
+  }
+}

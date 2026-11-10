@@ -1,5 +1,5 @@
 //! TP-1538 Table III, transcribed from the report's scan (NTRS 19800005879). Values in units of 1e-5.
-//! Generated once from the verified transcription (iaf-2026/docs/flight-model.md §9.1); edit by hand with the
+//! Generated once from the verified transcription (modern-iaf/docs/flight-model.md §9.1); edit by hand with the
 //! page beside you.
 
 use super::Ab;

@@ -1,5 +1,5 @@
 //! The terrain frame: how a theatre's terrain units map to the engine's world metres (X east, Y north), as its
-//! `meta.json` gives it (docs/georef.md; Modern IAF's UTM theatre, iaf-2026/docs/terrain.md §2):
+//! `meta.json` gives it (docs/georef.md; Modern IAF's UTM theatre, modern-iaf/docs/terrain.md §2):
 //! X = tx · m_per_unit + x_shift, Y = y_shift − ty · m_per_unit. A level-L node of the terrain tree is
 //! node_pixels · 2^L units on a side. The scenery's cells (level 1) and the road layer's blocks (level 3) are cut in it.
 

@@ -36,14 +36,14 @@ const PITCH_INTR_PERCENT := 0.25
 const PITCH_INTR_SHIFT := 0.5
 const AB1_PITCH := 0.8
 const AB2_PITCH := 1.2
-## Modern IAF (Settings.ab_sound_real(), iaf-2026/docs/sound.md §1.2): the burner loop plays at its own pitch, rises
+## Modern IAF (Settings.ab_sound_real(), modern-iaf/docs/sound.md §1.2): the burner loop plays at its own pitch, rises
 ## from AB_FLOOR_DB under its level over AB_RISE s with the SFX_AB_LIGHT thump, and dies away over AB_CUT s; the loop
 ## swapped out fades on a second player (raised cosine).
 const AB_RISE := 1.5
 const AB_CUT := 1.3
 const AB_FLOOR_DB := -12.0
 const AB_CODES := ["SFX_DRY_THRUST", "SFX_AFTERBURNER_THRUST"]
-## Modern IAF (Settings.core_sound_real(), iaf-2026/docs/sound.md §1.3–§1.6): the dry loop (a recorded idle) plays at
+## Modern IAF (Settings.core_sound_real(), modern-iaf/docs/sound.md §1.3–§1.6): the dry loop (a recorded idle) plays at
 ## its own pitch at idle (DRY_IDLE_RPM) and DRY_MIL_PITCH at military, DRY_IDLE_DB under its level at idle; below idle
 ## (the start) its pitch follows the RPM down to DRY_MIN_PITCH and its level falls as RPM^1.5. The JFS whine spools up
 ## over JFS_SPOOL s from half its pitch while the start runs and winds down over JFS_STOP s once the RPM reaches

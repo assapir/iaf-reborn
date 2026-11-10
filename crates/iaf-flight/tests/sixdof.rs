@@ -1,5 +1,5 @@
 //! The Modern IAF 6-DoF's aerodynamics (NASA TP-1538's tables) against the trim points published for them
-//! (iaf-2026/docs/flight-model.md §9.4): the report's own statements about its pitching moment (text p. 19,
+//! (modern-iaf/docs/flight-model.md §9.4): the report's own statements about its pitching moment (text p. 19,
 //! figure 10) and the Stevens & Lewis F-16 model's wings-level trim, which uses a reduced set of the same
 //! wind-tunnel data. `cargo test -p iaf-flight --test sixdof -- --nocapture` prints the results.
 
@@ -195,7 +195,7 @@ enum Bound {
 #[test]
 fn engine_ratings_and_spool() {
     // Sea-level static thrust per engine against the public ratings (lbf), and the spool times against theirs
-    // (iaf-2026/docs/flight-model.md §9.7).
+    // (modern-iaf/docs/flight-model.md §9.7).
     let rows = [
         ("F110-GE-100", jets::f110_100(), 0.59 * 29_000.0, 29_000.0, Some(3.0), None),
         // F-15E: idle to maximum afterburner "in less than four seconds" (USAF).
@@ -535,7 +535,7 @@ fn bad_frames_and_fuel() {
 #[test]
 #[ignore = "plot data, not a check: cargo test -p iaf-flight --test sixdof plot_data -- --ignored --nocapture"]
 fn plot_data() {
-    // CSV for the pictures (iaf-2026/docs/flight-model.md §9.14): Cm(α) at δh −25 / 0 / +25° with the flap down
+    // CSV for the pictures (modern-iaf/docs/flight-model.md §9.14): Cm(α) at δh −25 / 0 / +25° with the flap down
     // (TP-1538 figure 10's trims), and the Table V roll's bank angle against time.
     for a in (0..=90).map(|a| a as f64) {
         let cm = |dh: f64| coeffs(a, dh, 25.0, &AF).cm;
@@ -660,7 +660,7 @@ fn fit_wave_drag() {
 #[test]
 fn a_cold_jet_starts_by_its_start_command() {
     // Stopped on the ground (its systems still up): no RPM; the start command runs the sequence from the beginning
-    // (iaf-2026/docs/training.md §7): the Sufa idles after 35 s with its displays up, braked in place.
+    // (modern-iaf/docs/training.md §7): the Sufa idles after 35 s with its displays up, braked in place.
     // set_engine_on keeps the original's meaning: on / off at once, the power unchanged.
     let mut f = flight(jets::all()[1], 0.0, 0.0, false);
     f.engine_off();

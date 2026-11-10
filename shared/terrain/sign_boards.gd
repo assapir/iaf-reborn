@@ -4,7 +4,7 @@
 # digits, stretched over them) and the label drawn in black at the digits' height in the game's menu font (Gill Sans
 # Condensed, the install's resource/menu/fnt/cr1.ttf). The arrows stay.
 # Modern IAF's bases have no sign models: board() builds a sign of airbases.json's `signs` (iaf-sim airbases, ICAO
-# Annex 14 colours) with the Settings.display_font("ui") lettering (iaf-2026/docs/airbases.md §9).
+# Annex 14 colours) with the Settings.display_font("ui") lettering (modern-iaf/docs/airbases.md §9).
 extends RefCounted
 
 const ModelDetail := preload("res://shared/util/model_detail.gd")

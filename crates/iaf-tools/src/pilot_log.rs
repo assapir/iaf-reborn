@@ -1,4 +1,4 @@
-//! Modern IAF's records (iaf-2026/docs/storage.md, data-formats.md §13): the pilots and their sorties, each sortie with
+//! Modern IAF's records (modern-iaf/docs/storage.md, data-formats.md §13): the pilots and their sorties, each sortie with
 //! its debrief record, in one SQLite database (`user://modern-iaf.sqlite` in the game, `IafPilotLog`).
 //!
 //! The schema version is SQLite's `user_version`; `open` runs the missing migrations in one transaction. The step from

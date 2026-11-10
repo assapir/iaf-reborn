@@ -1,0 +1,70 @@
+{
+  "id": "f14a",
+  "number": 12,
+  "name": "F-14A Tomcat (Iran)",
+  "label": "F-14A",
+  "status": "pending the user's decision",
+  "class": "fighter",
+  "type": 1010,
+  "model": "",
+  "scale": 1.0,
+  "radius_m": 9.77,
+  "strength": 300,
+  "mach": 2.34,
+  "ceiling_m": 16154,
+  "g_limit": 7.5,
+  "loadout": {
+    "20mm": 675,
+    "chaff": 60,
+    "flare": 60
+  },
+  "pylons": {
+    "C": {
+      "weapon": "aim-54a",
+      "count": 1
+    },
+    "D": {
+      "weapon": "aim-54a",
+      "count": 1
+    },
+    "F": {
+      "weapon": "aim-54a",
+      "count": 1
+    },
+    "G": {
+      "weapon": "aim-54a",
+      "count": 1
+    }
+  },
+  "sources": {
+    "scale": "inferred",
+    "type": "inferred",
+    "radius_m": "w-f14",
+    "strength": "inferred",
+    "mach": "w-f14",
+    "ceiling_m": "w-f14",
+    "g_limit": "w-f14",
+    "loadout.20mm": "w-f14",
+    "loadout.chaff": "open",
+    "loadout.flare": "open"
+  },
+  "notes": {
+    "model": "none yet (modern-iaf/docs/threat-records.md lists the model source)",
+    "scale": "1: our models are built true size",
+    "type": "ours (from 1000, docs/adding-a-plane.md §1; 1000 is the F-35I's); no flight-model row yet (open)",
+    "radius_m": "half the unswept span, 19.54 m",
+    "strength": "our damage scale's fighter",
+    "mach": "the F-14D's figure; the F-14A (TF30) figures are open",
+    "ceiling_m": "53,000 ft: the F-14D's",
+    "g_limit": "the F-14D's",
+    "range_km": "open (the F-14D's escort range 932 km)",
+    "radar_km": "open: the AWG-9's range",
+    "pylons": "four AIM-54A on the fuselage pallets (inferred stations); Iran's AIM-54 stock today is open",
+    "loadout.20mm": "M61A1 with 675 rounds",
+    "loadout.chaff": "no public count found; 60 held until one is (as the Sufa's)",
+    "loadout.flare": "no public count found; 60 held until one is (as the Sufa's)"
+  },
+  "footnotes": {
+    "w-f14": "Wikipedia, \"Grumman F-14 Tomcat\" (F-14D specifications: span 64 ft 1.5 in (19.54 m) unswept, Mach 2.34 at 40,000 ft, ceiling 53,000 ft, +7.5 g, M61A1 with 675 rounds; four AIM-54 under the fuselage, two on the gloves) (read 2026-11-03), https://en.wikipedia.org/wiki/Grumman_F-14_Tomcat"
+  }
+}

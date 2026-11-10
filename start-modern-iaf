@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Builds what changed (the Rust extension, the same one ./iafjets loads) and starts Modern IAF (modern-iaf/README.md).
+# Without the sim's data (its missions are the last step) it starts its setup wizard (./modern-iaf-setup). Extra arguments go to the sim (after --).
+# It opens the front end (modern-iaf/main.tscn); `-- --mission <id>` flies that mission at once, then shows its debrief.
+set -euo pipefail
+cd "$(dirname "$0")"
+# The sim's data folder's old name (before 2026-11-10) moved once, so nothing is built again.
+moved=$(tools/migrate_converted.sh "${IAF_ASSETS_DIR:-assets}")
+[[ $moved == "nothing to do" ]] || echo "Modern IAF: $moved" >&2
+[[ -d ${IAF_ASSETS_DIR:-assets}/converted/modern-iaf/missions ]] || { echo "No Modern IAF data yet: starting its setup (./modern-iaf-setup)." >&2; exec ./modern-iaf-setup; }
+title="Modern IAF"
+who="Modern IAF"
+# shellcheck source=tools/launch-checks.sh
+source tools/launch-checks.sh
+cargo build --release -p iaf-godot
+tools/godot_import.sh "$godot" modern-iaf
+[[ $(uname) == Darwin ]] && export SDL_JOYSTICK_MFI=${SDL_JOYSTICK_MFI:-0}
+exec "$godot" --path modern-iaf res://main.tscn -- "$@"

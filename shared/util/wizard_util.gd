@@ -1,5 +1,5 @@
-# What both setup wizards share (iaf-reborn/setup/wizard.gd, iaf-2026/setup/wizard.gd; docs/setup.md,
-# iaf-2026/docs/setup.md): the free disk space, the durations the setup logs write, the window's size.
+# What both setup wizards share (iaf-reborn/setup/wizard.gd, modern-iaf/setup/wizard.gd; docs/setup.md,
+# modern-iaf/docs/setup.md): the free disk space, the durations the setup logs write, the window's size.
 extends RefCounted
 
 

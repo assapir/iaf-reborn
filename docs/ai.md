@@ -798,7 +798,7 @@ docs/rwr.md, the decoys and their effect on missiles in docs/weapons.md §10.
   - the sensor: both modes' classes scanned every 6 s; the selector filters (400 / 440 air, 410 ground, 420 either)
     and takes the best score (UNCERTAIN while the selectors are untraced).
     Its reach is the type code's (`sensor_nm`, below); a unit of Modern IAF with its own `radar_km` (the bdb row's
-    unhexed key, iaf-2026/docs/data-formats.md §3) takes that instead. The original's units have no such key.
+    unhexed key, modern-iaf/docs/data-formats.md §3) takes that instead. The original's units have no such key.
   - start / stop combat. The RWR lock comes with the selector's pick: 400 / 440 / 420 lock the player's RWR when they
     pick the player and unlock it when they leave it (FUN_004aca60 / FUN_004aca80). 550 only starts the fire timer.
     A unit with no weapon logs "Entity with no weapon handler" and does not engage;

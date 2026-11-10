@@ -1,4 +1,4 @@
-//! Modern IAF's OpenStreetMap sources (iaf-2026/docs/terrain.md §12): the extracts over the theatre (the Israel and
+//! Modern IAF's OpenStreetMap sources (modern-iaf/docs/terrain.md §12): the extracts over the theatre (the Israel and
 //! Palestine one and the neighbours' that meet it), fetched into the shared cache when missing, and the coastline cut
 //! from them, the one boundary of the sea for the colour (`sim_terrain`) and the surface flags (`sim_bases`).
 

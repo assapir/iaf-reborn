@@ -1,4 +1,4 @@
-//! `IafTraining`: Modern IAF's training scorer (`iaf_tools::training`, iaf-2026/docs/training.md) for the game: the
+//! `IafTraining`: Modern IAF's training scorer (`iaf_tools::training`, modern-iaf/docs/training.md) for the game: the
 //! live check that ends a training run at once on a fail, and the score at its end on the flight's recording.
 
 use godot::prelude::*;

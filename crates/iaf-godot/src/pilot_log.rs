@@ -1,4 +1,4 @@
-//! `IafPilotLog`: Modern IAF's records store (`iaf_tools::pilot_log`, iaf-2026/docs/storage.md) for the game. Every
+//! `IafPilotLog`: Modern IAF's records store (`iaf_tools::pilot_log`, modern-iaf/docs/storage.md) for the game. Every
 //! function takes `db`, the database's absolute path (`Settings.records_db()`), and opens it (the first open makes
 //! the schema and imports the old JSON records beside it). Records come and go as JSON text.
 

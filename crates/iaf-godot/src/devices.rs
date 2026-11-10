@@ -1,4 +1,4 @@
-//! `IafDevices`: Modern IAF's keys, joystick buttons and axes store (`iaf_tools::devices`, iaf-2026/docs/front-end.md
+//! `IafDevices`: Modern IAF's keys, joystick buttons and axes store (`iaf_tools::devices`, modern-iaf/docs/front-end.md
 //! §8). Every function takes absolute paths: `table` the compiled key table, `store` the player's file, `map` the
 //! joystick's device map ("" = none, `find_map`); the ones that change the store write it back at once.
 

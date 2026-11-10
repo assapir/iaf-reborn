@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Runs every test: Rust unit/validation tests, the headless Godot tests in tests/godot (the original game) and
-# iaf-2026/tests (Modern IAF), then gdparse on both projects.
+# modern-iaf/tests (Modern IAF), then gdparse on both projects.
 # Needs the converted assets (tools/setup-cli.sh). Tests never touch the player's settings
 # (IAF_DEFAULT_SETTINGS=1) and open no window.
 set -uo pipefail
@@ -28,13 +28,13 @@ for t in tests/godot/test_*.gd; do
 	echo "$out" | grep -q "RESULT PASS" || fail=1
 	echo "$out" | grep -q "SCRIPT ERROR" && { echo "FAIL script errors"; fail=1; }
 done
-# Modern IAF's tests in its own project; NEEDS DATA (the sim's data not built yet, iaf-2026/docs/status.md) is no failure.
-for t in iaf-2026/tests/test_*.gd; do
+# Modern IAF's tests in its own project; NEEDS DATA (the sim's data not built yet, modern-iaf/docs/status.md) is no failure.
+for t in modern-iaf/tests/test_*.gd; do
 	echo "== $t"
 	# Its setup wizard's test, as the original's: an empty scratch folder for assets/.
 	env=()
 	[[ $t == */test_setup_wizard.gd ]] && env=(IAF_ASSETS_DIR="$(mktemp -d "$logs/wizard-assets.XXXXXX")")
-	out=$(env "${env[@]}" IAF_DEFAULT_SETTINGS=1 timeout 300 godot --log-file "$logs/2026-$(basename "$t" .gd).log" --headless --audio-driver Dummy --path iaf-2026 -s "../$t" 2>&1)
+	out=$(env "${env[@]}" IAF_DEFAULT_SETTINGS=1 timeout 300 godot --log-file "$logs/2026-$(basename "$t" .gd).log" --headless --audio-driver Dummy --path modern-iaf -s "../$t" 2>&1)
 	rc=$?
 	echo "$out" | grep -E "^(PASS|FAIL|RESULT|NEEDS DATA)|SCRIPT ERROR"
 	[[ $rc == 124 ]] && { echo "FAIL timeout (300 s); last output:"; echo "$out" | tail -15; }
@@ -42,7 +42,7 @@ for t in iaf-2026/tests/test_*.gd; do
 	echo "$out" | grep -q "SCRIPT ERROR" && { echo "FAIL script errors"; fail=1; }
 done
 # Every script of both projects parses (tools/gdparse.gd).
-for p in iaf-reborn iaf-2026; do
+for p in iaf-reborn modern-iaf; do
 	echo "== gdparse $p"
 	out=$(godot --headless --path "$p" -s ../tools/gdparse.gd --log-file "$logs/gdparse-$p.log" 2>&1)
 	rc=$?

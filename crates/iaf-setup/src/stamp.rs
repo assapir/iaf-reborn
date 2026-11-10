@@ -79,6 +79,7 @@ const SIM: &[&str] = &[
     "crates/iaf-tools/src/mission_creator.rs",
     "crates/iaf-tools/src/sim.rs",
     "crates/iaf-tools/src/sim_bases.rs",
+    "crates/iaf-tools/src/sim_scenery.rs",
     "crates/iaf-tools/src/sim_cockpit.rs",
     "crates/iaf-tools/src/thirdparty.rs",
     "crates/iaf-tools/src/itm.rs",
@@ -111,6 +112,7 @@ const SIM_TERRAIN: &[&str] = &[
     "crates/iaf-tools/data/georef_points.json",
     "crates/iaf-tools/src/georef.rs",
     "crates/iaf-tools/src/sim_terrain.rs",
+    "crates/iaf-tools/src/sim_scenery.rs",
     "crates/iaf-tools/src/imagery.rs",
     "crates/iaf-tools/src/imagery_run.rs",
     "crates/iaf-tools/src/thirdparty.rs",
@@ -333,10 +335,10 @@ pub(crate) fn of(step: &Step, ctx: &Ctx) -> Result<Option<Stamp>> {
 
 /// Where Modern IAF's step `id` keeps its stamp.
 pub(crate) fn sim_stamp_path(assets: &Path, id: &str) -> PathBuf {
-    assets.join("converted/iaf-2026").join(format!("{id}.stamp"))
+    assets.join("converted/modern-iaf").join(format!("{id}.stamp"))
 }
 
-/// The stamp of one of Modern IAF's steps (`sim::sim_plan`), in `converted/iaf-2026/`: the code, the authored data it
+/// The stamp of one of Modern IAF's steps (`sim::sim_plan`), in `converted/modern-iaf/`: the code, the authored data it
 /// reads; for the terrain, what `iaf-sim terrain` itself compares (the box and the Survey sheets' names and sizes); for
 /// the airbases, the OpenStreetMap extracts' hashes.
 pub(crate) fn sim_of(step: &Step, ctx: &SimCtx) -> Result<Option<Stamp>> {
@@ -356,9 +358,10 @@ pub(crate) fn sim_of(step: &Step, ctx: &SimCtx) -> Result<Option<Stamp>> {
         "sim-airbases" => (a.join("converted/own/iaf.ibx"), vec![data.join("airbases")]),
         "sim-fm" => (a.join(iaf_tools::sim_fm0::MD_DIR).join("bd.ibx"), vec![]),
         "sim-scenery" => (a.join(THEATRE).join("scenery/manifest.json"), vec![data.join("airbases")]),
-        "sim-missions" => {
-            (a.join("converted/iaf-2026/missions"), vec![data.join("missions"), data.join("db"), data.join("airbases")])
-        }
+        "sim-missions" => (
+            a.join("converted/modern-iaf/missions"),
+            vec![data.join("missions"), data.join("db"), data.join("airbases")],
+        ),
         _ => return Ok(None),
     };
     let mut text = format!("iaf-setup {:016x}\nstep {}\n", code(step.id, SOURCES), step.id);
@@ -538,10 +541,10 @@ mod tests {
     #[test]
     fn sim_inputs_are_relative() {
         let dir = std::env::temp_dir().join(format!("iaf-stamp-rel-{}", std::process::id()));
-        std::fs::create_dir_all(dir.join("iaf-2026/data/db")).unwrap();
-        std::fs::write(dir.join("iaf-2026/data/db/a.json"), "{}").unwrap();
-        let t = describe_under(&dir.join("iaf-2026/data/db"), &dir).unwrap();
-        assert!(t.starts_with("input iaf-2026/data/db/a.json 2 "), "{t}");
+        std::fs::create_dir_all(dir.join("modern-iaf/data/db")).unwrap();
+        std::fs::write(dir.join("modern-iaf/data/db/a.json"), "{}").unwrap();
+        let t = describe_under(&dir.join("modern-iaf/data/db"), &dir).unwrap();
+        assert!(t.starts_with("input modern-iaf/data/db/a.json 2 "), "{t}");
         assert!(describe_under(&dir.join("nothing"), &dir).unwrap().contains("input nothing missing"));
         let _ = std::fs::remove_dir_all(&dir);
     }

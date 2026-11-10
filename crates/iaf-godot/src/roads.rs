@@ -187,7 +187,7 @@ impl IafRoads {
                 Some((i.parse().ok()?, j.parse().ok()?))
             })
             .collect();
-        // Modern IAF's road layer is cut in its theatre's frame (iaf-2026/docs/scenery.md).
+        // Modern IAF's road layer is cut in its theatre's frame (modern-iaf/docs/scenery.md).
         let m: serde_json::Value = std::fs::read(dir.join("manifest.json"))
             .ok()
             .and_then(|b| serde_json::from_slice(&b).ok())

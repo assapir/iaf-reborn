@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Kokoro text to speech for `iaf-sim voices` (iaf-2026/docs/sound.md §5): the only Python step of the voices.
+"""Kokoro text to speech for `iaf-sim voices` (modern-iaf/docs/sound.md §5): the only Python step of the voices.
 
 Reads a JSON list on stdin, [{"text": ..., "voice": "af_nicole", "speed": 1.0, "out": "/abs/raw.wav"}, ...], and
 writes each line's speech as a 24000 Hz mono 32-bit float WAV, with no processing: the radio chain, the trim and the

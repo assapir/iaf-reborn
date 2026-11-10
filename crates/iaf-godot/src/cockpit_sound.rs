@@ -1,4 +1,4 @@
-//! `IafCockpitSound`: Modern IAF's cockpit sound model (`iaf_flight::cockpit_sound`, iaf-2026/docs/sound.md §1.9) for
+//! `IafCockpitSound`: Modern IAF's cockpit sound model (`iaf_flight::cockpit_sound`, modern-iaf/docs/sound.md §1.9) for
 //! `shared/audio/sound_buses.gd`.
 
 use godot::prelude::*;

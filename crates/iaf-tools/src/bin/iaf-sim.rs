@@ -1,28 +1,28 @@
-//! Modern IAF's data compilers (iaf-2026/docs/data-formats.md):
+//! Modern IAF's data compilers (modern-iaf/docs/data-formats.md):
 //!
-//! `iaf-sim <db|missions|own|fm|airbases|scenery|all> [data-dir (iaf-2026/data)] [assets-dir (assets)]`
+//! `iaf-sim <db|missions|own|fm|airbases|scenery|all> [data-dir (modern-iaf/data)] [assets-dir (assets)]`
 //! `iaf-sim terrain [assets-dir (assets)] [--box E0 N0 E1 N1] [--out <dir>] [--threads N]`
 //! `iaf-sim voices [--only <part of a file name>]` / `iaf-sim voices --say <role> <mode> <text> <out.ogg>`
 //!
 //! - `db`: the units and weapons → `converted/missions/sim.bdb.json`, `converted/objects/objects.json` ("sim.bdb"),
 //!   `converted/own/resource/weaponsmotion/weapons.ibx`;
-//! - `missions`: the missions → `converted/iaf-2026/missions/<id>.json` + `missionlist.json`;
-//! - `airbases`: the four bases into the theatre's frame (iaf-2026/docs/airbases.md "In the game") →
+//! - `missions`: the missions → `converted/modern-iaf/missions/<id>.json` + `missionlist.json`;
+//! - `airbases`: the four bases into the theatre's frame (modern-iaf/docs/airbases.md "In the game") →
 //!   `converted/terrain/israel/airbases.json` + masks, `converted/own/iaf.ibx`, `converted/own/terraintype.dat`; needs
 //!   the terrain;
-//! - `scenery`: the buildings, trees, roads and city lights' stand-ins in the theatre's frame (iaf-2026/docs/scenery.md)
+//! - `scenery`: the buildings, trees, roads and city lights' stand-ins in the theatre's frame (modern-iaf/docs/scenery.md)
 //!   → `converted/terrain/israel/scenery/`, `converted/terrain/israel/roads/`; needs the terrain, the airbases' step
 //!   and GDAL; downloads only what `assets/source/scenery` and `assets/source/roads` lack;
-//! - `fm`: the jets' flight data (iaf-2026/docs/flight-model.md) → `converted/own/resource/md/` (`bd.ibx`, `f16.dat`,
+//! - `fm`: the jets' flight data (modern-iaf/docs/flight-model.md) → `converted/own/resource/md/` (`bd.ibx`, `f16.dat`,
 //!   `f15.dat`); the data dir is not read;
 //! - `all`: db, own, fm, airbases and scenery (when the terrain is built; the scenery optional), missions;
 //! - `own`: the sound table and clips → `converted/own/resource/soundfiles/`, the key table → `converted/own/keys.json`,
 //!   each jet's cockpit display data → `converted/own/cockpits/<jet>/`, the F-16's aircraft descriptor from the repo's
 //!   own model → `converted/own/planes/` (run it from the repo root);
-//! - `terrain`: the theatre (iaf-2026/docs/terrain.md) → `converted/terrain/israel/` (`--out`: another folder),
+//! - `terrain`: the theatre (modern-iaf/docs/terrain.md) → `converted/terrain/israel/` (`--out`: another folder),
 //!   over the UTM 36N box `--box` (default `sim_terrain::BOX`);
-//! - `voices`: Kokoro text to speech through Betty's chain or the radio chain (iaf-2026/docs/sound.md §5) →
-//!   the clips in `iaf-2026/data/sounds/`, then the sounds of `own` → `converted/own/resource/soundfiles/`; needs
+//! - `voices`: Kokoro text to speech through Betty's chain or the radio chain (modern-iaf/docs/sound.md §5) →
+//!   the clips in `modern-iaf/data/sounds/`, then the sounds of `own` → `converted/own/resource/soundfiles/`; needs
 //!   ffmpeg and the Python of `tools/iaf-2026/kokoro_tts.py` (`IAF_KOKORO_PYTHON`); run it from the repo root.
 
 use std::path::{Path, PathBuf};
@@ -56,7 +56,7 @@ fn terrain(args: &[String], cancel: &AtomicBool) -> Result<()> {
         s2_cache: assets.join(iaf_tools::imagery_run::S2_CACHE),
         sheet_index: assets.join("converted/imagery/.work/mapi2015/sheets.tsv"),
         sheets: assets.join("source/imagery/mapi2015"),
-        airbases: PathBuf::from("iaf-2026/data/airbases"),
+        airbases: PathBuf::from("modern-iaf/data/airbases"),
         osm: assets.clone(),
         area,
         detail: sim_terrain::DETAIL,
@@ -68,7 +68,7 @@ fn terrain(args: &[String], cancel: &AtomicBool) -> Result<()> {
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.first().map(String::as_str) == Some("voices") {
-        let (data, repo) = (Path::new("iaf-2026/data"), Path::new("."));
+        let (data, repo) = (Path::new("modern-iaf/data"), Path::new("."));
         return match &args[1..] {
             [o, role, mode, text, out] if o == "--say" => sim_voices::say(data, repo, role, mode, text, Path::new(out)),
             [o, only] if o == "--only" => {
@@ -78,8 +78,9 @@ fn main() -> Result<()> {
             _ => bail!("usage: iaf-sim voices [--only <part of a file name>] | --say <role> <mode> <text> <out.ogg>"),
         };
     }
-    let data = Path::new(args.get(1).map_or("iaf-2026/data", String::as_str));
+    let data = Path::new(args.get(1).map_or("modern-iaf/data", String::as_str));
     let assets = Path::new(args.get(2).map_or("assets", String::as_str));
+    sim::move_old_converted(assets)?;
     let cancel = AtomicBool::new(false);
     match args.first().map(String::as_str) {
         Some("db") => sim::db(data, assets, &Stdout, &cancel),
@@ -110,7 +111,7 @@ fn main() -> Result<()> {
             sim::missions(data, assets, &Stdout, &cancel)
         }
         _ => bail!(
-            "usage: iaf-sim <db|missions|own|fm|airbases|scenery|all> [data-dir (iaf-2026/data)] [assets-dir (assets)]\n       \
+            "usage: iaf-sim <db|missions|own|fm|airbases|scenery|all> [data-dir (modern-iaf/data)] [assets-dir (assets)]\n       \
              iaf-sim terrain [assets-dir (assets)] [--box E0 N0 E1 N1] [--out <dir>] [--threads N]"
         ),
     }

@@ -1,4 +1,4 @@
-//! `iaf-training score` (iaf-2026/docs/training.md): the airbases folder found from the mission file from any
+//! `iaf-training score` (modern-iaf/docs/training.md): the airbases folder found from the mission file from any
 //! working folder, a missing folder named, and a bad `--json` refused before any scoring.
 
 use std::path::Path;
@@ -18,7 +18,7 @@ fn the_cli_finds_the_airbases_and_checks_its_arguments() {
     }
     let path = dir.join("flight.jsonl");
     std::fs::write(&path, flight).unwrap();
-    let missions = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../iaf-2026/data/missions");
+    let missions = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../modern-iaf/data/missions");
     let run =
         |args: &[&str]| Command::new(env!("CARGO_BIN_EXE_iaf-training")).current_dir(&dir).args(args).output().unwrap();
     let (flight, takeoff) = (path.to_str().unwrap(), missions.join("ramon_takeoff.json"));

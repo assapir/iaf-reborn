@@ -682,7 +682,7 @@ func _draw_gmt(r: Dictionary, nm: float) -> void:
 ## isr.bmp (640 × 832) georeference, cockpits.ibx [MAPFRAME] (shared by every cockpit; FUN_005226e0):
 ## col = (X + 166828 − left) / (right − left) · 640, row = (top − (Y + 21164)) / (top − bottom) · 832
 ## (FUN_00535ea0 @53608b), i.e. 1280 m per isr pixel. A cockpit layout's own "MAPFRAME" replaces it (the sim's:
-## its theatre in UTM, iaf-2026/docs/cockpit.md §8).
+## its theatre in UTM, modern-iaf/docs/cockpit.md §8).
 const MAPFRAME := {"left": 0.0, "top": 1064960.0, "bottom": 0.0, "right": 819200.0}
 const ISR_SIZE := Vector2(640, 832)
 ## The MAP window (15,15)–(116,109): 101 × 94 px, 94 px = R NM (FUN_0053b0a0 pass 1).

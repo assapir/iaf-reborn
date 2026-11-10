@@ -241,7 +241,7 @@ version on Barak it stays the original's `f16_bc`.
   from 90° to 150° of head yaw), as a pilot checking six looks over the headrest. From the seated eye the headrest
   top is 0.05–0.08 m above the eye, so straight back the seat filled the view. With the pilot's body in the 3D cockpit (Modern IAF)
   the head also bends forward looking down (`LOOK_DOWN_LEAN`, up to 0.2 m forward and 0.06 m down from 25° to 60°
-  of head pitch; iaf-2026/docs/cockpit.md §5.3).
+  of head pitch; modern-iaf/docs/cockpit.md §5.3).
 - **The cut**: as the original's cockpit model, it ends at the eye. Every triangle wholly ahead of the eye is left
   out, so the nose, the instrument panel and the front of the canopy never show over the cockpit art.
 - **Left out**: the front pilot's body (the crew mesh's surfaces after the first `F16_SEAT_SURFACES`, the ACES II

@@ -1,5 +1,5 @@
 //! `IafSetup`: the setup pipeline (`iaf_setup`, docs/setup.md) for the wizards (`iaf-reborn/setup/wizard.gd`, IAF
-//! 2026's `iaf-2026/setup/wizard.gd`). `start` (`sim_start`) runs the plan on its own thread; the wizard calls `poll`
+//! 2026's `modern-iaf/setup/wizard.gd`). `start` (`sim_start`) runs the plan on its own thread; the wizard calls `poll`
 //! every frame for the steps' states, fractions and new log lines.
 //! Inputs travel as setup.json's JSON text (`iaf_setup::to_json` / `from_json`).
 

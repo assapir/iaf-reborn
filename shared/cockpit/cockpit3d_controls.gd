@@ -1,4 +1,4 @@
-# Ours (Settings.cockpit_controls, Modern IAF; iaf-2026/docs/cockpit.md §5.1): the 3D cockpit's clickable controls. A
+# Ours (Settings.cockpit_controls, Modern IAF; modern-iaf/docs/cockpit.md §5.1): the 3D cockpit's clickable controls. A
 # cockpit's table, <model>_controls.json beside its model, binds the model's nodes to key commands:
 #   {"<node>": {"click": [id, p1, p2], "turn": [id, p1, p2], "drag_px": 10, "prop": "<FlightGear property>",
 #    "on": 2, "off": 0, "box": [x, y, z, w, h, d]}, ...}

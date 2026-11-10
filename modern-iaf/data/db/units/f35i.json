@@ -1,0 +1,41 @@
+{
+  "id": "f35i",
+  "number": 3,
+  "name": "F-35I Adir",
+  "label": "F-35I",
+  "class": "fighter",
+  "type": 1000,
+  "airframe": "f35i",
+  "model": "",
+  "scale": 1.0,
+  "radius_m": 5.33,
+  "strength": 300,
+  "loadout": {
+    "20mm": 180,
+    "chaff": 60,
+    "flare": 60
+  },
+  "pylons": {},
+  "sources": {
+    "type": "inferred",
+    "scale": "inferred",
+    "radius_m": "w-f35",
+    "strength": "inferred",
+    "loadout.20mm": "w-f35",
+    "loadout.chaff": "open",
+    "loadout.flare": "open"
+  },
+  "notes": {
+    "type": "type codes from 1000 are ours (docs/adding-a-plane.md §1); 1000 is the F-35I's",
+    "model": "none: the player's jet is drawn from its airframe definition (shared/extra/planes/f35i/airframe.json)",
+    "scale": "1: our models are built true size",
+    "radius_m": "half the span, 35 ft (10.67 m)",
+    "strength": "our damage scale's fighter (modern-iaf/docs/data-formats.md, damage scale)",
+    "loadout.20mm": "GAU-22/A 25 mm, 180 rounds; the 20 mm record stands in for it, as in the airframe definition",
+    "loadout.chaff": "no public count found; 60 held until one is",
+    "loadout.flare": "no public count found; 60 held until one is"
+  },
+  "footnotes": {
+    "w-f35": "Wikipedia, \"Lockheed Martin F-35 Lightning II\" (F-35A: span 35 ft; 1 × 25 mm GAU-22/A with 180 rounds), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II"
+  }
+}

@@ -10,8 +10,8 @@
 # right, with the pilot's body's cost (_body_cost). C3D_ONLY=hud: only ahead, looking up 8° (the HUD's frame against the
 # sky) and ahead zoomed in to the true size. C3D_HUD=original: the original HUD (default the Real HUD). C3D_ALL=1: every
 # graphics option at its best (_showcase_shot.gd AFTER), as a player with everything on sees it. C3D_SIM=1: Modern IAF's
-# cockpits (iaf-2026/sim_settings.gd on its own cockpit dirs, `iaf-sim own`'s, test_cockpit_no_panel.gd), files named
-# sim; run it with --path iaf-2026 (the sim's strings and fonts) and it flies over the sim's theatre (_sim_spec).
+# cockpits (modern-iaf/sim_settings.gd on its own cockpit dirs, `iaf-sim own`'s, test_cockpit_no_panel.gd), files named
+# sim; run it with --path modern-iaf (the sim's strings and fonts) and it flies over the sim's theatre (_sim_spec).
 # C3D_SET=key=value,…: Settings for the run (as _cockpit_show_shot.gd's SHOW_SET), e.g.
 # C3D_SET=briefing_map=modern,real_mfds=real for the Extras' OpenStreetMap map and real MFDs.
 #   flock ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOW_OUT=$PWD/.shots/c3d -- \

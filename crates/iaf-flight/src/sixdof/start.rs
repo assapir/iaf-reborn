@@ -1,4 +1,4 @@
-//! The engine's ground start (item E3b, iaf-2026/docs/training.md §7): one "start engine" command runs the real
+//! The engine's ground start (item E3b, modern-iaf/docs/training.md §7): one "start engine" command runs the real
 //! sequence's steps and timings: the starter (the F-16's jet fuel starter, the F-35's integrated power package)
 //! cranks the engine to the light-off RPM, the throttle goes to idle, the fuel lights, the engine accelerates to idle;
 //! the main generator comes on line on the way and the displays and the avionics come up after it. Sources and the
@@ -10,7 +10,7 @@
 //! consequence (no power for the starter, a hot start that stops the engine, a switch that does nothing) and is
 //! returned as a fault for the debrief.
 
-/// The 6-DoF's idle RPM, % (its gauge's line, iaf-2026/docs/flight-model.md §9.7).
+/// The 6-DoF's idle RPM, % (its gauge's line, modern-iaf/docs/flight-model.md §9.7).
 pub const IDLE_RPM: f64 = 60.0;
 
 /// One jet's start sequence.

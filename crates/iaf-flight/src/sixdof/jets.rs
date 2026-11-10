@@ -1,6 +1,6 @@
 //! The sim's four jets (and TP-1538's own F-16) for the 6-DoF: mass, inertia, geometry, engines, gear. The
 //! aerodynamics are TP-1538's F-16 tables for every jet, on each jet's own wing area, span and chord (as FM-0 does,
-//! labelled). Sources and the inferred figures: iaf-2026/docs/flight-model.md §9.9.
+//! labelled). Sources and the inferred figures: modern-iaf/docs/flight-model.md §9.9.
 
 use super::aero::{Flow, Surfaces, add_drag, coefficients, compressibility, force_moment};
 use super::body::{Airframe, Body};
@@ -27,7 +27,7 @@ pub struct Jet {
     pub fuel_lb: f64,
     /// The wave drag (w, k) of `aero::compressibility`: ΔCD `w` at Mach 1.2, × (M / 1.2)^k above. Fit to public
     /// performance, not a sourced table (2026-11-03, `fit_wave_drag` in tests/sixdof.rs): each jet's level top speed
-    /// at its reference weight meets its published figures (iaf-2026/docs/flight-model.md §9.15).
+    /// at its reference weight meets its published figures (modern-iaf/docs/flight-model.md §9.15).
     pub wave_drag: (f64, f64),
     /// Maximum and minimum load factor, g (the REAL rows: the F-16's +9 / −3, the F-15E's +8.1 / −2).
     pub g_limits: (f64, f64),

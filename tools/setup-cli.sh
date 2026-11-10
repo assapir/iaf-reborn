@@ -349,7 +349,7 @@ j_airbases() {
 # MFDs (F-16) Real).
 j_extras() {
 	step "extras: the OpenStreetMap TSD map, RWR symbols and ADI ball of Modern IAF's data (Extras options)"
-	./target/release/iaf-convert extras iaf-2026/data assets/converted/extras/cockpit assets/install/resource/cockpits/isr.bmp
+	./target/release/iaf-convert extras modern-iaf/data assets/converted/extras/cockpit assets/install/resource/cockpits/isr.bmp
 }
 
 j_godot() {

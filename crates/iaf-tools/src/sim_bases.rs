@@ -1,10 +1,10 @@
-//! `iaf-sim airbases` (iaf-2026/docs/airbases.md §"In the game"): the airbases of `iaf-2026/data/airbases/`
-//! (lat / lon, item B2a) compiled into the sim's UTM 36N frame (iaf-2026/docs/terrain.md §2), in the shapes the
+//! `iaf-sim airbases` (modern-iaf/docs/airbases.md §"In the game"): the airbases of `modern-iaf/data/airbases/`
+//! (lat / lon, item B2a) compiled into the sim's UTM 36N frame (modern-iaf/docs/terrain.md §2), in the shapes the
 //! shared readers take:
 //! - `converted/terrain/israel/airbases.json` and one paved-surface mask per base (`airbases/<name>.png`), as
 //!   `iaf-terrain airbases` writes for the original (docs/rendering.md §7): Detailed airbases draws them;
 //! - `converted/own/iaf.ibx`: one section per base (tower, lineup, take-off heading, the AI's taxi paths, the parking
-//!   spots), read by `iaf_flight::airbase::Airbase` and the radio (iaf-2026/docs/data-formats.md §12);
+//!   spots), read by `iaf_flight::airbase::Airbase` and the radio (modern-iaf/docs/data-formats.md §12);
 //! - `converted/own/terraintype.dat`: the surface flags' BSP tree (iaf_formats::terrain_types): the runways, the sea
 //!   from the coast, land elsewhere.
 //!
@@ -31,7 +31,7 @@ pub const BASES: [(&str, &str, &str); 5] = [
     ("LLNV", "Nevatim", "26L"),
 ];
 /// The lineup point this far down the centreline from the declared runway start (m; the missions' runway start,
-/// iaf-2026/docs/data-formats.md §5; inferred: a jet's length and a margin).
+/// modern-iaf/docs/data-formats.md §5; inferred: a jet's length and a margin).
 pub const LINEUP_IN_M: f64 = 100.0;
 /// The wheels count as on the pavement this far past its edges, in the training missions (`training.rs`) (inferred:
 /// OSM draws centrelines and outlines, not the paved fillets where a taxiway meets a runway or a turn, and its
@@ -1225,14 +1225,14 @@ pub fn flood(nx: usize, ny: usize, pass: &[bool], seeds: impl IntoIterator<Item 
 
 // --- iaf.ibx --------------------------------------------------------------------------------------------------------
 
-/// A base's iaf.ibx section (keys: iaf-2026/docs/data-formats.md §12).
+/// A base's iaf.ibx section (keys: modern-iaf/docs/data-formats.md §12).
 fn ibx_section(b: &Base, rt: &Routes, z: &mut dyn FnMut([f64; 2]) -> f64) -> String {
     let (ri, k) = b.main;
     let r = &b.runways[ri];
     let tower = b.tower_or_reference();
     let lineup = r.lineup(k);
     let mut s = format!(
-        "[{}]\n; {} ({}), iaf-sim airbases from iaf-2026/data/airbases/{}.json\n",
+        "[{}]\n; {} ({}), iaf-sim airbases from modern-iaf/data/airbases/{}.json\n",
         b.section,
         b.name_en,
         b.icao,
@@ -1295,7 +1295,7 @@ pub fn airbases(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
     let pt = |p: [f64; 2]| json!([r1(p[0]), r1(p[1])]);
     let mut list = Vec::new();
     let mut ibx = String::from(
-        "; Modern IAF's airbases (iaf-sim airbases; iaf-2026/docs/data-formats.md §12). World metres: UTM 36N.\n\n",
+        "; Modern IAF's airbases (iaf-sim airbases; modern-iaf/docs/data-formats.md §12). World metres: UTM 36N.\n\n",
     );
     let mut paved = Vec::new();
     for b in &bases {
@@ -1369,7 +1369,7 @@ pub fn airbases(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
     let mut cells: Vec<u8> = sea.iter().map(|&s| if s { SEA as u8 } else { 0 }).collect();
     drop(sea);
     // The OpenStreetMap extracts (downloaded when missing): the coastline decides the sea near it (the DEM's 0 m cells
-    // farther out), as it cuts the Survey photo (iaf-2026/docs/terrain.md §12).
+    // farther out), as it cuts the Survey photo (modern-iaf/docs/terrain.md §12).
     let geo = theatre_geo(r);
     let pbfs = crate::sim_coast::fetch_extracts(assets, geo, pr, cancel)?;
     let coast = crate::sim_coast::Coast::load(&pbfs, geo, &theatre.join(".work"))?;
@@ -1383,7 +1383,7 @@ pub fn airbases(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
     }
     // The inland water: OpenStreetMap's lakes and reservoirs (the sea keeps its flag where both are).
     let water = water_polygons(&pbfs, geo, &theatre.join(".work"))?;
-    // The polygons themselves for the scenery (a tree tests them, not the 64 m grid: iaf-2026/docs/scenery.md §4).
+    // The polygons themselves for the scenery (a tree tests them, not the 64 m grid: modern-iaf/docs/scenery.md §4).
     save_water(&theatre.join(WATER_FILE), &water)?;
     let mut inland = vec![false; nx * ny];
     for wb in &water {
@@ -1396,7 +1396,7 @@ pub fn airbases(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
         }
     }
     drop(inland);
-    // The large lakes' surface as the DEM has it (iaf-2026/docs/terrain.md "Inland water").
+    // The large lakes' surface as the DEM has it (modern-iaf/docs/terrain.md "Inland water").
     if let Some(mut g) = Ground::open(&theatre) {
         for wb in water.iter().filter(|w| w.area >= LEVEL_REPORT_M2) {
             if let Some(level) = wb.dem_level(&mut g) {
@@ -1649,7 +1649,7 @@ mod tests {
     }
 
     fn data() -> std::path::PathBuf {
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../iaf-2026/data/airbases")
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../modern-iaf/data/airbases")
     }
 
     #[test]
@@ -1664,7 +1664,7 @@ mod tests {
             let g = utm36n_geo(e, n);
             assert!((g[0] - lon).abs() < 1e-8 && (g[1] - lat).abs() < 1e-8, "inverse of {e} {n}: {g:?}");
         }
-        // The theatre's far corners (iaf-2026/docs/terrain.md §2) round-trip too.
+        // The theatre's far corners (modern-iaf/docs/terrain.md §2) round-trip too.
         for (e, n) in [(507_904.0, 3_255_296.0), (855_040.0, 3_766_272.0)] {
             let g = utm36n_geo(e, n);
             let p = utm36n(g[0], g[1]);

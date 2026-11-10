@@ -155,7 +155,7 @@ var night := false
 ## set by terrain_view.gd from the sun).
 var daylight := 1.0
 ## The electrical power (the flight model's `power`): 0 none, 1 the battery (the lamps), 2 the displays and the HUD up.
-## Always 2 in the original game; Modern IAF's cold jet starts at 0 (iaf-2026/docs/training.md §7).
+## Always 2 in the original game; Modern IAF's cold jet starts at 0 (modern-iaf/docs/training.md §7).
 var power := 2
 
 

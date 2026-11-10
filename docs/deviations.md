@@ -140,10 +140,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   kg. Ours, with the switch: every store counts in the stores weight, in kg, and the fuel tanks' fuel in kg —
   weapons.md §2.5–2.6.
 - **Flight model (modern jets) (Original / 6-DoF (TP-1538))** (the page's top row, `Settings.flight_model`; Modern
-  IAF's item C2, [iaf-2026/docs/shared.md](../iaf-2026/docs/shared.md)). Original: every jet flies the 1998 flight
+  IAF's item C2, [modern-iaf/docs/shared.md](../modern-iaf/docs/shared.md)). Original: every jet flies the 1998 flight
   model. Ours, with 6-DoF: the player's modern jet (an aircraft definition with `"sixdof": true`: the F-16I Sufa, the
   F-15I Ra'am, the F-35I; `iaf_flight::data_set::sixdof`) flies Modern IAF's own 6-DoF (NASA TP-1538's aerodynamics
-  and control system, iaf-2026/docs/flight-model.md §9) from the sim's data
+  and control system, modern-iaf/docs/flight-model.md §9) from the sim's data
   (`assets/converted/own/resource/md/bd.ibx`, whose sections say `Model = 6dof`; `Settings.sixdof_data`). The 1998
   jets, the AI's jets and the autopilot's bases keep the original game's data. Without the sim's data (built by
   `./modern-iaf-setup`) the 6-DoF choice reads "Not built", greyed; a saved 6-DoF choice then flies the original model
@@ -216,16 +216,16 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   the 1974 line, the West Bank's Area C apart from the Palestinian Authority's Areas A and B, Gaza in the PA's grey,
   the large lakes, in the original's colours; the ground-map picture with OpenStreetMap's coast and lakes over the
   original `isr.bmp`'s terrain (each land pixel the original's brightness, the water dark); the 1967 / 1973 maps stay (front-end.md §8 "Modern map",
-  iaf-2026/docs/cockpit.md §8 "TSD map").
+  modern-iaf/docs/cockpit.md §8 "TSD map").
 - **MFDs (F-16) Real: Modern IAF's RWR symbols.** Original: the F-16's RWR scope draws the original `rwrsymb.bmp`
   glyphs. Ours, with Real (`real_mfds`; the Sufa always): Modern IAF's RWR glyph sheet
   (`assets/converted/extras/cockpit/rwrsymb.png`, our own drawing: green stroke glyphs, the SAMs as their numbers, the
-  fighters' numbers under the hat; iaf-2026/docs/cockpit.md §8 "RWR symbols") on the panel's RWR scope (mfd.md §9
+  fighters' numbers under the hat; modern-iaf/docs/cockpit.md §8 "RWR symbols") on the panel's RWR scope (mfd.md §9
   "Modern IAF's RWR symbols and ADI ball"). Other jets keep the original.
 - **MFDs (F-16) Real: Modern IAF's ADI ball.** Original: the F-16's attitude ball ([LENHORIZON]) is the original
   `F16adi.bmp` (blue sky, brown ground). Ours, with Real (`real_mfds`; the Sufa always): Modern IAF's ball
   (`assets/converted/extras/cockpit/adi.png`, our own drawing: grey sky over black ground, a pitch line every 10°,
-  numbered every 30°; iaf-2026/docs/cockpit.md §8 "ADI ball"; mfd.md §9). Other jets keep the original.
+  numbered every 30°; modern-iaf/docs/cockpit.md §8 "ADI ball"; mfd.md §9). Other jets keep the original.
 - **HARM targets (Original / Real).** Original: the HARM page lists its sensor's own scan (the radar classes within
   20 NM in the ±15° cone, emitting or not, friendlies too, best 15). Ours, with Real (saved value "rwr"): the page lists the RWR's active
   emitters inside that cone and the hostile scanned sites without a brain (never on the RWR: they never lock; counted
@@ -553,7 +553,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     heaters, tanks, stair heads) are our own.
   - Far towns (Graphics → MORE, under Scenery; default Full, every building to the scenery's 4.5 km): Light draws a
     dense town's buildings beyond the near model's 2.5 km only when they are 15 m tall or 1000 m² and up, for less
-    GPU time over large towns (scenery.md §3.1). An IAF 2026 enhancement (iaf-2026/docs/shared.md).
+    GPU time over large towns (scenery.md §3.1). An IAF 2026 enhancement (modern-iaf/docs/shared.md).
   - Building colours (Graphics → MORE, under Far towns; default Photo, 2026-11-09, the look study's proposal 2;
     Modern IAF's profile picks Palette): Palette keeps every wall in its own palette colour (Jerusalem stone, white
     and beige plaster, grey concrete) at any distance, where Photo gives On's walls the photo's colour and fades
@@ -648,7 +648,7 @@ screen gets a **PILOT GUIDE** button and view, with an Open PDF link when the gu
 converted map.ptt. Original: the 1998 theatre. Ours, with the switch: e.g. Modern IAF's UTM theatre `israel` (built by
 `iaf-sim terrain`), for screenshots and checks of the sim's terrain; a theatre with its own frame (`crs` in its
 `meta.json`) turns off the imagery layers, `terraintype.dat` (all ground is land) and World scale Real's base move,
-and missions still start at their 1998 positions, so it is flown free with `--at` — iaf-2026/docs/terrain.md §6. Such a
+and missions still start at their 1998 positions, so it is flown free with `--at` — modern-iaf/docs/terrain.md §6. Such a
 theatre's own `airbases.json` (`Settings.airbases_file()`) is what Detailed airbases then draws: Modern IAF's real
 bases.
 

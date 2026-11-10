@@ -1,10 +1,10 @@
-# Windows: makes each Godot project's link to the shared engine folder (iaf-reborn\shared and iaf-2026\shared -> shared,
+# Windows: makes each Godot project's link to the shared engine folder (iaf-reborn\shared and modern-iaf\shared -> shared,
 # docs/windows.md) a directory junction. Git for Windows checks the committed symlink out as a small text file unless
 # symlinks are enabled (core.symlinks with Developer Mode); a junction needs no rights. A real symlink or junction is
 # kept. launch.ps1 runs this before every start; run it by hand after a clone to use Godot directly. ASCII only.
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path "$PSScriptRoot\..\.."
-foreach ($project in 'iaf-reborn', 'iaf-2026') {
+foreach ($project in 'iaf-reborn', 'modern-iaf') {
 	$link = Join-Path $root "$project\shared"
 	$item = Get-Item $link -Force -ErrorAction SilentlyContinue
 	if ($item -and $item.LinkType) { continue }

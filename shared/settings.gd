@@ -832,7 +832,7 @@ func airframe_def(id: String) -> Dictionary:
 
 ## The name the cockpit tables key a cockpit dir (or a Real HUD key) on: the F-16's "f16", the F-4E's "phantom" … (the
 ## HUD's, MFD's and gauges' tables, the 3D cockpit's F-16 check): the dir's own name. Modern IAF's Settings map its own
-## dirs to the family's (iaf-2026/docs/cockpit.md §4).
+## dirs to the family's (modern-iaf/docs/cockpit.md §4).
 func cockpit_folder(dir: String) -> String:
 	return dir.get_file()
 
@@ -887,7 +887,7 @@ func hebrew_available() -> bool:
 
 
 ## The file of the HUD's and displays' raster font `name` ("hud", "mfd", "key"; hud.gd load_original_font): the
-## original's, converted by `iaf-convert fonts`. Modern IAF's Settings return its own (iaf-2026/docs/cockpit.md §5).
+## original's, converted by `iaf-convert fonts`. Modern IAF's Settings return its own (modern-iaf/docs/cockpit.md §5).
 func hud_font_path(name: String) -> String:
 	return converted("fonts/%s.fnt" % name)
 
@@ -895,7 +895,7 @@ func hud_font_path(name: String) -> String:
 ## The vector font of the real display formats' text: "mono" the F-16's MFD formats and its 3D cockpit's small screens
 ## (f16_mfd.gd, cockpit3d_display.gd), "narrow" the F-35I's panoramic and standby displays (pcd.gd), "hud" the Real
 ## HUD's texts (hud.gd _gdi), "ui" the lettering over the world (town_labels.gd). Here the installed system fonts,
-## bold (the Real HUD's: the GDI's Arial); Modern IAF's Settings return its own (iaf-2026/docs/cockpit.md §5).
+## bold (the Real HUD's: the GDI's Arial); Modern IAF's Settings return its own (modern-iaf/docs/cockpit.md §5).
 func display_font(style: String) -> Font:
 	if style == "hud":
 		return load("res://shared/util/img.gd").arial()
@@ -923,7 +923,7 @@ func assets_dir() -> String:
 
 
 ## The path of `rel` under assets/converted: every shared reader of converted data asks here, so Modern IAF's answer
-## (iaf-2026/sim_settings.gd) lets through only its own data. A leading "converted/" is taken off (the data's own
+## (modern-iaf/sim_settings.gd) lets through only its own data. A leading "converted/" is taken off (the data's own
 ## assets-relative paths, e.g. an aircraft definition's "cockpit"). The original game: assets/converted/<rel>.
 func converted(rel: String) -> String:
 	return assets_dir().path_join("converted").path_join(rel.trim_prefix("converted/"))
@@ -971,7 +971,7 @@ func default_bdb() -> String:
 
 
 ## The script of the flight's loading screen (terrain_view.gd; a Control with `progress` 0..1 and a static
-## prefetch()): the original's menu art; Modern IAF's own (iaf-2026/flight/loading_screen.gd).
+## prefetch()): the original's menu art; Modern IAF's own (modern-iaf/flight/loading_screen.gd).
 func loading_screen_scene() -> String:
 	return "res://shared/terrain/loading_screen.gd"
 
@@ -982,7 +982,7 @@ func install_dir() -> String:
 
 
 ## The path of `rel` under the install: every shared reader of the install asks here, so Modern IAF's answer
-## (iaf-2026/sim_settings.gd) refuses it. The original game: assets/install/<rel>.
+## (modern-iaf/sim_settings.gd) refuses it. The original game: assets/install/<rel>.
 func install(rel: String) -> String:
 	return install_dir().path_join(rel)
 
@@ -990,7 +990,7 @@ func install(rel: String) -> String:
 ## The root of the resource layout the flight model, the sounds, the weapons' motion, iaf.ibx, terraintype.dat, the
 ## time of day's colours (defcolorset.tcs) and the missions' score file are read from (resource/md,
 ## resource/soundfiles, resource/weaponsmotion, resource/missions/scores.ibx…): the install here; Modern IAF's own
-## copy of that layout in its project (iaf-2026/sim_settings.gd).
+## copy of that layout in its project (modern-iaf/sim_settings.gd).
 func own_dir() -> String:
 	return install_dir()
 
@@ -1014,7 +1014,7 @@ func sixdof_built() -> bool:
 
 ## The flight-model name the player's jet `type` flies (PlayerAircraft.profile, IafFlight.start's section); "" = the
 ## converted aircraft descriptor's `fm_section` (the original game). Modern IAF answers from its own data
-## (iaf-2026/sim_settings.gd).
+## (modern-iaf/sim_settings.gd).
 func fm_section(_type: int) -> String:
 	return ""
 
@@ -1025,7 +1025,7 @@ func file_stamp() -> String:
 
 
 ## The project's own node in the flight scene (terrain_view.gd `addon`, its child): null in the original game. IAF
-## 2026's runs its training missions and its radio menu (iaf-2026/sim_settings.gd). `host` is the flight scene.
+## 2026's runs its training missions and its radio menu (modern-iaf/sim_settings.gd). `host` is the flight scene.
 func flight_addon(_host: Node) -> Node:
 	return null
 
@@ -1042,7 +1042,7 @@ func throttle_starts_engine() -> bool:
 
 
 ## An ejection ends the sortie at once: every sound and the radio stop, the view stays outside, an `eject` event is
-## recorded (IAF 2026, iaf-2026/docs/training.md §3.0); the original game's ejection sequence runs as it is.
+## recorded (IAF 2026, modern-iaf/docs/training.md §3.0); the original game's ejection sequence runs as it is.
 func eject_ends_sortie() -> bool:
 	return false
 
@@ -1055,14 +1055,14 @@ func tower_bases(_sections: Dictionary) -> Array:
 
 ## The theatre terrain.gd streams, under assets/: the original's map.ptt converted (`iaf-terrain theatre`). The
 ## environment variable IAF_THEATRE=<name> takes converted/terrain/<name> instead, e.g. Modern IAF's UTM theatre
-## "israel" in the original game (iaf-2026/docs/terrain.md §6); the sim's own in its project (sim_settings.gd).
+## "israel" in the original game (modern-iaf/docs/terrain.md §6); the sim's own in its project (sim_settings.gd).
 func theatre_dir() -> String:
 	var t := OS.get_environment("IAF_THEATRE")
 	return "converted/terrain".path_join(t if t != "" else "theatre")
 
 
 ## The scenery's folder under assets/converted (terrain/scenery.gd, docs/scenery.md): the original's; Modern IAF's
-## beside its theatre, in its frame (iaf-2026/docs/scenery.md).
+## beside its theatre, in its frame (modern-iaf/docs/scenery.md).
 func scenery_dir() -> String:
 	return "scenery"
 
@@ -1099,7 +1099,7 @@ func hud_daylight() -> bool:
 	return false
 
 
-## The 3D cockpit's controls answer the mouse (shared/cockpit/cockpit3d_controls.gd, iaf-2026/docs/cockpit.md §5.1):
+## The 3D cockpit's controls answer the mouse (shared/cockpit/cockpit3d_controls.gd, modern-iaf/docs/cockpit.md §5.1):
 ## hovering one lights it, a click, a drag or the wheel works it through the key commands. Modern IAF. The original
 ## game's 3D cockpit takes clicks on its MFD push buttons only.
 func cockpit_controls() -> bool:
@@ -1107,33 +1107,33 @@ func cockpit_controls() -> bool:
 
 
 ## The pilot's body in the 3D cockpit (shared/cockpit/cockpit3d.gd, <model>_pilot.glb): looking down shows the legs on
-## the rudder pedals and the hands on the stick and throttle (iaf-2026/docs/cockpit.md §5.3). Modern IAF. The original
+## the rudder pedals and the hands on the stick and throttle (modern-iaf/docs/cockpit.md §5.3). Modern IAF. The original
 ## game's 3D cockpit shows no body: looking down sees the seat and the floor.
 func cockpit_pilot_body() -> bool:
 	return false
 
 
-## The afterburner lights and cuts like the real F-16's (iaf-2026/docs/sound.md §1.2): Modern IAF. The original game
+## The afterburner lights and cuts like the real F-16's (modern-iaf/docs/sound.md §1.2): Modern IAF. The original game
 ## swaps the engine loop at once (flight_sounds.gd _update_engine, FUN_004c3e00).
 func ab_sound_real() -> bool:
 	return false
 
 
-## The engine by its RPM, the JFS whine of the start and the wind (iaf-2026/docs/sound.md §1.3–§1.6): Modern IAF. The
+## The engine by its RPM, the JFS whine of the start and the wind (modern-iaf/docs/sound.md §1.3–§1.6): Modern IAF. The
 ## original game pitches its one engine loop by the RPM at a fixed level and plays no starter or wind
 ## (flight_sounds.gd _update_engine, FUN_004c3e00).
 func core_sound_real() -> bool:
 	return false
 
 
-## The cockpit sound model (iaf-2026/docs/sound.md §1.9): from the cockpit the outside sounds (engine, airframe,
+## The cockpit sound model (modern-iaf/docs/sound.md §1.9): from the cockpit the outside sounds (engine, airframe,
 ## weapons, the world) come through the canopy and the helmet, a low-pass and a level per class; the external views hear
 ## them unmuffled. Modern IAF. The original game plays each row at its table's inside volume (sound_buses.gd bus_for).
 func cockpit_sound_model() -> bool:
 	return false
 
 
-## A radio call is keyed: key_on.ogg before its clips and key_off.ogg after them (iaf-2026/docs/sound.md §5.2): Modern
+## A radio call is keyed: key_on.ogg before its clips and key_off.ogg after them (modern-iaf/docs/sound.md §5.2): Modern
 ## IAF. The original game plays a phrase's particles alone (radio.gd say, FUN_004c5750).
 func radio_key_clicks() -> bool:
 	return false

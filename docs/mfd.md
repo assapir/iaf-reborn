@@ -910,10 +910,10 @@ crisp pages. Test: tests/godot/test_f16_mfd.gd. Pictures: tests/godot/_mfd_shot.
 ### Modern IAF's RWR symbols and ADI ball
 
 With the real formats (MFDs (F-16) on Real, and the Sufa always) the F-16's panel also takes Modern IAF's RWR glyph
-sheet and ADI ball (iaf-2026/docs/cockpit.md §8 "RWR symbols", "ADI ball"): the panel's RWR scope ([PANELRWR],
+sheet and ADI ball (modern-iaf/docs/cockpit.md §8 "RWR symbols", "ADI ball"): the panel's RWR scope ([PANELRWR],
 `cockpit.gd draw_rwr_symbols`) draws its symbols from `assets/converted/extras/cockpit/rwrsymb.png`, and the attitude
 ball ([LENHORIZON], `lens_adi.gdshader`) is `adi.png` there in place of `F16adi.bmp`. Setup's `extras` step copies
-both from `iaf-2026/data/planes/_shared/cockpit/`; `Settings.cockpit_extra` picks them (`cockpit.gd _file_in`).
+both from `modern-iaf/data/planes/_shared/cockpit/`; `Settings.cockpit_extra` picks them (`cockpit.gd _file_in`).
 Without the folder the original art shows. Other jets keep theirs. With Briefing map on Modern, the TSD / HSD map
 and the radar's ground-map picture come from the same folder (front-end.md §8 "Modern map"); the picture keeps the
 original's terrain inside OpenStreetMap's coast. The TSD page (`mfd.gd _draw_tsd`) and the HSD (`f16_mfd.gd hsd`)

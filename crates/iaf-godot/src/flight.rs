@@ -26,13 +26,13 @@ pub struct IafFlight {
     g_max: f32,
 }
 
-/// Logs once per feature that the Modern IAF 6-DoF does not model it (iaf-2026/docs/flight-model.md §9.6).
+/// Logs once per feature that the Modern IAF 6-DoF does not model it (modern-iaf/docs/flight-model.md §9.6).
 fn sixdof_lacks(what: &'static str) {
     static SEEN: std::sync::Mutex<Vec<&'static str>> = std::sync::Mutex::new(Vec::new());
     let mut seen = SEEN.lock().unwrap_or_else(|e| e.into_inner());
     if !seen.contains(&what) {
         seen.push(what);
-        godot_print!("IafFlight: the 6-DoF does not model {what} yet (iaf-2026/docs/flight-model.md §9.6)");
+        godot_print!("IafFlight: the 6-DoF does not model {what} yet (modern-iaf/docs/flight-model.md §9.6)");
     }
 }
 
@@ -105,7 +105,7 @@ impl IafFlight {
 
     /// The flight-model name `start` takes for a bdb type code on the data in `install` (`iaf_flight::fm_name_in`,
     /// the Real or Original set): "F-16", "F-15", "F-35I"…; "" when that bd.ibx has no section for it. Modern IAF's
-    /// player jets (Settings.fm_section in iaf-2026/sim_settings.gd).
+    /// player jets (Settings.fm_section in modern-iaf/sim_settings.gd).
     #[func]
     fn fm_type(install: GString, type_code: i64, real_data: bool) -> GString {
         let set = if real_data { iaf_flight::DataSet::Real } else { iaf_flight::DataSet::Original };
@@ -371,7 +371,7 @@ impl IafFlight {
     }
 
     /// Modern IAF's "start engine" command (its keys.json, command 200): the 6-DoF runs its jet's start sequence
-    /// (iaf-2026/docs/training.md §7); nothing on the original model.
+    /// (modern-iaf/docs/training.md §7); nothing on the original model.
     #[func]
     fn start_engine(&mut self) {
         if let Some(ac) = &mut self.aircraft {
@@ -379,7 +379,7 @@ impl IafFlight {
         }
     }
 
-    /// Modern IAF's start-up checklist step by its key (commands 210–215, iaf-2026/docs/training.md §7.1):
+    /// Modern IAF's start-up checklist step by its key (commands 210–215, modern-iaf/docs/training.md §7.1):
     /// "main_power", "starter", "engine", "avionics", "ins", "canopy". The fault id of a step out of order, "" else.
     #[func]
     fn start_step(&mut self, step: GString) -> GString {
@@ -803,7 +803,7 @@ impl IafFlight {
         d.set("gear_down", c.gear_down);
         d.set("brakes", c.brakes);
         d.set("engine_on", ac.engine_on());
-        // The 6-DoF's ground start (iaf-2026/docs/training.md §7): power 0 none / 1 battery / 2 displays up, the
+        // The 6-DoF's ground start (modern-iaf/docs/training.md §7): power 0 none / 1 battery / 2 displays up, the
         // avionics up, the sequence's step. Absent for the original model (readers default to 2, true).
         if ac.original_ref().is_none() {
             d.set("power", ac.power() as i64);

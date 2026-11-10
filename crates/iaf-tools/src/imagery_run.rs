@@ -115,7 +115,7 @@ pub const S2_CACHE: &str = "source/imagery/sentinel2";
 // ponytail: one fixed margin; a setting if a user wants the whole 28 GB mirror on a nearly full disk.
 const S2_KEEP_FREE: u64 = 5_000_000_000;
 const USER_AGENT: &str = "iaf-reborn imagery setup (curl)";
-/// Tiles downloading at once (both games; 4.6 MB/s measured per transfer, iaf-2026/docs/terrain.md §7).
+/// Tiles downloading at once (both games; 4.6 MB/s measured per transfer, modern-iaf/docs/terrain.md §7).
 const S2_JOBS: usize = 3;
 
 /// The WorldCover 1°×1° tiles (name → bytes) in the latitude bands N<lat0>..N<lat1>: the S3 listing, kept in `cache`

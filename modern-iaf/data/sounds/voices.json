@@ -1,0 +1,1779 @@
+{
+  "about": "Modern IAF's voices: every speech clip of modern-iaf/data/sounds, made by `iaf-sim voices` (Kokoro text to speech, tools/iaf-2026/kokoro_tts.py, through crates/iaf-tools/src/sim_voices.rs: modern-iaf/docs/sound.md §5), the tower's phrase particles and templates (compiled by iaf-sim own into phraseparticalsdata.trx / phrasetemplates.trx, and each particle's Hebrew subtitle text_he into phraseparticles_he.trx, the format shared/audio/radio.gd reads, docs/radio.md §1), and the Hebrew lines waiting for a voice. voices: each role's Kokoro voice and speed. clips: file, voice (the role), say (said in one pass), mode: betty (Betty's chain, said `repeat` times), radio (the radio chain with the key clicks), phrase / particle (the radio chain and hiss, no clicks: radio.gd frames the call with key_on / key_off); cut: the head or tail of `say` at its ';' by Kokoro's word timing. A particle key joined by '+' (\"ALPHA_T+,+HOLD_POS\") is one clip for that run of particles, which radio.gd plays in place of the run.",
+  "voices": {
+    "betty": {
+      "model": "af_heart",
+      "speed": 1.3,
+      "url": "https://huggingface.co/hexgrad/Kokoro-82M",
+      "licence": "Kokoro-82M v1.0 model and voice packs, Apache-2.0",
+      "use": "Betty, the cockpit voice warnings: Betty's chain, +3 semitones"
+    },
+    "tower": {
+      "model": "am_michael",
+      "speed": 1.1,
+      "url": "https://huggingface.co/hexgrad/Kokoro-82M",
+      "licence": "Kokoro-82M v1.0 model and voice packs, Apache-2.0",
+      "use": "the tower (radio chain)"
+    },
+    "pilot": {
+      "model": "am_puck",
+      "speed": 1.1,
+      "url": "https://huggingface.co/hexgrad/Kokoro-82M",
+      "licence": "Kokoro-82M v1.0 model and voice packs, Apache-2.0",
+      "use": "the player, wingmen and other pilots (radio chain)"
+    },
+    "awacs": {
+      "model": "am_fenrir",
+      "speed": 1.1,
+      "url": "https://huggingface.co/hexgrad/Kokoro-82M",
+      "licence": "Kokoro-82M v1.0 model and voice packs, Apache-2.0",
+      "use": "the AWACS controller (radio chain); no call has its clips yet"
+    }
+  },
+  "clips": [
+    {
+      "file": "voc_bbetty_pull_up.ogg",
+      "voice": "betty",
+      "say": "Pull up!",
+      "mode": "betty",
+      "repeat": 2
+    },
+    {
+      "file": "voc_bbetty_altitude.ogg",
+      "voice": "betty",
+      "say": "Altitude!",
+      "mode": "betty",
+      "repeat": 2
+    },
+    {
+      "file": "voc_bbetty_warning.ogg",
+      "voice": "betty",
+      "say": "Warning!",
+      "mode": "betty",
+      "note": "the VMS's call for a fire or an engine failure",
+      "repeat": 2
+    },
+    {
+      "file": "voc_bbetty_caution.ogg",
+      "voice": "betty",
+      "say": "Caution!",
+      "mode": "betty",
+      "repeat": 2
+    },
+    {
+      "file": "voc_bbetty_bingo.ogg",
+      "voice": "betty",
+      "say": "Bingo!",
+      "mode": "betty",
+      "note": "the VMS's fuel call",
+      "repeat": 2
+    },
+    {
+      "file": "voc_bbetty_lock.ogg",
+      "voice": "betty",
+      "say": "Lock!",
+      "mode": "betty",
+      "note": "no caller yet"
+    },
+    {
+      "file": "voc_bbetty_chaff_flare.ogg",
+      "voice": "betty",
+      "say": "Chaff, flare!",
+      "mode": "betty",
+      "note": "no caller yet"
+    },
+    {
+      "file": "voc_bbetty_low.ogg",
+      "voice": "betty",
+      "say": "Low!",
+      "mode": "betty",
+      "note": "chaff / flare low; no caller yet"
+    },
+    {
+      "file": "voc_bbetty_out.ogg",
+      "voice": "betty",
+      "say": "Out!",
+      "mode": "betty",
+      "note": "chaff / flare out; no caller yet"
+    },
+    {
+      "file": "voc_bbetty_counter.ogg",
+      "voice": "betty",
+      "say": "Counter!",
+      "mode": "betty",
+      "note": "no caller yet"
+    },
+    {
+      "file": "voc_bbetty_jammer.ogg",
+      "voice": "betty",
+      "say": "Jammer!",
+      "mode": "betty",
+      "note": "no caller yet"
+    },
+    {
+      "file": "voc_bbetty_data.ogg",
+      "voice": "betty",
+      "say": "Data!",
+      "mode": "betty",
+      "note": "no caller yet"
+    },
+    {
+      "file": "voc_bbetty_iff.ogg",
+      "voice": "betty",
+      "say": "I F F!",
+      "mode": "betty",
+      "note": "no caller yet"
+    },
+    {
+      "file": "voc_wingman_eject.ogg",
+      "voice": "pilot",
+      "say": "Eject eject eject!",
+      "mode": "radio"
+    },
+    {
+      "file": "voc_target_say_friendly_hit.ogg",
+      "voice": "pilot",
+      "say": "Check fire, check fire, you are shooting at friendlies!",
+      "mode": "radio"
+    },
+    {
+      "file": "voc_wingman_say_friendly_hit.ogg",
+      "voice": "pilot",
+      "say": "Lead, check your fire, that was a friendly!",
+      "mode": "radio"
+    },
+    {
+      "file": "voc_tower_say_friendly_hit.ogg",
+      "voice": "tower",
+      "say": "Cease fire, cease fire, you are hitting friendly forces.",
+      "mode": "radio"
+    },
+    {
+      "file": "endworld.ogg",
+      "voice": "tower",
+      "say": "Warning, you are leaving the training area, turn back.",
+      "mode": "radio",
+      "note": "the map edge (terrain_view.gd plays EndWorld.wav)"
+    },
+    {
+      "file": "twr_alpha.ogg",
+      "voice": "tower",
+      "say": "Alpha",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_bravo.ogg",
+      "voice": "tower",
+      "say": "Bravo",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_charlie.ogg",
+      "voice": "tower",
+      "say": "Charlie",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_delta.ogg",
+      "voice": "tower",
+      "say": "Delta",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_morning.ogg",
+      "voice": "tower",
+      "say": "good morning",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_afternoon.ogg",
+      "voice": "tower",
+      "say": "good afternoon",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_evening.ogg",
+      "voice": "tower",
+      "say": "good evening",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_wind10.ogg",
+      "voice": "tower",
+      "say": "wind one zero knots",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_wind15.ogg",
+      "voice": "tower",
+      "say": "wind one five knots",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_wind20.ogg",
+      "voice": "tower",
+      "say": "wind two zero knots",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_start.ogg",
+      "voice": "tower",
+      "say": "cleared to start",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_taxi_rwy.ogg",
+      "voice": "tower",
+      "say": "taxi to runway",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_lineup_rwy.ogg",
+      "voice": "tower",
+      "say": "line up runway",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_hold_pos.ogg",
+      "voice": "tower",
+      "say": "hold position",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_takeoff.ogg",
+      "voice": "tower",
+      "say": "cleared for take-off",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_proceed_rwy.ogg",
+      "voice": "tower",
+      "say": "proceed to runway",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_land_rwy.ogg",
+      "voice": "tower",
+      "say": "cleared to land runway",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_go_around.ogg",
+      "voice": "tower",
+      "say": "go around, runway not clear",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_taxi_park.ogg",
+      "voice": "tower",
+      "say": "welcome back, taxi to parking",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_gear_not_down.ogg",
+      "voice": "tower",
+      "say": "check gear down",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_wind_calm.ogg",
+      "voice": "tower",
+      "say": "wind calm",
+      "mode": "particle"
+    },
+    {
+      "file": "acft_roger.ogg",
+      "voice": "pilot",
+      "say": "Roger.",
+      "mode": "particle"
+    },
+    {
+      "file": "num001.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; zero one.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num002.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; zero two.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num003.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; zero three.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num004.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; zero four.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num005.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; zero five.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num006.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; zero six.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num007.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; zero seven.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num008.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; zero eight.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num009.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; zero nine.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num010.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; one zero.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num011.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; one one.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num012.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; one two.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num013.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; one three.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num014.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; one four.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num015.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; one five.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num016.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; one six.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num017.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; one seven.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num018.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; one eight.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num019.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; one nine.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num020.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; two zero.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num021.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; two one.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num022.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; two two.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num023.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; two three.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num024.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; two four.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num025.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; two five.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num026.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; two six.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num027.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; two seven.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num028.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; two eight.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num029.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; two nine.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num030.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; three zero.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num031.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; three one.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num032.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; three two.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num033.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; three three.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num034.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; three four.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num035.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; three five.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "num036.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; three six.",
+      "mode": "phrase",
+      "cut": "tail"
+    },
+    {
+      "file": "rwyl.ogg",
+      "voice": "tower",
+      "say": "left",
+      "mode": "particle"
+    },
+    {
+      "file": "rwyr.ogg",
+      "voice": "tower",
+      "say": "right",
+      "mode": "particle"
+    },
+    {
+      "file": "rwyc.ogg",
+      "voice": "tower",
+      "say": "center",
+      "mode": "particle"
+    },
+    {
+      "file": "rwy07l.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; zero seven left.",
+      "cut": "tail",
+      "mode": "phrase"
+    },
+    {
+      "file": "rwy07r.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; zero seven right.",
+      "cut": "tail",
+      "mode": "phrase"
+    },
+    {
+      "file": "rwy08l.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; zero eight left.",
+      "cut": "tail",
+      "mode": "phrase"
+    },
+    {
+      "file": "rwy08r.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; zero eight right.",
+      "cut": "tail",
+      "mode": "phrase"
+    },
+    {
+      "file": "rwy10l.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; one zero left.",
+      "cut": "tail",
+      "mode": "phrase"
+    },
+    {
+      "file": "rwy10r.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; one zero right.",
+      "cut": "tail",
+      "mode": "phrase"
+    },
+    {
+      "file": "rwy25l.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; two five left.",
+      "cut": "tail",
+      "mode": "phrase"
+    },
+    {
+      "file": "rwy25r.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; two five right.",
+      "cut": "tail",
+      "mode": "phrase"
+    },
+    {
+      "file": "rwy26l.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; two six left.",
+      "cut": "tail",
+      "mode": "phrase"
+    },
+    {
+      "file": "rwy26r.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; two six right.",
+      "cut": "tail",
+      "mode": "phrase"
+    },
+    {
+      "file": "rwy28l.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; two eight left.",
+      "cut": "tail",
+      "mode": "phrase"
+    },
+    {
+      "file": "rwy28r.ogg",
+      "voice": "tower",
+      "say": "Taxi to runway; two eight right.",
+      "cut": "tail",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_alpha_taxi_morning.ogg",
+      "voice": "tower",
+      "say": "Alpha, good morning, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_alpha_taxi_afternoon.ogg",
+      "voice": "tower",
+      "say": "Alpha, good afternoon, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_alpha_taxi_evening.ogg",
+      "voice": "tower",
+      "say": "Alpha, good evening, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_alpha_lineup_rwy.ogg",
+      "voice": "tower",
+      "say": "Alpha, line up runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_alpha_proceed_rwy.ogg",
+      "voice": "tower",
+      "say": "Alpha, proceed to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_alpha_land_rwy.ogg",
+      "voice": "tower",
+      "say": "Alpha, cleared to land runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_alpha_start.ogg",
+      "voice": "tower",
+      "say": "Alpha, cleared to start.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_alpha_hold_pos.ogg",
+      "voice": "tower",
+      "say": "Alpha, hold position.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_alpha_takeoff.ogg",
+      "voice": "tower",
+      "say": "Alpha, cleared for take-off.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_alpha_go_around.ogg",
+      "voice": "tower",
+      "say": "Alpha, go around, runway not clear.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_alpha_taxi_park.ogg",
+      "voice": "tower",
+      "say": "Alpha, welcome back, taxi to parking.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_alpha_gear_not_down.ogg",
+      "voice": "tower",
+      "say": "Alpha, check gear down.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_bravo_taxi_morning.ogg",
+      "voice": "tower",
+      "say": "Bravo, good morning, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_bravo_taxi_afternoon.ogg",
+      "voice": "tower",
+      "say": "Bravo, good afternoon, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_bravo_taxi_evening.ogg",
+      "voice": "tower",
+      "say": "Bravo, good evening, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_bravo_lineup_rwy.ogg",
+      "voice": "tower",
+      "say": "Bravo, line up runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_bravo_proceed_rwy.ogg",
+      "voice": "tower",
+      "say": "Bravo, proceed to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_bravo_land_rwy.ogg",
+      "voice": "tower",
+      "say": "Bravo, cleared to land runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_bravo_start.ogg",
+      "voice": "tower",
+      "say": "Bravo, cleared to start.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_bravo_hold_pos.ogg",
+      "voice": "tower",
+      "say": "Bravo, hold position.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_bravo_takeoff.ogg",
+      "voice": "tower",
+      "say": "Bravo, cleared for take-off.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_bravo_go_around.ogg",
+      "voice": "tower",
+      "say": "Bravo, go around, runway not clear.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_bravo_taxi_park.ogg",
+      "voice": "tower",
+      "say": "Bravo, welcome back, taxi to parking.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_bravo_gear_not_down.ogg",
+      "voice": "tower",
+      "say": "Bravo, check gear down.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_charlie_taxi_morning.ogg",
+      "voice": "tower",
+      "say": "Charlie, good morning, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_charlie_taxi_afternoon.ogg",
+      "voice": "tower",
+      "say": "Charlie, good afternoon, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_charlie_taxi_evening.ogg",
+      "voice": "tower",
+      "say": "Charlie, good evening, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_charlie_lineup_rwy.ogg",
+      "voice": "tower",
+      "say": "Charlie, line up runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_charlie_proceed_rwy.ogg",
+      "voice": "tower",
+      "say": "Charlie, proceed to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_charlie_land_rwy.ogg",
+      "voice": "tower",
+      "say": "Charlie, cleared to land runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_charlie_start.ogg",
+      "voice": "tower",
+      "say": "Charlie, cleared to start.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_charlie_hold_pos.ogg",
+      "voice": "tower",
+      "say": "Charlie, hold position.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_charlie_takeoff.ogg",
+      "voice": "tower",
+      "say": "Charlie, cleared for take-off.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_charlie_go_around.ogg",
+      "voice": "tower",
+      "say": "Charlie, go around, runway not clear.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_charlie_taxi_park.ogg",
+      "voice": "tower",
+      "say": "Charlie, welcome back, taxi to parking.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_charlie_gear_not_down.ogg",
+      "voice": "tower",
+      "say": "Charlie, check gear down.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_delta_taxi_morning.ogg",
+      "voice": "tower",
+      "say": "Delta, good morning, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_delta_taxi_afternoon.ogg",
+      "voice": "tower",
+      "say": "Delta, good afternoon, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_delta_taxi_evening.ogg",
+      "voice": "tower",
+      "say": "Delta, good evening, taxi to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_delta_lineup_rwy.ogg",
+      "voice": "tower",
+      "say": "Delta, line up runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_delta_proceed_rwy.ogg",
+      "voice": "tower",
+      "say": "Delta, proceed to runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_delta_land_rwy.ogg",
+      "voice": "tower",
+      "say": "Delta, cleared to land runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_delta_start.ogg",
+      "voice": "tower",
+      "say": "Delta, cleared to start.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_delta_hold_pos.ogg",
+      "voice": "tower",
+      "say": "Delta, hold position.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_delta_takeoff.ogg",
+      "voice": "tower",
+      "say": "Delta, cleared for take-off.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_delta_go_around.ogg",
+      "voice": "tower",
+      "say": "Delta, go around, runway not clear.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_delta_taxi_park.ogg",
+      "voice": "tower",
+      "say": "Delta, welcome back, taxi to parking.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_delta_gear_not_down.ogg",
+      "voice": "tower",
+      "say": "Delta, check gear down.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_alpha_taxi_morning_24.ogg",
+      "voice": "tower",
+      "say": "Alpha, good morning, taxi to runway two four.",
+      "mode": "phrase",
+      "note": "a training mission's call, whole"
+    },
+    {
+      "file": "twr_alpha_lineup_24_calm.ogg",
+      "voice": "tower",
+      "say": "Alpha, line up runway two four, wind calm.",
+      "mode": "phrase",
+      "note": "a training mission's call, whole"
+    },
+    {
+      "file": "twr_alpha_taxi_morning_25.ogg",
+      "voice": "tower",
+      "say": "Alpha, good morning, taxi to runway two five.",
+      "mode": "phrase",
+      "note": "a training mission's call, whole"
+    },
+    {
+      "file": "twr_alpha_lineup_25_calm.ogg",
+      "voice": "tower",
+      "say": "Alpha, line up runway two five, wind calm.",
+      "mode": "phrase",
+      "note": "a training mission's call, whole"
+    },
+    {
+      "file": "twr_alpha_taxi_morning_25r.ogg",
+      "voice": "tower",
+      "say": "Alpha, good morning, taxi to runway two five right.",
+      "mode": "phrase",
+      "note": "a training mission's call, whole"
+    },
+    {
+      "file": "twr_alpha_lineup_25r_calm.ogg",
+      "voice": "tower",
+      "say": "Alpha, line up runway two five right, wind calm.",
+      "mode": "phrase",
+      "note": "a training mission's call, whole"
+    },
+    {
+      "file": "twr_alpha_taxi_morning_26.ogg",
+      "voice": "tower",
+      "say": "Alpha, good morning, taxi to runway two six.",
+      "mode": "phrase",
+      "note": "a training mission's call, whole"
+    },
+    {
+      "file": "twr_alpha_lineup_26_calm.ogg",
+      "voice": "tower",
+      "say": "Alpha, line up runway two six, wind calm.",
+      "mode": "phrase",
+      "note": "a training mission's call, whole"
+    },
+    {
+      "file": "twr_alpha_taxi_morning_26l.ogg",
+      "voice": "tower",
+      "say": "Alpha, good morning, taxi to runway two six left.",
+      "mode": "phrase",
+      "note": "a training mission's call, whole"
+    },
+    {
+      "file": "twr_alpha_lineup_26l_calm.ogg",
+      "voice": "tower",
+      "say": "Alpha, line up runway two six left, wind calm.",
+      "mode": "phrase",
+      "note": "a training mission's call, whole"
+    },
+    {
+      "file": "twr_alpha_taxi_morning_27.ogg",
+      "voice": "tower",
+      "say": "Alpha, good morning, taxi to runway two seven.",
+      "mode": "phrase",
+      "note": "a training mission's call, whole"
+    },
+    {
+      "file": "twr_alpha_lineup_27_calm.ogg",
+      "voice": "tower",
+      "say": "Alpha, line up runway two seven, wind calm.",
+      "mode": "phrase",
+      "note": "a training mission's call, whole"
+    }
+  ],
+  "particles": {
+    ",": {
+      "file": "twr_pause.ogg",
+      "text": ",",
+      "text_he": ","
+    },
+    "ALPHA_T": {
+      "file": "twr_alpha.ogg",
+      "text": "Alpha",
+      "text_he": "Alpha"
+    },
+    "BRAVO_T": {
+      "file": "twr_bravo.ogg",
+      "text": "Bravo",
+      "text_he": "Bravo"
+    },
+    "CHARLIE_T": {
+      "file": "twr_charlie.ogg",
+      "text": "Charlie",
+      "text_he": "Charlie"
+    },
+    "DELTA_T": {
+      "file": "twr_delta.ogg",
+      "text": "Delta",
+      "text_he": "Delta"
+    },
+    "MORNING": {
+      "file": "twr_morning.ogg",
+      "text": "good morning",
+      "text_he": "בוקר טוב"
+    },
+    "AFTERNOON": {
+      "file": "twr_afternoon.ogg",
+      "text": "good afternoon",
+      "text_he": "צהריים טובים"
+    },
+    "EVENING": {
+      "file": "twr_evening.ogg",
+      "text": "good evening",
+      "text_he": "ערב טוב"
+    },
+    "WI_KNOTS10": {
+      "file": "twr_wind10.ogg",
+      "text": "wind 10 knots",
+      "text_he": "רוח 10 קשר"
+    },
+    "WI_KNOTS15": {
+      "file": "twr_wind15.ogg",
+      "text": "wind 15 knots",
+      "text_he": "רוח 15 קשר"
+    },
+    "WI_KNOTS20": {
+      "file": "twr_wind20.ogg",
+      "text": "wind 20 knots",
+      "text_he": "רוח 20 קשר"
+    },
+    "START": {
+      "file": "twr_start.ogg",
+      "text": "cleared to start",
+      "text_he": "אישור התנעה"
+    },
+    "TAXI_RWY": {
+      "file": "twr_taxi_rwy.ogg",
+      "text": "taxi to runway",
+      "text_he": "הסעה למסלול"
+    },
+    "LINEUP_RWY": {
+      "file": "twr_lineup_rwy.ogg",
+      "text": "line up runway",
+      "text_he": "כניסה למסלול"
+    },
+    "HOLD_POS": {
+      "file": "twr_hold_pos.ogg",
+      "text": "hold position",
+      "text_he": "המתנה במקום"
+    },
+    "TAKEOFF": {
+      "file": "twr_takeoff.ogg",
+      "text": "cleared for take-off",
+      "text_he": "אישור המראה"
+    },
+    "PROCEED_RWY": {
+      "file": "twr_proceed_rwy.ogg",
+      "text": "proceed to runway",
+      "text_he": "התקדמות למסלול"
+    },
+    "LAND_RWY": {
+      "file": "twr_land_rwy.ogg",
+      "text": "cleared to land runway",
+      "text_he": "אישור נחיתה במסלול"
+    },
+    "GO_AROUND": {
+      "file": "twr_go_around.ogg",
+      "text": "go around, runway not clear",
+      "text_he": "סיבוב נוסף, המסלול אינו פנוי"
+    },
+    "TAXI_PARK": {
+      "file": "twr_taxi_park.ogg",
+      "text": "welcome back, taxi to parking",
+      "text_he": "ברוכים השבים, הסעה לחנייה"
+    },
+    "GEAR_NOT_DOWN": {
+      "file": "twr_gear_not_down.ogg",
+      "text": "check gear down",
+      "text_he": "בדיקת כן נסע למטה"
+    },
+    "WIND_CALM": {
+      "file": "twr_wind_calm.ogg",
+      "text": "wind calm",
+      "text_he": "רוח שקטה"
+    },
+    "ROGER": {
+      "file": "acft_roger.ogg",
+      "text": "roger",
+      "text_he": "רוג'ר"
+    },
+    "1": {
+      "file": "num001.ogg",
+      "text": "1",
+      "text_he": "1"
+    },
+    "2": {
+      "file": "num002.ogg",
+      "text": "2",
+      "text_he": "2"
+    },
+    "3": {
+      "file": "num003.ogg",
+      "text": "3",
+      "text_he": "3"
+    },
+    "4": {
+      "file": "num004.ogg",
+      "text": "4",
+      "text_he": "4"
+    },
+    "5": {
+      "file": "num005.ogg",
+      "text": "5",
+      "text_he": "5"
+    },
+    "6": {
+      "file": "num006.ogg",
+      "text": "6",
+      "text_he": "6"
+    },
+    "7": {
+      "file": "num007.ogg",
+      "text": "7",
+      "text_he": "7"
+    },
+    "8": {
+      "file": "num008.ogg",
+      "text": "8",
+      "text_he": "8"
+    },
+    "9": {
+      "file": "num009.ogg",
+      "text": "9",
+      "text_he": "9"
+    },
+    "10": {
+      "file": "num010.ogg",
+      "text": "10",
+      "text_he": "10"
+    },
+    "11": {
+      "file": "num011.ogg",
+      "text": "11",
+      "text_he": "11"
+    },
+    "12": {
+      "file": "num012.ogg",
+      "text": "12",
+      "text_he": "12"
+    },
+    "13": {
+      "file": "num013.ogg",
+      "text": "13",
+      "text_he": "13"
+    },
+    "14": {
+      "file": "num014.ogg",
+      "text": "14",
+      "text_he": "14"
+    },
+    "15": {
+      "file": "num015.ogg",
+      "text": "15",
+      "text_he": "15"
+    },
+    "16": {
+      "file": "num016.ogg",
+      "text": "16",
+      "text_he": "16"
+    },
+    "17": {
+      "file": "num017.ogg",
+      "text": "17",
+      "text_he": "17"
+    },
+    "18": {
+      "file": "num018.ogg",
+      "text": "18",
+      "text_he": "18"
+    },
+    "19": {
+      "file": "num019.ogg",
+      "text": "19",
+      "text_he": "19"
+    },
+    "20": {
+      "file": "num020.ogg",
+      "text": "20",
+      "text_he": "20"
+    },
+    "21": {
+      "file": "num021.ogg",
+      "text": "21",
+      "text_he": "21"
+    },
+    "22": {
+      "file": "num022.ogg",
+      "text": "22",
+      "text_he": "22"
+    },
+    "23": {
+      "file": "num023.ogg",
+      "text": "23",
+      "text_he": "23"
+    },
+    "24": {
+      "file": "num024.ogg",
+      "text": "24",
+      "text_he": "24"
+    },
+    "25": {
+      "file": "num025.ogg",
+      "text": "25",
+      "text_he": "25"
+    },
+    "26": {
+      "file": "num026.ogg",
+      "text": "26",
+      "text_he": "26"
+    },
+    "27": {
+      "file": "num027.ogg",
+      "text": "27",
+      "text_he": "27"
+    },
+    "28": {
+      "file": "num028.ogg",
+      "text": "28",
+      "text_he": "28"
+    },
+    "29": {
+      "file": "num029.ogg",
+      "text": "29",
+      "text_he": "29"
+    },
+    "30": {
+      "file": "num030.ogg",
+      "text": "30",
+      "text_he": "30"
+    },
+    "31": {
+      "file": "num031.ogg",
+      "text": "31",
+      "text_he": "31"
+    },
+    "32": {
+      "file": "num032.ogg",
+      "text": "32",
+      "text_he": "32"
+    },
+    "33": {
+      "file": "num033.ogg",
+      "text": "33",
+      "text_he": "33"
+    },
+    "34": {
+      "file": "num034.ogg",
+      "text": "34",
+      "text_he": "34"
+    },
+    "35": {
+      "file": "num035.ogg",
+      "text": "35",
+      "text_he": "35"
+    },
+    "36": {
+      "file": "num036.ogg",
+      "text": "36",
+      "text_he": "36"
+    },
+    "RWY_L": {
+      "file": "rwyl.ogg",
+      "text": "left",
+      "text_he": "שמאלי"
+    },
+    "RWY_R": {
+      "file": "rwyr.ogg",
+      "text": "right",
+      "text_he": "ימני"
+    },
+    "RWY_C": {
+      "file": "rwyc.ogg",
+      "text": "center",
+      "text_he": "מרכזי"
+    },
+    "7+RWY_L": {
+      "file": "rwy07l.ogg",
+      "text": "7 left",
+      "text_he": "7 שמאלי"
+    },
+    "7+RWY_R": {
+      "file": "rwy07r.ogg",
+      "text": "7 right",
+      "text_he": "7 ימני"
+    },
+    "8+RWY_L": {
+      "file": "rwy08l.ogg",
+      "text": "8 left",
+      "text_he": "8 שמאלי"
+    },
+    "8+RWY_R": {
+      "file": "rwy08r.ogg",
+      "text": "8 right",
+      "text_he": "8 ימני"
+    },
+    "10+RWY_L": {
+      "file": "rwy10l.ogg",
+      "text": "10 left",
+      "text_he": "10 שמאלי"
+    },
+    "10+RWY_R": {
+      "file": "rwy10r.ogg",
+      "text": "10 right",
+      "text_he": "10 ימני"
+    },
+    "25+RWY_L": {
+      "file": "rwy25l.ogg",
+      "text": "25 left",
+      "text_he": "25 שמאלי"
+    },
+    "25+RWY_R": {
+      "file": "rwy25r.ogg",
+      "text": "25 right",
+      "text_he": "25 ימני"
+    },
+    "26+RWY_L": {
+      "file": "rwy26l.ogg",
+      "text": "26 left",
+      "text_he": "26 שמאלי"
+    },
+    "26+RWY_R": {
+      "file": "rwy26r.ogg",
+      "text": "26 right",
+      "text_he": "26 ימני"
+    },
+    "28+RWY_L": {
+      "file": "rwy28l.ogg",
+      "text": "28 left",
+      "text_he": "28 שמאלי"
+    },
+    "28+RWY_R": {
+      "file": "rwy28r.ogg",
+      "text": "28 right",
+      "text_he": "28 ימני"
+    },
+    "ALPHA_T+,+MORNING+,+TAXI_RWY": {
+      "file": "twr_alpha_taxi_morning.ogg",
+      "text": "Alpha, good morning, taxi to runway",
+      "text_he": "Alpha, בוקר טוב, הסעה למסלול"
+    },
+    "ALPHA_T+,+AFTERNOON+,+TAXI_RWY": {
+      "file": "twr_alpha_taxi_afternoon.ogg",
+      "text": "Alpha, good afternoon, taxi to runway",
+      "text_he": "Alpha, צהריים טובים, הסעה למסלול"
+    },
+    "ALPHA_T+,+EVENING+,+TAXI_RWY": {
+      "file": "twr_alpha_taxi_evening.ogg",
+      "text": "Alpha, good evening, taxi to runway",
+      "text_he": "Alpha, ערב טוב, הסעה למסלול"
+    },
+    "ALPHA_T+,+LINEUP_RWY": {
+      "file": "twr_alpha_lineup_rwy.ogg",
+      "text": "Alpha, line up runway",
+      "text_he": "Alpha, כניסה למסלול"
+    },
+    "ALPHA_T+,+PROCEED_RWY": {
+      "file": "twr_alpha_proceed_rwy.ogg",
+      "text": "Alpha, proceed to runway",
+      "text_he": "Alpha, התקדמות למסלול"
+    },
+    "ALPHA_T+,+LAND_RWY": {
+      "file": "twr_alpha_land_rwy.ogg",
+      "text": "Alpha, cleared to land runway",
+      "text_he": "Alpha, אישור נחיתה במסלול"
+    },
+    "ALPHA_T+,+START": {
+      "file": "twr_alpha_start.ogg",
+      "text": "Alpha, cleared to start",
+      "text_he": "Alpha, אישור התנעה"
+    },
+    "ALPHA_T+,+HOLD_POS": {
+      "file": "twr_alpha_hold_pos.ogg",
+      "text": "Alpha, hold position",
+      "text_he": "Alpha, המתנה במקום"
+    },
+    "ALPHA_T+,+TAKEOFF": {
+      "file": "twr_alpha_takeoff.ogg",
+      "text": "Alpha, cleared for take-off",
+      "text_he": "Alpha, אישור המראה"
+    },
+    "ALPHA_T+,+GO_AROUND": {
+      "file": "twr_alpha_go_around.ogg",
+      "text": "Alpha, go around, runway not clear",
+      "text_he": "Alpha, סיבוב נוסף, המסלול אינו פנוי"
+    },
+    "ALPHA_T+,+TAXI_PARK": {
+      "file": "twr_alpha_taxi_park.ogg",
+      "text": "Alpha, welcome back, taxi to parking",
+      "text_he": "Alpha, ברוכים השבים, הסעה לחנייה"
+    },
+    "ALPHA_T+,+GEAR_NOT_DOWN": {
+      "file": "twr_alpha_gear_not_down.ogg",
+      "text": "Alpha, check gear down",
+      "text_he": "Alpha, בדיקת כן נסע למטה"
+    },
+    "BRAVO_T+,+MORNING+,+TAXI_RWY": {
+      "file": "twr_bravo_taxi_morning.ogg",
+      "text": "Bravo, good morning, taxi to runway",
+      "text_he": "Bravo, בוקר טוב, הסעה למסלול"
+    },
+    "BRAVO_T+,+AFTERNOON+,+TAXI_RWY": {
+      "file": "twr_bravo_taxi_afternoon.ogg",
+      "text": "Bravo, good afternoon, taxi to runway",
+      "text_he": "Bravo, צהריים טובים, הסעה למסלול"
+    },
+    "BRAVO_T+,+EVENING+,+TAXI_RWY": {
+      "file": "twr_bravo_taxi_evening.ogg",
+      "text": "Bravo, good evening, taxi to runway",
+      "text_he": "Bravo, ערב טוב, הסעה למסלול"
+    },
+    "BRAVO_T+,+LINEUP_RWY": {
+      "file": "twr_bravo_lineup_rwy.ogg",
+      "text": "Bravo, line up runway",
+      "text_he": "Bravo, כניסה למסלול"
+    },
+    "BRAVO_T+,+PROCEED_RWY": {
+      "file": "twr_bravo_proceed_rwy.ogg",
+      "text": "Bravo, proceed to runway",
+      "text_he": "Bravo, התקדמות למסלול"
+    },
+    "BRAVO_T+,+LAND_RWY": {
+      "file": "twr_bravo_land_rwy.ogg",
+      "text": "Bravo, cleared to land runway",
+      "text_he": "Bravo, אישור נחיתה במסלול"
+    },
+    "BRAVO_T+,+START": {
+      "file": "twr_bravo_start.ogg",
+      "text": "Bravo, cleared to start",
+      "text_he": "Bravo, אישור התנעה"
+    },
+    "BRAVO_T+,+HOLD_POS": {
+      "file": "twr_bravo_hold_pos.ogg",
+      "text": "Bravo, hold position",
+      "text_he": "Bravo, המתנה במקום"
+    },
+    "BRAVO_T+,+TAKEOFF": {
+      "file": "twr_bravo_takeoff.ogg",
+      "text": "Bravo, cleared for take-off",
+      "text_he": "Bravo, אישור המראה"
+    },
+    "BRAVO_T+,+GO_AROUND": {
+      "file": "twr_bravo_go_around.ogg",
+      "text": "Bravo, go around, runway not clear",
+      "text_he": "Bravo, סיבוב נוסף, המסלול אינו פנוי"
+    },
+    "BRAVO_T+,+TAXI_PARK": {
+      "file": "twr_bravo_taxi_park.ogg",
+      "text": "Bravo, welcome back, taxi to parking",
+      "text_he": "Bravo, ברוכים השבים, הסעה לחנייה"
+    },
+    "BRAVO_T+,+GEAR_NOT_DOWN": {
+      "file": "twr_bravo_gear_not_down.ogg",
+      "text": "Bravo, check gear down",
+      "text_he": "Bravo, בדיקת כן נסע למטה"
+    },
+    "CHARLIE_T+,+MORNING+,+TAXI_RWY": {
+      "file": "twr_charlie_taxi_morning.ogg",
+      "text": "Charlie, good morning, taxi to runway",
+      "text_he": "Charlie, בוקר טוב, הסעה למסלול"
+    },
+    "CHARLIE_T+,+AFTERNOON+,+TAXI_RWY": {
+      "file": "twr_charlie_taxi_afternoon.ogg",
+      "text": "Charlie, good afternoon, taxi to runway",
+      "text_he": "Charlie, צהריים טובים, הסעה למסלול"
+    },
+    "CHARLIE_T+,+EVENING+,+TAXI_RWY": {
+      "file": "twr_charlie_taxi_evening.ogg",
+      "text": "Charlie, good evening, taxi to runway",
+      "text_he": "Charlie, ערב טוב, הסעה למסלול"
+    },
+    "CHARLIE_T+,+LINEUP_RWY": {
+      "file": "twr_charlie_lineup_rwy.ogg",
+      "text": "Charlie, line up runway",
+      "text_he": "Charlie, כניסה למסלול"
+    },
+    "CHARLIE_T+,+PROCEED_RWY": {
+      "file": "twr_charlie_proceed_rwy.ogg",
+      "text": "Charlie, proceed to runway",
+      "text_he": "Charlie, התקדמות למסלול"
+    },
+    "CHARLIE_T+,+LAND_RWY": {
+      "file": "twr_charlie_land_rwy.ogg",
+      "text": "Charlie, cleared to land runway",
+      "text_he": "Charlie, אישור נחיתה במסלול"
+    },
+    "CHARLIE_T+,+START": {
+      "file": "twr_charlie_start.ogg",
+      "text": "Charlie, cleared to start",
+      "text_he": "Charlie, אישור התנעה"
+    },
+    "CHARLIE_T+,+HOLD_POS": {
+      "file": "twr_charlie_hold_pos.ogg",
+      "text": "Charlie, hold position",
+      "text_he": "Charlie, המתנה במקום"
+    },
+    "CHARLIE_T+,+TAKEOFF": {
+      "file": "twr_charlie_takeoff.ogg",
+      "text": "Charlie, cleared for take-off",
+      "text_he": "Charlie, אישור המראה"
+    },
+    "CHARLIE_T+,+GO_AROUND": {
+      "file": "twr_charlie_go_around.ogg",
+      "text": "Charlie, go around, runway not clear",
+      "text_he": "Charlie, סיבוב נוסף, המסלול אינו פנוי"
+    },
+    "CHARLIE_T+,+TAXI_PARK": {
+      "file": "twr_charlie_taxi_park.ogg",
+      "text": "Charlie, welcome back, taxi to parking",
+      "text_he": "Charlie, ברוכים השבים, הסעה לחנייה"
+    },
+    "CHARLIE_T+,+GEAR_NOT_DOWN": {
+      "file": "twr_charlie_gear_not_down.ogg",
+      "text": "Charlie, check gear down",
+      "text_he": "Charlie, בדיקת כן נסע למטה"
+    },
+    "DELTA_T+,+MORNING+,+TAXI_RWY": {
+      "file": "twr_delta_taxi_morning.ogg",
+      "text": "Delta, good morning, taxi to runway",
+      "text_he": "Delta, בוקר טוב, הסעה למסלול"
+    },
+    "DELTA_T+,+AFTERNOON+,+TAXI_RWY": {
+      "file": "twr_delta_taxi_afternoon.ogg",
+      "text": "Delta, good afternoon, taxi to runway",
+      "text_he": "Delta, צהריים טובים, הסעה למסלול"
+    },
+    "DELTA_T+,+EVENING+,+TAXI_RWY": {
+      "file": "twr_delta_taxi_evening.ogg",
+      "text": "Delta, good evening, taxi to runway",
+      "text_he": "Delta, ערב טוב, הסעה למסלול"
+    },
+    "DELTA_T+,+LINEUP_RWY": {
+      "file": "twr_delta_lineup_rwy.ogg",
+      "text": "Delta, line up runway",
+      "text_he": "Delta, כניסה למסלול"
+    },
+    "DELTA_T+,+PROCEED_RWY": {
+      "file": "twr_delta_proceed_rwy.ogg",
+      "text": "Delta, proceed to runway",
+      "text_he": "Delta, התקדמות למסלול"
+    },
+    "DELTA_T+,+LAND_RWY": {
+      "file": "twr_delta_land_rwy.ogg",
+      "text": "Delta, cleared to land runway",
+      "text_he": "Delta, אישור נחיתה במסלול"
+    },
+    "DELTA_T+,+START": {
+      "file": "twr_delta_start.ogg",
+      "text": "Delta, cleared to start",
+      "text_he": "Delta, אישור התנעה"
+    },
+    "DELTA_T+,+HOLD_POS": {
+      "file": "twr_delta_hold_pos.ogg",
+      "text": "Delta, hold position",
+      "text_he": "Delta, המתנה במקום"
+    },
+    "DELTA_T+,+TAKEOFF": {
+      "file": "twr_delta_takeoff.ogg",
+      "text": "Delta, cleared for take-off",
+      "text_he": "Delta, אישור המראה"
+    },
+    "DELTA_T+,+GO_AROUND": {
+      "file": "twr_delta_go_around.ogg",
+      "text": "Delta, go around, runway not clear",
+      "text_he": "Delta, סיבוב נוסף, המסלול אינו פנוי"
+    },
+    "DELTA_T+,+TAXI_PARK": {
+      "file": "twr_delta_taxi_park.ogg",
+      "text": "Delta, welcome back, taxi to parking",
+      "text_he": "Delta, ברוכים השבים, הסעה לחנייה"
+    },
+    "DELTA_T+,+GEAR_NOT_DOWN": {
+      "file": "twr_delta_gear_not_down.ogg",
+      "text": "Delta, check gear down",
+      "text_he": "Delta, בדיקת כן נסע למטה"
+    },
+    "ALPHA_T+,+MORNING+,+TAXI_RWY+24": {
+      "file": "twr_alpha_taxi_morning_24.ogg",
+      "text": "Alpha, good morning, taxi to runway two four",
+      "text_he": "Alpha, בוקר טוב, הסעה למסלול 24"
+    },
+    "ALPHA_T+,+LINEUP_RWY+24+,+WIND_CALM": {
+      "file": "twr_alpha_lineup_24_calm.ogg",
+      "text": "Alpha, line up runway two four, wind calm",
+      "text_he": "Alpha, כניסה למסלול 24, רוח שקטה"
+    },
+    "ALPHA_T+,+MORNING+,+TAXI_RWY+25": {
+      "file": "twr_alpha_taxi_morning_25.ogg",
+      "text": "Alpha, good morning, taxi to runway two five",
+      "text_he": "Alpha, בוקר טוב, הסעה למסלול 25"
+    },
+    "ALPHA_T+,+LINEUP_RWY+25+,+WIND_CALM": {
+      "file": "twr_alpha_lineup_25_calm.ogg",
+      "text": "Alpha, line up runway two five, wind calm",
+      "text_he": "Alpha, כניסה למסלול 25, רוח שקטה"
+    },
+    "ALPHA_T+,+MORNING+,+TAXI_RWY+25+RWY_R": {
+      "file": "twr_alpha_taxi_morning_25r.ogg",
+      "text": "Alpha, good morning, taxi to runway two five right",
+      "text_he": "Alpha, בוקר טוב, הסעה למסלול 25 ימני"
+    },
+    "ALPHA_T+,+LINEUP_RWY+25+RWY_R+,+WIND_CALM": {
+      "file": "twr_alpha_lineup_25r_calm.ogg",
+      "text": "Alpha, line up runway two five right, wind calm",
+      "text_he": "Alpha, כניסה למסלול 25 ימני, רוח שקטה"
+    },
+    "ALPHA_T+,+MORNING+,+TAXI_RWY+26": {
+      "file": "twr_alpha_taxi_morning_26.ogg",
+      "text": "Alpha, good morning, taxi to runway two six",
+      "text_he": "Alpha, בוקר טוב, הסעה למסלול 26"
+    },
+    "ALPHA_T+,+LINEUP_RWY+26+,+WIND_CALM": {
+      "file": "twr_alpha_lineup_26_calm.ogg",
+      "text": "Alpha, line up runway two six, wind calm",
+      "text_he": "Alpha, כניסה למסלול 26, רוח שקטה"
+    },
+    "ALPHA_T+,+MORNING+,+TAXI_RWY+26+RWY_L": {
+      "file": "twr_alpha_taxi_morning_26l.ogg",
+      "text": "Alpha, good morning, taxi to runway two six left",
+      "text_he": "Alpha, בוקר טוב, הסעה למסלול 26 שמאלי"
+    },
+    "ALPHA_T+,+LINEUP_RWY+26+RWY_L+,+WIND_CALM": {
+      "file": "twr_alpha_lineup_26l_calm.ogg",
+      "text": "Alpha, line up runway two six left, wind calm",
+      "text_he": "Alpha, כניסה למסלול 26 שמאלי, רוח שקטה"
+    },
+    "ALPHA_T+,+MORNING+,+TAXI_RWY+27": {
+      "file": "twr_alpha_taxi_morning_27.ogg",
+      "text": "Alpha, good morning, taxi to runway two seven",
+      "text_he": "Alpha, בוקר טוב, הסעה למסלול 27"
+    },
+    "ALPHA_T+,+LINEUP_RWY+27+,+WIND_CALM": {
+      "file": "twr_alpha_lineup_27_calm.ogg",
+      "text": "Alpha, line up runway two seven, wind calm",
+      "text_he": "Alpha, כניסה למסלול 27, רוח שקטה"
+    }
+  },
+  "templates": {
+    "ACFT_CLEAR_TO_START": "%S1 , START",
+    "ACFT_TAXI_TO_RUNWAY": "%S1 , %S2 , TAXI_RWY %D1",
+    "ACFT_CLEAR_TO_LINEUP": "%S1 , LINEUP_RWY %D1 , %S2",
+    "ACFT_CLEAR_TO_LINEUP_NW": "%S1 , LINEUP_RWY %D1 , WIND_CALM",
+    "ACFT_HOLD_POS": "%S1 , HOLD_POS",
+    "ACFT_CLEAR_TO_TAKEOFF": "%S1 , TAKEOFF",
+    "ACFT_PROCEED_TO_RUNWAY": "%S1 , PROCEED_RWY %D1",
+    "ACFT_CLEAR_TO_LAND": "%S1 , LAND_RWY %D1 , %S2",
+    "ACFT_CLEAR_TO_LAND_NW": "%S1 , LAND_RWY %D1 , WIND_CALM",
+    "ACFT_GO_AROUND_RUNWAY": "%S1 , GO_AROUND",
+    "ACFT_TAXI_TO_PARK": "%S1 , TAXI_PARK",
+    "ACFT_GEARS_NOT_OPEN": "%S1 , GEAR_NOT_DOWN",
+    "ACFT_ROGER": "ROGER"
+  },
+  "he": {
+    "voice": "he_IL-saspeech-medium (pending: its dataset's licence is non-commercial; the user decides)",
+    "lines": [
+      {
+        "file": "he/twr_takeoff_ramon.ogg",
+        "text": "סופה אחת, מגדל רמון, מסלול שתיים חמש ימני, רוח שקטה, מאושר להמראה.",
+        "ipa": "sufˈa aχˈat, migdˈal ʁamˈon, maslˈul ʃtˈajim χˈameʃ jemanˈi, ʁˈuaχ ʃketˈa, meuʃˈaʁ lehamʁaˈa."
+      },
+      {
+        "file": "he/twr_start.ogg",
+        "text": "מאושר להתניע.",
+        "ipa": "meuʃˈaʁ lehatnˈia."
+      },
+      {
+        "file": "he/twr_taxi_rwy.ogg",
+        "text": "הסע למסלול",
+        "ipa": "hasˈa lamaslˈul"
+      },
+      {
+        "file": "he/twr_lineup_rwy.ogg",
+        "text": "היכנס למסלול",
+        "ipa": "hikanˈes lamaslˈul"
+      },
+      {
+        "file": "he/twr_hold_pos.ogg",
+        "text": "המתן במקום",
+        "ipa": "hamtˈen bamakˈom"
+      },
+      {
+        "file": "he/twr_takeoff.ogg",
+        "text": "מאושר להמראה",
+        "ipa": "meuʃˈaʁ lehamʁaˈa"
+      },
+      {
+        "file": "he/twr_wind_calm.ogg",
+        "text": "רוח שקטה",
+        "ipa": "ʁˈuaχ ʃketˈa"
+      },
+      {
+        "file": "he/acft_roger.ogg",
+        "text": "רוג'ר",
+        "ipa": "ʁˈodʒeʁ"
+      },
+      {
+        "file": "he/voc_bbetty_pull_up.ogg",
+        "text": "משוך למעלה. משוך למעלה.",
+        "ipa": "meʃˈoχ lemˈala. meʃˈoχ lemˈala."
+      }
+    ],
+    "note": "Not rendered: the Hebrew voice waits for the user's licence decision (modern-iaf/docs/sound.md §5). The Hebrew numbers and the rest of the tower set follow the English particles when it is decided."
+  }
+}

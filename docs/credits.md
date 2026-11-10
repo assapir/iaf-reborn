@@ -58,7 +58,7 @@ Setup downloads these materials from ambientCG into `assets/thirdparty/ambientcg
 are CC0 1.0 (public domain): "All ambientCG assets are provided under the Creative Commons CC0 1.0 Universal
 License"[^acg-licence]. CC0 asks for no credit; we give it anyway. One line names ambientCG in the setup wizard's Attributions and in the
 roll (`credits_ours.json`, "Ground Textures and Model Detail"). Modern IAF's setup downloads the same materials (its optional step "sim-textures",
-2026-11-09) and names ambientCG in its Attributions and its credits (`iaf-2026/setup/wizard.gd` `CREDITS`). The list lives in one place:
+2026-11-09) and names ambientCG in its Attributions and its credits (`modern-iaf/setup/wizard.gd` `CREDITS`). The list lives in one place:
 `crates/iaf-tools/src/thirdparty.rs` (`GROUND_TEXTURES`, `MODEL_DETAIL`, `SCENERY_WALLS` and `TREE_TEXTURES`, with each
 zip's pinned SHA-256). Setup composes the scenery trees' foliage from the leaf sets' colour and opacity maps
 (`crates/iaf-tools/src/foliage.rs`).
@@ -121,16 +121,16 @@ checksums are `SCENERY`, `SCENERY_THEATRE` and `ROADS` in `crates/iaf-tools/src/
 
 ## Modern IAF data
 
-The sim's data compiler (`iaf-sim`, iaf-2026/docs/data-formats.md) uses open data kept in the repo: OpenStreetMap
+The sim's data compiler (`iaf-sim`, modern-iaf/docs/data-formats.md) uses open data kept in the repo: OpenStreetMap
 runway and apron ways (© OpenStreetMap contributors, ODbL 1.0[^osm]) in `crates/iaf-flight/data/real_runways.csv` and
-the mission files, the four airbases' layouts in `iaf-2026/data/airbases/` (runways, taxiways, aprons, hangars and
-shelters; iaf-2026/docs/airbases.md), and OurAirports' runway widths, lengths and field elevations (public domain).
+the mission files, the four airbases' layouts in `modern-iaf/data/airbases/` (runways, taxiways, aprons, hangars and
+shelters; modern-iaf/docs/airbases.md), and OurAirports' runway widths, lengths and field elevations (public domain).
 The attribution the sim shows for them: "Airbase and runway data © OpenStreetMap contributors, available under the
 Open Database Licence (ODbL) 1.0: openstreetmap.org/copyright". The sim's own setup wizard
 (item A3) lists them on its Attributions page. Every other figure of the data files is a cited fact with its source in
 the file.
 
-The sim's cockpit display data (`iaf-2026/data/planes/_shared/cockpit/`, iaf-2026/docs/cockpit.md "Display data"):
+The sim's cockpit display data (`modern-iaf/data/planes/_shared/cockpit/`, modern-iaf/docs/cockpit.md "Display data"):
 the TSD map and the radar's ground-map picture are made from OpenStreetMap (© OpenStreetMap contributors, ODbL
 1.0[^osm]): OSM's simplified land polygons from osmdata.openstreetmap.de, the boundary relations of Israel, the West
 Bank's Areas A, B and C and Hebron's H1 (the areas mapped in OSM from geomolg.ps) and the Gaza Strip, and the large
@@ -142,53 +142,53 @@ wizard's Attributions list "Modern TSD map (Extras: Briefing map Modern): © Ope
 and its credits roll (`iaf-reborn/menu/credits_ours.json`) "Modern TSD Map: Map data © OpenStreetMap contributors
 (openstreetmap.org/copyright), ODbL 1.0".
 
-The sim's sound clips (`iaf-2026/data/sounds/`, made by `tools/iaf-2026/sounds.py`) are CC0 recordings from
+The sim's sound clips (`modern-iaf/data/sounds/`, made by `tools/iaf-2026/sounds.py`) are CC0 recordings from
 freesound.org[^freesound] and tones we computed. CC0 asks for no credit; we name every author anyway: ikbenraar,
 pillwave, 77Pacer, nuckan, qubodup, Seidhepriest, Jetrod, craigsmith (the USC Gold / Red / Sunset Editorial libraries;
 also the canopy and the touchdown's tyre skid), LilMati, Rudmer_Rotteveel (also the afterburner and its light-off, from
 an RNLAF F-16 take-off), pushkin, xkeril, elliott.klein, DeqstersLab, SoundDesignForYou and tranzfusion. The JFS
-whine is a tone we computed. Each clip's source page, licence and processing: `iaf-2026/data/sounds/SOURCES.md`.
+whine is a tone we computed. Each clip's source page, licence and processing: `modern-iaf/data/sounds/SOURCES.md`.
 The sim's voices are Kokoro text to speech[^kokoro] (Kokoro-82M v1.0 by hexgrad, Apache-2.0; its voice packs ship in
 the same repository under the same licence) in the American voices af_heart, am_michael, am_puck and am_fenrir. Its
 training data is public-domain, permissively licensed and synthetic speech, plus two CC BY sets it names: Koniwa
-`tnc` (CC BY 3.0) and SIWIS (CC BY 4.0). Their texts and voices: `iaf-2026/data/sounds/voices.json`; made by
-`iaf-sim voices` (iaf-2026/docs/sound.md §5). The Hebrew voice waits for a licence decision (iaf-2026/docs/sound.md
-§5.4). The lines the sim's setup wizard (item A3) and its credits roll need: iaf-2026/docs/sound.md §6.
-The sim's terrain (`iaf-sim terrain`, iaf-2026/docs/terrain.md) is converted from the Copernicus DEM GLO-30
+`tnc` (CC BY 3.0) and SIWIS (CC BY 4.0). Their texts and voices: `modern-iaf/data/sounds/voices.json`; made by
+`iaf-sim voices` (modern-iaf/docs/sound.md §5). The Hebrew voice waits for a licence decision (modern-iaf/docs/sound.md
+§5.4). The lines the sim's setup wizard (item A3) and its credits roll need: modern-iaf/docs/sound.md §6.
+The sim's terrain (`iaf-sim terrain`, modern-iaf/docs/terrain.md) is converted from the Copernicus DEM GLO-30
 (Copernicus WorldDEM-30 licence[^cop-dem]), the ESA WorldCover 2021 Sentinel-2 composite (CC BY 4.0) and the Survey of
 Israel 2015 photo (data.gov.il). The DEM's licence asks for two lines verbatim, which the sim's setup wizard (item A3)
 and credits roll show with the imagery's: "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus
 Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved" and "The
 organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of
-the Copernicus WorldDEM-30". They are also in the theatre's `meta.json` (`attribution`, `notice`) and iaf-2026/docs/terrain.md §5.
-The sim's scenery, roads and inland water (`iaf-sim scenery`, `iaf-sim airbases`; iaf-2026/docs/scenery.md) come from
+the Copernicus WorldDEM-30". They are also in the theatre's `meta.json` (`attribution`, `notice`) and modern-iaf/docs/terrain.md §5.
+The sim's scenery, roads and inland water (`iaf-sim scenery`, `iaf-sim airbases`; modern-iaf/docs/scenery.md) come from
 the same downloads as the original game's scenery above (OpenStreetMap, Microsoft's footprints, GHS-BUILT-H, ETH's
 canopy), with the same credit lines in their manifests' `attribution`.
 
-The sim's flight data (`crates/iaf-tools/src/sim_fm0.rs`, iaf-2026/docs/flight-model.md) comes from NASA TP-1538[^tp1538], a
+The sim's flight data (`crates/iaf-tools/src/sim_fm0.rs`, modern-iaf/docs/flight-model.md) comes from NASA TP-1538[^tp1538], a
 work of the U.S. Government (public domain; no credit required, named anyway), and from the public figures with their
 sources in docs/real-aircraft.md, docs/f16i.md, docs/f15i.md and docs/f35i.md. The sim's 6-DoF (`crates/iaf-flight/src/sixdof/`) holds TP-1538's
 aerodynamic tables, transcribed from the report's scan; the University of Minnesota's typed copy of them (its F-16
-simulation package) served as the candidate checked against the scan (iaf-2026/docs/flight-model.md §9.1). The
-6-DoF's F-35I gear geometry is from W. H. Mason's F-35A data (Virginia Tech), iaf-2026/docs/flight-model.md §9.9.
+simulation package) served as the candidate checked against the scan (modern-iaf/docs/flight-model.md §9.1). The
+6-DoF's F-35I gear geometry is from W. H. Mason's F-35A data (Virginia Tech), modern-iaf/docs/flight-model.md §9.9.
 
 ## Modern IAF's font
 
-The sim's screens (its setup wizard first) use Heebo, `iaf-2026/data/fonts/Heebo-VariableFont_wght.ttf`, "Copyright
+The sim's screens (its setup wizard first) use Heebo, `modern-iaf/data/fonts/Heebo-VariableFont_wght.ttf`, "Copyright
 2014 The Heebo Project Authors (https://github.com/OdedEzer/heebo)", under the SIL Open Font License 1.1
-(`iaf-2026/data/fonts/OFL.txt`), from Google Fonts[^heebo]. The wizard's Attributions page names it.
+(`modern-iaf/data/fonts/OFL.txt`), from Google Fonts[^heebo]. The wizard's Attributions page names it.
 
 The sim's HUD, MFDs and panoramic display use Hershey's Roman Simplex stroke font (the user's choice, Approvals A9),
-`iaf-2026/data/fonts/HersheySimplex.ttf`, which `tools/iaf-2026/hershey_font.py` strokes into outlines from Kamal
+`modern-iaf/data/fonts/HersheySimplex.ttf`, which `tools/iaf-2026/hershey_font.py` strokes into outlines from Kamal
 Mostafa's `futural.jhf`[^hershey] (`tools/iaf-2026/fonts/`). Its terms ask for two acknowledgements, kept with the data
-(`iaf-2026/data/fonts/HERSHEY.txt`) and on the wizard's Attributions page and the credits: "The Hershey Fonts were
+(`modern-iaf/data/fonts/HERSHEY.txt`) and on the wizard's Attributions page and the credits: "The Hershey Fonts were
 originally created by Dr. A. V. Hershey while working at the U. S. National Bureau of Standards" and "The format of
 the Font data in this distribution was originally created by James Hurt, Cognition, Inc."
 
 ## Modern IAF's photos
 
-The sim's front end (iaf-2026/docs/front-end.md) shows four Wikimedia Commons photos of the jets, downscaled, in
-`iaf-2026/data/photos/` (`SOURCES.md` there lists each page): F-16I Sufa 407 and F-35I Adir in flight by Major Ofer,
+The sim's front end (modern-iaf/docs/front-end.md) shows four Wikimedia Commons photos of the jets, downscaled, in
+`modern-iaf/data/photos/` (`SOURCES.md` there lists each page): F-16I Sufa 407 and F-35I Adir in flight by Major Ofer,
 Israeli Air Force (CC BY 4.0)[^c-sufa][^c-adir]; F-16I Sufa 851 at Tel Nof by MathKnight and Zachi Evenor (CC BY
 4.0)[^c-sufa2]; F-16D Barak 034 by Zachi Evenor and MathKnight (CC BY 2.0)[^c-barak]. Each screen that shows one
 credits it in its footer; the front end's Attributions screen and the setup wizard's list name all four.

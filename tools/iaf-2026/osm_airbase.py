@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Modern IAF's airbase layouts from OpenStreetMap (iaf-2026/docs/airbases.md).
+"""Modern IAF's airbase layouts from OpenStreetMap (modern-iaf/docs/airbases.md).
 
 Fetches each base's aeroway features from the Overpass API (one query per base; the raw answer is cached in
 assets/source/osm/airbases/<icao>.json) and OurAirports' airports / runways tables (cached in
-assets/source/ourairports/), and writes iaf-2026/data/airbases/<icao>.json. The points OSM lacks (the parking spots,
+assets/source/ourairports/), and writes modern-iaf/data/airbases/<icao>.json. The points OSM lacks (the parking spots,
 a missing tower) are placed by eye on the overlay pictures and kept in PLACED below.
 
     python3 -I tools/iaf-2026/osm_airbase.py [--refetch] [ICAO ...]
@@ -28,7 +28,7 @@ from real_runways import DECLINATION, designator  # noqa: E402  (tools/real_runw
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OSM_CACHE = os.path.join(ROOT, "assets/source/osm/airbases")
 OA_CACHE = os.path.join(ROOT, "assets/source/ourairports")
-OUT = os.path.join(ROOT, "iaf-2026/data/airbases")
+OUT = os.path.join(ROOT, "modern-iaf/data/airbases")
 SHEETS = os.path.join(ROOT, "assets/source/imagery/mapi2015")
 SHEET_INDEX = os.path.join(ROOT, "assets/converted/imagery/.work/mapi2015/sheets.tsv")
 # The public Overpass instances, tried in order, once each (no retries): the main one is often at capacity.
@@ -60,11 +60,11 @@ AS_TAXIWAY = {
 # Where the declared runway starts (runway_start_m, inferred): the OSM ways run on over the paved overruns, so where a
 # way is longer than OurAirports' length, the declared runway is taken to start at the first taxiway that joins it (a
 # taxiway node within half the width + 15 m of the centreline), if that lies within the extra length + 150 m (on all
-# seven such runways the two ends' entries add up to the extra length within 110 m, iaf-2026/docs/airbases.md §4).
+# seven such runways the two ends' entries add up to the extra length within 110 m, modern-iaf/docs/airbases.md §4).
 # The lineup point is the B2b compiler's (Rust), from runway_start_m and the end's heading.
 
 # Points OSM lacks, placed by eye on the overlay pictures (inferred; each a judgement call for the user,
-# iaf-2026/docs/airbases.md §5). parking: unit id -> (lat, lon, true heading of the nose). tower: (lat, lon), or None
+# modern-iaf/docs/airbases.md §5). parking: unit id -> (lat, lon, true heading of the nose). tower: (lat, lon), or None
 # where no picture shows it (open). aprons (optional): rings of (lat, lon) where OSM maps no apron.
 PLACED = {
     # The centre of the paved pad by 07R/25L's western link (OSM apron 1496591869), nose along the pad toward the
@@ -89,7 +89,7 @@ PLACED = {
 }
 
 # The squadron the pilot flies with, per base: unit id -> (number, English name, Hebrew name, footnote key,
-# citation); iaf-2026/docs/front-end.md §1 (the plane cards).
+# citation); modern-iaf/docs/front-end.md §1 (the plane cards).
 SQUADRONS = {
     "LLRM": {"f16i": (253, "Negev", "הנגב", "he_253",
                       "Wikipedia, טייסת 253 (the IAF's first F-16I squadron, its first two jets landed at Ramon on "

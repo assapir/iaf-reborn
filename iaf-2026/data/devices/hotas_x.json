@@ -1,9 +1,0 @@
-{
-  "about": "The Thrustmaster T.Flight Hotas X's defaults (iaf-2026/docs/front-end.md §9.3) as Godot reports it with shared/controls/joystick.gd's mapping (docs/controls.md §5.2): stick x, stick y, throttle, rudder (twist) on axes 0-3, the rocker on axis 4 in 5-axis mode; buttons {key-table record: 0-based button}, the hat on 32..35 (up, right, down, left). The button choice is ours (inferred: the trigger fires the gun, the thumb buttons release and pick targets).",
-  "match": "Hotas X",
-  "axes": {"roll": 0, "pitch": 1, "throttle": 2, "rudder": 3, "trim": 4},
-  "buttons": {
-    "64": 0, "69": 1, "58": 2, "71": 3, "70": 4, "54": 5, "56": 6, "55": 7, "20": 8, "19": 9, "22": 10, "18": 11,
-    "35": 32, "33": 33, "29": 34, "31": 35
-  }
-}

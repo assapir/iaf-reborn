@@ -1,4 +1,4 @@
-//! The Modern IAF sim's own six-degrees-of-freedom flight model (item C2, iaf-2026/docs/flight-model.md §9).
+//! The Modern IAF sim's own six-degrees-of-freedom flight model (item C2, modern-iaf/docs/flight-model.md §9).
 //!
 //! * [`tables`]: NASA TP-1538's aerodynamic data (Table III), transcribed from the report's scan.
 //! * [`aero`]: the report's coefficient build-up (appendix B) over those tables.

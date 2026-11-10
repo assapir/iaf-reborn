@@ -5,7 +5,7 @@
 //!
 //! `cargo test --release -p iaf-flight --test validation -- --nocapture`
 //! Needs the extracted game data (`assets/install`, or `IAF_INSTALL`; the sim's own data: `IAF_INSTALL=assets/converted/own`,
-//! iaf-2026/docs/flight-model.md).
+//! modern-iaf/docs/flight-model.md).
 
 use std::path::PathBuf;
 
@@ -731,7 +731,7 @@ fn report(dir: &std::path::Path, r: &Ref, set: DataSet) {
     }
 }
 
-// --- The Modern IAF sim's 6-DoF (iaf-2026/docs/flight-model.md §9.13) ----------------------------------------------
+// --- The Modern IAF sim's 6-DoF (modern-iaf/docs/flight-model.md §9.13) ----------------------------------------------
 
 /// A 6-DoF flight of `jet` at `alt_ft`, `speed_kt` (level trim), or standing on a runway at sea level (`speed_kt` 0).
 fn sixdof(jet: iaf_flight::sixdof::jets::Jet, alt_ft: f32, speed_kt: f32) -> iaf_flight::sixdof::flight::SixDof {
@@ -817,7 +817,7 @@ fn sixdof_jets_against_public_data() {
         });
 
         // 1 g stall: the slowest speed at sea level where the stick that holds the α limiter's 25° (0.78 of the
-        // pull, iaf-2026/docs/flight-model.md §9.13) still gives 1 g.
+        // pull, modern-iaf/docs/flight-model.md §9.13) still gives 1 g.
         let holds = |kt: f32| {
             fly6(&mut sixdof(jet, 0.0, kt), 1.0, |_| Controls { stick_y: 0.78, throttle: 1.0, ..mil }).g > 0.95
         };

@@ -1,4 +1,4 @@
-//! `iaf-sim own`'s cockpit display data (iaf-2026/docs/cockpit.md "Display data", data-formats.md §14): every jet's
+//! `iaf-sim own`'s cockpit display data (modern-iaf/docs/cockpit.md "Display data", data-formats.md §14): every jet's
 //! `<data>/planes/_shared/cockpit/` and `<data>/planes/<jet>/cockpit/` (its own file wins) → `<assets>/COCKPITS_DIR/<jet>/`,
 //! the files the shared cockpit readers take from a cockpit dir: `map.json` (the TSD map, cockpit.gd `_load_tsd_map`)
 //! and `isr.png` (the GM picture, mfd.gd `_isr`) compiled from `tsd_map.json` into the sim's UTM 36N frame; the art
@@ -27,7 +27,7 @@ const SHARED: &str = "_shared";
 
 /// The TSD map's frame (shared/util/world_map.gd, cockpit.gd `_load_tsd_map`): engine X / Y → the normalised
 /// map.emf frame `u = (X + X_SHIFT) / W · F`, `v = (H − Y_SHIFT − Y) / H · F`. The reader turns it back into world X /
-/// Y, which in the sim are the UTM easting / northing (iaf-2026/docs/terrain.md §2).
+/// Y, which in the sim are the UTM easting / northing (modern-iaf/docs/terrain.md §2).
 const X_SHIFT: f64 = 166850.0;
 const Y_SHIFT: f64 = 21144.0;
 const W: f64 = 819200.0;
@@ -321,7 +321,7 @@ mod tests {
     use crate::progress::Stdout;
 
     fn data() -> std::path::PathBuf {
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../iaf-2026/data")
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../modern-iaf/data")
     }
 
     /// Even-odd point-in-polygon on a flat [x, y, …] ring.

@@ -145,7 +145,7 @@ def timeline(events):
 
 
 def debrief_lines(d, lang="en"):
-    """A Modern IAF debrief record (iaf-2026/docs/training.md §4) as lines: the result, the reasons, the numbers."""
+    """A Modern IAF debrief record (modern-iaf/docs/training.md §4) as lines: the result, the reasons, the numbers."""
     s = d.get("strings", {}).get(lang, {})
     out = [f"{s.get(d.get('kind'), d.get('kind'))}: {s.get('pass' if d.get('pass') else 'fail')}"]
     out += [f"  {s.get(r, r)}" for r in d.get("reasons", [])]
@@ -187,7 +187,7 @@ def main():
     ap.add_argument("--html", help="also write a self-contained HTML timeline with the height profile")
     ap.add_argument(
         "--debrief",
-        help="a Modern IAF debrief record as a JSON file (out of the records database: iaf-2026/docs/storage.md §5)",
+        help="a Modern IAF debrief record as a JSON file (out of the records database: modern-iaf/docs/storage.md §5)",
     )
     a = ap.parse_args()
     head, rows, events = load(a.recording)

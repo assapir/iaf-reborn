@@ -1,4 +1,4 @@
-//! `iaf-sim terrain` (iaf-2026/docs/terrain.md): Modern IAF's theatre from open data, in the shape `terrain::theatre`
+//! `iaf-sim terrain` (modern-iaf/docs/terrain.md): Modern IAF's theatre from open data, in the shape `terrain::theatre`
 //! writes (docs/formats/ptt.md "Converted layout": colour nodes `L<l>/c_<i>_<j>.jpg`, 16-bit height nodes
 //! `L<l>/h_<i>_<j>.png` for the levels 6–11, `meta.json`), so `shared/terrain/terrain.gd` and `IafHeights` read it
 //! unchanged.
@@ -25,7 +25,7 @@ use crate::log;
 use crate::progress::{Part, Progress, check, utf8};
 
 /// The theatre in UTM 36N metres (E0, N0, E1, N1): Ramon, Hatzerim, Nevatim and Ramat David with ≥ 150 km around
-/// them, the corners on multiples of 1024 m (iaf-2026/docs/terrain.md §2).
+/// them, the corners on multiples of 1024 m (modern-iaf/docs/terrain.md §2).
 pub const BOX: [f64; 4] = [507_904.0, 3_255_296.0, 855_040.0, 3_766_272.0];
 /// Israel's bounding box (lon 34.2–35.95° E, lat 29.45–33.35° N) in UTM 36N, the "detail area": 8 m Sentinel-2
 /// nodes in every level-5 node it touches, 32 m elsewhere.
@@ -41,7 +41,7 @@ const HEIGHT_SCALE: f64 = 10.0;
 const JPEG_QUALITY: u8 = 88;
 /// The Sentinel-2 composite has no pixels over open sea away from the coast: this colour fills them (the
 /// composite's own open-sea tone at the edge of its pixels off Tel Aviv and Ashdod, measured 2026-11-08,
-/// iaf-2026/docs/terrain.md §3).
+/// modern-iaf/docs/terrain.md §3).
 const SEA: [u8; 3] = [53, 72, 82];
 /// The fill before 2026-11-08, darker than the composite's sea (its edge showed as steps): `repaint_sea` turns it into
 /// SEA in a theatre built with it.
@@ -61,7 +61,7 @@ fn span(level: u32) -> f64 {
     f64::from(NODE_PIXELS << level)
 }
 
-/// The airbases' outlines (`boundary`, lat / lon, of `<dir>/*.json`, iaf-2026/docs/airbases.md) in UTM 36N.
+/// The airbases' outlines (`boundary`, lat / lon, of `<dir>/*.json`, modern-iaf/docs/airbases.md) in UTM 36N.
 fn base_outlines(dir: &Path) -> Result<Vec<Vec<[f64; 2]>>> {
     let mut out = Vec::new();
     // Without them the Survey's painted-over bases would show: a missing folder is an error.
@@ -95,7 +95,7 @@ pub struct Run {
     pub sheet_index: PathBuf,
     /// The Survey of Israel sheet ZIPs (`assets/source/imagery/mapi2015`); none there = no 2 m nodes.
     pub sheets: PathBuf,
-    /// The airbases' layouts (`iaf-2026/data/airbases`): Sentinel-2 replaces the Survey photo inside their outlines.
+    /// The airbases' layouts (`modern-iaf/data/airbases`): Sentinel-2 replaces the Survey photo inside their outlines.
     pub airbases: PathBuf,
     /// The assets folder whose `source/scenery` and `source/roads` hold the OpenStreetMap extracts (`sim_coast`): with
     /// the Survey, its coastline is where the photo gives way to the sea.

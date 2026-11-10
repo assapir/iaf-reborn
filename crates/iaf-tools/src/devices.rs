@@ -1,4 +1,4 @@
-//! Modern IAF's device settings (iaf-2026/docs/front-end.md §9): the player's keys, joystick buttons and axes over the
+//! Modern IAF's device settings (modern-iaf/docs/front-end.md §9): the player's keys, joystick buttons and axes over the
 //! sim's key table, kept in one compact JSON file, the store (`user://devices.json`):
 //!
 //! `{"keys": {"<record>": key}, "buttons": {"<record>": button}, "axes": {"<role>": {"axis": n, "invert": b, "dead": x}}}`
@@ -7,7 +7,7 @@
 //! `HAT`..`HAT + 3` the hat (up, right, down, left), −1 = none. The store keeps only what differs from the defaults:
 //! the key table's own key and button, and for the axes `joystick.gd`'s axis numbers and dead zones.
 //!
-//! A device map (`iaf-2026/data/devices/<device>.json`: `match`, `axes` {role: axis}, `buttons` {record: button}) holds
+//! A device map (`modern-iaf/data/devices/<device>.json`: `match`, `axes` {role: axis}, `buttons` {record: button}) holds
 //! a known joystick's defaults: its axes, and its whole button column (records it does not list: none). The defaults
 //! are the key table with the map over it (`with_map`); the store goes over those.
 

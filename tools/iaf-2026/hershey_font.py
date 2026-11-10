@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Modern IAF's HUD and display font (iaf-2026/docs/cockpit.md §5): Hershey's Roman Simplex stroke font as a TTF.
+"""Modern IAF's HUD and display font (modern-iaf/docs/cockpit.md §5): Hershey's Roman Simplex stroke font as a TTF.
 
-    python3 -I tools/iaf-2026/hershey_font.py   # tools/iaf-2026/fonts/futural.jhf -> iaf-2026/data/fonts/HersheySimplex.ttf
+    python3 -I tools/iaf-2026/hershey_font.py   # tools/iaf-2026/fonts/futural.jhf -> modern-iaf/data/fonts/HersheySimplex.ttf
 
 The source is Kamal Mostafa's hershey-fonts `futural.jhf` (James Hurt's format; the Hershey Fonts' notice in
-iaf-2026/data/fonts/HERSHEY.txt): one line per ASCII glyph from the space, each a vertex count and pairs of letters
+modern-iaf/data/fonts/HERSHEY.txt): one line per ASCII glyph from the space, each a vertex count and pairs of letters
 (coordinate = letter - 'R', y down), the first pair the glyph's left and right side, " R" lifting the pen. Each stroke
 segment becomes a filled bar and each vertex a round dot (octagon) of the same width, all wound the same way, so the
 rasteriser's non-zero fill joins them into the drawn line. Needs fontTools.
@@ -19,7 +19,7 @@ from fontTools.pens.ttGlyphPen import TTGlyphPen
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SRC = os.path.join(ROOT, "tools/iaf-2026/fonts/futural.jhf")
-OUT = os.path.join(ROOT, "iaf-2026/data/fonts/HersheySimplex.ttf")
+OUT = os.path.join(ROOT, "modern-iaf/data/fonts/HersheySimplex.ttf")
 SCALE = 32  # font units per Hershey unit: the capitals' 21 units -> 672 of 1000
 BASE = 9  # the Hershey baseline (y down)
 WIDTH = 2.0  # the stroke's width in Hershey units, about a tenth of the capitals' height (a HUD's thin line)

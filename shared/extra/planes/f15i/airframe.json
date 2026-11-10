@@ -31,7 +31,7 @@
     }
   },
   "notes": {
-    "sixdof": "Physics Flight model on 6-DoF: Modern IAF's 6-DoF from its own data (iaf-2026/docs/flight-model.md §9; docs/deviations.md §2)",
+    "sixdof": "Physics Flight model on 6-DoF: Modern IAF's 6-DoF from its own data (modern-iaf/docs/flight-model.md §9; docs/deviations.md §2)",
     "": "Every F-15 (type 110) with Extras \"F-15 version\" on Ra'am, the player's and the AI's (docs/f15i.md). Today's upgraded F-15I (the user's decision 2026-11-02); the F-15E's figures where the F-15I has none, labelled F-15E.",
     "label": "the TSD's selected-unit label",
     "info_tag": "the flight info line's tag",

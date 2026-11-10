@@ -1,7 +1,7 @@
 //! TP-1538's flight control system A (appendix A, figures 62–65, printed pp. 34–35 and 210–217): a pitch g command
 //! with the α limiter, a roll-rate command, the yaw damper and aileron-rudder interconnect, the surfaces' actuators
 //! and the leading-edge flap's schedule with its filters. Read off the block diagrams; what was simplified or
-//! inferred: iaf-2026/docs/flight-model.md §9.11.
+//! inferred: modern-iaf/docs/flight-model.md §9.11.
 //!
 //! Signs here are physical: a positive g command pulls the nose up (stabilator trailing edge up, δh < 0), a positive
 //! roll command rolls right (δa < 0 in the tables' convention, `aero::Surfaces`), a positive pedal yaws right

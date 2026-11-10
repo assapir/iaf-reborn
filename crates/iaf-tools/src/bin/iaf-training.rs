@@ -1,10 +1,10 @@
-//! Modern IAF's training scoring (iaf-2026/docs/training.md):
+//! Modern IAF's training scoring (modern-iaf/docs/training.md):
 //!
 //! `iaf-training score <flight.jsonl> <mission.json> [airbases-dir] [--json <out.json>]`
 //!
 //! Scores a flight recording against a training mission's rules and prints the debrief's English summary; `--json`
 //! also writes the debrief record (English and Hebrew strings keyed by id). The airbases folder defaults to
-//! `../airbases` beside the mission file's folder (`iaf-2026/data/airbases` for `iaf-2026/data/missions/<id>.json`).
+//! `../airbases` beside the mission file's folder (`modern-iaf/data/airbases` for `modern-iaf/data/missions/<id>.json`).
 
 use std::path::{Path, PathBuf};
 

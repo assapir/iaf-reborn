@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DECOMPILE = ROOT / "assets/ghidra_v11/iafjets.c"
 # Paths named in backticks are checked only under these roots; placeholders (<id>, *, …) are skipped.
-PATH_ROOTS = ("iaf-reborn/", "shared/", "crates/", "tests/", "tools/", "docs/", "iaf-2026/")
+PATH_ROOTS = ("iaf-reborn/", "shared/", "crates/", "tests/", "tools/", "docs/", "modern-iaf/")
 
 
 def ignored(rel):
@@ -55,7 +55,7 @@ def headings(path: Path) -> tuple[set, set]:
 def main() -> int:
     args = [a for a in sys.argv[1:] if a != "--fun"]
     files = [Path(f).resolve() for f in args] or sorted(
-        [ROOT / "README.md", ROOT / "CLAUDE.md", *ROOT.glob("docs/**/*.md"), ROOT / "iaf-2026/README.md", *ROOT.glob("iaf-2026/docs/**/*.md")])
+        [ROOT / "README.md", ROOT / "CLAUDE.md", *ROOT.glob("docs/**/*.md"), ROOT / "modern-iaf/README.md", *ROOT.glob("modern-iaf/docs/**/*.md")])
     funs = set(re.findall(r"\bFUN_([0-9a-f]{8})\b", DECOMPILE.read_text(errors="replace"))) if "--fun" in sys.argv and DECOMPILE.exists() else None
     cache = {}
 
@@ -105,8 +105,8 @@ def main() -> int:
                     report(f, n, f"broken link {target}")
                 elif anchor and dest.suffix == ".md" and anchor not in info(dest)[0]:
                     report(f, n, f"missing anchor {target}")
-            # iaf-2026/docs/plan.md names files that its work items will create
-            for p in [] if f.name == "plan.md" and "iaf-2026" in f.parts else re.findall(r"`([^`\s]+)`", line):
+            # modern-iaf/docs/plan.md names files that its work items will create
+            for p in [] if f.name == "plan.md" and "modern-iaf" in f.parts else re.findall(r"`([^`\s]+)`", line):
                 p = p.rstrip(".,:;")
                 if not p.startswith(PATH_ROOTS) or re.search(r"[<>*{}…$]|\.\.\.", p):
                     continue

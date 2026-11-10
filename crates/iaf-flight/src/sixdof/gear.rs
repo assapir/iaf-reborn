@@ -1,6 +1,6 @@
 //! Landing gear on a flat runway: per strut a spring and damper along the world vertical, and tyre forces in the
 //! runway plane (rolling friction, braking, side grip, nose-wheel steering). All forces go through the rigid
-//! body's force closure (iaf-2026/docs/flight-model.md §9.8).
+//! body's force closure (modern-iaf/docs/flight-model.md §9.8).
 
 use super::body::Body;
 use crate::Vec3;

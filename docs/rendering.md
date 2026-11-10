@@ -55,7 +55,7 @@ treats three kinds of ground:
     global `terrain_patches` (1 in the original game, 0.4 in Modern IAF) and their hue the global `terrain_patch_hue`, each project's own value
     in its `project.godot`: 1 in the original game; 0 in Modern IAF, where the patches keep the ground's own colour,
     only darker (× 0.7) or lighter (× 1.2). There the deeper colour turned the 2 m photo's pale desert into an orange
-    speckle (iaf-2026/docs/terrain.md §13).
+    speckle (modern-iaf/docs/terrain.md §13).
   - A grain follows (16 m tile, ≈ 1.6 m features, ± ≈ 15 %), with normal detail from the noise's normal map at the
     grain's scale.
 - **Grey ground** (asphalt, concrete, rock): a faint grain only (± ≈ 4 %) and a fifth of the normal detail, so runways
@@ -206,7 +206,7 @@ Fury reference (a deeper blue overhead, a warm brown-grey haze low on the horizo
   warmed the horizon's band but left the far land (159, 165, 186)).
 
 All constants: no frame cost. Measured colours at the study's Shoham pose, before / after and the reference's:
-[iaf-2026/docs/terrain.md §14](../iaf-2026/docs/terrain.md#14-the-sky-and-the-horizon-haze).
+[modern-iaf/docs/terrain.md §14](../modern-iaf/docs/terrain.md#14-the-sky-and-the-horizon-haze).
 
 ### 1.3 Water
 
@@ -305,7 +305,7 @@ How the shader uses them:
 - **Farther out** (2026-11-09): the same land-cover layer at 8 times its size (`GT_FAR`; repeats of ≈ 20 m) takes
   over from a 0.05–0.12 m footprint out to 0.6–1.5 m, colour only, at 0.4 of the strength (`GT_FAR_K`). A field keeps
   its grass and a slope its rock to a few hundred metres, where the near textures no longer resolve. The land cover is
-  the photo's colour (above): no class data is on disk (iaf-2026/docs/terrain.md §13).
+  the photo's colour (above): no class data is on disk (modern-iaf/docs/terrain.md §13).
 - **Macro tint** (2026-11-09): the ground's colour varies by ±8 % (`GT_MACRO`) in tone and warmth over ≈ 300 m and
   ≈ 1.2 km patches (the close up's noise texture at 3 km and 12 km), at every distance. It breaks the photo's repeats
   and the flat areas of its sheets.
@@ -494,7 +494,7 @@ They parse on low-priority pool tasks, which leave the decode tasks and the menu
   it waited for them; a test that starts `Img.prefetch` on the F-16, F-15 and F-4 cockpit art and quits hung 16 of 16
   runs before this change, 0 of 36 after.
 
-  Audit of every pool task and thread in `shared/`, `iaf-reborn/` and `iaf-2026/`, 2026-11-09. Each call site keeps
+  Audit of every pool task and thread in `shared/`, `iaf-reborn/` and `modern-iaf/`, 2026-11-09. Each call site keeps
   its task id, and the waiter on the quit path waits for every id it kept:
 
   | call site | what it does | waiter on the quit path |
@@ -920,7 +920,7 @@ access roads stay the imagery's.
 
 The imagery is a photo: its colour already holds the sun's light. The terrain shader lights it again (the sun and
 the ambient light), and the AgX tone mapper then pulls bright ground toward grey-white. Over Modern IAF's tan desert
-(the tiles' sand 242 / 209 / 167) the picture showed pale cream at 198 / 182 / 163 (iaf-2026/docs/terrain.md §9).
+(the tiles' sand 242 / 209 / 167) the picture showed pale cream at 198 / 182 / 163 (modern-iaf/docs/terrain.md §9).
 Natural grades the picture in three parts (`shared/terrain/render_options.gd`, `GRADE_*`):
 
 - **Albedo** (`terrain_grade`, the global the terrain shader reads; 0 = off): the imagery's colour c becomes
@@ -928,7 +928,7 @@ Natural grades the picture in three parts (`shared/terrain/render_options.gd`, `
   the fragment, after the roads, airbases and ground textures. Bright ground darkens most, toward a real ground's
   reflectance; dark ground changes little; the hue and saturation stay. One factor over a neighbourhood keeps its
   local contrast: the first version, by the pixel's own luminance, flattened the Negev's wadis (its slope at sand is a
-  seventh; 2026-11-09, iaf-2026/docs/terrain.md §9.1).
+  seventh; 2026-11-09, modern-iaf/docs/terrain.md §9.1).
 - **After the tone mapper**: the Environment's adjustments, contrast GRADE_CONTRAST and saturation GRADE_SATURATION,
   over the whole 3D view.
 - **Exposure** (with the Atmospheric sky's auto-exposure, §1.2): the target luminance × GRADE_EXPOSURE, so the
@@ -936,7 +936,7 @@ Natural grades the picture in three parts (`shared/terrain/render_options.gd`, `
 
 Original (the default) leaves all three as before: the global is 0 and the Environment keeps its own adjustments.
 Modern IAF has Natural in its profile. The values were chosen on 2026-11-09 from six sets at four poses
-(iaf-2026/docs/terrain.md §9.1): GRADE 3.0, contrast 1.15, saturation 1.1, exposure 0.6. The knee costs +0.08 ms
+(modern-iaf/docs/terrain.md §9.1): GRADE 3.0, contrast 1.15, saturation 1.1, exposure 0.6. The knee costs +0.08 ms
 GPU on an Iris Xe 500 m over the Negev (in-place bench, quartiles −0.03 / +0.12). The adjustments' pass is estimated
 at 0.1–0.2 ms. No video memory.
 
@@ -945,7 +945,7 @@ original game, where the shader skips it; 2.5 in Modern IAF. The luminance of th
 ≈ 32 m means (one and four mip levels coarser than the pixel's own, so 2 and 16 times its footprint farther out) is raised by that factor, as a factor on the pixel's own colour
 (clamped to 0.25–2), so its chroma noise and its single-pixel grain stay; it fades in from 250 to 700 m from the
 camera, where the close up's own layers carry the detail. The sim needs it because its colour match to Sentinel-2
-scaled each Survey sheet to the satellite's spread (iaf-2026/docs/terrain.md §9.1; the root fix is open, §10). Cost: +0.69 ms GPU 500 m over the
+scaled each Survey sheet to the satellite's spread (modern-iaf/docs/terrain.md §9.1; the root fix is open, §10). Cost: +0.69 ms GPU 500 m over the
 Negev (in-place bench, quartiles +0.58 / +0.80; the two extra samples of the photo, shared with the knee).
 
 ## 2. Cloud layer (Graphics TEXTURED SKY, docs/front-end.md §12.4)
@@ -1301,11 +1301,11 @@ blocks shade their streets seen from a flying jet. The first split stays 40 m; t
 model by the main camera's distance (`MAIN_CAM_INV_VIEW_MATRIX`), so the shadow pass draws the same buildings as the
 view. Cost on the Iris Xe at 2560 × 1440 over Tel Aviv at 500 m, measured with vsync forced on (the GPU time agrees:
 +0.54 ms): +0.5 ms a frame (1.5 %), +40 draw calls, +125 k primitives, no video memory (the 4096² atlas is the
-same); pictures and the runs in [iaf-2026/docs/scenery.md](../iaf-2026/docs/scenery.md) §7.
+same); pictures and the runs in [modern-iaf/docs/scenery.md](../modern-iaf/docs/scenery.md) §7.
 
 ### 3.2 The 3D cockpit (Extras "Cockpit": 3D; cockpit.md "3D cockpit")
 
-Modern IAF draws the cockpit in a second viewport about the origin (iaf-2026/docs/cockpit.md §6.2: steady far from
+Modern IAF draws the cockpit in a second viewport about the origin (modern-iaf/docs/cockpit.md §6.2: steady far from
 the flight's start): about +4 to +5 ms GPU a frame on the Iris Xe over the numbers below. The original game does not.
 
 `tests/godot/_flight_bench.gd` at 1920×1080 on the Iris Xe (2026-11-01, Settings at their defaults, mission 311's

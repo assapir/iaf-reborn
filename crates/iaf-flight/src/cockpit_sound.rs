@@ -1,4 +1,4 @@
-//! Modern IAF's cockpit sound model (iaf-2026/docs/sound.md §1.9): how a sound reaches a pilot in a helmet under a
+//! Modern IAF's cockpit sound model (modern-iaf/docs/sound.md §1.9): how a sound reaches a pilot in a helmet under a
 //! closed F-16 canopy. Each sound code is in one class; an outside class reaches the ear through the canopy and the
 //! helmet's ear cups (a low-pass and a level per class), an inside class (the headset, the cockpit's tones) as it is.
 //! The external views hear every sound unmuffled.
@@ -122,7 +122,7 @@ pub fn lowpass_hz(c: Class) -> f64 {
 }
 
 /// The level of a class in the cockpit (after the low-pass), dB over the row's outside volume. Set by measuring the
-/// clips through the low-pass (EBU R128 loudness and RMS; iaf-2026/docs/sound.md §1.9, `render.py` in the A13 review
+/// clips through the low-pass (EBU R128 loudness and RMS; modern-iaf/docs/sound.md §1.9, `render.py` in the A13 review
 /// folder). The low-pass takes most of the clips' loudness, so the levels are over 0 dB:
 /// - Engine: the dry loop at military 6 dB under the radio's loudness (−19 LUFS; inferred: speech over the noise);
 /// - Airframe: the wind at its row's level (450 kt and over) as loud as the engine at military (inferred);

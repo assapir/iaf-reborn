@@ -1,0 +1,43 @@
+{
+  "id": "zsu-23-4",
+  "number": 21,
+  "name": "ZSU-23-4 Shilka",
+  "label": "ZSU-23-4",
+  "status": "pending the user's decision",
+  "class": "aaa",
+  "type": 360,
+  "model": "",
+  "scale": 1.0,
+  "radius_m": 3.27,
+  "strength": 300,
+  "range_km": 2.5,
+  "ceiling_m": 1500,
+  "radar_km": 20,
+  "loadout": {
+    "23mm": 2000
+  },
+  "pylons": {},
+  "sources": {
+    "scale": "inferred",
+    "type": "inferred",
+    "radius_m": "w-zsu",
+    "strength": "inferred",
+    "range_km": "w-zsu",
+    "ceiling_m": "w-zsu",
+    "radar_km": "w-zsu",
+    "loadout.23mm": "w-zsu"
+  },
+  "notes": {
+    "model": "none yet (modern-iaf/docs/threat-records.md lists the model source)",
+    "scale": "1: our models are built true size",
+    "type": "360, an AAA code of the 1998 game: its RWR symbol and SPO-15 lamp",
+    "radius_m": "half the length, 6.535 m",
+    "strength": "our damage scale has no ground units yet; held at a fighter's 300 until D2 calibrates the scale (data-formats.md §6)",
+    "range_km": "the effective range (7 km maximum)",
+    "ceiling_m": "the effective altitude (5.1 km maximum)",
+    "radar_km": "RPK-2, Ku band. the unit's sensor reach, compiled into its Objects row (combat.gd sensor_nm reads it before the type code's)"
+  },
+  "footnotes": {
+    "w-zsu": "Wikipedia, \"ZSU-23-4 Shilka\" (6.535 m long, 3.125 m wide; RPK-2 Ku band 20 km; 4 × 23 mm 2A7, 2,000 rounds, 3,400–4,000 rounds/min, 970–980 m/s; effective 2.5 km / 1.5 km, max 7 / 5.1 km) (read 2026-11-03), https://en.wikipedia.org/wiki/ZSU-23-4_Shilka"
+  }
+}

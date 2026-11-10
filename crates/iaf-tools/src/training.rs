@@ -1,5 +1,5 @@
-//! Modern IAF's training scoring (iaf-2026/docs/training.md): a recorded flight (the blackbox JSONL,
-//! docs/blackbox.schema.json) scored against a training mission (`iaf-2026/data/missions/<id>.json`, its
+//! Modern IAF's training scoring (modern-iaf/docs/training.md): a recorded flight (the blackbox JSONL,
+//! docs/blackbox.schema.json) scored against a training mission (`modern-iaf/data/missions/<id>.json`, its
 //! `"training"` rules) into a debrief record with English and Hebrew strings keyed by id.
 //!
 //! - every mission: a crash, any damage or the wheels off the pavement fails it at once (the recorder's `crash`, `hit`
@@ -116,7 +116,7 @@ fn en(id: &str) -> &'static str {
 
 // --- The rules -------------------------------------------------------------------------------------------------------
 
-/// A training mission's pass / fail rules (the mission file's `"training"`, iaf-2026/docs/data-formats.md §5).
+/// A training mission's pass / fail rules (the mission file's `"training"`, modern-iaf/docs/data-formats.md §5).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Rules {
     pub kind: Kind,
@@ -343,7 +343,7 @@ pub struct Runway {
     /// The engine-frame heading down the runway.
     pub heading: f64,
     /// Where the declared runway starts from the take-off end, and where it ends seen from the far end
-    /// (`runway_start_m` of each end, iaf-2026/docs/airbases.md §4).
+    /// (`runway_start_m` of each end, modern-iaf/docs/airbases.md §4).
     pub start_m: f64,
     pub far_start_m: f64,
 }
@@ -495,7 +495,7 @@ impl Debrief {
 // --- Scoring ---------------------------------------------------------------------------------------------------------
 
 /// Scores `flight` against the readable mission `mission` (its `"training"` rules); `airbases` are the airbase
-/// files (`iaf-2026/data/airbases/*.json`), read for a take-off.
+/// files (`modern-iaf/data/airbases/*.json`), read for a take-off.
 pub fn score(flight: &Flight, mission: &Value, airbases: &[Value]) -> Result<Debrief> {
     let id = mission["id"].as_str().unwrap_or("?").to_string();
     ensure!(!flight.samples.is_empty(), "the recording has no samples");
@@ -822,7 +822,7 @@ mod tests {
         ["t", "x", "z", "agl_m", "speed_kt", "heading", "pitch", "on_ground", "engine", "throttle"];
 
     fn data() -> PathBuf {
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../iaf-2026/data")
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../modern-iaf/data")
     }
 
     fn mission(id: &str) -> Value {

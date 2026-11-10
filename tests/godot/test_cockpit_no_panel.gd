@@ -1,5 +1,5 @@
-# Modern IAF's cockpits (iaf-2026/docs/cockpit.md): the sim's Settings profile (iaf-2026/sim_settings.gd) on its own
-# cockpit dirs (assets/converted/own/cockpits/<jet>, built by `iaf-sim own` from iaf-2026/data/planes/<jet>/cockpit):
+# Modern IAF's cockpits (modern-iaf/docs/cockpit.md): the sim's Settings profile (modern-iaf/sim_settings.gd) on its own
+# cockpit dirs (assets/converted/own/cockpits/<jet>, built by `iaf-sim own` from modern-iaf/data/planes/<jet>/cockpit):
 # its layouts (cockpit.json, no panel art) and display data, nothing of the original's. The Sufa, the Barak and the
 # F-35I fly mission 231 with no load error: no panel art loaded, every file read from the sim's dir, the 3D cockpit
 # hung in the jet's own cockpit model (never the original's `_bc`), the MFDs (the real formats: the Sufa's in colour,
@@ -8,7 +8,7 @@
 extends "res://../tests/godot/base.gd"
 
 const Gltf := preload("res://shared/util/gltf.gd")
-const SIM_SETTINGS := "res://../iaf-2026/sim_settings.gd"
+const SIM_SETTINGS := "res://../modern-iaf/sim_settings.gd"
 ## The sim's cockpit dirs (sim_settings.gd own_cockpits), absolute.
 var _own := ""
 

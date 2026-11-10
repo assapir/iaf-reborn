@@ -1,4 +1,4 @@
-//! Modern IAF's setup steps (iaf-2026/docs/setup.md): the `iaf-sim` compilers as a plan for [`run_graph`], with stamps
+//! Modern IAF's setup steps (modern-iaf/docs/setup.md): the `iaf-sim` compilers as a plan for [`run_graph`], with stamps
 //! like the original game's steps. The terrain first (heights and imagery, downloads), the airbases on it, the
 //! missions on the bases; the database and the sounds beside them.
 
@@ -22,14 +22,14 @@ pub struct SimInputs {
 /// Everything a sim run needs.
 pub struct SimCtx {
     pub assets: PathBuf,
-    /// The repo checkout (`iaf-2026/data`).
+    /// The repo checkout (`modern-iaf/data`).
     pub repo: PathBuf,
     pub inputs: SimInputs,
 }
 
 impl SimCtx {
     pub(crate) fn data(&self) -> PathBuf {
-        self.repo.join("iaf-2026/data")
+        self.repo.join("modern-iaf/data")
     }
 
     /// The terrain run for these choices (`iaf-sim terrain`'s defaults); without the Survey no sheet folder.
@@ -99,6 +99,13 @@ pub fn sim_plan(inputs: &SimInputs) -> Vec<Step> {
     v
 }
 
+/// The converted folder's old name moved to the new one before the stamps are read (`iaf_tools::sim::move_old_converted`).
+fn move_old_converted(ctx: &SimCtx) {
+    if let Err(e) = iaf_tools::sim::move_old_converted(&ctx.assets) {
+        eprintln!("Modern IAF: {e:#}");
+    }
+}
+
 /// Runs the sim's `steps` (from [`sim_plan`]) as [`crate::run`] does the original's.
 pub fn sim_run(
     steps: &[Step],
@@ -107,12 +114,14 @@ pub fn sim_run(
     events: &dyn Events,
     cancel: &AtomicBool,
 ) -> Vec<(&'static str, State)> {
+    move_old_converted(ctx);
     let exec = |s: &Step, pr: &dyn Progress| exec(s, ctx, redo(s.id), pr, cancel);
     crate::run_graph(steps, redo, events, cancel, &|s| stamp::sim_of(s, ctx), &exec)
 }
 
 /// Which of the sim's steps a run would find up to date ([`crate::preview`]).
 pub fn sim_preview(steps: &[Step], ctx: &SimCtx) -> Vec<(&'static str, bool)> {
+    move_old_converted(ctx);
     crate::preview_with(steps, &|s| stamp::sim_of(s, ctx))
 }
 
@@ -154,7 +163,7 @@ fn exec(step: &Step, ctx: &SimCtx, redo: bool, pr: &dyn Progress, cancel: &Atomi
     Ok(Outcome::Done)
 }
 
-/// The scenery and road layer (`iaf-sim scenery`, iaf-2026/docs/scenery.md): skipped without GDAL, or offline with a
+/// The scenery and road layer (`iaf-sim scenery`, modern-iaf/docs/scenery.md): skipped without GDAL, or offline with a
 /// file to download.
 fn scenery(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
     if !crate::tools().gdal {
@@ -246,7 +255,7 @@ mod tests {
             std::fs::create_dir_all(dir.join(f).parent().unwrap()).unwrap();
             std::fs::write(dir.join(f), "").unwrap();
         }
-        std::fs::create_dir_all(dir.join("converted/iaf-2026/missions")).unwrap();
+        std::fs::create_dir_all(dir.join("converted/modern-iaf/missions")).unwrap();
         let st = go(&ctx);
         assert!(st.iter().all(|(_, s)| *s == State::UpToDate), "{st:?}");
         assert!(sim_expected(&steps, &ctx, &|_| false).iter().all(|e| *e == Some(0.0)), "up to date: no time");
@@ -287,7 +296,7 @@ mod tests {
         let root = std::env::temp_dir().join(format!("iaf-sim-bases-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         let (repo, assets) = (root.join("repo"), root.join("assets"));
-        let bases = repo.join("iaf-2026/data/airbases");
+        let bases = repo.join("modern-iaf/data/airbases");
         std::fs::create_dir_all(&bases).unwrap();
         std::fs::write(bases.join("ramon.json"), "{}").unwrap();
         std::fs::create_dir_all(assets.join(THEATRE)).unwrap();

@@ -841,15 +841,15 @@ its scale. The original HUD keeps the original layout.
 - Lavi (`lavi.rs`): everything in its section above, with the bank scale and the ILS needles (the original's ILS
   lines are not drawn on this HUD). Not drawn: a VVI.
 - The other Real HUDs (F-16, Kfir, Kurnass 2000, MiGs, F-35) keep the original's ILS lines over them.
-- ILS lines in Modern IAF (`Settings.hud_subpixel()`, on only in `iaf-2026/sim_settings.gd`; 2026-11-09, the Mac play
+- ILS lines in Modern IAF (`Settings.hud_subpixel()`, on only in `modern-iaf/sim_settings.gd`; 2026-11-09, the Mac play
   test's finding 24): the lines sit at the exact 12 px per degree of deviation. The original game's rule (hud.gd
   `ils_lines`, `FUN_005309a0`) holds them at whole HUD pixels, 1/12° steps; on the 3D cockpit's HUD glass zoomed to
   the true size one HUD pixel is about 5.5 screen pixels, so each step was a visible jump. The original game keeps
   the steps. The Real HUDs' own ILS cues (F-15, F-15E, Lavi) take the same positions. Same frame on Ramon's final
-  (0.41° / 1.04°: 4 / 12 HUD px whole, 4.92 / 12.53 exact), before and after (`iaf-2026/tests/_ils_shot.gd`):
+  (0.41° / 1.04°: 4 / 12 HUD px whole, 4.92 / 12.53 exact), before and after (`modern-iaf/tests/_ils_shot.gd`):
 
-  ![Before: the ILS lines at whole HUD pixels](../iaf-2026/docs/pictures/cockpit/ils_bars_before.jpg)
-  ![After: the ILS lines at the exact deviation](../iaf-2026/docs/pictures/cockpit/ils_bars_after.jpg)
+  ![Before: the ILS lines at whole HUD pixels](../modern-iaf/docs/pictures/cockpit/ils_bars_before.jpg)
+  ![After: the ILS lines at the exact deviation](../modern-iaf/docs/pictures/cockpit/ils_bars_after.jpg)
 - F-4E / Mirage (`sights.rs`): the reticles as specified (ours: the reticle rides the LCOS / CCIP pipper).
 - Reticle pen (F-4E, Mirage, MiG-23; `hud.gd` `real_reticle`, 2026-10-26): these sights are a few thin lines at their
   real angular size (the F-4E's outer ring 50 mr, about 2.9°), drawn at the HUD's 0.6 px pen they all but vanished
@@ -873,7 +873,7 @@ its scale. The original HUD keeps the original layout.
 
 ### Modern IAF's HUD light
 
-Modern IAF only (`Settings.hud_daylight()`, true in `iaf-2026/sim_settings.gd`, false in `shared/settings.gd`;
+Modern IAF only (`Settings.hud_daylight()`, true in `modern-iaf/sim_settings.gd`, false in `shared/settings.gd`;
 Approvals A10, 2026-11-09). The original game keeps its eleven colours from the darkest green, drawn over the scene,
 and its 0.6 px pen. The study behind it: the look study's cockpit proposal, finding 1.
 
@@ -889,11 +889,11 @@ and its 0.6 px pen. The study behind it: the look study's cockpit proposal, find
 - **The SYM wheel.** In the 3D cockpit (`Settings.cockpit_controls()`, `shared/cockpit/cockpit3d_controls.gd`) the
   pointer over the ICP's wheel lights it; the mouse wheel or a left drag turns it 2.5 % a step, through the HUD key's
   command (`[123, ±25, 0]`). The wheel is FlightGear's (`icp.xml` `sym`), the node `SYM` of `f16.glb`
-  (iaf-2026/docs/cockpit.md §5.1). The F-35I has Shift + H only (its HMD BRT knob is not bound: open).
+  (modern-iaf/docs/cockpit.md §5.1). The F-35I has Shift + H only (its HMD BRT knob is not bound: open).
 
-![The SYM wheel lit under the pointer](../iaf-2026/docs/pictures/cockpit/sym_wheel_hover.jpg)
-![The SYM wheel turned down 24 notches](../iaf-2026/docs/pictures/cockpit/sym_wheel_turned.jpg)
-![The HUD at full, then at 40 % after the wheel turned down](../iaf-2026/docs/pictures/cockpit/sym_wheel_hud.jpg)
+![The SYM wheel lit under the pointer](../modern-iaf/docs/pictures/cockpit/sym_wheel_hover.jpg)
+![The SYM wheel turned down 24 notches](../modern-iaf/docs/pictures/cockpit/sym_wheel_turned.jpg)
+![The HUD at full, then at 40 % after the wheel turned down](../modern-iaf/docs/pictures/cockpit/sym_wheel_hud.jpg)
 - **Blending.** The HUD and its outer layer draw through `hud_glass.gdshader` with `render_mode blend_add`
   (`cockpit.gd` `_additive_glass`): the symbols add light to the scene, as a combiner does, so over sunlit ground they
   can only brighten it. The original HUD's green, drawn over the scene, read darker than the ground behind it.
@@ -918,12 +918,12 @@ and its 0.6 px pen. The study behind it: the look study's cockpit proposal, find
 
 Before and after at the look study's Shoham pose (HDG 100, 240 m), 16:58 and 22:00, in the Sufa's 3D cockpit:
 
-![The HUD at 16:58: before (the darkest green over the scene) and after (P43, added, with the halo)](../iaf-2026/docs/pictures/cockpit/hud_light_day.jpg)
-![The HUD at 22:00: before and after (the night floor)](../iaf-2026/docs/pictures/cockpit/hud_light_night.jpg)
+![The HUD at 16:58: before (the darkest green over the scene) and after (P43, added, with the halo)](../modern-iaf/docs/pictures/cockpit/hud_light_day.jpg)
+![The HUD at 22:00: before and after (the night floor)](../modern-iaf/docs/pictures/cockpit/hud_light_night.jpg)
 
 The F-35I's helmet display over the Negev, before and after, by day and at 22:00:
 
-![The F-35I's helmet display by day and at night, in P43](../iaf-2026/docs/pictures/cockpit/hud_light_f35i.jpg)
+![The F-35I's helmet display by day and at night, in P43](../modern-iaf/docs/pictures/cockpit/hud_light_f35i.jpg)
 
 [^dash34]: T.O. GR1F-16CJ-34-1-1, Hellenic AF F-16C/D Block 50 avionics and weapons delivery (dash-34), 1997: HUD
     chapter pp. 1-158..1-183 (fig. 1-115 "HUD Window and Scale Positions"), A-A gun pp. 403-411, A-A missiles

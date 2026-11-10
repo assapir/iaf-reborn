@@ -376,14 +376,14 @@ a time (kept quirk).
   (`Settings.tower_bases`; empty here, so the ten names above with the first four talking); its radio menu
   (`radio.request`, `menu`, `runway`) answers start-up / taxi / take-off requests and keeps the tower quiet on the
   ground otherwise; the menu lists only the call that fits the moment (`IafTraining.radio_calls`,
-  iaf-2026/docs/training.md §8).
+  modern-iaf/docs/training.md §8).
 - IAF 2026 only: joined particles. A particle key made of other keys joined by "+" (`ALPHA_T+,+HOLD_POS`) is one
   clip said in one breath; `Radio.joined_wavs()` plays, for each run of a phrase's keys, the longest run that has
   such a clip, else the keys one by one. The text stays the parts' texts. The original's particle file holds no
-  joined key, so its phrases play part by part as before (iaf-2026/docs/sound.md §3).
+  joined key, so its phrases play part by part as before (modern-iaf/docs/sound.md §3).
 - Modern IAF only: keyed calls. With `Settings.radio_key_clicks()` (true in the sim) `say()` plays `key_on.ogg`
   before a phrase's clips and `key_off.ogg` after them: the press-to-talk click and the squelch tail
-  (iaf-2026/docs/sound.md §5.2). The original game plays the particles alone.
+  (modern-iaf/docs/sound.md §5.2). The original game plays the particles alone.
 
 ## UNCERTAIN
 - The phrase channel queues, because the parts of one phrase must follow each other. Whether a new phrase waits for

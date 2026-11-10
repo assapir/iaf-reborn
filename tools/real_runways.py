@@ -34,7 +34,7 @@ BASES = [
     ("Bley", "Marj Ruhayyil AB (inferred)", [95678635, 95678643]),
     ("Ryak", "Rayak AB", [23880576]),
     ("Aman", "Queen Alia", [30089088, 30089092]),
-    # Not an iaf.ibx base: Modern IAF's Nevatim (iaf-2026/docs/data-formats.md), the two runways OSM gives a ref; way
+    # Not an iaf.ibx base: Modern IAF's Nevatim (modern-iaf/docs/data-formats.md), the two runways OSM gives a ref; way
     # 130240671 (no ref, OurAirports' "08R" by its ends) and 292186881 (no OurAirports record) left out.
     ("Nevatim", "Nevatim AB", [130240673, 130240674]),
 ]

@@ -1,5 +1,5 @@
-# Windows: what ./setup, ./iafjets, ./mission-editor, ./modern-iaf and ./modern-iaf-setup do on Linux and macOS (setup.ps1,
-# iafjets.ps1, mission-editor.ps1, modern-iaf.ps1 and modern-iaf-setup.ps1 call this with their mode). Builds the game's
+# Windows: what ./setup, ./iafjets, ./mission-editor, ./start-modern-iaf and ./modern-iaf-setup do on Linux and macOS (setup.ps1,
+# iafjets.ps1, mission-editor.ps1, start-modern-iaf.ps1 and modern-iaf-setup.ps1 call this with their mode). Builds the game's
 # extension, imports the Godot project on a fresh clone, then starts the setup wizard (setup), the game (game; without
 # game data: the wizard), the mission editor (editor), Modern IAF (sim; without its data: sim-setup) or Modern IAF's setup
 # wizard (sim-setup). The arguments
@@ -13,7 +13,7 @@ Push-Location (Resolve-Path "$PSScriptRoot\..\..")
 try {
 	function Tell([string]$msg) {
 		Add-Type -AssemblyName PresentationFramework
-		$title = if ($project -eq 'iaf-2026') { 'Modern IAF' } else { "Jane's IAF (reborn)" }
+		$title = if ($project -eq 'modern-iaf') { 'Modern IAF' } else { "Jane's IAF (reborn)" }
 		[void][System.Windows.MessageBox]::Show($msg, "$title $([char]0x2014) Setup", 'OK', 'Warning')
 		throw $msg
 	}
@@ -45,14 +45,19 @@ try {
 	}
 
 	if ($mode -notin 'setup', 'game', 'editor', 'sim', 'sim-setup') { throw "usage: launch.ps1 setup|game|editor|sim|sim-setup [game arguments]" }
-	$project = if ($mode -like 'sim*') { 'iaf-2026' } else { 'iaf-reborn' }
+	$project = if ($mode -like 'sim*') { 'modern-iaf' } else { 'iaf-reborn' }
 	. "$PSScriptRoot\gdal.ps1"
 	$install = 'winget install Rustlang.Rustup GodotEngine.GodotEngine Microsoft.VisualStudio.BuildTools (the C++ workload), then: rustup default stable'
 	if ($mode -eq 'game' -and -not (Test-Path 'assets\converted')) {
 		Write-Host 'No game data yet: starting the setup wizard.'
 		$mode = 'setup'
 	}
-	if ($mode -eq 'sim' -and -not (Test-Path 'assets\converted\iaf-2026\missions')) {
+	# The sim's data folder's old name (before 2026-11-10) moved once, so nothing is built again.
+	if ($mode -like 'sim*' -and (Test-Path 'assets\converted\iaf-2026') -and -not (Test-Path 'assets\converted\modern-iaf')) {
+		Move-Item 'assets\converted\iaf-2026' 'assets\converted\modern-iaf'
+		Write-Host 'Modern IAF: moved assets\converted\iaf-2026 to assets\converted\modern-iaf (the folder''s new name).'
+	}
+	if ($mode -eq 'sim' -and -not (Test-Path 'assets\converted\modern-iaf\missions')) {
 		Write-Host 'No Modern IAF data yet: starting its setup wizard.'
 		$mode = 'sim-setup'
 	}

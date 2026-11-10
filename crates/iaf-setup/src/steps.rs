@@ -157,7 +157,7 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
         "extras" => {
             let out = conv.join("extras/cockpit");
             let isr = install.join("resource/cockpits/isr.bmp");
-            let data = ctx.repo.join("iaf-2026/data");
+            let data = ctx.repo.join("modern-iaf/data");
             iaf_tools::sim_cockpit::extras(&data, &out, Some(&isr), pr, cancel).map(|_| ())?
         }
         "icon" => convert::icon(&install, &conv.join("icon.png"), pr, cancel)?,

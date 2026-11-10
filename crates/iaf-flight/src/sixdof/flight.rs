@@ -1,5 +1,5 @@
 //! One flight on the 6-DoF: a jet with its control system, engines, gear and fuel, stepped by the game's frames
-//! and read back as the original model's [`State`] and [`ApView`] in the game's ENU frame (iaf-2026/docs/
+//! and read back as the original model's [`State`] and [`ApView`] in the game's ENU frame (modern-iaf/docs/
 //! flight-model.md §9.12). The original game never builds one ([`crate::fm::Fm`]).
 
 use super::aero::{Flow, Surfaces, coefficients, compressibility, lef_schedule};
@@ -415,7 +415,7 @@ impl SixDof {
         self.check_ground(was_on_ground, gear_down, ground_z);
     }
 
-    /// Touchdowns and crashes (inferred limits, iaf-2026/docs/flight-model.md §9.12): a gear-down touchdown sinking
+    /// Touchdowns and crashes (inferred limits, modern-iaf/docs/flight-model.md §9.12): a gear-down touchdown sinking
     /// slower than 3 m/s (about 10 ft/s, the F-16's design sink rate is open) with the wings within 15° counts as a
     /// landing; faster, banked further or with the gear up, or the c.g. reaching the runway, is a crash.
     fn check_ground(&mut self, was_on_ground: bool, gear_down: bool, ground_z: f64) {

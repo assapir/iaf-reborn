@@ -13,7 +13,7 @@ Cyprus over the Sentinel-2 layer), and the road layer of the whole theatre (§6)
   routes, World scale Real's base sites. No tree stands on a road, a railway, a runway, a taxiway or an apron.
 - Related docs: the photo layer in docs/imagery.md §8; the warp into the game frame in docs/georef.md; the cell
   format in `crates/iaf-avionics/src/scenery.rs`; IAF 2026 makes the same scenery in its own frame with this code
-  (`scenery::Frame`, iaf-2026/docs/scenery.md).
+  (`scenery::Frame`, modern-iaf/docs/scenery.md).
 
 Terms used below:
 
@@ -332,7 +332,7 @@ Measured on this machine (Intel laptop, 8 threads, 2026-10-30), both kinds:
 `FAR_MIN_AREA` (1,000 m²) and up: the town's skyline and its halls. The low houses show from 2.5 km in, where the near
 model takes over; a sparser cell keeps every building. Inferred from the theatre's dense cells: 3,400–5,000
 buildings in Tel Aviv's and Beersheba's centre cells, 27 % and 9 % of them 15 m or taller. Full, the default, keeps
-every building. IAF 2026 picks Light (iaf-2026/docs/scenery.md §6 measures both). The counts are the sim's cells
+every building. IAF 2026 picks Light (modern-iaf/docs/scenery.md §6 measures both). The counts are the sim's cells
 (2,048 m on a side, 4.19 km²); the original game's cells are 2,048 terrain units of 1.241 m (2,542 m, 6.46 km²), so
 there the same 2,000 buildings mean a sparser town (310 a km² against 477) and Light thins a little more of a town's
 edge (inferred).
@@ -604,7 +604,7 @@ Palette (`palette_colours` in `shared/terrain/scenery_palette.gdshaderinc`, shar
   - a Detailed dome and the darker flat roofs keep the photo's colour.
 
 Cost: a few more shader instructions per building pixel, no new data; measured in
-[iaf-2026/docs/scenery.md](../iaf-2026/docs/scenery.md) §7.
+[modern-iaf/docs/scenery.md](../modern-iaf/docs/scenery.md) §7.
 
 **Wall shading** (2026-11-09, the look study's proposal 5; both Photo and Palette, On and Detailed): a wall turned
 away from the sun takes less of the sky's light, so a block's sunlit and shaded walls differ. `wall_shade()` in
@@ -612,7 +612,7 @@ away from the sun takes less of the sky's light, so a block's sunlit and shaded 
 parameter `scenery_sun`, which `terrain_view.gd` sets with the time of day: the level part of the direction toward
 the sun, zero at night) and scales the wall's ambient occlusion: 1 − 0.6 × ½ (|s| − n·s). A wall facing away from a
 low sun keeps 40 % of its sky light, a side wall 70 %. It rides on Scenery, an Extra of its own, so it has no row. No
-measurable cost (iaf-2026/docs/scenery.md §7).
+measurable cost (modern-iaf/docs/scenery.md §7).
 
 **Shadow reach** (Graphics → MORE, Original by default): with Far the buildings cast shadows; see
 [rendering.md](rendering.md) §3.1.
@@ -639,7 +639,7 @@ does with "שוהם" beside Shoham (`shared/terrain/town_labels.gd`).
   them, its glass lets them through. The original game's 3D cockpit (drawn in the flight's world) has no such picture:
   with it on, the cockpit view shows no labels; the
   external views do (open).
-- **Cost:** see [iaf-2026/docs/scenery.md](../iaf-2026/docs/scenery.md) §7.
+- **Cost:** see [modern-iaf/docs/scenery.md](../modern-iaf/docs/scenery.md) §7.
 
 ## 4. Solid ground and hits
 
@@ -754,7 +754,7 @@ lamps along the lit roads at night (docs/rendering.md §1.8, §5.1). The game do
 road shows, and routes stay straight.
 
 The other countries' extracts are shared with IAF 2026 (`assets/source/roads/`): its airbases step downloads
-Lebanon's, Syria's, Jordan's and Egypt's for the coastline and the inland water (iaf-2026/docs/terrain.md §11, §12).
+Lebanon's, Syria's, Jordan's and Egypt's for the coastline and the inland water (modern-iaf/docs/terrain.md §11, §12).
 When the original game's setup had left one of them out (each is optional here), the road layer's stamp finds it
 there on the next run, and the layer is made again with that country's roads.
 
@@ -818,7 +818,7 @@ Y north), no height. `max_class` keeps that class and the more important ones; u
 
 | Call | Answer |
 |---|---|
-| `open(dir)` | reads `main.bin` and the manifest's `frame` (the terrain frame the blocks are cut in: IAF 2026's UTM theatre, iaf-2026/docs/scenery.md; the 1998 frame without it); false without `main.bin` |
+| `open(dir)` | reads `main.bin` and the manifest's `frame` (the terrain frame the blocks are cut in: IAF 2026's UTM theatre, modern-iaf/docs/scenery.md; the 1998 frame without it); false without `main.bin` |
 | `roads_in_rect(min, max, max_class)` | the ways whose box meets the rect, as dictionaries: `points`, `class`, `link`, `width`, `bridge`, `tunnel`, `layer`, `paved`, `oneway`, `lit` (1, 0, −1 unknown), `off_ground`, `osm_id` |
 | `segments(min_class, max_class)` | `main.bin`'s segments as point pairs (the map's line meshes) |
 | `nearest(p, max_class)` | the nearest road point within 10 km (railways left out): `point`, `distance`, `class`, `osm_id` |

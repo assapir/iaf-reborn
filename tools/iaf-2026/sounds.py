@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Modern IAF's sound set (iaf-2026/docs/sound.md): the clips of iaf-2026/data/sounds/, made from openly licensed
+"""Modern IAF's sound set (modern-iaf/docs/sound.md): the clips of modern-iaf/data/sounds/, made from openly licensed
 recordings and our own synthesised tones, and that folder's SOURCES.md.
 
 Every clip: 22050 Hz mono Ogg Vorbis, quality 4 (what the sim ships; its sound table opens ogg, docs/sound.md §1),
@@ -25,7 +25,7 @@ from scipy.io import wavfile
 from scipy.signal import butter, find_peaks, sosfiltfilt
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-OUT = os.path.join(ROOT, "iaf-2026/data/sounds")
+OUT = os.path.join(ROOT, "modern-iaf/data/sounds")
 SR = 22050
 UA = {"User-Agent": "linux-iaf-research/1.0"}
 CC0 = "CC0 1.0"
@@ -123,7 +123,7 @@ def warble(f1, f2, rate):
 
 
 def jfs():
-    """The JFS whine (iaf-2026/docs/sound.md §1.4): the partials an F-16's JFS shows at its governed speed, 2126 Hz and
+    """The JFS whine (modern-iaf/docs/sound.md §1.4): the partials an F-16's JFS shows at its governed speed, 2126 Hz and
     3252, 4247, 5259, 6401 Hz, each at its level over the broadband, wandering 0.3 % in speed, on circular noise
     shaped 1/f above 300 Hz at the partials' level (the turbine's air rush; inferred). Whole cycles in 1 s and a
     wander that ends where it starts: a seamless loop."""
@@ -166,7 +166,7 @@ def flatten(x, w=0.5):
 
 def ab_roar(x, low_db=-12, high_db=16):
     """The burner loop: the band below 150 Hz down low_db and above 1.5 kHz up high_db, so its spectrum sits between
-    the F-16 references' (iaf-2026/docs/sound.md §1.2; the recording was made far down the runway, where the air takes
+    the F-16 references' (modern-iaf/docs/sound.md §1.2; the recording was made far down the runway, where the air takes
     the highs and the ground adds rumble: inferred), then flattened."""
     lo = sosfiltfilt(butter(2, 150, fs=SR, output="sos"), x)
     hi = sosfiltfilt(butter(2, 1500, "highpass", fs=SR, output="sos"), x)
@@ -174,7 +174,7 @@ def ab_roar(x, low_db=-12, high_db=16):
 
 
 def ab_light(x):
-    """The light-off thump (iaf-2026/docs/sound.md §1.2): the roar below 150 Hz under a swell that peaks at 0.3 s and
+    """The light-off thump (modern-iaf/docs/sound.md §1.2): the roar below 150 Hz under a swell that peaks at 0.3 s and
     dies by 1.2 s, the low-band overshoot the F-16's light-off shows over its steady burner."""
     t = np.arange(int(1.2 * SR)) / SR
     low = sosfiltfilt(butter(4, 150, fs=SR, output="sos"), x[: len(t)])
@@ -189,7 +189,7 @@ DERIVED = {
 
 
 def gun_rate(x, period=220):
-    """The M61's buzz at 100 rounds a second (iaf-2026/docs/sound.md §1.5): each shot of the recording (about 48 a
+    """The M61's buzz at 100 rounds a second (modern-iaf/docs/sound.md §1.5): each shot of the recording (about 48 a
     second) found on its envelope and laid down every `period` samples (220 at 22050 Hz: 100.2 a second) under a Hann
     window two periods long (pitch-synchronous overlap-add), so the shot keeps its sound and only the rate changes."""
     e = np.abs(sosfiltfilt(butter(2, 300, "highpass", fs=SR, output="sos"), x))
@@ -266,7 +266,7 @@ def finish(x, level, mode):
 
 
 def ogg(path, y):
-    """The clip as Ogg Vorbis, quality 4 (the format the sim ships, iaf-2026/docs/sound.md §1)."""
+    """The clip as Ogg Vorbis, quality 4 (the format the sim ships, modern-iaf/docs/sound.md §1)."""
     with tempfile.TemporaryDirectory() as d:
         wavfile.write(os.path.join(d, "a.wav"), SR, np.round(np.clip(y, -1, 1) * 32767).astype(np.int16))
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", os.path.join(d, "a.wav"), "-c:a", "libvorbis", "-q:a", "4",
@@ -307,7 +307,7 @@ VOICES_HEAD = """
 
 The speech clips (`voc_*`, `twr_*`, `num*`, `rwy*`, `acft_roger`, `endworld`) are Kokoro text to speech through
 Betty's chain or the radio chain, made by `iaf-sim voices` (`crates/iaf-tools/src/sim_voices.rs`, Kokoro through
-`tools/iaf-2026/kokoro_tts.py`; iaf-2026/docs/sound.md §5); their texts and voices are in [voices.json](voices.json).
+`tools/iaf-2026/kokoro_tts.py`; modern-iaf/docs/sound.md §5); their texts and voices are in [voices.json](voices.json).
 Kokoro-82M v1.0 and its voice packs are Apache-2.0; its training data is public-domain, permissively licensed and
 synthetic speech plus two CC BY sets, Koniwa `tnc` (CC BY 3.0) and SIWIS (CC BY 4.0). `kch2` (the radio click),
 `key_on` / `key_off` (the press-to-talk click and the squelch tail around a call) and `twr_pause` (0.2 s of radio

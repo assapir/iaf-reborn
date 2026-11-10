@@ -464,7 +464,7 @@ var _start_external := false
 var _orbit_arg := -1
 
 
-## The loading phase now under way, for a loading screen that names its steps (Modern IAF's, iaf-2026/docs/front-end.md
+## The loading phase now under way, for a loading screen that names its steps (Modern IAF's, modern-iaf/docs/front-end.md
 ## §7: `step(name, done 0..1)`); the original's screen shows the ground's progress alone.
 func _loading_step(step: String, done := 0.0) -> void:
 	if _loading != null and _loading.get_child(0).has_method("step"):
@@ -2452,7 +2452,7 @@ func blackbox_event(e: Dictionary) -> void:
 
 
 ## Any throttle command starts the engine (FUN_0059f7d0 sets S+0x1d0), even at idle; not in Modern IAF, whose start is
-## its own command (Settings.throttle_starts_engine, iaf-2026/docs/training.md §7).
+## its own command (Settings.throttle_starts_engine, modern-iaf/docs/training.md §7).
 func _throttle_event() -> void:
 	if flight != null:
 		if Settings.throttle_starts_engine():
@@ -2735,17 +2735,17 @@ func _command(cmd: Array) -> bool:
 			_quit_key()
 		200:
 			# Modern IAF's "start engine" (its own keys.json; no original record sends it): the 6-DoF's start sequence
-			# (iaf-2026/docs/training.md §7). The original model ignores it.
+			# (modern-iaf/docs/training.md §7). The original model ignores it.
 			if flight != null:
 				flight.start_engine()
 		202:
 			# Modern IAF's "master arm" (its own keys.json; no original record sends it): safe <-> armed
-			# (player_weapons.gd master_arm, iaf-2026/docs/weapons.md §3).
+			# (player_weapons.gd master_arm, modern-iaf/docs/weapons.md §3).
 			if weapons != null:
 				weapons.master_arm = not weapons.master_arm
 				_on_subtitle("Master arm" if weapons.master_arm else "Master safe")
 		210, 211, 212, 213, 214, 215:
-			# Modern IAF's start-up checklist steps (its own keys.json; iaf-2026/docs/training.md §7.1): the flight add-on
+			# Modern IAF's start-up checklist steps (its own keys.json; modern-iaf/docs/training.md §7.1): the flight add-on
 			# passes them to the flight model and ticks its card.
 			if addon != null and addon.has_method("start_step"):
 				addon.start_step(int(cmd[0]) - 210)

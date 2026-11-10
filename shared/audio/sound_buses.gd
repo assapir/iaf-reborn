@@ -14,7 +14,7 @@ const SPEECH := "IafSpeech"
 const ALL := [ENGINE, SFX, SPEECH]
 ## soundprop category letter -> bus.
 const BY_CATEGORY := {"E": ENGINE, "F": SFX, "V": SPEECH, "S": SPEECH}
-## Modern IAF's cockpit sound model (Settings.cockpit_sound_model(), iaf-2026/docs/sound.md §1.9): a sound of an outside
+## Modern IAF's cockpit sound model (Settings.cockpit_sound_model(), modern-iaf/docs/sound.md §1.9): a sound of an outside
 ## class (IafCockpitSound.class_of) plays on CANOPY + class + its category bus, made on first use: a low-pass, the
 ## class's level and a limiter from the cockpit, nothing from the external views (set_view), sent to the category bus.
 const CANOPY := "IafCanopy_"

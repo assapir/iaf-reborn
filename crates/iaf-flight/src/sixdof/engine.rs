@@ -1,5 +1,5 @@
 //! The jets' engines: TP-1538's powerplant model (figure 66, printed pp. 218–220) over its thrust table (Table VI,
-//! printed p. 93), each engine scaled to its public ratings and spool time (iaf-2026/docs/flight-model.md §9.7).
+//! printed p. 93), each engine scaled to its public ratings and spool time (modern-iaf/docs/flight-model.md §9.7).
 
 use super::body::{MAX_FRAME, MAX_STEP};
 use crate::atmosphere::air;

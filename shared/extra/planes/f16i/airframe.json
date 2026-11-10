@@ -29,7 +29,7 @@
     }
   },
   "notes": {
-    "sixdof": "Physics Flight model on 6-DoF: Modern IAF's 6-DoF from its own data (iaf-2026/docs/flight-model.md §9; docs/deviations.md §2)",
+    "sixdof": "Physics Flight model on 6-DoF: Modern IAF's 6-DoF from its own data (modern-iaf/docs/flight-model.md §9; docs/deviations.md §2)",
     "": "Every F-16 (type 100) with Extras \"F-16 version\" on Sufa, the player's and the AI's (docs/f16i.md).",
     "label": "the TSD's selected-unit label",
     "info_tag": "the flight info line's tag",

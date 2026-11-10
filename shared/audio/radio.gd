@@ -82,7 +82,7 @@ var bases: Array = []  # [{tower: Vector3, lineup: Vector3, rwy: int, hangars: [
 ## How many of the first bases have a talking tower: the original's four (TOWER_BASES), or every base of the project's
 ## own iaf.ibx (Settings.tower_bases).
 var tower_count := TOWER_BASES
-## Ours, Modern IAF's radio menu (iaf-2026/docs/training.md §8): the tower answers the player's requests (request) and
+## Ours, Modern IAF's radio menu (modern-iaf/docs/training.md §8): the tower answers the player's requests (request) and
 ## does not talk on its own on the ground; `runway` is the designator the tower of base `runway_base` (its iaf.ibx
 ## section, the mission's base) gives ("25R"; "" = from RunwayNumber).
 var menu := false
@@ -213,7 +213,7 @@ func expand(template: String, strings: Array = [], ints: Array = []) -> Dictiona
 	return {"template": template, "text": text, "wavs": joined_wavs(keys), "shown": shown}
 
 
-## Ours (Modern IAF, iaf-2026/docs/sound.md §3): each key's clip, where the longest run of keys that has a joined
+## Ours (Modern IAF, modern-iaf/docs/sound.md §3): each key's clip, where the longest run of keys that has a joined
 ## particle ("ALPHA_T+,+HOLD_POS", one clip said in one breath) plays that one clip instead. The original's particle
 ## files hold no joined key, so its phrases play key by key.
 func joined_wavs(keys: Array[String]) -> Array[String]:
@@ -580,7 +580,7 @@ func contact_tower() -> void:
 		state = 2
 
 
-## Ours, Modern IAF's radio menu (iaf-2026/docs/training.md §8): the player asks the tower of the base within
+## Ours, Modern IAF's radio menu (modern-iaf/docs/training.md §8): the player asks the tower of the base within
 ## TOWER_RANGE for "startup", "taxi" or "takeoff"; the tower state machine (base, state, last) is left as it is.
 ## Start-up is always cleared; taxi once the engine runs (else hold position); take-off by _ground's rule: lined up in
 ## the lineup zone "cleared for take-off", between LINEUP_FAR and LINEUP_NEAR of the lineup point "line up" with the

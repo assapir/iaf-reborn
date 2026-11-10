@@ -1,5 +1,5 @@
-//! `iaf-sim voices`: Modern IAF's speech clips (iaf-2026/docs/sound.md §5). Kokoro text to speech says each line of
-//! `iaf-2026/data/sounds/voices.json` as a whole phrase (`tools/iaf-2026/kokoro_tts.py`, the one Python step); this
+//! `iaf-sim voices`: Modern IAF's speech clips (modern-iaf/docs/sound.md §5). Kokoro text to speech says each line of
+//! `modern-iaf/data/sounds/voices.json` as a whole phrase (`tools/iaf-2026/kokoro_tts.py`, the one Python step); this
 //! module trims it, runs Betty's chain or the radio chain on it and writes the clip as Ogg Vorbis (ffmpeg) into
 //! `<data>/sounds`, the clips the repository ships; then `sim::own_sounds` compiles them into the assets.
 //! Every click and noise is computed here and seeded, so a run is repeatable up to Kokoro's own output.

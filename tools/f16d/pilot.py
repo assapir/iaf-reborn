@@ -1,4 +1,4 @@
-# The pilot's body seen from the F-16's 3D cockpit (Modern IAF; docs/cockpit.md "3D cockpit", iaf-2026/docs/cockpit.md):
+# The pilot's body seen from the F-16's 3D cockpit (Modern IAF; docs/cockpit.md "3D cockpit", modern-iaf/docs/cockpit.md):
 # FlightGear's `Models/Pilots/pilot_internalview.ac` (github.com/NikolaiVChr/f16 at PIN, GPL-2.0-or-later;
 # shared/extra/models/cockpit3d/SOURCES.md), the pilot without head and helmet, legs to the rudder pedals, the right
 # hand on the stick and the left on the throttle, in FlightGear's cockpit frame. Placed as tools/f16d/cockpit3d.py

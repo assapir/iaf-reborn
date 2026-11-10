@@ -1,17 +1,17 @@
-//! Modern IAF's data compilers (`iaf-sim`, iaf-2026/docs/data-formats.md): the readable unit, weapon and mission files
-//! under `iaf-2026/data/` compiled into the shapes the shared readers consume today, with no reader change:
+//! Modern IAF's data compilers (`iaf-sim`, modern-iaf/docs/data-formats.md): the readable unit, weapon and mission files
+//! under `modern-iaf/data/` compiled into the shapes the shared readers consume today, with no reader change:
 //! - `db`: `db/units/*.json` and `db/weapons/*.json` → `converted/missions/sim.bdb.json` (the parts and hex keys of a
 //!   converted `.bdb`, docs/formats/mis.md §4), its models under the key `"sim.bdb"` of
 //!   `converted/objects/objects.json` (the scenery's fingerprint leaves that key out), and the weapons' motion in
 //!   `converted/own/resource/weaponsmotion/weapons.ibx` (`[WEAPONnnn]` by type, the shape `weapon_db.gd` reads; the
 //!   game reads it once A1's `install_dir()` switch points there);
-//! - `missions`: `missions/*.json` → `converted/iaf-2026/missions/<id>.json` + `missionlist.json`, built with the
+//! - `missions`: `missions/*.json` → `converted/modern-iaf/missions/<id>.json` + `missionlist.json`, built with the
 //!   mission editor's builders (`mission_edit`), `bdb: "sim.bdb"`;
 //! - `own`: `sounds/soundprop.json` and its clips → `converted/own/resource/soundfiles/` (`soundprop.trx`, the
 //!   columns `sound_table.gd` reads), `keys.json` → `converted/own/keys.json` (the shape `key_table.gd` reads).
 //!
 //! Nothing is read from the install or the exe: every figure comes from the data files, each with its source; every
-//! clip from an open licence or our own tones (`iaf-2026/data/sounds/SOURCES.md`).
+//! clip from an open licence or our own tones (`modern-iaf/data/sounds/SOURCES.md`).
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::path::Path;
@@ -31,12 +31,38 @@ pub const OBJECTS_FILE: &str = "converted/objects/objects.json";
 pub const IBX_FILE: &str = "converted/own/resource/weaponsmotion/weapons.ibx";
 /// The sim's missions: their own folder, beside the original's `converted/missions` (whose readers and tests take
 /// every file there as an original mission).
-pub const MISSIONS_DIR: &str = "converted/iaf-2026/missions";
+pub const MISSIONS_DIR: &str = "converted/modern-iaf/missions";
+/// The sim's converted folder's name before the project folder became `modern-iaf/` (2026-11-10).
+const OLD_CONVERTED: &str = "converted/iaf-2026";
+
+/// Renames the sim's converted folder from its old name (`converted/iaf-2026`) to `converted/modern-iaf` once, when
+/// only the old one exists, and the setup's stamps there to the new data path (`input modern-iaf/...`), so the built
+/// data is kept rather than compiled again (as tools/migrate_converted.sh). True when anything changed.
+pub fn move_old_converted(assets: &Path) -> Result<bool> {
+    let (old, new) = (assets.join(OLD_CONVERTED), assets.join("converted/modern-iaf"));
+    let mut changed = false;
+    if old.is_dir() && !new.exists() {
+        std::fs::rename(&old, &new).with_context(|| format!("{} -> {}", old.display(), new.display()))?;
+        eprintln!("Modern IAF: moved {} to {} (the folder's new name)", old.display(), new.display());
+        changed = true;
+    }
+    for e in std::fs::read_dir(&new).into_iter().flatten().flatten() {
+        let p = e.path();
+        if p.extension().is_some_and(|x| x == "stamp") {
+            let t = std::fs::read_to_string(&p)?;
+            if t.contains("\ninput iaf-2026/") {
+                std::fs::write(&p, t.replace("\ninput iaf-2026/", "\ninput modern-iaf/"))?;
+                changed = true;
+            }
+        }
+    }
+    Ok(changed)
+}
 /// The sim's sound table and clips (the original's `resource/soundfiles` layout, docs/sound.md §1).
 pub const SOUNDS_DIR: &str = "converted/own/resource/soundfiles";
 /// The sim's key table (the shape of `iaf-convert keys`' `converted/keys.json`, read by `key_table.gd`).
 pub const KEYS_FILE: &str = "converted/own/keys.json";
-/// The same table with the laptop map's keys (`keys.json`'s `laptop` column; iaf-2026/docs/front-end.md §9.1).
+/// The same table with the laptop map's keys (`keys.json`'s `laptop` column; modern-iaf/docs/front-end.md §9.1).
 pub const KEYS_LAPTOP_FILE: &str = "converted/own/keys_laptop.json";
 /// The sim's aircraft descriptors (aircraft_model.gd through `Settings.planes_folder()`): `<plane>/aircraft.json` and the
 /// index `aircraft.json`, under the assets root.
@@ -46,7 +72,7 @@ pub const F16_GLB: &str = "shared/extra/models/f16/f16d.glb";
 /// The F-16's stations the sim's loadout hangs stores on (glTF metres on our model), each where its store's origin
 /// goes: a store with no original model hangs by its own origin (player_weapons.gd `_pilon_of`). The model's own
 /// helpers are the original's, which put the AIM-9 about a missile diameter above and outboard of our rails and the
-/// tank's top inside the wing (iaf-2026/docs/data-formats.md §3, side and front views).
+/// tank's top inside the wing (modern-iaf/docs/data-formats.md §3, side and front views).
 ///   - 1 and 9 (StationA, StationI): under the launcher rails (x 4.62 to 4.795 m out, y −0.138 to 0.127 m, z 1.17 to
 ///     3.54 m in f16d.glb and f16i.glb), the AIM-9's axis one body radius (63.5 mm) below the rail, on its middle (the
 ///     hang under the rail inferred from the F-16's LAU-129);
@@ -158,12 +184,12 @@ const OBJECT_REST: &[(&str, i64)] = &[
     ("0x5d2", 0),
     ("0x5d7", 0),
 ];
-/// Optional figures a unit or weapon may hold for the threat set (iaf-2026/docs/threats.md §6); checked for their
+/// Optional figures a unit or weapon may hold for the threat set (modern-iaf/docs/threats.md §6); checked for their
 /// sources, not compiled (no shared reader takes them yet).
 const THREAT_FIGURES: &[&str] =
     &["range_km", "min_range_km", "ceiling_m", "floor_m", "speed_ms", "mach", "radar_km", "g_limit", "warhead_kg"];
 /// The sub-folder of `db` that holds the drafts: records pending the user's decision, which `iaf-sim db` skips
-/// (iaf-2026/docs/data-formats.md §11).
+/// (modern-iaf/docs/data-formats.md §11).
 pub const DRAFTS: &str = "db/drafts";
 const LB_PER_KG: f64 = 1.0 / 0.45359;
 
@@ -402,7 +428,8 @@ pub fn compile_db(db: &Db) -> Result<(Value, Map<String, Value>, String)> {
 /// `weapons.ibx`: one `[WEAPONnnn]` section per weapon, `type` = generation · 1000 + sub type, then its motion; the
 /// first weapon of each sub type also as the sub type's default section (generation 0: `weapon_db.gd motion_for`).
 fn ibx(db: &Db) -> Result<String> {
-    let mut out = String::from("; Modern IAF's weapon motion, compiled by iaf-sim db from iaf-2026/data/db/weapons.\n");
+    let mut out =
+        String::from("; Modern IAF's weapon motion, compiled by iaf-sim db from modern-iaf/data/db/weapons.\n");
     let mut sections: BTreeMap<i64, (&str, &Map<String, Value>)> = BTreeMap::new();
     let mut defaults = BTreeMap::new();
     for w in &db.weapons {
@@ -499,7 +526,7 @@ pub fn skeleton() -> Value {
 }
 
 /// A point of a mission file in the sim's frame: UTM 36N (x east, y north) from its "lat" / "lon"
-/// (iaf-2026/docs/terrain.md §2).
+/// (modern-iaf/docs/terrain.md §2).
 pub(crate) fn place(p: &Value, what: &str) -> Result<[f64; 2]> {
     let (lat, lon) = (p["lat"].as_f64(), p["lon"].as_f64());
     let (Some(lat), Some(lon)) = (lat, lon) else { bail!("{what}: \"lat\" and \"lon\" must be numbers") };
@@ -507,7 +534,7 @@ pub(crate) fn place(p: &Value, what: &str) -> Result<[f64; 2]> {
 }
 
 /// The lineup point of `base`'s runway end `number` ("25R"): (x, y, grid heading), LINEUP_IN_M past the declared
-/// runway's start (iaf-2026/docs/airbases.md §4).
+/// runway's start (modern-iaf/docs/airbases.md §4).
 fn runway_start(base: &Base, number: &str) -> Result<[f64; 3]> {
     let (ri, k) = base.end(number).with_context(|| format!("{}: no runway end {number}", base.name_en))?;
     let r = &base.runways[ri];
@@ -535,7 +562,7 @@ fn texts(f: &File, k: &str) -> Result<Value> {
     Ok(f.v[k].clone())
 }
 
-/// The mission card shown at a training mission's start (iaf-2026/docs/front-end.md §8): the readable mission's
+/// The mission card shown at a training mission's start (modern-iaf/docs/front-end.md §8): the readable mission's
 /// own `card` ({"objective": {"en", "he"}, "keys": [record index of the sim's keys.json…]}), else its kind's. In the
 /// objective, `{key:N}` stands for record N's key as bound (the game fills it in, "Cmd" on macOS) and `{runway}` for
 /// the mission's runway.
@@ -580,7 +607,7 @@ pub fn compile_mission(
     ground: &mut dyn FnMut(f64, f64) -> Option<f64>,
 ) -> Result<Value> {
     check_sources(f, &MISSION_FIGURES)?;
-    // The training rules (iaf-2026/docs/training.md): they parse, and each figure has its source.
+    // The training rules (modern-iaf/docs/training.md): they parse, and each figure has its source.
     training::rules(&f.v).with_context(|| f.name.clone())?;
     check_sources(f, &training::FIGURES)?;
     // Each flight and placed unit names its own sources (the mission's footnotes serve them).
@@ -798,7 +825,7 @@ pub fn ogg_seconds(bytes: &[u8]) -> Result<f64> {
 /// code, sub 1, sub 2, category, resident, cyclic, 3d, channel, # random files, inside / outside volume, 3d min / max
 /// distance, file). `own` checks the clips.
 pub fn compile_soundprop(table: &Value) -> Result<String> {
-    let mut out = String::from("; Modern IAF's sound table, compiled by iaf-sim own from iaf-2026/data/sounds.\n");
+    let mut out = String::from("; Modern IAF's sound table, compiled by iaf-sim own from modern-iaf/data/sounds.\n");
     let (mut keys, rows) = (HashSet::new(), table["rows"].as_array().context("soundprop: no \"rows\"")?);
     for r in rows {
         let s = |k: &str| r[k].as_str().with_context(|| format!("soundprop {r}: \"{k}\" must be a string"));
@@ -988,7 +1015,7 @@ pub fn compile_keys(src: &Value, laptop: bool) -> Result<Value> {
             "joystick": r["joystick"].as_i64().with_context(|| format!("keys {i}: \"joystick\""))?,
             "shown": shown,
         });
-        // The Keys screen's part (iaf-2026/docs/front-end.md §9); a record without one is not listed there.
+        // The Keys screen's part (modern-iaf/docs/front-end.md §9); a record without one is not listed there.
         if let Some(g) = r.get("group") {
             rec["group"] = g.as_str().with_context(|| format!("keys {i}: \"group\" must be a string"))?.into();
         }
@@ -999,7 +1026,7 @@ pub fn compile_keys(src: &Value, laptop: bool) -> Result<Value> {
     let modifiers: Vec<Value> =
         MODIFIERS.iter().map(|&(bits, prefix)| json!({"bits": bits, "prefix": prefix})).collect();
     Ok(json!({
-        "source": "Modern IAF's own key table, compiled by iaf-sim own from iaf-2026/data/keys.json",
+        "source": "Modern IAF's own key table, compiled by iaf-sim own from modern-iaf/data/keys.json",
         "records": records,
         "key_names": names,
         "modifiers": modifiers,
@@ -1019,7 +1046,7 @@ pub struct Radio {
 
 /// Compiles the radio's files from `voices` (each particle needs its `text_he`).
 pub fn compile_radio(voices: &Value) -> Result<Radio> {
-    let head = "; Modern IAF's radio phrases, compiled by iaf-sim own from iaf-2026/data/sounds/voices.json.\n";
+    let head = "; Modern IAF's radio phrases, compiled by iaf-sim own from modern-iaf/data/sounds/voices.json.\n";
     let (mut templates, mut particles, mut files) = (head.to_string(), head.to_string(), vec![]);
     let mut particles_he = head.to_string();
     let parts = voices["particles"].as_object().context("voices: no \"particles\"")?;
@@ -1175,7 +1202,7 @@ mod tests {
     use crate::progress::Stdout;
 
     fn data() -> std::path::PathBuf {
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../iaf-2026/data")
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../modern-iaf/data")
     }
 
     /// Every data file compiles, and the result loads as the game reads it: the bdb's references resolve (each
@@ -1699,7 +1726,7 @@ mod tests {
         for k in args.iter().copied().chain(["RWY_R", "RWY_C", ","]).chain(numbers.iter().map(String::as_str)) {
             assert!(keys_of.contains(k), "no particle {k}");
         }
-        // The joined clips (iaf-2026/docs/sound.md §3): each part a particle; the training missions' calls covered.
+        // The joined clips (modern-iaf/docs/sound.md §3): each part a particle; the training missions' calls covered.
         for k in keys_of.iter().filter(|k| k.contains('+')) {
             assert!(k.split('+').all(|p| keys_of.contains(p)), "{k}");
         }
@@ -1798,7 +1825,7 @@ mod tests {
         assert!(ogg_seconds(b"RIFF\0\0\0\0WAVE").is_err());
     }
 
-    /// Every airbase layout (`airbases/*.json`, iaf-2026/docs/airbases.md) parses, and every runway has two ends
+    /// Every airbase layout (`airbases/*.json`, modern-iaf/docs/airbases.md) parses, and every runway has two ends
     /// with a place and a heading, and a width; every source names a footnote of the file, "inferred" or "open".
     #[test]
     fn every_airbase_has_runways_with_two_ends_and_a_width() {
@@ -1841,5 +1868,26 @@ mod tests {
             }
         }
         assert_eq!(files.len(), 5, "Ramon, Hatzerim, Nevatim, Ramat David, Tel Nof");
+    }
+
+    #[test]
+    fn moves_the_old_converted_folder_once() {
+        let a = std::env::temp_dir().join(format!("iaf-sim-move-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&a);
+        std::fs::create_dir_all(a.join("converted/iaf-2026/missions")).unwrap();
+        std::fs::write(a.join("converted/iaf-2026/missions/missionlist.json"), "[]").unwrap();
+        std::fs::write(a.join("converted/iaf-2026/sim-db.stamp"), "iaf-setup 1\ninput iaf-2026/data/db/a.json 2 0\n")
+            .unwrap();
+        assert!(move_old_converted(&a).unwrap(), "moved");
+        let stamp = std::fs::read_to_string(a.join("converted/modern-iaf/sim-db.stamp")).unwrap();
+        assert_eq!(stamp, "iaf-setup 1\ninput modern-iaf/data/db/a.json 2 0\n");
+        assert!(!a.join("converted/iaf-2026").exists());
+        assert_eq!(std::fs::read_to_string(a.join("converted/modern-iaf/missions/missionlist.json")).unwrap(), "[]");
+        assert!(!move_old_converted(&a).unwrap(), "only once");
+        // Both present: the new one is kept and the old one left alone.
+        std::fs::create_dir_all(a.join("converted/iaf-2026")).unwrap();
+        assert!(!move_old_converted(&a).unwrap());
+        assert!(a.join("converted/iaf-2026").is_dir() && a.join("converted/modern-iaf/missions").is_dir());
+        std::fs::remove_dir_all(&a).unwrap();
     }
 }

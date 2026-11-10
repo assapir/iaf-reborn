@@ -12,7 +12,7 @@ that need data skip themselves with a message.
 |---|---|---|---|
 | lint | Linux | 15 min | `cargo fmt --all --check`, clippy with warnings as errors, gdformat (`--line-length 120`) and gdlint on every tracked `.gd` file, `tools/doclint.py`, `tests/test_flight_timeline.py` |
 | rust | Linux, macOS (arm64), Windows | 15 min | `cargo test --workspace --no-fail-fast` (every crate runs, all failures in one log) |
-| godot | Linux, macOS (arm64), Windows | 15 min | builds the extension (`cargo build --release -p iaf-godot`), installs the official Godot 4.7.2 build (`tools/ci_install_godot.sh`), imports both projects (`iaf-reborn`, `iaf-2026`), parse-checks every script of each (`tools/gdparse.gd`) and runs the 8 Godot tests that pass without data |
+| godot | Linux, macOS (arm64), Windows | 15 min | builds the extension (`cargo build --release -p iaf-godot`), installs the official Godot 4.7.2 build (`tools/ci_install_godot.sh`), imports both projects (`iaf-reborn`, `modern-iaf`), parse-checks every script of each (`tools/gdparse.gd`) and runs the 8 Godot tests that pass without data |
 | godot-sweep | Linux, macOS (arm64), Windows | 20 min | on `main`, by hand (Run workflow), nightly at 03:17 UTC, and for a push whose commit message holds `[sweep]`: every Godot test without data (below); informational |
 
 Lint runs once, on Linux. The other systems run only what differs per system: the build, the tests, the Godot import
@@ -24,7 +24,7 @@ artifact for 7 days. The godot-sweep job uses that artifact instead of building 
 ## Godot tests without data
 
 `tools/ci_godot_tests.sh [tests…]` runs the given tests (default: every `tests/godot/test_*.gd` and
-`iaf-2026/tests/test_*.gd`) headless, each in its own project (`iaf-2026/tests/` in `iaf-2026`, named `sim_<test>`
+`modern-iaf/tests/test_*.gd`) headless, each in its own project (`modern-iaf/tests/` in `modern-iaf`, named `sim_<test>`
 in the results): six at a time, 60 seconds each, with `IAF_DEFAULT_SETTINGS=1` and the log in the runner's temp folder. The job log shows each
 result as it comes. The run's summary page shows the counts and a table: pass, fail, needs-data or timeout per test.
 It exits 1 unless every test passes.

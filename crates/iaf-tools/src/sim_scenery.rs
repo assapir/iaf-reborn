@@ -1,5 +1,5 @@
-//! `iaf-sim scenery` (iaf-2026/docs/scenery.md): the original game's scenery and road layer (docs/scenery.md) made
-//! for Modern IAF's theatre, in its UTM 36N frame (iaf-2026/docs/terrain.md §2), by the same code with the frame as a
+//! `iaf-sim scenery` (modern-iaf/docs/scenery.md): the original game's scenery and road layer (docs/scenery.md) made
+//! for Modern IAF's theatre, in its UTM 36N frame (modern-iaf/docs/terrain.md §2), by the same code with the frame as a
 //! parameter (`scenery::Frame::Utm`, `roads::make`):
 //! - `converted/terrain/israel/roads/`: the road layer (`main.bin`, `L3/r_<i>_<j>.bin`, the manifest with "frame");
 //! - `converted/terrain/israel/scenery/`: one cell per level-1 node of the theatre with a building or tree
@@ -529,7 +529,7 @@ mod tests {
     /// beside them is open.
     #[test]
     fn exclusion_zones() {
-        let data = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../iaf-2026/data/airbases");
+        let data = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../modern-iaf/data/airbases");
         let bases = sim_bases::load(&data).unwrap();
         let rws: Vec<&sim_bases::Runway> = bases.iter().flat_map(|b| b.runways.iter()).collect();
         // Ramon's box (64 km): the west quarter sea, a 6.4 km lake in the north-east.

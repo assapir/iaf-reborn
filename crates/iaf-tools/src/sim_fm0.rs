@@ -1,5 +1,5 @@
 //! `iaf-sim fm`: Modern IAF FM-0, the sim's own flight data for the existing flight model
-//! (iaf-2026/docs/flight-model.md). Writes `bd.ibx` (`[F-16]` and `[F-15]`) and their envelope files (`f16.dat`,
+//! (modern-iaf/docs/flight-model.md). Writes `bd.ibx` (`[F-16]` and `[F-15]`) and their envelope files (`f16.dat`,
 //! `f15.dat`) into `converted/own/resource/md/`, in the shapes `iaf_flight::load` reads (docs/flight-model.md §1 and
 //! §3). Every key is written, so no loader default stands in for airplane data; each line carries its source as a
 //! trailing comment. Inputs are only:
@@ -270,7 +270,7 @@ impl Jet {
         let t_idle = fits.idle.map(|c| c * s.ab_lbf / fits.max[0]);
         // The model's "0" corner: idle is k = 0.05 and military k = 0.6 of the way from "0" to "1" (flight-model.md
         // §4.1); one value serves both: least squares of the two settings (the exact-military fit, tested and dropped
-        // 2026-11-02, made idle a brake in flight: iaf-2026/docs/flight-model.md §3).
+        // 2026-11-02, made idle a brake in flight: modern-iaf/docs/flight-model.md §3).
         let t0: [f64; 4] = std::array::from_fn(|n| {
             let (i, mil, mx) = (t_idle[n], t_mil[n], t_max[n]);
             (0.95 * (i - 0.05 * mx) + 0.4 * (mil - 0.6 * mx)) / (0.95f64.powi(2) + 0.4f64.powi(2))
@@ -378,8 +378,8 @@ fn g(v: f64) -> String {
 fn section(j: &Jet, keys: &[(&str, String, String)]) -> Vec<String> {
     let mut out = vec![
         format!("[{}]", j.s.section),
-        format!("; {} -- Modern IAF FM-0, sources in iaf-2026/docs/flight-model.md", j.s.name),
-        "Model = 6dof\t; the sim flies its own 6-DoF (crates/iaf-flight/src/sixdof, iaf-2026/docs/flight-model.md §9); \
+        format!("; {} -- Modern IAF FM-0, sources in modern-iaf/docs/flight-model.md", j.s.name),
+        "Model = 6dof\t; the sim flies its own 6-DoF (crates/iaf-flight/src/sixdof, modern-iaf/docs/flight-model.md §9); \
          the keys below serve its instruments, the autopilot's envelope and the original model as a fallback"
             .into(),
     ];
@@ -547,7 +547,7 @@ fn bd_ibx(f16: &Jet, f15: &Jet, lift: &Lift) -> String {
     b.extend(common(f15, &h15, lift));
     let mut lines = vec![
         "; Modern IAF FM-0 flight data, written by iaf-sim fm from NASA TP-1538 and public figures".into(),
-        "; (iaf-2026/docs/flight-model.md). Units: lb, ft, deg.".into(),
+        "; (modern-iaf/docs/flight-model.md). Units: lb, ft, deg.".into(),
         String::new(),
     ];
     lines.extend(section(f16, &a));
@@ -643,9 +643,10 @@ mod tests {
     use sha2::{Digest, Sha256};
 
     /// The SHA-256 of the output. Until commit 1c610001 the output equalled Python 3.14.9's output of the former
-    /// fm0.py byte for byte; then the files' comments changed from naming fm0.py to naming `iaf-sim fm`.
+    /// fm0.py byte for byte; then the files' comments changed from naming fm0.py to naming `iaf-sim fm`, and on 2026-11-10 to the docs' new
+    /// folder, `modern-iaf/`.
     const FIXTURE: [(&str, &str); 3] = [
-        ("bd.ibx", "00d39709919ab37590765d51c068be706ca06f90ccf6eb42013b85517b5bb6e7"),
+        ("bd.ibx", "85b2755026775ab1e37a16307ff6cdf3b395c9986ef84d5533dff7cac4862b23"),
         ("f16.dat", "7b9e749a72d6acdd600e44c16c73eedfd8b15a0606c4b956417eea7efce7b582"),
         ("f15.dat", "7d38a9dc784f552cae638f22113a141bc490011ab6a0b92b6ab5df6579586837"),
     ];

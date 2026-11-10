@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Modern IAF's own cockpit display data (iaf-2026/docs/cockpit.md "Display data"), for every jet's
-iaf-2026/data/planes/_shared/cockpit/ (every jet's) and <jet>/cockpit/ (its own), which `iaf-sim own` compiles into
+"""Modern IAF's own cockpit display data (modern-iaf/docs/cockpit.md "Display data"), for every jet's
+modern-iaf/data/planes/_shared/cockpit/ (every jet's) and <jet>/cockpit/ (its own), which `iaf-sim own` compiles into
 each jet's cockpit dir the shared readers take.
 
     python3 -I tools/iaf-2026/cockpit_displays.py map [--refetch]   # tsd_map.json from OpenStreetMap
@@ -30,7 +30,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 CACHE = os.path.join(ROOT, "assets/source/osm/tsd_map")
 ART = os.path.join(ROOT, "tools/iaf-2026/cockpit")
 # Every jet's files (iaf-sim own copies them into each jet's cockpit dir; a jet's own file of the same name wins).
-SHARED = os.path.join(ROOT, "iaf-2026/data/planes/_shared/cockpit")
+SHARED = os.path.join(ROOT, "modern-iaf/data/planes/_shared/cockpit")
 AGENT = "iaf-2026-cockpit-displays/1.0"
 ENDPOINTS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]
 LAND_URL = "https://osmdata.openstreetmap.de/download/simplified-land-polygons-complete-3857.zip"
@@ -49,7 +49,7 @@ LAKE_KM2 = 15.0  # smaller lakes are below a TSD pixel at the shortest range (in
 SIMPLIFY_DEG = 0.0015  # about 150 m: under one MFD pixel at the HSD's shortest range (inferred)
 # The fills, in paint order: the original TSD map's colours (sea and lakes navy, the neighbours dark grey, Israel light
 # grey) and two greys between them for the West Bank and Gaza (the user's decision of 2026-11-03,
-# iaf-2026/docs/cockpit.md §8): Area C (Israeli control, outside Israel's OSM border) a darker light grey, the PA's
+# modern-iaf/docs/cockpit.md §8): Area C (Israeli control, outside Israel's OSM border) a darker light grey, the PA's
 # areas (A, B, H1; Gaza) a mid grey. `radar` = the GM picture's (isr.png) brightness: land returns, water does not.
 # Each layer's smallest ring (km2): 2 for land and Israel (islands), 0.3 for the PA's enclaves (about 4 HSD pixels
 # across at its shortest range, inferred).
@@ -224,7 +224,7 @@ def build_map(refetch):
         layers.append({"name": name, "brush": brush, "radar": radar, "rings": rs})
         print("%s: %d rings, %d points" % (name, len(rs), sum(len(r) for r in rs)))
     out = {
-        "_doc": "The TSD map (iaf-2026/docs/cockpit.md \"Display data\"): polygons in longitude / latitude (WGS84), "
+        "_doc": "The TSD map (modern-iaf/docs/cockpit.md \"Display data\"): polygons in longitude / latitude (WGS84), "
         "filled in order over the background; iaf-sim own compiles it into map.json (the EMF-JSON shape cockpit.gd "
         "reads) and isr.png (the GM picture, each layer's radar brightness). Made by "
         "tools/iaf-2026/cockpit_displays.py map.",
@@ -315,7 +315,7 @@ def rwr_svg():
     parts = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">'
         % (s, s * len(SLOTS), s, s * len(SLOTS)),
-        "<!-- Modern IAF's RWR glyph sheet (tools/iaf-2026/cockpit_displays.py art; iaf-2026/docs/cockpit.md):",
+        "<!-- Modern IAF's RWR glyph sheet (tools/iaf-2026/cockpit_displays.py art; modern-iaf/docs/cockpit.md):",
         "     17 slots of 40 x 40 px top to bottom in docs/rwr.md's order; green strokes on transparent. -->",
         '<g fill="none" stroke="%s" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">' % GREEN,
     ]
@@ -338,7 +338,7 @@ def adi_svg():
     sky, ground = "#8f9497", "#141414"  # the F-16 ADI's grey over black (inferred from cockpit photos)
     o = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">',
-        "<!-- Modern IAF's ADI ball (tools/iaf-2026/cockpit_displays.py art; iaf-2026/docs/cockpit.md): the texture",
+        "<!-- Modern IAF's ADI ball (tools/iaf-2026/cockpit_displays.py art; modern-iaf/docs/cockpit.md): the texture",
         "     lens_adi.gdshader samples, 4x. Rows wrap through 360 deg of pitch, the horizon at y 248, +90 at y 120,",
         "     -90 at y 376, +-180 at y 504. Grey sky, black ground, a pitch line every 10 deg, numbered every 30. -->",
         '<rect x="0" y="0" width="512" height="%.2f" fill="%s"/>' % (row(0), sky),
@@ -503,7 +503,7 @@ def mfds_svg():
     o = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 264 924" '
         'shape-rendering="crispEdges">' % (264 * s, 924 * s),
-        "<!-- Modern IAF's MFD atlas (tools/iaf-2026/cockpit_displays.py art; iaf-2026/docs/cockpit.md): the original",
+        "<!-- Modern IAF's MFD atlas (tools/iaf-2026/cockpit_displays.py art; modern-iaf/docs/cockpit.md): the original",
         "     mfds.bmp's layout (docs/mfd.md §1), 264 x 924 units drawn at 4x; transparent outside the tiles. -->",
     ]
     o += _tile(0, 0)  # NAV, damage, MENU and the other text pages
