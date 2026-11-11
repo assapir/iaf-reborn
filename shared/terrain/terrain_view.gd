@@ -579,12 +579,16 @@ func _hold(on: bool) -> void:
 
 ## Waits for the next frame. `in_ready`: called from _ready, where a scene change's process_frame still fires in this
 ## frame. (Not frame_post_draw: headless runs never draw.)
-## False when the scene left the tree meanwhile (the build stops).
+## False when the scene left the tree meanwhile or a crash page came up (Modern IAF's Settings.crash: the build stops
+## there, its last line names the crash, so the log never reads as a loading that hangs after its steps).
 func _next_frame(in_ready := false) -> bool:
 	var tree := get_tree()
 	if in_ready:
 		await tree.process_frame
 	await tree.process_frame
+	if Settings.get("crashed") == true:
+		print("loading: stopped at %s by the crash page (the crash: line above)" % _step_name)
+		return false
 	return is_inside_tree()
 
 

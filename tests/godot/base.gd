@@ -83,6 +83,12 @@ func start_mission(id: int) -> Node:
 	while tv == null or tv.get("flight") == null or tv.waiting_for_ground:
 		await process_frame
 		tv = current_scene
+		if settings().get("crashed") == true:  # Modern IAF's crash page: the start stopped for good
+			check(false, "mission %d starts without a crash page (the crash: line above)" % id)
+			print("RESULT FAIL")
+			await _quit(1)
+			await process_frame  # never comes: the quit ends the run before the caller reads the scene
+			return null
 	if continue_boxes and tv.runtime != null:
 		tv.runtime.message_box.connect(func(_m, _b): tv._on_box_choice.call_deferred("fly", Callable()))
 	return tv

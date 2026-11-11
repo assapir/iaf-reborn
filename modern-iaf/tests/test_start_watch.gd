@@ -27,6 +27,7 @@ func run() -> void:
 	check(ui != null and ui.card != null and ui.card.is_visible_in_tree(), "card on: the card shows after the loading")
 	check(paused and tv._loading == null, "card on: the flight frozen under the card, the loading screen gone")
 	check(not s.crashed, "card on: no crash page")
+	check(tv != null and tv._views_warmed == 2, "card on: the views warmed (the external view drawn, then the cockpit)")
 	await frames(tv.FIRST_FRAMES)
 	check(s.loading_step == "", "after %d frames the start is over (paused or not)" % tv.FIRST_FRAMES)
 	var lines := "\n".join(s.timed_log.tail())
@@ -38,6 +39,22 @@ func run() -> void:
 	ui.close_card()
 	await frames(1)
 	s.card_at_start = false
+
+	# The sim bench's BENCH_BEST (2026-11-11: the original's cloud art and imagery it set were refused, the refusal
+	# opened the crash page at the start, read as a loading hung after "frame"): the sim's own values, a start to the
+	# loading's end with the views warmed.
+	var best: Dictionary = load("res://tests/_flight_bench.gd").best()
+	check(not best.is_empty(), "BENCH_BEST in the sim: %s" % best)
+	check(not best.has("textured_sky") and not best.has("imagery_israel"), "BENCH_BEST asks for no original data")
+	var keep := {}
+	for k in best:
+		keep[k] = s.get(k)
+		s.set(k, best[k])
+	tv = await _start(2012)
+	check(tv != null and not tv.waiting_for_ground and not s.crashed, "BENCH_BEST: the loading done, no crash page")
+	check(tv != null and tv._views_warmed == 2, "BENCH_BEST: the views warmed")
+	for k in keep:
+		s.set(k, keep[k])
 
 	# A shader that does not compile, after the first frames: the check names it and opens the crash page.
 	var bad := ShaderMaterial.new()

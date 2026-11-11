@@ -724,7 +724,10 @@ corner):
 
 Every failure the sim cannot go on from ends on one page, never in an empty world or a loading screen that never ends
 (the user, 2026-11-10: "every error is a crash"). `Settings.crash(what, step)` (`modern-iaf/sim_settings.gd`) opens
-it over everything, on its own canvas layer, and pauses the game under it. `modern-iaf/menu/crash_page.gd` draws it in
+it over everything, on its own canvas layer, and pauses the game under it. The log gets `crash: <what> (loading step
+<step>)`; a flight's start then stops building, and its last line is `loading: stopped at <step> by the crash page`.
+A scripted start (`tests/godot/base.gd` `start_mission`) fails at once with `RESULT FAIL` (2026-11-11: a bench whose
+settings asked the sim for the original's cloud art crashed at the start, and the log read as a hang after its steps). `modern-iaf/menu/crash_page.gd` draws it in
 the front end's look (§4), mirrored in Hebrew. It shows:
 
 - the title "Modern IAF stopped" ("הזרוע הארוכה נעצרה");

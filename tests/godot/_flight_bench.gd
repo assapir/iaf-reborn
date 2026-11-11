@@ -24,22 +24,9 @@ func run() -> void:
 	if legs.is_empty():
 		legs = [[150.0, 250.0, 20.0], [1500.0, 250.0, 20.0], [6000.0, 300.0, 20.0]]
 	if OS.get_environment("BENCH_BEST") == "1":
-		var best := {
-			"terrain_detail": 1.0,
-			"object_detail": 1.0,
-			"visual_effects": 1.0,
-			"smoke_trails": true,
-			"textured_sky": true,
-			"shadows": true,
-			"external_stores": true,
-			"antialiasing": "msaa4_fxaa",
-			"terrain_closeup": true,
-			"sky": "atmospheric",
-			"imagery_israel": "mapi2015",
-			"imagery_outside": "sentinel2"
-		}
-		for k in best:
-			settings().set(k, best[k])
+		var pick := best()
+		for k in pick:
+			settings().set(k, pick[k])
 	# BENCH_SET=key=value,...: overrides after that (e.g. antialiasing=msaa4 / terrain_closeup=false / shadows=false).
 	for kv in OS.get_environment("BENCH_SET").split(",", false):
 		var p := kv.split("=")
@@ -210,3 +197,21 @@ func run() -> void:
 				)
 			)
 	print("RESULT PASS")
+
+
+## BENCH_BEST's settings (the sim's bench: those the sim has, modern-iaf/tests/_flight_bench.gd).
+static func best() -> Dictionary:
+	return {
+		"terrain_detail": 1.0,
+		"object_detail": 1.0,
+		"visual_effects": 1.0,
+		"smoke_trails": true,
+		"textured_sky": true,
+		"shadows": true,
+		"external_stores": true,
+		"antialiasing": "msaa4_fxaa",
+		"terrain_closeup": true,
+		"sky": "atmospheric",
+		"imagery_israel": "mapi2015",
+		"imagery_outside": "sentinel2"
+	}
