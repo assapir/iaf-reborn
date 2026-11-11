@@ -2062,10 +2062,10 @@ func _pref_press(q: Vector2) -> bool:
 		return false
 	if page == "Devices":
 		if PREF_DETENT.off.has_point(q):
-			pref_work["throttle_detent"] = -1
+			pref_work["throttle_detent"] = Joystick.detent_choice(false)
 			return true
 		if PREF_DETENT.set.has_point(q) and Joystick.device() >= 0:
-			pref_work["throttle_detent"] = Joystick.raw_throttle()
+			pref_work["throttle_detent"] = Joystick.detent_choice(true)
 			return true
 		if PREF_STICK.off.has_point(q) or PREF_STICK.set.has_point(q):
 			pref_work["stick_response"] = "soft" if PREF_STICK.set.has_point(q) else "linear"

@@ -156,15 +156,16 @@ are refused, an unknown goal is refused, and every take-off mission's runway is 
 
 ## 6. Open
 - The flaperons' droop with the gear handle down: the 6-DoF has no trailing-edge flap.
-- The checklist card (after the MVP, plan.md "start-up"); the mission card of §7 holds the objective and the keys only.
 - The F-16I's, F-16D's and F-35I's own empty weights and take-off speeds by weight (open).
 - A start-up fault model (hot / hung start): none in the flight model.
 - The roll's start and rotation thresholds checked against a real flight of each mission by the user.
 - The 6-DoF's take-off roll is short (flight-model.md §9.6): the probe's Sufa lifts off after about 465 m at 180 kt.
 
 ## 7. The start in the game
-The flight opens with the mission card ([front-end.md](front-end.md) §8): the objective and the keys that matter,
-the flight frozen until it closes, so reading it costs nothing of the time budget. H opens it again.
+A take-off flight opens with the mission card ([front-end.md](front-end.md) §8): the objective and the keys that
+matter, the flight frozen until it closes, so reading it costs nothing of the time budget. H opens it again. A
+start-up flight opens with its checklist card only (§7.1; the Mac play test, 2026-11-11), the flight running; H opens
+the mission card there too.
 
 The sim's jet starts parked cold: on its spot (airbases.md §9), engine off, no RPM, no electrical power, every screen,
 the HUD and the lamps dark (`cockpit.power` 0). The throttle starts nothing (`Settings.throttle_starts_engine`, false
@@ -194,8 +195,10 @@ for the F-16s and 47 s / 92 s for the F-35I (the recorder samples 10 times a sec
 
 ### 7.1 The start-up checklist by keys
 Since 2026-11-08 (the user: "the first mission, which is just one click, is pointless") the start-up mission is the
-real start by keys, step by step. A card at the top right (the top left in Hebrew) ticks the steps in order and says the next one, in English
-and Hebrew; each step but the idle is a key of the sim's own `keys.json` (records 119–124, commands 210–215, the card naming each
+real start by keys, step by step. A small card at the top right (the top left in Hebrew) shows one step at a time, in
+English and Hebrew: the title with the step's number ("START-UP CHECKLIST  2/6"), the step with its key, its switch's
+place, the state to wait for, and a fault in red; the next step replaces it once it is taken, "All steps done." after
+the last (the Mac play test, 2026-11-11: the whole list was too big). Each step but the idle is a key of the sim's own `keys.json` (records 119–124, commands 210–215, the card naming each
 key as bound, Cmd for Ctrl on macOS; `iaf-sim own` refuses a key bound twice). The flight model takes each step
 (`Start::press` in `crates/iaf-flight/src/sixdof/start.rs`, `IafFlight.start_step`); a step out of order has its
 consequence and returns a fault, which ends the mission at once as a Fail with that fault first (§3.0).
@@ -235,7 +238,7 @@ when it was refused). The take-off missions still start cold: the same keys star
 
 | the card | English | Hebrew |
 |---|---|---|
-| at the start | ![Checklist card at the start](pictures/training/card_start_en.webp) | ![Checklist card at the start, Hebrew](pictures/training/card_start_he.webp) |
+| at the start, the start-up call in the band | ![Checklist card at the start](pictures/training/card_start_en.webp) | ![Checklist card at the start, Hebrew](pictures/training/card_start_he.webp) |
 | mid-sequence | ![Checklist card, mid-sequence](pictures/training/card_mid_en.webp) | ![Checklist card, mid-sequence, Hebrew](pictures/training/card_mid_he.webp) |
 | done: "Mission complete" | ![Checklist done](pictures/training/card_done_en.webp) | ![Checklist done, Hebrew](pictures/training/card_done_he.webp) |
 | the JFS before the main power: Fail | ![Checklist fault](pictures/training/card_fault_en.webp) | ![Checklist fault, Hebrew](pictures/training/card_fault_he.webp) |

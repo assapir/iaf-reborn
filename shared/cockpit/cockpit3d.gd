@@ -75,6 +75,8 @@ var controls := {}
 var meta := {}
 var _anims := []  # [node, rest transform, records (outermost first)]
 var _glass: MeshInstance3D
+## The pilot body's throttle shape keys (throttle_idle, throttle_full), found once.
+var _pilot_keys := [-1, -1]
 var _dir := ""  # the model's folder
 var _glass_pts := PackedVector3Array()
 ## Per 3D screen: [MFD node, its SubViewport, screen MeshInstance3D, origin, u axis, v axis (screen-local, per UV),
@@ -90,6 +92,10 @@ var _lit := Color(-1, -1, -1)  # the fill colour set
 var _screen_mats := []  # every screen's material (_screen_viewport)
 var _on_shown := 1.0  # the screens' level shown (_lighting): unpowered 0, else Settings.mfd_brightness
 var _split := -1.0  # the scene's first shadow split (_sun_split)
+## The pilot's body whose left glove follows the throttle's grip (_pilot_throttle); null without one.
+var _pilot: MeshInstance3D
+## The grip's turn either way that the body's shape keys throttle_idle / throttle_full hold (tools/f16d/pilot.py).
+const PILOT_THROTTLE_DEG := 40.0
 
 
 ## The 3D cockpit model of a jet of bdb type `type_code` (its aircraft definition's `cockpit_3d`), "" for its 2D
@@ -128,6 +134,11 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 			# Casting, its rounded cloth shadowed itself in blotches (shadow acne at the sun's grazing angles).
 			for mi: MeshInstance3D in pilot.find_children("*", "MeshInstance3D", true, false):
 				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				if mi.find_blend_shape_by_name("throttle_idle") >= 0:
+					_pilot = mi
+					_pilot_keys = [
+						mi.find_blend_shape_by_name("throttle_idle"), mi.find_blend_shape_by_name("throttle_full")
+					]
 	meta = Settings.load_json(path.get_basename() + ".json")
 	_materials(n, path, Settings.airframe_id(type_code) == "f16")
 	var anims: Dictionary = meta.get("animations", {})
@@ -181,6 +192,7 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 			if screen != null:
 				_attach(mfd, screen, n)
 	cockpit.hud_clip = PackedVector2Array()
+	cockpit.hud_on_glass = _glass != null
 	_setup_instruments(n)
 	_setup_light(n)
 	var table := path.get_basename() + "_controls.json"
@@ -571,6 +583,8 @@ func release() -> void:
 	_pcd.clear()
 	if cockpit != null:
 		cockpit.hud_clip = null
+		cockpit.hud_on_glass = false
+		cockpit.zoom = minf(cockpit.zoom, cockpit.ZOOM_MAX)  # the zoom past true size is the 3D cockpit's only
 	if _sun != null and _split >= 0.0:
 		_sun.directional_shadow_split_1 = _split
 
@@ -591,11 +605,23 @@ func _process(_delta: float) -> void:
 			xf = Transform3D(b, c - b * c) * xf
 		a[0].transform = xf
 	_update_instruments()
+	_pilot_throttle()
 	cockpit.view_shift = _nose_shift()
 	if cockpit.view_mode == 0:
 		cockpit.position = cockpit.view_shift  # this frame's (cockpit.gd may have run before the camera moved)
 	cockpit.hud_clip = _glass_outline()
 	_lighting()
+
+
+## The left glove turned with the throttle's grip: the body's shape keys by the grip's angle (f16.json's THROTTLE).
+func _pilot_throttle() -> void:
+	if _pilot == null:
+		return
+	var rec: Array = meta.get("animations", {}).get("THROTTLE", [])
+	var deg := _angle(rec[0]) if not rec.is_empty() else 0.0
+	var k := deg / PILOT_THROTTLE_DEG
+	_pilot.set_blend_shape_value(_pilot_keys[0], clampf(k, 0.0, 1.0))
+	_pilot.set_blend_shape_value(_pilot_keys[1], clampf(-k, 0.0, 1.0))
 
 
 ## The nose's place on the screen against its place with the head straight ahead (cockpit.view_shift); zero when the
@@ -614,14 +640,25 @@ func _glass_outline() -> PackedVector2Array:
 	if _glass == null:  # a helmet display only: the whole view
 		var r := cockpit.get_viewport_rect()
 		return PackedVector2Array([r.position, Vector2(r.end.x, 0), r.end, Vector2(0, r.end.y)])
+	# The glass cut at the camera's near plane: its part in front of the eye (looking down at the dash the glass's top
+	# passes behind the eye; dropping the whole outline then took the HUD off its glass, the Mac play test's finding 10).
 	var pts := PackedVector2Array()
 	var xf := _glass.global_transform
-	for p in _glass_pts:
-		var w := xf * p
-		if camera.is_position_behind(w):
-			return PackedVector2Array()
-		pts.append(camera.unproject_position(w) - cockpit.global_position)
-	return Geometry2D.convex_hull(pts)
+	var eye := camera.global_transform
+	var ahead := -eye.basis.z
+	var near := camera.near * 1.01
+	for i in range(0, _glass_pts.size(), 3):
+		for k in 3:
+			var a := xf * _glass_pts[i + k]
+			var b := xf * _glass_pts[i + (k + 1) % 3]
+			var da := ahead.dot(a - eye.origin) - near
+			var db := ahead.dot(b - eye.origin) - near
+			if da >= 0.0:
+				pts.append(camera.unproject_position(a) - cockpit.global_position)
+			if (da >= 0.0) != (db >= 0.0):
+				var c := a.lerp(b, da / (da - db))
+				pts.append(camera.unproject_position(c) - cockpit.global_position)
+	return Geometry2D.convex_hull(pts) if pts.size() >= 3 else PackedVector2Array()
 
 
 func _unhandled_input(event: InputEvent) -> void:

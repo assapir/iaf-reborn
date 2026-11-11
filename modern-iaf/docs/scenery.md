@@ -48,7 +48,7 @@ reference point lands 0.5 m or less from GDAL's UTM, the test's bound is 5 m).
 | `converted/terrain/israel/scenery/lights/L1/s_<i>_<j>.bin` | the city lights' stand-ins where a town's footprints are sparse (docs/rendering.md §5.1) |
 | `converted/terrain/israel/scenery/manifest.json` | `release`, `generator`, `kinds` (both), `made_from` (the stamp), `frame` ("EPSG:32636"), `attribution`, `licence`, the counts |
 | `converted/terrain/israel/scenery/theatre.json` | the cells under `israel`: `shared/terrain/scenery.gd` streams them whatever the imagery |
-| `converted/terrain/israel/places.json` | OpenStreetMap's cities, towns and villages with their English and Hebrew names, UTM 36N: the town labels (docs/scenery.md §3.5) and the briefing's map |
+| `converted/terrain/israel/places.json` | OpenStreetMap's cities, towns and villages with their English and Hebrew names, UTM 36N: the briefing's map |
 | `converted/terrain/israel/roads/` | the road layer (docs/scenery.md §6): `main.bin`, `L3/r_<i>_<j>.bin`, `manifest.json` with `frame` |
 
 They lie beside the theatre because their node keys belong to its frame: a theatre built over another box has other
@@ -236,9 +236,10 @@ interleaved three times each under the GPU lock, Intel Iris Xe, 1920 × 1080: Ph
 28.28 ms), Palette 35.2, 35.3, 35.2 fps (mean 28.38 ms): about +0.1 ms, the size of the measuring step (0.1 fps).
 No new data, 0 MB.
 
-**Town labels** (2026-11-09, the look study's proposal 3; Preferences → Graphics "Town labels", On by default;
-docs/scenery.md §3.5). Each city's and town's name over the view within 25 km, in Hebrew or English with the language,
-as the reference's "שוהם". Rendered with `tests/godot/_imagery_shot.gd` (`SHOT_LAYERS=sim`, all settings on as above
+**Town labels** (2026-11-09, the look study's proposal 3; docs/scenery.md §3.5). **Dropped from the sim 2026-11-11**
+after the user's Mac play test: the sim's profile fixes `town_labels` off and Preferences has no row for it; the 1998
+game keeps them (Extras → "Town labels"). What was built and measured: each city's and town's name over the view
+within 25 km, in Hebrew or English with the language, as the reference's "שוהם". Rendered with `tests/godot/_imagery_shot.gd` (`SHOT_LAYERS=sim`, all settings on as above
 plus `town_labels=true` and `language=he` / `en`), 1920 × 1080 scaled to 1200 px:
 
 | Where | Picture |

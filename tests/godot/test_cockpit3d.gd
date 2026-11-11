@@ -90,6 +90,11 @@ func _f35i() -> void:
 		)
 	check(c3._glass == null and c.hud.visible, "F-35I 3D: no combiner, the helmet HUD drawn")
 	check((c.hud_clip as PackedVector2Array).size() == 4, "F-35I 3D: the HUD over the whole view")
+	# No combiner glass: the look-aside helmet mode keeps the head pan's rule (cockpit.gd dash, hud_on_glass).
+	var head_was: Vector2 = c.head
+	c.head = Vector2(deg_to_rad(60.0), 0.0)
+	check(not c.hud_on_glass and c.dash(), "F-35I 3D: the head turned aside, the helmet mode on")
+	c.head = head_was
 	var w: float = c.get_viewport_rect().size.x
 	var fov := rad_to_deg(2.0 * atan(w / 2.0 / c.focal_length()))
 	check(absf(fov - c.VIEW_3D_WIDE_DEG) < 0.1, "F-35I 3D: the wide view by default (%.1f°)" % fov)

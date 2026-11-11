@@ -8,5 +8,5 @@
 "AVIONICS_MFD": {"click": [213, 0, 0], "prop": "f16/avionics/power-mfd", "on": 1, "off": 0},
 "AVIONICS_UFC": {"click": [213, 0, 0], "prop": "f16/avionics/power-ufc", "on": 1, "off": 0},
 "INS": {"click": [214, 0, 0], "prop": "f16/avionics/ins-knob", "on": 1, "off": 0},
-"CANOPY_HANDLE": {"click": [215, 0, 0], "box": [-0.42, 0.3, -2.8, 0.05, 0.08, 0.12]}
+"CANOPY_HANDLE": {"click": [215, 0, 0], "box": [-0.35, 0.46, -3.15, 0.03, 0.03, 0.14], "grip": true}
 }

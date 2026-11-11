@@ -46,9 +46,8 @@ func run() -> void:
 		tv = current_scene
 	await frames(2)
 	check(bases._on, "Ramon: the airbase surface is on")
-	# Town labels (look study proposal 3): on by default, drawn whenever setup wrote the places.
-	var labels: GDScript = load("res://shared/terrain/town_labels.gd")
-	check(s.town_labels and (tv.town_labels != null) == labels.available(), "town labels on by default")
+	# No town labels in the sim (the 1998 game's only).
+	check(not s.town_labels and tv.town_labels == null, "no town labels")
 	# Sky Levant (docs/rendering.md §1.2): the Atmospheric sky with the dusty summer's values.
 	var env: Environment = tv.get_node("WorldEnvironment").environment
 	var sky_mat = env.sky.sky_material if env.sky != null else null
@@ -83,4 +82,46 @@ func run() -> void:
 		for p in range(0, data.size(), 3 * 7):
 			paved += 1 if data[p] > 0 or data[p + 1] > 0 or data[p + 2] > 0 else 0
 	check(paved > 0, "Ramon: the paved mask (taxiways, aprons) has paved texels (%d sampled)" % paved)
+	_mouse_look(tv)
 	check(s.rejected.is_empty(), "no original data read (%s)" % [s.rejected])
+
+
+## The mouse looks about the cockpit (Settings.cockpit_mouse_look, modern-iaf/docs/cockpit.md §2): a right drag turns
+## the head, a double right-click centres it, the wheel zooms from the wide view down to the narrow one.
+func _mouse_look(tv: Node) -> void:
+	var right := InputEventMouseButton.new()
+	right.button_index = MOUSE_BUTTON_RIGHT
+	right.pressed = true
+	tv._unhandled_input(right)
+	var drag := InputEventMouseMotion.new()
+	var c: Control = tv.cockpit
+	drag.relative = Vector2(0.2, -0.1) * c.focal_length() / tv.MOUSE_LOOK_GAIN  # 0.2 rad right, 0.1 up
+	tv._unhandled_input(drag)
+	right.pressed = false
+	tv._unhandled_input(right)
+	var h: Vector2 = tv.views.head_angles()
+	check(h.is_equal_approx(Vector2(0.2, 0.1)), "mouse look: a right drag right and up turns the head so (%s)" % h)
+	tv.views.update(1.0)
+	check(tv.views.head_angles() == h, "mouse look: the head stays where the drag left it")
+	right.pressed = true
+	right.double_click = true
+	tv._unhandled_input(right)
+	right.pressed = false
+	right.double_click = false
+	tv._unhandled_input(right)
+	tv.views.update(10.0)
+	check(tv.views.head_angles() == Vector2.ZERO, "mouse look: a double right-click centres the head")
+	var wheel := InputEventMouseButton.new()
+	wheel.pressed = true
+	wheel.button_index = MOUSE_BUTTON_WHEEL_UP
+	for i in 40:
+		tv._unhandled_input(wheel)
+	var narrow: float = c.get_viewport_rect().size.x / 2.0 / tan(deg_to_rad(c.VIEW_3D_NARROW_DEG) / 2.0)
+	check(
+		c.zoom == c.zoom_limit() and c.zoom_limit() > c.ZOOM_MAX and c.view_3d_focal() >= narrow * 0.999,
+		"mouse look: the wheel zooms in to the narrow view (zoom %.2f, focal %.0f px)" % [c.zoom, c.view_3d_focal()]
+	)
+	wheel.button_index = MOUSE_BUTTON_WHEEL_DOWN
+	for i in 40:
+		tv._unhandled_input(wheel)
+	check(c.zoom == c.ZOOM_MIN, "mouse look: the wheel zooms out to the wide view")

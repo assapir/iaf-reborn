@@ -382,9 +382,6 @@ func eject() -> void:
 ## position; the F-35I's engine step by its ENG switch (command 212).
 func _checklist(tv: Node, f35: bool, click := false) -> void:
 	var rpm := func() -> float: return float(tv.flight.state().rpm)
-	check(_idle_row_key(tv) == "1", "the card's idle step names Throttle idle, the 1 key: %s" % _idle_row_key(tv))
-	if click:
-		check(_card_places(tv), "the card names each step's switch and place")
 	await _step(tv, 1, "BATT" if f35 else "MAIN_PWR", click)  # main power / battery
 	await fly(tv, 1.0)
 	await _step(tv, 2, "IPP" if f35 else "JFS", click)  # JFS / IPP
@@ -400,6 +397,7 @@ func _checklist(tv: Node, f35: bool, click := false) -> void:
 		if click:
 			await _step(tv, 0, "THROTTLE", click)  # throttle to idle at 20 %
 		else:
+			_card_shows(tv, "engine")
 			_press(tv, KEY_1)  # Throttle idle: the throttle stays at OFF, the key takes the step
 		await _until(tv, func(): return rpm.call() >= 0.55, 60.0)  # the generators on line
 		await _step(tv, 4, "AVIONICS_MMC", click)  # avionics power
@@ -421,7 +419,9 @@ func _checklist(tv: Node, f35: bool, click := false) -> void:
 
 
 ## Checklist step `n` (0: the throttle up from OFF) by its key's command, or by a click on its control `node`.
+## The card shows that step alone first (_card_shows).
 func _step(tv: Node, n: int, node: String, click: bool) -> void:
+	_card_shows(tv, "engine" if n == 0 else tv.addon.STEP_IDS[n - 1])
 	if click:
 		await _click_control(tv, node)
 	else:
@@ -473,28 +473,26 @@ func _lift_guard(tv: Node, node: String, guard: String) -> void:
 	check(mi.transform.is_equal_approx(rest), "%s: the switch stays until the next click" % node)
 
 
-## The key shown on the start-up card's idle (engine) line.
-func _idle_row_key(tv: Node) -> String:
-	var en := ""
-	for c in tv.addon.checklist:
-		if c.step == "engine":
-			en = String(c.en)
-	for row in tv.addon._card.find_children("*", "HBoxContainer", true, false):
-		var ls: Array = row.get_children()
-		if ls.size() >= 2 and en != "" and String(ls[0].text).ends_with(en):
-			return String(ls[1].text)
-	return "-"
+## The start-up card shows step `id` alone: its line, its key (the engine step: Throttle idle, the 1 key) and its
+## switch's place.
+func _card_shows(tv: Node, id: String) -> void:
+	var shown := _card_step(tv)
+	check(shown[0] == id and shown[2], "the card shows the %s step alone with its place (%s)" % [id, shown])
+	if id == "engine":
+		check(shown[1] == "1", "the card's idle step names Throttle idle, the 1 key: %s" % shown[1])
 
 
-## Each line of the start-up card has the switch's name and place under it (the mission's `where`).
-func _card_places(tv: Node) -> bool:
-	var texts := []
-	for l in tv.addon._card.find_children("*", "Label", true, false):
-		texts.append(l.text.strip_edges())
+## The start-up card's one step: [its id ("" when not one step row), its key, its switch's place shown].
+func _card_step(tv: Node) -> Array:
+	var rows: Array = tv.addon._card.find_children("*", "HBoxContainer", true, false)
+	if rows.size() != 1:
+		return ["", "", false]
+	var ls: Array = rows[0].get_children()
+	var texts: Array = tv.addon._card.find_children("*", "Label", true, false).map(func(l): return l.text)
 	for c in tv.addon.checklist:
-		if not c.has("where") or not String(c.where.en) in texts:
-			return false
-	return true
+		if String(ls[0].text).ends_with(String(c.en)):
+			return [String(c.step), String(ls[1].text), not c.has("where") or String(c.where.en) in texts]
+	return ["", "", false]
 
 
 ## A step out of order: the JFS before the main power ends the start-up at once, its fault first.

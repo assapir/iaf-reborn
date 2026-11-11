@@ -1,6 +1,7 @@
 # Dev helper (not run by tools/test.sh): the start-up checklist card and the end banner in a real render
-# (modern-iaf/docs/training.md §7.1, §9), English and Hebrew: the card at the start, mid-sequence and done, the
-# "Mission complete" banner, and a step out of order (the JFS before the main power) with its Fail banner.
+# (modern-iaf/docs/training.md §7.1, §9), English and Hebrew: the card at the start (the start-up call in the band),
+# mid-sequence and done, the "Mission complete" banner, and a step out of order (the JFS before the main power) with
+# its Fail banner.
 #   flock -o ~/.cache/iaf-gpu-bench.lock timeout -k 10 600 tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 \
 #     SHOW_OUT=<dir> -- --log-file <temp> --display-driver x11 --resolution 1920x1080 --path modern-iaf \
 #     -s ../modern-iaf/tests/_checklist_shot.gd
@@ -22,6 +23,8 @@ func run() -> void:
 	var tv := await _start("ramon_startup")
 	Engine.time_scale = 1.0
 	await fly(tv, 2.0)
+	tv.addon.pick("startup")  # the start-up call: a line in the band (front-end.md §8)
+	await fly(tv, 0.5)
 	await _both(tv, "card_start")
 	tv._command([210, 0, 0])
 	tv._command([211, 0, 0])

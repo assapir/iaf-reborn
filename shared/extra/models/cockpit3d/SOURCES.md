@@ -97,3 +97,5 @@ Made by `tools/f16d/cockpit3d.py` (re-runnable; docs/cockpit.md "3D cockpit"):
 19. The pilot's body (`f16_pilot.glb`, `tools/f16d/pilot.py`, 2026-11-09): FlightGear's internal-view pilot as it is
     posed (its pose fits FlightGear's stick, throttle and pedals, which `f16.glb` places where FlightGear does), placed
     as the cockpit; its materials matte (roughness 0.85), the suit's sheet halved to 1024 x 2048, both sheets as JPEG.
+    Ours (2026-11-11): the left forearm and glove turned and moved onto the throttle's grip, and two shape keys
+    (`throttle_idle`, `throttle_full`) that turn them with the grip over its travel.

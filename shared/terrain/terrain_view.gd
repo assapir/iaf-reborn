@@ -2603,13 +2603,23 @@ func _toggle_gear() -> void:
 
 
 func _zoom_cockpit(step: float) -> void:
-	cockpit.zoom = clamp(cockpit.zoom + step, cockpit.ZOOM_MIN, cockpit.ZOOM_MAX)
+	cockpit.zoom = clamp(cockpit.zoom + step, cockpit.ZOOM_MIN, cockpit.zoom_limit())
+
+
+## Ours (Settings.cockpit_mouse_look, Modern IAF): the right drag turns the head in the cockpit, twice the pointer's
+## angle on the screen (85° across the wide view: a 180° turn in about one screen's width of drags).
+const MOUSE_LOOK_GAIN := 2.0
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	var mouse_look: bool = Settings.cockpit_mouse_look() and views.cockpit_drawn() and views.snap == null
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT:
 		looking = event.pressed
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if looking else Input.MOUSE_MODE_VISIBLE
+		if mouse_look and event.pressed and event.double_click:
+			views.set_cockpit(Views.COCKPIT)  # the head back to straight ahead at the pan rate
+	elif event is InputEventMouseMotion and looking and mouse_look:
+		views.look_by(Vector2(event.relative.x, -event.relative.y) * MOUSE_LOOK_GAIN / cockpit.focal_length())
 	elif (
 		event is InputEventMouseButton
 		and event.pressed
@@ -3857,11 +3867,14 @@ func _process(delta: float) -> void:
 		)
 		Airbases.update_view(get_viewport().get_camera_3d().global_position, terrain)
 		GroundRoads.update_view(get_viewport().get_camera_3d().global_position, terrain)
+	hud_label.visible = Settings.show_info
+	if not Settings.info_line_full():  # Modern IAF: the mission and the FPS
+		hud_label.text = "mission: %s   %d fps" % [mission_name, Engine.get_frames_per_second()]
+		return
 	var p := rig.position
 	var ground_h = scene_ground(p)  # roofs and tree tops count (docs/scenery.md §4)
 	var agl := "" if ground_h == null else "  (%.0f m above ground)" % (p.y - ground_h)
 	var st2: Dictionary = cockpit.state
-	hud_label.visible = Settings.show_info
 	hud_label.text = (
 		"%s%s   x %.1f km  y %.1f km  alt %.0f m%s   %d kt  %.1f g  thr %d%%%s%s%s%s   %d fps"
 		% [

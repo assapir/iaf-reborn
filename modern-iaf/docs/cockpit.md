@@ -24,7 +24,16 @@ lights and the lit labels at night); the panel's night art is not used.
 
 ## 2. The views
 - **Ahead:** the 3D cockpit's wide view (85° across the screen, the head 12° down: the whole front panel in view), zoomed in by + / − and the mouse wheel.
-- **Free look:** the pan keys, the hat and the mouse turn the head, down to 60° (the panel and consoles).
+- **Zoom:** + / − and the mouse wheel step from the wide view to the true size (the screen as a window 0.6 m from the
+  eye), then on to a narrow view 20° across the screen, where the MFD pages read from the seat. 16 wheel notches
+  span the range (`cockpit.gd` `view_3d_focal`, `VIEW_3D_NARROW_DEG`).
+- **Mouse look (2026-11-11, the Mac play test's finding 9):** hold the right mouse button and move the mouse to turn
+  the head; it stays where the mouse leaves it. A double right-click turns the head back to straight ahead at 45°/s.
+  The pointer turns the head twice its angle on the screen (`terrain_view.gd` `MOUSE_LOOK_GAIN`): one screen's width
+  of drag turns it about 170°. The left button stays on the cockpit's switches and knobs (§5.1, §5.2). The mouse
+  moves the head's angle only: the head does not lean with the mouse (it bends forward on its own looking down, §5.3).
+  `Settings.cockpit_mouse_look()`: true in the sim; in the original game the right drag turns the external views only.
+- **Free look:** the hat and the mouse turn the head, down to 60° (the panel and consoles).
 - **The F-key and Numpad snap views** (F2 back, Numpad 1–9, Alt + 1–9 in the laptop map of front-end.md §9.1; docs/views.md §2) are head poses: the head turns to the
   snap's yaw and pitch while the key is held, and the 3D cockpit turns with it. No 2D panel pans.
 
@@ -80,7 +89,7 @@ layout that borrows (`"Shared"`) or names art. The units:
 | `CenterY` | −26 | 16 | the HUD's centre: the F-16s' 3.5° (42 px) under the boresight, the middle of their field; the F-35I's on the boresight |
 | `LeftBorder`, `RightBorder` | 72 | 250 | the field's half width: the F-16s' ±6°, the F-35I's ±20° (its helmet's 40° field) |
 | `TopBorder`, `BottomBorder` | 66, 67 | 184, 184 | the F-16s' field from 2° over the boresight to 9° under it; the F-35I's ±15° (the helmet's 30°) |
-| `Dash` | 1 | 1 | the helmet display looking aside (the DASH, the F-35I's helmet) |
+| `Dash` | 1 | 1 | the helmet display once the combiner glass is off the screen (the DASH, the F-35I's helmet); while any of the glass shows, the HUD stays on it (2026-11-11, the Mac play test's finding 10: looking down-left at the dash the HUD jumped off its glass to the DASH) |
 
 The F-16s' field is what fits their combiners from the eye with the Real HUD's data blocks beside it (1.8° outside
 the field; docs/cockpit.md "The HUD on its glass": the Sufa's plate reaches +2.6° to −12.8°). The real F-16 HUD shows
@@ -216,8 +225,10 @@ engine running, and the original game, keep the switches as FlightGear models th
 | 5 | INS knob (`INS`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | `[214, 0, 0]` | Ctrl+N | STOR HDG (1) / OFF (0) |
 | 6 | canopy handle (`CANOPY_HANDLE`, a hit area) | left side, aft of the left console, by the canopy switch[^dcs-canopy] | `[215, 0, 0]` | Ctrl+K | none |
 
-- **The canopy handle** has no part in FlightGear's model, so its row is a `box`: a 5 × 8 × 12 cm hit area in the
-  model's frame, drawn clear and lit only under the pointer. No geometry is added to the glb. Its exact place is
+- **The canopy handle** has no part in FlightGear's model, so its row is a `box` with `grip`: a grey metal rod, 3 cm
+  thick and 14 cm long, along the left canopy sill's inner face 10 cm aft of the throttle, lit under the pointer
+  (`cockpit3d_controls.gd` `_area`). Until 2026-11-11 the box was drawn clear, and it sat under the pilot's left
+  shoulder, where no head turn could see it (the Mac play test's finding 11). Its exact place and finish are
   inferred: the sources put the handle on the left side, not where on it.
 - **INS: STOR HDG** is position 1, after OFF (FlightGear's knob: OFF 0, NORM 2, NAV 3; STOR HDG between them is
   inferred).
@@ -292,8 +303,12 @@ and the left on the throttle.
   60° down the eye stood over the body's neck opening and looked into the torso (a dark V filled the lower half;
   the coordinator's review, 2026-11-09). Blender renders from the eye: 0.15 m forward still showed a sliver of it,
   0.2 m none. Leaving out the vest and collar instead showed the inside of the torso through the neck opening.
-- **The pose is static**: the stick and throttle turn, the hands stay. The F-16's side-stick moves a few millimetres
-  (a force stick); the throttle's travel leaves the left glove beside the grip at full power (open).
+- **The hands on the grips (2026-11-11, the Mac play test's finding 12)**: FlightGear posed the left glove for its
+  grip turned about 28° aft, 4 cm inboard of it and 3 cm over it, so it held nothing. `pilot.py` turns the left
+  forearm and glove about the throttle's pivot onto the grip's rest pose and moves them onto the grip, fading from the
+  elbow (unmoved) to the wrist. Two shape keys, `throttle_idle` and `throttle_full`, turn them 40° either way with
+  the grip, so the glove follows the throttle (`cockpit3d.gd` `_pilot_throttle`). The right glove sits on the
+  side-stick as FlightGear posed it; the stick moves a few millimetres (a force stick), the glove stays.
 - **Where**: `cockpit3d.gd` hangs `<model>_pilot.glb` beside the model when `Settings.cockpit_pilot_body()` is true:
   true in Modern IAF, false in the original game, whose 3D cockpit stays as it was (docs/cockpit.md "Looking down at
   the pilot"). The body takes the footwell's dim fill (`UNLIT` `pilot_`) and casts no shadow. The cut model leaves

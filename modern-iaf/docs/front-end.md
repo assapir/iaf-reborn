@@ -19,11 +19,11 @@ The window opens plain in the front end's background colour (#1d2025, no Godot s
 
 | screen | what it does | English | Hebrew |
 |---|---|---|---|
-| Home | the sim's name, Missions, the menu: Pilot log, Preferences, Attributions, Quit; the pilot in the top bar (the nickname, the name under it, the picture) as one button that opens the Pilot screen, no counts, no jet | ![Home](pictures/front-end/home_en.webp) | ![Home, Hebrew](pictures/front-end/home_he.webp) |
-| Pick a plane | the Sufa (Ramon, 253 Squadron), the Barak (Ramat David, 109 Squadron) and the Adir (Nevatim, 140 Squadron) in one row, each card with its code, name, base and squadron (airbases.md §3), then the Ra'am (Hatzerim, 69 Squadron) and the Baz (Tel Nof, 133 Squadron) greyed; the pick sets the jet everywhere and stays highlighted on the next visit | ![Pick a plane](pictures/front-end/plane_en.webp) | ![Pick a plane, Hebrew](pictures/front-end/plane_he.webp) |
-| Training | the programme: its missions with their last result and the progress | ![Training](pictures/front-end/training_en.webp) | ![Training, Hebrew](pictures/front-end/training_he.webp) |
+| Home | the sim's name, Missions, the menu: Pilot log, Guides (greyed, its tooltip "Coming in a later version", until the sim's guides exist), Preferences, Attributions, Quit; the pilot in the top bar (the nickname, the name under it, the picture) as one button that opens the Pilot screen, no counts, no jet | ![Home](pictures/front-end/home_en.webp) | ![Home, Hebrew](pictures/front-end/home_he.webp) |
+| Pick a plane | the Sufa (Ramon, 253 Squadron), the Barak (Ramat David, 109 Squadron) and the Adir (Nevatim, 140 Squadron) in one row, each card with its code, name, base and squadron (airbases.md §3), then the Ra'am (Hatzerim, 69 Squadron) and the Baz (Tel Nof, 133 Squadron) greyed; no card is picked on entry, a click on a card picks its jet and opens its Training | ![Pick a plane](pictures/front-end/plane_en.webp) | ![Pick a plane, Hebrew](pictures/front-end/plane_he.webp) |
+| Training | the programme: its missions with their last result and the progress; beside it Missions and campaign, greyed with the tooltip "Coming in a later version" until the sim has missions | ![Training](pictures/front-end/training_en.webp) | ![Training, Hebrew](pictures/front-end/training_he.webp) |
 | Pick a mission | the missions beside the picked one's briefing (§10) on three pages: Briefing (base, runway and heading, time, wind, time allowed, objectives, how), Map (one zoomable map) and Arming (the jet's front view with its stores, its weights); Fly | ![Pick a mission](pictures/front-end/mission_en.webp) | ![Pick a mission, Hebrew](pictures/front-end/mission_he.webp) |
-| Preferences | the sections Graphics, Language, Sound and Devices listed at the inline start; the picked one's settings open beside them as controls: dropdown, switch, slider, radio list | ![Preferences](pictures/front-end/prefs_graphics_en.webp) | ![Preferences, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
+| Preferences | the sections Graphics, Language, Sound and Devices listed at the inline start; the picked one's settings open beside them as controls: dropdown, switch, slider, radio list; Devices has the afterburner detent (§9.2) | ![Preferences](pictures/front-end/prefs_graphics_en.webp) | ![Preferences, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
 | Debrief | the record as a sheet: Plane flown, From, Time, Mission, Result, the mission's goals (a take-off: runway, lift-off and reference speed, centreline offset, tower calls; a start-up: none), Remarks (the fail reason first, or that it passed; the lift-off against the reference); Back to missions, Fly again | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
 | Pilot | Home → the pilot: the picture in a service ID photo's fixed 3:4 frame (a click on it, or Choose a picture…, opens the system's file dialog), the name and the nickname, and the logbook (§3); the footer's Reset the log, Delete profile, Change pilot, Back and Save (§3) | ![Pilot](pictures/front-end/pilot_en.webp) | ![Pilot, Hebrew](pictures/front-end/pilot_he.webp) |
 | Create your pilot | the first start, before Home: the Pilot screen with Save only (§3) | ![Create your pilot](pictures/front-end/pilot_first_en.webp) | ![Create your pilot, Hebrew](pictures/front-end/pilot_first_he.webp) |
@@ -67,11 +67,13 @@ screen (a jet's name: its Training); the picks are kept.
 
 ## 2. The flow
 
-Home → Missions → Pick a plane → Continue → Training → Open → Pick a mission → Fly → the flight → the debrief → Home.
+Home → Missions → Pick a plane → a jet's card → Training → Open → Pick a mission → Fly → the flight → the debrief → Home.
 Every start opens Home, which shows no jet (the user, 2026-11-09: the plane is the second step). Pick a plane opens with
-the last pick highlighted; its Continue (off until a pick) goes to Training, Esc back to Home. Esc on Training goes back
+no card picked and none focused; a click on a card, or Enter on the focused one, picks its jet and opens its Training
+(the user, 2026-11-11: no Next button). The arrow keys move the focus; the first arrow focuses the jet flown last, else
+the first card. Esc goes back to Home. Esc on Training goes back
 to Pick a plane. The breadcrumbs follow the same order: Home · Plane · the jet (its Training) · the mission screen.
-Training is the one programme; a campaign card takes its place beside it later.
+Training is the one programme; the Missions and campaign card beside it stays greyed until the sim has missions.
 
 The plane cards stand in one row. Five jets (with the Ra'am and the Baz) fit across at 1920 × 1080 with the photos at
 their full height, each cropped narrower. Tested 2026-11-09 and dropped: a row of three and a row of two, which halved
@@ -308,15 +310,19 @@ The sim draws its own text over the flight in the front end's look (`modern-iaf/
 palette, on the 1080-high canvas scaled to the window), mirrored in Hebrew; the original game's console and panels
 stay the original's (`terrain_view.gd _on_subtitle` hands each line to the flight add-on when it has a `subtitle()`).
 
-- **The mission card** opens at a training mission's start: the mission's title, its objective with the keys as
+- **The mission card** opens at a take-off mission's start: the mission's title, its objective with the keys as
   bound ("Ctrl + T"; "Cmd + T" on macOS) and the runway, and the keys that matter with their labels, from the
   compiled mission's `sim.card` ([data-formats.md](data-formats.md) §5; a default per mission kind). The flight is
   frozen while it is open. Space, Enter, Esc or a click close it; H (the key table's Mission card, record 118; the HUD
-  colour moved to Shift + H) opens it again. Scripted runs (`IAF_DEFAULT_SETTINGS=1`) start with it closed.
+  colour moved to Shift + H) opens it again. A start-up mission opens with its checklist card instead
+  ([training.md](training.md) §7.1; the Mac play test, 2026-11-11), H opens the mission card there too. Scripted runs
+  (`IAF_DEFAULT_SETTINGS=1`) start with it closed.
 - **The radio lines and messages** show in a strip centred at the top, over the sky rather than the cockpit's panel,
   the newest at the bottom, three at most, each for 8 s, wholly in the game's language ([training.md](training.md)
-  §8).
+  §8). The text is subtitle size, 20 px at 1080 (the Mac play test, 2026-11-11: 26 px was too big).
 - **The panel** at the inline-start top holds the radio menu (Ctrl+T) and the training result.
+- **The info line** (F12, at the top left): the mission's name and the frames per second (`Settings.info_line_full`
+  false; the original game's line also holds the modes, the place, the speed and the controls).
 - **The key hint** at the bottom: the Mission card key and Esc's pause menu. It shows for the first 8 s of a flight,
   for 4 s after a language change and for 4 s after the mission card closes (so the player learns the key that opens
   it again), then fades out. It is hidden while the mission card or the start-up checklist card is open (the user,
@@ -340,8 +346,11 @@ next flight reads it, and over a flight the Preferences apply it when they close
 ### 9.1 Keys
 
 The screen lists every command of the sim's key table (`modern-iaf/data/keys.json`) that has a `group`, in five groups:
-Flight, Weapons, Sensors and displays, Views, General. The tabs on the inline-start side scroll to each group. A row
-shows the command and its key; on macOS a key with Ctrl shows as Cmd (`key_table.gd`, docs/controls.md §2). The
+Flight, Weapons, Sensors and displays, Views, General. The tabs on the inline-start side scroll to each group, and the tab of the group at the
+top of the list lights as the list scrolls (`front_end.gd spy`; the Joystick screen's Devices, Axes and Buttons too).
+Back in the bottom bar, as Esc, goes to the Preferences on Devices; the top bar's breadcrumbs read Home · Preferences ·
+Devices · Keys. A row shows the command and its key; on macOS a key with Ctrl shows as ⌘ and one with Alt as Option
+(`KeyTable.mac_symbols`, which the sim sets; the 1998 game keeps Cmd and Alt; docs/controls.md §2). The
 table's records without a group are the commands the sim lacks (the chat, the wingman orders, the debug keys, the
 screen capture): no row.
 
@@ -367,8 +376,12 @@ laptop map there. The commands it moves:
 | Look back-left, back, back-right | Numpad 1, 2, 3 | Alt + 1, 2, 3 |
 | Look left, forward, right | Numpad 4, 5, 6 | Alt + 4, 5, 6 |
 | Look front-left, up, front-right | Numpad 7, 8, 9 | Alt + 7, 8, 9 |
-| Free look (numpad) | Shift + Numpad 8, 2, 4, 6 | none: Shift + the arrows |
 | Zoom (numpad) | Numpad − / + | none: − / = |
+
+**One head-look set.** The sim's head look is the snap views (records 28–36: the numpad, Option + 1–9 on the laptop
+map; the hat sends the same views in its eight directions) and the mouse (the right button held). The 1998 game's duplicates are empty slots in
+the sim's table: F2 rear view (record 74, the same as Look back) and the free look on Shift + the numpad and Shift + the
+arrows (records 86–93). The 1998 game keeps all of them.
 
 The key table has no trim command (the trim is the joystick's rocker), so trim needs no laptop key.
 
@@ -391,20 +404,35 @@ With no joystick connected the Devices section's Joystick row is greyed, its Cha
 connected."; it comes alive when one is plugged in (`Input.joy_connection_changed` builds the section again). Tests see
 only their fake joysticks (`Joystick.device()`).
 
+Back in the bottom bar and the breadcrumbs Home · Preferences · Devices · Joystick work as on the Keys screen; the
+side list (Devices, Axes, Buttons) follows the scroll.
+
 - **Devices:** every connected joystick by name. The first one flies the jet ("Flies the jet"); the others are listed
   only. Without one the screen says so.
 - **Axes:** the six axes Godot reports (fewer when the device's USB descriptor says so, `Joystick.axis_count`). Each
   row has a live bar, the axis' role, Invert and a dead zone (0–50 %). The roles: Roll, Pitch, Throttle, Rudder, Roll
   trim (the throttle rocker, docs/controls.md §5.2), None. A role sits on one axis: giving it to another axis leaves
-  the old one with None. The bar shows the axis after its role's invert and dead zone, so the dead zone is visible
-  as the bar's still centre. The throttle has no centre and no dead zone.
-- **Buttons:** the Keys screen's list with the joystick's buttons. Click a row, then press a button or a hat
-  direction. Conflicts, Default and Reset all work as on the Keys screen. The hat's four directions count as buttons
-  (Hat up, Hat right, Hat down, Hat left); by default they are the four look keys (up, right, back, left).
+  the old one with None. The bar shows the axis as the flight reads it (`Joystick.role_value`: the role's invert,
+  dead zone and sense), so the dead zone is visible as the bar's still centre and the bar fills the way the jet
+  responds: the throttle lever forward is a full bar (full power), the stick pushed forward a full pitch bar. The
+  throttle has no centre and no dead zone. Tested on the Mac 2026-11-11: the bars showed Godot's raw reading, where a
+  lever or stick pushed forward is −1, so the throttle's bar was empty at full power while the flight (and the 1998
+  game) read it right. The one sense now lives in `joystick.gd` (`SENSE`, `shaped`), which the poller and the bars both
+  read.
+- **Buttons:** the Keys screen's list with the joystick's buttons. Click a row, then press a button. Conflicts, Default and Reset all work as on the Keys screen. The hat is not a button here: it is the
+  1998 game's POV, read by the same code (`Joystick.poll`), its eight directions the snap views (up, right, back, left
+  and the corner views front-right, back-right, back-left, front-left). Tested on the Mac 2026-11-11: the sim had
+  turned the hat into four buttons of its own, so the diagonals did nothing; reborn's hat had them all along.
 - **Reset all** puts the buttons and the axes back to the defaults.
 
-The Joystick screen has no rows for the Devices group's choices (Flight controls, Rudder, Throttle, Stick response):
-they stay in the Preferences. A role with no axis leaves its keys working, as Keyboard does: with Roll on None and
+The Joystick screen has no rows for the Devices group's choices (Flight controls, Rudder, Throttle, Afterburner detent,
+Stick response): they stay in the Preferences.
+
+**Afterburner detent** (Preferences → Devices, greyed with no joystick): the throttle lever's click where the
+afterburner starts, as the 1998 game's Devices "Detent = MIL" (docs/controls.md §5). Put the lever in its click and
+choose Set at lever: the row then reads "At n%" (the lever's raw position) and that position gives military power, the
+travel past it the afterburner (`Joystick.detent_choice` and `detent_map`, the code reborn's page runs). Off puts the lever back to linear. One setting
+(`Settings.throttle_detent`) for the throttle role's axis. A role with no axis leaves its keys working, as Keyboard does: with Roll on None and
 Pitch on an axis, the roll keys roll the jet while the stick pitches it (`Joystick.stick_mixed`).
 
 | English | Hebrew |
@@ -418,13 +446,13 @@ OptionButton's `*_mirrored` boxes, so `look.gd` sets them to the left-to-right o
 ### 9.3 Device maps
 
 A known joystick gets its own defaults from a device map in `modern-iaf/data/devices/` (JSON): `match` (a part of the
-device's name, case ignored), `axes` (role → Godot axis) and `buttons` (key-table record → button, the hat 32–35). The
+device's name, case ignored), `axes` (role → Godot axis) and `buttons` (key-table record → button). The
 map replaces the table's whole button column for that device: a record it leaves out has no button. The first map
 whose `match` is in the name wins (file-name order); a device with no map takes the table's own buttons and axes 0–4.
 
 | file | device | axes | buttons |
 |---|---|---|---|
-| `hotas_x.json` | Thrustmaster T.Flight Hotas X | roll 0, pitch 1, throttle 2, rudder 3 (the twist), roll trim 4 (the rocker, 5-axis mode) | 1 gun, 2 release, 3 next target, 4 flares, 5 chaff, 6 master mode, 7 radar mode, 8 drop lock, 9 gear, 10 flaps, 11 wheel brakes, 12 autopilot; the hat: the look keys |
+| `hotas_x.json` | Thrustmaster T.Flight Hotas X | roll 0, pitch 1, throttle 2, rudder 3 (the twist), roll trim 4 (the rocker, 5-axis mode) | 1 gun, 2 release, 3 next target, 4 flares, 5 chaff, 6 master mode, 7 radar mode, 8 drop lock, 9 gear, 10 flaps, 11 wheel brakes, 12 autopilot; the hat: the snap views in eight directions (the 1998 game's) |
 
 The Hotas X's axes are the ones docs/controls.md §5.2 found on that stick. The button choice is ours (inferred: the
 trigger fires the gun, the buttons next to it release and pick targets).
@@ -438,7 +466,7 @@ The store is `user://devices.json`, written compact and only with what differs f
 ```
 
 - `keys`: record → key, DIK | modifiers << 16 as `key_table.gd` stores it (0 = no key).
-- `buttons`: record → the joystick's 0-based button, 32–35 the hat, −1 = none.
+- `buttons`: record → the joystick's 0-based button, −1 = none.
 - `axes`: role (`roll`, `pitch`, `throttle`, `rudder`, `trim`) → `axis` (−1 = none), `invert`, `dead` (0–0.9). An
   absent field is the default: the device map's axis (else 0–4 in role order), no invert, and the dead zone of
   `joystick.gd` (25 % on the stick and the rudder, 5 % with Stick response Soft centre, 10 % on the rocker). A dead
@@ -471,8 +499,8 @@ How the flight reads it:
   Preferences close over it (`terrain_view.gd _apply_preferences`).
 - **Axes:** `Settings.apply_devices()` (at start, on every Preferences save, when a joystick connects) sets
   `Settings.joy_axes` to the roles' axes, `Joystick.tune` to their invert and dead zone, Roll trim on while the trim
-  role has an axis, and `Joystick.hat_buttons` (the hat as buttons 32–35 in place of the original's snap views).
-  `joystick.gd` reads them each poll. The original game leaves `tune` empty and `hat_buttons` off, so its joystick is
+  role has an axis. The hat is the original's POV snap views in both games.
+  `joystick.gd` reads them each poll. The original game leaves `tune` empty, so its joystick is
   unchanged (`tests/godot/test_joystick.gd`, `test_controls.gd`, `test_keyboard_stick.gd`).
 - **The maps' folder:** `Settings.joy_maps_dir()`: the original game's `menu/joy` in the install (its `.joy` files),
   the sim's `modern-iaf/data/devices`, where the shared `.joy` reader finds none and so reads no install. A missing
@@ -484,6 +512,9 @@ How the flight reads it:
   synthetic key reaches the flight's key table; K for Pitch down shows the conflict, Swap trades them; Esc cancels;
   Default and Reset all; with a fake joystick, axis 4 given the pitch inverted with a 10 % dead zone drives the
   poller's stick y (+100 at +1, 0 inside the dead zone, +50 at 0.55); a button and the hat bound by pressing them;
+  the axis mapping against the 1998 game's table (with the Hotas X's defaults every role sends reborn's event at five
+  positions, every bar has its event's sign and size, the lever forward is a full throttle bar); the hat through the
+  1998 game's poller (up then up-right sends the front-right view, centred releases it) and binds nothing; 98 commands listed, no free look;
   the Hotas X's map; with `Settings.laptop_keys` on, the laptop map: the rudder on Z / X, no key on two records, no
   numpad key, a stored key wins over it. `iaf-sim own`'s unit test checks the laptop table compiles the same way.
 - `modern-iaf/tests/test_m0_boot.gd` connects a fake joystick: the probe's gate line stays at 0 refused paths.
@@ -740,7 +771,6 @@ The bisect switch turns graphics features off for one run, whatever the settings
 | `water` | the flat water |
 | `clouds` | no volumetric clouds |
 | `scenery` | no buildings or trees |
-| `labels` | no town labels |
 | `shadows` | no sun shadows |
 | `taa` | MSAA 4× instead of TAA or the temporal upscaler (MetalFX / FSR 2) |
 | `upscaling` | the 3D view at full size |

@@ -3,7 +3,8 @@
 #   {"<node>": {"click": [id, p1, p2], "turn": [id, p1, p2], "drag_px": 10, "prop": "<FlightGear property>",
 #    "on": 2, "off": 0, "box": [x, y, z, w, h, d]}, ...}
 #   - the node: a mesh of the model (its box, grown by REACH, is the hit area); a part merged into the model's body
-#     has no node of its own: "box" (the model's frame, m: centre and size) is its hit area, unseen until hovered;
+#     has no node of its own: "box" (the model's frame, m: centre and size) is its hit area, lit when hovered; a box
+#     with "grip": a part the model lacks, drawn as a grey rod along the box's length (_area);
 #   - "click": sent on a left click (a switch);
 #   - "prop", "on", "off": the switch's FlightGear property (its animation in <model>.json) and its two positions,
 #     set by set_switch (cockpit3d.gd switches);
@@ -32,7 +33,7 @@ func setup(model: Node3D, table: Dictionary) -> void:
 		var r: Dictionary = table[name]
 		var mi := model.find_child(name, true, false) as MeshInstance3D
 		if mi == null and r.has("box"):
-			mi = _area(name, r.box)
+			mi = _area(name, r.box, r.get("grip", false))
 			model.add_child(mi)
 		if mi != null:
 			_controls.append([mi, r])
@@ -142,8 +143,11 @@ func set_switch(id: int, on: bool) -> void:
 				get_parent().switches[r.guard] = 1.0
 
 
-## A hit area of `box` [centre, size] (m, the model's frame): a box drawn clear, lit by the hover's overlay.
-static func _area(name: String, box: Array) -> MeshInstance3D:
+## A hit area of `box` [centre, size] (m, the model's frame): a box drawn clear, lit by the hover's overlay. With
+## `grip` it holds a grey metal rod, as thick as the box is narrow, along its depth (z): the F-16's canopy handle,
+## which FlightGear's model lacks (the Mac play test's finding 11: the clear box alone showed nothing). Grey, not
+## black, so it shows on the black canopy sill (its finish is inferred).
+static func _area(name: String, box: Array, grip := false) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	mi.name = name
 	var mesh := BoxMesh.new()
@@ -155,6 +159,19 @@ static func _area(name: String, box: Array) -> MeshInstance3D:
 	clear.albedo_color = Color(0, 0, 0, 0)
 	mi.material_override = clear
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	if grip:
+		var rod := MeshInstance3D.new()
+		var cap := CapsuleMesh.new()
+		cap.radius = minf(box[3], box[4]) / 2.0
+		cap.height = box[5]
+		rod.mesh = cap
+		rod.rotation = Vector3(PI / 2.0, 0.0, 0.0)  # the capsule's length (y) along z
+		var metal := StandardMaterial3D.new()
+		metal.albedo_color = Color(0.45, 0.45, 0.45)
+		metal.metallic = 0.6
+		metal.roughness = 0.4
+		rod.material_override = metal
+		mi.add_child(rod)
 	return mi
 
 

@@ -83,7 +83,29 @@ func run() -> void:
 			check(band.any(func(t): return "tower" in t), "en: the pilot's call (%s)" % [band])
 		var panel_ok: bool = Rect2(Vector2.ZERO, ui.size).encloses(ui.find_child("Band", true, false).get_rect())
 		check(panel_ok, "%s: the band inside the view" % lang)
+		var sizes: Array = ui._lines.map(func(x): return x[0].get_child(0).get_theme_font_size("font_size"))
+		check(
+			sizes.all(func(z): return z == ui.SUBTITLE_PX), "%s: the band's lines at subtitle size (%s)" % [lang, sizes]
+		)
 	s.language = "en"
+	# The start-up mission opens with its checklist card, not the mission card; the card shows one step.
+	s.card_at_start = true
+	var tv := await _start(2011)
+	await frames(3)
+	var ui: Control = tv.addon.ui
+	var side: Control = ui.find_child("Checklist", true, false)
+	check(ui.card == null and not paused, "start-up: no mission card at the start, the flight runs")
+	check(side != null and side.visible, "start-up: the checklist card shows")
+	var rows := side.find_children("*", "HBoxContainer", true, false)
+	var first := String(tv.addon.checklist[0].en)
+	check(rows.size() == 1 and String(rows[0].get_child(0).text).ends_with(first), "start-up: one step, the first")
+	check(side.size.x <= 420, "start-up: the card is small (%d px wide)" % side.size.x)
+	var info: String = tv.hud_label.text
+	check(
+		info.begins_with("mission: ramon_startup") and info.ends_with("fps"),
+		"the F12 line: mission and FPS (%s)" % info
+	)
+	s.card_at_start = false
 
 
 func _start(id: int) -> Node:

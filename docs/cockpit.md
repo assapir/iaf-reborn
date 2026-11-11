@@ -654,8 +654,12 @@ occlusion, 1.8 MB; built by
   replaced it.
 * **HUD**: drawn as on the 2D cockpit (the original or the Real HUD), masked to the combiner glass's outline as seen
   from the eye (`cockpit.gd` `hud_clip`, `hud_glass.gdshader`: the glass's corners projected each frame). The Real
-  HUD's symbols sit at infinity, so they stay on the world and the glass frames them (inferred). Looking aside the
-  DASH draws everywhere, as on the 2D cockpit. A model without a glass (a helmet display) draws the HUD everywhere.
+  HUD's symbols sit at infinity, so they stay on the world and the glass frames them (inferred). The DASH draws
+  everywhere once no part of the glass is on the screen (`cockpit.gd` `dash`; since 2026-11-11, Modern IAF's Mac play
+  test's finding 10: before, the 2D panel's pan bounds moved the HUD to the DASH 12° aside, with the glass and its
+  empty frame still in view). The glass is cut at the camera's near plane, so a glass half behind the eye keeps the
+  HUD on its part in view (it dropped the whole HUD before). A model without a glass (a helmet display) draws the HUD
+  everywhere.
 * **The HUD on its glass** (2026-11-02): the HUD's boresight sits where the jet's axis meets the screen, and its
   symbology field ([HUD] borders) inside each jet's combiner seen from the eye, at every zoom and with the head turned
   (`test_cockpit3d.gd`). In FlightGear the HUD is drawn the same way: its boresight is where a line from the pilot's

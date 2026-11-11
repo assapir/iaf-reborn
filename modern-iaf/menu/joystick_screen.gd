@@ -51,12 +51,13 @@ static func page(front_end: Control) -> Node:
 	front_end._focus = nav.get_child(0)
 	var reset: Button = front_end._action(front_end.s("reset_all"), "Secondary", me.reset_all)
 	reset.name = "ResetAll"
-	front_end._footer("", [reset])
+	front_end._footer("", [front_end.back_button(), reset])
 	return me
 
 
 func build(body: VBoxContainer, nav: VBoxContainer) -> void:
 	var group := ButtonGroup.new()
+	var tabs := []
 	for part in ["joy_devices", "joy_axes", "joy_buttons"]:
 		var tab := Button.new()
 		tab.name = "Tab_" + part
@@ -66,8 +67,8 @@ func build(body: VBoxContainer, nav: VBoxContainer) -> void:
 		tab.button_group = group
 		tab.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		tab.button_pressed = part == "joy_devices"
-		tab.pressed.connect(func(): scroll.scroll_vertical = int(_heads[part].position.y))
 		nav.add_child(tab)
+		tabs.append(tab)
 	_head(body, "joy_devices", true)
 	var ids: Array = Joystick.fake_devices + ([] if Settings.isolated() else Input.get_connected_joypads())
 	if ids.is_empty():
@@ -94,6 +95,7 @@ func build(body: VBoxContainer, nav: VBoxContainer) -> void:
 	buttons.first_gap = 16
 	buttons.scroll = scroll
 	buttons.build(body, null)
+	fe.spy(scroll, tabs, _heads.values())
 	refresh()
 
 
@@ -228,14 +230,13 @@ func reset_all() -> void:
 	buttons.cancel()
 
 
-## The live bars: each axis after its role's invert and dead zone (the raw value without a role).
+## The live bars: an axis with a role as the flight reads it (Joystick.role_value: the role's invert, dead zone and
+## sense, so the throttle lever forward is a full bar), the raw value without a role.
 func _process(_delta: float) -> void:
 	var d: int = Joystick.device()
 	for i in _axis_rows.size():
 		var v := 0.0
 		if d >= 0:
-			v = Joystick.axis(d, i)
 			var r := role_of(i)
-			if r != "":
-				v = Joystick.tuned(v, bool(roles[r].invert), float(roles[r].dead) if r != "throttle" else 0.0)
+			v = Joystick.role_value(d, Settings.JOY_ROLES.find(r)) if r != "" else Joystick.axis(d, i)
 		_axis_rows[i].bar.value = v

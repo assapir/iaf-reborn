@@ -1,8 +1,9 @@
 # Modern IAF's Preferences → Devices → Keys and Joystick (modern-iaf/docs/front-end.md §9), headless, with synthetic
 # input events and a fake joystick (Joystick.fake_devices): a key bound on the Keys screen is in the key table the
 # flight reads; a key another command has shows the conflict, Swap trades them; Default and Reset all; an axis given
-# the pitch role, inverted with a dead zone, drives the poller's stick y; a button and a hat direction bound by
-# pressing them; the Hotas X's device map. The store is a temporary file (Settings.devices_path).
+# the pitch role, inverted with a dead zone, drives the poller's stick y; a button bound by pressing it; the axes and
+# the hat against the 1998 game's poller; the Hotas X's device map. The store is a temporary file
+# (Settings.devices_path).
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_devices.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -11,7 +12,6 @@ const PITCH_UP := 24
 const PITCH_DOWN := 25
 const GUN := 64
 const GEAR := 20
-const LOOK_UP := 35
 const DIK_K := 0x25
 const RUDDER_LEFT := 37
 const RUDDER_RIGHT := 38
@@ -97,11 +97,29 @@ func run() -> void:
 func keys(fe: Control) -> void:
 	var s := settings()
 	var ks: Node = fe.get_node("Keys")
+	# The side list follows the scroll; a tab's click scrolls to its group; Back as Esc (items 4, 6).
+	var views: Button = fe.find_child("Tab_views", true, false)
+	ks.scroll.scroll_vertical = int(ks._heads["views"].position.y) + 20
+	await frames(1)
+	check(views.button_pressed, "scrolled into Views: its tab lights")
+	(fe.find_child("Tab_weapons", true, false) as Button).pressed.emit()
+	await frames(1)
+	check(
+		ks.scroll.scroll_vertical == int(ks._heads["weapons"].position.y) and not views.button_pressed,
+		"Weapons' tab: the list at Weapons"
+	)
+	check(
+		fe.find_child("Back", true, false) != null and fe.find_child("Crumb_prefs", true, false) != null, "Back, crumbs"
+	)
 	check(ks.records_of("sim").has(2) and not ks.records_of("sim").has(104), "listed: Pause; not: the chat")
 	var listed := 0
 	for g in ks.GROUPS:
 		listed += ks.records_of(g).size()
-	check(listed == 107, "keys: 107 commands listed (%d)" % listed)
+	check(listed == 98, "keys: 98 commands listed, one head-look set (%d)" % listed)
+	check(
+		ks.GROUPS.all(func(g): return [74, 86, 89, 93].all(func(r): return not ks.records_of(g).has(r))),
+		"keys: no free look or F2 rear view (the snap views and the mouse look around)"
+	)
 	check(ks.GROUPS.all(func(g): return not ks.records_of(g).has(121)), "keys: no Ctrl+I idle (record 121 empty)")
 	check(ks._rows[PITCH_UP].chip.text == "Up", "Pitch up shows Up (%s)" % ks._rows[PITCH_UP].chip.text)
 	# Bind: click the row, press K.
@@ -196,14 +214,13 @@ func joystick(fe: Control) -> void:
 	bs._rows[GEAR].row.pressed.emit()
 	root.push_input(joy_button(JOY_BUTTON_DPAD_UP))
 	await frames(1)
-	check(bs.pending == [GEAR, 32, LOOK_UP], "hat up is Look up's: conflict (%s)" % str(bs.pending))
-	bs.resolve("take")
-	var t: RefCounted = kt.load_table()
-	check(t.find_joystick(32, {}) == GEAR and int(t.records[LOOK_UP].joystick) == -1, "Use it here: gear on hat up")
-	check(js.physical_button(JOY_BUTTON_DPAD_UP) == 32, "the sim's hat is buttons 32..35")
+	check(bs.waiting == GEAR and bs.pending.is_empty(), "the hat binds nothing: it is the look (the 1998 game's POV)")
+	bs.cancel()
 	fe.find_child("ResetAll", true, false).pressed.emit()
 	check(store().get("buttons", {}).is_empty() and store().get("axes", {}).is_empty(), "Reset all: %s" % store())
 	check(s.joy_axes == [0, 1, 2, 3, 4] and js.tune[1] == [false, 0.25], "Reset all: default axes")
+	await mapping(scr, js)
+	await hat(js)
 	# The Hotas X's map.
 	var map: String = IafDevices.find_map(s.joy_maps_dir(), "Thrustmaster T.Flight Hotas X")
 	check(map.ends_with("hotas_x.json"), "the Hotas X has its map (%s)" % map)
@@ -211,6 +228,68 @@ func joystick(fe: Control) -> void:
 	check(int(d.records[GUN].joystick) == 0 and int(d.records[GEAR].joystick) == 8, "its buttons: gun 1, gear 9")
 	js.fake_devices = []
 	await frames(2)
+
+
+## The axis mapping against the 1998 game's table (reborn: Settings.joy_axes [0, 1, 2, 3], `tune` empty): with the
+## Hotas X's defaults every role sends the event reborn sends, and every bar fills the way the jet responds (the Mac
+## finding of 2026-11-11: the throttle lever forward showed an empty bar). Joystick.role_value is the one sense.
+func mapping(scr: Node, js: Node) -> void:
+	var s := settings()
+	s.flight_controls = 1
+	s.throttle = 1
+	s.rudder = 1
+	s.stick_response = "linear"
+	s.apply_devices()
+	scr.refresh()
+	var sim_tune: Array = js.tune
+	for v in [-1.0, -0.6, 0.0, 0.4, 1.0]:
+		for a in 4:
+			axis(a, v)
+		js.tune = []
+		js.poll()
+		var reborn := [js.last_x, js.last_y, js.last_throttle, js.last_rudder]
+		js.tune = sim_tune
+		js.poll()
+		var sim := [js.last_x, js.last_y, js.last_throttle, js.last_rudder]
+		check(sim == reborn, "axes at %.1f: the sim sends reborn's events %s (%s)" % [v, str(reborn), str(sim)])
+		scr._process(0.0)
+		var centred := [sim[0], sim[1], sim[2] * 2 - 100, sim[3]]
+		for a in 4:
+			var bar: float = scr._axis_rows[a].bar.value
+			check(
+				signf(bar) == signf(centred[a]) and absf(bar * 100 - centred[a]) <= 1.0,
+				"axes at %.1f: %s's bar %.2f is its event %d" % [v, s.JOY_ROLES[a], bar, centred[a]]
+			)
+	axis(2, -1.0)
+	scr._process(0.0)
+	check(scr._axis_rows[2].bar.value == 1.0, "the throttle lever forward: a full bar, full power")
+	for a in 4:
+		axis(a, 0.0)
+	await frames(1)
+
+
+## The hat as the 1998 game reads it (item 3, 2026-11-11; Joystick.poll, the same code reborn runs): its eight
+## directions are the snap views, up and right held the front-right corner view (GEV 22 45°, the numpad 9's).
+func hat(js: Node) -> void:
+	var s := settings()
+	s.flight_controls = 1
+	js.poll()
+	var sent := []
+	for b in [JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_RIGHT]:
+		Input.parse_input_event(joy_button(b))
+		Input.flush_buffered_events()
+		sent.append_array(js.poll())
+	check(
+		sent.has([22, 0, 8]) and sent.back() == [22, 45, 9], "hat up, then up-right: the front-right view %s" % [sent]
+	)
+	for b in [JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_RIGHT]:
+		var e := joy_button(b)
+		e.pressed = false
+		Input.parse_input_event(e)
+		Input.flush_buffered_events()
+	var out: Array = js.poll()
+	check(out == [[22, -1, -9], [22, -1, 5]], "the hat centred: the view released, centred sent %s" % [out])
+	await frames(1)
 
 
 ## The laptop map (front-end.md §9.1), the platform forced to laptop: the rudder on Z / X, no two records on one key,

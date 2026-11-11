@@ -1119,6 +1119,14 @@ func cockpit_controls() -> bool:
 	return false
 
 
+## The mouse looks about the 3D cockpit (terrain_view.gd _unhandled_input, modern-iaf/docs/cockpit.md §2): a right drag
+## turns the head, a double right-click centres it, the wheel zooms from the wide view down to a narrow one (cockpit.gd
+## VIEW_3D_NARROW_DEG). Modern IAF. The original game's right drag turns the external orbit only; its wheel zooms the
+## cockpit between the wide view and the true size.
+func cockpit_mouse_look() -> bool:
+	return false
+
+
 ## The pilot's body in the 3D cockpit (shared/cockpit/cockpit3d.gd, <model>_pilot.glb): looking down shows the legs on
 ## the rudder pedals and the hands on the stick and throttle (modern-iaf/docs/cockpit.md §5.3). Modern IAF. The original
 ## game's 3D cockpit shows no body: looking down sees the seat and the floor.
@@ -1144,6 +1152,12 @@ func core_sound_real() -> bool:
 ## them unmuffled. Modern IAF. The original game plays each row at its table's inside volume (sound_buses.gd bus_for).
 func cockpit_sound_model() -> bool:
 	return false
+
+
+## The F12 info line in full (the modes, the place, the speed, the controls, the FPS): the original game. Modern IAF
+## shows the mission and the FPS only (modern-iaf/docs/front-end.md §8).
+func info_line_full() -> bool:
+	return true
 
 
 ## A radio call is keyed: key_on.ogg before its clips and key_off.ogg after them (modern-iaf/docs/sound.md §5.2): Modern

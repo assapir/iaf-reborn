@@ -84,7 +84,6 @@ var _fault := ""
 var _fault_shown := ""
 var _card: PanelContainer
 const CARD_TITLE := {"en": "START-UP CHECKLIST", "he": "רשימת התנעה"}
-const CARD_NEXT := {"en": "Next: %s", "he": "הבא: %s"}
 const CARD_DONE := {"en": "All steps done.", "he": "כל השלבים בוצעו."}
 const STEP_IDS := ["main_power", "starter", "engine", "avionics", "ins", "canopy"]
 ## The checklist's first key record (modern-iaf/data/keys.json, records 119–124: STEP_IDS in order; commands 210–215).
@@ -145,7 +144,8 @@ func _ready() -> void:
 	layer.add_child(ui)
 	# The card opens at the start, once the loading screen is gone: it freezes the flight, which would stop the loading
 	# under the screen for good (the 2026-11-10 hang at "the jet"). Scripted runs (IAF_DEFAULT_SETTINGS) fly on without it.
-	if Settings.card_at_start:
+	# A mission with the start-up checklist opens with its card instead (training.md §7.1); H opens the mission card.
+	if Settings.card_at_start and checklist.is_empty():
 		_card_after_loading()
 	if not checklist.is_empty():
 		_build_card()
@@ -483,8 +483,8 @@ func _build_card() -> void:
 	_card = PanelContainer.new()
 	_card.name = "Checklist"
 	_card.mouse_filter = Control.MOUSE_FILTER_IGNORE  # the clicks reach the 3D cockpit's switches under it
-	_card.add_theme_stylebox_override("panel", Look.box(Look.PAPER, Look.RULE, 1, 5, Vector2(24, 18)))
-	_card.custom_minimum_size.x = 520
+	_card.add_theme_stylebox_override("panel", Look.box(Look.PAPER, Look.RULE, 1, 5, Vector2(16, 12)))
+	_card.custom_minimum_size.x = 380
 	ui.add_child(_card)
 	_place_card()
 	ui.language_changed.connect(_place_card)
@@ -516,44 +516,44 @@ func _card_line(parent: Node, text: String, size: int, colour: Color) -> Label:
 	return l
 
 
-## The card: the title, each step with its key (ticked when done, the next one marked), the next step or the fault.
+## The card: the title with the step's number, the step to take now with its key, its switch's place and the state
+## to wait for, and the fault; "All steps done." once every step is taken (the Mac play test, 2026-11-11: one step at
+## a time, smaller).
 func _fill_card() -> void:
-	for c in _card.get_children():
+	for c in _card.get_children():  # out at once: two steps in one frame leave one step shown
+		_card.remove_child(c)
 		c.queue_free()
 	var lang := "he" if _he() else "en"
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
+	v.add_theme_constant_override("separation", 4)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_card.add_child(v)
-	_card_line(v, CARD_TITLE[lang], 22, Look.NAVY)
-	var next := ""
-	for i in checklist.size():
+	var i := 0
+	while i < checklist.size() and String(checklist[i].step) in done:
+		i += 1
+	_card_line(v, "%s  %d/%d" % [CARD_TITLE[lang], mini(i + 1, checklist.size()), checklist.size()], 15, Look.INK_MUTED)
+	if i == checklist.size():
+		_card_line(v, CARD_DONE[lang], 18, Look.NAVY)
+	else:
 		var c: Dictionary = checklist[i]
-		var is_done := String(c.step) in done
-		var is_next := not is_done and next == ""
-		if is_next:
-			next = String(c[lang])
 		var row := HBoxContainer.new()
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.layout_direction = Control.LAYOUT_DIRECTION_RTL if _he() else Control.LAYOUT_DIRECTION_LTR
 		row.add_theme_constant_override("separation", 16)
 		v.add_child(row)
-		var mark := "✓" if is_done else ("▶" if is_next else "·")
-		var colour: Color = Look.INK_MUTED if is_done else (Look.NAVY if is_next else Look.INK)
-		var l := _card_line(row, "%s  %d. %s" % [mark, i + 1, c[lang]], 20, colour)
+		var l := _card_line(row, "%d. %s" % [i + 1, c[lang]], 18, Look.NAVY)
 		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var rec := THROTTLE_IDLE_KEY if c.step == "engine" else CHECK_KEY + STEP_IDS.find(String(c.step))
 		var k: String = ui.key_name(rec)  # as bound, Cmd on macOS
-		_card_line(row, k, 18, Look.INK_MUTED).text_direction = Control.TEXT_DIRECTION_LTR
+		_card_line(row, k, 16, Look.INK_MUTED).text_direction = Control.TEXT_DIRECTION_LTR
 		if c.has("where"):  # the switch's name and place, for the 3D cockpit's mouse (cockpit3d_controls.gd)
-			_card_line(v, "        " + String(c.where[lang]), 16, Look.INK_MUTED)
+			_card_line(v, String(c.where[lang]), 14, Look.INK_MUTED)
 		if c.has("wait"):  # the state to wait for before the next step (the briefing's How shows the same)
-			_card_line(v, "        " + String(c.wait[lang]), 16, Look.INK_MUTED)
-	_card_line(v, CARD_NEXT[lang] % next if next != "" else CARD_DONE[lang], 20, Look.NAVY)
+			_card_line(v, String(c.wait[lang]), 14, Look.INK_MUTED)
 	if _fault_shown != "":
-		_card_line(v, String(trainer.text(_fault_shown, lang)), 20, Color("b3261e")).autowrap_mode = (
-			TextServer.AUTOWRAP_WORD_SMART
-		)
+		var f := _card_line(v, String(trainer.text(_fault_shown, lang)), 16, Color("b3261e"))
+		f.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		f.custom_minimum_size.x = 348
 
 
 ## The banner over the view in the front end's look (navy, Heebo) until the flight ends into the debrief: "Mission

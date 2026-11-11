@@ -451,13 +451,28 @@ const VIEW_3D_WIDE_DEG := 85.0
 ## seated eye rests about 15° below the horizontal (inferred), and 12° shows the MFDs and gauges whole.
 const VIEW_3D_LOOK_DOWN_DEG := 12.0
 
+## Ours, the 3D cockpit's narrowest view with the mouse look (Settings.cockpit_mouse_look): this many degrees across
+## the viewport, the MFDs' pages readable from the seat (inferred).
+const VIEW_3D_NARROW_DEG := 20.0
+
+
+## The zoom's upper bound: ZOOM_MAX (the true size); with the mouse look in the 3D cockpit as far again beyond it,
+## on to the narrow view (view_3d_focal).
+func zoom_limit() -> float:
+	return ZOOM_MAX + (ZOOM_MAX - ZOOM_MIN) if three_d() and Settings.cockpit_mouse_look() else ZOOM_MAX
+
 
 ## The 3D cockpit's focal length (px): the zoom keys / wheel (zoom, ZOOM_MIN..ZOOM_MAX) step from the wide view
-## (VIEW_3D_WIDE_DEG) to the true-size one (true_scale_focal), evenly in the focal length's ratio.
+## (VIEW_3D_WIDE_DEG) to the true-size one (true_scale_focal), evenly in the focal length's ratio; beyond ZOOM_MAX
+## (zoom_limit) on to the narrow view (VIEW_3D_NARROW_DEG) the same way.
 func view_3d_focal() -> float:
-	var wide := get_viewport_rect().size.x / 2.0 / tan(deg_to_rad(VIEW_3D_WIDE_DEG) / 2.0)
-	var t := clampf((zoom - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN), 0.0, 1.0)
-	return wide * pow(true_scale_focal() / wide, t)
+	var w := get_viewport_rect().size.x / 2.0
+	var wide := w / tan(deg_to_rad(VIEW_3D_WIDE_DEG) / 2.0)
+	var t := clampf((zoom - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN), 0.0, 2.0)
+	var true_f := true_scale_focal()
+	if t <= 1.0:
+		return wide * pow(true_f / wide, t)
+	return true_f * pow(maxf(w / tan(deg_to_rad(VIEW_3D_NARROW_DEG) / 2.0), true_f) / true_f, t - 1.0)
 
 
 ## Ours, the 3D cockpit's true-size view (cockpit3d.gd, zoomed fully in): the eye VIEW_DISTANCE_M from the screen
@@ -536,9 +551,20 @@ func _load_panel_mask() -> void:
 
 ## The HUD is the helmet display (FUN_00530b70, docs/cockpit.md "HUD dash repeater"): `[HUD] Dash` 1, the
 ## cockpit drawn, and the panel panned ≥ 250 px aside or ≥ 200 px down.
+## Ours, the 3D cockpit with a combiner glass (hud_on_glass): only while no part of that glass is on the screen, so
+## the HUD stays on its glass whenever the glass shows (looking down at the dash, aside at the consoles: the Mac play
+## test's finding 10; the pan's bounds moved it to the helmet with the glass still in view). Without a glass (the
+## F-35I's helmet display) the pan's rule.
 func dash() -> bool:
 	if view_mode != 0 or int(layout.get("HUD", {}).get("Dash", 0)) != 1:
 		return false
+	if three_d() and hud_on_glass:
+		var screen := get_viewport_rect()
+		var glass := PackedVector2Array()
+		for p in hud_clip:
+			glass.append(p + global_position)
+		var r := PackedVector2Array([screen.position, Vector2(screen.end.x, 0), screen.end, Vector2(0, screen.end.y)])
+		return glass.size() < 3 or Geometry2D.intersect_polygons(glass, r).is_empty()
 	var hp := head_pan()
 	return absf(hp.x) >= 250.0 or hp.y >= 200.0
 
@@ -639,6 +665,9 @@ func _process(delta: float) -> void:
 ## (px in this node), which the HUD is clipped to; null with the 2D panel. The panel art, needles and lamps are then
 ## not drawn (the 3D model shows them) and the MFD nodes draw into the 3D screens.
 var hud_clip = null
+## The 3D cockpit has a combiner glass (cockpit3d.gd); false for a helmet display only (the F-35I), whose look-aside
+## mode keeps the head pan's rule in dash().
+var hud_on_glass := false
 ## The 3D cockpit's shift of the HUD with the head (px): where the nose is on the screen against where it is with the
 ## head straight ahead, so the HUD stays on its glass (the 2D panel pans by head_pan instead).
 var view_shift := Vector2.ZERO

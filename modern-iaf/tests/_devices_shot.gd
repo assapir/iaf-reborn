@@ -1,9 +1,10 @@
-# Real-render pictures of Modern IAF's Keys and Joystick screens (modern-iaf/docs/front-end.md §9) in English and Hebrew:
+# Real-render pictures of Modern IAF's Keys and Joystick screens (modern-iaf/docs/front-end.md §9), English and Hebrew:
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/dev -- --log-file /tmp/dev.log --path modern-iaf \
 #     -s ../modern-iaf/tests/_devices_shot.gd
 # Writes SHOT_DIR/<shot>_<lang>.png at 1920×1080: keys (Pitch up rebound to K), keys_wait (Pitch down waiting for its
-# key), keys_conflict (K pressed for Pitch down), joystick (a fake stick, its axes moved), joystick_buttons. The store
-# is a temporary file.
+# key), keys_conflict (K pressed for Pitch down), joystick (a fake stick, its axes moved, the throttle lever forward:
+# a full bar), joystick_buttons, prefs_detent (the afterburner detent set), keys_mac (English: the Views as on a
+# Mac). The store is a temporary file.
 extends "res://../tests/godot/base.gd"
 
 
@@ -55,7 +56,7 @@ func run() -> void:
 		fe.show_page("joystick")
 		axis(0, 0.4)
 		axis(1, -0.7)
-		axis(2, 0.6)
+		axis(2, -0.9)  # the lever near full forward: a near-full throttle bar
 		await frames(10)
 		await shot(vp, dir, "joystick", lang)
 		var scr: Node = fe.get_node("Joystick")
@@ -65,7 +66,27 @@ func run() -> void:
 		tab.pressed.emit()
 		await frames(5)
 		await shot(vp, dir, "joystick_buttons", lang)
+		s.throttle_detent = 82
+		fe.pref_group = "devices"
+		fe.show_page("prefs")
+		await frames(5)
+		await shot(vp, dir, "prefs_detent", lang)
+		s.throttle_detent = -1
 	s.language = "en"
+	# keys_mac: the Views group as a Mac shows it (the laptop map, Option and ⌘).
+	var kt: GDScript = load("res://shared/controls/key_table.gd")
+	var was: bool = kt.cmd_is_ctrl
+	kt.cmd_is_ctrl = true
+	s.laptop_keys = true
+	s.pilot_name = "Noa Golan"
+	fe.show_page("keys")
+	await frames(5)
+	var km: Node = fe.get_node("Keys")
+	km.scroll.scroll_vertical = int(km._heads["views"].position.y)
+	await frames(5)
+	await shot(vp, dir, "keys_mac", "en")
+	kt.cmd_is_ctrl = was
+	s.laptop_keys = OS.get_name() == "macOS"
 	s.pilot_name = ""
 	js.fake_devices = []
 	DirAccess.remove_absolute(s.devices_path)

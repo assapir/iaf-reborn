@@ -51,19 +51,32 @@ func run() -> void:
 	check(fe.find_child("change_plane", true, false) == null, "Home: no Change plane")
 	go.pressed.emit()
 	await frames(2)
-	check(fe.page == "plane" and fe.find_child("Continue", true, false).disabled, "Missions opens the picker")
+	check(
+		fe.page == "plane" and fe.find_child("Continue", true, false) == null,
+		"Missions opens the picker (no Next button)"
+	)
 	check(fe.find_child("Cards", true, false).get_child_count() == 5, "the picker: the three flyable jets, two greyed")
-	(fe.find_child("sufa", true, false) as Button).pressed.emit()
+	check(fe.get_viewport().gui_get_focus_owner() == null, "the picker: no card picked or focused on entry")
+	var arrow := InputEventKey.new()
+	arrow.keycode = KEY_RIGHT
+	arrow.pressed = true
+	Input.parse_input_event(arrow)
 	await frames(2)
-	(fe.find_child("Continue", true, false) as Button).pressed.emit()
-	await frames(2)
-	check(fe.page == "training" and fe.find_child("Crumb_plane", true, false) != null, "Continue: Training after Plane")
-	key(fe, KEY_ESCAPE)
+	check(fe.get_viewport().gui_get_focus_owner() == fe.find_child("sufa", true, false), "an arrow focuses a card")
+	for down in [true, false]:
+		var enter := InputEventKey.new()
+		enter.keycode = KEY_ENTER
+		enter.pressed = down
+		Input.parse_input_event(enter)
+		await frames(1)
 	await frames(2)
 	check(
-		fe.page == "plane" and (fe.find_child("sufa", true, false) as Button).button_pressed,
-		"Esc: the picker, Sufa kept"
+		fe.page == "training" and s.sim_jet == "f16i" and fe.find_child("Crumb_plane", true, false) != null,
+		"Enter on a card: its jet picked, Training after Plane"
 	)
+	key(fe, KEY_ESCAPE)
+	await frames(2)
+	check(fe.page == "plane" and s.sim_jet == "f16i", "Esc: the picker, Sufa kept")
 	key(fe, KEY_ESCAPE)
 	await frames(2)
 	check(fe.page == "home" and not _has_part(fe, "Sufa"), "back to Home: no jet on Home")
@@ -429,7 +442,10 @@ func fly_once(fe: Control) -> void:
 	await frames(2)
 	check(
 		back.page == "home" and settings().sim_jet == "f16i" and not _has_part(back, "Sufa"),
-		"fly: Esc from the debrief opens Home, the Sufa kept as the pick but not shown"
+		(
+			"fly: Esc from the debrief opens Home, the Sufa kept as the pick but not shown (%s, %s, %s)"
+			% [back.page, settings().sim_jet, _labels(back).filter(func(x): return "Sufa" in x)]
+		)
 	)
 
 
@@ -494,17 +510,20 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	var sufa: Control = fe.find_child("sufa", true, false)
 	var adir: Control = fe.find_child("adir", true, false)
 	check((sufa.global_position.x > adir.global_position.x) == he, "%s: the cards' order mirrors" % lang)
-	sufa.pressed.emit()
-	await frames(2)
-	check(s.sim_jet == "f16i" and s.f16_variant == "sufa", "%s: the Sufa picked (sim_jet, the F-16 switch)" % lang)
 	fe.find_child("barak", true, false).pressed.emit()
 	await frames(2)
 	check(s.sim_jet == "f16d" and s.f16_variant == "barak", "%s: the Barak picked" % lang)
+	fe.show_page("plane")
+	await frames(2)
 	fe.find_child("sufa", true, false).pressed.emit()
 	await frames(2)
-	fe.find_child("Continue", true, false).pressed.emit()
-	await frames(2)
-	check(fe.page == "training", "%s: Continue opens Training" % lang)
+	check(s.sim_jet == "f16i" and s.f16_variant == "sufa", "%s: the Sufa picked (sim_jet, the F-16 switch)" % lang)
+	check(fe.page == "training", "%s: a card's click opens Training" % lang)
+	var camp: Button = fe.find_child("Campaign", true, false)
+	check(
+		camp != null and camp.disabled and camp.tooltip_text == fe.s("coming"),
+		"%s: training: Missions and campaign beside it, greyed with its tooltip" % lang
+	)
 	check(_has(fe, "לטוס בסופה" if he else "Fly the Sufa"), "%s: training: the title" % lang)
 	check(_has(fe, "1 · התנעה" if he else "1 · Start-up"), "%s: training: mission 1" % lang)
 	check(_has(fe, "2 מתוך 2 עברו" if he else "2 of 2 passed"), "%s: training: the progress" % lang)
@@ -589,6 +608,11 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	check(
 		_has(fe, "קרדיט" if he else "Attributions") and _has(fe, "יציאה" if he else "Quit"), "%s: home: the menu" % lang
 	)
+	var guides: Button = fe.find_child("guides", true, false)
+	check(
+		guides != null and guides.disabled and guides.tooltip_text == fe.s("coming") and guides.text == fe.s("guides"),
+		"%s: home: Guides, greyed with its tooltip" % lang
+	)
 	check(_labels_of(fe, "Stat").is_empty(), "%s: home: no flight counts" % lang)
 	check(not _has_part(fe, "אחרונה" if he else "Last:"), "%s: home: no last-mission line" % lang)
 	check(not _has(fe, "בחירה" if he else "Select"), "%s: home: no key hints" % lang)
@@ -666,6 +690,7 @@ func prefs(fe: Control) -> void:
 	check(s.rejected.size() == refused, "prefs: the screens read none of the original's data (%s)" % [s.rejected])
 	for k in ["antialiasing", "upscaling", "shadows", "terrain_detail", "clouds", "scenery", "fullscreen", "vsync"]:
 		check(rows.get(k) == "graphics", "prefs: Graphics has %s" % k)
+	check(not rows.has("town_labels"), "prefs: no Town labels row")
 	for k in ["engine_volume", "sfx_volume", "speech_volume", "mute"]:
 		check(rows.get(k) == "sound", "prefs: Sound has %s" % k)
 	# The sim's clips are Ogg: each slider's sample plays (an AudioStreamWAV-typed slot raised a SCRIPT ERROR).

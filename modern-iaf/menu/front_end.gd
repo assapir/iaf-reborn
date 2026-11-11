@@ -14,7 +14,6 @@ const SoundTable := preload("res://shared/audio/sound_table.gd")
 const KeysScreen := preload("res://menu/keys_screen.gd")
 const JoystickScreen := preload("res://menu/joystick_screen.gd")
 const Scenery := preload("res://shared/terrain/scenery.gd")
-const TownLabels := preload("res://shared/terrain/town_labels.gd")
 const KeyTable := preload("res://shared/controls/key_table.gd")
 const BriefingMap := preload("res://menu/briefing_map.gd")
 const ArmingDrawing := preload("res://menu/arming_drawing.gd")
@@ -87,7 +86,6 @@ const PREFS := [
 			["terrain_detail", "slider", []],
 			["clouds", "radio", [["clouds_flat", "original"], ["clouds_volumetric", "volumetric"]]],
 			["scenery", "radio", [["off", "off"], ["on", "on"], ["scenery_detailed", "detailed"]]],
-			["town_labels", "switch", []],
 			["fullscreen", "switch", []],
 			["vsync", "switch", []],
 		]
@@ -108,6 +106,7 @@ const PREFS := [
 			["flight_controls", "radio", [["joystick", 1], ["keyboard", 0]]],
 			["rudder", "radio", [["pedals", 1], ["keyboard", 0]]],
 			["throttle", "radio", [["lever", 1], ["keyboard", 0]]],
+			["throttle_detent", "detent", []],
 			["stick_response", "radio", [["linear", "linear"], ["soft", "soft"]]],
 			["keys_screen", "page", []],
 			["joystick_screen", "page", []],
@@ -523,12 +522,13 @@ func _page_home() -> void:
 	_rule(menu, Look.LINE)
 	var items := [
 		["pilot_log", func(): show_page("log")],
+		["guides", Callable()],
 		["preferences", func(): show_page("prefs")],
 		["credits", func(): show_page("credits")],
 		["quit", func(): Settings.quit()],
 	]
 	for item in items:
-		var b := _button(menu, s(item[0]), "Menu", item[1])
+		var b := _button(menu, s(item[0]), "Menu", item[1]) if item[1].is_valid() else _soon(menu, s(item[0]), "Menu")
 		b.name = item[0]
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		_rule(menu, Look.LINE)
@@ -547,18 +547,16 @@ func _page_plane() -> void:
 	var row := _hbox(v, 40)
 	row.name = "Cards"
 	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var group := ButtonGroup.new()
+	# No card is picked on entry; a click (or Enter on the focused card) picks its jet and opens its page, the arrows move
+	# the focus (the first arrow focuses the jet flown last). The user, 2026-11-11.
 	var files := []
 	for j in JETS + SOON:
 		var soon: bool = j in SOON
 		var card := Button.new()
 		card.name = j.name
 		card.theme_type_variation = "Card"
-		card.toggle_mode = true
-		card.button_group = group
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		card.button_pressed = j.unit == Settings.sim_jet and not soon
 		# Not flyable yet: greyed and out of reach (no click, no focus), its photo in grey.
 		card.disabled = soon
 		if soon:
@@ -580,16 +578,6 @@ func _page_plane() -> void:
 			var grey := ph.texture.get_image()
 			grey.convert(Image.FORMAT_L8)
 			ph.texture = ImageTexture.create_from_image(grey)
-		if card.button_pressed:
-			var bm := _margin(ph, 20, 20)
-			bm.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-			var bh := _hbox(bm, 0)
-			bh.alignment = BoxContainer.ALIGNMENT_END
-			var badge := PanelContainer.new()
-			badge.add_theme_stylebox_override("panel", Look.box(Look.ACCENT, Look.ACCENT, 0, 16, Vector2(16, 3)))
-			badge.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-			bh.add_child(badge)
-			_label(badge, s("selected"), "Avatar")
 		var t := _margin(inner, 24, 26)
 		t.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		var tv := _vbox(t, 2)
@@ -604,20 +592,20 @@ func _page_plane() -> void:
 		inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if not soon:
 			card.pressed.connect(_pick_jet.bind(j))
-			if card.button_pressed or _focus == null:
-				_focus = card
-	var go := _action(s("continue"), "Primary", func(): show_page("training"))
-	go.name = "Continue"
-	go.disabled = jet().is_empty()
-	_footer(_credit(files), [go])
+	_footer(_credit(files))
 
 
 func _pick_jet(j: Dictionary) -> void:
 	_pick_jet_quiet(j)
-	show_page("plane")
-	_focus = find_child(j.name, true, false)
-	if _focus != null:
-		_grab.call_deferred(_focus)
+	show_page("training")
+
+
+## Pick a plane with nothing focused: the first arrow focuses the card of the jet flown last (else the first).
+func _focus_card() -> void:
+	var j := jet()
+	var c := find_child(j.name if not j.is_empty() else JETS[0].name, true, false) as Control
+	if c != null:
+		c.grab_focus()
 
 
 # --- Training (the programme) -----------------------------------------------------------------------------------------
@@ -628,9 +616,26 @@ func _page_training() -> void:
 	_header(["home", "plane", j.name])
 	var v := _vbox(_body(), 34)
 	_title(v, s("fly_jet") % s(j.name), subtitle(j))
+	var cards := _hbox(v, 32)
 	var card := PanelContainer.new()
 	card.custom_minimum_size.y = 560
-	v.add_child(card)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cards.add_child(card)
+	# Beside it the missions and the campaign, greyed until the sim has them (the user, 2026-11-11).
+	var soon := _soon(cards, "", "Card")
+	soon.name = "Campaign"
+	soon.custom_minimum_size.x = 420
+	soon.modulate = Color(1, 1, 1, 0.45)
+	var sm := _margin(soon, 40, 46)
+	sm.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var sv := _vbox(sm, 22)
+	var camp_title := _text(sv, s("campaign"), "H2")
+	camp_title.add_theme_font_size_override("font_size", 40)
+	_text(sv, s("campaign_text"), "Sub")
+	_spacer(sv, true)
+	_chip(sv, s("coming"), false).size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	for c in soon.find_children("*", "Control", true, false):
+		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var h := _hbox(card, 0)
 	var tm := _margin(h, 50, 46)
 	tm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1255,7 +1260,7 @@ func briefing_steps(m: Dictionary) -> Array:
 	return out
 
 
-## Key record `record` of the sim's key table as bound ("Cmd" for Ctrl on macOS).
+## Key record `record` of the sim's key table as bound ("⌘" for Ctrl, "Option" for Alt on macOS).
 func key_name(record: int) -> String:
 	if _keys == null:
 		_keys = KeyTable.load_table()
@@ -1362,16 +1367,19 @@ func _pref_row(parent: Control, row: Array) -> void:
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_label(t, s(key), "Strong").add_theme_font_size_override("font_size", 25)
 	# Scenery only with setup's scenery step (Scenery.available); greyed without it.
-	# Greyed with its why: Scenery and Town labels without setup's scenery step (their available()), the Joystick
+	# Greyed with its why: Scenery without setup's scenery step (Scenery.available()), the Joystick
 	# screen with no joystick connected (it comes alive when one is plugged in, _on_joy_connection).
 	var why := ""
-	if key == "scenery" and not Scenery.available() or key == "town_labels" and not TownLabels.available():
+	if key == "scenery" and not Scenery.available():
 		why = "scenery_missing"
-	elif key == "joystick_screen" and Joystick.device() < 0:
+	elif key in ["joystick_screen", "throttle_detent"] and Joystick.device() < 0:
 		why = "joy_none"
-	var off := why != ""
-	if off:
+	elif key == "throttle_detent":
+		why = "detent_note"
+	var off := why != "" and why != "detent_note"
+	if why != "":
 		_label(t, s(why), "Small")
+	if off:
 		m.modulate.a = 0.5
 	var ctl := _hbox(h, 20)
 	ctl.custom_minimum_size.x = 420
@@ -1420,6 +1428,18 @@ func _pref_row(parent: Control, row: Array) -> void:
 					pct.text = "%d%%" % roundi(x * 100)
 					_set_pref(key, x)
 			)
+		"detent":
+			# Ours, reborn's Devices "Detent = MIL" (joystick.gd detent_map): the lever's raw position in its click, past
+			# it the afterburner; Off = the lever linear.
+			var at := _label(ctl, s("off") if int(value) < 0 else s("detent_at") % int(value), "Row")
+			at.name = "Value"
+			at.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			var no := _button(ctl, s("off"), "Secondary", _set_detent.bind(-1))
+			no.name = "Off"
+			no.disabled = off or int(value) < 0
+			var lever := _button(ctl, s("set_at_lever"), "Secondary", _set_detent.bind(0))
+			lever.name = "Control"
+			lever.disabled = off
 		"page":
 			var b := _button(ctl, s("change"), "Secondary", show_page.bind(key.trim_suffix("_screen")))
 			b.name = "Control"
@@ -1455,6 +1475,19 @@ func _page_keys() -> void:
 
 func _page_joystick() -> void:
 	JoystickScreen.page(self)
+
+
+## The Keys and Joystick screens' Back (as Esc): the Preferences on Devices.
+func back_button() -> Button:
+	var b := _action(s("back"), "Secondary", back)
+	b.name = "Back"
+	return b
+
+
+## The afterburner detent by the 1998 game's Devices rule (Joystick.detent_choice), then the row again.
+func _set_detent(off_or_lever: int) -> void:
+	_set_pref("throttle_detent", Joystick.detent_choice(off_or_lever >= 0))
+	show_page("prefs")
 
 
 func _set_pref(key: String, value: Variant) -> void:
@@ -2217,7 +2250,14 @@ func _page_pause() -> void:
 
 ## The arrow keys toward the inline end / start switch the briefing's pages (Briefing at the inline start).
 func _input(event: InputEvent) -> void:
-	if page != "mission" or not (event is InputEventKey and event.pressed):
+	if not (event is InputEventKey and event.pressed):
+		return
+	if page == "plane" and get_viewport().gui_get_focus_owner() == null:
+		if event.keycode in [KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_TAB]:
+			_focus_card()
+			get_viewport().set_input_as_handled()
+		return
+	if page != "mission":
 		return
 	var map := find_child("PageMap", true, false)
 	if map != null and map.has_focus():
@@ -2393,6 +2433,51 @@ func _title(parent: Node, title: String, sub: String) -> void:
 	_label(v, title, "H1")
 	if sub != "":
 		_label(v, sub, "Sub")
+
+
+## The side list of a long page (Keys, Joystick): a tab's click scrolls `scroll` to its part (`heads`, children of the
+## scrolled list), and the tab of the part at the pane's top follows the scroll (the last one at the bottom). The tab
+## clicked stays on while its own scroll runs, even when the page's end stops it short of the top.
+func spy(scroll: ScrollContainer, tabs: Array, heads: Array) -> void:
+	var held := [null]
+	for i in tabs.size():
+		tabs[i].pressed.connect(
+			func():
+				held[0] = tabs[i]
+				tabs[i].button_pressed = true
+				scroll.scroll_vertical = int(heads[i].position.y)
+				held[0] = null
+		)
+	var bar := scroll.get_v_scroll_bar()
+	bar.value_changed.connect(
+		func(v: float):
+			if held[0] != null:
+				return
+			var on := 0
+			for i in heads.size():
+				if heads[i].position.y <= v + 8:
+					on = i
+			if v >= bar.max_value - bar.page - 1 and v > 0:
+				on = heads.size() - 1
+			tabs[on].button_pressed = true
+			if tabs.has(scroll.get_viewport().gui_get_focus_owner()):
+				tabs[on].grab_focus()  # the focus box on the lit tab, not on another
+	)
+
+
+## A button for what the sim does not have yet (Guides, the campaign): greyed, "coming" as its tooltip, no focus.
+func _soon(parent: Node, t: String, kind_name: String) -> Button:
+	var b := Button.new()
+	b.text = t
+	b.theme_type_variation = kind_name
+	b.disabled = true
+	b.focus_mode = Control.FOCUS_NONE
+	b.tooltip_text = s("coming")
+	b.mouse_default_cursor_shape = Control.CURSOR_FORBIDDEN
+	parent.add_child(b)
+	# Its kind's plain box (the themes give the disabled state none, or a lit one), the text greyed.
+	b.add_theme_stylebox_override("disabled", b.get_theme_stylebox("normal"))
+	return b
 
 
 func _button(parent: Node, t: String, kind_name: String, on: Callable) -> Button:

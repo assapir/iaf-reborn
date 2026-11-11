@@ -39,6 +39,9 @@ const PROFILE := {
 	"scenery_far": "light",
 	# The walls in their own colours at any distance (look study proposal 2, modern-iaf/docs/scenery.md §7).
 	"building_palette": true,
+	# No town labels: the 1998 game's (shared/terrain/town_labels.gd); the sim draws no names over the view (the Mac
+	# play test, 2026-11-11).
+	"town_labels": false,
 }
 ## No aids (the user, 2026-11-08): the original's Gameplay page's switches, all off (easy_landing's default is on).
 ## Applied with PROFILE; never logged (has_setting): the sim has no such switch.
@@ -66,7 +69,6 @@ const SAFE := {
 	"water": {"water": false},
 	"clouds": {"clouds": "original"},
 	"scenery": {"scenery": "off"},
-	"labels": {"town_labels": false},
 	"shadows": {"shadows": false},
 	"taa": {"antialiasing": "msaa4"},
 	"upscaling": {"upscaling": "off"},
@@ -124,12 +126,12 @@ var laptop_keys := OS.get_name() == "macOS"
 func _init() -> void:
 	super()
 	scenery = "on"  # the sim's default (the DEFAULT button's too)
-	town_labels = true  # the sim's default (look study proposal 3)
 	shadow_reach = "far"  # the sim's default (look study proposal 5)
 
 
 func _ready() -> void:
 	super()
+	load("res://shared/controls/key_table.gd").mac_symbols = true  # "Option" and "⌘" on a Mac (front-end.md §9.1)
 	_apply_profile()
 	apply_devices.call_deferred()  # after the Joystick autoload is in the tree
 	ThemeDB.get_default_theme().default_font = display_font("ui")  # every Control's text unless it sets its own
@@ -468,6 +470,12 @@ func cockpit_controls() -> bool:
 	return true
 
 
+## The mouse looks about the cockpit: a right drag, a double right-click to centre, the wheel's zoom down to a narrow
+## view for reading the displays (the Mac play test's finding 9).
+func cockpit_mouse_look() -> bool:
+	return true
+
+
 ## The pilot's legs and hands seen looking down in the 3D cockpit (the user, 2026-11-09: "one can look on his own
 ## belly or something"; modern-iaf/docs/cockpit.md §5.3).
 func cockpit_pilot_body() -> bool:
@@ -490,6 +498,11 @@ func core_sound_real() -> bool:
 ## modern-iaf/docs/sound.md §1.9).
 func cockpit_sound_model() -> bool:
 	return true
+
+
+## The F12 info line: the mission and the FPS only (the Mac play test, 2026-11-11; modern-iaf/docs/front-end.md §8).
+func info_line_full() -> bool:
+	return false
 
 
 ## Each radio call opens with the press-to-talk click and closes with the squelch tail (modern-iaf/docs/sound.md §5.2).
@@ -538,7 +551,7 @@ func joystick_connected(_name: String) -> void:
 
 
 ## The store's axes to the joystick: joy_axes, the invert and dead zone of each (Joystick.tune), the trim rocker on
-## while the trim role has an axis; the hat as buttons (Joystick.hat_buttons).
+## while the trim role has an axis. The hat is the 1998 game's: its eight directions are the snap views (Joystick.poll).
 func apply_devices() -> void:
 	var js := _joystick()
 	if js == null or not ClassDB.class_exists("IafDevices"):
@@ -552,7 +565,6 @@ func apply_devices() -> void:
 		joy_axes.append(int(a[r].axis))
 		js.tune.append([bool(a[r].invert), float(a[r].dead)])
 	rocker_trim = joy_axes[4] >= 0
-	js.hat_buttons = true
 
 
 func save() -> void:

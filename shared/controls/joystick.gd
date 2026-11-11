@@ -44,10 +44,6 @@ const POV := {
 ## rudder, rocker) [invert, dead zone]; empty (the original game) = no invert and the dead zones above. A joy_axes entry
 ## of −1 is no axis: it reads the centre and its Devices choice does nothing.
 var tune: Array = []
-## Ours (the sim): the hat's directions are buttons HAT_BUTTON + 0..3 (up, right, down, left) for the key table, and
-## send no POV snap views.
-var hat_buttons := false
-const HAT_BUTTON := 32
 ## Ours: an unknown stick (no SDL gamepad mapping) reports its buttons by raw index and its hat as the D-pad
 ## buttons 11..14, so a 12th..15th button is the same event as a hat direction. Such a stick gets a mapping:
 ## buttons 0..10 keep their index, 11..16 move to 15..20 (misc1, paddles, touchpad), the hat stays on 11..14;
@@ -151,9 +147,31 @@ func _dz(r: int, dz: float) -> float:
 	return float(tune[r][1]) if tune.size() > r else dz
 
 
-## A value after invert and dead zone as the poller shapes it (the Joystick screen's live bars).
-static func tuned(v: float, invert: bool, dz: float) -> float:
-	return _dead(-v if invert else v, dz)
+## Each role's sense in the events poll() sends (x, y, throttle, rudder, rocker): Godot reads a lever or stick pushed
+## forward as −1, the original turns that into y = 100 (MulDiv(lY, −200, …) + 100, @4df770) and throttle = 100
+## (MulDiv(lZ, −100, …) + 100, @4df825); x, the rudder and the rocker keep Godot's sense.
+const SENSE := [1.0, -1.0, -1.0, 1.0, 1.0]
+
+
+## Role r (x, y, throttle, rudder, rocker) of device d after `tune`'s invert and dead zone, in Godot's sense (−1..1):
+## the one shaping poll(), raw_throttle() and rocker() read.
+func shaped(d: int, r: int) -> float:
+	var v := _read(d, r)
+	var soft: bool = Settings.stick_response == "soft"
+	match r:
+		0, 1:
+			return stick_curve(v, soft, _dz(r, -1.0))
+		3:
+			return _dead(v, _dz(3, SOFT_DEAD_ZONE if soft else DEAD_ZONE))
+		4:
+			return _dead(v, _dz(4, ROCKER_DEAD_ZONE))
+	return v  # the throttle: no dead zone (none on lZ)
+
+
+## Role r as the game reads it (−1..1, SENSE applied): the lever forward fills the Joystick screen's throttle bar as
+## it gives full power (the Mac finding of 2026-11-11: the bars showed Godot's raw sense, the throttle's reversed).
+func role_value(d: int, r: int) -> float:
+	return SENSE[r] * shaped(d, r)
 
 
 ## FUN_004e0f40: the throttle axis (0..100) while used, else −1 (the autopilot's re-sync, docs/autopilot.md).
@@ -176,7 +194,7 @@ func rocker() -> float:
 		if v == rocker_first:
 			return 0.0
 		rocker_moved = true
-	var r := _dead(v, _dz(4, ROCKER_DEAD_ZONE))
+	var r := shaped(d, 4)
 	return r * absf(r)
 
 
@@ -228,7 +246,7 @@ func _process(_delta: float) -> void:
 ## POV, not buttons, as DirectInput reports it).
 func physical_button(b: int) -> int:
 	if b >= JOY_BUTTON_DPAD_UP and b <= JOY_BUTTON_DPAD_RIGHT:
-		return HAT_BUTTON + HAT.find(b) if hat_buttons else -1
+		return -1
 	if remapped and b >= JOY_BUTTON_MISC1 and b <= JOY_BUTTON_TOUCHPAD:
 		return b - 4
 	return b
@@ -246,7 +264,7 @@ func raw_throttle() -> int:
 	var d := device()
 	if d < 0:
 		return -1
-	return 100 - _lin(_read(d, 2), 100)
+	return 100 - _lin(shaped(d, 2), 100)
 
 
 ## Ours (Extras "Throttle detent = MIL", off = −1): the lever's detent `d` maps to MIL (74, the "6" key) — the
@@ -254,6 +272,12 @@ func raw_throttle() -> int:
 ## point or two over, and 75 already lights AB 1), then 78 (AB 1, the "7" key) .. 100. The original maps the lever
 ## linearly.
 const DETENT_HOLD := 3
+
+
+## The Devices page's detent choice, both games' one rule: Off = −1 (the linear lever), Set at lever = the lever's raw
+## position now (raw_throttle; −1 without a joystick). reborn's Devices page and Modern IAF's Preferences call it.
+func detent_choice(set_at_lever: bool) -> int:
+	return raw_throttle() if set_at_lever else -1
 
 
 static func detent_map(t: int, d: int) -> int:
@@ -271,14 +295,13 @@ func poll() -> Array:
 	if d < 0:
 		return []
 	var out := []
-	var soft: bool = Settings.stick_response == "soft"
 	if Settings.flight_controls == 1:
 		# MulDiv(lX, 200, max − min) − 100 and MulDiv(lY, −200, max − min) + 100 (@4df6b8, 4df770).
-		var x := _lin(stick_curve(_read(d, 0), soft, _dz(0, -1.0)), 200) - 100
+		var x := _lin(shaped(d, 0), 200) - 100
 		if x != last_x:
 			last_x = x
 			out.append([1, last_x, last_y])
-		var y := 100 - _lin(stick_curve(_read(d, 1), soft, _dz(1, -1.0)), 200)
+		var y := 100 - _lin(shaped(d, 1), 200)
 		if y != last_y:
 			last_y = y
 			out.append([1, last_x, last_y])
@@ -290,11 +313,11 @@ func poll() -> Array:
 			out.append([9, last_throttle, 0])
 	if rudder_used():
 		# MulDiv(lRz, 200, max − min) − 100 (@4df8d7).
-		var r := _lin(_dead(_read(d, 3), _dz(3, SOFT_DEAD_ZONE if soft else DEAD_ZONE)), 200) - 100
+		var r := _lin(shaped(d, 3), 200) - 100
 		if r != last_rudder:
 			last_rudder = r
 			out.append([10, last_rudder, 0])
-	if Settings.flight_controls == 1 and not hat_buttons:
+	if Settings.flight_controls == 1:
 		var pov := _pov(d)
 		if pov != _pov_last:
 			if _pov_sent:

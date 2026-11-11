@@ -233,6 +233,18 @@ func pan(cmd: int, down: bool) -> void:
 			_pan_rate.y = PAN_RATE * sign
 
 
+## Ours (Settings.cockpit_mouse_look): the mouse turns the head by `d` (rad: yaw right +, pitch up +) in free look,
+## the head staying where the mouse leaves it; padlock breaks as by the pan keys.
+func look_by(d: Vector2) -> void:
+	var h := head_now()
+	_ret = {}
+	_pan_rate = Vector2.ZERO
+	type = FREE_LOOK
+	_pan_from = Vector2(wrapf(h.x + d.x, -PI, PI), clampf(h.y + d.y, pitch_min, HEAD_PITCH_MAX))
+	_pan_t0 = now
+	head = _pan_from
+
+
 ## Ours, the 3D cockpit: hat down / Numpad 2 (the 180° snap with digit 2) looks down at the panel instead of back (the
 ## user, 2026-11-08); F2 (digit 0) still looks back. With the 12° look-down the camera is 32° below the nose, the whole
 ## front panel in view.

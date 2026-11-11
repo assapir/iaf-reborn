@@ -10,8 +10,6 @@ const KeyTable := preload("res://shared/controls/key_table.gd")
 const Look := preload("res://menu/look.gd")
 ## The groups in the order shown (data/keys.json "group").
 const GROUPS := ["flight", "weapons", "sensors", "views", "sim"]
-const HAT_NAMES := ["hat_up", "hat_right", "hat_down", "hat_left"]
-
 ## The front end: its strings and building blocks.
 var fe: Control
 ## "key" or "button".
@@ -62,7 +60,7 @@ static func page(front_end: Control) -> Node:
 	front_end._focus = nav.get_child(0) if nav.get_child_count() > 0 else null
 	var reset: Button = front_end._action(front_end.s("reset_all"), "Secondary", me.reset_all)
 	reset.name = "ResetAll"
-	front_end._footer("", [reset])
+	front_end._footer("", [front_end.back_button(), reset])
 	return me
 
 
@@ -72,6 +70,7 @@ func build(body: VBoxContainer, nav: VBoxContainer) -> void:
 	table = KeyTable.load_table()
 	var group := ButtonGroup.new()
 	var first := true
+	var tabs := []
 	for g in GROUPS:
 		var recs := records_of(g)
 		if recs.is_empty():
@@ -85,8 +84,8 @@ func build(body: VBoxContainer, nav: VBoxContainer) -> void:
 			tab.button_group = group
 			tab.alignment = HORIZONTAL_ALIGNMENT_LEFT
 			tab.button_pressed = first
-			tab.pressed.connect(func(): scroll_to(_heads[g]))
 			nav.add_child(tab)
+			tabs.append(tab)
 		var head: MarginContainer = fe._margin(body, 0, 0)
 		head.add_theme_constant_override("margin_top", first_gap if first else 40)
 		_heads[g] = head
@@ -96,6 +95,8 @@ func build(body: VBoxContainer, nav: VBoxContainer) -> void:
 		for i in recs:
 			_row(body, i)
 		first = false
+	if nav != null:
+		fe.spy(scroll, tabs, _heads.values())
 	refresh()
 
 
@@ -106,11 +107,6 @@ func records_of(g: String) -> Array:
 		if str(table.records[i].get("group", "")) == g and _label_of(i) != "":
 			out.append(i)
 	return out
-
-
-func scroll_to(c: Control) -> void:
-	if scroll != null:
-		scroll.scroll_vertical = int(c.position.y)
 
 
 func _label_of(i: int) -> String:
@@ -161,12 +157,10 @@ func default_value(i: int) -> int:
 	return int(r.get("default_key" if column == "key" else "default_joystick", value(i)))
 
 
-## A binding as the row shows it: the key's name (Cmd on macOS), "Button n", a hat direction; "—" for none.
+## A binding as the row shows it: the key's name (⌘ and Option on macOS), "Button n"; "—" for none.
 func value_name(v: int) -> String:
 	if column == "key":
 		return table.key_name(v) if v != 0 else "—"
-	if v >= 32 and v < 36:
-		return fe.s(HAT_NAMES[v - 32])
 	return fe.s("button_n") % (v + 1) if v >= 0 else "—"
 
 

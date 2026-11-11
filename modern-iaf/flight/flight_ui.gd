@@ -19,6 +19,9 @@ const CANVAS_H := 1080.0
 ## A subtitle shows this long (s, real time) and at most BAND_LINES at once.
 const LINE_S := 8.0
 const BAND_LINES := 3
+## A line's text size at the 1080-high canvas: a film subtitle's, the front end's body text less one (the Mac play
+## test, 2026-11-11: the 26 px lines were too big).
+const SUBTITLE_PX := 20
 ## The sim's key records (modern-iaf/data/keys.json): the Mission card key.
 const CARD_KEY := 118
 ## The key hint shows this long (s, real time) at the start, again after a language change or the card's closing,
@@ -191,12 +194,12 @@ func _key_row(parent: Control, key: String, what: String, kind: String) -> HBoxC
 ## A radio line or a message, at the bottom of the band.
 func subtitle(text: String) -> void:
 	var box := PanelContainer.new()
-	box.add_theme_stylebox_override("panel", Look.box(Color(Look.BG, 0.82), Color(0, 0, 0, 0), 0, 6, Vector2(22, 8)))
+	box.add_theme_stylebox_override("panel", Look.box(Color(Look.BG, 0.75), Color(0, 0, 0, 0), 0, 5, Vector2(14, 3)))
 	box.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var l := Label.new()
 	l.text = text
 	l.theme_type_variation = "Strong"
-	l.add_theme_font_size_override("font_size", 26)
+	l.add_theme_font_size_override("font_size", SUBTITLE_PX)
 	box.add_child(l)
 	_band.add_child(box)
 	_lines.append([box, Time.get_ticks_msec()])

@@ -83,7 +83,7 @@ Terms used on this page:
 * **macOS: Cmd is Ctrl.** macOS keeps Ctrl + arrows and Ctrl + F-keys for its desktops (Mission Control), so on a
   Mac Cmd counts as Ctrl: for the table's keys, the held keys and our own Ctrl + F1 / F2 / F12. Ctrl still works.
   The Controls page and the Preferences labels say "Cmd" there (`key_table.gd` `cmd_is_ctrl`). The Win modifier
-  has no Mac key.
+  has no Mac key. Modern IAF sets `KeyTable.mac_symbols`: its key names say "⌘" for Cmd and "Option" for Alt.
 * **macOS: F11 is Show Desktop.** macOS keeps F11 for Show Desktop, so the weapon view (record 84, F11) never reaches
   the game on a Mac with that shortcut on. Two ways: on Preferences → Controls select the "Weapon view" row and press
   another key (the page stores it as any rebind); or turn the shortcut off in System Settings → Keyboard → Keyboard
@@ -434,11 +434,17 @@ the same code).
   * Godot gives −1..1. The port maps it to DirectInput's 0..65535 and runs the original formulas (MulDiv
     rounding).
   * Dead zone: 25 % on x, y and the rudder; none on the throttle. Ours "Soft centre" (below) makes it 5 %.
+  * `Joystick.shaped(d, r)` is the one place a role's axis gets its invert and dead zone; the poller, the rocker and
+    the Modern IAF Joystick screen's bars read it. Godot reads a stick or lever pushed forward as −1; the original's
+    MulDiv turns that into y = +100 and throttle = 100. `SENSE` holds that sense per role and `role_value` applies it,
+    so a bar fills the way the jet responds (the Mac finding of 2026-11-11: the sim's throttle bar was empty at full
+    power).
   * Godot / SDL give the axes numbers only, no names. A stick that SDL knows as a gamepad uses the gamepad layout
     (2 = right stick x, 3 = right stick y). Other sticks use the device's own axis order. If the throttle or the
     rudder sit on other numbers, edit `joy_axes`.
 * **"Has the axis"** (+0x1c / +0x20): Godot cannot report it, so a connected device counts as having all four axes.
 * **Hat**: Godot reports it as the D-pad buttons 11–14 (up, down, left, right). Two at once = a diagonal.
+  * Modern IAF reads the hat with the same code: its eight directions are the snap views there too.
   * On a stick SDL does not know as a gamepad, raw buttons 12–15 share those numbers. Seen on the T.Flight Hotas
     X: button 12 and POV up were the same event, and each fired the other's binding.
   * So an **unknown stick gets a mapping** at connect (`Joystick._connected`, `Input.add_joy_mapping`):
@@ -467,7 +473,8 @@ the same code).
 * **Not ported**: force feedback.
 * **Ours: Devices page "Detent = MIL"** (under THROTTLE; off = the original's linear lever). It maps the lever so
   its detent gives military thrust (`Joystick.detent_map`):
-  1. Put the lever in its detent and press "Set at lever". The port stores that raw value d.
+  1. Put the lever in its detent and press "Set at lever". The port stores that raw value d (`Joystick.detent_choice`,
+     which Modern IAF's Preferences → Devices "Afterburner detent" calls too).
   2. Lever t ≤ d → 74·t/d.
   3. d < t ≤ d + 3 → 74. A lever resting in its detent reads a point or two over, and 75 already lights AB 1.
   4. t > d + 3 → 78 + 22·(t − d − 3)/(100 − d − 3): AB 1 (the "7" key) to 100.

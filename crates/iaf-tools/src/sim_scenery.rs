@@ -36,8 +36,7 @@ pub const VERSION: u32 = 4;
 pub const THEATRE: &str = "converted/terrain/israel";
 pub const SCENERY_DIR: &str = "converted/terrain/israel/scenery";
 pub const ROADS_DIR: &str = "converted/terrain/israel/roads";
-/// The towns' names for the mission briefing's map (front-end.md §10) and the town labels over the view
-/// (docs/scenery.md §3.5), in the theatre's folder.
+/// The towns' names for the mission briefing's map (front-end.md §10), in the theatre's folder.
 pub const PLACES_FILE: &str = "converted/terrain/israel/places.json";
 /// The OpenStreetMap places kept (`place=*`), most important first.
 pub const PLACE_KINDS: [&str; 3] = ["city", "town", "village"];

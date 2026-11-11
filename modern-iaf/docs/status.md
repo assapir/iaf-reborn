@@ -3,6 +3,27 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Mouse look in the cockpit (2026-11-11, the Mac play test's finding 9):** hold the right button and move the mouse
+  to turn the head, double right-click to centre it; the wheel zooms from the wide view through the true size to a
+  narrow 20° view for reading the MFDs. The left button stays on the switches. No head lean with the mouse
+  ([cockpit.md](cockpit.md) §2). `test_sim_look.gd`.
+- **The HUD stays on its glass (2026-11-11, the Mac play test's finding 10):** looking down or aside at the dash the
+  HUD's symbols stay on the combiner glass while any of it is on the screen; the DASH takes over only once the glass
+  is out of view ([cockpit.md](cockpit.md) §4, docs/cockpit.md "3D cockpit").
+- **The canopy handle shows (2026-11-11, the Mac play test's finding 11):** a grey rod on the left canopy sill, aft of
+  the throttle; it was a clear hit box under the pilot's shoulder ([cockpit.md](cockpit.md) §5.2).
+- **The hands on the stick and the throttle (2026-11-11, the Mac play test's finding 12):** the left glove holds the
+  throttle's grip and follows it over its travel (two shape keys in `f16_pilot.glb`); the right glove holds the stick
+  ([cockpit.md](cockpit.md) §5.3).
+- **The start-up checklist card, one step at a time (2026-11-11, the Mac play test):** a start-up flight opens with
+  the checklist card only (no mission card; H opens it); the card is smaller and shows the step to take now with its
+  key, place and wait, and its number of the steps ([training.md](training.md) §7.1). `test_flight_ui.gd`,
+  `test_mvp.gd`.
+- **The radio lines at subtitle size (2026-11-11, the Mac play test):** 20 px at 1080, was 26
+  ([front-end.md](front-end.md) §8). `test_flight_ui.gd`.
+- **The F12 info line: the mission and the FPS (2026-11-11, the Mac play test):** the sim's line leaves out the 1998
+  game's modes, place, speed and controls (`Settings.info_line_full`, [front-end.md](front-end.md) §8).
+  `test_flight_ui.gd`.
 - **Finding the Mac's black world (2026-11-11):** a flight's start on the Mac ended in a black world under a fine 3D
   cockpit. A bisect switch now turns graphics features off for one run (`IAF_SAFE=all ./start-modern-iaf`, then half
   the names back on per run); after the first 10 frames the log lists every shader in use and whether it compiled,
@@ -81,6 +102,15 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   longer asks for the install's `menu/joy` ([front-end.md](front-end.md) §9). On macOS the keys start from the
   laptop map, no numpad: the rudder on Z / X, the snap views on Alt + 1–9 (§9.1). `test_devices.gd`, the M0 probe
   with a fake joystick.
+- **The Mac findings batch, devices and front end (P1, 2026-11-11, [front-end.md](front-end.md) §1, §2, §9):** the
+  Joystick screen's bars show each role as the flight reads it (`Joystick.role_value`, one sense for the poller and the
+  bars): the throttle forward is a full bar, checked against the 1998 game's events axis by axis (`test_devices.gd`);
+  the afterburner detent on Preferences → Devices (reborn's Detent = MIL rule, `Joystick.detent_choice`); the hat is
+  reborn's POV again (the sim's own four hat buttons dropped the diagonals), its eight directions the snap views; the Keys and Joystick side lists follow the scroll and both
+  screens have Back; one head-look key set (the snap views; F2 rear view and the Shift free look are empty slots);
+  on macOS the keys say ⌘ and Option; Home has Guides and Training has Missions and campaign, both greyed with
+  "Coming in a later version"; Pick a plane picks on a click (no Next, no card picked on entry, the arrows move the
+  focus, Enter picks).
 - **The play test's polish (2026-11-09):** the Preferences back to the side layout (the sections listed, the picked
   one beside them, no line under an option); a Sound slider plays a sample of its class; Devices → Joystick greyed
   until a stick is plugged in; the Pilot screen (name, nickname shown on every screen, a 3:4 ID photo; records schema
@@ -120,10 +150,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   throttle) and CANOPY, new nodes of `f35i.glb` at inferred places. `test_mvp.gd` (the Sufa's and the F-35I's
   start-up by clicks). Open: the JFS switch's spring back to OFF, the INS knob mostly hidden by the right sill from
   the eye, the F-35I's ENG guard.
-- **Town labels (2026-11-09, the look study's proposal 3):** each city's and town's name over the view within 25 km,
-  in Hebrew or English with the language, Heebo; the 3D cockpit's panel and canopy frame hide them; Preferences →
-  Graphics "Town labels", On by default ([scenery.md](scenery.md) §7, [../../docs/scenery.md](../../docs/scenery.md)
-  §3.5). `test_town_labels.gd`, `test_sim_look.gd`.
+- **Town labels: dropped from the sim (2026-11-11, the Mac play test):** the sim draws no town names over the view and
+  Preferences has no "Town labels" row; the sim's profile fixes the switch off. The 1998 game keeps its own (Extras →
+  "Town labels", [../../docs/scenery.md](../../docs/scenery.md) §3.5). [scenery.md](scenery.md) §7. `test_sim_look.gd`,
+  `test_front_end.gd`.
 - **Wall shading and long shadows (2026-11-09, the look study's proposal 5):** the buildings' walls away from the sun
   take less sky light, and Preferences → Graphics "Long shadows" (on by default) draws the sun's shadows to 2.5 km with
   the near buildings casting them; +0.5 ms on the Iris Xe ([scenery.md](scenery.md) §7). `test_scenery.gd`. Open: at
