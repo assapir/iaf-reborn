@@ -40,6 +40,10 @@ global uniform float terrain_patch_hue;
 // mean): the photo already holds the sun's light, so bright sand lit again washed out to grey-white under the tone
 // mapper. Hue and saturation stay; dark ground changes little.
 global uniform float terrain_grade;
+// With the grade on, the land's albedo × terrain_grade_tint (each project's own value, project.godot): white in the
+// original game; in Modern IAF a constant gold at every hour, matched to a late-afternoon photo of Makhtesh Ramon
+// (modern-iaf/docs/terrain.md §15). The sea, inland water and the Detailed airbases' pavement keep their own colour.
+global uniform vec3 terrain_grade_tint;
 // The photo's local contrast (each project's own value, project.godot): 1 in the original game (unchanged); in Modern
 // IAF the photo's detail against its ≈ 32 m mean × terrain_photo_detail. The sim's colour match to Sentinel-2 scales
 // each Survey sheet to the satellite's spread (0.6–0.7 in the Negev), which flattened the 2 m photo's wadis and streets
@@ -930,6 +934,7 @@ void fragment() {
 		// By the ≈ 32 m mean's luminance: one factor over a neighbourhood keeps the local contrast's ratios (by the
 		// pixel's own luminance the knee flattened the wadis: its slope at sand is a seventh).
 		ALBEDO /= 1.0 + terrain_grade * lum_mean;
+		ALBEDO *= mix(terrain_grade_tint, vec3(1.0), max(max(sea, wm), paved_k));
 	}
 	if (city_glow_k > 0.0) {
 		// The haze over the dense lamp clusters (city_glow.gdshaderinc).

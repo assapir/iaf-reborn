@@ -145,9 +145,13 @@ terrain_grade={
 "type": "float",
 "value": 0.0
 }
+terrain_grade_tint={
+"type": "vec3",
+"value": Vector3(0.86, 0.78, 0.43)
+}
 terrain_photo_detail={
 "type": "float",
-"value": 2.5
+"value": 4.5
 }
 scenery_sun={
 "type": "vec3",

@@ -935,13 +935,18 @@ Natural grades the picture in three parts (`shared/terrain/render_options.gd`, `
   darker ground does not raise the exposure back.
 
 Original (the default) leaves all three as before: the global is 0 and the Environment keeps its own adjustments.
-Modern IAF has Natural in its profile. The values were chosen on 2026-11-09 from six sets at four poses
+Modern IAF has Natural in its profile. With the grade on, the land's albedo is also multiplied by the
+global `terrain_grade_tint` (each project's own value in `project.godot`; the sea, inland water and the Detailed
+airbases' pavement keep their colour): white in the original game, so its Natural is as before; 0.86 / 0.78 / 0.43
+in Modern IAF, a gold matched to a late-afternoon photo of Makhtesh Ramon, the same at every hour
+(modern-iaf/docs/terrain.md §15). The values were chosen on 2026-11-09 from six sets at four poses
 (modern-iaf/docs/terrain.md §9.1): GRADE 3.0, contrast 1.15, saturation 1.1, exposure 0.6. The knee costs +0.08 ms
 GPU on an Iris Xe 500 m over the Negev (in-place bench, quartiles −0.03 / +0.12). The adjustments' pass is estimated
 at 0.1–0.2 ms. No video memory.
 
 The photo's detail (the global `terrain_photo_detail`, each project's own value in `project.godot`): 1 in the
-original game, where the shader skips it; 2.5 in Modern IAF. The luminance of the band between the photo's ≈ 4 m and
+original game, where the shader skips it; 4.5 in Modern IAF (2.5 until
+2026-11-11, modern-iaf/docs/terrain.md §15). The luminance of the band between the photo's ≈ 4 m and
 ≈ 32 m means (one and four mip levels coarser than the pixel's own, so 2 and 16 times its footprint farther out) is raised by that factor, as a factor on the pixel's own colour
 (clamped to 0.25–2), so its chroma noise and its single-pixel grain stay; it fades in from 250 to 700 m from the
 camera, where the close up's own layers carry the detail. The sim needs it because its colour match to Sentinel-2

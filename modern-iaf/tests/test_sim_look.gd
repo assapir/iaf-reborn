@@ -70,6 +70,8 @@ func run() -> void:
 			"its picture on the main view's layer only (not the EO camera's)"
 		)
 	check(ro.terrain_grade > 0.0, "the colour grading is on (terrain_grade %.2f)" % ro.terrain_grade)
+	var tint: Vector3 = ProjectSettings.get_setting("shader_globals/terrain_grade_tint").value
+	check(tint.z < tint.y and tint.y < tint.x and tint.x < 1.0, "the ground's golden tint (terrain.md §15: %s)" % tint)
 	var i: int = bases._current
 	var b: Dictionary = bases.bases()[i] if i >= 0 else {}
 	check(String(b.get("name", "")) == "Ramon", "Ramon: the nearest base drawn (%s)" % b.get("name", "none"))

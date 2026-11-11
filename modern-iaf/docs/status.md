@@ -71,6 +71,12 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   48); the wind follows the dynamic pressure; the canopy closes at its checklist step; the touchdown is an airplane
   tyre skid with a thump, not a bicycle squeal ([sound.md](sound.md) §1.3–§1.8). The original game keeps its rules.
   `test_mvp.gd`, the original's `test_sounds.gd`.
+- **The ground against a photo of Makhtesh Ramon (2026-11-11, Approvals A17, causes 1 and 2):** a golden tint
+  on the land at every hour, through Colour grading Natural (the albedo × `terrain_grade_tint` 0.86 / 0.78 / 0.43; the
+  sea, inland water and the airbases' pavement keep their colour), and the photo's detail ×4.5 (it was ×2.5). The Ramon view's ground reads
+  150 / 118 / 66 against the photo's 149 / 118 / 63 (it was 160 / 134 / 105); its spread 18.4 within the photo's 23.4.
+  No GPU cost. Pictures and numbers in [terrain.md](terrain.md) §15. `test_sim_look.gd`, the original's
+  `test_terrain.gd`.
 - **[B4](plan.md#b4-ground-look-parity), the ground as good as the original game's (2026-11-09):** the pale,
   washed-out desert (sand 208 / 192 / 171) now reads tan with its relief (177 / 152 / 120): Colour grading Natural
   takes the photo toward a real ground's reflectance, with a little contrast and saturation after the tone mapper

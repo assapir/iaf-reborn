@@ -40,6 +40,10 @@ func _check_grading_off(tv: Node) -> void:
 		"the close up's patches keep their hue in the original game"
 	)
 	check(
+		ProjectSettings.get_setting("shader_globals/terrain_grade_tint").value == Vector3.ONE,
+		"the grade's ground tint is white in the original game (its Natural as before)"
+	)
+	check(
 		(
 			env.adjustment_enabled == scene_env.adjustment_enabled
 			and env.adjustment_contrast == scene_env.adjustment_contrast

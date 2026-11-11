@@ -377,7 +377,8 @@ build agree within 0.1 level on average).
 
 - **The colour match's spread** (the follow-up to §9.1): `sheet_gains` (`crates/iaf-tools/src/sim_terrain.rs`)
   scales each Survey sheet's spread to Sentinel-2's at 40 m, which leaves the photo's local detail 0.6–0.7 as strong
-  in the Negev. The shader raises it back (`terrain_photo_detail` 2.5). The root fix is a match that keeps the
+  in the Negev. The shader raises it back (`terrain_photo_detail`
+  4.5 since 2026-11-11, §15; 2.5 before). The root fix is a match that keeps the
   photo's own local spread (the means and the large-scale tone from Sentinel-2, the detail under ≈ 40 m the photo's),
   with `terrain_photo_detail` back to 1. It changes the whole theatre's look, so it needs new pictures and approval,
   and a rebuild of the theatre (CPU only, no download: `gains.tsv` measured again from the kept sources; long on a
@@ -532,6 +533,61 @@ darker haze would need the ground's colours too).
 | 16:58 | ![16:58 before](pictures/sky/shoham_1658_before.jpg) | ![16:58 after](pictures/sky/shoham_1658_after.jpg) |
 
 
+## 15. The ground against a photo (A17, 2026-11-11)
+
+The reference is a photo of Makhtesh Ramon from the air in the late afternoon: "Israel-2013-Aerial 00-Negev-Makhtesh
+Ramon" by Godot13[^ramon-photo]. It is a comparison only; no pixel of it is in the game. Against it the sim's ground
+was salmon-grey where the photo's is golden, and flat in its local contrast. The look study (look batch 1) proposed
+three causes; the user approved the first two. The third, the haze, stays as it is (A16).
+
+What the sim's profile does now (each project's own shader globals in `project.godot`):
+
+- **Golden sunlight on the ground**: with Colour grading Natural, the land's albedo is multiplied by
+  `terrain_grade_tint` after the grade's knee (docs/rendering.md §1.9): 0.86 / 0.78 / 0.43 in the sim, white in the
+  original game. The sea, inland water and the Detailed airbases' pavement (its white paint stays white) keep their
+  own colour. The tint is the same at every hour (open: a tint that follows the sun's height). The study's proposal was the sun's colour
+  1.0 / 0.86 / 0.58; a tint on the albedo reaches the same target without turning the jets and the buildings gold.
+  The value was fitted at the Ramon view to the photo's ground (the auto-exposure takes back part of any darkening).
+- **The photo's detail ×4.5** (`terrain_photo_detail`, was 2.5).
+
+The poses: `look_shot.gd` (the study's tool, the chase camera at the hidden jet), 1920 × 1080:
+
+- Ramon: `--at 674117 3387642 1300 75 0 --freeze`, 37° across, 6° down, 16:30.
+- Tel Aviv: `--at 667500 3548000 500 15 0 --freeze`, 70° across, 15° down, 11:00.
+- The Jezreel fields: `--at 712043 3611416 160 20 0 --freeze`, 70° across, 10° down, 11:00.
+
+Measured on the frame's lower 45 % (mean sRGB), and as the study measured the spread: the standard deviation of the
+HSL lightness over rows 267–486 (the far ground at Ramon). The photo's: ground 149 / 118 / 63, spread 23.4.
+
+| View | Ground before → after | Spread before → after |
+|---|---|---|
+| Ramon | 160 / 134 / 105 → 150 / 118 / 66 | 13.9 → 18.4 |
+| Tel Aviv | 158 / 148 / 132 → 156 / 145 / 125 | 43.6 → 46.7 |
+| The fields | 130 / 94 / 60 → 122 / 81 / 27 | 28.5 → 32.9 |
+
+At Tel Aviv and over the fields that band holds the horizon, the sea and the buildings, so its spread is above the
+desert photo's before the change. The noise check there is on the ground alone:
+
+- The fields, the frame's lower 45 %: 18.4 → 18.5, within 23.4 (at 100 m the detail gain fades out under 700 m, so
+  the close ground is unchanged).
+- Tel Aviv with Scenery off, the land right of the coast (60 % × 45 % of the frame from 768, 594): 64.6 → 65.6
+  (+1.5 %). The city's photo is that contrasty itself (streets, roofs, shadows); the change adds little.
+- The fine grain (the luminance minus its 2 px blur, the lower 45 %): Ramon 10.6 → 14.7 (the photo 11.6), Tel Aviv
+  17.3 → 18.2, the fields 9.8 → 9.7.
+
+Checked at full size: no speckle; the fields read a deeper gold-brown, Tel Aviv's open ground and streets a warmer
+sand.
+
+Cost on this laptop's Intel Iris Xe, the GPU time over 120 frames, three before / after pairs switched in place in
+one run (the median): Ramon 28.56 → 28.50 ms, Tel Aviv 34.38 → 34.29 ms, the fields 20.76 → 20.78 ms. Both are free:
+the tint is one multiply, and the detail gain is the same code with another factor. Video memory: 0 MB.
+
+| | Before | After |
+|---|---|---|
+| Ramon | ![Ramon before](pictures/ground/a17_ramon_before.webp) | ![Ramon after](pictures/ground/a17_ramon_after.webp) |
+| Tel Aviv | ![Tel Aviv before](pictures/ground/a17_telaviv_before.webp) | ![Tel Aviv after](pictures/ground/a17_telaviv_after.webp) |
+| The fields | ![Fields before](pictures/ground/a17_fields_before.webp) | ![Fields after](pictures/ground/a17_fields_after.webp) |
+
 [^dem]: ESA, "Copernicus DEM: Product Handbook" and the collection description, https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM
 [^dem-licence]: "Licence for the use of the Copernicus WorldDEM-30", Article 6, read 2026-11-02, https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/DEM/resources/license/License-COPDEM-30.pdf
 [^dem-aws]: Registry of Open Data on AWS, "Copernicus Digital Elevation Model (DEM)", https://registry.opendata.aws/copernicus-dem/
@@ -544,3 +600,5 @@ darker haze would need the ground's colours too).
     https://en.wikipedia.org/wiki/Dead_Sea
 [^kin]: Wikipedia, "Sea of Galilee" (read 2026-11-03: the level between 215 and 209 m below sea level, the red lines
     208.9 and 213.2 m, the lowest level since 1969 in November 2001), https://en.wikipedia.org/wiki/Sea_of_Galilee
+[^ramon-photo]: Godot13, "Israel-2013-Aerial 00-Negev-Makhtesh Ramon", 2013-03-28, CC BY-SA 4.0, Wikimedia Commons,
+    https://commons.wikimedia.org/wiki/File:Israel-2013-Aerial_00-Negev-Makhtesh_Ramon.jpg
