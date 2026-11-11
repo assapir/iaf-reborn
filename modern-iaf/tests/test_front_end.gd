@@ -962,7 +962,12 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 		load("res://flight/fly.gd").arm(m, s.load_json("res://data/missions/%s.json" % mission))
 		var pylons: Array = s.arm_loadouts.values()[0] if s.arm_loadouts.size() == 1 else []
 		check(
-			pylons.size() == 9 and pylons[2] == [2.0, 1.0] and pylons[6] == [2.0, 1.0] and pylons[0] == [1.0, 1.0],
+			(
+				pylons.size() == 9
+				and pylons[2] == [2.0, 1.0, 0.0, 0.0]
+				and pylons[6] == [2.0, 1.0, 0.0, 0.0]
+				and pylons[0] == [1.0, 1.0, 0.0, 0.0]
+			),
 			"%s: loadout: the flight's pylons (%s)" % [lang, pylons]
 		)
 		s.arm_loadouts = {}

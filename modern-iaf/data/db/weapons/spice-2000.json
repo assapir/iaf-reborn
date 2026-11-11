@@ -10,6 +10,8 @@
   "blast_m": 100,
   "drag": 0,
   "motion": {},
+  "sim": 1011,
+  "range_km": 60,
   "length_m": null,
   "diameter_m": null,
   "sources": {
@@ -18,7 +20,8 @@
     "drag": "open",
     "kg": "w-spice, inferred",
     "length_m": "open",
-    "diameter_m": "open"
+    "diameter_m": "open",
+    "range_km": "w-spice"
   },
   "notes": {
     "number": "ours",
@@ -28,10 +31,11 @@
     "power": "the MK-84's (its body; our damage scale)",
     "blast_m": "the MK-84's 100 m",
     "model": "our SPICE 2000 (shared/extra/models/stores/spice2000.glb)",
-    "sim": "none: modern_weapons.gd has no SPICE 2000; it falls as a plain bomb until it has",
-    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind"
+    "sim": "the sim flies modern_weapons.gd's record 1011, built on the MK-84, in its place (loadout::sim_load): the SPICE 1000's GPS / INS guidance, no wings",
+    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind",
+    "range_km": "60 km as Wikipedia gives it, from 40,000 ft at Mach 0.9 (the release inferred, as the SPICE 1000's): glide ratio 4.1 (modern_weapons.gd SPICE2)"
   },
   "footnotes": {
-    "w-spice": "Wikipedia, \"Spice (bomb)\" (SPICE 1000 on a 1,000 lb class body, SPICE 2000 on a 2,000 lb class body), https://en.wikipedia.org/wiki/Spice_(bomb)"
+    "w-spice": "Wikipedia, \"Spice (bomb)\" (SPICE 1000 on a 1,000 lb class body, 100 km with its deployable wings; SPICE 2000 on a 2,000 lb class body, 60 km), https://en.wikipedia.org/wiki/Spice_(bomb)"
   }
 }

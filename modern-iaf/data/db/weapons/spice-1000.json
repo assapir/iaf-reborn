@@ -11,6 +11,7 @@
   "drag": 0,
   "motion": {},
   "sim": 1009,
+  "range_km": 100,
   "length_m": null,
   "diameter_m": null,
   "sources": {
@@ -19,7 +20,8 @@
     "drag": "open",
     "kg": "w-spice, inferred",
     "length_m": "open",
-    "diameter_m": "open"
+    "diameter_m": "open",
+    "range_km": "w-spice"
   },
   "notes": {
     "number": "ours",
@@ -30,9 +32,10 @@
     "power": "the MK-83's (its body; our damage scale)",
     "blast_m": "the MK-83's 70 m",
     "model": "our SPICE 1000 (shared/extra/models/stores/spice1000.glb)",
-    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind"
+    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind",
+    "range_km": "Rafael's 100 km as Wikipedia cites it, from 40,000 ft at Mach 0.9 (the release inferred; modern_weapons.gd SPICE glide ratio 6.8, docs/real-weapons.md §1.6)"
   },
   "footnotes": {
-    "w-spice": "Wikipedia, \"Spice (bomb)\" (SPICE 1000 on a 1,000 lb class body, SPICE 2000 on a 2,000 lb class body), https://en.wikipedia.org/wiki/Spice_(bomb)"
+    "w-spice": "Wikipedia, \"Spice (bomb)\" (SPICE 1000 on a 1,000 lb class body, 100 km with its deployable wings; SPICE 2000 on a 2,000 lb class body, 60 km), https://en.wikipedia.org/wiki/Spice_(bomb)"
   }
 }

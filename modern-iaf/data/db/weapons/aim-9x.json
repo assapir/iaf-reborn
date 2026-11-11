@@ -11,6 +11,10 @@
   "drag": 0,
   "motion": {},
   "sim": 1001,
+  "range_km": 17.7,
+  "mach": 2.5,
+  "g_limit": 60,
+  "warhead_kg": 9.4,
   "length_m": 3.02,
   "diameter_m": 0.127,
   "sources": {
@@ -19,7 +23,11 @@
     "drag": "open",
     "kg": "f16net-aim9",
     "length_m": "f16net-aim9",
-    "diameter_m": "w-aim9"
+    "diameter_m": "w-aim9",
+    "range_km": "inferred, f16net-aim9",
+    "mach": "inferred, w-aim9",
+    "g_limit": "w-aim9",
+    "warhead_kg": "ds-aim9x"
   },
   "notes": {
     "number": "ours",
@@ -30,10 +38,14 @@
     "blast_m": "the AIM-9M's 9 m",
     "model": "our AIM-9X (shared/extra/models/stores/aim9x.glb)",
     "diameter_m": "the Sidewinder's body",
-    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind"
+    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind",
+    "range_km": "the AIM-9L / M / P's 17.7 km (f16net-aim9): the AIM-9X's own is not published",
+    "mach": "the Sidewinder family's \"Mach 2.5+\" (w-aim9)",
+    "g_limit": "its thrust-vector control's 60 g (w-aim9)"
   },
   "footnotes": {
     "f16net-aim9": "F-16.net, \"AIM-9 Sidewinder\" (AIM-9X 85 kg, 3,020 mm), https://www.f-16.net/f-16_armament_article1.html",
-    "w-aim9": "Wikipedia, \"AIM-9 Sidewinder\" (0.127 m body diameter), https://en.wikipedia.org/wiki/AIM-9_Sidewinder"
+    "w-aim9": "Wikipedia, \"AIM-9 Sidewinder\" (0.127 m body diameter; AIM-9L / M Mach 2.5+; AIM-9X two-axis thrust-vector control for 60 g), https://en.wikipedia.org/wiki/AIM-9_Sidewinder",
+    "ds-aim9x": "designation-systems.net, \"Raytheon AIM-9 Sidewinder\" (AIM-9X: 85 kg, WDU-17/B 9.4 kg warhead), https://www.designation-systems.net/dusrm/m-9.html"
   }
 }

@@ -40,8 +40,13 @@ fn holds(unit: &Value, st: u32, id: &str) -> u32 {
 
 /// The rack's weight on station `st` for store `id` (kg; 0 without a rack).
 pub fn rack_kg(unit: &Value, st: u32, id: &str) -> f64 {
+    rack(unit, st, id, "rack_kg")
+}
+
+/// Field `f` of the rack entry for store `id` on station `st` (0 without one).
+fn rack(unit: &Value, st: u32, id: &str, f: &str) -> f64 {
     let list = unit["allowed"][st.to_string()].as_array();
-    list.into_iter().flatten().find(|s| s["id"] == id).and_then(|s| s["rack_kg"].as_f64()).unwrap_or(0.0)
+    list.into_iter().flatten().find(|s| s["id"] == id).and_then(|s| s[f].as_f64()).unwrap_or(0.0)
 }
 
 /// The station across the jet from `st` (stations numbered from the left wing tip: 3 ↔ 7 of nine), none for the
@@ -187,17 +192,18 @@ pub fn shift(unit: &Value, lo: &mut Loadout, from: u32, to: u32, pair: bool) -> 
     true
 }
 
-/// The stores on pylons A..I as the engine's armament holds them, [weapon number, count] × 9 (`Settings.arm_loadouts`,
-/// player_weapons.gd `_armed`): each store's weapon record's `sim` (a `modern_weapons.gd` record built on it, the
-/// GBU-31's 1003), else its `number`; a station the engine has no pylon for carries nothing.
-pub fn sim_load(unit: &Value, weapons: &Path, lo: &Loadout) -> Vec<[i64; 2]> {
-    let mut out = vec![[0, 0]; 9];
+/// The stores on pylons A..I as the engine's armament holds them, [weapon number, count, rack kg, rack drag] × 9
+/// (`Settings.arm_loadouts`, player_weapons.gd `_armed`, stores.gd `setup`): each store's weapon record's `sim` (a
+/// `modern_weapons.gd` record built on it, the GBU-31's 1003), else its `number`, and its rack's `rack_kg` /
+/// `rack_drag` (0 without a rack); a station the engine has no pylon for carries nothing.
+pub fn sim_load(unit: &Value, weapons: &Path, lo: &Loadout) -> Vec<Value> {
+    let mut out = vec![json!([0, 0, 0.0, 0.0]); 9];
     for (&st, (id, n)) in lo {
         let rec: Option<Value> =
             std::fs::read(weapons.join(format!("{id}.json"))).ok().and_then(|b| serde_json::from_slice(&b).ok());
         let number = rec.and_then(|w| w["sim"].as_i64().or(w["number"].as_i64()));
         if let (Some(i), Some(num)) = (letter(unit, st), number) {
-            out[i] = [num, i64::from(*n)];
+            out[i] = json!([num, n, rack(unit, st, id, "rack_kg"), rack(unit, st, id, "rack_drag")]);
         }
     }
     out
@@ -261,12 +267,14 @@ mod tests {
         assert_eq!((lo.get(&9), lo.get(&1), at(&lo, 3), at(&lo, 7)), (None, None, ("aim-9m", 1), ("aim-9m", 1)));
         assert!(put(&u, &mut lo, 4, "mk-82", false));
         let load = sim_load(&u, &weapons(), &lo);
-        assert_eq!(load[2], [1, 1]); // C: an AIM-9M (number 1)
-        assert_eq!(load[3], [4, 3]); // D: three Mk 82 (number 4)
-        assert_eq!(load[0], [0, 0]); // A: empty
-        // The JDAM flies as modern_weapons.gd's record.
+        assert_eq!(load[2], json!([1, 1, 0.0, 0.0])); // C: an AIM-9M (number 1)
+        assert_eq!(load[3], json!([4, 3, 47.6, 0.0])); // D: three Mk 82 (number 4) on their TER-9/A
+        assert_eq!(load[0], json!([0, 0, 0.0, 0.0])); // A: empty
+        // The JDAM flies as modern_weapons.gd's record; two GBU-38 on the BRU-57/A carry its 265 lb.
         assert!(put(&u, &mut lo, 3, "gbu-31", false));
-        assert_eq!(sim_load(&u, &weapons(), &lo)[2], [1003, 1]);
+        assert_eq!(sim_load(&u, &weapons(), &lo)[2], json!([1003, 1, 0.0, 0.0]));
+        assert!(put(&u, &mut lo, 7, "gbu-38", false));
+        assert_eq!(sim_load(&u, &weapons(), &lo)[6], json!([1006, 2, 120.2, 0.0]));
         // A saved loadout keeps only what the record allows, as many as the station holds.
         let p = parse(&u, &json!({"2": "tank-370", "4": "tank-370", "6": {"id": "mk-82", "count": 9}, "x": "mk-84"}));
         assert_eq!(to_json(&p), json!({"4": {"id": "tank-370", "count": 1}, "6": {"id": "mk-82", "count": 3}}));
@@ -286,7 +294,33 @@ mod tests {
         assert_eq!((at(&lo, 4), at(&lo, 8)), (("gbu-39", 4), ("gbu-39", 4)));
         let load = sim_load(&u, &weapons(), &lo);
         // A / I the AIM-9X (1001), C / G four GBU-39 (1007), D / F the AIM-120 (3).
-        assert_eq!((load[0], load[8], load[2], load[6], load[3]), ([1001, 1], [1001, 1], [1007, 4], [1007, 4], [3, 1]));
+        let ids: Vec<(i64, i64)> =
+            [0, 8, 2, 6, 3].iter().map(|&i| (load[i][0].as_i64().unwrap(), load[i][1].as_i64().unwrap())).collect();
+        assert_eq!(ids, [(1001, 1), (1001, 1), (1007, 4), (1007, 4), (3, 1)]);
+        assert_eq!(load[2][2], 147.0, "the BRU-61/A");
+    }
+
+    #[test]
+    fn modern_records_carry_their_public_figures() {
+        // id → its modern_weapons.gd record, then each figure within its public range (real-weapons.md §1.6).
+        type Range = (&'static str, f64, f64);
+        let figures: [(&str, i64, &[Range]); 5] = [
+            ("aim-9x", 1001, &[("range_km", 10.0, 35.4), ("mach", 2.5, 3.0), ("g_limit", 60.0, 60.0)]),
+            ("python-5", 1002, &[("range_km", 20.0, 40.0), ("mach", 4.0, 4.0), ("warhead_kg", 11.0, 11.0)]),
+            ("spice-1000", 1009, &[("range_km", 60.0, 125.0)]),
+            ("spice-2000", 1011, &[("range_km", 60.0, 60.0)]),
+            ("delilah", 1012, &[("range_km", 250.0, 250.0), ("mach", 0.3, 0.85), ("warhead_kg", 30.0, 30.0)]),
+        ];
+        for (id, sim, checks) in figures {
+            let w: Value =
+                serde_json::from_slice(&std::fs::read(weapons().join(format!("{id}.json"))).unwrap()).unwrap();
+            assert_eq!(w["sim"].as_i64(), Some(sim), "{id}");
+            for &(f, lo, hi) in checks {
+                let v = w[f].as_f64().unwrap_or_else(|| panic!("{id}: {f}"));
+                assert!((lo..=hi).contains(&v), "{id}: {f} {v} outside {lo}..{hi}");
+                assert!(w["sources"][f].as_str().is_some_and(|s| !s.is_empty()), "{id}: {f} unsourced");
+            }
+        }
     }
 
     #[test]

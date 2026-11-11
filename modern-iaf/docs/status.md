@@ -225,9 +225,13 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   fills the mirror station too unless Shift is held; the keyboard path (Enter on a slot, Enter on a store); the fuel
   and the take-off weight follow, over the maximum it reads red and Fly is off; the loadout is the pilot's per jet in
   the records database and flies with the mission (mass, drag, tanks' fuel, the stores' models), Reset brings back
-  the record's ([front-end.md](front-end.md) §10). Open: inventory counts (no source), the bombs' hang on the AIM-9's
-  station place, the racks' weight in flight, the Delilah as a bomb, models of the Delilah and the 600 gal tank, the
-  Python 5 and the SPICE 2000 flying as plain records, a Sufa / Barak station chart. `cargo test -p iaf-tools --lib loadout`, `test_front_end.gd`,
+  the record's ([front-end.md](front-end.md) §10). Since 2026-11-11 the racks' weight rides in flight too (the
+  BRU-57/A's 120.2 kg sourced; every rack's drag open), the bombs, guided bombs and tanks hang by their lugs under the
+  F-16's pylons, and the Python 5, SPICE 2000 and Delilah fly as `modern_weapons.gd` records with their public figures
+  (the Delilah as the GPS class, its cruise a long glide). Open: models of the Delilah and the 600 gal tank, a Sufa /
+  Barak station chart, the racks' drag.
+- **Inventory counts:** no public source gives the IAF's store counts; the records list none, so the inventory is
+  unlimited. `cargo test -p iaf-tools --lib loadout`, `test_front_end.gd`,
   `test_mvp.gd --only loadout`.
 - **The records in SQLite (2026-11-09):** the sorties and their debrief records are in `user://modern-iaf.sqlite`
   (`iaf_tools::pilot_log`, `IafPilotLog`, a schema version and migrations); its first open imports the JSON records

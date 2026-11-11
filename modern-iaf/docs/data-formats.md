@@ -72,7 +72,7 @@ A unit record holds what a mission needs of a unit. A flyable jet's behaviour st
 | `internal` | the real numbers of the stations inside the jet (the F-35I's bays: 4, 5, 7, 8); the briefing marks their slots "internal" |
 | `lateral_limit_kgm`, `lateral_limit_hard` | the jet's largest stores rolling moment (kg·m) and whether it blocks Fly (else a warning): the briefing's imbalance marker ([front-end.md](front-end.md) §10). The F-16s: 3,459 kg·m (25,020 ft-lb, the flight manual's maximum allowable asymmetric moment as a forum quotes it[^bms-asym]; inferred), a warning; the Adir's open |
 | `inventory` | the stores the briefing lists as the jet's: `{"weapon", "count"}`, each its own weapon record (§4), `count` only where a source gives one |
-| `allowed` | real station number → the stores the station takes: the loadout editor's rule ([front-end.md](front-end.md) §10). Each entry a weapon id (one store), or `{"id", "count", "rack", "rack_kg"}` for several on a rack (three Mk 82 on a TER-9/A, 47.6 kg); every station the briefing shows has a key, `[]` for one that takes none |
+| `allowed` | real station number → the stores the station takes: the loadout editor's rule ([front-end.md](front-end.md) §10). Each entry a weapon id (one store), or `{"id", "count", "rack", "rack_kg", "rack_drag"}` for several on a rack (three Mk 82 on a TER-9/A, 47.6 kg; `rack_drag` optional, in the weapons' `drag` unit, open for every rack so far); the rack's weight and drag ride in the briefing's weight and in flight (`loadout::sim_load`, `stores.rs` `rack_kg`); every station the briefing shows has a key, `[]` for one that takes none |
 | `range_km`, `min_range_km`, `ceiling_m`, `floor_m`, `speed_ms`, `mach`, `radar_km`, `g_limit`, `warhead_kg` | the threat set's figures (threats.md §6), checked for sources. `radar_km`, the unit's sensor reach, is compiled unhexed as `"radar_km"` into its Objects row, and the AI takes it before the type code's range (`combat.gd` `sensor_nm`); no shared reader takes the others yet |
 | `status` | only in a draft: `"pending the user's decision"` (§11) |
 
@@ -119,7 +119,7 @@ rules are the generic F-16's, the same for both jets (no source shows them diffe
 | Mk 83 | 3 / 7, 4 / 6, one each (inferred: no source gives its stations) | — |
 | Mk 84 | 3 / 7, 4 / 6 (inferred[^f16net-mk82]) | — |
 | GBU-31 | 3 / 7, one each[^f16net-jdam] | 4 / 8 in the bays, 3 / 9 (inferred: six 2,000 lb bombs[^w-f35]) |
-| GBU-38 | two on a BRU-57/A on 3 / 7[^f16net-jdam] | — |
+| GBU-38 | two on a BRU-57/A (120.2 kg[^l3h-bru57]) on 3 / 7[^f16net-jdam] | — |
 | GBU-39 | — | four on a BRU-61/A on 4 / 8[^w-f35] (the rack's 147 kg unofficial[^rk-bru61]) |
 | SPICE 1000, SPICE 2000 | 3 / 7, 4 / 6 (inferred: no source gives their stations) | — |
 | Delilah | 3 / 7 (inferred: no source gives its stations) | — |
@@ -155,6 +155,9 @@ AIM-9 about a missile diameter above and outboard of our rails and the tank's to
 - Stations 2 / 8 and 3 / 7: the AIM-9's axis one body radius below the pylon's bottom, on its middle (inferred, as
   at the rails).
 - Stations 4 and 6: the tank's top on the inboard pylon's bottom, on the pylon's middle.
+- The bomb lugs (`sim.rs` `F16_SIM_LUGS`, the descriptor's `lugs`, 2026-11-11): on 3 / 7 and 4 / 6 a bomb, a guided
+  bomb or a tank (`stores.gd` `LUGGED`) hangs with its model's top on the pylon's bottom, on its middle; a missile
+  keeps the station's rail point. Before, the Mk 84 on 3 / 7 hung on the AIM-9's axis, its top 0.3 m inside the pylon.
 
 Outside, the left wingtip, station 3 and the left tank (left to right), from the front and from the side:
 
@@ -238,7 +241,7 @@ Example, `modern-iaf/data/db/units/f16i.json`:
 | `drag` | the carriage drag on the jet |
 | `motion` | the weapons.ibx fields of its section (`_velocityJump`, `_absAcceleration`, `_reactionTime`, `_fireReleaseInterval`…, docs/weapons.md); a field left out takes the reader's default. Ours: `burn`, which `missile.rs` reads as Weapon data Real's burn (the zone from the distance really travelled) |
 | `range_km`, `min_range_km`, `ceiling_m`, `floor_m`, `speed_ms`, `mach`, `g_limit`, `warhead_kg` | the weapon's own figures (range, altitudes, speed, g limit, warhead), checked for sources, not compiled |
-| `sim` | optional: the `modern_weapons.gd` record (its id) the sim flies in this store's place, built on its base record (the GBU-31's 1003, the GBU-38's 1006, the GBU-39's 1007, the SPICE 1000's 1009, the AIM-9X's 1001); the loadout editor hands it to the flight (`loadout::sim_load`) |
+| `sim` | optional: the `modern_weapons.gd` record (its id) the sim flies in this store's place, built on its base record (the AIM-9X's 1001, the Python 5's 1002, the GBU-31's 1003, the GBU-38's 1006, the GBU-39's 1007, the SPICE 1000's 1009, the SPICE 2000's 1011, the Delilah's 1012: the GPS class, its cruise as a long glide); the loadout editor hands it to the flight (`loadout::sim_load`) |
 | `role` | optional, `"ground"`: an air-to-ground store whose `kind` the engine has no better word for (the Delilah, a cruise missile, compiled as a bomb); the briefing's inventory lists it under air-to-ground |
 | `length_m`, `diameter_m` | the store's size, sourced (null: open); the briefing and the docs only |
 | `status` | only in a draft (§11) |
@@ -251,8 +254,8 @@ Names and numbers the shared code relies on:
 - `"20 MM"` (number 25), `"Chaff"` (33) and `"Flare"` (34): `player_aircraft.gd` `f35i_object` loads these numbers,
   and `real_weapons.gd` keys the M61A1 on the name.
 - `"AIM-9M"` and `"MK-84"`: `modern_weapons.gd` builds the AIM-9X on the first and the GBU-31, BLU109, GBU-39 and
-  GBU-28 on the second, by name. The Python 5 (on `"PYTH-4"`), GBU-32 (`"MK-83"`) and GBU-38 (`"MK-82"`) wait for
-  their base records (item D2).
+  GBU-28 on the second, by name; the SPICE 2000 on `"MK-84"` too. The Python 5's record 1002 is built on `"PYTH-4"`
+  where a database has it, else on `"PYTH-5"`, this database's own (`or_base`); the Delilah's 1012 on `"DELILA"`.
 
 weapons.ibx gets one `[WEAPONnnn]` section per weapon with `type = generation · 1000 + type code`, and the first
 weapon of each type code also as that code's default section (`weapon_db.gd motion_for` falls back to it), unless a
@@ -730,6 +733,7 @@ it ([front-end.md](front-end.md) §10).
 [^f16net-mk82]: F-16.net forum, "Mk 82 loadouts" (TER-9A on stations 3 and 7, two with 370 gal tanks on 4 and 6; TERs on 4 / 6; four Mk 84s), https://www.f-16.net/forum/viewtopic.php?p=123057
 [^f16net-python]: F-16.net forum, "Python on a LAU-129?" (the Python 5 needs a modified LAU-129), https://www.f-16.net/forum/viewtopic.php?p=111724
 [^usaf-600]: USAF, "600 Gallon External Fuel Tank Assembly", solicitation FA8232-26-R-B014 (600 gal tanks on wing stations four and six), https://samsearch.co/gov-explore/federal/600-gallon-external-fuel-tank-assembly/FA8232-26-R-B014
+[^l3h-bru57]: L3Harris, "BRU-57" sell sheet (weight 265 lbs; two stores of 500 or 1,000 lb), https://www.l3harris.com/sites/default/files/2026-09/l3harris-ae-sell-sheet-bru-57.pdf
 [^ter-9a]: Marvin Engineering, "TER-9A" data sheet (weight 105 lb, three stations), https://marvineng.com/wp-content/uploads/sites/5/2018/01/TER-9A.pdf
 [^bms-asym]: Falcon BMS forum, "Asymmetric loads - Air to Ground for F16" (quotes the F-16 flight manual, section 5: the maximum allowable asymmetric (rolling) moment for ground handling, taxi, takeoff, inflight and landing is 25,020 foot-pounds), https://forum.falcon-bms.com/post/167880
 [^afm-f35]: Air & Space Forces Magazine, "F-35" (up to six AIM-120 internally; eight AIM-120 and two AIM-9 in all), https://www.airandspaceforces.com/weapons/f-35

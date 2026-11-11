@@ -649,9 +649,10 @@ own, the jet's maximum weight (the record's `max_takeoff_kg`; the Sufa: 6,254 kg
 - **Racks.** Where the record's `allowed` gives a station a rack (three Mk 82 on a TER-9/A on the F-16s' 3 / 7 and
   4 / 6, two GBU-38 on a BRU-57/A on 3 / 7, four GBU-39 on a BRU-61/A in the Adir's bays 4 / 8), a drop hangs the full
   rack (as many as are left); the slot shows the rack's bar with the stores two to a row under it and a "×3" badge
-  on its frame's corner; the inventory counts per store; the weight adds each store and the rack's `rack_kg`. In
-  flight the station carries that many (`Settings.arm_loadouts`' count); the stores code knows no racks, so the
-  racks' weight is the briefing's only.
+  on its frame's corner; the inventory counts per store; the weight adds each store and the rack's `rack_kg` (the TER-9/A 47.6 kg, the BRU-57/A 120.2 kg, the BRU-61/A
+  147 kg). In flight the station carries that many (`Settings.arm_loadouts`' count) and the rack's weight and drag
+  (`sim_load`'s third and fourth values, `stores.rs` `rack_kg` / `rack_drag`); the rack stays on the jet when its
+  stores go.
 - **What a station takes.** The unit record's `allowed`, station by station ([data-formats.md](data-formats.md) §3:
   the table with its sources and what is inferred). A refused drop
   leaves the loadout as it was; its slot shakes for a quarter of a second with its frame in the warning colour, no
@@ -684,7 +685,7 @@ own, the jet's maximum weight (the record's `max_takeoff_kg`; the Sufa: 6,254 kg
   default.
 - **In flight.** Fly hands the stored loadout to the mission start (`flight/fly.gd` `arm`): pylons A..I as the engine
   holds them (`IafBriefing.sim_load`: each store's weapon record number and count, or the record's `sim`, the
-  `modern_weapons.gd` record flown in its place: the GBU-31's 1003) in
+  `modern_weapons.gd` record flown in its place: the GBU-31's 1003; and its rack's kg and drag) in
   `Settings.arm_loadouts` for the player's flight, which the stores code loads in place of the record's pylons
   (`player_weapons.gd` `_armed`): their mass and drag through the stores weight path, the tanks' fuel, their models
   on the jet. The gun rounds, chaff and flares stay the record's.

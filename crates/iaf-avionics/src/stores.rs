@@ -68,6 +68,10 @@ pub struct Station {
     pub unlimited: bool,
     /// The attach point's lateral position (glTF x, metres, + right wing); ours, for the asymmetric stores option.
     pub arm: f64,
+    /// Ours (Modern IAF's racks, a TER-9/A of Mk 82s): the rack's weight (kg) and carriage drag (the weapons' `drag`
+    /// unit), carried while the station is loaded and kept when its stores go.
+    pub rack_kg: f64,
+    pub rack_drag: f64,
 }
 
 impl Station {
@@ -378,7 +382,7 @@ impl Stores {
         stores
             .map(|s| {
                 let n = if s.weapon.rounds_per_tick.is_some() { s.count.min(1.0) } else { s.count };
-                n * s.weapon.weight_lb * KG_PER_LB * s.arm
+                (n * s.weapon.weight_lb * KG_PER_LB + s.rack_kg) * s.arm
             })
             .sum()
     }
@@ -427,7 +431,8 @@ impl Stores {
 
     /// `FUN_00454010`: one store per station 0..8 whatever the count (original); tanks go to the fuel (`tank_fuel`)
     /// instead of the stores weight; drag of stations 0..3 left, 5..8 right, station 4 half to each. The weight
-    /// (pounds) goes into the kg field as is. With the weight fix: every store counted, in kg, tank fuel in kg.
+    /// (pounds) goes into the kg field as is. With the weight fix: every store counted, in kg, tank fuel in kg. A rack
+    /// (ours) adds its weight and drag once per station.
     pub fn init_weight_drag(&mut self) {
         let unit = if self.weight_fix { KG_PER_LB } else { 1.0 };
         let (mut weight, mut left, mut right) = (0.0, 0.0, 0.0);
@@ -443,7 +448,8 @@ impl Stores {
             } else {
                 weight += n * s.weapon.weight_lb * unit;
             }
-            let d = n * s.weapon.drag;
+            weight += s.rack_kg * if self.weight_fix { 1.0 } else { LB_PER_KG };
+            let d = n * s.weapon.drag + s.rack_drag;
             match i {
                 0..4 => left += d,
                 4 => {
@@ -481,7 +487,7 @@ mod tests {
 
     fn st(type_code: i64, name: &str, count: f64) -> Option<Station> {
         let weapon = Weapon { type_code, name: name.into(), weight_lb: 200.0, drag: 10.0, rounds_per_tick: None };
-        Some(Station { weapon, count, initial: count, unlimited: false, arm: 0.0 })
+        Some(Station { weapon, count, initial: count, unlimited: false, arm: 0.0, rack_kg: 0.0, rack_drag: 0.0 })
     }
 
     fn f16() -> Stores {
@@ -532,6 +538,27 @@ mod tests {
         assert!((s.roll_moment() - 200.0 * KG_PER_LB * 2.0).abs() < 1e-9, "{}", s.roll_moment());
         s.jettisoned(4);
         assert!((s.load().di_left - 10e-4).abs() < 1e-12 && (s.load().di_right - 20e-4).abs() < 1e-12);
+    }
+
+    #[test]
+    fn a_rack_weighs_with_its_stores_and_stays() {
+        // Modern IAF (weight fix): three Mk 82 (500 lb each) on a TER-9/A (47.6 kg) on station 3, 2 m out.
+        let mut s = Stores { player: true, weight_fix: true, ..Stores::default() };
+        let mut ter = st(500, "MK-82", 3.0).unwrap();
+        ter.weapon.weight_lb = 500.0;
+        (ter.arm, ter.rack_kg, ter.rack_drag) = (-2.0, 47.6, 6.0);
+        s.setup(std::array::from_fn(|i| (i == 3).then(|| ter.clone())));
+        let bombs = 3.0 * 500.0 * KG_PER_LB;
+        assert!((s.load().mass - (bombs + 47.6)).abs() < 1e-9, "{}", s.load().mass);
+        assert!((s.load().di_left - 36e-4).abs() < 1e-12, "three bombs at 10 and the rack's 6");
+        assert!((s.roll_moment() + 2.0 * (bombs + 47.6)).abs() < 1e-9);
+        // The bombs go, the rack stays.
+        for _ in 0..3 {
+            s.fired(3);
+        }
+        assert!((s.load().mass - 47.6).abs() < 0.05, "{}", s.load().mass); // the original's lb round trip
+        assert!((s.load().di_left - 6e-4).abs() < 1e-12);
+        assert!((s.roll_moment() + 2.0 * 47.6).abs() < 1e-9);
     }
 
     /// Six MK-82 singles on stations 1–3 / 5–7 (the probe's load), 1 m arms per station.

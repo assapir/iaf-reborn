@@ -56,10 +56,10 @@
   "allowed": {
     "1": ["aim-9m", "python-5", "aim-120"],
     "2": ["aim-9m", "python-5", "aim-120"],
-    "3": ["aim-9m", "aim-120", { "id": "mk-82", "count": 3, "rack": "TER-9/A", "rack_kg": 47.6 }, "mk-83", "mk-84", "gbu-31", { "id": "gbu-38", "count": 2, "rack": "BRU-57/A" }, "spice-1000", "spice-2000", "delilah"],
+    "3": ["aim-9m", "aim-120", { "id": "mk-82", "count": 3, "rack": "TER-9/A", "rack_kg": 47.6 }, "mk-83", "mk-84", "gbu-31", { "id": "gbu-38", "count": 2, "rack": "BRU-57/A", "rack_kg": 120.2 }, "spice-1000", "spice-2000", "delilah"],
     "4": ["tank-370", "tank-600", { "id": "mk-82", "count": 3, "rack": "TER-9/A", "rack_kg": 47.6 }, "mk-83", "mk-84", "spice-1000", "spice-2000"],
     "6": ["tank-370", "tank-600", { "id": "mk-82", "count": 3, "rack": "TER-9/A", "rack_kg": 47.6 }, "mk-83", "mk-84", "spice-1000", "spice-2000"],
-    "7": ["aim-9m", "aim-120", { "id": "mk-82", "count": 3, "rack": "TER-9/A", "rack_kg": 47.6 }, "mk-83", "mk-84", "gbu-31", { "id": "gbu-38", "count": 2, "rack": "BRU-57/A" }, "spice-1000", "spice-2000", "delilah"],
+    "7": ["aim-9m", "aim-120", { "id": "mk-82", "count": 3, "rack": "TER-9/A", "rack_kg": 47.6 }, "mk-83", "mk-84", "gbu-31", { "id": "gbu-38", "count": 2, "rack": "BRU-57/A", "rack_kg": 120.2 }, "spice-1000", "spice-2000", "delilah"],
     "8": ["aim-9m", "python-5", "aim-120"],
     "9": ["aim-9m", "python-5", "aim-120"]
   },
@@ -80,7 +80,7 @@
   ],
   "sources": {
     "lateral_limit_kgm": "bms-asym, inferred",
-    "allowed": "f16net-aim9, f16net-aim120, f16net-jdam, f16net-mk82, f16net-tanks, usaf-600, ter-9a, inferred",
+    "allowed": "f16net-aim9, f16net-aim120, f16net-jdam, f16net-mk82, f16net-tanks, usaf-600, ter-9a, l3h-bru57, inferred",
     "tail": "ize-034",
     "max_takeoff_kg": "f16net-b40",
     "type": "inferred",
@@ -96,7 +96,7 @@
   "notes": {
     "lateral_limit_kgm": "the F-16's maximum allowable asymmetric (rolling) moment, 25,020 ft-lb (3,459 kg·m), as a forum quotes the flight manual's stores limitations (bms-asym; the manual itself not seen, so inferred); the Sufa's and the Barak's taken the same (inferred)",
     "lateral_limit_hard": "false: the briefing warns and lets the jet fly (the manual forbids the take-off only when the roll trim cannot hold the moment, which the briefing does not know)",
-    "allowed": "the stores each station takes, by its real number. Sourced: the AIM-9 and the AIM-120 on 1 / 9, 2 / 8 and 3 / 7 (f16net-aim9, f16net-aim120); the GBU-31 on 3 / 7, one each, and the GBU-38 there two to a BRU-57/A (f16net-jdam); three Mk 82 on a TER-9/A (47.6 kg, ter-9a) on 3 / 7, and on 4 / 6 (f16net-mk82, a forum: inferred; with tanks on 4 / 6 the real jet takes two on 3 / 7, not modelled); the 370 US gal tank on 4 / 6 (f16net-tanks) and the 600 US gal tank there (usaf-600). Inferred: the Python 5 on the AIM-9 rails 1 / 9 and 2 / 8 (a modified LAU-129; no station chart found); the Mk 83 and the Mk 84 one each on 3 / 7 and 4 / 6 (f16net-mk82 tells of four Mk 84); the SPICE 1000 / 2000 on 3 / 7 and 4 / 6 and the Delilah on 3 / 7 (no source gives their stations); the Sufa and the Barak the same (no source shows a difference). Station 5, the centreline, takes none of the inventory",
+    "allowed": "the stores each station takes, by its real number. Sourced: the AIM-9 and the AIM-120 on 1 / 9, 2 / 8 and 3 / 7 (f16net-aim9, f16net-aim120); the GBU-31 on 3 / 7, one each, and the GBU-38 there two to a BRU-57/A (120.2 kg, l3h-bru57; f16net-jdam); three Mk 82 on a TER-9/A (47.6 kg, ter-9a) on 3 / 7, and on 4 / 6 (f16net-mk82, a forum: inferred; with tanks on 4 / 6 the real jet takes two on 3 / 7, not modelled); the 370 US gal tank on 4 / 6 (f16net-tanks) and the 600 US gal tank there (usaf-600). Inferred: the Python 5 on the AIM-9 rails 1 / 9 and 2 / 8 (a modified LAU-129; no station chart found); the Mk 83 and the Mk 84 one each on 3 / 7 and 4 / 6 (f16net-mk82 tells of four Mk 84); the SPICE 1000 / 2000 on 3 / 7 and 4 / 6 and the Delilah on 3 / 7 (no source gives their stations); the Sufa and the Barak the same (no source shows a difference). Station 5, the centreline, takes none of the inventory",
     "tail": "F-16D Barak 034 of 109 Squadron in a public photo (the front end's Barak photo): one real jet of the squadron, the pilot's in the sim",
     "max_takeoff_kg": "the F-16C/D Block 40/42's maximum take-off weight, 42,300 lb (19,187 kg); the Barak is an F-16D Block 40",
     "type": "the F-16's type code; the airframe definition f16 is the Barak's",
@@ -114,6 +114,7 @@
     "bms-asym": "Falcon BMS forum, \"Asymmetric loads - Air to Ground for F16\" (quotes the F-16 flight manual, section 5: the maximum allowable asymmetric (rolling) moment for ground handling, taxi, takeoff, inflight and landing is 25,020 foot-pounds), https://forum.falcon-bms.com/post/167880",
     "f16net-mk82": "F-16.net forum, \"Mk 82 loadouts\" (TER-9A on stations 3 and 7, two with 370 gal tanks on 4 and 6; TERs on 4 / 6; four Mk 84s), https://www.f-16.net/forum/viewtopic.php?p=123057",
     "usaf-600": "USAF, \"600 Gallon External Fuel Tank Assembly\", solicitation FA8232-26-R-B014 (600 gal tanks on wing stations four and six), https://samsearch.co/gov-explore/federal/600-gallon-external-fuel-tank-assembly/FA8232-26-R-B014",
+    "l3h-bru57": "L3Harris, \"BRU-57\" sell sheet (weight 265 lbs, 120.2 kg; two stores of 500 or 1,000 lb), https://www.l3harris.com/sites/default/files/2026-09/l3harris-ae-sell-sheet-bru-57.pdf",
     "ter-9a": "Marvin Engineering, \"TER-9A\" data sheet (weight 105 lb, 47.6 kg; three stations), https://marvineng.com/wp-content/uploads/sites/5/2018/01/TER-9A.pdf",
     "f16net-jdam": "F-16.net, \"GBU-31 and GBU-38 JDAM\" (stations 3 and 7 have been wired to carry a single JDAM), https://www.f-16.net/f-16_armament_article9.html",
     "f16net-b40": "F-16.net, \"F-16 Block 40/42\" (18,238 lb empty, 42,300 lb maximum takeoff), https://www.f-16.net/f-16_versions_article7.html",

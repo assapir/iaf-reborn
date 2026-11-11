@@ -10,6 +10,11 @@
   "blast_m": 30,
   "drag": 0,
   "motion": {},
+  "sim": 1012,
+  "range_km": 250,
+  "mach": 0.7,
+  "ceiling_m": 8500,
+  "warhead_kg": 30,
   "role": "ground",
   "length_m": 2.71,
   "diameter_m": 0.33,
@@ -19,19 +24,26 @@
     "drag": "open",
     "kg": "w-delilah",
     "length_m": "w-delilah",
-    "diameter_m": "w-delilah"
+    "diameter_m": "w-delilah",
+    "range_km": "w-delilah",
+    "mach": "w-delilah",
+    "ceiling_m": "w-delilah",
+    "warhead_kg": "w-delilah"
   },
   "notes": {
     "number": "ours",
     "drag": "carriage drag: none until a source gives one",
     "motion": "the reader's defaults",
-    "kind": "a turbojet cruise missile; the engine has no air-to-ground missile kind, so it falls as a bomb until one is made (open)",
+    "kind": "a turbojet cruise missile, compiled as a bomb (the engine has no air-to-ground missile kind); the sim flies it as a GPS-guided weapon (sim)",
     "power": "30 kg warhead at 50 points a kilogram (our damage scale)",
     "blast_m": "no public lethal radius found: 30 m held until one is",
     "model": "none yet: no model of ours; the briefing shows our labelled silhouette (data/stores/delilah.png)",
-    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind"
+    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind",
+    "sim": "the sim flies modern_weapons.gd's record 1012, built on this one, in its place (loadout::sim_load): the GPS-guided class (gps.rs) with its turbojet's cruise taken as a glide of ratio 23, which reaches the 250 km from its 8,500 m flight altitude at Mach 0.7, between Mach 0.3 and its Mach 0.85 dive (inferred); its CCD / IIR end seeker is not modelled (it lands on the point set at the release)",
+    "mach": "its top cruise speed (Wikipedia: Mach 0.3-0.7, Mach 0.85 in the dive)",
+    "ceiling_m": "its flight altitude, 28,000 ft"
   },
   "footnotes": {
-    "w-delilah": "Wikipedia, \"Delilah (missile)\" (187 kg, 2.71 m, 0.33 m; 30 kg warhead), https://en.wikipedia.org/wiki/Delilah_(missile)"
+    "w-delilah": "Wikipedia, \"Delilah (missile)\" (187 kg, 2.71 m, 0.33 m; 30 kg warhead; 250 km; Mach 0.3-0.7, Mach 0.85 in the dive; flight altitude 28,000 ft; CCD / IIR with GPS / INS), https://en.wikipedia.org/wiki/Delilah_(missile)"
   }
 }

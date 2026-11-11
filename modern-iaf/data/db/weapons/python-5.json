@@ -10,6 +10,10 @@
   "blast_m": 9,
   "drag": 0,
   "motion": {},
+  "sim": 1002,
+  "range_km": 20,
+  "mach": 4,
+  "warhead_kg": 11,
   "length_m": 3.1,
   "diameter_m": 0.16,
   "sources": {
@@ -18,7 +22,10 @@
     "drag": "open",
     "kg": "w-python",
     "length_m": "w-python",
-    "diameter_m": "w-python"
+    "diameter_m": "w-python",
+    "range_km": "w-python",
+    "mach": "w-python",
+    "warhead_kg": "w-python"
   },
   "notes": {
     "number": "ours",
@@ -27,10 +34,11 @@
     "power": "one hit destroys a fighter of strength 300, as the AIM-9M (our damage scale)",
     "blast_m": "the AIM-9M's 9 m until a source gives the Python 5's",
     "model": "our Python 5 (shared/extra/models/stores/pyth5.glb)",
-    "sim": "none: modern_weapons.gd builds its PYTH-5 on the Python 4's record, which the sim has not; it flies as this record (the reader's motion defaults) until it has",
-    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind"
+    "sim": "the sim flies modern_weapons.gd's record 1002 in its place (loadout::sim_load): this record's blast and power (its base in the sim, which has no Python 4), Mach 4 and 20 km in the missile motion, lock-on after launch to 100° off boresight (docs/real-weapons.md §1.6)",
+    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind",
+    "range_km": "Wikipedia's \"> 20 km\" taken as 20 km"
   },
   "footnotes": {
-    "w-python": "Wikipedia, \"Python (missile)\" (Python 5: 105 kg, 3.10 m, 0.16 m; 11 kg warhead), https://en.wikipedia.org/wiki/Python_(missile)"
+    "w-python": "Wikipedia, \"Python (missile)\" (Python 5: 105 kg, 3.10 m, 0.16 m; 11 kg warhead; Mach 4; > 20 km; lock-on after launch up to 100° off boresight), https://en.wikipedia.org/wiki/Python_(missile)"
   }
 }

@@ -99,6 +99,8 @@ func run() -> void:
 		)
 		var db = load("res://shared/weapons/weapon_db.gd").create(bdb, s.real_weapons())
 		check(db.motion.size() > 0, "%s: motion table: %d sections" % [jet, db.motion.size()])
+		if id == "f16i":
+			_check_stores(db)
 		var model: String = C3.model_for(type)
 		check(model != "", "%s: 3D cockpit %s" % [jet, model])
 		var section: String = PA.profile(type).fm_section
@@ -224,3 +226,22 @@ func no_panel(tv: Node, what: String) -> void:
 			% [what, c.dir, art, tv.cockpit_3d != null and c.three_d()]
 		)
 	)
+
+
+## The Sufa's modern records and stores (A15 leftovers): the Python 5, SPICE 2000 and Delilah built as their
+## modern_weapons.gd records; a TER-9/A of three Mk 82 weighs with its rack; the Mk 84 hangs by its lug.
+func _check_stores(db: RefCounted) -> void:
+	var built := []
+	for k in [1002, 1011, 1012]:
+		var w: Dictionary = db.by_id(k)
+		built.append(k if not w.is_empty() and (k == 1002 or w.has("gps")) else -k)
+	check(built == [1002, 1011, 1012], "Sufa: the Python 5, SPICE 2000 and Delilah records (%s)" % [built])
+	var st = load("res://shared/weapons/stores.gd").new()
+	st.weight_fix = true
+	var lo := [[0, 0], [0, 0], [4, 3, 47.6, 0.0], [0, 0], [0, 0], [0, 0], [2, 1, 0.0, 0.0], [0, 0], [0, 0]]
+	var desc: Dictionary = load("res://shared/aircraft/aircraft_model.gd").load_descriptor("f16")
+	st.setup(lo, db, desc, Callable())
+	var kg := (3.0 * float(db.by_id(4).weight_lb) + float(db.by_id(2).weight_lb)) * 0.45359 + 47.6
+	check(absf(st.fm_mass - kg) < 0.5, "Sufa: three Mk 82 on their TER and a Mk 84: %.1f kg (%.1f)" % [st.fm_mass, kg])
+	var y := float(st.station(6).get("attach", Vector3.ZERO).y)
+	check(y < -0.392 - 0.3, "Sufa: the Mk 84 on 7 hangs under the pylon's lug (its origin at y %.3f)" % y)

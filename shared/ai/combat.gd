@@ -213,7 +213,10 @@ func hand_over(ent: Dictionary) -> Array:
 		n.queue_free()
 	if u.fire_sound != null and is_instance_valid(u.fire_sound):
 		u.fire_sound.queue_free()
-	return u.stations.map(func(s): return [int(s.w.get("id", 0)) if not s.w.is_empty() else 0, int(s.count)])
+	# Modern IAF: the rack's kg and drag ride along (loadout::sim_load).
+	return u.stations.map(
+		func(s): return [int(s.w.get("id", 0)) if not s.w.is_empty() else 0, int(s.count)] + s.get("rack", [])
+	)
 
 
 ## An AI jet's handler: the pilot's brain, the sensor (kind 4), its stations (its flight's Arming load, else the
@@ -231,7 +234,7 @@ func _setup_aircraft(ent: Dictionary, obj: Dictionary, db, now: float, given: Ar
 	var load := given if not given.is_empty() else _armed(ent, Stores.loadout(ent, obj))
 	for s in load:
 		var w: Dictionary = db.by_id(int(s[0])) if int(s[1]) != 0 else {}
-		u.stations.append({"w": w, "count": int(s[1]) if not w.is_empty() else 0})
+		u.stations.append({"w": w, "count": int(s[1]) if not w.is_empty() else 0, "rack": Array(s).slice(2)})
 	u.ripple.set_values(1, 10)
 	# The stores on the jet (FUN_0053b580; the Arming loads: FUN_004541d0 + FUN_00459410 redo the weight / drag).
 	u.stores = Stores.new()
@@ -283,7 +286,7 @@ func _armed(ent: Dictionary, load: Array) -> Array:
 		return load
 	var arm: Array = Settings.arm_loadouts[n]
 	for i in mini(9, arm.size()):
-		load[i] = [int(arm[i][0]), int(arm[i][1])]
+		load[i] = [int(arm[i][0]), int(arm[i][1])] + Array(arm[i]).slice(2)  # Modern IAF: the rack's kg, drag
 	return load
 
 

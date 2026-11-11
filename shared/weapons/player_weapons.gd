@@ -271,7 +271,7 @@ static func _armed(load: Array, entity: Dictionary, n: int) -> Array:
 		return load
 	var arm: Array = Settings.arm_loadouts[n]
 	for i in mini(9, arm.size()):
-		load[i] = [int(arm[i][0]), int(arm[i][1])]
+		load[i] = [int(arm[i][0]), int(arm[i][1])] + Array(arm[i]).slice(2)  # Modern IAF: the rack's kg, drag
 	return load
 
 

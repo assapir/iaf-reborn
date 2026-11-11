@@ -90,7 +90,7 @@ impl IafBriefing {
         edit(&unit, &lo, |u, l| loadout::shift(u, l, from as u32, to as u32, pair))
     }
 
-    /// The loadout `lo` as the engine's pylons A..I hold it (`loadout::sim_load`): [[weapon number, count] × 9] as
+    /// The loadout `lo` as the engine's pylons A..I hold it (`loadout::sim_load`): [[weapon number, count, rack kg, rack drag] × 9] as
     /// JSON text, "" when the record is unreadable.
     #[func]
     fn sim_load(unit: GString, weapons: GString, lo: GString) -> GString {

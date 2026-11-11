@@ -166,6 +166,8 @@ Python 5: docs/f16i.md §5; the F-16I has carried the SDB since August 2015 (107
 | GBU-38 (Mk 82) | 253 kg | – | 24 km | GPS / INS | [^dsjdam] |
 | GBU-39 SDB | 129 kg | – | 111 km ("over 60 nmi") | GPS / INS, wings; four on a BRU-61 rack | [^sdb] |
 | SPICE1 (SPICE 1000, Mk 83) | 453 kg (the 1,000 lb class; the exact weight open) | – | 100 km | INS / GPS, an electro-optical scene-matching seeker, deployable wings | [^spicebro], [^wpspice], [^twzspice] |
+| SPICE2 (SPICE 2000, Mk 84) | 907 kg (the 2,000 lb class; the exact weight open) | – | 60 km (no wings) | INS / GPS, the SPICE 1000's seeker | [^spicebro], [^wpspice] |
+| DELILA (Delilah, Modern IAF) | 187 kg | Mach 0.7 cruise (Mach 0.3–0.7), Mach 0.85 in the dive | 250 km | GPS / INS mid-course, a CCD / IIR end seeker; turbojet | [^wpdelilah] |
 | GBU-28 (BLU-113) | 2,130 kg | – | the laser bombs' glide (inferred) | laser (Paveway III, the GBU-27's kit) | [^gbu28kopp], [^gbu28fas], [^gbu28wp] |
 
 - **Weights** are the records' bdb weight (0x758) in whole pounds.
@@ -181,6 +183,13 @@ Python 5: docs/f16i.md §5; the F-16I has carried the SDB since August 2015 (107
   fastest speeds: inferred.
 - **GBU-39 range**: "over 60 nmi" air-dropped[^sdb]: glide ratio 7.6 from the same release. Weight: the spec box's
   129 kg (the lead says 250 lb, 110 kg[^sdb]).
+- **SPICE 2000 range**: 60 km[^wpspice] from the SPICE 1000's release (40,000 ft at Mach 0.9, inferred): glide ratio
+  4.1. Blast and weight: the Mk 84's class (inferred).
+- **Delilah** (Modern IAF's own record, `DELILA`, 2026-11-11): 187 kg, a 30 kg warhead, 250 km, Mach 0.3–0.7 in
+  cruise and Mach 0.85 in the dive, flight altitude 28,000 ft, CCD / IIR sensors with GPS / INS[^wpdelilah]. The game
+  has no cruise-missile class, so it flies as the GPS class (`gps.rs`) with its turbojet taken as a glide: ratio 23
+  reaches 250 km from 8,500 m at Mach 0.7 (238 m/s, sea level's Mach; about 236 km at that height's 213 m/s), its slowest Mach 0.3, its fastest the Mach 0.85 dive, the JDAM's 3 g turn
+  (inferred). Its end seeker is not modelled: it lands on the point set at the release, as the SPICE. Its loiter: open.
 - **Blast**: the bomb's own record (Mk 84 / 83 / 82). The BLU-109 holds 250 kg of tritonal[^blu109], the GBU-39 16 kg
   of AFX-757[^sdb], the GBU-28's BLU-113 630 lb (286 kg)[^gbu28fas][^gbu28kopp], against the Mk 84's 429 kg[^mk84]:
   their power is the MK-84's × fill / 429, the radius × the cube root of that (inferred).
@@ -223,7 +232,8 @@ Python 5: docs/f16i.md §5; the F-16I has carried the SDB since August 2015 (107
 Not added (docs/f16i.md §5):
 - **SPICE 1000 on the Sufa**: integrated on the F-16I[^twzspice] (planned for the Ramon squadrons in 2017[^spice1000]),
   but no source shows its stations on the F-16I: open, not loaded (§1.7).
-- **SPICE 2000**: no source shows it on the F-16I.
+- **SPICE 2000** and **Delilah** on the Sufa: no source shows their stations on the F-16I; Modern IAF's loadout
+  editor offers them on inferred stations (modern-iaf/docs/data-formats.md §3).
 - **GBU-28**: no source puts it on the F-16I; Israel bought it for its F-15s (§1.7, the F-15I).
 - **Laser JDAM (GBU-54)**: Israel co-developed the laser seeker with Elbit[^jdam]; its use on the F-16I: open.
 
@@ -287,10 +297,11 @@ Stations (`modern_weapons.gd` `LOADS`; letters A–I are the Arming screen's sta
 - **F-35I** (docs/f35i.md §3.1): AIM-9X on the outboard pylons A / I[^dt35]; GBU-31 and GBU-32 in the bays C / G and on
   the heavy pylons B / H; GBU-39 four to a bay on C / G[^raaf39].
 
-### 1.8 Spike and SPICE: the SPICE 1000 built, the others models only (open)
+### 1.8 Spike and SPICE: the SPICE 1000 and 2000 built, the Spike NLOS a model only (open)
 
 The SPICE 1000, the SPICE 2000 and the Spike NLOS have detailed models (ours, docs/aircraft-models.md §5.6). The SPICE
-1000 is a weapon record since 2 November 2026 (`SPICE1`, §1.6); the others have none yet. Research of 30 October 2026.
+1000 is a weapon record since 2 November 2026 (`SPICE1`, §1.6), the SPICE 2000 since 11 November 2026 (`SPICE2`); the
+Spike NLOS has none. Research of 30 October 2026.
 
 **Which ones the IAF fields:**
 - **SPICE 2000**: on the IAF's F-16s since 2005 (a search snippet citing GlobalSecurity; open). A kit on the Mk 84,
@@ -305,8 +316,7 @@ The SPICE 1000, the SPICE 2000 and the Spike NLOS have detailed models (ours, do
   it on the F-16I, F-15I or F-35I. The game has no player helicopter, so it has no station to load it.
 
 **What adding them as weapons needs** (open, a follow-up; `modern_weapons.gd` belongs to the weapons work):
-- **SPICE 2000**: a type 650 record on the MK-84 base, as the GBU-31, with the SPICE 1000's guidance (§1.6); range
-  60 km[^wpspice] (no wings); its IAF carriers and stations: open.
+- **SPICE 2000**: built (§1.6); its IAF carriers and stations: open (only Modern IAF's loadout editor loads it).
 - **SPICE 1000** on the Barak, the Sufa and the F-35I: their stations (§1.7).
 - **Spike NLOS**: none until the game has a helicopter station; its record would be an electro-optical guided missile
   (type 600 as the AGM-65, inferred) with 25 km range[^avinlos].
@@ -506,6 +516,7 @@ Each real value lands in one field or rule of the original model:
     scene matching against stored reference images; 95% target acquisition; 100 missions per weapon),
     https://omnirole-rafale.com/wp-content/uploads/2019/10/Spice.pdf
 [^wpspice]: Wikipedia, "Spice (bomb)" (Spice 1000: a kit for 450 kg bodies, deployable wings, 100 km, citing Rafael's
+[^wpdelilah]: Wikipedia, "Delilah (missile)" (187 kg, 2.71 m, 0.33 m; 30 kg warhead; 250 km; Mach 0.3–0.7, Mach 0.85 in the dive; flight altitude 28,000 ft; CCD and IIR sensors, GPS / INS), https://en.wikipedia.org/wiki/Delilah_(missile)
     "Spice 2000/1000 Family" page, https://www.rafael.co.il/system/spice-family-1000-2000/, which refuses automatic
     fetches; Spice 2000 60 km; CEP 3 m; 453 kg in the family's infobox), https://en.wikipedia.org/wiki/Spice_(bomb)
 [^twzspice]: T. Newdick, The War Zone, "Israel Is Bringing SPICE 1000 Standoff Weapon To The F-35", 16 September 2026

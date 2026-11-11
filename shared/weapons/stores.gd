@@ -4,6 +4,8 @@
 # face: `stations` mirrors the counts next to each station's weapon record, attach point and store slots.
 extends RefCounted
 
+const Gltf := preload("res://shared/util/gltf.gd")
+
 const GUN := 565
 const CHAFF := 540
 const FLARE := 550
@@ -27,6 +29,11 @@ const FRAMES := [
 ## layout, which the GPS bombs (ours, modern_weapons.gd) take too: four GBU-39s sit on one rack.
 const BOMBS := [500, 510]
 const DRAWN := [500, 510, 640, 635, 570, 650, 580, 590, 600, 610, 660]
+## Ours: the stores that hang by their lugs (bombs, the guided bombs, tanks and pods), on a descriptor's `lugs` point
+## where it has one (Modern IAF's F-16, sim.rs F16_SIM_LUGS): their model's highest point (the lugs or the fins) on
+## the pylon's bottom. The rest (the missiles)
+## hang at the station's own point, the rail.
+const LUGGED := [500, 510, 650, 660]
 
 ## Stations: index -> {index, w (weapon record), count, initial, unlimited, attach (glTF), slots [glTF], drawn};
 ## missing index = no station.
@@ -89,7 +96,7 @@ static func category(type: int) -> int:
 ## Creates the stations (FUN_004b7ea3 -> FUN_0053b580 -> FUN_0053c1f0): a count of 0 or an unknown weapon means
 ## no station. `descriptor` = the aircraft descriptor (stations in glTF metres), `pilon_of(model_path)` -> the
 ## store model's Pilon helper (glTF) or null. `jet_type` = the aircraft's bdb type code (Weapon data Real: its
-## real gun rounds).
+## real gun rounds). A load entry's third and fourth values (Modern IAF, loadout::sim_load) are its rack's kg and drag.
 func setup(load: Array, db: RefCounted, descriptor: Dictionary, pilon_of: Callable, jet_type := -1) -> void:
 	stations.clear()
 	var frames: Dictionary = descriptor.get("stations", {})
@@ -107,6 +114,10 @@ func setup(load: Array, db: RefCounted, descriptor: Dictionary, pilon_of: Callab
 			continue
 		var p = frames.get(FRAMES[i])
 		var attach := Vector3(p[0], p[1], p[2]) if p is Array else Vector3.ZERO
+		var lug = descriptor.get("lugs", {}).get(FRAMES[i])
+		var top := _top(String(w.get("model_path", ""))) if lug is Array and int(w.type) in LUGGED else 0.0
+		if top > 0.0:  # without a model of ours to measure, the store keeps the station's point
+			attach = Vector3(lug[0], lug[1] - top, lug[2])
 		if int(w.type) == GUN and w.has("rounds_per_tick"):
 			var RealWeapons := preload("res://shared/weapons/real_weapons.gd")
 			w = RealWeapons.jet_gun(w, jet_type)
@@ -136,12 +147,26 @@ func setup(load: Array, db: RefCounted, descriptor: Dictionary, pilon_of: Callab
 			"drag": w.get("drag", 0.0),
 			"count": n,
 			"arm": attach.x,
+			"rack_kg": float(load[i][2]) if load[i].size() > 2 else 0.0,
+			"rack_drag": float(load[i][3]) if load[i].size() > 3 else 0.0,
 		}
 		if w.has("rounds_per_tick"):
 			r.rounds_per_tick = w.rounds_per_tick
 		rs[i] = r
 	_s.setup(rs, player, weight_fix, unlimited)
 	_sync()
+
+
+## How far the top of the store model of `path` (our detailed one, its lugs) stands above its origin, m; 0 without it.
+static func _top(path: String) -> float:
+	var hd := Gltf.detailed(path)
+	var model = Gltf.model(hd) if hd != "" else null
+	if model == null:
+		return 0.0
+	var n := Gltf.instance(model)
+	var top := Gltf.model_aabb(n).end.y
+	n.free()
+	return top
 
 
 func station(i: int) -> Dictionary:

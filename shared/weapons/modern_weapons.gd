@@ -10,8 +10,10 @@
 #   the beam (missile.rs); "loal": launched without a lock they fly toward the cued line and lock on after launch.
 # - The JDAMs (GBU-31, GBU-31(V)3 with the BLU-109, GBU-32, GBU-38) and the GBU-39 SDB (type 650 with a "gps" kit):
 #   no seeker, they fly to a point fixed at the release (gps.rs).
-# - The SPICE 1000 (type 650 with a "gps" kit): GPS / INS to the stored target, its scene-matching seeker ending on that
-#   point (docs/weapons.md §13.2), its wings giving the long glide.
+# - The SPICE 1000 and 2000 (type 650 with a "gps" kit): GPS / INS to the stored target, its scene-matching seeker
+#   ending on that point (docs/weapons.md §13.2); the SPICE 1000's wings give the long glide.
+# - The Delilah (Modern IAF only, on its own record): a turbojet cruise missile flown as the GPS class, its cruise taken
+#   as a long glide (DELILAH).
 # - The GBU-28 (the F-15I's 4,700 lb penetrator, docs/real-weapons.md §1.6): a laser bomb (type 650 without a kit),
 #   the original's laser rules (docs/weapons.md §9.8).
 extends RefCounted
@@ -27,14 +29,23 @@ const SDB := {"glide": 7.6, "min_speed": 150.0, "max_speed": 300.0, "max_g": 3.0
 ## The SPICE 1000's kit, its wings out: glide ratio 6.8 for Rafael's 100 km from 40,000 ft at Mach 0.9 (inferred
 ## conditions, as the JDAM's; docs/real-weapons.md §1.6).
 const SPICE := {"glide": 6.8, "min_speed": 150.0, "max_speed": 300.0, "max_g": 3.0}
+## The SPICE 2000's kit, no wings: glide ratio 4.1 for its 60 km from the same release (inferred, as the SPICE 1000's).
+const SPICE2 := {"glide": 4.1, "min_speed": 150.0, "max_speed": 300.0, "max_g": 3.0}
+## The Delilah (docs/real-weapons.md §1.6): Mach 0.3 to 0.7 in cruise, Mach 0.85 in the dive, 250 km. Its turbojet is
+## taken as a glide of ratio 23, which reaches the 250 km from its 8,500 m flight altitude at Mach 0.7 at sea level's
+## speed of sound (gps.rs reach: 23 · (8500 + (238² − 102²) / 2g) = 250 km; about 236 km at 8,500 m's 213 m/s;
+## inferred); the JDAM's 3 g turn (inferred).
+const DELILAH := {"glide": 23.0, "min_speed": 0.3 * MACH_M_S, "max_speed": 0.85 * MACH_M_S, "max_g": 3.0}
 ## The high off-boresight missiles' motion (inferred): jet-vane / thrust-vector control turns them from the rail.
 const AGILE := {"_absAcceleration": 600.0, "_timeConstOrientation": 0.05, "_offBoresight": 1.0, "_timeRelease": 0.0}
 
 ## id (above every bdb's), name (as the Arming screen shows it: 6 characters at most, as the original's weapon names,
 ## so a station box's "%dx%s" fits its 8 characters; arming.gd `_key_text`), type, generation, base (blast,
 ## drag), model_of (the original model standing in), model_path (ours, util/gltf.gd STAND_INS), kg, icon (ours,
-## shared/extra/weapons/arm/<icon>.png; none: the install's icon of the model), and per kind: the missiles' mach,
-## range_km, cone_deg, rear_km / front_km / front_ab_km (lock ranges), max_g; the bombs' gps kit, fill_kg, scale.
+## shared/extra/weapons/arm/<icon>.png; none: the install's icon of the model), or_base (the base where the
+## database has no "base": Modern IAF's own record of the weapon, the sim having no Python 4), and per kind: the
+## missiles' mach, range_km, cone_deg, rear_km / front_km / front_ab_km (lock ranges), max_g; the bombs' gps kit,
+## fill_kg, scale.
 const RECORDS := [
 	{
 		"id": 1001,
@@ -61,6 +72,7 @@ const RECORDS := [
 		"type": 570,
 		"generation": 4,
 		"base": "PYTH-4",
+		"or_base": "PYTH-5",
 		"model_of": "PYTH-4",
 		"model_path": "weapons/sufa/pyth5_m.gltf",
 		"kg": 105.0,
@@ -143,6 +155,17 @@ const RECORDS := [
 		"gps": SPICE
 	},
 	{
+		"id": 1011,
+		"name": "SPICE2",
+		"type": 650,
+		"base": "MK-84",
+		"model_of": "MK-84L",
+		"model_path": "weapons/sufa/spice2000_m.gltf",
+		"kg": 907.0,
+		"gps": SPICE2
+	},
+	{"id": 1012, "name": "DELILA", "type": 650, "base": "DELILA", "kg": 187.0, "gps": DELILAH},
+	{
 		"id": 1010,
 		"name": "GBU-28",
 		"type": 650,
@@ -183,8 +206,8 @@ static func add_to(db: RefCounted) -> void:
 	for r in db.weapons.values():
 		by_name[r.name] = r
 	for spec in RECORDS:
-		var base: Dictionary = by_name.get(spec.base, {})
-		var look: Dictionary = by_name.get(spec.model_of, base)
+		var base: Dictionary = by_name.get(spec.base, by_name.get(spec.get("or_base", ""), {}))
+		var look: Dictionary = by_name.get(spec.get("model_of", ""), base)
 		if base.is_empty():
 			continue
 		var w := base.duplicate(true)

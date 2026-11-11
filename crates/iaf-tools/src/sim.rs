@@ -82,8 +82,7 @@ pub const F16_GLB: &str = "shared/extra/models/f16/f16d.glb";
 ///   - 4 and 6 (StationD, StationF): under the inboard pylons (x ±1.73 m, bottom y −0.341 m, z −0.18 to 2.23 m), the
 ///     370 US gal tank's top (0.328 m above its origin in stores/f16ftk.glb) on the pylon's bottom.
 ///
-/// ponytail: one origin per station, right for the AIM-9 and the tank; a store of another shape there needs its own
-/// hang offset.
+/// These are the rail points the missiles hang at; the stores that hang by their lugs take `F16_SIM_LUGS` instead.
 const F16_SIM_STATIONS: [(&str, [f64; 3]); 8] = [
     ("StationA", [-4.7075, -0.2015, 2.35]),
     ("StationB", [-3.974, -0.3855, 2.496]),
@@ -93,6 +92,17 @@ const F16_SIM_STATIONS: [(&str, [f64; 3]); 8] = [
     ("StationG", [2.977, -0.4555, 1.912]),
     ("StationH", [3.965, -0.3855, 2.496]),
     ("StationI", [4.7115, -0.2015, 2.347]),
+];
+
+/// The bomb lugs of the F-16's heavy stations 3 / 7 (StationC, StationG) and 4 / 6 (StationD, StationF): the pylon's
+/// bottom on its middle (the same pylons as `F16_SIM_STATIONS`), the descriptor's `lugs`. A bomb, a guided bomb or a
+/// tank hangs its top there (stores.gd `LUGGED`), so the Mk 84 on 3 / 7 hangs under the pylon, not on the AIM-9's
+/// axis inside it; the tank's place on 4 / 6 stays as before.
+const F16_SIM_LUGS: [(&str, [f64; 3]); 4] = [
+    ("StationC", [-2.986, -0.392, 1.912]),
+    ("StationD", [-1.735, -0.341, 1.023]),
+    ("StationF", [1.726, -0.341, 1.023]),
+    ("StationG", [2.977, -0.392, 1.912]),
 ];
 
 // --- The readable → hex mapping ------------------------------------------------------------------------------------
@@ -1189,6 +1199,9 @@ fn planes(repo: &Path, assets: &Path) -> Result<()> {
     for (station, p) in F16_SIM_STATIONS {
         d["stations"][station] = json!(p);
     }
+    for (station, p) in F16_SIM_LUGS {
+        d["lugs"][station] = json!(p);
+    }
     let out = assets.join(PLANES_DIR);
     write(&out.join("f16/aircraft.json"), &serde_json::to_string(&d)?)?;
     let index = json!({"f16": {"model": "f16/f16_h.gltf", "descriptor": "f16/aircraft.json", "type": 100,
@@ -1628,6 +1641,7 @@ mod tests {
         );
         assert_eq!(f16["engines"]["pairs"], 1);
         assert_eq!(f16["stations"]["StationA"], json!(F16_SIM_STATIONS[0].1));
+        assert_eq!(f16["lugs"]["StationC"], json!(F16_SIM_LUGS[0].1));
         let clip = |f: &str| ogg_seconds(&std::fs::read(sounds.join(f.to_lowercase())).unwrap()).unwrap();
         let trx = std::fs::read_to_string(sounds.join("soundprop.trx")).unwrap();
         let rows: Vec<Vec<&str>> =

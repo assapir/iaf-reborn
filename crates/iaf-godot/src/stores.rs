@@ -54,7 +54,7 @@ impl IafStores {
     }
 
     /// The 12 stations: {} none, else {type, name, weight_lb, drag, rounds_per_tick (optional), count, arm (the attach
-    /// point's glTF x, + right)}.
+    /// point's glTF x, + right), rack_kg / rack_drag (optional: the rack the stores hang on)}.
     #[func]
     fn setup(&mut self, stations: VarArray, player: bool, weight_fix: bool, unlimited: bool) {
         let station = |i: usize| {
@@ -68,7 +68,9 @@ impl IafStores {
             };
             let count = num(&d, "count").unwrap_or_default();
             let arm = num(&d, "arm").unwrap_or_default();
-            Some(Station { weapon, count, initial: count, unlimited: false, arm })
+            let (rack_kg, rack_drag) =
+                (num(&d, "rack_kg").unwrap_or_default(), num(&d, "rack_drag").unwrap_or_default());
+            Some(Station { weapon, count, initial: count, unlimited: false, arm, rack_kg, rack_drag })
         };
         self.stores.player = player;
         self.stores.weight_fix = weight_fix;

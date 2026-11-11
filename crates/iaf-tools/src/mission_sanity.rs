@@ -124,7 +124,15 @@ fn stores_of(e: &Value, obj: Option<&Value>, weapons: &HashMap<i64, &Value>) -> 
             drag: num(&w["0x73a"]),
             rounds_per_tick: None,
         };
-        Some(Station { weapon, count: count as f64, initial: count as f64, unlimited: false, arm: 0.0 })
+        Some(Station {
+            weapon,
+            count: count as f64,
+            initial: count as f64,
+            unlimited: false,
+            arm: 0.0,
+            rack_kg: 0.0,
+            rack_drag: 0.0,
+        })
     });
     let mut s = Stores::default();
     s.setup(stations);
