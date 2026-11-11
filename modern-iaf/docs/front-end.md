@@ -542,13 +542,30 @@ focus. The page shown stays for the next mission picked; entering the screen aga
 - **How:** the steps, each with the key as bound, the switch and its place, and the state to wait for (the user,
   2026-11-09). A start-up's are its checklist (the rules' `checklist`, [training.md](training.md) §7.1): the line, its
   `where` (the switch's name as the panel labels it and its panel) and its `wait` (the JFS's 20 % RPM, the idle with
-  the main generator, the INS's 90 s), the same data the in-flight checklist card shows. A take-off's are its
-  `steps` ([training.md](training.md) §8): each call to the tower on its own at its place (request start-up, start the
+  the main generator, the INS's 90 s), the same data the in-flight checklist card shows. Beside each step, in
+  place of its `where` text, a picture of its switch cut from the jet's own 3D cockpit (the user, 2026-11-10: "the
+  briefing should show the switch and state you need to wait"): the switch as the cold jet has it, a ring in the
+  accent colour round it, 210 × 140 on the page, its `where` as the picture's tooltip; the state to wait for under
+  the step in the accent's text colour. The pictures are `modern-iaf/data/switches/<unit>/<step>.webp` (300 × 200,
+  the step ids of `sim_flight.gd` `STEP_IDS`), committed beside the jet photos and made by
+  `modern-iaf/tests/_switch_crops.gd` (its header) from each jet's start-up mission: for each step the head turns to
+  the clickable controls whose command is the step's ([cockpit.md](cockpit.md) §5.2; the F-16's four AVIONIC POWER
+  switches in one ring, the F-35I's engine step its ENG switch and START button, the F-16's its throttle with the
+  pilot's glove on it; the pilot's body hidden for the rest). A step without a picture shows its `where` text, as
+  before: the F-35I's canopy, whose switch our model puts behind the seat's side (status.md, Open).
+  Run the tool again when a cockpit model or a control's place changes.
+
+  A take-off's are its `steps` ([training.md](training.md) §8): each call to the tower on its own at its place
+  (request start-up, start the
   engine, request taxi once at idle with the avionics up, taxi short of the runway, request take-off), its key with
   the menu's pick ("Ctrl + T, 2") and the tower's answer to wait for, then the take-off on the runway heading with the
   gear up.
 - **The facts' figures:** each value's figures are a label of their own, left to right, and its unit a label beside
   them, so "16,069 / 23,582 ק״ג", "000° / 0 קשר" and "25R · 247°" keep their order in a Hebrew line.
+
+| the Sufa's start-up, scrolled to its last steps | the Adir's |
+|---|---|
+| ![The Sufa's start-up steps in Hebrew, each with its switch cut from the 3D cockpit](pictures/front-end/startup_steps_f16i_he.webp) | ![The Adir's four steps: BATT, IPP, ENG and START pictured, the canopy as text](pictures/front-end/startup_steps_f35i_he.webp) |
 
 **Map:** one map over the whole page, north up, that zooms and scrolls. The mouse wheel zooms around the pointer
 (1× to 32×, 1.25× a notch), a drag with the left or middle button scrolls, a double click shows the whole map again;

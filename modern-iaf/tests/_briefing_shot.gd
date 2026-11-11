@@ -4,8 +4,8 @@
 #     -s ../modern-iaf/tests/_briefing_shot.gd
 # Writes SHOT_DIR/briefing_<menu id>_<lang>.png, map_<menu id>_<lang>.png and stores_<menu id>_<lang>.png (the three
 # pages), map_zoom_<menu id>_<lang>.png (the map zoomed in on the start) and stores_<jet>_<lang>.png (each jet's
-# Arming page at the take-off from its own base) at 1920×1080 (the front end in a viewport
-# of that size).
+# Arming page at the take-off from its own base) and startup_<jet>_<lang>[_end].png (its start-up's Briefing page;
+# _end scrolled to its end) at 1920×1080 (the front end in a viewport of that size).
 extends "res://../tests/godot/base.gd"
 
 
@@ -52,5 +52,15 @@ func run() -> void:
 			await frames(10)
 			var jet_path: String = dir.path_join("stores_%s_%s.png" % [jet, lang])
 			check(vp.get_texture().get_image().save_png(jet_path) == OK, "saved " + jet_path)
+			# Its start-up's Briefing page, the steps' switch pictures: startup_<jet>_<lang>.png.
+			fe.brief_tab = 0
+			fe.mission_i = fe.missions.map(func(x): return str(x.get("id", "")).ends_with("_startup")).find(true)
+			fe.show_page("mission")
+			await frames(10)
+			var su_path: String = dir.path_join("startup_%s_%s.png" % [jet, lang])
+			check(vp.get_texture().get_image().save_png(su_path) == OK, "saved " + su_path)
+			fe.find_child("PageBriefing", true, false).scroll_vertical = 100000  # its last steps: startup_<jet>_<lang>_end
+			await frames(5)
+			check(vp.get_texture().get_image().save_png(su_path.replace(".png", "_end.png")) == OK, "saved the end")
 	s.language = "en"
 	s.pilot_name = ""

@@ -202,6 +202,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   zoomable map (the theatre's ground colour, roads, towns, the route, the whole airbase); on an Arming page each jet's
   front view with its stores (the Adir's two AIM-120 in its bays, 2026-11-10), an inventory column of the stores it may
   carry and the take-off weight; the subtitles name the tail number and squadron, no wing; the missions' titles are their kinds ([front-end.md](front-end.md) §10, `IafBriefing`). `test_front_end.gd`, `cargo test -p iaf-tools --lib briefing`.
+- **The briefing's switch pictures (2026-11-11, awaiting the user's approval):** a start-up's How shows each
+  step's switch cut from the jet's 3D cockpit with a ring round it, the state to wait for under the step
+  (`modern-iaf/data/switches`, `modern-iaf/tests/_switch_crops.gd`; [front-end.md](front-end.md) §10). `test_front_end.gd`.
 - **The loadout editor (2026-11-10, awaiting the user's approval):** on the briefing's Arming page a store drags from
   the inventory onto a slot, between slots and back; each station takes only what the unit record's `allowed` lists
   (re-sourced per jet, data-formats.md §3; each store its own record with its weight and size), racks (a TER of three
@@ -301,6 +304,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   string key had left every weight at the regular).
 
 ## Open
+- **The F-35I's CANOPY switch cannot be seen from the eye** (2026-11-11): our model puts it 0.31 m aft on the left
+  console (`tools/f35i/cockpit3d.py` panel L4), behind the seat's side, so the briefing shows its `where` text, no
+  picture (`_switch_crops.gd` `HIDDEN`); moving the panel forward would let the pilot see and click it.
 - **A first start's shader compilation** (2026-11-10): 14 s of the 18 s first start here; with Metal on a Mac it
   takes about ten times as long. Godot compiles a material's shaders when the material is first drawn. The loading
   steps spread this work over named frames, but a single frame cannot show progress while it compiles. Godot keeps the

@@ -1253,7 +1253,15 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	check(
 		_has(steps, fe.key_name(fe.SimFlight.THROTTLE_IDLE_KEY)), "%s: briefing: the idle step's key, the card's" % lang
 	)
-	check(_has_part(steps, "MAIN PWR") and _has_part(steps, "90"), "%s: briefing: the switch and the wait" % lang)
+	var pics: Array = steps.find_children("Switch*", "TextureRect", true, false)
+	check(
+		pics.size() == 6 and pics.all(func(p): return p.texture != null),
+		"%s: briefing: each step's switch pictured from the 3D cockpit (%d)" % [lang, pics.size()]
+	)
+	check(
+		pics.size() > 0 and "MAIN PWR" in pics[0].tooltip_text, "%s: briefing: the switch named on its picture" % lang
+	)
+	check(_has_part(steps, "20") and _has_part(steps, "90"), "%s: briefing: the waits" % lang)
 	var m: Control = pane.find_child("PageMap", true, false)
 	check(m.runway_label == "", "%s: map: a start-up has no runway" % lang)
 	check(pane.find_child("Fly", true, false) != null, "%s: briefing: Fly" % lang)

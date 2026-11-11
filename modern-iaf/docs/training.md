@@ -228,7 +228,8 @@ event. The jet does not shut down when the throttle goes back to OFF (open).
 
 Each step's `wait` (mission data) says the state to wait for before the next step, in the table's figures (the JFS's
 20 % RPM, the idle with the main generator, the displays, the INS's 90 s; the IPP's 10 s); the checklist card and the
-briefing's How show it under the step ([front-end.md](front-end.md) §10).
+briefing's How show it under the step, the briefing beside a picture of the step's switch in the 3D cockpit
+([front-end.md](front-end.md) §10).
 
 The avionics of the F-35I report ready 90 s after the battery[^ayton]. The mission passes when every step is done
 (`skip_<step>` names a step never taken), the engine idles and the avionics are up within the time budget (5 min,

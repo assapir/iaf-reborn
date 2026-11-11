@@ -19,6 +19,8 @@ const BriefingMap := preload("res://menu/briefing_map.gd")
 const ArmingDrawing := preload("res://menu/arming_drawing.gd")
 
 const PHOTOS := "res://data/photos"
+## The start-up steps' switches cropped from each jet's 3D cockpit: <unit>/<step>.webp (tests/_switch_crops.gd).
+const SWITCHES := "res://data/switches"
 ## The canvas the screens lay out on: the window shows it scaled to its height (Look's sizes are its pixels).
 const CANVAS := Vector2i(1920, 1080)
 ## Each Sound slider's sample, a clip of its class from the sim's own sounds (SoundTable: [code, sub code] or a file)
@@ -805,13 +807,14 @@ func _briefing(parent: Control, m: Dictionary) -> void:
 		_text(row, o, "")
 	var sv := _vbox(b, 6)
 	_label(sv, s("how"), "Muted")
-	# The steps: number, the step, the key as bound, the switch and its place; the state to wait for under the step,
-	# or in the last column when the step has no switch (a call to the tower, the taxi).
+	# The steps: number, the step, the key as bound, the switch (its picture from the 3D cockpit, else its name and
+	# place); the state to wait for under the step, or in the last column when the step has no switch (a call to the
+	# tower, the taxi).
 	var grid := GridContainer.new()
 	grid.name = "Steps"
 	grid.columns = 4
 	grid.add_theme_constant_override("h_separation", 16)
-	grid.add_theme_constant_override("v_separation", 3)
+	grid.add_theme_constant_override("v_separation", 10 if kind(m) == "startup" else 3)  # the pictures apart
 	sv.add_child(grid)
 	var steps := briefing_steps(m)
 	for i in steps.size():
@@ -826,8 +829,22 @@ func _briefing(parent: Control, m: Dictionary) -> void:
 		# The state to wait for: under the step when its switch's place fills the last column, else there.
 		var under: bool = st.where != ""
 		if st.wait != "" and under:
-			_text(sv2, st.wait, "Small").name = "Wait"
+			var wl := _text(sv2, st.wait, "Small")
+			wl.name = "Wait"
+			wl.add_theme_color_override("font_color", Look.ACCENT_TEXT)  # the state to wait for stands out
 		_keycap(grid, st.key).size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		var crop := _texture(ProjectSettings.globalize_path(st.crop)) if st.crop != "" else null
+		if crop != null:
+			var pic := TextureRect.new()
+			pic.name = "Switch%d" % (i + 1)
+			pic.texture = crop
+			pic.tooltip_text = st.where
+			pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			pic.custom_minimum_size = Vector2(210, 140)
+			pic.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+			grid.add_child(pic)
+			continue
 		var w := _text(grid, st.where if under else st.wait, "Small")
 		w.custom_minimum_size.x = 340
 		if not under and st.wait != "":
@@ -1220,6 +1237,7 @@ func briefing_steps(m: Dictionary) -> Array:
 	var out := []
 	var tr: Dictionary = m.training
 	if kind(m) == "startup":
+		var unit := str(m.get("start", {}).get("unit", ""))
 		for c in tr.get("checklist", []):
 			var i := SimFlight.STEP_IDS.find(str(c.get("step")))
 			var rec: int = (
@@ -1233,6 +1251,7 @@ func briefing_steps(m: Dictionary) -> Array:
 						"key": key_name(rec),
 						"where": str(c.get("where", {}).get(lang, "")),
 						"wait": str(c.get("wait", {}).get(lang, "")),
+						"crop": SWITCHES.path_join(unit).path_join(str(c.get("step")) + ".webp"),
 					}
 				)
 			)
@@ -1254,6 +1273,7 @@ func briefing_steps(m: Dictionary) -> Array:
 					"key": key,
 					"where": "",
 					"wait": fill.call(str(c.get("wait", {}).get(lang, ""))),
+					"crop": "",
 				}
 			)
 		)
