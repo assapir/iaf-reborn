@@ -198,6 +198,13 @@ func bases() -> void:
 			"%s: the wheels on the ground (%.1f m, the terrain %s m)" % [JETS[id][0], w.z, g]
 		)
 		check(tv.flight != null and tv.flight.state().on_ground, "%s: a ground start" % JETS[id][0])
+		# The gear handle is down: the trailing-edge flaps at 20° and the model's flaperons with them (flight-model.md
+		# §9.16).
+		var tef: float = tv.flight.state().get("tef", -1.0) if tv.flight != null else -1.0
+		check(
+			tef == 20.0 and absf(tv.aircraft.part_pose(1)[0] + deg_to_rad(20.0)) < 0.02,
+			"%s: flaps 20° with the gear handle down (%.1f°), the flaperons drooped" % [JETS[id][0], tef]
+		)
 		no_panel(tv, JETS[id][0])
 		var e: Dictionary = tv.mission_entity
 		var rule: Vector2i = IafFlight.start_rule(s.own_dir(), float(e["0x2e4"]), float(e["0x2ee"]), float(e["0x2f8"]))

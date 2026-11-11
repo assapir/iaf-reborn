@@ -31,6 +31,9 @@ pub struct Jet {
     pub wave_drag: (f64, f64),
     /// Maximum and minimum load factor, g (the REAL rows: the F-16's +9 / −3, the F-15E's +8.1 / −2).
     pub g_limits: (f64, f64),
+    /// The trailing-edge flaps' droop with the gear handle down, deg ([`tef_schedule`]): the F-16's 20° (T.O.
+    /// GR1F-16CJ-1); the F-35I's the same (inferred); 0 on the Ra'am (no public F-15E flap schedule was read: its model keeps the flap key).
+    pub tef_deg: f64,
     /// The ground start's sequence ([`super::start`]).
     pub start: StartSpec,
 }
@@ -93,6 +96,7 @@ pub fn tp1538() -> Jet {
         // The Barak's fit (inferred: the same airframe).
         wave_drag: (0.0509, 0.195),
         g_limits: (9.0, -3.0),
+        tef_deg: 20.0,
         start: JFS,
     }
 }
@@ -112,6 +116,7 @@ pub fn all() -> [Jet; 4] {
             // Fit: Mach 1.2 at sea level, 2.0 at 40,000 ft (the F-16's public figures, tests/validation.rs REFS).
             wave_drag: (0.0509, 0.195),
             g_limits: (9.0, -3.0),
+            tef_deg: 20.0,
             start: JFS,
         },
         // F-16I Sufa: 20,500 lb + 8,850 lb (the F-16I REAL row).
@@ -126,6 +131,7 @@ pub fn all() -> [Jet; 4] {
             // Fit: Mach 1.2 at sea level, 2.0 at 40,000 ft (the F-16's; Block 50/52 1.89 sustained to 2.05).
             wave_drag: (0.0513, 0.212),
             g_limits: (9.0, -3.0),
+            tef_deg: 20.0,
             start: JFS,
         },
         // F-35I Adir: 29,300 lb + 18,250 lb, wing 460 ft² (the F-35I REAL row), span 35 ft (Lockheed Martin);
@@ -142,6 +148,7 @@ pub fn all() -> [Jet; 4] {
             // placard (inferred), not fitted: Mach 1.14 there.
             wave_drag: (0.0682, 0.195),
             g_limits: (9.0, -3.0),
+            tef_deg: 20.0,
             start: IPP,
         },
         // F-15I Ra'am: 37,000 lb + 22,665 lb, wing 608 ft², span 42.8 ft (the F-15I REAL row, TO 1F-15E-1, USAF);
@@ -157,6 +164,7 @@ pub fn all() -> [Jet; 4] {
             // Fit: about Mach 2.0 at 40,000 ft with CFTs (F-15E, secondary), with the Barak's k (no sea-level figure).
             wave_drag: (0.0509, 0.195),
             g_limits: (8.1, -2.0),
+            tef_deg: 0.0,
             start: JFS,
         },
     ]
@@ -173,6 +181,13 @@ pub fn by_type(name: &str) -> Option<Jet> {
         "F-15I" | "F-15" => Some(raam),
         _ => None,
     }
+}
+
+/// The trailing-edge flaps' command, deg (T.O. GR1F-16CJ-1 p. 1-120): with the gear handle down, `max` (20°) at
+/// all calibrated airspeeds below 240 kt, less above, "nearly/fully retracted at 370 knots" (linear between:
+/// inferred); with the handle up, 0 (the manual's up-and-away schedule by Mach is not public: inferred streamlined).
+pub fn tef_schedule(handle_down: bool, cas_kt: f64, max: f64) -> f64 {
+    if handle_down { max * ((370.0 - cas_kt) / 130.0).clamp(0.0, 1.0) } else { 0.0 }
 }
 
 /// The pilot's and the systems' inputs.

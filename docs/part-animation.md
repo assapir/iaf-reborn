@@ -141,6 +141,10 @@ Initial state (`FUN_005a5820`): airborne start → gear 1.569 (up), flaps 0, spe
 | 0x14-0x26 (pilot, pilotB, canopy, canopyB, turret…, wheels) | 0 | **0** | the FM callback hides them, but for aircraft entities the renderer's owner is the crew object `entity+0x3c` (callback `0x53eb50`), which answers ids 0x14–0x17 and 0x1d–0x20 **before** the FM: pilot/canopy **are drawn** outside the cockpit view (see "Ejection" below). The F-16 canopy glass exists only in the `Canopy` frame (port: `crew_visible`, always true, docs/aircraft.md §2.3) |
 | 0x3a/0x3b EngineL/R, other ids | 0 | 0 | |
 
+Ours: a jet on Modern IAF's 6-DoF passes the flight's trailing-edge flap angle (`state().tef`, deg); it replaces the
+flaps ramp, and parts 1 and 2 droop with it on every jet, not only type 100 (modern-iaf/docs/flight-model.md §9.16).
+
+
 Gear sequencing: legs and doors share one ramp, and the doors never move. A full cycle
 takes 1.569/0.5 = 3.14 s. Legs rotate while visible and vanish at full retraction (on MiG-29 and Mirage, before full retraction).
 The doors are shown in their modelled (open) pose whenever the gear is not fully up.

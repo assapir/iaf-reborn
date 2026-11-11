@@ -20,6 +20,9 @@ const MILITARY: f32 = 0.74;
 /// The gear lever's ramp, as the original's: 0 down … 1.569 up at 0.5/s.
 const GEAR_UP: f32 = 1.569;
 const GEAR_RATE: f32 = 0.5;
+/// The trailing-edge flaps' rate, deg/s: 20° in the gear's 3.1 s (inferred from the manual's "LG and TEF retraction
+/// occurs simultaneously", T.O. GR1F-16CJ-1 p. 2-21).
+const TEF_RATE: f64 = 20.0 / (GEAR_UP / GEAR_RATE) as f64;
 /// The AoA probe's lowest valid calibrated airspeed, kt: below it the AoA gauge and indexer rest at 0° (inferred:
 /// T.O. 1F-16-1 as quoted on the DCS forum: "When NLG WOW occurs, all AOA indications are based on zero degrees", the
 /// transmitters being unreliable at slow speeds, https://forum.dcs.world/topic/245600-already-reportedaoa-indicator-reading-during-nlg-wow;
@@ -97,6 +100,8 @@ pub struct SixDof {
     ap_flying: bool,
     /// The AoA the probe gives the gauge, the indexer and the HUD, deg ([`probe_aoa`]).
     aoa_ind: f64,
+    /// The trailing-edge flaps, deg down ([`jets::tef_schedule`]).
+    tef: f64,
 }
 
 /// The indicated AoA one frame `dt` on from `shown` (deg): toward the flow's `alpha_deg` at `cas_kt` from
@@ -158,6 +163,7 @@ impl SixDof {
             no_crashes: false,
             ap_flying: false,
             aoa_ind: 0.0,
+            tef: if st.airborne { 0.0 } else { jet.tef_deg },
         };
         s.fcs = Fcs::new(jet.g_limits);
         if st.airborne {
@@ -396,6 +402,9 @@ impl SixDof {
             on_ground: self.on_ground,
         };
         self.surfaces = self.fcs.step(&pilot, &sensors, dt);
+        let tef_cmd = jets::tef_schedule(c.gear_down, (2.0 * qbar / 1.225).sqrt() * 1.943844, self.jet.tef_deg);
+        self.tef += (tef_cmd - self.tef).clamp(-TEF_RATE * dt, TEF_RATE * dt);
+        self.surfaces.dtef = self.tef;
         let fuel_left = self.fuel_kg > 0.0 || self.unlimited_fuel;
         let travel = if self.engine_on && fuel_left { lever_to_travel(c.throttle) } else { 0.0 };
         if self.engine_on && fuel_left {

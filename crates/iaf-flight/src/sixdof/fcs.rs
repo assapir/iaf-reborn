@@ -218,7 +218,7 @@ impl Fcs {
         // Speed brake: 0…60° at 30 deg/s (inferred: two seconds to open).
         let dsb = self.sb.step(100.0, 30.0, (0.0, 60.0), if pilot.speed_brake { 60.0 } else { 0.0 }, dt);
 
-        Surfaces { dh, da, dr, dlef, dsb }
+        Surfaces { dh, da, dr, dlef, dsb, dtef: 0.0 }
     }
 
     /// Starts the control system settled at `alpha` (deg) with the stabilator at `dh` (deg): the filters at their

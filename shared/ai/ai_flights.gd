@@ -365,7 +365,7 @@ func _place(p: Pilot) -> void:
 	p.node.basis = Basis(st.right, st.up, -st.forward).scaled(p.node.scale) if st.has("right") else p.node.basis
 	var parts := {}
 	for k in [
-		"stick_x", "stick_y", "rudder", "flaps", "gear_down", "brakes", "gear", "on_ground", "afterburner", "rpm"
+		"stick_x", "stick_y", "rudder", "flaps", "gear_down", "brakes", "gear", "on_ground", "afterburner", "rpm", "tef"
 	]:
 		if st.has(k):
 			parts[k] = st[k]

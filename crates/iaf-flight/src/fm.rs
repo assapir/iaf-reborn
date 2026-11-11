@@ -60,6 +60,15 @@ impl Fm {
         }
     }
 
+    /// The 6-DoF's trailing-edge flaps, deg down (the flaperons' droop); none on the original model and on a jet
+    /// without them (the Ra'am's model keeps its flap key).
+    pub fn tef_deg(&self) -> Option<f32> {
+        match self {
+            Fm::SixDof(s) if s.jet.tef_deg > 0.0 => Some(s.surfaces().dtef as f32),
+            _ => None,
+        }
+    }
+
     pub fn params(&self) -> &Params {
         match self {
             Fm::Original(a) => &a.params,

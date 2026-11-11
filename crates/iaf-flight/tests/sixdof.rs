@@ -273,7 +273,7 @@ impl Rig {
 }
 
 const BRAKES: Controls = Controls {
-    surfaces: Surfaces { dh: 0.0, da: 0.0, dr: 0.0, dlef: 0.0, dsb: 0.0 },
+    surfaces: Surfaces { dh: 0.0, da: 0.0, dr: 0.0, dlef: 0.0, dsb: 0.0, dtef: 0.0 },
     throttle: 0.0,
     wheels: Wheels { brake: 1.0, steer: 0.0 },
     gear_down: true,
@@ -340,7 +340,7 @@ fn take_off() -> (f64, f64) {
 }
 
 #[test]
-#[ignore = "known miss: −24 % against the SAC's 2,380 ft, with the control system's rotation too (flight-model.md §9.10, §9.13)"]
+#[ignore = "known miss: −23 % against the SAC's 2,380 ft, with the control system's rotation too (flight-model.md §9.10, §9.13)"]
 fn take_off_roll_against_the_sac() {
     // USAF Standard Aircraft Characteristics, F-16A Block 1–15 (1984): ground roll 2,380 ft at maximum power,
     // 29,253 lb with two AIM-9J and two 370 US gal tanks (as quoted by migflug.com); the stores' drag left out.
@@ -352,8 +352,9 @@ fn take_off_roll_against_the_sac() {
 
 #[test]
 fn take_off_roll_regression_pins_todays_value() {
-    const PIN_FT: f64 = 1_813.0;
-    // A regression pin, not a check against a source: today's roll of `take_off()` (2026-11-03), so a change to
+    const PIN_FT: f64 = 1_823.0;
+    // A regression pin, not a check against a source: today's roll of `take_off()` (2026-11-03; 1,813 → 1,823 ft
+    // on 2026-11-11 with the trailing-edge flaps down for the roll), so a change to
     // the engine, the gear or the aerodynamics that moves it shows up. The source check is the ignored
     // take_off_roll_against_the_sac.
     let (ft, kt) = take_off();
@@ -680,4 +681,78 @@ fn a_cold_jet_starts_by_its_start_command() {
     assert!(!f.engine_on && f.power() == 2 && f.state().rpm == 0.0);
     f.set_engine_on(true);
     assert!(f.engine_on && f.power() == 2 && f.avionics());
+}
+
+// --- The trailing-edge flaps (flight-model.md §9.16) -------------------------------------------------------------
+
+/// A steady 3° approach at α `alpha` (deg), gear down and the speed brakes at 43° (T.O. GR1F-16CJ-1's landing
+/// pattern), the trailing-edge flaps at `dtef`: (calibrated speed kt, stabilator deg, CL). Sea level; the thrust along
+/// the body x axis balances the drag; the leading-edge flap on its schedule.
+fn approach(jet: &Jet, alpha: f64, dtef: f64) -> (f64, f64, f64) {
+    let af = &jet.airframe;
+    let w = af.mass * iaf_flight::sixdof::G;
+    let (sg, cg) = 3f64.to_radians().sin_cos();
+    let (sa, ca) = alpha.to_radians().sin_cos();
+    let (mut v, mut dh) = (70.0, 0.0);
+    let mut cl = 0.0;
+    for _ in 0..40 {
+        let qbar = 0.5 * rho(0.0) * v * v;
+        let c = |dh: f64| {
+            let s = Surfaces { dh, dlef: lef_schedule(alpha, qbar, ps(0.0)), dsb: 43.0, dtef, ..Surfaces::default() };
+            let mut c = coefficients(&Flow { alpha, v, ..Flow::default() }, &s, af);
+            iaf_flight::sixdof::aero::add_drag(&mut c, 0.02, alpha);
+            c
+        };
+        let (c0, c1) = (c(dh), c(dh + 1e-3));
+        dh -= c0.cm * 1e-3 / (c1.cm - c0.cm);
+        let k = c(dh);
+        cl = k.cx * sa - k.cz * ca;
+        let cd = -k.cx * ca - k.cz * sa;
+        // qS (CL + CD tan α) = W (cos γ + sin γ tan α): lift plus the thrust's share, the thrust = drag − W sin γ.
+        v = (2.0 * w * (cg + sg * sa / ca) / (rho(0.0) * af.s * (cl + cd * sa / ca))).sqrt();
+    }
+    (v / KT, dh, cl)
+}
+
+#[test]
+fn flaps_with_the_gear_handle() {
+    // The schedule (T.O. GR1F-16CJ-1 p. 1-120): 20° below 240 kt, retracted by 370 kt, up with the handle up.
+    assert_eq!(jets::tef_schedule(true, 200.0, 20.0), 20.0);
+    assert_eq!(jets::tef_schedule(true, 305.0, 20.0), 10.0);
+    assert_eq!(jets::tef_schedule(true, 400.0, 20.0), 0.0);
+    assert_eq!(jets::tef_schedule(false, 150.0, 20.0), 0.0);
+    // The approach at 13° α: the flaps add their lift (TEF_CL, less the stabilator's share of trimming their
+    // nose-down moment) and slow the approach by the square root of the lift ratio.
+    let barak = jets::all()[0].at_weight(19_100.0 + 500.0);
+    let (v0, dh0, cl0) = approach(&barak, 13.0, 0.0);
+    let (v1, dh1, cl1) = approach(&barak, 13.0, 20.0);
+    println!(
+        "Barak 19,600 lb, 13° α, gear down, speed brakes 43°: flaps up {v0:.1} kt (δh {dh0:.2}°, CL {cl0:.3}), flaps 20° \
+         {v1:.1} kt (δh {dh1:.2}°, CL {cl1:.3})"
+    );
+    assert!(cl1 - cl0 > 0.18 && cl1 - cl0 < 0.24, "trimmed lift increment {}", cl1 - cl0);
+    assert!(dh1 < dh0 - 2.0, "nose-down moment: δh {dh0} → {dh1}");
+    assert!(v0 - v1 > 6.0 && v0 - v1 < 12.0, "{v0} → {v1}");
+    // In flight: the flaps follow the handle at the gear's pace and stay up with it.
+    let mut f = flight(barak, 1000.0, 150.0 * KT, true);
+    assert_eq!(f.surfaces().dtef, 0.0);
+    let down = iaf_flight::Controls { throttle: 0.6, gear_down: true, ..Default::default() };
+    fly_for(&mut f, 1.0, |_| down);
+    let d = f.surfaces().dtef;
+    assert!(d > 4.0 && d < 9.0, "after 1 s: {d}");
+    fly_for(&mut f, 3.0, |_| down);
+    assert_eq!(f.surfaces().dtef, 20.0);
+    fly_for(&mut f, 4.0, |_| iaf_flight::Controls { gear_down: false, ..down });
+    assert_eq!(f.surfaces().dtef, 0.0);
+}
+
+#[test]
+#[ignore = "known miss: TP-1538's lift at 13° α is high, the approach 23 kt slow (flight-model.md §9.16)"]
+fn approach_speed_against_the_manual() {
+    // T.O. GR1F-16CJ-1, figure 2-3 (p. 2-25), the landing pattern's notes: final approach at 13° α, F-16D PW-229, 137 kt at the basic operating
+    // weight plus full ammunition, ±5 kt by c.g. (the weight taken as the F-16D's 19,100 lb empty + 500 lb: inferred).
+    let barak = jets::all()[0].at_weight(19_100.0 + 500.0);
+    let (v, _, _) = approach(&barak, 13.0, 20.0);
+    println!("13° α approach: {v:.1} kt (T.O. GR1F-16CJ-1: 137 kt)");
+    assert!((v - 137.0).abs() <= 10.0, "{v}");
 }

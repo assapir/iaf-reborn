@@ -3,6 +3,11 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The trailing-edge flaps droop with the gear handle (2026-11-11):** on the 6-DoF the F-16s' and the Adir's
+  flaperons go 20° down with the gear handle below 240 kt, less to 370 kt, and up with the handle, in the gear's 3.1 s
+  (the F-16 flight manual); their lift, drag and nose-down moment are inferred (DATCOM, FM-0's drag); the models'
+  flaperons droop with them. The Barak's 13° α approach is 9 kt slower with them, 114 kt against the manual's 137 kt:
+  TP-1538's lift is high (open) ([flight-model.md](flight-model.md) §9.16).
 - **The cockpit zoom one way per scroll; every jet's view alike (2026-11-11, the Mac play test's P1):** each wheel or
   trackpad step narrows the view (the true size kept between the wide and the narrow view; a step against the scroll
   dropped until it pauses), clamped at both ends; the trackpad zooms too. The Barak, the Sufa and the F-35I open at the
@@ -336,7 +341,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   time over Tel Aviv (3.1 ms) and 13 % over Beersheba (2.7 ms), against the 7 % budget; 17 % and 15 % before the
   buildings' colours per vertex and their 250 m tiles, which keep the picture ([scenery.md](scenery.md) §6).
 - **The 6-DoF's wave drag is a fit ([C2](plan.md#c2-the-6-dof), the 6-DoF):** fit to each jet's published top speeds, not a sourced table; open: a public
-  F-16 drag rise, the high-speed g onset, the take-off roll, the flaps ([flight-model.md](flight-model.md) §9.6).
+  F-16 drag rise, the high-speed g onset, the take-off roll, the flaps' sourced aerodynamics and the approach speed
+  ([flight-model.md](flight-model.md) §9.6, §9.16).
 - **[E3b](plan.md#e3-the-training-missions)'s open points** ([training.md](training.md) §6): the Hebrew voice (the user), the
   pilot's request voice (sound.md §7); the 6-DoF's short take-off roll.
 - **[E2](plan.md#e2-the-front-end)'s open points** ([front-end.md](front-end.md)): a pilot list (the name is the computer's user

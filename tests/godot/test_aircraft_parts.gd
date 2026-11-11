@@ -1,7 +1,7 @@
 # Generic aircraft model (docs/aircraft.md): every converted aircraft loads with its descriptor;
-# the F-16 gear retracts in the original 3.14 s and the legs vanish when fully up; flaperons droop;
-# the speed brakes open; the afterburner flame is drawn only at an afterburner stage; the flown
-# F-16 in a mission carries the model and follows the flight model's gear ramp.
+# the F-16 gear retracts in the original 3.14 s and the legs vanish when fully up; flaperons droop (and with the
+# 6-DoF's trailing-edge flaps on every jet); the speed brakes open; the afterburner flame is drawn only at an
+# afterburner stage; the flown F-16 in a mission carries the model and follows the flight model's gear ramp.
 extends "res://../tests/godot/base.gd"
 
 ## Loaded at run time: scripts that use the Settings autoload do not compile before it exists.
@@ -50,6 +50,17 @@ func run() -> void:
 	check(absf(f16.ramps.flaps - 0.29275 * 0.33) < 1e-4, "F-16 flap droop 0.33 x 0.29275")
 	var pa: Array = f16.part_pose(1)
 	check(absf(pa[0] + 0.29275 * 0.33) < 1e-4, "left flaperon = aileron - flaps")
+	# The 6-DoF's trailing-edge flaps (`tef`, deg down) set the droop at once, on every jet (the F-35I too).
+	for plane in ["f16", "f35i"]:
+		var m: Node3D = aircraft_model.create(plane)
+		root.add_child(m)
+		m.update({"tef": 20.0}, 0.0)
+		var d := deg_to_rad(20.0)
+		check(
+			absf(m.part_pose(1)[0] + d) < 1e-4 and absf(m.part_pose(2)[0] - d) < 1e-4,
+			"%s: tef 20 droops both flaperons 20 degrees" % plane
+		)
+		m.free()
 	f16.update({"brakes": true}, 0.0)
 	f16.settle()
 	check(

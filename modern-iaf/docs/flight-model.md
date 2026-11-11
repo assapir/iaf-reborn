@@ -488,8 +488,11 @@ budget, a real flight. Open:
   drag-rise and high-Mach thrust table replaces it when one turns up.
 * **The g onset at high speed**: the TP-1538 control system's integrator is slow at high q̄: a full pull at 550 kt
   reaches 8.4 g in 6 s (the real F-16 9 g); TP-1538's system is a low-speed study system.
-* **The take-off roll**: 1,813 ft with the control system's rotation, still −24 % against the F-16A SAC (§9.10).
-* **The flaps**: TP-1538 has no trailing-edge flap data; the flap lever does nothing.
+* **The take-off roll**: 1,823 ft with the control system's rotation and the flaps down, still −23 % against the
+  F-16A SAC (§9.10).
+* **The flaps' aerodynamics**: TP-1538 has no trailing-edge flap data; the flaps' increments are inferred (§9.16).
+* **The approach speed**: TP-1538's lift at 13° α is high: the Barak's 13° approach is 114 kt, the manual's 137 kt
+  (§9.16).
 * **The autopilot's taxi pivot**: the 6-DoF turns on the spot (`SixDof::set_pivot`, inferred). The autopilot's level
   hold and its g commands are tested on the 6-DoF (`crates/iaf-flight/tests/fm.rs`); its landing and taxi laws are
   untried there.
@@ -670,7 +673,7 @@ before. The autopilot drives either through the `autopilot::Host` trait (the `Ai
 | full pull at 200 kt, Barak | α peaks at 26.6° | figure 63, appendix A: the limiter holds about 25° | ±3° | ok |
 | roll from 1 g at α 25°, 30,000 ft, full stick (TP-1538's jet, at 186 kt, α 24.7°) | 90° in 2.32 s, 180° in 3.63 s | TP-1538 Table V, control system A: 2.6 s, 3.8 s | ±30 % | ok (−11 %, −4 %) |
 | fuel flow, Sufa, military, sea level | 13,492 lb/h | 13,500 lb/h (the F-16I REAL row) | 3 % | ok |
-| take-off roll through the control system (TP-1538's jet, 29,253 lb, rotation at 150 kt to 12°) | 1,813 ft, lift-off at 166 kt | 2,380 ft (SAC) | ±20 % | **fails: −24 %**; still ignored |
+| take-off roll through the control system (TP-1538's jet, 29,253 lb, rotation at 150 kt to 12°; the flaps down since 2026-11-11, 1,813 ft before) | 1,823 ft, lift-off at 166 kt | 2,380 ft (SAC) | ±20 % | **fails: −23 %**; still ignored |
 
 **Tested and corrected (2026-11-03): two test setups.** The g test was first written as "9 ± 0.5 g at 450 kt"; there a
 9 g pull needs α ≈ 21°, the α limiter takes 2 g away and the jet pulls 7.6 g, which is figure 63's design: the test
@@ -756,6 +759,59 @@ from 40,000 ft. A sourced table replaces the fit when one turns up.
 `top_speeds_meet_the_published_figures` pins these within 5 %. The validation rows fly the same jets to their top
 speeds (§9.13): within 1 % of the fit.
 
+### 9.16 The trailing-edge flaps (2026-11-11)
+
+The F-16's flaperons are its trailing-edge flaps (TEFs): with the gear handle down they droop together, and the roll
+command rides on top. The 6-DoF flies them on every F-16 (Barak, Sufa, TP-1538's) and the Adir; the Ra'am has none: its
+δtef stays 0 and its model's flaps follow the flap key (open: an F-15E flap schedule; its flaps have no aerodynamics
+on the 6-DoF). On the F-16s and the Adir the game's flap key does nothing: the real jets have no flap lever.
+
+**The schedule** (`jets::tef_schedule`), from the F-16 flight manual[^to-f16cj]:
+* gear handle down: 20° down "at all airspeeds below 240 knots"; above 240 kt less, "nearly/fully retracted at 370
+  knots" (p. 1-120). Linear between 240 and 370 kt (inferred: the manual gives no shape). The airspeed is the
+  equivalent airspeed from q̄ (inferred: calibrated airspeed at the approach heights);
+* gear handle up: 0°. The manual says the TEFs are also scheduled by Mach with the handle up (p. 1-120), but gives no
+  values: streamlined (inferred). "TEF's retract when the LG handle is raised" (p. 2-21);
+* the rate: 20° in 3.1 s, the gear's travel time, since the manual says "LG and TEF retraction occurs simultaneously"
+  (p. 2-21; the rate itself inferred). A ground start sets them at 20° (the handle is down; the TO/LDG CONFIG light
+  "illuminates on the ground if TEF's are not full down", p. 1-106);
+* the Adir: the same schedule (inferred: no public F-35 flap schedule was found; its flaperons droop at low speed).
+
+**The leading-edge flap** stays on TP-1538's appendix A schedule with α and q̄/ps (§9.11), the manual's own
+description ("a function of mach number, AOA, and altitude", p. 1-118). Left out: the manual's 2° up with weight on
+both main wheels (the tables start at 0°).
+
+**The aerodynamics**: TP-1538 has no δtef data, so the increments are inferred, linear in δtef, at 20°
+(`aero::TEF_CL`, `TEF_CD`, `TEF_CM`):
+
+| increment at 20° | value | how (all inferred) |
+|---|---|---|
+| ΔCL (normal to the flow) | +0.24 | DATCOM's plain-flap method: flaperon chord about 22 % of the local chord, the flapped span from the manual's flaperon area (31.32 ft² of the 300 ft² wing, p. 1-9), aspect ratio 3 |
+| ΔCD | +0.015 | FM-0's FlapsDragIndex 150 (§4) |
+| ΔCm (about 0.35 c̄) | −0.036 (nose down) | the added lift acting 0.15 c̄ behind the reference, less the tail's change in downwash |
+
+The control system trims the moment out: a g command, it holds 1 g, and the manual calls the "pitch transients
+resulting from LG and TEF changes … mild" (p. 7-2).
+
+**Test** (`flaps_with_the_gear_handle` in `crates/iaf-flight/tests/sixdof.rs`; `tef_increments` in `aero.rs`): a
+steady 3° approach at 13° α, sea level, gear down, speed brakes at 43° (the manual's landing configuration), the
+Barak at 19,600 lb:
+
+| | flaps up | flaps 20° |
+|---|---|---|
+| calibrated speed | 122.9 kt | 114.0 kt |
+| trimmed CL | 1.220 | 1.426 (+0.207: the stabilator's trim takes 0.03 of the 0.24) |
+| stabilator | +1.46° | −1.92° (the flaps' nose-down moment) |
+
+In flight the flaps reach 20° 3.1 s after the handle goes down and are up again 3.1 s after it is raised.
+
+**The manual's approach speed** is 137 kt at 13° α for the F-16D with the F100-PW-229, at its basic operating weight
+with full ammunition, ±5 kt by c.g. (the landing pattern, figure 2-3, p. 2-25[^to-f16cj]). The 6-DoF's 114 kt is 23 kt slow even
+taken at 19,600 lb (the weight is inferred; the manual's basic operating weight is in a volume not read): TP-1538's
+wind-tunnel lift at 13° α is already 14 kt high with the flaps up. `approach_speed_against_the_manual` is
+`#[ignore]`d with that reason; the flaps' lift stays the DATCOM estimate, not a fit to it. Open: a public trimmed
+lift curve of the full-scale F-16.
+
 [^tp1538]: L. T. Nguyen, M. E. Ogburn, W. P. Gilbert, K. S. Kibler, P. W. Brown, P. L. Deal, "Simulator Study of
     Stall/Post-Stall Characteristics of a Fighter Airplane With Relaxed Longitudinal Static Stability", NASA
     TP-1538, December 1979 (public domain, a work of the U.S. Government): https://ntrs.nasa.gov/citations/19800005879
@@ -800,3 +856,7 @@ speeds (§9.13): within 1 % of the fit.
     https://www.lockheedmartin.com/content/dam/lockheed-martin/aero/documents/F-35/f35A.pdf
 [^sac-f15]: USAF Standard Aircraft Characteristics, "F-15C Eagle, two F100-PW-220", February 1992 (AFG 2 Vol-1 Addn
     61), wheelbase 17.78 ft, from the alternatewars.com SAC collection (as docs/real-aircraft.md §3).
+[^to-f16cj]: T.O. GR1F-16CJ-1, *Flight Manual, HAF Series F-16C/D Block 52+ Aircraft* (Hellenic Air Force): the
+    leading-edge flaps p. 1-118, the trailing-edge flaps and the ALT FLAPS switch p. 1-120, the airframe's dimensions
+    p. 1-9, the gear handle and the TO/LDG CONFIG light p. 1-106, the take-off p. 2-21, the landing pattern's approach
+    speeds figure 2-3 p. 2-25, flight with the gear down pp. 6-3–6-4, the missed approach p. 7-2. <https://falcon.blu3wolf.com/Docs/HAF-F16.pdf>

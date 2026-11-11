@@ -155,7 +155,6 @@ airbases folder and a `--json` without a file. `sim::tests::training_rules_are_c
 are refused, an unknown goal is refused, and every take-off mission's runway is an end of its base's airbase file.
 
 ## 6. Open
-- The flaperons' droop with the gear handle down: the 6-DoF has no trailing-edge flap.
 - The F-16I's, F-16D's and F-35I's own empty weights and take-off speeds by weight (open).
 - A start-up fault model (hot / hung start): none in the flight model.
 - The roll's start and rotation thresholds checked against a real flight of each mission by the user.

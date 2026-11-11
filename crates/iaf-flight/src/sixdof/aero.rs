@@ -37,7 +37,8 @@ impl Flow {
 /// The control surfaces, deg, with TP-1538 Table I's limits and the tables' signs (Stevens & Lewis's convention;
 /// pinned by the `control_signs` test): stabilator δh ±25, positive trailing edge down, nose down; aileron δa
 /// ±21.5, positive rolls left (left wing down: the δa = 20° tables give Cl − 0.05 at α 0); rudder δr ±30, positive
-/// yaws left; leading-edge flap δlef 0–25 (down); speed brake δsb 0–60. A right stick is a negative δa.
+/// yaws left; leading-edge flap δlef 0–25 (down); speed brake δsb 0–60; trailing-edge flap (the flaperons' common
+/// droop) δtef 0–20 (down: T.O. GR1F-16CJ-1). A right stick is a negative δa.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Surfaces {
     pub dh: f64,
@@ -45,7 +46,15 @@ pub struct Surfaces {
     pub dr: f64,
     pub dlef: f64,
     pub dsb: f64,
+    pub dtef: f64,
 }
+
+/// The trailing-edge flaps' increments at 20° (TP-1538 has no δtef data; all inferred, modern-iaf/docs/flight-model.md
+/// §9.16): lift ΔCL from DATCOM's plain-flap method on the manual's flaperon area, drag ΔCD FM-0's FlapsDragIndex,
+/// pitching moment ΔCm the lift acting 0.15 c̄ behind the 0.35 c̄ reference. Linear in δtef.
+pub const TEF_CL: f64 = 0.24;
+pub const TEF_CD: f64 = 0.015;
+pub const TEF_CM: f64 = -0.15 * TEF_CL;
 
 /// Body-axis force and moment coefficients: CX forward, CY right, CZ down; Cl roll, Cm pitch, Cn yaw.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -187,7 +196,17 @@ pub fn coefficients(f: &Flow, s: &Surfaces, af: &Airframe) -> Coeffs {
     };
     let cl = at3(&CL, a, b, h3) + at.lateral(&cl_t, cl_a, cl_al, &k, f) + at1(&DCL_BETA, a) * f.beta;
 
-    Coeffs { cx, cy, cz, cl, cm, cn }
+    let mut c = Coeffs { cx, cy, cz, cl, cm, cn };
+    let k_tef = s.dtef / 20.0;
+    if k_tef != 0.0 {
+        // ΔCL normal to the air flow, ΔCD along it.
+        let (sa, ca) = f.alpha.to_radians().sin_cos();
+        c.cx += TEF_CL * k_tef * sa;
+        c.cz -= TEF_CL * k_tef * ca;
+        c.cm += TEF_CM * k_tef;
+        add_drag(&mut c, TEF_CD * k_tef, f.alpha);
+    }
+    c
 }
 
 /// Compressibility on TP-1538's low-speed data (inferred: the report's tables are low-speed wind-tunnel data, and no
@@ -248,6 +267,17 @@ mod tests {
     }
 
     #[test]
+    fn tef_increments() {
+        // 20° of flap at α 0: +0.24 lift (−CZ), −0.036 pitch (nose down), +0.015 drag (−CX).
+        let f = Flow { v: 80.0, ..Flow::default() };
+        let c0 = coefficients(&f, &Surfaces::default(), &AF);
+        let c1 = coefficients(&f, &Surfaces { dtef: 20.0, ..Surfaces::default() }, &AF);
+        assert!((c0.cz - c1.cz - TEF_CL).abs() < 1e-12);
+        assert!((c1.cm - c0.cm - TEF_CM).abs() < 1e-12);
+        assert!((c0.cx - c1.cx - TEF_CD).abs() < 1e-12);
+    }
+
+    #[test]
     fn flow_from_body_in_degrees() {
         let b = Body::new(Vec3::ZERO, Vec3::new(100.0, 10.0, 20.0), super::super::Quat::IDENTITY);
         let f = Flow::from_body(&b);
@@ -270,7 +300,7 @@ mod tests {
                 q: 0.05,
                 r: -0.02,
             };
-            let s = Surfaces { dh: -3.0, da: 5.0, dr: 4.0, dlef: 10.0, dsb: 20.0 };
+            let s = Surfaces { dh: -3.0, da: 5.0, dr: 4.0, dlef: 10.0, dsb: 20.0, dtef: 0.0 };
             sum += coefficients(&f, &s, &AF).cl;
         }
         println!("coefficients: {:.0} ns per call ({sum:.3})", t.elapsed().as_nanos() as f64 / n as f64);

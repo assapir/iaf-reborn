@@ -3842,6 +3842,8 @@ func _process(delta: float) -> void:
 			for k in ["gear", "on_ground", "afterburner", "rpm", "stick_x", "stick_y"]:
 				parts_in[k] = fs[k]
 			parts_in["stick_x"] = fs.roll_stick  # ours: the ailerons show the roll trim too
+			if fs.has("tef"):
+				parts_in["tef"] = fs.tef  # the 6-DoF's trailing-edge flaps (modern-iaf/docs/flight-model.md §9.16)
 			parts_in["ground_speed"] = Vector2(fs.velocity.x, fs.velocity.z).length()  # the rolling wheels (ours)
 		aircraft.update(parts_in, delta)
 		if cockpit_3d != null:

@@ -446,7 +446,8 @@ func lights_off() -> void:
 ##   stick_x (+right), stick_y (+pull), rudder (−1..1), flaps (lever 0..1), gear_down, brakes (speed brake),
 ##   hook, chute (0 off, 1 armed, 2 deployed, 3 gone), on_ground, gear (the flight model's gear ramp, rad),
 ##   afterburner (stage 0..2), rpm (0..1.14), ab_damage ([left, right] afterburner damage flags 8 / 9),
-##   bay_open (ours: the weapon bay doors).
+##   bay_open (ours: the weapon bay doors), tef (ours: the 6-DoF's trailing-edge flaps, deg down: every jet's
+##   flaperons droop with them, in place of the flap lever).
 func update(input: Dictionary, delta: float) -> void:
 	_time += delta
 	var on_ground: bool = input.get("on_ground", false)
@@ -496,6 +497,10 @@ func update(input: Dictionary, delta: float) -> void:
 		ramps[k] = move_toward(ramps[k], _targets[k], rate * delta)
 	if input.has("gear"):
 		ramps.gear = float(input.gear)  # the flight model's own gear ramp (exact timing)
+	_tef = input.has("tef")
+	if _tef:
+		ramps.flaps = deg_to_rad(float(input.tef))
+		_targets.flaps = ramps.flaps
 	sit = move_toward(sit, 1.0 if on_ground and ramps.gear < EPS else 0.0, delta / SIT_TIME)
 	_apply_sit()
 	# Rolling wheels (ours): on the ground each wheel turns at ground speed / its radius; in the air it holds.
@@ -521,6 +526,8 @@ func update(input: Dictionary, delta: float) -> void:
 
 
 var _chute_state := 0
+## The flaps ramp is the 6-DoF's trailing-edge flaps (`tef`): the flaperons droop with it on every jet.
+var _tef := false
 
 
 ## The EndWingL / R helpers in the world (obj+0x38 / +0x44, set when the model has EndWingR: obj+0x50), the heads
@@ -575,9 +582,9 @@ func part_pose(id: int) -> Array:
 	var gear_out := absf(g - GEAR_MAX) >= EPS
 	match id:
 		1:  # AilerL (the F-16 flaperons droop with the flaps)
-			return [ramps.aileron_l - (ramps.flaps if t == 100 else 0.0), true]
+			return [ramps.aileron_l - (ramps.flaps if t == 100 or _tef else 0.0), true]
 		2:  # AilerR
-			return [ramps.aileron_r + (ramps.flaps if t == 100 else 0.0), true]
+			return [ramps.aileron_r + (ramps.flaps if t == 100 or _tef else 0.0), true]
 		5, 6:  # RuddeL, Rudde
 			return [ramps.rudder, true]
 		7:  # FlapL
