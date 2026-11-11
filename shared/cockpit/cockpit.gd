@@ -468,11 +468,16 @@ func zoom_limit() -> float:
 func view_3d_focal() -> float:
 	var w := get_viewport_rect().size.x / 2.0
 	var wide := w / tan(deg_to_rad(VIEW_3D_WIDE_DEG) / 2.0)
+	var narrow := w / tan(deg_to_rad(VIEW_3D_NARROW_DEG) / 2.0)
 	var t := clampf((zoom - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN), 0.0, 2.0)
-	var true_f := true_scale_focal()
+	# The true size kept between the wide and the narrow view, so each zoom step narrows the view: where the true size
+	# was wider than the wide view (a big or low-density screen; 72 dpi where macOS does not know the display's size)
+	# zooming in first widened the view, then narrowed it (the Mac play test's P1 of 2026-11-11). Where it is narrower
+	# than the narrow view the view reaches the narrow end at ZOOM_MAX and holds there.
+	var true_f := clampf(true_scale_focal(), wide, narrow)
 	if t <= 1.0:
 		return wide * pow(true_f / wide, t)
-	return true_f * pow(maxf(w / tan(deg_to_rad(VIEW_3D_NARROW_DEG) / 2.0), true_f) / true_f, t - 1.0)
+	return true_f * pow(narrow / true_f, t - 1.0)
 
 
 ## Ours, the 3D cockpit's true-size view (cockpit3d.gd, zoomed fully in): the eye VIEW_DISTANCE_M from the screen

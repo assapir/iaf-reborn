@@ -26,7 +26,12 @@ lights and the lit labels at night); the panel's night art is not used.
 - **Ahead:** the 3D cockpit's wide view (85° across the screen, the head 12° down: the whole front panel in view), zoomed in by + / − and the mouse wheel.
 - **Zoom:** + / − and the mouse wheel step from the wide view to the true size (the screen as a window 0.6 m from the
   eye), then on to a narrow view 20° across the screen, where the MFD pages read from the seat. 16 wheel notches
-  span the range (`cockpit.gd` `view_3d_focal`, `VIEW_3D_NARROW_DEG`).
+  span the range (`cockpit.gd` `view_3d_focal`, `VIEW_3D_NARROW_DEG`). Each step narrows the view: the true size is
+  kept between the wide and the narrow view. The trackpad zooms as the wheel, in the system's scroll direction. One
+  scroll zooms one way: a step against the last one taken under 250 ms before is dropped (`Settings.zoom_steps`; macOS
+  sends events of the other sign at a scroll's end and in its momentum), and a knob that comes under the pointer during the scroll leaves
+  the wheel to the zoom. Every jet opens at the wide view with the head straight ahead
+  (`modern-iaf/tests/test_cockpit_view.gd`).
 - **Mouse look (2026-11-11, the Mac play test's finding 9):** hold the right mouse button and move the mouse to turn
   the head; it stays where the mouse leaves it. A double right-click turns the head back to straight ahead at 45°/s.
   The pointer turns the head twice its angle on the screen (`terrain_view.gd` `MOUSE_LOOK_GAIN`): one screen's width

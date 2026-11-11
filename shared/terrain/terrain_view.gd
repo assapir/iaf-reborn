@@ -2621,16 +2621,20 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion and looking and mouse_look:
 		views.look_by(Vector2(event.relative.x, -event.relative.y) * MOUSE_LOOK_GAIN / cockpit.focal_length())
 	elif (
-		event is InputEventMouseButton
-		and event.pressed
-		and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]
+		event is InputEventPanGesture
+		or (
+			event is InputEventMouseButton
+			and event.pressed
+			and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]
+		)
 	):
-		var closer: bool = event.button_index == MOUSE_BUTTON_WHEEL_UP
-		if in_cockpit:
-			_zoom_cockpit(0.05 if closer else -0.05)
-		elif views.pos_mode == Views.Pos.ORBIT:
+		# Ours: the wheel or the trackpad, one way per scroll (Settings.zoom_steps).
+		var n := Settings.zoom_steps(event)
+		if n != 0 and in_cockpit:
+			_zoom_cockpit(0.05 * n)
+		elif n != 0 and views.pos_mode == Views.Pos.ORBIT:
 			# Ours: the wheel steps the orbit distance within the original's limits.
-			views.dist = clampf(views.dist * (0.9 if closer else 1.1), views.dmin, views.dmax)
+			views.dist = clampf(views.dist * pow(0.9 if n > 0 else 1.1, absi(n)), views.dmin, views.dmax)
 	elif event is InputEventMouseMotion and looking and views.pos_mode == Views.Pos.ORBIT:
 		# Ours: RMB drag turns the orbit (heading / pitch, as the pan keys).
 		views.orbit_heading += event.relative.x * 0.005

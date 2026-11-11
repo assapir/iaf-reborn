@@ -599,9 +599,11 @@ occlusion, 1.8 MB; built by
   ratio, `view_3d_focal`), to the view at its true size, fully zoomed in. Its focal length is the viewing distance in
   screen pixels (`true_scale_focal`): f = 0.6 m (`VIEW_DISTANCE_M`, inferred: a desk monitor or a laptop at arm's
   length) × the screen's density (`DisplayServer.screen_get_dpi`, 96 dpi when the system gives none) / 0.0254 m per
-  inch × the viewport's px per window px. On a 15.6 in 1080p laptop (141 dpi) that is 3,330 px: 32° across the screen;
-  at 96 dpi 2,268 px, 46°. The true size alone as the default, tried and dropped (2026-11-01): looking ahead it showed
-  only the HUD's frame, no panel.
+  inch × the viewport's px per window px, kept between the wide view and 20° across (`VIEW_3D_NARROW_DEG`) so each step
+  narrows the view (2026-11-11: on a screen whose true size was wider than 85° the steps widened it first). On a 15.6 in
+  1080p laptop (141 dpi) that is 3,330 px: 32° across the screen; at 96 dpi 2,268 px, 46°. The true size alone as the
+  default, tried and dropped (2026-11-01): looking ahead it showed only the HUD's frame, no panel. The wheel and the
+  trackpad step the zoom through `Settings.zoom_steps`, one way per scroll.
   The camera looks 12° down with the head ahead (`VIEW_3D_LOOK_DOWN_DEG`; the original's 5.5° kept the eye on the
   horizon and the panel low on the screen, dropped 2026-11-08). A seated eye rests about 15° under the horizontal
   (inferred); the eye stays at the F-16's height, the panel's top about 15° under the nose, the F-16's quoted

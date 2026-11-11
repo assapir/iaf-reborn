@@ -3,6 +3,13 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The cockpit zoom one way per scroll; every jet's view alike (2026-11-11, the Mac play test's P1):** each wheel or
+  trackpad step narrows the view (the true size kept between the wide and the narrow view; a step against the scroll
+  dropped until it pauses), clamped at both ends; the trackpad zooms too. The Barak, the Sufa and the F-35I open at the
+  same wide view, the F-16s at the same eye ([cockpit.md](cockpit.md) §2). Home's Pilot log entry removed: the pilot
+  block → the Pilot screen's Pilot log button ([front-end.md](front-end.md) §3). `test_cockpit_view.gd`,
+  `test_front_end.gd`. Open: the Barak's view looked closer on the Mac; at default settings both jets render the same
+  view (only the HUDs differ: the Barak's Block 50 frame against the Sufa's wide-angle glass).
 - **Mouse look in the cockpit (2026-11-11, the Mac play test's finding 9):** hold the right button and move the mouse
   to turn the head, double right-click to centre it; the wheel zooms from the wide view through the true size to a
   narrow 20° view for reading the MFDs. The left button stays on the switches. No head lean with the mouse

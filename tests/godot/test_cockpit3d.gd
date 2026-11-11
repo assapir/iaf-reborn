@@ -255,11 +255,15 @@ func _three_d(variant: String, pages_2d: Array) -> void:
 	var fov := rad_to_deg(2.0 * atan(w / 2.0 / c.focal_length()))
 	check(absf(fov - c.VIEW_3D_WIDE_DEG) < 0.1, "%s 3D: the wide view by default (%.1f°)" % [variant, fov])
 	var dpi := float(DisplayServer.screen_get_dpi())
-	var want: float = c.VIEW_DISTANCE_M * (dpi if dpi > 0.0 else c.FALLBACK_DPI) / 0.0254
+	var want: float = c.VIEW_DISTANCE_M * (dpi if dpi > 0.0 else c.FALLBACK_DPI) / 0.0254 * w / c.get_window().size.x
+	# Kept between the wide and the narrow view (a small window's true size is narrower than the narrow view).
+	want = clampf(
+		want, w / 2.0 / tan(deg_to_rad(c.VIEW_3D_WIDE_DEG) / 2.0), w / 2.0 / tan(deg_to_rad(c.VIEW_3D_NARROW_DEG) / 2.0)
+	)
 	var zoom: float = c.zoom
 	c.zoom = c.ZOOM_MAX
 	check(
-		absf(c.focal_length() - want * w / c.get_window().size.x) < 0.5,
+		absf(c.focal_length() - want) < 0.5,
 		"%s 3D: zoomed in, the true-size view (focal %.0f px at %.0f dpi)" % [variant, c.focal_length(), dpi]
 	)
 	c.zoom = zoom

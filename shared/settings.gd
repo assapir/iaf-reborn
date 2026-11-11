@@ -337,6 +337,9 @@ var cd_launcher := false
 ## (reversed, as on macOS trackpads). The wheel scrolls a list or text by its scroll arrows' step.
 var wheel_scroll := "regular"
 var _pan_rest := 0.0  # the trackpad pan not yet turned into a step
+var _zoom_rest := 0.0  # zoom_steps': the trackpad pan not yet turned into a step
+var _zoom_dir := 0  # zoom_steps': the last step's sign
+var _zoom_ms := -100000  # zoom_steps': when the last step was taken (ms)
 var _airframes := {}  # airframe_def's: id -> the resolved definition
 var _airframe_ids := {}  # airframe_id's: type code -> id, for the switches _airframe_ids_for
 var _airframe_ids_for := []
@@ -498,14 +501,15 @@ func _log_startup() -> void:
 	)
 	print(
 		(
-			"gpu: %s (%s), %s %s | window %s, scale %.2f"
+			"gpu: %s (%s), %s %s | window %s, scale %.2f, dpi %d"
 			% [
 				RenderingServer.get_video_adapter_name(),
 				RenderingServer.get_video_adapter_vendor(),
 				RenderingServer.get_current_rendering_method(),
 				RenderingServer.get_video_adapter_api_version(),
 				win.size,
-				win.content_scale_factor
+				win.content_scale_factor,
+				DisplayServer.screen_get_dpi(win.current_screen)
 			]
 		)
 	)
@@ -879,6 +883,42 @@ func wheel_steps(event: InputEvent) -> int:
 		n = int(_pan_rest)  # ponytail: one step per pan unit; scale it if trackpads feel slow / fast
 		_pan_rest -= n
 	return -n if wheel_scroll == "natural" else n
+
+
+## Ours: the gap (ms) that ends one scroll (zoom_steps).
+const ZOOM_SETTLE_MS := 250
+
+
+## Zoom steps for a wheel or trackpad event (ours; the cockpit's zoom and the orbit's distance in both games): +1 = in
+## (the wheel up, in the system's scroll direction; a trackpad's pan the same way), -1 = out, 0 = none. A pan adds up
+## its delta.y, one step per unit. One scroll zooms one way: a step against the last one taken less than
+## ZOOM_SETTLE_MS before is dropped (the end of a scroll on macOS, its momentum and a wheel's bounce bring events of the
+## other sign: the zoom turned back while the user kept scrolling one way, the Mac play test's P1 of 2026-11-11). The
+## clamp at either end is the caller's.
+func zoom_steps(event: InputEvent) -> int:
+	var n := 0
+	if event is InputEventMouseButton and event.pressed:
+		n = {MOUSE_BUTTON_WHEEL_UP: 1, MOUSE_BUTTON_WHEEL_DOWN: -1}.get(event.button_index, 0)
+	elif event is InputEventPanGesture:
+		_zoom_rest -= event.delta.y
+		n = int(_zoom_rest)
+		_zoom_rest -= n
+	else:
+		return 0
+	if n == 0:
+		return 0
+	var now := Time.get_ticks_msec()
+	if now - _zoom_ms < ZOOM_SETTLE_MS and signi(n) != _zoom_dir:
+		_zoom_rest = 0.0
+		return 0
+	_zoom_ms = now  # a step taken: only these hold the direction, so a deliberate turn back zooms after ZOOM_SETTLE_MS
+	_zoom_dir = signi(n)
+	return n
+
+
+## A scroll is zooming (zoom_steps' last step under ZOOM_SETTLE_MS ago): the cockpit's knobs leave the wheel to it.
+func zoom_scrolling() -> bool:
+	return Time.get_ticks_msec() - _zoom_ms < ZOOM_SETTLE_MS
 
 
 ## True when the Hebrew packs are installed and converted (menus: assets/converted/menu_he;

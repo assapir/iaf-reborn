@@ -602,8 +602,8 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	await frames(2)
 	check(fe.page == "home", "%s: Esc from the debrief: Home" % lang)
 	check(
-		_has(fe, "משימות" if he else "Missions") and _has(fe, "יומן טיסות" if he else "Pilot log"),
-		"%s: home: Missions and the log" % lang
+		_has(fe, "משימות" if he else "Missions") and fe.find_child("pilot_log", true, false) == null,
+		"%s: home: Missions, no Pilot log entry (the pilot block's)" % lang
 	)
 	check(
 		_has(fe, "קרדיט" if he else "Attributions") and _has(fe, "יציאה" if he else "Quit"), "%s: home: the menu" % lang
@@ -618,9 +618,11 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	check(not _has(fe, "בחירה" if he else "Select"), "%s: home: no key hints" % lang)
 	var train: Control = fe.find_child("Missions", true, false)
 	check((train.global_position.x > 960) == he, "%s: home: the column on the inline start" % lang)
+	fe.show_page("pilot")
+	await frames(2)
 	(fe.find_child("pilot_log", true, false) as Button).pressed.emit()
 	await frames(2)
-	check(fe.page == "log", "%s: home: Pilot log opens the Pilot log" % lang)
+	check(fe.page == "log", "%s: the Pilot screen's Pilot log opens the Pilot log" % lang)
 	check(_has(fe, "המראה" if he else "Take-off"), "%s: log: the take-off" % lang)
 	var rows: Array = fe.find_child("Log", true, false).find_children("*", "Button", true, false)
 	rows[0].pressed.emit()

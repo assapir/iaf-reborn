@@ -134,7 +134,7 @@ const BACK := {
 	"mission": "training",
 	"prefs": "home",
 	"debrief": "home",
-	"log": "home",
+	"log": "pilot",
 	"credits": "home",
 	"pilot": "home",
 	"pilots": "pilot",
@@ -520,8 +520,8 @@ func _page_home() -> void:
 	_focus = go
 	var menu := _vbox(col, 0)
 	_rule(menu, Look.LINE)
+	# No Pilot log here: the pilot in the top bar is the one way to it (the Pilot screen's logbook; the user, 2026-11-11).
 	var items := [
-		["pilot_log", func(): show_page("log")],
 		["guides", Callable()],
 		["preferences", func(): show_page("prefs")],
 		["credits", func(): show_page("credits")],
@@ -1603,7 +1603,11 @@ func _logbook(parent: Control) -> void:
 	var book := _vbox(parent, 10)
 	book.name = "Logbook"
 	book.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_label(book, s("logbook"), "Strong").add_theme_font_size_override("font_size", 25)
+	var top := _hbox(book, 16)
+	_label(top, s("logbook"), "Strong").add_theme_font_size_override("font_size", 25)
+	_spacer(top)
+	# The Pilot log (every flight, each opening its debrief): reached from here only.
+	_button(top, s("pilot_log"), "Secondary", pilot_back.bind("log")).name = "pilot_log"
 	var units := {}
 	var list := Settings.load_json(Settings.converted(Settings.missions_folder().path_join("missionlist.json")))
 	for id in list:
@@ -2129,7 +2133,7 @@ static func _group(v: float) -> String:
 
 
 func _page_log() -> void:
-	_header(["home", "pilot_log"])
+	_header(["home", "pilot", "pilot_log"])
 	var v := _vbox(_body(), 26)
 	_title(v, s("pilot_log"), "")
 	var att := sorties()

@@ -74,6 +74,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_held = {}
 			get_viewport().set_input_as_handled()
 		return
+	if event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN] and Settings.zoom_scrolling():
+		return  # a zoom's scroll stays the zoom's when a knob comes under the pointer (Settings.zoom_steps)
 	var hit = at(event.position)
 	if hit == null:
 		return
