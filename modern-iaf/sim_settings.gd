@@ -456,7 +456,7 @@ func hud_subpixel() -> bool:
 	return true
 
 
-## The HUD adds bright P43 green light to the scene, dimmed at night, its brightness the player's (Approvals A10,
+## The HUD draws in the P43 green over the scene, dimmed at night, its brightness the player's (Approvals A10,
 ## modern-iaf/docs/cockpit.md §5.1).
 func hud_daylight() -> bool:
 	return not safe_off("hudglow")

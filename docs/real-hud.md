@@ -18,7 +18,7 @@ Colour: the HUD's (H cycles the original's eleven, the darkest green first), unl
 F-35's helmet, the DASH). At the cockpit's night (`cockpit.night`, the rule that darkens the panel; 2D and 3D) the
 greens are no darker than the fifth, 0, 136, 0 (`hud.gd` `REAL_NIGHT_GREEN`, ours, 2026-11-02): the darkest, the
 run's first, all but vanished against the night sky, where a real HUD's brightness follows the scene. The original
-HUD keeps the colour H set. Modern IAF draws its HUD in the P43 green, added to the scene's light
+HUD keeps the colour H set. Modern IAF draws its HUD in the P43 green with a faint halo
 ([Modern IAF's HUD light](#modern-iafs-hud-light)).
 
 Sources are footnotes; a simulator source says so in its footnote. "Inferred" marks our own reconstruction (from
@@ -874,8 +874,8 @@ its scale. The original HUD keeps the original layout.
 ### Modern IAF's HUD light
 
 Modern IAF only (`Settings.hud_daylight()`, true in `modern-iaf/sim_settings.gd`, false in `shared/settings.gd`;
-Approvals A10, 2026-11-09). The original game keeps its eleven colours from the darkest green, drawn over the scene,
-and its 0.6 px pen. The study behind it: the look study's cockpit proposal, finding 1.
+Approvals A10, 2026-11-09). The original game keeps its eleven colours from the darkest green and draws no halo; both
+games draw over the scene with the same pen. The study behind it: the look study's cockpit proposal, finding 1.
 
 - **Colour.** The F-16's CRT displays use P43 phosphor, a narrow line at 543 nm[^dtic-p43]. Its nearest sRGB colour is
   40 / 255 / 50 (`hud.gd` `P43_GREEN`; inferred from the CIE 1931 chromaticity of 543 nm, just outside the gamut).
@@ -894,15 +894,17 @@ and its 0.6 px pen. The study behind it: the look study's cockpit proposal, find
 ![The SYM wheel lit under the pointer](../modern-iaf/docs/pictures/cockpit/sym_wheel_hover.jpg)
 ![The SYM wheel turned down 24 notches](../modern-iaf/docs/pictures/cockpit/sym_wheel_turned.jpg)
 ![The HUD at full, then at 40 % after the wheel turned down](../modern-iaf/docs/pictures/cockpit/sym_wheel_hud.jpg)
-- **Blending.** The HUD and its outer layer draw through `hud_glass.gdshader` with `render_mode blend_add`
-  (`cockpit.gd` `_additive_glass`): the symbols add light to the scene, as a combiner does, so over sunlit ground they
-  can only brighten it. The original HUD's green, drawn over the scene, read darker than the ground behind it.
-- **Stroke and halo.** The stroke is 0.08° (`PEN_DEG`, 0.96 px per HUD pixel: 1.5 px in an 85° view across 1,920 px;
-  inferred from an F-16 HUD video's[^gcas-video] 1–2 px of 720 across about 30°). Under every line, circle, arc and text of the
-  Real HUD lies a halo twice the stroke's width at 22 % (`HALO_WIDE`, `HALO_ALPHA`; a text's outline one stroke wide):
-  a collimated stroke's soft glow, small to the eye (inferred). Until 2026-11-11 the halo was four times the stroke and
-  the texts' outline three strokes: the symbols read soft and thick beside the original game's crisp Real HUD (the Mac
-  play test), so both were narrowed.
+- **Blending.** The HUD and its outer layer draw over the scene (`hud_glass.gdshader`, blend_mix), in the P43 green
+  itself. From 2026-11-09 to 2026-11-11 they were added to the scene's light (blend_add, as a combiner adds its
+  symbols' light). Over the bright sky the sum came out as a white core in every stroke. On the Mac play test it
+  read as blurred and doubled beside the original game's crisp Real HUD, so it was dropped (2026-11-11).
+- **Stroke and halo.** The stroke is the original game's pen, 0.6 px per HUD pixel and at least one physical pixel
+  (`hud.gd` `_pen`): about 1 px in the 85° view across 1,920 px, as thin as the original game's Real HUD. Under every
+  line, circle, arc and text of the Real HUD lies a halo one physical pixel wider on each side at 22 % (`_halo_w`,
+  `HALO_ALPHA`; a text's outline one pixel): a collimated stroke's faint glow (inferred). The earlier strokes were
+  tried and dropped on 2026-11-11, beside the original game's Real HUD at content scales 1 and 2: 0.08° (1.5 px, from
+  an F-16 HUD video's[^gcas-video] 1–2 px of 720 across about 30°), first with a halo four times the stroke, then
+  twice the stroke. Both read about twice as thick as the original's.
 - **Display scale.** The HUD draws as thin, as crisp and as large (in degrees) at every display scale (a window
   content scale of 2, as a 2× display's, or a stretched canvas): `hud.gd` takes the canvas units per physical pixel
   (`_dot`, from the viewport's final transform) and keeps the pen's and the dots' least width at one physical pixel and

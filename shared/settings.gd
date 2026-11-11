@@ -1105,9 +1105,9 @@ func hud_subpixel() -> bool:
 
 
 ## The HUD lit like a combiner (docs/real-hud.md "Modern IAF's HUD light"): the P43 phosphor's green at
-## hud_brightness by day down to a night floor as the sun sets, added to the scene's light, a faint halo, a 0.08°
-## stroke, the combiner glass at 14 % with a cool tint; the HUD key steps the brightness. Modern IAF. The original game
-## keeps its eleven colours from the darkest green (the global 0x82f4c4), drawn over the scene, and its 7 % glass.
+## hud_brightness by day down to a night floor as the sun sets, drawn over the scene with a faint halo in the
+## original's pen, the combiner glass at 14 % with a cool tint; the HUD key steps the brightness. Modern IAF. The
+## original game keeps its eleven colours from the darkest green (the global 0x82f4c4), no halo, and its 7 % glass.
 func hud_daylight() -> bool:
 	return false
 

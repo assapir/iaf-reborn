@@ -266,12 +266,10 @@ const P43_GREEN := Color8(40, 255, 50)
 const NIGHT_LEVEL := 136.0 / 255.0
 ## The dimmest level (the HUD key's first eighth): the Preferences slider's 0 still shows the symbols.
 const MIN_LEVEL := 0.125
-## The stroke: 0.08° (the F-16 HUD video's 1–2 px of 720 across about 30°, inferred) at the HUD's 12 px per degree.
-const PEN_DEG := 0.08
-## The halo drawn under every stroke: this many times its width at HALO_ALPHA (a collimated stroke's soft glow).
-const HALO_WIDE := 2.0
+## The halo drawn under every stroke: one physical px wider on each side, at HALO_ALPHA (a collimated stroke's faint
+## glow).
 const HALO_ALPHA := 0.22
-## True with hud_daylight: the halo, the pen and the colour.
+## True with hud_daylight: the halo and the colour.
 var _glow := false
 
 
@@ -292,9 +290,14 @@ static func daylight(sun: Dictionary) -> float:
 	return clampf(-float(sun.dir.z) / sin(deg_to_rad(10.0)), 0.0, 1.0)
 
 
-## The stroke width in px at ui scale `s`: the original's 0.6 px per HUD pixel, or PEN_DEG with hud_daylight.
+## The stroke width in px at ui scale `s`: the original's 0.6 px per HUD pixel, at least one physical px (both games).
 func _pen(s: float) -> float:
-	return maxf(_dot, (PEN_DEG * 12.0 if _glow else 0.6) * s)
+	return maxf(_dot, 0.6 * s)
+
+
+## The halo's width under a stroke `w` wide: one physical px more on each side.
+func _halo_w(w: float) -> float:
+	return w + 2.0 * _dot
 
 
 func _halo(c: Color) -> Color:
@@ -307,7 +310,7 @@ func _pt(p: Vector2) -> Vector2:
 
 func _ln(ci: CanvasItem, a: Vector2, b: Vector2, w: float) -> void:
 	if _glow:
-		ci.draw_line(_pt(a), _pt(b), _halo(_hc()), w * HALO_WIDE, true)
+		ci.draw_line(_pt(a), _pt(b), _halo(_hc()), _halo_w(w), true)
 	ci.draw_line(_pt(a), _pt(b), _hc(), w)
 
 
@@ -316,7 +319,7 @@ func _poly(ci: CanvasItem, pts: Array, w: float) -> void:
 	for p in pts:
 		out.append(_pt(p))
 	if _glow:
-		ci.draw_polyline(out, _halo(_hc()), w * HALO_WIDE, true)
+		ci.draw_polyline(out, _halo(_hc()), _halo_w(w), true)
 	ci.draw_polyline(out, _hc(), w)
 
 
@@ -401,7 +404,7 @@ func _gdi(ci: CanvasItem, p: Vector2, text: String, right := false, colour = nul
 	ci.draw_set_transform(Vector2(box.position.x, _pt(p).y), 0.0, Vector2(_arial_squeeze, 1.0) * _dot)
 	var col: Color = colour if colour != null else _hc()
 	if _glow:
-		var o := roundi(_pen(_s) / _dot * (HALO_WIDE - 1.0))  # physical px, as the font's size
+		var o := 2  # physical px (the font's raster): the outline's one px outside the glyph
 		ci.draw_string_outline(_arial, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, _gdi_size(), o, _halo(col))
 	ci.draw_string(_arial, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, _gdi_size(), col)
 	ci.draw_set_transform(Vector2.ZERO)
@@ -825,7 +828,7 @@ func _draw_prims(ci: CanvasItem, prims: Array, w: float, colour = null) -> void:
 ## The halo under the Real HUD's lines, circles and arcs (hud_daylight; its texts get theirs in _gdi).
 func _draw_halo(ci: CanvasItem, prims: Array, w: float, col: Color) -> void:
 	var h := _halo(col)
-	var hw := w * HALO_WIDE
+	var hw := _halo_w(w)
 	for p in prims:
 		match p.k:
 			"line":
@@ -834,7 +837,7 @@ func _draw_halo(ci: CanvasItem, prims: Array, w: float, col: Color) -> void:
 				ci.draw_arc(_pt(p.c), float(p.r) * _s, 0, TAU, 32, h, hw, true)
 			"arc":
 				var a0: float = float(p.from) - PI / 2.0
-				ci.draw_arc(_pt(p.c), float(p.r) * _s, a0, a0 + float(p.sweep), 24, h, hw * 1.6, true)
+				ci.draw_arc(_pt(p.c), float(p.r) * _s, a0, a0 + float(p.sweep), 24, h, _halo_w(w * 1.6), true)
 
 
 # --- traced values (original pixels; tests/godot/test_hud.gd) -----------------------------------------

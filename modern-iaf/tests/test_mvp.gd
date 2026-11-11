@@ -620,7 +620,7 @@ func _ils_bars(tv: Node, jet: String) -> void:
 
 
 ## The HUD's light (Approvals A10, Settings.hud_daylight): the P43 green at the day level, the night floor in the
-## dark, the HUD key stepping the level in eighths, added to the scene, and the combiner glass at 14 %.
+## dark, the HUD key stepping the level in eighths, drawn over the scene, and the combiner glass at 14 %.
 func _hud_light(tv: Node, jet: String) -> void:
 	var cp = tv.cockpit
 	var level: float = settings().hud_brightness
@@ -644,8 +644,8 @@ func _hud_light(tv: Node, jet: String) -> void:
 	tv._command([123, 0, 0])
 	check(settings().hud_brightness == 0.25, "%s: the HUD key one eighth up" % jet)
 	check(
-		cp.hud.material != null and String(cp.hud.material.shader.code).contains("blend_add"),
-		"%s: the HUD adds its light to the scene" % jet
+		cp.hud.material == null or not String(cp.hud.material.shader.code).contains("blend_add"),
+		"%s: the HUD drawn over the scene, not added (no white core over the sky)" % jet
 	)
 	var glass = tv.cockpit_3d._glass if tv.cockpit_3d != null else null
 	check(

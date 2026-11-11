@@ -98,22 +98,21 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   and its picture after two confirms ([front-end.md](front-end.md) §1, §3). `test_front_end.gd`, the pilot_log unit
   tests.
   Open: the jet does not shut down when the throttle goes back to OFF.
-- **The HUD's light (2026-11-09, Approvals A10):** the F-16s' HUD in the P43 green, added to the scene's light,
-  bright by day and dimmed to a night floor as the sun sets, with a faint halo, a 0.08° stroke and the combiner glass
-  at 14 %; the 3D cockpit's SYM wheel sets the day level (hover, wheel, drag; kept in the settings file) and
-  Shift + H steps it, on the general clickable-control layer `cockpit3d_controls.gd` ([cockpit.md](cockpit.md)
-  §5.1). The F-35I's HMD BRT knob turns the same level, its MFD BRT knob the displays' brightness (kept in the
-  settings file too); the F-35I's helmet display lights as the HUD does, in P43 at that level. `test_hud.gd`,
-  `test_mvp.gd` `_knob`. The Sufa's combiner has a thin light edge down each side. Open: the DAY / AUTO / NIGHT
-  switch.
-- **The HUD on a 2× display (2026-11-11, the Mac play test):** the HUD keeps its angular size, stroke and text
-  crispness at every display scale: the pen's least width and the texts' raster size are physical pixels
+- **The HUD's light (2026-11-09, Approvals A10):** the F-16s' HUD in the P43 green, drawn over the scene, bright by day
+  and dimmed to a night floor as the sun sets, with a faint halo, the original's thin pen and the combiner glass at
+  14 %; the 3D cockpit's SYM wheel sets the day level (hover, wheel, drag; kept in the settings file) and Shift + H steps
+  it, on the general clickable-control layer `cockpit3d_controls.gd` ([cockpit.md](cockpit.md) §5.1). The F-35I's HMD
+  BRT knob turns the same level, its MFD BRT knob the displays' brightness (kept in the settings file too); the F-35I's
+  helmet display lights as the HUD does, in P43 at that level. `test_hud.gd`, `test_mvp.gd` `_knob`. The Sufa's combiner
+  has a thin light edge down each side. Open: the DAY / AUTO / NIGHT switch.
+- **The HUD on a 2× display (2026-11-11, the Mac play test):** the HUD keeps its angular size, stroke and text crispness
+  at every display scale: the pen's least width and the texts' raster size are physical pixels
   ([real-hud.md](../../docs/real-hud.md#modern-iafs-hud-light) "Display scale"; the rule holds in both games). The
-  halo is narrowed to twice the stroke (was four) and the texts' outline to one stroke, so the HUD reads as crisp as
-  the original game's Real HUD. The Sufa's glass edges are 20 % opaque and go off with `IAF_SAFE=glass`. The Mac's
-  pictures matched Linux at scale 1: its "closer view" and "twice the size" came from an enlarged crop, and the
-  glass's tint is the approved one. Open: the edge strip is straight along the plate's side and cannot follow
-  FlightGear's curved posts without a model rebuild.
+  stroke is the original game's thin pen, the halo one pixel outside it, and the HUD is drawn over the scene instead of
+  added (no white core over the sky), so it reads as crisp as the original game's Real HUD. The Sufa's glass edges are
+  20 % opaque and go off with `IAF_SAFE=glass`. The Mac's pictures matched Linux at scale 1: its "closer view" and
+  "twice the size" came from an enlarged crop, and the glass's tint is the approved one. Open: the edge strip is
+  straight along the plate's side and cannot follow FlightGear's curved posts without a model rebuild.
 - **The start-up switches (2026-11-09):** the F-16s' start-up checklist by the mouse in the 3D cockpit: MAIN PWR, the
   JFS switch, the throttle, the AVIONIC POWER switches, the INS knob (their own nodes of `f16.glb`, each turning to its
   on position) and the canopy handle (a hit area), each sending its key's command; the card names each switch and its

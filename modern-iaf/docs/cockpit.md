@@ -136,7 +136,7 @@ The user's approval (Approvals A10, proposal 7): "fix the green of the HUD, shou
 the sources and the values):
 - the HUD in the P43 green, 40 / 255 / 50, at the day level by day, falling to the night floor (136 / 255 of it) as
   the sun sets;
-- the symbols added to the scene's light (blend_add), a faint halo under each, a 0.08° stroke;
+- the symbols drawn over the scene in the original game's thin pen, a faint one-pixel halo around each;
 - the combiner glass 14 % opaque in a faint cool magenta; the Sufa's plate with a thin light edge down each side
   (`f16.glb`, [docs/cockpit.md](../../docs/cockpit.md) "3D cockpit");
 - the day level is the cockpit's SYM wheel (below), kept in the sim's settings file like a knob's position, with no

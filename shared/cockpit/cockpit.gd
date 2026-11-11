@@ -650,12 +650,11 @@ func three_d() -> bool:
 
 
 ## The HUD and its outer layer drawn through hud_glass.gdshader with hud_clip's corners (everywhere while the helmet
-## display draws). With Settings.hud_daylight always, and added to the scene's light (blend_add), as a combiner adds
-## its symbols' light: they can only brighten what is behind them.
+## display draws). Drawn over the scene (blend_mix): until 2026-11-11 Modern IAF's HUD was added to the scene's light
+## (blend_add), and its P43 green over the bright sky came out as a white core (the Mac play test; docs/real-hud.md).
 func _update_hud_mask() -> void:
-	var glow: bool = Settings.hud_daylight()
-	# Modern IAF's bisect switch "glass" (Settings.safe_off): the HUD drawn plain, unclipped and not added.
-	if (hud_clip == null and not glow) or Settings.safe_off("glass"):
+	# Modern IAF's bisect switch "glass" (Settings.safe_off): the HUD drawn plain and unclipped.
+	if hud_clip == null or Settings.safe_off("glass"):
 		if _hud_mask != null:
 			for n in [hud, hud.outer]:
 				n.material = null
@@ -663,12 +662,9 @@ func _update_hud_mask() -> void:
 		return
 	if _hud_mask == null:
 		_hud_mask = ShaderMaterial.new()
-		_hud_mask.shader = _additive_glass() if glow else HUD_GLASS
+		_hud_mask.shader = HUD_GLASS
 		for n in [hud, hud.outer]:
 			n.material = _hud_mask
-	if hud_clip == null:
-		_hud_mask.set_shader_parameter("count", 0)
-		return
 	var view := get_viewport_rect().size
 	var pts := PackedVector2Array()
 	for p in hud_clip.slice(0, 16):
@@ -680,17 +676,6 @@ func _update_hud_mask() -> void:
 
 
 const HUD_GLASS := preload("res://shared/cockpit/hud_glass.gdshader")
-static var _additive: Shader
-
-
-## hud_glass.gdshader with render_mode blend_add (one shader source for both games).
-static func _additive_glass() -> Shader:
-	if _additive == null:
-		_additive = Shader.new()
-		var src: String = HUD_GLASS.code
-		_additive.code = src.replace("shader_type canvas_item;", "shader_type canvas_item;\nrender_mode blend_add;")
-	return _additive
-
 
 ## Ours, "Better cockpit" turning_compass (compass.gd): the panel compasses turn with the heading; made on first
 ## use, hidden while off (the static art shows).
