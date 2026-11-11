@@ -82,7 +82,7 @@ func run() -> void:
 		for p in range(0, data.size(), 3 * 7):
 			paved += 1 if data[p] > 0 or data[p + 1] > 0 or data[p + 2] > 0 else 0
 	check(paved > 0, "Ramon: the paved mask (taxiways, aprons) has paved texels (%d sampled)" % paved)
-	_mouse_look(tv)
+	await _mouse_look(tv)
 	check(s.rejected.is_empty(), "no original data read (%s)" % [s.rejected])
 
 
@@ -121,7 +121,12 @@ func _mouse_look(tv: Node) -> void:
 		c.zoom == c.zoom_limit() and c.zoom_limit() > c.ZOOM_MAX and c.view_3d_focal() >= narrow * 0.999,
 		"mouse look: the wheel zooms in to the narrow view (zoom %.2f, focal %.0f px)" % [c.zoom, c.view_3d_focal()]
 	)
+	# A new scroll the other way: Settings.zoom_steps drops a reverse step within ZOOM_SETTLE_MS of the last one. Waited
+	# in real time: a timer's first frame can carry the time of the slow frame before it.
+	var t0 := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 <= settings().ZOOM_SETTLE_MS:
+		await process_frame
 	wheel.button_index = MOUSE_BUTTON_WHEEL_DOWN
 	for i in 40:
 		tv._unhandled_input(wheel)
-	check(c.zoom == c.ZOOM_MIN, "mouse look: the wheel zooms out to the wide view")
+	check(c.zoom == c.ZOOM_MIN, "mouse look: the wheel zooms out to the wide view (zoom %.2f)" % c.zoom)
