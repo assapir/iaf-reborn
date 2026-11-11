@@ -138,9 +138,16 @@ func changed_loadout() -> void:
 		not d.is_empty() and int(d.w.id) == 4 and int(d.count) == 3 and st.tank_fuel == 0.0,
 		"loadout: three Mk 82 on pylon D's rack, no tanks"
 	)
-	# The bombs' mass (the racks' 47.6 kg each are the briefing's figure only: the stores code knows no racks).
-	var kg := 4.0 * 86.0 + 2.0 * 925.0 + 6.0 * 241.0
+	# The stores' mass: four AIM-9M (86 kg), two Mk 84 (925), six Mk 82 (241) and the two TER-9/A racks on 4 / 6
+	# (47.6 kg each, counted once per station): 344 + 1850 + 1446 + 95.2 = 3735.2 kg.
+	var kg := 4.0 * 86.0 + 2.0 * 925.0 + 6.0 * 241.0 + 2.0 * 47.6
 	check(absf(st.fm_mass - kg) < 3.0, "loadout: the stores' mass %.0f kg" % st.fm_mass)
+	var weapons := ProjectSettings.globalize_path("res://data/db/weapons")
+	var a = JSON.parse_string(IafBriefing.arming(unit, weapons, lo))
+	var skg = a.get("stores_kg") if a is Dictionary else null
+	check(
+		skg != null and absf(float(skg) - st.fm_mass) < 3.0, "loadout: the briefing's stores %s kg = the flight's" % skg
+	)
 	check(not tv.weapons._store_nodes.get(2, []).is_empty(), "loadout: the bomb's model on the jet")
 	check(int(st.station(9).count) == 511, "loadout: the gun's 511 rounds")
 
