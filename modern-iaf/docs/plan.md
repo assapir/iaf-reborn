@@ -374,7 +374,7 @@ does not move (0 at every distance), the panel's pixel change per frame 0.004 at
 and 15.5). Cost on the Iris Xe: about +4 to +5 ms GPU a frame (the second viewport). The original game is unchanged
 (its jet stays within the 1998 theatre). **Open:** a floating origin for the rest of the world (nothing else measured
 shakes: the terrain and far objects' step is tiny against their distance), the F-35I's screen pull
-(`cockpit3d_screen.gdshader`) which the sim no longer needs, FXAA in place of MSAA in the cockpit's viewport (3.2 ms). With TAA or a temporal upscaler the cockpit's picture gives the flight's view no motion vectors: its edges may smear in a turn (not yet seen in a real render).
+(`cockpit3d_screen.gdshader`) which the sim no longer needs. FXAA in place of MSAA in the cockpit's viewport was tried and dropped (2026-11-11, [cockpit.md](cockpit.md) §6.2: 2.5 ms saved, the panel's labels 3–6 grey levels off). With TAA or a temporal upscaler the cockpit's picture gives the flight's view no motion vectors: its edges may smear in a turn (not yet seen in a real render).
 
 Size: M.
 

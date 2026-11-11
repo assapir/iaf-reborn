@@ -46,6 +46,12 @@ const SEA: [u8; 3] = [53, 72, 82];
 /// The fill before 2026-11-08, darker than the composite's sea (its edge showed as steps): `repaint_sea` turns it into
 /// SEA in a theatre built with it.
 const OLD_SEA: [u8; 3] = [30, 52, 78];
+/// The 32 m nodes read the composite's 20 m overviews, whose pixels at the composite's edge were averaged with its
+/// no-data (zero): a rim up to two 32 m pixels wide, darker than both the fill and the sea inside it (51, 69, 79
+/// against SEA and 62, 87, 94 off El Arish, measured 2026-11-11), drew a faint line where Sentinel-2 ends offshore
+/// (modern-iaf/docs/terrain.md §3). Pixels within RIM of no-data take SEA there. The 8 m nodes' bilinear warp skips
+/// the no-data, so their edge keeps the composite's own colour.
+const RIM: usize = 2;
 pub const ATTRIBUTION: [&str; 3] = [
     "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved",
     "Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium; ESA WorldCover project 2021 (CC BY 4.0)",
@@ -437,6 +443,8 @@ fn sentinel_unit(
         bail!("Sentinel-2 unit {unit:?}: want 4 bands of u16, got {} / type {}", e.bands, e.dtype);
     }
     let px = e.raw.as_chunks::<2>().0;
+    let empty = |i: usize| (0..3).all(|c| px[i * 4 + c] == [0, 0]);
+    let sea = if level >= 5 { near_empty(n, RIM, empty) } else { (0..n * n).map(empty).collect() };
     let m = NODE_PIXELS as usize;
     for sj in 0..1u32 << d {
         for si in 0..1u32 << d {
@@ -445,17 +453,33 @@ fn sentinel_unit(
                 continue;
             }
             let img = RgbImage::from_fn(NODE_PIXELS, NODE_PIXELS, |x, y| {
-                let i = ((sj as usize * m + y as usize) * n + si as usize * m + x as usize) * 4;
-                let b = |c: usize| f32::from(u16::from_le_bytes(px[i + c]));
-                if [0, 1, 2].iter().all(|&c| b(c) == 0.0) {
+                let p = (sj as usize * m + y as usize) * n + si as usize * m + x as usize;
+                if sea[p] {
                     return image::Rgb(SEA);
                 }
+                let b = |c: usize| f32::from(u16::from_le_bytes(px[p * 4 + c]));
                 image::Rgb(imagery::tone([b(0), b(1), b(2)]).map(|v| v.round() as u8))
             });
             save(&img, &colour_path(out, k))?;
         }
     }
     Ok(())
+}
+
+/// Per pixel of an n × n raster: some pixel within `r` (a square) is empty.
+fn near_empty(n: usize, r: usize, empty: impl Fn(usize) -> bool) -> Vec<bool> {
+    let row: Vec<bool> = (0..n * n)
+        .map(|i| {
+            let (x, y) = (i % n, i / n);
+            (x.saturating_sub(r)..=(x + r).min(n - 1)).any(|x| empty(y * n + x))
+        })
+        .collect();
+    (0..n * n)
+        .map(|i| {
+            let (x, y) = (i % n, i / n);
+            (y.saturating_sub(r)..=(y + r).min(n - 1)).any(|y| row[y * n + x])
+        })
+        .collect()
 }
 
 /// What the Survey units share: the sheets' levels and colour match (per sheet extent, blended by `levels_at`) and
@@ -1192,7 +1216,9 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
     let fine = |k: Key| inside(k) && detail5.contains(&(5, k.1 >> (5 - k.0), k.2 >> (5 - k.0)));
     let u7: Vec<Key> = f.nodes(7).into_iter().filter(|u| f.nodes_in(5, f.utm(*u)).into_iter().any(coarse)).collect();
     let s2_32 = |u| sentinel_unit(s2_20, &f, u, 5, &coarse, &work, out);
-    units("s2_32m", &u7, &work, r.threads, &part(1), cancel, s2_32)?;
+    // "_rim": the 32 m nodes without the overviews' rim (RIM): a theatre rebuilt for a change in its inputs makes them
+    // again, though their old marks say done (Setup's redo clears the marks anyway).
+    units("s2_32m_rim", &u7, &work, r.threads, &part(1), cancel, s2_32)?;
     let u5: Vec<Key> = detail5.iter().copied().collect();
     units("s2_8m", &u5, &work, r.threads, &part(2), cancel, |u| sentinel_unit(s2, &f, u, 3, &fine, &work, out))?;
 
@@ -1337,6 +1363,14 @@ mod tests {
         let _ = std::fs::remove_dir_all(&d);
         std::fs::create_dir_all(&d).unwrap();
         d
+    }
+
+    /// The 32 m nodes' rim: a pixel within RIM of an empty one counts as empty, one farther out keeps its own colour.
+    #[test]
+    fn the_rim_takes_the_fill() {
+        let n = 8;
+        let near = near_empty(n, 2, |i| i % n == 0 && i / n == 4);
+        assert!(near[4 * n + 2] && near[2 * n + 2] && near[6 * n] && !near[4 * n + 3] && !near[n]);
     }
 
     /// The bar's parts follow their expected seconds: in order, inside 0..1, the download's share from its bytes.

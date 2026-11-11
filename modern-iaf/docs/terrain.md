@@ -104,8 +104,18 @@ The open sea has no Sentinel-2 pixels away from the coast: it takes one colour (
 0 m. That is the composite's own open-sea tone where its pixels end, measured 2026-11-08 at five places off Tel Aviv
 and Ashdod (50–56, 69–76, 81–83). Until then the fill was 30, 52, 78, a darker navy picked by eye, and the composite's
 edge, which runs in straight blocks, showed as steps between two blues. `iaf-sim terrain` repaints the old fill in a
-theatre built before (`repaint_sea`, once; the stamp's "sea" holds the colour). Left: a faint line one texel wide where the composite's pixels end (its edge texels, blended by the resampling and
-JPEG), seen only low over the water.
+theatre built before (`repaint_sea`, once; the stamp's "sea" holds the colour). The faint line where the composite's pixels end was its 20 m overviews' edge: averaged with the no-data (zero),
+the 32 m nodes' last one or two pixels before the fill came out darker than both the fill and the sea inside (off El
+Arish, 51, 69, 79 against the fill's 53, 72, 82 and the composite's 62, 87, 94; measured 2026-11-11). The 8 m nodes'
+bilinear warp skips the no-data, so their edge keeps the composite's own colour. Since 2026-11-11 the 32 m nodes take
+the fill within two pixels of the no-data (`RIM`). A theatre built before gets the clean edge when it is built again:
+by Setup's terrain redo, or when its Survey sheets, airbase layouts or box change (its 32 m units are marked
+`s2_32m_rim`, so that rebuild makes them again; it reads the composite's tiles, which it reads for the 8 m nodes
+anyway). Where the composite's edge runs along a unit's border, the no-data across the border is outside the unit's
+warp, so a short stretch of the rim can stay there.
+  - Tried and dropped (2026-11-11): the rim trimmed in a built theatre's JPEGs (no tiles needed). The rim's pixels
+    cannot be told from the composite's own dark sea after JPEG (off Lebanon the composite's sea is darker than
+    the fill, so the trim moved its edge by two pixels instead), and every trimmed node lost a JPEG generation.
 
 The renderer draws the ground with one vertex per height texel at levels 0–2, so the drawn surface is GLO-30 at 64 m
 (the original's level 6 was 79 m). Finer heights (a level-5 height level, 32 m) are possible later: the shape allows any

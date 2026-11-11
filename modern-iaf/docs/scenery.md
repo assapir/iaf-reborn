@@ -333,8 +333,8 @@ Fixed on 2026-11-08 (the "before" pictures above):
   latitude" on main and on the branch alike (§8).
 - **Pictures in the repo**: Ramon from 500 m, Tel Aviv at night, Tel Aviv with Far towns Full and Light, and the
   Graphics → MORE page with the Far towns row.
-- **The open sea's faint line**: one texel wide where Sentinel-2's pixels end offshore, seen low over the water
-  ([terrain.md](terrain.md) §3).
+- **The open sea's faint line**: fixed in the build (2026-11-11, [terrain.md](terrain.md) §3); a theatre built before
+  shows it until it is built again.
 - **Walls' colour**: the original's wall shading greys a desert town (§7); the sim may want its own.
 - **The bases' buildings**: the hangars and shelters are the airbases' models' (item B2's open points).
 - **Kinds**: the sim makes both buildings and trees; one row turns both on (Preferences → Graphics → "Buildings and

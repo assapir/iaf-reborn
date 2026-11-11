@@ -418,7 +418,15 @@ view there in both (the same frame):
 **Cost** (the same probe, the GPU time each viewport takes, 120 frames at the start): before, the flight's viewport
 18.8–19.4 ms; after, the flight's 14.3–15.9 ms and the cockpit's 7.7–8.9 ms, so about +4 to +5 ms a frame on the
 Iris Xe. Of the cockpit's, MSAA 4× (as the flight's) is about 3.2 ms, its shadow 1.5 ms, the sky's ambient 1 ms
-(each measured off once). Kept: MSAA for the panel's printed labels (open: FXAA in the cockpit's viewport instead).
+(each measured off once). Kept: MSAA for the panel's printed labels.
+
+- Tried and dropped (2026-11-11, look batch 1 item 3): FXAA in place of MSAA 4× in the cockpit's viewport.
+  `modern-iaf/tests/_cockpit_aa_probe.gd` (the Sufa on Ramon's runway, 1920 × 1080, Iris Xe, two interleaved rounds)
+  measured the cockpit's viewport at 6.85 / 7.02 ms with MSAA 4× and 4.47 / 4.47 ms with FXAA: 2.4–2.6 ms saved, the
+  flight's viewport unchanged (13.2–13.4 ms). The rule was to keep it only within one grey level of today on the HUD
+  and the panel's text. The panel's text missed it: the ICP's keys differ by 6.2 levels on average (33 % of their
+  pixels by more than one, 12 % by more than eight), the gauges by 3.1 levels (29 %, 7 %); the HUD glass 0.8 levels
+  (4 %). Zoomed, FXAA leaves the keys' outlines stair-stepped and blurs their small labels.
 
 ## 7. Open
 - The F-16s' HUD field (§4) is sized to fit the 3D combiners, smaller than the real HUDs' 20° × 13.5°.
