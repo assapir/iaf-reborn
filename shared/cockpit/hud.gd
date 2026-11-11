@@ -46,6 +46,10 @@ var _glyph_tex: Texture2D
 ## HUD centre in local pixels and the ui scale, set by _layout.
 var _c := Vector2.ZERO
 var _s := 1.0
+## The canvas units per physical pixel (1 / the window's content scale and the canvas's own scale; 0.5 on a 2×
+## display scale): the pen's and the dots' least width and the texts' raster size are physical pixels, so the HUD
+## draws as crisp, as thin and as large (in degrees) at every display scale (docs/real-hud.md "Display scale").
+var _dot := 1.0
 ## The ladder's labels of this frame ([top-right, text]): the sprite pass is not clipped (drawn by `outer`).
 var _ladder_labels := []
 ## The gun pipper of this frame ({p (HUD px), arc (range arc angle, 0 none)} or {}): the sprite is only clipped to
@@ -121,6 +125,8 @@ func _layout() -> void:
 	size = Vector2(h.LeftBorder + h.RightBorder, h.TopBorder + h.BottomBorder) * s
 	_c = Vector2(h.LeftBorder, h.TopBorder) * s
 	_s = s
+	var k := (get_viewport().get_final_transform() * get_global_transform_with_canvas()).get_scale().x
+	_dot = 1.0 / k if k > 0.0 else 1.0
 	if outer != null:
 		outer.position = position
 		outer.size = size
@@ -263,7 +269,7 @@ const MIN_LEVEL := 0.125
 ## The stroke: 0.08° (the F-16 HUD video's 1–2 px of 720 across about 30°, inferred) at the HUD's 12 px per degree.
 const PEN_DEG := 0.08
 ## The halo drawn under every stroke: this many times its width at HALO_ALPHA (a collimated stroke's soft glow).
-const HALO_WIDE := 4.0
+const HALO_WIDE := 2.0
 const HALO_ALPHA := 0.22
 ## True with hud_daylight: the halo, the pen and the colour.
 var _glow := false
@@ -288,7 +294,7 @@ static func daylight(sun: Dictionary) -> float:
 
 ## The stroke width in px at ui scale `s`: the original's 0.6 px per HUD pixel, or PEN_DEG with hud_daylight.
 func _pen(s: float) -> float:
-	return maxf(1.0, (PEN_DEG * 12.0 if _glow else 0.6) * s)
+	return maxf(_dot, (PEN_DEG * 12.0 if _glow else 0.6) * s)
 
 
 func _halo(c: Color) -> Color:
@@ -347,7 +353,7 @@ func _glyph(x: int) -> PackedVector2Array:
 ## short stroke of its own, the joint.
 func _sprite(ci: CanvasItem, p: Vector2, text: String, right := false) -> void:
 	var x0 := p.x - (5 * text.length() if right else 0)
-	var wd := maxf(_s * 0.95, 1.0)
+	var wd := maxf(_s * 0.95, _dot)
 	var j := Vector2(0.5 * wd / _s * 0.5, 0.0)
 	var pts := PackedVector2Array()
 	for i in text.length():
@@ -392,10 +398,10 @@ func _gdi(ci: CanvasItem, p: Vector2, text: String, right := false, colour = nul
 	var box := gdi_box(p, text, right)
 	if box.size.y <= 0.0:
 		return
-	ci.draw_set_transform(Vector2(box.position.x, _pt(p).y), 0.0, Vector2(_arial_squeeze, 1.0))
+	ci.draw_set_transform(Vector2(box.position.x, _pt(p).y), 0.0, Vector2(_arial_squeeze, 1.0) * _dot)
 	var col: Color = colour if colour != null else _hc()
 	if _glow:
-		var o := roundi(_pen(_s) * (HALO_WIDE - 1.0))
+		var o := roundi(_pen(_s) / _dot * (HALO_WIDE - 1.0))  # physical px, as the font's size
 		ci.draw_string_outline(_arial, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, _gdi_size(), o, _halo(col))
 	ci.draw_string(_arial, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, _gdi_size(), col)
 	ci.draw_set_transform(Vector2.ZERO)
@@ -418,7 +424,7 @@ func _gdi_size() -> int:
 			* em
 		)
 		_arial_squeeze = 5.0 / avg
-	return int(round(em * _s))
+	return int(round(em * _s / _dot))  # physical px: _gdi draws it scaled by _dot
 
 
 ## The box `_gdi` fills with `text` (the layer's pixels): its drawn width, from the baseline up a capital's height
@@ -428,10 +434,10 @@ func gdi_box(p: Vector2, text: String, right := false) -> Rect2:
 	if fs < 1:
 		return Rect2()
 	var at := _pt(p)
-	var wd: float = _arial.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x * _arial_squeeze
+	var wd: float = _arial.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x * _arial_squeeze * _dot
 	if right:
 		at.x -= wd
-	var cap := 0.716 * fs
+	var cap := 0.716 * fs * _dot
 	return Rect2(at - Vector2(0, cap), Vector2(wd, cap))
 
 
@@ -1463,7 +1469,7 @@ func _draw_ag(ag: Dictionary, s: float, w: float, col: Color) -> void:
 		var l := d.dot(down) + 100.0 * k * s
 		var q := p - down * l
 		draw_line(q + perp * 10 * s, q - perp * 10 * s, col, w)
-		draw_rect(Rect2(p, Vector2(1, 1) * maxf(1.0, s)), col)
+		draw_rect(Rect2(p, Vector2(1, 1) * maxf(_dot, s)), col)
 		return
 	if ag.get("off", false):
 		var n := len * clampf((10.0 - float(ag.ttg)) * 0.1, 0.0, 1.0)
@@ -1472,7 +1478,7 @@ func _draw_ag(ag: Dictionary, s: float, w: float, col: Color) -> void:
 	if len > 9 * s:
 		draw_line(p - u * 9 * s, a, col, w)
 	draw_arc(p, 8 * s, 0, TAU, 24, col, w)
-	draw_rect(Rect2(p, Vector2(1, 1) * maxf(1.0, s)), col)
+	draw_rect(Rect2(p, Vector2(1, 1) * maxf(_dot, s)), col)
 
 
 ## The flight path marker held inside the HUD (R+0x2780 / 0x2784), else the HUD centre.

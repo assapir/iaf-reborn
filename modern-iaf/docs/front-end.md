@@ -746,7 +746,7 @@ The bisect switch turns graphics features off for one run, whatever the settings
 | `upscaling` | the 3D view at full size |
 | `cockpit_origin` | the cockpit drawn in the flight's world (no `cockpit_composite.gdshader` over the view) |
 | `patches` | the terrain close up's colour patches off (`terrain_patches` 0) |
-| `glass` | no combiner glass in the 3D cockpit; the HUD drawn plain (no `hud_glass.gdshader`: unclipped, not added) |
+| `glass` | no combiner glass (nor the Sufa's glass edges) in the 3D cockpit; the HUD drawn plain (no `hud_glass.gdshader`: unclipped, not added) |
 | `hudglow` | the HUD drawn over the scene in its plain colours, not added as light |
 
 Each name in force is logged at the start (`safe: sky off (sky levant -> original)`); an unknown name is a warning. The

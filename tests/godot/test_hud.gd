@@ -320,6 +320,23 @@ func _traced(tv) -> void:
 		"the original game's HUD: the darkest green, 0 / 36 / 0, at 0.6 px per HUD pixel (%s)" % cp.hud._hc()
 	)
 	check(cp.hud.material == null, "the original 2D panel's HUD: no material (normal blending)")
+	# The display scale (docs/real-hud.md "Display scale"): at a 2× content scale the least pen width is one physical
+	# pixel (half a canvas unit) and the texts' raster size doubles, so the HUD keeps its stroke and size in degrees.
+	var fs1: int = cp.hud._gdi_size()
+	get_root().content_scale_factor = 2.0
+	await frames(2)
+	var dot: float = cp.hud._dot
+	var fs2: int = cp.hud._gdi_size()
+	var box: Rect2 = cp.hud.gdi_box(Vector2.ZERO, "300")
+	get_root().content_scale_factor = 1.0
+	await frames(2)
+	check(
+		dot == 0.5 and cp.hud._dot == 1.0 and absi(fs2 - fs1) <= 1 and box.size.y > 0.0,
+		(
+			"display scale 2: the pen's least width a physical px (dot %s), the text at its own px size (%d / %d)"
+			% [dot, fs1, fs2]
+		)
+	)
 
 	# Gun pipper (FUN_00530040): held inside the field (bottom − 2 px); the range arc r NM · π, under 1.95 NM, over 3°.
 	var hf := Rect2(0, 0, 139, 135)

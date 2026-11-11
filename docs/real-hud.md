@@ -899,13 +899,24 @@ and its 0.6 px pen. The study behind it: the look study's cockpit proposal, find
   can only brighten it. The original HUD's green, drawn over the scene, read darker than the ground behind it.
 - **Stroke and halo.** The stroke is 0.08° (`PEN_DEG`, 0.96 px per HUD pixel: 1.5 px in an 85° view across 1,920 px;
   inferred from an F-16 HUD video's[^gcas-video] 1–2 px of 720 across about 30°). Under every line, circle, arc and text of the
-  Real HUD lies a halo four times the stroke's width at 22 % (`HALO_WIDE`, `HALO_ALPHA`): a collimated stroke's soft
-  glow, small to the eye (inferred).
+  Real HUD lies a halo twice the stroke's width at 22 % (`HALO_WIDE`, `HALO_ALPHA`; a text's outline one stroke wide):
+  a collimated stroke's soft glow, small to the eye (inferred). Until 2026-11-11 the halo was four times the stroke and
+  the texts' outline three strokes: the symbols read soft and thick beside the original game's crisp Real HUD (the Mac
+  play test), so both were narrowed.
+- **Display scale.** The HUD draws as thin, as crisp and as large (in degrees) at every display scale (a window
+  content scale of 2, as a 2× display's, or a stretched canvas): `hud.gd` takes the canvas units per physical pixel
+  (`_dot`, from the viewport's final transform) and keeps the pen's and the dots' least width at one physical pixel and
+  draws the texts at their size in physical pixels, scaled back by `_dot`. Before (2026-11-11), at content scale 2 the
+  least pen width was one canvas unit (two pixels) and the texts were rasterised at half size and then enlarged, so the
+  HUD came out twice as thick and blurred; this held in both games. Check: `modern-iaf/tests/_hud_scale_shot.gd`
+  (`SHOT_SCALE=1` / `2`).
 - **Combiner glass.** 14 % opaque in a faint cool magenta (0.62 / 0.56 / 0.72) with specular 0.8, so it is slightly
   darker than the sky and reflects a little of it (`cockpit3d.gd`; the green its coating reflects is missing from
   what passes through, inferred). The original game's glass stays 7 %. The Sufa's wide-angle plate has a thin
   light edge down each side, its top free (2026-11-09, `tools/f16d/cockpit3d.py` `hud_wide_edges`; docs/cockpit.md
-  "3D cockpit"); it is part of `f16.glb`, so the original game's 3D cockpit shows it too.
+  "3D cockpit"); it is part of `f16.glb`, so the original game's 3D cockpit shows it too. Since 2026-11-11 the edge is
+  20 % opaque (`cockpit3d.gd` `EDGE_ALPHA`; the model's 60 % read as two white lines) and goes off with the glass under
+  Modern IAF's bisect switch `IAF_SAFE=glass`.
 - **Helmet displays.** The F-35I's Gen III helmet display and the DASH light the same way (2026-11-09): their frame's
   own green (0.45 / 1.0 / 0.55 in `real_hud/f35.rs`, `dash.rs`) becomes the P43 green at the same level and night
   floor, stepped by Shift + H and set by the slider (`hud.gd` `real_hud()`). The F-35 helmet shows green monochrome
