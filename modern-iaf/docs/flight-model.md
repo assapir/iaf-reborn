@@ -413,6 +413,7 @@ shift from the data's 0.35 c̄ (CZ into Cm, CY into Cn) and ΔCm(α), ΔCm,ds(α
 report leaves open (inferred): the `,lef` tables end at α 45°, so above 45° their increments hold the 45° values
 (the flap is fully down there and the increments' weight is 0); ΔCnβ and ΔClβ multiply β in degrees (the tables'
 unit). Table III's ΔCnδa(α) is in `data.rs`, but appendix B's equations do not use it, so the model leaves it out.
+The speed brake's ΔCX,sb and ΔCZ,sb are in `data.rs` but not flown: a drag along the flow replaces them (§9.17).
 The flap schedule of appendix A (printed p. 34) is `lef_schedule`: δlef = 1.38 α − 9.05 q̄/ps + 1.45, limited to
 0–25°, without its lag filters (they are stage (c)'s flight control system).
 
@@ -491,8 +492,8 @@ budget, a real flight. Open:
 * **The take-off roll**: 1,823 ft with the control system's rotation and the flaps down, still −23 % against the
   F-16A SAC (§9.10).
 * **The flaps' aerodynamics**: TP-1538 has no trailing-edge flap data; the flaps' increments are inferred (§9.16).
-* **The approach speed**: TP-1538's lift at 13° α is high: the Barak's 13° approach is 114 kt, the manual's 137 kt
-  (§9.16).
+* **The speed brake's 43° limit with the gear down**: the control system opens the speed brake to 60° in every
+  configuration (§9.17).
 * **The autopilot's taxi pivot**: the 6-DoF turns on the spot (`SixDof::set_pivot`, inferred). The autopilot's level
   hold and its g commands are tested on the 6-DoF (`crates/iaf-flight/tests/fm.rs`); its landing and taxi laws are
   untried there.
@@ -785,14 +786,14 @@ on the 6-DoF). On the F-16s and the Adir the game's flap key does nothing: the r
 description ("a function of mach number, AOA, and altitude", p. 1-118). Left out: the manual's 2° up with weight on
 both main wheels (the tables start at 0°).
 
-**The aerodynamics**: TP-1538 has no δtef data, so the increments are inferred, linear in δtef, at 20°
+**The aerodynamics**: TP-1538 has no δtef data, so the increments come from elsewhere, linear in δtef, at 20°
 (`aero::TEF_CL`, `TEF_CD`, `TEF_CM`):
 
-| increment at 20° | value | how (all inferred) |
+| increment at 20° | value | how |
 |---|---|---|
-| ΔCL (normal to the flow) | +0.24 | DATCOM's plain-flap method: flaperon chord about 22 % of the local chord, the flapped span from the manual's flaperon area (31.32 ft² of the 300 ft² wing, p. 1-9), aspect ratio 3 |
-| ΔCD | +0.015 | FM-0's FlapsDragIndex 150 (§4) |
-| ΔCm (about 0.35 c̄) | −0.036 (nose down) | the added lift acting 0.15 c̄ behind the reference, less the tail's change in downwash |
+| ΔCL (normal to the flow) | +0.122 | the JSBSim / FlightGear F-16 model's CLtef[^fg-f16] (its source unstated); checked against the manual's approach speeds (§9.17) |
+| ΔCD | +0.015 | FM-0's FlapsDragIndex 150 (§4), the same as the JSBSim model's CDtef |
+| ΔCm (about 0.35 c̄) | −0.018 (nose down) | the added lift acting 0.15 c̄ behind the reference, less the tail's change in downwash (inferred) |
 
 The control system trims the moment out: a g command, it holds 1 g, and the manual calls the "pitch transients
 resulting from LG and TEF changes … mild" (p. 7-2).
@@ -803,18 +804,54 @@ Barak at 19,600 lb:
 
 | | flaps up | flaps 20° |
 |---|---|---|
-| calibrated speed | 122.9 kt | 114.0 kt |
-| trimmed CL | 1.220 | 1.426 (+0.207: the stabilator's trim takes 0.03 of the 0.24) |
-| stabilator | +1.46° | −1.92° (the flaps' nose-down moment) |
+| calibrated speed | 138.1 kt | 131.2 kt |
+| trimmed CL | 0.974 | 1.083 (+0.109: the stabilator's trim takes 0.013 of the 0.122) |
+| stabilator | +1.47° | −0.24° (the flaps' nose-down moment) |
 
 In flight the flaps reach 20° 3.1 s after the handle goes down and are up again 3.1 s after it is raised.
 
-**The manual's approach speed** is 137 kt at 13° α for the F-16D with the F100-PW-229, at its basic operating weight
-with full ammunition, ±5 kt by c.g. (the landing pattern, figure 2-3, p. 2-25[^to-f16cj]). The 6-DoF's 114 kt is 23 kt slow even
-taken at 19,600 lb (the weight is inferred; the manual's basic operating weight is in a volume not read): TP-1538's
-wind-tunnel lift at 13° α is already 14 kt high with the flaps up. `approach_speed_against_the_manual` is
-`#[ignore]`d with that reason; the flaps' lift stays the DATCOM estimate, not a fit to it. Open: a public trimmed
-lift curve of the full-scale F-16.
+**The manual's approach speed** is checked in §9.17.
+
+### 9.17 The approach speed against the manual (2026-11-11)
+
+**The finding: TP-1538's speed-brake force tables give the speed brake lift.** Table III's ΔCZ,sb (printed p. 58) is
+−0.39 at α 0°, −0.27 to −0.42 over α 0–15°: with the speed brake fully open the jet gains more lift than its wing
+makes at 5° α. Its ΔCX,sb (p. 51) gives the same speed brake a drag of only 0.01 at α 0°. A split speed brake at the
+tail adds drag, not lift. The JSBSim / FlightGear F-16 model[^fg-f16], built on the same tables and the cross-check the
+plan names, takes both tables out ("TP 1538 is unreliable in this regard, these numbers makes no sense"; "Mistake in
+TP 1538") and flies NASA TN D-8176's speed brake: a drag of 0.05 along the flow, × 0.9333 for the reference area (TN
+D-8176 itself not read). The 6-DoF now does the same (`aero::SB_CD` = 0.0467 at 60°, × δsb/60); TP-1538's ΔCm,sb
+stays, as in the JSBSim model. The transcription is right: the JSBSim model's copy of the two tables has the same
+values.
+
+The approach test flies the speed brake at 43° (the manual's limit with the gear down), so the false lift was +0.25
+in CL at 13° α, of the 1.22 the flaps-up approach flew. That was 12 kt of the 23 kt miss (a one-off run at 19,600 lb with the DATCOM flaps: 114.0 kt with the tables,
+125.9 kt with the drag).
+
+**The second part: the flaps' lift.** With the speed brake fixed, the DATCOM estimate of the flaps' lift (+0.24,
+§9.16 before this change) still left the approach about 9 kt slow at the manual's weights. The JSBSim model's +0.122 (half
+of it) is used instead. The other candidates were checked and are not the cause: the leading-edge flap's increment at
+13° α (on its schedule, 19°; against the flap up it changes CL by −0.007 at 13° α, a one-off run), the wing area (300 ft², TP-1538 Table I, on both sides of the
+equation), the dynamic pressure (sea level, true = calibrated speed), the c.g. (TP-1538's 0.35 c̄, the data's own
+reference) and the α definition (TP-1538's α is the body α, and the 6-DoF reads the manual's AOA as body α: inferred).
+
+**The check** (`approach_speed_against_the_manual`): T.O. GR1F-16CJ-1 figure 2-3 (p. 2-25)[^to-f16cj] gives the
+13° α final approach for the GE129 engine as C 136 kt, D 138 kt at the basic operating weight plus full ammunition,
++ 4 kt per 1,000 lb of fuel / stores, + 8 kt at 11° α, ±5 kt by c.g. Its gross weights with pilot, oil, full
+ammunition and two tip AIM-120 (p. 1-7) are the test's three weights; the two AIM-120 (157 kg each[^aim120]) add
+2.8 kt (inferred: the basic operating weight taken without the tip missiles). The test asserts ±5 kt at 13° and at 11° α:
+
+| weight | manual 13° / 11° α | before (speed brake lift, DATCOM flaps) 13° α | now 13° / 11° α |
+|---|---|---|---|
+| F-16C, 21,000 lb | 138.8 / 146.8 kt | 118.0 kt | 135.8 / 146.3 kt |
+| F-16D PX II, 21,600 lb | 140.8 / 148.8 kt | 119.7 kt | 137.7 / 148.4 kt |
+| F-16D PX III, 21,900 lb | 140.8 / 148.8 kt | 120.5 kt | 138.6 / 149.4 kt |
+
+(The "before" column scales the 19,600 lb run's 114.0 kt by √(W / 19,600).) In flight the approach at 13° α is
+about 20 kt faster than before, and opening the speed brake no longer adds lift: it only slows the jet.
+
+Open: FM-0 (§3) still takes TP-1538's ΔCX,sb at α 5° (0.036) as the speed brake's drag index; the speed brake's 43°
+limit with the gear down (§9.6).
 
 [^tp1538]: L. T. Nguyen, M. E. Ogburn, W. P. Gilbert, K. S. Kibler, P. W. Brown, P. L. Deal, "Simulator Study of
     Stall/Post-Stall Characteristics of a Fighter Airplane With Relaxed Longitudinal Static Stability", NASA
@@ -864,3 +901,8 @@ lift curve of the full-scale F-16.
     leading-edge flaps p. 1-118, the trailing-edge flaps and the ALT FLAPS switch p. 1-120, the airframe's dimensions
     p. 1-9, the gear handle and the TO/LDG CONFIG light p. 1-106, the take-off p. 2-21, the landing pattern's approach
     speeds figure 2-3 p. 2-25, flight with the gear down pp. 6-3–6-4, the missed approach p. 7-2. <https://falcon.blu3wolf.com/Docs/HAF-F16.pdf>
+[^fg-f16]: N. V. Chr., E. Hofman et al., FlightGear F-16 (JSBSim), `Systems/jsb-aerodynamics-block15-subtle.xml`
+    (dCx_sb, dCZ_sb from NASA TN D-8176; CLtef, CDtef), GPL-2.0, commit ef4f192f (read from a local clone; only the
+    two figures taken): https://github.com/NikolaiVChr/f16
+[^aim120]: designation-systems.net, "Raytheon AIM-120 AMRAAM" (AIM-120A/B 157 kg), as cited in docs/real-weapons.md:
+    https://www.designation-systems.net/dusrm/m-120.html

@@ -49,12 +49,18 @@ pub struct Surfaces {
     pub dtef: f64,
 }
 
-/// The trailing-edge flaps' increments at 20° (TP-1538 has no δtef data; all inferred, modern-iaf/docs/flight-model.md
-/// §9.16): lift ΔCL from DATCOM's plain-flap method on the manual's flaperon area, drag ΔCD FM-0's FlapsDragIndex,
-/// pitching moment ΔCm the lift acting 0.15 c̄ behind the 0.35 c̄ reference. Linear in δtef.
-pub const TEF_CL: f64 = 0.24;
+/// The trailing-edge flaps' increments at 20° (TP-1538 has no δtef data; modern-iaf/docs/flight-model.md §9.16–9.17):
+/// lift ΔCL the JSBSim / FlightGear F-16 model's CLtef, drag ΔCD FM-0's FlapsDragIndex, pitching moment ΔCm the lift
+/// acting 0.15 c̄ behind the 0.35 c̄ reference (inferred). Linear in δtef.
+pub const TEF_CL: f64 = 0.122;
 pub const TEF_CD: f64 = 0.015;
 pub const TEF_CM: f64 = -0.15 * TEF_CL;
+
+/// The speed brake's drag fully open (60°), along the air flow: NASA TN D-8176's 0.05 on its reference area, × 0.9333
+/// to TP-1538's 300 ft², as the JSBSim / FlightGear F-16 model carries it. It replaces TP-1538's ΔCX,sb and ΔCZ,sb
+/// (Table III pp. 51, 58): their ΔCZ,sb of −0.27 to −0.42 at α 0–15° is a lift gain on the order of the wing's own
+/// at 5°, with almost no drag at α 0 (modern-iaf/docs/flight-model.md §9.17). TP-1538's ΔCm,sb stays, as in JSBSim.
+pub const SB_CD: f64 = 0.05 * 0.9333;
 
 /// Body-axis force and moment coefficients: CX forward, CY right, CZ down; Cl roll, Cm pitch, Cn yaw.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -145,12 +151,10 @@ pub fn coefficients(f: &Flow, s: &Surfaces, af: &Airframe) -> Coeffs {
     // The δh = 0 tables (DH5[2], DH3[1]) are the increments' bases.
     let cx = at3(&CX, a, b, h5)
         + (at2(&CX_LEF, al2, b) - at2(&CX[2], al1, b)) * k.lef
-        + at1(&DCX_SB, a) * k_sb
         + cq * (at1(&CXQ, a) + at1(&DCXQ_LEF, al2) * k.lef) * f.q;
 
     let cz = at3(&CZ, a, b, h5)
         + (at2(&CZ_LEF, al2, b) - at2(&CZ[2], al1, b)) * k.lef
-        + at1(&DCZ_SB, a) * k_sb
         + cq * (at1(&CZQ, a) + at1(&DCZQ_LEF, al2) * k.lef) * f.q;
 
     let cm = at3(&CM, a, b, h5) * at1(&ETA_DH, h5)
@@ -197,6 +201,7 @@ pub fn coefficients(f: &Flow, s: &Surfaces, af: &Airframe) -> Coeffs {
     let cl = at3(&CL, a, b, h3) + at.lateral(&cl_t, cl_a, cl_al, &k, f) + at1(&DCL_BETA, a) * f.beta;
 
     let mut c = Coeffs { cx, cy, cz, cl, cm, cn };
+    add_drag(&mut c, SB_CD * k_sb, f.alpha);
     let k_tef = s.dtef / 20.0;
     if k_tef != 0.0 {
         // ΔCL normal to the air flow, ΔCD along it.
@@ -268,7 +273,7 @@ mod tests {
 
     #[test]
     fn tef_increments() {
-        // 20° of flap at α 0: +0.24 lift (−CZ), −0.036 pitch (nose down), +0.015 drag (−CX).
+        // 20° of flap at α 0: +0.122 lift (−CZ), −0.018 pitch (nose down), +0.015 drag (−CX).
         let f = Flow { v: 80.0, ..Flow::default() };
         let c0 = coefficients(&f, &Surfaces::default(), &AF);
         let c1 = coefficients(&f, &Surfaces { dtef: 20.0, ..Surfaces::default() }, &AF);

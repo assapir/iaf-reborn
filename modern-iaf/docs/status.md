@@ -3,11 +3,14 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The F-16's approach speed matches the manual (2026-11-11):** TP-1538's speed-brake tables gave the open speed
+  brake lift (+0.25 CL at 13° α); the 6-DoF flies the JSBSim model's speed-brake drag instead, and its flaps' lift
+  (+0.122). The 13° α approach is 136–139 kt at the manual's three weights (manual 139–141 kt, was 118–121 kt)
+  ([flight-model.md](flight-model.md) §9.17). Open: the speed brake's 43° limit with the gear down.
 - **The trailing-edge flaps droop with the gear handle (2026-11-11):** on the 6-DoF the F-16s' and the Adir's
   flaperons go 20° down with the gear handle below 240 kt, less to 370 kt, and up with the handle, in the gear's 3.1 s
   (the F-16 flight manual); their lift, drag and nose-down moment are inferred (DATCOM, FM-0's drag); the models'
-  flaperons droop with them. The Barak's 13° α approach is 9 kt slower with them, 114 kt against the manual's 137 kt:
-  TP-1538's lift is high (open) ([flight-model.md](flight-model.md) §9.16).
+  flaperons droop with them ([flight-model.md](flight-model.md) §9.16).
 - **The cockpit zoom one way per scroll; every jet's view alike (2026-11-11, the Mac play test's P1):** each wheel or
   trackpad step narrows the view (the true size kept between the wide and the narrow view; a step against the scroll
   dropped until it pauses), clamped at both ends; the trackpad zooms too. The Barak, the Sufa and the F-35I open at the

@@ -255,7 +255,7 @@ pub const CX_LEF: Ab<14> = [
         3090,    3070,    2800,    2380,    2840,    2540,    2240,    2540,    2620,    2450],  //   β 0 … +30
 ];
 
-/// ΔCX,sb(α): the speed brake fully open (60°). TP-1538 Table III, printed p. 51.
+/// ΔCX,sb(α): the speed brake fully open (60°). TP-1538 Table III, printed p. 51. Not flown: `aero::SB_CD` replaces it.
 pub const DCX_SB: [i32; 20] = [-1010, -1010, -1010, -1010, -1010, -3580, -7900, -12270, -18270, -18920, -19880, -20000, -18740, -16730, -14760, -13100, -12790, -13250, -12500, -12500];
 
 /// CXq(α), per rad. TP-1538 Table III, printed p. 51.
@@ -515,7 +515,7 @@ pub const CZ_LEF: Ab<14> = [
      -220800, -220100, -218200, -207700, -220900, -212600, -205800, -195500, -187900, -176000],  //   β 0 … +30
 ];
 
-/// ΔCZ,sb(α). TP-1538 Table III, printed p. 58.
+/// ΔCZ,sb(α). TP-1538 Table III, printed p. 58. Not flown: `aero::SB_CD` replaces it.
 pub const DCZ_SB: [i32; 20] = [-38580, -38580, -38580, -38580, -38580, -26850, -30210, -42480, -20940, -9690, 4380, 9470, 140, -970, -1530, -5200, -100, -2020, -3690, -3690];
 
 /// CZq(α), per rad. TP-1538 Table III, printed p. 58.

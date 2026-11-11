@@ -730,9 +730,9 @@ fn flaps_with_the_gear_handle() {
         "Barak 19,600 lb, 13° α, gear down, speed brakes 43°: flaps up {v0:.1} kt (δh {dh0:.2}°, CL {cl0:.3}), flaps 20° \
          {v1:.1} kt (δh {dh1:.2}°, CL {cl1:.3})"
     );
-    assert!(cl1 - cl0 > 0.18 && cl1 - cl0 < 0.24, "trimmed lift increment {}", cl1 - cl0);
-    assert!(dh1 < dh0 - 2.0, "nose-down moment: δh {dh0} → {dh1}");
-    assert!(v0 - v1 > 6.0 && v0 - v1 < 12.0, "{v0} → {v1}");
+    assert!(cl1 - cl0 > 0.09 && cl1 - cl0 < 0.122, "trimmed lift increment {}", cl1 - cl0);
+    assert!(dh1 < dh0 - 1.0, "nose-down moment: δh {dh0} → {dh1}");
+    assert!(v0 - v1 > 4.0 && v0 - v1 < 10.0, "{v0} → {v1}");
     // In flight: the flaps follow the handle at the gear's pace and stay up with it.
     let mut f = flight(barak, 1000.0, 150.0 * KT, true);
     assert_eq!(f.surfaces().dtef, 0.0);
@@ -747,12 +747,18 @@ fn flaps_with_the_gear_handle() {
 }
 
 #[test]
-#[ignore = "known miss: TP-1538's lift at 13° α is high, the approach 23 kt slow (flight-model.md §9.16)"]
 fn approach_speed_against_the_manual() {
-    // T.O. GR1F-16CJ-1, figure 2-3 (p. 2-25), the landing pattern's notes: final approach at 13° α, F-16D PW-229, 137 kt at the basic operating
-    // weight plus full ammunition, ±5 kt by c.g. (the weight taken as the F-16D's 19,100 lb empty + 500 lb: inferred).
-    let barak = jets::all()[0].at_weight(19_100.0 + 500.0);
-    let (v, _, _) = approach(&barak, 13.0, 20.0);
-    println!("13° α approach: {v:.1} kt (T.O. GR1F-16CJ-1: 137 kt)");
-    assert!((v - 137.0).abs() <= 10.0, "{v}");
+    // T.O. GR1F-16CJ-1, figure 2-3 (p. 2-25): final approach at 13° α, GE129 engine, C 136 kt and D 138 kt at the
+    // basic operating weight plus full ammunition, + 4 kt per 1,000 lb of fuel / stores, + 8 kt at 11° α, ±5 kt by
+    // c.g. The weights (p. 1-7): with pilot, oil, full ammunition and two tip AIM-120 (2 × 346 lb: 157 kg each,
+    // docs/real-weapons.md; the basic operating weight taken without them: inferred), no fuel: C 21,000 lb, D PX II 21,600 lb, D PX III 21,900 lb. Gear down, speed brakes 43°.
+    let missiles = 2.0 * 157.0 / 0.453_592_37 / 1000.0 * 4.0;
+    for (weight, manual) in [(21_000.0, 136.0), (21_600.0, 138.0), (21_900.0, 138.0)] {
+        let jet = jets::all()[0].at_weight(weight);
+        let (v13, v11) = (approach(&jet, 13.0, 20.0).0, approach(&jet, 11.0, 20.0).0);
+        let m = manual + missiles;
+        println!("{weight} lb: 13° α {v13:.1} kt, 11° α {v11:.1} kt (T.O. GR1F-16CJ-1: {m:.1}, {:.1})", m + 8.0);
+        assert!((v13 - m).abs() <= 5.0, "{weight} lb, 13°: {v13} against {m}");
+        assert!((v11 - m - 8.0).abs() <= 5.0, "{weight} lb, 11°: {v11} against {}", m + 8.0);
+    }
 }
