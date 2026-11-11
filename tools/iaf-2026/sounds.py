@@ -96,10 +96,14 @@ def tone(f, t, phase=0.0):
     return np.sin(2 * np.pi * f * t + phase)
 
 
-def beeps(freq, on, off, n, total):
+def beeps(freq, on, off, n, total, loop=False):
+    """n beeps of `on` s every on + off s, each under a 4 ms Hann ramp centred on the gate's edges. For a loop the ramp
+    wraps (the first beep's rise starts at the end of the clip), so the beep at the loop point has its whole rise
+    and the seam does not click."""
     t = np.arange(int(total * SR)) / SR
-    gate = ((t % (on + off)) < on) & (t < n * (on + off))
-    ramp = np.convolve(gate.astype(float), np.hanning(int(0.004 * SR)), "same")
+    gate = (((t % (on + off)) < on) & (t < n * (on + off))).astype(float)
+    w = np.hanning(int(0.004 * SR))
+    ramp = np.convolve(np.tile(gate, 3), w, "same")[len(t): 2 * len(t)] if loop else np.convolve(gate, w, "same")
     return tone(freq, t) * ramp / ramp.max()
 
 
@@ -146,8 +150,8 @@ TONES = {
     "sfx_landing": ("engine off: 0.1 s of silence", lambda: np.zeros(int(0.1 * SR)), None, True),
     "sfx_ir_seek": ("IR seeker search growl: 400 Hz, level wobble below 30 Hz", lambda: ir_growl(400, 0.6), -18, True),
     "sfx_ir_lock": ("IR seeker lock tone: 1000 Hz, light wobble", lambda: ir_growl(1000, 0.2), -16, True),
-    "sfx_warning_wrn_aoa": ("AoA warning: 1600 Hz, 4 beeps a second", lambda: beeps(1600, 0.125, 0.125, 4, 1.0),
-                            -24, True),
+    "sfx_warning_wrn_aoa": ("AoA warning: 1600 Hz, 4 beeps a second",
+                            lambda: beeps(1600, 0.125, 0.125, 4, 1.0, loop=True), -24, True),
     "sfx_warning_wrn_new_guy": ("RWR new emitter: three 60 ms beeps at 1200 Hz",
                                 lambda: beeps(1200, 0.06, 0.06, 3, 0.4), -24, False),
     "sfx_warning_wrn_missile_launch": ("RWR launch warning: 1024 / 1536 Hz alternating 8 times a second",
@@ -266,9 +270,10 @@ def finish(x, level, mode):
 
 
 def ogg(path, y):
-    """The clip as Ogg Vorbis, quality 4 (the format the sim ships, modern-iaf/docs/sound.md §1)."""
+    """The clip `y` (16-bit, from finish) as Ogg Vorbis, quality 4 (the format the sim ships, modern-iaf/docs/sound.md
+    §1)."""
     with tempfile.TemporaryDirectory() as d:
-        wavfile.write(os.path.join(d, "a.wav"), SR, np.round(np.clip(y, -1, 1) * 32767).astype(np.int16))
+        wavfile.write(os.path.join(d, "a.wav"), SR, y.astype(np.int16))
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", os.path.join(d, "a.wav"), "-c:a", "libvorbis", "-q:a", "4",
                         path], check=True)
 

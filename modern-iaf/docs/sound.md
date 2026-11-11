@@ -52,7 +52,7 @@ clip made from one of them (the afterburner's light-off, §1.2) and 8 computed t
 
 ### 1.1 Listening notes
 Measured, not heard: a human listening pass at game volume is still open. Every clip below has no clipped sample,
-less than 0.4 s of near-silence at its ends, and (loops) a seam no larger than the clip's usual sample step. The
+less than 0.4 s of near-silence at its ends, and (loops) no seam as Godot plays it (§1.10). The
 original's clips of the same codes were measured for level only: ours are mostly within 3 dB.
 
 | clip | s | vrms dB | peak dB | listen for |
@@ -304,6 +304,33 @@ used for measurement only; its audio was deleted after.
 
 Open: the canopy's real transmission loss; the helmet in flight (the lab figures and the shape only); the cockpit's
 air-conditioning hiss (not played); the engine and wind levels by ear (the user's listening, A13).
+
+### 1.10 The loop seams
+11 November 2026. Every clip the sound table plays as a loop (12 clips: the dry engine, the burner, the JFS, the
+air brake's and the wind's airflow, both guns, the missile's and the bomb's flight, the two IR tones, the AoA and the
+launch warnings) was played through Godot's own Ogg decoder (`AudioStreamPlayback.mix_audio`, the mix rate at the
+clips' 22050 Hz) for three turns and measured at the loop point against the rest of the clip: the sample step, the
+step of the slope, the energy above 5 kHz in 3 ms windows (a click), the level of the 50 ms on each side and the
+spectrum of the 23 ms on each side. Measured, not heard.
+- **Godot loops at the Ogg's end granule.** `flight_sounds.gd _looped` sets `loop = true` (no loop offset); Godot
+  plays each turn at exactly the clip's length (the last page's granule) and repeats it sample for sample, so
+  Vorbis's block padding never plays. ffmpeg, by contrast, drops the last 256 samples of a clip held in a single audio
+  page (`sfx_warning_wrn_missile_launch`, `sfx_landing`): a measurement through ffmpeg shows a seam Godot does not play.
+- **The recorded loops** (`sounds.py finish`): the cut ends where the cross-fade's tail begins, so the loop point
+  is the recording's own continuous signal; their steps at the loop point lie inside the clip's own spread. The
+  M61's buzz keeps its 10 ms shot grid through the cross-fade (its peaks jitter by a few ms mid-fade, where two shots'
+  waveforms sum).
+- **`sfx_warning_wrn_aoa` clicked:** its first beep began at half level, the 4 ms ramp's first half cut off at the
+  clip's start, so the energy above 5 kHz at the loop point was 6.3 times the clip's largest elsewhere (its other
+  beep onsets). `sounds.py beeps(loop=True)` now wraps the ramp around the clip's end: 0.93 times, like the other
+  onsets; the level and the beeps are unchanged.
+- **The engine's changes** (§1.2, §1.9) do not click: the dry loop's pitch and gain are continuous in the RPM, the
+  burner's rise and the tail's fade are per-frame volume steps Godot ramps across each mix, and a swapped loop goes
+  on in the tail player from its own place.
+
+The review folder `~/.claude/iaf-2026-pages/sound/loops/` holds the plot and `before_` / `after_` clips. While at it:
+`sounds.py ogg()` clipped the 16-bit samples `finish` hands it to ±1, which would have written every clip as a
+square wave on the next run; it now writes them as they are (the committed tones remake bit for bit).
 
 ## 2. Earlier voice chains (2–8 November 2026, replaced)
 E1b (2 November) and E1c (3–8 November) made the voices with Piper text to speech and its `radio_voice.py`
