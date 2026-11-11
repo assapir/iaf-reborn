@@ -8,6 +8,8 @@
 #   - "click": sent on a left click (a switch);
 #   - "prop", "on", "off": the switch's FlightGear property (its animation in <model>.json) and its two positions,
 #     set by set_switch (cockpit3d.gd switches);
+#   - "toggle": the switch flips its own "prop" between "on" and "off" on a click, with its click sound, and sends
+#     "click" once every switch sharing that command is on (the F-16's AVIONIC POWER switches: each its own);
 #   - "guard": a guarded switch's guard property (its cover's animation): while it is 0 a click only lifts the cover
 #     (sets it to 1); the next click sends the switch's command, as the real guarded switch;
 #   - "turn": sent on the wheel (up as it is, down with p1 negated) and once per drag_px of a left drag (up: as it is);
@@ -84,6 +86,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		MOUSE_BUTTON_LEFT:
 			if r.has("guard") and float(get_parent().switches.get(r.guard, 0.0)) < 0.5:
 				get_parent().switches[r.guard] = 1.0  # the guard lifts; the switch moves on the next click
+			elif r.get("toggle", false):
+				_toggle(r)
 			elif r.has("click"):
 				get_parent().command.call(r.click)
 			elif r.has("turn"):
@@ -175,6 +179,23 @@ static func _area(name: String, box: Array, grip := false) -> MeshInstance3D:
 		rod.material_override = metal
 		mi.add_child(rod)
 	return mi
+
+
+## Flips toggle `r` alone (a switch FlightGear models unset counts as on: a hot jet's); once every switch of its
+## command is on, sends the command (the checklist's step).
+func _toggle(r: Dictionary) -> void:
+	var sw: Dictionary = get_parent().switches
+	var on := not _is_on(r)
+	sw[r.prop] = float(r.on if on else r.off)
+	var tv: Object = get_parent().command.get_object()  # terrain_view.gd (_press)
+	if tv != null and tv.get("sounds") != null:
+		tv.sounds.play("SFX_BUTTON")
+	if on and _controls.all(func(e): return int(e[1].get("click", [-1])[0]) != int(r.click[0]) or _is_on(e[1])):
+		get_parent().command.call(r.click)
+
+
+func _is_on(r: Dictionary) -> bool:
+	return float(get_parent().switches.get(r.prop, r.on)) == float(r.on)
 
 
 func _turn(r: Dictionary, way: float) -> void:

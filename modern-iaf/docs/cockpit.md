@@ -242,12 +242,20 @@ that property and its two positions (`prop`, `on`, `off`); `cockpit3d_controls.g
 the start and each one on when its step is taken; a refused step leaves its switch off. A jet that starts with its
 engine running, and the original game, keep the switches as FlightGear models them.
 
+- **The AVIONIC POWER switches** (2026-11-11, from the user's Mac): each is its own `toggle` in `f16_controls.json`.
+  A click flips that switch alone, with its click (`SFX_BUTTON`), and once all four are on the click sends the
+  avionics step. Until then all four shared the step's command, so one click threw them all. MFD powers the two
+  MFDs and UFC the DED (`cockpit3d.gd` `_powered`); MMC and ST STA move and power nothing. A refused avionics
+  step (before the generators) leaves the switches as clicked: one switch off and on again retries it. Ctrl+A
+  still throws all four. FlightGear's console holds no FCR or RDR ALT switch of its own (the SNSR PWR panel is
+  part of the console's body), so the radar and the radar altimeter stay powered with the avionics.
+
 | step | control (node) | place on the jet | command | key | on / off (FlightGear's value) |
 |---|---|---|---|---|---|
 | 1 | MAIN PWR switch (`MAIN_PWR`) | ELEC panel, left console, beside the throttle[^bms-ramp][^fg-left] | `[210, 0, 0]` | Ctrl+B | MAIN (2) / OFF (0) |
 | 2 | JFS switch (`JFS`) | ENG & JET START panel, left console, aft[^bms-ramp][^fg-left] | `[211, 0, 0]` | Ctrl+J | START 2 (1) / OFF (0) |
 | 3 | throttle grip (`THROTTLE`) | the throttle, left console | `[5, 0, 0]` | Throttle up | the throttle's own animation: out of OFF |
-| 4 | MMC, ST STA, MFD, UFC switches (`AVIONICS_MMC`, `AVIONICS_ST_STA`, `AVIONICS_MFD`, `AVIONICS_UFC`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | `[213, 0, 0]` | Ctrl+A | ON (1) / OFF (0), all four |
+| 4 | MMC, ST STA, MFD, UFC switches (`AVIONICS_MMC`, `AVIONICS_ST_STA`, `AVIONICS_MFD`, `AVIONICS_UFC`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | `[213, 0, 0]` | Ctrl+A | ON (1) / OFF (0): the key all four, a click its own switch |
 | 5 | INS knob (`INS`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | `[214, 0, 0]` | Ctrl+N | STOR HDG (1) / OFF (0) |
 | 6 | canopy handle (`CANOPY_HANDLE`, a hit area) | left side, aft of the left console, by the canopy switch[^dcs-canopy] | `[215, 0, 0]` | Ctrl+K | none |
 
@@ -350,6 +358,21 @@ render, `tests/godot/_cockpit3d_shot.gd` with `C3D_SIM=1 C3D_ONLY=down`.
 
 ![The Sufa looking down: before, the seat's well and a black slab; after, the pilot's legs, hands and vest](pictures/cockpit/lookdown_sufa.jpg)
 ![The Barak looking down: before and after](pictures/cockpit/lookdown_barak.jpg)
+
+### 5.4 The AoA probe (2026-11-11, from the user's Mac)
+
+On the ground the AoA gauge and the indexer jumped about: the 6-DoF's α is the angle of the body's velocity, which
+is near zero and turns every way at a standstill. The jet's probe reads nothing useful there: the F-16's flight
+manual, as quoted on a forum, bases every AoA indication on 0° with the nose gear's weight on wheels, the
+transmitters being unreliable at slow speed[^dcs-wow]. The 6-DoF's indicated AoA (`sixdof/flight.rs` `probe_aoa`)
+rests at 0° below 60 kt calibrated (`PROBE_MIN_KT`, inferred: the source gives the weight-on-wheels rule, no
+airspeed) and follows the flow above it through a 0.25 s lag (`PROBE_TAU`, inferred), so the needle holds at taxi
+speed. The flight state's `aoa` (the 3D cockpit's tape, the indexer, the HUD, the recording) is that value; `alpha`
+stays the true angle.
+
+Modern IAF only, by the flight model rather than a Settings switch: the original model's α is a smoothed state of
+its own that does not jump on the ground, so the original game is unchanged. `test_mvp.gd` `_roll` checks 0° below
+30 kt and a moving AoA within 1° of the true one from 150 kt.
 
 ## 6. Tests and pictures
 - `tests/godot/test_cockpit_no_panel.gd`: the profile on the sim's own cockpit dirs (`iaf-sim own`'s), the Sufa, the
@@ -606,4 +629,5 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
 [^hoggit-icp]: Hoggit wiki, "Instrument Panel" (DCS F-16C): the HUD's DAY / AUTO / NIGHT symbology brightness
   switch. https://wiki.hoggitworld.com/view/Instrument_Panel
 [^hoggit-ip]: Hoggit wiki, "Instrument Panel" (DCS F-16C): the ICP's SYM wheel sets the HUD's brightness. https://wiki.hoggitworld.com/view/Instrument_Panel
+[^dcs-wow]: Eagle Dynamics forum, "AOA indicator reading during NLG WOW" (quotes the F-16 dash-1: "When NLG WOW occurs, all AOA indications are based on zero degrees"; weak: a forum quote, the manual not read), https://forum.dcs.world/topic/245600-already-reportedaoa-indicator-reading-during-nlg-wow
 [^ayton]: Mark Ayton, "Blue Sky OPS", AIR International, 26 April 2012, quoted on F-16.net, "Engine start up procedure" (three switch selections: battery, IPP, engine), https://www.f-16.net/forum/viewtopic.php?p=317934

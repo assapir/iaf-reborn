@@ -90,7 +90,8 @@ var _sun: DirectionalLight3D  # _lighting
 var _lit_mats := []
 var _lit := Color(-1, -1, -1)  # the fill colour set
 var _screen_mats := []  # every screen's material (_screen_viewport)
-var _on_shown := 1.0  # the screens' level shown (_lighting): unpowered 0, else Settings.mfd_brightness
+var _on_shown := Vector2.ONE  # the screens' and the DED's levels shown (_lighting): unpowered 0, else MFD BRT
+var _ded_mat: StandardMaterial3D  # the F-16's DED screen (_attach_display): dark with its UFC switch off
 var _split := -1.0  # the scene's first shadow split (_sun_split)
 ## The pilot's body whose left glove follows the throttle's grip (_pilot_throttle); null without one.
 var _pilot: MeshInstance3D
@@ -408,15 +409,18 @@ func _lighting() -> void:
 	# Unpowered (cockpit.power below 2: Modern IAF's cold jet) every screen is dark, powered at the displays' brightness
 	# (Settings.mfd_brightness: the F-35I's MFD BRT knob); written when either changes (the MFDs below, as every
 	# frame, with their night level).
+	# The F-16's AVIONIC POWER switches (cockpit3d_controls.gd toggles): MFD the two MFDs, UFC the DED.
 	var on: float = Settings.mfd_brightness if cockpit.power == 2 else 0.0
-	if on != _on_shown:
-		_on_shown = on
+	var ded: float = on * _powered("f16/avionics/power-ufc")
+	if Vector2(on, ded) != _on_shown:
+		_on_shown = Vector2(on, ded)
 		for m: StandardMaterial3D in _screen_mats:
 			if not _screens.any(func(e): return e[2].material_override == m):
-				m.emission_energy_multiplier = on
+				m.emission_energy_multiplier = ded if m == _ded_mat else on
+	var mfd: float = on * _powered("f16/avionics/power-mfd")
 	for e in _screens:  # the MFDs turned down at night (MFD_NIGHT), their map fill darker (MAP_NIGHT)
 		(e[2].material_override as StandardMaterial3D).emission_energy_multiplier = (
-			(MFD_NIGHT if cockpit.night else 1.0) * on
+			(MFD_NIGHT if cockpit.night else 1.0) * mfd
 		)
 		e[0].map_dim = Mfd.MAP_NIGHT if cockpit.night else 0.0
 	if cockpit.night:
@@ -433,6 +437,11 @@ func _lighting() -> void:
 	var day := c * (float(meta.get("day_fill", 0.0)) / FILL)
 	for mat: BaseMaterial3D in _night_mats:
 		mat.emission = _night_mats[mat][0] if cockpit.night else _night_mats[mat][1] * day
+
+
+## 1 with switch `prop` on (or not set: as modelled, a hot jet's or another cockpit's), else 0.
+func _powered(prop: String) -> float:
+	return 0.0 if float(switches.get(prop, 1.0)) < 0.5 else 1.0
 
 
 ## The sun's first shadow split pulled in to the cockpit (SPLIT_M) while it is drawn, the scene's otherwise.
@@ -863,6 +872,8 @@ func _attach_display(screen: MeshInstance3D, kind: int, px: Vector2i) -> void:
 	var d := Display.new(cockpit, kind, px)
 	_screen_viewport(screen, px).add_child(d)
 	displays[String(screen.name)] = d
+	if screen.name == "DED_screen":
+		_ded_mat = screen.material_override
 
 
 func _update_instruments() -> void:

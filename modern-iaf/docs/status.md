@@ -165,6 +165,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   throttle) and CANOPY, new nodes of `f35i.glb` at inferred places. `test_mvp.gd` (the Sufa's and the F-35I's
   start-up by clicks). Open: the JFS switch's spring back to OFF, the INS knob mostly hidden by the right sill from
   the eye, the F-35I's ENG guard.
+- **AVIONIC POWER switches one by one, the AoA at rest on the ground (2026-11-11, from the user's Mac):** a click
+  throws one AVIONIC POWER switch with its click; the four on take the step; MFD powers the MFDs, UFC the DED
+  ([cockpit.md](cockpit.md) §5.2). The AoA gauge, indexer and HUD rest at 0° below 60 kt and follow the flow above it
+  through a 0.25 s lag (§5.4). `test_mvp.gd`. Open: no FCR or RDR ALT switch (none in FlightGear's console as its own
+  part).
 - **Town labels: dropped from the sim (2026-11-11, the Mac play test):** the sim draws no town names over the view and
   Preferences has no "Town labels" row; the sim's profile fixes the switch off. The 1998 game keeps its own (Extras →
   "Town labels", [../../docs/scenery.md](../../docs/scenery.md) §3.5). [scenery.md](scenery.md) §7. `test_sim_look.gd`,

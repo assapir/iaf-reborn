@@ -52,6 +52,14 @@ impl Fm {
         }
     }
 
+    /// The AoA the cockpit shows, deg: the original's α; the 6-DoF's probe ([`SixDof::indicated_aoa`]).
+    pub fn indicated_aoa(&self) -> f32 {
+        match self {
+            Fm::Original(a) => a.state().alpha.to_degrees(),
+            Fm::SixDof(s) => s.indicated_aoa() as f32,
+        }
+    }
+
     pub fn params(&self) -> &Params {
         match self {
             Fm::Original(a) => &a.params,

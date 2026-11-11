@@ -723,7 +723,7 @@ impl IafFlight {
             Default::default(),
         );
         let w = instruments::warnings(s.on_ground, s.position[2] as f32 * 3.281, i.ias_kt, i.vs_fpm, s.gear, &flags);
-        d.set("aoa_index", instruments::aoa_indexer(ac.params().type_code, s.alpha.to_degrees()) as i64);
+        d.set("aoa_index", instruments::aoa_indexer(ac.params().type_code, ac.indicated_aoa()) as i64);
         d.set("flcs", w.flcs);
         d.set("to_ldg_config", w.to_ldg_config);
         d.set("ar_nws", w.ar_nws);
@@ -763,7 +763,7 @@ impl IafFlight {
         d.set("pitch", s.pitch.to_degrees());
         d.set("roll", s.roll.to_degrees());
         d.set("heading", s.heading.to_degrees());
-        d.set("aoa", s.alpha.to_degrees());
+        d.set("aoa", ac.indicated_aoa()); // the cockpit's AoA: the 6-DoF's probe (modern-iaf/docs/cockpit.md §5.4)
         d.set("g", s.g);
         d.set("g_limit", ac.params().max_g_m1 + 1.0); // the flight data's MaxG (the F-15I row's +8.1)
         d.set("rpm", s.rpm / 100.0);

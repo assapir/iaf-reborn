@@ -400,7 +400,10 @@ func _checklist(tv: Node, f35: bool, click := false) -> void:
 			_card_shows(tv, "engine")
 			_press(tv, KEY_1)  # Throttle idle: the throttle stays at OFF, the key takes the step
 		await _until(tv, func(): return rpm.call() >= 0.55, 60.0)  # the generators on line
-		await _step(tv, 4, "AVIONICS_MMC", click)  # avionics power
+		if click:  # each AVIONIC POWER switch its own: one click leaves the others and the step
+			await _avionics_clicks(tv)
+		else:
+			await _step(tv, 4, "AVIONICS_MMC", click)  # avionics power
 		await _step(tv, 5, "INS", click)  # INS stored-heading alignment
 	await _step(tv, 6, "CANOPY" if f35 else "CANOPY_HANDLE", click)  # canopy
 	tv.views.snap = null
@@ -452,6 +455,25 @@ func _click_control(tv: Node, node: String) -> void:
 		check(not mi.transform.is_equal_approx(rest), "%s: the switch turned" % node)
 	hover.position = Vector2.ZERO
 	vp.push_input(hover)
+
+
+## The AVIONIC POWER panel by the mouse: a click on MMC moves it alone (the others and the step stay off); the last
+## of the four takes the avionics step.
+func _avionics_clicks(tv: Node) -> void:
+	_card_shows(tv, "avionics")
+	var sw: Dictionary = tv.cockpit_3d.switches
+	var others := ["power-st-sta", "power-mfd", "power-ufc"].map(func(p): return float(sw.get("f16/avionics/" + p)))
+	await _click_control(tv, "AVIONICS_MMC")
+	var now := ["power-st-sta", "power-mfd", "power-ufc"].map(func(p): return float(sw.get("f16/avionics/" + p)))
+	check(
+		float(sw.get("f16/avionics/power-mmc")) == 1.0 and now == others and now == [0.0, 0.0, 0.0],
+		"MMC clicked alone: the others stay off %s" % [now]
+	)
+	check(not "avionics" in tv.addon.done, "one avionics switch does not take the step")
+	check(tv.sounds.played.has("SFX_BUTTON/None"), "the switch clicks")
+	for n in ["AVIONICS_ST_STA", "AVIONICS_MFD", "AVIONICS_UFC"]:
+		await _click_control(tv, n)
+	check("avionics" in tv.addon.done, "the four avionics switches take the step")
 
 
 ## The first click on a guarded switch `node` lifts its guard `guard` (a node of its own) and leaves the switch.
@@ -821,8 +843,14 @@ func _roll(tv: Node, id: String, lineup: Vector2, hdg: float) -> void:
 	tv._throttle_event()
 	var t0: float = tv._sim_time
 	var gear_at := INF
+	var slow_aoa := 0.0  # the most |AoA| shown below 30 kt (the probe's rest: 0°)
+	var fast_aoa := []  # [shown, true] AoA from 150 kt
 	while tv.addon.result.is_empty() and tv._sim_time - t0 < 120.0 and not tv.crashed:
 		var st: Dictionary = tv.flight.state()
+		if float(st.speed_kt) < 30.0:
+			slow_aoa = maxf(slow_aoa, absf(float(st.aoa)))
+		elif float(st.speed_kt) > 150.0:
+			fast_aoa.append([float(st.aoa), rad_to_deg(float(st.alpha))])
 		var w: Vector3 = tv.player_world()
 		var along := (Vector2(w.x, w.y) - lineup).dot(dir)
 		var herr := wrapf(hdg - float(st.heading), -180.0, 180.0)
@@ -839,6 +867,13 @@ func _roll(tv: Node, id: String, lineup: Vector2, hdg: float) -> void:
 			var roll_cmd := clampf((clampf(herr * 2.0, -15.0, 15.0) - float(st.roll)) * 0.03, -0.5, 0.5)
 			tv.scripted_stick = Vector2(roll_cmd, pitch_cmd)
 		await process_frame
+	# The AoA probe (modern-iaf/docs/cockpit.md §5.4): at rest from a standstill, following the flow from 150 kt.
+	var shown := fast_aoa.map(func(e): return e[0])
+	check(slow_aoa == 0.0, "%s: the AoA rests at 0° below 30 kt (most %.2f°)" % [id, slow_aoa])
+	check(
+		shown.size() > 30 and shown.max() - shown.min() > 1.0 and absf(fast_aoa[-1][0] - fast_aoa[-1][1]) < 1.0,
+		"%s: the AoA moves from 150 kt (%s..%s, last %s)" % [id, shown.min(), shown.max(), fast_aoa.back()]
+	)
 
 
 func _drive_roll(tv: Node, err: float) -> void:

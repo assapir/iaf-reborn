@@ -20,6 +20,13 @@ const MILITARY: f32 = 0.74;
 /// The gear lever's ramp, as the original's: 0 down … 1.569 up at 0.5/s.
 const GEAR_UP: f32 = 1.569;
 const GEAR_RATE: f32 = 0.5;
+/// The AoA probe's lowest valid calibrated airspeed, kt: below it the AoA gauge and indexer rest at 0° (inferred:
+/// T.O. 1F-16-1 as quoted on the DCS forum: "When NLG WOW occurs, all AOA indications are based on zero degrees", the
+/// transmitters being unreliable at slow speeds, https://forum.dcs.world/topic/245600-already-reportedaoa-indicator-reading-during-nlg-wow;
+/// the 60 kt figure is ours).
+const PROBE_MIN_KT: f64 = 60.0;
+/// The indicated AoA's lag, s (inferred: enough to steady the needle at taxi and take-off speeds).
+const PROBE_TAU: f64 = 0.25;
 
 /// NED → the game's ENU.
 fn enu(v: Vec3) -> Vec3 {
@@ -88,6 +95,15 @@ pub struct SixDof {
     pub no_crashes: bool,
     /// An autopilot loop flies: its stick is a linear g command ([`SixDof::ap_view`]).
     ap_flying: bool,
+    /// The AoA the probe gives the gauge, the indexer and the HUD, deg ([`probe_aoa`]).
+    aoa_ind: f64,
+}
+
+/// The indicated AoA one frame `dt` on from `shown` (deg): toward the flow's `alpha_deg` at `cas_kt` from
+/// [`PROBE_MIN_KT`] up, toward 0° below it, through a [`PROBE_TAU`] lag (modern-iaf/docs/cockpit.md §5.4).
+pub fn probe_aoa(shown: f64, alpha_deg: f64, cas_kt: f64, dt: f64) -> f64 {
+    let target = if cas_kt < PROBE_MIN_KT { 0.0 } else { alpha_deg };
+    shown + (target - shown) * (1.0 - (-dt / PROBE_TAU).exp())
 }
 
 /// Standard atmosphere at `alt_m`: (ρ, static pressure, speed of sound).
@@ -141,12 +157,14 @@ impl SixDof {
             ground_flags: None,
             no_crashes: false,
             ap_flying: false,
+            aoa_ind: 0.0,
         };
         s.fcs = Fcs::new(jet.g_limits);
         if st.airborne {
             s.controls = Controls { throttle: MILITARY, gear_down: false, ..Controls::default() };
             s.gear = GEAR_UP;
             s.trim_level(h.max(60.0), st.roll as f64, heading);
+            s.aoa_ind = s.body.alpha().to_degrees();
         } else {
             s.controls = Controls { throttle: 0.0, gear_down: true, brakes: true, flaps: 1.0, ..Controls::default() };
         }
@@ -327,6 +345,16 @@ impl SixDof {
                 break;
             }
         }
+        let b = self.body;
+        let flow = Flow::from_body(&Body { vel: b.vel - b.att.rotate_inv(self.wind), ..b });
+        let (rho, _, _) = atmosphere(-b.pos.z);
+        let cas_kt = flow.v * (rho / 1.225).sqrt() * 1.943844;
+        self.aoa_ind = probe_aoa(self.aoa_ind, flow.alpha, cas_kt, dt);
+    }
+
+    /// The indicated AoA, deg ([`probe_aoa`]).
+    pub fn indicated_aoa(&self) -> f64 {
+        self.aoa_ind
     }
 
     fn substep(&mut self, dt: f64, af: &super::body::Airframe) {
@@ -644,4 +672,24 @@ pub fn top_speed(jet: &Jet, alt_m: f64) -> f64 {
 fn travel_to_lever(travel: f64) -> f32 {
     let mil = MILITARY as f64;
     (if travel <= 0.77 { travel / 0.77 * mil } else { mil + (travel - 0.77) / 0.23 * (1.0 - mil) }) as f32
+}
+
+#[cfg(test)]
+mod tests {
+    use super::probe_aoa;
+
+    #[test]
+    fn probe_rests_at_taxi_speed_and_follows_in_flight() {
+        let mut a = 0.0;
+        for _ in 0..60 {
+            a = probe_aoa(a, 45.0, 10.0, 1.0 / 30.0); // a near-zero flow vector at 10 kt
+        }
+        assert_eq!(a, 0.0);
+        for _ in 0..60 {
+            a = probe_aoa(a, 8.0, 150.0, 1.0 / 30.0);
+        }
+        assert!((a - 8.0).abs() < 0.01, "{a}");
+        let step = probe_aoa(0.0, 8.0, 150.0, 1.0 / 30.0);
+        assert!(step > 0.0 && step < 1.2, "lagged: {step}");
+    }
 }
