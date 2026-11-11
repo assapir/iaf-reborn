@@ -313,9 +313,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   buttons at the next flight or when the Preferences close; the hat's diagonals press two look commands, the last one
   wins; maps for more sticks than the Hotas X; the Hotas X's button choice is ours, untried on the stick.
 - **[B3](plan.md#b3-scenery-roads-and-inland-water)'s open points** ([scenery.md](scenery.md) §9).
-- **The scenery over a dense town is over its budget (2026-11-09):** on the Iris Xe at 500 m over Tel Aviv and
-  Beersheba it adds 15 % to the frame with Far towns Light and 18–19 % with Full, against the 7 % budget
-  ([scenery.md](scenery.md) §6).
+- **The scenery over a dense town is over its budget (2026-11-11):** on the Iris Xe at 500 m it takes 14 % of the GPU
+  time over Tel Aviv (3.1 ms) and 13 % over Beersheba (2.7 ms), against the 7 % budget; 17 % and 15 % before the
+  buildings' colours per vertex and their 250 m tiles, which keep the picture ([scenery.md](scenery.md) §6).
 - **The 6-DoF's wave drag is a fit ([C2](plan.md#c2-the-6-dof), the 6-DoF):** fit to each jet's published top speeds, not a sourced table; open: a public
   F-16 drag rise, the high-speed g onset, the take-off roll, the flaps ([flight-model.md](flight-model.md) §9.6).
 - **[E3b](plan.md#e3-the-training-missions)'s open points** ([training.md](training.md) §6): the Hebrew voice (the user), the

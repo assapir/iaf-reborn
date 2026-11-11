@@ -37,6 +37,8 @@ varying flat float v_building;
 varying flat float v_roof;
 varying flat float v_wall;
 varying float v_shade;
+// The face's colour before its texture and windows (linear): one per building and face kind, so made per vertex.
+varying flat vec3 v_base;
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -59,23 +61,27 @@ void vertex() {
 	v_roof = UV2.y < -0.5 ? 1.0 : 0.0;
 	v_wall = floor(COLOR.a * 255.0 + 0.5);
 	v_shade = wall_shade(mat3(MODEL_MATRIX) * NORMAL);
+	float fb = float(int(v_building + 0.5));
+	vec3 photo = srgb_to_linear(COLOR.rgb);
+	int w = clamp(int(v_wall), 0, 3);
+	// Photo: the photo's colour lightened toward plaster; Palette: the building's own (as Detailed).
+	v_base = v_roof > 0.5 ? roof_far(photo, COLOR.a, hash(vec2(fb, 7.7)))
+		: (palette_colours ? wall_lit(w, wall_colour(w, fb, photo))
+			: min(srgb_to_linear(mix(COLOR.rgb, PLASTER, PLASTER_MIX)) * WALL_GAIN, vec3(MAX_ALBEDO)));
 }
 
 void fragment() {
 	int b = int(v_building + 0.5);
 	float damaged = step(0.5 / 255.0, texelFetch(damage, ivec2(b % 256, b / 256), 0).r);
-	vec3 photo = srgb_to_linear(COLOR.rgb);
 	vec3 albedo;
 	float rough = 0.9;
 	float emit = 0.0;
 	float ao = 1.0;
 	if (v_roof > 0.5) {
-		albedo = roof_far(photo, COLOR.a, hash(vec2(float(b), 7.7)));
+		albedo = v_base;
 	} else {
 		int w = clamp(int(v_wall), 0, 3);
-		// Photo: the photo's colour lightened toward plaster; Palette: the building's own (as Detailed).
-		vec3 base = palette_colours ? wall_lit(w, wall_colour(w, float(b), photo))
-			: min(srgb_to_linear(mix(COLOR.rgb, PLASTER, PLASTER_MIX)) * WALL_GAIN, vec3(MAX_ALBEDO));
+		vec3 base = v_base;
 		if (has_walls) {
 			base *= 2.0 * texture(walls, vec3(UV / wall_size[w], float(w))).rgb;
 		}

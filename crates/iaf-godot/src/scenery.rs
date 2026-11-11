@@ -28,9 +28,12 @@ enum Piece {
 }
 type Built = Option<VecDeque<Piece>>;
 
-/// The side (m) of the tiles a cell's buildings and trees are drawn in: Godot culls each tile by its own distance, not
-/// the whole cell's; the shaders then cut each building or tree by its own (scenery.gd).
+/// The side (m) of the tiles a cell's trees and roof items are drawn in: Godot culls each tile by its own distance, not
+/// the whole cell's; the shaders then cut each tree or item by its own (scenery.gd).
 const TILE_M: f64 = 500.0;
+/// The buildings' tiles (m): smaller, so Godot culls more of the buildings off screen or beyond their model's reach
+/// (half the GPU time of the near buildings' shadows over Tel Aviv, modern-iaf/docs/scenery.md §6).
+const BUILDING_TILE_M: f64 = 250.0;
 
 /// Vertices per uploaded mesh: a dense cell reaches the GPU over several frames.
 const CHUNK_VERTICES: usize = 60_000;
@@ -43,9 +46,9 @@ fn build(i: i64, j: i64, modern: bool, detailed: bool, far_light: bool) -> Built
     let c = SCENERY.read().unwrap().cell(i, j)?.clone();
     let (c, o) = (&c, origin(i, j));
     let model = if detailed { Model::Detailed } else { Model::Near };
-    let near = scenery::mesh_chunks(c, o, model, modern, &ground, TILE_M, CHUNK_VERTICES)?;
+    let near = scenery::mesh_chunks(c, o, model, modern, &ground, BUILDING_TILE_M, CHUNK_VERTICES)?;
     let far_model = if far_light { Model::FarLight } else { Model::Far };
-    let far = scenery::mesh_chunks(c, o, far_model, modern, &ground, TILE_M, CHUNK_VERTICES)?;
+    let far = scenery::mesh_chunks(c, o, far_model, modern, &ground, BUILDING_TILE_M, CHUNK_VERTICES)?;
     let trees = scenery::tree_tiles(c, o, TILE_M as f32, &ground)?;
     let mut q: VecDeque<Piece> = near.into_iter().map(Piece::Near).chain(far.into_iter().map(Piece::Far)).collect();
     q.push_back(Piece::Trees(trees));
@@ -157,7 +160,7 @@ impl IafScenery {
 
     /// The prepared cell's next piece, {} when none is left: {near: true, arrays} or {near: false, arrays} (a chunk of
     /// the near / far buildings for `ArrayMesh.add_surface_from_arrays`, Mesh.ARRAY_MAX arrays: VERTEX, NORMAL, COLOR,
-    /// TEX_UV, TEX_UV2, CUSTOM0 (RGBA float: the building's centre at its base), INDEX; one `TILE_M` tile, at most
+    /// TEX_UV, TEX_UV2, CUSTOM0 (RGBA float: the building's centre at its base), INDEX; one `BUILDING_TILE_M` tile, at most
     /// `CHUNK_VERTICES`), or {trees: [[kind (TreeKind as int), PackedFloat32Array of
     /// TRANSFORM_3D rows, 12 floats each, for a 10 m model] per `TILE_M` tile and kind]}, or (Detailed only) {roofs: [[item
     /// (RoofItem as int), PackedFloat32Array of TRANSFORM_3D rows and a colour, 16 floats each] per tile and item]}.

@@ -298,16 +298,20 @@ Measured on this machine (Intel laptop, 8 threads, 2026-10-30), both kinds:
   1. Worker threads read the files into `IafScenery`.
   2. `IafScenery.prepare` makes a cell's meshes and trees on a Rust thread of its own, from a copy of the cell, so the
      main thread never waits on it.
-  3. The main thread takes one piece per frame (`take_next`): a chunk of at most 60 000 vertices, or the cell's
-     trees. A dense Tel Aviv cell reaches the GPU over several frames.
+  3. The main thread takes the made pieces (`take_next`), up to 60 000 building vertices a frame: mesh chunks of at
+     most 60 000 vertices each, or a cell's trees (the frame's last piece). A dense Tel Aviv cell reaches the GPU over
+     several frames.
 
   The front end's preload (briefing, TSD, arming) already has the near cells made.
 - **Per cell:**
-  - the buildings in 500 m tiles (and at most 60 000 vertices per mesh), a near mesh (walls with windows, roofs) and a
+  - the buildings in 250 m tiles (and at most 60 000 vertices per mesh), a near mesh (walls with windows, roofs) and a
     far one (bare prisms). Godot tests a visibility range against a mesh's centre, so a cell-wide mesh would swap
     models and appear in whole strips; each vertex instead carries its building's centre at its base (CUSTOM0), and
     `scenery.gdshader` swaps each building at 2.5 km by its own distance and raises it from the ground over the last
-    400 m before 4.5 km;
+    400 m before 4.5 km. Each mesh's range reaches half its box's diagonal past its model's (no building's centre is
+    farther from the box's centre), so a mesh is drawn while any of its buildings may be. The 250 m tiles (500 m
+    until 2026-11-11) leave out more of the buildings off screen or beyond their model's range: 0.2–0.3 ms of GPU time
+    over Tel Aviv and Beersheba, the same picture (modern-iaf/docs/scenery.md §6);
   - our own trees to 2 km, in 500 m tiles, one MultiMesh per tile, kind and model (§3.2). Godot tests a visibility
     range against an object's centre, so a whole cell's trees would appear at once; the tree shaders instead pick the
     model by each tree's own distance.
@@ -316,7 +320,8 @@ Measured on this machine (Intel laptop, 8 threads, 2026-10-30), both kinds:
 
   None of them casts a shadow: the photo under them already holds the buildings' shadows. With Graphics → MORE →
   Shadow reach Far, the near building model (to 2.5 km) casts the sun's shadows (§3.4, docs/rendering.md §3.1).
-- **Shading:** `scenery.gdshader` colours roofs from the photo. The photo's colour already holds the sun's light and
+- **Shading:** `scenery.gdshader` colours roofs from the photo (each face's colour worked out per vertex: one per
+  building and face kind; modern-iaf/docs/scenery.md §6). The photo's colour already holds the sun's light and
   the scene lights it again, so roofs take 0.6 of it, at most 0.45 (linear albedo): a town is as bright as the photo
   under it. On: walls take 0.5 of the photo's colour lightened toward plaster, at most 0.45, with the ambientCG
   plaster, stone, concrete or corrugated-steel detail, a window grid (3 m levels, 3.2 m bays) and darker feet.

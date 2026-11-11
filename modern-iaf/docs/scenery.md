@@ -163,6 +163,56 @@ jet), not the far ring's (inferred). The first Tel Aviv Off run gave 17.36 ms, n
 56.7 fps); the next five Off runs gave 21.9–22.5 ms, so the frame is likely the laptop's warm state (inferred), the
 same for every mode benched after it.
 
+**The scenery's cost by part, and the cuts that keep the picture** (2026-11-11, look batch 1 item 5):
+`modern-iaf/tests/_scenery_probe.gd` holds the jet still 500 m above Tel Aviv's centre (`--at 668000 3550689 530 330 0
+--freeze`) and Beersheba's (`--at 668500 3455500 780 330 0 --freeze`), the cockpit view, the sim's defaults (Scenery
+On, Far towns Light, Shadow reach Far; Roads Original: the road layer is not made), waits until every cell around is
+built, then measures the flight viewport's GPU time over 120 frames with each part hidden in turn. Six rounds,
+interleaved; the median of rounds 2–6 (their spread 0.1–0.3 ms). Intel Iris Xe, the window 1920 × 994, under the shared
+GPU lock, no other Godot running. The jet stands still, so the cells' building and upload (the CPU's share while
+flying) are left out.
+
+| GPU time of the part (ms) | Tel Aviv: before | cut 1 | cut 2 | Beersheba: before | cut 1 | cut 2 |
+|---|---|---|---|---|---|---|
+| the whole scenery | 3.67 | 3.27 | 3.07 | 3.14 | 2.97 | 2.70 |
+| share of the frame without it | 17 % | 15 % | 14 % | 15 % | 14 % | 13 % |
+| the near buildings (to 2.5 km), their shadows included | | 2.28 | 2.01 | | 2.15 | 1.94 |
+| their shadows alone | | 0.54 | 0.36 | | 0.49 | 0.32 |
+| the far ring's buildings (2.5–4.5 km) | | 0.16 | 0.18 | | 0.62 | 0.54 |
+| the trees' far model (from 200 m; the full model is beyond reach at 500 m) | | 0.59 | 0.56 | | 0.18 | 0.15 |
+| the roof items, the roads | | 0 (Detailed only; no road layer) | | | 0 | |
+
+- **Cut 1, the buildings' colours per vertex** (`scenery.gdshader`): the palette, the photo's lightening and the
+  roofs' far colour are worked out per vertex, not per pixel. Each building's face has one colour (every vertex of a
+  face carries the same COLOR), so the picture stays the same. The old shader measured 0.40 ms (Tel Aviv) and 0.17 ms
+  (Beersheba) more than the new one; a copy of the new shader measured the same way gave +0.13 and −0.01 ms, so the
+  cut is about 0.3 and 0.2 ms.
+- **Cut 2, the buildings in 250 m tiles** (`crates/iaf-godot/src/scenery.rs` `BUILDING_TILE_M`; 500 m before): Godot
+  culls each tile's mesh as a whole, and smaller tiles leave out more of the buildings off screen, beyond the near
+  model's 2.5 km or within it for the far ring. Each mesh's range now reaches half its own box's diagonal past its
+  model's (the tight bound for any building's centre in it; `scenery.gd` `_upload`), and the main thread uploads
+  pieces up to 60,000 vertices a frame instead of one piece (about three times the pieces). 0.20 ms (Tel Aviv) and 0.27 ms
+  (Beersheba), most of it in the shadows. The render thread's CPU time grows 1.20 → 1.36 ms and 1.31 → 1.48 ms (the
+  buildings' nodes: 517 → 1,523 near meshes over Tel Aviv); the frame is the GPU's (24 ms).
+- **The pictures** before and after both cuts: no pixel of the town differs by more than one grey level. Over Tel
+  Aviv the sea's waves move between any two pictures (up to 8 levels between two pictures of one build), so the
+  comparison takes the town below the sea line; over Beersheba the whole view (the frame-rate readout left out).
+
+What costs, from these and the tries below: the near buildings' geometry, not their pixels. At 1280 × 720 (a quarter
+of the pixels) they cost the same 2.3 ms, and a shader with no per-pixel work (a flat colour) saves only 0.46 ms of
+it. Their vertices go through the depth pre-pass, the opaque pass and the shadow pass (Godot's GPU profile: 0.3, 0.9
+and 0.5 ms). The rest is over the 7 % budget (1.5 ms here); each further cut changes the look: the near buildings'
+shadows (0.36 ms), the near model to 1.5 km (0.37 ms, the low blocks gone from 1.5 km with Far towns Light), the trees'
+far model (0.56 ms over Tel Aviv).
+
+- Tried and dropped (2026-11-11), each the same picture and no measurable gain: the damage byte read per vertex
+  instead of per pixel (−0.02 to −0.08 ms against a copy of the shader, within the spread); the trees in 250 m tiles as
+  well (−0.06 ms, three times the trees' nodes).
+
+- Tried and dropped (2026-11-11): the near buildings casting the sun's shadow to 750 m only (the sun's third split),
+  through a shadow-only copy of each tile. It saved 0.27 ms (24.13 against 24.40 ms, four rounds), and to 1,500 m
+  nothing measurable. The buildings 0.7–1 km away lost their shadows on the street in the picture.
+
 ## 7. Pictures
 
 Real-render pictures (`tests/godot/_imagery_shot.gd` in the sim: `SHOT_LAYERS=sim`, `SHOT_SET`, `SHOT_HOUR`,
@@ -325,9 +375,9 @@ Fixed on 2026-11-08 (the "before" pictures above):
 
 ## 9. Open
 
-- **The scenery over a dense town costs twice its budget** (measured 2026-11-09, §6): 15 % with Far towns Light, 18–19 %
-  with Full, over Tel Aviv and Beersheba at 500 m (the budget: 7 %). Light saves 2–3 % only; a cheaper near model is
-  open.
+- **The scenery over a dense town costs twice its budget** (measured 2026-11-09 and 2026-11-11, §6): 14 % of the GPU
+  time over Tel Aviv at 500 m and 13 % over Beersheba after the two cuts that keep the picture (the budget: 7 %). The
+  near buildings' geometry takes 2.0 ms of the 3.1 ms; each further cut changes the look.
 - **Unit clearances**: when the sim has ground units (§4).
 - **The rest of the theatre in the byte check**: `build_theatre` with `--near` stopped on PROJ's "moll: Invalid
   latitude" on main and on the branch alike (§8).

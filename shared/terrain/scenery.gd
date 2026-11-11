@@ -20,8 +20,8 @@ const NEAR := 2500.0
 const TREES := 2000.0
 ## Trees draw their full model to this distance (m), the far one beyond; they grow in over the last TREES_GROW m
 ## before TREES. Buildings: the near model to NEAR, the far one to RANGE, rising from the ground over the last GROW m.
-## Each tree and building by its own distance (scenery_tree.gdshader, scenery.gdshader); a 500 m tile's mesh is drawn
-## while any of its trees or buildings may be (TILE_REACH: half a tile's diagonal).
+## Each tree and building by its own distance (scenery_tree.gdshader, scenery.gdshader); a 500 m tile's trees are
+## drawn while any of them may be (TILE_REACH: half a tile's diagonal), a 250 m tile's buildings likewise (_upload).
 const TREES_NEAR := 700.0
 const TREES_GROW := 300.0
 const TILE_REACH := 360.0
@@ -35,8 +35,9 @@ const RESELECT_M := 200.0
 const RESELECT_MS := 1000
 ## Workers at once (the terrain's decodes have priority: 4 of them).
 const MAX_JOBS := 2
-## Cells drawn per frame (IafScenery makes their arrays on its threads; the main thread copies and uploads them).
-const BUILDS_PER_FRAME := 1
+## Building vertices uploaded per frame (IafScenery makes their arrays on its threads; the main thread copies and
+## uploads them): a frame's pieces stop once they reach it (a mesh chunk is at most 60,000) or at a cell's trees.
+const UPLOAD_VERTICES := 60000
 ## Damage states read back this often (ms).
 const DAMAGE_MS := 1000
 ## Wall materials (iaf_tools::thirdparty::SCENERY_WALLS, in the cell file's wall index order: plaster, stone, concrete,
@@ -933,8 +934,8 @@ func _finish_jobs() -> void:
 			_cells[k] = {"state": "loaded", "origin": done[k]}
 
 
-## Starts IafScenery making the nearest loaded cells' meshes on its threads (MAX_JOBS at once), and uploads up to
-## BUILDS_PER_FRAME made pieces (a mesh chunk or a cell's trees), nearest cell first. The front end's preload
+## Starts IafScenery making the nearest loaded cells' meshes on its threads (MAX_JOBS at once), and uploads made
+## pieces (mesh chunks to UPLOAD_VERTICES, or a cell's trees), nearest cell first. The front end's preload
 ## (draw false) only has them made, for the flight's scenery to adopt.
 func _build_some(fp: Vector3) -> void:
 	var ready := []
@@ -956,11 +957,10 @@ func _build_some(fp: Vector3) -> void:
 		elif c.state == "loaded":
 			waiting.append([minf(_dist(k, fp), _dist(k, _view)), k])
 	ready.sort()
-	var pieces := 0
+	var vertices := 0
 	for t in ready:
-		while pieces < BUILDS_PER_FRAME and _cells[t[1]].state == "uploading":
-			_upload(t[1])
-			pieces += 1
+		while vertices < UPLOAD_VERTICES and _cells[t[1]].state == "uploading":
+			vertices += _upload(t[1])
 	waiting.sort()
 	for t in waiting.slice(0, maxi(0, MAX_JOBS - preparing)):
 		_cells[t[1]].state = "preparing"
@@ -986,12 +986,14 @@ func _start_cell(k: Vector2i) -> void:
 
 
 ## One piece of a made cell: a chunk of its near or far buildings, or its trees; the cell is drawn when none is left.
-func _upload(k: Vector2i) -> void:
+## Returns the chunk's vertices (UPLOAD_VERTICES for the trees, the roof items and the cell's end: the frame's last).
+func _upload(k: Vector2i) -> int:
 	var c: Dictionary = _cells[k]
 	var piece: Dictionary = IafScenery.take_next(k.x, k.y)
 	if piece.is_empty():
 		c.state = "built"
-	elif piece.has("arrays"):
+		return UPLOAD_VERTICES
+	if piece.has("arrays"):
 		var near: bool = piece.near
 		var mesh := ArrayMesh.new()
 		mesh.add_surface_from_arrays(
@@ -1004,10 +1006,13 @@ func _upload(k: Vector2i) -> void:
 		var mi := MeshInstance3D.new()
 		mi.mesh = mesh
 		mi.material_override = c.mat
-		# The ranges only cull whole tiles; the shader swaps and raises each building by its own distance.
+		# The ranges only cull whole tiles; the shader swaps and raises each building by its own distance. Godot
+		# measures a range to the mesh's centre, and no building's centre is farther from it than half the box's
+		# diagonal: the mesh is drawn while any of its buildings may be.
+		var reach := mesh.get_aabb().size.length() / 2.0
 		mi.set_instance_shader_parameter("far_model", not near)
-		mi.visibility_range_begin = 0.0 if near else NEAR - TILE_REACH
-		mi.visibility_range_end = (NEAR if near else RANGE) + TILE_REACH
+		mi.visibility_range_begin = 0.0 if near else NEAR - reach
+		mi.visibility_range_end = (NEAR if near else RANGE) + reach
 		# The photo under it already holds the buildings' shadows; Shadow reach Far: the near model casts them (the
 		# shaders pick the model by the main camera's distance, so the shadow pass draws the same buildings).
 		var cast := near and Settings.shadow_reach == "far"
@@ -1015,7 +1020,8 @@ func _upload(k: Vector2i) -> void:
 			GeometryInstance3D.SHADOW_CASTING_SETTING_ON if cast else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		)
 		c.node.add_child(mi)
-	elif piece.has("roofs"):
+		return mesh.surface_get_array_len(0)
+	if piece.has("roofs"):
 		for tile in piece.roofs:
 			var mm := MultiMesh.new()
 			mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -1046,6 +1052,7 @@ func _upload(k: Vector2i) -> void:
 				mmi.visibility_range_end = (TREES if far else near_m) + TILE_REACH
 				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				c.node.add_child(mmi)
+	return UPLOAD_VERTICES
 
 
 ## The damage states of the drawn cells, when they changed (a destroyed scenery target).
