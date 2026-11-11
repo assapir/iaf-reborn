@@ -883,7 +883,9 @@ games draw over the scene with the same pen. The study behind it: the look study
   DAY / AUTO BRT / NIGHT switch on the HUD remote control panel (right console) picks the range, AUTO following the
   ambient light[^hoggit-icp][^fg-hud-wiki]. Ours: the green at `Settings.hud_brightness` (the 3D cockpit's SYM wheel,
   100 % by default, kept in the sim's settings file; no Preferences row) by day, falling to the night floor 136 / 255 (`REAL_NIGHT_GREEN`'s, or the day level when dimmer) as the
-  sun sets: full with the sun 10° up or more, the floor at night (`hud.gd` `p43()`, `daylight()`; inferred). The HUD
+  sun sets: full with the sun 10° up or more, the floor at night (`hud.gd` `p43()`, `daylight()`; inferred). That is
+  the switch at AUTO; the F-16s' 3D cockpit has the switch itself (`Settings.hud_brt_switch`, 2026-11-11): DAY keeps the day
+  level at any hour, NIGHT the floor (`hud.gd` `mode_light()`; modern-iaf/docs/cockpit.md §5.1). The HUD
   key (Shift + H) steps the level in eighths, from full to the dimmest eighth and up again, and the wheel turns with
   it.
 - **The SYM wheel.** In the 3D cockpit (`Settings.cockpit_controls()`, `shared/cockpit/cockpit3d_controls.gd`) the

@@ -247,7 +247,7 @@ func _hc() -> Color:
 	if c != null:
 		return c
 	if _glow:
-		return p43(Settings.hud_brightness, cockpit.daylight)
+		return p43(Settings.hud_brightness, mode_light(Settings.hud_brt_switch, cockpit.daylight))
 	var h: Color = cockpit.hud_colour()
 	if cockpit.night and not real.is_empty() and h.r == 0.0 and h.g < REAL_NIGHT_GREEN.g:
 		return REAL_NIGHT_GREEN
@@ -280,6 +280,12 @@ static func p43(level: float, light: float) -> Color:
 	var day := clampf(level, MIN_LEVEL, 1.0)
 	var k := lerpf(minf(NIGHT_LEVEL, day), day, clampf(light, 0.0, 1.0))
 	return Color(P43_GREEN.r * k, P43_GREEN.g * k, P43_GREEN.b * k)
+
+
+## The light the HUD's brightness follows with the DAY / AUTO BRT / NIGHT switch at `mode`
+## (Settings.hud_brt_switch): DAY full day, AUTO the scene's `daylight`, NIGHT the night floor.
+static func mode_light(mode: int, daylight: float) -> float:
+	return [1.0, daylight, 0.0][clampi(mode, 0, 2)]
 
 
 ## The scene's daylight for the HUD's brightness (0..1) from TimeOfDay.sun: 0 at night, rising with the sun to 1 at

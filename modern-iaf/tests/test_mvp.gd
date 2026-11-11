@@ -657,6 +657,8 @@ func _hud_light(tv: Node, jet: String) -> void:
 	)
 	for node in knobs:
 		await _knob(tv, jet, node, knobs[node])
+	if own == null:
+		await _hud_mode(tv, jet)
 	tv.views.snap = null
 	settings().hud_brightness = level
 	settings().mfd_brightness = mfd
@@ -700,6 +702,50 @@ func _knob(tv: Node, jet: String, node: String, key: String) -> void:
 	hover.position = Vector2.ZERO
 	vp.push_input(hover)
 	check(knob.material_overlay == null, "%s: off %s, unlit" % [jet, node])
+
+
+## The F-16s' HUD DAY / AUTO BRT / NIGHT switch (f16.glb HUD_MODE, command 217): DAY keeps the day level at night,
+## NIGHT the floor by day; a click on it steps it down (NIGHT back to DAY), the wheel up toward DAY; the lever turns and
+## the settings file keeps it.
+func _hud_mode(tv: Node, jet: String) -> void:
+	var cp = tv.cockpit
+	var c3d = tv.cockpit_3d
+	var lever: MeshInstance3D = c3d.find_child("HUD_MODE", true, false) if c3d != null else null
+	check(lever != null, "%s: the HUD's DAY / AUTO BRT / NIGHT switch" % jet)
+	if lever == null:
+		return
+	var mode: int = settings().hud_brt_switch
+	var light: float = cp.daylight
+	settings().hud_brightness = 1.0
+	settings().hud_brt_switch = settings().HUD_DAY
+	cp.daylight = 0.0
+	check(_hud_c(cp) == Color8(40, 255, 50), "%s: DAY at night: the day level (%s)" % [jet, _hud_c(cp)])
+	settings().hud_brt_switch = settings().HUD_NIGHT
+	cp.daylight = 1.0
+	var k := 136.0 / 255.0
+	check(_hud_c(cp).is_equal_approx(Color(40.0 / 255.0 * k, k, 50.0 / 255.0 * k)), "%s: NIGHT by day: the floor" % jet)
+	settings().hud_brt_switch = settings().HUD_AUTO
+	check(_hud_c(cp) == Color8(40, 255, 50), "%s: AUTO by day: the day level" % jet)
+	var vp: Viewport = tv.get_viewport()
+	var at := await _aim(tv, func() -> Vector3: return lever.global_transform * lever.get_aabb().get_center(), 0.0)
+	c3d._process(0.0)
+	var rest := lever.transform.basis
+	vp.push_input(_click(at, MOUSE_BUTTON_LEFT, true))
+	vp.push_input(_click(at, MOUSE_BUTTON_LEFT, false))
+	check(
+		settings().hud_brt_switch == settings().HUD_NIGHT,
+		"%s: a click: AUTO to NIGHT (%d)" % [jet, settings().hud_brt_switch]
+	)
+	c3d._process(0.0)
+	check(not lever.transform.basis.is_equal_approx(rest), "%s: the lever thrown" % jet)
+	vp.push_input(_click(at, MOUSE_BUTTON_WHEEL_UP, true))
+	vp.push_input(_click(at, MOUSE_BUTTON_WHEEL_UP, true))
+	vp.push_input(_click(at, MOUSE_BUTTON_WHEEL_UP, true))
+	check(settings().hud_brt_switch == settings().HUD_DAY, "%s: the wheel up: to DAY and no further" % jet)
+	var kept := int(settings().write_config().get_value("graphics", "hud_brt_switch"))
+	check(kept == settings().HUD_DAY, "%s: the settings file keeps the switch (%d)" % [jet, kept])
+	settings().hud_brt_switch = mode
+	cp.daylight = light
 
 
 static func _click(at: Vector2, button: MouseButton, pressed: bool) -> InputEventMouseButton:

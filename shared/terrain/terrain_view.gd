@@ -2873,6 +2873,18 @@ func _command(cmd: Array) -> bool:
 			# passes them to the flight model and ticks its card.
 			if addon != null and addon.has_method("start_step"):
 				addon.start_step(int(cmd[0]) - 210)
+		217:
+			# Ours, Modern IAF: the F-16's HUD DAY / AUTO BRT / NIGHT switch (cockpit3d_controls.gd; no key sends it):
+			# p1 0 the next position down, NIGHT back to DAY (a click); p1 > 0 one up toward DAY, < 0 one down toward
+			# NIGHT (the wheel). Kept in the settings file as a switch stays thrown.
+			var m := (
+				(Settings.hud_brt_switch + 1) % 3
+				if p1 == 0
+				else clampi(Settings.hud_brt_switch - signi(p1), Settings.HUD_DAY, Settings.HUD_NIGHT)
+			)
+			if m != Settings.hud_brt_switch:
+				Settings.hud_brt_switch = m
+				Settings.save()
 		216:
 			# Ours, Modern IAF: the 3D cockpit's displays' brightness (the F-35I's MFD BRT knob, cockpit3d_controls.gd;
 			# no key sends it): p1 thousandths up or down, kept in the settings file as the HUD's (123).

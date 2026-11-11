@@ -175,7 +175,28 @@ command (a switch) or a `turn` command (a knob: the wheel, a drag); a guarded sw
 docs/f35i.md §4.5); a control's hit area is its mesh's box, and the
 pointer over it lays a warm glow on it (`material_overlay`). The pointer's moves reach the layer in `_input`, before
 the flight's full-view Controls take them, and `cockpit_origin.gd` passes them into the cockpit's own world with the
-clicks. The start-up switches are on the same layer (§5.2). The DAY / AUTO BRT / NIGHT switch is not bound: the HUD's AUTO-like dimming stays automatic.
+clicks. The start-up switches are on the same layer (§5.2).
+
+**The DAY / AUTO BRT / NIGHT switch** (2026-11-11). On the F-16 this three-position switch on the HUD remote control
+panel (right console, forward) picks the HUD's brightness range: DAY the day range, AUTO BRT the range following the
+ambient light, NIGHT the night range[^fg-hud][^hoggit-icp]. Ours, in the Sufa's and the Barak's 3D cockpit:
+- DAY: the HUD at the SYM wheel's level at any hour; AUTO: the level by day falling to the night floor as the sun
+  sets (as before, the default); NIGHT: the night floor at any hour (`hud.gd` `mode_light`; inferred: no source gives
+  the ranges' values);
+- the lever is the node `HUD_MODE` of `f16.glb` (`tools/f16d/split_control.py` cuts it out of FlightGear's console
+  body, where it has no object of its own, and adds its turn to `f16.json`: 25° forward at DAY, upright at AUTO, 25°
+  aft at NIGHT);
+- the pointer over it lights it; a click throws it one position down (DAY, AUTO, NIGHT, then back to DAY); the mouse
+  wheel up moves it toward DAY, down toward NIGHT; each through command `[217, p1, 0]` (no key sends it);
+- the position is kept in the sim's settings file (`Settings.hud_brt_switch`, section `graphics`, 0 DAY, 1 AUTO, 2 NIGHT),
+  as a switch stays thrown, with no Preferences row. The original game never reads it.
+
+The switch sets the HUD only: the helmet displays (the F-35I's, which has no such switch, and the Sufa's DASH) follow
+the sun (AUTO).
+
+| Pointer over the switch (AUTO) | Clicked: NIGHT |
+|---|---|
+| ![The DAY / AUTO BRT / NIGHT switch lit under the pointer](pictures/cockpit/hud_mode_hover.jpg) | ![The switch thrown to NIGHT](pictures/cockpit/hud_mode_night.jpg) |
 
 The F-35I: the HMD BRT knob on its pedestal (`f35i.glb` node `HMD_BRT`, `f35i_controls.json`) works as the SYM
 wheel: the same command `[123, ±25, 0]`, the same steps, and it turns with `Settings.hud_brightness` (100° of travel,
@@ -582,5 +603,7 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
 [^fg-left]: FlightGear F-16 at ef4f192, `Models/Cockpit/Main/panels_mlu_left-console.xml`: `SW_MAIN_POWER` (knob on `fdm/jsbsim/elec/switches/main-pwr`, 0–2) and `SW_JET_FUEL` (knob on `f16/engine/jfs-start-switch`, −1–1; `Nasal/states_and_autostart.nas`: 1 is START 2), https://github.com/NikolaiVChr/f16
 [^fg-right]: FlightGear F-16 at ef4f192, `Models/Cockpit/Main/panels_mlu_right-console.xml`: `mmc-switch`, `st-sta-switch`, `mfd-switch`, `ufc-switch` (knobs on `f16/avionics/power-*`, 0–1) and `INS_knob` (`f16/avionics/ins-knob`; `states_and_autostart.nas`: 2 ALIGN NORM, 3 NAV), https://github.com/NikolaiVChr/f16
 [^dcs-canopy]: Eagle Dynamics forum, "Canopy won't lock if I open it and close" (DCS F-16C: the canopy switch on the left, where the canopy handle is; weak: a forum, read through a search summary), https://forum.dcs.world/topic/333905-canopy-wont-lock-if-i-open-it-and-close
+[^hoggit-icp]: Hoggit wiki, "Instrument Panel" (DCS F-16C): the HUD's DAY / AUTO / NIGHT symbology brightness
+  switch. https://wiki.hoggitworld.com/view/Instrument_Panel
 [^hoggit-ip]: Hoggit wiki, "Instrument Panel" (DCS F-16C): the ICP's SYM wheel sets the HUD's brightness. https://wiki.hoggitworld.com/view/Instrument_Panel
 [^ayton]: Mark Ayton, "Blue Sky OPS", AIR International, 26 April 2012, quoted on F-16.net, "Engine start up procedure" (three switch selections: battery, IPP, engine), https://www.f-16.net/forum/viewtopic.php?p=317934

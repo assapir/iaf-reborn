@@ -771,6 +771,8 @@ func _prop(p: String) -> float:
 			return Settings.hud_brightness
 		"instrumentation/mfd/brightness-norm":  # ours: the F-35I's MFD BRT knob (command 216)
 			return Settings.mfd_brightness
+		"f16/avionics/hud-brt-switch":  # ours: the HUD's DAY / AUTO BRT / NIGHT switch, 0 / 1 / 2 (command 217)
+			return float(Settings.hud_brt_switch)
 	if p in SWITCH_PROPS:
 		return float(switches.get(p, NAN))
 	if p.begins_with("consumables/fuel/total-fuel-lbs-"):

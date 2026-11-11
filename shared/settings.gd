@@ -1,6 +1,8 @@
 # Persistent player preferences (autoload "Settings"), saved to user://settings.cfg.
 extends Node
 
+## The HUD DAY / AUTO BRT / NIGHT switch's positions (hud_brt_switch).
+enum { HUD_DAY, HUD_AUTO, HUD_NIGHT }
 const PATH := "user://settings.cfg"
 ## The blackbox (terrain_view.gd _record): one file per flight, flight-<date>_<time>-m<mission>.jsonl, the newest
 ## BLACKBOX_KEEP kept; the debrief screen exports the last one (blackbox_file, this session's).
@@ -76,6 +78,7 @@ const PREFS := {
 		"external_stores",
 		"vsync",
 		"hud_brightness",
+		"hud_brt_switch",
 		"mfd_brightness"
 	],
 	"devices":
@@ -174,6 +177,10 @@ var terrain_detail := 1.0
 ## Change HUD colour set it; stored like a physical knob's position, with no Preferences row. The original game never
 ## reads it.
 var hud_brightness := 1.0
+## The F-16's HUD DAY / AUTO BRT / NIGHT switch (Modern IAF, hud_daylight; the HUD remote control panel on the right
+## console, cockpit_controls): HUD_DAY the day range at any hour, HUD_AUTO following the sun, HUD_NIGHT the night
+## range. Stored like the switch's position, with no Preferences row. The original game never reads it.
+var hud_brt_switch := HUD_AUTO
 ## The 3D cockpit's displays' brightness, 0.1..1 (Modern IAF, cockpit_controls): the F-35I's MFD BRT knob sets it
 ## (command 216); stored like a physical knob's position, with no Preferences row. The original game never reads it.
 var mfd_brightness := 1.0

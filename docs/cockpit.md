@@ -649,8 +649,9 @@ occlusion, 1.8 MB; built by
   the frustum's offset by 8 cm at the MFD (tried 2026-10-30). Not drawn: a highlight.
 * **Knobs and switches** (Modern IAF, `Settings.cockpit_controls()`; the original game: none): `cockpit3d_controls.gd`
   reads the cockpit's table `<model>_controls.json` (node -> `click` / `turn` key command): the pointer over a
-  control lights it, a click, the wheel or a drag sends its command through the key path. The F-16's: the SYM wheel
-  and the start-up switches (modern-iaf/docs/cockpit.md §5.1, §5.2).
+  control lights it, a click, the wheel or a drag sends its command through the key path. The F-16's: the SYM wheel,
+  the HUD's DAY / AUTO BRT / NIGHT switch (node `HUD_MODE`, cut out of the console body by
+  `tools/f16d/split_control.py` after each build) and the start-up switches (modern-iaf/docs/cockpit.md §5.1, §5.2).
 * **HUD mask, tried and dropped (2026-10-30):** a `clip_children` parent drawing the glass's outline. Its canvas
   group showed a stale copy of the 3D view in a rectangle over the screen while the DASH drew; the shader mask
   replaced it.

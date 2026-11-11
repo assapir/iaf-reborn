@@ -141,7 +141,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   it, on the general clickable-control layer `cockpit3d_controls.gd` ([cockpit.md](cockpit.md) §5.1). The F-35I's HMD
   BRT knob turns the same level, its MFD BRT knob the displays' brightness (kept in the settings file too); the F-35I's
   helmet display lights as the HUD does, in P43 at that level. `test_hud.gd`, `test_mvp.gd` `_knob`. The Sufa's combiner
-  has a thin light edge down each side. Open: the DAY / AUTO / NIGHT switch.
+  has a thin light edge down each side. The F-16s' DAY / AUTO BRT / NIGHT switch on the right console (2026-11-11):
+  clicked or scrolled, DAY keeps the day level at night, NIGHT the night floor by day, AUTO follows the sun; kept in
+  the settings file (`test_mvp.gd` `_hud_mode`).
 - **The HUD on a 2× display (2026-11-11, the Mac play test):** the HUD keeps its angular size, stroke and text crispness
   at every display scale: the pen's least width and the texts' raster size are physical pixels
   ([real-hud.md](../../docs/real-hud.md#modern-iafs-hud-light) "Display scale"; the rule holds in both games). The

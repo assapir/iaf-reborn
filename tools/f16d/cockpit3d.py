@@ -115,7 +115,8 @@ ICP_WHEELS = {"ICP/sym", "ICP/brt", "ICP/depr_ret", "ICP/cont"}
 # (sub-model, object): the SYM wheel (the HUD's symbology brightness, turning on f16/avionics/hud-sym); the start-up
 # checklist's switches (2026-11-09): MAIN PWR (ELEC panel) and the JFS switch (ENG & JET START panel) on the left
 # console, the AVIONIC POWER panel's MMC, ST STA, MFD and UFC switches and the INS knob on the right console, and the
-# throttle's grip.
+# throttle's grip. The HUD's DAY / AUTO BRT / NIGHT switch has no object of its own in FlightGear's console: after a
+# build, tools/f16d/split_control.py cuts its lever out of the body (its header has the command).
 CONTROLS = {
     ("ICP", "sym"): "SYM",
     ("LeftConsole", "SW_MAIN_POWER"): "MAIN_PWR",
