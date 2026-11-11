@@ -119,8 +119,8 @@
         "pitch": { "type": "number", "description": "Pitch at the event, degrees." },
         "call": { "enum": ["startup", "taxi", "takeoff"], "description": "radio: the player's request." },
         "answer": { "type": "string", "description": "radio: the tower's phrase template (KCH2: no tower, a click)." },
-        "step": { "type": "string", "description": "checklist: the step (main_power, starter, engine, avionics, ins, canopy)." },
-        "fault": { "type": "string", "description": "checklist: the fault of a step out of order (e.g. hot_start, no_power)." },
+        "step": { "type": "string", "description": "checklist: the step (main_power, starter, engine, avionics, ins, canopy; cutoff: the throttle to OFF, the engine shutdown)." },
+        "fault": { "type": "string", "description": "checklist: the fault of a step out of order (e.g. hot_start, no_power; cutoff: shutdown for a running engine, no_start for one still starting)." },
         "short": { "type": "boolean", "description": "eject: below the original's short-ejection limit (in IAF 2026 the seat flies anyway)." },
         "paved": { "type": "boolean", "description": "surface: the jet's centre on the base's pavement (a runway, stopway, taxiway, apron or shelter pad)." }
       }

@@ -455,8 +455,38 @@ func _throttle_step() -> void:
 	var thr := float(host.throttle)
 	var up := _throttle_was >= 0.0 and _throttle_was <= THROTTLE_OFF and thr > THROTTLE_OFF
 	_throttle_was = thr
-	if up and "starter" in done and "engine" in _steps():
+	if up and _idle_step_due():
 		start_step(STEP_IDS.find("engine"))
+
+
+## The throttle's move from OFF is the idle step now: the starter step done and the idle step not yet, in a mission
+## whose checklist has it or in a flight without one (a restart after a shutdown).
+func _idle_step_due() -> bool:
+	return "starter" in done and not "engine" in done and (checklist.is_empty() or "engine" in _steps())
+
+
+## The Throttle OFF key (command 218, keys.json record 121): the throttle over the idle-cutoff detent to OFF, the fuel
+## cut (IafFlight.start_step "cutoff", training.md §7.2). A running engine winds down; the recording gets a checklist
+## step "cutoff" with its fault (shutdown, no_start), which fails a training mission. A restart takes the starter step
+## and the throttle's move from OFF again.
+func throttle_off() -> void:
+	if host.flight == null:
+		return
+	var fault: String = host.flight.start_step("cutoff")
+	var e := {"event": "checklist", "step": "cutoff"}
+	if fault != "":  # the fuel was on: the start's steps to take again (a cold or cranking engine keeps them)
+		e["fault"] = fault
+		_fault = fault
+		_fault_shown = fault
+		for id in ["starter", "engine"]:
+			done.erase(id)
+			_switch(STEP_IDS.find(id), false)
+	host.throttle = 0.0
+	host._throttle_event()
+	_throttle_was = 0.0
+	host._log_event(host._log_st, e)
+	if _card != null:
+		_fill_card()
 
 
 ## The Throttle idle key (command 9 to OFF, record 7) leaves the throttle at OFF, so _throttle_step sees no move: the
@@ -464,7 +494,7 @@ func _throttle_step() -> void:
 func _idle_key(cmd: Array) -> void:
 	if int(cmd[0]) != 9 or float(cmd[1]) * 0.01 > THROTTLE_OFF or Joystick.drops_key(9):
 		return
-	if float(host.throttle) <= THROTTLE_OFF and "starter" in done and not "engine" in done and "engine" in _steps():
+	if float(host.throttle) <= THROTTLE_OFF and _idle_step_due():
 		start_step(STEP_IDS.find("engine"))
 
 

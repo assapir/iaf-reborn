@@ -115,12 +115,12 @@ func keys(fe: Control) -> void:
 	var listed := 0
 	for g in ks.GROUPS:
 		listed += ks.records_of(g).size()
-	check(listed == 98, "keys: 98 commands listed, one head-look set (%d)" % listed)
+	check(listed == 99, "keys: 99 commands listed, one head-look set (%d)" % listed)
 	check(
 		ks.GROUPS.all(func(g): return [74, 86, 89, 93].all(func(r): return not ks.records_of(g).has(r))),
 		"keys: no free look or F2 rear view (the snap views and the mouse look around)"
 	)
-	check(ks.GROUPS.all(func(g): return not ks.records_of(g).has(121)), "keys: no Ctrl+I idle (record 121 empty)")
+	check(ks.records_of("flight").has(121), "keys: Throttle OFF listed (record 121, the engine shutdown)")
 	check(ks._rows[PITCH_UP].chip.text == "Up", "Pitch up shows Up (%s)" % ks._rows[PITCH_UP].chip.text)
 	# Bind: click the row, press K.
 	ks._rows[PITCH_UP].row.pressed.emit()

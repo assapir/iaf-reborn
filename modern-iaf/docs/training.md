@@ -185,6 +185,7 @@ since 2026-11-08: not in the key list), runs it all at once
 | displays and HUD up (`power` 2) | 3 s after the generator | 3 s after the IPP runs | the 3 s warm-up inferred |
 | avionics up (`avionics`) | with the displays | 90 s after the command | F-35: "after 90 seconds … ready"[^ayton] |
 | sum | idle and avionics at 35 s | displays 13 s, idle 45 s, avionics 90 s | |
+| throttle to OFF (§7.2) | the fuel cut: the engine winds down, the generators off at 52 %, stopped after about a minute | the same | §7.2 |
 | engine stopped (`set_engine_on(false)`, the ejection) | no RPM; the power as it was; a new command starts from the beginning | the same | inferred |
 
 The F-15I's (no mission flies it yet) is the F-16's (inferred). The F-35I's engine steps are the F-16's: no public
@@ -205,9 +206,8 @@ consequence and returns a fault, which ends the mission at once as a Fail with t
 The idle step has no key (the user, 2026-11-09): moving the throttle up from OFF, by its keys or the axis, is the step,
 as the real throttle's idle-cutoff detent, once the starter step (JFS / IPP) is done (before it the throttle moves
 alone and starts nothing). OFF is the throttle's bottom (2 % allowed for a lever's noise); a lever already up goes to OFF first. The card names the Throttle idle key (record 7, the 1 key) on that line (the user, 2026-11-09: "we have 1 for throttle"); the axis, the 0 key (Throttle up 5 %) and the 1 key all make the step (the 1 key sets the throttle to idle, which is OFF, so the key itself takes the step at OFF);
-record 121 stays an empty slot of `keys.json`, and the Keys screen lists no command for it. The step reaches the flight
-model and the recording as the key did (`sim_flight.gd _throttle_step`), so the scorer reads the same `checklist`
-event. The jet does not shut down when the throttle goes back to OFF (open).
+The step reaches the flight model and the recording as the key did (`sim_flight.gd _throttle_step`), so the scorer
+reads the same `checklist` event. The throttle goes back to OFF by its own key, Throttle OFF (§7.2).
 
 | # | F-16I Sufa, F-16D Barak | key | timing | out of order | source |
 |---|---|---|---|---|---|
@@ -230,7 +230,35 @@ Each step's `wait` (mission data) says the state to wait for before the next ste
 briefing's How show it under the step, the briefing beside a picture of the step's switch in the 3D cockpit
 ([front-end.md](front-end.md) §10).
 
-The avionics of the F-35I report ready 90 s after the battery[^ayton]. The mission passes when every step is done
+The avionics of the F-35I report ready 90 s after the battery[^ayton].
+
+### 7.2 The shutdown: the throttle to OFF
+**Throttle OFF** (Shift+1, record 121 of the sim's `keys.json`, command 218) moves the throttle over the idle-cutoff
+detent to OFF, which cuts the engine's fuel (T.O. checklist: "Retard THROTTLE to OFF"[^ep]). The 1 key and the axis
+stop at idle: OFF takes its own key, as the real throttle's detent takes a deliberate move. The flight model
+(`Start::cut_off` in `crates/iaf-flight/src/sixdof/start.rs`, `IafFlight.start_step("cutoff")`) then runs the
+shutdown:
+
+| what | when, from idle | source |
+|---|---|---|
+| thrust and fuel flow | none at once | the fuel cut |
+| RPM | falls as e^(−t / 15 s): 52 % after 2 s, 20 % after 16 s, stopped (below 1 %) after 61 s | inferred: "about a minute"; with the fuel cut the RPM dies slowly[^bmshot] |
+| main generator | off line below 52 %: the displays, the HUD and the avionics dark (`power` 1, the battery), the INS to align again | the generator's on-line RPM on the way up[^f16net], taken for the way down (inferred) |
+| FTIT | falls with the RPM (`EngineTemps`, [cockpit.md](cockpit.md)) | inferred |
+| sound | the engine loop pitches down and fades with the RPM, silent at the stop ([sound.md](sound.md) §1.4) | inferred |
+| the F-35I | the same figures; its displays also drop at 52 % (the IPP is off once the engine runs) | inferred |
+
+A restart is the start's own steps: the starter (Ctrl+J) once the RPM is below 20 % (the RPM it cranks to; before
+that the key does nothing; inferred), then the throttle up from OFF at 20 % (§7.1), or Start engine (Ctrl+E) once
+below 20 %; the starter above 20 % is the fault `starter_high` and the key is taken again later. An engine started by Start engine or running from the flight's start (an airborne start) lights from the starter
+alone, as Start engine does (inferred: no checklist was flown to give the throttle's step). Before the starter step the
+throttle moves alone. A cut-off with no fault (a cold or cranking engine) leaves the steps taken as they were.
+
+The recording gets a `checklist` event with step `cutoff` and its fault: `shutdown` (the engine was running) or
+`no_start` (it was lighting or accelerating to idle). A cold or cranking engine has nothing to cut: no fault. In a
+training mission the fault fails it at once (§3.0) with "Engine shutdown: the throttle went to OFF with the engine
+running." first in the debrief. Open: the air. In flight the real jet's emergency power unit and standby generator
+keep the displays up, and the engine windmills rather than stopping; the sim models neither. The mission passes when every step is done
 (`skip_<step>` names a step never taken), the engine idles and the avionics are up within the time budget (5 min,
 inferred), and nothing failed, at its end. The steps and their card lines are mission data (`training.checklist`,
 [data-formats.md](data-formats.md) §5); each key press is a `checklist` event in the recording (`step`, and `fault`
@@ -338,6 +366,8 @@ start-up / take-off, 2021 / 2022 Ramat David, 2031 / 2032 Nevatim.
 [^bms]: Falcon BMS forum, "Rotation speed" (the take-off speed 70 kt plus 3 kt per 1000 lb of gross weight; rotate at 170 kt with an air-to-air load, 180 kt heavy), https://forum.falcon-bms.com/post/314659
 [^wn]: WION, the F-35's minimum lift-off speed about 165 kt (weak), https://www.wionews.com/photos/how-does-the-f-35-fighter-jet-stand-out-in-takeoff-speed-and-design-here-s-its-minimum-lift-off-speed-1752767093279
 [^ayton]: Mark Ayton, "Blue Sky OPS", AIR International, 26 April 2012, quoted on F-16.net, "Engine start up procedure" (three switch selections: battery, IPP, engine; "After 90 seconds, if there are no problems, the aircraft declares itself ready for flight"), https://www.f-16.net/forum/viewtopic.php?p=317934
+[^ep]: F-16 emergency procedures flashcards (sim community, after the T.O.; weak): "Retard THROTTLE to OFF, MONITOR FTIT indicator, If FTIT remains above 500C, MOTOR ENGINE with JFS until FTIT is below 200C", https://m.brainscape.com/flashcards/6169806/packs/9535586
+[^bmshot]: Falcon BMS forum, "Recover from hot start" (a player: after the throttle to cutoff the "RPM die slowly"; weak: a forum, a simulation), https://forum.falcon-bms.com/post/267868
 [^chk]: F-16 checklist (sim community, after the T.O. checklist; weak): "THROTTLE – Advance to IDLE (20% RPM Min)", https://www.scribd.com/document/38303072/Checklist-Main
 [^jfs50]: F-16.net forum, "JFS and avionics question" (the flight manual: "As the engine accelerates through 50 % rpm, a sensor causes the JFS to shut down automatically"; about 50 % on a P&W and 54 % on a GE engine), https://www.f-16.net/forum/viewtopic.php?p=13518
 [^f16net]: F-16.net forum, "Main PWR on the F-16", Davis83, 7 December 2010 (the engine self-sustaining at about 52 % RPM, the JFS disengaged, the engine driving the hydraulic pumps and the main and standby generators), https://www.f-16.net/forum/viewtopic.php?p=186672

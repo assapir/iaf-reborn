@@ -194,6 +194,9 @@ engine spools. Now:
   winding down (inferred). The F-35I's IPP plays the same whine (inferred).
 - **The engine:** below idle the loop's pitch is RPM / 60 % (at least 0.3) and its level falls as (RPM / 60 %)^1.5:
   14 dB under idle at 20 % (inferred).
+- **The shutdown** (the throttle to OFF, training.md §7.2): no sound of its own. The RPM's run-down drives the same
+  loop: its pitch falls with the RPM to 0.3 at 18 % and its level as (RPM / 60 %)^1.5, so the engine pitches down and
+  fades over about 20 s and goes silent at the stop (inferred). A restart plays the JFS whine again.
 - **The light-off:** `SFX_AB_LIGHT` (the burner's low thump, §1.2) 6 dB down as the engine lights (inferred: the
   references' level rises about 6 dB over several seconds there, with no sharp bang).
 

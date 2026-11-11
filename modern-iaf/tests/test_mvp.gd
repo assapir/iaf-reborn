@@ -13,7 +13,7 @@
 # The front end's part is test_front_end.gd (with `-- --fly` it flies a mission through the screens). Still open for
 # item F: the run on a root that holds only the sim's files, macOS and Windows.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
-#     -s ../modern-iaf/tests/test_mvp.gd --log-file <temp> [-- --jet f16i] [-- --only startup|takeoff|loadout]
+#     -s ../modern-iaf/tests/test_mvp.gd --log-file <temp> [-- --jet f16i] [-- --only startup|takeoff|loadout|shutdown]
 extends "res://../tests/godot/base.gd"
 
 const SoundBuses := preload("res://shared/audio/sound_buses.gd")
@@ -62,6 +62,9 @@ func run() -> void:
 	if only == "loadout":  # --only loadout: the flight with a changed loadout alone
 		await changed_loadout()
 		return
+	if only == "shutdown":  # --only shutdown: the throttle to OFF and the restart alone
+		await shutdown()
+		return
 	for id in JETS:
 		if jet != "" and id != jet:
 			continue
@@ -75,6 +78,7 @@ func run() -> void:
 		await crash()
 		await eject()
 		await wrong_order()
+		await shutdown()
 		await changed_loadout()
 	Engine.time_scale = 1.0
 
@@ -526,6 +530,50 @@ func wrong_order() -> void:
 	check(
 		not d.is_empty() and d.get("reasons", [""])[0] == "no_power" and tv.flight.state().start_phase == "off",
 		"the JFS without main power: nothing runs, the start-up fails: %s" % [d.get("reasons")]
+	)
+
+
+## The throttle to OFF (training.md §7.2): the take-off's engine, started by Start engine, winds down, the
+## generators drop with the displays and the HUD, the FTIT falls, the engine loop pitches down; the shutdown recorded
+## and scored as the mission's fault; the JFS below 20 % and the throttle up from OFF restart it to idle, displays up.
+func shutdown() -> void:
+	var tv := await _start("ramon_takeoff")
+	tv.addon.rules = {}  # the mission's end held off: the restart is flown on
+	tv._command([200, 0, 0])  # Start engine: the take-off starts cold
+	await _until(tv, func(): return tv.flight.state().engine_on and tv.cockpit.power == 2, 60.0)
+	await fly(tv, 10.0)  # the FTIT settled at idle
+	var rpm := func() -> float: return float(tv.flight.state().rpm)
+	var temp := func() -> float: return float(tv.cockpit.state.get("engine_temp_c", [0.0])[0])
+	check(tv.flight.state().engine_on and tv.cockpit.power == 2, "shutdown: the take-off's engine runs, displays up")
+	var ftit: float = temp.call()
+	var pitch: float = tv.sounds.engine_pitch
+	tv._command([218, 0, 0])
+	await frames(2)
+	check(
+		tv.addon._fault == "shutdown" and not tv.flight.state().engine_on and tv.throttle == 0.0,
+		"shutdown: Throttle OFF cuts the fuel (fault %s)" % tv.addon._fault
+	)
+	var gen := await _until(tv, func(): return rpm.call() < 0.52, 5.0)
+	await frames(2)
+	check(gen and tv.cockpit.power < 2, "shutdown: below the generators' 52 %%, the displays dark (%.2f)" % rpm.call())
+	check(not tv.cockpit.hud.visible, "shutdown: the HUD off")
+	await fly(tv, 3.0)
+	check(temp.call() < ftit, "shutdown: the FTIT falls (%.0f -> %.0f C)" % [ftit, temp.call()])
+	check(
+		tv.sounds.engine_pitch < pitch,
+		"shutdown: the engine loop pitches down (%.2f -> %.2f)" % [pitch, tv.sounds.engine_pitch]
+	)
+	var d: Dictionary = tv.addon.score()
+	check(d.get("reasons", [""])[0] == "shutdown", "shutdown: scored as the fault first: %s" % [d.get("reasons")])
+	await _until(tv, func(): return rpm.call() < 0.2, 30.0)
+	tv._command([211, 0, 0])  # the JFS
+	await fly(tv, 2.0)
+	tv.throttle = 0.1  # up from OFF: the idle step
+	tv._throttle_event()
+	var up := await _until(tv, func(): return tv.flight.state().engine_on and tv.cockpit.power == 2, 60.0)
+	check(
+		up and rpm.call() >= 0.6,
+		"shutdown: the JFS restarts it to idle, displays up (%s)" % tv.flight.state().start_phase
 	)
 
 

@@ -524,6 +524,10 @@ budget, a real flight. Open:
   military scale, × the spool speed: 60 % at idle to 100 % at military, the 1998 gauge's line (inferred). It feeds
   the rigid body's gyroscopic term through `Jet::airframe(&engine)`, a per-flight copy (the jet's definition stays
   unchanged).
+* **Shutdown.** The throttle to OFF (training.md §7.2) cuts the fuel: no thrust and no fuel flow at once (the power
+  winds down to idle and stays there, as a stopped engine's), and the RPM shown is the start sequence's run-down
+  (`start.rs` `Phase::Rundown`): e^(−t / 15 s) from the RPM at the cut, stopped below 1 % (61 s from idle, inferred).
+  In the air the RPM falls to 0 as on the ground (open: the windmill RPM).
 * **Frames.** `Engine::step` follows the rigid body's frame rules: a frame time that is not a positive number changes
   nothing, a frame is cut to 0.25 s and taken in steps of at most 1/120 s, each step the lag's exact solution at its
   rate (no overshoot, even at the F100-PW-229's 6.8/s in the afterburner range).

@@ -2877,6 +2877,11 @@ func _command(cmd: Array) -> bool:
 			# passes them to the flight model and ticks its card.
 			if addon != null and addon.has_method("start_step"):
 				addon.start_step(int(cmd[0]) - 210)
+		218:
+			# Modern IAF's Throttle OFF (its own keys.json record 121; modern-iaf/docs/training.md §7.2): the fuel cut, the
+			# engine winds down. The flight add-on passes it to the flight model and records it.
+			if addon != null and addon.has_method("throttle_off"):
+				addon.throttle_off()
 		217:
 			# Ours, Modern IAF: the F-16's HUD DAY / AUTO BRT / NIGHT switch (cockpit3d_controls.gd; no key sends it):
 			# p1 0 the next position down, NIGHT back to DAY (a click); p1 > 0 one up toward DAY, < 0 one down toward

@@ -252,12 +252,21 @@ impl SixDof {
             if self.start_seq.phase == Phase::Running {
                 self.start_seq.shutdown(); // stopped since its last start: from the beginning
             }
-            self.start_seq.begin();
+            self.start_seq.begin(&self.jet.start);
         }
     }
 
-    /// One start-up checklist step by its key ([`Sequence::press`]); a running engine takes none.
+    /// One start-up checklist step by its key ([`Sequence::press`]); a running engine takes none. "cutoff": the
+    /// throttle to OFF, the fuel cut ([`Sequence::cut_off`]): the engine stops giving thrust and winds down.
     pub fn start_step(&mut self, step: &str) -> Result<(), &'static str> {
+        if step == "cutoff" {
+            if !self.engine_on && self.start_seq.phase == Phase::Running {
+                return Ok(()); // stopped already (the ejection, `engine_off`): nothing to cut
+            }
+            let rpm = self.rpm() as f64;
+            self.engine_on = false;
+            return self.start_seq.cut_off(rpm);
+        }
         if self.engine_on && step != "avionics" && step != "ins" {
             return Ok(());
         }
@@ -521,12 +530,7 @@ impl SixDof {
             alpha: alpha as f32,
             beta: b.beta() as f32,
             g: g as f32,
-            rpm: if self.engine_on {
-                (60.0 + 40.0 * (power / 50.0).min(1.0)) as f32
-            } else {
-                // A start in progress; a stopped engine (its sequence long done) shows none.
-                if self.start_seq.phase == Phase::Running { 0.0 } else { self.start_seq.rpm as f32 }
-            },
+            rpm: self.rpm(),
             throttle: self.controls.throttle,
             afterburner: if power > 75.0 {
                 2
@@ -551,6 +555,18 @@ impl SixDof {
             gear: self.gear,
             crashed: self.crashed,
             landings: self.landings,
+        }
+    }
+
+    /// The engine's RPM, %: running, from its power; a start or a run-down in progress, the sequence's; a stopped
+    /// engine (its sequence long done) none.
+    fn rpm(&self) -> f32 {
+        if self.engine_on {
+            (60.0 + 40.0 * (self.engine.power / 50.0).min(1.0)) as f32
+        } else if self.start_seq.phase == Phase::Running {
+            0.0
+        } else {
+            self.start_seq.rpm as f32
         }
     }
 

@@ -145,7 +145,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   Pilot screen; the Pilot screen keeps only the fields' labels and hints; Delete profile removes the pilot, its log
   and its picture after two confirms ([front-end.md](front-end.md) §1, §3). `test_front_end.gd`, the pilot_log unit
   tests.
-  Open: the jet does not shut down when the throttle goes back to OFF.
+- **The engine shutdown (2026-11-11):** Throttle OFF (Shift+1) cuts the fuel: the RPM winds down over about a minute,
+  the generators drop at 52 % with the displays, the HUD and the avionics, the FTIT falls, the engine loop pitches
+  down and fades; the recording's `checklist` step `cutoff` with fault `shutdown` / `no_start` fails a training
+  mission; the JFS below 20 % and the throttle up from OFF restart it ([training.md](training.md) §7.2). `test_mvp.gd`
+  (shutdown), the start.rs and training.rs unit tests. Open: the EPU and windmilling in the air.
 - **The HUD's light (2026-11-09, Approvals A10):** the F-16s' HUD in the P43 green, drawn over the scene, bright by day
   and dimmed to a night floor as the sun sets, with a faint halo, the original's thin pen and the combiner glass at
   14 %; the 3D cockpit's SYM wheel sets the day level (hover, wheel, drag; kept in the settings file) and Shift + H steps

@@ -64,6 +64,16 @@ const STRINGS: &[(&str, &str, &str)] = &[
         "No light-off: the throttle went to idle with the engine not turning.",
         "אין הצתה: המצערת הועברה לסרק כשהמנוע לא הסתובב.",
     ),
+    (
+        "shutdown",
+        "Engine shutdown: the throttle went to OFF with the engine running.",
+        "כיבוי מנוע: המצערת הועברה ל־OFF כשהמנוע פעל.",
+    ),
+    (
+        "starter_high",
+        "Starter while the engine wound down above 20 % RPM: it did not engage.",
+        "מתנע בזמן שהמנוע האט מעל 20% סל״ד: הוא לא הופעל.",
+    ),
     ("no_ipp", "Engine start without the IPP running.", "התנעת מנוע בלי שה־IPP פועל."),
     ("ipp_not_ready", "Engine start before the IPP was up to speed.", "התנעת מנוע לפני שה־IPP הגיע למהירות."),
     (
@@ -1227,6 +1237,9 @@ mod tests {
         // A hot start fails it first.
         let hot = json!({"t": 21.0, "event": "checklist", "step": "engine", "fault": "hot_start"});
         assert_eq!(scored(&with(&text, &[hot]), "ramon_startup").reasons, ["hot_start"]);
+        // The throttle to OFF with the engine running (the shutdown, start.rs `cut_off`) fails it too.
+        let off = json!({"t": 30.0, "event": "checklist", "step": "cutoff", "fault": "shutdown"});
+        assert_eq!(scored(&with(&text, &[off]), "ramon_startup").reasons, ["shutdown"]);
         let d = scored(&text, "ramon_startup");
         assert!(d.pass, "a clean start-up passes at its end");
         assert!(d.goals.is_empty(), "the start-up's sheet: pass / fail and the reason");

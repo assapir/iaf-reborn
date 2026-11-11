@@ -13,6 +13,12 @@
 /// The 6-DoF's idle RPM, % (its gauge's line, modern-iaf/docs/flight-model.md §9.7).
 pub const IDLE_RPM: f64 = 60.0;
 
+/// The shutdown (training.md §7.2): with the fuel cut the core winds down as `e^(-t/RUNDOWN_TAU)` (s) and stops below
+/// `STOP_RPM` (%): from idle 61 s, the generators off line (52 %) after 2 s, below the starter's 20 % after 16 s.
+/// Inferred: no public run-down figure; "about a minute" to a stop.
+pub const RUNDOWN_TAU: f64 = 15.0;
+pub const STOP_RPM: f64 = 1.0;
+
 /// One jet's start sequence.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct StartSpec {
@@ -88,6 +94,8 @@ pub enum Phase {
     Accel,
     /// At idle or above: the engine runs.
     Running,
+    /// The fuel cut (the throttle to OFF): the core winds down to a stop.
+    Rundown,
 }
 
 impl Phase {
@@ -99,6 +107,7 @@ impl Phase {
             Phase::LightOff => "light-off",
             Phase::Accel => "accel",
             Phase::Running => "running",
+            Phase::Rundown => "rundown",
         }
     }
 }
@@ -131,7 +140,7 @@ impl Start {
         // Its clock long past every step of the sequence.
         Start {
             phase: Phase::Running,
-            t: f64::INFINITY,
+            t: 1.0e6,
             rpm: IDLE_RPM,
             displays_at: Some(0.0),
             commanded: true,
@@ -139,11 +148,33 @@ impl Start {
         }
     }
 
-    /// The "start engine" command: a stopped engine begins its sequence; otherwise nothing.
-    pub fn begin(&mut self) {
-        if self.phase == Phase::Off {
-            *self = Start { phase: Phase::Starter, commanded: true, ..Start::default() };
+    /// The "start engine" command: a stopped engine begins its sequence (one winding down once below the starter's
+    /// RPM, [`Start::starter_engages`]); otherwise nothing.
+    pub fn begin(&mut self, s: &StartSpec) {
+        if self.starter_engages(s) {
+            *self = Start { phase: Phase::Starter, commanded: true, rpm: self.rpm, ..Start::default() };
         }
+    }
+
+    /// The starter can turn the engine: stopped, or winding down below the light-off RPM (inferred: the starter
+    /// cranks up to that RPM).
+    fn starter_engages(&self, s: &StartSpec) -> bool {
+        self.phase == Phase::Off || (self.phase == Phase::Rundown && self.rpm < s.lightoff_rpm)
+    }
+
+    /// The throttle to OFF (the fuel cut) at the engine's RPM `rpm` (%): an engine lit or running winds down
+    /// ([`RUNDOWN_TAU`]); the fault: "shutdown" for a running engine, "no_start" for one still starting. A cold or
+    /// cranking engine has no fuel to cut (the throttle's next move from OFF is the idle step again).
+    pub fn cut_off(&mut self, rpm: f64) -> Result<(), &'static str> {
+        self.fuel_on = false;
+        let fault = match self.phase {
+            Phase::Running => "shutdown",
+            Phase::LightOff | Phase::Accel => "no_start",
+            _ => return Ok(()),
+        };
+        self.rpm = rpm;
+        self.next(Phase::Rundown);
+        Err(fault)
     }
 
     /// The engine stopped: no RPM, the displays and the avionics down, the battery on (a new command restarts).
@@ -171,6 +202,18 @@ impl Start {
                 }
             }
             Phase::LightOff if self.phase_t >= s.lightoff_s => self.next(Phase::Accel),
+            Phase::Rundown => {
+                self.rpm *= (-dt / RUNDOWN_TAU).exp();
+                // The generators off line: the displays and the avionics down, the INS to align again (inferred).
+                if self.rpm < s.generator_rpm {
+                    self.displays_at = None;
+                    self.ins_at = None;
+                }
+                if self.rpm < STOP_RPM {
+                    self.rpm = 0.0;
+                    self.next(Phase::Off);
+                }
+            }
             Phase::Accel => {
                 let k = (self.phase_t / s.accel_s).min(1.0);
                 self.rpm = s.lightoff_rpm + (IDLE_RPM - s.lightoff_rpm) * k;
@@ -180,7 +223,9 @@ impl Start {
             }
             _ => {}
         }
-        let powered = if s.displays_on_starter { self.phase != Phase::Starter } else { self.rpm >= s.generator_rpm };
+        let powered = self.phase != Phase::Rundown
+            && self.phase != Phase::Off
+            && if s.displays_on_starter { self.phase != Phase::Starter } else { self.rpm >= s.generator_rpm };
         if self.displays_at.is_none() && (powered || self.phase == Phase::Running) {
             self.displays_at = Some(self.t);
         }
@@ -226,19 +271,20 @@ impl Start {
                 }
             }
             "starter" if !self.commanded => return Err("no_power"),
+            // Winding down above the light-off RPM: the starter waits, the key does nothing.
+            "starter" if self.phase == Phase::Rundown && !self.starter_engages(s) => return Err("starter_high"),
             "starter" => {
-                if self.phase == Phase::Off {
-                    self.phase = Phase::Starter;
-                    self.phase_t = 0.0;
+                if self.starter_engages(s) {
+                    self.next(Phase::Starter);
                 }
             }
             "engine" if s.fadec => match self.phase {
-                Phase::Off => return Err("no_ipp"),
+                Phase::Off | Phase::Rundown => return Err("no_ipp"),
                 Phase::Starter if self.phase_t < s.starter_s => return Err("ipp_not_ready"),
                 _ => self.fuel_on = true,
             },
             "engine" => match self.phase {
-                Phase::Off => return Err("no_rotation"),
+                Phase::Off | Phase::Rundown => return Err("no_rotation"),
                 // Fuel below the light-off RPM: a hot start; the engine is shut down (the battery stays on).
                 Phase::Starter | Phase::Crank if self.rpm < s.lightoff_rpm => {
                     *self = Start { commanded: true, manual: true, ..Start::default() };
@@ -264,7 +310,7 @@ mod tests {
     fn run(s: &StartSpec) -> (f64, f64, f64) {
         let mut st = Start::default();
         assert_eq!(st.power(s), 0);
-        st.begin();
+        st.begin(s);
         let (mut idle, mut disp, mut av, mut t) = (None, None, None, 0.0);
         while t < 200.0 {
             st.step(s, 1.0 / 30.0);
@@ -356,8 +402,59 @@ mod tests {
     #[test]
     fn a_running_engine_has_everything_up_and_ignores_the_command() {
         let mut st = Start::running();
-        st.begin();
+        st.begin(&IPP);
         st.step(&IPP, 0.1);
         assert_eq!((st.phase, st.power(&IPP), st.avionics(&IPP)), (Phase::Running, 2, true));
+    }
+
+    /// The throttle to OFF at idle: the run-down's timings, the displays dark at the generators, the starter again
+    /// below 20 %, a restart by keys back to idle with the displays up.
+    #[test]
+    fn a_shutdown_winds_down_and_the_jfs_restarts_it() {
+        let mut st = Start::running();
+        assert_eq!(st.cut_off(IDLE_RPM), Err("shutdown"));
+        let (mut t, mut dark, mut low, mut stop) = (0.0_f64, None, None, None);
+        while t < 90.0 {
+            st.step(&JFS, 1.0 / 30.0);
+            t += 1.0 / 30.0;
+            dark = dark.or((st.power(&JFS) < 2).then_some(t));
+            low = low.or((st.rpm < JFS.lightoff_rpm).then_some(t));
+            stop = stop.or((st.phase == Phase::Off).then_some(t));
+            if low.is_none() {
+                assert_eq!(st.press(&JFS, "starter"), Err("starter_high"));
+                assert_eq!(st.phase, Phase::Rundown, "the starter waits for 20 %");
+            }
+        }
+        assert!((dark.unwrap() - 2.1).abs() < 0.1, "generators off at {dark:?}");
+        assert!((low.unwrap() - 16.5).abs() < 0.1, "20 % at {low:?}");
+        assert!((stop.unwrap() - 61.4).abs() < 0.1, "stopped at {stop:?}");
+        assert_eq!((st.rpm, st.power(&JFS), st.avionics(&JFS)), (0.0, 1, false));
+        // A restart by keys (the hot jet's avionics switches stay on): the JFS, the throttle up from OFF at 20 %.
+        let mut st = Start::running();
+        st.cut_off(IDLE_RPM).unwrap_err();
+        st.manual = true;
+        st.avionics_at = Some(0.0);
+        for _ in 0..600 {
+            st.step(&JFS, 1.0 / 30.0);
+        }
+        assert_eq!(st.press(&JFS, "engine"), Err("no_rotation"), "the fuel on with no starter");
+        st.press(&JFS, "starter").unwrap();
+        assert_eq!(st.phase, Phase::Starter);
+        for _ in 0..300 {
+            st.step(&JFS, 1.0 / 30.0);
+        }
+        st.press(&JFS, "engine").unwrap();
+        for _ in 0..1500 {
+            st.step(&JFS, 1.0 / 30.0);
+        }
+        assert_eq!((st.phase, st.power(&JFS)), (Phase::Running, 2));
+        // The fuel cut during the light-off: no start.
+        let mut st = Start::default();
+        st.begin(&JFS);
+        while st.phase != Phase::Accel {
+            st.step(&JFS, 0.1);
+        }
+        assert_eq!(st.cut_off(st.rpm), Err("no_start"));
+        assert_eq!(st.phase, Phase::Rundown);
     }
 }
