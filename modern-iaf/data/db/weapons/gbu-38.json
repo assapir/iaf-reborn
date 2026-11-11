@@ -1,0 +1,37 @@
+{
+  "id": "gbu-38",
+  "number": 10,
+  "name": "GBU-38",
+  "kind": "bomb",
+  "generation": 5,
+  "model": "weapons/sufa/gbu38_m.gltf",
+  "kg": 253,
+  "power": 4350,
+  "blast_m": 50,
+  "drag": 0,
+  "motion": {},
+  "sim": 1006,
+  "length_m": 2.353,
+  "diameter_m": 0.273,
+  "sources": {
+    "power": "inferred",
+    "blast_m": "open",
+    "drag": "open",
+    "kg": "f16net-jdam",
+    "length_m": "f16net-jdam",
+    "diameter_m": "f16net-jdam"
+  },
+  "notes": {
+    "number": "ours",
+    "drag": "carriage drag: none until a source gives one",
+    "motion": "the reader's defaults",
+    "sim": "the sim flies modern_weapons.gd's record 1006, built on its base record, in its place (loadout::sim_load)",
+    "power": "the MK-82's 87 kg of tritonal (our damage scale)",
+    "blast_m": "the MK-82's 50 m",
+    "model": "our GBU-38 (shared/extra/models/stores/gbu38.glb)",
+    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind"
+  },
+  "footnotes": {
+    "f16net-jdam": "F-16.net, \"GBU-31 and GBU-38 JDAM\" (GBU-31(V)1 946 kg, 3.879 m, 0.46 m; GBU-38 253 kg, 2.353 m, 0.273 m), https://www.f-16.net/f-16_armament_article9.html"
+  }
+}

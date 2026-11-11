@@ -1,0 +1,36 @@
+{
+  "id": "mk-83",
+  "number": 5,
+  "name": "MK-83",
+  "kind": "bomb",
+  "generation": 2,
+  "model": "weapons/mk83/mk83_m.gltf",
+  "kg": 447,
+  "power": 10100,
+  "blast_m": 70,
+  "drag": 0,
+  "motion": {},
+  "length_m": 3.0,
+  "diameter_m": 0.35,
+  "sources": {
+    "power": "inferred",
+    "blast_m": "open",
+    "drag": "open",
+    "kg": "w83",
+    "length_m": "w83",
+    "diameter_m": "w83"
+  },
+  "notes": {
+    "number": "ours",
+    "drag": "carriage drag: none until a source gives one",
+    "motion": "the reader's defaults",
+    "name": "the base of the SPICE 1000 (modern_weapons.gd RECORDS)",
+    "power": "202 kg of tritonal at 50 points a kilogram (our damage scale)",
+    "blast_m": "no public lethal radius found: 70 m held until one is",
+    "model": "the original's file name, which Models: Detailed draws as ours (shared/extra/models/stores/mk83.glb)",
+    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind"
+  },
+  "footnotes": {
+    "w83": "Wikipedia, \"Mark 83 bomb\" (447 kg, 3.0 m, 0.35 m; 202 kg of tritonal), https://en.wikipedia.org/wiki/Mark_83_bomb"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "id": "python-5",
+  "number": 7,
+  "name": "PYTH-5",
+  "kind": "ir_missile",
+  "generation": 6,
+  "model": "weapons/sufa/pyth5_m.gltf",
+  "kg": 105,
+  "power": 400,
+  "blast_m": 9,
+  "drag": 0,
+  "motion": {},
+  "length_m": 3.1,
+  "diameter_m": 0.16,
+  "sources": {
+    "power": "inferred",
+    "blast_m": "open",
+    "drag": "open",
+    "kg": "w-python",
+    "length_m": "w-python",
+    "diameter_m": "w-python"
+  },
+  "notes": {
+    "number": "ours",
+    "drag": "carriage drag: none until a source gives one",
+    "motion": "the reader's defaults",
+    "power": "one hit destroys a fighter of strength 300, as the AIM-9M (our damage scale)",
+    "blast_m": "the AIM-9M's 9 m until a source gives the Python 5's",
+    "model": "our Python 5 (shared/extra/models/stores/pyth5.glb)",
+    "sim": "none: modern_weapons.gd builds its PYTH-5 on the Python 4's record, which the sim has not; it flies as this record (the reader's motion defaults) until it has",
+    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind"
+  },
+  "footnotes": {
+    "w-python": "Wikipedia, \"Python (missile)\" (Python 5: 105 kg, 3.10 m, 0.16 m; 11 kg warhead), https://en.wikipedia.org/wiki/Python_(missile)"
+  }
+}

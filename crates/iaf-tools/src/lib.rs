@@ -16,6 +16,7 @@ pub mod gltf;
 pub mod imagery;
 pub mod imagery_run;
 pub mod itm;
+pub mod loadout;
 pub mod mapi2015_fetch;
 pub mod mig29;
 pub mod mis;

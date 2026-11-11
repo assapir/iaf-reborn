@@ -120,4 +120,18 @@ impl IafPilotLog {
     fn debrief(db: GString, id: i64) -> GString {
         text(with(&db, |c| pilot_log::debrief(c, id)).flatten())
     }
+
+    /// The pilot's saved loadout for `plane` (its unit id) as JSON text ({"3": {"id": "mk-82", "count": 3}, …}), ""
+    /// when never saved.
+    #[func]
+    fn loadout(db: GString, pilot: i64, plane: GString) -> GString {
+        text(with(&db, |c| pilot_log::loadout(c, pilot, &plane.to_string())).flatten())
+    }
+
+    /// Stores the pilot's loadout for `plane` (JSON text); "" deletes it (Reset). False when it could not.
+    #[func]
+    fn set_loadout(db: GString, pilot: i64, plane: GString, stations: GString) -> bool {
+        let v = serde_json::from_str::<Value>(&stations.to_string()).ok();
+        with(&db, |c| pilot_log::set_loadout(c, pilot, &plane.to_string(), v.as_ref())).is_some()
+    }
 }

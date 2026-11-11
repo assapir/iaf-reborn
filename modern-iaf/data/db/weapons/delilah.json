@@ -1,0 +1,37 @@
+{
+  "id": "delilah",
+  "number": 14,
+  "name": "DELILA",
+  "kind": "bomb",
+  "generation": 9,
+  "model": "",
+  "kg": 187,
+  "power": 1500,
+  "blast_m": 30,
+  "drag": 0,
+  "motion": {},
+  "role": "ground",
+  "length_m": 2.71,
+  "diameter_m": 0.33,
+  "sources": {
+    "power": "inferred",
+    "blast_m": "open",
+    "drag": "open",
+    "kg": "w-delilah",
+    "length_m": "w-delilah",
+    "diameter_m": "w-delilah"
+  },
+  "notes": {
+    "number": "ours",
+    "drag": "carriage drag: none until a source gives one",
+    "motion": "the reader's defaults",
+    "kind": "a turbojet cruise missile; the engine has no air-to-ground missile kind, so it falls as a bomb until one is made (open)",
+    "power": "30 kg warhead at 50 points a kilogram (our damage scale)",
+    "blast_m": "no public lethal radius found: 30 m held until one is",
+    "model": "none yet: no model of ours; the briefing shows our labelled silhouette (data/stores/delilah.png)",
+    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind"
+  },
+  "footnotes": {
+    "w-delilah": "Wikipedia, \"Delilah (missile)\" (187 kg, 2.71 m, 0.33 m; 30 kg warhead), https://en.wikipedia.org/wiki/Delilah_(missile)"
+  }
+}

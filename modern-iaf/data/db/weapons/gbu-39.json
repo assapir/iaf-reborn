@@ -1,0 +1,38 @@
+{
+  "id": "gbu-39",
+  "number": 11,
+  "name": "GBU-39",
+  "kind": "bomb",
+  "generation": 6,
+  "model": "weapons/sufa/gbu39_m.gltf",
+  "kg": 129,
+  "power": 800,
+  "blast_m": 20,
+  "drag": 0,
+  "motion": {},
+  "sim": 1007,
+  "length_m": 1.8,
+  "diameter_m": 0.19,
+  "sources": {
+    "power": "inferred",
+    "blast_m": "open",
+    "drag": "open",
+    "kg": "w-gbu39",
+    "length_m": "w-gbu39",
+    "diameter_m": "w-gbu39"
+  },
+  "notes": {
+    "number": "ours",
+    "drag": "carriage drag: none until a source gives one",
+    "motion": "the reader's defaults",
+    "sim": "the sim flies modern_weapons.gd's record 1007, built on its base record, in its place (loadout::sim_load)",
+    "power": "16 kg of AFX-757 at 50 points a kilogram (our damage scale)",
+    "blast_m": "no public lethal radius found: 20 m held until one is",
+    "model": "our GBU-39 (shared/extra/models/stores/gbu39.glb); four on a BRU-61 rack",
+    "diameter_m": "its packed width",
+    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind"
+  },
+  "footnotes": {
+    "w-gbu39": "Wikipedia, \"GBU-39 Small Diameter Bomb\" (129 kg, 1.80 m, 0.19 m packed; 16 kg of AFX-757), https://en.wikipedia.org/wiki/GBU-39_Small_Diameter_Bomb"
+  }
+}

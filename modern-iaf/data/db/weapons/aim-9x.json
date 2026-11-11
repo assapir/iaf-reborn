@@ -1,0 +1,39 @@
+{
+  "id": "aim-9x",
+  "number": 8,
+  "name": "AIM-9X",
+  "kind": "ir_missile",
+  "generation": 7,
+  "model": "weapons/sufa/aim9x_m.gltf",
+  "kg": 85,
+  "power": 400,
+  "blast_m": 9,
+  "drag": 0,
+  "motion": {},
+  "sim": 1001,
+  "length_m": 3.02,
+  "diameter_m": 0.127,
+  "sources": {
+    "power": "inferred",
+    "blast_m": "open",
+    "drag": "open",
+    "kg": "f16net-aim9",
+    "length_m": "f16net-aim9",
+    "diameter_m": "w-aim9"
+  },
+  "notes": {
+    "number": "ours",
+    "drag": "carriage drag: none until a source gives one",
+    "motion": "the reader's defaults",
+    "sim": "the sim flies modern_weapons.gd's record 1001, built on its base record, in its place (loadout::sim_load)",
+    "power": "as the AIM-9M (our damage scale)",
+    "blast_m": "the AIM-9M's 9 m",
+    "model": "our AIM-9X (shared/extra/models/stores/aim9x.glb)",
+    "diameter_m": "the Sidewinder's body",
+    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind"
+  },
+  "footnotes": {
+    "f16net-aim9": "F-16.net, \"AIM-9 Sidewinder\" (AIM-9X 85 kg, 3,020 mm), https://www.f-16.net/f-16_armament_article1.html",
+    "w-aim9": "Wikipedia, \"AIM-9 Sidewinder\" (0.127 m body diameter), https://en.wikipedia.org/wiki/AIM-9_Sidewinder"
+  }
+}

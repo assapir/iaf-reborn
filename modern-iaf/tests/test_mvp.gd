@@ -1,4 +1,4 @@
-# The MVP probe (modern-iaf/docs/plan.md, item F; started by item E3b): Modern IAF's two training missions flown headless
+# The MVP probe (modern-iaf/docs/plan.md, item F; started by item E3b): the sim's two training missions flown headless
 # for each MVP jet (the Sufa at Ramon, the Barak at Ramat David, the F-35I at Nevatim) with scripted inputs, each
 # ending in a Pass from the run-time scoring (modern-iaf/docs/training.md §7–§9):
 # - start-up: parked cold (no RPM, no power), the throttle starts nothing, the checklist by its keys (the F-16's
@@ -13,7 +13,7 @@
 # The front end's part is test_front_end.gd (with `-- --fly` it flies a mission through the screens). Still open for
 # item F: the run on a root that holds only the sim's files, macOS and Windows.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
-#     -s ../modern-iaf/tests/test_mvp.gd --log-file <temp> [-- --jet f16i] [-- --only startup|takeoff]
+#     -s ../modern-iaf/tests/test_mvp.gd --log-file <temp> [-- --jet f16i] [-- --only startup|takeoff|loadout]
 extends "res://../tests/godot/base.gd"
 
 const SoundBuses := preload("res://shared/audio/sound_buses.gd")
@@ -59,6 +59,9 @@ func run() -> void:
 	var args := OS.get_cmdline_user_args()
 	var only := args[args.find("--only") + 1] if args.has("--only") else ""
 	var jet := args[args.find("--jet") + 1] if args.has("--jet") else ""
+	if only == "loadout":  # --only loadout: the flight with a changed loadout alone
+		await changed_loadout()
+		return
 	for id in JETS:
 		if jet != "" and id != jet:
 			continue
@@ -72,6 +75,7 @@ func run() -> void:
 		await crash()
 		await eject()
 		await wrong_order()
+		await changed_loadout()
 	Engine.time_scale = 1.0
 
 
@@ -91,10 +95,13 @@ func _remove(dir: String) -> void:
 	DirAccess.remove_absolute(dir)
 
 
-func _start(name: String) -> Node:
+func _start(name: String, armed := false) -> Node:
 	var s := settings()
 	var m: Dictionary = s.load_json(s.assets_dir().path_join(MISSIONS).path_join(name + ".json"))
 	fly_gd.set_jet(m)
+	s.arm_loadouts = {}
+	if armed:
+		fly_gd.arm(m, s.load_json("res://data/missions/%s.json" % name))
 	s.mission_files_override = [{"name": name, "data": m}]
 	Engine.time_scale = 1.0
 	var tv: Node = await start_mission(int(m.sim.menu_id))
@@ -102,6 +109,36 @@ func _start(name: String) -> Node:
 	tv.addon.out_dir = out
 	Engine.time_scale = TIME_SCALE
 	return tv
+
+
+## A flight carrying a changed loadout (front-end.md §10): the Sufa's take-off with the pilot's stored loadout (fly.gd
+## arm), MK-84s on 3 / 7 for their AIM-9Ms and three Mk 82 on a TER on 4 / 6 for the tanks: the pylons, the stores'
+## mass, no tanks' fuel, the bombs' models on the jet, the gun's rounds the record's.
+func changed_loadout() -> void:
+	var s := settings()
+	var db: String = s.records_db()
+	var unit := ProjectSettings.globalize_path("res://data/db/units/f16i.json")
+	var lo: String = IafBriefing.put(unit, IafBriefing.put(unit, "", 3, "mk-84", true), 4, "mk-82", true)
+	IafPilotLog.set_loadout(db, s.pilot(), "f16i", lo)
+	var tv := await _start("ramon_takeoff", true)
+	IafPilotLog.set_loadout(db, s.pilot(), "f16i", "")
+	s.arm_loadouts = {}
+	var st = tv.weapons.stores
+	var c: Dictionary = st.station(2)
+	check(
+		not c.is_empty() and int(c.w.id) == 2 and st.station(6).get("w", {}).get("id", 0) == 2,
+		"loadout: an MK-84 on pylons C and G"
+	)
+	var d: Dictionary = st.station(3)
+	check(
+		not d.is_empty() and int(d.w.id) == 4 and int(d.count) == 3 and st.tank_fuel == 0.0,
+		"loadout: three Mk 82 on pylon D's rack, no tanks"
+	)
+	# The bombs' mass (the racks' 47.6 kg each are the briefing's figure only: the stores code knows no racks).
+	var kg := 4.0 * 86.0 + 2.0 * 925.0 + 6.0 * 241.0
+	check(absf(st.fm_mass - kg) < 3.0, "loadout: the stores' mass %.0f kg" % st.fm_mass)
+	check(not tv.weapons._store_nodes.get(2, []).is_empty(), "loadout: the bomb's model on the jet")
+	check(int(st.station(9).count) == 511, "loadout: the gun's 511 rounds")
 
 
 func _press(tv: Node, k: Key, ctrl := false) -> void:
@@ -252,8 +289,8 @@ func core_sound() -> void:
 	fs.queue_free()
 
 
-## The cockpit sound model (modern-iaf/docs/sound.md §1.9): the outside classes on their canopy buses (a low-pass and the
-## class's level) from the cockpit, unmuffled from outside; the inside sounds on their category buses.
+## The cockpit sound model (modern-iaf/docs/sound.md §1.9): the outside classes on their canopy buses (a low-pass and
+## the class's level) from the cockpit, unmuffled from outside; the inside sounds on their category buses.
 func _cockpit_model(fs: Node, st: Dictionary, inp: Dictionary) -> void:
 	var t: RefCounted = fs.table
 	var buses := {}

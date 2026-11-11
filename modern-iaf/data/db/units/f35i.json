@@ -19,15 +19,30 @@
   },
   "stations": { "1": "A", "2": "", "3": "B", "4": "C", "5": "D", "7": "F", "8": "G", "9": "H", "10": "", "11": "I" },
   "internal": [4, 5, 7, 8],
+  "allowed": {
+    "1": ["aim-9x"],
+    "2": [],
+    "3": ["gbu-31", "aim-120"],
+    "4": ["gbu-31", { "id": "gbu-39", "count": 4, "rack": "BRU-61/A", "rack_kg": 147 }],
+    "5": ["aim-120"],
+    "7": ["aim-120"],
+    "8": ["gbu-31", { "id": "gbu-39", "count": 4, "rack": "BRU-61/A", "rack_kg": 147 }],
+    "9": ["gbu-31", "aim-120"],
+    "10": [],
+    "11": ["aim-9x"]
+  },
   "pylons": {
     "D": { "weapon": "aim-120", "count": 1 },
     "F": { "weapon": "aim-120", "count": 1 }
   },
   "inventory": [
     { "weapon": "aim-120" },
-    { "weapon": "mk-84", "as": "gbu-31" }
+    { "weapon": "aim-9x" },
+    { "weapon": "gbu-31" },
+    { "weapon": "gbu-39" }
   ],
   "sources": {
+    "allowed": "w-f35-arm, afm-f35, rk-bru61, inferred",
     "tail": "isradecal-921",
     "max_takeoff_kg": "lm-f35a, inferred",
     "type": "inferred",
@@ -43,6 +58,8 @@
     "inventory": "w-f35-bays, inferred"
   },
   "notes": {
+    "lateral_limit_kgm": "open: no public figure for the F-35's asymmetric moment limit was found, so the briefing shows no imbalance warning for the Adir",
+    "allowed": "the stores each station takes, by its real number. Sourced: the AIM-120 on the bays' inboard stations 5 / 7, the GBU-31 on their outboard ones 4 / 8 (up to 2,500 lb) and four GBU-39 there on a BRU-61/A (w-f35-arm), the AIM-9X on the wingtip stations 1 / 11 only, not in the bays (w-f35-arm). Inferred: the GBU-31 on the inboard wing stations 3 / 9 (5,000 lb; w-f35-arm's six 2,000 lb bombs) and the AIM-120 there (afm-f35's eight AIM-120); the BRU-61/A's 147 kg (rk-bru61, unofficial); 2 / 10 take none (no pylon in the engine, stations); no Python on the Adir (not integrated on the F-35I as far as public sources show)",
     "tail": "F-35I Adir 921 of 140 Squadron in a public photo (the squadron's tail art, 2021): one real jet of the squadron, the pilot's in the sim",
     "max_takeoff_kg": "the F-35A's maximum weight, 70,000 lb class (31,751 kg), Lockheed Martin's; the F-35I's is not published (inferred the same)",
     "type": "type codes from 1000 are ours (docs/adding-a-plane.md §1); 1000 is the F-35I's",
@@ -56,9 +73,12 @@
     "stations": "the F-35A's eleven stations, numbered from the left wing tip: 1 / 11 the outboard wing pylons (the AIM-9X's), 2 / 10 the middle and 3 / 9 the inboard wing pylons, 4 / 8 the bays' outboard (air-to-ground, up to 2,500 lb) and 5 / 7 their inboard stations (air-to-air), 6 the centreline (a gun pod on the F-35B / C only, left out); each mapped to the engine's pylon letter (A..I: the armament holds nine), as player_aircraft.gd f35i_object and docs/f35i.md §3.1 do; 2 and 10 have none (empty: ''), so they carry nothing in the sim",
     "internal": "the two bays' four stations, inside the fuselage: their stores add no drag",
     "pylons": "the training's defensive pair: an AIM-120 on each bay's inboard, air-to-air station (5 and 7, D and F), the bays' air-to-ground stations 4 and 8 empty, no external stores (a stealthy jet's; inferred for the training)",
-    "inventory": "the stores the briefing lists as the Adir's: the AIM-120 (the bays' inboard stations) and the GBU-31 JDAM (their outboard ones; the MK-84 record stands in, modern_weapons.gd builds the GBU-31 on it); no counts published"
+    "inventory": "the stores the briefing lists as the Adir's, each its own record: the AIM-120, the AIM-9X (the wingtip stations), the GBU-31 JDAM and the GBU-39 SDB; no counts published"
   },
   "footnotes": {
+    "afm-f35": "Air & Space Forces Magazine, \"F-35\" (up to six AIM-120 internally with Sidekick; eight AIM-120 and two AIM-9 in all), https://www.airandspaceforces.com/weapons/f-35",
+    "rk-bru61": "War Thunder forum (BRU-61 about 147 kg; unofficial), https://forum.warthunder.com/t/saab-jas-39e-f-gripen-general-discussion/291381?page=52",
+    "w-f35-arm": "Wikipedia, \"Lockheed Martin F-35 Lightning II\", Armament (the bays' outboard stations up to 2,500 lb and the inboard ones the AIM-120; up to four GBU-39 on each outboard bay station; the wingtip pylons the AIM-9X, which is not carried internally; each wing a 5,000 lb inboard and a 2,500 lb middle station; six 2,000 lb bombs, two AIM-120s and two AIM-9s) (read 2026-11-10), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II",
     "lm-f35a": "Lockheed Martin, \"F-35A Lightning II\" variant page (maximum weight 70,000 lb class), https://view.ceros.com/lockheed-martin/f-35-variants",
     "isradecal-921": "IsraDecal, F-35I Adir decal sheet notes (the Golden Eagle squadron's tail art from summer 2021, \"here seen aircraft 916 and 921\"), https://isradecal.com/_files/ugd/ddb4b4_ba84724c1add4daa9882e4818bb8d8e2.pdf",
     "w-f35": "Wikipedia, \"Lockheed Martin F-35 Lightning II\" (F-35A: span 35 ft; 1 × 25 mm GAU-22/A with 180 rounds), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II",

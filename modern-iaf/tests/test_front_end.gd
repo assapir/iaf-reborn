@@ -828,6 +828,171 @@ func _labels(root: Node) -> Array:
 	)
 
 
+## The loadout editor (front-end.md §10) on the Sufa's take-off: a refused drop changes nothing, a drop fills the
+## mirror station too, a store dragged back to the inventory takes its pair off, the keyboard path (Enter on a slot,
+## Enter on an inventory entry), the figures with it, the loadout stored per pilot per jet and handed to the flight
+## (fly.gd arm), the maximum (a lowered one: the take-off weight red, Fly off), Reset.
+func _loadout_checks(fe: Control, lang: String) -> void:
+	var s := settings()
+	var db: String = s.records_db()
+	var stored := func() -> String: return IafPilotLog.loadout(db, s.pilot(), "f16i")
+	IafPilotLog.set_loadout(db, s.pilot(), "f16i", "")
+	var drawing: Control = fe.find_child("Drawing", true, false)
+	drawing.dropped({"store": "tank-370", "from": ""}, "2")
+	await frames(3)
+	check(stored.call() == "", "%s: loadout: a tank on station 2 is refused" % lang)
+	drawing.dropped({"store": "mk-84", "from": ""}, "3")
+	await frames(3)
+	drawing = fe.find_child("Drawing", true, false)
+	check(
+		drawing.stores[3][0] == "mk-84" and drawing.stores[7][0] == "mk-84" and drawing.stores[2][0] == "aim-9m",
+		"%s: loadout: an MK-84 on 3 fills 7 too" % lang
+	)
+	var count: Label = fe.find_child("Itemmk-84", true, false).find_child("Count", false, false)
+	check(count == null, "%s: loadout: no count without the record's (the slots show what is on)" % lang)
+	check(
+		fe.find_child("Group_ground", true, false).get_child_count() >= 8,
+		"%s: loadout: the long inventory, the air-to-ground group two to a row" % lang
+	)
+	var facts: Control = fe.find_child("ArmingFacts", true, false)
+	check(_has(facts, "17,747"), "%s: loadout: the take-off weight with two MK-84s for two AIM-9Ms" % lang)
+	# A slot's store dropped on an inventory entry (in its group's grid) goes back through the column.
+	var on_item: Control = fe.find_child("Itemmk-84", true, false)
+	check(
+		on_item._can_drop_data(Vector2.ZERO, {"store": "tank-370", "from": "4"}), "%s: loadout: drop on an entry" % lang
+	)
+	on_item._drop_data(Vector2.ZERO, {"store": "tank-370", "from": "4"})
+	await frames(3)
+	drawing = fe.find_child("Drawing", true, false)
+	facts = fe.find_child("ArmingFacts", true, false)
+	check(
+		not drawing.stores.has(4) and not drawing.stores.has(6) and _has(facts, "4,014"),
+		"%s: loadout: the tanks back to the inventory, their fuel off" % lang
+	)
+	# The keyboard: Enter on slot 4 picks it, the focus on the tank; Enter there hangs both tanks.
+	fe._arm_pick("4")
+	await frames(2)
+	var fo := fe.get_viewport().gui_get_focus_owner()
+	check(fo != null and fo.name == "Itemmk-82", "%s: loadout: Enter on a slot, the focus on what it takes" % lang)
+	fe._arm_choose("tank-370")
+	await frames(4)
+	drawing = fe.find_child("Drawing", true, false)
+	fo = fe.get_viewport().gui_get_focus_owner()
+	check(
+		drawing.stores.get(4, [""])[0] == "tank-370" and drawing.stores.get(6, [""])[0] == "tank-370",
+		"%s: loadout: Enter on the tank hangs both" % lang
+	)
+	check(fo != null and fo.name == "Slot4", "%s: loadout: the focus back on the slot" % lang)
+	var lo_keep: String = stored.call()
+	# A TER: three Mk 82 on 4 and on 6, the slot's count.
+	drawing.dropped({"store": "mk-82", "from": ""}, "4")
+	await frames(3)
+	drawing = fe.find_child("Drawing", true, false)
+	check(
+		drawing.stores.get(4, [])[2] == 3 and drawing.stores.get(6, [])[2] == 3,
+		"%s: loadout: three Mk 82 on a rack on 4 and 6" % lang
+	)
+	# The "×3" badge: a click cycles the pair to two each.
+	fe._arm_cycle(fe.missions[fe.mission_i], "4")
+	await frames(3)
+	drawing = fe.find_child("Drawing", true, false)
+	check(
+		drawing.stores[4][2] == 2 and drawing.stores[6][2] == 2 and drawing.slots["4"].badge_rect.has_area(),
+		"%s: loadout: the badge cycles the rack 3 to 2, the pair along" % lang
+	)
+	# A store with no model of ours yet: greyed, not dragged, not focused.
+	var dl: Control = fe.find_child("Itemdelilah", true, false)
+	check(
+		(
+			dl != null
+			and not dl.flyable
+			and dl.focus_mode == Control.FOCUS_NONE
+			and dl._get_drag_data(Vector2.ZERO) == null
+		),
+		"%s: loadout: the Delilah disabled for now" % lang
+	)
+	# One-sided: a tank on 4 and an MK-84 on 3 alone, past the limit: the imbalance amber, Fly still on.
+	var one_sided := {"3": {"id": "mk-84", "count": 1}, "4": {"id": "tank-370", "count": 1}}
+	IafPilotLog.set_loadout(db, s.pilot(), "f16i", JSON.stringify(one_sided))
+	fe._arm_redraw(fe.missions[fe.mission_i])
+	await frames(3)
+	var imb: Control = fe.find_child("Fact_imbalance", true, false)
+	check(
+		imb != null and not fe.find_child("Fly", true, false).disabled,
+		"%s: loadout: the wings out of balance, a warning, Fly on" % lang
+	)
+	IafPilotLog.set_loadout(db, s.pilot(), "f16i", lo_keep)
+	fe._arm_redraw(fe.missions[fe.mission_i])
+	await frames(3)
+	drawing = fe.find_child("Drawing", true, false)
+	drawing.dropped({"store": "tank-370", "from": ""}, "4")
+	await frames(3)
+	drawing = fe.find_child("Drawing", true, false)
+	# Handed to the flight: the MK-84 (record number 2) on pylons C and G, the AIM-9M (1) on A.
+	var mission := "ramon_takeoff"
+	var m: Dictionary = s.load_json(s.converted(s.missions_folder()).path_join(mission + ".json"))
+	if not m.is_empty():
+		load("res://flight/fly.gd").arm(m, s.load_json("res://data/missions/%s.json" % mission))
+		var pylons: Array = s.arm_loadouts.values()[0] if s.arm_loadouts.size() == 1 else []
+		check(
+			pylons.size() == 9 and pylons[2] == [2.0, 1.0] and pylons[6] == [2.0, 1.0] and pylons[0] == [1.0, 1.0],
+			"%s: loadout: the flight's pylons (%s)" % [lang, pylons]
+		)
+		s.arm_loadouts = {}
+	# Over a (lowered) maximum: the take-off weight red, Fly off.
+	var dir := OS.get_temp_dir().path_join("modern-iaf-units-%d" % OS.get_process_id())
+	DirAccess.make_dir_recursive_absolute(dir)
+	var u: Dictionary = s.load_json("res://data/db/units/f16i.json")
+	u["max_takeoff_kg"] = 17000
+	FileAccess.open(dir.path_join("f16i.json"), FileAccess.WRITE).store_string(JSON.stringify(u))
+	fe.units_dir = dir
+	fe._arm_redraw(fe.missions[fe.mission_i])
+	await frames(3)
+	var fly: Button = fe.find_child("Fly", true, false)
+	var tw: Control = fe.find_child("Fact_takeoff_weight", true, false)
+	check(
+		(
+			fly.disabled
+			and tw.find_children("*", "Label", true, false)[1].get_theme_color("font_color") == Color("ff6b6b")
+		),
+		"%s: loadout: over the maximum, the weight red and Fly off" % lang
+	)
+	fe.units_dir = "res://data/db/units"
+	DirAccess.remove_absolute(dir.path_join("f16i.json"))
+	DirAccess.remove_absolute(dir)
+	fe.find_child("ArmReset", true, false).pressed.emit()
+	await frames(3)
+	drawing = fe.find_child("Drawing", true, false)
+	check(
+		stored.call() == "" and drawing.stores[3][0] == "aim-9m" and not fe.find_child("Fly", true, false).disabled,
+		"%s: loadout: Reset, the default again" % lang
+	)
+
+
+## A press of `button` at `at`, a move by `by` with the button held, the release, through the viewport `vp`.
+func _push_drag(vp: Viewport, at: Vector2, button: MouseButton, by: Vector2) -> void:
+	var press := InputEventMouseButton.new()
+	press.button_index = button
+	press.pressed = true
+	press.position = at
+	press.global_position = at
+	vp.push_input(press)
+	await frames(1)
+	var move := InputEventMouseMotion.new()
+	move.position = at + by
+	move.global_position = at + by
+	move.relative = by
+	move.button_mask = MOUSE_BUTTON_MASK_LEFT if button == MOUSE_BUTTON_LEFT else MOUSE_BUTTON_MASK_MIDDLE
+	vp.push_input(move)
+	await frames(1)
+	var up := InputEventMouseButton.new()
+	up.button_index = button
+	up.position = at + by
+	up.global_position = at + by
+	vp.push_input(up)
+	await frames(1)
+
+
 func _labels_of(root: Node, kind: String) -> Array:
 	var labels := root.find_children("*", "Label", true, false)
 	return labels.filter(func(n): return n.theme_type_variation == kind).map(func(n): return n.text)
@@ -888,8 +1053,8 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	check(not _has_part(fe, "F-16C"), "%s: arming: no F-16C" % lang)
 	check(
 		(
-			drawing.stores[1] == ["aim-9m", "AIM-9M"]
-			and drawing.stores[4] == ["tank-370", "בידון 370 גלון" if he else "370 gal drop tank"]
+			drawing.stores[1].slice(0, 3) == ["aim-9m", "AIM-9M", 1]
+			and drawing.stores[4].slice(0, 3) == ["tank-370", "בידון 370" if he else "370 gal tank", 1]
 		),
 		"%s: arming: 1 an AIM-9M, 4 a drop tank" % lang
 	)
@@ -897,7 +1062,7 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	var facts: Control = pane.find_child("ArmingFacts", true, false)
 	check(_has(facts, "511") and _has(facts, "60"), "%s: arming: the rounds, chaff and flares" % lang)
 	check(
-		_has(facts, "4,014") and _has(facts, "16,069") and _has(facts, "23,582"),
+		_has(facts, "6,254") and _has(facts, "16,069") and _has(facts, "23,582"),
 		"%s: arming: fuel, the take-off weight and the maximum, each its own field" % lang
 	)
 	check(facts.alignment == BoxContainer.ALIGNMENT_CENTER, "%s: arming: the figures centred" % lang)
@@ -935,6 +1100,7 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 		"%s: arming: the inventory on the block-end side" % lang
 	)
 	check(row != null and inv.size.x >= 150, "%s: arming: the column its width" % lang)
+	await _loadout_checks(fe, lang)
 	tabs[1].pressed.emit()
 	await frames(3)
 	check(not pane.find_child("PageBriefing", true, false).visible, "%s: map: its tab opens the Map page" % lang)
@@ -982,6 +1148,39 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	press.double_click = true
 	map._gui_input(press)
 	check(is_equal_approx(map.zoom, 1.0), "%s: map: a double click resets" % lang)
+	# At the whole map, through the window (nothing over the map takes the events): a left drag and a middle drag
+	# move it, a trackpad's two-finger scroll (a pan gesture) moves it, a pinch (a magnify gesture) zooms.
+	var vp := map.get_viewport()
+	# A point of the map inside the window (the headless window is smaller than the front end's page).
+	var seen := map.get_global_rect().intersection(vp.get_visible_rect())
+	# In the window's pixels (the project's stretch scales the canvas into the window).
+	var mid := vp.get_final_transform() * seen.get_center()
+	vp.notification(Window.NOTIFICATION_WM_MOUSE_ENTER)  # headless: the pointer never entered the window
+	var probe := InputEventMouseMotion.new()
+	probe.position = mid
+	probe.global_position = mid
+	vp.push_input(probe)
+	await frames(1)
+	check(vp.gui_get_hovered_control() == map, "%s: map: nothing over the map takes the pointer" % lang)
+	for b in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE]:
+		var c2: Vector2 = map.center
+		var by := Vector2(80, 50) * (1.0 if b == MOUSE_BUTTON_LEFT else -1.0)
+		await _push_drag(vp, mid, b, vp.get_final_transform().basis_xform(by))
+		check(map.center.distance_to(c2) > 1.0, "%s: map: a %s drag moves the whole map" % [lang, b])
+	var c3: Vector2 = map.center
+	var pg := InputEventPanGesture.new()
+	pg.position = mid
+	pg.delta = Vector2(3, 2)
+	vp.push_input(pg)
+	await frames(1)
+	check(map.center.distance_to(c3) > 1.0, "%s: map: a two-finger scroll moves it" % lang)
+	var mg := InputEventMagnifyGesture.new()
+	mg.position = mid
+	mg.factor = 1.5
+	vp.push_input(mg)
+	await frames(1)
+	check(map.zoom > 1.4, "%s: map: a pinch zooms (%.2f)" % [lang, map.zoom])
+	map.reset_view()
 	# The keys: + zooms, an arrow scrolls (the map has the focus: the arrows stay off the tabs), 0 resets.
 	map.grab_focus()
 	map._gui_input(_key_event(KEY_EQUAL))
@@ -1003,6 +1202,23 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	await frames(2)
 	pane = fe.find_child("Briefing", true, false)
 	check(pane.find_child("PageMap", true, false).visible, "%s: the page kept for the next mission" % lang)
+	# Away and back (Home, Preferences, Home, the mission screen): the briefing opens on its first page, the map whole.
+	var mi: int = fe.mission_i
+	for screen in ["home", "prefs", "home", "mission"]:
+		fe.show_page(screen)
+	await frames(2)
+	pane = fe.find_child("Briefing", true, false)
+	var mp: Control = pane.find_child("PageMap", true, false)
+	check(
+		(
+			fe.brief_tab == 0
+			and pane.find_child("PageBriefing", true, false).visible
+			and is_equal_approx(mp.zoom, 1.0)
+			and fe.mission_i == mi
+		),
+		"%s: entering the mission screen again opens Briefing, the map whole, the mission kept" % lang
+	)
+	fe.show_tab(1)
 	fe.show_tab(0)
 	steps = pane.find_child("Steps", true, false)
 	check(steps.get_child_count() == 6 * 4, "%s: briefing: the start-up's six checklist steps" % lang)

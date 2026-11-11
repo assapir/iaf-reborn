@@ -49,10 +49,23 @@ const LINE_R := 2
 ## VIEW_SIGN environment variable overrides).
 const VIEW_SIGN := -1.0
 
+## The surfaces coloured by their normals; a fragment inside one of the `cut` boxes (the F-16's pylons and wingtip
+## rails, model metres) is left out, so the trace shows the clean airframe and the slots' leaders stand for the
+## stations.
 const NORMALS := """
 shader_type spatial;
 render_mode unshaded, cull_disabled;
-void fragment() { ALBEDO = NORMAL * 0.5 + 0.5; }
+uniform vec3 cut_min[8];
+uniform vec3 cut_max[8];
+uniform int cuts = 0;
+varying vec3 wp;
+void vertex() { wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
+void fragment() {
+	for (int i = 0; i < cuts; i++) {
+		if (all(greaterThan(wp, cut_min[i])) && all(lessThan(wp, cut_max[i]))) { discard; }
+	}
+	ALBEDO = NORMAL * 0.5 + 0.5;
+}
 """
 
 
@@ -76,6 +89,13 @@ func run() -> void:
 		vp.add_child(model)
 		var box := AABB()
 		var first := true
+		# The F-35I's pylons are nodes of their own: hidden. The F-16's are in its one mesh: cut out by boxes.
+		for m in model.find_children("Pylon*", "Node3D", true, false):
+			m.visible = false
+		if jet.begins_with("f16"):
+			_cut_pylons(mat, model)
+		else:
+			mat.set_shader_parameter("cuts", 0)
 		for m in model.find_children("*", "MeshInstance3D", true, false):
 			m.material_override = mat
 			var b: AABB = m.global_transform * m.get_aabb()
@@ -122,6 +142,39 @@ func run() -> void:
 		f.close()
 		vp.queue_free()
 		await frames(2)
+
+
+## The F-16's pylons (stations 2–4, 6–8): from under each station up to just below the wing's lower surface beside it
+## (the lowest vertex 0.26–0.5 m outboard and inboard of the station, near its chord), 0.24 m each side, 2 m fore
+## and aft; the wingtip rails (1, 9): everything outboard of 0.1 m inside the station.
+func _cut_pylons(mat: ShaderMaterial, model: Node3D) -> void:
+	var verts := PackedVector3Array()
+	for m in model.find_children("*", "MeshInstance3D", true, false):
+		var xf: Transform3D = m.global_transform
+		for s in m.mesh.get_surface_count():
+			for v in m.mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]:
+				verts.append(xf * v)
+	var lo := []
+	var hi := []
+	for n in F16_STATIONS:
+		var st: Vector3 = F16_STATIONS[n]
+		if n in ["1", "9"]:
+			var out := signf(st.x)
+			lo.append(Vector3(minf(st.x * 2.0, out * (absf(st.x) - 0.1)), st.y - 0.6, st.z - 3.0))
+			hi.append(Vector3(maxf(st.x * 2.0, out * (absf(st.x) - 0.1)), st.y + 0.6, st.z + 3.0))
+			continue
+		var wing := INF
+		for v in verts:
+			var dx := absf(v.x - st.x)
+			if dx > 0.26 and dx < 0.5 and absf(v.z - st.z) < 0.6 and v.y > st.y + 0.05 and v.y < st.y + 1.0:
+				wing = minf(wing, v.y)
+		if wing == INF:
+			continue
+		lo.append(Vector3(st.x - 0.24, st.y - 0.3, st.z - 2.0))
+		hi.append(Vector3(st.x + 0.24, wing - 0.004, st.z + 2.0))
+	mat.set_shader_parameter("cut_min", PackedVector3Array(lo))
+	mat.set_shader_parameter("cut_max", PackedVector3Array(hi))
+	mat.set_shader_parameter("cuts", lo.size())
 
 
 ## Light lines where the normal's colour or the outline changes between neighbouring pixels.

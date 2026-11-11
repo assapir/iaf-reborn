@@ -1,0 +1,38 @@
+{
+  "id": "spice-1000",
+  "number": 12,
+  "name": "SPICE1",
+  "kind": "bomb",
+  "generation": 7,
+  "model": "weapons/sufa/spice1000_m.gltf",
+  "kg": 453,
+  "power": 10100,
+  "blast_m": 70,
+  "drag": 0,
+  "motion": {},
+  "sim": 1009,
+  "length_m": null,
+  "diameter_m": null,
+  "sources": {
+    "power": "inferred",
+    "blast_m": "open",
+    "drag": "open",
+    "kg": "w-spice, inferred",
+    "length_m": "open",
+    "diameter_m": "open"
+  },
+  "notes": {
+    "number": "ours",
+    "drag": "carriage drag: none until a source gives one",
+    "motion": "the reader's defaults",
+    "sim": "the sim flies modern_weapons.gd's record 1009, built on its base record, in its place (loadout::sim_load)",
+    "kg": "the 1,000 lb class (453 kg); its own weight is not published",
+    "power": "the MK-83's (its body; our damage scale)",
+    "blast_m": "the MK-83's 70 m",
+    "model": "our SPICE 1000 (shared/extra/models/stores/spice1000.glb)",
+    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind"
+  },
+  "footnotes": {
+    "w-spice": "Wikipedia, \"Spice (bomb)\" (SPICE 1000 on a 1,000 lb class body, SPICE 2000 on a 2,000 lb class body), https://en.wikipedia.org/wiki/Spice_(bomb)"
+  }
+}

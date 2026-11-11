@@ -1,0 +1,37 @@
+{
+  "id": "spice-2000",
+  "number": 13,
+  "name": "SPICE2",
+  "kind": "bomb",
+  "generation": 8,
+  "model": "weapons/sufa/spice2000_m.gltf",
+  "kg": 907,
+  "power": 21450,
+  "blast_m": 100,
+  "drag": 0,
+  "motion": {},
+  "length_m": null,
+  "diameter_m": null,
+  "sources": {
+    "power": "inferred",
+    "blast_m": "open",
+    "drag": "open",
+    "kg": "w-spice, inferred",
+    "length_m": "open",
+    "diameter_m": "open"
+  },
+  "notes": {
+    "number": "ours",
+    "drag": "carriage drag: none until a source gives one",
+    "motion": "the reader's defaults",
+    "kg": "the 2,000 lb class (907 kg); its own weight is not published",
+    "power": "the MK-84's (its body; our damage scale)",
+    "blast_m": "the MK-84's 100 m",
+    "model": "our SPICE 2000 (shared/extra/models/stores/spice2000.glb)",
+    "sim": "none: modern_weapons.gd has no SPICE 2000; it falls as a plain bomb until it has",
+    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind"
+  },
+  "footnotes": {
+    "w-spice": "Wikipedia, \"Spice (bomb)\" (SPICE 1000 on a 1,000 lb class body, SPICE 2000 on a 2,000 lb class body), https://en.wikipedia.org/wiki/Spice_(bomb)"
+  }
+}

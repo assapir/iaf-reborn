@@ -1,0 +1,37 @@
+{
+  "id": "tank-600",
+  "number": 15,
+  "name": "4006LB",
+  "kind": "tank",
+  "generation": 1,
+  "model": "",
+  "kg": 1817,
+  "power": 0,
+  "blast_m": 0,
+  "drag": 0,
+  "motion": {},
+  "length_m": null,
+  "diameter_m": null,
+  "sources": {
+    "power": "inferred",
+    "blast_m": "open",
+    "drag": "open",
+    "kg": "usaf-600, inferred",
+    "length_m": "open",
+    "diameter_m": "open"
+  },
+  "notes": {
+    "number": "ours",
+    "drag": "carriage drag: none until a source gives one",
+    "motion": "the reader's defaults",
+    "name": "the fuel it holds in pounds, as the 370's: a name with LB is a tank (stores.rs is_tank)",
+    "kg": "the fuel of a full tank: 600 US gal (2271 l) of JP-8 at 0.80 kg/l (inferred density), 1817 kg (4006 lb); the empty tank's weight is open",
+    "power": "a tank does no damage",
+    "blast_m": "a tank does no damage",
+    "model": "none yet: no model of ours; the briefing shows our labelled silhouette (data/stores/tank-600.png)",
+    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind"
+  },
+  "footnotes": {
+    "usaf-600": "USAF, \"600 Gallon External Fuel Tank Assembly\", solicitation FA8232-26-R-B014 (600 US gal tanks on wing stations four and six), https://samsearch.co/gov-explore/federal/600-gallon-external-fuel-tank-assembly/FA8232-26-R-B014"
+  }
+}

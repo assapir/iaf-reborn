@@ -29,12 +29,35 @@ static func start(id: int) -> bool:
 	if unit != "" and unit != Settings.sim_jet:
 		Settings.sim_jet = unit
 		Settings.save()
+	arm(m, Settings.load_json("res://data/missions/%s.json" % name))
 	Settings.mission_files_override = [{"name": name, "data": m}]
 	Settings.mission_id = id
 	Settings.flown_sortie = 0
 	var tree := Engine.get_main_loop() as SceneTree
 	tree.change_scene_to_file.call_deferred("res://shared/terrain/terrain_view.tscn")
 	return true
+
+
+## The pilot's loadout for the mission's jet (IafPilotLog.loadout, the briefing's Arming page) on the player's flight
+## (`Settings.arm_loadouts`, player_weapons.gd `_armed`: pylons A..I, IafBriefing.sim_load); the gun rounds, chaff and
+## flares stay the record's. None stored, or a mission with `fixed_loadout` (its readable file `readable`): the
+## record's own pylons.
+static func arm(m: Dictionary, readable: Dictionary) -> void:
+	Settings.arm_loadouts = {}
+	var unit := str(readable.get("start", {}).get("unit", ""))
+	var lo := IafPilotLog.loadout(Settings.records_db(), Settings.pilot(), unit)
+	if lo == "" or bool(readable.get("fixed_loadout", false)):
+		return
+	var load = JSON.parse_string(
+		IafBriefing.sim_load(
+			ProjectSettings.globalize_path("res://data/db/units/%s.json" % unit),
+			ProjectSettings.globalize_path("res://data/db/weapons"),
+			lo
+		)
+	)
+	var pf: Dictionary = MissionRuntime.player_flight(m, Settings.player_flight)
+	if load is Array and not pf.is_empty():
+		Settings.arm_loadouts = {int(pf.flight): load}
 
 
 ## The F-16 switch from the mission's player unit (its Objects row's "airframe", as the M0 probe).

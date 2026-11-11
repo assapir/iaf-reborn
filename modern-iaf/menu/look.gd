@@ -15,6 +15,10 @@ const MUTED := Color("aab1bb")
 const ACCENT := Color("6699ff")
 const NAVY := Color("000055")
 const ACCENT_TEXT := Color("9dbdff")
+## A figure over its limit (the take-off weight over the maximum).
+const WARN := Color("ff6b6b")
+## A figure past a warning limit (the wings' stores out of balance).
+const AMBER := Color("ffb547")
 ## The debrief's paper, from the Sufa's light camouflage sand.
 const PAPER := Color("f3efe6")
 const RULE := Color("b9b09c")

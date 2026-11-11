@@ -165,6 +165,10 @@ static var _textures := {}
 var _keys: RefCounted = null
 ## The briefing's page shown: 0 Briefing, 1 Map.
 var brief_tab := 0
+## The Arming page's slot picked by the keyboard (its station), "" none.
+var arm_pick := ""
+## The unit records' folder (a test's own records: tests/_loadout_shot.gd's lowered maximum).
+var units_dir := "res://data/db/units"
 static var _themes := {}
 ## The records store's view, read once per page: the sorties (Pilot log) and the summary (Home, Training).
 var _sorties = null
@@ -274,6 +278,10 @@ func show_page(p: String) -> void:
 		p = "plane"
 	var page_was := page
 	page = p
+	# Entering the mission screen opens the briefing on its first page (a new map, so its zoom too); the page picked
+	# stays only while the screen does (another mission picked).
+	if p == "mission" and page_was != "mission":
+		brief_tab = 0
 	var lang := "he" if he() else "en"
 	strings = Settings.load_json("res://menu/strings_%s.json" % lang)
 	setup_strings = Settings.load_json("res://setup/strings_%s.json" % lang)
@@ -835,24 +843,40 @@ func _briefing(parent: Control, m: Dictionary) -> void:
 
 
 ## The Arming page: the jet's front view with a slot per station under it, each with its store's picture and name and
-## a leader to its station (arming_drawing.gd), and under it, centred, the gun's rounds, the chaff, the flares, the
-## internal fuel, the take-off weight and the maximum (IafBriefing.arming).
+## a leader to its station (arming_drawing.gd), the inventory column beside it, and under it, centred, the gun's
+## rounds, the chaff, the flares, the fuel, the take-off weight and the maximum (IafBriefing.arming). The loadout
+## editor: a store drags from the inventory onto a slot, between slots and back; a drop on a station also fills its
+## mirror station unless Shift is held; the record's `allowed` decides (a refused drop shakes the slot). The loadout
+## is the pilot's per jet (IafPilotLog.loadout), Reset brings back the record's default. Over the maximum weight the
+## take-off weight reads red and Fly is off. A mission with `fixed_loadout` shows its default, read-only.
 func _arming_page(pages: Control, m: Dictionary) -> void:
 	var ap := _vbox(pages, 16)
 	ap.name = "PageArming"
 	ap.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var a := arming(m)
+	var fixed := bool(m.get("fixed_loadout", false))
 	var j := jet_of(m)
+	var unit := str(j.get("unit", ""))
+	var lo := "" if fixed else IafPilotLog.loadout(Settings.records_db(), Settings.pilot(), unit)
+	var a := arming(m, lo)
 	# The jet's own name, type and tail number over its drawing: "Sufa · F-16I · 482", the Latin and the digits
-	# isolated so a Hebrew line keeps them in place.
+	# isolated so a Hebrew line keeps them in place; Reset at its inline end.
+	var head := _hbox(ap, 16)
 	var title := _label(
-		ap, " · ".join([s(j.get("name", "")), _ltr(str(j.get("code", ""))), _ltr(str(a.get("tail", "")))]), "H3"
+		head, " · ".join([s(j.get("name", "")), _ltr(str(j.get("code", ""))), _ltr(str(a.get("tail", "")))]), "H3"
 	)
 	title.name = "ArmingJet"
+	if not fixed:
+		_spacer(head)
+		var reset := _button(head, s("reset"), "", func(): _arm_set(m, ""))
+		reset.name = "ArmReset"
+		reset.disabled = lo == ""
 	var by_station := {}
-	for x in a.get("stores", []):
-		for n in x.stations:
-			by_station[int(n)] = [str(x.weapon), s("store_" + str(x.weapon))]
+	var slots_now: Dictionary = a.get("slots", {}) if a.get("slots") is Dictionary else {}
+	for k in slots_now:
+		var e: Dictionary = slots_now[k]
+		by_station[int(k)] = [
+			str(e.id), short_store(str(e.id)), int(e.get("count", 1)), s("store_" + str(e.id)), int(e.get("max", 1))
+		]
 	# The drawing and, on its block-end side (the right in English, the left in Hebrew), the inventory column.
 	var row := _hbox(ap, 24)
 	row.name = "ArmingRow"
@@ -860,65 +884,237 @@ func _arming_page(pages: Control, m: Dictionary) -> void:
 	var drawing := ArmingDrawing.new()
 	drawing.name = "Drawing"
 	drawing.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	drawing.read_only = fixed
+	var takes := {}
+	var al = a.get("allowed", {})
+	for k in al if al is Dictionary else {}:
+		takes[k] = al[k].map(func(e): return str(e.id))
+	drawing.allowed = takes
+	drawing.on_drop = func(data: Dictionary, to: String) -> bool: return _arm_drop(m, data, to)
+	drawing.on_pick = func(st: String): _arm_pick(st)
+	drawing.on_cycle = func(st: String): _arm_cycle(m, st)
 	row.add_child(drawing)
-	if drawing.load_drawing("res://data/drawings", DRAWINGS.get(str(j.get("unit", "")), "")):
+	if drawing.load_drawing("res://data/drawings", DRAWINGS.get(unit, "")):
 		drawing.stores = by_station
 		var inside = a.get("internal")
 		drawing.internal = inside.map(func(n): return str(int(n))) if inside is Array else []
 		drawing.internal_tag = s("internal")
 		drawing.make_slots()
-	_inventory(row, drawing, a.get("inventory", []))
+	_inventory(row, drawing, a.get("inventory", []), m)
 	_rule(ap, Look.LINE)
 	var facts := _hbox(ap, 44)
 	facts.name = "ArmingFacts"
 	facts.alignment = BoxContainer.ALIGNMENT_CENTER
-	var lo: Dictionary = a.get("loadout", {})
+	var lf: Dictionary = a.get("loadout", {})
 	var rows := [
-		["rounds", str(int(lo.get("20mm", 0))), ""],
-		["chaff", str(int(lo.get("chaff", 0))), ""],
-		["flares", str(int(lo.get("flare", 0))), ""],
+		["rounds", str(int(lf.get("20mm", 0))), ""],
+		["chaff", str(int(lf.get("chaff", 0))), ""],
+		["flares", str(int(lf.get("flare", 0))), ""],
 	]
 	if a.get("fuel_kg") != null:
-		rows.append(["internal_fuel", kg_text(a.fuel_kg), s("kg")])
+		rows.append(["fuel", kg_text(float(a.fuel_kg) + float(a.get("tank_fuel_kg", 0.0))), s("kg")])
 	if a.get("takeoff_kg") != null:
 		rows.append(["takeoff_weight", kg_text(a.takeoff_kg), s("kg")])
 	if a.get("max_takeoff_kg") != null:
 		rows.append(["max_weight", kg_text(a.max_takeoff_kg), s("kg")])
+	var over := bool(a.get("over", false))
+	# The wings' stores out of balance past the record's limit: the difference, amber (a warning; a block only where
+	# the record says the limit is a hard one).
+	if bool(a.get("imbalanced", false)):
+		rows.append(["imbalance", kg_text(absf(float(a.get("imbalance_kg", 0)))), s("kg")])
 	for f in rows:
 		var fv := _vbox(facts, 0)
-		_label(fv, s(f[0]), "Muted")
-		_fact(fv, f[1], f[2])
+		fv.name = "Fact_" + f[0]
+		var caption := _label(fv, s(f[0]), "Muted")
+		var fact := _fact(fv, f[1], f[2])
+		var tint = Look.WARN if over and f[0] == "takeoff_weight" else (Look.AMBER if f[0] == "imbalance" else null)
+		if tint != null:
+			for l in fact.get_children() + [caption]:
+				l.add_theme_color_override("font_color", tint)
+	var fly: Button = find_child("Fly", true, false)
+	if fly != null:
+		fly.disabled = bool(a.get("blocked", over))
 
 
-## The inventory column: the stores the jet may carry (the unit record's `inventory`), each its picture, caption and
-## count (arming_drawing.gd Item), grouped air-to-air, air-to-ground and drop tanks under a small heading each.
-func _inventory(parent: Control, drawing: Control, inv: Array) -> void:
-	var col := _vbox(parent, 6)
+## A store's name in a slot or the inventory: its short one where the full one runs long ("GBU-31" for "GBU-31 JDAM",
+## "370 gal tank"), else the full one; the full one is the tooltip.
+func short_store(id: String) -> String:
+	return s("short_" + id) if strings.has("short_" + id) else s("store_" + id)
+
+
+## The inventory column: the stores the jet may carry (the unit record's `inventory`), each its picture, caption and,
+## where the record gives a count, the ones left (arming_drawing.gd Item), grouped air-to-air, air-to-ground and drop
+## tanks under a small heading each, two to a row; it scrolls when they outgrow the page. A store dragged from a slot
+## onto it goes back. The keyboard's "Empty" entry at its top shows while a slot is picked.
+func _inventory(parent: Control, drawing: Control, inv: Array, m: Dictionary) -> void:
+	var scroll := ScrollContainer.new()
+	scroll.name = "InventoryScroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.follow_focus = true
+	scroll.custom_minimum_size.x = 2 * 128 + 12 + 14
+	parent.add_child(scroll)
+	var col := ArmingDrawing.Shelf.new()
+	col.add_theme_constant_override("separation", 4)
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.add_child(col)
 	col.name = "Inventory"
-	col.custom_minimum_size.x = 150
+	col.read_only = drawing.read_only
+	col.on_drop = func(data: Dictionary, to: String) -> bool: return _arm_drop(m, data, to)
 	_label(col, s("inventory"), "H3")
+	var choose := func(id: String): _arm_choose(id)
+	var empty := ArmingDrawing.Item.new()
+	empty.on_choose = choose
+	empty.setup("", null, s("arm_empty"), "")
+	empty.visible = false
+	col.add_child(empty)
 	for g in ["air", "ground", "tank"]:
 		var items := inv.filter(func(e): return str(e.get("group", "")) == g)
 		if items.is_empty():
 			continue
 		var head := _label(col, s("inv_" + g), "Small")
 		head.add_theme_color_override("font_color", Look.ACCENT_TEXT)
+		var grid := GridContainer.new()
+		grid.name = "Group_" + g
+		grid.columns = 2
+		grid.add_theme_constant_override("h_separation", 12)
+		grid.add_theme_constant_override("v_separation", 0)
+		col.add_child(grid)
 		for e in items:
 			var it := ArmingDrawing.Item.new()
-			it.setup(str(e.id), drawing.store_picture(str(e.id)), s("store_" + str(e.id)), e.get("count"))
-			col.add_child(it)
+			it.read_only = drawing.read_only
+			it.flyable = bool(e.get("ready", true))
+			it.on_choose = choose
+			var n := "× %d" % int(e.left) if e.get("left") != null else ""
+			it.setup(str(e.id), drawing.store_picture(str(e.id)), short_store(str(e.id)), n)
+			it.tooltip_text = s("store_" + str(e.id))
+			grid.add_child(it)
 
 
-## The unit's Arming figures (IafBriefing.arming of its record): {stores, loadout, fuel_kg, takeoff_kg, …}.
-func arming(m: Dictionary) -> Dictionary:
-	var unit := str(m.get("start", {}).get("unit", ""))
+## The unit's Arming figures (IafBriefing.arming of its record with the loadout `lo`, JSON text; "" the record's
+## default): {stores, slots, loadout, fuel_kg, tank_fuel_kg, takeoff_kg, over, allowed, inventory, …}.
+func arming(m: Dictionary, lo := "") -> Dictionary:
 	var a = JSON.parse_string(
-		IafBriefing.arming(
-			ProjectSettings.globalize_path("res://data/db/units/%s.json" % unit),
-			ProjectSettings.globalize_path("res://data/db/weapons")
-		)
+		IafBriefing.arming(_unit_file(m), ProjectSettings.globalize_path("res://data/db/weapons"), lo)
 	)
 	return a if a is Dictionary else {}
+
+
+## The mission's unit record, an absolute path (in `units_dir`).
+func _unit_file(m: Dictionary) -> String:
+	return ProjectSettings.globalize_path(units_dir.path_join("%s.json" % str(m.get("start", {}).get("unit", ""))))
+
+
+## The pilot's loadout for the mission's jet now (JSON text; "" the record's default).
+func _arm_now(m: Dictionary) -> String:
+	return IafPilotLog.loadout(Settings.records_db(), Settings.pilot(), str(jet_of(m).get("unit", "")))
+
+
+## A store dropped (data {store, from: a station, "" the inventory}) on station `to` ("" the inventory): the loadout
+## changed as the record allows (IafBriefing put / shift / take; both of a pair unless Shift is held), stored and
+## shown; false when refused.
+func _arm_drop(m: Dictionary, data: Dictionary, to: String) -> bool:
+	var pair := not Input.is_key_pressed(KEY_SHIFT)
+	var u := _unit_file(m)
+	var now := _arm_now(m)
+	var from := str(data.get("from", ""))
+	var lo := ""
+	if to == "":
+		lo = IafBriefing.take(u, now, int(from), pair) if from != "" else ""
+	elif from == "":
+		lo = IafBriefing.put(u, now, int(to), str(data.store), pair)
+	elif from != to:
+		lo = IafBriefing.shift(u, now, int(from), int(to), pair)
+	if lo == "":
+		return from == to and from != ""  # dropped where it was: nothing to refuse
+	_arm_set(m, lo)
+	return true
+
+
+## Stores the loadout `lo` ("" the record's default: Reset) as the pilot's for the jet and draws the page again.
+func _arm_set(m: Dictionary, lo: String) -> void:
+	IafPilotLog.set_loadout(Settings.records_db(), Settings.pilot(), str(jet_of(m).get("unit", "")), lo)
+	_arm_redraw.call_deferred(m)
+
+
+## The Arming page made again with the loadout stored; the focus back where it was (the slot picked, else the same
+## Control by name).
+func _arm_redraw(m: Dictionary) -> void:
+	var pages := find_child("Pages", true, false)
+	var old := pages.find_child("PageArming", false, false) if pages != null else null
+	if old == null:
+		return
+	var fo := get_viewport().gui_get_focus_owner()
+	var want := (
+		("Slot" + arm_pick) if arm_pick != "" else (str(fo.name) if fo != null and old.is_ancestor_of(fo) else "")
+	)
+	arm_pick = ""
+	pages.remove_child(old)
+	old.queue_free()
+	_arming_page(pages, m)
+	show_tab(brief_tab)
+	var c := pages.find_child(want, true, false) if want != "" else null
+	if c is Control:
+		_grab.call_deferred(c)
+
+
+## Enter on a slot: picked, the focus on the inventory's first entry the station takes ("Empty" to take its store
+## off); Enter there hangs it (_arm_choose), Esc leaves the slot as it was.
+func _arm_pick(st: String) -> void:
+	var drawing := find_child("Drawing", true, false)
+	var inv := find_child("Inventory", true, false)
+	if drawing == null or inv == null:
+		return
+	_arm_unpick()
+	arm_pick = st
+	drawing.slots[st].picked = true
+	drawing.slots[st].queue_redraw()
+	var empty: Control = inv.find_child("ItemEmpty", false, false)
+	empty.visible = not drawing.slots[st].store.is_empty()
+	var takes: Array = drawing.allowed.get(st, [])
+	var first: Control = empty if empty.visible else null
+	for c in inv.find_children("Item*", "", true, false):
+		if c is ArmingDrawing.Item and c.id in takes:
+			first = c
+			break
+	if first != null:
+		first.grab_focus()
+
+
+## Leaves the picked slot as it was.
+func _arm_unpick() -> void:
+	var drawing := find_child("Drawing", true, false)
+	if arm_pick == "" or drawing == null:
+		return
+	var sl: Control = drawing.slots.get(arm_pick)
+	arm_pick = ""
+	find_child("ItemEmpty", true, false).visible = false
+	if sl != null:
+		sl.picked = false
+		sl.queue_redraw()
+		sl.grab_focus()
+
+
+## A click on a rack's "×n" badge: one store fewer, from one back to full (both of the pair unless Shift is held).
+func _arm_cycle(m: Dictionary, st: String) -> void:
+	var lo: String = IafBriefing.cycle(_unit_file(m), _arm_now(m), int(st), not Input.is_key_pressed(KEY_SHIFT))
+	if lo != "":
+		_arm_set(m, lo)
+
+
+## Enter on an inventory entry: its store on the slot picked (both of a pair unless Shift is held), or with "Empty"
+## the slot's store off; a station that does not take it shakes.
+func _arm_choose(id: String) -> void:
+	if arm_pick == "":
+		return
+	# The store already on the picked slot's rack: the next count (the keyboard's badge).
+	var sl = find_child("Drawing", true, false).slots.get(arm_pick)
+	if sl != null and sl.store.size() > 4 and str(sl.store[0]) == id and int(sl.store[4]) > 1:
+		var m: Dictionary = missions[mission_i] if mission_i < missions.size() else {}
+		_arm_cycle(m, arm_pick)
+		return
+	var data := {"store": id, "from": ""} if id != "" else {"store": "", "from": arm_pick}
+	find_child("Drawing", true, false).dropped(data, arm_pick if id != "" else "")
 
 
 ## "16,069": kilograms with a thousands separator.
@@ -2026,6 +2222,10 @@ func _input(event: InputEvent) -> void:
 	var map := find_child("PageMap", true, false)
 	if map != null and map.has_focus():
 		return  # the map scrolls with the arrows
+	var arm := find_child("PageArming", true, false)
+	var fo := get_viewport().gui_get_focus_owner()
+	if arm != null and fo != null and arm.is_ancestor_of(fo):
+		return  # the arrows move between the slots and the inventory
 	if event.keycode in [KEY_LEFT, KEY_RIGHT]:
 		var to_end: bool = (event.keycode == KEY_RIGHT) != he()
 		show_tab(brief_tab + (1 if to_end else -1))
@@ -2036,6 +2236,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
 		return
 	get_viewport().set_input_as_handled()
+	if page == "mission" and arm_pick != "":
+		_arm_unpick()
+		return
 	if not close_modal():
 		back()
 

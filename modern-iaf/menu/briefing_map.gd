@@ -22,6 +22,9 @@ const ZOOM_MAX := 32.0
 const ZOOM_STEP := 1.25
 ## An arrow key scrolls this share of the view.
 const PAN_SHARE := 0.1
+## A two-finger scroll's step (px a unit of InputEventPanGesture.delta) and a horizontal wheel notch's (px).
+const PAN_GESTURE_PX := 24.0
+const WHEEL_PX := 60.0
 ## Zoomed in this far (px a metre) the runways' designators, centrelines, the parking spots and the start's label show.
 const DETAIL_K := 0.15
 
@@ -95,14 +98,11 @@ func pan(px: Vector2) -> void:
 	_clamp()
 
 
+## The view's centre stays on the map, so a drag moves it at every zoom (the whole map too: up to half the view past
+## its edge) and the map never leaves the view.
 func _clamp() -> void:
 	var s: Array = data.get("size", [1, 1])
-	var half := size / 2.0 / (_fit() * zoom)
-	var full := Vector2(float(s[0]), float(s[1]))
-	center = Vector2(
-		clampf(center.x, minf(half.x, full.x / 2.0), maxf(full.x - half.x, full.x / 2.0)),
-		clampf(center.y, minf(half.y, full.y / 2.0), maxf(full.y - half.y, full.y / 2.0))
-	)
+	center = Vector2(clampf(center.x, 0.0, float(s[0])), clampf(center.y, 0.0, float(s[1])))
 	queue_redraw()
 
 
@@ -113,19 +113,38 @@ func _gui_input(event: InputEvent) -> void:
 				zoom_at(ZOOM_STEP, event.position)
 			MOUSE_BUTTON_WHEEL_DOWN:
 				zoom_at(1.0 / ZOOM_STEP, event.position)
-			MOUSE_BUTTON_LEFT:
+			MOUSE_BUTTON_WHEEL_LEFT:
+				pan(Vector2(WHEEL_PX * maxf(event.factor, 1.0), 0))
+			MOUSE_BUTTON_WHEEL_RIGHT:
+				pan(Vector2(-WHEEL_PX * maxf(event.factor, 1.0), 0))
+			MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE:
 				grab_focus()
-				if event.double_click:
+				if event.double_click and event.button_index == MOUSE_BUTTON_LEFT:
 					reset_view()
 				else:
 					_dragging = true
 			_:
 				return
 		accept_event()
-	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+	elif event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE]:
 		_dragging = false
-	elif event is InputEventMouseMotion and _dragging:
+		accept_event()
+	elif (
+		event is InputEventMouseMotion
+		and (_dragging or event.button_mask & (MOUSE_BUTTON_MASK_LEFT | MOUSE_BUTTON_MASK_MIDDLE))
+	):
+		# A drag (also one that began before the press reached the map: the button held in the motion).
 		pan(event.relative)
+		accept_event()
+	elif event is InputEventPanGesture:
+		# A trackpad's two-finger scroll: the map follows the fingers.
+		grab_focus()
+		pan(-event.delta * PAN_GESTURE_PX)
+		accept_event()
+	elif event is InputEventMagnifyGesture:
+		# A trackpad's pinch.
+		grab_focus()
+		zoom_at(event.factor, event.position)
 		accept_event()
 	elif event is InputEventKey and event.pressed:
 		var step := size * PAN_SHARE

@@ -4,7 +4,7 @@
   "name": "MK-84",
   "kind": "bomb",
   "generation": 0,
-  "model": "",
+  "model": "weapons/mk84/mk84_m.gltf",
   "kg": 925,
   "power": 21450,
   "blast_m": 100,
@@ -18,6 +18,7 @@
   },
   "notes": {
     "number": "ours; modern_weapons.gd finds its base by the name",
+    "model": "the original's file name, which Models: Detailed draws as ours (shared/extra/models/stores/mk84.glb), as the AIM-9M's; on the jet when the loadout editor hangs it (front-end.md §10)",
     "name": "the base of the GBU-31, BLU109, GBU-39 and GBU-28 (modern_weapons.gd RECORDS)",
     "power": "429 kg of tritonal at 50 points a kilogram (our damage scale)",
     "blast_m": "no public lethal radius found: 100 m held until one is",

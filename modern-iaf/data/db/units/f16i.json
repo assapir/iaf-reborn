@@ -23,8 +23,36 @@
     "H": { "weapon": "aim-9m", "count": 1 },
     "I": { "weapon": "aim-9m", "count": 1 }
   },
-  "inventory": [{ "weapon": "aim-9m" }, { "weapon": "aim-120" }, { "weapon": "mk-84" }, { "weapon": "tank-370" }],
+  "lateral_limit_kgm": 3459,
+  "lateral_limit_hard": false,
+  "allowed": {
+    "1": ["aim-9m", "python-5", "aim-120"],
+    "2": ["aim-9m", "python-5", "aim-120"],
+    "3": ["aim-9m", "aim-120", { "id": "mk-82", "count": 3, "rack": "TER-9/A", "rack_kg": 47.6 }, "mk-83", "mk-84", "gbu-31", { "id": "gbu-38", "count": 2, "rack": "BRU-57/A" }, "spice-1000", "spice-2000", "delilah"],
+    "4": ["tank-370", "tank-600", { "id": "mk-82", "count": 3, "rack": "TER-9/A", "rack_kg": 47.6 }, "mk-83", "mk-84", "spice-1000", "spice-2000"],
+    "6": ["tank-370", "tank-600", { "id": "mk-82", "count": 3, "rack": "TER-9/A", "rack_kg": 47.6 }, "mk-83", "mk-84", "spice-1000", "spice-2000"],
+    "7": ["aim-9m", "aim-120", { "id": "mk-82", "count": 3, "rack": "TER-9/A", "rack_kg": 47.6 }, "mk-83", "mk-84", "gbu-31", { "id": "gbu-38", "count": 2, "rack": "BRU-57/A" }, "spice-1000", "spice-2000", "delilah"],
+    "8": ["aim-9m", "python-5", "aim-120"],
+    "9": ["aim-9m", "python-5", "aim-120"]
+  },
+  "inventory": [
+    { "weapon": "aim-9m" },
+    { "weapon": "python-5" },
+    { "weapon": "aim-120" },
+    { "weapon": "mk-82" },
+    { "weapon": "mk-83" },
+    { "weapon": "mk-84" },
+    { "weapon": "gbu-31" },
+    { "weapon": "gbu-38" },
+    { "weapon": "spice-1000" },
+    { "weapon": "spice-2000" },
+    { "weapon": "delilah" },
+    { "weapon": "tank-370" },
+    { "weapon": "tank-600" }
+  ],
   "sources": {
+    "lateral_limit_kgm": "bms-asym, inferred",
+    "allowed": "f16net-aim9, f16net-aim120, f16net-jdam, f16net-mk82, f16net-tanks, usaf-600, ter-9a, inferred",
     "tail": "jp-482",
     "max_takeoff_kg": "aft-f16i-mtow",
     "type": "inferred",
@@ -38,6 +66,9 @@
     "inventory": "f16net-aim9, f16net-aim120, f16net-tanks, w-f16-arm, inferred"
   },
   "notes": {
+    "lateral_limit_kgm": "the F-16's maximum allowable asymmetric (rolling) moment, 25,020 ft-lb (3,459 kg·m), as a forum quotes the flight manual's stores limitations (bms-asym; the manual itself not seen, so inferred); the Sufa's and the Barak's taken the same (inferred)",
+    "lateral_limit_hard": "false: the briefing warns and lets the jet fly (the manual forbids the take-off only when the roll trim cannot hold the moment, which the briefing does not know)",
+    "allowed": "the stores each station takes, by its real number. Sourced: the AIM-9 and the AIM-120 on 1 / 9, 2 / 8 and 3 / 7 (f16net-aim9, f16net-aim120); the GBU-31 on 3 / 7, one each, and the GBU-38 there two to a BRU-57/A (f16net-jdam); three Mk 82 on a TER-9/A (47.6 kg, ter-9a) on 3 / 7, and on 4 / 6 (f16net-mk82, a forum: inferred; with tanks on 4 / 6 the real jet takes two on 3 / 7, not modelled); the 370 US gal tank on 4 / 6 (f16net-tanks) and the 600 US gal tank there (usaf-600). Inferred: the Python 5 on the AIM-9 rails 1 / 9 and 2 / 8 (a modified LAU-129; no station chart found); the Mk 83 and the Mk 84 one each on 3 / 7 and 4 / 6 (f16net-mk82 tells of four Mk 84); the SPICE 1000 / 2000 on 3 / 7 and 4 / 6 and the Delilah on 3 / 7 (no source gives their stations); the Sufa and the Barak the same (no source shows a difference). Station 5, the centreline, takes none of the inventory",
     "tail": "F-16I Sufa 482 of 253 Squadron, Ramon, in a public photo (Iniochos 2022): one real jet of the squadron, the pilot's in the sim",
     "max_takeoff_kg": "the F-16I's maximum take-off weight, 23,582 kg (about 52,000 lb), which its F100-PW-229 IPE allows",
     "type": "the F-16's type code, the one the shared code keys the F-16 family on; the airframe definition f16i makes it the Sufa",
@@ -49,9 +80,14 @@
     "loadout.chaff": "no public count found; 60 held until one is",
     "loadout.flare": "no public count found; 60 held until one is",
     "pylons": "an AIM-9M on each wingtip rail (stations 1 and 9, A and I): the F-16's wingtip rails carry its short-range missiles; the Sufa's two wingtip missiles are standard (mf-f16i), its usual one the Python 5 (aft-f16i), which the sim has no record of yet, so the AIM-9M stands in (inferred); a 370 US gal tank on each wing's inboard station (stations 4 and 6, D and F; the Sufa's options list two 370 gal wing tanks, ipms-f16i), carried on most flights (inferred); no other underwing stores in training (inferred); an AIM-9M on each underwing missile station, 2 / 8 (B, H) and 3 / 7 (C, G): the F-16 carries AIM-9s and AIM-120s there (f16net-aim9, f16net-aim120); on 2 / 8 the AIM-9M stands in for the IAF's Python (aft-f16i on the Sufa, inferred on the Barak), on 3 / 7 for an AIM-120, which the sim has no record of yet (stand-ins, inferred)",
-    "inventory": "the stores the briefing lists as the jet's: the AIM-9M (also the stand-in for the IAF's Python), the AIM-120, the MK-84 2,000 lb bomb and the 370 US gal drop tank; the sim's records of the F-16's stores; no counts published"
+    "inventory": "the stores the briefing lists as the jet's, each its own record in data/db/weapons with its sourced weight and size: the AIM-9M, the Python 5, the AIM-120, the Mk 82, Mk 83 and Mk 84, the GBU-31 and GBU-38 JDAM, the SPICE 1000 and 2000, the Delilah, the 370 and 600 US gal tanks; no counts published"
   },
   "footnotes": {
+    "bms-asym": "Falcon BMS forum, \"Asymmetric loads - Air to Ground for F16\" (quotes the F-16 flight manual, section 5: the maximum allowable asymmetric (rolling) moment for ground handling, taxi, takeoff, inflight and landing is 25,020 foot-pounds), https://forum.falcon-bms.com/post/167880",
+    "f16net-mk82": "F-16.net forum, \"Mk 82 loadouts\" (TER-9A on stations 3 and 7, two with 370 gal tanks on 4 and 6; TERs on 4 / 6; four Mk 84s), https://www.f-16.net/forum/viewtopic.php?p=123057",
+    "usaf-600": "USAF, \"600 Gallon External Fuel Tank Assembly\", solicitation FA8232-26-R-B014 (600 gal tanks on wing stations four and six), https://samsearch.co/gov-explore/federal/600-gallon-external-fuel-tank-assembly/FA8232-26-R-B014",
+    "ter-9a": "Marvin Engineering, \"TER-9A\" data sheet (weight 105 lb, 47.6 kg; three stations), https://marvineng.com/wp-content/uploads/sites/5/2018/01/TER-9A.pdf",
+    "f16net-jdam": "F-16.net, \"GBU-31 and GBU-38 JDAM\" (stations 3 and 7 have been wired to carry a single JDAM), https://www.f-16.net/f-16_armament_article9.html",
     "aft-f16i-mtow": "Airforce Technology, \"F-16I Soufa Multirole Fighter, Israel\" (the F100-PW-229 increased performance engine allows a maximum take-off weight of 23,582 kg), https://www.airforce-technology.com/projects/f-16i-soufa/",
     "jp-482": "JetPhotos, photo 11119107: F-16I Sufa 482 (msn YD-42) of \"The Negev Squadron\" (253) from Ramon at Andravida, Iniochos 2022, https://www.jetphotos.com/photo/11119107",
     "w-f16": "Wikipedia, \"General Dynamics F-16 Fighting Falcon\" (span 32 ft 8 in, 9.96 m), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon",

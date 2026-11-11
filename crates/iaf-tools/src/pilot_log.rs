@@ -39,6 +39,13 @@ const MIGRATIONS: &[&str] = &[
     // it has one; "" for the sorties before (the logbook takes their mission's jet).
     "ALTER TABLE sorties ADD COLUMN plane TEXT NOT NULL DEFAULT '';
      UPDATE sorties SET plane = COALESCE(json_extract(debrief, '$.plane'), '') WHERE json_valid(debrief);",
+    // 3 → 4: each pilot's loadout per jet (the briefing's Arming page): station → store id as JSON text.
+    "CREATE TABLE loadouts (
+       pilot INTEGER NOT NULL,
+       plane TEXT NOT NULL,
+       stations TEXT NOT NULL,
+       PRIMARY KEY (pilot, plane)
+     );",
 ];
 
 /// The schema version this build writes.
@@ -243,26 +250,41 @@ pub fn reset(c: &Connection, pilot: i64) -> Result<usize> {
     Ok(c.execute("DELETE FROM sorties WHERE pilot = ?1", [pilot])?)
 }
 
-/// Deletes the pilot (the Pilot screen's Delete profile): its sorties with their debriefs, its loadouts (when the
-/// records keep them), its row and its picture file.
+/// Deletes the pilot (the Pilot screen's Delete profile): its sorties with their debriefs, its loadouts, its row and its
+/// picture file.
 pub fn delete_pilot(c: &Connection, db: &Path, pilot: i64) -> Result<()> {
     let picture: Option<String> =
         c.query_row("SELECT picture FROM pilots WHERE id = ?1", [pilot], |r| r.get(0)).optional()?;
-    let loadouts: bool = c.query_row(
-        "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'loadouts')",
-        [],
-        |r| r.get(0),
-    )?;
     let tx = c.unchecked_transaction()?;
     tx.execute("DELETE FROM sorties WHERE pilot = ?1", [pilot])?;
-    if loadouts {
-        tx.execute("DELETE FROM loadouts WHERE pilot = ?1", [pilot])?;
-    }
+    tx.execute("DELETE FROM loadouts WHERE pilot = ?1", [pilot])?;
     tx.execute("DELETE FROM pilots WHERE id = ?1", [pilot])?;
     tx.commit()?;
     if let Some(p) = picture.filter(|p| !p.is_empty()) {
         let _ = fs::remove_file(folder(db).join(p));
     }
+    Ok(())
+}
+
+/// The pilot's saved loadout for `plane` (the jet's unit id) as stored ({"3": {"id": "mk-82", "count": 3}, …}), none
+/// when never saved.
+pub fn loadout(c: &Connection, pilot: i64, plane: &str) -> Result<Option<Value>> {
+    let s: Option<String> = c
+        .query_row("SELECT stations FROM loadouts WHERE pilot = ?1 AND plane = ?2", params![pilot, plane], |r| r.get(0))
+        .optional()?;
+    Ok(s.and_then(|s| serde_json::from_str(&s).ok()))
+}
+
+/// Stores the pilot's loadout for `plane`; none deletes it (the Arming page's Reset: the mission's default again).
+pub fn set_loadout(c: &Connection, pilot: i64, plane: &str, stations: Option<&Value>) -> Result<()> {
+    match stations {
+        Some(v) => c.execute(
+            "INSERT INTO loadouts (pilot, plane, stations) VALUES (?1, ?2, ?3)
+             ON CONFLICT (pilot, plane) DO UPDATE SET stations = excluded.stations",
+            params![pilot, plane, v.to_string()],
+        )?,
+        None => c.execute("DELETE FROM loadouts WHERE pilot = ?1 AND plane = ?2", params![pilot, plane])?,
+    };
     Ok(())
 }
 
@@ -550,6 +572,29 @@ mod tests {
     }
 
     #[test]
+    fn loadout_per_pilot_per_jet_and_version_3_migrates() {
+        let db = temp("loadouts").join("modern-iaf.sqlite");
+        let c = Connection::open(&db).unwrap();
+        for m in &MIGRATIONS[..3] {
+            c.execute_batch(m).unwrap();
+        }
+        c.pragma_update(None, "user_version", 3).unwrap();
+        drop(c);
+        let c = open(&db).unwrap();
+        assert_eq!(loadout(&c, 14, "f16i").unwrap(), None);
+        let lo = json!({"3": "mk-84", "7": "mk-84"});
+        set_loadout(&c, 14, "f16i", Some(&lo)).unwrap();
+        set_loadout(&c, 14, "f35i", Some(&json!({"4": "gbu-31"}))).unwrap();
+        set_loadout(&c, 15, "f16i", Some(&json!({}))).unwrap();
+        assert_eq!(loadout(&c, 14, "f16i").unwrap(), Some(lo));
+        set_loadout(&c, 14, "f16i", Some(&json!({"4": "tank-370"}))).unwrap();
+        assert_eq!(loadout(&c, 14, "f16i").unwrap(), Some(json!({"4": "tank-370"})));
+        set_loadout(&c, 14, "f16i", None).unwrap();
+        assert_eq!(loadout(&c, 14, "f16i").unwrap(), None);
+        assert_eq!(loadout(&c, 14, "f35i").unwrap(), Some(json!({"4": "gbu-31"})));
+    }
+
+    #[test]
     fn json_records_import_once() {
         let d = temp("import");
         fs::create_dir_all(d.join("debriefs")).unwrap();
@@ -590,8 +635,8 @@ mod tests {
         let src = d.join("me.png");
         fs::write(&src, b"png").unwrap();
         let pic = set_picture(&c, &db, a, &src).unwrap();
-        c.execute_batch("CREATE TABLE loadouts (pilot INTEGER, jet TEXT)").unwrap();
-        c.execute("INSERT INTO loadouts VALUES (?1, 'f16i'), (?2, 'f16i')", [a, b]).unwrap();
+        set_loadout(&c, a, "f16i", Some(&json!({"3": "mk-84"}))).unwrap();
+        set_loadout(&c, b, "f16i", Some(&json!({"3": "mk-84"}))).unwrap();
         delete_pilot(&c, &db, a).unwrap();
         assert!(!Path::new(&pic).exists());
         assert!(sorties(&c, a).unwrap().is_empty());

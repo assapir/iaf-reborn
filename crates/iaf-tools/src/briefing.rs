@@ -9,8 +9,9 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, Result};
 use iaf_avionics::roads::{self, Roads};
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 
+use crate::loadout;
 use crate::sim::place;
 use crate::sim_bases::{self, Base, grid_heading, utm36n_geo};
 use crate::sim_cockpit::{clip_to, from_map};
@@ -218,38 +219,6 @@ pub fn briefing(
     })
 }
 
-/// The unit record's fixed stores (`data/db/units/<id>.json`, data-formats.md §3) as the briefing lists them: the
-/// pylons' weapons in station order, each once with its count and its stations (A..I → 1..9, or the real station
-/// number the record's `stations` maps to the letter: the F-35I's), then the `loadout`'s (the gun's rounds, the
-/// chaff, the flares) with no station.
-pub fn stores(unit: &Value) -> Value {
-    let mut out: Vec<(String, i64, Vec<usize>)> = vec![];
-    if let Some(pylons) = unit["pylons"].as_object() {
-        let mut stations: Vec<_> = pylons.iter().collect();
-        stations.sort_by_key(|(k, _)| k.as_str());
-        let real = unit["stations"].as_object();
-        for (k, p) in stations {
-            let (Some(w), n) = (p["weapon"].as_str(), p["count"].as_i64().unwrap_or(1)) else { continue };
-            let st = match real {
-                Some(m) => m.iter().find(|(_, l)| l.as_str() == Some(k.as_str())).and_then(|(n, _)| n.parse().ok()),
-                None => k.bytes().next().map(|c| (c.saturating_sub(b'A') + 1) as usize),
-            };
-            let st = st.unwrap_or(0);
-            match out.iter_mut().find(|o| o.0 == w) {
-                Some(o) => {
-                    o.1 += n;
-                    o.2.push(st);
-                }
-                None => out.push((w.to_string(), n, vec![st])),
-            }
-        }
-    }
-    for (w, n) in unit["loadout"].as_object().into_iter().flatten() {
-        out.push((w.clone(), n.as_i64().unwrap_or(0), vec![]));
-    }
-    out.into_iter().map(|(w, n, st)| json!({"weapon": w, "count": n, "stations": st})).collect()
-}
-
 /// The theatre's main roads, read once a process (10 MB; the briefing asks for them on every map).
 // ponytail: one theatre folder cached; a second folder replaces it.
 static ROADS: Mutex<Option<(PathBuf, Arc<Roads>)>> = Mutex::new(None);
@@ -262,59 +231,145 @@ fn main_roads(theatre: &Path) -> Option<Arc<Roads>> {
     c.as_ref().map(|(_, r)| r.clone())
 }
 
-/// The briefing's Arming page (front-end.md §10): the unit record's fixed `stores` ([`stores`]), its gun rounds,
-/// chaff and flares, the 6-DoF jet's internal fuel and empty weight (`iaf_flight::sixdof::jets`, matched by the
-/// record's `name`), the stores' weight (each weapon's `kg` from `weapons`, the folder of `data/db/weapons`), the
-/// take-off weight (empty + internal fuel + stores) and the record's `max_takeoff_kg`. Weights in kg, rounded; a
-/// figure it cannot find is null. Also the record's `internal` stations and its `inventory`, each entry
-/// `{id, count, group}`: the picture and caption's id (its `as`, else the weapon's), the record's count (null: none)
-/// and its group by the weapon's kind ("air" missiles, "ground" bombs, "tank"; an unknown weapon is left out).
-pub fn arming(unit: &Value, weapons: &Path) -> Value {
-    let list = stores(unit);
+/// The briefing's Arming page (front-end.md §10) with the loadout `lo` (`loadout`): its stores in station order (each
+/// store's id, how many hang on the jet and their stations) and `slots` (station → {id, count}), the record's gun
+/// rounds, chaff and flares, the 6-DoF jet's internal fuel and empty weight (`iaf_flight::sixdof::jets`, matched by
+/// the record's `name`), the stores' weight (each store's `kg` from its record in `weapons`, the folder of
+/// `data/db/weapons`, times its count, and each rack's `rack_kg`) and the drop tanks' fuel in it, the take-off weight
+/// (empty + internal fuel + stores), the record's `max_takeoff_kg` and `over` (the take-off weight above it). Weights
+/// in kg, rounded; a figure it cannot find is null. Also the record's `internal` stations, `allowed` (station →
+/// [{id, count}]) and its `inventory`, each entry `{id, count, used, left, group}`: the store's id, the record's count
+/// (null: none), how many hang on the jet, how many are left (null without a count) and its group by the weapon's
+/// kind ("air" air-to-air missiles, "ground" bombs and air-to-ground missiles (`role` "ground"), "tank"; an unknown
+/// weapon is left out).
+pub fn arming(unit: &Value, weapons: &Path, lo: &loadout::Loadout) -> Value {
     let record = |w: &str| -> Option<Value> {
         serde_json::from_slice(&std::fs::read(weapons.join(format!("{w}.json"))).ok()?).ok()
     };
-    let kg = |w: &str| record(w)?["kg"].as_f64();
+    let kind = |id: &str| record(id).and_then(|r| r["kind"].as_str().map(String::from));
+    let kg = |id: &str| record(id)?["kg"].as_f64();
     let inventory: Vec<Value> = unit["inventory"]
         .as_array()
         .into_iter()
         .flatten()
         .filter_map(|e| {
-            let w = e["weapon"].as_str()?;
-            let group = match record(w)?["kind"].as_str()? {
+            let id = e["weapon"].as_str()?;
+            let r = record(id)?;
+            let group = match r["kind"].as_str()? {
+                _ if r["role"] == "ground" => "ground",
                 k if k.ends_with("missile") => "air",
                 "bomb" => "ground",
                 "tank" => "tank",
                 _ => return None,
             };
-            Some(json!({"id": e["as"].as_str().unwrap_or(w), "count": e["count"], "group": group}))
+            let ready = r["model"].as_str().is_some_and(|m| !m.is_empty());
+            Some(json!({"id": id, "count": e["count"], "used": loadout::used(lo, id),
+                        "left": loadout::left(unit, lo, id), "group": group, "ready": ready}))
         })
         .collect();
+    let mut list: Vec<(String, u32, Vec<u32>)> = vec![];
+    for (&st, (id, n)) in lo {
+        match list.iter_mut().find(|o| &o.0 == id) {
+            Some(o) => {
+                o.1 += n;
+                o.2.push(st);
+            }
+            None => list.push((id.clone(), *n, vec![st])),
+        }
+    }
+    let mut stores: Vec<Value> =
+        list.iter().map(|(w, n, st)| json!({"weapon": w, "count": n, "stations": st})).collect();
+    for (w, n) in unit["loadout"].as_object().into_iter().flatten() {
+        stores.push(json!({"weapon": w, "count": n.as_i64().unwrap_or(0), "stations": []}));
+    }
     // The pylon stores only (the gun's rounds, chaff and flares are in the empty weight, inferred).
-    let stores_kg: Option<f64> = list
-        .as_array()
-        .into_iter()
-        .flatten()
-        .filter(|s| !s["stations"].as_array().is_some_and(Vec::is_empty))
-        .map(|s| Some(kg(s["weapon"].as_str()?)? * s["count"].as_f64()?))
+    let stores_kg: Option<f64> =
+        lo.iter().map(|(&st, (id, n))| Some(kg(id)? * f64::from(*n) + loadout::rack_kg(unit, st, id))).sum();
+    let tank_kg: Option<f64> = lo
+        .values()
+        .filter(|(id, _)| kind(id).as_deref() == Some("tank"))
+        .map(|(id, n)| Some(kg(id)? * f64::from(*n)))
         .sum();
     let jet = iaf_flight::sixdof::jets::all().into_iter().find(|j| Some(j.name) == unit["name"].as_str());
     let fuel = jet.as_ref().map(|j| j.fuel_lb * iaf_flight::sixdof::LB);
     let empty = jet.as_ref().zip(fuel).map(|(j, f)| j.airframe.mass - f);
     let takeoff = empty.zip(fuel).zip(stores_kg).map(|((e, f), s)| e + f + s);
+    let max = unit["max_takeoff_kg"].as_f64();
+    let (imbalance_kg, moment) = lateral(unit, weapons, lo, &kg).unwrap_or((0.0, 0.0));
+    let limit = unit["lateral_limit_kgm"].as_f64();
+    let imbalanced = limit.is_some_and(|l| moment.abs() > l);
+    let over = takeoff.zip(max).is_some_and(|(t, m)| t.round() > m);
+    let allowed: Map<String, Value> = loadout::stations(unit)
+        .into_iter()
+        .map(|s| {
+            let a: Vec<Value> = loadout::allowed(unit, s).iter().map(|(id, n)| json!({"id": id, "count": n})).collect();
+            (s.to_string(), Value::Array(a))
+        })
+        .collect();
+    // Each station's store, how many and the rack's capacity there.
+    let slots: Map<String, Value> = lo
+        .iter()
+        .map(|(st, (id, n))| {
+            let max = loadout::allowed(unit, *st).iter().find(|a| &a.0 == id).map_or(1, |a| a.1);
+            (st.to_string(), json!({"id": id, "count": n, "max": max}))
+        })
+        .collect();
     let r = |v: Option<f64>| v.map(f64::round);
     json!({
-        "stores": list,
+        "stores": stores,
+        "slots": slots,
         "loadout": unit["loadout"],
         "fuel_kg": r(fuel),
+        "tank_fuel_kg": r(tank_kg),
         "empty_kg": r(empty),
         "stores_kg": r(stores_kg),
         "takeoff_kg": r(takeoff),
         "max_takeoff_kg": unit["max_takeoff_kg"],
+        "over": over,
+        "imbalance_kg": imbalance_kg.round(),
+        "moment_kgm": moment.round(),
+        "lateral_limit_kgm": limit,
+        "imbalanced": imbalanced,
+        "blocked": over || (imbalanced && unit["lateral_limit_hard"].as_bool().unwrap_or(false)),
         "tail": unit["tail"],
         "internal": unit["internal"],
+        "allowed": allowed,
         "inventory": inventory,
     })
+}
+
+/// The wings' store masses against each other: the difference (kg, the left wing's less the right's) and the rolling
+/// moment (kg·m, + the right wing heavier), each station's stores (racks too) at its distance from the jet's middle
+/// in the drawing (`data/drawings/<unit id>_front.json` beside `weapons`' folder, its `px_per_m`; station 1, the left
+/// wing tip, at the drawing's right). None without the drawing.
+fn lateral(
+    unit: &Value,
+    weapons: &Path,
+    lo: &loadout::Loadout,
+    kg: &dyn Fn(&str) -> Option<f64>,
+) -> Option<(f64, f64)> {
+    let path = weapons.join("../../drawings").join(format!("{}_front.json", unit["id"].as_str()?));
+    let d: Value = serde_json::from_slice(&std::fs::read(path).ok()?).ok()?;
+    let px = d["px_per_m"].as_f64()?;
+    let xs: Vec<(u32, f64)> =
+        d["stations"].as_object()?.iter().filter_map(|(k, v)| Some((k.parse().ok()?, v[0].as_f64()?))).collect();
+    let mid = xs.iter().map(|x| x.1).sum::<f64>() / xs.len().max(1) as f64;
+    let (mut diff, mut moment) = (0.0, 0.0);
+    for (&st, (id, n)) in lo {
+        let Some(&(_, x)) = xs.iter().find(|x| x.0 == st) else { continue };
+        let m = kg(id)? * f64::from(*n) + loadout::rack_kg(unit, st, id);
+        // The drawing faces the reader: the left wing (station 1) on its right, x above the middle.
+        let arm = (mid - x) / px;
+        moment += m * arm;
+        diff += if arm < 0.0 {
+            m
+        } else if arm > 0.0 {
+            -m
+        } else {
+            0.0
+        };
+    }
+    Some((diff, moment))
 }
 
 /// [`briefing`] from files: the readable mission, the airbases folder, the compiled map.json and the theatre's folder
@@ -434,28 +489,54 @@ mod tests {
     #[test]
     fn stores_list_the_sufas_record() {
         let unit: Value = serde_json::from_slice(&std::fs::read(data().join("db/units/f16i.json")).unwrap()).unwrap();
-        let v = stores(&unit);
+        let w = data().join("db/weapons");
+        let a = arming(&unit, &w, &loadout::default(&unit));
+        let v = &a["stores"];
         assert_eq!(v[0], json!({"weapon": "aim-9m", "count": 6, "stations": [1, 2, 3, 7, 8, 9]}));
         assert_eq!(v[1], json!({"weapon": "tank-370", "count": 2, "stations": [4, 6]}));
         assert_eq!(v[2], json!({"weapon": "20mm", "count": 511, "stations": []}));
         assert_eq!(v.as_array().unwrap().len(), 5);
         // The F-35I: an AIM-120 on each bay's inboard station, its real numbers 5 and 7 (pylons D and F).
         let f35: Value = serde_json::from_slice(&std::fs::read(data().join("db/units/f35i.json")).unwrap()).unwrap();
-        assert_eq!(stores(&f35)[0], json!({"weapon": "aim-120", "count": 2, "stations": [5, 7]}));
+        assert_eq!(
+            arming(&f35, &w, &loadout::default(&f35))["stores"][0],
+            json!({"weapon": "aim-120", "count": 2, "stations": [5, 7]})
+        );
         // The Sufa's weights: 8,850 lb of fuel, 29,350 lb with it, six AIM-9M (86 kg) and two tanks (1,120 kg).
-        let a = arming(&unit, &data().join("db/weapons"));
         assert_eq!(a["fuel_kg"], json!(4014.0));
         assert_eq!(a["stores_kg"], json!(6.0 * 86.0 + 2.0 * 1120.0));
         let t = a["takeoff_kg"].as_f64().unwrap();
         assert!((t - (29_350.0 * 0.453_592_37 + 2756.0)).abs() < 1.0, "{t}");
         assert!(t < a["max_takeoff_kg"].as_f64().unwrap());
         assert_eq!(a["tail"], "482");
-        let b = arming(&f35, &data().join("db/weapons"));
+        let b = arming(&f35, &data().join("db/weapons"), &loadout::default(&f35));
         assert_eq!(b["stores_kg"], json!(2.0 * 161.5));
         assert_eq!(b["internal"], json!([4, 5, 7, 8]));
-        assert_eq!(b["inventory"][1], json!({"id": "gbu-31", "count": null, "group": "ground"}));
+        assert_eq!(
+            b["inventory"][2],
+            json!({"id": "gbu-31", "count": null, "used": 0, "left": null, "group": "ground", "ready": true})
+        );
+        assert_eq!(b["inventory"][0]["used"], 2);
+        assert_eq!(a["over"], false);
+        // Three Mk 82 on a TER on 3 and 7 for their AIM-9Ms: the bombs and the racks, the tanks' fuel the same.
+        let mut lo = loadout::default(&unit);
+        assert!(loadout::put(&unit, &mut lo, 3, "mk-82", true));
+        let c = arming(&unit, &data().join("db/weapons"), &lo);
+        assert_eq!(c["tank_fuel_kg"], json!(2240.0));
+        assert_eq!(c["stores_kg"], json!((4.0f64 * 86.0 + 6.0 * 241.0 + 2.0 * 47.6 + 2.0 * 1120.0).round()));
+        assert_eq!(c["slots"]["3"], json!({"id": "mk-82", "count": 3, "max": 3}));
+        // The stores without a model of ours (the Delilah, the 600 gal tank) are not ready to fly.
+        let not_ready: Vec<_> = c["inventory"].as_array().unwrap().iter().filter(|e| e["ready"] == false).collect();
+        assert_eq!(
+            not_ready.iter().map(|e| e["id"].clone()).collect::<Vec<_>>(),
+            [json!("delilah"), json!("tank-600")]
+        );
+        assert_eq!(c["allowed"]["3"][2], json!({"id": "mk-82", "count": 3}));
         let groups: Vec<_> = a["inventory"].as_array().unwrap().iter().map(|e| e["group"].clone()).collect();
-        assert_eq!(groups, [json!("air"), json!("air"), json!("ground"), json!("tank")]);
+        let want =
+            ["air", "air", "air", "ground", "ground", "ground", "ground", "ground", "ground", "ground", "ground"];
+        assert_eq!(groups[..11], want.map(|g| json!(g)));
+        assert_eq!(groups.len(), 13);
     }
 
     #[test]

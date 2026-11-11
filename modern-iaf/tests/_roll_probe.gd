@@ -3,8 +3,8 @@
 extends "res://../modern-iaf/tests/test_mvp.gd"
 
 
-func _start(name: String) -> Node:
-	var tv: Node = await super(name)
+func _start(name: String, armed := false) -> Node:
+	var tv: Node = await super(name, armed)
 	Engine.time_scale = 1.0
 	_log(tv)
 	return tv

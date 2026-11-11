@@ -81,6 +81,7 @@ crate of its own: it is one file, and `iaf-tools` already links `rusqlite`.
 |---|---|
 | `pilots` | `id` (14, the default pilot; a new pilot from the front end's pilot list takes the next free id); since version 2 the profile of the Pilot screen: `name`, `nickname` (the one every screen shows), `picture` (the picture file's path relative to the database's folder, `pictures/pilot-<id>.<ext>`; `''` = none) |
 | `sorties` | `id` (autoincrement: the debrief's number), `pilot`, `mission_id` (the menu id), `mission` (the readable name), `date`, `result` (1 pass, 0 fail), `elapsed_s`, `debrief` (the whole record as JSON text, NULL when it was lost); since version 3 `plane` (the jet's unit id, `f16i`; `''` for a sortie stored before) |
+| `loadouts` | since version 4: `pilot`, `plane` (the jet's unit id), `stations` (the loadout as JSON text, real station number → the store and how many, `{"3": {"id": "mk-82", "count": 3}}`; a plain id, the first build's form, reads as one); one row per pilot and jet, none while the loadout is the record's default |
 
 - **Schema version.** SQLite's `user_version`; `pilot_log::open` runs the missing migrations (`MIGRATIONS`, one SQL
   batch per version) in one immediate transaction, so a second process waits and finds the schema made; a file at this build's
@@ -99,7 +100,7 @@ crate of its own: it is one file, and `iaf-tools` already links `rusqlite`.
   per mission; `logbook(db, pilot, units)` answers the Pilot screen's logbook (per plane: `time_s`, `flights`,
   `passes`, `fails` and its `missions` with the same counts; `units`, {menu id: unit id}, places a sortie without its
   plane); `reset(db, pilot)` deletes the pilot's sorties (the profile stays); `delete_pilot(db, pilot)`
-  deletes the pilot: its sorties, its `loadouts` rows when that table exists, its row and its picture file;
+  deletes the pilot: its sorties, its `loadouts` rows, its row and its picture file;
   `pilots(db)` lists the pilots with a
   name; `add_pilot(db, name, nickname)` makes one and answers its id; `debrief(db, id)` answers one record; `pilot(db, pilot)` answers the profile ({name, nickname,
   picture} with the picture's absolute path), `set_pilot(db, pilot, name, nickname)` stores the name and nickname, and
@@ -109,10 +110,15 @@ crate of its own: it is one file, and `iaf-tools` already links `rusqlite`.
   default): a version-1 file keeps its pilots and sorties.
 - **Version 3** (2026-11-10) adds `sorties.plane`, filled from the debrief's `plane` where it has one;
   `sim_flight.gd` writes the mission's unit as the debrief's `plane`.
+- **Version 4** (2026-11-10) adds `loadouts`, the briefing's loadout editor's ([front-end.md](front-end.md) §10):
+  `loadout(db, pilot, plane)` answers the stored loadout (none: the record's default), `set_loadout(db, pilot, plane,
+  stations)` stores it, `set_loadout(…, none)` (`""` from GDScript) deletes it (Reset). Loading checks it against the
+  unit record (`loadout::parse` keeps only what a station takes), so a record that changes its rules never flies a
+  store a station no longer takes.
 - **Reading a record outside the game.** `sqlite3 modern-iaf.sqlite "SELECT debrief FROM sorties WHERE id = 3" >
   debrief.json` gives the file `tools/flight_timeline.py --debrief` takes.
 - **Check.** `cargo test -p iaf-tools --lib pilot_log` (the schema at its version, a newer one refused, a sortie round
   trip with the summary, the JSON import run twice, the profile and its picture round trip, a version-1 file migrated, the logbook per plane and Reset, the pilot list and
-  a new pilot, a version-2 file migrated); `modern-iaf/tests/test_front_end.gd` (imported records on the
+  a new pilot, a version-2 file migrated, the loadouts per pilot per jet and a version-3 file migrated); `modern-iaf/tests/test_front_end.gd` (imported records on the
   Debrief, Home, Training and Pilot log screens, then a flown sortie's debrief) and `test_mvp.gd` (each flight's
   sortie and its pass in the summary).

@@ -7,7 +7,19 @@ extends "res://../tests/godot/base.gd"
 
 ## The store's weapon id (data/db/weapons) → its model.
 const STORES := {
-	"aim-9m": "aim9.glb", "tank-370": "f16ftk.glb", "aim-120": "aim120.glb", "mk-84": "mk84.glb", "gbu-31": "gbu31.glb"
+	"aim-9m": "aim9.glb",
+	"tank-370": "f16ftk.glb",
+	"aim-120": "aim120.glb",
+	"mk-84": "mk84.glb",
+	"gbu-31": "gbu31.glb",
+	"mk-82": "mk82.glb",
+	"mk-83": "mk83.glb",
+	"python-5": "pyth5.glb",
+	"aim-9x": "aim9x.glb",
+	"gbu-38": "gbu38.glb",
+	"gbu-39": "gbu39.glb",
+	"spice-1000": "spice1000.glb",
+	"spice-2000": "spice2000.glb",
 }
 const PX_PER_M := 64.0
 

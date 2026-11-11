@@ -1,0 +1,36 @@
+{
+  "id": "mk-82",
+  "number": 4,
+  "name": "MK-82",
+  "kind": "bomb",
+  "generation": 1,
+  "model": "weapons/mk82/mk82_m.gltf",
+  "kg": 241,
+  "power": 4350,
+  "blast_m": 50,
+  "drag": 0,
+  "motion": {},
+  "length_m": 2.21,
+  "diameter_m": 0.273,
+  "sources": {
+    "power": "inferred",
+    "blast_m": "open",
+    "drag": "open",
+    "kg": "w82",
+    "length_m": "w82",
+    "diameter_m": "w82"
+  },
+  "notes": {
+    "number": "ours",
+    "drag": "carriage drag: none until a source gives one",
+    "motion": "the reader's defaults",
+    "name": "the base of the GBU-38 (modern_weapons.gd RECORDS)",
+    "power": "87 kg of tritonal at 50 points a kilogram (our damage scale)",
+    "blast_m": "no public lethal radius found: 50 m held until one is",
+    "model": "the original's file name, which Models: Detailed draws as ours (shared/extra/models/stores/mk82.glb)",
+    "generation": "ours: the weapons.ibx section key (generation · 1000 + type) is one per weapon of a kind"
+  },
+  "footnotes": {
+    "w82": "Wikipedia, \"Mark 82 bomb\" (241 kg, 2.21 m, 0.273 m; 87 kg of tritonal), https://en.wikipedia.org/wiki/Mark_82_bomb"
+  }
+}
