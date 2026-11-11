@@ -1,10 +1,11 @@
 # Dev helper (not run by tools/test.sh): the Sufa's start-up switches clicked with the mouse (modern-iaf/docs/cockpit.md
 # §5.2), a real render of mission 2011 (Start-up at Ramon, parked cold), from 2 s after the start. For each switch
-# the head turns to it, then SHOT_OUT/<node>_hover.png (the pointer over it, lit) and SHOT_OUT/<node>_on.png (clicked
-# through the input path: the step taken, the switch turned, the pointer moved away). Switches: SHOT_SWITCHES
+# the head turns to it, then SHOT_OUT/<node>_rest.png (the pointer away), SHOT_OUT/<node>_hover.png (the pointer over
+# it, lit) and SHOT_OUT/<node>_on.png (clicked through the input path: the step taken, the switch turned, the pointer
+# moved away). Switches: SHOT_SWITCHES
 # (comma-separated nodes of f16_controls.json, default MAIN_PWR,JFS; the steps a switch needs before it are taken by
 # their keys' commands first; a guarded switch: also <node>_guard.png, its guard lifted by the first click). The view
-# zoomed in (cockpit.ZOOM_MAX). SHOT_MISSION: another start-up mission (2031:
+# zoomed in (cockpit.ZOOM_MAX), the pilot's body hidden. SHOT_MISSION: another start-up mission (2031:
 # the F-35I at Nevatim, its nodes of f35i_controls.json); a knob (a turn control) is only lit and clicked.
 #   flock -o ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_OUT=<dir> \
 #     -- --log-file <t> --resolution 1920x1080 --path modern-iaf -s ../modern-iaf/tests/_switch_shot.gd
@@ -31,6 +32,9 @@ func run() -> void:
 		tv = current_scene
 	await create_timer(2.0).timeout
 	tv.cockpit.zoom = tv.cockpit.ZOOM_MAX
+	var pilot = tv.cockpit_3d.get("_pilot")
+	if pilot != null:  # the pilot's hand over the ELEC panel hides MAIN PWR
+		(pilot.owner if pilot.owner is Node3D else pilot).visible = false
 	var nodes := OS.get_environment("SHOT_SWITCHES")
 	for node in (nodes if nodes != "" else "MAIN_PWR,JFS").split(","):
 		for cmd in BEFORE.get(node, []):
@@ -57,6 +61,7 @@ func _shoot(tv: Node, node: String) -> void:
 	var centre := func() -> Vector3: return mi.global_transform * mi.get_aabb().get_center()
 	var at := await _aim(tv, centre, 0.0)
 	print(node, " at ", at)
+	await _save(node + "_rest")
 	var hover := InputEventMouseMotion.new()
 	hover.position = at
 	Input.parse_input_event(hover)

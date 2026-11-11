@@ -1,8 +1,9 @@
 # Dev helper (not run by tools/test.sh): the Sufa's SYM wheel worked with the mouse (modern-iaf/docs/cockpit.md §5.1), a
 # real render of mission 2012 on Ramon's ILS final (_ils_shot.gd's --at), frozen 3 s after the start, looking a little
 # down at the ICP under the HUD:
-# SHOT_OUT/sym_hover.png (the pointer over the wheel, the HUD at full), SHOT_OUT/sym_turned.png (the wheel turned down
-# 24 notches through the input path, the pointer moved away, the HUD at 40 %):
+# SHOT_OUT/sym_rest.png (the pointer away), SHOT_OUT/sym_hover.png (the pointer over the wheel, the HUD at full),
+# SHOT_OUT/sym_turned.png (the wheel turned down 24 notches through the input path, the pointer moved away, the HUD at
+# 40 %):
 #   flock -o ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_OUT=<dir> \
 #     -- --log-file <t> --resolution 1920x1080 --path modern-iaf -s ../modern-iaf/tests/_sym_wheel_shot.gd \
 #     -- --at 666059.3 3409044.1 1179.1 246.0 -3
@@ -28,6 +29,7 @@ func run() -> void:
 	var knob: MeshInstance3D = c3d.find_child("SYM", true, false)
 	var at: Vector2 = c3d.camera.unproject_position(knob.global_transform * knob.get_aabb().get_center())
 	print("SYM at ", at)
+	await _save("sym_rest")
 	var hover := InputEventMouseMotion.new()
 	hover.position = at
 	Input.parse_input_event(hover)

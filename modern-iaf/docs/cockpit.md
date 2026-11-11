@@ -173,7 +173,12 @@ false in the original game): a cockpit's table `<model>_controls.json` beside it
 command (a switch) or a `turn` command (a knob: the wheel, a drag); a guarded switch names its guard's property
 (`guard`): while the guard is closed a click only lifts it, the next sends the command (the F-35I's ENG switch,
 docs/f35i.md §4.5); a control's hit area is its mesh's box, and the
-pointer over it lays a warm glow on it (`material_overlay`). The pointer's moves reach the layer in `_input`, before
+pointer over it lights its rim (`material_overlay`, the shader `RIM`): a faint cool white, thin where the part faces
+the eye and thicker where its surface turns away, so its own colour and texture still show (2026-11-11; it was a warm
+yellow fill, which the user found "too yellowish" and hiding the SYM wheel's texture). The overlay is a mix of low
+alpha, not an add: the cockpit's picture is composited by its alpha (`cockpit_composite.gdshader`), and an add pushed
+that alpha past 1 and darkened the part (tried 2026-11-11, dropped). The canopy handle's hit box is drawn on no layer,
+so the rim lights its rod only. The pointer's moves reach the layer in `_input`, before
 the flight's full-view Controls take them, and `cockpit_origin.gd` passes them into the cockpit's own world with the
 clicks. The start-up switches are on the same layer (§5.2).
 

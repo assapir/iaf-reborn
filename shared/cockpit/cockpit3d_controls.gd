@@ -14,19 +14,32 @@
 #     (sets it to 1); the next click sends the switch's command, as the real guarded switch;
 #   - "turn": sent on the wheel (up as it is, down with p1 negated) and once per drag_px of a left drag (up: as it is);
 # through the key path (cockpit3d.gd `command`, terrain_view.gd _press), as the keys send them. Hovering a control
-# lights it.
+# lights its rim (RIM): its own texture stays as it is.
 extends Node
 
 ## A control's hit area: its mesh's box grown this much (m) on each side.
 const REACH := 0.004
 ## The pixels of a drag per "turn" command, unless the control sets its own.
 const DRAG_PX := 10.0
+## The hover's overlay: a faint cool white laid thinly over the part and thicker where its surface turns away from the
+## eye, a rim light that leaves the part's own colour and texture showing (the user, 2026-11-11: the warm fill "is too
+## yellowish and loses the texture of the wheel"; the colour and strengths are inferred). A mix, not an add: the
+## cockpit's picture is composited by its alpha (cockpit_composite.gdshader), which an add would push past 1.
+const RIM := """
+shader_type spatial;
+render_mode unshaded, depth_draw_never, cull_back, fog_disabled;
+void fragment() {
+	float edge = 1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0);
+	ALBEDO = vec3(0.8, 0.9, 1.0);
+	ALPHA = 0.06 + 0.3 * pow(edge, 4.0);
+}
+"""
 
 var _controls := []  # [MeshInstance3D, its record]
 var _hover: MeshInstance3D
 var _held := {}  # the record under a left drag
 var _drag := 0.0  # px dragged up since the last command
-var _light: StandardMaterial3D
+var _light: ShaderMaterial
 
 
 ## The controls of `table` found in `model`.
@@ -39,10 +52,9 @@ func setup(model: Node3D, table: Dictionary) -> void:
 			model.add_child(mi)
 		if mi != null:
 			_controls.append([mi, r])
-	_light = StandardMaterial3D.new()
-	_light.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_light.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_light.albedo_color = Color(1.0, 0.85, 0.4, 0.3)  # a warm glow over the part (inferred)
+	_light = ShaderMaterial.new()
+	_light.shader = Shader.new()
+	_light.shader.code = RIM
 
 
 ## The pointer's moves, before the GUI: a control under it lights, a drag turns the held one. (The flight's full-view
@@ -152,7 +164,8 @@ func set_switch(id: int, on: bool) -> void:
 ## A hit area of `box` [centre, size] (m, the model's frame): a box drawn clear, lit by the hover's overlay. With
 ## `grip` it holds a grey metal rod, as thick as the box is narrow, along its depth (z): the F-16's canopy handle,
 ## which FlightGear's model lacks (the Mac play test's finding 11: the clear box alone showed nothing). Grey, not
-## black, so it shows on the black canopy sill (its finish is inferred).
+## black, so it shows on the black canopy sill (its finish is inferred). The box around a rod is drawn on no layer:
+## the hover lights the rod's rim, not the box's faces.
 static func _area(name: String, box: Array, grip := false) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	mi.name = name
@@ -178,6 +191,7 @@ static func _area(name: String, box: Array, grip := false) -> MeshInstance3D:
 		metal.roughness = 0.4
 		rod.material_override = metal
 		mi.add_child(rod)
+		mi.layers = 0
 	return mi
 
 
@@ -210,7 +224,15 @@ func _highlight(mi: MeshInstance3D) -> void:
 	if mi == _hover:
 		return
 	if is_instance_valid(_hover):
-		_hover.material_overlay = null
+		_overlay(_hover, null)
 	_hover = mi
 	if mi != null:
-		mi.material_overlay = _light
+		_overlay(mi, _light)
+
+
+## Lays `m` over `mi` and its child meshes (the canopy handle's rod, drawn by _area; no model control has any).
+static func _overlay(mi: MeshInstance3D, m: Material) -> void:
+	mi.material_overlay = m
+	for c in mi.get_children():
+		if c is MeshInstance3D:
+			c.material_overlay = m
