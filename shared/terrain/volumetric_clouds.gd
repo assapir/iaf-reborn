@@ -39,11 +39,14 @@ const CityLights := preload("res://shared/terrain/city_lights.gd")
 ## wrong clouds.
 var views: Array[Dictionary] = []
 var _wind := Vector3.ZERO
+## Set once this GPU could not make the cloud textures (Effect.failed): the original layer for the rest of the run.
+static var unavailable := false
 
 
-## Whether this renderer can draw them (a RenderingDevice: not the Compatibility renderer, not headless).
+## Whether this renderer can draw them (a RenderingDevice: not the Compatibility renderer, not headless) and this GPU
+## made their textures.
 static func supported() -> bool:
-	return RenderingServer.get_rendering_device() != null
+	return RenderingServer.get_rendering_device() != null and not unavailable
 
 
 ## The cameras of one viewport that draw the clouds (the flight's: the cockpit's and the chase camera; a screenshot
@@ -89,14 +92,29 @@ func _exit_tree() -> void:
 
 ## Each frame: the clouds' layer (the rain's deck or the cumulus), the light (the sun node, the ambient, the sky), the
 ## fog and the wind (scene m/s), whether it is night (the moon's light); and the textures' size when the 3D view's
-## changed.
-func update(env: Environment, sun: DirectionalLight3D, wind: Vector3, delta: float, night := false) -> void:
+## changed. Returns false when the GPU cannot make the cloud textures (logged once): the caller puts the original layer
+## in their place (supported() is then false).
+func update(env: Environment, sun: DirectionalLight3D, wind: Vector3, delta: float, night := false) -> bool:
 	for w in views:
 		var ef: Effect = w.effect
+		if ef.failed != "":
+			if not unavailable:
+				print("clouds: Volumetric off, the GPU cannot make %s: the original cloud layer instead" % ef.failed)
+			unavailable = true
+			return false
 		if ef.want != ef.size and ef.want != Vector2i.ZERO:
 			RenderingServer.call_on_render_thread(ef.resize.bind(ef.want))
+			# Texture2DRD keeps views of the textures it shows and frees them when it takes new ones: the old
+			# textures (Effect.retired) go after it let go of them. Freed first, their views went with them and the
+			# swap freed them a second time ("Attempted to free invalid ID" at every resize after the first: the
+			# Mac's window settling during the loading, 2026-11-11).
+			# Assumes the default thread model (call_on_render_thread runs at once): with a separate render thread,
+			# resize, both swaps and free_retired must go in one render-thread callable.
 			w.color.texture_rd_rid = ef.a_color
 			w.dist.texture_rd_rid = ef.a_dist
+			RenderingServer.call_on_render_thread(ef.free_retired)
+			if ef.failed != "":
+				continue
 			w.mat.set_shader_parameter("full", Vector2(ef.full))
 			# The effects' (clouds_behind.gdshaderinc): the global takes the new textures only when set again.
 			if w == views.back():
@@ -152,6 +170,7 @@ func update(env: Environment, sun: DirectionalLight3D, wind: Vector3, delta: flo
 	for w in views:
 		w.effect.glow = glow
 		w.effect.params = p
+	return true
 
 
 ## The compositor effect: the noises once, then each frame the march into the history textures.
@@ -190,6 +209,10 @@ class Effect:
 	## (params 0..2, 22, 23, 26; not its base and top, which follow the ground): a jump drops the history (_jumped).
 	var _prev_cam := Vector3.ZERO
 	var _prev_light := PackedFloat32Array()
+	## The last shown textures (a_color, a_dist) after a resize, freed once the Texture2DRDs took the new ones.
+	var retired: Array[RID] = []
+	## What the GPU could not make ("" while all is well): the clouds give way to the original layer.
+	var failed := ""
 	## Benches (_clouds_shot.gd): GPU timestamps around the march ("clouds march" / "clouds march end").
 	static var timing := false
 
@@ -201,7 +224,9 @@ class Effect:
 
 	func _notification(what: int) -> void:
 		if what == NOTIFICATION_PREDELETE and rd != null:
-			for r in [a_color, a_dist, _b_color, _b_dist, _shape, _detail, _march, _ubo, _lin_rep, _lin, _near, _none]:
+			# Not free_retired(): a RefCounted's own methods cannot be called in its PREDELETE.
+			var own := [a_color, a_dist, _b_color, _b_dist, _shape, _detail, _march, _ubo, _lin_rep, _lin, _near, _none]
+			for r in retired + own:
 				if r.is_valid():
 					rd.free_rid(r)
 
@@ -221,6 +246,7 @@ class Effect:
 		s.repeat_w = m
 		return rd.sampler_create(s)
 
+	## A storage texture; invalid (and `failed` set) when the GPU lacks the format for that use, without an error.
 	func _texture(fmt: RenderingDevice.DataFormat, w: int, h: int, d: int) -> RID:
 		var f := RDTextureFormat.new()
 		f.format = fmt
@@ -234,7 +260,12 @@ class Effect:
 			| RenderingDevice.TEXTURE_USAGE_CAN_COPY_FROM_BIT
 			| RenderingDevice.TEXTURE_USAGE_CAN_COPY_TO_BIT
 		)
-		return rd.texture_create(f, RDTextureView.new())
+		var t := RID()
+		if rd.texture_is_format_supported_for_usage(fmt, f.usage_bits):
+			t = rd.texture_create(f, RDTextureView.new())
+		if not t.is_valid() and failed == "":
+			failed = "a %d x %d x %d storage texture of format %d" % [w, h, d, fmt]
+		return t
 
 	## The noises (clouds_noise.glsl), the march's pipeline, the samplers and the parameters' buffer.
 	func _setup() -> void:
@@ -244,6 +275,9 @@ class Effect:
 		var npipe := rd.compute_pipeline_create(noise)
 		_shape = _texture(RenderingDevice.DATA_FORMAT_R8G8B8A8_UNORM, 128, 128, 128)
 		_detail = _texture(RenderingDevice.DATA_FORMAT_R8G8B8A8_UNORM, 32, 32, 32)
+		if failed != "":
+			rd.free_rid(noise)
+			return
 		for job in [[_shape, 0.0, 128], [_detail, 1.0, 32]]:
 			var u := RDUniform.new()
 			u.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
@@ -267,18 +301,35 @@ class Effect:
 		_lin = _sampler(RenderingDevice.SAMPLER_FILTER_LINEAR, false)
 		_near = _sampler(RenderingDevice.SAMPLER_FILTER_NEAREST, false)
 
-	## The cloud textures at `s` (called on the render thread from the main thread's update()).
+	## The cloud textures at `s` (called on the render thread from the main thread's update()). The shown ones (a_color,
+	## a_dist) go to `retired`: a Texture2DRD still holds views of them until update() hands it the new ones.
 	func resize(s: Vector2i) -> void:
-		for r in [a_color, a_dist, _b_color, _b_dist]:
+		for r in [_b_color, _b_dist]:
 			if r.is_valid():
 				rd.free_rid(r)
+		retired.append_array([a_color, a_dist])
 		a_color = _texture(RenderingDevice.DATA_FORMAT_R16G16B16A16_SFLOAT, s.x, s.y, 1)
 		_b_color = _texture(RenderingDevice.DATA_FORMAT_R16G16B16A16_SFLOAT, s.x, s.y, 1)
 		a_dist = _texture(RenderingDevice.DATA_FORMAT_R32G32_SFLOAT, s.x, s.y, 1)
 		_b_dist = _texture(RenderingDevice.DATA_FORMAT_R32G32_SFLOAT, s.x, s.y, 1)
+		if failed != "":
+			retired.append_array([a_color, a_dist, _b_color, _b_dist])
+			a_color = RID()
+			a_dist = RID()
+			_b_color = RID()
+			_b_dist = RID()
+			size = Vector2i.ZERO
+			return
 		rd.texture_clear(a_color, Color(0, 0, 0, 1), 0, 1, 0, 1)
 		size = s
 		_valid = false
+
+	## Frees the textures resize() retired (on the render thread, after the Texture2DRDs let go of them).
+	func free_retired() -> void:
+		for r in retired:
+			if r.is_valid():
+				rd.free_rid(r)
+		retired.clear()
 
 	## Whether the history shows other clouds or another light than this frame's: the camera moved more than 500 m
 	## since the last march (another jet's view, a mission's start; a jet at Mach 2 flies 35 m in a 20 fps frame), the
@@ -306,7 +357,7 @@ class Effect:
 		return u
 
 	func _render_callback(_type: int, render_data: RenderData) -> void:
-		if rd == null or not _pipe.is_valid() or params.size() < 36:
+		if rd == null or not _pipe.is_valid() or params.size() < 36 or failed != "":
 			return
 		var sb := render_data.get_render_scene_buffers() as RenderSceneBuffersRD
 		var sd := render_data.get_render_scene_data() as RenderSceneDataRD

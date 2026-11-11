@@ -68,6 +68,24 @@ func run() -> void:
 	check(page != null and page.step != "", "the page names the step (%s)" % page.step)
 	_dismiss()
 
+	# An error logged during the loading (the Mac's cloud textures, 2026-11-11): the crash page once, over the loading,
+	# which stops under it (the tree paused); a second error opens no second page.
+	_fly.start(2012)
+	tv = null
+	while tv == null or tv.get("_loading") == null or tv.get("flight") == null:
+		await process_frame
+		tv = current_scene
+	push_error("a test error while loading")
+	await frames(3)
+	push_error("a second test error")
+	await frames(3)
+	var pages := root.get_children().filter(func(n): return n.name.begins_with("Crash"))
+	check(s.crashed and pages.size() == 1, "an error during the loading opens one crash page (%d)" % pages.size())
+	page = pages[0].get_child(0) if pages.size() == 1 else null
+	check(page != null and "a test error while loading" in page.what, "the page names the error")
+	check(paused and tv.waiting_for_ground, "the loading stopped under the page")
+	_dismiss()
+
 	# A mission the compiled list lacks.
 	_fly.start(99999)
 	await frames(2)

@@ -1117,7 +1117,12 @@ How it is drawn:
   only in a 3D view of its effect's size, so another viewport of the same world (a screenshot helper's) shows no
   wrong clouds. `_showcase_shot.gd` attaches its own.
 - **Needs** a RenderingDevice (Forward+ or Mobile); the row is greyed out without one (the Compatibility renderer,
-  headless runs). The compute shaders compile at import (Godot's `.glsl` importer).
+  headless runs). The compute shaders compile at import (Godot's `.glsl` importer). A GPU that lacks one of the
+  cloud textures' formats for storage gets the original layer back for the run, with one `clouds:` log line.
+- **Resize**: when the 3D view changes size the textures are made again. The shown ones are freed only after their
+  `Texture2DRD`s take the new ones: a `Texture2DRD` holds views of its texture and frees them at the swap, so freed
+  first they were freed twice (`Attempted to free invalid ID` at every resize after the first, on any GPU; seen on the
+  Mac as a crash page during the loading, whose window settles to its size then, 2026-11-11).
 
 Cost: §2.2.
 
