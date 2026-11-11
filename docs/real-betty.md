@@ -81,6 +81,13 @@ setup, like the imagery):
 - Did the Kurnass 2000 or the Lavi have a voice system?
 - Where did FlightGear's F-16 recordings come from?
 
+## 7. Built: Extras → Real Betty (2026-11-11)
+The switch exists as Extras → "Real Betty: Off / Modern IAF voices" ([deviations.md](deviations.md) §2): §5's
+per-jet tables, in Rust (`iaf_avionics::betty`), spoken with Modern IAF's English TTS clips (Kokoro, Betty's chain,
+[modern-iaf/docs/sound.md](../modern-iaf/docs/sound.md) §5.1). The table per jet is in [sound.md](sound.md) §7.
+Inferred: the F-35I takes the F-16 VMS set, as Modern IAF does; the F-15's set keeps only the words a source names and
+the sim has a clip for ("Warning", "Caution", "Bingo"). §6's questions stay open.
+
 [^wiki]: Wikipedia, "Voice warning system": https://en.wikipedia.org/wiki/Voice_warning_system
 [^vms]: Falconpedia, "VMS" (Falcon 4 avionics reference, CC BY-SA 3.0): http://falcon4.wikidot.com/avionics:vms
 [^cms]: "TMS / DMS / CMS usage guide", CMS chapter: https://tms-dms-cms-usage-guide.readthedocs.io/en/latest/c5-cms/

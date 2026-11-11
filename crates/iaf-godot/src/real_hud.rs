@@ -64,6 +64,13 @@ impl IafRealHud {
         iaf_avionics::gaaf::alow(agl_ft, vs_fpm, gear_down)
     }
 
+    /// Extras "Real Betty": the sim's Betty sub code a real jet of voice `set` speaks for the game's call `sub`
+    /// ("vms", "f15", "tones"; `iaf_avionics::betty::real_call`), "" when it says nothing.
+    #[func]
+    fn real_betty(set: GString, sub: GString) -> GString {
+        iaf_avionics::betty::real_call(&set.to_string(), &sub.to_string()).unwrap_or_default().into()
+    }
+
     /// Real view (`Jet::real_view_px_per_deg`): the HUD px per degree that fit the cockpit `dir`'s real HUD field in
     /// its glass `field` (HUD px from the HUD centre); 0: keep the original projection.
     #[func]

@@ -29,6 +29,11 @@ const BETTY_TYPES := [100, 110, 140, 180, 200]
 ## other type has none (F-15C: no pull-up call in the sources; F-4E, Kfir, Mirage: no voice). Ours: an aircraft
 ## definition's voice.real (real_voice).
 const REAL_VOICE := {100: "f16", 140: "original", 200: "original"}
+## Extras "Real Betty" (docs/real-betty.md §1, §5; deviations.md): the real jet's voice set by bdb type, spoken with
+## Modern IAF's clips (iaf_avionics::betty::real_call): "vms" the F-16 (Barak, Sufa), "f15" the F-15 (Baz, Ra'am),
+## "tones" the F-4E, Kfir and Mirage (no voice); any other type its aircraft definition's voice.real_betty, else
+## "original" (the game's Betty: the Kurnass 2000 and the Lavi, no source either way).
+const REAL_BETTY := {100: "vms", 110: "f15", 120: "tones", 130: "tones", 190: "tones"}
 ## [Sound] registry values read by FUN_004c3ac0 (defaults; the install sets none):
 ## PitchIntrPercent, PitchIntrShift, Ab1PitchPerc, Ab2PitchPerc. (InsideReduceVolume 0.75 is read
 ## too but never used.)
@@ -111,6 +116,7 @@ var _alt_timer := -1.0  # ctl+0x904: next Betty "altitude" time, < 0 = off
 var _pull_timer := -1.0  # ctl+0x908: next Betty "pull up" time, < 0 = off
 var _gaaf_on := false  # Real: the GAAF advisory holds (one "Pull up" per advisory)
 var _real_voice := ""  # real_voice(type_code)
+var _betty_set := "original"  # Real Betty: betty_set(type_code) with Modern IAF's voices loaded
 var _fuel_flags := [true, true]  # engine object +0x40 / +0x44
 var _was := {}
 var _crashed := false
@@ -135,6 +141,19 @@ static func has_betty(type: int) -> bool:
 ## The Real HUD's voice of a jet of bdb type `type` (REAL_VOICE, else its aircraft definition's voice.real), "" none.
 static func real_voice(type: int) -> String:
 	return REAL_VOICE.get(type, Settings.airframe(type).get("voice", {}).get("real", ""))
+
+
+## The Real Betty voice set of a jet of bdb type `type` (REAL_BETTY, else its aircraft definition's voice.real_betty).
+static func betty_set(type: int) -> String:
+	return REAL_BETTY.get(type, Settings.airframe(type).get("voice", {}).get("real_betty", "original"))
+
+
+## The Betty call the jet speaks for the game's call `sub` (BTY_ALT…): `sub` itself with the game's Betty; with Real
+## Betty the sim's sub code its real jet says (IafRealHud.real_betty), "" when it says nothing.
+func betty_call(sub: String) -> String:
+	if _betty_set == "original":
+		return sub
+	return ClassDB.class_call_static("IafRealHud", "real_betty", _betty_set, sub)
 
 
 static func create(host_node: Node, type: int) -> Node:
@@ -172,6 +191,8 @@ func _ready() -> void:
 	betty = has_betty(type_code)
 	_real_voice = real_voice(type_code)
 	table = SoundTable.load_table()
+	if not table.betty_rows.is_empty():
+		_betty_set = betty_set(type_code)
 	# The engine rows are all of one class: the engine's player takes the first's bus (sound_buses.gd bus_for).
 	var engine_bus := SoundBuses.bus_for(table.row("SFX_START_ENGINE"))
 	_engine = AudioStreamPlayer3D.new()
@@ -254,7 +275,9 @@ func update(st: Dictionary, inp: Dictionary) -> void:
 			_stop(_speed_brake_loop)
 			_speed_brake_loop = null
 	var h_ft := float(inp.get("agl_m", 1.0e6)) * FT_PER_M
-	var voice: String = _real_voice if Settings.hud_style == "real" else "original"
+	# The real jet's dive and height calls with the Real HUD, and with Real Betty's voices.
+	var real: bool = Settings.hud_style == "real" or _betty_set != "original"
+	var voice: String = _real_voice if real else "original"
 	# Better radar_alt (the MiG-29): its danger-height warning replaces the 100 ft rule, with either HUD.
 	var radalt = inp.get("radalt_danger")
 	if voice == "original" or radalt != null:
@@ -594,6 +617,8 @@ func play(code: String, sub1 := "None") -> Node:
 	if silenced:
 		return null
 	var r: Dictionary = table.row(code, sub1) if table != null else {}
+	if code == "VOC_BBETTY" and _betty_set != "original":
+		r = table.betty_rows.get(betty_call(sub1), {})  # Real Betty: the sim's clip, or silent
 	if r.is_empty():
 		return null
 	var s: AudioStream = table.stream(r)

@@ -25,6 +25,7 @@ var _now := 0.0
 ## players on the sound buses (shared/audio/sound_buses.gd, docs/sound.md).
 var _voice: AudioStreamPlayer
 var _player: AudioStreamPlayer
+var _table: RefCounted
 
 
 func _ready() -> void:
@@ -37,6 +38,7 @@ func _ready() -> void:
 	_player = AudioStreamPlayer.new()
 	_player.bus = SoundBuses.SFX
 	add_child(_player)
+	_table = SoundTable.load_table()
 
 
 func _process(delta: float) -> void:
@@ -59,8 +61,9 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
+## The file through the sound table (the original's, or Modern IAF's with Extras "Extra sounds"; loaded in _ready).
 func _play(player: AudioStreamPlayer, file: String) -> void:
-	var s: AudioStream = SoundTable.open(Settings.own_dir().path_join("resource/soundfiles").path_join(file))
+	var s: AudioStream = _table.stream_file(file)
 	if s != null:
 		player.stream = s
 		player.play()

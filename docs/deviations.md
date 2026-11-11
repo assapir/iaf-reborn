@@ -205,6 +205,20 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   "3D cockpit"), in this game and in Modern IAF, which share `f16.glb`. The F-35I flies with ours (f35i.md §4.5):
   its panoramic display on the 3D glass, a tap on it as on the 2D panel, the helmet HUD over the whole view. Other
   jets keep their 2D panels.
+- **Extra sounds (Off / Modern IAF set)** (`extra_sounds`; sound.md §7). Original: the 1998 sound table and clips.
+  Ours, with Modern IAF set: Modern IAF's own effect clips (CC0 recordings and computed tones,
+  [modern-iaf/docs/sound.md](../modern-iaf/docs/sound.md) §1) for every effect code its table covers, including codes
+  whose original file was never shipped (the master caution tone); the original's clip for the rest and for the engine
+  loops (the sim's are made for its own pitch rules). The voices stay the original's. Without the sim's sound set
+  (`./modern-iaf-setup`) the choice reads "Not built".
+- **Real Betty (Off / Modern IAF voices)** (`real_betty`; real-betty.md §7, sound.md §7). Original: the game's Betty on
+  the five jets that have her, the Over-G and Fuel calls on every jet, four talking towers, phrases without key clicks.
+  Ours, with Modern IAF voices: Betty speaks each real jet's calls with Modern IAF's English TTS clips (the F-16 VMS
+  set on the Barak, the Sufa and the F-35I; the F-15's smaller set on the Baz and the Ra'am; no voice on the F-4E, Kfir
+  and Mirage; the game's Betty on the Kurnass 2000 and the Lavi), and the dive and height calls follow the real jet as
+  with the Real HUD. The tower speaks Modern IAF's phrases and every base's tower talks; every radio call is keyed
+  (`key_on` / `key_off`, the sim's radio chain, modern-iaf/docs/sound.md §5.2). The other radio phrases (AWACS,
+  wingman, reports) keep the original's words. Without the sim's Betty or tower clips the choice reads "Not built".
 - **Briefing map (Original (1998) / Modern).** Original: text.emf's city dots where the 1998 map put them, up to
   ≈ 37 km from the real cities. Ours, with Modern (`briefing_map`): the eight labelled cities' dots and labels at
   their real places on the TSD / briefing / mission editor map, and today's motorways, trunk, primary and secondary

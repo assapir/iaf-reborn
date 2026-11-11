@@ -149,9 +149,10 @@ lock ranges and cones), the guns, the seven jets' radar ranges, the gun's hit te
   wingmen probably have their own command-driven logic), and an option to apply the skill level to both sides.
 
 ## Extra sounds (not in the original)
-Optional sound additions behind an Extras switch, off by default (sound.md):
-- wind / airflow noise vs speed (the original has an unused `SFX_WIND` code);
-- canopy, engine start-up / spool-down;
+Started (2026-11-11): Extras → "Extra sounds: Off / Modern IAF set" plays Modern IAF's own effect clips for the codes
+they cover (sound.md §7). Left, behind the same switch:
+- wind / airflow noise vs speed (the original has an unused `SFX_WIND` code; the sim's clip has no caller here);
+- canopy, engine start-up / spool-down (the sim's door and engine clips need its own sound rules);
 - the shipped-but-unused engine idle loops, `afterburner1/2`, `gearup` / `geardown`, `speedbreak(loop)`;
 - the silent Betty rows whose files exist (`cock_bty_pull.wav`, `cock_bty_bingo.wav`, `cock_bty_spin.wav`).
 
@@ -210,6 +211,9 @@ live play while recording at 4K. Two ways:
    every unit (the flight recorder holds only the player's jet).
 
 ## "Real Betty" option (Extras switch, wishlist; researched 2026-10-19)
+- **Built (2026-11-11):** Extras → "Real Betty: Off / Modern IAF voices": each real jet's calls in Modern IAF's English
+  TTS voice and its tower at every base (real-betty.md §7, sound.md §7). Left: a voice for the jets whose set is open
+  (Lavi, Kurnass 2000), a Hebrew voice (modern-iaf/docs/sound.md §5.4), the AWACS and report phrases in the new voice.
 - **Switch:** voice warnings per real aircraft. The default is the game's Betty (sound.md §4). With Real HUD the F-16
   and F-35I already speak their real dive and height warnings (deviations.md §2 "HUD").
 - **Per jet:** which jets speak which warnings, with sources: [real-betty.md](real-betty.md) §1.

@@ -235,3 +235,39 @@ The stall buffet and touchdown / off-runway rumble are DirectInput force-feedbac
   the byte table `0x448094`, the mute toggle). The only data change is the tower phrase key `CHARLY_T` → `CHARLIE_T`
   in `phraseparticalsdata.trx`. The key is built from the callsign, so with v1.0 data the tower cannot say "Charlie"
   (v1.0 behaviour, kept).
+
+## 7. Modern IAF's sounds and voices in the original game (ours, Extras)
+
+Two Extras rows play Modern IAF's own sound set ([modern-iaf/docs/sound.md](../modern-iaf/docs/sound.md), compiled by
+`iaf-sim own` into `assets/converted/own/resource/soundfiles`, `Settings.sim_sounds`) in this game. Both are off by
+default; each is in [deviations.md](deviations.md) §2. Without the clips a row needs, its choice reads "Not built" and
+the game plays the original's.
+
+| row | takes from the sim | keeps the original's | where |
+|---|---|---|---|
+| Extra sounds: Modern IAF set | the effect rows (category E / F) and the files `sfx_*`, `cock_g_*` (the G strain) | the engine loops (`SFX_LANDING`, `SFX_START_ENGINE`, `SFX_DRY_THRUST`, `SFX_AFTERBURNER_THRUST`: the sim plays them at its own pitch); every code the sim leaves out; every voice | `sound_table.gd` `_add_sim` |
+| Real Betty: Modern IAF voices | the speech rows (friendly-fire calls, eject), every other sim file (`kch2`, `endworld`, the radio keys, the tower particles), Betty's rows (`betty_rows`), the tower templates and particles | the other radio phrases (AWACS, reports, wingman); the mission voices | `sound_table.gd`, `flight_sounds.gd` `betty_call`, `radio.gd` `_ready`, `Settings.radio_key_clicks` |
+
+A sim clip is an Ogg file; it also answers to its name as ".wav", so the code that opens a file by name (`kch2.wav`,
+`cock_g_02.wav`, `EndWorld.wav`) gets the sim's clip with the row on.
+
+**Betty per real jet** (Real Betty; real-betty.md §7): `FlightSounds.REAL_BETTY` gives the jet's voice set by type (an
+aircraft definition's `voice.real_betty` for a modern jet), and `iaf_avionics::betty::real_call` the calls it speaks:
+
+| set | jets | calls (the game's sub code → the sim's clip) | silent |
+|---|---|---|---|
+| `vms` | F-16 Barak and Sufa, F-35I | BTY_ALT "Altitude", BTY_PULL_UP "Pull up", BTY_CAUTION "Caution", BTY_FIRE / BTY_ENGINE "Warning", BTY_FUEL / BTY_BINGO "Bingo" | BTY_MISS, BTY_OVER_G, BTY_SPIN |
+| `f15` | F-15C Baz, F-15I Ra'am | BTY_CAUTION, BTY_FIRE / BTY_ENGINE "Warning", BTY_FUEL / BTY_BINGO "Bingo" | the altitude, pull-up, missile, Over-G and spin calls |
+| `tones` | F-4E, Kfir, Mirage | none | every Betty call, the Over-G and Fuel voices included |
+| `original` | Kurnass 2000, Lavi | the game's Betty (§4) | as §4 |
+
+With Real Betty on, the dive and height calls follow the real jet's rules, as with the Real HUD (§4, `REAL_VOICE`):
+the F-16's GAAF "Pull up" and CARA ALOW "Altitude", the F-35I's pull-up call. The Over-G voice (`g_effects.gd`) plays
+only where the jet's set has it (`terrain_view.gd`).
+
+**The tower** (Real Betty): the sim's phrase templates and particles replace the original's of the same names, so the
+tower's calls (`ACFT_TAXI_TO_RUNWAY` …) speak Modern IAF's voice, with its joined clips (radio.md §5); every base's
+tower talks (`radio.gd` `tower_count`). Every radio call is framed by the sim's `key_on` / `key_off` clips, whose
+radio chain is rendered into the clips (modern-iaf/docs/sound.md §5.2); nothing filters at run time.
+
+Test: `tests/godot/test_sim_voices.gd`.

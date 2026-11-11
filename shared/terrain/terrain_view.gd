@@ -3818,7 +3818,8 @@ func _process(delta: float) -> void:
 		_update_looks()
 		_update_full_screen()
 		g_effects.g = st.g
-		g_effects.over_g = st.over_g
+		# Real Betty: the real jets have no Over-G voice (FlightSounds.betty_call).
+		g_effects.over_g = st.over_g and (sounds == null or sounds.betty_call("BTY_OVER_G") != "")
 		cockpit.state["ap_mode"] = autopilot.mode if autopilot != null and cockpit.indicators[8] else 0
 		cockpit.state["world"] = Vector2(
 			terrain.world_origin.x + rig.position.x, terrain.world_origin.y - rig.position.z

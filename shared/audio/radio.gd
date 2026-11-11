@@ -128,6 +128,13 @@ func _ready() -> void:
 			if not particles_he.has(k):
 				particles_he[k] = LETTER_HE[k]
 	_load_bases(Settings.own_dir().path_join("iaf.ibx"))
+	# Extras "Real Betty" (docs/sound.md §7): Modern IAF's tower phrases over the original's (its templates and
+	# particles win, the rest stay the original's; the clips come through the sound table) and every base's tower talks.
+	var sim: String = Settings.sim_sounds("phrasetemplates.trx") if Settings.real_betty == "modern" else ""
+	if sim != "":
+		_load_templates(sim.path_join("phrasetemplates.trx"))
+		_load_particles(sim.path_join("phraseparticalsdata.trx"))
+		tower_count = bases.size()
 
 
 # --- phrases (§1) -------------------------------------------------------------------------------

@@ -70,6 +70,8 @@ pub struct JetList {
 pub struct Voice {
     pub betty: Option<bool>,
     pub real: Option<String>,
+    /// Extras "Real Betty": the real jet's voice set ("vms", "f15", "tones"; `iaf_avionics::betty::real_call`).
+    pub real_betty: Option<String>,
 }
 
 /// `radar`: the radar table row, the Real range (km), the AI's sensor range (NM).

@@ -147,6 +147,8 @@ const PREFS := {
 		"bomb_release",
 		"real_mfds",
 		"cockpit_3d",
+		"extra_sounds",
+		"real_betty",
 		"flight_model"
 	],
 }
@@ -375,6 +377,12 @@ var real_mfds := "original"
 ## Sufa, ours for the F-35I.
 ## Read at mission load.
 var cockpit_3d := "original"
+## Extra sounds (ours, Extras page; docs/sound.md §7): "original" or "modern": Modern IAF's own effect clips
+## (sim_sounds) for the effect codes they cover, the original's for the rest. Read when a flight's sound table loads.
+var extra_sounds := "original"
+## Real Betty (ours, Extras page; docs/real-betty.md §7): "original" or "modern": Modern IAF's voices: Betty's calls per
+## real jet (flight_sounds.gd REAL_BETTY) and its tower phrases, keyed, every base's tower talking (radio.gd).
+var real_betty := "original"
 ## Flight model (ours, Physics page; docs/deviations.md §2): "original" or "6dof": the player's modern jet (its
 ## aircraft definition's `sixdof`) flies Modern IAF's 6-DoF from the sim's own data (sixdof_data). Read at mission load.
 var flight_model := "original"
@@ -1060,6 +1068,16 @@ func sixdof_built() -> bool:
 	return has_converted("own/resource/md/bd.ibx")
 
 
+## Extras "Extra sounds" / "Real Betty": the folder of Modern IAF's own sound set (`iaf-sim own`,
+## assets/converted/own/resource/soundfiles) when its file `file` is built, else "" (the rows read "Not built" and the
+## game plays the original's). Modern IAF itself reads that set as its own (own_dir): "" there.
+func sim_sounds(file := "soundprop.trx") -> String:
+	var rel := "own/resource/soundfiles"
+	if own_dir() == converted("own") or not has_converted(rel.path_join(file)):
+		return ""
+	return converted(rel)
+
+
 ## The flight-model name the player's jet `type` flies (PlayerAircraft.profile, IafFlight.start's section); "" = the
 ## converted aircraft descriptor's `fm_section` (the original game). Modern IAF answers from its own data
 ## (modern-iaf/sim_settings.gd).
@@ -1208,9 +1226,10 @@ func info_line_full() -> bool:
 
 
 ## A radio call is keyed: key_on.ogg before its clips and key_off.ogg after them (modern-iaf/docs/sound.md §5.2): Modern
-## IAF. The original game plays a phrase's particles alone (radio.gd say, FUN_004c5750).
+## IAF, and the original game with Extras "Real Betty" (its tower's clips carry only the hiss). The original game plays
+## a phrase's particles alone (radio.gd say, FUN_004c5750).
 func radio_key_clicks() -> bool:
-	return false
+	return real_betty == "modern" and sim_sounds("key_on.ogg") != ""
 
 
 ## The airbases' runways, taxi lines and paved masks (airbases.gd, the tower's wind turn): the theatre's own

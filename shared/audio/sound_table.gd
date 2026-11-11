@@ -11,8 +11,15 @@ extends RefCounted
 const DIR := "resource/soundfiles"
 const OUR_NUMBERS := "res://shared/extra/tower_numbers"
 
+## Extras "Extra sounds": the engine codes that keep the original's rows (the sim plays its loops at its own pitch,
+## Settings.ab_sound_real / core_sound_real; under the original's pitch rules its burner loop would roar at idle).
+const SIM_ENGINE := ["SFX_LANDING", "SFX_START_ENGINE", "SFX_DRY_THRUST", "SFX_AFTERBURNER_THRUST"]
+
 ## "CODE/SUB1" -> row Dictionary (see _parse_row).
 var rows := {}
+## Extras "Real Betty": Modern IAF's Betty rows, sub code -> row (flight_sounds.gd betty_call picks one per real jet);
+## empty with the row off or the sim's set not built.
+var betty_rows := {}
 ## lower-case file name -> path.
 var _files := {}
 var _streams := {}
@@ -38,19 +45,58 @@ func _load() -> void:
 	for f in DirAccess.get_files_at(OUR_NUMBERS):
 		if f.ends_with(".wav") and not _files.has(f):
 			_files[f] = OUR_NUMBERS.path_join(f)
-	var path: String = _files.get("soundprop.trx", "")
+	for row in _rows_in(_files.get("soundprop.trx", "")):
+		var key := "%s/%s" % [row.code, row.sub1]
+		if not rows.has(key):
+			rows[key] = row
+	_add_sim()
+
+
+## The rows of the SoundProp.trx at `path`, in file order ([] when `path` is "").
+static func _rows_in(path: String) -> Array:
+	var out := []
 	if path == "":
-		return
+		return out
 	for line in FileAccess.get_file_as_string(path).split("\n"):
 		var l := line.strip_edges(false, true)
 		if l == "" or l.begins_with(";"):
 			continue
 		var c := l.split("\t")
-		if c.size() < 14:
-			continue
-		var row := _parse_row(c)
+		if c.size() >= 14:
+			out.append(_parse_row(c))
+	return out
+
+
+## Ours (docs/sound.md §7, deviations.md): Modern IAF's own sound set (Settings.sim_sounds) over the original's.
+## Extras "Extra sounds" takes its effects (rows of category E / F, the files sfx_* and cock_g_*): its row and clip for
+## every code it covers but the engine's (SIM_ENGINE: the sim's loops are made for its own pitch rules), the
+## original's for the rest. Extras "Real Betty" takes its voices: the speech rows, every other file (the tower
+## particles, kch2, endworld, the radio keys) and Betty's rows into betty_rows. Both off, or the set not built: the
+## original's only. A sim clip also answers to its name as ".wav" (the shared code opens kch2.wav, cock_g_02.wav…).
+func _add_sim() -> void:
+	var fx: bool = Settings.extra_sounds == "modern"
+	var voices: bool = Settings.real_betty == "modern"
+	var dir: String = Settings.sim_sounds() if fx or voices else ""
+	if dir == "":
+		return
+	for f in DirAccess.get_files_at(dir):
+		var name := f.to_lower()
+		if (
+			name.get_extension() in ["ogg", "wav"]
+			and (fx if name.begins_with("sfx_") or name.begins_with("cock_g") else voices)
+		):
+			_files[name] = dir.path_join(f)
+			_files[name.get_basename() + ".wav"] = dir.path_join(f)
+	var seen := {}
+	for row in _rows_in(dir.path_join("soundprop.trx")):
 		var key := "%s/%s" % [row.code, row.sub1]
-		if not rows.has(key):
+		if seen.has(key):
+			continue
+		seen[key] = true
+		if row.code == "VOC_BBETTY":
+			if voices:
+				betty_rows[row.sub1] = row
+		elif voices if row.category in ["V", "S"] else (fx and not (row.code in SIM_ENGINE)):
 			rows[key] = row
 
 

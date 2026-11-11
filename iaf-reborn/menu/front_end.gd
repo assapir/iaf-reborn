@@ -302,6 +302,11 @@ const EXTRAS := [
 	# F-35I's (cockpit/cockpit3d.gd, the aircraft definition's cockpit_3d; docs/cockpit.md "3D cockpit"); other jets
 	# keep their panels.
 	["cockpit_3d", "Cockpit", [["Original 2D", "original"], ["3D", "3d"]]],
+	# Ours: Modern IAF's own effect clips for the codes they cover (audio/sound_table.gd, docs/sound.md §7); "Not built"
+	# without the sim's sound set (Settings.sim_sounds).
+	["extra_sounds", "Extra sounds", [["Off", "original"], ["Modern IAF set", "modern"]]],
+	# Ours: Modern IAF's voices: Betty per real jet and its tower at every base (docs/real-betty.md §7).
+	["real_betty", "Real Betty", [["Off", "original"], ["Modern IAF voices", "modern"]]],
 ]
 
 
@@ -1737,6 +1742,14 @@ func _extras_items() -> Array:
 				available = GroundTextures.available() if opt[0] == "ground_textures" else ModelDetail.available()
 				if not available:
 					label = "Not downloaded"
+			elif opt[0] in ["extra_sounds", "real_betty"] and value == "modern":
+				# The clips the row plays: the sim's table, and for Real Betty its Betty and tower clips.
+				var need := (
+					["soundprop.trx"] if opt[0] == "extra_sounds" else ["voc_bbetty_pull_up.ogg", "phrasetemplates.trx"]
+				)
+				available = need.all(func(f): return Settings.sim_sounds(f) != "")
+				if not available:
+					label = "Not built"
 			elif opt[0] == "clouds" and value == "volumetric":
 				available = VolumetricClouds.supported()
 			elif opt[0] == "ground_roads" and value == "detailed":

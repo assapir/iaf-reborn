@@ -85,7 +85,7 @@ the §1 type-code tables stay for the 1998 jets.
 | `hud` | `real_hud` `Jet::of_cockpit` | the Real HUD symbology of that cockpit (`f35`: the helmet-only display, `IafRealHud.helmet_only`) |
 | `fm` | `data_set::variant` | the flight-model type (`data_set.rs` `TYPES` / `REAL` row) |
 | `original_model`, `model` | `airframe::model_for`, `gltf.gd` `detailed` | `model` is drawn in place of the family's 1998 model file `original_model`, with Models on Original too |
-| `voice` {`betty` (bool), `real`} | `flight_sounds.gd` `has_betty`, `real_voice` | the voice warnings, the Real HUD's calls |
+| `voice` {`betty` (bool), `real`, `real_betty`} | `flight_sounds.gd` `has_betty`, `real_voice`, `betty_set` | the voice warnings, the Real HUD's calls, Extras "Real Betty"'s voice set (`vms`, `f15`, `tones`) |
 | `radar` {`row` (int), `km`, `ai_nm` (numbers)} | `radar.gd`, `real_weapons.gd` `radar_nm`, `combat.gd` `sensor_nm` | the radar table row, the Real range, the AI's sensor range |
 | `gun_rounds` (int) | `real_weapons.gd` `gun_rounds` | the Real gun rounds |
 | `flir` (bool) | `player_weapons.gd` | a built-in FLIR |
