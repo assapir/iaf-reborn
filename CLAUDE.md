@@ -123,6 +123,7 @@ Rule of placement: game logic belongs in the Rust crates. Godot renders and wire
   plane-checklist <code>` lists every table). A modern jet (the Sufa, the Ra'am, the F-35I) is its aircraft definition
   `shared/extra/planes/<id>/airframe.json`, and adding one means writing that file (`docs/adding-a-plane.md` "Modern
   planes"). A new modern-jet check reads the definition (`Settings.airframe`), never a type code or a switch.
+- Commit the .uid files Godot writes beside new scripts and shaders (`tools/check_uids.sh`).
 - Rust is formatted with `cargo fmt --all` (rustfmt.toml: width 120, compact heuristics); run it before committing
   Rust changes.
 - Rust passes `cargo clippy --workspace --all-targets` with no warnings; fix what it finds, also outside the files

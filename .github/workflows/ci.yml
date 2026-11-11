@@ -78,6 +78,8 @@ jobs:
       - run: godot --headless --path modern-iaf --import
       - name: Parse-check every script (Modern IAF)
         run: godot --headless --path modern-iaf -s ../tools/gdparse.gd --log-file "$RUNNER_TEMP/gdparse-2026.log"
+      - name: Every script and shader has its tracked .uid
+        run: tools/check_uids.sh
       - if: runner.os == 'macOS' # for timeout (gtimeout)
         run: command -v gtimeout || brew install coreutils
       # The Godot tests that pass without game data (docs/ci.md); required.

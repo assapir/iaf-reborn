@@ -49,5 +49,8 @@ for p in iaf-reborn modern-iaf; do
 	echo "$out" | grep -E "^(BAD|gdparse)"
 	[[ $rc == 0 ]] || fail=1
 done
+# Every script and shader has its tracked .uid, and the imports left no untracked one.
+echo "== check_uids"
+tools/check_uids.sh || fail=1
 # The logs (and the wizard's scratch data) are kept only when something failed.
 [[ $fail == 0 ]] && { rm -rf "$logs"; echo "ALL TESTS PASSED"; } || { echo "SOME TESTS FAILED (logs: $logs)"; exit 1; }
