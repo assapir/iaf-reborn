@@ -17,6 +17,9 @@ var on_error: Callable
 var frame_at := 0
 var step := ""
 var path := ""
+## The shader errors logged (a SHADER ERROR, or an error from a shader's or the Metal driver's compile), one line each
+## naming the shader file where Godot gives it: the sim's shader check (sim_settings.gd flight_drawn) reads them.
+var shader_errors := PackedStringArray()
 var _file: FileAccess
 var _lock := Mutex.new()
 var _tail: Array[String] = []
@@ -94,6 +97,11 @@ func _log_error(
 	var what := rationale if rationale != "" else code
 	var kind: String = ["ERROR", "WARNING", "SCRIPT ERROR", "SHADER ERROR"][clampi(error_type, 0, 3)]
 	_write("%s: %s\n   at: %s (%s:%d)\n" % [kind, what, function, file, line])
+	var low := (what + file).to_lower()
+	if error_type == ERROR_TYPE_SHADER or (error_type == ERROR_TYPE_ERROR and ("shader" in low or "metal" in low)):
+		_lock.lock()
+		shader_errors.append("%s%s" % [what, " (%s:%d)" % [file, line] if file != "" else ""])
+		_lock.unlock()
 	if error_type != ERROR_TYPE_WARNING and on_error.is_valid():
 		on_error.call_deferred(what)
 

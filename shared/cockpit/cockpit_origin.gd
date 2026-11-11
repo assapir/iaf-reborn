@@ -104,6 +104,17 @@ func _process(delta: float) -> void:
 	viewport.size = Vector2i(main.get_visible_rect().size)
 	for p in ["msaa_3d", "screen_space_aa", "use_taa", "use_debanding", "scaling_3d_mode", "scaling_3d_scale"]:
 		viewport.set(p, main.get(p))
+	# MetalFX (the Mac's upscalers) gets none of the cockpit's picture: its output need not keep the picture's alpha,
+	# and an opaque cockpit picture lays black over the whole world (inferred from the Mac's black world under a fine
+	# cockpit, 2026-11-11; FSR 2 and FSR 1 keep it). The cockpit is drawn at full size with MSAA 4× there instead.
+	if (
+		viewport.scaling_3d_mode
+		in [Viewport.SCALING_3D_MODE_METALFX_TEMPORAL, Viewport.SCALING_3D_MODE_METALFX_SPATIAL]
+	):
+		viewport.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
+		viewport.scaling_3d_scale = 1.0
+		viewport.msaa_3d = Viewport.MSAA_4X
+		viewport.use_taa = false
 	# The rig's attitude about the origin; the eye's place and turn in it as the flight camera's (head look, the ground
 	# clamp), and its projection (cockpit.gd's frustum with its offset).
 	rig.transform = Transform3D(_world_rig.global_basis, Vector3.ZERO)

@@ -3,6 +3,16 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Finding the Mac's black world (2026-11-11):** a flight's start on the Mac ended in a black world under a fine 3D
+  cockpit. A bisect switch now turns graphics features off for one run (`IAF_SAFE=all ./start-modern-iaf`, then half
+  the names back on per run); after the first 10 frames the log lists every shader in use and whether it compiled,
+  and a failed one opens the crash page; the start watch covers those frames too, and a pause no longer counts as a
+  hang (a 30 s frame only logs `hang:`: a Mac's first start can compile shaders that long in one frame) ([front-end.md](front-end.md) §11.1). Fixed on suspicion, not yet seen on a Mac:
+  the Levant sky's `acos` of a direction a hair over 1 gave NaN, which Metal carries into the radiance map, the fog
+  and the ambient light (`atmosphere.gdshader`, also `normalize` of a zero vector looking straight down and two
+  reversed `smoothstep` edges; the same `acos` in `cloud_layer.gd`, an `exp` overflow in `city_glow.gdshaderinc`); and
+  the cockpit's picture no longer goes through MetalFX, whose output need not keep its alpha (an opaque cockpit
+  picture would lay black over the world; `cockpit_origin.gd`). Open: the Mac's log with these.
 - **A flight's start: no hang, faster, watched (2026-11-10, the Mac's P1 finding):** the mission card opened at the
   start under the loading screen and froze the flight, so the loading never ended on a player's machine (every
   scripted run skips the card); it now opens after the loading. The jet, the 3D cockpit and the pilot's body parse on

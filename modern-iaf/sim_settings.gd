@@ -55,6 +55,26 @@ const NO_AIDS := {
 	"unlimited_ammo": false,
 	"unlimited_fuel": false,
 }
+## The bisect switch (front-end.md §11.1): the graphics features IAF_SAFE=<list> or `--safe <list>` (comma-separated,
+## "all" for every one) turns off for one run, whatever the settings say; each name with the settings it forces (the
+## others are read through safe_off). The settings file keeps the player's own values (write_config).
+const SAFE := {
+	"sky": {"sky": "original"},
+	"grading": {"colour_grading": "original"},
+	"closeup": {"terrain_closeup": false},
+	"textures": {"ground_textures": "original"},
+	"water": {"water": false},
+	"clouds": {"clouds": "original"},
+	"scenery": {"scenery": "off"},
+	"labels": {"town_labels": false},
+	"shadows": {"shadows": false},
+	"taa": {"antialiasing": "msaa4"},
+	"upscaling": {"upscaling": "off"},
+	"cockpit_origin": {},
+	"patches": {},
+	"glass": {},
+	"hudglow": {},
+}
 ## The sim's front end script (front_end_overlay, has_setting).
 const FRONT_END := "res://menu/front_end.gd"
 ## The sim's own planes data (under modern-iaf/: merged over an aircraft definition, airframe_def; the cockpit folders).
@@ -77,6 +97,10 @@ const OWN_CONVERTED := ["own/", "terrain/israel/", "modern-iaf/", "missions/sim.
 var rejected: PackedStringArray = []
 ## The mission card opens at a flight's start (flight/sim_flight.gd); scripted runs fly on without it, a test sets it.
 var card_at_start := not isolated()
+## The features off for this run (SAFE's names; parse_safe); a test sets its own.
+var safe := parse_safe()
+var _safe_kept := {}  # the player's values of the settings `safe` forces, for the settings file
+var _safe_logged := {}
 
 ## The cockpit dirs' root: under assets/ (relative) or absolute (a test's).
 var own_cockpits := "converted/own/cockpits"
@@ -120,7 +144,13 @@ func read_config(cfg: ConfigFile) -> void:
 
 
 func write_config(values := {}) -> ConfigFile:
-	var cfg := super(values)
+	# The player's values of the settings still forced (one changed in Preferences during the run is the player's).
+	var kept := {}
+	for n in safe:
+		for key in SAFE.get(n, {}):
+			if _safe_kept.has(key) and get(key) == SAFE[n][key]:
+				kept[key] = _safe_kept[key]
+	var cfg := super(values.merged(kept))
 	cfg.set_value("sim", "jet", sim_jet)
 	cfg.set_value("sim", "pilot", pilot_id)
 	return cfg
@@ -169,6 +199,101 @@ func _apply_profile() -> void:
 	ground_roads = "detailed" if load("res://shared/terrain/ground_roads.gd").available() else "original"
 	if not load("res://shared/terrain/scenery.gd").available():
 		scenery = "off"
+	_apply_safe()
+
+
+## The names in IAF_SAFE and after `--safe` (SAFE; "all" = every one), unknown ones warned about.
+static func parse_safe() -> PackedStringArray:
+	var text := OS.get_environment("IAF_SAFE")
+	var args := OS.get_cmdline_user_args()
+	var at := args.find("--safe") + 1
+	if at > 0 and at < args.size():
+		text += "," + args[at]
+	var out := PackedStringArray()
+	for n in text.split(",", false):
+		n = n.strip_edges()
+		if n == "all":
+			out.append_array(PackedStringArray(SAFE.keys()))
+		elif SAFE.has(n):
+			out.append(n)
+		elif n != "":
+			push_warning("IAF_SAFE: no feature %s (%s)" % [n, ", ".join(SAFE.keys())])
+	return out
+
+
+## Forces the settings of the features in `safe` (SAFE), keeping the player's values for the settings file, and turns
+## the close up's colour patches off; each name logged the first time it applies.
+func _apply_safe() -> void:
+	for n in safe:
+		var forced: Dictionary = SAFE.get(n, {})
+		var was := []
+		for key in forced:
+			if not _safe_kept.has(key) or get(key) != forced[key]:
+				_safe_kept[key] = get(key)  # the player's value (read again from the settings file: read_config)
+			was.append("%s %s -> %s" % [key, _safe_kept[key], forced[key]])
+			set(key, forced[key])
+		if n == "patches":
+			RenderingServer.global_shader_parameter_set("terrain_patches", 0.0)
+		if not _safe_logged.has(n):
+			_safe_logged[n] = true
+			print("safe: %s off%s" % [n, " (%s)" % ", ".join(was) if not was.is_empty() else ""])
+
+
+func safe_off(what: String) -> bool:
+	return what in safe
+
+
+## The shader check after a flight's first frames (front-end.md §11.1): every ShaderMaterial drawn in the scene (the
+## sub-viewports' too) logged with its shader and whether it compiled (its uniform list: empty when the compile failed
+## while the code declares uniforms), and the shader errors the log caught (timed_log.gd shader_errors). Any failure is
+## a crash naming the shader files.
+func flight_drawn(view: Node) -> void:
+	var shaders := {}  # Shader -> the first node seen drawing it
+	for n in view.get_tree().root.find_children("*", "", true, false):
+		for m in _materials(n):
+			while m != null:
+				if m is ShaderMaterial and m.shader != null and not shaders.has(m.shader):
+					shaders[m.shader] = n
+				m = m.next_pass
+	var failed := PackedStringArray()
+	var uniform := RegEx.create_from_string("(?m)^\\s*uniform\\s")
+	for sh: Shader in shaders:
+		var where: String = sh.resource_path if sh.resource_path != "" else "inline in %s" % shaders[sh].get_path()
+		var count := sh.get_shader_uniform_list().size()
+		var ok := count > 0 or uniform.search(sh.code) == null
+		print("shader: %s %s (%d uniforms)" % ["ok" if ok else "FAILED", where, count])
+		if not ok:
+			failed.append(where)
+	var errors: PackedStringArray = timed_log.shader_errors if timed_log != null else PackedStringArray()
+	print("shaders: %d in use, %d failed, %d shader errors logged" % [shaders.size(), failed.size(), errors.size()])
+	if timed_log != null:
+		timed_log.shader_errors.clear()  # the next flight's check counts its own
+	if not failed.is_empty() or not errors.is_empty():
+		crash("Shaders failed: %s" % "; ".join(failed + errors), "first frames")
+
+
+## The materials node `n` draws with (the overrides, its mesh's surfaces, a multimesh's, the sky, a canvas item's).
+func _materials(n: Node) -> Array:
+	var out := []
+	if n is GeometryInstance3D:
+		out.append_array([n.material_override, n.material_overlay])
+	var mesh: Mesh = null
+	if n is MeshInstance3D:
+		mesh = n.mesh
+		for i in n.get_surface_override_material_count():
+			out.append(n.get_surface_override_material(i))
+	elif n is MultiMeshInstance3D and n.multimesh != null:
+		mesh = n.multimesh.mesh
+	if mesh != null:
+		for i in mesh.get_surface_count():
+			out.append(mesh.surface_get_material(i))
+	if n is CanvasItem or n is FogVolume:
+		out.append(n.material)
+	if n is GPUParticles3D:
+		out.append(n.process_material)
+	if n is WorldEnvironment and n.environment != null and n.environment.sky != null:
+		out.append(n.environment.sky.sky_material)
+	return out
 
 
 ## The settings the sim has, for the logs: its profile, its Preferences rows (menu/front_end.gd PREFS) and the
@@ -322,7 +447,7 @@ func scenery_everywhere() -> bool:
 ## The cockpit in its own world about the origin: steady at any distance from the flight's start (the Mac play test's
 ## finding 25: 3.1 mm jumps 30 km out, 4.4 mm at 60 km; cockpit_origin.gd).
 func cockpit_at_origin() -> bool:
-	return true
+	return not safe_off("cockpit_origin")
 
 
 ## The ILS lines glide: the original's whole-pixel steps (1/12°) jump on the 3D cockpit's wide HUD glass (the Mac
@@ -334,7 +459,7 @@ func hud_subpixel() -> bool:
 ## The HUD adds bright P43 green light to the scene, dimmed at night, its brightness the player's (Approvals A10,
 ## modern-iaf/docs/cockpit.md §5.1).
 func hud_daylight() -> bool:
-	return true
+	return not safe_off("hudglow")
 
 
 ## The 3D cockpit's knobs and switches work with the mouse (the user, 2026-11-09: "the HUD colour should be adjustable

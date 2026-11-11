@@ -21,14 +21,38 @@ func run() -> void:
 	s.card_at_start = true
 	var tv := await _start(2012)
 	check(tv != null and not tv.waiting_for_ground, "card on: the loading finishes")
+	check(s.loading_step == "first frames", "the first frames after the loading are still the start")
 	await frames(3)
 	var ui: Control = tv.addon.ui if tv != null else null
 	check(ui != null and ui.card != null and ui.card.is_visible_in_tree(), "card on: the card shows after the loading")
 	check(paused and tv._loading == null, "card on: the flight frozen under the card, the loading screen gone")
 	check(not s.crashed, "card on: no crash page")
+	await frames(tv.FIRST_FRAMES)
+	check(s.loading_step == "", "after %d frames the start is over (paused or not)" % tv.FIRST_FRAMES)
+	var lines := "\n".join(s.timed_log.tail())
+	check("loading: first world frame drawn at" in lines, "the first world frame's time logged")
+	check(
+		RegEx.create_from_string("shaders: [1-9]\\d* in use, 0 failed, 0 shader errors").search(lines) != null,
+		"the shaders in use checked after the first frames, none failed"
+	)
 	ui.close_card()
 	await frames(1)
 	s.card_at_start = false
+
+	# A shader that does not compile, after the first frames: the check names it and opens the crash page.
+	var bad := ShaderMaterial.new()
+	bad.shader = Shader.new()
+	bad.shader.code = "shader_type spatial;\nuniform float a;\nvoid fragment() { ALBEDO = vec3(a) + nope; }"
+	var mi := MeshInstance3D.new()
+	mi.mesh = BoxMesh.new()
+	mi.material_override = bad
+	tv.add_child(mi)
+	s.flight_drawn(tv)
+	await frames(1)
+	check(s.crashed and "Shaders failed" in root.get_node("Crash").get_child(0).what, "a failed shader is a crash")
+	mi.free()
+	s.timed_log.shader_errors.clear()
+	_dismiss()
 
 	# A pause under the loading screen: the watchdog opens the crash page.
 	_fly.start(2012)
@@ -67,6 +91,47 @@ func run() -> void:
 	var cut: String = CrashPage.issue_link("x", "", long)
 	check(cut.length() <= CrashPage.URL_MAX and "399%20a%20long" in cut, "a long log cut from its oldest lines")
 	_dismiss()
+
+	# The bisect switch (IAF_SAFE / --safe, front-end.md §11.1): each name turns its feature off.
+	OS.set_environment("IAF_SAFE", "sky, water,nothing")
+	check(s.parse_safe() == PackedStringArray(["sky", "water"]), "IAF_SAFE read, an unknown name left out")
+	OS.set_environment("IAF_SAFE", "all")
+	check(s.parse_safe().size() == s.SAFE.size(), "all = every name")
+	OS.set_environment("IAF_SAFE", "")
+	s.antialiasing = "temporal"
+	s.upscaling = "quality"
+	s.safe = s.parse_safe()
+	s._apply_profile()
+	check(s.sky == "levant" and s.cockpit_at_origin() and s.hud_daylight(), "no IAF_SAFE: the features on")
+	s.safe = PackedStringArray(s.SAFE.keys())
+	s._apply_profile()
+	for n in s.SAFE:
+		for key in s.SAFE[n]:
+			check(s.get(key) == s.SAFE[n][key], "%s: %s is %s" % [n, key, s.SAFE[n][key]])
+	check(not s.cockpit_at_origin(), "cockpit_origin: the cockpit in the flight's world")
+	check(not s.hud_daylight(), "hudglow: the HUD drawn over the scene, not added")
+	check(s.safe_off("glass"), "glass off")
+	# The headless renderer keeps no shader globals: the value checked where one draws.
+	var patches = RenderingServer.global_shader_parameter_get("terrain_patches")
+	check(
+		patches == 0.0 or (patches == null and DisplayServer.get_name() == "headless"),
+		"patches: the colour patches off"
+	)
+	var cfg: ConfigFile = s.write_config()
+	var section: String = s.PREFS.keys().filter(func(k): return "antialiasing" in s.PREFS[k])[0]
+	check(cfg.get_value(section, "antialiasing", "") == "temporal", "the settings file keeps the player's values")
+	s.antialiasing = "fxaa"  # changed in Preferences during the run: the player's
+	cfg = s.write_config()
+	check(cfg.get_value(section, "antialiasing", "") == "fxaa", "a setting changed during the run saved as changed")
+	s.antialiasing = "msaa4"
+	tv = await _start(2012)
+	check(tv != null and tv.cockpit_origin == null, "all safe: a flight starts, its cockpit in the flight's world")
+	var c3d: Node = tv.cockpit_3d if tv != null else null
+	check(c3d == null or c3d._glass == null or not c3d._glass.visible, "all safe: no combiner glass")
+	check(tv != null and tv.cockpit.hud.material == null, "all safe: the HUD drawn plain")
+	await frames(tv.FIRST_FRAMES if tv != null else 1)
+	check(not s.crashed, "all safe: no crash page")
+	s.safe = PackedStringArray()
 
 	# The timed log: the time at the start of every line kept.
 	var tail: Array[String] = s.timed_log.tail()

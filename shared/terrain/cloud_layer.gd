@@ -65,7 +65,7 @@ void vertex() {
 	}
 }
 float air_mass(float cos_zenith) {
-	float c = max(cos_zenith, 0.0);
+	float c = clamp(cos_zenith, 0.0, 1.0);  // acos of a hair over 1 is NaN (atmosphere.gdshader)
 	float z = degrees(acos(c));
 	return 1.0 / (c + 0.50572 * pow(max(96.07995 - z, 0.001), -1.6364));
 }
@@ -74,7 +74,7 @@ void fragment() {
 	vec2 g = max(abs(dFdx(uv)), abs(dFdy(uv))) * float(textureSize(tex, 0).x);
 	// Four bilinear taps half a texel apart (a quadratic B-spline): bilinear alone leaves creases at the texel edges
 	// that the stretched alpha shows as contours.
-	float lod = max(log2(max(g.x, g.y)), min_lod);
+	float lod = max(log2(max(max(g.x, g.y), 1e-8)), min_lod);
 	float h = 0.5 * exp2(lod) / float(textureSize(tex, 0).x);
 	vec4 t = 0.25 * (textureLod(tex, uv + vec2(h, h), lod) + textureLod(tex, uv + vec2(-h, h), lod)
 			+ textureLod(tex, uv + vec2(h, -h), lod) + textureLod(tex, uv + vec2(-h, -h), lod));

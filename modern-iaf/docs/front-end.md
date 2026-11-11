@@ -627,12 +627,49 @@ What opens it:
 
 | failure | where |
 |---|---|
-| any error (`push_error`, a script error, an engine error) while a flight starts | the timed log (`shared/util/timed_log.gd`) hands it to `Settings`; `Settings.loading_step` set from the flight scene's start to the end of its loading |
+| any error (`push_error`, a script error, an engine error, a shader error) while a flight starts | the timed log (`shared/util/timed_log.gd`) hands it to `Settings`; `Settings.loading_step` set from the flight scene's start to its 10th frame after the loading (step "first frames", `terrain_view.gd _first_frames`) |
 | the loading stopped (paused under the screen, or no progress for 30 s) | the loading screen's watchdog (§7) |
+| a shader in use that did not compile, or a shader error in the log, after the first 10 frames | `Settings.flight_drawn` (§11.1) |
 | a mission the compiled list lacks | `flight/fly.gd start` |
 | the terrain's `meta.json` missing | `shared/terrain/terrain.gd` |
 
 The original game keeps its behaviour: there `Settings.crash` does nothing more than the error already in the log.
 
-`modern-iaf/tests/test_start_watch.gd` opens it twice headless (a pause under the loading screen, a missing mission) and checks
+`modern-iaf/tests/test_start_watch.gd` opens it three times headless (a shader that does not compile, a pause under the loading screen, a missing mission) and checks
 the issue link's title and body fields, its length cut, and both buttons.
+
+### 11.1 Finding a graphics failure: the shader check and the bisect switch
+
+After a flight's first 10 frames the sim logs every shader the scene draws with (`shader: ok <file> (<n> uniforms)`, the
+sub-viewports' too) and a summary (`shaders: 24 in use, 0 failed, 0 shader errors logged`). A shader failed when its
+uniform list is empty while its code declares uniforms (the compile failed), or when the log caught a `SHADER ERROR` or
+an error naming a shader or the Metal driver. Any failure opens the crash page with the shader files. The log also
+times the first world frame (`loading: first world frame drawn at <ms>`) and the 10th.
+
+The bisect switch turns graphics features off for one run, whatever the settings say:
+
+    IAF_SAFE=all ./start-modern-iaf            # every feature below off
+    IAF_SAFE=sky,water,clouds ./start-modern-iaf
+    ./start-modern-iaf --safe sky,water        # the same as a flag (Windows: .\start-modern-iaf.ps1 --safe sky)
+
+| name | off means |
+|---|---|
+| `sky` | the plain gradient sky instead of the Levant's (`atmosphere.gdshader`) |
+| `grading` | colour grading Original |
+| `closeup` | no terrain close up |
+| `textures` | the ambientCG ground textures off |
+| `water` | the flat water |
+| `clouds` | no volumetric clouds |
+| `scenery` | no buildings or trees |
+| `labels` | no town labels |
+| `shadows` | no sun shadows |
+| `taa` | MSAA 4× instead of TAA or the temporal upscaler (MetalFX / FSR 2) |
+| `upscaling` | the 3D view at full size |
+| `cockpit_origin` | the cockpit drawn in the flight's world (no `cockpit_composite.gdshader` over the view) |
+| `patches` | the terrain close up's colour patches off (`terrain_patches` 0) |
+| `glass` | no combiner glass in the 3D cockpit; the HUD drawn plain (no `hud_glass.gdshader`: unclipped, not added) |
+| `hudglow` | the HUD drawn over the scene in its plain colours, not added as light |
+
+Each name in force is logged at the start (`safe: sky off (sky levant -> original)`); an unknown name is a warning. The
+settings file keeps the player's own values. To find a failure, start with `all`, then turn half the names back on per
+run. `test_start_watch.gd` checks that each name turns its feature off and that a flight starts with all of them.

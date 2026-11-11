@@ -29,7 +29,7 @@ Godot writes everything the game prints, and every error and warning, with the s
 - **A stall:** a frame longer than 250 ms gets a `stall:` line with its length, the scene (in the menus, the screen)
   and the last mouse click (button, double or not, where, how long before). A scene that loads in one frame shows as
   one; the flight's start is spread over frames behind the loading screen (rendering.md §1.5). A test script's frames
-  before its first scene show the scene as `?`.
+  before its first scene show the scene as `?`. A pause (the mission card, the pause menu) also shows as a stall when it ends.
 - **A Rust panic** in the extension: godot-rust's error line (the message and its source file and line), then
   `[panic backtrace]` with the call stack by function name (the hook in `crates/iaf-godot/src/lib.rs`).
 
@@ -43,7 +43,11 @@ Godot writes everything the game prints, and every error and warning, with the s
 itself, at the same path (`<user>/logs/godot.log`, `<user>` the "Modern IAF" folder) with the same rotation (the newest
 30). It misses only what Godot prints before the scripts load (Godot's first line and the GPU's line; the startup lines
 repeat both). Its own thread prints `hang: no frame for 30 s; loading step <step>, after <sub-step>` when the main
-thread draws no frame for 30 s. A scripted run (`IAF_DEFAULT_SETTINGS=1`, with `--log-file`) gets Godot's log there,
+thread runs no frame for 30 s (a paused game still runs frames: no hang); the line only logs, since a first start's
+single frame can compile shaders that long on a Mac. After a flight's first 10 frames after the loading come the first world
+frame's time (`loading: first world frame drawn at <ms>`), a line per shader in use and `shaders: <n> in use, <n>
+failed, <n> shader errors logged`; `safe:` lines name the features IAF_SAFE turned off (modern-iaf/docs/front-end.md
+§11.1). A scripted run (`IAF_DEFAULT_SETTINGS=1`, with `--log-file`) gets Godot's log there,
 without the times. The original game's log is unchanged.
 
 A test or tool run with `--log-file` writes its log there instead; the startup line still names the default path

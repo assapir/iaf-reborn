@@ -514,6 +514,26 @@ func _lap(what: String) -> void:
 	Settings.loading_step = "%s, after %s" % [_step_name, what.strip_edges()]
 
 
+## Modern IAF (its timed log): the frames drawn after the loading that still count as the start (_first_frames).
+const FIRST_FRAMES := 10
+var _drawn_after := 0
+
+
+## Modern IAF: the first frames after the loading (on a first start the world's shaders compile while the first is
+## drawn) are still the flight's start, paused or not: a hang or an error then is a crash (Settings.loading_step
+## "first frames"). The time the first world frame was drawn (at the second frame's start) and the tenth's start are
+## logged; then the shaders in use are checked (Settings.flight_drawn).
+func _first_frames() -> void:
+	_drawn_after += 1
+	if _drawn_after == 2 or _drawn_after == FIRST_FRAMES:
+		var what := "first world frame drawn" if _drawn_after == 2 else "frame %d" % _drawn_after
+		print("loading: %s at %d ms" % [what, Time.get_ticks_msec() - _build_at])
+	if _drawn_after == FIRST_FRAMES:
+		get_tree().process_frame.disconnect(_first_frames)
+		Settings.loading_step = ""
+		Settings.flight_drawn(self)
+
+
 var _lap_at := Time.get_ticks_msec()
 var _build_at := Time.get_ticks_msec()
 var _step_name := ""
@@ -1875,6 +1895,8 @@ func _end_flight(debrief: bool, auto := "") -> void:
 
 func _exit_tree() -> void:
 	Settings.loading_step = ""
+	if get_tree() != null and get_tree().process_frame.is_connected(_first_frames):
+		get_tree().process_frame.disconnect(_first_frames)
 	if Joystick.consumer == self:
 		Joystick.consumer = null
 	Settings.clear_runway_wind()  # the next flight picks its wind and runways again
@@ -3674,6 +3696,9 @@ func _process(delta: float) -> void:
 				_loading = null
 			print("loading: done at %d ms" % (Time.get_ticks_msec() - _build_at))
 			Settings.loading_step = ""
+			if Settings.timed_log != null:
+				Settings.loading_step = "first frames"
+				get_tree().process_frame.connect(_first_frames)
 			for w in _warm_up:
 				w.queue_free()
 			_warm_up.clear()

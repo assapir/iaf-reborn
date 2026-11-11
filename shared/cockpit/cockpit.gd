@@ -654,7 +654,8 @@ func three_d() -> bool:
 ## its symbols' light: they can only brighten what is behind them.
 func _update_hud_mask() -> void:
 	var glow: bool = Settings.hud_daylight()
-	if hud_clip == null and not glow:
+	# Modern IAF's bisect switch "glass" (Settings.safe_off): the HUD drawn plain, unclipped and not added.
+	if (hud_clip == null and not glow) or Settings.safe_off("glass"):
 		if _hud_mask != null:
 			for n in [hud, hud.outer]:
 				n.material = null

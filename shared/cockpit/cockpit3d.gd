@@ -158,6 +158,7 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 		g.roughness = 0.05
 		g.cull_mode = BaseMaterial3D.CULL_DISABLED
 		_glass.material_override = g
+		_glass.visible = not Settings.safe_off("glass")  # Modern IAF's bisect switch: no combiner glass drawn
 	var pcd_glass := n.find_child("PCD", true, false) as MeshInstance3D
 	if cockpit.pcd != null and pcd_glass != null:
 		_attach_pcd(pcd_glass, n.find_child("ESIS", true, false) as MeshInstance3D)

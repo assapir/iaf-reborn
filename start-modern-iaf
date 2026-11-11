@@ -2,6 +2,7 @@
 # Builds what changed (the Rust extension, the same one ./iafjets loads) and starts Modern IAF (modern-iaf/README.md).
 # Without the sim's data (its missions are the last step) it starts its setup wizard (./modern-iaf-setup). Extra arguments go to the sim (after --).
 # It opens the front end (modern-iaf/main.tscn); `-- --mission <id>` flies that mission at once, then shows its debrief.
+# `--safe <list>` (or IAF_SAFE=<list>) turns graphics features off for one run, to find a failing one (modern-iaf/docs/front-end.md §11.1).
 set -euo pipefail
 cd "$(dirname "$0")"
 # The sim's data folder's old name (before 2026-11-10) moved once, so nothing is built again.

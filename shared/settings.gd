@@ -1086,6 +1086,18 @@ func cockpit_at_origin() -> bool:
 	return false
 
 
+## Ours, Modern IAF's bisect switch (sim_settings.gd SAFE, IAF_SAFE / `--safe`): true when the graphics feature `what`
+## ("cockpit_origin", "glass", "hudglow", ...) is off for this run whatever the settings say. The original game: never.
+func safe_off(_what: String) -> bool:
+	return false
+
+
+## Ours, Modern IAF: called once the flight's first frames are drawn (terrain_view.gd), with the flight scene; the sim
+## checks the shaders in use (sim_settings.gd check_shaders). The original game: nothing.
+func flight_drawn(_view: Node) -> void:
+	pass
+
+
 ## The HUD's moving lines at sub-pixel positions: Modern IAF (whole-pixel steps jump on its wide 3D HUD glass). The
 ## original game draws the ILS lines at whole HUD pixels, 1/12° steps (hud.gd ils_lines, FUN_005309a0).
 func hud_subpixel() -> bool:
@@ -1299,13 +1311,15 @@ func _process(_delta: float) -> void:
 			"stall: %d ms in %s; last click %s, %d ms before" % [now - _frame_at, where, _last_click, now - _click_at]
 		)
 	_frame_at = now
-	if timed_log != null:
-		timed_log.frame_at = now
 
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_READY:
 		get_tree().auto_accept_quit = false
+		# The hang watch's frame stamp on every frame, paused or not (a pause is no hang: the mission card's, the
+		# player's).
+		if timed_log != null:
+			get_tree().process_frame.connect(func(): timed_log.frame_at = Time.get_ticks_msec())
 	elif what == NOTIFICATION_WM_CLOSE_REQUEST:
 		quit()
 

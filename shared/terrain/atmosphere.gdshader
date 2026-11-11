@@ -41,7 +41,9 @@ uniform float overcast = 0.0;
 uniform vec3 ground_albedo = vec3(0.36, 0.33, 0.27);
 
 float air_mass(float cos_zenith) {
-	float c = max(cos_zenith, 0.0);
+	// Clamped to 1 too: a normalized direction can come out a hair over 1, and acos then gives NaN (Metal's fast
+	// math carries it through max() into the radiance map, the fog and the ambient light: a black world).
+	float c = clamp(cos_zenith, 0.0, 1.0);
 	float z = degrees(acos(c));
 	return 1.0 / (c + 0.50572 * pow(max(96.07995 - z, 0.001), -1.6364));
 }
@@ -51,12 +53,14 @@ void sky() {
 	// Below the horizon: the horizon's air path in the same azimuth, but the scattering angle of the true view, so
 	// the haze over the ground glows warm only toward the sun (the phase functions' forward lobe) and is blue-grey
 	// elsewhere.
-	vec3 v = normalize(vec3(EYEDIR.x, max(EYEDIR.y, 0.0), EYEDIR.z));
+	// Straight down the horizontal part is zero (normalize(0) is NaN): any horizon direction then.
+	vec3 h = vec3(EYEDIR.x, max(EYEDIR.y, 0.0), EYEDIR.z);
+	vec3 v = dot(h, h) > 1e-12 ? normalize(h) : vec3(1.0, 0.0, 0.0);
 	float mu = dot(EYEDIR, s);
 	float m = min(air_mass(v.y), max_air_mass);
 	// Looking down from altitude, the view goes down into the lower air and its haze: below the horizon the depths
 	// fade to sea level's by 6° down.
-	float alt = altitude * (1.0 - smoothstep(0.0, -0.1, EYEDIR.y));
+	float alt = altitude * smoothstep(-0.1, 0.0, EYEDIR.y);
 	vec3 tau_air = air_depth * exp(-alt / 8000.0);
 	float tau_haze = haze_depth * exp(-alt / haze_height);
 	// Away from a low sun the sky stays blue-grey (ozone's absorption of the orange light and the scattering near
@@ -92,6 +96,6 @@ void sky() {
 	// sea and the land a flat mauve-brown at sunset.
 	float glow = pow(max(mu, 0.0), 4.0);
 	vec3 ground = ground_albedo * LIGHT0_COLOR * LIGHT0_ENERGY * max(s.y, 0.0);
-	col = mix(col, ground, smoothstep(-0.1, -0.5, EYEDIR.y) * (1.0 - glow) * smoothstep(0.05, 0.3, s.y));
+	col = mix(col, ground, (1.0 - smoothstep(-0.5, -0.1, EYEDIR.y)) * (1.0 - glow) * smoothstep(0.05, 0.3, s.y));
 	COLOR = mix(col, vec3(dot(col, vec3(0.2126, 0.7152, 0.0722))), overcast);
 }

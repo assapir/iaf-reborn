@@ -18,9 +18,10 @@ float city_glow_at(vec2 xz, float dist) {
 	if (city_glow_k <= 0.0) {
 		return 0.0;
 	}
-	float lod = max(log2(dist / 12500.0), 0.0);
+	float lod = max(log2(max(dist, 1.0) / 12500.0), 0.0);
 	float g = textureLod(city_glow, (xz - city_glow_rect.xy) * city_glow_rect.zw, lod).r;
-	return g * g * g * city_glow_k * exp(city_glow_fog * dist);
+	// The exponent capped: exp overflows to inf, and 0 · inf is NaN.
+	return g * g * g * city_glow_k * exp(min(city_glow_fog * dist, 60.0));
 }
 
 // Mostly flat (a haze), a little of it the surface's own colour, so the photo's daytime texture does not show through.
