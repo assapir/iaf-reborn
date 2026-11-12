@@ -14,6 +14,7 @@
 # item F: the run on a root that holds only the sim's files, macOS and Windows.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_mvp.gd --log-file <temp> [-- --jet f16i] [-- --only startup|takeoff|loadout|shutdown]
+#     [-- --repeat 2]  (the jets' flights N times in one process; no ERROR line may show: gltf.gd `ahead`)
 extends "res://../tests/godot/base.gd"
 
 const SoundBuses := preload("res://shared/audio/sound_buses.gd")
@@ -65,13 +66,15 @@ func run() -> void:
 	if only == "shutdown":  # --only shutdown: the throttle to OFF and the restart alone
 		await shutdown()
 		return
-	for id in JETS:
-		if jet != "" and id != jet:
-			continue
-		if only != "takeoff":
-			await startup(id)
-		if only != "startup":
-			await takeoff(id)
+	var repeat := int(args[args.find("--repeat") + 1]) if args.has("--repeat") else 1
+	for i in repeat:  # --repeat N: N runs in one process (the headless model loads, gltf.gd `ahead`)
+		for id in JETS:
+			if jet != "" and id != jet:
+				continue
+			if only != "takeoff":
+				await startup(id)
+			if only != "startup":
+				await takeoff(id)
 	if only == "" and jet in ["", "f16i"]:
 		await ab_sound()
 		await core_sound()

@@ -158,6 +158,7 @@ Checked against the code on 2026-10-21 (each doc's own "not built" notes have th
   waits for it (stacks taken 2026-10-29 and 2026-11-01; rendering.md §1.5 "Wayland at exit"). Worked around
   2026-11-01: from the extension's last deinit stage a thread interrupts that `poll` with a signal until the thread
   ends (`exit_wake.rs`). The engine bug itself is open upstream.
+- **Headless model loads**: a headless start crashed now and then ("Initializing already initialized RID", `Parameter "t" is null`): a worker's glTF parse made textures while the main thread did, and the dummy renderer's texture store is not thread-safe. Fixed 2026-11-12: headless parses on the main thread (`Gltf.ahead`, rendering.md §1.5).
 - **3D cockpit far from the start**: the world's coordinates are 32-bit floats about the flight's start, so the 3D
   cockpit's vertices round to 2 mm steps 17 km out and to centimetres past 130 km. The F-35I's standby display drew
   black by day there (World scale Real, mission 231): its screen lost the depth test to its case 0.25 mm behind.

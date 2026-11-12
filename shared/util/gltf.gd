@@ -169,8 +169,17 @@ static func parse_ahead(paths: Array) -> void:
 			parse_file_ahead(p)
 
 
+## Whether models parse ahead on worker threads. Not headless (the dummy renderer, tests): its texture store is not
+## thread-safe, so a worker's texture racing the main thread's broke a start now and then ("Initializing already
+## initialized RID", 2026-11-11); open() parses on the main thread instead. test_terrain_preload sets it to test the
+## workers.
+static var ahead := DisplayServer.get_name() != "headless"
+
+
 ## parse_ahead() of a file for open(path).
 static func parse_file_ahead(path: String) -> void:
+	if not ahead:
+		return
 	if not _ahead_tasks.has(path):
 		_ahead_tasks[path] = WorkerThreadPool.add_task(_parse_task.bind(path), false, "glTF parse")
 

@@ -24,6 +24,7 @@ func run() -> void:
 	var tp: GDScript = load("res://shared/terrain/terrain_preload.gd")
 	var mr: GDScript = load("res://shared/mission/mission_runtime.gd")
 	var gltf: GDScript = load("res://shared/util/gltf.gd")
+	gltf.ahead = true  # the workers' parse, off headless by default (gltf.gd)
 	change_scene_to_file("res://menu/front_end.tscn")
 	await frames(3)
 	var fe: Node = current_scene
