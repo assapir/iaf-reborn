@@ -201,8 +201,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   from it; a click on an MFD push button presses it. The detailed F-16's cockpit model stands behind it, with Models
   on Original too. In its views the sun's first shadow split ends at 4 m (40 m otherwise), so the cockpit's own
   shadows fall sharp on the panel. At the cockpit's night the MFD screens are turned down to 0.3 of their brightness.
-  The Sufa's wide-angle combiner has a thin light edge down each side, 20 % opaque, its top free (the F-16I photo; cockpit.md
-  "3D cockpit"), in this game and in Modern IAF, which share `f16.glb`. The F-35I flies with ours (f35i.md §4.5):
+  The F-35I flies with ours (f35i.md §4.5):
   its panoramic display on the 3D glass, a tap on it as on the 2D panel, the helmet HUD over the whole view. Other
   jets keep their 2D panels.
 - **Extra sounds (Off / Modern IAF set)** (`extra_sounds`; sound.md §7). Original: the 1998 sound table and clips.

@@ -31,8 +31,6 @@ const BLOCK_SHEET := "blck50-panels1"
 ## The F-16 model's own satin black parts (tools/f16d/cockpit3d.py: the HUD posts and the wide-angle HUD's box):
 ## their roughness kept, a sheen along their rounded edges.
 const SATIN := ["hud_black"]
-## The wide combiner's side edges' opacity (the model's hud_edge_light is 0.6): a glint over the sky (inferred).
-const EDGE_ALPHA := 0.2
 ## Each MFD's SubViewport (px square): the Sufa's 484 px displays, rounded up.
 const SCREEN_PX := 512
 ## The panoramic display's SubViewport px per [PCD] panel px (1,496 x 671 px for its 20 x 8 in glass).
@@ -173,17 +171,6 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 		g.cull_mode = BaseMaterial3D.CULL_DISABLED
 		_glass.material_override = g
 		_glass.visible = not Settings.safe_off("glass")  # Modern IAF's bisect switch: no combiner glass drawn
-	# The wide combiner's light side edges (tools/f16d/cockpit3d.py hud_wide_edges) are the glass's: off with it under
-	# the bisect switch; their light a faint glint of the glass's cut edge, not a white line beside the posts (the Mac
-	# play test, 2026-11-11: at the model's 60 % pale grey they read as two white lines). They are a surface of the
-	# HUD_wide mesh (kit.join merged them), set on a copy of the model's material.
-	for mi: MeshInstance3D in n.find_children("*", "MeshInstance3D", true, false):
-		for i in mi.mesh.get_surface_count() if mi.mesh != null else 0:
-			var edge := mi.mesh.surface_get_material(i) as BaseMaterial3D
-			if edge != null and edge.resource_name == "hud_edge_light":
-				edge = edge.duplicate()
-				edge.albedo_color.a = 0.0 if Settings.safe_off("glass") else EDGE_ALPHA
-				mi.set_surface_override_material(i, edge)
 	var pcd_glass := n.find_child("PCD", true, false) as MeshInstance3D
 	if cockpit.pcd != null and pcd_glass != null:
 		_attach_pcd(pcd_glass, n.find_child("ESIS", true, false) as MeshInstance3D)

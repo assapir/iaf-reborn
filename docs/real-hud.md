@@ -916,11 +916,12 @@ games draw over the scene with the same pen. The study behind it: the look study
   (`SHOT_SCALE=1` / `2`).
 - **Combiner glass.** 14 % opaque in a faint cool magenta (0.62 / 0.56 / 0.72) with specular 0.8, so it is slightly
   darker than the sky and reflects a little of it (`cockpit3d.gd`; the green its coating reflects is missing from
-  what passes through, inferred). The original game's glass stays 7 %. The Sufa's wide-angle plate has a thin
-  light edge down each side, its top free (2026-11-09, `tools/f16d/cockpit3d.py` `hud_wide_edges`; docs/cockpit.md
-  "3D cockpit"); it is part of `f16.glb`, so the original game's 3D cockpit shows it too. Since 2026-11-11 the edge is
-  20 % opaque (`cockpit3d.gd` `EDGE_ALPHA`; the model's 60 % read as two white lines) and goes off with the glass under
-  Modern IAF's bisect switch `IAF_SAFE=glass`.
+  what passes through, inferred). The original game's glass stays 7 %. The combiner has no separate edge line.
+  Tried and dropped (2026-11-09 to 2026-11-12): a thin light strip down each side of the Sufa's plate
+  (`hud_wide_edges` in `tools/f16d/cockpit3d.py`, 60 % then 20 % opaque). It was a straight quad along the plate's
+  side, so it stood off the curved posts as two bright bars; the real photos show no line there. It is removed from
+  `f16.glb`, so neither game draws it; so are the two black slabs beside the posts' feet (`Tub/box_left`,
+  `box_right`, docs/cockpit.md "3D cockpit"). The F-35I has no combiner (its HUD is the helmet's).
 - **Helmet displays.** The F-35I's Gen III helmet display and the DASH light the same way (2026-11-09): their frame's
   own green (0.45 / 1.0 / 0.55 in `real_hud/f35.rs`, `dash.rs`) becomes the P43 green at the same level and night
   floor, stepped by Shift + H and set by the slider (`hud.gd` `real_hud()`). The F-35 helmet shows green monochrome

@@ -446,14 +446,16 @@ occlusion, 1.8 MB; built by
   screws), the second glass ahead of the combiner with its black cover (`BackGlass`, `BackGlassCover`: a 4 cm strip
   at the eye's height, 8 to 16 cm ahead of the combiner) and the frame's bar over the combiner (`HUDFrame`'s faces
   above the glass that reach in over it; the posts' tops stay). The plate's 2 cm rim (`HUDedge`, opaque in the
-  source) is a faint amber glass (25 % opaque). Down each side of the plate runs a thin light edge, 2.5 mm wide and
-  60 % opaque in a pale grey (`cockpit3d.py` `hud_wide_edges`, 2026-11-09): the photo shows the plate's cut edge
-  catching the light at its sides and nothing along its top. Width and tint are inferred. The Sufa's HUD shows it in
-  both games (the original game's Extras "Cockpit": 3D and Modern IAF share `f16.glb`); the Barak's combiner, held at
-  its sides by its posts, has none. 68.5 k triangles in the file (66.9 k before the ICP's whole thumbwheels and the
+  source) is a faint amber glass (25 % opaque). The plate has no separate edge strip: the light strip added down
+  each side on 2026-11-09 (`hud_wide_edges`, 2.5 mm, pale grey) was straight and stood off FlightGear's curved posts, so
+  it read as two white bars beside the HUD; it was removed from `f16.glb` (both games) on 2026-11-12, after the user's
+  third report. The real photos show no such line. The two slabs FlightGear's glareshield carries beside the HUD
+  (`cockpit.ac` `box_left` / `box_right`, 3 x 9 cm, standing up outside each post's foot) are left out too
+  (2026-11-12): from the eye they were two opaque black bars beside the posts, and the F-16's HUD housing is the
+  dark box under the combiner. 68.4 k triangles in the file (68.5 k before the edge strips and slabs went, 66.9 k before the ICP's whole thumbwheels and the
   start-up switches' own nodes, 57.3 k before the whole knobs and throttle and the sills, 56.2 k before the Barak's new
-  HUD posts and the bevelled coaming, 54.8 k before the rounded HUD frames), about 67.5 k drawn (one HUD); 124
-  materials (FlightGear's duplicates merged), 205 surfaces.
+  HUD posts and the bevelled coaming, 54.8 k before the rounded HUD frames), about 67.5 k drawn (one HUD); 123
+  materials (FlightGear's duplicates merged), 204 surfaces.
 * The HUDs' posts and frames rounded (`cockpit3d.py` `smooth`, 2026-11-02): FlightGear's are boxes with hard edges
   and flat faces, which read as blocky beside the glass. Every edge sharper than 35° is bevelled 3 mm in two segments
   and the faces shaded smooth across the rest (`hud.ac` `hud_sides`, `f16_war_hud.ac` `HUDFrame`), as the cast frames

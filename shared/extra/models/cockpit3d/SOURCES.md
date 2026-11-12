@@ -63,8 +63,9 @@ Made by `tools/f16d/cockpit3d.py` (re-runnable; docs/cockpit.md "3D cockpit"):
    The wide-angle HUD (`f16_war_hud.ac`): its frame and box made black; its top left out, so the combiner plate
    stands free between the two side posts as on the F-16I: the lid (`HUDtop`, `screws`, `tissue`), the second glass
    ahead of the combiner and its cover (`BackGlass`, `BackGlassCover`) and `HUDFrame`'s bar over the combiner glass
-   (2026-11-02; docs/cockpit.md "3D cockpit"); the glass's rim (`HUDedge`) a 25 % opaque amber glass; a thin light
-   edge of ours (2.5 mm, pale grey, 60 % opaque) down each side of the plate (2026-11-09). The Block 50 HUD's thick combiner top (`hud.ac` `HUDedge`, opaque light grey) the same glass. Both HUDs keep FlightGear's
+   (2026-11-02; docs/cockpit.md "3D cockpit"); the glass's rim (`HUDedge`) a 25 % opaque amber glass (a light edge
+   strip of ours down each side, 2026-11-09, was removed on 2026-11-12). The glareshield's two slabs beside the HUD
+   (`cockpit.ac` `box_left`, `box_right`) left out (2026-11-12). The Block 50 HUD's thick combiner top (`hud.ac` `HUDedge`, opaque light grey) the same glass. Both HUDs keep FlightGear's
    height and place (a raised and widened wide-angle plate, 2026-11-02, was undone the same day) and are made wider
    about their centre line (2026-11-02): the Block 50's ×1.15, the wide-angle one's ×1.12, every part; the wide-angle
    plate's image glass (`HUDImage2`) spans the plate's whole width, its clear rim included (±7.9 cm before widening).
