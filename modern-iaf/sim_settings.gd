@@ -158,6 +158,17 @@ func write_config(values := {}) -> ConfigFile:
 	return cfg
 
 
+## The tower's taxi greeting by the clock of the day (the user, 2026-11-12: no good morning at 23:00): MORNING
+## 05:00–12:00, AFTERNOON 12:00–17:00, EVENING 17:00–05:00.
+func tower_greeting(hour: int) -> String:
+	var h := posmod(hour, 24)
+	if h >= 5 and h < 12:
+		return "MORNING"
+	if h >= 12 and h < 17:
+		return "AFTERNOON"
+	return "EVENING"
+
+
 ## The sim's front end (menu/front_end.gd, modern-iaf/docs/front-end.md): where the game starts and a flight ends.
 func front_end_scene() -> String:
 	return "res://main.tscn"

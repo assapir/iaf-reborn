@@ -255,7 +255,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **[E3b](plan.md#e3-the-training-missions), the training missions in the game (2026-11-03):** `./start-modern-iaf -- --mission 2011` (… 2032) flies a start-up or
   take-off mission without the front end: parked cold, the start command (Ctrl+E) runs the jet's start sequence on
   the 6-DoF, the screens and the HUD come alive at the real moments; the radio menu (Ctrl+T) asks the base's
-  tower for start-up, taxi and take-off, listing only the call that fits the moment (since 2026-11-09) and the English TTS tower answers; at the end the flight is scored, the
+  tower for start-up, taxi and take-off, listing only the call that fits the moment (since 2026-11-09); the pilot's own voice makes the call through the helmet chain, then the English TTS tower answers (since 2026-11-12, item A21, [sound.md](sound.md) §5.2); at the end the flight is scored, the
   sortie and its debrief record stored in the records database ([training.md](training.md) §7–§10).
   `modern-iaf/tests/test_mvp.gd` flies both missions for the Sufa, the Barak and the F-35I to a Pass. Since 2026-11-08
   a crash, any damage or the wheels off the pavement fail a mission at once with that reason first; a pass ends 5 s

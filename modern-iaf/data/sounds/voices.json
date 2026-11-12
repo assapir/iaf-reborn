@@ -1036,6 +1036,190 @@
       "say": "Alpha, line up runway two seven, wind calm.",
       "mode": "phrase",
       "note": "a training mission's call, whole"
+    },
+    {
+      "file": "plt_ramon_twr.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_david_twr.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_hatzerim_twr.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_nevatim_twr.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_alpha.ogg",
+      "voice": "pilot",
+      "say": "Alpha.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_bravo.ogg",
+      "voice": "pilot",
+      "say": "Bravo.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_charlie.ogg",
+      "voice": "pilot",
+      "say": "Charlie.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_delta.ogg",
+      "voice": "pilot",
+      "say": "Delta.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_req_start.ogg",
+      "voice": "pilot",
+      "say": "Request start-up.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_req_taxi.ogg",
+      "voice": "pilot",
+      "say": "Request taxi.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_req_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Ready for take-off.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_req_landing.ogg",
+      "voice": "pilot",
+      "say": "Request landing.",
+      "mode": "helmet"
+    },
+    {
+      "file": "plt_ramon_alpha_start.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, Alpha, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_alpha_taxi.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, Alpha, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_alpha_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, Alpha, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_alpha_landing.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, Alpha, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_alpha_start.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, Alpha, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_alpha_taxi.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, Alpha, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_alpha_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, Alpha, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_david_alpha_landing.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, Alpha, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_alpha_start.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, Alpha, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_alpha_taxi.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, Alpha, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_alpha_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, Alpha, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_hatzerim_alpha_landing.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, Alpha, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_alpha_start.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, Alpha, request start-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_alpha_taxi.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, Alpha, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_alpha_takeoff.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, Alpha, ready for take-off.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_alpha_landing.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, Alpha, request landing.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
     }
   ],
   "particles": {
@@ -1708,6 +1892,146 @@
       "file": "twr_alpha_lineup_27_calm.ogg",
       "text": "Alpha, line up runway two seven, wind calm",
       "text_he": "Alpha, כניסה למסלול 27, רוח שקטה"
+    },
+    "RAMON_TWR": {
+      "file": "plt_ramon_twr.ogg",
+      "text": "Ramon tower",
+      "text_he": "מגדל רמון"
+    },
+    "DAVID_TWR": {
+      "file": "plt_david_twr.ogg",
+      "text": "Ramat David tower",
+      "text_he": "מגדל רמת דוד"
+    },
+    "HATZERIM_TWR": {
+      "file": "plt_hatzerim_twr.ogg",
+      "text": "Hatzerim tower",
+      "text_he": "מגדל חצרים"
+    },
+    "NEVATIM_TWR": {
+      "file": "plt_nevatim_twr.ogg",
+      "text": "Nevatim tower",
+      "text_he": "מגדל נבטים"
+    },
+    "ALPHA_P": {
+      "file": "plt_alpha.ogg",
+      "text": "Alpha",
+      "text_he": "Alpha"
+    },
+    "BRAVO_P": {
+      "file": "plt_bravo.ogg",
+      "text": "Bravo",
+      "text_he": "Bravo"
+    },
+    "CHARLIE_P": {
+      "file": "plt_charlie.ogg",
+      "text": "Charlie",
+      "text_he": "Charlie"
+    },
+    "DELTA_P": {
+      "file": "plt_delta.ogg",
+      "text": "Delta",
+      "text_he": "Delta"
+    },
+    "REQ_STARTUP": {
+      "file": "plt_req_start.ogg",
+      "text": "request start-up",
+      "text_he": "בקשת התנעה"
+    },
+    "REQ_TAXI": {
+      "file": "plt_req_taxi.ogg",
+      "text": "request taxi",
+      "text_he": "בקשת הסעה"
+    },
+    "REQ_TAKEOFF": {
+      "file": "plt_req_takeoff.ogg",
+      "text": "ready for take-off",
+      "text_he": "בקשת המראה"
+    },
+    "REQ_LANDING": {
+      "file": "plt_req_landing.ogg",
+      "text": "request landing",
+      "text_he": "בקשת נחיתה"
+    },
+    "RAMON_TWR+,+ALPHA_P+,+REQ_STARTUP": {
+      "file": "plt_ramon_alpha_start.ogg",
+      "text": "Ramon tower, Alpha, request start-up",
+      "text_he": "מגדל רמון, Alpha, בקשת התנעה"
+    },
+    "RAMON_TWR+,+ALPHA_P+,+REQ_TAXI": {
+      "file": "plt_ramon_alpha_taxi.ogg",
+      "text": "Ramon tower, Alpha, request taxi",
+      "text_he": "מגדל רמון, Alpha, בקשת הסעה"
+    },
+    "RAMON_TWR+,+ALPHA_P+,+REQ_TAKEOFF": {
+      "file": "plt_ramon_alpha_takeoff.ogg",
+      "text": "Ramon tower, Alpha, ready for take-off",
+      "text_he": "מגדל רמון, Alpha, בקשת המראה"
+    },
+    "RAMON_TWR+,+ALPHA_P+,+REQ_LANDING": {
+      "file": "plt_ramon_alpha_landing.ogg",
+      "text": "Ramon tower, Alpha, request landing",
+      "text_he": "מגדל רמון, Alpha, בקשת נחיתה"
+    },
+    "DAVID_TWR+,+ALPHA_P+,+REQ_STARTUP": {
+      "file": "plt_david_alpha_start.ogg",
+      "text": "Ramat David tower, Alpha, request start-up",
+      "text_he": "מגדל רמת דוד, Alpha, בקשת התנעה"
+    },
+    "DAVID_TWR+,+ALPHA_P+,+REQ_TAXI": {
+      "file": "plt_david_alpha_taxi.ogg",
+      "text": "Ramat David tower, Alpha, request taxi",
+      "text_he": "מגדל רמת דוד, Alpha, בקשת הסעה"
+    },
+    "DAVID_TWR+,+ALPHA_P+,+REQ_TAKEOFF": {
+      "file": "plt_david_alpha_takeoff.ogg",
+      "text": "Ramat David tower, Alpha, ready for take-off",
+      "text_he": "מגדל רמת דוד, Alpha, בקשת המראה"
+    },
+    "DAVID_TWR+,+ALPHA_P+,+REQ_LANDING": {
+      "file": "plt_david_alpha_landing.ogg",
+      "text": "Ramat David tower, Alpha, request landing",
+      "text_he": "מגדל רמת דוד, Alpha, בקשת נחיתה"
+    },
+    "HATZERIM_TWR+,+ALPHA_P+,+REQ_STARTUP": {
+      "file": "plt_hatzerim_alpha_start.ogg",
+      "text": "Hatzerim tower, Alpha, request start-up",
+      "text_he": "מגדל חצרים, Alpha, בקשת התנעה"
+    },
+    "HATZERIM_TWR+,+ALPHA_P+,+REQ_TAXI": {
+      "file": "plt_hatzerim_alpha_taxi.ogg",
+      "text": "Hatzerim tower, Alpha, request taxi",
+      "text_he": "מגדל חצרים, Alpha, בקשת הסעה"
+    },
+    "HATZERIM_TWR+,+ALPHA_P+,+REQ_TAKEOFF": {
+      "file": "plt_hatzerim_alpha_takeoff.ogg",
+      "text": "Hatzerim tower, Alpha, ready for take-off",
+      "text_he": "מגדל חצרים, Alpha, בקשת המראה"
+    },
+    "HATZERIM_TWR+,+ALPHA_P+,+REQ_LANDING": {
+      "file": "plt_hatzerim_alpha_landing.ogg",
+      "text": "Hatzerim tower, Alpha, request landing",
+      "text_he": "מגדל חצרים, Alpha, בקשת נחיתה"
+    },
+    "NEVATIM_TWR+,+ALPHA_P+,+REQ_STARTUP": {
+      "file": "plt_nevatim_alpha_start.ogg",
+      "text": "Nevatim tower, Alpha, request start-up",
+      "text_he": "מגדל נבטים, Alpha, בקשת התנעה"
+    },
+    "NEVATIM_TWR+,+ALPHA_P+,+REQ_TAXI": {
+      "file": "plt_nevatim_alpha_taxi.ogg",
+      "text": "Nevatim tower, Alpha, request taxi",
+      "text_he": "מגדל נבטים, Alpha, בקשת הסעה"
+    },
+    "NEVATIM_TWR+,+ALPHA_P+,+REQ_TAKEOFF": {
+      "file": "plt_nevatim_alpha_takeoff.ogg",
+      "text": "Nevatim tower, Alpha, ready for take-off",
+      "text_he": "מגדל נבטים, Alpha, בקשת המראה"
+    },
+    "NEVATIM_TWR+,+ALPHA_P+,+REQ_LANDING": {
+      "file": "plt_nevatim_alpha_landing.ogg",
+      "text": "Nevatim tower, Alpha, request landing",
+      "text_he": "מגדל נבטים, Alpha, בקשת נחיתה"
     }
   },
   "templates": {
@@ -1723,7 +2047,8 @@
     "ACFT_GO_AROUND_RUNWAY": "%S1 , GO_AROUND",
     "ACFT_TAXI_TO_PARK": "%S1 , TAXI_PARK",
     "ACFT_GEARS_NOT_OPEN": "%S1 , GEAR_NOT_DOWN",
-    "ACFT_ROGER": "ROGER"
+    "ACFT_ROGER": "ROGER",
+    "PILOT_CALL": "%S1 , %S2 , %S3"
   },
   "he": {
     "voice": "he_IL-saspeech-medium (pending: its dataset's licence is non-commercial; the user decides)",

@@ -640,12 +640,7 @@ func _speak(at: int, code: int) -> Dictionary:
 	match code:
 		0:
 			var hour := int(float(_misc("0x460", 0.0)) + now) / 3600
-			var greet := "MORNING"
-			if hour >= 12 and hour < 17:
-				greet = "AFTERNOON"
-			elif hour >= 17 and hour < 22:
-				greet = "EVENING"
-			p = say(t, [cs, greet], [rwy])
+			p = say(t, [cs, Settings.tower_greeting(hour)], [rwy])
 		1, 6:
 			if wind != 0:
 				p = say(t, [cs, "WI_KNOTS%02d" % wind], [rwy])

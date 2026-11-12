@@ -1427,6 +1427,16 @@ func _free_sounds() -> void:
 
 
 ## The mission editor's Fly: mission `id` (the source mission: its bdb, bases and rules) with the edited `files` and
+## The tower's taxi greeting at `hour` of the mission's clock: the original's table (radio.gd code 0, docs/radio.md
+## §2): MORNING before 12:00 and from 22:00, AFTERNOON 12–17, EVENING 17–22. Modern IAF overrides it.
+func tower_greeting(hour: int) -> String:
+	if hour >= 12 and hour < 17:
+		return "AFTERNOON"
+	if hour >= 17 and hour < 22:
+		return "EVENING"
+	return "MORNING"
+
+
 ## The front end's scene (the original game's menus), where a flight ends. A project with its own front end
 ## overrides this and front_end_overlay().
 func front_end_scene() -> String:

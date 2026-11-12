@@ -26,11 +26,13 @@ const ITEMS := [
 const TITLE := {"en": "Radio: %s tower", "he": "קשר: מגדל %s"}
 ## The menu's line when no call fits now.
 const NO_CALL := {"en": "No call fits now", "he": "אין קריאה מתאימה כעת"}
-## The pilot's call, printed in the game's language (no pilot voice for it yet: sound.md §7).
+## The pilot's call, printed in the game's language and said by the pilot's voice (radio.gd PILOT_CALL: the address,
+## the callsign, REQ_<ID>; modern-iaf/docs/sound.md §5.2).
 const CALLS := {
 	"startup": ["request start-up", "בקשת התנעה"],
 	"taxi": ["request taxi", "בקשת הסעה"],
 	"takeoff": ["ready for take-off", "בקשת המראה"],
+	"landing": ["request landing", "בקשת נחיתה"],
 }
 ## The call's address: "Ramon tower" / "מגדל רמון".
 const TOWER := {"en": "%s tower", "he": "מגדל %s"}
@@ -215,8 +217,12 @@ func menu_text() -> String:
 
 
 func _tower_name() -> String:
+	return _base_name(host.radio.base_at(host.radio._pos()))
+
+
+## Base `i`'s name in the game's language; "—" for no tower.
+func _base_name(i: int) -> String:
 	var r: Node = host.radio
-	var i: int = r.base_at(r._pos())
 	if i < 0 or i >= r.tower_count:
 		return "—"
 	var names: Array = BASE_NAMES.get(String(r.bases[i].name), [r.bases[i].name, r.bases[i].name])
@@ -267,18 +273,26 @@ func key(event: InputEventKey) -> bool:
 	return true
 
 
-## One menu pick: the pilot's call printed, the tower's answer (radio.gd request), a `radio` event recorded. A call
-## that does not fit now (calls()) is not made: "".
+## One menu pick: the pilot's call printed and said, the gap, the tower's answer (radio.gd request), a `radio` event
+## recorded. A call that does not fit now (calls()) is not made: "".
 func pick(id: String) -> String:
 	if not id in calls():
 		return ""
 	var r: Node = host.radio
+	var cs: String = r.formation_name(r._player_ent())
+	# The tower called: the one in range on the ground (request's), the radio's base in the air (contact_tower's).
+	var at: int = r.base if id == "landing" else r.base_at(r._pos())
+	var has_tower: bool = at >= 0 and at < r.tower_count
+	var line: String = "%s, %s" % [cs, CALLS[id][1 if _he() else 0]]
+	if has_tower:
+		line = "%s, %s" % [(TOWER.he if _he() else TOWER.en) % _base_name(at), line]
+	host._on_subtitle(line)
+	var twr: String = String(r.bases[at].name).to_upper() + "_TWR" if has_tower else ""
+	r.say("PILOT_CALL", [twr, cs + "_P", "REQ_" + id.to_upper()], [], false)
+	r.play_wav("radio_gap.ogg")
 	if id == "landing":
 		r.contact_tower()
 		return ""
-	var cs: String = r.formation_name(r._player_ent())
-	var tower: String = (TOWER.he if _he() else TOWER.en) % _tower_name()
-	host._on_subtitle("%s, %s, %s" % [tower, cs, CALLS[id][1 if _he() else 0]])
 	var p: Dictionary = r.request(id)
 	answers.append(String(p.template))
 	host._log_event(host._log_st, {"event": "radio", "call": id, "answer": p.template, "text": p.text})

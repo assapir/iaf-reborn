@@ -292,8 +292,13 @@ again. The rule is `training::radio_calls` (`crates/iaf-tools/src/training.rs`, 
 "No call fits now" ("אין קריאה מתאימה כעת"). A flight that starts on the ground with the engine running (at the
 lineup point) has taxi approved, so take-off is listed at once.
 
-The pilot's call is printed ("Ramon tower, Alpha, request taxi"), the tower's answer printed and spoken by the English
-TTS tower of E1b (sound.md §3), then the pilot's "Roger". The lines show in the sim's band over the flight
+The pilot's call is printed and spoken by the pilot's voice through the helmet chain ("Ramon tower, Alpha, request
+taxi"; sound.md §5.2), then 0.6 s of quiet, then the tower's answer printed and spoken by the tower's voice (sound.md
+§3), then the pilot's "Roger". The landing call is "request landing" to the radio's current base, then the
+original's Ctrl+T. The taxi greeting follows the mission's clock (its start time plus the sim time): good
+morning 05:00–12:00, good afternoon 12:00–17:00, good evening 17:00–05:00 (`Settings.tower_greeting` in
+`modern-iaf/sim_settings.gd`; the original game keeps its own table, docs/radio.md §2 code 0;
+`modern-iaf/tests/test_radio_calls.gd` at 04, 08, 14, 16, 20 and 23 h). The lines show in the sim's band over the flight
 ([front-end.md](front-end.md) §8), wholly in the game's language: in Hebrew the pilot's call ("מגדל רמון, Alpha,
 בקשת הסעה") and the tower's answer from each phrase particle's Hebrew text (`text_he` in
 `modern-iaf/data/sounds/voices.json`, compiled into `phraseparticles_he.trx`: "Alpha, בוקר טוב, הסעה למסלול 25 ימני");

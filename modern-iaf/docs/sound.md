@@ -357,7 +357,7 @@ licence:
 |---|---|---|
 | Betty | `af_heart`, 1.3, +3 semitones | the VMS calls |
 | tower | `am_michael`, 1.1 | the tower's phrases, the friendly-fire call, the map edge |
-| pilot | `am_puck`, 1.1 | "Roger", eject, the friendly-fire calls of the target and the wingman |
+| pilot | `am_puck`, 1.1 | the player's radio-menu calls (helmet chain, §5.2), "Roger", eject, the friendly-fire calls of the target and the wingman |
 | AWACS | `am_fenrir`, 1.1 | nothing yet: `radio.gd`'s AWACS templates have no particles (§7) |
 
 **Choice** (9 November 2026; the user on 3 November: "less British", American or neutral voices). Kokoro's
@@ -475,6 +475,15 @@ above −24 dB (5 ms attack, 80 ms release); the voiced RMS to −17.9 dB (the l
 which match the original speech) with a soft limit at −2 dBFS; the band-pass again on the limiter's harmonics (8th
 order in all); band-passed hiss at −42 dB under the whole clip.
 
+**The player's own calls** (item A21, approved by the user 2026-11-12: "we should hear our voice also asking, not
+only the tower response") use the same chain heard from an oxygen-mask microphone inside the helmet (`HELMET` in
+`sim_voices.rs`, mode `helmet` in `voices.json`; inferred values): pre-emphasis 0.75 instead of 0.9 and the band's top
+at 2600 Hz instead of 3000 Hz (less air), +4 dB at 500 Hz, Q 0.9 (more low-mid). `sim_flight.gd` `pick()` says the
+call (`PILOT_CALL` = `%S1 , %S2 , %S3`: the tower's address `<BASE>_TWR`, the callsign `<NAME>_P`, `REQ_<ID>`) framed
+by the key clicks, then `radio_gap.ogg` (0.6 s of silence, `RADIO_GAP`: the controller's reply, inferred), then the
+tower's answer. Each base × Alpha × the four requests (start-up, taxi, take-off, landing) is one joined clip
+("Ramon tower, Alpha, request start-up."); the parts (4 towers, Alpha–Delta, 4 requests) cover the other callsigns.
+
 A transmission plays like a receiver's squelch (9 November 2026; the user: "missing a bit of a quiet before / after
 like a real radio"). Measured on a scanner recording of Orlando's tower frequency[^mco] (minutes 5–10, 77 openings,
 70 with a voice; the squelch open where the voice band rises from the closed level, about 12 dB, to the carrier's,
@@ -546,7 +555,8 @@ The setup wizard (item A3) and the credits roll live outside this branch's folde
 - The Hebrew voice (§5.4).
 - The AWACS, wingman-command, waypoint and flight-report phrases (`radio.gd`'s other templates have no particles yet,
   so they are silent); the AWACS voice and chain are ready (§3, §5.2).
-- The pilot's requests (start-up, taxi, take-off) are printed only: no pilot phrase for them yet.
+- The pilot's calls as Bravo–Delta play part by part (only Alpha has whole-call clips), and the callsigns past Delta
+  have no particle (the tower's set stops there too).
 - The cockpit sound model (§1.9): the canopy's real transmission loss, the helmet in flight, the air-conditioning
   hiss, and the user's listening.
 - The core sounds (§1.3–§1.8): the cockpit's idle-to-military step, the wind's real spectrum, the gun's spin-up, a
@@ -567,6 +577,9 @@ The setup wizard (item A3) and the credits roll live outside this branch's folde
   model off, the category buses only.
 - `modern-iaf/tests/test_m0_boot.gd`: every row's clip and every particle's clip of the compiled tables opens in Godot
   as Ogg Vorbis, and `KCH2.WAV`, `EndWorld.wav`, `cock_g_02.wav` open their ogg (2026-11-03).
+- `modern-iaf/tests/test_radio_calls.gd`: the pilot's start-up call in one clip, framed by the keys, the gap, then
+  the tower; the band's two lines in that order; the taxi greeting by the sim's table at 04, 08, 14, 16, 20 and
+  23 h (2026-11-12).
 - `cargo test -p iaf-tools --lib sim_voices`: the band-pass passes 1 kHz and cuts 100 Hz and 6 kHz by over 20 dB;
   the compressor's ratio; Betty's level, peak and repeat; a radio clip is a phrase plus both keys; the keys' quiet, lead and tail.
 - Measured with ffmpeg's EBU R128 (a clip padded with 0.5 s of silence), 9 November 2026; no clip reaches full scale:

@@ -59,6 +59,10 @@ pub struct Radio {
     pub mix: f32,
     pub vrms_db: f32,
     pub hiss_db: f32,
+    /// The microphone's pre-emphasis, x[n] - k x[n-1].
+    pub emphasis: f32,
+    /// A low-mid peak at 500 Hz (Q 0.9), dB: the in-helmet mic's chest.
+    pub low_mid_db: f32,
 }
 
 pub const RADIO: Radio = Radio {
@@ -69,7 +73,17 @@ pub const RADIO: Radio = Radio {
     mix: 0.3,
     vrms_db: -17.9, // 0.127: the level of shared/extra/tower_numbers, which match the original speech
     hiss_db: -42.0,
+    emphasis: 0.9,
+    low_mid_db: 0.0,
 };
+
+/// The player's own calls (`Mode::Helmet`, approved 2026-11-12, item A21): the radio chain heard from an oxygen-mask
+/// microphone inside the helmet: more low-mid, less air (a lower band top, a softer pre-emphasis). Inferred values.
+pub const HELMET: Radio = Radio { band: (300.0, 2600.0), emphasis: 0.75, low_mid_db: 4.0, ..RADIO };
+
+/// Seconds from the player's call's key-off to the tower's key-on (`radio_gap.ogg`; inferred: a controller's reply,
+/// approved with item A21).
+pub const RADIO_GAP: f32 = 0.6;
 
 const PEAK: f32 = 0.79; // the soft limit, -2 dBFS
 const SEED: u64 = 2026;
@@ -257,6 +271,8 @@ pub enum Mode {
     /// A part of a tower call (or the whole call), which radio.gd plays back to back with others and frames with the
     /// key clicks: the radio chain and hiss, no clicks.
     Phrase,
+    /// A part of the player's own call: the [`HELMET`] chain and hiss, no clicks (radio.gd frames the call).
+    Helmet,
 }
 
 impl Mode {
@@ -264,8 +280,9 @@ impl Mode {
         Ok(match s {
             "betty" => Mode::Betty,
             "radio" => Mode::Radio,
+            "helmet" => Mode::Helmet,
             "phrase" | "particle" => Mode::Phrase,
-            m => bail!("voices: mode \"{m}\" is not betty / radio / phrase / particle"),
+            m => bail!("voices: mode \"{m}\" is not betty / radio / helmet / phrase / particle"),
         })
     }
 }
@@ -300,11 +317,14 @@ pub fn betty(x: &[f32], c: &Betty, repeat: usize) -> Vec<f32> {
 
 /// The radio chain on Kokoro's speech `x`.
 pub fn radio(x: &[f32], mode: Mode, noise: &mut Noise) -> Vec<f32> {
-    let c = &RADIO;
+    let c = if mode == Mode::Helmet { &HELMET } else { &RADIO };
     let mut x = trim(x, 0.01);
-    x = [vec![x[0]], x.windows(2).map(|w| w[1] - 0.9 * w[0]).collect()].concat(); // a headset mic's presence lift
+    x = [vec![x[0]], x.windows(2).map(|w| w[1] - c.emphasis * w[0]).collect()].concat(); // a headset mic's presence lift
     drive(&mut x, c.drive, c.mix);
     band(&mut x, c.band.0, c.band.1);
+    if c.low_mid_db != 0.0 {
+        Biquad::peak(500.0, 0.9, c.low_mid_db).run(&mut x);
+    }
     let p = peak(&x).max(1e-9);
     x.iter_mut().for_each(|v| *v *= 0.5 / p);
     compress(&mut x, c.threshold_db, c.ratio, 0.005, 0.08);
@@ -465,7 +485,7 @@ fn make(x: &[f32], split: Option<[f32; 2]>, c: &Value, mode: Mode, noise: &mut N
 }
 
 /// `iaf-sim voices`: every clip of `<data>/sounds/voices.json` (`only`: the clips whose file name contains it) into
-/// `<data>/sounds`, the computed `kch2.ogg`, `twr_pause.ogg`, `key_on.ogg` and `key_off.ogg`, then
+/// `<data>/sounds`, the computed `kch2.ogg`, `twr_pause.ogg`, `key_on.ogg`, `key_off.ogg` and `radio_gap.ogg`, then
 /// `sim::own_sounds` into `assets`.
 pub fn voices(
     data: &Path,
@@ -484,6 +504,7 @@ pub fn voices(
         ("twr_pause.ogg", noise.hiss(0.2, RADIO.hiss_db)),
         ("key_on.ogg", noise.key_on()),
         ("key_off.ogg", noise.key_off()),
+        ("radio_gap.ogg", silence(RADIO_GAP)),
     ];
     for (f, x) in computed {
         write_ogg(&x, &sounds.join(f), &tmp.0)?;
