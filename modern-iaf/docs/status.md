@@ -39,6 +39,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **The F12 info line: the mission and the FPS (2026-11-11, the Mac play test):** the sim's line leaves out the 1998
   game's modes, place, speed and controls (`Settings.info_line_full`, [front-end.md](front-end.md) §8).
   `test_flight_ui.gd`.
+- **The black world with TAA or Upscaling (2026-11-12):** with Anti-aliasing TAA, or Upscaling Quality / Balanced,
+  the 3D cockpit's own picture lost its alpha and laid black over the whole world (reproduced on Linux, Iris Xe, with
+  the player's settings; each of TAA alone, FSR 1 alone and FSR 2 did it). The cockpit's picture is now drawn at full
+  size with MSAA 4× whenever the flight uses TAA or an upscaler ([cockpit.md](cockpit.md)).
 - **Finding the Mac's black world (2026-11-11):** a flight's start on the Mac ended in a black world under a fine 3D
   cockpit. A bisect switch now turns graphics features off for one run (`IAF_SAFE=all ./start-modern-iaf`, then half
   the names back on per run); after the first 10 frames the log lists every shader in use and whether it compiled,

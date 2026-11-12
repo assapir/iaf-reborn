@@ -102,19 +102,24 @@ func _process(delta: float) -> void:
 		return
 	var main := get_viewport()
 	viewport.size = Vector2i(main.get_visible_rect().size)
-	for p in ["msaa_3d", "screen_space_aa", "use_taa", "use_debanding", "scaling_3d_mode", "scaling_3d_scale"]:
-		viewport.set(p, main.get(p))
-	# MetalFX (the Mac's upscalers) gets none of the cockpit's picture: its output need not keep the picture's alpha,
-	# and an opaque cockpit picture lays black over the whole world (inferred from the Mac's black world under a fine
-	# cockpit, 2026-11-11; FSR 2 and FSR 1 keep it). The cockpit is drawn at full size with MSAA 4× there instead.
-	if (
-		viewport.scaling_3d_mode
-		in [Viewport.SCALING_3D_MODE_METALFX_TEMPORAL, Viewport.SCALING_3D_MODE_METALFX_SPATIAL]
-	):
-		viewport.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
-		viewport.scaling_3d_scale = 1.0
-		viewport.msaa_3d = Viewport.MSAA_4X
-		viewport.use_taa = false
+	# No upscaler and no TAA in the cockpit's picture: their output does not keep the picture's alpha, and an opaque
+	# cockpit picture lays black over the whole world (the Mac's MetalFX, 2026-11-11; on Linux / Vulkan TAA alone,
+	# FSR 1 alone and FSR 2 alike, 2026-11-12). Then the cockpit is drawn at full size with MSAA 4× and no FXAA: the
+	# flight's own TAA, FXAA and upscaler apply to it in the composite (cockpit_composite.gdshader). Each value is set
+	# only when it differs (a change rebuilds the viewport's buffers).
+	var plain: bool = not main.use_taa and main.scaling_3d_mode == Viewport.SCALING_3D_MODE_BILINEAR
+	plain = plain and main.scaling_3d_scale == 1.0
+	var want := {
+		"msaa_3d": main.msaa_3d if plain else Viewport.MSAA_4X,
+		"screen_space_aa": main.screen_space_aa if plain else Viewport.SCREEN_SPACE_AA_DISABLED,
+		"use_taa": false,
+		"use_debanding": main.use_debanding,
+		"scaling_3d_mode": Viewport.SCALING_3D_MODE_BILINEAR,
+		"scaling_3d_scale": 1.0,
+	}
+	for p in want:
+		if viewport.get(p) != want[p]:
+			viewport.set(p, want[p])
 	# The rig's attitude about the origin; the eye's place and turn in it as the flight camera's (head look, the ground
 	# clamp), and its projection (cockpit.gd's frustum with its offset).
 	rig.transform = Transform3D(_world_rig.global_basis, Vector3.ZERO)

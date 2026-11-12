@@ -437,7 +437,11 @@ model (with the 3D cockpit, the HUD glass, the stores and the lights on it) in i
   light) without fog, tonemap or glow;
 - its picture, linear and untonemapped with its alpha, is laid over the flight's 3D view by a full-screen quad drawn
   last in that view (`cockpit_composite.gdshader`), so the flight's auto exposure, tonemap and anti-aliasing apply to
-  the cockpit as before, and the clouds, rain and effects stay outside the canopy; the 2D layers (the HUD symbology,
+  the cockpit as before, and the clouds, rain and effects stay outside the canopy; the picture itself is drawn at
+  full size with MSAA 4× and no FXAA whenever the flight uses TAA or an upscaler (FSR 1, FSR 2, MetalFX): their
+  output loses the alpha, and an opaque cockpit picture lays black over the world (seen on Linux with TAA alone, FSR 1 alone and FSR 2,
+  2026-11-12; on the Mac with MetalFX, 2026-11-11); the frame rate with the player's settings stayed within the
+  run-to-run noise (32–42 fps either way on the Iris Xe); the 2D layers (the HUD symbology,
   the night vision goggles) lie over both as before; the quad is on the clouds' layer, which the EO sensor's camera
   leaves out, so the TV picture on the MFD shows no cockpit;
 - the HUD's clip and the screens' clicks project through that world's camera (`cockpit3d.gd` `camera`), the wingtip
