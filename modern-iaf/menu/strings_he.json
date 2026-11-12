@@ -145,6 +145,7 @@
 	"scenery": "מבנים ועצים",
 	"scenery_detailed": "מפורט",
 	"scenery_missing": "השלב \"מבנים, עצים וכבישים\" בהתקנה מוסיף אותם.",
+	"scenery_left_out": "הושמט בהתקנה: סימון השלב \"מבנים, עצים וכבישים\" בהתקנה מוסיף אותם.",
 	"fullscreen": "מסך מלא",
 	"vsync": "V-Sync",
 	"engine_volume": "מנוע",

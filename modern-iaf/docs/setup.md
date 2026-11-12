@@ -51,8 +51,23 @@ large screen by its UI scale (the containers stretch; nothing has a fixed page s
 3. **Install**: one row per step with its progress bar and state. Before a run the rows say which steps are up to
    date (a background check); during a run the page shows two estimates (see "Time left" below). Back becomes Cancel: the running steps
    stop at their next item. "Show the log" opens the log; the whole run is also in `assets/logs/modern-iaf-setup-<date>-<time>.log`.
+   Each row starts with its **Include** tick. A required step's tick is on and fixed. An optional step (Buildings,
+   trees and roads; Ground and model textures) is on by default, and unticking it before the run leaves it out: it
+   is neither downloaded nor built, its row says "left out", and the sim flies without it (Preferences greys Scenery
+   with "Left out in setup"). Under an optional step's name are its sizes: what it downloads ("Nothing to download"
+   when `assets/source` already holds its files) and what it takes on disk (measured when built, else about a full
+   build's size). The choice is remembered at once in `assets/converted/modern-iaf/setup.json` (`{"excluded":
+   [ids]}`, `iaf_setup::sim_excluded`). Unticking a step that is already built asks **Remove its data?** with the
+   space it frees: **Remove** deletes its outputs and stamp (`iaf_setup::sim_remove`), **Keep** leaves them. Its
+   downloads in `assets/source` go only with the dialog's "Also its downloads" tick, and never the extracts the
+   airbases' water is cut from. When another setup in this assets folder (`assets/install`) reads the same files, the
+   downloads, and the textures' data, stay.
    "Redo every step" runs the steps that are up to date too; for the terrain that is a full rebuild (its finished
-   units' marks are dropped). Back from Install forgets the finished run, so other choices can be installed; a
+   units' marks are dropped). Each row's own **Run again** tick runs that step alone although it is up to date
+   (ticking one after a finished run brings the Install button back). A skipped or failed step shows its reason under
+   its row with **Retry** (in the page's language where the text is the wizard's own: no GDAL, offline), which runs setup again (the step keeps no stamp, so it runs); the status line counts the
+   skipped steps. A step whose own check finds its outputs current (the scenery's `made_from`) is stamped like a
+   step that ran, so the next preview says "up to date". Back from Install forgets the finished run, so other choices can be installed; a
    language change keeps it.
 4. **Done**: whether the sim is set up, with two buttons. **Start the game** ("להתחיל לשחק") opens the sim's front
    end in the same process, as `./start-modern-iaf` starts it: the project's own window size (the wizard's 1100×720 at the
@@ -94,6 +109,9 @@ The pages say only what the user decides or must know ([plan.md](plan.md) Rules)
 | Attributions (over Welcome) | ![Attributions](pictures/setup/attributions_en.webp) | ![Attributions, Hebrew](pictures/setup/attributions_he.webp) |
 | Imagery | ![Imagery](pictures/setup/imagery_en.webp) | ![Imagery, Hebrew](pictures/setup/imagery_he.webp) |
 | Install | ![Install](pictures/setup/install_en.webp) | ![Install, Hebrew](pictures/setup/install_he.webp) |
+| Install, one optional step left out | ![Install, the textures left out](pictures/setup/install_left_out_en.webp) | ![Install, the textures left out, Hebrew](pictures/setup/install_left_out_he.webp) |
+| Install, a built step unticked: Remove its data? | ![Remove its data?](pictures/setup/install_remove_en.webp) | ![Remove its data?, Hebrew](pictures/setup/install_remove_he.webp) |
+| Install, a skipped step: its reason and Retry | ![A skipped step](pictures/setup/install_skipped_en.webp) | ![A skipped step, Hebrew](pictures/setup/install_skipped_he.webp) |
 | Done | ![Done](pictures/setup/done_en.webp) | ![Done, Hebrew](pictures/setup/done_he.webp) |
 
 ### Look

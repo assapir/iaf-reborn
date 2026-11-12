@@ -145,6 +145,7 @@
 	"scenery": "Buildings and trees",
 	"scenery_detailed": "Detailed",
 	"scenery_missing": "Setup's optional step \"Buildings, trees and roads\" adds them.",
+	"scenery_left_out": "Left out in setup: tick \"Buildings, trees and roads\" in setup to add them.",
 	"fullscreen": "Full screen",
 	"vsync": "VSync",
 	"engine_volume": "Engine",

@@ -1835,6 +1835,9 @@ mod tests {
         assert_eq!(fetch_files(&good, &out, &Stdout, &no).unwrap(), 1);
         assert!(file_done(&out, &good[0]) && file_date(&out, &good[0]).is_some_and(|d| d.len() == 10));
         assert_eq!(fetch_files(&good, &out, &Stdout, &no).unwrap(), 0, "kept");
+        // A kept source opens no connection (a code change never re-downloads): its URL is never asked.
+        let offline = [Download { file: "a.zip", url: "http://127.0.0.1:9/never", sha256: sum, bytes: 1 }];
+        assert_eq!(fetch_files(&offline, &out, &Stdout, &no).unwrap(), 0, "kept, no connection");
         // A failed file leaves the others to finish: the next try fetches only the failed one.
         let mixed = [
             Download { file: "x.zip", url, sha256: "00", bytes: 1 },

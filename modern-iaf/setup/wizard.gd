@@ -164,6 +164,15 @@ var running := false
 var finished := false
 var failed := ""
 var log_file := ""
+## The optional steps the player left out (unticked Include; remembered by IafSetup.sim_save_excluded).
+var excluded: Array = []
+## The optional steps' sizes by id (IafSetup.sim_optional: built, download, disk, sources, shared).
+var optional := {}
+## The remove-its-data question after unticking a built step, its "also the downloads" tick, the step it asks about.
+var remove_dialog: ConfirmationDialog
+var remove_text: Label
+var remove_downloads: CheckBox
+var remove_id := ""
 ## The last run's steps as IafSetup.poll gave them at its end.
 var last_steps := []
 ## The background preview (which steps are up to date), by job name.
@@ -205,6 +214,8 @@ func _ready() -> void:
 	sheets = IafSetup.survey_sheets(assets)
 	s2_cached = IafSetup.sim_s2_cached(assets) / 1e9
 	survey = sheets > 0
+	excluded = Array(IafSetup.sim_excluded(assets))
+	_load_optional()
 	_build()
 	show_page(0)
 
@@ -313,6 +324,8 @@ func _build() -> void:
 	next_button.name = "Next"
 	credits_dialog = _credits_dialog()
 	add_child(credits_dialog)
+	remove_dialog = _remove_dialog()
+	add_child(remove_dialog)
 
 
 ## A label in one of the theme's text kinds (wizard_theme.gd: "", "Title", "Heading", "Muted", "Note", "Readout").
@@ -522,6 +535,9 @@ func set_language(lang: String) -> void:
 	Settings.save()
 	var at := page
 	_build()
+	# Every step's row, the left-out ones too (a run's steps hold only the included ones).
+	if running or finished:
+		_fill_rows(IafSetup.sim_plan(survey))
 	if finished:
 		_show_result()
 	show_page(at)
@@ -559,6 +575,10 @@ func _update() -> void:
 			next_button.text = s("next") if finished and failed == "" else s("install")
 			next_button.disabled = running
 			redo_check.disabled = running
+			for id in rows:
+				rows[id].tick.disabled = running or id in excluded
+				rows[id].retry.disabled = running
+				rows[id].include.disabled = running or rows[id].required
 		"done":
 			next_button.text = s("start_game")
 	next_button.theme_type_variation = "Primary" if pg == "done" else ""
@@ -613,17 +633,39 @@ func _note(t: String) -> void:
 	install_note.visible = t != ""
 
 
+## The step rows: the name, its own "Run again" tick (that step only, though it is up to date), the bar, the state;
+## under a skipped or failed step its reason and Retry (runs setup again: the step has no stamp, so it runs).
 func _fill_rows(steps: Array) -> void:
 	for st in steps:
 		var r: Dictionary = rows.get(st.id, {})
 		if r.is_empty():
+			var box := _vbox(2)
+			box.name = "Row_" + st.id
 			var h := HBoxContainer.new()
 			h.add_theme_constant_override("separation", 12)
+			box.add_child(h)
+			var id: String = st.id
+			# Include: an optional step can be left out (neither downloaded nor built); a required one is fixed.
+			var include := CheckBox.new()
+			include.name = "Include"
+			include.tooltip_text = s("required") if st.get("required", false) else s("include")
+			include.button_pressed = st.get("required", false) or not id in excluded
+			include.toggled.connect(func(on): _on_include(id, on))
+			h.add_child(include)
+			var names := _vbox(0)
+			names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			h.add_child(names)
 			var title := Label.new()
 			title.text = s("step_" + st.id)
 			title.tooltip_text = st.title
-			title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			h.add_child(title)
+			names.add_child(title)
+			var sizes := _label(names, "", "Note")
+			sizes.name = "Sizes"
+			var tick := CheckBox.new()
+			tick.name = "RunAgain"
+			tick.text = s("row_redo")
+			tick.toggled.connect(func(_on): _forget_run())
+			h.add_child(tick)
 			var bar := ProgressBar.new()
 			bar.custom_minimum_size = Vector2(220, 10)
 			bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -633,11 +675,38 @@ func _fill_rows(steps: Array) -> void:
 			var state := Label.new()
 			state.custom_minimum_size.x = 220
 			h.add_child(state)
-			rows_box.add_child(h)
-			r = {"bar": bar, "state": state}
+			var why_row := HBoxContainer.new()
+			why_row.add_theme_constant_override("separation", 12)
+			box.add_child(why_row)
+			var why := _text(why_row, "", "Note")
+			why.name = "Reason"
+			var retry := _button(why_row, s("retry"), func(): retry_step(id))
+			retry.name = "Retry"
+			why_row.visible = false
+			rows_box.add_child(box)
+			r = {
+				"bar": bar,
+				"state": state,
+				"tick": tick,
+				"why": why_row,
+				"reason": why,
+				"retry": retry,
+				"include": include,
+				"sizes": sizes,
+				"required": st.get("required", false),
+			}
 			rows[st.id] = r
+			_show_sizes(id)
 		var name: String = st.get("state", "waiting")
+		if st.id in excluded:
+			name = "excluded"
 		r.state.text = s("state_" + name)
+		r.why.visible = name in ["skipped", "failed"] and not running
+		var detail: String = st.get("detail", "")
+		r.reason.text = reason(detail)
+		# iaf-setup's own wording is English: left to right; ours follows the page.
+		var raw: bool = r.reason.text == detail
+		r.reason.text_direction = Control.TEXT_DIRECTION_LTR if raw else Control.TEXT_DIRECTION_INHERITED
 		var f: float = st.get("fraction", 0.0)
 		if name == "running":
 			r.started = r.get("started", Time.get_ticks_msec())
@@ -665,7 +734,109 @@ func _preview() -> void:
 		for id in rows:
 			var u: bool = up.get(id, false)
 			rows[id].state.text = s("state_up_to_date") if u else s("state_will_run")
-	setup.begin(job, PackedStringArray([assets, repo, "1" if survey else "0"]))
+			if id in excluded:
+				rows[id].state.text = s("state_excluded")
+	setup.begin(job, PackedStringArray([assets, repo, "1" if survey else "0"] + excluded))
+
+
+## The optional steps' sizes, read again (after a run or a removal).
+func _load_optional() -> void:
+	optional.clear()
+	for o in IafSetup.sim_optional(assets):
+		optional[o.id] = o
+
+
+## An optional row's sizes line: what it downloads (none when assets/source holds it) and what it takes on disk.
+func _show_sizes(id: String) -> void:
+	var r: Dictionary = rows[id]
+	var o: Dictionary = optional.get(id, {})
+	r.sizes.visible = not o.is_empty()
+	if o.is_empty():
+		return
+	var dl: String = s("dl_none") if o.download == 0 else s("dl") % _gb(o.download / 1e9)
+	r.sizes.text = "%s · %s" % [dl, (s("disk_built") if o.built else s("disk_will")) % _gb(o.disk / 1e9)]
+
+
+## The step's failure or skip reason in the UI language where the text is ours, else as iaf-setup wrote it.
+func reason(detail: String) -> String:
+	if detail.begins_with("GDAL is needed"):
+		return s("why_gdal")
+	if "cannot be reached (offline?)" in detail:
+		return s("why_offline")
+	return detail
+
+
+## Include ticked or unticked: remembered at once; unticking a built step asks whether to remove its data.
+func _on_include(id: String, on: bool) -> void:
+	if on:
+		excluded.erase(id)
+	elif not id in excluded:
+		excluded.append(id)
+	IafSetup.sim_save_excluded(assets, PackedStringArray(excluded))
+	_forget_run()
+	rows[id].state.text = s("state_will_run") if on else s("state_excluded")
+	_update()
+	if not on and optional.get(id, {}).get("built", false):
+		ask_remove(id)
+
+
+## The remove-its-data question for the built step `id`: the space it frees; the downloads only when ticked, never
+## when another setup in this folder shares them.
+func ask_remove(id: String) -> void:
+	var o: Dictionary = optional[id]
+	var locked: bool = o.shared and id == "sim-textures"
+	remove_id = id
+	remove_text.text = s("remove_q") % [s("step_" + id), _gb(o.disk / 1e9)]
+	if locked:
+		remove_text.text = s("remove_kept") % s("step_" + id)
+	remove_downloads.button_pressed = false
+	remove_downloads.disabled = o.shared or o.sources == 0
+	remove_downloads.text = s("remove_shared") if o.shared else s("remove_downloads") % _gb(o.sources / 1e9)
+	remove_dialog.get_ok_button().disabled = locked
+	remove_dialog.popup_centered(Vector2i(660, 0))
+
+
+func _remove_dialog() -> ConfirmationDialog:
+	var d := ConfirmationDialog.new()
+	d.name = "Remove"
+	d.title = s("remove_title")
+	d.ok_button_text = s("remove")
+	d.cancel_button_text = s("keep")
+	d.exclusive = true
+	d.set_layout_direction(Window.LAYOUT_DIRECTION_RTL if Settings.language == "he" else Window.LAYOUT_DIRECTION_LTR)
+	var v := _vbox(10)
+	d.add_child(v)
+	remove_text = _text(v, "")
+	remove_text.custom_minimum_size.x = 620
+	remove_downloads = CheckBox.new()
+	remove_downloads.name = "AlsoDownloads"
+	v.add_child(remove_downloads)
+	d.confirmed.connect(func(): remove_data(remove_id, remove_downloads.button_pressed))
+	return d
+
+
+## Removes a left-out step's data (and its downloads when asked); the status line says what it freed.
+func remove_data(id: String, downloads: bool) -> void:
+	var res: Dictionary = IafSetup.sim_remove(assets, id, downloads)
+	var ok: bool = res.error == ""
+	_note(s("removed") % [s("step_" + id), _gb(res.freed / 1e9)] if ok else s("not_removed") % res.error)
+	_load_optional()
+	_show_sizes(id)
+
+
+## A ticked "Run again" makes a finished run installable again (the Install button comes back).
+func _forget_run() -> void:
+	if finished and not running:
+		finished = false
+		failed = ""
+		_note("")
+		_update()
+
+
+## Retry under a skipped or failed step: that step (and what is not up to date) runs again.
+func retry_step(id: String) -> void:
+	rows[id].tick.set_pressed_no_signal(true)
+	start_install()
 
 
 func start_install() -> void:
@@ -674,8 +845,10 @@ func start_install() -> void:
 	finished = false
 	var stamp := Time.get_datetime_string_from_system().replace(":", "").replace("T", "-")
 	log_file = assets.path_join("logs/modern-iaf-setup-%s.log" % stamp)
-	var redo := PackedStringArray(["*"] if redo_check.button_pressed else [])
-	var err: String = setup.sim_start(assets, repo, survey, redo, log_file)
+	var redo := PackedStringArray(
+		["*"] if redo_check.button_pressed else rows.keys().filter(func(id): return rows[id].tick.button_pressed)
+	)
+	var err: String = setup.sim_start(assets, repo, survey, redo, PackedStringArray(excluded), log_file)
 	if err != "":
 		_note(s("not_started") % err)
 		return
@@ -705,6 +878,10 @@ func _process(_delta: float) -> void:
 		finished = true
 		failed = p.error
 		last_steps = p.steps
+		_load_optional()
+		for id in optional:
+			if rows.has(id):
+				_show_sizes(id)
 		_show_result()
 	_update()
 
@@ -713,7 +890,15 @@ func _process(_delta: float) -> void:
 func _show_result() -> void:
 	_fill_rows(last_steps)
 	var up: int = last_steps.filter(func(st): return st.state == "up_to_date").size()
-	_note((s("stopped") % [failed, log_file]) if failed != "" else s("finished") % [last_steps.size() - up, up])
+	var skipped: int = last_steps.filter(func(st): return st.state == "skipped").size()
+	var done := (
+		s("finished") % [last_steps.size() - up - skipped, up]
+		if skipped == 0
+		else s("finished_skipped") % [last_steps.size() - up - skipped, up, skipped]
+	)
+	_note((s("stopped") % [failed, log_file]) if failed != "" else done)
+	for id in rows:
+		rows[id].tick.set_pressed_no_signal(false)
 	done_label.text = s("set_up") if failed == "" else s("not_set_up") % failed
 	if failed != "":
 		log_view.visible = true

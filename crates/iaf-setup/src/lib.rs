@@ -22,7 +22,10 @@ mod steps;
 
 pub use checks::{CdKind, PackInfo, Tools, check_cd, check_pack, check_patch, python, scan, tools};
 pub use saved::{from_json, inputs_file, load_inputs, save_inputs, to_json};
-pub use sim::{SimCtx, SimInputs, sim_expected, sim_plan, sim_preview, sim_run, survey_sheets};
+pub use sim::{
+    Optional, SimCtx, SimInputs, save_sim_excluded, sim_excluded, sim_expected, sim_optional, sim_plan, sim_preview,
+    sim_remove, sim_run, survey_sheets,
+};
 pub use steps::{COCKPITS, KEPT, OUTPUTS, disk_bytes, imagery_stale, script_guides, uninstall};
 
 /// The Hebrew content: the Hebrew retail CD (everything translated), or the preflight.us packs.
@@ -473,6 +476,11 @@ fn run_one(
             Ok(State::Done)
         }
         Outcome::UpToDate => {
+            // The step's own check found its outputs current (iaf-sim scenery's made_from): stamped too, so the next
+            // preview says "up to date" rather than "will run".
+            if let Some(s) = &s {
+                s.write()?;
+            }
             record(s.as_ref().map_or("ran", |s| s.text.as_str()));
             Ok(State::UpToDate)
         }
@@ -714,6 +722,26 @@ mod tests {
         assert!(matches!(states[0].1, State::Failed(_)), "{states:?}");
         assert_eq!(states[1].1, State::Done);
         assert_eq!(states[2].1, State::Blocked);
+    }
+
+    /// A step its own check finds up to date is stamped (the scenery's made_from: the preview then says up to date);
+    /// a skipped one keeps no stamp and carries its reason, so the wizard shows why and runs it again.
+    #[test]
+    fn up_to_date_stamps_and_skipped_carries_its_reason() {
+        let dir = std::env::temp_dir().join(format!("iaf-setup-own-check-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let steps = [Step { id: "a", title: "a", required: false, after: vec![] }];
+        let st = |_: &Step| -> Result<Option<stamp::Stamp>> {
+            Ok(Some(stamp::Stamp { path: dir.join("a.stamp"), text: "a\n".into(), output: None }))
+        };
+        let go =
+            |o: fn() -> Outcome| run_graph(&steps, &|_| false, &Quiet, &AtomicBool::new(false), &st, &|_, _| Ok(o()));
+        assert_eq!(go(|| Outcome::Skipped("GDAL is needed".into()))[0].1, State::Skipped("GDAL is needed".into()));
+        assert!(!dir.join("a.stamp").exists(), "a skipped step has no stamp");
+        assert_eq!(go(|| Outcome::UpToDate)[0].1, State::UpToDate);
+        assert!(dir.join("a.stamp").exists(), "its own check's up to date is stamped");
+        assert_eq!(preview_with(&steps, &st), [("a", true)]);
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     /// Running setup again with an extra added (or Hebrew content given) runs only the new steps and what waits for them.

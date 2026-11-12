@@ -184,7 +184,7 @@ impl IafSetup {
     /// Starts a background job (gdext objects can only be called on the main thread, so the slow checks run here);
     /// `result(job)` gives its answer. `job` is a kind, optionally with `#<anything>` after it:
     /// - "preview" [assets, repo, inputs JSON]: {step id: true when a run would find it up to date} (reads the inputs);
-    /// - "sim_preview" [assets, repo, survey "1" | "0"]: the same for Modern IAF's steps;
+    /// - "sim_preview" [assets, repo, survey "1" | "0", left-out step ids…]: the same for Modern IAF's steps;
     /// - "scan" [folder]: {"english" | "hebrew" | "patch" | "brief" | "menu": path} found in it (`iaf_setup::scan`);
     /// - "stale" [assets, layer ids…]: the imagery units older rules made, -1 when it cannot tell (e.g. offline).
     #[func]
@@ -214,8 +214,9 @@ impl IafSetup {
                             .map(|(id, up)| (id.to_string(), serde_json::Value::Bool(up)))
                             .collect()
                     }
-                    ("sim_preview", [assets, repo, survey]) => {
-                        let inputs = SimInputs { survey: survey == "1" };
+                    ("sim_preview", [assets, repo, survey, out @ ..]) => {
+                        let out: Vec<&str> = out.iter().map(String::as_str).collect();
+                        let inputs = SimInputs { survey: survey == "1", ..Default::default() }.without(&out);
                         let ctx = SimCtx { assets: assets.into(), repo: repo.into(), inputs };
                         iaf_setup::sim_preview(&iaf_setup::sim_plan(&inputs), &ctx)
                             .into_iter()
@@ -288,13 +289,51 @@ impl IafSetup {
         GString::new()
     }
 
-    /// Modern IAF's plan (`iaf_setup::sim_plan`): [{id, title, required}].
+    /// Modern IAF's plan (`iaf_setup::sim_plan`) with every optional step: [{id, title, required}].
     #[func]
     fn sim_plan(survey: bool) -> VarArray {
-        iaf_setup::sim_plan(&SimInputs { survey })
+        iaf_setup::sim_plan(&SimInputs { survey, ..Default::default() })
             .iter()
             .map(|s| vdict! { "id" => s.id, "title" => s.title, "required" => s.required }.to_variant())
             .collect()
+    }
+
+    /// The optional steps the player left out at the last run (`iaf_setup::sim_excluded`).
+    #[func]
+    fn sim_excluded(assets: GString) -> PackedStringArray {
+        iaf_setup::sim_excluded(&PathBuf::from(assets.to_string())).iter().map(|s| GString::from(s.as_str())).collect()
+    }
+
+    /// Remembers the optional steps the player left out (the wizard's unticked rows); "" or the error.
+    #[func]
+    fn sim_save_excluded(assets: GString, ids: PackedStringArray) -> GString {
+        let ids: Vec<String> = ids.as_slice().iter().map(|s| s.to_string()).collect();
+        match iaf_setup::save_sim_excluded(&PathBuf::from(assets.to_string()), &ids) {
+            Ok(()) => GString::new(),
+            Err(e) => err(e),
+        }
+    }
+
+    /// The optional steps' sizes (`iaf_setup::sim_optional`): [{id, built, download, disk, sources, shared}].
+    #[func]
+    fn sim_optional(assets: GString) -> VarArray {
+        iaf_setup::sim_optional(&PathBuf::from(assets.to_string()))
+            .iter()
+            .map(|o| {
+                vdict! { "id" => o.id, "built" => o.built, "download" => o.download as i64, "disk" => o.disk as i64,
+                "sources" => o.sources as i64, "shared" => o.shared }
+                .to_variant()
+            })
+            .collect()
+    }
+
+    /// Removes a left-out optional step's data (`iaf_setup::sim_remove`): {freed: bytes, error: "" or why}.
+    #[func]
+    fn sim_remove(assets: GString, id: GString, downloads: bool) -> VarDictionary {
+        match iaf_setup::sim_remove(&PathBuf::from(assets.to_string()), &id.to_string(), downloads) {
+            Ok(n) => vdict! { "freed" => n as i64, "error" => "" },
+            Err(e) => vdict! { "freed" => 0i64, "error" => format!("{e:#}").as_str() },
+        }
     }
 
     /// The bytes of the sim's Sentinel-2 tiles already cached under `assets` (the wizard's disk check).
@@ -310,8 +349,8 @@ impl IafSetup {
         iaf_setup::survey_sheets(&PathBuf::from(assets.to_string())) as i64
     }
 
-    /// Starts Modern IAF's setup (`iaf_setup::sim_run`) on its own thread, as `start` does the original's; `poll` and
-    /// `cancel` serve both.
+    /// Starts Modern IAF's setup (`iaf_setup::sim_run`) on its own thread, as `start` does the original's, without the
+    /// optional steps `excluded` (remembered: `sim_excluded`); `poll` and `cancel` serve both.
     #[func]
     fn sim_start(
         &mut self,
@@ -319,16 +358,22 @@ impl IafSetup {
         repo: GString,
         survey: bool,
         redo: PackedStringArray,
+        excluded: PackedStringArray,
         log_file: GString,
     ) -> GString {
         if self.running() {
             return "setup is running".into();
         }
         let redo: Vec<String> = redo.as_slice().iter().map(|s| s.to_string()).collect();
-        let inputs = SimInputs { survey };
+        let out: Vec<String> = excluded.as_slice().iter().map(|s| s.to_string()).collect();
+        if let Err(e) = iaf_setup::save_sim_excluded(&PathBuf::from(assets.to_string()), &out) {
+            return err(e);
+        }
+        let inputs =
+            SimInputs { survey, ..Default::default() }.without(&out.iter().map(String::as_str).collect::<Vec<_>>());
         let steps = iaf_setup::sim_plan(&inputs);
         let ctx = SimCtx { assets: PathBuf::from(assets.to_string()), repo: PathBuf::from(repo.to_string()), inputs };
-        let header = format!("Modern IAF setup: survey {survey}\nredo: {redo:?}");
+        let header = format!("Modern IAF setup: survey {survey}\nredo: {redo:?}\nleft out: {out:?}");
         let prefix = format!("{}/", ctx.assets.display());
         self.launch(steps.clone(), &header, log_file, prefix, move |sink, cancel| {
             let redo = |id: &str| redo.iter().any(|r| r == "*" || r == id);

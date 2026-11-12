@@ -26,6 +26,8 @@ func run() -> void:
 	check(assets != "", "IAF_ASSETS_DIR is set (a scratch folder)")
 	if assets == "":
 		return
+	# A fresh choice: nothing left out (an earlier run's choice file goes).
+	DirAccess.remove_absolute(assets.path_join("converted/modern-iaf/setup.json"))
 	change_scene_to_file("res://setup/wizard.tscn")
 	await frames(5)
 	var w: Control = current_scene
@@ -100,13 +102,26 @@ func run() -> void:
 	w.show_page(2)
 	check(w.next_button.text == "התקנה" and not w.next_button.disabled, "Install waits for the button")
 	check(
-		w.rows.keys() == ["sim-terrain", "sim-db", "sim-fm", "sim-own", "sim-airbases", "sim-missions", "sim-scenery"],
+		(
+			w.rows.keys()
+			== [
+				"sim-terrain",
+				"sim-db",
+				"sim-fm",
+				"sim-own",
+				"sim-airbases",
+				"sim-missions",
+				"sim-scenery",
+				"sim-textures"
+			]
+		),
 		"the sim's steps in order"
 	)
 	var t := Time.get_ticks_msec()
 	while not w.jobs.is_empty() and Time.get_ticks_msec() - t < 30000:
 		await process_frame
 	check(w.rows["sim-terrain"].state.text == "ירוץ", "an empty root: the terrain will run (the preview)")
+	await _include(w, assets)
 	# Two checks at once: the first is abandoned, and both answers are fetched (IafSetup keeps no stale job).
 	w._preview()
 	w._preview()
@@ -127,6 +142,37 @@ func run() -> void:
 		"a finished run survives the language change"
 	)
 	check(w.done_label.text == "Modern IAF is set up.", "Done says so")
+	# A skipped optional step: its reason and Retry under it, the note counts it; a ticked Run again brings Install.
+	var why := "GDAL is needed (gdalwarp, ogr2ogr)"
+	w.last_steps = IafSetup.sim_plan(false).map(
+		func(st):
+			var sk: bool = st.id == "sim-scenery"
+			return {
+				"id": st.id,
+				"title": st.title,
+				"state": "skipped" if sk else "up_to_date",
+				"detail": why if sk else "",
+				"fraction": 1.0
+			}
+	)
+	w._show_result()
+	var sc: Dictionary = w.rows["sim-scenery"]
+	check(
+		(
+			sc.state.text == "skipped"
+			and sc.why.visible
+			and sc.reason.text == w.s("why_gdal")
+			and sc.retry.text == "Retry"
+		),
+		"a skipped step shows its reason and Retry"
+	)
+	check(not w.rows["sim-db"].why.visible, "an up-to-date step shows no reason")
+	check("1 skipped" in w.install_note.text and w.next_button.text == "Next", "the note counts the skipped step")
+	sc.tick.button_pressed = true
+	check(not w.finished and w.next_button.text == "Install", "a ticked Run again brings Install back")
+	sc.tick.button_pressed = false
+	w.finished = true
+	w._show_result()
 	w._on_back()
 	check(w.page == 1 and not w.finished, "Back from Install forgets the run")
 	w.show_page(2)
@@ -158,6 +204,45 @@ func run() -> void:
 		current_scene != null and current_scene.scene_file_path == get_root().get_node("Settings").front_end_scene(),
 		"Start opens the front end"
 	)
+
+
+## The Include ticks: required rows fixed, optional ones on by default with their sizes; unticking one leaves it out
+## (remembered, "left out", never run); unticking a built one asks to remove its data, which Remove frees.
+func _include(w: Control, assets: String) -> void:
+	for id in w.rows:
+		var r: Dictionary = w.rows[id]
+		var opt: bool = id in ["sim-scenery", "sim-textures"]
+		check(
+			r.include.button_pressed and r.include.disabled != opt, "%s: Include %s" % [id, "free" if opt else "fixed"]
+		)
+		check(r.sizes.visible == opt, "%s: sizes only on an optional row" % id)
+	check(w.optional["sim-scenery"].download > 0, "an empty root: the scenery has a download")
+	check(
+		"בערך" in w.rows["sim-scenery"].sizes.text,
+		"not built: its disk size is an estimate (%s)" % w.rows["sim-scenery"].sizes.text
+	)
+	w.rows["sim-textures"].include.button_pressed = false
+	check(w.excluded == ["sim-textures"], "unticked: left out")
+	check(Array(IafSetup.sim_excluded(assets)) == ["sim-textures"], "the choice is remembered at once")
+	check(w.rows["sim-textures"].state.text == "לא נכלל" and not w.remove_dialog.visible, "not built: no removal asked")
+	w.rows["sim-textures"].include.button_pressed = true
+	check(w.excluded.is_empty() and IafSetup.sim_excluded(assets).is_empty(), "ticked again: included")
+	# A built scenery: unticking asks, Remove frees it and keeps assets/source.
+	var made := ["converted/terrain/israel/scenery/manifest.json", "converted/terrain/israel/roads/main.bin"]
+	for f in made:
+		DirAccess.make_dir_recursive_absolute(assets.path_join(f).get_base_dir())
+		FileAccess.open(assets.path_join(f), FileAccess.WRITE).store_string("x")
+	w._load_optional()
+	w.rows["sim-scenery"].include.button_pressed = false
+	await frames(2)
+	check(w.remove_dialog.visible and w.remove_id == "sim-scenery", "a built step left out: remove its data?")
+	check(not w.remove_downloads.button_pressed, "the downloads stay unless ticked")
+	w.remove_dialog.get_ok_button().pressed.emit()
+	await frames(2)
+	check(made.all(func(f): return not FileAccess.file_exists(assets.path_join(f))), "Remove deletes its data")
+	check(not w.optional["sim-scenery"].built and "התפנו" in w.install_note.text, "the note says what it freed")
+	w.rows["sim-scenery"].include.button_pressed = true
+	check(IafSetup.sim_excluded(assets).is_empty(), "everything included again")
 
 
 ## Every visible text under `n` (labels, buttons, check boxes), one per line.

@@ -689,6 +689,13 @@ func prefs(fe: Control) -> void:
 				radios.size() == 3 and radios.all(func(r): return r.disabled != have),
 				"prefs: Scenery Off / On / Detailed, greyed only without setup's scenery (%s)" % have
 			)
+			if not have:
+				var left: Dictionary = s.load_json(s.converted("modern-iaf/setup.json"))
+				var why: String = (
+					fe.s("scenery_left_out") if "sim-scenery" in left.get("excluded", []) else fe.s("scenery_missing")
+				)
+				var shown := sc.find_children("*", "Label", true, false).map(func(l): return l.text)
+				check(why in shown, "prefs: greyed Scenery says why: %s" % why)
 	check(s.rejected.size() == refused, "prefs: the screens read none of the original's data (%s)" % [s.rejected])
 	for k in ["antialiasing", "upscaling", "shadows", "terrain_detail", "clouds", "scenery", "fullscreen", "vsync"]:
 		check(rows.get(k) == "graphics", "prefs: Graphics has %s" % k)
@@ -1143,7 +1150,11 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	check(d.runways.size() >= 2 and d.route.size() == 4 and d.taxi.size() >= 4, "%s: map: runways, taxi, route" % lang)
 	check(d.aprons.size() > 0 and d.taxiways.size() > 0 and d.parking.size() > 0, "%s: map: the airbase" % lang)
 	check(map.base_label == ("רמון" if he else "Ramon"), "%s: map: the base" % lang)
-	check(d.get("texture") is Texture2D and d.roads.size() > 0, "%s: map: the ground colour and the roads" % lang)
+	# The roads with setup's road layer (the optional scenery step); without it the map draws the ground alone.
+	var roads: bool = load("res://shared/terrain/ground_roads.gd").available()
+	check(
+		d.get("texture") is Texture2D and (d.roads.size() > 0) == roads, "%s: map: the ground, roads %s" % [lang, roads]
+	)
 	var towns: Array = d.places.map(func(p): return p.he if he else p.en)
 	check(("מצפה רמון" if he else "Mitspe Ramon") in towns, "%s: map: Mitzpe Ramon (%s)" % [lang, towns])
 	check(fe.find_child("Footer", true, false) != null and _has_part(fe, "OpenStreetMap"), "%s: map: credit" % lang)

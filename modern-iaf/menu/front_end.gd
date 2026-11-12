@@ -1391,7 +1391,9 @@ func _pref_row(parent: Control, row: Array) -> void:
 	# screen with no joystick connected (it comes alive when one is plugged in, _on_joy_connection).
 	var why := ""
 	if key == "scenery" and not Scenery.available():
-		why = "scenery_missing"
+		# Left out in setup (modern-iaf/docs/setup.md: the choice file), or not built yet.
+		var left: Dictionary = Settings.load_json(Settings.converted("modern-iaf/setup.json"))
+		why = "scenery_left_out" if "sim-scenery" in left.get("excluded", []) else "scenery_missing"
 	elif key in ["joystick_screen", "throttle_detent"] and Joystick.device() < 0:
 		why = "joy_none"
 	elif key == "throttle_detent":

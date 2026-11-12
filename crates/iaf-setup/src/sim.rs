@@ -12,11 +12,160 @@ use iaf_tools::{sim, sim_bases, sim_fm0, sim_scenery, sim_terrain};
 use crate::{Events, Outcome, Redo, State, Step, stamp};
 
 /// What the player chooses for the sim.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SimInputs {
     /// The Survey of Israel 2 m photo over Israel, from the sheet ZIPs already in `assets/source/imagery/mapi2015`
     /// (else Sentinel-2 everywhere).
     pub survey: bool,
+    /// The optional steps, each included (the default) or left out: neither downloaded nor built.
+    pub scenery: bool,
+    pub textures: bool,
+}
+
+impl Default for SimInputs {
+    fn default() -> Self {
+        SimInputs { survey: false, scenery: true, textures: true }
+    }
+}
+
+impl SimInputs {
+    /// These inputs with the optional steps `ids` left out (the wizard's unticked rows; unknown ids ignored).
+    pub fn without(self, ids: &[&str]) -> Self {
+        SimInputs { scenery: !ids.contains(&"sim-scenery"), textures: !ids.contains(&"sim-textures"), ..self }
+    }
+}
+
+/// The sim's choice file: the optional steps the player left out, remembered for the next run of the wizard.
+pub fn sim_choice_file(assets: &Path) -> PathBuf {
+    assets.join("converted/modern-iaf/setup.json")
+}
+
+/// The optional steps left out at the last run (none before the first).
+pub fn sim_excluded(assets: &Path) -> Vec<String> {
+    let t = std::fs::read_to_string(sim_choice_file(assets)).unwrap_or_default();
+    let v: serde_json::Value = serde_json::from_str(&t).unwrap_or_default();
+    v["excluded"].as_array().map_or(vec![], |a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect())
+}
+
+/// Remembers the optional steps left out (`sim_excluded` reads them back; the game greys their Preferences rows).
+pub fn save_sim_excluded(assets: &Path, ids: &[String]) -> Result<()> {
+    let f = sim_choice_file(assets);
+    std::fs::create_dir_all(f.parent().unwrap_or(assets))?;
+    std::fs::write(&f, serde_json::json!({ "excluded": ids }).to_string() + "\n")
+        .with_context(|| format!("{}", f.display()))
+}
+
+/// One optional step's sizes for the wizard's row: `download` the bytes still to fetch (0 when `assets/source` holds
+/// them), `disk` the bytes its outputs take (built) or will take (an estimate from a full build), `sources` the bytes
+/// of its own downloads kept in `assets/source` (what "also the downloads" frees), `shared` when another setup in
+/// this assets folder (the original game's, `assets/install`) reads the same files, so they stay.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Optional {
+    pub id: &'static str,
+    pub built: bool,
+    pub download: u64,
+    pub disk: u64,
+    pub sources: u64,
+    pub shared: bool,
+}
+
+/// A full build's outputs (2026-11-12, the 21-node theatre): the scenery 1,056 MB plus the roads 118 MB; the
+/// ambientCG materials 313 MB, downloaded as about 310 MB of zips.
+const SCENERY_DISK: u64 = 1_174_000_000;
+const TEXTURES_DISK: u64 = 313_000_000;
+const TEXTURES_DOWNLOAD: u64 = 310_000_000;
+
+/// The scenery's own downloads (not the extracts the airbases' water is cut from, which stay), with their folders.
+fn scenery_own_sources(assets: &Path) -> Vec<(iaf_tools::thirdparty::Download, PathBuf)> {
+    let geo = iaf_tools::sim_bases::theatre_geo(sim_terrain::BOX);
+    let water: Vec<&str> = iaf_tools::sim_coast::water_extracts(geo).iter().map(|(d, _)| d.file).collect();
+    sim_scenery::downloads(geo)
+        .into_iter()
+        .filter(|d| !water.contains(&d.file))
+        .map(|d| (d, assets.join("source/scenery")))
+        .collect()
+}
+
+/// The outputs of optional step `id` under `assets`.
+fn optional_outputs(assets: &Path, id: &str) -> Vec<PathBuf> {
+    match id {
+        "sim-scenery" => vec![assets.join(THEATRE).join("scenery"), assets.join(THEATRE).join("roads")],
+        "sim-textures" => vec![assets.join("thirdparty/ambientcg")],
+        _ => vec![],
+    }
+}
+
+/// The sim's optional steps' sizes (`Optional`), in the plan's order.
+pub fn sim_optional(assets: &Path) -> Vec<Optional> {
+    use iaf_tools::thirdparty;
+    let shared = assets.join("install").is_dir();
+    let out = |id| optional_outputs(assets, id).iter().map(|p| crate::disk_bytes(p)).sum::<u64>();
+    // The scenery: its own files and the extracts the roads read (the airbases' step fetches those first).
+    let geo = iaf_tools::sim_bases::theatre_geo(sim_terrain::BOX);
+    let all = sim_scenery::downloads(geo)
+        .into_iter()
+        .map(|d| (d, assets.join("source/scenery")))
+        .chain(iaf_tools::sim_coast::road_downloads(geo).into_iter().map(|d| (d, assets.join("source/roads"))));
+    let scenery_dl = all.filter(|(d, dir)| !thirdparty::file_done(dir, d)).map(|(d, _)| d.bytes).sum();
+    let own = scenery_own_sources(assets);
+    let scenery_built = assets.join(THEATRE).join("scenery/manifest.json").is_file();
+    // The textures: the zips not yet packed nor kept, a share of the whole download.
+    let (src, dir) = (assets.join("source/ambientcg"), assets.join("thirdparty/ambientcg"));
+    let mats: Vec<_> = thirdparty::LISTS.iter().flat_map(|(_, l)| l.iter()).collect();
+    let textures_built = mats.iter().all(|m| thirdparty::is_done(&dir, m)) && iaf_tools::foliage::is_done(&dir);
+    let missing = mats.iter().filter(|m| !thirdparty::is_done(&dir, m) && !thirdparty::zip_kept(&src, m)).count();
+    vec![
+        Optional {
+            id: "sim-scenery",
+            built: scenery_built,
+            download: scenery_dl,
+            disk: if scenery_built { out("sim-scenery") } else { SCENERY_DISK },
+            sources: own.iter().map(|(d, dir)| crate::disk_bytes(&dir.join(d.file))).sum(),
+            shared,
+        },
+        Optional {
+            id: "sim-textures",
+            built: textures_built,
+            download: TEXTURES_DOWNLOAD * missing as u64 / mats.len().max(1) as u64,
+            disk: if textures_built { out("sim-textures") } else { TEXTURES_DISK },
+            sources: crate::disk_bytes(&src),
+            shared,
+        },
+    ]
+}
+
+/// Removes optional step `id`'s data (its outputs and stamp) and, with `downloads`, its own downloads in
+/// `assets/source`; returns the bytes freed. Data another setup in this folder reads too stays (an error says so).
+pub fn sim_remove(assets: &Path, id: &str, downloads: bool) -> Result<u64> {
+    let shared = assets.join("install").is_dir();
+    let outputs = optional_outputs(assets, id);
+    anyhow::ensure!(!outputs.is_empty(), "{id}: not an optional step");
+    anyhow::ensure!(!(shared && id == "sim-textures"), "the textures are shared with another setup in this folder");
+    let mut gone: Vec<PathBuf> = outputs;
+    let stamp = stamp::sim_stamp_path(assets, id);
+    gone.extend([stamp.with_extension("secs"), stamp]);
+    if downloads {
+        anyhow::ensure!(!shared, "the downloads are shared with another setup in this folder");
+        match id {
+            "sim-scenery" => {
+                for (d, dir) in scenery_own_sources(assets) {
+                    gone.extend(["", ".ok", ".part"].map(|x| dir.join(format!("{}{x}", d.file))));
+                }
+            }
+            _ => gone.push(assets.join("source/ambientcg")),
+        }
+    }
+    let mut freed = 0;
+    for p in gone {
+        let n = crate::disk_bytes(&p);
+        let r = if p.is_dir() { std::fs::remove_dir_all(&p) } else { std::fs::remove_file(&p) };
+        match r {
+            Ok(()) => freed += n,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(e).with_context(|| format!("{}", p.display())),
+        }
+    }
+    Ok(freed)
 }
 
 /// Everything a sim run needs.
@@ -82,20 +231,24 @@ pub fn sim_plan(inputs: &SimInputs) -> Vec<Step> {
     add("sim-own", "sounds, voices and keys", &[]);
     add("sim-airbases", "airbases: Ramon, Hatzerim, Nevatim, Ramat David", &["sim-terrain"]);
     add("sim-missions", "training missions", &["sim-airbases", "sim-db"]);
-    // Optional: the sim flies without it (no GDAL, offline).
-    v.push(Step {
+    // Optional: the sim flies without it (no GDAL, offline, or left out).
+    if inputs.scenery {
+        v.push(Step {
         id: "sim-scenery",
         title: "scenery: buildings, trees, roads and city lights (OpenStreetMap, Microsoft footprints, GHS-BUILT-H, ETH canopy)",
         required: false,
         after: vec!["sim-airbases"],
-    });
+        });
+    }
     // Optional: the ground textures, the model detail and the scenery trees' foliage (the original's "textures" step).
-    v.push(Step {
-        id: "sim-textures",
-        title: "textures: ambientCG CC0 materials for the ground, the models and the trees (download, about 310 MB)",
-        required: false,
-        after: vec![],
-    });
+    if inputs.textures {
+        v.push(Step {
+            id: "sim-textures",
+            title: "textures: ambientCG CC0 materials for the ground, the models and the trees (download, about 310 MB)",
+            required: false,
+            after: vec![],
+        });
+    }
     v
 }
 
@@ -208,7 +361,60 @@ mod tests {
         assert_eq!(after("sim-scenery"), ["sim-airbases"]);
         assert!(!p.iter().find(|s| s.id == "sim-scenery").unwrap().required);
         assert!(!p.iter().find(|s| s.id == "sim-textures").unwrap().required);
-        assert!(sim_plan(&SimInputs { survey: true })[0].title.contains("Survey"));
+        assert!(sim_plan(&SimInputs { survey: true, ..Default::default() })[0].title.contains("Survey"));
+    }
+
+    /// A left-out optional step is neither in the plan nor run; the choice is remembered.
+    #[test]
+    fn an_optional_step_left_out_is_not_planned() {
+        let ids = |i: SimInputs| sim_plan(&i).iter().map(|s| s.id).collect::<Vec<_>>();
+        let all = ids(SimInputs::default());
+        assert!(all.contains(&"sim-scenery") && all.contains(&"sim-textures"));
+        let without = ids(SimInputs::default().without(&["sim-scenery", "sim-terrain"]));
+        assert!(!without.contains(&"sim-scenery") && without.contains(&"sim-textures"));
+        assert!(without.contains(&"sim-terrain"), "a required step cannot be left out");
+        let dir = std::env::temp_dir().join(format!("iaf-sim-choice-{}", std::process::id()));
+        assert!(sim_excluded(&dir).is_empty(), "none left out before the first run");
+        save_sim_excluded(&dir, &["sim-textures".into()]).unwrap();
+        assert_eq!(sim_excluded(&dir), ["sim-textures"]);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Removing a left-out step's data: its outputs and stamp go, its downloads only when asked, the airbases' extracts
+    /// never; with another setup in the folder the shared files stay.
+    #[test]
+    fn removing_an_optional_step() {
+        let dir = std::env::temp_dir().join(format!("iaf-sim-remove-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let put = |p: &str, n: usize| {
+            std::fs::create_dir_all(dir.join(p).parent().unwrap()).unwrap();
+            std::fs::write(dir.join(p), vec![0u8; n]).unwrap();
+        };
+        put("converted/terrain/israel/scenery/manifest.json", 10);
+        put("converted/terrain/israel/roads/main.bin", 5);
+        put("converted/modern-iaf/sim-scenery.stamp", 1);
+        let own = &scenery_own_sources(&dir)[0].0;
+        put(&format!("source/scenery/{}", own.file), 7);
+        put(&format!("source/scenery/{}", iaf_tools::sim_coast::osm_extract().file), 3);
+        let o = sim_optional(&dir);
+        assert!(o[0].built && o[0].disk == 15 && o[0].sources == 7 && !o[0].shared, "{o:?}");
+        assert_eq!(sim_remove(&dir, "sim-scenery", false).unwrap(), 16);
+        assert!(
+            !dir.join(THEATRE).join("scenery").exists() && !dir.join("converted/modern-iaf/sim-scenery.stamp").exists()
+        );
+        assert!(dir.join("source/scenery").join(own.file).exists(), "the downloads stay unless asked");
+        assert!(!sim_optional(&dir)[0].built);
+        std::fs::create_dir_all(dir.join("install")).unwrap();
+        assert!(sim_remove(&dir, "sim-scenery", true).is_err(), "shared with another setup: kept");
+        assert!(sim_remove(&dir, "sim-textures", false).is_err());
+        std::fs::remove_dir(dir.join("install")).unwrap();
+        assert_eq!(sim_remove(&dir, "sim-scenery", true).unwrap(), 7);
+        assert!(
+            dir.join("source/scenery").join(iaf_tools::sim_coast::osm_extract().file).exists(),
+            "the airbases' extract stays"
+        );
+        assert!(sim_remove(&dir, "sim-terrain", false).is_err(), "a required step has no removal");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// A sim run on a scratch root with a fake terrain: the small steps run, then are up to date; the terrain's
@@ -261,7 +467,7 @@ mod tests {
         assert!(sim_expected(&steps, &ctx, &|_| false).iter().all(|e| *e == Some(0.0)), "up to date: no time");
         assert!(sim_expected(&steps, &ctx, &|_| true).iter().all(|e| e.is_some()), "each run's seconds were recorded");
         assert!(sim_preview(&steps, &ctx).iter().all(|(_, up)| *up));
-        let survey = SimCtx { inputs: SimInputs { survey: true }, ..ctx };
+        let survey = SimCtx { inputs: SimInputs { survey: true, ..Default::default() }, ..ctx };
         std::fs::create_dir_all(survey_dir(&dir)).unwrap();
         std::fs::write(survey_dir(&dir).join("a.zip"), "z").unwrap();
         assert_eq!(survey_sheets(&dir), 1);
