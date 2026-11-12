@@ -763,6 +763,8 @@ func reason(detail: String) -> String:
 		return s("why_gdal")
 	if "cannot be reached (offline?)" in detail:
 		return s("why_offline")
+	if detail.begins_with("built, incomplete: "):
+		return s("why_incomplete") % detail.get_slice(" ", 2).to_int()
 	return detail
 
 

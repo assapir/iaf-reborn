@@ -167,6 +167,8 @@ func run() -> void:
 		"a skipped step shows its reason and Retry"
 	)
 	check(not w.rows["sim-db"].why.visible, "an up-to-date step shows no reason")
+	var part := "built, incomplete: 3 sources missing (a, b, c); Retry fetches them"
+	check(w.reason(part) == w.s("why_incomplete") % 3, "an incomplete scenery: its reason in the page's language")
 	check("1 skipped" in w.install_note.text and w.next_button.text == "Next", "the note counts the skipped step")
 	sc.tick.button_pressed = true
 	check(not w.finished and w.next_button.text == "Install", "a ticked Run again brings Install back")

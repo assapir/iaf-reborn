@@ -75,6 +75,7 @@
 	"disk_will": "about %s on disk",
 	"why_gdal": "GDAL is needed (gdalwarp, ogr2ogr): install it, then press Retry.",
 	"why_offline": "The sources cannot be reached (offline?): press Retry when online.",
+	"why_incomplete": "Built, incomplete: %d sources could not be downloaded, so their areas are left out. Retry fetches only them.",
 	"remove_title": "Remove its data?",
 	"remove_q": "\"%s\" is left out. Remove the data it built? This frees %s. The sim flies without it; ticking the step again builds it anew.",
 	"remove_downloads": "Also its downloads in assets/source (%s more; ticking the step again downloads them anew)",

@@ -183,6 +183,9 @@ pub struct Summary {
     pub bytes: u64,
     pub roads: Option<roads::Summary>,
     pub up_to_date: bool,
+    /// The optional sources still missing after the downloads (offline, a failed fetch): their areas are left out,
+    /// and the next run fetches them and builds again (the manifests' `made_from` names them missing).
+    pub missing: Vec<&'static str>,
 }
 
 /// `iaf-sim scenery`: downloads what the shared cache lacks, then the road layer and the cells (module doc). Up to
@@ -267,6 +270,7 @@ pub fn scenery(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBoo
             log!(pr, "scenery: {} not downloaded, its area is left out: {e:#}", d.file);
         }
     }
+    s.missing = scenery_files.iter().filter(|(d, dir)| !thirdparty::file_done(dir, d)).map(|(d, _)| d.file).collect();
     let files: Vec<PathBuf> =
         list.iter().filter(|d| thirdparty::file_done(&src, d)).map(|d| src.join(d.file)).collect();
     let pbfs: Vec<(&Download, PathBuf)> = road_files

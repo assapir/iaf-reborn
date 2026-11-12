@@ -323,12 +323,26 @@ fn scenery(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -
         return Ok(Outcome::Skipped("GDAL is needed (gdalwarp, ogr2ogr)".into()));
     }
     match sim_scenery::scenery(data, assets, pr, cancel) {
-        Ok(s) => Ok(if s.up_to_date { Outcome::UpToDate } else { Outcome::Done }),
+        Ok(s) => Ok(scenery_outcome(&s)),
         Err(_) if !crate::steps::reachable(crate::steps::SCENERY_PROBE) => Ok(Outcome::Skipped(
             "the scenery's sources cannot be reached (offline?): Scenery stays off; run setup again online".into(),
         )),
         Err(e) => Err(e),
     }
+}
+
+/// A finished scenery run as the step's outcome. Built without some optional sources: skipped with "built,
+/// incomplete" (the wizard translates it by that start, wizard.gd reason), so no stamp is written and the next run
+/// fetches the missing files, only them, and builds again.
+fn scenery_outcome(s: &sim_scenery::Summary) -> Outcome {
+    if !s.missing.is_empty() {
+        let n = s.missing.len();
+        return Outcome::Skipped(format!(
+            "built, incomplete: {n} sources missing ({}); Retry fetches them",
+            s.missing.join(", ")
+        ));
+    }
+    if s.up_to_date { Outcome::UpToDate } else { Outcome::Done }
 }
 
 /// Makes `iaf-sim terrain` build the theatre in `out` again (a redo): its `meta.json` (whose `built_from` would say
@@ -362,6 +376,19 @@ mod tests {
         assert!(!p.iter().find(|s| s.id == "sim-scenery").unwrap().required);
         assert!(!p.iter().find(|s| s.id == "sim-textures").unwrap().required);
         assert!(sim_plan(&SimInputs { survey: true, ..Default::default() })[0].title.contains("Survey"));
+    }
+
+    /// A scenery built with sources missing is not stamped (skipped, its reason naming them); a full one is.
+    #[test]
+    fn an_incomplete_scenery_is_not_stamped() {
+        let mut s =
+            sim_scenery::Summary { missing: vec!["eth-N30E033.tif", "ms-Cyprus-1.csv.gz"], ..Default::default() };
+        assert!(matches!(scenery_outcome(&s), Outcome::Skipped(ref w)
+            if w.starts_with("built, incomplete: 2 sources missing") && w.contains("eth-N30E033.tif")));
+        s.missing.clear();
+        assert!(matches!(scenery_outcome(&s), Outcome::Done));
+        s.up_to_date = true;
+        assert!(matches!(scenery_outcome(&s), Outcome::UpToDate));
     }
 
     /// A left-out optional step is neither in the plan nor run; the choice is remembered.

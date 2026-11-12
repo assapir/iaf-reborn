@@ -93,6 +93,13 @@ fn main() -> Result<()> {
             if s.up_to_date {
                 println!("scenery: up to date");
             }
+            if !s.missing.is_empty() {
+                eprintln!(
+                    "scenery: built, incomplete: {} sources missing ({}); run it again online",
+                    s.missing.len(),
+                    s.missing.join(", ")
+                );
+            }
         }),
         Some("all") => {
             sim::db(data, assets, &Stdout, &cancel)?;

@@ -1838,6 +1838,10 @@ mod tests {
         // A kept source opens no connection (a code change never re-downloads): its URL is never asked.
         let offline = [Download { file: "a.zip", url: "http://127.0.0.1:9/never", sha256: sum, bytes: 1 }];
         assert_eq!(fetch_files(&offline, &out, &Stdout, &no).unwrap(), 0, "kept, no connection");
+        // A run after an incomplete one: the kept file opens no connection, only the missing one is fetched.
+        let next = [offline[0], Download { file: "m.zip", url, sha256: sum, bytes: 1 }];
+        assert_eq!(fetch_files(&next, &out, &Stdout, &no).unwrap(), 1, "only the missing file");
+        assert!(file_done(&out, &next[1]));
         // A failed file leaves the others to finish: the next try fetches only the failed one.
         let mixed = [
             Download { file: "x.zip", url, sha256: "00", bytes: 1 },

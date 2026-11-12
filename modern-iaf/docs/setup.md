@@ -133,7 +133,7 @@ dependency graph as the original game's setup: independent steps run at once, a 
 | `sim-own` | `iaf-sim own`: the sounds, the voices and the keys ([sound.md](sound.md)) | — |
 | `sim-airbases` | `iaf-sim airbases`: the four bases on the terrain ([airbases.md](airbases.md) §9) | `sim-terrain` |
 | `sim-missions` | `iaf-sim missions`: the training missions on the bases ([training.md](training.md)) | `sim-airbases`, `sim-db` |
-| `sim-scenery` (optional) | `iaf-sim scenery`: the buildings, trees, roads and city lights ([scenery.md](scenery.md)); skipped without GDAL's `ogr2ogr`, or offline with a file still to download; the sim flies without it | `sim-airbases` |
+| `sim-scenery` (optional) | `iaf-sim scenery`: the buildings, trees, roads and city lights ([scenery.md](scenery.md)); skipped without GDAL's `ogr2ogr`, or offline with a file still to download; the sim flies without it; built without some optional sources (offline, a failed fetch) it ends "skipped" with "Built, incomplete: N sources" and Retry, writes no stamp, and the next run fetches only the missing files and builds again | `sim-airbases` |
 | `sim-textures` (optional) | the ambientCG CC0 materials (the original game's `textures` step, shared): the zips (about 310 MB) kept in `assets/source/ambientcg`, packed into `assets/thirdparty/ambientcg`: the Ground textures, the Model detail and the scenery trees' foliage; skipped offline, and up to date when the original game's setup already fetched them | — |
 
 The same steps from a terminal, from the repo root (no stamps: each command runs; the terrain still ends at once when
