@@ -35,6 +35,13 @@ func run() -> void:
 		return
 	for k in ORIGINAL:
 		check(s.get(k) != ORIGINAL[k], "settings: %s is the sim's own (%s)" % [k, s.get(k)])
+	# The roads: the sim's own layer (terrain/israel/roads) when setup made it, else off without a refused read.
+	var roads: GDScript = load("res://shared/terrain/ground_roads.gd")
+	var has_roads := FileAccess.file_exists(s.converted(s.roads_dir().path_join("main.bin")))
+	var refused: int = s.rejected.size()
+	check(roads.available() == has_roads, "settings: the road layer is found where the sim keeps it (%s)" % has_roads)
+	check(s.rejected.size() == refused, "settings: asking for the roads reads no original path")
+	check(s.ground_roads == ("detailed" if has_roads else "original"), "settings: Roads follow the sim's layer")
 	var ground: GDScript = load("res://shared/terrain/ground_textures.gd")
 	check(ground.available() == (s.ground_textures == "ambientcg"), "settings: ground textures follow the download")
 	var bases: GDScript = load("res://shared/terrain/airbases.gd")

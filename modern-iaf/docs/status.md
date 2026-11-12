@@ -251,7 +251,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   layer and city lights in the sim's UTM theatre from the shared open-data cache ([scenery.md](scenery.md)); the sim
   shows them over its own ground when Scenery is on (Preferences → Graphics → "Buildings and trees": Off / On /
   Detailed, On by default, greyed without the step, 2026-11-08); `iaf-sim airbases` flags the Dead Sea, the Sea of
-  Galilee, the evaporation pans and the reservoirs as inland water ([terrain.md](terrain.md) §11).
+  Galilee, the evaporation pans and the reservoirs as inland water ([terrain.md](terrain.md) §11). Since 2026-11-12
+  the sim draws its own road layer (Roads Detailed on by default when the step made it; the probe asked for the
+  original game's path before, [scenery.md](scenery.md)).
 - **[E3b](plan.md#e3-the-training-missions), the training missions in the game (2026-11-03):** `./start-modern-iaf -- --mission 2011` (… 2032) flies a start-up or
   take-off mission without the front end: parked cold, the start command (Ctrl+E) runs the jet's start sequence on
   the 6-DoF, the screens and the HUD come alive at the real moments; the radio menu (Ctrl+T) asks the base's

@@ -54,7 +54,12 @@ reference point lands 0.5 m or less from GDAL's UTM, the test's bound is 5 m).
 They lie beside the theatre because their node keys belong to its frame: a theatre built over another box has other
 keys. The sim finds them through `Settings.scenery_dir()` and `Settings.roads_dir()` (`modern-iaf/sim_settings.gd`);
 `Settings.scenery_everywhere()` is true in the sim, so the scenery shows over its own ground (the original game shows
-it over a Survey 2 m layer only).
+it over a Survey 2 m layer only). The road layer's probe (`ground_roads.gd` `available()`) asks for
+`Settings.roads_dir()`'s `main.bin`, so the sim turns Roads Detailed on whenever setup made its layer, and off,
+without reading an original path, when it did not. Its cost in the sim: 500 m over Tel Aviv and Beersheba
+(2026-11-12, the probe's "no roads" case, three rounds on a busy machine) within the noise of about 1 ms; open: a
+measurement on a quiet machine. (Until 2026-11-12 the probe asked for the original's `roads/`, so
+the sim never drew its roads; `modern-iaf/tests/test_sim_look.gd` checks it).
 
 How a cell is made is the original's (docs/scenery.md §1.2), with these differences:
 
@@ -166,7 +171,7 @@ same for every mode benched after it.
 **The scenery's cost by part, and the cuts that keep the picture** (2026-11-11, look batch 1 item 5):
 `modern-iaf/tests/_scenery_probe.gd` holds the jet still 500 m above Tel Aviv's centre (`--at 668000 3550689 530 330 0
 --freeze`) and Beersheba's (`--at 668500 3455500 780 330 0 --freeze`), the cockpit view, the sim's defaults (Scenery
-On, Far towns Light, Shadow reach Far; Roads Original: the road layer is not made), waits until every cell around is
+On, Far towns Light, Shadow reach Far; Roads Original: until 2026-11-12 the sim never drew its road layer), waits until every cell around is
 built, then measures the flight viewport's GPU time over 120 frames with each part hidden in turn. Six rounds,
 interleaved; the median of rounds 2–6 (their spread 0.1–0.3 ms). Intel Iris Xe, the window 1920 × 994, under the shared
 GPU lock, no other Godot running. The jet stands still, so the cells' building and upload (the CPU's share while
@@ -180,7 +185,7 @@ flying) are left out.
 | their shadows alone | | 0.54 | 0.36 | | 0.49 | 0.32 |
 | the far ring's buildings (2.5–4.5 km) | | 0.16 | 0.18 | | 0.62 | 0.54 |
 | the trees' far model (from 200 m; the full model is beyond reach at 500 m) | | 0.59 | 0.56 | | 0.18 | 0.15 |
-| the roof items, the roads | | 0 (Detailed only; no road layer) | | | 0 | |
+| the roof items, the roads | | 0 (Detailed only; no road layer at the time) | | | 0 | |
 
 - **Cut 1, the buildings' colours per vertex** (`scenery.gdshader`): the palette, the photo's lightening and the
   roofs' far colour are worked out per vertex, not per pixel. Each building's face has one colour (every vertex of a

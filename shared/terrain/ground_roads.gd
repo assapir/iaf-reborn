@@ -30,9 +30,9 @@ static func dir() -> String:
 	return Settings.converted(Settings.roads_dir())
 
 
-## Setup made the road layer.
+## Setup made the road layer (the game's own folder: Settings.roads_dir()).
 static func available() -> bool:
-	return Settings.has_converted("roads/main.bin")
+	return Settings.has_converted(Settings.roads_dir().path_join("main.bin"))
 
 
 ## Roads = Detailed with the road layer (opened once per process).
