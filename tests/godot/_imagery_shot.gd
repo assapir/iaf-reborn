@@ -8,7 +8,8 @@
 # ground_roads=detailed,night_lights=detailed; show_info=false for the docs).
 # SHOT_HIDE_JET=1: the player's jet hidden (pictures for the docs).
 # SHOT_HOUR=h: the clock of a free flight (no mission; e.g. 22 for the city lights).
-# IAF 2026's theatre (modern-iaf/docs/scenery.md): --path modern-iaf, SHOT_LAYERS=sim (its ground is its own), UTM metres.
+# IAF 2026's theatre (modern-iaf/docs/scenery.md): --path modern-iaf, SHOT_LAYERS=sim (its ground is its own), UTM
+# metres.
 extends "res://../tests/godot/base.gd"
 
 

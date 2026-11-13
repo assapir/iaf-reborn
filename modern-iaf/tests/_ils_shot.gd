@@ -2,7 +2,8 @@
 # down) in the 3D cockpit, a real render frozen 3 s after the start, zoomed in to the true size and looking up 7°:
 # SHOT_OUT/ils_<SHOT_TAG>.png, the ILS deviations and bar positions printed. The "before" (docs/real-hud.md): the same
 # run with sim_settings.gd's hud_subpixel() returning false. The --at start comes from a headless run with PRINT_AT=1:
-#   IAF_DEFAULT_SETTINGS=1 PRINT_AT=1 godot --headless --path modern-iaf -s ../modern-iaf/tests/_ils_shot.gd --log-file <t>
+#   IAF_DEFAULT_SETTINGS=1 PRINT_AT=1 godot --headless --path modern-iaf -s ../modern-iaf/tests/_ils_shot.gd \
+#     --log-file <t>
 #   flock -o ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_OUT=<dir> SHOT_TAG=after \
 #     -- --log-file <t> --resolution 1920x1080 --path modern-iaf -s ../modern-iaf/tests/_ils_shot.gd -- --at <printed>
 extends "res://../tests/godot/base.gd"

@@ -20,12 +20,15 @@ func run() -> void:
 	# Ahead at 10 km, a town and a city on one spot, a town at 20 km, and one 40° under the nose.
 	var ahead: Vector3 = cam.global_position + fwd * 10000.0
 	var under: Vector3 = cam.global_position + fwd.rotated(cam.global_basis.x, deg_to_rad(-40.0)) * 3000.0
-	tl.places.assign([
-		place.call(ahead, "Town", 1),
-		place.call(ahead, "City", 0),
-		place.call(cam.global_position + fwd.rotated(Vector3.UP, 0.2) * 20000.0, "Far", 1),
-		place.call(under, "Under", 1),
-	])
+	var far: Vector3 = cam.global_position + fwd.rotated(Vector3.UP, 0.2) * 20000.0
+	tl.places.assign(
+		[
+			place.call(ahead, "Town", 1),
+			place.call(ahead, "City", 0),
+			place.call(far, "Far", 1),
+			place.call(under, "Under", 1)
+		]
+	)
 	tv.add_child(tl)
 	await frames(2)
 	var by := {}

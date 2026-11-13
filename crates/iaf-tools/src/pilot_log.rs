@@ -370,11 +370,28 @@ fn folder(db: &Path) -> &Path {
 mod tests {
     use super::*;
 
-    fn temp(name: &str) -> std::path::PathBuf {
+    /// A test's own folder, removed when it goes out of scope: declared before the connection, it drops after it
+    /// (Windows refuses to delete an open database file).
+    struct Temp(std::path::PathBuf);
+
+    impl std::ops::Deref for Temp {
+        type Target = Path;
+        fn deref(&self) -> &Path {
+            &self.0
+        }
+    }
+
+    impl Drop for Temp {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+
+    fn temp(name: &str) -> Temp {
         let d = std::env::temp_dir().join(format!("iaf-pilot-log-{name}-{}", std::process::id()));
         let _ = fs::remove_dir_all(&d);
         fs::create_dir_all(&d).unwrap();
-        d
+        Temp(d)
     }
 
     fn rec(mission: &str, pass: bool, date: &str, elapsed: f64) -> Value {
@@ -397,7 +414,6 @@ mod tests {
         c.pragma_update(None, "user_version", SCHEMA_VERSION + 1).unwrap();
         drop(c);
         assert!(open(&db).is_err());
-        fs::remove_dir_all(&d).unwrap();
     }
 
     #[test]
@@ -419,7 +435,6 @@ mod tests {
         assert_eq!(sum["last"], json!({"mission_id": 2012, "result": 1}));
         assert_eq!(sum["missions"]["2012"], json!({"status": 1, "best_s": 660.0}));
         assert_eq!(summary(&c, 99).unwrap()["last"], Value::Null);
-        fs::remove_dir_all(&d).unwrap();
     }
 
     #[test]
@@ -452,7 +467,6 @@ mod tests {
         // A pilot made by a sortie has an empty profile.
         log_sortie(&c, 3, 2011, &rec("ramon_startup", true, "2026-11-02T07:00:00", 50.0)).unwrap();
         assert_eq!(pilot(&c, &db, 3).unwrap()["nickname"], "");
-        fs::remove_dir_all(&d).unwrap();
     }
 
     /// A version-1 file (before the profile) gains the profile's columns, its pilots and sorties kept.
@@ -475,7 +489,6 @@ mod tests {
         assert_eq!(sorties(&c, DEFAULT_PILOT).unwrap().len(), 1);
         set_pilot(&c, DEFAULT_PILOT, "Noa", "").unwrap();
         assert_eq!(pilot(&c, &db, DEFAULT_PILOT).unwrap()["name"], "Noa");
-        fs::remove_dir_all(&d).unwrap();
     }
 
     fn flown(mission: &str, pass: bool, date: &str, elapsed: f64, plane: &str) -> Value {
@@ -522,7 +535,6 @@ mod tests {
         assert_eq!(pilot(&c, &db, DEFAULT_PILOT).unwrap()["nickname"], "Viper");
         // Another pilot's log stays.
         assert_eq!(sorties(&c, 3).unwrap().len(), 1);
-        fs::remove_dir_all(&d).unwrap();
     }
 
     /// Only pilots with a name are listed; a new pilot takes the next free id.
@@ -543,7 +555,6 @@ mod tests {
             json!([{"id": DEFAULT_PILOT, "name": "Noa", "nickname": "Viper", "picture": ""},
                    {"id": id, "name": "Dana", "nickname": "", "picture": ""}])
         );
-        fs::remove_dir_all(&d).unwrap();
     }
 
     /// A version-2 file gains the sorties' plane, from the debrief's `plane` where it has one.
@@ -568,12 +579,12 @@ mod tests {
         let c = open(&db).unwrap();
         let planes: Vec<String> = sorties(&c, DEFAULT_PILOT).unwrap().into_iter().map(|s| s.plane).collect();
         assert_eq!(planes, ["f35i", "", ""]);
-        fs::remove_dir_all(&d).unwrap();
     }
 
     #[test]
     fn loadout_per_pilot_per_jet_and_version_3_migrates() {
-        let db = temp("loadouts").join("modern-iaf.sqlite");
+        let d = temp("loadouts");
+        let db = d.join("modern-iaf.sqlite");
         let c = Connection::open(&db).unwrap();
         for m in &MIGRATIONS[..3] {
             c.execute_batch(m).unwrap();
@@ -620,7 +631,6 @@ mod tests {
         let c = open(&db).unwrap();
         assert_eq!(sorties(&c, DEFAULT_PILOT).unwrap().len(), 2);
         assert!(file.exists() && d.join("pilots/14.json").exists());
-        fs::remove_dir_all(&d).unwrap();
     }
 
     #[test]
@@ -646,6 +656,5 @@ mod tests {
         let ids: Vec<i64> =
             pilots(&c, &db).unwrap().as_array().unwrap().iter().map(|p| p["id"].as_i64().unwrap()).collect();
         assert_eq!(ids, vec![b]);
-        fs::remove_dir_all(&d).unwrap();
     }
 }
