@@ -407,7 +407,7 @@ the second mock-up approved the same day) every flight of the sim carries a pape
 `modern-iaf/flight/notebook.gd` draws the notebook; `modern-iaf/flight/kneeboard.gd` fills it from the flight and
 places it; `sim_flight.gd` holds one and passes it the key and the checklist's steps.
 
-**The key.** Checklist notebook (H; record 118 of the sim's `keys.json`, command 203; the Keys screen rebinds it as any
+**The key.** Checklist notebook, in Hebrew בד"ח (the user, 2026-11-13) (H; record 118 of the sim's `keys.json`, command 203; the Keys screen rebinds it as any
 other) raises it and stows it again. The flight keeps running. The notebook itself names no key. On 2026-11-13 it moved
 from K to its own key (the user: "Give notebook its own key"): K had shared it with the GPS bomb's PRE / VIS switch
 ([weapons.md](../../docs/weapons.md) §13.2), which has K to itself again.
