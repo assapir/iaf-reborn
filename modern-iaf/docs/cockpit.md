@@ -375,8 +375,8 @@ step is done while all four are on; one off undoes it, and the debrief reads tha
 and checks the position, the consequence, the steps done and the switch shown; on the F-16s it switches each of the
 six alone and checks its system down with its consequence, the other five up, and the system back after the warm-up.
 
-The checklist card names each switch and its place under the step's line, beside the key
-([training.md](training.md) §7.1; the mission's `training.checklist[].where`, [data-formats.md](data-formats.md) §5).
+The pilot's notebook names each switch and its place under the step's line, and no key
+([training.md](training.md) §11; the mission's `training.checklist[].where`, [data-formats.md](data-formats.md) §5).
 
 - **The INS knob** sits on the right console aft of the eye, and from FlightGear's eye the right sill hides most of
   it; the hit test still finds it (the pointer at its place lights and clicks it). Leaning the head over the console:

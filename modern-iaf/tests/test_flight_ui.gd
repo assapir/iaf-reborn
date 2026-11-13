@@ -72,17 +72,19 @@ func run() -> void:
 			sizes.all(func(z): return z == ui.SUBTITLE_PX), "%s: the band's lines at subtitle size (%s)" % [lang, sizes]
 		)
 	s.language = "en"
-	# The start-up mission opens with its checklist card; the card shows one step.
+	# The start-up mission opens with the notebook raised at its START-UP page (training.md §11).
 	var tv := await _start(2011)
 	await frames(3)
 	var ui: Control = tv.addon.ui
 	var side: Control = ui.find_child("Checklist", true, false)
+	var kb: Node = tv.addon.kneeboard
 	check(not paused, "start-up: the flight runs")
-	check(side != null and side.visible, "start-up: the checklist card shows")
-	var rows := side.find_children("*", "HBoxContainer", true, false)
-	var first := String(tv.addon.checklist[0].en)
-	check(rows.size() == 1 and String(rows[0].get_child(0).text).ends_with(first), "start-up: one step, the first")
-	check(side.size.x <= 420, "start-up: the card is small (%d px wide)" % side.size.x)
+	check(side != null and side.visible and kb.raised, "start-up: the notebook is raised")
+	check(kb.board.current_id() == "startup" and kb._current() == 0, "start-up: its START-UP page, the first step")
+	check(
+		side.position.x > ui.size.x / 2.0,
+		"start-up: the notebook at the side (x %d of %d)" % [side.position.x, ui.size.x]
+	)
 	var info: String = tv.hud_label.text
 	check(
 		info.begins_with("mission: ramon_startup") and info.ends_with("fps"),

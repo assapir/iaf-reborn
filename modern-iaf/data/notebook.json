@@ -1,0 +1,86 @@
+{
+  "about": "The pilot's checklist notebook's own pages and places (modern-iaf/docs/training.md §11): the radio frequencies by base, the calls, the landing and emergency pages by jet family (f16: the Sufa and the Barak; f35i), the stowed board's place on the right thigh in each 3D cockpit's frame, and the gauge each start-up step watches. The start-up and taxi / take-off pages come from the missions' training data. Read by modern-iaf/flight/kneeboard.gd.",
+  "radio": {
+    "Ramon": [["GND", 275.8], ["TWR", 251.15], ["APP", 120.9]],
+    "Ramat David": [["GND", 285.25], ["TWR", 118.6], ["APP", 125.8]],
+    "Nevatim": [["GND", 264.35], ["TWR", 240.25], ["APP", 120.9]],
+    "Hatzerim": [["GND", 268.7], ["TWR", 256.9], ["APP", 122.15]]
+  },
+  "calls": [
+    {"call": "startup", "on": "GND", "en": "“{cs}, cleared to start”", "he": "״{cs}, מאושר להתניע״"},
+    {"call": "taxi", "on": "GND", "en": "“{cs}, taxi to runway {runway}”", "he": "״{cs}, הסעה למסלול {runway}״"},
+    {"call": "takeoff", "on": "TWR", "en": "“line up runway {runway}” · “cleared for take-off”", "he": "״כניסה למסלול {runway}״ · ״מאושר להמריא״"},
+    {"call": "landing", "on": "TWR", "en": "“proceed to runway …”", "he": "״המשך למסלול …״"}
+  ],
+  "pages": {
+    "f16": {
+      "landing": [
+        {"en": "Tower: contact for landing", "he": "מגדל: קריאה לנחיתה", "wait": {"en": "then wait for “proceed to runway …”", "he": "ואז המתנה ל״המשך למסלול …״"}},
+        {"en": "Landing gear: DOWN, three green", "he": "כן הנסע: למטה, שלוש ירוקות", "where": {"en": "gear handle, left of the front panel", "he": "ידית כן הנסע, משמאל ללוח הקדמי"}},
+        {"en": "Final: on-speed AOA 13°", "he": "גמר: זווית התקפה 13°", "where": {"en": "AOA indexer, left of the HUD", "he": "מחוון זווית ההתקפה, משמאל ל־HUD"}},
+        {"en": "Touchdown: throttle IDLE, wheel brakes", "he": "נגיעה: מצערת לסרק, בלמי גלגלים", "where": {"en": "throttle grip, left console; brakes on the rudder pedals", "he": "ידית המצערת, הקונסולה השמאלית; בלמים בדוושות"}},
+        {"en": "On the parking spot: throttle OFF", "he": "בחנייה: מצערת OFF", "where": {"en": "throttle grip, over the idle detent", "he": "ידית המצערת, מעבר לעצירת הסרק"}}
+      ],
+      "emergency": [
+        {"title": {"en": "HOT START", "he": "התנעה חמה"}, "steps": [
+          {"en": "THROTTLE — OFF", "he": "מצערת — OFF"},
+          {"en": "FTIT — MONITOR", "he": "FTIT — מעקב"},
+          {"en": "FTIT stays above 500 °C: MOTOR the engine with the JFS until below 200 °C", "he": "FTIT נשאר מעל 500°C: סיבוב המנוע במתנע JFS עד מתחת ל־200°C"}
+        ]},
+        {"title": {"en": "ENGINE FIRE ON THE GROUND", "he": "שריפת מנוע על הקרקע"}, "steps": [
+          {"en": "THROTTLE — OFF", "he": "מצערת — OFF"},
+          {"en": "JFS — OFF", "he": "JFS — OFF"},
+          {"en": "MAIN PWR — OFF", "he": "MAIN PWR — OFF"},
+          {"en": "Canopy open, leave the jet", "he": "פתיחת החופה ויציאה מהמטוס"}
+        ]},
+        {"title": {"en": "EJECT", "he": "נטישה"}, "steps": [
+          {"en": "Ejection handle, between the knees — PULL", "he": "ידית הנטישה, בין הברכיים — משיכה"}
+        ]}
+      ]
+    },
+    "f35i": {
+      "landing": [
+        {"en": "Tower: contact for landing", "he": "מגדל: קריאה לנחיתה", "wait": {"en": "then wait for “proceed to runway …”", "he": "ואז המתנה ל״המשך למסלול …״"}},
+        {"en": "Landing gear: DOWN", "he": "כן הנסע: למטה", "where": {"en": "gear handle, left of the panoramic display", "he": "ידית כן הנסע, משמאל לתצוגה הפנורמית"}},
+        {"en": "Final: on-speed AOA", "he": "גמר: זווית התקפה לנחיתה", "where": {"en": "the helmet display", "he": "תצוגת הקסדה"}},
+        {"en": "Touchdown: throttle IDLE, wheel brakes", "he": "נגיעה: מצערת לסרק, בלמי גלגלים", "where": {"en": "throttle, left console; brakes on the rudder pedals", "he": "המצערת, הקונסולה השמאלית; בלמים בדוושות"}},
+        {"en": "On the parking spot: throttle OFF", "he": "בחנייה: מצערת OFF", "where": {"en": "throttle, over the idle detent", "he": "המצערת, מעבר לעצירת הסרק"}}
+      ],
+      "emergency": [
+        {"title": {"en": "ENGINE FIRE ON THE GROUND", "he": "שריפת מנוע על הקרקע"}, "steps": [
+          {"en": "THROTTLE — OFF", "he": "מצערת — OFF"},
+          {"en": "BATT — OFF", "he": "BATT — OFF"},
+          {"en": "Canopy open, leave the jet", "he": "פתיחת החופה ויציאה מהמטוס"}
+        ]},
+        {"title": {"en": "EJECT", "he": "נטישה"}, "steps": [
+          {"en": "Ejection handle, between the knees — PULL", "he": "ידית הנטישה, בין הברכיים — משיכה"}
+        ]}
+      ]
+    }
+  },
+  "stowed": {
+    "f16": {"position": [0.145, 0.36, -3.44], "rotation_deg": [-58, 0, 0], "width_m": 0.13},
+    "f35i": {"position": [0.145, 0.66, -5.52], "rotation_deg": [-58, 0, 0], "width_m": 0.13}
+  },
+  "gauges": {
+    "f16": {"engine": {"node": "anim067", "radius_m": 0.04, "label": {"en": "RPM · watch 20 %", "he": "סל״ד · 20%"}}}
+  },
+  "sources": {
+    "radio.Ramon.APP": "oa_llrm",
+    "radio.Ramat David.TWR": "oa_llrd",
+    "radio.Ramat David.APP": "oa_llrd",
+    "radio.Nevatim.APP": "oa_llnv",
+    "radio": "invented: every other frequency (no published military frequency found)",
+    "calls": "the tower's answers (modern-iaf/docs/training.md §8)",
+    "pages.f16.landing": "inferred, the on-speed AOA 13° open",
+    "pages.f16.emergency": "the hot start after the T.O. checklist (training.md [^ep], weak); the fire on the ground and the ejection inferred",
+    "pages.f35i": "inferred",
+    "stowed": "inferred: on the right thigh, as the mock-up of 2026-11-13",
+    "gauges": "the F-16 model's RPM gauge (f16.json animations)"
+  },
+  "footnotes": {
+    "oa_llrm": "OurAirports, Ramon Airbase (LLRM), frequencies, https://ourairports.com/airports/LLRM/",
+    "oa_llrd": "OurAirports, Ramat David Airbase (LLRD), frequencies, https://ourairports.com/airports/LLRD/",
+    "oa_llnv": "OurAirports, Nevatim Airbase (LLNV), frequencies, https://ourairports.com/airports/LLNV/"
+  }
+}

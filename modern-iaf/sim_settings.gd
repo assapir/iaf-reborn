@@ -114,6 +114,9 @@ var sim_jet := ""
 ## The sortie the last flight stored (flight/sim_flight.gd), for the front end to open its debrief when the flight
 ## ends; 0 = none.
 var flown_sortie := 0
+## The checklist notebook's help line was shown (flight/kneeboard.gd: once, in the pilot's first start-up mission;
+## settings.cfg [sim] notebook_help_seen).
+var notebook_help_seen := false
 var _fonts := {}  # display_font's, by style
 var _keys: Array = []  # has_setting's
 ## The player's keys, buttons and axes (devices_file); a test sets its own.
@@ -142,6 +145,7 @@ func read_config(cfg: ConfigFile) -> void:
 	sim_jet = str(cfg.get_value("sim", "jet", ""))
 	var pid = cfg.get_value("sim", "pilot", -1)
 	pilot_id = pid if pid is int else -1
+	notebook_help_seen = cfg.get_value("sim", "notebook_help_seen", false) == true
 	_apply_profile()
 
 
@@ -155,6 +159,7 @@ func write_config(values := {}) -> ConfigFile:
 	var cfg := super(values.merged(kept))
 	cfg.set_value("sim", "jet", sim_jet)
 	cfg.set_value("sim", "pilot", pilot_id)
+	cfg.set_value("sim", "notebook_help_seen", notebook_help_seen)
 	return cfg
 
 

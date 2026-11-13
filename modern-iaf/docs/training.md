@@ -190,8 +190,8 @@ are refused, an unknown goal is refused, and every take-off mission's runway is 
 
 ## 7. The start in the game
 A flight starts with a clean view, the flight running (the user, 2026-11-13; [front-end.md](front-end.md) §8). The
-objective is in the briefing ([front-end.md](front-end.md) §10). A start-up flight shows its checklist card (§7.1;
-the Mac play test, 2026-11-11).
+objective is in the briefing ([front-end.md](front-end.md) §10). A start-up flight starts with the pilot's notebook raised at its START-UP
+page (§11; 2026-11-13, in place of the checklist card of the Mac play test, 2026-11-11).
 
 The sim's jet starts parked cold: on its spot (airbases.md §9), engine off, no RPM, no electrical power, every screen,
 the HUD and the lamps dark (`cockpit.power` 0). The throttle starts nothing (`Settings.throttle_starts_engine`, false
@@ -222,17 +222,18 @@ for the F-16s and 47 s / 92 s for the F-35I (the recorder samples 10 times a sec
 
 ### 7.1 The start-up checklist by keys
 Since 2026-11-08 (the user: "the first mission, which is just one click, is pointless") the start-up mission is the
-real start by keys, step by step. A small card at the top right (the top left in Hebrew) shows one step at a time, in
-English and Hebrew: the title with the step's number ("START-UP CHECKLIST  2/6"), the step with its key, its switch's
-place, the state to wait for, and a fault in red; the next step replaces it once it is taken, "All steps done." after
-the last (the Mac play test, 2026-11-11: the whole list was too big). Each step but the idle is a key of the sim's own `keys.json` (records 119–124, commands 210–215, the card naming each
-key as bound, Cmd for Ctrl on macOS; `iaf-sim own` refuses a key bound twice). The flight model takes each step
+real start by keys, step by step. The pilot's notebook (§11) shows the steps on its START-UP page, in English and
+Hebrew: each step with its switch's name and place and the state to wait for, the steps taken ticked, the step to take
+now marked, and a fault in red under it. Since 2026-11-13 it names no key (the user: "lets remove the kb hints"): the
+briefing's How and the Keys screen list the keys. Each step but the idle is a key of the sim's own `keys.json` (records 119–124,
+commands 210–215; `iaf-sim own` refuses a key bound twice) and a click on its switch in the 3D cockpit
+([cockpit.md](cockpit.md) §5.2). The flight model takes each step
 (`Start::press` in `crates/iaf-flight/src/sixdof/start.rs`, `IafFlight.start_step`); a step out of order has its
 consequence and returns a fault, which ends the mission at once as a Fail with that fault first (§3.0).
 
 The idle step has no key (the user, 2026-11-09): moving the throttle up from OFF, by its keys or the axis, is the step,
 as the real throttle's idle-cutoff detent, once the starter step (JFS / IPP) is done (before it the throttle moves
-alone and starts nothing). OFF is the throttle's bottom (2 % allowed for a lever's noise); a lever already up goes to OFF first. The card names the Throttle idle key (record 7, the 1 key) on that line (the user, 2026-11-09: "we have 1 for throttle"); the axis, the 0 key (Throttle up 5 %) and the 1 key all make the step (the 1 key sets the throttle to idle, which is OFF, so the key itself takes the step at OFF);
+alone and starts nothing). OFF is the throttle's bottom (2 % allowed for a lever's noise); a lever already up goes to OFF first. The briefing's How names the Throttle idle key (record 7, the 1 key) on that line (the user, 2026-11-09: "we have 1 for throttle"); the axis, the 0 key (Throttle up 5 %), the 1 key and a click on the throttle grip all make the step (the 1 key sets the throttle to idle, which is OFF, so the key itself takes the step at OFF);
 The step reaches the flight model and the recording as the key did (`sim_flight.gd _throttle_step`), so the scorer
 reads the same `checklist` event. The throttle goes back to OFF by its own key, Throttle OFF (§7.2).
 
@@ -253,7 +254,7 @@ reads the same `checklist` event. The throttle goes back to OFF by its own key, 
 | 4 | Canopy: close and lock | Ctrl+K | at once | any time | inferred |
 
 Each step's `wait` (mission data) says the state to wait for before the next step, in the table's figures (the JFS's
-20 % RPM, the idle with the main generator, the displays, the INS's 90 s; the IPP's 10 s); the checklist card and the
+20 % RPM, the idle with the main generator, the displays, the INS's 90 s; the IPP's 10 s); the notebook and the
 briefing's How show it under the step, the briefing beside a picture of the step's switch in the 3D cockpit
 ([front-end.md](front-end.md) §10).
 
@@ -289,19 +290,11 @@ training mission the fault fails it at once (§3.0) with "Engine shutdown: the t
 running." first in the debrief. Open: the air. In flight the real jet's emergency power unit and standby generator
 keep the displays up, and the engine windmills rather than stopping; the sim models neither. The mission passes when every step is done
 (`skip_<step>` names a step never taken), the engine idles and the avionics are up within the time budget (5 min,
-inferred), and nothing failed, at its end. The steps and their card lines are mission data (`training.checklist`,
+inferred), and nothing failed, at its end. The steps and their notebook lines are mission data (`training.checklist`,
 [data-formats.md](data-formats.md) §5); each key press is a `checklist` event in the recording (`step`, and `fault`
-when it was refused). The take-off missions still start cold: the same keys start the jet there, without a card.
+when it was refused). The take-off missions still start cold: the same keys start the jet there, the notebook stowed.
 
-| the card | English | Hebrew |
-|---|---|---|
-| at the start, the start-up call in the band | ![Checklist card at the start](pictures/training/card_start_en.webp) | ![Checklist card at the start, Hebrew](pictures/training/card_start_he.webp) |
-| mid-sequence | ![Checklist card, mid-sequence](pictures/training/card_mid_en.webp) | ![Checklist card, mid-sequence, Hebrew](pictures/training/card_mid_he.webp) |
-| done: "Mission complete" | ![Checklist done](pictures/training/card_done_en.webp) | ![Checklist done, Hebrew](pictures/training/card_done_he.webp) |
-| the JFS before the main power: Fail | ![Checklist fault](pictures/training/card_fault_en.webp) | ![Checklist fault, Hebrew](pictures/training/card_fault_he.webp) |
-
-`modern-iaf/tests/_checklist_shot.gd` takes these pictures in a real render (its header); the docs keep them 1200 px
-wide.
+The notebook's pictures are in §11.
 
 ## 8. The radio menu and the tower
 The **Call the tower** key (Ctrl+T) opens a numbered list over the view; a call's number picks it, any other key
@@ -408,6 +401,102 @@ temp-root run and the other platforms.
 start-up / take-off, 2021 / 2022 Ramat David, 2031 / 2032 Nevatim.
 `modern-iaf/tests/_training_shot.gd` takes the pictures in a real render (its header).
 
+## 11. The pilot's checklist notebook
+Since 2026-11-13 (the user's decisions: "a checklist notebook that opens on a key press, in every mission"; look A of
+the second mock-up approved the same day) every flight of the sim carries a paper notebook on the pilot's right thigh.
+`modern-iaf/flight/notebook.gd` draws the notebook; `modern-iaf/flight/kneeboard.gd` fills it from the flight and
+places it; `sim_flight.gd` holds one and passes it the key and the checklist's steps.
+
+**The key.** Checklist notebook (K; record 126 of the sim's `keys.json`, command 203; the Keys screen rebinds it as any
+other) raises it and stows it again. The flight keeps running. With a GPS bomb next to release, K keeps its own
+use, the bomb's PRE / VIS switch ([weapons.md](../../docs/weapons.md) §13.2). The notebook itself names no key.
+
+**Stowed** it lies on the right thigh in the 3D cockpit, a 13 cm board (its place and tilt per cockpit model:
+`stowed` in `data/notebook.json`). The notebook is drawn into a texture only when its page changes (a step taken, a
+turn), so stowed it costs one textured quad.
+
+**Raised** it is a 460 x 620 px panel (at the 1080-high canvas) at the screen's lower right, 26 px from the edge, in
+Hebrew too (the thigh's side), never the screen's centre. A start-up mission starts with it raised at its START-UP
+page; every other flight starts with it stowed. In Hebrew the page is mirrored: the tabs run down the board's left
+edge, the text right to left.
+
+**The tabs and the pages.**
+
+| tab (English / Hebrew) | the page | from |
+|---|---|---|
+| START-UP / התנעה | the start-up checklist: each step's line, its switch and place (`where`), the state to wait for (`wait`); the steps whose switches are on ticked (a switch back off unticks its step, [cockpit.md](cockpit.md) "Both ways"), the step to take now on a yellow band with ▶ (◀ in Hebrew), a refused step's fault in red under it | the flight's own `training.checklist` (§7.1), else the one of the start-up mission of the flight's jet |
+| TAXI / T-O / הסעה / המראה | the radio calls, the taxi and the take-off as numbered steps, the runway's designator, heading, length and elevation | the take-off mission's `training.steps` (§8) of the flight's base (else its jet); the base's airbase file |
+| RADIO / קשר | the callsign, the base's frequencies (name, MHz, VHF / UHF), the four calls with the frequency to call on and the tower's answer | `data/notebook.json` `radio` and `calls`; the call names are the radio menu's (`sim_flight.gd` `ITEMS`) |
+| LANDING / נחיתה | the call, the gear, the final's AOA, the touchdown, the throttle to OFF on the spot | `data/notebook.json` `pages.<f16 / f35i>.landing` |
+| EMERGENCY / חירום (a red tab, a red strip down the page) | the hot start, an engine fire on the ground, the ejection | `pages.<family>.emergency` |
+| DATA / נתונים | the mission, the base and its ICAO code, the time, the wind, the jet, the runway, the route's first point | the mission's readable file; the airbase file |
+
+A section is cut into pages that fit the paper: its blocks (a step, a table, a heading) are measured at the page's
+width and the page breaks between them. The pages turn by:
+- a click on a tab: that section's first page;
+- the page's own ‹ and › at its foot, with the section's page count between them ("1 / 2"; the user's "a clear way
+  to move to the next page in the same section");
+- the mouse wheel over the notebook, and PgUp / PgDn while it is raised.
+
+Past a section's last page the next section's first page opens; back from its first page, the previous section's
+last. ‹ dims on the notebook's first page, › on its last. On the START-UP tab the page follows the step to take now.
+
+**No key hints, no title, no clip** (the user, 2026-11-13: "lets remove the kb hints"): the steps name the switch and
+its place. In the pilot's first start-up mission only a help line stands over the raised notebook ("K stow · PgUp /
+PgDn or wheel: page · click a tab", the key as bound); `notebook_help_seen` in the settings file's `[sim]` section
+remembers it.
+
+**The training highlight.** In a start-up training mission a ring (the sim's sky blue, 4 px with a glow) stands on the
+current step's switch: the controls of the 3D cockpit that send its command (`<model>_controls.json`, the F-16's engine
+step the throttle grip), their mesh bounds projected through the cockpit's camera every frame and the ring drawn 6 px
+outside them (a control's `ring`, a radius in metres, overrides the bounds). A step may also watch a gauge (`gauges`
+in `data/notebook.json`: the F-16's RPM needle for the idle step, its ring labelled "RPM · watch 20 %"). A part out of
+the view (or behind the eye) gets a pointer at the screen's edge toward it, with the step's line ("▼ Throttle to idle
+at 20 % RPM"). When the raised notebook would cover a ring, it slides down its side to 18 px below the ring (at least
+220 px of it left on the screen), else up above it.
+
+**Every checklist switch clickable.** With no key hints, each step's switch must answer the mouse. On the pages:
+
+| page | step | clickable |
+|---|---|---|
+| START-UP | every step of the Sufa, the Barak and the Adir: MAIN PWR, JFS, the throttle, the four AVIONIC POWER switches, the INS knob, the canopy handle; BATT, IPP, ENG / START, the throttle, CANOPY | yes ([cockpit.md](cockpit.md) §5.2; `test_mvp.gd` clicks each, the F-35I's CANOPY included) |
+| LANDING | the landing gear handle (both cockpits) | yes since 2026-11-13: the G key's command, refused on the ground |
+| LANDING, EMERGENCY | the throttle to OFF over the idle detent | no: a click on the grip moves it up 5 %; OFF is Shift + 1 only (open) |
+| LANDING | the wheel brakes (the rudder pedals) | no: no pedal part answers the mouse (open) |
+| EMERGENCY | JFS OFF, MAIN PWR OFF, BATT OFF | no: a click turns these on only (open) |
+| EMERGENCY | the ejection handle | no: no part of the seat answers the mouse (open) |
+| not on the pages | FCR, RDR ALT | no: FlightGear's console has no part for them (cockpit.md §5.2); the start-up steps leave them out |
+
+**The radio frequencies.** `data/notebook.json` `radio`, by base, in MHz. Published: Ramon APP 120.9[^oa-llrm],
+Ramat David TWR 118.6 and APP 125.8[^oa-llrd], Nevatim APP 120.9[^oa-llnv]. Every other frequency (the ground and the
+tower at Ramon and Nevatim, Ramat David's ground, all of Hatzerim's) is invented: no published military frequency was
+found. The page shows them all alike. The calls' "on" (ground for the start-up and the taxi, the tower for the
+take-off and the landing) is inferred: the sim has one tower voice for all four.
+
+**The other pages' sources.** The F-16's hot start follows the T.O. checklist's steps[^ep] (weak); the fire on the
+ground, the ejection and the F-35I's pages are inferred; the F-16's on-speed AOA of 13° is open (no primary source
+checked).
+
+**The frame cost** (`_notebook_shot.gd` with `NB_BENCH=1`, 1920 x 1080, this Linux laptop's Intel Iris Xe, 300 frames
+each, the scripts' process time and the GPU's render time of the window and the cockpit's world):
+
+NB_BENCH_TABLE
+
+**The pictures** (`modern-iaf/tests/_notebook_shot.gd`, a real render, its header):
+
+NB_PICTURES
+
+**Checks.** `modern-iaf/tests/test_notebook.gd` (headless): the start-up mission raises it at START-UP with the first
+step current and no key on the page, the help line once, K stows it into the thigh's texture and raises it, a step
+ticks, a tab click, the wheel, PgUp / PgDn and the page's ‹ › turn it across the sections, every section has a page,
+RADIO holds Ramon's frequencies, the board at the right edge, the JFS step's mark, Hebrew mirrored, a take-off flight
+stowed with the Sufa's start-up checklist and runway 25R on TAXI / T-O. `test_mvp.gd` and `test_flight_ui.gd` read the
+current step from the notebook.
+
+**Open.** The GUIDE tab (the jet's pilot guide from one source shared with the original game's guides, and the front
+end's Guides screen drawing the same pages) is the next part. Gauge rings for the other steps; the throttle OFF, the
+brakes, the ejection handle and the switches' OFF positions by the mouse.
+
 [^ins]: F-16.net forum, "INS alignment time and time to takeoff from cold start" (a normal alignment about 8 minutes, a stored-heading alignment about 90 s), https://www.f-16.net/forum/viewtopic.php?p=7943; Eagle Dynamics forum, "What is the difference between stored INS align and normal INS align in the F-16C Viper", https://forum.dcs.world/topic/267433-what-is-the-difference-between-stored-ins-align-and-normal-ins-align-in-the-f-16c-viper (both weak: forums)
 [^w-f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", Specifications (F-16C Block 50 / 52): empty weight 18,900 lb (8,573 kg), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon
 [^w-f35]: Wikipedia, "Lockheed Martin F-35 Lightning II", Specifications (F-35A): empty weight 29,300 lb (13,290 kg), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II
@@ -419,3 +508,6 @@ start-up / take-off, 2021 / 2022 Ramat David, 2031 / 2032 Nevatim.
 [^chk]: F-16 checklist (sim community, after the T.O. checklist; weak): "THROTTLE – Advance to IDLE (20% RPM Min)", https://www.scribd.com/document/38303072/Checklist-Main
 [^jfs50]: F-16.net forum, "JFS and avionics question" (the flight manual: "As the engine accelerates through 50 % rpm, a sensor causes the JFS to shut down automatically"; about 50 % on a P&W and 54 % on a GE engine), https://www.f-16.net/forum/viewtopic.php?p=13518
 [^f16net]: F-16.net forum, "Main PWR on the F-16", Davis83, 7 December 2010 (the engine self-sustaining at about 52 % RPM, the JFS disengaged, the engine driving the hydraulic pumps and the main and standby generators), https://www.f-16.net/forum/viewtopic.php?p=186672
+[^oa-llrm]: OurAirports, Ramon Airbase (LLRM), frequencies: APP 120.9 MHz, https://ourairports.com/airports/LLRM/
+[^oa-llrd]: OurAirports, Ramat David Airbase (LLRD), frequencies: TWR 118.6 MHz, APP 125.8 MHz, https://ourairports.com/airports/LLRD/
+[^oa-llnv]: OurAirports, Nevatim Airbase (LLNV), frequencies: APP 120.9 MHz, https://ourairports.com/airports/LLNV/

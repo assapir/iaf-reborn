@@ -13,6 +13,7 @@
 extends Node
 
 const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
+const Kneeboard := preload("kneeboard.gd")
 const FlightUi := preload("flight_ui.gd")
 const WizardTheme := preload("../setup/wizard_theme.gd")  # relative: a test of the original's project loads it too
 const Look := preload("../menu/look.gd")
@@ -93,14 +94,12 @@ var _end_ms := INF
 var _banner: PanelContainer
 ## The start-up checklist (the readable mission's training.checklist: [{step, key, en, he, where, wait}]), the
 ## steps whose switches are on (ids: IafFlight.start_on, read each frame), a step's fault waiting for the live
-## check, the last fault shown, and the card.
+## check, the last fault shown, and the pilot's notebook (kneeboard.gd: its START-UP page shows them; training.md §11).
 var checklist: Array = []
 var done: Array = []
 var _fault := ""
 var _fault_shown := ""
-var _card: PanelContainer
-const CARD_TITLE := {"en": "START-UP CHECKLIST", "he": "רשימת התנעה"}
-const CARD_DONE := {"en": "All steps done.", "he": "כל השלבים בוצעו."}
+var kneeboard: Node
 const STEP_IDS := ["main_power", "starter", "engine", "avionics", "ins", "canopy"]
 ## The F-16's power switches one by one (command 219's p2 → SYSTEMS[i]; iaf-flight start.rs SYSTEMS, the same order):
 ## the four AVIONIC POWER switches (together the avionics step) and the SNSR PWR panel's FCR and RDR ALT.
@@ -108,7 +107,7 @@ const SYSTEMS := ["mmc", "st_sta", "mfd", "ufc", "fcr", "rdr_alt"]
 ## The checklist's first key record (modern-iaf/data/keys.json, records 119–124: STEP_IDS in order; commands 210–215).
 const CHECK_KEY := 119
 ## The engine step has no key: the throttle moved up from OFF is it, as the real idle-cutoff detent (training.md
-## §7.1). The card names the Throttle idle key (record 7, the 1 key); OFF is the throttle's bottom, a lever's noise
+## §7.1). The briefing names the Throttle idle key (record 7, the 1 key); OFF is the throttle's bottom, a lever's noise
 ## allowed.
 const THROTTLE_IDLE_KEY := 7
 const THROTTLE_OFF := 0.02
@@ -161,9 +160,9 @@ func _ready() -> void:
 	add_child(layer)
 	ui = FlightUi.new(host)
 	layer.add_child(ui)
-	# A mission with the start-up checklist shows its checklist card (training.md §7.1).
-	if not checklist.is_empty():
-		_build_card()
+	# A mission with the start-up checklist starts with the notebook raised at its START-UP page (training.md §11).
+	kneeboard = Kneeboard.new(self)
+	add_child(kneeboard)
 
 
 func _dir() -> String:
@@ -273,6 +272,15 @@ func key(event: InputEventKey) -> bool:
 	if event.echo or event.keycode in [KEY_CTRL, KEY_SHIFT, KEY_ALT, KEY_META]:
 		return open and event.echo  # a lone modifier is part of the next key (Ctrl+T closes the menu)
 	var rec: int = host.keys.find_key(host.keys.key_of_event(event), Settings.key_bindings)
+	if rec >= 0 and int(host.keys.records[rec].press[0]) == 203:
+		# The Checklist notebook key (keys.json record 126, K). With a GPS bomb next to release K keeps its PRE / VIS
+		# switch (shared weapons.md §13.2; training.md §11).
+		if host.weapons != null and host.weapons.gps_mode_key():
+			return true
+		kneeboard.toggle()
+		return true
+	if not open and kneeboard.key(event):
+		return true
 	if rec >= 0 and int(host.keys.records[rec].press[0]) == 107:
 		set_open(not open)
 		return true
@@ -481,7 +489,7 @@ func _finish(d: Dictionary) -> void:
 
 ## A checklist switch (commands 210–215 → STEP_IDS[i]; `want` the command's p1: 1 on, -1 off, 0 (a key) the other
 ## way): the flight model sets it (IafFlight.start_switch decides its consequence and fault; modern-iaf/docs/cockpit.md
-## §5.2); the recording gets a change ("on": false for a switch back off) or a fault; the card follows the switches.
+## §5.2); the recording gets a change ("on": false for a switch back off) or a fault; the notebook follows the switches.
 func start_step(i: int, want := 0) -> void:
 	if i >= 0 and i < STEP_IDS.size():
 		_set_switch(STEP_IDS[i], want, STEP_IDS[i])
@@ -515,9 +523,10 @@ func _set_switch(sw: String, want: int, id: String) -> void:
 		host.sounds.play("SFX_DOOR_CLOSE" if on else "SFX_DOOR_OPEN")
 	_shown.erase(sw)  # shown again from the flight model: a click it refused goes back
 	_sync_switches()
+	kneeboard.refresh()  # a fault shows on the START-UP page even with no switch changed
 
 
-## The checklist from the flight model's switches (IafFlight.start_on), each frame: `done`, the card, and the 3D
+## The checklist from the flight model's switches (IafFlight.start_on), each frame: `done`, the notebook, and the 3D
 ## cockpit's switches that changed (cockpit3d_controls.gd set_switch: a step's by its command 210 + i, a power
 ## switch's by 219 and its index; the JFS switch springs back to OFF; a cold jet's start off; a refused click back).
 func _sync_switches() -> void:
@@ -537,8 +546,8 @@ func _sync_switches() -> void:
 			_shown[id] = on
 	if now != done:
 		done = now
-		if _card != null:
-			_fill_card()
+		if kneeboard != null:
+			kneeboard.refresh()
 
 
 ## The throttle up from OFF (its keys or the axis) takes the checklist's engine step once the starter step (JFS / IPP)
@@ -575,6 +584,7 @@ func throttle_off() -> void:
 	_throttle_was = 0.0
 	host._log_event(host._log_st, e)
 	_sync_switches()
+	kneeboard.refresh()
 
 
 ## The Throttle idle key (command 9 to OFF, record 7) leaves the throttle at OFF, so _throttle_step sees no move: the
@@ -588,83 +598,6 @@ func _idle_key(cmd: Array) -> void:
 
 func _steps() -> Array:
 	return checklist.map(func(c): return String(c.step))
-
-
-func _build_card() -> void:
-	_card = PanelContainer.new()
-	_card.name = "Checklist"
-	_card.mouse_filter = Control.MOUSE_FILTER_IGNORE  # the clicks reach the 3D cockpit's switches under it
-	_card.add_theme_stylebox_override("panel", Look.box(Look.PAPER, Look.RULE, 1, 5, Vector2(16, 12)))
-	_card.custom_minimum_size.x = 380
-	ui.add_child(_card)
-	_place_card()
-	ui.language_changed.connect(_place_card)
-
-
-## At the inline-end top (the left in Hebrew): the radio menu's panel holds the inline-start top (flight_ui.gd).
-func _place_card() -> void:
-	if _he():
-		_card.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-		_card.grow_horizontal = Control.GROW_DIRECTION_END
-		_card.offset_left = 24
-	else:
-		_card.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-		_card.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-		_card.offset_right = -24
-	_card.offset_top = 96
-	_fill_card()
-
-
-## A label of the card.
-func _card_line(parent: Node, text: String, size: int, colour: Color) -> Label:
-	var l := Label.new()
-	l.text = text
-	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_color", colour)
-	l.text_direction = Control.TEXT_DIRECTION_RTL if _he() else Control.TEXT_DIRECTION_LTR
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if _he() else HORIZONTAL_ALIGNMENT_LEFT
-	parent.add_child(l)
-	return l
-
-
-## The card: the title with the step's number, the step to take now with its key, its switch's place and the state
-## to wait for, and the fault; "All steps done." once every step is taken (the Mac play test, 2026-11-11: one step at
-## a time, smaller).
-func _fill_card() -> void:
-	for c in _card.get_children():  # out at once: two steps in one frame leave one step shown
-		_card.remove_child(c)
-		c.queue_free()
-	var lang := "he" if _he() else "en"
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 4)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_card.add_child(v)
-	var i := 0
-	while i < checklist.size() and String(checklist[i].step) in done:
-		i += 1
-	_card_line(v, "%s  %d/%d" % [CARD_TITLE[lang], mini(i + 1, checklist.size()), checklist.size()], 15, Look.INK_MUTED)
-	if i == checklist.size():
-		_card_line(v, CARD_DONE[lang], 18, Look.NAVY)
-	else:
-		var c: Dictionary = checklist[i]
-		var row := HBoxContainer.new()
-		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.layout_direction = Control.LAYOUT_DIRECTION_RTL if _he() else Control.LAYOUT_DIRECTION_LTR
-		row.add_theme_constant_override("separation", 16)
-		v.add_child(row)
-		var l := _card_line(row, "%d. %s" % [i + 1, c[lang]], 18, Look.NAVY)
-		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var rec := THROTTLE_IDLE_KEY if c.step == "engine" else CHECK_KEY + STEP_IDS.find(String(c.step))
-		var k: String = ui.key_name(rec)  # as bound, Cmd on macOS
-		_card_line(row, k, 16, Look.INK_MUTED).text_direction = Control.TEXT_DIRECTION_LTR
-		if c.has("where"):  # the switch's name and place, for the 3D cockpit's mouse (cockpit3d_controls.gd)
-			_card_line(v, String(c.where[lang]), 14, Look.INK_MUTED)
-		if c.has("wait"):  # the state to wait for before the next step (the briefing's How shows the same)
-			_card_line(v, String(c.wait[lang]), 14, Look.INK_MUTED)
-	if _fault_shown != "":
-		var f := _card_line(v, String(trainer.text(_fault_shown, lang)), 16, Color("b3261e"))
-		f.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		f.custom_minimum_size.x = 348
 
 
 func _hide_banner() -> void:

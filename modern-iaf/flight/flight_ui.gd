@@ -4,7 +4,7 @@
 #   LINE_S seconds (terrain_view.gd _on_subtitle hands them to the flight add-on instead of the original's console);
 # - a panel at the inline-start top for the radio menu and the training result (flight/sim_flight.gd);
 # - one key hint line at the bottom: Esc's pause menu, shown for HINT_START_S once the loading screen is gone,
-#   HINT_AGAIN_S after a language change, then faded out; hidden while the start-up checklist card is open.
+#   HINT_AGAIN_S after a language change, then faded out; hidden while the pilot's notebook is raised.
 # All of it follows the game's language, also when the pause menu's Preferences switch it mid-flight.
 extends Control
 
@@ -124,8 +124,8 @@ func show_hint(secs: float) -> void:
 	_hint_until = maxi(_hint_until, Time.get_ticks_msec() + int(secs * 1000.0))
 
 
-## The hint: shown until _hint_until, fading over the last HINT_FADE_S; hidden while the start-up checklist card
-## (sim_flight.gd, "Checklist") is open.
+## The hint: shown until _hint_until, fading over the last HINT_FADE_S; hidden while the
+## pilot's notebook (kneeboard.gd, "Checklist") is raised.
 func _update_hint(now: int) -> void:
 	var pill := get_node_or_null("Hint") as Control
 	if pill == null:

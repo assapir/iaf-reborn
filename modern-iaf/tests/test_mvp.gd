@@ -439,7 +439,7 @@ func _checklist(tv: Node, f35: bool, click := false) -> void:
 
 
 ## Checklist step `n` (0: the throttle up from OFF) by its key's command, or by a click on its control `node`.
-## The card shows that step alone first (_card_shows).
+## The notebook marks that step as the current one first (_card_shows).
 func _step(tv: Node, n: int, node: String, click: bool) -> void:
 	_card_shows(tv, "engine" if n == 0 else tv.addon.STEP_IDS[n - 1])
 	if click:
@@ -512,26 +512,26 @@ func _lift_guard(tv: Node, node: String, guard: String) -> void:
 	check(mi.transform.is_equal_approx(rest), "%s: the switch stays until the next click" % node)
 
 
-## The start-up card shows step `id` alone: its line, its key (the engine step: Throttle idle, the 1 key) and its
-## switch's place.
+## The notebook's START-UP page marks step `id` as the current one, its switch's place on the page shown, no key
+## named (training.md §11).
 func _card_shows(tv: Node, id: String) -> void:
 	var shown := _card_step(tv)
-	check(shown[0] == id and shown[2], "the card shows the %s step alone with its place (%s)" % [id, shown])
-	if id == "engine":
-		check(shown[1] == "1", "the card's idle step names Throttle idle, the 1 key: %s" % shown[1])
+	check(shown[0] == id and shown[1], "the notebook marks the %s step with its place (%s)" % [id, shown])
 
 
-## The start-up card's one step: [its id ("" when not one step row), its key, its switch's place shown].
+## The notebook's current step: [its id ("" when all are taken), its switch's place on the page shown].
 func _card_step(tv: Node) -> Array:
-	var rows: Array = tv.addon._card.find_children("*", "HBoxContainer", true, false)
-	if rows.size() != 1:
-		return ["", "", false]
-	var ls: Array = rows[0].get_children()
-	var texts: Array = tv.addon._card.find_children("*", "Label", true, false).map(func(l): return l.text)
-	for c in tv.addon.checklist:
-		if String(ls[0].text).ends_with(String(c.en)):
-			return [String(c.step), String(ls[1].text), not c.has("where") or String(c.where.en) in texts]
-	return ["", "", false]
+	var kb: Node = tv.addon.kneeboard
+	var list: Array = kb.checklist()
+	var i: int = kb._current()
+	if i >= list.size():
+		return ["", false]
+	var c: Dictionary = list[i]
+	var lang := "he" if settings().language == "he" else "en"
+	var text: String = kb.board.page_text()
+	return [
+		String(c.step), kb.board.current_id() == "startup" and (not c.has("where") or String(c.where[lang]) in text)
+	]
 
 
 ## A step out of order: the JFS before the main power ends the start-up at once, its fault first.

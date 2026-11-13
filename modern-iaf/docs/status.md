@@ -35,6 +35,16 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   running; the in-flight mission card and its H key (record 118, now an empty slot) are gone. The key hint names Esc
   and the pause menu for its first 8 s ([front-end.md](front-end.md) §8). The goals are in the briefing, the live "To
   complete" line, the completion message and the debrief. `test_flight_ui.gd` checks it.
+- **The pilot's checklist notebook, part 1 (2026-11-13, the approved mock-up's look A):** in every flight a paper
+  notebook on the right thigh; K raises it at the screen's lower right and stows it. Tabs START-UP, TAXI / T-O, RADIO,
+  LANDING, EMERGENCY, DATA; a tab click, the wheel, PgUp / PgDn and the page's own ‹ › with its page count turn it. No
+  key hints on it; a help line in the first start-up mission only. It replaces the start-up card: the steps whose
+  switches are on ticked (a switch back off unticks its step), the step to take now marked. In a start-up training
+  mission a ring on the current step's switch (and the F-16's RPM gauge for the idle step), a pointer at the screen's
+  edge for a part out of view, the board sliding off a ring it would cover. English and Hebrew (mirrored). RADIO's
+  frequencies: OurAirports' where published, the rest invented ([training.md](training.md) §11). `test_notebook.gd`.
+  Open: the GUIDE tab and the front end's Guides screen (part 2); the throttle OFF, the brakes and the ejection handle
+  by the mouse.
 - **The F-16's approach speed matches the manual (2026-11-11):** TP-1538's speed-brake tables gave the open speed
   brake lift (+0.25 CL at 13° α); the 6-DoF flies the JSBSim model's speed-brake drag instead, and its flaps' lift
   (+0.122). The 13° α approach is 136–139 kt at the manual's three weights (manual 139–141 kt, was 118–121 kt)
@@ -62,10 +72,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **The hands on the stick and the throttle (2026-11-11, the Mac play test's finding 12):** the left glove holds the
   throttle's grip and follows it over its travel (two shape keys in `f16_pilot.glb`); the right glove holds the stick
   ([cockpit.md](cockpit.md) §5.3).
-- **The start-up checklist card, one step at a time (2026-11-11, the Mac play test):** a start-up flight opens with
-  the checklist card only; the card is smaller and shows the step to take now with its
-  key, place and wait, and its number of the steps ([training.md](training.md) §7.1). `test_flight_ui.gd`,
-  `test_mvp.gd`.
+- **The start-up checklist card, one step at a time (2026-11-11, the Mac play test):** a start-up flight opens with the
+  checklist card only; the card is smaller and shows the step to take now with its key, place and wait, and its number
+  of the steps ([training.md](training.md) §7.1). Replaced by the pilot's notebook on 2026-11-13
+  ([training.md](training.md) §11).
 - **The radio lines at subtitle size (2026-11-11, the Mac play test):** 20 px at 1080, was 26
   ([front-end.md](front-end.md) §8). `test_flight_ui.gd`.
 - **The F12 info line: the mission and the FPS (2026-11-11, the Mac play test):** the sim's line leaves out the 1998

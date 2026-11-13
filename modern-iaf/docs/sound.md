@@ -420,10 +420,11 @@ timing (`kokoro_tts.py` reports the end of the word before the ";" and the start
 particles: two joins in place of six. In the sim every call is framed by `key_on.ogg` and `key_off.ogg` (§5.2).
 
 ## 4. Keys
-`data/keys.json` holds 126 commands: the 117 of docs/controls.md §3, our own Start engine (Ctrl+E, command 200, a
+`data/keys.json` holds 127 commands: the 117 of docs/controls.md §3, our own Start engine (Ctrl+E, command 200, a
 hidden developer shortcut: [training.md](training.md) §7), an empty slot (record 118, the mission card's until
-2026-11-13), the six start-up checklist steps (Ctrl+B, J, I, A, N, K; commands 210–215: training.md §7.1) and Master arm
-(Shift+A, command 202: [weapons.md](weapons.md) §3), each with our own English and Hebrew labels, the default key as text ("Ctrl + Q"), the joystick button, the press / release commands and `shown`. `iaf-sim own` compiles it to
+2026-11-13), the six start-up checklist steps (Ctrl+B, J, I, A, N, K; commands 210–215: training.md §7.1) Master arm
+(Shift+A, command 202: [weapons.md](weapons.md) §3) and the Checklist notebook (K, command 203:
+[training.md](training.md) §11), each with our own English and Hebrew labels, the default key as text ("Ctrl + Q"), the joystick button, the press / release commands and `shown`. `iaf-sim own` compiles it to
 the shape of `iaf-convert keys`' output (records with `dik` / `modifiers` / `label` / `label_he`, `key_names`,
 `modifiers`, `button_format`). It refuses:
 - a key name outside our scancode table, which holds exactly the keys `key_table.gd` can press (a test reads the

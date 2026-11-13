@@ -30,7 +30,7 @@ const SAMPLES := {
 	"sfx_volume": [["SFX_WARNING", "WRN_MASTER"], SoundBuses.SFX],
 	"speech_volume": ["twr_takeoff.wav", SoundBuses.SPEECH],
 }
-## The flight's checklist card, whose key records the briefing's How names too (one source: STEP_IDS, CHECK_KEY,
+## The flight's checklist, whose key records the briefing's How names too (one source: STEP_IDS, CHECK_KEY,
 ## THROTTLE_IDLE_KEY; training.md §7.1).
 const SimFlight := preload("res://flight/sim_flight.gd")
 ## The briefing's pages, in tab order.
@@ -1230,7 +1230,7 @@ func runway_text(runway: String, heading) -> String:
 	return runway if heading == null else s("runway_heading") % [runway, int(heading)]
 
 
-## The steps: a start-up's checklist (the rules' `checklist`, the flight's checklist card), a take-off's in the order
+## The steps: a start-up's checklist (the rules' `checklist`, the flight's notebook), a take-off's in the order
 ## the scorer judges them; each [text, key].
 func briefing_steps(m: Dictionary) -> Array:
 	var lang := "he" if he() else "en"

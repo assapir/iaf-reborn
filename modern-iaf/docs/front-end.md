@@ -318,7 +318,7 @@ palette, on the 1080-high canvas scaled to the window), mirrored in Hebrew; the 
 stay the original's (`terrain_view.gd _on_subtitle` hands each line to the flight add-on when it has a `subtitle()`).
 
 - **A clean start:** a flight starts with the flight running and nothing over it but the key hint (the user,
-  2026-11-13). A start-up mission shows its checklist card ([training.md](training.md) §7.1). The mission's goals
+  2026-11-13). A start-up mission starts with the pilot's notebook raised ([training.md](training.md) §11). The mission's goals
   are in the briefing (§10), the panel's live "To complete: …" line, the completion message and the debrief
   ([training.md](training.md) §3). The in-flight mission card on H was
   removed on 2026-11-13 (the user's order); H is free.
@@ -332,11 +332,11 @@ stay the original's (`terrain_view.gd _on_subtitle` hands each line to the fligh
 - **The info line** (F12, at the top left): the mission's name and the frames per second (`Settings.info_line_full`
   false; the original game's line also holds the modes, the place, the speed and the controls).
 - **The key hint** at the bottom: Esc and the pause menu. It shows for the first 8 s after the loading screen and
-  for 4 s after a language change, then fades out. It is hidden while the start-up checklist card is open (the user,
+  for 4 s after a language change, then fades out. It is hidden while the pilot's notebook is raised (the user,
   2026-11-10: the hint stays out of the way of the narrative). The pause menu's own key hints are separate.
 
 A language switched over the flight (Esc → Preferences → Language) applies at once to the key hint, the panel and
-the start-up checklist card ([training.md](training.md) §7.1); a radio line already shown stays in its language.
+the pilot's notebook ([training.md](training.md) §11); a radio line already shown stays in its language.
 
 | | English | Hebrew |
 |---|---|---|
@@ -397,8 +397,8 @@ works a switch, each through the key's own command. The F-16s' controls: the SYM
 Shift + H also steps (its position kept in the sim's settings file, not in the device store), the HUD's DAY / AUTO
 BRT / NIGHT switch (kept there too), and the start-up
 checklist's switches (MAIN PWR, JFS, the throttle, the AVIONIC POWER switches, the INS knob, the canopy handle;
-[cockpit.md](cockpit.md) §5.2). The checklist card names each step's switch and its place under its line, beside the
-key.
+[cockpit.md](cockpit.md) §5.2). The pilot's notebook names each step's
+switch and its place under its line, and no key ([training.md](training.md) §11).
 
 | | English | Hebrew |
 |---|---|---|
@@ -547,7 +547,7 @@ focus. The page shown stays for the next mission picked; entering the screen aga
 - **How:** the steps, each with the key as bound, the switch and its place, and the state to wait for (the user,
   2026-11-09). A start-up's are its checklist (the rules' `checklist`, [training.md](training.md) §7.1): the line, its
   `where` (the switch's name as the panel labels it and its panel) and its `wait` (the JFS's 20 % RPM, the idle with
-  the main generator, the INS's 90 s), the same data the in-flight checklist card shows. Beside each step, in
+  the main generator, the INS's 90 s), the same data the pilot's notebook shows in flight. Beside each step, in
   place of its `where` text, a picture of its switch cut from the jet's own 3D cockpit (the user, 2026-11-10: "the
   briefing should show the switch and state you need to wait"): the switch as the cold jet has it, a ring in the
   accent colour round it, 210 × 140 on the page, its `where` as the picture's tooltip; the state to wait for under
