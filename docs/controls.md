@@ -457,6 +457,12 @@ the same code).
     the POV, as in DirectInput. The flight and the Keyboard page use it.
   * `tools/joyprobe/probe.gd` prints what Godot reports for a stick: name, GUID, known gamepad, each button index
     pressed and each axis' range (`REMAP=1` = with our mapping). Run: `godot --path tools/joyprobe -s probe.gd`.
+* **Menus**: a joypad axis never moves the keyboard focus in a menu (front end, Preferences, the pause menu, the setup
+  wizards, the mission editor; both projects). Godot's built-in `ui_*` actions carry the left stick (axes 0 / 1),
+  so a flight stick resting off centre or a noisy one walked the focus from control to control. `Joystick._ready`
+  removes every joypad-axis event from the `ui_*` actions. The keyboard, the D-pad / hat (a deliberate push: it
+  moves the focus one step) and the gamepad buttons keep their `ui_*` events. Ours: the original's menus read no
+  joystick.
 * **Buttons**: an `InputEventJoypadButton` from the device goes to the flight scene
   (`terrain_view.gd _joy_button`).
   * It sends the press / release command of the first record with that button, as the original: no drops, Roll /

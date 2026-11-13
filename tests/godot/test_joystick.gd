@@ -4,7 +4,7 @@
 # Soft centre: 5 % and an expo curve),
 # the keyboard axis keys dropped while their axis is used, the hat's snap views, buttons through the key
 # table (bound on the Keyboard page, kept in settings.cfg, used in flight), menu/joy/*.joy, hot-plug and the
-# autopilot's throttle re-sync from the axis.
+# autopilot's throttle re-sync from the axis; a stick axis leaves the menus' focus alone.
 extends "res://../tests/godot/base.gd"
 
 const DT := 1.0 / 60.0
@@ -40,6 +40,29 @@ func run() -> void:
 	check(js.device() == -1, "no joystick in tests (a real one plugged in is ignored)")
 	# The original defaults: FLIGHT CONTROLS joystick, rudder / throttle keyboard (FUN_004f0750).
 	check(prefs.flight_controls == 1 and prefs.rudder == 0 and prefs.throttle == 0, "Devices defaults 1 / 0 / 0")
+
+	# A stick's axes never move the menus' focus (the ui_* actions keep no joypad axis); the keyboard still does.
+	var box := VBoxContainer.new()
+	root.add_child(box)
+	for i in 2:
+		box.add_child(Button.new())
+	box.get_child(0).grab_focus()
+	for a in [JOY_AXIS_LEFT_X, JOY_AXIS_LEFT_Y]:
+		axis(a, 1.0)
+		await frames(1)
+		check(not Input.is_action_pressed("ui_down" if a else "ui_right"), "no ui_* action from axis %d" % a)
+		axis(a, 0.0)
+		await frames(1)
+	check(root.gui_get_focus_owner() == box.get_child(0), "a stick axis leaves the menu focus where it is")
+	var down := InputEventAction.new()
+	down.action = "ui_down"
+	down.pressed = true
+	Input.parse_input_event(down)
+	await frames(1)
+	check(root.gui_get_focus_owner() == box.get_child(1), "ui_down still moves the focus")
+	down.pressed = false
+	Input.parse_input_event(down)
+	box.queue_free()
 
 	var tv = await start_mission(324)
 	tv.frozen = true

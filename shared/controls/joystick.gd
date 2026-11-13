@@ -230,6 +230,14 @@ func ours(event: InputEvent) -> bool:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # the original polls in every idle frame
+	# Ours (docs/controls.md §5.2 "Menus"): a joypad axis never moves the menus' focus. Godot's built-in ui_* actions
+	# carry the left stick (axes 0 / 1), so a flight stick off centre or noisy walked the focus around every menu.
+	# The D-pad / hat, the buttons and the keyboard keep their ui_* events.
+	for a in InputMap.get_actions():
+		if String(a).begins_with("ui_"):
+			for e in InputMap.action_get_events(a):
+				if e is InputEventJoypadMotion:
+					InputMap.action_erase_event(a, e)
 
 
 func _process(_delta: float) -> void:
