@@ -175,7 +175,8 @@ elif base == −1 or base > 3:     say 0xb (click);  timer(4);  state = 2;  last
 ```
 **say(code)** (`551c20`, on the base) fills three arguments:
 - callsign = the player's formation name (`5513c0`: kinds 2–6, 9, 10 by name, else "Alpha") + `_t`;
-- rwy = RunwayNumber / 10;
+- rwy = RunwayNumber / 10 (ours, Modern IAF: the section's `RunwayDesignator`, the end as painted and signed, or
+  `RunwayDesignatorOpposite` once the tower turned the runway into the wind; modern-iaf/docs/data-formats.md §12);
 - wind = `WI_KNOTS%02d` or none.
 
 | code | template | args |

@@ -42,6 +42,16 @@ func run() -> void:
 	)
 	# The taxi greeting by the mission's clock.
 	var at: int = r.base_at(r._pos())
+	# Every tower names its take-off end as painted and signed (iaf.ibx RunwayDesignator), not RunwayNumber / 10.
+	var ends := {"Ramon": "25R", "David": "27", "TelNof": "33L", "Hatzerim": "28L", "Nevatim": "26L"}
+	for b in r.bases:
+		check(b.designator == ends.get(b.name), "%s tower: runway %s" % [b.name, b.designator])
+	var keep: String = r.runway
+	r.runway = ""
+	var nv: Dictionary = r._speak(r.bases.map(func(b): return b.name).find("Nevatim"), 5)
+	print("Nevatim clearance: ", nv.text)
+	check("26" in String(nv.text) or "six" in String(nv.text).to_lower(), "Nevatim: %s" % nv.text)
+	r.runway = keep
 	for hg in [
 		[8, "good morning"],
 		[14, "good afternoon"],

@@ -181,10 +181,15 @@ code reads ([data-formats.md](data-formats.md) §12):
   taxiing off its spot faster than 25.7 m/s (50 kt) crashed on "rough ground" (the original's rule; a Mac run's log).
 - the taxiway signs in `airbases.json` (2026-11-08): at each taxiway's runway-holding position, 90 m from the
   runway's centreline (ICAO Annex 14 Table 3-2, code 4 instrument runway), a mandatory sign (white on red) with the
-  runway's designations, the threshold on the taxiing jet's left first ("25R-07L"); before each junction of three or
-  more taxiways, 40 m back on every arriving taxiway (inferred), a direction sign (black on yellow) with one board
-  per other branch that leads to a runway: an arrow for the turn (to 45°) and the designator of the end nearer where
-  that branch joins the runway. Each sign stands on the jet's left, 12 m past the taxiway's edge (Annex 14 Table 5-5).
+  runway's designations, the threshold on the taxiing jet's left first ("25R-07L"), or where the taxiway meets the
+  runway within 400 m of an end (inferred), that take-off end alone ("07L"; FAA AIM 2-3-8[^aim]); before each junction
+  of three or more taxiways, 40 m back on every arriving taxiway (inferred), a direction sign (black on yellow) with
+  a board for each end of every runway the other branches lead to: an arrow for the turn (to 45°) toward the branch
+  with the shortest way to that end, and the end's designator. A way's length is the taxi plus the back-taxi on the
+  runway to the end; a branch leads to the runway of its shortest way's end (and of ends within 300 m more,
+  inferred: Ramat David's 09 and 11 start 200 m apart). Before 2026-11-13 a branch named the end nearest its first runway join, so a parallel taxiway's
+  left and right boards both read the end nearer a mid-field link (Nevatim's "26L" on every board around the spot).
+  Each sign stands on the jet's left, 12 m past the taxiway's edge (Annex 14 Table 5-5).
   OpenStreetMap names none of these taxiways (no `ref`), so there are no location signs (yellow on black).
   `sign_boards.gd board()` builds them (a 0.9 m face, the lettering in the sim's display font), `airbases.gd` stands
   the nearest base's signs on the ground; nothing of the original's sign models. Ramon's hold sign "07R-25L" from
@@ -230,6 +235,7 @@ AI of a second spot at Hatzerim taxis from the first spot's hub); the radio's to
 the original's ten names, so Hatzerim and Nevatim had no talking tower; since item E3b every base of the own
 `iaf.ibx` talks (`Settings.tower_bases`, [training.md](training.md) §8).
 
+[^aim]: FAA, Aeronautical Information Manual 2-3-8 b (runway holding position sign: "15-33" puts runway 15's threshold on the left; at a taxiway meeting the beginning of the take-off runway only its designation may appear), https://www.faa.gov/air_traffic/publications/atpubs/aim_html/chap2_section_3.html
 [^osm]: OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright (Overpass API, 2026-11-02)
 [^oa]: OurAirports, airports.csv and runways.csv (public domain), https://davidmegginson.github.io/ourairports-data/
 [^wc]: ESA WorldCover 2021 Sentinel-2 RGBNIR composite, "Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium" (CC BY 4.0), https://esa-worldcover.org

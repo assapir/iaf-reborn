@@ -84,7 +84,7 @@ var bases: Array = []  # [{tower: Vector3, lineup: Vector3, rwy: int, hangars: [
 var tower_count := TOWER_BASES
 ## Ours, Modern IAF's radio menu (modern-iaf/docs/training.md §8): the tower answers the player's requests (request) and
 ## does not talk on its own on the ground; `runway` is the designator the tower of base `runway_base` (its iaf.ibx
-## section, the mission's base) gives ("25R"; "" = from RunwayNumber).
+## section, the mission's base) gives ("25R"; "" = the base's iaf.ibx RunwayDesignator, else from RunwayNumber).
 var menu := false
 var runway := ""
 var runway_base := ""
@@ -381,13 +381,16 @@ func _load_bases(path: String) -> void:
 			"lineup": Vector3(f.call("LineupLocX"), f.call("LineupLocY"), f.call("LineupLocZ")),
 			"rwy": int(f.call("RunwayNumber")),
 			"hangars": hangars,
-			"letter": ""
+			"letter": "",
+			# Ours (Modern IAF's iaf.ibx): the designator as painted and signed; "" = from RunwayNumber.
+			"designator": String(s.get("RunwayDesignator", ""))
 		}
 		# Better physics "Wind and turbulence": the other end of a runway the tower turned into the wind.
 		var iw := IafBases.into_wind(name) if ClassDB.class_exists("IafBases") else PackedFloat64Array()
 		if not iw.is_empty():
 			b.lineup = Vector3(iw[0], iw[1], iw[2])
 			b.rwy = int(iw[3])
+			b.designator = String(s.get("RunwayDesignatorOpposite", ""))
 		# World scale Real: the base at its real place (docs/world-scale.md §3.3).
 		var m := Settings.base_moved(b.lineup.x, b.lineup.y)
 		if not m.is_empty():
@@ -633,6 +636,8 @@ func _speak(at: int, code: int) -> Dictionary:
 	var rwy: Variant = int(b.rwy) / 10
 	if b.letter != "":
 		rwy = "%d%s" % [rwy, b.letter]
+	if b.designator != "" and not b.has("hdg"):
+		rwy = b.designator
 	if runway != "" and b.name == runway_base:
 		rwy = runway
 	var t: String = MSG_TEMPLATES[code]

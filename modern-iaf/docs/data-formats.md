@@ -571,6 +571,7 @@ their defaults without one). Nothing in it comes from the original's file: its k
 | `TowerLocX`, `TowerLocY`, `TowerLocZ` | the tower; its ground height. Only Nevatim's tower is known (airbases.md §5): the others take the base's reference point (OurAirports, inferred). The flight model calls a start at the base when it lies within 5 km and 15 m (height) of it |
 | `LineupLocX`, `LineupLocY`, `LineupLocZ` | the take-off end's lineup point; its ground height. A start within 100 m of it starts with the engine running |
 | `RunwayNumber` | the take-off grid heading, whole degrees (the reader truncates; written rounded) |
+| `RunwayDesignator`, `RunwayDesignatorOpposite` | ours: the take-off end's designator ("26L") and the other end's, the ones painted on the runway and on the signs (§10 `designators`). The tower says these (the opposite one when it turns the runway into the wind); without them it says RunwayNumber / 10, which at Nevatim (256°) gave "25" for the runway marked "26L" (fixed 2026-11-13) |
 | `TaxiWayPtsFrom`, `FromTaxiPtX<i>`, `FromTaxiPtY<i>`, `FromTaxiPtHdg<i>` | departure: from the hub (below) along the taxiways to the take-off end's runway start, then the lineup; each point's heading is its leg's |
 | `TaxiWayPtsTo`, `ToTaxiPtX<i>`, `ToTaxiPtY<i>`, `ToTaxiPtHdg<i>` | arrival: from 100 m past the other end's runway start (where a jet that landed rolls out) along the taxiways to the hub |
 | `HangarsNum`, `HangarPtX<i>`, `HangarPtY<i>`, `HangarPtHdg<i>` | the parking spots (§10 `parking`, in the file's order), the nose's heading |
