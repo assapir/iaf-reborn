@@ -112,6 +112,7 @@ func _mouse_look(tv: Node) -> void:
 	tv._unhandled_input(drag)
 	right.pressed = false
 	tv._unhandled_input(right)
+	check(not tv.looking and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE, "mouse look: the pointer back on release")
 	var h: Vector2 = tv.views.head_angles()
 	check(h.is_equal_approx(Vector2(0.2, 0.1)), "mouse look: a right drag right and up turns the head so (%s)" % h)
 	tv.views.update(1.0)
@@ -124,6 +125,23 @@ func _mouse_look(tv: Node) -> void:
 	tv._unhandled_input(right)
 	tv.views.update(10.0)
 	check(tv.views.head_angles() == Vector2.ZERO, "mouse look: a double right-click centres the head")
+	# The pointer never stays hidden (the Mac, 2026-11-13: "my mouse cursor isn't shows up"): a release the view did not
+	# see (a Control took it, the window lost the focus) ends the look on the next frame, and so does a pause.
+	right.pressed = true
+	tv._unhandled_input(right)  # Input's own state: the button up
+	await frames(2)
+	check(not tv.looking and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE, "mouse look: a release unseen ends it")
+	right.button_mask = MOUSE_BUTTON_MASK_RIGHT
+	Input.parse_input_event(right)
+	Input.flush_buffered_events()
+	check(tv.looking, "mouse look: the right button held looks")
+	tv._freeze(true, false)
+	check(not tv.looking and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE, "mouse look: a pause shows the pointer")
+	tv._freeze(false, false)
+	right.pressed = false
+	right.button_mask = 0
+	Input.parse_input_event(right)
+	Input.flush_buffered_events()
 	var wheel := InputEventMouseButton.new()
 	wheel.pressed = true
 	wheel.button_index = MOUSE_BUTTON_WHEEL_UP

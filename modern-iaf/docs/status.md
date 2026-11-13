@@ -3,6 +3,9 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The pointer comes back after a mouse look (2026-11-13, the user's Mac):** the right drag hides the pointer while
+  held; on release, a release the view missed, a lost focus or a pause it shows again where it was
+  ([cockpit.md](cockpit.md) §2). `test_sim_look.gd` checks it.
 - **A clean start (2026-11-13, the user):** a flight starts with no mission card and no pause menu over it, the
   flight running; H opens the mission card, Esc the pause menu, and the key hint at the bottom names both for its
   first 8 s ([front-end.md](front-end.md) §8). `test_flight_ui.gd` checks it.

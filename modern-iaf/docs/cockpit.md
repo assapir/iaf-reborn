@@ -37,6 +37,9 @@ lights and the lit labels at night); the panel's night art is not used.
   The pointer turns the head twice its angle on the screen (`terrain_view.gd` `MOUSE_LOOK_GAIN`): one screen's width
   of drag turns it about 170°. The left button stays on the cockpit's switches and knobs (§5.1, §5.2). The mouse
   moves the head's angle only: the head does not lean with the mouse (it bends forward on its own looking down, §5.3).
+  The pointer hides while the button is held and shows again where it was on release (2026-11-13, the user's Mac: the
+  pointer stayed hidden after a look). A release the view does not see (a control under the pointer took it, the
+  window lost the focus) and a pause or menu end the look too (`terrain_view.gd` `_look`).
   `Settings.cockpit_mouse_look()`: true in the sim; in the original game the right drag turns the external views only.
 - **Free look:** the hat and the mouse turn the head, down to 60° (the panel and consoles).
 - **The F-key and Numpad snap views** (F2 back, Numpad 1–9, Alt + 1–9 in the laptop map of front-end.md §9.1; docs/views.md §2) are head poses: the head turns to the

@@ -279,7 +279,8 @@ Numpad snap keys turn the orbit: 8 / 2 pitch, 6 / 4 heading. F2 and 1 / 3 / 7 / 
 
   The trail takes one sample per rendered frame (as the original, frame dependent).
 * **Ours (kept)**:
-  * RMB drag turns the orbit, and the wheel steps its distance (within [dmin, 20·dmin]).
+  * RMB drag turns the orbit, and the wheel steps its distance (within [dmin, 20·dmin]). Ours: the pointer hides while
+    the button is held and shows again where it was on release (`terrain_view.gd` `_look`).
   * `=` / `−` zoom the cockpit art in the cockpit views.
   * Ctrl+F2 toggles cockpit ↔ chase.
   * `--external`, `--orbit yaw pitch dist` (180 = behind) set test poses.

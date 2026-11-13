@@ -27,7 +27,9 @@ const SCREENSHOT_TIMEOUT_MS := 20000
 @onready var cockpit: Control = $CockpitLayer/Cockpit
 @onready var chase: Camera3D = $Chase
 
+## The right button held: the view turns with the mouse, the pointer captured (hidden); _look.
 var looking := false
+var _look_from := Vector2.ZERO
 ## The original key table with the player's rebinds (docs/controls.md) and its held records
 ## (press command 2 roll / 3 pitch / 10 rudder), polled every frame.
 const KeyTable := preload("res://shared/controls/key_table.gd")
@@ -2615,11 +2617,23 @@ func _zoom_cockpit(step: float) -> void:
 const MOUSE_LOOK_GAIN := 2.0
 
 
+## The right button's look on (held) or off: the pointer captured while on, then shown again where it was (a captured
+## pointer is moved to the window's centre). Off also when the button came up unseen (a Control took the release, the
+## window lost the focus: _process) or a pause or menu froze the flight (_freeze), so the pointer never stays hidden.
+func _look(on: bool) -> void:
+	if on and not looking:
+		_look_from = get_viewport().get_mouse_position()
+	var was := looking
+	looking = on
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if on else Input.MOUSE_MODE_VISIBLE
+	if was and not on:
+		get_viewport().warp_mouse(_look_from)
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	var mouse_look: bool = Settings.cockpit_mouse_look() and views.cockpit_drawn() and views.snap == null
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT:
-		looking = event.pressed
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if looking else Input.MOUSE_MODE_VISIBLE
+		_look(event.pressed)
 		if mouse_look and event.pressed and event.double_click:
 			views.set_cockpit(Views.COCKPIT)  # the head back to straight ahead at the pan rate
 	elif event is InputEventMouseMotion and looking and mouse_look:
@@ -3436,6 +3450,8 @@ func _esc_key() -> void:
 ## every sound channel where it is (FUN_004c58e0) and 0x76 resumes them (FUN_004c58f0).
 func _freeze(on: bool, sounds: bool) -> void:
 	get_tree().paused = on
+	if on and looking:
+		_look(false)
 	if on and sounds:
 		_frozen_sounds.clear()
 		for n in (
@@ -3681,6 +3697,8 @@ func _warm_views() -> void:
 
 
 func _process(delta: float) -> void:
+	if looking and not (Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) and get_window().has_focus()):
+		_look(false)
 	views.update(delta)
 	# The units' Radar dishes and rotors (FUN_005c5460 cases 0x19, 0x1d–0x20: stepped while drawn).
 	for ent in _dishes:
