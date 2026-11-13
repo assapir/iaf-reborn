@@ -1,5 +1,5 @@
 //! The setup pipeline (docs/setup.md): from the player's own CDs to everything the game reads under `assets/`,
-//! in-process. `plan` lists the steps of tools/setup-cli.sh with what each waits for; `run` runs them as a
+//! in-process. `plan` lists the steps with what each waits for; `run` runs them as a
 //! dependency graph (independent steps at once), skips the steps whose stamp is unchanged, and reports per step.
 
 use std::collections::HashMap;
@@ -80,7 +80,7 @@ pub struct Step {
     pub after: Vec<&'static str>,
 }
 
-/// The steps for `inputs`, in tools/setup-cli.sh's order and conditions.
+/// The steps for `inputs`.
 pub fn plan(inputs: &Inputs) -> Vec<Step> {
     let mut v = Vec::new();
     let mut add =
@@ -608,74 +608,6 @@ mod tests {
         let brief = plan(&Inputs { hebrew: Hebrew::Packs { brief: Some("b.zip".into()), menu: None }, ..inputs() });
         assert!(ids(&brief).contains(&"hebrew") && !ids(&brief).contains(&"menu_he"));
         assert_eq!(ids(&only(&full, &["aircraft", "fonts"])), ["extract", "patch", "fonts", "missions", "aircraft"]);
-    }
-
-    /// tools/setup-cli.sh's `step "…"` lines and the plan's steps: every line is a step here (or a CLI-only one),
-    /// every step here has its line.
-    #[test]
-    fn steps_match_setup_cli() {
-        const LINES: &[(&str, &[&str])] = &[
-            ("imagery: restore from", &["cli"]),
-            ("imagery: convert again", &["imagery-refresh"]),
-            ("imagery: Sentinel-2", &["sentinel2"]),
-            ("imagery: Survey of Israel 2015 2 m sheets", &["mapi2015-fetch"]),
-            ("imagery: Survey of Israel 2015 2 m layer", &["mapi2015"]),
-            ("scenery: sources", &["scenery-fetch"]),
-            ("scenery: cells", &["scenery"]),
-            ("building tools", &["cli"]),
-            ("extracting the original install", &["extract"]),
-            ("v1.1 patch", &["patch"]),
-            ("original HUD / MFD fonts", &["fonts"]),
-            ("cockpits", &["cockpits"]),
-            ("Hebrew pack", &["hebrew"]),
-            ("Hebrew CD", &["hebrew"]),
-            ("briefings", &["briefings"]),
-            ("Reference screen", &["reference"]),
-            ("front-end menus (", &["menu"]),
-            ("front-end menus in Hebrew", &["menu_he"]),
-            ("extra planes' arming art", &["arm"]),
-            ("key table", &["keys"]),
-            ("missions (", &["missions"]),
-            ("aircraft:", &["aircraft"]),
-            ("mission object models", &["objects"]),
-            ("terrain: every level", &["theatre"]),
-            ("terrain: colour tiles", &["bc1"]),
-            ("airbases:", &["airbases"]),
-            ("Godot extension", &["cli"]),
-            ("extras:", &["extras"]),
-            ("icon and desktop launcher", &["icon", "launcher"]),
-            ("textures: ambientCG", &["textures"]),
-            ("detailed F-15", &["models"]),
-            ("pilot guides", &["guides"]),
-            ("done", &["cli"]),
-        ];
-        let script =
-            std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/setup-cli.sh")).unwrap();
-        let mut seen = std::collections::HashSet::new();
-        for line in script.lines() {
-            let Some((_, title)) = line.split_once("step \"") else { continue };
-            let hits: Vec<_> = LINES.iter().filter(|(p, _)| title.starts_with(p)).collect();
-            assert_eq!(hits.len(), 1, "setup-cli.sh step \"{title}\" needs one entry here");
-            seen.extend(hits[0].1.iter().copied());
-        }
-        let all = plan(&Inputs {
-            patch: Some("p".into()),
-            hebrew: Hebrew::Cd("h".into()),
-            imagery: vec![Imagery::Sentinel2, Imagery::Mapi2015 { bases: false }],
-            refresh: true,
-            guides: true,
-            scenery: true,
-            ..inputs()
-        });
-        for s in &all {
-            assert!(seen.contains(s.id), "step {} has no line in setup-cli.sh", s.id);
-        }
-        for (p, ids) in LINES {
-            assert!(script.contains(&format!("step \"{p}")), "no setup-cli.sh line \"{p}…\"");
-            for id in *ids {
-                assert!(*id == "cli" || all.iter().any(|s| s.id == *id), "{id}");
-            }
-        }
     }
 
     struct Quiet;

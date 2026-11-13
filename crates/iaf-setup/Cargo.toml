@@ -3,7 +3,7 @@ name = "iaf-setup"
 version = "0.1.0"
 edition.workspace = true
 license.workspace = true
-description = "The setup pipeline: from the user's own CDs to everything the game reads (tools/setup-cli.sh in-process)"
+description = "The setup pipeline: from the user's own CDs to everything the game reads (the wizard and tools/setup-cli.sh)"
 
 [dependencies]
 iaf-formats = { path = "../iaf-formats" }

@@ -3,14 +3,16 @@
 Setup turns your own copy of Jane's IAF into everything the game reads under `assets/`. Three front ends run it:
 
 - `./setup`: the setup wizard, a window that asks for the inputs and shows each step ([below](#the-wizard)).
-- `tools/setup-cli.sh [--patch P] [--hebrew-iso ISO] [--imagery …] ISO [Brief.zip Menu.zip]`: the scripted way.
-  `--patch` also reads the `IAF_PATCH` environment variable, `--hebrew-iso` `IAF_HEBREW_ISO`. Without the ISO only the
-  imagery steps run, on an install set up before.
+- `tools/setup-cli.sh [--patch P] [--hebrew-iso ISO] [--imagery …] [--scenery[=buildings|trees]] ISO [Brief.zip Menu.zip]`:
+  the scripted way, a wrapper over `iaf-setup` below (every option of it works). `--patch` also reads the `IAF_PATCH`
+  environment variable, `--hebrew-iso` `IAF_HEBREW_ISO`. Without the ISO the last run's inputs (`assets/setup.json`)
+  are used, with the options given added; steps whose stamp holds are skipped. With a display it renders the pilot
+  guides too (`--guides`).
 - `crates/iaf-setup`: the same steps in-process, for the setup wizard. Its small CLI is for testing:
   ```sh
-  cargo run --release -p iaf-setup -- [--assets DIR] [--patch P] [--hebrew-iso ISO] [--imagery sentinel2,mapi2015] \
+  cargo run --release -p iaf-setup --bin iaf-setup -- [--assets DIR] [--patch P] [--hebrew-iso ISO] [--imagery sentinel2,mapi2015] \
       [--guides] [--scenery] [--scenery-kinds both|buildings|trees] [--redo-all] ["/path/to/Jane's IAF.iso" [Brief.zip] [Menu.zip]]
-  cargo run --release -p iaf-setup -- check <file>      # what a CD image, patch or pack is
+  cargo run --release -p iaf-setup --bin iaf-setup -- check <file>      # what a CD image, patch or pack is
   ```
 
 ## What you give it

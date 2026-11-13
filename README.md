@@ -111,7 +111,7 @@ MORE ("Imagery Israel", "Imagery outside Israel"); a choice whose data is not co
 downloaded unless you ask (the wizard's Extras page, or):
 
 ```sh
-tools/setup-cli.sh --imagery sentinel2          # alone: only the imagery steps, on an install set up before
+tools/setup-cli.sh --imagery sentinel2          # without the ISO: added to the last setup (assets/setup.json)
 tools/setup-cli.sh --imagery mapi2015-bases     # or several: --imagery sentinel2,mapi2015
 ```
 

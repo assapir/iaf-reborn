@@ -1,4 +1,4 @@
-//! The steps' work: tools/setup-cli.sh's jobs, through the iaf-tools library (outside programs as child processes).
+//! The steps' work, through the iaf-tools library (outside programs as child processes).
 
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};

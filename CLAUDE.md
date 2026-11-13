@@ -53,14 +53,14 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
 
 - `crates/iaf-formats` — parsers for the original file formats (ISO9660, PTT terrain, terraintype.dat, X models, ESA, EMF, menu, RTF,
   LZO, PE resources, the CD launcher's .rgn, the Mission Creator's .mcr…). Format notes in `docs/formats/`.
-- `crates/iaf-tools` — CLIs used by `tools/setup-cli.sh`: `iaf-extract` (ISO → `assets/install`), `iaf-patch` (v1.1 RTPatch
+- `crates/iaf-tools` — the converters, as CLIs and as the library the setup pipeline calls: `iaf-extract` (ISO → `assets/install`), `iaf-patch` (v1.1 RTPatch
   without Windows), `iaf-convert` (cockpits, menus, keys, missions, aircraft → `assets/converted`, plus
   `plane-describe` / `plane-checklist`), `iaf-terrain`, `iaf-imagery`, `iaf-import-pack`, `iaf-mission-report`;
   the library also builds the Mission Creator's mission 0x29a (`mission_creator.rs`) and holds the mission editor's
   edits and checks (`mission_edit.rs`, docs/mission-editor.md).
   The setup-path bins are argument parsers over library modules (`convert`, `extract`, `patch`, `pack`, `terrain`,
   `imagery_run`): each entry point takes a `progress::Progress` and a cancel flag.
-- `crates/iaf-setup` — the setup pipeline in-process (docs/setup.md): `plan` (setup-cli.sh's steps with their
+- `crates/iaf-setup` — the setup pipeline in-process (docs/setup.md): `plan` (the steps with their
   dependencies), `run` (a dependency graph, stamps skip unchanged steps), the input checks; CLI `iaf-setup` for testing.
 - `crates/iaf-flight` — the original flight model and AI autopilot, pure Rust, re-implemented from
   `docs/flight-model.md` / `docs/autopilot.md`; also the engine spool (`spool.rs`) and World scale Real's base move

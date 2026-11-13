@@ -1,4 +1,4 @@
-//! The setup pipeline from a terminal (for testing; tools/setup-cli.sh is the scripted way, the wizard the graphical one):
+//! The setup pipeline from a terminal (tools/setup-cli.sh wraps it; the wizard is the graphical way):
 //!
 //!   iaf-setup [--assets DIR] [--patch <v1.1 patch>] [--hebrew-iso <Hebrew CD>] [--imagery sentinel2,mapi2015,mapi2015-bases]
 //!             [--guides] [--scenery] [--scenery-kinds both|buildings|trees] [--refresh-imagery] [--redo-all] [--xdg-data-home DIR] ["<Jane's IAF.iso>" [Brief.zip] [Menu.zip]]
@@ -107,7 +107,7 @@ fn main() -> Result<()> {
                 }
             }
             i.guides |= guides;
-            i.refresh |= refresh;
+            i.refresh = refresh; // once, after a restore
             i.scenery |= scenery;
             i.scenery_kinds = kinds.unwrap_or(i.scenery_kinds);
             i

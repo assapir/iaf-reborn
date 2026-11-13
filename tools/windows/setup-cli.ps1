@@ -8,7 +8,7 @@ $ErrorActionPreference = 'Stop'
 Push-Location (Resolve-Path "$PSScriptRoot\..\..")
 try {
 	$ErrorActionPreference = 'Continue'  # cargo's progress on stderr is no error
-	cargo run --release -q -p iaf-setup -- @args
+	cargo run --release -q -p iaf-setup --bin iaf-setup -- @args
 	$code = $LASTEXITCODE
 } finally {
 	Pop-Location

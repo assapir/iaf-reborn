@@ -80,10 +80,9 @@ The tool converts a source in seven steps:
      counts the units not converted yet.
    - `--stale` converts only units whose mark is out of date, plus unmarked units on an airbase; units never
      converted stay so. `tools/setup-cli.sh` runs it for each layer after restoring imagery from a mirror
-     (`IAF_IMAGERY_MIRROR`), once the theatre exists. The restore copies imagery only when
-     `assets/converted/imagery` is missing, so it never overwrites newer local units. When the sheets were not
-     restored, `mapi2015` cannot be converted again: setup-cli.sh prints a warning that lists the out-of-date units.
-     When `sentinel2` cannot reach WorldCover, it prints a warning and goes on.
+     (`IAF_IMAGERY_MIRROR`; setup's `imagery-refresh` step). The restore copies imagery only when
+     `assets/converted/imagery` is missing, so it never overwrites newer local units. When the sheets were not restored,
+     the `mapi2015` units keep their older rules (with a warning).
 
 ## 3. Where a layer replaces the original
 
@@ -211,7 +210,7 @@ the layer.
 `tools/setup-cli.sh --imagery` fetches and converts a layer; the `iaf-imagery` binary does the same by hand for an area.
 
 ```sh
-tools/setup-cli.sh --imagery sentinel2          # estimate, ask, fetch + convert (needs gdal); alone = imagery steps only
+tools/setup-cli.sh --imagery sentinel2          # fetch + convert (needs gdal); without the ISO: added to the last setup
 tools/setup-cli.sh --imagery mapi2015-bases     # Survey of Israel sheets around the airbases, through the browser, + convert
 tools/setup-cli.sh --imagery mapi2015           # all 79 sheets (download what is missing) + convert (incremental)
 
