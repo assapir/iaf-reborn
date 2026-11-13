@@ -120,12 +120,6 @@ func away_view() -> Variant:
 var _last_focus := Vector3(INF, INF, INF)
 var _last_select := 0
 
-# terraintype.dat main BSP tree (docs/formats/ptt.md "Terrain types"): per node the split line
-# (a, b, c, d), children (-1 = none) and the leaf's surface mask.
-var _bsp_plane := PackedFloat64Array()
-var _bsp_child0 := PackedInt32Array()
-var _bsp_child1 := PackedInt32Array()
-var _bsp_mask := PackedInt32Array()
 ## World scale Real (docs/world-scale.md §3.3): the images are patched as they load (the old bases painted over, the
 ## new sites drawn and flattened) and the surface lookups go through the base moves.
 var _bases_moved := false
@@ -172,9 +166,6 @@ func prepare() -> void:
 					_add_colour_node(n)
 	for l in _root_level + 1:
 		_meshes.append(_grid_mesh(_span_m(l), _quads(l)))
-	var types := surface_types_file()
-	if types != "":
-		_load_terrain_types(types)
 
 
 ## terraintype.dat of this theatre: own_dir()'s (the install's in the original game, Modern IAF's own in the sim); ""
@@ -211,7 +202,9 @@ func _ready() -> void:
 	_bases_moved = not own_frame and Settings.sync_bases()
 	if _bases_moved:
 		_add_insets()
-	IafSurface.load(surface_types_file())
+	var types := surface_types_file()
+	if not IafSurface.load(types) and types != "":
+		push_error("terrain: %s not found — surface types unknown" % types)
 	_bake_bounds = IafBases.bounds() if _bases_moved else PackedFloat64Array()
 	if _bases_moved:
 		_fill_sources()
@@ -866,57 +859,10 @@ static func _raw(img: Image, x: int, y: int) -> float:
 	return float(roundi(c.r * 255.0) * 256 + roundi(c.g * 255.0))
 
 
-## Parses the main BSP tree of terraintype.dat (pre-order nodes: i32 count, mask, has1, has0,
-## then the split line as 4 f64 when has1, then the child1 subtree, then the child0 subtree).
-func _load_terrain_types(path: String) -> void:
-	var data := FileAccess.get_file_as_bytes(path)
-	if data.is_empty():
-		push_error("terrain: %s not found — surface types unknown" % path)
-		return
-	var pos := 0
-	var stack: Array[Vector2i] = [Vector2i(-1, 0)]  # (parent, child slot)
-	while not stack.is_empty():
-		var slot: Vector2i = stack.pop_back()
-		var k := _bsp_mask.size()
-		_bsp_mask.append(data.decode_s32(pos + 4))
-		var has1 := data.decode_s32(pos + 8) == 1
-		var has0 := data.decode_s32(pos + 12) == 1
-		pos += 16
-		for i in 4:
-			_bsp_plane.append(data.decode_double(pos + 8 * i) if has1 else 0.0)
-		if has1:
-			pos += 32
-		_bsp_child0.append(-1)
-		_bsp_child1.append(-1)
-		if slot.x >= 0:
-			if slot.y == 1:
-				_bsp_child1[slot.x] = k
-			else:
-				_bsp_child0[slot.x] = k
-		if has0:
-			stack.push_back(Vector2i(k, 0))
-		if has1:
-			stack.push_back(Vector2i(k, 1))
-
-
-## Surface flags at a Godot position (terraintype.dat through FUN_004024b0: world metres truncated,
-## shifted by (+0x151, −0x19a)): SURFACE_* bits; 0 when the file is missing.
+## Surface flags at a Godot position (terraintype.dat through FUN_004024b0, read by IafSurface; through the base
+## moves in World scale Real): SURFACE_* bits; 0 when the file is missing.
 func surface_at(pos: Vector3) -> int:
-	if _bsp_mask.is_empty():
-		return 0
-	if _bases_moved:
-		return IafBases.surface(world_origin.x + pos.x, world_origin.y - pos.z)
-	var x := float(int(world_origin.x + pos.x) + 0x151)
-	var y := float(int(world_origin.y - pos.z) - 0x19a)
-	var k := 0
-	while _bsp_child0[k] >= 0 or _bsp_child1[k] >= 0:
-		var p := k * 4
-		var below := _bsp_plane[p] * x + _bsp_plane[p + 1] * y < _bsp_plane[p + 2] - _bsp_plane[p + 3]
-		var next := _bsp_child0[k] if below else _bsp_child1[k]
-		if next < 0:
-			break
-		k = next
-	return _bsp_mask[k]
+	return IafBases.surface(world_origin.x + pos.x, world_origin.y - pos.z)
 
 
 ## Let running decode jobs finish before the node (and its mutex) goes away.

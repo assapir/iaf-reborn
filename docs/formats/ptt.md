@@ -240,9 +240,10 @@ Users of the mask:
 
 Original quirk: island leaves carry the water bit, so touching down on Cyprus counts as water.
 
-Ported: `terrain.gd` reads the main tree from the install at start, and `surface_at(pos)` returns the mask. The
-flight gets water / rough every frame (`set_ground_surface`). `IafSurface` (`crates/iaf-godot/src/surface.rs`, parser
-`crates/iaf-formats/src/terrain_types.rs`) rasterises the mask around the camera for the terrain shader.
+Ported: `IafSurface` (`crates/iaf-godot/src/surface.rs`, parser `crates/iaf-formats/src/terrain_types.rs`) reads the
+main tree when the terrain starts; `terrain.gd surface_at(pos)` returns the mask through `IafBases.surface`. The flight
+gets water / rough every frame (`set_ground_surface`). `IafSurface` also rasterises the mask around the camera for the
+terrain shader.
 
 **Airbase footprints.** The 0x10 polygons cover the whole airbase: runway, taxiways, aprons and the grass between.
 Landing beside the runway inside the base is therefore safe. `tests/godot/test_runway_edges.gd` measures each
