@@ -1,20 +1,28 @@
-# The front end's look (modern-iaf/docs/front-end.md "Look"): the round-3 palette and type scale on the wizard's Heebo
-# (setup/wizard_theme.gd). Sizes are pixels of the 1080-high canvas the front end lays out on (front_end.gd scales it
-# to the window), so every length follows the screen height: R, the body text, is 1.9 % of it.
+# The front end's look (modern-iaf/docs/front-end.md "Look"): the roundel-blue palette (the user, 2026-11-13, A25) and
+# the round-3 type scale on the wizard's Heebo (setup/wizard_theme.gd). Every sim screen takes its colours from here.
+# Sizes are pixels of the 1080-high canvas the front end lays out on (front_end.gd scales it to the window), so every
+# length follows the screen height: R, the body text, is 1.9 % of it.
 extends RefCounted
 
 const WizardTheme := preload("../setup/wizard_theme.gd")  # relative: a test of the original's project loads it too
 
-const BG := Color("1d2025")
-const PANEL := Color("262a31")
-const LINE := Color("3b414b")
-const EDGE := Color("6b737f")
-const TEXT := Color("eef0f2")
-const MUTED := Color("aab1bb")
-## The Israeli Air Force flag's sky blue and navy (NOTES.md of round 3).
-const ACCENT := Color("6699ff")
-const NAVY := Color("000055")
-const ACCENT_TEXT := Color("9dbdff")
+## The page, one step darker than the roundel's blue; the panels in the roundel's deep blue itself (Wikimedia Commons'
+## Roundel_of_Israel.svg #001E50, a drawing, not an official specification; menu-ideas ideas.md round 2).
+const BG := Color("00163c")
+const PANEL := Color("001e50")
+const LINE := Color("1d3a70")
+const EDGE := Color("5a73a3")
+const TEXT := Color("f2f5fa")
+const MUTED := Color("a9b8d4")
+## The one accent (buttons, the selection) and the text on it (the roundel blue).
+const ACCENT := Color("5b8cff")
+const NAVY := Color("001e50")
+const ACCENT_TEXT := Color("a8c3ff")
+## A raised panel (hover, the lit tab) and a field's fill (dropdowns, text fields), between PANEL and LINE.
+const RAISED := Color("0a2a66")
+const FIELD := Color("00194a")
+## A border or ring with nothing to say (a disabled radio, the key caps).
+const DIM := Color("3a5287")
 ## A figure over its limit (the take-off weight over the maximum).
 const WARN := Color("ff6b6b")
 ## A figure past a warning limit (the wings' stores out of balance).
@@ -60,7 +68,7 @@ const TYPES := [
 	["Stamp", "Label", 800, 29, NAVY],
 	["Key", "Label", 600, R, TEXT],
 	["Avatar", "Label", 700, 22, NAVY],
-	["Chip", "Label", 600, 19, Color("c9ced5")],
+	["Chip", "Label", 600, 19, MUTED],
 	["ChipOk", "Label", 600, 19, ACCENT_TEXT],
 	["Menu", "Button", 500, 26, TEXT],
 	["Primary", "Button", 600, 24, NAVY],
@@ -68,11 +76,12 @@ const TYPES := [
 	["Secondary", "Button", 600, 24, TEXT],
 	["Card", "Button", 400, R, TEXT],
 	["Tab", "Button", 500, 24, TEXT],
+	["JetRow", "Button", 400, R, TEXT],
+	["JetName", "Label", 800, 30, TEXT],
 ]
 
 
-## `rtl`: the Tab's accent bar on the left, the side facing its pane in Hebrew.
-static func make(rtl := false) -> Theme:
+static func make() -> Theme:
 	var heebo := FontFile.new()
 	heebo.load_dynamic_font(ProjectSettings.globalize_path(WizardTheme.FONT))
 	var t := Theme.new()
@@ -94,20 +103,20 @@ static func make(rtl := false) -> Theme:
 			t.set_color(k, ty[0], ty[4])
 	var btn := box(Color(PANEL, 0.85), EDGE, 1, 5, Vector2(36, 12))
 	var on := box(Color(PANEL, 0.85), ACCENT, 3, 5, Vector2(36, 12))
-	_button(t, "Secondary", btn, box(Color("323741"), EDGE, 1, 5, Vector2(36, 12)), on)
+	_button(t, "Secondary", btn, box(RAISED, EDGE, 1, 5, Vector2(36, 12)), on)
 	var pri := box(ACCENT, ACCENT, 1, 5, Vector2(36, 12))
 	_button(
 		t,
 		"Primary",
 		pri,
-		box(Color("80aaff"), Color("80aaff"), 1, 5, Vector2(36, 12)),
+		box(ACCENT.lightened(0.15), ACCENT.lightened(0.15), 1, 5, Vector2(36, 12)),
 		box(ACCENT, TEXT, 3, 5, Vector2(36, 12))
 	)
 	_button(
 		t,
 		"Fly",
 		pri,
-		box(Color("80aaff"), Color("80aaff"), 1, 5, Vector2(36, 12)),
+		box(ACCENT.lightened(0.15), ACCENT.lightened(0.15), 1, 5, Vector2(36, 12)),
 		box(ACCENT, TEXT, 3, 5, Vector2(36, 12))
 	)
 	for k in ["Fly", "Primary"]:
@@ -120,15 +129,14 @@ static func make(rtl := false) -> Theme:
 	menu_on.bg_color = Color(ACCENT, 0.16)
 	_button(t, "Menu", flat, menu_on, menu_on)
 	t.set_constant("align_to_largest_stylebox", "Menu", 1)
-	# A list's tab (the Preferences' sections, the Keys screen's groups): the picked one lit, its bar facing the pane.
-	var tab := box(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 0, Vector2(28, 16))
-	var tab_on := box(Color("262d3b"), ACCENT, 0, 0, Vector2(28, 16))
-	if rtl:
-		tab_on.border_width_left = 4
-	else:
-		tab_on.border_width_right = 4
-	_button(t, "Tab", tab, tab_on, tab_on)
-	t.set_stylebox("pressed", "Tab", tab_on)
+	# A list's tab (the Preferences' sections, the Keys screen's groups): the picked one filled in the accent's tint, no
+	# bar at its side (the user, 2026-11-13); the focus a ring.
+	var tab := box(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 4, Vector2(28, 16))
+	var tab_on := box(Color(ACCENT, 0.22), Color(0, 0, 0, 0), 0, 4, Vector2(28, 16))
+	_button(t, "Tab", tab, box(Color(ACCENT, 0.1), Color(0, 0, 0, 0), 0, 4, Vector2(28, 16)), tab)
+	t.set_stylebox("focus", "Tab", box(Color(0, 0, 0, 0), ACCENT, 2, 4, Vector2(28, 16)))
+	for k in ["pressed", "hover_pressed"]:
+		t.set_stylebox(k, "Tab", tab_on)
 	# A breadcrumb that opens its screen: the muted text, brighter with a faint accent under the pointer or the focus.
 	var crumb := box(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 5, Vector2(8, 4))
 	var crumb_on := box(Color(ACCENT, 0.16), Color(0, 0, 0, 0), 0, 5, Vector2(8, 4))
@@ -140,20 +148,20 @@ static func make(rtl := false) -> Theme:
 	_button(t, "PilotLink", crumb, crumb_on, box(Color(0, 0, 0, 0), ACCENT, 2, 5, Vector2(8, 4)))
 	t.set_stylebox("pressed", "PilotLink", box(Color(ACCENT, 0.32), Color(0, 0, 0, 0), 0, 5, Vector2(8, 4)))
 	# A text field (the Pilot screen's name and nickname): the dropdown's box.
-	t.set_stylebox("normal", "LineEdit", box(Color("2a2f37"), EDGE, 1, 5, Vector2(18, 10)))
+	t.set_stylebox("normal", "LineEdit", box(FIELD, EDGE, 1, 5, Vector2(18, 10)))
 	t.set_stylebox("focus", "LineEdit", box(Color(0, 0, 0, 0), ACCENT, 2, 5, Vector2(18, 10)))
 	t.set_color("font_color", "LineEdit", TEXT)
 	t.set_color("caret_color", "LineEdit", ACCENT)
 	t.set_font_size("font_size", "LineEdit", 24)
 	var card := box(PANEL, LINE, 1, 6, Vector2.ZERO)
-	_button(t, "Card", card, box(Color("2c313a"), EDGE, 1, 6, Vector2.ZERO), box(PANEL, ACCENT, 4, 6, Vector2.ZERO))
+	_button(t, "Card", card, box(RAISED, EDGE, 1, 6, Vector2.ZERO), box(PANEL, ACCENT, 4, 6, Vector2.ZERO))
 	t.set_stylebox("pressed", "Card", box(PANEL, ACCENT, 4, 6, Vector2.ZERO))
 	t.set_stylebox("hover_pressed", "Card", box(PANEL, ACCENT, 4, 6, Vector2.ZERO))
 	# Form controls: dropdown, toggle, slider, radio list on the dark panels.
-	t.set_stylebox("normal", "OptionButton", box(Color("2a2f37"), EDGE, 1, 5, Vector2(22, 10)))
-	t.set_stylebox("hover", "OptionButton", box(Color("323741"), EDGE, 1, 5, Vector2(22, 10)))
+	t.set_stylebox("normal", "OptionButton", box(FIELD, EDGE, 1, 5, Vector2(22, 10)))
+	t.set_stylebox("hover", "OptionButton", box(RAISED, EDGE, 1, 5, Vector2(22, 10)))
 	t.set_stylebox("focus", "OptionButton", box(Color(0, 0, 0, 0), ACCENT, 2, 5, Vector2(22, 10)))
-	t.set_stylebox("pressed", "OptionButton", box(Color("323741"), ACCENT, 1, 5, Vector2(22, 10)))
+	t.set_stylebox("pressed", "OptionButton", box(RAISED, ACCENT, 1, 5, Vector2(22, 10)))
 	# Right to left (Hebrew) the dropdown draws its *_mirrored boxes: the same ones, or Godot's default plain box shows.
 	for k in ["normal", "hover", "pressed"]:
 		t.set_stylebox(k + "_mirrored", "OptionButton", t.get_stylebox(k, "OptionButton"))
@@ -165,10 +173,10 @@ static func make(rtl := false) -> Theme:
 		"<svg xmlns='http://www.w3.org/2000/svg' width='80' height='40'>"
 		+ "<rect width='80' height='40' rx='20' fill='%s'/>%s</svg>"
 	)
-	var off_l := _svg(track % ["#3b414b", knob % 20])
-	var off_r := _svg(track % ["#3b414b", knob % 60])
-	var on_r := _svg(track % ["#6699ff", knob % 60])
-	var on_l := _svg(track % ["#6699ff", knob % 20])
+	var off_l := _svg(track % [_hex(LINE), knob % 20])
+	var off_r := _svg(track % [_hex(LINE), knob % 60])
+	var on_r := _svg(track % [_hex(ACCENT), knob % 60])
+	var on_l := _svg(track % [_hex(ACCENT), knob % 20])
 	for k in ["unchecked", "unchecked_disabled"]:
 		t.set_icon(k, "CheckButton", off_l)
 		t.set_icon(k + "_mirrored", "CheckButton", off_r)
@@ -179,11 +187,17 @@ static func make(rtl := false) -> Theme:
 		"<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30'>"
 		+ "<circle cx='15' cy='15' r='12' fill='none' stroke='%s' stroke-width='2.5'/>%s</svg>"
 	)
-	t.set_icon("radio_unchecked", "CheckBox", _svg(ring % ["#aab1bb", ""]))
-	t.set_icon("radio_unchecked_disabled", "CheckBox", _svg(ring % ["#5a616c", ""]))
-	t.set_icon("radio_checked", "CheckBox", _svg(ring % ["#6699ff", "<circle cx='15' cy='15' r='6' fill='#6699ff'/>"]))
+	t.set_icon("radio_unchecked", "CheckBox", _svg(ring % [_hex(MUTED), ""]))
+	t.set_icon("radio_unchecked_disabled", "CheckBox", _svg(ring % [_hex(DIM), ""]))
 	t.set_icon(
-		"radio_checked_disabled", "CheckBox", _svg(ring % ["#5a616c", "<circle cx='15' cy='15' r='6' fill='#5a616c'/>"])
+		"radio_checked",
+		"CheckBox",
+		_svg(ring % [_hex(ACCENT), "<circle cx='15' cy='15' r='6' fill='%s'/>" % _hex(ACCENT)])
+	)
+	t.set_icon(
+		"radio_checked_disabled",
+		"CheckBox",
+		_svg(ring % [_hex(DIM), "<circle cx='15' cy='15' r='6' fill='%s'/>" % _hex(DIM)])
 	)
 	t.set_constant("h_separation", "CheckBox", 14)
 	t.set_color("font_color", "CheckBox", TEXT)
@@ -199,7 +213,30 @@ static func make(rtl := false) -> Theme:
 	t.set_stylebox("background", "ProgressBar", box(LINE, LINE, 0, 4, Vector2(0, 3)))
 	t.set_stylebox("fill", "ProgressBar", box(ACCENT, ACCENT, 0, 4, Vector2(0, 3)))
 	t.set_stylebox("panel", "PanelContainer", box(PANEL, LINE, 1, 6, Vector2.ZERO))
+	# A list's row that picks one (the Hangar's jets): the picked one filled in the accent's tint, no bar at its side
+	# (the user, 2026-11-13); the focus a ring.
+	var row := box(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 6, Vector2.ZERO)
+	var row_on := box(Color(ACCENT, 0.22), Color(0, 0, 0, 0), 0, 6, Vector2.ZERO)
+	_button(t, "JetRow", row, box(Color(ACCENT, 0.1), Color(0, 0, 0, 0), 0, 6, Vector2.ZERO), row)
+	t.set_stylebox("focus", "JetRow", box(Color(0, 0, 0, 0), ACCENT, 2, 6, Vector2.ZERO))
+	for k in ["pressed", "hover_pressed"]:
+		t.set_stylebox(k, "JetRow", row_on)
+	t.set_stylebox("disabled", "JetRow", row)
 	return t
+
+
+## The Preferences' gear, drawn in the text colour at the canvas' size.
+static func gear_icon() -> ImageTexture:
+	var g := (
+		"<svg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='%s'"
+		+ " stroke-width='2'><circle cx='12' cy='12' r='3.2'/><path d='M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1"
+		+ " 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1'/></svg>"
+	)
+	return _svg(g % _hex(TEXT))
+
+
+static func _hex(c: Color) -> String:
+	return "#" + c.to_html(false)
 
 
 static func _svg(src: String) -> ImageTexture:

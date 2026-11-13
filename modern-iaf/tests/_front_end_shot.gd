@@ -4,10 +4,10 @@
 # Writes SHOT_DIR/<screen>_<lang>.png (the Preferences: prefs_<section>_*; the Pilot screens: _pilot) at 1920×1080 (the
 # front end in a viewport of that size, whatever the window's) with the sample pilot log and debrief of
 # test_front_end.gd (debrief_fail: its take-off with the gear never raised; fly_again: the debrief's Fly again).
-# SHOT_ONLY=<screen> takes that screen alone (e.g. SHOT_ONLY=plane).
+# SHOT_ONLY=<screen> takes that screen alone (e.g. SHOT_ONLY=hangar).
 extends "res://../tests/godot/base.gd"
 
-const SCREENS := ["home", "plane", "training", "mission", "debrief", "debrief_fail", "fly_again", "log", "credits"]
+const SCREENS := ["hangar", "mission", "debrief", "debrief_fail", "fly_again", "log", "credits"]
 
 
 func run() -> void:
@@ -58,14 +58,14 @@ func run() -> void:
 
 ## The Pilot screens with a sample profile (a drawn silhouette as its picture): the first start's (pilot_first), the
 ## Pilot screen with the sample log's logbook (pilot), the Reset's warning (pilot_reset), the pilot list with a second
-## pilot (pilots) and Home with the name and nickname (home); then the profile put back.
+## pilot (pilots) and the Hangar with the name, nickname and picture (hangar_pilot); then the profile put back.
 func _pilot(fe: Control, vp: SubViewport, dir: String, lang: String) -> void:
 	var s := settings()
 	var db: String = s.records_db()
 	s.pilot_name = ""
 	var he := lang == "he"
 	IafPilotLog.set_pilot(db, s.pilot(), "", "")
-	fe.show_page("home")
+	fe.show_page("hangar")
 	await _shot(vp, dir, "pilot_first_" + lang)
 	IafPilotLog.set_pilot(db, s.pilot(), "נועה גולן" if he else "Noa Golan", "עקרב" if he else "Viper")
 	var png := OS.get_temp_dir().path_join("iaf2026-shot-pilot-%d.png" % OS.get_process_id())
@@ -80,8 +80,8 @@ func _pilot(fe: Control, vp: SubViewport, dir: String, lang: String) -> void:
 	var other: int = IafPilotLog.add_pilot(db, "דנה לוי" if he else "Dana Levi", "")
 	fe.show_page("pilots")
 	await _shot(vp, dir, "pilots_" + lang)
-	fe.show_page("home")
-	await _shot(vp, dir, "home_" + lang)
+	fe.show_page("hangar")
+	await _shot(vp, dir, "hangar_pilot_" + lang)
 	IafPilotLog.set_pilot(db, other, "", "")
 	IafPilotLog.set_pilot(db, s.pilot(), "", "")
 	IafPilotLog.set_picture(db, s.pilot(), "")

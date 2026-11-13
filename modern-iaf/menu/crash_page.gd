@@ -29,7 +29,7 @@ func _ready() -> void:
 	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(back)
 	_page = Control.new()
-	_page.theme = Look.make(he)
+	_page.theme = Look.make()
 	add_child(_page)
 	var box := VBoxContainer.new()
 	box.set_anchors_and_offsets_preset(Control.PRESET_CENTER)

@@ -33,7 +33,7 @@ static func page(front_end: Control) -> Node:
 	var me = load("res://menu/joystick_screen.gd").new(front_end)
 	front_end.add_child(me)
 	if front_end.flight == null:
-		front_end._header(["home", "preferences", "devices", "joystick_screen"])
+		front_end._header(["hangar", "preferences", "devices", "joystick_screen"])
 	var v: VBoxContainer = front_end._vbox(front_end._body(96, 112 if front_end.flight == null else 60), 28)
 	front_end._title(v, front_end.s("joystick_screen"), front_end.s("joystick_sub"))
 	var h: HBoxContainer = front_end._hbox(v, 96)

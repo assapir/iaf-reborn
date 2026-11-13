@@ -173,7 +173,7 @@ func _key_row(parent: Control, key: String, what: String, kind: String) -> HBoxC
 	row.add_theme_constant_override("separation", 12)
 	parent.add_child(row)
 	var cap := PanelContainer.new()
-	var kb := Look.box(Color(Look.BG, 0.7), Color("5a616c"), 1, 5, Vector2(9, 1))
+	var kb := Look.box(Color(Look.BG, 0.7), Look.DIM, 1, 5, Vector2(9, 1))
 	kb.border_width_bottom = 3
 	cap.add_theme_stylebox_override("panel", kb)
 	cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER

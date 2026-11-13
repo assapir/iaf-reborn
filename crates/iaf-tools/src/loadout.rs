@@ -59,7 +59,7 @@ pub fn mirror(unit: &Value, st: u32) -> Option<u32> {
 
 /// The engine's pylon letter of station `st` (A..I; the record's `stations` where its numbers differ), none for a
 /// station the engine's nine pylons leave out.
-fn letter(unit: &Value, st: u32) -> Option<usize> {
+pub fn letter(unit: &Value, st: u32) -> Option<usize> {
     let l = match unit["stations"].as_object() {
         Some(m) => m.get(&st.to_string())?.as_str()?.bytes().next()?,
         None => b'A' + u8::try_from(st.checked_sub(1)?).ok()?,

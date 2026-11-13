@@ -10,7 +10,7 @@
   "scale": 1.0,
   "radius_m": 5.33,
   "strength": 300,
-  "tail": "921",
+  "tail": "937",
   "max_takeoff_kg": 31751,
   "loadout": {
     "20mm": 180,
@@ -43,7 +43,7 @@
   ],
   "sources": {
     "allowed": "w-f35-arm, afm-f35, rk-bru61, inferred",
-    "tail": "isradecal-921",
+    "tail": "model-937",
     "max_takeoff_kg": "lm-f35a, inferred",
     "type": "inferred",
     "scale": "inferred",
@@ -60,7 +60,7 @@
   "notes": {
     "lateral_limit_kgm": "open: no public figure for the F-35's asymmetric moment limit was found, so the briefing shows no imbalance warning for the Adir",
     "allowed": "the stores each station takes, by its real number. Sourced: the AIM-120 on the bays' inboard stations 5 / 7, the GBU-31 on their outboard ones 4 / 8 (up to 2,500 lb) and four GBU-39 there on a BRU-61/A (w-f35-arm), the AIM-9X on the wingtip stations 1 / 11 only, not in the bays (w-f35-arm). Inferred: the GBU-31 on the inboard wing stations 3 / 9 (5,000 lb; w-f35-arm's six 2,000 lb bombs) and the AIM-120 there (afm-f35's eight AIM-120); the BRU-61/A's 147 kg (rk-bru61, unofficial); 2 / 10 take none (no pylon in the engine, stations); no Python on the Adir (not integrated on the F-35I as far as public sources show)",
-    "tail": "F-35I Adir 921 of 140 Squadron in a public photo (the squadron's tail art, 2021): one real jet of the squadron, the pilot's in the sim",
+    "tail": "the number painted on the Adir's model (shared/extra/planes/f35i: tail number 937 with 116 Squadron's badge; docs/f35i.md), so every screen shows the jet the player sees (the user, 2026-11-13, A31). Until then 921 of 140 Squadron (isradecal-921); the model's 116 Squadron badge against the unit's 140 Squadron: open",
     "max_takeoff_kg": "the F-35A's maximum weight, 70,000 lb class (31,751 kg), Lockheed Martin's; the F-35I's is not published (inferred the same)",
     "type": "type codes from 1000 are ours (docs/adding-a-plane.md §1); 1000 is the F-35I's",
     "model": "none: the player's jet is drawn from its airframe definition (shared/extra/planes/f35i/airframe.json)",
@@ -80,6 +80,7 @@
     "rk-bru61": "War Thunder forum (BRU-61 about 147 kg; unofficial), https://forum.warthunder.com/t/saab-jas-39e-f-gripen-general-discussion/291381?page=52",
     "w-f35-arm": "Wikipedia, \"Lockheed Martin F-35 Lightning II\", Armament (the bays' outboard stations up to 2,500 lb and the inboard ones the AIM-120; up to four GBU-39 on each outboard bay station; the wingtip pylons the AIM-9X, which is not carried internally; each wing a 5,000 lb inboard and a 2,500 lb middle station; six 2,000 lb bombs, two AIM-120s and two AIM-9s) (read 2026-11-10), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II",
     "lm-f35a": "Lockheed Martin, \"F-35A Lightning II\" variant page (maximum weight 70,000 lb class), https://view.ceros.com/lockheed-martin/f-35-variants",
+    "model-937": "the Adir's model's IAF low-visibility livery, tail number 937 and 116 Squadron's badge (docs/f35i.md, the model row of its status table)",
     "isradecal-921": "IsraDecal, F-35I Adir decal sheet notes (the Golden Eagle squadron's tail art from summer 2021, \"here seen aircraft 916 and 921\"), https://isradecal.com/_files/ugd/ddb4b4_ba84724c1add4daa9882e4818bb8d8e2.pdf",
     "w-f35": "Wikipedia, \"Lockheed Martin F-35 Lightning II\" (F-35A: span 35 ft; 1 × 25 mm GAU-22/A with 180 rounds), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II",
     "w-f35-bays": "Wikipedia, \"Lockheed Martin F-35 Lightning II\", Armament (two internal bays of two stations each; the outboard stations carry air-to-surface weapons up to 2,500 lb, among them the JDAM; the inboard stations the AIM-120; six external stations) (read 2026-11-10), https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II",

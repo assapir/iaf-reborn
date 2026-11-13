@@ -1,4 +1,4 @@
-# Modern IAF's front end (modern-iaf/docs/front-end.md): Home, Pick a plane, Training, Pick a mission, Preferences, the
+# Modern IAF's front end (modern-iaf/docs/front-end.md): the Hangar, Pick a mission, Preferences, the
 # Debrief, the Pilot log and Attributions, one screen per step in the frame of the round-3 design (where you are and
 # the pilot at the top, key hints and the screen's buttons at the bottom). Hebrew mirrors every screen: the root's
 # layout direction is right to left, so containers, anchors, sliders, toggles and radio lists flip; the jet photos
@@ -17,12 +17,15 @@ const Scenery := preload("res://shared/terrain/scenery.gd")
 const KeyTable := preload("res://shared/controls/key_table.gd")
 const BriefingMap := preload("res://menu/briefing_map.gd")
 const ArmingDrawing := preload("res://menu/arming_drawing.gd")
+const Turntable := preload("res://shared/aircraft/turntable.gd")
 
 const PHOTOS := "res://data/photos"
 ## The start-up steps' switches cropped from each jet's 3D cockpit: <unit>/<step>.webp (tests/_switch_crops.gd).
 const SWITCHES := "res://data/switches"
 ## The canvas the screens lay out on: the window shows it scaled to its height (Look's sizes are its pixels).
 const CANVAS := Vector2i(1920, 1080)
+## The right-to-left mark (full_name).
+const RLM := "\u200f"
 ## Each Sound slider's sample, a clip of its class from the sim's own sounds (SoundTable: [code, sub code] or a file)
 ## on that slider's bus: the engine, the master caution tone, a tower call.
 const SAMPLES := {
@@ -43,28 +46,13 @@ const JETS := [
 	{"unit": "f16d", "airframe": "f16", "name": "barak", "code": "F-16D", "base": "ramat_david", "icao": "llrd"},
 	{"unit": "f35i", "airframe": "f35i", "name": "adir", "code": "F-35I", "base": "nevatim", "icao": "llnv"},
 ]
-## The jets shown after them on Pick a plane, greyed and not pickable until the sim flies them (the user, 2026-11-10).
+## The jets shown after them in the Hangar, greyed and not pickable until the sim flies them (the user, 2026-11-10).
 const SOON := [
 	{"unit": "f15i", "name": "raam", "code": "F-15I", "base": "hatzerim", "icao": "llhb"},
 	{"unit": "f15c", "name": "baz", "code": "F-15C", "base": "tel_nof", "icao": "llek"},
 ]
-## Each jet's photos (data/photos): [in the air or its card, on the ground (the Training card and the briefing)].
-const JET_PHOTOS := {
-	"sufa": ["sufa.jpg", "sufa_ground.jpg"],
-	"barak": ["barak.jpg", "barak.jpg"],
-	"adir": ["adir.jpg", "adir.jpg"],
-	"raam": ["raam.jpg"],
-	"baz": ["baz.jpg"],
-}
-## Each photo's credit in the footer (data/photos/SOURCES.md): [English author, Hebrew author, licence].
-const PHOTO_CREDITS := {
-	"sufa.jpg": ["Major Ofer, Israeli Air Force", "רס״ן עופר, חיל האוויר", "CC BY 4.0"],
-	"sufa_ground.jpg": ["MathKnight and Zachi Evenor", "MathKnight וזכי אבנור", "CC BY 4.0"],
-	"barak.jpg": ["Zachi Evenor and MathKnight", "זכי אבנור ו־MathKnight", "CC BY 2.0"],
-	"adir.jpg": ["Major Ofer, Israeli Air Force", "רס״ן עופר, חיל האוויר", "CC BY 4.0"],
-	"raam.jpg": ["Tech. Sgt. Kevin Gruenwald, U.S. Air Force", "קווין גרונוולד, חיל האוויר האמריקאי", "public domain"],
-	"baz.jpg": ["MathKnight and Zachi Evenor", "MathKnight וזכי אבנור", "CC BY 4.0"],
-}
+## Each flyable jet's photo (data/photos): its blurred copy is the debrief's background.
+const JET_PHOTOS := {"sufa": "sufa.jpg", "barak": "barak.jpg", "adir": "adir.jpg"}
 ## The Preferences: [group, [[setting, control, choices]]]. Controls: "dropdown" / "radio" ([[label key, value]]; a
 ## label without a string is shown as written), "switch" (choices: [off value, on value], default [false, true]),
 ## "slider" (0..1), "page" (a button that opens that screen: keys_screen → keys). Realism and aids have no switch
@@ -117,9 +105,8 @@ const PREFS := [
 ]
 ## The screen each breadcrumb opens (_header).
 const CRUMB_PAGES := {
-	"home": "home",
-	"plane": "plane",
-	"training": "training",
+	"hangar": "hangar",
+	"training": "mission",
 	"preferences": "prefs",
 	"devices": "prefs",  # the Keys and Joystick screens' crumb: the Preferences on their section
 	"pilot_log": "log",
@@ -127,18 +114,16 @@ const CRUMB_PAGES := {
 	"pilots": "pilots",
 	"credits": "credits"
 }
-## The screens that show the picked jet: Pick a plane opens in their place before the first pick.
-const NEEDS_JET := ["training", "mission"]
-## Esc on each screen goes here ("" = nothing on Home).
+## The screens that show the picked jet: the Hangar opens in their place before the first pick.
+const NEEDS_JET := ["mission"]
+## Esc on each screen goes here (the Hangar's: the Quit prompt).
 const BACK := {
-	"plane": "home",
-	"training": "plane",
-	"mission": "training",
-	"prefs": "home",
-	"debrief": "home",
+	"mission": "hangar",
+	"prefs": "hangar",
+	"debrief": "hangar",
 	"log": "pilot",
-	"credits": "home",
-	"pilot": "home",
+	"credits": "hangar",
+	"pilot": "hangar",
 	"pilots": "pilot",
 	"keys": "prefs",
 	"joystick": "prefs",
@@ -170,8 +155,8 @@ var brief_tab := 0
 var arm_pick := ""
 ## The unit records' folder (a test's own records: tests/_loadout_shot.gd's lowered maximum).
 var units_dir := "res://data/db/units"
-static var _themes := {}
-## The records store's view, read once per page: the sorties (Pilot log) and the summary (Home, Training).
+static var _theme: Theme = null
+## The records store's view, read once per page: the sorties (Pilot log) and the summary (the Hangar).
 var _sorties = null
 var _summary = null
 ## The pilot's profile (IafPilotLog.pilot: name, nickname, picture), read once per page; the pictures' textures.
@@ -207,7 +192,7 @@ func _ready() -> void:
 		Settings.flown_sortie = 0
 		if open_debrief(id):
 			return
-	show_page("home")
+	show_page("hangar")
 
 
 ## `-- --mission <id>`: flies that mission at once (true when it starts).
@@ -241,11 +226,11 @@ func he() -> bool:
 ## The jet's squadron at its base ({unit, number, name: {en, he}, source}; {} where the base file names none).
 ## "482 · 253 Squadron Negev · Ramon": the jet's tail number (its unit record's `tail`), its squadron and its base (the
 ## user, 2026-11-09: the wing is the base, so it is left out).
-func subtitle(j: Dictionary) -> String:
+func subtitle(j: Dictionary, with_tail := true) -> String:
 	if j.is_empty():
 		return ""
 	var parts := []
-	var tail := str(Settings.load_json("res://data/db/units/%s.json" % j.unit).get("tail", ""))
+	var tail := str(Settings.load_json("res://data/db/units/%s.json" % j.unit).get("tail", "")) if with_tail else ""
 	if tail != "":
 		parts.append(tail)
 	var sq := squadron(j)
@@ -276,7 +261,7 @@ func jet() -> Dictionary:
 ## Builds screen `p` in the current language.
 func show_page(p: String) -> void:
 	if p in NEEDS_JET and jet().is_empty():
-		p = "plane"
+		p = "hangar"
 	var page_was := page
 	page = p
 	# Entering the mission screen opens the briefing on its first page (a new map, so its zoom too); the page picked
@@ -286,15 +271,15 @@ func show_page(p: String) -> void:
 	var lang := "he" if he() else "en"
 	strings = Settings.load_json("res://menu/strings_%s.json" % lang)
 	setup_strings = Settings.load_json("res://setup/strings_%s.json" % lang)
-	if not _themes.has(he()):
-		_themes[he()] = Look.make(he())
-	theme = _themes[he()]
+	if _theme == null:
+		_theme = Look.make()
+	theme = _theme
 	_sorties = null
 	_summary = null
 	_profile = null
-	# No profile yet (the first start): the Pilot screen makes it before Home, or the pilot list when the records hold
-	# other pilots (the pictures' sample pilot, Settings.pilot_name, has one).
-	if p == "home" and flight == null and first_start():
+	# No profile yet (the first start): the Pilot screen makes it before the Hangar, or the pilot list when the records
+	# hold other pilots (the pictures' sample pilot, Settings.pilot_name, has one).
+	if p == "hangar" and flight == null and first_start():
 		var others = JSON.parse_string(IafPilotLog.pilots(Settings.records_db()))
 		p = "pilots" if others is Array and not others.is_empty() else "pilot"
 		page = p
@@ -351,20 +336,29 @@ func _header(crumbs: Array) -> void:
 		if i > 0:
 			_label(h, "·", "Crumb").size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		var t: String = s(crumbs[i]) if strings.has(crumbs[i]) else crumbs[i]
-		# Every crumb but the current one opens its screen (a jet's name: its Training).
-		var to: String = CRUMB_PAGES.get(crumbs[i], "training")
+		# Every crumb but the current one opens its screen (a jet's name: the Hangar).
+		var to: String = CRUMB_PAGES.get(crumbs[i], "hangar")
 		var c: Control
 		if i == crumbs.size() - 1:
 			c = _label(h, t, "CrumbOn")
 		else:
 			c = _button(h, t, "CrumbLink", _crumb.bind(to))
-			c.name = "Crumb_" + to
+			c.name = "Crumb_" + (to if strings.has(crumbs[i]) else "jet")
 		c.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_spacer(h)
-	# On Home the pilot (the nickname, the name under it, the picture) is one button that opens the Pilot screen.
+	# The Hangar: the Preferences (a gear and the word) before the pilot, who is one button (the nickname, the name
+	# under it, the picture) that opens the Pilot screen.
 	var block: Button = null
 	var host: Control = h
-	if page == "home":
+	if page == "hangar":
+		var gear := _button(h, s("preferences"), "Secondary", func(): show_page("prefs"))
+		gear.name = "Preferences"
+		gear.icon = Look.gear_icon()
+		gear.add_theme_constant_override("h_separation", 10)
+		gear.add_theme_font_size_override("font_size", 20)
+		gear.custom_minimum_size = Vector2(0, 46)
+		gear.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		_spacer_px(h, 0).custom_minimum_size.x = 18
 		block = _action("", "PilotLink", show_page.bind("pilot"))
 		block.name = "PilotBlock"
 		block.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -380,15 +374,15 @@ func _header(crumbs: Array) -> void:
 	who_name.name = "PilotName"
 	who_name.size_flags_horizontal = Control.SIZE_SHRINK_END
 	var j := jet()
-	if page == "home":
-		# Home: the name under the nickname (the nickname alone when it is the only one).
+	if page == "hangar":
+		# The Hangar: the name under the nickname (the nickname alone when it is the only one).
 		var full := str(profile().get("name", ""))
 		if Settings.pilot_name == "" and str(profile().get("nickname", "")) != "" and full != "":
 			var l := _label(who, full, "Muted")
 			l.name = "PilotFullName"
 			l.size_flags_horizontal = Control.SIZE_SHRINK_END
 	elif not j.is_empty():
-		_label(who, "%s · %s" % [s(j.name), subtitle(j)], "Muted")
+		_label(who, "%s · %s" % [full_name(j), subtitle(j)], "Muted")
 	# The picture in its 3:4 frame, else the initials in a disc.
 	var pic := picture()
 	if pic != null:
@@ -442,8 +436,8 @@ func _footer(credit := "", actions: Array = [], at_end := false) -> void:
 ## A fade from the bar's edge so the bars read over a photo.
 func _shade(top: bool) -> TextureRect:
 	var g := Gradient.new()
-	g.set_color(0, Color(0.086, 0.094, 0.11, 0.9 if top else 0.92))
-	g.set_color(1, Color(0.086, 0.094, 0.11, 0))
+	g.set_color(0, Color(Look.BG, 0.9 if top else 0.92))
+	g.set_color(1, Color(Look.BG, 0))
 	var tex := GradientTexture2D.new()
 	tex.gradient = g
 	tex.fill_from = Vector2(0, 0 if top else 1)
@@ -467,215 +461,249 @@ func _body(inline := 96, top := 112, bottom := 112) -> MarginContainer:
 	return m
 
 
-func _credit(files: Array) -> String:
-	var parts := []
-	for f in files:
-		var c: Array = PHOTO_CREDITS[f]
-		var lic: String = "נחלת הכלל" if he() and c[2] == "public domain" else c[2]
-		var line := "%s, %s" % [c[1] if he() else c[0], lic]
-		if line not in parts:
-			parts.append(line)
-	return s("photos" if parts.size() > 1 else "photo") % "; ".join(parts)
+# --- Hangar -----------------------------------------------------------------------------------------------------------
 
 
-# --- Home -------------------------------------------------------------------------------------------------------------
+## The Hangar (front-end.md §1, the user's A25, 2026-11-13): the sim's first screen, in place of Home, Pick a plane and
+## the jet's Training page. The jets at the inline start, the picked one turning in 3D in the middle with its full
+## name faint behind it, its card at the inline end: the squadron and base, facts, the training's progress, Missions
+## and campaign (greyed) and Fly. The jet picked is the one flown or picked last, else the first (no jet unpicked).
+func _page_hangar() -> void:
+	if jet().is_empty():
+		_pick_jet_quiet(JETS[0])
+		missions = jet_missions(JETS[0].unit)
+	var j := jet()
+	# The floor: the roundel blue lit under the jet, fading into the page.
+	var floor_g := Gradient.new()
+	floor_g.offsets = PackedFloat32Array([0.0, 1.0])
+	floor_g.colors = PackedColorArray([Look.RAISED, Look.BG])
+	var floor_t := GradientTexture2D.new()
+	floor_t.gradient = floor_g
+	floor_t.fill = GradientTexture2D.FILL_RADIAL
+	floor_t.fill_from = Vector2(0.5, 0.58)
+	floor_t.fill_to = Vector2(0.5 + 0.47 / 0.7, 0.58)
+	var stage := TextureRect.new()
+	stage.texture = floor_t
+	stage.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(stage)
+	stage.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# The jet's full name, large and faint, behind the jet.
+	var ghost := _label(self, full_name(j).to_upper() if not he() else full_name(j), "Jet")
+	ghost.name = "Ghost"
+	ghost.add_theme_font_size_override("font_size", 150)
+	ghost.add_theme_color_override("font_color", Color(1, 1, 1, 0.045))
+	ghost.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ghost.clip_text = true
+	_place(ghost, 400, 450, 185, 0)
+	_jet_view(j)
+	_header(["hangar"])
+	_rail(j)
+	_jet_card(j)
+	# The sources and licences, the model's among them (docs/credits.md: the credit lives on Attributions).
+	var cr := _button(self, s("credits"), "CrumbLink", func(): show_page("credits"))
+	cr.name = "credits"
+	cr.add_theme_font_size_override("font_size", 17)
+	_place(cr, 60, -1, -66, 0)
 
 
-func _page_home() -> void:
-	# The first jet's photo whatever the pick: Home shows no jet.
-	var air: String = JET_PHOTOS[JETS[0].name][0]
-	# The photo on the inline-end two thirds, fading into the background toward the column.
-	var ph := _photo(self, air)
-	ph.anchor_left = 0.32
-	ph.anchor_right = 1.0
-	ph.anchor_bottom = 1.0
-	ph.offset_left = 0
-	ph.offset_right = 0
-	var fade := TextureRect.new()
-	var g := Gradient.new()
-	g.offsets = PackedFloat32Array([0.0, 0.14, 0.34])
-	g.colors = PackedColorArray([Look.BG, Color(Look.BG, 0.6), Color(Look.BG, 0)])
-	var tex := GradientTexture2D.new()
-	tex.gradient = g
-	fade.texture = tex
-	fade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	fade.flip_h = he()
-	ph.add_child(fade)
-	fade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_header(["home"])
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 39)
-	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	add_child(col)
-	col.anchor_left = 0.05
-	col.anchor_right = 0.39
-	col.anchor_top = 0.11
-	col.anchor_bottom = 0.9
-	col.offset_left = 0
-	col.offset_right = 0
-	# No jet here: Missions opens Pick a plane, then the programme, then the mission.
-	_label(_vbox(col, 0), str(setup_strings.get("name", "")), "Jet").add_theme_font_size_override("font_size", 84)
-	var go := _button(col, s("missions"), "Fly", func(): show_page("plane"))
-	go.name = "Missions"
-	go.custom_minimum_size = Vector2(258, 86)
-	go.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	_focus = go
-	var menu := _vbox(col, 0)
-	_rule(menu, Look.LINE)
-	# No Pilot log here: the pilot in the top bar is the one way to it (the Pilot screen's logbook; the user, 2026-11-11).
-	var items := [
-		["guides", Callable()],
-		["preferences", func(): show_page("prefs")],
-		["credits", func(): show_page("credits")],
-		["quit", func(): Settings.quit()],
-	]
-	for item in items:
-		var b := _button(menu, s(item[0]), "Menu", item[1]) if item[1].is_valid() else _soon(menu, s(item[0]), "Menu")
-		b.name = item[0]
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		_rule(menu, Look.LINE)
-	_footer(_credit([air]))
+## Places `c` by its edges on the canvas: `start` px from the inline start (-1: none), `end` px from the inline end
+## (-1: none), `top` px from the top (negative: from the bottom), `h` its height (0: its own).
+func _place(c: Control, start: int, end: int, top: int, h: int) -> void:
+	c.anchor_left = 0.0 if start >= 0 else 1.0
+	c.anchor_right = 1.0 if end >= 0 else 0.0
+	c.anchor_top = 0.0 if top >= 0 else 1.0
+	c.anchor_bottom = c.anchor_top
+	c.offset_left = start if start >= 0 else -end
+	c.offset_right = -end if end >= 0 else start
+	c.offset_top = top
+	c.offset_bottom = top + (h if h > 0 else c.get_combined_minimum_size().y)
+	c.grow_horizontal = Control.GROW_DIRECTION_BOTH if start >= 0 and end >= 0 else Control.GROW_DIRECTION_END
 
 
-# --- Pick a plane -----------------------------------------------------------------------------------------------------
-
-
-func _page_plane() -> void:
-	_header(["home", "plane"])
-	var v := _vbox(_body(), 30)
-	_title(v, s("pick_plane"), "")
-	# One row of cards; five jets fit across at the photos' full height, each photo cropped narrower (the user,
-	# 2026-11-09, asked how the F-15I and F-15C will fit: a row of three and a row of two halved the photos' height).
-	var row := _hbox(v, 40)
-	row.name = "Cards"
-	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	# No card is picked on entry; a click (or Enter on the focused card) picks its jet and opens its page, the arrows move
-	# the focus (the first arrow focuses the jet flown last). The user, 2026-11-11.
-	var files := []
-	for j in JETS + SOON:
-		var soon: bool = j in SOON
-		var card := Button.new()
-		card.name = j.name
-		card.theme_type_variation = "Card"
-		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		card.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		# Not flyable yet: greyed and out of reach (no click, no focus), its photo in grey.
-		card.disabled = soon
+## The jets: the flyable ones, then the ones the sim does not fly yet, greyed, out of reach and without a word on why.
+## A click (or Enter) picks a jet; the arrows move between them, then on to the card.
+func _rail(j: Dictionary) -> void:
+	var rail := _vbox(self, 10)
+	rail.name = "Jets"
+	_place(rail, 68, -1, 130, 0)
+	rail.custom_minimum_size.x = 330
+	rail.offset_right = rail.offset_left + 330
+	var h3 := _label(rail, s("aircraft").to_upper(), "H3")
+	h3.add_theme_font_size_override("font_size", 19)
+	_spacer_px(rail, 2)
+	var group := ButtonGroup.new()
+	for row in JETS + SOON:
+		var soon: bool = row in SOON
+		var b := Button.new()
+		b.name = row.name
+		b.theme_type_variation = "JetRow"
+		b.toggle_mode = true
+		b.button_group = group
+		b.button_pressed = row.unit == j.unit
+		b.custom_minimum_size.y = 90
+		b.disabled = soon
 		if soon:
-			card.focus_mode = Control.FOCUS_NONE
-			card.modulate = Color(1, 1, 1, 0.45)
-		row.add_child(card)
-		var inner := _vbox(card, 0)
-		inner.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		inner.offset_left = 4
-		inner.offset_top = 4
-		inner.offset_right = -4
-		inner.offset_bottom = -4
-		var file: String = JET_PHOTOS[j.name][0]
-		files.append(file)
-		var ph := _photo(inner, file)
-		ph.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		ph.size_flags_stretch_ratio = 2.1
-		if soon and ph.texture != null:
-			var grey := ph.texture.get_image()
-			grey.convert(Image.FORMAT_L8)
-			ph.texture = ImageTexture.create_from_image(grey)
-		var t := _margin(inner, 24, 26)
-		t.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		var tv := _vbox(t, 2)
-		var code := _label(tv, j.code, "Code")
-		code.text_direction = Control.TEXT_DIRECTION_LTR
-		_label(tv, s(j.name), "Name")
-		var sub := _label(tv, subtitle(j), "Big")
-		sub.add_theme_font_size_override("font_size", 25)
-		sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # a long name wraps inside a narrow card
-		for c in inner.find_children("*", "Control", true, false):
+			b.focus_mode = Control.FOCUS_NONE
+			b.modulate = Color(1, 1, 1, 0.42)
+		rail.add_child(b)
+		var v := _vbox(_margin(b, 20, 12), 0)
+		v.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_label(v, full_name(row), "JetName")
+		_label(v, "%s · %s" % [s("squadron_n") % int(squadron(row).get("number", 0)), s("base_" + row.base)], "Small")
+		for c in b.find_children("*", "Control", true, false):
 			c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if not soon:
-			card.pressed.connect(_pick_jet.bind(j))
-	_footer(_credit(files))
+			b.pressed.connect(_hangar_pick.bind(row))
 
 
-func _pick_jet(j: Dictionary) -> void:
+## A jet picked in the Hangar: stored (the F-16 switch too) and the screen shown again with it, the focus kept on it.
+func _hangar_pick(j: Dictionary) -> void:
+	if j.unit == Settings.sim_jet:
+		return
 	_pick_jet_quiet(j)
-	show_page("training")
+	show_page("hangar")
+	_focus = find_child(j.name, true, false)
+	_grab.call_deferred(_focus)
 
 
-## Pick a plane with nothing focused: the first arrow focuses the card of the jet flown last (else the first).
-func _focus_card() -> void:
-	var j := jet()
-	var c := find_child(j.name if not j.is_empty() else JETS[0].name, true, false) as Control
-	if c != null:
-		c.grab_focus()
+## The jet turning in the middle (shared/aircraft/turntable.gd) with its stores: the pilot's loadout for it, else its
+## unit record's (the missions' own). A still picture of it (data/hangar/<unit>.webp) when the model does not load.
+func _jet_view(j: Dictionary) -> void:
+	var tt: TextureRect = Turntable.new()
+	tt.name = "Turntable"
+	add_child(tt)
+	_place(tt, 380, 470, 250, 800)
+	Settings.set_jet(j.airframe)  # the F-16 switch picks the Sufa's or the Barak's model
+	var plane := str(
+		Settings.load_json("res://shared/extra/planes/%s/airframe.json" % j.airframe).get("base", j.airframe)
+	)
+	if tt.show_jet(plane, jet_stores(j)):
+		return
+	tt.queue_free()
+	var still := TextureRect.new()
+	still.name = "Still"
+	var img := Image.load_from_file(ProjectSettings.globalize_path("res://data/hangar/%s.webp" % j.unit))
+	still.texture = ImageTexture.create_from_image(img) if img != null else null
+	still.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	still.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	still.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(still)
+	_place(still, 380, 470, 250, 800)
 
 
-# --- Training (the programme) -----------------------------------------------------------------------------------------
+## The jet's stores for the turntable: {pylon 0..8 (A..I): {path, count, lugged, bomb}} from the loadout the
+## briefing's Arming page shows (IafBriefing.arming: the pilot's, else the unit record's; each slot's `pylon` maps the
+## real station number to the engine's pylon, the F-35I's 5 to D).
+func jet_stores(j: Dictionary) -> Dictionary:
+	var m := {"start": {"unit": j.unit}}
+	var out := {}
+	var slots: Dictionary = arming(m, _arm_now(m)).get("slots", {})
+	for st in slots:
+		var w := Settings.load_json("res://data/db/weapons/%s.json" % str(slots[st].id))
+		if str(w.get("model", "")) == "":
+			continue
+		var k := str(w.get("kind", ""))
+		if slots[st].get("pylon") == null:
+			continue
+		out[int(slots[st].pylon)] = {
+			"path": str(w.model), "count": int(slots[st].count), "lugged": k in ["bomb", "tank"], "bomb": k == "bomb"
+		}
+	return out
 
 
-func _page_training() -> void:
-	var j := jet()
-	_header(["home", "plane", j.name])
-	var v := _vbox(_body(), 34)
-	_title(v, s("fly_jet") % s(j.name), subtitle(j))
-	var cards := _hbox(v, 32)
+## The picked jet's card: its name, squadron and base, its facts, the training's progress, Missions and campaign
+## (greyed until the sim has them, no text on why) and Fly, which opens the training's missions and briefing.
+func _jet_card(j: Dictionary) -> void:
 	var card := PanelContainer.new()
-	card.custom_minimum_size.y = 560
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cards.add_child(card)
-	# Beside it the missions and the campaign, greyed until the sim has them (the user, 2026-11-11).
-	var soon := _soon(cards, "", "Card")
-	soon.name = "Campaign"
-	soon.custom_minimum_size.x = 420
-	soon.modulate = Color(1, 1, 1, 0.45)
-	var sm := _margin(soon, 40, 46)
-	sm.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var sv := _vbox(sm, 22)
-	var camp_title := _text(sv, s("campaign"), "H2")
-	camp_title.add_theme_font_size_override("font_size", 40)
-	_text(sv, s("campaign_text"), "Sub")
-	_spacer(sv, true)
-	_chip(sv, s("coming"), false).size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	for c in soon.find_children("*", "Control", true, false):
-		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var h := _hbox(card, 0)
-	var tm := _margin(h, 50, 46)
-	tm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var t := _vbox(tm, 22)
-	_label(t, s("training"), "H2").add_theme_font_size_override("font_size", 53)
-	_text(t, s("training_text"), "Sub")
-	var list := _vbox(t, 0)
-	_rule(list, Look.LINE)
+	card.name = "JetCard"
+	add_child(card)
+	_place(card, -1, 68, 130, 0)
+	card.offset_left = -68 - 420
+	card.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	var v := _vbox(_margin(card, 32, 30), 18)
+	var name := _label(v, full_name(j), "Name")
+	name.name = "JetTitle"
+	name.add_theme_font_size_override("font_size", 64 if (j.code + s(j.name)).length() <= 9 else 58)
+	# This jet's own data, the same three for every jet (the user, A31): its squadron (a long name wraps), its base
+	# and its tail number.
+	var facts := _vbox(v, 14)
+	facts.name = "Facts"
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 20)
+	var all := jet_facts(j)
+	for f in all:
+		var cell := _vbox(facts if f == all[0] else row, 0)
+		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_label(cell, f[0], "Small").add_theme_font_size_override("font_size", 16)
+		var val := _text(cell, f[1], "Fact")
+		val.add_theme_font_size_override("font_size", 28)
+	facts.add_child(row)
+	# The training: passed of all, the bar, the last flight on this jet.
+	var tbox := PanelContainer.new()
+	tbox.name = "Training"
+	tbox.add_theme_stylebox_override("panel", Look.box(Color(0, 0, 0, 0), Look.LINE, 1, 6, Vector2(16, 14)))
+	v.add_child(tbox)
+	var tv := _vbox(tbox, 8)
+	var th := _hbox(tv, 10)
+	_label(th, s("training"), "Strong")
+	_spacer(th)
 	var passed := 0
 	for m in missions:
-		var row := _hbox(_margin(list, 0, 12), 12)
-		_label(row, "%d · %s" % [missions.find(m) + 1, title_of(m)], "Row").size_flags_vertical = (
-			Control.SIZE_SHRINK_CENTER
-		)
-		_spacer(row)
-		var st := status(m)
-		passed += 1 if st == 1 else 0
-		_chip(row, s("not_flown" if st < 0 else ("pass" if st == 1 else "fail")), st == 1)
-		_rule(list, Look.LINE)
+		passed += 1 if status(m) == 1 else 0
+	_label(th, s("passed_of") % [passed, missions.size()], "Small").size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var bar := ProgressBar.new()
 	bar.show_percentage = false
-	bar.custom_minimum_size.y = 10
+	bar.custom_minimum_size.y = 8
 	bar.max_value = maxi(missions.size(), 1)
 	bar.value = passed
-	var pv := _vbox(t, 6)
-	pv.add_child(bar)
-	_label(pv, s("passed_of") % [passed, missions.size()], "Sub")
-	_spacer(t, true)
-	var open := _button(t, s("open"), "Primary", func(): show_page("mission"))
-	open.name = "Open"
-	open.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	open.custom_minimum_size = Vector2(150, 60)
-	_focus = open
-	var file: String = JET_PHOTOS[j.name][1]
-	var ph := _photo(h, file)
-	ph.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	ph.size_flags_stretch_ratio = 0.92
-	_footer(_credit([file]))
+	tv.add_child(bar)
+	_label(tv, last_flight(), "Small").name = "LastFlight"
+	var camp := _soon(v, s("campaign"), "Secondary")
+	camp.name = "Campaign"
+	camp.tooltip_text = ""
+	camp.custom_minimum_size.y = 56
+	camp.modulate = Color(1, 1, 1, 0.45)
+	var go := _button(v, s("fly"), "Fly", func(): show_page("mission"))
+	go.name = "Fly"
+	go.custom_minimum_size.y = 76
+	go.disabled = missions.is_empty()
+	_focus = go
+
+
+## The jet's own data: [label, value] for its squadron (its airbase file's), its base and its tail number (its unit
+## record's, the number painted on its model).
+func jet_facts(j: Dictionary) -> Array:
+	var sq := squadron(j)
+	var tail := str(Settings.load_json("res://data/db/units/%s.json" % j.unit).get("tail", ""))
+	return [
+		[
+			s("squadron_l"),
+			"%d %s" % [int(sq.get("number", 0)), str(sq.get("name", {}).get("he" if he() else "en", ""))]
+		],
+		[s("base_l"), s("base_" + j.base)],
+		[s("tail_number"), tail],
+	]
+
+
+## The last flight on the picked jet (its `missions`): "Last: Take-off · Pass · 13 Nov 2026", or that none was flown.
+func last_flight() -> String:
+	var ids := missions.map(func(m): return int(m.menu_id))
+	for i in range(sorties().size() - 1, -1, -1):
+		var a: Dictionary = sorties()[i]
+		if int(a.mission_id) in ids:
+			var r := s("pass" if int(a.result) == 1 else "fail")
+			return s("last_flight") % [mission_title(int(a.mission_id)), r, day_text(str(a.date))]
+	return s("not_flown")
+
+
+## "F-16I Sufa" / "F-16I סופה": the jet's code and name, everywhere the jet is named (the user, A25).
+## In Hebrew a right-to-left mark leads: a Label takes its paragraph's direction from the first strong letter, and the
+## Latin code would make the line left to right, the code read last ("סופה F-16I"; the user, A31).
+func full_name(j: Dictionary) -> String:
+	if j.is_empty():
+		return ""
+	return "%s%s %s" % [RLM if he() else "", j.code, s(j.name)]
 
 
 # --- Pick a mission ---------------------------------------------------------------------------------------------------
@@ -683,7 +711,7 @@ func _page_training() -> void:
 
 func _page_mission() -> void:
 	var j := jet()
-	_header(["home", "plane", j.name, "training"])
+	_header(["hangar", full_name(j), "training"])
 	var h := _hbox(_body(96, 112, 120), 48)
 	var left := _vbox(h, 30)
 	left.custom_minimum_size.x = 500
@@ -1302,7 +1330,7 @@ func _keycap(parent: Control, key: String) -> Control:
 		return none
 	var cap := PanelContainer.new()
 	parent.add_child(cap)
-	var kb := Look.box(Color(Look.BG, 0.7), Color("5a616c"), 1, 5, Vector2(9, 1))
+	var kb := Look.box(Color(Look.BG, 0.7), Look.DIM, 1, 5, Vector2(9, 1))
 	kb.border_width_bottom = 3
 	cap.add_theme_stylebox_override("panel", kb)
 	cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -1332,7 +1360,7 @@ func fly_mission(m: Dictionary) -> void:
 ## (pref_group; the first section until one is picked), its pane scrolled over its full height.
 func _page_prefs() -> void:
 	if flight == null:
-		_header(["home", "preferences"])
+		_header(["hangar", "preferences"])
 	if PREFS.all(func(g): return g[0] != pref_group):
 		pref_group = PREFS[0][0]
 	var v := _vbox(_body(96, 112 if flight == null else 60), 30)
@@ -1548,12 +1576,12 @@ func play_sample(key: String) -> void:
 # --- Pilot ------------------------------------------------------------------------------------------------------------
 
 
-## The Pilot screen (Home → the pilot's name): the picture in a service ID photo's fixed 3:4 frame, the name and the
-## nickname (the one every screen's top bar shows). The edits are a draft: Save stores them in the records
-## (IafPilotLog) and opens Home; Back leaves them, after a prompt when something changed.
+## The Pilot screen (the Hangar → the pilot's name): the picture in a service ID photo's fixed 3:4 frame, the name and
+## the nickname (the one every screen's top bar shows). The edits are a draft: Save stores them in the records
+## (IafPilotLog) and opens the Hangar; Back leaves them, after a prompt when something changed.
 func _page_pilot() -> void:
 	var first := not creating and first_start()
-	_header(["pilot"] if first else ["home", "pilot"])
+	_header(["pilot"] if first else ["hangar", "pilot"])
 	var v := _vbox(_body(), 30)
 	if first:
 		_title(v, s("first_pilot"), s("first_pilot_sub"))
@@ -1652,7 +1680,7 @@ func _logbook(parent: Control) -> void:
 				j = x
 		var head := _hbox(rows, 16)
 		head.name = "Plane_" + str(pl.plane)
-		var name := _label(head, "%s %s" % [j.code, s(j.name)] if not j.is_empty() else str(pl.plane), "Strong")
+		var name := _label(head, full_name(j) if not j.is_empty() else str(pl.plane), "Strong")
 		name.add_theme_font_size_override("font_size", 25)
 		_spacer(head)
 		var t := _label(head, clock(float(pl.time_s)), "Strong")
@@ -1686,7 +1714,7 @@ func pilot_changed() -> bool:
 	return str(draft.get("picture", "")) != ""
 
 
-## Save: the draft into the records, then Home.
+## Save: the draft into the records, then the Hangar.
 func save_pilot() -> void:
 	if str(draft.name).strip_edges() == "":
 		return
@@ -1700,7 +1728,7 @@ func save_pilot() -> void:
 		IafPilotLog.set_pilot(db, Settings.pilot(), draft.name, draft.nickname)
 	if draft.picture != "":
 		_pictures.erase(IafPilotLog.set_picture(db, Settings.pilot(), draft.picture))
-	show_page("home")
+	show_page("hangar")
 
 
 ## Reset: the pilot's flights and debriefs deleted after a warning and a second confirm (the profile stays).
@@ -1739,13 +1767,13 @@ func _crumb(to: String) -> void:
 		show_page(to)
 
 
-## Back (and Esc): Home (a new pilot: the pilot list), or screen `to`, after a prompt to discard the changes when
+## Back (and Esc): the Hangar (a new pilot: the pilot list), or screen `to`, after a prompt to discard the changes when
 ## there are any.
 func pilot_back(to := "") -> void:
 	if not creating and first_start():
 		return  # the first start: Save is the way on
 	if to == "":
-		to = "pilots" if creating else "home"
+		to = "pilots" if creating else "hangar"
 	if pilot_changed():
 		modal(s("discard_title"), s("discard_text"), s("discard"), show_page.bind(to), s("keep_editing"))
 	else:
@@ -1753,10 +1781,10 @@ func pilot_back(to := "") -> void:
 
 
 ## The pilot list (the Pilot screen's Change pilot): every pilot with a name, the active one marked; a click makes
-## that pilot the active one (Settings.pilot_id, kept in settings.cfg) and opens Home. New pilot opens an empty
+## that pilot the active one (Settings.pilot_id, kept in settings.cfg) and opens the Hangar. New pilot opens an empty
 ## Pilot screen.
 func _page_pilots() -> void:
-	_header(["home", "pilot", "pilots"])
+	_header(["hangar", "pilot", "pilots"])
 	var v := _vbox(_body(), 26)
 	_title(v, s("pilots"), "")
 	var scroll := ScrollContainer.new()
@@ -1802,12 +1830,12 @@ func _page_pilots() -> void:
 	_footer("", [back, add])
 
 
-## The pilot `id` as the active one, kept in the settings; `home`: then Home.
+## The pilot `id` as the active one, kept in the settings; `home`: then the Hangar.
 func use_pilot(id: int, home := false) -> void:
 	Settings.pilot_id = id
 	Settings.save()
 	if home:
-		show_page("home")
+		show_page("hangar")
 
 
 ## True when the active pilot has no profile yet (no name stored) and no sample pilot is set: the first start.
@@ -1867,7 +1895,8 @@ func modal(title: String, text: String, ok: String, on_ok: Callable, no := "") -
 	center.add_child(panel)
 	var v := _vbox(_margin(panel, 48, 40), 22)
 	_label(v, title, "H2")
-	_text(v, text, "Row")
+	if text != "":
+		_text(v, text, "Row")
 	var h := _hbox(v, 20)
 	_spacer(h)
 	var cancel := _button(h, no if no != "" else s("cancel"), "Secondary", close_modal)
@@ -1953,10 +1982,10 @@ func open_debrief(id: int) -> bool:
 func _page_debrief() -> void:
 	var m := mission_by_name(str(record.get("mission", "")))
 	var j := jet_of(m)
-	var bg := _photo(self, str(JET_PHOTOS[j.get("name", "sufa")][0]).replace(".jpg", "_blur.jpg"))
+	var bg := _photo(self, str(JET_PHOTOS[j.get("name", "sufa")]).replace(".jpg", "_blur.jpg"))
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.modulate = Color(0.55, 0.57, 0.6)
-	_header(["training", "debrief"])
+	_header(["hangar", full_name(j), "training", "debrief"])
 	var sheet := PanelContainer.new()
 	sheet.name = "Sheet"
 	sheet.add_theme_stylebox_override("panel", Look.box(Look.PAPER, Look.PAPER, 0, 5, Vector2.ZERO))
@@ -1987,7 +2016,7 @@ func _page_debrief() -> void:
 	if m.has("runway"):
 		from = s("from_runway") % [from, m.runway]
 	var cells := [
-		["plane_flown", "%s %s" % [j.get("code", ""), s(j.get("name", ""))], 1.0],
+		["plane_flown", full_name(j), 1.0],
 		["from", from, 1.3],
 		["f_time", debrief_time(m), 1.3],
 		["mission", title_of(m) if not m.is_empty() else str(record.get("mission", "")), 1.1],
@@ -2110,21 +2139,24 @@ func _pick_jet_quiet(j: Dictionary) -> void:
 
 ## The day and the mission clock from the start to the end: "2 Nov 2026 · 08:00–08:11" (Hebrew "2.11.2026 · …").
 func debrief_time(m: Dictionary) -> String:
-	var date := str(record.get("date", ""))
-	var day := date.get_slice("T", 0).split("-")
-	var out := ""
-	if day.size() == 3:
-		var months: Array = strings.get("months", [])
-		if months.is_empty():
-			out = "%d.%d.%s" % [int(day[2]), int(day[1]), day[0]]
-		else:
-			out = "%d %s %s" % [int(day[2]), months[int(day[1]) - 1], day[0]]
+	var out := day_text(str(record.get("date", "")))
 	var start := str(m.get("time", ""))
 	if start.contains(":"):
 		var t0 := int(start.get_slice(":", 0)) * 60 + int(start.get_slice(":", 1))
 		var t1 := t0 + int(float(record.get("elapsed_s", 0.0)) / 60.0)
 		out += " · %s–%02d:%02d" % [start, (t1 / 60) % 24, t1 % 60]
 	return out
+
+
+## The day of a record's date ("2026-11-02T08:14…"): "2 Nov 2026" (Hebrew "2.11.2026"), "" without one.
+func day_text(date: String) -> String:
+	var day := date.get_slice("T", 0).split("-")
+	if day.size() != 3:
+		return ""
+	var months: Array = strings.get("months", [])
+	if months.is_empty():
+		return "%d.%d.%s" % [int(day[2]), int(day[1]), day[0]]
+	return "%d %s %s" % [int(day[2]), months[int(day[1]) - 1], day[0]]
 
 
 ## A debrief value with its unit: thousands grouped, seconds as m:ss past a minute; a name (the runway) as it is.
@@ -2163,7 +2195,7 @@ static func _group(v: float) -> String:
 
 
 func _page_log() -> void:
-	_header(["home", "pilot", "pilot_log"])
+	_header(["hangar", "pilot", "pilot_log"])
 	var v := _vbox(_body(), 26)
 	_title(v, s("pilot_log"), "")
 	var att := sorties()
@@ -2185,7 +2217,7 @@ func _page_log() -> void:
 		var cells := [
 			str(a.date).replace("T", " ").left(16),
 			title_of(m) if not m.is_empty() else str(a.mission_id),
-			"%s %s" % [j.get("code", ""), s(j.get("name", ""))],
+			full_name(j),
 		]
 		var b := _log_row(list, cells, int(a.result), a)
 		if _focus == null:
@@ -2230,7 +2262,7 @@ func _log_row(list: Control, cells: Array, result: int, a) -> Control:
 
 
 func _page_credits() -> void:
-	_header(["home", "credits"])
+	_header(["hangar", "credits"])
 	var v := _vbox(_body(), 24)
 	_title(v, s("credits"), "")
 	var scroll := ScrollContainer.new()
@@ -2286,11 +2318,6 @@ func _page_pause() -> void:
 func _input(event: InputEvent) -> void:
 	if not (event is InputEventKey and event.pressed):
 		return
-	if page == "plane" and get_viewport().gui_get_focus_owner() == null:
-		if event.keycode in [KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_TAB]:
-			_focus_card()
-			get_viewport().set_input_as_handled()
-		return
 	if page != "mission":
 		return
 	var map := find_child("PageMap", true, false)
@@ -2330,6 +2357,9 @@ func back() -> void:
 		return
 	if page == "pilot":
 		pilot_back()
+		return
+	if page == "hangar":
+		modal(s("quit_q"), "", s("quit"), func(): Settings.quit())
 		return
 	var to: String = BACK.get(page, "")
 	if to != "":

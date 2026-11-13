@@ -192,8 +192,12 @@ The sim's front end (modern-iaf/docs/front-end.md) shows six Wikimedia Commons p
 Israeli Air Force (CC BY 4.0)[^c-sufa][^c-adir]; F-16I Sufa 851 at Tel Nof by MathKnight and Zachi Evenor (CC BY
 4.0)[^c-sufa2]; F-16D Barak 034 by Zachi Evenor and MathKnight (CC BY 2.0)[^c-barak]; an F-15I Ra'am of 69 Squadron
 in flight by Tech. Sgt. Kevin Gruenwald, U.S. Air Force (public domain)[^c-raam]; F-15C Baz 802 at Tel Nof by
-MathKnight and Zachi Evenor (CC BY 4.0)[^c-baz]. Each screen that shows one credits it in its footer; the front end's
-Attributions screen and the setup wizard's list name all six.
+MathKnight and Zachi Evenor (CC BY 4.0)[^c-baz]. Since the Hangar (2026-11-13) only their blurred copies show,
+behind the debrief; the front end's Attributions screen and the setup wizard's list name all six.
+
+The Hangar turns the jets' own models (§ Model credits); its stills for a model that does not load
+(`modern-iaf/data/hangar/`) are renders of them, the F-16s' under the FlightGear F-16's GPL 2.0 or later, the F-35I's
+under andertan's CC BY 4.0, credited where their models are. Attributions is one click from the Hangar's foot.
 
 The briefing's Arming page draws each jet's front view and its stores' side views, traced and rendered from our own
 models (`modern-iaf/data/drawings/`, `modern-iaf/data/stores/`, `SOURCES.md` in each): the F-16s' from the FlightGear

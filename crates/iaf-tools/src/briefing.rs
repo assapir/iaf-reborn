@@ -232,16 +232,16 @@ fn main_roads(theatre: &Path) -> Option<Arc<Roads>> {
 }
 
 /// The briefing's Arming page (front-end.md §10) with the loadout `lo` (`loadout`): its stores in station order (each
-/// store's id, how many hang on the jet and their stations) and `slots` (station → {id, count}), the record's gun
-/// rounds, chaff and flares, the 6-DoF jet's internal fuel and empty weight (`iaf_flight::sixdof::jets`, matched by
-/// the record's `name`), the stores' weight (each store's `kg` from its record in `weapons`, the folder of
+/// store's id, how many hang on the jet and their stations) and `slots` (station → {id, count, max, pylon}), the
+/// record's gun rounds, chaff and flares, the 6-DoF jet's internal fuel and empty weight (`iaf_flight::sixdof::jets`,
+/// matched by the record's `name`), the stores' weight (each store's `kg` from its record in `weapons`, the folder of
 /// `data/db/weapons`, times its count, and each rack's `rack_kg`) and the drop tanks' fuel in it, the take-off weight
 /// (empty + internal fuel + stores), the record's `max_takeoff_kg` and `over` (the take-off weight above it). Weights
-/// in kg, rounded; a figure it cannot find is null. Also the record's `internal` stations, `allowed` (station →
-/// [{id, count}]) and its `inventory`, each entry `{id, count, used, left, group}`: the store's id, the record's count
-/// (null: none), how many hang on the jet, how many are left (null without a count) and its group by the weapon's
-/// kind ("air" air-to-air missiles, "ground" bombs and air-to-ground missiles (`role` "ground"), "tank"; an unknown
-/// weapon is left out).
+/// in kg, rounded; a figure it cannot find is null. Also the record's `internal` stations, `allowed` (station → [{id,
+/// count}]) and its `inventory`, each entry `{id, count, used, left, group}`: the store's id, the record's count (null:
+/// none), how many hang on the jet, how many are left (null without a count) and its group by the weapon's kind ("air"
+/// air-to-air missiles, "ground" bombs and air-to-ground missiles (`role` "ground"), "tank"; an unknown weapon is left
+/// out).
 pub fn arming(unit: &Value, weapons: &Path, lo: &loadout::Loadout) -> Value {
     let record = |w: &str| -> Option<Value> {
         serde_json::from_slice(&std::fs::read(weapons.join(format!("{w}.json"))).ok()?).ok()
@@ -306,12 +306,13 @@ pub fn arming(unit: &Value, weapons: &Path, lo: &loadout::Loadout) -> Value {
             (s.to_string(), Value::Array(a))
         })
         .collect();
-    // Each station's store, how many and the rack's capacity there.
+    // Each station's store, how many, the rack's capacity there and its pylon (0..8 for A..I, the frame the model
+    // hangs it on; null for a station the engine's nine pylons leave out).
     let slots: Map<String, Value> = lo
         .iter()
         .map(|(st, (id, n))| {
             let max = loadout::allowed(unit, *st).iter().find(|a| &a.0 == id).map_or(1, |a| a.1);
-            (st.to_string(), json!({"id": id, "count": n, "max": max}))
+            (st.to_string(), json!({"id": id, "count": n, "max": max, "pylon": loadout::letter(unit, *st)}))
         })
         .collect();
     let r = |v: Option<f64>| v.map(f64::round);
@@ -508,10 +509,13 @@ mod tests {
         let t = a["takeoff_kg"].as_f64().unwrap();
         assert!((t - (29_350.0 * 0.453_592_37 + 2756.0)).abs() < 1.0, "{t}");
         assert!(t < a["max_takeoff_kg"].as_f64().unwrap());
-        assert_eq!(a["tail"], "482");
+        assert_eq!(a["tail"], "846");
         let b = arming(&f35, &data().join("db/weapons"), &loadout::default(&f35));
         assert_eq!(b["stores_kg"], json!(2.0 * 161.5));
         assert_eq!(b["internal"], json!([4, 5, 7, 8]));
+        // The F-35I's real station numbers on the engine's pylons: 5 is D, 7 is F (its record's `stations`).
+        assert_eq!(b["slots"]["5"]["pylon"], json!(3));
+        assert_eq!(b["slots"]["7"]["pylon"], json!(5));
         assert_eq!(
             b["inventory"][2],
             json!({"id": "gbu-31", "count": null, "used": 0, "left": null, "group": "ground", "ready": true})
@@ -524,7 +528,7 @@ mod tests {
         let c = arming(&unit, &data().join("db/weapons"), &lo);
         assert_eq!(c["tank_fuel_kg"], json!(2240.0));
         assert_eq!(c["stores_kg"], json!((4.0f64 * 86.0 + 6.0 * 241.0 + 2.0 * 47.6 + 2.0 * 1120.0).round()));
-        assert_eq!(c["slots"]["3"], json!({"id": "mk-82", "count": 3, "max": 3}));
+        assert_eq!(c["slots"]["3"], json!({"id": "mk-82", "count": 3, "max": 3, "pylon": 2}));
         // The stores without a model of ours (the Delilah, the 600 gal tank) are not ready to fly.
         let not_ready: Vec<_> = c["inventory"].as_array().unwrap().iter().filter(|e| e["ready"] == false).collect();
         assert_eq!(

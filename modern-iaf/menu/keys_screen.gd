@@ -42,7 +42,7 @@ static func page(front_end: Control) -> Node:
 	var me = load("res://menu/keys_screen.gd").new(front_end, "key")
 	front_end.add_child(me)
 	if front_end.flight == null:
-		front_end._header(["home", "preferences", "devices", "keys_screen"])
+		front_end._header(["hangar", "preferences", "devices", "keys_screen"])
 	var v: VBoxContainer = front_end._vbox(front_end._body(96, 112 if front_end.flight == null else 60), 28)
 	front_end._title(v, front_end.s("keys_screen"), front_end.s("keys_sub"))
 	var h: HBoxContainer = front_end._hbox(v, 96)
@@ -172,7 +172,7 @@ func refresh() -> void:
 		var on: bool = i == waiting
 		r.chip.text = fe.s("press_key" if column == "key" else "press_button") if on else value_name(value(i))
 		r.chip.theme_type_variation = "ChipOk" if on else "Key"
-		var kb = Look.box(Color(0, 0, 0, 0), Look.ACCENT if on else Color("5a616c"), 2 if on else 1, 5, Vector2(12, 3))
+		var kb = Look.box(Color(0, 0, 0, 0), Look.ACCENT if on else Look.DIM, 2 if on else 1, 5, Vector2(12, 3))
 		kb.border_width_bottom = 3
 		r.box.add_theme_stylebox_override("panel", kb)
 		r.reset.modulate.a = 1.0 if value(i) != default_value(i) else 0.0
@@ -269,7 +269,7 @@ func _show_conflict() -> void:
 	var row: Control = _rows[i].row
 	var panel := PanelContainer.new()
 	panel.name = "Conflict"
-	panel.add_theme_stylebox_override("panel", Look.box(Color("262d3b"), Look.ACCENT, 1, 6, Vector2(24, 16)))
+	panel.add_theme_stylebox_override("panel", Look.box(Look.RAISED, Look.ACCENT, 1, 6, Vector2(24, 16)))
 	_list.add_child(panel)
 	_list.move_child(panel, row.get_index() + 1)
 	var h: HBoxContainer = fe._hbox(panel, 16)

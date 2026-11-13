@@ -1,13 +1,14 @@
-# Modern IAF's front end (modern-iaf/docs/front-end.md), headless, in English and Hebrew: Home → Pick a plane → Training
-# → Pick a mission → (the flight skipped) → the Debrief of a stored record → Home; the texts each screen shows, the
-# mirrored layout in Hebrew, the plane pick (Settings.sim_jet, the F-16 switch), the Preferences' controls and the live
-# language switch both ways, the Pilot log (a row opens its debrief), a failed record's reasons and Attributions. Then a
-# `--mission` run on a profile without a picked plane: the mission flies at once, the start command, the scoring, Esc's
-# pause menu over the flight, its Preferences and back, End the flight, that flight's debrief, and Esc to Home with the
-# mission's jet picked (the real run of front-end.md "Checks", also in a real render through tools/godot_window.sh;
-# SHOT_DIR=<dir> saves the pause menu and the debrief in both languages). The records go to the isolated records folder
+# Modern IAF's front end (modern-iaf/docs/front-end.md), headless, in English and Hebrew: the Hangar → Pick a mission →
+# (the flight skipped) → the Debrief of a stored record → the Hangar; the texts each screen shows, the mirrored layout
+# in Hebrew, the plane pick (Settings.sim_jet, the F-16 switch), the Preferences' controls and the live language switch
+# both ways, the Pilot log (a row opens its debrief), a failed record's reasons and Attributions. Then a `--mission` run
+# on a profile without a picked plane: the mission flies at once, the start command, the scoring, Esc's pause menu over
+# the flight, its Preferences and back, End the flight, that flight's debrief, and Esc to the Hangar with the mission's
+# jet picked (the real run of front-end.md "Checks", also in a real render through tools/godot_window.sh; SHOT_DIR=<dir>
+# saves the pause menu and the debrief in both languages). The records go to the isolated records folder
 # (Settings.records_dir, a temporary folder): the fixture writes the JSON records from before the database there, and
-# the store's first open imports them.   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf
+# the store's first open imports them.
+# IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf
 # \     -s ../modern-iaf/tests/test_front_end.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
 
@@ -46,40 +47,8 @@ func run() -> void:
 	await frames(3)
 	var fe: Control = current_scene
 	await first_start(fe)
-	var go: Button = fe.find_child("Missions", true, false)
-	check(go != null and go.text == "Missions", "first start: Home's action is Missions")
-	check(fe.find_child("change_plane", true, false) == null, "Home: no Change plane")
-	go.pressed.emit()
-	await frames(2)
-	check(
-		fe.page == "plane" and fe.find_child("Continue", true, false) == null,
-		"Missions opens the picker (no Next button)"
-	)
-	check(fe.find_child("Cards", true, false).get_child_count() == 5, "the picker: the three flyable jets, two greyed")
-	check(fe.get_viewport().gui_get_focus_owner() == null, "the picker: no card picked or focused on entry")
-	var arrow := InputEventKey.new()
-	arrow.keycode = KEY_RIGHT
-	arrow.pressed = true
-	Input.parse_input_event(arrow)
-	await frames(2)
-	check(fe.get_viewport().gui_get_focus_owner() == fe.find_child("sufa", true, false), "an arrow focuses a card")
-	for down in [true, false]:
-		var enter := InputEventKey.new()
-		enter.keycode = KEY_ENTER
-		enter.pressed = down
-		Input.parse_input_event(enter)
-		await frames(1)
-	await frames(2)
-	check(
-		fe.page == "training" and s.sim_jet == "f16i" and fe.find_child("Crumb_plane", true, false) != null,
-		"Enter on a card: its jet picked, Training after Plane"
-	)
-	key(fe, KEY_ESCAPE)
-	await frames(2)
-	check(fe.page == "plane" and s.sim_jet == "f16i", "Esc: the picker, Sufa kept")
-	key(fe, KEY_ESCAPE)
-	await frames(2)
-	check(fe.page == "home" and not _has_part(fe, "Sufa"), "back to Home: no jet on Home")
+	check(fe.page == "hangar" and fe.find_child("JetCard", true, false) != null, "first start: then the Hangar")
+	check(fe.find_child("change_plane", true, false) == null, "the Hangar: no Change plane")
 	s.sim_jet = ""
 	for lang in ["en", "he"]:
 		s.language = lang
@@ -95,12 +64,12 @@ func run() -> void:
 	await fly_once(fe)
 
 
-## The first start (no profile stored): the Pilot screen makes one before Home, Save only with a name, Esc stays;
-## Save stores the name on the active pilot (its imported sorties kept) and opens Home.
+## The first start (no profile stored): the Pilot screen makes one before the Hangar, Save only with a name, Esc stays;
+## Save stores the name on the active pilot (its imported sorties kept) and opens the Hangar.
 func first_start(fe: Control) -> void:
 	var s := settings()
 	check(fe.page == "pilot" and fe.first_start(), "a first start opens the Pilot screen to make the profile")
-	check(_has(fe, "Create your pilot") and fe.find_child("Missions", true, false) == null, "first start: no Home yet")
+	check(_has(fe, "Create your pilot") and fe.find_child("JetCard", true, false) == null, "first start: no Hangar yet")
 	var save: Button = fe.find_child("Save", true, false)
 	check(save != null and save.disabled, "first start: Save waits for a name")
 	check(
@@ -116,11 +85,11 @@ func first_start(fe: Control) -> void:
 	save.pressed.emit()
 	await frames(2)
 	var p = JSON.parse_string(IafPilotLog.pilot(s.records_db(), s.pilot()))
-	check(fe.page == "home" and p.name == "Noa Golan", "first start: Save stores the name and opens Home")
+	check(fe.page == "hangar" and p.name == "Noa Golan", "first start: Save stores the name and opens the Hangar")
 	check(s.pilot() == IafPilotLog.default_pilot(), "first start: the profile on the active pilot")
-	fe.show_page("home")
+	fe.show_page("hangar")
 	await frames(1)
-	check(fe.page == "home", "with a profile: Home")
+	check(fe.page == "hangar", "with a profile: the Hangar")
 
 
 ## Clicks LineEdit `e` and types `t` through the viewport, as a player does.
@@ -145,15 +114,15 @@ func type_into(e: LineEdit, t: String) -> void:
 	await frames(1)
 
 
-## The Pilot screen from the pilot's name on Home: the nickname typed, Back's discard prompt, Save to Home with the
-## nickname and the name in its top bar; the picture (the frame's click opens the picker) shown at once and copied
-## beside the records on Save; the logbook per plane; Change pilot: a new pilot made and active, a sortie of its own
-## reset after the warning and the second confirm, then the first pilot picked back.
+## The Pilot screen from the pilot's name in the Hangar: the nickname typed, Back's discard prompt, Save to the Hangar
+## with the nickname and the name in its top bar; the picture (the frame's click opens the picker) shown at once and
+## copied beside the records on Save; the logbook per plane; Change pilot: a new pilot made and active, a sortie of its
+## own reset after the warning and the second confirm, then the first pilot picked back.
 func pilot(fe: Control, lang: String) -> void:
 	var he := lang == "he"
 	var s := settings()
 	var db: String = s.records_db()
-	fe.show_page("home")
+	fe.show_page("hangar")
 	await frames(2)
 	var link: Button = fe.find_child("PilotBlock", true, false)
 	check(
@@ -163,7 +132,7 @@ func pilot(fe: Control, lang: String) -> void:
 			and link.find_child("PilotName", true, false) != null
 			and link.find_child("PilotName", true, false).mouse_filter == Control.MOUSE_FILTER_IGNORE
 		),
-		"%s: Home: the pilot block is one button" % lang
+		"%s: the Hangar: the pilot block is one button" % lang
 	)
 	check(fe.find_child("nickname_note", true, false) == null, "%s: no note under the fields" % lang)
 	link.pressed.emit()
@@ -222,11 +191,11 @@ func pilot(fe: Control, lang: String) -> void:
 	(fe.find_child("Save", true, false) as Button).pressed.emit()
 	await frames(2)
 	var p = JSON.parse_string(IafPilotLog.pilot(db, s.pilot()))
-	check(fe.page == "home" and p.nickname == "Viper", "%s: Save stores and opens Home: %s" % [lang, p])
+	check(fe.page == "hangar" and p.nickname == "Viper", "%s: Save stores and opens the Hangar: %s" % [lang, p])
 	check(FileAccess.file_exists(str(p.picture)) and p.picture != png, "%s: copied beside the records" % lang)
-	check(fe.find_child("PilotName", true, false).text == "Viper", "%s: Home: the nickname" % lang)
+	check(fe.find_child("PilotName", true, false).text == "Viper", "%s: the Hangar: the nickname" % lang)
 	var full: Label = fe.find_child("PilotFullName", true, false)
-	check(full != null and full.text == "Noa Golan", "%s: Home: the name under it" % lang)
+	check(full != null and full.text == "Noa Golan", "%s: the Hangar: the name under it" % lang)
 	fe.show_page("log")
 	await frames(2)
 	check(_has(fe, "Viper"), "%s: the Pilot log's top bar shows the nickname" % lang)
@@ -257,7 +226,7 @@ func switch_and_reset(fe: Control, lang: String) -> void:
 	(fe.find_child("Save", true, false) as Button).pressed.emit()
 	await frames(2)
 	var second: int = s.pilot()
-	check(fe.page == "home" and second != first and fe.pilot_name() == "Dana", "%s: the new pilot active" % lang)
+	check(fe.page == "hangar" and second != first and fe.pilot_name() == "Dana", "%s: the new pilot active" % lang)
 	check(JSON.parse_string(IafPilotLog.sorties(db, second)).is_empty(), "%s: the new pilot's log is empty" % lang)
 	IafPilotLog.log_sortie(
 		db,
@@ -314,7 +283,7 @@ func switch_and_reset(fe: Control, lang: String) -> void:
 	(fe.find_child("Pilot_%d" % first, true, false) as Button).pressed.emit()
 	await frames(2)
 	check(
-		fe.page == "home" and s.pilot() == first and fe.pilot_name() == "Viper",
+		fe.page == "hangar" and s.pilot() == first and fe.pilot_name() == "Viper",
 		"%s: the first pilot picked back" % lang
 	)
 
@@ -326,18 +295,23 @@ func crumbs(fe: Control) -> void:
 	fe.mission_i = 1
 	fe.show_page("mission")
 	await frames(2)
-	check(fe.find_child("Crumb_mission", true, false) == null, "crumbs: the current screen is no button")
-	var home: Button = fe.find_child("Crumb_home", true, false)
-	check(home != null and home.focus_mode != Control.FOCUS_NONE, "crumbs: Home is a button the keys reach")
+	check(not _has_button(fe, fe.s("training")), "crumbs: the current screen is no button")
+	var home: Button = fe.find_child("Crumb_hangar", true, false)
+	check(home != null and home.focus_mode != Control.FOCUS_NONE, "crumbs: the Hangar is a button the keys reach")
 	home.pressed.emit()
 	await frames(2)
-	check(fe.page == "home", "crumbs: Home from the mission screen opens Home")
+	check(fe.page == "hangar", "crumbs: the Hangar crumb from the mission screen opens the Hangar")
 	fe.show_page("mission")
 	await frames(2)
 	check(fe.mission_i == 1 and s.sim_jet == "f16i", "crumbs: the plane and the picked mission kept")
-	(fe.find_child("Crumb_training", true, false) as Button).pressed.emit()
+	(fe.find_child("Crumb_jet", true, false) as Button).pressed.emit()
 	await frames(2)
-	check(fe.page == "training", "crumbs: the jet's crumb opens its Training")
+	check(fe.page == "hangar", "crumbs: the jet's crumb opens the Hangar")
+	fe.open_debrief(int(fe.sorties()[-1].id))
+	await frames(2)
+	(fe.find_child("Crumb_mission", true, false) as Button).pressed.emit()
+	await frames(2)
+	check(fe.page == "mission", "crumbs: the debrief's Training crumb opens the missions")
 
 
 ## The pause menu over a flight in viewports of several sizes, both languages: on its first frame the panel lies
@@ -441,11 +415,8 @@ func fly_once(fe: Control) -> void:
 	key(back, KEY_ESCAPE)
 	await frames(2)
 	check(
-		back.page == "home" and settings().sim_jet == "f16i" and not _has_part(back, "Sufa"),
-		(
-			"fly: Esc from the debrief opens Home, the Sufa kept as the pick but not shown (%s, %s, %s)"
-			% [back.page, settings().sim_jet, _labels(back).filter(func(x): return "Sufa" in x)]
-		)
+		back.page == "hangar" and settings().sim_jet == "f16i" and _has(back, "F-16I Sufa"),
+		"fly: Esc from the debrief opens the Hangar on the mission's jet (%s, %s)" % [back.page, settings().sim_jet]
 	)
 
 
@@ -463,7 +434,8 @@ func _shots(fe: Node, dir: String, name: String) -> void:
 func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	var he := lang == "he"
 	var s := settings()
-	fe.show_page("plane")
+	s.sim_jet = "f16i"
+	fe.show_page("hangar")
 	await frames(2)
 	check(
 		fe.layout_direction == (Control.LAYOUT_DIRECTION_RTL if he else Control.LAYOUT_DIRECTION_LTR),
@@ -471,65 +443,43 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	)
 	check(fe.is_layout_rtl() == he, "%s: mirrored layout flag" % lang)
 	check(_has(fe, "הזרוע הארוכה" if he else "Modern IAF"), "%s: the sim's name in the header" % lang)
-	check(_has(fe, "בחירת מטוס" if he else "Pick a plane"), "%s: plane: the title" % lang)
-	for t in ["סופה", "ברק", "אדיר"] if he else ["Sufa", "Barak", "Adir"]:
-		check(_has(fe, t), "%s: plane: %s" % [lang, t])
-	# The tail number, the squadron and the base (no wing: the wing is the base).
-	for t in (
-		["482 · טייסת 253 הנגב · רמון", "034 · טייסת 109 העמק · רמת דוד", "921 · טייסת 140 נשר הזהב · נבטים"]
+	# Each jet's card: its squadron and base (no wing: the wing is the base).
+	var subs := (
+		[["253 הנגב", "רמון"], ["109 העמק", "רמת דוד"], ["140 נשר הזהב", "נבטים"]]
 		if he
-		else [
-			"482 · 253 Squadron Negev · Ramon",
-			"034 · 109 Squadron The Valley · Ramat David",
-			"921 · 140 Squadron Golden Eagle · Nevatim"
-		]
-	):
-		check(_has(fe, t), "%s: plane: %s" % [lang, t])
-	check(not _has_part(fe, "כנף" if he else "Wing"), "%s: plane: no wing" % lang)
-	check(not _has_part(fe, "מושב" if he else "seat"), "%s: plane: no seat count" % lang)
-	var cards := fe.find_children("*", "Button", true, false).filter(func(b): return b.theme_type_variation == "Card")
-	check(cards.size() == 5, "%s: five plane cards" % lang)
-	# The Ra'am and the Baz: shown with their squadrons, disabled (no pick, no focus, dimmed), no text on why.
-	for t in (
-		["רעם", "בז", "טייסת 69 הפטישים · חצרים", "טייסת 133 אבירי הזנב הכפול · תל נוף"]
-		if he
-		else ["Ra'am", "Baz", "69 Squadron The Hammers · Hatzerim", "133 Squadron Knights of the Twin Tail · Tel Nof"]
-	):
-		check(_has(fe, t), "%s: plane: %s" % [lang, t])
+		else [["253 Negev", "Ramon"], ["109 The Valley", "Ramat David"], ["140 Golden Eagle", "Nevatim"]]
+	)
+	for i in 3:
+		(fe.find_child(["sufa", "barak", "adir"][i], true, false) as Button).pressed.emit()
+		await frames(2)
+		var card: Control = fe.find_child("JetCard", true, false)
+		check(_has(card, subs[i][0]) and _has(card, subs[i][1]), "%s: hangar: %s" % [lang, subs[i]])
+		check(not _has_part(fe, "כנף" if he else "Wing"), "%s: hangar: no wing" % lang)
+	# The Ra'am and the Baz: listed with their squadron and base, disabled (no pick, no focus, dimmed), no text on why.
+	for t in ["טייסת 69 · חצרים", "טייסת 133 · תל נוף"] if he else ["69 Squadron · Hatzerim", "133 Squadron · Tel Nof"]:
+		check(_has(fe, t), "%s: hangar: %s" % [lang, t])
 	for n in ["raam", "baz"]:
 		var off: Button = fe.find_child(n, true, false)
 		check(
 			off.disabled and off.focus_mode == Control.FOCUS_NONE and off.modulate.a < 1.0 and not off.button_pressed,
-			"%s: the %s card greyed and not pickable" % [lang, n]
+			"%s: the %s row greyed and not pickable" % [lang, n]
 		)
 	var picked: String = s.sim_jet
 	fe.find_child("raam", true, false).pressed.emit()  # no handler: a press picks nothing
 	await frames(2)
-	check(s.sim_jet == picked, "%s: the Ra'am card picks nothing" % lang)
-	# The cards run from the inline start: the Sufa's at the right in Hebrew.
-	var sufa: Control = fe.find_child("sufa", true, false)
-	var adir: Control = fe.find_child("adir", true, false)
-	check((sufa.global_position.x > adir.global_position.x) == he, "%s: the cards' order mirrors" % lang)
+	check(s.sim_jet == picked, "%s: the Ra'am row picks nothing" % lang)
 	fe.find_child("barak", true, false).pressed.emit()
 	await frames(2)
 	check(s.sim_jet == "f16d" and s.f16_variant == "barak", "%s: the Barak picked" % lang)
-	fe.show_page("plane")
-	await frames(2)
 	fe.find_child("sufa", true, false).pressed.emit()
 	await frames(2)
 	check(s.sim_jet == "f16i" and s.f16_variant == "sufa", "%s: the Sufa picked (sim_jet, the F-16 switch)" % lang)
-	check(fe.page == "training", "%s: a card's click opens Training" % lang)
 	var camp: Button = fe.find_child("Campaign", true, false)
-	check(
-		camp != null and camp.disabled and camp.tooltip_text == fe.s("coming"),
-		"%s: training: Missions and campaign beside it, greyed with its tooltip" % lang
-	)
-	check(_has(fe, "לטוס בסופה" if he else "Fly the Sufa"), "%s: training: the title" % lang)
-	check(_has(fe, "1 · התנעה" if he else "1 · Start-up"), "%s: training: mission 1" % lang)
-	check(_has(fe, "2 מתוך 2 עברו" if he else "2 of 2 passed"), "%s: training: the progress" % lang)
-	fe.find_child("Open", true, false).pressed.emit()
+	check(camp != null and camp.disabled and camp.tooltip_text == "", "%s: hangar: Missions and campaign greyed" % lang)
+	check(_has(fe, "2 מתוך 2 עברו" if he else "2 of 2 passed"), "%s: hangar: the progress" % lang)
+	fe.find_child("Fly", true, false).pressed.emit()
 	await frames(2)
-	check(fe.page == "mission" and fe.missions.size() == 2, "%s: Open lists the two missions" % lang)
+	check(fe.page == "mission" and fe.missions.size() == 2, "%s: Fly lists the two missions" % lang)
 	fe.find_child("Mission2", true, false).pressed.emit()
 	await frames(2)
 	check(_has(fe, "המראה" if he else "Take-off"), "%s: mission: the take-off picked" % lang)
@@ -541,7 +491,7 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	await _briefing_checks(fe, lang)
 	# The flight is skipped: the stored record comes back as the flight's.
 	s.flown_sortie = ids.pass
-	fe.show_page("home")
+	fe.show_page("hangar")
 	fe._ready()
 	await frames(2)
 	check(fe.page == "debrief", "%s: a flight's end opens its debrief" % lang)
@@ -611,24 +561,11 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	await frames(2)
 	key(fe, KEY_ESCAPE)
 	await frames(2)
-	check(fe.page == "home", "%s: Esc from the debrief: Home" % lang)
-	check(
-		_has(fe, "משימות" if he else "Missions") and fe.find_child("pilot_log", true, false) == null,
-		"%s: home: Missions, no Pilot log entry (the pilot block's)" % lang
-	)
-	check(
-		_has(fe, "קרדיט" if he else "Attributions") and _has(fe, "יציאה" if he else "Quit"), "%s: home: the menu" % lang
-	)
-	var guides: Button = fe.find_child("guides", true, false)
-	check(
-		guides != null and guides.disabled and guides.tooltip_text == fe.s("coming") and guides.text == fe.s("guides"),
-		"%s: home: Guides, greyed with its tooltip" % lang
-	)
-	check(_labels_of(fe, "Stat").is_empty(), "%s: home: no flight counts" % lang)
-	check(not _has_part(fe, "אחרונה" if he else "Last:"), "%s: home: no last-mission line" % lang)
-	check(not _has(fe, "בחירה" if he else "Select"), "%s: home: no key hints" % lang)
-	var train: Control = fe.find_child("Missions", true, false)
-	check((train.global_position.x > 960) == he, "%s: home: the column on the inline start" % lang)
+	check(fe.page == "hangar", "%s: Esc from the debrief: the Hangar" % lang)
+	check(fe.find_child("pilot_log", true, false) == null, "%s: hangar: no Pilot log entry (the pilot block's)" % lang)
+	check(fe.find_child("credits", true, false) is Button, "%s: hangar: Attributions" % lang)
+	check(_labels_of(fe, "Stat").is_empty(), "%s: hangar: no flight counts" % lang)
+	check(not _has(fe, "בחירה" if he else "Select"), "%s: hangar: no key hints" % lang)
 	fe.show_page("pilot")
 	await frames(2)
 	(fe.find_child("pilot_log", true, false) as Button).pressed.emit()
@@ -1084,7 +1021,7 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	check(_has_part(steps, "בקשת כניסה למסלול" if he else "request line-up"), "%s: briefing: the line-up call" % lang)
 	check(_has_part(steps, "אישור המראה" if he else "cleared for take-off"), "%s: briefing: the wait" % lang)
 	check(
-		_has(pane, "482 · טייסת 253 הנגב · רמון" if he else "482 · 253 Squadron Negev · Ramon"), "%s: subtitle" % lang
+		_has(pane, "846 · טייסת 253 הנגב · רמון" if he else "846 · 253 Squadron Negev · Ramon"), "%s: subtitle" % lang
 	)
 	var credit: Label = fe.find_child("Credit", true, false)
 	check(credit != null and credit.text.strip_edges() == "", "%s: no credit on the Briefing page" % lang)
@@ -1101,7 +1038,7 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	check(drawing.stations.size() == 8 and drawing.stores.size() == 8, "%s: arming: eight stations loaded" % lang)
 	var title: Label = pane.find_child("ArmingJet", true, false)
 	check(
-		title.text == "%s · \u2066F-16I\u2069 · \u2066482\u2069" % ("סופה" if he else "Sufa"),
+		title.text == "%s · \u2066F-16I\u2069 · \u2066846\u2069" % ("סופה" if he else "Sufa"),
 		"%s: arming: the jet's own name, the Latin and digits isolated (%s)" % [lang, title.text]
 	)
 	check(not _has_part(fe, "F-16C"), "%s: arming: no F-16C" % lang)
@@ -1260,9 +1197,10 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	await frames(2)
 	pane = fe.find_child("Briefing", true, false)
 	check(pane.find_child("PageMap", true, false).visible, "%s: the page kept for the next mission" % lang)
-	# Away and back (Home, Preferences, Home, the mission screen): the briefing opens on its first page, the map whole.
+	# Away and back (the Hangar, Preferences, the Hangar, the mission screen): the briefing opens on its first page, the
+	# map whole.
 	var mi: int = fe.mission_i
-	for screen in ["home", "prefs", "home", "mission"]:
+	for screen in ["hangar", "prefs", "hangar", "mission"]:
 		fe.show_page(screen)
 	await frames(2)
 	pane = fe.find_child("Briefing", true, false)
@@ -1300,8 +1238,13 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	await frames(2)
 
 
+## The texts without the right-to-left mark that leads a Hebrew jet name (front_end.gd full_name).
 func _has(root: Node, t: String) -> bool:
-	return t in _labels(root)
+	return t in _labels(root).map(func(x): return x.replace("\u200f", ""))
+
+
+func _has_button(root: Node, t: String) -> bool:
+	return root.find_children("*", "Button", true, false).any(func(b): return b.text == t)
 
 
 func _has_part(root: Node, t: String) -> bool:
