@@ -31,6 +31,10 @@ const BLOCK_SHEET := "blck50-panels1"
 ## The F-16 model's own satin black parts (tools/f16d/cockpit3d.py: the HUD posts and the wide-angle HUD's box):
 ## their roughness kept, a sheen along their rounded edges.
 const SATIN := ["hud_black"]
+## Modern IAF's combiner tint, a fraction of the earlier one, on the glass and on the plate's rim and back face: a
+## quarter (the user, 2026-11-12: "the best for now is quarter"; full read as a pale pane), unless the jet's
+## definition sets its own `hud_tint` (the Sufa's 0: untinted).
+const SIM_TINT := 0.25
 ## Each MFD's SubViewport (px square): the Sufa's 484 px displays, rounded up.
 const SCREEN_PX := 512
 ## The panoramic display's SubViewport px per [PCD] panel px (1,496 x 671 px for its 20 x 8 in glass).
@@ -76,6 +80,7 @@ var _glass: MeshInstance3D
 ## The pilot body's throttle shape keys (throttle_idle, throttle_full), found once.
 var _pilot_keys := [-1, -1]
 var _dir := ""  # the model's folder
+## The combiner glass's outline (its mesh's frame), one loop in order (_outline).
 var _glass_pts := PackedVector3Array()
 ## Per 3D screen: [MFD node, its SubViewport, screen MeshInstance3D, origin, u axis, v axis (screen-local, per UV),
 ## {osb: centre (MFD px)}].
@@ -157,15 +162,19 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 		glass = hud + "_glass"
 	_glass = n.find_child(glass, true, false) as MeshInstance3D
 	if _glass != null:
-		_glass_pts = _glass.mesh.get_faces()
+		_glass_pts = _outline(_glass.mesh.get_faces())
+		if _glass_pts.size() < 3:  # no single outline loop (a double-sided or holed glass): its points, as a hull
+			_glass_pts = _hull_loop(_glass.mesh.get_faces())
 		var g := StandardMaterial3D.new()
 		g.albedo_color = Color(0.55, 0.75, 0.6, 0.07)
 		if Settings.hud_daylight():
 			# Ours, Modern IAF: the combiner seen from the seat, slightly darker than the sky around it, the green its
 			# coating reflects missing from what passes through (a faint cool magenta, inferred), and a little of the
 			# sky in it (docs/real-hud.md "Modern IAF's HUD light").
-			g.albedo_color = Color(0.62, 0.56, 0.72, 0.14)
+			var tint := float(Settings.airframe(type_code).get("hud_tint", SIM_TINT))
+			g.albedo_color = Color(0.62, 0.56, 0.72, 0.14 * tint)
 			g.metallic_specular = 0.8
+			_tint_plate(n, tint)
 		g.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		g.roughness = 0.05
 		g.cull_mode = BaseMaterial3D.CULL_DISABLED
@@ -636,25 +645,87 @@ func _glass_outline() -> PackedVector2Array:
 	if _glass == null:  # a helmet display only: the whole view
 		var r := cockpit.get_viewport_rect()
 		return PackedVector2Array([r.position, Vector2(r.end.x, 0), r.end, Vector2(0, r.end.y)])
-	# The glass cut at the camera's near plane: its part in front of the eye (looking down at the dash the glass's top
-	# passes behind the eye; dropping the whole outline then took the HUD off its glass, the Mac play test's finding 10).
+	# The glass's outline cut at the camera's near plane: its part in front of the eye (looking down at the dash the
+	# glass's top passes behind the eye; dropping the whole outline then took the HUD off its glass, the Mac play
+	# test's finding 10). The outline is the glass's own, not its hull: the Sufa's plate is fitted inside its curved
+	# posts (tools/f16d/cockpit3d.py hud_glass_fit).
 	var pts := PackedVector2Array()
 	var xf := _glass.global_transform
 	var eye := camera.global_transform
 	var ahead := -eye.basis.z
 	var near := camera.near * 1.01
-	for i in range(0, _glass_pts.size(), 3):
+	for i in _glass_pts.size():
+		var a := xf * _glass_pts[i]
+		var b := xf * _glass_pts[(i + 1) % _glass_pts.size()]
+		var da := ahead.dot(a - eye.origin) - near
+		var db := ahead.dot(b - eye.origin) - near
+		if da >= 0.0:
+			pts.append(camera.unproject_position(a) - cockpit.global_position)
+		if (da >= 0.0) != (db >= 0.0):
+			var c := a.lerp(b, da / (da - db))
+			pts.append(camera.unproject_position(c) - cockpit.global_position)
+	return pts if pts.size() >= 3 else PackedVector2Array()
+
+
+## The combiner plate's own tinted layers (the F-16 model's `hud_edge` rim and `ac_tranbg` back faces) at `tint` of
+## their opacity, on copies of their materials.
+func _tint_plate(n: Node, tint: float) -> void:
+	for mi: MeshInstance3D in n.find_children("HUD_*", "MeshInstance3D", true, false):
+		for i in mi.mesh.get_surface_count() if mi.mesh != null else 0:
+			var m := mi.mesh.surface_get_material(i) as BaseMaterial3D
+			if m != null and (m.resource_name == "hud_edge" or m.resource_name.begins_with("ac_tranbg")):
+				m = m.duplicate()
+				m.albedo_color.a *= tint
+				mi.set_surface_override_material(i, m)
+
+
+## The convex hull of a flat mesh's points (`faces`), as one loop in its plane: the outline when _outline finds none.
+static func _hull_loop(faces: PackedVector3Array) -> PackedVector3Array:
+	if faces.size() < 3:
+		return PackedVector3Array()
+	var n := (faces[1] - faces[0]).cross(faces[2] - faces[0]).normalized()
+	var u := (faces[1] - faces[0]).normalized()
+	var v := n.cross(u)
+	var flat := PackedVector2Array()
+	for p in faces:
+		flat.append(Vector2(u.dot(p - faces[0]), v.dot(p - faces[0])))
+	var loop := PackedVector3Array()
+	for q in Geometry2D.convex_hull(flat):
+		loop.append(faces[0] + u * q.x + v * q.y)
+	return loop
+
+
+## The outline of a flat mesh (`faces`: three points per triangle) as one loop of points in order: its edges that
+## belong to one triangle only, chained (points within 0.1 mm the same).
+static func _outline(faces: PackedVector3Array) -> PackedVector3Array:
+	var key := func(p: Vector3) -> Vector3i: return Vector3i((p * 10000.0).round())
+	var count := {}
+	for i in range(0, faces.size(), 3):
 		for k in 3:
-			var a := xf * _glass_pts[i + k]
-			var b := xf * _glass_pts[i + (k + 1) % 3]
-			var da := ahead.dot(a - eye.origin) - near
-			var db := ahead.dot(b - eye.origin) - near
-			if da >= 0.0:
-				pts.append(camera.unproject_position(a) - cockpit.global_position)
-			if (da >= 0.0) != (db >= 0.0):
-				var c := a.lerp(b, da / (da - db))
-				pts.append(camera.unproject_position(c) - cockpit.global_position)
-	return Geometry2D.convex_hull(pts) if pts.size() >= 3 else PackedVector2Array()
+			var a: Vector3i = key.call(faces[i + k])
+			var b: Vector3i = key.call(faces[i + (k + 1) % 3])
+			var e := [a, b] if a < b else [b, a]
+			count[e] = count.get(e, 0) + 1
+	var next := {}
+	var at := {}
+	for i in range(0, faces.size(), 3):
+		for k in 3:
+			var a: Vector3i = key.call(faces[i + k])
+			var b: Vector3i = key.call(faces[i + (k + 1) % 3])
+			if count[[a, b] if a < b else [b, a]] == 1:
+				next[a] = b
+				at[a] = faces[i + k]
+	var loop := PackedVector3Array()
+	if next.is_empty():
+		return loop
+	var start: Vector3i = next.keys()[0]
+	var p := start
+	while loop.size() <= next.size():
+		loop.append(at[p])
+		p = next[p]
+		if p == start or not next.has(p):
+			break
+	return loop
 
 
 func _unhandled_input(event: InputEvent) -> void:

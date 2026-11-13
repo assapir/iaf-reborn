@@ -35,6 +35,9 @@ pub struct Airframe {
     pub flir: Option<bool>,
     pub weapons: Option<Weapons>,
     pub hud_3d: Option<String>,
+    /// Modern IAF's combiner tint on the 3D cockpit's HUD glass, a fraction of its full tint (cockpit3d.gd
+    /// `SIM_TINT` when absent; docs/real-hud.md "Modern IAF's HUD light").
+    pub hud_tint: Option<f32>,
     /// The 3D cockpit's model (Extras "Cockpit": 3D; docs/cockpit.md "3D cockpit").
     pub cockpit_3d: Option<String>,
     pub mfd: Option<String>,

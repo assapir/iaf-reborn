@@ -914,14 +914,23 @@ games draw over the scene with the same pen. The study behind it: the look study
   least pen width was one canvas unit (two pixels) and the texts were rasterised at half size and then enlarged, so the
   HUD came out twice as thick and blurred; this held in both games. Check: `modern-iaf/tests/_hud_scale_shot.gd`
   (`SHOT_SCALE=1` / `2`).
-- **Combiner glass.** 14 % opaque in a faint cool magenta (0.62 / 0.56 / 0.72) with specular 0.8, so it is slightly
-  darker than the sky and reflects a little of it (`cockpit3d.gd`; the green its coating reflects is missing from
-  what passes through, inferred). The original game's glass stays 7 %. The combiner has no separate edge line.
+- **Combiner glass.** 3.5 % opaque in a faint cool magenta (0.62 / 0.56 / 0.72) with specular 0.8, so it is a
+  touch darker than the sky and reflects a little of it (`cockpit3d.gd`; the green its coating reflects is missing
+  from what passes through, inferred); the plate's rim and back face at a quarter of their opacity too (`SIM_TINT`).
+  That is the Barak's; the Sufa's combiner is untinted (its definition's `hud_tint` 0; the user, 2026-11-13: "remove
+  this white at all for Sufa"), and a jet's `hud_tint` sets its own fraction.
+  14 % was tried and dropped on 2026-11-12: from the seat the plate read as a pale pane, the user chose a quarter of
+  it beside no tint and the full one. The F-16C photo from the front seat[^f16c-front] shows the combiner almost clear. The original
+  game's glass stays 7 %. The combiner has no separate edge line: a 1.5 mm pale line at 10 % along the glass's
+  own outline was tried and dropped on 2026-11-12 (beside the quarter tint it drew a visible outline inside the posts
+  and an arc over the Barak's glass). And the Sufa's plate is
+  fitted inside its curved posts, so no part of its tint shows outside them (2026-11-12, `hud_glass_fit`;
+  docs/cockpit.md "3D cockpit"). Before, the rectangular plate's corners and sides showed past the posts as a pale
+  rectangle around the HUD.
   Tried and dropped (2026-11-09 to 2026-11-12): a thin light strip down each side of the Sufa's plate
   (`hud_wide_edges` in `tools/f16d/cockpit3d.py`, 60 % then 20 % opaque). It was a straight quad along the plate's
   side, so it stood off the curved posts as two bright bars; the real photos show no line there. It is removed from
-  `f16.glb`, so neither game draws it; so are the two black slabs beside the posts' feet (`Tub/box_left`,
-  `box_right`, docs/cockpit.md "3D cockpit"). The F-35I has no combiner (its HUD is the helmet's).
+  `f16.glb`, so neither game draws it. The F-35I has no combiner (its HUD is the helmet's).
 - **Helmet displays.** The F-35I's Gen III helmet display and the DASH light the same way (2026-11-09): their frame's
   own green (0.45 / 1.0 / 0.55 in `real_hud/f35.rs`, `dash.rs`) becomes the P43 green at the same level and night
   floor, stepped by Shift + H and set by the slider (`hud.gd` `real_hud()`). The F-35 helmet shows green monochrome
@@ -1102,3 +1111,5 @@ The F-35I's helmet display over the Negev, before and after, by day and at 22:00
 [^gcas-video]: "Auto-GCAS Saves Unconscious F-16 Pilot—Declassified USAF Footage", HUD video of an Arizona ANG F-16,
     2016, public domain (USAF), Wikimedia Commons:
     https://commons.wikimedia.org/wiki/File:Auto-GCAS_Saves_Unconscious_F-16_Pilot%E2%80%94Declassified_USAF_Footage.webm
+[^f16c-front]: US Air Force, F-16C cockpit from the front seat, public domain, Wikimedia Commons
+    `File:F-16C_cockpit_m02006112700032.jpg`. <https://commons.wikimedia.org/wiki/File:F-16C_cockpit_m02006112700032.jpg>

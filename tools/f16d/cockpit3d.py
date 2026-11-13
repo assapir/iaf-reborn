@@ -89,6 +89,9 @@ LAMPS = {
     ("LeftAuxConsole", "GEAR-left"): "gear_left", ("LeftAuxConsole", "GEAR-right"): "gear_right",
     ("LeftAuxConsole", "gear_lever_light"): "gear_transit", ("THREAT", "launch"): "rwr_launch",
 }
+# The lamps kept in view unlit (dark), not hidden: the AoA indexer's symbols and the AR / NWS light. FlightGear hides
+# them off (its select), which left the units' faces blank, the AR / NWS light gone (the user, 2026-11-12).
+LAMPS_DARK = {("Tub", "down"), ("Tub", "steady"), ("Tub", "up"), ("Tub", "ar_nws")}
 # FlightGear's canvas displays the game draws into (cockpit3d.gd _attach_display), by (sub-model, object): the node.
 DISPLAYS = {("IFF", "bkg"): "RWR_scope", ("EHSI", "EHSI-Display"): "EHSI_screen", ("DED", "poly.003"): "DED_screen",
             ("PFD", "PFDscreen"): "PFD_screen"}
@@ -168,6 +171,13 @@ TUB_CUT_X = -4.072
 # 0.42 m), and through the gap the fuselage's painted skin showed beside the pilot.
 SIDE_CUT = ("Tub/COCKPIT", "Tub/cockpit_border")
 SIDE_AFT = 0.42
+# The AoA indexer's and AR / NWS indicator's bodies' material, their own so bake_light gives them the glareshield
+# top's light (their thin open shroud occludes itself to black in the bake).
+INDEXER_BODY = "indexer_body"
+# Their paint: the HUD housing's near-black grey, untextured (the F-16C front-seat photo, Wikimedia Commons
+# `File:F-16C_cockpit_m02006112700032.jpg`: both units dark beside the posts; FlightGear's sheet texel under them read
+# flat black; the user, 2026-11-12: "not flat black"). Linear RGB, inferred.
+INDEXER_GREY = (0.035, 0.035, 0.038)
 # FlightGear's pilot view (f16-base.xml view 0: x-offset 0, y-offset 0.8579 up, z-offset -4.105 aft), FlightGear frame.
 FG_EYE = (-4.105, 0.0, 0.8579)
 
@@ -299,7 +309,7 @@ class Build:
                     self.shown[objs[n]] = SHOWN[(part, n)]
                     continue
                 rec = self.lamps.setdefault(objs[n], {"key": LAMPS[(part, n)], "hide": False, "colour": [1, 1, 1]})
-                if t == "select":
+                if t == "select" and (part, n) not in LAMPS_DARK:
                     rec["hide"] = True
                 elif t == "material" and a.find("emission") is not None:
                     rec["colour"] = [num(a.find("emission"), c) for c in ("red", "green", "blue")]
@@ -770,6 +780,90 @@ def hud_posts(b, mat):
         print("hud_posts %s: glass +-%.3f m, its foot at %.3f m" % (part, half, foot))
 
 
+# The wide-angle combiner's glass fitted inside its posts (hud_glass_fit, 2026-11-12): FlightGear's plate (the image
+# glass HUDImage2, its back face and its rim HUDedge) is a rectangle and the posts (HUDFrame) curve in, so from the eye
+# the tinted plate's corners and straight sides showed past the posts as a pale rectangle around the HUD (the user,
+# 2026-11-12). Each layer is cut to the posts' outline as the eye sees it: in FIT_BANDS heights over the plate, the
+# posts' points seen from the eye (FG_EYE) on the plate's plane, the plate's side FIT_INTO of the way from a post's
+# inner edge to its outer edge, so its edge lies behind the post. The image glass is the HUD's clip (cockpit3d.gd
+# _glass_outline), so the symbology follows the same outline.
+FIT_BANDS = 8
+FIT_INTO = 0.35
+
+
+def hud_glass_fit(b):
+    objs = {o.name.split("/", 1)[1]: o for o in b.parts.get("HUDc", [])}
+    glass, frame = objs.get("HUDImage2"), objs.get("HUDFrame")
+    if glass is None or frame is None or not glass.data.polygons:
+        return
+    mw = glass.matrix_world
+    gv = [mw @ v.co for v in glass.data.vertices]
+    n = (glass.matrix_world.to_3x3() @ glass.data.polygons[0].normal).normalized()
+    p0, half = gv[0], max(abs(v.x) for v in gv)
+    zlo, zhi = min(v.z for v in gv), max(v.z for v in gv)
+    eye = C @ Vector(FG_EYE)
+    seen = []  # the posts' points on the plate's plane, as the eye sees them: (x, z)
+    for v in frame.data.vertices:
+        w = frame.matrix_world @ v.co
+        d = n.dot(w - eye)
+        if abs(d) < 1e-9:
+            continue
+        t = n.dot(p0 - eye) / d
+        if t > 0:
+            q = eye + (w - eye) * t
+            seen.append((q.x, q.z))
+    levels = [zlo + (zhi - zlo) * k / FIT_BANDS for k in range(FIT_BANDS + 1)]
+    band = (zhi - zlo) / FIT_BANDS
+    edge = {}  # side -> the plate's half width at each level
+    for s in (-1, 1):
+        xs = []
+        for h in levels:
+            near = [s * x for x, z in seen if s * x > 0.5 * half and abs(z - h) <= band]
+            xs.append(min(half, min(near) + FIT_INTO * (max(near) - min(near))) if near else half)
+        edge[s] = xs
+
+    def limit(s, z):
+        k = min(max(int((z - zlo) / band), 0), FIT_BANDS - 1)
+        t = (z - levels[k]) / band
+        return edge[s][k] + (edge[s][k + 1] - edge[s][k]) * t
+
+    for name in ("HUDImage2", "HUDImage2.back", "HUDedge"):
+        o = objs.get(name)
+        if o is None or not o.data.polygons:
+            continue
+        inv = o.matrix_world.inverted()
+        bm = bmesh.new()
+        bm.from_mesh(o.data)
+        for h in levels[1:-1]:  # the bands
+            g = bm.verts[:] + bm.edges[:] + bm.faces[:]
+            bmesh.ops.bisect_plane(bm, geom=g, dist=1e-6, plane_co=inv @ Vector((0, 0, h)),
+                                   plane_no=(inv.to_3x3() @ Vector((0, 0, 1))).normalized())
+        for k in range(FIT_BANDS):
+            for s in (-1, 1):
+                a = Vector((s * edge[s][k], 0, levels[k]))
+                c = Vector((s * edge[s][k + 1], 0, levels[k + 1]))
+                side = (c - a).cross(Vector((0, 1, 0))).normalized()
+                if side.x * s < 0:
+                    side = -side  # outward
+                faces = [f for f in bm.faces
+                         if levels[k] <= (o.matrix_world @ f.calc_center_median()).z <= levels[k + 1]]
+                if not faces:
+                    continue
+                g = list({v for f in faces for v in f.verts}) + list({e for f in faces for e in f.edges}) + faces
+                bmesh.ops.bisect_plane(bm, geom=g, dist=1e-6, plane_co=inv @ a,
+                                       plane_no=(inv.to_3x3() @ side).normalized())
+        out = []
+        for f in bm.faces:
+            w = o.matrix_world @ f.calc_center_median()
+            if abs(w.x) > limit(1 if w.x > 0 else -1, w.z) + 1e-5:
+                out.append(f)
+        bmesh.ops.delete(bm, geom=out, context='FACES')
+        bm.to_mesh(o.data)
+        bm.free()
+    print("hud_glass_fit: the plate's half width per level, left %s right %s" % (
+        [round(x, 4) for x in edge[-1]], [round(x, 4) for x in edge[1]]))
+
+
 # The glareshield's aft top edge rounded (coaming, 2026-11-02): FlightGear's glareshield (`Tub/poly`) meets its aft face
 # at a hard edge, a straight line across the view under the HUD. The F-16's is a moulded coaming with a rounded lip
 # (the HUDS photo). That edge is bevelled COAMING_R (m) in COAMING_SEGMENTS and shaded smooth: the hood's edges sharper
@@ -934,6 +1028,20 @@ def bake_light(objs, out_png):
         for o in objs:
             o.data.flip_normals()
     img.pixels.foreach_set(np.maximum(*passes))
+    # The indexers' bodies (INDEXER_BODY) lit as the glareshield's top next to them: their light UVs moved onto the
+    # nearest upward face of the same mesh.
+    for o in objs:
+        body = [i for i, m in enumerate(o.data.materials) if m is not None and m.name.startswith(INDEXER_BODY)]
+        light = o.data.uv_layers.get("light")
+        if not body or light is None:
+            continue
+        tops = [f for f in o.data.polygons if f.material_index not in body and abs(f.normal.z) > 0.9]
+        for f in o.data.polygons:
+            if f.material_index in body and tops:
+                t = min(tops, key=lambda g: (g.center - f.center).length)
+                uv = light.data[t.loop_indices[0]].uv.copy()
+                for li in f.loop_indices:
+                    light.data[li].uv = uv
     for m, n in nodes:
         m.node_tree.nodes.remove(n)
     for o in objs:  # the texture sheets' UVs stay the first set
@@ -999,6 +1107,7 @@ def main():
     smooth(b)
     hud_posts(b, hud_black)
     coaming(b)
+    hud_glass_fit(b)
     everything = [o for o in kit.scene().objects if o.type == 'MESH']  # the new posts and coaming too
     for o in b.parts.get("HUDc", []):
         part = o.name.split("/", 1)[1]
@@ -1045,12 +1154,16 @@ def main():
         if o.name == "Tub/cockpit_border":
             for i in range(len(o.data.materials)):
                 o.data.materials[i] = sill
-    # The two slabs on the glareshield beside the HUD (`cockpit.ac` `box_left`, `box_right`: 3 x 9 cm, standing up
-    # outside each post's foot) left out: from the eye two opaque black bars beside the posts. The F-16's HUD housing is
-    # the dark box under the combiner, nothing stands beside its posts (the photos; the user, 2026-11-12).
+    # The two boxes on the glareshield beside the HUD (`cockpit.ac` `box_left`, `box_right`): the bodies of the AoA
+    # indexer (left) and the AR / NWS indicator (right), their lamps on their aft faces, at FlightGear's size and place.
+    # FlightGear gives them no UVs (all at the sheet's black corner), so from the eye they were two flat black bars;
+    # they take the housing's dark grey (INDEXER_GREY) and the glareshield top's baked light (bake_light). 2026-11-12:
+    # left out for a day, which left the lamps floating and holes beside the posts.
+    indexer = kit.material(INDEXER_BODY, INDEXER_GREY, roughness=0.6)
     for o in b.parts.get("Tub", []):
         if o.name in ("Tub/box_left", "Tub/box_right"):
-            o.data.clear_geometry()
+            o.data.materials.clear()
+            o.data.materials.append(indexer)
     if os.environ.get("C3D_DEBUG") == "1":  # every object's bounds (Blender frame, before the shift)
         for o in everything:
             vs = [v.co for v in o.data.vertices]

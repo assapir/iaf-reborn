@@ -171,7 +171,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   stroke is the original game's thin pen, the halo one pixel outside it, and the HUD is drawn over the scene instead of
   added (no white core over the sky), so it reads as crisp as the original game's Real HUD. The Mac's pictures matched Linux at scale 1: its "closer view" and
   "twice the size" came from an enlarged crop, and the glass's tint is the approved one. The side edge strips beside the
-  HUD and the two black slabs beside the posts' feet are removed (2026-11-12): nothing stands beside the posts.
+  HUD are removed (2026-11-12). The AoA indexer and AR / NWS bodies beside the posts' feet take the glareshield's
+  paint (they drew flat black). The combiner plate is fitted inside the curved posts,
+  so its tinted rectangle no longer shows past them.
 - **The start-up switches (2026-11-09):** the F-16s' start-up checklist by the mouse in the 3D cockpit: MAIN PWR, the
   JFS switch, the throttle, the AVIONIC POWER switches, the INS knob (their own nodes of `f16.glb`, each turning to its
   on position) and the canopy handle (a hit area), each sending its key's command; the card names each switch and its

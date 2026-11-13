@@ -449,13 +449,23 @@ occlusion, 1.8 MB; built by
   source) is a faint amber glass (25 % opaque). The plate has no separate edge strip: the light strip added down
   each side on 2026-11-09 (`hud_wide_edges`, 2.5 mm, pale grey) was straight and stood off FlightGear's curved posts, so
   it read as two white bars beside the HUD; it was removed from `f16.glb` (both games) on 2026-11-12, after the user's
-  third report. The real photos show no such line. The two slabs FlightGear's glareshield carries beside the HUD
-  (`cockpit.ac` `box_left` / `box_right`, 3 x 9 cm, standing up outside each post's foot) are left out too
-  (2026-11-12): from the eye they were two opaque black bars beside the posts, and the F-16's HUD housing is the
-  dark box under the combiner. 68.4 k triangles in the file (68.5 k before the edge strips and slabs went, 66.9 k before the ICP's whole thumbwheels and the
+  third report. The real photos show no such line. The two boxes beside the posts' feet (`cockpit.ac`
+  `box_left` / `box_right`) are the bodies of the AoA indexer (left) and the AR / NWS indicator (right), their lamps
+  on their aft faces; their size and place are FlightGear's. In the F-16C front-seat photo[^f16-photos] both units
+  stand on the glareshield outboard of the HUD posts, near black; the photo is too small to set their height, so they
+  stay where they are (inferred). FlightGear gives them no UVs, so they drew a
+  flat unlit black; they take a near-black grey (`INDEXER_GREY`) and the glareshield top's baked light
+  (`indexer_body`, 2026-11-12). Their lamps stay in view unlit (`LAMPS_DARK`): FlightGear hides them off, which left
+  the units' faces blank and the AR / NWS light gone. Left out for a day on 2026-11-12 (taken for stray slabs), the
+  units left the lamps floating and holes beside the posts. The plate (its image glass `HUDImage2`, back face and rim) is fitted inside the curved
+  posts (`cockpit3d.py` `hud_glass_fit`, 2026-11-12): FlightGear's plate is a rectangle wider than the posts' curve,
+  so from the eye its tinted corners and straight sides showed past the posts as a pale rectangle around the HUD (the
+  user's "rectangle around the HUD"). At 8 heights over the plate the posts' points are seen from the eye on the
+  plate's plane, and the plate's side is cut 35 % of the way from a post's inner edge to its outer edge, so the edge
+  lies behind the post. The HUD's mask follows the same outline. 68.5 k triangles in the file (66.9 k before the ICP's whole thumbwheels and the
   start-up switches' own nodes, 57.3 k before the whole knobs and throttle and the sills, 56.2 k before the Barak's new
-  HUD posts and the bevelled coaming, 54.8 k before the rounded HUD frames), about 67.5 k drawn (one HUD); 123
-  materials (FlightGear's duplicates merged), 204 surfaces.
+  HUD posts and the bevelled coaming, 54.8 k before the rounded HUD frames), about 67.5 k drawn (one HUD); 124
+  materials (FlightGear's duplicates merged), 205 surfaces.
 * The HUDs' posts and frames rounded (`cockpit3d.py` `smooth`, 2026-11-02): FlightGear's are boxes with hard edges
   and flat faces, which read as blocky beside the glass. Every edge sharper than 35° is bevelled 3 mm in two segments
   and the faces shaded smooth across the rest (`hud.ac` `hud_sides`, `f16_war_hud.ac` `HUDFrame`), as the cast frames
@@ -658,7 +668,8 @@ occlusion, 1.8 MB; built by
   group showed a stale copy of the 3D view in a rectangle over the screen while the DASH drew; the shader mask
   replaced it.
 * **HUD**: drawn as on the 2D cockpit (the original or the Real HUD), masked to the combiner glass's outline as seen
-  from the eye (`cockpit.gd` `hud_clip`, `hud_glass.gdshader`: the glass's corners projected each frame). The Real
+  from the eye (`cockpit.gd` `hud_clip`, `hud_glass.gdshader`: the glass mesh's outline loop projected each frame, up
+  to 32 corners, an even-odd test so the Sufa's plate's curved sides need not be convex). The Real
   HUD's symbols sit at infinity, so they stay on the world and the glass frames them (inferred). The DASH draws
   everywhere once no part of the glass is on the screen (`cockpit.gd` `dash`; since 2026-11-11, Modern IAF's Mac play
   test's finding 10: before, the 2D panel's pan bounds moved the HUD to the DASH 12° aside, with the glass and its

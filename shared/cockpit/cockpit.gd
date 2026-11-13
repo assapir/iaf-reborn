@@ -701,11 +701,11 @@ func _update_hud_mask() -> void:
 			n.material = _hud_mask
 	var view := get_viewport_rect().size
 	var pts := PackedVector2Array()
-	for p in hud_clip.slice(0, 16):
+	for p in hud_clip.slice(0, 32):
 		pts.append((p + global_position) / view)
 	var n := pts.size()
 	_hud_mask.set_shader_parameter("count", 0 if dash() else (n if n >= 3 else -1))
-	pts.resize(16)
+	pts.resize(32)
 	_hud_mask.set_shader_parameter("corners", pts)
 
 

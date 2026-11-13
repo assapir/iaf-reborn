@@ -1930,7 +1930,7 @@
  "lamps": {
   "lamp_aoa_slow_0": {
    "key": "aoa_slow",
-   "hide": true,
+   "hide": false,
    "colour": [
     1,
     1,
@@ -1939,7 +1939,7 @@
   },
   "lamp_aoa_on_speed_0": {
    "key": "aoa_on_speed",
-   "hide": true,
+   "hide": false,
    "colour": [
     1,
     1,
@@ -1948,7 +1948,7 @@
   },
   "lamp_aoa_fast_0": {
    "key": "aoa_fast",
-   "hide": true,
+   "hide": false,
    "colour": [
     1,
     1,
@@ -1957,7 +1957,7 @@
   },
   "lamp_ar_nws_0": {
    "key": "ar_nws",
-   "hide": true,
+   "hide": false,
    "colour": [
     1,
     1,
