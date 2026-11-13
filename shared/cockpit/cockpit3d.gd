@@ -65,6 +65,8 @@ const SWITCH_PROPS := [
 	"f16/avionics/power-mfd",
 	"f16/avionics/power-ufc",
 	"f16/avionics/ins-knob",
+	"f16/avionics/power-fcr",  # position only until M2 (cockpit3d_controls.gd "toggle" with no "click")
+	"f16/avionics/power-rdr-alt",
 	"f35i/elec/batt",  # the F-35I's (tools/f35i/cockpit3d.py CONTROL_PROPS)
 	"f35i/engine/ipp",
 	"f35i/engine/eng",

@@ -256,17 +256,32 @@ engine running, and the original game, keep the switches as FlightGear models th
   avionics step. Until then all four shared the step's command, so one click threw them all. MFD powers the two
   MFDs and UFC the DED (`cockpit3d.gd` `_powered`); MMC and ST STA move and power nothing. A refused avionics
   step (before the generators) leaves the switches as clicked: one switch off and on again retries it. Ctrl+A
-  still throws all four. FlightGear's console holds no FCR or RDR ALT switch of its own (the SNSR PWR panel is
-  part of the console's body), so the radar and the radar altimeter stay powered with the avionics.
+  still throws all four.
+- **FCR and RDR ALT** (2026-11-13, the switches audit's M1): FlightGear's right console has both as their own objects,
+  `fcr-switch` and `rdr-alt-switch` on the SNSR PWR panel, turning on `f16/avionics/power-fcr` (OFF 0 / ON 1) and
+  `f16/avionics/power-rdr-alt` (OFF 0 / STBY 1 / ON 2)[^fg-right]; `CONTROLS` makes them the nodes `FCR` and
+  `RDR_ALT`. Each is a `toggle` with no command: a click moves it between OFF and ON (RDR ALT skips STBY), with its
+  click, and powers nothing yet: the radar and the radar altimeter stay powered with the avionics. Their `modelled`
+  position is OFF, as the model shows them unset. The switch positions with their consequences are the audit's M2.
 
 | step | control (node) | place on the jet | command | key | on / off (FlightGear's value) |
 |---|---|---|---|---|---|
 | 1 | MAIN PWR switch (`MAIN_PWR`) | ELEC panel, left console, beside the throttle[^bms-ramp][^fg-left] | `[210, 0, 0]` | Ctrl+B | MAIN (2) / OFF (0) |
 | 2 | JFS switch (`JFS`) | ENG & JET START panel, left console, aft[^bms-ramp][^fg-left] | `[211, 0, 0]` | Ctrl+J | START 2 (1) / OFF (0) |
-| 3 | throttle grip (`THROTTLE`) | the throttle, left console | `[5, 0, 0]` | Throttle up | the throttle's own animation: out of OFF |
+| 3 | throttle grip (`THROTTLE`) | the throttle, left console | `[5, 0, 0]`, the wheel and a drag (below) | Throttle up | the throttle's own animation: out of OFF |
 | 4 | MMC, ST STA, MFD, UFC switches (`AVIONICS_MMC`, `AVIONICS_ST_STA`, `AVIONICS_MFD`, `AVIONICS_UFC`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | `[213, 0, 0]` | Ctrl+A | ON (1) / OFF (0): the key all four, a click its own switch |
 | 5 | INS knob (`INS`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | `[214, 0, 0]` | Ctrl+N | STOR HDG (1) / OFF (0) |
 | 6 | canopy handle (`CANOPY_HANDLE`, a hit area) | left side, aft of the left console, by the canopy switch[^dcs-canopy] | `[215, 0, 0]` | Ctrl+K | none |
+| take-off, landing | landing gear handle (`anim023`) | left auxiliary console (FlightGear's `LeftAuxConsole` `gear_lever`) | `[14, 0, 0]` | G | the handle's own animation (`controls/gear/gear-down`) |
+| (sensors) | FCR, RDR ALT switches (`FCR`, `RDR_ALT`) | SNSR PWR panel, right console[^fg-right] | none (position only) | none | ON (1) / OFF (0); RDR ALT ON (2) / OFF (0) |
+
+- **The throttle by the mouse** (both F-16s and the F-35I; 2026-11-13, the switches audit's M1): a click adds 5 %
+  (Throttle up, command 5, sent on the release), the wheel up adds 5 % and the wheel down takes 5 % (Throttle down,
+  command 6), and a left drag moves it a step per 15 px, up or down. The wheel and a drag stop at idle. A drag down
+  begun with the throttle already at idle goes over the idle-cutoff detent to OFF (Throttle OFF, command 218,
+  [training.md](training.md) §7.2), once a drag: the second, deliberate pull of the real detent (inferred UX). A click,
+  the wheel up or a drag up from OFF moves it out of OFF (5 %): the idle step of the start (§7.1). The rows' keys:
+  `turn` / `turn_down` (the wheel and the drag), `detent` (`cockpit3d_controls.gd`).
 
 - **The canopy handle** has no part in FlightGear's model, so its row is a `box` with `grip`: a grey metal rod, 3 cm
   thick and 14 cm long, along the left canopy sill's inner face 10 cm aft of the throttle, lit under the pointer
@@ -290,8 +305,9 @@ switches, not readable labels ([../../docs/f35i.md](../../docs/f35i.md) §4.2).
 | 2 | IPP switch (`IPP`) | start panel, second | `[211, 0, 0]` | Ctrl+J | forward (1) / aft (0) |
 | 3 | ENG switch (`ENG`, under a red guard) | start panel, third | `[212, 0, 0]` | none | forward (1) / aft (0) |
 | 3 | START button (`START`) | start panel, fourth | `[212, 0, 0]` | none | a push button |
-| 3 | throttle (`throttle`) | the throttle, left console | `[5, 0, 0]` | Throttle up | the throttle's own animation |
+| 3 | throttle (`throttle`) | the throttle, left console | `[5, 0, 0]`, the wheel and a drag (as the F-16's) | Throttle up | the throttle's own animation |
 | 4 | CANOPY switch (`CANOPY`) | its own panel, left console, aft | `[215, 0, 0]` | Ctrl+K | forward (1) / aft (0) |
+| take-off, landing | landing gear handle (`gear_handle`) | left of the main panel | `[14, 0, 0]` | G | the handle's own animation |
 
 - **The engine step** is the ENG switch as on the jet (command 212, which no key sends: the step's key stays the
   throttle up from OFF, [training.md](training.md) §7.1); the throttle stays where it is, and the engine runs to idle
@@ -637,7 +653,7 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
   controls on the HUD Remote Control Panel on the right console, DAY / AUTO BRT / NIGHT. https://github.com/NikolaiVChr/f16/wiki/HUD
 [^bms-ramp]: Falcon BMS forum, "Ramp start?", wedge (post 119008): "ELEC panel (Throttle; below)", "ENG & JET START panel (back – above EXT LIGHTING)", "AVIONICS POWER panel (stick)", "INS knob – ALIGN NORM" (weak: a sim community's checklist), https://forum.falcon-bms.com/post/119133
 [^fg-left]: FlightGear F-16 at ef4f192, `Models/Cockpit/Main/panels_mlu_left-console.xml`: `SW_MAIN_POWER` (knob on `fdm/jsbsim/elec/switches/main-pwr`, 0–2) and `SW_JET_FUEL` (knob on `f16/engine/jfs-start-switch`, −1–1; `Nasal/states_and_autostart.nas`: 1 is START 2), https://github.com/NikolaiVChr/f16
-[^fg-right]: FlightGear F-16 at ef4f192, `Models/Cockpit/Main/panels_mlu_right-console.xml`: `mmc-switch`, `st-sta-switch`, `mfd-switch`, `ufc-switch` (knobs on `f16/avionics/power-*`, 0–1) and `INS_knob` (`f16/avionics/ins-knob`; `states_and_autostart.nas`: 2 ALIGN NORM, 3 NAV), https://github.com/NikolaiVChr/f16
+[^fg-right]: FlightGear F-16 at ef4f192, `Models/Cockpit/Main/panels_mlu_right-console.xml`: `mmc-switch`, `st-sta-switch`, `mfd-switch`, `ufc-switch` (knobs on `f16/avionics/power-*`, 0–1) and `INS_knob` (`f16/avionics/ins-knob`; `states_and_autostart.nas`: 2 ALIGN NORM, 3 NAV); `fcr-switch` (knob on `f16/avionics/power-fcr`, 0–1, line 638) and `rdr-alt-switch` (`f16/avionics/power-rdr-alt`, 0–2, line 670), https://github.com/NikolaiVChr/f16
 [^dcs-canopy]: Eagle Dynamics forum, "Canopy won't lock if I open it and close" (DCS F-16C: the canopy switch on the left, where the canopy handle is; weak: a forum, read through a search summary), https://forum.dcs.world/topic/333905-canopy-wont-lock-if-i-open-it-and-close
 [^hoggit-icp]: Hoggit wiki, "Instrument Panel" (DCS F-16C): the HUD's DAY / AUTO / NIGHT symbology brightness
   switch. https://wiki.hoggitworld.com/view/Instrument_Panel

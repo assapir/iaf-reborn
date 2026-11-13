@@ -3,11 +3,14 @@
 "HUD_MODE": {"click": [217, 0, 0], "turn": [217, 1, 0]},
 "MAIN_PWR": {"click": [210, 0, 0], "prop": "fdm/jsbsim/elec/switches/main-pwr", "on": 2, "off": 0},
 "JFS": {"click": [211, 0, 0], "prop": "f16/engine/jfs-start-switch", "on": 1, "off": 0},
-"THROTTLE": {"click": [5, 0, 0]},
+"THROTTLE": {"click": [5, 0, 0], "turn": [5, 0, 0], "turn_down": [6, 0, 0], "detent": [218, 0, 0], "drag_px": 15},
 "AVIONICS_MMC": {"click": [213, 0, 0], "prop": "f16/avionics/power-mmc", "on": 1, "off": 0, "toggle": true},
 "AVIONICS_ST_STA": {"click": [213, 0, 0], "prop": "f16/avionics/power-st-sta", "on": 1, "off": 0, "toggle": true},
 "AVIONICS_MFD": {"click": [213, 0, 0], "prop": "f16/avionics/power-mfd", "on": 1, "off": 0, "toggle": true},
 "AVIONICS_UFC": {"click": [213, 0, 0], "prop": "f16/avionics/power-ufc", "on": 1, "off": 0, "toggle": true},
 "INS": {"click": [214, 0, 0], "prop": "f16/avionics/ins-knob", "on": 1, "off": 0},
-"CANOPY_HANDLE": {"click": [215, 0, 0], "box": [-0.35, 0.46, -3.15, 0.03, 0.03, 0.14], "grip": true}
+"CANOPY_HANDLE": {"click": [215, 0, 0], "box": [-0.35, 0.46, -3.15, 0.03, 0.03, 0.14], "grip": true},
+"anim023": {"click": [14, 0, 0]},
+"FCR": {"prop": "f16/avionics/power-fcr", "on": 1, "off": 0, "modelled": 0, "toggle": true},
+"RDR_ALT": {"prop": "f16/avionics/power-rdr-alt", "on": 2, "off": 0, "modelled": 0, "toggle": true}
 }

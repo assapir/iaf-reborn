@@ -75,6 +75,7 @@ NEEDLE_PROPS = {
     # the start-up switches (CONTROLS), set by the sim's checklist (cockpit3d.gd `switches`)
     "fdm/jsbsim/elec/switches/main-pwr", "f16/engine/jfs-start-switch", "f16/avionics/power-mmc",
     "f16/avionics/power-st-sta", "f16/avionics/power-mfd", "f16/avionics/power-ufc", "f16/avionics/ins-knob",
+    "f16/avionics/power-fcr", "f16/avionics/power-rdr-alt",
 }
 # The texture scrolls (`textranslate`) the game drives: the AoA tape.
 TEX_PROPS = {"fdm/jsbsim/fcs/fly-by-wire/pitch/alpha-indicated"}
@@ -118,7 +119,8 @@ ICP_WHEELS = {"ICP/sym", "ICP/brt", "ICP/depr_ret", "ICP/cont"}
 # (sub-model, object): the SYM wheel (the HUD's symbology brightness, turning on f16/avionics/hud-sym); the start-up
 # checklist's switches (2026-11-09): MAIN PWR (ELEC panel) and the JFS switch (ENG & JET START panel) on the left
 # console, the AVIONIC POWER panel's MMC, ST STA, MFD and UFC switches and the INS knob on the right console, and the
-# throttle's grip. The HUD's DAY / AUTO BRT / NIGHT switch has no object of its own in FlightGear's console: after a
+# throttle's grip; the SNSR PWR panel's FCR and RDR ALT switches (2026-11-13, the switches audit's M1). The HUD's
+# DAY / AUTO BRT / NIGHT switch has no object of its own in FlightGear's console: after a
 # build, tools/f16d/split_control.py cuts its lever out of the body (its header has the command).
 CONTROLS = {
     ("ICP", "sym"): "SYM",
@@ -129,6 +131,8 @@ CONTROLS = {
     ("RightConsole", "mfd-switch"): "AVIONICS_MFD",
     ("RightConsole", "ufc-switch"): "AVIONICS_UFC",
     ("RightConsole", "INS_knob"): "INS",
+    ("RightConsole", "fcr-switch"): "FCR",
+    ("RightConsole", "rdr-alt-switch"): "RDR_ALT",
     ("Throttle", "GRIP"): "THROTTLE",
 }
 # So are its six round buttons along the top (COM 1, COM 2, IFF, LIST, A-A, A-G): collapsed, their caps came out as

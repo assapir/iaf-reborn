@@ -3,6 +3,14 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **Every checklist switch by the mouse (2026-11-13, the switches audit's M1):** in the 3D cockpits the throttle
+  answers the wheel and a drag both ways; a drag down begun at idle goes over the detent to OFF (Throttle OFF), a
+  drag up moves it out of OFF (the idle step); the landing gear handles (both F-16s, the F-35I) send the G key's
+  toggle; the F-16's FCR and RDR ALT switches (FlightGear's own `fcr-switch` / `rdr-alt-switch`, now nodes of `f16.glb`) move on a click
+  and power nothing yet ([cockpit.md](cockpit.md) §5.2). `test_switches_click.gd` checks every switch of each jet's
+  start-up, take-off and landing steps resolves to a clickable part, lights and sends its command. Open: the
+  switches' OFF positions and consequences (M2); the F-35I's CANOPY switch still behind the seat (a model move
+  awaits the user's look).
 - **The pointer comes back after a mouse look (2026-11-13, the user's Mac):** the right drag hides the pointer while
   held; on release, a release the view missed, a lost focus or a pause it shows again where it was
   ([cockpit.md](cockpit.md) §2). `test_sim_look.gd` checks it.
@@ -195,8 +203,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **AVIONIC POWER switches one by one, the AoA at rest on the ground (2026-11-11, from the user's Mac):** a click
   throws one AVIONIC POWER switch with its click; the four on take the step; MFD powers the MFDs, UFC the DED
   ([cockpit.md](cockpit.md) §5.2). The AoA gauge, indexer and HUD rest at 0° below 60 kt and follow the flow above it
-  through a 0.25 s lag (§5.4). `test_mvp.gd`. Open: no FCR or RDR ALT switch (none in FlightGear's console as its own
-  part).
+  through a 0.25 s lag (§5.4). `test_mvp.gd`. FCR and RDR ALT: FlightGear's console has both as own parts; clickable since
+  2026-11-13.
 - **Town labels: dropped from the sim (2026-11-11, the Mac play test):** the sim draws no town names over the view and
   Preferences has no "Town labels" row; the sim's profile fixes the switch off. The 1998 game keeps its own (Extras →
   "Town labels", [../../docs/scenery.md](../../docs/scenery.md) §3.5). [scenery.md](scenery.md) §7. `test_sim_look.gd`,

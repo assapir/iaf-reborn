@@ -235,7 +235,9 @@ The avionics of the F-35I report ready 90 s after the battery[^ayton].
 ### 7.2 The shutdown: the throttle to OFF
 **Throttle OFF** (Shift+1, record 121 of the sim's `keys.json`, command 218) moves the throttle over the idle-cutoff
 detent to OFF, which cuts the engine's fuel (T.O. checklist: "Retard THROTTLE to OFF"[^ep]). The 1 key and the axis
-stop at idle: OFF takes its own key, as the real throttle's detent takes a deliberate move. The flight model
+stop at idle: OFF takes its own key, as the real throttle's detent takes a deliberate move. In the 3D cockpit a
+drag down on the throttle grip begun at idle sends the same command ([cockpit.md](cockpit.md) §5.2); the wheel and a
+drag begun above idle stop at idle. The flight model
 (`Start::cut_off` in `crates/iaf-flight/src/sixdof/start.rs`, `IafFlight.start_step("cutoff")`) then runs the
 shutdown:
 

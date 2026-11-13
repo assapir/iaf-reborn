@@ -1397,6 +1397,40 @@
     ]
    }
   ],
+  "FCR": [
+   {
+    "prop": "f16/avionics/power-fcr",
+    "factor": 40.0,
+    "offset": -20.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.98481,
+     -0.17365,
+     -0.0
+    ]
+   }
+  ],
+  "RDR_ALT": [
+   {
+    "prop": "f16/avionics/power-rdr-alt",
+    "factor": 25.0,
+    "offset": -25.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     -0.98481,
+     -0.17365,
+     -0.0
+    ]
+   }
+  ],
   "AVIONICS_ST_STA": [
    {
     "prop": "f16/avionics/power-st-sta",
@@ -1431,7 +1465,7 @@
     ]
    }
   ],
-  "anim058": [
+  "anim060": [
    {
     "prop": "f16/cockpit/fuel-flow-digit-5",
     "factor": 36.0,
@@ -1448,7 +1482,7 @@
     ]
    }
   ],
-  "anim059": [
+  "anim061": [
    {
     "prop": "f16/cockpit/fuel-flow-digit-4",
     "factor": 36.0,
@@ -1465,7 +1499,7 @@
     ]
    }
   ],
-  "anim060": [
+  "anim062": [
    {
     "prop": "f16/cockpit/fuel-flow-digit-3",
     "factor": 36.0,
@@ -1482,41 +1516,41 @@
     ]
    }
   ],
-  "anim061": [
-   {
-    "prop": "instrumentation/attitude-indicator[2]/indicated-roll-deg",
-    "factor": 1.0,
-    "offset": 0.0,
-    "centre": [
-     0.0,
-     0.0,
-     -0.0
-    ],
-    "axis": [
-     0.0,
-     0.25882,
-     0.96593
-    ]
-   }
-  ],
-  "anim062": [
-   {
-    "prop": "instrumentation/attitude-indicator[2]/indicated-roll-deg",
-    "factor": 1.0,
-    "offset": 0.0,
-    "centre": [
-     0.0,
-     0.0,
-     -0.0
-    ],
-    "axis": [
-     0.0,
-     0.25882,
-     0.96593
-    ]
-   }
-  ],
   "anim063": [
+   {
+    "prop": "instrumentation/attitude-indicator[2]/indicated-roll-deg",
+    "factor": 1.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.25882,
+     0.96593
+    ]
+   }
+  ],
+  "anim064": [
+   {
+    "prop": "instrumentation/attitude-indicator[2]/indicated-roll-deg",
+    "factor": 1.0,
+    "offset": 0.0,
+    "centre": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "axis": [
+     0.0,
+     0.25882,
+     0.96593
+    ]
+   }
+  ],
+  "anim065": [
    {
     "prop": "instrumentation/attitude-indicator[2]/indicated-roll-deg",
     "factor": 1.0,
@@ -1548,7 +1582,7 @@
     ]
    }
   ],
-  "anim064": [
+  "anim066": [
    {
     "prop": "engines/engine[0]/ftit-degc",
     "table": [
@@ -1593,7 +1627,7 @@
     ]
    }
   ],
-  "anim065": [
+  "anim067": [
    {
     "prop": "engines/engine[0]/nozzle-pos-norm-lag",
     "factor": 250.0,
@@ -1610,7 +1644,7 @@
     ]
    }
   ],
-  "anim066": [
+  "anim068": [
    {
     "prop": "engines/engine[0]/oil-pressure-psi",
     "factor": 3.3,
@@ -1627,7 +1661,7 @@
     ]
    }
   ],
-  "anim067": [
+  "anim069": [
    {
     "prop": "engines/engine[0]/n2",
     "table": [
@@ -1656,7 +1690,7 @@
     ]
    }
   ],
-  "anim068": [
+  "anim070": [
    {
     "prop": "instrumentation/magnetic-compass/indicated-heading-deg",
     "factor": 1.0,
@@ -1690,7 +1724,7 @@
     ]
    }
   ],
-  "anim070": [
+  "anim072": [
    {
     "prop": "instrumentation/altimeter/indicated-altitude-ft",
     "factor": 0.36,
