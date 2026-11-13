@@ -193,7 +193,7 @@ func records_dir() -> String:
 
 func _exit_tree() -> void:
 	super()
-	if isolated():
+	if isolated() and DirAccess.dir_exists_absolute(records_dir()):  # a free flight writes no records
 		_remove_dir(records_dir())
 
 

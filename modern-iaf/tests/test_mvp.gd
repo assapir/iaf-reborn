@@ -214,6 +214,7 @@ func startup(id: String) -> void:
 ## The afterburner's sound (modern-iaf/docs/sound.md §1.2): the burner loop at its own pitch, rising from 12 dB down
 ## with the light-off thump, no restart from stage 1 to 2, the cut's tail fading on the second player.
 func ab_sound() -> void:
+	Engine.time_scale = 1.0  # the real clock: the take-off before leaves TIME_SCALE, and a frame's dt fades the tail
 	var fs_script = _flight_sounds()
 	var fs = fs_script.create(null, 100)
 	root.add_child(fs)
@@ -249,10 +250,14 @@ func ab_sound() -> void:
 	st["afterburner"] = 0
 	fs.update(st, inp)
 	check(fs.engine_code == "SFX_START_ENGINE" and fs._tail.playing, "the cut: the dry loop, the burner's tail fading")
+	# The level the tail has reached by the re-light (one frame's dt into its fade; a slow frame lowers it).
+	var tail: float = fs._tail_level()
 	st["afterburner"] = 1
 	fs.update(st, inp)
-	vol = fs._engine.get_meta("base_volume")
-	check(vol > 0.5, "re-lit during the tail: the burner goes on at the tail's level (%.3f)" % vol)
+	check(
+		tail > db_to_linear(fs_script.AB_FLOOR_DB) and is_equal_approx(fs._gain, tail),
+		"re-lit during the tail: the burner goes on at the tail's level (%.3f, the tail %.3f)" % [fs._gain, tail]
+	)
 	fs.queue_free()
 	# A cut during the rise: the tail fades from the burner's level then, not from full.
 	fs = fs_script.create(null, 100)
