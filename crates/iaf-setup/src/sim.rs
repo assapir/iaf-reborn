@@ -40,11 +40,15 @@ pub fn sim_choice_file(assets: &Path) -> PathBuf {
     assets.join("converted/modern-iaf/setup.json")
 }
 
-/// The optional steps left out at the last run (none before the first).
+/// The optional steps left out at the last run (none before the first). Only the plan's optional steps: an id that
+/// is required (or unknown) in the file is dropped, so a required step always runs.
 pub fn sim_excluded(assets: &Path) -> Vec<String> {
     let t = std::fs::read_to_string(sim_choice_file(assets)).unwrap_or_default();
     let v: serde_json::Value = serde_json::from_str(&t).unwrap_or_default();
-    v["excluded"].as_array().map_or(vec![], |a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect())
+    let optional: Vec<_> = sim_plan(&SimInputs::default()).into_iter().filter(|s| !s.required).map(|s| s.id).collect();
+    v["excluded"].as_array().map_or(vec![], |a| {
+        a.iter().filter_map(|x| x.as_str()).filter(|x| optional.contains(x)).map(String::from).collect()
+    })
 }
 
 /// Remembers the optional steps left out (`sim_excluded` reads them back; the game greys their Preferences rows).
@@ -404,6 +408,9 @@ mod tests {
         assert!(sim_excluded(&dir).is_empty(), "none left out before the first run");
         save_sim_excluded(&dir, &["sim-textures".into()]).unwrap();
         assert_eq!(sim_excluded(&dir), ["sim-textures"]);
+        // A required step left out by an older file is read back as included: it runs.
+        save_sim_excluded(&dir, &["sim-missions".into(), "sim-terrain".into(), "sim-scenery".into()]).unwrap();
+        assert_eq!(sim_excluded(&dir), ["sim-scenery"]);
         let _ = std::fs::remove_dir_all(&dir);
     }
 

@@ -51,7 +51,11 @@ large screen by its UI scale (the containers stretch; nothing has a fixed page s
 3. **Install**: one row per step with its progress bar and state. Before a run the rows say which steps are up to
    date (a background check); during a run the page shows two estimates (see "Time left" below). Back becomes Cancel: the running steps
    stop at their next item. "Show the log" opens the log; the whole run is also in `assets/logs/modern-iaf-setup-<date>-<time>.log`.
-   Each row starts with its **Include** tick. A required step's tick is on and fixed. An optional step (Buildings,
+   An optional step's row starts with its **Include** tick. A required step (`required` in `iaf_setup::sim_plan`:
+   the terrain, the units and weapons, the flight data, the sounds and voices, the airbases and the missions; the sim
+   cannot start or fly a mission without them) has no tick: it always runs, and its name stays in line with the
+   ticked rows. A required id in the choice file (an older run's) is dropped when read, so that step runs. An
+   optional step (Buildings,
    trees and roads; Ground and model textures) is on by default, and unticking it before the run leaves it out: it
    is neither downloaded nor built, its row says "left out", and the sim flies without it (Preferences greys Scenery
    with "Left out in setup"). Under an optional step's name are its sizes: what it downloads ("Nothing to download"
@@ -80,10 +84,14 @@ The Install page has two estimates, labelled so they are not mixed up:
 
 - **This step** ("שלב זה"), in a running step's row: the step's own progress against the time it has run so far.
   The terrain step's bar weighs its parts by expected seconds (§3), so a slow download stretches the whole step's
-  estimate. The terrain step's log line "Sentinel-2 tiles: … about 9 min left" covers the download only.
+  estimate. The terrain step's log line "Sentinel-2 tiles: … about 9 min left" covers the download only. The
+  state column has a fixed width (300 px, the longest "about 2 h 00 min left" fits): the name, sizes and bar keep
+  their place while the time left shows and changes; a longer text wraps to a second line.
 - **All steps** ("כל השלבים"), under the status line: the steps still to finish, each by the seconds its last
   finished run took on this computer, times the part it still has to do. A step up to date counts 0. When a step
   still to finish never ran here, the line shows the step count instead of a guess ("All steps: step 4 of 7").
+  The line is never shorter than a running step's own "about … left" (the longest one), and stays empty while
+  under a second is left to measure, instead of "about 0 s".
   Each step that finishes records its seconds in `assets/converted/modern-iaf/<step>.secs`, beside its stamp
   (`iaf_setup::time_left`, `sim_expected`). The seconds are not part of the stamp, so they never decide what runs
   or downloads. Steps that run at once are added up, so the estimate can be high when two long steps overlap.

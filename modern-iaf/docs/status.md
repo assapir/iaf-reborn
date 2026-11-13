@@ -267,7 +267,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   Since 2026-11-12 every optional step (Buildings, trees and roads; Ground and model textures) has an Include tick
   with its download and disk sizes: a left-out step is neither downloaded nor built, the choice is remembered, and
   unticking a built one offers to remove its data. Each step has its own Run again tick, and a skipped or failed step
-  shows its reason (in Hebrew too) with Retry ([setup.md](setup.md) §3).
+  shows its reason (in Hebrew too) with Retry ([setup.md](setup.md) §3). Since 2026-11-13 a required step has no tick
+  at all (an older choice file that left one out is ignored for it), and a long "about … left" wraps inside the
+  state column instead of pushing the row aside.
 - **[B3](plan.md#b3-scenery-roads-and-inland-water), scenery and inland water (2026-11-03):** `iaf-sim scenery` builds the original's buildings, trees, road
   layer and city lights in the sim's UTM theatre from the shared open-data cache ([scenery.md](scenery.md)); the sim
   shows them over its own ground when Scenery is on (Preferences → Graphics → "Buildings and trees": Off / On /

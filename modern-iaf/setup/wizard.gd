@@ -578,7 +578,8 @@ func _update() -> void:
 			for id in rows:
 				rows[id].tick.disabled = running or id in excluded
 				rows[id].retry.disabled = running
-				rows[id].include.disabled = running or rows[id].required
+				if rows[id].include:
+					rows[id].include.disabled = running
 		"done":
 			next_button.text = s("start_game")
 	next_button.theme_type_variation = "Primary" if pg == "done" else ""
@@ -621,10 +622,15 @@ func start_game() -> void:
 
 
 ## The whole run's time left from IafSetup.poll: "all steps" from the measured durations, else the step count.
+## Never less than a running row's own time left (the rows estimate from this run's pace, poll from earlier runs');
+## under a second (nothing measured left to run) it shows nothing rather than "about 0 s".
 func total_text(p: Dictionary) -> String:
-	if p.left >= 0.0:
-		return s("all_left") % _duration(p.left)
-	return s("step_of") % [p.step, p.of]
+	if p.left < 0.0:
+		return s("step_of") % [p.step, p.of]
+	var left: float = p.left
+	for id in rows:
+		left = maxf(left, rows[id].get("left", -1.0))
+	return s("all_left") % _duration(left) if left >= 1.0 else ""
 
 
 ## The Install page's status line, hidden while it is empty.
@@ -645,13 +651,24 @@ func _fill_rows(steps: Array) -> void:
 			h.add_theme_constant_override("separation", 12)
 			box.add_child(h)
 			var id: String = st.id
-			# Include: an optional step can be left out (neither downloaded nor built); a required one is fixed.
+			# Include: an optional step can be left out (neither downloaded nor built). A required one (the plan's
+			# `required`) has no tick: an empty slot as wide as one keeps the names in line.
 			var include := CheckBox.new()
 			include.name = "Include"
-			include.tooltip_text = s("required") if st.get("required", false) else s("include")
-			include.button_pressed = st.get("required", false) or not id in excluded
-			include.toggled.connect(func(on): _on_include(id, on))
 			h.add_child(include)
+			rows_box.add_child(box)
+			if st.get("required", false):
+				var slot := Control.new()
+				slot.name = "Required"
+				slot.custom_minimum_size = include.get_combined_minimum_size()
+				h.remove_child(include)
+				include.free()
+				include = null
+				h.add_child(slot)
+			else:
+				include.tooltip_text = s("include")
+				include.button_pressed = not id in excluded
+				include.toggled.connect(func(on): _on_include(id, on))
 			var names := _vbox(0)
 			names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			h.add_child(names)
@@ -672,8 +689,11 @@ func _fill_rows(steps: Array) -> void:
 			bar.max_value = 1.0
 			bar.show_percentage = false
 			h.add_child(bar)
+			# A fixed column as wide as the longest state ("running · this step: about 2 h 00 min left"): the time left
+			# never pushes the name, sizes and bar aside; a longer text wraps to a second line.
 			var state := Label.new()
-			state.custom_minimum_size.x = 220
+			state.custom_minimum_size.x = 300
+			state.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			h.add_child(state)
 			var why_row := HBoxContainer.new()
 			why_row.add_theme_constant_override("separation", 12)
@@ -683,7 +703,6 @@ func _fill_rows(steps: Array) -> void:
 			var retry := _button(why_row, s("retry"), func(): retry_step(id))
 			retry.name = "Retry"
 			why_row.visible = false
-			rows_box.add_child(box)
 			r = {
 				"bar": bar,
 				"state": state,
@@ -708,11 +727,13 @@ func _fill_rows(steps: Array) -> void:
 		var raw: bool = r.reason.text == detail
 		r.reason.text_direction = Control.TEXT_DIRECTION_LTR if raw else Control.TEXT_DIRECTION_INHERITED
 		var f: float = st.get("fraction", 0.0)
+		r.left = -1.0
 		if name == "running":
 			r.started = r.get("started", Time.get_ticks_msec())
 			var t: float = (Time.get_ticks_msec() - int(r.started)) / 1000.0
 			if t > 30.0 and f > 0.02:
-				r.state.text = s("left") % [r.state.text, _duration(t * (1.0 - f) / f)]
+				r.left = t * (1.0 - f) / f
+				r.state.text = s("left") % [r.state.text, _duration(r.left)]
 		r.state.tooltip_text = st.get("detail", "")
 		r.bar.value = f
 		r.bar.modulate.a = 1.0 if name in ["running", "done", "up_to_date"] else 0.35

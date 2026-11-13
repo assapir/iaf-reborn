@@ -185,6 +185,13 @@ func run() -> void:
 	# The whole run's time left (IafSetup.poll's left / step / of): unmeasured, the step count; measured, "all steps".
 	check(w.total_text({"left": -1.0, "step": 4, "of": 7}) == "All steps: step 4 of 7", "no measurement: step N of M")
 	check(w.total_text({"left": 600.0, "step": 0, "of": 0}) == "All steps: about 10 min left", "measured: all steps")
+	check(w.total_text({"left": 0.0, "step": 0, "of": 0}) == "", 'nothing left measured: no "about 0 s"')
+	w.rows["sim-terrain"].left = 7200.0
+	check(
+		w.total_text({"left": 600.0, "step": 0, "of": 0}) == "All steps: about 2 h 00 min left",
+		"never less than a running step's own time left"
+	)
+	w.rows["sim-terrain"].left = -1.0
 	# Done: Start the game (primary) and Close; no instructions; Start opens the sim's front end in this process.
 	w.show_page(3)
 	for lang in ["he", "en"]:
@@ -208,16 +215,25 @@ func run() -> void:
 	)
 
 
-## The Include ticks: required rows fixed, optional ones on by default with their sizes; unticking one leaves it out
-## (remembered, "left out", never run); unticking a built one asks to remove its data, which Remove frees.
+## The Include ticks: a required row has none (an empty slot keeps the names in line), optional ones are on by default
+## with their sizes; unticking one leaves it out (remembered, "left out", never run); unticking a built one asks to
+## remove its data, which Remove frees. A required step left out by an older choice file runs.
 func _include(w: Control, assets: String) -> void:
+	await frames(2)
+	var name_x: float = w.rows["sim-scenery"].sizes.get_parent().global_position.x
 	for id in w.rows:
 		var r: Dictionary = w.rows[id]
 		var opt: bool = id in ["sim-scenery", "sim-textures"]
-		check(
-			r.include.button_pressed and r.include.disabled != opt, "%s: Include %s" % [id, "free" if opt else "fixed"]
-		)
+		if opt:
+			check(r.include.button_pressed and not r.include.disabled, "%s: Include free" % id)
+		else:
+			check(r.include == null and r.bar.get_parent().get_node_or_null("Include") == null, "%s: no tick" % id)
 		check(r.sizes.visible == opt, "%s: sizes only on an optional row" % id)
+		var x: float = r.sizes.get_parent().global_position.x
+		check(is_equal_approx(x, name_x), "%s: the name in line with the ticked rows (%.1f, %.1f)" % [id, x, name_x])
+	IafSetup.sim_save_excluded(assets, PackedStringArray(["sim-missions", "sim-terrain", "sim-textures"]))
+	check(Array(IafSetup.sim_excluded(assets)) == ["sim-textures"], "a required step cannot be left out: it runs")
+	IafSetup.sim_save_excluded(assets, PackedStringArray())
 	check(w.optional["sim-scenery"].download > 0, "an empty root: the scenery has a download")
 	check(
 		"בערך" in w.rows["sim-scenery"].sizes.text,

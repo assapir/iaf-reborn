@@ -66,7 +66,6 @@
 	"finished_skipped": "Done: %d steps ran, %d were up to date, %d skipped: the reason is under the step, and Retry runs it again.",
 	"row_redo": "Run again",
 	"retry": "Retry",
-	"required": "Required step: always installed",
 	"include": "Include this step; untick it to leave it out (nothing downloaded or built)",
 	"state_excluded": "left out",
 	"dl": "Download %s",
