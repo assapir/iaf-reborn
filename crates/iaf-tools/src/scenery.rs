@@ -30,7 +30,7 @@ use crate::georef::Georef;
 use crate::imagery::{Cache, Rules, Theatre};
 use crate::progress::{Progress, check, par_map, par_map_all, utf8};
 use crate::thirdparty::{self, Download, SCENERY, SCENERY_THEATRE};
-use crate::{airbases, log, sim_bases};
+use crate::{airbases, bbox, log, sim_bases};
 pub use iaf_avionics::frame::{Frame, GAME};
 
 /// The generator's version: part of the release, so a change to the rules below makes new ids.
@@ -116,12 +116,6 @@ pub(crate) fn contains(p: &[[f64; 2]], q: [f64; 2]) -> bool {
         j = i;
     }
     inside
-}
-
-fn bbox(p: &[[f64; 2]]) -> [f64; 4] {
-    p.iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, q| {
-        [b[0].min(q[0]), b[1].min(q[1]), b[2].max(q[0]), b[3].max(q[1])]
-    })
 }
 
 fn dist_seg(p: [f64; 2], a: [f64; 2], b: [f64; 2]) -> f64 {
@@ -1132,6 +1126,19 @@ impl Gather<'_> {
     }
 }
 
+/// ogr2ogr's cut of `pbf`'s `layer` into the GeoJSONSeq file `out`: the features matching `filter` in the box `geo`
+/// (lon / lat), with the fields `select`. The command for `run`.
+pub(crate) fn ogr_cut(pbf: &Path, layer: &str, filter: &str, select: &str, geo: [f64; 4], out: &Path) -> Command {
+    let mut cmd = Command::new("ogr2ogr");
+    cmd.args(["-f", "GeoJSONSeq", "-where", filter])
+        .args(["-select", select, "-spat"])
+        .args(geo.map(|v| v.to_string()))
+        .arg(out)
+        .arg(pbf)
+        .arg(layer);
+    cmd
+}
+
 /// Lines of a GeoJSONSeq file as JSON values.
 pub(crate) fn geojsonl(p: &Path) -> Result<impl Iterator<Item = Value>> {
     let f = std::fs::File::open(p).with_context(|| format!("{}", p.display()))?;
@@ -1482,7 +1489,7 @@ pub fn release(kinds: Kinds) -> String {
     if kinds != Kinds::BOTH {
         h.update(format!("kinds {}\n", kinds.name()).as_bytes());
     }
-    h.finalize().iter().map(|b| format!("{b:02x}")).collect()
+    format!("{:x}", h.finalize())
 }
 
 /// What the cells are made from besides the release: the nodes, the converted missions and airbases, the area.
@@ -1498,7 +1505,7 @@ fn made_from(r: &Run, keys: &[(u32, u32)]) -> String {
     }
     converted_inputs(&mut h, a, true);
     h.update(format!("{:?}", r.near).as_bytes());
-    h.finalize().iter().map(|b| format!("{b:02x}")).collect()
+    format!("{:x}", h.finalize())
 }
 
 /// The converted files the scenery and the roads read (the missions' units and object lists, the objects' models
@@ -2039,7 +2046,7 @@ pub fn build_theatre(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<
             h.update(format!("{}\n", d.sha256).as_bytes());
         }
         h.update(format!("{s2_old:?}\n{s2_modern:?}\n").as_bytes());
-        h.finalize().iter().map(|b| format!("{b:02x}")).collect::<String>()
+        format!("{:x}", h.finalize())
     };
     let manifest_p = out.join("theatre.json");
     if let Ok(m) = std::fs::read(&manifest_p).map(|b| serde_json::from_slice::<Value>(&b).unwrap_or(Value::Null))
@@ -2527,7 +2534,7 @@ mod tests {
             h.update(b"\n");
         }
         h.update(format!("generator {GENERATOR}\n").as_bytes());
-        let old: String = h.finalize().iter().map(|b| format!("{b:02x}")).collect();
+        let old: String = format!("{:x}", h.finalize());
         assert_eq!(release(Kinds::BOTH), old);
         assert!(release(b) != old && release(t) != old && release(b) != release(t));
     }

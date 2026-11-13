@@ -9,9 +9,9 @@ use std::sync::{Arc, Mutex};
 
 use crate::georef::Georef;
 use crate::imagery::{self, Cache, Imagery, Key, Photo, ROOT_LEVEL, Rules, Source, Theatre};
-use crate::itm;
 use crate::log;
 use crate::progress::{Part, Progress, check, utf8};
+use crate::{bbox, itm};
 use anyhow::{Context, Result, bail};
 use rayon::prelude::*;
 
@@ -96,12 +96,6 @@ fn outline(k: Key) -> Vec<[f64; 2]> {
         }
     }
     v
-}
-
-fn bbox(points: impl Iterator<Item = [f64; 2]>) -> [f64; 4] {
-    points.fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, [x, y]| {
-        [b[0].min(x), b[1].min(y), b[2].max(x), b[3].max(y)]
-    })
 }
 
 fn overlap(a: &[f64; 4], b: &[f64; 4]) -> f64 {

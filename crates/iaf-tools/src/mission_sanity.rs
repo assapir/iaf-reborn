@@ -9,7 +9,7 @@ use iaf_avionics::stores::{Category, STATIONS, Station, Stores, Weapon, loadout}
 use iaf_flight::{DataSet, Params, atmosphere, data_set};
 use serde_json::Value;
 
-use crate::mission_edit::Issue;
+use crate::mission_edit::{Issue, int, num, real, warning};
 
 /// The share of a flight's fuel its route may burn before it warns: the rest is for the take-off, the climb, the
 /// fight and a reserve (inferred, docs/mission-editor.md §16.1).
@@ -40,22 +40,6 @@ const TARGET: i64 = 1;
 const G: f64 = 9.806;
 /// N per lbf (the thrust table is in lbf, §4.1).
 const LBF: f64 = 4.4479;
-
-fn int(v: &Value) -> i64 {
-    v.as_i64().or_else(|| v.as_f64().map(|f| f as i64)).unwrap_or(-1)
-}
-
-fn num(v: &Value) -> f64 {
-    v.as_f64().unwrap_or(0.0)
-}
-
-fn real(v: &Value) -> bool {
-    int(&v["0x14"]) == 0
-}
-
-fn warning(id: i64, text: String) -> Issue {
-    crate::mission_edit::warning(id, text)
-}
 
 /// The flight model's parameters of a bdb type code (0x5b4), the original data set; None for a type without them.
 /// The Kurnass 2000 (200) flies the F-4's section (docs/real-aircraft.md §4).

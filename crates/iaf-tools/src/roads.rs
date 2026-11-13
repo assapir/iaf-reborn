@@ -7,7 +7,6 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::sync::atomic::AtomicBool;
 
 use anyhow::{Context, Result, bail};
@@ -18,7 +17,7 @@ use sha2::{Digest, Sha256};
 use crate::georef::Georef;
 use crate::imagery::{Rules, Theatre};
 use crate::progress::{Progress, check};
-use crate::scenery::{Warp, base_moves, geojsonl, other_tags, run, tag_number};
+use crate::scenery::{Warp, base_moves, geojsonl, ogr_cut, other_tags, run, tag_number};
 use crate::{airbases, log, thirdparty};
 
 /// The converter's version: part of `made_from`, so a change to the rules below makes the file again.
@@ -319,7 +318,7 @@ fn made_from(a: &Path, inputs: &[(&thirdparty::Download, PathBuf)]) -> String {
     }
     h.update(format!("roads {ROADS_VERSION}\n").as_bytes());
     crate::scenery::converted_inputs(&mut h, a, false);
-    h.finalize().iter().map(|b| format!("{b:02x}")).collect()
+    format!("{:x}", h.finalize())
 }
 
 /// The theatre's box [lon0, lat0, lon1, lat1]: its rect's edges through the georeference.
@@ -420,14 +419,9 @@ pub(crate) fn make(
     for (k, (d, file)) in inputs.iter().enumerate() {
         let t0 = std::time::Instant::now();
         let _ = std::fs::remove_file(&lines);
-        let mut cmd = Command::new("ogr2ogr");
-        cmd.env("CPL_TMPDIR", out)
-            .args(["-f", "GeoJSONSeq", "-where", &format!("highway IN ({list}) OR railway = 'rail'")])
-            .args(["-select", "osm_id,highway,railway,other_tags", "-spat"])
-            .args(box_geo.map(|v| v.to_string()))
-            .arg(&lines)
-            .arg(file)
-            .arg("lines");
+        let filter = format!("highway IN ({list}) OR railway = 'rail'");
+        let mut cmd = ogr_cut(file, "lines", &filter, "osm_id,highway,railway,other_tags", box_geo, &lines);
+        cmd.env("CPL_TMPDIR", out);
         run(cmd)?;
         check(cancel)?;
         let (mut n, mut pts) = (0, 0);
@@ -454,10 +448,7 @@ pub(crate) fn make(
     }
 
     // The warp over the ways' box.
-    let geo =
-        ways.iter().flat_map(|w| w.parts.iter().flatten()).fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, p| {
-            [b[0].min(p[0]), b[1].min(p[1]), b[2].max(p[0]), b[3].max(p[1])]
-        });
+    let geo = crate::bbox(ways.iter().flat_map(|w| w.parts.iter().flatten()));
     if geo[0] > geo[2] {
         bail!("no road in the extracts");
     }

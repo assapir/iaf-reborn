@@ -17,6 +17,7 @@ use std::sync::atomic::AtomicBool;
 use anyhow::{Context, Result, ensure};
 use serde_json::{Value, json};
 
+use crate::airbases::ring_area;
 use crate::log;
 use crate::progress::{Progress, check};
 
@@ -879,9 +880,7 @@ pub struct Mask {
 
 pub fn mask(b: &Base) -> Mask {
     let pts = b.boundary.iter().chain(b.runways.iter().flat_map(|r| r.ends.iter()));
-    let bb = pts.fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |a, p| {
-        [a[0].min(p[0]), a[1].min(p[1]), a[2].max(p[0]), a[3].max(p[1])]
-    });
+    let bb = crate::bbox(pts);
     let origin = [bb[0] - MASK_MARGIN_M, bb[3] + MASK_MARGIN_M];
     let (w, h) = (
         ((bb[2] - bb[0] + 2.0 * MASK_MARGIN_M) / MASK_PX_M).ceil() as usize,
@@ -1292,9 +1291,7 @@ fn runways_near(rects: &[[[f64; 2]; 4]], b: [f64; 4]) -> Near {
             return Near::Inside;
         }
         // Separated: the box beside the quad's box, or wholly outside one of its edges.
-        let bx = q.iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, p| {
-            [b[0].min(p[0]), b[1].min(p[1]), b[2].max(p[0]), b[3].max(p[1])]
-        });
+        let bx = crate::bbox(q.iter());
         let apart = !(bx[0] < b[2] && b[0] < bx[2] && bx[1] < b[3] && b[1] < bx[3])
             || (0..4).any(|k| corners.iter().all(|&c| side(k, c) < 0.0));
         if !apart {
@@ -1629,18 +1626,11 @@ pub struct Water {
     pub area: f64,
 }
 
-fn ring_area(r: &[[f64; 2]]) -> f64 {
-    let n = r.len();
-    ((0..n).map(|i| r[i][0] * r[(i + 1) % n][1] - r[(i + 1) % n][0] * r[i][1]).sum::<f64>() * 0.5).abs()
-}
-
 impl Water {
     /// The median ground height (m) over a 500 m grid inside the outer ring; None without a sample.
     fn dem_level(&self, g: &mut Ground) -> Option<f64> {
         let o = &self.rings[0];
-        let b = o.iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, p| {
-            [b[0].min(p[0]), b[1].min(p[1]), b[2].max(p[0]), b[3].max(p[1])]
-        });
+        let b = crate::bbox(o.iter());
         let mut v = Vec::new();
         let mut y = b[1] + 250.0;
         while y < b[3] {
@@ -1684,7 +1674,7 @@ pub fn water_from(v: &Value) -> Vec<Water> {
         .into_iter()
         .filter_map(|poly| {
             let rings: Vec<Vec<[f64; 2]>> = poly.as_array()?.iter().map(ring).filter(|r| r.len() >= 3).collect();
-            let area = ring_area(rings.first()?) - rings[1..].iter().map(|r| ring_area(r)).sum::<f64>();
+            let area = ring_area(rings.first()?).abs() - rings[1..].iter().map(|r| ring_area(r).abs()).sum::<f64>();
             (area >= WATER_MIN_M2).then(|| Water { id: id.clone(), name: name.clone(), rings, area })
         })
         .collect()
@@ -1741,9 +1731,7 @@ impl WaterIndex {
     pub fn new(bodies: Vec<Rings>) -> Self {
         let mut ix = Self::default();
         for (k, rings) in bodies.into_iter().enumerate() {
-            let b = rings[0].iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, p| {
-                [b[0].min(p[0]), b[1].min(p[1]), b[2].max(p[0]), b[3].max(p[1])]
-            });
+            let b = crate::bbox(&rings[0]);
             let c = |v: f64| (v / WATER_INDEX_M).floor() as i64;
             for j in c(b[1])..=c(b[3]) {
                 for i in c(b[0])..=c(b[2]) {
@@ -1805,14 +1793,9 @@ pub fn water_polygons(pbfs: &[std::path::PathBuf], geo: [f64; 4], work: &Path) -
     let mut all = Vec::new();
     for pbf in pbfs {
         let _ = std::fs::remove_file(&out);
-        let mut cmd = std::process::Command::new("ogr2ogr");
-        cmd.args(["-f", "GeoJSONSeq", "-where", "natural = 'water' OR landuse IN ('reservoir','salt_pond')"])
-            .args(["-select", "osm_id,osm_way_id,name,other_tags", "-spat"])
-            .args(geo.map(|v| v.to_string()))
-            .arg(&out)
-            .arg(pbf)
-            .arg("multipolygons");
-        crate::scenery::run(cmd)?;
+        let filter = "natural = 'water' OR landuse IN ('reservoir','salt_pond')";
+        let select = "osm_id,osm_way_id,name,other_tags";
+        crate::scenery::run(crate::scenery::ogr_cut(pbf, "multipolygons", filter, select, geo, &out))?;
         all.extend(crate::scenery::geojsonl(&out)?.flat_map(|v| water_from(&v)));
     }
     let _ = std::fs::remove_file(&out);

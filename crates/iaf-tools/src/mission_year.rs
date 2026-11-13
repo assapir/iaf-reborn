@@ -7,7 +7,7 @@
 
 use serde_json::Value;
 
-use crate::mission_edit::{Issue, warning};
+use crate::mission_edit::{Issue, int, num, warning};
 
 /// The first and the last year the editor offers. 1998 is the game's present.
 pub const FIRST: i64 = 1966;
@@ -208,14 +208,6 @@ pub fn in_service(id: i64, side: i64, year: f64, what_if: bool) -> bool {
 pub fn jets(year: f64, side: i64, what_if: bool) -> Vec<i64> {
     let list: &[i64] = if side == 1 { &BLUE_JETS } else { &RED_JETS };
     list.iter().copied().filter(|&id| in_service(id, side, year, what_if)).collect()
-}
-
-fn int(v: &Value) -> i64 {
-    v.as_i64().or_else(|| v.as_f64().map(|f| f as i64)).unwrap_or(-1)
-}
-
-fn num(v: &Value) -> f64 {
-    v.as_f64().unwrap_or(0.0)
 }
 
 /// How near (m) a flight's leader on the ground counts as starting at a base, and how high above it.

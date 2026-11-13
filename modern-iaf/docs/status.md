@@ -105,7 +105,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   line starts with its time ([../../docs/logs.md](../../docs/logs.md) §2). `test_start_watch.gd`.
 - **The folder `modern-iaf/` (2026-11-10, [plan.md](plan.md#decisions-of-10-november-2026)):** the code folder was `iaf-2026/`; the game
   launcher is `./start-modern-iaf` (+ `.ps1`). Built data in `assets/converted/iaf-2026` moves to `converted/modern-iaf` on the
-  first run of a launcher, the wizard or `iaf-sim`, or by `tools/migrate_converted.sh` ([setup.md](setup.md)).
+  first run of a launcher, the wizard or `iaf-sim` ([setup.md](setup.md)).
 - **[D3](plan.md#d3-f-15c-baz-at-tel-nof), the F-15C Baz's data and Tel Nof (2026-11-09):** the Baz's unit record
   (`data/db/units/f15c.json`) compiles into the sim's bdb, and Tel Nof (LLEK, from OpenStreetMap and OurAirports) is
   the fifth base `iaf-sim airbases` compiles, with a Baz parking spot and a paved taxi path to 33L

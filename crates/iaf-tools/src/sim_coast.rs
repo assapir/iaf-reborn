@@ -10,6 +10,7 @@ use anyhow::{Context, Result};
 use serde_json::Value;
 
 use crate::progress::Progress;
+use crate::scenery;
 use crate::sim_bases::utm36n;
 use crate::thirdparty::{self, Download};
 
@@ -116,17 +117,9 @@ impl Coast {
         let mut ways = Vec::new();
         for pbf in pbfs {
             let _ = std::fs::remove_file(&out);
-            let mut cmd = std::process::Command::new("ogr2ogr");
-            cmd.args(["-f", "GeoJSONSeq", "-where", "other_tags LIKE '%\"natural\"=>\"coastline\"%'"])
-                .args(["-select", "osm_id", "-spat"])
-                .args(geo.map(|v| v.to_string()))
-                .arg(&out)
-                .arg(pbf)
-                .arg("lines");
-            let o = cmd.output().context("ogr2ogr (GDAL) not found")?;
-            anyhow::ensure!(o.status.success(), "ogr2ogr: {}", String::from_utf8_lossy(&o.stderr));
-            let text = std::fs::read_to_string(&out).unwrap_or_default();
-            for v in text.lines().filter_map(|l| serde_json::from_str::<Value>(l).ok()) {
+            let filter = "other_tags LIKE '%\"natural\"=>\"coastline\"%'";
+            scenery::run(scenery::ogr_cut(pbf, "lines", filter, "osm_id", geo, &out))?;
+            for v in scenery::geojsonl(&out)? {
                 let g = &v["geometry"];
                 let lines: Vec<&Value> = match g["type"].as_str() {
                     Some("LineString") => vec![&g["coordinates"]],

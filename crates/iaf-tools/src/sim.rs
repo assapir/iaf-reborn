@@ -37,7 +37,7 @@ const OLD_CONVERTED: &str = "converted/iaf-2026";
 
 /// Renames the sim's converted folder from its old name (`converted/iaf-2026`) to `converted/modern-iaf` once, when
 /// only the old one exists, and the setup's stamps there to the new data path (`input modern-iaf/...`), so the built
-/// data is kept rather than compiled again (as tools/migrate_converted.sh). True when anything changed.
+/// data is kept rather than compiled again. True when anything changed.
 pub fn move_old_converted(assets: &Path) -> Result<bool> {
     let (old, new) = (assets.join(OLD_CONVERTED), assets.join("converted/modern-iaf"));
     let mut changed = false;

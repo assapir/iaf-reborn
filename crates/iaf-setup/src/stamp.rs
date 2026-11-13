@@ -333,7 +333,7 @@ pub(crate) fn of(step: &Step, ctx: &Ctx) -> Result<Option<Stamp>> {
     };
     let mut text = format!("iaf-setup {:016x}\nstep {}\n", code(step.id, SOURCES), step.id);
     if step.id == "launcher" {
-        text += &format!("repo {}\nxdg {:?}\n", ctx.repo.display(), ctx.xdg_data_home);
+        text += &format!("repo {}\nxdg {:?}\n", ctx.repo.display(), std::env::var_os("XDG_DATA_HOME"));
     }
     for p in &inputs {
         text += &describe(p)?;
@@ -456,8 +456,7 @@ mod tests {
             scenery: true,
             ..Default::default()
         };
-        let ctx =
-            Ctx { assets: dir.clone(), repo: dir.clone(), inputs: inputs.clone(), xdg_data_home: None, guides: None };
+        let ctx = Ctx { assets: dir.clone(), repo: dir.clone(), inputs: inputs.clone(), guides: None };
         let mut stamped: BTreeSet<&str> =
             crate::plan(&inputs).iter().filter(|s| of(s, &ctx).unwrap().is_some()).map(|s| s.id).collect();
         let sim = SimCtx { assets: dir.clone(), repo: dir.clone(), inputs: Default::default() };

@@ -202,13 +202,7 @@ impl IafSetup {
                             return serde_json::json!({});
                         };
                         let steps = iaf_setup::plan(&i);
-                        let ctx = Ctx {
-                            assets: assets.into(),
-                            repo: repo.into(),
-                            inputs: i,
-                            xdg_data_home: None,
-                            guides: None,
-                        };
+                        let ctx = Ctx { assets: assets.into(), repo: repo.into(), inputs: i, guides: None };
                         iaf_setup::preview(&steps, &ctx)
                             .into_iter()
                             .map(|(id, up)| (id.to_string(), serde_json::Value::Bool(up)))
@@ -283,7 +277,7 @@ impl IafSetup {
         let prefix = format!("{}/", assets.display());
         self.launch(steps.clone(), &header, log_file, prefix, move |sink, cancel| {
             let guides = |pr: &dyn Progress, c: &AtomicBool| iaf_setup::script_guides(&repo, pr, c);
-            let ctx = Ctx { assets, repo: repo.clone(), inputs: i, xdg_data_home: None, guides: Some(&guides) };
+            let ctx = Ctx { assets, repo: repo.clone(), inputs: i, guides: Some(&guides) };
             iaf_setup::run(&steps, &ctx, &|id| redo.iter().any(|r| r == "*" || r == id), sink, cancel)
         });
         GString::new()

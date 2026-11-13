@@ -1,7 +1,7 @@
 //! The setup pipeline from a terminal (tools/setup-cli.sh wraps it; the wizard is the graphical way):
 //!
 //!   iaf-setup [--assets DIR] [--patch <v1.1 patch>] [--hebrew-iso <Hebrew CD>] [--imagery sentinel2,mapi2015,mapi2015-bases]
-//!             [--guides] [--scenery] [--scenery-kinds both|buildings|trees] [--refresh-imagery] [--redo-all] [--xdg-data-home DIR] ["<Jane's IAF.iso>" [Brief.zip] [Menu.zip]]
+//!             [--guides] [--scenery] [--scenery-kinds both|buildings|trees] [--refresh-imagery] [--redo-all] ["<Jane's IAF.iso>" [Brief.zip] [Menu.zip]]
 //!   iaf-setup check <file>      what a CD image, patch or pack is
 //!
 //! `--assets` defaults to the repo's `assets/`. Without the ISO the last run's inputs (`assets/setup.json`) are used, with
@@ -11,25 +11,10 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 
 use anyhow::{Context, Result, bail};
-use iaf_setup::{Ctx, Events, Hebrew, Imagery, Inputs, State, Step};
+use iaf_setup::{Ctx, Hebrew, Imagery, Inputs, Print, State};
 use iaf_tools::progress::Progress;
 
-const USAGE: &str = "usage: iaf-setup [--assets DIR] [--patch P] [--hebrew-iso ISO] [--imagery sentinel2,mapi2015,mapi2015-bases] [--guides] [--scenery] [--scenery-kinds both|buildings|trees] [--refresh-imagery] [--redo-all] [--xdg-data-home DIR] [<Jane's IAF.iso> [Brief.zip] [Menu.zip]]\n       iaf-setup check <file>";
-
-struct Print;
-
-impl Events for Print {
-    fn state(&self, step: &Step, state: &State) {
-        match state {
-            State::Waiting => {}
-            State::Running => println!("==> {}", step.title),
-            s => println!("    {}: {s:?}", step.id),
-        }
-    }
-    fn log(&self, step: &Step, line: &str) {
-        println!("[{}] {line}", step.id);
-    }
-}
+const USAGE: &str = "usage: iaf-setup [--assets DIR] [--patch P] [--hebrew-iso ISO] [--imagery sentinel2,mapi2015,mapi2015-bases] [--guides] [--scenery] [--scenery-kinds both|buildings|trees] [--refresh-imagery] [--redo-all] [<Jane's IAF.iso> [Brief.zip] [Menu.zip]]\n       iaf-setup check <file>";
 
 fn main() -> Result<()> {
     let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").canonicalize()?;
@@ -44,8 +29,8 @@ fn main() -> Result<()> {
         println!("tools: {:?}", iaf_setup::tools());
         return Ok(());
     }
-    let (mut assets, mut patch, mut hebrew_iso, mut imagery, mut guides, mut redo_all, mut xdg) =
-        (repo.join("assets"), None, None, Vec::new(), false, false, None);
+    let (mut assets, mut patch, mut hebrew_iso, mut imagery, mut guides, mut redo_all) =
+        (repo.join("assets"), None, None, Vec::new(), false, false);
     let (mut refresh, mut scenery, mut kinds) = (false, false, None);
     let mut pos = Vec::new();
     let mut it = args.into_iter();
@@ -73,7 +58,6 @@ fn main() -> Result<()> {
             }
             "--refresh-imagery" => refresh = true,
             "--redo-all" => redo_all = true,
-            "--xdg-data-home" => xdg = Some(PathBuf::from(val()?)),
             "-h" | "--help" => bail!(USAGE),
             _ => pos.push(PathBuf::from(a)),
         }
@@ -119,7 +103,6 @@ fn main() -> Result<()> {
         assets,
         repo: repo.clone(),
         inputs: inputs.clone(),
-        xdg_data_home: xdg,
         guides: if iaf_setup::tools().display { Some(&render) } else { None },
     };
     let steps = iaf_setup::plan(&inputs);

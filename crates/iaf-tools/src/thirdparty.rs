@@ -1368,7 +1368,7 @@ pub fn fetch_files(list: &[Download], dir: &Path, pr: &dyn Progress, cancel: &At
             if stop() {
                 return;
             }
-            match fetch_file(d, dir, slot, &stop) {
+            match fetch_file(d.file, d.url, d.sha256, dir, slot, &stop) {
                 Ok(got) => {
                     fetched.fetch_add(usize::from(got), Ordering::Relaxed);
                     done_bytes.fetch_add(d.bytes, Ordering::Relaxed);
@@ -1462,38 +1462,45 @@ pub fn curl_error(status: std::process::ExitStatus) -> String {
 const FETCH_JOBS: usize = 4;
 pub(crate) const FETCH_LOG_S: u64 = 15;
 
-/// One file of `fetch_files`: true when it was downloaded, false when it was there already. `slot` follows the bytes
-/// on disk; `stop` kills curl.
-fn fetch_file(d: &Download, dir: &Path, slot: &AtomicU64, stop: &dyn Fn() -> bool) -> Result<bool> {
-    if file_done(dir, d) {
+/// One file `file` from `url` into `dir`, checked against `sha256` (`fetch_files`, an ambientCG zip): true when it was
+/// downloaded, false when it was there already. `slot` follows the bytes on disk; `stop` kills curl.
+fn fetch_file(
+    file: &str,
+    url: &str,
+    sha256: &str,
+    dir: &Path,
+    slot: &AtomicU64,
+    stop: &dyn Fn() -> bool,
+) -> Result<bool> {
+    if kept(dir, file, sha256) {
         return Ok(false);
     }
-    let (p, part) = (dir.join(d.file), dir.join(format!("{}.part", d.file)));
+    let (p, part) = (dir.join(file), dir.join(format!("{file}.part")));
     // A file already there (copied in by hand) only needs its check.
-    let got = !(p.is_file() && sha256_file(&p)? == d.sha256);
+    let got = !(p.is_file() && sha256_file(&p)? == sha256);
     if got {
         let child = Command::new("curl")
             .args(["-fsSL", "-C", "-"])
             .args(CURL_PATIENCE)
             .arg("-o")
             .arg(&part)
-            .arg(d.url)
+            .arg(url)
             .spawn()
             .context("running curl")?;
         let status = wait_curl(child, &part, stop, &|| {
             slot.store(std::fs::metadata(&part).map_or(0, |m| m.len()), Ordering::Relaxed)
         })?;
         if !status.success() {
-            bail!("{}: download failed ({}); run setup again to resume it", d.file, curl_error(status));
+            bail!("{file}: download failed ({}); run setup again to resume it", curl_error(status));
         }
         let sum = sha256_file(&part)?;
-        if sum != d.sha256 {
+        if sum != sha256 {
             let _ = std::fs::remove_file(&part);
-            bail!("{}: checksum mismatch (got {sum}, pinned {}): the file at {} changed", d.file, d.sha256, d.url);
+            bail!("{file}: checksum mismatch (got {sum}, pinned {sha256}): the file at {url} changed");
         }
         std::fs::rename(&part, &p)?;
     }
-    std::fs::write(dir.join(format!("{}.ok", d.file)), format!("{}\n{}\n", d.sha256, today()))?;
+    std::fs::write(dir.join(format!("{file}.ok")), format!("{sha256}\n{}\n", today()))?;
     Ok(got)
 }
 
@@ -1509,14 +1516,8 @@ pub const PACK: u32 = 4;
 pub fn sha256_file(p: &Path) -> Result<String> {
     let mut f = std::fs::File::open(p).with_context(|| format!("{}", p.display()))?;
     let mut h = Sha256::new();
-    let mut buf = vec![0u8; 1 << 20];
-    loop {
-        let n = f.read(&mut buf)?;
-        if n == 0 {
-            return Ok(h.finalize().iter().map(|b| format!("{b:02x}")).collect());
-        }
-        h.update(&buf[..n]);
-    }
+    std::io::copy(&mut f, &mut h)?;
+    Ok(format!("{:x}", h.finalize()))
 }
 
 /// True when `<dir>/<id>/material.json` records this material's checksum (fetched and packed before).
@@ -1558,7 +1559,7 @@ pub fn fetch(
     for (k, m) in list.iter().enumerate() {
         check(cancel)?;
         if !is_done(dir, m) {
-            got += fetch_one(m, base, src, dir, pr)?;
+            got += fetch_one(m, base, src, dir, pr, cancel)?;
             n += 1;
             // The sizes are not pinned: the rate, and the time left by the materials still to come.
             let secs = t0.elapsed().as_secs_f64();
@@ -1577,48 +1578,19 @@ pub fn fetch(
     Ok(n)
 }
 
-/// One material: its zip from `src` (downloaded into it first when it is not there), packed into `dir`; the bytes
-/// downloaded.
-fn fetch_one(m: &Material, base: &str, src: &Path, dir: &Path, pr: &dyn Progress) -> Result<u64> {
+/// One material: its zip from `src` (downloaded into it first when it is not there, `fetch_file`), packed into `dir`;
+/// the bytes downloaded.
+fn fetch_one(m: &Material, base: &str, src: &Path, dir: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<u64> {
     let zip_name = zip_name(m);
-    let (zip, ok) = (src.join(&zip_name), src.join(format!("{zip_name}.ok")));
+    let zip = src.join(&zip_name);
     let mut bytes = 0;
     if !zip_kept(src, m) {
-        // A zip already there (copied in by hand) only needs its check.
-        if !(zip.is_file() && sha256_file(&zip)? == m.sha256) {
-            std::fs::create_dir_all(src)?;
-            let part = src.join(format!("{zip_name}.part"));
-            pr.log(&format!("{}: downloading {zip_name}", m.id));
-            let status = Command::new("curl")
-                .arg("-fsSL")
-                .args(CURL_PATIENCE)
-                .arg("-o")
-                .arg(&part)
-                .arg(format!("{base}{zip_name}"))
-                .status()
-                .context("running curl")?;
-            let r = (|| -> Result<()> {
-                if !status.success() {
-                    bail!("{}: download failed ({}); run setup again", m.id, curl_error(status));
-                }
-                let sum = sha256_file(&part)?;
-                if sum != m.sha256 {
-                    bail!(
-                        "{}: checksum mismatch (got {sum}, pinned {}): the file on ambientCG changed",
-                        m.id,
-                        m.sha256
-                    );
-                }
-                Ok(())
-            })();
-            if let Err(e) = r {
-                let _ = std::fs::remove_file(&part);
-                return Err(e);
-            }
-            bytes = std::fs::metadata(&part)?.len();
-            std::fs::rename(&part, &zip)?;
+        std::fs::create_dir_all(src)?;
+        pr.log(&format!("{}: downloading {zip_name}", m.id));
+        let url = format!("{base}{zip_name}");
+        if fetch_file(&zip_name, &url, m.sha256, src, &AtomicU64::new(0), &|| cancel.load(Ordering::Relaxed))? {
+            bytes = std::fs::metadata(&zip)?.len();
         }
-        std::fs::write(&ok, format!("{}\n{}\n", m.sha256, today()))?;
     }
     unpack(m, &zip, &dir.join(m.id))?;
     Ok(bytes)

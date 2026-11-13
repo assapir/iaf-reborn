@@ -30,24 +30,9 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 
 use anyhow::{Context, Result, bail};
-use iaf_setup::{Events, SimCtx, SimInputs, State, Step};
+use iaf_setup::{Print, SimCtx, SimInputs, State};
 use iaf_tools::progress::Stdout;
 use iaf_tools::{sim_terrain, sim_voices};
-
-struct Print;
-
-impl Events for Print {
-    fn state(&self, step: &Step, state: &State) {
-        match state {
-            State::Waiting => {}
-            State::Running => println!("==> {}", step.title),
-            s => println!("    {}: {s:?}", step.id),
-        }
-    }
-    fn log(&self, step: &Step, line: &str) {
-        println!("[{}] {line}", step.id);
-    }
-}
 
 /// A theatre over another box or into another folder (`--box`, `--out`): not a setup step, no stamp.
 fn terrain_elsewhere(args: &[String], cancel: &AtomicBool) -> Result<()> {
@@ -148,7 +133,8 @@ fn main() -> Result<()> {
     if let Some(id) = ids.iter().find(|id| !plan.iter().any(|s| s.id == **id)) {
         bail!("{id} is left out in setup (assets/converted/modern-iaf/setup.json)");
     }
-    let steps = if ids.is_empty() { plan } else { iaf_setup::sim_steps_for(plan, ids) };
+    // A step run alone goes through the same graph, so it writes the stamp the wizard reads.
+    let steps = if ids.is_empty() { plan } else { iaf_setup::only(&plan, ids) };
     let named = |id: &str| redo && (ids.is_empty() || ids.contains(&id));
     let states = iaf_setup::sim_run(&steps, &ctx, &named, &Print, &AtomicBool::new(false));
     let mut failed = false;

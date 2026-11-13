@@ -62,24 +62,20 @@ pub fn disk_bytes(p: &Path) -> u64 {
     files.iter().filter_map(|f| std::fs::metadata(f).ok()).map(|m| m.len()).sum()
 }
 
-/// The launcher step's command: tools/install-launcher.sh, its XDG_DATA_HOME from `xdg_data_home`.
+/// The launcher step's command: tools/install-launcher.sh (it reads XDG_DATA_HOME itself).
 #[cfg(not(windows))]
 fn launcher(ctx: &Ctx) -> Command {
-    let mut c = Command::new(ctx.repo.join("tools/install-launcher.sh"));
-    if let Some(x) = &ctx.xdg_data_home {
-        c.env("XDG_DATA_HOME", x);
-    }
-    c
+    Command::new(ctx.repo.join("tools/install-launcher.sh"))
 }
 
-/// The launcher step's command: Start Menu shortcuts (with `xdg_data_home`: into a folder there instead).
+/// The launcher step's command: Start Menu shortcuts (with XDG_DATA_HOME set: into a folder there instead).
 #[cfg(windows)]
 fn launcher(ctx: &Ctx) -> Command {
     let script = plain_path(&ctx.repo.join(r"tools\windows\install-launcher.ps1"));
     let mut c = Command::new("powershell");
     c.args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", &script]);
-    if let Some(x) = &ctx.xdg_data_home {
-        c.args(["-Menu", &plain_path(&x.join("Start Menu"))]);
+    if let Some(x) = std::env::var_os("XDG_DATA_HOME") {
+        c.args(["-Menu", &plain_path(&Path::new(&x).join("Start Menu"))]);
     }
     c
 }
@@ -437,13 +433,8 @@ pub fn imagery_stale(assets: &Path, id: &str) -> Result<usize> {
     {
         return Ok(0);
     }
-    let ctx = Ctx {
-        assets: assets.to_path_buf(),
-        repo: PathBuf::new(),
-        inputs: crate::Inputs::default(),
-        xdg_data_home: None,
-        guides: None,
-    };
+    let ctx =
+        Ctx { assets: assets.to_path_buf(), repo: PathBuf::new(), inputs: crate::Inputs::default(), guides: None };
     let mut r = imagery_job(&ctx, spec, true);
     r.stale = true;
     Ok(imagery_run::run(&r, &Quiet, &AtomicBool::new(false))?.to_convert)

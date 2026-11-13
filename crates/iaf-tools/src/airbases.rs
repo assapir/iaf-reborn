@@ -317,8 +317,8 @@ fn smooth(ring: &[[f64; 2]], r: usize) -> Vec<[f64; 2]> {
         .collect()
 }
 
-/// A ring's area (cell units², signed by its direction).
-fn ring_area(r: &[[f64; 2]]) -> f64 {
+/// A ring's area (units², signed by its direction).
+pub(crate) fn ring_area(r: &[[f64; 2]]) -> f64 {
     let n = r.len();
     (0..n).map(|k| r[k][0] * r[(k + 1) % n][1] - r[(k + 1) % n][0] * r[k][1]).sum::<f64>() / 2.0
 }

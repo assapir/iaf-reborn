@@ -84,7 +84,7 @@ fn kept_downloads_are_never_fetched_again() {
         .map(|s| Step { after: vec![], ..s })
         .collect();
     assert_eq!(steps.len(), 4);
-    let ctx = iaf_setup::Ctx { assets: a.clone(), repo, inputs, xdg_data_home: None, guides: None };
+    let ctx = iaf_setup::Ctx { assets: a.clone(), repo, inputs, guides: None };
     let states = iaf_setup::run(&steps, &ctx, &|_| true, &Quiet, &AtomicBool::new(false));
     // textures and models then fail on the stand-in files: only the network matters here.
     println!("{states:?}");

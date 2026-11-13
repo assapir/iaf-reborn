@@ -113,7 +113,7 @@ Rules that hold:
 
 | topic | decision |
 |---|---|
-| folder | The folder `iaf-2026/` is `modern-iaf/`, so the code's name matches the name Modern IAF (the user). A file cannot share a folder's name, so the game launcher `./modern-iaf` (+ `.ps1`) is `./start-modern-iaf` (+ `.ps1`), with no forwarding shim; `./modern-iaf-setup` keeps its name. The built data moves from `assets/converted/iaf-2026` to `assets/converted/modern-iaf` once, with no rebuild and no download: `iaf-sim`, the setup wizard and the launchers rename it on their first run, and `tools/migrate_converted.sh` (Windows: `tools/windows/migrate_converted.ps1`) does the same by hand ([setup.md](setup.md)). `tools/iaf-2026/`, `iaf-sim`, the test file names and the `user://` folder "Modern IAF" stay. |
+| folder | The folder `iaf-2026/` is `modern-iaf/`, so the code's name matches the name Modern IAF (the user). A file cannot share a folder's name, so the game launcher `./modern-iaf` (+ `.ps1`) is `./start-modern-iaf` (+ `.ps1`), with no forwarding shim; `./modern-iaf-setup` keeps its name. The built data moves from `assets/converted/iaf-2026` to `assets/converted/modern-iaf` once, with no rebuild and no download: `iaf-sim`, the setup wizard and the launchers rename it on their first run ([setup.md](setup.md)). `tools/iaf-2026/`, `iaf-sim`, the test file names and the `user://` folder "Modern IAF" stay. |
 
 ## Rules (the user, 3 November 2026)
 

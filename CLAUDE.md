@@ -87,7 +87,7 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
   base class), `default_bus_layout.tres`. A project reaches it through one committed symlink, `iaf-reborn/shared ->
   ../shared` and `modern-iaf/shared -> ../shared` (Windows: a junction, `tools/windows/links.ps1`), so every shared file is `res://shared/...`. A shared
   script reaches the front end only through `Settings` (`front_end_scene()`, `front_end_overlay()`).
-  `tools/split_shared.py` made the split (`modern-iaf/docs/plan.md` A0). Assets are read at run time from
+  The split was made in A0 (`modern-iaf/docs/plan.md`). Assets are read at run time from
   `res://../assets/converted/...` and `Settings.install_dir()` (`assets/install`); the readers of the install's
   resource layout (flight model, sounds, weapons' motion, iaf.ibx, terraintype.dat) take `Settings.own_dir()` (the
   install in the original game), the key table `Settings.keys_file()`.

@@ -52,6 +52,14 @@ pub mod training;
 pub use iaf_formats::terrain_types;
 pub mod upscale;
 
+/// The box [min x, min y, max x, max y] of `points` ([MAX, MAX, MIN, MIN] when empty).
+pub fn bbox<P: std::borrow::Borrow<[f64; 2]>>(points: impl IntoIterator<Item = P>) -> [f64; 4] {
+    points.into_iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, p| {
+        let p = p.borrow();
+        [b[0].min(p[0]), b[1].min(p[1]), b[2].max(p[0]), b[3].max(p[1])]
+    })
+}
+
 /// Every file under `dir`, recursively (unordered).
 pub fn walk_files(dir: &std::path::Path) -> std::io::Result<Vec<std::path::PathBuf>> {
     let mut out = Vec::new();

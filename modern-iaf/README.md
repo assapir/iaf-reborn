@@ -21,8 +21,7 @@ On Windows: `.\modern-iaf-setup.ps1` and `.\start-modern-iaf.ps1`.
 
 After a pull from before 10 November 2026 (when the folder `iaf-2026/` became `modern-iaf/`), the sim's built data in
 `assets/converted/iaf-2026` moves to `assets/converted/modern-iaf` by itself: `./start-modern-iaf`, the setup wizard
-and `iaf-sim` rename it on their first run, with no rebuild and no download. `tools/migrate_converted.sh` (Windows:
-`tools\windows\migrate_converted.ps1`) does the same by hand and says "nothing to do" when the data is already there.
+and `iaf-sim` rename it on their first run, with no rebuild and no download.
 
 ## Run it on a Mac
 1. Get the code: `git pull` in your clone (or `git clone` the repo).

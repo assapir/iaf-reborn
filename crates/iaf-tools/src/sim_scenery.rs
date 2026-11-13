@@ -95,14 +95,8 @@ pub fn places_in(
     let kinds = PLACE_KINDS.map(|k| format!("'{k}'")).join(",");
     for pbf in pbfs {
         let _ = std::fs::remove_file(&work);
-        let mut cmd = std::process::Command::new("ogr2ogr");
-        cmd.args(["-f", "GeoJSONSeq", "-where", &format!("place IN ({kinds})")])
-            .args(["-select", "osm_id,name,place,other_tags", "-spat"])
-            .args(geo.map(|v| v.to_string()))
-            .arg(&work)
-            .arg(pbf)
-            .arg("points");
-        scenery::run(cmd)?;
+        let filter = format!("place IN ({kinds})");
+        scenery::run(scenery::ogr_cut(pbf, "points", &filter, "osm_id,name,place,other_tags", geo, &work))?;
         for v in scenery::geojsonl(&work)? {
             let pr = &v["properties"];
             let (Some(name), Some(kind)) = (pr["name"].as_str(), pr["place"].as_str()) else { continue };
@@ -219,7 +213,7 @@ fn layer_stamp(i: &StampInputs, what: &str, files: &[(Download, &Path)], all: bo
     if what == "scenery" {
         h.update(roof_images(i.theatre).as_bytes());
     }
-    h.finalize().iter().map(|b| format!("{b:02x}")).collect()
+    format!("{:x}", h.finalize())
 }
 
 /// Whether the scenery and the road layer on disk are up to date for `data` and `assets` (what `scenery` checks

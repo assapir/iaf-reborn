@@ -180,9 +180,7 @@ fn geo_bbox(r: [f64; 4]) -> Result<[f64; 4]> {
         pts.extend([[x, r[1]], [x, r[3]], [r[0], y], [r[2], y]]);
     }
     let g: Vec<[f64; 2]> = pts.iter().map(|p| utm36n_geo(p[0], p[1])).collect();
-    Ok(g.iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, p| {
-        [b[0].min(p[0]), b[1].min(p[1]), b[2].max(p[0]), b[3].max(p[1])]
-    }))
+    Ok(crate::bbox(&g))
 }
 
 /// gdalwarp of `src` to the UTM rect `te` at `size` pixels into ENVI (band-interleaved by pixel) at `bin`.
@@ -451,9 +449,7 @@ impl BaseMask {
         let near: Vec<&Vec<[f64; 2]>> = bases
             .iter()
             .filter(|p| {
-                let b = p.iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, q| {
-                    [b[0].min(q[0]), b[1].min(q[1]), b[2].max(q[0]), b[3].max(q[1])]
-                });
+                let b = crate::bbox(p.iter());
                 b[0] < rp[2] && rp[0] < b[2] && b[1] < rp[3] && rp[1] < b[3]
             })
             .collect();
@@ -1129,9 +1125,7 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
         let mut list = Vec::new();
         for (n, &k) in u4.iter().enumerate() {
             let c: [[f64; 2]; 4] = itm[n * 4..n * 4 + 4].try_into()?;
-            let b = c.iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, p| {
-                [b[0].min(p[0]), b[1].min(p[1]), b[2].max(p[0]), b[3].max(p[1])]
-            });
+            let b = crate::bbox(c.iter());
             if !near(&sheets, &[b], 0.0).is_empty() {
                 list.push((k, c, b));
             }

@@ -14,9 +14,8 @@ that stopped resumes where it stopped.
 Data built before 10 November 2026 sits in `assets/converted/iaf-2026` (the folder's old name). The launchers
 (`./start-modern-iaf`, `./modern-iaf-setup` through the wizard, the `.ps1` twins) and `iaf-sim` move it to
 `assets/converted/modern-iaf` on their first run and point the steps' stamps there at the new data path, so nothing is
-built or downloaded again. By hand: `tools/migrate_converted.sh [assets-dir]` (Windows:
-`tools\windows\migrate_converted.ps1 [assets-dir]`); it prints what it moved, or "nothing to do". A step whose code
-changed since its last run still runs again in the wizard, as after any update.
+built or downloaded again. A step whose code changed since its last run still runs again in the wizard, as after any
+update.
 
 ## 1. What it needs
 

@@ -284,18 +284,6 @@ pub fn sim_run(
     crate::run_graph(steps, redo, events, cancel, &|s| stamp::sim_of(s, ctx), &exec)
 }
 
-/// The steps of `plan` that `ids` name and every step they wait for, in the plan's order (`iaf-sim <step>`: a step
-/// run alone goes through the same graph, so it writes the stamp the wizard reads).
-pub fn sim_steps_for(plan: Vec<Step>, ids: &[&str]) -> Vec<Step> {
-    let mut want: Vec<&str> = ids.to_vec();
-    for s in plan.iter().rev() {
-        if want.contains(&s.id) {
-            want.extend(s.after.iter().copied());
-        }
-    }
-    plan.into_iter().filter(|s| want.contains(&s.id)).collect()
-}
-
 /// Stamps the steps whose outputs were built without a stamp and are current (`crate::adopt_with`), so the wizard
 /// and the command line find them up to date instead of building them again: the terrain when its `meta.json` was
 /// built from the same inputs and rules (`sim_terrain::stamp`), the scenery when its own stamps hold
@@ -642,7 +630,7 @@ mod tests {
         let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let ctx = SimCtx { assets: dir.clone(), repo, inputs: SimInputs::default() };
         let plan: Vec<_> = sim_plan(&ctx.inputs).into_iter().filter(|s| s.id != "sim-textures").collect();
-        let alone = sim_steps_for(plan.clone(), &["sim-airbases"]);
+        let alone = crate::only(&plan, &["sim-airbases"]);
         assert_eq!(alone.iter().map(|s| s.id).collect::<Vec<_>>(), ["sim-terrain", "sim-airbases"]);
         struct Quiet;
         impl Events for Quiet {

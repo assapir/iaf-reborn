@@ -144,19 +144,8 @@ fn is_python3(version: &str) -> bool {
 }
 
 fn on_path(name: &str) -> bool {
-    std::env::var_os("PATH").is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(program(name)).is_file()))
-}
-
-/// A program's file name.
-#[cfg(not(windows))]
-fn program(name: &str) -> String {
-    name.to_string()
-}
-
-/// A program's file name: name.exe.
-#[cfg(windows)]
-fn program(name: &str) -> String {
-    format!("{name}.exe")
+    let file = format!("{name}{}", std::env::consts::EXE_SUFFIX);
+    std::env::var_os("PATH").is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(&file).is_file()))
 }
 
 /// Firefox where its installer puts it, off PATH: the app bundle.

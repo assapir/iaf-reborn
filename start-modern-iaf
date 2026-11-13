@@ -5,9 +5,13 @@
 # `--safe <list>` (or IAF_SAFE=<list>) turns graphics features off for one run, to find a failing one (modern-iaf/docs/front-end.md §11.1).
 set -euo pipefail
 cd "$(dirname "$0")"
-# The sim's data folder's old name (before 2026-11-10) moved once, so nothing is built again.
-moved=$(tools/migrate_converted.sh "${IAF_ASSETS_DIR:-assets}")
-[[ $moved == "nothing to do" ]] || echo "Modern IAF: $moved" >&2
+# The sim's data folder's old name (before 2026-11-10) moved once, so nothing is built again (its stamps: iaf-sim and
+# the wizard, iaf_tools::sim::move_old_converted).
+c=${IAF_ASSETS_DIR:-assets}/converted
+if [[ -d $c/iaf-2026 && ! -e $c/modern-iaf ]]; then
+	mv "$c/iaf-2026" "$c/modern-iaf"
+	echo "Modern IAF: moved $c/iaf-2026 to $c/modern-iaf (the folder's new name)" >&2
+fi
 [[ -d ${IAF_ASSETS_DIR:-assets}/converted/modern-iaf/missions ]] || { echo "No Modern IAF data yet: starting its setup (./modern-iaf-setup)." >&2; exec ./modern-iaf-setup; }
 title="Modern IAF"
 who="Modern IAF"

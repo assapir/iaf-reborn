@@ -24,7 +24,7 @@ pub use checks::{CdKind, PackInfo, Tools, check_cd, check_pack, check_patch, pyt
 pub use saved::{from_json, inputs_file, load_inputs, save_inputs, to_json};
 pub use sim::{
     Optional, SimCtx, SimInputs, save_sim_excluded, sim_adopt, sim_excluded, sim_expected, sim_optional, sim_plan,
-    sim_preview, sim_remove, sim_run, sim_steps_for, sim_survey, sim_terrain_fetch, survey_sheets,
+    sim_preview, sim_remove, sim_run, sim_survey, sim_terrain_fetch, survey_sheets,
 };
 pub use steps::{COCKPITS, KEPT, OUTPUTS, disk_bytes, imagery_stale, script_guides, uninstall};
 
@@ -208,6 +208,13 @@ pub fn only(steps: &[Step], ids: &[&str]) -> Vec<Step> {
     steps.iter().filter(|s| want.contains(&s.id)).cloned().collect()
 }
 
+/// A stamp's lines for the steps `after` names: each one's id and the CRC-32 of its stamp text in `done` ("none"
+/// before it ran), so a dependency's change runs the step again.
+fn after_lines(after: &[&'static str], done: &HashMap<&'static str, String>) -> String {
+    let crc = |a| crc32fast::hash(done.get(a).map_or("none", String::as_str).as_bytes());
+    after.iter().map(|a| format!("after {a} {:08x}\n", crc(a))).collect()
+}
+
 /// A step's state as `run` reports it.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum State {
@@ -240,6 +247,22 @@ pub trait Events: Sync {
     fn fraction(&self, _step: &Step, _f: f32) {}
 }
 
+/// The command lines' `Events` (`iaf-setup`, `iaf-sim`): each step's start, end state and log lines on stdout.
+pub struct Print;
+
+impl Events for Print {
+    fn state(&self, step: &Step, state: &State) {
+        match state {
+            State::Waiting => {}
+            State::Running => println!("==> {}", step.title),
+            s => println!("    {}: {s:?}", step.id),
+        }
+    }
+    fn log(&self, step: &Step, line: &str) {
+        println!("[{}] {line}", step.id);
+    }
+}
+
 /// A step's own `Progress` (the converters' sink), forwarding to `Events`.
 struct StepProgress<'a> {
     step: &'a Step,
@@ -265,8 +288,6 @@ pub struct Ctx<'a> {
     /// The repo checkout (shared/extra/planes, tools/install-launcher.sh, tools/imagery).
     pub repo: PathBuf,
     pub inputs: Inputs,
-    /// The launcher's XDG_DATA_HOME (default: the user's).
-    pub xdg_data_home: Option<PathBuf>,
     pub guides: Option<&'a GuidesFn<'a>>,
 }
 
@@ -342,10 +363,7 @@ pub(crate) fn adopt_with(steps: &[Step], stamp: &StampFn, verify: &dyn Fn(&Step)
             texts.insert(step.id, "ran".into());
             continue;
         };
-        for a in &step.after {
-            let t = texts.get(a).map_or("none", String::as_str);
-            s.text += &format!("after {a} {:08x}\n", crc32fast::hash(t.as_bytes()));
-        }
+        s.text += &after_lines(&step.after, &texts);
         if !s.path.exists()
             && s.output.as_ref().is_none_or(|o| o.exists())
             && !step.after.iter().any(|a| stale.contains(a))
@@ -372,10 +390,7 @@ pub(crate) fn preview_with(steps: &[Step], stamp: &StampFn) -> Vec<(&'static str
                 texts.insert(step.id, "ran".into());
                 return (step.id, false);
             };
-            for a in &step.after {
-                let t = texts.get(a).map_or("none", String::as_str);
-                s.text += &format!("after {a} {:08x}\n", crc32fast::hash(t.as_bytes()));
-            }
+            s.text += &after_lines(&step.after, &texts);
             let up = s.holds();
             texts.insert(step.id, s.for_dependents());
             (step.id, up)
@@ -475,10 +490,7 @@ fn run_one(
 ) -> Result<State> {
     let s = stamp(step)?.map(|mut s| {
         let done = stamps.lock().unwrap();
-        for a in &step.after {
-            let t = done.get(a).map_or("none", String::as_str);
-            s.text += &format!("after {a} {:08x}\n", crc32fast::hash(t.as_bytes()));
-        }
+        s.text += &after_lines(&step.after, &done);
         s
     });
     let record = |text: String| {
