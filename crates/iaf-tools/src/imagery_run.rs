@@ -4,8 +4,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 
 use crate::georef::Georef;
 use crate::imagery::{self, Cache, Imagery, Key, Photo, ROOT_LEVEL, Rules, Source, Theatre};
@@ -18,7 +18,6 @@ use rayon::prelude::*;
 /// The WorldCover bucket the Sentinel-2 tiles come from.
 pub const BUCKET: &str = "https://esa-worldcover-s2.s3.eu-central-1.amazonaws.com";
 const PREFIX: &str = "rgbnir/2021";
-const JPEG_QUALITY: u8 = 88;
 
 /// A source's fixed parameters (`SENTINEL2`, `MAPI2015`).
 pub struct Spec {
@@ -970,12 +969,16 @@ pub fn run(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Estimate> 
                 check(cancel)?;
                 for layer in spec.layers {
                     let dir = out.join(layer);
-                    let path = |c: Key| {
+                    // The layer's child where it has one, else the original's rendition.
+                    let img = imagery::compose_parent(p, |c| {
                         let f = dir.join(format!("L{}/c_{}_{}.jpg", c.0, c.1, c.2));
-                        f.exists().then_some(f)
-                    };
-                    let img = imagery::compose_parent(p, &theatre, path, cache)?;
-                    save(&img, &dir.join(format!("L{}/c_{}_{}.jpg", p.0, p.1, p.2)))?;
+                        if f.exists() {
+                            Ok(Some(Arc::new(image::open(f)?.to_rgb8())))
+                        } else {
+                            theatre.rendition(c, cache)
+                        }
+                    })?;
+                    imagery::save(&img, &dir.join(format!("L{}/c_{}_{}.jpg", p.0, p.1, p.2)))?;
                 }
                 Ok(())
             })
@@ -1019,12 +1022,6 @@ fn mark_valid(text: &str, u: &Unit) -> std::result::Result<(), &'static str> {
         None if u.on_base => Err("rules changed (a mark from before the rules tags, on an airbase)"),
         _ => Ok(()),
     }
-}
-
-fn save(img: &image::RgbImage, path: &Path) -> Result<()> {
-    let mut f = std::io::BufWriter::new(std::fs::File::create(path)?);
-    img.write_with_encoder(image::codecs::jpeg::JpegEncoder::new_with_quality(&mut f, JPEG_QUALITY))?;
-    Ok(())
 }
 
 /// What every work unit of a run shares.
@@ -1145,7 +1142,7 @@ fn convert_unit(job: &Job, u: &Unit, cache: &mut Cache) -> Result<Vec<Key>> {
         }
         if let Some((matched, modern)) = imagery::compose_node(n, theatre, rules, warp, src.as_ref(), cache)? {
             for (layer, img) in spec.layers.iter().zip([&matched, &modern]) {
-                save(img, &out.join(layer).join(format!("L{}/c_{}_{}.jpg", n.0, n.1, n.2)))?;
+                imagery::save(img, &out.join(layer).join(format!("L{}/c_{}_{}.jpg", n.0, n.1, n.2)))?;
             }
             keys.push(n);
         }

@@ -7,6 +7,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use anyhow::{Context, Result, bail};
 use image::RgbImage;
@@ -726,29 +727,28 @@ pub fn compose_node(
     Ok(Some((a, b)))
 }
 
-/// A parent node from its four children: the layer's child where it has one, else the original's
-/// rendition (the downsampled 2048² mosaic, Triangle filter).
-pub fn compose_parent(
-    k: Key,
-    theatre: &Theatre,
-    child_path: impl Fn(Key) -> Option<PathBuf>,
-    cache: &mut Cache,
-) -> Result<RgbImage> {
+/// Node `k` from its four children (level `k.0 − 1`), each from `child` (none: black), halved with a Triangle filter.
+pub fn compose_parent(k: Key, mut child: impl FnMut(Key) -> Result<Option<Arc<RgbImage>>>) -> Result<RgbImage> {
     let n = NODE_PIXELS;
     let mut big = RgbImage::new(2 * n, 2 * n);
     for dy in 0..2 {
         for dx in 0..2 {
-            let c = (k.0 - 1, 2 * k.1 + dx, 2 * k.2 + dy);
-            let img = match child_path(c) {
-                Some(p) => Some(std::sync::Arc::new(image::open(p)?.to_rgb8())),
-                None => theatre.rendition(c, cache)?,
-            };
-            if let Some(img) = img {
-                image::imageops::replace(&mut big, img.as_ref(), (dx * n) as i64, (dy * n) as i64);
+            if let Some(img) = child((k.0 - 1, 2 * k.1 + dx, 2 * k.2 + dy))? {
+                image::imageops::replace(&mut big, img.as_ref(), i64::from(dx * n), i64::from(dy * n));
             }
         }
     }
     Ok(image::imageops::resize(&big, n, n, image::imageops::FilterType::Triangle))
+}
+
+/// The colour nodes' JPEG quality (both games' terrain).
+const JPEG_QUALITY: u8 = 88;
+
+/// `img` as a colour node's JPEG.
+pub fn save(img: &RgbImage, path: &Path) -> Result<()> {
+    let mut f = std::io::BufWriter::new(std::fs::File::create(path)?);
+    img.write_with_encoder(image::codecs::jpeg::JpegEncoder::new_with_quality(&mut f, JPEG_QUALITY))?;
+    Ok(())
 }
 
 #[cfg(test)]

@@ -11,19 +11,18 @@
 //! layer, and the 4 m and 8 m nodes over them from these). GDAL does every reprojection.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use anyhow::{Context, Result, bail};
 use image::RgbImage;
 use image::imageops::{FilterType, resize};
 
-use crate::imagery::{self, read_envi};
+use crate::imagery::{self, read_envi, save};
 use crate::imagery_run::{BUCKET, Edges, Sheet, gdal, list_sheets, list_tiles, tile_box, tile_sources, tile_whole};
 use crate::log;
 use crate::progress::{Part, Progress, check, utf8};
+use crate::sim_bases::{utm36n, utm36n_geo};
 
 /// The theatre in UTM 36N metres (E0, N0, E1, N1): Ramon, Hatzerim, Nevatim and Ramat David with ≥ 150 km around
 /// them, the corners on multiples of 1024 m (modern-iaf/docs/terrain.md §2).
@@ -39,7 +38,6 @@ const DEM_STEP: f64 = 64.0;
 /// Raw height = SEA_LEVEL_RAW + metres · HEIGHT_SCALE (0.1 m steps, −500 m to 6,000 m).
 const SEA_LEVEL_RAW: f64 = 5000.0;
 const HEIGHT_SCALE: f64 = 10.0;
-const JPEG_QUALITY: u8 = 88;
 /// The Sentinel-2 composite has no pixels over open sea away from the coast: this colour fills them (the
 /// composite's own open-sea tone at the edge of its pixels off Tel Aviv and Ashdod, measured 2026-11-08,
 /// modern-iaf/docs/terrain.md §3).
@@ -84,7 +82,7 @@ fn base_outlines(dir: &Path) -> Result<Vec<Vec<[f64; 2]>>> {
             .iter()
             .filter_map(|q| Some([q[1].as_f64()?, q[0].as_f64()?]))
             .collect();
-        out.push(transform("EPSG:4326", "EPSG:32636", &pts)?);
+        out.push(pts.iter().map(|p| utm36n(p[0], p[1])).collect());
     }
     Ok(out)
 }
@@ -173,37 +171,6 @@ impl HeightGrid {
     }
 }
 
-/// Points through `gdaltransform` (x y in, x y out; EPSG:4326 as lon, lat).
-fn transform(from: &str, to: &str, pts: &[[f64; 2]]) -> Result<Vec<[f64; 2]>> {
-    let mut c = Command::new("gdaltransform")
-        .args(["-s_srs", from, "-t_srs", to, "-output_xy"])
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .spawn()
-        .context("running gdaltransform (install GDAL)")?;
-    let mut input = String::new();
-    for p in pts {
-        input += &format!("{} {}\n", p[0], p[1]);
-    }
-    // Written from a thread: gdaltransform answers line by line, so a full stdout pipe would block a writer that
-    // reads nothing back (≈ 64 KB).
-    let mut stdin = c.stdin.take().context("stdin")?;
-    let writer = std::thread::spawn(move || stdin.write_all(input.as_bytes()));
-    let o = c.wait_with_output()?;
-    writer.join().map_err(|_| anyhow::anyhow!("gdaltransform writer panicked"))??;
-    let out: Vec<[f64; 2]> = String::from_utf8_lossy(&o.stdout)
-        .lines()
-        .filter_map(|l| {
-            let v: Vec<f64> = l.split_whitespace().filter_map(|s| s.parse().ok()).collect();
-            (v.len() == 2).then(|| [v[0], v[1]])
-        })
-        .collect();
-    if !o.status.success() || out.len() != pts.len() {
-        bail!("gdaltransform {from} → {to} failed");
-    }
-    Ok(out)
-}
-
 /// The UTM rect's lon / lat bounding box (17 points per side).
 fn geo_bbox(r: [f64; 4]) -> Result<[f64; 4]> {
     let mut pts = Vec::new();
@@ -212,7 +179,7 @@ fn geo_bbox(r: [f64; 4]) -> Result<[f64; 4]> {
         let (x, y) = (r[0] + (r[2] - r[0]) * f, r[1] + (r[3] - r[1]) * f);
         pts.extend([[x, r[1]], [x, r[3]], [r[0], y], [r[2], y]]);
     }
-    let g = transform("EPSG:32636", "EPSG:4326", &pts)?;
+    let g: Vec<[f64; 2]> = pts.iter().map(|p| utm36n_geo(p[0], p[1])).collect();
     Ok(g.iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, p| {
         [b[0].min(p[0]), b[1].min(p[1]), b[2].max(p[0]), b[3].max(p[1])]
     }))
@@ -304,12 +271,6 @@ fn colour_path(out: &Path, k: Key) -> PathBuf {
     out.join(format!("L{}/c_{}_{}.jpg", k.0, k.1, k.2))
 }
 
-fn save(img: &RgbImage, path: &Path) -> Result<()> {
-    let mut f = std::io::BufWriter::new(std::fs::File::create(path)?);
-    img.write_with_encoder(image::codecs::jpeg::JpegEncoder::new_with_quality(&mut f, JPEG_QUALITY))?;
-    Ok(())
-}
-
 /// Node `k`'s part of its ancestor at `level` (written already), upsampled to a node.
 fn ancestor_crop(out: &Path, k: Key, level: u32) -> Result<RgbImage> {
     let d = level - k.0;
@@ -318,27 +279,6 @@ fn ancestor_crop(out: &Path, k: Key, level: u32) -> Result<RgbImage> {
     let (x, y) = ((k.1 & ((1 << d) - 1)) * part, (k.2 & ((1 << d) - 1)) * part);
     let crop = image::imageops::crop_imm(&a, x, y, part, part).to_image();
     Ok(resize(&crop, NODE_PIXELS, NODE_PIXELS, FilterType::Triangle))
-}
-
-/// A parent node from its four children; a missing child is `fallback`'s (None: black, outside the theatre).
-fn compose_parent(out: &Path, p: Key, fallback: Option<u32>) -> Result<RgbImage> {
-    let n = NODE_PIXELS;
-    let mut big = RgbImage::new(2 * n, 2 * n);
-    for dy in 0..2 {
-        for dx in 0..2 {
-            let c = (p.0 - 1, 2 * p.1 + dx, 2 * p.2 + dy);
-            let path = colour_path(out, c);
-            let img = if path.exists() {
-                Some(image::open(path)?.to_rgb8())
-            } else {
-                fallback.map(|l| ancestor_crop(out, c, l)).transpose()?
-            };
-            if let Some(img) = img {
-                image::imageops::replace(&mut big, &img, i64::from(dx * n), i64::from(dy * n));
-            }
-        }
-    }
-    Ok(resize(&big, n, n, FilterType::Triangle))
 }
 
 /// The written colour nodes of `level`.
@@ -364,7 +304,19 @@ fn parents(out: &Path, level: u32, fallback: Option<u32>, threads: usize, cancel
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect();
-    par(&ps, threads, cancel, |&p| save(&compose_parent(out, p, fallback)?, &colour_path(out, p)))
+    // A missing child is `fallback`'s (None: black, outside the theatre).
+    par(&ps, threads, cancel, |&p| {
+        let img = imagery::compose_parent(p, |c| {
+            let path = colour_path(out, c);
+            let img = if path.exists() {
+                Some(image::open(path)?.to_rgb8())
+            } else {
+                fallback.map(|l| ancestor_crop(out, c, l)).transpose()?
+            };
+            Ok(img.map(std::sync::Arc::new))
+        })?;
+        save(&img, &colour_path(out, p))
+    })
 }
 
 /// Every colour node's OLD_SEA pixels (within JPEG's noise) made SEA, once per theatre (its mark in `work`).
@@ -1166,7 +1118,13 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
                 [[e[0], e[3]], [e[2], e[3]], [e[0], e[1]], [e[2], e[1]]]
             })
             .collect();
-        let itm = transform("EPSG:32636", "EPSG:2039", &corners)?;
+        let itm: Vec<[f64; 2]> = corners
+            .iter()
+            .map(|p| {
+                let g = utm36n_geo(p[0], p[1]);
+                crate::itm::from_wgs84(g[0], g[1])
+            })
+            .collect();
         // Units with a sheet: (key, ITM corners, ITM bounding box).
         let mut list = Vec::new();
         for (n, &k) in u4.iter().enumerate() {
@@ -1419,19 +1377,6 @@ mod tests {
         assert!(done.load(Ordering::Relaxed) < 20, "{} items ran", done.load(Ordering::Relaxed));
     }
 
-    /// gdaltransform with more than a pipe's worth of input (≈ 64 KB) answers instead of blocking.
-    #[test]
-    fn transform_takes_many_points() {
-        if Command::new("gdaltransform").arg("--version").output().is_err() {
-            eprintln!("skipped: GDAL not installed");
-            return;
-        }
-        let pts: Vec<[f64; 2]> = (0..20_000).map(|k| [600_000.0 + f64::from(k), 3_400_000.0]).collect();
-        let g = transform("EPSG:32636", "EPSG:4326", &pts).unwrap();
-        assert_eq!(g.len(), pts.len());
-        assert!((g[0][1] - 30.72).abs() < 0.1, "{:?}", g[0]);
-    }
-
     /// The shore between Tel Aviv and Ashdod in a built theatre (data: `IAF_ASSETS` or the repo's assets, with the
     /// Survey and the coastline cut, else skipped): at 50 points along OpenStreetMap's coastline, 20 m seaward is sea
     /// in terraintype.dat and no near-white pixel in the 2 m colour, 20 m landward is land; 1 km seaward (beyond the
@@ -1669,7 +1614,7 @@ mod tests {
     /// The DEM reader: a synthetic lon / lat raster (an ASCII grid, 0.001° cells) warped to the height grid.
     #[test]
     fn reads_a_dem_into_the_grid() {
-        if Command::new("gdalwarp").arg("--version").output().is_err() {
+        if std::process::Command::new("gdalwarp").arg("--version").output().is_err() {
             eprintln!("skipped: GDAL not installed");
             return;
         }
@@ -1690,7 +1635,7 @@ mod tests {
         let area = [654_336.0, 3_400_960.0, 664_576.0, 3_411_200.0];
         let g = dem_grid(&[dir.join("dem.asc")], area, &dir).unwrap();
         assert_eq!((g.w, g.h), (161, 161));
-        let lon = |e: f64, n: f64| transform("EPSG:32636", "EPSG:4326", &[[e, n]]).unwrap()[0][0];
+        let lon = |e: f64, n: f64| utm36n_geo(e, n)[0];
         for (x, y) in [(0, 0), (80, 80), (160, 10)] {
             let (e, n) = (area[0] + 64.0 * x as f64, area[3] - 64.0 * y as f64);
             let want = 1000.0 + (lon(e, n) - 34.6) * 1000.0;
