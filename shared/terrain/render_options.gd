@@ -136,8 +136,12 @@ static func apply(vp: Viewport, env: Environment) -> void:
 	RenderingServer.global_shader_parameter_set("terrain_water", terrain_water)
 	ground_tex = 1.0 if Settings.ground_textures == "ambientcg" and GroundTextures.load_globals() else 0.0
 	RenderingServer.global_shader_parameter_set("ground_tex", ground_tex)
-	# The Survey 2 m photo's pale hills warmed from grey to tan (terrain.gdshader, docs/imagery.md §5).
-	var warm := Settings.imagery_israel == "mapi2015_modern" and ImageryLayers.available("mapi2015_modern")
+	# The Survey 2 m photo's pale hills warmed from grey to tan (terrain.gdshader, docs/imagery.md §5): the original
+	# game's Survey 2 m modern layer, and Modern IAF's theatre, whose photo is the same.
+	var warm := (
+		Settings.own_survey_photo()
+		or Settings.imagery_israel == "mapi2015_modern" and ImageryLayers.available("mapi2015_modern")
+	)
 	RenderingServer.global_shader_parameter_set("terrain_warm", 1.0 if warm else 0.0)
 	# Scenery (docs/scenery.md §3): drawn only when Scenery.wanted (terrain.gd makes the node); its wall textures are
 	# read here, at the flight's start, not at the first town.

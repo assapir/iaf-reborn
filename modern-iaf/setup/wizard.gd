@@ -767,10 +767,16 @@ func _load_optional() -> void:
 		optional[o.id] = o
 
 
-## An optional row's sizes line: what it downloads (none when assets/source holds it) and what it takes on disk.
+## An optional row's sizes line: what it downloads (none when assets/source holds it) and what it takes on disk; the
+## terrain's row: "Nothing to download" when its run would read only local files.
 func _show_sizes(id: String) -> void:
 	var r: Dictionary = rows[id]
 	var o: Dictionary = optional.get(id, {})
+	if id == "sim-terrain":
+		# A built theatre rebuilt for a code change reads only the caches: said on its row (the user, 2026-11-13).
+		r.sizes.visible = IafSetup.sim_terrain_fetch(assets, survey).is_empty()
+		r.sizes.text = s("dl_none")
+		return
 	r.sizes.visible = not o.is_empty()
 	if o.is_empty():
 		return

@@ -138,6 +138,13 @@ pub fn sim_optional(assets: &Path) -> Vec<Optional> {
     ]
 }
 
+/// What the terrain step would fetch over the network for these choices (`sim_terrain::would_fetch`): empty when it
+/// reads only local files (the wizard's "Nothing to download" on the step's row).
+pub fn sim_terrain_fetch(assets: &Path, survey: bool) -> Result<Vec<String>> {
+    let inputs = SimInputs { survey, ..SimInputs::default() };
+    sim_terrain::would_fetch(&SimCtx { assets: assets.to_path_buf(), repo: PathBuf::new(), inputs }.terrain())
+}
+
 /// Removes optional step `id`'s data (its outputs and stamp) and, with `downloads`, its own downloads in
 /// `assets/source`; returns the bytes freed. Data another setup in this folder reads too stays (an error says so).
 pub fn sim_remove(assets: &Path, id: &str, downloads: bool) -> Result<u64> {
@@ -508,8 +515,8 @@ mod tests {
         let up: Vec<_> = sim_preview(&steps, &survey).into_iter().filter(|p| !p.1).map(|p| p.0).collect();
         assert_eq!(
             up,
-            ["sim-terrain", "sim-airbases", "sim-missions", "sim-scenery"],
-            "the Survey redoes the terrain and what is on it"
+            ["sim-terrain", "sim-scenery"],
+            "the Survey redoes the terrain and the scenery (its roofs' colours), not the bases nor the missions"
         );
         let _ = std::fs::remove_dir_all(&dir);
     }

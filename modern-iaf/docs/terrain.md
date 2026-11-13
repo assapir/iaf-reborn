@@ -94,7 +94,7 @@ around each base is the theatre's rule; they cost one cut of their 20 m overview
 |---|---|---|
 | 1 (2 m) | where a Survey sheet has pixels, off the airbases | the Survey photo over the 8 m node (§4) |
 | 2 (4 m) | over the level-1 nodes | their children; a missing child: the 8 m node |
-| 3 (8 m) | the detail area, in whole level-5 nodes (32.8 km) | Sentinel-2, bilinear |
+| 3 (8 m) | the detail area, in whole level-5 nodes (32.8 km) | Sentinel-2, bilinear; over the level-2 nodes their children (the photo's own pyramid, as the original game's Survey layer), a missing child Sentinel-2 |
 | 4 (16 m) | the detail area | the 8 m nodes |
 | 5 (32 m) | outside the detail area | Sentinel-2's overviews, averaged |
 | 5–11 | everywhere | their children |
@@ -129,7 +129,7 @@ one stops the other at its next check, and Cancel stops a download within a seco
 under 1 kB/s for 60 s is a stall, 5 retries, a `.part` resumes). Step 5 waits for both branches. The log names
 each step and sub-step (`heights:`, `sentinel-2:`, `survey:`, `levels:`) and ends with one summary line (`terrain
 done in …`). Every 15 s a download in progress adds a line: the WorldCover tiles' "downloaded X of Y MB, rate, time
-left" over the tiles still to fetch, a DEM tile's MB so far; the colour match logs every 10 sheets.
+left" over the tiles still to fetch, a DEM tile's MB so far.
 
 1. **Box**: its lon / lat extent through `gdaltransform`.
 2. **Heights**: the GLO-30 tiles over the extent (curl, `-A "iaf-reborn terrain setup (curl)"`, 4 retries;
@@ -144,13 +144,15 @@ left" over the tiles still to fetch, a DEM tile's MB so far; the colour match lo
    its ZIP's size and modification time) is the same. A ZIP replaced by one of the same size and modification time
    keeps the old VRT, as it keeps its line in `sheets.tsv`; delete `.work/soi.vrt` then. Work units: level-4 nodes
    (16.4 km, 8192² px at 2 m). Per pixel: the sheet's levels (`imagery::sheet_levels`, haze and exposure, blended
-   across sheet borders), then the sheet's colour match to Sentinel-2 (a scale and offset per band from both images'
-   mean and spread over the sheet at 40 m, cached in `.work/gains.tsv`), laid over the 8 m node upsampled.
+   across sheet borders: `imagery::photo_levels`, the same pixel as the original game's `mapi2015_modern`,
+   docs/imagery.md §4), laid over the 8 m node upsampled. Until 2026-11-13 the sheet's colours were then matched to
+   Sentinel-2 (a scale and offset per band from both images' mean and spread at 40 m, `.work/gains.tsv`): dropped
+   with the user's order to copy the original game's ground (§15).
    - **Airbases**: the published Survey photo paints the military bases over with made-up ground (checked at Ramon:
      no runway in sheet SVT). Inside the four bases' OSM outlines and 160 m beyond, with the Survey fading back in
      over the next 160 m, the 8 m Sentinel-2 node shows instead (a 10 m mask: the outline rasterised, grown by 240 m,
      blurred over ± 80 m; a base counts for a unit when its outline's bounding box comes within 340 m).
-5. **Coarser levels**: levels 2 and 4–11 from their four children (Triangle filter).
+5. **Coarser levels**: levels 2 and 4–11 from their four children (Triangle filter); level 3 too over the photo (§3).
 6. **`meta.json`**: the node lists per level, the georeference, `attribution` (§5) and `notice` (the DEM's liability
    sentence).
 
@@ -301,7 +303,7 @@ Why the sim's ground was soft, measured on 2026-11-09:
   (`.work/gains.tsv`). Its tile under the Negev pose (L1 71 / 178) has a 32 px spread of 5.2 at a mean of 212; the
   original's (L1 182 / 256) 9.9 at a mean of 87, so the wadis are five times fainter against the ground. The
   shared shader raised the photo's 4–32 m band in the sim by 2.5 from 2026-11-09 to 2026-11-13 (`terrain_photo_detail`,
-  dropped, §15). Open: a colour match that keeps the photo's own spread (§10).
+  dropped, §15). The match itself was dropped on 2026-11-13 (§3).
 - **The first grade**: its knee by each pixel's own luminance flattened the bright ground's detail (the Negev's
   Laplacian 12 → 4.8). It now divides by the neighbourhood's mean.
 - **The haze**: Sky Levant's haze lowers the Negev's Laplacian by about a third against Atmospheric (49 against 74
@@ -319,7 +321,8 @@ Why the sim's ground was soft, measured on 2026-11-09:
 What differed, and what the sim does now:
 
 - **The Survey colour correction**: the original's "modern" layer is each sheet auto-levelled on its own
-  (docs/imagery.md §4); the sim's 2 m photo is colour-matched to Sentinel-2's 8 m nodes (§3). The sim keeps its own:
+  (docs/imagery.md §4); the sim's 2 m photo is the same since 2026-11-13 (§3; before, colour-matched to Sentinel-2's
+  8 m nodes). The sim keeps its own:
   the original's Negev sheet renders grey (sand 114 / 114 / 113), the real chalk and loess are tan. Its "warm" fix
   for those grey hills (`terrain_warm`) stays off in the sim, whose photo is already tan.
 - **Exposure and tone mapping**: the same shared scene and AgX tone mapper in both. The sim's tiles are brighter than
@@ -375,15 +378,12 @@ build agree within 0.1 level on average).
 
 ## 10. Open
 
-- **The colour match's spread** (the follow-up to §9.1): `sheet_gains` (`crates/iaf-tools/src/sim_terrain.rs`)
-  scales each Survey sheet's spread to Sentinel-2's at 40 m, which leaves the photo's local detail 0.6–0.7 as strong
-  in the Negev. The shader raised it back from 2026-11-09 to 2026-11-13 (`terrain_photo_detail` 2.5, then 4.5;
-  dropped, §15). The fix ordered on 2026-11-13: the photo levelled per sheet as the original game's (no match to
-  Sentinel-2), its coarser levels built from it; a rebuild of the theatre (CPU only, no download).
 - **Other censored sites**: the Survey photo also paints over military sites other than the four bases; there the
   made-up ground shows (open: no list of them).
-- **Survey and Sentinel-2 look**: the per-sheet colour match leaves the 2 m photo crisper and a little lighter than
-  the 8 m nodes around it; the step shows at an airbase outline and at the coverage's edge.
+- **Survey and Sentinel-2 look**: the levelled 2 m photo (and its 4 m and 8 m levels) differs in colour from the
+  Sentinel-2 ground around it; the step shows at the coverage's edge and, since the photo is no longer matched to
+  Sentinel-2 (§15), plainly at an airbase: Ramon's outline is a tan Sentinel-2 block in the photo's grey (the
+  published photo paints the bases over, §4). Open: the bases' Sentinel-2 toned to the photo around them.
 - **Heights at 64 m**: §3.
 
 ## 11. Inland water
@@ -544,8 +544,10 @@ what it does … it all should be shared between." What changed in the sim:
   game's values. Sky Levant and Natural stay the original game's own Preferences choices.
 - **Kept**: the A20 towns and roads (the roofs' and walls' colours, the roads to 5.5 km); the ground textures
   (ambientCG) and the Detailed airbases.
-- **Open**: the data. The sim's 2 m photo is still matched to Sentinel-2 (§3, `sheet_gains`), brighter and flatter
-  than the original game's, so the ground reads pale (the "after" column).
+- **The data** (the same day, the second step): the 2 m photo levelled per sheet alone, the same pixel as the
+  original game's Survey 2 m modern layer, its 4 m and 8 m levels built from it (§3, §4), and its grey hills warmed as
+  that layer's (`terrain_warm`, `Settings.own_survey_photo`). Until then it was matched to Sentinel-2, brighter and
+  flatter (the "after" column below; the pictures after the data in §15.2).
 
 Same place, hour (11:00), camera and settings, scenery off (pictures: `_imagery_shot.gd` on the Mac, 1920 × 1080):
 
@@ -622,6 +624,21 @@ the tint is one multiply, and the detail gain is the same code with another fact
 | Ramon | ![Ramon before](pictures/ground/a17_ramon_before.webp) | ![Ramon after](pictures/ground/a17_ramon_after.webp) |
 | Tel Aviv | ![Tel Aviv before](pictures/ground/a17_telaviv_before.webp) | ![Tel Aviv after](pictures/ground/a17_telaviv_after.webp) |
 | The fields | ![Fields before](pictures/ground/a17_fields_before.webp) | ![Fields after](pictures/ground/a17_fields_after.webp) |
+
+### 15.2 The data (2026-11-13)
+
+After the theatre's rebuild with the photo levelled as the original game's (§4; 1 h 40 min on this laptop, in place,
+no download), the same views on this laptop (1920 × 994), the original game's beside the sim's:
+
+| | The original game | The sim |
+|---|---|---|
+| The Judean hills | ![original](pictures/ground/g13_jlm_original_laptop.webp) | ![sim](pictures/ground/g13_jlm_data.webp) |
+| The Negev south-west of Ramon | ![original](pictures/ground/g13_ramon_original_laptop.webp) | ![sim](pictures/ground/g13_ramon_data.webp) |
+
+Mean sRGB of the frames' lower 45 % (the original game / the sim): Ramon 100 / 100 / 99, 112 / 114 / 112; the fields
+113 / 98 / 98, 119 / 104 / 103; Tel Aviv 118 / 123 / 135, 108 / 109 / 117 (the sim's dark A20 roads and its
+Sentinel-2 sea); the Judean hills 118 / 113 / 103, 132 / 128 / 120. The sim's frame rate at the same poses: 39–72 fps
+(the laptop's GPU shared with other jobs; the shader does less than before, §15).
 
 [^dem]: ESA, "Copernicus DEM: Product Handbook" and the collection description, https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM
 [^dem-licence]: "Licence for the use of the Copernicus WorldDEM-30", Article 6, read 2026-11-02, https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/DEM/resources/license/License-COPDEM-30.pdf

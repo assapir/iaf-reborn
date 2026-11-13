@@ -1138,6 +1138,13 @@ func roads_dir() -> String:
 	return "roads"
 
 
+## The theatre's own 2 m photo is the Survey of Israel's levelled per sheet, the same pixel as the Imagery Israel
+## layer Survey 2 m modern (render_options.gd warms its pale grey hills as for that layer): Modern IAF's theatre
+## (modern-iaf/docs/terrain.md §4). The original game's own theatre has none.
+func own_survey_photo() -> bool:
+	return false
+
+
 ## The scenery stands wherever it has cells, whatever the imagery shown: Modern IAF (its theatre's ground is its own
 ## photo). The original game shows it over a Survey 2 m layer only (docs/scenery.md §3).
 func scenery_everywhere() -> bool:

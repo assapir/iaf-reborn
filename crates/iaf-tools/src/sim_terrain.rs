@@ -7,7 +7,8 @@
 //! northing `N1 − ty`, so `meta.json`'s `x_shift` / `y_shift` are `E0` / `N1` and the engine's world X / Y are the
 //! UTM easting / northing. Heights: Copernicus GLO-30 (cached under `assets/source/dem/`), warped to a 64 m grid.
 //! Colour: ESA WorldCover's Sentinel-2 composite (range reads; 8 m nodes over the detail area, 32 m elsewhere) and
-//! the Survey of Israel 2 m sheets already downloaded (2 m nodes). GDAL does every reprojection.
+//! the Survey of Israel 2 m sheets already downloaded (2 m nodes, levelled per sheet as the original game's Survey
+//! layer, and the 4 m and 8 m nodes over them from these). GDAL does every reprojection.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
@@ -32,7 +33,7 @@ pub const BOX: [f64; 4] = [507_904.0, 3_255_296.0, 855_040.0, 3_766_272.0];
 pub const DETAIL: [f64; 4] = [611_000.0, 3_258_000.0, 786_500.0, 3_694_000.0];
 const NODE_PIXELS: u32 = 1024;
 const HEIGHT_LEVEL: u32 = 6;
-const ROOT_LEVEL: u32 = 11;
+pub const ROOT_LEVEL: u32 = 11;
 /// Height grid spacing: the level-6 texel (2^6 units of 1 m).
 const DEM_STEP: f64 = 64.0;
 /// Raw height = SEA_LEVEL_RAW + metres · HEIGHT_SCALE (0.1 m steps, −500 m to 6,000 m).
@@ -482,16 +483,14 @@ fn near_empty(n: usize, r: usize, empty: impl Fn(usize) -> bool) -> Vec<bool> {
         .collect()
 }
 
-/// What the Survey units share: the sheets' levels and colour match (per sheet extent, blended by `levels_at`) and
-/// the airbases' outlines (UTM).
+/// What the Survey units share: the sheets' levels (per sheet extent, blended by `levels_at`) and the airbases'
+/// outlines (UTM).
 struct Survey<'a> {
     vrt: &'a str,
     /// OpenStreetMap's coastline: on its water side the photo gives way to Sentinel-2 (the sheets' white no-data and
     /// the sea's JPEG noise never show).
     coast: &'a crate::sim_coast::Coast,
     levels: Vec<([f64; 4], [f32; 4])>,
-    scales: Vec<([f64; 4], [f32; 4])>,
-    offsets: Vec<([f64; 4], [f32; 4])>,
     bases: &'a [Vec<[f64; 2]>],
 }
 
@@ -644,119 +643,8 @@ fn dilate(m: &mut [f32], w: usize, h: usize, r: usize) {
     }
 }
 
-/// Per sheet: the scale and offset per band that give its levelled photo Sentinel-2's mean and spread (over the
-/// sheet's dry land at 40 m, both on the sheet's grid; the scale clamped to 0.5–2); cached in `<work>/gains.tsv`.
-/// A gain alone (the means' ratio) came out at 1.4–2 and burnt the bright desert white (2026-11-03).
-fn sheet_gains(
-    sheets: &[Sheet],
-    s2: &str,
-    work: &Path,
-    threads: usize,
-    pr: &dyn Progress,
-    cancel: &AtomicBool,
-) -> Result<Vec<Gain>> {
-    let cache = work.join("gains.tsv");
-    let mut text = std::fs::read_to_string(&cache).unwrap_or_default();
-    let todo: Vec<usize> = (0..sheets.len()).filter(|&k| cached_gain(&text, &sheets[k].name).is_none()).collect();
-    log!(pr, "survey: the colour match, {} of {} sheets to measure", todo.len(), sheets.len());
-    let found = std::sync::Mutex::new(Vec::new());
-    par(&todo, threads, cancel, |&k| {
-        let s = &sheets[k];
-        let b = s.bbox;
-        let te = b.map(|v| format!("{v}"));
-        // One pixel count for both (`-tr` rounds a sheet extent off the 40 m grid differently per source).
-        let ts = [b[2] - b[0], b[3] - b[1]].map(|v| format!("{}", (v / 40.0).round().max(1.0)));
-        let base =
-            ["-q", "-overwrite", "-t_srs", "EPSG:2039", "-te", &te[0], &te[1], &te[2], &te[3], "-ts", &ts[0], &ts[1]];
-        let read = |src: &str, extra: &[&str], tag: &str| -> Result<imagery::Envi> {
-            let bin = work.join(format!("gain_{k}_{tag}.bin"));
-            let mut a = base.to_vec();
-            a.extend(["-of", "ENVI", "-co", "INTERLEAVE=BIP"]);
-            a.extend(extra);
-            a.extend([src, utf8(&bin)?]);
-            gdal("gdalwarp", &a)?;
-            let e = read_envi(&bin);
-            for f in [bin.clone(), bin.with_extension("hdr"), PathBuf::from(format!("{}.aux.xml", bin.display()))] {
-                let _ = std::fs::remove_file(f);
-            }
-            e
-        };
-        // Both averaged to 40 m, so their spreads compare (a nearest 2 m sample is far noisier than a 10 m average).
-        let photo = read(
-            &s.gdal,
-            &["-s_srs", "EPSG:2039", "-r", "average", "-b", "1", "-b", "2", "-b", "3", "-srcnodata", "255 255 255"]
-                .into_iter()
-                .chain(["-wo", "UNIFIED_SRC_NODATA=YES", "-dstnodata", "0"])
-                .collect::<Vec<_>>(),
-            "p",
-        )?;
-        let sat = read(s2, &["-r", "average", "-srcnodata", "0", "-dstnodata", "0"], "s")?;
-        // An RGBA sheet keeps its alpha band through gdalwarp: the photo's pixels are `bands` bytes apart.
-        if photo.bands < 3
-            || photo.dtype != "1"
-            || sat.bands != 4
-            || sat.dtype != "12"
-            || (photo.w, photo.h) != (sat.w, sat.h)
-        {
-            bail!(
-                "{}: colour match rasters differ ({} bands type {} / {} bands type {})",
-                s.name,
-                photo.bands,
-                photo.dtype,
-                sat.bands,
-                sat.dtype
-            );
-        }
-        let sat: Vec<u16> = sat.raw.as_chunks::<2>().0.iter().map(|b| u16::from_le_bytes(*b)).collect();
-        // Per band: n, Σ, Σ² of the photo and of Sentinel-2.
-        let (mut n, mut sp, mut sp2, mut ss, mut ss2) = (0f64, [0f64; 3], [0f64; 3], [0f64; 3], [0f64; 3]);
-        for (i, p) in photo.raw.chunks_exact(photo.bands).map(|c| [c[0], c[1], c[2]]).enumerate() {
-            let q = [sat[i * 4], sat[i * 4 + 1], sat[i * 4 + 2], sat[i * 4 + 3]].map(f32::from);
-            if p == [255; 3] || p == [0; 3] || q[..3] == [0.0; 3] || imagery::is_water(q) {
-                continue;
-            }
-            let lv = imagery::photo_levels(p.map(f32::from), s.levels);
-            let t = imagery::tone([q[0], q[1], q[2]]);
-            n += 1.0;
-            for c in 0..3 {
-                let (a, b) = (f64::from(lv[c]), f64::from(t[c]));
-                (sp[c], sp2[c], ss[c], ss2[c]) = (sp[c] + a, sp2[c] + a * a, ss[c] + b, ss2[c] + b * b);
-            }
-        }
-        let mut g = [1.0, 1.0, 1.0, 0.0, 0.0, 0.0];
-        if n > 100.0 {
-            for c in 0..3 {
-                let (mp, ms) = (sp[c] / n, ss[c] / n);
-                let sd = |s2: f64, m: f64| (s2 / n - m * m).max(1.0).sqrt();
-                let k = (sd(ss2[c], ms) / sd(sp2[c], mp)).clamp(0.5, 2.0);
-                (g[c], g[3 + c]) = (k as f32, (ms - mp * k) as f32);
-            }
-        }
-        let mut found = found.lock().map_err(|_| anyhow::anyhow!("worker panicked"))?;
-        found.push((s.name.clone(), g));
-        if found.len().is_multiple_of(10) {
-            log!(pr, "  colour match {}/{}", found.len(), todo.len());
-        }
-        Ok(())
-    })?;
-    for (name, g) in found.into_inner().map_err(|_| anyhow::anyhow!("worker panicked"))? {
-        text += &format!("{name}\t{} {} {} {} {} {}\n", g[0], g[1], g[2], g[3], g[4], g[5]);
-    }
-    std::fs::write(&cache, &text)?;
-    sheets.iter().map(|s| cached_gain(&text, &s.name).context("sheet gain")).collect()
-}
-
-/// A sheet's colour match: scale and offset per band, as `levels_at` blends them ([r, g, b, 0]).
-type Gain = ([f32; 4], [f32; 4]);
-
-/// A sheet's line in gains.tsv (`<sheet>\t<scale r g b> <offset r g b>`; the last one counts).
-fn cached_gain(text: &str, name: &str) -> Option<Gain> {
-    let l = text.lines().rev().find(|l| l.split('\t').next() == Some(name))?;
-    let v: Vec<f32> = l.split('\t').nth(1)?.split(' ').filter_map(|x| x.parse().ok()).collect();
-    (v.len() == 6).then(|| ([v[0], v[1], v[2], 0.0], [v[3], v[4], v[5], 0.0]))
-}
-
-/// The Survey of Israel sheets over one level-4 unit: 2 m warp, the sheets' levels and gains, over the level-3
+/// The Survey of Israel sheets over one level-4 unit: 2 m warp, the sheets' levels (the original game's Survey layer's
+/// own, `imagery::photo_levels`: the same pixel as its `mapi2015_modern`, docs/imagery.md §4), over the level-3
 /// Sentinel-2 node where no sheet is and on the airbases; writes the level-1 nodes with any sheet pixel.
 fn survey_unit(sv: &Survey, f: &Frame, unit: Key, itm: [[f64; 2]; 4], work: &Path, out: &Path) -> Result<()> {
     let d = unit.0 - 1;
@@ -818,11 +706,6 @@ fn survey_unit(sv: &Survey, f: &Frame, unit: Key, itm: [[f64; 2]; 4], work: &Pat
                     let mut rgb = [0, 1, 2].map(|c| f32::from(e.raw[i * 4 + c]));
                     if let Some(lv) = imagery::levels_at(&sv.levels, ie, inn) {
                         rgb = imagery::photo_levels(rgb, lv);
-                    }
-                    if let (Some(k), Some(o)) =
-                        (imagery::levels_at(&sv.scales, ie, inn), imagery::levels_at(&sv.offsets, ie, inn))
-                    {
-                        rgb = [0, 1, 2].map(|c| (rgb[c] * k[c] + o[c]).clamp(0.0, 255.0));
                     }
                     let p = img.get_pixel_mut(x as u32, y as u32);
                     for (v, s) in p.0.iter_mut().zip(rgb) {
@@ -897,10 +780,12 @@ pub fn stamp(r: &Run) -> serde_json::Value {
         crate::sim_coast::extracts_stamp(crate::sim_bases::theatre_geo(r.area))
     };
     // With the Survey, its rule at the shore: 2 = the sea beyond the coastline's reach is Sentinel-2's too. "sea": the
-    // open sea's fill.
+    // open sea's fill. "survey": the photo's colours, "levels" = by its sheets' levels alone, the original game's
+    // (2026-11-13; before: matched to Sentinel-2, no key).
     let shore = if zips.is_empty() { 0 } else { 2 };
+    let survey = if zips.is_empty() { "" } else { "levels" };
     serde_json::json!({ "box": r.area, "detail": r.detail, "survey_zips": zips, "airbases": bases, "osm": osm,
-        "shore": shore, "sea": SEA })
+        "shore": shore, "sea": SEA, "survey": survey })
 }
 
 /// `meta.json` (the shape `terrain::theatre` writes) with the georeference, the sources and the run's stamp.
@@ -1154,12 +1039,67 @@ fn heights(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, ca
     Ok(line)
 }
 
-/// The colour branch: Sentinel-2 from the shared tile cache (the missing tiles fetched into it), its 32 m and 8 m
-/// nodes, then the Survey sheets over them; returns what it reused.
-fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<String> {
-    let t0 = std::time::Instant::now();
-    let (out, work) = (r.out.as_path(), work.to_path_buf());
-    let f = *f;
+/// The Sentinel-2 units (the 32 m nodes' level-7 units, the 8 m nodes' level-5 units) and their done marks' names.
+fn s2_units(f: &Frame, detail: [f64; 4]) -> [(&'static str, Vec<Key>); 2] {
+    let detail5: BTreeSet<Key> = f.nodes_in(5, detail).into_iter().collect();
+    let inside = |k: Key| (k.1 << k.0) * NODE_PIXELS < f.w && (k.2 << k.0) * NODE_PIXELS < f.h;
+    let coarse = |k: Key| inside(k) && !detail5.contains(&k);
+    let u7: Vec<Key> = f.nodes(7).into_iter().filter(|u| f.nodes_in(5, f.utm(*u)).into_iter().any(coarse)).collect();
+    // "_rim": the 32 m nodes without the overviews' rim (RIM): a theatre rebuilt for a change in its inputs makes them
+    // again, though their old marks say done (Setup's redo clears the marks anyway).
+    [("s2_32m_rim", u7), ("s2_8m", detail5.into_iter().collect())]
+}
+
+/// Whether `dir` holds a Survey sheet ZIP: only then does the colour branch make the 2 m nodes (and read the shore).
+fn has_zips(dir: &Path) -> bool {
+    std::fs::read_dir(dir)
+        .map(|d| d.filter_map(|e| e.ok()).any(|e| e.path().extension().is_some_and(|x| x.eq_ignore_ascii_case("zip"))))
+        .unwrap_or(false)
+}
+
+/// Whether a Sentinel-2 unit is still to do (its mark missing in `work`): only then are the tiles listed and read.
+fn s2_left(f: &Frame, detail: [f64; 4], work: &Path) -> bool {
+    s2_units(f, detail).iter().any(|(what, list)| list.iter().any(|&u| !done(work, what, u).exists()))
+}
+
+/// What a run of `r` would fetch over the network, by name: the DEM tiles missing from the cache (neither `.tif` nor
+/// `.none`), with the Survey sheets the OpenStreetMap extracts the shore's photo is cut by, and "sentinel-2" while a Sentinel-2 unit is still
+/// to do (`s2_left`). Empty: the run reads only local files (setup's "Nothing to download").
+pub fn would_fetch(r: &Run) -> Result<Vec<String>> {
+    let geo = crate::sim_bases::theatre_geo(r.area);
+    let mut v = Vec::new();
+    for lat in geo[1].floor() as i32..=geo[3].floor() as i32 {
+        for lon in geo[0].floor() as i32..=geo[2].floor() as i32 {
+            let name = crate::imagery_run::dem_tile(lat, lon);
+            if !["tif", "none"].iter().any(|x| r.dem_cache.join(format!("{name}.{x}")).exists()) {
+                v.push(name);
+            }
+        }
+    }
+    let extracts = if has_zips(&r.sheets) { crate::sim_coast::water_extracts(geo) } else { Vec::new() };
+    for (d, dir) in extracts {
+        if !crate::thirdparty::file_done(&r.osm.join(dir), &d) {
+            v.push(d.file.to_string());
+        }
+    }
+    if s2_left(&Frame::new(r.area)?, r.detail, &r.out.join(".work")) {
+        v.push("sentinel-2".into());
+    }
+    Ok(v)
+}
+
+/// The Sentinel-2 nodes: the tiles from the cache (fetched or cut when missing, `tile_sources`), their VRTs and the
+/// units still to do; the colour branch's progress parts (`part_ends`) and its log line.
+fn sentinel(
+    r: &Run,
+    f: &Frame,
+    geo: [f64; 4],
+    work: &Path,
+    has_zips: bool,
+    pr: &dyn Progress,
+    cancel: &AtomicBool,
+) -> Result<([f32; 5], String)> {
+    let (t0, out, f) = (std::time::Instant::now(), r.out.as_path(), *f);
     // Sentinel-2: one VRT over the WorldCover tiles (their overviews serve the 32 m nodes).
     log!(pr, "sentinel-2: WorldCover tiles from {}", r.s2_cache.display());
     let tiles = list_tiles(&r.s2_cache, BUCKET, geo[1].floor() as i32, geo[3].floor() as i32)?;
@@ -1169,9 +1109,6 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
     let coarse: Vec<String> = names.iter().filter(|n| !fine.contains(n)).cloned().collect();
     // One bar over the colour branch, the longer of the two (the heights run beside it): its parts by their expected
     // seconds (`part_ends`).
-    let has_zips = std::fs::read_dir(&r.sheets)
-        .map(|d| d.filter_map(|e| e.ok()).any(|e| e.path().extension().is_some_and(|x| x.eq_ignore_ascii_case("zip"))))
-        .unwrap_or(false);
     let fetch: u64 =
         fine.iter().filter(|n| !tile_whole(&r.s2_cache, &tiles, n)).map(|n| tiles.get(n).copied().unwrap_or(0)).sum();
     let ends = part_ends(fetch, has_zips);
@@ -1214,13 +1151,31 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
     let inside = |k: Key| (k.1 << k.0) * NODE_PIXELS < f.w && (k.2 << k.0) * NODE_PIXELS < f.h;
     let coarse = |k: Key| inside(k) && !detail5.contains(&k);
     let fine = |k: Key| inside(k) && detail5.contains(&(5, k.1 >> (5 - k.0), k.2 >> (5 - k.0)));
-    let u7: Vec<Key> = f.nodes(7).into_iter().filter(|u| f.nodes_in(5, f.utm(*u)).into_iter().any(coarse)).collect();
-    let s2_32 = |u| sentinel_unit(s2_20, &f, u, 5, &coarse, &work, out);
-    // "_rim": the 32 m nodes without the overviews' rim (RIM): a theatre rebuilt for a change in its inputs makes them
-    // again, though their old marks say done (Setup's redo clears the marks anyway).
-    units("s2_32m_rim", &u7, &work, r.threads, &part(1), cancel, s2_32)?;
-    let u5: Vec<Key> = detail5.iter().copied().collect();
-    units("s2_8m", &u5, &work, r.threads, &part(2), cancel, |u| sentinel_unit(s2, &f, u, 3, &fine, &work, out))?;
+    let [(m32, u7), (m8, u5)] = s2_units(&f, r.detail);
+    units(m32, &u7, work, r.threads, &part(1), cancel, |u| sentinel_unit(s2_20, &f, u, 5, &coarse, work, out))?;
+    units(m8, &u5, work, r.threads, &part(2), cancel, |u| sentinel_unit(s2, &f, u, 3, &fine, work, out))?;
+    Ok((ends, s2_line))
+}
+
+/// The colour branch: Sentinel-2 from the shared tile cache (the missing tiles fetched into it), its 32 m and 8 m
+/// nodes, then the Survey sheets over them; returns what it reused.
+fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<String> {
+    let t0 = std::time::Instant::now();
+    let (out, work) = (r.out.as_path(), work.to_path_buf());
+    let f = *f;
+    let has_zips = has_zips(&r.sheets);
+    let detail5: BTreeSet<Key> = f.nodes_in(5, r.detail).into_iter().collect();
+    let inside = |k: Key| (k.1 << k.0) * NODE_PIXELS < f.w && (k.2 << k.0) * NODE_PIXELS < f.h;
+    let fine = |k: Key| inside(k) && detail5.contains(&(5, k.1 >> (5 - k.0), k.2 >> (5 - k.0)));
+    // Sentinel-2 only while one of its units is still to do: a theatre rebuilt for its photo (or any later change)
+    // reads no tile and fetches nothing (the user, 2026-11-13: a code change never makes the player download again).
+    let (ends, s2_line) = if s2_left(&f, r.detail, &work) {
+        sentinel(r, &f, geo, &work, has_zips, pr, cancel)?
+    } else {
+        log!(pr, "sentinel-2: every node built, no tile read");
+        (part_ends(0, has_zips), "every node built".to_string())
+    };
+    let part = |i: usize| Part { pr, from: ends[i], to: ends[i + 1] };
 
     // The Survey of Israel 2 m sheets already downloaded.
     if has_zips {
@@ -1251,13 +1206,7 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
         // The sheets whose levels reach a unit (their blend spans DARK_BLEND / 2 = 2 km beyond a sheet).
         let sheets = near(&sheets, &list.iter().map(|u| u.2).collect::<Vec<_>>(), 2000.0);
         let vrt = soi_vrt(&sheets, &r.sheets, &work, pr)?;
-        let gains = sheet_gains(&sheets, s2, &work, r.threads, pr, cancel)?;
-        log!(
-            pr,
-            "survey: {} sheets, colours matched to Sentinel-2 ({})",
-            sheets.len(),
-            crate::progress::duration(t0.elapsed())
-        );
+        log!(pr, "survey: {} sheets ({})", sheets.len(), crate::progress::duration(t0.elapsed()));
         let bases = base_outlines(&r.airbases)?;
         let pbfs = crate::sim_coast::fetch_extracts(&r.osm, geo, pr, cancel)?;
         log!(pr, "survey: the coastline from {} OpenStreetMap extracts", pbfs.len());
@@ -1266,8 +1215,6 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
             vrt: utf8(&vrt)?,
             coast: &coast,
             levels: sheets.iter().map(|s| (s.bbox, s.levels)).collect(),
-            scales: sheets.iter().zip(&gains).map(|(s, g)| (s.bbox, g.0)).collect(),
-            offsets: sheets.iter().zip(&gains).map(|(s, g)| (s.bbox, g.1)).collect(),
             bases: &bases,
         };
         // The units the coastline comes near have their own marks: they run again once when the photo's sea rule
@@ -1277,9 +1224,17 @@ fn colour(r: &Run, f: &Frame, geo: [f64; 4], work: &Path, pr: &dyn Progress, can
             let (_, c, _) = list.iter().find(|u| u.0 == k).context("unit")?;
             survey_unit(&sv, &f, k, *c, &work, out)
         };
-        units("survey_2m", &inland, &work, r.threads, &part(3), cancel, run)?;
-        units("survey_2m_sea", &shore, &work, r.threads, &part(3), cancel, run)?;
+        // "_lv": the photo by its sheets' levels alone (2026-11-13; before, matched to Sentinel-2), so a theatre built
+        // before writes its 2 m nodes again. Their base (`ancestor_crop(.., 3)`) is Sentinel-2 only until the first
+        // `parents(out, 3, ..)` below writes the photo into level 3: renaming these marks again, rename "s2_8m" with
+        // them, or the units run over the old photo at 8 m (the airbases' made-up ground, the sea's no-data).
+        units("survey_2m_lv", &inland, &work, r.threads, &part(3), cancel, run)?;
+        units("survey_2m_sea_lv", &shore, &work, r.threads, &part(3), cancel, run)?;
+        // The coarser levels over the photo are the photo's, as the original game's Survey layer (its own pyramid):
+        // level 2 from the 2 m nodes, level 3 from level 2, each over Sentinel-2's level-3 node where no sheet is.
+        // Level 3 is its own fallback: a node is read before it is written.
         parents(out, 2, Some(3), r.threads, cancel)?;
+        parents(out, 3, Some(3), r.threads, cancel)?;
     } else {
         log!(pr, "{}: no sheet ZIPs, no 2 m nodes", r.sheets.display());
     }
@@ -1622,6 +1577,64 @@ mod tests {
         write_meta(&f, &out, stamp(&run)).unwrap();
         terrain(&run, &crate::progress::Stdout, &AtomicBool::new(false)).unwrap();
         assert!(!out.join(".work").exists(), "returned before any work");
+        std::fs::remove_dir_all(&out).unwrap();
+    }
+
+    /// A built theatre rebuilt for a code change (its stamp changed) reads only local files: with every source by its
+    /// name in the caches and every Sentinel-2 unit done, `would_fetch` (setup's "Nothing to download") is empty, so
+    /// `colour` lists and reads no tile. One unit left, or one source missing, and it says what it would fetch.
+    #[test]
+    fn a_built_theatre_fetches_nothing() {
+        let out = tmp("fetch");
+        let run = Run {
+            out: out.join("out"),
+            dem_cache: out.join("dem"),
+            s2_cache: out.join("s2"),
+            sheet_index: out.join("sheets.tsv"),
+            sheets: out.join("sheets"),
+            airbases: out.join("airbases"),
+            osm: out.clone(),
+            area: [600_000.0, 3_400_000.0, 600_000.0 + 65536.0, 3_400_000.0 + 65536.0],
+            detail: [600_000.0, 3_400_000.0, 600_000.0 + 32768.0, 3_400_000.0 + 32768.0],
+            threads: 1,
+        };
+        let geo = crate::sim_bases::theatre_geo(run.area);
+        std::fs::create_dir_all(&run.dem_cache).unwrap();
+        for lat in geo[1].floor() as i32..=geo[3].floor() as i32 {
+            for lon in geo[0].floor() as i32..=geo[2].floor() as i32 {
+                let name = crate::imagery_run::dem_tile(lat, lon);
+                std::fs::write(run.dem_cache.join(format!("{name}.none")), "").unwrap();
+            }
+        }
+        for (d, dir) in crate::sim_coast::water_extracts(geo) {
+            let dir = run.osm.join(dir);
+            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::write(dir.join(d.file), "").unwrap();
+            std::fs::write(dir.join(format!("{}.ok", d.file)), d.sha256).unwrap();
+        }
+        // A sheet ZIP: the extracts count (`colour` reads them for the shore).
+        std::fs::create_dir_all(&run.sheets).unwrap();
+        std::fs::write(run.sheets.join("a.zip"), "").unwrap();
+        let work = run.out.join(".work");
+        std::fs::create_dir_all(&work).unwrap();
+        let units = s2_units(&Frame::new(run.area).unwrap(), run.detail);
+        assert!(units.iter().all(|(_, l)| !l.is_empty()), "the box has units of both kinds");
+        assert_eq!(would_fetch(&run).unwrap(), ["sentinel-2"], "a new theatre reads Sentinel-2");
+        for (what, list) in &units {
+            for &u in list {
+                std::fs::write(done(&work, what, u), "").unwrap();
+            }
+        }
+        assert!(would_fetch(&run).unwrap().is_empty(), "every unit done, every source here: nothing to fetch");
+        // And `colour` itself (without the sheet, no GDAL run) lists no tile: a listing would land in (or fail to
+        // reach) the empty `s2_cache`.
+        std::fs::remove_file(run.sheets.join("a.zip")).unwrap();
+        let f = Frame::new(run.area).unwrap();
+        colour(&run, &f, geo, &work, &crate::progress::Stdout, &AtomicBool::new(false)).unwrap();
+        assert!(!run.s2_cache.exists(), "colour read no Sentinel-2 tile");
+        let (what, list) = &units[1];
+        std::fs::remove_file(done(&work, what, list[0])).unwrap();
+        assert_eq!(would_fetch(&run).unwrap(), ["sentinel-2"], "one unit left");
         std::fs::remove_dir_all(&out).unwrap();
     }
 

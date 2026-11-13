@@ -199,9 +199,17 @@ pub(crate) struct Stamp {
     pub text: String,
     /// Must exist for the stamp to hold.
     pub output: Option<PathBuf>,
+    /// What the steps after it see of it, read when they need it (after it ran): None, its whole text. The terrain's
+    /// is its frame and heights only, so a rebuild of its colour alone leaves the airbases and the missions up to date
+    /// (the scenery tracks the colour images it reads itself).
+    pub view: Option<Box<dyn Fn() -> String + Send + Sync>>,
 }
 
 impl Stamp {
+    /// The text the steps after it take into their stamps (`view`, else its own).
+    pub fn for_dependents(&self) -> String {
+        self.view.as_ref().map_or_else(|| self.text.clone(), |v| v())
+    }
     pub fn holds(&self) -> bool {
         std::fs::read_to_string(&self.path).is_ok_and(|t| t == self.text)
             && self.output.as_ref().is_none_or(|o| o.exists())
@@ -330,7 +338,7 @@ pub(crate) fn of(step: &Step, ctx: &Ctx) -> Result<Option<Stamp>> {
     for p in &inputs {
         text += &describe(p)?;
     }
-    Ok(Some(Stamp { path: stamp, text, output: out }))
+    Ok(Some(Stamp { path: stamp, text, output: out, view: None }))
 }
 
 /// Where Modern IAF's step `id` keeps its stamp.
@@ -365,7 +373,9 @@ pub(crate) fn sim_of(step: &Step, ctx: &SimCtx) -> Result<Option<Stamp>> {
         _ => return Ok(None),
     };
     let mut text = format!("iaf-setup {:016x}\nstep {}\n", code(step.id, SOURCES), step.id);
-    if step.id == "sim-terrain" {
+    // The terrain's inputs and rules; the scenery's too: its roofs and walls take the photo's colours (the steps after
+    // the terrain see only its frame and heights, `view`).
+    if step.id == "sim-terrain" || step.id == "sim-scenery" {
         text += &format!("built_from {}\n", iaf_tools::sim_terrain::stamp(&ctx.terrain()));
     }
     if step.id == "sim-airbases" {
@@ -379,7 +389,33 @@ pub(crate) fn sim_of(step: &Step, ctx: &SimCtx) -> Result<Option<Stamp>> {
         // The repo's path is not part of what the data is.
         text += &describe_under(p, &ctx.repo)?;
     }
-    Ok(Some(Stamp { path: sim_stamp_path(a, step.id), text, output: Some(out) }))
+    // The terrain as the steps after it read it: its box and its height nodes (the airbases' heights, the scenery's
+    // ground), not its colour or its code (2026-11-13: a rebuild of the photo alone made every later step run again).
+    let view: Option<Box<dyn Fn() -> String + Send + Sync>> = (step.id == "sim-terrain").then(|| {
+        let (theatre, area) = (a.join(THEATRE), ctx.terrain().area);
+        Box::new(move || terrain_view(&theatre, area)) as Box<dyn Fn() -> String + Send + Sync>
+    });
+    Ok(Some(Stamp { path: sim_stamp_path(a, step.id), text, output: Some(out), view }))
+}
+
+/// The theatre's box and the CRC-32 of each height node (`L<l>/h_*.png`), one line each.
+fn terrain_view(theatre: &Path, area: [f64; 4]) -> String {
+    let mut lines = vec![format!("box {area:?}")];
+    for l in 0..=iaf_tools::sim_terrain::ROOT_LEVEL {
+        let dir = theatre.join(format!("L{l}"));
+        let mut names: Vec<String> = std::fs::read_dir(&dir)
+            .into_iter()
+            .flatten()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().to_string())
+            .filter(|n| n.starts_with("h_"))
+            .collect();
+        names.sort();
+        for n in names {
+            lines.push(format!("L{l}/{n} {:08x}", crc_file(&dir.join(&n)).unwrap_or(0)));
+        }
+    }
+    lines.join("\n") + "\n"
 }
 
 #[cfg(test)]

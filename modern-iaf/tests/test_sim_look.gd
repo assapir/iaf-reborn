@@ -70,6 +70,7 @@ func run() -> void:
 	)
 	check(env.fog_aerial_perspective == 1.0, "the haze is the sky's (aerial perspective 1)")
 	check(s.colour_grading == "original" and ro.terrain_grade == 0.0, "no colour grading (as the original game)")
+	check(s.own_survey_photo(), "its photo is the levelled Survey: its grey hills warmed as the original game's layer")
 	var globals := {}
 	for proj: String in ["iaf-reborn", "modern-iaf"]:
 		var cfg := ConfigFile.new()

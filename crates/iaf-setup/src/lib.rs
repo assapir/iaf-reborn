@@ -24,7 +24,7 @@ pub use checks::{CdKind, PackInfo, Tools, check_cd, check_pack, check_patch, pyt
 pub use saved::{from_json, inputs_file, load_inputs, save_inputs, to_json};
 pub use sim::{
     Optional, SimCtx, SimInputs, save_sim_excluded, sim_excluded, sim_expected, sim_optional, sim_plan, sim_preview,
-    sim_remove, sim_run, survey_sheets,
+    sim_remove, sim_run, sim_terrain_fetch, survey_sheets,
 };
 pub use steps::{COCKPITS, KEPT, OUTPUTS, disk_bytes, imagery_stale, script_guides, uninstall};
 
@@ -344,7 +344,7 @@ pub(crate) fn preview_with(steps: &[Step], stamp: &StampFn) -> Vec<(&'static str
                 s.text += &format!("after {a} {:08x}\n", crc32fast::hash(t.as_bytes()));
             }
             let up = s.holds();
-            texts.insert(step.id, s.text);
+            texts.insert(step.id, s.for_dependents());
             (step.id, up)
         })
         .collect()
@@ -448,12 +448,12 @@ fn run_one(
         }
         s
     });
-    let record = |text: &str| {
-        stamps.lock().unwrap().insert(step.id, text.to_string());
+    let record = |text: String| {
+        stamps.lock().unwrap().insert(step.id, text);
     };
     if let Some(s) = &s {
         if !redo && s.holds() {
-            record(&s.text);
+            record(s.for_dependents());
             return Ok(State::UpToDate);
         }
         s.clear()?;
@@ -469,9 +469,9 @@ fn run_one(
                 if std::fs::write(&tmp, format!("{:.0}\n", t0.elapsed().as_secs_f64())).is_ok() {
                     let _ = std::fs::rename(&tmp, &secs);
                 }
-                record(&s.text);
+                record(s.for_dependents());
             } else {
-                record("ran");
+                record("ran".into());
             }
             Ok(State::Done)
         }
@@ -481,7 +481,7 @@ fn run_one(
             if let Some(s) = &s {
                 s.write()?;
             }
-            record(s.as_ref().map_or("ran", |s| s.text.as_str()));
+            record(s.as_ref().map_or_else(|| "ran".to_string(), |s| s.for_dependents()));
             Ok(State::UpToDate)
         }
         Outcome::Skipped(why) => Ok(State::Skipped(why)),
@@ -671,6 +671,7 @@ mod tests {
                     path: dir.join(format!("{}.stamp", s.id)),
                     text: stamp::describe(&dir.join(format!("{}.in", s.id)))?,
                     output: None,
+                    view: None,
                 }))
             };
             let ex = |s: &Step, _: &dyn Progress| -> Result<Outcome> {
@@ -732,7 +733,7 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         let steps = [Step { id: "a", title: "a", required: false, after: vec![] }];
         let st = |_: &Step| -> Result<Option<stamp::Stamp>> {
-            Ok(Some(stamp::Stamp { path: dir.join("a.stamp"), text: "a\n".into(), output: None }))
+            Ok(Some(stamp::Stamp { path: dir.join("a.stamp"), text: "a\n".into(), output: None, view: None }))
         };
         let go =
             |o: fn() -> Outcome| run_graph(&steps, &|_| false, &Quiet, &AtomicBool::new(false), &st, &|_, _| Ok(o()));
@@ -756,6 +757,7 @@ mod tests {
                     path: dir.join(format!("{}.stamp", s.id)),
                     text: format!("step {}\n", s.id),
                     output: None,
+                    view: None,
                 }))
             };
             let ex = |s: &Step, _: &dyn Progress| -> Result<Outcome> {

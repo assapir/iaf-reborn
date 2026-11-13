@@ -473,6 +473,11 @@ func roads_dir() -> String:
 	return "terrain/israel/roads"
 
 
+## Its 2 m photo is the Survey levelled per sheet, as the original game's Survey 2 m modern layer (iaf-sim terrain).
+func own_survey_photo() -> bool:
+	return true
+
+
 ## The theatre's ground is its own photo everywhere: the scenery stands on all of it.
 func scenery_everywhere() -> bool:
 	return true

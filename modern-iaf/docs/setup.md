@@ -58,7 +58,10 @@ large screen by its UI scale (the containers stretch; nothing has a fixed page s
    optional step (Buildings,
    trees and roads; Ground and model textures) is on by default, and unticking it before the run leaves it out: it
    is neither downloaded nor built, its row says "left out", and the sim flies without it (Preferences greys Scenery
-   with "Left out in setup"). Under an optional step's name are its sizes: what it downloads ("Nothing to download"
+   with "Left out in setup"). Under the terrain step's name, "Nothing to download" when its run reads only the
+   caches (`sim_terrain::would_fetch` empty: every source by its name in `assets/source`, every Sentinel-2 node
+   built, so a code change rebuilds the theatre with no download; the test `a_built_theatre_fetches_nothing`).
+   Under an optional step's name are its sizes: what it downloads ("Nothing to download"
    when `assets/source` already holds its files) and what it takes on disk (measured when built, else about a full
    build's size). The choice is remembered at once in `assets/converted/modern-iaf/setup.json` (`{"excluded":
    [ids]}`, `iaf_setup::sim_excluded`). Unticking a step that is already built asks **Remove its data?** with the
