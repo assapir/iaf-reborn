@@ -32,8 +32,10 @@ The window opens plain in the front end's background colour (#1d2025, no Godot s
 | Pilot log | the Pilot screen → Pilot log: every attempt, newest first; a row opens its debrief; Back to the Pilot screen | ![Pilot log](pictures/front-end/log_en.webp) | ![Pilot log, Hebrew](pictures/front-end/log_he.webp) |
 | Attributions | the setup wizard's list of sources and licences, the jet photos with them | ![Attributions](pictures/front-end/credits_en.webp) | ![Attributions, Hebrew](pictures/front-end/credits_he.webp) |
 
-At a training mission's end a banner over the view says "Mission complete" (or "Fail" and the reason); about 5 s
-later the flight ends into its debrief ([training.md](training.md) §9).
+At a training mission's goal a banner over the view says "Mission complete" and "Fly on, or Esc → End the flight for
+the debrief" for 10 s; the flight goes on until the player ends it (the user, 2026-11-13: "on mission complete - allow
+to keep flying"), the pass kept. A fail shows "Fail" and the reason; about 5 s later the flight ends into its debrief
+([training.md](training.md) §9).
 
 Over a flight, Esc opens the pause menu: Continue the flight, Preferences, End the flight. It is laid out on the
 front end's canvas scaled to the window and centred by a container, so it sits in the middle at any window size and in
@@ -325,7 +327,10 @@ stay the original's (`terrain_view.gd _on_subtitle` hands each line to the fligh
   hint names H and Esc. A start-up mission shows its checklist card ([training.md](training.md) §7.1).
 - **The radio lines and messages** show in a strip centred at the top, over the sky rather than the cockpit's panel,
   the newest at the bottom, three at most, each for 8 s, wholly in the game's language ([training.md](training.md)
-  §8). The text is subtitle size, 20 px at 1080 (the Mac play test, 2026-11-11: 26 px was too big).
+  §8). A radio line shows as its voice starts, not at the menu's pick: the pilot's call after its key click, the
+  tower's answer after the pilot's call and the gap (the user, 2026-11-13: "comms subtitle should show up as talking";
+  `radio.gd cue_subtitle`, `flight_sounds.gd phrase_cue`: a mark in the speech channel's queue). A line without a clip
+  (no sound file) shows at once. The text is subtitle size, 20 px at 1080 (the Mac play test, 2026-11-11: 26 px was too big).
 - **The panel** at the inline-start top holds the radio menu (Ctrl+T) and the training result.
 - **The info line** (F12, at the top left): the mission's name and the frames per second (`Settings.info_line_full`
   false; the original game's line also holds the modes, the place, the speed and the controls).

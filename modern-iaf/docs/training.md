@@ -44,7 +44,7 @@ Each figure has a source in the mission's `sources` (`"training.time_budget_s"` 
 |---|---|---|---|---|
 | `kind` | `"startup"` | `"takeoff"` | — | — |
 | `time_budget_s` | idle with avionics up by then | airborne, gear up, on heading by then | 120 s / 900 s | inferred |
-| `end_hold_s` | the mission ends this long after its goal | the same | 5 s | inferred: time to see the result before the debrief |
+| `end_hold_s` | a fail shows its reason this long before the debrief (a pass: the flight goes on, §9) | the same | 5 s | inferred: time to see the result before the debrief |
 | `goals` | the debrief items the sheet shows, in order (§4) | the same | `[]` / `["runway", "liftoff_speed", "reference_speed", "max_centreline_offset", "tower_calls"]` | — (not a figure) |
 | `heading_tolerance_deg` | — | ± from the runway heading | 10° | inferred |
 | `empty_kg` | — | gross weight = this + the recorded fuel | F-16: 8,573 kg; F-35I: 13,290 kg | F-16C Block 50 / 52[^w-f16]; F-35A[^w-f35]; the IAF jets' own weights inferred the same |
@@ -66,6 +66,7 @@ mission at once as a Fail, with its reason first in the debrief:
 | `crash` | `crash` | the jet crashed |
 | `damage` | `hit` (any damage to the jet) | the player's unit's damage above 0 |
 | `off_pavement` | `surface` with `paved` false | on the ground with the jet's centre off the base's pavement |
+| a phase without clearance, `wrong_runway` (§3.3) | `clearance` with its `reason` | `Watch::check`'s clearance and runway rules |
 
 The pavement is the mission's base from its airbase file (`sim_bases::Base::paved`), the same shapes the paved
 mask is drawn from ([data-formats.md](data-formats.md) §12): within half the width of a runway's, stopway's or
@@ -79,7 +80,7 @@ reason.
 ### 3.1 Start-up: pass
 - The engine started (the recorder's `engine` column turns true),
 - the engine at idle and the avionics up within `time_budget_s` of the flight's start, and
-- nothing failed (§3.0) to the mission's end: `end_hold_s` after the goal, or when the player ends the flight.
+- nothing failed (§3.0) up to the goal; the pass is kept, whatever follows.
 
 Modern IAF's recorder (version 2, §9) has an `rpm` and an `avionics` column, and the scorer reads them:
 - **idle** = the first sample with the engine running at 60 % RPM or more (the 6-DoF's idle, §7);
@@ -108,6 +109,33 @@ runway's width of the centreline (inferred).
 Fail reasons, in the order checked: the §3.0 reason first (the earliest event); then `no_start`, `not_done` (the
 engine never at idle with the avionics up), `over_time` (start-up); `no_liftoff`, `wrong_runway`, `excursion`,
 `gear_down`, `over_time`, `off_heading` (take-off; after a §3.0 fail the climb-out is not judged).
+
+### 3.3 The tower's clearances and the runway
+Since 2026-11-13 (the user: "missions should fail if I start without tower permissions"; "I need to be able to call
+tower to align and for take off") a mission's `training.clearances` (mission data, the three take-off missions:
+`["startup", "taxi", "takeoff"]`; the start-up missions have no tower call in their design and name none) makes each
+phase wait for its clearance. Doing it first fails the mission at once (§3.0's pattern: the banner with the reason,
+the debrief 5 s later), the tower says so once (sound.md §3) and the recording gets `{"event": "clearance",
+"reason": …}`. `Watch::check` in `crates/iaf-tools/src/training.rs` decides; the clearances come from the tower's
+answers so far (`Cleared::of`, the same state the radio menu lists its calls from):
+
+| phase | detected when | cleared by | reason | the tower |
+|---|---|---|---|---|
+| `startup` | the engine turning: RPM 5 % or more (`ENGINE_TURNING_RPM`; a cold engine reads 0, the starter cranks it to 20 %) | "cleared to start" | `no_start_clearance` | "Alpha, engine start without clearance" / "Alpha, התנעה ללא אישור" |
+| `taxi` | on the ground, the jet's centre more than 10 m from where it first stood (`TAXI_MOVED_M`, inferred: more than brake creep or the start's jolt) | "taxi to runway …" | `no_taxi_clearance` | "Alpha, taxi without clearance" / "Alpha, הסעה ללא אישור" |
+| `takeoff`: entering the runway | on the ground, the centre within half the width of the mission's runway's centreline (the airbase file) | "line up …" or "cleared for take-off" | `no_runway_clearance` | "Alpha, runway entry without clearance" / "Alpha, כניסה למסלול ללא אישור" |
+| `takeoff`: the roll | on that runway faster than 30 kt (`ROLL_START_KT`, the roll's start in §3.2) | "cleared for take-off" | `no_takeoff_clearance` | "Alpha, take-off without clearance" / "Alpha, המראה ללא אישור" |
+
+A call asked and answered "hold position" clears nothing; the answer is decided at the pick, so no call is pending.
+A clearance stays valid afterwards (a restart needs no new start-up call). No readback is modelled. A flight that
+starts with the engine running holds the start, taxi and line-up clearances.
+
+**The wrong runway.** In a take-off mission the jet on the ground, on a runway of the base and lined up within 30°
+(`LINED_UP_DEG`, inferred: a jet crossing at 90° is not lined up) of an end other than the mission's
+(`Watch::wrong_runway`; the designators are the airbase file's, the ones the tower names) gets a warning: the tower
+says once per end "Alpha, you are on runway 7 left, the assigned runway is 25 right" ("Alpha, על מסלול 7 שמאלי,
+המסלול שהוקצה 25 ימני") and the panel shows "Wrong runway: this is 07L, the assigned one is 25R." while it lasts. Lining
+up there only warns; the roll there (faster than 30 kt) fails at once with `wrong_runway`.
 
 ## 4. The debrief record
 `Debrief::to_json` (`iaf-training score … --json`): `mission`, `kind`, `pass`, `reasons` (ids), `items` (each `id`,
@@ -277,22 +305,31 @@ when it was refused). The take-off missions still start cold: the same keys star
 wide.
 
 ## 8. The radio menu and the tower
-The **Call the tower** key (Ctrl+T) opens a numbered list over the view of the calls that fit the moment; a listed
-call's number picks it, any other key closes the list. A call that does not fit is not listed, and no key makes it
-(since 2026-11-09, the user: the menu offers only the call that fits the moment):
+The **Call the tower** key (Ctrl+T) opens a numbered list over the view; a call's number picks it, any other key
+closes the list. Since 2026-11-13 (the user: "all radio calls should always be available. on ground show only starting
+calls, in the air show landing") the list holds every ground call on the ground (start-up, taxi, line-up, take-off,
+always 1–4) and the landing call in the air (`training::radio_calls`). In a training mission the call the moment
+expects is marked "(next)" / "(הבאה)" (`training::next_call`, the "marked when" column). A ground call made before
+the clearance it follows (take-off before line-up, line-up before taxi, taxi before start-up;
+`training::missing_before`) gets "Alpha, negative, hold position, request line-up first" ("Alpha, שלילי, המתנה במקום,
+יש לבקש כניסה למסלול קודם"; `ACFT_NEGATIVE`) and clears nothing; a call repeated gets its answer again. A wrong call
+alone never fails a mission; acting without the clearance does (§3.3). No "say again" or "radio check" call exists;
+the air has only the landing call (open: the calls the landing and navigation lessons need, such as joining the
+pattern, final and go-around, have no tower lines yet).
 
-| call | English | Hebrew | listed when | the tower answers |
+| call | English | Hebrew | marked when | the tower answers |
 |---|---|---|---|---|
 | start-up | Request start-up | בקשת התנעה | on the ground with the engine off | "Alpha, cleared to start" (`ACFT_CLEAR_TO_START`) |
 | taxi | Request taxi | בקשת הסעה | on the ground with the engine running and the avionics up, taxi not yet (also after a start without start-up approval) | with the engine running: "Alpha, good morning, taxi to runway 25 right" (`ACFT_TAXI_TO_RUNWAY`); else "hold position" |
-| take-off | Request take-off | בקשת המראה | on the ground at the holding point or past it (no farther from the lineup point than the holding point plus 50 m, inferred; the holding point is the base's taxi-out path's last point before the lineup, `iaf.ibx` `FromTaxiPt`) with taxi approved, take-off not yet | the original tower's rule on the ground (docs/radio.md §2 `ground()`): lined up in the lineup zone: "cleared for take-off"; 200–400 m from the lineup point with the runway clear: "line up runway 25 right, wind calm"; else "hold position" |
+| line-up | Request line-up | בקשת כניסה למסלול | on the ground at the holding point or past it (no farther from the lineup point than the holding point plus 50 m, inferred; the holding point is the base's taxi-out path's last point before the lineup, `iaf.ibx` `FromTaxiPt`) with taxi approved, line-up not yet (since 2026-11-13) | within 400 m of the lineup point with the runway clear: "line up runway 25 right, wind calm" (`ACFT_CLEAR_TO_LINEUP_NW`; ours: the original's band starts 200 m out, which leaves out the holding point); else "hold position" |
+| take-off | Request take-off | בקשת המראה | at the holding point or past it with line-up approved, take-off not yet | the original tower's rule on the ground (docs/radio.md §2 `ground()`): lined up in the lineup zone: "cleared for take-off"; 200–400 m from the lineup point with the runway clear: "line up runway 25 right, wind calm"; else "hold position" |
 | landing | Contact tower (landing) | קריאה למגדל (נחיתה) | in the air | the original's Ctrl+T (docs/radio.md §2): "proceed to runway …" in the air |
 
-A call is approved by the tower's answer named in its row; "hold position" or "line up" leaves the call listed to ask
-again. The rule is `training::radio_calls` (`crates/iaf-tools/src/training.rs`, `IafTraining.radio_calls`);
-`sim_flight.gd` lists its result. Between the calls (the engine starting, the taxi to the holding point) the list holds
-"No call fits now" ("אין קריאה מתאימה כעת"). A flight that starts on the ground with the engine running (at the
-lineup point) has taxi approved, so take-off is listed at once.
+A call is approved by the tower's answer named in its row; "hold position" or "line up" leaves it unapproved, to ask
+again. The rules are in `crates/iaf-tools/src/training.rs` (`IafTraining.radio_calls`, `next_call`,
+`missing_before`); `sim_flight.gd` lists their result. Between the calls (the engine starting, the taxi to the holding
+point) no call is marked. A flight that starts on the ground with the engine running (at the lineup point) has taxi
+and line-up approved, so take-off is marked at once.
 
 The pilot's call is printed and spoken by the pilot's voice through the helmet chain ("Ramon tower, Alpha, request
 taxi"; sound.md §5.2), then 0.6 s of quiet, then the tower's answer printed and spoken by the tower's voice (sound.md
@@ -313,8 +350,9 @@ its own on the ground (the original game's tower is unchanged). Each pick is a `
 which the debrief counts as `tower_calls`. The scorer has no rule on the calls (a take-off without them still passes).
 
 A take-off mission's `training.steps` (mission data) lists the pilot's sequence for the briefing's How: each call
-on its own at its place (request start-up before the engine start, taxi once at idle with the avionics up, take-off
-from short of the runway), each with its key, the menu's pick and the answer to wait for (the table above).
+on its own at its place (request start-up before the engine start, taxi once at idle with the avionics up, line-up at
+the holding point, take-off once lined up), each with its key, the menu's pick and the answer to wait for (the table
+above). The picks are the menu's fixed order: start-up 1, taxi 2, line-up 3, take-off 4.
 
 Taxi: the jet taxis on the base's taxiways to the lineup (the probe follows the own `iaf.ibx`'s taxi path). The
 take-off passes by §3.2.
@@ -325,13 +363,16 @@ compiled file has `sim.training` with an `IafTraining` (crates/iaf-godot/src/tra
 mission `modern-iaf/data/missions/<id>.json` and the airbase files:
 - every frame `IafTraining.check` (§3.0) decides whether the mission failed; on a fail the mission ends at once
   (off the pavement: a `surface` event first);
-- a start-up is scored once the engine idles with the avionics up, a take-off once airborne with the gear up (then
-  every 3 s until it passes); a pass holds `end_hold_s` (`IafTraining.end_hold_s`), then the mission ends and is
-  scored again; 5 s past its time budget it ends as scored;
+- a start-up is scored once the engine idles with the avionics up, a take-off once airborne (then every 3 s until it
+  passes; since 2026-11-13 also with the gear down, the user: "why I didn't get completed mission … after I
+  airborned?"). A goal still missing shows in the panel ("To complete: raise the gear." / "To complete: climb out on
+  the runway heading with the gear up."); a take-off that cannot pass any more (`wrong_runway`, `excursion`,
+  `over_time`) ends at once as a Fail; a pass is stored at once and kept, the flight going on until the player ends
+  it (since 2026-11-13); 5 s past its time budget it ends as scored;
 - the player ending the flight first (Esc → End the flight, Ctrl+Q) ends the mission there, scored as it stands;
-- at the goal a banner in the front end's look (navy, Heebo) says "Mission complete" / "המשימה הושלמה"; a fail
-  shows "Fail" with the reason that ended it; 5 s later (real time; a pass: when its hold ends) the flight ends into
-  the debrief;
+- at the goal a banner in the front end's look (navy, Heebo) says "Mission complete" / "המשימה הושלמה" and "Fly on,
+  or Esc → End the flight for the debrief" for 10 s; a fail shows "Fail" with the reason that ended it and 5 s later
+  (real time, `end_hold_s`) the flight ends into the debrief;
 - an ejection ends the sortie (`Settings.eject_ends_sortie`, the sim only): every sound and the radio stop at once
   (`flight_sounds.gd silence`, no radio menu), the view stays outside on the seat and the jet at any height (no
   FlyTSD), the recording gets an `eject` event and the mission fails with `ejected` first. The original game's
@@ -353,11 +394,12 @@ record beside the records database, in a temporary folder. The recorder's versio
 timeline (the radio calls, the lift-off) and the start's steps from the RPM column.
 
 ## 10. The probe and a real run
-`modern-iaf/tests/test_mvp.gd` (item F's probe, started here) flies both missions for the Sufa (Ramon), the Barak
+`modern-iaf/tests/test_mvp.gd` (item F's probe, started here; `-- --only clearance`: each §3.3 phase done without
+its clearance, the Sufa, fails with its reason, the tower's line once and the recording's event) flies both missions for the Sufa (Ramon), the Barak
 (Ramat David) and the F-35I (Nevatim) headless with scripted inputs at 6× time: the start-up (cold, the throttle
 starts nothing, the checklist by its keys, the columns, the sortie's debrief, its pass in the pilot log; the JFS before the main
-power fails at once) and the take-off (the three radio
-calls and their answers, a taxi along the base's taxi path to the lineup (on the taxi line, slowing to 2.5 m/s
+power fails at once) and the take-off (the four radio
+calls and their answers, line-up at the holding point, a taxi along the base's taxi path to the lineup (on the taxi line, slowing to 2.5 m/s
 through each turn: off the pavement fails, §3.0), the roll on the centreline, the rotation,
 gear up, the debrief's goals), each ending in Pass, and a crash in the Sufa's start-up ending it at once in a Fail
 with the crash first. `-- --jet f16i` / `-- --only startup` narrow it. Item F adds the front end, Hebrew, the

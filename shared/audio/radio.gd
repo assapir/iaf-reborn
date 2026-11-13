@@ -235,20 +235,36 @@ func joined_wavs(keys: Array[String]) -> Array[String]:
 	return wavs
 
 
-## A phrase printed (FUN_0044a060) and spoken (FUN_004c5750); `print_it` false: spoken only.
-func say(template: String, strings: Array = [], ints: Array = [], print_it := true) -> Dictionary:
+## A phrase printed (FUN_0044a060) and spoken (FUN_004c5750); `print_it` false: spoken only. `subtitle`: printed in
+## place of the phrase's own text (the sim's pilot call).
+func say(template: String, strings: Array = [], ints: Array = [], print_it := true, subtitle := "") -> Dictionary:
 	var p := expand(template, strings, ints)
 	if host != null and host.get("sounds") is Object and host.sounds.get("silenced") == true:
 		return p  # the sortie ended (an ejection in IAF 2026): no more radio
 	said.append(p)
-	if print_it and p.text != "" and host != null and host.has_method("_on_subtitle"):
-		host._on_subtitle(p.shown)
+	var text: String = subtitle if subtitle != "" else (p.shown if print_it and p.text != "" else "")
+	var shown := text != "" and host != null and host.has_method("_on_subtitle")
+	if shown and not menu:
+		host._on_subtitle(text)
 	var clips: Array = p.wavs
 	if Settings.radio_key_clicks() and not clips.is_empty():
-		clips = ["key_on.ogg"] + clips + ["key_off.ogg"]
+		play_wav("key_on.ogg")
+		clips = clips + ["key_off.ogg"]
+	if shown and menu:
+		cue_subtitle(text)
 	for w in clips:
 		play_wav(w)
 	return p
+
+
+## Ours (Modern IAF, `menu`): the subtitle `text` shows when the speech queued before it ends, as its own voice starts
+## (the user, 2026-11-13: "comms subtitle should show up as talking"); at once with no speech queued or no sound.
+func cue_subtitle(text: String) -> void:
+	var s = host.get("sounds") if host != null else null
+	if s is Object and s.has_method("phrase_cue") and s.get("silenced") != true:
+		s.phrase_cue(host._on_subtitle.bind(text))
+	else:
+		host._on_subtitle(text)
 
 
 ## FUN_004c5470(file, 0, 1): a plain wav on the phrase channel.
@@ -591,10 +607,12 @@ func contact_tower() -> void:
 
 
 ## Ours, Modern IAF's radio menu (modern-iaf/docs/training.md §8): the player asks the tower of the base within
-## TOWER_RANGE for "startup", "taxi" or "takeoff"; the tower state machine (base, state, last) is left as it is.
-## Start-up is always cleared; taxi once the engine runs (else hold position); take-off by _ground's rule: lined up in
-## the lineup zone "cleared for take-off", between LINEUP_FAR and LINEUP_NEAR of the lineup point "line up" with the
-## runway clear (else hold position), elsewhere hold position. Near no talking tower: the click. Returns the answer
+## TOWER_RANGE for "startup", "taxi", "lineup" or "takeoff"; the tower state machine (base, state, last) is left as
+## it is. Start-up is always cleared; taxi once the engine runs (else hold position); line-up within LINEUP_NEAR of the
+## lineup point with the runway clear, the holding point (86–101 m out) included (else hold position; ours:
+## modern-iaf/docs/training.md §8); take-off by _ground's rule: lined up in the lineup zone "cleared for take-off",
+## between LINEUP_FAR and LINEUP_NEAR of the lineup point "line up" with the runway clear (else hold position),
+## elsewhere hold position. Near no talking tower: the click. Returns the answer
 ## (expand's {template, text, wavs}; template "KCH2": the click).
 func request(kind: String) -> Dictionary:
 	var at := base_at(_pos())
@@ -609,6 +627,12 @@ func request(kind: String) -> Dictionary:
 			code = 12
 		"taxi":
 			code = 0 if bool(_st().get("engine_on", false)) else 3
+		"lineup":
+			var b: Dictionary = bases[at]
+			var d := Vector2(_pos().x, _pos().y).distance_to(Vector2(b.lineup.x, b.lineup.y))
+			_zone_check(LINEUP_ZONE, true, at)  # sets runway_clear
+			if d < LINEUP_NEAR and runway_clear:
+				code = 1
 		"takeoff":
 			var b: Dictionary = bases[at]
 			var d := Vector2(_pos().x, _pos().y).distance_to(Vector2(b.lineup.x, b.lineup.y))

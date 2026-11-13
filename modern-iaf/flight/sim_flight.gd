@@ -2,11 +2,13 @@
 # training run (modern-iaf/docs/training.md §7–§9).
 # - The text over the flight in the sim's own look (flight_ui.gd): the mission card (H), the radio lines, the panel.
 # - The radio menu: the "Call the tower" key (Ctrl+T, command 107) opens a numbered list of the calls that fit the
-#   moment (IafTraining.radio_calls: start-up, taxi, take-off, contact the tower for landing); a number picks, any
-#   other key closes it. The tower answers by TTS (radio.gd request), each call a `radio` event in the recording.
+#   moment (IafTraining.radio_calls: start-up, taxi, line-up, take-off, contact the tower for landing); a number
+#   picks, any other key closes it. The tower answers by TTS (radio.gd request), each call a `radio` event in the
+#   recording; each line's subtitle shows as its voice starts (radio.gd cue_subtitle).
 # - A training mission (the compiled mission's `sim.training`): IafTraining (crates/iaf-tools training.rs) checks each
-#   frame for a fail (a crash, damage, the wheels off the pavement) and ends the mission at once on one; else the
-#   mission ends its hold after the goal, or when the player ends the flight. At its end the recording is scored by
+#   frame for a fail (a crash, damage, the wheels off the pavement, a phase without the tower's clearance or the roll
+#   on another runway: the tower says so) and ends the mission at once on one; a pass is kept and the flight goes on
+#   until the player ends it. At its end the recording is scored by
 #   IafTraining, the sortie and its debrief record stored in the records database (IafPilotLog).
 extends Node
 
@@ -16,21 +18,29 @@ const WizardTheme := preload("../setup/wizard_theme.gd")  # relative: a test of 
 const Look := preload("../menu/look.gd")
 ## The banner at the goal (training.md §9); a fail shows the record's "Fail" and its reason.
 const COMPLETE := {"en": "Mission complete", "he": "המשימה הושלמה"}
+## Under it: the flight goes on until the player ends it (the pause menu's End the flight), BANNER_S s.
+const FLY_ON := {
+	"en": "Fly on, or Esc → End the flight for the debrief",
+	"he": "אפשר להמשיך לטוס, או Esc ← סיום הטיסה לתחקיר",
+}
+const BANNER_S := 10.0
 ## The menu's lines: [request id, English, Hebrew] (radio.gd request; "landing": its Ctrl+T contact_tower).
 const ITEMS := [
 	["startup", "Request start-up", "בקשת התנעה"],
 	["taxi", "Request taxi", "בקשת הסעה"],
+	["lineup", "Request line-up", "בקשת כניסה למסלול"],
 	["takeoff", "Request take-off", "בקשת המראה"],
 	["landing", "Contact tower (landing)", "קריאה למגדל (נחיתה)"],
 ]
 const TITLE := {"en": "Radio: %s tower", "he": "קשר: מגדל %s"}
-## The menu's line when no call fits now.
-const NO_CALL := {"en": "No call fits now", "he": "אין קריאה מתאימה כעת"}
+## The mark after the call a training mission expects next.
+const NEXT := {"en": "  (next)", "he": "  (הבאה)"}
 ## The pilot's call, printed in the game's language and said by the pilot's voice (radio.gd PILOT_CALL: the address,
 ## the callsign, REQ_<ID>; modern-iaf/docs/sound.md §5.2).
 const CALLS := {
 	"startup": ["request start-up", "בקשת התנעה"],
 	"taxi": ["request taxi", "בקשת הסעה"],
+	"lineup": ["request line-up", "בקשת כניסה למסלול"],
 	"takeoff": ["ready for take-off", "בקשת המראה"],
 	"landing": ["request landing", "בקשת נחיתה"],
 }
@@ -43,12 +53,13 @@ const BASE_NAMES := {
 	"Hatzerim": ["Hatzerim", "חצרים"],
 	"Nevatim": ["Nevatim", "נבטים"],
 }
-## A take-off is scored once airborne with the gear up (every SCORE_EVERY s until it passes), a start-up once the
-## engine idles with the avionics up; either this long past its time budget. A pass ends the mission after the rules'
-## hold (IafTraining.end_hold_s).
+## A take-off is scored once airborne (every SCORE_EVERY s until it passes), a start-up once the
+## engine idles with the avionics up; either this long past its time budget. A pass is kept and the flight goes on.
 # ponytail: each score re-reads the whole recording (O(length)); a scorer fed sample by sample if it shows.
 const SCORE_EVERY := 3.0
 const PAST_BUDGET := 5.0
+## A take-off's fail reasons no later flying can mend: the mission ends on them once airborne.
+const FINAL := ["wrong_runway", "excursion", "over_time"]
 
 var host: Node
 var open := false
@@ -74,7 +85,9 @@ var _ready_at := INF
 ## The training run's IafTraining (its live check and scorer), its fail reason ("" while none) and when it passed.
 var trainer: RefCounted
 var _why := ""
-var _pass_at := INF
+## The runway end the jet is lined up on that is not the mission's (shown), and the ends the tower named already.
+var _wrong_shown := ""
+var _wrong_said: Array = []
 ## When the flight ends into the debrief (ms, real time), once the mission ended; the banner over the view.
 var _end_ms := INF
 var _banner: PanelContainer
@@ -169,8 +182,18 @@ func _he() -> bool:
 	return Settings.language == "he"
 
 
-## The calls that fit now, in menu order (IafTraining.radio_calls, training.md §8).
+## The menu's calls, in menu order (IafTraining.radio_calls, training.md §8): every ground call on the ground,
+## landing in the air.
 func calls() -> Array:
+	return Array(IafTraining.radio_calls(_radio_now()))
+
+
+## The call the moment expects next ("" none; IafTraining.next_call), marked in a training mission's menu.
+func next_call() -> String:
+	return String(IafTraining.next_call(_radio_now()))
+
+
+func _radio_now() -> Dictionary:
 	var r: Node = host.radio
 	var st: Dictionary = host.flight.state() if host.flight != null else {}
 	var now := {
@@ -190,7 +213,7 @@ func calls() -> Array:
 			_hold_m[sec] = _hold_of(sec, l)
 		if _hold_m[sec] != null:
 			now["hold_m"] = _hold_m[sec]
-	return Array(IafTraining.radio_calls(now))
+	return now
 
 
 ## The holding point of iaf.ibx section `sec`: its taxi-out path's last point before the lineup `l`; its distance to
@@ -208,12 +231,11 @@ func menu_text() -> String:
 	var lang := 1 if not _he() else 2
 	var base := _tower_name()
 	var lines := [(TITLE.he if _he() else TITLE.en) % base]
+	var next := next_call() if not rules.is_empty() else ""
 	for i in shown.size():
 		for it in ITEMS:
 			if it[0] == shown[i]:
-				lines.append("%d. %s" % [i + 1, it[lang]])
-	if shown.is_empty():
-		lines.append(NO_CALL.he if _he() else NO_CALL.en)
+				lines.append("%d. %s%s" % [i + 1, it[lang], (NEXT.he if _he() else NEXT.en) if it[0] == next else ""])
 	return "\n".join(lines)
 
 
@@ -234,6 +256,7 @@ func set_open(on: bool) -> void:
 	open = on
 	shown = calls() if on else []
 	ui.show_panel(menu_text() if on else "")
+	_wrong_shown = ""  # the wrong-runway line (if any) back once the menu closes
 
 
 ## A radio line or a message (terrain_view.gd _on_subtitle): the band of the sim's own text, not the original's
@@ -275,7 +298,8 @@ func key(event: InputEventKey) -> bool:
 
 
 ## One menu pick: the pilot's call printed and said, the gap, the tower's answer (radio.gd request), a `radio` event
-## recorded. A call that does not fit now (calls()) is not made: "".
+## recorded. A ground call whose earlier clearance is missing gets "negative, hold position, request … first"
+## (ACFT_NEGATIVE, IafTraining.missing_before) and clears nothing. A call not in the menu now (calls()) is not made: "".
 func pick(id: String) -> String:
 	if not id in calls():
 		return ""
@@ -287,14 +311,19 @@ func pick(id: String) -> String:
 	var line: String = "%s, %s" % [cs, CALLS[id][1 if _he() else 0]]
 	if has_tower:
 		line = "%s, %s" % [(TOWER.he if _he() else TOWER.en) % _base_name(at), line]
-	host._on_subtitle(line)
 	var twr: String = String(r.bases[at].name).to_upper() + "_TWR" if has_tower else ""
-	r.say("PILOT_CALL", [twr, cs + "_P", "REQ_" + id.to_upper()], [], false)
+	r.say("PILOT_CALL", [twr, cs + "_P", "REQ_" + id.to_upper()], [], false, line)  # the line as the voice starts
 	r.play_wav("radio_gap.ogg")
 	if id == "landing":
 		r.contact_tower()
 		return ""
-	var p: Dictionary = r.request(id)
+	var need := String(IafTraining.missing_before(id, answers, host.start_engine_on and not host.start_airborne))
+	var p: Dictionary
+	if need != "" and has_tower:
+		p = r.say("ACFT_NEGATIVE", [r._tower_callsign(), "FIRST_" + need.to_upper()])
+		r.say("ACFT_ROGER", [], [], false)
+	else:
+		p = r.request(id)
 	answers.append(String(p.template))
 	host._log_event(host._log_st, {"event": "radio", "call": id, "answer": p.template, "text": p.text})
 	return String(p.template)
@@ -320,26 +349,34 @@ func _process(_delta: float) -> void:
 		var o: Vector2 = host.terrain.world_origin
 		var p: Vector3 = host.rig.position
 		var ent: Dictionary = host.runtime.player_entity() if host.runtime != null else {}
-		_why = (
-			trainer
-			. check(
-				{
-					"on_ground": bool(st.on_ground),
-					"x": o.x + p.x,
-					"y": o.y - p.z,
-					"crashed": host.crashed,
-					"damage": float(ent.get("damage", 0.0)),
-					"ejected": host.ejected,
-					"fault": _fault,
-				}
-			)
-		)
+		var now := {
+			"on_ground": bool(st.on_ground),
+			"x": o.x + p.x,
+			"y": o.y - p.z,
+			"crashed": host.crashed,
+			"damage": float(ent.get("damage", 0.0)),
+			"ejected": host.ejected,
+			"fault": _fault,
+			"rpm": float(st.get("rpm", 0.0)) * 100.0,
+			"speed_kt": float(st.get("speed_kt", 0.0)),
+			"heading": float(st.get("heading", 0.0)),
+			"answers": answers,
+			"hot": host.start_engine_on and not host.start_airborne,
+		}
+		_wrong_runway(String(trainer.wrong_runway(now)))
+		_why = trainer.check(now)
 		if _why == "off_pavement":
 			host._log_event(st, {"event": "surface", "paved": false})
-	if _why != "" or t - _pass_at >= trainer.end_hold_s():
+		elif _why.ends_with("_clearance") or _why == "wrong_runway":
+			host._log_event(st, {"event": "clearance", "reason": _why})
+			# The tower calls it once ("Alpha, taxi without clearance": ACFT_NO_TAXI_CLEARANCE, training.md §3.3); a
+			# wrong runway it named at the line-up (_wrong_runway).
+			if _why != "wrong_runway":
+				host.radio.say("ACFT_" + _why.to_upper(), [host.radio._tower_callsign()])
+	if _why != "":
 		_end_now(t)
 		return
-	if t < _next_score or _pass_at < INF:
+	if t < _next_score:
 		return
 	var budget := float(rules.get("time_budget_s", 900.0))
 	var ready := false
@@ -347,7 +384,7 @@ func _process(_delta: float) -> void:
 		ready = bool(st.get("engine_on", false)) and bool(st.get("avionics", false))
 		ready = ready and _steps().all(func(id): return id in done)  # every checklist step's switch on
 	else:
-		ready = not bool(st.on_ground) and not host.gear_down
+		ready = not bool(st.on_ground)  # airborne: scored with the gear up or down, so a missing goal shows
 	if not (ready or t > budget + PAST_BUDGET):
 		_ready_at = INF
 		return
@@ -360,12 +397,31 @@ func _process(_delta: float) -> void:
 	if d.has("error"):
 		push_warning("training: %s" % d.error)
 		return
-	# A pass holds; a take-off not yet on its heading may still pass: scored again, until its budget.
+	# A pass holds; a take-off not yet on its heading or with the gear down may still pass: scored again, its missing
+	# goal shown ("To complete: …"), until its budget. A roll off the runway or past the budget cannot pass: it ends.
+	var why: Array = d.get("reasons", [])
 	if bool(d.get("pass", false)):
-		_pass_at = t
-		_show_banner(COMPLETE.he if _he() else COMPLETE.en, "")
-	elif t > budget + PAST_BUDGET or String(rules.kind) == "startup":
+		ui.show_panel("")
+		_finish(d)  # a pass stays: the flight goes on until the player ends it
+	elif t > budget + PAST_BUDGET or String(rules.kind) == "startup" or why.any(func(r): return r in FINAL):
 		_finish(d)
+	elif not open and not why.is_empty():
+		ui.show_panel(String(trainer.text("todo_" + String(why[0]), "he" if _he() else "en")))
+
+
+## Lined up on runway end `wrong` ("" none), not the mission's: the tower says so once per end ("Alpha, you are on
+## runway 7 left, the assigned runway is 25 right": ACFT_WRONG_RUNWAY, training.md §3.3) and the panel shows it while
+## it lasts; the roll on it fails (IafTraining.check "wrong_runway").
+func _wrong_runway(wrong: String) -> void:
+	var mine := String(trainer.runway())
+	if wrong != "" and not wrong in _wrong_said:
+		_wrong_said.append(wrong)
+		host.radio.say("ACFT_WRONG_RUNWAY", [host.radio._tower_callsign()], [wrong, mine])
+	if wrong == _wrong_shown or open:  # the menu holds the panel: shown once it closes
+		return
+	_wrong_shown = wrong
+	var t := String(trainer.text("todo_wrong_runway", "he" if _he() else "en")).split("{}")
+	ui.show_panel(t[0] + wrong + t[1] + mine + t[2] if wrong != "" else "")
 
 
 ## The mission ends now: scored and finished (retried every SCORE_EVERY s if it cannot be scored).
@@ -413,12 +469,13 @@ func _finish(d: Dictionary) -> void:
 	print("training %s: %s %s" % [mission_name, "PASS" if d["pass"] else "FAIL", d.get("reasons", [])])
 	host._log_event(host._log_st, {"event": "mission", "name": "training " + ("pass" if d["pass"] else "fail")})
 	var s: Dictionary = d.get("strings", {}).get("he" if _he() else "en", en)
-	# A pass ends after its hold (already run); a fail shows its reason that long first.
-	var hold: float = 0.0 if d["pass"] else trainer.end_hold_s()
-	_end_ms = Time.get_ticks_msec() + hold * 1000.0
+	# A pass: the banner with how to end, the flight going on (the user, 2026-11-13: "on mission complete - allow to
+	# keep flying"); a fail shows its reason end_hold_s, then the flight ends into the debrief.
 	if d["pass"]:
-		_show_banner(COMPLETE.he if _he() else COMPLETE.en, "")
+		_show_banner(COMPLETE.he if _he() else COMPLETE.en, FLY_ON.he if _he() else FLY_ON.en)
+		get_tree().create_timer(BANNER_S, false).timeout.connect(_hide_banner)
 	else:
+		_end_ms = Time.get_ticks_msec() + trainer.end_hold_s() * 1000.0
 		var why: Array = d.get("reasons", [])
 		_show_banner(String(s.get("fail", "")), String(s.get(why[0], why[0])) if not why.is_empty() else "")
 
@@ -614,6 +671,11 @@ func _fill_card() -> void:
 		var f := _card_line(v, String(trainer.text(_fault_shown, lang)), 16, Color("b3261e"))
 		f.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		f.custom_minimum_size.x = 348
+
+
+func _hide_banner() -> void:
+	if is_instance_valid(_banner):
+		_banner.queue_free()
 
 
 ## The banner over the view in the front end's look (navy, Heebo) until the flight ends into the debrief: "Mission

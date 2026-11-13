@@ -66,6 +66,9 @@ func run() -> void:
 	if only == "shutdown":  # --only shutdown: the throttle to OFF and the restart alone
 		await shutdown()
 		return
+	if only == "clearance":  # --only clearance: each phase without the tower's clearance fails (the Sufa)
+		await clearance()
+		return
 	var repeat := int(args[args.find("--repeat") + 1]) if args.has("--repeat") else 1
 	for i in repeat:  # --repeat N: N runs in one process (the headless model loads, gltf.gd `ahead`)
 		for id in JETS:
@@ -604,12 +607,14 @@ func _check_files(tv: Node, jet: String) -> void:
 	check(st != null and int(st) == 1, "%s: the pilot log holds the pass" % jet)
 
 
-## The radio menu: Ctrl+T opens it holding only call `id` (training.md §8), its number picks; the tower's answer.
+## The radio menu: Ctrl+T opens it with every ground call, `id` marked as the next (training.md §8); its number
+## picks; the tower's answer.
 func _call(tv: Node, id: String) -> String:
 	_press(tv, KEY_T, true)
 	var shown: bool = tv.addon.open
-	check(tv.addon.shown == [id], "the radio menu holds only %s: %s" % [id, tv.addon.shown])
-	_press(tv, KEY_1)
+	var i: int = tv.addon.shown.find(id)
+	check(i >= 0 and tv.addon.next_call() == id, "the radio menu marks %s: %s" % [id, tv.addon.menu_text()])
+	_press(tv, KEY_1 + i)
 	await fly(tv, 0.5)
 	var said: Array = tv.radio.said
 	return "%s%s" % ["" if shown else "(menu not shown) ", said[-2].template if said.size() >= 2 else "-"]
@@ -632,8 +637,8 @@ func takeoff(id: String) -> void:
 	# At idle: no call until the avionics are up (the Sufa's can be up by the time the engine idles), then taxi.
 	var av: bool = tv.flight.state().avionics
 	check(
-		tv.addon.calls() == (["taxi"] if av else []),
-		"%s: idle, avionics %s: %s" % [jet, "up" if av else "not up", tv.addon.calls()]
+		tv.addon.next_call() == ("taxi" if av else ""),
+		"%s: idle, avionics %s: next %s" % [jet, "up" if av else "not up", tv.addon.next_call()]
 	)
 	check(await _until(tv, func(): return tv.flight.state().avionics, 120.0), "%s: the avionics up" % jet)
 	a = await _call(tv, "taxi")
@@ -645,16 +650,27 @@ func takeoff(id: String) -> void:
 	var hdg := float(s.RunwayNumber)
 	tv.brakes = false
 	tv.scripted_stick = Vector2.ZERO
-	# Short of the holding point: the menu holds no call, and take-off's old number (3) makes none.
-	var said: int = tv.radio.said.size()
+	# At the spot after taxi: every ground call listed, none marked; take-off (4) out of order: "negative, hold
+	# position, request line-up first", no clearance and no fail.
 	_press(tv, KEY_T, true)
-	var none: bool = tv.addon.shown.is_empty()
-	_press(tv, KEY_3)
+	var all: bool = tv.addon.shown == ["startup", "taxi", "lineup", "takeoff"] and tv.addon.next_call() == ""
+	_press(tv, KEY_4)
 	await fly(tv, 0.5)
-	check(none and tv.radio.said.size() == said, "%s: at the spot after taxi, no call and key 3 makes none" % jet)
-	check(tv.addon.pick("takeoff") == "", "%s: a take-off request short of the holding point is not made" % jet)
-	var taxied := await _taxi(tv, path, hdg)
-	check(taxied, "%s: taxied %d points to the lineup" % [jet, path.size()])
+	var neg: Dictionary = tv.radio.said[-2]
+	check(all, "%s: at the spot after taxi, every ground call, none next: %s" % [jet, tv.addon.shown])
+	check(
+		neg.template == "ACFT_NEGATIVE" and "request line-up first" in String(neg.text),
+		"%s: take-off out of order -> %s" % [jet, neg.text]
+	)
+	check(not "ACFT_CLEAR_TO_TAKEOFF" in tv.addon.answers and tv.addon.result.is_empty(), "%s: no clearance" % jet)
+	# To the holding point, line-up there, onto the runway, then take-off (training.md §8; entering the runway or
+	# rolling without its clearance fails, §3.3).
+	var taxied := await _taxi(tv, path.slice(0, -1), hdg, false)
+	check(taxied, "%s: taxied %d points to the holding point" % [jet, path.size() - 1])
+	a = await _call(tv, "lineup")
+	check(a.begins_with("ACFT_CLEAR_TO_LINEUP"), "%s: line-up request at the holding point -> %s" % [jet, a])
+	check(await _taxi(tv, [path[-1]], hdg), "%s: lined up" % jet)
+	check(tv.addon.result.is_empty(), "%s: on the runway with line-up clearance: no fail" % jet)
 	a = await _call(tv, "takeoff")
 	check(a == "ACFT_CLEAR_TO_TAKEOFF", "%s: take-off request -> %s" % [jet, a])
 	await _roll(tv, id, path[-1], hdg)
@@ -669,6 +685,53 @@ func takeoff(id: String) -> void:
 	_check_files(tv, jet)
 	tv.scripted_stick = null
 	tv.scripted_rudder = null
+
+
+## Each phase done without the tower's clearance fails the Sufa's take-off at once (training.md §3.3): the reason
+## first in the debrief, the tower's line said once and shown in the band. `upto`: the calls made first.
+func _violation(calls: Array, why: String, act: Callable) -> void:
+	var tv := await _start("ramon_takeoff")
+	for c in calls:
+		if c == "start":
+			_press(tv, KEY_E, true)
+			check(await _until(tv, func(): return tv.flight.state().avionics, 120.0), "%s: the avionics up" % why)
+		else:
+			await _call(tv, c)
+	await act.call(tv)
+	var ok := await _until(tv, func(): return not tv.addon.result.is_empty(), 60.0)
+	var d: Dictionary = tv.addon.result
+	var r: Array = d.get("reasons", [])
+	check(ok and not d.pass and not r.is_empty() and r[0] == why, "%s: the mission fails first with it: %s" % [why, r])
+	var tower: Array = tv.radio.said.filter(func(p): return p.template == "ACFT_" + why.to_upper())
+	check(tower.size() == 1 and "without clearance" in String(tower[0].text), "%s: the tower says it once" % why)
+	var said := func(): return tv.addon.ui.band_texts().any(func(t): return "without clearance" in t)
+	check(await _until(tv, said, 20.0), "%s: in the band as the tower speaks" % why)
+	check(String(d.strings.he.get(why, "")) != "", "%s: the reason in Hebrew" % why)
+	var e := FileAccess.get_file_as_string(String(d.flight))
+	check('"event":"clearance"' in e and why in e, "%s: the recording's clearance event" % why)
+
+
+func clearance() -> void:
+	var s: Dictionary = settings().load_ibx(settings().own_dir().path_join("iaf.ibx"))["Ramon"]
+	var path: Array = []
+	for i in int(s.TaxiWayPtsFrom):
+		path.append(Vector2(float(s["FromTaxiPtX%d" % i]), float(s["FromTaxiPtY%d" % i])))
+	var hdg := float(s.RunwayNumber)
+	await _violation([], "no_start_clearance", func(tv): _press(tv, KEY_E, true))
+	var go := func(tv: Node) -> void:
+		tv.brakes = false
+		tv.scripted_stick = Vector2.ZERO
+		await _taxi(tv, path, hdg)
+	await _violation(["startup", "start"], "no_taxi_clearance", go)
+	await _violation(["startup", "start", "taxi"], "no_runway_clearance", go)
+	var roll := func(tv: Node) -> void:
+		tv.brakes = false
+		tv.scripted_stick = Vector2.ZERO
+		await _taxi(tv, path.slice(0, -1), hdg, false)
+		await _call(tv, "lineup")
+		await _taxi(tv, [path[-1]], hdg)
+		await _roll(tv, "f16i", path[-1], hdg)
+	await _violation(["startup", "start", "taxi"], "no_takeoff_clearance", roll)
 
 
 ## The HUD's ILS bars glide (the Mac play test's finding 24): 0.04° apart moves them under one HUD pixel, where the
@@ -857,13 +920,13 @@ func _drive(tv: Node, err: float, target_ms: float) -> void:
 	tv.brakes = v > target_ms + 0.5
 
 
-func _taxi(tv: Node, path: Array, hdg: float) -> bool:
+func _taxi(tv: Node, path: Array, hdg: float, line_up := true) -> bool:
 	var i := 0
 	var t0: float = tv._sim_time
 	var w0: Vector3 = tv.player_world()
 	var from := Vector2(w0.x, w0.y)
 	while i < path.size():
-		if tv._sim_time - t0 > 900.0:
+		if tv._sim_time - t0 > 900.0 or not tv.addon.result.is_empty():  # a clearance fail ends the flight
 			return false
 		var w: Vector3 = tv.player_world()
 		var at := Vector2(w.x, w.y)
@@ -878,18 +941,22 @@ func _taxi(tv: Node, path: Array, hdg: float) -> bool:
 		var aim: Vector2 = from + leg.normalized() * minf(along + LOOK_M, leg.length())
 		var err := _bearing_err(tv, aim)
 		# Slow through a turn until the nose is on the new leg.
-		_drive(tv, err, TURN_MS if turn or absf(err) > 15.0 or i == path.size() - 1 else TAXI_MS)
+		# Slow on the last leg's end too (Ramon's 900 m backtrack along the runway at taxi speed, 2026-11-13).
+		var last := i == path.size() - 1 and d < TURN_M
+		_drive(tv, err, TURN_MS if turn or absf(err) > 15.0 or last else TAXI_MS)
 		await process_frame
 	# Stopped on the lineup, then turned onto the runway heading, as a pilot lines up.
 	var c: Vector2 = path[-1]
 	var dir := Vector2(sin(deg_to_rad(hdg)), cos(deg_to_rad(hdg)))
-	while absf(wrapf(hdg - float(tv.flight.state().heading), -180.0, 180.0)) > 3.0:
-		if tv._sim_time - t0 > 900.0:
+	while line_up and absf(wrapf(hdg - float(tv.flight.state().heading), -180.0, 180.0)) > 3.0:
+		if tv._sim_time - t0 > 900.0 or not tv.addon.result.is_empty():
 			return false
 		_drive(tv, _bearing_err(tv, c + dir * 150.0), TURN_MS)
 		await process_frame
 	tv.throttle = 0.0
 	tv.brakes = true
+	if not tv.addon.result.is_empty():
+		return false
 	return await _until(tv, func(): return tv.flight.state().speed < 0.5, 30.0)
 
 
@@ -903,7 +970,10 @@ func _roll(tv: Node, id: String, lineup: Vector2, hdg: float) -> void:
 	var gear_at := INF
 	var slow_aoa := 0.0  # the most |AoA| shown below 30 kt (the probe's rest: 0°)
 	var fast_aoa := []  # [shown, true] AoA from 150 kt
-	while tv.addon.result.is_empty() and tv._sim_time - t0 < 120.0 and not tv.crashed:
+	# A pass holds and the flight goes on: the climb continues until the AoA probe has its samples.
+	var going := func():
+		return tv.addon.result.is_empty() or tv.addon.result.get("pass", false) and fast_aoa.size() < 60
+	while going.call() and tv._sim_time - t0 < 120.0 and not tv.crashed:
 		var st: Dictionary = tv.flight.state()
 		if float(st.speed_kt) < 30.0:
 			slow_aoa = maxf(slow_aoa, absf(float(st.aoa)))
@@ -926,6 +996,8 @@ func _roll(tv: Node, id: String, lineup: Vector2, hdg: float) -> void:
 			tv.scripted_stick = Vector2(roll_cmd, pitch_cmd)
 		await process_frame
 	# The AoA probe (modern-iaf/docs/cockpit.md §5.4): at rest from a standstill, following the flow from 150 kt.
+	if not tv.addon.result.get("pass", false):
+		return  # a failed take-off (the clearance runs): no climb to probe
 	var shown := fast_aoa.map(func(e): return e[0])
 	check(slow_aoa == 0.0, "%s: the AoA rests at 0° below 30 kt (most %.2f°)" % [id, slow_aoa])
 	check(

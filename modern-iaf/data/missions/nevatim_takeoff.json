@@ -34,7 +34,7 @@
     "training.takeoff_kt": "one figure for every weight: no public table by weight",
     "training.time_budget_s": "fifteen minutes from the mission's start for the start-up, the tower calls, the taxi and the take-off",
     "training.heading_tolerance_deg": "the climb-out on the runway heading within 10 degrees",
-    "training.end_hold_s": "the mission ends 5 s after its goal: time to see the result before the debrief"
+    "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result"
   },
   "footnotes": {
     "oa": "OurAirports, airports.csv (public domain; LLNV elevation 1330 ft), https://davidmegginson.github.io/ourairports-data/airports.csv",
@@ -70,6 +70,7 @@
   ],
   "training": {
     "kind": "takeoff",
+    "clearances": ["startup", "taxi", "takeoff"],
     "steps": [
       {
         "key": 47,
@@ -104,18 +105,28 @@
         "en": "Taxi to runway {runway} and stop short of it",
         "he": "הסעה למסלול {runway} ועצירה לפניו",
         "wait": {
-          "en": "200–400 m before the lineup point",
-          "he": "200–400 מ׳ לפני נקודת הכניסה למסלול"
+          "en": "at the holding point, about 100 m before the lineup point",
+          "he": "בנקודת ההמתנה, כ־100 מ׳ לפני נקודת הכניסה למסלול"
         }
       },
       {
         "key": 47,
         "pick": 3,
+        "en": "Call the tower: request line-up",
+        "he": "קריאה למגדל: בקשת כניסה למסלול",
+        "wait": {
+          "en": "wait for \"line up runway {runway}\", then line up on it",
+          "he": "המתנה ל\"כניסה למסלול {runway}\", ואז כניסה למסלול והתייצבות"
+        }
+      },
+      {
+        "key": 47,
+        "pick": 4,
         "en": "Call the tower: request take-off",
         "he": "קריאה למגדל: בקשת המראה",
         "wait": {
-          "en": "wait for \"line up\", line up and ask again: wait for \"cleared for take-off\"",
-          "he": "המתנה ל\"כניסה למסלול\", כניסה למסלול ובקשה חוזרת: המתנה ל\"מאושר להמריא\""
+          "en": "wait for \"cleared for take-off\"",
+          "he": "המתנה ל\"אישור המראה\""
         }
       },
       {

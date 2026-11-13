@@ -954,6 +954,241 @@
       "mode": "phrase"
     },
     {
+      "file": "twr_no_start_clr.ogg",
+      "voice": "tower",
+      "say": "engine start without clearance",
+      "mode": "particle",
+      "note": "a phase without the tower's clearance (modern-iaf/docs/training.md §3.3)"
+    },
+    {
+      "file": "twr_alpha_no_start_clr.ogg",
+      "voice": "tower",
+      "say": "Alpha, engine start without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_bravo_no_start_clr.ogg",
+      "voice": "tower",
+      "say": "Bravo, engine start without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_charlie_no_start_clr.ogg",
+      "voice": "tower",
+      "say": "Charlie, engine start without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_delta_no_start_clr.ogg",
+      "voice": "tower",
+      "say": "Delta, engine start without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_no_taxi_clr.ogg",
+      "voice": "tower",
+      "say": "taxi without clearance",
+      "mode": "particle",
+      "note": "a phase without the tower's clearance (modern-iaf/docs/training.md §3.3)"
+    },
+    {
+      "file": "twr_alpha_no_taxi_clr.ogg",
+      "voice": "tower",
+      "say": "Alpha, taxi without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_bravo_no_taxi_clr.ogg",
+      "voice": "tower",
+      "say": "Bravo, taxi without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_charlie_no_taxi_clr.ogg",
+      "voice": "tower",
+      "say": "Charlie, taxi without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_delta_no_taxi_clr.ogg",
+      "voice": "tower",
+      "say": "Delta, taxi without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_no_runway_clr.ogg",
+      "voice": "tower",
+      "say": "runway entry without clearance",
+      "mode": "particle",
+      "note": "a phase without the tower's clearance (modern-iaf/docs/training.md §3.3)"
+    },
+    {
+      "file": "twr_alpha_no_runway_clr.ogg",
+      "voice": "tower",
+      "say": "Alpha, runway entry without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_bravo_no_runway_clr.ogg",
+      "voice": "tower",
+      "say": "Bravo, runway entry without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_charlie_no_runway_clr.ogg",
+      "voice": "tower",
+      "say": "Charlie, runway entry without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_delta_no_runway_clr.ogg",
+      "voice": "tower",
+      "say": "Delta, runway entry without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_no_takeoff_clr.ogg",
+      "voice": "tower",
+      "say": "take-off without clearance",
+      "mode": "particle",
+      "note": "a phase without the tower's clearance (modern-iaf/docs/training.md §3.3)"
+    },
+    {
+      "file": "twr_alpha_no_takeoff_clr.ogg",
+      "voice": "tower",
+      "say": "Alpha, take-off without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_bravo_no_takeoff_clr.ogg",
+      "voice": "tower",
+      "say": "Bravo, take-off without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_charlie_no_takeoff_clr.ogg",
+      "voice": "tower",
+      "say": "Charlie, take-off without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_delta_no_takeoff_clr.ogg",
+      "voice": "tower",
+      "say": "Delta, take-off without clearance.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_on_rwy.ogg",
+      "voice": "tower",
+      "say": "you are on runway",
+      "mode": "particle",
+      "note": "lined up on another runway than the mission's (modern-iaf/docs/training.md §3.3)"
+    },
+    {
+      "file": "twr_cleared_rwy.ogg",
+      "voice": "tower",
+      "say": "the assigned runway is",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_alpha_on_rwy.ogg",
+      "voice": "tower",
+      "say": "Alpha, you are on runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_bravo_on_rwy.ogg",
+      "voice": "tower",
+      "say": "Bravo, you are on runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_charlie_on_rwy.ogg",
+      "voice": "tower",
+      "say": "Charlie, you are on runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_delta_on_rwy.ogg",
+      "voice": "tower",
+      "say": "Delta, you are on runway; two seven.",
+      "cut": "head",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_negative_hold.ogg",
+      "voice": "tower",
+      "say": "negative, hold position",
+      "mode": "particle",
+      "note": "a call out of order (modern-iaf/docs/training.md §8)"
+    },
+    {
+      "file": "twr_first_startup.ogg",
+      "voice": "tower",
+      "say": "request start-up first",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_first_taxi.ogg",
+      "voice": "tower",
+      "say": "request taxi first",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_first_lineup.ogg",
+      "voice": "tower",
+      "say": "request line-up first",
+      "mode": "particle"
+    },
+    {
+      "file": "twr_alpha_negative_hold.ogg",
+      "voice": "tower",
+      "say": "Alpha, negative, hold position.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_bravo_negative_hold.ogg",
+      "voice": "tower",
+      "say": "Bravo, negative, hold position.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_charlie_negative_hold.ogg",
+      "voice": "tower",
+      "say": "Charlie, negative, hold position.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_delta_negative_hold.ogg",
+      "voice": "tower",
+      "say": "Delta, negative, hold position.",
+      "mode": "phrase"
+    },
+    {
+      "file": "twr_alpha_negative_startup.ogg",
+      "voice": "tower",
+      "say": "Alpha, negative, hold position, request start-up first.",
+      "mode": "phrase",
+      "note": "a training mission's call, whole"
+    },
+    {
+      "file": "twr_alpha_negative_taxi.ogg",
+      "voice": "tower",
+      "say": "Alpha, negative, hold position, request taxi first.",
+      "mode": "phrase",
+      "note": "a training mission's call, whole"
+    },
+    {
+      "file": "twr_alpha_negative_lineup.ogg",
+      "voice": "tower",
+      "say": "Alpha, negative, hold position, request line-up first.",
+      "mode": "phrase",
+      "note": "a training mission's call, whole"
+    },
+    {
       "file": "twr_alpha_taxi_morning_24.ogg",
       "voice": "tower",
       "say": "Alpha, good morning, taxi to runway two four.",
@@ -1098,6 +1333,12 @@
       "mode": "helmet"
     },
     {
+      "file": "plt_req_lineup.ogg",
+      "voice": "pilot",
+      "say": "Request line-up.",
+      "mode": "helmet"
+    },
+    {
       "file": "plt_req_takeoff.ogg",
       "voice": "pilot",
       "say": "Ready for take-off.",
@@ -1120,6 +1361,13 @@
       "file": "plt_ramon_alpha_taxi.ogg",
       "voice": "pilot",
       "say": "Ramon tower, Alpha, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_ramon_alpha_lineup.ogg",
+      "voice": "pilot",
+      "say": "Ramon tower, Alpha, request line-up.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
@@ -1152,6 +1400,13 @@
       "note": "the player's call, whole"
     },
     {
+      "file": "plt_david_alpha_lineup.ogg",
+      "voice": "pilot",
+      "say": "Ramat David tower, Alpha, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
       "file": "plt_david_alpha_takeoff.ogg",
       "voice": "pilot",
       "say": "Ramat David tower, Alpha, ready for take-off.",
@@ -1180,6 +1435,13 @@
       "note": "the player's call, whole"
     },
     {
+      "file": "plt_hatzerim_alpha_lineup.ogg",
+      "voice": "pilot",
+      "say": "Hatzerim tower, Alpha, request line-up.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
       "file": "plt_hatzerim_alpha_takeoff.ogg",
       "voice": "pilot",
       "say": "Hatzerim tower, Alpha, ready for take-off.",
@@ -1204,6 +1466,13 @@
       "file": "plt_nevatim_alpha_taxi.ogg",
       "voice": "pilot",
       "say": "Nevatim tower, Alpha, request taxi.",
+      "mode": "helmet",
+      "note": "the player's call, whole"
+    },
+    {
+      "file": "plt_nevatim_alpha_lineup.ogg",
+      "voice": "pilot",
+      "say": "Nevatim tower, Alpha, request line-up.",
       "mode": "helmet",
       "note": "the player's call, whole"
     },
@@ -1327,6 +1596,56 @@
       "file": "twr_gear_not_down.ogg",
       "text": "check gear down",
       "text_he": "בדיקת כן נסע למטה"
+    },
+    "NO_START_CLR": {
+      "file": "twr_no_start_clr.ogg",
+      "text": "engine start without clearance",
+      "text_he": "התנעה ללא אישור"
+    },
+    "NO_TAXI_CLR": {
+      "file": "twr_no_taxi_clr.ogg",
+      "text": "taxi without clearance",
+      "text_he": "הסעה ללא אישור"
+    },
+    "NO_RUNWAY_CLR": {
+      "file": "twr_no_runway_clr.ogg",
+      "text": "runway entry without clearance",
+      "text_he": "כניסה למסלול ללא אישור"
+    },
+    "NO_TAKEOFF_CLR": {
+      "file": "twr_no_takeoff_clr.ogg",
+      "text": "take-off without clearance",
+      "text_he": "המראה ללא אישור"
+    },
+    "ON_RWY": {
+      "file": "twr_on_rwy.ogg",
+      "text": "you are on runway",
+      "text_he": "על מסלול"
+    },
+    "CLEARED_RWY": {
+      "file": "twr_cleared_rwy.ogg",
+      "text": "the assigned runway is",
+      "text_he": "המסלול שהוקצה"
+    },
+    "NEGATIVE_HOLD": {
+      "file": "twr_negative_hold.ogg",
+      "text": "negative, hold position",
+      "text_he": "שלילי, המתנה במקום"
+    },
+    "FIRST_STARTUP": {
+      "file": "twr_first_startup.ogg",
+      "text": "request start-up first",
+      "text_he": "יש לבקש התנעה קודם"
+    },
+    "FIRST_TAXI": {
+      "file": "twr_first_taxi.ogg",
+      "text": "request taxi first",
+      "text_he": "יש לבקש הסעה קודם"
+    },
+    "FIRST_LINEUP": {
+      "file": "twr_first_lineup.ogg",
+      "text": "request line-up first",
+      "text_he": "יש לבקש כניסה למסלול קודם"
     },
     "WIND_CALM": {
       "file": "twr_wind_calm.ogg",
@@ -1833,6 +2152,141 @@
       "text": "Delta, check gear down",
       "text_he": "Delta, בדיקת כן נסע למטה"
     },
+    "ALPHA_T+,+NO_START_CLR": {
+      "file": "twr_alpha_no_start_clr.ogg",
+      "text": "Alpha, engine start without clearance",
+      "text_he": "Alpha, התנעה ללא אישור"
+    },
+    "BRAVO_T+,+NO_START_CLR": {
+      "file": "twr_bravo_no_start_clr.ogg",
+      "text": "Bravo, engine start without clearance",
+      "text_he": "Bravo, התנעה ללא אישור"
+    },
+    "CHARLIE_T+,+NO_START_CLR": {
+      "file": "twr_charlie_no_start_clr.ogg",
+      "text": "Charlie, engine start without clearance",
+      "text_he": "Charlie, התנעה ללא אישור"
+    },
+    "DELTA_T+,+NO_START_CLR": {
+      "file": "twr_delta_no_start_clr.ogg",
+      "text": "Delta, engine start without clearance",
+      "text_he": "Delta, התנעה ללא אישור"
+    },
+    "ALPHA_T+,+NO_TAXI_CLR": {
+      "file": "twr_alpha_no_taxi_clr.ogg",
+      "text": "Alpha, taxi without clearance",
+      "text_he": "Alpha, הסעה ללא אישור"
+    },
+    "BRAVO_T+,+NO_TAXI_CLR": {
+      "file": "twr_bravo_no_taxi_clr.ogg",
+      "text": "Bravo, taxi without clearance",
+      "text_he": "Bravo, הסעה ללא אישור"
+    },
+    "CHARLIE_T+,+NO_TAXI_CLR": {
+      "file": "twr_charlie_no_taxi_clr.ogg",
+      "text": "Charlie, taxi without clearance",
+      "text_he": "Charlie, הסעה ללא אישור"
+    },
+    "DELTA_T+,+NO_TAXI_CLR": {
+      "file": "twr_delta_no_taxi_clr.ogg",
+      "text": "Delta, taxi without clearance",
+      "text_he": "Delta, הסעה ללא אישור"
+    },
+    "ALPHA_T+,+NO_RUNWAY_CLR": {
+      "file": "twr_alpha_no_runway_clr.ogg",
+      "text": "Alpha, runway entry without clearance",
+      "text_he": "Alpha, כניסה למסלול ללא אישור"
+    },
+    "BRAVO_T+,+NO_RUNWAY_CLR": {
+      "file": "twr_bravo_no_runway_clr.ogg",
+      "text": "Bravo, runway entry without clearance",
+      "text_he": "Bravo, כניסה למסלול ללא אישור"
+    },
+    "CHARLIE_T+,+NO_RUNWAY_CLR": {
+      "file": "twr_charlie_no_runway_clr.ogg",
+      "text": "Charlie, runway entry without clearance",
+      "text_he": "Charlie, כניסה למסלול ללא אישור"
+    },
+    "DELTA_T+,+NO_RUNWAY_CLR": {
+      "file": "twr_delta_no_runway_clr.ogg",
+      "text": "Delta, runway entry without clearance",
+      "text_he": "Delta, כניסה למסלול ללא אישור"
+    },
+    "ALPHA_T+,+NO_TAKEOFF_CLR": {
+      "file": "twr_alpha_no_takeoff_clr.ogg",
+      "text": "Alpha, take-off without clearance",
+      "text_he": "Alpha, המראה ללא אישור"
+    },
+    "BRAVO_T+,+NO_TAKEOFF_CLR": {
+      "file": "twr_bravo_no_takeoff_clr.ogg",
+      "text": "Bravo, take-off without clearance",
+      "text_he": "Bravo, המראה ללא אישור"
+    },
+    "CHARLIE_T+,+NO_TAKEOFF_CLR": {
+      "file": "twr_charlie_no_takeoff_clr.ogg",
+      "text": "Charlie, take-off without clearance",
+      "text_he": "Charlie, המראה ללא אישור"
+    },
+    "DELTA_T+,+NO_TAKEOFF_CLR": {
+      "file": "twr_delta_no_takeoff_clr.ogg",
+      "text": "Delta, take-off without clearance",
+      "text_he": "Delta, המראה ללא אישור"
+    },
+    "ALPHA_T+,+ON_RWY": {
+      "file": "twr_alpha_on_rwy.ogg",
+      "text": "Alpha, you are on runway",
+      "text_he": "Alpha, על מסלול"
+    },
+    "BRAVO_T+,+ON_RWY": {
+      "file": "twr_bravo_on_rwy.ogg",
+      "text": "Bravo, you are on runway",
+      "text_he": "Bravo, על מסלול"
+    },
+    "CHARLIE_T+,+ON_RWY": {
+      "file": "twr_charlie_on_rwy.ogg",
+      "text": "Charlie, you are on runway",
+      "text_he": "Charlie, על מסלול"
+    },
+    "DELTA_T+,+ON_RWY": {
+      "file": "twr_delta_on_rwy.ogg",
+      "text": "Delta, you are on runway",
+      "text_he": "Delta, על מסלול"
+    },
+    "ALPHA_T+,+NEGATIVE_HOLD": {
+      "file": "twr_alpha_negative_hold.ogg",
+      "text": "Alpha, negative, hold position",
+      "text_he": "Alpha, שלילי, המתנה במקום"
+    },
+    "BRAVO_T+,+NEGATIVE_HOLD": {
+      "file": "twr_bravo_negative_hold.ogg",
+      "text": "Bravo, negative, hold position",
+      "text_he": "Bravo, שלילי, המתנה במקום"
+    },
+    "CHARLIE_T+,+NEGATIVE_HOLD": {
+      "file": "twr_charlie_negative_hold.ogg",
+      "text": "Charlie, negative, hold position",
+      "text_he": "Charlie, שלילי, המתנה במקום"
+    },
+    "DELTA_T+,+NEGATIVE_HOLD": {
+      "file": "twr_delta_negative_hold.ogg",
+      "text": "Delta, negative, hold position",
+      "text_he": "Delta, שלילי, המתנה במקום"
+    },
+    "ALPHA_T+,+NEGATIVE_HOLD+,+FIRST_STARTUP": {
+      "file": "twr_alpha_negative_startup.ogg",
+      "text": "Alpha, negative, hold position, request start-up first",
+      "text_he": "Alpha, שלילי, המתנה במקום, יש לבקש התנעה קודם"
+    },
+    "ALPHA_T+,+NEGATIVE_HOLD+,+FIRST_TAXI": {
+      "file": "twr_alpha_negative_taxi.ogg",
+      "text": "Alpha, negative, hold position, request taxi first",
+      "text_he": "Alpha, שלילי, המתנה במקום, יש לבקש הסעה קודם"
+    },
+    "ALPHA_T+,+NEGATIVE_HOLD+,+FIRST_LINEUP": {
+      "file": "twr_alpha_negative_lineup.ogg",
+      "text": "Alpha, negative, hold position, request line-up first",
+      "text_he": "Alpha, שלילי, המתנה במקום, יש לבקש כניסה למסלול קודם"
+    },
     "ALPHA_T+,+MORNING+,+TAXI_RWY+24": {
       "file": "twr_alpha_taxi_morning_24.ogg",
       "text": "Alpha, good morning, taxi to runway two four",
@@ -1943,6 +2397,11 @@
       "text": "request taxi",
       "text_he": "בקשת הסעה"
     },
+    "REQ_LINEUP": {
+      "file": "plt_req_lineup.ogg",
+      "text": "request line-up",
+      "text_he": "בקשת כניסה למסלול"
+    },
     "REQ_TAKEOFF": {
       "file": "plt_req_takeoff.ogg",
       "text": "ready for take-off",
@@ -1962,6 +2421,11 @@
       "file": "plt_ramon_alpha_taxi.ogg",
       "text": "Ramon tower, Alpha, request taxi",
       "text_he": "מגדל רמון, Alpha, בקשת הסעה"
+    },
+    "RAMON_TWR+,+ALPHA_P+,+REQ_LINEUP": {
+      "file": "plt_ramon_alpha_lineup.ogg",
+      "text": "Ramon tower, Alpha, request line-up",
+      "text_he": "מגדל רמון, Alpha, בקשת כניסה למסלול"
     },
     "RAMON_TWR+,+ALPHA_P+,+REQ_TAKEOFF": {
       "file": "plt_ramon_alpha_takeoff.ogg",
@@ -1983,6 +2447,11 @@
       "text": "Ramat David tower, Alpha, request taxi",
       "text_he": "מגדל רמת דוד, Alpha, בקשת הסעה"
     },
+    "DAVID_TWR+,+ALPHA_P+,+REQ_LINEUP": {
+      "file": "plt_david_alpha_lineup.ogg",
+      "text": "Ramat David tower, Alpha, request line-up",
+      "text_he": "מגדל רמת דוד, Alpha, בקשת כניסה למסלול"
+    },
     "DAVID_TWR+,+ALPHA_P+,+REQ_TAKEOFF": {
       "file": "plt_david_alpha_takeoff.ogg",
       "text": "Ramat David tower, Alpha, ready for take-off",
@@ -2003,6 +2472,11 @@
       "text": "Hatzerim tower, Alpha, request taxi",
       "text_he": "מגדל חצרים, Alpha, בקשת הסעה"
     },
+    "HATZERIM_TWR+,+ALPHA_P+,+REQ_LINEUP": {
+      "file": "plt_hatzerim_alpha_lineup.ogg",
+      "text": "Hatzerim tower, Alpha, request line-up",
+      "text_he": "מגדל חצרים, Alpha, בקשת כניסה למסלול"
+    },
     "HATZERIM_TWR+,+ALPHA_P+,+REQ_TAKEOFF": {
       "file": "plt_hatzerim_alpha_takeoff.ogg",
       "text": "Hatzerim tower, Alpha, ready for take-off",
@@ -2022,6 +2496,11 @@
       "file": "plt_nevatim_alpha_taxi.ogg",
       "text": "Nevatim tower, Alpha, request taxi",
       "text_he": "מגדל נבטים, Alpha, בקשת הסעה"
+    },
+    "NEVATIM_TWR+,+ALPHA_P+,+REQ_LINEUP": {
+      "file": "plt_nevatim_alpha_lineup.ogg",
+      "text": "Nevatim tower, Alpha, request line-up",
+      "text_he": "מגדל נבטים, Alpha, בקשת כניסה למסלול"
     },
     "NEVATIM_TWR+,+ALPHA_P+,+REQ_TAKEOFF": {
       "file": "plt_nevatim_alpha_takeoff.ogg",
@@ -2047,6 +2526,12 @@
     "ACFT_GO_AROUND_RUNWAY": "%S1 , GO_AROUND",
     "ACFT_TAXI_TO_PARK": "%S1 , TAXI_PARK",
     "ACFT_GEARS_NOT_OPEN": "%S1 , GEAR_NOT_DOWN",
+    "ACFT_NO_START_CLEARANCE": "%S1 , NO_START_CLR",
+    "ACFT_NO_TAXI_CLEARANCE": "%S1 , NO_TAXI_CLR",
+    "ACFT_NO_RUNWAY_CLEARANCE": "%S1 , NO_RUNWAY_CLR",
+    "ACFT_NO_TAKEOFF_CLEARANCE": "%S1 , NO_TAKEOFF_CLR",
+    "ACFT_WRONG_RUNWAY": "%S1 , ON_RWY %D1 , CLEARED_RWY %D2",
+    "ACFT_NEGATIVE": "%S1 , NEGATIVE_HOLD , %S2",
     "ACFT_ROGER": "ROGER",
     "PILOT_CALL": "%S1 , %S2 , %S3"
   },

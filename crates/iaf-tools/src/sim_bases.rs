@@ -151,7 +151,7 @@ impl Runway {
         (self.ends[1][0] - self.ends[0][0]).hypot(self.ends[1][1] - self.ends[0][1])
     }
     /// Unit vector from end k toward the other end.
-    fn dir(&self, k: usize) -> [f64; 2] {
+    pub fn dir(&self, k: usize) -> [f64; 2] {
         let (a, b) = (self.ends[k], self.ends[1 - k]);
         let l = self.length();
         [(b[0] - a[0]) / l, (b[1] - a[1]) / l]

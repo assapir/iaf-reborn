@@ -385,7 +385,13 @@ Each warning is said twice, as in both reference recordings (§5.1). Betty is ab
 wording. The templates are the ones `radio.gd` calls (`ACFT_TAXI_TO_RUNWAY`, `ACFT_CLEAR_TO_LINEUP` / `_NW`,
 `ACFT_HOLD_POS`, `ACFT_CLEAR_TO_TAKEOFF`, `ACFT_PROCEED_TO_RUNWAY`, `ACFT_CLEAR_TO_LAND` / `_NW`,
 `ACFT_GO_AROUND_RUNWAY`, `ACFT_TAXI_TO_PARK`, `ACFT_GEARS_NOT_OPEN`, `ACFT_ROGER`) plus `ACFT_CLEAR_TO_START` for
-the radio menu's start-up request (item E3b, [training.md](training.md) §8: the menu's three requests use
+the radio menu's start-up request, the four calls of a phase without clearance (`ACFT_NO_START_CLEARANCE` "Alpha,
+engine start without clearance", `ACFT_NO_TAXI_CLEARANCE`, `ACFT_NO_RUNWAY_CLEARANCE`, `ACFT_NO_TAKEOFF_CLEARANCE`;
+each a particle and a joined clip per callsign) and `ACFT_WRONG_RUNWAY` (`%S1 , ON_RWY %D1 , CLEARED_RWY %D2`: "Alpha,
+you are on runway 7 left, the assigned runway is 25 right"; [training.md](training.md) §3.3), `ACFT_NEGATIVE` (`%S1 ,
+NEGATIVE_HOLD , %S2`: "Alpha, negative, hold position, request line-up first", a call out of order, training.md §8);
+the pilot's
+`REQ_LINEUP` ("request line-up", whole per base for Alpha) for the menu's line-up call (item E3b, [training.md](training.md) §8: the menu's three requests use
 `ACFT_CLEAR_TO_START`, `ACFT_TAXI_TO_RUNWAY`, `ACFT_CLEAR_TO_LINEUP` / `_NW`, `ACFT_HOLD_POS`, `ACFT_CLEAR_TO_TAKEOFF`). Example: `ACFT_TAXI_TO_RUNWAY` = `%S1 , %S2 , TAXI_RWY %D1` → "Alpha, good morning, taxi
 to runway 25 right". The particles cover the callsigns Alpha–Delta, the greetings, the winds 10 / 15 / 20 kt, every
 runway number 1–36 (spoken digit by digit, "two five") and the letters `RWY_L` / `RWY_R` / `RWY_C`.

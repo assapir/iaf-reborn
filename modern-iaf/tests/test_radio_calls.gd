@@ -35,10 +35,21 @@ func run() -> void:
 	var want := ["key_on.ogg", "plt_ramon_alpha_start.ogg", "key_off.ogg", "radio_gap.ogg", "key_on.ogg"]
 	check(seq.slice(0, 5) == want, "call, key-off, the gap, then the tower keys on: %s" % [seq])
 	check(seq.has("twr_alpha_start.ogg"), "then the tower's answer: %s" % [seq])
+	# The subtitles show as each voice starts (the user, 2026-11-13): the tower's not with the pilot's.
 	var band: Array = tv.addon.ui.band_texts()
 	check(
+		not band.any(func(t): return "cleared to start" in t.to_lower()),
+		"the tower's line waits for its voice: %s" % [band]
+	)
+	var t0 := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 < 10000:
+		band = tv.addon.ui.band_texts()
+		if band.size() >= 2 and "cleared to start" in band[-1].to_lower():
+			break
+		await process_frame
+	check(
 		band.size() >= 2 and "request start-up" in band[-2] and "cleared to start" in band[-1].to_lower(),
-		"the band: the pilot's line, then the tower's: %s" % [band]
+		"the band: the pilot's line, then the tower's as it speaks: %s" % [band]
 	)
 	# The taxi greeting by the mission's clock.
 	var at: int = r.base_at(r._pos())

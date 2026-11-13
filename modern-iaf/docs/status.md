@@ -302,13 +302,19 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **[E3b](plan.md#e3-the-training-missions), the training missions in the game (2026-11-03):** `./start-modern-iaf -- --mission 2011` (… 2032) flies a start-up or
   take-off mission without the front end: parked cold, the start command (Ctrl+E) runs the jet's start sequence on
   the 6-DoF, the screens and the HUD come alive at the real moments; the radio menu (Ctrl+T) asks the base's
-  tower for start-up, taxi and take-off, listing only the call that fits the moment (since 2026-11-09); the pilot's own voice makes the call through the helmet chain, then the English TTS tower answers (since 2026-11-12, item A21, [sound.md](sound.md) §5.2); at the end the flight is scored, the
+  tower for start-up, taxi, line-up and take-off, since 2026-11-13 listing every ground call on the ground (the next one
+  marked) and landing in the air, line-up its own call, a call out of order answered "negative, hold position, request
+  … first", each subtitle shown as its voice starts; the pilot's own voice makes the call through the helmet chain, then the English TTS tower answers (since 2026-11-12, item A21, [sound.md](sound.md) §5.2); at the end the flight is scored, the
   sortie and its debrief record stored in the records database ([training.md](training.md) §7–§10).
   `modern-iaf/tests/test_mvp.gd` flies both missions for the Sufa, the Barak and the F-35I to a Pass. Since 2026-11-08
-  a crash, any damage or the wheels off the pavement fail a mission at once with that reason first; a pass ends 5 s
-  after the goal or when the player ends the flight; the debrief sheet shows only the mission's goals
-  ([training.md](training.md) §3.0, §4). A banner says "Mission complete" or the Fail and its reason, then the flight
-  ends into the debrief; an ejection ends the sortie: silent, outside view, Fail "ejected" (§9). The start-up
+  a crash, any damage or the wheels off the pavement fail a mission at once with that reason first; a pass is kept
+  and the flight goes on until the player ends it (since 2026-11-13); the debrief sheet shows only the mission's goals
+  ([training.md](training.md) §3.0, §4). A banner says "Mission complete" (fly on, or Esc → End the flight), or the Fail and its
+  reason, then the flight ends into the debrief; an ejection ends the sortie: silent, outside view, Fail "ejected" (§9). Since 2026-11-13 (the
+  user: "missions should fail if I start without tower permissions") a take-off mission fails at once on a phase
+  without the tower's clearance (the engine start, leaving the spot, entering the runway, the roll), the tower saying
+  so; lined up on another runway end the tower names it and the roll there fails; airborne, the goal still missing
+  shows live ("To complete: raise the gear.") ([training.md](training.md) §3.3, §9). The start-up
   mission is the real start by keys: the F-16's six-step checklist and the F-35I's battery, IPP, engine, canopy, on
   a card in both languages; a step out of order has its consequence (a hot start, no power) and fails (§7.1).
 - **[B2b](plan.md#b2-the-airbases), the airbases in the game (2026-11-03):** `iaf-sim airbases` compiles Ramon, Ramat David, Hatzerim and

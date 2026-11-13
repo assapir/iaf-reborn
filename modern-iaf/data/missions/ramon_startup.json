@@ -26,7 +26,7 @@
     "wind_from": "calm: no direction",
     "start": "the base's parking spot for the unit (modern-iaf/data/airbases, airbases.md §5); the altitude: the terrain's ground there (elevation_m without the terrain)",
     "training.time_budget_s": "five minutes from the mission's start: the checklist by keys, the engine's wind-up and the INS stored-heading alignment (90 s) or the F-35's 90 s self test, with time to read the card",
-    "training.end_hold_s": "the mission ends 5 s after its goal: time to see the result before the debrief",
+    "training.end_hold_s": "a fail shows its reason 5 s before the debrief: time to see the result",
     "training.checklist": "the start-up checklist by keys (training.md §7.1): the F-16's after the T.O. checklist's order, the F-35's battery, IPP, engine (AIR International, 2012)"
   },
   "footnotes": {

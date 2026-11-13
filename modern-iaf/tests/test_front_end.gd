@@ -1073,12 +1073,16 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	check(objs.get_child_count() == 4 and _has_part(objs, "25R"), "%s: briefing: the take-off's objectives" % lang)
 	check(_has_part(pane, "25R · 247°"), "%s: briefing: the runway with its heading" % lang)
 	var steps: GridContainer = pane.find_child("Steps", true, false)
-	check(steps.columns == 4 and steps.get_child_count() == 6 * 4, "%s: briefing: the take-off's six steps" % lang)
+	check(steps.columns == 4 and steps.get_child_count() == 7 * 4, "%s: briefing: the take-off's seven steps" % lang)
 	check(not _has_part(steps, "מדפים" if he else "Flaps"), "%s: briefing: no flaps step" % lang)
-	# Each call to the tower its own step: start-up, taxi, take-off, with the menu's pick and the answer to wait for.
-	for k in ["Ctrl + T, 1", "Ctrl + T, 2", "Ctrl + T, 3"]:
-		check(_has(steps, k), "%s: briefing: the tower call %s" % [lang, k])
-	check(_has_part(steps, "מאושר להמריא" if he else "cleared for take-off"), "%s: briefing: the wait" % lang)
+	# Each call to the tower its own step: start-up, taxi, line-up, take-off at the menu's picks 1-4, with the answer
+	# to wait for.
+	var calls := 0
+	for k in 4:
+		calls += _labels(steps).count("Ctrl + T, %d" % (k + 1))
+	check(calls == 4, "%s: briefing: four tower calls, Ctrl + T, 1-4 (%d)" % [lang, calls])
+	check(_has_part(steps, "בקשת כניסה למסלול" if he else "request line-up"), "%s: briefing: the line-up call" % lang)
+	check(_has_part(steps, "אישור המראה" if he else "cleared for take-off"), "%s: briefing: the wait" % lang)
 	check(
 		_has(pane, "482 · טייסת 253 הנגב · רמון" if he else "482 · 253 Squadron Negev · Ramon"), "%s: subtitle" % lang
 	)

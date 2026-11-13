@@ -681,6 +681,17 @@ func _row_volume(r: Dictionary, inside: bool) -> float:
 	return r.vol_in if inside and SoundBuses.outside_class(r) == "" else r.vol_out
 
 
+## Ours (Modern IAF): `f` runs when the phrase channel reaches it, at once on an idle one: a radio line's subtitle
+## shown as its voice starts (radio.gd cue_subtitle).
+func phrase_cue(f: Callable) -> void:
+	var c: Dictionary = _channels.get(101, {"cur": null, "queue": []})
+	_channels[101] = c
+	if c.cur != null and is_instance_valid(c.cur) and c.cur.playing:
+		c.queue.append(f)
+	else:
+		f.call()
+
+
 ## A logical channel plays one sound at a time; a new one waits for the current (UNCERTAIN: queue
 ## vs replace, docs/sound.md §2).
 func _channel_play(ch: int, p: Node) -> void:
@@ -702,8 +713,11 @@ func _on_finished(p: Node) -> void:
 		if c.cur == p:
 			c.cur = null
 			while not c.queue.is_empty():
-				var n: Node = c.queue.pop_front()
-				if is_instance_valid(n):
+				var n: Variant = c.queue.pop_front()
+				if n is Callable:  # phrase_cue's
+					if n.is_valid():
+						n.call()
+				elif is_instance_valid(n):
 					c.cur = n
 					n.play()
 					break

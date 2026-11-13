@@ -34,6 +34,15 @@ const LIFTOFF_HOLD_S: f64 = 1.0;
 const ROTATION_PITCH_DEG: f64 = 2.0;
 /// A throttle step smaller than this between two samples is noise, not a movement.
 const THROTTLE_STEP: f64 = 0.005;
+/// The engine is being started once its RPM is this high (%): the starter cranks it from 0 (inferred: a cold engine
+/// reads 0, the JFS cranks it to 20 %).
+pub const ENGINE_TURNING_RPM: f64 = 5.0;
+/// The jet has left its parking spot once its centre is this far from where it stood at the start (m, inferred: two
+/// thirds of an F-16's length, far more than brake creep or the jolt of the engine start).
+pub const TAXI_MOVED_M: f64 = 10.0;
+/// Lined up on a runway: the jet's heading within this of the runway end's (deg, inferred: a jet turning onto it
+/// from a taxiway at 90° is not yet lined up; a backtrack on it is).
+pub const LINED_UP_DEG: f64 = 30.0;
 
 // --- Strings ----------------------------------------------------------------------------------------------------------
 
@@ -92,6 +101,19 @@ const STRINGS: &[(&str, &str, &str)] = &[
     ("excursion", "The jet left the runway during the take-off roll.", "המטוס יצא מהמסלול בזמן ריצת ההמראה."),
     ("gear_down", "The gear was never raised.", "כן הנסע לא נאסף."),
     ("off_heading", "Not on the runway heading with the gear up.", "לא בכיוון המסלול עם כן נסע אסוף."),
+    // A take-off's goal still missing, shown live (sim_flight.gd); {} the designators.
+    ("todo_wrong_runway", "Wrong runway: this is {}, the assigned one is {}.", "מסלול שגוי: זה {}, המסלול שהוקצה {}."),
+    ("todo_gear_down", "To complete: raise the gear.", "להשלמה: איסוף כן הנסע."),
+    (
+        "todo_off_heading",
+        "To complete: climb out on the runway heading with the gear up.",
+        "להשלמה: טיפוס בכיוון המסלול עם כן נסע אסוף.",
+    ),
+    // A phase without the tower's clearance (`Watch::check`, training.md §3.3).
+    ("no_start_clearance", "Engine start without start-up clearance.", "התנעה ללא אישור התנעה מהמגדל."),
+    ("no_taxi_clearance", "Taxied without clearance.", "הסעה ללא אישור הסעה מהמגדל."),
+    ("no_runway_clearance", "Entered the runway without clearance.", "כניסה למסלול ללא אישור מהמגדל."),
+    ("no_takeoff_clearance", "Take-off roll without take-off clearance.", "ריצת המראה ללא אישור המראה מהמגדל."),
     // Debrief items.
     ("runway", "Runway", "מסלול"),
     ("time_to_idle", "Time to idle", "זמן עד סרק"),
@@ -131,13 +153,19 @@ fn en(id: &str) -> &'static str {
 pub struct Rules {
     pub kind: Kind,
     pub time_budget_s: f64,
-    /// The mission ends this long after its goal is reached.
+    /// A fail shows its reason this long before the debrief (a pass: the flight goes on).
     pub end_hold_s: f64,
     /// The debrief items the sheet shows, in order (ids of ITEMS).
     pub goals: Vec<String>,
     /// A start-up by keys: its checklist's step ids, in order (training.md §7.1); empty: none.
     pub checklist: Vec<&'static str>,
+    /// The phases that need the tower's clearance first (ids of CLEARANCES, training.md §3.3); empty: none.
+    pub clearances: Vec<&'static str>,
 }
+
+/// Every phase a mission's `clearances` may name: the engine start, leaving the parking spot, entering the runway
+/// and the take-off roll ("takeoff": both).
+pub const CLEARANCES: [&str; 3] = ["startup", "taxi", "takeoff"];
 
 /// Every step a start-up checklist may name (iaf_flight start.rs `Start::press`).
 pub const STEPS: [&str; 6] = ["main_power", "starter", "engine", "avionics", "ins", "canopy"];
@@ -232,7 +260,21 @@ pub fn rules(mission: &Value) -> Result<Option<Rules>> {
             STEPS.iter().find(|s| **s == id).copied().with_context(|| format!("training: {c} is no checklist step"))
         })
         .collect::<Result<_>>()?;
-    Ok(Some(Rules { kind, time_budget_s: num("time_budget_s")?, end_hold_s: num("end_hold_s")?, goals, checklist }))
+    let clearances = t["clearances"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|c| {
+            let id = CLEARANCES.iter().find(|k| c.as_str() == Some(**k)).copied();
+            id.with_context(|| format!("training: \"clearances\": {c} is no phase"))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    ensure!(
+        !clearances.contains(&"takeoff") || mission["runway"].is_string(),
+        "training: a take-off clearance needs the mission's \"runway\""
+    );
+    let (time_budget_s, end_hold_s) = (num("time_budget_s")?, num("end_hold_s")?);
+    Ok(Some(Rules { kind, time_budget_s, end_hold_s, goals, checklist, clearances }))
 }
 
 /// The rules' figures, each needing a source in the mission file (data-formats.md §1).
@@ -557,6 +599,7 @@ pub fn hard_fail(events: &[Value]) -> Option<&'static str> {
         Some("crash") => Some("crash"),
         Some("hit") => Some("damage"),
         Some("surface") if e["paved"] == false => Some("off_pavement"),
+        Some("clearance") => e["reason"].as_str().and_then(string_id),
         Some("checklist") => e["fault"].as_str().and_then(string_id),
         _ => None,
     })
@@ -573,6 +616,38 @@ pub struct Now {
     pub ejected: bool,
     /// A start-up checklist step's fault this frame (a string id), or None.
     pub fault: Option<&'static str>,
+    /// Engine RPM, %; ground speed, kt; the engine-frame heading, deg.
+    pub rpm: f64,
+    pub speed_kt: f64,
+    pub heading: f64,
+    /// The tower's clearances so far.
+    pub cleared: Cleared,
+}
+
+/// The tower's clearances a flight holds: each stays valid once given. A call asked and answered "hold position"
+/// clears nothing.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct Cleared {
+    pub start: bool,
+    pub taxi: bool,
+    /// Line up (or take-off): the jet may enter the runway.
+    pub lineup: bool,
+    pub takeoff: bool,
+}
+
+impl Cleared {
+    /// From the tower's answers so far (radio.gd's templates). `hot`: the flight started with the engine running,
+    /// so the start, the taxi and the line-up count as cleared (a ground start at the lineup point).
+    pub fn of(answers: &[String], hot: bool) -> Cleared {
+        let got = |t: &[&str]| answers.iter().any(|a| t.contains(&a.as_str()));
+        let takeoff = got(&["ACFT_CLEAR_TO_TAKEOFF"]);
+        Cleared {
+            start: hot || got(&["ACFT_CLEAR_TO_START"]),
+            taxi: hot || got(&["ACFT_TAXI_TO_RUNWAY"]),
+            lineup: hot || takeoff || got(&["ACFT_CLEAR_TO_LINEUP", "ACFT_CLEAR_TO_LINEUP_NW"]),
+            takeoff,
+        }
+    }
 }
 
 /// The string `id` in `lang` ("en" / "he"), "" when unknown.
@@ -590,6 +665,10 @@ pub struct Watch {
     pub rules: Rules,
     /// The mission's base (its pavement).
     pub base: Base,
+    /// A take-off mission's runway end: (its index in the base's runways, the end's index).
+    pub runway: Option<(usize, usize)>,
+    /// Where the jet first stood on the ground (engine frame): its parking spot.
+    pub spot: Option<[f64; 2]>,
 }
 
 impl Watch {
@@ -601,13 +680,23 @@ impl Watch {
         let bases: Vec<_> = sim::read_dir(airbases)?.into_iter().map(|f| f.v).collect();
         let rules = rules(&m)?.with_context(|| format!("{}: no \"training\" rules", mission.display()))?;
         let base = sim_bases::base(airbase_of(&m, &bases)?, &mission.display().to_string())?;
-        Ok(Watch { rules, base })
+        let runway = match m["runway"].as_str() {
+            Some(d) if matches!(rules.kind, Kind::Takeoff { .. }) => {
+                Some(base.end(d).with_context(|| format!("{}: no runway {d}", mission.display()))?)
+            }
+            _ => None,
+        };
+        Ok(Watch { rules, base, runway, spot: None })
     }
 
-    /// The fail reason of this moment, or None: ejected, crashed, any damage (0..1), or on the ground off the
-    /// pavement at the jet's centre (`x`, `y` in the engine frame).
-    pub fn check(&self, s: &Now) -> Option<&'static str> {
+    /// The fail reason of this moment, or None: ejected, crashed, any damage (0..1), on the ground off the
+    /// pavement at the jet's centre (`x`, `y` in the engine frame), or a phase of the rules' `clearances` without
+    /// the tower's clearance (`clearance`).
+    pub fn check(&mut self, s: &Now) -> Option<&'static str> {
         let Now { on_ground, x, y, crashed, damage, ejected, .. } = *s;
+        if on_ground && self.spot.is_none() {
+            self.spot = Some([x, y]);
+        }
         if ejected {
             Some("ejected")
         } else if s.fault.is_some() {
@@ -618,6 +707,81 @@ impl Watch {
             Some("damage")
         } else if on_ground && !self.base.paved([x, y], sim_bases::PAVEMENT_MARGIN_M) {
             Some("off_pavement")
+        } else if self.wrong_roll(s) {
+            Some("wrong_runway")
+        } else {
+            self.clearance(s)
+        }
+    }
+
+    /// The runway end the jet runs along: on the ground, its centre on a runway (within half its width of the
+    /// centreline), its heading within LINED_UP_DEG of end k's. (runway, end, the distance from end k along the
+    /// runway, m), else None; a jet crossing a runway is on none.
+    fn aligned(&self, s: &Now) -> Option<(usize, usize, f64)> {
+        if !s.on_ground {
+            return None;
+        }
+        let p = [s.x, s.y];
+        let (i, r) = self.base.runways.iter().enumerate().find(|(_, r)| r.dist(p) <= r.width / 2.0)?;
+        let k = usize::from(angle(r.heading(0), s.heading).abs() > 90.0);
+        let (e, d) = (r.ends[k], r.dir(k));
+        let along = (p[0] - e[0]) * d[0] + (p[1] - e[1]) * d[1];
+        (angle(r.heading(k), s.heading).abs() <= LINED_UP_DEG).then_some((i, k, along))
+    }
+
+    /// The runway end the jet is lined up on (`aligned`) in the first half of the runway from that end, where a
+    /// take-off from it starts: (runway, end), else None. A backtrack along the runway toward its take-off end (the
+    /// base's taxi-out path at Ramon and Ramat David) runs the far half on the other end's heading: not lined up.
+    pub fn lined_up(&self, s: &Now) -> Option<(usize, usize)> {
+        let (i, k, along) = self.aligned(s)?;
+        (along < self.base.runways[i].length() / 2.0).then_some((i, k))
+    }
+
+    /// A take-off mission's jet lined up (`lined_up`) on a runway end other than the mission's: that end's designator
+    /// ("07L", the airbase file's), else None. The tower warns at once.
+    pub fn wrong_runway(&self, s: &Now) -> Option<String> {
+        let mine = self.runway?;
+        let (i, k) = self.lined_up(s).filter(|e| *e != mine)?;
+        Some(self.base.runways[i].designators[k].clone())
+    }
+
+    /// A take-off mission's jet rolling (faster than ROLL_START_KT) along (`aligned`, anywhere on it) a runway end
+    /// other than the mission's: the mission fails.
+    fn wrong_roll(&self, s: &Now) -> bool {
+        let mine = self.runway;
+        mine.is_some() && s.speed_kt > ROLL_START_KT && self.aligned(s).is_some_and(|(i, k, _)| Some((i, k)) != mine)
+    }
+
+    /// The mission's runway end's designator ("25R"), "" for none.
+    pub fn runway_designator(&self) -> &str {
+        self.runway.map_or("", |(i, k)| &self.base.runways[i].designators[k])
+    }
+
+    /// The phase done without its clearance (training.md §3.3): the engine turning (ENGINE_TURNING_RPM) without
+    /// start-up clearance; on the ground TAXI_MOVED_M from the spot without taxi clearance; on the mission's runway
+    /// end's heading (`aligned`, anywhere along it) past the holding point without line-up or take-off clearance; so
+    /// faster than ROLL_START_KT without take-off clearance.
+    fn clearance(&self, s: &Now) -> Option<&'static str> {
+        let need = |k: &str| self.rules.clearances.contains(&k);
+        let c = s.cleared;
+        let moved = self.spot.is_some_and(|p| (s.x - p[0]).hypot(s.y - p[1]) > TAXI_MOVED_M);
+        // Entered: lined up on the mission's end and past the holding point, HOLDING_POINT_MARGIN_M short of the
+        // lineup point at most (Nevatim's holding point is the runway's end itself, on the centreline).
+        let on_runway = self.runway.is_some_and(|(i, k)| {
+            let r = &self.base.runways[i];
+            let (e, d, l) = (r.ends[k], r.dir(k), r.lineup(k));
+            let st = |p: [f64; 2]| (p[0] - e[0]) * d[0] + (p[1] - e[1]) * d[1];
+            self.aligned(s).is_some_and(|(j, m, _)| (j, m) == (i, k))
+                && st([s.x, s.y]) >= st(l) - HOLDING_POINT_MARGIN_M
+        });
+        if need("startup") && !c.start && s.rpm >= ENGINE_TURNING_RPM {
+            Some("no_start_clearance")
+        } else if need("taxi") && !c.taxi && s.on_ground && moved {
+            Some("no_taxi_clearance")
+        } else if need("takeoff") && s.on_ground && on_runway && !c.lineup {
+            Some("no_runway_clearance")
+        } else if need("takeoff") && s.on_ground && on_runway && !c.takeoff && s.speed_kt > ROLL_START_KT {
+            Some("no_takeoff_clearance")
         } else {
             None
         }
@@ -651,25 +815,43 @@ pub struct RadioNow {
     pub hot: bool,
 }
 
-/// The radio menu's calls that fit the moment, in menu order: "startup" on the ground with the engine off; "taxi" on
-/// the ground with the engine running, the avionics up and taxi not yet (start-up approved or not: no dead end on the
-/// spot); "takeoff" at the holding
-/// point or past it (no farther from the lineup point than `hold_m` + HOLDING_POINT_MARGIN_M) with taxi approved and
-/// take-off not yet; "landing" in the air. A hot ground start has taxi approved.
+/// The ground calls in their order (the clearances' order, training.md §8).
+pub const GROUND_CALLS: [&str; 4] = ["startup", "taxi", "lineup", "takeoff"];
+
+/// The radio menu's calls, in menu order (the user, 2026-11-13: "all radio calls should always be available. on ground
+/// show only starting calls, in the air show landing"): every ground call on the ground, "landing" in the air.
 pub fn radio_calls(s: &RadioNow) -> Vec<&'static str> {
-    let got = |t: &str| s.answers.iter().any(|a| a == t);
-    let taxi = s.hot || got("ACFT_TAXI_TO_RUNWAY");
-    let takeoff = got("ACFT_CLEAR_TO_TAKEOFF");
+    if s.on_ground { GROUND_CALLS.to_vec() } else { vec!["landing"] }
+}
+
+/// The ground call a call `id` needs first, in GROUND_CALLS' order, while its clearance is missing (the tower then
+/// answers "negative, hold position, request … first"), else None: take-off before line-up, line-up before taxi, taxi
+/// before start-up.
+pub fn missing_before(id: &str, answers: &[String], hot: bool) -> Option<&'static str> {
+    let c = Cleared::of(answers, hot);
+    let held = [c.start, c.taxi, c.lineup, c.takeoff];
+    let i = GROUND_CALLS.iter().position(|g| *g == id)?;
+    (0..i).find(|&k| !held[k]).map(|k| GROUND_CALLS[k])
+}
+
+/// The call the moment expects next, marked in the training missions' menu: "startup" on the ground with the engine
+/// off; "taxi" on the ground with the engine running, the avionics up and taxi not yet; at the holding point or past
+/// it (no farther from the lineup point than `hold_m` + HOLDING_POINT_MARGIN_M) "lineup" with taxi approved and
+/// line-up not yet, then "takeoff" with line-up approved and take-off not yet; "landing" in the air. A hot ground
+/// start has taxi and line-up approved. None between the calls.
+pub fn next_call(s: &RadioNow) -> Option<&'static str> {
+    let Cleared { taxi, lineup, takeoff, .. } = Cleared::of(&s.answers, s.hot);
     let g = s.on_ground;
+    let hold = g && s.lineup_m <= s.hold_m + HOLDING_POINT_MARGIN_M;
     [
         ("startup", g && !s.engine_on),
         ("taxi", g && s.engine_on && s.avionics && !taxi),
-        ("takeoff", g && s.lineup_m <= s.hold_m + HOLDING_POINT_MARGIN_M && taxi && !takeoff),
+        ("lineup", hold && taxi && !lineup),
+        ("takeoff", hold && lineup && !takeoff),
         ("landing", !g),
     ]
     .into_iter()
-    .filter_map(|(id, on)| on.then_some(id))
-    .collect()
+    .find_map(|(id, on)| on.then_some(id))
 }
 
 /// Scores the recording at `flight` against the readable mission file `mission` with the airbase files in `airbases`
@@ -1062,13 +1244,23 @@ mod tests {
         assert_eq!(scored(&text, "ramon_takeoff").reasons, ["off_pavement"]);
         // The live check: the parking spot and the lineup point paved, 200 m beside the runway not.
         let data = data();
-        let w = Watch::open(&data.join("missions/ramon_takeoff.json"), &data.join("airbases")).unwrap();
+        let mut w = Watch::open(&data.join("missions/ramon_takeoff.json"), &data.join("airbases")).unwrap();
+        w.rules.clearances.clear(); // the pavement alone (the clearances: a_phase_without_clearance_fails)
         let rw = runway(airbase_of(&mission("ramon_takeoff"), &airbases()).unwrap(), "25R").unwrap();
         let at =
             |s: f64, d: f64| [rw.from[0] + s * rw.dir[0] + d * rw.dir[1], rw.from[1] + s * rw.dir[1] - d * rw.dir[0]];
         let [x, y] = at(rw.start_m + 100.0, 0.0);
         assert_eq!(
-            w.check(&Now { on_ground: true, x, y, crashed: false, damage: 0.0, ejected: false, fault: None }),
+            w.check(&Now {
+                on_ground: true,
+                x,
+                y,
+                crashed: false,
+                damage: 0.0,
+                ejected: false,
+                fault: None,
+                ..Default::default()
+            }),
             None
         );
         let spot = w.base.parking[0].at;
@@ -1080,17 +1272,36 @@ mod tests {
                 crashed: false,
                 damage: 0.0,
                 ejected: false,
-                fault: None
+                fault: None,
+                ..Default::default()
             }),
             None
         );
         let [x, y] = at(1000.0, 200.0);
         assert_eq!(
-            w.check(&Now { on_ground: true, x, y, crashed: false, damage: 0.0, ejected: false, fault: None }),
+            w.check(&Now {
+                on_ground: true,
+                x,
+                y,
+                crashed: false,
+                damage: 0.0,
+                ejected: false,
+                fault: None,
+                ..Default::default()
+            }),
             Some("off_pavement")
         );
         assert_eq!(
-            w.check(&Now { on_ground: false, x, y, crashed: false, damage: 0.0, ejected: false, fault: None }),
+            w.check(&Now {
+                on_ground: false,
+                x,
+                y,
+                crashed: false,
+                damage: 0.0,
+                ejected: false,
+                fault: None,
+                ..Default::default()
+            }),
             None,
             "airborne"
         );
@@ -1102,12 +1313,22 @@ mod tests {
                 crashed: false,
                 damage: 0.2,
                 ejected: false,
-                fault: None
+                fault: None,
+                ..Default::default()
             }),
             Some("damage")
         );
         assert_eq!(
-            w.check(&Now { on_ground: true, x, y, crashed: true, damage: 0.0, ejected: false, fault: None }),
+            w.check(&Now {
+                on_ground: true,
+                x,
+                y,
+                crashed: true,
+                damage: 0.0,
+                ejected: false,
+                fault: None,
+                ..Default::default()
+            }),
             Some("crash")
         );
         let out = Now { on_ground: false, x, y, ejected: true, ..Default::default() };
@@ -1183,35 +1404,156 @@ mod tests {
     }
 
     #[test]
-    fn the_radio_menu_offers_only_the_call_that_fits() {
+    fn a_phase_without_clearance_fails() {
+        let data = data();
+        let open = || Watch::open(&data.join("missions/ramon_takeoff.json"), &data.join("airbases")).unwrap();
+        let w = open();
+        assert_eq!(w.rules.clearances, ["startup", "taxi", "takeoff"]);
+        let rw = runway(airbase_of(&mission("ramon_takeoff"), &airbases()).unwrap(), "25R").unwrap();
+        let spot = w.base.parking.iter().find(|p| p.unit == "f16i").unwrap().at;
+        let lineup = [rw.from[0] + (rw.start_m + 100.0) * rw.dir[0], rw.from[1] + (rw.start_m + 100.0) * rw.dir[1]];
+        let answers = |a: &[&str]| a.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        let cleared = |a: &[&str]| Cleared::of(&answers(a), false);
+        let h = rw.heading;
+        let at = |p: [f64; 2], c: Cleared| Now {
+            on_ground: true,
+            x: p[0],
+            y: p[1],
+            heading: h,
+            cleared: c,
+            ..Default::default()
+        };
+        let start = cleared(&["ACFT_CLEAR_TO_START"]);
+        let taxi = cleared(&["ACFT_CLEAR_TO_START", "ACFT_TAXI_TO_RUNWAY"]);
+        let lined = cleared(&["ACFT_CLEAR_TO_START", "ACFT_TAXI_TO_RUNWAY", "ACFT_CLEAR_TO_LINEUP_NW"]);
+        let all = cleared(&["ACFT_CLEAR_TO_START", "ACFT_TAXI_TO_RUNWAY", "ACFT_CLEAR_TO_TAKEOFF"]);
+        // The engine start: the starter turning the engine without start-up clearance; asked and told to hold, too.
+        let mut w = open();
+        let turning = Now { rpm: 3.0, ..at(spot, Cleared::default()) };
+        assert_eq!(w.check(&turning), None, "below 5 % RPM: not started");
+        assert_eq!(w.check(&Now { rpm: 6.0, ..turning }), Some("no_start_clearance"));
+        let held = cleared(&["ACFT_HOLD_POS"]);
+        assert_eq!(open().check(&Now { rpm: 20.0, ..at(spot, held) }), Some("no_start_clearance"));
+        assert_eq!(open().check(&Now { rpm: 60.0, ..at(spot, start) }), None);
+        // Leaving the spot: 10 m from where the jet first stood; brake creep within it is no taxi.
+        let mut w = open();
+        let idle = Now { rpm: 60.0, ..at(spot, start) };
+        assert_eq!(w.check(&idle), None);
+        assert_eq!(w.check(&Now { x: spot[0] + 6.0, y: spot[1] + 6.0, ..idle }), None, "8.5 m: creep");
+        assert_eq!(w.check(&Now { x: spot[0] + 11.0, ..idle }), Some("no_taxi_clearance"));
+        let mut w = open();
+        assert_eq!(w.check(&Now { rpm: 60.0, ..at(spot, taxi) }), None);
+        assert_eq!(w.check(&Now { x: spot[0] + 11.0, rpm: 60.0, ..at(spot, taxi) }), None, "taxi cleared");
+        // The runway: entering it needs line-up (or take-off) clearance, the roll take-off clearance.
+        let mut w = open();
+        assert_eq!(w.check(&Now { rpm: 60.0, ..at(spot, taxi) }), None);
+        let hold = [lineup[0] - 100.0 * rw.dir[0], lineup[1] - 100.0 * rw.dir[1]];
+        assert_eq!(w.check(&Now { rpm: 60.0, ..at(hold, taxi) }), None, "the holding point on the centreline");
+        assert_eq!(w.check(&Now { rpm: 60.0, ..at(lineup, taxi) }), Some("no_runway_clearance"));
+        let mid = [lineup[0] + 1500.0 * rw.dir[0], lineup[1] + 1500.0 * rw.dir[1]];
+        assert_eq!(open().check(&Now { rpm: 60.0, ..at(mid, taxi) }), Some("no_runway_clearance"), "past midfield");
+        let mut w = open();
+        assert_eq!(w.check(&Now { rpm: 60.0, ..at(spot, lined) }), None);
+        assert_eq!(w.check(&Now { rpm: 60.0, speed_kt: 10.0, ..at(lineup, lined) }), None, "lining up");
+        assert_eq!(w.check(&Now { rpm: 100.0, speed_kt: 35.0, ..at(lineup, lined) }), Some("no_takeoff_clearance"));
+        let mut w = open();
+        assert_eq!(w.check(&Now { rpm: 60.0, ..at(spot, all) }), None);
+        assert_eq!(w.check(&Now { rpm: 100.0, speed_kt: 120.0, ..at(lineup, all) }), None, "the clean roll");
+        // A hot start holds the start, taxi and line-up; a start-up mission names no clearance.
+        let mut w = open();
+        let hot = Cleared::of(&[], true);
+        assert_eq!(w.check(&Now { rpm: 60.0, ..at(lineup, hot) }), None);
+        assert_eq!(w.check(&Now { rpm: 100.0, speed_kt: 40.0, ..at(lineup, hot) }), Some("no_takeoff_clearance"));
+        let s = Watch::open(&data.join("missions/ramon_startup.json"), &data.join("airbases")).unwrap();
+        assert!(s.rules.clearances.is_empty());
+        // The recording carries the live check's reason: the CLI's score fails with it first.
+        let text = with(&takeoff(CLEAN).0, &[json!({"t": 5.0, "event": "clearance", "reason": "no_taxi_clearance"})]);
+        let d = scored(&text, "ramon_takeoff");
+        assert_eq!(d.reasons[0], "no_taxi_clearance");
+        assert_eq!(d.to_json()["strings"]["he"]["no_taxi_clearance"], "הסעה ללא אישור הסעה מהמגדל.");
+    }
+
+    #[test]
+    fn a_wrong_runway_warns_lined_up_and_fails_at_the_roll() {
+        let data = data();
+        let mut w = Watch::open(&data.join("missions/ramon_takeoff.json"), &data.join("airbases")).unwrap();
+        assert_eq!(w.runway_designator(), "25R");
+        let rw = runway(airbase_of(&mission("ramon_takeoff"), &airbases()).unwrap(), "25R").unwrap();
+        let p = [rw.from[0] + (rw.start_m + 100.0) * rw.dir[0], rw.from[1] + (rw.start_m + 100.0) * rw.dir[1]];
+        let all = Cleared::of(&[], true);
+        let now = |heading: f64, speed_kt: f64| Now {
+            on_ground: true,
+            x: p[0],
+            y: p[1],
+            heading,
+            speed_kt,
+            rpm: 80.0,
+            cleared: all,
+            ..Default::default()
+        };
+        assert_eq!(w.wrong_runway(&now(rw.heading, 0.0)), None, "lined up on 25R");
+        assert_eq!(w.wrong_runway(&now(rw.heading + 90.0, 0.0)), None, "crossing it");
+        let back = rw.heading + 180.0;
+        assert_eq!(w.wrong_runway(&now(back, 0.0)), None, "a backtrack toward the 25R end: 07L's far half");
+        assert_eq!(w.check(&now(back, 35.0)), Some("wrong_runway"), "but a roll there fails");
+        let far = rw.length_m - rw.far_start_m - 100.0;
+        let q = [rw.from[0] + far * rw.dir[0], rw.from[1] + far * rw.dir[1]];
+        let at07 = |speed_kt: f64| Now { x: q[0], y: q[1], ..now(back, speed_kt) };
+        assert_eq!(w.wrong_runway(&at07(0.0)).as_deref(), Some("07L"), "lined up on the far end");
+        assert_eq!(w.check(&at07(10.0)), None, "lined up: a warning only");
+        assert_eq!(w.check(&at07(35.0)), Some("wrong_runway"), "the roll fails");
+        assert_eq!(w.wrong_runway(&Now { on_ground: false, ..at07(150.0) }), None, "airborne");
+    }
+
+    #[test]
+    fn the_menu_marks_the_call_that_fits() {
         let answers = |a: &[&str]| a.iter().map(|s| s.to_string()).collect();
         // Nevatim: the parking spot 337 m from the lineup point, the holding point 86 m.
         let mut s = RadioNow { on_ground: true, lineup_m: 337.0, hold_m: 86.0, ..Default::default() };
-        assert_eq!(radio_calls(&s), ["startup"]);
+        assert_eq!(next_call(&s), Some("startup"));
         s.answers = answers(&["ACFT_CLEAR_TO_START"]);
         s.engine_on = true;
-        assert!(radio_calls(&s).is_empty(), "idle without the avionics: nothing");
+        assert!(next_call(&s).is_none(), "idle without the avionics: nothing");
         s.avionics = true;
-        assert_eq!(radio_calls(&s), ["taxi"]);
+        assert_eq!(next_call(&s), Some("taxi"));
         s.answers = answers(&["ACFT_CLEAR_TO_START", "ACFT_TAXI_TO_RUNWAY"]);
-        assert!(radio_calls(&s).is_empty(), "taxiing, short of the holding point: nothing");
+        assert!(next_call(&s).is_none(), "taxiing, short of the holding point: nothing");
         s.lineup_m = 158.0;
-        assert!(radio_calls(&s).is_empty(), "the taxi's last turns, short of the holding point: nothing");
+        assert!(next_call(&s).is_none(), "the taxi's last turns, short of the holding point: nothing");
         s.lineup_m = 90.0;
-        assert_eq!(radio_calls(&s), ["takeoff"]);
+        assert_eq!(next_call(&s), Some("lineup"), "at the holding point: line-up");
+        s.answers.push("ACFT_HOLD_POS".into());
+        assert_eq!(next_call(&s), Some("lineup"), "told to hold: line-up again");
+        s.answers.push("ACFT_CLEAR_TO_LINEUP_NW".into());
+        assert_eq!(next_call(&s), Some("takeoff"), "line-up approved: take-off");
         s.lineup_m = 0.0;
-        assert_eq!(radio_calls(&s), ["takeoff"], "lined up: still take-off");
+        assert_eq!(next_call(&s), Some("takeoff"), "lined up: still take-off");
         s.answers = vec![];
-        assert_eq!(radio_calls(&s), ["taxi"], "started without start-up approval: taxi still offered");
+        assert_eq!(next_call(&s), Some("taxi"), "started without start-up approval: taxi still offered");
+        s.answers = answers(&["ACFT_CLEAR_TO_START", "ACFT_TAXI_TO_RUNWAY"]);
+        assert_eq!(next_call(&s), Some("lineup"), "lined up without line-up approval: line-up");
         s.answers = answers(&["ACFT_CLEAR_TO_START"]);
-        assert_eq!(radio_calls(&s), ["taxi"], "at the holding point without taxi approved: no take-off");
+        assert_eq!(next_call(&s), Some("taxi"), "at the holding point without taxi approved: no take-off");
         s.answers = answers(&["ACFT_CLEAR_TO_START", "ACFT_TAXI_TO_RUNWAY", "ACFT_CLEAR_TO_TAKEOFF"]);
-        assert!(radio_calls(&s).is_empty());
+        assert!(next_call(&s).is_none());
         s.on_ground = false;
-        assert_eq!(radio_calls(&s), ["landing"]);
+        assert_eq!(next_call(&s), Some("landing"));
         // A hot ground start at the lineup point: take-off at once.
         let hot = RadioNow { on_ground: true, engine_on: true, avionics: true, hot: true, ..Default::default() };
-        assert_eq!(radio_calls(&hot), ["takeoff"]);
+        assert_eq!(next_call(&hot), Some("takeoff"));
+        // The menu itself: every ground call on the ground, landing in the air.
+        assert_eq!(radio_calls(&hot), GROUND_CALLS);
+        assert_eq!(radio_calls(&RadioNow::default()), ["landing"]);
+        // A call out of order: the one it needs first.
+        let a = |l: &[&str]| l.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        assert_eq!(missing_before("takeoff", &[], false), Some("startup"));
+        assert_eq!(
+            missing_before("takeoff", &a(&["ACFT_CLEAR_TO_START", "ACFT_TAXI_TO_RUNWAY"]), false),
+            Some("lineup")
+        );
+        assert_eq!(missing_before("taxi", &a(&["ACFT_CLEAR_TO_START"]), false), None);
+        assert_eq!(missing_before("startup", &[], false), None);
+        assert_eq!(missing_before("takeoff", &[], true), None, "a hot start");
     }
 
     #[test]
