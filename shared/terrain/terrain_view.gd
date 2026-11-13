@@ -2891,6 +2891,11 @@ func _command(cmd: Array) -> bool:
 			# passes them to the flight model and ticks its card.
 			if addon != null and addon.has_method("start_step"):
 				addon.start_step(int(cmd[0]) - 210, int(cmd[1]))  # p1: 1 on, -1 off, 0 the other way
+		219:
+			# Ours, Modern IAF: one F-16 power switch (the 3D cockpit's AVIONIC POWER and SNSR PWR switches; no key sends
+			# it): p2 its index in sim_flight.gd SYSTEMS, p1 as 210-215's (modern-iaf/docs/cockpit.md §5.2).
+			if addon != null and addon.has_method("system_switch"):
+				addon.system_switch(int(cmd[2]), int(cmd[1]))
 		218:
 			# Modern IAF's Throttle OFF (its own keys.json record 121; modern-iaf/docs/training.md §7.2): the fuel cut, the
 			# engine winds down. The flight add-on passes it to the flight model and records it.
@@ -3825,6 +3830,7 @@ func _process(delta: float) -> void:
 			cockpit.state[k] = ins[k]
 		cockpit.state["better"] = flight.better_instruments(player_damage.flags if player_damage != null else [])
 		cockpit.power = int(st.get("power", 2))  # the 6-DoF's ground start (Modern IAF); always 2 in the original game
+		cockpit.systems = st.get("systems", {})
 		_record(st, delta)
 		if not frozen and not waiting_for_ground:
 			_sim_time += delta

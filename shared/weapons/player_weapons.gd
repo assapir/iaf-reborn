@@ -769,6 +769,11 @@ func _flag(i: int) -> bool:
 	return i < f.size() and bool(f[i])
 
 
+## Ours: system `name` up (Modern IAF's per-system power, cockpit.gd up); always without a cockpit.
+func _up(name: String) -> bool:
+	return host.cockpit == null or host.cockpit.up(name)
+
+
 func _weapons_down() -> bool:
 	return DMG_WEAPONS.any(func(i): return _flag(i))
 
@@ -790,6 +795,9 @@ func fire_selected() -> void:
 		return
 	# FUN_00454270
 	if _weapons_down() or releasing or stores.total(stores.current_type(), stores.current_name()) == 0:
+		return
+	# Ours, Modern IAF: the F-16's ST STA switch off, no store releases; the gun fires (cockpit.md §5.2, inferred).
+	if stores.current_type() != Stores.GUN and not _up("st_sta"):
 		return
 	releasing = true
 	match stores.current_type():
@@ -1515,7 +1523,7 @@ func _bomb_space() -> void:
 ## The ripple timer callback (FUN_0045a680 -> FUN_004545e0, player bombs).
 func _ripple_tick() -> void:
 	var t: int = stores.current_type()
-	if stores.total(t, stores.current_name()) == 0 or _weapons_down():
+	if stores.total(t, stores.current_name()) == 0 or _weapons_down() or not _up("st_sta"):
 		_ripple_end()
 		return
 	# Real: one pulse = a symmetric pair at the same instant (PAIRS) or one store (SGL), docs/weapons.md §9.10.
@@ -2342,9 +2350,11 @@ func update(t: float) -> void:
 	_update_missiles()
 	_update_guided()
 	_update_decoys()
-	# Radar damage (15; generator failures 19 / 21 set it too): FUN_004adb20 switches it off for good.
-	if _flag(15) and not radar.damaged:
-		radar.set_damaged(true)
+	# Radar damage (15; generator failures 19 / 21 set it too): FUN_004adb20 switches it off for good. Ours, Modern
+	# IAF: the F-16's FCR switch off (cockpit.up) holds it off the same way, back at OFF once powered (cockpit.md §5.2).
+	var dead: bool = _flag(15) or not _up("fcr")
+	if dead != radar.damaged:
+		radar.set_damaged(dead)
 	radar.update(now)
 	rwr.damaged = _flag(14)
 	var refreshed: bool = now >= rwr._next_refresh

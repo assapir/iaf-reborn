@@ -1,7 +1,8 @@
 # The start-up switches both ways (the switches audit's M2, modern-iaf/docs/cockpit.md §5.2): in each jet's start-up
 # flight, once the engine runs and the avionics are up (the Start engine command), every checklist switch goes off by
 # its key and on again: the flight model's position (IafFlight.start_on), its consequence (the power, the avionics,
-# the INS alignment, the engine), the checklist's steps done and the 3D cockpit's switch follow.
+# the INS alignment, the engine), the checklist's steps done and the 3D cockpit's switch follow. On the F-16s each
+# power switch alone too (M2b: MMC, ST STA, MFD, UFC, FCR, RDR ALT; _systems).
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_switches_both_ways.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -89,8 +90,9 @@ func _jet(tv: Node, id: String, f35: bool) -> void:
 		check(float(sw.get("f35i/engine/eng")) == 0.0, "%s: ENG shown off" % id)
 
 
-## The F-16's AVIONIC POWER: off by its key, the four switches with it, the displays dark; on: the warm-up, the INS
-## aligning again (90 s). The INS knob off: the alignment lost.
+## The F-16's AVIONIC POWER by its key (Ctrl+A): the four switches off together, their systems down, the generators'
+## power and the SNSR PWR switches' systems up; on: up after the warm-up. Then each power switch alone (_systems). The
+## INS knob off: the alignment lost.
 func _avionics(tv: Node, id: String) -> void:
 	var f = tv.flight
 	var sw: Dictionary = tv.cockpit_3d.switches
@@ -99,30 +101,22 @@ func _avionics(tv: Node, id: String) -> void:
 	await _cmd(tv, 213)
 	var st: Dictionary = f.state()
 	check(
-		int(st.power) == 1 and not bool(st.avionics) and not "avionics" in tv.addon.done,
-		"%s: avionics off: the displays dark (power %s)" % [id, st.power]
+		int(st.power) == 2 and not bool(st.avionics) and not "avionics" in tv.addon.done,
+		"%s: avionics off: the avionics down, the generators' power up (power %s)" % [id, st.power]
 	)
 	check(four.all(func(p): return float(sw.get(p)) == 0.0), "%s: the key throws the four switches off" % id)
-	# One switch clicked back off after the four are on: the avionics off again (cockpit3d_controls.gd _toggle).
+	check(
+		not tv.cockpit.hud.visible and tv.cockpit.up("fcr") and tv.cockpit.up("rdr_alt"),
+		"%s: avionics off: the HUD dark, the FCR and RDR ALT up on their own" % id
+	)
 	await _cmd(tv, 213)
 	check(four.all(func(p): return float(sw.get(p)) == 1.0), "%s: the key throws the four on" % id)
 	await fly(tv, 4.0)
-	st = f.state()
-	check(int(st.power) == 2 and not bool(st.avionics), "%s: avionics on: the displays up, the INS aligning" % id)
-	tv.cockpit_3d.clickable._toggle(
-		tv.cockpit_3d.clickable._controls.filter(func(c): return c[0].name == "AVIONICS_MFD")[0][1]
-	)
-	await frames(2)
 	check(
-		not f.start_on("avionics") and float(sw.get("f16/avionics/power-mmc")) == 1.0,
-		"%s: MFD clicked off: the avionics off, the other switches stay" % id
+		tv.addon.SYSTEMS.all(func(n): return tv.cockpit.up(n)) and "avionics" in tv.addon.done,
+		"%s: avionics on: the four systems up after the warm-up" % id
 	)
-	tv.cockpit_3d.clickable._toggle(
-		tv.cockpit_3d.clickable._controls.filter(func(c): return c[0].name == "AVIONICS_MFD")[0][1]
-	)
-	await frames(2)
-	check(f.start_on("avionics"), "%s: MFD clicked on: the avionics on" % id)
-	check(await _until(tv, func(): return bool(f.state().avionics), 100.0), "%s: the INS aligned again" % id)
+	await _systems(tv, id)
 	await _cmd(tv, 214)
 	check(
 		not bool(f.state().avionics) and float(sw.get("f16/avionics/ins-knob")) == 0.0 and not "ins" in tv.addon.done,
@@ -132,9 +126,65 @@ func _avionics(tv: Node, id: String) -> void:
 	check(f.start_on("ins") and "ins" in tv.addon.done, "%s: the INS knob on: aligning" % id)
 
 
-## Checklist command `cmd` (210–215) as its key (p1 0: the other way) or with `p1`; two frames for the cockpit.
-func _cmd(tv: Node, cmd: int, p1 := 0) -> void:
-	tv._command([cmd, p1, 0])
+## Each F-16 power switch alone by its click's command ([219, -1, i]): its system down with its consequence
+## (_dark), the others up, the switch shown off, an AVIONIC POWER switch undoing the avionics step; [219, 1, i]: the
+## warm-up, then the system back.
+func _systems(tv: Node, id: String) -> void:
+	var f = tv.flight
+	var names: Array = tv.addon.SYSTEMS
+	var props := ["mmc", "st-sta", "mfd", "ufc", "fcr", "rdr-alt"]
+	for i in names.size():
+		var n: String = names[i]
+		await _cmd(tv, 219, -1, i)
+		var down: Array = names.filter(func(m): return not tv.cockpit.up(m))
+		check(not f.start_on(n) and down == [n], "%s: %s off: its system alone down %s" % [id, n, down])
+		check(float(tv.cockpit_3d.switches.get("f16/avionics/power-" + props[i])) == 0.0, "%s: %s shown off" % [id, n])
+		check(("avionics" in tv.addon.done) == (i >= 4), "%s: %s off: the avionics step %s" % [id, n, tv.addon.done])
+		check(_dark(tv, n), "%s: %s off: its consequence" % [id, n])
+		await _cmd(tv, 219, 1, i)
+		check(f.start_on(n) and not tv.cockpit.up(n), "%s: %s on: warming up" % [id, n])
+		await fly(tv, 4.0)
+		check(tv.cockpit.up(n) and not _dark(tv, n), "%s: %s on: its system back" % [id, n])
+	check("avionics" in tv.addon.done, "%s: every power switch on again" % id)
+	# The INS aligning again since main power came back (_jet): the avionics up once it is aligned.
+	check(await _until(tv, func(): return bool(f.state().avionics), 100.0), "%s: the INS aligned again" % id)
+
+
+## System `n`'s consequence holds (modern-iaf/docs/cockpit.md §5.2): MMC the HUD dark, MFD the MFDs, UFC the DED;
+## ST STA the stores' release gate shut; FCR the radar off, a mode key starts nothing; RDR ALT no radar altitude for
+## the HUD.
+func _dark(tv: Node, n: String) -> bool:
+	var c3d = tv.cockpit_3d
+	var w = tv.weapons
+	match n:
+		"mmc":
+			return not tv.cockpit.hud.visible
+		"mfd":
+			return c3d._screens.all(func(e): return e[2].material_override.emission_energy_multiplier == 0.0)
+		"ufc":
+			return c3d._ded_mat.emission_energy_multiplier == 0.0
+		"st_sta":
+			return not w._up("st_sta")  # fire_selected's gate for a store
+		"fcr":
+			if not w.radar.damaged:
+				w.radar.cycle_mode(tv._sim_time)  # a powered radar starts; back at OFF for the next check
+				var started: bool = w.radar.mode != w.radar.OFF
+				w.radar.set_damaged(true)
+				w.radar.set_damaged(false)
+				return not started
+			w.radar.cycle_mode(tv._sim_time)
+			return w.radar.mode == w.radar.OFF
+		"rdr_alt":
+			var h = tv.cockpit.hud
+			h._real_frame = -1  # this frame's Real HUD inputs again
+			h.real_hud()
+			return h._real_in.has("agl_ft") and h._real_in.agl_ft == null
+	return false
+
+
+## Command `cmd` (210–215 as its key, p1 0: the other way; 219 with `p1`, `p2`); two frames for the cockpit.
+func _cmd(tv: Node, cmd: int, p1 := 0, p2 := 0) -> void:
+	tv._command([cmd, p1, p2])
 	await frames(2)
 
 

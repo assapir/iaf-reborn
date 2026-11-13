@@ -90,7 +90,7 @@ const STRINGS: &[(&str, &str, &str)] = &[
         "Avionics power on before the generators: no power for them.",
         "מתח אוויוניקה הופעל לפני הגנרטורים: לא היה להם מתח.",
     ),
-    ("ins_no_power", "INS alignment without avionics power.", "יישור הניווט האינרציאלי ללא מתח אוויוניקה."),
+    ("ins_no_power", "INS alignment without main power.", "יישור הניווט האינרציאלי ללא מתח ראשי."),
     ("skip_main_power", "Skipped: main power.", "לא בוצע: מתח ראשי."),
     ("skip_starter", "Skipped: the starter.", "לא בוצע: המתנע."),
     ("skip_engine", "Skipped: the engine start.", "לא בוצע: התנעת המנוע."),

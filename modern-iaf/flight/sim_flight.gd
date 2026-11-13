@@ -102,6 +102,9 @@ var _card: PanelContainer
 const CARD_TITLE := {"en": "START-UP CHECKLIST", "he": "רשימת התנעה"}
 const CARD_DONE := {"en": "All steps done.", "he": "כל השלבים בוצעו."}
 const STEP_IDS := ["main_power", "starter", "engine", "avionics", "ins", "canopy"]
+## The F-16's power switches one by one (command 219's p2 → SYSTEMS[i]; iaf-flight start.rs SYSTEMS, the same order):
+## the four AVIONIC POWER switches (together the avionics step) and the SNSR PWR panel's FCR and RDR ALT.
+const SYSTEMS := ["mmc", "st_sta", "mfd", "ufc", "fcr", "rdr_alt"]
 ## The checklist's first key record (modern-iaf/data/keys.json, records 119–124: STEP_IDS in order; commands 210–215).
 const CHECK_KEY := 119
 ## The engine step has no key: the throttle moved up from OFF is it, as the real idle-cutoff detent (training.md
@@ -487,11 +490,23 @@ func _finish(d: Dictionary) -> void:
 ## way): the flight model sets it (IafFlight.start_switch decides its consequence and fault; modern-iaf/docs/cockpit.md
 ## §5.2); the recording gets a change ("on": false for a switch back off) or a fault; the card follows the switches.
 func start_step(i: int, want := 0) -> void:
-	if i < 0 or i >= STEP_IDS.size() or host.flight == null or not result.is_empty():
+	if i >= 0 and i < STEP_IDS.size():
+		_set_switch(STEP_IDS[i], want, STEP_IDS[i])
+
+
+## One F-16 power switch (command 219, p2 → SYSTEMS[i], `want` as start_step's): an AVIONIC POWER switch's change
+## of the avionics step is recorded as the step's.
+func system_switch(i: int, want: int) -> void:
+	if i >= 0 and i < SYSTEMS.size():
+		_set_switch(SYSTEMS[i], want, "avionics")
+
+
+## Switch `sw` set (IafFlight.start_switch), its checklist step `id` recorded when it changes or faults.
+func _set_switch(sw: String, want: int, id: String) -> void:
+	if host.flight == null or not result.is_empty():
 		return
-	var id: String = STEP_IDS[i]
 	var was: bool = host.flight.start_on(id)
-	var fault: String = host.flight.start_switch(id, want)
+	var fault: String = host.flight.start_switch(sw, want)
 	var on: bool = host.flight.start_on(id)
 	var e := {"event": "checklist", "step": id}
 	if fault != "":
@@ -505,22 +520,13 @@ func start_step(i: int, want := 0) -> void:
 	if on != was and id == "canopy" and host.sounds != null:
 		# The canopy runs down and locks, or opens (modern-iaf/docs/sound.md §1.7).
 		host.sounds.play("SFX_DOOR_CLOSE" if on else "SFX_DOOR_OPEN")
-	if want == 0 and id == "avionics":
-		_switch(i, on)  # the key throws the four AVIONIC POWER switches together
+	_shown.erase(sw)  # shown again from the flight model: a click it refused goes back
 	_sync_switches()
 
 
-## The 3D cockpit's switch of step `i` (its click command, 210 + i; cockpit3d_controls.gd set_switch) on or off.
-func _switch(i: int, on: bool) -> void:
-	var c3d = host.get("cockpit_3d")
-	if is_instance_valid(c3d) and c3d.clickable != null:
-		c3d.clickable.set_switch(210 + i, on)
-
-
 ## The checklist from the flight model's switches (IafFlight.start_on), each frame: `done`, the card, and the 3D
-## cockpit's switches that changed (the JFS switch springs back to OFF; a cold jet's start off). After the first frame
-## the AVIONIC POWER switches follow the flight model only on: off, each stays as clicked (cockpit3d_controls.gd
-## toggle).
+## cockpit's switches that changed (cockpit3d_controls.gd set_switch: a step's by its command 210 + i, a power
+## switch's by 219 and its index; the JFS switch springs back to OFF; a cold jet's start off; a refused click back).
 func _sync_switches() -> void:
 	if host.flight == null:
 		return
@@ -528,12 +534,14 @@ func _sync_switches() -> void:
 	for id in STEP_IDS:
 		if host.flight.start_on(id):
 			now.append(id)
-	if is_instance_valid(host.get("cockpit_3d")):
-		for i in STEP_IDS.size():
-			var id: String = STEP_IDS[i]
-			if _shown.get(id) != (id in now) and (id != "avionics" or not _shown.has(id) or id in now):
-				_switch(i, id in now)
-			_shown[id] = id in now
+	var c3d = host.get("cockpit_3d")
+	if is_instance_valid(c3d) and c3d.clickable != null:
+		for id in STEP_IDS + SYSTEMS:
+			var on: bool = id in now if id in STEP_IDS else host.flight.start_on(id)
+			if _shown.get(id) != on:
+				var i: int = STEP_IDS.find(id)
+				c3d.clickable.set_switch(210 + i if i >= 0 else 219, on, SYSTEMS.find(id))
+			_shown[id] = on
 	if now != done:
 		done = now
 		if _card != null:

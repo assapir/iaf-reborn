@@ -689,7 +689,9 @@ func real_hud() -> Dictionary:
 	var lcos = null
 	if mode == 3 and wp.get("pipper") != null:
 		lcos = gun + Vector2(wp.pipper.x, wp.pipper.y)
-	var agl = st.get("agl_ft")
+	# The radar altimeter powered by its RDR ALT switch (cockpit.up; modern-iaf/docs/cockpit.md §5.2): off, no radar
+	# altitude (the Real HUD's R row and the cues that read it).
+	var agl = st.get("agl_ft") if cockpit.up("rdr_alt") else null
 	# Ours: an AIM-9X / Python 5's helmet cues (docs/real-hud.md "DASH helmet"): the seeker's target on the view.
 	var hobs: Dictionary = wp.get("hobs", {}).duplicate()
 	if hobs.get("pos") != null:

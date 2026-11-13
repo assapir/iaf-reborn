@@ -154,9 +154,17 @@ var night := false
 ## Ours, Modern IAF's HUD light (Settings.hud_daylight): the scene's daylight, 0 night .. 1 day (hud.gd daylight(),
 ## set by terrain_view.gd from the sun).
 var daylight := 1.0
-## The electrical power (the flight model's `power`): 0 none, 1 the battery (the lamps), 2 the displays and the HUD up.
+## The electrical power (the flight model's `power`): 0 none, 1 the battery (the lamps), 2 the displays' power up.
 ## Always 2 in the original game; Modern IAF's cold jet starts at 0 (modern-iaf/docs/training.md §7).
 var power := 2
+## Each system up (the flight model's `systems`: the F-16's MMC, ST STA, MFD, UFC, FCR, RDR ALT, each with its own
+## power switch; modern-iaf/docs/cockpit.md §5.2); empty in the original game: every system with the power.
+var systems := {}
+
+
+## System `name` ("mmc", "st_sta", "mfd", "ufc", "fcr", "rdr_alt") up.
+func up(name: String) -> bool:
+	return power == 2 and bool(systems.get(name, true))
 
 
 func _night_mod(section: String) -> Color:
@@ -654,11 +662,11 @@ func _process(delta: float) -> void:
 	_lag_dt = delta
 	panel_shift = move_toward(panel_shift, panel_target, PANEL_SLIDE_SPEED * delta)
 	position = (view_shift if three_d() else head_pan() * ui_scale()) if view_mode == 0 else Vector2.ZERO
-	hud.visible = view_mode != 2 and power == 2
+	hud.visible = view_mode != 2 and up("mmc")  # the mission computer draws the HUD's symbology
 	for m in mfds + [pcd, _pcd_sheen]:
 		if m != null:
 			# The PCD's portal nodes keep the pages only; unpowered, the screens stay dark (their black ground).
-			m.visible = view_mode == 0 and (pcd == null or m not in mfds) and power == 2
+			m.visible = view_mode == 0 and (pcd == null or m not in mfds) and up("mfd")
 	_update_compasses()
 	_update_instruments()
 	_update_hud_mask()

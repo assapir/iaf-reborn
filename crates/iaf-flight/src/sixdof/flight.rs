@@ -294,6 +294,11 @@ impl SixDof {
         self.start_seq.power(&self.jet.start)
     }
 
+    /// System `name` up (the F-16's per-system power switches, [`Sequence::system`]).
+    pub fn system(&self, name: &str) -> bool {
+        self.start_seq.system(&self.jet.start, name)
+    }
+
     /// The avionics up ([`Sequence::avionics`]).
     pub fn avionics(&self) -> bool {
         self.start_seq.avionics(&self.jet.start)

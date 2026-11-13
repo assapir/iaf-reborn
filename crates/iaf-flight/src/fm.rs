@@ -194,6 +194,14 @@ impl Fm {
         }
     }
 
+    /// System `name` of `sixdof::start::SYSTEMS` up: always in the original model.
+    pub fn system(&self, name: &str) -> bool {
+        match self {
+            Fm::Original(_) => true,
+            Fm::SixDof(s) => s.system(name),
+        }
+    }
+
     /// The avionics up: always in the original model.
     pub fn avionics(&self) -> bool {
         match self {

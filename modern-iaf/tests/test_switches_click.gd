@@ -9,7 +9,8 @@ extends "res://../tests/godot/base.gd"
 
 const MISSIONS := "converted/modern-iaf/missions"
 ## airframe id -> [its start-up mission, [node, its command on a click (empty: a switch that only moves)]...]; an
-## AVIONIC POWER switch sends the step once the four are on (the last of them), a guarded switch on its second click.
+## F-16 power switch (AVIONIC POWER, SNSR PWR) its own (219, p1 1: on from the cold jet's OFF, p2 its index), a guarded
+## switch on its second click.
 const JETS := {
 	"f16i": ["ramon_startup", F16],
 	"f16": ["ramat_david_startup", F16],
@@ -31,12 +32,12 @@ const F16 := [
 	["MAIN_PWR", [210, 0, 0]],
 	["JFS", [211, 0, 0]],
 	["THROTTLE", [5, 0, 0]],
-	["AVIONICS_MMC", []],
-	["AVIONICS_ST_STA", []],
-	["AVIONICS_MFD", []],
-	["AVIONICS_UFC", [213, 1, 0]],
-	["FCR", []],
-	["RDR_ALT", []],
+	["AVIONICS_MMC", [219, 1, 0]],
+	["AVIONICS_ST_STA", [219, 1, 1]],
+	["AVIONICS_MFD", [219, 1, 2]],
+	["AVIONICS_UFC", [219, 1, 3]],
+	["FCR", [219, 1, 4]],
+	["RDR_ALT", [219, 1, 5]],
 	["INS", [214, 0, 0]],
 	["CANOPY_HANDLE", [215, 0, 0]],
 	["anim023", [14, 0, 0]],

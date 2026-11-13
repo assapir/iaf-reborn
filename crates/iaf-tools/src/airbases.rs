@@ -952,11 +952,11 @@ impl Picture<'_> {
         let mut out = Vec::new();
         let take_out = |core: &mut Grid, l: &Line, width: f64| {
             let local = l.dirs_local();
-            for k in 0..w * h {
-                if core.v[k] {
+            for (k, v) in core.v.iter_mut().enumerate().take(w * h) {
+                if *v {
                     let (al, ac) = local([(k % w) as f64 * px_m, -((k / w) as f64) * px_m]);
                     if al >= l.a0 - 20.0 && al <= l.a1 + 20.0 && (ac - l.c).abs() < width / 2.0 + 20.0 {
-                        core.v[k] = false;
+                        *v = false;
                     }
                 }
             }

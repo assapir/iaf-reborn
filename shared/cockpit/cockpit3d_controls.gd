@@ -9,9 +9,8 @@
 #   - "prop", "on", "off": the switch's FlightGear property (its animation in <model>.json) and its two positions,
 #     set by set_switch (cockpit3d.gd switches);
 #   - "toggle": the switch flips its own "prop" between "on" and "off" on a click, with its click sound, and sends
-#     "click" with p1 1 once every switch sharing that command is on, with p1 -1 when one goes off (the F-16's AVIONIC
-#     POWER switches: each its own; a start-up switch's p1: sim_flight.gd start_step); one with
-#     no "click" only moves (the F-16's FCR and RDR ALT: their systems come with the switches' positions, M2);
+#     "click" with p1 1 on, -1 off (the F-16's AVIONIC POWER and SNSR PWR switches, command 219 with each its own p2:
+#     sim_flight.gd system_switch);
 #   - "modelled": the position the model shows while the switch is unset ("on" when not given: a hot jet's);
 #   - "guard": a guarded switch's guard property (its cover's animation): while it is 0 a click only lifts the cover
 #     (sets it to 1); the next click sends the switch's command, as the real guarded switch;
@@ -168,10 +167,11 @@ func at(pos: Vector2):
 
 ## The switches sending command `id` on a click put to their "on" (else "off") position; a guarded one put on has its
 ## guard lifted.
-func set_switch(id: int, on: bool) -> void:
+func set_switch(id: int, on: bool, p2 := -1) -> void:
 	for e in _controls:
 		var r: Dictionary = e[1]
-		if r.has("prop") and int(r.get("click", [-1])[0]) == id:
+		var click: Array = r.get("click", [-1, 0, 0])
+		if r.has("prop") and int(click[0]) == id and (p2 < 0 or int(click[2]) == p2):
 			get_parent().switches[r.prop] = float(r.on if on else r.off)
 			if on and r.has("guard"):  # thrown by its key or the throttle: its guard up too, not shut over the bat
 				get_parent().switches[r.guard] = 1.0
@@ -211,8 +211,8 @@ static func _area(name: String, box: Array, grip := false) -> MeshInstance3D:
 	return mi
 
 
-## Flips toggle `r` alone (a switch FlightGear models unset counts as on: a hot jet's); once every switch of its
-## command is on, sends the command (the checklist's step).
+## Flips toggle `r` alone (a switch FlightGear models unset counts as on: a hot jet's) and sends its command with p1 1
+## on, -1 off (the flight model may refuse it: sim_flight.gd _set_switch shows it back).
 func _toggle(r: Dictionary) -> void:
 	var sw: Dictionary = get_parent().switches
 	var on := not _is_on(r)
@@ -220,13 +220,8 @@ func _toggle(r: Dictionary) -> void:
 	var tv: Object = get_parent().command.get_object()  # terrain_view.gd (_press)
 	if tv != null and tv.get("sounds") != null:
 		tv.sounds.play("SFX_BUTTON")
-	if not r.has("click"):
-		return
-	# On once every switch sharing the command is on; off as soon as one goes off (p1 1 / -1: cockpit3d.gd command).
-	if not on:
-		get_parent().command.call([r.click[0], -1, 0])
-	elif _controls.all(func(e): return int(e[1].get("click", [-1])[0]) != int(r.click[0]) or _is_on(e[1])):
-		get_parent().command.call([r.click[0], 1, 0])
+	if r.has("click"):
+		get_parent().command.call([r.click[0], 1 if on else -1, r.click[2]])
 
 
 func _is_on(r: Dictionary) -> bool:

@@ -242,8 +242,8 @@ reads the same `checklist` event. The throttle goes back to OFF by its own key, 
 | 1 | Main power: MAIN (the battery on) | Ctrl+B | at once | — | the checklist's order[^chk] |
 | 2 | JFS: START 2 | Ctrl+J | cranks the engine to 20 % RPM in 15 s, then holds there | before main power: nothing runs, `no_power` | [^chk]; the 15 s inferred |
 | 3 | Throttle to idle at 20 % RPM | the throttle up from OFF | light-off 5 s later, idle 15 s after it; the main generator at 52 %, the JFS off | below 20 %: a hot start, the engine shut down, `hot_start`; no rotation: no light-off, `no_rotation`; never: the JFS holds at 20 % | 20 % minimum[^chk]; 52 %[^f16net]; the times inferred |
-| 4 | Avionics power: ON, after the generators | Ctrl+A | the displays and the HUD 3 s later | before the generators: no power, `avionics_early` | inferred (the avionics go on after the engine start in the checklist[^chk]) |
-| 5 | INS: stored-heading alignment | Ctrl+N | aligned 90 s later: the avionics up | without avionics power: `ins_no_power` | 90 s[^ins] (a full alignment takes about 8 minutes[^ins]) |
+| 4 | Avionics power: the four AVIONIC POWER switches ON, after the generators | Ctrl+A (or a click on each) | each switch's system 3 s later ([cockpit.md](cockpit.md) §5.2 "One by one") | before the generators: no power, `avionics_early` | inferred (the avionics go on after the engine start in the checklist[^chk]) |
+| 5 | INS: stored-heading alignment | Ctrl+N | aligned 90 s later: the avionics up | without main power: `ins_no_power` | 90 s[^ins] (a full alignment takes about 8 minutes[^ins]) |
 | 6 | Canopy: close and lock | Ctrl+K | at once | any time | [^chk] |
 
 | # | F-35I Adir | key | timing | out of order | source |

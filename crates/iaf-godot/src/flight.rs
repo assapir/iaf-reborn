@@ -822,10 +822,16 @@ impl IafFlight {
         d.set("brakes", c.brakes);
         d.set("engine_on", ac.engine_on());
         // The 6-DoF's ground start (modern-iaf/docs/training.md §7): power 0 none / 1 battery / 2 displays up, the
-        // avionics up, the sequence's step. Absent for the original model (readers default to 2, true).
+        // avionics up, each system up, the sequence's step. Absent for the original model (readers default to 2, true).
         if ac.original_ref().is_none() {
             d.set("power", ac.power() as i64);
             d.set("avionics", ac.avionics());
+            // The F-16's per-system power switches each up (modern-iaf/docs/cockpit.md §5.2): name -> bool.
+            let mut sys = VarDictionary::new();
+            for n in iaf_flight::sixdof::start::SYSTEMS {
+                sys.set(n, ac.system(n));
+            }
+            d.set("systems", &sys.to_variant());
             d.set("start_phase", ac.start_phase());
         }
         d.set("vortex", ac.vortex());

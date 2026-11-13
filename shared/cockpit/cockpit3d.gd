@@ -65,7 +65,7 @@ const SWITCH_PROPS := [
 	"f16/avionics/power-mfd",
 	"f16/avionics/power-ufc",
 	"f16/avionics/ins-knob",
-	"f16/avionics/power-fcr",  # position only until M2 (cockpit3d_controls.gd "toggle" with no "click")
+	"f16/avionics/power-fcr",
 	"f16/avionics/power-rdr-alt",
 	"f35i/elec/batt",  # the F-35I's (tools/f35i/cockpit3d.py CONTROL_PROPS)
 	"f35i/engine/ipp",
@@ -407,15 +407,15 @@ func _lighting() -> void:
 	# Unpowered (cockpit.power below 2: Modern IAF's cold jet) every screen is dark, powered at the displays' brightness
 	# (Settings.mfd_brightness: the F-35I's MFD BRT knob); written when either changes (the MFDs below, as every
 	# frame, with their night level).
-	# The F-16's AVIONIC POWER switches (cockpit3d_controls.gd toggles): MFD the two MFDs, UFC the DED.
+	# The F-16's AVIONIC POWER switches (cockpit.up, the flight model's systems): MFD the two MFDs, UFC the DED.
 	var on: float = Settings.mfd_brightness if cockpit.power == 2 else 0.0
-	var ded: float = on * _powered("f16/avionics/power-ufc")
+	var ded: float = on if cockpit.up("ufc") else 0.0
 	if Vector2(on, ded) != _on_shown:
 		_on_shown = Vector2(on, ded)
 		for m: StandardMaterial3D in _screen_mats:
 			if not _screens.any(func(e): return e[2].material_override == m):
 				m.emission_energy_multiplier = ded if m == _ded_mat else on
-	var mfd: float = on * _powered("f16/avionics/power-mfd")
+	var mfd: float = on if cockpit.up("mfd") else 0.0
 	for e in _screens:  # the MFDs turned down at night (MFD_NIGHT), their map fill darker (MAP_NIGHT)
 		(e[2].material_override as StandardMaterial3D).emission_energy_multiplier = (
 			(MFD_NIGHT if cockpit.night else 1.0) * mfd
@@ -435,11 +435,6 @@ func _lighting() -> void:
 	var day := c * (float(meta.get("day_fill", 0.0)) / FILL)
 	for mat: BaseMaterial3D in _night_mats:
 		mat.emission = _night_mats[mat][0] if cockpit.night else _night_mats[mat][1] * day
-
-
-## 1 with switch `prop` on (or not set: as modelled, a hot jet's or another cockpit's), else 0.
-func _powered(prop: String) -> float:
-	return 0.0 if float(switches.get(prop, 1.0)) < 0.5 else 1.0
 
 
 ## The sun's first shadow split pulled in to the cockpit (SPLIT_M) while it is drawn, the scene's otherwise.

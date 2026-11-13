@@ -252,29 +252,28 @@ where the flight model has it, every frame: a cold jet's off, a hot jet's on, ea
 off when it goes back off ("Both ways" below); a refused step leaves its switch off. The original game keeps the
 switches as FlightGear models them.
 
-- **The AVIONIC POWER switches** (2026-11-11, from the user's Mac): each is its own `toggle` in `f16_controls.json`.
-  A click flips that switch alone, with its click (`SFX_BUTTON`), and once all four are on the click sends the
-  avionics step. Until then all four shared the step's command, so one click threw them all. MFD powers the two
-  MFDs and UFC the DED (`cockpit3d.gd` `_powered`); MMC and ST STA move and power nothing. A refused avionics
-  step (before the generators) leaves the switches as clicked: one switch off and on again retries it. Ctrl+A
-  still throws all four.
+- **The AVIONIC POWER switches** (2026-11-11, from the user's Mac; each its own system since 2026-11-13, "One by one"
+  below): each is its own `toggle` in `f16_controls.json`. A click flips that switch alone, with its click
+  (`SFX_BUTTON`), and sends its own command, `[219, 1, i]` on and `[219, -1, i]` off (i: MMC 0, ST STA 1, MFD 2,
+  UFC 3). Once all four are on the avionics step is done. A switch refused (before the generators) goes back off.
+  Ctrl+A throws all four together, both ways.
 - **FCR and RDR ALT** (2026-11-13, the switches audit's M1): FlightGear's right console has both as their own objects,
   `fcr-switch` and `rdr-alt-switch` on the SNSR PWR panel, turning on `f16/avionics/power-fcr` (OFF 0 / ON 1) and
   `f16/avionics/power-rdr-alt` (OFF 0 / STBY 1 / ON 2)[^fg-right]; `CONTROLS` makes them the nodes `FCR` and
-  `RDR_ALT`. Each is a `toggle` with no command: a click moves it between OFF and ON (RDR ALT skips STBY), with its
-  click, and powers nothing yet: the radar and the radar altimeter stay powered with the avionics. Their `modelled`
-  position is OFF, as the model shows them unset. The switch positions with their consequences are the audit's M2.
+  `RDR_ALT`. Each is a `toggle` sending its own command (`[219, ±1, 4]`, `[219, ±1, 5]`): a click moves it between
+  OFF and ON (RDR ALT skips STBY), with its click. A cold jet has them OFF (as the model shows them unset), a hot jet
+  ON; they are no checklist step.
 
 | step | control (node) | place on the jet | command | key | on / off (FlightGear's value) |
 |---|---|---|---|---|---|
 | 1 | MAIN PWR switch (`MAIN_PWR`) | ELEC panel, left console, beside the throttle[^bms-ramp][^fg-left] | `[210, 0, 0]` | Ctrl+B | MAIN (2) / OFF (0) |
 | 2 | JFS switch (`JFS`) | ENG & JET START panel, left console, aft[^bms-ramp][^fg-left] | `[211, 0, 0]` | Ctrl+J | START 2 (1) / OFF (0) |
 | 3 | throttle grip (`THROTTLE`) | the throttle, left console | `[5, 0, 0]`, the wheel and a drag (below) | Throttle up | the throttle's own animation: out of OFF |
-| 4 | MMC, ST STA, MFD, UFC switches (`AVIONICS_MMC`, `AVIONICS_ST_STA`, `AVIONICS_MFD`, `AVIONICS_UFC`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | `[213, 1, 0]` on the last of the four on, `[213, -1, 0]` on one off | Ctrl+A | ON (1) / OFF (0): the key all four, a click its own switch |
+| 4 | MMC, ST STA, MFD, UFC switches (`AVIONICS_MMC`, `AVIONICS_ST_STA`, `AVIONICS_MFD`, `AVIONICS_UFC`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | a click `[219, ±1, 0..3]`, each its own; Ctrl+A `[213, 0, 0]` all four | Ctrl+A | ON (1) / OFF (0): the key all four, a click its own switch |
 | 5 | INS knob (`INS`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | `[214, 0, 0]` | Ctrl+N | STOR HDG (1) / OFF (0) |
 | 6 | canopy handle (`CANOPY_HANDLE`, a hit area) | left side, aft of the left console, by the canopy switch[^dcs-canopy] | `[215, 0, 0]` | Ctrl+K | none |
 | take-off, landing | landing gear handle (`anim023`) | left auxiliary console (FlightGear's `LeftAuxConsole` `gear_lever`) | `[14, 0, 0]` | G | the handle's own animation (`controls/gear/gear-down`) |
-| (sensors) | FCR, RDR ALT switches (`FCR`, `RDR_ALT`) | SNSR PWR panel, right console[^fg-right] | none (position only) | none | ON (1) / OFF (0); RDR ALT ON (2) / OFF (0) |
+| (sensors) | FCR, RDR ALT switches (`FCR`, `RDR_ALT`) | SNSR PWR panel, right console[^fg-right] | `[219, ±1, 4]`, `[219, ±1, 5]` | none | ON (1) / OFF (0); RDR ALT ON (2) / OFF (0) |
 
 - **The throttle by the mouse** (both F-16s and the F-35I; 2026-11-13, the switches audit's M1): a click adds 5 %
   (Throttle up, command 5, sent on the release), the wheel up adds 5 % and the wheel down takes 5 % (Throttle down,
@@ -331,21 +330,50 @@ on (`iaf-tools` `training.rs`).
 | MAIN PWR, BATT | no power: the displays, the HUD and the lamps dark; a crank stops; the engine lit runs on (inferred) | the displays after their 3 s warm-up; the INS aligns again |
 | JFS, IPP | a crank stops and the engine winds down; once lit, nothing (the engine sustains itself, inferred) | the starter turns the engine again below 20 % |
 | throttle (F-16), ENG (F-35I) | the fuel cut: the engine winds down ([training.md](training.md) §7.2) | the start again from the starter |
-| AVIONIC POWER (the step) | the displays and the HUD dark; the INS alignment lost (inferred) | the 3 s warm-up; the INS aligns again (90 s) |
-| INS knob | the alignment lost | the alignment from the start (90 s) |
+| AVIONIC POWER (the step) | the four switches off: each one's system down ("One by one" below) | each system after its 3 s warm-up |
+| INS knob | the alignment lost | the alignment from the start (90 s), on main power |
 | canopy | open (the door sound, `SFX_DOOR_OPEN`) | closed and locked (`SFX_DOOR_CLOSE`) |
 
-- **A restart after a shutdown** aligns the INS again (90 s) by keys or the mouse: the generators off line lost it
-  (inferred); the Start engine command flies the whole checklist with the INS aligned.
+- **The INS** needs main power only (the INS knob refused before it, `ins_no_power`): it aligns on the battery with
+  the engine stopped, and a shutdown keeps its alignment; main power off loses it (inferred). The Start engine
+  command flies the whole checklist with the INS aligned.
 - **Open:** the real F-16's MAIN PWR OFF with the engine running (which loads stay up on the engine's own
   generator); the F-35I's BATT and IPP likewise. The INS kept on the aircraft battery through a short power loss.
 - **Next (the audit's M3):** the indicator lamps on battery, the JFS RUN light, the INS's ALIGN / RDY and the IPP's
-  ready cue read these positions; the four AVIONIC POWER switches one by one and the FCR / RDR ALT systems.
+  ready cue read these positions.
 - The positions the switches show between OFF and ON (MAIN PWR's BATT, the JFS's START 1, the INS knob's NORM and
   NAV) come with their own steps.
 
+#### One by one (2026-11-13, the switches audit's M2b)
+
+The user: "why moving one button on the avionics/power board move them all?" and "I can't do mistake and switch off
+things out of scenario". On the Sufa and the Barak the generators give the displays' power (the flight model's
+`power` 2, after a 3 s warm-up); each AVIONIC POWER and SNSR PWR switch then powers its own system, with its own 3 s
+warm-up when switched on (`iaf-flight` `start.rs` `Start::system`, the list `SYSTEMS`; `IafFlight` state
+`systems`; `cockpit.gd` `up`). The command is 219 for all six, p1 the way (1 on, −1 off, 0 the other way), p2 the
+switch (`sim_flight.gd` `SYSTEMS`); no key sends it, Ctrl+A throws the four AVIONIC POWER switches. The avionics
+step is done while all four are on; one off undoes it, and the debrief reads that change as the step's.
+
+| switch | its system off | where | source |
+|---|---|---|---|
+| MMC | no HUD symbology (the HUD layer, the DASH's included, dark): the mission computer draws it | `cockpit.gd` `hud.visible` | the switch: [^fg-right]; the consequence inferred from the switch's name (modular mission computer) |
+| ST STA | no store leaves the jet on Space, and a ripple under way stops; the gun fires and the jettison works (inferred) | `player_weapons.gd` `fire_selected` | the switch: [^fg-right]; the consequence inferred (stores stations); the gun's power open |
+| MFD | both MFDs dark | `cockpit.gd`, `cockpit3d.gd` `_lighting` | the switch: [^fg-right]; inferred |
+| UFC | the DED dark | `cockpit3d.gd` `_lighting` | the switch: [^fg-right]; inferred; the ICP's keys without the UFC open |
+| FCR | the radar held off: no picture, no contacts, no lock, its keys do nothing; back on, it waits at OFF for its mode key | `player_weapons.gd` `update` (the radar's damage hold, `IafRadar.set_damaged`) | the switch: [^fg-right]; inferred; the real radar's mode after its power returns open |
+| RDR ALT | no radar altitude for the HUD: the Real HUD's `R` and `AL` rows, the GAAF and break-away cues that read it | `hud.gd` `real_hud` | the switch: [^fg-right]; the CARA feeds the ALOW cue[^dash34alow]; the rest inferred; the CARA ALOW and GAAF voices still speak (open) |
+| INS knob | (its own: "Both ways" above) needs main power only | `start.rs` | inferred |
+
+- **The F-35I** has no per-system switches: its avionics come with the IPP's and the engine's power, and every
+  system is up with the displays (`Start::system` for a jet with a self test). No source names an F-35 switch per
+  system; a sourced one would need the F-35's power-up page of the PCD or a flight manual's electrical chapter.
+- **The warm-up** of each switch is the displays' 3 s (inferred).
+- **A power loss** (main power off, the generators off line) takes every system down with it: the radar too goes to
+  OFF and drops its lock, and waits for its mode key once the power is back.
+
 `modern-iaf/tests/test_switches_both_ways.gd` runs each jet's switches off and on after the Start engine command
-and checks the position, the consequence, the steps done and the switch shown.
+and checks the position, the consequence, the steps done and the switch shown; on the F-16s it switches each of the
+six alone and checks its system down with its consequence, the other five up, and the system back after the warm-up.
 
 The checklist card names each switch and its place under the step's line, beside the key
 ([training.md](training.md) §7.1; the mission's `training.checklist[].where`, [data-formats.md](data-formats.md) §5).
@@ -694,6 +722,7 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
 [^jfs50]: F-16.net forum, "JFS and avionics question" (the flight manual: "As the engine accelerates through 50 % rpm, a sensor causes the JFS to shut down automatically"; about 50 % on a P&W and 54 % on a GE engine), https://www.f-16.net/forum/viewtopic.php?p=13518
 [^fg-left]: FlightGear F-16 at ef4f192, `Models/Cockpit/Main/panels_mlu_left-console.xml`: `SW_MAIN_POWER` (knob on `fdm/jsbsim/elec/switches/main-pwr`, 0–2) and `SW_JET_FUEL` (knob on `f16/engine/jfs-start-switch`, −1–1; `Nasal/states_and_autostart.nas`: 1 is START 2), https://github.com/NikolaiVChr/f16
 [^fg-right]: FlightGear F-16 at ef4f192, `Models/Cockpit/Main/panels_mlu_right-console.xml`: `mmc-switch`, `st-sta-switch`, `mfd-switch`, `ufc-switch` (knobs on `f16/avionics/power-*`, 0–1) and `INS_knob` (`f16/avionics/ins-knob`; `states_and_autostart.nas`: 2 ALIGN NORM, 3 NAV); `fcr-switch` (knob on `f16/avionics/power-fcr`, 0–1, line 638) and `rdr-alt-switch` (`f16/avionics/power-rdr-alt`, 0–2, line 670), https://github.com/NikolaiVChr/f16
+[^dash34alow]: T.O. GR1F-16CJ-34-1-1, p. 1-316 "CARA Altitude Low (CARA ALOW)" (the ALOW cue from the combined altitude radar altimeter), https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf
 [^dcs-canopy]: Eagle Dynamics forum, "Canopy won't lock if I open it and close" (DCS F-16C: the canopy switch on the left, where the canopy handle is; weak: a forum, read through a search summary), https://forum.dcs.world/topic/333905-canopy-wont-lock-if-i-open-it-and-close
 [^hoggit-icp]: Hoggit wiki, "Instrument Panel" (DCS F-16C): the HUD's DAY / AUTO / NIGHT symbology brightness
   switch. https://wiki.hoggitworld.com/view/Instrument_Panel
