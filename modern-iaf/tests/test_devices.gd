@@ -13,7 +13,6 @@ const PITCH_DOWN := 25
 const GUN := 64
 const GEAR := 20
 const DIK_K := 0x25
-const DIK_Y := 0x15  # a key no record holds (K is the Checklist notebook, record 126)
 const RUDDER_LEFT := 37
 const RUDDER_RIGHT := 38
 const DIK_Z := 0x2c
@@ -123,35 +122,35 @@ func keys(fe: Control) -> void:
 	)
 	check(ks.records_of("flight").has(121), "keys: Throttle OFF listed (record 121, the engine shutdown)")
 	check(ks._rows[PITCH_UP].chip.text == "Up", "Pitch up shows Up (%s)" % ks._rows[PITCH_UP].chip.text)
-	# Bind: click the row, press Y.
+	# Bind: click the row, press K.
 	ks._rows[PITCH_UP].row.pressed.emit()
 	check(ks.waiting == PITCH_UP and ks._rows[PITCH_UP].chip.text == "Press a key…", "the row waits for its key")
-	root.push_input(key_event(KEY_Y))
+	root.push_input(key_event(KEY_K))
 	await frames(1)
-	check(int(store().get("keys", {}).get(str(PITCH_UP), 0)) == DIK_Y, "the store has Pitch up on Y: %s" % store())
+	check(int(store().get("keys", {}).get(str(PITCH_UP), 0)) == DIK_K, "the store has Pitch up on K: %s" % store())
 	var flight_keys: RefCounted = kt.load_table()
-	check(flight_keys.find_key(DIK_Y, {}) == PITCH_UP, "the flight's key table has Pitch up on Y")
+	check(flight_keys.find_key(DIK_K, {}) == PITCH_UP, "the flight's key table has Pitch up on K")
 	check(flight_keys.find_key(0xc8, {}) == -1, "and Up runs nothing now")
-	check(ks._rows[PITCH_UP].chip.text == "Y" and not ks._rows[PITCH_UP].reset.disabled, "the row shows Y and Default")
+	check(ks._rows[PITCH_UP].chip.text == "K" and not ks._rows[PITCH_UP].reset.disabled, "the row shows K and Default")
 	# Esc cancels.
 	ks._rows[PITCH_DOWN].row.pressed.emit()
 	root.push_input(key_event(KEY_ESCAPE))
 	await frames(1)
 	check(ks.waiting == -1 and fe.page == "keys", "Esc cancels the wait and stays on the screen")
-	# Conflict: Pitch down on Y, which Pitch up has.
+	# Conflict: Pitch down on K, which Pitch up has.
 	ks._rows[PITCH_DOWN].row.pressed.emit()
-	root.push_input(key_event(KEY_Y))
+	root.push_input(key_event(KEY_K))
 	await frames(1)
-	check(ks.pending == [PITCH_DOWN, DIK_Y, PITCH_UP], "conflict: Y is Pitch up's (%s)" % str(ks.pending))
+	check(ks.pending == [PITCH_DOWN, DIK_K, PITCH_UP], "conflict: K is Pitch up's (%s)" % str(ks.pending))
 	var panel: Control = fe.find_child("Conflict", true, false)
 	var said: Label = panel.find_children("*", "Label", true, false)[0] if panel != null else null
-	check(said != null and said.text == fe.s("conflict") % ["Y", "Pitch up"], "the conflict: %s" % said.text)
+	check(said != null and said.text == fe.s("conflict") % ["K", "Pitch up"], "the conflict: %s" % said.text)
 	panel.find_child("Swap", true, false).pressed.emit()
 	await frames(1)
 	flight_keys = kt.load_table()
 	check(
-		flight_keys.find_key(DIK_Y, {}) == PITCH_DOWN and flight_keys.find_key(0xd0, {}) == PITCH_UP,
-		"Swap: Pitch down on Y, Pitch up on Down"
+		flight_keys.find_key(DIK_K, {}) == PITCH_DOWN and flight_keys.find_key(0xd0, {}) == PITCH_UP,
+		"Swap: Pitch down on K, Pitch up on Down"
 	)
 	# Default for one, Reset all.
 	ks._rows[PITCH_UP].reset.pressed.emit()

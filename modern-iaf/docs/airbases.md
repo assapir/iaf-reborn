@@ -190,6 +190,15 @@ code reads ([data-formats.md](data-formats.md) §12):
   inferred: Ramat David's 09 and 11 start 200 m apart). Before 2026-11-13 a branch named the end nearest its first runway join, so a parallel taxiway's
   left and right boards both read the end nearer a mid-field link (Nevatim's "26L" on every board around the spot).
   Each sign stands on the jet's left, 12 m past the taxiway's edge (Annex 14 Table 5-5).
+  Signs stand apart (2026-11-13; before, at Ramon 25L and Nevatim 26L a holding sign stood 5–10 m in front of a
+  direction sign and hid it): two signs facing the same way within 25 m become one array, and no sign stands in the
+  line of sight from the taxiway's centreline (15–150 m before a sign) to any part of another. In an array the
+  holding sign keeps its place, in line with the holding position. The direction boards read left to right in turn
+  order, "clockwise starting from the first taxiway on the pilot's left" (FAA AIM 2-3-10[^aim]). The holding board
+  stands last, nearest the taxiway, as a taxiway location sign collocated with a holding sign stands outboard of it
+  (AIM 2-3-9; inferred for direction boards). A sign that would crowd one facing another way (8 m apart, or in its
+  line of sight) takes the next place out or across the taxiway, else is left out (two at Ramat David, where branches meet at a sharp angle).
+  `sim_bases::tests::signs_stand_apart` checks every pair at every base.
   OpenStreetMap names none of these taxiways (no `ref`), so there are no location signs (yellow on black).
   `sign_boards.gd board()` builds them (a 0.9 m face, the lettering in the sim's display font), `airbases.gd` stands
   the nearest base's signs on the ground; nothing of the original's sign models. Ramon's hold sign "07R-25L" from
@@ -235,7 +244,7 @@ AI of a second spot at Hatzerim taxis from the first spot's hub); the radio's to
 the original's ten names, so Hatzerim and Nevatim had no talking tower; since item E3b every base of the own
 `iaf.ibx` talks (`Settings.tower_bases`, [training.md](training.md) §8).
 
-[^aim]: FAA, Aeronautical Information Manual 2-3-8 b (runway holding position sign: "15-33" puts runway 15's threshold on the left; at a taxiway meeting the beginning of the take-off runway only its designation may appear), https://www.faa.gov/air_traffic/publications/atpubs/aim_html/chap2_section_3.html
+[^aim]: FAA, Aeronautical Information Manual 2-3-8 b (runway holding position sign: "15-33" puts runway 15's threshold on the left; at a taxiway meeting the beginning of the take-off runway only its designation may appear); 2-3-9 (a taxiway location sign collocated with a holding position sign); 2-3-10 (direction signs: on the left before the intersection, designations arranged clockwise from the pilot's left), https://www.faa.gov/air_traffic/publications/atpubs/aim_html/chap2_section_3.html
 [^osm]: OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright (Overpass API, 2026-11-02)
 [^oa]: OurAirports, airports.csv and runways.csv (public domain), https://davidmegginson.github.io/ourairports-data/
 [^wc]: ESA WorldCover 2021 Sentinel-2 RGBNIR composite, "Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium" (CC BY 4.0), https://esa-worldcover.org

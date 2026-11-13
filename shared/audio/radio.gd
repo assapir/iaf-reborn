@@ -78,6 +78,9 @@ var templates := {}  # NAME -> PackedStringArray of tokens
 var particles := {}  # KEY -> [wav, text]
 ## Ours (IAF 2026): KEY -> the particle's Hebrew subtitle (phraseparticles_he.trx, iaf-sim own); empty in the original.
 var particles_he := {}
+## Ours (Modern IAF): each subtitle said with a Hebrew one, by either text -> [English, Hebrew], as printed (first
+## letter upper-cased): the sim's band shows a line in the language of the moment it shows (flight_ui.gd).
+var subtitles := {}
 var bases: Array = []  # [{tower: Vector3, lineup: Vector3, rwy: int, hangars: [Vector2]}; World scale Real: + hdg]
 ## How many of the first bases have a talking tower: the original's four (TOWER_BASES), or every base of the project's
 ## own iaf.ibx (Settings.tower_bases).
@@ -217,7 +220,16 @@ func expand(template: String, strings: Array = [], ints: Array = []) -> Dictiona
 		count += 1
 	# The subtitle in the game's language: the voice stays English (Modern IAF's Hebrew subtitles, phraseparticles_he).
 	var shown := text_he if Settings.language == "he" and text_he != "" else text
-	return {"template": template, "text": text, "wavs": joined_wavs(keys), "shown": shown}
+	return {"template": template, "text": text, "text_he": text_he, "wavs": joined_wavs(keys), "shown": shown}
+
+
+## Ours: the subtitle `en` and its Hebrew `he` known as one line (`subtitles`).
+func bilingual(en: String, he: String) -> void:
+	if en == "" or he == "":
+		return
+	var pair := [en[0].to_upper() + en.substr(1), he[0].to_upper() + he.substr(1)]
+	subtitles[pair[0]] = pair
+	subtitles[pair[1]] = pair
 
 
 ## Ours (Modern IAF, modern-iaf/docs/sound.md §3): each key's clip, where the longest run of keys that has a joined
@@ -243,6 +255,8 @@ func say(template: String, strings: Array = [], ints: Array = [], print_it := tr
 		return p  # the sortie ended (an ejection in IAF 2026): no more radio
 	said.append(p)
 	var text: String = subtitle if subtitle != "" else (p.shown if print_it and p.text != "" else "")
+	if subtitle == "" and text != "":
+		bilingual(p.text, p.text_he)
 	var shown := text != "" and host != null and host.has_method("_on_subtitle")
 	if shown and not menu:
 		host._on_subtitle(text)

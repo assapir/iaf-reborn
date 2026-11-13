@@ -160,6 +160,7 @@ func _ready() -> void:
 	add_child(layer)
 	ui = FlightUi.new(host)
 	layer.add_child(ui)
+	ui.language_changed.connect(_language_changed)
 	# A mission with the start-up checklist starts with the notebook raised at its START-UP page (training.md §11).
 	kneeboard = Kneeboard.new(self)
 	add_child(kneeboard)
@@ -241,13 +242,22 @@ func _tower_name() -> String:
 	return _base_name(host.radio.base_at(host.radio._pos()))
 
 
-## Base `i`'s name in the game's language; "—" for no tower.
-func _base_name(i: int) -> String:
+## Base `i`'s name in the game's language (`lang` 0 English, 1 Hebrew); "—" for no tower.
+func _base_name(i: int, lang := -1) -> String:
 	var r: Node = host.radio
 	if i < 0 or i >= r.tower_count:
 		return "—"
 	var names: Array = BASE_NAMES.get(String(r.bases[i].name), [r.bases[i].name, r.bases[i].name])
-	return names[1 if _he() else 0]
+	return names[lang if lang >= 0 else (1 if _he() else 0)]
+
+
+## The panel in the new language: the open menu now, a training line ("To complete: …", the wrong runway) at the next
+## frame's score.
+func _language_changed() -> void:
+	if open:
+		ui.show_panel(menu_text())
+	_wrong_shown = ""
+	_next_score = 0.0
 
 
 func set_open(on: bool) -> void:
@@ -273,10 +283,7 @@ func key(event: InputEventKey) -> bool:
 		return open and event.echo  # a lone modifier is part of the next key (Ctrl+T closes the menu)
 	var rec: int = host.keys.find_key(host.keys.key_of_event(event), Settings.key_bindings)
 	if rec >= 0 and int(host.keys.records[rec].press[0]) == 203:
-		# The Checklist notebook key (keys.json record 126, K). With a GPS bomb next to release K keeps its PRE / VIS
-		# switch (shared weapons.md §13.2; training.md §11).
-		if host.weapons != null and host.weapons.gps_mode_key():
-			return true
+		# The Checklist notebook key (keys.json record 118, H; training.md §11).
 		kneeboard.toggle()
 		return true
 	if not open and kneeboard.key(event):
@@ -312,9 +319,12 @@ func pick(id: String) -> String:
 	# The tower called: the one in range on the ground (request's), the radio's base in the air (contact_tower's).
 	var at: int = r.base if id == "landing" else r.base_at(r._pos())
 	var has_tower: bool = at >= 0 and at < r.tower_count
-	var line: String = "%s, %s" % [cs, CALLS[id][1 if _he() else 0]]
+	var lines := ["%s, %s" % [cs, CALLS[id][0]], "%s, %s" % [cs, CALLS[id][1]]]
 	if has_tower:
-		line = "%s, %s" % [(TOWER.he if _he() else TOWER.en) % _base_name(at), line]
+		lines[0] = "%s, %s" % [TOWER.en % _base_name(at, 0), lines[0]]
+		lines[1] = "%s, %s" % [TOWER.he % _base_name(at, 1), lines[1]]
+	r.bilingual(lines[0], lines[1])  # shown in the language of the moment it shows (flight_ui.gd)
+	var line: String = lines[1 if _he() else 0]
 	var twr: String = String(r.bases[at].name).to_upper() + "_TWR" if has_tower else ""
 	r.say("PILOT_CALL", [twr, cs + "_P", "REQ_" + id.to_upper()], [], false, line)  # the line as the voice starts
 	r.play_wav("radio_gap.ogg")

@@ -32,11 +32,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   side-stick's grip (it hung 9 cm ahead of it) and the left palm sits on the throttle's head (it lay on the console
   beside it), cold and in flight ([cockpit.md](cockpit.md) §5.3). `test_cockpit_view.gd` checks it.
 - **No mission card (2026-11-13, the user):** a flight starts with nothing over it but the key hint, the flight
-  running; the in-flight mission card and its H key (record 118, now an empty slot) are gone. The key hint names Esc
+  running; the in-flight mission card and its H key are gone (record 118 and H are the Checklist notebook's since). The key hint names Esc
   and the pause menu for its first 8 s ([front-end.md](front-end.md) §8). The goals are in the briefing, the live "To
   complete" line, the completion message and the debrief. `test_flight_ui.gd` checks it.
 - **The pilot's checklist notebook, part 1 (2026-11-13, the approved mock-up's look A):** in every flight a paper
-  notebook on the right thigh; K raises it at the screen's lower right and stows it. Tabs START-UP, TAXI / T-O, RADIO,
+  notebook on the right thigh; H raises it at the screen's lower right and stows it. Tabs START-UP, TAXI / T-O, RADIO,
   LANDING, EMERGENCY, DATA; a tab click, the wheel, PgUp / PgDn and the page's own ‹ › with its page count turn it. No
   key hints on it; a help line in the first start-up mission only. It replaces the start-up card: the steps whose
   switches are on ticked (a switch back off unticks its step), the step to take now marked. In a start-up training

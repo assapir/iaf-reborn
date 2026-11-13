@@ -5,7 +5,8 @@
 # - a panel at the inline-start top for the radio menu and the training result (flight/sim_flight.gd);
 # - one key hint line at the bottom: Esc's pause menu, shown for HINT_START_S once the loading screen is gone,
 #   HINT_AGAIN_S after a language change, then faded out; hidden while the pilot's notebook is raised.
-# All of it follows the game's language, also when the pause menu's Preferences switch it mid-flight.
+# All of it follows the game's language, also when the pause menu's Preferences switch it mid-flight: the radio lines
+# already shown or still waiting for their voice too (radio.gd `subtitles`).
 extends Control
 
 ## The game's language changed over the flight (Esc → Preferences).
@@ -86,9 +87,11 @@ func _apply_language() -> void:
 		old.queue_free()
 	_hint()
 	var dir := Control.LAYOUT_DIRECTION_RTL if he() else Control.LAYOUT_DIRECTION_LTR
-	for c in [_band, panel, get_node("Hint")]:  # not the add-on's own (an RTL child here mirrors its anchors)
+	# The panel's text, not the panel: an RTL control mirrors its own anchors, which put the top-right panel back at
+	# the left (the Mac's Hebrew radio menu and "To complete", 2026-11-13). The band and the hint are centred.
+	for c in [_band, panel_label, get_node("Hint")]:  # not the add-on's own (an RTL child here mirrors its anchors)
 		c.layout_direction = dir
-	# A control under this LTR root mirrors by its own anchors: the panel to the right edge in Hebrew.
+	# The panel by its anchors: the right edge in Hebrew.
 	panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT if he() else Control.PRESET_TOP_LEFT)
 	panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN if he() else Control.GROW_DIRECTION_END
 	if he():
@@ -96,8 +99,17 @@ func _apply_language() -> void:
 	else:
 		panel.offset_left = 48
 	panel.offset_top = 40
+	for x in _lines:  # the lines already shown, in the new language
+		var l: Label = x[0].get_child(0)
+		l.text = _in_language(l.text)
 	show_hint(HINT_AGAIN_S)
 	language_changed.emit()
+
+
+## A radio line in the game's language (radio.gd `subtitles`: the line in both), else `text` as given.
+func _in_language(text: String) -> String:
+	var pair = host.radio.subtitles.get(text) if host.get("radio") != null else null
+	return String(pair[1 if he() else 0]) if pair != null else text
 
 
 ## The front end's canvas, scaled to the window's height (the original's sizes stay the flight's).
@@ -190,7 +202,7 @@ func subtitle(text: String) -> void:
 	box.add_theme_stylebox_override("panel", Look.box(Color(Look.BG, 0.75), Color(0, 0, 0, 0), 0, 5, Vector2(14, 3)))
 	box.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var l := Label.new()
-	l.text = text
+	l.text = _in_language(text)  # a line said before a language change shows after it
 	l.theme_type_variation = "Strong"
 	l.add_theme_font_size_override("font_size", SUBTITLE_PX)
 	box.add_child(l)

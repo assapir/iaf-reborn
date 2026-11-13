@@ -4,7 +4,7 @@
 #   steps), RADIO (the base's frequencies, the calls and the tower's answers), LANDING, EMERGENCY (data/notebook.json)
 #   and DATA (the mission's figures);
 # - stowed: a board on the pilot's right thigh in the 3D cockpit (the notebook drawn into a texture when it changes);
-#   raised by the Checklist notebook key (K, keys.json record 126): a panel at the screen's lower right (in
+#   raised by the Checklist notebook key (H, keys.json record 118): a panel at the screen's lower right (in
 #   Hebrew too: the thigh's side), never its centre; a start-up mission starts with it raised;
 # - in a start-up training mission a ring on the current step's switch (and the gauge it watches), from the part's
 #   bounds through the camera every frame; a part out of the view gets a pointer at the screen's edge; the raised
@@ -15,7 +15,7 @@ extends Node
 const Notebook := preload("notebook.gd")
 const Look := preload("../menu/look.gd")
 ## The sim's key record of the Checklist notebook key (modern-iaf/data/keys.json, command 203).
-const KEY := 126
+const KEY := 118
 const DATA := "res://data/notebook.json"
 ## The raised board's inset from the screen's inline-end and bottom edges (px at the 1080-high canvas).
 const MARGIN := Vector2(26, 18)

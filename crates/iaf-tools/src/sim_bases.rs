@@ -515,12 +515,109 @@ pub struct Panel {
 }
 
 /// A taxiway sign at `at` (UTM 36N) on the taxiing jet's left, its face looking along `facing` (grid degrees: the
-/// way toward the jet that reads it), its boards left to right.
+/// way toward the jet that reads it), its boards left to right; `road` the point on the taxiway's centreline beside it.
 #[derive(Debug, Clone)]
 pub struct Sign {
     pub at: [f64; 2],
     pub facing: f64,
     pub panels: Vec<Panel>,
+    pub road: [f64; 2],
+}
+
+/// Two signs for the same taxiing jet nearer than this (m) stand as one array (inferred: 2026-11-13 a holding sign
+/// 5–10 m before a direction sign hid it at Ramon 25L and Nevatim 26L).
+pub const SIGN_GAP_M: f64 = 25.0;
+/// Signs facing different ways (other taxiways' signs at a junction) stand at least this far apart (m; inferred: two
+/// 3 m boards and room between them).
+pub const SIGN_APART_M: f64 = 8.0;
+/// The stretch of centreline (m before a sign) from which a jet reads it (inferred: a 0.45 m legend reads at 150 m).
+const READ_FROM_M: [f64; 2] = [15.0, 150.0];
+
+impl Sign {
+    /// The board's width (m), as `sign_boards.gd board()` builds it (0.3 m + 0.34 m a character + 0.6 m an arrow).
+    pub fn width(&self) -> f64 {
+        0.1 + self.panels.iter().map(|p| 0.3 + 0.34 * p.text.len() as f64 + p.arrow.map_or(0.0, |_| 0.6)).sum::<f64>()
+    }
+
+    /// The board's two ends.
+    fn ends(&self) -> [[f64; 2]; 2] {
+        let f = self.facing.to_radians();
+        let (h, a) = (self.width() / 2.0, self.at);
+        // Across the face: perpendicular to the facing vector (sin f, cos f).
+        [[a[0] - f.cos() * h, a[1] + f.sin() * h], [a[0] + f.cos() * h, a[1] - f.sin() * h]]
+    }
+
+    /// Whether `self` stands in a jet's line of sight to any part of `other`, the jet on the taxiway's centreline
+    /// READ_FROM_M before `other` (taxiing along −facing, the sign facing it).
+    pub fn hides(&self, other: &Sign) -> bool {
+        let f = other.facing.to_radians();
+        let [e0, e1] = self.ends();
+        (0..=27).map(|i| READ_FROM_M[0] + (READ_FROM_M[1] - READ_FROM_M[0]) * i as f64 / 27.0).any(|s| {
+            let eye = [other.road[0] + f.sin() * s, other.road[1] + f.cos() * s];
+            other.ends().into_iter().chain([other.at]).any(|t| segments_cross(eye, t, e0, e1))
+        })
+    }
+
+    /// Whether the two signs stand too near each other (SIGN_GAP_M facing the same way, within 45°, else SIGN_APART_M)
+    /// or one hides the other.
+    pub fn crowds(&self, other: &Sign) -> bool {
+        let gap = if self.same_way(other) { SIGN_GAP_M } else { SIGN_APART_M };
+        dist(self.at, other.at) < gap || self.hides(other) || other.hides(self)
+    }
+
+    /// Whether the two face the same way (within 45°): signs for the same taxiing jet.
+    pub fn same_way(&self, other: &Sign) -> bool {
+        ((self.facing - other.facing + 180.0).rem_euclid(360.0) - 180.0).abs() < 45.0
+    }
+}
+
+/// Whether segments ab and cd cross.
+fn segments_cross(a: [f64; 2], b: [f64; 2], c: [f64; 2], d: [f64; 2]) -> bool {
+    let side = |p: [f64; 2], q: [f64; 2], r: [f64; 2]| (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]);
+    side(a, b, c) * side(a, b, d) < 0.0 && side(c, d, a) * side(c, d, b) < 0.0
+}
+
+/// Adds a sign for a jet at `p` taxiing along `d`, or folds it into one already there. A sign that crowds a sign facing
+/// the same way joins it as one array: the holding position stays where it is (FAA AIM 2-3-8: the holding marking in
+/// line with the sign), its direction boards left to right by their turn ("arranged clockwise starting from the first
+/// taxiway on the pilot's left", AIM 2-3-10), the mandatory board inboard, on the taxiway's side (as a location sign
+/// collocated with a holding sign stands outboard of it, AIM 2-3-9; inferred for direction boards). Otherwise it takes
+/// the first of sign_spots that crowds none, else it is left out.
+fn place(
+    out: &mut Vec<Sign>,
+    p: [f64; 2],
+    d: [f64; 2],
+    half: f64,
+    panels: Vec<Panel>,
+    paved: &dyn Fn([f64; 2]) -> bool,
+) {
+    let facing = grid_deg([-d[0], -d[1]]);
+    let spots = sign_spots(p, d, half, paved);
+    let Some(&first) = spots.first() else { return };
+    let new = Sign { at: first, facing, panels, road: p };
+    if let Some(o) = out.iter_mut().find(|o| o.same_way(&new) && o.crowds(&new)) {
+        let mut all: Vec<Panel> = Vec::new();
+        for q in o.panels.iter().chain(new.panels.iter()) {
+            if !all.iter().any(|a| a.style == q.style && a.text == q.text) {
+                all.push(q.clone());
+            }
+        }
+        all.sort_by(|a, b| {
+            (a.style == "mandatory")
+                .cmp(&(b.style == "mandatory"))
+                .then(a.arrow.unwrap_or(0.0).total_cmp(&b.arrow.unwrap_or(0.0)))
+                .then(a.text.cmp(&b.text))
+        });
+        o.panels = all;
+        return;
+    }
+    for at in spots {
+        let s = Sign { at, ..new.clone() };
+        if !out.iter().any(|o| o.crowds(&s)) {
+            out.push(s);
+            return;
+        }
+    }
 }
 
 fn grid_deg(d: [f64; 2]) -> f64 {
@@ -532,18 +629,16 @@ fn unit(a: [f64; 2], b: [f64; 2]) -> [f64; 2] {
     [(b[0] - a[0]) / l, (b[1] - a[1]) / l]
 }
 
-/// The sign beside a jet at `p` taxiing along the unit `d`, facing it: SIGN_EDGE_M past the taxiway's edge on its
-/// left, else farther out, else on its right (Annex 14 5.4.1.4), the first place off the paved surface (`paved`);
-/// None when all are paved.
-fn sign_at(p: [f64; 2], d: [f64; 2], half: f64, panels: Vec<Panel>, paved: &dyn Fn([f64; 2]) -> bool) -> Option<Sign> {
-    let facing = grid_deg([-d[0], -d[1]]);
+/// The places for a sign beside a jet at `p` taxiing along the unit `d`, in order: SIGN_EDGE_M past the taxiway's
+/// edge on its left, then farther out, then on its right (Annex 14 5.4.1.4), those off the paved surface (`paved`).
+fn sign_spots(p: [f64; 2], d: [f64; 2], half: f64, paved: &dyn Fn([f64; 2]) -> bool) -> Vec<[f64; 2]> {
     [1.0, -1.0]
         .iter()
         .flat_map(|side| [0.0, 8.0, 18.0].map(|more| side * (half + SIGN_EDGE_M + more)))
         .map(|off| [p[0] - d[1] * off, p[1] + d[0] * off])
         // The board's ends too (a 3 m sign).
-        .find(|q| [-2.0, 0.0, 2.0].iter().all(|k| !paved([q[0] + d[1] * k, q[1] - d[0] * k])))
-        .map(|at| Sign { at, facing, panels })
+        .filter(|q| [-2.0, 0.0, 2.0].iter().all(|k| !paved([q[0] + d[1] * k, q[1] - d[0] * k])))
+        .collect()
 }
 
 /// The base's taxiway signs (ICAO Annex 14 §5.4): a runway-holding sign (mandatory) where each taxiway comes within
@@ -600,10 +695,10 @@ pub fn signs(b: &Base) -> Vec<Sign> {
                     Some(e) => r.designators[e].clone(),
                     None => format!("{}-{}", r.designators[k], r.designators[1 - k]),
                 };
-                if out.iter().any(|o| dist(o.at, p) < 60.0 && o.panels[0].text == text) {
+                if out.iter().any(|o| dist(o.at, p) < 60.0 && o.panels.iter().any(|q| q.text == text)) {
                     continue;
                 }
-                out.extend(sign_at(p, d, w / 2.0, vec![Panel { style: "mandatory", text, arrow: None }], &paved));
+                place(&mut out, p, d, w / 2.0, vec![Panel { style: "mandatory", text, arrow: None }], &paved);
             }
         }
     }
@@ -710,7 +805,7 @@ pub fn signs(b: &Base) -> Vec<Sign> {
             // Left to right, as the turns.
             panels.sort_by(|a, b| a.arrow.unwrap_or(0.0).total_cmp(&b.arrow.unwrap_or(0.0)).then(a.text.cmp(&b.text)));
             if !panels.is_empty() {
-                out.extend(sign_at(p, d, half(p), panels, &paved));
+                place(&mut out, p, d, half(p), panels, &paved);
             }
         }
     }
@@ -1863,13 +1958,38 @@ mod tests {
                 .filter(|s| s.panels.iter().any(|p| p.text.split('-').any(|t| t == "25R")))
                 .collect();
             assert!(
-                passed.iter().any(|s| s.panels[0].style == "mandatory"),
+                passed.iter().any(|s| s.panels.iter().any(|p| p.style == "mandatory")),
                 "Ramon: no holding sign for 25R: {passed:?}"
             );
             assert!(
-                passed.iter().any(|s| s.panels[0].style == "direction"),
+                passed.iter().any(|s| s.panels.iter().any(|p| p.style == "direction")),
                 "Ramon: no direction sign to 25R: {passed:?}"
             );
+        }
+    }
+
+    /// No two signs crowd each other (2026-11-13: a holding sign 5–10 m before a direction sign hid it at Ramon 25L and
+    /// Nevatim 26L): each pair stands SIGN_GAP_M apart and neither stands in the line of sight to the other from the
+    /// centreline before it. Where a holding position and a junction meet, one array holds both, the mandatory board
+    /// inboard (last).
+    #[test]
+    fn signs_stand_apart() {
+        for b in load(&data()).unwrap() {
+            let all = signs(&b);
+            for (i, s) in all.iter().enumerate() {
+                for o in &all[i + 1..] {
+                    let (at, gap) = (dist(s.at, o.at), if s.same_way(o) { SIGN_GAP_M } else { SIGN_APART_M });
+                    assert!(at >= gap, "{}: {:?} and {:?} {at:.0} m apart", b.icao, s.panels, o.panels);
+                    assert!(!s.hides(o) && !o.hides(s), "{}: {:?} hides {:?} or back", b.icao, s.panels, o.panels);
+                }
+                let m = s.panels.iter().position(|p| p.style == "mandatory");
+                assert!(
+                    m.is_none_or(|m| s.panels[m..].iter().all(|p| p.style == "mandatory")),
+                    "{}: {:?}",
+                    b.icao,
+                    s.panels
+                );
+            }
         }
     }
 
@@ -1882,33 +2002,40 @@ mod tests {
         for b in load(&data()).unwrap() {
             let mut named = std::collections::BTreeSet::new();
             for s in signs(&b) {
-                let texts: Vec<String> = s.panels.iter().map(|p| p.text.clone()).collect();
-                if s.panels[0].style != "mandatory" {
-                    let mut u = texts.clone();
-                    u.sort();
-                    u.dedup();
-                    assert_eq!(u.len(), texts.len(), "{} sign {:?}: an end named twice", b.icao, s.at);
-                    named.extend(texts);
-                    continue;
+                // A sign's direction boards (an array may hold a holding board too, last).
+                let texts: Vec<String> =
+                    s.panels.iter().filter(|p| p.style == "direction").map(|p| p.text.clone()).collect();
+                let mut u = texts.clone();
+                u.sort();
+                u.dedup();
+                assert_eq!(u.len(), texts.len(), "{} sign {:?}: an end named twice", b.icao, s.at);
+                named.extend(texts);
+                for p in s.panels.iter().filter(|p| p.style == "mandatory") {
+                    let texts = [p.text.clone()];
+                    let first = texts[0].split('-').next().unwrap();
+                    let (r, k) = b
+                        .runways
+                        .iter()
+                        .find_map(|r| r.designators.iter().position(|d| d == first).map(|k| (r, k)))
+                        .expect("a runway end of the base");
+                    let Some((_, other)) = texts[0].split_once('-') else {
+                        let at = dist(s.at, r.ends[k]);
+                        assert!(at < END_ENTRY_M + 200.0, "{} {texts:?} {:?}: {at} m from its end", b.icao, s.at);
+                        continue;
+                    };
+                    assert_eq!(r.designators[1 - k], other, "{} {texts:?}", b.icao);
+                    let off = r.dist(s.at);
+                    assert!(off < HOLD_M + 60.0, "{} {texts:?} {:?}: {off} m from its runway", b.icao, s.at);
+                    // `facing` points back at the jet: the jet taxis along −facing, its left (cos f, −sin f).
+                    let f = s.facing.to_radians();
+                    let left = |e: [f64; 2]| (e[0] - s.at[0]) * f.cos() - (e[1] - s.at[1]) * f.sin() > 0.0;
+                    assert!(
+                        left(r.ends[k]) && !left(r.ends[1 - k]),
+                        "{} {texts:?} {:?}: not left to right",
+                        b.icao,
+                        s.at
+                    );
                 }
-                let first = texts[0].split('-').next().unwrap();
-                let (r, k) = b
-                    .runways
-                    .iter()
-                    .find_map(|r| r.designators.iter().position(|d| d == first).map(|k| (r, k)))
-                    .expect("a runway end of the base");
-                let Some((_, other)) = texts[0].split_once('-') else {
-                    let at = dist(s.at, r.ends[k]);
-                    assert!(at < END_ENTRY_M + 200.0, "{} {texts:?} {:?}: {at} m from its end", b.icao, s.at);
-                    continue;
-                };
-                assert_eq!(r.designators[1 - k], other, "{} {texts:?}", b.icao);
-                let off = r.dist(s.at);
-                assert!(off < HOLD_M + 60.0, "{} {texts:?} {:?}: {off} m from its runway", b.icao, s.at);
-                // `facing` points back at the jet: the jet taxis along −facing, its left (cos f, −sin f).
-                let f = s.facing.to_radians();
-                let left = |e: [f64; 2]| (e[0] - s.at[0]) * f.cos() - (e[1] - s.at[1]) * f.sin() > 0.0;
-                assert!(left(r.ends[k]) && !left(r.ends[1 - k]), "{} {texts:?} {:?}: not left to right", b.icao, s.at);
             }
             // A direction sign leads to the take-off end.
             let main = main_ends()[b.section.as_str()];

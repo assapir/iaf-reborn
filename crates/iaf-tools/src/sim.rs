@@ -1566,9 +1566,9 @@ mod tests {
 
     /// `iaf-sim own`: every sound row's clip exists and parses as the game's format, every code the shared flight
     /// code plays has a row, every file it opens by name is there, the radio's templates name only particles with a
-    /// clip, a stale clip is removed, the key table compiles to the 127 records `key_table.gd` reads (the 117 of
-    /// docs/controls.md, Start engine, an empty slot, the six start-up checklist steps, Master arm and the Checklist notebook), and the gun
-    /// art is there.
+    /// clip, a stale clip is removed, the key table compiles to the 126 records `key_table.gd` reads (the 117 of
+    /// docs/controls.md, Start engine, the Checklist notebook, the six start-up checklist steps and Master arm), and
+    /// the gun art is there.
     #[test]
     fn own_sounds_and_keys_compile() {
         let root = TempRoot(std::env::temp_dir().join(format!("iaf-sim-own-{}", std::process::id())));
@@ -1698,7 +1698,7 @@ mod tests {
         }
         let keys: Value = serde_json::from_str(&std::fs::read_to_string(root.0.join(KEYS_FILE)).unwrap()).unwrap();
         let recs = keys["records"].as_array().unwrap();
-        assert_eq!(recs.len(), 127);
+        assert_eq!(recs.len(), 126);
         for r in recs {
             let labelled = r["label"].as_str().is_some_and(|l| !l.is_empty());
             assert!(labelled || r["shown"] == false, "{r}");
@@ -1718,7 +1718,7 @@ mod tests {
         let lap: Value =
             serde_json::from_str(&std::fs::read_to_string(root.0.join(KEYS_LAPTOP_FILE)).unwrap()).unwrap();
         let lrecs = lap["records"].as_array().unwrap();
-        assert_eq!((lrecs.len(), lrecs[37]["dik"].as_u64(), lrecs[38]["dik"].as_u64()), (127, Some(0x2c), Some(0x2d)));
+        assert_eq!((lrecs.len(), lrecs[37]["dik"].as_u64(), lrecs[38]["dik"].as_u64()), (126, Some(0x2c), Some(0x2d)));
         for r in lrecs {
             let dik = r["dik"].as_u64().unwrap();
             assert!(!matches!(dik, 0x37 | 0x47..=0x53 | 0x9c | 0xb5), "{r}");

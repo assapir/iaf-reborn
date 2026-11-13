@@ -32,11 +32,15 @@ func run() -> void:
 	check(ids == ["startup", "taxi", "radio", "landing", "emergency", "data"], "the sections %s" % [ids])
 	for i in nb.sections.size():
 		check(nb._pages[i].size() >= 1 and not nb.sections[i].blocks.is_empty(), "%s has a page" % ids[i])
-	# K stows it (into the thigh's texture) and raises it again.
+	# H stows it (into the thigh's texture) and raises it again; K (the GPS bomb's PRE / VIS) leaves it.
+	_key(tv, KEY_H)
+	check(not kb.raised and nb.get_parent() == kb._vp, "H stows the notebook")
 	_key(tv, KEY_K)
-	check(not kb.raised and nb.get_parent() == kb._vp, "K stows the notebook")
+	check(not kb.raised, "K leaves the notebook stowed")
+	_key(tv, KEY_H)
+	check(kb.raised and nb.get_parent() == kb._holder, "H raises it")
 	_key(tv, KEY_K)
-	check(kb.raised and nb.get_parent() == kb._holder, "K raises it")
+	check(kb.raised, "K leaves the notebook raised")
 	# A step taken: ticked, the next current.
 	tv._command([210, 0, 0])
 	await frames(2)
@@ -84,8 +88,8 @@ func run() -> void:
 	kb = tv.addon.kneeboard
 	check(not kb.raised, "take-off: the notebook starts stowed")
 	check(kb.checklist().size() == 6 and kb._help == null, "take-off: the Sufa's start-up checklist, no help line")
-	_key(tv, KEY_K)
-	check(kb.raised and kb.board.current_id() == "startup", "take-off: K raises it")
+	_key(tv, KEY_H)
+	check(kb.raised and kb.board.current_id() == "startup", "take-off: H raises it")
 	kb.board.open("taxi")
 	check("25R" in kb.board.page_text(), "TAXI / T-O: runway 25R")
 

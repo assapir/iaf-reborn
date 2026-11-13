@@ -420,11 +420,10 @@ timing (`kokoro_tts.py` reports the end of the word before the ";" and the start
 particles: two joins in place of six. In the sim every call is framed by `key_on.ogg` and `key_off.ogg` (§5.2).
 
 ## 4. Keys
-`data/keys.json` holds 127 commands: the 117 of docs/controls.md §3, our own Start engine (Ctrl+E, command 200, a
-hidden developer shortcut: [training.md](training.md) §7), an empty slot (record 118, the mission card's until
-2026-11-13), the six start-up checklist steps (Ctrl+B, J, I, A, N, K; commands 210–215: training.md §7.1) Master arm
-(Shift+A, command 202: [weapons.md](weapons.md) §3) and the Checklist notebook (K, command 203:
-[training.md](training.md) §11), each with our own English and Hebrew labels, the default key as text ("Ctrl + Q"), the joystick button, the press / release commands and `shown`. `iaf-sim own` compiles it to
+`data/keys.json` holds 126 records: the 117 of docs/controls.md §3, our own Start engine (Ctrl+E, command 200, a
+hidden developer shortcut: [training.md](training.md) §7), the Checklist notebook (record 118 on H, command 203: [training.md](training.md) §11; the mission card's until
+2026-11-13), the six start-up checklist steps (Ctrl+B, J, I, A, N, K; commands 210–215: training.md §7.1) and Master arm
+(Shift+A, command 202: [weapons.md](weapons.md) §3), each with our own English and Hebrew labels, the default key as text ("Ctrl + Q"), the joystick button, the press / release commands and `shown`. `iaf-sim own` compiles it to
 the shape of `iaf-convert keys`' output (records with `dik` / `modifiers` / `label` / `label_he`, `key_names`,
 `modifiers`, `button_format`). It refuses:
 - a key name outside our scancode table, which holds exactly the keys `key_table.gd` can press (a test reads the
@@ -540,7 +539,9 @@ was made with it for the user's approval (not in the repo).
 
 The subtitles do not wait: every tower particle has its Hebrew text (`text_he`, gender-neutral: "אישור המראה",
 "הסעה למסלול", "המתנה במקום"), compiled by `iaf-sim own` into `phraseparticles_he.trx`. In Hebrew `radio.gd` prints
-the phrase from those while it plays the English clips ([training.md](training.md) §8).
+the phrase from those while it plays the English clips ([training.md](training.md) §8). Each printed line is kept
+in both languages (`radio.gd subtitles`), so the flight's band re-prints it after a language change
+([front-end.md](front-end.md) §8).
 
 ## 6. Credits the sim's wizard and credits roll need
 The setup wizard (item A3) and the credits roll live outside this branch's folders; they need these lines (also in

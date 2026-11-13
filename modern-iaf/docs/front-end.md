@@ -318,25 +318,33 @@ palette, on the 1080-high canvas scaled to the window), mirrored in Hebrew; the 
 stay the original's (`terrain_view.gd _on_subtitle` hands each line to the flight add-on when it has a `subtitle()`).
 
 - **A clean start:** a flight starts with the flight running and nothing over it but the key hint (the user,
-  2026-11-13). A start-up mission starts with the pilot's notebook raised ([training.md](training.md) §11). The mission's goals
+  2026-11-13). A start-up mission starts with the pilot's notebook raised; H (the Checklist notebook key) raises and stows it ([training.md](training.md) §11). The mission's goals
   are in the briefing (§10), the panel's live "To complete: …" line, the completion message and the debrief
   ([training.md](training.md) §3). The in-flight mission card on H was
-  removed on 2026-11-13 (the user's order); H is free.
+  removed on 2026-11-13 (the user's order); H is the notebook's key since the same day (record 118).
 - **The radio lines and messages** show in a strip centred at the top, over the sky rather than the cockpit's panel,
   the newest at the bottom, three at most, each for 8 s, wholly in the game's language ([training.md](training.md)
   §8). A radio line shows as its voice starts, not at the menu's pick: the pilot's call after its key click, the
   tower's answer after the pilot's call and the gap (the user, 2026-11-13: "comms subtitle should show up as talking";
   `radio.gd cue_subtitle`, `flight_sounds.gd phrase_cue`: a mark in the speech channel's queue). A line without a clip
   (no sound file) shows at once. The text is subtitle size, 20 px at 1080 (the Mac play test, 2026-11-11: 26 px was too big).
-- **The panel** at the inline-start top holds the radio menu (Ctrl+T) and the training result.
+- **The panel** at the inline-start top (the left in English, the right in Hebrew) holds the radio menu (Ctrl+T) and
+  the training result. Its text runs in the language's direction; the panel itself keeps the root's direction and
+  takes its side from its anchors. Until 2026-11-13 the panel was set right-to-left too, and Godot mirrors such a
+  control's anchors, so in Hebrew the radio menu and "To complete" stood at the top left (the Mac run of 2026-11-13).
 - **The info line** (F12, at the top left): the mission's name and the frames per second (`Settings.info_line_full`
   false; the original game's line also holds the modes, the place, the speed and the controls).
 - **The key hint** at the bottom: Esc and the pause menu. It shows for the first 8 s after the loading screen and
   for 4 s after a language change, then fades out. It is hidden while the pilot's notebook is raised (the user,
   2026-11-10: the hint stays out of the way of the narrative). The pause menu's own key hints are separate.
 
-A language switched over the flight (Esc → Preferences → Language) applies at once to the key hint, the panel and
-the pilot's notebook ([training.md](training.md) §11); a radio line already shown stays in its language.
+A language switched over the flight (Esc → Preferences → Language) applies at once to the key hint, the panel (an
+open radio menu at once, a training line at the next frame's score), the pilot's notebook ([training.md](training.md)
+§11) and the radio lines: `radio.gd` keeps each line it prints in both languages (`subtitles`, the pilot's call from
+`sim_flight.gd pick`), so a line shown, or still waiting for its voice, shows in the language of the moment.
+Before 2026-11-13 a line kept the language it was said in: the Mac's take-off pictures, switched to Hebrew after the
+calls, showed the tower's lines in English under a Hebrew "To complete" panel. `modern-iaf/tests/test_flight_ui.gd`
+checks the layout at a start in each language and after a switch each way, and the band's lines after a switch.
 
 | | English | Hebrew |
 |---|---|---|

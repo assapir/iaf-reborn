@@ -407,9 +407,10 @@ the second mock-up approved the same day) every flight of the sim carries a pape
 `modern-iaf/flight/notebook.gd` draws the notebook; `modern-iaf/flight/kneeboard.gd` fills it from the flight and
 places it; `sim_flight.gd` holds one and passes it the key and the checklist's steps.
 
-**The key.** Checklist notebook (K; record 126 of the sim's `keys.json`, command 203; the Keys screen rebinds it as any
-other) raises it and stows it again. The flight keeps running. With a GPS bomb next to release, K keeps its own
-use, the bomb's PRE / VIS switch ([weapons.md](../../docs/weapons.md) §13.2). The notebook itself names no key.
+**The key.** Checklist notebook (H; record 118 of the sim's `keys.json`, command 203; the Keys screen rebinds it as any
+other) raises it and stows it again. The flight keeps running. The notebook itself names no key. On 2026-11-13 it moved
+from K to its own key (the user: "Give notebook its own key"): K had shared it with the GPS bomb's PRE / VIS switch
+([weapons.md](../../docs/weapons.md) §13.2), which has K to itself again.
 
 **Stowed** it lies on the right thigh in the 3D cockpit, a 13 cm board (its place and tilt per cockpit model:
 `stowed` in `data/notebook.json`). The notebook is drawn into a texture only when its page changes (a step taken, a
@@ -442,7 +443,7 @@ Past a section's last page the next section's first page opens; back from its fi
 last. ‹ dims on the notebook's first page, › on its last. On the START-UP tab the page follows the step to take now.
 
 **No key hints, no title, no clip** (the user, 2026-11-13: "lets remove the kb hints"): the steps name the switch and
-its place. In the pilot's first start-up mission only a help line stands over the raised notebook ("K stow · PgUp /
+its place. In the pilot's first start-up mission only a help line stands over the raised notebook ("H stow · PgUp /
 PgDn or wheel: page · click a tab", the key as bound); `notebook_help_seen` in the settings file's `[sim]` section
 remembers it.
 
@@ -487,7 +488,7 @@ NB_BENCH_TABLE
 NB_PICTURES
 
 **Checks.** `modern-iaf/tests/test_notebook.gd` (headless): the start-up mission raises it at START-UP with the first
-step current and no key on the page, the help line once, K stows it into the thigh's texture and raises it, a step
+step current and no key on the page, the help line once, H stows it into the thigh's texture and raises it (K leaves it), a step
 ticks, a tab click, the wheel, PgUp / PgDn and the page's ‹ › turn it across the sections, every section has a page,
 RADIO holds Ramon's frequencies, the board at the right edge, the JFS step's mark, Hebrew mirrored, a take-off flight
 stowed with the Sufa's start-up checklist and runway 25R on TAXI / T-O. `test_mvp.gd` and `test_flight_ui.gd` read the
