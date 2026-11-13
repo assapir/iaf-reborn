@@ -48,7 +48,6 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
         let style = LadderStyle {
             gap: i.deg(1.0),
             len: i.deg(1.8),
-            horizon_gap: i.deg(1.0),
             horizon_len: i.deg(3.0),
             tip: i.deg(0.35),
             inner_tips: false,
@@ -135,7 +134,7 @@ pub(super) fn heading(p: &mut Vec<Prim>, f: Field, hdg: f64, bearing: Option<f64
     p.push(line((0.0, y + 1.0), (-2.5, y + 5.0)));
     p.push(line((0.0, y + 1.0), (2.5, y + 5.0)));
     let Some(b) = bearing else { return };
-    let d = (b - hdg + 180.0).rem_euclid(360.0) - 180.0;
+    let d = rel_deg(b, hdg);
     let x = (d * k).clamp(-half, half);
     let (t, s) = (y + 5.0, 4.0);
     p.push(line((x, t), (x - s, t + s)));

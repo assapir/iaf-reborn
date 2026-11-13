@@ -3,7 +3,8 @@
 //! ALTITUDE"). Sources: T.O. GR1F-16CJ-34-1-1 pp. 1-173, 1-313..1-316; the ALOW default from docs/real-betty.md;
 //! what the sources leave open is inferred (marked "ours").
 
-const G: f64 = 9.80665;
+use iaf_flight::units::G;
+
 const FT: f64 = 3.28084;
 /// The recovery: a 4.0 g wings-level pull-up.
 const PULL_G: f64 = 4.0;

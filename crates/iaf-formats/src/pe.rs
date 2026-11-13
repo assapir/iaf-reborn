@@ -2,22 +2,13 @@
 //! `WAVE` resource 131 in Jauto.exe; docs/formats/autorun.md).
 
 use crate::Error;
+use crate::bytes::{u16_at, u32_at};
 
 /// A resource type: a numeric id (RT_DIALOG = 5, …) or a name such as `"WAVE"`.
 #[derive(Debug, Clone, Copy)]
 pub enum ResType<'a> {
     Id(u32),
     Name(&'a str),
-}
-
-fn u16_at(d: &[u8], o: usize) -> Result<u16, Error> {
-    d.get(o..o + 2).map(|b| u16::from_le_bytes([b[0], b[1]])).ok_or_else(|| Error::Format("pe: truncated".into()))
-}
-
-fn u32_at(d: &[u8], o: usize) -> Result<u32, Error> {
-    d.get(o..o + 4)
-        .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
-        .ok_or_else(|| Error::Format("pe: truncated".into()))
 }
 
 /// The first language's data of resource `ty` / `id`, or None when the file has no such resource.

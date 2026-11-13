@@ -9,8 +9,7 @@
 //! World frame X east, Y north, Z up, radians. A base is the jet's (heading, pitch).
 
 use crate::radar::line_of_sight;
-use crate::vec3::Vec3;
-use std::f64::consts::{PI, TAU};
+use crate::vec3::{Vec3, wrap_pi};
 
 /// The cone: 15° (0x601168, static init 0x45b68e); the page's field width = 2·acos = 30° (+0xdf8).
 const HALF_ANGLE: f64 = std::f64::consts::PI / 12.0;
@@ -23,10 +22,6 @@ const KEEP_RWR: usize = 5;
 const KEEP: usize = 15;
 /// Both line-of-sight ends are raised 1.5 m (0x603380).
 const LOS_RAISE: f64 = 1.5;
-
-fn wrap(a: f64) -> f64 {
-    (a + PI).rem_euclid(TAU) - PI
-}
 
 /// A unit offered to the scan.
 #[derive(Clone, Debug)]
@@ -103,7 +98,7 @@ fn in_cone(pos: Vec3, eye: Vec3, base: (f64, f64)) -> Option<(f64, f64, f64)> {
     let d = pos - eye;
     let dist = d.length();
     (dist >= 1.0 && fwd.dot(d * (1.0 / dist)) >= HALF_ANGLE.cos())
-        .then(|| (wrap(d.x.atan2(d.y) - base.0), d.z.atan2(d.x.hypot(d.y)) - base.1, dist))
+        .then(|| (wrap_pi(d.x.atan2(d.y) - base.0), d.z.atan2(d.x.hypot(d.y)) - base.1, dist))
 }
 
 /// The accept test (vfunc +0x48 `FUN_004aeb90`; the HARM's scan clears +0x50 first, so no "above the terrain" test):
@@ -248,7 +243,7 @@ impl Harm {
 
     /// The heading / pitch change since the capture (+0xdf4 / +0xdfc, wrapped to ±π).
     pub fn drift(&self, base: (f64, f64)) -> (f64, f64) {
-        (wrap(self.base.0 - base.0), wrap(self.base.1 - base.1))
+        (wrap_pi(self.base.0 - base.0), wrap_pi(self.base.1 - base.1))
     }
 }
 

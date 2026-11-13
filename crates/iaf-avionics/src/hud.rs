@@ -4,8 +4,7 @@
 
 use crate::missile::Dlz;
 use crate::stores::Stores;
-use crate::vec3::Vec3;
-use std::f64::consts::{PI, TAU};
+use crate::vec3::{Vec3, wrap_pi};
 
 /// The mode-5 object's time-to-go is capped at 1000 s in the cockpit state (+0x638).
 const TTG_MAX: f64 = 1000.0;
@@ -53,7 +52,7 @@ pub fn harm_in_range(rounds_left: bool, dlz: Option<Dlz>, dist: f64) -> bool {
 /// The locked target's bearing from the own heading (rad, wrapped ±π; the caret on the missile circle).
 pub fn lock_bearing(own: Vec3, yaw: f64, target: Vec3) -> f64 {
     let d = target - own;
-    (d.x.atan2(d.y) - yaw + PI).rem_euclid(TAU) - PI
+    wrap_pi(d.x.atan2(d.y) - yaw)
 }
 
 /// The SRM (570 / 580) and MRM (600 / 610) rounds over every station.
@@ -81,6 +80,7 @@ pub fn ttg_shown(ttg: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::f64::consts::PI;
 
     #[test]
     fn has_target_flag() {

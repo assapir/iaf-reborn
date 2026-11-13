@@ -7,6 +7,7 @@
 //! (x0, y0)-(x1, y2): left, top, right, bottom, right and bottom exclusive.
 
 use crate::Error;
+use crate::bytes::i32_at;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NamedRect {
@@ -18,11 +19,7 @@ pub struct NamedRect {
 }
 
 pub fn parse(data: &[u8]) -> Result<Vec<NamedRect>, Error> {
-    let i32_at = |o: usize| -> Result<i32, Error> {
-        data.get(o..o + 4)
-            .map(|b| i32::from_le_bytes(b.try_into().unwrap()))
-            .ok_or_else(|| Error::Format("rgn: truncated".into()))
-    };
+    let i32_at = |o: usize| i32_at(data, o);
     let count = i32_at(0)?;
     if !(0..=4096).contains(&count) {
         return Err(Error::Format(format!("rgn: bad count {count}")));

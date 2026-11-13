@@ -183,14 +183,8 @@ pub const TABLES: &[Table] = &[
     },
     Table {
         file: "crates/iaf-flight/src/params.rs",
-        anchor: "pub fn type_code(section: &str)",
-        what: "section -> type code (original sections only)",
-        list: true,
-    },
-    Table {
-        file: "crates/iaf-flight/src/params.rs",
-        anchor: "pub fn code_section(type_code: i64)",
-        what: "type -> flight-model section in the descriptor",
+        anchor: "pub const SECTIONS:",
+        what: "type <-> flight-model section (original sections only)",
         list: true,
     },
     Table {

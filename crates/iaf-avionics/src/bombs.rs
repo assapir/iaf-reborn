@@ -2,7 +2,6 @@
 //! falling store, the original's ballistic class 0x16 (solver `FUN_005611b0`, motion `FUN_00468470`, impact check
 //! `FUN_00561750`). World frame X east, Y north, Z up, metres, sim seconds.
 
-use crate::air;
 use crate::vec3::Vec3;
 
 /// ½g and g of the impact solvers (0x601414 4.903, 0x60cde0 −19.612, 0x60cdf0 1/9.806).
@@ -91,6 +90,17 @@ pub fn sight_ray(eye: Vec3, p: Vec3, terrain: &dyn Fn(Vec3) -> Option<f64>) -> O
     None
 }
 
+/// Didion's wind drift: a store launched at speed `s0` that has covered `x` along its path by `t` lags `t − x / s0`
+/// behind its drag-free self, and the wind `w` times that lag is how far the air mass has pushed it (exact for any
+/// drag law, Didion 1859[^didion]). Never upwind: an accelerating motor (x > s0·t) drifts 0 (a real rocket
+/// weathercocks into the wind: not modelled). `s0` 0: a store at rest in the air moves with it.
+///
+/// [^didion]: the "lag rule" of crosswind deflection (I. Didion, 1859), as given in R. L. McCoy, *Modern Exterior
+/// Ballistics* (Schiffer, 1999).
+fn drift(w: Vec3, t: f64, x: f64, s0: f64) -> Vec3 {
+    if s0 <= 0.0 { w * t } else { w * (t - x / s0).max(0.0) }
+}
+
 /// `FUN_0045e7f0` (the HUD's predicted impact) and its fall time: V = the jet's velocity, minus the store's bdb `drag`
 /// (0x73a) as m/s along the nose, plus `extra` m/s along the nose (rockets: _limitVel); t to the terrain under the
 /// jet, I = P + V·t − (0, 0, 4.903·t²); then once more for the terrain under I, whose height I takes. Then the
@@ -98,7 +108,7 @@ pub fn sight_ray(eye: Vec3, p: Vec3, terrain: &dyn Fn(Vec3) -> Option<f64>) -> O
 /// with both ends 1.5 m up): a hit H is the impact (fall time to the terrain under H); a second ray P → the impact
 /// solved for that height, if it hits too, moves it to that hit, on the terrain. A hill in front of the impact
 /// takes the pipper. `wind` (Better physics `wind`, ours; zero: the original): the bombing computer knows the wind,
-/// and the impact moves downwind by the drag's Didion drift ([`air::drift`]): the store covers |V_h|·t of the
+/// and the impact moves downwind by the drag's Didion drift (`drift`): the store covers |V_h|·t of the
 /// jet's |vel_h|·t, a lag growing linearly with t, so the drift is a velocity added to V.
 pub fn predict_impact(
     p: Vec3,
@@ -116,7 +126,7 @@ pub fn predict_impact(
     if drag > 0.0 {
         v = v - nose * drag;
     }
-    v += air::drift(wind, 1.0, v.x.hypot(v.y), vel.x.hypot(vel.y));
+    v += drift(wind, 1.0, v.x.hypot(v.y), vel.x.hypot(vel.y));
     let at = |t: f64| p + v * t - Vec3::UP * (HALF_G * t * t);
     let mut t = fall_time(v.z, p.z - height(terrain, p));
     let mut i = at(t);
@@ -180,7 +190,7 @@ impl Bomb {
     /// clamped to ±`clamp_acc` (the player's bombs in single player: _debugParam016 15 m/s²; 0 = none).
     ///
     /// `wind` (Better physics `wind`, ours; zero: the original): the store's along-track deceleration a makes it lag
-    /// −½·a·t² / |v_h| (Didion, [`air::drift`]), so the wind adds the constant acceleration −a / |v_h| · wind. The
+    /// −½·a·t² / |v_h| (Didion, `drift`), so the wind adds the constant acceleration −a / |v_h| · wind. The
     /// release computer knows the wind: the still-air solution aims that drift upwind of the aim, which the store
     /// still meets.
     pub fn launch(now: f64, p: Vec3, v: Vec3, aim: Vec3, clamp_acc: f64, wind: Vec3) -> Self {

@@ -93,7 +93,7 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
     match mode {
         0 => {
             if let Some(s) = i.steerpoint {
-                let d = (s.bearing_deg - i.heading_deg + 180.0).rem_euclid(360.0) - 180.0;
+                let d = rel_deg(s.bearing_deg, i.heading_deg);
                 let reach = (0.5 * (f.right - f.left) - r).max(0.0);
                 p.push(Prim::Circle { c: (b.0 + i.deg(d).clamp(-reach, reach), b.1), r });
             }

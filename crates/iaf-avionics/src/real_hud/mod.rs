@@ -27,15 +27,15 @@ mod mig29;
 mod sights;
 
 use crate::missile::Dlz;
+use iaf_flight::units::{FT, G};
 
 /// A point in HUD pixels.
 pub type P = (f64, f64);
 
 /// Degrees per milliradian.
 const MR_DEG: f64 = 0.0572958;
-/// m → NM, m → ft, m/s → kt.
+/// m → NM, m/s → kt.
 const NM: f64 = 1852.0;
-const FT: f64 = 0.3048;
 const MS_TO_KT: f64 = 1.943844;
 /// kt → km/h.
 const KT_KMH: f64 = 1.852;
@@ -450,6 +450,11 @@ fn mrm_circle(i: &Input) -> Option<(P, f64)> {
     }
 }
 
+/// Bearing `b` relative to heading `hdg`, degrees in [−180, 180).
+fn rel_deg(b: f64, hdg: f64) -> f64 {
+    (b - hdg + 180.0).rem_euclid(360.0) - 180.0
+}
+
 /// A vertical scale's ticks: values `step` apart within ±half px of `v` at `k` px per unit; `up`: higher values up.
 fn ticks(v: f64, step: f64, k: f64, half: f64, up: bool) -> impl Iterator<Item = (f64, f64)> {
     let first = ((v - half / k) / step).ceil() as i64;
@@ -473,10 +478,9 @@ enum Zenith {
 /// How the ladder's rungs look.
 #[derive(Clone, Copy, Debug)]
 struct LadderStyle {
-    /// Rung half: gap from the centre line and length (px); the horizon's.
+    /// Rung half: gap from the centre line (the horizon's too) and length (px); the horizon's length.
     gap: f64,
     len: f64,
-    horizon_gap: f64,
     horizon_len: f64,
     tip: f64,
     /// The tips at the rungs' inner ends (F-35) instead of the outer ends (F-15, F-16).
@@ -525,8 +529,8 @@ fn ladder(p: &mut Vec<Prim>, i: &Input, fpm: P, f: Field, s: LadderStyle) {
         }
         if deg == 0 {
             for side in [-1.0, 1.0] {
-                let end = at(side * (s.horizon_gap + s.horizon_len), v);
-                p.push(line(at(side * s.horizon_gap, v), end));
+                let end = at(side * (s.gap + s.horizon_len), v);
+                p.push(line(at(side * s.gap, v), end));
                 if s.horizon_tabs {
                     p.push(line(end, (end.0 - s.tip * ev.0, end.1 - s.tip * ev.1)));
                 }
@@ -631,7 +635,6 @@ fn funnel_at(i: &Input, r_ft: f64, g: f64) -> (P, f64) {
 
 /// `funnel_at` for a gun of muzzle speed `muzzle` (m/s).
 fn funnel_at_v(i: &Input, r_ft: f64, g: f64, muzzle: f64) -> (P, f64) {
-    const G: f64 = 9.80665;
     let v = i.tas_ms.max(50.0);
     let roll = i.roll_deg.to_radians();
     let omega = (g - roll.cos()) * G / v;

@@ -691,7 +691,7 @@ Fields: +0xc impact I, +0x18 target T, +0x24 / +0x28 the pipper's screen point, 
   duration ≥ 1 (`_DAT_005ff288`). Visual only: the damage is the one blast.
 
 - **Wind** (Better physics `wind`, ours; flight-model.md §10). The store drifts by Didion's lag rule
-  (`iaf_avionics::air::drift`): it lags t − x/s₀ behind its drag-free self, and the wind times that lag is its
+  (`iaf_avionics::bombs` `drift`): it lags t − x/s₀ behind its drag-free self, and the wind times that lag is its
   drift. For the falling store the along-track deceleration a gives a constant drift acceleration −a / |v_h| · wind.
   The bombing computer knows the wind: the HUD impact (`predict_impact`) moves downwind by that drift, and the
   release (`Bomb::launch`) aims the still-air solution upwind, so the store lands on the aim and its fall bends

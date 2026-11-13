@@ -74,7 +74,6 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
         let style = LadderStyle {
             gap: i.deg(1.5),
             len: i.deg(2.5),
-            horizon_gap: i.deg(1.5),
             horizon_len: i.deg(5.0),
             tip: i.deg(0.4),
             inner_tips: false,
@@ -215,7 +214,7 @@ fn heading(p: &mut Vec<Prim>, f: Field, hdg: f64, bearing: Option<f64>) {
     p.extend(box_poly(-12.0, y + 2.0, 12.0, y + 12.0));
     p.push(text((0.0, y + 10.0), format!("{:03}", (hdg.round() as i64).rem_euclid(360)), Align::Centre));
     let Some(b) = bearing else { return };
-    let d = (b - hdg + 180.0).rem_euclid(360.0) - 180.0;
+    let d = rel_deg(b, hdg);
     if d.abs() <= HDG_WINDOW / 2.0 {
         // Above the labels, pointing down at the scale.
         let x = d * k;

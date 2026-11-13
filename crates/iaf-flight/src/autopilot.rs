@@ -2526,7 +2526,7 @@ impl Landing {
             self.align_bank(l)
         } else {
             (-0.001_396_3 * cross + e * l.c.change_head_k / 3.0 - l.c.change_head_beta * v.rates[2])
-                .clamp(-deg80(), deg80())
+                .clamp(-DEG80, DEG80)
         };
         let kz = if above < 0.0 {
             0.03
@@ -2574,7 +2574,7 @@ impl Landing {
             let e = wrap(self.rn - v.att.heading);
             if flare || e.abs() > 0.1f32.to_radians() {
                 let y = l.pitch_b(0.0);
-                let x = l.roll((e - v.rates[2]).clamp(-deg80(), deg80()));
+                let x = l.roll((e - v.rates[2]).clamp(-DEG80, DEG80));
                 l.stick(y, x);
             }
         } else {
@@ -2621,7 +2621,7 @@ impl Landing {
         let speed = v.speed.max(1.0);
         let want = wrap(self.rn + (-cross / 8.0 / speed).clamp(-0.5, 0.5).asin());
         let e = wrap(want - v.att.heading);
-        (e * l.c.change_head_k - l.c.change_head_beta * v.rates[2]).clamp(-deg30(), deg30())
+        (e * l.c.change_head_k - l.c.change_head_beta * v.rates[2]).clamp(-DEG30, DEG30)
     }
 
     /// ParkInHangarCL `5d66b0`: creep at 2 kt to the hangar; stop, brakes, engine off.
@@ -2655,13 +2655,8 @@ fn wheels_height(v: &ApView) -> f32 {
     v.pos[2] as f32 - v.ground_height - v.gear_clearance.abs()
 }
 
-fn deg30() -> f32 {
-    30f32.to_radians()
-}
-
-fn deg80() -> f32 {
-    80f32.to_radians()
-}
+const DEG30: f32 = 30f32.to_radians();
+const DEG80: f32 = 80f32.to_radians();
 
 #[cfg(test)]
 mod tests {

@@ -127,7 +127,7 @@ pub(super) fn frame(f: Field, i: &Input, gs_captured: bool) -> Frame {
     } else if mode == 0
         && let Some(s) = i.steerpoint
     {
-        let err = ((s.bearing_deg - i.heading_deg + 180.0).rem_euclid(360.0) - 180.0).clamp(-20.0, 20.0);
+        let err = rel_deg(s.bearing_deg, i.heading_deg).clamp(-20.0, 20.0);
         let x = i.boresight.0 + 2.0 * err;
         p.push(line((x, i.boresight.1 - 12.0), (x, i.boresight.1 + 12.0)));
     }
@@ -144,7 +144,6 @@ pub(super) fn frame(f: Field, i: &Input, gs_captured: bool) -> Frame {
         let style = LadderStyle {
             gap: i.deg(1.2),
             len: i.deg(2.4),
-            horizon_gap: i.deg(1.2),
             horizon_len: i.deg(4.0),
             tip: i.deg(0.35),
             inner_tips: false,

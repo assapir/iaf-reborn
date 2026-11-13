@@ -15,6 +15,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::Vec3;
+use iaf_formats::{Error, bytes::Cursor};
 
 pub const VERSION: u32 = 1;
 pub const SOURCE_OSM: u8 = 0;
@@ -122,24 +123,24 @@ impl Cell {
     }
 
     pub fn decode(data: &[u8]) -> Option<Cell> {
-        let mut r = Reader { data, at: 0 };
-        if r.take(4)? != b"IAFS" || r.u32()? != VERSION {
+        let mut r = Cursor::new(data, 0);
+        if r.take(4).ok()? != b"IAFS" || r.u32().ok()? != VERSION {
             return None;
         }
-        let (nb, nt) = (r.u32()? as usize, r.u32()? as usize);
+        let (nb, nt) = (r.u32().ok()? as usize, r.u32().ok()? as usize);
         let mut cell = Cell::default();
         for _ in 0..nb {
-            cell.buildings.push(r.building()?);
+            cell.buildings.push(building(&mut r).ok()?);
         }
         for _ in 0..nt {
-            let (x, y, height) = (r.f32()?, r.f32()?, r.f32()?);
-            let kind = match r.u8()? {
+            let (x, y, height) = (r.f32().ok()?, r.f32().ok()?, r.f32().ok()?);
+            let kind = match r.u8().ok()? {
                 0 => TreeKind::Pine,
                 2 => TreeKind::Palm,
                 3 => TreeKind::Cypress,
                 _ => TreeKind::Broadleaf,
             };
-            r.take(3)?;
+            r.take(3).ok()?;
             cell.trees.push(Tree { x, y, height, kind });
         }
         Some(cell)
@@ -151,11 +152,11 @@ impl Cell {
         let mut f = std::io::BufReader::new(std::fs::File::open(path).ok()?);
         let mut head = [0u8; 16];
         f.read_exact(&mut head).ok()?;
-        let mut r = Reader { data: &head, at: 0 };
-        if r.take(4)? != b"IAFS" || r.u32()? != VERSION {
+        let mut r = Cursor::new(&head, 0);
+        if r.take(4).ok()? != b"IAFS" || r.u32().ok()? != VERSION {
             return None;
         }
-        let nb = r.u32()? as usize;
+        let nb = r.u32().ok()? as usize;
         let mut out = Vec::with_capacity(nb);
         let mut buf = Vec::new();
         for _ in 0..nb {
@@ -166,29 +167,26 @@ impl Cell {
             buf.extend_from_slice(&fixed);
             buf.resize(16 + n * 8, 0);
             f.read_exact(&mut buf[16..]).ok()?;
-            out.push(Reader { data: &buf, at: 0 }.building()?);
+            out.push(building(&mut Cursor::new(&buf, 0)).ok()?);
         }
         Some(out)
     }
 }
 
-impl Reader<'_> {
-    fn building(&mut self) -> Option<Building> {
-        let r = self;
-        let n = r.u16()? as usize;
-        let roof = match r.u8()? {
-            1 => Roof::Gabled,
-            2 => Roof::Dome,
-            _ => Roof::Flat,
-        };
-        let wall = r.u8()?;
-        let height = r.f32()?;
-        let roof_1998 = [r.u8()?, r.u8()?, r.u8()?];
-        let roof_modern = [r.u8()?, r.u8()?, r.u8()?];
-        let (source, levels) = (r.u8()?, r.u8()?);
-        let points = (0..n).map(|_| Some([r.f32()?, r.f32()?])).collect::<Option<_>>()?;
-        Some(Building { points, roof, wall, height, roof_1998, roof_modern, source, levels })
-    }
+fn building(r: &mut Cursor) -> Result<Building, Error> {
+    let n = r.u16()? as usize;
+    let roof = match r.u8()? {
+        1 => Roof::Gabled,
+        2 => Roof::Dome,
+        _ => Roof::Flat,
+    };
+    let wall = r.u8()?;
+    let height = r.f32()?;
+    let roof_1998 = [r.u8()?, r.u8()?, r.u8()?];
+    let roof_modern = [r.u8()?, r.u8()?, r.u8()?];
+    let (source, levels) = (r.u8()?, r.u8()?);
+    let points = (0..n).map(|_| Ok([r.f32()?, r.f32()?])).collect::<Result<_, Error>>()?;
+    Ok(Building { points, roof, wall, height, roof_1998, roof_modern, source, levels })
 }
 
 /// The edge of the grid buckets a cell's buildings and trees are indexed in (m).
@@ -1288,31 +1286,6 @@ pub fn roof_tiles(
     }
     let item = |k: u8| [RoofItem::Heater, RoofItem::Tank, RoofItem::Box][usize::from(k)];
     Some(tiles.into_iter().map(|((_, _, k), r)| (item(k), r)).collect())
-}
-
-struct Reader<'a> {
-    data: &'a [u8],
-    at: usize,
-}
-
-impl<'a> Reader<'a> {
-    fn take(&mut self, n: usize) -> Option<&'a [u8]> {
-        let s = self.data.get(self.at..self.at + n)?;
-        self.at += n;
-        Some(s)
-    }
-    fn u8(&mut self) -> Option<u8> {
-        Some(self.take(1)?[0])
-    }
-    fn u16(&mut self) -> Option<u16> {
-        Some(u16::from_le_bytes(self.take(2)?.try_into().ok()?))
-    }
-    fn u32(&mut self) -> Option<u32> {
-        Some(u32::from_le_bytes(self.take(4)?.try_into().ok()?))
-    }
-    fn f32(&mut self) -> Option<f32> {
-        Some(f32::from_le_bytes(self.take(4)?.try_into().ok()?))
-    }
 }
 
 #[cfg(test)]

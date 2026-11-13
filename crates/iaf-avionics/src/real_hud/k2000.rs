@@ -72,7 +72,6 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
         let style = LadderStyle {
             gap: i.deg(1.2),
             len: i.deg(2.6),
-            horizon_gap: i.deg(1.2),
             horizon_len: i.deg(5.0),
             tip: i.deg(0.35),
             inner_tips: false,
@@ -184,7 +183,7 @@ fn heading(p: &mut Vec<Prim>, f: Field, hdg: f64, bearing: Option<f64>) {
     p.extend(box_poly(-10.0, y + 4.0, 10.0, y + 14.0));
     p.push(text((0.0, y + 12.0), format!("{:03}", (hdg.round() as i64).rem_euclid(360)), Align::Centre));
     if let Some(b) = bearing {
-        let err = (b - hdg + 180.0).rem_euclid(360.0) - 180.0;
+        let err = rel_deg(b, hdg);
         let x = (err * k).clamp(-half, half);
         for d in 0..4 {
             let d = d as f64;

@@ -180,7 +180,7 @@ pub(super) fn frame(f: Field, i: &Input, gs_captured: bool) -> Frame {
     } else if mode == 0
         && let Some(s) = i.steerpoint
     {
-        let err = ((s.bearing_deg - i.heading_deg + 180.0).rem_euclid(360.0) - 180.0).clamp(-20.0, 20.0);
+        let err = rel_deg(s.bearing_deg, i.heading_deg).clamp(-20.0, 20.0);
         let x = bx + 2.0 * err;
         p.push(line((x, by - 12.0), (x, by + 12.0)));
     }
@@ -199,7 +199,6 @@ pub(super) fn frame(f: Field, i: &Input, gs_captured: bool) -> Frame {
         let style = LadderStyle {
             gap: i.deg(1.2),
             len: i.deg(2.4),
-            horizon_gap: i.deg(1.2),
             horizon_len: i.deg(5.0),
             tip: i.deg(0.35),
             inner_tips: false,
@@ -324,7 +323,7 @@ fn heading(p: &mut Vec<Prim>, f: Field, i: &Input) {
     p.push(line((0.0, y + 1.0), (-2.5, y + 5.0)));
     p.push(line((0.0, y + 1.0), (2.5, y + 5.0)));
     if let Some(s) = i.steerpoint {
-        let d = (s.bearing_deg - hdg + 180.0).rem_euclid(360.0) - 180.0;
+        let d = rel_deg(s.bearing_deg, hdg);
         let x = (d * k).clamp(-HDG_HALF, HDG_HALF);
         for dx in [-1.0, 1.0] {
             p.push(line((x + dx, y + 1.0), (x + dx, y + 5.0)));

@@ -1,6 +1,12 @@
 //! A 3-vector in the world frame (X east, Y north, Z up, metres).
 
+use std::f64::consts::{PI, TAU};
 use std::ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Sub};
+
+/// An angle (rad) wrapped to [−π, π).
+pub fn wrap_pi(a: f64) -> f64 {
+    (a + PI).rem_euclid(TAU) - PI
+}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Vec3 {

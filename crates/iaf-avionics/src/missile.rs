@@ -7,6 +7,7 @@
 //! gravity, no speed cap); each update re-bases and adds the steering acceleration.
 
 use crate::vec3::Vec3;
+use iaf_flight::units::G;
 use std::f64::consts::FRAC_PI_2;
 
 /// Update period (0x60ced8 = −0.1).
@@ -35,7 +36,6 @@ const DLZ_MIN_EXTRA: f64 = 2.0;
 pub const REAL_LAUNCH_SPEED: f64 = 250.0;
 /// Without terrain the ground is at 0.1 m.
 const NO_TERRAIN_Z: f64 = 0.1;
-const G: f64 = 9.80665;
 
 /// The chase law (+0x88, `_chaseType`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

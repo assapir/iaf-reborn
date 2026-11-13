@@ -246,14 +246,9 @@ fn second_order_step(ch: &mut Angle, t: f64, target: f32, b: f32, k: f32) {
     ch.set(t, pos, r);
 }
 
+/// 1, −1, or 0 for ±0 and NaN.
 pub(crate) fn sign(x: f32) -> f32 {
-    if x > 0.0 {
-        1.0
-    } else if x < 0.0 {
-        -1.0
-    } else {
-        0.0
-    }
+    ((x > 0.0) as i8 - (x < 0.0) as i8) as f32
 }
 
 /// Euler attitude (pitch, roll, heading), radians; heading clockwise from north.

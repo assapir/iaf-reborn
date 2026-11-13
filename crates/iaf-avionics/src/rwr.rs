@@ -10,8 +10,7 @@
 
 use crate::harm::radar_class;
 use crate::radar::line_of_sight;
-use crate::vec3::Vec3;
-use std::f64::consts::{PI, TAU};
+use crate::vec3::{Vec3, wrap_pi};
 
 pub const SLOTS: usize = 10;
 /// Emitter test (`FUN_004521c0`): within 37080 m (0x600d14); ground classes always, others only more than 120° off
@@ -207,7 +206,7 @@ impl Rwr {
         if d.length() > RANGE {
             return false;
         }
-        let rel = (d.x.atan2(d.y) - w.yaw + PI).rem_euclid(TAU) - PI;
+        let rel = wrap_pi(d.x.atan2(d.y) - w.yaw);
         u.ground() || rel.abs() > REAR
     }
 

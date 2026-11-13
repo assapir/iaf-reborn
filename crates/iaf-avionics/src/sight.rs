@@ -211,8 +211,7 @@ impl Seeker {
     pub fn can_track(&self, eye: &Eye, u: &Heat, limited: bool) -> bool {
         let d = u.pos - eye.pos;
         if limited {
-            let az = (d.x.atan2(d.y) - eye.yaw + std::f64::consts::PI).rem_euclid(std::f64::consts::TAU)
-                - std::f64::consts::PI;
+            let az = crate::vec3::wrap_pi(d.x.atan2(d.y) - eye.yaw);
             if az.abs() > LIMITED_AZ_DEG.to_radians() {
                 return false;
             }

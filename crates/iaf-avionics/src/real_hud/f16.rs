@@ -105,7 +105,6 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
         let style = LadderStyle {
             gap: i.deg(1.4),
             len: i.deg(2.6),
-            horizon_gap: i.deg(1.4),
             horizon_len: i.deg(4.2),
             tip: i.deg(0.35),
             inner_tips: false,
@@ -405,7 +404,7 @@ fn heading(p: &mut Vec<Prim>, y: f64, hdg: f64, bearing: Option<f64>) {
     p.extend(box_poly(-12.0, y - 8.0, 12.0, y + 2.0));
     p.push(text((0.0, y), format!("{:03}", (hdg.round() as i64).rem_euclid(360)), Align::Centre));
     if let Some(b) = bearing {
-        let d = (b - hdg + 180.0).rem_euclid(360.0) - 180.0;
+        let d = rel_deg(b, hdg);
         let x = (d * HDG_PX).clamp(-HDG_HALF, HDG_HALF);
         p.push(line((x, y + 3.0), (x, y + 7.0)));
     }

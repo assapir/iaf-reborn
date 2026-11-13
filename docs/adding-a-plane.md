@@ -137,7 +137,7 @@ share this code space:
 | `crates/iaf-flight/src/data_set.rs` | `TYPES` | name, model folder, bd.ibx section, code | yes (§3) |
 | | `REAL` | Real flight data (by name) | yes (§3) |
 | `crates/iaf-flight/src/spool.rs` | `ENGINES` | engine spool-up times (better physics `engine_spool`) | yes (§3) |
-| `crates/iaf-flight/src/params.rs` | `type_code()` | original sections → code | no (`TYPES` overrides it) |
+| `crates/iaf-flight/src/params.rs` | `SECTIONS` | original code ↔ section | no (`TYPES` overrides it) |
 | `crates/iaf-tools/src/aircraft.rs` | `fm_section()` | type → section in converted descriptors | no (hand-written descriptor) |
 | `crates/iaf-flight/src/aircraft.rs` | `type_code == 100` (flaps) | F-16 flaps at one third | review |
 | | `fbw_departure && matches!(…, 100 \| 140)` | fly-by-wire deep stall | if fly-by-wire |

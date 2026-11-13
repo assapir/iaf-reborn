@@ -12,8 +12,8 @@
 //! World frame X east, Y north, Z up, metres, seconds.
 
 use crate::vec3::Vec3;
+use iaf_flight::units::G;
 
-const G: f64 = 9.80665;
 /// Integration step (s).
 const STEP: f64 = 0.05;
 /// The LAR keeps this share of the reach (inferred: a margin for the turn and the wind).

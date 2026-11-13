@@ -93,45 +93,33 @@ pub struct Params {
     pub engine_spool: Option<crate::spool::Spool>,
 }
 
-/// The bd.ibx section the original loads for a type code (`FUN_005a8980`; [`type_code`] backwards): None for the
-/// others, which keep the F-16's data. The converted aircraft descriptors' `fm_section` (iaf-tools `aircraft.rs`).
+/// The bd.ibx sections by type code (`FUN_005a8980`); 200 loads the F-4's too.
+pub const SECTIONS: [(u32, &str); 14] = [
+    (100, "F-16"),
+    (110, "F-15"),
+    (120, "F-4"),
+    (130, "KFIR"),
+    (140, "LAVI"),
+    (150, "MIG21"),
+    (160, "MIG23"),
+    (170, "MIG25"),
+    (180, "MIG29"),
+    (190, "MIRAGE"),
+    (200, "F-4"),
+    (210, "MIG17"),
+    (220, "TU22"),
+    (225, "C130"),
+];
+
+/// The bd.ibx section the original loads for a type code ([`SECTIONS`]): None for the others, which keep the
+/// F-16's data. The converted aircraft descriptors' `fm_section` (iaf-tools `aircraft.rs`).
 pub fn code_section(type_code: i64) -> Option<&'static str> {
-    Some(match type_code {
-        100 => "F-16",
-        110 => "F-15",
-        120 | 200 => "F-4",
-        130 => "KFIR",
-        140 => "LAVI",
-        150 => "MIG21",
-        160 => "MIG23",
-        170 => "MIG25",
-        180 => "MIG29",
-        190 => "MIRAGE",
-        210 => "MIG17",
-        220 => "TU22",
-        225 => "C130",
-        _ => return None,
-    })
+    SECTIONS.iter().find(|s| s.0 as i64 == type_code).map(|s| s.1)
 }
 
-/// `veh+0xc54` for a bd.ibx section name (0 if unknown, e.g. SU24).
+/// `veh+0xc54` for a bd.ibx section name ([`SECTIONS`], the first match; 0 if unknown, e.g. SU24).
 pub fn type_code(section: &str) -> u32 {
-    match section.to_ascii_uppercase().as_str() {
-        "F-16" => 100,
-        "F-15" => 110,
-        "F-4" => 120,
-        "KFIR" => 130,
-        "LAVI" => 140,
-        "MIG21" => 150,
-        "MIG23" => 160,
-        "MIG25" => 170,
-        "MIG29" => 180,
-        "MIRAGE" => 190,
-        "MIG17" => 210,
-        "TU22" => 220,
-        "C130" => 225,
-        _ => 0,
-    }
+    SECTIONS.iter().find(|s| s.1.eq_ignore_ascii_case(section)).map_or(0, |s| s.0)
 }
 
 /// Wrap degrees to (-180, 180] then convert to radians (the original's "deg→rad*").
