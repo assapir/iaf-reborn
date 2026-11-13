@@ -1144,6 +1144,14 @@ func scenery_everywhere() -> bool:
 	return false
 
 
+## Modern IAF's town look (look study A20, modern-iaf/docs/scenery.md §7): the buildings' roofs in the air photo's
+## own colour and the walls by the photo around them (terrain/scenery.gd: the shaders with SCENERY_ORTHO; its data
+## carries the ring colour on the walls: IafScenery.prepare colours 2, iaf_avionics::scenery::Colours::Ring), the road
+## layer to terrain.gdshader's FAR_ROADS m on a coarser mask (ground_roads.gd). The original game: its own look.
+func scenery_ortho() -> bool:
+	return false
+
+
 ## The cockpit-view model drawn in its own world about the origin (cockpit_origin.gd): Modern IAF, whose flights go
 ## hundreds of km from their start, where the flight's float32 world rounds the cockpit to millimetres against the eye.
 ## The original game draws it in the flight's world (its jet stays within the 1998 theatre's few tens of km).

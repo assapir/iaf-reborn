@@ -8,6 +8,10 @@
 // Detailed's palette, the light flat and gabled roofs lifted out of the photo's grey).
 // Walls: that colour times the ambientCG material's colour detail (its colour over its mean);
 // our window mask (a row per 3 m level, a column every 3.2 m); a ground AO gradient. Damaged buildings: sooted.
+// SCENERY_ORTHO (Modern IAF: Settings.scenery_ortho(); scenery.gd building_shader() compiles a copy with it): the
+// roofs in the air photo's own colour (the footprint's median, iaf-sim scenery) with solar heaters, the walls by the
+// colour of a 2 m ring around the footprint (COLOR.rgb on walls), ribbon windows, a parapet line, a sun / shade step and
+// a darker street level (modern-iaf/docs/scenery.md §7, look study A20).
 shader_type spatial;
 render_mode cull_back;
 
@@ -39,6 +43,11 @@ varying flat float v_wall;
 varying float v_shade;
 // The face's colour before its texture and windows (linear): one per building and face kind, so made per vertex.
 varying flat vec3 v_base;
+#ifdef SCENERY_ORTHO
+varying flat float v_top;  // a wall's building height (m)
+varying flat float v_flat;  // 1 on a flat roof
+varying flat float v_sunward;  // a wall: 1 facing the sun, 0 away (level)
+#endif
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -65,6 +74,17 @@ void vertex() {
 	vec3 photo = srgb_to_linear(COLOR.rgb);
 	int w = clamp(int(v_wall), 0, 3);
 	// Photo: the photo's colour lightened toward plaster; Palette: the building's own (as Detailed).
+#ifdef SCENERY_ORTHO
+	v_top = UV2.y;
+	v_flat = v_roof > 0.5 && abs(COLOR.a - 0.5) > 0.1 && COLOR.a < 0.99 ? 1.0 : 0.0;
+	vec3 nw = mat3(MODEL_MATRIX) * NORMAL;
+	float sl = length(scenery_sun);
+	v_sunward = sl > 0.01 ? 0.5 + 0.5 * dot(normalize(vec3(nw.x, 0.0, nw.z) + 1e-5), scenery_sun / sl) : 0.5;
+	if (v_flat > 0.5) {
+		// A flat roof: the air photo's median over its footprint, lit to an albedo (gabled: clay, roof_far).
+		v_base = min(photo * 0.85, vec3(0.75));
+	} else
+#endif
 	v_base = v_roof > 0.5 ? roof_far(photo, COLOR.a, hash(vec2(fb, 7.7)))
 		: (palette_colours ? wall_lit(w, wall_colour(w, fb, photo))
 			: min(srgb_to_linear(mix(COLOR.rgb, PLASTER, PLASTER_MIX)) * WALL_GAIN, vec3(MAX_ALBEDO)));
@@ -79,6 +99,21 @@ void fragment() {
 	float ao = 1.0;
 	if (v_roof > 0.5) {
 		albedo = v_base;
+#ifdef SCENERY_ORTHO
+		if (v_flat > 0.5) {
+			// Solar water heaters: a dark panel (2.1 × 1.4 m) and its white tank in some 3.5 m cells, a density
+			// per building; under ~2 pixels they fade to their mean.
+			vec2 q = UV * 32.0 / 3.5;
+			vec2 fq = fract(q);
+			float on = step(hash(floor(q) + float(b) * 0.13), mix(0.15, 0.5, hash(vec2(float(b), 2.9))));
+			float ra = max(fwidth(q).x, fwidth(q).y);
+			float panel = step(0.15, fq.x) * step(fq.x, 0.75) * step(0.2, fq.y) * step(fq.y, 0.6);
+			float tank = step(0.78, fq.x) * step(fq.x, 0.92) * step(0.25, fq.y) * step(fq.y, 0.55);
+			float k = smoothstep(0.3, 0.6, ra);
+			albedo = mix(albedo, vec3(0.03, 0.035, 0.05), on * mix(panel, 0.24, k) * 0.9);
+			albedo = mix(albedo, vec3(0.6), on * mix(tank, 0.042, k));
+		}
+#endif
 	} else {
 		int w = clamp(int(v_wall), 0, 3);
 		vec3 base = v_base;
@@ -90,14 +125,40 @@ void fragment() {
 		vec2 f = fract(g);
 		vec2 px = fwidth(g);
 		float aa = max(px.x, px.y);
+#ifdef SCENERY_ORTHO
+		// Ribbon windows: each axis fades to its mean as it shrinks under ~2 pixels, the rows to a full-width band, so
+		// far walls keep their window bands instead of turning flat.
+		float wx = smoothstep(0.22 - px.x, 0.22 + px.x, f.x) * (1.0 - smoothstep(0.78 - px.x, 0.78 + px.x, f.x));
+		float wy = smoothstep(0.30 - px.y, 0.30 + px.y, f.y) * (1.0 - smoothstep(0.80 - px.y, 0.80 + px.y, f.y));
+		wx = mix(wx, 0.56, smoothstep(0.25, 0.5, px.x));
+		wy = mix(wy, 0.5, smoothstep(0.25, 0.5, px.y));
+		float win = wy * mix(wx, 0.85, smoothstep(0.25, 0.5, px.x)) * (w == 3 ? 0.0 : 1.0);
+		albedo = mix(base, vec3(0.02, 0.025, 0.035), win * 0.9);
+		rough = mix(0.9, 0.15, win * (1.0 - smoothstep(0.25, 0.5, aa)));
+		// The parapet line: the top 0.5 m of every wall (outer and the parapet's inner face) dark.
+		float top = v_top - UV.y;
+		float tw = fwidth(UV.y);
+		float line = 1.0 - smoothstep(0.5 - tw, 0.5 + tw, top);
+		line = mix(line, 0.5 * (1.0 - smoothstep(0.0, 2.0, top)), smoothstep(0.3, 0.6, tw));
+		albedo *= 1.0 - 0.55 * line * (w == 3 ? 0.0 : 1.0);
+#else
 		float win = smoothstep(0.22 - aa, 0.22 + aa, f.x) * (1.0 - smoothstep(0.78 - aa, 0.78 + aa, f.x))
 			* smoothstep(0.30 - aa, 0.30 + aa, f.y) * (1.0 - smoothstep(0.80 - aa, 0.80 + aa, f.y));
 		win *= (w == 3 ? 0.0 : 1.0) * (1.0 - smoothstep(0.25, 0.5, aa));
 		albedo = mix(base, vec3(0.03, 0.04, 0.05), win * 0.85);
 		rough = mix(0.9, 0.15, win);
+#endif
 		// Ground AO: darker at the foot of the wall.
 		albedo *= mix(0.55, 1.0, smoothstep(0.0, 2.5, UV.y));
 		ao = v_shade;  // the side away from the sun darker
+#ifdef SCENERY_ORTHO
+		// The sun's side lit warm at full albedo, the side away a real step darker.
+		albedo *= mix(vec3(0.55), vec3(1.06, 1.0, 0.9), smoothstep(0.25, 0.75, v_sunward));
+		// The street's sky light: the lower floors see less sky between close buildings (a canyon term on the ambient
+		// only, no neighbour lookup: inferred, every wall the same), and the street level a shade darker.
+		ao *= mix(0.45, 1.0, smoothstep(0.0, 12.0, UV.y));
+		albedo *= mix(0.7, 1.0, smoothstep(0.0, 10.0, UV.y));
+#endif
 		if (night && win > 0.0) {
 			float lit = step(hash(floor(g) + vec2(float(b) * 0.37, 0.0)), 0.12);
 			emit = lit * win * (1.0 - damaged);

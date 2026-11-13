@@ -42,6 +42,10 @@ func run() -> void:
 	check(roads.available() == has_roads, "settings: the road layer is found where the sim keeps it (%s)" % has_roads)
 	check(s.rejected.size() == refused, "settings: asking for the roads reads no original path")
 	check(s.ground_roads == ("detailed" if has_roads else "original"), "settings: Roads follow the sim's layer")
+	# The towns in the air photo's colours (modern-iaf/docs/scenery.md §7): the buildings' shaders with SCENERY_ORTHO.
+	check(s.scenery_ortho(), "settings: the sim's town look")
+	var scenery_gd: GDScript = load("res://shared/terrain/scenery.gd")
+	check(scenery_gd.building_shader().code.contains("#define SCENERY_ORTHO"), "the buildings' shader is the sim's")
 	var ground: GDScript = load("res://shared/terrain/ground_textures.gd")
 	check(ground.available() == (s.ground_textures == "ambientcg"), "settings: ground textures follow the download")
 	var bases: GDScript = load("res://shared/terrain/airbases.gd")

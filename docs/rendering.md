@@ -733,7 +733,9 @@ Detailed also draws the lane markings and the railways up close, and adds lamps 
 
 **The mask** (`iaf_avionics::roads::mask`, made by `IafRoads.request_mask` on a thread of the extension's own; a plain
 thread, so nothing waits at the quit). It covers 2048 × 2048 texels of 2 m (4.1 km square) around the camera, RG8
-(8 MB, no mipmaps):
+(8 MB, no mipmaps). Modern IAF (`Settings.scenery_ortho()`, `IafRoads.set_far_mask`, shader global `ground_roads` 2):
+6 m texels (12.3 km square), every road drawn to 5.5 km as dark asphalt, 2.5 m wider each side, the fade where the
+photo shows the road capped at 30 % (modern-iaf/docs/scenery.md §7):
 
 - R: the signed distance from the texel's centre to the nearest road's edge, 128 + 16 per metre, up to 8 m either way
   (negative on the road). Read with bilinear filtering, a distance field keeps a sharp, straight edge at any

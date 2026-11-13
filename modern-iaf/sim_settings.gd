@@ -458,6 +458,11 @@ func scenery_everywhere() -> bool:
 	return true
 
 
+## The towns in the air photo's colours, the roads to the buildings' range (modern-iaf/docs/scenery.md §7).
+func scenery_ortho() -> bool:
+	return true
+
+
 ## The cockpit in its own world about the origin: steady at any distance from the flight's start (the Mac play test's
 ## finding 25: 3.1 mm jumps 30 km out, 4.4 mm at 60 km; cockpit_origin.gd).
 func cockpit_at_origin() -> bool:

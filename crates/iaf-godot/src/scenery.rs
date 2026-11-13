@@ -11,7 +11,7 @@ use std::sync::{LazyLock, Mutex, RwLock};
 use godot::classes::mesh::ArrayType;
 use godot::prelude::*;
 use iaf_avionics::Vec3;
-use iaf_avionics::scenery::{self, Cell, Mesh, Model, Scenery};
+use iaf_avionics::scenery::{self, Cell, Colours, Mesh, Model, Scenery};
 
 use crate::heights::FIELD;
 use crate::world::vec3;
@@ -39,16 +39,26 @@ const BUILDING_TILE_M: f64 = 250.0;
 const CHUNK_VERTICES: usize = 60_000;
 static BUILT: LazyLock<Mutex<HashMap<(i64, i64), Built>>> = LazyLock::new(Default::default);
 
+/// The vertices' colours by `colours` (`IafScenery.prepare`): 0 the 1998 photo's, 1 the modern photo's, 2 Modern IAF's
+/// (the roofs the air photo's median, the walls its 2 m ring: `scenery::Colours::Ring`).
+fn colours(c: i64) -> Colours {
+    match c {
+        1 => Colours::Modern,
+        2 => Colours::Ring,
+        _ => Colours::Look1998,
+    }
+}
+
 /// `detailed`: Scenery = Detailed (the walls' streets and the roof clutter, docs/scenery.md §3.3); `far_light`: Far
 /// towns = Light (the far mesh of a dense cell holds its tall and large buildings only, `scenery::far_light_keeps`).
-fn build(i: i64, j: i64, modern: bool, detailed: bool, far_light: bool) -> Built {
+fn build(i: i64, j: i64, colours: Colours, detailed: bool, far_light: bool) -> Built {
     // A copy: holding the store's read lock through the build would stall the main thread's drop_cell (a write).
     let c = SCENERY.read().unwrap().cell(i, j)?.clone();
     let (c, o) = (&c, origin(i, j));
     let model = if detailed { Model::Detailed } else { Model::Near };
-    let near = scenery::mesh_chunks(c, o, model, modern, &ground, BUILDING_TILE_M, CHUNK_VERTICES)?;
+    let near = scenery::mesh_chunks(c, o, model, colours, &ground, BUILDING_TILE_M, CHUNK_VERTICES)?;
     let far_model = if far_light { Model::FarLight } else { Model::Far };
-    let far = scenery::mesh_chunks(c, o, far_model, modern, &ground, BUILDING_TILE_M, CHUNK_VERTICES)?;
+    let far = scenery::mesh_chunks(c, o, far_model, colours, &ground, BUILDING_TILE_M, CHUNK_VERTICES)?;
     let trees = scenery::tree_tiles(c, o, TILE_M as f32, &ground)?;
     let mut q: VecDeque<Piece> = near.into_iter().map(Piece::Near).chain(far.into_iter().map(Piece::Far)).collect();
     q.push_back(Piece::Trees(trees));
@@ -131,11 +141,11 @@ impl IafScenery {
 
     /// Starts making the cell's meshes and trees on a thread of its own (the main thread only copies them out);
     /// `prepared` tells when they are done. `detailed`: Scenery = Detailed (the facades' streets, the roof clutter);
-    /// `far_light`: Far towns = Light (docs/scenery.md §3.1).
+    /// `far_light`: Far towns = Light (docs/scenery.md §3.1); `colours` as `colours()`.
     #[func]
-    fn prepare(i: i64, j: i64, modern: bool, detailed: bool, far_light: bool) {
+    fn prepare(i: i64, j: i64, colours: i64, detailed: bool, far_light: bool) {
         std::thread::spawn(move || {
-            let b = build(i, j, modern, detailed, far_light);
+            let b = build(i, j, self::colours(colours), detailed, far_light);
             // A cell dropped meanwhile keeps nothing.
             if SCENERY.read().unwrap().cell(i, j).is_some() {
                 BUILT.lock().unwrap().insert((i, j), b);
@@ -206,12 +216,12 @@ impl IafScenery {
 
     /// The cell's buildings, made on the calling thread (`prepare` / `take_next` for the streamed cells).
     #[func]
-    fn mesh_arrays(i: i64, j: i64, near: bool, modern: bool) -> VarArray {
+    fn mesh_arrays(i: i64, j: i64, near: bool, colours: i64) -> VarArray {
         let s = SCENERY.read().unwrap();
         s.cell(i, j)
             .and_then(|c| {
                 let model = if near { Model::Near } else { Model::Far };
-                scenery::mesh(c, origin(i, j), model, modern, &ground)
+                scenery::mesh(c, origin(i, j), model, self::colours(colours), &ground)
             })
             .map_or_else(VarArray::new, |m| arrays(&m))
     }

@@ -7,7 +7,8 @@
 extends RefCounted
 
 ## A new mask is asked when the camera is this far (m) from the last one's centre. The mask is 4096 m across and
-## the shader draws within FAR m of the camera: 2048 − MOVE ≥ FAR keeps the drawn disc on the mask.
+## the shader draws within FAR m of the camera: 2048 − MOVE ≥ FAR keeps the drawn disc on the mask (Modern IAF's:
+## 12,288 m across, drawn within 5,500 m, terrain.gdshader FAR_ROADS).
 const MOVE := 500.0
 const FAR := 1500.0
 
@@ -48,7 +49,10 @@ static func on() -> bool:
 ## Applies Settings.ground_roads (a flight's start, or the Graphics page during a flight).
 static func apply() -> void:
 	_on = wanted()
-	RenderingServer.global_shader_parameter_set("ground_roads", 1.0 if _on else 0.0)
+	# Modern IAF: the mask at 6 m over 12.3 km, the roads to the buildings' range (terrain.gdshader ground_roads 2).
+	var far := Settings.scenery_ortho()
+	IafRoads.set_far_mask(far)
+	RenderingServer.global_shader_parameter_set("ground_roads", (2.0 if far else 1.0) if _on else 0.0)
 	_asked = Vector2(INF, INF)
 	_origin = Vector2(INF, INF)
 	if not _on and _tex != null:

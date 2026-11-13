@@ -311,6 +311,46 @@ Cost: the labels' per-frame work (the `_process` of `town_labels.gd`), timed ove
 runs, Intel Iris Xe: 0.068 ms (Shoham, Hebrew, 6 labels), 0.077 ms (English), 0.025 ms (Beersheba, 3 labels). The
 places in range are chosen again twice a second; the drawing is a few text draws. Data: `places.json`, 350 KB.
 
+**Towns in the air photo's colours, the roads to the buildings' range** (2026-11-13, the look study A20, approved
+by the user on its round 7 pictures; `Settings.scenery_ortho()`, true in the sim, false in the original game). The
+user, over Tel Aviv at 500 m: "why do the buildings look so pale with no colours?", and later "roads still seem to be
+missing". What the sim draws now:
+
+- **Roofs**: each flat roof in its own colour from the air photo, the median of the theatre's colour pixels inside its
+  footprint (the Survey of Israel's 2 m photo, Sentinel-2 where it has none; already in the data), lit to an albedo
+  (× 0.85, at most 0.75), with solar water heaters: a dark panel and a white tank in some 3.5 m cells, a density per
+  building. Gabled roofs stay clay. (Scenery Detailed keeps its own near roof materials.)
+- **Walls**: the palette's own colours (white and Bauhaus white, cream, peach, ochre, pink, sand stone, grey concrete;
+  no cream mix, no photo mix, chroma × 1.2, each building 75–100 % bright). A plaster wall's group comes from the air
+  photo in a 2 m ring around its footprint (the wall tops and the street beside it): a warm ring picks the warm
+  plasters, a light neutral one the whites, a dark one the weathered greys. `iaf-sim scenery` stores the ring's median
+  in the building's 1998-colour slot (the sim has one photo; `iaf_avionics::scenery::Colours::Ring`). Where the theatre
+  has only Sentinel-2 (10 m pixels) the ring is under a pixel wide, so most buildings there take the roof's median.
+- **Wall detail**: ribbon windows that stay bands far away, a dark line at the top 0.5 m of every wall (the parapet),
+  the sunward wall lit warm (× 1.06 / 1.0 / 0.9), the wall away from the sun × 0.55, and the lowest 10 m a shade darker
+  with less sky light (a street-canyon term; no neighbour lookup).
+- **City ground**: the gold tint of Colour grading Natural ([terrain.md](terrain.md) §15) leaves built-up ground grey
+  (the tint's brightness without its colour), so the streets read as pavement, not sand.
+- **Roads** (Roads Detailed, docs/rendering.md §1.8): the road mask at 6 m texels over
+  12.3 km instead of 2 m over 4.1 km, every road drawn to 5.5 km (was 1.5 km) as dark asphalt (sRGB 70 / 70 / 72),
+  2.5 m wider each side (the carriageway with its kerb lane, as the photo shows the street), and the fade where the 2 m
+  photo already shows the street capped at 30 % (it hid every city street from 500 m).
+
+Measured over Tel Aviv's streets (the pixels the tint changes; mean sRGB): no tint 164 / 153 / 136, before 158 / 140 /
+96, now 163 / 150 / 128; open land keeps the gold (139 / 128 / 101). Iris Xe cost, from the study's rounds over Tel Aviv at 500 m (2026-11-12): the roads to 5.5 km +0.1–0.2 ms, the grey-ground test about +0.3 ms, the buildings' shader within the noise (open: one clean before / after bench). Pictures (1920 × 1080,
+the Tel Aviv crop 1400 × 700, scaled to 1000 px; Ramon looks toward the base's access road, the base's own roads
+are off the ground layer):
+
+| Where | Before | After |
+|---|---|---|
+| Tel Aviv, 500 m, the Yarkon and the port (`668000 3550689 530 330 0`, `SHOT_ORBIT=180,15,200`) | ![Tel Aviv before](pictures/scenery/a20_telaviv_before.jpg) | ![Tel Aviv after](pictures/scenery/a20_telaviv_after.jpg) |
+| Ramon, the access road (`661500 3402000 1140 15 0`, `SHOT_ORBIT=180,15,150`) | ![Ramon before](pictures/scenery/a20_ramon_road_before.jpg) | ![Ramon after](pictures/scenery/a20_ramon_road_after.jpg) |
+
+Tried and dropped (2026-11-12, the study's rounds): a cream mix reduced to a quarter (the walls only turned whiter);
+dark roof and window variants without the ring (the panels read as one beige mass at 500 m); the main roads as
+separate ribbons out to 9 km (+0.5 ms, faint); two extra photo reads for the grey-ground test (+1.5 ms; the grade's own
+32 m mean serves). Open: the grounding round (far shadows, contact shading, pavements beside the roads).
+
 **Wall shading and long shadows** (2026-11-09, the look study's proposal 5, approved as A10; docs/scenery.md §3.4,
 docs/rendering.md §3.1). Two changes:
 
@@ -390,7 +430,6 @@ Fixed on 2026-11-08 (the "before" pictures above):
   Graphics → MORE page with the Far towns row.
 - **The open sea's faint line**: fixed in the build (2026-11-11, [terrain.md](terrain.md) §3); a theatre built before
   shows it until it is built again.
-- **Walls' colour**: the original's wall shading greys a desert town (§7); the sim may want its own.
 - **The bases' buildings**: the hangars and shelters are the airbases' models' (item B2's open points).
 - **Kinds**: the sim makes both buildings and trees; one row turns both on (Preferences → Graphics → "Buildings and
   trees", [front-end.md](front-end.md) §4); a choice between them is open.

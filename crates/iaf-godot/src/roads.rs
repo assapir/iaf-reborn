@@ -7,6 +7,7 @@
 
 use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Sender, channel};
 use std::sync::{Arc, LazyLock, Mutex};
 
@@ -91,13 +92,19 @@ fn blocks(min: [f64; 2], max: [f64; 2]) -> Vec<Arc<Roads>> {
     (a.1..=b.1).flat_map(|j| (a.0..=b.0).filter_map(move |i| block(i, j))).collect()
 }
 
-/// The ground's road mask (docs/rendering.md §1.8): MASK_N² texels of MASK_M m, made on a thread of its own.
+/// The ground's road mask (docs/rendering.md §1.8): MASK_N² texels of mask_m() m, made on a thread of its own.
 const MASK_N: usize = 2048;
-const MASK_M: f64 = 2.0;
-/// The marking mask (iaf_avionics::roads::marks): MARKS_N² texels of MASK_M m on the same centre.
+const MARKS_M: f64 = 2.0;
+/// The mask's texel: 2 m (4.1 km across), or with `set_far_mask` (Modern IAF: the roads out to the buildings' range,
+/// modern-iaf/docs/scenery.md §7) 6 m (12.3 km).
+static FAR_MASK: AtomicBool = AtomicBool::new(false);
+fn mask_m() -> f64 {
+    if FAR_MASK.load(Ordering::Relaxed) { 6.0 } else { 2.0 }
+}
+/// The marking mask (iaf_avionics::roads::marks): MARKS_N² texels of MARKS_M m on the same centre.
 const MARKS_N: usize = 1024;
-/// A made mask: its centre (engine metres), its bytes (iaf_avionics::roads::mask) and the marking mask's.
-type MadeMask = ([f64; 2], Vec<u8>, Vec<u8>);
+/// A made mask: its centre (engine metres), its texel (m), its bytes (iaf_avionics::roads::mask) and the marking mask's.
+type MadeMask = ([f64; 2], f64, Vec<u8>, Vec<u8>);
 static MASK: Mutex<Option<MadeMask>> = Mutex::new(None);
 /// The marking mask of the road mask handed over last, until `take_marks`: its centre and bytes.
 static MARKS: Mutex<Option<([f64; 2], Vec<u8>)>> = Mutex::new(None);
@@ -109,13 +116,14 @@ static MASK_QUEUE: LazyLock<Mutex<Sender<[f64; 2]>>> = LazyLock::new(|| {
             while let Ok(n) = rx.try_recv() {
                 c = n;
             }
-            let half = MASK_N as f64 * MASK_M * 0.5;
+            let m = mask_m();
+            let half = MASK_N as f64 * m * 0.5;
             let parts = blocks([c[0] - half, c[1] - half], [c[0] + half, c[1] + half]);
             let parts = parts.iter().map(Arc::as_ref).collect::<Vec<_>>();
-            let bytes = mask(&parts, c[0] - half, c[1] + half, MASK_M, MASK_N);
-            let h2 = MARKS_N as f64 * MASK_M * 0.5;
-            let mk = marks(&parts, c[0] - h2, c[1] + h2, MASK_M, MARKS_N);
-            *MASK.lock().unwrap() = Some((c, bytes, mk));
+            let bytes = mask(&parts, c[0] - half, c[1] + half, m, MASK_N);
+            let h2 = MARKS_N as f64 * MARKS_M * 0.5;
+            let mk = marks(&parts, c[0] - h2, c[1] + h2, MARKS_M, MARKS_N);
+            *MASK.lock().unwrap() = Some((c, m, bytes, mk));
         }
     });
     Mutex::new(tx)
@@ -292,6 +300,13 @@ impl IafRoads {
     /// Starts making the ground's road mask centred on the engine point `c` (a thread of its own: a std thread living
     /// as long as the process, nothing for Godot's pool to wait for at quit). A newer request replaces an older one
     /// not started yet.
+    /// The ground's road mask at 6 m texels over 12.3 km (true) or 2 m over 4.1 km (false), for the masks asked
+    /// after this (ground_roads.gd sets it at a flight's start, before its first request).
+    #[func]
+    fn set_far_mask(far: bool) {
+        FAR_MASK.store(far, Ordering::Relaxed);
+    }
+
     #[func]
     fn request_mask(c: Vector2) {
         let _ = MASK_QUEUE.lock().unwrap().send(xy(c));
@@ -303,11 +318,11 @@ impl IafRoads {
     /// (a frame later: one upload a frame).
     #[func]
     fn take_mask() -> VarDictionary {
-        let Some((c, bytes, mk)) = MASK.lock().unwrap().take() else { return VarDictionary::new() };
+        let Some((c, m, bytes, mk)) = MASK.lock().unwrap().take() else { return VarDictionary::new() };
         *MARKS.lock().unwrap() = Some((c, mk));
-        let half = MASK_N as f64 * MASK_M * 0.5;
+        let half = MASK_N as f64 * m * 0.5;
         vdict! {
-            "bytes" => &PackedByteArray::from(bytes.as_slice()), "n" => MASK_N as i64, "m" => MASK_M,
+            "bytes" => &PackedByteArray::from(bytes.as_slice()), "n" => MASK_N as i64, "m" => m,
             "x0" => c[0] - half, "y1" => c[1] + half,
         }
     }
@@ -317,9 +332,9 @@ impl IafRoads {
     #[func]
     fn take_marks() -> VarDictionary {
         let Some((c, mk)) = MARKS.lock().unwrap().take() else { return VarDictionary::new() };
-        let half = MARKS_N as f64 * MASK_M * 0.5;
+        let half = MARKS_N as f64 * MARKS_M * 0.5;
         vdict! {
-            "bytes" => &PackedByteArray::from(mk.as_slice()), "n" => MARKS_N as i64, "m" => MASK_M,
+            "bytes" => &PackedByteArray::from(mk.as_slice()), "n" => MARKS_N as i64, "m" => MARKS_M,
             "x0" => c[0] - half, "y1" => c[1] + half,
         }
     }

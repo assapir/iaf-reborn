@@ -589,7 +589,9 @@ heaters' shade does not follow the sun; the clay tiles show only on the few roof
 ### 3.4 Building colours
 
 Graphics → MORE → Building colours, under Far towns: Photo (default) or Palette (Modern IAF's profile; the look
-study's proposal 2, 2026-11-09). Photo is the look of §3 and §3.3: On's walls take the photo's colour lightened toward
+study's proposal 2, 2026-11-09). Modern IAF draws its towns with its own look on top (`Settings.scenery_ortho()`: the shaders compiled with
+`SCENERY_ORTHO`, the roofs in the air photo's colour, the walls by the photo around them; modern-iaf/docs/scenery.md
+§7); the original game's Photo and Palette are unchanged. Photo is the look of §3 and §3.3: On's walls take the photo's colour lightened toward
 plaster, and Detailed's walls fade to the photo's colour from 700 m to 2.2 km. The photo's colour is the roof's,
 mostly grey-brown, so from a few hundred metres every building reads grey or taupe.
 

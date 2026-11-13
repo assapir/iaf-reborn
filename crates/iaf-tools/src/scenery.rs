@@ -2339,9 +2339,58 @@ pub(crate) fn median_inside(img: &RgbImage, q: &[[f64; 2]]) -> [u8; 3] {
     })
 }
 
+/// The per-channel median of the pixels outside the polygon (pixel coordinates) within `ring` pixels of its edge (the
+/// wall tops and the street beside a footprint); the inside median when none is.
+pub(crate) fn median_ring(img: &RgbImage, q: &[[f64; 2]], ring: f64) -> [u8; 3] {
+    let (w, h) = (img.width() as i64, img.height() as i64);
+    let b = bbox(q);
+    let mut s: [Vec<u8>; 3] = Default::default();
+    let seg = |p: [f64; 2], a: [f64; 2], c: [f64; 2]| {
+        let (dx, dy) = (c[0] - a[0], c[1] - a[1]);
+        let t = (((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy).max(1e-12)).clamp(0.0, 1.0);
+        (p[0] - a[0] - t * dx).hypot(p[1] - a[1] - t * dy)
+    };
+    for y in ((b[1] - ring).floor() as i64).max(0)..=((b[3] + ring).ceil() as i64).min(h - 1) {
+        for x in ((b[0] - ring).floor() as i64).max(0)..=((b[2] + ring).ceil() as i64).min(w - 1) {
+            let p = [x as f64 + 0.5, y as f64 + 0.5];
+            if contains(q, p) {
+                continue;
+            }
+            let d = (0..q.len()).map(|k| seg(p, q[k], q[(k + 1) % q.len()])).fold(f64::MAX, f64::min);
+            if d <= ring {
+                let c = img.get_pixel(x as u32, y as u32).0;
+                (0..3).for_each(|k| s[k].push(c[k]));
+            }
+        }
+    }
+    if s[0].is_empty() {
+        return median_inside(img, q);
+    }
+    s.map(|mut v| {
+        v.sort_unstable();
+        v[v.len() / 2]
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A 4 × 4 px dark square on a light 12 × 12 image with a red frame 1 px around it: the ring's median is the frame's,
+    /// the inside's the square's.
+    #[test]
+    fn median_ring_reads_around_the_footprint() {
+        let mut img = RgbImage::from_pixel(12, 12, image::Rgb([200, 200, 200]));
+        for y in 3..9 {
+            for x in 3..9 {
+                let edge = x == 3 || x == 8 || y == 3 || y == 8;
+                img.put_pixel(x, y, image::Rgb(if edge { [180, 40, 30] } else { [20, 20, 20] }));
+            }
+        }
+        let q = [[4.0, 4.0], [8.0, 4.0], [8.0, 8.0], [4.0, 8.0]];
+        assert_eq!(median_inside(&img, &q), [20, 20, 20]);
+        assert_eq!(median_ring(&img, &q, 1.0), [180, 40, 30]);
+    }
 
     /// The fingerprint follows the converted files, not the setup stamps (a converter's code change alone no longer
     /// makes the scenery again).

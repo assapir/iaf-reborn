@@ -549,6 +549,10 @@ What the sim's profile does now (each project's own shader globals in `project.g
   1.0 / 0.86 / 0.58; a tint on the albedo reaches the same target without turning the jets and the buildings gold.
   The value was fitted at the Ramon view to the photo's ground (the auto-exposure takes back part of any darkening).
 - **The photo's detail ×4.5** (`terrain_photo_detail`, was 2.5).
+- **Grey towns** (2026-11-13, A20, [scenery.md](scenery.md) §7): the tint leaves built-up ground grey, the tint's
+  brightness without its colour. Built-up is the photo's own grey: its chroma (≈ sRGB) under 0.11–0.16 at the ≈ 32 m
+  mean and 0.15–0.20 at the pixel (Tel Aviv's centre averages 0.10, open land 0.16–0.33). The streets of Tel Aviv: 158
+  / 140 / 96 before, 163 / 150 / 128 after (164 / 153 / 136 without the tint); open land keeps the gold.
 
 The poses: `look_shot.gd` (the study's tool, the chase camera at the hidden jet), 1920 × 1080:
 

@@ -950,16 +950,38 @@ pub fn far_light_keeps(cell: &Cell, b: &Building) -> bool {
     cell.buildings.len() < DENSE_CELL || b.height >= FAR_MIN_HEIGHT || area(&b.points) >= FAR_MIN_AREA
 }
 
+/// The colours a mesh's vertices carry (sRGB, COLOR.rgb): roofs and walls alike in the 1998 or the modern photo's
+/// roof colour; or (`Ring`, Modern IAF's data, whose 1998 slot holds the median of the air photo in a 2 m ring around
+/// the footprint: iaf_tools::sim_scenery) the roofs the modern slot and the walls the ring.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Colours {
+    Look1998,
+    Modern,
+    Ring,
+}
+
+impl Colours {
+    /// (roof, wall) colour of building `b`, 0–1.
+    fn pick(self, b: &Building) -> ([f32; 3], [f32; 3]) {
+        let f = |c: [u8; 3]| c.map(|v| f32::from(v) / 255.0);
+        match self {
+            Colours::Look1998 => (f(b.roof_1998), f(b.roof_1998)),
+            Colours::Modern => (f(b.roof_modern), f(b.roof_modern)),
+            Colours::Ring => (f(b.roof_modern), f(b.roof_1998)),
+        }
+    }
+}
+
 /// A cell's buildings as one mesh: near = walls, a flat roof with a parapet (gabled / dome roofs as tagged), far = bare
 /// prisms. Each stands on the lowest terrain under its corners; None while the terrain there is not loaded.
 pub fn mesh(
     cell: &Cell,
     origin: [f64; 2],
     model: Model,
-    modern: bool,
+    colours: Colours,
     ground: &dyn Fn(Vec3) -> Option<f64>,
 ) -> Option<Mesh> {
-    Some(mesh_chunks(cell, origin, model, modern, ground, f64::INFINITY, usize::MAX)?.pop().unwrap_or_default())
+    Some(mesh_chunks(cell, origin, model, colours, ground, f64::INFINITY, usize::MAX)?.pop().unwrap_or_default())
 }
 
 /// `mesh` split by square tiles of `tile` metres (by each building's centroid), and within a tile into meshes of at
@@ -969,7 +991,7 @@ pub fn mesh_chunks(
     cell: &Cell,
     origin: [f64; 2],
     model: Model,
-    modern: bool,
+    colours: Colours,
     ground: &dyn Fn(Vec3) -> Option<f64>,
     tile: f64,
     max_vertices: usize,
@@ -1013,11 +1035,11 @@ pub fn mesh_chunks(
         if signed_area(&b.points) < 0.0 {
             pts.reverse();
         }
-        let rgb = if modern { b.roof_modern } else { b.roof_1998 }.map(|c| f32::from(c) / 255.0);
+        let (rgb, wall_rgb) = colours.pick(b);
         bld.building = k as f32;
         bld.height = b.height;
         let material = f32::from(b.wall) / 255.0;
-        bld.wall = [rgb[0], rgb[1], rgb[2], material];
+        bld.wall = [wall_rgb[0], wall_rgb[1], wall_rgb[2], material];
         // Detailed: a dome's alpha 1 keeps it in the photo's colour (scenery_detailed.gdshader), not clay tiles. A
         // roof the near mesh draws gabled has alpha GABLED on every model: Building colours = Palette colours it
         // clay out to the far mesh's flat top (scenery_palette.gdshaderinc).
@@ -1350,6 +1372,16 @@ mod tests {
 
     const FLAT: &dyn Fn(Vec3) -> Option<f64> = &|_| Some(5.0);
 
+    /// Modern IAF's Ring colours: the roofs the modern slot, the walls the 1998 slot (the ring's median).
+    #[test]
+    fn ring_colours_split_roof_and_wall() {
+        let b = house(0.0, 0.0, 20.0, 12.0, Roof::Flat);
+        let f = |c: [u8; 3]| c.map(|v| f32::from(v) / 255.0);
+        assert_eq!(Colours::Ring.pick(&b), (f([10, 20, 30]), f([200, 100, 50])));
+        assert_eq!(Colours::Modern.pick(&b), (f([10, 20, 30]), f([10, 20, 30])));
+        assert_eq!(Colours::Look1998.pick(&b), (f([200, 100, 50]), f([200, 100, 50])));
+    }
+
     #[test]
     fn roof_level_on_a_slope() {
         // Ground rising 0.2 m per m east: the 12 m house (x 0..20) stands on its lowest corner (x = 0, 0 m), so its
@@ -1447,7 +1479,7 @@ mod tests {
     fn mesh_extrudes_walls_roofs_and_parapets() {
         let one = |roof, near| {
             let cell = Cell { buildings: vec![house(0.0, 0.0, 20.0, 12.0, roof)], trees: vec![] };
-            mesh(&cell, [0.0, 0.0], if near { Model::Detailed } else { Model::Far }, false, FLAT).unwrap()
+            mesh(&cell, [0.0, 0.0], if near { Model::Detailed } else { Model::Far }, Colours::Look1998, FLAT).unwrap()
         };
         let centre = [10.0, 0.0, -5.0];
         // Far: 4 walls (8 triangles) + a 2-triangle roof.
@@ -1494,7 +1526,7 @@ mod tests {
                 &Cell { buildings: vec![house(0.0, 0.0, 20.0, 12.0, Roof::Flat)], trees: vec![] },
                 [0.0, 0.0],
                 Model::Far,
-                false,
+                Colours::Look1998,
                 &|_| None
             )
             .is_none()
@@ -1508,8 +1540,8 @@ mod tests {
             buildings: vec![house(0.0, 0.0, 20.0, 12.0, Roof::Flat), house(0.0, 18.0, 20.0, 15.0, Roof::Flat)],
             trees: vec![],
         };
-        let m = mesh(&cell, [0.0, 0.0], Model::Detailed, false, FLAT).unwrap();
-        let on = mesh(&cell, [0.0, 0.0], Model::Near, false, FLAT).unwrap();
+        let m = mesh(&cell, [0.0, 0.0], Model::Detailed, Colours::Look1998, FLAT).unwrap();
+        let on = mesh(&cell, [0.0, 0.0], Model::Near, Colours::Look1998, FLAT).unwrap();
         assert!(on.custom0.iter().all(|c| c[3] == 0.0), "Scenery On: no streets");
         assert_eq!(on.vertex, m.vertex);
         // The first building's north wall (its normal +y world = −z Godot) faces the 15 m one 8 m away.
@@ -1557,7 +1589,7 @@ mod tests {
     /// and the plain far model keep everything; the near model is the same either way.
     #[test]
     fn light_far_model_keeps_a_dense_cells_skyline() {
-        let verts = |c: &Cell, m: Model| mesh(c, [0.0, 0.0], m, false, FLAT).unwrap().vertex.len();
+        let verts = |c: &Cell, m: Model| mesh(c, [0.0, 0.0], m, Colours::Look1998, FLAT).unwrap().vertex.len();
         let one = verts(&Cell { buildings: vec![house(0.0, 0.0, 10.0, 6.0, Roof::Flat)], trees: vec![] }, Model::Far);
         let mut dense: Vec<Building> = (0..DENSE_CELL)
             .map(|k| house((k % 50) as f32 * 30.0, (k / 50) as f32 * 30.0, 10.0, 6.0, Roof::Flat))
@@ -1577,7 +1609,7 @@ mod tests {
             buildings: vec![house(0.0, 0.0, 20.0, 12.0, Roof::Flat), house(800.0, 0.0, 20.0, 6.0, Roof::Flat)],
             trees: vec![],
         };
-        let chunks = mesh_chunks(&cell, [0.0, 0.0], Model::Far, false, FLAT, 500.0, usize::MAX).unwrap();
+        let chunks = mesh_chunks(&cell, [0.0, 0.0], Model::Far, Colours::Look1998, FLAT, 500.0, usize::MAX).unwrap();
         assert_eq!(chunks.len(), 2, "one per tile");
         let c = chunks[1].custom0[0];
         assert_eq!([c[0], c[1], c[2]], [810.0, 5.0, -5.0], "the centroid at the base, mesh frame");

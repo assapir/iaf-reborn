@@ -81,6 +81,8 @@ static var base_dir := ""
 ## Detailed night lights at night: the windows lit (terrain_view.gd _night_detailed).
 static var night := false
 static var _walls: Texture2DArray
+## The SCENERY_ORTHO copies of the buildings' shaders (building_shader()), by base shader.
+static var _ortho := {}
 static var _walls_read := false
 static var _tree_meshes: Array = []
 static var _roof_meshes: Array = []
@@ -294,9 +296,21 @@ static func warm_up(camera: Camera3D, layers: Array) -> Node3D:
 	return n
 
 
+## The buildings' shader: Settings.scenery_ortho() compiles it with SCENERY_ORTHO (once per shader).
+static func building_shader() -> Shader:
+	var base: Shader = DETAILED_SHADER if detailed() else SHADER
+	if not Settings.scenery_ortho():
+		return base
+	if not _ortho.has(base):
+		var s := Shader.new()
+		s.code = base.code.replace("shader_type spatial;", "shader_type spatial;\n#define SCENERY_ORTHO")
+		_ortho[base] = s
+	return _ortho[base]
+
+
 static func _building_material(damage: PackedByteArray) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
-	m.shader = DETAILED_SHADER if detailed() else SHADER
+	m.shader = building_shader()
 	var w := walls()
 	m.set_shader_parameter("walls", w)
 	m.set_shader_parameter("has_walls", w != null)
@@ -964,8 +978,10 @@ func _build_some(fp: Vector3) -> void:
 	waiting.sort()
 	for t in waiting.slice(0, maxi(0, MAX_JOBS - preparing)):
 		_cells[t[1]].state = "preparing"
+		# The vertices' colours (IafScenery.prepare): Modern IAF's roofs and rings, else the shown photo's roofs.
 		var m := modern_outside if _outside.has(t[1]) else modern
-		IafScenery.prepare(t[1].x, t[1].y, m, detailed(), Settings.scenery_far == "light")
+		var colours := 2 if Settings.scenery_ortho() else (1 if m else 0)
+		IafScenery.prepare(t[1].x, t[1].y, colours, detailed(), Settings.scenery_far == "light")
 
 
 ## A made cell's node and material; its pieces follow (_upload).

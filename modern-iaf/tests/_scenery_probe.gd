@@ -57,7 +57,8 @@ func run() -> void:
 			parts["buildings far" if n.get_instance_shader_parameter("far_model") else "buildings near"].append(n)
 	for p in parts:
 		print("PART %s: %d nodes" % [p, parts[p].size()])
-	var roads: float = 1.0 if load("res://shared/terrain/ground_roads.gd").on() else 0.0
+	var on: bool = load("res://shared/terrain/ground_roads.gd").on()
+	var roads: float = (2.0 if settings().scenery_ortho() else 1.0) if on else 0.0  # the global ground_roads.gd sets
 	print("ROADS %s" % roads)
 	var vp := root.get_viewport().get_viewport_rid()
 	RenderingServer.viewport_set_measure_render_time(vp, true)

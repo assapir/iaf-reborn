@@ -31,7 +31,10 @@ use crate::thirdparty::{self, Download};
 use crate::{log, roads, sim_bases, sim_coast};
 
 /// The version of these rules: part of `made_from`.
-pub const VERSION: u32 = 4;
+pub const VERSION: u32 = 5;
+/// The width (m) of the ring around a footprint whose photo pixels (the wall tops, the street beside it) colour the
+/// walls (modern-iaf/docs/scenery.md §7).
+const RING_M: f64 = 2.0;
 /// The theatre, and the scenery's and roads' folders, under `assets/`.
 pub const THEATRE: &str = "converted/terrain/israel";
 pub const SCENERY_DIR: &str = "converted/terrain/israel/scenery";
@@ -380,8 +383,10 @@ pub fn scenery(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBoo
                         [(t[0] - o[0]) / px, (t[1] - o[1]) / px]
                     })
                     .collect();
-                let m = scenery::median_inside(img, &q);
-                (m, m)
+                // The roof: the photo's median inside the footprint (the modern slot); the walls: its median in a ring
+                // RING_M wide around it (the 1998 slot: the sim has one photo; iaf_avionics::scenery::Colours::Ring).
+                let ring = RING_M / (px * th.frame.m_per_unit);
+                (scenery::median_ring(img, &q, ring), scenery::median_inside(img, &q))
             };
             let env = Env { open: &open, clears: &[], built_height: &built, roof: &roof, warp: &w };
             let mut cell = scenery::build_cell(&node, &env);

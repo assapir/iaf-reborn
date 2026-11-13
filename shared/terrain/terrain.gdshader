@@ -44,6 +44,11 @@ global uniform float terrain_grade;
 // original game; in Modern IAF a constant gold at every hour, matched to a late-afternoon photo of Makhtesh Ramon
 // (modern-iaf/docs/terrain.md §15). The sea, inland water and the Detailed airbases' pavement keep their own colour.
 global uniform vec3 terrain_grade_tint;
+// A tint other than white leaves built-up ground grey (its brightness, not its colour): grey ground is the photo's
+// chroma (≈ sRGB) under BUILT_LO–BUILT_HI at its ≈ 32 m mean and 0.04 more at the pixel, the ground-texture blend's
+// own grey / coloured test (Modern IAF's towns: modern-iaf/docs/scenery.md §7).
+const float BUILT_LO = 0.11;
+const float BUILT_HI = 0.16;
 // The photo's local contrast (each project's own value, project.godot): 1 in the original game (unchanged); in Modern
 // IAF the photo's detail against its ≈ 32 m mean × terrain_photo_detail. The sim's colour match to Sentinel-2 scales
 // each Survey sheet to the satellite's spread (0.6–0.7 in the Negev), which flattened the 2 m photo's wadis and streets
@@ -94,7 +99,13 @@ global uniform vec4 airbase_info;
 // along it modulo ROAD_PERIOD (256ths), B = its markings (bits 0–3 lanes, bit 4 one way, bit 6 a railway, bit 7
 // edge lines), A = its half width (16ths of a metre). A median texel (edge lines, no lanes): R and G two carriageways'
 // offsets from their left lane edges. A railway texel: R and G two tracks' offsets, A the nearer one's distance along.
+// 2 = Modern IAF's (Settings.scenery_ortho(), modern-iaf/docs/scenery.md §7): the mask's 6 m texels over 12.3 km, every
+// road drawn to FAR_ROADS m as dark asphalt (FAR_ASPHALT) ROAD_WIDEN m wider each side, the fade where the photo shows
+// the road itself capped at 30 %.
 global uniform float ground_roads;
+const float FAR_ROADS = 5500.0;
+const float ROAD_WIDEN = 2.5;
+const vec3 FAR_ASPHALT = vec3(0.061, 0.061, 0.064);  // sRGB (70, 70, 72)
 global uniform sampler2D road_mask : filter_linear, repeat_disable;
 global uniform vec4 road_mask_rect;
 global uniform sampler2D road_marks : filter_linear, repeat_disable;
@@ -583,8 +594,10 @@ void fragment() {
 	// The photo's mean 4 mip levels coarser than the pixel's own (≈ 32 m near the camera; a bias, so 16 × the pixel's
 	// footprint farther out): the base of the detail gain and of the grade's knee.
 	float lum_mean = 0.0;
+	vec3 blur_mean = vec3(0.0);  // the ≈ 32 m mean itself: the grade tint's built-up test
 	if (terrain_photo_detail != 1.0 || terrain_grade > 0.0) {
 		vec3 blur = texture(colour_tex, UV, 4.0).rgb;
+		blur_mean = blur;
 		lum_mean = dot(blur, vec3(0.2126, 0.7152, 0.0722));
 		if (terrain_photo_detail != 1.0) {
 			// In luminance only, so the photo's chroma noise is not raised with it; and only the band from ≈ 4 m (one
@@ -722,19 +735,23 @@ void fragment() {
 	// anti-aliasing width.
 	float fpx = max(length(wdx), length(wdy));
 	float rdist = length(world_xz - INV_VIEW_MATRIX[3].xz);
-	float kr = ground_roads * (1.0 - smoothstep(1000.0, 1500.0, rdist))
-			* (1.0 - smoothstep(3.0, 6.0, fpx)) * (1.0 - sea) * (1.0 - wm);
+	bool far_roads = ground_roads > 1.5;
+	float reach = far_roads ? FAR_ROADS : 1500.0;
+	float widen = far_roads ? ROAD_WIDEN : 0.0;
+	float kr = min(ground_roads, 1.0) * (1.0 - smoothstep(reach - (far_roads ? 1000.0 : 500.0), reach, rdist))
+			* (1.0 - (far_roads ? smoothstep(60.0, 120.0, fpx) : smoothstep(3.0, 6.0, fpx))) * (1.0 - sea) * (1.0 - wm);
 	vec2 ruv = (world_xz - road_mask_rect.xy) * road_mask_rect.z;
 	if (kr > 0.0 && min(ruv.x, ruv.y) > 0.0 && max(ruv.x, ruv.y) < 1.0) {
-		float sd = (textureLod(road_mask, ruv, 0.0).r * 255.0 - 128.0) / 16.0;
+		float sd = (textureLod(road_mask, ruv, 0.0).r * 255.0 - 128.0) / 16.0 - widen;
 		float attr = sd < fpx ? texelFetch(road_mask, ivec2(ruv * vec2(textureSize(road_mask, 0))), 0).g * 255.0 : 0.0;
 		float texel_m = node_m / (float(textureSize(colour_tex, 0).x) * max(uv_scale, 1e-6));
 		// A railway's bed is drawn at full strength: the photo's 2 m pixels show it as a grey smear without its sleepers
 		// and rails (a half-strength bed let the photo's own patches through).
-		kr *= max(smoothstep(0.25, 0.6, texel_m / max(mod(attr, 64.0) * 0.5, 1.0)), step(63.5, mod(attr, 128.0)));
+		float shown = smoothstep(0.25, 0.6, texel_m / max(mod(attr, 64.0) * 0.5, 1.0));
+		kr *= max(far_roads ? max(shown, 0.7) : shown, step(63.5, mod(attr, 128.0)));
 		if (sd < fpx && kr > 0.0) {
-			float sx = (textureLod(road_mask, ruv + wdx * road_mask_rect.z, 0.0).r * 255.0 - 128.0) / 16.0;
-			float sy = (textureLod(road_mask, ruv + wdy * road_mask_rect.z, 0.0).r * 255.0 - 128.0) / 16.0;
+			float sx = (textureLod(road_mask, ruv + wdx * road_mask_rect.z, 0.0).r * 255.0 - 128.0) / 16.0 - widen;
+			float sy = (textureLod(road_mask, ruv + wdy * road_mask_rect.z, 0.0).r * 255.0 - 128.0) / 16.0 - widen;
 			float fw = max(abs(sx - sd) + abs(sy - sd), 0.02);
 			float paved = step(127.5, attr);
 			float rail = step(63.5, mod(attr, 128.0));
@@ -746,7 +763,7 @@ void fragment() {
 				float lum = dot(base, vec3(0.2126, 0.7152, 0.0722));
 				float n1 = textureGrad(terrain_detail_tex, world_xz / 260.0, wdx / 260.0, wdy / 260.0).r - 0.5;
 				float n2 = textureGrad(terrain_detail_tex, world_xz / 9.0, wdx / 9.0, wdy / 9.0).r - 0.5;
-				vec3 asph = vec3(mix(lum, 0.07, 0.85)) * vec3(1.02, 1.0, 0.96);
+				vec3 asph = far_roads ? FAR_ASPHALT : vec3(mix(lum, 0.07, 0.85)) * vec3(1.02, 1.0, 0.96);
 				vec3 dirt = mix(vec3(lum), base, 0.6) * vec3(1.3, 1.2, 1.05);
 				// A railway's ballast: dark grey crushed stone browned by rust and brake dust, a speckle of ≈ 5 cm stones.
 				float n3 = textureGrad(terrain_detail_tex, world_xz / 0.7, wdx / 0.7, wdy / 0.7).r - 0.5;
@@ -934,7 +951,18 @@ void fragment() {
 		// By the ≈ 32 m mean's luminance: one factor over a neighbourhood keeps the local contrast's ratios (by the
 		// pixel's own luminance the knee flattened the wadis: its slope at sand is a seventh).
 		ALBEDO /= 1.0 + terrain_grade * lum_mean;
-		ALBEDO *= mix(terrain_grade_tint, vec3(1.0), max(max(sea, wm), paved_k));
+		vec3 tint = terrain_grade_tint;
+		if (tint != vec3(1.0)) {
+			// Built-up ground: the tint's brightness without its colour (grey pavement, not gold). No texture read of
+			// its own (two cost 1.5 ms on the Iris Xe): the grade's ≈ 32 m mean and the pixel's albedo.
+			vec3 bs = sqrt(blur_mean);
+			vec3 ps = sqrt(max(ALBEDO, vec3(0.0)));
+			float cb = max(bs.r, max(bs.g, bs.b)) - min(bs.r, min(bs.g, bs.b));
+			float cp = max(ps.r, max(ps.g, ps.b)) - min(ps.r, min(ps.g, ps.b));
+			float built = (1.0 - smoothstep(BUILT_LO, BUILT_HI, cb)) * (1.0 - smoothstep(BUILT_LO + 0.04, BUILT_HI + 0.04, cp));
+			tint = mix(tint, vec3(dot(tint, vec3(0.2126, 0.7152, 0.0722))), built);
+		}
+		ALBEDO *= mix(tint, vec3(1.0), max(max(sea, wm), paved_k));
 	}
 	if (city_glow_k > 0.0) {
 		// The haze over the dense lamp clusters (city_glow.gdshaderinc).

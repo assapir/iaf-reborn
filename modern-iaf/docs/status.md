@@ -86,6 +86,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   48); the wind follows the dynamic pressure; the canopy closes at its checklist step; the touchdown is an airplane
   tyre skid with a thump, not a bicycle squeal ([sound.md](sound.md) §1.3–§1.8). The original game keeps its rules.
   `test_mvp.gd`, the original's `test_sounds.gd`.
+- **Towns in the air photo's colours, the roads to the buildings' range (2026-11-13, look study A20):** each roof in
+  its own colour from the air photo with solar heaters, the walls in the palette's colours chosen by the photo around
+  each building, ribbon windows, a sun / shade step, grey city pavement instead of the gold tint, and every road drawn
+  as dark asphalt to 5.5 km (was 1.5 km). Needs the scenery step again (no download) ([scenery.md](scenery.md) §7).
+  Open: Scenery Detailed keeps its own near roofs; far shadows and contact shading (the grounding round).
 - **The ground against a photo of Makhtesh Ramon (2026-11-11, Approvals A17, causes 1 and 2):** a golden tint
   on the land at every hour, through Colour grading Natural (the albedo × `terrain_grade_tint` 0.86 / 0.78 / 0.43; the
   sea, inland water and the airbases' pavement keep their colour), and the photo's detail ×4.5 (it was ×2.5). The Ramon view's ground reads
