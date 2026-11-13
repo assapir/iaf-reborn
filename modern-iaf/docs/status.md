@@ -3,13 +3,21 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The start-up switches both ways (2026-11-13, the switches audit's M2, first part):** on all three jets every
+  start-up switch goes back off by its key or a click and on again, with its consequence: main power off darkens
+  everything, the starter off stops a crank, the avionics off darken the displays and lose the INS alignment (a
+  warm-up and a new alignment when back on), the INS knob off loses it, the canopy opens; the JFS switch springs
+  back to OFF at 52 %. The flight model holds the positions (`start.rs` `Start::on`); the checklist, the card and the
+  debrief read them, so a switch back off undoes its step ([cockpit.md](cockpit.md) §5.2 "Both ways";
+  `test_switches_both_ways.gd`). Open: the four AVIONIC POWER switches one by one, FCR and RDR ALT systems, the
+  in-between positions (MAIN PWR BATT, JFS START 1, INS NORM / NAV), the lamps and cues (M3).
 - **Every checklist switch by the mouse (2026-11-13, the switches audit's M1):** in the 3D cockpits the throttle
   answers the wheel and a drag both ways; a drag down begun at idle goes over the detent to OFF (Throttle OFF), a
   drag up moves it out of OFF (the idle step); the landing gear handles (both F-16s, the F-35I) send the G key's
   toggle; the F-16's FCR and RDR ALT switches (FlightGear's own `fcr-switch` / `rdr-alt-switch`, now nodes of `f16.glb`) move on a click
   and power nothing yet ([cockpit.md](cockpit.md) §5.2). `test_switches_click.gd` checks every switch of each jet's
   start-up, take-off and landing steps resolves to a clickable part, lights and sends its command. Open: the
-  switches' OFF positions and consequences (M2); the F-35I's CANOPY switch still behind the seat (a model move
+  F-35I's CANOPY switch still behind the seat (a model move
   awaits the user's look).
 - **The pointer comes back after a mouse look (2026-11-13, the user's Mac):** the right drag hides the pointer while
   held; on release, a release the view missed, a lost focus or a pause it shows again where it was

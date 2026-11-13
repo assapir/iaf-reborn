@@ -256,7 +256,7 @@ impl SixDof {
         }
     }
 
-    /// One start-up checklist step by its key ([`Sequence::press`]); a running engine takes none. "cutoff": the
+    /// One start-up checklist step by its key ([`Sequence::press`]). "cutoff": the
     /// throttle to OFF, the fuel cut ([`Sequence::cut_off`]): the engine stops giving thrust and winds down.
     pub fn start_step(&mut self, step: &str) -> Result<(), &'static str> {
         if step == "cutoff" {
@@ -267,10 +267,26 @@ impl SixDof {
             self.engine_on = false;
             return self.start_seq.cut_off(rpm);
         }
-        if self.engine_on && step != "avionics" && step != "ins" {
-            return Ok(());
-        }
         self.start_seq.press(&self.jet.start, step)
+    }
+
+    /// A checklist switch set: `want` 1 on ([`SixDof::start_step`]), -1 off, 0 the other way from its position
+    /// ([`Sequence::on`]). Off is [`Sequence::release`]; the engine's ("engine": the F-16's throttle, the F-35I's ENG
+    /// switch) is the fuel cut, "cutoff".
+    pub fn start_switch(&mut self, step: &str, want: i8) -> Result<(), &'static str> {
+        if want > 0 || (want == 0 && !self.start_seq.on(step)) {
+            return self.start_step(step);
+        }
+        if step == "engine" {
+            return self.start_step("cutoff");
+        }
+        self.start_seq.release(step);
+        Ok(())
+    }
+
+    /// The position of checklist step `step`'s switch ([`Sequence::on`]).
+    pub fn start_on(&self, step: &str) -> bool {
+        self.start_seq.on(step)
     }
 
     /// The electrical power: 0 none, 1 the battery, 2 the displays up ([`Sequence::power`]).

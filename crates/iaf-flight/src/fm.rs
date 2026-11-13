@@ -170,6 +170,22 @@ impl Fm {
         }
     }
 
+    /// A start-up checklist switch set (the 6-DoF's `start_switch`: `want` 1 on, -1 off, 0 the other way).
+    pub fn start_switch(&mut self, step: &str, want: i8) -> Result<(), &'static str> {
+        match self {
+            Fm::SixDof(s) => s.start_switch(step, want),
+            Fm::Original(_) => Ok(()),
+        }
+    }
+
+    /// A start-up checklist switch's position: always on in the original model.
+    pub fn start_on(&self, step: &str) -> bool {
+        match self {
+            Fm::SixDof(s) => s.start_on(step),
+            Fm::Original(_) => true,
+        }
+    }
+
     /// The electrical power (0 none, 1 the battery, 2 the displays up): the original model's is always up.
     pub fn power(&self) -> u8 {
         match self {

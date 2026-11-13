@@ -514,9 +514,15 @@ pub fn score(flight: &Flight, mission: &Value, airbases: &[Value]) -> Result<Deb
     let mut d = match &r.kind {
         Kind::Startup => {
             let mut d = startup(flight, id, r.time_budget_s);
-            // A checklist step never done (its event without a fault) fails it.
+            // A checklist step not done (its last event without a fault is not its switch back off, "on": false)
+            // fails it.
             let done = |step: &str| {
-                flight.events.iter().any(|e| e["event"] == "checklist" && e["step"] == step && e["fault"].is_null())
+                let last = flight
+                    .events
+                    .iter()
+                    .rev()
+                    .find(|e| e["event"] == "checklist" && e["step"] == step && e["fault"].is_null());
+                last.is_some_and(|e| e["on"] != false)
             };
             for step in r.checklist.iter().filter(|s| !done(s)) {
                 d.reasons.push(string_id(&format!("skip_{step}")).unwrap_or("not_done"));
@@ -1240,6 +1246,11 @@ mod tests {
         // The throttle to OFF with the engine running (the shutdown, start.rs `cut_off`) fails it too.
         let off = json!({"t": 30.0, "event": "checklist", "step": "cutoff", "fault": "shutdown"});
         assert_eq!(scored(&with(&text, &[off]), "ramon_startup").reasons, ["shutdown"]);
+        // A switch put back off fails its step; on again, it is done (the switches audit's M2).
+        let off = json!({"t": 25.0, "event": "checklist", "step": "avionics", "on": false});
+        assert_eq!(scored(&with(&text, std::slice::from_ref(&off)), "ramon_startup").reasons, ["skip_avionics"]);
+        let again = json!({"t": 26.0, "event": "checklist", "step": "avionics"});
+        assert!(scored(&with(&text, &[off, again]), "ramon_startup").pass);
         let d = scored(&text, "ramon_startup");
         assert!(d.pass, "a clean start-up passes at its end");
         assert!(d.goals.is_empty(), "the start-up's sheet: pass / fail and the reason");

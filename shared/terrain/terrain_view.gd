@@ -2890,7 +2890,7 @@ func _command(cmd: Array) -> bool:
 			# Modern IAF's start-up checklist steps (its own keys.json; modern-iaf/docs/training.md §7.1): the flight add-on
 			# passes them to the flight model and ticks its card.
 			if addon != null and addon.has_method("start_step"):
-				addon.start_step(int(cmd[0]) - 210)
+				addon.start_step(int(cmd[0]) - 210, int(cmd[1]))  # p1: 1 on, -1 off, 0 the other way
 		218:
 			# Modern IAF's Throttle OFF (its own keys.json record 121; modern-iaf/docs/training.md §7.2): the fuel cut, the
 			# engine winds down. The flight add-on passes it to the flight model and records it.

@@ -247,9 +247,10 @@ mouse too: each step's switch is a control of `f16_controls.json`, and a left cl
 its key. FlightGear models these switches as their own parts, so `tools/f16d/cockpit3d.py` `CONTROLS` makes each one a
 node of `f16.glb`, turning on FlightGear's property by FlightGear's mapping (`f16.json`). A switch's table row names
 that property and its two positions (`prop`, `on`, `off`); `cockpit3d_controls.gd` `set_switch` puts it there and
-`cockpit3d.gd` `switches` turns the node. The sim's flight add-on (`sim_flight.gd`) puts a cold jet's switches off at
-the start and each one on when its step is taken; a refused step leaves its switch off. A jet that starts with its
-engine running, and the original game, keep the switches as FlightGear models them.
+`cockpit3d.gd` `switches` turns the node. The sim's flight add-on (`sim_flight.gd` `_sync_switches`) shows each switch
+where the flight model has it, every frame: a cold jet's off, a hot jet's on, each one on when its step is taken and
+off when it goes back off ("Both ways" below); a refused step leaves its switch off. The original game keeps the
+switches as FlightGear models them.
 
 - **The AVIONIC POWER switches** (2026-11-11, from the user's Mac): each is its own `toggle` in `f16_controls.json`.
   A click flips that switch alone, with its click (`SFX_BUTTON`), and once all four are on the click sends the
@@ -269,7 +270,7 @@ engine running, and the original game, keep the switches as FlightGear models th
 | 1 | MAIN PWR switch (`MAIN_PWR`) | ELEC panel, left console, beside the throttle[^bms-ramp][^fg-left] | `[210, 0, 0]` | Ctrl+B | MAIN (2) / OFF (0) |
 | 2 | JFS switch (`JFS`) | ENG & JET START panel, left console, aft[^bms-ramp][^fg-left] | `[211, 0, 0]` | Ctrl+J | START 2 (1) / OFF (0) |
 | 3 | throttle grip (`THROTTLE`) | the throttle, left console | `[5, 0, 0]`, the wheel and a drag (below) | Throttle up | the throttle's own animation: out of OFF |
-| 4 | MMC, ST STA, MFD, UFC switches (`AVIONICS_MMC`, `AVIONICS_ST_STA`, `AVIONICS_MFD`, `AVIONICS_UFC`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | `[213, 0, 0]` | Ctrl+A | ON (1) / OFF (0): the key all four, a click its own switch |
+| 4 | MMC, ST STA, MFD, UFC switches (`AVIONICS_MMC`, `AVIONICS_ST_STA`, `AVIONICS_MFD`, `AVIONICS_UFC`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | `[213, 1, 0]` on the last of the four on, `[213, -1, 0]` on one off | Ctrl+A | ON (1) / OFF (0): the key all four, a click its own switch |
 | 5 | INS knob (`INS`) | AVIONIC POWER panel, right console[^bms-ramp][^fg-right] | `[214, 0, 0]` | Ctrl+N | STOR HDG (1) / OFF (0) |
 | 6 | canopy handle (`CANOPY_HANDLE`, a hit area) | left side, aft of the left console, by the canopy switch[^dcs-canopy] | `[215, 0, 0]` | Ctrl+K | none |
 | take-off, landing | landing gear handle (`anim023`) | left auxiliary console (FlightGear's `LeftAuxConsole` `gear_lever`) | `[14, 0, 0]` | G | the handle's own animation (`controls/gear/gear-down`) |
@@ -290,8 +291,8 @@ engine running, and the original game, keep the switches as FlightGear models th
   inferred: the sources put the handle on the left side, not where on it.
 - **INS: STOR HDG** is position 1, after OFF (FlightGear's knob: OFF 0, NORM 2, NAV 3; STOR HDG between them is
   inferred).
-- **Not modelled:** the JFS switch stays at START 2 after the JFS stops (on the jet it springs back to OFF); a hot
-  start leaves the switches as FlightGear models them.
+- **The JFS switch** springs back to OFF when the engine sustains itself (52 %), as the real JFS cuts out at 50–54
+  %[^jfs50]; the starter step stays done.
 
 The F-35I's start-up works the same way on its own panels (`f35i_controls.json`). Its switches are our model's
 (`tools/f35i/cockpit3d.py` `CONTROLS`): bat toggles that lean forward when on and 40° aft when off, each turning on a
@@ -304,7 +305,7 @@ switches, not readable labels ([../../docs/f35i.md](../../docs/f35i.md) §4.2).
 | 1 | BATT switch (`BATT`) | start panel, left console, forward (first of four) | `[210, 0, 0]` | Ctrl+B | forward (1) / aft (0) |
 | 2 | IPP switch (`IPP`) | start panel, second | `[211, 0, 0]` | Ctrl+J | forward (1) / aft (0) |
 | 3 | ENG switch (`ENG`, under a red guard) | start panel, third | `[212, 0, 0]` | none | forward (1) / aft (0) |
-| 3 | START button (`START`) | start panel, fourth | `[212, 0, 0]` | none | a push button |
+| 3 | START button (`START`) | start panel, fourth | `[212, 1, 0]` (on only) | none | a push button |
 | 3 | throttle (`throttle`) | the throttle, left console | `[5, 0, 0]`, the wheel and a drag (as the F-16's) | Throttle up | the throttle's own animation |
 | 4 | CANOPY switch (`CANOPY`) | its own panel, left console, aft | `[215, 0, 0]` | Ctrl+K | forward (1) / aft (0) |
 | take-off, landing | landing gear handle (`gear_handle`) | left of the main panel | `[14, 0, 0]` | G | the handle's own animation |
@@ -313,6 +314,38 @@ switches, not readable labels ([../../docs/f35i.md](../../docs/f35i.md) §4.2).
   throttle up from OFF, [training.md](training.md) §7.1); the throttle stays where it is, and the engine runs to idle
   by itself. Moving the throttle up from OFF takes the same step.
 - **Not modelled:** the ENG switch's guard stays down (the bat passes under it); the START button does not move.
+
+#### Both ways (2026-11-13, the switches audit's M2)
+
+Every start-up switch goes back off by its key or a click and on again, at any time, on all three jets; the user's
+words: mistakes "out of scenario" must be possible. The flight model holds each switch's position, the one source
+(`iaf-flight` `sixdof/start.rs`: `Start::press` on, `Start::release` off, `Start::on` the position; `IafFlight`
+`start_switch`, `start_on`). A command's p1 says which way: 1 on, −1 off, 0 (the keys, and a click on a switch of its
+own) the other way from where it is. The checklist's steps done (`sim_flight.gd` `done`, the card, the notebook)
+are the switches on, read each frame: a switch back off undoes its step. The recording gets each change (a
+`checklist` event with `"on": false` for one back off), and the debrief counts a step done when its last change is
+on (`iaf-tools` `training.rs`).
+
+| switch | off | back on |
+|---|---|---|
+| MAIN PWR, BATT | no power: the displays, the HUD and the lamps dark; a crank stops; the engine lit runs on (inferred) | the displays after their 3 s warm-up; the INS aligns again |
+| JFS, IPP | a crank stops and the engine winds down; once lit, nothing (the engine sustains itself, inferred) | the starter turns the engine again below 20 % |
+| throttle (F-16), ENG (F-35I) | the fuel cut: the engine winds down ([training.md](training.md) §7.2) | the start again from the starter |
+| AVIONIC POWER (the step) | the displays and the HUD dark; the INS alignment lost (inferred) | the 3 s warm-up; the INS aligns again (90 s) |
+| INS knob | the alignment lost | the alignment from the start (90 s) |
+| canopy | open (the door sound, `SFX_DOOR_OPEN`) | closed and locked (`SFX_DOOR_CLOSE`) |
+
+- **A restart after a shutdown** aligns the INS again (90 s) by keys or the mouse: the generators off line lost it
+  (inferred); the Start engine command flies the whole checklist with the INS aligned.
+- **Open:** the real F-16's MAIN PWR OFF with the engine running (which loads stay up on the engine's own
+  generator); the F-35I's BATT and IPP likewise. The INS kept on the aircraft battery through a short power loss.
+- **Next (the audit's M3):** the indicator lamps on battery, the JFS RUN light, the INS's ALIGN / RDY and the IPP's
+  ready cue read these positions; the four AVIONIC POWER switches one by one and the FCR / RDR ALT systems.
+- The positions the switches show between OFF and ON (MAIN PWR's BATT, the JFS's START 1, the INS knob's NORM and
+  NAV) come with their own steps.
+
+`modern-iaf/tests/test_switches_both_ways.gd` runs each jet's switches off and on after the Start engine command
+and checks the position, the consequence, the steps done and the switch shown.
 
 The checklist card names each switch and its place under the step's line, beside the key
 ([training.md](training.md) §7.1; the mission's `training.checklist[].where`, [data-formats.md](data-formats.md) §5).
@@ -652,6 +685,7 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
 [^fg-hud]: FlightGear F-16 wiki, "HUD": the Symbology Intensity wheel at the upper left of the ICP, the other HUD
   controls on the HUD Remote Control Panel on the right console, DAY / AUTO BRT / NIGHT. https://github.com/NikolaiVChr/f16/wiki/HUD
 [^bms-ramp]: Falcon BMS forum, "Ramp start?", wedge (post 119008): "ELEC panel (Throttle; below)", "ENG & JET START panel (back – above EXT LIGHTING)", "AVIONICS POWER panel (stick)", "INS knob – ALIGN NORM" (weak: a sim community's checklist), https://forum.falcon-bms.com/post/119133
+[^jfs50]: F-16.net forum, "JFS and avionics question" (the flight manual: "As the engine accelerates through 50 % rpm, a sensor causes the JFS to shut down automatically"; about 50 % on a P&W and 54 % on a GE engine), https://www.f-16.net/forum/viewtopic.php?p=13518
 [^fg-left]: FlightGear F-16 at ef4f192, `Models/Cockpit/Main/panels_mlu_left-console.xml`: `SW_MAIN_POWER` (knob on `fdm/jsbsim/elec/switches/main-pwr`, 0–2) and `SW_JET_FUEL` (knob on `f16/engine/jfs-start-switch`, −1–1; `Nasal/states_and_autostart.nas`: 1 is START 2), https://github.com/NikolaiVChr/f16
 [^fg-right]: FlightGear F-16 at ef4f192, `Models/Cockpit/Main/panels_mlu_right-console.xml`: `mmc-switch`, `st-sta-switch`, `mfd-switch`, `ufc-switch` (knobs on `f16/avionics/power-*`, 0–1) and `INS_knob` (`f16/avionics/ins-knob`; `states_and_autostart.nas`: 2 ALIGN NORM, 3 NAV); `fcr-switch` (knob on `f16/avionics/power-fcr`, 0–1, line 638) and `rdr-alt-switch` (`f16/avionics/power-rdr-alt`, 0–2, line 670), https://github.com/NikolaiVChr/f16
 [^dcs-canopy]: Eagle Dynamics forum, "Canopy won't lock if I open it and close" (DCS F-16C: the canopy switch on the left, where the canopy handle is; weak: a forum, read through a search summary), https://forum.dcs.world/topic/333905-canopy-wont-lock-if-i-open-it-and-close

@@ -47,8 +47,8 @@ clip made from one of them (the afterburner's light-off, §1.2) and 8 computed t
   `radio.gd`), `key_on.ogg` and `key_off.ogg` (the keyed quiet around a radio call, §5.2). `g_effects.gd`'s `cock_bty_over.wav` is left out: the VMS has no Over-G voice, so it stays silent.
 - **Silent on purpose:** a code with no row plays nothing (`flight_sounds.gd play`): Betty's missile, Over-G and
   spin calls (§3).
-- **Not played yet:** `SFX_DOOR_OPEN` (the canopy opening) has a row and a clip but no caller. `SFX_WIND` (§1.6)
-  and `SFX_DOOR_CLOSE` (§1.7) play in the sim since 9 November 2026.
+- `SFX_WIND` (§1.6) and `SFX_DOOR_CLOSE` (§1.7) play in the sim since 9 November 2026; `SFX_DOOR_OPEN` since 13
+  November 2026, when the canopy switch goes back off ([cockpit.md](cockpit.md) §5.2 "Both ways").
 
 ### 1.1 Listening notes
 Measured, not heard: a human listening pass at game volume is still open. Every clip below has no clipped sample,

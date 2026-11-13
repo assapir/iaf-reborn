@@ -2,7 +2,7 @@
 "BATT": {"click": [210, 0, 0], "prop": "f35i/elec/batt", "on": 1, "off": 0},
 "IPP": {"click": [211, 0, 0], "prop": "f35i/engine/ipp", "on": 1, "off": 0},
 "ENG": {"click": [212, 0, 0], "prop": "f35i/engine/eng", "on": 1, "off": 0, "guard": "f35i/engine/eng-guard"},
-"START": {"click": [212, 0, 0]},
+"START": {"click": [212, 1, 0]},
 "throttle": {"click": [5, 0, 0], "turn": [5, 0, 0], "turn_down": [6, 0, 0], "detent": [218, 0, 0], "drag_px": 15},
 "CANOPY": {"click": [215, 0, 0], "prop": "f35i/canopy", "on": 1, "off": 0},
 "HMD_BRT": {"turn": [123, 25, 0], "drag_px": 10},

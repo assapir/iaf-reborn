@@ -79,7 +79,8 @@ var _pass_at := INF
 var _end_ms := INF
 var _banner: PanelContainer
 ## The start-up checklist (the readable mission's training.checklist: [{step, key, en, he, where, wait}]), the
-## steps done (ids), a step's fault waiting for the live check, the last fault shown, and the card.
+## steps whose switches are on (ids: IafFlight.start_on, read each frame), a step's fault waiting for the live
+## check, the last fault shown, and the card.
 var checklist: Array = []
 var done: Array = []
 var _fault := ""
@@ -97,8 +98,8 @@ const THROTTLE_IDLE_KEY := 7
 const THROTTLE_OFF := 0.02
 ## The throttle last frame (-1 before the first: a lever already up at the start is no step).
 var _throttle_was := -1.0
-## The 3D cockpit's start-up switches put off for a cold start (_cold_switches), once.
-var _switches_off := false
+## The 3D cockpit's start-up switches as last set from the flight model (_sync_switches): step id -> on.
+var _shown := {}
 const RECORDED_S := 0.25
 
 
@@ -307,7 +308,7 @@ func _process(_delta: float) -> void:
 		_end_ms = INF
 		host._end_flight(true)  # into the debrief (Settings.flown_sortie)
 	_throttle_step()
-	_cold_switches()
+	_sync_switches()
 	if rules.is_empty() or not result.is_empty() or host.flight == null or host.get("_log") == null:
 		return
 	var t: float = host._log_t
@@ -344,7 +345,7 @@ func _process(_delta: float) -> void:
 	var ready := false
 	if String(rules.get("kind", "")) == "startup":
 		ready = bool(st.get("engine_on", false)) and bool(st.get("avionics", false))
-		ready = ready and done.size() >= checklist.size()  # every checklist step taken
+		ready = ready and _steps().all(func(id): return id in done)  # every checklist step's switch on
 	else:
 		ready = not bool(st.on_ground) and not host.gear_down
 	if not (ready or t > budget + PAST_BUDGET):
@@ -425,26 +426,31 @@ func _finish(d: Dictionary) -> void:
 # --- the start-up checklist (training.md §7.1) ------------------------------------------------------------------
 
 
-## A checklist key (commands 210–215 → STEP_IDS[i]): the flight model takes the step (IafFlight.start_step decides
-## its consequence and fault); the recording gets it; the card ticks it or shows the fault.
-func start_step(i: int) -> void:
+## A checklist switch (commands 210–215 → STEP_IDS[i]; `want` the command's p1: 1 on, -1 off, 0 (a key) the other
+## way): the flight model sets it (IafFlight.start_switch decides its consequence and fault; modern-iaf/docs/cockpit.md
+## §5.2); the recording gets a change ("on": false for a switch back off) or a fault; the card follows the switches.
+func start_step(i: int, want := 0) -> void:
 	if i < 0 or i >= STEP_IDS.size() or host.flight == null or not result.is_empty():
 		return
 	var id: String = STEP_IDS[i]
-	var fault: String = host.flight.start_step(id)
+	var was: bool = host.flight.start_on(id)
+	var fault: String = host.flight.start_switch(id, want)
+	var on: bool = host.flight.start_on(id)
 	var e := {"event": "checklist", "step": id}
 	if fault != "":
 		e["fault"] = fault
 		_fault = fault
 		_fault_shown = fault
-	elif not id in done:
-		done.append(id)
-		_switch(i, true)
-		if id == "canopy" and host.sounds != null:
-			host.sounds.play("SFX_DOOR_CLOSE")  # the canopy runs down and locks (modern-iaf/docs/sound.md §1.7)
-	host._log_event(host._log_st, e)
-	if _card != null:
-		_fill_card()
+	elif not on:
+		e["on"] = false
+	if fault != "" or on != was:
+		host._log_event(host._log_st, e)
+	if on != was and id == "canopy" and host.sounds != null:
+		# The canopy runs down and locks, or opens (modern-iaf/docs/sound.md §1.7).
+		host.sounds.play("SFX_DOOR_CLOSE" if on else "SFX_DOOR_OPEN")
+	if want == 0 and id == "avionics":
+		_switch(i, on)  # the key throws the four AVIONIC POWER switches together
+	_sync_switches()
 
 
 ## The 3D cockpit's switch of step `i` (its click command, 210 + i; cockpit3d_controls.gd set_switch) on or off.
@@ -454,13 +460,27 @@ func _switch(i: int, on: bool) -> void:
 		c3d.clickable.set_switch(210 + i, on)
 
 
-## A cold jet's switches start off (a hot one's stay as modelled).
-func _cold_switches() -> void:
-	if _switches_off or host.start_engine_on or not is_instance_valid(host.get("cockpit_3d")):
+## The checklist from the flight model's switches (IafFlight.start_on), each frame: `done`, the card, and the 3D
+## cockpit's switches that changed (the JFS switch springs back to OFF; a cold jet's start off). After the first frame
+## the AVIONIC POWER switches follow the flight model only on: off, each stays as clicked (cockpit3d_controls.gd
+## toggle).
+func _sync_switches() -> void:
+	if host.flight == null:
 		return
-	_switches_off = true
-	for i in STEP_IDS.size():
-		_switch(i, String(STEP_IDS[i]) in done)
+	var now := []
+	for id in STEP_IDS:
+		if host.flight.start_on(id):
+			now.append(id)
+	if is_instance_valid(host.get("cockpit_3d")):
+		for i in STEP_IDS.size():
+			var id: String = STEP_IDS[i]
+			if _shown.get(id) != (id in now) and (id != "avionics" or not _shown.has(id) or id in now):
+				_switch(i, id in now)
+			_shown[id] = id in now
+	if now != done:
+		done = now
+		if _card != null:
+			_fill_card()
 
 
 ## The throttle up from OFF (its keys or the axis) takes the checklist's engine step once the starter step (JFS / IPP)
@@ -470,7 +490,7 @@ func _throttle_step() -> void:
 	var up := _throttle_was >= 0.0 and _throttle_was <= THROTTLE_OFF and thr > THROTTLE_OFF
 	_throttle_was = thr
 	if up and _idle_step_due():
-		start_step(STEP_IDS.find("engine"))
+		start_step(STEP_IDS.find("engine"), 1)
 
 
 ## The throttle's move from OFF is the idle step now: the starter step done and the idle step not yet, in a mission
@@ -492,15 +512,11 @@ func throttle_off() -> void:
 		e["fault"] = fault
 		_fault = fault
 		_fault_shown = fault
-		for id in ["starter", "engine"]:
-			done.erase(id)
-			_switch(STEP_IDS.find(id), false)
 	host.throttle = 0.0
 	host._throttle_event()
 	_throttle_was = 0.0
 	host._log_event(host._log_st, e)
-	if _card != null:
-		_fill_card()
+	_sync_switches()
 
 
 ## The Throttle idle key (command 9 to OFF, record 7) leaves the throttle at OFF, so _throttle_step sees no move: the
@@ -509,7 +525,7 @@ func _idle_key(cmd: Array) -> void:
 	if int(cmd[0]) != 9 or float(cmd[1]) * 0.01 > THROTTLE_OFF or Joystick.drops_key(9):
 		return
 	if float(host.throttle) <= THROTTLE_OFF and _idle_step_due():
-		start_step(STEP_IDS.find("engine"))
+		start_step(STEP_IDS.find("engine"), 1)
 
 
 func _steps() -> Array:

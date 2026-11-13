@@ -387,6 +387,21 @@ impl IafFlight {
         GString::from(r.err().unwrap_or(""))
     }
 
+    /// A start-up checklist switch (commands 210–215, modern-iaf/docs/cockpit.md §5.2) set: `want` 1 on, -1 off, 0
+    /// the other way from its position. The fault id of a step out of order, "" else.
+    #[func]
+    fn start_switch(&mut self, step: GString, want: i64) -> GString {
+        let want = want.signum() as i8;
+        let r = self.aircraft.as_mut().map_or(Ok(()), |ac| ac.start_switch(&step.to_string(), want));
+        GString::from(r.err().unwrap_or(""))
+    }
+
+    /// The position of start-up checklist step `step`'s switch (the one source the checklist and the cockpit read).
+    #[func]
+    fn start_on(&self, step: GString) -> bool {
+        self.aircraft.as_ref().is_none_or(|ac| ac.start_on(&step.to_string()))
+    }
+
     // --- AI (docs/ai.md) ------------------------------------------------------------------------------
 
     /// An AI jet: the FM's AI "team" test (not on the player's side) and the Preferences AI level (0..2).

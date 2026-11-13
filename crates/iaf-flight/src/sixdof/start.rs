@@ -9,6 +9,11 @@
 //! alignment, canopy) and the F-35I's (battery, IPP, engine start, canopy). A step out of order has the real
 //! consequence (no power for the starter, a hot start that stops the engine, a switch that does nothing) and is
 //! returned as a fault for the debrief.
+//!
+//! Each step is a switch with a position, settable both ways at any time (`Start::press` on, `Start::release` off;
+//! the switches audit's M2, modern-iaf/docs/cockpit.md §5.2): main power off darkens everything, the starter off stops
+//! a crank, the avionics off darken the displays (a warm-up again when back on) and lose the INS alignment, the INS
+//! knob off loses it too. `Start::on` is the switch's position, the one source the checklist and the 3D cockpit read.
 
 /// The 6-DoF's idle RPM, % (its gauge's line, modern-iaf/docs/flight-model.md §9.7).
 pub const IDLE_RPM: f64 = 60.0;
@@ -123,7 +128,7 @@ pub struct Start {
     pub rpm: f64,
     /// When the displays got their power (s since the command).
     displays_at: Option<f64>,
-    /// The command was given (the battery is on).
+    /// The command was given: the MAIN PWR switch (the F-35I's BATT) on.
     commanded: bool,
     /// Flown by keys (`press`): the steps wait for their keys.
     manual: bool,
@@ -132,18 +137,31 @@ pub struct Start {
     /// By keys: the F-16's avionics power switched on, and the INS alignment's start (s since the command).
     avionics_at: Option<f64>,
     ins_at: Option<f64>,
+    /// The switches without a timing of their own: the starter (the JFS switch, the IPP; springs back to OFF once the
+    /// engine sustains itself), the avionics power, the INS knob, the canopy closed.
+    starter_on: bool,
+    avionics_on: bool,
+    ins_on: bool,
+    canopy_closed: bool,
 }
 
 impl Start {
     /// An engine already running (an airborne or runway start): every system up.
     pub fn running() -> Start {
         // Its clock long past every step of the sequence.
+        Start { phase: Phase::Running, t: 1.0e6, rpm: IDLE_RPM, displays_at: Some(0.0), ..Start::switched_on() }
+    }
+
+    /// Every switch on, the INS aligned (the "start engine" command flies the whole checklist).
+    fn switched_on() -> Start {
         Start {
-            phase: Phase::Running,
-            t: 1.0e6,
-            rpm: IDLE_RPM,
-            displays_at: Some(0.0),
             commanded: true,
+            fuel_on: true,
+            avionics_at: Some(0.0),
+            ins_at: Some(-1.0e6),
+            avionics_on: true,
+            ins_on: true,
+            canopy_closed: true,
             ..Start::default()
         }
     }
@@ -152,7 +170,13 @@ impl Start {
     /// RPM, [`Start::starter_engages`]); otherwise nothing.
     pub fn begin(&mut self, s: &StartSpec) {
         if self.starter_engages(s) {
-            *self = Start { phase: Phase::Starter, commanded: true, rpm: self.rpm, ..Start::default() };
+            *self = Start {
+                phase: Phase::Starter,
+                rpm: self.rpm,
+                fuel_on: false,
+                starter_on: true,
+                ..Start::switched_on()
+            };
         }
     }
 
@@ -177,9 +201,15 @@ impl Start {
         Err(fault)
     }
 
-    /// The engine stopped: no RPM, the displays and the avionics down, the battery on (a new command restarts).
+    /// The engine stopped: no RPM, the displays and the avionics down, the switches as they are (a new command
+    /// restarts).
     pub fn shutdown(&mut self) {
-        *self = Start { commanded: true, ..Start::default() };
+        self.next(Phase::Off);
+        self.rpm = 0.0;
+        self.fuel_on = false;
+        self.starter_on = false;
+        self.displays_at = None;
+        self.ins_at = None;
     }
 
     /// Advances `dt` s; true on the step the sequence reaches idle.
@@ -223,11 +253,20 @@ impl Start {
             }
             _ => {}
         }
-        let powered = self.phase != Phase::Rundown
+        // The starter's switch springs back to OFF once the engine sustains itself (the JFS cuts out at 50–54 %).
+        if self.rpm >= s.generator_rpm {
+            self.starter_on = false;
+        }
+        let powered = self.commanded
+            && self.phase != Phase::Rundown
             && self.phase != Phase::Off
             && if s.displays_on_starter { self.phase != Phase::Starter } else { self.rpm >= s.generator_rpm };
-        if self.displays_at.is_none() && (powered || self.phase == Phase::Running) {
+        if self.displays_at.is_none() && (powered || (self.commanded && self.phase == Phase::Running)) {
             self.displays_at = Some(self.t);
+        }
+        // The INS knob left on through a power loss aligns again once the avionics have power (inferred).
+        if self.ins_on && self.ins_at.is_none() && self.commanded && self.displays_at.is_some() {
+            self.ins_at = self.avionics_at.map(|_| self.t);
         }
         was != Phase::Running && self.phase == Phase::Running
     }
@@ -240,20 +279,22 @@ impl Start {
     /// The electrical power: 0 none (cold), 1 the battery (lamps, engine gauges), 2 the displays up (by keys, the
     /// F-16's also after its avionics power switch).
     pub fn power(&self, s: &StartSpec) -> u8 {
+        if !self.commanded {
+            return 0;
+        }
         let up = match self.displays_at {
-            Some(at) if self.manual && !s.fadec => self.avionics_at.map(|a| a.max(at)),
+            Some(at) if !s.fadec => self.avionics_at.map(|a| a.max(at)),
             d => d,
         };
         match up {
             Some(at) if self.t >= at + s.warmup_s => 2,
-            _ if self.commanded => 1,
-            _ => 0,
+            _ => 1,
         }
     }
 
     /// The avionics up: the displays up and, for a jet with a self test, its time passed.
     pub fn avionics(&self, s: &StartSpec) -> bool {
-        let aligned = !self.manual || s.ins_align_s <= 0.0 || self.ins_at.is_some_and(|a| self.t >= a + s.ins_align_s);
+        let aligned = s.ins_align_s <= 0.0 || self.ins_at.is_some_and(|a| self.t >= a + s.ins_align_s);
         self.power(s) == 2 && self.t >= s.ready_s && aligned
     }
 
@@ -261,14 +302,12 @@ impl Start {
     /// "canopy". Err: the fault of a step out of order, with its consequence applied (the switch does nothing; a hot
     /// start stops the engine).
     pub fn press(&mut self, s: &StartSpec, step: &str) -> Result<(), &'static str> {
-        if self.phase == Phase::Running && !self.manual {
-            return Ok(()); // an engine already running (an airborne start, Ctrl+E)
-        }
         match step {
             "main_power" => {
-                if !self.commanded {
-                    *self = Start { commanded: true, manual: true, ..Start::default() };
+                if !self.commanded && self.phase == Phase::Off {
+                    self.manual = true;
                 }
+                self.commanded = true;
             }
             "starter" if !self.commanded => return Err("no_power"),
             // Winding down above the light-off RPM: the starter waits, the key does nothing.
@@ -277,6 +316,8 @@ impl Start {
                 if self.starter_engages(s) {
                     self.next(Phase::Starter);
                 }
+                // Turned with the engine sustaining itself it springs back at once (`step`).
+                self.starter_on = true;
             }
             "engine" if s.fadec => match self.phase {
                 Phase::Off | Phase::Rundown => return Err("no_ipp"),
@@ -287,18 +328,80 @@ impl Start {
                 Phase::Off | Phase::Rundown => return Err("no_rotation"),
                 // Fuel below the light-off RPM: a hot start; the engine is shut down (the battery stays on).
                 Phase::Starter | Phase::Crank if self.rpm < s.lightoff_rpm => {
-                    *self = Start { commanded: true, manual: true, ..Start::default() };
+                    self.shutdown();
                     return Err("hot_start");
                 }
                 _ => self.fuel_on = true,
             },
             "avionics" if self.displays_at.is_none() => return Err("avionics_early"),
-            "avionics" => self.avionics_at = self.avionics_at.or(Some(self.t)),
+            "avionics" => {
+                self.avionics_at = self.avionics_at.or(Some(self.t));
+                self.avionics_on = true;
+            }
             "ins" if self.avionics_at.is_none() => return Err("ins_no_power"),
-            "ins" => self.ins_at = self.ins_at.or(Some(self.t)),
+            "ins" => {
+                self.ins_at = self.ins_at.or(Some(self.t));
+                self.ins_on = true;
+            }
+            "canopy" => self.canopy_closed = true,
             _ => {}
         }
         Ok(())
+    }
+
+    /// A checklist switch back off (the F-16's engine step, the throttle to OFF, is [`Start::cut_off`]); never a
+    /// fault. Main power off: no power at all, the displays to warm up again, the INS alignment lost, a crank stops
+    /// (the engine lit runs on: inferred). The starter off: a crank stops. The avionics off: the displays dark, a
+    /// warm-up again when back on, the INS alignment lost (inferred). The INS knob off: the alignment lost. The
+    /// canopy: open.
+    pub fn release(&mut self, step: &str) {
+        match step {
+            "main_power" => {
+                self.commanded = false;
+                self.displays_at = None;
+                self.ins_at = None;
+                self.starter_on = false; // held on by its power only (inferred), as the JFS switch's spring-back
+                self.stop_crank();
+            }
+            "starter" => {
+                self.starter_on = false;
+                self.stop_crank();
+            }
+            "avionics" => {
+                self.avionics_on = false;
+                self.avionics_at = None;
+                self.ins_at = None;
+            }
+            "ins" => {
+                self.ins_on = false;
+                self.ins_at = None;
+            }
+            "canopy" => self.canopy_closed = false,
+            _ => {}
+        }
+    }
+
+    /// The starter stops: an engine it was turning (unlit) winds down.
+    fn stop_crank(&mut self) {
+        if matches!(self.phase, Phase::Starter | Phase::Crank) {
+            self.next(if self.rpm > 0.0 { Phase::Rundown } else { Phase::Off });
+        }
+    }
+
+    /// The position of checklist step `step`'s switch: main power, the starter (on while it runs, and done once the
+    /// engine is lit: its switch springs back), the engine (the fuel on), the avionics power, the INS knob, the
+    /// canopy closed.
+    pub fn on(&self, step: &str) -> bool {
+        let lit = matches!(self.phase, Phase::LightOff | Phase::Accel | Phase::Running);
+        match step {
+            "main_power" => self.commanded,
+            "starter" => self.starter_on || lit,
+            "engine" => self.fuel_on || lit,
+            "avionics" => self.avionics_on,
+            "ins" => self.ins_on,
+            "canopy" => self.canopy_closed,
+            _ => false,
+        }
     }
 }
 
@@ -405,6 +508,75 @@ mod tests {
         st.begin(&IPP);
         st.step(&IPP, 0.1);
         assert_eq!((st.phase, st.power(&IPP), st.avionics(&IPP)), (Phase::Running, 2, true));
+    }
+
+    /// Every switch back off and on (the switches audit's M2): each its consequence, the position read back.
+    #[test]
+    fn the_switches_go_both_ways() {
+        let tick = |st: &mut Start, s: f64| {
+            for _ in 0..(s * 30.0) as usize {
+                st.step(&JFS, 1.0 / 30.0);
+            }
+        };
+        let mut st = Start::running();
+        for step in ["main_power", "engine", "avionics", "ins", "canopy"] {
+            assert!(st.on(step), "a hot jet's {step} on");
+        }
+        tick(&mut st, 0.1);
+        assert!(!st.starter_on && st.on("starter"), "the JFS switch back at OFF, the step done (the engine lit)");
+        // The avionics off: the displays dark, the INS alignment lost; back on: 3 s of warm-up, 90 s to align.
+        st.release("avionics");
+        assert_eq!((st.on("avionics"), st.power(&JFS), st.avionics(&JFS)), (false, 1, false));
+        st.press(&JFS, "avionics").unwrap();
+        tick(&mut st, 2.0);
+        assert_eq!(st.power(&JFS), 1, "warming up");
+        tick(&mut st, 1.5);
+        assert_eq!((st.power(&JFS), st.avionics(&JFS)), (2, false), "up, the INS aligning");
+        tick(&mut st, 90.0);
+        assert!(st.avionics(&JFS), "aligned again");
+        // The INS knob off: the alignment lost; on: 90 s again.
+        st.release("ins");
+        assert!(!st.avionics(&JFS) && !st.on("ins"));
+        st.press(&JFS, "ins").unwrap();
+        tick(&mut st, 89.0);
+        assert!(!st.avionics(&JFS));
+        tick(&mut st, 1.5);
+        assert!(st.avionics(&JFS));
+        // Main power off: no power, the engine runs on (inferred); on again: the displays warm up, the INS aligns.
+        st.release("main_power");
+        tick(&mut st, 1.0);
+        assert_eq!((st.power(&JFS), st.phase, st.on("main_power")), (0, Phase::Running, false));
+        st.press(&JFS, "main_power").unwrap();
+        tick(&mut st, 3.5);
+        assert_eq!((st.power(&JFS), st.avionics(&JFS)), (2, false));
+        tick(&mut st, 91.0);
+        assert!(st.avionics(&JFS));
+        // The canopy opens and closes.
+        st.release("canopy");
+        assert!(!st.on("canopy"));
+        st.press(&JFS, "canopy").unwrap();
+        assert!(st.on("canopy"));
+        // A cold jet: the JFS off during the crank stops it; main power off stops it too.
+        let mut st = Start::default();
+        st.press(&JFS, "main_power").unwrap();
+        st.press(&JFS, "starter").unwrap();
+        tick(&mut st, 5.0);
+        assert!(st.on("starter") && st.rpm > 0.0);
+        st.release("starter");
+        assert_eq!((st.on("starter"), st.phase), (false, Phase::Rundown));
+        tick(&mut st, 60.0);
+        assert_eq!(st.phase, Phase::Off);
+        st.press(&JFS, "starter").unwrap();
+        tick(&mut st, 5.0);
+        st.release("main_power");
+        assert_eq!((st.phase, st.power(&JFS), st.on("starter")), (Phase::Rundown, 0, false));
+        assert_eq!(st.press(&JFS, "starter"), Err("no_power"), "no power for the JFS");
+        // The F-35I's IPP off before the engine start: it stops.
+        let mut st = Start::default();
+        st.press(&IPP, "main_power").unwrap();
+        st.press(&IPP, "starter").unwrap();
+        st.release("starter");
+        assert_eq!((st.phase, st.on("starter")), (Phase::Off, false));
     }
 
     /// The throttle to OFF at idle: the run-down's timings, the displays dark at the generators, the starter again
