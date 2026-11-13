@@ -350,28 +350,8 @@ pub(crate) fn sim_stamp_path(assets: &Path, id: &str) -> PathBuf {
 /// reads; for the terrain, what `iaf-sim terrain` itself compares (the box and the Survey sheets' names and sizes); for
 /// the airbases, the OpenStreetMap extracts' hashes.
 pub(crate) fn sim_of(step: &Step, ctx: &SimCtx) -> Result<Option<Stamp>> {
-    let (a, data) = (&ctx.assets, ctx.data());
-    let (out, inputs): (PathBuf, Vec<PathBuf>) = match step.id {
-        "sim-terrain" => (a.join(THEATRE).join("meta.json"), vec![data.join("airbases")]),
-        "sim-db" => (a.join("converted/missions/sim.bdb.json"), vec![data.join("db")]),
-        "sim-own" => (
-            a.join("converted/own/keys.json"),
-            vec![
-                data.join("sounds"),
-                data.join("keys.json"),
-                data.join("planes"),
-                ctx.repo.join(iaf_tools::sim::F16_GLB),
-            ],
-        ),
-        "sim-airbases" => (a.join("converted/own/iaf.ibx"), vec![data.join("airbases")]),
-        "sim-fm" => (a.join(iaf_tools::sim_fm0::MD_DIR).join("bd.ibx"), vec![]),
-        "sim-scenery" => (a.join(THEATRE).join("scenery/manifest.json"), vec![data.join("airbases")]),
-        "sim-missions" => (
-            a.join("converted/modern-iaf/missions"),
-            vec![data.join("missions"), data.join("db"), data.join("airbases")],
-        ),
-        _ => return Ok(None),
-    };
+    let a = &ctx.assets;
+    let Some((out, inputs)) = sim_io(step.id, ctx) else { return Ok(None) };
     let mut text = format!("iaf-setup {:016x}\nstep {}\n", code(step.id, SOURCES), step.id);
     // The terrain's inputs and rules; the scenery's too: its roofs and walls take the photo's colours (the steps after
     // the terrain see only its frame and heights, `view`).
@@ -396,6 +376,43 @@ pub(crate) fn sim_of(step: &Step, ctx: &SimCtx) -> Result<Option<Stamp>> {
         Box::new(move || terrain_view(&theatre, area)) as Box<dyn Fn() -> String + Send + Sync>
     });
     Ok(Some(Stamp { path: sim_stamp_path(a, step.id), text, output: Some(out), view }))
+}
+
+/// Sim step `id`'s output (it must exist for the stamp to hold) and the authored inputs its stamp describes.
+pub(crate) fn sim_io(id: &str, ctx: &SimCtx) -> Option<(PathBuf, Vec<PathBuf>)> {
+    let (a, data) = (&ctx.assets, ctx.data());
+    Some(match id {
+        "sim-terrain" => (a.join(THEATRE).join("meta.json"), vec![data.join("airbases")]),
+        "sim-db" => (a.join("converted/missions/sim.bdb.json"), vec![data.join("db")]),
+        "sim-own" => (
+            a.join("converted/own/keys.json"),
+            vec![
+                data.join("sounds"),
+                data.join("keys.json"),
+                data.join("planes"),
+                ctx.repo.join(iaf_tools::sim::F16_GLB),
+            ],
+        ),
+        "sim-airbases" => (a.join("converted/own/iaf.ibx"), vec![data.join("airbases")]),
+        "sim-fm" => (a.join(iaf_tools::sim_fm0::MD_DIR).join("bd.ibx"), vec![]),
+        "sim-scenery" => (a.join(THEATRE).join("scenery/manifest.json"), vec![data.join("airbases")]),
+        "sim-missions" => (
+            a.join("converted/modern-iaf/missions"),
+            vec![data.join("missions"), data.join("db"), data.join("airbases")],
+        ),
+        _ => return None,
+    })
+}
+
+/// The files that decide sim step `id`'s code (its `STEP_SOURCES`, relative to the repo; a `Cargo.lock:<crate>`
+/// entry as `Cargo.lock`).
+pub(crate) fn code_paths(id: &str) -> Vec<&'static str> {
+    STEP_SOURCES
+        .iter()
+        .filter(|(s, _)| *s == id)
+        .flat_map(|(_, g)| g.iter().flat_map(|g| g.iter()))
+        .map(|p| p.split(':').next().unwrap_or(p))
+        .collect()
 }
 
 /// The theatre's box and the CRC-32 of each height node (`L<l>/h_*.png`), one line each.

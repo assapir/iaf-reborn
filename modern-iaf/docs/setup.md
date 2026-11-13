@@ -147,14 +147,28 @@ dependency graph as the original game's setup: independent steps run at once, a 
 | `sim-scenery` (optional) | `iaf-sim scenery`: the buildings, trees, roads and city lights ([scenery.md](scenery.md)); skipped without GDAL's `ogr2ogr`, or offline with a file still to download; the sim flies without it; built without some optional sources (offline, a failed fetch) it ends "skipped" with "Built, incomplete: N sources" and Retry, writes no stamp, and the next run fetches only the missing files and builds again | `sim-airbases` |
 | `sim-textures` (optional) | the ambientCG CC0 materials (the original game's `textures` step, shared): the zips (about 310 MB) kept in `assets/source/ambientcg`, packed into `assets/thirdparty/ambientcg`: the Ground textures, the Model detail and the scenery trees' foliage; skipped offline, and up to date when the original game's setup already fetched them | — |
 
-The same steps from a terminal, from the repo root (no stamps: each command runs; the terrain still ends at once when
-its `built_from` is unchanged):
+The same steps from a terminal, from the repo root. `iaf-sim <step>` runs that step through the same graph and stamps
+(the steps it waits for first, when they are not up to date), so a step built here is "up to date" in the wizard
+(the user, 2026-11-13: "cli setup should have stamps always"); `--redo` runs the named steps anyway:
 
 ```sh
-cargo build --release -p iaf-tools --bin iaf-sim
+cargo build --release -p iaf-setup --bin iaf-sim
 target/release/iaf-sim terrain
-target/release/iaf-sim all            # db, own, fm, airbases, scenery, missions
+target/release/iaf-sim all            # every step of the wizard's plan
+target/release/iaf-sim adopt          # only stamp what was built without a stamp, and list each step's state
 ```
+
+**Assets are built through this pipeline only** (the wizard, `iaf-sim <step>`, `iaf-setup`): agents and briefs never
+call a compiler around it, and never copy a folder of `assets/converted` in by hand. `iaf-sim terrain --box … | --out …`
+builds a theatre elsewhere (tests, studies): not the theatre setup reads, so not a step and not stamped.
+
+Outputs built without a stamp (by `iaf-sim` before 13 November 2026, or by hand) are adopted before every preview
+and run, the wizard's and `iaf-sim`'s (`iaf_setup::sim_adopt`): a step with no stamp file whose output is current gets
+the stamp it would have written. Current means: the terrain's `meta.json` holds the `built_from` a run would compare
+(its inputs and the rules of its photo, `sim_terrain::stamp`); the scenery's own stamps hold (`sim_scenery::current`);
+any other step's output is newer than every file that decides it (its code in the repo, its authored data). A step waiting for a step that will run is not adopted. `iaf-sim` takes the imagery the built theatre was made with (`iaf_setup::sim_survey`), else the Survey when its sheets are there. A pull
+that changed a step's code makes its files newer than the output, so that step runs (tests
+`current_outputs_without_stamps_are_adopted`, `a_step_run_alone_writes_the_wizards_stamp`).
 
 The terrain step's progress bar follows the colour branch, the longer of its two (the heights run beside it): the
 Sentinel-2 tiles' download by the bytes still to fetch (at 13.8 MB/s), then the 32 m nodes, the 8 m nodes and the
@@ -165,15 +179,19 @@ Each step keeps a stamp, `assets/converted/modern-iaf/<step>.stamp`: the fingerp
 (`stamp::STEP_SOURCES`), the authored data it reads (each file's size and CRC-32) and the
 stamps of the steps it waits for; paths are relative to the repo, so a stamp is the same in every checkout and on every
 system. The terrain's stamp holds what `iaf-sim terrain` itself compares (the box, the detail area, the Survey sheets'
-names and sizes, the airbases' layouts, whose outlines mask the Survey photo), so a choice of the other imagery or a
-changed base outline runs the terrain and what stands on it again. A theatre built before the airbases were part of
+names and sizes, the airbases' layouts, whose outlines mask the Survey photo, the rules of its photo). The steps after
+the terrain take only its box and its height nodes' CRC-32s into their stamps (`Stamp::view`), so a change of the
+terrain's colour alone (the other imagery, the photo's levelling) runs the terrain and the scenery, whose roofs and
+walls take the photo's colours (its stamp holds the terrain's `built_from`), and not the airbases or the missions. A theatre built before the airbases were part of
 its `built_from` (3 November 2026) runs once more: its finished units' marks make that a matter of minutes. Inside a step the terrain resumes by its own marks (`.work/`): a cancelled or failed run keeps its finished
 units and DEM tiles.
 
 Downloads are kept by their source file name under `assets/source` and are never fetched again because the code
 changed. The stamps cover the compilers only: the GLO-30 tiles, the Sentinel-2 tiles and their listings, the Survey sheets and the OpenStreetMap extracts are found by name in
 `assets/source/` (a whole Sentinel-2 tile there is used as it is, edge tiles too; an edge tile not on disk is cut
-once into its kept 20 m extract, `<tile>_20m.tif`, [terrain.md](terrain.md) §1.1).
+once into its kept 20 m extract, `<tile>_20m.tif`, [terrain.md](terrain.md) §1.1). The Sentinel-2 tiles are listed
+and read only while one of the terrain's Sentinel-2 units is still to do: a built theatre rebuilt for anything else
+(its photo, its code) fetches nothing (`sim_terrain::would_fetch`, the terrain row's "Nothing to download").
 
 ## 4. Sizes and times
 

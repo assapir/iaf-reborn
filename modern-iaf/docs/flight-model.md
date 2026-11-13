@@ -12,7 +12,7 @@ from the public figures already collected for the game's Real data set. The orig
 behaviour.
 
 ```sh
-cargo run --release -p iaf-tools --bin iaf-sim -- fm    # writes assets/converted/own/resource/md/{bd.ibx,f16.dat,f15.dat}
+cargo run --release -p iaf-setup --bin iaf-sim -- fm    # writes assets/converted/own/resource/md/{bd.ibx,f16.dat,f15.dat}
 IAF_INSTALL=$PWD/assets/converted/own cargo test --release -p iaf-flight --test validation -- --nocapture
 IAF_JET=F-16I IAF_INSTALL=$PWD/assets/converted/own cargo test --release -p iaf-flight --test validation -- --nocapture
 ```

@@ -279,13 +279,78 @@ pub fn sim_run(
     cancel: &AtomicBool,
 ) -> Vec<(&'static str, State)> {
     move_old_converted(ctx);
+    sim_adopt(steps, ctx);
     let exec = |s: &Step, pr: &dyn Progress| exec(s, ctx, redo(s.id), pr, cancel);
     crate::run_graph(steps, redo, events, cancel, &|s| stamp::sim_of(s, ctx), &exec)
+}
+
+/// The steps of `plan` that `ids` name and every step they wait for, in the plan's order (`iaf-sim <step>`: a step
+/// run alone goes through the same graph, so it writes the stamp the wizard reads).
+pub fn sim_steps_for(plan: Vec<Step>, ids: &[&str]) -> Vec<Step> {
+    let mut want: Vec<&str> = ids.to_vec();
+    for s in plan.iter().rev() {
+        if want.contains(&s.id) {
+            want.extend(s.after.iter().copied());
+        }
+    }
+    plan.into_iter().filter(|s| want.contains(&s.id)).collect()
+}
+
+/// Stamps the steps whose outputs were built without a stamp and are current (`crate::adopt_with`), so the wizard
+/// and the command line find them up to date instead of building them again: the terrain when its `meta.json` was
+/// built from the same inputs and rules (`sim_terrain::stamp`), the scenery when its own stamps hold
+/// (`sim_scenery::current`), any other step when its output is newer than every file that decides it (its code and
+/// its authored inputs). Run before every preview and run (the wizard's and `iaf-sim`'s); `iaf-sim adopt` alone.
+pub fn sim_adopt(steps: &[Step], ctx: &SimCtx) -> Vec<&'static str> {
+    crate::adopt_with(steps, &|s| stamp::sim_of(s, ctx), &|s| sim_current(s.id, ctx))
+}
+
+/// Whether sim step `id`'s output on disk is what a run would make now (`sim_adopt`).
+fn sim_current(id: &str, ctx: &SimCtx) -> bool {
+    match id {
+        "sim-terrain" => terrain_built(ctx),
+        "sim-scenery" => iaf_tools::sim_scenery::current(&ctx.data(), &ctx.assets),
+        _ => {
+            let Some((out, inputs)) = stamp::sim_io(id, ctx) else { return false };
+            let code = stamp::code_paths(id).into_iter().map(|p| ctx.repo.join(p));
+            let built = newest(&out);
+            built.is_some() && inputs.into_iter().chain(code).all(|p| newest(&p) <= built)
+        }
+    }
+}
+
+/// Whether the theatre's `meta.json` holds the `built_from` a terrain run for `ctx`'s choices compares.
+fn terrain_built(ctx: &SimCtx) -> bool {
+    let run = ctx.terrain();
+    let meta: serde_json::Value =
+        std::fs::read(run.out.join("meta.json")).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default();
+    meta["built_from"] == sim_terrain::stamp(&run)
+}
+
+/// The Survey choice of a run without the wizard (`iaf-sim`): the built theatre's (built with or without the sheets),
+/// else the Survey when its sheets are there (the wizard's default).
+pub fn sim_survey(assets: &Path, repo: &Path) -> bool {
+    let sheets = survey_sheets(assets) > 0;
+    let built = |survey| {
+        let inputs = SimInputs { survey, ..SimInputs::default() };
+        terrain_built(&SimCtx { assets: assets.into(), repo: repo.into(), inputs })
+    };
+    sheets && !(built(false) && !built(true))
+}
+
+/// The newest modification time of `p` or of any file under it; None when it does not exist.
+fn newest(p: &Path) -> Option<std::time::SystemTime> {
+    let m = std::fs::metadata(p).ok()?;
+    if !m.is_dir() {
+        return m.modified().ok();
+    }
+    std::fs::read_dir(p).ok()?.flatten().filter_map(|e| newest(&e.path())).max()
 }
 
 /// Which of the sim's steps a run would find up to date ([`crate::preview`]).
 pub fn sim_preview(steps: &[Step], ctx: &SimCtx) -> Vec<(&'static str, bool)> {
     move_old_converted(ctx);
+    sim_adopt(steps, ctx);
     crate::preview_with(steps, &|s| stamp::sim_of(s, ctx))
 }
 
@@ -518,6 +583,89 @@ mod tests {
             ["sim-terrain", "sim-scenery"],
             "the Survey redoes the terrain and the scenery (its roofs' colours), not the bases nor the missions"
         );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Outputs built without a stamp (a command line run before every run stamped, an agent's build): the current
+    /// ones are adopted (the terrain by its meta.json's `built_from`, the others newer than their code and inputs),
+    /// so the wizard finds them up to date; an output older than its code, a terrain from other inputs, a scenery
+    /// whose own stamps do not hold are not.
+    #[test]
+    fn current_outputs_without_stamps_are_adopted() {
+        let dir = std::env::temp_dir().join(format!("iaf-sim-adopt-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let ctx = SimCtx { assets: dir.clone(), repo, inputs: SimInputs::default() };
+        let steps: Vec<_> = sim_plan(&ctx.inputs).into_iter().filter(|s| s.id != "sim-textures").collect();
+        std::fs::create_dir_all(dir.join(THEATRE)).unwrap();
+        let meta = serde_json::json!({ "built_from": sim_terrain::stamp(&ctx.terrain()) });
+        std::fs::write(dir.join(THEATRE).join("meta.json"), meta.to_string()).unwrap();
+        for f in [
+            "converted/missions/sim.bdb.json",
+            "converted/own/keys.json",
+            "converted/own/iaf.ibx",
+            "converted/own/resource/md/bd.ibx",
+            "converted/terrain/israel/scenery/manifest.json",
+            "converted/modern-iaf/missions/missionlist.json",
+        ] {
+            std::fs::create_dir_all(dir.join(f).parent().unwrap()).unwrap();
+            std::fs::write(dir.join(f), "").unwrap();
+        }
+        // The flight data built before its code: not adopted.
+        let old = std::fs::File::options().write(true).open(dir.join("converted/own/resource/md/bd.ibx")).unwrap();
+        old.set_modified(std::time::UNIX_EPOCH + std::time::Duration::from_secs(86400)).unwrap();
+        let adopted = sim_adopt(&steps, &ctx);
+        assert_eq!(adopted, ["sim-terrain", "sim-db", "sim-own", "sim-airbases", "sim-missions"], "{adopted:?}");
+        let stale: Vec<_> = sim_preview(&steps, &ctx).into_iter().filter(|p| !p.1).map(|p| p.0).collect();
+        assert_eq!(stale, ["sim-fm", "sim-scenery"], "only what is not current will run");
+        assert!(sim_adopt(&steps, &ctx).is_empty(), "a stamp once written is not adopted again");
+        // A terrain built from other inputs (another box) is not adopted.
+        std::fs::remove_file(stamp::sim_stamp_path(&dir, "sim-terrain")).unwrap();
+        std::fs::write(dir.join(THEATRE).join("meta.json"), r#"{"built_from":{"box":[0,0,1,1]}}"#).unwrap();
+        assert!(!sim_adopt(&steps, &ctx).contains(&"sim-terrain"));
+        // A stale step's dependents are not adopted: it runs again, and may make something else.
+        for id in ["sim-db", "sim-missions"] {
+            std::fs::remove_file(stamp::sim_stamp_path(&dir, id)).unwrap();
+        }
+        let db = std::fs::File::options().write(true).open(dir.join("converted/missions/sim.bdb.json")).unwrap();
+        db.set_modified(std::time::UNIX_EPOCH + std::time::Duration::from_secs(86400)).unwrap();
+        assert!(sim_adopt(&steps, &ctx).is_empty());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// `iaf-sim airbases` runs the airbases' step and the terrain it waits for through the graph: the wizard then
+    /// finds both up to date, as after its own run.
+    #[test]
+    fn a_step_run_alone_writes_the_wizards_stamp() {
+        let dir = std::env::temp_dir().join(format!("iaf-sim-alone-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let ctx = SimCtx { assets: dir.clone(), repo, inputs: SimInputs::default() };
+        let plan: Vec<_> = sim_plan(&ctx.inputs).into_iter().filter(|s| s.id != "sim-textures").collect();
+        let alone = sim_steps_for(plan.clone(), &["sim-airbases"]);
+        assert_eq!(alone.iter().map(|s| s.id).collect::<Vec<_>>(), ["sim-terrain", "sim-airbases"]);
+        struct Quiet;
+        impl Events for Quiet {
+            fn state(&self, _: &Step, _: &State) {}
+            fn log(&self, _: &Step, _: &str) {}
+        }
+        let st = crate::run_graph(
+            &alone,
+            &|_| false,
+            &Quiet,
+            &AtomicBool::new(false),
+            &|s| stamp::sim_of(s, &ctx),
+            &|s, _| {
+                let out = stamp::sim_io(s.id, &ctx).unwrap().0;
+                std::fs::create_dir_all(out.parent().unwrap()).unwrap();
+                std::fs::write(&out, "{}").unwrap();
+                Ok(Outcome::Done)
+            },
+        );
+        assert!(st.iter().all(|(_, s)| *s == State::Done), "{st:?}");
+        let up: Vec<_> =
+            crate::preview_with(&plan, &|s| stamp::sim_of(s, &ctx)).into_iter().filter(|p| p.1).map(|p| p.0).collect();
+        assert_eq!(up, ["sim-terrain", "sim-airbases"]);
         let _ = std::fs::remove_dir_all(&dir);
     }
 

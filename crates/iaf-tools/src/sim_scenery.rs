@@ -191,6 +191,61 @@ pub struct Summary {
     pub missing: Vec<&'static str>,
 }
 
+/// What a scenery layer's stamp is made of besides its sources: the theatre's frame, the terrain types, the water
+/// and the bases' outlines (the scenery's roof colours also read the theatre's colour images, `roof_images`).
+struct StampInputs<'a> {
+    theatre: &'a Path,
+    meta: &'a [u8],
+    types: &'a [u8],
+    water: &'a [u8],
+    bases: &'a [sim_bases::Base],
+}
+
+/// A layer's stamp ("roads" or "scenery"): its version and release, each of the files it reads (a missing file counts
+/// as missing: the next run tries it again; `all`: as if every one were there), the frame's inputs.
+fn layer_stamp(i: &StampInputs, what: &str, files: &[(Download, &Path)], all: bool) -> String {
+    let mut h = Sha256::new();
+    h.update(format!("sim {what} {VERSION} {}\n", scenery::release(Kinds::BOTH)).as_bytes());
+    for (d, dir) in files {
+        let here = all || thirdparty::file_done(dir, d);
+        h.update(format!("{} {}\n", d.file, if here { d.sha256 } else { "missing" }).as_bytes());
+    }
+    h.update(i.meta);
+    h.update(i.types);
+    h.update(i.water);
+    for b in i.bases {
+        h.update(format!("{} {:?}\n", b.icao, b.boundary).as_bytes());
+    }
+    if what == "scenery" {
+        h.update(roof_images(i.theatre).as_bytes());
+    }
+    h.finalize().iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// Whether the scenery and the road layer on disk are up to date for `data` and `assets` (what `scenery` checks
+/// before any work, with nothing written): setup adopts a scenery built without its stamp (`iaf_setup::sim_adopt`).
+pub fn current(data: &Path, assets: &Path) -> bool {
+    let check = || -> Result<bool> {
+        let th = Meta::load(&assets.join(THEATRE))?;
+        let types = std::fs::read(assets.join("converted/own/terraintype.dat"))?;
+        let bases = sim_bases::load(&data.join("airbases"))?;
+        let water = std::fs::read(assets.join(THEATRE).join(sim_bases::WATER_FILE)).unwrap_or_default();
+        let geo = sim_bases::theatre_geo(th.rect);
+        let (src, roads_src) = (assets.join("source/scenery"), assets.join("source/roads"));
+        let road_list = sim_coast::road_downloads(geo);
+        let road_files: Vec<(Download, &Path)> = std::iter::once((sim_coast::osm_extract(), src.as_path()))
+            .chain(road_list.iter().map(|d| (*d, roads_src.as_path())))
+            .collect();
+        let scenery_files: Vec<(Download, &Path)> =
+            downloads(geo).iter().map(|d| (*d, src.as_path())).chain(road_files.iter().skip(1).copied()).collect();
+        let theatre = assets.join(THEATRE);
+        let i = StampInputs { theatre: &theatre, meta: &th.bytes, types: &types, water: &water, bases: &bases };
+        Ok(roads::up_to_date(&assets.join(ROADS_DIR), &layer_stamp(&i, "roads", &road_files, true))
+            && roads::up_to_date(&assets.join(SCENERY_DIR), &layer_stamp(&i, "scenery", &scenery_files, true)))
+    };
+    check().unwrap_or(false)
+}
+
 /// `iaf-sim scenery`: downloads what the shared cache lacks, then the road layer and the cells (module doc). Up to
 /// date when the manifests say they were made from the same inputs. Needs the theatre (`iaf-sim terrain`), its
 /// `terraintype.dat` (`iaf-sim airbases`) and GDAL.
@@ -216,28 +271,9 @@ pub fn scenery(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBoo
     let water_bytes = std::fs::read(assets.join(THEATRE).join(sim_bases::WATER_FILE)).unwrap_or_default();
     let water = sim_bases::WaterIndex::load(&assets.join(THEATRE).join(sim_bases::WATER_FILE))?;
     let open = |p: [f64; 2]| open_at(&tt, &water, &outlines, p);
-    // The stamps, each of the files its layer reads (a missing file counts as missing: the next run tries it again).
-    let frame_inputs = |h: &mut Sha256| {
-        h.update(&th.bytes);
-        h.update(&types);
-        h.update(&water_bytes);
-        for b in &bases {
-            h.update(format!("{} {:?}\n", b.icao, b.boundary).as_bytes());
-        }
-    };
-    let stamp = |what: &str, files: &[(Download, &Path)], all: bool| -> String {
-        let mut h = Sha256::new();
-        h.update(format!("sim {what} {VERSION} {}\n", scenery::release(Kinds::BOTH)).as_bytes());
-        for (d, dir) in files {
-            let here = all || thirdparty::file_done(dir, d);
-            h.update(format!("{} {}\n", d.file, if here { d.sha256 } else { "missing" }).as_bytes());
-        }
-        frame_inputs(&mut h);
-        if what == "scenery" {
-            h.update(roof_images(&assets.join(THEATRE)).as_bytes());
-        }
-        h.finalize().iter().map(|b| format!("{b:02x}")).collect()
-    };
+    let theatre = assets.join(THEATRE);
+    let inputs = StampInputs { theatre: &theatre, meta: &th.bytes, types: &types, water: &water_bytes, bases: &bases };
+    let stamp = |what: &str, files: &[(Download, &Path)], all: bool| layer_stamp(&inputs, what, files, all);
     let road_files: Vec<(Download, &Path)> =
         std::iter::once((osm, src.as_path())).chain(road_list.iter().map(|d| (*d, roads_src.as_path()))).collect();
     let scenery_files: Vec<(Download, &Path)> =

@@ -9,8 +9,8 @@ drawn on the ground, the city lights at night. `iaf-sim scenery` (plan.md item B
 as the original game's, by the same code, placed in the sim's UTM frame over the whole theatre.
 
 ```sh
-cargo build --release -p iaf-tools --bin iaf-sim
-target/release/iaf-sim scenery [data-dir (modern-iaf/data)] [assets-dir (assets)]   # needs GDAL; iaf-sim all runs it too
+cargo build --release -p iaf-setup --bin iaf-sim
+target/release/iaf-sim scenery [assets-dir (assets)]   # needs GDAL; iaf-sim all runs it too
 ```
 
 ## 1. Sources

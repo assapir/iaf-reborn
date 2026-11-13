@@ -14,7 +14,7 @@ echo "== cargo test"
 cargo test -q --workspace 2>&1 | grep -E "test result|FAILED|panicked" || fail=1
 cargo build -q --release -p iaf-godot || fail=1
 # test_sim_data.gd compiles Modern IAF's data with it.
-cargo build -q --release -p iaf-tools --bin iaf-sim || fail=1
+cargo build -q --release -p iaf-setup --bin iaf-sim || fail=1
 for t in tests/godot/test_*.gd; do
 	echo "== $t"
 	# The setup wizard's test builds its own data into an empty scratch folder, never into assets/.

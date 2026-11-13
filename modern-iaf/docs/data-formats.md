@@ -9,7 +9,7 @@ Modern IAF keeps its units, weapons and missions as readable JSON under `modern-
 reader changes. This document gives each format, one full example and the compiled output.
 
 ```sh
-cargo run -p iaf-tools --bin iaf-sim -- all [modern-iaf/data] [assets]   # or db / own / fm / airbases / missions alone
+cargo run -p iaf-setup --bin iaf-sim -- all [assets]   # or db / own / fm / airbases / missions alone
 ```
 
 | step | reads | writes (under `assets/`) |

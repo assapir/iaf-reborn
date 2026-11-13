@@ -10,7 +10,7 @@ before the line's ";", the start of the word after it] in seconds (Kokoro's own 
 Setup (once, outside the repo):
     python3 -m venv --system-site-packages VENV
     VENV/bin/pip install "kokoro>=0.9.4" scipy num2words spacy phonemizer-fork espeakng-loader; espeak-ng
-Run through iaf-sim:  IAF_KOKORO_PYTHON=VENV/bin/python cargo run --release -p iaf-tools --bin iaf-sim -- voices
+Run through iaf-sim:  IAF_KOKORO_PYTHON=VENV/bin/python cargo run --release -p iaf-setup --bin iaf-sim -- voices
 """
 
 import contextlib

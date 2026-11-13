@@ -11,7 +11,7 @@ in the same shape as the original game's converted theatre, so `shared/terrain/t
 with no change of their own.
 
 ```sh
-cargo build --release -p iaf-tools --bin iaf-sim
+cargo build --release -p iaf-setup --bin iaf-sim
 target/release/iaf-sim terrain [assets] [--box E0 N0 E1 N1] [--out DIR] [--threads N]   # needs GDAL and curl
 ```
 

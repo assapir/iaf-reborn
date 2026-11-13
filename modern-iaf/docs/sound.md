@@ -17,9 +17,9 @@ licensed recording, a tone we computed or our TTS. The readers take these files 
 | keys | `data/keys.json` | by hand | `converted/own/keys.json` |
 
 ```sh
-cargo run --release -p iaf-tools --bin iaf-sim -- own        # or: all
+cargo run --release -p iaf-setup --bin iaf-sim -- own        # or: all
 VENV/bin/python -I tools/iaf-2026/sounds.py DL      # remakes the effects from the downloads in DL
-IAF_KOKORO_PYTHON=VENV/bin/python cargo run --release -p iaf-tools --bin iaf-sim -- voices   # remakes the voices (§5)
+IAF_KOKORO_PYTHON=VENV/bin/python cargo run --release -p iaf-setup --bin iaf-sim -- voices   # remakes the voices (§5)
 ```
 `sounds.py`'s header gives its setup (a venv with numpy and scipy; ffmpeg with libvorbis); `tools/iaf-2026/kokoro_tts.py`'s
 header gives Kokoro's (§5.3). A new `voices` run remakes every clip; Kokoro's output may differ slightly between

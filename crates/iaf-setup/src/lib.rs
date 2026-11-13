@@ -23,8 +23,8 @@ mod steps;
 pub use checks::{CdKind, PackInfo, Tools, check_cd, check_pack, check_patch, python, scan, tools};
 pub use saved::{from_json, inputs_file, load_inputs, save_inputs, to_json};
 pub use sim::{
-    Optional, SimCtx, SimInputs, save_sim_excluded, sim_excluded, sim_expected, sim_optional, sim_plan, sim_preview,
-    sim_remove, sim_run, sim_terrain_fetch, survey_sheets,
+    Optional, SimCtx, SimInputs, save_sim_excluded, sim_adopt, sim_excluded, sim_expected, sim_optional, sim_plan,
+    sim_preview, sim_remove, sim_run, sim_steps_for, sim_survey, sim_terrain_fetch, survey_sheets,
 };
 pub use steps::{COCKPITS, KEPT, OUTPUTS, disk_bytes, imagery_stale, script_guides, uninstall};
 
@@ -327,6 +327,39 @@ pub type Redo<'a> = dyn Fn(&str) -> bool + Sync + 'a;
 /// the inputs to checksum them, so it takes as long as the stamps do (about a second with the CD images).
 pub fn preview(steps: &[Step], ctx: &Ctx) -> Vec<(&'static str, bool)> {
     preview_with(steps, &|step| stamp::of(step, ctx))
+}
+
+/// Stamps the steps built without one (by an older setup or a command line run before every run stamped): a step
+/// with no stamp file whose output `verify` finds current gets the stamp it would have written, in the plan's order
+/// (a step's stamp holds those of the steps before it). Only when every step it waits for is up to date: a stale one
+/// runs again, and what it makes may differ from what the output was built from. Returns the steps adopted.
+pub(crate) fn adopt_with(steps: &[Step], stamp: &StampFn, verify: &dyn Fn(&Step) -> bool) -> Vec<&'static str> {
+    let mut texts: HashMap<&'static str, String> = HashMap::new();
+    let mut stale: Vec<&'static str> = Vec::new();
+    let mut adopted = Vec::new();
+    for step in steps {
+        let Ok(Some(mut s)) = stamp(step) else {
+            texts.insert(step.id, "ran".into());
+            continue;
+        };
+        for a in &step.after {
+            let t = texts.get(a).map_or("none", String::as_str);
+            s.text += &format!("after {a} {:08x}\n", crc32fast::hash(t.as_bytes()));
+        }
+        if !s.path.exists()
+            && s.output.as_ref().is_none_or(|o| o.exists())
+            && !step.after.iter().any(|a| stale.contains(a))
+            && verify(step)
+            && s.write().is_ok()
+        {
+            adopted.push(step.id);
+        }
+        if !s.holds() {
+            stale.push(step.id);
+        }
+        texts.insert(step.id, s.for_dependents());
+    }
+    adopted
 }
 
 /// `preview` with the stamps of `stamp`.

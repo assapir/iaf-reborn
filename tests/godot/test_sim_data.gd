@@ -23,7 +23,7 @@ func run() -> void:
 	var repo := ProjectSettings.globalize_path("res://").path_join("..").simplify_path()
 	var bin := repo.path_join("target/release/iaf-sim" + (".exe" if OS.get_name() == "Windows" else ""))
 	if not FileAccess.file_exists(bin):
-		print("NEEDS DATA: build the compiler (cargo build --release -p iaf-tools --bin iaf-sim)")
+		print("NEEDS DATA: build the compiler (cargo build --release -p iaf-setup --bin iaf-sim)")
 		await _quit(2)
 		return
 	var out := []
