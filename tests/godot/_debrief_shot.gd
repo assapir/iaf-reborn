@@ -8,7 +8,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	settings().language = OS.get_environment("DEB_LANG") if OS.get_environment("DEB_LANG") != "" else "en"
+	settings().language = _env("DEB_LANG", "en")
 	var id := int(OS.get_environment("DEB_MISSION")) if OS.get_environment("DEB_MISSION") != "" else 115
 	var per := int(OS.get_environment("DEB_PER_TYPE")) if OS.get_environment("DEB_PER_TYPE") != "" else 2
 	var tv = await start_mission(id)

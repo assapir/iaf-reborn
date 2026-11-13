@@ -10,17 +10,9 @@ const DIR := "user://missions_test_win"
 const LAND := Vector2(350000, 600000)  # inland, 212 m
 
 
-func _clean() -> void:
-	if not DirAccess.dir_exists_absolute(DIR):
-		return
-	for f in DirAccess.get_files_at(DIR):
-		DirAccess.remove_absolute(DIR.path_join(f))
-	DirAccess.remove_absolute(DIR)
-
-
 func run() -> void:
 	await require_data()
-	_clean()
+	remove_dir(DIR)
 	var ed = load("res://editor/mission_editor.tscn").instantiate()
 	ed.missions_dir = DIR
 	root.size = Vector2i(1600, 1000)
@@ -74,4 +66,4 @@ func run() -> void:
 	d = rt.debrief_text()
 	check(rt.failed and not rt.passed and d.headline == "Mission - failed.", "the Merkava lost: failed (%s)" % d)
 	settings().mission_files_override = []
-	_clean()
+	remove_dir(DIR)

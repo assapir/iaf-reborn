@@ -29,7 +29,7 @@ func run() -> void:
 					if SKIP_LABELS.has(label):
 						continue
 					fe._on_button("%d/%d" % [p, b])
-					await _settle(fe)
+					await settle(fe, 600)
 					_dismiss_box(fe)
 					await _open(fe, s)
 		check(visited > 10, "%s: visited %d screens and pressed their buttons" % [lang, visited])
@@ -90,11 +90,11 @@ func run() -> void:
 			check(fe._ctrl_rows().size() == 115, "%s: all keys listed with the Extras option" % lang)
 			fe.pref_work["no_blackouts"] = not fe.pref_work.get("no_blackouts", false)  # a change -> Save changes?
 			fe._on_button("main" if exit_path == "main" else "back")
-			await _settle(fe)
+			await settle(fe, 600)
 			if fe.msgbox != null:
 				var i: int = {"yes": 0, "no": 1, "cancel": 2, "main": 1}[exit_path]
 				_click_box(fe.msgbox, i)
-				await _settle(fe)
+				await settle(fe, 600)
 			await frames(10)
 		settings().no_blackouts = false
 		check(true, "%s: Preferences tabs and exits" % lang)
@@ -242,13 +242,13 @@ func _tsd_and_arm(fe, id: int, lang: String) -> void:
 			if label in ["fly", "arm"] or not fe._button_enabled(label):
 				continue
 			fe._on_button("%d/%d" % [p, b])
-			await _settle(fe)
+			await settle(fe, 600)
 			_dismiss_box(fe)
 	check(fe.screen == "tsd", "%s %d: TSD buttons pressed" % [lang, id])
 	fe._on_button(fe._key_for_label(exist[0].capitalize()))
-	await _settle(fe)
+	await settle(fe, 600)
 	fe._on_button(fe._key_for_label("Arm"))
-	await _settle(fe)
+	await settle(fe, 600)
 	check(fe.screen == "arm" and fe.arm != null, "%s %d: Arming opened from the TSD" % [lang, id])
 	var enabled: Array = flights.filter(func(f): return fe._button_enabled(f.capitalize()))
 	check(
@@ -265,7 +265,7 @@ func _tsd_and_arm(fe, id: int, lang: String) -> void:
 		)
 	for f in enabled + [enabled[0]]:
 		fe._on_button(fe._key_for_label(f.capitalize()))
-		await _settle(fe)
+		await settle(fe, 600)
 		_dismiss_box(fe)
 		check(
 			fe.arm.flight == flights.find(f) + 1 and fe.tsd_checks.get(f, false),
@@ -324,7 +324,7 @@ func _tsd_and_arm(fe, id: int, lang: String) -> void:
 	if not heavy.is_empty():
 		fe.mission_weapons.put(arm.flight, 0, heavy)
 		fe._on_button(fe._key_for_label("TacticalDisplay"))
-		await _settle(fe)
+		await settle(fe, 600)
 		check(
 			fe.msgbox != null and fe.screen == "arm", "%s %d: unbalanced load -> warning, stays on Arming" % [lang, id]
 		)
@@ -332,31 +332,31 @@ func _tsd_and_arm(fe, id: int, lang: String) -> void:
 		fe.mission_weapons.put(arm.flight, 0, {})
 	# Changed load: TacticalDisplay asks "Use weapon load?"; No reverts.
 	fe._on_button(fe._key_for_label("TacticalDisplay"))
-	await _settle(fe)
+	await settle(fe, 600)
 	check(fe.msgbox != null, "%s %d: Use weapon load? asked" % [lang, id])
 	if fe.msgbox != null:
 		_click_box(fe.msgbox, 1)
-		await _settle(fe)
+		await settle(fe, 600)
 	check(fe.screen == "tsd" and not fe.mission_weapons.changed(), "%s %d: No -> TSD, load reverted" % [lang, id])
 	# Arming again, change and leave by BACK with Yes: the load goes on the aircraft.
 	fe._on_button(fe._key_for_label("Arm"))
-	await _settle(fe)
+	await settle(fe, 600)
 	var n: int = fe.arm.flight
 	fe.mission_weapons.put(n, 0, {})
 	fe.mission_weapons.put(n, 8, {})
 	fe._on_button("back")
-	await _settle(fe)
+	await settle(fe, 600)
 	if fe.msgbox != null:
 		_click_box(fe.msgbox, 0)
-		await _settle(fe)
+		await settle(fe, 600)
 	check(
 		fe.screen == "tsd" and settings().arm_loadouts.get(n, []) == fe.mission_weapons.saved[n],
 		"%s %d: BACK + Yes -> TSD, load on the aircraft" % [lang, id]
 	)
 	fe._on_button("main")
-	await _settle(fe)
+	await settle(fe, 600)
 	_dismiss_box(fe)
-	await _settle(fe)
+	await settle(fe, 600)
 	settings().arm_loadouts = {}
 
 
@@ -432,14 +432,6 @@ func _open(fe, s: String) -> void:
 	fe.screen = s
 	fe._enter_screen()
 	await frames(3)
-
-
-func _settle(fe) -> void:
-	await frames(2)
-	var n := 0
-	while fe.busy and n < 600:
-		await process_frame
-		n += 1
 
 
 func _dismiss_box(fe) -> void:

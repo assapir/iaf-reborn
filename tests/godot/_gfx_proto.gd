@@ -57,9 +57,7 @@ func run() -> void:
 	tv.rig.position.y = (g if g != null else 0.0) + alt
 	tv.rig.basis = Basis.from_euler(Vector3(deg_to_rad(-6.0), deg_to_rad(-30.0), 0.0), EULER_ORDER_YXZ)
 	tv._apply_view()
-	var t0 := Time.get_ticks_msec()
-	while tv.terrain.missing_after_frame() and Time.get_ticks_msec() - t0 < 20000:
-		await process_frame
+	await ground_streamed(tv, 20000)
 	await frames(60)
 	var times: Array[float] = []
 	var fwd: Vector3 = -tv.rig.basis.z

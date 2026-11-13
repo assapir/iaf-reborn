@@ -58,9 +58,7 @@ func _far(cfg: String, km: int, start: Vector3, fwd: Vector3, side: Vector3, bas
 	cam.make_current()
 	var p := p0 - fwd * 200.0
 	tv.rig.global_transform = Transform3D(base, p)
-	var t0 := Time.get_ticks_msec()
-	while tv.terrain.missing_after_frame() and Time.get_ticks_msec() - t0 < 15000:
-		await process_frame
+	await ground_streamed(tv, 15000)
 	for i in 120:
 		tv.rig.global_transform = Transform3D(base, p)
 		tv.aircraft.visible = true
@@ -85,9 +83,7 @@ func _low(cfg: String, view: String, start: Vector3, fwd: Vector3, side: Vector3
 		tv.views.set_cockpit(tv.views.COCKPIT)
 	var p := start
 	tv.rig.global_transform = Transform3D(base, _ground(p) + Vector3(0, 60, 0))
-	var t0 := Time.get_ticks_msec()
-	while tv.terrain.missing_after_frame() and Time.get_ticks_msec() - t0 < 15000:
-		await process_frame
+	await ground_streamed(tv, 15000)
 	var fx: Node = tv.effects
 	for i in 90:
 		p += fwd * 300.0 * STEP

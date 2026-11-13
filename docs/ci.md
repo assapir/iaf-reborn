@@ -40,8 +40,8 @@ It exits 1 unless every test passes.
 not count). `require_data()` in `tests/godot/base.gd` prints `NEEDS DATA` and quits at once when
 `assets/converted/keys.json` or `assets/install` is missing; with the data it returns at once. `start_mission` calls
 it, and so do the tests that read data directly, just before their first read. A new test that reads data calls
-`await require_data()` there too. Modern IAF's tests that read the sim's own data override it to check
-`Settings.own_dir()` instead (`test_sim_gun`, `test_own_sources`).
+`await require_data()` there too. In Modern IAF (`Settings.own_dir()` apart from the install) it checks the sim's
+own data instead: `own_dir()/resource`. A test that needs other files overrides it (`test_own_sources`, `test_m0_boot`).
 
 On macOS the script runs under the system's bash 3.2 and uses coreutils' `gtimeout`, which the jobs install with
 Homebrew when missing.

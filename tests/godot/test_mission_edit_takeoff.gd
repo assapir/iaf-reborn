@@ -13,16 +13,8 @@ const TANK := Vector2(385000, 600000)  # 45 km east of Alpha
 const MIG29 := 2
 
 
-func _clean() -> void:
-	if not DirAccess.dir_exists_absolute(DIR):
-		return
-	for f in DirAccess.get_files_at(DIR):
-		DirAccess.remove_absolute(DIR.path_join(f))
-	DirAccess.remove_absolute(DIR)
-
-
 func run() -> void:
-	_clean()
+	remove_dir(DIR)
 	var ed = load("res://editor/mission_editor.tscn").instantiate()
 	ed.missions_dir = DIR
 	root.size = Vector2i(1600, 1000)
@@ -95,7 +87,7 @@ func run() -> void:
 	check(moved >= at and moved < at + 5.0, "the MiGs stay parked until the rule fires (moved at %.1f s)" % moved)
 	check(not lead.state().on_ground and p1.z > 889.0 + 100.0, "then they take off (alt %.0f)" % p1.z)
 	settings().mission_files_override = []
-	_clean()
+	remove_dir(DIR)
 	for mid in [132, 114]:
 		await _original(mid)
 

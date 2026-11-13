@@ -10,13 +10,7 @@ func run() -> void:
 	settings().jet_id = int(OS.get_environment("HUD_JET")) if OS.get_environment("HUD_JET") != "" else -1
 	if OS.get_environment("HUD_STYLE") != "":
 		settings().hud_style = OS.get_environment("HUD_STYLE")
-	change_scene_to_file("res://shared/terrain/terrain_view.tscn")
-	var tv: Node = null
-	while tv == null or tv.get("flight") == null or tv.waiting_for_ground:
-		await process_frame
-		tv = current_scene
+	await start_mission(settings().mission_id)
 	for i in 90:
 		await process_frame
-	await RenderingServer.frame_post_draw
-	root.get_viewport().get_texture().get_image().save_png(OS.get_environment("HUD_SHOT"))
-	print("saved ", OS.get_environment("HUD_SHOT"))
+	await save_shot(OS.get_environment("HUD_SHOT"))

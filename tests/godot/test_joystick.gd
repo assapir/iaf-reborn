@@ -14,15 +14,6 @@ func joy() -> Node:
 	return root.get_node("Joystick")
 
 
-func axis(a: int, v: float) -> void:
-	var e := InputEventJoypadMotion.new()
-	e.device = 0
-	e.axis = a
-	e.axis_value = v
-	Input.parse_input_event(e)
-	Input.flush_buffered_events()
-
-
 func button(b: int, down: bool) -> InputEventJoypadButton:
 	var e := InputEventJoypadButton.new()
 	e.device = 0

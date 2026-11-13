@@ -11,10 +11,6 @@ extends "res://../tests/godot/base.gd"
 const TimeOfDay := preload("res://shared/terrain/time_of_day.gd")
 
 
-func _env(k: String, d: String) -> String:
-	return OS.get_environment(k) if OS.get_environment(k) != "" else d
-
-
 func run() -> void:
 	var dir := _env("SHOT_DIR", "/tmp")
 	DirAccess.make_dir_recursive_absolute(dir)

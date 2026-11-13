@@ -60,11 +60,18 @@ func mouse_button(pos: Vector2, down: bool, double := false) -> InputEventMouseB
 
 ## Without the game data (tools/setup-cli.sh) prints NEEDS DATA and quits at once, before a test's first data
 ## read: the CI sweep (docs/ci.md) counts it as needs-data. With the data it returns at once. A test running
-## alongside can create assets/converted: the key table and the install tell.
+## alongside can create assets/converted: the key table and the install tell. Modern IAF (its own_dir() apart from
+## the install): its own data's resource folder tells.
 func require_data() -> void:
-	if FileAccess.file_exists(settings().keys_file()) and DirAccess.dir_exists_absolute(settings().install_dir()):
+	var s := settings()
+	if s.own_dir() != s.install_dir():
+		if DirAccess.dir_exists_absolute(s.own_dir().path_join("resource")):
+			return
+		print("NEEDS DATA: Modern IAF's own data (./modern-iaf-setup)")
+	elif FileAccess.file_exists(s.keys_file()) and DirAccess.dir_exists_absolute(s.install_dir()):
 		return
-	print("NEEDS DATA: this test reads assets/ (tools/setup-cli.sh)")
+	else:
+		print("NEEDS DATA: this test reads assets/ (tools/setup-cli.sh)")
 	await _quit(2)
 	await create_timer(3600, true, false, true).timeout
 
@@ -135,6 +142,15 @@ func fly(tv: Node, s: float) -> void:
 		await process_frame
 
 
+## Waits until the flight's ground has streamed in (no tile missing after a frame), at most `max_ms` ms from the
+## call, `first_frames` frames first.
+func ground_streamed(tv: Node, max_ms: int, first_frames := 0) -> void:
+	var t0 := Time.get_ticks_msec()
+	await frames(first_frames)
+	while tv.terrain.missing_after_frame() and Time.get_ticks_msec() - t0 < max_ms:
+		await process_frame
+
+
 ## A key press / release through Input (the polled controls).
 func set_key(k: Key, down: bool) -> void:
 	var e := InputEventKey.new()
@@ -145,17 +161,43 @@ func set_key(k: Key, down: bool) -> void:
 	Input.flush_buffered_events()
 
 
+## A joystick axis move on device 0 through Input.
+func axis(a: int, v: float) -> void:
+	var e := InputEventJoypadMotion.new()
+	e.device = 0
+	e.axis = a
+	e.axis_value = v
+	Input.parse_input_event(e)
+	Input.flush_buffered_events()
+
+
+## Types `s` into `target`, one character event each.
+func type_text(target: Node, s: String) -> void:
+	for ch in s:
+		var e := InputEventKey.new()
+		e.pressed = true
+		e.unicode = ch.unicode_at(0)
+		target._unhandled_input(e)
+
+
+## The environment variable `k`, `d` when unset or empty.
+func _env(k: String, d: String) -> String:
+	return OS.get_environment(k) if OS.get_environment(k) != "" else d
+
+
 ## A front-end click at a menu position.
 func click(fe: Node, menu_pos: Vector2) -> void:
 	fe._gui_input(mouse_button(fe._to_screen(menu_pos), true))
 	fe._gui_input(mouse_button(fe._to_screen(menu_pos), false))
 
 
-## Waits for the front end's screen change (title tab, panel slide) to finish.
-func settle(fe: Node) -> void:
+## Waits for the front end's screen change (title tab, panel slide) to finish, at most `max_frames` frames when given.
+func settle(fe: Node, max_frames := -1) -> void:
 	await frames(2)
-	while fe.busy:
+	var n := 0
+	while fe.busy and n != max_frames:
 		await process_frame
+		n += 1
 
 
 ## A real-render capture (only without --headless): SHOT_DIR.
@@ -169,6 +211,26 @@ func _save(file: String) -> void:
 	var img: Image = root.get_viewport().get_texture().get_image()
 	if img != null and not img.is_empty():
 		img.save_png(dir.path_join(file))
+
+
+## Removes the folder `dir` and everything in it; a missing folder is left alone.
+func remove_dir(dir: String) -> void:
+	if dir == "" or not DirAccess.dir_exists_absolute(dir):
+		return
+	var da := DirAccess.open(dir)
+	for d in DirAccess.get_directories_at(dir):
+		if not da.is_link(d):  # a linked folder's files are not ours
+			remove_dir(dir.path_join(d))
+	for f in DirAccess.get_files_at(dir):
+		DirAccess.remove_absolute(dir.path_join(f))
+	DirAccess.remove_absolute(dir)
+
+
+## A real-render capture of the window to `path`, printed as "saved <path>".
+func save_shot(path: String) -> void:
+	await RenderingServer.frame_post_draw
+	root.get_viewport().get_texture().get_image().save_png(path)
+	print("saved ", path)
 
 
 ## The mission runtime's entity called `name`.

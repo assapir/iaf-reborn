@@ -8,21 +8,13 @@ extends "res://../tests/godot/base.gd"
 const DIR := "user://missions_test_intel"
 
 
-func _clean() -> void:
-	if not DirAccess.dir_exists_absolute(DIR):
-		return
-	for f in DirAccess.get_files_at(DIR):
-		DirAccess.remove_absolute(DIR.path_join(f))
-	DirAccess.remove_absolute(DIR)
-
-
 func _keys(tsd) -> Array:
 	return tsd.units.map(func(u): return String(u.key))
 
 
 func run() -> void:
 	await require_data()
-	_clean()
+	remove_dir(DIR)
 	var ed = load("res://editor/mission_editor.tscn").instantiate()
 	ed.missions_dir = DIR
 	root.size = Vector2i(1600, 1000)
@@ -84,4 +76,4 @@ func run() -> void:
 	await frames(2)
 	check(is_instance_valid(tsd.link_windows.get(2)), "the link opens the model window")
 	ed.queue_free()
-	_clean()
+	remove_dir(DIR)

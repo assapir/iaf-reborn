@@ -439,10 +439,7 @@ func _pin() -> void:
 
 
 func _shot(name: String) -> void:
-	var t0 := Time.get_ticks_msec()
-	await frames(10)
-	while tv.terrain.missing_after_frame() and Time.get_ticks_msec() - t0 < 30000:
-		await process_frame
+	await ground_streamed(tv, 30000, 10)
 	await frames(30)
 	await RenderingServer.frame_post_draw
 	var img: Image = root.get_viewport().get_texture().get_image()

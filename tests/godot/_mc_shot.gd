@@ -8,7 +8,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	settings().language = OS.get_environment("MC_LANG") if OS.get_environment("MC_LANG") != "" else "en"
+	settings().language = _env("MC_LANG", "en")
 	settings().better_mc = OS.get_environment("MC_BETTER") == "1"
 	var fe = load("res://menu/front_end.tscn").instantiate()
 	root.add_child(fe)
@@ -25,6 +25,4 @@ func run() -> void:
 		fe.mc_view.open = int(OS.get_environment("MC_OPEN"))
 		fe.mc_view.current[fe.mc_view.open] = 2
 	await frames(20)
-	await RenderingServer.frame_post_draw
-	root.get_viewport().get_texture().get_image().save_png(OS.get_environment("MC_SHOT"))
-	print("saved %s" % OS.get_environment("MC_SHOT"))
+	await save_shot(OS.get_environment("MC_SHOT"))

@@ -195,7 +195,4 @@ func _feed(m: Node3D, st: Dictionary) -> void:
 
 
 func _save(name: String) -> void:
-	await RenderingServer.frame_post_draw
-	var path := out.path_join(name + suffix + ".png")
-	root.get_viewport().get_texture().get_image().save_png(path)
-	print("saved ", path)
+	await save_shot(out.path_join(name + suffix + ".png"))

@@ -39,9 +39,7 @@ func run() -> void:
 			env.ssil_enabled = true
 	var shots := OS.get_environment("UP_SHOT_DIR")
 	if shots != "":
-		var t0 := Time.get_ticks_msec()
-		while tv.terrain.missing_after_frame() and Time.get_ticks_msec() - t0 < 20000:
-			await process_frame
+		await ground_streamed(tv, 20000)
 		for u in ["off", "quality", "balanced"]:
 			settings().upscaling = u
 			tv.apply_render_options()

@@ -101,9 +101,7 @@ func run() -> void:
 		tv.rig.basis = Basis.from_euler(Vector3(deg_to_rad(-4.0), deg_to_rad(-30.0), 0.0), EULER_ORDER_YXZ)
 		tv._apply_view()
 		# Let the ground stream in first, then fly.
-		var t0 := Time.get_ticks_msec()
-		while tv.terrain.missing_after_frame() and Time.get_ticks_msec() - t0 < 20000:
-			await process_frame
+		await ground_streamed(tv, 20000)
 		await frames(30)
 		await seconds(float(OS.get_environment("BENCH_SETTLE")))  # streamed extras (e.g. the city lights)
 		var times: Array[float] = []

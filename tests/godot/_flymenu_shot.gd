@@ -7,7 +7,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	settings().language = OS.get_environment("MENU_LANG") if OS.get_environment("MENU_LANG") != "" else "en"
+	settings().language = _env("MENU_LANG", "en")
 	var tv = await start_mission(311)
 	await frames(30)
 	var e := InputEventKey.new()
@@ -27,6 +27,4 @@ func run() -> void:
 		var box = tv._msgbox
 		box.mouse = Vector2(box.origin() + box.button_rects[0].get_center()) * s
 	await RenderingServer.frame_post_draw
-	await RenderingServer.frame_post_draw
-	root.get_viewport().get_texture().get_image().save_png(OS.get_environment("MENU_SHOT"))
-	print("saved ", OS.get_environment("MENU_SHOT"))
+	await save_shot(OS.get_environment("MENU_SHOT"))

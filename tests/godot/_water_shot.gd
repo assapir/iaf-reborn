@@ -26,10 +26,7 @@ func run() -> void:
 			tv = current_scene
 		if OS.get_environment("SHOT_SCALE") != "":
 			tv.get_viewport().scaling_3d_scale = float(OS.get_environment("SHOT_SCALE"))
-		var t0 := Time.get_ticks_msec()
-		await frames(20)
-		while tv.terrain.missing_after_frame() and Time.get_ticks_msec() - t0 < 30000:
-			await process_frame
+		await ground_streamed(tv, 30000, 20)
 		await frames(60)
 		var times: Array[float] = []
 		var last := Time.get_ticks_usec()

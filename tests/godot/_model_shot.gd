@@ -265,10 +265,7 @@ func _shot(s: Array, out: String, models: String) -> void:
 	_cam_xf = Transform3D(Basis.looking_at(target - c, ac.global_basis.y.normalized()), c)
 	_cam_local = ac.global_transform.affine_inverse() * _cam_xf
 	_fov = 40.0 if d < 500.0 else 4.0
-	var t0 := Time.get_ticks_msec()
-	await frames(10)
-	while tv.terrain.missing_after_frame() and Time.get_ticks_msec() - t0 < 30000:
-		await process_frame
+	await ground_streamed(tv, 30000, 10)
 	for i in 30:
 		await process_frame
 	var t1 := Time.get_ticks_usec()

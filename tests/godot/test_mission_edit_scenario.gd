@@ -11,17 +11,9 @@ const LAND := Vector2(350000, 600000)  # inland, 212 m; 6.7 km from Ramat David'
 const BANDITS := 496  # bdb audio "MiG's! MiG's! MiG's!"
 
 
-func _clean() -> void:
-	if not DirAccess.dir_exists_absolute(DIR):
-		return
-	for f in DirAccess.get_files_at(DIR):
-		DirAccess.remove_absolute(DIR.path_join(f))
-	DirAccess.remove_absolute(DIR)
-
-
 func run() -> void:
 	await require_data()
-	_clean()
+	remove_dir(DIR)
 	var ed = load("res://editor/mission_editor.tscn").instantiate()
 	ed.missions_dir = DIR
 	root.size = Vector2i(1600, 1000)
@@ -82,7 +74,7 @@ func run() -> void:
 		ent.path != null and ent.world.distance_to(at) > 20.0, "the SA-6 destroyed: the convoy drives (%s)" % ent.world
 	)
 	settings().mission_files_override = []
-	_clean()
+	remove_dir(DIR)
 
 
 func tank_name(ed, id: int) -> String:

@@ -27,9 +27,7 @@ func run() -> void:
 	var fwd: Vector3 = -tv.rig.basis.z
 	fwd = Vector3(fwd.x, 0, fwd.z).normalized()
 	var side := fwd.cross(Vector3.UP)
-	var t0 := Time.get_ticks_msec()
-	while tv.terrain.missing_after_frame() and Time.get_ticks_msec() - t0 < 20000:
-		await process_frame
+	await ground_streamed(tv, 20000)
 	await frames(60)
 	var smokers: Array = []
 	for i in 3:

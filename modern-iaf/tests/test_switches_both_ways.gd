@@ -14,14 +14,6 @@ const TIME_SCALE := 6.0
 
 
 ## The sim's own data (./modern-iaf-setup), not the original's install.
-func require_data() -> void:
-	if DirAccess.dir_exists_absolute(settings().own_dir().path_join("resource")):
-		return
-	print("NEEDS DATA: Modern IAF's own data (./modern-iaf-setup)")
-	await _quit(2)
-	await create_timer(3600, true, false, true).timeout
-
-
 func run() -> void:
 	await require_data()
 	var fly_gd: GDScript = load("res://flight/fly.gd")

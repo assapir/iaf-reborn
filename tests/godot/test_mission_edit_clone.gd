@@ -15,16 +15,8 @@ const DIR := "user://missions_test_clone"
 const LAND := Vector2(350000, 600000)  # inland, 212 m
 
 
-func _clean() -> void:
-	if not DirAccess.dir_exists_absolute(DIR):
-		return
-	for f in DirAccess.get_files_at(DIR):
-		DirAccess.remove_absolute(DIR.path_join(f))
-	DirAccess.remove_absolute(DIR)
-
-
 func run() -> void:
-	_clean()
+	remove_dir(DIR)
 	var ed = load("res://editor/mission_editor.tscn").instantiate()
 	ed.missions_dir = DIR
 	root.size = Vector2i(1600, 1000)
@@ -145,7 +137,7 @@ func run() -> void:
 	check(jets.all(func(i): return ed.entity(i).is_empty()), "and its jets")
 	ed.queue_free()
 	await frames(2)
-	_clean()
+	remove_dir(DIR)
 
 
 ## The TSD map position of world point `w` (the editor's clicks arrive as map positions).

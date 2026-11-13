@@ -44,14 +44,6 @@ var fly_gd: GDScript
 
 
 ## The sim's own data (./modern-iaf-setup), not the original's install.
-func require_data() -> void:
-	if DirAccess.dir_exists_absolute(settings().own_dir().path_join("resource")):
-		return
-	print("NEEDS DATA: Modern IAF's own data (./modern-iaf-setup)")
-	await _quit(2)
-	await create_timer(3600, true, false, true).timeout
-
-
 func run() -> void:
 	await require_data()
 	fly_gd = load("res://flight/fly.gd")
@@ -92,19 +84,11 @@ func run() -> void:
 ## The flights' records folder goes with the run, passed or failed (base.gd's quit comes through here).
 func _quit(code: int) -> void:
 	if out.get_file().begins_with("modern-iaf-mvp-"):
-		_remove(out)
+		remove_dir(out)
 	await super(code)
 
 
 ## Deletes the folder `dir` and everything in it.
-func _remove(dir: String) -> void:
-	for d in DirAccess.get_directories_at(dir):
-		_remove(dir.path_join(d))
-	for f in DirAccess.get_files_at(dir):
-		DirAccess.remove_absolute(dir.path_join(f))
-	DirAccess.remove_absolute(dir)
-
-
 func _start(name: String, armed := false) -> Node:
 	var s := settings()
 	var m: Dictionary = s.load_json(s.assets_dir().path_join(MISSIONS).path_join(name + ".json"))

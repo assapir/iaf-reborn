@@ -5,7 +5,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	settings().language = OS.get_environment("CREDITS_LANG") if OS.get_environment("CREDITS_LANG") != "" else "en"
+	settings().language = _env("CREDITS_LANG", "en")
 	var Roll = load("res://menu/credits_roll.gd")
 	var roll = Roll.new()
 	root.add_child(roll)
@@ -15,6 +15,4 @@ func run() -> void:
 	roll.set_process(false)
 	roll.update()
 	await frames(5)
-	await RenderingServer.frame_post_draw
-	root.get_viewport().get_texture().get_image().save_png(OS.get_environment("CREDITS_SHOT"))
-	print("saved ", OS.get_environment("CREDITS_SHOT"))
+	await save_shot(OS.get_environment("CREDITS_SHOT"))

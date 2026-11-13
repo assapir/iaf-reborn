@@ -28,7 +28,7 @@ func require_data() -> void:
 
 func start_mission(_id: int) -> Node:
 	var s := settings()
-	var name := OS.get_environment("BENCH_SIM") if OS.get_environment("BENCH_SIM") != "" else "ramon_takeoff"
+	var name := _env("BENCH_SIM", "ramon_takeoff")
 	var m: Dictionary = s.load_json(s.assets_dir().path_join("converted/modern-iaf/missions").path_join(name + ".json"))
 	load("res://flight/fly.gd").set_jet(m)
 	s.mission_files_override = [{"name": name, "data": m}]

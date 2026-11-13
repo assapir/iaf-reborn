@@ -9,14 +9,6 @@ extends "res://../tests/godot/base.gd"
 
 
 ## The sim's own data (./modern-iaf-setup), not the original's install.
-func require_data() -> void:
-	if DirAccess.dir_exists_absolute(settings().own_dir().path_join("resource")):
-		return
-	print("NEEDS DATA: Modern IAF's own data (./modern-iaf-setup)")
-	await _quit(2)
-	await create_timer(3600, true, false, true).timeout
-
-
 func _press(tv: Node, k: Key, down := true, shift := false) -> void:
 	var e := InputEventKey.new()
 	e.keycode = k

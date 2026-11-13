@@ -52,7 +52,7 @@ func run() -> void:
 		settings().set(p[0], str_to_var(p[1]) if str_to_var(p[1]) != null else p[1])
 	settings().show_info = false
 	settings().cockpit_3d = "original" if two_d else "3d"
-	settings().hud_style = OS.get_environment("C3D_HUD") if OS.get_environment("C3D_HUD") != "" else "real"
+	settings().hud_style = _env("C3D_HUD", "real")
 	var hour := float(OS.get_environment("C3D_HOUR")) if OS.get_environment("C3D_HOUR") != "" else 10.5
 	if OS.get_environment("C3D_JET") == "f35i":
 		await _f35i(hour)

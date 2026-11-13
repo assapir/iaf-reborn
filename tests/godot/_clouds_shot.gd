@@ -46,10 +46,6 @@ var tv: Node
 var weather: GDScript
 
 
-func _env(k: String, d: String) -> String:
-	return OS.get_environment(k) if OS.get_environment(k) != "" else d
-
-
 func run() -> void:
 	if DisplayServer.get_name() == "headless":
 		check(false, "needs a window")
@@ -115,10 +111,7 @@ func run() -> void:
 			tv.views.dist = 30.0
 		tv._apply_view()
 		tv._tod_t = -INF
-		var t0 := Time.get_ticks_msec()
-		await frames(10)
-		while tv.terrain.missing_after_frame() and Time.get_ticks_msec() - t0 < 30000:
-			await process_frame
+		await ground_streamed(tv, 30000, 10)
 		await _drawn(90)
 		if shot.size() > 7:
 			# The same explosions in every run (before / after pictures).

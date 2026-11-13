@@ -10,10 +10,6 @@
 extends "res://../tests/godot/base.gd"
 
 
-func _env(k: String, d: String) -> String:
-	return OS.get_environment(k) if OS.get_environment(k) != "" else d
-
-
 func run() -> void:
 	var dir := _env("SHOT_DIR", "/tmp")
 	DirAccess.make_dir_recursive_absolute(dir)
@@ -29,10 +25,7 @@ func run() -> void:
 		if nvg:
 			settings().night_vision = true
 			tv._toggle_goggles()
-		var t0 := Time.get_ticks_msec()
-		await frames(20)
-		while tv.terrain.missing_after_frame() and Time.get_ticks_msec() - t0 < 30000:
-			await process_frame
+		await ground_streamed(tv, 30000, 20)
 		for view in ["cockpit", "external"]:
 			if view == "external":
 				tv.in_cockpit = false

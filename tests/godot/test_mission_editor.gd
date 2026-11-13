@@ -18,16 +18,8 @@ const JERUSALEM := Vector2(352900, 511300)  # its western entrance
 const ROAD_CLASS := 5  # minor streets and up (mission_edit.rs ROAD_CLASS)
 
 
-func _clean() -> void:
-	if not DirAccess.dir_exists_absolute(DIR):
-		return
-	for f in DirAccess.get_files_at(DIR):
-		DirAccess.remove_absolute(DIR.path_join(f))
-	DirAccess.remove_absolute(DIR)
-
-
 func run() -> void:
-	_clean()
+	remove_dir(DIR)
 	var orig: String = settings().assets_dir().path_join("converted/missions/wild_west.json")
 	var md5: String = FileAccess.get_md5(orig)
 	var ed = load("res://editor/mission_editor.tscn").instantiate()
@@ -319,7 +311,7 @@ func run() -> void:
 	var drive: Dictionary = _road_route(ed)
 	ed.queue_free()
 	await frames(2)
-	_clean()
+	remove_dir(DIR)
 	if drive.is_empty():
 		return
 	# Flown (as Fly does): the convoy drives the road route.

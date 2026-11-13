@@ -7,8 +7,8 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	settings().language = OS.get_environment("PREF_LANG") if OS.get_environment("PREF_LANG") != "" else "en"
-	var page := OS.get_environment("PREF_PAGE") if OS.get_environment("PREF_PAGE") != "" else "Devices"
+	settings().language = _env("PREF_LANG", "en")
+	var page := _env("PREF_PAGE", "Devices")
 	var fe = load("res://menu/front_end.tscn").instantiate()
 	root.add_child(fe)
 	await frames(2)

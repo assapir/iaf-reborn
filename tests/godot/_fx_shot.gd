@@ -127,7 +127,4 @@ func _shots(name: String, times: Array) -> void:
 
 
 func _save_png(name: String) -> void:
-	await RenderingServer.frame_post_draw
-	var path := out.path_join("%s_%s.png" % [name, mode])
-	root.get_viewport().get_texture().get_image().save_png(path)
-	print("saved ", path)
+	await save_shot(out.path_join("%s_%s.png" % [name, mode]))

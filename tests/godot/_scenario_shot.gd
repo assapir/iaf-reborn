@@ -11,10 +11,7 @@ const DIR := "user://missions_shot_scn"
 
 func _shot(name: String) -> void:
 	await frames(20)
-	await RenderingServer.frame_post_draw
-	var path := OS.get_environment("SCN_SHOT_DIR").path_join(name)
-	root.get_viewport().get_texture().get_image().save_png(path)
-	print("saved %s" % path)
+	await save_shot(OS.get_environment("SCN_SHOT_DIR").path_join(name))
 
 
 func run() -> void:
@@ -65,6 +62,4 @@ func run() -> void:
 			ed._ui.route_of.select(i)
 			ed._on_route_flight(i)
 	await _shot("3.png")
-	for f in DirAccess.get_files_at(DIR):
-		DirAccess.remove_absolute(DIR.path_join(f))
-	DirAccess.remove_absolute(DIR)
+	remove_dir(DIR)

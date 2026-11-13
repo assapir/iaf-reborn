@@ -166,7 +166,4 @@ func run() -> void:
 		),
 		"a PNG per press, never overwritten (%s, %s)" % [shot, shot2]
 	)
-	if DirAccess.dir_exists_absolute(dir):
-		for f in DirAccess.get_files_at(dir):
-			DirAccess.remove_absolute(dir.path_join(f))
-		DirAccess.remove_absolute(dir)
+	remove_dir(dir)

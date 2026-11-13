@@ -39,15 +39,6 @@ func joy_button(b: int) -> InputEventJoypadButton:
 	return e
 
 
-func axis(a: int, v: float) -> void:
-	var e := InputEventJoypadMotion.new()
-	e.device = 0
-	e.axis = a
-	e.axis_value = v
-	Input.parse_input_event(e)
-	Input.flush_buffered_events()
-
-
 func store() -> Dictionary:
 	return settings().load_json(settings().devices_file())
 

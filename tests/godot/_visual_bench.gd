@@ -92,10 +92,7 @@ func _pose(tv, p: Array, start: Transform3D) -> void:
 		tv.views.dist = orbit[2]
 	tv._apply_view()
 	# Let the terrain stream in around the pose.
-	var t0 := Time.get_ticks_msec()
-	await frames(20)
-	while tv.terrain.missing_after_frame() and Time.get_ticks_msec() - t0 < 20000:
-		await process_frame
+	await ground_streamed(tv, 20000, 20)
 	await frames(30)
 	if p[5]:
 		var fwd: Vector3 = -tv.rig.basis.z

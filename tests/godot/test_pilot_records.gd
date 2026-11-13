@@ -7,14 +7,6 @@ extends "res://../tests/godot/base.gd"
 var fe: Control
 
 
-func type_text(rec, s: String) -> void:
-	for ch in s:
-		var e := InputEventKey.new()
-		e.pressed = true
-		e.unicode = ch.unicode_at(0)
-		rec._unhandled_input(e)
-
-
 func click_rec(p: Vector2, double := false) -> void:
 	var at: Vector2 = fe._to_screen(p)
 	fe.records._gui_input(mouse_button(at, true, double))

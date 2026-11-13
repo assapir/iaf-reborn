@@ -19,14 +19,6 @@ void fragment() {
 """
 
 
-func require_data() -> void:
-	if DirAccess.dir_exists_absolute(settings().own_dir().path_join("resource")):
-		return
-	print("NEEDS DATA: Modern IAF's own data (./modern-iaf-setup)")
-	await _quit(2)
-	await create_timer(3600, true, false, true).timeout
-
-
 func run() -> void:
 	await require_data()
 	var out := OS.get_environment("SHOW_OUT")

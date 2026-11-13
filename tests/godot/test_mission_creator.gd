@@ -14,14 +14,6 @@ func mc_build() -> Array:
 	return load("res://menu/mission_creator.gd").build(settings().mc)
 
 
-func type_text(s: String) -> void:
-	for ch in s:
-		var e := InputEventKey.new()
-		e.pressed = true
-		e.unicode = ch.unicode_at(0)
-		mcv._unhandled_input(e)
-
-
 func mc_click(q: Vector2) -> void:
 	var at: Vector2 = fe._to_screen(mcv.CONTENT + q)
 	mcv._gui_input(mouse_button(at, true))
@@ -109,15 +101,15 @@ func run() -> void:
 
 	# Name / notes.
 	mc_click(mcv.NAME_BOX.get_center())
-	type_text("Test 1!")
+	type_text(mcv, "Test 1!")
 	check(settings().mc.name == "Test 1", "the name box takes letters, digits, space, '.' only")
-	type_text("שם")
+	type_text(mcv, "שם")
 	check(settings().mc.name == "Test 1", "Hebrew letters are refused (the edit class's WM_CHAR table, both languages)")
 	var cr: Rect2 = mcv.caret_rect(0, 130, mcv.NAME_BOX.end.y)
 	check(cr.size.y == 13 and cr.position.y == mcv.NAME_BOX.position.y, "the name caret clipped to the 13 px box")
 	check(mcv.caret_rect(1, 300, 271).size.y == 16, "the notes caret: all 16 px")
 	mc_click(mcv.NOTES_BOX.get_center())
-	type_text("abc")
+	type_text(mcv, "abc")
 	check(settings().mc.notes == "abc", "the notes box")
 
 	# SAVE / LOAD.

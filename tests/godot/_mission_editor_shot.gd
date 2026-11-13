@@ -67,12 +67,8 @@ func run() -> void:
 			if tabs.get_tab_title(i) == tab:
 				tabs.current_tab = i
 	await frames(20)
-	await RenderingServer.frame_post_draw
-	root.get_viewport().get_texture().get_image().save_png(OS.get_environment("ED_SHOT"))
-	print("saved %s" % OS.get_environment("ED_SHOT"))
-	for f in DirAccess.get_files_at(DIR):
-		DirAccess.remove_absolute(DIR.path_join(f))
-	DirAccess.remove_absolute(DIR)
+	await save_shot(OS.get_environment("ED_SHOT"))
+	remove_dir(DIR)
 
 
 func _route(ed, how: String) -> void:

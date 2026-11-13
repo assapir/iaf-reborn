@@ -31,7 +31,7 @@ func run() -> void:
 	if OS.get_environment("ARM_SCREEN") == "jet":
 		fe.screen = "jet"
 		fe._enter_screen()
-		await _settle(fe)
+		await settle(fe, 600)
 		fe.hover_key = fe._key_for_label("F15")
 		fe.queue_redraw()
 		await _shot()
@@ -40,11 +40,11 @@ func run() -> void:
 	fe.tsd_return = "jet"
 	fe.screen = "tsd"
 	fe._enter_screen()
-	await _settle(fe)
+	await settle(fe, 600)
 	fe._on_button(fe._key_for_label("Alpha"))
-	await _settle(fe)
+	await settle(fe, 600)
 	fe._on_button(fe._key_for_label("Arm"))
-	await _settle(fe)
+	await settle(fe, 600)
 	check(fe.screen == "arm", "the Arming screen is open")
 	if OS.get_environment("ARM_PUT") != "":
 		var ids := OS.get_environment("ARM_PUT").split(",")
@@ -60,14 +60,4 @@ func run() -> void:
 
 func _shot() -> void:
 	await frames(10)
-	await RenderingServer.frame_post_draw
-	root.get_viewport().get_texture().get_image().save_png(OS.get_environment("ARM_SHOT"))
-	print("saved ", OS.get_environment("ARM_SHOT"))
-
-
-func _settle(fe) -> void:
-	await frames(2)
-	var n := 0
-	while fe.busy and n < 600:
-		await process_frame
-		n += 1
+	await save_shot(OS.get_environment("ARM_SHOT"))

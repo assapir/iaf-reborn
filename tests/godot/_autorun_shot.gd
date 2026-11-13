@@ -18,6 +18,4 @@ func run() -> void:
 			a._gui_input(mouse_button(a._poster_origin() + Vector2(r.get_center()) * a._scale(), true))
 	a.queue_redraw()
 	await frames(5)
-	await RenderingServer.frame_post_draw
-	root.get_viewport().get_texture().get_image().save_png(OS.get_environment("AUTORUN_SHOT"))
-	print("saved ", OS.get_environment("AUTORUN_SHOT"))
+	await save_shot(OS.get_environment("AUTORUN_SHOT"))
