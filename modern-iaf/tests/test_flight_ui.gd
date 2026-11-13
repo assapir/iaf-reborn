@@ -1,8 +1,9 @@
 # Modern IAF's text over the flight (flight/flight_ui.gd, modern-iaf/docs/front-end.md §8) in English and Hebrew: the
-# mission card (the title, the objective with the keys as bound, the keys' rows; the flight frozen while it is open;
-# Space closes it, the Mission card key opens it again), the radio lines in the sim's band (not the original's
-# console), entirely in the game's language but for callsigns and runway designators, and the key hint line (shown at
-# the start and briefly after the card closes, hidden while it is open, faded out after).
+# mission card (closed at the start, no pause menu either; the title, the objective with the keys as bound, the keys'
+# rows; the flight frozen while it is open; Space closes it, the Mission card key opens it again), the radio lines in
+# the sim's band (not the original's console), entirely in the game's language but for callsigns and runway
+# designators, and the key hint line (shown at the start and briefly after the card closes, hidden while it is open,
+# faded out after).
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_flight_ui.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -25,6 +26,11 @@ func run() -> void:
 		var pause_text := "תפריט השהיה" if lang == "he" else "Pause menu"
 		check(hint != null and pause_text in _labels(hint), "%s: the key hint line in the game's language" % lang)
 		check(hint.visible and hint.modulate.a > 0.9, "%s: the key hint shows at the start" % lang)
+		check(
+			not s.card_at_start and ui.card == null and tv.fe_overlay == null and not paused,
+			"%s: a clean start: no mission card, no pause menu, the flight runs" % lang
+		)
+		check(ui.s("mission_card") in _labels(hint), "%s: the key hint names the Mission card key" % lang)
 		if lang == "en":
 			s.language = "he"  # as the pause menu's Preferences switch it over the flight
 			await frames(2)

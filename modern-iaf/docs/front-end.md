@@ -296,8 +296,9 @@ A main thread that draws no frame for 30 s gets `hang: no frame for 30 s; loadin
 the log's own thread (docs/logs.md §2): the line names what never returned.
 
 On 2026-11-10 the mission card (§8) opened at the start under the loading screen and froze the flight, so the loading
-never ended (the user's Mac, any computer with the card on). The card now opens once the loading screen is gone.
-Scripted runs fly without the card; `modern-iaf/tests/test_start_watch.gd` turns it on and checks it.
+never ended (the user's Mac, any computer with the card on). With the card at the start (`Settings.card_at_start`,
+off since 2026-11-13), it opens once the loading screen is gone; `modern-iaf/tests/test_start_watch.gd` turns it on
+and checks it.
 
 In Hebrew the page is mirrored: the bar fills from the inline start, the right.
 
@@ -313,20 +314,20 @@ The sim draws its own text over the flight in the front end's look (`modern-iaf/
 palette, on the 1080-high canvas scaled to the window), mirrored in Hebrew; the original game's console and panels
 stay the original's (`terrain_view.gd _on_subtitle` hands each line to the flight add-on when it has a `subtitle()`).
 
-- **The mission card** opens at a take-off mission's start: the mission's title, its objective with the keys as
+- **The mission card** opens on H (the key table's Mission card, record 118; the HUD colour moved to Shift + H): the
+  mission's title, its objective with the keys as
   bound ("Ctrl + T"; "Cmd + T" on macOS) and the runway, and the keys that matter with their labels, from the
   compiled mission's `sim.card` ([data-formats.md](data-formats.md) §5; a default per mission kind). The flight is
-  frozen while it is open. Space, Enter, Esc or a click close it; H (the key table's Mission card, record 118; the HUD
-  colour moved to Shift + H) opens it again. A start-up mission opens with its checklist card instead
-  ([training.md](training.md) §7.1; the Mac play test, 2026-11-11), H opens the mission card there too. Scripted runs
-  (`IAF_DEFAULT_SETTINGS=1`) start with it closed.
+  frozen while it is open. Space, Enter, Esc, a click or H close it. A flight starts with a clean view: no mission
+  card and no pause menu (the user, 2026-11-13: "don't show the mission card/pause menu at all by default"); the key
+  hint names H and Esc. A start-up mission shows its checklist card ([training.md](training.md) §7.1).
 - **The radio lines and messages** show in a strip centred at the top, over the sky rather than the cockpit's panel,
   the newest at the bottom, three at most, each for 8 s, wholly in the game's language ([training.md](training.md)
   §8). The text is subtitle size, 20 px at 1080 (the Mac play test, 2026-11-11: 26 px was too big).
 - **The panel** at the inline-start top holds the radio menu (Ctrl+T) and the training result.
 - **The info line** (F12, at the top left): the mission's name and the frames per second (`Settings.info_line_full`
   false; the original game's line also holds the modes, the place, the speed and the controls).
-- **The key hint** at the bottom: the Mission card key and Esc's pause menu. It shows for the first 8 s of a flight,
+- **The key hint** at the bottom: the Mission card key and Esc's pause menu. It shows for the first 8 s after the loading screen,
   for 4 s after a language change and for 4 s after the mission card closes (so the player learns the key that opens
   it again), then fades out. It is hidden while the mission card or the start-up checklist card is open (the user,
   2026-11-10: the hint stays out of the way of the narrative). The pause menu's own key hints are separate.
@@ -336,7 +337,7 @@ the start-up checklist card ([training.md](training.md) §7.1); a radio line alr
 
 | | English | Hebrew |
 |---|---|---|
-| the take-off's card (no key hint under it) | ![The mission card of Ramon's take-off](pictures/front-end/card_en.webp) | ![The mission card in Hebrew](pictures/front-end/card_he.webp) |
+| the take-off's card on H (no key hint under it) | ![The mission card of Ramon's take-off](pictures/front-end/card_en.webp) | ![The mission card in Hebrew](pictures/front-end/card_he.webp) |
 | the strip after a tower call, the key hint still showing | ![A tower call in the band](pictures/front-end/band_en.webp) | ![A tower call in Hebrew](pictures/front-end/band_he.webp) |
 | 10 s into the flight: the key hint faded out | ![The take-off 10 s in, no key hint](pictures/front-end/flight10_en.webp) | ![The take-off 10 s in, Hebrew](pictures/front-end/flight10_he.webp) |
 

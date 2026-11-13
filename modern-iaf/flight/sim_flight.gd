@@ -144,9 +144,9 @@ func _ready() -> void:
 	add_child(layer)
 	ui = FlightUi.new(host)
 	layer.add_child(ui)
-	# The card opens at the start, once the loading screen is gone: it freezes the flight, which would stop the loading
-	# under the screen for good (the 2026-11-10 hang at "the jet"). Scripted runs (IAF_DEFAULT_SETTINGS) fly on without it.
-	# A mission with the start-up checklist opens with its card instead (training.md §7.1); H opens the mission card.
+	# The mission card stays closed at the start (Settings.card_at_start false; H opens it). On, it opens once the
+	# loading screen is gone: it freezes the flight, which would stop the loading under the screen for good (the
+	# 2026-11-10 hang at "the jet"). A mission with the start-up checklist shows its checklist card (training.md §7.1).
 	if Settings.card_at_start and checklist.is_empty():
 		_card_after_loading()
 	if not checklist.is_empty():

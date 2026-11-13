@@ -1,13 +1,14 @@
 # Modern IAF's text over the flight (modern-iaf/docs/front-end.md §8), in the front end's look (menu/look.gd, Heebo),
 # mirrored in Hebrew, on the front end's 1080-high canvas scaled to the window:
 # - the mission card: the mission's title, its objective and the keys that matter, as bound (the compiled mission's
-#   `sim.card`, iaf-sim missions); open at the start (the flight frozen), closed by Space, Enter, Esc or a click,
-#   opened again by the Mission card key (H);
+#   `sim.card`, iaf-sim missions); closed at the start, opened by the Mission card key (H; the flight frozen while it
+#   is open), closed by Space, Enter, Esc, a click or H;
 # - the radio lines and the training messages: a strip centred at the top, the newest at the bottom, each for
 #   LINE_S seconds (terrain_view.gd _on_subtitle hands them to the flight add-on instead of the original's console);
 # - a panel at the inline-start top for the radio menu and the training result (flight/sim_flight.gd);
-# - one key hint line at the bottom: the Mission card key and Esc's pause menu, shown for HINT_START_S at the start,
-#   HINT_AGAIN_S after a language change or the card's closing, then faded out; hidden while a card is open.
+# - one key hint line at the bottom: the Mission card key and Esc's pause menu, shown for HINT_START_S once the loading
+#   screen is gone, HINT_AGAIN_S after a language change or the card's closing, then faded out; hidden while a card is
+#   open.
 # All of it follows the game's language, also when the pause menu's Preferences switch it mid-flight.
 extends Control
 
@@ -137,6 +138,8 @@ func _update_hint(now: int) -> void:
 	var pill := get_node_or_null("Hint") as Control
 	if pill == null:
 		return
+	if host.waiting_for_ground:  # the start's 8 s count from the loading screen's end
+		_hint_until = now + int(HINT_START_S * 1000.0)
 	var a := clampf((_hint_until - now) / (HINT_FADE_S * 1000.0), 0.0, 1.0)
 	var side := get_node_or_null("Checklist") as Control
 	if card != null or (side != null and side.visible):

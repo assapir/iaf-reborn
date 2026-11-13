@@ -3,6 +3,9 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **A clean start (2026-11-13, the user):** a flight starts with no mission card and no pause menu over it, the
+  flight running; H opens the mission card, Esc the pause menu, and the key hint at the bottom names both for its
+  first 8 s ([front-end.md](front-end.md) §8). `test_flight_ui.gd` checks it.
 - **The F-16's approach speed matches the manual (2026-11-11):** TP-1538's speed-brake tables gave the open speed
   brake lift (+0.25 CL at 13° α); the 6-DoF flies the JSBSim model's speed-brake drag instead, and its flaps' lift
   (+0.122). The 13° α approach is 136–139 kt at the manual's three weights (manual 139–141 kt, was 118–121 kt)
