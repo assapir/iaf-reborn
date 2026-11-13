@@ -17,13 +17,8 @@ const Kneeboard := preload("kneeboard.gd")
 const FlightUi := preload("flight_ui.gd")
 const WizardTheme := preload("../setup/wizard_theme.gd")  # relative: a test of the original's project loads it too
 const Look := preload("../menu/look.gd")
-## The banner at the goal (training.md §9); a fail shows the record's "Fail" and its reason.
-const COMPLETE := {"en": "Mission complete", "he": "המשימה הושלמה"}
-## Under it: the flight goes on until the player ends it (the pause menu's End the flight), BANNER_S s.
-const FLY_ON := {
-	"en": "Fly on, or Esc → End the flight for the debrief",
-	"he": "אפשר להמשיך לטוס, או Esc ← סיום הטיסה לתחקיר",
-}
+## The banner at the goal (training.md §9: strings fl_complete, under it fl_fly_on) stays BANNER_S s; a fail shows
+## the record's "Fail" and its reason.
 const BANNER_S := 10.0
 ## The menu's lines: [request id, English, Hebrew] (radio.gd request; "landing": its Ctrl+T contact_tower).
 const ITEMS := [
@@ -33,9 +28,6 @@ const ITEMS := [
 	["takeoff", "Request take-off", "בקשת המראה"],
 	["landing", "Contact tower (landing)", "קריאה למגדל (נחיתה)"],
 ]
-const TITLE := {"en": "Radio: %s tower", "he": "קשר: מגדל %s"}
-## The mark after the call a training mission expects next.
-const NEXT := {"en": "  (next)", "he": "  (הבאה)"}
 ## The pilot's call, printed in the game's language and said by the pilot's voice (radio.gd PILOT_CALL: the address,
 ## the callsign, REQ_<ID>; modern-iaf/docs/sound.md §5.2).
 const CALLS := {
@@ -229,12 +221,12 @@ func _hold_of(sec: String, l: Vector2) -> Variant:
 func menu_text() -> String:
 	var lang := 1 if not _he() else 2
 	var base := _tower_name()
-	var lines := [(TITLE.he if _he() else TITLE.en) % base]
+	var lines := [ui.s("fl_radio") % base]
 	var next := next_call() if not rules.is_empty() else ""
 	for i in shown.size():
 		for it in ITEMS:
 			if it[0] == shown[i]:
-				lines.append("%d. %s%s" % [i + 1, it[lang], (NEXT.he if _he() else NEXT.en) if it[0] == next else ""])
+				lines.append("%d. %s%s" % [i + 1, it[lang], ui.s("fl_next") if it[0] == next else ""])
 	return "\n".join(lines)
 
 
@@ -486,7 +478,7 @@ func _finish(d: Dictionary) -> void:
 	# A pass: the banner with how to end, the flight going on (the user, 2026-11-13: "on mission complete - allow to
 	# keep flying"); a fail shows its reason end_hold_s, then the flight ends into the debrief.
 	if d["pass"]:
-		_show_banner(COMPLETE.he if _he() else COMPLETE.en, FLY_ON.he if _he() else FLY_ON.en)
+		_show_banner(ui.s("fl_complete"), ui.s("fl_fly_on"))
 		get_tree().create_timer(BANNER_S, false).timeout.connect(_hide_banner)
 	else:
 		_end_ms = Time.get_ticks_msec() + trainer.end_hold_s() * 1000.0

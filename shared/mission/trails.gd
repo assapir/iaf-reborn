@@ -67,18 +67,18 @@ func _ready() -> void:
 
 
 static func _texture(name: String) -> Texture2D:
-	if not Engine.get_main_loop().root.get_node("Settings").original_art():
+	if not Settings.original_art():
 		return Img.soft_dot()
 	return Img.load_texture(_path(name))
 
 
 static func _path(name: String) -> String:
-	return Engine.get_main_loop().root.get_node("Settings").converted("objects".path_join(name))
+	return Settings.converted("objects".path_join(name))
 
 
 ## The trails' art decoded on worker threads ahead of the flight (terrain_preload.gd).
 static func prefetch() -> void:
-	if not Engine.get_main_loop().root.get_node("Settings").original_art():
+	if not Settings.original_art():
 		return
 	for f in ["trail.png", "missflr.png"]:
 		Img.prefetch(_path(f))

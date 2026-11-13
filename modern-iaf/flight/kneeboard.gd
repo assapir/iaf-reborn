@@ -409,7 +409,7 @@ func _help_line() -> void:
 	_help.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_help.add_theme_stylebox_override("panel", Look.box(Color(Look.BG, 0.88), Look.LINE, 1, 6, Vector2(8, 4)))
 	var l := Label.new()
-	l.text = s("nb_help") % flight.ui.key_name(KEY)
+	l.text = s("nb_help") % flight.host.keys.record_key_name(KEY, Settings.key_bindings)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.add_theme_font_size_override("font_size", 15)
 	l.add_theme_color_override("font_color", Look.MUTED)

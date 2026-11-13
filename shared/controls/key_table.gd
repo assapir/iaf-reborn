@@ -205,6 +205,11 @@ func key_name(key: int) -> String:
 	return prefix + String(key_names.get(str(key & 0xffff), ""))
 
 
+## The key name of record i as bound in `overrides`; empty for record 0 (none) or one past the table.
+func record_key_name(i: int, overrides: Dictionary) -> String:
+	return key_name(key_of(i, overrides)) if i > 0 and i < size() else ""
+
+
 ## Joystick button name (FUN_00512a90): "Button n" (1-based), empty for none.
 func button_name(joystick: int) -> String:
 	return button_format.replace("%d", str(joystick + 1)) if joystick > -1 else ""

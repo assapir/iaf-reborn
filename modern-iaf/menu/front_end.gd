@@ -1312,9 +1312,7 @@ func briefing_steps(m: Dictionary) -> Array:
 func key_name(record: int) -> String:
 	if _keys == null:
 		_keys = KeyTable.load_table()
-	if record <= 0 or record >= _keys.size():
-		return ""
-	return String(_keys.key_name(_keys.key_of(record, Settings.key_bindings)))
+	return _keys.record_key_name(record, Settings.key_bindings)
 
 
 ## A key name or a designator kept whole and left to right inside a Hebrew line.

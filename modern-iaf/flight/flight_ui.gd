@@ -121,13 +121,6 @@ func _fit() -> void:
 	size = vp / k
 
 
-func key_name(record: int) -> String:
-	var keys: RefCounted = host.keys
-	if record >= keys.size():
-		return ""
-	return String(keys.key_name(keys.key_of(record, Settings.key_bindings)))
-
-
 # --- the hint line ----------------------------------------------------------------------------------------------------
 
 
