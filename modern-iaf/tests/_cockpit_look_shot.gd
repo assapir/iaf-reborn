@@ -5,7 +5,8 @@
 #   flock -o ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_OUT=<dir> \
 #     -- --log-file <t> --resolution 1920x1080 --path modern-iaf -s ../modern-iaf/tests/_cockpit_look_shot.gd \
 #     -- --at 666059.3 3409044.1 1179.1 246.0 -3
-# SHOT_ONLY=canopy: the canopy handle's picture only.
+# SHOT_ONLY=canopy: the canopy handle's picture only. SHOT_THROTTLE=<0-1>: the throttle set first (the left glove
+# follows its grip: tools/f16d/pilot.py).
 extends "res://../tests/godot/base.gd"
 
 ## Each picture's head (yaw right +, pitch up +, rad).
@@ -22,6 +23,9 @@ func run() -> void:
 	while tv == null or tv.get("flight") == null or tv.waiting_for_ground:
 		await process_frame
 		tv = current_scene
+	if OS.get_environment("SHOT_THROTTLE") != "":
+		tv.throttle = float(OS.get_environment("SHOT_THROTTLE"))
+		tv._throttle_event()
 	await create_timer(3.0).timeout
 	for name in SHOTS if OS.get_environment("SHOT_ONLY") == "" else []:
 		tv.views.snap = SHOTS[name]

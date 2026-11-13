@@ -78,6 +78,21 @@ arm = [(v, arm_weight(godot_of(v.co))) for v in body.data.vertices]
 for v, w in arm:
     if w > 0.0:
         v.co = co_of(turn(godot_of(v.co), REST_DEG * w) + NUDGE * w)
+# The fingers and thumb closed around the head (the Mac check of 2026-11-13: FlightGear's glove spread its thumb and
+# index 3 cm inboard of the head, onto the MANUAL PITCH and UHF CHAN panel beside it). From the wrist (GRIP_WRIST_Z)
+# to the knuckles (GRIP_KNUCKLE_Z) whatever lies inboard of the head's middle (HEAD_X) moves toward it by up to
+# GRIP_NARROW of its offset, and the thumb's side drops GRIP_THUMB_DROP along the head's inboard face. f16.glb's
+# THROTTLE at rest: x −0.475 to −0.345, its head's top x −0.40 to −0.345, z −3.29 to −3.25, y 0.31.
+HEAD_X = -0.372
+GRIP_WRIST_Z, GRIP_KNUCKLE_Z = -3.22, -3.26
+GRIP_NARROW = 0.5
+GRIP_THUMB_DROP = 0.015
+for v, w in arm:
+    g = godot_of(v.co)
+    k = w * smooth(GRIP_WRIST_Z, GRIP_KNUCKLE_Z, g.z)
+    if k > 0.0 and g.x > HEAD_X:
+        thumb = smooth(-0.35, -0.32, g.x)
+        v.co = co_of(Vector((HEAD_X + (g.x - HEAD_X) * (1.0 - GRIP_NARROW * k), g.y - GRIP_THUMB_DROP * k * thumb, g.z)))
 hand = [godot_of(v.co) for v, w in arm if w > 0.99]
 print("PILOT left glove centre", sum(hand, Vector()) / max(len(hand), 1), "vertices", len(hand))
 # The right glove on the side-stick's grip (the user, 2026-11-13: "hands still not on stick"). FlightGear's cockpit

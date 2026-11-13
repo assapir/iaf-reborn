@@ -30,6 +30,7 @@ func run() -> void:
 		if jet.begins_with("f16"):
 			check(tv._own_eye.is_equal_approx(f16_eye), "%s: the eye at the F-16's pilot eye (%s)" % [jet, tv._own_eye])
 			_right_glove(tv.cockpit_3d, jet)
+			_left_glove(tv.cockpit_3d, jet)
 		if jet == "f16i":
 			await _wheel(c)
 
@@ -50,20 +51,77 @@ func _right_glove(c3d: Node3D, jet: String) -> void:
 	)
 
 
+## The left glove on the throttle's head (tools/f16d/pilot.py NUDGE and GRIP_*; the Mac check, 2026-11-13: the fingers
+## lay on the MANUAL PITCH / CHAN panel beside it), in the body's rest pose against the grip's (its shape keys off, the
+## THROTTLE node unturned): the palm's centre within 3 cm of the head's top, seen from above, and no finger (the glove
+## ahead of the wrist, z < −3.24) more than 2 cm inboard of the grip nor any of the glove 2.5 cm ahead of it.
+func _left_glove(c3d: Node3D, jet: String) -> void:
+	var body: MeshInstance3D = c3d._pilot
+	var thr: MeshInstance3D = c3d.find_child("THROTTLE", true, false)
+	check(body != null and thr != null, "%s: the pilot's body and the throttle shown" % jet)
+	if body == null or thr == null:
+		return
+	var to_model := c3d.global_transform.affine_inverse()
+	var rest := to_model * (thr.get_parent() as Node3D).global_transform * Transform3D(Basis(), thr.position)
+	var grip := _points([thr], rest, func(_g: Vector3) -> bool: return true)
+	var head := _mean(grip.filter(func(g: Vector3) -> bool: return g.y > 0.295))
+	var inboard: float = grip.map(func(g: Vector3) -> float: return g.x).max()
+	var front: float = grip.map(func(g: Vector3) -> float: return g.z).min()
+	var glove := _points(
+		[body],
+		to_model * body.global_transform,
+		func(g: Vector3) -> bool: return g.x < -0.28 and g.y > 0.22 and g.z < -3.2 and g.z > -3.4
+	)
+	var palm := _mean(glove.filter(func(g: Vector3) -> bool: return g.y > 0.3 and g.z < -3.22))
+	check(
+		Vector2(head.x - palm.x, head.z - palm.z).length() < 0.03,
+		"%s: the left palm on the throttle's head (head %s, palm %s)" % [jet, head, palm]
+	)
+	var fingers := glove.filter(func(g: Vector3) -> bool: return g.z < -3.24)
+	var most_in: float = fingers.map(func(g: Vector3) -> float: return g.x).max() if not fingers.is_empty() else INF
+	var most_ahead: float = glove.map(func(g: Vector3) -> float: return g.z).min() if not glove.is_empty() else -INF
+	check(
+		most_in < inboard + 0.02 and most_ahead > front - 0.025,
+		(
+			"%s: the left fingers on the grip (glove to x %.3f, z %.3f; grip's inboard %.3f, front %.3f)"
+			% [jet, most_in, most_ahead, inboard, front]
+		)
+	)
+
+
 ## The centre of `meshes`' vertices right of x 0.2, y 0.29-0.35, z -3.6 to -3.3 (the stick's grip and the hand on it);
 ## Vector3.INF when none is there, so the distance check fails.
 func _centre(meshes: Array, to_model: Transform3D) -> Vector3:
-	var sum := Vector3()
-	var n := 0
+	var all := []
 	for mi: MeshInstance3D in meshes:
-		var xf := to_model * mi.global_transform
+		all.append_array(
+			_points(
+				[mi],
+				to_model * mi.global_transform,
+				func(g: Vector3) -> bool: return g.x > 0.2 and g.y > 0.29 and g.y < 0.35 and g.z > -3.6 and g.z < -3.3
+			)
+		)
+	return _mean(all)
+
+
+## `meshes`' vertices through `xf` that pass `keep`.
+func _points(meshes: Array, xf: Transform3D, keep: Callable) -> Array:
+	var out := []
+	for mi: MeshInstance3D in meshes:
 		for si in mi.mesh.get_surface_count():
 			for v: Vector3 in mi.mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX]:
 				var g := xf * v
-				if g.x > 0.2 and g.y > 0.29 and g.y < 0.35 and g.z > -3.6 and g.z < -3.3:
-					sum += g
-					n += 1
-	return sum / n if n > 0 else Vector3.INF
+				if keep.call(g):
+					out.append(g)
+	return out
+
+
+## The mean of `points`; Vector3.INF when there are none, so a distance check fails.
+func _mean(points: Array) -> Vector3:
+	var sum := Vector3()
+	for p: Vector3 in points:
+		sum += p
+	return sum / points.size() if not points.is_empty() else Vector3.INF
 
 
 ## Wheel and trackpad zoom in the sim (Settings.cockpit_mouse_look: on to the narrow view).
