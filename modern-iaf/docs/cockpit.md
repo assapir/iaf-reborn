@@ -386,8 +386,8 @@ and the left on the throttle.
 - **The body** is FlightGear's internal-view pilot, `Models/Pilots/pilot_internalview.ac`: FlightGear's pilot without
   head, helmet and mask, made for the view from the seat (GPL-2.0-or-later, its 3D work by J Maverick 16;
   `shared/extra/models/cockpit3d/SOURCES.md`). `tools/f16d/pilot.py` writes it as `f16_pilot.glb` in the 3D
-  cockpit's frame. FlightGear posed it on its own stick, throttle and pedals, which `f16.glb` places where FlightGear
-  does, so it sits as it comes. 17,090 triangles, 3.6 MB; the suit's sheet halved to 1024 × 2048, the harness sheet
+  cockpit's frame. FlightGear's cockpit no longer shows this pilot (`Models/Cockpit/Main/cockpit.xml` has it commented
+  out), so its hands were posed for older grips; its legs reach the pedals as they come. 17,090 triangles, 3.6 MB; the suit's sheet halved to 1024 × 2048, the harness sheet
   2048 × 2048, both as JPEG (Basis Universal's blocks showed as blotches on the vest 0.2 m under the eye).
 - **The head bends forward looking down** (`terrain_view.gd` `LOOK_DOWN_LEAN`): from 25° to 60° of head pitch the eye
   moves up to 0.2 m forward, toward the head's yaw (aside, never aft: looking back and down it would undo
@@ -399,8 +399,14 @@ and the left on the throttle.
   grip turned about 28° aft, 4 cm inboard of it and 3 cm over it, so it held nothing. `pilot.py` turns the left
   forearm and glove about the throttle's pivot onto the grip's rest pose and moves them onto the grip, fading from the
   elbow (unmoved) to the wrist. Two shape keys, `throttle_idle` and `throttle_full`, turn them 40° either way with
-  the grip, so the glove follows the throttle (`cockpit3d.gd` `_pilot_throttle`). The right glove sits on the
-  side-stick as FlightGear posed it; the stick moves a few millimetres (a force stick), the glove stays.
+  the grip, so the glove follows the throttle (`cockpit3d.gd` `_pilot_throttle`).
+- **The right glove on the stick (2026-11-13, the user: "hands still not on stick")**: FlightGear's fist closed 9 cm
+  ahead of the side-stick's grip and 2 cm inboard of it, so looking down the glove hung in the air over the grip.
+  `pilot.py` (`STICK_NUDGE`) moves the right forearm and glove onto the grip whole; the upper arm takes up the move,
+  from the elbow (all of it) to the shoulder (none). The stick moves a few degrees (a force stick), the glove stays.
+  `test_cockpit_view.gd` checks the glove's centre within 3 cm of the grip's on both F-16s. The left glove lay on
+  the console 2.5 cm outboard of the throttle's head; it moved 2.5 cm inboard and 1 cm up, the palm over the head.
+  At a cold start both hands stay on the grips (the left on the throttle at cutoff, turned with it), as in flight.
 - **Where**: `cockpit3d.gd` hangs `<model>_pilot.glb` beside the model when `Settings.cockpit_pilot_body()` is true:
   true in Modern IAF, false in the original game, whose 3D cockpit stays as it was (docs/cockpit.md "Looking down at
   the pilot"). The body takes the footwell's dim fill (`UNLIT` `pilot_`) and casts no shadow. The cut model leaves

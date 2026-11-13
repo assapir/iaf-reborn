@@ -3,7 +3,7 @@
 # at ZOOM_MIN) with the head straight ahead, the F-16s' eye at the detailed model's pilot eye (the Barak's view as the
 # Sufa's: the Mac play test's P1 of 2026-11-11). The wheel: each step up narrows the view to the narrow end and stops
 # there; a step the other way within the scroll is dropped (macOS's end-of-scroll and momentum events), after a pause it
-# zooms out; the trackpad's pan zooms the same way.
+# zooms out; the trackpad's pan zooms the same way. The F-16s' pilot body: the right glove on the stick's grip.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_cockpit_view.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -29,8 +29,41 @@ func run() -> void:
 		check(tv.views.head_angles() == Vector2.ZERO, "%s: the head straight ahead" % jet)
 		if jet.begins_with("f16"):
 			check(tv._own_eye.is_equal_approx(f16_eye), "%s: the eye at the F-16's pilot eye (%s)" % [jet, tv._own_eye])
+			_right_glove(tv.cockpit_3d, jet)
 		if jet == "f16i":
 			await _wheel(c)
+
+
+## The pilot body's right glove around the stick's grip (tools/f16d/pilot.py STICK_NUDGE; the user, 2026-11-13): at
+## the grip's height the glove's centre within 3 cm of the grip's (f16.glb anim000-009), seen from above.
+func _right_glove(c3d: Node3D, jet: String) -> void:
+	var body: MeshInstance3D = c3d._pilot
+	check(body != null, "%s: the pilot's body shown" % jet)
+	if body == null:
+		return
+	var to_model := c3d.global_transform.affine_inverse()
+	var grip := _centre(c3d.find_children("anim00?", "MeshInstance3D", true, false), to_model)
+	var glove := _centre([body], to_model)
+	check(
+		Vector2(grip.x - glove.x, grip.z - glove.z).length() < 0.03,
+		"%s: the right glove around the stick's grip (grip %s, glove %s)" % [jet, grip, glove]
+	)
+
+
+## The centre of `meshes`' vertices right of x 0.2, y 0.29-0.35, z -3.6 to -3.3 (the stick's grip and the hand on it);
+## Vector3.INF when none is there, so the distance check fails.
+func _centre(meshes: Array, to_model: Transform3D) -> Vector3:
+	var sum := Vector3()
+	var n := 0
+	for mi: MeshInstance3D in meshes:
+		var xf := to_model * mi.global_transform
+		for si in mi.mesh.get_surface_count():
+			for v: Vector3 in mi.mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX]:
+				var g := xf * v
+				if g.x > 0.2 and g.y > 0.29 and g.y < 0.35 and g.z > -3.6 and g.z < -3.3:
+					sum += g
+					n += 1
+	return sum / n if n > 0 else Vector3.INF
 
 
 ## Wheel and trackpad zoom in the sim (Settings.cockpit_mouse_look: on to the narrow view).

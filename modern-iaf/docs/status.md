@@ -22,6 +22,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **The pointer comes back after a mouse look (2026-11-13, the user's Mac):** the right drag hides the pointer while
   held; on release, a release the view missed, a lost focus or a pause it shows again where it was
   ([cockpit.md](cockpit.md) §2). `test_sim_look.gd` checks it.
+- **The right glove holds the stick (2026-11-13, the user):** looking down in the F-16s the right glove wraps the
+  side-stick's grip (it hung 9 cm ahead of it) and the left palm sits on the throttle's head (it lay on the console
+  beside it), cold and in flight ([cockpit.md](cockpit.md) §5.3). `test_cockpit_view.gd` checks it.
 - **A clean start (2026-11-13, the user):** a flight starts with no mission card and no pause menu over it, the
   flight running; H opens the mission card, Esc the pause menu, and the key hint at the bottom names both for its
   first 8 s ([front-end.md](front-end.md) §8). `test_flight_ui.gd` checks it.

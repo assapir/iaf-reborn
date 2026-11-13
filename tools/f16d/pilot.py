@@ -42,7 +42,9 @@ body.data.transform(Matrix.Translation(SHIFT - root_at))
 # −z forward) below; THR_PIVOT is f16.glb's THROTTLE node.
 THR_PIVOT = Vector((-0.491, 0.119, -3.239))
 REST_DEG = -28.0
-NUDGE = Vector((-0.08, -0.05, 0.045))
+# The palm centred over the grip's head (2026-11-13: x −0.08 → −0.055, y −0.05 → −0.04; at −0.08 the glove lay on the
+# console outboard of the head).
+NUDGE = Vector((-0.055, -0.04, 0.045))
 TRAVEL_DEG = 40.0  # f16.json's THROTTLE: 40 − 80 · throttle
 
 
@@ -78,6 +80,26 @@ for v, w in arm:
         v.co = co_of(turn(godot_of(v.co), REST_DEG * w) + NUDGE * w)
 hand = [godot_of(v.co) for v, w in arm if w > 0.99]
 print("PILOT left glove centre", sum(hand, Vector()) / max(len(hand), 1), "vertices", len(hand))
+# The right glove on the side-stick's grip (the user, 2026-11-13: "hands still not on stick"). FlightGear's cockpit
+# leaves this pilot out (Models/Cockpit/Main/cockpit.xml has it commented out), so nothing posed it for the current
+# stick: its fist closed 9 cm ahead of the grip and 2 cm inboard. The forearm and glove move onto the grip whole; the
+# upper arm takes up the move, fading from the elbow (all of it) to the shoulder (none), and leans back a little.
+STICK_NUDGE = Vector((0.018, -0.012, 0.09))
+
+
+def stick_arm_weight(g):
+    """The right forearm and glove: 1 up to the elbow's height, faded out up the upper arm (y 0.40-0.58), inboard (the
+    right thigh and knee, x ≤ 0.22) and aft (the torso, z ≥ -2.90)."""
+    return smooth(0.22, 0.235, g.x) * smooth(-2.85, -2.95, g.z) * (1.0 - smooth(0.40, 0.58, g.y))
+
+
+right = 0
+for v in body.data.vertices:
+    w = stick_arm_weight(godot_of(v.co))
+    if w > 0.0:
+        v.co = co_of(godot_of(v.co) + STICK_NUDGE * w)
+        right += 1
+print("PILOT right arm vertices moved", right)
 body.shape_key_add(name="Basis", from_mix=False)
 for name, deg in (("throttle_idle", TRAVEL_DEG), ("throttle_full", -TRAVEL_DEG)):
     key = body.shape_key_add(name=name, from_mix=False)
