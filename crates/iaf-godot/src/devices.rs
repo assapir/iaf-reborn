@@ -5,6 +5,8 @@
 use godot::prelude::*;
 use iaf_tools::devices::{self, Column};
 use serde_json::Value;
+
+use crate::world::text;
 use std::path::Path;
 
 #[derive(GodotClass)]
@@ -23,10 +25,6 @@ fn write(path: &GString, store: &Value) -> bool {
             false
         }
     }
-}
-
-fn text(v: &Value) -> GString {
-    GString::from(v.to_string().as_str())
 }
 
 fn defaults(table: &GString, map: &GString) -> Value {

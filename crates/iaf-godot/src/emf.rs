@@ -24,9 +24,6 @@ impl IafEmf {
             godot_error!("modern map: {e}");
             Vec::new()
         });
-        cities
-            .into_iter()
-            .map(|(name, p)| vdict! { "label" => name, "pos" => Vector2::new(p[0] as f32, p[1] as f32) })
-            .collect()
+        cities.into_iter().map(|(name, p)| vdict! { "label" => name, "pos" => crate::world::v2(p) }).collect()
     }
 }

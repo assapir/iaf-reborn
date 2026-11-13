@@ -6,6 +6,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::{LazyLock, RwLock};
 
+use crate::world::json_file;
 use godot::prelude::*;
 use iaf_avionics::heights::{HeightField, Meta};
 use iaf_flight::airbase::{Airbase, wind_reverses};
@@ -42,10 +43,8 @@ fn read_bases(own: &Path) -> Option<Vec<Airbase>> {
 fn load(assets: &Path, own: &Path) -> Option<(BaseMoves, Meta)> {
     let ibx = read_bases(own)?;
     let terrain = assets.join("converted/terrain");
-    let j: serde_json::Value =
-        serde_json::from_str(&std::fs::read_to_string(terrain.join("airbases.json")).ok()?).ok()?;
-    let mj: serde_json::Value =
-        serde_json::from_str(&std::fs::read_to_string(terrain.join("theatre/meta.json")).ok()?).ok()?;
+    let j = json_file(&terrain.join("airbases.json"))?;
+    let mj = json_file(&terrain.join("theatre/meta.json"))?;
     let f = |k: &str| mj[k].as_f64().unwrap_or(0.0);
     let meta = Meta {
         node_pixels: f("node_pixels") as usize,
@@ -266,8 +265,7 @@ fn insets(moves: &BaseMoves, meta: Meta, theatre: &Path, out: &Path) -> std::io:
 /// The main runway (the first, through the lineup point) of every base of `path` (an airbases.json,
 /// Settings.airbases_file()): its two ends, world frame.
 fn main_runways(path: &Path) -> Vec<(String, [[f32; 2]; 2])> {
-    let j: serde_json::Value =
-        std::fs::read_to_string(path).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default();
+    let j = json_file(path).unwrap_or_default();
     let f = |v: &serde_json::Value| v.as_f64().unwrap_or(0.0) as f32;
     let pt = |v: &serde_json::Value| [f(&v[0]), f(&v[1])];
     j["bases"]
@@ -472,7 +470,7 @@ impl IafBases {
         out.set("mask_affine", &PackedFloat64Array::from(&[a[0][0], a[0][1], a[0][2], a[1][0], a[1][1], a[1][2]][..]));
         let l = mv([m.game_c[0], m.game_c[1]]);
         let c = [l[0] + 0.5 * m.real_len * m.real_d[0], l[1] + 0.5 * m.real_len * m.real_d[1]];
-        out.set("centre", Vector2::new(c[0] as f32, c[1] as f32));
+        out.set("centre", crate::world::v2(c));
         out.set("k", m.k);
         out
     }

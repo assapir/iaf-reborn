@@ -8,7 +8,8 @@ use iaf_tools::mission_edit::Issue;
 use iaf_tools::mission_intel as mi;
 use serde_json::{Value, json};
 
-use crate::mission_edit::{DATA, IafMissionEdit, parse, text};
+use crate::mission_edit::{DATA, IafMissionEdit, parse};
+use crate::world::{json_file, text};
 
 /// The converted briefings.json, read once.
 static BRIEFINGS: OnceLock<Value> = OnceLock::new();
@@ -28,9 +29,7 @@ impl IafMissionEdit {
         let mut d = DATA.lock().unwrap();
         d.load();
         let path = d.assets.join("converted/briefings/briefings.json");
-        let b = BRIEFINGS.get_or_init(|| {
-            std::fs::read_to_string(path).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or(Value::Null)
-        });
+        let b = BRIEFINGS.get_or_init(|| json_file(&path).unwrap_or_default());
         text(&json!(mi::intel_links(&parse(&mission), d.bdb.as_ref().unwrap_or(&Value::Null), b)))
     }
 

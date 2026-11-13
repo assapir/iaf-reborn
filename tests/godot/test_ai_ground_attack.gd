@@ -57,7 +57,7 @@ func run() -> void:
 				dropped = true
 				if not drops.any(func(x): return is_same(x, bm)):
 					drops.append(bm)
-				var bp: Vector3 = load("res://shared/weapons/bombs.gd").position(bm.b, w.now)
+				var bp: Vector3 = ClassDB.class_call_static("IafBomb", "position", bm.b, w.now)
 				near = minf(near, Vector2(bp.x - tp.x, bp.y - tp.y).length())
 	Engine.time_scale = 1.0
 	print(

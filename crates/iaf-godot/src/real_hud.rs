@@ -3,17 +3,13 @@
 //! {k: "dot", c, r}, {k: "arc", c, r, from, sweep (radians clockwise from 12 o'clock)}, {k: "text", at, text, align
 //! (0 left, 1 centre, 2 right)}.
 
-use crate::world::{get, num};
+use crate::world::{get, num, v2};
 use godot::prelude::*;
 use iaf_avionics::gps::Lar;
 use iaf_avionics::missile::Dlz;
 use iaf_avionics::real_hud::{
     Align, Delay, Field, GpsCue, Hobs, Input, Jet, P, Prim, RealHud, Steerpoint, Target, Weapons,
 };
-
-fn v2((x, y): P) -> Vector2 {
-    Vector2::new(x as f32, y as f32)
-}
 
 fn prims(ps: &[Prim]) -> VarArray {
     ps.iter()

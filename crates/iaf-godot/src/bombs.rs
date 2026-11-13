@@ -55,11 +55,6 @@ impl IafBomb {
         vdict! { "point" => vector3(i), "t" => t }
     }
 
-    #[func]
-    fn fall_time(vz: f64, h: f64) -> f64 {
-        bombs::fall_time(vz, h)
-    }
-
     /// `FUN_00457c20`: the ripple line's points.
     #[func]
     fn ripple_line(p: Vector3, qty: i64, spacing: f64, heading: f64, ground: Callable) -> VarArray {
@@ -86,7 +81,8 @@ impl IafBomb {
         vector3(bomb_from(&b).velocity(now))
     }
 
-    /// The impact checks of `b` up to `now`, written back into it: {pos, t} or {}.
+    /// The impact checks of `FUN_00561750` on `b` up to `now`, written back into it: {pos, t} or {}. `fix_burst`: the
+    /// burst on the ground (Physics "Bombs burst at the ground"); `open_h` > 0 (510): the cluster opens that high.
     #[func]
     fn check(mut b: VarDictionary, now: f64, ground: Callable, fix_burst: bool, open_h: f64) -> VarDictionary {
         let mut bomb = bomb_from(&b);

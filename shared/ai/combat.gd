@@ -13,7 +13,6 @@ const WeaponDb := preload("res://shared/weapons/weapon_db.gd")
 const Stores := preload("res://shared/weapons/stores.gd")
 const Gltf := preload("res://shared/util/gltf.gd")
 const Terrain := preload("res://shared/terrain/terrain.gd")
-const Bombs := preload("res://shared/weapons/bombs.gd")
 const PlayerWeapons := preload("res://shared/weapons/player_weapons.gd")
 const AircraftModel := preload("res://shared/aircraft/aircraft_model.gd")
 
@@ -282,12 +281,9 @@ func _round_nodes(u: Unit, w: Dictionary) -> void:
 func _armed(ent: Dictionary, load: Array) -> Array:
 	var f: Dictionary = ent.pilot.formation if ent.get("pilot") != null else {}
 	var n := int(f.get("slot", 0))
-	if f.is_empty() or not Settings.arm_loadouts.has(n) or not f.members.slice(0, 2).has(ent):
+	if f.is_empty() or not f.members.slice(0, 2).has(ent):
 		return load
-	var arm: Array = Settings.arm_loadouts[n]
-	for i in mini(9, arm.size()):
-		load[i] = [int(arm[i][0]), int(arm[i][1])] + Array(arm[i]).slice(2)  # Modern IAF: the rack's kg, drag
-	return load
+	return PlayerWeapons._armed(load, ent, n)
 
 
 ## The stores' weight and drag on the AI jet's flight model (S+0x424 / 0x42c / 0x428, as the player's).
@@ -713,8 +709,9 @@ func _ripple_tick(u: Unit) -> void:
 		# 650 (FUN_00454b70 case 0x28a, AI): the target where it is now, no lead.
 		if not t.is_empty() and spd > 1.0 and int(u.w.type) != 650:
 			p += _velocity_of(t) * (p.distance_to(o.pos) / spd)
-		u.ripple_line = Bombs.ripple_line(
-			p, qty, float(u.ripple.interval()), deg_to_rad(float(u.ent.heading)), host.mission_ground
+		var hdg := deg_to_rad(float(u.ent.heading))
+		u.ripple_line = ClassDB.class_call_static(
+			"IafBomb", "ripple_line", p, qty, float(u.ripple.interval()), hdg, host.mission_ground
 		)
 	var aim: Vector3 = u.ripple_line[u.ripple.index(u.ripple_left)]
 	_spent(u, u.cur)

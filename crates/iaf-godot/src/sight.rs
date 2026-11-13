@@ -1,5 +1,5 @@
 //! `IafSeeker` (the IR seeker of the SRM HUD mode) and `IafMrmSight` (the radar missiles' / HARM's launch circle)
-//! from `iaf_avionics::sight`, for `shared/weapons/ir_seeker.gd` and `mrm_sight.gd`.
+//! from `iaf_avionics::sight`, for `shared/weapons/ir_seeker.gd` and `player_weapons.gd`.
 
 use crate::world::{get, num, vec3, vector3};
 use godot::prelude::*;

@@ -224,7 +224,7 @@ impl IafScenery {
         SCENERY.read().unwrap().nearest(x, y, r).map_or_else(VarDictionary::new, |f| {
             vdict! {
                 "id" => f.id.as_str(),
-                "centroid" => Vector2::new(f.centroid[0] as f32, f.centroid[1] as f32),
+                "centroid" => crate::world::v2(f.centroid),
                 "height" => f.height,
                 "area" => f.area,
             }

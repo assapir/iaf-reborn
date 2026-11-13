@@ -11,6 +11,22 @@ pub fn vector3(v: Vec3) -> Vector3 {
     Vector3::new(v.x as f32, v.y as f32, v.z as f32)
 }
 
+/// A 2-D point (`[x, y]` or `(x, y)`) as a Godot Vector2.
+pub fn v2(p: impl Into<[f64; 2]>) -> Vector2 {
+    let [x, y] = p.into();
+    Vector2::new(x as f32, y as f32)
+}
+
+/// JSON as Godot text (compact).
+pub fn text(v: &serde_json::Value) -> GString {
+    GString::from(v.to_string().as_str())
+}
+
+/// A JSON file's value, `None` when it is missing or not JSON.
+pub fn json_file(path: &std::path::Path) -> Option<serde_json::Value> {
+    serde_json::from_str(&std::fs::read_to_string(path).ok()?).ok()
+}
+
 /// A dictionary value of type `T`, if present and convertible.
 pub fn get<T: FromGodot>(d: &VarDictionary, key: &str) -> Option<T> {
     d.get(key).and_then(|v| v.try_to().ok())

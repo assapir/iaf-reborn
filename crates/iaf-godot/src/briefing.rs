@@ -4,6 +4,8 @@
 use godot::prelude::*;
 use iaf_tools::{briefing, loadout};
 use serde_json::{Value, json};
+
+use crate::world::text;
 use std::path::Path;
 
 #[derive(GodotClass)]
@@ -29,7 +31,7 @@ impl IafBriefing {
             Ok(b) => b.to_json(),
             Err(e) => serde_json::json!({ "error": format!("{e:#}") }),
         };
-        GString::from(out.to_string().as_str())
+        text(&out)
     }
 
     /// The theatre's ground colour (`briefing::ground`) over `extent` [x0, y0, x1, y1] (UTM metres), `width` px
@@ -57,7 +59,7 @@ impl IafBriefing {
     fn arming(unit: GString, weapons: GString, lo: GString) -> GString {
         let v =
             read(&unit).map_or(json!({}), |u| briefing::arming(&u, Path::new(&weapons.to_string()), &given(&u, &lo)));
-        GString::from(v.to_string().as_str())
+        text(&v)
     }
 
     /// The loadout `lo` with store `id` hung on `station` (and on its mirror with `pair`; `loadout::put`) as JSON
@@ -95,7 +97,7 @@ impl IafBriefing {
     #[func]
     fn sim_load(unit: GString, weapons: GString, lo: GString) -> GString {
         let v = read(&unit).map(|u| json!(loadout::sim_load(&u, Path::new(&weapons.to_string()), &given(&u, &lo))));
-        GString::from(v.map(|v| v.to_string()).unwrap_or_default().as_str())
+        v.as_ref().map_or_else(GString::new, text)
     }
 }
 

@@ -11,6 +11,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Sender, channel};
 use std::sync::{Arc, LazyLock, Mutex};
 
+use crate::world::v2;
 use godot::prelude::*;
 use iaf_avionics::roads::*;
 
@@ -155,10 +156,6 @@ pub(crate) fn route_graph(a: [f64; 2], b: [f64; 2], max_class: u8) -> Option<Arc
     let lo = [a[0].min(b[0]) - pad, a[1].min(b[1]) - pad];
     let hi = [a[0].max(b[0]) + pad, a[1].max(b[1]) + pad];
     graph_for(lo, hi, max_class)
-}
-
-fn v2(p: [f64; 2]) -> Vector2 {
-    Vector2::new(p[0] as f32, p[1] as f32)
 }
 
 fn xy(v: Vector2) -> [f64; 2] {

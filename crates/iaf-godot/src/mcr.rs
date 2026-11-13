@@ -6,7 +6,7 @@
 //! `weapons`, `victory`, `revive`, `wait`, `reload` (ints, the combo indexes); ours, only with a wind (`Mission::wind`):
 //! `wind_kt`, `wind_from` (knots, degrees) and `weather` (0 Default, 1 Clear, 2 Light rain, 3 Heavy rain, 4 Random).
 
-use crate::world::num;
+use crate::world::{json_file, num};
 use godot::prelude::*;
 use iaf_formats::mcr::{Formation, Mission, Wind};
 
@@ -102,15 +102,13 @@ impl IafMcr {
     fn build(d: VarDictionary, assets: GString) -> GString {
         let a = std::path::PathBuf::from(assets.to_string());
         let dir = a.join("converted/missions");
-        let read = |n: &str| -> Option<serde_json::Value> {
-            serde_json::from_str(&std::fs::read_to_string(dir.join(format!("{n}.json"))).ok()?).ok()
-        };
+        let read = |n: &str| json_file(&dir.join(format!("{n}.json")));
         let ibx = iaf_formats::ini::Ini::parse(&std::fs::read(a.join("install/iaf.ibx")).unwrap_or_default());
         let Some(bdb) = read("default6_1.bdb") else { return GString::from("[]") };
         let files = iaf_tools::mission_creator::build(&mission(&d), &read, &ibx, &bdb);
         let out: Vec<_> =
             files.into_iter().map(|(name, data)| serde_json::json!({"name": name, "data": data})).collect();
-        GString::from(serde_json::to_string(&out).unwrap_or_default().as_str())
+        crate::world::text(&out.into())
     }
 
     /// FLY's checks (`FUN_004faad0`): the msgs.trx line to show (44, 47, 48), or 0 to fly.

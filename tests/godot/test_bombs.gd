@@ -39,21 +39,22 @@ func run() -> void:
 		absf(b.acc.y - 2.0 * (i1.y - 200.0 * t_fall) / (t_fall * t_fall)) < 1e-3 and absf(b.end - t_fall) < 1e-3,
 		"solver: along-track %.2f m/s² lands it on the aim at t = %.2f s" % [b.acc.y, b.end]
 	)
-	check(B.position(b, b.end).distance_to(i1) < 0.05, "the bomb meets the predicted point")
+	var pe: Vector3 = ClassDB.class_call_static("IafBomb", "position", b, b.end)
+	check(pe.distance_to(i1) < 0.05, "the bomb meets the predicted point")
 	var b2: Dictionary = b.duplicate(true)
-	var burst: Dictionary = B.check(b, 30.0, flat)
+	var burst: Dictionary = ClassDB.class_call_static("IafBomb", "check", b, 30.0, flat, false, 0.0)
 	check(
 		not burst.is_empty() and is_equal_approx(burst.t, 14.5) and burst.pos.z < -20.0,
 		"original: the 0.5 s checks burst it under the ground (z %.1f at t %.1f)" % [burst.pos.z, burst.t]
 	)
-	var burst2: Dictionary = B.check(b2, 30.0, flat, true)
+	var burst2: Dictionary = ClassDB.class_call_static("IafBomb", "check", b2, 30.0, flat, true, 0.0)
 	check(
 		absf(burst2.pos.z) < 0.01 and burst2.pos.distance_to(i1) < 0.5,
 		"fix: burst on the ground at the aim (%.2f m off)" % burst2.pos.distance_to(i1)
 	)
 	var far: Dictionary = B.launch(0.0, p, v, Vector3(0, 6000, 0), 15.0)
 	check(is_equal_approx(far.acc.y, 15.0), "the player's correction is clamped to ±15 m/s² (_debugParam016)")
-	var line: Array = B.ripple_line(Vector3(0, 1000, 0), 4, 10.0, 0.0, flat)
+	var line: Array = ClassDB.class_call_static("IafBomb", "ripple_line", Vector3(0, 1000, 0), 4, 10.0, 0.0, flat)
 	check(
 		line.size() == 4 and is_equal_approx(line[0].y, 980.0) and is_equal_approx(line[3].y, 1010.0),
 		"ripple line: 4 points 10 m apart along the heading, index 2 on the aim"

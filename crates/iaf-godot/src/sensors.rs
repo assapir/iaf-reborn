@@ -1,7 +1,7 @@
 //! `IafEo` (the EO sensor, `iaf_avionics::eo`) and `IafHarm` (the HARM sensor's list, `iaf_avionics::harm`) for
 //! `shared/weapons/eo_sensor.gd` and `harm_sensor.gd`. A base is Vector2(heading, pitch).
 
-use crate::world::{get, num, terrain, vec3, vector3};
+use crate::world::{get, num, terrain, v2, vec3, vector3};
 use godot::prelude::*;
 use iaf_avionics::Vec3;
 use iaf_avionics::eo::{Aim, Eo, Mode};
@@ -9,10 +9,6 @@ use iaf_avionics::harm::{self, Emitter, Harm, Source, Unit};
 
 fn base(v: Vector2) -> (f64, f64) {
     (v.x.into(), v.y.into())
-}
-
-fn v2((x, y): (f64, f64)) -> Vector2 {
-    Vector2::new(x as f32, y as f32)
 }
 
 /// null → free, a String → that unit, a Vector3 → that point.

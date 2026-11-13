@@ -69,11 +69,8 @@ pub fn launch_aim(m: &Motion, p0: Vec3, a: Vec3, no_candidates: bool, terrain: &
 }
 
 /// The shot line (`FUN_00456ff0`): the nose rotated 1° up about the right wing (K = N × U), for the player only.
-pub fn shot_dir(nose: Vec3, up: Vec3, elevate: bool) -> Vec3 {
-    match nose.cross(up).try_normalize() {
-        Some(k) if elevate => nose.rotated(k, GUN_ELEVATION_DEG.to_radians()),
-        _ => nose,
-    }
+pub fn shot_dir(nose: Vec3, up: Vec3) -> Vec3 {
+    nose.cross(up).try_normalize().map_or(nose, |k| nose.rotated(k, GUN_ELEVATION_DEG.to_radians()))
 }
 
 /// Motion data of weapons.ibx (the gun: [WEAPON019], type 565).
@@ -482,9 +479,8 @@ mod tests {
 
     #[test]
     fn shot_line_is_one_degree_up() {
-        let d = shot_dir(Vec3::NORTH, Vec3::UP, true);
+        let d = shot_dir(Vec3::NORTH, Vec3::UP);
         assert!((d.z - 1f64.to_radians().sin()).abs() < 1e-12 && d.x.abs() < 1e-12);
-        assert_eq!(shot_dir(Vec3::NORTH, Vec3::UP, false), Vec3::NORTH);
     }
 
     #[test]

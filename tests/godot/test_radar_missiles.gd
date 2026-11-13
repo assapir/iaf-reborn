@@ -12,7 +12,6 @@ const CASES := [[-1, -1, 100, 8], [0, -1, 110, 9], [2, -1, 120, 48], [3, -1, 200
 
 func run() -> void:
 	var Missile = load("res://shared/weapons/missile.gd")
-	var Sight = load("res://shared/weapons/mrm_sight.gd")
 	# --- pure ----------------------------------------------------------------------------------------
 	var m := {
 		"_absAcceleration": 120.0,
@@ -41,20 +40,28 @@ func run() -> void:
 	check(Missile.dlz(m, own, {})[1] == Missile.flown(m, 250.0, 1.0), "no target: min = 1 s of flight")
 	check(
 		(
-			is_equal_approx(Sight.circle(true, [10000.0, 2000.0], 6000.0), 2.5)
-			and is_equal_approx(Sight.circle(true, [10000.0, 2000.0], 12000.0), 5.0 / 3.0)
-			and Sight.circle(false, [], 0.0) == 5.0
+			is_equal_approx(ClassDB.class_call_static("IafMrmSight", "circle", true, [10000.0, 2000.0], 6000.0), 2.5)
+			and is_equal_approx(
+				ClassDB.class_call_static("IafMrmSight", "circle", true, [10000.0, 2000.0], 12000.0), 5.0 / 3.0
+			)
+			and ClassDB.class_call_static("IafMrmSight", "circle", false, [], 0.0) == 5.0
 		),
 		"circle: 5 without a lock, shrinks across the DLZ, 5/3 outside"
 	)
 	check(
-		Sight.predicted(Vector3.ZERO, Vector3(100, 0, 0), 10000.0).is_equal_approx(Vector3(500, 0, 0)),
+		(
+			ClassDB
+			. class_call_static("IafMrmSight", "predicted", Vector3.ZERO, Vector3(100, 0, 0), 10000.0)
+			. is_equal_approx(Vector3(500, 0, 0))
+		),
 		"lead dist/2000 s"
 	)
 	check(
 		(
-			Sight.in_circle(Vector2(30, 40), 5.0, false) == [true, 1.0]
-			and is_equal_approx(Sight.in_circle(Vector2(0, 120), 5.0, false)[1], 0.5)
+			ClassDB.class_call_static("IafMrmSight", "in_circle", Vector2(30, 40), 5.0, false) == [true, 1.0]
+			and is_equal_approx(
+				ClassDB.class_call_static("IafMrmSight", "in_circle", Vector2(0, 120), 5.0, false)[1], 0.5
+			)
 		),
 		"in circle: q 1, outside R/d"
 	)

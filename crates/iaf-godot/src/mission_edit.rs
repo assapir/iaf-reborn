@@ -15,6 +15,7 @@ use iaf_tools::mission_year as my;
 use serde_json::{Map, Value, json};
 
 use crate::roads::route_graph;
+use crate::world::{json_file, text};
 
 /// The assets directory and what `check` / `ground_height` read from it, loaded when first asked for.
 #[derive(Default)]
@@ -39,19 +40,13 @@ impl Data {
         let a = &self.assets;
         let scenery = self.scenery.clone().unwrap_or_else(|| a.join("converted/scenery"));
         self.heights = me::Heights::open(&a.join("converted/terrain/theatre")).map(|h| h.with_scenery(&scenery));
-        self.bdb = std::fs::read_to_string(a.join("converted/missions/default6_1.bdb.json"))
-            .ok()
-            .and_then(|t| serde_json::from_str(&t).ok());
+        self.bdb = json_file(&a.join("converted/missions/default6_1.bdb.json"));
         self.types = std::fs::read(a.join("install/terraintype.dat")).ok().and_then(|d| TerrainTypes::parse(&d).ok());
     }
 }
 
 pub(crate) fn parse(s: &GString) -> Value {
     serde_json::from_str(&s.to_string()).unwrap_or_else(|_| json!({}))
-}
-
-pub(crate) fn text(v: &Value) -> GString {
-    GString::from(serde_json::to_string(v).unwrap_or_default().as_str())
 }
 
 #[derive(GodotClass)]
@@ -177,7 +172,7 @@ impl IafMissionEdit {
     fn road_route(clicks: PackedVector2Array) -> PackedVector2Array {
         let pts: Vec<[f64; 2]> = clicks.as_slice().iter().map(|p| [f64::from(p.x), f64::from(p.y)]).collect();
         let roads = |a, b| route_graph(a, b, me::ROAD_CLASS).or_else(|| route_graph(a, b, MAIN_CLASS));
-        me::road_route(&pts, roads).into_iter().map(|p| Vector2::new(p[0] as f32, p[1] as f32)).collect()
+        me::road_route(&pts, roads).into_iter().map(crate::world::v2).collect()
     }
 
     #[func]

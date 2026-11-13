@@ -13,7 +13,6 @@ const GunRounds := preload("res://shared/weapons/gun_rounds.gd")
 const IrSeeker := preload("res://shared/weapons/ir_seeker.gd")
 const Missile := preload("res://shared/weapons/missile.gd")
 const Guided := preload("res://shared/weapons/guided.gd")
-const MrmSight := preload("res://shared/weapons/mrm_sight.gd")
 const Radar := preload("res://shared/weapons/radar.gd")
 const Rwr := preload("res://shared/weapons/rwr.gd")
 const WorldMap := preload("res://shared/util/world_map.gd")
@@ -1159,7 +1158,12 @@ func _launch_target(o: Dictionary) -> Array:
 			var s := _sight(o, units)
 			if (
 				not s.target.is_empty()
-				and (easy_aiming or MrmSight.target_in_circle(IrSeeker.screen_offset(o, s.target.pos), s.locked))
+				and (
+					easy_aiming
+					or ClassDB.class_call_static(
+						"IafMrmSight", "target_in_circle", IrSeeker.screen_offset(o, s.target.pos), s.locked
+					)
+				)
 			):
 				target = s.target
 				sight_q = float(s.q)
@@ -1169,6 +1173,10 @@ func _launch_target(o: Dictionary) -> Array:
 	return [
 		target, ClassDB.class_call_static("IafRelease", "launch_q", hud_mode, seeker.lock, sight_q, easy_aiming, ecm)
 	]
+
+
+## The MRM circle's base size (FUN_00463210); IafMrmSight (iaf_avionics::sight) draws the rest of the sight.
+const MRM_R0 := 5.0
 
 
 ## The MRM (mode 2) / HARM (mode 8) sight this frame: {target (vfunc +0x28: the radar's A-A lock or TWS
@@ -1189,16 +1197,18 @@ func _sight(o: Dictionary, units: Array) -> Dictionary:
 		var lk: Dictionary = radar.locked()
 		if radar.aa and not lk.is_empty():
 			target = _unit(units, String(lk.key))
-	var out := {"target": target, "locked": locked, "dlz": [], "dist": 0.0, "r": MrmSight.R0, "pred": null, "q": 1.0}
+	var out := {"target": target, "locked": locked, "dlz": [], "dist": 0.0, "r": MRM_R0, "pred": null, "q": 1.0}
 	if target.is_empty() or not locked:
 		return out
 	var d: float = (target.pos - o.pos).length()
 	out.dist = d
 	out.dlz = selected_dlz(o, target)
-	out.r = MrmSight.circle(true, out.dlz, d)
-	out.pred = MrmSight.predicted(target.pos, target.get("vel", Vector3.ZERO), d)
+	out.r = ClassDB.class_call_static("IafMrmSight", "circle", true, out.dlz, d)
+	out.pred = ClassDB.class_call_static("IafMrmSight", "predicted", target.pos, target.get("vel", Vector3.ZERO), d)
 	var hud_only: bool = host.get("views") != null and host.views.type == Views.HUD_ONLY
-	out.q = MrmSight.in_circle(IrSeeker.screen_offset(o, out.pred), out.r, hud_only)[1]
+	out.q = (
+		ClassDB.class_call_static("IafMrmSight", "in_circle", IrSeeker.screen_offset(o, out.pred), out.r, hud_only)[1]
+	)
 	return out
 
 
@@ -1538,7 +1548,9 @@ func _ripple_tick() -> void:
 	var p: Vector3 = ag.target if ag.off else ag.impact
 	var n := _pulses()
 	if ripple_left == n or _ripple_line.size() != n:
-		_ripple_line = Bombs.ripple_line(p, n, float(ripple_int), own().yaw, host.mission_ground)
+		_ripple_line = ClassDB.class_call_static(
+			"IafBomb", "ripple_line", p, n, float(ripple_int), own().yaw, host.mission_ground
+		)
 	var aim: Vector3 = _ripple_line[clampi(n - ripple_left, 0, n - 1)]
 	var gps: bool = stores.station(i).w.has("gps")
 	if t == 650 and not gps:
@@ -1938,7 +1950,9 @@ func _update_bombs() -> void:
 			gps_bombs.erase(bm)
 			_bomb_detonate(bm, bm.g.position())
 	for bm in bombs.duplicate():
-		var hit: Dictionary = Bombs.check(bm.b, now, host.mission_ground, bomb_burst_fix)
+		var hit: Dictionary = ClassDB.class_call_static(
+			"IafBomb", "check", bm.b, now, host.mission_ground, bomb_burst_fix, 0.0
+		)
 		_place_bomb(bm)
 		if not hit.is_empty():
 			bombs.erase(bm)
@@ -1955,10 +1969,10 @@ func _update_bombs() -> void:
 
 
 func _place_bomb(bm: Dictionary) -> void:
-	var p := Bombs.position(bm.b, now)
+	var p: Vector3 = ClassDB.class_call_static("IafBomb", "position", bm.b, now)
 	if bm.node != null:
 		bm.node.position = to_scene(p)
-		_orient(bm.node, Bombs.velocity(bm.b, now))
+		_orient(bm.node, ClassDB.class_call_static("IafBomb", "velocity", bm.b, now))
 		bm.node.scale = Vector3.ONE * float(bm.w.get("scale", 1.0))
 	_place_sound(bm.sound, p)
 
@@ -2504,7 +2518,10 @@ func _publish() -> void:
 			if sg.pred != null and radar.has_lock():
 				mrm_pt = sg.pred
 				var hud_only: bool = host.get("views") != null and host.views.type == Views.HUD_ONLY
-				var inside: bool = MrmSight.in_circle(IrSeeker.screen_offset(o, sg.pred), sg.r, hud_only)[0]
+				var inside: bool = (
+					ClassDB
+					. class_call_static("IafMrmSight", "in_circle", IrSeeker.screen_offset(o, sg.pred), sg.r, hud_only)[0]
+				)
 				# Ours: with the Real HUD, inside the circle it draws (its ASEC), not the original's (real-hud.md).
 				var real = host.cockpit.hud.real_mrm_inside() if host.get("cockpit") != null else null
 				if real != null:

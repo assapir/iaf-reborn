@@ -22,7 +22,7 @@ fn with<T>(db: &GString, f: impl FnOnce(&Connection) -> anyhow::Result<T>) -> Op
 }
 
 fn text(v: Option<Value>) -> GString {
-    GString::from(v.map(|v| v.to_string()).unwrap_or_default().as_str())
+    v.as_ref().map_or_else(GString::new, crate::world::text)
 }
 
 #[godot_api]

@@ -33,8 +33,8 @@ func configure(m: Dictionary, type: int, real := false) -> void:
 
 
 ## The shot line (FUN_00456ff0): the nose 1° up for the player.
-static func shot_dir(nose: Vector3, up: Vector3, elevate := true) -> Vector3:
-	return ClassDB.class_call_static("IafRounds", "shot_dir", nose, up, elevate)
+static func shot_dir(nose: Vector3, up: Vector3) -> Vector3:
+	return ClassDB.class_call_static("IafRounds", "shot_dir", nose, up)
 
 
 ## The aim point A: HUD mode 4 (AG gun) leads with gravity; any other mode 2781 m down the shot line.

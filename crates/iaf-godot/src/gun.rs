@@ -61,8 +61,8 @@ impl IafRounds {
 
     /// The shot line: the nose 1° up for the player (`FUN_00456ff0`).
     #[func]
-    fn shot_dir(nose: Vector3, up: Vector3, elevate: bool) -> Vector3 {
-        vector3(gun::shot_dir(vec3(nose), vec3(up), elevate))
+    fn shot_dir(nose: Vector3, up: Vector3) -> Vector3 {
+        vector3(gun::shot_dir(vec3(nose), vec3(up)))
     }
 
     #[func]
