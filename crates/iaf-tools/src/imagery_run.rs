@@ -13,6 +13,7 @@ use crate::itm;
 use crate::log;
 use crate::progress::{Part, Progress, check, utf8};
 use anyhow::{Context, Result, bail};
+use rayon::prelude::*;
 
 /// The WorldCover bucket the Sentinel-2 tiles come from.
 pub const BUCKET: &str = "https://esa-worldcover-s2.s3.eu-central-1.amazonaws.com";
@@ -928,44 +929,30 @@ pub fn run(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Estimate> 
         }
     }
     let job = Job { spec, prep: &prep, theatre: &theatre, rules: &rules, warp: &warp, work: &work, out, pr };
-    let next = AtomicUsize::new(0);
     let written = Mutex::new(BTreeSet::<Key>::new());
     let done_units = AtomicUsize::new(0);
-    std::thread::scope(|s| -> Result<()> {
-        let workers: Vec<_> = (0..threads.max(1))
-            .map(|_| {
-                s.spawn(|| -> Result<()> {
-                    let mut cache = Cache::default();
-                    loop {
-                        check(cancel)?;
-                        let n = next.fetch_add(1, Ordering::Relaxed);
-                        let Some(u) = units.get(n) else { return Ok(()) };
-                        let keys = match unit_done(&work, u) {
-                            Ok(keys) => keys,
-                            Err(_) => {
-                                let keys =
-                                    convert_unit(&job, u, &mut cache).with_context(|| format!("unit {:?}", u.k))?;
-                                let mut text = format!("rules {}\n", u.rules);
-                                if !u.sheets.is_empty() {
-                                    text += &format!("# {}\n", u.sheets.join(" "));
-                                }
-                                text.extend(keys.iter().map(|k| format!("{} {} {}\n", k.0, k.1, k.2)));
-                                std::fs::write(mark(&work, u), text)?;
-                                keys
-                            }
-                        };
-                        written.lock().map_err(|_| anyhow::anyhow!("worker panicked"))?.extend(keys);
-                        let d = done_units.fetch_add(1, Ordering::Relaxed) + 1;
-                        pr.fraction(d as f32 / units.len() as f32);
-                        log!(pr, "  unit {d}/{} ({})", units.len(), crate::progress::duration(t0.elapsed()));
+    crate::progress::pool(threads)?.install(|| {
+        units.par_iter().try_for_each_init(Cache::default, |cache, u| -> Result<()> {
+            check(cancel)?;
+            let keys = match unit_done(&work, u) {
+                Ok(keys) => keys,
+                Err(_) => {
+                    let keys = convert_unit(&job, u, cache).with_context(|| format!("unit {:?}", u.k))?;
+                    let mut text = format!("rules {}\n", u.rules);
+                    if !u.sheets.is_empty() {
+                        text += &format!("# {}\n", u.sheets.join(" "));
                     }
-                })
-            })
-            .collect();
-        for w in workers {
-            w.join().map_err(|_| anyhow::anyhow!("worker panicked"))??;
-        }
-        Ok(())
+                    text.extend(keys.iter().map(|k| format!("{} {} {}\n", k.0, k.1, k.2)));
+                    std::fs::write(mark(&work, u), text)?;
+                    keys
+                }
+            };
+            written.lock().map_err(|_| anyhow::anyhow!("worker panicked"))?.extend(keys);
+            let d = done_units.fetch_add(1, Ordering::Relaxed) + 1;
+            pr.fraction(d as f32 / units.len() as f32);
+            log!(pr, "  unit {d}/{} ({})", units.len(), crate::progress::duration(t0.elapsed()));
+            Ok(())
+        })
     })?;
     // Coarser levels: every ancestor of a written node, from its children (all rebuilt each run, so nodes
     // above newly converted units take them in).
@@ -978,33 +965,20 @@ pub fn run(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Estimate> 
             .collect::<BTreeSet<_>>()
             .into_iter()
             .collect();
-        let next = AtomicUsize::new(0);
-        std::thread::scope(|s| -> Result<()> {
-            let workers: Vec<_> = (0..threads.max(1) * 2)
-                .map(|_| {
-                    s.spawn(|| -> Result<()> {
-                        let mut cache = Cache::default();
-                        loop {
-                            check(cancel)?;
-                            let n = next.fetch_add(1, Ordering::Relaxed);
-                            let Some(&p) = parents.get(n) else { return Ok(()) };
-                            for layer in spec.layers {
-                                let dir = out.join(layer);
-                                let path = |c: Key| {
-                                    let f = dir.join(format!("L{}/c_{}_{}.jpg", c.0, c.1, c.2));
-                                    f.exists().then_some(f)
-                                };
-                                let img = imagery::compose_parent(p, &theatre, path, &mut cache)?;
-                                save(&img, &dir.join(format!("L{}/c_{}_{}.jpg", p.0, p.1, p.2)))?;
-                            }
-                        }
-                    })
-                })
-                .collect();
-            for w in workers {
-                w.join().map_err(|_| anyhow::anyhow!("worker panicked"))??;
-            }
-            Ok(())
+        crate::progress::pool(threads.max(1) * 2)?.install(|| {
+            parents.par_iter().try_for_each_init(Cache::default, |cache, &p| -> Result<()> {
+                check(cancel)?;
+                for layer in spec.layers {
+                    let dir = out.join(layer);
+                    let path = |c: Key| {
+                        let f = dir.join(format!("L{}/c_{}_{}.jpg", c.0, c.1, c.2));
+                        f.exists().then_some(f)
+                    };
+                    let img = imagery::compose_parent(p, &theatre, path, cache)?;
+                    save(&img, &dir.join(format!("L{}/c_{}_{}.jpg", p.0, p.1, p.2)))?;
+                }
+                Ok(())
+            })
         })?;
         level_nodes.extend(parents);
     }

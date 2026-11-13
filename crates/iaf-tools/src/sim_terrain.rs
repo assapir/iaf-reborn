@@ -296,32 +296,8 @@ pub(crate) fn par<T: Sync>(
     cancel: &AtomicBool,
     f: impl Fn(&T) -> Result<()> + Sync,
 ) -> Result<()> {
-    let next = AtomicUsize::new(0);
-    // Set by the first worker that fails: the others stop at their next item.
-    let stop = AtomicBool::new(false);
-    std::thread::scope(|s| -> Result<()> {
-        let workers: Vec<_> = (0..threads.max(1))
-            .map(|_| {
-                s.spawn(|| -> Result<()> {
-                    loop {
-                        check(cancel)?;
-                        if stop.load(Ordering::Relaxed) {
-                            return Ok(());
-                        }
-                        let Some(it) = items.get(next.fetch_add(1, Ordering::Relaxed)) else { return Ok(()) };
-                        if let Err(e) = f(it) {
-                            stop.store(true, Ordering::Relaxed);
-                            return Err(e);
-                        }
-                    }
-                })
-            })
-            .collect();
-        for w in workers {
-            w.join().map_err(|_| anyhow::anyhow!("worker panicked"))??;
-        }
-        Ok(())
-    })
+    use rayon::prelude::*;
+    crate::progress::pool(threads)?.install(|| items.par_iter().try_for_each(|it| check(cancel).and_then(|()| f(it))))
 }
 
 fn colour_path(out: &Path, k: Key) -> PathBuf {

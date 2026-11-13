@@ -52,7 +52,7 @@ impl Events for Print {
 /// A theatre over another box or into another folder (`--box`, `--out`): not a setup step, no stamp.
 fn terrain_elsewhere(args: &[String], cancel: &AtomicBool) -> Result<()> {
     let mut assets = PathBuf::from("assets");
-    let (mut area, mut out, mut threads) = (sim_terrain::BOX, None, iaf_tools::terrain::default_threads());
+    let (mut area, mut out, mut threads) = (sim_terrain::BOX, None, iaf_tools::progress::threads());
     let mut it = args.iter();
     while let Some(a) = it.next() {
         let mut val = || it.next().with_context(|| format!("{a}: value missing"));

@@ -11,13 +11,14 @@ use std::path::Path;
 use std::sync::atomic::AtomicBool;
 
 use anyhow::{Result, bail};
-use iaf_tools::progress::Stdout;
-use iaf_tools::terrain::{self, default_threads};
+use iaf_tools::progress::{Stdout, threads};
+use iaf_tools::terrain;
+
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
     match args.iter().map(String::as_str).collect::<Vec<_>>()[..] {
         [_, "theatre", path, out] => {
-            terrain::theatre(Path::new(path), Path::new(out), default_threads(), &Stdout, &AtomicBool::new(false))
+            terrain::theatre(Path::new(path), Path::new(out), threads(), &Stdout, &AtomicBool::new(false))
         }
         [_, "theatre", path, out, threads] => {
             terrain::theatre(Path::new(path), Path::new(out), threads.parse()?, &Stdout, &AtomicBool::new(false))
@@ -89,7 +90,7 @@ fn georef_points(theatre: &Path, z9: &Path, z10: &Path, out: &Path, lambda: f64)
         Ok(s) => iaf_tools::georef::parse(&s)?.0.into_iter().filter(|p| p.kind != "auto").collect(),
         Err(_) => Vec::new(),
     };
-    let threads = default_threads();
+    let threads = threads();
     let mut warp = gm::initial()?;
     let mut kept = Vec::new();
     for (pair, step, margin, k, floor) in [

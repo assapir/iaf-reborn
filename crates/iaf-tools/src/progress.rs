@@ -87,55 +87,26 @@ pub fn threads() -> usize {
     std::thread::available_parallelism().map_or(4, |n| n.get())
 }
 
-/// `f` over `items` on `threads()` workers pulling from a shared index; the results in `items`' order. Stops at
-/// the first error (or once `cancel` is set) and returns it.
+/// `f` over `items` on rayon's workers (`threads()` of them); the results in `items`' order. Stops at the first error
+/// (or once `cancel` is set) and returns it.
 pub fn par_map<T: Sync, R: Send>(
     items: &[T],
     cancel: &AtomicBool,
     f: impl Fn(&T) -> Result<R> + Sync,
 ) -> Result<Vec<R>> {
-    use std::sync::Mutex;
-    use std::sync::atomic::AtomicUsize;
-    let next = AtomicUsize::new(0);
-    let failed = AtomicBool::new(false);
-    let results: Mutex<Vec<Option<R>>> = Mutex::new((0..items.len()).map(|_| None).collect());
-    std::thread::scope(|s| -> Result<()> {
-        let workers: Vec<_> = (0..threads().min(items.len()).max(1))
-            .map(|_| {
-                s.spawn(|| -> Result<()> {
-                    loop {
-                        check(cancel)?;
-                        if failed.load(Ordering::Relaxed) {
-                            return Ok(());
-                        }
-                        let k = next.fetch_add(1, Ordering::Relaxed);
-                        let Some(item) = items.get(k) else { return Ok(()) };
-                        let r = f(item).inspect_err(|_| failed.store(true, Ordering::Relaxed))?;
-                        results.lock().map_err(|_| anyhow::anyhow!("worker panicked"))?[k] = Some(r);
-                    }
-                })
-            })
-            .collect();
-        let mut first = Ok(());
-        for w in workers {
-            let r = w.join().map_err(|_| anyhow::anyhow!("worker panicked")).and_then(|r| r);
-            if first.is_ok() {
-                first = r;
-            }
-        }
-        first
-    })?;
-    results
-        .into_inner()
-        .map_err(|_| anyhow::anyhow!("worker panicked"))?
-        .into_iter()
-        .map(|r| r.context("item not done"))
-        .collect()
+    use rayon::prelude::*;
+    items.par_iter().map(|x| check(cancel).and_then(|()| f(x))).collect()
+}
+
+/// A rayon pool of `threads` workers, for a loop with its own worker count (`--threads`, a download limit).
+pub fn pool(threads: usize) -> Result<rayon::ThreadPool> {
+    Ok(rayon::ThreadPoolBuilder::new().num_threads(threads.max(1)).build()?)
 }
 
 /// `par_map` for an `f` that cannot fail and runs to the end (no cancel).
 pub fn par_map_all<T: Sync, R: Send>(items: &[T], f: impl Fn(&T) -> R + Sync) -> Vec<R> {
-    par_map(items, &AtomicBool::new(false), |x| Ok(f(x))).expect("par_map worker panicked")
+    use rayon::prelude::*;
+    items.par_iter().map(&f).collect()
 }
 
 /// A duration for the log: "42 s", "9 min 15 s", "1 h 05 min".

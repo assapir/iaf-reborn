@@ -132,11 +132,6 @@ pub fn airbases(
     Ok(())
 }
 
-/// The worker count when none is given: the machine's parallelism.
-pub fn default_threads() -> usize {
-    std::thread::available_parallelism().map_or(4, |n| n.get())
-}
-
 /// Node side in pixels: a node of level L covers `NODE_PIXELS << L` terrain units (2^L units per
 /// pixel, the resolution of map.ptt level L), on a grid aligned to the theatre origin.
 const NODE_PIXELS: u32 = 1024;
@@ -243,30 +238,24 @@ pub fn theatre(path: &Path, out: &Path, threads: usize, pr: &dyn Progress, cance
         std::fs::create_dir_all(out.join(format!("L{lv}")))?;
     }
 
-    let next = AtomicUsize::new(0);
+    let done = AtomicUsize::new(0);
     let log = Mutex::new(Vec::<String>::new());
     let bytes = AtomicUsize::new(0);
-    std::thread::scope(|s| -> Result<()> {
-        let workers: Vec<_> = (0..threads.max(1))
-            .map(|_| {
-                s.spawn(|| -> Result<()> {
-                    let mut ptt = Ptt::open(&src.path)?;
-                    loop {
-                        check(cancel)?;
-                        let k = next.fetch_add(1, Ordering::Relaxed);
-                        let Some(&node) = nodes.get(k) else { return Ok(()) };
-                        pr.fraction(k as f32 / nodes.len() as f32);
-                        let (n, msgs) = write_node(&mut ptt, &src, node, out).with_context(|| format!("{node:?}"))?;
-                        bytes.fetch_add(n, Ordering::Relaxed);
-                        log.lock().map_err(|_| anyhow::anyhow!("worker panicked"))?.extend(msgs);
-                    }
-                })
-            })
-            .collect();
-        for w in workers {
-            w.join().map_err(|_| anyhow::anyhow!("worker panicked"))??;
-        }
-        Ok(())
+    crate::progress::pool(threads)?.install(|| {
+        use rayon::prelude::*;
+        // One open map.ptt per rayon job (its reads move a file cursor).
+        nodes.par_iter().try_for_each_init(
+            || Ptt::open(&src.path),
+            |ptt, &node| -> Result<()> {
+                check(cancel)?;
+                let ptt = ptt.as_mut().map_err(|e| anyhow::anyhow!("{}: {e}", src.path.display()))?;
+                pr.fraction(done.fetch_add(1, Ordering::Relaxed) as f32 / nodes.len() as f32);
+                let (n, msgs) = write_node(ptt, &src, node, out).with_context(|| format!("{node:?}"))?;
+                bytes.fetch_add(n, Ordering::Relaxed);
+                log.lock().map_err(|_| anyhow::anyhow!("worker panicked"))?.extend(msgs);
+                Ok(())
+            },
+        )
     })?;
 
     let mut per_level: HashMap<u32, Vec<[u32; 2]>> = HashMap::new();

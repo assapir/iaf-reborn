@@ -390,6 +390,7 @@ dependencies = [
  "iaf-flight",
  "iaf-formats",
  "image",
+ "rayon",
  "rusqlite",
  "serde_json",
  "sha2",
