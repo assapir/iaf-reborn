@@ -698,7 +698,7 @@ func _ils_bars(tv: Node, jet: String) -> void:
 
 
 ## The HUD's light (Approvals A10, Settings.hud_daylight): the P43 green at the day level, the night floor in the
-## dark, the HUD key stepping the level in eighths, drawn over the scene, and the combiner glass at 14 %.
+## dark, the HUD key stepping the level in eighths, drawn over the scene, and the combiner glass untinted.
 func _hud_light(tv: Node, jet: String) -> void:
 	var cp = tv.cockpit
 	var level: float = settings().hud_brightness
@@ -727,8 +727,8 @@ func _hud_light(tv: Node, jet: String) -> void:
 	)
 	var glass = tv.cockpit_3d._glass if tv.cockpit_3d != null else null
 	check(
-		own != null or glass != null and is_equal_approx(glass.material_override.albedo_color.a, 0.14),
-		"%s: the combiner glass at 14 %% (the F-35I: none)" % jet
+		own != null or glass != null and is_zero_approx(glass.material_override.albedo_color.a),
+		"%s: the combiner glass untinted (the F-35I: none)" % jet
 	)
 	var mfd: float = settings().mfd_brightness
 	# The F-16s' SYM wheel; the F-35I's HMD and MFD BRT knobs on the pedestal (f35i_controls.json).

@@ -92,7 +92,7 @@ the §1 type-code tables stay for the 1998 jets.
 | `weapons` {`arm_art`, `modern`, `loads`} | `mission_weapons.gd` `jet`, `modern_weapons.gd` `loads` | Arming art (`x_<id>`: `shared/extra/planes/<id>/arm`), the modern weapons `"always"`, and their stations (`{"<record id>": [count, "stations"]}`, the id a whole number) |
 | `cockpit_3d` (string) | `cockpit3d.gd` `model_for` | the 3D cockpit's model (Extras "Cockpit": 3D; cockpit.md "3D cockpit") |
 | `hud_3d` | `cockpit3d.gd` | the 3D cockpit's HUD (`HUD_std` / `HUD_wide`) |
-| `hud_tint` (number) | `cockpit3d.gd` | Modern IAF's combiner tint, a fraction of the full one (`SIM_TINT` 0.25 when absent; the Sufa's 0) |
+| `hud_tint` (number) | `cockpit3d.gd` | Modern IAF's combiner tint, a fraction of the full one (`SIM_TINT` 0 when absent) |
 | `fly_by_wire` (bool) | `aircraft.rs` `fly_by_wire` | the F-16's roll-rate command, and the deep stall in place of the spin |
 | `drag_chute` (bool) | `terrain_view.gd` | `false`: the jet has no drag chute, so the flight never asks the flight model for one (every F-16 and F-35) |
 | `sixdof` (bool) | `data_set.rs` `sixdof` | Physics "Flight model" on 6-DoF flies it on Modern IAF's 6-DoF from the sim's data (deviations.md §2) |

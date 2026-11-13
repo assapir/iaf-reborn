@@ -455,9 +455,10 @@ occlusion, 1.8 MB; built by
   it read as two white bars beside the HUD; it was removed from `f16.glb` (both games) on 2026-11-12, after the user's
   third report. The real photos show no such line. The two boxes beside the posts' feet (`cockpit.ac`
   `box_left` / `box_right`) are the bodies of the AoA indexer (left) and the AR / NWS indicator (right), their lamps
-  on their aft faces; their size and place are FlightGear's. In the F-16C front-seat photo[^f16-photos] both units
-  stand on the glareshield outboard of the HUD posts, near black; the photo is too small to set their height, so they
-  stay where they are (inferred). FlightGear gives them no UVs, so they drew a
+  on their aft faces; their size and height are FlightGear's. In the F-16C front-seat photo[^f16-photos] both units
+  stand on the glareshield outboard of the HUD posts with a clear gap to each, near black; FlightGear's stood against
+  the posts' feet, partly behind them from the eye, so they are moved 2.5 cm outboard with their lamps (`INDEXER_OUT`,
+  2026-11-13, inferred; the photo is too small to set their height). FlightGear gives them no UVs, so they drew a
   flat unlit black; they take a near-black grey (`INDEXER_GREY`) and the glareshield top's baked light
   (`indexer_body`, 2026-11-12). Their lamps stay in view unlit (`LAMPS_DARK`): FlightGear hides them off, which left
   the units' faces blank and the AR / NWS light gone. Left out for a day on 2026-11-12 (taken for stray slabs), the

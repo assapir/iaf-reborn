@@ -178,6 +178,10 @@ SIDE_AFT = 0.42
 # The AoA indexer's and AR / NWS indicator's bodies' material, their own so bake_light gives them the glareshield
 # top's light (their thin open shroud occludes itself to black in the bake).
 INDEXER_BODY = "indexer_body"
+# The units moved this far outboard (m) with their lamps: FlightGear's stood against the HUD posts' feet, partly behind
+# them from the eye; in the F-16C front-seat photo (Wikimedia Commons `File:F-16C_cockpit_m02006112700032.jpg`) a
+# clear gap separates each unit from its post (the user, 2026-11-13: "isn't aoa too close to the hud?"). Inferred.
+INDEXER_OUT = 0.025
 # Their paint: the HUD housing's near-black grey, untextured (the F-16C front-seat photo, Wikimedia Commons
 # `File:F-16C_cockpit_m02006112700032.jpg`: both units dark beside the posts; FlightGear's sheet texel under them read
 # flat black; the user, 2026-11-12: "not flat black"). Linear RGB, inferred.
@@ -1159,7 +1163,8 @@ def main():
             for i in range(len(o.data.materials)):
                 o.data.materials[i] = sill
     # The two boxes on the glareshield beside the HUD (`cockpit.ac` `box_left`, `box_right`): the bodies of the AoA
-    # indexer (left) and the AR / NWS indicator (right), their lamps on their aft faces, at FlightGear's size and place.
+    # indexer (left) and the AR / NWS indicator (right), their lamps on their aft faces, at FlightGear's size,
+    # INDEXER_OUT outboard of its place.
     # FlightGear gives them no UVs (all at the sheet's black corner), so from the eye they were two flat black bars;
     # they take the housing's dark grey (INDEXER_GREY) and the glareshield top's baked light (bake_light). 2026-11-12:
     # left out for a day, which left the lamps floating and holes beside the posts.
@@ -1168,6 +1173,9 @@ def main():
         if o.name in ("Tub/box_left", "Tub/box_right"):
             o.data.materials.clear()
             o.data.materials.append(indexer)
+        if o.name in ("Tub/box_left", "Tub/box_right", "Tub/up", "Tub/steady", "Tub/down", "Tub/ar_nws"):
+            c = sum((v.co for v in o.data.vertices), Vector()) / max(len(o.data.vertices), 1)
+            o.data.transform(Matrix.Translation((math.copysign(INDEXER_OUT, c.x), 0, 0)))
     if os.environ.get("C3D_DEBUG") == "1":  # every object's bounds (Blender frame, before the shift)
         for o in everything:
             vs = [v.co for v in o.data.vertices]

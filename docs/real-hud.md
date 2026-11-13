@@ -916,13 +916,11 @@ games draw over the scene with the same pen. The study behind it: the look study
   least pen width was one canvas unit (two pixels) and the texts were rasterised at half size and then enlarged, so the
   HUD came out twice as thick and blurred; this held in both games. Check: `modern-iaf/tests/_hud_scale_shot.gd`
   (`SHOT_SCALE=1` / `2`).
-- **Combiner glass.** 3.5 % opaque in a faint cool magenta (0.62 / 0.56 / 0.72) with specular 0.8, so it is a
-  touch darker than the sky and reflects a little of it (`cockpit3d.gd`; the green its coating reflects is missing
-  from what passes through, inferred); the plate's rim and back face at a quarter of their opacity too (`SIM_TINT`).
-  That is the Barak's; the Sufa's combiner is untinted (its definition's `hud_tint` 0; the user, 2026-11-13: "remove
-  this white at all for Sufa"), and a jet's `hud_tint` sets its own fraction.
-  14 % was tried and dropped on 2026-11-12: from the seat the plate read as a pale pane, the user chose a quarter of
-  it beside no tint and the full one. The F-16C photo from the front seat[^f16c-front] shows the combiner almost clear. The original
+- **Combiner glass.** Untinted on both F-16s since 2026-11-13 (`SIM_TINT` 0, the plate's rim and back face too;
+  the user: "realistic model ftw, no tint"); a jet's definition can set its own fraction (`hud_tint`) of the full
+  tint, 14 % opaque in a faint cool magenta (0.62 / 0.56 / 0.72) with specular 0.8. Tried and dropped: the full 14 %
+  (2026-11-12: from the seat the plate read as a pale pane) and a quarter of it (2026-11-12 to 13, the user then chose
+  none). The F-16C photo from the front seat[^f16c-front] shows the combiner almost clear. The original
   game's glass stays 7 %. The combiner has no separate edge line: a 1.5 mm pale line at 10 % along the glass's
   own outline was tried and dropped on 2026-11-12 (beside the quarter tint it drew a visible outline inside the posts
   and an arc over the Barak's glass). And the Sufa's plate is

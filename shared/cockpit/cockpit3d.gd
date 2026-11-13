@@ -31,10 +31,10 @@ const BLOCK_SHEET := "blck50-panels1"
 ## The F-16 model's own satin black parts (tools/f16d/cockpit3d.py: the HUD posts and the wide-angle HUD's box):
 ## their roughness kept, a sheen along their rounded edges.
 const SATIN := ["hud_black"]
-## Modern IAF's combiner tint, a fraction of the earlier one, on the glass and on the plate's rim and back face: a
-## quarter (the user, 2026-11-12: "the best for now is quarter"; full read as a pale pane), unless the jet's
-## definition sets its own `hud_tint` (the Sufa's 0: untinted).
-const SIM_TINT := 0.25
+## Modern IAF's combiner tint, a fraction of the earlier one, on the glass and on the plate's rim and back face: none
+## (the user, 2026-11-13: "realistic model ftw, no tint"; a quarter before, and the full 14 % read as a pale pane),
+## unless the jet's definition sets its own `hud_tint`.
+const SIM_TINT := 0.0
 ## Each MFD's SubViewport (px square): the Sufa's 484 px displays, rounded up.
 const SCREEN_PX := 512
 ## The panoramic display's SubViewport px per [PCD] panel px (1,496 x 671 px for its 20 x 8 in glass).

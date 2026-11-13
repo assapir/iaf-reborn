@@ -37,7 +37,7 @@
     "fm": "the flight-model type (iaf_flight::data_set TYPES / REAL): its real row on the F-16's section",
     "model": "every F-16's model, with Models on Original too (docs/f16i.md §8, tools/f16/sufa.py)",
     "hud_3d": "the 3D cockpit's wide-angle HUD (its Elbit HUD's shape is open; inferred)",
-    "hud_tint": "Modern IAF: the Sufa's combiner untinted (the user, 2026-11-13: \"remove this white at all for Sufa\"); 0.25 is the Barak's",
+    "hud_tint": "Modern IAF: the Sufa's combiner tint, a fraction of the full one (0: untinted, as SIM_TINT; the user, 2026-11-13)",
     "mfd": "the real MFD formats, in colour (docs/mfd.md §9)",
     "guide": "the pilot guide, docs/guides/f16i.md",
     "radar.row": "iaf_avionics::radar::F16I, the AN/APG-68(V)9's row (docs/f16i.md §2)",
