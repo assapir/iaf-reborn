@@ -436,7 +436,9 @@ Stick response): they stay in the Preferences.
 **Afterburner detent** (Preferences → Devices, greyed with no joystick): the throttle lever's click where the
 afterburner starts, as the 1998 game's Devices "Detent = MIL" (docs/controls.md §5). Put the lever in its click and
 choose Set at lever: the row then reads "At n%" (the lever's raw position) and that position gives military power, the
-travel past it the afterburner (`Joystick.detent_choice` and `detent_map`, the code reborn's page runs). Off puts the lever back to linear. One setting
+travel past it the afterburner (`Joystick.detent_choice` and `detent_map`, the code reborn's page runs). With the lever
+in its click the engine is at military with the burner off; the burner lights 4 points past it
+(`modern-iaf/tests/test_detent.gd`). Off puts the lever back to linear. One setting
 (`Settings.throttle_detent`) for the throttle role's axis. A role with no axis leaves its keys working, as Keyboard does: with Roll on None and
 Pitch on an axis, the roll keys roll the jet while the stick pitches it (`Joystick.stick_mixed`).
 

@@ -517,10 +517,12 @@ budget, a real flight. Open:
   FM-0's fit).
 * **Spool.** Figure 66 (printed pp. 218–220): the throttle's travel gives a commanded power (military at 77 % of
   the travel, 50 % power; maximum 100 %); the power follows through a first-order lag whose rate is 1/s for steps up
-  to 25 % and falls to 0.1/s for steps of 50 % or more, and 5/s inside the afterburner range; from below military
-  the target is 60 % until military is reached. Thrust is idle → military over 0–50 % power, military → maximum over
+  to 25 % and falls to 0.1/s for steps of 50 % or more, and 5/s inside the afterburner range; for a command above military from below
+  it the target is 60 % until military is reached. Military itself (the game's lever 0.74, a joystick's afterburner
+  detent) is dry: its command is exactly 50 % and the power settles on it from below (fixed 2026-11-13: the figure's
+  64.94·0.77 = 50.004 had put military in the afterburner range, the burner lit with the lever in its detent). Thrust is idle → military over 0–50 % power, military → maximum over
   50–100 %. Each engine stretches the lag so its idle → military time (to 95 % of military thrust, the way the public
-  figures are taken, docs/flight-model.md §10.2) is its public one; figure 66's own is 4.09 s (to maximum 4.78 s).
+  figures are taken, docs/flight-model.md §10.2) is its public one; figure 66's own is 3.88 s (to maximum 4.78 s).
 * **Angular momentum.** Appendix B's 160 slug-ft²/s, taken as the value at military (inferred), × the engine's
   military scale, × the spool speed: 60 % at idle to 100 % at military, the 1998 gauge's line (inferred). It feeds
   the rigid body's gyroscopic term through `Jet::airframe(&engine)`, a per-flight copy (the jet's definition stays
@@ -535,10 +537,10 @@ budget, a real flight. Open:
 
 | engine (jets) | military / maximum, lbf | idle → military | source |
 |---|---|---|---|
-| F100-PW-200, TP-1538's own (the reference F-16A) | Table VI (static 12,750 / 20,140 installed) | 4.09 s | TP-1538 Table VI, figure 66 |
+| F100-PW-200, TP-1538's own (the reference F-16A) | Table VI (static 12,750 / 20,140 installed) | 3.88 s | TP-1538 Table VI, figure 66 |
 | F110-GE-100 (F-16D Barak) | 17,110 / 29,000 | 3.0 s | ratings: docs/real-aircraft.md §2 as FM-0; time: the F100's (`spool::ENGINES` type 100, inferred) |
 | F100-PW-229 (F-16I Sufa, F-15I Ra'am × 2) | 17,800 / 29,160 | 3.0 s | ratings: Pratt & Whitney[^pw-f100]; time: the -220's 3 s[^tm4320] (inferred for the -229); to maximum 3.5 s against the F-15E's "less than 4 s"[^usaf-f15e] |
-| F135-PW-100 (F-35I Adir) | 28,000 / 43,000 | 5.1 s | ratings: the F-35I row[^w-f135]; idle → maximum 6.0 s, Pratt & Whitney's "about 6 s"[^pw135], figure 66's shape stretched to it |
+| F135-PW-100 (F-35I Adir) | 28,000 / 43,000 | 4.9 s | ratings: the F-35I row[^w-f135]; idle → maximum 6.0 s, Pratt & Whitney's "about 6 s"[^pw135], figure 66's shape stretched to it |
 
 **A correction of the brief:** the brief names the F110-GE-129 for the Barak. The Barak is an F-16D Block 40, whose
 engine is the F110-GE-100 (FM-0's choice, docs/real-aircraft.md §2); the -129 is the Block 50's. The model takes the

@@ -483,6 +483,7 @@ the same code).
      which Modern IAF's Preferences → Devices "Afterburner detent" calls too).
   2. Lever t ≤ d → 74·t/d.
   3. d < t ≤ d + 3 → 74. A lever resting in its detent reads a point or two over, and 75 already lights AB 1.
+     74 is dry military on both flight models (the 6-DoF's too, `tests/godot/test_detent.gd`).
   4. t > d + 3 → 78 + 22·(t − d − 3)/(100 − d − 3): AB 1 (the "7" key) to 100.
 * **Ours: Devices page "Stick response"** (under FLIGHT CONTROLS; settings.cfg `[devices] stick_response`). It
   shapes the joystick only; the keys stay digital ±100.

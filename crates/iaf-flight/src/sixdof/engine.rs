@@ -64,22 +64,22 @@ fn rtau(dp: f64) -> f64 {
 }
 
 /// Figure 66(b): commanded power (percent: 0 idle, 50 military, 100 maximum) at a throttle position 0…1 (military
-/// at 77 % of the travel).
+/// at 77 % of the travel: exactly 50 there, so the game's military lever is dry thrust).
 pub fn power_command(throttle: f64) -> f64 {
     let t = throttle.clamp(0.0, 1.0);
-    if t <= 0.77 { 64.94 * t } else { 217.38 * t - 117.38 }
+    if t <= 0.77 { t / 0.77 * 50.0 } else { 217.38 * t - 117.38 }
 }
 
 /// The throttle travel whose commanded power is `power` (the inverse of [`power_command`]).
 pub fn travel_for(power: f64) -> f64 {
     let p = power.clamp(0.0, 100.0);
-    if p <= 50.0 { p / 64.94 } else { (p + 117.38) / 217.38 }
+    if p <= 50.0 { p / 50.0 * 0.77 } else { (p + 117.38) / 217.38 }
 }
 
 /// Figure 66's own idle → military time, s: from idle to 95 % of the way to military thrust (the moment public
 /// spool times are taken at, docs/flight-model.md §10.2), throttle snapped to military. Computed by the
 /// `figure_66_spool_time` test.
-pub const FIG66_IDLE_MIL: f64 = 4.093;
+pub const FIG66_IDLE_MIL: f64 = 3.880;
 /// Figure 66's idle → maximum time, s: to 95 % of maximum power (P3 = 95), throttle snapped to maximum.
 pub const FIG66_IDLE_MAX: f64 = 4.777;
 
@@ -156,9 +156,11 @@ impl Engine {
         let dt = dt.min(MAX_FRAME);
         let n = (dt / MAX_STEP).ceil().max(1.0);
         let p1 = power_command(throttle);
+        // Military itself (P1 = 50, the lever at the detent) is dry: the afterburner branch takes P1 above it, so the
+        // power settles on 50 from below instead of overshooting into the afterburner range.
         for _ in 0..n as usize {
             let p3 = self.power;
-            let (p2, r) = match (p1 >= 50.0, p3 >= 50.0) {
+            let (p2, r) = match (p1 > 50.0, p3 >= 50.0) {
                 (true, true) => (p1, 5.0),
                 (true, false) => (60.0, rtau(60.0 - p3)),
                 (false, true) => (40.0, 5.0),
@@ -249,6 +251,22 @@ mod tests {
         a.step(&spec, 1.0, 30.0);
         b.step(&spec, 1.0, MAX_FRAME);
         assert_eq!(a, b);
+    }
+
+    #[test]
+    fn military_lever_is_dry() {
+        // The game's military lever (0.74: a joystick's detent, the 6 key) settles on 50 from idle or from maximum,
+        // never in the afterburner range; the detent's first afterburner value (0.78) lights it.
+        let spec = EngineSpec::tp1538();
+        for (lever, ab) in [(0.70, false), (0.74, false), (0.78, true), (1.0, true)] {
+            for start in [0.0, 100.0] {
+                let mut e = Engine { power: start };
+                for _ in 0..240 {
+                    e.step(&spec, crate::sixdof::flight::lever_to_travel(lever), 0.25);
+                }
+                assert_eq!(e.power > 50.0, ab, "lever {lever} from {start}: power {}", e.power);
+            }
+        }
     }
 
     #[test]
