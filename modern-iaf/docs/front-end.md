@@ -103,7 +103,7 @@ base files, airbases.md §3). Making one flyable moves its row from `SOON` to `J
 
 | what | where | written by |
 |---|---|---|
-| the sorties and their debrief records | `user://modern-iaf.sqlite` (tests: `<temp>/modern-iaf-records/`), `Settings.records_db()`, read through `IafPilotLog` ([storage.md](storage.md) §5) | `sim_flight.gd` at the scoring: the scorer's record plus `flight`, `date` (the end, local time) and `elapsed_s` (the flight's length, s) |
+| the sorties and their debrief records | `user://modern-iaf.sqlite` (tests: `<temp>/modern-iaf-records-<pid>/`, the run's own), `Settings.records_db()`, read through `IafPilotLog` ([storage.md](storage.md) §5) | `sim_flight.gd` at the scoring: the scorer's record plus `flight`, `date` (the end, local time) and `elapsed_s` (the flight's length, s) |
 | the picked jet | `user://settings.cfg` `[sim] jet` | the front end |
 | the jet photos | `modern-iaf/data/photos/` (§5) | — |
 

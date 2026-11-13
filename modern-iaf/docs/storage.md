@@ -71,8 +71,9 @@ is not a measurable part of a start (inferred: the seven compiled mission files 
 
 ## 5. What is built (2026-11-09)
 
-The records follow §4: one SQLite database, `user://modern-iaf.sqlite` (tests: `<temp>/modern-iaf-records/`, or
-the folder a test gives `sim_flight.gd`'s `out_dir`), owned by `crates/iaf-tools/src/pilot_log.rs`
+The records follow §4: one SQLite database, `user://modern-iaf.sqlite` (tests: `<temp>/modern-iaf-records-<pid>/`, the
+run's own, removed at its exit, or the folder a test gives `sim_flight.gd`'s `out_dir`), owned by
+`crates/iaf-tools/src/pilot_log.rs`
 (`iaf_tools::pilot_log`) and reached from GDScript through one class, `IafPilotLog`
 (`crates/iaf-godot/src/pilot_log.rs`). It is a module of `iaf-tools` beside `training.rs` and `devices.rs`, not a
 crate of its own: it is one file, and `iaf-tools` already links `rusqlite`.

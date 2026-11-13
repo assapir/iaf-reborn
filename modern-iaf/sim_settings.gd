@@ -182,10 +182,26 @@ func front_end_overlay() -> Control:
 	return load(FRONT_END).new()
 
 
-## The records' folder: user://, or a temporary folder in isolated runs (tests). The records database is in it and
-## the JSON records from before it (debriefs/, pilots/) that its first open imports (storage.md §5).
+## The records' folder: user://, or in isolated runs (tests) a temporary folder of the process's own, removed at its
+## exit (two test runs at once never share one). The records database is in it and the JSON records from before it
+## (debriefs/, pilots/) that its first open imports (storage.md §5).
 func records_dir() -> String:
-	return OS.get_temp_dir().path_join("modern-iaf-records") if isolated() else "user://"
+	return OS.get_temp_dir().path_join("modern-iaf-records-%d" % OS.get_process_id()) if isolated() else "user://"
+
+
+func _exit_tree() -> void:
+	super()
+	if isolated():
+		_remove_dir(records_dir())
+
+
+## Deletes the folder `dir` and everything in it.
+static func _remove_dir(dir: String) -> void:
+	for d in DirAccess.get_directories_at(dir):
+		_remove_dir(dir.path_join(d))
+	for f in DirAccess.get_files_at(dir):
+		DirAccess.remove_absolute(dir.path_join(f))
+	DirAccess.remove_absolute(dir)
 
 
 ## The records database (IafPilotLog, storage.md §5), an absolute path.
