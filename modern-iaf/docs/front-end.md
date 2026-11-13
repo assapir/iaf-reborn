@@ -794,7 +794,7 @@ The bisect switch turns graphics features off for one run, whatever the settings
 
 | name | off means |
 |---|---|
-| `sky` | the plain gradient sky instead of the Levant's (`atmosphere.gdshader`) |
+| `sky` | the plain gradient sky instead of the Atmospheric (`atmosphere.gdshader`) |
 | `grading` | colour grading Original |
 | `closeup` | no terrain close up |
 | `textures` | the ambientCG ground textures off |
@@ -809,6 +809,6 @@ The bisect switch turns graphics features off for one run, whatever the settings
 | `glass` | no combiner glass in the 3D cockpit; the HUD drawn plain (no `hud_glass.gdshader`: unclipped, not added) |
 | `hudglow` | the HUD drawn over the scene in its plain colours, not added as light |
 
-Each name in force is logged at the start (`safe: sky off (sky levant -> original)`); an unknown name is a warning. The
+Each name in force is logged at the start (`safe: sky off (sky atmospheric -> original)`); an unknown name is a warning. The
 settings file keeps the player's own values. To find a failure, start with `all`, then turn half the names back on per
 run. `test_start_watch.gd` checks that each name turns its feature off and that a flight starts with all of them.

@@ -10,7 +10,6 @@ extends "res://../tests/godot/base.gd"
 const ORIGINAL := {
 	"airbases": "original",
 	"sky": "original",
-	"colour_grading": "original",
 	"terrain_closeup": false,
 	"water": false,
 	"night_lights": "original",
@@ -59,12 +58,27 @@ func run() -> void:
 	check(bases._on, "Ramon: the airbase surface is on")
 	# No town labels in the sim (the 1998 game's only).
 	check(not s.town_labels and tv.town_labels == null, "no town labels")
-	# Sky Levant (docs/rendering.md §1.2): the Atmospheric sky with the dusty summer's values.
+	# The ground as the original game flown at its best (the user, 2026-11-13; modern-iaf/docs/terrain.md §15): Sky
+	# Atmospheric, no colour grading, the shared shader globals (one set in both projects' project.godot).
 	var env: Environment = tv.get_node("WorldEnvironment").environment
 	var sky_mat = env.sky.sky_material if env.sky != null else null
 	var ro: GDScript = load("res://shared/terrain/render_options.gd")
-	var haze = sky_mat.get_shader_parameter("haze_height") if sky_mat is ShaderMaterial else null
-	check(haze == ro.LEVANT.haze_height, "the sky is Levant's (haze height %s)" % haze)
+	var atmos: bool = sky_mat is ShaderMaterial and sky_mat.shader.resource_path.ends_with("atmosphere.gdshader")
+	check(
+		s.sky == "atmospheric" and atmos and sky_mat.get_shader_parameter("haze_height") == null,
+		"the sky is Atmospheric (the atmosphere shader with its own values, not Levant's)"
+	)
+	check(env.fog_aerial_perspective == 1.0, "the haze is the sky's (aerial perspective 1)")
+	check(s.colour_grading == "original" and ro.terrain_grade == 0.0, "no colour grading (as the original game)")
+	var globals := {}
+	for proj: String in ["iaf-reborn", "modern-iaf"]:
+		var cfg := ConfigFile.new()
+		cfg.load("res://../%s/project.godot" % proj)
+		var kv := {}
+		for k in cfg.get_section_keys("shader_globals"):
+			kv[k] = cfg.get_value("shader_globals", k)
+		globals[proj] = kv
+	check(globals["iaf-reborn"] == globals["modern-iaf"], "the terrain's shader globals are the original game's")
 	# The cockpit in its own world about the origin (cockpit_origin.gd, the Mac play test's finding 25), its eye where
 	# the flight camera sits in the rig.
 	var co = tv.cockpit_origin
@@ -80,9 +94,6 @@ func run() -> void:
 			co._quad.layers == load("res://shared/terrain/volumetric_clouds.gd").LAYER,
 			"its picture on the main view's layer only (not the EO camera's)"
 		)
-	check(ro.terrain_grade > 0.0, "the colour grading is on (terrain_grade %.2f)" % ro.terrain_grade)
-	var tint: Vector3 = ProjectSettings.get_setting("shader_globals/terrain_grade_tint").value
-	check(tint.z < tint.y and tint.y < tint.x and tint.x < 1.0, "the ground's golden tint (terrain.md §15: %s)" % tint)
 	var i: int = bases._current
 	var b: Dictionary = bases.bases()[i] if i >= 0 else {}
 	check(String(b.get("name", "")) == "Ramon", "Ramon: the nearest base drawn (%s)" % b.get("name", "none"))

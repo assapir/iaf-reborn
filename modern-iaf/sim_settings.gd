@@ -9,13 +9,15 @@ extends "res://shared/settings.gd"
 ## 3D cockpit, the Real HUD and the real MFD formats (the Sufa's in colour by its definition, the Barak's green). No
 ## textured sky: its cloud layer is the original's art (Clouds Volumetric, ours, stays a choice). The look switches
 ## whose "original" is the 1998 art the sim does not have are ours too: the airbases (the sim's own runways, taxiways
-## and aprons, airbases_file()), the sky, the water, the night lights, the effects (2026-11-08: "original" airbases
-## drew no taxiway or apron in the sim). The ground and model textures, the roads and the scenery follow their data
-## (_apply_profile). No aids: the original Gameplay page's switches are off (the user, 2026-11-08).
+## and aprons, airbases_file()), the water, the night lights, the effects (2026-11-08: "original" airbases drew no
+## taxiway or apron in the sim). The ground renders as in the original game flown at its best (the user, 2026-11-13:
+## "just copy what it does"): Sky Atmospheric, Colour grading Original (modern-iaf/docs/terrain.md §15). The ground and
+## model textures, the roads and the scenery follow their data (_apply_profile). No aids: the original Gameplay page's
+## switches are off (the user, 2026-11-08).
 const PROFILE := {
 	"airbases": "detailed",
-	"sky": "levant",
-	"colour_grading": "natural",
+	"sky": "atmospheric",
+	"colour_grading": "original",
 	"terrain_closeup": true,
 	"water": true,
 	"night_lights": "detailed",

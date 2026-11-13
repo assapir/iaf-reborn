@@ -29,31 +29,14 @@ uniform vec3 sea_colour = vec3(0.035, 0.059, 0.302);
 // (the generated sea, and inland water from terraintype.dat). Airbases (terraintype.dat) count their tinted
 // aprons as grey. All of it fades out by 1.5 km, so the colours from afar stay the imagery's own.
 global uniform float terrain_detail;
-// The close up's colour patches: their strength (terrain_patches: 1 in the original game, 0.4 in Modern IAF) and their
-// hue (terrain_patch_hue): 1 in the original game, toward a deeper, more saturated or a paler, drier version of the ground's colour; 0 in Modern IAF, its own
-// colour only darker or lighter (the deeper colour turned the 2 m photo's pale desert into an orange speckle;
-// modern-iaf/docs/terrain.md §13). The values are each project's own (project.godot's shader globals).
+// The close up's colour patches: their strength (terrain_patches: 1; 0 with IAF_SAFE=patches in Modern IAF), toward a
+// deeper, more saturated or a paler, drier version of the ground's colour.
 global uniform float terrain_patches;
-global uniform float terrain_patch_hue;
 // Colour grading (Settings.colour_grading, render_options.gd, docs/rendering.md §1.9): 0 = off (the original look);
 // else the photo's albedo toward a real ground's reflectance, c / (1 + terrain_grade × the luminance of its ≈ 32 m
 // mean): the photo already holds the sun's light, so bright sand lit again washed out to grey-white under the tone
 // mapper. Hue and saturation stay; dark ground changes little.
 global uniform float terrain_grade;
-// With the grade on, the land's albedo × terrain_grade_tint (each project's own value, project.godot): white in the
-// original game; in Modern IAF a constant gold at every hour, matched to a late-afternoon photo of Makhtesh Ramon
-// (modern-iaf/docs/terrain.md §15). The sea, inland water and the Detailed airbases' pavement keep their own colour.
-global uniform vec3 terrain_grade_tint;
-// A tint other than white leaves built-up ground grey (its brightness, not its colour): grey ground is the photo's
-// chroma (≈ sRGB) under BUILT_LO–BUILT_HI at its ≈ 32 m mean and 0.04 more at the pixel, the ground-texture blend's
-// own grey / coloured test (Modern IAF's towns: modern-iaf/docs/scenery.md §7).
-const float BUILT_LO = 0.11;
-const float BUILT_HI = 0.16;
-// The photo's local contrast (each project's own value, project.godot): 1 in the original game (unchanged); in Modern
-// IAF the photo's detail against its ≈ 32 m mean × terrain_photo_detail. The sim's colour match to Sentinel-2 scales
-// each Survey sheet to the satellite's spread (0.6–0.7 in the Negev), which flattened the 2 m photo's wadis and streets
-// (modern-iaf/docs/terrain.md §9.1).
-global uniform float terrain_photo_detail;
 // Ground textures (ground_tex > 0): a macro tint, the ground's colour ±GT_MACRO in tone and warmth over ≈ 300 m and
 // ≈ 1.2 km patches, which breaks the photo's repeats and its sheets' flat areas (modern-iaf/docs/terrain.md §13).
 const float GT_MACRO = 0.08;
@@ -592,27 +575,10 @@ void fragment() {
 		ALBEDO *= mix(vec3(1.0), WARM, kw);
 	}
 	// The photo's mean 4 mip levels coarser than the pixel's own (≈ 32 m near the camera; a bias, so 16 × the pixel's
-	// footprint farther out): the base of the detail gain and of the grade's knee.
+	// footprint farther out): the base of the grade's knee.
 	float lum_mean = 0.0;
-	vec3 blur_mean = vec3(0.0);  // the ≈ 32 m mean itself: the grade tint's built-up test
-	if (terrain_photo_detail != 1.0 || terrain_grade > 0.0) {
-		vec3 blur = texture(colour_tex, UV, 4.0).rgb;
-		blur_mean = blur;
-		lum_mean = dot(blur, vec3(0.2126, 0.7152, 0.0722));
-		if (terrain_photo_detail != 1.0) {
-			// In luminance only, so the photo's chroma noise is not raised with it; and only the band from ≈ 4 m (one
-			// mip level coarser) to the 32 m mean, so its pixel noise and JPEG blocks near the camera stay as they are:
-			// the wadis, field edges and streets gain, not the grain.
-			float l = dot(ALBEDO, vec3(0.2126, 0.7152, 0.0722));
-			float l_mid = dot(texture(colour_tex, UV, 1.0).rgb, vec3(0.2126, 0.7152, 0.0722));
-			// Near the camera (under ≈ 600 m) the close up's own layers carry the detail; there the photo's mottle,
-			// raised, read as noise (at Ein Bokek from 300 m).
-			// ponytail: compensates the sim's Survey colour match (sim_terrain.rs sheet_gains scales each sheet's spread to
-			// Sentinel-2's at 40 m). Root fix: a match that keeps the photo's local spread, then this goes back to 1
-			// (a theatre rebuild, no download; modern-iaf/docs/terrain.md §9.1).
-			float g = (terrain_photo_detail - 1.0) * (1.0 - sea) * (1.0 - wm) * smoothstep(250.0, 700.0, length(VERTEX));
-			ALBEDO *= clamp((l + (l_mid - lum_mean) * g) / max(l, 1e-4), 0.25, 2.0);
-		}
+	if (terrain_grade > 0.0) {
+		lum_mean = dot(texture(colour_tex, UV, 4.0).rgb, vec3(0.2126, 0.7152, 0.0722));
 	}
 	if (ground_tex > 0.0) {
 		mat2 rm = mat2(vec2(0.6, 0.8), vec2(-0.8, 0.6));
@@ -664,10 +630,6 @@ void fragment() {
 				// Drier: paler and a little less saturated, keeping its hue (halving the chroma turned pale rock
 				// and soil white).
 				vec3 dry = mix(vec3(lum), c, 0.8) * 1.2;
-				if (terrain_patch_hue < 1.0) {
-					deep = mix(c * 0.7, deep, terrain_patch_hue);
-					dry = mix(c * 1.2, dry, terrain_patch_hue);
-				}
 				vec3 lc = patch < 0.0 ? mix(c, deep, -0.8 * patch) : mix(c, dry, 0.5 * patch);
 				lc *= 1.0 + 1.3 * n3 + 0.5 * n2;
 				// Grey ground: a faint grain.
@@ -951,18 +913,6 @@ void fragment() {
 		// By the ≈ 32 m mean's luminance: one factor over a neighbourhood keeps the local contrast's ratios (by the
 		// pixel's own luminance the knee flattened the wadis: its slope at sand is a seventh).
 		ALBEDO /= 1.0 + terrain_grade * lum_mean;
-		vec3 tint = terrain_grade_tint;
-		if (tint != vec3(1.0)) {
-			// Built-up ground: the tint's brightness without its colour (grey pavement, not gold). No texture read of
-			// its own (two cost 1.5 ms on the Iris Xe): the grade's ≈ 32 m mean and the pixel's albedo.
-			vec3 bs = sqrt(blur_mean);
-			vec3 ps = sqrt(max(ALBEDO, vec3(0.0)));
-			float cb = max(bs.r, max(bs.g, bs.b)) - min(bs.r, min(bs.g, bs.b));
-			float cp = max(ps.r, max(ps.g, ps.b)) - min(ps.r, min(ps.g, ps.b));
-			float built = (1.0 - smoothstep(BUILT_LO, BUILT_HI, cb)) * (1.0 - smoothstep(BUILT_LO + 0.04, BUILT_HI + 0.04, cp));
-			tint = mix(tint, vec3(dot(tint, vec3(0.2126, 0.7152, 0.0722))), built);
-		}
-		ALBEDO *= mix(tint, vec3(1.0), max(max(sea, wm), paved_k));
 	}
 	if (city_glow_k > 0.0) {
 		// The haze over the dense lamp clusters (city_glow.gdshaderinc).

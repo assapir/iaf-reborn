@@ -27,7 +27,7 @@ func drop(t: Node3D) -> void:
 
 
 ## The original's defaults leave the picture as before the Colour grading and Ground textures rows (docs/rendering.md
-## §1.9, §1.4): no albedo knee, no far layer or macro tint, the patches' hue as before, the Environment's adjustments
+## §1.9, §1.4): no albedo knee, no far layer or macro tint, the Environment's adjustments
 ## and the auto-exposure's target the scene's own.
 func _check_grading_off(tv: Node) -> void:
 	var ro: GDScript = load("res://shared/terrain/render_options.gd")
@@ -35,14 +35,6 @@ func _check_grading_off(tv: Node) -> void:
 	# terrain_view.tscn's Environment sets no adjustments: Godot's defaults.
 	var scene_env := Environment.new()
 	check(ro.terrain_grade == 0.0 and ro.ground_tex == 0.0, "defaults: no grading, no ground textures")
-	check(
-		ProjectSettings.get_setting("shader_globals/terrain_patch_hue").value == 1.0,
-		"the close up's patches keep their hue in the original game"
-	)
-	check(
-		ProjectSettings.get_setting("shader_globals/terrain_grade_tint").value == Vector3.ONE,
-		"the grade's ground tint is white in the original game (its Natural as before)"
-	)
 	check(
 		(
 			env.adjustment_enabled == scene_env.adjustment_enabled

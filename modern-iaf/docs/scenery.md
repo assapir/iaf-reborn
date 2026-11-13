@@ -329,8 +329,9 @@ missing". What the sim draws now:
 - **Wall detail**: ribbon windows that stay bands far away, a dark line at the top 0.5 m of every wall (the parapet),
   the sunward wall lit warm (× 1.06 / 1.0 / 0.9), the wall away from the sun × 0.55, and the lowest 10 m a shade darker
   with less sky light (a street-canyon term; no neighbour lookup).
-- **City ground**: the gold tint of Colour grading Natural ([terrain.md](terrain.md) §15) leaves built-up ground grey
-  (the tint's brightness without its colour), so the streets read as pavement, not sand.
+- **City ground**: until 2026-11-13 the gold tint of Colour grading Natural left built-up ground grey (the tint's
+  brightness without its colour). The tint is gone ([terrain.md](terrain.md) §15), so
+  the streets keep the photo's own grey with no test of their own.
 - **Roads** (Roads Detailed, docs/rendering.md §1.8): the road mask at 6 m texels over
   12.3 km instead of 2 m over 4.1 km, every road drawn to 5.5 km (was 1.5 km) as dark asphalt (sRGB 70 / 70 / 72),
   2.5 m wider each side (the carriageway with its kerb lane, as the photo shows the street), and the fade where the 2 m

@@ -432,7 +432,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     a low sun, darker where thick; rendering.md §2), dark blue-grey at night. The original's cloud texture choice (one of six per
     mission, Cloud256_5 nearly overcast) is kept. The sky follows the time of day's sun (rendering.md §4); at night
     the gradient sky is drawn.
-    Sky: Levant (2026-11-09, the look study's proposal 4; Modern IAF's profile picks it) = the Atmospheric sky tuned
+    Sky: Levant (2026-11-09, the look study's proposal 4; Modern IAF's profile picked it until 2026-11-13) = the Atmospheric sky tuned
     toward a dusty Levant summer, as in the study's Epic Fury reference: a slightly deeper blue up high, the haze in
     a thinner layer (scale height 800 m) with its own long path near the horizon and a warm dust term, so a pale
     warm band lies low on the horizon, and the haze over the far land warm brown-grey (most of the fog's colour
@@ -543,7 +543,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 - **Colour grading** (ours, Graphics → MORE, docs/rendering.md §1.9; 2026-11-09). Rendering only; the default is
   Original (the photo lit as it is). Natural: the imagery's albedo toward a real ground's reflectance (bright ground
   darkened most), a little contrast and saturation after the tone mapper, and with the Atmospheric sky an exposure
-  target for the darker ground. Modern IAF has it on.
+  target for the darker ground. Modern IAF keeps Original (it had Natural from 2026-11-09 to 2026-11-13).
 - **Roads** (ours, docs/rendering.md §1.8). Rendering only; the default is Original (the imagery's own roads).
   - Detailed: within 1.5 km of the camera, OpenStreetMap's roads drawn on the ground (asphalt or dirt, at the road's
     width) where the imagery is too coarse to show them; over the Survey 2 m photo only the narrow streets and tracks.

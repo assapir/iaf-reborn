@@ -137,7 +137,7 @@ func run() -> void:
 	s.upscaling = "quality"
 	s.safe = s.parse_safe()
 	s._apply_profile()
-	check(s.sky == "levant" and s.cockpit_at_origin() and s.hud_daylight(), "no IAF_SAFE: the features on")
+	check(s.sky == "atmospheric" and s.cockpit_at_origin() and s.hud_daylight(), "no IAF_SAFE: the features on")
 	s.safe = PackedStringArray(s.SAFE.keys())
 	s._apply_profile()
 	for n in s.SAFE:

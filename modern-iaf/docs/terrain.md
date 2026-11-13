@@ -300,8 +300,8 @@ Why the sim's ground was soft, measured on 2026-11-09:
   to Sentinel-2 scales each sheet to the satellite's spread at 40 m: the Negev sheet MZR by 0.63 / 0.71 / 0.62
   (`.work/gains.tsv`). Its tile under the Negev pose (L1 71 / 178) has a 32 px spread of 5.2 at a mean of 212; the
   original's (L1 182 / 256) 9.9 at a mean of 87, so the wadis are five times fainter against the ground. The
-  shared shader now raises the photo's 4–32 m band in the sim by 2.5 (`terrain_photo_detail`, docs/rendering.md
-  §1.9). Open: a colour match that keeps the photo's own spread (§10).
+  shared shader raised the photo's 4–32 m band in the sim by 2.5 from 2026-11-09 to 2026-11-13 (`terrain_photo_detail`,
+  dropped, §15). Open: a colour match that keeps the photo's own spread (§10).
 - **The first grade**: its knee by each pixel's own luminance flattened the bright ground's detail (the Negev's
   Laplacian 12 → 4.8). It now divides by the neighbourhood's mean.
 - **The haze**: Sky Levant's haze lowers the Negev's Laplacian by about a third against Atmospheric (49 against 74
@@ -324,7 +324,7 @@ What differed, and what the sim does now:
   for those grey hills (`terrain_warm`) stays off in the sim, whose photo is already tan.
 - **Exposure and tone mapping**: the same shared scene and AgX tone mapper in both. The sim's tiles are brighter than
   the original's layer, so the same light washed them out more: the photo is lit a second time, and AgX pulls bright
-  ground to grey-white. Fixed by Colour grading Natural in the sim's profile (docs/rendering.md §1.9): the albedo
+  ground to grey-white. Fixed then by Colour grading Natural in the sim's profile (until 2026-11-13, §15; docs/rendering.md §1.9): the albedo
   toward a real reflectance, contrast 1.15 and saturation 1.1 after the tone mapper, the exposure target 0.6.
 - **The ground textures**: both draw them; the sim's own setup now fetches them (its optional step `sim-textures`,
   [setup.md](setup.md)), where it relied on the original game's setup before. Farther out they now hold as the land
@@ -377,12 +377,9 @@ build agree within 0.1 level on average).
 
 - **The colour match's spread** (the follow-up to §9.1): `sheet_gains` (`crates/iaf-tools/src/sim_terrain.rs`)
   scales each Survey sheet's spread to Sentinel-2's at 40 m, which leaves the photo's local detail 0.6–0.7 as strong
-  in the Negev. The shader raises it back (`terrain_photo_detail`
-  4.5 since 2026-11-11, §15; 2.5 before). The root fix is a match that keeps the
-  photo's own local spread (the means and the large-scale tone from Sentinel-2, the detail under ≈ 40 m the photo's),
-  with `terrain_photo_detail` back to 1. It changes the whole theatre's look, so it needs new pictures and approval,
-  and a rebuild of the theatre (CPU only, no download: `gains.tsv` measured again from the kept sources; long on a
-  Mac).
+  in the Negev. The shader raised it back from 2026-11-09 to 2026-11-13 (`terrain_photo_detail` 2.5, then 4.5;
+  dropped, §15). The fix ordered on 2026-11-13: the photo levelled per sheet as the original game's (no match to
+  Sentinel-2), its coarser levels built from it; a rebuild of the theatre (CPU only, no download).
 - **Other censored sites**: the Survey photo also paints over military sites other than the four bases; there the
   made-up ground shows (open: no list of them).
 - **Survey and Sentinel-2 look**: the per-sheet colour match leaves the 2 m photo crisper and a little lighter than
@@ -479,9 +476,9 @@ Measured 2026-11-08 at Ein Bokek, 300 m behind the jet over the Dead Sea shore (
 off alone; with the grain off alone it stayed. The deeper colour (c² / luminance) of a pale beige is orange, and the
 2 m photo needs no made-up patches. The original game's picture at the same settings is unchanged, pixel for pixel.
 
-Since 2026-11-09 the sim draws the patches again, in tone only: the global `terrain_patch_hue` is 0 in
-`modern-iaf/project.godot` (1 in the original game's), so a patch is the ground's own colour × 0.7 or × 1.2, never a
-deeper hue, at 0.4 of the original's strength (`terrain_patches` 0.4; 1 in the original game). With the colour grading
+From 2026-11-09 to 2026-11-13 the sim drew the patches in tone only: the global `terrain_patch_hue` 0, so a patch
+was the ground's own colour × 0.7 or × 1.2, never a deeper hue, at 0.4 of the original's strength. Since 2026-11-13
+the sim draws them as the original game does (§15). With the colour grading
 the pale marl no longer sits in the tone mapper's shoulder, so full-strength patches read as a brown mottle at Ein
 Bokek from 300 m (measured 2026-11-09: 32 px luminance spread 16.3 at 1, 15.1 at 0.4).
 
@@ -504,8 +501,8 @@ already downloads, rasterised beside the water flags (open).
 
 ## 14. The sky and the horizon haze
 
-The sim's profile flies the shared Sky row's Levant value (docs/rendering.md §1.2 "Sky Levant", 2026-11-09, the
-look study's proposal 4): the Atmospheric sky with a deeper blue up high, a warm haze band low on the horizon, and the
+Since 2026-11-13 the sim flies the Atmospheric sky, as the original game at its best (§15). From 2026-11-09 to then its
+profile flew the shared Sky row's Levant value (docs/rendering.md §1.2 "Sky Levant", the look study's proposal 4): the Atmospheric sky with a deeper blue up high, a warm haze band low on the horizon, and the
 far land's haze warm brown-grey in place of a cool blue-white. The original game keeps its own Sky row's default.
 
 Measured at the look study's Shoham pose (`--at 672750 3537452 240 100 0 --freeze`, heading 100°, the sim's defaults,
@@ -533,14 +530,48 @@ darker haze would need the ground's colours too).
 | 16:58 | ![16:58 before](pictures/sky/shoham_1658_before.jpg) | ![16:58 after](pictures/sky/shoham_1658_after.jpg) |
 
 
-## 15. The ground against a photo (A17, 2026-11-11)
+## 15. The ground as the original game's (2026-11-13)
+
+Since 2026-11-13 the sim renders its ground on the original game's path with the original game's values, as its
+player flies it at its best (Imagery Survey 2 m modern, Sky Atmospheric, Colour grading Original, Terrain close up,
+Water). The user, that day, comparing the two: "the ground (terrain itself) in reborn look so much better, just copy
+what it does … it all should be shared between." What changed in the sim:
+
+- **The shader globals are one set**: the same values in both projects' `project.godot`; the sim's own
+  (`terrain_grade_tint`, `terrain_photo_detail`, `terrain_patch_hue`, `terrain_patches` 0.4) are gone, and the
+  globals and shader code that only they used with them.
+- **Sky Atmospheric and Colour grading Original** in the sim's profile (`sim_settings.gd` PROFILE), the original
+  game's values. Sky Levant and Natural stay the original game's own Preferences choices.
+- **Kept**: the A20 towns and roads (the roofs' and walls' colours, the roads to 5.5 km); the ground textures
+  (ambientCG) and the Detailed airbases.
+- **Open**: the data. The sim's 2 m photo is still matched to Sentinel-2 (§3, `sheet_gains`), brighter and flatter
+  than the original game's, so the ground reads pale (the "after" column).
+
+Same place, hour (11:00), camera and settings, scenery off (pictures: `_imagery_shot.gd` on the Mac, 1920 × 1080):
+
+| | The original game | The sim before | The sim after |
+|---|---|---|---|
+| The Judean hills by Jerusalem | ![original](pictures/ground/g13_jlm_original.webp) | ![before](pictures/ground/g13_jlm_before.webp) | ![after](pictures/ground/g13_jlm_after.webp) |
+| The Negev south-west of Ramon | ![original](pictures/ground/g13_ramon_original.webp) | ![before](pictures/ground/g13_ramon_before.webp) | ![after](pictures/ground/g13_ramon_after.webp) |
+
+Mean sRGB of the frames' lower 45 % (the original game / the sim before / the sim after): Ramon 115 / 116 / 114,
+167 / 134 / 73, 201 / 186 / 168; the fields 131 / 115 / 114, 124 / 83 / 30, 158 / 126 / 99; Tel Aviv 131 / 137 / 151,
+110 / 100 / 86, 159 / 153 / 147; Jerusalem 135 / 130 / 121, 132 / 112 / 68, 170 / 160 / 146. The original game's
+pictures are the same before and after, pixel for pixel. Frame cost: none (the sim's shader does less: no detail
+gain's two samples, no tint).
+
+### 15.1 Tried and dropped: the ground against a photo (A17, 2026-11-11 to 2026-11-13)
+
+Dropped on 2026-11-13 by the user's verdict above: the gold tint and the detail gain turned the Judean hills into a
+harsh, noisy gold with a black speckle (the "before" column; the Mac's maximum-settings showcase of that day showed
+the same), nothing like the original game's photo. The Levant sky (A16, "the haze stays") went with it. What A17 was:
 
 The reference is a photo of Makhtesh Ramon from the air in the late afternoon: "Israel-2013-Aerial 00-Negev-Makhtesh
 Ramon" by Godot13[^ramon-photo]. It is a comparison only; no pixel of it is in the game. Against it the sim's ground
 was salmon-grey where the photo's is golden, and flat in its local contrast. The look study (look batch 1) proposed
 three causes; the user approved the first two. The third, the haze, stays as it is (A16).
 
-What the sim's profile does now (each project's own shader globals in `project.godot`):
+What the sim's profile did (each project's own shader globals in `project.godot`):
 
 - **Golden sunlight on the ground**: with Colour grading Natural, the land's albedo is multiplied by
   `terrain_grade_tint` after the grade's knee (docs/rendering.md §1.9): 0.86 / 0.78 / 0.43 in the sim, white in the

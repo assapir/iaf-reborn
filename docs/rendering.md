@@ -26,7 +26,7 @@ TAA = temporal anti-aliasing, FSR = AMD FidelityFX Super Resolution.
 | Upscaling | Native / Quality / Balanced | the 3D scene's render scale: Native 1.0; Quality 0.77; Balanced 0.67 of the window. With Anti-aliasing MSAA 4x / + FXAA / TAA a spatial upscaler scales it up: MetalFX spatial on Metal, FSR 1 on other drivers (`render_options.gd upscale_mode()`), and the Anti-aliasing row still applies. With Anti-aliasing FSR 2 the temporal upscaler does it (FSR 2.2, MetalFX temporal on Metal), at Native as anti-aliasing only (§1.7). The 2D cockpit, HUD and MFDs are canvas items, drawn after the upscale at the window's resolution. Godot lowers the texture mip bias by log2(scale). Spatial saves 0.6 ms (Quality) / 1.4 ms (Balanced) at 4K today, 4.6 / 6.3 ms with SSAO + SSIL; Balanced breaks one-pixel 3D lines into dots (docs/graphics-research.md §3.10) |
 | Terrain close up | Original / Detailed | 16× anisotropic filtering (default 4×) for the grazing view of the ground, and in `terrain.gdshader` detail that follows the imagery, with a weight k fading from 1 at 300 m to 0 at 1.5 km (§1.1) |
 | Sky | Original / Atmospheric / Levant | Original: our gradient sky (ProceduralSkyMaterial) with the fixed fog colour. Atmospheric (by day; at night the Original sky): `atmosphere.gdshader`, a clear-day sky computed from the sun's direction and the camera's altitude. The fog takes its colour from the sky (`fog_aerial_perspective` 1, `fog_sun_scatter` 0.1) and keeps its density (the original's fog distances). The ambient light is that sky's, and a bounded auto-exposure adapts the 3D view by at most 1.25× either way (§1.2). The cloud layer shows separate clouds (§1.2). Glow / bloom is off (it cost 3 ms). Levant: the Atmospheric sky toward a dusty Levant summer, a warm haze band low on the horizon (§1.2 "Sky Levant") |
-| Colour grading | Original / Natural | Natural: the imagery's albedo toward a real ground's reflectance (bright ground darkened most), a little contrast and saturation after the tone mapper, and with the Atmospheric sky an exposure target for the darker ground (§1.9). Modern IAF has it on |
+| Colour grading | Original / Natural | Natural: the imagery's albedo toward a real ground's reflectance (bright ground darkened most), a little contrast and saturation after the tone mapper, and with the Atmospheric sky an exposure target for the darker ground (§1.9). Modern IAF keeps Original |
 | Night lights | Original / Detailed | Original: the original's light points (§4). Detailed: glowing lights, the home airbases lit at night, the jets' navigation lights and strobe, stars, a moon and moonlight (§5), the towns' lights from the scenery's buildings (§5.1) |
 | Night vision (Shift+N) | Off / Goggles | Goggles: Shift+N in flight puts the night-vision goggles on and off: the 3D view turns into a green image-intensified picture, the cockpit stays as it is (§8) |
 | Water | Original / Detailed | in `terrain.gdshader`: waves, sun glint and the sky's reflection on the sea and on lakes (§1.3) |
@@ -52,10 +52,9 @@ treats three kinds of ground:
   - Patches (noise tile 420 m, ≈ 40 m features, plus the 9 m clumps) move the colour toward a deeper, more saturated
     version of itself (c²/luminance: growth, wet soil) or toward a paler, drier one (a fifth desaturated × 1.2, its
     hue kept; until 2026-10-28 half-desaturated × 1.3, which turned pale rock and soil white). Their strength is the
-    global `terrain_patches` (1 in the original game, 0.4 in Modern IAF) and their hue the global `terrain_patch_hue`, each project's own value
-    in its `project.godot`: 1 in the original game; 0 in Modern IAF, where the patches keep the ground's own colour,
-    only darker (× 0.7) or lighter (× 1.2). There the deeper colour turned the 2 m photo's pale desert into an orange
-    speckle (modern-iaf/docs/terrain.md §13).
+    global `terrain_patches`, 1 in both projects (0 with Modern IAF's `IAF_SAFE=patches`). Modern IAF drew them at 0.4
+    and in tone only (`terrain_patch_hue` 0) from 2026-11-09 to 2026-11-13; dropped when the sim took the original
+    game's ground values (modern-iaf/docs/terrain.md §13, §15).
   - A grain follows (16 m tile, ≈ 1.6 m features, ± ≈ 15 %), with normal detail from the noise's normal map at the
     grain's scale.
 - **Grey ground** (asphalt, concrete, rock): a faint grain only (± ≈ 4 %) and a fifth of the normal detail, so runways
@@ -184,7 +183,7 @@ sky follows `LIGHT0_DIRECTION`.
 The art pipeline stays 4× Lanczos everywhere; nothing uses AI upscaling. The canopy frame and the HUD (head-up
 display) are the 2D cockpit art, so the 3D anti-aliasing does not touch them.
 
-**Sky Levant** (2026-11-09; the Sky row's third value, Modern IAF's profile; the look study's proposal 4). The
+**Sky Levant** (2026-11-09; the Sky row's third value; Modern IAF's profile until 2026-11-13, now Atmospheric; the look study's proposal 4). The
 Atmospheric sky with `RenderOptions.LEVANT`'s shader values, toward a dusty Levant summer as in the study's Epic
 Fury reference (a deeper blue overhead, a warm brown-grey haze low on the horizon over the far hills):
 
@@ -937,23 +936,16 @@ Natural grades the picture in three parts (`shared/terrain/render_options.gd`, `
   darker ground does not raise the exposure back.
 
 Original (the default) leaves all three as before: the global is 0 and the Environment keeps its own adjustments.
-Modern IAF has Natural in its profile. With the grade on, the land's albedo is also multiplied by the
-global `terrain_grade_tint` (each project's own value in `project.godot`; the sea, inland water and the Detailed
-airbases' pavement keep their colour): white in the original game, so its Natural is as before; 0.86 / 0.78 / 0.43
-in Modern IAF, a gold matched to a late-afternoon photo of Makhtesh Ramon, the same at every hour
-(modern-iaf/docs/terrain.md §15). The values were chosen on 2026-11-09 from six sets at four poses
+Modern IAF had Natural in its profile, with a gold tint on the land (`terrain_grade_tint` 0.86 / 0.78 / 0.43), from
+2026-11-09 to 2026-11-13; dropped for the original game's Original (modern-iaf/docs/terrain.md §15). The values were chosen on 2026-11-09 from six sets at four poses
 (modern-iaf/docs/terrain.md §9.1): GRADE 3.0, contrast 1.15, saturation 1.1, exposure 0.6. The knee costs +0.08 ms
 GPU on an Iris Xe 500 m over the Negev (in-place bench, quartiles −0.03 / +0.12). The adjustments' pass is estimated
 at 0.1–0.2 ms. No video memory.
 
-The photo's detail (the global `terrain_photo_detail`, each project's own value in `project.godot`): 1 in the
-original game, where the shader skips it; 4.5 in Modern IAF (2.5 until
-2026-11-11, modern-iaf/docs/terrain.md §15). The luminance of the band between the photo's ≈ 4 m and
-≈ 32 m means (one and four mip levels coarser than the pixel's own, so 2 and 16 times its footprint farther out) is raised by that factor, as a factor on the pixel's own colour
-(clamped to 0.25–2), so its chroma noise and its single-pixel grain stay; it fades in from 250 to 700 m from the
-camera, where the close up's own layers carry the detail. The sim needs it because its colour match to Sentinel-2
-scaled each Survey sheet to the satellite's spread (modern-iaf/docs/terrain.md §9.1; the root fix is open, §10). Cost: +0.69 ms GPU 500 m over the
-Negev (in-place bench, quartiles +0.58 / +0.80; the two extra samples of the photo, shared with the knee).
+Tried and dropped (2026-11-09 to 2026-11-13): the photo's detail gain (the global `terrain_photo_detail`, 2.5 then 4.5
+in Modern IAF): the luminance of the band between the photo's ≈ 4 m and ≈ 32 m means raised by that factor, for the
+sim's Survey photo flattened by its colour match to Sentinel-2. It turned the Judean hills' scrub into a gold-black
+speckle; the user's verdict and the pictures in modern-iaf/docs/terrain.md §15.
 
 ## 2. Cloud layer (Graphics TEXTURED SKY, docs/front-end.md §12.4)
 
