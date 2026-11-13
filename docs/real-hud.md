@@ -428,6 +428,8 @@ The forward virtual HUD:
   and the radar altitude `R15060`.
 - The `-W-` waterline; the horizon with a centre gap; the ladder (climb solid, tips down; dive dashed, tips up; `-5`,
   `-10` numbered at the left); the FPM with an energy caret.
+  The horizon lies on the true horizontal, as on every Real HUD (`hud.gd` `real_hud()`, [cockpit.md "Real
+  HUD"](cockpit.md#real-hud-ours-extras--hud)); in the air the terrain's edge sits below it by the horizon dip.
 - Bank scale at the bottom.
 - Lower left: the master mode `AA1`, the weapon `2 AIM-A`, `ARM`.
 - Lower right: TACAN (tactical air navigation) `82X 11.8`; the steerpoint `001 110/22.0` (number, bearing / range);

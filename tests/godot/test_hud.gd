@@ -136,6 +136,30 @@ func run() -> void:
 		absf(conf[0].y - hz.y) < 0.5,
 		"conformal: the horizon rung on the world's horizon at 20° (%.2f vs %.2f)" % [conf[0].y, hz.y]
 	)
+	# The Real HUD's / F-35I helmet's horizon (real_hud()) on the world's horizon at 10° nose up, the eye 12° below the
+	# nose, looking ahead and 40° aside (placed from the nose it sat above, by ~35 % of the pitch with the head aside).
+	settings().hud_style = "real"
+	var st: Dictionary = cp.state
+	var was := [st.get("pitch"), st.get("heading"), st.get("roll")]
+	for yaw in [0.0, 40.0]:
+		hud.camera.global_basis = Basis.from_euler(Vector3(deg_to_rad(-2.0), deg_to_rad(-yaw), 0))
+		st.pitch = 10.0
+		st.heading = 0.0
+		st.roll = 0.0
+		hud._real_frame = -1
+		hud.real_hud()
+		var hz_at: Vector2 = hud.global_position + hud._c + Vector2(hud._real_in.horizon) * hud._s
+		var cm: Camera3D = hud.camera
+		var true_y := cm.unproject_position(cm.global_position + Vector3(0, 0, -1) * 100000.0).y
+		check(
+			absf(hz_at.y - true_y) < 0.5,
+			"Real HUD, 10° nose up, head %d°: the horizon on the world's (%.2f vs %.2f)" % [yaw, hz_at.y, true_y]
+		)
+	st.pitch = was[0]
+	st.heading = was[1]
+	st.roll = was[2]
+	hud._real_frame = -1
+	settings().hud_style = "original"
 
 	await _traced(tv)
 

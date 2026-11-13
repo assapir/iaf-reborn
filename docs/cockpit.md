@@ -319,9 +319,13 @@ the cockpit:
 * **Clip at the panel**: the HUDs (the F-35I's helmet excepted) are cut at the panel's top edge (`panel_top()`, which
   follows the panel slide), so the glareshield hides what falls below the glass. The original HUD draws over the
   panel. While the DASH draws there is no cut.
-* **Ladder**: referenced to the nose. Its horizon is placed from the nose's point on the HUD by the jet's pitch and
-  roll, at the view centre's scale (linear in degrees), so it holds past the vertical (the camera looks 5.5° below
-  the nose and passes the vertical first).
+* **Ladder**: its horizon is the projected level point along the heading while the pitch is within 20°
+  (`HORIZON_EXACT_DEG`), so the 0° line lies on the world's true horizontal, looking ahead or aside and at every zoom.
+  Steeper, it is placed from the heading's point 20° from the nose by the rest of the angle and the roll, at the view
+  centre's scale (linear in degrees), so it holds past the vertical. Placed from the nose at every pitch (before
+  2026-11-13), the screen's perspective put the horizon above the true one: ~4 % of the pitch looking ahead, ~35 %
+  with the head 40° aside. Over our flat world the terrain's edge (200 km, the camera's far plane) lies below the 0°
+  line by atan(height / 200 km): 0.4° at 1,500 m, 1.7° at 6,000 m (the real Earth's dip: 1.2° and 2.5°).
 * **Hidden**: the original's ladder, marker, scales, text block, gun cross, waypoint marker, target box and weapon
   symbols. The ILS (except on the F-15 and Lavi, which draw their own: `hud.gd` `real_ils`), the BORE (boresight)
   cross and the TV / HARM seeker diamonds stay.

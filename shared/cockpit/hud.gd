@@ -14,6 +14,9 @@ const Mfd := preload("res://shared/cockpit/mfd.gd")
 ## v1.1 ladder scale (original 640x480 pixels per degree) and rungs drawn: ±15° around the marker.
 const LADDER_PX_PER_DEG := 12.0
 const LADDER_RUNGS := 7
+## The Real HUD's horizon is the projected level point while the pitch is within this (°); steeper, it is placed from
+## the point this far from the nose (real_hud()).
+const HORIZON_EXACT_DEG := 20.0
 ## GunRetPositionY of the five cockpits v1.1 lowered by 10 px (docs/v1.1.md "Data files"): with v1.0
 ## cockpit data the v1.1 value is used, so the cross sits on the v1.1 bullet line.
 const GUN_RET_V10 := {"cfir": 170.0, "f15": 170.0, "f16": 150.0, "f4-2000": 155.0, "mirage": 130.0}
@@ -622,19 +625,22 @@ func real_hud() -> Dictionary:
 	var wp: Dictionary = cockpit.weapons
 	var rd: Dictionary = cockpit.radar
 	var mode := _mode()
-	# As a real HUD: the horizon straight ahead placed from the nose's point on the HUD by the jet's own pitch along the
-	# ladder's up (its roll), at the view centre's scale (5° up from the view direction): linear in degrees, so it holds
-	# near and past the vertical (the projected level point, 89° off the nose or behind the eye, would blow up; the
-	# camera, 5.5° below the nose, is past the vertical before the jet is).
+	# As a real HUD: the horizon straight ahead is the projected level point along the heading (conformal) while the
+	# pitch is within HORIZON_EXACT_DEG. Steeper, it is placed from the heading's point that far from the nose by the
+	# rest of the angle along the ladder's up (its roll), at the view centre's scale (5° up from the view direction):
+	# linear in degrees, so it holds near and past the vertical (the projected level point, 89° off the nose or behind
+	# the eye, would blow up). Placed from the nose at every pitch (before 2026-11-13), the screen's perspective put the
+	# horizon above the true one by ~4 % of the pitch looking ahead and ~35 % with the head 40° aside.
 	var fwd := -camera.global_basis.z
 	var centre := _project(fwd)
 	var px_deg := (_project(fwd.rotated(camera.global_basis.x, deg_to_rad(5.0))) - centre).length() / 5.0
 	var roll_r := deg_to_rad(float(st.get("roll", 0.0)))
 	var pitch := float(st.get("pitch", 0.0))
 	var hdg := deg_to_rad(float(st.get("heading", 0.0)))
-	var p_r := deg_to_rad(pitch)
-	var nose := _project(Vector3(sin(hdg) * cos(p_r), sin(p_r), -cos(hdg) * cos(p_r)))
-	var horizon := nose - Vector2(-sin(roll_r), -cos(roll_r)) * pitch * px_deg
+	var e := clampf(0.0, pitch - HORIZON_EXACT_DEG, pitch + HORIZON_EXACT_DEG)
+	var e_r := deg_to_rad(e)
+	var anchor := _project(Vector3(sin(hdg) * cos(e_r), sin(e_r), -cos(hdg) * cos(e_r)))
+	var horizon := anchor - Vector2(-sin(roll_r), -cos(roll_r)) * e * px_deg
 	var fpm = _fpm_position()
 	var gun: Vector2 = (gun_cross() - position - _c) / _s
 	var nav := nav_cues(st, cockpit.waypoints, cockpit.current_waypoint)
