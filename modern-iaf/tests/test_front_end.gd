@@ -445,9 +445,9 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	check(_has(fe, "הזרוע הארוכה" if he else "Modern IAF"), "%s: the sim's name in the header" % lang)
 	# Each jet's card: its squadron and base (no wing: the wing is the base).
 	var subs := (
-		[["253 הנגב", "רמון"], ["109 העמק", "רמת דוד"], ["140 נשר הזהב", "נבטים"]]
+		[["201 האחת", "רמון"], ["101 הקרב הראשונה", "רמת דוד"], ["116 אריות הדרום", "נבטים"]]
 		if he
-		else [["253 Negev", "Ramon"], ["109 The Valley", "Ramat David"], ["140 Golden Eagle", "Nevatim"]]
+		else [["201 The One", "Ramon"], ["101 First Fighter", "Ramat David"], ["116 Lions of the South", "Nevatim"]]
 	)
 	for i in 3:
 		(fe.find_child(["sufa", "barak", "adir"][i], true, false) as Button).pressed.emit()
@@ -1008,7 +1008,7 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	check(fe.wind_text({"wind_from": 250, "wind_kt": 8}) == "250° / 8", "%s: wind" % lang)
 	var objs: Control = pane.find_child("Objectives", true, false)
 	check(objs.get_child_count() == 4 and _has_part(objs, "25R"), "%s: briefing: the take-off's objectives" % lang)
-	check(_has_part(pane, "25R · 247°"), "%s: briefing: the runway with its heading" % lang)
+	check(_has_part(pane, "25R · 246°"), "%s: briefing: the runway with its heading" % lang)
 	var steps: GridContainer = pane.find_child("Steps", true, false)
 	check(steps.columns == 4 and steps.get_child_count() == 7 * 4, "%s: briefing: the take-off's seven steps" % lang)
 	check(not _has_part(steps, "מדפים" if he else "Flaps"), "%s: briefing: no flaps step" % lang)
@@ -1021,7 +1021,7 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	check(_has_part(steps, "בקשת כניסה למסלול" if he else "request line-up"), "%s: briefing: the line-up call" % lang)
 	check(_has_part(steps, "אישור המראה" if he else "cleared for take-off"), "%s: briefing: the wait" % lang)
 	check(
-		_has(pane, "846 · טייסת 253 הנגב · רמון" if he else "846 · 253 Squadron Negev · Ramon"), "%s: subtitle" % lang
+		_has(pane, "846 · טייסת 201 האחת · רמון" if he else "846 · 201 Squadron The One · Ramon"), "%s: subtitle" % lang
 	)
 	var credit: Label = fe.find_child("Credit", true, false)
 	check(credit != null and credit.text.strip_edges() == "", "%s: no credit on the Briefing page" % lang)
@@ -1112,6 +1112,9 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	check(fe.find_child("Footer", true, false) != null and _has_part(fe, "OpenStreetMap"), "%s: map: credit" % lang)
 	var foot: Control = fe.find_child("Footer", true, false)
 	check(foot.get_child(-1).name == "Credit", "%s: map: the credit at the footer's inline end" % lang)
+	# The credit reads in the language's direction ("מפה:" with its colon at the word's end, on its left).
+	var credit_label: Label = foot.get_child(-1)
+	check(credit_label.is_layout_rtl() == he, "%s: map: the credit right to left" % lang)
 	# The wheel zooms around the pointer: the map point under it stays; the scale bar follows.
 	var at := map.size * Vector2(0.3, 0.6)
 	var under: Vector2 = map._xf().affine_inverse() * at

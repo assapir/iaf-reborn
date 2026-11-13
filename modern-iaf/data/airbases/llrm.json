@@ -948,12 +948,12 @@
  "squadrons": [
   {
    "unit": "f16i",
-   "number": 253,
+   "number": 201,
    "name": {
-    "en": "Negev",
-    "he": "הנגב"
+    "en": "The One",
+    "he": "האחת"
    },
-   "source": "he_253"
+   "source": "he_201"
   }
  ],
  "sources": {
@@ -966,6 +966,6 @@
  "footnotes": {
   "osm": "OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright (Overpass API, data of 2026-07-24); each item's \"osm\" names its element: https://www.openstreetmap.org/<osm>",
   "oa": "OurAirports, airports.csv and runways.csv (public domain), https://davidmegginson.github.io/ourairports-data/",
-  "he_253": "Wikipedia, טייסת 253 (the IAF's first F-16I squadron, its first two jets landed at Ramon on 2004-02-19), https://he.wikipedia.org/wiki/טייסת_253"
+  "he_201": "Wikipedia, טייסת 201 (\"האחת\", flies the F-16I Sufa from Ramon; the Sufa's model wears its tail art), https://he.wikipedia.org/wiki/טייסת_201"
  }
 }

@@ -170,7 +170,9 @@ func _hint() -> void:
 ## One key: its cap (as the front end's footer) and what it does.
 func _key_row(parent: Control, key: String, what: String, kind: String) -> HBoxContainer:
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
+	# 18 px from the cap to the text: at 12 the Hebrew "תפריט השהיה" read as touching the Esc cap on the Mac
+	# (2026-11-13; measured: no glyph overhangs, the ink gap was the full 12 px, but ת has no side bearing).
+	row.add_theme_constant_override("separation", 18)
 	parent.add_child(row)
 	var cap := PanelContainer.new()
 	var kb := Look.box(Color(Look.BG, 0.7), Look.DIM, 1, 5, Vector2(9, 1))

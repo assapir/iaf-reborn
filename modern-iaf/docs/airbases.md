@@ -74,9 +74,13 @@ Corrections to the brief:
   2021[^scramble101][^scramble105], announced in March 2021[^keyaero]. 117 flies the F-35I at Nevatim[^w-nv].
 
 The squadron the player flies with is in each base file's `squadrons` list (`unit`, `number`, `name` in English and
-Hebrew, `source`: a key of the file's `footnotes`), set in `SQUADRONS` in the script: at Ramon 253 "Negev" (הנגב), the
-IAF's first F-16I squadron[^he-253]; at Ramat David 109 "The Valley" (העמק), which flies the two-seat F-16D[^he-109];
-at Nevatim 140 "Golden Eagle" (נשר הזהב), the first F-35I squadron[^en-140]. The F-15s' squadrons, for their greyed
+Hebrew, `source`: a key of the file's `footnotes`), set in `SQUADRONS` in the script. Each is the squadron whose art
+the jet's model wears (the user, 2026-11-13, "change the string": the text follows the paint, the bases stay): at
+Ramon 201 "The One" (האחת), which flies the F-16I from Ramon[^he-201]; at Ramat David 101 "First Fighter" (הקרב
+הראשונה), at Ramat David since June 2021[^he-101]; at Nevatim 116 "Lions of the South" (אריות הדרום), the F-35I
+since January 2020[^he-116]. Real 101 Squadron flies the single-seat F-16C, the sim's Barak the two-seat F-16D (the
+FlightGear livery's art). Before 2026-11-13 the texts named 253 "Negev", 109 "The Valley" and 140 "Golden Eagle",
+the paint 201, 101 and 116. The F-15s' squadrons, for their greyed
 cards: at Hatzerim 69 "The Hammers" (הפטישים), which flies the F-15I Ra'am[^he-69]; at Tel Nof 133 "Knights of the
 Twin Tail" (אבירי הזנב הכפול), which flies the F-15 Baz[^he-133]. Pick a plane's cards show them (front-end.md §1).
 
@@ -256,8 +260,8 @@ the original's ten names, so Hatzerim and Nevatim had no talking tower; since it
 [^keyaero]: Key.Aero, "Israel set to move two F-16 units to Ramat David", https://key.aero/index.php/article/israel-set-move-two-f-16-units-ramat-david
 [^scramble101]: Scramble, "Israeli Air Force squadron updates" (101 Squadron left Hatzor on 21 June 2021), https://www.scramble.nl/military-news/israeli-air-force-squadron-updates
 [^scramble105]: Scramble, "Final Baraks over Hatzor" (105 Squadron, 17 August 2021), https://scramble.nl/military-news/final-baraks-over-hatzor
-[^he-253]: Wikipedia (Hebrew), "טייסת 253", read 2026-11-09, https://he.wikipedia.org/wiki/טייסת_253
-[^he-109]: Wikipedia (Hebrew), "טייסת 109", read 2026-11-09, https://he.wikipedia.org/wiki/טייסת_109
-[^en-140]: Wikipedia, "140 Squadron (Israel)", read 2026-11-09, https://en.wikipedia.org/wiki/140_Squadron_(Israel)
+[^he-201]: Wikipedia (Hebrew), "טייסת 201" ("האחת"; English: "201 Squadron (Israel)", "The One"), read 2026-11-13, https://he.wikipedia.org/wiki/טייסת_201
+[^he-101]: Wikipedia (Hebrew), "טייסת 101" ("טייסת הקרב הראשונה"; English: "First Fighter Squadron"), read 2026-11-13, https://he.wikipedia.org/wiki/טייסת_101
+[^he-116]: Wikipedia (Hebrew), "טייסת 116" ("אריות הדרום"; English: "Lions of the South Squadron"), read 2026-11-13, https://he.wikipedia.org/wiki/טייסת_116
 [^he-69]: Wikipedia (Hebrew), "טייסת 69", read 2026-11-10, https://he.wikipedia.org/wiki/טייסת_69
 [^he-133]: Wikipedia (Hebrew), "טייסת 133", read 2026-11-10, https://he.wikipedia.org/wiki/טייסת_133

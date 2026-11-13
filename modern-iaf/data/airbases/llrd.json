@@ -1413,12 +1413,12 @@
  "squadrons": [
   {
    "unit": "f16d",
-   "number": 109,
+   "number": 101,
    "name": {
-    "en": "The Valley",
-    "he": "העמק"
+    "en": "First Fighter",
+    "he": "הקרב הראשונה"
    },
-   "source": "he_109"
+   "source": "he_101"
   }
  ],
  "sources": {
@@ -1431,6 +1431,6 @@
  "footnotes": {
   "osm": "OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright (Overpass API, data of 2026-11-02); each item's \"osm\" names its element: https://www.openstreetmap.org/<osm>",
   "oa": "OurAirports, airports.csv and runways.csv (public domain), https://davidmegginson.github.io/ourairports-data/",
-  "he_109": "Wikipedia, טייסת 109 (flies the two-seat F-16D Barak from Ramat David), https://he.wikipedia.org/wiki/טייסת_109"
+  "he_101": "Wikipedia, טייסת 101 (\"טייסת הקרב הראשונה\", at Ramat David since June 2021; the Barak's livery wears its tail art), https://he.wikipedia.org/wiki/טייסת_101"
  }
 }

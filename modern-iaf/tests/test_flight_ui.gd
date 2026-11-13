@@ -123,6 +123,36 @@ func _layout(sim_flight: Node, what: String) -> void:
 		var mid := c.get_rect().get_center().x
 		check(absf(mid - ui.size.x / 2.0) < 2.0 or c.size.x == 0.0, "%s: the %s centred (%d)" % [what, n, mid])
 	check(sim_flight.kneeboard.board.rtl == he, "%s: the notebook's pages in the language" % what)
+	var gap := _ink_gap(ui.find_child("Hint", true, false))
+	check(gap >= 16.0, "%s: the hint's text clear of its key cap (%.1f px of ink gap)" % [what, gap])
+
+
+## The gap (px) between a key row's cap and the ink of its text, measured on the glyphs as drawn (their bitmaps, so
+## a glyph reaching past its advance counts; the Mac's Hebrew "תפריט השהיה" touched the Esc cap, 2026-11-13).
+func _ink_gap(hint: Control) -> float:
+	var cap: Control = hint.find_children("*", "PanelContainer", true, false)[0]
+	var t: Label = cap.get_parent().get_child(1)
+	var font: Font = t.get_theme_font("font")
+	var px: int = t.get_theme_font_size("font_size")
+	var line := TextLine.new()
+	line.direction = TextServer.DIRECTION_RTL if t.is_layout_rtl() else TextServer.DIRECTION_LTR
+	line.add_string(t.text, font, px)
+	var ts := TextServerManager.get_primary_interface()
+	var x := 0.0
+	var ink := Vector2(INF, -INF)
+	for g: Dictionary in ts.shaped_text_get_glyphs(line.get_rid()):
+		var at := Vector2i(px, 0)
+		ts.font_render_glyph(g.font_rid, at, g.index)
+		var off: Vector2 = ts.font_get_glyph_offset(g.font_rid, at, g.index)
+		var sz: Vector2 = ts.font_get_glyph_size(g.font_rid, at, g.index)
+		if sz.x > 0.0:
+			ink = Vector2(minf(ink.x, x + g.offset.x + off.x), maxf(ink.y, x + g.offset.x + off.x + sz.x))
+		x += g.advance * g.repeat
+	# In the row's own frame (both are its children; the UI may be scaled): the label draws its line from its edge.
+	var left := t.position.x + (t.size.x - line.get_line_width()) * (1.0 if t.is_layout_rtl() else 0.0)
+	if cap.position.x > t.position.x:
+		return cap.position.x - (left + ink.y)
+	return left + ink.x - cap.get_rect().end.x
 
 
 func _start(id: int) -> Node:

@@ -88,18 +88,18 @@ PLACED = {
                          (31.8397814, 34.8122581)]]},
 }
 
-# The squadron the pilot flies with, per base: unit id -> (number, English name, Hebrew name, footnote key,
-# citation); modern-iaf/docs/front-end.md §1 (the plane cards).
+# The squadron the pilot flies with, per base (the one painted on the jet's model: the user, 2026-11-13): unit id ->
+# (number, English name, Hebrew name, footnote key, citation); modern-iaf/docs/front-end.md §1 (the plane cards).
 SQUADRONS = {
-    "LLRM": {"f16i": (253, "Negev", "הנגב", "he_253",
-                      "Wikipedia, טייסת 253 (the IAF's first F-16I squadron, its first two jets landed at Ramon on "
-                      "2004-02-19), https://he.wikipedia.org/wiki/טייסת_253")},
-    "LLRD": {"f16d": (109, "The Valley", "העמק", "he_109",
-                      "Wikipedia, טייסת 109 (flies the two-seat F-16D Barak from Ramat David), "
-                      "https://he.wikipedia.org/wiki/טייסת_109")},
-    "LLNV": {"f35i": (140, "Golden Eagle", "נשר הזהב", "en_140",
-                      "Wikipedia, 140 Squadron (Israel) (the IAF's first F-35I squadron, its first two jets in "
-                      "December 2016), https://en.wikipedia.org/wiki/140_Squadron_(Israel)")},
+    "LLRM": {"f16i": (201, "The One", "האחת", "he_201",
+                      "Wikipedia, טייסת 201 (\"האחת\", flies the F-16I Sufa from Ramon; the Sufa's model wears its tail art), "
+                      "https://he.wikipedia.org/wiki/טייסת_201")},
+    "LLRD": {"f16d": (101, "First Fighter", "הקרב הראשונה", "he_101",
+                      "Wikipedia, טייסת 101 (\"טייסת הקרב הראשונה\", at Ramat David since June 2021; the Barak's livery wears its tail art), "
+                      "https://he.wikipedia.org/wiki/טייסת_101")},
+    "LLNV": {"f35i": (116, "Lions of the South", "אריות הדרום", "he_116",
+                      "Wikipedia, טייסת 116 (\"אריות הדרום\", flies the F-35I Adir from Nevatim since January 2020; the Adir's model wears its badge), "
+                      "https://he.wikipedia.org/wiki/טייסת_116")},
     # The F-15s' squadrons: Pick a plane shows their cards greyed until the sim flies them (front-end.md §1).
     "LLHB": {"f15i": (69, "The Hammers", "הפטישים", "he_69",
                       "Wikipedia, טייסת 69 (\"טייסת הפטישים\", flies the F-15I Ra'am from Hatzerim), "

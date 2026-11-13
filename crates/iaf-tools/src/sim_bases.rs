@@ -923,13 +923,57 @@ pub fn mask(b: &Base) -> Mask {
     for (l, wd) in &b.taxiways {
         stroke(px, l, wd / 2.0, true);
     }
-    for p in b.aprons.iter().chain(&b.shelters) {
+    let polys: Vec<&[[f64; 2]]> = b.aprons.iter().chain(&b.shelters).map(|p| p.as_slice()).collect();
+    let before: Vec<u8> = px.iter().step_by(3).copied().collect();
+    for p in &polys {
         fill_spans(w, h, origin, MASK_PX_M, &[p], |y, x0, x1| {
             for x in x0..x1 {
                 px[(y * w + x) * 3] = 255;
                 px[(y * w + x) * 3 + 1] = 255;
             }
         });
+    }
+    // The outlines' coverage as the runways' and taxiways' (a pixel's width of soft edge, from the signed distance to
+    // the outline): a pixel either in or out left the aprons' slanted edges saw-toothed against the sand (Ramon,
+    // Nevatim, 2026-11-13). A pixel within a pixel of an outline takes its best coverage over the polygons near it.
+    let boxes: Vec<[f64; 4]> = polys
+        .iter()
+        .map(|p| {
+            p.iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |a, q| {
+                [a[0].min(q[0]), a[1].min(q[1]), a[2].max(q[0]), a[3].max(q[1])]
+            })
+        })
+        .collect();
+    let mut edge = vec![false; w * h];
+    for p in &polys {
+        for k in 0..p.len() {
+            let (a, c) = (p[k], p[(k + 1) % p.len()]);
+            let x0 = (((a[0].min(c[0]) - MASK_PX_M - origin[0]) / MASK_PX_M).floor().max(0.0) as usize).min(w);
+            let x1 = (((a[0].max(c[0]) + MASK_PX_M - origin[0]) / MASK_PX_M).ceil().max(0.0) as usize).min(w);
+            let y0 = (((origin[1] - a[1].max(c[1]) - MASK_PX_M) / MASK_PX_M).floor().max(0.0) as usize).min(h);
+            let y1 = (((origin[1] - a[1].min(c[1]) + MASK_PX_M) / MASK_PX_M).ceil().max(0.0) as usize).min(h);
+            for y in y0..y1 {
+                for x in x0..x1 {
+                    edge[y * w + x] |= seg_dist(centre(x, y), a, c) < MASK_PX_M;
+                }
+            }
+        }
+    }
+    for i in (0..w * h).filter(|&i| edge[i]) {
+        let q = centre(i % w, i / w);
+        let cover = polys
+            .iter()
+            .zip(&boxes)
+            .filter(|(_, bb)| q[0] > bb[0] - MASK_PX_M && q[0] < bb[2] + MASK_PX_M)
+            .filter(|(_, bb)| q[1] > bb[1] - MASK_PX_M && q[1] < bb[3] + MASK_PX_M)
+            .map(|(p, _)| {
+                let d = (0..p.len()).map(|k| seg_dist(q, p[k], p[(k + 1) % p.len()])).fold(f64::MAX, f64::min);
+                let signed = if inside(p, q) { d } else { -d };
+                0.5 + signed / MASK_PX_M
+            })
+            .fold(0.0, f64::max);
+        px[i * 3] = before[i].max(byte(cover));
+        px[i * 3 + 1] = byte(cover);
     }
     // Concrete over ≈ 5 m: two 3-pixel box passes on the green channel.
     for _ in 0..2 {
@@ -1965,6 +2009,34 @@ mod tests {
                 passed.iter().any(|s| s.panels.iter().any(|p| p.style == "direction")),
                 "Ramon: no direction sign to 25R: {passed:?}"
             );
+        }
+    }
+
+    /// The aprons' outlines are soft as the runways' (2026-11-13: saw-toothed against the sand at Ramon and Nevatim):
+    /// at every base a third or more of the pixels on a slanted apron edge hold a partial coverage (a hard 0 or 255 before), and the coverage follows the signed
+    /// distance (0.5 on the outline).
+    #[test]
+    fn apron_edges_are_smooth() {
+        for b in load(&data()).unwrap() {
+            let m = mask(&b);
+            let (mut on, mut soft) = (0, 0);
+            for p in &b.aprons {
+                for k in 0..p.len() {
+                    let (a, c) = (p[k], p[(k + 1) % p.len()]);
+                    let (dx, dy) = ((c[0] - a[0]).abs(), (c[1] - a[1]).abs());
+                    if dx.min(dy) < 0.2 * dx.max(dy) || dist(a, c) < 20.0 {
+                        continue; // only slanted edges stair-step
+                    }
+                    for t in 1..20 {
+                        let q = [a[0] + (c[0] - a[0]) * t as f64 / 20.0, a[1] + (c[1] - a[1]) * t as f64 / 20.0];
+                        let (x, y) = ((q[0] - m.origin[0]) / MASK_PX_M, (m.origin[1] - q[1]) / MASK_PX_M);
+                        let v = m.img.get_pixel(x as u32, y as u32)[0];
+                        on += 1;
+                        soft += usize::from((10..=245).contains(&v));
+                    }
+                }
+            }
+            assert!(on == 0 || soft * 3 >= on, "{}: {soft} of {on} apron-edge pixels soft", b.icao);
         }
     }
 

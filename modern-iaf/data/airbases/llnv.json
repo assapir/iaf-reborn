@@ -1278,12 +1278,12 @@
  "squadrons": [
   {
    "unit": "f35i",
-   "number": 140,
+   "number": 116,
    "name": {
-    "en": "Golden Eagle",
-    "he": "נשר הזהב"
+    "en": "Lions of the South",
+    "he": "אריות הדרום"
    },
-   "source": "en_140"
+   "source": "he_116"
   }
  ],
  "sources": {
@@ -1295,6 +1295,6 @@
  "footnotes": {
   "osm": "OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright (Overpass API, data of 2026-11-02); each item's \"osm\" names its element: https://www.openstreetmap.org/<osm>",
   "oa": "OurAirports, airports.csv and runways.csv (public domain), https://davidmegginson.github.io/ourairports-data/",
-  "en_140": "Wikipedia, 140 Squadron (Israel) (the IAF's first F-35I squadron, its first two jets in December 2016), https://en.wikipedia.org/wiki/140_Squadron_(Israel)"
+  "he_116": "Wikipedia, טייסת 116 (\"אריות הדרום\", flies the F-35I Adir from Nevatim since January 2020; the Adir's model wears its badge), https://he.wikipedia.org/wiki/טייסת_116"
  }
 }

@@ -224,8 +224,8 @@ func he() -> bool:
 
 
 ## The jet's squadron at its base ({unit, number, name: {en, he}, source}; {} where the base file names none).
-## "482 · 253 Squadron Negev · Ramon": the jet's tail number (its unit record's `tail`), its squadron and its base (the
-## user, 2026-11-09: the wing is the base, so it is left out).
+## "846 · 201 Squadron The One · Ramon": the jet's tail number (its unit record's `tail`), its squadron and its base
+## (the user, 2026-11-09: the wing is the base, so it is left out).
 func subtitle(j: Dictionary, with_tail := true) -> String:
 	if j.is_empty():
 		return ""
@@ -1253,9 +1253,9 @@ func briefing_map(m: Dictionary, aspect: float, ground := false) -> Dictionary:
 	return d
 
 
-## "25R · 254°": the runway end and its true heading (IafBriefing), left to right.
+## "25R · 246°": the runway end and its grid heading (IafBriefing: the HUD's and the compass's), left to right.
 func runway_text(runway: String, heading) -> String:
-	return runway if heading == null else s("runway_heading") % [runway, int(heading)]
+	return runway if heading == null else s("runway_heading") % [runway, roundi(float(heading))]
 
 
 ## The steps: a start-up's checklist (the rules' `checklist`, the flight's notebook), a take-off's in the order

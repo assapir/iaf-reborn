@@ -175,7 +175,7 @@ centreline in the roll.
   the first strong letter, so without it the line turned left to right and read "סופה F-16I", the code last (the
   user, A31). `test_hangar.gd` checks the code's place on every label that names a jet.
 - **The jet's subtitle** (the top bar, Pick a mission, the briefing): its tail number, its
-  squadron and its base, "846 · 253 Squadron Negev · Ramon", "846 · טייסת 253 הנגב · רמון" (the user, 2026-11-09: the
+  squadron and its base, "846 · 201 Squadron The One · Ramon", "846 · טייסת 201 האחת · רמון" (the user, 2026-11-09: the
   wing is the base, so it is left out). The tail number is the unit record's `tail`, the number painted on the jet's model
   ([data-formats.md](data-formats.md) §3); the squadron is its airbase file's
   ([airbases.md](airbases.md) §3).
@@ -348,6 +348,10 @@ stay the original's (`terrain_view.gd _on_subtitle` hands each line to the fligh
 - **The key hint** at the bottom: Esc and the pause menu. It shows for the first 8 s after the loading screen and
   for 4 s after a language change, then fades out. It is hidden while the pilot's notebook is raised (the user,
   2026-11-10: the hint stays out of the way of the narrative). The pause menu's own key hints are separate.
+  The text stands 18 px from its key cap. At 12 px the Hebrew "תפריט השהיה" read as touching the Esc cap on the
+  Mac (2026-11-13). Measured: no glyph reaches past its advance, so the ink gap was the full 12 px (18 px on the
+  Mac's screen), but Heebo's ת has no side bearing and the cockpit shows through the gap. `test_flight_ui.gd`
+  measures the gap on the glyphs' bitmaps in both languages.
 
 A language switched over the flight (Esc → Preferences → Language) applies at once to the key hint, the panel (an
 open radio menu at once, a training line at the next frame's score), the pilot's notebook ([training.md](training.md)
@@ -557,9 +561,11 @@ focus. The page shown stays for the next mission picked; entering the screen aga
 
 **Briefing:**
 - **The heading:** the title (the mission's kind) and the jet's subtitle (§4).
-- **The facts:** the runway end and its true heading ("25R · 254°"; a take-off only), the time as military time
+- **The facts:** the runway end and its grid heading ("25R · 246°"; a take-off only), the time as military time
   ("0800"), the wind as pilots read it, direction and speed ("250° / 8 kt", "250° / 8 קשר"; calm is "000° / 0 kt"),
   from the mission's `wind_from` and `wind_kt`, the time allowed. Both languages keep the digits left to right.
+  The heading is the grid one, the number the HUD and the compass read (the sim's world is grid north), as in the
+  pilot's notebook and airbases.json; before 2026-11-13 the briefing said true 247° for Ramon's 25R, the HUD 246°.
 - **Objectives:** what the scorer judges ([training.md](training.md) §3), in the rules' figures: a start-up's engine
   at idle and avionics up; a take-off from its runway and the climb-out with the gear up on the runway heading
   (`heading_tolerance_deg`); then the time allowed and the at-once fails (§3.0).
@@ -585,7 +591,7 @@ focus. The page shown stays for the next mission picked; entering the screen aga
   the menu's pick ("Ctrl + T, 2") and the tower's answer to wait for, then the take-off on the runway heading with the
   gear up.
 - **The facts' figures:** each value's figures are a label of their own, left to right, and its unit a label beside
-  them, so "16,069 / 23,582 ק״ג", "000° / 0 קשר" and "25R · 247°" keep their order in a Hebrew line.
+  them, so "16,069 / 23,582 ק״ג", "000° / 0 קשר" and "25R · 246°" keep their order in a Hebrew line.
 
 | the Sufa's start-up, scrolled to its last steps | the Adir's |
 |---|---|
@@ -739,7 +745,7 @@ corner):
 
 | key | meaning |
 |---|---|
-| `base`, `runway`, `heading` | the base's name, the take-off runway end and its true heading (null for a start-up) |
+| `base`, `runway`, `heading` | the base's name, the take-off runway end and its grid heading (null for a start-up) |
 | `north` | true north as a grid bearing (deg) |
 | `size`, `extent` | the map's width and height (m) and its box in the sim's frame, at the screen's aspect: the runways, the start and the route with 6 km around them, at least 50 km on the shorter side |
 | `fills` | the map's polygons cut to the map, in paint order: `color` and `tris` (triangles, `iaf_formats::emf::fill_triangles`, as `IafEmf`) |

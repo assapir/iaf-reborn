@@ -30,7 +30,7 @@ const DETAIL_K := 0.15
 
 ## IafBriefing.map's JSON as a Dictionary, {} for none; `texture`: the ground colour.
 var data := {}
-## The base's label, the runway's label ("25R · 254°"), the start spot's label, the units ("km", "m").
+## The base's label, the runway's label ("25R · 246°"), the start spot's label, the units ("km", "m").
 var base_label := ""
 var runway_label := ""
 var start_label := ""

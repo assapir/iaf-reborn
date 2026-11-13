@@ -30,7 +30,9 @@ pub const MARGIN_M: f64 = 6_000.0;
 pub struct Briefing {
     /// The base's English name ("Ramon").
     pub base: String,
-    /// The runway end the mission takes off from ("25R") and its true heading (deg).
+    /// The runway end the mission takes off from ("25R") and its grid heading (deg): the number the HUD, the compass,
+    /// airbases.json's `runway_deg` and the tower read (the sim's world is grid north; the briefing said true 247° for
+    /// Ramon's 25R, the HUD 246°, 2026-11-13).
     pub runway: Option<(String, f64)>,
     /// True north as a grid bearing (deg, −180..180; the meridian convergence at the base, the map being grid north
     /// up: east of 33° E true north leans west of grid north).
@@ -128,7 +130,7 @@ pub fn briefing(
     if let Some(d) = mission["runway"].as_str() {
         let (ri, k) = base.end(d).with_context(|| format!("{}: no runway end {d}", base.name_en))?;
         let r = &base.runways[ri];
-        runway = Some((d.to_string(), (r.heading(k) - north).rem_euclid(360.0)));
+        runway = Some((d.to_string(), r.heading(k).rem_euclid(360.0)));
         let lineup = r.lineup(k);
         // The departure route is the main runway end's (the AI's, airbases.md §9): the taxi only there.
         if (ri, k) == base.main && at != lineup {
@@ -462,7 +464,11 @@ mod tests {
         assert_eq!(b.base, "Ramon");
         let (rwy, hdg) = b.runway.clone().unwrap();
         assert_eq!(rwy, "25R");
-        assert!((240.0..260.0).contains(&hdg), "25R's true heading {hdg}");
+        // The grid heading, as airbases.json's runway_deg, the HUD and the compass (246°, not true 247°).
+        let ramon = sim_bases::by_name(&bases, "Ramon").unwrap();
+        let (ri, k) = ramon.end("25R").unwrap();
+        assert_eq!(hdg.round(), ramon.runways[ri].heading(k).round(), "25R's grid heading {hdg}");
+        assert_eq!(hdg.round(), 246.0);
         assert!((-2.0..-0.5).contains(&b.north), "true north leans west east of 33° E: {}", b.north);
         assert!((b.size[0] / b.size[1] - 0.6).abs() < 1e-9 && b.size[0] >= MIN_SPAN_M);
         let inside = |p: &[f64; 2]| p[0] >= 0.0 && p[1] >= 0.0 && p[0] <= b.size[0] && p[1] <= b.size[1];
