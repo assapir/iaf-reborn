@@ -85,14 +85,6 @@ fn arrays(m: &Mesh) -> VarArray {
     a.into_iter().collect()
 }
 
-fn tree_dict(rows: &[Vec<f32>; 4]) -> VarDictionary {
-    let mut d = VarDictionary::new();
-    for (k, r) in rows.iter().enumerate().filter(|(_, r)| !r.is_empty()) {
-        d.set(k as i64, &PackedFloat32Array::from(r.as_slice()).to_variant());
-    }
-    d
-}
-
 pub(crate) fn ground(p: Vec3) -> Option<f64> {
     FIELD.read().unwrap().height(p)
 }
@@ -214,27 +206,6 @@ impl IafScenery {
         }
     }
 
-    /// The cell's buildings, made on the calling thread (`prepare` / `take_next` for the streamed cells).
-    #[func]
-    fn mesh_arrays(i: i64, j: i64, near: bool, colours: i64) -> VarArray {
-        let s = SCENERY.read().unwrap();
-        s.cell(i, j)
-            .and_then(|c| {
-                let model = if near { Model::Near } else { Model::Far };
-                scenery::mesh(c, origin(i, j), model, self::colours(colours), &ground)
-            })
-            .map_or_else(VarArray::new, |m| arrays(&m))
-    }
-
-    /// The cell's trees, made on the calling thread.
-    #[func]
-    fn trees(i: i64, j: i64) -> VarDictionary {
-        let s = SCENERY.read().unwrap();
-        s.cell(i, j)
-            .and_then(|c| scenery::tree_rows(c, origin(i, j), &ground))
-            .map_or_else(VarDictionary::new, |r| tree_dict(&r))
-    }
-
     /// The scenery's height above ground (m) at a world point; 0 where none stands.
     #[func]
     fn top(w: Vector3) -> f64 {
@@ -258,11 +229,6 @@ impl IafScenery {
                 "area" => f.area,
             }
         })
-    }
-
-    #[func]
-    fn count_within(x: f64, y: f64, r: f64) -> i64 {
-        SCENERY.read().unwrap().count_within(x, y, r) as i64
     }
 
     /// Marks a building ("<i>_<j>:<index>") damaged or whole; kept across cell loads.

@@ -219,11 +219,6 @@ impl IafRoads {
         true
     }
 
-    #[func]
-    fn is_open() -> bool {
-        main().is_some()
-    }
-
     /// The ways of class `max_class` or more important whose box meets the rect [min, max]. Up to secondary: whole
     /// ways from `main.bin`; finer: the blocks' pieces (a way is cut at each block's edge). Each: `points`
     /// (PackedVector2Array), `class`, `link`, `width` (m), `bridge`, `tunnel`, `layer`, `paved`, `oneway` (points run

@@ -5,8 +5,8 @@ field name of the converted JSON (`"0x514"`); Present record = a model entry of 
 world metres (X east, Y north); the sim's is UTM 36N itself ([terrain.md](terrain.md) §2); "inferred" = our own reasoning; "open" = no source found.
 
 Modern IAF keeps its units, weapons and missions as readable JSON under `modern-iaf/data/`. The compiler `iaf-sim`
-(`crates/iaf-tools/src/sim.rs`, bin `iaf-sim`) turns them into the files the shared readers already read, so no
-reader changes. This document gives each format, one full example and the compiled output.
+(`crates/iaf-tools/src/sim.rs`; the bin `iaf-sim` is in `crates/iaf-setup`, run through setup's steps) turns them
+into the files the shared readers already read, so no reader changes. This document gives each format, one full example and the compiled output.
 
 ```sh
 cargo run -p iaf-setup --bin iaf-sim -- all [assets]   # or db / own / fm / airbases / missions alone

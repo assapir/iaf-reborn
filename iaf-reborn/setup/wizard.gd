@@ -92,7 +92,6 @@ var req_box: VBoxContainer
 var req_ok := false
 # Your CD
 var cd_row: Dictionary
-var cd_ok := false
 var scan_note: Label
 # Optional
 var patch_row: Dictionary
