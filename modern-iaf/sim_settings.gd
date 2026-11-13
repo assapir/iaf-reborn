@@ -99,9 +99,6 @@ const OWN_CONVERTED := ["own/", "terrain/israel/", "modern-iaf/", "missions/sim.
 
 ## The original game's paths refused since the start (converted(), install()): the M0 probe fails on any.
 var rejected: PackedStringArray = []
-## The mission card opens at a flight's start (flight/sim_flight.gd): off, the flight starts with a clean view and the
-## Mission card key (H) opens it (the user, 2026-11-13); test_start_watch.gd turns it on to check the start with it.
-var card_at_start := false
 ## The features off for this run (SAFE's names; parse_safe); a test sets its own.
 var safe := parse_safe()
 var _safe_kept := {}  # the player's values of the settings `safe` forces, for the settings file

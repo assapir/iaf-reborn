@@ -167,8 +167,8 @@ centreline in the roll.
   The photos never flip (their tail numbers would read backwards); Home places its photo on the inline-end side. Latin
   codes (F-16I, 25R, 08:00) run left to right inside the Hebrew lines; "MSAA 4×" carries a left-to-right mark.
 - **Strings:** `modern-iaf/menu/strings_en.json` and `strings_he.json`, formal and gender-neutral (infinitives: לטוס,
-  להתניע, לבקש). The Language row switches every string at once. The in-flight mission card's objective is the
-  compiled mission's (§8), the briefing's objectives and steps the rules' (§10). A training mission's title is its
+  להתניע, לבקש). The Language row switches every string at once. The briefing's objectives and steps are the
+  rules' (§10). A training mission's title is its
   kind ("Take-off", "המראה"; the missions' `title`, the user, 2026-11-09): the base is its own field everywhere it
   shows (the briefing, the loading screen's second line, the debrief's From).
 - **The jet's subtitle** (the top bar, the plane cards, Training, Pick a mission, the briefing): its tail number, its
@@ -299,10 +299,9 @@ scenery, the models left to parse, the views) when:
 A main thread that draws no frame for 30 s gets `hang: no frame for 30 s; loading step <step>, after <sub-step>` from
 the log's own thread (docs/logs.md §2): the line names what never returned.
 
-On 2026-11-10 the mission card (§8) opened at the start under the loading screen and froze the flight, so the loading
-never ended (the user's Mac, any computer with the card on). With the card at the start (`Settings.card_at_start`,
-off since 2026-11-13), it opens once the loading screen is gone; `modern-iaf/tests/test_start_watch.gd` turns it on
-and checks it.
+On 2026-11-10 a mission card opened at the start under the loading screen and froze the flight, so the loading never
+ended (the user's Mac). That card is gone since 2026-11-13; `modern-iaf/tests/test_start_watch.gd` checks that the
+loading finishes and the flight runs.
 
 In Hebrew the page is mirrored: the bar fills from the inline start, the right.
 
@@ -312,19 +311,17 @@ In Hebrew the page is mirrored: the bar fills from the inline start, the right.
 
 `modern-iaf/tests/_loading_shot.gd` takes these pictures (its header).
 
-## 8. Over the flight: the mission card, the radio lines, the key hint
+## 8. Over the flight: the radio lines, the key hint
 
 The sim draws its own text over the flight in the front end's look (`modern-iaf/flight/flight_ui.gd`, Heebo, look.gd's
 palette, on the 1080-high canvas scaled to the window), mirrored in Hebrew; the original game's console and panels
 stay the original's (`terrain_view.gd _on_subtitle` hands each line to the flight add-on when it has a `subtitle()`).
 
-- **The mission card** opens on H (the key table's Mission card, record 118; the HUD colour moved to Shift + H): the
-  mission's title, its objective with the keys as
-  bound ("Ctrl + T"; "Cmd + T" on macOS) and the runway, and the keys that matter with their labels, from the
-  compiled mission's `sim.card` ([data-formats.md](data-formats.md) §5; a default per mission kind). The flight is
-  frozen while it is open. Space, Enter, Esc, a click or H close it. A flight starts with a clean view: no mission
-  card and no pause menu (the user, 2026-11-13: "don't show the mission card/pause menu at all by default"); the key
-  hint names H and Esc. A start-up mission shows its checklist card ([training.md](training.md) §7.1).
+- **A clean start:** a flight starts with the flight running and nothing over it but the key hint (the user,
+  2026-11-13). A start-up mission shows its checklist card ([training.md](training.md) §7.1). The mission's goals
+  are in the briefing (§10), the panel's live "To complete: …" line, the completion message and the debrief
+  ([training.md](training.md) §3). The in-flight mission card on H was
+  removed on 2026-11-13 (the user's order); H is free.
 - **The radio lines and messages** show in a strip centred at the top, over the sky rather than the cockpit's panel,
   the newest at the bottom, three at most, each for 8 s, wholly in the game's language ([training.md](training.md)
   §8). A radio line shows as its voice starts, not at the menu's pick: the pilot's call after its key click, the
@@ -334,9 +331,8 @@ stay the original's (`terrain_view.gd _on_subtitle` hands each line to the fligh
 - **The panel** at the inline-start top holds the radio menu (Ctrl+T) and the training result.
 - **The info line** (F12, at the top left): the mission's name and the frames per second (`Settings.info_line_full`
   false; the original game's line also holds the modes, the place, the speed and the controls).
-- **The key hint** at the bottom: the Mission card key and Esc's pause menu. It shows for the first 8 s after the loading screen,
-  for 4 s after a language change and for 4 s after the mission card closes (so the player learns the key that opens
-  it again), then fades out. It is hidden while the mission card or the start-up checklist card is open (the user,
+- **The key hint** at the bottom: Esc and the pause menu. It shows for the first 8 s after the loading screen and
+  for 4 s after a language change, then fades out. It is hidden while the start-up checklist card is open (the user,
   2026-11-10: the hint stays out of the way of the narrative). The pause menu's own key hints are separate.
 
 A language switched over the flight (Esc → Preferences → Language) applies at once to the key hint, the panel and
@@ -344,7 +340,6 @@ the start-up checklist card ([training.md](training.md) §7.1); a radio line alr
 
 | | English | Hebrew |
 |---|---|---|
-| the take-off's card on H (no key hint under it) | ![The mission card of Ramon's take-off](pictures/front-end/card_en.webp) | ![The mission card in Hebrew](pictures/front-end/card_he.webp) |
 | the strip after a tower call, the key hint still showing | ![A tower call in the band](pictures/front-end/band_en.webp) | ![A tower call in Hebrew](pictures/front-end/band_he.webp) |
 | 10 s into the flight: the key hint faded out | ![The take-off 10 s in, no key hint](pictures/front-end/flight10_en.webp) | ![The take-off 10 s in, Hebrew](pictures/front-end/flight10_he.webp) |
 

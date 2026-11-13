@@ -189,10 +189,9 @@ are refused, an unknown goal is refused, and every take-off mission's runway is 
 - The 6-DoF's take-off roll is short (flight-model.md §9.6): the probe's Sufa lifts off after about 465 m at 180 kt.
 
 ## 7. The start in the game
-A flight starts with a clean view, the flight running (the user, 2026-11-13). H opens the mission card
-([front-end.md](front-end.md) §8): the objective and the keys that matter, the flight frozen until it closes, so
-reading it costs nothing of the time budget. A start-up flight shows its checklist card (§7.1; the Mac play test,
-2026-11-11).
+A flight starts with a clean view, the flight running (the user, 2026-11-13; [front-end.md](front-end.md) §8). The
+objective is in the briefing ([front-end.md](front-end.md) §10). A start-up flight shows its checklist card (§7.1;
+the Mac play test, 2026-11-11).
 
 The sim's jet starts parked cold: on its spot (airbases.md §9), engine off, no RPM, no electrical power, every screen,
 the HUD and the lamps dark (`cockpit.power` 0). The throttle starts nothing (`Settings.throttle_starts_engine`, false

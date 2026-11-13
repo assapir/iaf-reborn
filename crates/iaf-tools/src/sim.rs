@@ -572,41 +572,6 @@ fn texts(f: &File, k: &str) -> Result<Value> {
     Ok(f.v[k].clone())
 }
 
-/// The mission card shown at a training mission's start (modern-iaf/docs/front-end.md §8): the readable mission's
-/// own `card` ({"objective": {"en", "he"}, "keys": [record index of the sim's keys.json…]}), else its kind's. In the
-/// objective, `{key:N}` stands for record N's key as bound (the game fills it in, "Cmd" on macOS) and `{runway}` for
-/// the mission's runway.
-fn card(f: &File) -> Result<Value> {
-    if !f.v["card"].is_null() {
-        texts(&File { name: f.name.clone(), v: f.v["card"].clone() }, "objective")?;
-        let keys = f.v["card"]["keys"].as_array().filter(|k| k.iter().all(|i| i.as_u64().is_some_and(|i| i < 126)));
-        ensure!(keys.is_some(), "{}: \"card.keys\" must list key records (0..125)", f.name);
-        return Ok(f.v["card"].clone());
-    }
-    // Start engine 117, Call the tower 47, Mission card 118, the start-up checklist 119..124 (121 empty: the throttle up from OFF is its idle step, the card naming Throttle idle 7); the throttle 7 (idle), 16 / 15 (± 5 %), 12 (MIL); the
-    // wheel brakes 22, the rudder (nose wheel) 37 / 38, the stick 24..27, the gear 20.
-    Ok(match f.v["training"]["kind"].as_str() {
-        Some("startup") => json!({
-            "objective": {
-                "en": "Run the start-up checklist on its card step by step, from {key:119}. The mission passes once the \
-                       engine idles with the avionics up.",
-                "he": "ביצוע רשימת ההתנעה שבכרטיס שלב אחר שלב, החל מ־{key:119}. המשימה עוברת כשהמנוע בסרק והאוויוניקה פועלת.",
-            },
-            "keys": [119, 120, 7, 122, 123, 124, 118],
-        }),
-        Some("takeoff") => json!({
-            "objective": {
-                "en": "Call the tower with {key:47} and pick the call it offers, in turn: start-up, taxi, take-off. Start the \
-                       engine with {key:117}, taxi to runway {runway}, line up and take off on its heading; gear up.",
-                "he": "קריאה למגדל: {key:47}, ואז בחירת הקריאה המוצעת, לפי הסדר: התנעה, הסעה, המראה. התנעת המנוע: \
-                       {key:117}, הסעה למסלול {runway}, כניסה למסלול והמראה בכיוונו; איסוף כן הנסע.",
-            },
-            "keys": [47, 117, 7, 16, 15, 12, 22, 37, 38, 24, 25, 20, 118],
-        }),
-        _ => Value::Null,
-    })
-}
-
 /// One compiled mission file from a readable one.
 /// `bases`: the airbases (sim_bases::load); `ground`: the theatre's height at a point, None without it (the
 /// start's `elevation_m` then stands).
@@ -771,7 +736,7 @@ pub fn compile_mission(
     m["frame"] = json!("real");
     m["sim"] = json!({"title": texts(f, "title")?, "briefing": texts(f, "briefing")?, "win": f.v["win"],
         "lose": f.v["lose"], "menu_id": int(f, "menu_id")?, "runway": f.v["runway"], "training": f.v["training"],
-        "base": base_name, "card": card(f)?});
+        "base": base_name});
     if let Some(note) = f.v["note"].as_str() {
         m["sim"]["note"] = json!(note);
     }
@@ -1572,22 +1537,6 @@ mod tests {
     }
 
     #[test]
-    fn every_training_mission_has_a_card() {
-        let (db, bases) = (Db::read(&data()).unwrap(), sim_bases::load(&data().join("airbases")).unwrap());
-        let m = compile_mission(&ramon(json!({})), &db, &bases, &mut |_, _| None).unwrap();
-        let card = &m["sim"]["card"];
-        assert!(card["objective"]["he"].as_str().unwrap().contains("{key:"), "{card}");
-        assert!(!card["keys"].as_array().unwrap().is_empty());
-        let own = json!({"card": {"objective": {"en": "Go", "he": "סע"}, "keys": [117]}});
-        let m = compile_mission(&ramon(own), &db, &bases, &mut |_, _| None).unwrap();
-        assert_eq!(m["sim"]["card"]["objective"]["en"], "Go");
-        let bad = ramon(json!({"card": {"objective": {"en": "Go"}, "keys": [117]}}));
-        assert!(compile_mission(&bad, &db, &bases, &mut |_, _| None).is_err(), "a card needs both languages");
-        let bad = ramon(json!({"card": {"objective": {"en": "Go", "he": "סע"}, "keys": [500]}}));
-        assert!(compile_mission(&bad, &db, &bases, &mut |_, _| None).is_err(), "a card's keys are records");
-    }
-
-    #[test]
     fn a_figure_without_a_source_is_refused() {
         let f = |v: Value| File { name: "t".into(), v };
         let ok = f(json!({"kg": 1, "sources": {"kg": "mk84"}, "footnotes": {"mk84": "x"}}));
@@ -1618,8 +1567,8 @@ mod tests {
     /// `iaf-sim own`: every sound row's clip exists and parses as the game's format, every code the shared flight
     /// code plays has a row, every file it opens by name is there, the radio's templates name only particles with a
     /// clip, a stale clip is removed, the key table compiles to the 126 records `key_table.gd` reads (the 117 of
-    /// docs/controls.md, Start engine, Mission card, the six start-up checklist steps and Master arm), and the gun art
-    /// is there.
+    /// docs/controls.md, Start engine, an empty slot, the six start-up checklist steps and Master arm), and the gun
+    /// art is there.
     #[test]
     fn own_sounds_and_keys_compile() {
         let root = TempRoot(std::env::temp_dir().join(format!("iaf-sim-own-{}", std::process::id())));

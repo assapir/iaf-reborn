@@ -21,7 +21,7 @@ here, dated.
 
 1. The airbase is visible and paved: runways, taxiways and aprons are drawn (the profile forced Detailed airbases off)
    and flagged as paved.
-2. The pilot knows what to do: a mission card with the objective and the keys, key hints, a Keys screen, and
+2. The pilot knows what to do: a mission card with the objective and the keys (removed 2026-11-13), key hints, a Keys screen, and
    "Mission complete" on screen before the debrief. **Keys and Joystick screens done (2026-11-08, branch
    wt/iaf-2026-devices):** Preferences → Devices → Keys and Joystick, the store and its merge in Rust
    ([front-end.md](front-end.md) §8).
@@ -392,7 +392,7 @@ the probe `test_mvp.gd` passes for Sufa, Barak, F-35I on Linux / macOS / Windows
 screen), branch wt/iaf-2026-mac1:**
 - No taxiway or apron: the sim's `PROFILE` left Detailed airbases at the 1998 value, which draws nothing in the sim.
   Fixed, with every look switch whose 1998 value draws art the sim lacks ([airbases.md](airbases.md) §9).
-- "No idea how to do anything": the mission card at the start, a key hint line, the radio lines in the sim's own
+- "No idea how to do anything": the mission card at the start (removed 2026-11-13), a key hint line, the radio lines in the sim's own
   band in the game's language ([front-end.md](front-end.md) §8).
 - The pause menu off the right edge with its labels outside the screen: the Hebrew overlay mirrored its position by
   its unscaled width; fixed and tested at three sizes in both languages. F1–F4 only switch views (checked).

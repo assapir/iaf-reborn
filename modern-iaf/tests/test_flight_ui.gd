@@ -1,9 +1,7 @@
-# Modern IAF's text over the flight (flight/flight_ui.gd, modern-iaf/docs/front-end.md §8) in English and Hebrew: the
-# mission card (closed at the start, no pause menu either; the title, the objective with the keys as bound, the keys'
-# rows; the flight frozen while it is open; Space closes it, the Mission card key opens it again), the radio lines in
-# the sim's band (not the original's console), entirely in the game's language but for callsigns and runway
-# designators, and the key hint line (shown at the start and briefly after the card closes, hidden while it is open,
-# faded out after).
+# Modern IAF's text over the flight (flight/flight_ui.gd, modern-iaf/docs/front-end.md §8) in English and Hebrew: a
+# clean start (no pause menu, the flight running; H opens nothing), the radio lines in the sim's band (not the
+# original's console), entirely in the game's language but for callsigns and runway designators, and the key hint line
+# (Esc's pause menu: shown at the start, faded out after).
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_flight_ui.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -26,11 +24,8 @@ func run() -> void:
 		var pause_text := "תפריט השהיה" if lang == "he" else "Pause menu"
 		check(hint != null and pause_text in _labels(hint), "%s: the key hint line in the game's language" % lang)
 		check(hint.visible and hint.modulate.a > 0.9, "%s: the key hint shows at the start" % lang)
-		check(
-			not s.card_at_start and ui.card == null and tv.fe_overlay == null and not paused,
-			"%s: a clean start: no mission card, no pause menu, the flight runs" % lang
-		)
-		check(ui.s("mission_card") in _labels(hint), "%s: the key hint names the Mission card key" % lang)
+		check(tv.fe_overlay == null and not paused, "%s: a clean start: no pause menu, the flight runs" % lang)
+		check(_labels(hint).size() == 2, "%s: the key hint holds Esc and its pause menu only" % lang)
 		if lang == "en":
 			s.language = "he"  # as the pause menu's Preferences switch it over the flight
 			await frames(2)
@@ -38,42 +33,25 @@ func run() -> void:
 			check("תפריט השהיה" in _labels(hint), "en → he over the flight: the key hint in Hebrew")
 			s.language = "en"
 			await frames(2)
-		ui.open_card(sim_flight._sim)
-		await frames(1)
-		var card: Control = ui.card
-		var texts := _labels(card)
-		var tower_key: String = ui.key_name(47).replace(" ", "\u00a0")
-		check(paused and card != null, "%s: the card is open and the flight frozen" % lang)
-		check(not ui.find_child("Hint", true, false).visible, "%s: no key hint while the card is open" % lang)
-		check(
-			texts.any(func(t): return tower_key in t and "{key:" not in t),
-			"%s: the objective names %s" % [lang, tower_key]
-		)
-		check(texts.any(func(t): return "25R" in t), "%s: the objective names the runway" % lang)
-		check(card.find_child("Keys", true, false).get_child_count() == 13, "%s: the take-off's 13 keys" % lang)
-		var title := "המראה" if lang == "he" else "Take-off"
-		check(title in texts, "%s: the mission's title" % lang)
-		key(ui, KEY_SPACE)
-		await frames(1)
-		check(ui.card == null and not paused, "%s: Space closes the card and the flight runs" % lang)
-		check(ui.find_child("Hint", true, false).visible, "%s: the key hint shows again after the card closes" % lang)
 		var h := InputEventKey.new()
 		h.keycode = KEY_H
 		h.physical_keycode = KEY_H
 		h.pressed = true
 		tv._unhandled_input(h)
 		await frames(1)
-		check(ui.card != null, "%s: H opens the card again" % lang)
-		ui.close_card()
-		await frames(1)
+		check(not paused and ui.find_child("Card", true, false) == null, "%s: H opens nothing, the flight runs" % lang)
 		if lang == "en":  # the hint fades out (real time: the start's 8 s at most)
 			await create_timer(ui.HINT_START_S + ui.HINT_FADE_S + 0.3, true, false, true).timeout
 			await frames(1)
 			check(not ui.find_child("Hint", true, false).visible, "en: the key hint faded out")
-		# The tower's answer and the pilot's call: in the band, in the game's language.
+		# The tower's answer and the pilot's call: in the band, in the game's language, each as its voice starts.
 		sim_flight.pick("startup")
-		await frames(2)
-		var band: Array = ui.band_texts()
+		var band: Array = []
+		for i in 200:  # 20 s real time at most
+			band = ui.band_texts()
+			if band.size() >= 2:
+				break
+			await create_timer(0.1, true, false, true).timeout
 		check(band.size() >= 2, "%s: the radio lines in the band (%s)" % [lang, band])
 		check(tv.cockpit.subtitles.is_empty(), "%s: nothing in the original's console" % lang)
 		if lang == "he":
@@ -94,13 +72,12 @@ func run() -> void:
 			sizes.all(func(z): return z == ui.SUBTITLE_PX), "%s: the band's lines at subtitle size (%s)" % [lang, sizes]
 		)
 	s.language = "en"
-	# The start-up mission opens with its checklist card, not the mission card; the card shows one step.
-	s.card_at_start = true
+	# The start-up mission opens with its checklist card; the card shows one step.
 	var tv := await _start(2011)
 	await frames(3)
 	var ui: Control = tv.addon.ui
 	var side: Control = ui.find_child("Checklist", true, false)
-	check(ui.card == null and not paused, "start-up: no mission card at the start, the flight runs")
+	check(not paused, "start-up: the flight runs")
 	check(side != null and side.visible, "start-up: the checklist card shows")
 	var rows := side.find_children("*", "HBoxContainer", true, false)
 	var first := String(tv.addon.checklist[0].en)
@@ -111,7 +88,6 @@ func run() -> void:
 		info.begins_with("mission: ramon_startup") and info.ends_with("fps"),
 		"the F12 line: mission and FPS (%s)" % info
 	)
-	s.card_at_start = false
 
 
 func _start(id: int) -> Node:

@@ -29,7 +29,7 @@ Godot writes everything the game prints, and every error and warning, with the s
 - **A stall:** a frame longer than 250 ms gets a `stall:` line with its length, the scene (in the menus, the screen)
   and the last mouse click (button, double or not, where, how long before). A scene that loads in one frame shows as
   one; the flight's start is spread over frames behind the loading screen (rendering.md §1.5). A test script's frames
-  before its first scene show the scene as `?`. A pause (the mission card, the pause menu) also shows as a stall when it ends.
+  before its first scene show the scene as `?`. A pause (the pause menu) also shows as a stall when it ends.
 - **A Rust panic** in the extension: godot-rust's error line (the message and its source file and line), then
   `[panic backtrace]` with the call stack by function name (the hook in `crates/iaf-godot/src/lib.rs`).
 

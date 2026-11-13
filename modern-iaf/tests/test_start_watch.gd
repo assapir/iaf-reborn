@@ -1,6 +1,5 @@
-# A flight's start never hangs unseen (modern-iaf/docs/front-end.md §7 and §11): the mission card opens at the start
-# only once the loading screen is gone (it froze the flight under the screen for good on 2026-11-10: scripted runs
-# skipped the card, so no test saw it); a pause under the loading screen opens the crash page; a mission missing from
+# A flight's start never hangs unseen (modern-iaf/docs/front-end.md §7 and §11): the loading finishes and the views
+# warm up; a pause under the loading screen opens the crash page; a mission missing from
 # the compiled list opens the crash page, whose GitHub issue link holds the failure, the step, the build, the OS, the
 # GPU and the log's last lines; the timed log puts the time at the start of every line.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
@@ -17,17 +16,13 @@ func run() -> void:
 	if not FileAccess.file_exists(s.assets_dir().path_join("converted/modern-iaf/missions/missionlist.json")):
 		print("NEEDS DATA: this test reads the sim's compiled missions (./modern-iaf-setup)")
 		return
-	# The card at the start, as the player's runs have it.
-	s.card_at_start = true
 	var tv := await _start(2012)
-	check(tv != null and not tv.waiting_for_ground, "card on: the loading finishes")
+	check(tv != null and not tv.waiting_for_ground, "the loading finishes")
 	check(s.loading_step == "first frames", "the first frames after the loading are still the start")
 	await frames(3)
-	var ui: Control = tv.addon.ui if tv != null else null
-	check(ui != null and ui.card != null and ui.card.is_visible_in_tree(), "card on: the card shows after the loading")
-	check(paused and tv._loading == null, "card on: the flight frozen under the card, the loading screen gone")
-	check(not s.crashed, "card on: no crash page")
-	check(tv != null and tv._views_warmed == 2, "card on: the views warmed (the external view drawn, then the cockpit)")
+	check(not paused and tv._loading == null, "the flight runs, the loading screen gone")
+	check(not s.crashed, "no crash page")
+	check(tv != null and tv._views_warmed == 2, "the views warmed (the external view drawn, then the cockpit)")
 	await frames(tv.FIRST_FRAMES)
 	check(s.loading_step == "", "after %d frames the start is over (paused or not)" % tv.FIRST_FRAMES)
 	var lines := "\n".join(s.timed_log.tail())
@@ -36,9 +31,6 @@ func run() -> void:
 		RegEx.create_from_string("shaders: [1-9]\\d* in use, 0 failed, 0 shader errors").search(lines) != null,
 		"the shaders in use checked after the first frames, none failed"
 	)
-	ui.close_card()
-	await frames(1)
-	s.card_at_start = false
 
 	# The sim bench's BENCH_BEST (2026-11-11: the original's cloud art and imagery it set were refused, the refusal
 	# opened the crash page at the start, read as a loading hung after "frame"): the sim's own values, a start to the

@@ -1404,8 +1404,7 @@ func _process(_delta: float) -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_READY:
 		get_tree().auto_accept_quit = false
-		# The hang watch's frame stamp on every frame, paused or not (a pause is no hang: the mission card's, the
-		# player's).
+		# The hang watch's frame stamp on every frame, paused or not (a pause is no hang: the player's).
 		if timed_log != null:
 			get_tree().process_frame.connect(func(): timed_log.frame_at = Time.get_ticks_msec())
 	elif what == NOTIFICATION_WM_CLOSE_REQUEST:

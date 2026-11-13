@@ -1,6 +1,6 @@
 # Modern IAF's part of the flight scene (Settings.flight_addon, a child of terrain_view.gd): the radio menu and the
 # training run (modern-iaf/docs/training.md §7–§9).
-# - The text over the flight in the sim's own look (flight_ui.gd): the mission card (H), the radio lines, the panel.
+# - The text over the flight in the sim's own look (flight_ui.gd): the radio lines, the panel, the key hint.
 # - The radio menu: the "Call the tower" key (Ctrl+T, command 107) opens a numbered list of the calls that fit the
 #   moment (IafTraining.radio_calls: start-up, taxi, line-up, take-off, contact the tower for landing); a number
 #   picks, any other key closes it. The tower answers by TTS (radio.gd request), each call a `radio` event in the
@@ -67,7 +67,7 @@ var open := false
 var shown: Array = []
 var answers := PackedStringArray()
 var _hold_m := {}  # iaf.ibx section -> its holding point's distance to the lineup point (m), once read
-## The text over the flight: the mission card, the band of radio lines, the panel, the key hint (flight_ui.gd).
+## The text over the flight: the band of radio lines, the panel, the key hint (flight_ui.gd).
 var ui: Control
 var _sim := {}
 ## The training mission: its readable file's name (res://data/missions/<name>.json) and rules; {} for a flight without.
@@ -161,11 +161,7 @@ func _ready() -> void:
 	add_child(layer)
 	ui = FlightUi.new(host)
 	layer.add_child(ui)
-	# The mission card stays closed at the start (Settings.card_at_start false; H opens it). On, it opens once the
-	# loading screen is gone: it freezes the flight, which would stop the loading under the screen for good (the
-	# 2026-11-10 hang at "the jet"). A mission with the start-up checklist shows its checklist card (training.md §7.1).
-	if Settings.card_at_start and checklist.is_empty():
-		_card_after_loading()
+	# A mission with the start-up checklist shows its checklist card (training.md §7.1).
 	if not checklist.is_empty():
 		_build_card()
 
@@ -277,9 +273,6 @@ func key(event: InputEventKey) -> bool:
 	if event.echo or event.keycode in [KEY_CTRL, KEY_SHIFT, KEY_ALT, KEY_META]:
 		return open and event.echo  # a lone modifier is part of the next key (Ctrl+T closes the menu)
 	var rec: int = host.keys.find_key(host.keys.key_of_event(event), Settings.key_bindings)
-	if rec >= 0 and int(host.keys.records[rec].press[0]) == 201:
-		ui.open_card(_sim)  # the Mission card key (keys.json record 118); the card closes itself
-		return true
 	if rec >= 0 and int(host.keys.records[rec].press[0]) == 107:
 		set_open(not open)
 		return true
@@ -595,13 +588,6 @@ func _idle_key(cmd: Array) -> void:
 
 func _steps() -> Array:
 	return checklist.map(func(c): return String(c.step))
-
-
-func _card_after_loading() -> void:
-	while is_inside_tree() and host.waiting_for_ground:
-		await get_tree().process_frame
-	if is_inside_tree():
-		ui.open_card(_sim)
 
 
 func _build_card() -> void:

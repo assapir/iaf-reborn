@@ -31,9 +31,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **The right glove holds the stick (2026-11-13, the user):** looking down in the F-16s the right glove wraps the
   side-stick's grip (it hung 9 cm ahead of it) and the left palm sits on the throttle's head (it lay on the console
   beside it), cold and in flight ([cockpit.md](cockpit.md) §5.3). `test_cockpit_view.gd` checks it.
-- **A clean start (2026-11-13, the user):** a flight starts with no mission card and no pause menu over it, the
-  flight running; H opens the mission card, Esc the pause menu, and the key hint at the bottom names both for its
-  first 8 s ([front-end.md](front-end.md) §8). `test_flight_ui.gd` checks it.
+- **No mission card (2026-11-13, the user):** a flight starts with nothing over it but the key hint, the flight
+  running; the in-flight mission card and its H key (record 118, now an empty slot) are gone. The key hint names Esc
+  and the pause menu for its first 8 s ([front-end.md](front-end.md) §8). The goals are in the briefing, the live "To
+  complete" line, the completion message and the debrief. `test_flight_ui.gd` checks it.
 - **The F-16's approach speed matches the manual (2026-11-11):** TP-1538's speed-brake tables gave the open speed
   brake lift (+0.25 CL at 13° α); the 6-DoF flies the JSBSim model's speed-brake drag instead, and its flaps' lift
   (+0.122). The 13° α approach is 136–139 kt at the manual's three weights (manual 139–141 kt, was 118–121 kt)
@@ -62,7 +63,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   throttle's grip and follows it over its travel (two shape keys in `f16_pilot.glb`); the right glove holds the stick
   ([cockpit.md](cockpit.md) §5.3).
 - **The start-up checklist card, one step at a time (2026-11-11, the Mac play test):** a start-up flight opens with
-  the checklist card only (no mission card; H opens it); the card is smaller and shows the step to take now with its
+  the checklist card only; the card is smaller and shows the step to take now with its
   key, place and wait, and its number of the steps ([training.md](training.md) §7.1). `test_flight_ui.gd`,
   `test_mvp.gd`.
 - **The radio lines at subtitle size (2026-11-11, the Mac play test):** 20 px at 1080, was 26
@@ -86,7 +87,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   picture would lay black over the world; `cockpit_origin.gd`). Open: the Mac's log with these.
 - **A flight's start: no hang, faster, watched (2026-11-10, the Mac's P1 finding):** the mission card opened at the
   start under the loading screen and froze the flight, so the loading never ended on a player's machine (every
-  scripted run skips the card); it now opens after the loading. The jet, the 3D cockpit and the pilot's body parse on
+  scripted run skipped the card); the card is gone since 2026-11-13. The jet, the 3D cockpit and the pilot's body parse on
   worker threads from the start; the jet, the cockpit and the weapons are each drawn first in their own frame, named
   on the bar. Ramon's take-off from the flight scene: first start (no shader cache) 18.1 s, was 26–48 s; warm 4.4 s,
   was 5.1 s ([front-end.md](front-end.md) §7). A watchdog opens the crash page (§11) when the loading stops; every log
@@ -156,7 +157,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **The gun (2026-11-08, the Mac play test):** the rounds are the unit record's (Sufa and Barak 511, F-35I 180) and
   run out; our own muzzle flash and tracers; every flight starts with the master arm safe, Shift+A arms
   ([weapons.md](weapons.md)). `test_sim_gun.gd`.
-- **The Mac play test's findings (2026-11-08, [plan.md](plan.md#f-the-probe) F):** the mission card, the radio lines
+- **The Mac play test's findings (2026-11-08, [plan.md](plan.md#f-the-probe) F):** the mission card (removed 2026-11-13), the radio lines
   in the sim's band wholly in the game's language, the key hint; the pause menu centred at any size in Hebrew;
   Preferences without an aid or realism row and the aids off; Home on every start;
   clickable breadcrumbs ([front-end.md](front-end.md) §1, §8). `test_flight_ui.gd`, `test_front_end.gd`.
