@@ -89,9 +89,11 @@ base files, airbases.md §3). Making one flyable moves its row from `SOON` to `J
 - **The missions:** the compiled list `assets/converted/modern-iaf/missions/missionlist.json` (`iaf-sim missions`), each
   read from its readable file `modern-iaf/data/missions/<name>.json`, kept when its player unit is the picked jet and it
   has `training` rules, in menu-id order.
-- **Fly:** `flight/fly.gd` `start(menu id)` loads the compiled mission, picks the mission's jet (a `--mission` run,
-  Fly again on another jet's debrief) and changes to the flight scene.
+- **Fly:** `flight/fly.gd` `start(menu id)` loads the compiled mission, picks the mission's jet (a `--mission` run)
+  and changes to the flight scene.
 - **Back to missions** on a debrief opens that mission's jet with the flown mission picked.
+- **Fly again** on a debrief opens the same screen on the flown mission's briefing (its Briefing page first, the
+  loadout as left) with Fly focused: Enter or a click on Fly starts the flight.
 - **The flight's end:** the flight scene returns to `Settings.front_end_scene()` (`res://main.tscn`). When the flight
   stored a sortie (`flight/sim_flight.gd` sets `Settings.flown_sortie`), the front end opens its debrief.
 

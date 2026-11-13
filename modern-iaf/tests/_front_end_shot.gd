@@ -3,11 +3,11 @@
 #     -s ../modern-iaf/tests/_front_end_shot.gd
 # Writes SHOT_DIR/<screen>_<lang>.png (the Preferences: prefs_<section>_*; the Pilot screens: _pilot) at 1920×1080 (the
 # front end in a viewport of that size, whatever the window's) with the sample pilot log and debrief of
-# test_front_end.gd (debrief_fail: its take-off with the gear never raised). SHOT_ONLY=<screen> takes that screen
-# alone (e.g. SHOT_ONLY=plane).
+# test_front_end.gd (debrief_fail: its take-off with the gear never raised; fly_again: the debrief's Fly again).
+# SHOT_ONLY=<screen> takes that screen alone (e.g. SHOT_ONLY=plane).
 extends "res://../tests/godot/base.gd"
 
-const SCREENS := ["home", "plane", "training", "mission", "debrief", "debrief_fail", "log", "credits"]
+const SCREENS := ["home", "plane", "training", "mission", "debrief", "debrief_fail", "fly_again", "log", "credits"]
 
 
 func run() -> void:
@@ -40,6 +40,10 @@ func run() -> void:
 				fe.open_debrief(ids.pass)
 			elif p == "debrief_fail":
 				fe.open_debrief(ids.fail)
+			elif p == "fly_again":  # the debrief's Fly again: the flown mission's briefing
+				fe.open_debrief(ids.pass)
+				await frames(2)
+				fe.find_child("FlyAgain", true, false).pressed.emit()
 			else:
 				fe.mission_i = 1
 				fe.show_page(p)

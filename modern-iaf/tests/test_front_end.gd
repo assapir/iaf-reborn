@@ -598,6 +598,17 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	check(fe.page == "mission" and fe.mission_i == 1, "%s: Back to missions picks the flown take-off" % lang)
 	fe.open_debrief(ids.pass)
 	await frames(2)
+	fe.find_child("FlyAgain", true, false).pressed.emit()
+	await frames(2)
+	check(
+		fe.page == "mission" and fe.mission_i == 1 and fe.brief_tab == 0,
+		"%s: Fly again opens the flown take-off's briefing, not the flight" % lang
+	)
+	check(_has(fe, "אימון" if he else "Training"), "%s: Fly again: the Training breadcrumb" % lang)
+	var fly_btn: Control = fe.find_child("Fly", true, false)
+	check(fly_btn != null and fly_btn.has_focus(), "%s: Fly again: the briefing's Fly focused" % lang)
+	fe.open_debrief(ids.pass)
+	await frames(2)
 	key(fe, KEY_ESCAPE)
 	await frames(2)
 	check(fe.page == "home", "%s: Esc from the debrief: Home" % lang)

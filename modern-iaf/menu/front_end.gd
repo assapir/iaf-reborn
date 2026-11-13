@@ -2065,7 +2065,7 @@ func _page_debrief() -> void:
 		_rule(rem, Look.RULE)
 	var back := _action(s("back_missions"), "Secondary", func(): back_to_missions(m))
 	back.name = "BackMissions"
-	var again := _action(s("fly_again"), "Primary", func(): fly_mission(m))
+	var again := _action(s("fly_again"), "Primary", func(): fly_again(m))
 	again.name = "FlyAgain"
 	again.disabled = m.is_empty()
 	_focus = again
@@ -2092,6 +2092,14 @@ func back_to_missions(m: Dictionary) -> void:
 	var list := jet_missions(Settings.sim_jet)
 	mission_i = maxi(list.map(func(x): return x.get("id", "")).find(m.get("id", "")), 0)
 	show_page("mission")
+
+
+## Fly again: the flown mission's briefing as picked from the list (its jet, the Briefing page), Fly focused.
+func fly_again(m: Dictionary) -> void:
+	back_to_missions(m)
+	_focus = find_child("Fly", true, false)
+	if _focus != null:
+		_grab.call_deferred(_focus)
 
 
 func _pick_jet_quiet(j: Dictionary) -> void:
