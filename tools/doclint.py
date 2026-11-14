@@ -5,6 +5,7 @@ fences and trailing whitespace. With --fun also FUN_xxxxxxxx names that are no f
 (assets/ghidra_v11/iafjets.c); informational, as Ghidra did not split out every function (checked 2026-10-14: of 131
 hits, 122 start after a ret / padding in the exe, 5 are labelled v1.0 addresses, 1 is reached through a handler table).
 Prints `file:line: message`; exit 1 when anything is found. Usage: tools/doclint.py [--fun] [files…]"""
+import json
 import re
 import subprocess
 import sys
@@ -125,6 +126,11 @@ def main() -> int:
                         report(f, n, f"FUN_{a} is not in the decompile")
         if fence_at:
             report(f, fence_at, "code fence never closed")
+    # docs/credits.md, the human copy of shared/credits.json, names every source the sim credits.
+    doc = (ROOT / "docs/credits.md").read_text(encoding="utf-8")
+    for c in json.loads((ROOT / "shared/credits.json").read_text(encoding="utf-8"))["sim"]:
+        if c["name"] not in doc:
+            report(ROOT / "docs/credits.md", 1, f"no credit for {c['name']} (shared/credits.json \"sim\")")
     return 1 if problems else 0
 
 

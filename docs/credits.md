@@ -10,7 +10,16 @@ The credits roll when you quit from the menus, as in the original. The code is i
 
 ## Adding a credit
 
-Our lines are in **iaf-reborn/menu/credits_ours.json**. Keep them out of the script. Each entry is one line:
+Every credit both games show is in **shared/credits.json**, one file the screens read; keep the credits out of the
+scripts. This page is its human copy: `tools/doclint.py` checks that it names every source of its `"sim"` list.
+
+| list | read by |
+|---|---|
+| `roll` | the original game's credits roll on Quit (`iaf-reborn/menu/credits_roll.gd`) |
+| `attributions` | the original game's setup wizard: Attributions (`iaf-reborn/setup/wizard.gd`), one BBCode bullet each |
+| `sim` | Modern IAF's setup wizard: Credits, and its front end's Credits page: `name`, `use` (the strings key of what it is for), `lines` (the licence lines) |
+
+Each `roll` entry is one line:
 
 ```json
 {"style": "role", "text": "Created by", "he": "יוצר"},
@@ -37,7 +46,7 @@ margins: 70 px on both sides of the 640 px screen.
 
 ## Model credits
 
-Each third-party model or picture carries its full credit next to it; the roll (`credits_ours.json`) shows a line
+Each third-party model or picture carries its full credit next to it; the roll (`shared/credits.json` `roll`) shows a line
 for each.
 
 | Model | Based on | Licence | Full credit |
@@ -57,8 +66,8 @@ for each.
 Setup downloads these materials from ambientCG into `assets/thirdparty/ambientcg/<id>/` (the repo holds none). They
 are CC0 1.0 (public domain): "All ambientCG assets are provided under the Creative Commons CC0 1.0 Universal
 License"[^acg-licence]. CC0 asks for no credit; we give it anyway. One line names ambientCG in the setup wizard's Attributions and in the
-roll (`credits_ours.json`, "Ground Textures and Model Detail"). Modern IAF's setup downloads the same materials (its optional step "sim-textures",
-2026-11-09) and names ambientCG in its Attributions and its credits (`modern-iaf/setup/wizard.gd` `CREDITS`). The list lives in one place:
+roll (`shared/credits.json` `roll`, "Ground Textures and Model Detail"). Modern IAF's setup downloads the same materials (its optional step "sim-textures",
+2026-11-09) and names ambientCG in its Attributions and its credits (`shared/credits.json` `sim`). The list lives in one place:
 `crates/iaf-tools/src/thirdparty.rs` (`GROUND_TEXTURES`, `MODEL_DETAIL`, `SCENERY_WALLS` and `TREE_TEXTURES`, with each
 zip's pinned SHA-256). Setup composes the scenery trees' foliage from the leaf sets' colour and opacity maps
 (`crates/iaf-tools/src/foliage.rs`).
@@ -139,7 +148,7 @@ sources in `tools/iaf-2026/cockpit/`). The line the sim's wizard and credits rol
 contributors, available under the Open Database Licence (ODbL) 1.0: openstreetmap.org/copyright". The original game
 takes the same map with Briefing map on Modern (setup's `extras` step, docs/front-end.md §8 "Modern map"): its setup
 wizard's Attributions list "Modern TSD map (Extras: Briefing map Modern): © OpenStreetMap contributors (ODbL 1.0)",
-and its credits roll (`iaf-reborn/menu/credits_ours.json`) "Modern TSD Map: Map data © OpenStreetMap contributors
+and its credits roll (`shared/credits.json` `roll`) "Modern TSD Map: Map data © OpenStreetMap contributors
 (openstreetmap.org/copyright), ODbL 1.0".
 
 The sim's sound clips (`modern-iaf/data/sounds/`, made by `tools/iaf-2026/sounds.py`) are CC0 recordings from
@@ -155,7 +164,7 @@ training data is public-domain, permissively licensed and synthetic speech, plus
 `iaf-sim voices` (modern-iaf/docs/sound.md §5). The Hebrew voice waits for a licence decision (modern-iaf/docs/sound.md
 §5.4). The lines the sim's setup wizard (item A3) and its credits roll need: modern-iaf/docs/sound.md §6.
 The sim's terrain (`iaf-sim terrain`, modern-iaf/docs/terrain.md) is converted from the Copernicus DEM GLO-30
-(Copernicus WorldDEM-30 licence[^cop-dem]), the ESA WorldCover 2021 Sentinel-2 composite (CC BY 4.0) and the Survey of
+(Copernicus WorldDEM-30 licence[^cop-dem]), the ESA WorldCover 2021 Sentinel-2 composite (credited as "ESA WorldCover Sentinel-2", CC BY 4.0) and the Survey of
 Israel 2015 photo (data.gov.il). The DEM's licence asks for two lines verbatim, which the sim's setup wizard (item A3)
 and credits roll show with the imagery's: "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus
 Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved" and "The
@@ -202,7 +211,7 @@ under andertan's CC BY 4.0, credited where their models are. Attributions is one
 The briefing's Arming page draws each jet's front view and its stores' side views, traced and rendered from our own
 models (`modern-iaf/data/drawings/`, `modern-iaf/data/stores/`, `SOURCES.md` in each): the F-16s' from the FlightGear
 F-16 (GPL 2.0 or later), the F-35I's from andertan's model (CC BY 4.0), the stores from the FlightGear stores (GPL
-2.0 or later), each credited where its model is (§ Model credits, `credits_ours.json`) and in the page's footer.
+2.0 or later), each credited where its model is (§ Model credits, `shared/credits.json`) and in the page's footer.
 
 ## Testing
 

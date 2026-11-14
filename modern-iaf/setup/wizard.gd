@@ -24,132 +24,6 @@ const THEATRE_SURVEY_GB := 3.57
 const OTHER_GB := 0.47
 const TIME_S2_MIN := 17
 const TIME_SURVEY_MIN := 102
-## Every source the sim is built from, with its licence line as the licence asks for it (the Copernicus lines
-## verbatim, terrain.md §5; sound.md §6; docs/credits.md "Modern IAF data"): [name, strings key of its use, lines].
-const CREDITS := [
-	[
-		"Copernicus DEM GLO-30",
-		"for_dem",
-		[
-			(
-				"produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH "
-				+ "2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
-			),
-			(
-				"The organisations in charge of the Copernicus programme by law or by delegation do not incur any "
-				+ "liability for any use of the Copernicus WorldDEM-30"
-			),
-		]
-	],
-	[
-		"ESA WorldCover Sentinel-2",
-		"for_s2",
-		[
-			(
-				"Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium; ESA "
-				+ "WorldCover project 2021 (CC BY 4.0)"
-			)
-		]
-	],
-	["Survey of Israel", "for_survey", ["© Survey of Israel 2015, via data.gov.il"]],
-	[
-		"OpenStreetMap",
-		"for_osm",
-		[
-			(
-				"Airbase, runway, coastline, inland water, building and road data © OpenStreetMap contributors, available under "
-				+ "the Open Database Licence (ODbL) 1.0: openstreetmap.org/copyright; Geofabrik extracts (Israel and "
-				+ "Palestine, Lebanon, Syria, Jordan, Egypt)"
-			)
-		]
-	],
-	["OurAirports", "for_ourairports", ["OurAirports data (public domain), ourairports.com"]],
-	[
-		"Microsoft Global ML Building Footprints",
-		"for_scenery",
-		[
-			"Microsoft Global ML Building Footprints (CDLA-Permissive-2.0), github.com/microsoft/GlobalMLBuildingFootprints"
-		]
-	],
-	["GHS-BUILT-H R2023A", "for_scenery", ["GHS-BUILT-H R2023A, European Commission, Joint Research Centre (JRC)"]],
-	["ambientCG", "for_textures", ["Ground, model and tree materials from ambientCG (ambientcg.com), CC0 1.0"]],
-	[
-		"Global Canopy Height 2020",
-		"for_trees",
-		["Global Canopy Height 2020, Lang, Jetz, Schindler, Wegner; ETH Zürich EcoVision Lab (CC BY 4.0)"]
-	],
-	[
-		"freesound.org",
-		"for_sounds",
-		[
-			(
-				"CC0 1.0. Authors: ikbenraar, pillwave, 77Pacer, nuckan, qubodup, Seidhepriest, Jetrod, "
-				+ "craigsmith (the USC Gold / Red / Sunset Editorial libraries), LilMati, Rudmer_Rotteveel, pushkin, "
-				+ "xkeril, elliott.klein, DeqstersLab, SoundDesignForYou, tranzfusion"
-			)
-		]
-	],
-	[
-		"Kokoro",
-		"for_voices",
-		[
-			(
-				"Kokoro-82M v1.0 by hexgrad (huggingface.co/hexgrad/Kokoro-82M), Apache-2.0, the model and its voices "
-				+ "af_heart, am_michael, am_puck and am_fenrir; trained on public-domain, permissively licensed and "
-				+ "synthetic speech and on two CC BY sets: Koniwa tnc (CC BY 3.0) and SIWIS (CC BY 4.0)"
-			)
-		]
-	],
-	[
-		"FlightGear F-16",
-		"for_f16",
-		[
-			(
-				"The FlightGear F-16 (github.com/NikolaiVChr/f16) by Erik Hofman, Nikolai V. Chr., J Maverick 16, "
-				+ 'Martin "Pegasus" Schmitt, Prohm "Rama" Snitwong and the other authors in its authors.txt, '
-				+ "GPL 2.0 or later"
-			)
-		]
-	],
-	["F-35I", "for_f35", ['"Lockheed Martin F35 Lightning II" by andertan (sketchfab.com), CC BY 4.0']],
-	[
-		"NASA TP-1538",
-		"for_fm",
-		[
-			(
-				"L. T. Nguyen et al., NASA TP-1538 (1979), a work of the U.S. Government (public domain); the "
-				+ "jets' published figures, each cited in the data files"
-			)
-		]
-	],
-	[
-		"Heebo",
-		"for_font",
-		["Copyright 2014 The Heebo Project Authors (github.com/OdedEzer/heebo), SIL Open Font License 1.1"]
-	],
-	[
-		"Hershey Fonts",
-		"for_hud_font",
-		[
-			(
-				"The Hershey Fonts were originally created by Dr. A. V. Hershey while working at the U. S. National "
-				+ "Bureau of Standards"
-			),
-			"The format of the Font data in this distribution was originally created by James Hurt, Cognition, Inc.",
-		]
-	],
-	[
-		"Wikimedia Commons",
-		"for_photos",
-		[
-			"F-16I Sufa 407 and F-35I Adir in flight: Major Ofer, Israeli Air Force, CC BY 4.0",
-			"F-16I Sufa 851 at Tel Nof: MathKnight and Zachi Evenor, CC BY 4.0",
-			"F-16D Barak 034: Zachi Evenor and MathKnight, CC BY 2.0",
-			"F-15I Ra'am of 69 Squadron in flight: Tech. Sgt. Kevin Gruenwald, U.S. Air Force, public domain",
-			"F-15C Baz 802 at Tel Nof: MathKnight and Zachi Evenor, CC BY 4.0",
-		]
-	],
-]
 var setup := IafSetup.new()
 var assets := ""
 var repo := ""
@@ -461,6 +335,12 @@ func _on_choice() -> void:
 	survey = survey_check.button_pressed and not survey_check.disabled
 
 
+## Every source the sim is built from, with its licence lines: shared/credits.json "sim" (both games' credits,
+## docs/credits.md "Modern IAF data"), each {name, use (the strings key of its use), lines}.
+static func credits() -> Array:
+	return Settings.load_json("res://shared/credits.json").get("sim", [])
+
+
 ## The Attributions dialog: every source and its licence lines, scrolling; mirrored in Hebrew.
 func _credits_dialog() -> AcceptDialog:
 	var d := AcceptDialog.new()
@@ -475,15 +355,15 @@ func _credits_dialog() -> AcceptDialog:
 	var v := _vbox(8)
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(v)
-	for c in CREDITS:
+	for c in credits():
 		var box := _vbox(2)
 		var head := HBoxContainer.new()
 		head.add_theme_constant_override("separation", 12)
 		box.add_child(head)
-		var name := _label(head, c[0], "Heading")
+		var name := _label(head, c.name, "Heading")
 		name.text_direction = Control.TEXT_DIRECTION_LTR
-		_label(head, s(c[1]), "Muted")
-		for line in c[2]:
+		_label(head, s(c.use), "Muted")
+		for line in c.lines:
 			# The licence lines stay as their licences word them: English, left to right.
 			var l := _text(box, line, "Note")
 			l.text_direction = Control.TEXT_DIRECTION_LTR

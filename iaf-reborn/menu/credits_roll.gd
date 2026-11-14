@@ -2,7 +2,7 @@
 # to quit the game?" Yes, the original (FUN_004e2e00) rolls txt/credits.trx over the cr0..cr8 screens with
 # credits.wav, then exits. Ported from the credits window FUN_004e7280 (ctor) / FUN_004e7880 (loop) /
 # FUN_004e7de0 (draw) / FUN_004e8200..8930 (the RTF reader). Ours: our own lines and the imagery
-# credits (iaf-reborn/menu/credits_ours.json) roll before the original's (user decision).
+# credits (shared/credits.json "roll") roll before the original's (user decision).
 extends Control
 
 signal finished
@@ -32,7 +32,7 @@ const MUSIC_FADE_Y := 480.0
 ## Faces of the RTF font table -> the fonts AddFontResource'd for the roll (fnt/cr0..cr4.ttf; the name
 ## table picks cr4 for "Gill Sans", cr1 for "Gill Sans Condensed"; cr0/2/3 are not used).
 const FACES := {"Gill Sans": "cr4.ttf", "Gill Sans Condensed": "cr1.ttf"}
-## Our line styles (credits_ours.json) as the original's: [face, \fs half-points].
+## Our line styles (shared/credits.json "roll") as the original's: [face, \fs half-points].
 const STYLES := {
 	"heading": ["Gill Sans", 40],
 	"name": ["Gill Sans", 40],
@@ -203,12 +203,12 @@ static func _strpbrk(s: String, from: int) -> int:
 # --- ours -------------------------------------------------------------------------------------
 
 
-## Our lines (credits_ours.json) as runs in the original's styles, Hebrew where given; "imagery" is the
+## Our lines (shared/credits.json "roll") as runs in the original's styles, Hebrew where given; "imagery" is the
 ## Terrain Imagery section: its title as a role line, then each converted layer's credit as small lines.
 func our_runs() -> Array:
 	var he := Settings.language == "he"
 	var out: Array = []
-	for l in Settings.load_json("res://menu/credits_ours.json").get("lines", []):
+	for l in Settings.load_json("res://shared/credits.json").get("roll", []):
 		var style := String(l.get("style", "name"))
 		var text := String(l.get("he", l.get("text", ""))) if he else String(l.get("text", ""))
 		if style == "imagery":

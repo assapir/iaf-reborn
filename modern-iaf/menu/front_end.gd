@@ -2314,13 +2314,13 @@ func _page_credits() -> void:
 	_focus = scroll
 	var list := _vbox(scroll, 18)
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for c in Wizard.CREDITS:
+	for c in Wizard.credits():
 		var box := _vbox(list, 4)
 		var head := _hbox(box, 16)
-		var name := _label(head, c[0], "Strong")
+		var name := _label(head, c.name, "Strong")
 		name.text_direction = Control.TEXT_DIRECTION_LTR
-		_label(head, str(setup_strings.get(c[1], "")), "Muted")
-		for line in c[2]:
+		_label(head, str(setup_strings.get(c.use, "")), "Muted")
+		for line in c.lines:
 			# The licence lines stay as their licences word them: English, left to right.
 			var l := _text(box, line, "Small")
 			l.text_direction = Control.TEXT_DIRECTION_LTR

@@ -257,7 +257,7 @@ as `FUN_004e7880(1, 50, 8, 5000, 0)` (objdump push order: steps 50, step 8 ms, s
     `wav/credits.wav`, cr1 / cr4.ttf.
   * Text is drawn smoothly in the scaled 640 × 480 screen. Scroll and fades follow the clock (1 px / 16 ms, 400 ms
     fades).
-  * Before the original's lines come our own (iaf-reborn/menu/credits_ours.json; Hebrew in Hebrew, with Arial as the
+  * Before the original's lines come our own (shared/credits.json `roll`; Hebrew in Hebrew, with Arial as the
     Hebrew fallback) and the converted imagery layers' credits (deviation, docs/deviations.md).
   * Empty runs count cy = 0 (UNCERTAIN: GetTextExtentPoint of an empty string). Only the end time depends on it.
 

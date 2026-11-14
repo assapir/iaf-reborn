@@ -644,80 +644,9 @@ func _page_welcome() -> Control:
 	dlg.min_size = Vector2i(640, 420)
 	var holder := MarginContainer.new()
 	dlg.add_child(holder)
-	var attr := _rich(
-		holder,
-		(
-			(
-				"[ul]Detailed F-16D and F-16I Sufa: from the [url=https://github.com/NikolaiVChr/f16]FlightGear F-16[/url] by "
-				+ "Erik Hofman, Nikolai V. Chr. and the other authors "
-				+ "([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL 2.0[/url] or later)\n"
-			)
-			+ (
-				"3D F-16 cockpit: the [url=https://github.com/NikolaiVChr/f16]FlightGear F-16[/url]'s cockpit by J "
-				+ 'Maverick 16, Martin "Pegasus" Schmitt and Prohm "Rama" Snitwong (textures), Nikolai V. Chr. and the '
-				+ "other authors ([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL 2.0[/url] or later)\n"
-			)
-			+ (
-				"Detailed stores: the [url=https://github.com/NikolaiVChr/f16]FlightGear F-16[/url]'s weapons and pods by J "
-				+ "Maverick 16 and the other authors ([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL "
-				+ "2.0[/url] or later)\n"
-			)
-			+ (
-				"Detailed Soviet stores: the AA-2 from the [url=https://github.com/l0k1/MiG-21bis]FlightGear "
-				+ "MiG-21bis[/url] by the OPRF MiG-21bis team; the AA-8, AA-10, AA-11 and the MiG-29's tank from the "
-				+ "[url=https://github.com/Mercenary-Mercury/MiG-29_9-12]FlightGear MiG-29 9-12[/url] by Sergey Salov "
-				+ "([url=https://www.gnu.org/licenses/gpl-3.0.html]GPL 3.0[/url])\n"
-			)
-			+ (
-				"Detailed MiG-29: the [url=https://github.com/Mercenary-Mercury/MiG-29_9-12]FlightGear MiG-29 9-12[/url] "
-				+ "by Enrique Laso Leon (3D model) and Sergey Salov "
-				+ "([url=https://www.gnu.org/licenses/gpl-3.0.html]GPL 3.0[/url])\n"
-			)
-			+ (
-				"Detailed F-15 and F-15I: the [url=https://github.com/Zaretto/fg-aircraft]FlightGear F-15C/D[/url] by "
-				+ "Enrique Laso (3D model), Richard Harrison (rig) and GeneB (cockpit textures), with its IAF livery "
-				+ "([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL 2.0[/url] only), downloaded and "
-				+ "converted by setup, not distributed with the game\n"
-			)
-			+ (
-				"F-35I Adir: "
-				+ "[url=https://sketchfab.com/3d-models/"
-				+ 'lockheed-martin-f35-lightning-ii-db911de503c74285a8d506951df786d6]"Lockheed '
-				+ 'Martin F35 Lightning II"[/url] by andertan ([url=https://creativecommons.org/licenses/by/4.0/]CC BY '
-				+ "4.0[/url]); the [url=https://commons.wikimedia.org/wiki/File:IAF_Squadron_116_Adir.png]116 Squadron "
-				+ "badge[/url] by the IDF Spokesperson's Unit ([url=https://creativecommons.org/licenses/by-sa/3.0/]CC BY-SA "
-				+ "3.0[/url])\n"
-			)
-			+ (
-				'Setup icon: the IAF roundel, [url=https://commons.wikimedia.org/wiki/File:Roundel_of_Israel.svg]"Roundel of '
-				+ 'Israel.svg"[/url] by Zscout370 (Wikimedia Commons, [url=https://creativecommons.org/licenses/by-sa/4.0/]CC '
-				+ "BY-SA 4.0[/url])\n"
-			)
-			+ (
-				"Ground textures and Model detail: materials from [url=https://ambientcg.com]ambientCG[/url] "
-				+ "([url=https://creativecommons.org/publicdomain/zero/1.0/]CC0 1.0[/url]), downloaded by setup\n"
-			)
-			+ (
-				"Modern TSD map (Extras: Briefing map Modern): © [url=https://www.openstreetmap.org/copyright]"
-				+ "OpenStreetMap[/url] contributors (ODbL 1.0)\n"
-			)
-			+ "Survey of Israel imagery: © Survey of Israel 2015, via [url=https://data.gov.il]data.gov.il[/url]\n"
-			+ (
-				"Scenery and roads: © [url=https://www.openstreetmap.org/copyright]OpenStreetMap[/url] contributors "
-				+ "(ODbL 1.0), Geofabrik extracts (Israel and Palestine, Lebanon, Syria, Jordan, Egypt, Cyprus); "
-				+ "[url=https://github.com/microsoft/GlobalMLBuildingFootprints]Microsoft Global ML "
-				+ "Building Footprints[/url] (CDLA-Permissive-2.0); GHS-BUILT-H R2023A, European Commission JRC; "
-				+ "[url=https://langnico.github.io/globalcanopyheight/]Global Canopy Height 2020[/url], Lang et al., ETH "
-				+ "Zürich ([url=https://creativecommons.org/licenses/by/4.0/]CC BY 4.0[/url]); wall materials, leaves "
-				+ "and bark from ambientCG (CC0 1.0); downloaded by setup\n"
-			)
-			+ (
-				"Sentinel-2 imagery: contains modified Copernicus Sentinel data (2021) processed by "
-				+ "[url=https://esa-worldcover.org]ESA WorldCover[/url] consortium "
-				+ "([url=https://creativecommons.org/licenses/by/4.0/]CC BY 4.0[/url])[/ul]"
-			)
-		)
-	)
+	# The bullets are shared/credits.json "attributions" (both games' credits, docs/credits.md).
+	var bullets := PackedStringArray(Settings.load_json("res://shared/credits.json").get("attributions", []))
+	var attr := _rich(holder, "[ul]%s[/ul]" % "\n".join(bullets))
 	attr.add_theme_font_size_override("normal_font_size", 14)
 	add_child(dlg)
 	attr_btn.pressed.connect(func(): dlg.popup_centered())
