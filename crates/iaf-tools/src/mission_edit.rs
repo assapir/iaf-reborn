@@ -812,6 +812,17 @@ impl Heights {
         ((x - self.meta.x_shift) / self.meta.m_per_unit, (self.meta.y_shift - y) / self.meta.m_per_unit)
     }
 
+    /// Frees the read tiles of the tile rows north of the one holding northing `y` (a sweep southward needs them no
+    /// more: each tile is 2 MB; `sim_bases::airbases`).
+    pub fn forget_north_of(&mut self, y: f64) {
+        let row = (self.units(0.0, y).1 / self.meta.span).floor() as i64;
+        let gone: Vec<(i64, i64)> = self.tried.iter().copied().filter(|k| k.1 < row).collect();
+        for k in gone {
+            self.tried.remove(&k);
+            self.field.remove(k.0, k.1);
+        }
+    }
+
     /// True when world point (x east, y north) is inside the theatre.
     pub fn inside(&self, x: f64, y: f64) -> bool {
         let (tx, ty) = self.units(x, y);

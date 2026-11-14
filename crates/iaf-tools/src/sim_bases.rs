@@ -19,6 +19,7 @@ use serde_json::{Value, json};
 
 use crate::airbases::ring_area;
 use crate::log;
+use crate::mission_edit::Heights;
 use crate::progress::{Progress, check};
 
 /// The bases' iaf.ibx sections in `iaf_flight::airbase::SECTIONS`' order (the original's Ramon, David and TelNof, ours
@@ -43,8 +44,9 @@ const TAXIWAY_WIDTH_M: f64 = 23.0;
 /// Mask pixel (m) and the margin around a base's outline.
 const MASK_PX_M: f64 = 2.0;
 const MASK_MARGIN_M: f64 = 300.0;
-/// The taxi-line distance the mask's blue channel holds (0 … this, m): `airbases.gd` draws the line from it.
-const TAXI_FIELD_M: f64 = 10.0;
+// The taxi-line distance the mask's blue channel holds (0 … TAXI_FIELD_M, m): `airbases.gd` draws the line from it;
+// the original game's masks hold the same.
+use crate::airbases::TAXI_FIELD_M;
 /// terraintype.dat flags (iaf_formats::terrain_types; the original's runway leaves are 0x10 alone).
 const LAND: i32 = 0x1;
 const INLAND_WATER: i32 = 0x2;
@@ -813,60 +815,6 @@ pub fn signs(b: &Base) -> Vec<Sign> {
     out
 }
 
-// --- heights --------------------------------------------------------------------------------------------------------
-
-/// The theatre's ground heights (its level-6 height nodes, sampled as the game's height_at), loaded per node.
-pub struct Ground {
-    dir: std::path::PathBuf,
-    meta: iaf_avionics::heights::Meta,
-    field: iaf_avionics::heights::HeightField,
-    loaded: std::collections::HashSet<(i64, i64)>,
-}
-
-impl Ground {
-    /// The theatre at `dir` (its meta.json); None without one.
-    pub fn open(dir: &Path) -> Option<Self> {
-        let m: Value = serde_json::from_slice(&std::fs::read(dir.join("meta.json")).ok()?).ok()?;
-        let f = |k: &str| m[k].as_f64().unwrap_or(0.0);
-        let meta = iaf_avionics::heights::Meta {
-            node_pixels: f("node_pixels") as usize,
-            span: f("node_pixels") * 2f64.powi(f("height_level") as i32),
-            sea_level_raw: f("sea_level_raw"),
-            height_scale: f("height_scale"),
-            m_per_unit: f("units_to_metres"),
-            x_shift: f("x_shift"),
-            y_shift: f("y_shift"),
-        };
-        let mut field = iaf_avionics::heights::HeightField::default();
-        field.set_meta(meta);
-        Some(Self { dir: dir.to_path_buf(), meta, field, loaded: Default::default() })
-    }
-
-    /// Frees the loaded nodes of the node rows north of the one holding northing `y` (a sweep southward needs them
-    /// no more: each node is 2 MB).
-    pub fn forget_north_of(&mut self, y: f64) {
-        let row = ((self.meta.y_shift - y) / self.meta.m_per_unit / self.meta.span).floor() as i64;
-        let gone: Vec<(i64, i64)> = self.loaded.iter().copied().filter(|k| k.1 < row).collect();
-        for k in gone {
-            self.loaded.remove(&k);
-            self.field.remove(k.0, k.1);
-        }
-    }
-
-    /// The ground (m) at world (x, y); None outside the theatre's height nodes.
-    pub fn at(&mut self, x: f64, y: f64) -> Option<f64> {
-        let m = self.meta;
-        let (tx, ty) = ((x - m.x_shift) / m.m_per_unit, (m.y_shift - y) / m.m_per_unit);
-        let k = ((tx / m.span).floor() as i64, (ty / m.span).floor() as i64);
-        if self.loaded.insert(k) {
-            let img = image::open(self.dir.join(format!("L6/h_{}_{}.png", k.0, k.1))).ok()?.to_rgb8();
-            let rg8: Vec<u8> = img.pixels().flat_map(|p| [p[0], p[1]]).collect();
-            self.field.add(k.0, k.1, img.width() as usize, &rg8);
-        }
-        self.field.height(iaf_avionics::Vec3::new(x, y, 0.0))
-    }
-}
-
 // --- the paved-surface mask -----------------------------------------------------------------------------------------
 
 /// A base's mask: R = paved coverage (runways, stopways, taxiways, aprons, shelters' pads), G = concrete (aprons and
@@ -1473,7 +1421,7 @@ pub fn airbases(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
     let bases = load(&data.join("airbases"))?;
     let theatre = assets.join("converted/terrain/israel");
     let mut ground =
-        Ground::open(&theatre).with_context(|| format!("{}: no theatre (iaf-sim terrain)", theatre.display()))?;
+        Heights::open(&theatre).with_context(|| format!("{}: no theatre (iaf-sim terrain)", theatre.display()))?;
     let own = assets.join("converted/own");
     std::fs::create_dir_all(theatre.join("airbases"))?;
     std::fs::create_dir_all(&own)?;
@@ -1487,7 +1435,7 @@ pub fn airbases(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
     for b in &bases {
         check(cancel)?;
         let rt = routes(b)?;
-        let mut z = |p: [f64; 2]| ground.at(p[0], p[1]).unwrap_or(b.elevation);
+        let mut z = |p: [f64; 2]| ground.ground_height(p[0], p[1]).unwrap_or(b.elevation);
         ibx += &ibx_section(b, &rt, &mut z);
         let m = mask(b);
         let file = format!("israel/airbases/{}.png", b.section.to_lowercase());
@@ -1545,7 +1493,7 @@ pub fn airbases(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
         check(cancel)?;
         ground.forget_north_of(n1 - (j as f64 + 0.5) * WATER_CELL_M);
         for i in 0..nx {
-            let h = ground.at(e0 + (i as f64 + 0.5) * WATER_CELL_M, n1 - (j as f64 + 0.5) * WATER_CELL_M);
+            let h = ground.ground_height(e0 + (i as f64 + 0.5) * WATER_CELL_M, n1 - (j as f64 + 0.5) * WATER_CELL_M);
             zero[j * nx + i] = h.is_some_and(|h| h.abs() < 0.05);
         }
     }
@@ -1583,7 +1531,7 @@ pub fn airbases(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBo
     }
     drop(inland);
     // The large lakes' surface as the DEM has it (modern-iaf/docs/terrain.md "Inland water").
-    if let Some(mut g) = Ground::open(&theatre) {
+    if let Some(mut g) = Heights::open(&theatre) {
         for wb in water.iter().filter(|w| w.area >= LEVEL_REPORT_M2) {
             if let Some(level) = wb.dem_level(&mut g) {
                 log!(pr, "inland water: {} ({:.0} km²) at {level:.1} m (the DEM's median)", wb.name, wb.area / 1e6);
@@ -1628,7 +1576,7 @@ pub struct Water {
 
 impl Water {
     /// The median ground height (m) over a 500 m grid inside the outer ring; None without a sample.
-    fn dem_level(&self, g: &mut Ground) -> Option<f64> {
+    fn dem_level(&self, g: &mut Heights) -> Option<f64> {
         let o = &self.rings[0];
         let b = crate::bbox(o.iter());
         let mut v = Vec::new();
@@ -1637,7 +1585,7 @@ impl Water {
             let mut x = b[0] + 250.0;
             while x < b[2] {
                 let inside = self.rings.iter().filter(|r| crate::scenery::contains(r, [x, y])).count() % 2 == 1;
-                if let Some(h) = g.at(x, y).filter(|_| inside) {
+                if let Some(h) = g.ground_height(x, y).filter(|_| inside) {
                     v.push(h);
                 }
                 x += 500.0;

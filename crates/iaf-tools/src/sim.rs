@@ -22,8 +22,9 @@ use serde_json::{Map, Value, json};
 
 use crate::log;
 use crate::mission_edit;
+use crate::mission_edit::Heights;
 use crate::progress::{Progress, check};
-use crate::sim_bases::{self, Base, Ground};
+use crate::sim_bases::{self, Base};
 use crate::training;
 
 pub use crate::sim_files::{BDB, BDB_FILE};
@@ -748,11 +749,11 @@ pub fn compile_mission(
 pub fn missions(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     let db = Db::read(data)?;
     let bases = sim_bases::load(&data.join("airbases"))?;
-    let mut ground = Ground::open(&assets.join("converted/terrain/israel"));
+    let mut ground = Heights::open(&assets.join("converted/terrain/israel"));
     if ground.is_none() {
         pr.warn("missions: no theatre (iaf-sim terrain): the starts take the files' elevation_m");
     }
-    let mut height = |x: f64, y: f64| ground.as_mut().and_then(|g| g.at(x, y));
+    let mut height = |x: f64, y: f64| ground.as_mut().and_then(|g| g.ground_height(x, y));
     let out = assets.join(MISSIONS_DIR);
     let mut list = Map::new();
     let files = read_dir(&data.join("missions"))?;

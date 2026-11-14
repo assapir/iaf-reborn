@@ -167,7 +167,7 @@ impl Coast {
         let mut best: Option<(f64, usize)> = None;
         for &i in self.cells.get(&key)? {
             let s = self.segs[i as usize];
-            let d = seg_dist(p, s[0], s[1]);
+            let d = crate::scenery::dist_seg(p, s[0], s[1]);
             // At a shared vertex both segments are as near: the one whose line is farther from p decides the side
             // (the point lies outside the corner's wedge on that segment's side).
             let better = match best {
@@ -193,13 +193,6 @@ impl Coast {
 /// A segment's length.
 pub fn len(s: &[[f64; 2]; 2]) -> f64 {
     (s[1][0] - s[0][0]).hypot(s[1][1] - s[0][1])
-}
-
-fn seg_dist(p: [f64; 2], a: [f64; 2], b: [f64; 2]) -> f64 {
-    let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
-    let l2 = dx * dx + dy * dy;
-    let t = if l2 > 0.0 { (((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2).clamp(0.0, 1.0) } else { 0.0 };
-    (p[0] - a[0] - t * dx).hypot(p[1] - a[1] - t * dy)
 }
 
 /// The signed distance of `p` from the line through segment `s`: positive on its left.

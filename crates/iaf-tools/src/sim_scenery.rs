@@ -18,14 +18,14 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
 use anyhow::{Context, Result, bail};
-use iaf_avionics::scenery::{Cell, SOURCE_OSM};
+use iaf_avionics::scenery::Cell;
 use iaf_formats::terrain_types::TerrainTypes;
 use image::RgbImage;
 use serde_json::json;
 use sha2::{Digest, Sha256};
 
-use crate::progress::{Progress, check, par_map};
-use crate::scenery::{self, Canopy, Env, Kinds, NodeIn, Sources};
+use crate::progress::{Progress, check};
+use crate::scenery::{self, Env, Kinds, NodeIn, Sources};
 use crate::sim_terrain::Meta;
 use crate::thirdparty::{self, Download};
 use crate::{log, roads, sim_bases, sim_coast};
@@ -351,119 +351,77 @@ pub fn scenery(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBoo
     let built = |g: [f64; 2]| heights.at(g);
     let w = |lon: f64, lat: f64| warp.at(lon, lat);
 
-    let mut blocks: std::collections::BTreeMap<(u32, u32), Vec<&NodeIn>> = Default::default();
-    for nd in nodes.values() {
-        blocks.entry((nd.key.0 / scenery::THEATRE_BLOCK, nd.key.1 / scenery::THEATRE_BLOCK)).or_default().push(nd);
-    }
-    let blocks: Vec<Vec<&NodeIn>> = blocks.into_values().collect();
-    let done = std::sync::atomic::AtomicUsize::new(0);
     let colour_dir = assets.join(THEATRE);
-    let results = par_map(&blocks, cancel, |block| {
-        check(cancel)?;
-        // The canopy over the block once: 10 m where it holds a Survey node, else 20 m.
-        let fine = block.iter().any(|nd| survey.contains(&nd.key));
-        let canopy = match &chm {
-            Some(chm) => {
-                let b = block.iter().map(|nd| geos[&nd.key]).fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, g| {
-                    [b[0].min(g[0]), b[1].min(g[1]), b[2].max(g[2]), b[3].max(g[3])]
-                });
-                let step = if fine { scenery::CANOPY_STEP } else { scenery::THEATRE_CANOPY_STEP };
-                let mut c = Canopy::grid(b, step);
-                let g = [c.lon0, c.lat1 - c.h as f64 * c.step, c.lon0 + c.w as f64 * c.step, c.lat1];
-                let tmp = work.join(format!("chm_{}_{}.bin", block[0].key.0, block[0].key.1));
-                c.v = scenery::gdal_warp(std::slice::from_ref(chm), g, c.w, c.h, "max", &tmp)?;
-                Some(c)
-            }
-            None => None,
-        };
-        // The colour nodes the roofs read: a 2 m node is a node's own (dropped after it), the 8 m and 32 m ones are
-        // shared by the block (16 and 1 of them at most): about 60 MB a worker.
-        let mut images: HashMap<(u32, u32, u32), Option<Arc<RgbImage>>> = HashMap::new();
-        let mut v = Vec::new();
-        for nd in block {
-            images.retain(|k, _| k.0 > 1);
-            let mut node = (*nd).clone();
-            node.canopy = canopy
-                .as_ref()
-                .map(|c| c.part(geos[&nd.key]))
-                .filter(|c| c.v.iter().any(|&v| v >= scenery::ORCHARD_CANOPY_MIN_M));
-            if node.osm.is_empty() && node.ms.is_empty() && node.trees.is_empty() && node.canopy.is_none() {
-                continue;
-            }
-            // The roofs' colour: the theatre's own colour node under the footprint (both looks: the sim has one).
-            for f in node.osm.iter().chain(&node.ms) {
-                let c = scenery::centroid(&f.pts);
-                if let Some(k) = colour_node(&th, th.frame.units(c[0], c[1])) {
-                    images.entry(k).or_insert_with(|| {
-                        let p = colour_dir.join(format!("L{}/c_{}_{}.jpg", k.0, k.1, k.2));
-                        image::open(p).ok().map(|m| Arc::new(m.to_rgb8()))
-                    });
-                }
-            }
-            let roof = |pts: &[[f64; 2]]| {
-                let c = scenery::centroid(pts);
-                let Some(k) = colour_node(&th, th.frame.units(c[0], c[1])) else { return ([0; 3], [0; 3]) };
-                let Some(Some(img)) = images.get(&k) else { return ([0; 3], [0; 3]) };
-                let (px, span) = (f64::from(1u32 << k.0), th.frame.span(k.0));
-                let o = [k.1 as f64 * span, k.2 as f64 * span];
-                let q: Vec<[f64; 2]> = pts
-                    .iter()
-                    .map(|&p| {
-                        let t = th.frame.units(p[0], p[1]);
-                        [(t[0] - o[0]) / px, (t[1] - o[1]) / px]
-                    })
-                    .collect();
-                // The roof: the photo's median inside the footprint (the modern slot); the walls: its median in a ring
-                // RING_M wide around it (the 1998 slot: the sim has one photo; iaf_avionics::scenery::Colours::Ring).
-                let ring = RING_M / (px * th.frame.m_per_unit);
-                (scenery::median_ring(img, &q, ring), scenery::median_inside(img, &q))
-            };
-            let env = Env { open: &open, clears: &[], built_height: &built, roof: &roof, warp: &w };
-            let mut cell = scenery::build_cell(&node, &env);
-            // Near the inland water, no tree on the photo's water where OpenStreetMap's outline stops short of it (the
-            // canopy map reads 30 m "trees" over the Dead Sea's pans; scenery.md §4).
-            cell.trees.retain(|t| {
-                let p = [f64::from(t.x), f64::from(t.y)];
-                if !water.near(p, WATER_NEAR_M) {
-                    return true;
-                }
-                let tp = th.frame.units(p[0], p[1]);
-                let Some(k) = colour_node(&th, tp) else { return true };
-                let img = images.entry(k).or_insert_with(|| {
+    let blocks = scenery::Blocks { nodes: &nodes, geos: &geos, chm: chm.as_ref(), work: &work, out: &out };
+    // The canopy over a block: 10 m where it holds a Survey node, else 20 m.
+    let step = |block: &[&NodeIn]| {
+        if block.iter().any(|nd| survey.contains(&nd.key)) {
+            scenery::CANOPY_STEP
+        } else {
+            scenery::THEATRE_CANOPY_STEP
+        }
+    };
+    // The colour nodes the roofs read: a 2 m node is a node's own (dropped after it), the 8 m and 32 m ones are shared
+    // by the block (16 and 1 of them at most): about 60 MB a worker.
+    let cells = |images: &mut HashMap<(u32, u32, u32), Option<Arc<RgbImage>>>, node: NodeIn| -> Result<(Cell, Cell)> {
+        images.retain(|k, _| k.0 > 1);
+        // The roofs' colour: the theatre's own colour node under the footprint (both looks: the sim has one).
+        for f in node.osm.iter().chain(&node.ms) {
+            let c = scenery::centroid(&f.pts);
+            if let Some(k) = colour_node(&th, th.frame.units(c[0], c[1])) {
+                images.entry(k).or_insert_with(|| {
                     let p = colour_dir.join(format!("L{}/c_{}_{}.jpg", k.0, k.1, k.2));
                     image::open(p).ok().map(|m| Arc::new(m.to_rgb8()))
                 });
-                let Some(img) = img else { return true };
-                let (px, span) = (f64::from(1u32 << k.0), th.frame.span(k.0));
-                let (x, y) = ((tp[0] - k.1 as f64 * span) / px, (tp[1] - k.2 as f64 * span) / px);
-                let c = img.get_pixel((x as u32).min(img.width() - 1), (y as u32).min(img.height() - 1)).0;
-                !photo_water(c)
-            });
-            // The city lights' stand-ins where a town's footprints are sparse (docs/rendering.md §5.1).
-            let lights =
-                Cell { buildings: scenery::fill_lights(&node, &heights, geos[&nd.key], &w, &open), trees: vec![] };
-            let (i, j) = nd.key;
-            let mut bytes = 0;
-            let (nb, nt, nl) = (cell.buildings.len(), cell.trees.len(), lights.buildings.len());
-            if nb + nt > 0 {
-                let data = cell.encode();
-                bytes += data.len() as u64;
-                std::fs::write(out.join(format!("L1/s_{i}_{j}.bin")), data)?;
             }
-            if nl > 0 {
-                let data = lights.encode();
-                bytes += data.len() as u64;
-                std::fs::write(out.join(format!("lights/L1/s_{i}_{j}.bin")), data)?;
-            }
-            let osm = cell.buildings.iter().filter(|b| b.source == SOURCE_OSM).count();
-            v.push((nd.key, nb, osm, nt, nl, bytes));
         }
-        let k = done.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
-        pr.fraction(0.35 + 0.65 * k as f32 / blocks.len().max(1) as f32);
-        Ok(v)
-    })?;
+        let roof = |pts: &[[f64; 2]]| {
+            let c = scenery::centroid(pts);
+            let Some(k) = colour_node(&th, th.frame.units(c[0], c[1])) else { return ([0; 3], [0; 3]) };
+            let Some(Some(img)) = images.get(&k) else { return ([0; 3], [0; 3]) };
+            let (px, span) = (f64::from(1u32 << k.0), th.frame.span(k.0));
+            let o = [k.1 as f64 * span, k.2 as f64 * span];
+            let q: Vec<[f64; 2]> = pts
+                .iter()
+                .map(|&p| {
+                    let t = th.frame.units(p[0], p[1]);
+                    [(t[0] - o[0]) / px, (t[1] - o[1]) / px]
+                })
+                .collect();
+            // The roof: the photo's median inside the footprint (the modern slot); the walls: its median in a ring
+            // RING_M wide around it (the 1998 slot: the sim has one photo; iaf_avionics::scenery::Colours::Ring).
+            let ring = RING_M / (px * th.frame.m_per_unit);
+            (scenery::median_ring(img, &q, ring), scenery::median_inside(img, &q))
+        };
+        let env = Env { open: &open, clears: &[], built_height: &built, roof: &roof, warp: &w };
+        let mut cell = scenery::build_cell(&node, &env);
+        // Near the inland water, no tree on the photo's water where OpenStreetMap's outline stops short of it (the
+        // canopy map reads 30 m "trees" over the Dead Sea's pans; scenery.md §4).
+        cell.trees.retain(|t| {
+            let p = [f64::from(t.x), f64::from(t.y)];
+            if !water.near(p, WATER_NEAR_M) {
+                return true;
+            }
+            let tp = th.frame.units(p[0], p[1]);
+            let Some(k) = colour_node(&th, tp) else { return true };
+            let img = images.entry(k).or_insert_with(|| {
+                let p = colour_dir.join(format!("L{}/c_{}_{}.jpg", k.0, k.1, k.2));
+                image::open(p).ok().map(|m| Arc::new(m.to_rgb8()))
+            });
+            let Some(img) = img else { return true };
+            let (px, span) = (f64::from(1u32 << k.0), th.frame.span(k.0));
+            let (x, y) = ((tp[0] - k.1 as f64 * span) / px, (tp[1] - k.2 as f64 * span) / px);
+            let c = img.get_pixel((x as u32).min(img.width() - 1), (y as u32).min(img.height() - 1)).0;
+            !photo_water(c)
+        });
+        // The city lights' stand-ins where a town's footprints are sparse (docs/rendering.md §5.1).
+        let lights =
+            Cell { buildings: scenery::fill_lights(&node, &heights, geos[&node.key], &w, &open), trees: vec![] };
+        Ok((cell, lights))
+    };
+    let results = scenery::write_blocks(&blocks, step, cells, pr, cancel)?;
     let mut cells = Vec::new();
-    for (k, nb, osm, nt, nl, bytes) in results.into_iter().flatten() {
+    for (k, nb, osm, nt, nl, bytes) in results {
         if nb + nt > 0 {
             s.cells += 1;
             cells.push([k.0, k.1]);
@@ -520,7 +478,7 @@ pub fn scenery(data: &Path, assets: &Path, pr: &dyn Progress, cancel: &AtomicBoo
 mod tests {
     use super::*;
     use crate::scenery::{Footprint, Warp};
-    use iaf_avionics::scenery::Roof;
+    use iaf_avionics::scenery::{Roof, SOURCE_OSM};
 
     /// A building lands where its lat / lon says in UTM 36N (gdaltransform's numbers for Ramon's reference point,
     /// sim_bases::utm_matches_gdal), within 5 m, through the warp, the gathering into the node and the cell's f32

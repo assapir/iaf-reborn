@@ -118,7 +118,7 @@ pub(crate) fn contains(p: &[[f64; 2]], q: [f64; 2]) -> bool {
     inside
 }
 
-fn dist_seg(p: [f64; 2], a: [f64; 2], b: [f64; 2]) -> f64 {
+pub(crate) fn dist_seg(p: [f64; 2], a: [f64; 2], b: [f64; 2]) -> f64 {
     let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
     let l2 = dx * dx + dy * dy;
     let t = if l2 > 0.0 { (((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2).clamp(0.0, 1.0) } else { 0.0 };
@@ -2118,132 +2118,82 @@ pub fn build_theatre(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<
     let built = |g: [f64; 2]| heights.at(g);
     let w = |lon: f64, lat: f64| warp.at(lon, lat);
 
-    // Per block of nodes, on every core.
-    let mut blocks: BTreeMap<(u32, u32), Vec<&NodeIn>> = BTreeMap::new();
-    for n in nodes.values() {
-        blocks.entry((n.key.0 / THEATRE_BLOCK, n.key.1 / THEATRE_BLOCK)).or_default().push(n);
-    }
-    let blocks: Vec<Vec<&NodeIn>> = blocks.into_values().collect();
-    let done = std::sync::atomic::AtomicUsize::new(0);
-    let results = par_map(&blocks, cancel, |block| {
-        check(cancel)?;
-        let mut cache = Cache::default();
-        let mut grounds: HashMap<(u32, u32), Ground> = HashMap::new();
-        let mut ground = |k: (u32, u32)| -> Result<Ground> {
-            if let Some(g) = grounds.get(&k) {
-                return Ok(g.clone());
-            }
-            let t = [(k.0 * g_span) as f64, (k.1 * g_span) as f64];
-            let img = |l: &str| -> Result<std::sync::Arc<RgbImage>> {
-                let p = a.join(format!("converted/imagery/{l}/L{GROUND_LEVEL}/c_{}_{}.jpg", k.0, k.1));
-                Ok(std::sync::Arc::new(image::open(&p).with_context(|| format!("{}", p.display()))?.to_rgb8()))
-            };
-            let g = if in_israel(t) {
-                theatre.rendition((GROUND_LEVEL, k.0, k.1), &mut cache)?.map(|i| (i.clone(), i))
-            } else if s2_old.contains(&k) {
-                let old = img("sentinel2")?;
-                Some((old.clone(), if s2_modern.contains(&k) { img("sentinel2_modern")? } else { old }))
-            } else {
-                None
-            };
-            grounds.insert(k, g.clone());
-            Ok(g)
-        };
-        // The canopy over the block's nodes once, on the THEATRE_CANOPY_STEP grid (each node takes its part).
-        let canopy = match &chm {
-            Some(chm) => {
-                let b = block.iter().map(|n| geos[&n.key]).fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, g| {
-                    [b[0].min(g[0]), b[1].min(g[1]), b[2].max(g[2]), b[3].max(g[3])]
-                });
-                let mut c = Canopy::grid(b, THEATRE_CANOPY_STEP);
-                let geo = [c.lon0, c.lat1 - c.h as f64 * c.step, c.lon0 + c.w as f64 * c.step, c.lat1];
-                let tmp = work.join(format!("chm_{}_{}.bin", block[0].key.0, block[0].key.1));
-                c.v = gdal_warp(std::slice::from_ref(chm), geo, c.w, c.h, "max", &tmp)?;
-                Some(c)
-            }
-            None => None,
-        };
-        let mut v = Vec::new();
-        for n in block {
-            let (i, j) = n.key;
-            let mut node = (*n).clone();
-            node.canopy = canopy
-                .as_ref()
-                .map(|c| c.part(geos[&n.key]))
-                .filter(|c| c.v.iter().any(|&v| v >= ORCHARD_CANOPY_MIN_M));
-            if node.osm.is_empty() && node.ms.is_empty() && node.trees.is_empty() && node.canopy.is_none() {
-                continue;
-            }
-            // The roofs' colours: the ground image under the footprint's centre.
-            let mut roofs: HashMap<(u32, u32), Ground> = HashMap::new();
-            for f in node.osm.iter().chain(&node.ms) {
-                let k = g_key(airbases::units(centroid(&f.pts)[0], centroid(&f.pts)[1]));
-                if let std::collections::hash_map::Entry::Vacant(e) = roofs.entry(k) {
-                    e.insert(ground(k)?);
-                }
-            }
-            let roof = |pts: &[[f64; 2]]| {
-                let t = airbases::units(centroid(pts)[0], centroid(pts)[1]);
-                let k = g_key(t);
-                let Some(Some((old, modern))) = roofs.get(&k) else { return ([0; 3], [0; 3]) };
-                let s = g_span as f64 / 1024.0;
-                let q: Vec<[f64; 2]> = pts
-                    .iter()
-                    .map(|&p| {
-                        let t = airbases::units(p[0], p[1]);
-                        [(t[0] - (k.0 * g_span) as f64) / s, (t[1] - (k.1 * g_span) as f64) / s]
-                    })
-                    .collect();
-                (median_inside(old, &q), median_inside(modern, &q))
-            };
-            let near = clears_near(&all_clears, node_rect(i, j));
-            let env = Env { open: &open, clears: &near, built_height: &built, roof: &roof, warp: &w };
-            let mut cell = build_cell(&node, &env);
-            if !r.kinds.buildings {
-                cell.buildings.clear();
-            }
-            if !r.kinds.trees {
-                cell.trees.clear();
-            }
-            // The city lights' buildings: those the cell lacks where the ground is open.
-            let mut lights = Cell::default();
-            if r.kinds.buildings {
-                let bare = NodeIn { trees: Vec::new(), canopy: None, areas: Vec::new(), ..(*n).clone() };
-                let no_roof = |_: &[[f64; 2]]| ([0; 3], [0; 3]);
-                let env = Env { open: &lights_open, clears: &near, built_height: &built, roof: &no_roof, warp: &w };
-                lights = build_cell(&bare, &env);
-                let key = |b: &Building| (b.points[0][0].to_bits(), b.points[0][1].to_bits(), b.points.len());
-                let have: HashSet<_> = cell.buildings.iter().map(key).collect();
-                lights.buildings.retain(|b| !have.contains(&key(b)));
-                lights.trees.clear();
-                lights.buildings.extend(fill_lights(&node, &heights, geos[&n.key], &w, &lights_open));
-            }
-            let t = airbases::units(
-                (node_rect(i, j)[0] + node_rect(i, j)[2]) * 0.5,
-                (node_rect(i, j)[1] + node_rect(i, j)[3]) * 0.5,
-            );
-            let mut bytes = 0;
-            let (nb, nt, nl) = (cell.buildings.len(), cell.trees.len(), lights.buildings.len());
-            if nb + nt > 0 {
-                let data = cell.encode();
-                bytes += data.len() as u64;
-                std::fs::write(out.join(format!("L1/s_{i}_{j}.bin")), data)?;
-            }
-            if nl > 0 {
-                let data = lights.encode();
-                bytes += data.len() as u64;
-                std::fs::write(out.join(format!("lights/L1/s_{i}_{j}.bin")), data)?;
-            }
-            let osm = cell.buildings.iter().filter(|b| b.source == SOURCE_OSM).count();
-            v.push((n.key, in_israel(t), nb, osm, nt, nl, bytes));
+    // The ground images under a block's roofs, read once a block.
+    let ground = |(cache, grounds): &mut (Cache, HashMap<(u32, u32), Ground>), k: (u32, u32)| -> Result<Ground> {
+        if let Some(g) = grounds.get(&k) {
+            return Ok(g.clone());
         }
-        let k = done.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
-        pr.fraction(0.35 + 0.65 * k as f32 / blocks.len().max(1) as f32);
-        Ok(v)
-    })?;
+        let t = [(k.0 * g_span) as f64, (k.1 * g_span) as f64];
+        let img = |l: &str| -> Result<std::sync::Arc<RgbImage>> {
+            let p = a.join(format!("converted/imagery/{l}/L{GROUND_LEVEL}/c_{}_{}.jpg", k.0, k.1));
+            Ok(std::sync::Arc::new(image::open(&p).with_context(|| format!("{}", p.display()))?.to_rgb8()))
+        };
+        let g = if in_israel(t) {
+            theatre.rendition((GROUND_LEVEL, k.0, k.1), cache)?.map(|i| (i.clone(), i))
+        } else if s2_old.contains(&k) {
+            let old = img("sentinel2")?;
+            Some((old.clone(), if s2_modern.contains(&k) { img("sentinel2_modern")? } else { old }))
+        } else {
+            None
+        };
+        grounds.insert(k, g.clone());
+        Ok(g)
+    };
+    let blocks = Blocks { nodes: &nodes, geos: &geos, chm: chm.as_ref(), work: &work, out: &out };
+    let cells = |state: &mut (Cache, HashMap<(u32, u32), Ground>), node: NodeIn| -> Result<(Cell, Cell)> {
+        let (i, j) = node.key;
+        // The roofs' colours: the ground image under the footprint's centre.
+        let mut roofs: HashMap<(u32, u32), Ground> = HashMap::new();
+        for f in node.osm.iter().chain(&node.ms) {
+            let k = g_key(airbases::units(centroid(&f.pts)[0], centroid(&f.pts)[1]));
+            if let std::collections::hash_map::Entry::Vacant(e) = roofs.entry(k) {
+                e.insert(ground(state, k)?);
+            }
+        }
+        let roof = |pts: &[[f64; 2]]| {
+            let t = airbases::units(centroid(pts)[0], centroid(pts)[1]);
+            let k = g_key(t);
+            let Some(Some((old, modern))) = roofs.get(&k) else { return ([0; 3], [0; 3]) };
+            let s = g_span as f64 / 1024.0;
+            let q: Vec<[f64; 2]> = pts
+                .iter()
+                .map(|&p| {
+                    let t = airbases::units(p[0], p[1]);
+                    [(t[0] - (k.0 * g_span) as f64) / s, (t[1] - (k.1 * g_span) as f64) / s]
+                })
+                .collect();
+            (median_inside(old, &q), median_inside(modern, &q))
+        };
+        let near = clears_near(&all_clears, node_rect(i, j));
+        let env = Env { open: &open, clears: &near, built_height: &built, roof: &roof, warp: &w };
+        let mut cell = build_cell(&node, &env);
+        if !r.kinds.buildings {
+            cell.buildings.clear();
+        }
+        if !r.kinds.trees {
+            cell.trees.clear();
+        }
+        // The city lights' buildings: those the cell lacks where the ground is open.
+        let mut lights = Cell::default();
+        if r.kinds.buildings {
+            let bare = NodeIn { trees: Vec::new(), canopy: None, areas: Vec::new(), ..node.clone() };
+            let no_roof = |_: &[[f64; 2]]| ([0; 3], [0; 3]);
+            let env = Env { open: &lights_open, clears: &near, built_height: &built, roof: &no_roof, warp: &w };
+            lights = build_cell(&bare, &env);
+            let key = |b: &Building| (b.points[0][0].to_bits(), b.points[0][1].to_bits(), b.points.len());
+            let have: HashSet<_> = cell.buildings.iter().map(key).collect();
+            lights.buildings.retain(|b| !have.contains(&key(b)));
+            lights.trees.clear();
+            lights.buildings.extend(fill_lights(&node, &heights, geos[&node.key], &w, &lights_open));
+        }
+        Ok((cell, lights))
+    };
+    let results = write_blocks(&blocks, |_| THEATRE_CANOPY_STEP, cells, pr, cancel)?;
     let (mut s, mut light_cells, mut light_buildings) = (Summary::default(), 0, 0);
     let (mut in_isr, mut outside, mut lit) = (Vec::new(), Vec::new(), Vec::new());
-    for (k, isr, nb, osm, nt, nl, bytes) in results.into_iter().flatten() {
+    for (k, nb, osm, nt, nl, bytes) in results {
+        let n = node_rect(k.0, k.1);
+        let isr = in_israel(airbases::units((n[0] + n[2]) * 0.5, (n[1] + n[3]) * 0.5));
         if nb + nt > 0 {
             s.cells += 1;
             if isr { in_isr.push([k.0, k.1]) } else { outside.push([k.0, k.1]) }
@@ -2291,6 +2241,87 @@ pub fn build_theatre(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<
         crate::progress::duration(started.elapsed())
     );
     Ok(s)
+}
+
+/// A theatre's level-1 nodes and where their cells go (`write_blocks`).
+pub(crate) struct Blocks<'a> {
+    pub nodes: &'a BTreeMap<(u32, u32), NodeIn>,
+    pub geos: &'a HashMap<(u32, u32), [f64; 4]>,
+    pub chm: Option<&'a String>,
+    /// The canopy's temporary files.
+    pub work: &'a Path,
+    /// The scenery folder: the cells into `L1`, the city lights' into `lights/L1`.
+    pub out: &'a Path,
+}
+
+/// One node written: its key, buildings, OpenStreetMap buildings, trees, city lights' buildings and bytes.
+pub(crate) type Written = ((u32, u32), usize, usize, usize, usize, u64);
+
+/// The cells of `b`'s nodes, by blocks of THEATRE_BLOCK² nodes on every core (`build_theatre`, `sim_scenery::scenery`):
+/// the block's canopy once, on the grid `step(block)`; each node takes its part (none without a tree of
+/// ORCHARD_CANOPY_MIN_M); a node with nothing is skipped; `cells(state, node)` gives the node's cell and city lights
+/// (`state` is one per block), each written when not empty. Progress goes from 0.35 to 1.
+pub(crate) fn write_blocks<S: Default>(
+    b: &Blocks,
+    step: impl Fn(&[&NodeIn]) -> f64 + Sync,
+    cells: impl Fn(&mut S, NodeIn) -> Result<(Cell, Cell)> + Sync,
+    pr: &dyn Progress,
+    cancel: &AtomicBool,
+) -> Result<Vec<Written>> {
+    let mut blocks: BTreeMap<(u32, u32), Vec<&NodeIn>> = BTreeMap::new();
+    for n in b.nodes.values() {
+        blocks.entry((n.key.0 / THEATRE_BLOCK, n.key.1 / THEATRE_BLOCK)).or_default().push(n);
+    }
+    let blocks: Vec<Vec<&NodeIn>> = blocks.into_values().collect();
+    let done = std::sync::atomic::AtomicUsize::new(0);
+    let results = par_map(&blocks, cancel, |block| {
+        check(cancel)?;
+        let canopy = match b.chm {
+            Some(chm) => {
+                let g = block.iter().map(|n| b.geos[&n.key]).fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |g, n| {
+                    [g[0].min(n[0]), g[1].min(n[1]), g[2].max(n[2]), g[3].max(n[3])]
+                });
+                let mut c = Canopy::grid(g, step(block));
+                let geo = [c.lon0, c.lat1 - c.h as f64 * c.step, c.lon0 + c.w as f64 * c.step, c.lat1];
+                let tmp = b.work.join(format!("chm_{}_{}.bin", block[0].key.0, block[0].key.1));
+                c.v = gdal_warp(std::slice::from_ref(chm), geo, c.w, c.h, "max", &tmp)?;
+                Some(c)
+            }
+            None => None,
+        };
+        let mut state = S::default();
+        let mut v = Vec::new();
+        for n in block {
+            let mut node = (*n).clone();
+            node.canopy = canopy
+                .as_ref()
+                .map(|c| c.part(b.geos[&n.key]))
+                .filter(|c| c.v.iter().any(|&v| v >= ORCHARD_CANOPY_MIN_M));
+            if node.osm.is_empty() && node.ms.is_empty() && node.trees.is_empty() && node.canopy.is_none() {
+                continue;
+            }
+            let (cell, lights) = cells(&mut state, node)?;
+            let (i, j) = n.key;
+            let mut bytes = 0;
+            let (nb, nt, nl) = (cell.buildings.len(), cell.trees.len(), lights.buildings.len());
+            if nb + nt > 0 {
+                let data = cell.encode();
+                bytes += data.len() as u64;
+                std::fs::write(b.out.join(format!("L1/s_{i}_{j}.bin")), data)?;
+            }
+            if nl > 0 {
+                let data = lights.encode();
+                bytes += data.len() as u64;
+                std::fs::write(b.out.join(format!("lights/L1/s_{i}_{j}.bin")), data)?;
+            }
+            let osm = cell.buildings.iter().filter(|b| b.source == SOURCE_OSM).count();
+            v.push((n.key, nb, osm, nt, nl, bytes));
+        }
+        let k = done.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+        pr.fraction(0.35 + 0.65 * k as f32 / blocks.len().max(1) as f32);
+        Ok(v)
+    })?;
+    Ok(results.into_iter().flatten().collect())
 }
 
 /// The canopy tiles (ETH's 10 m, already the cell grid's size) under one VRT; 255 is ETH's no-data.

@@ -339,7 +339,7 @@ How a mission compiles (`sim.rs compile_mission`): an empty mission with the sev
 mission editor's builders: `blank`, `set_flight` for Alpha (Player1 at the start, role 0 "must survive") and the
 other flights, `add_entity` and `set_role` for the placed units, `set_route` for their routes. A lat / lon becomes
 UTM 36N metres (`sim_bases::utm36n`), and a true heading the grid's. The start's altitude is the terrain's ground at
-the start (`sim_bases::Ground`, as the game's `height_at`), `elevation_m` without a terrain. The compiled file holds
+the start (`mission_edit::Heights`, as the game's `height_at`), `elevation_m` without a terrain. The compiled file holds
 `"frame": "real"`: its units stand at the real bases already, so no base move touches it. A runway start stands on
 the lineup point of that runway end (§12: 100 m past the declared runway's start, inferred), on the runway's heading.
 
