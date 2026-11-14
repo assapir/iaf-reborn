@@ -352,7 +352,7 @@ func _ready() -> void:
 	_choose_player()
 	_lap("player")
 	# The jet's, its cockpit's and the mission's models parsed on worker threads meanwhile (done already when the front
-	# end preloaded this flight: Modern IAF's Fly does not).
+	# end preloaded this flight).
 	TerrainPreload.prefetch_flight(mission_id, Settings.player_flight)
 	_lap("prefetch")
 	# The ground the front end preloaded around the start (briefing / TSD time).

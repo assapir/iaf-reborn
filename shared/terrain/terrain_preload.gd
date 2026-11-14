@@ -234,6 +234,14 @@ static func ready_to_fly() -> bool:
 	return not _script("res://shared/util/img.gd").prefetching()
 
 
+## Fly (both games' front ends): waits over menu frames for the flight scene's load and its first frame's art
+## (ready_to_fly; one frame of ≈ 0.7 s otherwise, docs/rendering.md §1.5), then changes to the flight scene.
+static func fly(tree: SceneTree) -> void:
+	while not ready_to_fly():
+		await tree.process_frame
+	tree.change_scene_to_packed(scene())
+
+
 ## The full path of the model AircraftModel.create opens for `plane` (descriptor `d`): its detailed model with Models
 ## Detailed, else its own.
 static func _jet_model(plane: String, d: Dictionary) -> String:

@@ -36,9 +36,14 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   running; the in-flight mission card and its H key are gone (record 118 and H are the Checklist notebook's since). The key hint names Esc
   and the pause menu for its first 8 s ([front-end.md](front-end.md) §8). The goals are in the briefing, the live "To
   complete" line, the completion message and the debrief. `test_flight_ui.gd` checks it.
+- **Reborn's code reused (2026-11-14, the reuse audit's R1–R3):** the mission page preloads the ground and models
+  with reborn's `TerrainPreload` ([front-end.md](front-end.md) §7); the briefing map's wheel zoom and the notebook's
+  wheel take `Settings.zoom_steps` / `wheel_steps`; the Preferences' shared rows take their choices and greying from
+  `shared/util/pref_choices.gd` (MetalFX named on a Mac).
 - **The pilot's checklist notebook, part 1 (2026-11-13, the approved mock-up's look A):** in every flight a paper
   notebook on the right thigh; H raises it at the screen's lower right and stows it. Tabs START-UP, TAXI / T-O, RADIO,
-  LANDING, EMERGENCY, DATA; a tab click, the wheel, PgUp / PgDn and the page's own ‹ › with its page count turn it. No
+  LANDING, EMERGENCY, DATA; a tab click, the wheel or a trackpad's scroll (`Settings.wheel_steps`, as reborn's
+  text windows, 2026-11-14), PgUp / PgDn and the page's own ‹ › with its page count turn it. No
   key hints on it; a help line in the first start-up mission only. It replaces the start-up card: the steps whose
   switches are on ticked (a switch back off unticks its step), the step to take now marked. In a start-up training
   mission a ring on the current step's switch (and the F-16's RPM gauge for the idle step), a pointer at the screen's

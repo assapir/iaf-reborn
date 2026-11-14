@@ -260,18 +260,15 @@ func _show() -> void:
 
 
 func _gui_input(event: InputEvent) -> void:
-	if not event is InputEventMouseButton or not event.pressed:
-		return
-	match event.button_index:
-		MOUSE_BUTTON_WHEEL_DOWN:
-			turn(1)
-		MOUSE_BUTTON_WHEEL_UP:
-			turn(-1)
-		MOUSE_BUTTON_LEFT:
-			_click(event.position)
-		_:
-			return
-	accept_event()
+	# The wheel or a trackpad's scroll, in the player's scroll direction (Settings.wheel_steps).
+	var n := Settings.wheel_steps(event)
+	for i in absi(n):
+		turn(signi(n))
+	if n != 0 or event is InputEventPanGesture:
+		accept_event()  # a pan's fraction of a page too: it does not zoom the view behind the notebook
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_click(event.position)
+		accept_event()
 
 
 func _click(at: Vector2) -> void:

@@ -161,13 +161,9 @@ const TerrainPreload := preload("res://shared/terrain/terrain_preload.gd")
 const Tsd := preload("res://menu/tsd.gd")
 const Pilots := preload("res://menu/pilots.gd")
 const ImageryLayers := preload("res://shared/terrain/imagery_layers.gd")
-const GroundTextures := preload("res://shared/terrain/ground_textures.gd")
-const GroundRoads := preload("res://shared/terrain/ground_roads.gd")
 const ModelDetail := preload("res://shared/util/model_detail.gd")
-const RenderOptions := preload("res://shared/terrain/render_options.gd")
 const Scenery := preload("res://shared/terrain/scenery.gd")
-const TownLabels := preload("res://shared/terrain/town_labels.gd")
-const VolumetricClouds := preload("res://shared/terrain/volumetric_clouds.gd")
+const PrefChoices := preload("res://shared/util/pref_choices.gd")
 
 ## Our own "Extras" tab (not in the original): directly below Gameplay at the panel's spacing
 ## (44 px). Drawn from the pPref art: the band holding the Gameplay button (panel coordinates, inside
@@ -218,7 +214,7 @@ const EXTRAS := [
 	["f15_variant", "F-15 version", [["Baz (F-15C)", "baz"], ["Ra'am (F-15I)", "raam"]]],
 	# Ours: the modern weapons (weapons/modern_weapons.gd) on every jet that really carried them.
 	["modern_weapons", "Weapons", [["Original (1998)", false], ["Modern", true]]],
-	["language", "Language", [["English", "en"], ["Hebrew", "he"]]],
+	["language", "Language", PrefChoices.LANGUAGE],
 	["show_info", "Flight info (Ctrl+F12)", [["Show", true], ["Hide", false]]],
 	["blackbox", "Blackbox", [["On", true], ["Off", false]]],
 	["hud_ladder", "HUD pitch ladder", [["Original", "original"], ["Conformal", "conformal"]]],
@@ -227,15 +223,11 @@ const EXTRAS := [
 	# Ours: the Real HUD's bingo fuel (Settings.bingo_lbs); more than three choices cycle.
 	["bingo_lbs", "Real HUD bingo", BINGO_CHOICES],
 	["show_all_keys", "All keys on the Keyboard page", [["Original", false], ["All", true]]],
-	["fullscreen", "Window", [["Framed", false], ["Full screen", true]]],
-	# Render options for high resolutions (terrain/render_options.gd, docs/rendering.md); first = as before.
-	# "FSR 2" (MetalFX on Metal): the temporal upscaler anti-aliases; the Upscaling row sets its scale.
-	[
-		"antialiasing",
-		"Anti-aliasing",
-		[["MSAA 4x", "msaa4"], ["+ FXAA", "msaa4_fxaa"], ["TAA", "taa"], ["FSR 2", "temporal"]]
-	],
-	["upscaling", "Upscaling", [["Native", "off"], ["Quality", "quality"], ["Balanced", "balanced"]]],
+	["fullscreen", "Window", PrefChoices.FULLSCREEN],
+	# Render options for high resolutions (terrain/render_options.gd, docs/rendering.md); first = as before. The rows
+	# both games show take their choices from shared/util/pref_choices.gd.
+	["antialiasing", "Anti-aliasing", PrefChoices.ANTIALIASING],
+	["upscaling", "Upscaling", PrefChoices.UPSCALING],
 	["terrain_closeup", "Terrain close up", [["Original", false], ["Detailed", true]]],
 	["sky", "Sky", [["Original", "original"], ["Atmospheric", "atmospheric"], ["Levant", "levant"]]],
 	# Ours: the photo's ground toward a real reflectance, graded (terrain/render_options.gd, rendering.md §1.9).
@@ -251,7 +243,7 @@ const EXTRAS := [
 	# Ours: rain as the weather (terrain/weather.gd, docs/rendering.md §10); the original has none.
 	["rain", "Rain", [["Off", "off"], ["Light", "light"], ["Heavy", "heavy"]]],
 	# Ours: raymarched clouds (terrain/volumetric_clouds.gd, docs/rendering.md §2.1); greyed without a RenderingDevice.
-	["clouds", "Clouds", [["Original", "original"], ["Volumetric", "volumetric"]]],
+	["clouds", "Clouds", PrefChoices.CLOUDS],
 	["airbases", "Airbases", [["Original", "original"], ["Detailed", "detailed"]]],
 	# Ours: CC0 textures from ambientCG near the ground (terrain/ground_textures.gd, docs/rendering.md §1.4); greyed out
 	# until setup has downloaded them.
@@ -322,11 +314,11 @@ func _extras_rows() -> Array:
 		)
 		# Ours (docs/scenery.md §3): buildings and trees over the Survey 2 m photo, under the Israel imagery it needs.
 		if key == "imagery_israel":
-			rows.append(["scenery", "Scenery", [["Off", "off"], ["On", "on"], ["Detailed", "detailed"]]])
+			rows.append(["scenery", "Scenery", PrefChoices.SCENERY])
 			rows.append(["scenery_far", "Far towns", [["Full", "full"], ["Light", "light"]]])
 			rows.append(["building_palette", "Building colours", [["Photo", false], ["Palette", true]]])
 	# Ours (docs/rendering.md §3.1): the sun's shadows to 2.5 km, the towns' near buildings casting them.
-	rows.append(["shadow_reach", "Shadow reach", [["Original", "original"], ["Far", "far"]]])
+	rows.append(["shadow_reach", "Shadow reach", PrefChoices.SHADOW_REACH])
 	# Ours (docs/scenery.md §3.5): the towns' names over the view, from the places setup's scenery step writes.
 	rows.append(["town_labels", "Town labels", [["Off", false], ["On", true]]])
 	# Ours: the preferences to / from a .cfg file (not a setting: a press opens the file dialog, _settings_file).
@@ -1730,46 +1722,9 @@ func _extras_items() -> Array:
 			if _he():
 				r.position.x = CONTENT.size.x - r.end.x
 			var value = choices[j][1]
-			var available: bool = not (
-				typeof(value) == TYPE_STRING and value == "he" and not Settings.hebrew_available()
-			)
-			var label: String = choices[j][0]
-			if String(opt[0]).begins_with("imagery_"):
-				available = ImageryLayers.available(String(value))
-			elif opt[0] == "antialiasing" and value == "temporal":
-				label = RenderOptions.temporal_name()
-			elif opt[0] in ["ground_textures", "model_detail"] and value == "ambientcg":
-				available = GroundTextures.available() if opt[0] == "ground_textures" else ModelDetail.available()
-				if not available:
-					label = "Not downloaded"
-			elif opt[0] in ["extra_sounds", "real_betty"] and value == "modern":
-				# The clips the row plays: the sim's table, and for Real Betty its Betty and tower clips.
-				var need := (
-					["soundprop.trx"] if opt[0] == "extra_sounds" else ["voc_bbetty_pull_up.ogg", "phrasetemplates.trx"]
-				)
-				available = need.all(func(f): return Settings.sim_sounds(f) != "")
-				if not available:
-					label = "Not built"
-			elif opt[0] == "clouds" and value == "volumetric":
-				available = VolumetricClouds.supported()
-			elif opt[0] == "ground_roads" and value == "detailed":
-				available = GroundRoads.available()
-				if not available:
-					label = "Not downloaded"
-			elif opt[0] in ["scenery_far", "building_palette"]:
-				available = Scenery.available()
-			elif opt[0] == "town_labels" and value:
-				available = TownLabels.available()
-				if not available:
-					label = "Not downloaded"
-			elif opt[0] == "scenery" and value != "off":
-				# Only over the Survey 2 m photo: the Israel imagery picked on this page (not saved yet).
-				# The reason shows once, on Detailed (the widest column); On stays "On", greyed.
-				available = Scenery.available() and Scenery.survey(String(pref_work.get("imagery_israel", "")))
-				if value == "detailed" and not Scenery.available():
-					label = "Not downloaded"
-				elif value == "detailed" and not available:
-					label = "Needs Survey 2 m"
+			var st: Dictionary = PrefChoices.state(String(opt[0]), value, pref_work)
+			var available: bool = st.available
+			var label: String = st.why if st.why != "" else st.name if st.name != "" else String(choices[j][0])
 			items.append({"rect": r, "key": opt[0], "value": value, "label": label, "available": available})
 	return items
 
@@ -2679,10 +2634,8 @@ func _fly() -> void:
 		Settings.route_override = []
 	busy = true
 	# A Fly right after the TSD opened: the flight scene's load and its first frame's art finish on their threads while
-	# the menu frames run (one frame of ≈ 0.7 s otherwise, docs/rendering.md §1.5).
-	while not TerrainPreload.ready_to_fly():
-		await get_tree().process_frame
-	get_tree().change_scene_to_packed(TerrainPreload.scene())
+	# the menu frames run.
+	await TerrainPreload.fly(get_tree())
 
 
 func _row_for(label: String) -> Dictionary:

@@ -189,8 +189,12 @@ centreline in the roll.
   the user, 2026-11-08): the sim's `PROFILE` (`modern-iaf/sim_settings.gd`) fixes the original Gameplay page's aids off
   (easy landing, unlimited fuel, no damage, no crashes, no G effects…) and the look switches to the sim's own
   (Detailed airbases, water, night lights; the ground textures and roads whenever their data exist), so
-  none of them is a row. The weather is the mission's (no Rain row). Volumetric clouds are greyed without a
-  RenderingDevice. Graphics → "Buildings and trees" is the shared Scenery setting (Off / On / Detailed, On by
+  none of them is a row. The weather is the mission's (no Rain row). The rows reborn shows too (anti-aliasing,
+  upscaling, long shadows, clouds, scenery, full screen, language) take their choices and when each can be picked from
+  the same source as reborn's Extras page, `shared/util/pref_choices.gd`; the sim keeps only the list of its rows
+  (`PREFS`) and names each choice by its own strings (`<setting>_<value>`). The temporal upscaler reads MetalFX on a
+  Mac and FSR 2 elsewhere (`RenderOptions.temporal_name()`; "FSR 2" everywhere before 2026-11-14). Volumetric clouds
+  are greyed where they cannot draw (`VolumetricClouds.supported()`). Graphics → "Buildings and trees" is the shared Scenery setting (Off / On / Detailed, On by
   default, [scenery.md](scenery.md) §6); without setup's optional scenery step it is greyed at Off, with a note
   naming that step. The HUD's brightness has no row: it is the cockpit's SYM wheel and its DAY / AUTO BRT / NIGHT
   switch ([cockpit.md](cockpit.md) §5.1;
@@ -257,6 +261,18 @@ which showed them whole with their credits, are gone.
 - `modern-iaf/tests/test_flight_ui.gd` checks §8 in both languages.
 
 ## 7. The loading screen
+
+**The preload (2026-11-14):** while the mission page is open, the ground around the picked mission's start and the
+flight's models load in the background with reborn's preload (`shared/terrain/terrain_preload.gd`, which reborn runs
+on its TSD): the mission page sets the mission up (`flight/fly.gd prepare`), aims the preload at the start
+(`MissionRuntime.player_start`) and polls it each frame (`front_end.gd _preload_ground`); another mission re-aims it,
+leaving the page drops it. Fly waits for the flight scene's load on menu frames (`TerrainPreload.fly`, reborn's Fly
+too) and the flight's terrain takes the loaded nodes. A `--mission` start loads cold, as before.
+`modern-iaf/tests/test_terrain_preload.gd` checks it on the 1:1 theatre (388 nodes at Ramon). Measured on the Mac
+(Metal, a real 1920 × 1080 window, Ramon take-off after 6 s on the page, warm, three runs each): Fly to the first
+flying frame 2.3–2.7 s before, 1.7–2.8 s with the preload. The ground's decode was not what the start waited for
+there: the step "The ground around the base" still takes about 1.2 s, the near scenery being drawn
+(`scenery.ground_ready()`), not the ground's textures.
 
 While a flight waits for its ground, the sim shows its own loading screen, `modern-iaf/flight/loading_screen.gd`. The
 flight scene asks `Settings.loading_screen_scene()` for it; the original game keeps its menu-art screen
@@ -598,7 +614,8 @@ focus. The page shown stays for the next mission picked; entering the screen aga
 | ![The Sufa's start-up steps in Hebrew, each with its switch cut from the 3D cockpit](pictures/front-end/startup_steps_f16i_he.webp) | ![The Adir's four steps: BATT, IPP, ENG and START pictured, the canopy as text](pictures/front-end/startup_steps_f35i_he.webp) |
 
 **Map:** one map over the whole page, north up, that zooms and scrolls. The mouse wheel zooms around the pointer
-(1× to 32×, 1.25× a notch), a drag with the left or middle button scrolls, a double click shows the whole map again;
+(1× to 32×, 1.25× a notch; one way per scroll, as the cockpit's zoom: `Settings.zoom_steps` drops the reverse steps a
+Mac's scroll ends with), a drag with the left or middle button scrolls, a double click shows the whole map again;
 on a trackpad a two-finger scroll (`InputEventPanGesture`, and a wheel's horizontal notches) scrolls and a pinch
 (`InputEventMagnifyGesture`) zooms around the pointer; with the focus (a click, a scroll or a pinch on the map), + and
 − zoom, the arrows scroll and 0 resets. The view's centre stays on the map, so a drag moves it at every zoom, the

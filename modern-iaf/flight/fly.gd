@@ -16,10 +16,25 @@ func _ready() -> void:
 
 ## Loads mission `id` (its menu id) and changes to the flight scene; false when the compiled missions lack it.
 static func start(id: int) -> bool:
+	if not prepare(id):
+		Settings.crash(
+			(
+				"No Modern IAF mission %d in %s: run ./modern-iaf-setup"
+				% [id, Settings.converted(Settings.missions_folder())]
+			)
+		)
+		return false
+	var tree := Engine.get_main_loop() as SceneTree
+	tree.change_scene_to_file.call_deferred("res://shared/terrain/terrain_view.tscn")
+	return true
+
+
+## Sets up mission `id` for the flight scene (its files, the jet, the loadout, the mission id); false when the compiled
+## missions lack it. The front end's mission page calls it too, for the ground's preload (TerrainPreload).
+static func prepare(id: int) -> bool:
 	var dir: String = Settings.converted(Settings.missions_folder())
 	var list := Settings.load_json(dir.path_join("missionlist.json"))
 	if not list.has(str(id)):
-		Settings.crash("No Modern IAF mission %d in %s: run ./modern-iaf-setup" % [id, dir])
 		return false
 	var name := String(list[str(id)][0])
 	var m := Settings.load_json(dir.path_join(name + ".json"))
@@ -33,8 +48,6 @@ static func start(id: int) -> bool:
 	Settings.mission_files_override = [{"name": name, "data": m}]
 	Settings.mission_id = id
 	Settings.flown_sortie = 0
-	var tree := Engine.get_main_loop() as SceneTree
-	tree.change_scene_to_file.call_deferred("res://shared/terrain/terrain_view.tscn")
 	return true
 
 

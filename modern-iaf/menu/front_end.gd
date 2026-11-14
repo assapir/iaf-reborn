@@ -13,7 +13,10 @@ const SoundBuses := preload("res://shared/audio/sound_buses.gd")
 const SoundTable := preload("res://shared/audio/sound_table.gd")
 const KeysScreen := preload("res://menu/keys_screen.gd")
 const JoystickScreen := preload("res://menu/joystick_screen.gd")
-const Scenery := preload("res://shared/terrain/scenery.gd")
+const PrefChoices := preload("res://shared/util/pref_choices.gd")
+const TerrainPreload := preload("res://shared/terrain/terrain_preload.gd")
+const ModelDetail := preload("res://shared/util/model_detail.gd")
+const MissionRuntime := preload("res://shared/mission/mission_runtime.gd")
 const KeyTable := preload("res://shared/controls/key_table.gd")
 const BriefingMap := preload("res://menu/briefing_map.gd")
 const ArmingDrawing := preload("res://menu/arming_drawing.gd")
@@ -55,32 +58,25 @@ const SOON := [
 const JET_PHOTOS := {"sufa": "sufa.jpg", "barak": "barak.jpg", "adir": "adir.jpg"}
 ## The Preferences: [group, [[setting, control, choices]]]. Controls: "dropdown" / "radio" ([[label key, value]]; a
 ## label without a string is shown as written), "switch" (choices: [off value, on value], default [false, true]),
-## "slider" (0..1), "page" (a button that opens that screen: keys_screen → keys). Realism and aids have no switch
-## (plan.md "physics"; sim_settings.gd PROFILE).
+## "slider" (0..1), "page" (a button that opens that screen: keys_screen → keys). A row reborn shows too has no choices
+## here: they come from shared/util/pref_choices.gd (pref_choices), each named by the string "<setting>_<value>", else
+## "<value>". Realism and aids have no switch (plan.md "physics"; sim_settings.gd PROFILE).
 const PREFS := [
 	[
 		"graphics",
 		[
-			[
-				"antialiasing",
-				"dropdown",
-				[["MSAA 4×", "msaa4"], ["MSAA 4× + FXAA", "msaa4_fxaa"], ["TAA", "taa"], ["FSR 2", "temporal"]]
-			],
-			[
-				"upscaling",
-				"dropdown",
-				[["upscaling_off", "off"], ["upscaling_quality", "quality"], ["upscaling_balanced", "balanced"]]
-			],
+			["antialiasing", "dropdown"],
+			["upscaling", "dropdown"],
 			["shadows", "switch", []],
-			["shadow_reach", "switch", ["original", "far"]],
+			["shadow_reach", "switch"],
 			["terrain_detail", "slider", []],
-			["clouds", "radio", [["clouds_flat", "original"], ["clouds_volumetric", "volumetric"]]],
-			["scenery", "radio", [["off", "off"], ["on", "on"], ["scenery_detailed", "detailed"]]],
-			["fullscreen", "switch", []],
+			["clouds", "radio"],
+			["scenery", "radio"],
+			["fullscreen", "switch"],
 			["vsync", "switch", []],
 		]
 	],
-	["language", [["language", "dropdown", [["lang_en", "en"], ["lang_he", "he"]]]]],
+	["language", [["language", "dropdown"]]],
 	[
 		"sound",
 		[
@@ -1346,9 +1342,39 @@ func _pick_mission(i: int) -> void:
 		_grab.call_deferred(_focus)
 
 
-## Fly: the mission's flight scene (flight/fly.gd).
+## Fly: the mission's flight scene (flight/fly.gd), with the ground preloaded on this page (_preload_ground).
 func fly_mission(m: Dictionary) -> void:
-	Fly.start(int(m.menu_id))
+	if Fly.prepare(int(m.menu_id)):
+		TerrainPreload.fly(get_tree())
+	else:
+		Fly.start(int(m.menu_id))  # the crash page says what is missing
+
+
+func _process(_delta: float) -> void:
+	_preload_ground()
+
+
+## While the mission page is open, the ground around the picked mission's start and its models load in the background
+## (reborn's preload, shared/terrain/terrain_preload.gd) so Fly starts at once; another mission re-aims it, leaving the
+## page stops it and drops what it loaded.
+var _preload_id := -1
+
+
+func _preload_ground() -> void:
+	var id := -1
+	if page == "mission" and flight == null and mission_i < missions.size():
+		id = int(missions[mission_i].menu_id)
+	if id != _preload_id:
+		_preload_id = id
+		if id < 0 or not Fly.prepare(id):
+			TerrainPreload.stop()
+			return
+		var w = MissionRuntime.player_start(id, Settings.player_flight)
+		if w != null:
+			TerrainPreload.target(get_tree(), w, Settings.player_flight)
+		ModelDetail.preload_packs()  # Model detail's textures, off the main thread
+	if _preload_id >= 0:
+		TerrainPreload.poll()  # the flight's first-frame art and models, once its scene has loaded
 
 
 # --- Preferences ------------------------------------------------------------------------------------------------------
@@ -1412,11 +1438,11 @@ func _pref_row(parent: Control, row: Array) -> void:
 	var t := _vbox(h, 0)
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_label(t, s(key), "Strong").add_theme_font_size_override("font_size", 25)
-	# Scenery only with setup's scenery step (Scenery.available); greyed without it.
-	# Greyed with its why: Scenery without setup's scenery step (Scenery.available()), the Joystick
+	# Greyed with its why: Scenery without setup's scenery step (PrefChoices.state), the Joystick
 	# screen with no joystick connected (it comes alive when one is plugged in, _on_joy_connection).
 	var why := ""
-	if key == "scenery" and not Scenery.available():
+	var choices := pref_choices(row)
+	if key == "scenery" and not PrefChoices.state(key, "on").available:
 		# Left out in setup (modern-iaf/docs/setup.md: the choice file), or not built yet.
 		var left: Dictionary = Settings.load_json(Settings.converted("modern-iaf/setup.json"))
 		why = "scenery_left_out" if "sim-scenery" in left.get("excluded", []) else "scenery_missing"
@@ -1439,15 +1465,16 @@ func _pref_row(parent: Control, row: Array) -> void:
 			var o := OptionButton.new()
 			o.name = "Control"
 			o.custom_minimum_size = Vector2(307, 58)
-			for c in row[2]:
+			for c in choices:
 				# A left-to-right mark keeps "MSAA 4×" whole in a right-to-left line.
 				o.add_item(s(c[0]) if strings.has(c[0]) else c[0] + "\u200e")
+				o.set_item_disabled(o.item_count - 1, not PrefChoices.state(key, c[1]).available)
 				if c[1] == value:
 					o.select(o.item_count - 1)
-			o.item_selected.connect(func(i): _set_pref(key, row[2][i][1]))
+			o.item_selected.connect(func(i): _set_pref(key, choices[i][1]))
 			ctl.add_child(o)
 		"switch":
-			var vals: Array = row[2] if not row[2].is_empty() else [false, true]
+			var vals: Array = choices.map(func(c): return c[1]) if not choices.is_empty() else [false, true]
 			var label := _label(ctl, s("on") if value == vals[1] else s("off"), "Row")
 			label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			var c := CheckButton.new()
@@ -1496,18 +1523,33 @@ func _pref_row(parent: Control, row: Array) -> void:
 			var rv := _vbox(ctl, 4)
 			rv.name = "Control"
 			var g := ButtonGroup.new()
-			for c in row[2]:
+			for c in choices:
 				var r := CheckBox.new()
 				r.text = s(c[0])
 				r.button_group = g
 				r.button_pressed = c[1] == value
-				r.disabled = (
-					off or key == "clouds" and c[1] == "volumetric" and RenderingServer.get_rendering_device() == null
-				)
+				r.disabled = off or not PrefChoices.state(key, c[1]).available
 				r.add_theme_font_size_override("font_size", 24)
 				r.pressed.connect(_set_pref.bind(key, c[1]))
 				rv.add_child(r)
 	_rule(parent, Look.LINE)
+
+
+## A row's [[label, value], ...]: its own, or for a row reborn shows too the shared choices (PrefChoices.CHOICES), each
+## labelled by the string "<setting>_<value>", else "<value>", else the choice's own name (the temporal upscaler's by
+## the machine: MetalFX on a Mac, PrefChoices.state).
+func pref_choices(row: Array) -> Array:
+	if row.size() > 2:
+		return row[2]
+	var key: String = row[0]
+	var out := []
+	for c in PrefChoices.CHOICES.get(key, []):
+		var label := "%s_%s" % [key, c[1]]
+		if not strings.has(label):
+			label = str(c[1]) if strings.has(str(c[1])) else String(c[0])
+		var name: String = PrefChoices.state(key, c[1]).name
+		out.append([name if name != "" else label, c[1]])
+	return out
 
 
 ## A joystick plugged in or out: the Devices section again, its Joystick row greyed or alive.

@@ -109,10 +109,9 @@ func _clamp() -> void:
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		match event.button_index:
-			MOUSE_BUTTON_WHEEL_UP:
-				zoom_at(ZOOM_STEP, event.position)
-			MOUSE_BUTTON_WHEEL_DOWN:
-				zoom_at(1.0 / ZOOM_STEP, event.position)
+			MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN:
+				# One way per scroll, as the cockpit's zoom (Settings.zoom_steps: a Mac's bounce dropped).
+				zoom_at(pow(ZOOM_STEP, Settings.zoom_steps(event)), event.position)
 			MOUSE_BUTTON_WHEEL_LEFT:
 				pan(Vector2(WHEEL_PX * maxf(event.factor, 1.0), 0))
 			MOUSE_BUTTON_WHEEL_RIGHT:
