@@ -177,7 +177,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   original's 25 m sphere at each 0.1 s check; the missiles and SAMs with a published lethal radius get a blast
   radius from it (real-weapons.md §1.4). The gun's rounds fly a ballistic path (the jet's velocity plus the muzzle
   velocity, the M56's drag, gravity) in place of the original's straight line, and the A-G gun pipper shows where the
-  round is after `_limitDist` (real-weapons.md §1.4). The Real HUD's EEGS funnel takes the same round's time of
+  round is after `_limitDist` (real-weapons.md §1.4). The player's unguided bombs fall by gravity and their own drag
+  through the wind, nothing steering them onto the aim, and CCIP predicts that fall (real-weapons.md §1.10). The GPS bombs miss by a random draw of their published CEP (real-weapons.md §1.6). The Real HUD's EEGS funnel takes the same round's time of
   flight with either Weapon data (2026-11-14).
 - **RWR (Original / Real).** Original: the RWR shows a ground site only once it locks the jet or launches at it.
   Ours, with Real (`rwr_search`): it also shows the hostile SAM / AAA radars searching the jet, within their radar's

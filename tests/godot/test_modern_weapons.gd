@@ -34,6 +34,11 @@ const JETS := [
 ]
 
 
+## Weapon data Real moves each GPS bomb's aim by a random miss of its CEP (JDAM 5 m, docs/real-weapons.md §1.6): an
+## aim within 5 CEPs (25 m; odds of a miss beyond it 3e-8) is the target it took.
+const CEP_TOL := 25.0
+
+
 func run() -> void:
 	await require_data()
 	# The AIM-9X and Python 5 only with Weapon data on Real (modern_weapons.gd REAL_ONLY).
@@ -237,7 +242,7 @@ func _jdam(tv, w, station: int) -> void:
 	w.fire_selected()
 	w.update(t + 0.01)
 	w.release_selected()
-	check(w.gps_bombs.size() == 1 and w.gps_bombs[0].g.aim().distance_to(p) < 1.0, "the GBU-31 flies to the point")
+	check(w.gps_bombs.size() == 1 and w.gps_bombs[0].g.aim().distance_to(p) < CEP_TOL, "the GBU-31 flies to the point")
 	# The HUD's TTI (docs/weapons.md §13.3): the bomb's time to impact, counting down with the clock, gone at the burst.
 	var t_rel := t
 	t += 0.02
@@ -393,7 +398,7 @@ func _jdam_pre(tv, n: int) -> void:
 	w.fire_selected()
 	w.update(t + 0.01)
 	w.release_selected()
-	check(w.gps_bombs.size() == 1 and w.gps_bombs[0].g.aim().distance_to(p) < 1.0, "the bomb takes the PRE point")
+	check(w.gps_bombs.size() == 1 and w.gps_bombs[0].g.aim().distance_to(p) < CEP_TOL, "the bomb takes the PRE point")
 	for i in 2400:
 		t += 0.05
 		w.update(t)
@@ -424,8 +429,8 @@ func _pair(tv, n: int) -> void:
 	check(
 		(
 			aims.size() == 2
-			and aims.any(func(q): return q.distance_to(a) < 1.0)
-			and aims.any(func(q): return q.distance_to(b) < 1.0)
+			and aims.any(func(q): return q.distance_to(a) < CEP_TOL)
+			and aims.any(func(q): return q.distance_to(b) < CEP_TOL)
 		),
 		"a pair: each bomb to its own station's target (%s)" % [aims]
 	)
@@ -468,10 +473,10 @@ func _rack(tv, n: int) -> void:
 	var aims: Array = range(4).map(func(k): return bursts[k].g.aim() if not bursts[k].is_empty() else Vector3.INF)
 	check(
 		(
-			aims[0].distance_to(a) < 1.0
-			and aims[1].distance_to(a) < 1.0
-			and aims[2].distance_to(b) < 1.0
-			and aims[3].distance_to(b) < 1.0
+			aims[0].distance_to(a) < CEP_TOL
+			and aims[1].distance_to(a) < CEP_TOL
+			and aims[2].distance_to(b) < CEP_TOL
+			and aims[3].distance_to(b) < CEP_TOL
 		),
 		"bombs 1-2 take A, 3-4 take B (%s; A %s, B %s)" % [aims, a, b]
 	)

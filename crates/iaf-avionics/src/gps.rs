@@ -120,6 +120,15 @@ pub fn default_target(actions: &[i64]) -> Option<usize> {
     actions.iter().position(|a| *a == 5)
 }
 
+/// Weapon data Real: a GPS bomb's miss for its circular error probable `cep` (m; half the bombs land inside it) from
+/// two uniform draws in (0, 1]: a circular normal miss of σ = CEP / √(2·ln 2) (Rayleigh radius), on the ground plane.
+pub fn cep_miss(cep: f64, u1: f64, u2: f64) -> Vec3 {
+    let sigma = cep / (2.0 * std::f64::consts::LN_2).sqrt();
+    let r = sigma * (-2.0 * u1.clamp(f64::MIN_POSITIVE, 1.0).ln()).sqrt();
+    let a = std::f64::consts::TAU * u2;
+    Vec3::new(r * a.cos(), r * a.sin(), 0.0)
+}
+
 /// One GPS bomb in flight.
 #[derive(Clone, Debug)]
 pub struct GpsBomb {
@@ -338,5 +347,20 @@ mod tests {
         let l0 = pre_targets(t[0], &others, &wp);
         assert_eq!(pre_pick(t[0], &l0, 0), Some(a));
         assert_eq!(pre_pick(t[0], &l0, 1), Some(b));
+    }
+
+    /// Weapon data Real: half of many misses fall inside the CEP (within 1.5 points), none above ground.
+    #[test]
+    fn cep_miss_puts_half_the_bombs_inside_the_cep() {
+        let mut x: u64 = 12345;
+        let mut u = || {
+            x = x.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            ((x >> 11) as f64 + 1.0) / (1u64 << 53) as f64
+        };
+        let n = 20_000;
+        let inside = (0..n).filter(|_| cep_miss(5.0, u(), u()).length() <= 5.0).count();
+        assert!((inside as f64 / f64::from(n) - 0.5).abs() < 0.015, "{inside} of {n}");
+        assert_eq!(cep_miss(0.0, 0.3, 0.7), Vec3::ZERO);
+        assert_eq!(cep_miss(3.0, 0.5, 0.1).z, 0.0);
     }
 }

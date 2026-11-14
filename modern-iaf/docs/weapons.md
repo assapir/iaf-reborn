@@ -94,6 +94,10 @@ each one's original and fixed behaviour in [../../docs/deviations.md](../../docs
 | `fix_skill_damage` | enemies take the same damage at every AI level |
 
 ## 5. Dropping and firing in flight
+The unguided bombs fall by gravity and their own drag (C_D 0.45 on each body's sourced diameter) through the
+mission's wind, nothing steering them, and the CCIP pipper runs the same fall, so the bomb lands on the pipper
+([../../docs/real-weapons.md](../../docs/real-weapons.md) §1.10).
+
 Every sim flight carries the pilot's loadout from the briefing's Arming page (`fly.gd` `arm`, [front-end.md](front-end.md)
 §10); a training mission goes on after its pass, so after the take-off the player can use them. The shared weapons code
 runs them unchanged: the release, the bomb's fall, its burst on the terrain with the shared explosion, the missiles and

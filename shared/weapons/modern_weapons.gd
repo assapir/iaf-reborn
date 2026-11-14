@@ -23,14 +23,15 @@ const MACH_M_S := 340.3
 ## The Mk 84's tritonal fill (kg): a record with "fill_kg" scales its base's power by fill / this and its radius by the
 ## cube root (inferred).
 const MK84_FILL_KG := 429.0
-## The JDAM tail kit and the SDB's wings (docs/real-weapons.md §1.6; inferred from the published ranges).
-const JDAM := {"glide": 1.6, "min_speed": 150.0, "max_speed": 300.0, "max_g": 3.0}
-const SDB := {"glide": 7.6, "min_speed": 150.0, "max_speed": 300.0, "max_g": 3.0}
+## The JDAM tail kit and the SDB's wings (docs/real-weapons.md §1.6; inferred from the published ranges). `cep` (m):
+## the published circular error probable, a random miss with Weapon data Real (JDAM 5 m, GBU-39 1 m, SPICE 3 m).
+const JDAM := {"glide": 1.6, "min_speed": 150.0, "max_speed": 300.0, "max_g": 3.0, "cep": 5.0}
+const SDB := {"glide": 7.6, "min_speed": 150.0, "max_speed": 300.0, "max_g": 3.0, "cep": 1.0}
 ## The SPICE 1000's kit, its wings out: glide ratio 6.8 for Rafael's 100 km from 40,000 ft at Mach 0.9 (inferred
 ## conditions, as the JDAM's; docs/real-weapons.md §1.6).
-const SPICE := {"glide": 6.8, "min_speed": 150.0, "max_speed": 300.0, "max_g": 3.0}
+const SPICE := {"glide": 6.8, "min_speed": 150.0, "max_speed": 300.0, "max_g": 3.0, "cep": 3.0}
 ## The SPICE 2000's kit, no wings: glide ratio 4.1 for its 60 km from the same release (inferred, as the SPICE 1000's).
-const SPICE2 := {"glide": 4.1, "min_speed": 150.0, "max_speed": 300.0, "max_g": 3.0}
+const SPICE2 := {"glide": 4.1, "min_speed": 150.0, "max_speed": 300.0, "max_g": 3.0, "cep": 3.0}
 ## The Delilah (docs/real-weapons.md §1.6): Mach 0.3 to 0.7 in cruise, Mach 0.85 in the dive, 250 km. Its turbojet is
 ## taken as a glide of ratio 23, which reaches the 250 km from its 8,500 m flight altitude at Mach 0.7 at sea level's
 ## speed of sound (gps.rs reach: 23 · (8500 + (238² − 102²) / 2g) = 250 km; about 236 km at 8,500 m's 213 m/s;

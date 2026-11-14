@@ -7,7 +7,7 @@ use iaf_avionics::bombs::{self, Bomb};
 use iaf_avionics::gps::{self, GpsBomb, Kit};
 use iaf_avionics::master::{Hud, Master, MasterKey, Modes};
 
-/// The falling store's state as a dictionary {t0, p0, v0, aim, acc, end, next_check, opened, done} (bombs.gd keeps
+/// The falling store's state as a dictionary {t0, p0, v0, aim, acc, end, next_check, opened, done, beta, wind} (bombs.gd keeps
 /// it in a plain Dictionary).
 fn bomb_from(d: &VarDictionary) -> Bomb {
     let v = |k: &str| vec3(get(d, k).unwrap_or_default());
@@ -22,13 +22,16 @@ fn bomb_from(d: &VarDictionary) -> Bomb {
         next_check: f("next_check"),
         opened: get(d, "opened").unwrap_or(false),
         done: get(d, "done").unwrap_or(false),
+        beta: f("beta"),
+        wind: v("wind"),
     }
 }
 
 fn bomb_dict(b: &Bomb) -> VarDictionary {
     vdict! {
         "t0" => b.t0, "p0" => vector3(b.p0), "v0" => vector3(b.v0), "aim" => vector3(b.aim), "acc" => vector3(b.acc),
-        "end" => b.end, "next_check" => b.next_check, "opened" => b.opened, "done" => b.done,
+        "end" => b.end, "next_check" => b.next_check, "opened" => b.opened, "done" => b.done, "beta" => b.beta,
+        "wind" => vector3(b.wind),
     }
 }
 
@@ -38,20 +41,25 @@ pub struct IafBomb {}
 
 #[godot_api]
 impl IafBomb {
-    /// `FUN_0045e7f0`: {point, t}. `wind`: Better physics `wind` (zero: the original).
+    /// `FUN_0045e7f0`: {point, t}. `store` = (bdb drag, extra launch speed, β); `wind`: Better physics `wind`
+    /// (zero: the original). β > 0: Weapon data Real, the store's own fall (`bombs::real_impact`).
     #[func]
     fn predict_impact(
         p: Vector3,
         vel: Vector3,
         nose: Vector3,
-        drag_extra: Vector2,
+        store: Vector3,
         cockpit: bool,
         wind: Vector3,
         ground: Callable,
     ) -> VarDictionary {
-        let de = (drag_extra.x.into(), drag_extra.y.into());
-        let (i, t) =
-            bombs::predict_impact(vec3(p), vec3(vel), vec3(nose), de, cockpit, vec3(wind), &terrain(Some(ground)));
+        let (de, beta) = ((store.x.into(), store.y.into()), f64::from(store.z));
+        let t = terrain(Some(ground));
+        let (i, t) = if beta > 0.0 {
+            bombs::real_impact(vec3(p), vec3(vel), beta, vec3(wind), &t)
+        } else {
+            bombs::predict_impact(vec3(p), vec3(vel), vec3(nose), de, cockpit, vec3(wind), &t)
+        };
         vdict! { "point" => vector3(i), "t" => t }
     }
 
@@ -65,15 +73,43 @@ impl IafBomb {
             .collect()
     }
 
-    /// The falling store's state at launch; `wind`: Better physics `wind` (zero: the original).
+    /// The falling store's state at launch; `wind`: Better physics `wind` (zero: the original); `beta` > 0: Weapon
+    /// data Real, the unsteered fall by its drag (`Bomb::launch_real`).
     #[func]
-    fn launch(now: f64, p: Vector3, v: Vector3, aim: Vector3, clamp_acc: f64, wind: Vector3) -> VarDictionary {
-        bomb_dict(&Bomb::launch(now, vec3(p), vec3(v), vec3(aim), clamp_acc, vec3(wind)))
+    fn launch(
+        now: f64,
+        p: Vector3,
+        v: Vector3,
+        aim: Vector3,
+        clamp_acc: f64,
+        wind: Vector3,
+        beta: f64,
+    ) -> VarDictionary {
+        let (p, v, aim, wind) = (vec3(p), vec3(v), vec3(aim), vec3(wind));
+        bomb_dict(&if beta > 0.0 {
+            Bomb::launch_real(now, p, v, aim, beta, wind)
+        } else {
+            Bomb::launch(now, p, v, aim, clamp_acc, wind)
+        })
+    }
+
+    /// Weapon data Real: a store's β from its name and mass (`bombs::real_beta`).
+    #[func]
+    fn real_beta(name: GString, kg: f64) -> f64 {
+        bombs::real_beta(&name.to_string(), kg)
     }
 
     #[func]
     fn position(b: VarDictionary, now: f64) -> Vector3 {
         vector3(bomb_from(&b).position(now))
+    }
+
+    /// [position, velocity] at `now` in one call (Weapon data Real integrates the fall once).
+    #[func]
+    fn state(b: VarDictionary, now: f64) -> PackedVector3Array {
+        let b = bomb_from(&b);
+        let (p, v) = b.state(now);
+        PackedVector3Array::from([vector3(p), vector3(v)])
     }
 
     #[func]
@@ -221,9 +257,15 @@ pub struct IafGpsBomb {
 
 #[godot_api]
 impl IafGpsBomb {
+    /// The bomb leaves `pos` at `vel` for `aim`. Weapon data Real: `gps` also holds "cep" (m) and two uniform draws
+    /// "u1", "u2", and the bomb flies to `aim` moved by its random miss (`gps::cep_miss`).
     #[func]
     fn launch(&mut self, gps: VarDictionary, now: f64, pos: Vector3, vel: Vector3, aim: Vector3) {
-        self.bomb = Some(GpsBomb::launch(kit(&gps), now, vec3(pos), vec3(vel), vec3(aim)));
+        let miss = match (num(&gps, "cep"), num(&gps, "u1"), num(&gps, "u2")) {
+            (Some(cep), Some(u1), Some(u2)) => gps::cep_miss(cep, u1, u2),
+            _ => iaf_avionics::Vec3::ZERO,
+        };
+        self.bomb = Some(GpsBomb::launch(kit(&gps), now, vec3(pos), vec3(vel), vec3(aim) + miss));
     }
 
     /// Flies to `now`; true when it bursts (at `position()`).

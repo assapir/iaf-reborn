@@ -1785,7 +1785,10 @@ func drop_bomb(w: Dictionary, p0: Vector3, vel: Vector3, aim: Vector3, owner: Di
 	var clamp_acc: float = db.debug_param(BOMB_CLAMP_PARAM, 15.0)
 	if is_equal_approx(clamp_acc, 1.0):
 		clamp_acc = 15.0
-	var b := Bombs.launch(now, p0, vel, aim, clamp_acc)
+	# Weapon data Real: the player's store falls by its drag, unsteered (docs/real-weapons.md §1.10). The AI's keep the
+	# steered fall: they have no release computer to fly to a CCIP point (ours).
+	var beta := Bombs.real_beta(w, db.real) if is_same(owner, _me()) else 0.0
+	var b := Bombs.launch(now, p0, vel, aim, clamp_acc, beta)
 	var node := _instance(String(w.model_path), w.get("detailed", true))
 	if node != null:
 		host.add_child(node)
@@ -1801,7 +1804,10 @@ var gps_bombs: Array = []
 ## One GPS bomb (the Sufa's JDAMs and GBU-39, docs/weapons.md §13.2) leaves `p0` at `vel` for `aim`, fixed now.
 func _launch_gps(w: Dictionary, p0: Vector3, vel: Vector3, aim: Vector3, owner: Dictionary) -> void:
 	var g = ClassDB.instantiate("IafGpsBomb")
-	g.launch(w.gps, now, p0, vel, aim)
+	var kit: Dictionary = w.gps
+	if db.real:  # the published CEP as a random miss (docs/real-weapons.md §1.6)
+		kit = kit.merged({"u1": 1.0 - randf(), "u2": randf()})
+	g.launch(kit, now, p0, vel, aim)
 	var node := _instance(String(w.model_path), w.get("detailed", true))
 	if node != null:
 		host.add_child(node)
@@ -1873,12 +1879,14 @@ func _update_ag() -> void:
 	if int(w.get("type", 0)) == 560:
 		extra = float(db.motion_for(560, 0).get("_limitVel", 1000.0))
 	var gs := Vector2(o.vel.x, o.vel.y).length()
+	# Weapon data Real: CCIP from the store's own fall (rockets keep the original's).
+	var beta := Bombs.real_beta(w, db.real) if int(w.get("type", 0)) in [500, 510] and not w.has("gps") else 0.0
 	var views = host.get("views")
 	var cockpit: bool = views == null or views.cockpit_like()
 	if not ag.frozen:
 		ag.impact = (
 			Bombs
-			. predict_impact(o.pos, o.vel, o.fwd, float(w.get("drag", 0.0)), extra, host.mission_ground, cockpit)
+			. predict_impact(o.pos, o.vel, o.fwd, float(w.get("drag", 0.0)), extra, host.mission_ground, cockpit, beta)
 			. point
 		)
 		var c: Dictionary = hud_clip.call(ag.impact) if hud_clip.is_valid() else {}
@@ -1892,7 +1900,7 @@ func _update_ag() -> void:
 	elif ag.off:
 		ag.impact = (
 			Bombs
-			. predict_impact(o.pos, o.vel, o.fwd, float(w.get("drag", 0.0)), extra, host.mission_ground, cockpit)
+			. predict_impact(o.pos, o.vel, o.fwd, float(w.get("drag", 0.0)), extra, host.mission_ground, cockpit, beta)
 			. point
 		)
 		ag.ttg = _hdist(ag.impact, ag.target) / maxf(gs, 1.0)
@@ -1970,10 +1978,11 @@ func _update_bombs() -> void:
 
 
 func _place_bomb(bm: Dictionary) -> void:
-	var p: Vector3 = ClassDB.class_call_static("IafBomb", "position", bm.b, now)
+	var pv: PackedVector3Array = ClassDB.class_call_static("IafBomb", "state", bm.b, now)  # [position, velocity]
+	var p: Vector3 = pv[0]
 	if bm.node != null:
 		bm.node.position = to_scene(p)
-		_orient(bm.node, ClassDB.class_call_static("IafBomb", "velocity", bm.b, now))
+		_orient(bm.node, pv[1])
 		bm.node.scale = Vector3.ONE * float(bm.w.get("scale", 1.0))
 	_place_sound(bm.sound, p)
 

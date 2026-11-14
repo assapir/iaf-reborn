@@ -149,7 +149,10 @@ func _spice(tv) -> void:
 	w.fire_selected()
 	w.update(t + 0.01)
 	w.release_selected()
-	check(w.gps_bombs.size() == 1 and w.gps_bombs[0].g.aim().distance_to(p) < 1.0, "the SPICE flies to the point")
+	check(
+		w.gps_bombs.size() == 1 and w.gps_bombs[0].g.aim().distance_to(p) < 15.0,
+		"the SPICE flies to the point (5 CEPs: Real data's random miss)"
+	)
 	var t_rel := t
 	t += 0.02
 	w.update(t)

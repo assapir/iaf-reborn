@@ -223,7 +223,9 @@ Python 5: docs/f16i.md §5; the F-16I has carried the SDB since August 2015 (107
   F-15Is[^awst96], so it designates for its GBU-28 (docs/f15i.md §3). The GPS-aided versions
   (EGBU-28/B, EGBU-28C/B with the BLU-122[^gbu28kopp][^gbu28wp]) are not modelled: no source says Israel has them.
 - **Accuracy**: a JDAM with GPS has a 5 m CEP[^jdam] (13 m official, about 10 m in use[^dsjdam]), the GBU-39 1 m[^sdb];
-  the game's bomb lands on its aim (not modelled).
+  with Weapon data Real (the sim always) each bomb flies to its aim moved by a random miss of that CEP (a circular
+  normal miss, σ = CEP / 1.177; JDAM 5 m, GBU-39 1 m, SPICE 3 m; `gps.rs` `cep_miss`, test: half of 20,000 misses
+  inside the CEP within 1.5 points); with Original data it lands on its aim.
 - **SPICE 1000** (research of 2 November 2026):
   - **What it is**: Rafael's kit for 1,000 lb bodies (Mk 83, BLU-110, I-1000, RAP-1000), with "unique deployable
     wings that substantially increase its range"[^spicebro]. Weight: "a 1,000-pound-class bomb"[^twzspice]; the record
@@ -381,6 +383,38 @@ not independent; no IAF page confirming them was found. "Open": no source found.
 | F-35I | אדיר | Adir (mighty) | IAF name | [^hef35] |
 
 The satellite-guided bombs share the "Barad" (hail) family: JDAM, SDB and SPICE.
+
+### 1.10 Bomb fall (2026-11-14)
+With Weapon data Real the player's unguided bombs (`bombs.rs` `Bomb::launch_real`, `real_fall`) leave with the jet's
+velocity and fall under gravity and their own drag, β·ρ·|v − w|·(v − w) with β = C_D·A / 2m, through the air mass w
+(Better physics `wind`; the sim always). Nothing steers them. The original steers each store onto its aim point and
+has no drag (docs/weapons.md §9.5), so its CCIP is right by construction.
+
+- **C_D 0.45** on the body's frontal area for the Mk 80 series and the M117: the MK-82 Snakeye's low-drag mode, whose
+  ballistic coefficient C_D·A/W is 0.0005 ft²/lb (C_D ≈ 0.45)[^snakeye]. Test: the MK-82's β gives that coefficient
+  within 10 %. The low-drag MK-82, MK-83, MK-84 and M117 flying the Snakeye's closed-fin coefficient is inferred
+  (the same low-drag shape family); C_D stays constant with Mach (inferred: no public C_D(M) table at hand).
+- **Diameters:** MK-82 0.273 m[^mk82], MK-83 0.357 m[^mk83], MK-84 0.458 m[^w-mk84d], M117 0.408 m[^m117]; any other
+  store: the MK-84's scaled by the cube root of its mass (inferred). The mass is the store's bdb weight.
+- **Air density:** ISA by height (`atmosphere.rs`).
+- **CCIP** (`real_impact`) runs the same fall from the jet's position and velocity to the first terrain point, so the
+  pipper is where the bomb lands. Test `real_bombs_fall_by_their_drag_and_ccip_predicts_it`: a MK-84 released on
+  the pipper at 0°, 20° and 45° of dive lands within 1 m of it; a MK-82 from 1,000 m at 250 m/s lands 3,000–3,500 m
+  ahead against 3,570 m drag-free; a 20 kt crosswind drifts it and CCIP follows. As a plausibility check (the
+  store is not named): a bomb dropped at 450 kt in a 40° dive falls 8,000 ft in 13 s by the ballistics tables
+  against 9,076 ft drag-free[^ewhb]; the model's MK-82 falls about 8,450 ft (6 % more, inferred: transonic drag).
+- **The AI's bombs** keep the original's steered fall: the AI has no release computer to fly to a CCIP point (ours).
+
+[^snakeye]: US patent 4,112,843, "Modular practice bomb" (the MK-82 Snakeye's ballistic coefficient in its low-drag
+    mode 0.0005 ft²/lb, C_D·A/W; "released in the low drag mode (C_D ≃ 0.45)"),
+    https://patents.google.com/patent/US4112843A/en
+[^mk82]: Wikipedia, "Mark 82 bomb" (10.75 in across), https://en.wikipedia.org/wiki/Mark_82_bomb
+[^mk83]: Wikipedia, "Mark 83 bomb" (14 in across), https://en.wikipedia.org/wiki/Mark_83_bomb
+[^w-mk84d]: Wikipedia, "Mark 84 bomb" (18 in across), https://en.wikipedia.org/wiki/Mark_84_bomb
+[^m117]: Wikipedia, "M117 bomb" (16 in across), https://en.wikipedia.org/wiki/M117_bomb
+[^ewhb]: Naval Air Warfare Center Weapons Division, *Electronic Warfare and Radar Systems Engineering Handbook*
+    (NAWCWD TP 8347), §8-1 "Free fall / aircraft drag", sample calculation,
+    https://pe2bz.philpem.me.uk/Comm/-%20Transmitters/-%20Jammers/B-101-ElectWarfare-RadarBook/freefall.pdf
 
 ## 2. Mapping onto the original's model
 Each real value lands in one field or rule of the original model:

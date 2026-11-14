@@ -653,6 +653,9 @@ Fields: +0xc impact I, +0x18 target T, +0x24 / +0x28 the pipper's screen point, 
   through the clipped point comes from our camera (docs/deviations.md).
 
 ### 9.5 The falling store (500 / 510 / 660 → class 0x16, BallisticMotion 0x1c, ctor `FUN_00467ed0`, vtable 0x601b40)
+Weapon data Real replaces this steered fall for the player's stores with a free fall by gravity and drag, and CCIP
+with the same fall (docs/real-weapons.md §1.10).
+
 - **Launch** (`FUN_004d6c10` → `FUN_00561b40` sets the aim; the launch variants `FUN_00560c20` / `FUN_00560e80` /
   `FUN_00560f60` then run the solver `FUN_005611b0` on the release state): the horizontal velocity is turned toward the
   aim (speed kept: the cross-track error is fully corrected); t = (vz + √(vz² + 19.612·(p.z − A.z))) / 9.806, the end

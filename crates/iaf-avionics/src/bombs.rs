@@ -27,6 +27,75 @@ fn height(terrain: &dyn Fn(Vec3) -> Option<f64>, p: Vec3) -> f64 {
     terrain(p).unwrap_or(NO_GROUND)
 }
 
+/// Weapon data Real: the Mk 80 series' drag coefficient on the body's frontal area, 0.45: the MK-82 Snakeye's
+/// low-drag mode (US patent 4,112,843, its ballistic coefficient C_D·A/W 0.0005 ft²/lb on the 10.75 in body gives
+/// 0.42). The MK-83, MK-84 and M117 fly the same coefficient (inferred: the same low-drag shape family).
+pub const REAL_CD: f64 = 0.45;
+/// Weapon data Real: the integration step of the falling store (s; ours).
+const REAL_DT: f64 = 0.02;
+/// Weapon data Real: the longest fall integrated (s; ours: a store released at 15 km falls in about 60 s).
+const REAL_MAX_T: f64 = 180.0;
+
+/// Weapon data Real: a store's β = C_D·A / (2·m) (m²/kg; the drag deceleration is β·ρ·|v|·v) from its name and mass:
+/// the body's diameter by name (MK-82 0.273 m, MK-83 0.357 m, MK-84 0.458 m, M117 0.408 m; sources in
+/// docs/real-weapons.md §1.10), else the MK-84's scaled by the cube root of the mass (inferred).
+pub fn real_beta(name: &str, kg: f64) -> f64 {
+    let kg = kg.max(1.0);
+    let n = name.to_ascii_uppercase().replace([' ', '-'], "");
+    let d = match n.as_str() {
+        "MK82" => 0.273,
+        "MK83" => 0.357,
+        "MK84" => 0.458,
+        "M117" => 0.408,
+        _ => 0.458 * (kg / 925.0).cbrt(),
+    };
+    REAL_CD * std::f64::consts::PI * d * d / 4.0 / (2.0 * kg)
+}
+
+/// Weapon data Real: the store's position and velocity `t` s after leaving `p` at `v`: gravity and its drag β·ρ·|v−w|·
+/// (v−w) against the air (`wind`, ISA density by height), midpoint steps of `REAL_DT`.
+pub fn real_fall(p: Vec3, v: Vec3, beta: f64, wind: Vec3, t: f64) -> (Vec3, Vec3) {
+    let acc = |p: Vec3, v: Vec3| {
+        let rel = v - wind;
+        let rho = f64::from(iaf_flight::atmosphere::air(p.z as f32).rho);
+        rel * (-beta * rho * rel.length()) - Vec3::UP * iaf_flight::units::G
+    };
+    let (mut p, mut v, mut left) = (p, v, t.max(0.0));
+    while left > 0.0 {
+        let dt = left.min(REAL_DT);
+        let (pm, vm) = (p + v * (0.5 * dt), v + acc(p, v) * (0.5 * dt));
+        p += vm * dt;
+        v += acc(pm, vm) * dt;
+        left -= dt;
+    }
+    (p, v)
+}
+
+/// Weapon data Real: CCIP from the same fall as the store (`real_fall`): the first point at or below the terrain
+/// (bisected inside the step) and its time.
+pub fn real_impact(p: Vec3, v: Vec3, beta: f64, wind: Vec3, terrain: &dyn Fn(Vec3) -> Option<f64>) -> (Vec3, f64) {
+    let (mut q, mut u, mut t) = (p, v, 0.0);
+    while t < REAL_MAX_T {
+        let (q1, u1) = real_fall(q, u, beta, wind, REAL_DT);
+        if q1.z <= height(terrain, q1) {
+            let (mut lo, mut hi) = (0.0, REAL_DT);
+            for _ in 0..20 {
+                let m = 0.5 * (lo + hi);
+                let r = real_fall(q, u, beta, wind, m).0;
+                if r.z <= height(terrain, r) {
+                    hi = m;
+                } else {
+                    lo = m;
+                }
+            }
+            let r = real_fall(q, u, beta, wind, hi).0;
+            return (Vec3::new(r.x, r.y, height(terrain, r)), t + hi);
+        }
+        (q, u, t) = (q1, u1, t + REAL_DT);
+    }
+    (q, t)
+}
+
 /// `FUN_0045e330`: the later root of h + vz·t − 4.903·t² = 0 (0 when there is none).
 pub fn fall_time(vz: f64, h: f64) -> f64 {
     let d = vz * vz + 4.0 * HALF_G * h;
@@ -182,6 +251,11 @@ pub struct Bomb {
     /// 510: the cluster has opened (visual).
     pub opened: bool,
     pub done: bool,
+    /// Weapon data Real: β (`real_beta`) of a store that falls by its drag, nothing steering it (0: the original's
+    /// steered fall).
+    pub beta: f64,
+    /// Weapon data Real: the air mass the store falls through (Better physics `wind`).
+    pub wind: Vec3,
 }
 
 impl Bomb {
@@ -206,6 +280,26 @@ impl Bomb {
         b.aim = aim;
         b.acc += acc_w;
         b
+    }
+
+    /// Weapon data Real: the store leaves with the jet's velocity `v` and falls by gravity and its drag `beta` through
+    /// `wind`; nothing steers it. `aim` (the CCIP point) only ends it within 2 m, as the original's; `end` = the
+    /// time it reaches the aim's height.
+    pub fn launch_real(now: f64, p: Vec3, v: Vec3, aim: Vec3, beta: f64, wind: Vec3) -> Self {
+        let (_, t) = real_impact(p, v, beta, wind, &|_| Some(aim.z));
+        Bomb {
+            t0: now,
+            p0: p,
+            v0: v,
+            aim,
+            acc: Vec3::ZERO,
+            end: now + t,
+            next_check: now,
+            opened: false,
+            done: false,
+            beta,
+            wind,
+        }
     }
 
     fn solve(now: f64, p: Vec3, v: Vec3, aim: Vec3, clamp_acc: f64) -> Self {
@@ -236,16 +330,32 @@ impl Bomb {
             next_check: now,
             opened: false,
             done: false,
+            beta: 0.0,
+            wind: Vec3::ZERO,
         }
     }
 
     /// `FUN_00468470` / `FUN_004684d0`: p0 + v0·dt + ½·acc·dt² (v1.1: no cap at the impact time).
     pub fn position(&self, now: f64) -> Vec3 {
         let dt = (now - self.t0).max(0.0);
+        if self.beta > 0.0 {
+            return real_fall(self.p0, self.v0, self.beta, self.wind, dt).0;
+        }
         self.p0 + self.v0 * dt + self.acc * (0.5 * dt * dt)
     }
 
+    /// Position and velocity at `now` (one integration for Weapon data Real's fall).
+    pub fn state(&self, now: f64) -> (Vec3, Vec3) {
+        if self.beta > 0.0 {
+            return real_fall(self.p0, self.v0, self.beta, self.wind, now - self.t0);
+        }
+        (self.position(now), self.velocity(now))
+    }
+
     pub fn velocity(&self, now: f64) -> Vec3 {
+        if self.beta > 0.0 {
+            return real_fall(self.p0, self.v0, self.beta, self.wind, now - self.t0).1;
+        }
         self.v0 + self.acc * (now - self.t0).max(0.0)
     }
 
@@ -368,6 +478,42 @@ mod tests {
         assert!((mid.x - 0.25 * expect).abs() < 0.05 * expect, "the drift grows as t²: {mid:?}");
         let (hit, _) = (0..100).find_map(|k| b.check(k as f64 * 0.5, FLAT, true, 0.0)).unwrap();
         assert!(hit.distance(windy) < 60.0, "{hit:?}");
+    }
+
+    /// Weapon data Real: β from the sourced diameters and Cd 0.45 (US patent 4,112,843's MK-82 Snakeye low-drag
+    /// ballistic coefficient, 0.0005 ft²/lb, within 10 %), a fall shorter than drag-free, CCIP on the real fall at
+    /// three dive angles, and nothing steering the store.
+    #[test]
+    fn real_bombs_fall_by_their_drag_and_ccip_predicts_it() {
+        let b82 = real_beta("MK-82", 241.0);
+        let ft2_per_lb = 2.0 * b82 / 0.092903 * 0.453592;
+        assert!((ft2_per_lb / 0.0005 - 1.0).abs() < 0.10, "MK-82 C_D·A/W {ft2_per_lb} ft²/lb");
+        let b84 = real_beta("MK-84", 925.0);
+        assert!(b84 < b82, "the heavier MK-84 slows less");
+        // Level at 1,000 m, 250 m/s: the drag-free bomb travels 250·√(1000/4.903) = 3,570 m; the real one less.
+        let (p, v) = (Vec3::new(0.0, 0.0, 1000.0), Vec3::new(0.0, 250.0, 0.0));
+        let (i, t) = real_impact(p, v, b82, Vec3::ZERO, FLAT);
+        assert!(i.y < 3500.0 && i.y > 3000.0 && t > 14.3, "{i:?} {t}");
+        let (i84, _) = real_impact(p, v, b84, Vec3::ZERO, FLAT);
+        assert!(i84.y > i.y, "the MK-84 travels farther");
+        // A release at the pipper lands on it (within the 0.5 s check's reach, bursting at the ground) at 0°, 20°
+        // and 45° of dive.
+        for dive in [0.0f64, 20.0, 45.0] {
+            let d = dive.to_radians();
+            let v = Vec3::new(0.0, 250.0 * d.cos(), -250.0 * d.sin());
+            let (pip, _) = real_impact(p, v, b84, Vec3::ZERO, FLAT);
+            let mut b = Bomb::launch_real(0.0, p, v, pip, b84, Vec3::ZERO);
+            let (hit, _) = (0..400).find_map(|k| b.check(f64::from(k) * 0.5, FLAT, true, 0.0)).unwrap();
+            assert!(hit.distance(pip) < 1.0, "{dive}°: {hit:?} vs {pip:?}");
+        }
+        // A wind from the west drifts the real fall east; CCIP knows it.
+        let w = iaf_flight::aircraft::wind(20.0, 270.0);
+        let (iw, _) = real_impact(p, v, b82, w, FLAT);
+        assert!(iw.x > 10.0, "{iw:?}");
+        // Nothing steers it: aimed 500 m past its fall, it still lands on its own ballistic point.
+        let mut b = Bomb::launch_real(0.0, p, v, i + Vec3::new(0.0, 500.0, 0.0), b82, Vec3::ZERO);
+        let (hit, _) = (0..400).find_map(|k| b.check(f64::from(k) * 0.5, FLAT, true, 0.0)).unwrap();
+        assert!(hit.distance(i) < 1.0, "{hit:?}");
     }
 
     #[test]
