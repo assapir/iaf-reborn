@@ -62,7 +62,8 @@ impl IafStores {
             .collect()
     }
 
-    /// The 12 stations: {} none, else {type, name, weight_lb, drag, rounds_per_tick (optional), count, arm (the attach
+    /// The 12 stations: {} none, else {type, name, weight_lb, empty_lb (a tank's own, optional), drag, rounds_per_tick
+    /// (optional), count, arm (the attach
     /// point's glTF x, + right), rack_kg / rack_drag (optional: the rack the stores hang on)}.
     #[func]
     fn setup(&mut self, stations: VarArray, player: bool, weight_fix: bool, unlimited: bool) {
@@ -74,6 +75,7 @@ impl IafStores {
                 weight_lb: num(&d, "weight_lb").unwrap_or_default(),
                 drag: num(&d, "drag").unwrap_or_default(),
                 rounds_per_tick: num(&d, "rounds_per_tick"),
+                empty_lb: num(&d, "empty_lb").unwrap_or_default(),
             };
             let count = num(&d, "count").unwrap_or_default();
             let arm = num(&d, "arm").unwrap_or_default();

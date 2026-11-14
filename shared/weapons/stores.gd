@@ -149,6 +149,7 @@ func setup(load: Array, db: RefCounted, descriptor: Dictionary, pilon_of: Callab
 			"type": w.type,
 			"name": w.name,
 			"weight_lb": w.get("weight_lb", 0.0),
+			"empty_lb": w.get("empty_lb", 0.0),
 			"drag": 0.0 if load[i].size() > 4 and int(load[i][4]) == 1 else w.get("drag", 0.0),
 			"count": n,
 			"arm": attach.x,

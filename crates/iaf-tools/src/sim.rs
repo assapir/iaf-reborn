@@ -331,7 +331,7 @@ pub fn compile_db(db: &Db) -> Result<(Value, Map<String, Value>, String)> {
         }
     };
     for w in &db.weapons {
-        check_sources(w, &["kg", "power", "blast_m", "drag", "motion.*"])?;
+        check_sources(w, &["kg", "empty_kg", "power", "blast_m", "drag", "motion.*"])?;
         check_sources(w, THREAT_FIGURES)?;
         let (kind, n) = (text(w, "kind")?, int(w, "number")?);
         let (sub, kind_name, station) = KINDS
@@ -347,14 +347,19 @@ pub fn compile_db(db: &Db) -> Result<(Value, Map<String, Value>, String)> {
         if pid > 0 {
             add_present(pid, text(w, "id")?, model, 1.0);
         }
-        weapons.push(json!({
+        let mut rec = json!({
             "0x14": 0, "0x1e": n, hex("weapon", "name"): text(w, "name")?, hex("weapon", "kind"): kind_name,
             "0x71c": "", "0x726": "", hex("weapon", "model"): pid, hex("weapon", "drag"): number(w, "drag")?,
             hex("weapon", "power"): number(w, "power")?, hex("weapon", "blast_m"): number(w, "blast_m")?,
             hex("weapon", "kg"): (number(w, "kg")? * LB_PER_KG).round(),
             hex("weapon", "generation"): int(w, "generation")? as f64, "0x76c": 4, "0x776": "N.A",
             hex("weapon", "type"): sub, "_class": "CDMEWeaponsItem",
-        }));
+        });
+        // A tank's own empty weight (ours: no field in the original's record; weapon_db.gd reads "empty_lb").
+        if given(&w.v["empty_kg"]) {
+            rec["empty_lb"] = json!((number(w, "empty_kg")? * LB_PER_KG).round());
+        }
+        weapons.push(rec);
     }
     for u in &db.units {
         check_sources(u, &["type", "scale", "radius_m", "strength", "tail", "max_takeoff_kg", "loadout.*"])?;

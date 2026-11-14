@@ -890,7 +890,8 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 		"%s: loadout: the long inventory, the air-to-ground group two to a row" % lang
 	)
 	var facts: Control = fe.find_child("ArmingFacts", true, false)
-	check(_has(facts, "17,747"), "%s: loadout: the take-off weight with two MK-84s for two AIM-9Ms" % lang)
+	# The two tanks count 201 kg empty each beside their fuel (F27).
+	check(_has(facts, "18,149"), "%s: loadout: the take-off weight with two MK-84s for two AIM-9Ms" % lang)
 	# A slot's store dropped on an inventory entry (in its group's grid) goes back through the column.
 	var on_item: Control = fe.find_child("Itemmk-84", true, false)
 	check(
@@ -1100,7 +1101,7 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	var facts: Control = pane.find_child("ArmingFacts", true, false)
 	check(_has(facts, "511") and _has(facts, "60"), "%s: arming: the rounds, chaff and flares" % lang)
 	check(
-		_has(facts, "6,254") and _has(facts, "16,069") and _has(facts, "23,582"),
+		_has(facts, "6,254") and _has(facts, "16,471") and _has(facts, "23,582"),
 		"%s: arming: fuel, the take-off weight and the maximum, each its own field" % lang
 	)
 	check(facts.alignment == BoxContainer.ALIGNMENT_CENTER, "%s: arming: the figures centred" % lang)

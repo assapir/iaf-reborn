@@ -107,6 +107,7 @@ fn stores_of(e: &Value, obj: Option<&Value>, weapons: &HashMap<i64, &Value>) -> 
             weight_lb: num(&w["0x758"]),
             drag: num(&w["0x73a"]),
             rounds_per_tick: None,
+            empty_lb: 0.0,
         };
         Some(Station {
             weapon,

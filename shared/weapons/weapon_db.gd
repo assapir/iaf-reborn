@@ -50,6 +50,7 @@ static func _record(w: Dictionary, paths: Dictionary) -> Dictionary:
 		"power": float(w.get("0x744", 0)),
 		"radius": float(w.get("0x74e", 0)),
 		"weight_lb": float(w.get("0x758", 0)),
+		"empty_lb": float(w.get("empty_lb", 0)),  # a tank's own weight (ours, Modern IAF's data)
 		"drag": float(w.get("0x73a", 0)),
 		"model": model,
 		"model_path": String(paths.get(str(model), "")),

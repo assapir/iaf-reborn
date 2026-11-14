@@ -639,7 +639,7 @@ focus. The page shown stays for the next mission picked; entering the screen aga
   the menu's pick ("Ctrl + T, 2") and the tower's answer to wait for, then the take-off on the runway heading with the
   gear up.
 - **The facts' figures:** each value's figures are a label of their own, left to right, and its unit a label beside
-  them, so "16,069 / 23,582 ק״ג", "000° / 0 קשר" and "25R · 246°" keep their order in a Hebrew line.
+  them, so "16,471 / 23,582 ק״ג", "000° / 0 קשר" and "25R · 246°" keep their order in a Hebrew line.
 
 | the Sufa's start-up, scrolled to its last steps | the Adir's |
 |---|---|
@@ -715,7 +715,7 @@ the page (the Sufa's thirteen fit). Each entry is one Control (`arming_drawing.g
 ours shows a flat silhouette (`data/stores/SOURCES.md`). Under the drawing, centred: the gun's rounds, the chaff, the flares (`loadout`),
 the fuel (the 6-DoF jet's internal fuel, `iaf_flight::sixdof::jets`, and the drop tanks' on the jet), the take-off
 weight (the 6-DoF's empty weight + internal fuel + the stores' `kg`, the tanks' fuel among them) and, a field of its
-own, the jet's maximum weight (the record's `max_takeoff_kg`; the Sufa: 6,254 kg of fuel, 16,069 kg and 23,582 kg).
+own, the jet's maximum weight (the record's `max_takeoff_kg`; the Sufa: 6,254 kg of fuel, 16,471 kg and 23,582 kg).
 `IafBriefing.arming(unit, weapons, loadout)` answers the figures (`briefing::arming`).
 
 **The loadout editor** (the user, 2026-11-10: "can we already select ammunition?"):

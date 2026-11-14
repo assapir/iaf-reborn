@@ -236,8 +236,8 @@ fn main_roads(theatre: &Path) -> Option<Arc<Roads>> {
 /// The briefing's Arming page (front-end.md §10) with the loadout `lo` (`loadout`): its stores in station order (each
 /// store's id, how many hang on the jet and their stations) and `slots` (station → {id, count, max, pylon}), the
 /// record's gun rounds, chaff and flares, the 6-DoF jet's internal fuel and empty weight (`iaf_flight::sixdof::jets`,
-/// matched by the record's `name`), the stores' weight (each store's `kg` from its record in `weapons`, the folder of
-/// `data/db/weapons`, times its count, and each rack's `rack_kg`) and the drop tanks' fuel in it, the take-off weight
+/// matched by the record's `name`), the stores' weight (each store's `kg`, plus a tank's `empty_kg`, from its record in
+/// `weapons`, the folder of `data/db/weapons`, times its count, and each rack's `rack_kg`) and the drop tanks' fuel in it, the take-off weight
 /// (empty + internal fuel + stores), the record's `max_takeoff_kg` and `over` (the take-off weight above it). Weights
 /// in kg, rounded; a figure it cannot find is null. Also the record's `internal` stations, `allowed` (station → [{id,
 /// count}]) and its `inventory`, each entry `{id, count, used, left, group}`: the store's id, the record's count (null:
@@ -250,6 +250,8 @@ pub fn arming(unit: &Value, weapons: &Path, lo: &loadout::Loadout) -> Value {
     };
     let kind = |id: &str| record(id).and_then(|r| r["kind"].as_str().map(String::from));
     let kg = |id: &str| record(id)?["kg"].as_f64();
+    // A tank's own empty weight (`empty_kg`) beside its fuel `kg`, as the flown stores count it (stores.rs).
+    let empty = |id: &str| record(id).and_then(|r| r["empty_kg"].as_f64()).unwrap_or(0.0);
     let inventory: Vec<Value> = unit["inventory"]
         .as_array()
         .into_iter()
@@ -291,7 +293,7 @@ pub fn arming(unit: &Value, weapons: &Path, lo: &loadout::Loadout) -> Value {
         .iter()
         .map(|(&st, (id, n))| {
             let a = arm.iter().find(|x| x.0 == st).map_or(0.0, |x| x.1);
-            Some((a, kg(id)? * f64::from(*n) + loadout::rack_kg(unit, st, id)))
+            Some((a, (kg(id)? + empty(id)) * f64::from(*n) + loadout::rack_kg(unit, st, id)))
         })
         .collect();
     let weight = stores_w.map(|s| loadout::weigh(0.0, &s));
@@ -501,11 +503,12 @@ mod tests {
             arming(&f35, &w, &loadout::default(&f35))["stores"][0],
             json!({"weapon": "aim-120", "count": 2, "stations": [5, 7]})
         );
-        // The Sufa's weights: 8,850 lb of fuel, 29,350 lb with it, six AIM-9M (86 kg) and two tanks (1,120 kg).
+        // The Sufa's weights: 8,850 lb of fuel, 29,350 lb with it, six AIM-9M (86 kg) and two tanks (1,120 kg of fuel
+        // and 201 kg empty each).
         assert_eq!(a["fuel_kg"], json!(4014.0));
-        assert_eq!(a["stores_kg"], json!(6.0 * 86.0 + 2.0 * 1120.0));
+        assert_eq!(a["stores_kg"], json!(6.0 * 86.0 + 2.0 * (1120.0 + 201.0)));
         let t = a["takeoff_kg"].as_f64().unwrap();
-        assert!((t - (29_350.0 * 0.453_592_37 + 2756.0)).abs() < 1.0, "{t}");
+        assert!((t - (29_350.0 * 0.453_592_37 + 3158.0)).abs() < 1.0, "{t}");
         assert!(t < a["max_takeoff_kg"].as_f64().unwrap());
         assert_eq!(a["tail"], "846");
         let b = arming(&f35, &data().join("db/weapons"), &loadout::default(&f35));
@@ -520,12 +523,13 @@ mod tests {
         );
         assert_eq!(b["inventory"][0]["used"], 2);
         assert_eq!(a["over"], false);
-        // Three Mk 82 on a TER on 3 and 7 for their AIM-9Ms: the bombs and the racks, the tanks' fuel the same.
+        // Three Mk 82 on a TER on 3 and 7 for their AIM-9Ms: the bombs and the racks, the tanks' fuel the same (and
+        // their 201 kg empty).
         let mut lo = loadout::default(&unit);
         assert!(loadout::put(&unit, &mut lo, 3, "mk-82", true));
         let c = arming(&unit, &data().join("db/weapons"), &lo);
         assert_eq!(c["tank_fuel_kg"], json!(2240.0));
-        assert_eq!(c["stores_kg"], json!((4.0f64 * 86.0 + 6.0 * 241.0 + 2.0 * 47.6 + 2.0 * 1120.0).round()));
+        assert_eq!(c["stores_kg"], json!((4.0f64 * 86.0 + 6.0 * 241.0 + 2.0 * 47.6 + 2.0 * (1120.0 + 201.0)).round()));
         assert_eq!(c["slots"]["3"], json!({"id": "mk-82", "count": 3, "max": 3, "pylon": 2}));
         // The store without a model of ours (the 600 gal tank) is not ready to fly; the Delilah is neither listed nor
         // allowed anywhere (dropped for now, the user 2026-11-14: no cruise-missile flight class).

@@ -6,6 +6,7 @@
   "generation": 1,
   "model": "",
   "kg": 1817,
+  "empty_kg": 277,
   "power": 0,
   "blast_m": 0,
   "drag": 26.4,
@@ -13,6 +14,7 @@
   "length_m": null,
   "diameter_m": null,
   "sources": {
+    "empty_kg": "inferred",
     "power": "inferred",
     "blast_m": "open",
     "drag": "inferred",
@@ -21,11 +23,12 @@
     "diameter_m": "open"
   },
   "notes": {
+    "empty_kg": "inferred: the 370 gal tank's 443 lb scaled by the skin area, (600 / 370)^(2/3) = 1.38, 611 lb; no published figure found",
     "number": "ours",
     "drag": "carriage drag index (10^4 x the drag coefficient on the F-16's 300 sq ft wing, flight-model.md §9.18): 0.15 x its 0.791 m across (inferred: the 370's shape scaled to 600 gal) frontal area, 0.15 the drag of a streamlined tank on its pylon on that area (inferred); the F-16 manual's published indices were not at hand",
     "motion": "the reader's defaults",
     "name": "the fuel it holds in pounds, as the 370's: a name with LB is a tank (stores.rs is_tank)",
-    "kg": "the fuel of a full tank: 600 US gal (2271 l) of JP-8 at 0.80 kg/l (inferred density), 1817 kg (4006 lb); the empty tank's weight is open",
+    "kg": "the fuel of a full tank: 600 US gal (2271 l) of JP-8 at 0.80 kg/l (inferred density), 1817 kg (4006 lb); the empty tank's weight is its empty_kg (inferred)",
     "power": "a tank does no damage",
     "blast_m": "a tank does no damage",
     "model": "none yet: no model of ours; the briefing shows our labelled silhouette (data/stores/tank-600.png)",

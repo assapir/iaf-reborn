@@ -47,7 +47,7 @@ reader takes them.
 |---|---|---|---|
 | unit | `id`, `category` (from `class`), `label`, `brain`, `radius_m`, `strength`, `collider`, `class`, `type` | `0x514`, `0x51e`, `0x528`, `0x532`, `0x564`, `0x56e`, `0x58c`, `0x5aa`, `0x5b4` | class `fighter` 0x1c "Controlled aircraft", `radar_sam` 8 "Radar sam", `ir_sam` 9 "Infra red sam", `aaa` 10 "Gundish", `ground_radar` 11 "Ground radar" |
 | unit (model) | `id`, `model`, `scale` | Present `0x640`, `0x64a`, `0x65e`; the unit's `0x53c` = its number | — |
-| weapon | `name`, `kind`, `model`, `drag`, `power`, `blast_m`, `kg` (→ pounds), `generation`, type (from `kind`) | `0x708`, `0x712`, `0x730`, `0x73a`, `0x744`, `0x74e`, `0x758`, `0x762`, `0x780` | `gun` 565, `chaff` 540, `flare` 550, `ir_missile` 570, `bomb` 500, `radar_missile` 600, `semi_radar_missile` 610, `ir_sam` 620, `radar_sam` 630, `tank` 660 |
+| weapon | `name`, `kind`, `model`, `drag`, `power`, `blast_m`, `kg` (→ pounds), `generation`, type (from `kind`); a tank's `empty_kg` (→ pounds) | `0x708`, `0x712`, `0x730`, `0x73a`, `0x744`, `0x74e`, `0x758`, `0x762`, `0x780`; `empty_lb` (ours: the original's record has no such field; `weapon_db.gd` reads it) | `gun` 565, `chaff` 540, `flare` 550, `ir_missile` 570, `bomb` 500, `radar_missile` 600, `semi_radar_missile` 610, `ir_sam` 620, `radar_sam` 630, `tank` 660 |
 | mission | `title.en`, `time`, `wind_kt`, `wind_from`, `win.en`, `lose.en`, `category` | misc `0x44c`, `0x460`, `0x46a`, `0x474`, `0x47e`, `0x492`, `0x4d8` | — |
 | placed unit | name, unit, side, x, y, `alt_m`, `heading` | `0x2bc`, `0x2c6`, `0x2d0`, `0x2e4`, `0x2ee`, `0x2f8`, `0x302` | side `blue` 1, `red` 2 |
 
@@ -138,8 +138,10 @@ ours (`shared/extra/models/stores/mk84.glb`), as the AIM-9M's; the Mk 82 and Mk 
 The tank (`data/db/weapons/tank-370.json`, kind `tank`: type 660, "Shell") is named for the fuel it holds in pounds,
 `2470LB`, as the original's tanks are (`2700LB`): a weapon whose name holds LB is a tank, and its weight is fuel
 (`stores.rs` `is_tank`). 370 US gal (1400.6 l) of JP-8 at 0.80 kg/l (the density inferred) is 1120 kg, its `kg`. The
-tank's own 443 lb (201 kg) empty weight, 18¼ ft (5.56 m) length and 26½ in (0.673 m) diameter[^f16net-tanks] are
-recorded in its notes; the stores code counts a tank's weight as fuel only, as the original does. The sim
+tank's own 443 lb (201 kg) empty weight is its `empty_kg`: with the stores weight fix it loads the jet (and the
+asymmetric-stores moment, and the Arming page's take-off weight) until the tank is jettisoned; the original counts a
+tank's weight as fuel only. Its 18¼ ft (5.56 m) length and 26½ in (0.673 m) diameter[^f16net-tanks] are in its
+notes. The sim
 always runs with the stores weight fix (`sim_settings.gd` `_apply_profile`), so a store's weight and a tank's fuel
 count in kg: each tank adds 1120 kg of fuel, not the original's pounds number as kg (2470). Its drag is open (0).
 
@@ -238,6 +240,7 @@ Example, `modern-iaf/data/db/units/f16i.json`:
 | `model` | the model under `assets/converted/objects/` (empty: none) |
 | `kg` | the weight (compiled to whole pounds, as the bdb holds it); a pylon store's must be above 0 |
 | `power`, `blast_m` | the warhead on our damage scale (§6) and the blast's zero-damage edge |
+| `empty_kg` | a tank's own empty weight: with the stores weight fix (the sim's) it loads the jet beside the tank's fuel until the tank is jettisoned (`stores.rs`) |
 | `drag` | the carriage drag on the jet |
 | `motion` | the weapons.ibx fields of its section (`_velocityJump`, `_absAcceleration`, `_reactionTime`, `_fireReleaseInterval`…, docs/weapons.md); a field left out takes the reader's default. Ours: `burn`, which `missile.rs` reads as Weapon data Real's burn (the zone from the distance really travelled) |
 | `range_km`, `min_range_km`, `ceiling_m`, `floor_m`, `speed_ms`, `mach`, `g_limit`, `warhead_kg` | the weapon's own figures (range, altitudes, speed, g limit, warhead), checked for sources, not compiled |

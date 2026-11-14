@@ -50,6 +50,9 @@ pub struct Weapon {
     pub drag: f64,
     /// Weapon data Real: a gun shot tick uses rate · 0.2 s rounds (ours; the original 1), shown 1:1.
     pub rounds_per_tick: Option<f64>,
+    /// A tank's own empty weight (lb; ours, Modern IAF's data): with the weight fix it loads the jet until the tank
+    /// leaves. The original counts a tank's weight as fuel only.
+    pub empty_lb: f64,
 }
 
 impl Weapon {
@@ -375,8 +378,8 @@ impl Stores {
     }
 
     /// Better physics "Asymmetric stores" (ours, docs/flight-model.md §10): the pylon stores' lateral moment Σ mass ·
-    /// arm in kg·m, + right wing heavier, the fuel tanks left out ([`Self::tank_moment`]). Every store counts at its
-    /// bdb weight in kg (a gun pod's rounds as one store), a tank's rack too.
+    /// arm in kg·m, + right wing heavier, the fuel tanks' fuel left out ([`Self::tank_moment`]). Every store counts at
+    /// its bdb weight in kg (a gun pod's rounds as one store), a tank's rack and its own empty weight too.
     pub fn roll_moment(&self) -> f64 {
         self.moment(false)
     }
@@ -394,7 +397,7 @@ impl Stores {
                 let n = if s.weapon.rounds_per_tick.is_some() { s.count.min(1.0) } else { s.count };
                 match (s.weapon.is_tank(), tanks) {
                     (true, true) => n * s.weapon.weight_lb * KG_PER_LB * s.arm,
-                    (true, false) => s.rack_kg * s.arm,
+                    (true, false) => (n * s.weapon.empty_lb * KG_PER_LB + s.rack_kg) * s.arm,
                     (false, false) => (n * s.weapon.weight_lb * KG_PER_LB + s.rack_kg) * s.arm,
                     (false, true) => 0.0,
                 }
@@ -402,11 +405,15 @@ impl Stores {
             .sum()
     }
 
-    /// A tank jettisoned from station `i` (`FUN_00458760`): count −1 and the drag update only.
+    /// A tank jettisoned from station `i` (`FUN_00458760`): count −1 and the drag update only; with the weight fix
+    /// its own empty weight (ours) leaves too.
     pub fn jettisoned(&mut self, i: usize) {
         let Some(w) = self.station(i).map(|s| s.weapon.clone()) else { return };
         self.released(i);
         self.release_drag(i, &w);
+        if self.weight_fix {
+            self.load.mass = (self.load.mass - w.empty_lb * KG_PER_LB).max(0.0);
+        }
     }
 
     fn released(&mut self, i: usize) {
@@ -460,6 +467,9 @@ impl Stores {
                 // The tank's bdb weight becomes fuel (FUN_005a8980: fuel maximum FuelWeight + out[3]).
                 self.has_tank = true;
                 self.tank_fuel += n * s.weapon.weight_lb * unit;
+                if self.weight_fix {
+                    weight += n * s.weapon.empty_lb * unit;
+                }
             } else {
                 weight += n * s.weapon.weight_lb * unit;
             }
@@ -501,7 +511,8 @@ mod tests {
     use super::*;
 
     fn st(type_code: i64, name: &str, count: f64) -> Option<Station> {
-        let weapon = Weapon { type_code, name: name.into(), weight_lb: 200.0, drag: 10.0, rounds_per_tick: None };
+        let weapon =
+            Weapon { type_code, name: name.into(), weight_lb: 200.0, drag: 10.0, rounds_per_tick: None, empty_lb: 0.0 };
         Some(Station { weapon, count, initial: count, unlimited: false, arm: 0.0, rack_kg: 0.0, rack_drag: 0.0 })
     }
 
@@ -695,5 +706,31 @@ mod tests {
         let s = slots(6, Vec3::ZERO, 6, true, None);
         assert_eq!(s.len(), 6);
         assert_eq!(s[0], Vec3::new(5.0, 0.0, 2.0));
+    }
+
+    /// Modern IAF's data (finish list F27): a tank's own empty weight loads the jet with the weight fix (the 370 gal
+    /// tank's 443 lb, f16net-tanks) and leaves with the jettison; without the fix (the original) it is not counted.
+    #[test]
+    fn a_tanks_empty_weight_loads_the_jet_until_jettisoned() {
+        let tank = |fix: bool| {
+            let mut s = Stores { player: true, weight_fix: fix, ..Stores::default() };
+            let mut stations: [Option<Station>; STATIONS] = Default::default();
+            stations[3] = st(SHELL, "2470LB", 1.0);
+            if let Some(t) = stations[3].as_mut() {
+                t.weapon.weight_lb = 2470.0;
+                t.weapon.empty_lb = 443.0;
+                t.arm = -1.5;
+            }
+            s.setup(stations);
+            s
+        };
+        let mut s = tank(true);
+        assert!((s.load.mass - 443.0 * KG_PER_LB).abs() < 1e-9, "{}", s.load.mass);
+        assert!((s.tank_fuel - 2470.0 * KG_PER_LB).abs() < 1e-9);
+        assert!((s.roll_moment() + 1.5 * 443.0 * KG_PER_LB).abs() < 1e-9, "the empty tank rolls the jet left");
+        s.jettisoned(3);
+        assert!(s.load.mass.abs() < 1e-9, "{}", s.load.mass);
+        assert_eq!(s.roll_moment(), 0.0, "gone with the tank");
+        assert_eq!(tank(false).load.mass, 0.0, "the original: a tank's weight is fuel only");
     }
 }

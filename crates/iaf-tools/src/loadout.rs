@@ -368,10 +368,10 @@ mod tests {
     fn one_sided_loads_warn_past_the_sufas_limit() {
         let u = unit("f16i");
         let mut lo = default(&u);
-        // One tank off: 1,120 kg on the left wing's station 4 alone, under the 3,459 kg·m limit.
+        // One tank off: 1,120 kg of fuel and 201 kg empty on the left wing's station 4 alone, under the 3,459 kg·m limit.
         take(&u, &mut lo, 6, false);
         let a = crate::briefing::arming(&u, &weapons(), &lo);
-        assert_eq!((a["imbalance_kg"].as_f64(), a["imbalanced"].as_bool()), (Some(1120.0), Some(false)));
+        assert_eq!((a["imbalance_kg"].as_f64(), a["imbalanced"].as_bool()), (Some(1321.0), Some(false)));
         // An MK-84 on 3 too: past it; a warning, not a block.
         assert!(put(&u, &mut lo, 3, "mk-84", false));
         let a = crate::briefing::arming(&u, &weapons(), &lo);

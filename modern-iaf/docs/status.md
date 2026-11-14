@@ -6,7 +6,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **Weapon physics (2026-11-14, the physics finish list W rows):** the gun's rounds fly a ballistic path (muzzle
   velocity plus the jet's, the M56's drag by air density, gravity) and the EEGS funnel predicts it (W2,
   [weapons.md](weapons.md) §1); the unguided bombs fall by gravity and their own drag through the wind, nothing
-  steering them, and CCIP predicts that fall (W5, W6); the GPS bombs miss by their published CEP (W11). Shared with the original game's Weapon data Real.
+  steering them, and CCIP predicts that fall (W5, W6); the GPS bombs miss by their published CEP (W11); a drop tank's own empty weight loads the jet until it is
+  jettisoned (370 gal 443 lb sourced, 600 gal 611 lb inferred; F27). Shared with the original game's Weapon data Real.
 - **Bombs, missiles and the gun in every flight (2026-11-14, the user: "the fact that you can drop weapons"):** on
   the Sufa, the Barak and the F-35I the stores hung on the briefing's Arming page fly with the mission; after the
   take-off's pass the flight goes on, and Shift+A, `[` and Space release the bombs (the HUD's CCIP cue; the F-35I's

@@ -234,7 +234,8 @@ After each release (`FUN_004583a0`, `FUN_00458510`; skipped with Unlimited ammo)
 Original bugs (kept by default):
 - (a) One store per station: 3 MK-83 weigh as one; each release subtracts one, clamped at 0.
 - (b) Pounds go into the kg field at the start, while the updates convert as if it held kg.
-- (c) The tanks' weight never counts as stores weight (it becomes fuel, §2.6).
+- (c) The tanks' weight never counts as stores weight (it becomes fuel, §2.6). Ours, with the weight fix: a weapon
+  record's `empty_lb` (Modern IAF's tanks) counts as stores weight until the tank is jettisoned.
 
 The Physics option **"Stores weight fix"** counts every store, in kg (the updates then stay consistent), and the tank
 fuel in kg (§2.6).
