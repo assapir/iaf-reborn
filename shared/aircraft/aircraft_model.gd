@@ -72,6 +72,11 @@ var crew_visible := true
 var ejected := false
 var canopy_offset := Vector3.ZERO
 var canopy_gone := false
+## Ours (Modern IAF's cold start, modern-iaf/docs/training.md §7.1): the canopy open, 0 shut .. 1 up by CANOPY_UP
+## about its hinge (the F-16's aft, the F-35I's forward); the flight sets it, 0 elsewhere.
+var canopy_open := 0.0
+## The canopy's full opening: FlightGear's F-16 (Models/F-16.xml, canopy/position-norm × 30°); the F-35I's inferred.
+const CANOPY_UP := 0.5236  # 30°
 var _chute_angle := 0.0
 var _rotor := 0.0  # the rotors' angle, degrees (crew object +0x10)
 ## Rolling wheels (ours, Graphics → MORE; docs/part-animation.md §2.2): the wheel frames WheelsA..F that ride on a
@@ -173,6 +178,10 @@ const F16_CONSOLE_BELOW := 0.3
 ## from this far under the eye, holds the pilot; the rear cockpit's interior there is left out.
 const F16_SEAT_HALF_WIDTH := 0.36
 const F16_LAP_BELOW := 0.2
+## With the 3D cockpit: the canopy frame's skirt, the band under this height (m, model frame) that sits down in the
+## sill when shut. Off its seat (Modern IAF's cold start) the frame is drawn from `open_mesh`, the skirt folded up to
+## here, a 5 cm rail: the whole 21 cm band crossed the view from the seat as a black slab.
+const F16_FRAME_SKIRT_Y := 0.57
 
 
 ## Ours (Models: Detailed, or the Sufa): the cockpit view's own jet from the detailed F-16 at `path` instead of the
@@ -202,9 +211,20 @@ static func detailed_cockpit(path: String, whole := false) -> Array:
 		var xf: Transform3D = root.transform * mi.transform if mi.get_parent() == root else root.transform
 		var keep := F16_SEAT_SURFACES if mi.name == "pilot" else mi.mesh.get_surface_count()
 		var cut := ArrayMesh.new()
+		var glass := ArrayMesh.new()
+		var open := ArrayMesh.new()
 		for s in keep:
 			if mi.mesh.surface_get_material(s).resource_name == "canopy_glass":
-				continue  # as the original's cockpit flag hides the canopy: from inside, its glass fogs the view
+				# As the original's cockpit flag hides the canopy: from inside, its glass fogs the view. Ours (Modern
+				# IAF): kept hidden as CanopyGlass, which sim_flight.gd shows while the canopy is open.
+				if mi.name == "Canopy":
+					glass.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, mi.mesh.surface_get_arrays(s))
+					var gm = mi.get_active_material(s)
+					if gm is BaseMaterial3D:
+						gm = gm.duplicate()
+						gm.cull_mode = BaseMaterial3D.CULL_DISABLED  # seen from under it
+					glass.surface_set_material(glass.get_surface_count() - 1, gm)
+				continue
 			var a := mi.mesh.surface_get_arrays(s)
 			var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
 			var idx: PackedInt32Array = a[Mesh.ARRAY_INDEX]
@@ -251,9 +271,27 @@ static func detailed_cockpit(path: String, whole := false) -> Array:
 					matte[mat].metallic_specular = 0.2
 				mat = matte[mat]
 			cut.surface_set_material(cut.get_surface_count() - 1, mat)
+			if whole and mi.name == "Canopy":
+				var folded := a.duplicate()
+				var fv := PackedVector3Array(v)
+				for k in fv.size():
+					var w := xf * fv[k]
+					if w.y < F16_FRAME_SKIRT_Y:
+						fv[k] = xf.affine_inverse() * Vector3(w.x, F16_FRAME_SKIRT_Y, w.z)
+				folded[Mesh.ARRAY_VERTEX] = fv
+				open.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, folded)
+				open.surface_set_material(open.get_surface_count() - 1, mat)
 		for s in mi.get_surface_override_material_count():
 			mi.set_surface_override_material(s, null)
 		mi.mesh = cut
+		if open.get_surface_count() > 0:
+			mi.set_meta("open_mesh", open)
+		if glass.get_surface_count() > 0:
+			var g := MeshInstance3D.new()
+			g.name = "CanopyGlass"
+			g.mesh = glass
+			g.visible = false
+			mi.add_child(g)
 	return [node, eye - Vector3(0, F16_3D_SEAT_DOWN if whole else 0.0, 0)]
 
 
@@ -370,6 +408,17 @@ func setup(gltf_scene: Node3D, descriptor: Dictionary, type := -1, on_ground := 
 		parts[str(n.name)] = {
 			"node": n, "id": int(p.id), "basis": n.transform.basis, "origin": n.transform.origin, "axis": axis
 		}
+		# Ours: a part whose frame origin is not its hinge (the F-35I's canopy) names the hinge point, model metres.
+		if p.get("hinge") is Array:
+			parts[str(n.name)].hinge = Vector3(p.hinge[0], p.hinge[1], p.hinge[2])
+		# Ours: a model of its own on the part, in its frame (the F-35I's canopy frame and bow, tools/f35i/canopy_frame.py).
+		if p.get("attach") is String:
+			var m = Gltf.model(plane_file(str(desc.get("name", "")), p.attach))
+			if m != null:
+				n.add_child(Gltf.instance(m))
+				# Ours: the model stands in for the part's own mesh (the F-35I's glass, cut where the airframe hides it).
+				if p.get("attach_replaces", false) and n is MeshInstance3D:
+					(n as MeshInstance3D).mesh = null
 	for p in parts.values():
 		for w in p.node.get_children():
 			if w is Node3D and str(w.name).begins_with("Wheels"):
@@ -631,7 +680,7 @@ func part_pose(id: int) -> Array:
 		0x16, 0x17:  # canopy, canopyB
 			if ejected:
 				return [0.0, not canopy_gone]
-			return [0.0, crew_visible]
+			return [canopy_open * CANOPY_UP, crew_visible]
 		0x27:  # Parach
 			return [_chute_angle, _chute_state == 2]
 		0x90, 0x91, 0x92, 0x93:  # BayLi, BayLo, BayRi, BayRo (ours)
@@ -667,9 +716,13 @@ func _apply() -> void:
 				pose[1] = bool(o.visible)
 		p.node.visible = pose[1]
 		var b: Basis = p.basis
+		var at: Vector3 = p.origin
 		if p.axis != null and pose[1]:
-			b = Basis(p.axis, pose[0]) * b
-		p.node.transform = Transform3D(b, p.origin)
+			var r := Basis(p.axis, pose[0])
+			b = r * b
+			if p.has("hinge"):
+				at = p.hinge + r * (at - p.hinge)
+		p.node.transform = Transform3D(b, at)
 		if ejected and p.id in [0x16, 0x17] and is_inside_tree():
 			p.node.global_position += global_basis.orthonormalized() * canopy_offset
 	# The wheels roll about their axle (the leg's X): one ground distance, each wheel's own radius.

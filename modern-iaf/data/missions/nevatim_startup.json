@@ -84,7 +84,7 @@
         "key": "Ctrl+K",
         "en": "Canopy: close and lock",
         "he": "חופה: סגירה ונעילה",
-        "where": {"en": "CANOPY switch: left console, aft", "he": "מתג CANOPY: הקונסולה השמאלית, מאחור"}
+        "where": {"en": "Canopy lever: left wall, aft of the throttle", "he": "ידית החופה: הדופן השמאלית, מאחורי המצערת"}
       }
     ]
   }

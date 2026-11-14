@@ -30,8 +30,8 @@ SEAT_BACK = -0.60  # real m: the head box as modelled (its front 0.30 m behind t
 # The aft deck's centre line (real m about the eye): level behind the eye, then from under the seat's head box up to
 # the spine's front.
 DECK = ((0, -0.22, -0.45), (0, -0.80, -0.42), (0, -DECK_END * PRESENT_SCALE - 0.04, 0.02))
-# The canopy's frame arch, as cockpit3d.py's ARCH_Y, ARCH_TOP, ARCH_LEAN (real m about the eye).
-ARCH_Y, ARCH_TOP, ARCH_LEAN = -0.42, 0.325, 0.28
+# The canopy's bow, as cockpit3d.py's ARCH_Y, ARCH_TOP, ARCH_LEAN (real m about the eye).
+ARCH_Y, ARCH_TOP, ARCH_LEAN = 0.57, 0.325, 0.16
 
 
 def seat(eye):
@@ -147,9 +147,9 @@ def main():
                             [tuple(eye + p + Vector((u, 0, 0.09 * (1 - (u / 0.45) ** 2) + 0.005)))
                              for u in np.linspace(-0.44, 0.44, 13)], ref=(0, 1, 0)))
     arch = [tuple(eye + Vector((0.46 * math.sin(a), ARCH_Y + ARCH_LEAN * math.cos(a),
-                                -0.34 + (ARCH_TOP + 0.34) * math.cos(a))))
+                                -0.39 + (ARCH_TOP + 0.39) * math.cos(a))))
             for a in np.linspace(-math.pi / 2, math.pi / 2, 33)]
-    kit.sweep("arch", band, kit.rounded_rect(0.045, 0.09, 0.014), arch, ref=(0, 1, 0))
+    kit.sweep("arch", band, kit.rounded_rect(0.035, 0.07, 0.012), arch, ref=(0, 1, 0))  # cockpit3d.py ARCH_BAND
     seat_parts = seat(eye) + inside
     # Modelled in real metres around the eye, like the panel art; the game draws the jet at the Present scale (2.0,
     # docs/adding-a-plane.md §2), so they shrink by half about the eye to come out real size.

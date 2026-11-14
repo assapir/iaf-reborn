@@ -130,6 +130,10 @@ func setup(c: Control, cam: Camera3D, type_code: int) -> bool:
 		return false
 	var n := Gltf.instance(m)
 	add_child(n)
+	# The F-35I's canopy rails' front ends (tools/f35i/cockpit3d.py canopy_tips): shown only with the canopy up.
+	var tips := n.find_child("canopy_tips", true, false) as Node3D
+	if tips != null:
+		tips.visible = false
 	# The pilot's body (<model>_pilot.glb, the F-16's: tools/f16d/pilot.py) in the model's frame, lit as the cockpit.
 	var body := path.get_basename() + "_pilot.glb"
 	if Settings.cockpit_pilot_body() and FileAccess.file_exists(body):

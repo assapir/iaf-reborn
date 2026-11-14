@@ -244,14 +244,14 @@ reads the same `checklist` event. The throttle goes back to OFF by its own key, 
 | 3 | Throttle to idle at 20 % RPM | the throttle up from OFF | light-off 5 s later, idle 15 s after it; the main generator at 52 %, the JFS off | below 20 %: a hot start, the engine shut down, `hot_start`; no rotation: no light-off, `no_rotation`; never: the JFS holds at 20 % | 20 % minimum[^chk]; 52 %[^f16net]; the times inferred |
 | 4 | Avionics power: the four AVIONIC POWER switches ON, after the generators | Ctrl+A (or a click on each) | each switch's system 3 s later ([cockpit.md](cockpit.md) §5.2 "One by one") | before the generators: no power, `avionics_early` | inferred (the avionics go on after the engine start in the checklist[^chk]) |
 | 5 | INS: stored-heading alignment | Ctrl+N | aligned 90 s later: the avionics up | without main power: `ins_no_power` | 90 s[^ins] (a full alignment takes about 8 minutes[^ins]) |
-| 6 | Canopy: close and lock | Ctrl+K | at once | any time | [^chk] |
+| 6 | Canopy: close and lock | Ctrl+K | at once; the canopy, up 30° at the cold start, comes down over 10 s | any time; taxiing with it up has no consequence | [^chk]; 30° and 10 s[^fgcanopy] |
 
 | # | F-35I Adir | key | timing | out of order | source |
 |---|---|---|---|---|---|
 | 1 | Battery: ON | Ctrl+B | at once | — | battery, IPP, engine[^ayton] |
 | 2 | IPP: START | Ctrl+J | runs 10 s, then holds | before the battery: `no_power` | [^ayton]; the 10 s inferred |
 | 3 | Throttle to idle: the engine starts | the throttle up from OFF (in the 3D cockpit also the ENG switch or START, [cockpit.md](cockpit.md) §5.2) | cranks, lights and runs to idle by itself (the F-16's figures); the displays on the IPP's power | before the IPP: `no_ipp`; before the IPP is up to speed: `ipp_not_ready` | [^ayton]; inferred |
-| 4 | Canopy: close and lock | Ctrl+K | at once | any time | inferred |
+| 4 | Canopy: close and lock | Ctrl+K | at once; the canopy, its aft end up 30° about its front hinge at the cold start, comes down over 10 s | any time; taxiing with it up has no consequence | inferred (front-hinged: [f35i.md](../../docs/f35i.md) §4; the angle and time the F-16's) |
 
 Each step's `wait` (mission data) says the state to wait for before the next step, in the table's figures (the JFS's
 20 % RPM, the idle with the main generator, the displays, the INS's 90 s; the IPP's 10 s); the notebook and the
@@ -506,6 +506,7 @@ brakes, the ejection handle and the switches' OFF positions by the mouse.
 [^ayton]: Mark Ayton, "Blue Sky OPS", AIR International, 26 April 2012, quoted on F-16.net, "Engine start up procedure" (three switch selections: battery, IPP, engine; "After 90 seconds, if there are no problems, the aircraft declares itself ready for flight"), https://www.f-16.net/forum/viewtopic.php?p=317934
 [^ep]: F-16 emergency procedures flashcards (sim community, after the T.O.; weak): "Retard THROTTLE to OFF, MONITOR FTIT indicator, If FTIT remains above 500C, MOTOR ENGINE with JFS until FTIT is below 200C", https://m.brainscape.com/flashcards/6169806/packs/9535586
 [^bmshot]: Falcon BMS forum, "Recover from hot start" (a player: after the throttle to cutoff the "RPM die slowly"; weak: a forum, a simulation), https://forum.falcon-bms.com/post/267868
+[^fgcanopy]: FlightGear F-16 (github.com/NikolaiVChr/f16 at ef4f192, GPL-2.0-or-later): `Models/F-16.xml`, the canopy's rotate animation (`canopy/position-norm` × 30°, centred aft of the cockpit), and `Systems/jsb-controls.xml`, `fcs/canopy-control-1` (shut to open in 10 s), https://github.com/NikolaiVChr/f16/blob/ef4f192f06243cf4061c2be794511db0576ac2f9/Systems/jsb-controls.xml
 [^chk]: F-16 checklist (sim community, after the T.O. checklist; weak): "THROTTLE – Advance to IDLE (20% RPM Min)", https://www.scribd.com/document/38303072/Checklist-Main
 [^jfs50]: F-16.net forum, "JFS and avionics question" (the flight manual: "As the engine accelerates through 50 % rpm, a sensor causes the JFS to shut down automatically"; about 50 % on a P&W and 54 % on a GE engine), https://www.f-16.net/forum/viewtopic.php?p=13518
 [^f16net]: F-16.net forum, "Main PWR on the F-16", Davis83, 7 December 2010 (the engine self-sustaining at about 52 % RPM, the JFS disengaged, the engine driving the hydraulic pumps and the main and standby generators), https://www.f-16.net/forum/viewtopic.php?p=186672

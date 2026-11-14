@@ -108,6 +108,15 @@ var _throttle_was := -1.0
 ## The 3D cockpit's start-up switches as last set from the flight model (_sync_switches): step id -> on.
 var _shown := {}
 const RECORDED_S := 0.25
+## The canopy's travel, open to shut (s): FlightGear's F-16 (Systems/jsb-controls.xml fcs/canopy-control-1, 10 s); the
+## F-35I's inferred the same.
+const CANOPY_S := 10.0
+var _canopy_set := false
+## The cockpit view's canopy frames (own_bc's: the F-16's cut model, the F-35I's 3D cockpit) -> their shut transform;
+## the 3D cockpit they were found with.
+var _frames := {}
+var _frames_c3d: Node = null
+var _frames_bc: Node = null
 
 
 static func create(h: Node) -> Node:
@@ -338,12 +347,13 @@ func pick(id: String) -> String:
 # --- the training run -------------------------------------------------------------------------------------------------
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not result.is_empty() and Time.get_ticks_msec() >= _end_ms:
 		_end_ms = INF
 		host._end_flight(true)  # into the debrief (Settings.flown_sortie)
 	_throttle_step()
 	_sync_switches()
+	_canopy(delta)
 	if rules.is_empty() or not result.is_empty() or host.flight == null or host.get("_log") == null:
 		return
 	var t: float = host._log_t
@@ -550,6 +560,70 @@ func _sync_switches() -> void:
 		done = now
 		if kneeboard != null:
 			kneeboard.refresh()
+
+
+## The canopy (training.md §7.1): up on a cold jet until its step, then down over CANOPY_S; shut on a hot or airborne
+## start. The outside model (aircraft_model.gd canopy_open) and the cockpit view's frame turn alike.
+func _canopy(delta: float) -> void:
+	var a = host.get("aircraft")
+	if a == null:
+		return
+	var up := 0.0 if host.start_engine_on or "canopy" in done else 1.0
+	a.canopy_open = move_toward(a.canopy_open, up, delta / CANOPY_S) if _canopy_set else up
+	_canopy_set = true
+	var bc = host.get("own_bc")
+	var c3d = host.get("cockpit_3d")
+	if is_instance_valid(bc) and (_frames.is_empty() or c3d != _frames_c3d or bc != _frames_bc):
+		_frames_c3d = c3d
+		_frames_bc = bc
+		_frames.clear()
+		for n in ["Canopy", "canopy_frame"]:  # the F-16's cut model, the F-35I's 3D cockpit (tools/f35i/cockpit3d.py)
+			var f := bc.find_child(n, true, false) as Node3D
+			if f != null:
+				_frames[f] = f.transform
+	var part = a.parts.get("Canopy", a.parts.get("canopy"))
+	if part == null or part.axis == null:
+		return
+	for f: Node3D in _frames:
+		if is_instance_valid(f) and f.name == "canopy_frame" and part.has("hinge") and not f.has_node("CanopyGlass"):
+			_canopy_glass(f, part, a.desc.get("eye", []))
+	var r := Basis(part.axis, a.canopy_open * a.CANOPY_UP)
+	for f: Node3D in _frames:
+		if is_instance_valid(f):
+			f.transform = Transform3D(r * _frames[f].basis, _frames[f].origin)
+			var g := f.get_node_or_null("CanopyGlass") as Node3D
+			if g != null:
+				g.visible = a.canopy_open > 0.0
+			var tips := f.get_node_or_null("canopy_tips") as Node3D
+			if tips != null:
+				# The F-35I's 3D-cockpit rails end short of the front hinge, shut (tools/f35i/cockpit3d.py
+				# RAIL_3D_END); raised, their front ends run on down to the hinge.
+				tips.visible = a.canopy_open > 0.0
+			if f.has_meta("open_mesh"):  # the F-16's frame off its seat: its skirt folded (aircraft_model.gd)
+				var mi := f as MeshInstance3D
+				if not mi.has_meta("shut_mesh"):
+					mi.set_meta("shut_mesh", mi.mesh)
+				mi.mesh = mi.get_meta("open_mesh") if a.canopy_open > 0.0 else mi.get_meta("shut_mesh")
+
+
+## The F-35I's 3D cockpit has the canopy's rails and bow only: with the canopy up, the lid (its glass, frame and aft
+## frame) shows from the seat as a copy of the outside model's canopy part (glass and canopy_frame.glb) in the 3D
+## cockpit's frame, the airframe's at the scale about the eye that puts the hinge where the frame node turns
+## (tools/f35i/cockpit3d.py PRESENT_SCALE), as `CanopyGlass` under the frame node, shown while the canopy is open.
+func _canopy_glass(f: Node3D, part: Dictionary, eye_a: Array) -> void:
+	if eye_a.size() < 3:
+		return
+	var eye := Vector3(eye_a[0], eye_a[1], eye_a[2])
+	var hinge: Vector3 = part.hinge
+	var at: Vector3 = _frames[f].origin
+	var k := (at - eye).length() / (hinge - eye).length()
+	var g := (part.node as Node3D).duplicate() as Node3D
+	g.name = "CanopyGlass"
+	g.visible = false
+	# model -> 3D cockpit: p -> eye + (p - eye) k; then into the frame node (its origin `at`, unturned when shut).
+	var s := Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * k), eye * (1.0 - k))
+	g.transform = Transform3D(Basis.IDENTITY, -at) * s * Transform3D(part.basis, part.origin)
+	f.add_child(g)
 
 
 ## The throttle up from OFF (its keys or the axis) takes the checklist's engine step once the starter step (JFS / IPP)

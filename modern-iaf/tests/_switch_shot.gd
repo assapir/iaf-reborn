@@ -5,8 +5,9 @@
 # moved away). Switches: SHOT_SWITCHES
 # (comma-separated nodes of f16_controls.json, default MAIN_PWR,JFS; the steps a switch needs before it are taken by
 # their keys' commands first; a guarded switch: also <node>_guard.png, its guard lifted by the first click). The view
-# zoomed in (cockpit.ZOOM_MAX), the pilot's body hidden. SHOT_MISSION: another start-up mission (2031:
-# the F-35I at Nevatim, its nodes of f35i_controls.json); a knob (a turn control) is only lit and clicked.
+# zoomed in (cockpit.ZOOM_MAX; SHOT_ZOOM another zoom), the pilot's body hidden. SHOT_MISSION: another start-up
+# mission (2031: the F-35I at Nevatim, its nodes of f35i_controls.json); a knob (a turn control) is only lit and
+# clicked.
 #   flock -o ~/.cache/iaf-gpu-bench.lock tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_OUT=<dir> \
 #     -- --log-file <t> --resolution 1920x1080 --path modern-iaf -s ../modern-iaf/tests/_switch_shot.gd
 extends "res://../tests/godot/base.gd"
@@ -31,7 +32,8 @@ func run() -> void:
 		await process_frame
 		tv = current_scene
 	await create_timer(2.0).timeout
-	tv.cockpit.zoom = tv.cockpit.ZOOM_MAX
+	var zoom := OS.get_environment("SHOT_ZOOM")  # the default view's 0.6 (cockpit.ZOOM_MIN) to see a switch's place
+	tv.cockpit.zoom = float(zoom) if zoom != "" else tv.cockpit.ZOOM_MAX
 	var pilot = tv.cockpit_3d.get("_pilot")
 	if pilot != null:  # the pilot's hand over the ELEC panel hides MAIN PWR
 		(pilot.owner if pilot.owner is Node3D else pilot).visible = false

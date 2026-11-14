@@ -228,7 +228,18 @@
       ]
     },
     "canopy": {
-      "axis": null,
+      "attach": "canopy_frame.glb",
+      "attach_replaces": true,
+      "axis": [
+        -1,
+        0,
+        0
+      ],
+      "hinge": [
+        0,
+        0.4,
+        -7.1
+      ],
       "id": 22,
       "pivot": [
         0,

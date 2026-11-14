@@ -287,7 +287,9 @@ switches as FlightGear models them.
   thick and 14 cm long, along the left canopy sill's inner face 10 cm aft of the throttle, lit under the pointer
   (`cockpit3d_controls.gd` `_area`). Until 2026-11-11 the box was drawn clear, and it sat under the pilot's left
   shoulder, where no head turn could see it (the Mac play test's finding 11). Its exact place and finish are
-  inferred: the sources put the handle on the left side, not where on it.
+  inferred: the sources put the handle on the left side, not where on it. Looked for again on 2026-11-13 with the
+  canopy's hinge: no flight-manual text could be read (the Falcon BMS Dash-1 is too large to fetch, the DCS forum
+  refuses automated reading), so its place stays the forum's (open).
 - **INS: STOR HDG** is position 1, after OFF (FlightGear's knob: OFF 0, NORM 2, NAV 3; STOR HDG between them is
   inferred).
 - **The JFS switch** springs back to OFF when the engine sustains itself (52 %), as the real JFS cuts out at 50–54
@@ -306,9 +308,14 @@ switches, not readable labels ([../../docs/f35i.md](../../docs/f35i.md) §4.2).
 | 3 | ENG switch (`ENG`, under a red guard) | start panel, third | `[212, 0, 0]` | none | forward (1) / aft (0) |
 | 3 | START button (`START`) | start panel, fourth | `[212, 1, 0]` (on only) | none | a push button |
 | 3 | throttle (`throttle`) | the throttle, left console | `[5, 0, 0]`, the wheel and a drag (as the F-16's) | Throttle up | the throttle's own animation |
-| 4 | CANOPY switch (`CANOPY`) | its own panel, left console, aft | `[215, 0, 0]` | Ctrl+K | forward (1) / aft (0) |
+| 4 | canopy lever (`CANOPY`) | left wall just above the console, aft of the throttle's track[^ife-canopy] | `[215, 0, 0]` | Ctrl+K | forward (1, shut) / 40° aft (0, open) |
 | take-off, landing | landing gear handle (`gear_handle`) | left of the main panel | `[14, 0, 0]` | G | the handle's own animation |
 
+- **The canopy lever** is yellow, standing up from a dark pivot block on the left wall with CANOPY printed behind it,
+  where IndiaFoxtEcho's F-35 has its "canopy control lever"[^ife-canopy] (a simulator, weak; no manual or photo of
+  the real jet's left wall was found, open). Its shape and travel are inferred. From 2026-11-09 to 2026-11-13 a
+  CANOPY toggle on a small panel of its own aft on the left console (inferred); the lighting panel (FLOOD, CONSOLE,
+  NVIS) keeps its place ([../../docs/f35i.md](../../docs/f35i.md) §4.1 "Canopy control").
 - **The engine step** is the ENG switch as on the jet (command 212, which no key sends: the step's key stays the
   throttle up from OFF, [training.md](training.md) §7.1); the throttle stays where it is, and the engine runs to idle
   by itself. Moving the throttle up from OFF takes the same step.
@@ -735,3 +742,6 @@ openstreetmap.org/copyright" (also in [docs/credits.md](../../docs/credits.md)).
 [^hoggit-ip]: Hoggit wiki, "Instrument Panel" (DCS F-16C): the ICP's SYM wheel sets the HUD's brightness. https://wiki.hoggitworld.com/view/Instrument_Panel
 [^dcs-wow]: Eagle Dynamics forum, "AOA indicator reading during NLG WOW" (quotes the F-16 dash-1: "When NLG WOW occurs, all AOA indications are based on zero degrees"; weak: a forum quote, the manual not read), https://forum.dcs.world/topic/245600-already-reportedaoa-indicator-reading-during-nlg-wow
 [^ayton]: Mark Ayton, "Blue Sky OPS", AIR International, 26 April 2012, quoted on F-16.net, "Engine start up procedure" (three switch selections: battery, IPP, engine), https://www.f-16.net/forum/viewtopic.php?p=317934
+[^ife-canopy]: IndiaFoxtEcho, "F-35 Lightning II aircraft for Microsoft Flight Simulator, user manual" (the cockpit's
+    left side, item 8 "Canopy control lever"),
+    https://orbx-user-guides.storage.googleapis.com/indiafoxtecho-f35-msfs-user-guide-96295d.pdf

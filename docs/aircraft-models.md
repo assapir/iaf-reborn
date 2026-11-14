@@ -47,7 +47,8 @@ The game reads positions from the aircraft model. The detailed model keeps them 
      original's nozzle ends 0.26 m further aft);
   3. the closed gear doors `LdgDrUp` (part id 0x94, ours), shown only while the gear is fully up.
 - **Moving parts** keep the original's names: AilerL/R (flaperons), ElevaL/R, RuddeL, SpdbrU/D, Hook, LdgF, LdgL/R,
-  LdgDr, Canopy, pilot, pilotB. Each turns about FlightGear's own hinge line, so the surface moves where it is. The
+  LdgDr, Canopy, pilot, pilotB. Each turns about FlightGear's own hinge line, so the surface moves where it is (the
+  canopy about its own rear end, "The canopy's hinge against photographs" below). The
   hinge lines differ from the original's by up to 0.8 m (the hook) and 11° (the stabilators' anhedral);
   `tests/godot/test_detailed_models.gd` prints the offsets.
 - **Wheels** are part of the gear legs' meshes, so they stay fixed, as on the original, also with Rolling wheels on
@@ -127,6 +128,31 @@ Tried and dropped (2026-10-29):
 interpolated by angle), 3 cm deep inward (`BOW_T`, inferred: the photos show a narrow bow) and 0.07 m along the jet
 as before; the hoop's feet stay. FlightGear's hoop has a section every 6–8°, and from the front seat looking back it
 read as a faceted black polygon (cockpit.md "3D cockpit").
+
+#### The canopy's hinge against photographs (2026-11-13)
+
+On F-16s with the canopy up the whole canopy, glass and frame, turns about a hinge at its rear end, at the foot of
+its rear edge behind the seat: side on, an F-16C's raised frame runs straight from that corner up and forward, about
+30° above the sill[^copenorth]; an IAF F-16I in its shelter shows the two-seat canopy raised the same way, its rear
+end on the spine[^sufashelter]. FlightGear's F-16 turns it 30° (`F-16.xml`, `canopy/position-norm` × 30) about
+(-3.3, 0, 0.6): on the single seater that is the joint of the frame and the aft fairing behind the seat, the fairing
+fixed. The two-seat model turns the whole stretched canopy (with its aft glass, `CanopyBackOutside`) but kept
+FlightGear's point, mid-canopy over the rear seat: raised, its rear end swung down into the spine and its front stood
+far over the nose (the user's review, 2026-11-13). `CANOPY_HINGE` (tools/f16/base.py) puts the hinge at the
+stretched canopy's rear end, 0.845 m up at the foot of its rear edge (model frame: 0.48 m aft of the origin); the
+angle stays FlightGear's 30°. Shut, nothing moves: only the part's origin changed.
+
+#### The canopy's frame (2026-11-14)
+
+The F-16's bubble sits in an opaque frame that turns with it: rails along both sills from the canopy's front to its
+rear end and a frame round its rear end; side on with the canopy up the raised frame is a dark band under the glass
+all along its foot[^copenorth][^sufashelter]. FlightGear's frame has a skirt under the glass for the single seater's
+length only, so on the two-seat model the raised glass's rear half (over the rear seat, back to the hinge) stood
+unframed: a bare sheet whose only visible parts, the front skirts and the bow, read as a hoop swung out sideways (the
+user's review, 2026-11-13: "like it opens sideways, missing the sides which are not glass"). `canopy_rails`
+(tools/f16/base.py, `kit.canopy_frame`) adds one solid on the glass's lower edge over its whole length: 0.06 m tall
+on the glass, 2.5 cm deep, the whole arch over the last 0.10 m, and behind the bow a skirt 0.12 m under the glass
+that sits inside the airframe when shut. It is dark as the bow (the frame on the photos; its sizes inferred).
 
 #### The colours against photographs (2026-10-29)
 
@@ -850,3 +876,11 @@ three pylons under each wing and the centre line tank between the engines. What 
 [^f16d039]: מינוזיג, "F-16 IAF Israel Independence Day flyover.jpg", Wikimedia Commons, CC BY-SA 4.0 (IAF F-16D 039
     from below), https://commons.wikimedia.org/wiki/File:F-16_IAF_Israel_Independence_Day_flyover.jpg. Used only
     as a reference.
+[^copenorth]: U.S. Pacific Air Forces, "A 354th Fighter Wing pilot performs preflight checks on a U.S. Air Force F-16
+    during Cope North 2013", Wikimedia Commons, CC BY 2.0 (an F-16C side on, the canopy up),
+    https://commons.wikimedia.org/wiki/File:A_354th_Fighter_Wing_pilot_performs_preflight_checks_on_a_U.S._Air_Force_F-16_during_Cope_North_2013.jpg.
+    Used only as a reference.
+[^sufashelter]: Israel Defense Forces, "First Female Pilot to Fly F-16I (Sufa) Aircraft", Wikimedia Commons, CC BY 2.0
+    (an F-16I in its shelter, the canopy up),
+    https://commons.wikimedia.org/wiki/File:Flickr_-_Israel_Defense_Forces_-_First_Female_Pilot_to_Fly_F-16I_(Sufa)_Aircraft.jpg.
+    Used only as a reference.

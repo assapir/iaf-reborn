@@ -711,6 +711,99 @@ def sweep(name, m, profile, path, bevel=0.0, smooth=True, ref=(0, 0, 1)):
     return o
 
 
+def canopy_section(glass, y, axis_z, body=None, dy=0.0, step=math.radians(1.0)):
+    """A canopy's glass (a BVH tree) at station y seen from its axis (0, y, axis_z): per side (+1 right, -1 left)
+    (hits, hidden): the hits [(angle from the top, point)] from the top down to the glass's lower edge, and the index
+    of the first one the airframe (`body`, a BVH tree in the same frame) hides seen from straight outside (len(hits):
+    none hidden). `dy`: each hit the mean of the glass dy ahead and behind (across a slot between two transparencies)."""
+    o = Vector((0.0, y, axis_z))
+    out = {}
+    for s in (1, -1):
+        pts, hidden = [], None
+        for a in np.arange(0.0, math.pi, step):
+            d = Vector((s * math.sin(a), 0.0, math.cos(a)))
+            hits = [glass.ray_cast(o + Vector((0, e, 0)), d, 2.0)[0] for e in ((-dy, dy) if dy else (0.0,))]
+            hits = [h - Vector((0, h.y - y, 0)) for h in hits if h is not None]
+            if not hits:  # past the lower edge, or through a slot
+                continue
+            h = sum(hits, Vector()) / len(hits)
+            out_d = (h - o).normalized()
+            if hidden is None and body is not None and body.ray_cast(h + out_d * 1.5, -out_d, 1.49)[0] is not None:
+                hidden = len(pts)
+            pts.append((a, h))
+        out[s] = (pts, len(pts) if hidden is None else hidden)
+    return out
+
+
+def canopy_frame(name, m, glass, axis_z, ys, width, off=0.004, depth=0.02, body=None, below=None, aft_w=0.0,
+                 skirt=None, k=4, smooth_n=5):
+    """A canopy's opaque frame as one solid on its glass (a BVH tree; the canopy's axis at height axis_z over the
+    centre line), sampled at the stations `ys` (rear to front): along each side the band from `width(y)` above the
+    glass's visible lower edge (where `body` starts to hide it, else the glass's own edge) down to the glass's own
+    edge (at most `below` past the visible edge), so the glass the airframe hides when shut is frame when the canopy is
+    up; over the rear `aft_w` the whole
+    arch, sill to sill; `skirt(y)` (m) its foot carried on straight down under the glass's edge. Its outer face `off`
+    proud of the glass, `depth` deep inward; each side's rows smoothed over `smooth_n` stations (the rays' steps showed
+    as waves)."""
+    bm = bmesh.new()
+    sides = {1: [], -1: []}
+    aft = []
+    for y in ys:
+        sec = canopy_section(glass, y, axis_z, body)
+        if not sec[1][0] or not sec[-1][0]:
+            continue
+        o = Vector((0.0, y, axis_z))
+        for s, (pts, vis) in sec.items():
+            arc = np.cumsum([0.0] + [(pts[i + 1][1] - pts[i][1]).length for i in range(len(pts) - 1)])
+            foot = arc[max(vis - 1, 0)]
+            at = np.linspace(max(0.0, foot - width(y)), arc[-1] if below is None else min(arc[-1], foot + below), k)
+            row = [pts[min(int(np.searchsorted(arc, t)), len(pts) - 1)][1] - o for t in at]
+            if skirt is not None:
+                row.append(row[-1] - Vector((0, 0, max(skirt(y), 0.002))))
+            sides[s].append((o, row if s == 1 else row[::-1]))
+        if y < ys[0] + aft_w:  # each side down to the band's foot
+            half = {}
+            for s, (pts, vis) in sec.items():  # top to foot
+                arc = np.cumsum([0.0] + [(pts[i + 1][1] - pts[i][1]).length for i in range(len(pts) - 1)])
+                end = arc[-1] if below is None else arc[max(vis - 1, 0)] + below
+                half[s] = [p - o for (_a, p), t in zip(pts, arc) if t <= end]
+            aft.append((o, half[-1][::-1] + half[1]))  # left foot over the top to the right foot
+
+    def solid(rows):
+        """The outer and inner faces, the long edges and the ends of a band of rows [(axis point, [radials])]."""
+        n = min(len(r) for _o, r in rows)
+        rows = [(o, r if len(r) == n else r[:n // 2] + r[len(r) - (n - n // 2):]) for o, r in rows]
+        outer = [[bm.verts.new(o + v + v.normalized() * off) for v in r] for o, r in rows]
+        inner = [[bm.verts.new(o + v - v.normalized() * depth) for v in r] for o, r in rows]
+        for a in range(len(rows) - 1):
+            b = a + 1
+            for c in range(n - 1):
+                bm.faces.new((outer[a][c], outer[a][c + 1], outer[b][c + 1], outer[b][c]))
+                bm.faces.new((inner[a][c], inner[b][c], inner[b][c + 1], inner[a][c + 1]))
+            for c in (0, n - 1):
+                bm.faces.new((outer[a][c], outer[b][c], inner[b][c], inner[a][c]))
+        for r in (0, len(rows) - 1):
+            for c in range(n - 1):
+                bm.faces.new((outer[r][c], outer[r][c + 1], inner[r][c + 1], inner[r][c]))
+
+    h = smooth_n // 2
+    for rows in sides.values():
+        if len(rows) > 1:
+            solid([(rows[i][0], [sum((rows[j][0] + rows[j][1][c] for j in js), Vector()) / len(js) - rows[i][0]
+                                 for c in range(len(rows[i][1]))])
+                   for i in range(len(rows)) for js in [range(max(0, i - h), min(len(rows), i + h + 1))]])
+    if len(aft) > 1:
+        solid(aft)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    o = bpy.data.objects.new(name, me)
+    scene().collection.objects.link(o)
+    me.materials.append(m)
+    return o
+
+
 def loft(name, m, rings, n=20, power=2.5):
     """A smooth closed solid through horizontal `rings` [(x, y, z, rx, ry_front, ry_back)], bottom to top: each a
     superellipse (`power` 2 an ellipse, higher squarer) of half-widths rx across and ry_front / ry_back ahead of and

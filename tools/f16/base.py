@@ -32,6 +32,7 @@ import glb_ktx2
 import kit
 import numpy as np
 from mathutils import Matrix, Vector
+from mathutils.bvhtree import BVHTree
 
 ARGS = sys.argv[sys.argv.index("--") + 1:]
 FG, ORIG, OUT = ARGS[:3]
@@ -53,6 +54,12 @@ SHIFT = Vector((0.0, -1.05, 0.0))
 Y_FRONT, Y_CANOPY_REAR, Y_FIN, EXT = 3.45, 2.48, -2.8, 0.95
 Z_SILL0, Z_SILL1, X_SPINE = 0.28, 0.42, 0.95
 SEAT_GAP = 0.98
+# The canopy's hinge (FlightGear's frame): at its aft end, at the foot of its rear edge, as on the photos of F-16s
+# with the canopy up (docs/aircraft-models.md "The canopy's hinge against photographs"). FlightGear's (F-16.xml,
+# -3.3, 0, 0.6) is the single seater's frame-to-aft-fairing joint, its aft piece fixed; here the whole two-seat canopy
+# turns, its rear end (Y_CANOPY_REAR moved EXT aft by the stretch) 0.845 m up. Until 2026-11-13 FlightGear's point:
+# mid-canopy, over the rear seat.
+CANOPY_HINGE = (-(Y_CANOPY_REAR - EXT), 0, 0.845)
 # The nose oleo's static compression (m): FlightGear's JSBSim gear (Systems/jsb-ground-reactions.xml), its nose
 # spring 17,250 lb/ft under the nose's share of a 24,000 lb jet (9.6 %: the CG 0.22 m aft of the origin, the wheels
 # 3.02 m ahead and 0.56 m aft of it). The main oleos go to the original's `height` (within 2 cm of JSBSim's static).
@@ -100,8 +107,8 @@ PARTS = {
               "LeftOuterUpperStrut"], (0.64, -0.44, -0.66), None),
     "LdgR": (["RightMainTire", "RightUpperMainStrut", "RightLowerMainStrut", "RightInnerStrut",
               "RightOuterLowerStrut", "RightOuterUpperStrut"], (0.64, 0.44, -0.66), None),
-    "Canopy": (["CanopyFrame", "CanopyFrameInner", "CanopyForwardOutside", "CanopyBackOutside"], (-3.3, 0, 0.6),
-               (0, 1, 0)),
+    "Canopy": (["CanopyFrame", "CanopyFrameInner", "CanopyForwardOutside", "CanopyBackOutside", "CanopyRail"],
+               CANOPY_HINGE, (0, 1, 0)),
 }
 # The doors' hinges (F-16.xml) for the closed copies.
 DOOR_HINGES = {"ExternalLeftMainDoor": ((-0.755, -0.76, -0.43), (1, 0, 0)),
@@ -286,6 +293,31 @@ def smooth_bow(frame, hoop, mat):
     bm.to_mesh(frame)
     bm.free()
     frame.update()
+
+
+# The canopy's frame rails (2026-11-14): the F-16's bubble sits in an opaque metal frame, its rails along both sills
+# from the canopy's front to its rear end and an aft frame round its rear end, all turning with it (photos: the Cope
+# North F-16C and the IAF F-16I in its shelter with the canopy up, docs/aircraft-models.md "The canopy's frame").
+# FlightGear's frame has a skirt under the glass of the single seater's length only (the front half here), so with the
+# canopy up the two-seat glass's rear half stood unframed, a bare sheet. canopy_rails puts a solid band on the glass's
+# lower edge over its whole length, RAIL_H tall, RAIL_D deep, over its last RAIL_AFT the whole arch, and behind the
+# bow (where FlightGear's skirt ends) a skirt RAIL_SKIRT deep under the glass, inside the airframe when shut; dark as
+# the bow (the frame's colour on the photos; its height inferred from them).
+RAIL_H, RAIL_D, RAIL_AFT, RAIL_SKIRT, RAIL_STEP = 0.06, 0.025, 0.10, 0.12, 0.04
+
+
+def canopy_rails(body):
+    glass = [body["CanopyForwardOutside"], body["CanopyBackOutside"]]
+    vs, faces = [], []
+    for o in glass:
+        faces += [[len(vs) + i for i in p.vertices] for p in o.data.polygons]
+        vs += [o.matrix_world @ v.co for v in o.data.vertices]
+    ys = [v.y for v in vs]
+    tree = BVHTree.FromPolygons(vs, faces)
+    body["CanopyRail"] = kit.canopy_frame("CanopyRail", kit.material("canopy_rail", BOW_COLOUR, roughness=0.45),
+                                          tree, BOW_AXIS_Z, list(np.arange(min(ys) + 0.003, max(ys), RAIL_STEP)),
+                                          lambda y: RAIL_H, depth=RAIL_D, aft_w=RAIL_AFT,
+                                          skirt=lambda y: RAIL_SKIRT * smooth01((BOW_Y + SHIFT.y - y) / 0.1))
 
 
 def lower_fin(body):
@@ -703,6 +735,7 @@ def build(variant):
     doors_down, doors_up = gear_doors(body)
     dorsal_spine(body, variant.SPINE_VENTS)
     variant.own_parts(body)
+    canopy_rails(body)
     if os.environ.get("F16D_DEBUG") == "1":
         for o in kit.scene().objects:
             if o.type == 'MESH':

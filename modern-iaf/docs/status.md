@@ -3,6 +3,13 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **The canopy opens and closes (2026-11-14, canopy round 3):** on the Sufa, the Barak and the F-35I the canopy
+  stands up 30° at a cold start and comes down over 10 s at its checklist step (shut at once on a hot or airborne
+  start), outside and from the seat alike. Each canopy has an opaque frame round the glass painted as the airframe
+  and turns about its own hinge (the F-16s' aft, the F-35I's front); the F-35I's control is a yellow lever on the
+  left wall, aft of the throttle ([training.md](training.md) §7.1, [cockpit.md](cockpit.md) §5.2,
+  [../../docs/f35i.md](../../docs/f35i.md) §4.1, [../../docs/aircraft-models.md](../../docs/aircraft-models.md)).
+  Pictures: `_canopy_shot.gd`. The F-16D model is also reborn's "Models: Detailed" F-16, which shows the new frame.
 - **The start-up switches both ways (2026-11-13, the switches audit's M2, first part):** on all three jets every
   start-up switch goes back off by its key or a click and on again, with its consequence: main power off darkens
   everything, the starter off stops a crank, the avionics off darken the displays and lose the INS alignment (a
@@ -22,9 +29,8 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   drag up moves it out of OFF (the idle step); the landing gear handles (both F-16s, the F-35I) send the G key's
   toggle; the F-16's FCR and RDR ALT switches (FlightGear's own `fcr-switch` / `rdr-alt-switch`, now nodes of `f16.glb`) move on a click
   and power the radar and the radar altimeter since M2b ([cockpit.md](cockpit.md) §5.2). `test_switches_click.gd` checks every switch of each jet's
-  start-up, take-off and landing steps resolves to a clickable part, lights and sends its command. Open: the
-  F-35I's CANOPY switch still behind the seat (a model move
-  awaits the user's look).
+  start-up, take-off and landing steps resolves to a clickable part, lights and sends its command. The F-35I's
+  CANOPY control is a lever on the left wall since 2026-11-14 (the canopy entry above).
 - **The pointer comes back after a mouse look (2026-11-13, the user's Mac):** the right drag hides the pointer while
   held; on release, a release the view missed, a lost focus or a pause it shows again where it was
   ([cockpit.md](cockpit.md) §2). `test_sim_look.gd` checks it.
@@ -405,9 +411,10 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   string key had left every weight at the regular).
 
 ## Open
-- **The F-35I's CANOPY switch cannot be seen from the eye** (2026-11-11): our model puts it 0.31 m aft on the left
-  console (`tools/f35i/cockpit3d.py` panel L4), behind the seat's side, so the briefing shows its `where` text, no
-  picture (`_switch_crops.gd` `HIDDEN`); moving the panel forward would let the pilot see and click it.
+- **The canopy, after round 3** (2026-11-14): from the F-35I's seat the frame's sides look wide with the lid open;
+  the F-16s' lid opens less far than in photos (30°, FlightGear's value); the frames' colours and sizes are
+  estimated from photos. The briefing still shows the F-35I's canopy lever as text, no picture
+  (`_switch_crops.gd` `HIDDEN`), from when it sat behind the seat.
 - **A first start's shader compilation** (2026-11-10): 14 s of the 18 s first start here; with Metal on a Mac it
   takes about ten times as long. Godot compiles a material's shaders when the material is first drawn. The loading
   steps spread this work over named frames, but a single frame cannot show progress while it compiles. Godot keeps the

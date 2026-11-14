@@ -257,7 +257,7 @@ def build(mats, rail_3d=False):
         label(bottom, x, z - 0.0045, size, 0.0196, mats, off=0.0015)
 
     # The canopy's frame along each side: a heavy rounded rail on the sill, bolted, its black seal on top, curving in
-    # to the glareshield's ends (the one-piece canopy has no bow in front; its rear arch is behind the head).
+    # to the glareshield's ends; the canopy's bow arches over the cockpit from rail to rail just ahead of the head.
     # The rails lie on f35i.gltf's own sills (RAIL): from behind the head (as bc.py's rails, which the 2D cockpit's
     # look-around shows) forward past the glareshield and down along the nose, converging to the canopy's front.
     # With `rail_3d` (the 3D cockpit) they and the arch stand in for the cockpit-view model's frame, which it hides.
@@ -270,12 +270,19 @@ def build(mats, rail_3d=False):
                   [(x - s * 0.012, y, z + 0.034) for x, y, z in rail])
         for i, p in enumerate(rail[2:-6:3]):
             screw_head(f"rail_bolt{s}_{i}", (p[0] - s * 0.0425, p[1], p[2] + 0.008), 0.0035, (0, -s * 90, 0), mats.alu)
+        if rail_3d:  # the rails' front ends to the canopy's front, shown with the canopy up (`canopy_tips`, export_glb)
+            whole = spline([(s * x, y, z) for x, y, z in RAIL], 60)
+            tip = [q for q in whole if q[1] >= rail[-1][1] - 0.02]
+            kit.sweep(f"canopy_tiprail{s}", mats.frame, kit.rounded_rect(0.085, 0.060, 0.022), tip)
+            kit.sweep(f"canopy_tipseal{s}", mats.seal, kit.rounded_rect(0.030, 0.014, 0.005),
+                      [(x - s * 0.012, y, z + 0.034) for x, y, z in tip])
         box(f"console{s}", (s * 0.39, 0.10, CZ - 0.055), (0.17, 0.95, 0.10), mats.panel, bevel=0.012)
         # The wall under the rail: one smooth plate swept along it from beside the eye (bc.py's carries it on behind)
         # down past the consoles (until 2026-11-09 fourteen stepped boxes, their seams showing looking aside).
         kit.sweep(f"wall{s}", mats.panel, WALL_PROFILE, [p for p in rail if p[1] > -0.16])
-    if rail_3d:  # the canopy's frame arch over the head, from rail to rail (bc.py's, on the lower rails)
+    if rail_3d:  # the canopy's bow, from rail to rail (bc.py's, on the lower rails), and its control lever
         kit.sweep("canopy_arch", mats.rubber, ARCH_BAND, arch_path(), ref=(0, 1, 0))
+        canopy_lever(mats)
     consoles(mats)
     hotas(mats)
 
@@ -285,7 +292,7 @@ def build(mats, rail_3d=False):
 # panels' top (the consoles' top, at the hands' height, docs/f35i.md §4.1 "Eye position"; until 2026-11-09 -0.415, the
 # grips' palms at the shoulders); [x, y, w, h, (kind, dx, dy, label) per control]. The start-up's (2026-11-09): BATT,
 # IPP and ENG (the three selections of the real start, docs/f35i.md §4.5) with START on the forward left panel, in the
-# start's order, and CANOPY aft on the left console (L4); their places are inferred.
+# start's order; their places are inferred. The canopy's control is a lever on the left wall (canopy_lever).
 CZ = -0.57
 CONSOLE_PANELS = {
     "L0": (-0.39, 0.49, 0.145, 0.10, [("toggle", -0.051, -0.01, "BATT"), ("toggle", -0.017, -0.01, "IPP"),
@@ -304,8 +311,26 @@ CONSOLE_PANELS = {
                                      ("toggle", 0.044, -0.01, "ANTI COLL")]),
     "R4": (0.39, -0.13, 0.145, 0.12, [("guard_red", -0.044, -0.01, "ZEROIZE"), ("push", 0.0, -0.01, "IFF"),
                                       ("push", 0.044, -0.01, "EMER")]),
-    "L4": (-0.39, -0.31, 0.145, 0.09, [("toggle", 0.0, -0.005, "CANOPY")]),
 }
+
+
+# The canopy control lever (docs/f35i.md §4.5): a yellow lever on the left cockpit wall just above the console, aft of
+# the throttle's track, as IndiaFoxtEcho's F-35 places it (its item 8, "Canopy control lever"); its size, shape and
+# travel are inferred. Its pivot block on the wall, the lever standing up from it: forward (on, as modelled) the canopy
+# shut, TOGGLE_DEG aft to open; its label on the wall behind it. Until 2026-11-13 a CANOPY toggle on its own panel
+# aft on the left console.
+CANOPY_LEVER = (-0.445, 0.055, CZ + 0.035)
+
+
+def canopy_lever(mats):
+    x, y, z = CANOPY_LEVER
+    kit.box("canopy_lever_nut", (x, y, z), (0.022, 0.030, 0.026), mats.knob, bevel=0.004)
+    kit.cyl("canopy_lever_bat", (x + 0.014, y + 0.012, z + 0.040), 0.0055, 0.075, mats.yellow, rot=(-20, 0, 0),
+            verts=12)
+    kit.box("canopy_lever_tip", (x + 0.014, y + 0.026, z + 0.080), (0.020, 0.030, 0.022), mats.yellow, rot=(-20, 0, 0),
+            bevel=0.006)
+    kit.text_decal("lbl_canopy", "CANOPY", mats.label, (x + 0.03, y - 0.032, z + 0.02), (-1, 0, 0), 0.0075,
+                   (0, 1, 0), off=0.0008)
 
 
 def top_label(name, text, x, y, mats, size=0.0088, z=CZ):
@@ -683,21 +708,23 @@ def lamp_layout(lights):
 PRESENT_SCALE = 2.0  # as tools/f35i/bc.py: the game draws the cockpit-view model at the Present scale
 # The right canopy rail (aft to fore about the eye, the left one mirrored; bc.py's rail behind the eye the same): on f35i.gltf's
 # sill (its outer skin's top at x 0.45 m: 0.41 m under the eye beside it, 0.53 m 1 m ahead, 0.60 m 1.6 m ahead),
-# converging to the canopy's front 2 m ahead. The arch over the head stands on it ARCH_Y behind the eye.
+# converging to the canopy's front 2 m ahead. The canopy's bow stands on it ARCH_Y ahead of the eye.
 RAIL = ((0.42, -1.1, -0.32), (0.46, -0.6, -0.35), (0.47, -0.05, -0.36), (0.47, 0.3, -0.37), (0.465, 0.6, -0.40),
            (0.45, 0.9, -0.45), (0.42, 1.2, -0.51), (0.36, 1.5, -0.56), (0.26, 1.8, -0.60), (0.12, 2.0, -0.62))
-# The arch: a broad dark band (ARCH_BAND: 4.5 cm deep, 9 cm wide fore and aft, matte as the glareshield) standing on
-# the rails ARCH_Y behind the eye, leaning forward ARCH_LEAN to its top ARCH_TOP over the eye, as the photos from the
-# side show it (docs/f35i.md §4.1; the numbers inferred). Its inner face keeps MIL-STD-1333B's 13 in (0.33 m) head
-# clearance round the eye (§4.1 "Eye position"; its top 0.21 m over the eye until 2026-11-09). Until 2026-11-09 a
-# light grey 7 x 5 cm pipe upright 0.75 m behind the eye. bc.py's is the same.
-ARCH_Y, ARCH_TOP, ARCH_LEAN = -0.42, 0.325, 0.28
-ARCH_BAND = kit.rounded_rect(0.045, 0.09, 0.014)
+# The canopy's bow: a dark band (ARCH_BAND: 3.5 cm deep, 7 cm wide fore and aft as on the photos, matte as the
+# glareshield) standing on the rails ARCH_Y ahead of the eye and leaning forward ARCH_LEAN to its top ARCH_TOP over the
+# eye: on the seam of f35i.gltf's canopy (its two transparencies meet there, 0.57 m ahead of the eye at the sills,
+# 0.73 m at the top), where the photos show the bow ahead of the pilot's face, its top further forward (docs/f35i.md
+# §4.1 "Canopy"). Its inner face keeps MIL-STD-1333B's 13 in (0.33 m) head clearance round the eye (§4.1 "Eye
+# position"). Until 2026-11-13 it stood 0.42 m behind the eye, leaning forward over the head (until 2026-11-09 a light
+# grey 7 x 5 cm pipe upright 0.75 m behind it). bc.py's is the same.
+ARCH_Y, ARCH_TOP, ARCH_LEAN = 0.57, 0.325, 0.16
+ARCH_BAND = kit.rounded_rect(0.035, 0.07, 0.012)  # 4.5 x 9 cm until 2026-11-13
 # The cockpit's side wall under each rail (u across, v up from the rail's centre line): 3 cm thick, 0.40 m deep.
 WALL_PROFILE = [(u, v - 0.23) for u, v in kit.rounded_rect(0.03, 0.40, 0.004)]
 
 
-def arch_path(z0=-0.34, n=33):
+def arch_path(z0=-0.39, n=33):  # its feet sunk in the rails (their top 0.37 m under the eye there)
     return [(0.46 * math.sin(a), ARCH_Y + ARCH_LEAN * math.cos(a), z0 + (ARCH_TOP - z0) * math.cos(a))
             for a in np.linspace(-math.pi / 2, math.pi / 2, n)]
 
@@ -917,7 +944,7 @@ def bake_atlas(objs, baked):
 # -> (the build's object, kind); the switches' and knobs' properties (cockpit3d.gd _prop, SWITCH_PROPS): a switch is
 # on at 1, off at 0; the HMD knob turns with the HUD's brightness, the MFD knob with the displays'.
 CONTROLS = {"BATT": ("csw_L0_0", "toggle"), "IPP": ("csw_L0_1", "toggle"), "ENG": ("csw_L0_2", "toggle"),
-            "START": ("csw_L0_3", "push"), "CANOPY": ("csw_L4_0", "toggle"), "HMD_BRT": ("brt_knob0", "knob"),
+            "START": ("csw_L0_3", "push"), "CANOPY": ("canopy_lever", "toggle"), "HMD_BRT": ("brt_knob0", "knob"),
             "MFD_BRT": ("brt_knob1", "knob")}
 CONTROL_PROPS = {"BATT": "f35i/elec/batt", "IPP": "f35i/engine/ipp", "ENG": "f35i/engine/eng",
                  "CANOPY": "f35i/canopy", "HMD_BRT": "f16/avionics/hud-sym",
@@ -931,7 +958,7 @@ GUARD_DEG = 110.0
 KNOB_DEG = 100.0  # from OFF (upper left) to DAY (upper right) on the printed scale
 
 
-def export_glb(out, eye_g):
+def export_glb(out, eye_g, hinge_g):
     """The 3D cockpit (shared/cockpit/cockpit3d.gd): build() with plain colours, the tub, the screens as flat quads
     `PCD` (the display's glass) and `ESIS` (the standby display), the lamp lenses as their own nodes
     `lamp_<key>_0`, the gear handle `gear_handle` (its lamp `lamp_gear_transit_0` on it) turning about its pivot, the
@@ -993,8 +1020,19 @@ def export_glb(out, eye_g):
     handle = kit.join(gear[:3], "gear_handle")
     stick = kit.join([o for o in kit.scene().objects if o.name.startswith("stickm_")], "side_stick")
     throttle = kit.join([o for o in kit.scene().objects if o.name.startswith("throttlem_")], "throttle")
-    moving = [handle, stick, throttle] + list(pivots)
-    pivots.update({handle: pivot, stick: stick_pivot})
+    # The canopy's frame (its rails, seals, bolts and bow) its own node about the canopy's front hinge (the
+    # descriptor's parts.canopy.hinge, in this model's half size about the eye as the rest: until 2026-11-13 at its
+    # full distance, twice as far ahead and down), so the game opens it with the canopy seen from outside
+    # (sim_flight.gd _canopy); the rails' front ends to the hinge (`canopy_tips`) a node of its own on it, which the
+    # game shows only with the canopy up.
+    canopy = kit.join([o for o in kit.scene().objects if o.type == 'MESH' and o.name.startswith(
+        ("canopy_rail", "canopy_seal", "rail_bolt", "canopy_arch"))], "canopy_frame")
+    tips = kit.join([o for o in kit.scene().objects if o.type == 'MESH' and o.name.startswith("canopy_tip")],
+                    "canopy_tips")
+    hinge = Vector((hinge_g[0], -hinge_g[2], hinge_g[1]))
+    hinge = eye + (hinge - eye) / PRESENT_SCALE
+    moving = [handle, stick, throttle, canopy, tips] + list(pivots)
+    pivots.update({handle: pivot, stick: stick_pivot, canopy: hinge, tips: hinge})
     for o in list(named.values()) + moving:  # the origin on the node's centre (the handle's, the stick's, the
         vs = [v.co for v in o.data.vertices]  # controls' on their pivots)
         at = pivots.get(o, (Vector(map(min, *vs)) + Vector(map(max, *vs))) / 2)
@@ -1011,6 +1049,8 @@ def export_glb(out, eye_g):
     lamp = named["lamp_gear_transit_0"]
     lamp.parent = handle
     lamp.location = lamp.location - pivot
+    tips.parent = canopy
+    tips.location = Vector()
     for o in kit.scene().objects:
         o.select_set(True)
     tmp = out + ".png.glb"
@@ -1077,7 +1117,7 @@ def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     if "--glb" in sys.argv:
         desc = json.load(open(os.path.join(OUT_DIR, "..", "aircraft.json")))
-        export_glb(sys.argv[sys.argv.index("--glb") + 1], desc["eye"])
+        export_glb(sys.argv[sys.argv.index("--glb") + 1], desc["eye"], desc["parts"]["canopy"]["hinge"])
         return
     kit.PANEL_H = PANEL_HEIGHT
     mats = Mats()
