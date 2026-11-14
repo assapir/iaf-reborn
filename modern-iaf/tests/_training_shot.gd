@@ -77,7 +77,10 @@ func run() -> void:
 		path.append(Vector2(float(s["FromTaxiPtX%d" % i]), float(s["FromTaxiPtY%d" % i])))
 	tv.brakes = false
 	tv.scripted_stick = Vector2.ZERO
-	await _taxi(tv, path, float(s.RunwayNumber))
+	# To the holding point, line-up there, onto the runway (entering it without the clearance fails, training.md §3.3).
+	await _taxi(tv, path.slice(0, -1), float(s.RunwayNumber), false)
+	await _call(tv, "lineup")
+	await _taxi(tv, [path[-1]], float(s.RunwayNumber))
 	await _call(tv, "takeoff")
 	Engine.time_scale = 1.0
 	tv.views.snap = null

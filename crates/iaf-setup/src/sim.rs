@@ -621,6 +621,39 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
+    /// The textures step keeps a stamp as the others do: after its run the plan finds it up to date ("will run" every
+    /// time before 2026-11-14, `stamp::sim_io` had no arm for it).
+    #[test]
+    fn the_textures_step_keeps_a_stamp() {
+        let dir = std::env::temp_dir().join(format!("iaf-sim-textures-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let ctx = SimCtx { assets: dir.clone(), repo, inputs: SimInputs::default() };
+        let plan: Vec<_> = sim_plan(&ctx.inputs).into_iter().filter(|s| s.id == "sim-textures").collect();
+        assert_eq!(plan.len(), 1);
+        struct Quiet;
+        impl Events for Quiet {
+            fn state(&self, _: &Step, _: &State) {}
+            fn log(&self, _: &Step, _: &str) {}
+        }
+        let st = crate::run_graph(
+            &plan,
+            &|_| false,
+            &Quiet,
+            &AtomicBool::new(false),
+            &|s| stamp::sim_of(s, &ctx),
+            &|s, _| {
+                let out = stamp::sim_io(s.id, &ctx).unwrap().0;
+                std::fs::create_dir_all(out.parent().unwrap()).unwrap();
+                std::fs::write(&out, "{}").unwrap();
+                Ok(Outcome::Done)
+            },
+        );
+        assert!(st.iter().all(|(_, s)| *s == State::Done), "{st:?}");
+        assert_eq!(crate::preview_with(&plan, &|s| stamp::sim_of(s, &ctx)), [("sim-textures", true)]);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     /// `iaf-sim airbases` runs the airbases' step and the terrain it waits for through the graph: the wizard then
     /// finds both up to date, as after its own run.
     #[test]
