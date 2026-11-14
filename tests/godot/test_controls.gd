@@ -8,6 +8,9 @@ extends "res://../tests/godot/base.gd"
 func run() -> void:
 	var KT: GDScript = load("res://shared/controls/key_table.gd")
 	var kt = KT.load_table()
+	# The names as on Linux / Windows first (on macOS cmd_is_ctrl starts true); the Mac's after.
+	var was: bool = KT.cmd_is_ctrl
+	KT.cmd_is_ctrl = false
 	check(kt.size() == 117, "117 records (%d)" % kt.size())
 	check(
 		kt.label(0) == "TSD and cockpit toggle" and kt.key_name(kt.default_key(0)) == "Esc",
@@ -23,7 +26,6 @@ func run() -> void:
 	)
 	check(kt.button_name(kt.default_joystick(58)) == "Button 3", "joystick button names")
 	# macOS: Cmd stands for Ctrl (the system takes Ctrl + arrows); Ctrl still works, and the names say Cmd.
-	var was: bool = KT.cmd_is_ctrl
 	KT.cmd_is_ctrl = true
 	var cmd_left := InputEventKey.new()
 	cmd_left.physical_keycode = KEY_LEFT
@@ -36,8 +38,9 @@ func run() -> void:
 		"Mac: Cmd + Left is Ctrl + Left"
 	)
 	check(kt.key_name(kt.default_key(1)) == "Cmd + Q", "Mac: Ctrl + Q named Cmd + Q")
-	KT.cmd_is_ctrl = was
+	KT.cmd_is_ctrl = false
 	check(kt.key_name(kt.default_key(1)) == "Ctrl + Q", "elsewhere: Ctrl + Q")
+	KT.cmd_is_ctrl = was
 	check(kt.shown_records().size() == 92, "92 listed records (%d)" % kt.shown_records().size())
 
 	var front_end: PackedScene = load("res://menu/front_end.tscn")

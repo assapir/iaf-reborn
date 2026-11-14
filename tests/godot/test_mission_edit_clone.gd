@@ -49,7 +49,7 @@ func run() -> void:
 	var ctrl := func(k: Key):
 		var ev := InputEventKey.new()
 		ev.keycode = k
-		ev.ctrl_pressed = true
+		ev.command_or_control_autoremap = true  # Cmd on macOS, Ctrl elsewhere, as the editor reads it
 		ev.pressed = true
 		ed._unhandled_key_input(ev)
 	ctrl.call(KEY_C)

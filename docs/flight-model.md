@@ -553,8 +553,10 @@ Where our port differs from the original. Everything else follows §15 (status i
       Present scale and at World scale Real 1:1 alike.
     * Effect: a float in the flare (touchdown further along) and a slightly shorter take-off run. The autopilot flies
       its 6° glide path into the ground without a flare and crosses the ground-effect band in about one 1 Hz update,
-      so its float depends on where that update falls (inferred): F-16 at Ramat David 83 m longer at the Present
-      clearance (3.38 m), 13 m at true size (1.69 m) (test `lands_at_ramat_david_in_ground_effect`).
+      so its float depends on where that update falls (inferred), and the platform's libm moves that phase: F-16 at
+      Ramat David 17 m longer at the Present clearance (3.38 m) and 25 m at true size (1.69 m) on Linux, on macOS
+      arm64 the same point (0 m) and 15 m shorter (2026-11-14). Test `lands_at_ramat_david_in_ground_effect` checks
+      the bound of one update: the touchdown moves by less than one second at landing speed (73 m).
     * Like all lift and drag, it is refreshed by the 1 Hz / event update.
   * **Ground idle thrust** [`ground_idle`] (§15.8, §14.3).
     * Original: the idle thrust is constant (k 0.05 of the full-AB curve, F-16 ≈ 1000 lbf static), and the ground

@@ -1014,9 +1014,12 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	check(not _has_part(steps, "מדפים" if he else "Flaps"), "%s: briefing: no flaps step" % lang)
 	# Each call to the tower its own step: start-up, taxi, line-up, take-off at the menu's picks 1-4, with the answer
 	# to wait for.
+	# The keys by the table, as the player's platform names them: Ctrl + T, "⌘ + T" on a Mac (key_table.gd cmd_is_ctrl).
+	var tower: String = fe.key_name(47)
+	check(tower != "", "%s: briefing: the tower key named" % lang)
 	var calls := 0
 	for k in 4:
-		calls += _labels(steps).count("Ctrl + T, %d" % (k + 1))
+		calls += _labels(steps).count("%s, %d" % [tower, k + 1])
 	check(calls == 4, "%s: briefing: four tower calls, Ctrl + T, 1-4 (%d)" % [lang, calls])
 	check(_has_part(steps, "בקשת כניסה למסלול" if he else "request line-up"), "%s: briefing: the line-up call" % lang)
 	check(_has_part(steps, "אישור המראה" if he else "cleared for take-off"), "%s: briefing: the wait" % lang)
@@ -1221,7 +1224,8 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	fe.show_tab(0)
 	steps = pane.find_child("Steps", true, false)
 	check(steps.get_child_count() == 6 * 4, "%s: briefing: the start-up's six checklist steps" % lang)
-	check(_has(steps, "Ctrl + B"), "%s: briefing: the checklist's keys as bound" % lang)
+	var check_key: String = fe.key_name(fe.SimFlight.CHECK_KEY)
+	check(check_key != "" and _has(steps, check_key), "%s: briefing: the checklist's keys as bound" % lang)
 	check(
 		_has(steps, fe.key_name(fe.SimFlight.THROTTLE_IDLE_KEY)), "%s: briefing: the idle step's key, the card's" % lang
 	)
