@@ -13,6 +13,7 @@ pub mod data_set;
 pub mod envelope;
 pub mod fm;
 pub mod instruments;
+pub mod near_ground;
 pub mod params;
 pub mod sixdof;
 pub mod spool;

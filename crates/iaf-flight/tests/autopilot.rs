@@ -296,7 +296,7 @@ fn land_at_ramat_david(clearance: f32, ground_effect: bool, stores_moment: f32) 
     ac.true_clearance = Some(F16_CLEARANCE_REAL);
     ac.better.ground_effect = ground_effect;
     ac.better.asymmetric_stores = stores_moment != 0.0;
-    ac.set_stores_moment(stores_moment);
+    ac.set_stores_moment(stores_moment, 0.0);
     let mut ap = Autopilot::new(Config::load(&inst));
     ap.bases = bases;
     ap.route = vec![home];

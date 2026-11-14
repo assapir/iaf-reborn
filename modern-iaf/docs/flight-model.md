@@ -500,8 +500,8 @@ budget, a real flight. Open:
 * **Not modelled, one plain log line per run when the game asks** (`IafFlight`, no warning): the drag chute and the
   systems damage. No F-16 or F-35 has a drag chute: their definitions say `"drag_chute": false`, so the flight never
   asks for one (`terrain_view.gd`). Also not
-  modelled: wind gusts (the steady wind is), ground effect, Better physics' options (they belong to the original
-  model); Stevens & Lewis's turn trims (the book's tables were not available).
+  modelled: Better physics' options other than ground effect, the gusts, the stores' moment and the roll trim (§9.12);
+  Stevens & Lewis's turn trims (the book's tables were not available).
 
 ### 9.7 The engines (stage (b))
 
@@ -662,7 +662,25 @@ before. The autopilot drives either through the `autopilot::Host` trait (the `Ai
   autopilot reads the stick as linear in g (its `ApView`: 1 g at the centre, MaxG / MinG at the ends); while an
   autopilot loop flies, the 6-DoF takes the stick as that g command instead of figure 62(e)'s gradient.
 * **Wind**: the mission's wind (`set_wind`, the original's vector) moves the air: the aerodynamics see the velocity
-  through the air (no gusts).
+  through the air. In the air its light turbulence is added each substep (`near_ground::gust`, the function reborn's
+  Better physics `wind` uses, docs/flight-model.md: vertical rms 0.1 × the wind speed below 300 m, 30 % of that from
+  1,500 m; inferred); on the wheels the steady wind alone. The AoA probe reads the steady wind's flow (the gusts
+  stay off the needle).
+* **Ground effect** (2026-11-14): the functions reborn's Better physics `ground_effect` uses (`near_ground`,
+  docs/flight-model.md): the lift × Helmbold's factor at A/φ, and the induced drag CL²/(πA) (Oswald factor 1,
+  inferred) of the free-air lift replaced by McCormick's φ × that of the new lift. The wing's height is taken as the
+  c.g.'s above the terrain (inferred: reborn's takes the wheels' height plus the gear clearance). The Barak at 1.7 m:
+  lift ×1.06 (`ground_effect_and_gusts_from_the_shared_functions`).
+* **Asymmetric stores and roll trim** (2026-11-14): the game's stores moment (`stores.rs` `roll_moment`, kg·m, the
+  same call reborn's Better physics "Asymmetric stores" takes; a fuel tank × the external fuel left,
+  `aircraft::tank_share`, as reborn's) rolls the jet with its weight × the load factor; the
+  roll-rate command meets it as the real control system does, so hands-off the jet rolls slowly toward the heavy
+  wing. The roll trim (`aircraft::step_roll_trim`, the same rocker, rate and ±66.8 deg/s authority of TP-1538
+  figure 64 as reborn's) adds its roll rate to the roll-rate error, and is left out while an autopilot loop flies.
+  Every 6-DoF jet takes the F-16's trim authority (they all fly TP-1538's control law). The stores' left / right drag
+  index difference (the input reborn's original model turns into a sideslip bias) yaws the jet toward the draggier
+  side at a quarter span out (inferred: the F-16's stations 3 / 7). Tests `one_heavy_wing_rolls_and_the_trim_holds_it`,
+  `a_tank_rolls_while_it_holds_fuel_and_its_drag_yaws`.
 * **The ground.** A gear-down touchdown sinking slower than 3 m/s with the wings within 15° and the nose between −5°
   and 20° counts as a landing; faster is a sink-rate crash, banked or nose-down a landing crash, nose-up a tail strike;
   the c.g. within 0.5 m of the runway, or the belly with the gear up, a crash (all inferred). As the original's: water

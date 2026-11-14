@@ -169,6 +169,19 @@ fn roll_trim_max(type_code: u32) -> f32 {
     }
 }
 
+/// The roll trim (stick units) after a spring-centred rocker −1..1 held for `dt` s: full rocker trims
+/// `ROLL_TRIM_RATE` stick per second, within the jet's trim authority ([`roll_trim_max`]). Both flight models' trim.
+pub fn step_roll_trim(trim: f32, rocker: f32, dt: f32, type_code: u32) -> f32 {
+    let max = roll_trim_max(type_code);
+    (trim + rocker.clamp(-1.0, 1.0) * ROLL_TRIM_RATE * dt).clamp(-max, max)
+}
+
+/// The share of the external tanks' fuel left (0..1): the one fuel pool burns the fuel above the internal capacity
+/// first (docs/weapons.md "Fuel tanks"). Both flight models scale the tanks' lateral moment by it.
+pub fn tank_share(fuel: f32, internal: f32, capacity: f32) -> f32 {
+    if capacity <= internal { 0.0 } else { ((fuel - internal) / (capacity - internal)).clamp(0.0, 1.0) }
+}
+
 /// `rand()·2/32767 − 1` (`566f30`, `0x6124c8`) for the ground jitter: −1..1, from a hash of the sample time.
 // ponytail: a hash of the time in place of the C runtime's shared LCG, so the jitter is deterministic per sample.
 fn jitter(t: f64, salt: u64) -> f32 {
@@ -690,6 +703,8 @@ pub struct Aircraft {
     pub stores_di_right: f32,
     /// Better physics "Asymmetric stores": the stores' lateral moment Σ mass · arm (kg·m, + right wing heavier).
     pub stores_moment: f32,
+    /// The fuel tanks' lateral moment at full fuel (kg·m), scaled by [`tank_share`].
+    pub tank_moment: f32,
     /// An autopilot loop flies the jet: with Better physics "Asymmetric stores" it holds the heavy wing up (its stick
     /// on top of the stick that cancels the stores' moment), and it ignores the player's roll trim, which would
     /// otherwise cancel the moment a second time. Set by `Autopilot::step` / `player_mode`.
@@ -900,6 +915,7 @@ impl Aircraft {
             stores_di_left: 0.0,
             stores_di_right: 0.0,
             stores_moment: 0.0,
+            tank_moment: 0.0,
             stores_trim: false,
             roll_trim: 0.0,
             cl0,
@@ -985,20 +1001,11 @@ impl Aircraft {
         if !self.better.wind || self.pivot.is_some() {
             return Vec3::ZERO;
         }
-        let w = self.wind.length() as f32;
-        if self.on_ground || w == 0.0 {
+        if self.on_ground {
             return self.wind;
         }
         let alt = self.axes[2].sample(t).0 as f32;
-        let low = 1.0 - 0.7 * ((alt - self.ground_height - 300.0) / 1200.0).clamp(0.0, 1.0);
-        // ponytail: three sines in time per axis (rms 1), not a Dryden spectrum in space; replace if the gusts must
-        // scale with the airspeed.
-        let tt = t * std::f64::consts::TAU;
-        let n = |ph: f64| {
-            ((0.17 * tt + ph).sin() + 0.7 * (0.43 * tt + 2.0 * ph).sin() + 0.4 * (1.1 * tt + 3.0 * ph).sin()) / 0.908
-        };
-        let sigma = (0.1 * w * low) as f64;
-        self.wind + Vec3::new(0.5 * sigma * n(0.4), 0.5 * sigma * n(2.1), sigma * n(1.3))
+        self.wind + crate::near_ground::gust(self.wind, t, alt - self.ground_height)
     }
 
     /// Moves the ground velocity with the air mass's change since the last call, so the airspeed is kept (a new wind,
@@ -1108,8 +1115,7 @@ impl Aircraft {
     /// `ROLL_TRIM_RATE` stick per second, within the jet's trim authority ([`roll_trim_max`]). A change is a control
     /// event (an aero update), like a stick move.
     pub fn trim_roll(&mut self, rocker: f32, dt: f32) {
-        let max = roll_trim_max(self.params.type_code);
-        let trim = (self.roll_trim + rocker.clamp(-1.0, 1.0) * ROLL_TRIM_RATE * dt).clamp(-max, max);
+        let trim = step_roll_trim(self.roll_trim, rocker, dt, self.params.type_code);
         if trim != self.roll_trim && self.crashed.is_none() {
             self.roll_trim = trim;
             self.aero_update();
@@ -1649,21 +1655,16 @@ impl Aircraft {
     /// height plus the true-size clearance, the same in both world scales. Not in the original (no ground effect).
     fn ground_effect(&self, alt: f32) -> f32 {
         let wing = self.true_clearance.unwrap_or(self.gear_clearance);
-        let h = (alt - self.ground_height - self.gear_clearance + wing).max(0.0);
-        let r = 16.0 * h / self.params.wing_span.max(1.0);
-        if !r.is_finite() || r > 64.0 {
-            return 1.0;
-        }
-        (r * r / (1.0 + r * r)).max(0.05)
+        crate::near_ground::induced_factor(alt - self.ground_height - self.gear_clearance + wing, self.params.wing_span)
     }
 
     /// Better physics: ground effect on the lift. The wing's effective aspect ratio near the ground is
     /// `A/φ` (φ from `ground_effect`); Helmbold's lift-curve slope `a(A) = 2πA / (2 + √(A² + 4))` gives the
     /// lift factor `a(A/φ) / a(A)` at the same α. F-16 (A ≈ 3.2): ×1.06 at 1.7 m, ×1.02 at 3.4 m, 1.002 at one span.
     fn ground_effect_lift(&self, alt: f32) -> f32 {
-        let slope = |ar: f32| ar / (2.0 + (ar * ar + 4.0).sqrt());
-        let ar = self.params.wing_span * self.params.wing_span / self.params.wing_area.max(1.0);
-        slope(ar / self.ground_effect(alt)) / slope(ar)
+        let wing = self.true_clearance.unwrap_or(self.gear_clearance);
+        let h = alt - self.ground_height - self.gear_clearance + wing;
+        crate::near_ground::lift_factor(h, self.params.wing_span, self.params.wing_area)
     }
 
     /// Nose-wheel yaw target (7a20 arg 19): clamp(stickX · V · K / 74.53, ±K), 0 with the gear not
@@ -2495,7 +2496,8 @@ impl Aircraft {
     /// whose stick moves the surfaces it is `Clₛ / Cl_full`.
     fn stores_roll(&self, lift: f32, mass: f32, qs: f32, v: f32, kroll: f32) -> f32 {
         let b = self.params.wing_span.max(1.0);
-        let cl = self.stores_moment * lift / mass.max(1.0) / (qs.max(1.0) * b);
+        let share = tank_share(self.fuel.sample(self.t), self.params.fuel_mass, self.fuel.max);
+        let cl = (self.stores_moment + self.tank_moment * share) * lift / mass.max(1.0) / (qs.max(1.0) * b);
         match roll_control(self.params.type_code) {
             RollControl::RateCommand { clp, fb } => {
                 let p = cl / (clp * b / (2.0 * v.max(1.0)) + fb);
@@ -2508,11 +2510,12 @@ impl Aircraft {
     /// Better physics: the stores' lateral moment (kg·m, + right wing heavier). With "Asymmetric stores" on and the
     /// jet airborne a change is an event (an aero update, like a stick move): a release rolls the jet, or stops its
     /// roll, at once.
-    pub fn set_stores_moment(&mut self, kg_m: f32) {
-        if kg_m == self.stores_moment {
+    pub fn set_stores_moment(&mut self, kg_m: f32, tanks_kg_m: f32) {
+        if (kg_m, tanks_kg_m) == (self.stores_moment, self.tank_moment) {
             return;
         }
         self.stores_moment = kg_m;
+        self.tank_moment = tanks_kg_m;
         if self.better.asymmetric_stores && !self.on_ground {
             self.aero_update();
         }
@@ -2823,7 +2826,7 @@ mod tests {
         let roll_after = |bp: bool, hold: bool| {
             let mut a = airborne(100, 3000.0, 150.0);
             a.better.asymmetric_stores = bp;
-            a.set_stores_moment(907.0 * 3.0);
+            a.set_stores_moment(907.0 * 3.0, 0.0);
             if hold {
                 let (m, qs) = (a.mass, q_s(3000.0, 150.0, a.params.wing_area));
                 let stick_x = -a.stores_roll(m * G, m, qs, 150.0, a.roll_k(150.0, 3000.0));
@@ -2843,7 +2846,7 @@ mod tests {
         let rate = |code: u32| {
             let mut a = airborne(code, 3000.0, 150.0);
             a.better.asymmetric_stores = true;
-            a.set_stores_moment(907.0 * 3.0);
+            a.set_stores_moment(907.0 * 3.0, 0.0);
             run(&mut a, 1.0);
             let r0 = a.state().roll;
             run(&mut a, 0.5);
@@ -2854,7 +2857,7 @@ mod tests {
         let want = cl / (0.40 * b / 300.0 + 0.0172);
         let mut a = airborne(100, 3000.0, 150.0);
         let k = a.roll_k(150.0, 3000.0);
-        a.set_stores_moment(907.0 * 3.0);
+        a.set_stores_moment(907.0 * 3.0, 0.0);
         let got = a.stores_roll(a.mass * G, a.mass, q_s(3000.0, 150.0, a.params.wing_area), 150.0, k)
             * k
             * a.params.max_roll_rate;
@@ -2862,9 +2865,18 @@ mod tests {
         let f16 = rate(100);
         assert!((f16 - want).abs() < 0.2 * want, "F-16 flies {f16} rad/s, want {want}");
         let mut a = airborne(130, 3000.0, 150.0);
-        a.set_stores_moment(907.0 * 3.0);
+        a.set_stores_moment(907.0 * 3.0, 0.0);
         let s = a.stores_roll(a.mass * G, a.mass, q_s(3000.0, 150.0, a.params.wing_area), 150.0, k);
         assert!((s - cl / 0.04).abs() < 1e-3 * s, "Kfir stick {s}, want {}", cl / 0.04);
+        // A tank's moment counts with its fuel: full (the external fuel unburnt) as a store of that weight, nothing
+        // once the pool is down to the internal fuel (`tank_share`).
+        let mut a = airborne(100, 3000.0, 150.0);
+        a.set_fuel_capacity(907.0);
+        a.set_stores_moment(0.0, 907.0 * 3.0);
+        let tank = a.stores_roll(a.mass * G, a.mass, q_s(3000.0, 150.0, a.params.wing_area), 150.0, k);
+        a.set_fuel(a.internal_fuel_kg());
+        let dry = a.stores_roll(a.mass * G, a.mass, q_s(3000.0, 150.0, a.params.wing_area), 150.0, k);
+        assert!((tank * k * a.params.max_roll_rate - want).abs() < 1e-3 * want && dry == 0.0, "{tank} {dry}");
         let kfir = rate(130);
         let want = s * k * a.params.max_roll_rate;
         assert!((kfir - want).abs() < 0.2 * want, "Kfir flies {kfir} rad/s, want {want}");
@@ -2879,7 +2891,7 @@ mod tests {
             let mut a = airborne(100, 3000.0, 150.0);
             a.better.asymmetric_stores = true;
             a.stores_trim = ap;
-            a.set_stores_moment(907.0 * 3.0);
+            a.set_stores_moment(907.0 * 3.0, 0.0);
             run(&mut a, 2.0);
             let r0 = a.state().roll;
             run(&mut a, 0.1);
@@ -2890,7 +2902,7 @@ mod tests {
                 assert!(rolling > 0.1, "rolls toward the heavy wing: {rolling} rad/s");
             }
             // The roll stops at the jet's StopAccel (300°/s²: 15°/s in 0.05 s), as when the stick is let go.
-            a.set_stores_moment(0.0);
+            a.set_stores_moment(0.0, 0.0);
             let r1 = a.state().roll;
             run(&mut a, 0.1);
             let r2 = a.state().roll;
@@ -2919,7 +2931,7 @@ mod tests {
         let roll_after = |trimmed: bool| {
             let mut a = airborne(100, 3000.0, 150.0);
             a.better.asymmetric_stores = true;
-            a.set_stores_moment(454.0 * 3.0);
+            a.set_stores_moment(454.0 * 3.0, 0.0);
             if trimmed {
                 let (m, qs) = (a.mass, q_s(3000.0, 150.0, a.params.wing_area));
                 let need = a.stores_roll(m * G, m, qs, 150.0, a.roll_k(150.0, 3000.0));
@@ -2942,7 +2954,7 @@ mod tests {
         // moment once (not twice); the trim is kept for when the loop lets go.
         let mut a = airborne(100, 3000.0, 150.0);
         a.better.asymmetric_stores = true;
-        a.set_stores_moment(454.0 * 3.0);
+        a.set_stores_moment(454.0 * 3.0, 0.0);
         let (m, qs) = (a.mass, q_s(3000.0, 150.0, a.params.wing_area));
         let need = a.stores_roll(m * G, m, qs, 150.0, a.roll_k(150.0, 3000.0));
         a.trim_roll(-1.0, need / ROLL_TRIM_RATE);

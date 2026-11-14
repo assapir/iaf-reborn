@@ -583,10 +583,12 @@ Where our port differs from the original. Everything else follows §15 (status i
       10·asym)·MaxBeta` (`FUN_005b4910`, §4); the stores' weight has no lateral effect, and no key or control trims roll
       (the keyboard table has no trim command).
     * BP: the stores' lateral moment `Mₛ = Σ count · weight · arm` (kg·m) comes from the pylons: each store at its bdb
-      weight in kg (a tank at its full fuel, a gun pod as one store), the arm the station attach point's lateral
-      position in the model (glTF x, F-16 wingtip 4.78 m). The host sends it with `set_stores_moment` after every
-      release. The rolling moment is `Mₛ · g · n` (n = L / W, the load factor), as a coefficient `Clₛ = Mₛ·g·n /
-      (q·S·b)`.
+      weight in kg (a gun pod as one store), the arm the station attach point's lateral position in the model (glTF
+      x, F-16 wingtip 4.78 m). A fuel tank counts at its full fuel × the share of the external fuel left
+      (`aircraft::tank_share`: the one pool burns the fuel above the internal capacity first, docs/weapons.md "Fuel
+      tanks"), so an empty tank no longer rolls the jet (2026-11-14; before, a tank counted full all flight). The host
+      sends the stores' and the tanks' moments with `set_stores_moment` after every release. The rolling moment is
+      `Mₛ · g · n` (n = L / W, the load factor), as a coefficient `Clₛ = Mₛ·g·n / (q·S·b)`.
     * How the jet answers depends on what its stick does (`roll_control`):
       * Fly-by-wire roll-rate command (F-16, F-16I, Lavi, F-35I): the stick commands a roll rate. Hands off, the jet
         rolls at the steady rate where the moment meets what resists the roll: the roll damping `|Clp|·p·b/2V` and the

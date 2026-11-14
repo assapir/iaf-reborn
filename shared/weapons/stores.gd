@@ -78,6 +78,10 @@ var tank_fuel: float:
 var roll_moment: float:
 	get:
 		return _st.roll_moment
+## The fuel tanks' share of it at full fuel; the flight model scales it by the external fuel left.
+var tank_moment: float:
+	get:
+		return _st.tank_moment
 
 var _s = ClassDB.instantiate("IafStores")
 var _st := {}

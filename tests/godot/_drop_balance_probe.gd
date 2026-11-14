@@ -71,13 +71,13 @@ func run() -> void:
 	await fly(tv, 1.0)
 	var t0: float = tv._sim_time
 	var log := []
-	tv.flight.set_stores_moment(907.0 * 3.0)
+	tv.flight.set_stores_moment(907.0 * 3.0, 0.0)
 	var balanced_at := -1.0
 	while tv._sim_time - t0 < 6.0:
 		await process_frame
 		var s: float = tv._sim_time - t0
 		if s >= 3.0 and balanced_at < 0.0:
-			tv.flight.set_stores_moment(0.0)
+			tv.flight.set_stores_moment(0.0, 0.0)
 			balanced_at = s
 		log.append([s, bank(tv)])
 	var rate := func(a: float, b: float) -> float:

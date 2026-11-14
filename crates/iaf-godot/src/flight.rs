@@ -136,8 +136,10 @@ impl IafFlight {
     /// Ours (Devices "Throttle rocker" = Roll trim): the rocker −1..1 held for `dt` s moves the roll trim.
     #[func]
     fn trim_roll(&mut self, rocker: f64, dt: f64) {
-        if let Some(ac) = self.aircraft.as_mut().and_then(Fm::original) {
-            ac.trim_roll(rocker as f32, dt as f32);
+        match self.aircraft.as_mut() {
+            Some(Fm::Original(ac)) => ac.trim_roll(rocker as f32, dt as f32),
+            Some(Fm::SixDof(s)) => s.trim_roll(rocker as f32, dt as f32),
+            None => {}
         }
     }
 
@@ -336,12 +338,15 @@ impl IafFlight {
         }
     }
 
-    /// Better physics "Asymmetric stores": the stores' lateral moment (kg·m, + right wing heavier), after every
-    /// `set_stores`. A change takes effect at once (an aero update) with the switch on and the jet airborne.
+    /// Better physics "Asymmetric stores": the stores' lateral moment (kg·m, + right wing heavier) and the fuel tanks'
+    /// at full fuel, after every `set_stores`. A change takes effect at once (an aero update) with the switch on and
+    /// the jet airborne.
     #[func]
-    fn set_stores_moment(&mut self, kg_m: f64) {
-        if let Some(ac) = self.aircraft.as_mut().and_then(Fm::original) {
-            ac.set_stores_moment(kg_m as f32);
+    fn set_stores_moment(&mut self, kg_m: f64, tanks_kg_m: f64) {
+        match self.aircraft.as_mut() {
+            Some(Fm::Original(ac)) => ac.set_stores_moment(kg_m as f32, tanks_kg_m as f32),
+            Some(Fm::SixDof(s)) => s.set_stores_moment(kg_m as f32, tanks_kg_m as f32),
+            None => {}
         }
     }
 

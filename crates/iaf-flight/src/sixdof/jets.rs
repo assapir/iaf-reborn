@@ -2,7 +2,7 @@
 //! aerodynamics are TP-1538's F-16 tables for every jet, on each jet's own wing area, span and chord (as FM-0 does,
 //! labelled). Sources and the inferred figures: modern-iaf/docs/flight-model.md §9.9.
 
-use super::aero::{Flow, Surfaces, add_drag, coefficients, compressibility, force_moment};
+use super::aero::{Flow, Surfaces, add_drag, coefficients, compressibility, force_moment, ground_effect};
 use super::body::{Airframe, Body};
 use super::engine::{Engine, EngineSpec, FIG66_IDLE_MAX, FIG66_IDLE_MIL, TSFC_F100};
 use super::gear::{Anchors, Gear, TYRES, Wheels};
@@ -209,6 +209,10 @@ pub struct Controls {
     pub stores_cd: f64,
     /// The engines give thrust (off: none, at any Mach).
     pub engine_on: bool,
+    /// The stores' rolling moment, N·m (+ right wing down): their lateral moment × the load factor.
+    pub stores_roll: f64,
+    /// The stores' right less left drag index ×10⁻⁴: the drag difference yaws the nose to the draggier side.
+    pub stores_cd_asym: f64,
     /// The air mass's velocity, world NED, m/s (the mission's wind).
     pub wind: Vec3,
 }
@@ -273,6 +277,9 @@ impl Jet {
         compressibility(&mut coeffs, mach, flow.alpha, self.aspect_ratio(), self.wave_drag);
         // The gear's drag, ΔCD 0.02 (FM-0's LandingGearDragIndex, inferred), and the stores'.
         add_drag(&mut coeffs, if c.gear_down { 0.02 } else { 0.0 } + self.stores_dcd(c.stores_cd), flow.alpha);
+        // Ground effect at the wing's height, taken as the c.g.'s above the terrain (inferred: the wing sits near the
+        // c.g.; reborn's uses the wheels' height plus the gear clearance, about the same).
+        ground_effect(&mut coeffs, flow.alpha, ground_z - b.pos.z, self.airframe.b, self.aspect_ratio());
         let (fa, ma) = force_moment(&coeffs, qbar, &self.airframe);
         let thrust = if c.engine_on { engine.thrust(&self.engine, mach, alt) * self.engines as f64 } else { 0.0 };
         let (fg, mg, loads) = if c.gear_down {
@@ -280,6 +287,9 @@ impl Jet {
         } else {
             (Vec3::ZERO, Vec3::ZERO, [0.0; 3])
         };
-        (fa + fg + Vec3::new(thrust, 0.0, 0.0), ma + mg, loads)
+        // The left / right stores' drag difference at a quarter span out (inferred: the F-16's wing stations 3 / 7)
+        // yaws the jet, where the original biases β by it (`Aircraft::stores_asym`).
+        let stores_yaw = qbar * self.airframe.s * self.stores_dcd(c.stores_cd_asym) * 0.25 * self.airframe.b;
+        (fa + fg + Vec3::new(thrust, 0.0, 0.0), ma + mg + Vec3::new(c.stores_roll, 0.0, stores_yaw), loads)
     }
 }

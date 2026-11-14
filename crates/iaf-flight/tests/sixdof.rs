@@ -279,6 +279,8 @@ const BRAKES: Controls = Controls {
     gear_down: true,
     stores_cd: 0.0,
     engine_on: true,
+    stores_roll: 0.0,
+    stores_cd_asym: 0.0,
     wind: Vec3::ZERO,
 };
 
@@ -796,4 +798,103 @@ fn stores_drag_follows_the_drag_index() {
     );
     println!("Sufa cruise fuel flow: {f0:.3} → {f1:.3} kg/s");
     assert!(f1 > f0 * 1.05, "{f0} {f1}");
+}
+
+#[test]
+fn ground_effect_and_gusts_from_the_shared_functions() {
+    // Ground effect (iaf_flight::near_ground, reborn's Better physics functions): the Barak at 8° α, its wing 1.7 m
+    // above the runway, has the Helmbold factor × the lift it has far from the ground (×1.06 at A 3.0) and a
+    // better lift / drag; five spans up nothing changes.
+    let barak = jets::all()[0];
+    let c = Controls { engine_on: false, gear_down: false, ..BRAKES };
+    let lift_drag = |h: f64| {
+        let b = trimmed_body(70.0, 10.0, 8.0);
+        let (f, _, _) = barak.forces(&b, &c, &Engine::default(), -10.0 + h, &Anchors::default());
+        let (sa, ca) = 8f64.to_radians().sin_cos();
+        (-f.z * ca + f.x * sa, -f.x * ca - f.z * sa)
+    };
+    let ((l0, d0), (l1, d1)) = (lift_drag(1.0e4), lift_drag(1.7));
+    let k = iaf_flight::near_ground::lift_factor(1.7, barak.airframe.b as f32, barak.airframe.s as f32) as f64;
+    println!("ground effect at 1.7 m: lift ×{:.3} (Helmbold ×{k:.3}), drag ×{:.3}", l1 / l0, d1 / d0);
+    assert!((l1 / l0 - k).abs() < 1e-6 && k > 1.04, "{} {k}", l1 / l0);
+    assert!(d1 / l1 < 0.99 * d0 / l0, "{d0} {d1}");
+    assert_eq!(lift_drag(5.0 * barak.airframe.b), lift_drag(1.0e4));
+    // Gusts: hands-off at 300 m, the g wanders with a 20 kt wind and holds still in calm air.
+    let spread = |kt: f32| {
+        let mut f = flight(barak, 300.0, 180.0, true);
+        f.set_wind(kt, 270.0);
+        let g: Vec<f64> = (0..1200)
+            .map(|_| {
+                f.set_controls(iaf_flight::Controls { throttle: 0.74, ..f.controls() });
+                f.step(1.0 / 60.0);
+                f.state().g as f64
+            })
+            .skip(300)
+            .collect();
+        let m = g.iter().sum::<f64>() / g.len() as f64;
+        (g.iter().map(|x| (x - m).powi(2)).sum::<f64>() / g.len() as f64).sqrt()
+    };
+    let (calm, windy) = (spread(0.0), spread(20.0));
+    println!("g spread hands-off at 300 m: calm {calm:.4}, 20 kt {windy:.4}");
+    assert!(calm < 0.01 && windy > 3.0 * calm.max(0.003), "{calm} {windy}");
+}
+
+#[test]
+fn one_heavy_wing_rolls_and_the_trim_holds_it() {
+    // One Mk 84 (925 kg) 2.9 m out on the right wing (inferred arm), the game's `roll_moment`: hands-off the Sufa rolls
+    // right; a roll trim within its authority (reborn's rocker and ±66.8 deg/s, aircraft::step_roll_trim) holds the
+    // wings level.
+    let sufa = jets::all()[1];
+    let run = |trim_s: f32| {
+        let mut f = flight(sufa, 3000.0, 350.0 * KT, true);
+        f.set_stores(925.0, 0.0, 0.0);
+        f.set_stores_moment(925.0 * 2.9, 0.0);
+        f.trim_roll(-1.0, trim_s);
+        let mil = |f: &SixDof| iaf_flight::Controls { throttle: 0.74, stick_x: 0.0, ..f.controls() };
+        fly_for(&mut f, 4.0, mil);
+        let r1 = f.state().roll.to_degrees();
+        fly_for(&mut f, 1.0, mil);
+        (f.state().roll.to_degrees(), f.state().roll.to_degrees() - r1)
+    };
+    // The authority is the F-16's for every 6-DoF jet (its control law): a long rocker stops at 66.8 / 308.
+    for jet in jets::all() {
+        let mut f = flight(jet, 3000.0, 350.0 * KT, true);
+        f.trim_roll(1.0, 100.0);
+        assert!((f.roll_trim() - 66.8 / 308.0).abs() < 1e-6, "{}", f.roll_trim());
+    }
+    let (rolled, _) = run(0.0);
+    // The trim that holds the wings level after 5 s, by bisection on the rocker's hold (full authority in 2.17 s).
+    let (mut lo, mut hi) = (0.0f32, 66.8 / 308.0 / 0.1);
+    for _ in 0..20 {
+        let mid = 0.5 * (lo + hi);
+        if run(mid).0 > 0.0 { lo = mid } else { hi = mid }
+    }
+    let held = run(hi).0;
+    println!("hands-off, 5 s: rolled {rolled:+.1}°; trimmed ({:.3} stick of ±0.217) {held:+.1}°", -0.1 * hi);
+    assert!(rolled > 3.0 && held.abs() < 1.0 && hi < 0.99 * 66.8 / 308.0 / 0.1, "{rolled} {held} {hi}");
+}
+
+#[test]
+fn a_tank_rolls_while_it_holds_fuel_and_its_drag_yaws() {
+    // One 370 gal tank on the right wing (its full-fuel moment, `stores.rs` `tank_moment`, 2.9 m out, inferred arm):
+    // full, it rolls the Sufa hands-off; with the external fuel gone (`aircraft::tank_share` 0) it does not.
+    let sufa = jets::all()[1];
+    let tank_kg = 1120.0; // tank-370.json
+    let run = |fuel_left: bool, di_right: f32| {
+        let mut f = flight(sufa, 3000.0, 350.0 * KT, true);
+        f.set_fuel_capacity(tank_kg);
+        if !fuel_left {
+            f.set_fuel(f.internal_fuel_kg());
+        }
+        f.set_stores(0.0, 0.0, di_right);
+        f.set_stores_moment(0.0, tank_kg * 2.9);
+        let mil = |f: &SixDof| iaf_flight::Controls { throttle: 0.8, stick_x: 0.0, ..f.controls() };
+        fly_for(&mut f, 3.0, mil);
+        (f.state().roll.to_degrees(), f.state().beta.to_degrees())
+    };
+    let ((full, _), (empty, _)) = (run(true, 0.0), run(false, 0.0));
+    // The tank's drag (tank-370.json: DI 19.1) on the right yaws the nose right: the air meets it from the left, β < 0.
+    let (_, beta) = run(false, 19.1e-4);
+    println!("one right tank, 3 s hands-off: full {full:+.1}°, empty {empty:+.1}°; its drag: β {beta:+.2}°");
+    assert!(full > 3.0 && empty.abs() < 0.3 && beta < -0.05, "{full} {empty} {beta}");
 }

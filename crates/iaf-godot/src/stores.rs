@@ -161,7 +161,7 @@ impl IafStores {
     }
 
     /// {counts [12] (−1 none), unlimited [12], last_fired, releases, unlimited_all, fm_mass, fm_di_left, fm_di_right,
-    /// has_tank, tank_fuel}.
+    /// has_tank, tank_fuel, roll_moment, tank_moment}.
     #[func]
     fn state(&self) -> VarDictionary {
         let s = &self.stores;
@@ -173,6 +173,7 @@ impl IafStores {
             "releases" => s.releases() as i64, "unlimited_all" => s.unlimited(), "fm_mass" => load.mass,
             "fm_di_left" => load.di_left, "fm_di_right" => load.di_right, "has_tank" => s.has_tank(),
             "tank_fuel" => s.tank_fuel(), "roll_moment" => s.roll_moment(),
+            "tank_moment" => s.tank_moment(),
         }
     }
 }

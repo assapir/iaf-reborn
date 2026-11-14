@@ -300,7 +300,7 @@ static func store_models(entity: Dictionary, object: Dictionary, bdb: Dictionary
 func _push_stores() -> void:
 	if host != null and host.flight != null:
 		host.flight.set_stores(stores.fm_mass, stores.fm_di_left, stores.fm_di_right)
-		host.flight.set_stores_moment(stores.roll_moment)
+		host.flight.set_stores_moment(stores.roll_moment, stores.tank_moment)
 
 
 # --- world <-> scene --------------------------------------------------------------------------------

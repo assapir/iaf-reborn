@@ -19,6 +19,9 @@ pub struct Pilot {
     pub speed_brake: bool,
     /// A load factor commanded directly (g, the autopilot's), instead of the stick's pitch.
     pub g_command: Option<f64>,
+    /// The roll trim, stick units (full stick 1): figure 64(a) adds it to the roll-rate error as a roll rate, at most
+    /// ±40 × 1.67 = ±66.8 deg/s (`aircraft::step_roll_trim`).
+    pub roll_trim: f64,
 }
 
 /// What the control system senses.
@@ -187,7 +190,8 @@ impl Fcs {
         let p_f = self.p_f.step(50.0, s.p, dt);
         let r_f = self.r_f.step(50.0, s.r, dt);
         // Above α 29° the departure / spin prevention drives the ailerons against the yaw rate instead.
-        let roll_cmd = if alpha_f >= 29.0 { -8.34 * r_f } else { p_cmd - p_f };
+        let trim = pilot.roll_trim * ROLL_GRADIENT[ROLL_GRADIENT.len() - 1].1;
+        let roll_cmd = if alpha_f >= 29.0 { -8.34 * r_f } else { p_cmd + trim - p_f };
         let da_c = (0.12 * roll_cmd).clamp(-21.5, 21.5);
         let da = -self.da.step(20.2, 80.0, (-21.5, 21.5), da_c, dt);
 

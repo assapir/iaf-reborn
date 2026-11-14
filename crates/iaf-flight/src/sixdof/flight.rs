@@ -66,6 +66,14 @@ pub struct SixDof {
     capacity_kg: f64,
     stores_kg: f64,
     stores_cd: f64,
+    /// The stores' lateral moment, kg·m (+ right wing heavier: `stores.rs` `roll_moment`), and the fuel tanks' at
+    /// full fuel (`tank_moment`, scaled by `aircraft::tank_share`).
+    stores_moment: f64,
+    tank_moment: f64,
+    /// The stores' right less left drag index ×10⁻⁴ (the original's `stores_asym`).
+    stores_cd_asym: f64,
+    /// The roll trim, stick units (`aircraft::step_roll_trim`).
+    roll_trim: f64,
     /// The empty jet, kg (the reference weight less its fuel).
     empty_kg: f64,
     /// Terrain height under the jet (ENU z, m); the gear's height above its contact (for the instruments).
@@ -87,7 +95,7 @@ pub struct SixDof {
     pub unlimited_fuel: bool,
     /// A ground start waits for the terrain height to set the jet on its gear.
     place_on_gear: bool,
-    /// The air mass's velocity, world NED (the mission's wind; no gusts).
+    /// The air mass's velocity, world NED (the mission's wind; its gusts added each substep).
     wind: Vec3,
     /// The terrain under the jet is scenery (a roof, a tree top): meeting it is a crash.
     pub ground_obstacle: bool,
@@ -141,6 +149,10 @@ impl SixDof {
             capacity_kg: fuel_kg,
             stores_kg: 0.0,
             stores_cd: 0.0,
+            stores_moment: 0.0,
+            tank_moment: 0.0,
+            stores_cd_asym: 0.0,
+            roll_trim: 0.0,
             empty_kg,
             ground_height: 0.0,
             gear_clearance: jet.gear.struts[0].pos.z as f32,
@@ -340,6 +352,24 @@ impl SixDof {
     pub fn set_stores(&mut self, mass_kg: f32, di_left: f32, di_right: f32) {
         self.stores_kg = mass_kg.max(0.0) as f64;
         self.stores_cd = (di_left + di_right).max(0.0) as f64;
+        self.stores_cd_asym = (di_right - di_left) as f64;
+    }
+
+    /// The stores' lateral moment (kg·m, + right wing heavier), as the game gives the original (`stores.rs`
+    /// `roll_moment`): in flight it rolls the jet with its weight × the load factor, and the control system meets it.
+    pub fn set_stores_moment(&mut self, kg_m: f32, tanks_kg_m: f32) {
+        (self.stores_moment, self.tank_moment) = (kg_m as f64, tanks_kg_m as f64);
+    }
+
+    /// The roll trim moved by a rocker −1..1 held `dt` s, as the original's (`aircraft::step_roll_trim`). Every 6-DoF
+    /// jet flies TP-1538's F-16 control law, so the F-16's authority (type 100: ±66.8 of 308 deg/s, fig. 64) for all.
+    pub fn trim_roll(&mut self, rocker: f32, dt: f32) {
+        self.roll_trim = crate::aircraft::step_roll_trim(self.roll_trim as f32, rocker, dt, 100) as f64;
+    }
+
+    /// The roll trim, stick units.
+    pub fn roll_trim(&self) -> f32 {
+        self.roll_trim as f32
     }
 
     pub fn internal_fuel_kg(&self) -> f32 {
@@ -404,7 +434,13 @@ impl SixDof {
         let b = self.body;
         let alt = -b.pos.z;
         let (rho, ps, sound) = atmosphere(alt);
-        let flow = Flow::from_body(&Body { vel: b.vel - b.att.rotate_inv(self.wind), ..b });
+        // The mission's wind with its gusts in the air (crate::near_ground, reborn's Better physics `wind`).
+        let air = if self.on_ground {
+            self.wind
+        } else {
+            self.wind + ned(crate::near_ground::gust(enu(self.wind), self.t, (ground_z - b.pos.z) as f32))
+        };
+        let flow = Flow::from_body(&Body { vel: b.vel - b.att.rotate_inv(air), ..b });
         let qbar = 0.5 * rho * flow.v * flow.v;
         let (max_g, min_g) = self.jet.g_limits;
         let stick_y = c.stick_y as f64;
@@ -414,6 +450,8 @@ impl SixDof {
             pedal: c.rudder as f64,
             speed_brake: c.brakes && !self.on_ground,
             // The autopilot's stick is linear in g (its ApView: centre 1 g, full stick MaxG / MinG).
+            // The trim left out while an autopilot loop flies, as the original's (`Aircraft::roll_stick`).
+            roll_trim: if self.ap_flying { 0.0 } else { self.roll_trim },
             g_command: self.ap_flying.then_some(if stick_y >= 0.0 {
                 1.0 + stick_y * (max_g - 1.0)
             } else {
@@ -452,8 +490,18 @@ impl SixDof {
             },
             gear_down,
             stores_cd: self.stores_cd,
+            stores_roll: (self.stores_moment
+                + self.tank_moment
+                    * crate::aircraft::tank_share(
+                        self.fuel_kg as f32,
+                        (self.jet.fuel_lb * LB) as f32,
+                        self.capacity_kg as f32,
+                    ) as f64)
+                * G
+                * -self.accel_g.z,
+            stores_cd_asym: self.stores_cd_asym,
             engine_on: self.engine_on && fuel_left,
-            wind: self.wind,
+            wind: air,
         };
         let running = jc.engine_on;
         let (jet, engine, anchors) = (&self.jet, self.engine, self.anchors);

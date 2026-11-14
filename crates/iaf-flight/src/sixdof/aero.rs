@@ -244,6 +244,24 @@ pub fn add_drag(c: &mut Coeffs, cd: f64, alpha: f64) {
     c.cz -= cd * sa;
 }
 
+/// Ground effect at α `alpha` (deg) on a wing of aspect ratio `ar`, `h` m above the terrain with span `span` m
+/// (`crate::near_ground`, the functions reborn's Better physics uses): the lift × the lift factor, and the induced
+/// drag CL²/(πA) (Oswald factor 1, inferred) of the free-air lift replaced by φ × that of the new lift.
+pub fn ground_effect(c: &mut Coeffs, alpha: f64, h: f64, span: f64, ar: f64) {
+    let phi = crate::near_ground::induced_factor(h as f32, span as f32) as f64;
+    if phi >= 1.0 {
+        return;
+    }
+    let k = crate::near_ground::lift_factor(h as f32, span as f32, (span * span / ar) as f32) as f64;
+    let (sa, ca) = alpha.to_radians().sin_cos();
+    let cl0 = -c.cz * ca + c.cx * sa;
+    let cl = cl0 * k;
+    // The free-air induced drag of the old lift out, φ × that of the new lift in (as reborn's).
+    let cd = -c.cx * ca - c.cz * sa - (cl0 * cl0 - phi * cl * cl) / (std::f64::consts::PI * ar);
+    c.cx = cl * sa - cd * ca;
+    c.cz = -cl * ca - cd * sa;
+}
+
 /// Body-axis aerodynamic force (N) and moment (N·m) at dynamic pressure `qbar` (Pa).
 pub fn force_moment(c: &Coeffs, qbar: f64, af: &Airframe) -> (Vec3, Vec3) {
     let qs = qbar * af.s;

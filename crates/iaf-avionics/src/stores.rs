@@ -344,7 +344,7 @@ impl Stores {
                 None => match full {
                     Some(i) => vec![i],
                     None => {
-                        let m = self.roll_moment();
+                        let m = self.roll_moment() + self.tank_moment();
                         let after = |i: usize| {
                             let s = self.station(i).map_or(0.0, |s| s.weapon.weight_lb * KG_PER_LB * s.arm);
                             ((m - s).abs() * 1e6).round() as i64
@@ -375,14 +375,29 @@ impl Stores {
     }
 
     /// Better physics "Asymmetric stores" (ours, docs/flight-model.md §10): the pylon stores' lateral moment Σ mass ·
-    /// arm in kg·m, + right wing heavier. Every store counts at its bdb weight in kg (a tank at its full fuel; a gun
-    /// pod's rounds as one store).
+    /// arm in kg·m, + right wing heavier, the fuel tanks left out ([`Self::tank_moment`]). Every store counts at its
+    /// bdb weight in kg (a gun pod's rounds as one store), a tank's rack too.
     pub fn roll_moment(&self) -> f64 {
+        self.moment(false)
+    }
+
+    /// The fuel tanks' lateral moment at full fuel, kg·m: the flight model scales it by the external fuel left
+    /// (`aircraft::tank_share`), as the one fuel pool burns the tanks first.
+    pub fn tank_moment(&self) -> f64 {
+        self.moment(true)
+    }
+
+    fn moment(&self, tanks: bool) -> f64 {
         let stores = self.stations.iter().take(PYLONS).flatten();
         stores
             .map(|s| {
                 let n = if s.weapon.rounds_per_tick.is_some() { s.count.min(1.0) } else { s.count };
-                (n * s.weapon.weight_lb * KG_PER_LB + s.rack_kg) * s.arm
+                match (s.weapon.is_tank(), tanks) {
+                    (true, true) => n * s.weapon.weight_lb * KG_PER_LB * s.arm,
+                    (true, false) => s.rack_kg * s.arm,
+                    (false, false) => (n * s.weapon.weight_lb * KG_PER_LB + s.rack_kg) * s.arm,
+                    (false, true) => 0.0,
+                }
             })
             .sum()
     }

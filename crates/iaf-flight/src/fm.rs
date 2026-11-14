@@ -83,9 +83,13 @@ impl Fm {
         }
     }
 
-    /// The roll trim and the stick the roll command takes (the 6-DoF has no roll trim: the stick itself).
+    /// The roll trim and the stick the roll command takes (the 6-DoF adds its trim inside the control system: the
+    /// stick itself).
     pub fn roll_trim(&self) -> f32 {
-        self.original_ref().map_or(0.0, |a| a.roll_trim())
+        match self {
+            Fm::Original(a) => a.roll_trim(),
+            Fm::SixDof(s) => s.roll_trim(),
+        }
     }
 
     pub fn roll_stick(&self) -> f32 {
