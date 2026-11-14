@@ -24,6 +24,25 @@ pub const MIN_SPAN_M: f64 = 50_000.0;
 pub const VILLAGES_UNDER: usize = 6;
 /// Room around the base and the route (m; inferred).
 pub const MARGIN_M: f64 = 6_000.0;
+/// The view the map opens on: the start, the taxi and the lineup with this much room around them (m; inferred: the
+/// taxiways next to the route in view) …
+pub const FOCUS_MARGIN_M: f64 = 400.0;
+/// … and at least this across (m; inferred: a start-up's parking spot with its apron and the runway beside it).
+pub const FOCUS_MIN_M: f64 = 2_500.0;
+/// The places a step is done at (a step's `at` in the mission's `training.steps` / `training.checklist`): the start
+/// (the parking spot), the holding point (the taxi's last point before the lineup, iaf.ibx's `TaxiWayPtsFrom`, as
+/// the flight's radio menu takes it), the lineup point.
+pub const STEP_PLACES: [&str; 3] = ["start", "hold", "lineup"];
+
+/// A pin on the briefing map: the place of a run of steps (`STEP_PLACES`) and the steps done there, `first` to `last`
+/// (0-based, in the order of the mission's steps).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Pin {
+    pub place: &'static str,
+    pub at: [f64; 2],
+    pub first: usize,
+    pub last: usize,
+}
 
 /// The briefing's map.
 #[derive(Debug)]
@@ -63,6 +82,10 @@ pub struct Briefing {
     pub roads: Vec<(u8, Vec<[f64; 2]>)>,
     /// The towns in the map (`places.json`): kind, English and Hebrew name, place.
     pub places: Vec<(String, String, String, [f64; 2])>,
+    /// The steps' pins (`Pin`), in step order.
+    pub pins: Vec<Pin>,
+    /// The view the map opens on [x0, y0, x1, y1] (the map's metres): the start, the taxi and the lineup.
+    pub focus: [f64; 4],
 }
 
 impl Briefing {
@@ -88,6 +111,8 @@ impl Briefing {
             "parking": flat(&self.parking),
             "roads": self.roads.iter().map(|(c, l)| json!({"class": c, "pts": flat(l)})).collect::<Vec<_>>(),
             "places": self.places.iter().map(|(k, en, he, p)| json!({"kind": k, "en": en, "he": he, "at": flat(&[*p])})).collect::<Vec<_>>(),
+            "pins": self.pins.iter().map(|p| json!({"place": p.place, "at": flat(&[p.at]), "first": p.first, "last": p.last})).collect::<Vec<_>>(),
+            "focus": self.focus.map(round),
         })
     }
 }
@@ -200,7 +225,17 @@ pub fn briefing(
     if towns.iter().filter(|t| rank(&t.0) < 2).count() >= VILLAGES_UNDER {
         towns.retain(|t| rank(&t.0) < 2);
     }
+    let pins = pins(mission, at, &taxi, route.first().copied())?.into_iter().map(|p| Pin { at: local(p.at), ..p });
+    // The opening view: the start, the taxi and the lineup, FOCUS_MARGIN_M around them, FOCUS_MIN_M across at least.
+    let near = [at].into_iter().chain(taxi.iter().copied()).chain(route.first().copied()).map(local);
+    let (lo, hi) = near.fold(([f64::MAX; 2], [f64::MIN; 2]), |(lo, hi), p| {
+        ([lo[0].min(p[0]), lo[1].min(p[1])], [hi[0].max(p[0]), hi[1].max(p[1])])
+    });
+    let half = |a: f64, b: f64| ((b - a) / 2.0 + FOCUS_MARGIN_M).max(FOCUS_MIN_M / 2.0);
+    let (fc, fh) = ([(lo[0] + hi[0]) / 2.0, (lo[1] + hi[1]) / 2.0], [half(lo[0], hi[0]), half(lo[1], hi[1])]);
     Ok(Briefing {
+        pins: pins.collect(),
+        focus: [fc[0] - fh[0], fc[1] - fh[1], fc[0] + fh[0], fc[1] + fh[1]],
         extent: ext,
         taxiways: base.taxiways.iter().map(|(l, w)| (l.iter().map(|&p| local(p)).collect(), *w)).collect(),
         stopways: lines(&base.stopways),
@@ -219,6 +254,40 @@ pub fn briefing(
         taxi: taxi.into_iter().map(local).collect(),
         route: route.into_iter().map(local).collect(),
     })
+}
+
+/// The pins of the mission's steps (`training.steps`, else `training.checklist`; the sim's frame): a step's `at` (one
+/// of STEP_PLACES) moves the run to that place, a step without one is done where the step before it was (the first at
+/// the start). A place the map lacks (no taxi: no holding point; no runway: no lineup) keeps the run where it was.
+fn pins(mission: &Value, start: [f64; 2], taxi: &[[f64; 2]], lineup: Option<[f64; 2]>) -> Result<Vec<Pin>> {
+    let t = &mission["training"];
+    let steps = t["steps"].as_array().or_else(|| t["checklist"].as_array()).map_or(&[][..], Vec::as_slice);
+    let hold = (taxi.len() >= 3).then(|| taxi[taxi.len() - 2]);
+    let mut out: Vec<Pin> = vec![];
+    for (i, s) in steps.iter().enumerate() {
+        let place = match s["at"].as_str() {
+            None => out.last().map_or("start", |p| p.place),
+            Some(a) => {
+                *STEP_PLACES.iter().find(|p| **p == a).with_context(|| format!("step {}: no place \"{a}\"", i + 1))?
+            }
+        };
+        let at = match place {
+            "hold" => hold,
+            "lineup" => lineup,
+            _ => Some(start),
+        };
+        match (out.last_mut(), at) {
+            (Some(p), Some(a)) if p.place != place => out.push(Pin { place, at: a, first: i, last: i }),
+            (Some(p), _) => p.last = i,
+            (None, a) => out.push(Pin {
+                place: if a.is_some() { place } else { "start" },
+                at: a.unwrap_or(start),
+                first: i,
+                last: i,
+            }),
+        }
+    }
+    Ok(out)
 }
 
 /// The theatre's main roads, read once a process (10 MB; the briefing asks for them on every map).
@@ -482,7 +551,15 @@ mod tests {
         // The base's shapes, and the towns inside the map only.
         assert!(!b.taxiways.is_empty() && !b.aprons.is_empty() && !b.parking.is_empty());
         assert!(b.places.len() <= 1 && b.places.iter().all(|p| p.1 != "Eilat"));
+        // The pins: steps 1-3 at the parking spot, 4-5 at the holding point (the taxi's last point before the lineup),
+        // 6-7 at the lineup; the opening view holds them and the taxi.
+        let want = [("start", b.start, 0, 2), ("hold", b.taxi[b.taxi.len() - 2], 3, 4), ("lineup", b.route[0], 5, 6)];
+        assert_eq!(b.pins, want.map(|(place, at, first, last)| Pin { place, at, first, last }));
+        let f = b.focus;
+        let held = |p: &[f64; 2]| p[0] > f[0] && p[0] < f[2] && p[1] > f[1] && p[1] < f[3];
+        assert!(b.taxi.iter().all(held) && f[2] - f[0] >= FOCUS_MIN_M && f[2] - f[0] < 8_000.0, "{f:?}");
         let v = b.to_json();
+        assert_eq!(v["pins"][1]["first"], 3);
         assert_eq!(v["route"].as_array().unwrap().len(), 4);
         assert_eq!(v["heading"].as_f64().unwrap(), hdg.round());
     }
@@ -551,6 +628,9 @@ mod tests {
             assert!(b.runway.is_none() && b.taxi.is_empty() && b.route.is_empty(), "{name}");
             assert!(b.size[1] >= MIN_SPAN_M - 1e-6, "{name}: the shorter side {}", b.size[1]);
             assert!(!b.runways.is_empty());
+            // One pin, every checklist step at the parking spot; the view on it.
+            assert!(b.pins.len() == 1 && b.pins[0].place == "start" && b.pins[0].at == b.start, "{name}");
+            assert!(b.pins[0].last >= 3 && (b.focus[2] - b.focus[0] - FOCUS_MIN_M).abs() < 1e-6, "{name}");
         }
         // Every take-off's taxi reaches its lineup.
         for name in ["ramat_david_takeoff", "nevatim_takeoff"] {
@@ -558,6 +638,11 @@ mod tests {
             assert!(b.taxi.len() >= 2 && b.taxi.last() == b.route.first(), "{name}");
             let inside = |p: &[f64; 2]| p[0] >= 0.0 && p[1] >= 0.0 && p[0] <= b.size[0] && p[1] <= b.size[1];
             assert!(b.taxi.iter().all(inside) && b.parking.iter().all(inside), "{name}");
+            assert_eq!(b.pins.iter().map(|p| p.place).collect::<Vec<_>>(), ["start", "hold", "lineup"], "{name}");
         }
+        // A step at a place the mission names wrong is an error.
+        let mut m = mission("ramon_takeoff");
+        m["training"]["steps"][3]["at"] = json!("tower");
+        assert!(briefing(&m, &bases, &map(), 0.6, None, &[]).is_err());
     }
 }

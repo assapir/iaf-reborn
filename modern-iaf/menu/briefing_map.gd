@@ -1,10 +1,12 @@
 # The mission briefing's map (modern-iaf/docs/front-end.md §10), from IafBriefing (crates/iaf-tools briefing.rs), drawn
 # north up with a north arrow and a scale bar: the theatre's ground colour (else the TSD map's polygons), the main
 # roads, the towns' names, the base's paved shapes (aprons, shelters' pads, taxiways, stopways, runways, parking
-# spots), the taxi, the route with its runway's heading and the start. It zooms and scrolls: the mouse wheel zooms
-# around the pointer, a drag scrolls, a double click resets; with the focus, + / − zoom, the arrows scroll and 0 resets.
-# Zoomed in, the runways' designators and the start spot's label show. The map itself never mirrors; in Hebrew its
-# north arrow and scale bar swap sides with the layout.
+# spots), the taxi, the route with its runway's heading and the steps' pins (the place of each run of steps, numbered as
+# the ORDER OF ACTIONS card, with its name). It opens on the base and the route (IafBriefing's `focus`) in the room the
+# briefing's cards leave (`aim`). It zooms and scrolls: the mouse wheel zooms around the pointer, a drag scrolls, a
+# double click shows the whole map; with the focus, + / − zoom, the arrows scroll and 0 shows the whole map. Zoomed in,
+# the runways' designators show. The taxi and route, the labels and the photo each turn off (`show_*`, the briefing's
+# chips). The map itself never mirrors; in Hebrew its north arrow and scale bar swap sides with the layout.
 extends Control
 
 const Look := preload("look.gd")
@@ -25,15 +27,17 @@ const PAN_SHARE := 0.1
 ## A two-finger scroll's step (px a unit of InputEventPanGesture.delta) and a horizontal wheel notch's (px).
 const PAN_GESTURE_PX := 24.0
 const WHEEL_PX := 60.0
-## Zoomed in this far (px a metre) the runways' designators, centrelines, the parking spots and the start's label show.
+## Zoomed in this far (px a metre) the runways' designators, centrelines and the parking spots show.
 const DETAIL_K := 0.15
 
 ## IafBriefing.map's JSON as a Dictionary, {} for none; `texture`: the ground colour.
 var data := {}
-## The base's label, the runway's label ("25R · 246°"), the start spot's label, the units ("km", "m").
+## The base's label, the runway's label ("25R · 246°"), the units ("km", "m").
 var base_label := ""
 var runway_label := ""
-var start_label := ""
+## The pins' names by place ("start", "hold", "lineup") and a run of steps' text ("Steps %s", the range in for %s).
+var pin_names := {}
+var steps_text := "%s"
 var km := "km"
 var metres := "m"
 ## The towns' names in Hebrew.
@@ -43,6 +47,23 @@ var source := Callable()
 ## The view: the zoom (1 = the whole map) and the map point (m) at the control's centre.
 var zoom := 1.0
 var center := Vector2.ZERO
+## The room the map opens in (px; empty: the whole control), its north arrow at its top inline-end corner; the scale
+## bar's inline-start bottom corner (px; negative: the control's corner).
+var view := Rect2()
+var scale_at := Vector2(-1, -1)
+## The layers the chips turn on and off: the taxi and the route, the labels, the photo (else the TSD map's colours).
+var show_taxi := true:
+	set(v):
+		show_taxi = v
+		queue_redraw()
+var show_labels := true:
+	set(v):
+		show_labels = v
+		queue_redraw()
+var show_photo := true:
+	set(v):
+		show_photo = v
+		queue_redraw()
 var _aspect := 0.0
 var _dragging := false
 
@@ -60,8 +81,39 @@ func _load() -> void:
 	if absf(a - _aspect) > 0.01:
 		_aspect = a
 		data = source.call(a)
-		reset_view()
+		open_view()
 	queue_redraw()
+
+
+## The room to open in (`view`), the map on the base and the route in it.
+func aim(r: Rect2) -> void:
+	if r.size.x > 0.0 and r.size.y > 0.0 and r != view:
+		view = r
+		open_view()
+
+
+## The base and the route (`focus`, the map's metres) fitted into `view`; the whole map without them.
+func open_view() -> void:
+	var f: Array = data.get("focus", [])
+	if f.size() != 4 or size.x <= 0.0:
+		reset_view()
+		return
+	var room := _room()
+	var box := Rect2(float(f[0]), float(f[1]), float(f[2]) - float(f[0]), float(f[3]) - float(f[1]))
+	var k := minf(room.size.x / box.size.x, room.size.y / box.size.y)
+	zoom = clampf(k / _fit(), 1.0, ZOOM_MAX)
+	center = box.get_center() - (room.get_center() - size / 2.0) / (_fit() * zoom)
+	_clamp()
+
+
+## The room the map opens in: `view`, else the whole control.
+func _room() -> Rect2:
+	return view if view.has_area() else Rect2(Vector2.ZERO, size)
+
+
+## Zooms by `f` around the room's middle (the chips' + and −).
+func zoom_view(f: float) -> void:
+	zoom_at(f, _room().get_center())
 
 
 ## The whole map in view.
@@ -183,48 +235,105 @@ func _draw() -> void:
 	var font := get_theme_font("font", "Label")
 	var s: Array = data.size
 	var rect := Rect2(xf.origin, Vector2(float(s[0]), float(s[1])) * k)
-	if data.get("texture") is Texture2D:
+	if show_photo and data.get("texture") is Texture2D:
 		draw_texture_rect(data.texture, rect, false)
 	else:
 		_draw_fills(xf)
 	_draw_roads(xf)
 	_draw_base(xf, k)
 	var taxi := _points(data.get("taxi", []), xf)
-	for i in taxi.size() - 1:
-		draw_dashed_line(taxi[i], taxi[i + 1], ROUTE, 3.0, 8.0)
 	var route := _points(data.get("route", []), xf)
-	if route.size() >= 2:
-		draw_polyline(route, ROUTE, 3.0, true)
-		_arrow(route[route.size() - 2], route[route.size() - 1])
-		for p in route.slice(1):
-			draw_circle(p, 7.0, ROUTE, false, 2.5, true)
+	if show_taxi:
+		for i in taxi.size() - 1:
+			draw_dashed_line(taxi[i], taxi[i + 1], ROUTE, 3.0, 8.0)
+		if route.size() >= 2:
+			draw_polyline(route, ROUTE, 3.0, true)
+			_arrow(route[route.size() - 2], route[route.size() - 1])
+			for p in route.slice(1):
+				draw_circle(p, 7.0, ROUTE, false, 2.5, true)
 	var start := _points(data.get("start", []), xf)
 	var at: Vector2 = start[0] if start.size() == 1 else size / 2.0
-	if start.size() == 1:
-		draw_circle(at, 9.0, Look.ACCENT, true, -1.0, true)
-		draw_circle(at, 9.0, ROUTE, false, 2.5, true)
 	var taken: Array[Rect2] = []
 	# Clear of the north arrow and the scale bar.
-	var rtl := is_layout_rtl()
-	taken.append(Rect2(Vector2(8.0 if rtl else size.x - 88.0, 18.0), Vector2(80, 80)))
-	taken.append(Rect2(Vector2(size.x - 300.0 if rtl else 0.0, size.y - 80.0), Vector2(300, 80)))
-	if k >= DETAIL_K:
-		_tag(font, start_label, at + Vector2(16, 6), 18, taken)
+	taken.append(Rect2(_north_at() - Vector2(40, 40), Vector2(80, 80)))
+	taken.append(_scale_rect(k))
+	var pins := _pins(font, xf, taken)
+	if show_labels and k >= DETAIL_K:
 		for r in data.get("runways", []):
 			var e := _points(r.slice(0, 4), xf)
 			var out := (e[0] - e[1]).normalized() * 24.0
 			for d in [[str(r[5]), e[0] + out], [str(r[6]), e[1] - out]]:
 				var w: float = font.get_string_size(d[0], 0, -1, 17).x
 				_tag(font, d[0], d[1] + Vector2(-w / 2.0, 8.0), 17, taken)
-	else:
+	elif show_labels:
 		_tag(font, base_label, at + Vector2(-60, 48), 22, taken)
-	if runway_label != "" and route.size() >= 2:
-		# Beside the take-off's first leg, past the base.
-		_tag(font, runway_label, route[0].lerp(route[1], 0.55) + Vector2(-40, -18), 20, taken)
-	_draw_places(font, xf, taken)
+	if show_labels and show_taxi and runway_label != "" and route.size() >= 2:
+		# Beside the take-off's first leg, a little past the lineup (in the room the cards leave).
+		var along := (route[1] - route[0]).normalized() * minf(route[0].distance_to(route[1]), 240.0)
+		_tag(font, runway_label, route[0] + along + Vector2(-40, -18), 20, taken)
+	if show_labels:
+		_draw_places(font, xf, taken)
+	pins.call()
 	_north(font)
 	_scale(font, k)
-	draw_rect(Rect2(Vector2.ZERO, size), Look.LINE, false, 1.0)
+
+
+## The steps' pins (IafBriefing's `pins`): a disc in the accent numbered with the run's first step (moved up off a disc
+## it would cover, a line back to its place); with the labels on, its place's name on a dark plate and, for a run of
+## steps, "Steps 1–3" under it. Their room is taken now; the Callable it answers draws them over everything.
+func _pins(font: Font, xf: Transform2D, taken: Array[Rect2]) -> Callable:
+	var discs := []
+	var plates := []
+	for p in data.get("pins", []):
+		var at: Vector2 = _points(p.at, xf)[0]
+		var c := at
+		for i in 6:
+			if not discs.any(func(d): return d[1].distance_to(c) < 38.0):
+				break
+			c.y -= 40.0
+		discs.append([at, c, str(int(p.first) + 1)])
+		taken.append(Rect2(c - Vector2(18, 18), Vector2(36, 36)))
+	if show_labels:
+		var pins: Array = data.get("pins", [])
+		for i in pins.size():
+			var p: Dictionary = pins[i]
+			var c: Vector2 = discs[i][1]
+			var r := _plate(font, str(pin_names.get(p.place, "")), c + Vector2(26, 8), 19, taken)
+			plates.append([r, str(pin_names.get(p.place, "")), 19])
+			if int(p.last) > int(p.first):
+				var t := steps_text % ("\u2066%d–%d\u2069" % [int(p.first) + 1, int(p.last) + 1])
+				plates.append([_plate(font, t, Vector2(r.position.x + 8, r.end.y + 24), 17, taken), t, 17])
+	return func():
+		for d in discs:
+			if d[0] != d[1]:
+				draw_line(d[0], d[1], Color.WHITE, 2.0, true)
+				draw_circle(d[0], 4.0, Color.WHITE, true, -1.0, true)
+		for pl in plates:
+			if pl[0].has_area():
+				draw_rect(pl[0], Color(Look.BG, 0.88))
+				var at: Vector2 = pl[0].position + Vector2(8, pl[2] + 4)
+				draw_string(font, at, pl[1], HORIZONTAL_ALIGNMENT_LEFT, -1, pl[2], Look.TEXT)
+		for d in discs:
+			draw_circle(d[1], 17.0, Look.ACCENT, true, -1.0, true)
+			draw_circle(d[1], 17.0, Color.WHITE, false, 2.5, true)
+			var w := font.get_string_size(d[2], HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
+			draw_string(font, d[1] + Vector2(-w / 2.0, 6.5), d[2], HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Look.NAVY)
+
+
+## A pin label's plate for text `t` at `at` (its baseline's start), moved down past a plate already there (at most four
+## times), its room taken; an empty Rect2 for no text.
+func _plate(font: Font, t: String, at: Vector2, px: int, taken: Array[Rect2]) -> Rect2:
+	if t == "":
+		return Rect2()
+	var w := font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, px).x
+	at.x = clampf(at.x, 8.0, size.x - w - 18.0)
+	var plate := Rect2(at + Vector2(-8, -px - 4), Vector2(w + 16, px + 14))
+	for i in 4:
+		if not taken.any(func(o): return o.intersects(plate)):
+			break
+		plate.position.y += px + 16
+	taken.append(plate)
+	return plate
 
 
 ## The TSD map's polygons (without the theatre's ground colour).
@@ -327,10 +436,15 @@ func _arrow(a: Vector2, b: Vector2) -> void:
 	draw_colored_polygon(PackedVector2Array([tip, tip - d * 16.0 + n * 8.0, tip - d * 16.0 - n * 8.0]), ROUTE)
 
 
-## The north arrow at the top inline-end corner: true north (the grid turned by `north`).
+## The north arrow's centre: the room's top inline-end corner.
+func _north_at() -> Vector2:
+	var r := _room()
+	return Vector2(r.position.x + 40.0 if is_layout_rtl() else r.end.x - 40.0, r.position.y + 40.0)
+
+
+## The north arrow at the room's top inline-end corner: true north (the grid turned by `north`).
 func _north(font: Font) -> void:
-	var rtl := is_layout_rtl()
-	var c := Vector2(48.0 if rtl else size.x - 48.0, 58.0)
+	var c := _north_at()
 	var d := Vector2.UP.rotated(deg_to_rad(float(data.get("north", 0.0))))
 	var n := Vector2(-d.y, d.x)
 	draw_circle(c, 30.0, Color(Look.BG, 0.8), true, -1.0, true)
@@ -349,15 +463,24 @@ func scale_metres() -> int:
 	return m
 
 
+## The scale bar's box (its plate) at `scale_at`, else the control's bottom inline-start corner.
+func _scale_rect(k: float) -> Rect2:
+	var w := scale_metres() * k
+	var rtl := is_layout_rtl()
+	var c := scale_at if scale_at.x >= 0.0 else Vector2(size.x - 24.0 if rtl else 24.0, size.y - 28.0)
+	var x0 := c.x - w if rtl else c.x
+	return Rect2(x0 - 10, c.y - 34, w + 20, 46)
+
+
 func _scale(font: Font, k: float) -> void:
 	var m := scale_metres()
 	var w := m * k
-	var rtl := is_layout_rtl()
-	var x0 := size.x - 24.0 - w if rtl else 24.0
-	var y := size.y - 28.0
+	var box := _scale_rect(k)
+	var x0 := box.position.x + 10.0
+	var y := box.position.y + 34.0
 	var t := "%d %s" % [int(m / 1000.0), km] if m >= 1000 else "%d %s" % [m, metres]
 	var tw := font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
-	draw_rect(Rect2(x0 - 10, y - 34, w + 20, 46), Color(Look.BG, 0.8))
+	draw_rect(box, Color(Look.BG, 0.8))
 	draw_rect(Rect2(x0, y - 4, w / 2.0, 8), Look.TEXT)
 	draw_rect(Rect2(x0 + w / 2.0, y - 4, w / 2.0, 8), Look.MUTED)
 	draw_string(font, Vector2(x0 + (w - tw) / 2.0, y - 12), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Look.TEXT)

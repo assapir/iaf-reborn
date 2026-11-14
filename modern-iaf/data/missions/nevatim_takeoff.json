@@ -102,6 +102,7 @@
         }
       },
       {
+        "at": "hold",
         "en": "Taxi to runway {runway} and stop short of it",
         "he": "הסעה למסלול {runway} ועצירה לפניו",
         "wait": {
@@ -122,6 +123,7 @@
       {
         "key": 47,
         "pick": 4,
+        "at": "lineup",
         "en": "Call the tower: request take-off",
         "he": "קריאה למגדל: בקשת המראה",
         "wait": {

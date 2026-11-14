@@ -313,7 +313,10 @@ func crumbs(fe: Control) -> void:
 	fe.mission_i = 1
 	fe.show_page("mission")
 	await frames(2)
-	check(not _has_button(fe, fe.s("training")), "crumbs: the current screen is no button")
+	check(
+		not _has_button(fe, fe.title_of(fe.missions[1])) and _has_button(fe, fe.s("training")),
+		"crumbs: the current screen (the mission) is no button, Training before it is"
+	)
 	var home: Button = fe.find_child("Crumb_hangar", true, false)
 	check(home != null and home.focus_mode != Control.FOCUS_NONE, "crumbs: the Hangar is a button the keys reach")
 	home.pressed.emit()
@@ -508,9 +511,6 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	check(_has(fe, "המראה" if he else "Take-off"), "%s: mission: the take-off picked" % lang)
 	check(_has_part(fe, "25R"), "%s: mission: the runway" % lang)
 	check(_has(fe, "15") and _has(fe, "דקות" if he else "min"), "%s: mission: the time allowed" % lang)
-	var list: Control = fe.find_child("Mission1", true, false)
-	var pane: Control = fe.find_child("Briefing", true, false)
-	check((list.global_position.x > pane.global_position.x) == he, "%s: the list and the briefing mirror" % lang)
 	await _briefing_checks(fe, lang)
 	# The flight is skipped: the stored record comes back as the flight's.
 	s.flown_sortie = ids.pass
@@ -584,7 +584,7 @@ func walk(fe: Control, ids: Dictionary, lang: String) -> void:
 	fe.find_child("FlyAgain", true, false).pressed.emit()
 	await frames(2)
 	check(
-		fe.page == "mission" and fe.mission_i == 1 and fe.brief_tab == 0,
+		fe.page == "mission" and fe.mission_i == 1,
 		"%s: Fly again opens the flown take-off's briefing, not the flight" % lang
 	)
 	check(_has(fe, "אימון" if he else "Training"), "%s: Fly again: the Training breadcrumb" % lang)
@@ -989,6 +989,17 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 		),
 		"%s: loadout: over the maximum, the weight red and Fly off" % lang
 	)
+	# The briefing's card the same: the weight red, Fly off and out of the focus ring.
+	fe.show_page("mission")
+	await frames(3)
+	var card_fly: Button = fe.find_child("Fly", true, false)
+	var back: Button = fe.find_child("Back", true, false)
+	check(
+		card_fly.disabled and back.get_node(back.focus_next) != card_fly,
+		"%s: briefing: over the maximum, Fly off and out of the focus" % lang
+	)
+	fe.show_page("arming")
+	await frames(3)
 	fe.units_dir = "res://data/db/units"
 	DirAccess.remove_absolute(dir.path_join("f16i.json"))
 	DirAccess.remove_absolute(dir)
@@ -1030,17 +1041,20 @@ func _labels_of(root: Node, kind: String) -> Array:
 	return labels.filter(func(n): return n.theme_type_variation == kind).map(func(n): return n.text)
 
 
-## The briefing (front-end.md §10) of the take-off picked, then of the start-up: the Briefing page (the title as the
-## kind, the time as military time, the wind as pilots read it, the objectives, the runway's heading, how: the steps
-## with their keys and a free fourth column), the Map page by its tab and by the arrow keys (one map that zooms around
-## the pointer, scrolls, resets, follows the keys, its scale bar with the zoom), the Arming page (the front view with
-## a slot per station with its store, the weights; the Map's credit), the subtitle, the steps with their
-## switches and waits, each tower call its own step, Fly.
+## The briefing, map first (front-end.md §10) of the take-off picked, then of the start-up: the mission card (the title
+## as the kind, the time as military time, the wind as pilots read it, the objectives, the runway's heading, the Arming
+## summary and its Edit), the ORDER OF ACTIONS card (the steps with their keys, each tower call its own step, a step
+## opened to its wait and switch), the map under them (it opens on the base and the route with the steps' pins; the
+## chips; it zooms around the pointer, scrolls, resets, follows the keys, its scale bar with the zoom), the focus order,
+## the loadout screen Edit opens (the front view with a slot per station, the weights, the loadout editor).
 func _briefing_checks(fe: Control, lang: String) -> void:
 	var he := lang == "he"
-	fe.show_tab(0)
-	await frames(2)
 	var pane: Control = fe.find_child("Briefing", true, false)
+	var order: Control = fe.find_child("Order", true, false)
+	check(
+		(pane.get_global_rect().get_center().x > 960) == he and (order.get_global_rect().get_center().x < 960) == he,
+		"%s: briefing: the card at the inline start, the order of actions at the end" % lang
+	)
 	check(_has(pane, "המראה" if he else "Take-off"), "%s: briefing: the title is the kind" % lang)
 	check(not _has_part(pane, "מרמון" if he else "from Ramon"), "%s: briefing: no base in the title" % lang)
 	check(_has(pane, "0800"), "%s: briefing: the time as military time" % lang)
@@ -1054,8 +1068,14 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	var objs: Control = pane.find_child("Objectives", true, false)
 	check(objs.get_child_count() == 4 and _has_part(objs, "25R"), "%s: briefing: the take-off's objectives" % lang)
 	check(_has_part(pane, "25R · 246°"), "%s: briefing: the runway with its heading" % lang)
-	var steps: GridContainer = pane.find_child("Steps", true, false)
-	check(steps.columns == 4 and steps.get_child_count() == 7 * 4, "%s: briefing: the take-off's seven steps" % lang)
+	var sub: Label = pane.find_child("Subtitle", true, false)
+	check(
+		sub.text.contains("טייסת 201 האחת · רמון" if he else "201 Squadron The One · Ramon"),
+		"%s: briefing: the subtitle once, under the title (%s)" % [lang, sub.text]
+	)
+	check(not sub.text.contains("846"), "%s: briefing: no tail in the card (the header has it)" % lang)
+	var steps: Control = order.find_child("Steps", true, false)
+	check(steps.get_child_count() == 7, "%s: briefing: the take-off's seven steps" % lang)
 	check(not _has_part(steps, "מדפים" if he else "Flaps"), "%s: briefing: no flaps step" % lang)
 	# Each call to the tower its own step: start-up, taxi, line-up, take-off at the menu's picks 1-4, with the answer
 	# to wait for.
@@ -1068,19 +1088,197 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 	check(calls == 4, "%s: briefing: four tower calls, Ctrl + T, 1-4 (%d)" % [lang, calls])
 	check(_has_part(steps, "בקשת כניסה למסלול" if he else "request line-up"), "%s: briefing: the line-up call" % lang)
 	check(_has_part(steps, "אישור המראה" if he else "cleared for take-off"), "%s: briefing: the wait" % lang)
-	check(
-		_has(pane, "846 · טייסת 201 האחת · רמון" if he else "846 · 201 Squadron The One · Ramon"), "%s: subtitle" % lang
-	)
+	# A step opens to its wait with the focus; one at a time.
+	var s6: Control = steps.get_child(5)
+	s6.grab_focus()
+	await frames(2)
+	var opened: Array = steps.get_children().filter(func(r): return r.find_child("More", true, false).visible)
+	check(opened == [s6] and _has_part(s6, "אישור המראה" if he else "cleared for take-off"), "%s: step opened" % lang)
 	var credit: Label = fe.find_child("Credit", true, false)
-	check(credit != null and credit.text.strip_edges() == "", "%s: no credit on the Briefing page" % lang)
-	check(_has_part(steps, "מגדל" if he else "tower"), "%s: briefing: the tower step" % lang)
-	var tabs: Array = ["Briefing", "Map", "Arming"].map(func(t): return pane.find_child("Tab" + t, true, false))
-	check((tabs[0].global_position.x > tabs[2].global_position.x) == he, "%s: briefing: the tabs mirror" % lang)
-	check(not pane.find_child("PageMap", true, false).visible, "%s: briefing: the Briefing page first" % lang)
-	check(_has(pane, "חימוש" if he else "Arming"), "%s: arming: the tab's name" % lang)
-	tabs[2].pressed.emit()
+	check(credit != null and "OpenStreetMap" in credit.text, "%s: briefing: the map's credit" % lang)
+	check(credit.is_layout_rtl() == he, "%s: map: the credit right to left" % lang)
+	# The Arming summary: the stores on the jet, the take-off weight, Edit.
+	var summ: Control = pane.find_child("ArmingSummary", true, false)
+	check(
+		_has_part(summ, "6 × AIM-9M") and _has_part(summ, "16,471") and _has(summ, "חימוש" if he else "ARMING"),
+		"%s: briefing: the Arming summary" % lang
+	)
+	# The focus: down from a mission to Edit, then to Fly.
+	var m2: Control = fe.find_child("Mission2", true, false)
+	var edit: Button = fe.find_child("ArmEdit", true, false)
+	var fly: Button = fe.find_child("Fly", true, false)
+	check(
+		m2.get_node(m2.focus_neighbor_bottom) == edit and edit.get_node(edit.focus_neighbor_bottom) == fly,
+		"%s: focus: down from the missions to Edit, then Fly" % lang
+	)
+	check(fly.get_node(fly.focus_next) is Button and not fly.disabled, "%s: focus: on from Fly to the chips" % lang)
+	# The map: the whole screen under the cards, opened on the base and the route with the steps' pins.
+	var map: Control = fe.find_child("PageMap", true, false)
+	await frames(2)
+	check(map.size.x >= 1900 and map.size.y >= 1000, "%s: map: the whole screen (%s)" % [lang, map.size])
+	var d: Dictionary = map.data
+	check(absf(float(d.size[0]) / float(d.size[1]) - map.size.x / map.size.y) < 0.02, "%s: map: the aspect" % lang)
+	check(d.runways.size() >= 2 and d.route.size() == 4 and d.taxi.size() >= 4, "%s: map: runways, taxi, route" % lang)
+	check(d.aprons.size() > 0 and d.taxiways.size() > 0 and d.parking.size() > 0, "%s: map: the airbase" % lang)
+	check(map.base_label == ("רמון" if he else "Ramon"), "%s: map: the base" % lang)
+	check(d.pins.map(func(p): return int(p.first)) == [0, 3, 5], "%s: map: pins 1, 4 and 6" % lang)
+	check(map.zoom > 4.0 and map.view.has_area(), "%s: map: opened on the base (%.1f)" % [lang, map.zoom])
+	for p in d.pins:
+		var at: Vector2 = map._xf() * Vector2(float(p.at[0]), float(p.at[1]))
+		check(map.view.grow(2).has_point(at), "%s: map: pin %d in the room between the cards" % [lang, p.first + 1])
+	# A step opened grows the order card; the map's view stays.
+	var z1: float = map.zoom
+	var c9: Vector2 = map.center
+	steps.get_child(1).grab_focus()
 	await frames(3)
-	check(pane.find_child("PageArming", true, false).visible, "%s: arming: its tab opens the Arming page" % lang)
+	check(
+		is_equal_approx(map.zoom, z1) and map.center.is_equal_approx(c9), "%s: map: a step opened keeps the view" % lang
+	)
+	var hold_name := "עצירה לפני \u206625R\u2069" if he else "Stop short of \u206625R\u2069"
+	check(map.pin_names.hold == hold_name, "%s: map: the holding point's pin named (%s)" % [lang, map.pin_names.hold])
+	# The roads with setup's road layer (the optional scenery step); without it the map draws the ground alone.
+	var roads: bool = load("res://shared/terrain/ground_roads.gd").available()
+	check(
+		d.get("texture") is Texture2D and (d.roads.size() > 0) == roads, "%s: map: the ground, roads %s" % [lang, roads]
+	)
+	var towns: Array = d.places.map(func(p): return p.he if he else p.en)
+	check(("מצפה רמון" if he else "Mitspe Ramon") in towns, "%s: map: Mitzpe Ramon (%s)" % [lang, towns])
+	# The chips: the layers off and on, the zoom.
+	for c in [["MapTaxi", "show_taxi"], ["MapLabels", "show_labels"], ["MapPhoto", "show_photo"]]:
+		var b: Button = fe.find_child(c[0], true, false)
+		b.button_pressed = false
+		check(not map.get(c[1]), "%s: chip %s off" % [lang, c[0]])
+		b.button_pressed = true
+	var z0: float = map.zoom
+	fe.find_child("ZoomIn", true, false).pressed.emit()
+	check(map.zoom > z0, "%s: chip: zoom in" % lang)
+	fe.find_child("ZoomOut", true, false).pressed.emit()
+	fe.find_child("ZoomOut", true, false).pressed.emit()
+	check(map.zoom < z0, "%s: chip: zoom out" % lang)
+	map.reset_view()
+	# The wheel zooms around the pointer: the map point under it stays; the scale bar follows.
+	var at: Vector2 = map.view.get_center()
+	var under: Vector2 = map._xf().affine_inverse() * at
+	var scale0: int = map.scale_metres()
+	for n in 8:
+		var w := InputEventMouseButton.new()
+		w.button_index = MOUSE_BUTTON_WHEEL_UP
+		w.pressed = true
+		w.position = at
+		map._gui_input(w)
+	check(map.zoom > 5.0, "%s: map: the wheel zooms in (%.2f)" % [lang, map.zoom])
+	var still: Vector2 = map._xf() * under
+	check(still.distance_to(at) < 1.0, "%s: map: zoomed around the pointer (%s)" % [lang, still - at])
+	check(map.scale_metres() < scale0, "%s: map: the scale bar follows (%d m)" % [lang, map.scale_metres()])
+	# A drag scrolls; a double click shows the whole map.
+	var c0: Vector2 = map.center
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = at
+	map._gui_input(press)
+	var drag := InputEventMouseMotion.new()
+	drag.relative = Vector2(60, -40)
+	map._gui_input(drag)
+	var up := InputEventMouseButton.new()
+	up.button_index = MOUSE_BUTTON_LEFT
+	map._gui_input(up)
+	check(map.center.x < c0.x and map.center.y > c0.y, "%s: map: a drag scrolls" % lang)
+	press.double_click = true
+	map._gui_input(press)
+	check(is_equal_approx(map.zoom, 1.0), "%s: map: a double click shows the whole map" % lang)
+	# Through the window, in the room between the cards (nothing over the map there takes the events): a left drag
+	# and a middle drag move it, a trackpad's two-finger scroll (a pan gesture) moves it, a pinch zooms.
+	var vp := map.get_viewport()
+	var mid: Vector2 = vp.get_final_transform() * (map.get_global_transform() * map.view.get_center())
+	vp.notification(Window.NOTIFICATION_WM_MOUSE_ENTER)  # headless: the pointer never entered the window
+	var probe := InputEventMouseMotion.new()
+	probe.position = mid
+	probe.global_position = mid
+	vp.push_input(probe)
+	await frames(1)
+	check(vp.gui_get_hovered_control() == map, "%s: map: nothing over the map takes the pointer" % lang)
+	for b in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE]:
+		var c2: Vector2 = map.center
+		var by := Vector2(80, 50) * (1.0 if b == MOUSE_BUTTON_LEFT else -1.0)
+		await _push_drag(vp, mid, b, vp.get_final_transform().basis_xform(by))
+		check(map.center.distance_to(c2) > 1.0, "%s: map: a %s drag moves the whole map" % [lang, b])
+	var c3: Vector2 = map.center
+	var pg := InputEventPanGesture.new()
+	pg.position = mid
+	pg.delta = Vector2(3, 2)
+	vp.push_input(pg)
+	await frames(1)
+	check(map.center.distance_to(c3) > 1.0, "%s: map: a two-finger scroll moves it" % lang)
+	var mg := InputEventMagnifyGesture.new()
+	mg.position = mid
+	mg.factor = 1.5
+	vp.push_input(mg)
+	await frames(1)
+	check(map.zoom > 1.4, "%s: map: a pinch zooms (%.2f)" % [lang, map.zoom])
+	map.reset_view()
+	# The keys: + zooms, an arrow scrolls, 0 shows the whole map.
+	map.grab_focus()
+	map._gui_input(_key_event(KEY_EQUAL))
+	map._gui_input(_key_event(KEY_EQUAL))
+	var c1: Vector2 = map.center
+	map._gui_input(_key_event(KEY_RIGHT))
+	check(map.zoom > 1.4 and map.center.x > c1.x, "%s: map: + zooms, an arrow scrolls" % lang)
+	map._gui_input(_key_event(KEY_0))
+	check(is_equal_approx(map.zoom, 1.0), "%s: map: 0 shows the whole map" % lang)
+	map.release_focus()
+	# Edit: the loadout screen, its crumb back to the briefing.
+	edit.pressed.emit()
+	await frames(3)
+	check(fe.page == "arming", "%s: Edit opens the loadout screen" % lang)
+	check(fe.find_child("Crumb_mission", true, false) != null, "%s: arming: the mission's crumb" % lang)
+	await _arming_checks(fe, lang)
+	await _loadout_checks(fe, lang)
+	key(fe, KEY_ESCAPE)
+	await frames(2)
+	check(fe.page == "mission", "%s: Esc from the loadout screen: the briefing" % lang)
+	# Away and back (the Hangar, Settings, the Hangar, the mission screen): the mission kept, the map on the base.
+	var mi: int = fe.mission_i
+	for screen in ["hangar", "prefs", "hangar", "mission"]:
+		fe.show_page(screen)
+	await frames(3)
+	map = fe.find_child("PageMap", true, false)
+	check(fe.mission_i == mi and map.zoom > 4.0, "%s: entering again: the mission kept, the map on the base" % lang)
+	# The start-up: its checklist, one pin for all of it, each step's switch pictured.
+	fe.find_child("Mission1", true, false).pressed.emit()
+	await frames(3)
+	steps = fe.find_child("Order", true, false).find_child("Steps", true, false)
+	check(steps.get_child_count() == 6, "%s: briefing: the start-up's six checklist steps" % lang)
+	var check_key: String = fe.key_name(fe.SimFlight.CHECK_KEY)
+	check(check_key != "" and _has(steps, check_key), "%s: briefing: the checklist's keys as bound" % lang)
+	check(
+		_has(steps, fe.key_name(fe.SimFlight.THROTTLE_IDLE_KEY)), "%s: briefing: the idle step's key, the card's" % lang
+	)
+	var pics: Array = steps.find_children("Switch*", "TextureRect", true, false)
+	check(
+		pics.size() == 6 and pics.all(func(p): return p.texture != null),
+		"%s: briefing: each step's switch pictured from the 3D cockpit (%d)" % [lang, pics.size()]
+	)
+	check(
+		pics.size() > 0 and "MAIN PWR" in pics[0].tooltip_text, "%s: briefing: the switch named on its picture" % lang
+	)
+	check(_has_part(steps, "20") and _has_part(steps, "90"), "%s: briefing: the waits" % lang)
+	steps.get_child(0).grab_focus()
+	await frames(2)
+	check(pics[0].is_visible_in_tree(), "%s: briefing: the step opened shows its switch" % lang)
+	var m: Control = fe.find_child("PageMap", true, false)
+	check(m.runway_label == "", "%s: map: a start-up has no runway" % lang)
+	check(m.data.pins.size() == 1 and int(m.data.pins[0].last) == 5, "%s: map: one pin, the whole checklist" % lang)
+	check(fe.find_child("Fly", true, false) != null, "%s: briefing: Fly" % lang)
+	fe.find_child("Mission2", true, false).pressed.emit()
+	await frames(2)
+
+
+## The loadout screen's Arming page (front-end.md §10): the jet's front view, a slot per station with its store, the
+## figures, the inventory column.
+func _arming_checks(fe: Control, lang: String) -> void:
+	var he := lang == "he"
+	var pane: Control = fe.find_child("Briefing", true, false)
 	var drawing: Control = pane.find_child("Drawing", true, false)
 	check(drawing != null and drawing.picture != null, "%s: arming: our own Sufa's front view" % lang)
 	check(drawing.stations.size() == 8 and drawing.stores.size() == 8, "%s: arming: eight stations loaded" % lang)
@@ -1139,155 +1337,6 @@ func _briefing_checks(fe: Control, lang: String) -> void:
 		"%s: arming: the inventory on the block-end side" % lang
 	)
 	check(row != null and inv.size.x >= 150, "%s: arming: the column its width" % lang)
-	await _loadout_checks(fe, lang)
-	tabs[1].pressed.emit()
-	await frames(3)
-	check(not pane.find_child("PageBriefing", true, false).visible, "%s: map: its tab opens the Map page" % lang)
-	var map: Control = pane.find_child("PageMap", true, false)
-	check(map.size.x > 900 and map.size.y > 500, "%s: map: the full panel (%s)" % [lang, map.size])
-	var d: Dictionary = map.data
-	check(absf(float(d.size[0]) / float(d.size[1]) - map.size.x / map.size.y) < 0.02, "%s: map: the aspect" % lang)
-	check(d.runways.size() >= 2 and d.route.size() == 4 and d.taxi.size() >= 4, "%s: map: runways, taxi, route" % lang)
-	check(d.aprons.size() > 0 and d.taxiways.size() > 0 and d.parking.size() > 0, "%s: map: the airbase" % lang)
-	check(map.base_label == ("רמון" if he else "Ramon"), "%s: map: the base" % lang)
-	# The roads with setup's road layer (the optional scenery step); without it the map draws the ground alone.
-	var roads: bool = load("res://shared/terrain/ground_roads.gd").available()
-	check(
-		d.get("texture") is Texture2D and (d.roads.size() > 0) == roads, "%s: map: the ground, roads %s" % [lang, roads]
-	)
-	var towns: Array = d.places.map(func(p): return p.he if he else p.en)
-	check(("מצפה רמון" if he else "Mitspe Ramon") in towns, "%s: map: Mitzpe Ramon (%s)" % [lang, towns])
-	check(fe.find_child("Footer", true, false) != null and _has_part(fe, "OpenStreetMap"), "%s: map: credit" % lang)
-	var foot: Control = fe.find_child("Footer", true, false)
-	check(foot.get_child(-1).name == "Credit", "%s: map: the credit at the footer's inline end" % lang)
-	# The credit reads in the language's direction ("מפה:" with its colon at the word's end, on its left).
-	var credit_label: Label = foot.get_child(-1)
-	check(credit_label.is_layout_rtl() == he, "%s: map: the credit right to left" % lang)
-	# The wheel zooms around the pointer: the map point under it stays; the scale bar follows.
-	var at := map.size * Vector2(0.3, 0.6)
-	var under: Vector2 = map._xf().affine_inverse() * at
-	var scale0: int = map.scale_metres()
-	for n in 8:
-		var w := InputEventMouseButton.new()
-		w.button_index = MOUSE_BUTTON_WHEEL_UP
-		w.pressed = true
-		w.position = at
-		map._gui_input(w)
-	check(map.zoom > 5.0, "%s: map: the wheel zooms in (%.2f)" % [lang, map.zoom])
-	var still: Vector2 = map._xf() * under
-	check(still.distance_to(at) < 1.0, "%s: map: zoomed around the pointer (%s)" % [lang, still - at])
-	check(map.scale_metres() < scale0, "%s: map: the scale bar follows (%d m)" % [lang, map.scale_metres()])
-	# A drag scrolls; a double click resets.
-	var c0: Vector2 = map.center
-	var press := InputEventMouseButton.new()
-	press.button_index = MOUSE_BUTTON_LEFT
-	press.pressed = true
-	press.position = at
-	map._gui_input(press)
-	var drag := InputEventMouseMotion.new()
-	drag.relative = Vector2(60, -40)
-	map._gui_input(drag)
-	var up := InputEventMouseButton.new()
-	up.button_index = MOUSE_BUTTON_LEFT
-	map._gui_input(up)
-	check(map.center.x < c0.x and map.center.y > c0.y, "%s: map: a drag scrolls" % lang)
-	press.double_click = true
-	map._gui_input(press)
-	check(is_equal_approx(map.zoom, 1.0), "%s: map: a double click resets" % lang)
-	# At the whole map, through the window (nothing over the map takes the events): a left drag and a middle drag
-	# move it, a trackpad's two-finger scroll (a pan gesture) moves it, a pinch (a magnify gesture) zooms.
-	var vp := map.get_viewport()
-	# A point of the map inside the window (the headless window is smaller than the front end's page).
-	var seen := map.get_global_rect().intersection(vp.get_visible_rect())
-	# In the window's pixels (the project's stretch scales the canvas into the window).
-	var mid := vp.get_final_transform() * seen.get_center()
-	vp.notification(Window.NOTIFICATION_WM_MOUSE_ENTER)  # headless: the pointer never entered the window
-	var probe := InputEventMouseMotion.new()
-	probe.position = mid
-	probe.global_position = mid
-	vp.push_input(probe)
-	await frames(1)
-	check(vp.gui_get_hovered_control() == map, "%s: map: nothing over the map takes the pointer" % lang)
-	for b in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE]:
-		var c2: Vector2 = map.center
-		var by := Vector2(80, 50) * (1.0 if b == MOUSE_BUTTON_LEFT else -1.0)
-		await _push_drag(vp, mid, b, vp.get_final_transform().basis_xform(by))
-		check(map.center.distance_to(c2) > 1.0, "%s: map: a %s drag moves the whole map" % [lang, b])
-	var c3: Vector2 = map.center
-	var pg := InputEventPanGesture.new()
-	pg.position = mid
-	pg.delta = Vector2(3, 2)
-	vp.push_input(pg)
-	await frames(1)
-	check(map.center.distance_to(c3) > 1.0, "%s: map: a two-finger scroll moves it" % lang)
-	var mg := InputEventMagnifyGesture.new()
-	mg.position = mid
-	mg.factor = 1.5
-	vp.push_input(mg)
-	await frames(1)
-	check(map.zoom > 1.4, "%s: map: a pinch zooms (%.2f)" % [lang, map.zoom])
-	map.reset_view()
-	# The keys: + zooms, an arrow scrolls (the map has the focus: the arrows stay off the tabs), 0 resets.
-	map.grab_focus()
-	map._gui_input(_key_event(KEY_EQUAL))
-	map._gui_input(_key_event(KEY_EQUAL))
-	var c1: Vector2 = map.center
-	map._gui_input(_key_event(KEY_RIGHT))
-	fe._input(_key_event(KEY_RIGHT))
-	check(map.zoom > 1.4 and map.center.x > c1.x, "%s: map: + zooms, an arrow scrolls" % lang)
-	check(fe.brief_tab == 1, "%s: map: the arrows scroll the focused map, not the tabs" % lang)
-	map._gui_input(_key_event(KEY_0))
-	check(is_equal_approx(map.zoom, 1.0), "%s: map: 0 resets" % lang)
-	map.release_focus()
-	# The arrow key toward the inline start goes back to Briefing; toward the end to Map.
-	fe._input(_key_event(KEY_RIGHT if he else KEY_LEFT))
-	check(fe.brief_tab == 0 and pane.find_child("PageBriefing", true, false).visible, "%s: arrow: Briefing" % lang)
-	fe._input(_key_event(KEY_LEFT if he else KEY_RIGHT))
-	check(fe.brief_tab == 1, "%s: arrow: Map" % lang)
-	fe.find_child("Mission1", true, false).pressed.emit()
-	await frames(2)
-	pane = fe.find_child("Briefing", true, false)
-	check(pane.find_child("PageMap", true, false).visible, "%s: the page kept for the next mission" % lang)
-	# Away and back (the Hangar, Preferences, the Hangar, the mission screen): the briefing opens on its first page, the
-	# map whole.
-	var mi: int = fe.mission_i
-	for screen in ["hangar", "prefs", "hangar", "mission"]:
-		fe.show_page(screen)
-	await frames(2)
-	pane = fe.find_child("Briefing", true, false)
-	var mp: Control = pane.find_child("PageMap", true, false)
-	check(
-		(
-			fe.brief_tab == 0
-			and pane.find_child("PageBriefing", true, false).visible
-			and is_equal_approx(mp.zoom, 1.0)
-			and fe.mission_i == mi
-		),
-		"%s: entering the mission screen again opens Briefing, the map whole, the mission kept" % lang
-	)
-	fe.show_tab(1)
-	fe.show_tab(0)
-	steps = pane.find_child("Steps", true, false)
-	check(steps.get_child_count() == 6 * 4, "%s: briefing: the start-up's six checklist steps" % lang)
-	var check_key: String = fe.key_name(fe.SimFlight.CHECK_KEY)
-	check(check_key != "" and _has(steps, check_key), "%s: briefing: the checklist's keys as bound" % lang)
-	check(
-		_has(steps, fe.key_name(fe.SimFlight.THROTTLE_IDLE_KEY)), "%s: briefing: the idle step's key, the card's" % lang
-	)
-	var pics: Array = steps.find_children("Switch*", "TextureRect", true, false)
-	check(
-		pics.size() == 6 and pics.all(func(p): return p.texture != null),
-		"%s: briefing: each step's switch pictured from the 3D cockpit (%d)" % [lang, pics.size()]
-	)
-	check(
-		pics.size() > 0 and "MAIN PWR" in pics[0].tooltip_text, "%s: briefing: the switch named on its picture" % lang
-	)
-	check(_has_part(steps, "20") and _has_part(steps, "90"), "%s: briefing: the waits" % lang)
-	var m: Control = pane.find_child("PageMap", true, false)
-	check(m.runway_label == "", "%s: map: a start-up has no runway" % lang)
-	check(pane.find_child("Fly", true, false) != null, "%s: briefing: Fly" % lang)
-	fe.find_child("Mission2", true, false).pressed.emit()
-	await frames(2)
 
 
 ## The texts without the right-to-left mark that leads a Hebrew jet name (front_end.gd full_name).

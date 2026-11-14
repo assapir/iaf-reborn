@@ -18,7 +18,7 @@ const FileExport := preload("res://shared/util/file_export.gd")
 const TerrainPreload := preload("res://shared/terrain/terrain_preload.gd")
 const Img := preload("res://shared/util/img.gd")
 const KeyTable := preload("res://shared/controls/key_table.gd")
-const BriefingMap := preload("res://menu/briefing_map.gd")
+const BriefingPage := preload("res://menu/briefing_page.gd")
 const ArmingDrawing := preload("res://menu/arming_drawing.gd")
 const Turntable := preload("res://shared/aircraft/turntable.gd")
 const AircraftModel := preload("res://shared/aircraft/aircraft_model.gd")
@@ -42,8 +42,6 @@ const SAMPLES := {
 ## The flight's checklist, whose key records the briefing's How names too (one source: STEP_IDS, CHECK_KEY,
 ## THROTTLE_IDLE_KEY; training.md §7.1).
 const SimFlight := preload("res://flight/sim_flight.gd")
-## The briefing's pages, in tab order.
-const TABS := ["Briefing", "Map", "Arming"]
 ## Each unit's front view in data/drawings, traced from its own model (tests/_jet_fronts.gd).
 const DRAWINGS := {"f16i": "f16i_front", "f16d": "f16d_front", "f35i": "f35i_front"}
 ## The planes the sim flies, each from its home base (strings <name>, base_<base>; the squadron: data/airbases).
@@ -114,10 +112,11 @@ const CRUMB_PAGES := {
 	"credits": "credits"
 }
 ## The screens that show the picked jet: the Hangar opens in their place before the first pick.
-const NEEDS_JET := ["mission"]
+const NEEDS_JET := ["mission", "arming"]
 ## Esc on each screen goes here (the Hangar's: the Quit prompt).
 const BACK := {
 	"mission": "hangar",
+	"arming": "mission",
 	"prefs": "hangar",
 	"debrief": "hangar",
 	"log": "pilot",
@@ -148,8 +147,6 @@ var _sounds: RefCounted
 static var _textures := {}
 ## The sim's key table for the briefing's keys (KeyTable.load_table, loaded once).
 var _keys: RefCounted = null
-## The briefing's page shown: 0 Briefing, 1 Map.
-var brief_tab := 0
 ## The Arming page's slot picked by the keyboard (its station), "" none.
 var arm_pick := ""
 ## The unit records' folder (a test's own records: tests/_loadout_shot.gd's lowered maximum).
@@ -260,10 +257,6 @@ func show_page(p: String) -> void:
 		p = "hangar"
 	var page_was := page
 	page = p
-	# Entering the mission screen opens the briefing on its first page (a new map, so its zoom too); the page picked
-	# stays only while the screen does (another mission picked).
-	if p == "mission" and page_was != "mission":
-		brief_tab = 0
 	strings = Settings.strings("res://menu/strings")
 	setup_strings = Settings.strings("res://setup/strings")
 	if _theme == null:
@@ -330,15 +323,17 @@ func _header(crumbs: Array) -> void:
 	for i in crumbs.size():
 		if i > 0:
 			_label(h, "·", "Crumb").size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		var t: String = s(crumbs[i]) if strings.has(crumbs[i]) else crumbs[i]
-		# Every crumb but the current one opens its screen (a jet's name: the Hangar).
-		var to: String = CRUMB_PAGES.get(crumbs[i], "hangar")
+		# A crumb: a strings key, a text (a jet's name: the Hangar) or [text, the screen it opens].
+		var cr = crumbs[i]
+		var t: String = str(cr[0]) if cr is Array else (s(cr) if strings.has(cr) else cr)
+		# Every crumb but the current one opens its screen.
+		var to: String = str(cr[1]) if cr is Array else CRUMB_PAGES.get(cr, "hangar")
 		var c: Control
 		if i == crumbs.size() - 1:
 			c = _label(h, t, "CrumbOn")
 		else:
 			c = _button(h, t, "CrumbLink", _crumb.bind(to))
-			c.name = "Crumb_" + (to if strings.has(crumbs[i]) else "jet")
+			c.name = "Crumb_" + (to if cr is Array or strings.has(cr) else "jet")
 		c.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_spacer(h)
 	if page == "pilot" and not creating and first_start():
@@ -781,187 +776,44 @@ func full_name(j: Dictionary) -> String:
 
 func _page_mission() -> void:
 	var j := jet()
-	_header(["hangar", full_name(j), "training"])
-	var h := _hbox(_body(96, 112, 120), 48)
-	var left := _vbox(h, 30)
-	left.custom_minimum_size.x = 500
-	_title(left, s("training"), subtitle(j))
 	if missions.is_empty():
+		_header(["hangar", full_name(j), "training"])
+		var left := _vbox(_body(96, 112, 120), 30)
+		_title(left, s("training"), subtitle(j))
 		_setup_note(left).custom_minimum_size.x = 900
 		_focus = find_child("Crumb_hangar", true, false)
 		return
-	var group := ButtonGroup.new()
-	for i in missions.size():
-		var m: Dictionary = missions[i]
-		var b := Button.new()
-		b.name = "Mission%d" % (i + 1)
-		b.theme_type_variation = "Card"
-		b.toggle_mode = true
-		b.button_group = group
-		b.button_pressed = i == mission_i
-		b.custom_minimum_size.y = 160
-		left.add_child(b)
-		var row := _hbox(_margin(b, 30, 22), 30)
-		row.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		var n := _label(row, str(i + 1), "Num")
-		n.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		var col := _vbox(row, 4)
-		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_label(col, title_of(m), "Strong").add_theme_font_size_override("font_size", 27)
-		_label(col, s("desc_" + kind(m)), "Muted")
-		var chip_row := _hbox(col, 0)
-		var st := status(m)
-		var chip_text := s("not_flown") if st < 0 else s("pass" if st == 1 else "fail")
-		var best := best_time(m)
-		if st == 1 and best > 0:
-			chip_text += " · " + clock(best)
-		chip_row.add_theme_constant_override("separation", 0)
-		var chip := _chip(chip_row, chip_text, st == 1)
-		chip.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		for c in b.find_children("*", "Control", true, false):
-			c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		b.pressed.connect(_pick_mission.bind(i))
-		if i == mission_i:
-			_focus = b
-	_briefing(h, missions[mission_i])
-	_footer(" ", [], true)
-	show_tab(brief_tab)  # the footer's credit is the page's
+	var m: Dictionary = missions[mission_i]
+	_header(["hangar", full_name(j), "training", title_of(m)])
+	BriefingPage.build(self, m)
 
 
-## The picked mission's briefing beside the list (front-end.md §10), three pages switched by the tabs at its top or
-## the arrow keys: Briefing (its title and base, the facts, the objectives the scorer judges, how: the steps with
-## their keys), Map (one zoomable map of the area down to the base) and Arming; Fly beside the tabs.
-func _briefing(parent: Control, m: Dictionary) -> void:
+## The loadout screen (crumb "… · Take-off · Arming"), opened by the briefing's Edit: the picked mission's Arming
+## page (_arming_page), Back to the briefing and Fly in the footer.
+func _page_arming() -> void:
+	var j := jet()
+	if missions.is_empty():
+		show_page("mission")
+		return
+	var m: Dictionary = missions[mission_i]
+	_header(["hangar", full_name(j), "training", [title_of(m), "mission"], "tab_arming"])
 	var pane := PanelContainer.new()
 	pane.name = "Briefing"
-	pane.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	parent.add_child(pane)
-	var pv := _vbox(_margin(pane, 38, 26), 18)
-	var tabs := _hbox(pv, 8)
-	var group := ButtonGroup.new()
-	for i in TABS.size():
-		var t := Button.new()
-		t.name = "Tab" + TABS[i]
-		t.text = s("tab_" + TABS[i].to_lower())
-		t.theme_type_variation = "Menu"
-		t.toggle_mode = true
-		t.button_group = group
-		t.button_pressed = i == brief_tab
-		for k in ["normal", "hover", "focus", "pressed", "hover_pressed"]:
-			var on: bool = k in ["pressed", "hover_pressed"]
-			var st := Look.box(Color(0, 0, 0, 0), Look.ACCENT if on else Look.LINE, 0, 0, Vector2(18, 8))
-			st.border_width_bottom = 3 if on else (2 if k == "focus" else 0)
-			t.add_theme_stylebox_override(k, st)
-		t.pressed.connect(show_tab.bind(i))
-		tabs.add_child(t)
-	_spacer(tabs)
-	var fly := _button(tabs, s("fly"), "Primary", func(): fly_mission(m))
-	fly.name = "Fly"
-	fly.custom_minimum_size = Vector2(200, 56)
-	fly.add_theme_font_size_override("font_size", 29)
-	_rule(pv, Look.LINE)
+	_body(96, 112, 120).add_child(pane)
 	var pages := Control.new()
 	pages.name = "Pages"
-	pages.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	pv.add_child(pages)
-	# The page scrolls when a mission's steps run longer than the panel.
-	var scroll := ScrollContainer.new()
-	scroll.name = "PageBriefing"
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	pages.add_child(scroll)
-	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var b := _vbox(scroll, 12)
-	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var tv := _hbox(b, 24)
-	_label(tv, title_of(m), "H2")
-	var base := str(m.get("start", {}).get("base", "")).to_lower().replace(" ", "_")
-	var sub := _label(tv, subtitle(jet_of(m)), "Sub")
-	sub.size_flags_vertical = Control.SIZE_SHRINK_END
-	var facts := _hbox(b, 44)
-	facts.name = "Facts"
-	var budget := s("minutes") % int(float(m.training.get("time_budget_s", 0)) / 60.0)
-	var heading = briefing_map(m, 1.0).get("heading") if m.get("runway") is String else null
-	var rows := []
-	if m.get("runway") is String:
-		rows.append(["runway", runway_text(m.runway, heading), ""])
-	rows.append(["time", military_time(str(m.get("time", ""))), ""])
-	rows.append(["wind", wind_text(m), s("kt")])
-	rows.append(["time_allowed", str(int(float(m.training.get("time_budget_s", 0)) / 60.0)), s("min")])
-	for f in rows:
-		var fv := _vbox(facts, 0)
-		_label(fv, s(f[0]), "Muted")
-		_fact(fv, f[1], f[2])
-	var ov := _vbox(b, 4)
-	_label(ov, s("objectives"), "Muted")
-	var objs := GridContainer.new()
-	objs.name = "Objectives"
-	objs.columns = 2
-	objs.add_theme_constant_override("h_separation", 40)
-	objs.add_theme_constant_override("v_separation", 2)
-	ov.add_child(objs)
-	for o in objectives(m, budget):
-		var row := _hbox(objs, 12)
-		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var dot := _label(row, "•", "Strong")
-		dot.add_theme_color_override("font_color", Look.ACCENT)
-		_text(row, o, "")
-	var sv := _vbox(b, 6)
-	_label(sv, s("how"), "Muted")
-	# The steps: number, the step, the key as bound, the switch (its picture from the 3D cockpit, else its name and
-	# place); the state to wait for under the step, or in the last column when the step has no switch (a call to the
-	# tower, the taxi).
-	var grid := GridContainer.new()
-	grid.name = "Steps"
-	grid.columns = 4
-	grid.add_theme_constant_override("h_separation", 16)
-	grid.add_theme_constant_override("v_separation", 10 if kind(m) == "startup" else 3)  # the pictures apart
-	sv.add_child(grid)
-	var steps := briefing_steps(m)
-	for i in steps.size():
-		var st: Dictionary = steps[i]
-		var n := _label(grid, str(i + 1), "Strong")
-		n.add_theme_color_override("font_color", Look.ACCENT)
-		n.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		var sv2 := _vbox(grid, 0)
-		sv2.custom_minimum_size.x = 440
-		sv2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_text(sv2, st.text, "")
-		# The state to wait for: under the step when its switch's place fills the last column, else there.
-		var under: bool = st.where != ""
-		if st.wait != "" and under:
-			var wl := _text(sv2, st.wait, "Small")
-			wl.name = "Wait"
-			wl.add_theme_color_override("font_color", Look.ACCENT_TEXT)  # the state to wait for stands out
-		_keycap(grid, st.key).size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		var crop := _texture(ProjectSettings.globalize_path(st.crop)) if st.crop != "" else null
-		if crop != null:
-			var pic := TextureRect.new()
-			pic.name = "Switch%d" % (i + 1)
-			pic.texture = crop
-			pic.tooltip_text = st.where
-			pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			pic.custom_minimum_size = Vector2(210, 140)
-			pic.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-			grid.add_child(pic)
-			continue
-		var w := _text(grid, st.where if under else st.wait, "Small")
-		w.custom_minimum_size.x = 340
-		if not under and st.wait != "":
-			w.name = "Wait"
-	var map := BriefingMap.new()
-	map.name = "PageMap"
-	pages.add_child(map)
-	map.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	map.base_label = s("base_" + base)
-	map.runway_label = _ltr(runway_text(m.runway, heading)) if m.get("runway") is String else ""
-	map.km = s("km")
-	map.metres = s("m")
-	map.start_label = s("start_spot")
-	map.hebrew = he()
-	map.source = func(a: float) -> Dictionary: return briefing_map(m, a, true)
+	_margin(pane, 38, 26).add_child(pages)
 	_arming_page(pages, m)
-	show_tab(brief_tab)
+	var back := _action(s("back"), "Secondary", func(): show_page("mission"))
+	back.name = "Back"
+	var fly := _action(s("fly"), "Primary", func(): fly_mission(m))
+	fly.name = "Fly"
+	_footer(" ", [back, fly])
+	fly.disabled = bool(arming(m, mission_loadout(m)).get("blocked", false))
+	var drawing := find_child("Drawing", true, false)
+	_focus = drawing.find_child("Slot*", true, false) if drawing != null else null
+	if _focus == null:
+		_focus = back
 
 
 ## The Arming page: the jet's front view with a slot per station under it, each with its store's picture and name and
@@ -1127,6 +979,11 @@ func _unit_file(m: Dictionary) -> String:
 	return ProjectSettings.globalize_path(units_dir.path_join("%s.json" % str(m.get("start", {}).get("unit", ""))))
 
 
+## The loadout mission `m` flies with: the pilot's for its jet, "" (the record's) where the mission fixes it.
+func mission_loadout(m: Dictionary) -> String:
+	return "" if bool(m.get("fixed_loadout", false)) else _arm_now(m)
+
+
 ## The pilot's loadout for the mission's jet now (JSON text; "" the record's default).
 func _arm_now(m: Dictionary) -> String:
 	return IafPilotLog.loadout(Settings.records_db(), Settings.pilot(), str(jet_of(m).get("unit", "")))
@@ -1174,7 +1031,6 @@ func _arm_redraw(m: Dictionary) -> void:
 	pages.remove_child(old)
 	old.queue_free()
 	_arming_page(pages, m)
-	show_tab(brief_tab)
 	var c := pages.find_child(want, true, false) if want != "" else null
 	if c is Control:
 		_grab.call_deferred(c)
@@ -1242,21 +1098,6 @@ func _arm_choose(id: String) -> void:
 ## "16,069": kilograms with a thousands separator.
 static func kg_text(v) -> String:
 	return Look.group(int(v))
-
-
-## The briefing's page: 0 Briefing, 1 Map, 2 Arming (kept for the next mission picked); the footer's credit is the
-## Map's, OpenStreetMap's (the drawing is our own render of our own model: its credit is in docs/credits.md).
-func show_tab(i: int) -> void:
-	brief_tab = clampi(i, 0, TABS.size() - 1)
-	var pane := find_child("Briefing", true, false)
-	if pane == null:
-		return
-	for j in TABS.size():
-		pane.find_child("Page" + TABS[j], true, false).visible = j == brief_tab
-	pane.find_child("Tab" + TABS[brief_tab], true, false).button_pressed = true
-	var credit: Label = find_child("Credit", true, false)
-	if credit != null:
-		credit.text = s("map_credit") if brief_tab == 1 else ""
 
 
 ## "0800": the mission's HH:MM as military time.
@@ -1433,7 +1274,7 @@ var _preload := Vector2i(-1, -1)
 
 func _preload_ground() -> void:
 	var id := -1
-	if page == "mission" and flight == null and mission_i < missions.size():
+	if page in ["mission", "arming"] and flight == null and mission_i < missions.size():
 		id = int(missions[mission_i].menu_id)
 	_preload = TerrainPreload.follow(get_tree(), _preload, Vector2i(id, Settings.player_flight), Fly.prepare)
 
@@ -2479,30 +2320,12 @@ func _page_pause() -> void:
 # --- keys -------------------------------------------------------------------------------------------------------------
 
 
-## The arrow keys toward the inline end / start switch the briefing's pages (Briefing at the inline start).
-func _input(event: InputEvent) -> void:
-	if not (event is InputEventKey and event.pressed):
-		return
-	if page != "mission":
-		return
-	var map := find_child("PageMap", true, false)
-	if map != null and map.has_focus():
-		return  # the map scrolls with the arrows
-	var arm := find_child("PageArming", true, false)
-	var fo := get_viewport().gui_get_focus_owner()
-	if arm != null and fo != null and arm.is_ancestor_of(fo):
-		return  # the arrows move between the slots and the inventory
-	if event.keycode in [KEY_LEFT, KEY_RIGHT]:
-		var to_end: bool = (event.keycode == KEY_RIGHT) != he()
-		show_tab(brief_tab + (1 if to_end else -1))
-		get_viewport().set_input_as_handled()
-
-
+## Esc: a picked slot left as it was, a modal closed, else the screen before (back).
 func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
 		return
 	get_viewport().set_input_as_handled()
-	if page == "mission" and arm_pick != "":
+	if page == "arming" and arm_pick != "":
 		_arm_unpick()
 		return
 	if not close_modal():
@@ -2694,7 +2517,7 @@ func spy(scroll: ScrollContainer, tabs: Array, heads: Array) -> void:
 	)
 
 
-## A button for what the sim does not have yet (Guides, the campaign): greyed, "coming" as its tooltip, no focus.
+## A button for what the sim does not have yet (the campaign): greyed, "coming" as its tooltip, no focus.
 func _soon(parent: Node, t: String, kind_name: String) -> Button:
 	var b := Button.new()
 	b.text = t

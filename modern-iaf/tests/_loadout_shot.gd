@@ -83,14 +83,13 @@ func run() -> void:
 	s.pilot_name = ""
 
 
-## The jet's take-off on the Arming page.
+## The jet's take-off on the loadout screen (the briefing's Edit).
 func _open(jet: String) -> void:
 	var s := settings()
 	s.sim_jet = jet
 	fe.show_page("mission")
 	fe.mission_i = fe.missions.map(func(x): return str(x.get("id", "")).ends_with("_takeoff")).find(true)
-	fe.brief_tab = 2  # entering the screen opens Briefing; the tab kept while it stays
-	fe.show_page("mission")
+	fe.show_page("arming")
 	await frames(10)
 
 

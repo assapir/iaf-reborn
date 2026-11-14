@@ -143,6 +143,8 @@ static func make() -> Theme:
 	_button(t, "CrumbLink", crumb, crumb_on, box(Color(0, 0, 0, 0), ACCENT, 2, 5, Vector2(8, 4)))
 	for k in ["font_hover_color", "font_focus_color", "font_pressed_color", "font_hover_pressed_color"]:
 		t.set_color(k, "CrumbLink", TEXT)
+	# The current crumb as wide a margin as a link's, so the dots between the crumbs stand evenly.
+	t.set_stylebox("normal", "CrumbOn", crumb)
 	# The pilot on Home (the nickname, the name, the picture), which opens the Pilot screen: a crumb's look, deeper
 	# while pressed.
 	_button(t, "PilotLink", crumb, crumb_on, box(Color(0, 0, 0, 0), ACCENT, 2, 5, Vector2(8, 4)))

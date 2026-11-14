@@ -9,7 +9,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   steering them, and CCIP predicts that fall (W5, W6); the GPS bombs miss by their published CEP (W11); a drop tank's own empty weight loads the jet until it is
   jettisoned (370 gal 443 lb sourced, 600 gal 611 lb inferred; F27). Shared with the original game's Weapon data Real.
 - **Bombs, missiles and the gun in every flight (2026-11-14, the user: "the fact that you can drop weapons"):** on
-  the Sufa, the Barak and the F-35I the stores hung on the briefing's Arming page fly with the mission; after the
+  the Sufa, the Barak and the F-35I the stores hung on the loadout screen fly with the mission; after the
   take-off's pass the flight goes on, and Shift+A, `[` and Space release the bombs (the HUD's CCIP cue; the F-35I's
   bay doors open by themselves), which fall and burst on the terrain; `]` and Space launch a missile, Tab fires the
   gun ([weapons.md](weapons.md) §5). The notebook's WEAPONS tab (key H) lists the steps per jet with their switches
@@ -317,15 +317,19 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **[E2](plan.md#e2-the-front-end), the front end (2026-11-08):** `./start-modern-iaf` opens Home; Pick a plane, Training, Pick a mission, Fly,
   the flight, its debrief sheet, the Pilot log, Preferences and Attributions, in English and Hebrew (mirrored), in the
   round-3 look ([front-end.md](front-end.md)). Esc over a flight opens the pause menu. `test_front_end.gd`.
-- **The mission briefing (2026-11-09, awaiting the user's approval):** Pick a mission shows the picked mission's
-  objectives, steps with their keys, base, runway and heading, time and wind on a Briefing page; on a Map page one
-  zoomable map (the theatre's ground colour, roads, towns, the route, the whole airbase); on an Arming page each jet's
+- **The mission briefing, map first (2026-11-14, the approved mock r3_briefing; finish list F2):** the map fills the
+  screen and opens on the base and the route, the steps' pins numbered as the ORDER OF ACTIONS card (each step with
+  its key as bound; a step opens to its wait and, on a start-up, its switch's picture); the mission card holds the
+  missions as tabs with their pass chips, the facts, the objectives, the Arming summary with Edit, Back and Fly; the
+  map's chips turn the taxi route, the labels and the photo off and zoom. The whole map's rectangles of other tones are
+  the Survey of Israel sheets' own levels (terrain.md §10, Open). From 2026-11-09: one zoomable map (the theatre's
+  ground colour, roads, towns, the route, the whole airbase); the loadout screen (Edit) shows each jet's
   front view with its stores (the Adir's two AIM-120 in its bays, 2026-11-10), an inventory column of the stores it may
   carry and the take-off weight; the subtitles name the tail number and squadron, no wing; the missions' titles are their kinds ([front-end.md](front-end.md) §10, `IafBriefing`). `test_front_end.gd`, `cargo test -p iaf-tools --lib briefing`.
-- **The briefing's switch pictures (2026-11-11, awaiting the user's approval):** a start-up's How shows each
-  step's switch cut from the jet's 3D cockpit with a ring round it, the state to wait for under the step
+- **The briefing's switch pictures (2026-11-11, awaiting the user's approval):** a start-up's step opened in the
+  order of actions shows its switch cut from the jet's 3D cockpit with a ring round it and the state to wait for
   (`modern-iaf/data/switches`, `modern-iaf/tests/_switch_crops.gd`; [front-end.md](front-end.md) §10). `test_front_end.gd`.
-- **The loadout editor (2026-11-10, awaiting the user's approval):** on the briefing's Arming page a store drags from
+- **The loadout editor (2026-11-10, awaiting the user's approval):** on the loadout screen a store drags from
   the inventory onto a slot, between slots and back; each station takes only what the unit record's `allowed` lists
   (re-sourced per jet, data-formats.md §3; each store its own record with its weight and size), racks (a TER of three
   Mk 82, two GBU-38, four GBU-39) with a "×n" badge that cycles the count, the stores without a model greyed, an

@@ -74,7 +74,7 @@ func _from_front_end(id: String) -> Node:
 	await frames(3)
 	var list: Array = fe.jet_missions(unit)
 	fe._pick_mission(list.map(func(m): return str(m.id)).find(JETS[id][1] + "_takeoff"))
-	fe.show_tab(2)
+	fe.show_page("arming")
 	await frames(10)
 	await _shot("arming_%s" % unit)
 	fe.find_child("Fly", true, false).pressed.emit()
