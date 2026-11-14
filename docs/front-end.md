@@ -2618,7 +2618,7 @@ the launcher.
 
 Ours: the start-up goes straight to the main menu and plays no video (docs/deviations.md §1). Godot plays only Ogg
 Theora video, and the project keeps no Indeo 5 decoder. `iaf-extract` copies both files to
-`assets/install/resource/avi/`; the README's [Intro videos](../README.md#intro-videos) section tells how to watch them.
+`assets/install/resource/avi/`; the README's [Intro videos](../iaf-reborn/README.md#intro-videos) section tells how to watch them.
 
 ### 18.3 Main menu
 After the videos the exe draws `Bmp\Back0.bmp` and opens the menu window (§1). Ours: the start-up (after the CD

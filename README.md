@@ -1,227 +1,61 @@
 # Jane's IAF reborn and Modern IAF
 
-Two flight sims on one open-source engine (Godot 4 and Rust), for Linux, macOS and Windows:
+Two flight sims on one open-source engine (Godot 4 and Rust), for Linux, macOS and Windows. Each has its own folder,
+its own README and its own setup.
 
-- **iaf-reborn** is a re-implementation of **Jane's IAF: Israeli Air Force** (1998). It runs on your own copy of the
-  original game's data.
-- **Modern IAF** (in Hebrew: הזרוע הארוכה) is a present-day Israeli Air Force sim. It reads only our own and openly
-  licensed data.
+## Jane's IAF reborn: the 1998 game
 
-Both games share the engine in `shared/` and `crates/`.
-
-## Jane's IAF reborn (the 1998 game)
-
-A native re-implementation of the engine for Jane's IAF (1998). It loads the game data from **your own copy** of the
-original game and renders it with modern graphics.
+A re-implementation of **Jane's IAF: Israeli Air Force** (1998). It loads the game data from **your own copy** of
+the original game and renders it with modern graphics.
 
 **You need your own copy of the original game (the CD / ISO).** This repository holds no original game assets or
 data. Setup extracts and converts everything the engine uses on your machine, from your ISO.
-
-The game plays as the original v1.1 by default; every improvement is an opt-in switch
-([docs/deviations.md](docs/deviations.md)). What works and what is open: [docs/status.md](docs/status.md).
 
 ```sh
 ./setup        # the setup wizard: pick your CD, it does the rest
 ./iafjets      # builds what changed and starts the game
 ```
 
-Details: [Quick start](#quick-start) below.
+Requirements, setup, controls and the rest: [iaf-reborn/README.md](iaf-reborn/README.md). What works and what is
+open: [docs/status.md](docs/status.md).
 
-## Modern IAF (the present-day sim)
+## Modern IAF: the present-day sim
 
-A flight sim of today's Israeli Air Force with three jets (F-16I Sufa, F-16D Barak, F-35I Adir), 3D cockpits, Israel
-at full scale, training missions, in Hebrew and English. What works today and what is open:
-[modern-iaf/docs/status.md](modern-iaf/docs/status.md).
+Modern IAF (in Hebrew: הזרוע הארוכה) is a flight sim of today's Israeli Air Force: three jets (F-16I Sufa, F-16D
+Barak, F-35I Adir), 3D cockpits, Israel at full scale, training missions, in Hebrew and English.
 
-**It needs no data from the original game.** Setup downloads open data once (the Copernicus GLO-30 heights, 0.6 GB,
-and ESA WorldCover's Sentinel-2 colour tiles, 11.4 GB) and builds the sim's data into `assets/`.
+**It needs no data from the original game.** Setup downloads open data once (0.6 GB of heights and 11.4 GB of
+satellite colour tiles) and builds the sim's data into `assets/`.
 
 ```sh
 ./modern-iaf-setup     # the setup wizard: downloads the open data and builds the sim's data
 ./start-modern-iaf     # builds what changed and starts the sim
 ```
 
-On Windows: `.\modern-iaf-setup.ps1` and `.\start-modern-iaf.ps1`. Details, and Modern IAF on a Mac:
-[modern-iaf/README.md](modern-iaf/README.md); setup: [modern-iaf/docs/setup.md](modern-iaf/docs/setup.md).
+Setup, running it on a Mac, folders: [modern-iaf/README.md](modern-iaf/README.md). What works and what is open:
+[modern-iaf/docs/status.md](modern-iaf/docs/status.md).
+
+## The shared engine
+
+Both games run on the same engine: the Rust crates in `crates/` and the Godot scripts, scenes and shaders in
+`shared/`. Commands, architecture and conventions: [CLAUDE.md](CLAUDE.md).
 
 ## Layout
 
-- `crates/` – Rust workspace: file-format parsers, extraction / conversion tools, setup, flight model, avionics,
+- `crates/`: Rust workspace: file-format parsers, extraction / conversion tools, setup, flight model, avionics,
   Godot extension (both games)
-- `shared/` – the engine's GDScript, scenes and shaders (both games)
-- `iaf-reborn/` – the Godot 4.7 project of the 1998 game
-- `modern-iaf/` – the Godot project and data of Modern IAF
-- `docs/` – reverse-engineering notes per system for the 1998 game and the shared engine; `docs/formats/` – file
-  formats
-- `modern-iaf/docs/` – Modern IAF's plan, status and design notes
-- `assets/` – generated on your machine (git-ignored): from your ISO for the 1998 game, from open data for Modern IAF
-
-The sections below describe the 1998 game (`iaf-reborn`) unless a heading says Modern IAF.
-
-## Requirements (the 1998 game)
-
-### From the original game
-
-- `Jane's IAF.iso` — the original English CD image (v1.0).
-- _(optional, recommended)_ the official v1.1 patch (the WinZip self-extractor holding `iafp1_1.exe`). Setup applies
-  it without Windows. The engine's logic is always v1.1; without the patch it plays the v1.0 data
-  ([docs/v1.1.md](docs/v1.1.md#v10-data-compatibility)).
-- _(optional)_ the Hebrew CD, or the Hebrew packs `Brief.zip` / `Menu.zip` ([docs/packs.md](docs/packs.md)).
-
-If you do not have them, search the web for the ISO and the Hebrew packs. I trust you.
-
-### Arch Linux packages
-
-| package | source | needed for |
-|---|---|---|
-| `rustup` (then `rustup default stable`) | extra | building the tools (`crates/`) |
-| `godot` (4.7) | extra | running the game (`iaf-reborn/`) |
-| `vulkan-intel` / `vulkan-radeon` / `nvidia-utils` (match your GPU) | extra | Vulkan rendering |
-| `ttf-liberation` (or `ttf-ms-fonts` from AUR for real Arial) | extra | menu text (the original uses Arial; Liberation Sans is metric-compatible, [docs/macos.md](docs/macos.md#platform-differences)) |
-| `gdal` _(optional)_ | extra | modern terrain imagery |
-
-```sh
-sudo pacman -S --needed rustup godot vulkan-intel
-sudo pacman -S --needed gdal          # optional: modern terrain imagery
-rustup default stable
-```
-
-macOS: [docs/macos.md](docs/macos.md).
-
-### Windows
-
-Windows 10 or 11, from a terminal: Git, Rust, Godot and the C++ build tools Rust links with, then allow your own
-scripts (Windows runs none by default):
-
-```powershell
-winget install Git.Git Rustlang.Rustup GodotEngine.GodotEngine
-winget install Microsoft.VisualStudio.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-```
-
-Then open a new terminal: it picks up the new PATH. Optional: `winget install GISInternals.GDAL` for the modern
-terrain imagery. The rest (the scripts, the optional extras, tests, contributing): [docs/windows.md](docs/windows.md).
-
-## Quick start
-
-```sh
-./setup        # the setup wizard: pick your CD, it does the rest
-./iafjets      # builds what changed and starts the game (without game data: the wizard)
-```
-
-On Windows the same in PowerShell: `.\setup.ps1`, `.\iafjets.ps1` and `.\mission-editor.ps1`; the scripted setup is
-`tools\windows\setup-cli.ps1` with the options of `iaf-setup` (`crates/iaf-setup/src/bin/iaf-setup.rs`), e.g.
-`tools\windows\setup-cli.ps1 --patch v1.1.exe "C:\path\to\Jane's IAF.iso"`. Setup adds the two launchers to the Start
-Menu.
-
-The wizard checks what the computer has, asks for the English CD image and the optional extras, and shows each
-step's progress. Run it again to add an extra or redo a step: only what changed runs. Setup also installs a desktop
-launcher, "Jane's IAF (reborn)", with the original icon.
-
-The same steps from a terminal, for scripting:
-
-```sh
-tools/setup-cli.sh [--patch v1.1.exe] [--hebrew-iso IAF.Iso] [--imagery sentinel2,mapi2015] "/path/to/Jane's IAF.iso" [Brief.zip Menu.zip]
-```
-
-Inputs, steps, stamps and uninstall: [docs/setup.md](docs/setup.md). The tools also run by hand, for example
-`cargo run --release -p iaf-tools --bin iaf-extract -- "/path/to/Jane's IAF.iso" assets/install` (the original "Full
-Install", lower-cased paths) and `… --bin iaf-patch -- apply v1.1.exe assets/install assets/v1.1` (the 41 patched
-files; [docs/formats/rtpatch.md](docs/formats/rtpatch.md)).
-
-Other entry points:
-
-- `./iafjets -- --mission 311`: straight into a mission (Windows: `.\iafjets.ps1 --mission 311`).
-- `godot --path iaf-reborn res://shared/terrain/terrain_view.tscn`: straight into the air.
-- `godot --path iaf-reborn res://viewer/viewer.tscn`: the model viewer, with hot reload.
-
-## Intro videos
-
-The original plays `janes.avi` (the Jane's logo) and `intro.avi` (the opening movie) at start-up. Ours goes straight
-to the main menu. After setup both files are in `assets/install/resource/avi/`, in the Indeo 5 format. VLC and
-ffmpeg's `ffplay` play them (QuickTime does not):
-
-```sh
-ffplay -autoexit assets/install/resource/avi/intro.avi
-```
-
-## Terrain imagery data (optional)
-
-The 1998 imagery stays the default. Modern imagery is an opt-in layer per region, picked on Preferences → Graphics →
-MORE ("Imagery Israel", "Imagery outside Israel"); a choice whose data is not converted is greyed out. Nothing is
-downloaded unless you ask (the wizard's Extras page, or):
-
-```sh
-tools/setup-cli.sh --imagery sentinel2          # without the ISO: added to the last setup (assets/setup.json)
-tools/setup-cli.sh --imagery mapi2015-bases     # or several: --imagery sentinel2,mapi2015
-```
-
-Each source comes in two looks: 1998 colours and modern colours.
-
-| source | region | where from | licence / credit | size | how |
-|---|---|---|---|---|---|
-| **Sentinel-2** (ESA WorldCover 2021 S2 RGB composite, 10 m) — `sentinel2` | outside Israel | `https://esa-worldcover-s2.s3.eu-central-1.amazonaws.com/rgbnir/2021/` (public S3, HTTP range reads through GDAL) | CC BY 4.0 — "Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium" | ≈ 28 GB of range reads (setup prints the estimate and asks first), ≈ 2.6 GB on disk + 8.7 GB pre-compressed (setup step `bc1`), ≈ 1 h 40 min | automatic, resumable (needs `gdal`) |
-| **Survey of Israel 2015 aerial photo, 2 m** — `mapi2015` (all 79 sheets), `mapi2015-bases` (the sheets around the airbases) | Israel, West Bank, Golan (at 2.5 m per pixel) | data.gov.il, one ZIP per 1:50 000 sheet ([tools/imagery/mapi2015_sheets.tsv](tools/imagery/mapi2015_sheets.tsv)) | data.gov.il open licence — "© Survey of Israel 2015, via data.gov.il" | ≈ 250 MB per sheet: ≈ 20 GB all, ≈ 2 GB bases; ≈ 5.2 GB on disk + 9.3 GB pre-compressed (setup step `bc1`); ≈ 1 h to convert all on 6 threads | manual-assisted: setup downloads with curl and the bot-challenge token Firefox earned on data.gov.il (open one sheet link in Firefox first); without one, it opens the links in your browser and moves the finished ZIPs ([imagery.md §8](docs/imagery.md)); then converts (needs `gdal`; after adding sheets only what they touch is redone) |
-| _coming:_ **SPOT 5** (CNES SPOT World Heritage, 5 m pan + 10 m colour) | outside Israel (maybe Israel too) | GEODES (`https://geodes-portal.cnes.fr/api/stac/search`), free CNES account | Etalab Open Licence 2.0 — "© CNES, distribution SWH / Airbus DS" | ≈ 20–40 GB | not yet (needs a free CNES account and orthorectification) |
-
-The credits roll on Quit shows the converted layers' credits. Pipeline, folders and running by hand:
-[docs/imagery.md](docs/imagery.md); the warp to the game frame: [docs/georef.md](docs/georef.md); every source checked
-and why: [docs/imagery-sources.md](docs/imagery-sources.md).
-
-## Flying
-
-Every key comes from the original game's key table (converted from `iafjets.exe`). Rebind them on **Preferences →
-Keyboard**. All 117 original commands and our own keys: [docs/controls.md](docs/controls.md).
-
-| key (default) | action |
-|---|---|
-| arrows | stick (↑ forward = nose down, ↓ pull), sprung; ←/→ steer the nose wheel on the ground |
-| Numpad 0 / Numpad . | rudder (ignored on the ground, as in the original) |
-| 1–8 | throttle presets idle, 65, 70, 80, 90 %, military, AB1, AB2; **1 starts the engine** |
-| 0 / 9 | throttle +/− 5 % RPM |
-| G / F / B | gear / flaps / brakes (wheel brakes on the ground, speed brake in the air) |
-| A | autopilot |
-| E (×3) | eject: press three times |
-| T / D | MFD: TSD / damage page |
-| Q / R / S | radar: cycle mode / A-A ↔ A-G / standby |
-| . / , | radar range + / − |
-| W, Shift+W | next / previous waypoint |
-| H | HUD colour |
-| F1 / F10 | cockpit / external (chase) view |
-| = / − (Numpad + / −) | cockpit zoom |
-| Ctrl+Q | quit mission? (debrief) |
-| Ctrl+P / Ctrl+O | pause / On-The-Fly menu |
-| Esc | tactical display (FlyTSD) and back; closes the menu |
-| C / Ctrl+C | time compression x2 / x4 / x1, normal time |
-| Ctrl+M | mute |
-
-Our own keys: **Ctrl+F1** quit mission?, **Ctrl+F2** cockpit ↔ external, **Ctrl+F12** flight-info line, **V** /
-**PgUp** / **PgDn** panel, mouse wheel zoom, right-drag orbits the external view.
-
-**Joystick, throttle and pedals.** One device (the first connected; hot-plug works) works as in the original, read
-through Godot's SDL with no extra packages. Set it up on **Preferences → Devices** (FLIGHT CONTROLS, THROTTLE,
-RUDDER); bind its buttons on the Keyboard page. The log prints the device and its axis numbers when it connects; if
-the wrong control moves, edit `[devices] joy_axes` in the settings file. Details: [docs/controls.md](docs/controls.md)
-§5.
-
-## Contributing
-
-- Commands, architecture and conventions: [CLAUDE.md](CLAUDE.md). Plans: [docs/roadmap.md](docs/roadmap.md).
-- Tests: `cargo test -q --workspace` (tests that need game data or `python3` skip with a message);
-  `tools/test.sh` (bash) runs those and every headless Godot test `tests/godot/test_*.gd` (Windows:
-  [docs/windows.md](docs/windows.md#tests)). The Godot tests need the
-  converted assets, so they run locally. Run scripted tests with `IAF_DEFAULT_SETTINGS=1`: they then never read or
-  write your saved preferences.
-- Credits: the roll on Quit shows ours and the imagery credits, then the original's. To add one:
-  [docs/credits.md](docs/credits.md).
+- `shared/`: the engine's GDScript, scenes and shaders (both games)
+- `iaf-reborn/`: the Godot 4.7 project of the 1998 game, and its README
+- `modern-iaf/`: the Godot project, data and README of Modern IAF
+- `docs/`: notes per system for the 1998 game and the shared engine; `docs/formats/`: file formats
+- `modern-iaf/docs/`: Modern IAF's plan, status and design notes
+- `assets/`: generated on your machine (git-ignored): from your ISO for the 1998 game, from open data for Modern IAF
 
 ## License and trademarks
 
-The code in this repository is licensed under the GNU General Public License v3.0 or later — see [LICENSE](LICENSE).
-It contains no data from the original game; the 1998 game needs your own copy. Third-party models, pictures and sounds
-in `shared/extra/` keep their own licences; each has its credits beside it (`SOURCES.md`, `CREDITS.md`, `README.md`).
-The CC0 textures from ambientCG (Ground textures, Model detail) are downloaded by setup into the git-ignored `assets/thirdparty/`
-([docs/credits.md](docs/credits.md)).
+The code in this repository is licensed under the GNU General Public License v3.0 or later: see [LICENSE](LICENSE).
+It contains no data from the original game; the 1998 game needs your own copy. Third-party models, pictures and
+sounds in `shared/extra/` keep their own licences ([docs/credits.md](docs/credits.md)).
 
 "Jane's" and "Jane's IAF" are trademarks of their respective owners. This project is an independent, non-commercial
 re-implementation and is not affiliated with, endorsed by or sponsored by them or by the original publisher

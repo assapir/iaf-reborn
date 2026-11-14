@@ -8,7 +8,7 @@ it. Key facts:
   converted map.ptt (`L<level>/c_<i>_<j>.jpg`).
 - A layer replaces only a node's colour texture. Heights, terrain types, missions and insets stay the original's.
 - Related docs: why these sources and their licences in docs/imagery-sources.md and docs/imagery-research.md; the warp
-  into the game frame in docs/georef.md; the user-facing summary in the README, "Terrain imagery data".
+  into the game frame in docs/georef.md; the user-facing summary in iaf-reborn/README.md, "Terrain imagery data".
 
 Terms used below:
 

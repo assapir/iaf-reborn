@@ -2,7 +2,7 @@
 
 The CD's `Resource\Avi` holds the two videos the exe plays at start-up (front-end.md §18.2). `iaf-extract` copies them
 to `assets/install/resource/avi/`. The port goes straight to the main menu; the
-[README](../../README.md#intro-videos) tells how to watch them.
+[README](../../iaf-reborn/README.md#intro-videos) tells how to watch them.
 
 | file | length | video chunks | picture | sound |
 |---|---|---|---|---|

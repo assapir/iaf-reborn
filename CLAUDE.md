@@ -83,7 +83,7 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
   (`stores.rs`), `IafBomb` / `IafModes` (`bombs.rs`), `IafRwr` (`rwr.rs`), `IafEo` / `IafHarm` (`sensors.rs`), `IafRelease` / `IafRipple` (`release.rs`), `IafRealHud` (`real_hud.rs`), `IafFlightController` (`fctrl.rs`, the AWACS and radio reports), `IafSetup` (`setup.rs`, the setup wizard's pipeline), `IafSurface` (`surface.rs`, terraintype.dat rasterised for the terrain shader), `IafEmf` (`emf.rs`, the TSD map's polygon fill), `IafHeights` (`heights.rs`), `IafImode` (`imode.rs`), `IafBases` (`bases.rs`, the base move), `IafMcr` (`mcr.rs`, the Mission Creator), `IafMissionEdit` (`mission_edit.rs`, the mission editor), `IafAutorun` (`autorun.rs`, the CD launcher);
   `world.rs` converts the weapons' world frame. Handles the frame conversion: FM is ENU (east, north, up); Godot is
   X east, Y up, Z south. Loaded via `iaf-reborn/iaf.gdextension`.
-- `iaf-reborn/` — the original game's Godot project: `menu` (the front end, TSD, pilots), `setup` (the wizard), `editor`
+- `iaf-reborn/` — the original game's Godot project (entry page `iaf-reborn/README.md`): `menu` (the front end, TSD, pilots), `setup` (the wizard), `editor`
   (the mission editor, `./mission-editor`), `viewer`, `project.godot`, `iaf.gdextension`. Main scene
   `menu/front_end.tscn`; autoloads `Settings` (`res://shared/settings.gd`) and `Joystick`. Flight scene is
   `res://shared/terrain/terrain_view.tscn`.
