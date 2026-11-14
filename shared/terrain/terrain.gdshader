@@ -744,8 +744,10 @@ void fragment() {
 		}
 	}
 	float paved_k = 0.0;  // Detailed airbases' paved surface (rain puddles)
-	// Airbases (Preferences "Airbases"): within 6 km, on the nearest base's paved surface.
-	float kab = terrain_airbases * (1.0 - smoothstep(2500.0, 6000.0, length(VERTEX))) * (1.0 - sea);
+	// Airbases (Preferences "Airbases"): within 16 km, on the nearest base's paved surface.
+	// The paint fades out from 12 to 16 km (2.5 to 6 km before 2026-11-14: beyond that only the 10 m imagery showed, where
+	// pale concrete barely differs from the sand, so every base's runways read faint from the air).
+	float kab = terrain_airbases * (1.0 - smoothstep(12000.0, 16000.0, length(VERTEX))) * (1.0 - sea);
 	vec2 muv = mat2(airbase_mask_xf.xy, airbase_mask_xf.zw) * world_xz + airbase_mask_rect.xy;
 	if (kab > 0.0 && muv.x > 0.0 && muv.y > 0.0 && muv.x < 1.0 && muv.y < 1.0) {
 		// R / G: paved coverage (straight anti-aliased edges) / concrete coverage (blurred over ≈ 5 m), so the bilinear

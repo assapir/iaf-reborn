@@ -614,10 +614,11 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     RenderingDevice (the Compatibility renderer).
 - **Airbases** (ours, docs/rendering.md §7). Rendering only; the default is Original (the 1998 imagery's painted
   runways).
-  - Detailed: within 6 km of the camera, the nearest base's runways, taxiways and aprons get a procedural asphalt /
-    concrete surface with ICAO markings sized to each runway: threshold stripes, designation numbers, centreline,
-    touchdown zone and aiming point marks, edge lines, yellow chevrons before a displaced threshold, yellow taxi
-    lines on the AI's taxi paths, tyre rubber, paving lanes and repairs, apron slabs.
+  - Detailed: within 16 km of the camera (faded from 12 km; 2.5 to 6 km before 2026-11-14), the nearest base's
+    runways, taxiways and aprons get a procedural asphalt / concrete surface with ICAO markings sized to each runway:
+    threshold stripes, designation numbers, centreline, touchdown zone and aiming point marks, edge lines, yellow
+    chevrons before a displaced threshold, yellow taxi lines on the AI's taxi paths, tyre rubber, paving lanes and
+    repairs, apron slabs.
   - The runway geometry comes from the 1998 art and iaf.ibx (`iaf-terrain airbases`); the flight model's runway
     surface stays terraintype.dat's.
   - Designation numbers: the runway's own heading over ten (Ramat David 03/21, 09/27, 15/33; Ramon 05/23). The 1998

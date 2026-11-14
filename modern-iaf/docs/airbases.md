@@ -210,6 +210,14 @@ code reads ([data-formats.md](data-formats.md) §12):
 
   ![Ramon: a hold sign from the taxiway](pictures/scenery/ramon_signs.webp)
 
+- the painted surface (runways, taxiways, aprons and their markings, [rendering.md](../../docs/rendering.md) §7)
+  out to 16 km from the camera, faded from 12 km (2026-11-14, the user's yes). Before, it faded from 2.5 to 6 km, and
+  beyond that only the 10 m imagery showed, where pale concrete barely differs from the sand: every base's runways
+  read faint from 8 km (reported at Hatzerim and Tel Nof, Ramon the same; the original game's Tel Nof showed). The
+  cost, on the Linux laptop's Intel Iris Xe at 1600 × 900, 8 km out and 1,000 m up, median of 8 pairs: Ramon +0.49 ms GPU
+  on a 24.8 ms frame, Tel Nof +0.18 ms, Hatzerim +1.42 ms (noisy: quartiles −0.56 / +2.12 ms). On the Mac (M4 Pro,
+  Metal) Godot reports no GPU time, so it is not measured there; the shader compiles and runs (0 shader errors).
+
 | base | section | take-off | lineup (UTM 36N) | taxi points out / in | tower |
 |---|---|---|---|---|---|
 | Ramon | `Ramon` | 25R, 246° | 660,563, 3,406,637 | 12 / 5 | the reference point (open) |

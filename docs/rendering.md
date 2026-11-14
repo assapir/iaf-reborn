@@ -2022,10 +2022,12 @@ runway edges: the edge lights lie a median 2.3 m outside the derived edges (quar
 `test_airbases.gd`).
 
 **The drawing** (`terrain.gdshader`, the globals `terrain_airbases`, `airbase_mask`, `airbase_mask_rect`, `airbase_data`,
-`airbase_info`). `airbases.gd` picks the base whose runways' middle is nearest the camera (within 15 km) and hands the
+`airbase_info`). `airbases.gd` picks the base whose runways' middle is nearest the camera (within 20 km; 15 km before 2026-11-14, when the
+paint faded out by 6 km) and hands the
 shader its mask and a small float texture: per runway its centre, direction, half length and width, numbers and
-thresholds. In the terrain's fragment, inside the mask's rectangle and within 6 km
-(faded from 2.5 km):
+thresholds. In the terrain's fragment, inside the mask's rectangle and within 16 km (faded from 12 km; from 2.5 to
+6 km before 2026-11-14, when the runways read faint from farther out). Only the nearest base is drawn, so two bases
+nearer than about 30 km to each other swap at the midpoint (open):
 
 - **Edge**: the mask is read with bilinear filtering, and the pavement starts where the paved coverage crosses 0.5,
   over one screen pixel (from `fwidth`). So the edge is smooth instead of following the mask's 2.5 m pixels; far
@@ -2056,7 +2058,8 @@ window, median of 12 pairs; 1920 × 1080 at render scale 2.0 = 8.3 Mpx, Terrain 
 | 30 m over the threshold, looking down the runway (the most marking on screen) | +1.87 ms |
 
 That is at most ≈ 0.22 ms per Mpx: ≈ 0.45 ms at 1920 × 1080. From 1500 m and above the base the cost is below the
-noise (the surface fades out by 6 km and only the mask's rectangle runs the code).
+noise (the surface fades out by 16 km and only the mask's rectangle runs the code; measured with the 6 km fade before
+2026-11-14).
 
 **Shots** (local, `assets/converted/research/airbases/b_detailed/`, Original | Detailed side by side in `cmp_*.png`):
 Ramat David, Tel Nof, Ramon and Damascus; take-off, roll (800 m), 300 m on final, 1500 m overhead, an external low pass;
