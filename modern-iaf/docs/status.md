@@ -397,7 +397,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   data never reaches it, tested), fuel burn, Mach effects (inferred), the validation rows on the 6-DoF, a real Sufa
   flight in mission 311 ([flight-model.md](flight-model.md) §9.11–9.14). Since 2026-11-14 it takes reborn's ground
   effect, gusts, stores moment (a tank's with its fuel), the stores' drag difference, the roll trim, the systems damage and the landing limits (with Easy landing and the autopilot's landing) through the same
-  functions and calls (`near_ground`, `set_stores_moment`, `trim_roll`, `landing_limits`; [flight-model.md](flight-model.md) §9.12).
+  functions and calls (`near_ground`, `set_stores_moment`, `trim_roll`, `landing_limits`; [flight-model.md](flight-model.md) §9.12). A release changes the 6-DoF's mass, drag and roll at once (`test_sim_release.gd`).
 - **[C2](plan.md#c2-the-6-dof) stage (b), engines, gear, the jets' data (2026-11-03):** TP-1538's engine model scaled to the F110-GE-100,
   F100-PW-229 and F135; a three-strut gear with brakes, steering and a braked stand; the four jets' mass, inertia and
   geometry; tests against the ratings, the spool times, a take-off roll and a stop ([flight-model.md](flight-model.md)

@@ -700,6 +700,10 @@ before. The autopilot drives either through the `autopilot::Host` trait (the `Ai
   index difference (the input reborn's original model turns into a sideslip bias) yaws the jet toward the draggier
   side at a quarter span out (inferred: the F-16's stations 3 / 7). Tests `one_heavy_wing_rolls_and_the_trim_holds_it`,
   `a_tank_rolls_while_it_holds_fuel_and_its_drag_yaws`.
+  In the game a release reaches the 6-DoF through the shared `player_weapons.gd` `_push_stores` (the call reborn's
+  model takes): `modern-iaf/tests/test_sim_release.gd` releases one of two MK-84 (SGL) from the Sufa in flight; the
+  6-DoF's mass drops 925 kg at once, the left / right drag index differs by the bomb's 11.8 × 10⁻⁴, and hands off
+  the jet rolls toward the bomb left (finish list W19).
 * **The ground.** The touchdown check is reborn's (`aircraft::landing_limits`, reborn's Better physics "landing
   limits", docs/flight-model.md §10): a gear-down touchdown sinking slower than 4 m/s (≈ 13 ft/s, inferred: the
   F-16 manual gives no figure) with the wings within 10°, the nose above −5° and below 15° counts as a landing. The

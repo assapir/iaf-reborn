@@ -134,6 +134,9 @@ offered it.
   (the F-35I's from its bay) that flies away from the jet; Tab fires the
   gun. The stores page agrees at each step: the bombs on their stations before arming, the selected weapon the HUD's,
   no RDY while safe and RDY once armed, the counts after the release, the stations empty after the jettison.
+- `modern-iaf/tests/test_sim_release.gd`: one of the Sufa's two MK-84 released (SGL) in level flight: the flight
+  model's mass drops by the bomb's 925 kg, the drag index it is given drops by the bomb's on one wing, and the moment of the other bomb
+  rolls the jet hands off ([flight-model.md](flight-model.md) §9.12).
 - `modern-iaf/tests/_weapons_shot.gd` (real render): the same flown from the front end, the start-up, the tower and the
   take-off included; the pictures of the bombs leaving, the burst, the missile, the gun and the notebook tab.
 - `modern-iaf/tests/test_sim_gun.gd`: the Sufa's take-off mission starts with 511 rounds and the master arm safe; the
