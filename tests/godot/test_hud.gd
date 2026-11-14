@@ -361,6 +361,37 @@ func _traced(tv) -> void:
 			% [dot, fs1, fs2]
 		)
 	)
+	# The stroke and its halo keep their angle (mrad of the view) at every render size: the 3D cockpit's 85° view across
+	# 1,920, 2,560 and 5,120 px. At 1,920 both are one px (the least); 2,560 is the size the user approved.
+	var mr := {}
+	for wpx in [1920.0, 2560.0, 5120.0]:
+		var focal: float = wpx / 2.0 / tan(deg_to_rad(42.5))
+		cp.hud._s = focal / (320.0 / tan(deg_to_rad(25.0)))
+		cp.hud._dot = 1.0
+		var pen: float = cp.hud._pen(cp.hud._s)
+		var side: float = (cp.hud._halo_w(pen) - pen) / 2.0
+		mr[wpx] = [pen, side, 1000.0 * pen / focal, 1000.0 * side / focal]
+	check(
+		(
+			mr[1920.0][0] == 1.0
+			and mr[1920.0][1] == 1.0
+			and absf(mr[2560.0][1] - 1.0) < 0.05
+			and absf(mr[2560.0][2] - mr[5120.0][2]) < 0.01
+			and absf(mr[2560.0][3] - mr[5120.0][3]) < 0.01
+			and mr[5120.0][3] > 0.7
+		),
+		"the pen and the halo the same mrad at 2,560 and 5,120 px, one px at 1,920 ([px, halo px, mrad, mrad]: %s)" % mr
+	)
+	var sets := settings()
+	check(
+		(
+			not sets.hidpi_wanted([2.0, 1.0, 1.0], 1, true)
+			and sets.hidpi_wanted([2.0, 1.0, 1.0], 0, false)
+			and not sets.hidpi_wanted([1.0, 1.0], 0, false)
+			and sets.hidpi_wanted([1.0, 1.0], 0, true)
+		),
+		"macOS hiDPI: off on a 1× screen beside a Retina one, on for the Retina one, unchanged with no Retina screen"
+	)
 
 	# Gun pipper (FUN_00530040): held inside the field (bottom − 2 px); the range arc r NM · π, under 1.95 NM, over 3°.
 	var hf := Rect2(0, 0, 139, 135)

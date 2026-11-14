@@ -480,6 +480,8 @@ func _ready() -> void:
 		read_config(cfg)
 	if language == "he" and not hebrew_available():
 		language = "en"
+	if _check_hidpi():
+		return
 	_log_startup()
 	apply_display()
 	_update_splash()
@@ -575,14 +577,85 @@ var _applied_vsync = null  # null: not applied yet
 func _update_splash() -> void:
 	if isolated():
 		return
-	var path := ProjectSettings.globalize_path("res://override.cfg")
 	var he_splash := "res://../assets/converted/menu_he/img/back0.png"
-	if language == "he" and FileAccess.file_exists(ProjectSettings.globalize_path(he_splash)):
-		var cfg := ConfigFile.new()
-		cfg.set_value("application", "boot_splash/image", he_splash)
+	var he := language == "he" and FileAccess.file_exists(ProjectSettings.globalize_path(he_splash))
+	_set_override("application", "boot_splash/image", he_splash if he else null)
+
+
+## Sets `key` of res://override.cfg (null: removes it; no key left: no file). Godot reads the file next to
+## project.godot at start-up, before the window opens.
+func _set_override(section: String, key: String, value: Variant) -> void:
+	var path := ProjectSettings.globalize_path("res://override.cfg")
+	var cfg := ConfigFile.new()
+	cfg.load(path)
+	if value != null:
+		cfg.set_value(section, key, value)
+	elif cfg.has_section_key(section, key):
+		cfg.erase_section_key(section, key)
+		if cfg.has_section(section) and cfg.get_section_keys(section).is_empty():
+			cfg.erase_section(section)
+	if not cfg.get_sections().is_empty():
 		cfg.save(path)
 	elif FileAccess.file_exists(path):
 		DirAccess.remove_absolute(path)
+
+
+## macOS: with a Retina screen attached, Godot 4.7 renders every window at the largest screen scale
+## (display_server_macos.mm screen_get_max_scale), so on a 1× monitor beside it (the user's 2,560 x 1,440 Dell beside
+## his MacBook) the game rendered 5,120 x 2,880 and the system halved the picture: four times the work, every thin line
+## halved. The game turns hiDPI off (display/window/dpi/allow_hidpi in res://override.cfg, read at start-up) while its
+## window opens on a 1× screen and back on on a Retina one, and restarts once when that changes. True: restarting.
+func _check_hidpi() -> bool:
+	# Not off macOS, headless, or in a script run (a test, a tool: -s); isolated() runs never get here.
+	var args := OS.get_cmdline_args()
+	if OS.get_name() != "macOS" or DisplayServer.get_name() == "headless" or "-s" in args or "--script" in args:
+		return false
+	var on: bool = ProjectSettings.get_setting("display/window/dpi/allow_hidpi", true)
+	var scales := _mac_screen_scales(on)
+	var screen := get_window().current_screen
+	if screen < 0 or screen >= scales.size():  # the scales unknown (osascript failed): left as it is
+		return false
+	var want := hidpi_wanted(scales, screen, on)
+	if want == on:
+		return false
+	_set_override("display", "window/dpi/allow_hidpi", null if want else false)
+	var user := OS.get_cmdline_user_args()
+	if "--hidpi-restart" in user:  # once: the next start-up takes it
+		return false
+	print("display: hiDPI %s for screen scales %s, restarting" % ["on" if want else "off", scales])
+	# Godot keeps --path out of get_cmdline_args (it changes to that folder), so it is given again.
+	var again := PackedStringArray(["--path", ProjectSettings.globalize_path("res://")]) + args
+	OS.set_restart_on_exit(true, again + PackedStringArray(["--"]) + user + PackedStringArray(["--hidpi-restart"]))
+	restarting = true
+	get_tree().quit()
+	return true
+
+
+## True while the game quits to restart with the other hiDPI setting (_check_hidpi): the rest of the start-up is
+## skipped.
+var restarting := false
+
+
+## hiDPI for a window on `screen` of screens at `scales` (backing scale factors): on a Retina screen, off on a 1×
+## screen beside one; with no Retina screen at all `on` as it is (either renders the same: no restart for nothing).
+static func hidpi_wanted(scales: Array, screen: int, on: bool) -> bool:
+	return on if scales.max() <= 1.0 else scales[screen] > 1.0
+
+
+## The screens' backing scale factors: Godot's own with hiDPI on; with it off Godot gives 1 for every screen, so they
+## come from AppKit (osascript).
+static func _mac_screen_scales(hidpi_on: bool) -> Array:
+	var out := []
+	if hidpi_on:
+		for i in DisplayServer.get_screen_count():
+			out.append(DisplayServer.screen_get_scale(i))
+		return out
+	var text := []
+	var js := "ObjC.import('AppKit'); $.NSScreen.screens.js.map(s => s.backingScaleFactor).join(',')"
+	if OS.execute("osascript", ["-l", "JavaScript", "-e", js], text) == 0 and not text.is_empty():
+		for v in String(text[0]).strip_edges().split(","):
+			out.append(float(v))
+	return out
 
 
 ## The command that starts the setup wizard: ./setup, on Windows .\setup.ps1 (tools/windows/launch.ps1).

@@ -25,6 +25,18 @@ git clone https://github.com/assapir/iaf-reborn && cd iaf-reborn
 ./iafjets      # builds the extension (target/release/libiaf_godot.dylib) and starts the game
 ```
 
+## A monitor beside a Retina screen
+
+Godot 4.7 on macOS renders every window at the largest screen scale. With a MacBook's Retina screen attached, a
+game window on a plain (1×) monitor beside it rendered at twice the monitor's pixels across, and macOS halved the
+picture: four times the work, and every thin line halved. When the game's window opens on such a monitor, the game
+turns Godot's hiDPI off, writing `display/window/dpi/allow_hidpi=false` into the project's `override.cfg`
+(`iaf-reborn/override.cfg`, `modern-iaf/override.cfg`; not in git), and restarts once. From then on it renders the
+monitor's own pixels (2,560 x 1,440 on a Dell U2719DC). When the window opens on the Retina screen, the game removes
+that line and restarts once, so the Retina screen gets its full resolution. To undo it, delete that line (or the
+whole file, if it holds nothing else) while the game is closed. Details: [real-hud.md](real-hud.md) "A 1× monitor
+beside a Retina screen".
+
 ## Tests
 
 `tools/test.sh` calls `timeout`. Put the GNU tools first on the PATH:

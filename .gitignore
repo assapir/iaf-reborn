@@ -5,4 +5,5 @@
 *.PTT
 .godot/
 /iaf-reborn/override.cfg
+/modern-iaf/override.cfg
 __pycache__/

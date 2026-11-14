@@ -134,6 +134,8 @@ func _init() -> void:
 
 func _ready() -> void:
 	super()
+	if restarting:
+		return
 	load("res://shared/controls/key_table.gd").mac_symbols = true  # "Option" and "⌘" on a Mac (front-end.md §9.1)
 	_apply_profile()
 	apply_devices.call_deferred()  # after the Joystick autoload is in the tree

@@ -90,7 +90,10 @@ test-pilot accounts[^f16net].
 - Gun / boresight cross: an incomplete plus at the fuselage reference line.
 - AoA bracket (gear down): the FPM at its top = 11°, centre 13°, bottom 15° (dash-1[^dash1]).
 - Steerpoint: a **6 mr diamond drawn on the ground at the steerpoint** (conformal); an X when limited at the FOV
-  edge.
+  edge. Ours holds the limited diamond inside the scales' ticks (`f16.rs` `steer_limit`), so it stays off their labels.
+  Before (2026-11-13) it was held at the glass's edge, and on the Barak's narrower glass its X drew over the altitude
+  scale's top label ("7,0" read as "7,8"). A steerpoint between a scale's ticks and the glass's edge now shows held, with the X,
+  though it is still on the glass.
 
 **Data windows** (dash-34 fig 1-115[^dash34])
 - Left column, under the airspeed scale: `ARM` / `SIM`; Mach `0.96`; max G `4.1`; the mode / weapon (`NAV`, `6 SRM`,
@@ -887,7 +890,9 @@ games draw over the scene with the same pen. The study behind it: the look study
   100 % by default, kept in the sim's settings file; no Preferences row) by day, falling to the night floor 136 / 255 (`REAL_NIGHT_GREEN`'s, or the day level when dimmer) as the
   sun sets: full with the sun 10° up or more, the floor at night (`hud.gd` `p43()`, `daylight()`; inferred). That is
   the switch at AUTO; the F-16s' 3D cockpit has the switch itself (`Settings.hud_brt_switch`, 2026-11-11): DAY keeps the day
-  level at any hour, NIGHT the floor (`hud.gd` `mode_light()`; modern-iaf/docs/cockpit.md §5.1). The HUD
+  level at any hour, NIGHT the floor (`hud.gd` `mode_light()`; modern-iaf/docs/cockpit.md §5.1). By day NIGHT keeps
+  the floor, 53 %, so over white cloud the HUD reads dim, as a real HUD left at NIGHT would; DAY and AUTO give the full
+  P43 green (255 in the picture, measured 2026-11-13: the main canvas is not tone mapped). The HUD
   key (Shift + H) steps the level in eighths, from full to the dimmest eighth and up again, and the wheel turns with
   it.
 - **The SYM wheel.** In the 3D cockpit (`Settings.cockpit_controls()`, `shared/cockpit/cockpit3d_controls.gd`) the
@@ -904,8 +909,11 @@ games draw over the scene with the same pen. The study behind it: the look study
   read as blurred and doubled beside the original game's crisp Real HUD, so it was dropped (2026-11-11).
 - **Stroke and halo.** The stroke is the original game's pen, 0.6 px per HUD pixel and at least one physical pixel
   (`hud.gd` `_pen`): about 1 px in the 85° view across 1,920 px, as thin as the original game's Real HUD. Under every
-  line, circle, arc and text of the Real HUD lies a halo one physical pixel wider on each side at 22 % (`_halo_w`,
-  `HALO_ALPHA`; a text's outline one pixel): a collimated stroke's faint glow (inferred). The earlier strokes were
+  line, circle, arc and text of the Real HUD lies a halo at 22 % reaching half a HUD pixel (0.73 mrad) out on each side,
+  and at least one physical pixel (`_halo_w`, `HALO_SIDE`, `HALO_ALPHA`; a text's outline the same): a collimated
+  stroke's faint glow (inferred). In the 85° view the stroke is 0.87 mrad and the halo 0.73 mrad a side at every size
+  from 2,560 px across up; at 1,920 px both are the least, one pixel (0.95 mrad). Until 2026-11-13 the halo was one
+  physical pixel at every size, so it shrank in angle as the render grew: 0.36 mrad at 5,120 px. The earlier strokes were
   tried and dropped on 2026-11-11, beside the original game's Real HUD at content scales 1 and 2: 0.08° (1.5 px, from
   an F-16 HUD video's[^gcas-video] 1–2 px of 720 across about 30°), first with a halo four times the stroke, then
   twice the stroke. Both read about twice as thick as the original's.
@@ -916,6 +924,20 @@ games draw over the scene with the same pen. The study behind it: the look study
   least pen width was one canvas unit (two pixels) and the texts were rasterised at half size and then enlarged, so the
   HUD came out twice as thick and blurred; this held in both games. Check: `modern-iaf/tests/_hud_scale_shot.gd`
   (`SHOT_SCALE=1` / `2`).
+- **A 1× monitor beside a Retina screen (macOS).** With a Retina screen attached, Godot 4.7 on macOS renders every
+  window at the largest screen scale (`display_server_macos.mm` `screen_get_max_scale`, fixed at start-up). On the
+  user's 2,560 x 1,440 Dell U2719DC beside his MacBook the game rendered 5,120 x 2,880 and the system halved the
+  picture (his play test's clicks reach x 4,354): four times the pixels, and every thin line, the HUD's halo and least
+  widths among them, halved on the monitor (found 2026-11-13). Since then `settings.gd` `_check_hidpi` turns hiDPI off
+  (`display/window/dpi/allow_hidpi=false` in the project's `override.cfg`, which Godot reads at start-up) while the
+  window opens on a 1× screen beside a Retina one, and back on when it opens on the Retina screen, and the game restarts
+  once when that changes. With hiDPI off Godot gives every screen scale 1, so the screens' scales then come from AppKit
+  (`osascript`, about 0.3 s at each start while hiDPI is off); when that fails the setting stays as it is. The check runs only on macOS, in a windowed run that is
+  not a script (`-s`) and not `IAF_DEFAULT_SETTINGS=1`; the restart passes `--hidpi-restart`, and a start with it never
+  restarts again. Undo: delete the line from `override.cfg` ([macos.md](macos.md)). Measured on the Mac (M4 Pro, hidden window, the Sufa over volumetric cloud, vsync off): 5,120 x 2,576
+  at 75 ms a frame before, 2,560 x 1,288 at 26 ms with hiDPI off; the HUD's stroke is then one full monitor pixel of
+  P43 instead of two half-lit ones. Open: a window dragged to the other screen during a session keeps its start-up scale until the next
+  start. `test_hud.gd` checks the widths in mrad at 1,920, 2,560 and 5,120 px and the hiDPI choice.
 - **Combiner glass.** Untinted on both F-16s since 2026-11-13 (`SIM_TINT` 0, the plate's rim and back face too;
   the user: "realistic model ftw, no tint"); a jet's definition can set its own fraction (`hud_tint`) of the full
   tint, 14 % opaque in a faint cool magenta (0.62 / 0.56 / 0.72) with specular 0.8. Tried and dropped: the full 14 %

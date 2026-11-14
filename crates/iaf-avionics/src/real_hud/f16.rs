@@ -20,6 +20,12 @@ const ROW: f64 = 9.0;
 /// The scales and data blocks this far in from the field's sides (`Field::inset`), the right block in A-A included.
 const INSET: f64 = 14.0;
 
+/// The field a limited steerpoint diamond (half size `h`) is held in: inside the scales' 5 px major ticks, clear of the
+/// scales' labels outside them.
+fn steer_limit(sc: Field, h: f64) -> Field {
+    sc.inset(5.0 + h)
+}
+
 pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
     let mut fr = Frame::default();
     let w = &i.weapons;
@@ -132,7 +138,9 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
     if let Some(s) = i.steerpoint.filter(|_| !matches!(mode, 1..=3))
         && let Some(at) = s.at
     {
-        let (q, limited) = f.clamp_from(i.boresight, at);
+        // Held inside the scales' ticks, so it and its X stay off their labels (on the Barak's narrower glass the field's
+        // edge put them over the altitude scale's "7,0", 2026-11-13).
+        let (q, limited) = steer_limit(sc, i.mr(3.0)).clamp_from(i.boresight, at);
         diamond(p, q, i.mr(3.0));
         if limited {
             x_over(p, q, i.mr(3.0));
@@ -507,6 +515,34 @@ mod tests {
             _ => None,
         });
         assert!(low.fold(f64::MIN, f64::max) <= FIELD.bottom, "a line below the glass");
+    }
+
+    #[test]
+    fn a_limited_steerpoint_stays_off_the_scale_labels() {
+        let mut i = input(Jet::F16);
+        i.alt_ft = 6560.0;
+        i.weapons.hud_mode = 0;
+        let label = |fr: &Frame| {
+            fr.outer.iter().find_map(|p| match p {
+                Prim::Text { at, text, .. } if text == "7,0" => Some(*at),
+                _ => None,
+            })
+        };
+        let at = label(&frame(FIELD, &i, 1.0)).unwrap();
+        // The steerpoint far right of a boresight level with the label's middle: held at the edge, with its X.
+        let y = at.1 - 3.0;
+        i.boresight = (0.0, y);
+        i.steerpoint.as_mut().unwrap().at = Some((10.0 * FIELD.right, y));
+        let fr = frame(FIELD, &i, 1.0);
+        let right = fr
+            .field
+            .iter()
+            .filter_map(|p| match p {
+                Prim::Line { a, b } if (a.1 - y).abs() < 8.0 && (b.1 - y).abs() < 8.0 => Some(a.0.max(b.0)),
+                _ => None,
+            })
+            .fold(f64::MIN, f64::max);
+        assert!(right > 0.0 && right < at.0 - 6.0, "the diamond's right end {right}, the label at {}", at.0);
     }
 
     #[test]

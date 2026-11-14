@@ -41,6 +41,11 @@ and `iaf-sim` rename it on their first run, with no rebuild and no download.
 
    The wizard's window opens after the build. Choose the language, then Next, Next, Install, and wait for Done.
 
+   On a monitor beside a MacBook's Retina screen, the game restarts once at its first start there and then renders
+   the monitor's own pixels (Godot otherwise renders twice the pixels across there). To undo it, delete the line
+   `window/dpi/allow_hidpi=false` from `modern-iaf/override.cfg` while the game is closed
+   ([docs/macos.md](../docs/macos.md) "A monitor beside a Retina screen").
+
 What setup downloads, once (a later run reuses the files):
 
 | what | size | kept in |

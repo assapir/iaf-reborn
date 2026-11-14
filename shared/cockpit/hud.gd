@@ -50,8 +50,8 @@ var _glyph_tex: Texture2D
 var _c := Vector2.ZERO
 var _s := 1.0
 ## The canvas units per physical pixel (1 / the window's content scale and the canvas's own scale; 0.5 on a 2×
-## display scale): the pen's and the dots' least width and the texts' raster size are physical pixels, so the HUD
-## draws as crisp, as thin and as large (in degrees) at every display scale (docs/real-hud.md "Display scale").
+## display scale): the pen's and the dots' least width, the halo's and the texts' raster size are physical pixels, so
+## the HUD draws as crisp, as thin and as large (in degrees) at every display scale (docs/real-hud.md "Display scale").
 var _dot := 1.0
 ## The ladder's labels of this frame ([top-right, text]): the sprite pass is not clipped (drawn by `outer`).
 var _ladder_labels := []
@@ -304,9 +304,19 @@ func _pen(s: float) -> float:
 	return maxf(_dot, 0.6 * s)
 
 
-## The halo's width under a stroke `w` wide: one physical px more on each side.
+## The halo's width under a stroke `w` wide: HALO_SIDE more on each side (an angle, as the stroke's), at least one
+## physical px.
 func _halo_w(w: float) -> float:
-	return w + 2.0 * _dot
+	return w + 2.0 * _halo_side()
+
+
+## HUD px (the original 640 x 480 screen's: 1.46 mrad) the halo reaches out of a stroke on each side: one px in the 85°
+## view across 2,560 px.
+const HALO_SIDE := 0.5
+
+
+func _halo_side() -> float:
+	return maxf(_dot, HALO_SIDE * _s)
 
 
 func _halo(c: Color) -> Color:
@@ -413,7 +423,7 @@ func _gdi(ci: CanvasItem, p: Vector2, text: String, right := false, colour = nul
 	ci.draw_set_transform(Vector2(box.position.x, _pt(p).y), 0.0, Vector2(_arial_squeeze, 1.0) * _dot)
 	var col: Color = colour if colour != null else _hc()
 	if _glow:
-		var o := 2  # physical px (the font's raster): the outline's one px outside the glyph
+		var o := maxi(2, roundi(2.0 * _halo_side() / _dot))  # the font's raster px: the halo's reach outside the glyph
 		ci.draw_string_outline(_arial, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, _gdi_size(), o, _halo(col))
 	ci.draw_string(_arial, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, _gdi_size(), col)
 	ci.draw_set_transform(Vector2.ZERO)
