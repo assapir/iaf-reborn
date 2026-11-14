@@ -1775,8 +1775,8 @@ compression). The noise texture is generated at run time with FastNoiseLite.
   Up close (2026-10-28) it reads as a soft translucent column, the way launch photos show it: within ≈ 40 m of the
   camera it takes a real motor's width (0.35 m at the nozzle, ≈ 2 m after 1 s, ≈ 4 m after 3 s, ≈ 8 m at 20 s),
   blending to the wide spotting trail by 250 m, so the look at range and at dusk is unchanged. There its opacity
-  follows the path through it (1 − e^(−1.2 · chord), the chord from the width: thin at the nozzle, denser as it
-  grows), a third, sub-metre noise octave churns and eats its edges, the edge band is wider, its brightness floor
+  follows the path through it (1 − e^(−2.5 · chord), at least 0.6, the chord from the width: denser as it grows;
+  2026-11-14, was 1 − e^(−1.2 · chord) with no floor, which left a young trail at 40–250 m faint), a third, sub-metre noise octave churns and eats its edges, the edge band is wider, its brightness floor
   drops from 0.95 to 0.7 (the tube's shading shows), and within 1.5 m + one width of the camera it fades out: a chase
   or cockpit camera never sits in a flat white card. The smoke starts right behind the flame (its newest 2 ms fade
   in; a fade over the first 0.08 s left a gap of tens of metres behind a fast missile).

@@ -8,7 +8,9 @@ extends Node3D
 ##   (rand%65 - 32)·0.1 rad/s per axis, start delay rand%30·0.01 s, then 3 s falling (y - 15 t²),
 ##   grey 220, unlit.
 ## Ours: the same at a fixed 30 Hz (the original's density follows its frame rate); the flare
-## additive; the chaff pieces are one shader-driven MultiMesh (a ring of CAP pieces).
+## additive; the chaff pieces are one shader-driven MultiMesh (a ring of CAP pieces). Modern IAF (its own art, not
+## original_art()) draws a flare's smoke as a thin trail ribbon (trails.gd FLARE) in place of the 1998 puffs, which
+## at its own sprites' scale read as a smoke cloud rather than flares (modern-iaf/docs/weapons.md §2).
 
 const Stores := preload("res://shared/weapons/stores.gd")
 const Img := preload("res://shared/util/img.gd")
@@ -61,6 +63,8 @@ void fragment() {
 
 ## damage_effects.gd (the flare's smoke puffs); null = no smoke.
 var effects: Node
+## trails.gd (Modern IAF's flare smoke trails); null = none.
+var trails: Node
 var _rng := RandomNumberGenerator.new()
 var _flare_tex: Texture2D
 var _flares := {}  # decoy (Dictionary) -> {node, next}
@@ -101,22 +105,20 @@ func _ready() -> void:
 	add_child(inst)
 
 
-## The converted sprite (assets/converted/objects, 4× Lanczos), else the install's original.
+## The converted sprite (assets/converted/objects, 4× Lanczos), else the install's original; Modern IAF's own
+## (Settings.effect_art); a soft dot when there is none.
 static func _texture(png: String, original: String) -> Texture2D:
-	if not Settings.original_art():
-		return Img.soft_dot()
-	var path := Settings.converted("objects".path_join(png))
-	if not FileAccess.file_exists(path):
+	var path := Settings.effect_art("objects".path_join(png))
+	if Settings.original_art() and not FileAccess.file_exists(path):
 		path = Settings.install("resource/3dobjects".path_join(original))
-	return Img.load_texture(path, true)
+	var tex := Img.load_texture(path, true)
+	return tex if tex != null else Img.soft_dot()
 
 
 ## The flare and chaff art decoded on worker threads ahead of the flight (terrain_preload.gd).
 static func prefetch() -> void:
-	if not Settings.original_art():
-		return
 	for f in ["missflr.png", "chaff.png"]:
-		Img.prefetch(Settings.converted("objects".path_join(f)), true)
+		Img.prefetch(Settings.effect_art("objects".path_join(f)), true)
 
 
 ## Advances to sim time `now`: `decoys` = the decoys released ({type, end, r: {t0, ...}}; those ended since
@@ -140,10 +142,13 @@ func update(now: float, decoys: Array, pos_at: Callable) -> void:
 			var f: Dictionary = _flares[dc]
 			var p: Vector3 = pos_at.call(dc, now)
 			f.node.position = p
+			var ribbon := trails != null and not Settings.original_art()
+			if ribbon:
+				trails.emit(dc, p, trails.FLARE)
 			while f.next <= stop:
 				var w := FLARE_W * (0.8 + (_rng.randi() % 41) * 0.01)
 				f.node.scale = Vector3(w, w, w)
-				if effects != null:
+				if effects != null and not ribbon:
 					effects.smoke_puff(pos_at.call(dc, f.next), true, FLARE_SMOKE_LIFE, FLARE_SMOKE_W)
 				f.next += step
 		else:

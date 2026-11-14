@@ -239,7 +239,7 @@ pub fn sim_plan(inputs: &SimInputs) -> Vec<Step> {
     );
     add("sim-db", "units and weapons", &[]);
     add("sim-fm", "flight data: the jets' bd.ibx and envelopes", &[]);
-    add("sim-own", "sounds, voices and keys", &[]);
+    add("sim-own", "sounds, voices, keys and effects art", &[]);
     add("sim-airbases", "airbases: Ramon, Hatzerim, Nevatim, Ramat David", &["sim-terrain"]);
     add("sim-missions", "training missions", &["sim-airbases", "sim-db"]);
     // Optional: the sim flies without it (no GDAL, offline, or left out).
@@ -369,7 +369,10 @@ fn exec(step: &Step, ctx: &SimCtx, redo: bool, pr: &dyn Progress, cancel: &Atomi
             sim_terrain::terrain(&run, pr, cancel)?
         }
         "sim-db" => sim::db(&data, assets, pr, cancel)?,
-        "sim-own" => sim::own(&data, &ctx.repo, assets, pr, cancel)?,
+        "sim-own" => {
+            sim::own(&data, &ctx.repo, assets, pr, cancel)?;
+            iaf_tools::sim_effects::effects_art(assets)?
+        }
         "sim-airbases" => sim_bases::airbases(&data, assets, pr, cancel)?,
         "sim-missions" => sim::missions(&data, assets, pr, cancel)?,
         "sim-fm" => sim_fm0::fm(assets, pr)?,

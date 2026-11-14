@@ -416,7 +416,7 @@ func _refuse(what: String) -> void:
 	rejected.append(what)
 
 
-## The sim draws its effects without the original's sprites (Img.soft_dot) until its own art comes.
+## The sim draws its effects with its own sprites (effect_art: `iaf-sim own`'s, modern-iaf/docs/weapons.md §2).
 func original_art() -> bool:
 	return false
 

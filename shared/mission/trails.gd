@@ -11,6 +11,8 @@ const Img := preload("res://shared/util/img.gd")
 ## Trail kinds (the sprite slots of FUN_0058a420): lifetime s, half-width at the head, growth (create arg).
 const MISSILE := {"life": 3.5, "size": 0.6, "growth": 0.15, "glow": true, "refill": true}
 const WINGTIP := {"life": 1.0, "size": 0.1, "growth": 0.01, "glow": false, "refill": false}
+## Modern IAF's flare smoke (decoy_fx.gd, ours): a thin, short trail behind each burning flare.
+const FLARE := {"life": 1.2, "size": 0.2, "growth": 0.05, "glow": false, "refill": false}
 ## Ring of 256 points per trail (a full missile trail starts a new one, a full wingtip trail stops adding:
 ## the original ignores that addPoint result); at most 99 trails (createTrail refuses at count + 1 ≥ 100).
 const MAX_POINTS := 256
@@ -67,19 +69,17 @@ func _ready() -> void:
 
 
 static func _texture(name: String) -> Texture2D:
-	if not Settings.original_art():
-		return Img.soft_dot()
-	return Img.load_texture(_path(name))
+	var tex := Img.load_texture(_path(name))
+	return tex if tex != null else Img.soft_dot()
 
 
+## The converted original's sprite, Modern IAF's own (Settings.effect_art).
 static func _path(name: String) -> String:
-	return Settings.converted("objects".path_join(name))
+	return Settings.effect_art("objects".path_join(name))
 
 
 ## The trails' art decoded on worker threads ahead of the flight (terrain_preload.gd).
 static func prefetch() -> void:
-	if not Settings.original_art():
-		return
 	for f in ["trail.png", "missflr.png"]:
 		Img.prefetch(_path(f))
 

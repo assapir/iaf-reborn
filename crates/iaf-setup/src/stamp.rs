@@ -168,7 +168,7 @@ pub(crate) const STEP_SOURCES: &[(&str, &[&[&str]])] = &[
     ),
     ("sim-terrain", &[BASE, SIM_TERRAIN]),
     ("sim-db", &[BASE, SIM]),
-    ("sim-own", &[BASE, SIM]),
+    ("sim-own", &[BASE, SIM, &["crates/iaf-tools/src/sim_effects.rs"]]),
     ("sim-airbases", &[BASE, SIM]),
     ("sim-missions", &[BASE, SIM]),
     ("sim-scenery", &[BASE, SIM, &["crates/iaf-tools/src/sim_scenery.rs"]]),

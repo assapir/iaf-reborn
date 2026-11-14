@@ -318,8 +318,9 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   `assets/converted` a shared script reads goes through `Settings.converted()`, every path under the install through
   `Settings.install()`; the sim refuses everything but its own converted data and the M0 probe fails on any refusal
   (0 today). The sim's own loading screen in English and Hebrew ([front-end.md](front-end.md) §7).
-  The effects (flares, chaff, trails, afterburner) draw a soft dot and the flight shows no message texts until the
-  sim's own art and messages.
+  The flight shows no message texts until the sim's own messages. The effects draw the sim's own sprites since
+  2026-11-14 (`iaf-sim own`, [weapons.md](weapons.md) §2; before: a soft dot, the afterburner a white shaft): flares as bright
+  points with thin smoke trails. Open: a bomb's hit still draws the shared grey domes.
 - **[A3](plan.md#a3-the-setup-wizard), the setup wizard (2026-11-03):** `./modern-iaf-setup` opens the wizard; it builds the terrain,
   the airbases, the units and weapons, the sounds and voices and the training missions as a step graph with stamps (a
   second run is all up to date), in English and Hebrew ([setup.md](setup.md)). Its look is Godot's default theme until

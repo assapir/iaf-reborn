@@ -9,17 +9,22 @@
   "power": 0,
   "blast_m": 0,
   "drag": 0,
-  "motion": {},
+  "motion": {
+    "_velocityJump": 10.0,
+    "_limitVel": 5.0
+  },
   "sources": {
     "kg": "inferred",
     "power": "inferred",
     "blast_m": "inferred",
-    "drag": "inferred"
+    "drag": "inferred",
+    "motion._velocityJump": "inferred",
+    "motion._limitVel": "inferred"
   },
   "notes": {
     "number": "33: see 20mm",
     "kg": "a cartridge's weight is the jet's",
-    "motion": "the reader's defaults (decoys: docs/weapons.md §10)"
+    "motion": "a decoy's slow ejection, not the gun-round defaults of the reader (1,200 m/s: the decoy reached its aim point 200 m aft in 0.13 s and ended unseen); the shared decoy flight of docs/weapons.md §10, about 0.85 s at 250 m/s"
   },
   "footnotes": {}
 }

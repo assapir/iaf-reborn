@@ -67,18 +67,18 @@ void fragment() {
 }
 """
 
-## afterburn.tga, read once for every flame (decoded ahead by prefetch()).
+## afterburn.tga (Modern IAF: its own, Settings.effect_art), read once for every flame (decoded ahead by prefetch()).
 static var _tex: Texture2D
 static var _flame_shader: Shader
 
 
 static func _path() -> String:
-	return Settings.converted("planes/afterburn.png")
+	return Settings.effect_art("planes/afterburn.png")
 
 
 ## The flame's art decoded on a worker thread ahead of the flight (terrain_preload.gd).
 static func prefetch() -> void:
-	if _tex == null and Settings.original_art():
+	if _tex == null:
 		Img.prefetch(_path())
 
 
@@ -91,7 +91,7 @@ func _init() -> void:
 	_material = ShaderMaterial.new()
 	_material.shader = _flame_shader
 	if _tex == null:
-		_tex = Img.load_texture(_path()) if Settings.original_art() else Img.soft_dot()
+		_tex = Img.load_texture(_path())
 	if _tex != null:
 		_material.set_shader_parameter("tex", _tex)
 	else:

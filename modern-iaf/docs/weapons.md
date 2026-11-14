@@ -24,17 +24,37 @@ The M61A1 fires 6,000 rounds a minute[^w-m61]: 20 rounds a tick, so 511 rounds l
 `iaf-sim db` refuses a unit that has an `airframe` (a flyable jet) and no gun count, so no jet flies with an empty or
 endless gun.
 
-## 2. The gun's art
-`iaf-sim own` draws the gun's art from formulas (no source image; ours) into the original's resource layout,
+## 2. The gun's and the effects' art
+`iaf-sim own` draws the gun's art and the effects' sprites from formulas (no source image; ours: the gun's in
+`crates/iaf-tools/src/sim.rs`, the effects' in `sim_effects.rs`) into the original's resource layout,
 `converted/own/resource/3dobjects/`:
 
 | file | drawn as | look |
 |---|---|---|
 | `gunfire.tga` | the muzzle flash: the original's two crossed quads, 0.6 m wide, 0.85–1.15 m long, while the gun fires | a flame white-hot at the muzzle, tapering forward to an orange tip |
 | `tracer.tga` | a tracer per round slot (one a tick): two crossed quads 0.4 m wide and 18 m long behind the round, and an orange head the same size on screen at any distance (about 15 px at 1080 lines), so a round seen end on from the cockpit still shows | a hot head fading to a red-orange tail; near the muzzle the streak is no longer than the way flown |
+| `afterburn.png` | the afterburner: two nested cones from the nozzle, added (`afterburner.gd`) | a blue-white core at the nozzle, then yellow-white and orange fading to the tip, three shock diamonds as brighter bands |
+| `missflr.png` | a flare (`decoy_fx.gd`) and a missile's motor glow without Detailed effects (`trails.gd`) | a white-hot point about 1 m across in a tight yellow glow, a faint warm halo, clear well inside the rim: released flares show as separate bright points |
+| `chaff.png` | the chaff pieces (`decoy_fx.gd`) | grey foil with bright glints |
+| `trail.png` | the smoke trails without Detailed effects, the wingtip trails (`trails.gd`) | white smoke, dense when young, wider and thinner with age |
+| `w_splash.png`, `w_circle.png` | a hit's splash and ring on the water (`damage_effects.gd`) | a spray column wide at the water; a foam ring |
 
-`player_weapons.gd` reads both from `Settings.own_dir()`, the same path that gives the original game its install's
-`gunfire.tga`. A gun record without a model (the sim's `20mm.json`) draws its rounds as tracers; the original's gun
+`player_weapons.gd` reads the gun's two from `Settings.own_dir()`, the same path that gives the original game its install's
+`gunfire.tga`. The effects read theirs through `Settings.effect_art(rel)`: the converted original sprite in the
+original game, the file of the same name here.
+
+The chaff and flare records give their decoys a slow ejection (`motion` `_velocityJump` 10, `_limitVel` 5, inferred):
+the shared decoy flight ([../../docs/weapons.md](../../docs/weapons.md) §10) then lasts about 0.85 s at 250 m/s.
+Until 2026-11-14 they took the reader's gun-round defaults (1,200 m/s), so each decoy reached its end point 200 m aft
+in 0.13 s and was never seen.
+Each burning flare trails a thin smoke ribbon (`trails.gd` `FLARE`: 0.2 m wide at the flare, 1.2 s, drawn with
+`trail.png`; `decoy_fx.gd` when not `original_art()`) in place of the original's white puffs (3.2 → 9.6 m every
+1/30 s), which around the sim's sprites read as one cloud of smoke.
+
+**Open:** a bomb's hit on the ground draws the shared grey smoke domes, the same as the original game; the sim has no
+fire, dust or debris look of its own yet.
+
+A gun record without a model (the sim's `20mm.json`) draws its rounds as tracers; the original's gun
 record has a model and draws it as before.
 
 A 1.2 s burst at Ramon, from the cockpit (top) and the chase view (bottom), the graphics options at their best

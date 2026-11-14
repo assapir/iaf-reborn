@@ -1067,9 +1067,18 @@ func has_converted(rel: String) -> bool:
 
 
 ## True where the 1998 game's effects art is there to draw (the flares', chaff's, trails', afterburner's and gun's
-## muzzle-flash sprites): the original game. Modern IAF draws them with Img.soft_dot() until its own art comes.
+## muzzle-flash sprites): the original game. Modern IAF draws its own (effect_art).
 func original_art() -> bool:
 	return true
+
+
+## The effect sprite `rel` (a path under assets/converted: "planes/afterburn.png", "objects/missflr.png"): the
+## converted original's where original_art(), else the resource layout's own, own_dir()/resource/3dobjects/<file>
+## (Modern IAF's, drawn by `iaf-sim own`).
+func effect_art(rel: String) -> String:
+	if original_art():
+		return converted(rel)
+	return own_dir().path_join("resource/3dobjects").path_join(rel.get_file())
 
 
 ## True where the object database's counts are the real ones already (Modern IAF's, from its unit records): Weapon

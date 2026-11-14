@@ -2328,6 +2328,7 @@ func _update_decoys() -> void:
 	if decoy_fx == null:
 		decoy_fx = preload("res://shared/weapons/decoy_fx.gd").new()
 		decoy_fx.effects = host.get("effects")
+		decoy_fx.trails = host.get("trails")
 		host.add_child(decoy_fx)
 	decoy_fx.update(now, decoys, func(dc, t): return to_scene(_decoy_motion[dc.type].position(dc.r, t)))
 	decoys = decoys.filter(func(dc): return now < dc.end)

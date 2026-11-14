@@ -179,10 +179,10 @@ void fragment() {
 	// The newest smoke (the nozzle's first ≈ 2 ms, inside the flame) fades in.
 	float fade = smoothstep(0.0, 0.0001, v_f) * (1.0 - smoothstep(0.5, 1.0, v_f)) * smoothstep(0.0, 10.0, v_along);
 	// Up close the smoke is translucent by the path through it (its chord, from the width): thin wisps at the
-	// nozzle, denser as it grows; within a few metres of the camera it fades out, so the eye never sits in a white
-	// card, and seen along its length from near it thins too.
+	// nozzle, denser as it grows (never below 60 %: a young trail reads at a glance); within a few metres of the
+	// camera it fades out, so the eye never sits in a white card, and seen along its length from near it thins too.
 	float chord = v_w * depth;
-	float dens = mix(1.0, (1.0 - exp(-chord * 1.2)) * (1.0 - 0.5 * v_align), v_near);
+	float dens = mix(1.0, max(1.0 - exp(-chord * 2.5), 0.6) * (1.0 - 0.5 * v_align), v_near);
 	float cam_d = length(v_pos - CAMERA_POSITION_WORLD);
 	float near_fade = smoothstep(0.5, 1.5 + v_w, cam_d);
 	ALBEDO = clouds_mix(SCREEN_UV, VIEWPORT_SIZE, cam_d, col);

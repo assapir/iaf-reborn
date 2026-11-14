@@ -121,7 +121,7 @@ own paths; the original game's `shared/settings.gd` answers with the install's.
 | `missions_folder()`: the menu missions and `missionlist.json` | `converted/missions` | `converted/modern-iaf/missions` |
 | `default_bdb()`: the object database a jet's default load falls back on | `default6_1.bdb` | `sim.bdb` |
 | `loading_screen_scene()`: the flight's loading screen | `shared/terrain/loading_screen.gd` (the menu art) | `flight/loading_screen.gd` ([front-end.md](docs/front-end.md)) |
-| `original_art()`: the effects' sprites (flares, chaff, trails, afterburner, the gun's muzzle flash) | true | false: a soft dot (`Img.soft_dot()`) |
+| `original_art()`, `effect_art(rel)`: the effects' sprites (flares, chaff, trails, afterburner, water splash) | true: the converted original's | false: its own, drawn by `iaf-sim own` ([weapons.md](docs/weapons.md) §2) |
 | `scenery_dir()`, `roads_dir()`: the buildings and trees, the road layer ([scenery.md](docs/scenery.md)) | `scenery`, `roads` (under `assets/converted`, read through `converted()`) | the theatre's own: `terrain/israel/scenery`, `terrain/israel/roads` |
 | `scenery_everywhere()`: the scenery stands whatever the imagery | false: over a Survey 2 m layer only | true: the theatre's ground is its own photo |
 

@@ -442,7 +442,7 @@ their press command (the doc's names for them look swapped).
 2. Rust trims it and runs Betty's chain (§5.1) or the radio chain (§5.2);
 3. ffmpeg writes it as 22050 Hz mono Ogg Vorbis, quality 4, into `modern-iaf/data/sounds/`, which ships the clips;
 4. `sim::own_sounds` compiles the sound folder into `assets/converted/own/resource/soundfiles/`, as `iaf-sim own`
-   (the wizard's "sounds, voices and keys" step) does.
+   (the wizard's "sounds, voices, keys and effects art" step) does.
 The set is 151 clips plus four computed ones (`kch2`, `key_on`, `key_off`, `twr_pause`); a full run takes about
 3 minutes on 4 CPU cores. `iaf-sim voices --only <name part>` remakes some clips; `iaf-sim voices --say <role>
 <mode> <text> <out.ogg>` makes one line (the approval samples).
