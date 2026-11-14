@@ -129,7 +129,7 @@ static func make() -> Theme:
 	menu_on.bg_color = Color(ACCENT, 0.16)
 	_button(t, "Menu", flat, menu_on, menu_on)
 	t.set_constant("align_to_largest_stylebox", "Menu", 1)
-	# A list's tab (the Preferences' sections, the Keys screen's groups): the picked one filled in the accent's tint, no
+	# A list's tab (the Settings' sections, the Keys screen's groups): the picked one filled in the accent's tint, no
 	# bar at its side (the user, 2026-11-13); the focus a ring.
 	var tab := box(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 4, Vector2(28, 16))
 	var tab_on := box(Color(ACCENT, 0.22), Color(0, 0, 0, 0), 0, 4, Vector2(28, 16))
@@ -225,7 +225,17 @@ static func make() -> Theme:
 	return t
 
 
-## The Preferences' gear, drawn in the text colour at the canvas' size.
+## The Pilot screen's empty picture: a head and shoulders in a colour between the line and the edge, `w` × 4/3 `w`
+## px (the 3:4 frame).
+static func person_icon(w: int) -> ImageTexture:
+	var p := (
+		"<svg xmlns='http://www.w3.org/2000/svg' width='%d' height='%d' viewBox='0 0 300 400' fill='%s'>"
+		+ "<circle cx='150' cy='155' r='66'/><path d='M36 400C36 292 88 248 150 248S264 292 264 400Z'/></svg>"
+	)
+	return _svg(p % [w, w * 4 / 3, _hex(LINE.lerp(EDGE, 0.35))])
+
+
+## The Settings' gear, drawn in the text colour at the canvas' size.
 static func gear_icon() -> ImageTexture:
 	var g := (
 		"<svg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='%s'"

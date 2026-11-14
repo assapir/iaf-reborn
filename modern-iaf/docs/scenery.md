@@ -292,7 +292,7 @@ interleaved three times each under the GPU lock, Intel Iris Xe, 1920 × 1080: Ph
 No new data, 0 MB.
 
 **Town labels** (2026-11-09, the look study's proposal 3; docs/scenery.md §3.5). **Dropped from the sim 2026-11-11**
-after the user's Mac play test: the sim's profile fixes `town_labels` off and Preferences has no row for it; the 1998
+after the user's Mac play test: the sim's profile fixes `town_labels` off and Settings has no row for it; the 1998
 game keeps them (Extras → "Town labels"). What was built and measured: each city's and town's name over the view
 within 25 km, in Hebrew or English with the language, as the reference's "שוהם". Rendered with `tests/godot/_imagery_shot.gd` (`SHOT_LAYERS=sim`, all settings on as above
 plus `town_labels=true` and `language=he` / `en`), 1920 × 1080 scaled to 1200 px:
@@ -432,5 +432,5 @@ Fixed on 2026-11-08 (the "before" pictures above):
 - **The open sea's faint line**: fixed in the build (2026-11-11, [terrain.md](terrain.md) §3); a theatre built before
   shows it until it is built again.
 - **The bases' buildings**: the hangars and shelters are the airbases' models' (item B2's open points).
-- **Kinds**: the sim makes both buildings and trees; one row turns both on (Preferences → Graphics → "Buildings and
+- **Kinds**: the sim makes both buildings and trees; one row turns both on (Settings → Graphics → "Buildings and
   trees", [front-end.md](front-end.md) §4); a choice between them is open.

@@ -21,6 +21,7 @@ const KeyTable := preload("res://shared/controls/key_table.gd")
 const BriefingMap := preload("res://menu/briefing_map.gd")
 const ArmingDrawing := preload("res://menu/arming_drawing.gd")
 const Turntable := preload("res://shared/aircraft/turntable.gd")
+const AircraftModel := preload("res://shared/aircraft/aircraft_model.gd")
 
 const PHOTOS := "res://data/photos"
 ## The start-up steps' switches cropped from each jet's 3D cockpit: <unit>/<step>.webp (tests/_switch_crops.gd).
@@ -342,13 +343,15 @@ func _header(crumbs: Array) -> void:
 			c.name = "Crumb_" + (to if strings.has(crumbs[i]) else "jet")
 		c.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_spacer(h)
-	# The Hangar: the Preferences (a gear and the word) before the pilot, who is one button (the nickname, the name
+	if page == "pilot" and not creating and first_start():
+		return  # the first start: no pilot yet to show
+	# The Hangar: the Settings (a gear and the word) before the pilot, who is one button (the nickname, the name
 	# under it, the picture) that opens the Pilot screen.
 	var block: Button = null
 	var host: Control = h
 	if page == "hangar":
 		var gear := _button(h, s("preferences"), "Secondary", func(): show_page("prefs"))
-		gear.name = "Preferences"
+		gear.name = "Settings"
 		gear.icon = Look.gear_icon()
 		gear.add_theme_constant_override("h_separation", 10)
 		gear.add_theme_font_size_override("font_size", 20)
@@ -501,6 +504,48 @@ func _page_hangar() -> void:
 	cr.name = "credits"
 	cr.add_theme_font_size_override("font_size", 17)
 	_place(cr, 60, -1, -66, 0)
+	_hangar_focus()
+
+
+## The Hangar's focus order (F1), by Tab and by the arrows: the top bar (Settings, the pilot), the jets, Fly,
+## Attributions. Down from the top bar goes to the picked jet, Down from the last jet to Attributions; Down from Fly
+## stays (the foot is the list's, not the card's). Without missions Fly takes no focus.
+func _hangar_focus() -> void:
+	var gear: Control = find_child("Settings", true, false)
+	var block: Control = find_child("PilotBlock", true, false)
+	var jets: Array = find_child("Jets", true, false).get_children().filter(
+		func(c): return c is Button and c.focus_mode != Control.FOCUS_NONE
+	)
+	var picked: Control = jets.filter(func(b): return b.button_pressed).front()
+	var fly: Button = find_child("Fly", true, false)
+	var cr: Control = find_child("credits", true, false)
+	var card: Control = fly if fly.focus_mode != Control.FOCUS_NONE else null
+	_chain([gear, block] + jets + ([card] if card != null else []) + [cr])
+	# The sides on the screen: the inline start is the right in Hebrew.
+	var start := "right" if he() else "left"
+	var end := "left" if he() else "right"
+	_nb(gear, {"top": gear, end: block, "bottom": picked})
+	_nb(block, {"top": block, start: gear, end: block, "bottom": picked})
+	_nb(jets[0], {"top": gear})
+	_nb(jets[-1], {"bottom": cr})
+	for b in jets:
+		_nb(b, {start: b, end: card if card != null else b})
+	if card != null:
+		_nb(card, {"top": gear, start: picked, end: card, "bottom": card})
+	_nb(cr, {"top": jets[-1], start: cr, end: card if card != null else cr, "bottom": cr})
+
+
+## Tab and Shift + Tab through `controls` in that order, round.
+func _chain(controls: Array) -> void:
+	for i in controls.size():
+		controls[i].focus_next = controls[i].get_path_to(controls[(i + 1) % controls.size()])
+		controls[i].focus_previous = controls[i].get_path_to(controls[i - 1])
+
+
+## Sets `c`'s focus neighbours: {"top" / "bottom" / "left" / "right": the control there}.
+func _nb(c: Control, to: Dictionary) -> void:
+	for side in to:
+		c.set("focus_neighbor_" + side, c.get_path_to(to[side]))
 
 
 ## Places `c` by its edges on the canvas: `start` px from the inline start (-1: none), `end` px from the inline end
@@ -564,19 +609,22 @@ func _hangar_pick(j: Dictionary) -> void:
 
 
 ## The jet turning in the middle (shared/aircraft/turntable.gd) with its stores: the pilot's loadout for it, else its
-## unit record's (the missions' own). A still picture of it (data/hangar/<unit>.webp) when the model does not load.
+## unit record's (the missions' own). A still picture of it (data/hangar/<unit>.webp) when the model does not load or
+## its converted descriptor is missing (no model load tried then).
 func _jet_view(j: Dictionary) -> void:
-	var tt: TextureRect = Turntable.new()
-	tt.name = "Turntable"
-	add_child(tt)
-	_place(tt, 380, 470, 250, 800)
 	Settings.set_jet(j.airframe)  # the F-16 switch picks the Sufa's or the Barak's model
 	var plane := str(
 		Settings.load_json("res://shared/extra/planes/%s/airframe.json" % j.airframe).get("base", j.airframe)
 	)
-	if tt.show_jet(plane, jet_stores(j)):
-		return
-	tt.queue_free()
+	# The model only when its descriptor is there: a fresh install before setup has none of the converted planes.
+	if not AircraftModel.load_descriptor(plane).is_empty():
+		var tt: TextureRect = Turntable.new()
+		tt.name = "Turntable"
+		add_child(tt)
+		_place(tt, 380, 470, 250, 800)
+		if tt.show_jet(plane, jet_stores(j)):
+			return
+		tt.queue_free()
 	var still := TextureRect.new()
 	still.name = "Still"
 	var img := Image.load_from_file(ProjectSettings.globalize_path("res://data/hangar/%s.webp" % j.unit))
@@ -641,7 +689,11 @@ func _jet_card(j: Dictionary) -> void:
 	tbox.add_theme_stylebox_override("panel", Look.box(Color(0, 0, 0, 0), Look.LINE, 1, 6, Vector2(16, 14)))
 	v.add_child(tbox)
 	var tv := _vbox(tbox, 8)
+	if missions.is_empty():
+		# No missions (the sim's data not built): what is missing and the setup command, in place of the progress.
+		_setup_note(tv)
 	var th := _hbox(tv, 10)
+	th.visible = not missions.is_empty()
 	_label(th, s("training"), "Strong")
 	_spacer(th)
 	var passed := 0
@@ -654,7 +706,10 @@ func _jet_card(j: Dictionary) -> void:
 	bar.max_value = maxi(missions.size(), 1)
 	bar.value = passed
 	tv.add_child(bar)
-	_label(tv, last_flight(), "Small").name = "LastFlight"
+	bar.visible = th.visible
+	var last := _label(tv, last_flight(), "Small")
+	last.name = "LastFlight"
+	last.visible = th.visible
 	var camp := _soon(v, s("campaign"), "Secondary")
 	camp.name = "Campaign"
 	camp.tooltip_text = ""
@@ -663,8 +718,14 @@ func _jet_card(j: Dictionary) -> void:
 	var go := _button(v, s("fly"), "Fly", func(): show_page("mission"))
 	go.name = "Fly"
 	go.custom_minimum_size.y = 76
-	go.disabled = missions.is_empty()
 	_focus = go
+	if missions.is_empty():
+		# Disabled, drawn dim (its plain box, as Missions and campaign) and out of the focus: the picked jet takes it.
+		go.disabled = true
+		go.focus_mode = Control.FOCUS_NONE
+		go.add_theme_stylebox_override("disabled", go.get_theme_stylebox("normal"))
+		go.modulate = Color(1, 1, 1, 0.45)
+		_focus = find_child(j.name, true, false)
 
 
 ## The jet's own data: [label, value] for its squadron (its airbase file's), its base and its tail number (its unit
@@ -693,6 +754,19 @@ func last_flight() -> String:
 	return s("not_flown")
 
 
+## What is missing without the sim's data and the command that builds it (./modern-iaf-setup; Windows: its .ps1) on a
+## line of its own, left to right in both languages, at the inline start.
+func _setup_note(parent: Control) -> VBoxContainer:
+	var v := _vbox(parent, 6)
+	v.name = "NoMissions"
+	_text(v, s("no_missions"), "Row")
+	var cmd := _label(v, ".\\modern-iaf-setup.ps1" if OS.get_name() == "Windows" else "./modern-iaf-setup", "Strong")
+	cmd.name = "SetupCommand"
+	cmd.text_direction = Control.TEXT_DIRECTION_LTR
+	cmd.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT  # mirrored by the layout: the right in Hebrew
+	return v
+
+
 ## "F-16I Sufa" / "F-16I סופה": the jet's code and name, everywhere the jet is named (the user, A25).
 ## In Hebrew a right-to-left mark leads: a Label takes its paragraph's direction from the first strong letter, and the
 ## Latin code would make the line left to right, the code read last ("סופה F-16I"; the user, A31).
@@ -712,6 +786,10 @@ func _page_mission() -> void:
 	var left := _vbox(h, 30)
 	left.custom_minimum_size.x = 500
 	_title(left, s("training"), subtitle(j))
+	if missions.is_empty():
+		_setup_note(left).custom_minimum_size.x = 900
+		_focus = find_child("Crumb_hangar", true, false)
+		return
 	var group := ButtonGroup.new()
 	for i in missions.size():
 		var m: Dictionary = missions[i]
@@ -745,8 +823,6 @@ func _page_mission() -> void:
 		b.pressed.connect(_pick_mission.bind(i))
 		if i == mission_i:
 			_focus = b
-	if missions.is_empty():
-		return
 	_briefing(h, missions[mission_i])
 	_footer(" ", [], true)
 	show_tab(brief_tab)  # the footer's credit is the page's
@@ -1628,8 +1704,9 @@ func _page_pilot() -> void:
 	else:
 		_title(v, s("new_pilot") if creating else s("pilot"), "")
 	var h := _hbox(v, 72)
+	h.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var col := _vbox(h, 20)
-	var fr := _picture_frame(col, Vector2(300, 400), draft_picture())
+	var fr := _picture_frame(col, Vector2(330, 440), draft_picture())
 	fr.name = "Picture"
 	# The picture (or its placeholder) opens the file picker as the button does.
 	fr.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -1637,10 +1714,20 @@ func _page_pilot() -> void:
 	fr.tooltip_text = s("choose_picture")
 	fr.gui_input.connect(_picture_click)
 	if draft_picture() == null:
-		var ini := _label(fr, initials(str(draft.name)), "Jet")
+		# No picture: the initials as the name is typed, a head and shoulders before there is a name.
+		var empty := TextureRect.new()
+		empty.name = "Placeholder"
+		empty.texture = Look.person_icon(326)
+		empty.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		empty.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		empty.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		fr.add_child(empty)
+		var ini := _label(fr, "", "Jet")
+		ini.name = "Initials"
 		ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		ini.add_theme_color_override("font_color", Look.MUTED)
+		_show_initials()
 	var pick := _button(col, s("choose_picture"), "Secondary", choose_picture)
 	pick.name = "ChoosePicture"
 	var f := _vbox(h, 12)
@@ -1655,31 +1742,31 @@ func _page_pilot() -> void:
 		e.max_length = 40
 		e.custom_minimum_size = Vector2(640, 58)
 		e.text_changed.connect(_edit.bind(field))
+		e.gui_input.connect(_field_keys.bind(e))
 		f.add_child(e)
 		if _focus == null:
 			_focus = e
 		_spacer_px(f, 12)
-	if not creating and not first:
-		_logbook(h)
+	_logbook(h, creating or first)
 	var back := _action(s("back"), "Secondary", pilot_back)
 	back.name = "Back"
 	var save := _action(s("save"), "Primary", save_pilot)
 	save.name = "Save"
 	save.disabled = str(draft.name).strip_edges() == ""
-	if first:
-		_footer("", [save])
-		return
-	if creating:
-		_footer("", [back, save])
-		return
-	var reset := _action(s("reset_log"), "Secondary", reset_log)
-	reset.name = "ResetLog"
-	reset.disabled = sorties().is_empty()
-	var del := _action(s("delete_profile"), "Secondary", delete_profile)
-	del.name = "DeleteProfile"
-	var other := _action(s("other_pilots"), "Secondary", pilot_back.bind("pilots"))
-	other.name = "OtherPilots"
-	_footer("", [reset, del, other, back, save])
+	var actions := [save] if first else [back, save]
+	if not first and not creating:
+		var reset := _action(s("reset_log"), "Secondary", reset_log)
+		reset.name = "ResetLog"
+		reset.disabled = sorties().is_empty()
+		var del := _action(s("delete_profile"), "Secondary", delete_profile)
+		del.name = "DeleteProfile"
+		var other := _action(s("other_pilots"), "Secondary", pilot_back.bind("pilots"))
+		other.name = "OtherPilots"
+		actions = [reset, del, other, back, save]
+	_footer("", actions)
+	# Tab: the picture, the fields, the Pilot log, the bottom bar, the crumb.
+	var order := [pick] + ["Field_name", "Field_nickname", "pilot_log"].map(func(n): return find_child(n, true, false))
+	_chain((order + actions + [find_child("Crumb_hangar", true, false)]).filter(func(c): return c != null))
 
 
 func _picture_click(e: InputEvent) -> void:
@@ -1687,15 +1774,26 @@ func _picture_click(e: InputEvent) -> void:
 		choose_picture()
 
 
-## The logbook beside the profile: per plane flown (most hours first) its flight time and flights, and per mission
-## its passes and fails (IafPilotLog.logbook).
-func _logbook(parent: Control) -> void:
-	var book := _vbox(parent, 10)
-	book.name = "Logbook"
-	book.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+## The logbook beside the profile, a panel down to the bottom bar: per plane flown (most hours first) its flight time
+## and flights, and per mission its passes and fails (IafPilotLog.logbook). A pilot being made (`new`) has none yet:
+## the same panel with "No flights yet." and no Pilot log.
+func _logbook(parent: Control, new := false) -> void:
+	var panel := PanelContainer.new()
+	panel.name = "Logbook"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_theme_stylebox_override("panel", Look.box(Look.PANEL, Look.LINE, 1, 6, Vector2(28, 24)))
+	parent.add_child(panel)
+	var book := _vbox(panel, 10)
 	var top := _hbox(book, 16)
-	_label(top, s("logbook"), "Strong").add_theme_font_size_override("font_size", 25)
+	top.custom_minimum_size.y = 60
+	var caption := _label(top, s("logbook"), "Strong")
+	caption.add_theme_font_size_override("font_size", 25)
+	caption.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_spacer(top)
+	if new:
+		_rule(book, Look.LINE)
+		_label(book, s("no_flights"), "Sub")
+		return
 	# The Pilot log (every flight, each opening its debrief): reached from here only.
 	_button(top, s("pilot_log"), "Secondary", pilot_back.bind("log")).name = "pilot_log"
 	var units := {}
@@ -1704,10 +1802,11 @@ func _logbook(parent: Control) -> void:
 		units[id] = str(mission_by_name(str(list[id][0])).get("start", {}).get("unit", ""))
 	var planes = JSON.parse_string(IafPilotLog.logbook(Settings.records_db(), Settings.pilot(), JSON.stringify(units)))
 	if not planes is Array or planes.is_empty():
+		_rule(book, Look.LINE)
 		_label(book, s("no_flights"), "Sub")
 		return
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size.y = 560
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	book.add_child(scroll)
 	var rows := _vbox(scroll, 6)
@@ -1737,12 +1836,37 @@ func _logbook(parent: Control) -> void:
 			_chip(r, s("fails_n") % int(m.fails), false)
 
 
-## A field typed in: the draft, and Save only with a name.
+## A field typed in: the draft, the initials in the empty picture, and Save only with a name.
 func _edit(t: String, field: String) -> void:
 	draft[field] = t
+	_show_initials()
 	var save: Button = find_child("Save", true, false)
 	if save != null:
 		save.disabled = str(draft.name).strip_edges() == ""
+
+
+## The empty picture: the draft name's initials, else the head and shoulders.
+func _show_initials() -> void:
+	var ini: Label = find_child("Initials", true, false)
+	if ini == null:
+		return
+	ini.text = initials(str(draft.name))
+	(find_child("Placeholder", true, false) as Control).visible = ini.text == ""
+
+
+## Up / Down (ui_up / ui_down, the gamepad's too) move between Name and Nickname, from Nickname down to Save once it
+## can save, and from Name up to Choose a picture (a gamepad has no Tab; a LineEdit keeps the arrows otherwise).
+func _field_keys(event: InputEvent, e: LineEdit) -> void:
+	var to: Control = null
+	if event.is_action_pressed("ui_down"):
+		to = find_child("Field_nickname" if e.name == "Field_name" else "Save", true, false)
+	elif event.is_action_pressed("ui_up"):
+		to = find_child("Field_name" if e.name == "Field_nickname" else "ChoosePicture", true, false)
+	if to == null:
+		return
+	e.accept_event()
+	if not (to is Button and to.disabled):
+		to.grab_focus()
 
 
 ## True when the draft differs from the stored profile (a new pilot's: empty).

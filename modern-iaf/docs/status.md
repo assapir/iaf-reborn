@@ -3,6 +3,15 @@
 What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 
 ## Works
+- **First run, Hangar, missing data (2026-11-14, the front-end finish list's F1, [front-end.md](front-end.md) §1, §3,
+  §12):** "Preferences" is "Settings" on every screen (the Hangar's button, the title, the crumbs, the pause menu);
+  Attributions in Hebrew "קרדיטים ורישיונות" (the front end and the setup wizard). Create your pilot shows a head and
+  shoulders in the empty 3:4 frame, then the typed name's initials, and no pilot in the top bar yet; Up / Down move
+  between Name and Nickname, Up from Name to Choose a picture. The Pilot screen's logbook is a panel down to the bottom
+  bar. The Hangar's focus order: Settings, the pilot, the jets, Fly, Attributions; Down from Fly stays. Without the
+  sim's data the Hangar and Pick a mission say what is missing and the command `./modern-iaf-setup` (Windows
+  `.\modern-iaf-setup.ps1`), Fly greyed and out of the focus, and the Hangar tries no model load without the converted
+  descriptor (its still picture instead). Missions and campaign stays greyed.
 - **The canopy opens and closes (2026-11-14, canopy round 3):** on the Sufa, the Barak and the F-35I the canopy
   stands up 30° at a cold start and comes down over 10 s at its checklist step (shut at once on a hot or airborne
   start), outside and from the seat alike. Each canopy has an opaque frame round the glass painted as the airframe
@@ -44,7 +53,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   complete" line, the completion message and the debrief. `test_flight_ui.gd` checks it.
 - **Reborn's code reused (2026-11-14, the reuse audit's R1–R3):** the mission page preloads the ground and models
   with reborn's `TerrainPreload` ([front-end.md](front-end.md) §7); the briefing map's wheel zoom and the notebook's
-  wheel take `Settings.zoom_steps` / `wheel_steps`; the Preferences' shared rows take their choices and greying from
+  wheel take `Settings.zoom_steps` / `wheel_steps`; the Settings' shared rows take their choices and greying from
   `shared/util/pref_choices.gd` (MetalFX named on a Mac).
 - **The pilot's checklist notebook, part 1 (2026-11-13, the approved mock-up's look A):** in every flight a paper
   notebook on the right thigh; H raises it at the screen's lower right and stows it. Tabs START-UP, TAXI / T-O, RADIO,
@@ -186,7 +195,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   in the sim's band wholly in the game's language, the key hint; the pause menu centred at any size in Hebrew;
   Preferences without an aid or realism row and the aids off; Home on every start;
   clickable breadcrumbs ([front-end.md](front-end.md) §1, §8). `test_flight_ui.gd`, `test_front_end.gd`.
-- **Keys and Joystick (P1, 2026-11-08, the Mac run's "keys / joystick mapping"):** Preferences → Devices opens a
+- **Keys and Joystick (P1, 2026-11-08, the Mac run's "keys / joystick mapping"):** Settings → Devices opens a
   Keys screen (every command the sim has, by group; click and press to rebind, Cmd on macOS, conflicts with Swap /
   Use it here, Default, Reset all) and a Joystick screen (the devices, each axis' role with a live bar, Invert and a
   dead zone, the buttons and hat bound by pressing them, Reset all), in English and Hebrew. The keys and
@@ -198,7 +207,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
 - **The Mac findings batch, devices and front end (P1, 2026-11-11, [front-end.md](front-end.md) §1, §2, §9):** the
   Joystick screen's bars show each role as the flight reads it (`Joystick.role_value`, one sense for the poller and the
   bars): the throttle forward is a full bar, checked against the 1998 game's events axis by axis (`test_devices.gd`);
-  the afterburner detent on Preferences → Devices (reborn's Detent = MIL rule, `Joystick.detent_choice`); the hat is
+  the afterburner detent on Settings → Devices (reborn's Detent = MIL rule, `Joystick.detent_choice`); the hat is
   reborn's POV again (the sim's own four hat buttons dropped the diagonals), its eight directions the snap views; the Keys and Joystick side lists follow the scroll and both
   screens have Back; one head-look key set (the snap views; F2 rear view and the Shift free look are empty slots);
   on macOS the keys say ⌘ and Option; Home has Guides and Training has Missions and campaign, both greyed with
@@ -260,11 +269,11 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   through a 0.25 s lag (§5.4). `test_mvp.gd`. FCR and RDR ALT: FlightGear's console has both as own parts; clickable since
   2026-11-13.
 - **Town labels: dropped from the sim (2026-11-11, the Mac play test):** the sim draws no town names over the view and
-  Preferences has no "Town labels" row; the sim's profile fixes the switch off. The 1998 game keeps its own (Extras →
+  Settings has no "Town labels" row; the sim's profile fixes the switch off. The 1998 game keeps its own (Extras →
   "Town labels", [../../docs/scenery.md](../../docs/scenery.md) §3.5). [scenery.md](scenery.md) §7. `test_sim_look.gd`,
   `test_front_end.gd`.
 - **Wall shading and long shadows (2026-11-09, the look study's proposal 5):** the buildings' walls away from the sun
-  take less sky light, and Preferences → Graphics "Long shadows" (on by default) draws the sun's shadows to 2.5 km with
+  take less sky light, and Settings → Graphics "Long shadows" (on by default) draws the sun's shadows to 2.5 km with
   the near buildings casting them; +0.5 ms on the Iris Xe ([scenery.md](scenery.md) §7). `test_scenery.gd`. Open: at
   the Shoham pose the change is small (the sun behind the camera), so the reference's shaded street sides are still
   apart.
@@ -335,7 +344,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   state column instead of pushing the row aside.
 - **[B3](plan.md#b3-scenery-roads-and-inland-water), scenery and inland water (2026-11-03):** `iaf-sim scenery` builds the original's buildings, trees, road
   layer and city lights in the sim's UTM theatre from the shared open-data cache ([scenery.md](scenery.md)); the sim
-  shows them over its own ground when Scenery is on (Preferences → Graphics → "Buildings and trees": Off / On /
+  shows them over its own ground when Scenery is on (Settings → Graphics → "Buildings and trees": Off / On /
   Detailed, On by default, greyed without the step, 2026-11-08); `iaf-sim airbases` flags the Dead Sea, the Sea of
   Galilee, the evaporation pans and the reservoirs as inland water ([terrain.md](terrain.md) §11). Since 2026-11-12
   the sim draws its own road layer (Roads Detailed on by default when the step made it; the probe asked for the
@@ -438,7 +447,7 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   the cockpit, FlightGear's F-16 sounds not compared, the F-35I's own burner.
 - **Keys and Joystick's open points** ([front-end.md](front-end.md) §9): one joystick flies (the first; a separate
   throttle or pedals as a second device is listed but not read); a joystick plugged in during a flight takes its map's
-  buttons at the next flight or when the Preferences close; the hat's diagonals press two look commands, the last one
+  buttons at the next flight or when the Settings close; the hat's diagonals press two look commands, the last one
   wins; maps for more sticks than the Hotas X; the Hotas X's button choice is ours, untried on the stick.
 - **[B3](plan.md#b3-scenery-roads-and-inland-water)'s open points** ([scenery.md](scenery.md) §9).
 - **The scenery over a dense town is over its budget (2026-11-11):** on the Iris Xe at 500 m it takes 14 % of the GPU

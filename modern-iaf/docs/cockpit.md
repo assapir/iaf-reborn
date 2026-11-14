@@ -198,7 +198,7 @@ ambient light, NIGHT the night range[^fg-hud][^hoggit-icp]. Ours, in the Sufa's 
 - the pointer over it lights it; a click throws it one position down (DAY, AUTO, NIGHT, then back to DAY); the mouse
   wheel up moves it toward DAY, down toward NIGHT; each through command `[217, p1, 0]` (no key sends it);
 - the position is kept in the sim's settings file (`Settings.hud_brt_switch`, section `graphics`, 0 DAY, 1 AUTO, 2 NIGHT),
-  as a switch stays thrown, with no Preferences row. The original game never reads it.
+  as a switch stays thrown, with no Settings row. The original game never reads it.
 
 The switch sets the HUD only: the helmet displays (the F-35I's, which has no such switch, and the Sufa's DASH) follow
 the sun (AUTO).

@@ -63,7 +63,9 @@ func run() -> void:
 		var d: AcceptDialog = w.credits_dialog
 		check(not d.visible, "%s: the Attributions are closed at first" % lang)
 		var b: Button = w.find_child("Credits", true, false)
-		check(b != null and b.text == ("קרדיט" if lang == "he" else "Attributions"), "%s: the button" % lang)
+		check(
+			b != null and b.text == ("קרדיטים ורישיונות" if lang == "he" else "Attributions"), "%s: the button" % lang
+		)
 		b.pressed.emit()
 		await frames(2)
 		check(d.visible and d.exclusive, "%s: the button opens the modal" % lang)

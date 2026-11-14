@@ -1,8 +1,10 @@
 # Modern IAF's Hangar (modern-iaf/docs/front-end.md §12), headless, in English and Hebrew: the first screen; the jets'
 # full names, the F-15s greyed and out of reach, the jet flown last picked (else the first), a click picking another
 # (Settings.sim_jet, the F-16 switch) with its card and its model; the card's facts and training; Missions and campaign
-# greyed; the Preferences in the top bar; the mirrored layout in Hebrew; Fly opening the jet's missions with the
-# Hangar crumb back; Esc on the Hangar asking to quit; the turntable rendering only while shown.
+# greyed; the Settings in the top bar; the focus order by Tab and the arrows; the mirrored layout in Hebrew; Fly
+# opening the jet's missions with the Hangar crumb back; Esc on the Hangar asking to quit; the turntable rendering only
+# while shown; a fresh install (an empty assets folder): what is missing and the setup command, Fly dim and out of the
+# focus, the still picture with no model load tried.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_hangar.gd --log-file <temp>
 extends "res://../tests/godot/base.gd"
@@ -54,6 +56,7 @@ func run() -> void:
 		"hidden, the turntable renders nothing"
 	)
 	tt.ignore_minimised = false
+	await no_data(fe)
 	s.pilot_name = ""
 
 
@@ -92,11 +95,14 @@ func walk(fe: Control, lang: String) -> void:
 	check(last.text.contains("המראה" if he else "Take-off"), "%s: the last flight: %s" % [lang, last.text])
 	var camp: Button = fe.find_child("Campaign", true, false)
 	check(camp.disabled and camp.focus_mode == Control.FOCUS_NONE and camp.tooltip_text == "", lang + ": campaign")
-	check(fe.find_child("Preferences", true, false) is Button, "%s: the Preferences in the top bar" % lang)
+	var gear: Button = fe.find_child("Settings", true, false)
+	check(gear != null and gear.text == ("הגדרות" if he else "Settings"), "%s: the Settings in the top bar" % lang)
+	check(_has(fe, "קרדיטים ורישיונות" if he else "Attributions"), "%s: Attributions at the foot" % lang)
 	check(fe.find_child("PilotBlock", true, false) is Button, "%s: the pilot in the top bar" % lang)
 	check(fe.find_child("pilot_log", true, false) == null, "%s: no Pilot log entry" % lang)
 	var fly: Button = fe.find_child("Fly", true, false)
 	check(fe.get_viewport().gui_get_focus_owner() == fly, "%s: Fly focused" % lang)
+	await _focus_order(fe, lang)
 	# Hebrew mirrors: the list at the right, the card at the left.
 	var list_x: float = fe.find_child("Jets", true, false).get_global_rect().get_center().x
 	check((list_x > card.get_global_rect().get_center().x) == he, "%s: the list at the inline start" % lang)
@@ -139,6 +145,89 @@ func walk(fe: Control, lang: String) -> void:
 	key(fe, KEY_ESCAPE)
 	await frames(2)
 	check(fe.page == "hangar", "%s: Esc on the missions: the Hangar" % lang)
+
+
+## The focus order (F1): Tab from Fly through Attributions, Settings, the pilot, the three jets and back to Fly; Down
+## from Fly stays; Up from Fly to Settings, Down from there to the picked jet; toward the inline end from a jet: Fly;
+## Down from the last jet: Attributions.
+func _focus_order(fe: Control, lang: String) -> void:
+	var order := ["credits", "Settings", "PilotBlock", "sufa", "barak", "adir", "Fly"]
+	var walked := []
+	for n in order:
+		walked.append(await _press(fe, KEY_TAB))
+	check(walked == order, "%s: Tab order %s" % [lang, walked])
+	var to_end := KEY_LEFT if lang == "he" else KEY_RIGHT
+	var steps := [[KEY_DOWN, "Fly"], [KEY_UP, "Settings"], [KEY_DOWN, "sufa"], [to_end, "Fly"]]
+	for st in steps:
+		var at := await _press(fe, st[0])
+		check(at == st[1], "%s: %s → %s (%s)" % [lang, OS.get_keycode_string(st[0]), st[1], at])
+	(fe.find_child("adir", true, false) as Control).grab_focus()
+	check(await _press(fe, KEY_DOWN) == "credits", "%s: Down from the last jet: Attributions" % lang)
+	(fe.find_child("Fly", true, false) as Control).grab_focus()
+
+
+## Key `k` through the viewport, as a player presses it: the focus owner's name after it.
+func _press(fe: Control, k: Key) -> String:
+	for down in [true, false]:
+		var e := InputEventKey.new()
+		e.keycode = k
+		e.physical_keycode = k
+		e.pressed = down
+		fe.get_viewport().push_input(e, true)
+	await frames(1)
+	var f := fe.get_viewport().gui_get_focus_owner()
+	return str(f.name) if f != null else ""
+
+
+## A fresh install: an empty assets folder (IAF_ASSETS_DIR). The Hangar says what is missing and the command that
+## builds it, Fly dim and out of the focus (the picked jet has it), the F-16's still picture with no model load tried
+## (its converted descriptor is missing); the mission screen says the same, the Hangar crumb focused.
+func no_data(fe: Control) -> void:
+	var s := settings()
+	var was := OS.get_environment("IAF_ASSETS_DIR")
+	var empty := OS.get_temp_dir().path_join("iaf2026-no-data-%d" % OS.get_process_id())
+	DirAccess.make_dir_recursive_absolute(empty)
+	OS.set_environment("IAF_ASSETS_DIR", empty)
+	for lang in ["en", "he"]:
+		var he: bool = lang == "he"
+		s.language = lang
+		s.sim_jet = "f16i"
+		fe.show_page("hangar")
+		await frames(3)
+		var note: Control = fe.find_child("NoMissions", true, false)
+		check(
+			(
+				note != null
+				and _has(note, ".\\modern-iaf-setup.ps1" if OS.get_name() == "Windows" else "./modern-iaf-setup")
+				and _has_part(note, "אין משימות" if he else "No training")
+			),
+			"%s, no data: the Hangar says what is missing and the command" % lang
+		)
+		var fly: Button = fe.find_child("Fly", true, false)
+		check(
+			fly.disabled and fly.focus_mode == Control.FOCUS_NONE and fly.modulate.a < 0.6,
+			"%s, no data: Fly dim and out of the focus" % lang
+		)
+		var fo := fe.get_viewport().gui_get_focus_owner()
+		check(fo != null and fo.name == "sufa", "%s, no data: the picked jet focused (%s)" % [lang, fo])
+		check(
+			fe.find_child("Turntable", true, false) == null and fe.find_child("Still", true, false) != null,
+			"%s, no data: the still picture, no model load" % lang
+		)
+		fe.show_page("mission")
+		await frames(2)
+		fo = fe.get_viewport().gui_get_focus_owner()
+		check(
+			fe.find_child("NoMissions", true, false) != null and fo != null and fo.name == "Crumb_hangar",
+			"%s, no data: the mission screen says so, the Hangar crumb focused" % lang
+		)
+	if was != "":
+		OS.set_environment("IAF_ASSETS_DIR", was)
+	else:
+		OS.unset_environment("IAF_ASSETS_DIR")
+	DirAccess.remove_absolute(empty)
+	s.language = "en"
+	s.sim_jet = "f16i"
 
 
 ## The texts as read: without the isolates that keep Latin codes left to right in a Hebrew line.

@@ -20,23 +20,25 @@ The window opens plain in the front end's background colour (#00163C, no Godot s
 
 | screen | what it does | English | Hebrew |
 |---|---|---|---|
-| Hangar | the first screen (§12): the jets at the inline start, the picked one turning in 3D in the middle with its full name faint behind it, its card at the inline end (squadron and base, facts, the training's progress, Missions and campaign greyed, Fly); Preferences and the pilot in the top bar, Attributions at the foot | ![Hangar](pictures/front-end/hangar_en.webp) | ![Hangar, Hebrew](pictures/front-end/hangar_he.webp) |
+| Hangar | the first screen (§12): the jets at the inline start, the picked one turning in 3D in the middle with its full name faint behind it, its card at the inline end (squadron and base, facts, the training's progress, Missions and campaign greyed, Fly); Settings and the pilot in the top bar, Attributions at the foot | ![Hangar](pictures/front-end/hangar_en.webp) | ![Hangar, Hebrew](pictures/front-end/hangar_he.webp) |
 | Pick a mission | the missions beside the picked one's briefing (§10) on three pages: Briefing (base, runway and heading, time, wind, time allowed, objectives, how), Map (one zoomable map) and Arming (the jet's front view with its stores, its weights); Fly | ![Pick a mission](pictures/front-end/mission_en.webp) | ![Pick a mission, Hebrew](pictures/front-end/mission_he.webp) |
-| Preferences | the sections Graphics, Language, Sound and Devices listed at the inline start; the picked one's settings open beside them as controls: dropdown, switch, slider, radio list; Devices has the afterburner detent (§9.2) | ![Preferences](pictures/front-end/prefs_graphics_en.webp) | ![Preferences, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
+| Settings | the sections Graphics, Language, Sound and Devices listed at the inline start; the picked one's settings open beside them as controls: dropdown, switch, slider, radio list; Devices has the afterburner detent (§9.2) | ![Settings](pictures/front-end/prefs_graphics_en.webp) | ![Settings, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
 | Debrief | the record as a sheet: Plane flown, From, Time, Mission, Result, the mission's goals (a take-off: runway, lift-off and reference speed, centreline offset, tower calls; a start-up: none), Remarks (the fail reason first, or that it passed; the lift-off against the reference); Back to missions, Fly again | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
-| Pilot | the Hangar → the pilot: the picture in a service ID photo's fixed 3:4 frame (a click on it, or Choose a picture…, opens the system's file dialog), the name and the nickname, and the logbook (§3) with its Pilot log button; the footer's Reset the log, Delete profile, Change pilot, Back and Save (§3) | ![Pilot](pictures/front-end/pilot_en.webp) | ![Pilot, Hebrew](pictures/front-end/pilot_he.webp) |
-| Create your pilot | the first start, before the Hangar: the Pilot screen with Save only (§3) | ![Create your pilot](pictures/front-end/pilot_first_en.webp) | ![Create your pilot, Hebrew](pictures/front-end/pilot_first_he.webp) |
+| Pilot | the Hangar → the pilot: the picture in a service ID photo's fixed 3:4 frame (a click on it, or Choose a picture…, opens the system's file dialog; without a picture the initials, or a head and shoulders before there is a name), the name and the nickname, and the logbook panel down to the bottom bar (§3) with its Pilot log button; the footer's Reset the log, Delete profile, Change pilot, Back and Save (§3) | ![Pilot](pictures/front-end/pilot_en.webp) | ![Pilot, Hebrew](pictures/front-end/pilot_he.webp) |
+| Create your pilot | the first start, before the Hangar: the Pilot screen with Save only and no pilot in the top bar yet; the logbook panel says "No flights yet." (§3) | ![Create your pilot](pictures/front-end/pilot_first_en.webp) | ![Create your pilot, Hebrew](pictures/front-end/pilot_first_he.webp) |
 | Reset the log | the Pilot screen's Reset: a warning modal, then a second confirm (§3) | ![Reset the log](pictures/front-end/pilot_reset_en.webp) | ![Reset the log, Hebrew](pictures/front-end/pilot_reset_he.webp) |
 | Pilots | the Pilot screen's Change pilot: every pilot with a name, the active one marked Current; New pilot (§3) | ![Pilots](pictures/front-end/pilots_en.webp) | ![Pilots, Hebrew](pictures/front-end/pilots_he.webp) |
 | Pilot log | the Pilot screen → Pilot log: every attempt, newest first; a row opens its debrief; Back to the Pilot screen | ![Pilot log](pictures/front-end/log_en.webp) | ![Pilot log, Hebrew](pictures/front-end/log_he.webp) |
-| Attributions | the setup wizard's list of sources and licences, the jet models and photos with them; the Hangar's foot opens it | ![Attributions](pictures/front-end/credits_en.webp) | ![Attributions, Hebrew](pictures/front-end/credits_he.webp) |
+| Attributions | the setup wizard's list of sources and licences, the jet models and photos with them; the Hangar's foot opens it ("קרדיטים ורישיונות" in Hebrew) | ![Attributions](pictures/front-end/credits_en.webp) | ![Attributions, Hebrew](pictures/front-end/credits_he.webp) |
+| Hangar without data | a fresh install before `./modern-iaf-setup` (no training missions): the card says what is missing and the command (`./modern-iaf-setup`; Windows `.\modern-iaf-setup.ps1`), in place of the training's progress; Fly greyed and out of the focus, the picked jet focused; the F-16s' still pictures (§12) | ![Hangar without data](pictures/front-end/nodata_hangar_en.webp) | ![Hangar without data, Hebrew](pictures/front-end/nodata_hangar_he.webp) |
+| Pick a mission without data | the same note under the title, no briefing; the Hangar crumb focused | ![Pick a mission without data](pictures/front-end/nodata_mission_en.webp) | ![Pick a mission without data, Hebrew](pictures/front-end/nodata_mission_he.webp) |
 
 At a training mission's goal a banner over the view says "Mission complete" and "Fly on, or Esc → End the flight for
 the debrief" for 10 s; the flight goes on until the player ends it (the user, 2026-11-13: "on mission complete - allow
 to keep flying"), the pass kept. A fail shows "Fail" and the reason; about 5 s later the flight ends into its debrief
 ([training.md](training.md) §9).
 
-Over a flight, Esc opens the pause menu: Continue the flight, Preferences, End the flight. It is laid out on the
+Over a flight, Esc opens the pause menu: Continue the flight, Settings, End the flight. It is laid out on the
 front end's canvas scaled to the window and centred by a container, so it sits in the middle at any window size and in
 either language (the Mac run of 2026-11-08: in Hebrew in a 2560 × 1440 window the overlay mirrored its own position
 by its unscaled width and sat off the right edge, its buttons' labels outside the screen). Ending a training flight
@@ -61,17 +63,17 @@ screen (a jet's name: the Hangar; Training: the jet's missions); the picks are k
 
 | screen | English | Hebrew |
 |---|---|---|
-| Preferences: Graphics | ![Graphics](pictures/front-end/prefs_graphics_en.webp) | ![Graphics, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
-| Preferences: Sound | ![Sound](pictures/front-end/prefs_sound_en.webp) | ![Sound, Hebrew](pictures/front-end/prefs_sound_he.webp) |
-| Preferences: Devices | ![Devices](pictures/front-end/prefs_devices_en.webp) | ![Devices, Hebrew](pictures/front-end/prefs_devices_he.webp) |
-| Preferences: Language | ![Language](pictures/front-end/prefs_language_en.webp) | ![Language, Hebrew](pictures/front-end/prefs_language_he.webp) |
+| Settings: Graphics | ![Graphics](pictures/front-end/prefs_graphics_en.webp) | ![Graphics, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
+| Settings: Sound | ![Sound](pictures/front-end/prefs_sound_en.webp) | ![Sound, Hebrew](pictures/front-end/prefs_sound_he.webp) |
+| Settings: Devices | ![Devices](pictures/front-end/prefs_devices_en.webp) | ![Devices, Hebrew](pictures/front-end/prefs_devices_he.webp) |
+| Settings: Language | ![Language](pictures/front-end/prefs_language_en.webp) | ![Language, Hebrew](pictures/front-end/prefs_language_he.webp) |
 
 ## 2. The flow
 
 The Hangar → Fly → Pick a mission → Fly → the flight → the debrief → the Hangar. Every start opens the Hangar with the
 jet picked last (flown or picked), else the first, the Sufa; the earlier rule of no jet picked on entry (2026-11-09,
 2026-11-11) went with Home and Pick a plane, since the Hangar always shows a jet. Esc on Pick a mission, the
-Preferences, the debrief and Attributions goes back to the Hangar. The breadcrumbs: Hangar · the jet · Training (Pick a
+Settings, the debrief and Attributions goes back to the Hangar. The breadcrumbs: Hangar · the jet · Training (Pick a
 mission) · Debrief; the Hangar's crumb and the jet's open the Hangar.
 
 The Ra'am (F-15I, `f15i`) and the Baz (F-15C, `f15c`) are listed after the three flyable jets, disabled until the sim
@@ -114,8 +116,14 @@ cropped to fill the frame.
   the database then. Back (and Esc) opens the Hangar, after a modal "Discard the changes?" (Discard / Keep editing) when
   something changed; Change pilot and the Hangar crumb ask the same. The empty fields show hints ("Full name", "For example: Viper"): the nickname field used to show
   the pilot's name in grey, which read as text that no click could edit.
-- **The picture** opens the file dialog on a click, as Choose a picture… does.
-- **The logbook** beside the profile (`IafPilotLog.logbook`): per plane flown, most hours first, its flight time
+- **The picture** opens the file dialog on a click, as Choose a picture… does. Without a picture the frame shows the
+  name's initials as they are typed, and a head and shoulders (`Look.person_icon`) before there is a name (F1,
+  2026-11-14: the first start's frame was empty).
+- **The keys:** Up and Down move between Name and Nickname (a text field keeps the arrows otherwise), Down from Nickname
+  to Save once it can save, Up from Name to Choose a picture (a gamepad has no Tab). Tab goes the picture, the fields,
+  the Pilot log, the bottom bar's buttons, the Hangar crumb, and round.
+- **The logbook** beside the profile, a panel in the card look running down to the bottom bar (F1, 2026-11-14: the
+  screen's lower 40 % was empty), its list scrolling inside (`IafPilotLog.logbook`): per plane flown, most hours first, its flight time
   (`clock`) and its flights, passes and fails, then each mission flown on it with its passes and fails. A sortie
   stored before the records kept its plane counts for its mission's jet (the readable mission's `start.unit`).
   Its **Pilot log** button opens the Pilot log, every attempt with its debrief: the one way there since Home's
@@ -133,7 +141,8 @@ cropped to fill the frame.
   and its Save makes the pilot and makes it active. The active pilot is `Settings.pilot_id`, kept in `settings.cfg`
   `[sim] pilot` (the default pilot 14 before any pick).
 - **The first start.** While the active pilot has no name stored, the Hangar's place is taken by the Pilot screen titled
-  "Create your pilot" with only Save (Esc stays); Save stores the profile on the active pilot, its imported sorties
+  "Create your pilot" with only Save (Esc stays), no pilot in the top bar yet (it showed the computer's user name) and
+  the logbook panel saying "No flights yet."; Save stores the profile on the active pilot, its imported sorties
   kept, and opens the Hangar. When the records hold other pilots with a name, the pilot list opens instead.
 - **The modal** is the sim's: the screen dimmed, a panel with the title, the text, the safe choice and the action;
   mirrored in Hebrew. The Hebrew texts are in the infinitive, gender neutral.
@@ -179,11 +188,11 @@ centreline in the roll.
   wing is the base, so it is left out). The tail number is the unit record's `tail`, the number painted on the jet's model
   ([data-formats.md](data-formats.md) §3); the squadron is its airbase file's
   ([airbases.md](airbases.md) §3).
-- **Preferences:** one screen: the sections listed at the inline start, the picked one's rows beside them (Graphics
+- **Settings** ("Preferences" until 2026-11-14, the approved mocks' word): one screen: the sections listed at the inline start, the picked one's rows beside them (Graphics
   until one is picked; the user, 2026-11-09, of the screen per section: "I liked it more before"). The section's pane
   scrolls over its full height, its scroll bar running from its top to its bottom. A row shows its name and its
   control, no line under it; a greyed row says why (Scenery without its setup step, §4). Over a flight Esc on the
-  Preferences goes back to the pause menu; the Keys and Joystick screens go back to the Preferences on Devices. Tried
+  Settings goes back to the pause menu; the Keys and Joystick screens go back to the Settings on Devices. Tried
   2026-11-08 and dropped 2026-11-09: one screen per section, the list as cards with the rows' names under each
   section. Realism and aids have no switch (plan.md "physics";
   the user, 2026-11-08): the sim's `PROFILE` (`modern-iaf/sim_settings.gd`) fixes the original Gameplay page's aids off
@@ -216,14 +225,15 @@ which showed them whole with their credits, are gone.
 
 - `modern-iaf/tests/test_front_end.gd` walks the Hangar → Pick a mission → the debrief of a stored record → the
   Hangar in English and Hebrew: the texts, each jet's card with its squadron, the mission list, the layout direction;
-  the plane pick; the Ra'am's and the Baz's rows greyed and not pickable; the Preferences' controls and the live language switch; the Pilot log
+  the plane pick; the Ra'am's and the Baz's rows greyed and not pickable; the Settings' controls and the live language switch; the Pilot log
   and Attributions. With `-- --fly` it also flies Ramon's start-up from the mission screen to a pass, opens the pause
   menu, ends the flight and finds that flight's debrief. Run in a real render through `tools/godot_window.sh` it is
   the real run (`SHOT_DIR=<dir>` saves the two pictures of §1's second table).
-  It also checks the first start (the Pilot screen before the Hangar, Save only with a name typed through real input
-  events, Esc staying, Save storing the name on the active pilot and opening the Hangar), no Pilot log entry on the
+  It also checks the first start (the Pilot screen before the Hangar, no pilot in its top bar, the empty picture's head
+  and shoulders turning into the typed name's initials, Save only with a name typed through real input events, Down and
+  Up between Name and Nickname, Esc staying, Save storing the name on the active pilot and opening the Hangar), no Pilot log entry on the
   Hangar, the Pilot screen's Pilot log button opening the Pilot log, the breadcrumbs, each
-  Preferences section opening beside the list on the same screen (its pane over 700 px high, on the inline-end side),
+  Settings section opening beside the list on the same screen (its pane over 700 px high, on the inline-end side),
   no line under an option, no aid, realism or weather row and no read of the original's data, the
   sim's settings (no aid on, the log dumps naming only the sim's settings), F1–F4 opening no pause menu, and the
   pause menu inside viewports of 1920 × 1080, 2560 × 1440 and 1280 × 800 in both languages, and the Pilot screen in
@@ -252,12 +262,15 @@ which showed them whole with their credits, are gone.
 - `modern-iaf/tests/test_hangar.gd` checks the Hangar (§12) in English and Hebrew: the first screen, the jet picked
   last (else the first) picked, the five rows with the full names, the F-15s greyed with no focus and no text, a click
   picking the Barak (the F-16 switch) and the Adir with their cards and models, the card's facts and training,
-  Missions and campaign greyed with no tooltip, Preferences and the pilot in the top bar, the mirrored sides, Fly to
-  Pick a mission and the Hangar crumb back, Esc's quit prompt, the turntable rendering nothing once hidden.
-- `modern-iaf/tests/_hangar_shot.gd` takes the Hangar's pictures with each jet, Pick a mission and the Preferences at
+  Missions and campaign greyed with no tooltip, Settings and the pilot in the top bar, the focus order by Tab and the
+  arrows, the mirrored sides, Fly to Pick a mission and the Hangar crumb back, Esc's quit prompt, the turntable
+  rendering nothing once hidden; then a fresh install (`IAF_ASSETS_DIR` an empty folder): the note and the command on
+  the Hangar and Pick a mission, Fly dim and out of the focus, the still picture with no model load tried.
+- `modern-iaf/tests/_hangar_shot.gd` takes the Hangar's pictures with each jet, Pick a mission and the Settings at
   1920 × 1080 and 2560 × 1440 in both languages, prints the turntable's measured render time and, with `STILLS=1`,
   writes the stills of `data/hangar/` (its header).
-- `modern-iaf/tests/_front_end_shot.gd` takes §1's pictures at 1920 × 1080 (its header), and the failed debrief.
+- `modern-iaf/tests/_front_end_shot.gd` takes §1's pictures at 1920 × 1080 (its header), the failed debrief and the
+  two screens without data.
 - `modern-iaf/tests/test_flight_ui.gd` checks §8 in both languages.
 
 ## 7. The loading screen
@@ -369,7 +382,7 @@ stay the original's (`terrain_view.gd _on_subtitle` hands each line to the fligh
   Mac's screen), but Heebo's ת has no side bearing and the cockpit shows through the gap. `test_flight_ui.gd`
   measures the gap on the glyphs' bitmaps in both languages.
 
-A language switched over the flight (Esc → Preferences → Language) applies at once to the key hint, the panel (an
+A language switched over the flight (Esc → Settings → Language) applies at once to the key hint, the panel (an
 open radio menu at once, a training line at the next frame's score), the pilot's notebook ([training.md](training.md)
 §11) and the radio lines: `radio.gd` keeps each line it prints in both languages (`subtitles`, the pilot's call from
 `sim_flight.gd pick`), so a line shown, or still waiting for its voice, shows in the language of the moment.
@@ -384,16 +397,16 @@ checks the layout at a start in each language and after a switch each way, and t
 
 ## 9. Keys and Joystick
 
-Preferences → Devices has two rows that open their own screens: **Keys** and **Joystick**. Esc on either goes back to
-the Preferences on Devices. Both read and write one file, the device store (§9.4). A change applies at once: the front end's
-next flight reads it, and over a flight the Preferences apply it when they close.
+Settings → Devices has two rows that open their own screens: **Keys** and **Joystick**. Esc on either goes back to
+the Settings on Devices. Both read and write one file, the device store (§9.4). A change applies at once: the front end's
+next flight reads it, and over a flight the Settings apply it when they close.
 
 ### 9.1 Keys
 
 The screen lists every command of the sim's key table (`modern-iaf/data/keys.json`) that has a `group`, in five groups:
 Flight, Weapons, Sensors and displays, Views, General. The tabs on the inline-start side scroll to each group, and the tab of the group at the
 top of the list lights as the list scrolls (`front_end.gd spy`; the Joystick screen's Devices, Axes and Buttons too).
-Back in the bottom bar, as Esc, goes to the Preferences on Devices; the top bar's breadcrumbs read Hangar · Preferences ·
+Back in the bottom bar, as Esc, goes to the Settings on Devices; the top bar's breadcrumbs read Hangar · Settings ·
 Devices · Keys. A row shows the command and its key; on macOS a key with Ctrl shows as ⌘ and one with Alt as Option
 (`KeyTable.mac_symbols`, which the sim sets; the 1998 game keeps Cmd and Alt; docs/controls.md §2). The
 table's records without a group are the commands the sim lacks (the chat, the wingman orders, the debug keys, the
@@ -450,7 +463,7 @@ With no joystick connected the Devices section's Joystick row is greyed, its Cha
 connected."; it comes alive when one is plugged in (`Input.joy_connection_changed` builds the section again). Tests see
 only their fake joysticks (`Joystick.device()`).
 
-Back in the bottom bar and the breadcrumbs Hangar · Preferences · Devices · Joystick work as on the Keys screen; the
+Back in the bottom bar and the breadcrumbs Hangar · Settings · Devices · Joystick work as on the Keys screen; the
 side list (Devices, Axes, Buttons) follows the scroll.
 
 - **Devices:** every connected joystick by name. The first one flies the jet ("Flies the jet"); the others are listed
@@ -472,9 +485,9 @@ side list (Devices, Axes, Buttons) follows the scroll.
 - **Reset all** puts the buttons and the axes back to the defaults.
 
 The Joystick screen has no rows for the Devices group's choices (Flight controls, Rudder, Throttle, Afterburner detent,
-Stick response): they stay in the Preferences.
+Stick response): they stay in the Settings.
 
-**Afterburner detent** (Preferences → Devices, greyed with no joystick): the throttle lever's click where the
+**Afterburner detent** (Settings → Devices, greyed with no joystick): the throttle lever's click where the
 afterburner starts, as the 1998 game's Devices "Detent = MIL" (docs/controls.md §5). Put the lever in its click and
 choose Set at lever: the row then reads "At n%" (the lever's raw position) and that position gives military power, the
 travel past it the afterburner (`Joystick.detent_choice` and `detent_map`, the code reborn's page runs). With the lever
@@ -548,7 +561,7 @@ How the flight reads it:
 - **Keys and buttons:** the flight's key table is `KeyTable.load_table()` (the sim's own table) with
   `Settings.key_bindings`, as in the original game. When a joystick connects, the sim hands its device map's button
   column to `Joystick.default_buttons` (`sim_settings.gd _map_buttons`), where reborn's `.joy` files put theirs.
-- **Axes:** `Settings.apply_devices()` (at start, on every Preferences save, when a joystick connects) sets
+- **Axes:** `Settings.apply_devices()` (at start, on every Settings save, when a joystick connects) sets
   `Settings.joy_axes` to the roles' axes, `Joystick.tune` to their invert and dead zone, Roll trim on while the trim
   role has an axis. The hat is the original's POV snap views in both games.
   `joystick.gd` reads them each poll. The original game leaves `tune` empty, so its joystick is
@@ -578,7 +591,7 @@ How the flight reads it:
 Selecting a mission on Pick a mission shows its briefing beside the list (the user, 2026-11-09: "briefing, with map,
 when selecting a mission"; his verdicts A14 the same day gave it its pages). Three tabs at its top, Briefing, Map and
 Arming (חימוש), switch the pages; so do the arrow keys (toward the inline end: the next page), except while the map has the
-focus. The page shown stays for the next mission picked; entering the screen again (from the Hangar, the breadcrumbs, the Preferences) opens it on Briefing with the map at the whole map. Fly / לטוס beside the tabs starts the mission from any page.
+focus. The page shown stays for the next mission picked; entering the screen again (from the Hangar, the breadcrumbs, the Settings) opens it on Briefing with the map at the whole map. Fly / לטוס beside the tabs starts the mission from any page.
 
 **Briefing:**
 - **The heading:** the title (the mission's kind) and the jet's subtitle (§4).
@@ -868,10 +881,10 @@ round 3 of the menu ideas (`r3_hangar_en.png`, `r3_hangar_he.png`, outside the r
 
 | what | where, from what |
 |---|---|
-| the top bar | the sim's name and the Hangar crumb; Preferences (a gear and the word) and the pilot (the nickname, the name under it, the picture or initials: one button to the Pilot screen) at the inline end |
+| the top bar | the sim's name and the Hangar crumb; Settings (a gear and the word; "הגדרות") and the pilot (the nickname, the name under it, the picture or initials: one button to the Pilot screen) at the inline end |
 | the jets | at the inline start under "Aircraft" / "מטוסים": the full name ("F-16I Sufa"), the squadron's number and the base; the Ra'am and the Baz greyed (§2). A click, or Enter on the focused row, picks the jet; the arrows move between the rows and on to the card |
 | the jet | in the middle, turning slowly (8° a second), a mouse drag turns it by hand; its full name in large faint letters behind it; no help line (the user: "it should be obvious you can use the mouse") |
-| the card | at the inline end: the full name, then this jet's own data, the same three for every jet (the user, A31: "Just the specific plane data"): Squadron (its number and name, the airbase file's), Base and Tail number (the unit record's, the number painted on the model); no type figures (weight, gun rounds, radar range: tried 13 November and dropped by the user). Then the training (passed of all, the bar, the last flight on the jet), Missions and campaign (greyed, no tooltip), Fly (focused on entry; opens Pick a mission) |
+| the card | at the inline end: the full name, then this jet's own data, the same three for every jet (the user, A31: "Just the specific plane data"): Squadron (its number and name, the airbase file's), Base and Tail number (the unit record's, the number painted on the model); no type figures (weight, gun rounds, radar range: tried 13 November and dropped by the user). Then the training (passed of all, the bar, the last flight on the jet), Missions and campaign (greyed, no tooltip), Fly (focused on entry; opens Pick a mission). Without missions (the sim's data not built) the training's box says so with the command `./modern-iaf-setup` on a line of its own (Windows: `.\modern-iaf-setup.ps1`) and Fly is greyed, out of the focus |
 | the foot | Attributions at the inline start: the models' and photos' credits live there (`docs/credits.md`; the FlightGear F-16 is GPL, the F-35I CC BY 4.0, neither asks for a line on the screen) |
 
 **The turning jet** is `shared/aircraft/turntable.gd`: the flight's own model through `AircraftModel.create` (the same
@@ -882,8 +895,8 @@ jet, else the unit record's (the missions' own), each on the pylon its real stat
 slot `pylon`: the F-35I's station 5 is D); the F-35I's bay stores stay inside its shut bays, as in flight. It renders in a SubViewport of its own world at the window's pixel size
 of its area (the canvas is scaled to the window, so a SubViewportContainer would render at the canvas size and blur),
 with MSAA 4× and one shadowed sun, and only while it is shown: a hidden or freed turntable, or a minimised window,
-renders nothing. When the model does not load (no `assets/converted/own/planes/f16` before setup), a still picture of
-the jet takes its place, `modern-iaf/data/hangar/<unit>.webp` (rendered by `_hangar_shot.gd` `STILLS=1`).
+renders nothing. When the model's converted descriptor is missing (no `assets/converted/own/planes/f16` before setup)
+no model load is tried, and when the model does not load, a still picture of the jet takes its place, `modern-iaf/data/hangar/<unit>.webp` (rendered by `_hangar_shot.gd` `STILLS=1`).
 
 **Frame cost** (`_hangar_shot.gd`, the user's Mac, 13 November 2026): the turntable adds about 1.3 ms of GPU time a
 frame at both 1920 × 1080 (its area 1070 × 800 px) and 2560 × 1440 (1426 × 1066 px), and 0.1 ms of the renderer's
@@ -891,6 +904,10 @@ CPU time. On the Iris Xe laptop (`COST_ONLY=1`, 1920 × 1080): the turntable 7.1
 Hangar frame 14.2 ms with it (7.1 ms without), about 70 frames a second, so it draws every frame at full quality. The
 in-flight graphics budget (about 1 ms for an extra) does not apply: nothing else is drawn on the menu. A 30 Hz cap
 would come in only if the whole frame passed 16 ms.
+
+**The focus** (F1, 2026-11-14): Tab goes Settings → the pilot → the jets → Fly → Attributions and round. Down from
+the top bar goes to the picked jet, Down from the last flyable jet to Attributions, toward the inline end from a jet to
+Fly, Up from Fly to Settings; Down from Fly stays (it went to the foot first, the inventory of 14 November).
 
 **Esc** on the Hangar asks "Quit the sim?" / "לצאת מהסימולטור?" (Cancel focused); Home's Quit and its greyed Guides
 went with Home.

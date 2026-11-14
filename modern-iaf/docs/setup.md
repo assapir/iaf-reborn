@@ -43,7 +43,7 @@ saved; a Hebrew page is mirrored, every control included (`layout_direction` rig
 large screen by its UI scale (the containers stretch; nothing has a fixed page size).
 
 1. **Welcome**: the language; what setup downloads and builds; the download, the disk use and the time (§4); the
-   requirements; the **Attributions** button ("קרדיט").
+   requirements; the **Attributions** button ("קרדיטים ורישיונות").
 2. **Imagery**: Sentinel-2 everywhere, or Sentinel-2 plus the Survey of Israel 2 m photo over Israel, each with its
    disk use and time. The Survey choice needs the 79 sheet ZIPs (data.gov.il, 17 GB) in
    `assets/source/imagery/mapi2015/`; without them the page says so and keeps Sentinel-2.
@@ -56,7 +56,7 @@ large screen by its UI scale (the containers stretch; nothing has a fixed page s
    ticked rows. A required id in the choice file (an older run's) is dropped when read, so that step runs. An
    optional step (Buildings,
    trees and roads; Ground and model textures) is on by default, and unticking it before the run leaves it out: it
-   is neither downloaded nor built, its row says "left out", and the sim flies without it (Preferences greys Scenery
+   is neither downloaded nor built, its row says "left out", and the sim flies without it (Settings greys Scenery
    with "Left out in setup"). Under the terrain step's name, "Nothing to download" when its run reads only the
    caches (`sim_terrain::would_fetch` empty: every source by its name in `assets/source`, every Sentinel-2 node
    built, so a code change rebuilds the theatre with no download; the test `a_built_theatre_fetches_nothing`).

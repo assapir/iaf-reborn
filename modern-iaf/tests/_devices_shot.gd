@@ -7,7 +7,8 @@
 # Mac). The store is a temporary file.
 extends "res://../tests/godot/base.gd"
 
-const KeyTable := preload("res://shared/controls/key_table.gd")
+## The key table script, loaded once the autoloads exist (it reads Settings).
+var key_table: GDScript
 
 
 func axis(a: int, v: float) -> void:
@@ -22,6 +23,7 @@ func run() -> void:
 	var dir := OS.get_environment("SHOT_DIR")
 	check(dir != "", "SHOT_DIR is set")
 	DirAccess.make_dir_recursive_absolute(dir)
+	key_table = load("res://shared/controls/key_table.gd")
 	var s := settings()
 	s.devices_path = OS.get_temp_dir().path_join("iaf2026-shot-devices-%d.json" % OS.get_process_id())
 	DirAccess.remove_absolute(s.devices_path)
@@ -41,7 +43,7 @@ func run() -> void:
 		s.language = lang
 		s.pilot_name = "נועה גולן" if lang == "he" else "Noa Golan"
 		s.key_bindings = {}
-		KeyTable.load_table().set_column(s.key_bindings, 24, "key", k)
+		key_table.load_table().set_column(s.key_bindings, 24, "key", k)
 		fe.show_page("keys")
 		await frames(5)
 		var ks: Node = fe.get_node("Keys")
@@ -76,7 +78,7 @@ func run() -> void:
 		s.throttle_detent = -1
 	s.language = "en"
 	# keys_mac: the Views group as a Mac shows it (the laptop map, Option and ⌘).
-	var kt: GDScript = KeyTable
+	var kt: GDScript = key_table
 	var was: bool = kt.cmd_is_ctrl
 	kt.cmd_is_ctrl = true
 	s.laptop_keys = true

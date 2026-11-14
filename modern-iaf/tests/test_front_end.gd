@@ -65,7 +65,9 @@ func run() -> void:
 
 
 ## The first start (no profile stored): the Pilot screen makes one before the Hangar, Save only with a name, Esc stays;
-## Save stores the name on the active pilot (its imported sorties kept) and opens the Hangar.
+## no pilot in the top bar yet; the empty picture a head and shoulders, then the initials as the name is typed; Up /
+## Down between Name and Nickname; Save stores the name on the active pilot (its imported sorties kept) and opens the
+## Hangar.
 func first_start(fe: Control) -> void:
 	var s := settings()
 	check(fe.page == "pilot" and fe.first_start(), "a first start opens the Pilot screen to make the profile")
@@ -79,9 +81,25 @@ func first_start(fe: Control) -> void:
 	key(fe, KEY_ESCAPE)
 	await frames(1)
 	check(fe.page == "pilot", "first start: Esc stays")
+	check(fe.find_child("PilotName", true, false) == null, "first start: no pilot in the top bar yet")
+	var ini: Label = fe.find_child("Initials", true, false)
+	var empty: Control = fe.find_child("Placeholder", true, false)
+	check(ini != null and ini.text == "" and empty.visible, "first start: the empty picture a head and shoulders")
 	var e: LineEdit = fe.find_child("Field_name", true, false)
 	await type_into(e, "Noa Golan")
 	check(not save.disabled and e.text == "Noa Golan", "first start: typed, Save on (%s)" % e.text)
+	check(ini.text == "NG" and not empty.visible, "first start: the initials as typed (%s)" % ini.text)
+	var vp := fe.get_viewport()
+	vp.push_input(_key_event(KEY_DOWN), true)
+	await frames(1)
+	check(vp.gui_get_focus_owner().name == "Field_nickname", "first start: Down from Name: Nickname")
+	vp.push_input(_key_event(KEY_UP), true)
+	await frames(1)
+	check(vp.gui_get_focus_owner() == e, "first start: Up from Nickname: Name")
+	vp.push_input(_key_event(KEY_UP), true)
+	await frames(1)
+	check(vp.gui_get_focus_owner().name == "ChoosePicture", "first start: Up from Name: Choose a picture")
+	e.grab_focus()
 	save.pressed.emit()
 	await frames(2)
 	var p = JSON.parse_string(IafPilotLog.pilot(s.records_db(), s.pilot()))
@@ -919,9 +937,9 @@ func _loadout_checks(fe: Control, lang: String) -> void:
 		check(
 			(
 				pylons.size() == 9
-				and pylons[2] == [2.0, 1.0, 0.0, 0.0]
-				and pylons[6] == [2.0, 1.0, 0.0, 0.0]
-				and pylons[0] == [1.0, 1.0, 0.0, 0.0]
+				and pylons[2] == [2.0, 1.0, 0.0, 0.0, 0.0]
+				and pylons[6] == [2.0, 1.0, 0.0, 0.0, 0.0]
+				and pylons[0] == [1.0, 1.0, 0.0, 0.0, 0.0]
 			),
 			"%s: loadout: the flight's pylons (%s)" % [lang, pylons]
 		)

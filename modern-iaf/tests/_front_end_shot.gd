@@ -4,7 +4,8 @@
 # Writes SHOT_DIR/<screen>_<lang>.png (the Preferences: prefs_<section>_*; the Pilot screens: _pilot) at 1920×1080 (the
 # front end in a viewport of that size, whatever the window's) with the sample pilot log and debrief of
 # test_front_end.gd (debrief_fail: its take-off with the gear never raised; fly_again: the debrief's Fly again).
-# SHOT_ONLY=<screen> takes that screen alone (e.g. SHOT_ONLY=hangar).
+# SHOT_ONLY=<screen> takes that screen alone (e.g. SHOT_ONLY=hangar). nodata_hangar / nodata_mission: a fresh install
+# (IAF_ASSETS_DIR an empty folder for those two).
 extends "res://../tests/godot/base.gd"
 
 const SCREENS := ["hangar", "mission", "debrief", "debrief_fail", "fly_again", "log", "credits"]
@@ -52,6 +53,7 @@ func run() -> void:
 			check(vp.get_texture().get_image().save_png(path) == OK, "saved " + path)
 		if only == "":
 			await _pilot(fe, vp, dir, lang)
+			await _no_data(fe, vp, dir, lang)
 	s.language = "en"
 	s.pilot_name = ""
 
@@ -86,6 +88,25 @@ func _pilot(fe: Control, vp: SubViewport, dir: String, lang: String) -> void:
 	IafPilotLog.set_pilot(db, s.pilot(), "", "")
 	IafPilotLog.set_picture(db, s.pilot(), "")
 	DirAccess.remove_absolute(png)
+
+
+## A fresh install: the Hangar and the mission screen with an empty assets folder (IAF_ASSETS_DIR), then the real one.
+func _no_data(fe: Control, vp: SubViewport, dir: String, lang: String) -> void:
+	var was := OS.get_environment("IAF_ASSETS_DIR")
+	var empty := OS.get_temp_dir().path_join("iaf2026-shot-no-data-%d" % OS.get_process_id())
+	DirAccess.make_dir_recursive_absolute(empty)
+	OS.set_environment("IAF_ASSETS_DIR", empty)
+	settings().sim_jet = "f16i"
+	settings().pilot_name = "נועה גולן" if lang == "he" else "Noa Golan"  # _pilot left no profile
+	for p in ["hangar", "mission"]:
+		fe.show_page(p)
+		await _shot(vp, dir, "nodata_%s_%s" % [p, lang])
+	if was != "":
+		OS.set_environment("IAF_ASSETS_DIR", was)
+	else:
+		OS.unset_environment("IAF_ASSETS_DIR")
+	DirAccess.remove_absolute(empty)
+	settings().pilot_name = ""
 
 
 func _shot(vp: SubViewport, dir: String, name: String) -> void:

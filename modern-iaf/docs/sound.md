@@ -275,7 +275,7 @@ in the original game, whose buses and volumes are unchanged; `test_sounds.gd` ch
 - **The buses.** An outside sound plays on `IafCanopy_<class>_<category bus>`, made on first use: the low-pass, the
   class's level (an amplify effect) and a hard limiter after it (an own hit or explosion through +7–10 dB would
   clip; a bus's own volume comes after its effects, so the level is an effect), sent on to its category bus,
-  so the Preferences' volumes still apply. An outside row plays at its outside volume (`volume_out`) both ways: the
+  so the Settings' volumes still apply. An outside row plays at its outside volume (`volume_out`) both ways: the
   bus gives the cockpit's level, so the rows' inside volumes (the engine's 0.6) are not used.
 - **The view.** `flight_sounds.gd` tells `SoundBuses.set_view()` the view every frame. From an external view (chase,
   F10, the outside cameras; `terrain_view.in_cockpit` false) the canopy buses bypass their effects at 0 dB: every
