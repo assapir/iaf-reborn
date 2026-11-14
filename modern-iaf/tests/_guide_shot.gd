@@ -28,6 +28,8 @@ func run() -> void:
 		if not want.is_empty() and not unit in want:
 			continue
 		var tv := await _start(GUIDE_MISSIONS[unit])
+		# As after the mission's pass: no training check (the start without the tower) ends the flight.
+		tv.addon.result = {"pass": true}
 		# The engine and the avionics up by the one command (Start engine), at the probe's time scale.
 		tv._command([200, 0, 0])
 		var up := func() -> bool: return float(tv.flight.state().rpm) >= 0.59 and bool(tv.flight.state().avionics)
