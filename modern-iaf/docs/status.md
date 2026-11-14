@@ -68,15 +68,19 @@ What works and what is open, by work item ([plan.md](plan.md)). Newest first.
   `shared/util/pref_choices.gd` (MetalFX named on a Mac).
 - **The pilot's checklist notebook, part 1 (2026-11-13, the approved mock-up's look A):** in every flight a paper
   notebook on the right thigh; H raises it at the screen's lower right and stows it. Tabs START-UP, TAXI / T-O, RADIO,
-  LANDING, EMERGENCY, DATA; a tab click, the wheel or a trackpad's scroll (`Settings.wheel_steps`, as reborn's
+  LANDING, WEAPONS, EMERGENCY, DATA, GUIDE (the jet's pilot guide, since D4); a tab click, the wheel or a trackpad's scroll (`Settings.wheel_steps`, as reborn's
   text windows, 2026-11-14), PgUp / PgDn and the page's own ‹ › with its page count turn it. No
   key hints on it; a help line in the first start-up mission only. It replaces the start-up card: the steps whose
   switches are on ticked (a switch back off unticks its step), the step to take now marked. In a start-up training
   mission a ring on the current step's switch (and the F-16's RPM gauge for the idle step), a pointer at the screen's
   edge for a part out of view, the board sliding off a ring it would cover. English and Hebrew (mirrored). RADIO's
   frequencies: OurAirports' where published, the rest invented ([training.md](training.md) §11). `test_notebook.gd`.
-  Open: the GUIDE tab and the front end's Guides screen (part 2); the throttle OFF, the brakes and the ejection handle
-  by the mouse.
+  Open: the throttle OFF, the brakes and the ejection handle by the mouse.
+- **Pilot guides (D4, 2026-11-14):** the Sufa's, the Barak's and the Adir's own guides in English and Hebrew
+  (`modern-iaf/docs/guides/`: the keys, the cold start, the radio, take-off and landing, the HUD and displays, the
+  weapons, the notebook, the views; our own cockpit renders), drawn by reborn's guide renderer, now shared
+  (`shared/util/guide_md.gd`): the Hangar card's Pilot guide screen ([front-end.md](front-end.md) §13) and the
+  notebook's GUIDE tab; the keys as bound. `test_hangar.gd`, `test_notebook.gd`.
 - **The F-16's approach speed matches the manual (2026-11-11):** TP-1538's speed-brake tables gave the open speed
   brake lift (+0.25 CL at 13° α); the 6-DoF flies the JSBSim model's speed-brake drag instead, and its flaps' lift
   (+0.122). The 13° α approach is 136–139 kt at the manual's three weights (manual 139–141 kt, was 118–121 kt)

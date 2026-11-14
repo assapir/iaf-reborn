@@ -1,9 +1,11 @@
-# Ours (docs/front-end.md §14 "Pilot guide"): the pilot guides' Markdown subset (docs/guides/<jet>.md) as
-# RichTextLabel parts. # / ## / ### headings, paragraphs, **bold**, *italic*, `code`, one-level bullet and
-# numbered lists, pipe tables, `---` rules, [text](link) as its text, footnotes [^name] as [name], and images on a
-# line of their own: `![caption](shots/<jet>/<name>.png)` resolved under `base` (assets/converted/guides); a missing
-# image leaves its caption only; a numbered list right under a picture is its legend (the callouts drawn on it).
-# tools/guide_pdf.py reads the same subset.
+# Ours (docs/front-end.md §14 "Pilot guide"): the pilot guides' Markdown subset (docs/guides/<jet>.md, Modern IAF's
+# modern-iaf/docs/guides/<jet>[.he].md) as RichTextLabel parts or blocks. # / ## / ### headings, paragraphs, **bold**,
+# *italic*, `code`, one-level bullet and numbered lists, pipe tables, `---` rules, [text](link) as its text, footnotes
+# [^name] as [name], and images on a line of their own: `![caption](shots/<jet>/<name>.png)` resolved under `base`; a
+# missing image leaves its caption only; a numbered list right under a picture is its legend (the callouts drawn on
+# it). Both games draw their guides with it: reborn's Reference screen (frame_window.gd), the sim's Guides screen and
+# its notebook's GUIDE tab (modern-iaf/menu/guide_screen.gd, flight/kneeboard.gd). tools/guide_pdf.py reads the same
+# subset.
 extends RefCounted
 
 const CAPTION := Color8(170, 170, 180)
@@ -42,12 +44,32 @@ static func _cells(line: String) -> PackedStringArray:
 
 
 ## The guide as parts: BBCode strings and {"image": path, "caption": text} for each picture whose file exists
-## (`px`: the body text size; headings scale from it).
-static func parse(md: String, base: String, px: int) -> Array:
+## (`px`: the body text size; headings scale from it; `look`: colours in place of the constants, by the keys of
+## `_look`).
+static func parse(md: String, base: String, px: int, look := {}) -> Array:
 	var parts: Array = []
 	var out := ""
+	for b in blocks(md, base, px, look):
+		if b is String:
+			out += b
+		else:
+			parts.append(out)
+			out = ""
+			parts.append(b)
+	parts.append(out)
+	return parts
+
+
+## The guide as blocks, each a whole BBCode string (a paragraph, a heading, a rule, a table, a list) or a picture's
+## {"image", "caption"}: a paged reader breaks its pages between them. `split_lists`: each list item a block of its
+## own (a numbered one keeps its number).
+static func blocks(md: String, base: String, px: int, look := {}, split_lists := false) -> Array:
+	var c := _look(look)
+	var out: Array = []
 	var para: Array = []  # an Array: the lambda below shares it (a packed array would be copied)
 	var list := ""  # "ul" / "ol" while inside a list
+	var open := ""  # the list's block so far
+	var n := 0  # the numbered list's item count
 	var lines := PackedStringArray()
 	var item_re := RegEx.create_from_string("^\\s*(?:[-*]|\\d+\\.)\\s")
 	for line in md.replace("\r", "").split("\n"):
@@ -62,43 +84,40 @@ static func parse(md: String, base: String, px: int) -> Array:
 		else:
 			lines.append(line)
 	var i := 0
-	var flush_para := func() -> String:
-		var s := ""
+	var flush_para := func() -> void:
 		if not para.is_empty():
-			s = inline(" ".join(PackedStringArray(para))) + "\n\n"
+			out.append(inline(" ".join(PackedStringArray(para))) + "\n\n")
 			para.clear()
-		return s
 	while i < lines.size():
 		var line: String = lines[i]
 		var t := line.strip_edges()
 		var item := RegEx.create_from_string("^(?:[-*]|(\\d+)\\.)\\s+(.*)$").search(t)
 		if list != "" and (item == null or (item.get_string(1) != "") != (list == "ol")):
-			out += "[/%s]\n\n" % list
+			if not split_lists:
+				out.append(open + "[/%s]\n\n" % list)
 			list = ""
 		if t == "":
-			out += flush_para.call()
+			flush_para.call()
 		elif t.begins_with("#"):
-			out += flush_para.call()
+			flush_para.call()
 			var level := t.length() - t.lstrip("#").length()
 			var size := int(round(px * [1.0, 1.6, 1.35, 1.15][mini(level, 3)]))
-			out += "[font_size=%d][b]%s[/b][/font_size]\n\n" % [size, inline(t.lstrip("#").strip_edges())]
+			out.append("[font_size=%d][b]%s[/b][/font_size]\n\n" % [size, inline(t.lstrip("#").strip_edges())])
 		elif t == "---" or t == "***":
-			out += flush_para.call()
-			out += "[center][color=#%s]%s[/color][/center]\n\n" % [RULE.to_html(false), "─".repeat(24)]
+			flush_para.call()
+			out.append("[center][color=#%s]%s[/color][/center]\n\n" % [c.rule.to_html(false), "─".repeat(24)])
 		elif t.begins_with("!["):
-			out += flush_para.call()
+			flush_para.call()
 			var m := RegEx.create_from_string("^!\\[([^\\]]*)\\]\\(([^)]+)\\)").search(t)
 			if m != null:
 				var path := base.path_join(m.get_string(2))
 				var caption := inline(m.get_string(1))
 				if FileAccess.file_exists(path):
-					parts.append(out)
-					out = ""
-					parts.append({"image": path, "caption": caption})
+					out.append({"image": path, "caption": caption})
 				else:
-					out += "[i][color=#%s]%s[/color][/i]\n\n" % [CAPTION.to_html(false), caption]
+					out.append("[i][color=#%s]%s[/color][/i]\n\n" % [c.caption.to_html(false), caption])
 		elif t.begins_with("|"):
-			out += flush_para.call()
+			flush_para.call()
 			var rows: Array = []
 			while i < lines.size() and lines[i].strip_edges().begins_with("|"):
 				var cells := _cells(lines[i])
@@ -106,32 +125,46 @@ static func parse(md: String, base: String, px: int) -> Array:
 					rows.append(cells)
 				i += 1
 			i -= 1
-			var n := 0
+			var cols := 0
 			for r in rows:
-				n = maxi(n, r.size())
-			out += "[table=%d]" % n
+				cols = maxi(cols, r.size())
+			var tb := "[table=%d]" % cols
 			for r in rows.size():
-				for c in n:
-					var text: String = inline(rows[r][c]) if c < rows[r].size() else ""
-					var bg := HEAD_BG if r == 0 else CELL_BG
-					out += (
+				for k in cols:
+					var text: String = inline(rows[r][k]) if k < rows[r].size() else ""
+					var bg: Color = c.head if r == 0 else c.cell
+					tb += (
 						"[cell bg=#%s padding=4,2,4,2]%s[/cell]"
 						% [bg.to_html(false), "[b]%s[/b]" % text if r == 0 else text]
 					)
-			out += "[/table]\n\n"
+			out.append(tb + "[/table]\n\n")
 		elif item != null:
-			out += flush_para.call()
+			flush_para.call()
 			if list == "":
 				list = "ol" if item.get_string(1) != "" else "ul"
-				out += "[ol type=1]" if list == "ol" else "[ul]"
+				open = "[ol type=1]" if list == "ol" else "[ul]"
+				n = 0
+			elif not split_lists:
+				open += "\n"
+			n += 1
+			if split_lists:
+				# A list of one item: a numbered one's own number as its bullet.
+				out.append(
+					("[ul bullet=%d.]" % n if list == "ol" else "[ul]") + inline(item.get_string(2)) + "[/ul]\n\n"
+				)
 			else:
-				out += "\n"
-			out += inline(item.get_string(2))
+				open += inline(item.get_string(2))
 		else:
 			para.append(t)
 		i += 1
-	if list != "":
-		out += "[/%s]\n\n" % list
-	out += flush_para.call()
-	parts.append(out)
-	return parts
+	if list != "" and not split_lists:
+		out.append(open + "[/%s]\n\n" % list)
+	flush_para.call()
+	return out
+
+
+## The colours: the constants, each replaced by `look`'s entry of the same key.
+static func _look(look: Dictionary) -> Dictionary:
+	var c := {"caption": CAPTION, "rule": RULE, "head": HEAD_BG, "cell": CELL_BG}
+	c.merge(look, true)
+	return c

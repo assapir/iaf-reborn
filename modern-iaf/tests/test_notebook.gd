@@ -3,7 +3,8 @@
 # step taken ticks it and marks the next; the tabs, the wheel, PgUp / PgDn and the page's ‹ › turn it, past a
 # section's end into the next; every section has a page; the RADIO page holds the base's frequencies; Hebrew mirrors
 # it (tabs on the left); the training ring finds the current step's switch; a take-off mission starts it stowed with
-# the jet's start-up checklist on its START-UP page.
+# the jet's start-up checklist on its START-UP page; the GUIDE tab holds the jet's pilot guide (the Guides screen's
+# text), each guide section from a new page under its own title, in Hebrew the Hebrew guide.
 #   IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path modern-iaf \
 #     -s ../modern-iaf/tests/test_notebook.gd --log-file <temp>
 extends "res://tests/test_mvp.gd"
@@ -29,7 +30,10 @@ func run() -> void:
 	var text: String = nb.page_text()
 	check("MAIN PWR" in text and not "Ctrl" in text, "START-UP names the switch, no key: %s" % text.left(80))
 	var ids: Array = nb.sections.map(func(x): return String(x.id))
-	check(ids == ["startup", "taxi", "radio", "landing", "weapons", "emergency", "data"], "the sections %s" % [ids])
+	check(
+		ids == ["startup", "taxi", "radio", "landing", "weapons", "emergency", "data", "guide"],
+		"the sections %s" % [ids]
+	)
 	for i in nb.sections.size():
 		check(nb._pages[i].size() >= 1 and not nb.sections[i].blocks.is_empty(), "%s has a page" % ids[i])
 	# H stows it (into the thigh's texture) and raises it again; K (the GPS bomb's PRE / VIS) leaves it.
@@ -65,6 +69,24 @@ func run() -> void:
 	check(nb.current_id() == "landing", "the page's › turns on")
 	_tap(nb, nb.arrow_rects()[0].get_center())
 	check(nb.current_id() == "radio", "the page's ‹ turns back")
+	# GUIDE: the Sufa's guide, a title per guide section, each section from a new page, the tabs inside the board.
+	var g := ids.find("guide")
+	_tap(nb, nb.tab_rect(g).get_center())
+	check(nb.current_id() == "guide" and nb.page_count() >= 10, "GUIDE: the guide's pages (%d)" % nb.page_count())
+	check(nb.tab_rect(g).end.y <= nb.H, "GUIDE: the eighth tab inside the board")
+	var titles := {}
+	for p in nb.page_count():
+		titles[nb._title.text] = true
+		check(nb.page_text().strip_edges() != "", "GUIDE: page %d has text" % (p + 1))
+		nb.turn(1)
+	check(titles.size() >= 10, "GUIDE: a title per section (%d)" % titles.size())
+	nb.open("guide")
+	check(
+		nb._title.text == nb.sections[g].titles[0] and nb.page_text().contains("Sufa"),
+		"GUIDE: the Sufa's guide, its first page titled by its first section (%s)" % nb._title.text
+	)
+	var starts: Array = nb._pages[g].map(func(p): return int(p[0]))
+	check(nb.sections[g].breaks.all(func(b): return b in starts), "GUIDE: each section starts a page")
 	# The board at the inline-end side, never the centre.
 	var ui: Control = tv.addon.ui
 	await frames(2)
@@ -79,6 +101,8 @@ func run() -> void:
 	await frames(3)
 	check(nb.rtl and nb.tab_rect(0).position.x < nb.paper_rect().position.x, "Hebrew: the tabs on the left")
 	check("MAIN PWR" in nb.page_text() and "מתג" in nb.page_text(), "Hebrew: the START-UP page in Hebrew")
+	nb.open("guide")
+	check(nb.page_text().contains("סופה"), "Hebrew: the GUIDE tab's Hebrew guide (%s)" % nb._title.text)
 	settings().language = "en"
 	await frames(3)
 	# A take-off mission: stowed, with the jet's start-up checklist.

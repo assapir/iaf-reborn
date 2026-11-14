@@ -109,7 +109,7 @@ func _build_guide(s: float) -> void:
 	var md := (
 		guide_md.replace("Ctrl+", "Cmd+") if preload("res://shared/controls/key_table.gd").cmd_is_ctrl else guide_md
 	)
-	for part in preload("res://menu/guide_md.gd").parse(md, guide_base, int(round(text_px * s))):
+	for part in preload("res://shared/util/guide_md.gd").parse(md, guide_base, int(round(text_px * s))):
 		if part is String:
 			rich.append_text(part)
 			continue

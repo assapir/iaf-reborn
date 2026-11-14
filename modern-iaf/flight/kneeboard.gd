@@ -2,7 +2,8 @@
 # - the notebook (notebook.gd) with START-UP (the mission's start-up checklist, or the jet's from its start-up
 #   mission: done steps ticked, the current one marked, its fault in red), TAXI / T-O (the base's take-off mission's
 #   steps), RADIO (the base's frequencies, the calls and the tower's answers), LANDING, WEAPONS (with each step's key),
-#   EMERGENCY (data/notebook.json) and DATA (the mission's figures);
+#   EMERGENCY (data/notebook.json), DATA (the mission's figures) and GUIDE (the jet's pilot guide, the front end's
+#   Guides screen's text drawn by the shared guide_md.gd: a page title per guide section, each section from a new page);
 # - stowed: a board on the pilot's right thigh in the 3D cockpit (the notebook drawn into a texture when it changes);
 #   raised by the Checklist notebook key (H, keys.json record 118): a panel at the screen's lower right (in
 #   Hebrew too: the thigh's side), never its centre; a start-up mission starts with it raised;
@@ -14,6 +15,8 @@ extends Node
 
 const Notebook := preload("notebook.gd")
 const Look := preload("../menu/look.gd")
+const GuideScreen := preload("../menu/guide_screen.gd")
+const GuideMd := preload("res://shared/util/guide_md.gd")
 ## The sim's key record of the Checklist notebook key (modern-iaf/data/keys.json, command 203).
 const KEY := 118
 const DATA := "res://data/notebook.json"
@@ -302,7 +305,28 @@ func _sections() -> Array:
 		var p: Dictionary = route[0]
 		rows.append([s("nb_route"), _ltr("%s · %d ft" % [_latlon(p.lat, p.lon), int(float(p.alt_m) / 0.3048)])])
 	secs.append(_sec("data", "nb_data", s("nb_data"), [table(rows, 2)]))
+	var guide := guide_section()
+	if not guide.blocks.is_empty():
+		secs.append(guide)
 	return secs
+
+
+## GUIDE: the jet's pilot guide (guide_screen.gd) as the notebook's blocks in its ink, each list item a block of its
+## own; each guide section starts a page and titles its pages.
+func guide_section() -> Dictionary:
+	var look := {"head": Notebook.TAB, "cell": Color("ebe5d8"), "caption": Look.INK_MUTED, "rule": Notebook.TAB_LINE}
+	var sec := _sec("guide", "nb_guide", s("nb_guide"), [])
+	sec["titles"] = []
+	sec["breaks"] = []
+	for part in GuideScreen.sections(GuideScreen.text(flight.plane, he())):
+		var blocks := GuideMd.blocks(part.md, GuideScreen.base(), Notebook.BODY_PX, look, true)
+		if blocks.is_empty():
+			continue
+		sec.breaks.append(sec.blocks.size())
+		for b in blocks:
+			sec.blocks.append(b.trim_suffix("\n") if b is String else b)
+			sec.titles.append(part.title)
+	return sec
 
 
 func _sec(id: String, tab_key: String, title: String, blocks: Array) -> Dictionary:

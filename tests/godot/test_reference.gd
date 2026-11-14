@@ -121,7 +121,7 @@ func _name(ref) -> String:
 
 
 func _markdown() -> void:
-	var G = load("res://menu/guide_md.gd")
+	var G = load("res://shared/util/guide_md.gd")
 	var md := (
 		"# Title\n\nA **bold** *it* `code` [link](x) a\\\\b [x].\nSame para.\n\n## Sub\n\n### Small\n\n- one\n- two\n  "
 		+ "more\n\n1. first\n2. second\n\n| A | B |\n|---|---|\n| 1 | 2 |\n\n---\n\n![Caption here](shots/none.png)\n"

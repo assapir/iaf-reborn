@@ -13,6 +13,7 @@ const SoundBuses := preload("res://shared/audio/sound_buses.gd")
 const SoundTable := preload("res://shared/audio/sound_table.gd")
 const KeysScreen := preload("res://menu/keys_screen.gd")
 const JoystickScreen := preload("res://menu/joystick_screen.gd")
+const GuideScreen := preload("res://menu/guide_screen.gd")
 const PrefChoices := preload("res://shared/util/pref_choices.gd")
 const FileExport := preload("res://shared/util/file_export.gd")
 const TerrainPreload := preload("res://shared/terrain/terrain_preload.gd")
@@ -114,10 +115,11 @@ const CRUMB_PAGES := {
 	"credits": "credits"
 }
 ## The screens that show the picked jet: the Hangar opens in their place before the first pick.
-const NEEDS_JET := ["mission"]
+const NEEDS_JET := ["mission", "guide"]
 ## Esc on each screen goes here (the Hangar's: the Quit prompt).
 const BACK := {
 	"mission": "hangar",
+	"guide": "hangar",
 	"prefs": "hangar",
 	"debrief": "hangar",
 	"log": "pilot",
@@ -509,9 +511,10 @@ func _page_hangar() -> void:
 	_hangar_focus()
 
 
-## The Hangar's focus order (F1), by Tab and by the arrows: the top bar (Settings, the pilot), the jets, Fly,
-## Attributions. Down from the top bar goes to the picked jet, Down from the last jet to Attributions; Down from Fly
-## stays (the foot is the list's, not the card's). Without missions Fly takes no focus.
+## The Hangar's focus order (F1, D4), by Tab and by the arrows: the top bar (Settings, the pilot), the jets, Pilot
+## guide, Fly, Attributions. Down from the top bar goes to the picked jet, Down from the last jet to Attributions; Up
+## from Fly to Pilot guide, Down from Fly stays (the foot is the list's, not the card's). Without missions Fly takes
+## no focus.
 func _hangar_focus() -> void:
 	var gear: Control = find_child("Settings", true, false)
 	var block: Control = find_child("PilotBlock", true, false)
@@ -521,8 +524,9 @@ func _hangar_focus() -> void:
 	var picked: Control = jets.filter(func(b): return b.button_pressed).front()
 	var fly: Button = find_child("Fly", true, false)
 	var cr: Control = find_child("credits", true, false)
+	var guide: Control = find_child("Guide", true, false)
 	var card: Control = fly if fly.focus_mode != Control.FOCUS_NONE else null
-	_chain([gear, block] + jets + ([card] if card != null else []) + [cr])
+	_chain([gear, block] + jets + [guide] + ([card] if card != null else []) + [cr])
 	# The sides on the screen: the inline start is the right in Hebrew.
 	var start := "right" if he() else "left"
 	var end := "left" if he() else "right"
@@ -531,10 +535,11 @@ func _hangar_focus() -> void:
 	_nb(jets[0], {"top": gear})
 	_nb(jets[-1], {"bottom": cr})
 	for b in jets:
-		_nb(b, {start: b, end: card if card != null else b})
+		_nb(b, {start: b, end: card if card != null else guide})
+	_nb(guide, {"top": gear, start: picked, end: guide, "bottom": card if card != null else guide})
 	if card != null:
-		_nb(card, {"top": gear, start: picked, end: card, "bottom": card})
-	_nb(cr, {"top": jets[-1], start: cr, end: card if card != null else cr, "bottom": cr})
+		_nb(card, {"top": guide, start: picked, end: card, "bottom": card})
+	_nb(cr, {"top": jets[-1], start: cr, end: card if card != null else guide, "bottom": cr})
 
 
 ## Tab and Shift + Tab through `controls` in that order, round.
@@ -658,7 +663,8 @@ func jet_stores(j: Dictionary) -> Dictionary:
 
 
 ## The picked jet's card: its name, squadron and base, its facts, the training's progress, Missions and campaign
-## (greyed until the sim has them, no text on why) and Fly, which opens the training's missions and briefing.
+## (greyed until the sim has them, no text on why), Pilot guide and Fly, which opens the training's missions and
+## briefing.
 func _jet_card(j: Dictionary) -> void:
 	var card := PanelContainer.new()
 	card.name = "JetCard"
@@ -716,6 +722,10 @@ func _jet_card(j: Dictionary) -> void:
 	camp.tooltip_text = ""
 	camp.custom_minimum_size.y = 56
 	camp.modulate = Color(1, 1, 1, 0.45)
+	# The jet's pilot guide (guide_screen.gd).
+	var guide := _button(v, s("pilot_guide"), "Secondary", func(): show_page("guide"))
+	guide.name = "Guide"
+	guide.custom_minimum_size.y = 56
 	var go := _button(v, s("fly"), "Fly", func(): show_page("mission"))
 	go.name = "Fly"
 	go.custom_minimum_size.y = 76
@@ -1649,6 +1659,10 @@ func _on_joy_connection(_device: int, _connected: bool) -> void:
 
 
 ## Preferences → Devices → Keys and Joystick (modern-iaf/docs/front-end.md §9).
+func _page_guide() -> void:
+	GuideScreen.page(self)
+
+
 func _page_keys() -> void:
 	KeysScreen.page(self)
 
@@ -2695,7 +2709,7 @@ func spy(scroll: ScrollContainer, tabs: Array, heads: Array) -> void:
 	)
 
 
-## A button for what the sim does not have yet (Guides, the campaign): greyed, "coming" as its tooltip, no focus.
+## A button for what the sim does not have yet (the campaign): greyed, "coming" as its tooltip, no focus.
 func _soon(parent: Node, t: String, kind_name: String) -> Button:
 	var b := Button.new()
 	b.text = t

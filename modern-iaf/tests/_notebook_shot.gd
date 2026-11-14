@@ -1,7 +1,8 @@
 # Dev helper (not run by tools/test.sh): the pilot's checklist notebook in a real render (modern-iaf/docs/training.md
 # §11): stowed on the right thigh, raised in English and Hebrew, the training ring with the board slid off it, the
 # edge pointer, the RADIO page, the page control (a section's second page, else the last page) and the first
-# start-up's help line. NB_SHOTS picks some (comma-separated names).
+# start-up's help line, the GUIDE tab at its first picture (guide_en, guide_he). NB_SHOTS picks some (comma-separated
+# names).
 #   flock -o ~/.cache/iaf-gpu-bench.lock timeout -k 10 900 tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 \
 #     SHOW_OUT=<dir> [NB_SHOTS=raised_en,radio] [NB_SIZE=2560x1440] -- --log-file <temp> --display-driver x11 \
 #     --path modern-iaf -s ../modern-iaf/tests/_notebook_shot.gd
@@ -85,6 +86,19 @@ func run() -> void:
 		await fly(tv, 0.3)
 		await _shot("pages")
 		kb.board.open("startup", kb._current())
+	# The GUIDE tab at the guide's first picture, in both languages.
+	for lang in ["en", "he"]:
+		if _want("guide_" + lang):
+			settings().language = lang
+			await fly(tv, 0.3)
+			var blocks: Array = kb.guide_section().blocks
+			var pic := blocks.find_custom(func(b): return b is Dictionary)
+			kb.board.open("guide", maxi(pic, 0))
+			await fly(tv, 0.3)
+			await _shot("guide_" + lang)
+			kb.board.open("startup", kb._current())
+	settings().language = "en"
+	await fly(tv, 0.3)
 	if _want("stowed"):
 		kb.set_raised(false)
 		tv.views.snap = Vector2(-0.15, -1.05)

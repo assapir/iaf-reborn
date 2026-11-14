@@ -432,6 +432,7 @@ edge, the text right to left.
 | WEAPONS / חימוש | arming (ST STA on the F-16s, MASTER ARM, the gear up), air-to-ground (the stores from the Arming page, the master mode and the CCIP cue, the release, the jettison) and air-to-air (the master mode, the radar lock, the release, the gun); each step with its switch, its place and its key as bound: the one page with keys, as the weapons' controls have no switch to click (2026-11-14, [weapons.md](weapons.md) §5) | `pages.<family>.weapons` (`key`: a record of `data/keys.json`) |
 | EMERGENCY / חירום (a red tab, a red strip down the page) | the hot start, an engine fire on the ground, the ejection | `pages.<family>.emergency` |
 | DATA / נתונים | the mission, the base and its ICAO code, the time, the wind, the jet, the runway, the route's first point | the mission's readable file; the airbase file |
+| GUIDE / מדריך | the jet's pilot guide, the front end's (D4, 2026-11-14; [front-end.md](front-end.md) §13): each guide section from a new page, titled by its heading; its tables in the paper's tints, its pictures at the page's width with their captions, each list item a block of its own (a page breaks between items) | `modern-iaf/docs/guides/<unit>[.he].md` through `guide_screen.gd` (the keys as bound) and the shared `guide_md.gd` (`blocks`) |
 
 A section is cut into pages that fit the paper: its blocks (a step, a table, a heading) are measured at the page's
 width and the page breaks between them. The pages turn by:
@@ -492,12 +493,14 @@ NB_PICTURES
 step current and no key on the page, the help line once, H stows it into the thigh's texture and raises it (K leaves it), a step
 ticks, a tab click, the wheel, PgUp / PgDn and the page's ‹ › turn it across the sections, every section has a page,
 RADIO holds Ramon's frequencies, the board at the right edge, the JFS step's mark, Hebrew mirrored, a take-off flight
-stowed with the Sufa's start-up checklist and runway 25R on TAXI / T-O. `test_mvp.gd` and `test_flight_ui.gd` read the
+stowed with the Sufa's start-up checklist and runway 25R on TAXI / T-O; the GUIDE tab with the Sufa's guide, a title
+per guide section, each section from a new page, the Hebrew guide in Hebrew. `test_mvp.gd` and `test_flight_ui.gd` read the
 current step from the notebook.
 
-**Open.** The GUIDE tab (the jet's pilot guide from one source shared with the original game's guides, and the front
-end's Guides screen drawing the same pages) is the next part. Gauge rings for the other steps; the throttle OFF, the
-brakes, the ejection handle and the switches' OFF positions by the mouse.
+With eight tabs the tabs grow shorter to stay on the board (`notebook.gd` `tab_rect`: at most 78 px each).
+
+**Open.** Gauge rings for the other steps; the throttle OFF, the brakes, the ejection handle and the switches' OFF
+positions by the mouse.
 
 [^ins]: F-16.net forum, "INS alignment time and time to takeoff from cold start" (a normal alignment about 8 minutes, a stored-heading alignment about 90 s), https://www.f-16.net/forum/viewtopic.php?p=7943; Eagle Dynamics forum, "What is the difference between stored INS align and normal INS align in the F-16C Viper", https://forum.dcs.world/topic/267433-what-is-the-difference-between-stored-ins-align-and-normal-ins-align-in-the-f-16c-viper (both weak: forums)
 [^w-f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", Specifications (F-16C Block 50 / 52): empty weight 18,900 lb (8,573 kg), https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon

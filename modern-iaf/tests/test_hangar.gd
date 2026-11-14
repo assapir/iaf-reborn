@@ -145,25 +145,72 @@ func walk(fe: Control, lang: String) -> void:
 	key(fe, KEY_ESCAPE)
 	await frames(2)
 	check(fe.page == "hangar", "%s: Esc on the missions: the Hangar" % lang)
+	await _guide(fe, lang)
 
 
-## The focus order (F1): Tab from Fly through Attributions, Settings, the pilot, the three jets and back to Fly; Down
-## from Fly stays; Up from Fly to Settings, Down from there to the picked jet; toward the inline end from a jet: Fly;
-## Down from the last jet: Attributions.
+## The focus order (F1, D4): Tab from Fly through Attributions, Settings, the pilot, the three jets, Pilot guide and
+## back to Fly; Down from Fly stays; Up from Fly to Pilot guide, Up from there to Settings, Down from there to the
+## picked jet; toward the inline end from a jet: Fly; Down from the last jet: Attributions.
 func _focus_order(fe: Control, lang: String) -> void:
-	var order := ["credits", "Settings", "PilotBlock", "sufa", "barak", "adir", "Fly"]
+	var order := ["credits", "Settings", "PilotBlock", "sufa", "barak", "adir", "Guide", "Fly"]
 	var walked := []
 	for n in order:
 		walked.append(await _press(fe, KEY_TAB))
 	check(walked == order, "%s: Tab order %s" % [lang, walked])
 	var to_end := KEY_LEFT if lang == "he" else KEY_RIGHT
-	var steps := [[KEY_DOWN, "Fly"], [KEY_UP, "Settings"], [KEY_DOWN, "sufa"], [to_end, "Fly"]]
+	var steps := [[KEY_DOWN, "Fly"], [KEY_UP, "Guide"], [KEY_UP, "Settings"], [KEY_DOWN, "sufa"], [to_end, "Fly"]]
 	for st in steps:
 		var at := await _press(fe, st[0])
 		check(at == st[1], "%s: %s → %s (%s)" % [lang, OS.get_keycode_string(st[0]), st[1], at])
 	(fe.find_child("adir", true, false) as Control).grab_focus()
 	check(await _press(fe, KEY_DOWN) == "credits", "%s: Down from the last jet: Attributions" % lang)
 	(fe.find_child("Fly", true, false) as Control).grab_focus()
+
+
+## The Pilot guide (D4): each jet's from its card, the contents a tab per section, the text in the screen's language
+## with the keys as bound, a tab scrolling to its section, PgDn paging, the pane's arrows, Esc back to the Hangar.
+func _guide(fe: Control, lang: String) -> void:
+	var he := lang == "he"
+	var s := settings()
+	var table: RefCounted = load("res://shared/controls/key_table.gd").load_table()
+	var tower: String = table.record_key_name(47, {})  # "Ctrl + T"; the Mac's "⌘ + T"
+	for unit in ["f16i", "f16d", "f35i"]:
+		s.sim_jet = unit
+		fe.show_page("hangar")
+		await frames(1)
+		(fe.find_child("Guide", true, false) as Button).pressed.emit()
+		await frames(3)
+		check(fe.page == "guide", "%s: %s: Pilot guide opens its screen" % [lang, unit])
+		var tabs: Array = fe.find_child("Contents", true, false).get_children()
+		check(tabs.size() >= 10, "%s: %s: the contents, %d sections" % [lang, unit, tabs.size()])
+		check(fe.get_viewport().gui_get_focus_owner() == tabs[0], "%s: %s: the first section focused" % [lang, unit])
+		var pane: ScrollContainer = fe.find_child("GuidePane", true, false)
+		var all := ""
+		for r in pane.find_children("Section_*", "RichTextLabel", true, false):
+			all += r.get_parsed_text()
+		check(all.contains("MASTER ARM") and all.contains(tower), "%s: %s: the guide's text" % [lang, unit])
+		check(all.contains("המראה") == he, "%s: %s: the text in the screen's language" % [lang, unit])
+		tabs[3].pressed.emit()
+		await frames(2)
+		var y := pane.scroll_vertical
+		check(y > 0 and tabs[3].button_pressed, "%s: %s: a section's tab scrolls to it (%d)" % [lang, unit, y])
+		await _press(fe, KEY_PAGEDOWN)
+		check(pane.scroll_vertical > y, "%s: %s: PgDn pages on" % [lang, unit])
+		pane.grab_focus()
+		y = pane.scroll_vertical
+		await _press(fe, KEY_DOWN)
+		check(pane.scroll_vertical > y, "%s: %s: Down in the pane scrolls" % [lang, unit])
+		check(await _press(fe, KEY_RIGHT if he else KEY_LEFT) != "GuidePane", "%s: %s: back to the tabs" % [lang, unit])
+		await _press(fe, KEY_ESCAPE)
+		check(fe.page == "hangar", "%s: %s: Esc: the Hangar" % [lang, unit])
+	# The keys as bound: Call the tower (record 47) rebound to F1 reads F1 in the guide.
+	var G = load("res://menu/guide_screen.gd")
+	var f1: int = G.text("f16i", false).count("`F1`")
+	s.key_bindings = {47: [table.default_key(73), null]}
+	var md: String = G.text("f16i", false)
+	check(not md.contains("`%s`" % tower) and md.count("`F1`") > f1, "the guide follows a rebound key")
+	s.key_bindings = {}
+	s.sim_jet = "f16i"
 
 
 ## Key `k` through the viewport, as a player presses it: the focus owner's name after it.

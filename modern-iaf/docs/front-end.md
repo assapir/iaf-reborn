@@ -20,7 +20,8 @@ The window opens plain in the front end's background colour (#00163C, no Godot s
 
 | screen | what it does | English | Hebrew |
 |---|---|---|---|
-| Hangar | the first screen (§12): the jets at the inline start, the picked one turning in 3D in the middle with its full name faint behind it, its card at the inline end (squadron and base, facts, the training's progress, Missions and campaign greyed, Fly); Settings and the pilot in the top bar, Attributions at the foot | ![Hangar](pictures/front-end/hangar_en.webp) | ![Hangar, Hebrew](pictures/front-end/hangar_he.webp) |
+| Hangar | the first screen (§12): the jets at the inline start, the picked one turning in 3D in the middle with its full name faint behind it, its card at the inline end (squadron and base, facts, the training's progress, Missions and campaign greyed, Pilot guide, Fly); Settings and the pilot in the top bar, Attributions at the foot | ![Hangar](pictures/front-end/hangar_en.webp) | ![Hangar, Hebrew](pictures/front-end/hangar_he.webp) |
+| Pilot guide | the Hangar's card → Pilot guide: the picked jet's guide (§13), its sections listed at the inline start, the text scrolling beside them; Back to the hangar | ![Pilot guide](pictures/front-end/guide_en.webp) | ![Pilot guide, Hebrew](pictures/front-end/guide_he.webp) |
 | Pick a mission | the missions beside the picked one's briefing (§10) on three pages: Briefing (base, runway and heading, time, wind, time allowed, objectives, how), Map (one zoomable map) and Arming (the jet's front view with its stores, its weights); Fly | ![Pick a mission](pictures/front-end/mission_en.webp) | ![Pick a mission, Hebrew](pictures/front-end/mission_he.webp) |
 | Settings | the sections Graphics, Language, Sound and Devices listed at the inline start; the picked one's settings open beside them as controls: dropdown, switch, slider, radio list; Devices has the afterburner detent (§9.2); the footer's Export settings file / Import settings file (below) | ![Settings](pictures/front-end/prefs_graphics_en.webp) | ![Settings, Hebrew](pictures/front-end/prefs_graphics_he.webp) |
 | Debrief | the record as a sheet: Plane flown, From, Time, Mission, Result, the mission's goals (a take-off: runway, lift-off and reference speed, centreline offset, tower calls; a start-up: none), Remarks (the fail reason first, or that it passed; the lift-off against the reference); Export flight data (below), Back to missions, Fly again | ![Debrief](pictures/front-end/debrief_en.webp) | ![Debrief, Hebrew](pictures/front-end/debrief_he.webp) |
@@ -896,7 +897,7 @@ round 3 of the menu ideas (`r3_hangar_en.png`, `r3_hangar_he.png`, outside the r
 | the top bar | the sim's name and the Hangar crumb; Settings (a gear and the word; "הגדרות") and the pilot (the nickname, the name under it, the picture or initials: one button to the Pilot screen) at the inline end |
 | the jets | at the inline start under "Aircraft" / "מטוסים": the full name ("F-16I Sufa"), the squadron's number and the base; the Ra'am and the Baz greyed (§2). A click, or Enter on the focused row, picks the jet; the arrows move between the rows and on to the card |
 | the jet | in the middle, turning slowly (8° a second), a mouse drag turns it by hand; its full name in large faint letters behind it; no help line (the user: "it should be obvious you can use the mouse") |
-| the card | at the inline end: the full name, then this jet's own data, the same three for every jet (the user, A31: "Just the specific plane data"): Squadron (its number and name, the airbase file's), Base and Tail number (the unit record's, the number painted on the model); no type figures (weight, gun rounds, radar range: tried 13 November and dropped by the user). Then the training (passed of all, the bar, the last flight on the jet), Missions and campaign (greyed, no tooltip), Fly (focused on entry; opens Pick a mission). Without missions (the sim's data not built) the training's box says so with the command `./modern-iaf-setup` on a line of its own (Windows: `.\modern-iaf-setup.ps1`) and Fly is greyed, out of the focus |
+| the card | at the inline end: the full name, then this jet's own data, the same three for every jet (the user, A31: "Just the specific plane data"): Squadron (its number and name, the airbase file's), Base and Tail number (the unit record's, the number painted on the model); no type figures (weight, gun rounds, radar range: tried 13 November and dropped by the user). Then the training (passed of all, the bar, the last flight on the jet), Missions and campaign (greyed, no tooltip), Pilot guide (opens the jet's guide, §13; D4, 2026-11-14), Fly (focused on entry; opens Pick a mission). Without missions (the sim's data not built) the training's box says so with the command `./modern-iaf-setup` on a line of its own (Windows: `.\modern-iaf-setup.ps1`) and Fly is greyed, out of the focus |
 | the foot | Attributions at the inline start: the models' and photos' credits live there (`docs/credits.md`; the FlightGear F-16 is GPL, the F-35I CC BY 4.0, neither asks for a line on the screen) |
 
 **The turning jet** is `shared/aircraft/turntable.gd`: the flight's own model through `AircraftModel.create` (the same
@@ -917,9 +918,40 @@ Hangar frame 14.2 ms with it (7.1 ms without), about 70 frames a second, so it d
 in-flight graphics budget (about 1 ms for an extra) does not apply: nothing else is drawn on the menu. A 30 Hz cap
 would come in only if the whole frame passed 16 ms.
 
-**The focus** (F1, 2026-11-14): Tab goes Settings → the pilot → the jets → Fly → Attributions and round. Down from
-the top bar goes to the picked jet, Down from the last flyable jet to Attributions, toward the inline end from a jet to
-Fly, Up from Fly to Settings; Down from Fly stays (it went to the foot first, the inventory of 14 November).
+**The focus** (F1, 2026-11-14; Pilot guide D4): Tab goes Settings → the pilot → the jets → Pilot guide → Fly →
+Attributions and round. Down from the top bar goes to the picked jet, Down from the last flyable jet to Attributions,
+toward the inline end from a jet to Fly, Up from Fly to Pilot guide and on to Settings; Down from Fly stays (it went to
+the foot first, the inventory of 14 November).
 
 **Esc** on the Hangar asks "Quit the sim?" / "לצאת מהסימולטור?" (Cancel focused); Home's Quit and its greyed Guides
-went with Home.
+went with Home (the guides are on the card since D4, §13).
+
+## 13. The pilot guide
+
+Each flyable jet has its pilot guide, written for the sim as it is (D4, 2026-11-14): `modern-iaf/docs/guides/<unit>.md`
+(English) and `<unit>.he.md` (Hebrew) for the Sufa (`f16i`), the Barak (`f16d`) and the Adir (`f35i`), with their
+pictures in `shots/<unit>/` (our own renders of the 3D cockpit, `modern-iaf/tests/_guide_shot.gd`). The front end
+and the notebook's GUIDE tab ([training.md](training.md) §11) draw the same text with the same renderer as the
+original game's Reference screen, `shared/util/guide_md.gd` (its Markdown subset: [../../docs/guides/README.md](../../docs/guides/README.md)).
+`modern-iaf/menu/guide_screen.gd` reads the guide in the screen's language (English when a Hebrew one is missing)
+and writes each key as bound: a code span holding a key's default name as `data/keys.json` writes it (`Ctrl + T`)
+becomes the player's key for that command (the Keys screen's, the Mac's ⌘).
+
+No mock-up was drawn for this screen in the round-3 theme (the round-2 notebook mock-ups showed a two-page notebook
+spread with a contents list, in the old grey theme). It follows the Settings screen's frame in the roundel theme:
+
+| what | where, from what |
+|---|---|
+| the top bar | the Hangar crumb and Pilot guide / מדריך טיסה |
+| the title | Pilot guide and the jet's full name under it |
+| the contents | at the inline start, a tab per `##` section of the guide; a click or Enter scrolls the text to it, and the lit tab follows the scroll (`spy`, the Keys screen's) |
+| the text | the guide in the front end's font and colours, right to left in Hebrew: tables in the navy panels, pictures up to 1,000 px wide with their captions |
+| the foot | Back to the hangar (Esc too) |
+
+Scrolling: the mouse wheel over the text; PgUp / PgDn a page and Home / End to its ends wherever the focus is; the
+arrows (a gamepad's d-pad) step the text while it has the focus. From a tab the arrow toward the text focuses it, and
+the arrow back returns to the lit tab.
+
+`modern-iaf/tests/test_hangar.gd` opens each jet's guide from the card in both languages: the contents, the text in
+the screen's language with the keys, a tab scrolling, PgDn, the arrows in the text, Esc back; a rebound key read in
+the guide. `_front_end_shot.gd` takes its pictures (§1).

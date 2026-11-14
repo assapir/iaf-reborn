@@ -3,17 +3,21 @@
 # wheel, the page's own ‹ › and the owner's keys (turn) turn the pages, past a section's last page into the next one.
 # No key hints, no clip, no mission title on it. Laid out on the front end's 1080-high canvas (W x H px), mirrored in
 # Hebrew (the tabs down the left edge). The flight's kneeboard (kneeboard.gd) holds one.
-# A section: {"id", "tab": its tab's text, "title", "red": the emergency tab's red, "blocks": BBCode paragraphs}; the
-# page breaks fall between blocks (a block taller than a page has a page of its own, cut off at its foot).
+# A section: {"id", "tab": its tab's text, "title", "red": the emergency tab's red, "blocks": BBCode paragraphs or
+# pictures ({"image": a file, "caption"}, guide_md.gd's), and optionally "titles": each block's page title (a page
+# shows its first block's) and "breaks": the blocks that start a page}; the page breaks fall between blocks (a block
+# taller than a page has a page of its own, cut off at its foot).
 extends Control
 
 ## The page shown changed (a tab, a turn).
 signal turned
 
 const WizardTheme := preload("../setup/wizard_theme.gd")
+const Img := preload("res://shared/util/img.gd")
 const W := 460.0
 const H := 620.0
-## The tabs' strip on the outer edge, each tab's height and the gap between them.
+## The tabs' strip on the outer edge, each tab's height (at most: less when they would pass the board's foot) and the
+## gap between them.
 const TAB_W := 38.0
 const TAB_H := 78.0
 const TAB_GAP := 4.0
@@ -50,6 +54,7 @@ var _measure: RichTextLabel
 var _title: Label
 var _count: Label
 var _fonts := {}
+var _textures := {}  # a picture block's file -> its texture
 
 
 func _init() -> void:
@@ -82,6 +87,7 @@ func _rich() -> RichTextLabel:
 	r.add_theme_font_size_override("normal_font_size", BODY_PX)
 	r.add_theme_font_size_override("bold_font_size", BODY_PX)
 	r.add_theme_font_size_override("italics_font_size", BODY_PX)
+	r.add_theme_font_size_override("mono_font_size", BODY_PX)
 	r.add_theme_constant_override("line_separation", 1)
 	r.add_theme_constant_override("table_h_separation", 6)
 	return r
@@ -180,10 +186,11 @@ func body_height() -> float:
 func tab_rect(i: int) -> Rect2:
 	var on := i == tab
 	var w := TAB_W + (8.0 if on else 0.0)
+	var tab_h := minf(TAB_H, (H - TAB_TOP - 14.0 + TAB_GAP) / maxf(sections.size(), 1.0) - TAB_GAP)
 	var x := W - TAB_W - 2.0 - (8.0 if on else 0.0)
 	if rtl:
 		x = W - x - w
-	return Rect2(x, TAB_TOP + i * (TAB_H + TAB_GAP), w, TAB_H)
+	return Rect2(x, TAB_TOP + i * (tab_h + TAB_GAP), w, tab_h)
 
 
 ## The footer's ‹ and › (previous, next) hit rects, in reading order's sides.
@@ -214,6 +221,7 @@ func _set_fonts() -> void:
 		r.add_theme_font_override("normal_font", regular)
 		r.add_theme_font_override("bold_font", bold)
 		r.add_theme_font_override("italics_font", italic)
+		r.add_theme_font_override("mono_font", regular)
 	_title.add_theme_font_override("font", bold)
 	_count.add_theme_font_override("font", regular)
 
@@ -234,11 +242,12 @@ func _paginate(s: Dictionary) -> Array:
 	var first := 0
 	var y := 0.0
 	var blocks: Array = s.blocks
+	var breaks: Array = s.get("breaks", [])
 	var sep := float(_body.get_theme_constant("paragraph_separation"))
 	for i in blocks.size():
-		_measure.text = String(blocks[i])
+		_fill(_measure, [blocks[i]])
 		var h := float(_measure.get_content_height()) + sep
-		if i > first and y + h > body_height():
+		if i > first and (y + h > body_height() or i in breaks):
 			pages.append([first, i])
 			first = i
 			y = 0.0
@@ -252,11 +261,30 @@ func _show() -> void:
 		return
 	var s: Dictionary = sections[tab]
 	var span: Array = _pages[tab][page]
-	_title.text = String(s.title)
-	_body.text = "\n".join(s.blocks.slice(int(span[0]), int(span[1])))
+	_title.text = String(s.titles[int(span[0])]) if s.has("titles") else String(s.title)
+	_fill(_body, s.blocks.slice(int(span[0]), int(span[1])))
 	_count.text = "%d / %d" % [page + 1, _pages[tab].size()]
 	queue_redraw()
 	turned.emit()
+
+
+## `blocks` into `r`, a line apart: the text as BBCode, a picture at the body's width at most with its caption.
+func _fill(r: RichTextLabel, blocks: Array) -> void:
+	r.clear()
+	for k in blocks.size():
+		var b = blocks[k]
+		if k > 0:
+			r.append_text("\n")
+		if b is String:
+			r.append_text(b)
+			continue
+		if not _textures.has(b.image):
+			_textures[b.image] = Img.load_texture(b.image, true)
+		var tex: Texture2D = _textures[b.image]
+		if tex != null:
+			r.append_text("[center]")
+			r.add_image(tex, int(minf(r.size.x, tex.get_width())))
+			r.append_text("\n[font_size=%d][i]%s[/i][/font_size][/center]" % [SMALL_PX, b.caption])
 
 
 func _gui_input(event: InputEvent) -> void:

@@ -5,10 +5,10 @@
 # front end in a viewport of that size, whatever the window's) with the sample pilot log and debrief of
 # test_front_end.gd (debrief_fail: its take-off with the gear never raised; fly_again: the debrief's Fly again).
 # SHOT_ONLY=<screen> takes that screen alone (e.g. SHOT_ONLY=hangar). nodata_hangar / nodata_mission: a fresh install
-# (IAF_ASSETS_DIR an empty folder for those two).
+# (IAF_ASSETS_DIR an empty folder for those two). SHOT_SIZE=<w>x<h>: another size than 1920×1080 (the layout checks).
 extends "res://../tests/godot/base.gd"
 
-const SCREENS := ["hangar", "mission", "debrief", "debrief_fail", "fly_again", "log", "credits"]
+const SCREENS := ["hangar", "mission", "debrief", "debrief_fail", "fly_again", "log", "credits", "guide"]
 
 
 func run() -> void:
@@ -21,6 +21,9 @@ func run() -> void:
 	s.sim_jet = "f16i"
 	var vp := SubViewport.new()
 	vp.size = Vector2i(1920, 1080)
+	var size := OS.get_environment("SHOT_SIZE").split("x")
+	if size.size() == 2:
+		vp.size = Vector2i(int(size[0]), int(size[1]))
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	root.add_child(vp)
 	var fe: Control = load("res://main.tscn").instantiate()
